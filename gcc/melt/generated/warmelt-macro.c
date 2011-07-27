@@ -1,18 +1,6 @@
 /* GCC MELT GENERATED FILE warmelt-macro.c - DO NOT EDIT */
 
-/***+ warmelt-macro.c without options +***/
-
-#ifndef MELTGCC_DYNAMIC_OBJSTRUCT
-/* version string of the gcc compiler generating this file: */
-const char genversionstr_melt[] =
-  "4.7.0 20110725 (experimental) [melt-branch revision 176766] MELT_0.9pre";
-
-
-/* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[] = "bdce4d08b88ac2098246276ae8fc5e5b";
-
-#endif /*MELTGCC_DYNAMIC_OBJSTRUCT */
-
+/***+ warmelt-macro without options +***/
 #include "melt-run.h"
 
 
@@ -20,7 +8,7 @@ const char md5prepromeltrun_melt[] = "bdce4d08b88ac2098246276ae8fc5e5b";
 const char used_meltrun_md5_melt[] = MELT_RUN_HASHMD5 /* from melt-run.h */ ;
 
 
-/**** warmelt-macro.c declarations ****/
+/**** warmelt-macro declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
 struct melt_callframe_st;	/*defined in melt-runtime.h */
@@ -1822,7 +1810,7 @@ static void forward_or_mark_module_start_frame_warmelt_macro (struct
 							      int marking);
 
 
-/**** warmelt-macro.c implementations ****/
+/**** warmelt-macro implementations ****/
 
 
 
@@ -3748,7 +3736,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   dbgprintf ("start initialize_module_meltdata_warmelt_macro iniframp__=%p",
 	     (void *) iniframp__);
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -1341);
+		  iniframp__->mcfr_nbvar == /*minihash */ -3935);
 
   struct cdata_st
   {
@@ -5337,7 +5325,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_7.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_7.obj_num = 0;
-  cdat->dobj_7.obj_hash = 877368334;
+  cdat->dobj_7.obj_hash = 724398769;
   cdat->dobj_7.obj_len = 2;
 
   /*inimult dtup_8__IS_RECURSIVELY_CONSTRUCTIBLE */
@@ -5363,7 +5351,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_9__IS_RECURSIVELY_CONSTRUCTIBLE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V7*/ meltfptr[6]);
-  cdat->dobj_9__IS_RECURSIVELY_CONSTRUCTIBLE.obj_hash = 291249841;
+  cdat->dobj_9__IS_RECURSIVELY_CONSTRUCTIBLE.obj_hash = 750425080;
   cdat->dobj_9__IS_RECURSIVELY_CONSTRUCTIBLE.obj_len = 4;
 
 
@@ -5449,7 +5437,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_15__CLASS_SOURCE_LAZY_MACRO_EXPANSION.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_15__CLASS_SOURCE_LAZY_MACRO_EXPANSION.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_15__CLASS_SOURCE_LAZY_MACRO_EXPANSION.obj_hash = 184513547;
+  cdat->dobj_15__CLASS_SOURCE_LAZY_MACRO_EXPANSION.obj_hash = 293764800;
   cdat->dobj_15__CLASS_SOURCE_LAZY_MACRO_EXPANSION.obj_len = 8;
 
 
@@ -5517,7 +5505,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_21__SLAZYMACRO_FUN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_21__SLAZYMACRO_FUN.obj_num = 2;
-  cdat->dobj_21__SLAZYMACRO_FUN.obj_hash = 678169476;
+  cdat->dobj_21__SLAZYMACRO_FUN.obj_hash = 477104022;
   cdat->dobj_21__SLAZYMACRO_FUN.obj_len = 4;
 
 
@@ -5573,7 +5561,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_25__SLAZYMACRO_OPER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_25__SLAZYMACRO_OPER.obj_num = 3;
-  cdat->dobj_25__SLAZYMACRO_OPER.obj_hash = 33392802;
+  cdat->dobj_25__SLAZYMACRO_OPER.obj_hash = 652571460;
   cdat->dobj_25__SLAZYMACRO_OPER.obj_len = 4;
 
 
@@ -5632,7 +5620,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_29__CLASS_SOURCE_ARGUMENTED_OPERATOR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_29__CLASS_SOURCE_ARGUMENTED_OPERATOR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_29__CLASS_SOURCE_ARGUMENTED_OPERATOR.obj_hash = 165676678;
+  cdat->dobj_29__CLASS_SOURCE_ARGUMENTED_OPERATOR.obj_hash = 512595075;
   cdat->dobj_29__CLASS_SOURCE_ARGUMENTED_OPERATOR.obj_len = 8;
 
 
@@ -5698,7 +5686,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_35__SARGOP_ARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_35__SARGOP_ARGS.obj_num = 2;
-  cdat->dobj_35__SARGOP_ARGS.obj_hash = 762584444;
+  cdat->dobj_35__SARGOP_ARGS.obj_hash = 516441794;
   cdat->dobj_35__SARGOP_ARGS.obj_len = 4;
 
 
@@ -5754,7 +5742,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_39__CLASS_SOURCE_APPLY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_39__CLASS_SOURCE_APPLY.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_39__CLASS_SOURCE_APPLY.obj_hash = 650094848;
+  cdat->dobj_39__CLASS_SOURCE_APPLY.obj_hash = 156426839;
   cdat->dobj_39__CLASS_SOURCE_APPLY.obj_len = 8;
 
 
@@ -5821,7 +5809,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_45__SAPP_FUN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_45__SAPP_FUN.obj_num = 3;
-  cdat->dobj_45__SAPP_FUN.obj_hash = 188946014;
+  cdat->dobj_45__SAPP_FUN.obj_hash = 576096377;
   cdat->dobj_45__SAPP_FUN.obj_len = 4;
 
 
@@ -5877,7 +5865,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_49__CLASS_SOURCE_MSEND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_49__CLASS_SOURCE_MSEND.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_49__CLASS_SOURCE_MSEND.obj_hash = 475268275;
+  cdat->dobj_49__CLASS_SOURCE_MSEND.obj_hash = 178068988;
   cdat->dobj_49__CLASS_SOURCE_MSEND.obj_len = 8;
 
 
@@ -5946,7 +5934,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_55__MSEND_SELSYMB.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_55__MSEND_SELSYMB.obj_num = 3;
-  cdat->dobj_55__MSEND_SELSYMB.obj_hash = 697054613;
+  cdat->dobj_55__MSEND_SELSYMB.obj_hash = 957806905;
   cdat->dobj_55__MSEND_SELSYMB.obj_len = 4;
 
 
@@ -6000,7 +5988,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_59__MSEND_RECV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_59__MSEND_RECV.obj_num = 4;
-  cdat->dobj_59__MSEND_RECV.obj_hash = 814652474;
+  cdat->dobj_59__MSEND_RECV.obj_hash = 259868571;
   cdat->dobj_59__MSEND_RECV.obj_len = 4;
 
 
@@ -6058,7 +6046,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_63__CLASS_SOURCE_PRIMITIVE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_63__CLASS_SOURCE_PRIMITIVE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_63__CLASS_SOURCE_PRIMITIVE.obj_hash = 340475701;
+  cdat->dobj_63__CLASS_SOURCE_PRIMITIVE.obj_hash = 530966035;
   cdat->dobj_63__CLASS_SOURCE_PRIMITIVE.obj_len = 8;
 
 
@@ -6125,7 +6113,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_69__SPRIM_OPER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_69__SPRIM_OPER.obj_num = 3;
-  cdat->dobj_69__SPRIM_OPER.obj_hash = 797608242;
+  cdat->dobj_69__SPRIM_OPER.obj_hash = 760936802;
   cdat->dobj_69__SPRIM_OPER.obj_len = 4;
 
 
@@ -6183,7 +6171,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_73__CLASS_SOURCE_CITERATION.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_73__CLASS_SOURCE_CITERATION.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_73__CLASS_SOURCE_CITERATION.obj_hash = 236713787;
+  cdat->dobj_73__CLASS_SOURCE_CITERATION.obj_hash = 310045410;
   cdat->dobj_73__CLASS_SOURCE_CITERATION.obj_len = 8;
 
 
@@ -6250,7 +6238,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_79__SCITER_OPER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_79__SCITER_OPER.obj_num = 3;
-  cdat->dobj_79__SCITER_OPER.obj_hash = 804129695;
+  cdat->dobj_79__SCITER_OPER.obj_hash = 497900562;
   cdat->dobj_79__SCITER_OPER.obj_len = 4;
 
 
@@ -6305,7 +6293,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_83__SCITER_VARBIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_83__SCITER_VARBIND.obj_num = 4;
-  cdat->dobj_83__SCITER_VARBIND.obj_hash = 383865502;
+  cdat->dobj_83__SCITER_VARBIND.obj_hash = 82044559;
   cdat->dobj_83__SCITER_VARBIND.obj_len = 4;
 
 
@@ -6359,7 +6347,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_87__SCITER_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_87__SCITER_BODY.obj_num = 5;
-  cdat->dobj_87__SCITER_BODY.obj_hash = 826798490;
+  cdat->dobj_87__SCITER_BODY.obj_hash = 530608115;
   cdat->dobj_87__SCITER_BODY.obj_len = 4;
 
 
@@ -6417,7 +6405,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_91__CLASS_SOURCE_CMATCHEXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_91__CLASS_SOURCE_CMATCHEXPR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_91__CLASS_SOURCE_CMATCHEXPR.obj_hash = 851175455;
+  cdat->dobj_91__CLASS_SOURCE_CMATCHEXPR.obj_hash = 400014637;
   cdat->dobj_91__CLASS_SOURCE_CMATCHEXPR.obj_len = 8;
 
 
@@ -6488,7 +6476,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_97__SCMATX_CMATCHER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_97__SCMATX_CMATCHER.obj_num = 3;
-  cdat->dobj_97__SCMATX_CMATCHER.obj_hash = 390701388;
+  cdat->dobj_97__SCMATX_CMATCHER.obj_hash = 418779574;
   cdat->dobj_97__SCMATX_CMATCHER.obj_len = 4;
 
 
@@ -6549,7 +6537,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_101__CLASS_SOURCE_FUNMATCHEXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_101__CLASS_SOURCE_FUNMATCHEXPR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_101__CLASS_SOURCE_FUNMATCHEXPR.obj_hash = 954963105;
+  cdat->dobj_101__CLASS_SOURCE_FUNMATCHEXPR.obj_hash = 809640358;
   cdat->dobj_101__CLASS_SOURCE_FUNMATCHEXPR.obj_len = 8;
 
 
@@ -6620,7 +6608,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_107__SFMATX_FMATCHER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_107__SFMATX_FMATCHER.obj_num = 3;
-  cdat->dobj_107__SFMATX_FMATCHER.obj_hash = 388714399;
+  cdat->dobj_107__SFMATX_FMATCHER.obj_hash = 749436533;
   cdat->dobj_107__SFMATX_FMATCHER.obj_len = 4;
 
 
@@ -6679,7 +6667,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_111__SFMATX_FMATBIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_111__SFMATX_FMATBIND.obj_num = 4;
-  cdat->dobj_111__SFMATX_FMATBIND.obj_hash = 302274509;
+  cdat->dobj_111__SFMATX_FMATBIND.obj_hash = 98528454;
   cdat->dobj_111__SFMATX_FMATBIND.obj_len = 4;
 
 
@@ -6738,7 +6726,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_115__CLASS_SOURCE_TUPLE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_115__CLASS_SOURCE_TUPLE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_115__CLASS_SOURCE_TUPLE.obj_hash = 56825483;
+  cdat->dobj_115__CLASS_SOURCE_TUPLE.obj_hash = 906766737;
   cdat->dobj_115__CLASS_SOURCE_TUPLE.obj_len = 8;
 
 
@@ -6809,7 +6797,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_121__CLASS_SOURCE_LIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_121__CLASS_SOURCE_LIST.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_121__CLASS_SOURCE_LIST.obj_hash = 44714292;
+  cdat->dobj_121__CLASS_SOURCE_LIST.obj_hash = 1045096493;
   cdat->dobj_121__CLASS_SOURCE_LIST.obj_len = 8;
 
 
@@ -6880,7 +6868,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_127__CLASS_SOURCE_PROGN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_127__CLASS_SOURCE_PROGN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_127__CLASS_SOURCE_PROGN.obj_hash = 220558175;
+  cdat->dobj_127__CLASS_SOURCE_PROGN.obj_hash = 174250562;
   cdat->dobj_127__CLASS_SOURCE_PROGN.obj_len = 8;
 
 
@@ -6948,7 +6936,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_133__SPROGN_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_133__SPROGN_BODY.obj_num = 2;
-  cdat->dobj_133__SPROGN_BODY.obj_hash = 547296873;
+  cdat->dobj_133__SPROGN_BODY.obj_hash = 170678581;
   cdat->dobj_133__SPROGN_BODY.obj_len = 4;
 
 
@@ -7005,7 +6993,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_137__CLASS_SOURCE_RETURN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_137__CLASS_SOURCE_RETURN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_137__CLASS_SOURCE_RETURN.obj_hash = 128343212;
+  cdat->dobj_137__CLASS_SOURCE_RETURN.obj_hash = 174865629;
   cdat->dobj_137__CLASS_SOURCE_RETURN.obj_len = 8;
 
 
@@ -7076,7 +7064,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_143__CLASS_SOURCE_SETQ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_143__CLASS_SOURCE_SETQ.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_143__CLASS_SOURCE_SETQ.obj_hash = 920941893;
+  cdat->dobj_143__CLASS_SOURCE_SETQ.obj_hash = 887667798;
   cdat->dobj_143__CLASS_SOURCE_SETQ.obj_len = 8;
 
 
@@ -7143,7 +7131,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_149__SSTQ_VAR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_149__SSTQ_VAR.obj_num = 2;
-  cdat->dobj_149__SSTQ_VAR.obj_hash = 501829879;
+  cdat->dobj_149__SSTQ_VAR.obj_hash = 928543782;
   cdat->dobj_149__SSTQ_VAR.obj_len = 4;
 
 
@@ -7195,7 +7183,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_153__SSTQ_EXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_153__SSTQ_EXPR.obj_num = 3;
-  cdat->dobj_153__SSTQ_EXPR.obj_hash = 31154573;
+  cdat->dobj_153__SSTQ_EXPR.obj_hash = 470271063;
   cdat->dobj_153__SSTQ_EXPR.obj_len = 4;
 
 
@@ -7251,7 +7239,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_157__CLASS_SOURCE_COMMENT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_157__CLASS_SOURCE_COMMENT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_157__CLASS_SOURCE_COMMENT.obj_hash = 8277077;
+  cdat->dobj_157__CLASS_SOURCE_COMMENT.obj_hash = 18826303;
   cdat->dobj_157__CLASS_SOURCE_COMMENT.obj_len = 8;
 
 
@@ -7318,7 +7306,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_163__SCOMM_STR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_163__SCOMM_STR.obj_num = 2;
-  cdat->dobj_163__SCOMM_STR.obj_hash = 356401810;
+  cdat->dobj_163__SCOMM_STR.obj_hash = 130101902;
   cdat->dobj_163__SCOMM_STR.obj_len = 4;
 
 
@@ -7374,7 +7362,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_167__CLASS_SOURCE_QUOTE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_167__CLASS_SOURCE_QUOTE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_167__CLASS_SOURCE_QUOTE.obj_hash = 636515665;
+  cdat->dobj_167__CLASS_SOURCE_QUOTE.obj_hash = 557886416;
   cdat->dobj_167__CLASS_SOURCE_QUOTE.obj_len = 8;
 
 
@@ -7441,7 +7429,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_173__SQUOTED.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_173__SQUOTED.obj_num = 2;
-  cdat->dobj_173__SQUOTED.obj_hash = 237818720;
+  cdat->dobj_173__SQUOTED.obj_hash = 759985993;
   cdat->dobj_173__SQUOTED.obj_len = 4;
 
 
@@ -7499,7 +7487,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_177__CLASS_SOURCE_EXPORTCOMMON.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_177__CLASS_SOURCE_EXPORTCOMMON.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_177__CLASS_SOURCE_EXPORTCOMMON.obj_hash = 683848785;
+  cdat->dobj_177__CLASS_SOURCE_EXPORTCOMMON.obj_hash = 1046858029;
   cdat->dobj_177__CLASS_SOURCE_EXPORTCOMMON.obj_len = 8;
 
 
@@ -7569,7 +7557,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_183__SEXPORT_NAMES.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_183__SEXPORT_NAMES.obj_num = 2;
-  cdat->dobj_183__SEXPORT_NAMES.obj_hash = 700266723;
+  cdat->dobj_183__SEXPORT_NAMES.obj_hash = 877230312;
   cdat->dobj_183__SEXPORT_NAMES.obj_len = 4;
 
 
@@ -7629,7 +7617,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_187__CLASS_SOURCE_EXPORT_VALUES.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_187__CLASS_SOURCE_EXPORT_VALUES.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_187__CLASS_SOURCE_EXPORT_VALUES.obj_hash = 369618756;
+  cdat->dobj_187__CLASS_SOURCE_EXPORT_VALUES.obj_hash = 916978932;
   cdat->dobj_187__CLASS_SOURCE_EXPORT_VALUES.obj_len = 8;
 
 
@@ -7702,7 +7690,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_193__CLASS_SOURCE_EXPORT_CLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_193__CLASS_SOURCE_EXPORT_CLASS.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_193__CLASS_SOURCE_EXPORT_CLASS.obj_hash = 787101878;
+  cdat->dobj_193__CLASS_SOURCE_EXPORT_CLASS.obj_hash = 848815488;
   cdat->dobj_193__CLASS_SOURCE_EXPORT_CLASS.obj_len = 8;
 
 
@@ -7775,7 +7763,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_199__CLASS_SOURCE_EXPORT_MACRO.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_199__CLASS_SOURCE_EXPORT_MACRO.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_199__CLASS_SOURCE_EXPORT_MACRO.obj_hash = 743544409;
+  cdat->dobj_199__CLASS_SOURCE_EXPORT_MACRO.obj_hash = 590891123;
   cdat->dobj_199__CLASS_SOURCE_EXPORT_MACRO.obj_len = 8;
 
 
@@ -7845,7 +7833,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_205__SEXPMAC_MNAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_205__SEXPMAC_MNAME.obj_num = 2;
-  cdat->dobj_205__SEXPMAC_MNAME.obj_hash = 357351050;
+  cdat->dobj_205__SEXPMAC_MNAME.obj_hash = 821483165;
   cdat->dobj_205__SEXPMAC_MNAME.obj_len = 4;
 
 
@@ -7901,7 +7889,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_209__SEXPMAC_MVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_209__SEXPMAC_MVAL.obj_num = 3;
-  cdat->dobj_209__SEXPMAC_MVAL.obj_hash = 235134274;
+  cdat->dobj_209__SEXPMAC_MVAL.obj_hash = 51710205;
   cdat->dobj_209__SEXPMAC_MVAL.obj_len = 4;
 
 
@@ -7956,7 +7944,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_213__SEXPMAC_DOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_213__SEXPMAC_DOC.obj_num = 4;
-  cdat->dobj_213__SEXPMAC_DOC.obj_hash = 93262694;
+  cdat->dobj_213__SEXPMAC_DOC.obj_hash = 362516032;
   cdat->dobj_213__SEXPMAC_DOC.obj_len = 4;
 
 
@@ -8015,7 +8003,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_217__CLASS_SOURCE_EXPORT_PATMACRO.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_217__CLASS_SOURCE_EXPORT_PATMACRO.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_217__CLASS_SOURCE_EXPORT_PATMACRO.obj_hash = 93745591;
+  cdat->dobj_217__CLASS_SOURCE_EXPORT_PATMACRO.obj_hash = 92044107;
   cdat->dobj_217__CLASS_SOURCE_EXPORT_PATMACRO.obj_len = 8;
 
 
@@ -8084,7 +8072,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_223__SEXPPAT_PVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_223__SEXPPAT_PVAL.obj_num = 5;
-  cdat->dobj_223__SEXPPAT_PVAL.obj_hash = 646080077;
+  cdat->dobj_223__SEXPPAT_PVAL.obj_hash = 456309259;
   cdat->dobj_223__SEXPPAT_PVAL.obj_len = 4;
 
 
@@ -8144,7 +8132,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_227__CLASS_SOURCE_EXPORT_SYNONYM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_227__CLASS_SOURCE_EXPORT_SYNONYM.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_227__CLASS_SOURCE_EXPORT_SYNONYM.obj_hash = 27560485;
+  cdat->dobj_227__CLASS_SOURCE_EXPORT_SYNONYM.obj_hash = 279589354;
   cdat->dobj_227__CLASS_SOURCE_EXPORT_SYNONYM.obj_len = 8;
 
 
@@ -8215,7 +8203,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_233__SEXPSYN_NEWNAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_233__SEXPSYN_NEWNAME.obj_num = 2;
-  cdat->dobj_233__SEXPSYN_NEWNAME.obj_hash = 605732731;
+  cdat->dobj_233__SEXPSYN_NEWNAME.obj_hash = 995717977;
   cdat->dobj_233__SEXPSYN_NEWNAME.obj_len = 4;
 
 
@@ -8274,7 +8262,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_237__SEXPSYN_OLDNAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_237__SEXPSYN_OLDNAME.obj_num = 3;
-  cdat->dobj_237__SEXPSYN_OLDNAME.obj_hash = 977976377;
+  cdat->dobj_237__SEXPSYN_OLDNAME.obj_hash = 1072819086;
   cdat->dobj_237__SEXPSYN_OLDNAME.obj_len = 4;
 
 
@@ -8330,7 +8318,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_241__SEXPSYN_DOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_241__SEXPSYN_DOC.obj_num = 4;
-  cdat->dobj_241__SEXPSYN_DOC.obj_hash = 694461045;
+  cdat->dobj_241__SEXPSYN_DOC.obj_hash = 144751549;
   cdat->dobj_241__SEXPSYN_DOC.obj_len = 4;
 
 
@@ -8389,7 +8377,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_245__CLASS_SOURCE_DEFINITION.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_245__CLASS_SOURCE_DEFINITION.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_245__CLASS_SOURCE_DEFINITION.obj_hash = 126044802;
+  cdat->dobj_245__CLASS_SOURCE_DEFINITION.obj_hash = 21020191;
   cdat->dobj_245__CLASS_SOURCE_DEFINITION.obj_len = 8;
 
 
@@ -8456,7 +8444,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_251__SDEF_NAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_251__SDEF_NAME.obj_num = 2;
-  cdat->dobj_251__SDEF_NAME.obj_hash = 875197565;
+  cdat->dobj_251__SDEF_NAME.obj_hash = 938813052;
   cdat->dobj_251__SDEF_NAME.obj_len = 4;
 
 
@@ -8508,7 +8496,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_255__SDEF_DOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_255__SDEF_DOC.obj_num = 3;
-  cdat->dobj_255__SDEF_DOC.obj_hash = 453428765;
+  cdat->dobj_255__SDEF_DOC.obj_hash = 959677562;
   cdat->dobj_255__SDEF_DOC.obj_len = 4;
 
 
@@ -8564,7 +8552,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_259__CLASS_SOURCE_DEFINE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_259__CLASS_SOURCE_DEFINE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_259__CLASS_SOURCE_DEFINE.obj_hash = 760089555;
+  cdat->dobj_259__CLASS_SOURCE_DEFINE.obj_hash = 1060314587;
   cdat->dobj_259__CLASS_SOURCE_DEFINE.obj_len = 8;
 
 
@@ -8633,7 +8621,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_265__SDEFINE_EXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_265__SDEFINE_EXPR.obj_num = 4;
-  cdat->dobj_265__SDEFINE_EXPR.obj_hash = 817361489;
+  cdat->dobj_265__SDEFINE_EXPR.obj_hash = 808151770;
   cdat->dobj_265__SDEFINE_EXPR.obj_len = 4;
 
 
@@ -8693,7 +8681,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_269__CLASS_SOURCE_DEFINITION_FORMAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_269__CLASS_SOURCE_DEFINITION_FORMAL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_269__CLASS_SOURCE_DEFINITION_FORMAL.obj_hash = 254996614;
+  cdat->dobj_269__CLASS_SOURCE_DEFINITION_FORMAL.obj_hash = 630137722;
   cdat->dobj_269__CLASS_SOURCE_DEFINITION_FORMAL.obj_len = 8;
 
 
@@ -8762,7 +8750,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_275__SFORMAL_ARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_275__SFORMAL_ARGS.obj_num = 4;
-  cdat->dobj_275__SFORMAL_ARGS.obj_hash = 79143671;
+  cdat->dobj_275__SFORMAL_ARGS.obj_hash = 604157998;
   cdat->dobj_275__SFORMAL_ARGS.obj_len = 4;
 
 
@@ -8820,7 +8808,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_279__CLASS_SOURCE_DEFUN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_279__CLASS_SOURCE_DEFUN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_279__CLASS_SOURCE_DEFUN.obj_hash = 390165205;
+  cdat->dobj_279__CLASS_SOURCE_DEFUN.obj_hash = 857742731;
   cdat->dobj_279__CLASS_SOURCE_DEFUN.obj_len = 8;
 
 
@@ -8887,7 +8875,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_285__SFUN_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_285__SFUN_BODY.obj_num = 5;
-  cdat->dobj_285__SFUN_BODY.obj_hash = 415846337;
+  cdat->dobj_285__SFUN_BODY.obj_hash = 1056480651;
   cdat->dobj_285__SFUN_BODY.obj_len = 4;
 
 
@@ -8945,7 +8933,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_289__CLASS_SOURCE_DEFPRIMITIVE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_289__CLASS_SOURCE_DEFPRIMITIVE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_289__CLASS_SOURCE_DEFPRIMITIVE.obj_hash = 89435639;
+  cdat->dobj_289__CLASS_SOURCE_DEFPRIMITIVE.obj_hash = 304809534;
   cdat->dobj_289__CLASS_SOURCE_DEFPRIMITIVE.obj_len = 8;
 
 
@@ -9012,7 +9000,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_295__SPRIM_TYPE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_295__SPRIM_TYPE.obj_num = 5;
-  cdat->dobj_295__SPRIM_TYPE.obj_hash = 1058808658;
+  cdat->dobj_295__SPRIM_TYPE.obj_hash = 645869655;
   cdat->dobj_295__SPRIM_TYPE.obj_len = 4;
 
 
@@ -9068,7 +9056,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_299__SPRIM_EXPANSION.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_299__SPRIM_EXPANSION.obj_num = 6;
-  cdat->dobj_299__SPRIM_EXPANSION.obj_hash = 781089663;
+  cdat->dobj_299__SPRIM_EXPANSION.obj_hash = 1040338280;
   cdat->dobj_299__SPRIM_EXPANSION.obj_len = 4;
 
 
@@ -9129,7 +9117,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_303__CLASS_SOURCE_DEFCITERATOR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_303__CLASS_SOURCE_DEFCITERATOR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_303__CLASS_SOURCE_DEFCITERATOR.obj_hash = 12790544;
+  cdat->dobj_303__CLASS_SOURCE_DEFCITERATOR.obj_hash = 950905593;
   cdat->dobj_303__CLASS_SOURCE_DEFCITERATOR.obj_len = 8;
 
 
@@ -9200,7 +9188,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_309__SCITERDEF_CITERATOR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_309__SCITERDEF_CITERATOR.obj_num = 5;
-  cdat->dobj_309__SCITERDEF_CITERATOR.obj_hash = 365267267;
+  cdat->dobj_309__SCITERDEF_CITERATOR.obj_hash = 269234061;
   cdat->dobj_309__SCITERDEF_CITERATOR.obj_len = 4;
 
 
@@ -9261,7 +9249,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_313__CLASS_SOURCE_DEFCMATCHER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_313__CLASS_SOURCE_DEFCMATCHER.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_313__CLASS_SOURCE_DEFCMATCHER.obj_hash = 786533715;
+  cdat->dobj_313__CLASS_SOURCE_DEFCMATCHER.obj_hash = 823153953;
   cdat->dobj_313__CLASS_SOURCE_DEFCMATCHER.obj_len = 8;
 
 
@@ -9332,7 +9320,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_319__SCMATDEF_CMATCHER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_319__SCMATDEF_CMATCHER.obj_num = 5;
-  cdat->dobj_319__SCMATDEF_CMATCHER.obj_hash = 291739620;
+  cdat->dobj_319__SCMATDEF_CMATCHER.obj_hash = 472424532;
   cdat->dobj_319__SCMATDEF_CMATCHER.obj_len = 4;
 
 
@@ -9393,7 +9381,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_323__CLASS_SOURCE_DEFUNMATCHER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_323__CLASS_SOURCE_DEFUNMATCHER.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_323__CLASS_SOURCE_DEFUNMATCHER.obj_hash = 767903341;
+  cdat->dobj_323__CLASS_SOURCE_DEFUNMATCHER.obj_hash = 447154678;
   cdat->dobj_323__CLASS_SOURCE_DEFUNMATCHER.obj_len = 8;
 
 
@@ -9463,7 +9451,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_329__SFUMATDEF_INS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_329__SFUMATDEF_INS.obj_num = 5;
-  cdat->dobj_329__SFUMATDEF_INS.obj_hash = 945335714;
+  cdat->dobj_329__SFUMATDEF_INS.obj_hash = 211690672;
   cdat->dobj_329__SFUMATDEF_INS.obj_len = 4;
 
 
@@ -9521,7 +9509,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_333__SFUMATDEF_OUTS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_333__SFUMATDEF_OUTS.obj_num = 6;
-  cdat->dobj_333__SFUMATDEF_OUTS.obj_hash = 155967790;
+  cdat->dobj_333__SFUMATDEF_OUTS.obj_hash = 89069988;
   cdat->dobj_333__SFUMATDEF_OUTS.obj_len = 4;
 
 
@@ -9580,7 +9568,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_337__SFUMATDEF_MATCHF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_337__SFUMATDEF_MATCHF.obj_num = 7;
-  cdat->dobj_337__SFUMATDEF_MATCHF.obj_hash = 589142238;
+  cdat->dobj_337__SFUMATDEF_MATCHF.obj_hash = 578695574;
   cdat->dobj_337__SFUMATDEF_MATCHF.obj_len = 4;
 
 
@@ -9639,7 +9627,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_341__SFUMATDEF_APPLYF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_341__SFUMATDEF_APPLYF.obj_num = 8;
-  cdat->dobj_341__SFUMATDEF_APPLYF.obj_hash = 406755632;
+  cdat->dobj_341__SFUMATDEF_APPLYF.obj_hash = 799439306;
   cdat->dobj_341__SFUMATDEF_APPLYF.obj_len = 4;
 
 
@@ -9698,7 +9686,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_345__SFUMATDEF_DATA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_345__SFUMATDEF_DATA.obj_num = 9;
-  cdat->dobj_345__SFUMATDEF_DATA.obj_hash = 488734831;
+  cdat->dobj_345__SFUMATDEF_DATA.obj_hash = 808401116;
   cdat->dobj_345__SFUMATDEF_DATA.obj_len = 4;
 
 
@@ -9759,7 +9747,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_349__CLASS_SOURCE_DEFOBJCOMMON.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_349__CLASS_SOURCE_DEFOBJCOMMON.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_349__CLASS_SOURCE_DEFOBJCOMMON.obj_hash = 724214995;
+  cdat->dobj_349__CLASS_SOURCE_DEFOBJCOMMON.obj_hash = 819003237;
   cdat->dobj_349__CLASS_SOURCE_DEFOBJCOMMON.obj_len = 8;
 
 
@@ -9827,7 +9815,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_355__SOBJ_PREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_355__SOBJ_PREDEF.obj_num = 4;
-  cdat->dobj_355__SOBJ_PREDEF.obj_hash = 348791569;
+  cdat->dobj_355__SOBJ_PREDEF.obj_hash = 945467022;
   cdat->dobj_355__SOBJ_PREDEF.obj_len = 4;
 
 
@@ -9886,7 +9874,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_359__CLASS_SOURCE_DEFCLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_359__CLASS_SOURCE_DEFCLASS.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_359__CLASS_SOURCE_DEFCLASS.obj_hash = 866313075;
+  cdat->dobj_359__CLASS_SOURCE_DEFCLASS.obj_hash = 769582934;
   cdat->dobj_359__CLASS_SOURCE_DEFCLASS.obj_len = 8;
 
 
@@ -9957,7 +9945,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_365__SCLASS_CLABIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_365__SCLASS_CLABIND.obj_num = 5;
-  cdat->dobj_365__SCLASS_CLABIND.obj_hash = 1067314398;
+  cdat->dobj_365__SCLASS_CLABIND.obj_hash = 686288705;
   cdat->dobj_365__SCLASS_CLABIND.obj_len = 4;
 
 
@@ -10016,7 +10004,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_369__SCLASS_SUPERBIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_369__SCLASS_SUPERBIND.obj_num = 6;
-  cdat->dobj_369__SCLASS_SUPERBIND.obj_hash = 222506319;
+  cdat->dobj_369__SCLASS_SUPERBIND.obj_hash = 184005331;
   cdat->dobj_369__SCLASS_SUPERBIND.obj_len = 4;
 
 
@@ -10075,7 +10063,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_373__SCLASS_FLDBINDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_373__SCLASS_FLDBINDS.obj_num = 7;
-  cdat->dobj_373__SCLASS_FLDBINDS.obj_hash = 1049272915;
+  cdat->dobj_373__SCLASS_FLDBINDS.obj_hash = 243044117;
   cdat->dobj_373__SCLASS_FLDBINDS.obj_len = 4;
 
 
@@ -10136,7 +10124,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_377__CLASS_SOURCE_DEFINSTANCE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_377__CLASS_SOURCE_DEFINSTANCE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_377__CLASS_SOURCE_DEFINSTANCE.obj_hash = 429946874;
+  cdat->dobj_377__CLASS_SOURCE_DEFINSTANCE.obj_hash = 663240542;
   cdat->dobj_377__CLASS_SOURCE_DEFINSTANCE.obj_len = 8;
 
 
@@ -10204,7 +10192,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_383__SINST_CLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_383__SINST_CLASS.obj_num = 5;
-  cdat->dobj_383__SINST_CLASS.obj_hash = 507684177;
+  cdat->dobj_383__SINST_CLASS.obj_hash = 953787484;
   cdat->dobj_383__SINST_CLASS.obj_len = 4;
 
 
@@ -10260,7 +10248,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_387__SINST_CLABIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_387__SINST_CLABIND.obj_num = 6;
-  cdat->dobj_387__SINST_CLABIND.obj_hash = 605616686;
+  cdat->dobj_387__SINST_CLABIND.obj_hash = 945518542;
   cdat->dobj_387__SINST_CLABIND.obj_len = 4;
 
 
@@ -10316,7 +10304,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_391__SINST_OBJNUM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_391__SINST_OBJNUM.obj_num = 7;
-  cdat->dobj_391__SINST_OBJNUM.obj_hash = 37512860;
+  cdat->dobj_391__SINST_OBJNUM.obj_hash = 593587386;
   cdat->dobj_391__SINST_OBJNUM.obj_len = 4;
 
 
@@ -10372,7 +10360,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_395__SINST_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_395__SINST_FIELDS.obj_num = 8;
-  cdat->dobj_395__SINST_FIELDS.obj_hash = 430964247;
+  cdat->dobj_395__SINST_FIELDS.obj_hash = 269548016;
   cdat->dobj_395__SINST_FIELDS.obj_len = 4;
 
 
@@ -10432,7 +10420,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_399__CLASS_SOURCE_DEFSELECTOR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_399__CLASS_SOURCE_DEFSELECTOR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_399__CLASS_SOURCE_DEFSELECTOR.obj_hash = 872488869;
+  cdat->dobj_399__CLASS_SOURCE_DEFSELECTOR.obj_hash = 495435408;
   cdat->dobj_399__CLASS_SOURCE_DEFSELECTOR.obj_len = 8;
 
 
@@ -10503,7 +10491,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_405__SDEFSEL_FORMALS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_405__SDEFSEL_FORMALS.obj_num = 9;
-  cdat->dobj_405__SDEFSEL_FORMALS.obj_hash = 804120564;
+  cdat->dobj_405__SDEFSEL_FORMALS.obj_hash = 307050370;
   cdat->dobj_405__SDEFSEL_FORMALS.obj_len = 4;
 
 
@@ -10564,7 +10552,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_409__CLASS_SOURCE_FIELDASSIGN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_409__CLASS_SOURCE_FIELDASSIGN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_409__CLASS_SOURCE_FIELDASSIGN.obj_hash = 442730429;
+  cdat->dobj_409__CLASS_SOURCE_FIELDASSIGN.obj_hash = 170751078;
   cdat->dobj_409__CLASS_SOURCE_FIELDASSIGN.obj_len = 8;
 
 
@@ -10631,7 +10619,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_415__SFLA_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_415__SFLA_FIELD.obj_num = 2;
-  cdat->dobj_415__SFLA_FIELD.obj_hash = 234291497;
+  cdat->dobj_415__SFLA_FIELD.obj_hash = 314055706;
   cdat->dobj_415__SFLA_FIELD.obj_len = 4;
 
 
@@ -10683,7 +10671,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_419__SFLA_EXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_419__SFLA_EXPR.obj_num = 3;
-  cdat->dobj_419__SFLA_EXPR.obj_hash = 654283724;
+  cdat->dobj_419__SFLA_EXPR.obj_hash = 925452146;
   cdat->dobj_419__SFLA_EXPR.obj_len = 4;
 
 
@@ -10741,7 +10729,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_423__CLASS_SOURCE_INSTANCE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_423__CLASS_SOURCE_INSTANCE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_423__CLASS_SOURCE_INSTANCE.obj_hash = 234096618;
+  cdat->dobj_423__CLASS_SOURCE_INSTANCE.obj_hash = 269481555;
   cdat->dobj_423__CLASS_SOURCE_INSTANCE.obj_len = 8;
 
 
@@ -10809,7 +10797,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_429__SMINS_CLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_429__SMINS_CLASS.obj_num = 2;
-  cdat->dobj_429__SMINS_CLASS.obj_hash = 612852627;
+  cdat->dobj_429__SMINS_CLASS.obj_hash = 1067333753;
   cdat->dobj_429__SMINS_CLASS.obj_len = 4;
 
 
@@ -10865,7 +10853,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_433__SMINS_CLABIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_433__SMINS_CLABIND.obj_num = 3;
-  cdat->dobj_433__SMINS_CLABIND.obj_hash = 335740100;
+  cdat->dobj_433__SMINS_CLABIND.obj_hash = 500800974;
   cdat->dobj_433__SMINS_CLABIND.obj_len = 4;
 
 
@@ -10921,7 +10909,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_437__SMINS_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_437__SMINS_FIELDS.obj_num = 4;
-  cdat->dobj_437__SMINS_FIELDS.obj_hash = 422972408;
+  cdat->dobj_437__SMINS_FIELDS.obj_hash = 660826439;
   cdat->dobj_437__SMINS_FIELDS.obj_len = 4;
 
 
@@ -10981,7 +10969,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_441__CLASS_SOURCE_GET_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_441__CLASS_SOURCE_GET_FIELD.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_441__CLASS_SOURCE_GET_FIELD.obj_hash = 641998518;
+  cdat->dobj_441__CLASS_SOURCE_GET_FIELD.obj_hash = 424027816;
   cdat->dobj_441__CLASS_SOURCE_GET_FIELD.obj_len = 8;
 
 
@@ -11048,7 +11036,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_447__SUGET_OBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_447__SUGET_OBJ.obj_num = 2;
-  cdat->dobj_447__SUGET_OBJ.obj_hash = 1072081993;
+  cdat->dobj_447__SUGET_OBJ.obj_hash = 738259236;
   cdat->dobj_447__SUGET_OBJ.obj_len = 4;
 
 
@@ -11101,7 +11089,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_451__SUGET_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_451__SUGET_FIELD.obj_num = 3;
-  cdat->dobj_451__SUGET_FIELD.obj_hash = 602355946;
+  cdat->dobj_451__SUGET_FIELD.obj_hash = 654968321;
   cdat->dobj_451__SUGET_FIELD.obj_len = 4;
 
 
@@ -11160,7 +11148,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_455__CLASS_SOURCE_UNSAFE_GET_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_455__CLASS_SOURCE_UNSAFE_GET_FIELD.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_455__CLASS_SOURCE_UNSAFE_GET_FIELD.obj_hash = 76452261;
+  cdat->dobj_455__CLASS_SOURCE_UNSAFE_GET_FIELD.obj_hash = 774935994;
   cdat->dobj_455__CLASS_SOURCE_UNSAFE_GET_FIELD.obj_len = 8;
 
 
@@ -11233,7 +11221,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_461__CLASS_SOURCE_PUT_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_461__CLASS_SOURCE_PUT_FIELDS.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_461__CLASS_SOURCE_PUT_FIELDS.obj_hash = 697444438;
+  cdat->dobj_461__CLASS_SOURCE_PUT_FIELDS.obj_hash = 799293983;
   cdat->dobj_461__CLASS_SOURCE_PUT_FIELDS.obj_len = 8;
 
 
@@ -11300,7 +11288,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_467__SUPUT_OBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_467__SUPUT_OBJ.obj_num = 2;
-  cdat->dobj_467__SUPUT_OBJ.obj_hash = 119669296;
+  cdat->dobj_467__SUPUT_OBJ.obj_hash = 581416306;
   cdat->dobj_467__SUPUT_OBJ.obj_len = 4;
 
 
@@ -11354,7 +11342,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_471__SUPUT_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_471__SUPUT_FIELDS.obj_num = 3;
-  cdat->dobj_471__SUPUT_FIELDS.obj_hash = 1012730279;
+  cdat->dobj_471__SUPUT_FIELDS.obj_hash = 943930876;
   cdat->dobj_471__SUPUT_FIELDS.obj_len = 4;
 
 
@@ -11414,7 +11402,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_475__CLASS_SOURCE_UNSAFE_PUT_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_475__CLASS_SOURCE_UNSAFE_PUT_FIELDS.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_475__CLASS_SOURCE_UNSAFE_PUT_FIELDS.obj_hash = 772264193;
+  cdat->dobj_475__CLASS_SOURCE_UNSAFE_PUT_FIELDS.obj_hash = 269490770;
   cdat->dobj_475__CLASS_SOURCE_UNSAFE_PUT_FIELDS.obj_len = 8;
 
 
@@ -11485,7 +11473,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_481__CLASS_SOURCE_IF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_481__CLASS_SOURCE_IF.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_481__CLASS_SOURCE_IF.obj_hash = 307721129;
+  cdat->dobj_481__CLASS_SOURCE_IF.obj_hash = 612420256;
   cdat->dobj_481__CLASS_SOURCE_IF.obj_len = 8;
 
 
@@ -11552,7 +11540,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_487__SIF_TEST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_487__SIF_TEST.obj_num = 2;
-  cdat->dobj_487__SIF_TEST.obj_hash = 791061215;
+  cdat->dobj_487__SIF_TEST.obj_hash = 361914941;
   cdat->dobj_487__SIF_TEST.obj_len = 4;
 
 
@@ -11604,7 +11592,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_491__SIF_THEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_491__SIF_THEN.obj_num = 3;
-  cdat->dobj_491__SIF_THEN.obj_hash = 492377842;
+  cdat->dobj_491__SIF_THEN.obj_hash = 913087363;
   cdat->dobj_491__SIF_THEN.obj_len = 4;
 
 
@@ -11660,7 +11648,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_495__CLASS_SOURCE_IFELSE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_495__CLASS_SOURCE_IFELSE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_495__CLASS_SOURCE_IFELSE.obj_hash = 802572036;
+  cdat->dobj_495__CLASS_SOURCE_IFELSE.obj_hash = 957991024;
   cdat->dobj_495__CLASS_SOURCE_IFELSE.obj_len = 8;
 
 
@@ -11727,7 +11715,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_501__SIF_ELSE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_501__SIF_ELSE.obj_num = 4;
-  cdat->dobj_501__SIF_ELSE.obj_hash = 316784614;
+  cdat->dobj_501__SIF_ELSE.obj_hash = 205117513;
   cdat->dobj_501__SIF_ELSE.obj_len = 4;
 
 
@@ -11783,7 +11771,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_505__CLASS_SOURCE_OR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_505__CLASS_SOURCE_OR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_505__CLASS_SOURCE_OR.obj_hash = 6282700;
+  cdat->dobj_505__CLASS_SOURCE_OR.obj_hash = 307566194;
   cdat->dobj_505__CLASS_SOURCE_OR.obj_len = 8;
 
 
@@ -11850,7 +11838,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_511__SOR_DISJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_511__SOR_DISJ.obj_num = 2;
-  cdat->dobj_511__SOR_DISJ.obj_hash = 14363823;
+  cdat->dobj_511__SOR_DISJ.obj_hash = 806928705;
   cdat->dobj_511__SOR_DISJ.obj_len = 4;
 
 
@@ -11906,7 +11894,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_515__CLASS_SOURCE_CPPIF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_515__CLASS_SOURCE_CPPIF.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_515__CLASS_SOURCE_CPPIF.obj_hash = 84235840;
+  cdat->dobj_515__CLASS_SOURCE_CPPIF.obj_hash = 1047915286;
   cdat->dobj_515__CLASS_SOURCE_CPPIF.obj_len = 8;
 
 
@@ -11973,7 +11961,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_521__SIFP_COND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_521__SIFP_COND.obj_num = 2;
-  cdat->dobj_521__SIFP_COND.obj_hash = 136737534;
+  cdat->dobj_521__SIFP_COND.obj_hash = 958350710;
   cdat->dobj_521__SIFP_COND.obj_len = 4;
 
 
@@ -12025,7 +12013,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_525__SIFP_THEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_525__SIFP_THEN.obj_num = 3;
-  cdat->dobj_525__SIFP_THEN.obj_hash = 358645951;
+  cdat->dobj_525__SIFP_THEN.obj_hash = 1034525183;
   cdat->dobj_525__SIFP_THEN.obj_len = 4;
 
 
@@ -12077,7 +12065,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_529__SIFP_ELSE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_529__SIFP_ELSE.obj_num = 4;
-  cdat->dobj_529__SIFP_ELSE.obj_hash = 1023304203;
+  cdat->dobj_529__SIFP_ELSE.obj_hash = 997329780;
   cdat->dobj_529__SIFP_ELSE.obj_len = 4;
 
 
@@ -12133,7 +12121,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_533__CLASS_SOURCE_MATCH.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_533__CLASS_SOURCE_MATCH.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_533__CLASS_SOURCE_MATCH.obj_hash = 927588238;
+  cdat->dobj_533__CLASS_SOURCE_MATCH.obj_hash = 728868064;
   cdat->dobj_533__CLASS_SOURCE_MATCH.obj_len = 8;
 
 
@@ -12203,7 +12191,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_539__SMAT_MATCHEDX.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_539__SMAT_MATCHEDX.obj_num = 2;
-  cdat->dobj_539__SMAT_MATCHEDX.obj_hash = 40580474;
+  cdat->dobj_539__SMAT_MATCHEDX.obj_hash = 836572504;
   cdat->dobj_539__SMAT_MATCHEDX.obj_len = 4;
 
 
@@ -12257,7 +12245,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_543__SMAT_CASES.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_543__SMAT_CASES.obj_num = 3;
-  cdat->dobj_543__SMAT_CASES.obj_hash = 1014967919;
+  cdat->dobj_543__SMAT_CASES.obj_hash = 740142458;
   cdat->dobj_543__SMAT_CASES.obj_len = 4;
 
 
@@ -12315,7 +12303,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_547__CLASS_SOURCE_MATCH_CASE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_547__CLASS_SOURCE_MATCH_CASE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_547__CLASS_SOURCE_MATCH_CASE.obj_hash = 734973615;
+  cdat->dobj_547__CLASS_SOURCE_MATCH_CASE.obj_hash = 990891656;
   cdat->dobj_547__CLASS_SOURCE_MATCH_CASE.obj_len = 8;
 
 
@@ -12382,7 +12370,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_553__SCAM_PATT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_553__SCAM_PATT.obj_num = 2;
-  cdat->dobj_553__SCAM_PATT.obj_hash = 907879281;
+  cdat->dobj_553__SCAM_PATT.obj_hash = 765496220;
   cdat->dobj_553__SCAM_PATT.obj_len = 4;
 
 
@@ -12434,7 +12422,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_557__SCAM_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_557__SCAM_BODY.obj_num = 3;
-  cdat->dobj_557__SCAM_BODY.obj_hash = 162901509;
+  cdat->dobj_557__SCAM_BODY.obj_hash = 865327384;
   cdat->dobj_557__SCAM_BODY.obj_len = 4;
 
 
@@ -12492,7 +12480,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_561__CLASS_SOURCE_LET_BINDING.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_561__CLASS_SOURCE_LET_BINDING.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_561__CLASS_SOURCE_LET_BINDING.obj_hash = 911032863;
+  cdat->dobj_561__CLASS_SOURCE_LET_BINDING.obj_hash = 541911125;
   cdat->dobj_561__CLASS_SOURCE_LET_BINDING.obj_len = 8;
 
 
@@ -12559,7 +12547,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_567__SLETB_TYPE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_567__SLETB_TYPE.obj_num = 2;
-  cdat->dobj_567__SLETB_TYPE.obj_hash = 653250528;
+  cdat->dobj_567__SLETB_TYPE.obj_hash = 324132624;
   cdat->dobj_567__SLETB_TYPE.obj_len = 4;
 
 
@@ -12613,7 +12601,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_571__SLETB_BINDER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_571__SLETB_BINDER.obj_num = 3;
-  cdat->dobj_571__SLETB_BINDER.obj_hash = 861832063;
+  cdat->dobj_571__SLETB_BINDER.obj_hash = 596567089;
   cdat->dobj_571__SLETB_BINDER.obj_len = 4;
 
 
@@ -12667,7 +12655,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_575__SLETB_EXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_575__SLETB_EXPR.obj_num = 4;
-  cdat->dobj_575__SLETB_EXPR.obj_hash = 628975720;
+  cdat->dobj_575__SLETB_EXPR.obj_hash = 206580039;
   cdat->dobj_575__SLETB_EXPR.obj_len = 4;
 
 
@@ -12725,7 +12713,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_579__CLASS_SOURCE_LETREC_BINDING.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_579__CLASS_SOURCE_LETREC_BINDING.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_579__CLASS_SOURCE_LETREC_BINDING.obj_hash = 113449354;
+  cdat->dobj_579__CLASS_SOURCE_LETREC_BINDING.obj_hash = 116349065;
   cdat->dobj_579__CLASS_SOURCE_LETREC_BINDING.obj_len = 8;
 
 
@@ -12796,7 +12784,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_585__CLASS_SOURCE_LET.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_585__CLASS_SOURCE_LET.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_585__CLASS_SOURCE_LET.obj_hash = 196733140;
+  cdat->dobj_585__CLASS_SOURCE_LET.obj_hash = 278817958;
   cdat->dobj_585__CLASS_SOURCE_LET.obj_len = 8;
 
 
@@ -12866,7 +12854,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_591__SLET_BINDINGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_591__SLET_BINDINGS.obj_num = 2;
-  cdat->dobj_591__SLET_BINDINGS.obj_hash = 646072868;
+  cdat->dobj_591__SLET_BINDINGS.obj_hash = 441299528;
   cdat->dobj_591__SLET_BINDINGS.obj_len = 4;
 
 
@@ -12920,7 +12908,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_595__SLET_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_595__SLET_BODY.obj_num = 3;
-  cdat->dobj_595__SLET_BODY.obj_hash = 282058050;
+  cdat->dobj_595__SLET_BODY.obj_hash = 985746068;
   cdat->dobj_595__SLET_BODY.obj_len = 4;
 
 
@@ -12976,7 +12964,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_599__CLASS_SOURCE_LETREC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_599__CLASS_SOURCE_LETREC.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_599__CLASS_SOURCE_LETREC.obj_hash = 374261214;
+  cdat->dobj_599__CLASS_SOURCE_LETREC.obj_hash = 187446801;
   cdat->dobj_599__CLASS_SOURCE_LETREC.obj_len = 8;
 
 
@@ -13047,7 +13035,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_605__CLASS_SOURCE_LAMBDA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_605__CLASS_SOURCE_LAMBDA.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_605__CLASS_SOURCE_LAMBDA.obj_hash = 829932326;
+  cdat->dobj_605__CLASS_SOURCE_LAMBDA.obj_hash = 5737292;
   cdat->dobj_605__CLASS_SOURCE_LAMBDA.obj_len = 8;
 
 
@@ -13116,7 +13104,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_611__SLAM_ARGBIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_611__SLAM_ARGBIND.obj_num = 2;
-  cdat->dobj_611__SLAM_ARGBIND.obj_hash = 749578465;
+  cdat->dobj_611__SLAM_ARGBIND.obj_hash = 14551208;
   cdat->dobj_611__SLAM_ARGBIND.obj_len = 4;
 
 
@@ -13170,7 +13158,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_615__SLAM_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_615__SLAM_BODY.obj_num = 3;
-  cdat->dobj_615__SLAM_BODY.obj_hash = 927066578;
+  cdat->dobj_615__SLAM_BODY.obj_hash = 209976176;
   cdat->dobj_615__SLAM_BODY.obj_len = 4;
 
 
@@ -13228,7 +13216,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_619__CLASS_SOURCE_MULTICALL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_619__CLASS_SOURCE_MULTICALL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_619__CLASS_SOURCE_MULTICALL.obj_hash = 593063082;
+  cdat->dobj_619__CLASS_SOURCE_MULTICALL.obj_hash = 76052039;
   cdat->dobj_619__CLASS_SOURCE_MULTICALL.obj_len = 8;
 
 
@@ -13298,7 +13286,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_625__SMULC_RESBIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_625__SMULC_RESBIND.obj_num = 2;
-  cdat->dobj_625__SMULC_RESBIND.obj_hash = 189711413;
+  cdat->dobj_625__SMULC_RESBIND.obj_hash = 244197555;
   cdat->dobj_625__SMULC_RESBIND.obj_len = 4;
 
 
@@ -13352,7 +13340,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_629__SMULC_CALL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_629__SMULC_CALL.obj_num = 3;
-  cdat->dobj_629__SMULC_CALL.obj_hash = 772636526;
+  cdat->dobj_629__SMULC_CALL.obj_hash = 583944009;
   cdat->dobj_629__SMULC_CALL.obj_len = 4;
 
 
@@ -13404,7 +13392,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_633__SMULC_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_633__SMULC_BODY.obj_num = 4;
-  cdat->dobj_633__SMULC_BODY.obj_hash = 397371762;
+  cdat->dobj_633__SMULC_BODY.obj_hash = 145374803;
   cdat->dobj_633__SMULC_BODY.obj_len = 4;
 
 
@@ -13462,7 +13450,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_637__CLASS_SOURCE_LABELLED.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_637__CLASS_SOURCE_LABELLED.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_637__CLASS_SOURCE_LABELLED.obj_hash = 302342999;
+  cdat->dobj_637__CLASS_SOURCE_LABELLED.obj_hash = 570431434;
   cdat->dobj_637__CLASS_SOURCE_LABELLED.obj_len = 8;
 
 
@@ -13530,7 +13518,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_643__SLABEL_BIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_643__SLABEL_BIND.obj_num = 2;
-  cdat->dobj_643__SLABEL_BIND.obj_hash = 64880399;
+  cdat->dobj_643__SLABEL_BIND.obj_hash = 330176189;
   cdat->dobj_643__SLABEL_BIND.obj_len = 4;
 
 
@@ -13587,7 +13575,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_647__CLASS_SOURCE_FOREVER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_647__CLASS_SOURCE_FOREVER.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_647__CLASS_SOURCE_FOREVER.obj_hash = 645633283;
+  cdat->dobj_647__CLASS_SOURCE_FOREVER.obj_hash = 405739440;
   cdat->dobj_647__CLASS_SOURCE_FOREVER.obj_len = 8;
 
 
@@ -13654,7 +13642,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_653__SFRV_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_653__SFRV_BODY.obj_num = 3;
-  cdat->dobj_653__SFRV_BODY.obj_hash = 429089574;
+  cdat->dobj_653__SFRV_BODY.obj_hash = 962699735;
   cdat->dobj_653__SFRV_BODY.obj_len = 4;
 
 
@@ -13710,7 +13698,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_657__CLASS_SOURCE_EXIT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_657__CLASS_SOURCE_EXIT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_657__CLASS_SOURCE_EXIT.obj_hash = 1051581879;
+  cdat->dobj_657__CLASS_SOURCE_EXIT.obj_hash = 47702232;
   cdat->dobj_657__CLASS_SOURCE_EXIT.obj_len = 8;
 
 
@@ -13777,7 +13765,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_663__SEXI_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_663__SEXI_BODY.obj_num = 3;
-  cdat->dobj_663__SEXI_BODY.obj_hash = 95061476;
+  cdat->dobj_663__SEXI_BODY.obj_hash = 194022712;
   cdat->dobj_663__SEXI_BODY.obj_len = 4;
 
 
@@ -13835,7 +13823,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_667__CLASS_SOURCE_COMPILEWARNING.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_667__CLASS_SOURCE_COMPILEWARNING.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_667__CLASS_SOURCE_COMPILEWARNING.obj_hash = 452587974;
+  cdat->dobj_667__CLASS_SOURCE_COMPILEWARNING.obj_hash = 886155429;
   cdat->dobj_667__CLASS_SOURCE_COMPILEWARNING.obj_len = 8;
 
 
@@ -13902,7 +13890,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_673__SCWARN_MSG.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_673__SCWARN_MSG.obj_num = 2;
-  cdat->dobj_673__SCWARN_MSG.obj_hash = 335101762;
+  cdat->dobj_673__SCWARN_MSG.obj_hash = 635062506;
   cdat->dobj_673__SCWARN_MSG.obj_len = 4;
 
 
@@ -13955,7 +13943,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_677__SCWARN_EXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_677__SCWARN_EXPR.obj_num = 3;
-  cdat->dobj_677__SCWARN_EXPR.obj_hash = 512264726;
+  cdat->dobj_677__SCWARN_EXPR.obj_hash = 704041908;
   cdat->dobj_677__SCWARN_EXPR.obj_len = 4;
 
 
@@ -14023,7 +14011,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_681__CLASS_SOURCE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num =
     MELTOBMAG_OBJECT;
   cdat->dobj_681__CLASS_SOURCE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash =
-    232084530;
+    675068049;
   cdat->dobj_681__CLASS_SOURCE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len =
     8;
 
@@ -14095,7 +14083,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_687__CMEC_COMMENT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_687__CMEC_COMMENT.obj_num = 2;
-  cdat->dobj_687__CMEC_COMMENT.obj_hash = 990057550;
+  cdat->dobj_687__CMEC_COMMENT.obj_hash = 111276382;
   cdat->dobj_687__CMEC_COMMENT.obj_len = 4;
 
 
@@ -14157,7 +14145,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_691__CLASS_SOURCE_PARENT_MODULE_ENVIRONMENT.obj_num =
     MELTOBMAG_OBJECT;
-  cdat->dobj_691__CLASS_SOURCE_PARENT_MODULE_ENVIRONMENT.obj_hash = 3129935;
+  cdat->dobj_691__CLASS_SOURCE_PARENT_MODULE_ENVIRONMENT.obj_hash = 613062374;
   cdat->dobj_691__CLASS_SOURCE_PARENT_MODULE_ENVIRONMENT.obj_len = 8;
 
 
@@ -14239,7 +14227,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_697__CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.
     obj_num = MELTOBMAG_OBJECT;
   cdat->dobj_697__CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.
-    obj_hash = 388459744;
+    obj_hash = 411646641;
   cdat->dobj_697__CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.
     obj_len = 8;
 
@@ -14316,7 +14304,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_703__SUCME_COMMENT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_703__SUCME_COMMENT.obj_num = 2;
-  cdat->dobj_703__SUCME_COMMENT.obj_hash = 989438438;
+  cdat->dobj_703__SUCME_COMMENT.obj_hash = 350746307;
   cdat->dobj_703__SUCME_COMMENT.obj_len = 4;
 
 
@@ -14376,7 +14364,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_707__CLASS_SOURCE_FETCH_PREDEFINED.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_707__CLASS_SOURCE_FETCH_PREDEFINED.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_707__CLASS_SOURCE_FETCH_PREDEFINED.obj_hash = 268418519;
+  cdat->dobj_707__CLASS_SOURCE_FETCH_PREDEFINED.obj_hash = 606631545;
   cdat->dobj_707__CLASS_SOURCE_FETCH_PREDEFINED.obj_len = 8;
 
 
@@ -14445,7 +14433,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_713__SFEPD_PREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_713__SFEPD_PREDEF.obj_num = 2;
-  cdat->dobj_713__SFEPD_PREDEF.obj_hash = 291013249;
+  cdat->dobj_713__SFEPD_PREDEF.obj_hash = 571082592;
   cdat->dobj_713__SFEPD_PREDEF.obj_len = 4;
 
 
@@ -14505,7 +14493,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_717__CLASS_SOURCE_STORE_PREDEFINED.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_717__CLASS_SOURCE_STORE_PREDEFINED.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_717__CLASS_SOURCE_STORE_PREDEFINED.obj_hash = 651296359;
+  cdat->dobj_717__CLASS_SOURCE_STORE_PREDEFINED.obj_hash = 637492955;
   cdat->dobj_717__CLASS_SOURCE_STORE_PREDEFINED.obj_len = 8;
 
 
@@ -14574,7 +14562,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_723__SSTPD_PREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_723__SSTPD_PREDEF.obj_num = 2;
-  cdat->dobj_723__SSTPD_PREDEF.obj_hash = 902041754;
+  cdat->dobj_723__SSTPD_PREDEF.obj_hash = 493397312;
   cdat->dobj_723__SSTPD_PREDEF.obj_len = 4;
 
 
@@ -14629,7 +14617,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_727__SSTPD_VALUE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_727__SSTPD_VALUE.obj_num = 3;
-  cdat->dobj_727__SSTPD_VALUE.obj_hash = 995178139;
+  cdat->dobj_727__SSTPD_VALUE.obj_hash = 540292085;
   cdat->dobj_727__SSTPD_VALUE.obj_len = 4;
 
 
@@ -14688,7 +14676,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_731__CLASS_SOURCE_CODECHUNK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_731__CLASS_SOURCE_CODECHUNK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_731__CLASS_SOURCE_CODECHUNK.obj_hash = 628015411;
+  cdat->dobj_731__CLASS_SOURCE_CODECHUNK.obj_hash = 563551000;
   cdat->dobj_731__CLASS_SOURCE_CODECHUNK.obj_len = 8;
 
 
@@ -14755,7 +14743,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_737__SCH_GENSYM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_737__SCH_GENSYM.obj_num = 2;
-  cdat->dobj_737__SCH_GENSYM.obj_hash = 358860503;
+  cdat->dobj_737__SCH_GENSYM.obj_hash = 675708484;
   cdat->dobj_737__SCH_GENSYM.obj_len = 4;
 
 
@@ -14807,7 +14795,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_741__SCH_CHUNKS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_741__SCH_CHUNKS.obj_num = 3;
-  cdat->dobj_741__SCH_CHUNKS.obj_hash = 234298984;
+  cdat->dobj_741__SCH_CHUNKS.obj_hash = 326577881;
   cdat->dobj_741__SCH_CHUNKS.obj_len = 4;
 
 
@@ -14863,7 +14851,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_745__CLASS_SOURCE_PATTERN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_745__CLASS_SOURCE_PATTERN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_745__CLASS_SOURCE_PATTERN.obj_hash = 987042576;
+  cdat->dobj_745__CLASS_SOURCE_PATTERN.obj_hash = 810100698;
   cdat->dobj_745__CLASS_SOURCE_PATTERN.obj_len = 8;
 
 
@@ -14930,7 +14918,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_751__PAT_WEIGHT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_751__PAT_WEIGHT.obj_num = 2;
-  cdat->dobj_751__PAT_WEIGHT.obj_hash = 131275138;
+  cdat->dobj_751__PAT_WEIGHT.obj_hash = 800399294;
   cdat->dobj_751__PAT_WEIGHT.obj_len = 4;
 
 
@@ -14988,7 +14976,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_755__CLASS_SOURCE_PATTERN_OR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_755__CLASS_SOURCE_PATTERN_OR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_755__CLASS_SOURCE_PATTERN_OR.obj_hash = 174392109;
+  cdat->dobj_755__CLASS_SOURCE_PATTERN_OR.obj_hash = 1030822944;
   cdat->dobj_755__CLASS_SOURCE_PATTERN_OR.obj_len = 8;
 
 
@@ -15055,7 +15043,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_761__ORPAT_DISJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_761__ORPAT_DISJ.obj_num = 3;
-  cdat->dobj_761__ORPAT_DISJ.obj_hash = 271358193;
+  cdat->dobj_761__ORPAT_DISJ.obj_hash = 990817714;
   cdat->dobj_761__ORPAT_DISJ.obj_len = 4;
 
 
@@ -15113,7 +15101,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_765__CLASS_SOURCE_PATTERN_AND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_765__CLASS_SOURCE_PATTERN_AND.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_765__CLASS_SOURCE_PATTERN_AND.obj_hash = 772423724;
+  cdat->dobj_765__CLASS_SOURCE_PATTERN_AND.obj_hash = 1004466625;
   cdat->dobj_765__CLASS_SOURCE_PATTERN_AND.obj_len = 8;
 
 
@@ -15181,7 +15169,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_771__ANDPAT_CONJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_771__ANDPAT_CONJ.obj_num = 3;
-  cdat->dobj_771__ANDPAT_CONJ.obj_hash = 987430991;
+  cdat->dobj_771__ANDPAT_CONJ.obj_hash = 872674579;
   cdat->dobj_771__ANDPAT_CONJ.obj_len = 4;
 
 
@@ -15240,7 +15228,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_775__CLASS_SOURCE_PATTERN_WHEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_775__CLASS_SOURCE_PATTERN_WHEN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_775__CLASS_SOURCE_PATTERN_WHEN.obj_hash = 293669988;
+  cdat->dobj_775__CLASS_SOURCE_PATTERN_WHEN.obj_hash = 701244639;
   cdat->dobj_775__CLASS_SOURCE_PATTERN_WHEN.obj_len = 8;
 
 
@@ -15311,7 +15299,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_781__WHENPAT_SUBPAT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_781__WHENPAT_SUBPAT.obj_num = 3;
-  cdat->dobj_781__WHENPAT_SUBPAT.obj_hash = 449026961;
+  cdat->dobj_781__WHENPAT_SUBPAT.obj_hash = 1055876526;
   cdat->dobj_781__WHENPAT_SUBPAT.obj_len = 4;
 
 
@@ -15368,7 +15356,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_785__WHENPAT_COND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_785__WHENPAT_COND.obj_num = 4;
-  cdat->dobj_785__WHENPAT_COND.obj_hash = 1060364173;
+  cdat->dobj_785__WHENPAT_COND.obj_hash = 234344647;
   cdat->dobj_785__WHENPAT_COND.obj_len = 4;
 
 
@@ -15428,7 +15416,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_789__CLASS_SOURCE_PATTERN_VARIABLE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_789__CLASS_SOURCE_PATTERN_VARIABLE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_789__CLASS_SOURCE_PATTERN_VARIABLE.obj_hash = 835538976;
+  cdat->dobj_789__CLASS_SOURCE_PATTERN_VARIABLE.obj_hash = 566193704;
   cdat->dobj_789__CLASS_SOURCE_PATTERN_VARIABLE.obj_len = 8;
 
 
@@ -15497,7 +15485,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_795__SPATVAR_SYMB.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_795__SPATVAR_SYMB.obj_num = 3;
-  cdat->dobj_795__SPATVAR_SYMB.obj_hash = 72412765;
+  cdat->dobj_795__SPATVAR_SYMB.obj_hash = 935787367;
   cdat->dobj_795__SPATVAR_SYMB.obj_len = 4;
 
 
@@ -15554,7 +15542,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_799__SPATVAR_NBOCC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_799__SPATVAR_NBOCC.obj_num = 4;
-  cdat->dobj_799__SPATVAR_NBOCC.obj_hash = 475328807;
+  cdat->dobj_799__SPATVAR_NBOCC.obj_hash = 914909532;
   cdat->dobj_799__SPATVAR_NBOCC.obj_len = 4;
 
 
@@ -15642,7 +15630,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_805__CLASS_SOURCE_PATTERN_JOKER_VARIABLE.obj_num =
     MELTOBMAG_OBJECT;
-  cdat->dobj_805__CLASS_SOURCE_PATTERN_JOKER_VARIABLE.obj_hash = 834470932;
+  cdat->dobj_805__CLASS_SOURCE_PATTERN_JOKER_VARIABLE.obj_hash = 647411933;
   cdat->dobj_805__CLASS_SOURCE_PATTERN_JOKER_VARIABLE.obj_len = 8;
 
 
@@ -15715,7 +15703,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_811__CLASS_SOURCE_PATTERN_CONSTANT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_811__CLASS_SOURCE_PATTERN_CONSTANT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_811__CLASS_SOURCE_PATTERN_CONSTANT.obj_hash = 680703302;
+  cdat->dobj_811__CLASS_SOURCE_PATTERN_CONSTANT.obj_hash = 437216828;
   cdat->dobj_811__CLASS_SOURCE_PATTERN_CONSTANT.obj_len = 8;
 
 
@@ -15783,7 +15771,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_817__SPAT_CONSTX.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_817__SPAT_CONSTX.obj_num = 3;
-  cdat->dobj_817__SPAT_CONSTX.obj_hash = 153772296;
+  cdat->dobj_817__SPAT_CONSTX.obj_hash = 611105621;
   cdat->dobj_817__SPAT_CONSTX.obj_len = 4;
 
 
@@ -15842,7 +15830,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_821__CLASS_SOURCE_PATTERN_CONSTRUCT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_821__CLASS_SOURCE_PATTERN_CONSTRUCT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_821__CLASS_SOURCE_PATTERN_CONSTRUCT.obj_hash = 219401205;
+  cdat->dobj_821__CLASS_SOURCE_PATTERN_CONSTRUCT.obj_hash = 470083459;
   cdat->dobj_821__CLASS_SOURCE_PATTERN_CONSTRUCT.obj_len = 8;
 
 
@@ -15910,7 +15898,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_827__CTPAT_SUBPA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_827__CTPAT_SUBPA.obj_num = 3;
-  cdat->dobj_827__CTPAT_SUBPA.obj_hash = 37436252;
+  cdat->dobj_827__CTPAT_SUBPA.obj_hash = 69055516;
   cdat->dobj_827__CTPAT_SUBPA.obj_len = 4;
 
 
@@ -15969,7 +15957,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_831__CLASS_SOURCE_PATTERN_TUPLE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_831__CLASS_SOURCE_PATTERN_TUPLE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_831__CLASS_SOURCE_PATTERN_TUPLE.obj_hash = 377805812;
+  cdat->dobj_831__CLASS_SOURCE_PATTERN_TUPLE.obj_hash = 500396657;
   cdat->dobj_831__CLASS_SOURCE_PATTERN_TUPLE.obj_len = 8;
 
 
@@ -16042,7 +16030,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_837__CLASS_SOURCE_PATTERN_LIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_837__CLASS_SOURCE_PATTERN_LIST.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_837__CLASS_SOURCE_PATTERN_LIST.obj_hash = 431752263;
+  cdat->dobj_837__CLASS_SOURCE_PATTERN_LIST.obj_hash = 779737832;
   cdat->dobj_837__CLASS_SOURCE_PATTERN_LIST.obj_len = 8;
 
 
@@ -16115,7 +16103,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_843__CLASS_SOURCE_PATTERN_OBJECT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_843__CLASS_SOURCE_PATTERN_OBJECT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_843__CLASS_SOURCE_PATTERN_OBJECT.obj_hash = 143762652;
+  cdat->dobj_843__CLASS_SOURCE_PATTERN_OBJECT.obj_hash = 974314385;
   cdat->dobj_843__CLASS_SOURCE_PATTERN_OBJECT.obj_len = 8;
 
 
@@ -16182,7 +16170,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_849__SPAT_CLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_849__SPAT_CLASS.obj_num = 3;
-  cdat->dobj_849__SPAT_CLASS.obj_hash = 734467318;
+  cdat->dobj_849__SPAT_CLASS.obj_hash = 482477787;
   cdat->dobj_849__SPAT_CLASS.obj_len = 4;
 
 
@@ -16235,7 +16223,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_853__SPAT_FIELDS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_853__SPAT_FIELDS.obj_num = 4;
-  cdat->dobj_853__SPAT_FIELDS.obj_hash = 176872277;
+  cdat->dobj_853__SPAT_FIELDS.obj_hash = 941018388;
   cdat->dobj_853__SPAT_FIELDS.obj_len = 4;
 
 
@@ -16294,7 +16282,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_857__CLASS_SOURCE_PATTERN_INSTANCE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_857__CLASS_SOURCE_PATTERN_INSTANCE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_857__CLASS_SOURCE_PATTERN_INSTANCE.obj_hash = 1020892494;
+  cdat->dobj_857__CLASS_SOURCE_PATTERN_INSTANCE.obj_hash = 675440973;
   cdat->dobj_857__CLASS_SOURCE_PATTERN_INSTANCE.obj_len = 8;
 
 
@@ -16367,7 +16355,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_863__CLASS_SOURCE_FIELD_PATTERN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_863__CLASS_SOURCE_FIELD_PATTERN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_863__CLASS_SOURCE_FIELD_PATTERN.obj_hash = 914485676;
+  cdat->dobj_863__CLASS_SOURCE_FIELD_PATTERN.obj_hash = 388817173;
   cdat->dobj_863__CLASS_SOURCE_FIELD_PATTERN.obj_len = 8;
 
 
@@ -16434,7 +16422,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_869__SPAF_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_869__SPAF_FIELD.obj_num = 2;
-  cdat->dobj_869__SPAF_FIELD.obj_hash = 235295170;
+  cdat->dobj_869__SPAF_FIELD.obj_hash = 210811671;
   cdat->dobj_869__SPAF_FIELD.obj_len = 4;
 
 
@@ -16488,7 +16476,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_873__SPAF_PATTERN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_873__SPAF_PATTERN.obj_num = 3;
-  cdat->dobj_873__SPAF_PATTERN.obj_hash = 364852542;
+  cdat->dobj_873__SPAF_PATTERN.obj_hash = 1057244708;
   cdat->dobj_873__SPAF_PATTERN.obj_len = 4;
 
 
@@ -16548,7 +16536,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_877__CLASS_SOURCE_PATTERN_COMPOSITE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_877__CLASS_SOURCE_PATTERN_COMPOSITE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_877__CLASS_SOURCE_PATTERN_COMPOSITE.obj_hash = 975133578;
+  cdat->dobj_877__CLASS_SOURCE_PATTERN_COMPOSITE.obj_hash = 937957809;
   cdat->dobj_877__CLASS_SOURCE_PATTERN_COMPOSITE.obj_len = 8;
 
 
@@ -16618,7 +16606,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_883__SPAC_OPERATOR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_883__SPAC_OPERATOR.obj_num = 5;
-  cdat->dobj_883__SPAC_OPERATOR.obj_hash = 735173339;
+  cdat->dobj_883__SPAC_OPERATOR.obj_hash = 197958446;
   cdat->dobj_883__SPAC_OPERATOR.obj_len = 4;
 
 
@@ -16675,7 +16663,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_887__SPAC_OPERBIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_887__SPAC_OPERBIND.obj_num = 6;
-  cdat->dobj_887__SPAC_OPERBIND.obj_hash = 1041032217;
+  cdat->dobj_887__SPAC_OPERBIND.obj_hash = 1033891976;
   cdat->dobj_887__SPAC_OPERBIND.obj_len = 4;
 
 
@@ -16730,7 +16718,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_891__SPAC_INARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_891__SPAC_INARGS.obj_num = 7;
-  cdat->dobj_891__SPAC_INARGS.obj_hash = 320546497;
+  cdat->dobj_891__SPAC_INARGS.obj_hash = 344955319;
   cdat->dobj_891__SPAC_INARGS.obj_len = 4;
 
 
@@ -16785,7 +16773,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_895__SPAC_OUTARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_895__SPAC_OUTARGS.obj_num = 8;
-  cdat->dobj_895__SPAC_OUTARGS.obj_hash = 359535287;
+  cdat->dobj_895__SPAC_OUTARGS.obj_hash = 886606018;
   cdat->dobj_895__SPAC_OUTARGS.obj_len = 4;
 
 
@@ -16845,7 +16833,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_899__CLASS_SOURCE_PATTERN_MATCHER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_899__CLASS_SOURCE_PATTERN_MATCHER.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_899__CLASS_SOURCE_PATTERN_MATCHER.obj_hash = 15188149;
+  cdat->dobj_899__CLASS_SOURCE_PATTERN_MATCHER.obj_hash = 688771643;
   cdat->dobj_899__CLASS_SOURCE_PATTERN_MATCHER.obj_len = 8;
 
 
@@ -16918,7 +16906,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_905__CLASS_SOURCE_PATTERN_C_MATCH.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_905__CLASS_SOURCE_PATTERN_C_MATCH.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_905__CLASS_SOURCE_PATTERN_C_MATCH.obj_hash = 1046780908;
+  cdat->dobj_905__CLASS_SOURCE_PATTERN_C_MATCH.obj_hash = 325832764;
   cdat->dobj_905__CLASS_SOURCE_PATTERN_C_MATCH.obj_len = 8;
 
 
@@ -16991,7 +16979,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_911__CLASS_SOURCE_PATTERN_FUN_MATCH.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_911__CLASS_SOURCE_PATTERN_FUN_MATCH.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_911__CLASS_SOURCE_PATTERN_FUN_MATCH.obj_hash = 568258062;
+  cdat->dobj_911__CLASS_SOURCE_PATTERN_FUN_MATCH.obj_hash = 543801159;
   cdat->dobj_911__CLASS_SOURCE_PATTERN_FUN_MATCH.obj_len = 8;
 
 
@@ -17977,7 +17965,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_990__CLASS_PATTERN_EXPANSION_CONTEXT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_990__CLASS_PATTERN_EXPANSION_CONTEXT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_990__CLASS_PATTERN_EXPANSION_CONTEXT.obj_hash = 262606869;
+  cdat->dobj_990__CLASS_PATTERN_EXPANSION_CONTEXT.obj_hash = 616728079;
   cdat->dobj_990__CLASS_PATTERN_EXPANSION_CONTEXT.obj_len = 8;
 
 
@@ -18048,7 +18036,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_996__PCTX_MEXPANDER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_996__PCTX_MEXPANDER.obj_num = 0;
-  cdat->dobj_996__PCTX_MEXPANDER.obj_hash = 540048542;
+  cdat->dobj_996__PCTX_MEXPANDER.obj_hash = 515318601;
   cdat->dobj_996__PCTX_MEXPANDER.obj_len = 4;
 
 
@@ -18107,7 +18095,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_1000__PCTX_PEXPANDER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1000__PCTX_PEXPANDER.obj_num = 1;
-  cdat->dobj_1000__PCTX_PEXPANDER.obj_hash = 938084389;
+  cdat->dobj_1000__PCTX_PEXPANDER.obj_hash = 405732147;
   cdat->dobj_1000__PCTX_PEXPANDER.obj_len = 4;
 
 
@@ -18166,7 +18154,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   cdat->dobj_1004__PCTX_VARMAP.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1004__PCTX_VARMAP.obj_num = 2;
-  cdat->dobj_1004__PCTX_VARMAP.obj_hash = 780764989;
+  cdat->dobj_1004__PCTX_VARMAP.obj_hash = 958474582;
   cdat->dobj_1004__PCTX_VARMAP.obj_len = 4;
 
 
@@ -18946,7 +18934,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1068__WARN_SHADOW.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_PRIMITIVE))));
-  cdat->dobj_1068__WARN_SHADOW.obj_hash = 167505654;
+  cdat->dobj_1068__WARN_SHADOW.obj_hash = 569011248;
   cdat->dobj_1068__WARN_SHADOW.obj_len = 5;
 
   /*inimult dtup_1069__WARN_SHADOW */
@@ -23467,7 +23455,7 @@ start_module_melt (void *modargp_)
 /**initial routine prologue**/
   /* set initial frame marking */
   ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
-    /*minihash */ -1341;
+    /*minihash */ -3935;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     forward_or_mark_module_start_frame_warmelt_macro;
  /**COMMENT: get previous environment **/ ;
@@ -82065,7 +82053,7 @@ forward_or_mark_module_start_frame_warmelt_macro (struct melt_callframe_st
   int ix = 0;
   initial_frame_st *framptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  framptr_->mcfr_nbvar == /*minihash */ -1341);
+		  framptr_->mcfr_nbvar == /*minihash */ -3935);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf
@@ -82277,4 +82265,4 @@ const int
   meltclasslen__CLASS_SOURCE_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER = 3;
 
 
-/**** end of warmelt-macro.c ****/
+/**** end of warmelt-macro ****/

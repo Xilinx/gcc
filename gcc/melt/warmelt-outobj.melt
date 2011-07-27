@@ -3754,6 +3754,7 @@
   (debug_msg secfiles "output_melt_descriptor secfiles")
   (let ( 
 	(:long nbsecfiles (multiple_length secfiles))
+	(:long lastsecfileix 0)
 	(debuf (make_strbuf discr_strbuf))
 	(pathlist (make_list discr_list))
 	)
@@ -3802,6 +3803,10 @@
        meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
        meltgc_add_strbuf ($DEBUF, "/")	       ;
      }
+     else if (flag_melt_bootstrapping) {
+       meltgc_add_strbuf_cstr ($DEBUF, melt_module_dir) ;
+       meltgc_add_strbuf ($DEBUF, "/")	       ;
+     }
      meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
      free (lrp)				  ;
      }#)
@@ -3820,6 +3825,8 @@
      time (&now)						   ;
      memset (nowbuf, 0, sizeof(nowbuf))				   ;
      strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
+     if (flag_melt_bootstrapping)
+        meltgc_add_strbuf ($DEBUF, "/*MELT BOOTSTRAP*/\n");
      meltgc_add_strbuf ($DEBUF, 
 			"const char melt_gen_timestamp[]=\"") ;
      meltgc_add_strbuf_cstr ($DEBUF, nowbuf)		     ;
@@ -3843,14 +3850,6 @@
      meltgc_add_strbuf_cstr ($DEBUF, MELT_RUN_HASHMD5) ;
      }#)
     (add2sbuf_strconst debuf "\";")
-    (add2sbuf_indentnl debuf 0)
-    ;;
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "/* number of secondary files */")
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "const int melt_nbsecfiles=")
-    (add2sbuf_longdec  debuf nbsecfiles)
-    (add2sbuf_strconst debuf ";")
     (add2sbuf_indentnl debuf 0)
     ;;
     (add2sbuf_strconst debuf "/* hexmd5checksum of primary C file */")
@@ -3882,6 +3881,7 @@
 	 (progn
 	   (assert_msg "output_melt_descriptor check curfil" 
 		       (is_a curfil class_secondary_c_file))
+	   (setq lastsecfileix filix)
 	   (let ( (secpath (get_field :secfil_path curfil)) 
 		  )
 	     (list_append pathlist secpath)
@@ -3899,9 +3899,17 @@
     (add2sbuf_strconst debuf "(const char*)0 };")
     (add2sbuf_indentnl debuf 0)
     ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* last index of secondary files */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const int melt_lastsecfileindex=")
+    (add2sbuf_longdec  debuf lastsecfileix)
+    (add2sbuf_strconst debuf ";")
+    (add2sbuf_indentnl debuf 0)
+    ;;
     (add2sbuf_indentnl debuf 0) 
     (add2sbuf_strconst debuf 
-		       "/* cumulated hexmd5checksum of primary & secondary files */")
+		       "/* cumulated checksum of primary & secondary files */")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_cumulated_hexmd5[]=\"")
     (add2sbuf_cencstring debuf 

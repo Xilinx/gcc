@@ -1,5 +1,54 @@
 
 2011-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Emit
+	melt_lastsecfileindex, not melt_nbsecfiles.
+	* melt-runtime.h
+	(melt_nb_modules, melt_source_dir, melt_module_dir)
+	(melt_module_make_command, melt_module_makefile)
+	(melt_module_cflags, melt_default_modlis): Exported declarations.
+	* melt-runtime.c
+	(melt_nb_modules, melt_source_dir, melt_module_dir)
+	(melt_module_make_command, melt_module_makefile)
+	(melt_module_cflags, melt_default_modlis): Exported definitions.
+
+	{{regenerated, with new melt descriptive C files}}
+	* melt/generated/warmelt-base+meltdesc.c: New generated file.
+	* melt/generated/warmelt-debug+meltdesc.c: New generated file.
+	* melt/generated/warmelt-first+03.c: New generated file.
+	* melt/generated/warmelt-first+meltdesc.c: New generated file.
+	* melt/generated/warmelt-genobj+meltdesc.c: New generated file.
+	* melt/generated/warmelt-macro+meltdesc.c: New generated file.
+	* melt/generated/warmelt-normal+meltdesc.c: New generated file.
+	* melt/generated/warmelt-normatch+meltdesc.c: New generated file.
+	* melt/generated/warmelt-outobj+meltdesc.c: New generated file.
+	* melt/generated/warmelt-base+01.c: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug.c: Regenerate.
+	* melt/generated/warmelt-first+01.c: Regenerate.
+	* melt/generated/warmelt-first+02.c: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+01.c: Regenerate.
+	* melt/generated/warmelt-genobj+04.c: Regenerate.
+	* melt/generated/warmelt-genobj+05.c: Regenerate.
+	* melt/generated/warmelt-genobj.c: Regenerate.
+	* melt/generated/warmelt-macro+01.c: Regenerate.
+	* melt/generated/warmelt-macro+02.c: Regenerate.
+	* melt/generated/warmelt-macro.c: Regenerate.
+	* melt/generated/warmelt-normal+01.c: Regenerate.
+	* melt/generated/warmelt-normal+02.c: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+02.c: Regenerate.
+	* melt/generated/warmelt-normatch+03.c: Regenerate.
+	* melt/generated/warmelt-normatch+04.c: Regenerate.
+	* melt/generated/warmelt-normatch.c: Regenerate.
+	* melt/generated/warmelt-outobj+01.c: Regenerate.
+	* melt/generated/warmelt-outobj+02.c: Regenerate.
+	* melt/generated/warmelt-outobj+03.c: Regenerate.
+	* melt/generated/warmelt-outobj+04.c: Regenerate.
+	* melt/generated/warmelt-outobj+05.c: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
+
+2011-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_string_hex_md5sum_file_sequence): New
 	declaration.
 	* melt-runtime.c (meltgc_string_hex_md5sum_file_sequence): New

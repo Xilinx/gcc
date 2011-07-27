@@ -3570,11 +3570,12 @@ lab_endgetargs:;
       ;
       /*^compute */
 
-   /*_#STRING___L10*/ meltfnum[8] =
-	melt_string_same (( /*_.NAMED_NAME__V31*/ meltfptr[30]),
-			  ( /*_.NAMED_NAME__V32*/ meltfptr[31]));;
+   /*_#S__L10*/ meltfnum[8] =
+	melt_string_same ((melt_ptr_t) ( /*_.NAMED_NAME__V31*/ meltfptr[30]),
+			  (melt_ptr_t) ( /*_.NAMED_NAME__V32*/
+					meltfptr[31]));;
       MELT_LOCATION ("warmelt-macro.melt:987:/ cond");
-      /*cond */ if ( /*_#STRING___L10*/ meltfnum[8])	/*then */
+      /*cond */ if ( /*_#S__L10*/ meltfnum[8])	/*then */
 	{
 	  /*^cond.then */
 	  /*_.IFELSE___V33*/ meltfptr[32] = ( /*nil */ NULL);;
@@ -3615,7 +3616,7 @@ lab_endgetargs:;
       /*^clear */
 	     /*clear *//*_.NAMED_NAME__V32*/ meltfptr[31] = 0;
       /*^clear */
-	     /*clear *//*_#STRING___L10*/ meltfnum[8] = 0;
+	     /*clear *//*_#S__L10*/ meltfnum[8] = 0;
       /*^clear */
 	     /*clear *//*_.IFELSE___V33*/ meltfptr[32] = 0;
     }

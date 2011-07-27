@@ -203,19 +203,20 @@ xstrndup (const char *s, size_t n)
 #endif
 
 
+/* *INDENT-OFF* */
+
 /* we use the plugin registration facilities, so this is the plugin
    name in use */
-static const char* melt_plugin_name;
+const char* melt_plugin_name;
 
-static int melt_nb_modules;
+int melt_nb_modules;
 
-/* *INDENT-OFF* */
-static const char melt_source_dir[] = MELT_SOURCE_DIR;
-static const char melt_module_dir[] = MELT_MODULE_DIR;
-static const char melt_module_make_command[] = MELT_MODULE_MAKE_COMMAND;
-static const char melt_module_makefile[] = MELT_MODULE_MAKEFILE;
-static const char melt_module_cflags[] = MELT_MODULE_CFLAGS;
-static const char melt_default_modlis[] = MELT_DEFAULT_MODLIS;
+const char melt_source_dir[] = MELT_SOURCE_DIR;
+const char melt_module_dir[] = MELT_MODULE_DIR;
+const char melt_module_make_command[] = MELT_MODULE_MAKE_COMMAND;
+const char melt_module_makefile[] = MELT_MODULE_MAKEFILE;
+const char melt_module_cflags[] = MELT_MODULE_CFLAGS;
+const char melt_default_modlis[] = MELT_DEFAULT_MODLIS;
 
 
 melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={0};

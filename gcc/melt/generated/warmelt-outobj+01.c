@@ -1784,7 +1784,22 @@ meltrout_122_warmelt_outobj_NTH_SECUNDARY_FILE (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_123_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
+meltrout_123_warmelt_outobj_OUTPUT_MELT_DESCRIPTOR (meltclosure_ptr_t closp_,
+						    melt_ptr_t firstargp_,
+						    const melt_argdescr_cell_t
+						    xargdescr_[],
+						    union meltparam_un
+						    *xargtab_,
+						    const melt_argdescr_cell_t
+						    xresdescr_[],
+						    union meltparam_un
+						    *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_124_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
 							  closp_,
 							  melt_ptr_t
 							  firstargp_,
@@ -1803,17 +1818,6 @@ meltrout_123_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_124_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
-				     melt_ptr_t firstargp_,
-				     const melt_argdescr_cell_t xargdescr_[],
-				     union meltparam_un *xargtab_,
-				     const melt_argdescr_cell_t xresdescr_[],
-				     union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_125_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 				     melt_ptr_t firstargp_,
 				     const melt_argdescr_cell_t xargdescr_[],
@@ -1825,7 +1829,18 @@ meltrout_125_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_126_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t closp_,
+meltrout_126_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+				     melt_ptr_t firstargp_,
+				     const melt_argdescr_cell_t xargdescr_[],
+				     union meltparam_un *xargtab_,
+				     const melt_argdescr_cell_t xresdescr_[],
+				     union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_127_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t closp_,
 						melt_ptr_t firstargp_,
 						const melt_argdescr_cell_t
 						xargdescr_[],
@@ -1838,7 +1853,7 @@ meltrout_126_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_127_warmelt_outobj_INSTALL_MELT_MODE (meltclosure_ptr_t closp_,
+meltrout_128_warmelt_outobj_INSTALL_MELT_MODE (meltclosure_ptr_t closp_,
 					       melt_ptr_t firstargp_,
 					       const melt_argdescr_cell_t
 					       xargdescr_[],
@@ -1851,7 +1866,7 @@ meltrout_127_warmelt_outobj_INSTALL_MELT_MODE (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_128_warmelt_outobj_HELP_DOCMD (meltclosure_ptr_t closp_,
+meltrout_129_warmelt_outobj_HELP_DOCMD (meltclosure_ptr_t closp_,
 					melt_ptr_t firstargp_,
 					const melt_argdescr_cell_t
 					xargdescr_[],
@@ -1864,7 +1879,7 @@ meltrout_128_warmelt_outobj_HELP_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_129_warmelt_outobj_NOP_DOCMD (meltclosure_ptr_t closp_,
+meltrout_130_warmelt_outobj_NOP_DOCMD (meltclosure_ptr_t closp_,
 				       melt_ptr_t firstargp_,
 				       const melt_argdescr_cell_t
 				       xargdescr_[],
@@ -1877,7 +1892,7 @@ meltrout_129_warmelt_outobj_NOP_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_130_warmelt_outobj_COMPILE_ONE_OR_MORE_FILES (meltclosure_ptr_t
+meltrout_131_warmelt_outobj_COMPILE_ONE_OR_MORE_FILES (meltclosure_ptr_t
 						       closp_,
 						       melt_ptr_t firstargp_,
 						       const
@@ -1895,7 +1910,7 @@ meltrout_130_warmelt_outobj_COMPILE_ONE_OR_MORE_FILES (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_131_warmelt_outobj_TRANSLATEFILE_DOCMD (meltclosure_ptr_t closp_,
+meltrout_132_warmelt_outobj_TRANSLATEFILE_DOCMD (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -1909,7 +1924,7 @@ meltrout_131_warmelt_outobj_TRANSLATEFILE_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_132_warmelt_outobj_TRANSLATETOMODULE_DOCMD (meltclosure_ptr_t closp_,
+meltrout_133_warmelt_outobj_TRANSLATETOMODULE_DOCMD (meltclosure_ptr_t closp_,
 						     melt_ptr_t firstargp_,
 						     const
 						     melt_argdescr_cell_t
@@ -1926,7 +1941,7 @@ meltrout_132_warmelt_outobj_TRANSLATETOMODULE_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_133_warmelt_outobj_TRANSLATEDEBUG_DOCMD (meltclosure_ptr_t closp_,
+meltrout_134_warmelt_outobj_TRANSLATEDEBUG_DOCMD (meltclosure_ptr_t closp_,
 						  melt_ptr_t firstargp_,
 						  const melt_argdescr_cell_t
 						  xargdescr_[],
@@ -1941,7 +1956,7 @@ meltrout_133_warmelt_outobj_TRANSLATEDEBUG_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_134_warmelt_outobj_TRANSLATEQUICKLY_DOCMD (meltclosure_ptr_t closp_,
+meltrout_135_warmelt_outobj_TRANSLATEQUICKLY_DOCMD (meltclosure_ptr_t closp_,
 						    melt_ptr_t firstargp_,
 						    const melt_argdescr_cell_t
 						    xargdescr_[],
@@ -1956,7 +1971,7 @@ meltrout_134_warmelt_outobj_TRANSLATEQUICKLY_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_135_warmelt_outobj_RUNFILE_DOCMD (meltclosure_ptr_t closp_,
+meltrout_136_warmelt_outobj_RUNFILE_DOCMD (meltclosure_ptr_t closp_,
 					   melt_ptr_t firstargp_,
 					   const melt_argdescr_cell_t
 					   xargdescr_[],
@@ -1969,7 +1984,7 @@ meltrout_135_warmelt_outobj_RUNFILE_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_136_warmelt_outobj_RUNDEBUG_DOCMD (meltclosure_ptr_t closp_,
+meltrout_137_warmelt_outobj_RUNDEBUG_DOCMD (meltclosure_ptr_t closp_,
 					    melt_ptr_t firstargp_,
 					    const melt_argdescr_cell_t
 					    xargdescr_[],
@@ -1982,7 +1997,7 @@ meltrout_136_warmelt_outobj_RUNDEBUG_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_137_warmelt_outobj_TRANSLATEINIT_DOCMD (meltclosure_ptr_t closp_,
+meltrout_138_warmelt_outobj_TRANSLATEINIT_DOCMD (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -1996,7 +2011,7 @@ meltrout_137_warmelt_outobj_TRANSLATEINIT_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_138_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_139_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 				     melt_ptr_t firstargp_,
 				     const melt_argdescr_cell_t xargdescr_[],
 				     union meltparam_un *xargtab_,
@@ -2007,7 +2022,7 @@ meltrout_138_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_139_warmelt_outobj_MAKEDOC_SCANINPUT (meltclosure_ptr_t closp_,
+meltrout_140_warmelt_outobj_MAKEDOC_SCANINPUT (meltclosure_ptr_t closp_,
 					       melt_ptr_t firstargp_,
 					       const melt_argdescr_cell_t
 					       xargdescr_[],
@@ -2015,17 +2030,6 @@ meltrout_139_warmelt_outobj_MAKEDOC_SCANINPUT (meltclosure_ptr_t closp_,
 					       const melt_argdescr_cell_t
 					       xresdescr_[],
 					       union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_140_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
-				     melt_ptr_t firstargp_,
-				     const melt_argdescr_cell_t xargdescr_[],
-				     union meltparam_un *xargtab_,
-				     const melt_argdescr_cell_t xresdescr_[],
-				     union meltparam_un *xrestab_);
 
 
 
@@ -2064,7 +2068,18 @@ meltrout_143_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_144_warmelt_outobj_MAKEDOC_OUTDEFLOC (meltclosure_ptr_t closp_,
+meltrout_144_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+				     melt_ptr_t firstargp_,
+				     const melt_argdescr_cell_t xargdescr_[],
+				     union meltparam_un *xargtab_,
+				     const melt_argdescr_cell_t xresdescr_[],
+				     union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_145_warmelt_outobj_MAKEDOC_OUTDEFLOC (meltclosure_ptr_t closp_,
 					       melt_ptr_t firstargp_,
 					       const melt_argdescr_cell_t
 					       xargdescr_[],
@@ -2077,7 +2092,7 @@ meltrout_144_warmelt_outobj_MAKEDOC_OUTDEFLOC (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_145_warmelt_outobj_MAKEDOC_OUTFORMALS (meltclosure_ptr_t closp_,
+meltrout_146_warmelt_outobj_MAKEDOC_OUTFORMALS (meltclosure_ptr_t closp_,
 						melt_ptr_t firstargp_,
 						const melt_argdescr_cell_t
 						xargdescr_[],
@@ -2090,7 +2105,7 @@ meltrout_145_warmelt_outobj_MAKEDOC_OUTFORMALS (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_146_warmelt_outobj_MAKEDOC_OUTDOC (meltclosure_ptr_t closp_,
+meltrout_147_warmelt_outobj_MAKEDOC_OUTDOC (meltclosure_ptr_t closp_,
 					    melt_ptr_t firstargp_,
 					    const melt_argdescr_cell_t
 					    xargdescr_[],
@@ -2103,7 +2118,7 @@ meltrout_146_warmelt_outobj_MAKEDOC_OUTDOC (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_147_warmelt_outobj_MAKEDOC_OUTCLASSDEF (meltclosure_ptr_t closp_,
+meltrout_148_warmelt_outobj_MAKEDOC_OUTCLASSDEF (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -2117,7 +2132,7 @@ meltrout_147_warmelt_outobj_MAKEDOC_OUTCLASSDEF (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_148_warmelt_outobj_MAKEDOC_GENMACRO (meltclosure_ptr_t closp_,
+meltrout_149_warmelt_outobj_MAKEDOC_GENMACRO (meltclosure_ptr_t closp_,
 					      melt_ptr_t firstargp_,
 					      const melt_argdescr_cell_t
 					      xargdescr_[],
@@ -2130,7 +2145,7 @@ meltrout_148_warmelt_outobj_MAKEDOC_GENMACRO (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_149_warmelt_outobj_MAKEDOC_GENPATMACRO (meltclosure_ptr_t closp_,
+meltrout_150_warmelt_outobj_MAKEDOC_GENPATMACRO (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -2144,7 +2159,7 @@ meltrout_149_warmelt_outobj_MAKEDOC_GENPATMACRO (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_150_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_151_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 				     melt_ptr_t firstargp_,
 				     const melt_argdescr_cell_t xargdescr_[],
 				     union meltparam_un *xargtab_,
@@ -2155,7 +2170,7 @@ meltrout_150_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_151_warmelt_outobj_MAKEDOC_GENCLASS (meltclosure_ptr_t closp_,
+meltrout_152_warmelt_outobj_MAKEDOC_GENCLASS (meltclosure_ptr_t closp_,
 					      melt_ptr_t firstargp_,
 					      const melt_argdescr_cell_t
 					      xargdescr_[],
@@ -2163,17 +2178,6 @@ meltrout_151_warmelt_outobj_MAKEDOC_GENCLASS (meltclosure_ptr_t closp_,
 					      const melt_argdescr_cell_t
 					      xresdescr_[],
 					      union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_152_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
-				     melt_ptr_t firstargp_,
-				     const melt_argdescr_cell_t xargdescr_[],
-				     union meltparam_un *xargtab_,
-				     const melt_argdescr_cell_t xresdescr_[],
-				     union meltparam_un *xrestab_);
 
 
 
@@ -2212,7 +2216,18 @@ meltrout_155_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_156_warmelt_outobj_MAKEDOC_OUTPRIMITIVEDEF (meltclosure_ptr_t closp_,
+meltrout_156_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+				     melt_ptr_t firstargp_,
+				     const melt_argdescr_cell_t xargdescr_[],
+				     union meltparam_un *xargtab_,
+				     const melt_argdescr_cell_t xresdescr_[],
+				     union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_157_warmelt_outobj_MAKEDOC_OUTPRIMITIVEDEF (meltclosure_ptr_t closp_,
 						     melt_ptr_t firstargp_,
 						     const
 						     melt_argdescr_cell_t
@@ -2229,7 +2244,7 @@ meltrout_156_warmelt_outobj_MAKEDOC_OUTPRIMITIVEDEF (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_157_warmelt_outobj_MAKEDOC_GENPRIMITIVE (meltclosure_ptr_t closp_,
+meltrout_158_warmelt_outobj_MAKEDOC_GENPRIMITIVE (meltclosure_ptr_t closp_,
 						  melt_ptr_t firstargp_,
 						  const melt_argdescr_cell_t
 						  xargdescr_[],
@@ -2244,7 +2259,7 @@ meltrout_157_warmelt_outobj_MAKEDOC_GENPRIMITIVE (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_158_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_159_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 				     melt_ptr_t firstargp_,
 				     const melt_argdescr_cell_t xargdescr_[],
 				     union meltparam_un *xargtab_,
@@ -2255,7 +2270,7 @@ meltrout_158_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_159_warmelt_outobj_MAKEDOC_OUTFUNCTIONDEF (meltclosure_ptr_t closp_,
+meltrout_160_warmelt_outobj_MAKEDOC_OUTFUNCTIONDEF (meltclosure_ptr_t closp_,
 						    melt_ptr_t firstargp_,
 						    const melt_argdescr_cell_t
 						    xargdescr_[],
@@ -2270,7 +2285,7 @@ meltrout_159_warmelt_outobj_MAKEDOC_OUTFUNCTIONDEF (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_160_warmelt_outobj_MAKEDOC_GENFUNCTION (meltclosure_ptr_t closp_,
+meltrout_161_warmelt_outobj_MAKEDOC_GENFUNCTION (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -2284,7 +2299,7 @@ meltrout_160_warmelt_outobj_MAKEDOC_GENFUNCTION (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_161_warmelt_outobj_MAKEDOC_GENCITERATOR (meltclosure_ptr_t closp_,
+meltrout_162_warmelt_outobj_MAKEDOC_GENCITERATOR (meltclosure_ptr_t closp_,
 						  melt_ptr_t firstargp_,
 						  const melt_argdescr_cell_t
 						  xargdescr_[],
@@ -2299,7 +2314,7 @@ meltrout_161_warmelt_outobj_MAKEDOC_GENCITERATOR (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_162_warmelt_outobj_MAKEDOC_GENCMATCHER (meltclosure_ptr_t closp_,
+meltrout_163_warmelt_outobj_MAKEDOC_GENCMATCHER (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -2313,7 +2328,7 @@ meltrout_162_warmelt_outobj_MAKEDOC_GENCMATCHER (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_163_warmelt_outobj_MAKEDOC_GENOUTPUT (meltclosure_ptr_t closp_,
+meltrout_164_warmelt_outobj_MAKEDOC_GENOUTPUT (meltclosure_ptr_t closp_,
 					       melt_ptr_t firstargp_,
 					       const melt_argdescr_cell_t
 					       xargdescr_[],
@@ -2326,7 +2341,7 @@ meltrout_163_warmelt_outobj_MAKEDOC_GENOUTPUT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_164_warmelt_outobj_MAKEDOC_DOCMD (meltclosure_ptr_t closp_,
+meltrout_165_warmelt_outobj_MAKEDOC_DOCMD (meltclosure_ptr_t closp_,
 					   melt_ptr_t firstargp_,
 					   const melt_argdescr_cell_t
 					   xargdescr_[],
@@ -2339,7 +2354,7 @@ meltrout_164_warmelt_outobj_MAKEDOC_DOCMD (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_165_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_166_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 				     melt_ptr_t firstargp_,
 				     const melt_argdescr_cell_t xargdescr_[],
 				     union meltparam_un *xargtab_,
@@ -2350,7 +2365,7 @@ meltrout_165_warmelt_outobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_166_warmelt_outobj_GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT
+meltrout_167_warmelt_outobj_GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -2358,7 +2373,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_167_warmelt_outobj_GENERATE_RUNTYPESUPPORT_ENUM_OBJMAGIC
+meltrout_168_warmelt_outobj_GENERATE_RUNTYPESUPPORT_ENUM_OBJMAGIC
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -2366,7 +2381,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_168_warmelt_outobj_GENERATE_RUNTYPESUPPORT_GTY (meltclosure_ptr_t
+meltrout_169_warmelt_outobj_GENERATE_RUNTYPESUPPORT_GTY (meltclosure_ptr_t
 							 closp_,
 							 melt_ptr_t
 							 firstargp_,
@@ -2385,7 +2400,7 @@ meltrout_168_warmelt_outobj_GENERATE_RUNTYPESUPPORT_GTY (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_169_warmelt_outobj_GENERATE_RUNTYPESUPPORT_FORWCOPY_FUN
+meltrout_170_warmelt_outobj_GENERATE_RUNTYPESUPPORT_FORWCOPY_FUN
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -2393,7 +2408,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_170_warmelt_outobj_GENERATE_RUNTYPESUPPORT_SCANNING
+meltrout_171_warmelt_outobj_GENERATE_RUNTYPESUPPORT_SCANNING
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -2401,7 +2416,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_171_warmelt_outobj_GENERATE_RUNTYPESUPPORT_PARAM (meltclosure_ptr_t
+meltrout_172_warmelt_outobj_GENERATE_RUNTYPESUPPORT_PARAM (meltclosure_ptr_t
 							   closp_,
 							   melt_ptr_t
 							   firstargp_,
@@ -2420,7 +2435,7 @@ meltrout_171_warmelt_outobj_GENERATE_RUNTYPESUPPORT_PARAM (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_172_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAG2STR (meltclosure_ptr_t
+meltrout_173_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAG2STR (meltclosure_ptr_t
 							     closp_,
 							     melt_ptr_t
 							     firstargp_,
@@ -2441,7 +2456,7 @@ meltrout_172_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAG2STR (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_173_warmelt_outobj_GENERATE_RUNTYPESUPPORT_BOXINGFUN
+meltrout_174_warmelt_outobj_GENERATE_RUNTYPESUPPORT_BOXINGFUN
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -2449,7 +2464,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_174_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAPFUN (meltclosure_ptr_t
+meltrout_175_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAPFUN (meltclosure_ptr_t
 							    closp_,
 							    melt_ptr_t
 							    firstargp_,
@@ -2468,7 +2483,7 @@ meltrout_174_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAPFUN (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_175_warmelt_outobj_RUNTYPESUPPORT_DOCMD (meltclosure_ptr_t closp_,
+meltrout_176_warmelt_outobj_RUNTYPESUPPORT_DOCMD (meltclosure_ptr_t closp_,
 						  melt_ptr_t firstargp_,
 						  const melt_argdescr_cell_t
 						  xargdescr_[],

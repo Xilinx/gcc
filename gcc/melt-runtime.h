@@ -103,6 +103,16 @@ extern const int melt_gcc_version;
 /* return a read only version string */
 extern const char* melt_version_str(void);
 
+extern int melt_nb_modules;
+
+/* Built-in defaults */
+extern const char melt_source_dir[];
+extern const char melt_module_dir[];
+extern const char melt_module_make_command[];
+extern const char melt_module_makefile[];
+extern const char melt_module_cflags[];
+extern const char melt_default_modlis[];
+
 struct melt_callframe_st /* forward declaration */;
 
 #ifdef MELT_IS_PLUGIN

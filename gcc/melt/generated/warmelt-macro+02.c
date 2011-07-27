@@ -9859,15 +9859,15 @@ lab_endgetargs:;
 			    ;
 			    /*^compute */
 
-	 /*_#STRING___L11*/ meltfnum[10] =
-			      !melt_string_same (( /*_.NAMED_NAME__V16*/
+	 /*_#S__L11*/ meltfnum[10] =
+			      !melt_string_same ((melt_ptr_t)
+						 ( /*_.NAMED_NAME__V16*/
 						  meltfptr[15]),
-						 ( /*_.NAMED_NAME__V17*/
-						  meltfptr[16]));;
+						 (melt_ptr_t) ( /*_.NAMED_NAME__V17*/ meltfptr[16]));;
 			    /*^compute */
 
 			    /*_#OR___L10*/ meltfnum[9] =
-			      /*_#STRING___L11*/ meltfnum[10];;
+			      /*_#S__L11*/ meltfnum[10];;
 			    /*epilog */
 
 			    MELT_LOCATION ("warmelt-macro.melt:2843:/ clear");
@@ -9878,7 +9878,7 @@ lab_endgetargs:;
 			    /*^clear */
 		   /*clear *//*_.NAMED_NAME__V17*/ meltfptr[16] = 0;
 			    /*^clear */
-		   /*clear *//*_#STRING___L11*/ meltfnum[10] = 0;
+		   /*clear *//*_#S__L11*/ meltfnum[10] = 0;
 			  }
 			  ;
 			}
