@@ -5427,6 +5427,7 @@ meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p)
   char bufblock[1024]; /* size should be multiple of 64 for md5_process_block */
   FILE *fil = NULL;
   int nbtup = 0;
+  int cnt = 0;
   struct md5_ctx ctx = {};
   MELT_ENTERFRAME(3, NULL);
 #define resv       meltfram__.mcfr_varptr[0]
@@ -5457,16 +5458,14 @@ meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p)
       while (!feof (fil))
 	{
 	  memset (bufblock, 0, sizeof (bufblock));
-	  if (fread (bufblock, sizeof(bufblock), 1, fil)==1)
+	  cnt = fread (bufblock, 1, sizeof(bufblock), fil);
+	  if (cnt ==sizeof(bufblock))
 	    {
 	      /* an entire block has been read. */
-	      md5_process_block (bufblock, sizeof(bufblock), &ctx);
+	      md5_process_bytes (bufblock, sizeof(bufblock), &ctx);
 	    }
 	  else
 	    {
-	      int cnt = fread (bufblock, 1, sizeof(bufblock), fil);
-	      if (cnt <= 0) 
-		break;
 	      md5_process_bytes (bufblock, (size_t) cnt, &ctx);
 	    }
 	}

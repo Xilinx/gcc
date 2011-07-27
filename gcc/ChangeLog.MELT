@@ -1,3 +1,7 @@
+2011-07-27  Pierre Vittet  <piervit@vpittet.com>
+
+	* melt-runtime.c (meltgc_string_hex_md5sum_file_sequence):
+	 Correct fread use + only use md5_process_bytes
 
 2011-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (output_melt_descriptor): Emit
