@@ -1,3 +1,22 @@
+2011-07-27  Andrew Macleod  <amacleod@redhat.com>
+
+	* doc/extend.texi (__sync_mem_*) : Document all the atomic builtin
+	functions which deal with memory models.
+
+2011-06-23  Andrew Macleod  <amacleod@redhat.com>
+
+	* doc/extend.texi (__sync_mem_load): Document.
+	* optabs.c (expand_sync_mem_load): New.
+	* optabs.h (enum direct_optab_index): Add DOI_sync_mem_load.
+	(sync_mem_load_optab): Define.
+	* genopinit.c: Add entry for sync_mem_load.
+	* builtins.c (expand_builtin_sync_mem_load): New.
+	(expand_builtin): Handle BUILT_IN_SYNC_MEM_LOAD_*
+	* sync-bultins.def: Add entries for BUILT_IN_SYNC_MEM_LOAD_*.
+	* builtin-types.def (BT_FN_I{1,2,4,8,16}_VPTR_INT): New.
+	* expr.h (expand_sync_mem_load): Declare.
+	* config/i386/sync.md (sync_mem_load<mode>): New pattern.
+
 2011-06-21  Andrew Macleod  <amacleod@redhat.com>
 	    Aldy Hernandez  <aldyh@redhat.com>
 
