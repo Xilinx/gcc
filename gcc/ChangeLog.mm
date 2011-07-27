@@ -1,5 +1,43 @@
 2011-07-27  Andrew Macleod  <amacleod@redhat.com>
 
+	* expr.h (expand_sync_mem_exchange): Change parameter order.
+	(expand_sync_mem_*): New prototypes.
+	(expand_builtin_sync_synchronize): Remove prototype.
+	(expand_builtin_mem_thread_fence): Add prototype.
+	* optabs.h (DOI_sync_mem_*): Add new optable enums.
+	(sync_mem_*_optab): Add new #defines for table entries.
+	* genopinit.c (const optabs[]): Add direct optab handlers.
+	* optabs.c (expand_sync_mem_exchange): Change parameter order, and use
+	builtin_mem_thread_fence.
+	(expand_sync_mem_compare_exchange, expand_sync_mem_load,
+	expand_sync_mem_store, expand_sync_mem_fetch_op): New. Expand
+	__sync_mem functions which handle multiple integral types.
+	* builtins.c (expand_expr_force_mode): New. Factor out common code for
+	ensuring an integer argument is in the proper mode.
+	(expand_builtin_sync_operation, expand_builtin_compare_and_swap,
+	expand_builtin_sync_lock_test_and_set): Use maybe_convert_modes.
+	(expand_builtin_sync_lock_release): Relocate higher in the file.
+	(get_memmodel): Don't assume the memmodel is the 3rd argument.
+	(expand_builtin_sync_mem_exchange): Change error check and use
+	maybe_convert_modes.
+	(expand_builtin_sync_mem_compare_exchange): New.
+	(expand_builtin_sync_mem_load, expand_builtin_sync_mem_store): New.
+	(expand_builtin_sync_mem_fetch_op): New.
+	(expand_builtin_sync_mem_flag_test_and_set): New.
+	(expand_builtin_sync_mem_flag_clear): New.
+	(expand_builtin_mem_thread_fence): New.
+	(expand_builtin_sync_mem_thread_fence): New.
+	(expand_builtin_mem_signal_fence): New.
+	(expand_builtin_sync_mem_signal_fence): New.
+	(expand_builtin): Handle BUILT_IN_SYNC_MEM_* types.
+	* builtin-types.def (BT_FN_I{1,2,4,8,16}_VPTR_INT): New builtin type.
+	(BT_FN_VOID_VPTR_INT, BT_FN_BOOL_VPTR_INT): New builtin types.
+	(BT_FN_VOID_VPTR_I{1,2,4,8,16}_INT: New builtin type.
+	(BT_FN_BOOL_VPTR_PTR_I{1,2,4,8,16}_INT_INT): New builtin type.
+	* sync-builtins.def (BUILT_IN_SYNC_MEM_*): New sync builtins.
+
+2011-07-27  Andrew Macleod  <amacleod@redhat.com>
+
 	* doc/extend.texi (__sync_mem_*) : Document all the atomic builtin
 	functions which deal with memory models.
 

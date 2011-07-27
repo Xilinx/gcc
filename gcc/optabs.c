@@ -7064,7 +7064,7 @@ expand_sync_lock_test_and_set (rtx mem, rtx val, rtx target)
    TARGET is an option place to stick the return value.  */
 
 rtx
-expand_sync_mem_exchange (enum memmodel model, rtx mem, rtx val, rtx target)
+expand_sync_mem_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
@@ -7092,10 +7092,210 @@ expand_sync_mem_exchange (enum memmodel model, rtx mem, rtx val, rtx target)
   icode = direct_optab_handler (sync_lock_test_and_set_optab, mode);
   if ((icode != CODE_FOR_nothing) && (model == MEMMODEL_SEQ_CST || 
 				     model == MEMMODEL_ACQ_REL))
-    expand_builtin_sync_synchronize ();
+    expand_builtin_mem_thread_fence (model);
 
   return expand_sync_lock_test_and_set (mem, val, target);
 }
+
+/* This function expands the atomic compare exchange operation:
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an option place to stick the return value.  */
+
+rtx
+expand_sync_mem_compare_exchange (rtx target, rtx mem, rtx expected, 
+				  rtx desired, enum memmodel success, 
+				  enum memmodel failure)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  enum insn_code icode;
+
+  /* If the target supports the exchange directly, great.  */
+  icode = direct_optab_handler (sync_mem_compare_exchange_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand ops[6];
+
+      create_output_operand (&ops[0], target, QImode);
+      create_output_operand (&ops[1], mem, mode);
+      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
+      create_convert_operand_to (&ops[2], expected, mode, true);
+      create_convert_operand_to (&ops[3], desired, mode, true);
+      create_integer_operand (&ops[4], success);
+      create_integer_operand (&ops[5], failure);
+      if (maybe_expand_insn (icode, 6, ops))
+	return ops[0].value;
+    }
+
+  /* Instead try the instruction with a compare_ swap instruction and 
+     barriers assuming success (which must be the strongest model).  */
+
+
+  icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
+  if (icode == CODE_FOR_nothing)
+      return NULL_RTX;
+
+  return NULL_RTX;
+
+#if 0
+
+  /* We're punting on implementing compare_exchange to get everything else
+     checked in, then we'll come back and implement this, as well as provide
+     the weak and strong variations.  */
+
+  expand_builtin_mem_thread_fence (model);
+  
+  /* Load '*expected into a register for the compare and swap */
+  
+  /* Issue the compare and swap */
+  /* cmp = expand_CAS (mem, expected, desired, target, &result); */
+
+  /* If (cmp) target = cmp;      return true if success. */
+
+  /* else  {  *expected = result;   target = !cmp } */
+  /* Otherwise, copy old value into expected and return false; */
+
+  expand_builtin_mem_thread_fence (model);
+
+  return target;
+#endif
+}
+
+
+/* This function expands the atomic load operation:
+   return the atomically loaded value in MEM.
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an option place to stick the return value.  */
+
+rtx
+expand_sync_mem_load (rtx target, rtx mem, enum memmodel model)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  enum insn_code icode;
+
+  /* If the target supports the load directly, great.  */
+  icode = direct_optab_handler (sync_mem_load_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand ops[3];
+
+      create_output_operand (&ops[0], target, mode);
+      create_fixed_operand (&ops[1], mem);
+      create_integer_operand (&ops[2], model);
+      if (maybe_expand_insn (icode, 3, ops))
+	return ops[0].value;
+    }
+
+  /* If there is no load, default to a move with barriers. */
+  if (target == const0_rtx)
+    target = gen_reg_rtx (mode);
+
+  /* Emit the appropriate barrier before the load.  */
+  expand_builtin_mem_thread_fence (model);
+
+  emit_move_insn (target, mem);
+
+  /* For SEQ_CST, also emit a barrier after the load.  */
+  if (model == MEMMODEL_SEQ_CST)
+    expand_builtin_mem_thread_fence (model);
+
+  return target;
+}
+
+/* This function expands the atomic load operation:
+   return the atomically loaded value in MEM.
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an option place to stick the return value.  */
+
+void
+expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  enum insn_code icode;
+
+  /* If the target supports the store directly, great.  */
+  icode = direct_optab_handler (sync_mem_store_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand ops[3];
+
+      create_output_operand (&ops[0], mem, mode);
+      create_fixed_operand (&ops[1], val);
+      create_integer_operand (&ops[2], model);
+      if (maybe_expand_insn (icode, 3, ops))
+	return;
+    }
+
+  /* If there is no mem_store, default to a move with barriers */
+
+  if (model == MEMMODEL_SEQ_CST)
+    expand_builtin_mem_thread_fence (model);
+
+  emit_move_insn (mem, val);
+
+  /* For SEQ_CST, also emit a barrier after the load.  */
+  expand_builtin_mem_thread_fence (model);
+}
+
+/* This function expands an atomic fetch_OP operation:
+   CODE is the operation to be performed.
+   atomically fetch MEM, perform the operation with VAL and return it to MEM.
+   return the previous value of MEM.
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an option place to stick the return value.  */
+
+rtx
+expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
+			  enum memmodel model)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  enum insn_code icode;
+
+  switch (code)
+    {
+      case PLUS:
+        icode = direct_optab_handler (sync_mem_fetch_add_optab, mode);
+        break;
+      case MINUS:
+        icode = direct_optab_handler (sync_mem_fetch_sub_optab, mode);
+        break;
+      case AND:
+        icode = direct_optab_handler (sync_mem_fetch_and_optab, mode);
+        break;
+      case XOR:
+        icode = direct_optab_handler (sync_mem_fetch_xor_optab, mode);
+        break;
+      case IOR:
+        icode = direct_optab_handler (sync_mem_fetch_or_optab, mode);
+        break;
+      default:
+        icode = CODE_FOR_nothing;
+    }
+
+  /* If the target supports the operation directly, great.  */
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand ops[4];
+
+      create_output_operand (&ops[0], target, mode);
+      create_fixed_operand (&ops[1], mem);
+      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
+      create_convert_operand_to (&ops[2], val, mode, true);
+      create_integer_operand (&ops[3], model);
+      if (maybe_expand_insn (icode, 4, ops))
+	return ops[0].value;
+    }
+
+   /* fetch_* operations are full barriers, so need nothign else.  */
+   target = expand_sync_fetch_operation (mem, val, code, false, target);
+
+  return target;
+}
+
+
 
 /* Return true if OPERAND is suitable for operand number OPNO of
    instruction ICODE.  */

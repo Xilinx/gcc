@@ -9061,6 +9061,14 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
     case BUILT_IN_SYNC_LOCK_TEST_AND_SET_N:
     case BUILT_IN_SYNC_LOCK_RELEASE_N:
     case BUILT_IN_SYNC_MEM_EXCHANGE_N:
+    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_N:
+    case BUILT_IN_SYNC_MEM_LOAD_N:
+    case BUILT_IN_SYNC_MEM_STORE_N:
+    case BUILT_IN_SYNC_MEM_FETCH_ADD_N:
+    case BUILT_IN_SYNC_MEM_FETCH_SUB_N:
+    case BUILT_IN_SYNC_MEM_FETCH_AND_N:
+    case BUILT_IN_SYNC_MEM_FETCH_XOR_N:
+    case BUILT_IN_SYNC_MEM_FETCH_OR_N:
       {
 	int n = sync_resolve_size (function, params);
 	tree new_function, first_param, result;
@@ -9075,7 +9083,8 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 	first_param = VEC_index (tree, params, 0);
 	result = build_function_call_vec (loc, new_function, params, NULL);
 	if (orig_code != BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_N
-	    && orig_code != BUILT_IN_SYNC_LOCK_RELEASE_N)
+	    && orig_code != BUILT_IN_SYNC_LOCK_RELEASE_N
+	    && orig_code != BUILT_IN_SYNC_MEM_STORE_N)
 	  result = sync_resolve_return (first_param, result);
 
 	return result;

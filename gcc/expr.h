@@ -217,7 +217,18 @@ rtx expand_bool_compare_and_swap (rtx, rtx, rtx, rtx);
 rtx expand_sync_operation (rtx, rtx, enum rtx_code);
 rtx expand_sync_fetch_operation (rtx, rtx, enum rtx_code, bool, rtx);
 rtx expand_sync_lock_test_and_set (rtx, rtx, rtx);
-rtx expand_sync_mem_exchange (enum memmodel, rtx, rtx, rtx);
+
+rtx expand_sync_mem_exchange (rtx, rtx, rtx, enum memmodel);
+rtx expand_sync_mem_compare_exchange (rtx, rtx, rtx, rtx, enum memmodel, 
+				      enum memmodel);
+rtx expand_sync_mem_load (rtx, rtx, enum memmodel);
+void expand_sync_mem_store (rtx, rtx, enum memmodel);
+rtx expand_sync_mem_fetch_op (rtx, rtx, rtx, enum rtx_code, enum memmodel);
+rtx expand_sync_mem_flag_test_and_set (rtx, rtx, enum memmodel);
+void expand_sync_mem_flag_clear (rtx, enum memmodel);
+void expand_sync_mem_thread_fence (enum memmodel);
+void expand_sync_mem_signal_fence (enum memmodel);
+
 
 /* Functions from expmed.c:  */
 
@@ -249,7 +260,7 @@ extern void expand_builtin_setjmp_receiver (rtx);
 extern rtx expand_builtin_saveregs (void);
 extern void expand_builtin_trap (void);
 extern rtx builtin_strncpy_read_str (void *, HOST_WIDE_INT, enum machine_mode);
-extern void expand_builtin_sync_synchronize (void);
+extern void expand_builtin_mem_thread_fence (enum memmodel);
 
 /* Functions from expr.c:  */
 

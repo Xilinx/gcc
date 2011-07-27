@@ -679,6 +679,18 @@ enum direct_optab_index
 
   /* Atomic operations with C++0x memory model parameters. */
   DOI_sync_mem_exchange,
+  DOI_sync_mem_compare_exchange,
+  DOI_sync_mem_load,
+  DOI_sync_mem_store,
+  DOI_sync_mem_fetch_add,
+  DOI_sync_mem_fetch_sub,
+  DOI_sync_mem_fetch_and,
+  DOI_sync_mem_fetch_xor,
+  DOI_sync_mem_fetch_or,
+  DOI_sync_mem_flag_test_and_set,
+  DOI_sync_mem_flag_clear,
+  DOI_sync_mem_thread_fence,
+  DOI_sync_mem_signal_fence,
 
   DOI_MAX
 };
@@ -730,6 +742,30 @@ typedef struct direct_optab_d *direct_optab;
 
 #define sync_mem_exchange_optab \
   (&direct_optab_table[(int) DOI_sync_mem_exchange])
+#define sync_mem_compare_exchange_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_compare_exchange])
+#define sync_mem_load_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_load])
+#define sync_mem_store_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_store])
+#define sync_mem_fetch_add_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_fetch_add])
+#define sync_mem_fetch_sub_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_fetch_sub])
+#define sync_mem_fetch_and_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_fetch_and])
+#define sync_mem_fetch_xor_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_fetch_xor])
+#define sync_mem_fetch_or_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_fetch_or])
+#define sync_mem_flag_test_and_set_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_flag_test_and_set])
+#define sync_mem_flag_clear_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_flag_clear])
+#define sync_mem_thread_fence_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_thread_fence])
+#define sync_mem_signal_fence_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_signal_fence])
 
 /* Target-dependent globals.  */
 struct target_optabs {
