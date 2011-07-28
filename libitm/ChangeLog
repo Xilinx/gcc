@@ -1,5 +1,9 @@
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
+	* libitm.h (_ITM_codeProperties): Change pr_hasElse to the ABI's value.
+
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
 	* aatree.h (aa_tree::remove): New.
 	(aa_tree::operator new): Add placement new.
 

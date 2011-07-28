@@ -93,8 +93,8 @@ typedef enum
    pr_preferUninstrumented	= 0x0800,
    /* Exception blocks are not used nor supported. */
    pr_exceptionBlock		= 0x1000,
+   pr_hasElse			= 0x2000,
    pr_readOnly			= 0x4000,
-   pr_hasElse			= 0x200000,
    pr_hasNoSimpleReads		= 0x400000
 } _ITM_codeProperties;
 
