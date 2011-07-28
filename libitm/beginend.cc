@@ -88,6 +88,14 @@ GTM::gtm_transaction::operator delete(void *tx)
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
+static inline uint32_t choose_code_path(uint32_t prop, abi_dispatch *disp)
+{
+  if ((prop & pr_uninstrumentedCode) && disp->can_run_uninstrumented_code())
+    return a_runUninstrumentedCode;
+  else
+    return a_runInstrumentedCode;
+}
+
 uint32_t
 GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 {
@@ -97,14 +105,112 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   abi_dispatch *disp;
   uint32_t ret;
 
+  // ??? pr_undoLogCode is not properly defined in the ABI. Are barriers
+  // omitted because they are not necessary (e.g., a transaction on thread-
+  // local data) or because the compiler thinks that some kind of global
+  // synchronization might perform better?
+  if (unlikely(prop & pr_undoLogCode))
+    GTM_fatal("pr_undoLogCode not supported");
+
   gtm_thread *thr = setup_gtm_thr ();
 
-  tx = new gtm_transaction;
+  tx = gtm_tx();
+  if (tx == NULL)
+    {
+      tx = new gtm_transaction;
+      set_gtm_tx(tx);
+    }
 
+  if (tx->nesting > 0)
+    {
+      // This is a nested transaction.
+      // Check prop compatibility:
+      // The ABI requires pr_hasNoFloatUpdate, pr_hasNoVectorUpdate,
+      // pr_hasNoIrrevocable, pr_aWBarriersOmitted, pr_RaRBarriersOmitted, and
+      // pr_hasNoSimpleReads to hold for the full dynamic scope of a
+      // transaction. We could check that these are set for the nested
+      // transaction if they are also set for the parent transaction, but the
+      // ABI does not require these flags to be set if they could be set,
+      // so the check could be too strict.
+      // ??? For pr_readOnly, lexical or dynamic scope is unspecified.
+
+      if (prop & pr_hasNoAbort)
+        {
+          // We can use flat nesting, so elide this transaction.
+          if (!(prop & pr_instrumentedCode))
+            {
+              if (!(tx->state & STATE_SERIAL) ||
+                  !(tx->state & STATE_IRREVOCABLE))
+                tx->serialirr_mode();
+            }
+          // Increment nesting level after checking that we have a method that
+          // allows us to continue.
+          tx->nesting++;
+          return choose_code_path(prop, abi_disp());
+        }
+
+      // The transaction might abort, so use closed nesting if possible.
+      // pr_hasNoAbort has lexical scope, so the compiler should really have
+      // generated an instrumented code path.
+      assert(prop & pr_instrumentedCode);
+
+      // Create a checkpoint of the current transaction.
+      gtm_transaction_cp *cp = tx->parent_txns.push();
+      cp->save(tx);
+      new (&tx->alloc_actions) aa_tree<uintptr_t, gtm_alloc_action>();
+
+      // Check whether the current method actually supports closed nesting.
+      // If we can switch to another one, do so.
+      // If not, we assume that actual aborts are infrequent, and rather
+      // restart in _ITM_abortTransaction when we really have to.
+      disp = abi_disp();
+      if (!disp->closed_nesting())
+        {
+          // ??? Should we elide the transaction if there is no alternative
+          // method that supports closed nesting? If we do, we need to set
+          // some flag to prevent _ITM_abortTransaction from aborting the
+          // wrong transaction (i.e., some parent transaction).
+          abi_dispatch *cn_disp = disp->closed_nesting_alternative();
+          if (cn_disp)
+            {
+              disp = cn_disp;
+              set_abi_disp(disp);
+            }
+        }
+    }
+  else
+    {
+      // Outermost transaction
+      // TODO Pay more attention to prop flags (eg, *omitted) when selecting
+      // dispatch.
+      if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
+        tx->state = (STATE_SERIAL | STATE_IRREVOCABLE);
+
+      else
+        disp = tx->decide_begin_dispatch ();
+
+      if (tx->state & STATE_SERIAL)
+        {
+          serial_lock.write_lock ();
+
+          if (tx->state & STATE_IRREVOCABLE)
+            disp = dispatch_serialirr ();
+          else
+            disp = dispatch_serial ();
+        }
+      else
+        {
+          serial_lock.read_lock ();
+        }
+
+      set_abi_disp (disp);
+    }
+
+  // Initialization that is common for outermost and nested transactions.
   tx->prop = prop;
-  tx->prev = gtm_tx();
-  if (tx->prev)
-    tx->nesting = tx->prev->nesting + 1;
+  tx->nesting++;
+
+  tx->jb = *jb;
 
   // As long as we have not exhausted a previously allocated block of TIDs,
   // we can avoid an atomic operation on a shared cacheline.
@@ -124,56 +230,80 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 #endif
     }
 
-  tx->jb = *jb;
-
-  set_gtm_tx (tx);
-
-  // ??? pr_undoLogCode is not properly defined in the ABI. Are barriers
-  // omitted because they are not necessary (e.g., a transaction on thread-
-  // local data) or because the compiler thinks that some kind of global
-  // synchronization might perform better?
-  if (unlikely(prop & pr_undoLogCode))
-    GTM_fatal("pr_undoLogCode not supported");
-
-  if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
-    tx->state = (STATE_SERIAL | STATE_IRREVOCABLE);
-
-  else
-    disp = tx->decide_begin_dispatch ();
-
-  if (tx->state & STATE_SERIAL)
-    {
-      serial_lock.write_lock ();
-
-      if (tx->state & STATE_IRREVOCABLE)
-        disp = dispatch_serialirr ();
-      else
-        disp = dispatch_serial ();
-
-      ret = a_runUninstrumentedCode;
-      if ((prop & pr_multiwayCode) == pr_instrumentedCode)
-	ret = a_runInstrumentedCode;
-    }
-  else
-    {
-      serial_lock.read_lock ();
-      ret = a_runInstrumentedCode | a_saveLiveVariables;
-    }
-
-  set_abi_disp (disp);
-
+  // Determine the code path to run. Only irrevocable transactions cannot be
+  // restarted, so all other transactions need to save live variables.
+  ret = choose_code_path(prop, disp);
+  if (!(tx->state & STATE_IRREVOCABLE))
+    ret |= a_saveLiveVariables;
   return ret;
 }
 
-void
-GTM::gtm_transaction::rollback ()
-{
-  abi_disp()->rollback ();
-  rollback_local ();
 
-  rollback_user_actions();
-  commit_allocations (true);
-  revert_cpp_exceptions ();
+void
+GTM::gtm_transaction_cp::save(gtm_transaction* tx)
+{
+  // Save everything that we might have to restore on restarts or aborts.
+  jb = tx->jb;
+  local_undo_size = tx->local_undo.size();
+  memcpy(&alloc_actions, &tx->alloc_actions, sizeof(alloc_actions));
+  user_actions_size = tx->user_actions.size();
+  id = tx->id;
+  prop = tx->prop;
+  cxa_catch_count = tx->cxa_catch_count;
+  cxa_unthrown = tx->cxa_unthrown;
+  disp = abi_disp();
+  nesting = tx->nesting;
+}
+
+void
+GTM::gtm_transaction_cp::commit(gtm_transaction* tx)
+{
+  // Restore state that is not persistent across commits. Exception handling,
+  // information, nesting level, and any logs do not need to be restored on
+  // commits of nested transactions. Allocation actions must be committed
+  // before committing the snapshot.
+  tx->jb = jb;
+  memcpy(&tx->alloc_actions, &alloc_actions, sizeof(alloc_actions));
+  tx->id = id;
+  tx->prop = prop;
+}
+
+
+void
+GTM::gtm_transaction::rollback (gtm_transaction_cp *cp)
+{
+  abi_disp()->rollback (cp);
+
+  rollback_local (cp ? cp->local_undo_size : 0);
+  rollback_user_actions (cp ? cp->user_actions_size : 0);
+  commit_allocations (true, (cp ? &cp->alloc_actions : 0));
+  revert_cpp_exceptions (cp);
+
+  if (cp)
+    {
+      // Roll back the rest of the state to the checkpoint.
+      jb = cp->jb;
+      id = cp->id;
+      prop = cp->prop;
+      if (cp->disp != abi_disp())
+        set_abi_disp(cp->disp);
+      memcpy(&alloc_actions, &cp->alloc_actions, sizeof(alloc_actions));
+      nesting = cp->nesting;
+    }
+  else
+    {
+      // Restore the jump buffer and transaction properties, which we will
+      // need for the longjmp used to restart or abort the transaction.
+      if (parent_txns.size() > 0)
+        {
+          jb = parent_txns[0].jb;
+          prop = parent_txns[0].prop;
+        }
+      // Reset the transaction. Do not reset state, which is handled by the
+      // callers.
+      nesting = 0;
+      parent_txns.clear();
+    }
 
   if (this->eh_in_flight)
     {
@@ -193,45 +323,87 @@ _ITM_abortTransaction (_ITM_abortReason reason)
   if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
     abort ();
 
-  tx->rollback ();
-  abi_disp()->fini ();
+  // If the current method does not support closed nesting, we are nested, and
+  // we can restart, then restart with a method that supports closed nesting.
+  abi_dispatch *disp = abi_disp();
+  if (!disp->closed_nesting())
+    tx->restart(RESTART_CLOSED_NESTING);
 
-  if (tx->state & gtm_transaction::STATE_SERIAL)
-    gtm_transaction::serial_lock.write_unlock ();
+  // Roll back to innermost transaction.
+  if (tx->parent_txns.size() > 0)
+    {
+      // The innermost transaction is a nested transaction.
+      gtm_transaction_cp *cp = tx->parent_txns.pop();
+      uint32_t longjmp_prop = tx->prop;
+      gtm_jmpbuf longjmp_jb = tx->jb;
+
+      tx->rollback (cp);
+      abi_disp()->fini ();
+
+      // Jump to nested transaction (use the saved jump buffer).
+      GTM_longjmp (&longjmp_jb, a_abortTransaction | a_restoreLiveVariables,
+          longjmp_prop);
+    }
   else
-    gtm_transaction::serial_lock.read_unlock ();
+    {
+      // There is no nested transaction, so roll back to outermost transaction.
+      tx->rollback ();
+      abi_disp()->fini ();
 
-  set_gtm_tx (tx->prev);
-  delete tx;
+      // Aborting an outermost transaction finishes execution of the whole
+      // transaction. Therefore, reset transaction state.
+      if (tx->state & gtm_transaction::STATE_SERIAL)
+        gtm_transaction::serial_lock.write_unlock ();
+      else
+        gtm_transaction::serial_lock.read_unlock ();
+      tx->state = 0;
 
-  GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables, tx->prop);
+      GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables,
+          tx->prop);
+    }
 }
 
 bool
 GTM::gtm_transaction::trycommit ()
 {
+  nesting--;
+
+  // Skip any real commit for elided transactions.
+  if (nesting > 0 && (parent_txns.size() == 0 ||
+      nesting > parent_txns[parent_txns.size() - 1].nesting))
+    return true;
+
+  if (nesting > 0)
+    {
+      // Commit of a closed-nested transaction. Remove one checkpoint and add
+      // any effects of this transaction to the parent transaction.
+      gtm_transaction_cp *cp = parent_txns.pop();
+      commit_allocations(false, &cp->alloc_actions);
+      cp->commit(this);
+      return true;
+    }
+
+  // Commit of an outermost transaction.
   if (abi_disp()->trycommit ())
     {
       commit_local ();
-      commit_user_actions();
-      commit_allocations (false);
-      return true;
-    }
-  return false;
-}
-
-bool
-GTM::gtm_transaction::trycommit_and_finalize ()
-{
-  if (trycommit ())
-    {
+      // FIXME: run after ensuring privatization safety:
+      commit_user_actions ();
+      commit_allocations (false, 0);
       abi_disp()->fini ();
-      set_gtm_tx (this->prev);
-      delete this;
-      if (this->state & gtm_transaction::STATE_SERIAL)
+
+      // Reset transaction state.
+      cxa_catch_count = 0;
+      cxa_unthrown = NULL;
+
+      // TODO can release SI mode before committing user actions? If so,
+      // we can release before ensuring privatization safety too.
+      if (state & gtm_transaction::STATE_SERIAL)
 	gtm_transaction::serial_lock.write_unlock ();
       else
 	gtm_transaction::serial_lock.read_unlock ();
+      state = 0;
+
       return true;
     }
   return false;
@@ -240,24 +412,21 @@ GTM::gtm_transaction::trycommit_and_finalize ()
 void ITM_NORETURN
 GTM::gtm_transaction::restart (gtm_restart_reason r)
 {
-  uint32_t actions;
-
+  // Roll back to outermost transaction. Do not reset transaction state because
+  // we will continue executing this transaction.
   rollback ();
   decide_retry_strategy (r);
 
-  actions = a_runInstrumentedCode | a_restoreLiveVariables;
-  if ((this->prop & pr_uninstrumentedCode)
-      && (this->state & gtm_transaction::STATE_IRREVOCABLE))
-    actions = a_runUninstrumentedCode | a_restoreLiveVariables;
-
-  GTM_longjmp (&this->jb, actions, this->prop);
+  GTM_longjmp (&this->jb,
+      choose_code_path(prop, abi_disp()) | a_restoreLiveVariables,
+      this->prop);
 }
 
 void ITM_REGPARM
 _ITM_commitTransaction(void)
 {
   gtm_transaction *tx = gtm_tx();
-  if (!tx->trycommit_and_finalize ())
+  if (!tx->trycommit ())
     tx->restart (RESTART_VALIDATE_COMMIT);
 }
 
@@ -265,7 +434,7 @@ void ITM_REGPARM
 _ITM_commitTransactionEH(void *exc_ptr)
 {
   gtm_transaction *tx = gtm_tx();
-  if (!tx->trycommit_and_finalize ())
+  if (!tx->trycommit ())
     {
       tx->eh_in_flight = exc_ptr;
       tx->restart (RESTART_VALIDATE_COMMIT);

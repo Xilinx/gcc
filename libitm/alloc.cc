@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -52,6 +52,55 @@ gtm_transaction::forget_allocation (void *ptr, void (*free_fn)(void *))
   a->allocated = false;
 }
 
+namespace {
+struct commit_cb_data {
+  aa_tree<uintptr_t, gtm_alloc_action>* parent;
+  bool revert_p;
+};
+}
+
+static void
+commit_allocations_2 (uintptr_t key, gtm_alloc_action *a, void *data)
+{
+  void *ptr = (void *)key;
+  commit_cb_data *cb_data = static_cast<commit_cb_data *>(data);
+
+  if (cb_data->revert_p)
+    {
+      // Roll back nested allocations.
+      if (a->allocated)
+        a->free_fn (ptr);
+    }
+  else
+    {
+      if (a->allocated)
+        {
+          // Add nested allocations to parent transaction.
+          gtm_alloc_action* a_parent = cb_data->parent->insert(key);
+          *a_parent = *a;
+        }
+      else
+        {
+          // Eliminate a parent allocation if it matches this memory release,
+          // otherwise just add it to the parent.
+          gtm_alloc_action* a_parent;
+          aa_tree<uintptr_t, gtm_alloc_action>::node_ptr node_ptr =
+              cb_data->parent->remove(key, &a_parent);
+          if (node_ptr)
+            {
+              assert(a_parent->allocated);
+              a_parent->free_fn(ptr);
+              delete node_ptr;
+            }
+          else
+            {
+              a_parent = cb_data->parent->insert(key);
+              *a_parent = *a;
+            }
+        }
+    }
+}
+
 static void
 commit_allocations_1 (uintptr_t key, gtm_alloc_action *a, void *cb_data)
 {
@@ -67,10 +116,19 @@ commit_allocations_1 (uintptr_t key, gtm_alloc_action *a, void *cb_data)
    REVERT_P is true if instead of committing the allocations, we want
    to roll them back (and vice versa).  */
 void
-gtm_transaction::commit_allocations (bool revert_p)
+gtm_transaction::commit_allocations (bool revert_p,
+    aa_tree<uintptr_t, gtm_alloc_action>* parent)
 {
-  this->alloc_actions.traverse (commit_allocations_1,
-				(void *)(uintptr_t)revert_p);
+  if (parent)
+    {
+      commit_cb_data cb_data;
+      cb_data.parent = parent;
+      cb_data.revert_p = revert_p;
+      this->alloc_actions.traverse (commit_allocations_2, &cb_data);
+    }
+  else
+    this->alloc_actions.traverse (commit_allocations_1,
+				  (void *)(uintptr_t)revert_p);
   this->alloc_actions.clear ();
 }
 

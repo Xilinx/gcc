@@ -44,7 +44,7 @@ _ITM_howExecuting ITM_REGPARM
 _ITM_inTransaction (void)
 {
   struct gtm_transaction *tx = gtm_tx();
-  if (tx)
+  if (tx && (tx->nesting > 0))
     {
       if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
 	return inIrrevocableTransaction;

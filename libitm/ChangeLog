@@ -1,5 +1,30 @@
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
+	* local.cc (gtm_transaction::rollback_local): Support closed nesting.
+	* eh_cpp.cc (GTM::gtm_transaction::revert_cpp_exceptions): Same.
+	* dispatch.h: Same.
+	* method-serial.cc: Same.
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Change to
+	flat nesting as default, and closed nesting on demand.
+	(GTM::gtm_transaction::rollback): Same.
+	(_ITM_abortTransaction): Same.
+	(GTM::gtm_transaction::restart): Same.
+	(GTM::gtm_transaction::trycommit): Same.
+	(GTM::gtm_transaction::trycommit_and_finalize): Removed.
+	(choose_code_path): New.
+	(GTM::gtm_transaction_cp::save): New.
+	(GTM::gtm_transaction_cp::commit): New.
+	* query.cc (_ITM_inTransaction): Support flat nesting.
+	* libitm_i.h (GTM::gtm_transaction_cp): New helper struct for nesting.
+	(GTM::gtm_transaction): Support flat and closed nesting.
+	* alloc.cc (commit_allocations_2): New.
+	(commit_cb_data): New helper struct.
+	(GTM::gtm_transaction::commit_allocations): Handle nested
+	commits/rollbacks.
+	* libitm.texi: Update user action section, add description of nesting.
+
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm_i.h: Add closed nesting as restart reason.
 	* retry.cc (GTM::gtm_transaction::decide_retry_strategy): Same.
 

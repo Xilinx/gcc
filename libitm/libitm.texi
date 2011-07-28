@@ -314,13 +314,16 @@ nontransactionally).
 
 @subsection User-registered commit and undo actions
 
-The order in which commit or undo actions are executed is undefined. It is also
-undefined whether privatization safety has been ensured by the time the
-transactions are executed. The ordering of undo actions and the roll-back of
-data transfers is undefined.
+Commit actions will get executed in the same order in which the respective
+calls to @code{_ITM_addUserCommitAction} happened. Only
+@code{_ITM_noTransactionId} is allowed as value for the
+@code{resumingTransactionId} argument. Commit actions get executed after
+privatization safety has been ensured.
 
-However, the ABI should specify ordering guarantees where necessary (in
-particular, w.r.t. privatization safety).
+Undo actions will get executed in reverse order compared to the order in which
+the respective calls to @code{_ITM_addUserUndoAction} happened. The ordering of
+undo actions w.r.t. the roll-back of other actions (e.g., data transfers or
+memory allocations) is undefined.
 
 @code{_ITM_dropReferences} is not supported currently because its semantics and
 the intention behind it is not entirely clear. The
@@ -415,7 +418,31 @@ specification. Likewise, the TM runtime must ensure privatization safety.
 @node Internals
 @chapter Internals
 
-TODO: SI-mode implementation, method sets, ...
+@section Nesting: flat vs. closed
+
+We support two different kinds of nesting of transactions. In the case of
+@emph{flat nesting}, the nesting structure is flattened and all nested
+transactions are subsumed by the enclosing transaction. In contrast,
+with @emph{closed nesting}, nested transactions that have not yet committed
+can be rolled back separately from the enclosing transactions; when they
+commit, they are subsumed by the enclosing transaction, and their effects
+will be finally committed when the outermost transaction commits.
+@emph{Open nesting} (where nested transactions can commit independently of the
+enclosing transactions) are not supported.
+
+Flat nesting is the default nesting mode, but closed nesting is supported and
+used when transactions contain user-controlled aborts
+(@code{__transaction_cancel} statements). We assume that user-controlled
+aborts are rare in typical code and used mostly in exceptional situations.
+Thus, it makes more sense to use flat nesting by default to avoid the
+performance overhead of the additional checkpoints required for closed
+nesting. User-controlled aborts will correctly abort the innermost enclosing
+transaction, whereas the whole (i.e., outermost) transaction will be restarted
+otherwise (e.g., when a transaction encounters data conflicts during
+optimistic execution).
+
+
+@strong{TODO}: SI-mode implementation, method sets, ...
 
 @c ---------------------------------------------------------------------
 @c GNU General Public License

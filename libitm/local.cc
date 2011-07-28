@@ -48,22 +48,21 @@ gtm_transaction::commit_local ()
 }
 
 void
-gtm_transaction::rollback_local (void)
+gtm_transaction::rollback_local (size_t until_size)
 {
   size_t i, n = local_undo.size();
 
   if (n > 0)
     {
-      for (i = n; i-- > 0; )
+      for (i = n; i-- > until_size; )
 	{
-	  gtm_local_undo *u = local_undo[i];
+	  gtm_local_undo *u = *local_undo.pop();
 	  if (u)
 	    {
 	      memcpy (u->addr, u->saved, u->len);
 	      free (u);
 	    }
 	}
-      local_undo.clear();
     }
 }
 

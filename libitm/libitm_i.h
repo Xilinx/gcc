@@ -97,6 +97,30 @@ struct gtm_alloc_action
 // This type is private to local.c.
 struct gtm_local_undo;
 
+struct gtm_transaction;
+
+// A transaction checkpoint: data that has to saved and restored when doing
+// closed nesting.
+struct gtm_transaction_cp
+{
+  gtm_jmpbuf jb;
+  size_t local_undo_size;
+  aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;
+  size_t user_actions_size;
+  _ITM_transactionId_t id;
+  uint32_t prop;
+  uint32_t cxa_catch_count;
+  void *cxa_unthrown;
+  // We might want to use a different but compatible dispatch method for
+  // a nested transaction.
+  abi_dispatch *disp;
+  // Nesting level of this checkpoint (1 means that this is a checkpoint of
+  // the outermost transaction).
+  uint32_t nesting;
+
+  void save(gtm_transaction* tx);
+  void commit(gtm_transaction* tx);
+};
 
 // All data relevant to a single transaction.
 struct gtm_transaction
@@ -120,8 +144,6 @@ struct gtm_transaction
   // Data used by alloc.c for the malloc/free undo log.
   aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;
 
-  // A pointer to the "outer" transaction.
-  struct gtm_transaction *prev;
   // Data used by useraction.c for the user-defined commit/abort handlers.
   vector<user_action> user_actions;
 
@@ -131,13 +153,16 @@ struct gtm_transaction
   // The _ITM_codeProperties of this transaction as given by the compiler.
   uint32_t prop;
 
-  // The nesting depth of this transaction.
+  // The nesting depth for subsequently started transactions. This variable
+  // will be set to 1 when starting an outermost transaction.
   uint32_t nesting;
 
   // Set if this transaction owns the serial write lock.
+  // Can be reset only when restarting the outermost transaction.
   static const uint32_t STATE_SERIAL		= 0x0001;
   // Set if the serial-irrevocable dispatch table is installed.
   // Implies that no logging is being done, and abort is not possible.
+  // Can be reset only when restarting the outermost transaction.
   static const uint32_t STATE_IRREVOCABLE	= 0x0002;
 
   // A bitmask of the above.
@@ -147,6 +172,9 @@ struct gtm_transaction
   uint32_t cxa_catch_count;
   void *cxa_unthrown;
   void *eh_in_flight;
+
+  // Checkpoints for closed nesting.
+  vector<gtm_transaction_cp> parent_txns;
 
   // Data used by retry.c for deciding what STM implementation should
   // be used for the next iteration of the transaction.
@@ -159,7 +187,7 @@ struct gtm_transaction
   static gtm_rwlock serial_lock;
 
   // In alloc.cc
-  void commit_allocations (bool);
+  void commit_allocations (bool, aa_tree<uintptr_t, gtm_alloc_action>*);
   void record_allocation (void *, void (*)(void *));
   void forget_allocation (void *, void (*)(void *));
   void drop_references_allocations (const void *ptr)
@@ -168,9 +196,8 @@ struct gtm_transaction
   }
 
   // In beginend.cc
-  void rollback ();
+  void rollback (gtm_transaction_cp *cp = 0);
   bool trycommit ();
-  bool trycommit_and_finalize ();
   void restart (gtm_restart_reason) ITM_NORETURN;
 
   static void *operator new(size_t);
@@ -182,11 +209,11 @@ struct gtm_transaction
 	__asm__("GTM_begin_transaction") ITM_REGPARM;
 
   // In eh_cpp.cc
-  void revert_cpp_exceptions ();
+  void revert_cpp_exceptions (gtm_transaction_cp *cp = 0);
 
   // In local.cc
   void commit_local (void);
-  void rollback_local (void);
+  void rollback_local (size_t until_size = 0);
   void drop_references_local (const void *, size_t);
 
   // In retry.cc

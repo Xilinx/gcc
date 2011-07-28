@@ -74,7 +74,7 @@ class serialirr_dispatch : public abi_dispatch
   CREATE_DISPATCH_METHODS_MEM()
 
   virtual bool trycommit() { return true; }
-  virtual void rollback() { abort(); }
+  virtual void rollback(gtm_transaction_cp *cp) { abort(); }
   virtual void reinit() { }
   virtual void fini() { }
 
@@ -129,7 +129,7 @@ public:
   virtual bool trycommit() { return true; }
   // Local undo will handle this.
   // trydropreference() need not be changed either.
-  virtual void rollback() { }
+  virtual void rollback(gtm_transaction_cp *cp) { }
   virtual void reinit() { }
   virtual void fini() { }
 

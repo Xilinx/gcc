@@ -234,6 +234,8 @@ void ITM_REGPARM _ITM_memset##WRITE(void *dst, int c, size_t size) \
 
 namespace GTM HIDDEN {
 
+struct gtm_transaction_cp;
+
 // This pass-through method is the basis for other methods.
 // It can be used for serial-irrevocable mode.
 struct abi_dispatch
@@ -248,7 +250,7 @@ private:
 
 public:
   virtual bool trycommit() = 0;
-  virtual void rollback() = 0;
+  virtual void rollback(gtm_transaction_cp *cp = 0) = 0;
   virtual void reinit() = 0;
 
   // Use fini instead of dtor to support a static subclasses that uses
