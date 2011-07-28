@@ -26,50 +26,28 @@
 
 namespace GTM HIDDEN {
 
-struct gtm_user_action
-{
-  struct gtm_user_action *next;
-  _ITM_userCommitFunction fn;
-  void *arg;
-};
-
-
 void
-gtm_transaction::run_actions (gtm_user_action **list)
+gtm_transaction::rollback_user_actions(size_t until_size)
 {
-  gtm_user_action *a = *list;
-
-  if (a == NULL)
-    return;
-  *list = NULL;
-
-  do
+  for (size_t s = user_actions.size(); s > until_size; s--)
     {
-      gtm_user_action *n = a->next;
-      a->fn (a->arg);
-      free (a);
-      a = n;
+      user_action *a = user_actions.pop();
+      if (!a->on_commit)
+        a->fn (a->arg);
     }
-  while (a);
 }
 
 
 void
-gtm_transaction::free_actions (gtm_user_action **list)
+gtm_transaction::commit_user_actions()
 {
-  gtm_user_action *a = *list;
-
-  if (a == NULL)
-    return;
-  *list = NULL;
-
-  do
+  for (vector<user_action>::iterator i = user_actions.begin(),
+      ie = user_actions.end(); i != ie; i++)
     {
-      gtm_user_action *n = a->next;
-      free (a);
-      a = n;
+      if (i->on_commit)
+        i->fn (i->arg);
     }
-  while (a);
+  user_actions.clear();
 }
 
 } // namespace GTM
@@ -80,17 +58,15 @@ void ITM_REGPARM
 _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
 			 _ITM_transactionId_t tid, void *arg)
 {
-  gtm_transaction *tx;
-  gtm_user_action *a;
-
-  for (tx = gtm_tx(); tx->id != tid; tx = tx->prev)
-    continue;
-
-  a = (gtm_user_action *) xmalloc (sizeof (*a));
-  a->next = tx->commit_actions;
+  gtm_transaction *tx = gtm_tx();
+  if (tid != _ITM_noTransactionId)
+    GTM_fatal("resumingTransactionId in _ITM_addUserCommitAction must be "
+              "_ITM_noTransactionId");
+  gtm_transaction::user_action *a = tx->user_actions.push();
   a->fn = fn;
   a->arg = arg;
-  tx->commit_actions = a;
+  a->on_commit = true;
+  a->resuming_id = tid;
 }
 
 
@@ -98,11 +74,8 @@ void ITM_REGPARM
 _ITM_addUserUndoAction(_ITM_userUndoFunction fn, void * arg)
 {
   gtm_transaction *tx = gtm_tx();
-  gtm_user_action *a;
-
-  a = (gtm_user_action *) xmalloc (sizeof (*a));
-  a->next = tx->undo_actions;
+  gtm_transaction::user_action *a = tx->user_actions.push();
   a->fn = fn;
   a->arg = arg;
-  tx->undo_actions = a;
+  a->on_commit = false;
 }

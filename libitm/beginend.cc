@@ -171,8 +171,7 @@ GTM::gtm_transaction::rollback ()
   abi_disp()->rollback ();
   rollback_local ();
 
-  free_actions (&this->commit_actions);
-  run_actions (&this->undo_actions);
+  rollback_user_actions();
   commit_allocations (true);
   revert_cpp_exceptions ();
 
@@ -214,8 +213,7 @@ GTM::gtm_transaction::trycommit ()
   if (abi_disp()->trycommit ())
     {
       commit_local ();
-      free_actions (&this->undo_actions);
-      run_actions (&this->commit_actions);
+      commit_user_actions();
       commit_allocations (false);
       return true;
     }

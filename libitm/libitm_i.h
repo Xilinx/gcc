@@ -96,12 +96,19 @@ struct gtm_alloc_action
 // This type is private to local.c.
 struct gtm_local_undo;
 
-// This type is private to useraction.c.
-struct gtm_user_action;
 
 // All data relevant to a single transaction.
 struct gtm_transaction
 {
+
+  struct user_action
+  {
+    _ITM_userCommitFunction fn;
+    void *arg;
+    bool on_commit;
+    _ITM_transactionId_t resuming_id;
+  };
+
   // The jump buffer by which GTM_longjmp restarts the transaction.
   // This field *must* be at the beginning of the transaction.
   gtm_jmpbuf jb;
@@ -112,12 +119,10 @@ struct gtm_transaction
   // Data used by alloc.c for the malloc/free undo log.
   aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;
 
-  // Data used by useraction.c for the user defined undo log.
-  struct gtm_user_action *commit_actions;
-  struct gtm_user_action *undo_actions;
-
   // A pointer to the "outer" transaction.
   struct gtm_transaction *prev;
+  // Data used by useraction.c for the user-defined commit/abort handlers.
+  vector<user_action> user_actions;
 
   // A numerical identifier for this transaction.
   _ITM_transactionId_t id;
@@ -191,8 +196,8 @@ struct gtm_transaction
   void serialirr_mode ();
 
   // In useraction.cc
-  static void run_actions (struct gtm_user_action **);
-  static void free_actions (struct gtm_user_action **);
+  void rollback_user_actions (size_t until_size = 0);
+  void commit_user_actions ();
 };
 
 } // namespace GTM
