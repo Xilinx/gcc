@@ -1,5 +1,10 @@
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
+	* beginend.cc (GTM::gtm_transaction::rollback): Fix nesting level
+	rollback.
+
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
 	* retry.cc (GTM::gtm_transaction::decide_begin_dispatch): Get
 	transaction properties from the caller instead of from the
 	transaction object.

@@ -292,6 +292,7 @@ GTM::gtm_transaction::rollback (gtm_transaction_cp *cp)
     }
   else
     {
+      // Roll back to the outermost transaction.
       // Restore the jump buffer and transaction properties, which we will
       // need for the longjmp used to restart or abort the transaction.
       if (parent_txns.size() > 0)
@@ -299,9 +300,11 @@ GTM::gtm_transaction::rollback (gtm_transaction_cp *cp)
           jb = parent_txns[0].jb;
           prop = parent_txns[0].prop;
         }
-      // Reset the transaction. Do not reset state, which is handled by the
-      // callers.
-      nesting = 0;
+      // Reset the transaction. Do not reset this->state, which is handled by
+      // the callers. Note that we reset the transaction to the point after
+      // having executed begin_transaction (we will return from it), so the
+      // nesting level must be one, not zero.
+      nesting = 1;
       parent_txns.clear();
     }
 
