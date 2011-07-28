@@ -1,5 +1,10 @@
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
+	* libitm_i.h: Add closed nesting as restart reason.
+	* retry.cc (GTM::gtm_transaction::decide_retry_strategy): Same.
+
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
 	* useraction.cc: Use vector instead of list to store actions.
 	Also support partial rollbacks for closed nesting.
 	* libitm_i.h (GTM::gtm_transaction::user_action): Same.

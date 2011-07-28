@@ -35,6 +35,9 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
   bool retry_irr = (r == RESTART_SERIAL_IRR);
   bool retry_serial = (this->restart_total > 100 || retry_irr);
 
+  if (r == RESTART_CLOSED_NESTING)
+    retry_serial = true;
+
   if (retry_serial)
     {
       // In serialirr_mode we can succeed with the upgrade to
@@ -54,9 +57,8 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
 	}
 
       // ??? We can only retry with dispatch_serial when the transaction
-      // doesn't contain an abort.  TODO: Create a serial mode dispatch
-      // that does logging in order to support abort.
-      if (this->prop & pr_hasNoAbort)
+      // doesn't contain an abort.
+      if ((this->prop & pr_hasNoAbort) && (r != RESTART_CLOSED_NESTING))
 	retry_irr = true;
     }
 
@@ -64,12 +66,13 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
     {
       this->state = (STATE_SERIAL | STATE_IRREVOCABLE);
       disp->fini ();
-      disp = dispatch_serial ();
+      disp = dispatch_serialirr ();
       set_abi_disp (disp);
     }
   else
     {
-      GTM_fatal("internal error: unsupported mode");
+      disp = dispatch_serial();
+      set_abi_disp (disp);
     }
 }
 
