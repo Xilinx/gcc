@@ -1,3 +1,11 @@
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/lib/libgomp.exp (libgomp_init): Add -march=i486
+	for ia32 instead of ilp32.
+
+	* testsuite/libgomp.c/atomic-1.c: Require ia32 instead of ilp32.
+	* testsuite/libgomp.c/atomic-6.c: Likewise.
+
 2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/linux/x86/futex.h: Check __x86_64__ instead of
