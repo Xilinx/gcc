@@ -1,5 +1,15 @@
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
+	* dispatch.h (GTM::abi_dispatch): Add can_run_uninstrumented_code and
+	closed_nesting flags, as well as a closed nesting alternative.
+	* method-serial.cc: Same.
+	(serial_dispatch): Renamed to serialirr_dispatch.
+	(GTM::dispatch_serialirr): Same.
+	(serial_dispatch_ul): Renamed to serial_dispatch.
+	(GTM::dispatch_serial): Same.
+
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm.h (_ITM_codeProperties): Change pr_hasElse to the ABI's value.
 
 2011-07-28  Torvald Riegel  <triegel@redhat.com>

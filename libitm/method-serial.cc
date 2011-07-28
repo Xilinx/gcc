@@ -35,10 +35,10 @@ using namespace GTM;
 
 namespace {
 
-class serial_dispatch : public abi_dispatch
+class serialirr_dispatch : public abi_dispatch
 {
  public:
-  serial_dispatch() : abi_dispatch(false, true) { }
+  serialirr_dispatch() : abi_dispatch(false, true, true, false) { }
 
  protected:
   // Transactional loads and stores simply access memory directly.
@@ -77,9 +77,16 @@ class serial_dispatch : public abi_dispatch
   virtual void rollback() { abort(); }
   virtual void reinit() { }
   virtual void fini() { }
+
+  virtual abi_dispatch* closed_nesting_alternative()
+  {
+    // For nested transactions with an instrumented code path, we can do
+    // undo logging.
+    return GTM::dispatch_serial();
+  }
 };
 
-class serial_dispatch_ul : public serial_dispatch
+class serial_dispatch : public abi_dispatch
 {
 protected:
   static void log(const void *addr, size_t len)
@@ -119,29 +126,34 @@ public:
     ::memset(dst, c, size);
   }
 
+  virtual bool trycommit() { return true; }
   // Local undo will handle this.
   // trydropreference() need not be changed either.
   virtual void rollback() { }
+  virtual void reinit() { }
+  virtual void fini() { }
 
   CREATE_DISPATCH_METHODS(virtual, )
   CREATE_DISPATCH_METHODS_MEM()
+
+  serial_dispatch() : abi_dispatch(false, true, false, true) { }
 };
 
 } // anon namespace
 
+static const serialirr_dispatch o_serialirr_dispatch;
 static const serial_dispatch o_serial_dispatch;
-static const serial_dispatch_ul o_serial_dispatch_ul;
 
 abi_dispatch *
 GTM::dispatch_serialirr ()
 {
-  return const_cast<serial_dispatch *>(&o_serial_dispatch);
+  return const_cast<serialirr_dispatch *>(&o_serialirr_dispatch);
 }
 
 abi_dispatch *
 GTM::dispatch_serial ()
 {
-  return const_cast<serial_dispatch_ul *>(&o_serial_dispatch_ul);
+  return const_cast<serial_dispatch *>(&o_serial_dispatch);
 }
 
 // Put the transaction into serial-irrevocable mode.

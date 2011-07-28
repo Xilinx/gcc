@@ -255,8 +255,17 @@ public:
   // a unique object and so we don't want to destroy it from common code.
   virtual void fini() = 0;
 
+  // Return an alternative method that is compatible with the current
+  // method but supports closed nesting. Return zero if there is none.
+  virtual abi_dispatch* closed_nesting_alternative() { return 0; }
+
   bool read_only () const { return m_read_only; }
   bool write_through() const { return m_write_through; }
+  bool can_run_uninstrumented_code() const
+  {
+    return m_can_run_uninstrumented_code;
+  }
+  bool closed_nesting() const { return m_closed_nesting; }
 
   static void *operator new(size_t s) { return xmalloc (s); }
   static void operator delete(void *p) { free (p); }
@@ -275,7 +284,13 @@ public:
 protected:
   const bool m_read_only;
   const bool m_write_through;
-  abi_dispatch(bool ro, bool wt) : m_read_only(ro), m_write_through(wt) { }
+  const bool m_can_run_uninstrumented_code;
+  const bool m_closed_nesting;
+  abi_dispatch(bool ro, bool wt, bool uninstrumented, bool closed_nesting) :
+    m_read_only(ro), m_write_through(wt),
+    m_can_run_uninstrumented_code(uninstrumented),
+    m_closed_nesting(closed_nesting)
+  { }
 };
 
 }
