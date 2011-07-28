@@ -99,14 +99,14 @@ void
 pph_init_write (pph_stream *stream)
 {
   lto_streamer_init ();
-  stream->out_state = lto_new_out_decl_state ();
-  lto_push_out_decl_state (stream->out_state);
-  stream->decl_state_stream = XCNEW (struct lto_output_stream);
-  stream->ob = create_output_block (LTO_section_decls);
+  stream->encoder.w.out_state = lto_new_out_decl_state ();
+  lto_push_out_decl_state (stream->encoder.w.out_state);
+  stream->encoder.w.decl_state_stream = XCNEW (struct lto_output_stream);
+  stream->encoder.w.ob = create_output_block (LTO_section_decls);
 
-  /* Associate STREAM with STREAM->OB so we can recover it from the
+  /* Associate STREAM with stream->encoder.w.ob so we can recover it from the
      streamer hooks.  */
-  stream->ob->sdata = (void *) stream;
+  stream->encoder.w.ob->sdata = (void *) stream;
 }
 
 
@@ -158,7 +158,7 @@ pph_out_header (pph_stream *stream)
   header.major_version = (char) major;
   header.minor_version = (char) minor;
   header.patchlevel = (char) patchlevel;
-  header.strtab_size = stream->ob->string_stream->total_size;
+  header.strtab_size = stream->encoder.w.ob->string_stream->total_size;
 
   memset (&header_stream, 0, sizeof (header_stream));
   lto_output_data_stream (&header_stream, &header, sizeof (header));
@@ -172,18 +172,20 @@ static void
 pph_out_body (pph_stream *stream)
 {
   /* Write the string table.  */
-  lto_write_stream (stream->ob->string_stream);
+  lto_write_stream (stream->encoder.w.ob->string_stream);
 
   /* Write out the physical representation for every AST in all the
-     streams in STREAM->OUT_STATE.  */
-  lto_output_decl_state_streams (stream->ob, stream->out_state);
+     streams in STREAM->ENCODER.W.OUT_STATE.  */
+  lto_output_decl_state_streams (stream->encoder.w.ob,
+				 stream->encoder.w.out_state);
 
   /* Now write the vector of all AST references.  */
-  lto_output_decl_state_refs (stream->ob, stream->decl_state_stream,
-			      stream->out_state);
+  lto_output_decl_state_refs (stream->encoder.w.ob,
+			      stream->encoder.w.decl_state_stream,
+			      stream->encoder.w.out_state);
 
   /* Finally, physically write all the streams.  */
-  lto_write_stream (stream->ob->main_stream);
+  lto_write_stream (stream->encoder.w.ob->main_stream);
 }
 
 
@@ -455,7 +457,7 @@ pph_out_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 {
   struct bitpack_d bp;
 
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, ldb->selector, 16);
   bp_pack_value (&bp, ldb->language, 4);
   bp_pack_value (&bp, ldb->use_template, 2);
@@ -537,7 +539,7 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
   pph_out_tree_or_ref (stream, cb->value);
   pph_out_tree_or_ref (stream, cb->type);
   pph_out_binding_level (stream, cb->scope);
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, cb->value_is_inherited, 1);
   bp_pack_value (&bp, cb->is_local, 1);
   pph_out_bitpack (stream, &bp);
@@ -684,7 +686,7 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl)
   pph_out_chain (stream, bl->statement_list);
   pph_out_uint (stream, bl->binding_depth);
 
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, bl->kind, 4);
   bp_pack_value (&bp, bl->keep, 1);
   bp_pack_value (&bp, bl->more_cleanups_ok, 1);
@@ -735,7 +737,7 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
   pph_out_tree_or_ref (stream, lf->x_in_charge_parm);
   pph_out_tree_or_ref (stream, lf->x_vtt_parm);
   pph_out_tree_or_ref (stream, lf->x_return_value);
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, lf->x_returns_value, 1);
   bp_pack_value (&bp, lf->x_returns_null, 1);
   bp_pack_value (&bp, lf->x_returns_abnormally, 1);
@@ -763,7 +765,7 @@ pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
   /* Write all the fields in lang_decl_min.  */
   pph_out_ld_min (stream, &ldf->min);
 
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, ldf->operator_code, 16);
   bp_pack_value (&bp, ldf->global_ctor_p, 1);
   bp_pack_value (&bp, ldf->global_dtor_p, 1);
@@ -809,7 +811,7 @@ struct pph_tree_info {
 static int
 pph_out_used_types_slot (void **slot, void *aux)
 {
-  struct pph_tree_info *pti = (struct pph_tree_info *)aux;
+  struct pph_tree_info *pti = (struct pph_tree_info *) aux;
   pph_out_tree_or_ref (pti->stream, (tree) *slot);
   return 1;
 }
@@ -826,7 +828,7 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
     return;
 
   pph_out_tree (stream, fn->decl);
-  output_struct_function_base (stream->ob, fn);
+  output_struct_function_base (stream->encoder.w.ob, fn);
 
   /* struct eh_status *eh;					-- ignored */
   gcc_assert (fn->cfg == NULL);
@@ -842,14 +844,14 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
   /* struct machine_function *machine;				-- ignored */
   pph_out_language_function (stream, fn->language);
 
-  /*FIXME pph: We would like to detect improper sharing here.  */
+  /* FIXME pph: We would like to detect improper sharing here.  */
   if (fn->used_types_hash)
     {
-      /*FIXME pph: This write may be unstable.  */
+      /* FIXME pph: This write may be unstable.  */
       pph_out_uint (stream, htab_elements (fn->used_types_hash));
       pti.stream = stream;
-      htab_traverse_noresize (fn->used_types_hash,
-			      pph_out_used_types_slot, &pti);
+      htab_traverse_noresize (fn->used_types_hash, pph_out_used_types_slot,
+			      &pti);
     }
   else
     pph_out_uint (stream, 0);
@@ -943,12 +945,11 @@ pph_out_lang_specific (pph_stream *stream, tree decl)
 /* Write all the fields in lang_type_header instance LTH to STREAM.  */
 
 static void
-pph_out_lang_type_header (pph_stream *stream,
-				   struct lang_type_header *lth)
+pph_out_lang_type_header (pph_stream *stream, struct lang_type_header *lth)
 {
   struct bitpack_d bp;
 
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, lth->is_lang_type_class, 1);
   bp_pack_value (&bp, lth->has_type_conversion, 1);
   bp_pack_value (&bp, lth->has_copy_ctor, 1);
@@ -1002,7 +1003,7 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
 
   pph_out_uchar (stream, ltc->align);
 
-  bp = bitpack_create (stream->ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, ltc->has_mutable, 1);
   bp_pack_value (&bp, ltc->com_interface, 1);
   bp_pack_value (&bp, ltc->non_pod_class, 1);

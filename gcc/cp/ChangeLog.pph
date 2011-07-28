@@ -1,3 +1,12 @@
+2011-07-28   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.h (pph_stream): Move fields OB, OUT_STATE,
+	DECL_STATE_STREAM, IB, DATA_IN, PPH_SECTIONS, FILE_DATA and
+	FILE_SIZE into a union of structures.
+	Update all users.
+	* pph-streamer.c (pph_stream_close): Free memory used by tree
+	encoding routines.
+
 2011-07-25   Lawrence Crowl  <crowl@google.com>
 
 	* pph.c (pph_dump_tree_name): Make extern.

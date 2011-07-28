@@ -158,6 +158,25 @@ pph_stream_close (pph_stream *stream)
   stream->file = NULL;
   VEC_free (void_p, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
+
+  if (stream->write_p)
+    {
+      destroy_output_block (stream->encoder.w.ob);
+      free (stream->encoder.w.decl_state_stream);
+      lto_delete_out_decl_state (stream->encoder.w.out_state);
+    }
+  else
+    {
+      unsigned i;
+
+      free (stream->encoder.r.ib);
+      lto_data_in_delete (stream->encoder.r.data_in);
+      for (i = 0; i < PPH_NUM_SECTIONS; i++)
+	free (stream->encoder.r.pph_sections[i]);
+      free (stream->encoder.r.pph_sections);
+      free (stream->encoder.r.file_data);
+    }
+
   free (stream);
 }
 

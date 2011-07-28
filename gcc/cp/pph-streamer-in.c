@@ -109,8 +109,8 @@ pph_get_section_data (struct lto_file_decl_data *file_data,
 {
   /* FIXME pph - Stop abusing lto_file_decl_data fields.  */
   const pph_stream *stream = (const pph_stream *) file_data->file_name;
-  *len = stream->file_size - sizeof (pph_file_header);
-  return (const char *) stream->file_data + sizeof (pph_file_header);
+  *len = stream->encoder.r.file_size - sizeof (pph_file_header);
+  return (const char *) stream->encoder.r.file_data + sizeof (pph_file_header);
 }
 
 
@@ -119,14 +119,14 @@ pph_get_section_data (struct lto_file_decl_data *file_data,
 
 static void
 pph_free_section_data (struct lto_file_decl_data *file_data,
-		   enum lto_section_type section_type ATTRIBUTE_UNUSED,
-		   const char *name ATTRIBUTE_UNUSED,
-		   const char *offset ATTRIBUTE_UNUSED,
-		   size_t len ATTRIBUTE_UNUSED)
+		       enum lto_section_type section_type ATTRIBUTE_UNUSED,
+		       const char *name ATTRIBUTE_UNUSED,
+		       const char *offset ATTRIBUTE_UNUSED,
+		       size_t len ATTRIBUTE_UNUSED)
 {
   /* FIXME pph - Stop abusing lto_file_decl_data fields.  */
   const pph_stream *stream = (const pph_stream *) file_data->file_name;
-  free (stream->file_data);
+  free (stream->encoder.r.file_data);
 }
 
 
@@ -145,46 +145,48 @@ pph_init_read (pph_stream *stream)
 
   lto_reader_init ();
 
-  /* Read STREAM->NAME into the memory buffer STREAM->FILE_DATA.
-     FIXME pph, we are reading the whole file at once.  This seems
-     wasteful.  */
+  /* Read STREAM->NAME into the memory buffer stream->encoder.r.file_data.  */
   retcode = fstat (fileno (stream->file), &st);
   gcc_assert (retcode == 0);
-  stream->file_size = (size_t) st.st_size;
-  stream->file_data = XCNEWVEC (char, stream->file_size);
-  bytes_read = fread (stream->file_data, 1, stream->file_size, stream->file);
-  gcc_assert (bytes_read == stream->file_size);
+  stream->encoder.r.file_size = (size_t) st.st_size;
+  stream->encoder.r.file_data = XCNEWVEC (char, stream->encoder.r.file_size);
+  bytes_read = fread (stream->encoder.r.file_data, 1,
+		      stream->encoder.r.file_size, stream->file);
+  gcc_assert (bytes_read == stream->encoder.r.file_size);
 
   /* Set LTO callbacks to read the PPH file.  */
-  stream->pph_sections = XCNEWVEC (struct lto_file_decl_data *,
-				   PPH_NUM_SECTIONS);
+  stream->encoder.r.pph_sections = XCNEWVEC (struct lto_file_decl_data *,
+					     PPH_NUM_SECTIONS);
   for (i = 0; i < PPH_NUM_SECTIONS; i++)
     {
-      stream->pph_sections[i] = XCNEW (struct lto_file_decl_data);
+      stream->encoder.r.pph_sections[i] = XCNEW (struct lto_file_decl_data);
       /* FIXME pph - Stop abusing fields in lto_file_decl_data.  */
-      stream->pph_sections[i]->file_name = (const char *) stream;
+      stream->encoder.r.pph_sections[i]->file_name = (const char *) stream;
     }
 
-  lto_set_in_hooks (stream->pph_sections, pph_get_section_data,
+  lto_set_in_hooks (stream->encoder.r.pph_sections, pph_get_section_data,
 		    pph_free_section_data);
 
-  header = (pph_file_header *) stream->file_data;
+  header = (pph_file_header *) stream->encoder.r.file_data;
   strtab = (const char *) header + sizeof (pph_file_header);
   strtab_size = header->strtab_size;
   body = strtab + strtab_size;
-  gcc_assert (stream->file_size >= strtab_size + sizeof (pph_file_header));
-  body_size = stream->file_size - strtab_size - sizeof (pph_file_header);
+  gcc_assert (stream->encoder.r.file_size
+	      >= strtab_size + sizeof (pph_file_header));
+  body_size = stream->encoder.r.file_size
+	      - strtab_size - sizeof (pph_file_header);
 
   /* Create an input block structure pointing right after the string
      table.  */
-  stream->ib = XCNEW (struct lto_input_block);
-  LTO_INIT_INPUT_BLOCK_PTR (stream->ib, body, 0, body_size);
-  stream->data_in = lto_data_in_create (stream->pph_sections[0], strtab,
-                                        strtab_size, NULL);
+  stream->encoder.r.ib = XCNEW (struct lto_input_block);
+  LTO_INIT_INPUT_BLOCK_PTR (stream->encoder.r.ib, body, 0, body_size);
+  stream->encoder.r.data_in
+      = lto_data_in_create (stream->encoder.r.pph_sections[0], strtab,
+			    strtab_size, NULL);
 
-  /* Associate STREAM with STREAM->DATA_IN so we can recover it from
+  /* Associate STREAM with STREAM->ENCODER.R.DATA_IN so we can recover it from
      the streamer hooks.  */
-  stream->data_in->sdata = (void *) stream;
+  stream->encoder.r.data_in->sdata = (void *) stream;
 }
 
 
@@ -827,7 +829,8 @@ pph_in_struct_function (pph_stream *stream)
   allocate_struct_function (decl, false);
   fn = DECL_STRUCT_FUNCTION (decl);
 
-  input_struct_function_base (fn, stream->data_in, stream->ib);
+  input_struct_function_base (fn, stream->encoder.r.data_in,
+			      stream->encoder.r.ib);
 
   /* struct eh_status *eh;					-- zero init */
   /* struct control_flow_graph *cfg;				-- zero init */
