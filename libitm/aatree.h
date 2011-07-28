@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -141,6 +141,8 @@ class aa_tree : public aa_tree_key<KEY>
   aa_tree() = default;
   ~aa_tree() { clear(); }
 
+  static void *operator new (size_t s, aa_tree<KEY, DATA>* p) { return p; }
+
   DATA *find(KEY k) const
   {
     node_ptr n = static_cast<node_ptr>(base::find (k));
@@ -158,6 +160,13 @@ class aa_tree : public aa_tree_key<KEY>
   {
     node_ptr n = static_cast<node_ptr>(base::erase (k));
     delete n;
+  }
+
+  node_ptr remove(KEY k, DATA** data)
+  {
+    node_ptr n = static_cast<node_ptr>(base::erase (k));
+    *data = (n ? &n->data : 0);
+    return n;
   }
 
   void clear()

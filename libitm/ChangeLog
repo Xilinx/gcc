@@ -1,3 +1,8 @@
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
+	* aatree.h (aa_tree::remove): New.
+	(aa_tree::operator new): Add placement new.
+
 2011-07-02  Torvald Riegel  <triegel@redhat.com>
 
 	* containers.h: New file. 
