@@ -218,7 +218,7 @@ struct gtm_transaction
 
   // In retry.cc
   void decide_retry_strategy (gtm_restart_reason);
-  abi_dispatch* decide_begin_dispatch ();
+  abi_dispatch* decide_begin_dispatch (uint32_t prop);
 
   // In method-serial.cc
   void serialirr_mode ();

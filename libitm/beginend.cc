@@ -187,7 +187,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
         tx->state = (STATE_SERIAL | STATE_IRREVOCABLE);
 
       else
-        disp = tx->decide_begin_dispatch ();
+        disp = tx->decide_begin_dispatch (prop);
 
       if (tx->state & STATE_SERIAL)
         {

@@ -78,12 +78,12 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
 
 
 // Decides which TM method should be used on the first attempt to run this
-// transaction, setting this->disp accordingly.
+// transaction.
 // serial_lock will not have been acquired if this is the outer-most
 // transaction. If the state is set to STATE_SERIAL, the caller will set the
 // dispatch.
 GTM::abi_dispatch*
-GTM::gtm_transaction::decide_begin_dispatch ()
+GTM::gtm_transaction::decide_begin_dispatch (uint32_t prop)
 {
   // ??? Probably want some environment variable to choose the default
   // STM implementation once we have more than one implemented.

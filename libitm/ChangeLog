@@ -1,5 +1,13 @@
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
+	* retry.cc (GTM::gtm_transaction::decide_begin_dispatch): Get
+	transaction properties from the caller instead of from the
+	transaction object.
+	* libitm_i.h: Same.
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Same. 
+
+2011-07-28  Torvald Riegel  <triegel@redhat.com>
+
 	* local.cc (gtm_transaction::rollback_local): Support closed nesting.
 	* eh_cpp.cc (GTM::gtm_transaction::revert_cpp_exceptions): Same.
 	* dispatch.h: Same.
