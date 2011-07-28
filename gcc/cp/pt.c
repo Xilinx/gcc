@@ -19738,20 +19738,24 @@ pph_dump_tinst_level (FILE *stream, struct tinst_level *tinst)
 static struct tinst_level *
 pph_in_tinst_level (pph_stream *stream)
 {
+  struct tinst_level *head = NULL;
   struct tinst_level *last = NULL;
   unsigned count = pph_in_uint (stream);
-  /* FIXME pph: This leaves the list in reverse order.  Issue?  */
   for (; count > 0; --count)
     {
       struct tinst_level *cur = ggc_alloc_tinst_level ();
-      cur->next = last;
+      cur->next = NULL;
       cur->decl = pph_in_tree (stream);
       cur->locus = pph_in_location (stream);
       cur->errors = pph_in_uint (stream);
       cur->in_system_header_p = pph_in_uint (stream);
+      if (head == NULL)
+          head = cur;
+      else
+          last->next = cur;
       last = cur;
     }
-  return last;
+  return head;
 }
 
 

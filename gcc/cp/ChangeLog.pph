@@ -1,3 +1,7 @@
+2011-07-28   Lawrence Crowl  <crowl@google.com>
+
+	* pt.c (pph_in_tinst_level): Put tinst_level list in forward order.
+
 2011-07-28   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (pph_stream): Move fields OB, OUT_STATE,
