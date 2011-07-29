@@ -1,11 +1,17 @@
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/lib/libgomp.exp (libgomp_init): Check ia32 instead of
+	x32.
+
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* libgomp.c/atomic-1.c: Require ia32 instead of ilp32.
-	* libgomp.c/atomic-6.c: Likewise.
+	* testsuite/libgomp.c/atomic-1.c: Require ia32 instead of ilp32.
+	* testsuite/libgomp.c/atomic-6.c: Likewise.
 
 2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* lib/libgomp.exp (libgomp_init): Don't add -march=i486 for x32.
+	* testsuite/lib/libgomp.exp (libgomp_init): Don't add -march=i486
+	for x32.
 
 2011-02-17  H.J. Lu  <hongjiu.lu@intel.com>
 
