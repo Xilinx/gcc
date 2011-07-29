@@ -1,3 +1,9 @@
+2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/49860
+	* gcc.target/i386/pr47446-3.c: Renamed to ...
+	* gcc.target/i386/pr49860-1.c: This.
+
 2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-16.c: Only run
