@@ -15044,6 +15044,8 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 					 op0, 1, OPTAB_DIRECT);
 	  if (symbol1 == op0)
 	    return;
+	  if (GET_MODE (tmp) != mode)
+	    op1 = convert_to_mode (mode, tmp, 1);
 	}
     }
 
@@ -15056,8 +15058,8 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
     }
 
   if ((flag_pic || MACHOPIC_INDIRECT) 
-       && (mode == Pmode || mode == ptr_mode)
-       && symbolic_operand (op1, mode))
+      && (mode == SImode || mode == DImode)
+      && symbolic_operand (op1, mode))
     {
       if (TARGET_MACHO && !TARGET_64BIT)
 	{

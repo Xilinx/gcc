@@ -1,3 +1,41 @@
+2011-07-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/47046
+	* tree-chrec.h (evolution_function_is_affine_p): Recursively call
+	evolution_function_is_affine_p on CHREC_RIGHT.
+
+2011-07-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (max_stmt_executions_tree): Do not call
+	lang_hooks.types.type_for_size.
+
+2011-07-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/47653
+	* graphite-scop-detection.c (graphite_can_represent_loop): Discard
+	loops using wrapping semantics.
+
+2011-07-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/48805
+	* tree-scalar-evolution.c (instantiate_scev_r): Return
+	chrec_dont_know for ADDR_EXPR.
+
+2011-07-26  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47369
+	PR target/49853
+	* config/i386/i386.c (ix86_expand_move): Call convert_to_mode
+	if legitimize_tls_address returned operand in wrong mode. Allow
+	SImode and DImode symbolic operand for PIC.  Call convert_to_mode
+	if legitimize_pic_address returned operand in wrong mode.
+
+2011-07-26  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (tree_non_mode_aligned_mem_p): Strip conversions and
+	return false for invariants.
+
 2011-07-26  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (add->lea splitter): Implement using SWI
