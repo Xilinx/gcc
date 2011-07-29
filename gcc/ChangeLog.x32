@@ -1,5 +1,17 @@
 2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
 
+	Revert
+	PR target/47715
+	* config/i386/i386.c (get_thread_pointer): Use ptr_mode
+	instead of Pmode with UNSPEC_TP.
+
+	* config/i386/i386.md (tp_seg): Removed.
+	(*load_tp_<mode>): Replace :P with :PTR.
+	(*add_tp_<mode>): Likewise.
+	(*load_tp_x32): New.
+
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47715
 	* config/i386/i386.md (PTR64): Removed.
 	(*tls_global_dynamic_64_<mode>): Rename to ...
