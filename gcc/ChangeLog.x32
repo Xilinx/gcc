@@ -1,3 +1,43 @@
+2011-07-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Revert the following changes:
+	* config/i386/constraints.md (Ys): Rewritten.
+	(Ye): Updated.
+	(Yl): Likewise.
+
+	* config/i386/constraints.md (i): Replace "i" with "Ye".
+	(l): New.
+	(g): Replace "g" with "rmYe".
+	(general_operand): Replace general_operand with
+	with si_general_operand on SI.
+	(general_szext_operand): Likewise.
+	(*movsi_internal): Replace "i" with "Ys".
+	(*add<mode>_1): Replace <i> with <l>.
+	(addsi_1_zext): Replace general_operand with si_general_operand
+	and "g" with "rmYe".
+	(*addsi_2_zext): Likewise.
+	(*subsi_1_zext): Likewise.
+	(*subsi_2_zext): Likewise.
+	(*subsi_3_zext): Likewise.
+	(*addsi3_carry_zext): Likewise.
+	(*subsi3_carry_zext): Likewise.
+	(*andsi_1): Likewise.
+	(*andsi_1_zext): Likewise.
+	(*andsi_2_zext): Likewise.
+	(LEA split): Replace nonmemory_operand with
+	si_lea_nonmemory_operand and "i" with "Ye".
+	(*lea_general_2): Likewise.
+	(*lea_general_2_zext): Likewise.
+	(*lea_general_1): Replace immediate_operand with
+	si_lea_immediate_operand and "i" with "Ye".
+	(*lea_general_1_zext): Likewise.
+	(*lea_general_3): Likewise.
+	(*lea_general_3_zext): Likewise.
+
+	config/i386/predicates.md (si_general_operand): New.
+	(si_lea_immediate_operand): Likewise.
+	(si_lea_nonmemory_operand): Likewise.
+
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/predicates.md (aligned_operand): Don't check

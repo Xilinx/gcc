@@ -123,31 +123,6 @@
  "optimize_function_for_speed_p (cfun) ? GENERAL_REGS : NO_REGS"
  "@internal Any integer register when integer XFmode moves are enabled.")
 
-;; Constant constraints.
-;; We also use the Y prefix to denote constant constraints:
-;;  s	Immediate constant source operand for store
-;;  e	Immediate constant for SImode
-;;  l	Immediate constant for lea
-
-(define_constraint "Ys"
-  "@internal Immediate constant source operand for store."
-  (and (match_operand 0 "immediate_operand")
-       (ior (match_test "!TARGET_X32")
-	    (not (match_operand 0 "pic_32bit_operand")))))
-
-(define_constraint "Ye"
-  "@internal Immediate constant for SImode."
-  (if_then_else (and (match_test "TARGET_X32")
-		     (match_test "flag_pic"))
-    (match_operand 0 "x86_64_immediate_operand")
-    (match_operand 0 "immediate_operand")))
-
-(define_constraint "Yl"
-  "@internal Immediate constant for lea."
-  (if_then_else (match_test "TARGET_X32")
-    (match_operand 0 "si_lea_immediate_operand")
-    (match_operand 0 "immediate_operand")))
-
 (define_constraint "z"
   "@internal Constant call address operand."
   (match_operand 0 "constant_call_address_operand"))
