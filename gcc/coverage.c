@@ -1954,9 +1954,10 @@ coverage_init (const char *filename, const char* source_name)
 static bool
 profiling_enabled_p (void)
 {
-  return flag_pmu_profile_generate || profile_arc_flag ||
-      flag_profile_generate_sampling || flag_test_coverage ||
-      flag_branch_probabilities || flag_profile_reusedist;
+  return flag_pmu_profile_generate
+   || profile_arc_flag
+   || flag_profile_generate_sampling
+   || flag_profile_reusedist;
 }
 
 /* Construct variables for PMU profiling.

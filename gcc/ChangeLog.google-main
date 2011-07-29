@@ -1,3 +1,8 @@
+2011-07-28  David Li  <davidxl@google.com>
+
+	* coverage.c (coverage_init): Remove checking of profile-use
+	flags.
+
 2011-07-26  David Li  <davidxl@google.com>
 
 	* value-prof.c (gimple_value_profile_transformations): Remove redundant code.
