@@ -353,11 +353,13 @@ __morestack:
 	# FIXME: The offset must match
 	# TARGET_THREAD_SPLIT_STACK_OFFSET in
 	# gcc/config/i386/linux64.h.
+	# Macro to save the new stack boundary.
 #ifdef __LP64__
-	movq	%rax,%fs:0x70		# Save the new stack boundary.
+#define X86_64_SAVE_NEW_STACK_BOUNDARY(reg)	movq	%r##reg,%fs:0x70
 #else
-	movl	%eax,%fs:0x40		# Save the new stack boundary.
+#define X86_64_SAVE_NEW_STACK_BOUNDARY(reg)	movl	%e##reg,%fs:0x40
 #endif
+	X86_64_SAVE_NEW_STACK_BOUNDARY (ax)
 
 	call	__morestack_unblock_signals
 
@@ -395,11 +397,7 @@ __morestack:
 	subq	0(%rsp),%rax		# Subtract available space.
 	addq	$BACKOFF,%rax		# Back off 1024 bytes.
 .LEHE0:
-#ifdef __LP64__
-	movq	%rax,%fs:0x70		# Save the new stack boundary.
-#else
-	movl	%eax,%fs:0x40		# Save the new stack boundary.
-#endif
+	X86_64_SAVE_NEW_STACK_BOUNDARY (ax)
 
 	addq	$16,%rsp		# Remove values from stack.
 
@@ -441,11 +439,7 @@ __morestack:
 	movq	%rbp,%rcx		# Get the stack pointer.
 	subq	%rax,%rcx		# Subtract available space.
 	addq	$BACKOFF,%rcx		# Back off 1024 bytes.
-#ifdef __LP64__
-	movq	%rcx,%fs:0x70		# Save new stack boundary.
-#else
-	movl	%ecx,%fs:0x40		# Save new stack boundary.
-#endif
+	X86_64_SAVE_NEW_STACK_BOUNDARY (cx)
 	movq	(%rsp),%rdi		# Restore exception data for call.
 #ifdef __PIC__
 	call	_Unwind_Resume@PLT	# Resume unwinding.
@@ -582,11 +576,7 @@ __stack_split_initialize:
 #else /* defined(__x86_64__) */
 
 	leaq	-16000(%rsp),%rax	# We should have at least 16K.
-#ifdef __LP64__
-	movq	%rax,%fs:0x70
-#else
-	movl	%eax,%fs:0x40
-#endif
+	X86_64_SAVE_NEW_STACK_BOUNDARY (ax)
 	movq	%rsp,%rdi
 	movq	$16000,%rsi
 #ifdef __PIC__

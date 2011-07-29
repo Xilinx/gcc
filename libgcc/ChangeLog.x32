@@ -1,3 +1,9 @@
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/morestack.S (X86_64_SAVE_NEW_STACK_BOUNDARY): New.
+	Use X86_64_SAVE_NEW_STACK_BOUNDARY to save the new stack boundary 
+	for x86-64. 
+
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/morestack.S: Properly save the x32 new stack
