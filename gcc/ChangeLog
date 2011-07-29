@@ -1,3 +1,119 @@
+2011-07-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47715
+	* config/i386/i386.md (*load_tp_x32): New.
+	(*load_tp_x32_zext): Ditto.
+	(*add_tp_x32): Ditto.
+	(*add_tp_x32_zext): Ditto.
+	(*load_tp_<mode>): Disable for TARGET_X32 targets.
+	(*add_tp_<mode>): Ditto.
+	* config/i386/i386.c (get_thread_pointer): Load thread pointer in
+	ptr_mode and convert to Pmode if needed.
+
+2011-07-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49687
+	* config/avr/avr.md (mulsi3, *mulsi3, mulu<mode>si3,
+	muls<mode>si3, mulohisi3, mulhisi3, umulhisi3, usmulhisi3,
+	*<any_extend:extend_prefix><any_extend2:extend_prefix>mul<QIHI:mode><QIHI2:mode>si3):
+	Add X to register footprint: Clobber r26/r27.
+
+2011-07-29  Richard Guenther  <rguenther@suse.de>
+
+	* builtins.c (fold_builtin_signbit): Build the comparison
+	with a proper type.
+
+2011-07-29  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49893
+	* tree-predcom.c (suitable_reference_p): Volatile references
+	are not suitable.
+
+2011-07-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	* config/avr/libgcc.S (__ffshi2): Don't skip 2-word instruction.
+	(__ctzsi2): Result for 0 may be undefined.
+	(__ctzhi2): Result for 0 may be undefined.
+	(__popcounthi2): Don't clobber r30. Use __popcounthi2_tail.
+	(__popcountsi2): Ditto. And don't clobber r26.
+	(__popcountdi2): Ditto. And don't clobber r27.
+	* config/avr/avr.md (UNSPEC_COPYSIGN): New c_enum.
+	(parityhi2): New expand.
+	(paritysi2): New expand.
+	(popcounthi2): New expand.
+	(popcountsi2): New expand.
+	(clzhi2): New expand.
+	(clzsi2): New expand.
+	(ctzhi2): New expand.
+	(ctzsi2): New expand.
+	(ffshi2): New expand.
+	(ffssi2): New expand.
+	(copysignsf3): New insn.
+	(bswapsi2): New expand.
+	(*parityhi2.libgcc): New insn.
+	(*parityqihi2.libgcc): New insn.
+	(*paritysihi2.libgcc): New insn.
+	(*popcounthi2.libgcc): New insn.
+	(*popcountsi2.libgcc): New insn.
+	(*popcountqi2.libgcc): New insn.
+	(*popcountqihi2.libgcc): New insn-and-split.
+	(*clzhi2.libgcc): New insn.
+	(*clzsihi2.libgcc): New insn.
+	(*ctzhi2.libgcc): New insn.
+	(*ctzsihi2.libgcc): New insn.
+	(*ffshi2.libgcc): New insn.
+	(*ffssihi2.libgcc): New insn.
+	(*bswapsi2.libgcc): New insn.
+
+2011-07-29  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (get_value_range): Only set parameter default
+	definitions to varying, leave others at undefined.
+	(extract_range_from_binary_expr): Fix undefined handling.
+	(vrp_visit_phi_node): Handle merged undefined state.
+
+2011-07-29  Wei Guozhi  <carrot@google.com>
+
+	PR rtl-optimization/49799
+	* combine.c (make_compound_operation): Check if the bit field is valid
+	before change it to bit field extraction.
+
+2011-07-29  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/49891
+	* cfgrtl.c (force_nonfallthru_and_redirect): Set JUMP_LABEL for
+	newly created returnjumps.
+
+2011-07-28  DJ Delorie  <dj@redhat.com>
+
+	* expr.c (expand_expr_addr_expr_1): Detect a user request for a
+	local frame in a naked function, and produce a suitable error for
+	that specific case.
+
+	* config/m32c/m32c.c (m32c_secondary_reload_class): Allow PSI
+	registers to be reloaded in HI classes when the target is HI.
+
+2011-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c: Replace v1, v2, lb, ub with
+	bound_one, bound_two.
+
+2011-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/48648
+	* graphite-clast-to-gimple.c (clast_get_body_of_loop): Handle
+	CLAST assignments.
+	(translate_clast): Same.
+	(translate_clast_assignment): New.
+
+2011-07-28  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/49876
+	* sese.c (rename_uses): Do not return false on gloog_error: set
+	the new_expr to integer_zero_node and continue code generation.
+	(graphite_copy_stmts_from_block): Remove early exit on gloog_error.
+
 2011-07-28  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/49846
