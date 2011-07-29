@@ -1,5 +1,10 @@
 2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_expand_move): Don't check and convert
+	TLS symbol twice.
+
+2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (A): Removed.
 
 2011-07-26  Uros Bizjak  <ubizjak@gmail.com>

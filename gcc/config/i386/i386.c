@@ -15001,7 +15001,6 @@ void
 ix86_expand_move (enum machine_mode mode, rtx operands[])
 {
   rtx op0, op1;
-  rtx symbol1 = NULL;
   enum tls_model model;
 
   op0 = operands[0];
@@ -15029,32 +15028,25 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
     {
       rtx addend = XEXP (XEXP (op1, 0), 1);
       rtx symbol = XEXP (XEXP (op1, 0), 0);
+      rtx tmp = NULL;
 
       model = SYMBOL_REF_TLS_MODEL (symbol);
       if (model)
-	symbol1 = legitimize_tls_address (symbol, model, true);
+	tmp = legitimize_tls_address (symbol, model, true);
       else if (TARGET_DLLIMPORT_DECL_ATTRIBUTES
 	       && SYMBOL_REF_DLLIMPORT_P (symbol))
-	symbol1 = legitimize_dllimport_symbol (symbol, true);
+	tmp = legitimize_dllimport_symbol (symbol, true);
 
-      if (symbol1)
+      if (tmp)
 	{
-	  symbol1 = force_operand (symbol1, NULL);
-	  symbol1 = expand_simple_binop (Pmode, PLUS, symbol1, addend,
-					 op0, 1, OPTAB_DIRECT);
-	  if (symbol1 == op0)
+	  tmp = force_operand (tmp, NULL);
+	  tmp = expand_simple_binop (Pmode, PLUS, tmp, addend,
+				     op0, 1, OPTAB_DIRECT);
+	  if (tmp == op0)
 	    return;
 	  if (GET_MODE (tmp) != mode)
 	    op1 = convert_to_mode (mode, tmp, 1);
 	}
-    }
-
-  if (symbol1)
-    {
-      if (GET_MODE (symbol1) != mode)
-	symbol1 = convert_to_mode (mode, symbol1, 1);
-      emit_insn (gen_rtx_SET (VOIDmode, op0, symbol1));
-      return;
     }
 
   if ((flag_pic || MACHOPIC_INDIRECT) 
