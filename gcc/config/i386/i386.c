@@ -12220,22 +12220,9 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	  if (TARGET_64BIT)
 	    {
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
-	      rtx (*tls_global_dynamic) (rtx, rtx, rtx);
-
-	      switch (GET_MODE (x))
-		{
-		case SImode:
-		  tls_global_dynamic = gen_tls_global_dynamic_64_si;
-		  break;
-		case DImode:
-		  tls_global_dynamic = gen_tls_global_dynamic_64_di;
-		  break;
-		default:
-		  gcc_unreachable ();
-		}
 
 	      start_sequence ();
-	      emit_call_insn (tls_global_dynamic (rax, x, caddr));
+	      emit_call_insn (gen_tls_global_dynamic_64 (rax, x, caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 

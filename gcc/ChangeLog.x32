@@ -1,3 +1,13 @@
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47715
+	* config/i386/i386.md (PTR64): Removed.
+	(*tls_global_dynamic_64_<mode>): Rename to ...
+	(*tls_global_dynamic_64): This.  Remove PTR64 on operand 1.
+	(tls_global_dynamic_64_<mode>): Rename to ...
+	(tls_global_dynamic_64): This.  Remove PTR64 on operand 1.
+	* config/i386/i386.c (legitimize_tls_address): Updated.
+
 2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47372
