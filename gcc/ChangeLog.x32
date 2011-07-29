@@ -1,3 +1,7 @@
+2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (A): Removed.
+
 2011-07-26  Uros Bizjak  <ubizjak@gmail.com>
 	   H.J. Lu  <hongjiu.lu@intel.com>
 
