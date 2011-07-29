@@ -4638,7 +4638,9 @@ cp_parser_qualifying_entity (cp_parser *parser,
 	  cp_parser_simulate_error (parser);
 	  return error_mark_node;
 	}
-      return TYPE_NAME (scope);
+      if (TYPE_NAME (scope))
+	scope = TYPE_NAME (scope);
+      return scope;
     }
 
   /* Before we try to parse the class-name, we must save away the
@@ -8793,6 +8795,12 @@ cp_convert_range_for (tree statement, tree range_decl, tree range_expr)
 static tree
 cp_parser_perform_range_for_lookup (tree range, tree *begin, tree *end)
 {
+  if (error_operand_p (range))
+    {
+      *begin = *end = error_mark_node;
+      return error_mark_node;
+    }
+
   if (!COMPLETE_TYPE_P (complete_type (TREE_TYPE (range))))
     {
       error ("range-based %<for%> expression of type %qT "
@@ -15596,9 +15604,19 @@ cp_parser_virt_specifier_seq_opt (cp_parser* parser)
       if (token->type != CPP_NAME)
         break;
       if (!strcmp (IDENTIFIER_POINTER(token->u.value), "override"))
-	virt_specifier = VIRT_SPEC_OVERRIDE;
+        {
+          maybe_warn_cpp0x (CPP0X_OVERRIDE_CONTROLS);
+          virt_specifier = VIRT_SPEC_OVERRIDE;
+        }
       else if (!strcmp (IDENTIFIER_POINTER(token->u.value), "final"))
-	virt_specifier = VIRT_SPEC_FINAL;
+        {
+          maybe_warn_cpp0x (CPP0X_OVERRIDE_CONTROLS);
+          virt_specifier = VIRT_SPEC_FINAL;
+        }
+      else if (!strcmp (IDENTIFIER_POINTER(token->u.value), "__final"))
+        {
+          virt_specifier = VIRT_SPEC_FINAL;
+        }
       else
 	break;
 

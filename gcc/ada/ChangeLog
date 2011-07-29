@@ -1,3 +1,37 @@
+2011-07-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Subprogram_Type>: If the
+	subprogram has copy-in copy-out parameters, try to promote the mode of
+	the return type if it is passed in registers.
+
+2011-07-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils2.c (build_binary_op) <ARRAY_REF>: Do not mark the
+	left operand as addressable.
+
+2011-07-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (build_function_stub): Remove.
+	(build_return_expr): Likewise.
+	(convert_vms_descriptor): Declare.
+	* gcc-interface/utils.c (convert_vms_descriptor): Make global.
+	(build_function_stub): Move to...
+	* gcc-interface/utils2.c (build_return_expr): Move to...
+	* gcc-interface/trans.c (build_function_stub): ...here.
+	(build_return_expr): ...here.
+	(Subprogram_Body_to_gnu): Add local variable for language_function.
+	Disconnect the parameter attributes cache, if any, once done with it.
+	Call end_subprog_body only after setting the end_locus.
+	Build the stub associated with the function, if any, at the very end.
+	(gnat_to_gnu) <N_Return_Statement>: Remove couple of useless local
+	variables and streamline control flow.
+
+2011-07-23  Arnaud Charlet  <charlet@adacore.com>
+
+	PR ada/49819
+	* gcc-interface/Makefile.in (powerpc-linux): Remove reference to
+	g-trasym-dwarf.adb.
+
 2011-07-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	PR bootstrap/49794

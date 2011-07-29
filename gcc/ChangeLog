@@ -1,3 +1,451 @@
+2011-07-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (add->lea splitter): Implement using SWI
+	mode iterator.  Change operand 2 predicate to <nonmemory_operand>.
+	(add->lea zext splitter): Change operand 2 predicate to
+	x86_64_nonmemory_operand.
+
+2011-07-26  Richard Guenther  <rguenther@suse.de>
+
+	* predict.c (maybe_hot_frequency_p): Make sure a zero entry-block
+	frequency makes everything hot.
+
+2011-07-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49840
+	* tree-vrp.c (range_fits_type_p): Properly handle full
+	double-int precision.
+
+2011-07-26  Martin Jambor  <mjambor@suse.cz>
+
+	PR bootstrap/49786
+	* ipa-cp.c (update_profiling_info): Avoid overflow when updating
+	counts.
+	(update_specialized_profile): Likewise.
+
+2011-07-26  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47381
+	PR target/49832
+	PR target/49833
+	* config/i386/i386.md (i): Change SImode attribute to "e".
+	(g): Change SImode attribute to "rme".
+	(di): Change SImode attribute to "nF".
+	(general_operand): Change SImode attribute to x86_64_general_operand.
+	(general_szext_operand): Change SImode attribute to
+	x86_64_szext_general_operand.
+	(immediate_operand): Change SImode attribute to
+	x86_64_immediate_operand.
+	(nonmemory_operand): Change SImode attribute to
+	x86_64_nonmemory_operand.
+	(*movdi_internal_rex64): Remove mode from pic_32bit_operand check.
+	(*movsi_internal): Ditto.  Use "e" constraint in alternative 2.
+	(*lea_1): Use SWI48 mode iterator.
+	(*lea_1_zext): New insn pattern.
+	(testsi_ccno_1): Use x86_64_nonmemory_operand predicate for operand 2.
+	(*bt<mode>): Ditto.
+	(*add<mode>1): Use x86_64_general_operand predicate for operand 2.
+	Update operand constraints.
+	(addsi_1_zext): Ditto.
+	(*add<mode>2): Ditto.
+	(*addsi_3_zext): Ditto.
+	(*subsi_1_zext): Ditto.
+	(*subsi_2_zext): Ditto.
+	(*subsi_3_zext): Ditto.
+	(*addsi3_carry_zext): Ditto.
+	(*<plusminus_insn>si3_zext_cc_overflow): Ditto.
+	(*mulsi3_1_zext): Ditto.
+	(*andsi_1): Ditto.
+	(*andsi_1_zext): Ditto.
+	(*andsi_2_zext): Ditto.
+	(*<any_or:code>si_1_zext): Ditto.
+	(*<any_or:code>si_2_zext): Ditto.
+	(*test<mode>_1): Use <general_operand> predicate for operand 1.
+	(*and<mode>_2): Ditto.
+	(mov<mode>cc): Use  <general_operand> predicate for operands 1 and 2.
+	(add->lea splitter): Check operand modes in insn constraint.  Extend
+	operands less than SImode wide to SImode.
+	(add->lea zext splitter): Do not extend input operands to DImode.
+	(*lea_general_1): Handle only QImode and HImode operands.
+	(*lea_general_2): Ditto.
+	(*lea_general_3): Ditto.
+	(*lea_general_1_zext): Remove.
+	(*lea_general_2_zext): Ditto.
+	(*lea_general_3_zext): Ditto.
+	(*lea_general_4): Check operand modes in insn constraint.  Extend
+	operands less than SImode wide to SImode.
+	(ashift->lea splitter): Ditto.
+	* config/i386/i386.c (ix86_print_operand_address): Print address
+	registers with 'q' modifier on 64bit targets.
+	* config/i386/predicates.md (pic_32bit_opreand): Define as special
+	predicate.  Reject non-SI and non-DI modes.
+
+2011-07-25  Andrew Pinski  <apinski@cavium.com>
+
+	PR tree-opt/49671
+	* tree-inline.c (remap_gimple_op_r): Copy TREE_THIS_VOLATILE and
+	TREE_THIS_NOTRAP into the inner most MEM_REF.
+	Always copy TREE_THIS_VOLATILE.
+	* tree-sra.c (ptr_parm_has_direct_uses): Check that the lhs, rhs and
+	arguments are not volatile references.
+
+2011-07-25  Richard Henderson  <rth@redhat.com>
+
+	* insn-notes.def (NOTE_INSN_CFA_RESTORE_STATE): Remove.
+	* final.c (final_scan_insn): Don't test for it.
+	(rest_of_clean_state): Likewise.
+
+2011-07-25  Richard Henderson  <rth@redhat.com>
+
+	PR debug/49841
+	* config/rs6000/rs6000.c (rs6000_frame_related): Return the insn.
+	(emit_frame_save): Likewise.
+	(rs6000_emit_prologue): Move the FRAME_RELATED_EXPR from the save
+	insn onto a dummy blockage insn after the join label.
+
+2011-07-25  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (dw_trace_info): Add ID member.
+	(get_trace_index): Remove.  Change users to use ID member.
+	(before_next_cfi_note): New.
+	(connect_traces): Remove unreachable traces before the main loop.
+	Look across one trace and generate remember/restore_state if needed.
+
+2011-07-25  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (dump_cfi_row, debug_cfi_row): New.
+
+2011-07-25  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* genattr.c (write_upcase, gen_attr <enum definition writing>):
+	Move to ...
+	* genattr-common.c ... here.
+	(main): Call gen_attr.
+	* optc-gen.awk: Make generated program include insn-attr-common.h .
+	* Makefile.in (oprions.o): Depend on insn-attr-common.h
+
+2011-07-25  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/m32c/m32c.h (PRINT_OPERAND, PRINT_OPERAND_ADDRESS,
+	PRINT_OPERAND_PUNCT_VALID_P): Remove macro.
+	* config/m32c/m32c-protos.h (m32c_print_operand_punct_valid_p,
+	m32c_print_operand, m32c_print_operand_address): Remove.
+	* config/m32c/m32c.c (m32c_print_operand_punct_valid_p): Make static.
+	Change return type to bool. Change argument type to bool.
+	(m32c_print_operand, m32c_print_operand_address): Make static.
+	(TARGET_PRINT_OPERAND, TARGET_PRINT_OPERAND_ADDRESS,
+	TARGET_PRINT_OPERAND_PUNCT_VALID_P): Define.
+
+2011-07-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/sourcebuild.texi (Effective-Target Keywords, Environment
+	attributes): Document mmap.
+
+2011-07-25  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mmix/mmix.h (PRINT_OPERAND, PRINT_OPERAND_ADDRESS,
+	PRINT_OPERAND_PUNCT_VALID_P): Remove macro.
+	* config/mmix/mmix-protos.h (mmix_print_operand_punct_valid_p,
+	mmix_print_operand, mmix_print_operand_address): Remove.
+	* config/mmix/mmix.c (mmix_print_operand_punct_valid_p): Make static.
+	Change return type to bool. Change argument type to bool.
+	(mmix_print_operand, mmix_print_operand_address): Make static.
+	(mmix_intval, mmix_output_condition): Change 'x' argument type
+	to const_rtx.
+	(TARGET_PRINT_OPERAND, TARGET_PRINT_OPERAND_ADDRESS,
+	TARGET_PRINT_OPERAND_PUNCT_VALID_P): Define.
+
+2011-07-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/39386
+	* config/avr/avr.c (out_shift_with_cnt): Use tmp_reg as
+	shift counter for x << x and x >> x shifts.
+
+2011-07-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/47124
+	* config.gcc: Reject *-*-solaris2 configuration.
+
+2011-07-25  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR tree-optimization/49809
+	* tree-ssa-phiopt.c (cond_if_else_store_replacement): Use
+	gimple_get_lhs instead of gimple_assign_lhs.
+
+2011-07-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* system.h [__cplusplus]: Wrap C function declarations in extern "C".
+
+2011-07-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49822
+	* tree-ssa-forwprop.c (remove_prop_source_from_use): Robustify
+	more.  Make sure to preserve stmts with side-effects.  Properly
+	handle virtual defs, follow a longer def chain.
+
+2011-07-22  Romain Geissler  <romain.geissler@gmail.com>
+
+	PR plugins/45348
+	PR plugins/48425
+	PR plugins/46577
+	* Makefile.in: Do not flatten c-family directory when installing
+	plugin headers.
+
+2011-07-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* ipa-inline.c (can_inline_edge_p): Look into DECL_STRUCT_FUNCTION of
+	original nodes if we are dealing with virtual clones.
+
+2011-07-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* common/config/c6x/c6x-common.c: New file.
+
+2011-07-25  Roman Zhuykov  <zhroma@ispras.ru>
+
+	* tree-flow.h (tree_ssa_loop_version): Remove unused declaration.
+
+2011-07-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49715
+	* tree-vrp.c: Include expr.h and optabs.h.
+	(range_fits_type_): New function.
+	(simplify_float_conversion_using_ranges): Likewise.
+	(simplify_stmt_using_ranges): Call it.
+	* Makefile.in (tree-vrp.o): Add $(EXPR_H) and $(OPTABS_H) dependencies.
+	* optabs.c (can_float_p): Export.
+	* optabs.h (can_float_p): Declare.
+
+2011-07-25  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (num_vr_values, values_propagated): New global vars.
+	(get_value_range): For out-of-range SSA names or names created
+	after propagation return a read-only varying range.
+	(dump_all_value_ranges): Adjust.
+	(vrp_initialize): Likewise.
+	(vrp_finalize): Likewise.
+
+2011-07-24  Richard Henderson  <rth@redhat.com>
+
+	PR debug/49831
+	* dwarf2cfi.c (connect_traces): Allow unvisited traces.  Skip
+	them entirely.
+
+2011-07-24  Richard Henderson  <rth@redhat.com>
+
+	PR debug/49825
+	* dwarf2cfi.c (dwarf2out_stack_adjust): Move A_O_A test earlier.
+	(dwarf2out_notice_stack_adjust): Use args_size from call_insn.
+
+2011-07-24  Richard Henderson  <rth@redhat.com>
+
+	PR debug/49827
+	* dwarf2cfi.c (create_trace_edges): Handle sequences properly.
+
+2011-07-24  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (maybe_record_trace_start): Add abnormal parameter.
+	Zero args_size for abnormal edges.  Adjust all callers.
+
+2011-07-24  Richard Henderson  <rth@redhat.com>
+
+	PR debug/49825
+	* dwarf2cfi.c (cfi_row_equal_p): Don't compare args_size.
+
+2011-07-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/49835
+	* collect2.c (demangle_flag): Removed.
+
+2011-07-24  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* configure.ac (demangler_in_ld): Default to yes.
+	* configure: Regenerated.
+	* collect2.c (main): When HAVE_LD_DEMANGLE is defined, don't
+	mess with COLLECT_NO_DEMANGLE, and just pass --demangle and
+	--no-demangle options straight through to ld.  When
+	HAVE_LD_DEMANGLE is not defined, set COLLECT_NO_DEMANGLE in a
+	way that has the intended effect on Windows.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c: Include basic-block.h.
+	(dw_label_info): Remove.
+	(trace_work_list, trace_index): New.
+	(remember_row, emit_cfa_remember): Remove.
+	(dw_trace_info_hash, dw_trace_info_eq): New.
+	(get_trace_index, get_trace_info): New.
+	(save_point_p): New.
+	(free_cfi_row): Remove.
+	(add_cfi): Do not emit DW_CFA_remember_state.
+	(cfa_row_equal_p): New.
+	(barrier_args_size): Remove.
+	(compute_barrier_args_size_1, compute_barrier_args_size): Remove.
+	(dwarf2out_notice_stack_adjust): Don't compute_barrier_args_size.
+	(maybe_record_trace_start, create_trace_edges, scan_trace): New.
+	(dwarf2out_cfi_begin_epilogue): Remove.
+	(dwarf2out_frame_debug_restore_state): Remove.
+	(connect_traces, create_pseudo_cfg): New.
+	(create_cfi_notes, execute_dwarf2_frame): Rewrite using traces.
+	* Makefile.in (dwarf2cfi.o): Update.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (dw_trace_info): New.
+	(dw_label_info): New.
+	(cie_return_save): New.
+	(cur_trace): New.
+	(queued_args_size): Rename from args_size.  Update all users.
+	(cfa_store, cfa_temp, regs_saved_in_regs): Remove.
+	(def_cfa_1): Use cur_trace instead of cfa_*.
+	(dwarf2out_stack_adjust, record_reg_saved_in_reg): Likewise.
+	(clobbers_queued_reg_save, reg_saved_in): Likewise.
+	(dwarf2out_frame_debug_expr): Likewise.
+	(create_cie_data): Split out from ...
+	(execute_dwarf2_frame): ... here.  Initialize cur_trace.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (regs_saved_in_regs): Allocate from heap, not gc.
+	Update all users to match.
+	(execute_dwarf2_frame): Free reg_saved_in_data.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (queued_reg_save): Reorder for packing.  Don't GTY.
+	(queued_reg_saves): Don't GTY.  Change to a VEC.
+	(queue_reg_save): Update to match.
+	(dwarf2out_flush_queued_reg_saves): Likewise.
+	(clobbers_queued_reg_save): Likewise.
+	(reg_saved_in): Likewise.
+	(execute_dwarf2_frame): Free queued_reg_saves.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (dw_cfi_row_ref): Remove.  Update all users.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (add_cfi_args_size): Split out from...
+	(dwarf2out_args_size): ... here.
+	(add_cfi_restore): Split out from ...
+	(dwarf2out_frame_debug_cfa_restore): ... here.
+	(def_cfa_0): Split out from ...
+	(def_cfa_1): ... here.
+	(cfi_oprnd_equal_p, cfi_equal_p): New.
+	(change_cfi_row): New.
+	(add_cfis_to_fde): Set fde->dw_fde_switch_cfi_index.
+	(create_cfi_notes): Use change_cfi_row at SWITCH_TEXT note.
+	(output_cfis): Remove.
+	* dwarf2out.c (output_fde): Simplify output_cfi loop.
+	(dwarf2out_switch_text_section): Don't call output_cfis.
+	(dw_val_equal_p, loc_descr_equal_p_1, loc_descr_equal_p): New.
+	* dwarf2out.h: Update decls.
+	(enum dw_val_class): Add dw_val_class_none.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (update_row_reg_save): New.
+	(dwarf2out_frame_debug_cfa_expression): Use it.
+	(dwarf2out_frame_debug_cfa_restore): Likewise.
+	(reg_save): Likewise.  Do not emit DW_CFA_same_value.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (add_cfi_insn): Rename from cfi_insn.  Update all users.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2cfi.c (dw_cfi_row, dw_cfi_row_ref): New.
+	(cie_cfi_row): New.
+	(new_cfi_row, copy_cfi_row, free_cfi_row): New.
+	(cfa, old_cfa, cfa_remember, old_cfa_remember, old_args_size): Remove.
+	(cur_row, remember_row): New.
+	(def_cfa_1): Use cur_row instead of the old_* variables.
+	(dwarf2out_frame_debug_restore_state): Similarly.
+	(dwarf2out_args_size, dwarf2out_notice_stack_adjust): Likewise.
+	(dwarf2out_frame_debug_def_cfa): Use a local variable instead of cfa.
+	(dwarf2out_frame_debug_adjust_cfa): Likewise.
+	(dwarf2out_frame_debug_cfa_offset): Likewise.
+	(dwarf2out_frame_debug_expr): Likewise.
+	(execute_dwarf2_frame): Set up cur_row.
+	* dwarf2out.h (struct cfa_loc): Mark for GTY.
+
+2011-07-23  Richard Henderson  <rth@redhat.com>
+
+	* basic-block.h (EDGE_PRESERVE): New.
+	(EDGE_ALL_FLAGS, EDGE_COMPLEX): Include it.
+	* bb-reorder.c: Include except.h.
+	(fix_up_crossing_landing_pad): New.
+	(find_rarely_executed_basic_blocks_and_crossing_edges): Place
+	landing pads in the right partition.  Duplicate as necessary.
+	(partition_hot_cold_basic_blocks): Fix up DF info after
+	duplicating landing pads.
+	* cfg.c (dump_edge_info): Add crossing and preserve to bitnames.
+	* cfgrtl.c (rtl_verify_flow_info_1): Validate that EDGE_CROSSING
+	is set properly.  Validate that EH edges are not CROSSING.
+	* except.c (expand_dw2_landing_pad_for_region): Split out from ...
+	(dw2_build_landing_pads): ... here.
+	(convert_to_eh_region_ranges): Remove code to fixup crossing
+	landing pads.
+	* except.h (expand_dw2_landing_pad_for_region): Declare.
+	* tree-cfg.c (gimple_can_merge_blocks_p): Don't merge PRESERVE edges.
+
+2011-07-23  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/49816
+	* arm.c (aapcs_vfp_allocate_return_reg): Return NULL on failure.
+
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	* doc/invoke.texi (C++ Dialect Options): Document -Wno-narrowing.
+
+2011-07-22  Richard Henderson  <rth@redhat.com>
+
+	* bb-reorder.c (gate_handle_partition_blocks): Honor optimize.
+
+2011-07-22  Richard Henderson  <rth@redhat.com>
+
+	* jump.c (maybe_propagate_label_ref): Split out of...
+	(mark_all_labels): ... here.  Do not attempt label_ref
+	propagation while in cfglayout mode.
+
+2011-07-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (struct macinfo_struct): Change code to unsigned char.
+	(DEBUG_MACRO_SECTION, DEBUG_MACRO_SECTION_LABEL): Define.
+	(dwarf_attr_name): Handle DW_AT_GNU_macros.
+	(dwarf2out_define): If the vector is empty and
+	lineno is 0, emit a dummy entry first.
+	(dwarf2out_undef): Likewise.  Remove redundant semicolon.
+	(htab_macinfo_hash, htab_macinfo_eq, output_macinfo_op,
+	optimize_macinfo_range): New functions.
+	(output_macinfo): Use them.  If !dwarf_strict and .debug_str is
+	mergeable, optimize longer strings using
+	DW_MACRO_GNU_{define,undef}_indirect and if HAVE_COMDAT_GROUP,
+	optimize longer sequences of define/undef ops from headers
+	using DW_MACRO_GNU_transparent_include.  For !dwarf_strict
+	emit a section headers.
+	(dwarf2out_init): For !dwarf_strict set debug_macinfo_section
+	and macinfo_section_label to DEBUG_MACRO_SECTION
+	resp. DEBUG_MACRO_SECTION_LABEL.
+	(dwarf2out_finish): For !dwarf_strict emit DW_AT_GNU_macros
+	instead of DW_AT_macro_info.
+
+	PR other/32998
+	* common.opt (grecord-gcc-switches, gno-record-gcc-switches): New
+	options.
+	* dwarf2out.c: Include opts.h.
+	(dchar_p): New typedef.  Define heap VEC for it.
+	(producer_string): New variable.
+	(gen_producer_string): New function.
+	(gen_compile_unit_die): Use it.
+	(dwarf2out_finish): Fix up comp_unit_die () DW_AT_producer if needed.
+	* Makefile.in (dwarf2out.o): Depend on $(OPTS_H).
+	* doc/invoke.texi: Document -grecord-gcc-switches and
+	-gno-record-gcc-switches, add a -grecord-gcc-switches reference
+	to -frecord-gcc-switches description.
+
 2011-07-22  Jason Merrill  <jason@redhat.com>
 
 	PR c++/30112
@@ -14,8 +462,7 @@
 	MS ABI in x32 mode.
 	(ix86_init_builtins): Call ix86_init_builtins_va_builtins_abi
 	only for TARGET_LP64.
-	(ix86_handle_abi_attribute): Check TARGET_LP64 instead of
-	TARGET_64BIT.
+	(ix86_handle_abi_attribute): Check TARGET_LP64 instead of TARGET_64BIT.
 
 2011-07-22  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
@@ -26,8 +473,7 @@
 
 	PR lto/49796
 	* cgraphunit.c (verify_edge_corresponds_to_fndecl): Return false
-	if decl node is in another partition, call cgraph_get_node only
-	once.
+	if decl node is in another partition, call cgraph_get_node only once.
 
 2011-07-22  Uros Bizjak  <ubizjak@gmail.com>
 

@@ -1,3 +1,35 @@
+2011-07-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR bootstrap/49845
+	* parser.c (cp_parser_perform_range_for_lookup): Always assign *being
+	and *end before returning.
+
+2011-07-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/49838
+	* parser.c (cp_parser_perform_range_for_lookup): Early return if
+	error_operand_p (range).
+
+2011-07-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49823
+	* parser.c (cp_parser_qualifying_entity): Handle templates.
+
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49793
+	* typeck2.c (check_narrowing): Downgrade permerror to pedwarn.
+	Make conditional on -Wnarrowing.
+
+2011-07-22  Ville Voutilainen  <ville.voutilainen@gmail.com>
+
+	Warn about the use of final/override in non-c++0x mode, and
+	add __final for non-c++0x mode.
+	* cp-tree.h (cpp0x_warn_str): Add CPP0X_OVERRIDE_CONTROLS.
+	* error.c (maybe_warn_cpp0x): Adjust.
+	* parser.c (cp_parser_virt_specifier_seq_opt): Use it. Add
+	'__final' as a non-c++0x alternative for 'final'.
+
 2011-07-22  Jason Merrill  <jason@redhat.com>
 	    Mark Glisse  <marc.glisse@normalesup.org>
 
