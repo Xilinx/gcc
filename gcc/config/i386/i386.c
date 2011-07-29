@@ -12982,10 +12982,10 @@ ix86_delegitimize_address (rtx x)
 	  || !MEM_P (orig_x))
 	return ix86_delegitimize_tls_address (orig_x);
       x = XVECEXP (XEXP (x, 0), 0, 0);
-      if (GET_MODE (orig_x) != GET_MODE (x) 
-	  && GET_MODE (orig_x) != ptr_mode)
+      if (GET_MODE (orig_x) != GET_MODE (x))
 	{
-	  x = simplify_gen_subreg (GET_MODE (orig_x), x, ptr_mode, 0);
+	  x = simplify_gen_subreg (GET_MODE (orig_x), x,
+				   GET_MODE (x), 0);
 	  if (x == NULL_RTX)
 	    return orig_x;
 	}
