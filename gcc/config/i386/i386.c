@@ -3133,9 +3133,6 @@ ix86_option_override_internal (bool main_args_p)
   if (!global_options_set.x_ix86_abi)
     ix86_abi = DEFAULT_ABI;
 
-  if (ix86_abi == MS_ABI && TARGET_X32)
-    error ("MS ABI not supported in x32 mode");
-
   if (global_options_set.x_ix86_cmodel)
     {
       switch (ix86_cmodel)
@@ -15037,7 +15034,6 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
     }
 
   if ((flag_pic || MACHOPIC_INDIRECT) 
-      && (mode == SImode || mode == DImode)
       && symbolic_operand (op1, mode))
     {
       if (TARGET_MACHO && !TARGET_64BIT)
@@ -15080,7 +15076,7 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 	{
 	  if (MEM_P (op0))
 	    op1 = force_reg (mode, op1);
-	  else if (!TARGET_64BIT || !x86_64_movabs_operand (op1, mode))
+	  else if (!(TARGET_64BIT && x86_64_movabs_operand (op1, DImode)))
 	    {
 	      rtx reg = can_create_pseudo_p () ? NULL_RTX : op0;
 	      op1 = legitimize_pic_address (op1, reg);
@@ -29323,13 +29319,6 @@ ix86_handle_abi_attribute (tree *node, tree name,
       && TREE_CODE (*node) != TYPE_DECL)
     {
       warning (OPT_Wattributes, "%qE attribute only applies to functions",
-	       name);
-      *no_add_attrs = true;
-      return NULL_TREE;
-    }
-  if (!TARGET_LP64)
-    {
-      warning (OPT_Wattributes, "%qE attribute only available for 64-bit",
 	       name);
       *no_add_attrs = true;
       return NULL_TREE;

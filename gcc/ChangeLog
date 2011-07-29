@@ -1,3 +1,322 @@
+2011-07-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/49846
+	* var-tracking.c (prepare_call_arguments): For non-MODE_INT stack
+	arguments also check if they aren't initialized with a MODE_INT
+	mode of the same size.
+
+2011-07-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	* expr.c (get_bit_range): Handle *MEM_REF's.
+
+2011-07-28  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* rtlanal.c (tablejump_p): False for returns.
+	* reorg.c (first_active_target_insn): New static function.
+	(find_end_label): Set JUMP_LABEL for a new returnjump.
+	(optimize_skip, get_jump_flags, rare_destination,
+	mostly_true_jump, get_branch_condition,
+	steal_delay_list_from_target, own_thread_p,
+	fill_simple_delay_slots, follow_jumps, fill_slots_from_thread,
+	fill_eager_delay_slots, relax_delay_slots, make_return_insns,
+	dbr_schedule): Adjust to handle ret_rtx in JUMP_LABELs.
+	* jump.c (delete_related_insns): Likewise.
+	(jump_to_label_p): New function.
+	(redirect_target): New static function.
+	(redirect_exp_1): Use it.  Adjust to handle ret_rtx in JUMP_LABELS.
+	(redirect_jump_1): Assert that the new label is nonnull.
+	(redirect_jump): Likewise.
+	(redirect_jump_2): Check for ANY_RETURN_P rather than NULL labels.
+	* ifcvt.c (find_if_case_1): Take care when redirecting jumps to the
+	exit block.
+	(dead_or_predicable): Change NEW_DEST arg to DEST_EDGE.  All callers
+	changed.  Ensure that the right label is passed to redirect_jump.
+	* function.c (emit_return_into_block,
+	thread_prologue_and_epilogue_insns): Ensure new returnjumps have
+	ret_rtx in their JUMP_LABEL.
+	* print-rtl.c (print_rtx): Handle ret_rtx in a JUMP_LABEL.
+	* emit-rtl.c (skip_consecutive_labels): Allow the caller to
+	pass ret_rtx as label.
+	* cfglayout.c (fixup_reorder_chain): Use
+	force_nonfallthru_and_redirect rather than force_nonfallthru.
+	(duplicate_insn_chain): Copy JUMP_LABELs for returns.
+	* rtl.h (ANY_RETURN_P): New macro.
+	(jump_to_label_p): Declare.
+	* resource.c (find_dead_or_set_registers): Handle ret_rtx in
+	JUMP_LABELs.
+	(mark_target_live_regs): Likewise.
+	* basic-block.h (force_nonfallthru_and_redirect): Declare.
+	* cfgrtl.c (force_nonfallthru_and_redirect): No longer static.
+	* config/alpha/alpha.c (alpha_tablejump_addr_vec,
+	alpha_tablejump_best_label): Remove functions.
+	* config/alpha/alpha-protos.c (alpha_tablejump_addr_vec,
+	alpha_tablejump_best_label): Remove declarations.
+	* config/sh/sh.c (barrier_align, split_branches): Adjust for
+	ret_rtx in JUMP_LABELs.
+	* config/arm/arm.c (is_jump_table): Likewise.
+
+2011-07-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (pic_32bit_opreand): Do not define as
+	special predicate.  Remove explicit mode checks.
+
+2011-07-28  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (resolve_addr): For -gdwarf-2 don't optimize
+	DW_AT_data_member_location containing just DW_OP_plus_uconst.
+
+	PR debug/49871
+	* dwarf2out.c (size_of_die, value_format, output_die): Use
+	DW_FORM_udata instead of DW_FORM_data[48] for
+	dw_val_class_unsigned_const DW_AT_data_member_location for DWARF 3.
+
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (*tls_global_dynamic_64): Update
+	length attribute.
+
+2011-07-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47715
+	* config/i386/i386.md (*tls_global_dynamic_64): Remove mode from
+	tls_symbolic_operand check.  Update code sequence for TARGET_X32.
+	(tls_global_dynamic_64): Remove mode from tls_symbolic_operand check.
+	(tls_dynamic_gnu2_64): Ditto.
+	(*tls_dynamic_gnu2_lea_64): Ditto.
+	(*tls_dynamic_gnu2_call_64): Ditto.
+	(*tls_dynamic_gnu2_combine_64): Ditto.
+
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Set need_64bit_hwint to yes for x86 targets.
+
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47364
+	* config/i386/i386.md (strlen<mode>): Replace SWI48x with P.
+
+2011-07-28  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* config/arm/vfp.md ("*movdf_vfp"): Handle the VFP constraints
+	before the core constraints. Adjust attributes.
+	("*thumb2_movdf_vfp"): Likewise.
+
+2011-07-28  Kai Tietz  <ktietz@redhat.com>
+
+	* tree-vrp.c (simplify_stmt_using_ranges): Remove TRUTH_NOT_EXPR case.
+	(simplify_truth_ops_using_ranges): Likewise.
+	(build_assert_expr_for): Likewise.
+	(build_assert_expr_for_1): Remove TRUTH_NOT_EXPR case
+	and handle BIT_NOT_EXPR for truth-operation.
+
+2011-07-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	Undo r176835 from trunk
+	2011-07-27  Georg-Johann Lay
+
+2011-07-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49687
+	* config/avr/t-avr (LIB1ASMFUNCS): Remove _xmulhisi3_exit.
+	Add _muluhisi3, _mulshisi3, _usmulhisi3.
+	* config/avr/libgcc.S (__mulsi3): Rewrite.
+	(__mulhisi3): Rewrite.
+	(__umulhisi3): Rewrite.
+	(__usmulhisi3): New.
+	(__muluhisi3): New.
+	(__mulshisi3): New.
+	(__mulohisi3): New.
+	(__mulqi3, __mulqihi3, __umulqihi3, __mulhi3): Use DEFUN/ENDF to
+	declare.
+	* config/avr/predicates.md (pseudo_register_operand): Rewrite.
+	(pseudo_register_or_const_int_operand): New.
+	(combine_pseudo_register_operand): New.
+	(u16_operand): New.
+	(s16_operand): New.
+	(o16_operand): New.
+	* config/avr/avr.c (avr_rtx_costs): Handle costs for mult:SI.
+	* config/avr/avr.md (QIHI, QIHI2): New mode iterators.
+	(any_extend, any_extend2): New code iterators.
+	(extend_prefix): New code attribute.
+	(mulsi3): Rewrite. Turn insn to expander.
+	(mulhisi3): Ditto.
+	(umulhisi3): Ditto.
+	(usmulhisi3): New expander.
+	(*mulsi3): New insn-and-split.
+	(mulu<mode>si3): New insn-and-split.
+	(muls<mode>si3): New insn-and-split.
+	(mulohisi3): New insn-and-split.
+	(*uumulqihisi3, *uumulhiqisi3, *uumulhihisi3, *uumulqiqisi3,
+	*usmulqihisi3, *usmulhiqisi3, *usmulhihisi3, *usmulqiqisi3,
+	*sumulqihisi3, *sumulhiqisi3, *sumulhihisi3, *sumulqiqisi3,
+	*ssmulqihisi3, *ssmulhiqisi3, *ssmulhihisi3, *ssmulqiqisi3): New
+	insn-and-split.
+	(*mulsi3_call): Rewrite.
+	(*mulhisi3_call): Rewrite.
+	(*umulhisi3_call): Rewrite.
+	(*usmulhisi3_call): New insn.
+	(*muluhisi3_call): New insn.
+	(*mulshisi3_call): New insn.
+	(*mulohisi3_call): New insn.
+	(extendqihi2): Use combine_pseudo_register_operand as predicate
+	for operand 1.
+	(extendqisi2): Ditto.
+	(zero_extendqihi2): Ditto.
+	(zero_extendqisi2): Ditto.
+	(zero_extendhisi2): Ditto.
+	(extendhisi2): Ditto. Don't early-clobber operand 0.
+
+2011-07-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (add->lea splitter): Add SWI mode to PLUS RTX.
+
+2011-07-27  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/49471
+	* tree-ssa-loop-manip.c (canonicalize_loop_ivs): Build an unsigned
+	iv only when the largest type is unsigned.  Do not call
+	lang_hooks.types.type_for_size.
+
+2011-07-27  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/45450
+	* graphite-poly.c (apply_poly_transforms): Disable legality check
+	after an openscop read.
+
+2011-07-27  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/47691
+	* graphite-clast-to-gimple.c (translate_clast_user): Update use of
+	copy_bb_and_scalar_dependences.
+	* sese.c (rename_uses): Do not call gcc_assert.  Set gloog_error.
+	(graphite_copy_stmts_from_block): Update call to rename_uses.
+	(copy_bb_and_scalar_dependences): Update call to
+	graphite_copy_stmts_from_block.
+	* sese.h (copy_bb_and_scalar_dependences): Update declaration.
+
+2011-07-27  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	* config/avr/libgcc.S (__ffshi2): Don't skip 2-word instruction.
+	(__ctzsi2): Result for 0 may be undefined.
+	(__ctzhi2): Result for 0 may be undefined.
+	(__popcounthi2): Don't clobber r30. Use __popcounthi2_tail.
+	(__popcountsi2): Ditto. And don't clobber r26.
+	(__popcountdi2): Ditto. And don't clobber r27.
+	* config/avr/avr.md (UNSPEC_COPYSIGN): New c_enum.
+	(parityhi2): New expand.
+	(paritysi2): New expand.
+	(popcounthi2): New expand.
+	(popcountsi2): New expand.
+	(clzhi2): New expand.
+	(clzsi2): New expand.
+	(ctzhi2): New expand.
+	(ctzsi2): New expand.
+	(ffshi2): New expand.
+	(ffssi2): New expand.
+	(copysignsf3): New insn.
+	(bswapsi2): New expand.
+	(*parityhi2.libgcc): New insn.
+	(*parityqihi2.libgcc): New insn.
+	(*paritysihi2.libgcc): New insn.
+	(*popcounthi2.libgcc): New insn.
+	(*popcountsi2.libgcc): New insn.
+	(*popcountqi2.libgcc): New insn.
+	(*popcountqihi2.libgcc): New insn-and-split.
+	(*clzhi2.libgcc): New insn.
+	(*clzsihi2.libgcc): New insn.
+	(*ctzhi2.libgcc): New insn.
+	(*ctzsihi2.libgcc): New insn.
+	(*ffshi2.libgcc): New insn.
+	(*ffssihi2.libgcc): New insn.
+	(*bswapsi2.libgcc): New insn.
+
+2011-07-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_expand_move): Do not explicitly check
+	the mode of symbolic_opreand RTXes.
+
+2011-07-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (x86_64_movabs_operand): Return false
+	for pic_32bit_operand RTXes.
+	* config/i386/i386.c (ix86_expand_move): Check x86_64_movabs_operand
+	in DImode.
+
+2011-07-27  Kai Tietz  <ktietz@redhat.com>
+
+	* config/i386/i386.c (ix86_option_override_internal): Allow -mabi
+	for 32-bit, too.
+	(ix86_handle_abi_attribute): Allow function attributes
+	ms_abi/sysv_abi in 32-bit mode, too.
+	* doc/extend.texi: Adjust attribute documentation.
+
+	* gimple-fold.c (or_comparisons_1): Remove TRUTH_AND/OR
+	expression handling.
+	(and_var_with_comparison_1): Likewise.
+
+2011-07-27  Aldy Hernandez  <aldyh@redhat.com>
+
+	* params.h (ALLOW_STORE_DATA_RACES): New.
+	* params.def (PARAM_ALLOW_STORE_DATA_RACES): New.
+	* Makefile.in (expr.o): Depend on PARAMS_H.
+	* machmode.h (get_best_mode): Add argument.
+	* fold-const.c (optimize_bit_field_compare): Add argument to
+	get_best_mode.
+	(fold_truthop): Same.
+	* ifcvt.c (noce_emit_move_insn): Add argument to store_bit_field.
+	* expr.c (emit_group_store): Same.
+	(copy_blkmode_from_reg): Same.
+	(write_complex_part): Same.
+	(optimize_bitfield_assignment_op): Add argument.
+	Add argument to get_best_mode.
+	(get_bit_range): New.
+	(expand_assignment): Calculate maxbits and pass it down accordingly.
+	(store_field): New argument.
+	(expand_expr_real_2): New argument to store_field.  Include params.h.
+	* expr.h (store_bit_field): New argument.
+	* stor-layout.c (get_best_mode): Restrict mode expansion by taking
+	into account maxbits.
+	* calls.c (store_unaligned_arguments_into_pseudos): New argument
+	to store_bit_field.
+	* expmed.c (store_bit_field_1): New argument.  Use it.
+	(store_bit_field): Same.
+	(store_fixed_bit_field): Same.
+	(store_split_bit_field): Same.
+	(extract_bit_field_1): Pass new argument to get_best_mode.
+	(extract_bit_field): Same.
+	* stmt.c (store_bit_field): Pass new argument to store_bit_field.
+	* doc/invoke.texi: Document parameter allow-store-data-races.
+
+2011-07-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (gen_producer_string): Ignore also -fverbose-asm option.
+
+2011-07-27  Kai Tietz  <ktietz@redhat.com>
+
+	* tree-vrp.c (extract_range_from_binary_expr): Remove
+	TRUTH-binary cases and add new bitwise-cases.
+	(extract_range_from_assignment): Likewise.
+	(register_edge_assert_for_1): Likeiwise.
+	(register_edge_assert_for): Likewise.
+	(simplify_truth_ops_using_ranges): Likewise.
+	(simplify_stmt_using_ranges): Likewise.
+
+2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47372
+	* config/i386/i386.c (ix86_delegitimize_address): Call
+	simplify_gen_subreg for PIC with mode of x only if modes of
+	x and orig_x are different.
+
+2011-07-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (output_macinfo_op): Ensure fd->filename points
+	to GC allocated copy of the string.
+	(dwarf2out_finish): Emit .debug_macinfo or .debug_macro sections
+	before .debug_line, not after it.
+
 2011-07-26  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/47046
@@ -4354,24 +4673,12 @@
 	* regrename.c (scan_rtx_reg): Handle the case where we write to an
 	open chain in a smaller mode without failing the entire block.
 
-2011-06-20  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR middle-end/47725
-	* combine.c (cant_combine_insn_p): Don't check zero/sign
-	extended hard registers.
-
 2011-06-21  Alan Modra  <amodra@gmail.com>
 
 	* config/rs6000/rs6000.c (rs6000_cannot_force_const_mem): Match
 	CONST high part large-toc address.
 	(rs6000_tls_referenced_p): Make static.
 	* config/rs6000/rs6000-protos.h (rs6000_tls_referenced_p): Delete.
-
-2011-06-20  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR middle-end/47725
-	* combine.c (cant_combine_insn_p): Check zero/sign extended
-	hard registers.
 
 2011-06-20  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
 
@@ -18084,18 +18391,6 @@
 	* expr.c (expand_expr_addr_expr_1): Use simplify_gen_binary
 	instead of gen_rtx_PLUS if EXPAND_SUM or EXPAND_INITIALIZER.
 
-2011-03-17  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR middle-end/47725
-	* combine.c (cant_combine_insn_p): Don't check zero/sign
-	extended hard registers.
-
-2011-03-17  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR middle-end/47725
-	* combine.c (cant_combine_insn_p): Check zero/sign extended
-	hard registers.
-
 2011-03-17  Anatoly Sokolov  <aesok@post.ru>
 
 	* config/v850/v850.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
@@ -19487,11 +19782,6 @@
 	handle them like argument loads from stack slots.  Do not double
 	count memory for memory constants and argument loads from stack slots.
 
-2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR middle-end/47725
-	* combine.c (cant_combine_insn_p): Revert the last change.
-
 2011-02-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/47755
@@ -19585,12 +19875,6 @@
 	mode values.
 	(cmp_liw, liw_cmp): Likewise.  Plus fix order of operands in the
 	instruction.
-
-2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR middle-end/47725
-	* combine.c (cant_combine_insn_p): Check zero/sign extended
-	hard registers.
 
 2011-02-15  Richard Guenther  <rguenther@suse.de>
 
