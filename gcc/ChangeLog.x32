@@ -1,5 +1,11 @@
 2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/x86-64.h (SIZE_TYPE): Check TARGET_LP64 instead
+	of TARGET_64BIT.
+	(PTRDIFF_TYPE): Likewise.
+
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_option_override_internal): Turn on
 	OPTION_MASK_ISA_64BIT for TARGET_X32.  Only allow small and
 	small PIC models for TARGET_X32.
