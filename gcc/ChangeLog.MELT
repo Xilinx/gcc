@@ -1,5 +1,9 @@
 
 2011-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-modules.mk: Make the GCCMELT_MODULE_WORKSPACE directory
+	when missing.
+
+2011-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	with help from Pierre Vittet  <piervit@piervit.com>
 
 	{{Much improved runtime, managing md5sum-s in generated file names.}}
