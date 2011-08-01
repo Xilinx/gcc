@@ -1,4 +1,74 @@
 
+2011-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Much improved runtime, managing md5sum-s in generated file names.}}
+
+	* common.opt (fmelt-inhibit-auto-build): New option.
+
+	* melt-build.tpl: Recode for the new runtime. No more
+	melt-modules/optimized/ ... sub-directories.
+
+	* melt-build.mk: Regenerate.
+
+	* melt-runtime.h (meltgc_new_box,melt_box_content,meltgc_box_put): Made empty macros.
+	(meltgc_load_module_list, meltgc_load_one_module, meltgc_start_all_new_modules): New declarations.
+	(meltgc_make_load_melt_module, MELTLOADFLAG_CURDIR)
+	(MELTLOADFLAG_DONTMAKE, meltgc_make_melt_module)
+	(meltgc_load_modulelist): Remove declarations or enums.
+	(meltgc_make_load_melt_module, meltgc_make_melt_module): Obsolete.
+
+	* melt-runtime.c (MELT_MODULE_MAGIC): New macro.
+	(melt_module_info_st): Renamed fields, added mmi_magic field.
+	(modinfvec): Rename as
+	(melt_modinfvec): New.
+	(melt_argument): Handle "inhibit-auto-build".
+	(MODULE_SOURCE_ARG, MODULE_BINARY_ARG)
+	(MELTMODFLAV_QUICKLYBUILT_SUFFIX, MELTMODFLAV_QUICKLYBUILT_TARGET)
+	(MELTMODFLAV_NOLINE_SUFFIX, MELTMODFLAV_NOLINE_TARGET)
+	(MELTMODFLAV_DYNAMIC_SUFFIX)
+	(MELTMODFLAV_DYNAMIC_TARGET,MELTMODFLAV_OPTIMIZED_SUFFIX)
+	(MELTMODFLAV_OPTIMIZED_TARGET, MELT_BINARYMODULE_SUFFIX): Remove
+	macros.
+	(MODULE_SOURCEBASE_ARG, MODULE_BINARYBASE_ARG, FLAVOR_ARG): New macros.
+	(melt_run_make_for_plugin): Change signature for flavor. Update
+	for new melt-module.mk.
+	(melt_run_make_for_branch): Ditto.
+	(compile_gencsrc_to_binmodule): Remove.
+	(melt_compile_source): New function.
+	(meltgc_string_hex_md5sum_file_sequence): Typos.
+	(notsame_md5_hex_binary): Remove.
+	(struct melt_source_and_module_path_st): Remove.
+	(load_checked_dynamic_module_index): Remove.
+	(melt_dlsym_all): Use melt_modinfvec.
+	(melt_find_file_at,MELT_FIND_FILE)
+	(MELT_FILE_IN_DIRECTORY,MELT_FILE_IN_PATH): New.
+	(lookup_path): Remove.
+	(melt_get_source_and_module): Remove.
+	(meltgc_make_load_melt_module, meltgc_make_melt_module): Move, since obsoleted.
+	(meltgc_load_modulelist): Remove.
+	(meltgc_read_file): Use MELT_FIND_FILE.
+	(do_initial_mode): Remove.
+	(melt_c_string_in_descr, melt_same_md5sum_hex): New.
+	(melt_load_module_index): New big function.
+	(MELTDESCR_REQUIRED_LIST, MELTDESC_REQUIRED_SYMNOL, MELTDESCR_REQUIRED)
+	(MELTDESCR_OPTIONAL_LIST, MELTDESCR_OPTIONAL_SYMBOL, MELTDESCR_OPTIONAL): New macros.
+	(meltgc_start_module_by_index): New function.
+	(meltgc_start_all_new_modules, meltgc_load_one_module)
+	(meltgc_load_module_list, meltgc_do_initial_mode): New functions.
+	(meltgc_make_melt_module): Osolete.
+	(meltgc_load_modules_and_do_mode): New.
+	(melt_really_initialize): Call it.
+	(melt_fatal_info): Use melt_modinfvec.
+
+	* melt-module.mk: Rewritten file with new interface.
+
+	* melt/warmelt-first.melt (need_dbglim, need_dbg): Handle MELT_HAVE_DEBUG.
+
+	* melt/warmelt-base.melt (load_melt_module)
+	(load_quickly_melt_module, load_debug_melt_module)
+	(generate_melt_module): Obsolete primitives.
+
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Improve.
+
 2011-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (compile_one_or_more_files): Check the
 	modsrcname for lack of + and .

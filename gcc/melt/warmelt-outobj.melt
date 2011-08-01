@@ -3802,12 +3802,15 @@
      if (!flag_melt_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
        meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
        meltgc_add_strbuf ($DEBUF, "/")	       ;
+       meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
      }
      else if (flag_melt_bootstrapping) {
        meltgc_add_strbuf_cstr ($DEBUF, melt_module_dir) ;
        meltgc_add_strbuf ($DEBUF, "/")	       ;
+       meltgc_add_strbuf_cstr ($DEBUF, lbasename (lrp)) ;
      }
-     meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
+     else      
+       meltgc_add_strbuf_cstr ($DEBUF, lrp);
      free (lrp)				  ;
      }#)
     (add2sbuf_strconst debuf "\";")

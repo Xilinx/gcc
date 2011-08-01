@@ -909,10 +909,6 @@ fmelt-module-cflags=
 Common Report Var(melt_module_cflags_string) RejectNegative Joined
 Compiler CFLAGS used by MELT to compile MELT-generated C code [or $GCCMELT_MODULE_CFLAGS]
 
-; force generation of a single C file for a MELT module
-fmelt-single-c-file
-Common Report Var(flag_melt_single_c_file) 
-Force the generation of a single C file from a MELT module
 
 ; initial C or dynamic lib modules for above analysis
 fmelt-init=
@@ -960,6 +956,11 @@ Extra colon separated module[s] to be loaded after the initial ones.
 fmelt-print-settings=
 Common Report Var(melt_print_settings_string) RejectNegative Joined
 Print wired builtin settings to the given file or to stdout.
+
+; inhibit automatic build of a MELT module
+fmelt-inhibit-auto-build
+Common Report Var(flag_melt_inhibit_auto_build) 
+Inhibit the automatic build, by make, using its generated C files, of a MELT module when it is not found
 
 ;;;;;;;;;; end of Basile's MELT stuff
 

@@ -122,7 +122,7 @@ struct melt_callframe_st /* forward declaration */;
 #endif /*MELT_HAVE_DEBUG*/
 #endif /*MELT_IS_PLUGIN*/
 
-#ifdef ENABLE_CHECKING
+#if defined(ENABLE_CHECKING) && !defined(MELT_HAVE_DEBUG)
 #define MELT_HAVE_DEBUG 1
 #else
 #ifndef MELT_HAVE_DEBUG
@@ -186,6 +186,7 @@ extern int flag_melt_bootstrapping;
 /* the maximal debug depth - should be a parameter */
 #define MELTDBG_MAXDEPTH 7
 #else /* !MELT_HAVE_DEBUG*/
+#define MELTDBG_MAXDEPTH 0
 #define debugeprintf_raw(Fmt,...) do{if (0) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 /* The usual debugging macro.  */
@@ -598,12 +599,10 @@ meltgc_sort_multiple(melt_ptr_t mult_p, melt_ptr_t clo_p, melt_ptr_t discrm_p);
 /* Boxes are obsolete; use containers instead. */
 #warning MELT boxes are obsolete
 #define MELTOBMAG_BOX 0
-/* allocate a new box of given DISCR & content VAL */
-static inline melt_ptr_t meltgc_new_box (meltobject_ptr_t discr_p,
-					 melt_ptr_t val_p) {return NULL;}
-/* return the content of a box */
-static inline melt_ptr_t melt_box_content (melt_ptr_t box) {return NULL;}
-static inline void meltgc_box_put (melt_ptr_t box, melt_ptr_t val) {}
+#define meltgc_new_box(D,V) ((melt_ptr_t)NULL)
+#define melt_box_content(B) ((melt_ptr_t)NULL)
+#define meltgc_box_put(B,V) do{ \
+  melt_fatal_error("impossible meltgc_box_put B=%p", (void*)(B));}while(0)
 
 
 
@@ -2119,46 +2118,27 @@ void* melt_dlsym_all (const char*nam);
 char* melt_tempdir_path (const char* basnam, const char* suffix);
 
 
-/***
-    Load a MELT module by its name, which is only made of letters,
-    digit, underscores, and + or - chars. 
-   
-    If the module does not exist in binary form (or if the binary form
-    is not in sync with the C source code), find its C source and
-    compile it, passing maketarget to the make utility. See file
-    melt-module.mk for the acceptable maketargets, often "melt_module".
+/* Load a module list, but don't start the modules yet.  DEPTH is
+   the recursion depth, MODLISTBASE is the module list's name.  */
+void meltgc_load_module_list (int depth, const char *modlistbase);
 
-    Then, load the module as a shared object and invoke its
-    start_module_melt function with the given module data, usually
-    an environment, which returns the new module environment.
-***/
-melt_ptr_t
-meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, 
-			      const char*maketarget, unsigned flags);
+/* Load a single module, but don't start it. The MODUL can be a
+   MODULBASE.FLAVOR string.  Give the module index.  */
+int meltgc_load_one_module (const char*modul);
 
-enum {
-  /* possible flags is an bitwise OR of */
-  MELTLOADFLAG_NONE=0,		/* no flags is the default */
-  MELTLOADFLAG_CURDIR= (1 << 0), /* search the source and module in
-				    current directory */
-  MELTLOADFLAG_DONTMAKE= (1 << 1), /* don't make the module if not found */
-  MELTLOADFLAG_MASK= ~0
-};
+/* Run the start routine of a module already loaded. ENV_P is the
+   parent environment, MODIX is the index of the module. Result is the
+   new environment produced by the module.  */
+melt_ptr_t meltgc_start_module_by_index (melt_ptr_t env_p, int modix);
 
-/* Generate a loadable module from a MELT generated C source file; the
-   out is the dynloaded module without any *.so suffix. The maketarget
-   is for melt-module.mk and by default is "melt_module".  */
-void
-meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarget);
+/* Run the start routines of all modules which have not been
+   started. ENV_P is the parent environment. */
+melt_ptr_t meltgc_start_all_new_modules (melt_ptr_t env_p);
 
 
-/* load a list of modules from a file whose basename MODLISTBASE is
-   given without its suffix '.modlis' */
-melt_ptr_t
-meltgc_load_modulelist (melt_ptr_t modata_p, int depth, const char *modlistbase, unsigned flags);
-
-/* first_module_melt is the function start_module_melt in first-melt.c */
-melt_ptr_t first_module_melt (melt_ptr_t);
+#warning meltgc_make_load_melt_module & meltgc_make_melt_module are obsolete
+#define MELTLOADFLAG_NONE 0
+melt_ptr_t meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const char*maketarget,  unsigned flags);
 
 
 /* get (or create) the symbol of a given name, using the INITIAL_SYSTEM_DATA

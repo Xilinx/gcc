@@ -1082,11 +1082,23 @@ an integer $I if $I is greater than $N.}#
   #{(($v) == NULL)}#)
 ;; primitive for testing if debug
 (defprimitive need_dbg (:long depth) :long :doc #{Test if debug messages are needed for the given $DEPTH.}#
-  #{(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && ($depth)>=0 && ($depth) <= MELTDBG_MAXDEPTH)}#)
+  #{/*NEED_DBG*/
+#if MELT_HAVE_DEBUG
+ (flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && ($depth)>=0 && ($depth) <= MELTDBG_MAXDEPTH)
+#else
+ 0 /* no need_dbg */
+#endif /*MELT_HAVE_DEBUG*/
+}#)
 
 (defprimitive need_dbglim (:long depth limit) :long :doc #{Test if debug messages are needed for the given $DEPTH and $LIMIT.}#
-  #{(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount
-		     && ($depth)>=0 && ($depth) < ($limit))}#)
+  #{ /*need_dbglim*/
+#if MELT_HAVE_DEBUG
+(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount
+		     && ($depth)>=0 && ($depth) < ($limit))
+#else
+ 0 /* no need_dbglim */
+#endif /*MELT_HAVE_DEBUG*/
+}#)
 
 (defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
   :doc #{Short debug backtrace with message $MSG up to $MAXDEPTH.}#

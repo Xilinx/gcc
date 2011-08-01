@@ -40,9 +40,14 @@ mk
 
 melt_default_variant ?= optimized
 
-## LN_S might not be defined, e.g. from build-melt-plugin.sh
+## LN_S might not be defined, e.g. from MELT-Plugin-Makefile
 ifndef LN_S
 LN_S= ln -s
+endif
+
+## GAWK is needed, the GNU awk
+ifndef GAWK
+GAWK=gawk
 endif
 
 ## the various arguments to MELT - avoid spaces in them!
@@ -64,21 +69,21 @@ meltarg_modulecflags=$(if $(melt_is_plugin),-fplugin-arg-melt-module-cflags,-fme
 MELTCCINIT1ARGS= $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-              "$(meltarg_modulecflags)=$(melt_cflags)" \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping) $(MELT_DEBUG)
 
 ## the invocation to translate the other files
 MELTCCFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-              "$(meltarg_modulecflags)=$(melt_cflags)" \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
 
 ## the invocation to translate the application files -don't pass the -fmelt-bootstrap flag
 MELTCCAPPLICATION1=$(melt_make_cc1)  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-              "$(meltarg_modulecflags)=$(melt_cflags)" \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(MELT_DEBUG)
 
 
@@ -116,69 +121,86 @@ MELT_GENERATED_[+mkvarsuf+]_BASE= \
 
 [+ENDFOR melt_translator_file+]
 
+melt-workdir:
+	mkdir -p melt-workdir
 ## the rules to build the static and dynamic version of stage0, that
 ## is with static or dynamic field object offsets
 [+FOR melt_translator_file +]
-## using static object fields offsets for [+base+]
-melt-stage0-static/[+base+].q.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
-             melt-run.h melt-runtime.h melt-runtime.c \
-             melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
-              GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=melt-stage0-static/[+base+]
 
-melt-stage0-static/[+base+].so: melt-stage0-static//[+base+].q.so
+## for STAGE0 in [+base+] use GAWK [GNU awk] to retrieve the cumulated_hexmd5
+## from the MELT descriptor C file 
+
+## using static object fields offsets for [+base+]
+melt-stage0-static/[+base+].quicklybuilt.so:  $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
+             melt-run.h melt-runtime.h melt-runtime.c \
+             melt-predef.h  $(melt_make_cc1_dependency)
+	+$(MELT_MAKE_MODULE) melt_module \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+              GCCMELT_MODULE_FLAVOR=quicklybuilt \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/[+base+] \
+	      GCCMELT_CUMULATED_MD5=$(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c) \
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/[+base+]
+
+melt-stage0-static/[+base+].so:  melt-stage0-static/[+base+].quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for [+base+]
-melt-stage0-dynamic/[+base+].d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
+melt-stage0-dynamic/[+base+].dynamic.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
+	     $(melt_make_source_dir)/generated/[+base+]+meltdesc.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_dynamic \
-              GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic \
+	+$(MELT_MAKE_MODULE) melt_module \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+              GCCMELT_MODULE_FLAVOR=dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]
+	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/[+base+] \
+	      GCCMELT_CUMULATED_MD5=$(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c) \
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-dynamic/[+base+]
 
-melt-stage0-dynamic/[+base+].so: melt-stage0-dynamic/[+base+].d.so
+melt-stage0-dynamic/[+base+].so: melt-stage0-dynamic/[+base+].dynamic.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
-melt-stage0-dynamic/[+base+].q.so: melt-stage0-dynamic/[+base+].d.so
+melt-stage0-dynamic/[+base+].quicklybuilt.so: melt-stage0-dynamic/[+base+].dynamic.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+#### end STAGE0 of [+base+]
 
 
 [+ENDFOR melt_translator_file+]
 
 
-melt-stage0-static.stamp:  melt-stage0-static melt-stage0-static/warmelt.modlis melt-run.h
+melt-stage0-static.stamp:  melt-stage0-static melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-static/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file "\n"+]	md5sum melt-run.h $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) >> $@-tmp[+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
+	rm -f $(patsubst %,melt-stage0-static/%*.c,$(MELT_TRANSLATOR_BASE))
+	$(LN_S)  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) melt-stage0-static/
 
-melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-stage0-dynamic/warmelt.modlis melt-run.h
+melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-dynamic/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file "\n"+]	md5sum melt-run.h $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) >> $@-tmp[+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
+	rm -f $(patsubst %,melt-stage0-dynamic/%*.c,$(MELT_TRANSLATOR_BASE))
+	$(LN_S)  $(sort $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE)))) melt-stage0-dynamic/
 
 
 
 
-melt-stage0-static/warmelt.modlis: \
-[+FOR melt_translator_file " \\\n" +]             melt-stage0-static/[+base+].q.so[+
+melt-stage0-static/warmelt.modlis: | \
+[+FOR melt_translator_file " \\\n" +]             melt-stage0-static/[+base+].quicklybuilt.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+].q >> $@-tmp
+[+FOR melt_translator_file+]	echo $(melt_make_source_dir)/generated/[+base+].quicklybuilt >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 
-melt-stage0-dynamic/warmelt.modlis: \
-[+FOR melt_translator_file " \\\n" +]              melt-stage0-dynamic/[+base+].q.so[+
+melt-stage0-dynamic/warmelt.modlis: | \
+[+FOR melt_translator_file " \\\n" +]              melt-stage0-dynamic/[+base+].dynamic.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+].q >> $@-tmp
+[+FOR melt_translator_file+]	echo $(melt_make_source_dir)/generated/[+base+].dynamic >> $@-tmp
 [+ENDFOR melt_translator_file+]
 	$(melt_make_move) $@-tmp $@
 
@@ -192,6 +214,7 @@ empty-file-for-melt.c:
 .PHONY: warmelt0
 ## the default stage0 melt-stage0-dynamic
 MELT_STAGE_ZERO?= melt-stage0-dynamic
+MELT_ZERO_FLAVOR=$(patsubst melt-stage0-%,%,$(MELT_STAGE_ZERO))
 warmelt0: $(melt_make_cc1_dependency) $(MELT_STAGE_ZERO) $(MELT_STAGE_ZERO).stamp 
 $(MELT_STAGE_ZERO):
 	-test -d $(MELT_STAGE_ZERO)/ || mkdir $(MELT_STAGE_ZERO)
@@ -205,6 +228,7 @@ $(MELT_STAGE_ZERO):
   (define stageindex (+ 1 (for-index)))
   (define previndex (for-index))
   (define prevstage (if (> stageindex 1) (sprintf "melt-stage%d" previndex) "$(MELT_STAGE_ZERO)"))
+  (define prevflavor (if (> stageindex 1) "quicklybuilt" "$(MELT_ZERO_FLAVOR)"))
 +], previous [+ (. prevstage)+]
 [+FOR melt_translator_file+][+ 
   (define outbase (get "base")) (define outindex (for-index)) +]
@@ -213,80 +237,84 @@ $(MELT_STAGE_ZERO):
 ### the C source of [+melt_stage+] for [+ (. outbase)+]
 [+melt_stage+]/[+ (. outbase)+].c:  $(melt_make_source_dir)/[+ (. outbase)+].melt \
  $(MELT_TRANSLATOR_SOURCE) \
- [+ (. prevstage)+].stamp [+ (. prevstage)+]/warmelt.modlis \
+ | [+ (. prevstage)+].stamp [+ (. prevstage)+]/warmelt.modlis \
 [+FOR includeload+]        [+includeload+] \
 [+ENDFOR includeload
 +][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+]      [+IF (< inindex outindex)+][+ (. depstage)+]/[+ (. inbase)+].q.so \
++]      [+IF (< inindex outindex)+]$(realpath [+ (. depstage)+]/[+ (. inbase)+].quicklybuilt.so) \
 [+ENDIF+][+ENDFOR melt_translator_file
 +]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 ## 
 	@echo generating $< for [+melt_stage+]
+	@rm -f $(basename $@).args
 	@echo [+IF (= outindex 0)+] $(MELTCCINIT1ARGS) $(meltarg_init)=\[+ELSE+] $(MELTCCFILE1ARGS) $(meltarg_init)=\[+ENDIF+]
 [+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
+  (define depflavor (if (< inindex outindex) "quicklybuilt" prevflavor))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+][+ (. depstage)+]/[+ (. inbase)+].q[+ENDFOR melt_translator_file
-+] \
-           $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath  $(melt_make_module_dir)) \
-	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
++][+ (. depstage)+]/[+ (. inbase)+].[+ (. depflavor)+][+ENDFOR melt_translator_file
++] > $(basename $@).args-tmp
+	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c >> $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
-	@rm $(basename $@).args; echo
 
-################## quickmodule [+ (. outbase)+] for [+melt_stage+]
-[+melt_stage+]/[+(. outbase)+].q.so: [+melt_stage+]/[+ (. outbase)+].c \
+################## quicklybuilt module [+ (. outbase)+] for [+melt_stage+]
+[+melt_stage+]/[+(. outbase)+].quicklybuilt.so: [+melt_stage+]/[+ (. outbase)+].c \
               $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
-              GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
+	+$(MELT_MAKE_MODULE) melt_module \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]
+              GCCMELT_MODULE_FLAVOR=quicklybuilt \
+	      GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+ (. outbase)+] \
+              GCCMELT_MODULE_BINARYBASE=$(realpath [+melt_stage+])/[+(. outbase)+]
 
-[+melt_stage+]/[+(. outbase)+].n.so: [+melt_stage+]/[+ (. outbase)+].c \
+################## debugnoline module [+ (. outbase)+] for [+melt_stage+]
+[+melt_stage+]/[+(. outbase)+].debugnoline.so:   [+melt_stage+]/[+ (. outbase)+].c \
               $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+              GCCMELT_MODULE_FLAVOR=debugnoline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]
+	      GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+ (. outbase)+] \
+              GCCMELT_MODULE_BINARYBASE=$(realpath [+melt_stage+])/[+(. outbase)+]
 
 [+ENDFOR melt_translator_file+]
 
 
 ## the module list in [+melt_stage+]
 [+melt_stage+]/warmelt.modlis:  \
-[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].q.so[+
+[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].quicklybuilt.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+].q >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].quicklybuilt >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 [+ (define laststage (get "melt_stage"))
    (define lastindex stageindex)
 +]
 
-[+melt_stage+]/warmelt.n.modlis:  \
-[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].n.so[+
+[+melt_stage+]/warmelt.debugnoline.modlis:  \
+[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].debugnoline.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+].n >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].debugnoline >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 [+ (define laststage (get "melt_stage"))
    (define lastindex stageindex)
 +]
 
-## the stamp for [+melt_stage+]
-[+melt_stage+].stamp: [+melt_stage+]/warmelt.modlis melt-run.h
+## the stamp for [+melt_stage+], using an order only prerequisite
+[+melt_stage+].stamp:  melt-run.h | [+melt_stage+]/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h >> $@-tmp
 [+FOR melt_translator_file "\n"+]	md5sum $(wildcard [+melt_stage+]/[+base+]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
@@ -298,7 +326,7 @@ ENDFOR melt_translator_file+]
 .PHONY: warmelt[+(. stageindex)+] warmelt[+(. stageindex)+]n
 warmelt[+(. stageindex)+]:  [+melt_stage+] [+melt_stage+]/warmelt.modlis
 	@echo MELT build made $@
-warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt.n.modlis
+warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt.debugnoline.modlis
 	@echo MELT build made $@
 [+melt_stage+]:
 	if [ -d [+melt_stage+] ]; then true; else mkdir [+melt_stage+]; fi
@@ -322,17 +350,11 @@ all-melt: melt-modules melt-sources melt-all-modules melt-all-sources
 ### the final module directory
 melt-modules: 
 	test -d melt-modules/ || mkdir  melt-modules/
-	mkdir -p melt-modules/quicklybuilt
-	mkdir -p melt-modules/optimized
-	mkdir -p melt-modules/debugnoline
 
 ### the final source directory
 melt-sources: 
 	test -d melt-sources/ || mkdir  melt-sources/
 
-### the final temporary build directory
-melt-tempbuild: 
-	test -d melt-tempbuild/ || mkdir  melt-tempbuild/
 
 melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
               melt-run.h melt-runtime.h melt-predef.h melt-sources \
@@ -366,45 +388,49 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency) melt-tempbuild melt-sources 
-	@echo [+IF (= transindex 0)+] $(MELTCCINIT1ARGS) \[+ELSE+] $(MELTCCFILE1) \[+ENDIF+]
+                    $(melt_make_cc1_dependency) melt-sources 
+	@rm -f $(basename $@).args
+	@echo [+IF (= transindex 0)+] $(MELTCCINIT1ARGS) \[+ELSE+] $(MELTCCFILE1ARGS) \[+ENDIF+]
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-modules): \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
-	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
+	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
-	@rm $(basename $@).args; echo
 
 
-melt-modules/optimized/[+base+].so: melt-sources/[+base+].c \
+
+melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+        melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=melt-modules/optimized/[+base+]
+	      GCCMELT_MODULE_FLAVOR=optimized \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/[+base+] 
 
-melt-modules/debugnoline/[+base+].n.so: melt-sources/[+base+].c \
+melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+         melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
-              GCCMELT_MODULE_BINARY=melt-modules/debugnoline/[+base+]
+	      GCCMELT_MODULE_FLAVOR=debugnoline \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/[+base+] 
 
-melt-modules/quicklybuilt/[+base+].q.so: melt-sources/[+base+].c \
+melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
+         melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module \
+	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
-              GCCMELT_MODULE_BINARY=melt-modules/quicklybuilt/[+base+]
+	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/[+base+] \
+              GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator [+base+]
 
 [+ENDFOR melt_translator_file+]
@@ -418,46 +444,51 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
 
 
+## melt application [+base+] generated files
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
  melt-sources melt-modules $(MELT_TRANSLATOR_SOURCE) \
- [+FOR melt_translator_file+] melt-modules/optimized/[+base+].so[+ENDFOR melt_translator_file+] \
+ [+FOR melt_translator_file+] melt-modules/[+base+].optimized.so[+ENDFOR melt_translator_file+] \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
-melt-modules/optimized/[+base+].so: melt-sources/[+base+].c \
+## melt application [+base+] various flavors of modules
+melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
+        melt-run.h melt-runtime.h melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
+	      GCCMELT_MODULE_FLAVOR=optimized \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
-              GCCMELT_MODULE_BINARY=melt-modules/optimized/[+base+]
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
-melt-modules/debugnoline/[+base+].n.so: melt-sources/[+base+].c \
+melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+        melt-run.h melt-runtime.h melt-sources
+	+$(MELT_MAKE_MODULE) melt_module \
+	      GCCMELT_MODULE_FLAVOR=debugnoline \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
-              GCCMELT_MODULE_BINARY=melt-modules/debugnoline/[+base+]
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
-melt-modules/quicklybuilt/[+base+].q.so: melt-sources/[+base+].c \
+melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
+        melt-run.h melt-runtime.h  melt-sources melt-modules
+	+$(MELT_MAKE_MODULE) melt_module \
+	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
-              GCCMELT_MODULE_BINARY=melt-modules/quicklybuilt/[+base+]
+              GCCMELT_MODULE_WORKSPACE=melt-workdir \
+	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
 [+ (define prevapplbase (cons (get "base") prevapplbase)) +]
 # end application [+base+]
@@ -466,16 +497,16 @@ melt-modules/quicklybuilt/[+base+].q.so: melt-sources/[+base+].c \
 
 ######
 
-melt-all-modules: \
-[+FOR melt_translator_file+]    melt-modules/optimized/[+base+].so \
+melt-all-modules:  melt-workdir \
+[+FOR melt_translator_file+]    melt-modules/[+base+].optimized.so \
 [+ENDFOR melt_translator_file+][+FOR melt_application_file " \\\n"
-+]     melt-modules/optimized/[+base+].so[+ENDFOR melt_application_file+] \
-[+FOR melt_translator_file+]    melt-modules/quicklybuilt/[+base+].q.so \
++]     melt-modules/[+base+].so[+ENDFOR melt_application_file+] \
+[+FOR melt_translator_file+]    melt-modules/[+base+].quicklybuilt.so \
 [+ENDFOR melt_translator_file+][+FOR melt_application_file " \\\n"
-+]     melt-modules/quicklybuilt/[+base+].q.so[+ENDFOR melt_application_file+] \
-[+FOR melt_translator_file+]    melt-modules/debugnoline/[+base+].n.so \
++]     melt-modules/[+base+].quicklybuilt.so[+ENDFOR melt_application_file+] \
+[+FOR melt_translator_file+]    melt-modules/[+base+].debugnoline.so \
 [+ENDFOR melt_translator_file+][+FOR melt_application_file " \\\n"
-+]     melt-modules/debugnoline/[+base+].n.so[+ENDFOR melt_application_file+] \
++]     melt-modules/[+base+].debugnoline.so[+ENDFOR melt_application_file+] \
 
 $(melt_default_modules_list).modlis: melt-all-modules \
        $(melt_default_modules_list)-quicklybuilt.modlis \
@@ -487,14 +518,14 @@ $(melt_default_modules_list).modlis: melt-all-modules \
 
 [+FOR variant IN quicklybuilt optimized debugnoline+]
 ### [+variant+] default module list
-$(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/[+variant+]/*.so)
+$(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.[+variant+].so)
 	@echo building [+variant+] module list $@
-	date  +"# MELT module list $@ generated %F" > $@-tmp
+	date  +"# MELT module  [+variant+] list $@ generated %F" > $@-tmp
 	echo "#  [+variant+] translator files" >> $@-tmp
-[+FOR melt_translator_file+]	echo [+variant+]/[+base+] >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].[+variant+] >> $@-tmp
 [+ENDFOR melt_translator_file+]
 	echo "#  [+variant+] application files" >> $@-tmp
-[+FOR melt_application_file+]	echo [+variant+]/[+base+] >> $@-tmp
+[+FOR melt_application_file+]	echo [+base+].[+variant+] >> $@-tmp
 [+ENDFOR melt_application_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
@@ -513,8 +544,11 @@ ENDFOR melt_translator_file+]
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 [+FOR melt_translator_file+]
-	@echo upgrading MELT translator [+base+]	
-	for f in $(MELT_LAST_STAGE)/[+base+]*.c ; do \
+	@echo upgrading MELT translator [+base+]
+## dont indent the [+base+]+meltdesc.c 
+	$(melt_make_move) $(MELT_LAST_STAGE)/[+base+]+meltdesc.c  $(MELT_LAST_STAGE)/[+base+]+meltdesc.c~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/[+base+]+meltdesc.c > $(srcdir)/melt/generated/[+base+]+meltdesc.c 
+	for f in $(MELT_LAST_STAGE)/[+base+].c $(MELT_LAST_STAGE)/[+base+]+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
