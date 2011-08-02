@@ -137,8 +137,11 @@ package Snames is
    --  Names of aspects for which there are no matching pragmas or attributes
    --  so that they need to be included for aspect specification use.
 
+   Name_Dynamic_Predicate              : constant Name_Id := N + $;
    Name_Post                           : constant Name_Id := N + $;
    Name_Pre                            : constant Name_Id := N + $;
+   Name_Static_Predicate               : constant Name_Id := N + $;
+   Name_Type_Invariant                 : constant Name_Id := N + $;
 
    --  Some special names used by the expander. Note that the lower case u's
    --  at the start of these names get translated to extra underscores. These
@@ -401,6 +404,7 @@ package Snames is
    Name_Short_Descriptors              : constant Name_Id := N + $; -- GNAT
    Name_Source_File_Name               : constant Name_Id := N + $; -- GNAT
    Name_Source_File_Name_Project       : constant Name_Id := N + $; -- GNAT
+   Name_SPARK_95                       : constant Name_Id := N + $; -- GNAT
    Name_Style_Checks                   : constant Name_Id := N + $; -- GNAT
    Name_Suppress                       : constant Name_Id := N + $;
    Name_Suppress_Exception_Locations   : constant Name_Id := N + $; -- GNAT
@@ -1514,6 +1518,7 @@ package Snames is
       Pragma_Short_Descriptors,
       Pragma_Source_File_Name,
       Pragma_Source_File_Name_Project,
+      Pragma_SPARK_95,
       Pragma_Style_Checks,
       Pragma_Suppress,
       Pragma_Suppress_Exception_Locations,

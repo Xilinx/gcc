@@ -1917,7 +1917,10 @@ package body Exp_Ch3 is
                 Expression =>
                   Unchecked_Convert_To (RTE (RE_Tag),
                     New_Reference_To
-                      (Node (First_Elmt (Access_Disp_Table (Typ))), Loc))));
+                      (Node
+                        (First_Elmt
+                          (Access_Disp_Table (Underlying_Type (Typ)))),
+                       Loc))));
          end if;
 
          --  Adjust the component if controlled except if it is an aggregate
@@ -5055,27 +5058,32 @@ package body Exp_Ch3 is
               and then Tagged_Type_Expansion
               and then Nkind (Expr) /= N_Aggregate
             then
-               --  The re-assignment of the tag has to be done even if the
-               --  object is a constant.
+               declare
+                  Full_Typ : constant Entity_Id := Underlying_Type (Typ);
 
-               New_Ref :=
-                 Make_Selected_Component (Loc,
-                    Prefix => New_Reference_To (Def_Id, Loc),
-                    Selector_Name =>
-                      New_Reference_To (First_Tag_Component (Typ), Loc));
+               begin
+                  --  The re-assignment of the tag has to be done even if the
+                  --  object is a constant.
 
-               Set_Assignment_OK (New_Ref);
+                  New_Ref :=
+                    Make_Selected_Component (Loc,
+                       Prefix => New_Reference_To (Def_Id, Loc),
+                       Selector_Name =>
+                         New_Reference_To (First_Tag_Component (Full_Typ),
+                                           Loc));
+                  Set_Assignment_OK (New_Ref);
 
-               Insert_After (Init_After,
-                 Make_Assignment_Statement (Loc,
-                   Name => New_Ref,
-                   Expression =>
-                     Unchecked_Convert_To (RTE (RE_Tag),
-                       New_Reference_To
-                         (Node
-                           (First_Elmt
-                             (Access_Disp_Table (Base_Type (Typ)))),
-                          Loc))));
+                  Insert_After (Init_After,
+                    Make_Assignment_Statement (Loc,
+                      Name => New_Ref,
+                      Expression =>
+                        Unchecked_Convert_To (RTE (RE_Tag),
+                          New_Reference_To
+                            (Node
+                              (First_Elmt
+                                (Access_Disp_Table (Full_Typ))),
+                             Loc))));
+               end;
 
             elsif Is_Tagged_Type (Typ)
               and then Is_CPP_Constructor_Call (Expr)
@@ -7572,36 +7580,7 @@ package body Exp_Ch3 is
    ----------------------------
 
    function Is_Variable_Size_Array (E : Entity_Id) return Boolean is
-
-      function Is_Constant_Bound (Exp : Node_Id) return Boolean;
-      --  To simplify handling of array components. Determines whether the
-      --  given bound is constant (a constant or enumeration literal, or an
-      --  integer literal) as opposed to per-object, through an expression
-      --  or a discriminant.
-
-      -----------------------
-      -- Is_Constant_Bound --
-      -----------------------
-
-      function Is_Constant_Bound (Exp : Node_Id) return Boolean is
-      begin
-         if Nkind (Exp) = N_Integer_Literal then
-            return True;
-         else
-            return
-              Is_Entity_Name (Exp)
-                and then Present (Entity (Exp))
-                and then
-                 (Ekind (Entity (Exp)) = E_Constant
-                   or else Ekind (Entity (Exp)) = E_Enumeration_Literal);
-         end if;
-      end Is_Constant_Bound;
-
-      --  Local variables
-
       Idx : Node_Id;
-
-   --  Start of processing for Is_Variable_Sized_Array
 
    begin
       pragma Assert (Is_Array_Type (E));

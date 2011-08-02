@@ -1360,6 +1360,22 @@ package body Sinfo is
       return Flag6 (N);
    end From_Default;
 
+   function From_Dynamic_Predicate
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      return Flag7 (N);
+   end From_Dynamic_Predicate;
+
+   function From_Static_Predicate
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      return Flag8 (N);
+   end From_Static_Predicate;
+
    function Generic_Associations
       (N : Node_Id) return List_Id is
    begin
@@ -1696,6 +1712,14 @@ package body Sinfo is
       return Flag7 (N);
    end Is_Asynchronous_Call_Block;
 
+   function Is_Boolean_Aspect
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Aspect_Specification);
+      return Flag16 (N);
+   end Is_Boolean_Aspect;
+
    function Is_Component_Left_Opnd
       (N : Node_Id) return Boolean is
    begin
@@ -1724,6 +1748,7 @@ package body Sinfo is
       (N : Node_Id) return Boolean is
    begin
       pragma Assert (False
+        or else NT (N).Nkind = N_Aspect_Specification
         or else NT (N).Nkind = N_Attribute_Definition_Clause
         or else NT (N).Nkind = N_Pragma);
       return Flag14 (N);
@@ -4379,6 +4404,22 @@ package body Sinfo is
       Set_Flag6 (N, Val);
    end Set_From_Default;
 
+   procedure Set_From_Dynamic_Predicate
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      Set_Flag7 (N, Val);
+   end Set_From_Dynamic_Predicate;
+
+   procedure Set_From_Static_Predicate
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      Set_Flag8 (N, Val);
+   end Set_From_Static_Predicate;
+
    procedure Set_Generic_Associations
       (N : Node_Id; Val : List_Id) is
    begin
@@ -4716,6 +4757,14 @@ package body Sinfo is
       Set_Flag7 (N, Val);
    end Set_Is_Asynchronous_Call_Block;
 
+   procedure Set_Is_Boolean_Aspect
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Aspect_Specification);
+      Set_Flag16 (N, Val);
+   end Set_Is_Boolean_Aspect;
+
    procedure Set_Is_Component_Left_Opnd
       (N : Node_Id; Val : Boolean := True) is
    begin
@@ -4744,6 +4793,7 @@ package body Sinfo is
       (N : Node_Id; Val : Boolean := True) is
    begin
       pragma Assert (False
+        or else NT (N).Nkind = N_Aspect_Specification
         or else NT (N).Nkind = N_Attribute_Definition_Clause
         or else NT (N).Nkind = N_Pragma);
       Set_Flag14 (N, Val);

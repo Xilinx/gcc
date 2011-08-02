@@ -1172,6 +1172,22 @@ package body Sem_Ch3 is
 
          begin
             F := First (Formals);
+
+            --  In ASIS mode, the access_to_subprogram may be analyzed twice,
+            --  when it is part of an unconstrained type and subtype expansion
+            --  is disabled. To avoid back-end problems with shared profiles,
+            --  use previous subprogram type as the designated type.
+
+            if ASIS_Mode
+              and then Present (Scope (Defining_Identifier (F)))
+            then
+               Set_Etype                    (T_Name, T_Name);
+               Init_Size_Align              (T_Name);
+               Set_Directly_Designated_Type (T_Name,
+                 Scope (Defining_Identifier (F)));
+               return;
+            end if;
+
             while Present (F) loop
                if No (Parent (Defining_Identifier (F))) then
                   Set_Parent (Defining_Identifier (F), F);
@@ -2011,6 +2027,17 @@ package body Sem_Ch3 is
       D := First (L);
       while Present (D) loop
 
+         --  Package specification cannot contain a package declaration in
+         --  SPARK or ALFA.
+
+         if Formal_Verification_Mode
+           and then Nkind (D) = N_Package_Declaration
+           and then Nkind (Parent (L)) = N_Package_Specification
+         then
+            Error_Msg_F ("|~~package specification cannot contain "
+                         & "a package declaration", D);
+         end if;
+
          --  Complete analysis of declaration
 
          Analyze (D);
@@ -2329,6 +2356,21 @@ package body Sem_Ch3 is
 
       if Etype (T) = Any_Type then
          return;
+      end if;
+
+      if Formal_Verification_Mode then
+
+         --  Controlled type is not allowed in SPARK and ALFA
+
+         if Is_Visibly_Controlled (T) then
+            Error_Msg_F ("|~~controlled type is not allowed", N);
+         end if;
+
+         --  Discriminant type is not allowed in SPARK and ALFA
+
+         if Present (Discriminant_Specifications (N)) then
+            Error_Msg_F ("|~~discriminant type is not allowed", N);
+         end if;
       end if;
 
       --  Some common processing for all types
@@ -3592,8 +3634,8 @@ package body Sem_Ch3 is
          Check_Restriction (No_Local_Timing_Events, N);
       end if;
 
-      <<Leave>>
-         Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+   <<Leave>>
+      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
    end Analyze_Object_Declaration;
 
    ---------------------------
@@ -11433,6 +11475,15 @@ package body Sem_Ch3 is
          Resolve_Discrete_Subtype_Indication (S, T);
          R := Range_Expression (Constraint (S));
 
+         --  Capture values of bounds and generate temporaries for them if
+         --  needed, since checks may cause duplication of the expressions
+         --  which must not be reevaluated.
+
+         if Expander_Active then
+            Force_Evaluation (Low_Bound (R));
+            Force_Evaluation (High_Bound (R));
+         end if;
+
       elsif Nkind (S) = N_Discriminant_Association then
 
          --  Syntactically valid in subtype indication
@@ -15517,6 +15568,31 @@ package body Sem_Ch3 is
 
       return Assoc_List;
    end Inherit_Components;
+
+   -----------------------
+   -- Is_Constant_Bound --
+   -----------------------
+
+   function Is_Constant_Bound (Exp : Node_Id) return Boolean is
+   begin
+      if Compile_Time_Known_Value (Exp) then
+         return True;
+
+      elsif Is_Entity_Name (Exp)
+        and then Present (Entity (Exp))
+      then
+         return Is_Constant_Object (Entity (Exp))
+           or else Ekind (Entity (Exp)) = E_Enumeration_Literal;
+
+      elsif Nkind (Exp) in N_Binary_Op then
+         return Is_Constant_Bound (Left_Opnd (Exp))
+           and then Is_Constant_Bound (Right_Opnd (Exp))
+           and then Scope (Entity (Exp)) = Standard_Standard;
+
+      else
+         return False;
+      end if;
+   end Is_Constant_Bound;
 
    -----------------------
    -- Is_Null_Extension --

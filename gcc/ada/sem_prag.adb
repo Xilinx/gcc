@@ -436,6 +436,9 @@ package body Sem_Prag is
       --  If any argument has an identifier, then an error message is issued,
       --  and Pragma_Exit is raised.
 
+      procedure Check_No_Link_Name;
+      --  Checks that no link name is specified
+
       procedure Check_Optional_Identifier (Arg : Node_Id; Id : Name_Id);
       --  Checks if the given argument has an identifier, and if so, requires
       --  it to match the given identifier name. If there is a non-matching
@@ -1512,6 +1515,24 @@ package body Sem_Prag is
             end loop;
          end if;
       end Check_No_Identifiers;
+
+      ------------------------
+      -- Check_No_Link_Name --
+      ------------------------
+
+      procedure Check_No_Link_Name is
+      begin
+         if Present (Arg3)
+           and then Chars (Arg3) = Name_Link_Name
+         then
+            Arg4 := Arg3;
+         end if;
+
+         if Present (Arg4) then
+            Error_Pragma_Arg
+              ("Link_Name argument not allowed for Import Intrinsic", Arg4);
+         end if;
+      end Check_No_Link_Name;
 
       -------------------------------
       -- Check_Optional_Identifier --
@@ -3964,18 +3985,7 @@ package body Sem_Prag is
 
                      --  Link_Name argument not allowed for intrinsic
 
-                     if Present (Arg3)
-                       and then Chars (Arg3) = Name_Link_Name
-                     then
-                        Arg4 := Arg3;
-                     end if;
-
-                     if Present (Arg4) then
-                        Error_Pragma_Arg
-                          ("Link_Name argument not allowed for " &
-                           "Import Intrinsic",
-                           Arg4);
-                     end if;
+                     Check_No_Link_Name;
 
                      Set_Is_Intrinsic_Subprogram (Def_Id);
 
@@ -5678,12 +5688,14 @@ package body Sem_Prag is
 
       --  Preset arguments
 
-      Arg1 := Empty;
-      Arg2 := Empty;
-      Arg3 := Empty;
-      Arg4 := Empty;
+      Arg_Count := 0;
+      Arg1      := Empty;
+      Arg2      := Empty;
+      Arg3      := Empty;
+      Arg4      := Empty;
 
       if Present (Pragma_Argument_Associations (N)) then
+         Arg_Count := List_Length (Pragma_Argument_Associations (N));
          Arg1 := First (Pragma_Argument_Associations (N));
 
          if Present (Arg1) then
@@ -5698,19 +5710,6 @@ package body Sem_Prag is
             end if;
          end if;
       end if;
-
-      --  Count number of arguments
-
-      declare
-         Arg_Node : Node_Id;
-      begin
-         Arg_Count := 0;
-         Arg_Node := Arg1;
-         while Present (Arg_Node) loop
-            Arg_Count := Arg_Count + 1;
-            Next (Arg_Node);
-         end loop;
-      end;
 
       --  An enumeration type defines the pragmas that are supported by the
       --  implementation. Get_Pragma_Id (in package Prag) transforms a name
@@ -11243,8 +11242,8 @@ package body Sem_Prag is
          ---------------
 
          --  pragma Predicate
-         --    ([Entity =>]    type_LOCAL_NAME,
-         --     [Check  =>]    EXPRESSION);
+         --    ([Entity =>] type_LOCAL_NAME,
+         --     [Check  =>] EXPRESSION);
 
          when Pragma_Predicate => Predicate : declare
             Type_Id : Node_Id;
@@ -12320,6 +12319,24 @@ package body Sem_Prag is
 
          when Pragma_Source_Reference =>
             GNAT_Pragma;
+
+         --------------
+         -- SPARK_95 --
+         --------------
+
+         --  pragma SPARK_95;
+
+         --  Note: this pragma also has some specific processing in Par.Prag
+         --  because we want to set the SPARK 95 version mode during parsing.
+
+         when Pragma_SPARK_95 =>
+            GNAT_Pragma;
+            Check_Arg_Count (0);
+            Check_Valid_Configuration_Pragma;
+            SPARK_Version := SPARK_95;
+            SPARK_Mode := True;
+            Formal_Verification_Mode := True;
+            Set_Error_Msg_Lang ("spark");
 
          --------------------------------
          -- Static_Elaboration_Desired --
@@ -14072,6 +14089,7 @@ package body Sem_Prag is
       Pragma_Source_File_Name              => -1,
       Pragma_Source_File_Name_Project      => -1,
       Pragma_Source_Reference              => -1,
+      Pragma_SPARK_95                      => -1,
       Pragma_Storage_Size                  => -1,
       Pragma_Storage_Unit                  => -1,
       Pragma_Static_Elaboration_Desired    => -1,

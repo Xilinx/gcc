@@ -6651,6 +6651,7 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
   tree elttype = TREE_TYPE (atype);
   int max = tree_low_cst (array_type_nelts (atype), 0);
   VEC(constructor_elt,gc) *n = VEC_alloc (constructor_elt, gc, max + 1);
+  bool pre_init = false;
   int i;
 
   /* For the default constructor, build up a call to the default
@@ -6658,8 +6659,15 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
      here, as for a constructor to be constexpr, all members must be
      initialized, which for a defaulted default constructor means they must
      be of a class type with a constexpr default constructor.  */
-  if (value_init)
-    gcc_assert (!init);
+  if (TREE_CODE (elttype) == ARRAY_TYPE)
+    /* We only do this at the lowest level.  */;
+  else if (value_init)
+    {
+      init = build_value_init (elttype, tf_warning_or_error);
+      init = cxx_eval_constant_expression
+	    (call, init, allow_non_constant, addr, non_constant_p);
+      pre_init = true;
+    }
   else if (!init)
     {
       VEC(tree,gc) *argvec = make_tree_vector ();
@@ -6669,6 +6677,7 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
       release_tree_vector (argvec);
       init = cxx_eval_constant_expression (call, init, allow_non_constant,
 					   addr, non_constant_p);
+      pre_init = true;
     }
 
   if (*non_constant_p && !allow_non_constant)
@@ -6690,17 +6699,14 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
 					 allow_non_constant, addr,
 					 non_constant_p);
 	}
-      else if (value_init)
+      else if (pre_init)
 	{
-	  eltinit = build_value_init (elttype, tf_warning_or_error);
-	  eltinit = cxx_eval_constant_expression
-	    (call, eltinit, allow_non_constant, addr, non_constant_p);
-	}
-      else if (TREE_CODE (init) == CONSTRUCTOR)
-	{
-	  /* Initializing an element using the call to the default
-	     constructor we just built above.  */
-	  eltinit = unshare_expr (init);
+	  /* Initializing an element using value or default initialization
+	     we just pre-built above.  */
+	  if (i == 0)
+	    eltinit = init;
+	  else
+	    eltinit = unshare_expr (init);
 	}
       else
 	{
@@ -7523,32 +7529,6 @@ check_automatic_or_tls (tree ref)
 }
 #endif
 
-/* Return true if the DECL designates a builtin function that is
-   morally constexpr, in the sense that its parameter types and
-   return type are literal types and the compiler is allowed to
-   fold its invocations.  */
-
-static bool
-morally_constexpr_builtin_function_p (tree decl)
-{
-  tree funtype = TREE_TYPE (decl);
-  tree t;
-
-  if (!is_builtin_fn (decl))
-    return false;
-  if (!literal_type_p (TREE_TYPE (funtype)))
-    return false;
-  for (t = TYPE_ARG_TYPES (funtype); t != NULL ; t = TREE_CHAIN (t))
-    {
-      if (t == void_list_node)
-        return true;
-      if (!literal_type_p (TREE_VALUE (t)))
-        return false;
-    }
-  /* We assume no varargs builtins are suitable.  */
-  return t != NULL;
-}
-
 /* Return true if T denotes a potentially constant expression.  Issue
    diagnostic as appropriate under control of FLAGS.  If WANT_RVAL is true,
    an lvalue-rvalue conversion is implied.
@@ -7656,7 +7636,9 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
 		if (builtin_valid_in_constant_expr_p (fun))
 		  return true;
 		if (!DECL_DECLARED_CONSTEXPR_P (fun)
-		    && !morally_constexpr_builtin_function_p (fun))
+		    /* Allow any built-in function; if the expansion
+		       isn't constant, we'll deal with that then.  */
+		    && !is_builtin_fn (fun))
 		  {
 		    if (flags & tf_error)
 		      {

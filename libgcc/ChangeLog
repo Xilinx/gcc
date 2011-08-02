@@ -1,3 +1,27 @@
+2011-08-02  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/linux-unwind.h (frob_update_context <__powerpc64__>):
+	Restore for indirect call bcrtl from correct stack slot, and only
+	if cfa+40 isn't valid.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* config.host (arm*-*-linux*, arm*-*-uclinux*, arm*-*-eabi*)
+	(arm*-*-symbianelf*): Add t-fixedpoint-gnu-prefix makefile fragment.
+	* config/arm/bpabi-lib.h (LIBGCC2_FIXEDBIT_GNU_PREFIX): Define.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* Makefile.in (LIBGCC_VER_FIXEDPOINT_GNU_PREFIX): New.
+	(libgcc-std.ver.in): Use above.
+	* fixed-bit.h (LIBGCC2_FIXEDBIT_GNU_PREFIX): Define, if
+	LIBGCC2_GNU_PREFIX is defined.  Use instead of LIBGCC2_GNU_PREFIX
+	throughout file.
+	* config/t-fixedpoint-gnu-prefix: New file.
+	* config/t-gnu-prefix (LIBGCC_VER_FIXEDPOINT_GNU_PREFIX): Set.
+	* libgcc-std.ver.in (fixed-point routines): Use __FIXPTPFX__
+	instead of __PFX__.
+
 2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/morestack.S (X86_64_SAVE_NEW_STACK_BOUNDARY): New.

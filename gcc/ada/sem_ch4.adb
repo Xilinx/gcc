@@ -369,6 +369,14 @@ package body Sem_Ch4 is
       C        : Node_Id;
 
    begin
+      --  Allocator is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~allocator is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       --  Deal with allocator restrictions
 
       --  In accordance with H.4(7), the No_Allocators restriction only applies
@@ -1467,6 +1475,14 @@ package body Sem_Ch4 is
          return;
       end if;
 
+      --  Conditional expression is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~conditional expression is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Else_Expr := Next (Then_Expr);
 
       if Comes_From_Source (N) then
@@ -1494,20 +1510,30 @@ package body Sem_Ch4 is
 
          begin
             Set_Etype (N, Any_Type);
+
+            --  Shouldn't the following statement be down in the ELSE of the
+            --  following loop? ???
+
             Get_First_Interp (Then_Expr, I, It);
-            while Present (It.Nam) loop
 
-               --  For each possible interpretation of the Then Expression,
-               --  add it only if the else expression has a compatible type.
+            --  if no Else_Expression the conditional must be boolean
 
-               --  Is this right if Else_Expr is empty?
+            if No (Else_Expr) then
+               Set_Etype (N, Standard_Boolean);
 
-               if Has_Compatible_Type (Else_Expr, It.Typ) then
-                  Add_One_Interp (N, It.Typ, It.Typ);
-               end if;
+            --  Else_Expression Present. For each possible intepretation of
+            --  the Then_Expression, add it only if the Else_Expression has
+            --  a compatible type.
 
-               Get_Next_Interp (I, It);
-            end loop;
+            else
+               while Present (It.Nam) loop
+                  if Has_Compatible_Type (Else_Expr, It.Typ) then
+                     Add_One_Interp (N, It.Typ, It.Typ);
+                  end if;
+
+                  Get_Next_Interp (I, It);
+               end loop;
+            end if;
          end;
       end if;
    end Analyze_Conditional_Expression;
@@ -1655,6 +1681,14 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Explicit_Dereference
 
    begin
+      --  Explicit dereference is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~explicit dereference is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Analyze (P);
       Set_Etype (N, Any_Type);
 
@@ -2532,6 +2566,14 @@ package body Sem_Ch4 is
 
    procedure Analyze_Null (N : Node_Id) is
    begin
+      --  Null is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~null is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Set_Etype (N, Any_Access);
    end Analyze_Null;
 
@@ -3216,14 +3258,22 @@ package body Sem_Ch4 is
       Iterator : Node_Id;
 
    begin
+      --  Quantified expression is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~quantified expression is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Set_Etype  (Ent,  Standard_Void_Type);
       Set_Parent (Ent, N);
 
       if Present (Loop_Parameter_Specification (N)) then
          Iterator :=
            Make_Iteration_Scheme (Loc,
-              Loop_Parameter_Specification =>
-                Loop_Parameter_Specification (N));
+             Loop_Parameter_Specification =>
+               Loop_Parameter_Specification (N));
       else
          Iterator :=
            Make_Iteration_Scheme (Loc,
@@ -4242,6 +4292,14 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Slice
 
    begin
+      --  Slice is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~slice is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Analyze (P);
       Analyze (D);
 
@@ -5687,8 +5745,20 @@ package body Sem_Ch4 is
                Error_Msg_NE -- CODEFIX
                  ("operator for} is not directly visible!",
                   N, First_Subtype (Candidate_Type));
-               Error_Msg_N -- CODEFIX
-                 ("use clause would make operation legal!",  N);
+
+               declare
+                  U : constant Node_Id :=
+                        Cunit (Get_Source_Unit (Candidate_Type));
+               begin
+                  if Unit_Is_Visible (U) then
+                     Error_Msg_N -- CODEFIX
+                       ("use clause would make operation legal!",  N);
+                  else
+                     Error_Msg_NE  --  CODEFIX
+                       ("add with_clause and use_clause for&!",
+                          N, Defining_Entity (Unit (U)));
+                  end if;
+               end;
                return;
 
             --  If either operand is a junk operand (e.g. package name), then
@@ -6774,13 +6844,13 @@ package body Sem_Ch4 is
 
             Hom := Current_Entity (Subprog);
 
-            --  Find operation whose first parameter is of the class-wide
-            --  type, a subtype thereof, or an anonymous access to same.
+            --  Find a non-hidden operation whose first parameter is of the
+            --  class-wide type, a subtype thereof, or an anonymous access
+            --  to same.
 
             while Present (Hom) loop
-               if (Ekind (Hom) = E_Procedure
-                     or else
-                   Ekind (Hom) = E_Function)
+               if Ekind_In (Hom, E_Procedure, E_Function)
+                 and then not Is_Hidden (Hom)
                  and then Scope (Hom) = Scope (Anc_Type)
                  and then Present (First_Formal (Hom))
                  and then

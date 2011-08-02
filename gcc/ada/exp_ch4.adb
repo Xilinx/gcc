@@ -874,19 +874,22 @@ package body Exp_Ch4 is
          end if;
 
          if Present (TagT) then
-            Tag_Assign :=
-              Make_Assignment_Statement (Loc,
-                Name =>
-                  Make_Selected_Component (Loc,
-                    Prefix => TagR,
-                    Selector_Name =>
-                      New_Reference_To (First_Tag_Component (TagT), Loc)),
-
-                Expression =>
-                  Unchecked_Convert_To (RTE (RE_Tag),
-                    New_Reference_To
-                      (Elists.Node (First_Elmt (Access_Disp_Table (TagT))),
-                       Loc)));
+            declare
+               Full_T : constant Entity_Id := Underlying_Type (TagT);
+            begin
+               Tag_Assign :=
+                 Make_Assignment_Statement (Loc,
+                   Name =>
+                     Make_Selected_Component (Loc,
+                       Prefix => TagR,
+                       Selector_Name =>
+                         New_Reference_To (First_Tag_Component (Full_T), Loc)),
+                   Expression =>
+                     Unchecked_Convert_To (RTE (RE_Tag),
+                       New_Reference_To
+                         (Elists.Node
+                           (First_Elmt (Access_Disp_Table (Full_T))), Loc)));
+            end;
 
             --  The previous assignment has to be done in any case
 
@@ -4015,6 +4018,11 @@ package body Exp_Ch4 is
             Aloc : constant Source_Ptr := Sloc (Aexp);
 
          begin
+            --  Propagate declarations inserted in the node by Insert_Actions
+            --  (for example, temporaries generated to remove side effects).
+
+            Append_List_To (Actions, Sinfo.Actions (Alt));
+
             if not Is_Scalar_Type (Typ) then
                Aexp :=
                  Make_Attribute_Reference (Aloc,
@@ -7688,10 +7696,18 @@ package body Exp_Ch4 is
                Discr_Loop : while Present (Dcon) loop
                   Dval := Node (Dcon);
 
-                  --  Check if this is the matching discriminant
+                  --  Check if this is the matching discriminant and if the
+                  --  discriminant value is simple enough to make sense to
+                  --  copy. We don't want to copy complex expressions, and
+                  --  indeed to do so can cause trouble (before we put in
+                  --  this guard, a discriminant expression containing an
+                  --  AND THEN was copied, causing problems for coverage
+                  --  analysis tools).
 
-                  if Disc = Entity (Selector_Name (N)) then
-
+                  if Disc = Entity (Selector_Name (N))
+                    and then (Is_Entity_Name (Dval)
+                               or else Is_Static_Expression (Dval))
+                  then
                      --  Here we have the matching discriminant. Check for
                      --  the case of a discriminant of a component that is
                      --  constrained by an outer discriminant, which cannot
@@ -7715,8 +7731,8 @@ package body Exp_Ch4 is
                      --  fact incorrect.
 
                      elsif Is_Entity_Name (Dval)
-                       and then Nkind (Parent (Entity (Dval)))
-                         = N_Object_Declaration
+                       and then Nkind (Parent (Entity (Dval))) =
+                                                      N_Object_Declaration
                        and then Present (Expression (Parent (Entity (Dval))))
                        and then
                          not Is_Static_Expression
@@ -7767,8 +7783,8 @@ package body Exp_Ch4 is
 
                --  Note: the above loop should always find a matching
                --  discriminant, but if it does not, we just missed an
-               --  optimization due to some glitch (perhaps a previous error),
-               --  so ignore.
+               --  optimization due to some glitch (perhaps a previous
+               --  error), so ignore.
 
             end if;
          end if;
@@ -10389,6 +10405,7 @@ package body Exp_Ch4 is
       Right : constant Node_Id    := Right_Opnd (N);
       Loc   : constant Source_Ptr := Sloc (N);
 
+      Full_R_Typ : Entity_Id;
       Left_Type  : Entity_Id;
       New_Node   : Node_Id;
       Right_Type : Entity_Id;
@@ -10404,6 +10421,12 @@ package body Exp_Ch4 is
 
       if Is_Class_Wide_Type (Left_Type) then
          Left_Type := Root_Type (Left_Type);
+      end if;
+
+      if Is_Class_Wide_Type (Right_Type) then
+         Full_R_Typ := Underlying_Type (Root_Type (Right_Type));
+      else
+         Full_R_Typ := Underlying_Type (Right_Type);
       end if;
 
       Obj_Tag :=
@@ -10474,8 +10497,7 @@ package body Exp_Ch4 is
                      Prefix => Obj_Tag,
                      Attribute_Name => Name_Address),
                    New_Reference_To (
-                     Node (First_Elmt
-                            (Access_Disp_Table (Root_Type (Right_Type)))),
+                     Node (First_Elmt (Access_Disp_Table (Full_R_Typ))),
                      Loc)));
 
          --  Ada 95: Normal case
@@ -10485,9 +10507,7 @@ package body Exp_Ch4 is
               Obj_Tag_Node => Obj_Tag,
               Typ_Tag_Node =>
                  New_Reference_To (
-                   Node (First_Elmt
-                          (Access_Disp_Table (Root_Type (Right_Type)))),
-                   Loc),
+                   Node (First_Elmt (Access_Disp_Table (Full_R_Typ))),  Loc),
               Related_Nod => N,
               New_Node    => New_Node);
 
@@ -10518,7 +10538,7 @@ package body Exp_Ch4 is
                 Left_Opnd  => Obj_Tag,
                 Right_Opnd =>
                   New_Reference_To
-                    (Node (First_Elmt (Access_Disp_Table (Right_Type))), Loc));
+                    (Node (First_Elmt (Access_Disp_Table (Full_R_Typ))), Loc));
          end if;
       end if;
    end Tagged_Membership;

@@ -1298,7 +1298,7 @@ package body Ada.Strings.Unbounded is
       DR : Shared_String_Access;
 
    begin
-      --  Bounds check.
+      --  Bounds check
 
       if Index <= SR.Last then
 
@@ -1347,7 +1347,9 @@ package body Ada.Strings.Unbounded is
       --  Do replace operation when removed slice is not empty
 
       if High >= Low then
-         DL := By'Length + SR.Last + Low - High - 1;
+         DL := By'Length + SR.Last + Low - Integer'Min (High, SR.Last) - 1;
+         --  This is the number of characters remaining in the string after
+         --  replacing the slice.
 
          --  Result is empty string, reuse empty shared string
 
@@ -1394,7 +1396,9 @@ package body Ada.Strings.Unbounded is
       --  Do replace operation only when replaced slice is not empty
 
       if High >= Low then
-         DL := By'Length + SR.Last + Low - High - 1;
+         DL := By'Length + SR.Last + Low - Integer'Min (High, SR.Last) - 1;
+         --  This is the number of characters remaining in the string after
+         --  replacing the slice.
 
          --  Result is empty string, reuse empty shared string
 

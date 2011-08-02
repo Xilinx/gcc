@@ -587,7 +587,9 @@ package Sem_Util is
 
    function Has_Overriding_Initialize (T : Entity_Id) return Boolean;
    --  Predicate to determine whether a controlled type has a user-defined
-   --  Initialize primitive, which makes the type not preelaborable.
+   --  Initialize primitive (and, in Ada 2012, whether that primitive is
+   --  non-null), which causes the type to not have preelaborable
+   --  initialization.
 
    function Has_Preelaborable_Initialization (E : Entity_Id) return Boolean;
    --  Return True iff type E has preelaborable initialization as defined in
@@ -924,6 +926,11 @@ package Sem_Util is
    --  so. This differs from May_Be_Lvalue in that it defaults in the other
    --  direction. Cases which may possibly be assignments but are not known to
    --  be may return True from May_Be_Lvalue, but False from this function.
+
+   function Last_Source_Statement (HSS : Node_Id) return Node_Id;
+   --  HSS is a handled statement sequence. This function returns the last
+   --  statement in Statements (HSS) that has Comes_From_Source set. If no
+   --  such statement exists, Empty is returned.
 
    function Make_Simple_Return_Statement
      (Sloc       : Source_Ptr;
@@ -1278,6 +1285,12 @@ package Sem_Util is
    function Scope_Is_Transient return Boolean;
    --  True if the current scope is transient
 
+   function Static_Boolean (N : Node_Id) return Uint;
+   --  This function analyzes the given expression node and then resolves it
+   --  as Standard.Boolean. If the result is static, then Uint_1 or Uint_0 is
+   --  returned corresponding to the value, otherwise an error message is
+   --  output and No_Uint is returned.
+
    function Static_Integer (N : Node_Id) return Uint;
    --  This function analyzes the given expression node and then resolves it
    --  as any integer type. If the result is static, then the value of the
@@ -1307,6 +1320,11 @@ package Sem_Util is
    --  body entities for subprograms, tasks and protected units, in which case
    --  it returns the subprogram, task or protected body node for it. The unit
    --  may be a child unit with any number of ancestors.
+
+   function Unit_Is_Visible (U : Entity_Id) return Boolean;
+   --  Determine whether a compilation unit is visible in the current context,
+   --  because there is a with_clause that makes the unit available. Used to
+   --  provide better messages on common visiblity errors on operators.
 
    function Universal_Interpretation (Opnd : Node_Id) return Entity_Id;
    --  Yields Universal_Integer or Universal_Real if this is a candidate

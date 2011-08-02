@@ -1,3 +1,348 @@
+2011-08-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/lzcntintrin.h (__lzcnt64): Replace long with
+	long long.
+
+2011-08-01  Sebastian Pop  <sebastian.pop@amd.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (hwint.o): Depend on DIAGNOSTIC_CORE_H.
+	* hwint.c: Include diagnostic-core.h.
+	(abs_hwi): New.
+	(gcd): Moved here...
+	(pos_mul_hwi): New.
+	(mul_hwi): New.
+	(least_common_multiple): Moved here...
+	* hwint.h (gcd): ... from here.
+	(least_common_multiple): ... from here.
+	(HOST_WIDE_INT_MIN): New.
+	(HOST_WIDE_INT_MAX): New.
+	(abs_hwi): Declared.
+	(gcd): Declared.
+	(pos_mul_hwi): Declared.
+	(mul_hwi): Declared.
+	(least_common_multiple): Declared.
+	* omega.c (check_pos_mul): Removed.
+	(check_mul): Removed.
+	(omega_solve_geq): Use pos_mul_hwi instead of check_pos_mul and
+	mul_hwi instead of check_mul.
+
+2011-08-01  Richard Henderson  <rth@redhat.com>
+
+	PR target/49881
+	* config/avr/avr.h (PUSH_ROUNDING): New.
+	* config/avr/avr.md (pushqi1): Rename from *pushqi.
+	(*pushhi, *pushsi, *pushsf): Remove.
+	(MPUSH): New mode iterator.
+	(push<MPUSH>1): New expander.
+
+2011-08-01  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mmix/mmix.h (PREFERRED_RELOAD_CLASS,
+	PREFERRED_OUTPUT_RELOAD_CLASS): Remove macro.
+	* config/mmix/mmix-protos.h (mmix_preferred_reload_class,
+	mmix_preferred_output_reload_class): Remove.
+	* config/mmix/mmix.c (mmix_preferred_reload_class,
+	mmix_preferred_output_reload_class): Make static. Change rclass
+	argument and return type to reg_class_t.
+	(TARGET_PREFERRED_RELOAD_CLASS,
+	TARGET_PREFERRED_OUTPUT_RELOAD_CLASS): Define.
+
+2011-08-01  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* mode-switching.c (optimize_mode_switching): Fix bug in MODE_AFTER
+	handling.
+
+2011-08-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47766
+	* config/i386/i386.md (PTR): New.
+	(stack_protect_set: Check TARGET_LP64 instead of TARGET_64BIT.
+	(stack_protect_test): Likewise.
+	(stack_protect_set_<mode>): Replace ":P" with ":PTR".
+	(stack_tls_protect_set_<mode>): Likewise.
+	(stack_tls_protect_test_<mode>): Likewise.
+
+2011-08-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49927
+	* config/i386/i386.c (ix86_address_subreg_operand): New.
+	(ix86_decompose_address): Use ix86_address_subreg_operand.
+	(ix86_legitimate_address_p): Do not assert that subregs satisfy
+	register_no_elim_operand in DImode.
+
+2011-08-01  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49926
+	* tree-vect-loop.c (vect_is_slp_reduction): Check that a statement
+	in a chain doesn't have uses both inside and outside the loop.
+
+2011-08-01  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.h (mcu_type_s): Add errata_skip field.
+	* config/avr/avr-devices.c (avr_mcu_types): Use it.
+	* config/avr/avr-mcus.def (AVR_MCU): Use it.
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): Use it to builtin
+	define __AVR_ERRATA_SKIP__ and __AVR_ERRATA_SKIP_JMP_CALL__.
+	* config/avr/libgcc.S (__mulshisi3, __ffshi2, __fmulsu_exit):
+	Use __AVR_ERRATA_SKIP_JMP_CALL__ instead of __AVR_HAVE_JMP_CALL__
+	to detect if XJMP must not be skipped.
+
+2011-08-02  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000-protos.h (rs6000_save_toc_in_prologue_p):
+	Delete.
+	* config/rs6000/rs6000.c (rs6000_save_toc_in_prologue_p): Make static.
+	(rs6000_emit_prologue): Don't prematurely return when
+	TARGET_SINGLE_PIC_BASE.  Don't emit eh_frame info in
+	save_toc_in_prologue case.
+	(rs6000_call_indirect_aix): Only disallow save_toc_in_prologue for
+	calls_alloca.
+
+2011-08-01  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr-devices.c: Delete SVN property svn:executable.
+	* config/avr/predicates.md: Ditto.
+	* config/avr/driver-avr.c: Ditto.
+	* config/avr/genopt.sh: Set SVN property svn:executable to *.
+
+2011-08-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* calls.c (emit_library_call_value_1): Declare size only if
+	BLOCK_REG_PADDING is defined.
+
+2011-08-01  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	PR target/49547
+	* config.gcc (i[34567]86-*-*): Replace abmintrin.h with lzcntintrin.h.
+	(x86_64-*-*): Likewise.
+	* config/i386/i386.opt (mlzcnt): New.
+	* config/i386/abmintrin.h: File removed.
+	(__lzcnt_u16, __lzcnt, __lzcnt_u64): Moved to ...
+	* config/i386/lzcntintrin.h: ... here.  New file.
+	(__lzcnt): Rename to ...
+	(__lzcnt32): ... this.
+	* config/i386/bmiintrin.h (head): Update copyright year.
+	(__lzcnt_u16): Removed.
+	(__lzcnt_u32): Likewise.
+	(__lzcnt_u64): Likewise.
+	* config/i386/x86intrin.h: Include lzcntintrin.h when __LZCNT__
+	is defined, remove abmintrin.h.
+	* config/i386/cpuid.h (bit_LZCNT): New.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Detect
+	LZCNT feature.
+	* config/i386/i386-c.c (ix86_target_macros_internal): Define
+	__LZCNT__ if needed.
+	* config/i386/i386.c (ix86_target_string): New option -mlzcnt.
+	(ix86_option_override_internal): Handle LZCNT option.
+	(ix86_valid_target_attribute_inner_p): Likewise.
+	(struct builtin_description bdesc_args) <IX86_BUILTIN_CLZS>: Update.
+	* config/i386/i386.h (TARGET_LZCNT): New.
+	(CLZ_DEFINED_VALUE_AT_ZERO): Update.
+	* config/i386/i386.md (clz<mode>2): Update insn constraint.
+	(clz<mode>2_lzcnt): Likewise.
+	* doc/invoke.texi: Mention -mlzcnt option.
+	* doc/extend.texi: Likewise.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* configure.ac (fixed-point): Add ARM support.
+	* configure: Regenerate.
+	* config/arm/arm.c (arm_fixed_mode_set): New struct.
+	(arm_set_fixed_optab_libfunc): New.
+	(arm_set_fixed_conv_libfunc): New.
+	(arm_init_libfuncs): Initialise fixed-point helper libfuncs with
+	ARM-specific names.
+	(aapcs_libcall_value): Return sub-word-size fixed-point libcall
+	return values in SImode.
+	(arm_return_in_msb): Return fixed-point types in the msb.
+	(arm_pad_reg_upwards, arm_pad_arg_upwards): Pad fixed-point types
+	upwards.
+	(arm_scalar_mode_supported_p): Support fixed-point modes.
+	(arm_vector_mode_supported_p): Support vector fixed-point modes.
+	* config/arm/arm.h (SHORT_FRACT_TYPE_SIZE, FRACT_TYPE_SIZE)
+	(LONG_FRACT_TYPE_SIZE, LONG_LONG_FRACT_TYPE_SIZE)
+	(SHORT_ACCUM_TYPE_SIZE, ACCUM_TYPE_SIZE, LONG_ACCUM_TYPE_SIZE)
+	(LONG_LONG_ACCUM_TYPE_SIZE, MAX_FIXED_MODE_SIZE): Define.
+	* config/arm/iterators.md (FIXED, ADDSUB, UQADDSUB, QADDSUB, QMUL):
+	New mode iterators.
+	(qaddsub_suf): New mode attribute.
+	* config/arm/arm-modes.def (FRACT, UFRACT, ACCUM, UACCUM): Declare
+	vector modes.
+	* config/arm/predicates.md (sat_shift_operator): New predicate.
+	* config/arm/arm-fixed.md: New.
+	* config/arm/arm.md: Include arm-fixed.md.
+	* config/arm/t-arm (MD_INCLUDES): Add arm-fixed.md.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* calls.c (emit_library_call_value_1): Support padding for libcall
+	arguments and return values.
+	* config/arm/arm.c (arm_pad_arg_upward): Pad half-float values
+	downwards in big-endian mode.
+
+2011-08-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR debug/49887
+	* config/sol2.c (solaris_code_end): Rename to solaris_file_end.
+	* config/sol2-protos.h: Likewise.
+	* config/i386/i386.c (ix86_code_end) [TARGET_SOLARIS]: Don't call
+	solaris_code_end.
+	* config/i386/sol2.h [!USE_GAS] (TARGET_ASM_FILE_END): Redefine.
+	* config/sparc/sparc.c (sparc_file_end) [TARGET_SOLARIS]: Call
+	solaris_file_end.
+	* config/sparc/sol2.h (TARGET_ASM_CODE_END): Remove.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* tree-ssa-sccvn.c (copy_reference_ops_from_ref): Support FIXED_CST.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* final.c (output_addr_const): Print fixed-point constants as
+	decimal not hex.
+
+2011-08-01  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (initialize_sizetypes): Properly sign-extend
+	bitsiztype TYPE_MAX_VALUE.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* optabs.c (prepare_cmp_insn): Use correct biasing for fixed-point
+	comparison helpers.
+
+2011-07-31  Richard Henderson  <rth@redhat.com>
+
+	* config/h8300/crti.asm: Add flags to .section directive.
+	* config/h8300/crtn.asm: Likewise.
+
+2011-07-31  Richard Henderson  <rth@redhat.com>
+
+	* stor-layout.c (initialize_sizetypes): Handle unsigned short.
+	* tree.c (build_common_tree_nodes): Likewise.
+
+2011-07-31  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/49880
+	* config/sh/sh.md (udivsi3_i1): Enable for TARGET_DIVIDE_CALL_DIV1.
+	(divsi3_i1): Likewise.
+
+2011-07-31  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/49749
+	* tree-ssa-reassoc.c (get_rank): New forward declaration.
+	(PHI_LOOP_BIAS): New macro.
+	(phi_rank): New function.
+	(loop_carried_phi): Likewise.
+	(propagate_rank): Likewise.
+	(get_rank): Add calls to phi_rank and propagate_rank.
+
+2011-07-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/x86-64.h (SIZE_TYPE): Check TARGET_LP64 instead
+	of TARGET_64BIT.
+	(PTRDIFF_TYPE): Likewise.
+
+2011-07-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49920
+	* config/i386/i386.md (strset): Do not expand strset_singleop
+	when %eax or $edi are fixed.
+	(*strsetdi_rex_1): Disable when %eax or %edi are fixed.
+	(*strsetsi_1): Ditto.
+	(*strsethi_1): Ditto.
+	(*strsetqi_1): Ditto.
+	(*rep_stosdi_rex64): Disable when %eax, %ecx or %edi are fixed.
+	(*rep_stossi): Ditto.
+	(*rep_stosqi): Ditto.
+	(*strlenqi_1): Ditto.
+	(cmpstrnsi): Also fail when %ecx is fixed.
+	(*cmpstrnqi_nz_1): Disable when %ecx, %esi or %edi are fixed.
+	(*cmpstrnqi_1): Ditto.
+	(*strmovdi_rex_1): Disable when %esi or %edi are fixed.
+	(*strmovsi_1): Ditto.
+	(*strmovhi_1): Ditto.
+	(*strmovqi_1): Ditto.
+	(*rep_movdi_rex64): Disable when %ecx, %esi or %edi are fixed.
+	(*rep_movsi): Ditto.
+	(*rep_movqi): Ditto.
+
+2011-07-31  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR target/47908
+	* config/m68k/m68k.c (m68k_override_options_after_change): New function.
+	Disable instruction scheduling for non-ColdFire targets.
+	(TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE): Define.
+
+2011-07-31  Revital Eres  <revital.eres@linaro.org>
+
+	* ddg.c (create_ddg_dep_from_intra_loop_link): Remove the creation
+	of anti-dep edge from a branch.
+	(add_cross_iteration_register_deps): Create anti-dep edge from
+	a branch.
+
+2011-07-31  Revital Eres  <revital.eres@linaro.org>
+
+	* modulo-sched.c: Change comment.
+	(reset_sched_times): Fix print message.
+	(print_partial_schedule): Add print info.
+
+2011-07-31  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/43513
+	* tree-ssa-loop-ivopts.c (may_be_unaligned_p): Use max of
+	get_object_alignment and TYPE_ALIGN.
+
+2011-07-30  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/43513
+	* tree-ssa-dce.c (ref_may_be_aliased): Add assert.
+	(propagate_necessity): Handle WITH_SIZE_EXPR call arg.
+
+2011-07-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/driver-native.c [__sgi__]: Include <invent.h>,
+	<sys/sbd.h>.
+	(cpu_types): New array.
+	(cputype): New function.
+	(host_detect_local_cpu): Only define buf, f if !__sgi__.
+	Use scaninvent instead of /proc/cpuinfo if __sgi__.
+	* config.host: Also use driver-native.o, mips/x-native on
+	mips-sgi-irix*.
+	* config/mips/iris6.h [__mips__] (host_detect_local_cpu): Declare.
+	(EXTRA_SPEC_FUNCTIONS, MARCH_MTUNE_NATIVE_SPECS): Define.
+	(DRIVER_SELF_SPECS): Add MARCH_MTUNE_NATIVE_SPECS.
+
+2011-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49897
+	PR middle-end/49898
+	* omp-low.c (use_pointer_for_field): If disallowing copy-in/out
+	in nested parallel and outer is a gimple_reg, mark it as addressable
+	and set its bit in task_shared_vars bitmap too.
+
+2011-07-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (tp_or_register_operand): Remove predicate.
+
+2011-07-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/alpha/driver-alpha.c (IMPLVER_EV4_FAMILY,
+	IMPLVER_EV5_FAMILY, IMPLVER_EV6_FAMILY, IMPLVER_EV7_FAMILY): Define.
+	(AMASK_BWX, AMASK_FIX, AMASK_CIX, AMASK_MVI, AMASK_PRECISE,
+	AMASK_LOCKPFTCHOK): Define.
+	(host_detect_local_cpu): Remove buf, f, cpu_names.
+	Define cpu_types, implver, amask.
+	Use __builtin_alpha_implver, __builtin_alpha_amask to determine
+	native CPU.
+	* config.host: Also use driver-alpha.o, alpha/x-alpha on
+	alpha*-dec-osf*.
+	* config/alpha/osf5.h [__alpha__ || __alpha]
+	(host_detect_local_cpu): Declare.
+	(EXTRA_SPEC_FUNCTIONS, MCPU_MTUNE_NATIVE_SPECS)
+	(DRIVER_SELF_SPECS): Define.
+
 2011-07-29  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/47715

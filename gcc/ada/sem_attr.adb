@@ -565,6 +565,14 @@ package body Sem_Attr is
       --  Start of processing for Analyze_Access_Attribute
 
       begin
+         --  Access attribute is not allowed in SPARK or ALFA
+
+         if Formal_Verification_Mode and then Comes_From_Source (N) then
+            Error_Attr_P ("|~~% attribute is not allowed");
+         end if;
+
+         --  Proceed with analysis
+
          Check_E0;
 
          if Nkind (P) = N_Character_Literal then
@@ -2055,6 +2063,20 @@ package body Sem_Attr is
          end if;
       end if;
 
+      --  In SPARK or ALFA, attributes of private types are only allowed if
+      --  the full type declaration is visible
+
+      if Formal_Verification_Mode
+        and then Is_Entity_Name (P)
+        and then Is_Type (Entity (P))
+        and then Is_Private_Type (P_Type)
+        and then not In_Open_Scopes (Scope (P_Type))
+        and then not In_Spec_Expression
+      then
+         Error_Msg_FE
+           ("|~~invisible attribute of}", N, First_Subtype (P_Type));
+      end if;
+
       --  Remaining processing depends on attribute
 
       case Attr_Id is
@@ -2065,8 +2087,7 @@ package body Sem_Attr is
 
       when Attribute_Abort_Signal =>
          Check_Standard_Prefix;
-         Rewrite (N,
-           New_Reference_To (Stand.Abort_Signal, Loc));
+         Rewrite (N, New_Reference_To (Stand.Abort_Signal, Loc));
          Analyze (N);
 
       ------------
@@ -3947,14 +3968,29 @@ package body Sem_Attr is
       ------------
 
       when Attribute_Result => Result : declare
-         CS : Entity_Id := Current_Scope;
-         PS : Entity_Id := Scope (CS);
+         CS : Entity_Id;
+         --  The enclosing scope, excluding loops for quantified expressions
+
+         PS : Entity_Id;
+         --  During analysis, CS is the postcondition subprogram and PS the
+         --  source subprogram to which the postcondition applies. During
+         --  pre-analysis, CS is the scope of the subprogram declaration.
 
       begin
+         --  Find enclosing scopes, excluding loops
+
+         CS := Current_Scope;
+         while Ekind (CS) = E_Loop loop
+            CS := Scope (CS);
+         end loop;
+
+         PS := Scope (CS);
+
          --  If the enclosing subprogram is always inlined, the enclosing
          --  postcondition will not be propagated to the expanded call.
 
-         if Has_Pragma_Inline_Always (PS)
+         if not In_Spec_Expression
+           and then Has_Pragma_Inline_Always (PS)
            and then Warn_On_Redundant_Constructs
          then
             Error_Msg_N
@@ -3994,9 +4030,7 @@ package body Sem_Attr is
          --  current one.
 
          else
-            while Present (CS)
-              and then CS /= Standard_Standard
-            loop
+            while Present (CS) and then CS /= Standard_Standard loop
                if Chars (CS) = Name_uPostconditions then
                   exit;
                else
@@ -4038,7 +4072,7 @@ package body Sem_Attr is
             else
                Error_Attr
                  ("% attribute can only appear" &
-                   "  in function Postcondition pragma", P);
+                   " in function Postcondition pragma", P);
             end if;
          end if;
       end Result;
@@ -7824,14 +7858,16 @@ package body Sem_Attr is
 
                if Ekind_In (Btyp, E_Access_Subprogram_Type,
                                   E_Anonymous_Access_Subprogram_Type,
+                                  E_Access_Protected_Subprogram_Type,
                                   E_Anonymous_Access_Protected_Subprogram_Type)
                then
                   --  Deal with convention mismatch
 
-                  if Convention (Btyp) /= Convention (Entity (P)) then
+                  if Convention (Designated_Type (Btyp)) /=
+                     Convention (Entity (P))
+                  then
                      Error_Msg_FE
                        ("subprogram & has wrong convention", P, Entity (P));
-
                      Error_Msg_FE
                        ("\does not match convention of access type &",
                         P, Btyp);

@@ -455,7 +455,7 @@ package body Sem_Ch8 is
    --  private with on E.
 
    procedure Find_Expanded_Name (N : Node_Id);
-   --  The input is a selected component is known to be expanded name. Verify
+   --  The input is a selected component known to be an expanded name. Verify
    --  legality of selector given the scope denoted by prefix, and change node
    --  N into a expanded name with a properly set Entity field.
 
@@ -526,6 +526,14 @@ package body Sem_Ch8 is
       Nam : constant Node_Id := Name (N);
 
    begin
+      --  Exception renaming is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~exception renaming is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Enter_Name (Id);
       Analyze (Nam);
 
@@ -617,6 +625,14 @@ package body Sem_Ch8 is
       Inst  : Boolean   := False; -- prevent junk warning
 
    begin
+      --  Generic renaming is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~generic renaming is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       if Name (N) = Error then
          return;
       end if;
@@ -707,6 +723,14 @@ package body Sem_Ch8 is
    --  Start of processing for Analyze_Object_Renaming
 
    begin
+      --  Object renaming is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~object renaming is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       if Nam = Error then
          return;
       end if;
@@ -2540,6 +2564,15 @@ package body Sem_Ch8 is
    --  Start of processing for Analyze_Use_Package
 
    begin
+      --  Use package is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~use clause is not allowed", N);
+         return;
+      end if;
+
+      --  Proceed with analysis
+
       Set_Hidden_By_Use_Clause (N, No_Elist);
 
       --  Use clause is not allowed in a spec of a predefined package
@@ -4565,19 +4598,30 @@ package body Sem_Ch8 is
 
             --  Normal case, not a label: generate reference
 
-            --  ??? It is too early to generate a reference here even if
-            --    the entity is unambiguous, because the tree is not
-            --    sufficiently typed at this point for Generate_Reference to
-            --    determine whether this reference modifies the denoted object
-            --    (because implicit dereferences cannot be identified prior to
-            --    full type resolution).
-            --
+            --    ??? It is too early to generate a reference here even if the
+            --    entity is unambiguous, because the tree is not sufficiently
+            --    typed at this point for Generate_Reference to determine
+            --    whether this reference modifies the denoted object (because
+            --    implicit dereferences cannot be identified prior to full type
+            --    resolution).
+
             --    The Is_Actual_Parameter routine takes care of one of these
             --    cases but there are others probably ???
 
+            --    If the entity is the LHS of an assignment, and is a variable
+            --    (rather than a package prefix), we can mark it as a
+            --    modification right away, to avoid duplicate references.
+
             else
                if not Is_Actual_Parameter then
-                  Generate_Reference (E, N);
+                  if Is_LHS (N)
+                    and then Ekind (E) /= E_Package
+                    and then Ekind (E) /= E_Generic_Package
+                  then
+                     Generate_Reference (E, N, 'm');
+                  else
+                     Generate_Reference (E, N);
+                  end if;
                end if;
 
                Check_Nested_Access (E);
@@ -4980,7 +5024,12 @@ package body Sem_Ch8 is
          Set_Entity (N, Id);
       else
          Set_Entity_Or_Discriminal (N, Id);
-         Generate_Reference (Id, N);
+
+         if Is_LHS (N) then
+            Generate_Reference (Id, N, 'm');
+         else
+            Generate_Reference (Id, N);
+         end if;
       end if;
 
       if Is_Type (Id) then
@@ -5451,6 +5500,18 @@ package body Sem_Ch8 is
 
       elsif Is_Entity_Name (P) then
          P_Name := Entity (P);
+
+         --  Selector name is restricted in SPARK
+
+         if SPARK_Mode then
+            if Is_Subprogram (P_Name) then
+               Error_Msg_F
+                 ("|~~prefix of expanded name cannot be a subprogram", P);
+            elsif Ekind (P_Name) = E_Loop then
+               Error_Msg_F
+                 ("|~~prefix of expanded name cannot be a loop statement", P);
+            end if;
+         end if;
 
          --  The prefix may denote an enclosing type which is the completion
          --  of an incomplete type declaration.
@@ -6250,6 +6311,45 @@ package body Sem_Ch8 is
       return False;
 
    end Has_Implicit_Operator;
+
+   -----------------------------------
+   -- Has_Loop_In_Inner_Open_Scopes --
+   -----------------------------------
+
+   function Has_Loop_In_Inner_Open_Scopes (S : Entity_Id) return Boolean is
+   begin
+      --  Several scope stacks are maintained by Scope_Stack. The base of the
+      --  currently active scope stack is denoted by the Is_Active_Stack_Base
+      --  flag in the scope stack entry. Note that the scope stacks used to
+      --  simply be delimited implicitly by the presence of Standard_Standard
+      --  at their base, but there now are cases where this is not sufficient
+      --  because Standard_Standard actually may appear in the middle of the
+      --  active set of scopes.
+
+      for J in reverse 0 .. Scope_Stack.Last loop
+
+         --  S was reached without seing a loop scope first
+
+         if Scope_Stack.Table (J).Entity = S then
+            return False;
+
+         --  S was not yet reached, so it contains at least one inner loop
+
+         elsif Ekind (Scope_Stack.Table (J).Entity) = E_Loop then
+            return True;
+         end if;
+
+         --  Check Is_Active_Stack_Base to tell us when to stop, as there are
+         --  cases where Standard_Standard appears in the middle of the active
+         --  set of scopes. This affects the declaration and overriding of
+         --  private inherited operations in instantiations of generic child
+         --  units.
+
+         pragma Assert (not Scope_Stack.Table (J).Is_Active_Stack_Base);
+      end loop;
+
+      raise Program_Error;    --  unreachable
+   end Has_Loop_In_Inner_Open_Scopes;
 
    --------------------
    -- In_Open_Scopes --

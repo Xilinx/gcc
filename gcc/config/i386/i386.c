@@ -2663,6 +2663,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-mmmx",		OPTION_MASK_ISA_MMX },
     { "-mabm",		OPTION_MASK_ISA_ABM },
     { "-mbmi",		OPTION_MASK_ISA_BMI },
+    { "-mlzcnt",	OPTION_MASK_ISA_LZCNT },
     { "-mtbm",		OPTION_MASK_ISA_TBM },
     { "-mpopcnt",	OPTION_MASK_ISA_POPCNT },
     { "-mmovbe",	OPTION_MASK_ISA_MOVBE },
@@ -2917,7 +2918,8 @@ ix86_option_override_internal (bool main_args_p)
       PTA_RDRND = 1 << 25,
       PTA_F16C = 1 << 26,
       PTA_BMI = 1 << 27,
-      PTA_TBM = 1 << 28
+      PTA_TBM = 1 << 28,
+      PTA_LZCNT = 1 << 29
       /* if this reaches 32, need to widen struct pta flags below */
     };
 
@@ -3278,6 +3280,9 @@ ix86_option_override_internal (bool main_args_p)
 	if (processor_alias_table[i].flags & PTA_BMI
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_BMI))
 	  ix86_isa_flags |= OPTION_MASK_ISA_BMI;
+	if (processor_alias_table[i].flags & (PTA_LZCNT | PTA_ABM)
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_LZCNT))
+	  ix86_isa_flags |= OPTION_MASK_ISA_LZCNT;
 	if (processor_alias_table[i].flags & PTA_TBM
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_TBM))
 	  ix86_isa_flags |= OPTION_MASK_ISA_TBM;
@@ -3524,6 +3529,10 @@ ix86_option_override_internal (bool main_args_p)
   /* Turn on popcnt instruction for -msse4.2 or -mabm.  */
   if (TARGET_SSE4_2 || TARGET_ABM)
     ix86_isa_flags |= OPTION_MASK_ISA_POPCNT & ~ix86_isa_flags_explicit;
+
+  /* Turn on lzcnt instruction for -mabm.  */
+  if (TARGET_ABM)
+    ix86_isa_flags |= OPTION_MASK_ISA_LZCNT & ~ix86_isa_flags_explicit;
 
   /* Validate -mpreferred-stack-boundary= value or default it to
      PREFERRED_STACK_BOUNDARY_DEFAULT.  */
@@ -4030,6 +4039,7 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[],
     IX86_ATTR_ISA ("3dnow",	OPT_m3dnow),
     IX86_ATTR_ISA ("abm",	OPT_mabm),
     IX86_ATTR_ISA ("bmi",	OPT_mbmi),
+    IX86_ATTR_ISA ("lzcnt",	OPT_mlzcnt),
     IX86_ATTR_ISA ("tbm",	OPT_mtbm),
     IX86_ATTR_ISA ("aes",	OPT_maes),
     IX86_ATTR_ISA ("avx",	OPT_mavx),
@@ -8318,10 +8328,6 @@ ix86_code_end (void)
   rtx xops[2];
   int regno;
 
-#ifdef TARGET_SOLARIS
-  solaris_code_end ();
-#endif
-
   for (regno = AX_REG; regno <= SP_REG; regno++)
     {
       char name[32];
@@ -11090,6 +11096,30 @@ ix86_live_on_entry (bitmap regs)
     }
 }
 
+/* Determine if op is suitable SUBREG RTX for address.  */
+
+static bool
+ix86_address_subreg_operand (rtx op)
+{
+  enum machine_mode mode;
+
+  if (!REG_P (op))
+    return false;
+
+  mode = GET_MODE (op);
+
+  if (GET_MODE_CLASS (mode) != MODE_INT)
+    return false;
+
+  /* Don't allow SUBREGs that span more than a word.  It can lead to spill
+     failures when the register is one word out of a two word structure.  */
+  if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+    return false;
+
+  /* Allow only SUBREGs of non-eliminable hard registers.  */
+  return register_no_elim_operand (op, mode);
+}
+
 /* Extract the parts of an RTL expression that is a valid memory address
    for an instruction.  Return 0 if the structure of the address is
    grossly off.  Return -1 if the address contains ASHIFT, so it is not
@@ -11110,8 +11140,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     base = addr;
   else if (GET_CODE (addr) == SUBREG)
     {
-      /* Allow only subregs of DImode hard regs.  */
-      if (register_no_elim_operand (SUBREG_REG (addr), DImode))
+      if (ix86_address_subreg_operand (SUBREG_REG (addr)))
 	base = addr;
       else
 	return 0;
@@ -11169,8 +11198,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	      break;
 
 	    case SUBREG:
-	      /* Allow only subregs of DImode hard regs in PLUS chains.  */
-	      if (!register_no_elim_operand (SUBREG_REG (op), DImode))
+	      if (!ix86_address_subreg_operand (SUBREG_REG (op)))
 		return 0;
 	      /* FALLTHRU */
 
@@ -11222,9 +11250,8 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     {
       if (REG_P (index))
 	;
-      /* Allow only subregs of DImode hard regs.  */
       else if (GET_CODE (index) == SUBREG
-	       && register_no_elim_operand (SUBREG_REG (index), DImode))
+	       && ix86_address_subreg_operand (SUBREG_REG (index)))
 	;
       else
 	return 0;
@@ -11671,10 +11698,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
       if (REG_P (base))
   	reg = base;
       else if (GET_CODE (base) == SUBREG && REG_P (SUBREG_REG (base)))
-	{
-	  reg = SUBREG_REG (base);
-	  gcc_assert (register_no_elim_operand (reg, DImode));
-	}
+	reg = SUBREG_REG (base);
       else
 	/* Base is not a register.  */
 	return false;
@@ -11696,10 +11720,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
       if (REG_P (index))
   	reg = index;
       else if (GET_CODE (index) == SUBREG && REG_P (SUBREG_REG (index)))
-	{
-	  reg = SUBREG_REG (index);
-	  gcc_assert (register_no_elim_operand (reg, DImode));
-	}
+	reg = SUBREG_REG (index);
       else
 	/* Index is not a register.  */
 	return false;
@@ -24939,7 +24960,7 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv8sf3,  "__builtin_ia32_copysignps256", IX86_BUILTIN_CPYSGNPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv4df3,  "__builtin_ia32_copysignpd256", IX86_BUILTIN_CPYSGNPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
 
-  { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
+  { OPTION_MASK_ISA_LZCNT, CODE_FOR_clzhi2_lzcnt,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
 
   /* BMI */
   { OPTION_MASK_ISA_BMI, CODE_FOR_bmi_bextr_si, "__builtin_ia32_bextr_u32", IX86_BUILTIN_BEXTR32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },

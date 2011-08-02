@@ -700,11 +700,10 @@ package body Sem_Ch13 is
       --  one of two things happens:
 
       --  If we are required to delay the evaluation of this aspect to the
-      --  freeze point, we preanalyze the relevant argument, and then attach
-      --  the corresponding pragma/attribute definition clause to the aspect
-      --  specification node, which is then placed in the Rep Item chain.
-      --  In this case we mark the entity with the Has_Delayed_Aspects flag,
-      --  and we evaluate the rep item at the freeze point.
+      --  freeze point, we attach the corresponding pragma/attribute definition
+      --  clause to the aspect specification node, which is then placed in the
+      --  Rep Item chain. In this case we mark the entity by setting the flag
+      --  Has_Delayed_Aspects and we evaluate the rep item at the freeze point.
 
       --  If no delay is required, we just insert the pragma or attribute
       --  after the declaration, and it will get processed by the normal
@@ -722,13 +721,6 @@ package body Sem_Ch13 is
          return;
       end if;
 
-      --  Return if already analyzed (avoids duplicate calls in some cases
-      --  where type declarations get rewritten and processed twice).
-
-      if Analyzed (N) then
-         return;
-      end if;
-
       --  Loop through aspects
 
       Aspect := First (L);
@@ -740,12 +732,18 @@ package body Sem_Ch13 is
             Nam  : constant Name_Id    := Chars (Id);
             A_Id : constant Aspect_Id  := Get_Aspect_Id (Nam);
             Anod : Node_Id;
-            T    : Entity_Id;
 
             Eloc : Source_Ptr := Sloc (Expr);
             --  Source location of expression, modified when we split PPC's
 
          begin
+            --  Skip aspect if already analyzed (not clear if this is needed)
+
+            if Analyzed (Aspect) then
+               goto Continue;
+            end if;
+
+            Set_Analyzed (Aspect);
             Set_Entity (Aspect, E);
             Ent := New_Occurrence_Of (E, Sloc (Id));
 
@@ -755,7 +753,7 @@ package body Sem_Ch13 is
 
             Anod := First (L);
             while Anod /= Aspect loop
-               if Nam = Chars (Identifier (Anod))
+               if Same_Aspect (A_Id, Get_Aspect_Id (Chars (Identifier (Anod))))
                  and then Comes_From_Source (Aspect)
                then
                   Error_Msg_Name_1 := Nam;
@@ -801,6 +799,11 @@ package body Sem_Ch13 is
                Next (Anod);
             end loop;
 
+            --  Copy expression for later processing by the procedures
+            --  Check_Aspect_At_[Freeze_Point | End_Of_Declarations]
+
+            Set_Entity (Id, New_Copy_Tree (Expr));
+
             --  Processing based on specific aspect
 
             case A_Id is
@@ -811,31 +814,12 @@ package body Sem_Ch13 is
                   raise Program_Error;
 
                --  Aspects taking an optional boolean argument. For all of
-               --  these we just create a matching pragma and insert it,
-               --  setting flag Cancel_Aspect if the expression is False.
+               --  these we just create a matching pragma and insert it. When
+               --  the aspect is processed to insert the pragma, the expression
+               --  is analyzed, setting Cancel_Aspect if the value is False.
 
-               when Aspect_Ada_2005                     |
-                    Aspect_Ada_2012                     |
-                    Aspect_Atomic                       |
-                    Aspect_Atomic_Components            |
-                    Aspect_Discard_Names                |
-                    Aspect_Favor_Top_Level              |
-                    Aspect_Inline                       |
-                    Aspect_Inline_Always                |
-                    Aspect_No_Return                    |
-                    Aspect_Pack                         |
-                    Aspect_Persistent_BSS               |
-                    Aspect_Preelaborable_Initialization |
-                    Aspect_Pure_Function                |
-                    Aspect_Shared                       |
-                    Aspect_Suppress_Debug_Info          |
-                    Aspect_Unchecked_Union              |
-                    Aspect_Universal_Aliasing           |
-                    Aspect_Unmodified                   |
-                    Aspect_Unreferenced                 |
-                    Aspect_Unreferenced_Objects         |
-                    Aspect_Volatile                     |
-                    Aspect_Volatile_Components          =>
+               when Boolean_Aspects =>
+                  Set_Is_Boolean_Aspect (Aspect);
 
                   --  Build corresponding pragma node
 
@@ -845,33 +829,60 @@ package body Sem_Ch13 is
                       Pragma_Identifier            =>
                         Make_Identifier (Sloc (Id), Chars (Id)));
 
-                  --  Deal with missing expression case, delay never needed
+                  --  No delay required if no expression (nothing to delay!)
 
                   if No (Expr) then
                      Delay_Required := False;
 
-                  --  Expression is present
+                  --  Expression is present, delay is required. Note that
+                  --  even if the expression is "True", some idiot might
+                  --  define True as False before the freeze point!
 
                   else
-                     Preanalyze_Spec_Expression (Expr, Standard_Boolean);
-
-                     --  If preanalysis gives a static expression, we don't
-                     --  need to delay (this will happen often in practice).
-
-                     if Is_OK_Static_Expression (Expr) then
-                        Delay_Required := False;
-
-                        if Is_False (Expr_Value (Expr)) then
-                           Set_Aspect_Cancel (Aitem);
-                        end if;
-
-                     --  If we don't get a static expression, then delay, the
-                     --  expression may turn out static by freeze time.
-
-                     else
-                        Delay_Required := True;
-                     end if;
+                     Delay_Required := True;
+                     Set_Is_Delayed_Aspect (Aspect);
                   end if;
+
+               --  Library unit aspects. These are boolean aspects, but we
+               --  always evaluate the expression right away if it is present
+               --  and just ignore the aspect if the expression is False. We
+               --  never delay expression evaluation in this case.
+
+               when Library_Unit_Aspects =>
+                  if Present (Expr)
+                    and then Is_False (Static_Boolean (Expr))
+                  then
+                     goto Continue;
+                  end if;
+
+                  --  Build corresponding pragma node
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations => New_List (Ent),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Chars (Id)));
+
+                  --  This requires special handling in the case of a package
+                  --  declaration, the pragma needs to be inserted in the list
+                  --  of declarations for the associated package. There is no
+                  --  issue of visibility delay for these aspects.
+
+                  if Nkind (N) = N_Package_Declaration then
+                     if Nkind (Parent (N)) /= N_Compilation_Unit then
+                        Error_Msg_N
+                          ("incorrect context for library unit aspect&", Id);
+                     else
+                        Prepend
+                          (Aitem, Visible_Declarations (Specification (N)));
+                     end if;
+
+                     goto Continue;
+                  end if;
+
+                  --  If not package declaration, no delay is required
+
+                  Delay_Required := False;
 
                --  Aspects corresponding to attribute definition clauses
 
@@ -880,30 +891,17 @@ package body Sem_Ch13 is
                     Aspect_Bit_Order      |
                     Aspect_Component_Size |
                     Aspect_External_Tag   |
+                    Aspect_Input          |
                     Aspect_Machine_Radix  |
                     Aspect_Object_Size    |
+                    Aspect_Output         |
+                    Aspect_Read           |
                     Aspect_Size           |
                     Aspect_Storage_Pool   |
                     Aspect_Storage_Size   |
                     Aspect_Stream_Size    |
-                    Aspect_Value_Size     =>
-
-                  --  Preanalyze the expression with the appropriate type
-
-                  case A_Id is
-                     when Aspect_Address      =>
-                        T := RTE (RE_Address);
-                     when Aspect_Bit_Order    =>
-                        T := RTE (RE_Bit_Order);
-                     when Aspect_External_Tag =>
-                        T := Standard_String;
-                     when Aspect_Storage_Pool =>
-                        T := Class_Wide_Type (RTE (RE_Root_Storage_Pool));
-                     when others              =>
-                        T := Any_Integer;
-                  end case;
-
-                  Preanalyze_Spec_Expression (Expr, T);
+                    Aspect_Value_Size     |
+                    Aspect_Write          =>
 
                   --  Construct the attribute definition clause
 
@@ -913,15 +911,15 @@ package body Sem_Ch13 is
                       Chars      => Chars (Id),
                       Expression => Relocate_Node (Expr));
 
-                  --  We do not need a delay if we have a static expression
+                  --  A delay is required except in the common case where
+                  --  the expression is a literal, in which case it is fine
+                  --  to take care of it right away.
 
-                  if Is_OK_Static_Expression (Expression (Aitem)) then
+                  if Nkind_In (Expr, N_Integer_Literal, N_String_Literal) then
                      Delay_Required := False;
-
-                  --  Here a delay is required
-
                   else
                      Delay_Required := True;
+                     Set_Is_Delayed_Aspect (Aspect);
                   end if;
 
                --  Aspects corresponding to pragmas with two arguments, where
@@ -946,27 +944,6 @@ package body Sem_Ch13 is
 
                   Delay_Required := False;
 
-               --  Aspects corresponding to stream routines
-
-               when Aspect_Input  |
-                    Aspect_Output |
-                    Aspect_Read   |
-                    Aspect_Write  =>
-
-                  --  Construct the attribute definition clause
-
-                  Aitem :=
-                    Make_Attribute_Definition_Clause (Loc,
-                      Name       => Ent,
-                      Chars      => Chars (Id),
-                      Expression => Relocate_Node (Expr));
-
-                  --  These are always delayed (typically the subprogram that
-                  --  is referenced cannot have been declared yet, since it has
-                  --  a reference to the type for which this aspect is defined.
-
-                  Delay_Required := True;
-
                --  Aspects corresponding to pragmas with two arguments, where
                --  the second argument is a local name referring to the entity,
                --  and the first argument is the aspect definition expression.
@@ -985,7 +962,7 @@ package body Sem_Ch13 is
                       Class_Present                => Class_Present (Aspect));
 
                   --  We don't have to play the delay game here, since the only
-                  --  values are check names which don't get analyzed anyway.
+                  --  values are ON/OFF which don't get analyzed anyway.
 
                   Delay_Required := False;
 
@@ -996,11 +973,11 @@ package body Sem_Ch13 is
                --  required pragma placement. The processing for the pragmas
                --  takes care of the required delay.
 
-               when Aspect_Pre | Aspect_Post => declare
+               when Pre_Post_Aspects => declare
                   Pname : Name_Id;
 
                begin
-                  if A_Id = Aspect_Pre then
+                  if A_Id = Aspect_Pre or else A_Id = Aspect_Precondition then
                      Pname := Name_Precondition;
                   else
                      Pname := Name_Postcondition;
@@ -1015,7 +992,7 @@ package body Sem_Ch13 is
                   --  these conditions together in a complex OR expression
 
                   if Pname = Name_Postcondition
-                       or else not Class_Present (Aspect)
+                    or else not Class_Present (Aspect)
                   then
                      while Nkind (Expr) = N_And_Then loop
                         Insert_After (Aspect,
@@ -1057,6 +1034,7 @@ package body Sem_Ch13 is
                   end if;
 
                   Set_From_Aspect_Specification (Aitem, True);
+                  Set_Is_Delayed_Aspect (Aspect);
 
                   --  For Pre/Post cases, insert immediately after the entity
                   --  declaration, since that is the required pragma placement.
@@ -1083,7 +1061,8 @@ package body Sem_Ch13 is
                --  get the required pragma placement. The pragma processing
                --  takes care of the required delay.
 
-               when Aspect_Invariant =>
+               when Aspect_Invariant      |
+                    Aspect_Type_Invariant =>
 
                   --  Construct the pragma
 
@@ -1108,6 +1087,7 @@ package body Sem_Ch13 is
                   end if;
 
                   Set_From_Aspect_Specification (Aitem, True);
+                  Set_Is_Delayed_Aspect (Aspect);
 
                   --  For Invariant case, insert immediately after the entity
                   --  declaration. We do not have to worry about delay issues
@@ -1118,13 +1098,14 @@ package body Sem_Ch13 is
 
                --  Predicate aspects generate a corresponding pragma with a
                --  first argument that is the entity, and the second argument
-               --  is the expression. This is inserted immediately after the
-               --  declaration, to get the required pragma placement. The
-               --  pragma processing takes care of the required delay.
+               --  is the expression.
 
-               when Aspect_Predicate =>
+               when Aspect_Dynamic_Predicate |
+                    Aspect_Predicate         |
+                    Aspect_Static_Predicate  =>
 
-                  --  Construct the pragma
+                  --  Construct the pragma (always a pragma Predicate, with
+                  --  flags recording whether
 
                   Aitem :=
                     Make_Pragma (Loc,
@@ -1136,18 +1117,22 @@ package body Sem_Ch13 is
 
                   Set_From_Aspect_Specification (Aitem, True);
 
+                  --  Set special flags for dynamic/static cases
+
+                  if A_Id = Aspect_Dynamic_Predicate then
+                     Set_From_Dynamic_Predicate (Aitem);
+                  elsif A_Id = Aspect_Static_Predicate then
+                     Set_From_Static_Predicate (Aitem);
+                  end if;
+
                   --  Make sure we have a freeze node (it might otherwise be
                   --  missing in cases like subtype X is Y, and we would not
                   --  have a place to build the predicate function).
 
+                  Set_Has_Predicates (E);
                   Ensure_Freeze_Node (E);
-
-                  --  For Predicate case, insert immediately after the entity
-                  --  declaration. We do not have to worry about delay issues
-                  --  since the pragma processing takes care of this.
-
-                  Insert_After (N, Aitem);
-                  goto Continue;
+                  Set_Is_Delayed_Aspect (Aspect);
+                  Delay_Required := True;
             end case;
 
             Set_From_Aspect_Specification (Aitem, True);
@@ -1167,17 +1152,45 @@ package body Sem_Ch13 is
             --  If no delay required, insert the pragma/clause in the tree
 
             else
-               --  For Pre/Post cases, insert immediately after the entity
-               --  declaration, since that is the required pragma placement.
+               --  If this is a compilation unit, we will put the pragma in
+               --  the Pragmas_After list of the N_Compilation_Unit_Aux node.
 
-               if A_Id = Aspect_Pre or else A_Id = Aspect_Post then
-                  Insert_After (N, Aitem);
+               if Nkind (Parent (Ins_Node)) = N_Compilation_Unit then
+                  declare
+                     Aux : constant Node_Id :=
+                             Aux_Decls_Node (Parent (Ins_Node));
 
-               --  For all other cases, insert in sequence
+                  begin
+                     pragma Assert (Nkind (Aux) = N_Compilation_Unit_Aux);
+
+                     if No (Pragmas_After (Aux)) then
+                        Set_Pragmas_After (Aux, Empty_List);
+                     end if;
+
+                     --  For Pre_Post put at start of list, otherwise at end
+
+                     if A_Id in Pre_Post_Aspects then
+                        Prepend (Aitem, Pragmas_After (Aux));
+                     else
+                        Append (Aitem, Pragmas_After (Aux));
+                     end if;
+                  end;
+
+               --  Here if not compilation unit case
 
                else
-                  Insert_After (Ins_Node, Aitem);
-                  Ins_Node := Aitem;
+                  --  For Pre/Post cases, insert immediately after the entity
+                  --  declaration, since that is the required pragma placement.
+
+                  if A_Id in Pre_Post_Aspects then
+                     Insert_After (N, Aitem);
+
+                  --  For all other cases, insert in sequence
+
+                  else
+                     Insert_After (Ins_Node, Aitem);
+                     Ins_Node := Aitem;
+                  end if;
                end if;
             end if;
          end;
@@ -3101,6 +3114,33 @@ package body Sem_Ch13 is
       if Is_Type (E) and then Has_Predicates (E) then
          Build_Predicate_Function (E, N);
       end if;
+
+      --  If type has delayed aspects, this is where we do the preanalysis
+      --  at the freeze point, as part of the consistent visibility check.
+      --  Note that this must be done after calling Build_Predicate_Function,
+      --  since that call marks occurrences of the subtype name in the saved
+      --  expression so that they will not cause trouble in the preanalysis.
+
+      if Has_Delayed_Aspects (E) then
+         declare
+            Ritem : Node_Id;
+
+         begin
+            --  Look for aspect specification entries for this entity
+
+            Ritem := First_Rep_Item (E);
+            while Present (Ritem) loop
+               if Nkind (Ritem) = N_Aspect_Specification
+                 and then Entity (Ritem) = E
+                 and then Is_Delayed_Aspect (Ritem)
+               then
+                  Check_Aspect_At_Freeze_Point (Ritem);
+               end if;
+
+               Next_Rep_Item (Ritem);
+            end loop;
+         end;
+      end if;
    end Analyze_Freeze_Entity;
 
    ------------------------------------------
@@ -3675,6 +3715,35 @@ package body Sem_Ch13 is
 
                Replace_Type_References (Exp, Chars (T));
 
+               --  If this invariant comes from an aspect, find the aspect
+               --  specification, and replace the saved expression because
+               --  we need the subtype references replaced for the calls to
+               --  Preanalyze_Spec_Expressin in Check_Aspect_At_Freeze_Point
+               --  and Check_Aspect_At_End_Of_Declarations.
+
+               if From_Aspect_Specification (Ritem) then
+                  declare
+                     Aitem : Node_Id;
+
+                  begin
+                     --  Loop to find corresponding aspect, note that this
+                     --  must be present given the pragma is marked delayed.
+
+                     Aitem := Next_Rep_Item (Ritem);
+                     while Present (Aitem) loop
+                        if Nkind (Aitem) = N_Aspect_Specification
+                          and then Aspect_Rep_Item (Aitem) = Ritem
+                        then
+                           Set_Entity
+                             (Identifier (Aitem), New_Copy_Tree (Exp));
+                           exit;
+                        end if;
+
+                        Aitem := Next_Rep_Item (Aitem);
+                     end loop;
+                  end;
+               end if;
+
                --  Now we need to preanalyze the expression to properly capture
                --  the visibility in the visible part. The expression will not
                --  be analyzed for real until the body is analyzed, but that is
@@ -3885,6 +3954,17 @@ package body Sem_Ch13 is
       Object_Name : constant Name_Id := New_Internal_Name ('I');
       --  Name for argument of Predicate procedure
 
+      Object_Entity : constant Entity_Id :=
+                        Make_Defining_Identifier (Loc, Object_Name);
+      --  The entity for the spec entity for the argument
+
+      Dynamic_Predicate_Present : Boolean := False;
+      --  Set True if a dynamic predicate is present, results in the entire
+      --  predicate being considered dynamic even if it looks static
+
+      Static_Predicate_Present : Node_Id := Empty;
+      --  Set to N_Pragma node for a static predicate if one is encountered.
+
       --------------
       -- Add_Call --
       --------------
@@ -3960,6 +4040,8 @@ package body Sem_Ch13 is
          procedure Replace_Type_Reference (N : Node_Id) is
          begin
             Rewrite (N, Make_Identifier (Loc, Object_Name));
+            Set_Entity (N, Object_Entity);
+            Set_Etype (N, Typ);
          end Replace_Type_Reference;
 
       --  Start of processing for Add_Predicates
@@ -3970,6 +4052,14 @@ package body Sem_Ch13 is
             if Nkind (Ritem) = N_Pragma
               and then Pragma_Name (Ritem) = Name_Predicate
             then
+               if From_Dynamic_Predicate (Ritem) then
+                  Dynamic_Predicate_Present := True;
+               elsif From_Static_Predicate (Ritem) then
+                  Static_Predicate_Present := Ritem;
+               end if;
+
+               --  Acquire arguments
+
                Arg1 := First (Pragma_Argument_Associations (Ritem));
                Arg2 := Next (Arg1);
 
@@ -3982,12 +4072,41 @@ package body Sem_Ch13 is
 
                   --  We have a match, this entry is for our subtype
 
-                  --  First We need to replace any occurrences of the name of
-                  --  the type with references to the object.
+                  --  We need to replace any occurrences of the name of the
+                  --  type with references to the object.
 
                   Replace_Type_References (Arg2, Chars (Typ));
 
-                  --  OK, replacement complete, now we can add the expression
+                  --  If this predicate comes from an aspect, find the aspect
+                  --  specification, and replace the saved expression because
+                  --  we need the subtype references replaced for the calls to
+                  --  Preanalyze_Spec_Expressin in Check_Aspect_At_Freeze_Point
+                  --  and Check_Aspect_At_End_Of_Declarations.
+
+                  if From_Aspect_Specification (Ritem) then
+                     declare
+                        Aitem : Node_Id;
+
+                     begin
+                        --  Loop to find corresponding aspect, note that this
+                        --  must be present given the pragma is marked delayed.
+
+                        Aitem := Next_Rep_Item (Ritem);
+                        loop
+                           if Nkind (Aitem) = N_Aspect_Specification
+                             and then Aspect_Rep_Item (Aitem) = Ritem
+                           then
+                              Set_Entity
+                                (Identifier (Aitem), New_Copy_Tree (Arg2));
+                              exit;
+                           end if;
+
+                           Aitem := Next_Rep_Item (Aitem);
+                        end loop;
+                     end;
+                  end if;
+
+                  --  Now we can add the expression
 
                   if No (Expr) then
                      Expr := Relocate_Node (Arg2);
@@ -4012,7 +4131,7 @@ package body Sem_Ch13 is
    begin
       --  Initialize for construction of statement list
 
-      Expr  := Empty;
+      Expr := Empty;
 
       --  Return if already built or if type does not have predicates
 
@@ -4054,8 +4173,7 @@ package body Sem_Ch13 is
              Defining_Unit_Name       => SId,
              Parameter_Specifications => New_List (
                Make_Parameter_Specification (Loc,
-                 Defining_Identifier =>
-                   Make_Defining_Identifier (Loc, Object_Name),
+                 Defining_Identifier => Object_Entity,
                  Parameter_Type      => New_Occurrence_Of (Typ, Loc))),
              Result_Definition        =>
                New_Occurrence_Of (Standard_Boolean, Loc));
@@ -4101,8 +4219,19 @@ package body Sem_Ch13 is
                            E_Modular_Integer_Subtype,
                            E_Signed_Integer_Subtype)
            and then Is_Static_Subtype (Typ)
+           and then not Dynamic_Predicate_Present
          then
             Build_Static_Predicate (Typ, Expr, Object_Name);
+
+            if Present (Static_Predicate_Present)
+              and No (Static_Predicate (Typ))
+            then
+               Error_Msg_F
+                 ("expression does not have required form for "
+                  & "static predicate",
+                  Next (First (Pragma_Argument_Associations
+                                (Static_Predicate_Present))));
+            end if;
          end if;
       end if;
    end Build_Predicate_Function;
@@ -4925,6 +5054,171 @@ package body Sem_Ch13 is
       when Non_Static =>
          return;
    end Build_Static_Predicate;
+
+   -----------------------------------------
+   -- Check_Aspect_At_End_Of_Declarations --
+   -----------------------------------------
+
+   procedure Check_Aspect_At_End_Of_Declarations (ASN : Node_Id) is
+      Ent   : constant Entity_Id := Entity     (ASN);
+      Ident : constant Node_Id   := Identifier (ASN);
+
+      Freeze_Expr : constant Node_Id := Expression (ASN);
+      --  Preanalyzed expression from call to Check_Aspect_At_Freeze_Point
+
+      End_Decl_Expr : constant Node_Id := Entity (Ident);
+      --  Expression to be analyzed at end of declarations
+
+      T : constant Entity_Id := Etype (Freeze_Expr);
+      --  Type required for preanalyze call
+
+      A_Id : constant Aspect_Id := Get_Aspect_Id (Chars (Ident));
+
+      Err : Boolean;
+      --  Set False if error
+
+      --  On entry to this procedure, Entity (Ident) contains a copy of the
+      --  original expression from the aspect, saved for this purpose, and
+      --  but Expression (Ident) is a preanalyzed copy of the expression,
+      --  preanalyzed just after the freeze point.
+
+   begin
+      --  Case of stream attributes, just have to compare entities
+
+      if A_Id = Aspect_Input  or else
+         A_Id = Aspect_Output or else
+         A_Id = Aspect_Read   or else
+         A_Id = Aspect_Write
+      then
+         Analyze (End_Decl_Expr);
+         Err := Entity (End_Decl_Expr) /= Entity (Freeze_Expr);
+
+      --  All other cases
+
+      else
+         Preanalyze_Spec_Expression (End_Decl_Expr, T);
+         Err := not Fully_Conformant_Expressions (End_Decl_Expr, Freeze_Expr);
+      end if;
+
+      --  Output error message if error
+
+      if Err then
+         Error_Msg_NE
+           ("visibility of aspect for& changes after freeze point",
+            ASN, Ent);
+         Error_Msg_NE
+           ("?info: & is frozen here, aspects evaluated at this point",
+            Freeze_Node (Ent), Ent);
+      end if;
+   end Check_Aspect_At_End_Of_Declarations;
+
+   ----------------------------------
+   -- Check_Aspect_At_Freeze_Point --
+   ----------------------------------
+
+   procedure Check_Aspect_At_Freeze_Point (ASN : Node_Id) is
+      Ident : constant Node_Id := Identifier (ASN);
+      --  Identifier (use Entity field to save expression)
+
+      T : Entity_Id;
+      --  Type required for preanalyze call
+
+      A_Id : constant Aspect_Id := Get_Aspect_Id (Chars (Ident));
+
+   begin
+      --  On entry to this procedure, Entity (Ident) contains a copy of the
+      --  original expression from the aspect, saved for this purpose.
+
+      --  On exit from this procedure Entity (Ident) is unchanged, still
+      --  containing that copy, but Expression (Ident) is a preanalyzed copy
+      --  of the expression, preanalyzed just after the freeze point.
+
+      --  Make a copy of the expression to be preanalyed
+
+      Set_Expression (ASN, New_Copy_Tree (Entity (Ident)));
+
+      --  Find type for preanalyze call
+
+      case A_Id is
+
+         --  No_Aspect should be impossible
+
+         when No_Aspect =>
+            raise Program_Error;
+
+         --  Library unit aspects should be impossible (never delayed)
+
+         when Library_Unit_Aspects =>
+            raise Program_Error;
+
+         --  Aspects taking an optional boolean argument. Note that we will
+         --  never be called with an empty expression, because such aspects
+         --  never need to be delayed anyway.
+
+         when Boolean_Aspects =>
+            pragma Assert (Present (Expression (ASN)));
+            T := Standard_Boolean;
+
+         --  Aspects corresponding to attribute definition clauses
+
+         when Aspect_Address      =>
+            T := RTE (RE_Address);
+
+         when Aspect_Bit_Order    =>
+            T := RTE (RE_Bit_Order);
+
+         when Aspect_External_Tag =>
+            T := Standard_String;
+
+         when Aspect_Storage_Pool =>
+            T := Class_Wide_Type (RTE (RE_Root_Storage_Pool));
+
+         when
+              Aspect_Alignment      |
+              Aspect_Component_Size |
+              Aspect_Machine_Radix  |
+              Aspect_Object_Size    |
+              Aspect_Size           |
+              Aspect_Storage_Size   |
+              Aspect_Stream_Size    |
+              Aspect_Value_Size     =>
+            T := Any_Integer;
+
+         --  Stream attribute. Special case, the expression is just an entity
+         --  that does not need any resolution, so just analyze.
+
+         when Aspect_Input  |
+              Aspect_Output |
+              Aspect_Read   |
+              Aspect_Write  =>
+            Analyze (Expression (ASN));
+            return;
+
+         --  Suppress/Unsupress/Warnings should never be delayed
+
+         when Aspect_Suppress   |
+              Aspect_Unsuppress |
+              Aspect_Warnings   =>
+            raise Program_Error;
+
+         --  Pre/Post/Invariant/Predicate take boolean expressions
+
+         when Aspect_Dynamic_Predicate |
+              Aspect_Invariant         |
+              Aspect_Pre               |
+              Aspect_Precondition      |
+              Aspect_Post              |
+              Aspect_Postcondition     |
+              Aspect_Predicate         |
+              Aspect_Static_Predicate  |
+              Aspect_Type_Invariant    =>
+            T := Standard_Boolean;
+      end case;
+
+      --  Do the preanalyze call
+
+      Preanalyze_Spec_Expression (Expression (ASN), T);
+   end Check_Aspect_At_Freeze_Point;
 
    -----------------------------------
    -- Check_Constant_Address_Clause --
