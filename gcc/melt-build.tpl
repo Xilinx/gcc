@@ -57,6 +57,8 @@ meltarg_module_path=$(if $(melt_is_plugin),-fplugin-arg-melt-module-path,-fmelt-
 meltarg_source_path=$(if $(melt_is_plugin),-fplugin-arg-melt-source-path,-fmelt-source-path)
 meltarg_tempdir=$(if $(melt_is_plugin),-fplugin-arg-melt-tempdir,-fmelt-tempdir)
 
+meltarg_workdir=$(if $(melt_is_plugin),-fplugin-arg-melt-workdir,-fmelt-workdir)
+
 meltarg_arg=$(if $(melt_is_plugin),-fplugin-arg-melt-arg,-fmelt-arg)
 meltarg_bootstrapping=$(if $(melt_is_plugin),-fplugin-arg-melt-bootstrapping,-fmelt-bootstrapping)
 meltarg_makefile=$(if $(melt_is_plugin),-fplugin-arg-melt-module-makefile,-fmelt-module-makefile)
@@ -64,6 +66,7 @@ meltarg_makecmd=$(if $(melt_is_plugin),-fplugin-arg-melt-module-make-command,-fm
 meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
 meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 meltarg_modulecflags=$(if $(melt_is_plugin),-fplugin-arg-melt-module-cflags,-fmelt-module-cflags)
+meltarg_inhibitautobuild=$(if $(melt_is_plugin),-fplugin-arg-melt-inhibit-auto-build,-fmelt-inhibit-auto-build)
 ## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
 ## the invocation to translate the very first initial MELT file
 MELTCCINIT1ARGS= $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
@@ -260,7 +263,8 @@ $(MELT_STAGE_ZERO):
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c >> $(notdir $(basename $@)[+melt_stage+].args-tmp)
+	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
+	      empty-file-for-melt.c >> $(notdir $(basename $@)[+melt_stage+].args-tmp)
 	@mv $(notdir $(basename $@))[+melt_stage+].args-tmp $(notdir $(basename $@))[+melt_stage+].args
 	@echo -n $(notdir $(basename $@)[+melt_stage+].args): ; cat $(notdir $(basename $@))[+melt_stage+].args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)[+melt_stage+].args)
@@ -384,6 +388,7 @@ melt-sources/[+includeload+]: [+includeload+]
 	mv  melt-sources/[+includeload+]-tmp  melt-sources/[+includeload+]
 [+ENDFOR includeload+]
 
+# MELT translator [+base+] in melt-sources/
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -395,6 +400,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-modules): \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
+	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
 	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
@@ -454,8 +460,9 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	@rm -f $(notdir $(basename $@)).args
 	@echo 	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
-	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules) \
+	     $(meltarg_source_path)=$(realpath melt-sources) \
+             $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args

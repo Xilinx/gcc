@@ -5495,32 +5495,22 @@ melt_find_file_at (int lin, const char*path, ...)
   if (!path) 
     return NULL;
   va_start (args, path);
-  while ((mode=va_arg(args, char*)) != NULL) {
+  while ((mode=va_arg (args, char*)) != NULL) {
     if (!strcmp(mode, MELT_FILE_IN_DIRECTORY))
       {
+	char* fipath = NULL;
 	char* indir = va_arg (args, char*);
-	if (!indir) continue;
-	if (!indir[0] || !strcmp(indir, ".") || !strcmp(indir, "./")) 
+	if (!indir)
+	  continue;
+	fipath = concat (indir, "/", path, NULL);
+	if (!access(fipath, R_OK))
 	  {
-	    if (!access(path, R_OK))
-	      {
-		debugeprintf ("found file %s in current directory [%s:%d]", path,
-			      lbasename(__FILE__), lin);
-		return xstrdup (path);
-	      }
-	  }
-	else 
-	  {
-	    char* fipath = concat (indir, "/", path, NULL);
-	    if (!access(fipath, R_OK))
-	      {
-		debugeprintf ("found file %s in directory %s [%s:%d]", 
-			      fipath, indir,
-			      lbasename(__FILE__), lin);
-		return fipath;
-	      };
-	    free (fipath);
-	  }
+	    debugeprintf ("found file %s in directory %s [%s:%d]", 
+			  fipath, indir,
+			  lbasename(__FILE__), lin);
+	    return fipath;
+	  };
+	free (fipath);
       }
     else if (!strcmp(mode, MELT_FILE_IN_PATH)) 
       {
@@ -8593,8 +8583,11 @@ melt_load_module_index (const char*srcbase, const char*flavor)
      MELT_FILE_IN_PATH, melt_argument ("module-path"),
      /* Search using the GCCMELT_MODULE_PATH environment variable.  */
      MELT_FILE_IN_PATH, getenv ("GCCMELT_MODULE_PATH"),
-     /* At last, search in the built-in MELT module directory.  */
+     /* Search in the built-in MELT module directory.  */
      MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_module_dir,
+     /* Since the path is a complete path with an md5um in it, we also
+	search in the current directory.  */
+     MELT_FILE_IN_DIRECTORY, ".",
      NULL);
   debugeprintf ("melt_load_module_index sopath %s", sopath);
   /* When bootstrapping, also search the plain FOO.FLAVOR.so in the work
@@ -8613,7 +8606,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 	 /* Search in the user provided work directory, if given. */
 	 MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
 	 /* Search in the user provided module path, if given.  */
-	 MELT_FILE_IN_PATH, melt_argument ("module-path"));
+	 MELT_FILE_IN_PATH, melt_argument ("module-path")
+	 );
       if (!sopath) {
 	error ("Cannot find short MELT module %s when bootstrapping, source base %s, flavor %s",
 	       sobase, srcbase, flavor);
@@ -8639,8 +8633,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       debugeprintf ("sopath %s", sopath);
       (void) remove (sopath);
       melt_compile_source (srcbase, binbase, worktmpdir, flavor);
-      if (!access (sopath, R_OK))
-	melt_fatal_error ("inacessible MELT module %s after auto build - %m", sopath);
+      if (access (sopath, R_OK))
+	melt_fatal_error ("inaccessible MELT module %s after auto build - %m", sopath);
     }
   if (!sopath)
     melt_fatal_error ("No MELT module for source base %s flavor %s", srcbase, flavor);
@@ -9012,7 +9006,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
   if (!modlistbase)
     goto end;
   modlistbaselen = strlen (modlistbase);
-  if (modlistbaselen > strlen(MODLIS_SUFFIX)
+  if (modlistbaselen > (int) strlen (MODLIS_SUFFIX)
       && !strcmp(modlistbase + modlistbaselen - strlen(MODLIS_SUFFIX), MODLIS_SUFFIX))
     melt_fatal_error ("MELT module list %s should not be given with its suffix %s",
 		      modlistbase, MODLIS_SUFFIX);
@@ -9272,6 +9266,7 @@ melt_ptr_t meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const ch
   free ((void*)outso);
   free ((void*)mytmpdir);
   MELT_EXITFRAME ();
+  return NULL; /*never reached*/
 #undef srcv
 #undef outv
 }
@@ -9393,7 +9388,8 @@ meltgc_load_modules_and_do_mode (void)
 	  }
 	/* Start all the new loaded modules. */
 	modatv = meltgc_start_all_new_modules ((melt_ptr_t) modatv);
-	debugeprintf ("meltgc_load_modules_and_do_mode done curxtra", curxtra);
+	debugeprintf ("meltgc_load_modules_and_do_mode done curxtra %s", 
+		      curxtra);
       }
     /**
      * Then we set MELT options.

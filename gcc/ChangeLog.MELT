@@ -1,5 +1,15 @@
 
 2011-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_find_file_at): Don't look implicitly in the
+	current directory.
+	(melt_load_module_index): Also look the complete path of *.so with
+	md5sum in the current directory. Correct access test.
+
+	* melt-build.tpl: Use workdir & inhibit-auto-build for melt-sources/
+
+	* melt-build.mk: Regenerate.
+
+2011-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Arguments files go into build directory.
 
 	* melt-build.mk: Regenerate.
