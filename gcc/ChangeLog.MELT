@@ -1,6 +1,18 @@
+2011-08-02  Romain Geissler  <romain.geissler@gmail.com>
+
+	* melt/warmelt-first.melt (string_to_long): New exported primitive.
+	(foreach_pair_between): New exported citerator.
+	* melt/xtramelt-ana-base.melt (tree_chain_append): New exported
+	primitive.
+	(tree_chain_join): Likewise.
+	(tree_chain_prepend): Likewise.
+	(build_identifier_tree): Likewise.
+	(build_string_tree): Likewise.
+	(build_int_tree): Likewise.
 
 2011-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.h (debugeprintfline): Defined even with MELT_HAVE_DEBUG=0.
+	* melt-runtime.h (debugeprintfline): Defined even with
+	MELT_HAVE_DEBUG=0.
 
 	* melt-runtime.c (melt_load_module_index): Don't load short
 	FOO.FLAVOR.so modules, even when bootstrapping.

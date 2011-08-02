@@ -1494,6 +1494,51 @@
 (defprimitive tree_uid (:tree tr) :long
   #{(($tr) ? (long) DECL_UID($tr) : NULL)}#)
 
+(defprimitive tree_chain_prepend (:tree purpose value chain) :tree
+	:doc #{Create a new TREE_LIST node with $PURPOSE and $VALUE trees
+	and chain it at the begining of $CHAIN. Returns the newly created
+	chain.}#
+	#{
+		tree_cons ($PURPOSE, $VALUE, $CHAIN)
+	}#)
+
+(defprimitive tree_chain_append (:tree purpose value chain) :tree
+	:doc #{Create a new TREE_LIST node with $PURPOSE and $VALUE trees
+	and chain it at the end of $CHAIN. Returns the newly created
+	chain (different from $CHAIN if $CHAIN is NULL_TREE).}#
+	#{
+		chainon ($CHAIN, tree_cons ($PURPOSE, $VALUE, NULL_TREE))
+	}#)
+
+(defprimitive tree_chain_join (:tree chain1 chain2) :tree
+	:doc #{Append $CHAIN2 to $CHAIN1 and returns the newly created
+	chain (different from $CHAIN1 if $CHAIN1 is NULL_TREE).}#
+	#{
+		chainon ($CHAIN1, $CHAIN2)
+	}#)
+
+(defprimitive build_identifier_tree (name) :tree
+	:doc #{Create and returns a new IDENTIFIER_NODE tree whose
+	name is $NAME.}#
+	#{
+		get_identifier (melt_string_str ($NAME))
+	}#)
+
+(defprimitive build_string_tree (string_value) :tree
+	:doc #{Create and returns a new STRING_CST tree whose
+	value is $STRING_VALUE.}#
+	#{
+		build_string (strlen (melt_string_str ($STRING_VALUE)), melt_string_str ($STRING_VALUE))
+	}#)
+
+(defprimitive build_int_tree (int_value) :tree
+	:doc #{Create and returns a new INTEGER_CST tree whose
+	value is $INT_VALUE and type is the default language
+	integer type.}#
+	#{
+		build_int_cst (integer_type_node, (int)melt_get_int ($INT_VALUE))
+	}#)
+
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -3409,6 +3454,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
+ build_identifier_tree
+ build_int_tree
+ build_string_tree
  cfun_decl
  cfun_gimple_body
  cfun_has_cfg
@@ -3656,6 +3704,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_array_ref_full
  tree_array_type
  tree_block
+ tree_chain_append
+ tree_chain_join
+ tree_chain_prepend
  tree_component_ref
  tree_component_ref_full
  tree_component_ref_typed

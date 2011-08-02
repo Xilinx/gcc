@@ -1162,6 +1162,12 @@ an integer $I if $I is greater than $N.}#
   :doc #{Test that value string $S1 is greater than $S2.}#
   #{melt_string_less((melt_ptr_t)($s2), (melt_ptr_t)($s1))}#)
 
+(defprimitive string_to_long (string) :long
+	:doc #{Read a string value and returns the corresponding
+	long stuff. 0 is returned if an error occurs while reading.}#
+	#{
+		atol(melt_string_str($string))
+	}#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3225,6 +3231,26 @@ nil.}#
 
 ;;;;;;;;;;;;;;;;
 
+;;; citerator on pairs
+(defciterator foreach_pair_between
+  (start_pair end_pair) ;start formals 
+  eachpair ;state
+  (curpair curcomp) ;local formals
+  :doc #{The $FOREACH_PAIR_BETWEEN iterator goes between two (linked) pairs,
+  given by the start formal $START_PAIR and $END_PAIR. Local formals are $CURPAIR,
+  bound to the current pair, and $CURCOMP, bound to the current component within
+  the pair.}#
+   #{/* start $eachpair */
+   for ($curpair = $start_pair;
+	melt_magic_discr($curpair) == MELTOBMAG_PAIR;
+        $curpair = melt_pair_tail($curpair)) {
+	$curcomp = melt_pair_head($curpair); }#
+   #{
+      if ($curpair == $end_pair) {
+         break;
+      }
+   } /* end $eachpair */}#
+)
 
 ;;; citerator on lists
 (defciterator foreach_in_list 
@@ -4085,6 +4111,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  shortbacktrace_dbg
  string<
  string>
+ string_to_long
  stringconst2val
  the_meltcallcount
  the_callcount
@@ -4207,6 +4234,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 
 ;; export the citerators & cmatchers defined above
 (export_values
+ foreach_pair_between
  foreach_in_list
  foreach_in_mapobject
  foreach_in_mapstring
