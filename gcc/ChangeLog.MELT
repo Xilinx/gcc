@@ -1,5 +1,17 @@
 
 2011-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (debugeprintfline): Defined even with MELT_HAVE_DEBUG=0.
+
+	* melt-runtime.c (melt_load_module_index): Don't load short
+	FOO.FLAVOR.so modules, even when bootstrapping.
+	Compare only basenames of modules names when bootstrapping.
+
+	* melt-build.tpl: Define & use $(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).
+	Use melt-sources/warmelt-optimized.modlis for application files.
+
+	* melt-build.mk: Regenerate.
+
+2011-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_find_file_at): Don't look implicitly in the
 	current directory.
 	(melt_load_module_index): Also look the complete path of *.so with

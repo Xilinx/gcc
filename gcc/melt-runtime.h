@@ -195,6 +195,11 @@ extern int flag_melt_bootstrapping;
 #define debugeprintflinenonl(Lin,Fmt,...)                       \
   debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
                    lbasename(__FILE__), Lin, ##__VA_ARGS__)
+
+#define debugeprintfline(Lin,Fmt,...) \
+   debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
+                    lbasename(__FILE__), Lin, ##__VA_ARGS__)
+
 #define debugeprintfnonl(Fmt,...) \
   debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
 

@@ -8590,34 +8590,6 @@ melt_load_module_index (const char*srcbase, const char*flavor)
      MELT_FILE_IN_DIRECTORY, ".",
      NULL);
   debugeprintf ("melt_load_module_index sopath %s", sopath);
-  /* When bootstrapping, also search the plain FOO.FLAVOR.so in the work
-     directory and the module path.  This is a hack mostly for
-     melt-stage0-{static,dynamic}/warmelt*.so & melt-stage1/warmelt*.so. */
-  if (!sopath && flag_melt_bootstrapping) 
-    {
-      free(sobase), sobase = NULL;
-      sobase = concat (lbasename(descmodulename), ".", flavor, ".so", NULL);
-      debugeprintf("melt_load_module_index bootstrapping short sobase %s", sobase);
-      sopath = 
-	MELT_FIND_FILE 
-	(sobase,
-	 /* First search in the temporary directory, but don't bother making it.  */
-	 MELT_FILE_IN_DIRECTORY, tempdir_melt,
-	 /* Search in the user provided work directory, if given. */
-	 MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
-	 /* Search in the user provided module path, if given.  */
-	 MELT_FILE_IN_PATH, melt_argument ("module-path")
-	 );
-      if (!sopath) {
-	error ("Cannot find short MELT module %s when bootstrapping, source base %s, flavor %s",
-	       sobase, srcbase, flavor);
-	if (melt_argument ("workdir"))
-	  error ("not found in workdir %s",  melt_argument ("workdir"));
-	if (melt_argument ("module-path"))
-	  error ("not found in module-path %s",  melt_argument ("module-path"));
-	melt_fatal_error ("Did not found short MELT module %s when bootstrapping", sobase);
-      }
-    }
   /* Build the module if not found and the auto-build is not inhibited. */
   if (!sopath && !flag_melt_bootstrapping
       && !melt_argument ("inhibit-auto-build")) 
@@ -8636,8 +8608,10 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       if (access (sopath, R_OK))
 	melt_fatal_error ("inaccessible MELT module %s after auto build - %m", sopath);
     }
-  if (!sopath)
-    melt_fatal_error ("No MELT module for source base %s flavor %s", srcbase, flavor);
+  if (!sopath) 
+    melt_fatal_error ("No MELT module for source base %s flavor %s (parsed cumulated checksum %s)", 
+		      srcbase, flavor,
+		      desccumulatedhexmd5 ? desccumulatedhexmd5 : "unknown");
   if (!IS_ABSOLUTE_PATH (sopath))
     sopath = reconcat (sopath, getpwd (), "/", sopath, NULL);
   debugeprintf ("melt_load_module_index absolute sopath %s", sopath);
@@ -8669,12 +8643,21 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
   MELTDESCR_OPTIONAL_LIST;
 #undef MELTDESCR_OPTIONAL_SYMBOL
+  if (flag_melt_bootstrapping) {
+    debugeprintf ("melt_load_module_index validh %d bootstrapping melt_modulename %s descmodulename %s",
+		  validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
+    validh = validh
+      && !strcmp (lbasename (MELTDESCR_REQUIRED (melt_modulename)), lbasename (descmodulename));
+  }
+  else {
   debugeprintf ("melt_load_module_index validh %d melt_modulename %s descmodulename %s",
 		validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
-  validh = validh
-    && !strcmp (MELTDESCR_REQUIRED (melt_modulename), descmodulename);
+    validh = validh
+      && !strcmp (MELTDESCR_REQUIRED (melt_modulename), descmodulename);
+  }
+
   debugeprintf ("melt_load_module_index validh %d melt_cumulated_hexmd5 %s desccumulatedhexmd5 %s",
-		validh, MELTDESCR_REQUIRED (melt_cumulated_hexmd5), desccumulatedhexmd5);
+		validh, MELTDESCR_REQUIRED (melt_cumulated_hexmd5), desccumulatedhexmd5);  
   validh = validh
     && !strcmp (MELTDESCR_REQUIRED (melt_cumulated_hexmd5), desccumulatedhexmd5);
   debugeprintf ("melt_load_module_index sopath %s validh %d melt_modulename %s melt_cumulated_hexmd5 %s", 
