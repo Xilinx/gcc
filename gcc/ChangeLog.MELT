@@ -1,4 +1,12 @@
 
+2011-08-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Arguments files go into build directory.
+
+	* melt-build.mk: Regenerate.
+
+	* melt-runtime.c (melt_compile_source): Test that access succeeded.
+	(meltgc_do_initial_mode): Remove useless variables.
+
 2011-08-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-modules.mk: Make the GCCMELT_MODULE_WORKSPACE directory
 	when missing.

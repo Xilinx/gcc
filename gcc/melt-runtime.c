@@ -5288,7 +5288,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
       melt_fatal_error ("no binary base given to compile %s", srcbase);
     }
   srcdescrpath = concat (srcbase, MELT_DESC_FILESUFFIX, NULL);
-  if (!access (srcdescrpath, R_OK)) 
+  if (access (srcdescrpath, R_OK)) 
       melt_fatal_error ("Cannot access MELT descriptive file %s to compile - %m", 
 			srcdescrpath);
   if (strchr(lbasename (binbase), '.'))
@@ -9103,16 +9103,9 @@ meltgc_load_module_list (int depth, const char *modlistbase)
 static void
 meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 {
-  char *dupmodpath = 0;
-  char *dupmodstr = 0;
-  char *curmod = 0;
-  char *curmodstr = 0;
-  char *nextmod = 0;
-  const char *optstr = 0;
+  char *dupmodstr = NULL;
+  char *curmodstr = NULL;
   char *comma = NULL;
-  const char *inistr = 0;
-  const char* xtrastr = 0;
-  const char* dbgstr = melt_argument ("debug");
   MELT_ENTERFRAME (9, NULL);
 #define dictv     meltfram__.mcfr_varptr[0]
 #define closv     meltfram__.mcfr_varptr[1]
