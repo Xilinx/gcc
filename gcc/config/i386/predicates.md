@@ -197,10 +197,8 @@
 	      if ((ix86_cmodel == CM_SMALL
 		   || (ix86_cmodel == CM_MEDIUM
 		       && !SYMBOL_REF_FAR_ADDR_P (op1)))
-		  && (TARGET_X32
-		      || (offset < 16*1024*1024
-			  && (trunc_int_for_mode (offset, SImode)
-			      == offset))))
+		  && offset < 16*1024*1024
+		  && trunc_int_for_mode (offset, SImode) == offset)
 		return true;
 	      /* For CM_KERNEL we know that all object resist in the
 		 negative half of 32bits address space.  We may not
@@ -304,11 +302,8 @@
 		   || (ix86_cmodel == CM_MEDIUM
 		       && !SYMBOL_REF_FAR_ADDR_P (op1)))
 		  && CONST_INT_P (op2)
-		  && (TARGET_X32
-		      || ((trunc_int_for_mode (INTVAL (op2), DImode)
-			   > -0x10000)
-			  && (trunc_int_for_mode (INTVAL (op2), SImode)
-			      == INTVAL (op2)))))
+		  && trunc_int_for_mode (INTVAL (op2), DImode) > -0x10000
+		  && trunc_int_for_mode (INTVAL (op2), SImode) == INTVAL (op2))
 		return true;
 	      /* ??? For the kernel, we may accept adjustment of
 		 -0x10000000, since we know that it will just convert

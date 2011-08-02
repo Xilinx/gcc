@@ -1,3 +1,16 @@
+2011-08-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Revert
+	PR target/49860
+	* config/i386/i386.md (*movdi_internal_rex64): Only allow moving
+	integer constants into 64bit registers for TARGET_X32.
+	(*movabs<mode>_1): Only allow for TARGET_LP64.
+	(*movabs<mode>_2): Likewise.
+
+	* config/i386/predicates.md (x86_64_immediate_operand): Always
+	allow the offsetted memory references for TARGET_X32.
+	(x86_64_zext_immediate_operand): Likewise.
+
 2011-07-29  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (*load_tp_x32): New.
