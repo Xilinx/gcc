@@ -1,0 +1,4 @@
+2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/linux/x86/futex.h: Check __x86_64__ instead of
+	__LP64__.
