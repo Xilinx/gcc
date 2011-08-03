@@ -1,3 +1,9 @@
+
+2011-08-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Use melt_make_cc1 for meltgendoc.texi
+	* melt-build.mk: Regenerate.
+	* Makefile.in (check-melt-runtime): Give a workdir.
+
 2011-08-03  Romain Geissler  <romain.geissler@gmail.com>
 
 	* Makefile.in (check-melt-runtime): Use only melt-modules as

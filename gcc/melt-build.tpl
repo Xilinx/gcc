@@ -615,7 +615,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
               empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	mv  $(notdir $(basename $@)).args-tmp  $(notdir $(basename $@)).args
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
-	$(melt_make_cc1flags) @$(notdir $(basename $@)).args
+	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 
 vpath %.so $(melt_make_module_dir) . 

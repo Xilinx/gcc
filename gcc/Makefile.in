@@ -5438,12 +5438,13 @@ install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h me
 
 check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext)		\
 	melt-sources melt-all-sources melt-modules melt-all-modules
-	@echo checking melt-runtime.c with MELT
+	@echo checking melt-runtime.c with MELT				\
 	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -Wno-error	\
  -I $(srcdir)/melt/generated/						\
 	    $(MELT_RUNTIME_CPPDEFS)					\
-		$(meltarg_module_path)=$(realpath melt-modules)	\
+		$(meltarg_module_path)=$(realpath melt-modules)		\
 	    $(meltarg_source_path)=$(realpath melt-sources)		\
+	    $(meltarg_workdir)=melt-workdir				\
 	        $(meltarg_mode)=meltframe				\
 	        $(meltarg_bootstrapping)				\
 	  -c $(MELT_RUNTIME_C) -o /dev/null
