@@ -5442,7 +5442,7 @@ check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext)		\
 	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -Wno-error	\
  -I $(srcdir)/melt/generated/						\
 	    $(MELT_RUNTIME_CPPDEFS)					\
-	    $(meltarg_module_path)=melt-modules/optimized:melt-modules/quicklybuilt:melt-modules	\
+		$(meltarg_module_path)=$(realpath melt-modules)	\
 	    $(meltarg_source_path)=$(realpath melt-sources)		\
 	        $(meltarg_mode)=meltframe				\
 	        $(meltarg_bootstrapping)				\

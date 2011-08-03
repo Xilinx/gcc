@@ -1,3 +1,13 @@
+2011-08-03  Romain Geissler  <romain.geissler@gmail.com>
+
+	* Makefile.in (check-melt-runtime): Use only melt-modules as
+	module-path.
+	* melt-build.tpl (melt-modules/*.so): Create symlink in
+	melt-modules directory.
+	(melt-all-modules): Also list debugnoline and quicklybuilt
+	version of extra modules.
+	* melt-build.mk: Regenerate.
+
 2011-08-02  Romain Geissler  <romain.geissler@gmail.com>
 
 	* melt/warmelt-first.melt (string_to_long): New exported primitive.

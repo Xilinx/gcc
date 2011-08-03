@@ -2342,7 +2342,7 @@ melt-modules/warmelt-first.optimized.so: melt-sources/warmelt-first.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-first \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-first 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-first 
 
 melt-modules/warmelt-first.debugnoline.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
@@ -2352,7 +2352,7 @@ melt-modules/warmelt-first.debugnoline.so: melt-sources/warmelt-first.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-first \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-first 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-first 
 
 melt-modules/warmelt-first.quicklybuilt.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
@@ -2361,7 +2361,7 @@ melt-modules/warmelt-first.quicklybuilt.so: melt-sources/warmelt-first.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-first \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-first \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-first \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-first
 
@@ -2402,7 +2402,7 @@ melt-modules/warmelt-base.optimized.so: melt-sources/warmelt-base.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-base \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-base 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-base 
 
 melt-modules/warmelt-base.debugnoline.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
@@ -2412,7 +2412,7 @@ melt-modules/warmelt-base.debugnoline.so: melt-sources/warmelt-base.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-base \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-base 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-base 
 
 melt-modules/warmelt-base.quicklybuilt.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
@@ -2421,7 +2421,7 @@ melt-modules/warmelt-base.quicklybuilt.so: melt-sources/warmelt-base.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-base \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-base \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-base \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-base
 
@@ -2462,7 +2462,7 @@ melt-modules/warmelt-debug.optimized.so: melt-sources/warmelt-debug.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-debug \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-debug 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-debug 
 
 melt-modules/warmelt-debug.debugnoline.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
@@ -2472,7 +2472,7 @@ melt-modules/warmelt-debug.debugnoline.so: melt-sources/warmelt-debug.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-debug \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-debug 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-debug 
 
 melt-modules/warmelt-debug.quicklybuilt.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
@@ -2481,7 +2481,7 @@ melt-modules/warmelt-debug.quicklybuilt.so: melt-sources/warmelt-debug.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-debug \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-debug \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-debug \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-debug
 
@@ -2522,7 +2522,7 @@ melt-modules/warmelt-macro.optimized.so: melt-sources/warmelt-macro.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-macro \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-macro 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-macro 
 
 melt-modules/warmelt-macro.debugnoline.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
@@ -2532,7 +2532,7 @@ melt-modules/warmelt-macro.debugnoline.so: melt-sources/warmelt-macro.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-macro \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-macro 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-macro 
 
 melt-modules/warmelt-macro.quicklybuilt.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
@@ -2541,7 +2541,7 @@ melt-modules/warmelt-macro.quicklybuilt.so: melt-sources/warmelt-macro.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-macro \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-macro \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-macro \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-macro
 
@@ -2588,7 +2588,7 @@ melt-modules/warmelt-normal.optimized.so: melt-sources/warmelt-normal.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normal \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-normal 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normal 
 
 melt-modules/warmelt-normal.debugnoline.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
@@ -2598,7 +2598,7 @@ melt-modules/warmelt-normal.debugnoline.so: melt-sources/warmelt-normal.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normal \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-normal 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normal 
 
 melt-modules/warmelt-normal.quicklybuilt.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
@@ -2607,7 +2607,7 @@ melt-modules/warmelt-normal.quicklybuilt.so: melt-sources/warmelt-normal.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normal \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-normal \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normal \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-normal
 
@@ -2648,7 +2648,7 @@ melt-modules/warmelt-normatch.optimized.so: melt-sources/warmelt-normatch.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normatch \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-normatch 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normatch 
 
 melt-modules/warmelt-normatch.debugnoline.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
@@ -2658,7 +2658,7 @@ melt-modules/warmelt-normatch.debugnoline.so: melt-sources/warmelt-normatch.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normatch \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-normatch 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normatch 
 
 melt-modules/warmelt-normatch.quicklybuilt.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
@@ -2667,7 +2667,7 @@ melt-modules/warmelt-normatch.quicklybuilt.so: melt-sources/warmelt-normatch.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normatch \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-normatch \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normatch \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-normatch
 
@@ -2708,7 +2708,7 @@ melt-modules/warmelt-genobj.optimized.so: melt-sources/warmelt-genobj.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-genobj \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-genobj 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-genobj 
 
 melt-modules/warmelt-genobj.debugnoline.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
@@ -2718,7 +2718,7 @@ melt-modules/warmelt-genobj.debugnoline.so: melt-sources/warmelt-genobj.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-genobj \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-genobj 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-genobj 
 
 melt-modules/warmelt-genobj.quicklybuilt.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
@@ -2727,7 +2727,7 @@ melt-modules/warmelt-genobj.quicklybuilt.so: melt-sources/warmelt-genobj.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-genobj \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-genobj \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-genobj \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-genobj
 
@@ -2768,7 +2768,7 @@ melt-modules/warmelt-outobj.optimized.so: melt-sources/warmelt-outobj.c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-outobj \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-outobj 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-outobj 
 
 melt-modules/warmelt-outobj.debugnoline.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
@@ -2778,7 +2778,7 @@ melt-modules/warmelt-outobj.debugnoline.so: melt-sources/warmelt-outobj.c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-outobj \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-outobj 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-outobj 
 
 melt-modules/warmelt-outobj.quicklybuilt.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
@@ -2787,7 +2787,7 @@ melt-modules/warmelt-outobj.quicklybuilt.so: melt-sources/warmelt-outobj.c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-outobj \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/warmelt-outobj \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-outobj \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-outobj
 
@@ -3190,11 +3190,7 @@ melt-all-modules:  melt-workdir \
     melt-modules/warmelt-normatch.quicklybuilt.so \
     melt-modules/warmelt-genobj.quicklybuilt.so \
     melt-modules/warmelt-outobj.quicklybuilt.so \
-     melt-modules/xtramelt-parse-infix-syntax.quicklybuilt.so \
-     melt-modules/xtramelt-ana-base.quicklybuilt.so \
-     melt-modules/xtramelt-ana-simple.quicklybuilt.so \
-     melt-modules/xtramelt-c-generator.quicklybuilt.so \
-     melt-modules/xtramelt-opengpu.quicklybuilt.so \
+ \
     melt-modules/warmelt-first.debugnoline.so \
     melt-modules/warmelt-base.debugnoline.so \
     melt-modules/warmelt-debug.debugnoline.so \
@@ -3203,11 +3199,26 @@ melt-all-modules:  melt-workdir \
     melt-modules/warmelt-normatch.debugnoline.so \
     melt-modules/warmelt-genobj.debugnoline.so \
     melt-modules/warmelt-outobj.debugnoline.so \
-     melt-modules/xtramelt-parse-infix-syntax.debugnoline.so \
-     melt-modules/xtramelt-ana-base.debugnoline.so \
-     melt-modules/xtramelt-ana-simple.debugnoline.so \
-     melt-modules/xtramelt-c-generator.debugnoline.so \
-     melt-modules/xtramelt-opengpu.debugnoline.so \
+ \
+    \
+    melt-modules/xtramelt-parse-infix-syntax.optimized.so \
+    melt-modules/xtramelt-ana-base.optimized.so \
+    melt-modules/xtramelt-ana-simple.optimized.so \
+    melt-modules/xtramelt-c-generator.optimized.so \
+    melt-modules/xtramelt-opengpu.optimized.so \
+ \
+    melt-modules/xtramelt-parse-infix-syntax.quicklybuilt.so \
+    melt-modules/xtramelt-ana-base.quicklybuilt.so \
+    melt-modules/xtramelt-ana-simple.quicklybuilt.so \
+    melt-modules/xtramelt-c-generator.quicklybuilt.so \
+    melt-modules/xtramelt-opengpu.quicklybuilt.so \
+ \
+    melt-modules/xtramelt-parse-infix-syntax.debugnoline.so \
+    melt-modules/xtramelt-ana-base.debugnoline.so \
+    melt-modules/xtramelt-ana-simple.debugnoline.so \
+    melt-modules/xtramelt-c-generator.debugnoline.so \
+    melt-modules/xtramelt-opengpu.debugnoline.so \
+
 
 $(melt_default_modules_list).modlis: melt-all-modules \
        $(melt_default_modules_list)-quicklybuilt.modlis \

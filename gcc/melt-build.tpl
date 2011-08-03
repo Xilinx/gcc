@@ -419,7 +419,7 @@ melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_FLAVOR=optimized \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/[+base+] 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
 melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
@@ -429,7 +429,7 @@ melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/[+base+] 
+              GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
 melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
@@ -438,7 +438,7 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
-              GCCMELT_MODULE_BINARYBASE=$(MELT_LAST_STAGE)/[+base+] \
+              GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator [+base+]
 
@@ -528,11 +528,16 @@ melt-all-modules:  melt-workdir \
 [+FOR melt_translator_file+]    melt-modules/[+base+].optimized.so \
 [+ENDFOR melt_translator_file+] \
 [+FOR melt_translator_file+]    melt-modules/[+base+].quicklybuilt.so \
-[+ENDFOR melt_translator_file+][+FOR melt_application_file " \\\n"
-+]     melt-modules/[+base+].quicklybuilt.so[+ENDFOR melt_application_file+] \
+[+ENDFOR melt_translator_file+] \
 [+FOR melt_translator_file+]    melt-modules/[+base+].debugnoline.so \
-[+ENDFOR melt_translator_file+][+FOR melt_application_file " \\\n"
-+]     melt-modules/[+base+].debugnoline.so[+ENDFOR melt_application_file+] \
+[+ENDFOR melt_translator_file+] \
+    \
+[+FOR melt_application_file "+]    melt-modules/[+base+].optimized.so \
+[+ENDFOR melt_application_file+] \
+[+FOR melt_application_file+]    melt-modules/[+base+].quicklybuilt.so \
+[+ENDFOR melt_application_file+] \
+[+FOR melt_application_file+]    melt-modules/[+base+].debugnoline.so \
+[+ENDFOR melt_application_file+]
 
 $(melt_default_modules_list).modlis: melt-all-modules \
        $(melt_default_modules_list)-quicklybuilt.modlis \
