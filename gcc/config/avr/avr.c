@@ -3147,8 +3147,11 @@ out_shift_with_cnt (const char *templ, rtx insn, rtx operands[],
     }
   else if (register_operand (operands[2], QImode))
     {
-      if (reg_unused_after (insn, operands[2]))
-	op[3] = op[2];
+      if (reg_unused_after (insn, operands[2])
+          && !reg_overlap_mentioned_p (operands[0], operands[2]))
+        {
+          op[3] = op[2];
+        }
       else
 	{
 	  op[3] = tmp_reg_rtx;
@@ -5512,6 +5515,34 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
 	    return false;
 	  break;
 
+	case SImode:
+	  if (AVR_HAVE_MUL)
+            {
+              if (!speed)
+                {
+                  /* Add some additional costs besides CALL like moves etc.  */
+
+                  *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 5 : 4);
+                }
+              else
+                {
+                  /* Just a rough estimate.  Even with -O2 we don't want bulky
+                     code expanded inline.  */
+
+                  *total = COSTS_N_INSNS (25);
+                }
+            }
+          else
+            {
+              if (speed)
+                *total = COSTS_N_INSNS (300);
+              else
+                /* Add some additional costs besides CALL like moves etc.  */
+                *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 5 : 4);
+            }
+          
+          return true;
+          
 	default:
 	  return false;
 	}

@@ -1196,11 +1196,18 @@ package body Atree is
          Nodes.Table (New_Id).Link := Empty_List_Or_Node;
          Nodes.Table (New_Id).In_List := False;
 
-         --  If the original is marked as a rewrite insertion, then unmark
-         --  the copy, since we inserted the original, not the copy.
+         --  If the original is marked as a rewrite insertion, then unmark the
+         --  copy, since we inserted the original, not the copy.
 
          Nodes.Table (New_Id).Rewrite_Ins := False;
          pragma Debug (New_Node_Debugging_Output (New_Id));
+
+         --  Clear Is_Overloaded since we cannot have semantic interpretations
+         --  of this new node.
+
+         if Nkind (Source) in N_Subexpr then
+            Set_Is_Overloaded (New_Id, False);
+         end if;
 
          --  Always clear Has_Aspects, the caller must take care of copying
          --  aspects if this is required for the particular situation.

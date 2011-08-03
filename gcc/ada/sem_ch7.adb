@@ -760,6 +760,11 @@ package body Sem_Ch7 is
       --  True when this package declaration is not a nested declaration
 
    begin
+      --  Analye aspect specifications immediately, since we need to recognize
+      --  things like Pure early enough to diagnose violations during analysis.
+
+      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+
       --  Ada 2005 (AI-217): Check if the package has been erroneously named
       --  in a limited-with clause of its own context. In this case the error
       --  has been previously notified by Analyze_Context.
@@ -768,7 +773,7 @@ package body Sem_Ch7 is
       --     package Pkg is ...
 
       if From_With_Type (Id) then
-         goto Leave;
+         return;
       end if;
 
       if Debug_Flag_C then
@@ -842,9 +847,6 @@ package body Sem_Ch7 is
          Write_Location (Sloc (N));
          Write_Eol;
       end if;
-
-      <<Leave>>
-         Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
    end Analyze_Package_Declaration;
 
    -----------------------------------
@@ -2067,39 +2069,6 @@ package body Sem_Ch7 is
            and then Is_Tagged_Type (Full)
            and then not Error_Posted (Full)
          then
-            if Priv_Is_Base_Type then
-
-               --  Ada 2005 (AI-345): The full view of a type implementing an
-               --  interface can be a task type.
-
-               --    type T is new I with private;
-               --  private
-               --    task type T is new I with ...
-
-               if Is_Interface (Etype (Priv))
-                 and then Is_Concurrent_Type (Base_Type (Full))
-               then
-                  --  Protect the frontend against previous errors
-
-                  if Present (Corresponding_Record_Type
-                               (Base_Type (Full)))
-                  then
-                     Set_Access_Disp_Table
-                       (Priv, Access_Disp_Table
-                               (Corresponding_Record_Type (Base_Type (Full))));
-
-                  --  Generic context, or previous errors
-
-                  else
-                     null;
-                  end if;
-
-               else
-                  Set_Access_Disp_Table
-                    (Priv, Access_Disp_Table (Base_Type (Full)));
-               end if;
-            end if;
-
             if Is_Tagged_Type (Priv) then
 
                --  If the type is tagged, the tag itself must be available on

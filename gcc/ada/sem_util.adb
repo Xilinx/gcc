@@ -9,7 +9,7 @@
 --          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
--- terms of the  GNU General Public License as published  by the Free Soft- --
+-- terms of the  GNU Genconflieral Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
@@ -165,7 +165,10 @@ package body Sem_Util is
             Nod := Type_Definition (Parent (Typ));
 
          elsif Nkind (Parent (Typ)) = N_Private_Type_Declaration then
-            if Present (Full_View (Typ)) then
+            if Present (Full_View (Typ))
+              and then Nkind (Parent (Full_View (Typ)))
+                         = N_Full_Type_Declaration
+            then
                Nod := Type_Definition (Parent (Full_View (Typ)));
 
             --  If the full-view is not available we cannot do anything else
@@ -3197,6 +3200,43 @@ package body Sem_Util is
       Append_Entity     (Def_Id, S);
       Set_Public_Status (Def_Id);
 
+      --  Declaring a homonym is not allowed in SPARK or ALFA ...
+
+      if Formal_Verification_Mode and then Present (C)
+
+        --  ... unless the new declaration is in a subprogram, and the visible
+        --  declaration is a variable declaration or a parameter specification
+        --  outside that subprogram.
+
+        and then not
+          (Nkind_In (Parent (Parent (Def_Id)), N_Subprogram_Body,
+                                               N_Function_Specification,
+                                               N_Procedure_Specification)
+           and then
+             Nkind_In (Parent (C), N_Object_Declaration,
+                                   N_Parameter_Specification))
+
+        --  ... or the new declaration is in a package, and the visible
+        --  declaration occurs outside that package.
+
+        and then not
+          Nkind_In (Parent (Parent (Def_Id)), N_Package_Specification,
+                                              N_Package_Body)
+
+        --  ... or the new declaration is a component declaration in a record
+        --  type definition.
+
+        and then Nkind (Parent (Def_Id)) /= N_Component_Declaration
+
+        --  Don't issue error for non-source entities
+
+        and then Comes_From_Source (Def_Id)
+        and then Comes_From_Source (C)
+      then
+         Error_Msg_Sloc := Sloc (C);
+         Error_Msg_F ("|~~redeclaration of identifier &#", Def_Id);
+      end if;
+
       --  Warn if new entity hides an old one
 
       if Warn_On_Hiding and then Present (C)
@@ -4889,51 +4929,48 @@ package body Sem_Util is
 
    function Has_Overriding_Initialize (T : Entity_Id) return Boolean is
       BT   : constant Entity_Id := Base_Type (T);
-      Comp : Entity_Id;
       P    : Elmt_Id;
 
    begin
       if Is_Controlled (BT) then
-
-         --  For derived types, check immediate ancestor, excluding
-         --  Controlled itself.
-
-         if Is_Derived_Type (BT)
-           and then not In_Predefined_Unit (Etype (BT))
-           and then Has_Overriding_Initialize (Etype (BT))
-         then
-            return True;
+         if Is_RTU (Scope (BT), Ada_Finalization) then
+            return False;
 
          elsif Present (Primitive_Operations (BT)) then
             P := First_Elmt (Primitive_Operations (BT));
             while Present (P) loop
-               if Chars (Node (P)) = Name_Initialize
-                 and then Comes_From_Source (Node (P))
-               then
-                  return True;
-               end if;
+               declare
+                  Init : constant Entity_Id := Node (P);
+                  Formal : constant Entity_Id := First_Formal (Init);
+               begin
+                  if Ekind (Init) = E_Procedure
+                       and then Chars (Init) = Name_Initialize
+                       and then Comes_From_Source (Init)
+                       and then Present (Formal)
+                       and then Etype (Formal) = BT
+                       and then No (Next_Formal (Formal))
+                       and then (Ada_Version < Ada_2012
+                                   or else not Null_Present (Parent (Init)))
+                  then
+                     return True;
+                  end if;
+               end;
 
                Next_Elmt (P);
             end loop;
          end if;
 
-         return False;
+         --  Here if type itself does not have a non-null Initialize operation:
+         --  check immediate ancestor.
 
-      elsif Has_Controlled_Component (BT) then
-         Comp := First_Component (BT);
-         while Present (Comp) loop
-            if Has_Overriding_Initialize (Etype (Comp)) then
-               return True;
-            end if;
-
-            Next_Component (Comp);
-         end loop;
-
-         return False;
-
-      else
-         return False;
+         if Is_Derived_Type (BT)
+           and then Has_Overriding_Initialize (Etype (BT))
+         then
+            return True;
+         end if;
       end if;
+
+      return False;
    end Has_Overriding_Initialize;
 
    --------------------------------------
@@ -6665,9 +6702,19 @@ package body Sem_Util is
 
    function Is_LHS (N : Node_Id) return Boolean is
       P : constant Node_Id := Parent (N);
+
    begin
-      return Nkind (P) = N_Assignment_Statement
-        and then Name (P) = N;
+      if Nkind (P) = N_Assignment_Statement then
+         return Name (P) = N;
+
+      elsif
+        Nkind_In (P, N_Indexed_Component, N_Selected_Component, N_Slice)
+      then
+         return N = Prefix (P) and then Is_LHS (P);
+
+      else
+         return False;
+      end if;
    end Is_LHS;
 
    ----------------------------
@@ -7328,6 +7375,7 @@ package body Sem_Util is
                 and then Is_Synchronized_Interface (E))
             or else
              (Ekind (E) = E_Record_Type_With_Private
+                and then Nkind (Parent (E)) = N_Private_Extension_Declaration
                 and then (Synchronized_Present (Parent (E))
                            or else Is_Synchronized_Interface (Etype (E))));
    end Is_Synchronized_Tagged_Type;
@@ -7932,6 +7980,23 @@ package body Sem_Util is
 
       end case;
    end Known_To_Be_Assigned;
+
+   ---------------------------
+   -- Last_Source_Statement --
+   ---------------------------
+
+   function Last_Source_Statement (HSS : Node_Id) return Node_Id is
+      N : Node_Id;
+
+   begin
+      N := Last (Statements (HSS));
+      while Present (N) loop
+         exit when Comes_From_Source (N);
+         Prev (N);
+      end loop;
+
+      return N;
+   end Last_Source_Statement;
 
    -------------------
    -- May_Be_Lvalue --
@@ -11231,6 +11296,38 @@ package body Sem_Util is
    end Set_Size_Info;
 
    --------------------
+   -- Static_Boolean --
+   --------------------
+
+   function Static_Boolean (N : Node_Id) return Uint is
+   begin
+      Analyze_And_Resolve (N, Standard_Boolean);
+
+      if N = Error
+        or else Error_Posted (N)
+        or else Etype (N) = Any_Type
+      then
+         return No_Uint;
+      end if;
+
+      if Is_Static_Expression (N) then
+         if not Raises_Constraint_Error (N) then
+            return Expr_Value (N);
+         else
+            return No_Uint;
+         end if;
+
+      elsif Etype (N) = Any_Type then
+         return No_Uint;
+
+      else
+         Flag_Non_Static_Expr
+           ("static boolean expression required here", N);
+         return No_Uint;
+      end if;
+   end Static_Boolean;
+
+   --------------------
    -- Static_Integer --
    --------------------
 
@@ -11493,6 +11590,109 @@ package body Sem_Util is
 
       return N;
    end Unit_Declaration_Node;
+
+   ---------------------
+   -- Unit_Is_Visible --
+   ---------------------
+
+   function Unit_Is_Visible (U : Entity_Id) return Boolean is
+      Curr        : constant Node_Id   := Cunit (Current_Sem_Unit);
+      Curr_Entity : constant Entity_Id := Cunit_Entity (Current_Sem_Unit);
+
+      function Unit_In_Parent_Context (Par_Unit : Node_Id) return Boolean;
+      --  For a child unit, check whether unit appears in a with_clause
+      --  of a parent.
+
+      function Unit_In_Context (Comp_Unit : Node_Id) return Boolean;
+      --  Scan the context clause of one compilation unit looking for a
+      --  with_clause for the unit in question.
+
+      ----------------------------
+      -- Unit_In_Parent_Context --
+      ----------------------------
+
+      function Unit_In_Parent_Context (Par_Unit : Node_Id) return Boolean is
+      begin
+         if Unit_In_Context (Par_Unit) then
+            return True;
+
+         elsif Is_Child_Unit (Defining_Entity (Unit (Par_Unit))) then
+            return Unit_In_Parent_Context (Parent_Spec (Unit (Par_Unit)));
+
+         else
+            return False;
+         end if;
+      end Unit_In_Parent_Context;
+
+      ---------------------
+      -- Unit_In_Context --
+      ---------------------
+
+      function Unit_In_Context (Comp_Unit : Node_Id) return Boolean is
+         Clause : Node_Id;
+
+      begin
+         Clause := First (Context_Items (Comp_Unit));
+         while Present (Clause) loop
+            if Nkind (Clause) = N_With_Clause then
+               if Library_Unit (Clause) = U then
+                  return True;
+
+               --  The with_clause may denote a renaming of the unit we are
+               --  looking for, eg. Text_IO which renames Ada.Text_IO.
+
+               elsif
+                 Renamed_Entity (Entity (Name (Clause))) =
+                                                Defining_Entity (Unit (U))
+               then
+                  return True;
+               end if;
+            end if;
+
+            Next (Clause);
+         end loop;
+
+         return False;
+      end Unit_In_Context;
+
+   --  Start of processing for Unit_Is_Visible
+
+   begin
+      --  The currrent unit is directly visible.
+
+      if Curr = U then
+         return True;
+
+      elsif Unit_In_Context (Curr) then
+         return True;
+
+      --  If the current unit is a body, check the context of the spec.
+
+      elsif Nkind (Unit (Curr)) = N_Package_Body
+        or else
+          (Nkind (Unit (Curr)) = N_Subprogram_Body
+            and then not Acts_As_Spec (Unit (Curr)))
+      then
+         if Unit_In_Context (Library_Unit (Curr)) then
+            return True;
+         end if;
+      end if;
+
+      --  If the spec is a child unit, examine the parents.
+
+      if Is_Child_Unit (Curr_Entity) then
+         if Nkind (Unit (Curr)) in N_Unit_Body then
+            return
+              Unit_In_Parent_Context
+                (Parent_Spec (Unit (Library_Unit (Curr))));
+         else
+            return Unit_In_Parent_Context (Parent_Spec (Unit (Curr)));
+         end if;
+
+      else
+         return False;
+      end if;
+   end Unit_Is_Visible;
 
    ------------------------------
    -- Universal_Interpretation --

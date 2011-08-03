@@ -1,3 +1,49 @@
+2011-07-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49867
+	* parser.c (cp_parser_lambda_expression): Also clear in_statement
+	and in_switch_statement_p.
+	(cp_parser_class_specifier): Likewise.
+
+2011-07-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49808
+	* pt.c (tsubst) [TEMPLATE_PARM_INDEX]: Call convert_from_reference.
+	(convert_nontype_argument, tsubst_template_arg): Handle its output.
+
+2011-07-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/49813
+	* semantics.c (potential_constant_expression_1):  Handle FMA_EXPR.
+
+2011-07-27  Jeffrey Yasskin  <jyasskin@google.com>
+
+	* pt.c (build_template_decl): Copy the function_decl's
+	source location to the new template_decl.
+
+2011-07-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/49776
+	* typeck.c (cp_build_modify_expr): Check digest_init return value
+	for error_mark_node.
+
+2011-07-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR bootstrap/49845
+	* parser.c (cp_parser_perform_range_for_lookup): Always assign *being
+	and *end before returning.
+
+2011-07-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/49838
+	* parser.c (cp_parser_perform_range_for_lookup): Early return if
+	error_operand_p (range).
+
+2011-07-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49823
+	* parser.c (cp_parser_qualifying_entity): Handle templates.
+
 2011-07-22  Jason Merrill  <jason@redhat.com>
 
 	PR c++/49793

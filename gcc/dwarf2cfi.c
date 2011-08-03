@@ -109,9 +109,6 @@ typedef struct
   /* The row state at the beginning and end of the trace.  */
   dw_cfi_row *beg_row, *end_row;
 
-  /* True if this trace immediately follows NOTE_INSN_SWITCH_TEXT_SECTIONS.  */
-  bool switch_sections;
-
   /* The following variables contain data used in interpreting frame related
      expressions.  These are not part of the "real" row state as defined by
      Dwarf, but it seems like they need to be propagated into a trace in case
@@ -139,6 +136,11 @@ typedef struct
      a maximum of 5 entries.  */
   VEC(reg_saved_in_data, heap) *regs_saved_in_regs;
 
+  /* An identifier for this trace.  Used only for debugging dumps.  */
+  unsigned id;
+
+  /* True if this trace immediately follows NOTE_INSN_SWITCH_TEXT_SECTIONS.  */
+  bool switch_sections;
 } dw_trace_info;
 
 DEF_VEC_O (dw_trace_info);
@@ -286,12 +288,6 @@ dw_trace_info_eq (const void *ptr_a, const void *ptr_b)
   const dw_trace_info *a = (const dw_trace_info *) ptr_a;
   const dw_trace_info *b = (const dw_trace_info *) ptr_b;
   return a->head == b->head;
-}
-
-static unsigned
-get_trace_index (dw_trace_info *trace)
-{
-  return trace - VEC_address (dw_trace_info, trace_info);
 }
 
 static dw_trace_info *
@@ -667,8 +663,15 @@ cfi_row_equal_p (dw_cfi_row *a, dw_cfi_row *b)
   else if (!cfa_equal_p (&a->cfa, &b->cfa))
     return false;
 
-  if (a->args_size != b->args_size)
-    return false;
+  /* Logic suggests that we compare args_size here.  However, if
+     EXIT_IGNORE_STACK we don't bother tracking the args_size after
+     the last time it really matters within the function.  This does
+     in fact lead to paths with differing arg_size, but in cases for
+     which it doesn't matter.  */
+  /* ??? If we really want to sanity check the output of the optimizers,
+     find a way to backtrack from epilogues to the last EH site.  This
+     would allow us to distinguish regions with garbage args_size and
+     regions where paths ought to agree.  */
 
   n_a = VEC_length (dw_cfi_ref, a->reg_save);
   n_b = VEC_length (dw_cfi_ref, b->reg_save);
@@ -949,14 +952,6 @@ dwarf2out_stack_adjust (HOST_WIDE_INT offset)
   if (cur_trace->cfa_store.reg == dw_stack_pointer_regnum)
     cur_trace->cfa_store.offset += offset;
 
-#ifndef STACK_GROWS_DOWNWARD
-  offset = -offset;
-#endif
-
-  queued_args_size += offset;
-  if (queued_args_size < 0)
-    queued_args_size = 0;
-
   /* ??? The assumption seems to be that if A_O_A, the only CFA adjustments
      involving the stack pointer are inside the prologue and marked as
      RTX_FRAME_RELATED_P.  That said, should we not verify this assumption
@@ -964,6 +959,14 @@ dwarf2out_stack_adjust (HOST_WIDE_INT offset)
      to the stack pointer?  */
   if (ACCUMULATE_OUTGOING_ARGS)
     return;
+
+#ifndef STACK_GROWS_DOWNWARD
+  offset = -offset;
+#endif
+
+  queued_args_size += offset;
+  if (queued_args_size < 0)
+    queued_args_size = 0;
 
   def_cfa_1 (&loc);
   if (flag_asynchronous_unwind_tables)
@@ -1009,8 +1012,7 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
 	  if (GET_CODE (insn) == SET)
 	    insn = SET_SRC (insn);
 	  gcc_assert (GET_CODE (insn) == CALL);
-	  gcc_assert (queued_args_size == INTVAL (XEXP (insn, 1)));
-	  dwarf2out_args_size (queued_args_size);
+	  dwarf2out_args_size (INTVAL (XEXP (insn, 1)));
 	}
       return;
     }
@@ -2389,7 +2391,7 @@ add_cfis_to_fde (void)
    trace from CUR_TRACE and CUR_ROW.  */
 
 static void
-maybe_record_trace_start (rtx start, rtx origin)
+maybe_record_trace_start (rtx start, rtx origin, bool abnormal)
 {
   dw_trace_info *ti;
 
@@ -2404,7 +2406,7 @@ maybe_record_trace_start (rtx start, rtx origin)
   if (dump_file)
     {
       fprintf (dump_file, "   saw edge from trace %u to %u (via %s %d)\n",
-	       get_trace_index (cur_trace), get_trace_index (ti),
+	       cur_trace->id, ti->id,
 	       (origin ? rtx_name[(int) GET_CODE (origin)] : "fallthru"),
 	       (origin ? INSN_UID (origin) : 0));
     }
@@ -2414,6 +2416,11 @@ maybe_record_trace_start (rtx start, rtx origin)
       /* This is the first time we've encountered this trace.  Propagate
 	 state across the edge and push the trace onto the work list.  */
       ti->beg_row = copy_cfi_row (cur_row);
+      /* On all abnormal edges, especially EH and non-local-goto, we take
+	 care to free the pushed arguments.  */
+      if (abnormal)
+	ti->beg_row->args_size = 0;
+
       ti->cfa_store = cur_trace->cfa_store;
       ti->cfa_temp = cur_trace->cfa_temp;
       ti->regs_saved_in_regs = VEC_copy (reg_saved_in_data, heap,
@@ -2422,8 +2429,7 @@ maybe_record_trace_start (rtx start, rtx origin)
       VEC_safe_push (dw_trace_info_ref, heap, trace_work_list, ti);
 
       if (dump_file)
-	fprintf (dump_file, "\tpush trace %u to worklist\n",
-		 get_trace_index (ti));
+	fprintf (dump_file, "\tpush trace %u to worklist\n", ti->id);
     }
   else
     {
@@ -2458,13 +2464,13 @@ create_trace_edges (rtx insn)
 	  for (i = 0; i < n; ++i)
 	    {
 	      lab = XEXP (RTVEC_ELT (vec, i), 0);
-	      maybe_record_trace_start (lab, insn);
+	      maybe_record_trace_start (lab, insn, false);
 	    }
 	}
       else if (computed_jump_p (insn))
 	{
 	  for (lab = forced_labels; lab; lab = XEXP (lab, 1))
-	    maybe_record_trace_start (XEXP (lab, 0), insn);
+	    maybe_record_trace_start (XEXP (lab, 0), insn, true);
 	}
       else if (returnjump_p (insn))
 	;
@@ -2474,14 +2480,14 @@ create_trace_edges (rtx insn)
 	  for (i = 0; i < n; ++i)
 	    {
 	      lab = XEXP (ASM_OPERANDS_LABEL (tmp, i), 0);
-	      maybe_record_trace_start (lab, insn);
+	      maybe_record_trace_start (lab, insn, true);
 	    }
 	}
       else
 	{
 	  lab = JUMP_LABEL (insn);
 	  gcc_assert (lab != NULL);
-	  maybe_record_trace_start (lab, insn);
+	  maybe_record_trace_start (lab, insn, false);
 	}
     }
   else if (CALL_P (insn))
@@ -2493,7 +2499,15 @@ create_trace_edges (rtx insn)
       /* Process non-local goto edges.  */
       if (can_nonlocal_goto (insn))
 	for (lab = nonlocal_goto_handler_labels; lab; lab = XEXP (lab, 1))
-	  maybe_record_trace_start (XEXP (lab, 0), insn);
+	  maybe_record_trace_start (XEXP (lab, 0), insn, true);
+    }
+  else if (GET_CODE (PATTERN (insn)) == SEQUENCE)
+    {
+      rtx seq = PATTERN (insn);
+      int i, n = XVECLEN (seq, 0);
+      for (i = 0; i < n; ++i)
+	create_trace_edges (XVECEXP (seq, 0, i));
+      return;
     }
 
   /* Process EH edges.  */
@@ -2501,7 +2515,7 @@ create_trace_edges (rtx insn)
     {
       eh_landing_pad lp = get_eh_landing_pad_from_rtx (insn);
       if (lp)
-	maybe_record_trace_start (lp->landing_pad, insn);
+	maybe_record_trace_start (lp->landing_pad, insn, true);
     }
 }
 
@@ -2515,7 +2529,7 @@ scan_trace (dw_trace_info *trace)
 
   if (dump_file)
     fprintf (dump_file, "Processing trace %u : start at %s %d\n",
-	     get_trace_index (trace), rtx_name[(int) GET_CODE (insn)],
+	     trace->id, rtx_name[(int) GET_CODE (insn)],
 	     INSN_UID (insn));
 
   trace->end_row = copy_cfi_row (trace->beg_row);
@@ -2538,7 +2552,7 @@ scan_trace (dw_trace_info *trace)
 
 	  /* Propagate across fallthru edges.  */
 	  if (!BARRIER_P (insn))
-	    maybe_record_trace_start (insn, NULL);
+	    maybe_record_trace_start (insn, NULL, false);
 	  break;
 	}
 
@@ -2611,8 +2625,23 @@ create_cfi_notes (void)
   VEC_free (dw_trace_info_ref, heap, trace_work_list);
 }
 
+/* Return the insn before the first NOTE_INSN_CFI after START.  */
+
+static rtx
+before_next_cfi_note (rtx start)
+{
+  rtx prev = start;
+  while (start)
+    {
+      if (NOTE_P (start) && NOTE_KIND (start) == NOTE_INSN_CFI)
+	return prev;
+      prev = start;
+      start = NEXT_INSN (start);
+    }
+  gcc_unreachable ();
+}
+
 /* Insert CFI notes between traces to properly change state between them.  */
-/* ??? TODO: Make use of remember/restore_state.  */
 
 static void
 connect_traces (void)
@@ -2620,16 +2649,37 @@ connect_traces (void)
   unsigned i, n = VEC_length (dw_trace_info, trace_info);
   dw_trace_info *prev_ti, *ti;
 
-  prev_ti = VEC_index (dw_trace_info, trace_info, 0);
+  /* ??? Ideally, we should have both queued and processed every trace.
+     However the current representation of constant pools on various targets
+     is indistinguishable from unreachable code.  Assume for the moment that
+     we can simply skip over such traces.  */
+  /* ??? Consider creating a DATA_INSN rtx code to indicate that
+     these are not "real" instructions, and should not be considered.
+     This could be generically useful for tablejump data as well.  */
+  /* Remove all unprocessed traces from the list.  */
+  for (i = n - 1; i > 0; --i)
+    {
+      ti = VEC_index (dw_trace_info, trace_info, i);
+      if (ti->beg_row == NULL)
+	{
+	  VEC_ordered_remove (dw_trace_info, trace_info, i);
+	  n -= 1;
+	}
+      else
+	gcc_assert (ti->end_row != NULL);
+    }
 
-  for (i = 1; i < n; ++i, prev_ti = ti)
+  /* Work from the end back to the beginning.  This lets us easily insert
+     remember/restore_state notes in the correct order wrt other notes.  */
+  prev_ti = VEC_index (dw_trace_info, trace_info, n - 1);
+  for (i = n - 1; i > 0; --i)
     {
       dw_cfi_row *old_row;
 
-      ti = VEC_index (dw_trace_info, trace_info, i);
+      ti = prev_ti;
+      prev_ti = VEC_index (dw_trace_info, trace_info, i - 1);
 
-      /* We must have both queued and processed every trace.  */
-      gcc_assert (ti->beg_row && ti->end_row);
+      add_cfi_insn = ti->head;
 
       /* In dwarf2out_switch_text_section, we'll begin a new FDE
 	 for the portion of the function in the alternate text
@@ -2638,16 +2688,47 @@ connect_traces (void)
       if (ti->switch_sections)
 	old_row = cie_cfi_row;
       else
-	old_row = prev_ti->end_row;
+	{
+	  old_row = prev_ti->end_row;
+	  /* If there's no change from the previous end state, fine.  */
+	  if (cfi_row_equal_p (old_row, ti->beg_row))
+	    ;
+	  /* Otherwise check for the common case of sharing state with
+	     the beginning of an epilogue, but not the end.  Insert
+	     remember/restore opcodes in that case.  */
+	  else if (cfi_row_equal_p (prev_ti->beg_row, ti->beg_row))
+	    {
+	      dw_cfi_ref cfi;
 
-      add_cfi_insn = ti->head;
+	      /* Note that if we blindly insert the remember at the
+		 start of the trace, we can wind up increasing the
+		 size of the unwind info due to extra advance opcodes.
+		 Instead, put the remember immediately before the next
+		 state change.  We know there must be one, because the 
+		 state at the beginning and head of the trace differ.  */
+	      add_cfi_insn = before_next_cfi_note (prev_ti->head);
+	      cfi = new_cfi ();
+	      cfi->dw_cfi_opc = DW_CFA_remember_state;
+	      add_cfi (cfi);
+
+	      add_cfi_insn = ti->head;
+	      cfi = new_cfi ();
+	      cfi->dw_cfi_opc = DW_CFA_restore_state;
+	      add_cfi (cfi);
+
+	      old_row = prev_ti->beg_row;
+	    }
+	  /* Otherwise, we'll simply change state from the previous end.  */
+	}
+
       change_cfi_row (old_row, ti->beg_row);
 
       if (dump_file && add_cfi_insn != ti->head)
 	{
 	  rtx note;
 
-	  fprintf (dump_file, "Fixup between trace %u and %u:\n", i - 1, i);
+	  fprintf (dump_file, "Fixup between trace %u and %u:\n",
+		   prev_ti->id, ti->id);
 
 	  note = ti->head;
 	  do
@@ -2710,6 +2791,7 @@ create_pseudo_cfg (void)
 	  memset (ti, 0, sizeof (*ti));
 	  ti->head = insn;
 	  ti->switch_sections = switch_sections;
+	  ti->id = VEC_length (dw_trace_info, trace_info) - 1;
 
 	  saw_barrier = false;
 	  switch_sections = false;
@@ -3284,6 +3366,38 @@ dwarf2out_emit_cfi (dw_cfi_ref cfi)
 {
   if (dwarf2out_do_cfi_asm ())
     output_cfi_directive (asm_out_file, cfi);
+}
+
+static void
+dump_cfi_row (FILE *f, dw_cfi_row *row)
+{
+  dw_cfi_ref cfi;
+  unsigned i;
+
+  cfi = row->cfa_cfi;
+  if (!cfi)
+    {
+      dw_cfa_location dummy;
+      memset(&dummy, 0, sizeof(dummy));
+      dummy.reg = INVALID_REGNUM;
+      cfi = def_cfa_0 (&dummy, &row->cfa);
+    }
+  output_cfi_directive (f, cfi);
+
+  FOR_EACH_VEC_ELT (dw_cfi_ref, row->reg_save, i, cfi)
+    if (cfi)
+      output_cfi_directive (f, cfi);
+
+  fprintf (f, "\t.cfi_GNU_args_size "HOST_WIDE_INT_PRINT_DEC "\n",
+	   row->args_size);
+}
+
+void debug_cfi_row (dw_cfi_row *row);
+
+void
+debug_cfi_row (dw_cfi_row *row)
+{
+  dump_cfi_row (stderr, row);
 }
 
 

@@ -817,7 +817,7 @@ package body CStand is
       Set_Entity (E_Id, Standard_Positive);
       Set_Etype (E_Id, Standard_Positive);
 
-      --  Setup entity for Naturalend Create_Standard;
+      --  Setup entity for Natural
 
       Set_Ekind          (Standard_Natural, E_Signed_Integer_Subtype);
       Set_Etype          (Standard_Natural, Base_Type (Standard_Integer));
@@ -1105,7 +1105,8 @@ package body CStand is
       Set_Ekind             (Any_Real, E_Floating_Point_Type);
       Set_Scope             (Any_Real, Standard_Standard);
       Set_Etype             (Any_Real, Standard_Long_Long_Float);
-      Init_Size             (Any_Real, Standard_Long_Long_Float_Size);
+      Init_Size             (Any_Real,
+        UI_To_Int (Esize (Standard_Long_Long_Float)));
       Set_Elem_Alignment    (Any_Real);
       Make_Name             (Any_Real, "a real type");
 
@@ -1672,6 +1673,12 @@ package body CStand is
       procedure P_Float_Range (Id : Entity_Id);
       --  Prints the bounds range for the given float type entity
 
+      procedure P_Float_Type (Id : Entity_Id);
+      --  Prints the type declaration of the given float type entity
+
+      procedure P_Mixed_Name (Id : Name_Id);
+      --  Prints Id in mixed case
+
       -------------------
       -- P_Float_Range --
       -------------------
@@ -1685,6 +1692,26 @@ package body CStand is
          Write_Str (";");
          Write_Eol;
       end P_Float_Range;
+
+      ------------------
+      -- P_Float_Type --
+      ------------------
+
+      procedure P_Float_Type (Id : Entity_Id) is
+      begin
+         Write_Str ("   type ");
+         P_Mixed_Name (Chars (Id));
+         Write_Str (" is digits ");
+         Write_Int (UI_To_Int (Digits_Value (Id)));
+         Write_Eol;
+         P_Float_Range (Id);
+         Write_Str ("   for ");
+         P_Mixed_Name (Chars (Id));
+         Write_Str ("'Size use ");
+         Write_Int (UI_To_Int (RM_Size (Id)));
+         Write_Line (";");
+         Write_Eol;
+      end P_Float_Type;
 
       -----------------
       -- P_Int_Range --
@@ -1700,6 +1727,23 @@ package body CStand is
          Write_Str (" - 1);");
          Write_Eol;
       end P_Int_Range;
+
+      ------------------
+      -- P_Mixed_Name --
+      ------------------
+
+      procedure P_Mixed_Name (Id : Name_Id) is
+      begin
+         Get_Name_String (Id);
+
+         for J in 1 .. Name_Len loop
+            if J = 1 or else Name_Buffer (J - 1) = '_' then
+               Name_Buffer (J) := Fold_Upper (Name_Buffer (J));
+            end if;
+         end loop;
+
+         Write_Str (Name_Buffer (1 .. Name_Len));
+      end P_Mixed_Name;
 
    --  Start of processing for Print_Standard
 
@@ -1763,41 +1807,10 @@ package body CStand is
 
       --  Floating point types
 
-      Write_Str ("   type Short_Float is digits ");
-      Write_Int (Standard_Short_Float_Digits);
-      Write_Eol;
-      P_Float_Range (Standard_Short_Float);
-      Write_Str ("   for Short_Float'Size use ");
-      Write_Int (Standard_Short_Float_Size);
-      P (";");
-      Write_Eol;
-
-      Write_Str ("   type Float is digits ");
-      Write_Int (Standard_Float_Digits);
-      Write_Eol;
-      P_Float_Range (Standard_Float);
-      Write_Str ("   for Float'Size use ");
-      Write_Int (Standard_Float_Size);
-      P (";");
-      Write_Eol;
-
-      Write_Str ("   type Long_Float is digits ");
-      Write_Int (Standard_Long_Float_Digits);
-      Write_Eol;
-      P_Float_Range (Standard_Long_Float);
-      Write_Str ("   for Long_Float'Size use ");
-      Write_Int (Standard_Long_Float_Size);
-      P (";");
-      Write_Eol;
-
-      Write_Str ("   type Long_Long_Float is digits ");
-      Write_Int (Standard_Long_Long_Float_Digits);
-      Write_Eol;
-      P_Float_Range (Standard_Long_Long_Float);
-      Write_Str ("   for Long_Long_Float'Size use ");
-      Write_Int (Standard_Long_Long_Float_Size);
-      P (";");
-      Write_Eol;
+      P_Float_Type (Standard_Short_Float);
+      P_Float_Type (Standard_Float);
+      P_Float_Type (Standard_Long_Float);
+      P_Float_Type (Standard_Long_Long_Float);
 
       P ("   type Character is (...)");
       Write_Str ("   for Character'Size use ");
@@ -1833,14 +1846,15 @@ package body CStand is
       P ("   pragma Pack (Wide_Wide_String);");
       Write_Eol;
 
-      --  Here it's OK to use the Duration type of the host compiler since
-      --  the implementation of Duration in GNAT is target independent.
+      --  We only have one representation each for 32-bit and 64-bit sizes,
+      --  so select the right one based on Duration_32_Bits_On_Target.
 
       if Duration_32_Bits_On_Target then
          P ("   type Duration is delta 0.020");
          P ("     range -((2 ** 31 - 1) * 0.020) ..");
          P ("           +((2 ** 31 - 1) * 0.020);");
          P ("   for Duration'Small use 0.020;");
+
       else
          P ("   type Duration is delta 0.000000001");
          P ("     range -((2 ** 63 - 1) * 0.000000001) ..");

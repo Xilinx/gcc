@@ -2663,6 +2663,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-mmmx",		OPTION_MASK_ISA_MMX },
     { "-mabm",		OPTION_MASK_ISA_ABM },
     { "-mbmi",		OPTION_MASK_ISA_BMI },
+    { "-mlzcnt",	OPTION_MASK_ISA_LZCNT },
     { "-mtbm",		OPTION_MASK_ISA_TBM },
     { "-mpopcnt",	OPTION_MASK_ISA_POPCNT },
     { "-mmovbe",	OPTION_MASK_ISA_MOVBE },
@@ -2917,7 +2918,8 @@ ix86_option_override_internal (bool main_args_p)
       PTA_RDRND = 1 << 25,
       PTA_F16C = 1 << 26,
       PTA_BMI = 1 << 27,
-      PTA_TBM = 1 << 28
+      PTA_TBM = 1 << 28,
+      PTA_LZCNT = 1 << 29
       /* if this reaches 32, need to widen struct pta flags below */
     };
 
@@ -3133,9 +3135,6 @@ ix86_option_override_internal (bool main_args_p)
   if (!global_options_set.x_ix86_abi)
     ix86_abi = DEFAULT_ABI;
 
-  if (ix86_abi == MS_ABI && TARGET_X32)
-    error ("MS ABI not supported in x32 mode");
-
   if (global_options_set.x_ix86_cmodel)
     {
       switch (ix86_cmodel)
@@ -3281,6 +3280,9 @@ ix86_option_override_internal (bool main_args_p)
 	if (processor_alias_table[i].flags & PTA_BMI
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_BMI))
 	  ix86_isa_flags |= OPTION_MASK_ISA_BMI;
+	if (processor_alias_table[i].flags & (PTA_LZCNT | PTA_ABM)
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_LZCNT))
+	  ix86_isa_flags |= OPTION_MASK_ISA_LZCNT;
 	if (processor_alias_table[i].flags & PTA_TBM
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_TBM))
 	  ix86_isa_flags |= OPTION_MASK_ISA_TBM;
@@ -3527,6 +3529,10 @@ ix86_option_override_internal (bool main_args_p)
   /* Turn on popcnt instruction for -msse4.2 or -mabm.  */
   if (TARGET_SSE4_2 || TARGET_ABM)
     ix86_isa_flags |= OPTION_MASK_ISA_POPCNT & ~ix86_isa_flags_explicit;
+
+  /* Turn on lzcnt instruction for -mabm.  */
+  if (TARGET_ABM)
+    ix86_isa_flags |= OPTION_MASK_ISA_LZCNT & ~ix86_isa_flags_explicit;
 
   /* Validate -mpreferred-stack-boundary= value or default it to
      PREFERRED_STACK_BOUNDARY_DEFAULT.  */
@@ -4033,6 +4039,7 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[],
     IX86_ATTR_ISA ("3dnow",	OPT_m3dnow),
     IX86_ATTR_ISA ("abm",	OPT_mabm),
     IX86_ATTR_ISA ("bmi",	OPT_mbmi),
+    IX86_ATTR_ISA ("lzcnt",	OPT_mlzcnt),
     IX86_ATTR_ISA ("tbm",	OPT_mtbm),
     IX86_ATTR_ISA ("aes",	OPT_maes),
     IX86_ATTR_ISA ("avx",	OPT_mavx),
@@ -8321,10 +8328,6 @@ ix86_code_end (void)
   rtx xops[2];
   int regno;
 
-#ifdef TARGET_SOLARIS
-  solaris_code_end ();
-#endif
-
   for (regno = AX_REG; regno <= SP_REG; regno++)
     {
       char name[32];
@@ -12121,17 +12124,15 @@ legitimize_pic_address (rtx orig, rtx reg)
 static rtx
 get_thread_pointer (bool to_reg)
 {
-  rtx tp, reg, insn;
+  rtx tp = gen_rtx_UNSPEC (ptr_mode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
 
-  tp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
-  if (!to_reg)
-    return tp;
+  if (GET_MODE (tp) != Pmode)
+    tp = convert_to_mode (Pmode, tp, 1);
 
-  reg = gen_reg_rtx (Pmode);
-  insn = gen_rtx_SET (VOIDmode, reg, tp);
-  insn = emit_insn (insn);
+  if (to_reg)
+    tp = copy_addr_to_reg (tp);
 
-  return reg;
+  return tp;
 }
 
 /* Construct the SYMBOL_REF for the tls_get_addr function.  */
@@ -12967,9 +12968,10 @@ ix86_delegitimize_address (rtx x)
 	  || !MEM_P (orig_x))
 	return ix86_delegitimize_tls_address (orig_x);
       x = XVECEXP (XEXP (x, 0), 0, 0);
-      if (GET_MODE (orig_x) != Pmode)
+      if (GET_MODE (orig_x) != GET_MODE (x))
 	{
-	  x = simplify_gen_subreg (GET_MODE (orig_x), x, Pmode, 0);
+	  x = simplify_gen_subreg (GET_MODE (orig_x), x,
+				   GET_MODE (x), 0);
 	  if (x == NULL_RTX)
 	    return orig_x;
 	}
@@ -14122,6 +14124,9 @@ ix86_print_operand_address (FILE *file, rtx addr)
     }
   else
     {
+      /* Print DImode registers on 64bit targets to avoid addr32 prefixes.  */
+      int code = TARGET_64BIT ? 'q' : 0;
+
       if (ASSEMBLER_DIALECT == ASM_ATT)
 	{
 	  if (disp)
@@ -14136,11 +14141,11 @@ ix86_print_operand_address (FILE *file, rtx addr)
 
 	  putc ('(', file);
 	  if (base)
-	    print_reg (base, 0, file);
+	    print_reg (base, code, file);
 	  if (index)
 	    {
 	      putc (',', file);
-	      print_reg (index, 0, file);
+	      print_reg (index, code, file);
 	      if (scale != 1)
 		fprintf (file, ",%d", scale);
 	    }
@@ -14175,7 +14180,7 @@ ix86_print_operand_address (FILE *file, rtx addr)
 	  putc ('[', file);
 	  if (base)
 	    {
-	      print_reg (base, 0, file);
+	      print_reg (base, code, file);
 	      if (offset)
 		{
 		  if (INTVAL (offset) >= 0)
@@ -14191,7 +14196,7 @@ ix86_print_operand_address (FILE *file, rtx addr)
 	  if (index)
 	    {
 	      putc ('+', file);
-	      print_reg (index, 0, file);
+	      print_reg (index, code, file);
 	      if (scale != 1)
 		fprintf (file, "*%d", scale);
 	    }
@@ -15025,11 +15030,13 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 				     op0, 1, OPTAB_DIRECT);
 	  if (tmp == op0)
 	    return;
+	  if (GET_MODE (tmp) != mode)
+	    op1 = convert_to_mode (mode, tmp, 1);
 	}
     }
 
   if ((flag_pic || MACHOPIC_INDIRECT) 
-       && mode == Pmode && symbolic_operand (op1, Pmode))
+      && symbolic_operand (op1, mode))
     {
       if (TARGET_MACHO && !TARGET_64BIT)
 	{
@@ -15070,13 +15077,15 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
       else
 	{
 	  if (MEM_P (op0))
-	    op1 = force_reg (Pmode, op1);
-	  else if (!TARGET_64BIT || !x86_64_movabs_operand (op1, Pmode))
+	    op1 = force_reg (mode, op1);
+	  else if (!(TARGET_64BIT && x86_64_movabs_operand (op1, DImode)))
 	    {
 	      rtx reg = can_create_pseudo_p () ? NULL_RTX : op0;
 	      op1 = legitimize_pic_address (op1, reg);
 	      if (op0 == op1)
 		return;
+	      if (GET_MODE (op1) != mode)
+		op1 = convert_to_mode (mode, op1, 1);
 	    }
 	}
     }
@@ -24936,7 +24945,7 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv8sf3,  "__builtin_ia32_copysignps256", IX86_BUILTIN_CPYSGNPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv4df3,  "__builtin_ia32_copysignpd256", IX86_BUILTIN_CPYSGNPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
 
-  { OPTION_MASK_ISA_ABM, CODE_FOR_clzhi2_abm,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
+  { OPTION_MASK_ISA_LZCNT, CODE_FOR_clzhi2_lzcnt,   "__builtin_clzs",   IX86_BUILTIN_CLZS,    UNKNOWN,     (int) UINT16_FTYPE_UINT16 },
 
   /* BMI */
   { OPTION_MASK_ISA_BMI, CODE_FOR_bmi_bextr_si, "__builtin_ia32_bextr_u32", IX86_BUILTIN_BEXTR32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },
@@ -29312,13 +29321,6 @@ ix86_handle_abi_attribute (tree *node, tree name,
       && TREE_CODE (*node) != TYPE_DECL)
     {
       warning (OPT_Wattributes, "%qE attribute only applies to functions",
-	       name);
-      *no_add_attrs = true;
-      return NULL_TREE;
-    }
-  if (!TARGET_LP64)
-    {
-      warning (OPT_Wattributes, "%qE attribute only available for 64-bit",
 	       name);
       *no_add_attrs = true;
       return NULL_TREE;

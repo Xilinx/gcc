@@ -1119,7 +1119,7 @@ rtl_redirect_edge_and_branch (edge e, basic_block target)
 /* Like force_nonfallthru below, but additionally performs redirection
    Used by redirect_edge_and_branch_force.  */
 
-static basic_block
+basic_block
 force_nonfallthru_and_redirect (edge e, basic_block target)
 {
   basic_block jump_block, new_bb = NULL, src = e->src;
@@ -1254,6 +1254,7 @@ force_nonfallthru_and_redirect (edge e, basic_block target)
     {
 #ifdef HAVE_return
 	emit_jump_insn_after_setloc (gen_return (), BB_END (jump_block), loc);
+	JUMP_LABEL (BB_END (jump_block)) = ret_rtx;
 #else
 	gcc_unreachable ();
 #endif

@@ -7652,7 +7652,15 @@ size_of_die (dw_die_ref die)
 	  size += size_of_sleb128 (AT_int (a));
 	  break;
 	case dw_val_class_unsigned_const:
-	  size += constant_size (AT_unsigned (a));
+	  {
+	    int csize = constant_size (AT_unsigned (a));
+	    if (dwarf_version == 3
+		&& a->dw_attr == DW_AT_data_member_location
+		&& csize >= 4)
+	      size += size_of_uleb128 (AT_unsigned (a));
+	    else
+	      size += csize;
+	  }
 	  break;
 	case dw_val_class_const_double:
 	  size += 2 * HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR;
@@ -7953,8 +7961,16 @@ value_format (dw_attr_ref a)
 	case 2:
 	  return DW_FORM_data2;
 	case 4:
+	  /* In DWARF3 DW_AT_data_member_location with
+	     DW_FORM_data4 or DW_FORM_data8 is a loclistptr, not
+	     constant, so we need to use DW_FORM_udata if we need
+	     a large constant.  */
+	  if (dwarf_version == 3 && a->dw_attr == DW_AT_data_member_location)
+	    return DW_FORM_udata;
 	  return DW_FORM_data4;
 	case 8:
+	  if (dwarf_version == 3 && a->dw_attr == DW_AT_data_member_location)
+	    return DW_FORM_udata;
 	  return DW_FORM_data8;
 	default:
 	  gcc_unreachable ();
@@ -8261,8 +8277,15 @@ output_die (dw_die_ref die)
 	  break;
 
 	case dw_val_class_unsigned_const:
-	  dw2_asm_output_data (constant_size (AT_unsigned (a)),
-			       AT_unsigned (a), "%s", name);
+	  {
+	    int csize = constant_size (AT_unsigned (a));
+	    if (dwarf_version == 3
+		&& a->dw_attr == DW_AT_data_member_location
+		&& csize >= 4)
+	      dw2_asm_output_data_uleb128 (AT_unsigned (a), "%s", name);
+	    else
+	      dw2_asm_output_data (csize, AT_unsigned (a), "%s", name);
+	  }
 	  break;
 
 	case dw_val_class_const_double:
@@ -18244,6 +18267,7 @@ gen_producer_string (void)
       case OPT__output_pch_:
       case OPT_fdiagnostics_show_location_:
       case OPT_fdiagnostics_show_option:
+      case OPT_fverbose_asm:
       case OPT____:
       case OPT__sysroot_:
       case OPT_nostdinc:
@@ -20552,11 +20576,15 @@ output_macinfo_op (macinfo_entry *ref)
   size_t len;
   struct indirect_string_node *node;
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
+  struct dwarf_file_data *fd;
 
   switch (ref->code)
     {
     case DW_MACINFO_start_file:
-      file_num = maybe_emit_file (lookup_filename (ref->info));
+      fd = lookup_filename (ref->info);
+      if (fd->filename == ref->info)
+	fd->filename = ggc_strdup (fd->filename);
+      file_num = maybe_emit_file (fd);
       dw2_asm_output_data (1, DW_MACINFO_start_file, "Start new file");
       dw2_asm_output_data_uleb128 (ref->lineno,
 				   "Included from line number %lu", 
@@ -21781,13 +21809,26 @@ resolve_addr (dw_die_ref die)
 	  }
 	break;
       case dw_val_class_loc:
-	if (!resolve_addr_in_expr (AT_loc (a)))
-	  {
-	    remove_AT (die, a->dw_attr);
-	    ix--;
-	  }
-	else
-	  mark_base_types (AT_loc (a));
+	{
+	  dw_loc_descr_ref l = AT_loc (a);
+	  /* For -gdwarf-2 don't attempt to optimize
+	     DW_AT_data_member_location containing
+	     DW_OP_plus_uconst - older consumers might
+	     rely on it being that op instead of a more complex,
+	     but shorter, location description.  */
+	  if ((dwarf_version > 2
+	       || a->dw_attr != DW_AT_data_member_location
+	       || l == NULL
+	       || l->dw_loc_opc != DW_OP_plus_uconst
+	       || l->dw_loc_next != NULL)
+	      && !resolve_addr_in_expr (l))
+	    {
+	      remove_AT (die, a->dw_attr);
+	      ix--;
+	    }
+	  else
+	    mark_base_types (l);
+	}
 	break;
       case dw_val_class_addr:
 	if (a->dw_attr == DW_AT_const_value
@@ -22637,6 +22678,16 @@ dwarf2out_finish (const char *filename)
       output_ranges ();
     }
 
+  /* Have to end the macro section.  */
+  if (debug_info_level >= DINFO_LEVEL_VERBOSE)
+    {
+      switch_to_section (debug_macinfo_section);
+      ASM_OUTPUT_LABEL (asm_out_file, macinfo_section_label);
+      if (!VEC_empty (macinfo_entry, macinfo_table))
+	output_macinfo ();
+      dw2_asm_output_data (1, 0, "End compilation unit");
+    }
+
   /* Output the source line correspondence table.  We must do this
      even if there is no line information.  Otherwise, on an empty
      translation unit, we will generate a present, but empty,
@@ -22647,16 +22698,6 @@ dwarf2out_finish (const char *filename)
   ASM_OUTPUT_LABEL (asm_out_file, debug_line_section_label);
   if (! DWARF2_ASM_LINE_DEBUG_INFO)
     output_line_info ();
-
-  /* Have to end the macro section.  */
-  if (debug_info_level >= DINFO_LEVEL_VERBOSE)
-    {
-      switch_to_section (debug_macinfo_section);
-      ASM_OUTPUT_LABEL (asm_out_file, macinfo_section_label);
-      if (!VEC_empty (macinfo_entry, macinfo_table))
-        output_macinfo ();
-      dw2_asm_output_data (1, 0, "End compilation unit");
-    }
 
   /* If we emitted any DW_FORM_strp form attribute, output the string
      table too.  */

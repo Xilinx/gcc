@@ -2110,9 +2110,14 @@ package body Ch5 is
    begin
       Decls := P_Declarative_Part;
 
-      --  Check for misplacement of later vs basic declarations in Ada 83
+      --  Check for misplacement of later vs basic declarations in Ada 83.
+      --  The same is true for the SPARK mode: although SPARK 95 removes
+      --  the distinction between initial and later declarative items,
+      --  the distinction remains in the Examiner. (JB01-005)
+      --  Note that the Examiner does not count package declarations in later
+      --  declarative items.
 
-      if Ada_Version = Ada_83 then
+      if Ada_Version = Ada_83 or else SPARK_Mode then
          Decl := First (Decls);
 
          --  Loop through sequence of basic declarative items
@@ -2132,13 +2137,21 @@ package body Ch5 is
                Body_Sloc := Sloc (Decl);
 
                Inner : while Present (Decl) loop
-                  if Nkind (Decl) not in N_Later_Decl_Item
+                  if (Nkind (Decl) not in N_Later_Decl_Item
+                       or else (SPARK_Mode
+                                 and then
+                                   Nkind (Decl) = N_Package_Declaration))
                     and then Nkind (Decl) /= N_Pragma
                   then
                      if Ada_Version = Ada_83 then
                         Error_Msg_Sloc := Body_Sloc;
                         Error_Msg_N
                           ("(Ada 83) decl cannot appear after body#", Decl);
+                     else
+                        pragma Assert (SPARK_Mode);
+                        Error_Msg_Sloc := Body_Sloc;
+                        Error_Msg_F
+                          ("|~~decl cannot appear after body#", Decl);
                      end if;
                   end if;
 

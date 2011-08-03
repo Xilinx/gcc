@@ -1075,9 +1075,13 @@ tree_non_mode_aligned_mem_p (tree exp)
   enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
   unsigned int align;
 
+  if (TREE_CODE (exp) == VIEW_CONVERT_EXPR)
+    exp = TREE_OPERAND (exp, 0);
+
   if (TREE_CODE (exp) == SSA_NAME
       || TREE_CODE (exp) == MEM_REF
       || mode == BLKmode
+      || is_gimple_min_invariant (exp)
       || !STRICT_ALIGNMENT)
     return false;
 
@@ -3302,7 +3306,8 @@ ptr_parm_has_direct_uses (tree parm)
 	      && TREE_OPERAND (lhs, 0) == name
 	      && integer_zerop (TREE_OPERAND (lhs, 1))
 	      && types_compatible_p (TREE_TYPE (lhs),
-				     TREE_TYPE (TREE_TYPE (name))))
+				     TREE_TYPE (TREE_TYPE (name)))
+	      && !TREE_THIS_VOLATILE (lhs))
 	    uses_ok++;
 	}
       if (gimple_assign_single_p (stmt))
@@ -3314,7 +3319,8 @@ ptr_parm_has_direct_uses (tree parm)
 	      && TREE_OPERAND (rhs, 0) == name
 	      && integer_zerop (TREE_OPERAND (rhs, 1))
 	      && types_compatible_p (TREE_TYPE (rhs),
-				     TREE_TYPE (TREE_TYPE (name))))
+				     TREE_TYPE (TREE_TYPE (name)))
+	      && !TREE_THIS_VOLATILE (rhs))
 	    uses_ok++;
 	}
       else if (is_gimple_call (stmt))
@@ -3329,7 +3335,8 @@ ptr_parm_has_direct_uses (tree parm)
 		  && TREE_OPERAND (arg, 0) == name
 		  && integer_zerop (TREE_OPERAND (arg, 1))
 		  && types_compatible_p (TREE_TYPE (arg),
-					 TREE_TYPE (TREE_TYPE (name))))
+					 TREE_TYPE (TREE_TYPE (name)))
+		  && !TREE_THIS_VOLATILE (arg))
 		uses_ok++;
 	    }
 	}

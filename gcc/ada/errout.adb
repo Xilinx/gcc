@@ -2171,6 +2171,19 @@ package body Errout is
       Set_Casing (Desired_Case);
    end Set_Identifier_Casing;
 
+   ------------------------
+   -- Set_Error_Msg_Lang --
+   ------------------------
+
+   procedure Set_Error_Msg_Lang (To : String) is
+   begin
+      Error_Msg_Lang (1) := '(';
+      Error_Msg_Lang (2 .. To'Length + 1) := To;
+      Error_Msg_Lang (To'Length + 2) := ')';
+      Error_Msg_Lang (To'Length + 3) := ' ';
+      Error_Msg_Langlen := To'Length + 3;
+   end Set_Error_Msg_Lang;
+
    -----------------------
    -- Set_Ignore_Errors --
    -----------------------
@@ -2632,7 +2645,6 @@ package body Errout is
                if P <= Text'Last and then Text (P) = '$' then
                   P := P + 1;
                   Set_Msg_Insertion_Unit_Name (Suffix => False);
-
                else
                   Set_Msg_Insertion_Unit_Name;
                end if;
@@ -2690,7 +2702,12 @@ package body Errout is
                P := P + 1;
 
             when '~' =>
-               Set_Msg_Str (Error_Msg_String (1 .. Error_Msg_Strlen));
+               if P <= Text'Last and then Text (P) = '~' then
+                  P := P + 1;
+                  Set_Msg_Str (Error_Msg_Lang (1 .. Error_Msg_Langlen));
+               else
+                  Set_Msg_Str (Error_Msg_String (1 .. Error_Msg_Strlen));
+               end if;
 
             --  Upper case letter
 

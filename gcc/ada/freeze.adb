@@ -13,11 +13,10 @@
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
---                                                                          --
--- You should have received a copy of the GNU General Public License along  --
--- with this program; see file COPYING3.  If not see                        --
--- <http://www.gnu.org/licenses/>.                                          --
+-- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
+-- for  more details.  You should have  received  a copy of the GNU General --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -1323,6 +1322,28 @@ package body Freeze is
             if not Is_Frozen (E) then
                Flist := Freeze_Entity (E, After);
                Process_Flist;
+
+            --  If already frozen, and there are delayed aspects, this is where
+            --  we do the visibility check for these aspects (see Sem_Ch13 spec
+            --  for a description of how we handle aspect visibility).
+
+            elsif Has_Delayed_Aspects (E) then
+               declare
+                  Ritem : Node_Id;
+
+               begin
+                  Ritem := First_Rep_Item (E);
+                  while Present (Ritem) loop
+                     if Nkind (Ritem) = N_Aspect_Specification
+                       and then Entity (Ritem) = E
+                       and then Is_Delayed_Aspect (Ritem)
+                     then
+                        Check_Aspect_At_End_Of_Declarations (Ritem);
+                     end if;
+
+                     Ritem := Next_Rep_Item (Ritem);
+                  end loop;
+               end;
             end if;
 
             --  If an incomplete type is still not frozen, this may be a
@@ -2370,11 +2391,13 @@ package body Freeze is
          end;
       end if;
 
-      --  Deal with delayed aspect specifications. At the point of occurrence
-      --  of the aspect definition, we preanalyzed the argument, to capture
-      --  the visibility at that point, but the actual analysis of the aspect
+      --  Deal with delayed aspect specifications. The analysis of the aspect
       --  is required to be delayed to the freeze point, so we evaluate the
       --  pragma or attribute definition clause in the tree at this point.
+
+      --  We also have to deal with the case of Boolean aspects, where the
+      --  value of the Boolean expression is represented by the setting of
+      --  the Aspect_Cancel flag on the pragma.
 
       if Has_Delayed_Aspects (E) then
          declare
@@ -2382,12 +2405,44 @@ package body Freeze is
             Aitem : Node_Id;
 
          begin
+            --  Look for aspect specification entries for this entity
+
             Ritem := First_Rep_Item (E);
             while Present (Ritem) loop
-               if Nkind (Ritem) = N_Aspect_Specification then
+               if Nkind (Ritem) = N_Aspect_Specification
+                 and then Entity (Ritem) = E
+                 and then Is_Delayed_Aspect (Ritem)
+               then
                   Aitem := Aspect_Rep_Item (Ritem);
-                  pragma Assert (Is_Delayed_Aspect (Aitem));
                   Set_Parent (Aitem, Ritem);
+
+                  --  Deal with Boolean case, if no expression, True, otherwise
+                  --  analyze the expression, check it is static, and if its
+                  --  value is False, set Aspect_Cancel for the related pragma.
+
+                  if Is_Boolean_Aspect (Ritem) then
+                     declare
+                        Expr : constant Node_Id := Expression (Ritem);
+
+                     begin
+                        if Present (Expr) then
+                           Analyze_And_Resolve (Expr, Standard_Boolean);
+
+                           if not Is_OK_Static_Expression (Expr) then
+                              Error_Msg_Name_1 := Chars (Identifier (Ritem));
+                              Error_Msg_N
+                                ("expression for % aspect must be static",
+                                 Expr);
+
+                           elsif Is_False (Expr_Value (Expr)) then
+                              Set_Aspect_Cancel (Aitem);
+                           end if;
+                        end if;
+                     end;
+                  end if;
+
+                  --  Analyze the pragma after possibly setting Aspect_Cancel
+
                   Analyze (Aitem);
                end if;
 
@@ -3391,12 +3446,28 @@ package body Freeze is
                      --  Start of processing for Alias_Atomic_Check
 
                      begin
-                        --  Case where component size has no effect
+                        --  Case where component size has no effect. First
+                        --  check for object size of component type known
+                        --  and a multiple of the storage unit size.
 
                         if Known_Static_Esize (Ctyp)
-                          and then Known_Static_RM_Size (Ctyp)
-                          and then Esize (Ctyp) = RM_Size (Ctyp)
-                          and then Esize (Ctyp) mod 8 = 0
+                          and then Esize (Ctyp) mod System_Storage_Unit = 0
+
+                          --  OK in both packing case and component size case
+                          --  if RM size is known and static and the same as
+                          --  the object size.
+
+                          and then
+                            ((Known_Static_RM_Size (Ctyp)
+                               and then Esize (Ctyp) = RM_Size (Ctyp))
+
+                             --  Or if we have an explicit component size
+                             --  clause and the component size and object size
+                             --  are equal.
+
+                             or else
+                                 (Has_Component_Size_Clause (E)
+                                 and then Component_Size (E) = Esize (Ctyp)))
                         then
                            null;
 

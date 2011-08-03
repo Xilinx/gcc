@@ -40,6 +40,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 #include "tree-chrec.h"
 #include "gimple-fold.h"
+#include "expr.h"
+#include "optabs.h"
 
 
 /* Type of value ranges.  See value_range_d for a description of these
@@ -138,7 +140,9 @@ static assert_locus_t *asserts_for;
 
 /* Value range array.  After propagation, VR_VALUE[I] holds the range
    of values that SSA name N_I may take.  */
+static unsigned num_vr_values;
 static value_range_t **vr_value;
+static bool values_propagated;
 
 /* For a PHI node which sets SSA name N_I, VR_COUNTS[I] holds the
    number of executable edges we saw the last time we visited the
@@ -658,6 +662,8 @@ abs_extent_range (value_range_t *vr, tree min, tree max)
 static value_range_t *
 get_value_range (const_tree var)
 {
+  static const struct value_range_d vr_const_varying
+    = { VR_VARYING, NULL_TREE, NULL_TREE, NULL };
   value_range_t *vr;
   tree sym;
   unsigned ver = SSA_NAME_VERSION (var);
@@ -666,9 +672,19 @@ get_value_range (const_tree var)
   if (! vr_value)
     return NULL;
 
+  /* If we query the range for a new SSA name return an unmodifiable VARYING.
+     We should get here at most from the substitute-and-fold stage which
+     will never try to change values.  */
+  if (ver >= num_vr_values)
+    return CONST_CAST (value_range_t *, &vr_const_varying);
+
   vr = vr_value[ver];
   if (vr)
     return vr;
+
+  /* After propagation finished do not allocate new value-ranges.  */
+  if (values_propagated)
+    return CONST_CAST (value_range_t *, &vr_const_varying);
 
   /* Create a default value range.  */
   vr_value[ver] = vr = XCNEW (value_range_t);
@@ -676,16 +692,16 @@ get_value_range (const_tree var)
   /* Defer allocating the equivalence set.  */
   vr->equiv = NULL;
 
-  /* If VAR is a default definition, the variable can take any value
-     in VAR's type.  */
+  /* If VAR is a default definition of a parameter, the variable can
+     take any value in VAR's type.  */
   sym = SSA_NAME_VAR (var);
-  if (SSA_NAME_IS_DEFAULT_DEF (var))
+  if (SSA_NAME_IS_DEFAULT_DEF (var)
+      && TREE_CODE (sym) == PARM_DECL)
     {
       /* Try to use the "nonnull" attribute to create ~[0, 0]
 	 anti-ranges for pointers.  Note that this is only valid with
 	 default definitions of PARM_DECLs.  */
-      if (TREE_CODE (sym) == PARM_DECL
-	  && POINTER_TYPE_P (TREE_TYPE (sym))
+      if (POINTER_TYPE_P (TREE_TYPE (sym))
 	  && nonnull_arg_p (sym))
 	set_value_range_to_nonnull (vr, TREE_TYPE (sym));
       else
@@ -2171,9 +2187,7 @@ extract_range_from_binary_expr (value_range_t *vr,
       && code != MIN_EXPR
       && code != MAX_EXPR
       && code != BIT_AND_EXPR
-      && code != BIT_IOR_EXPR
-      && code != TRUTH_AND_EXPR
-      && code != TRUTH_OR_EXPR)
+      && code != BIT_IOR_EXPR)
     {
       /* We can still do constant propagation here.  */
       tree const_op0 = op_with_constant_singleton_value_range (op0);
@@ -2211,12 +2225,20 @@ extract_range_from_binary_expr (value_range_t *vr,
   else
     set_value_range_to_varying (&vr1);
 
-  /* If either range is UNDEFINED, so is the result.  */
-  if (vr0.type == VR_UNDEFINED || vr1.type == VR_UNDEFINED)
+  /* If both ranges are UNDEFINED, so is the result.  */
+  if (vr0.type == VR_UNDEFINED && vr1.type == VR_UNDEFINED)
     {
       set_value_range_to_undefined (vr);
       return;
     }
+  /* If one of the ranges is UNDEFINED drop it to VARYING for the following
+     code.  At some point we may want to special-case operations that
+     have UNDEFINED result for all or some value-ranges of the not UNDEFINED
+     operand.  */
+  else if (vr0.type == VR_UNDEFINED)
+    set_value_range_to_varying (&vr0);
+  else if (vr1.type == VR_UNDEFINED)
+    set_value_range_to_varying (&vr1);
 
   /* The type of the resulting value range defaults to VR0.TYPE.  */
   type = vr0.type;
@@ -2228,8 +2250,7 @@ extract_range_from_binary_expr (value_range_t *vr,
      divisions.  TODO, we may be able to derive anti-ranges in
      some cases.  */
   if (code != BIT_AND_EXPR
-      && code != TRUTH_AND_EXPR
-      && code != TRUTH_OR_EXPR
+      && code != BIT_IOR_EXPR
       && code != TRUNC_DIV_EXPR
       && code != FLOOR_DIV_EXPR
       && code != CEIL_DIV_EXPR
@@ -2251,7 +2272,12 @@ extract_range_from_binary_expr (value_range_t *vr,
       || POINTER_TYPE_P (TREE_TYPE (op0))
       || POINTER_TYPE_P (TREE_TYPE (op1)))
     {
-      if (code == MIN_EXPR || code == MAX_EXPR)
+      if (code == BIT_IOR_EXPR)
+        {
+	  set_value_range_to_varying (vr);
+	  return;
+	}
+      else if (code == MIN_EXPR || code == MAX_EXPR)
 	{
 	  /* For MIN/MAX expressions with pointers, we only care about
 	     nullness, if both are non null, then the result is nonnull.
@@ -2296,57 +2322,9 @@ extract_range_from_binary_expr (value_range_t *vr,
 
   /* For integer ranges, apply the operation to each end of the
      range and see what we end up with.  */
-  if (code == TRUTH_AND_EXPR
-      || code == TRUTH_OR_EXPR)
-    {
-      /* If one of the operands is zero, we know that the whole
-	 expression evaluates zero.  */
-      if (code == TRUTH_AND_EXPR
-	  && ((vr0.type == VR_RANGE
-	       && integer_zerop (vr0.min)
-	       && integer_zerop (vr0.max))
-	      || (vr1.type == VR_RANGE
-		  && integer_zerop (vr1.min)
-		  && integer_zerop (vr1.max))))
-	{
-	  type = VR_RANGE;
-	  min = max = build_int_cst (expr_type, 0);
-	}
-      /* If one of the operands is one, we know that the whole
-	 expression evaluates one.  */
-      else if (code == TRUTH_OR_EXPR
-	       && ((vr0.type == VR_RANGE
-		    && integer_onep (vr0.min)
-		    && integer_onep (vr0.max))
-		   || (vr1.type == VR_RANGE
-		       && integer_onep (vr1.min)
-		       && integer_onep (vr1.max))))
-	{
-	  type = VR_RANGE;
-	  min = max = build_int_cst (expr_type, 1);
-	}
-      else if (vr0.type != VR_VARYING
-	       && vr1.type != VR_VARYING
-	       && vr0.type == vr1.type
-	       && !symbolic_range_p (&vr0)
-	       && !overflow_infinity_range_p (&vr0)
-	       && !symbolic_range_p (&vr1)
-	       && !overflow_infinity_range_p (&vr1))
-	{
-	  /* Boolean expressions cannot be folded with int_const_binop.  */
-	  min = fold_binary (code, expr_type, vr0.min, vr1.min);
-	  max = fold_binary (code, expr_type, vr0.max, vr1.max);
-	}
-      else
-	{
-	  /* The result of a TRUTH_*_EXPR is always true or false.  */
-	  set_value_range_to_truthvalue (vr, expr_type);
-	  return;
-	}
-    }
-  else if (code == PLUS_EXPR
-	   || code == MIN_EXPR
-	   || code == MAX_EXPR)
+  if (code == PLUS_EXPR
+      || code == MIN_EXPR
+      || code == MAX_EXPR)
     {
       /* If we have a PLUS_EXPR with two VR_ANTI_RANGEs, drop to
 	 VR_VARYING.  It would take more effort to compute a precise
@@ -2678,6 +2656,8 @@ extract_range_from_binary_expr (value_range_t *vr,
       bool int_cst_range0, int_cst_range1;
       double_int may_be_nonzero0, may_be_nonzero1;
       double_int must_be_nonzero0, must_be_nonzero1;
+      value_range_t *non_singleton_vr;
+      tree singleton_val;
 
       vr0_int_cst_singleton_p = range_int_cst_singleton_p (&vr0);
       vr1_int_cst_singleton_p = range_int_cst_singleton_p (&vr1);
@@ -2686,9 +2666,39 @@ extract_range_from_binary_expr (value_range_t *vr,
       int_cst_range1 = zero_nonzero_bits_from_vr (&vr1, &may_be_nonzero1,
 						  &must_be_nonzero1);
 
+      singleton_val = (vr0_int_cst_singleton_p ? vr0.min : vr1.min);
+      non_singleton_vr = (vr0_int_cst_singleton_p ? &vr1 : &vr0);
+
       type = VR_RANGE;
       if (vr0_int_cst_singleton_p && vr1_int_cst_singleton_p)
 	min = max = int_const_binop (code, vr0.max, vr1.max);
+      else if ((vr0_int_cst_singleton_p || vr1_int_cst_singleton_p)
+      	       && (integer_zerop (singleton_val)
+      	           || integer_all_onesp (singleton_val)))
+	{
+	  /* If one of the operands is zero for and-case, we know that
+ * 	     the whole expression evaluates zero.
+	     If one of the operands has all bits set to one for
+	     or-case, we know that the whole expression evaluates
+	     to this one.  */
+	   min = max = singleton_val;
+	   if ((code == BIT_IOR_EXPR
+		&& integer_zerop (singleton_val))
+	       || (code == BIT_AND_EXPR
+		   && integer_all_onesp (singleton_val)))
+	  /* If one of the operands has all bits set to one, we know
+	     that the whole expression evaluates to the other one for
+	     the and-case.
+	     If one of the operands is zero, we know that the whole
+	     expression evaluates to the other one for the or-case.  */
+	    {
+	      type = non_singleton_vr->type;
+	      min = non_singleton_vr->min;
+	      max = non_singleton_vr->max;
+	    }
+	  set_value_range (vr, type, min, max, NULL);
+	  return;
+	}
       else if (!int_cst_range0 && !int_cst_range1)
 	{
 	  set_value_range_to_varying (vr);
@@ -3300,10 +3310,7 @@ extract_range_from_assignment (value_range_t *vr, gimple stmt)
     extract_range_from_assert (vr, gimple_assign_rhs1 (stmt));
   else if (code == SSA_NAME)
     extract_range_from_ssa_name (vr, gimple_assign_rhs1 (stmt));
-  else if (TREE_CODE_CLASS (code) == tcc_binary
-	   || code == TRUTH_AND_EXPR
-	   || code == TRUTH_OR_EXPR
-	   || code == TRUTH_XOR_EXPR)
+  else if (TREE_CODE_CLASS (code) == tcc_binary)
     extract_range_from_binary_expr (vr, gimple_assign_rhs_code (stmt),
 				    gimple_expr_type (stmt),
 				    gimple_assign_rhs1 (stmt),
@@ -3931,7 +3938,7 @@ dump_all_value_ranges (FILE *file)
 {
   size_t i;
 
-  for (i = 0; i < num_ssa_names; i++)
+  for (i = 0; i < num_vr_values; i++)
     {
       if (vr_value[i])
 	{
@@ -3972,13 +3979,6 @@ build_assert_expr_for (tree cond, tree v)
     {
       tree a = build2 (ASSERT_EXPR, TREE_TYPE (v), v, cond);
       assertion = gimple_build_assign (n, a);
-    }
-  else if (TREE_CODE (cond) == TRUTH_NOT_EXPR)
-    {
-      /* Given !V, build the assignment N = false.  */
-      tree op0 = TREE_OPERAND (cond, 0);
-      gcc_assert (op0 == v);
-      assertion = gimple_build_assign (n, boolean_false_node);
     }
   else if (TREE_CODE (cond) == SSA_NAME)
     {
@@ -4516,11 +4516,9 @@ register_edge_assert_for_1 (tree op, enum tree_code code,
 					      invert);
     }
   else if ((code == NE_EXPR
-	    && (gimple_assign_rhs_code (op_def) == TRUTH_AND_EXPR
-		|| gimple_assign_rhs_code (op_def) == BIT_AND_EXPR))
+	    && gimple_assign_rhs_code (op_def) == BIT_AND_EXPR)
 	   || (code == EQ_EXPR
-	       && (gimple_assign_rhs_code (op_def) == TRUTH_OR_EXPR
-		   || gimple_assign_rhs_code (op_def) == BIT_IOR_EXPR)))
+	       && gimple_assign_rhs_code (op_def) == BIT_IOR_EXPR))
     {
       /* Recurse on each operand.  */
       retval |= register_edge_assert_for_1 (gimple_assign_rhs1 (op_def),
@@ -4528,7 +4526,8 @@ register_edge_assert_for_1 (tree op, enum tree_code code,
       retval |= register_edge_assert_for_1 (gimple_assign_rhs2 (op_def),
 					    code, e, bsi);
     }
-  else if (gimple_assign_rhs_code (op_def) == TRUTH_NOT_EXPR)
+  else if (gimple_assign_rhs_code (op_def) == BIT_NOT_EXPR
+	   && TYPE_PRECISION (TREE_TYPE (gimple_assign_lhs (op_def))) == 1)
     {
       /* Recurse, flipping CODE.  */
       code = invert_tree_comparison (code, false);
@@ -4585,8 +4584,8 @@ register_edge_assert_for (tree name, edge e, gimple_stmt_iterator si,
      the value zero or one, then we may be able to assert values
      for SSA_NAMEs which flow into COND.  */
 
-  /* In the case of NAME == 1 or NAME != 0, for TRUTH_AND_EXPR defining
-     statement of NAME we can assert both operands of the TRUTH_AND_EXPR
+  /* In the case of NAME == 1 or NAME != 0, for BIT_AND_EXPR defining
+     statement of NAME we can assert both operands of the BIT_AND_EXPR
      have nonzero value.  */
   if (((comp_code == EQ_EXPR && integer_onep (val))
        || (comp_code == NE_EXPR && integer_zerop (val))))
@@ -4594,8 +4593,7 @@ register_edge_assert_for (tree name, edge e, gimple_stmt_iterator si,
       gimple def_stmt = SSA_NAME_DEF_STMT (name);
 
       if (is_gimple_assign (def_stmt)
-	  && (gimple_assign_rhs_code (def_stmt) == TRUTH_AND_EXPR
-	      || gimple_assign_rhs_code (def_stmt) == BIT_AND_EXPR))
+	  && gimple_assign_rhs_code (def_stmt) == BIT_AND_EXPR)
 	{
 	  tree op0 = gimple_assign_rhs1 (def_stmt);
 	  tree op1 = gimple_assign_rhs2 (def_stmt);
@@ -4604,20 +4602,20 @@ register_edge_assert_for (tree name, edge e, gimple_stmt_iterator si,
 	}
     }
 
-  /* In the case of NAME == 0 or NAME != 1, for TRUTH_OR_EXPR defining
-     statement of NAME we can assert both operands of the TRUTH_OR_EXPR
+  /* In the case of NAME == 0 or NAME != 1, for BIT_IOR_EXPR defining
+     statement of NAME we can assert both operands of the BIT_IOR_EXPR
      have zero value.  */
   if (((comp_code == EQ_EXPR && integer_zerop (val))
        || (comp_code == NE_EXPR && integer_onep (val))))
     {
       gimple def_stmt = SSA_NAME_DEF_STMT (name);
 
+      /* For BIT_IOR_EXPR only if NAME == 0 both operands have
+	 necessarily zero value, or if type-precision is one.  */
       if (is_gimple_assign (def_stmt)
-	  && (gimple_assign_rhs_code (def_stmt) == TRUTH_OR_EXPR
-	      /* For BIT_IOR_EXPR only if NAME == 0 both operands have
-		 necessarily zero value.  */
-	      || (comp_code == EQ_EXPR
-		  && (gimple_assign_rhs_code (def_stmt) == BIT_IOR_EXPR))))
+	  && (gimple_assign_rhs_code (def_stmt) == BIT_IOR_EXPR
+	      && (TYPE_PRECISION (TREE_TYPE (name)) == 1
+	          || comp_code == EQ_EXPR)))
 	{
 	  tree op0 = gimple_assign_rhs1 (def_stmt);
 	  tree op1 = gimple_assign_rhs2 (def_stmt);
@@ -5593,7 +5591,9 @@ vrp_initialize (void)
 {
   basic_block bb;
 
-  vr_value = XCNEWVEC (value_range_t *, num_ssa_names);
+  values_propagated = false;
+  num_vr_values = num_ssa_names;
+  vr_value = XCNEWVEC (value_range_t *, num_vr_values);
   vr_phi_edge_counts = XCNEWVEC (int, num_ssa_names);
 
   FOR_EACH_BB (bb)
@@ -5720,7 +5720,7 @@ vrp_visit_assignment_or_call (gimple stmt, tree *output_p)
 static inline value_range_t
 get_vr_for_comparison (int i)
 {
-  value_range_t vr = *(vr_value[i]);
+  value_range_t vr = *get_value_range (ssa_name (i));
 
   /* If name N_i does not have a valid range, use N_i as its own
      range.  This allows us to compare against names that may
@@ -6650,6 +6650,8 @@ vrp_visit_phi_node (gimple phi)
 
   if (vr_result.type == VR_VARYING)
     goto varying;
+  else if (vr_result.type == VR_UNDEFINED)
+    goto update_range;
 
   old_edges = vr_phi_edge_counts[SSA_NAME_VERSION (lhs)];
   vr_phi_edge_counts[SSA_NAME_VERSION (lhs)] = edges;
@@ -6721,6 +6723,7 @@ vrp_visit_phi_node (gimple phi)
 
   /* If the new range is different than the previous value, keep
      iterating.  */
+update_range:
   if (update_value_range (lhs, &vr_result))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
@@ -6756,6 +6759,9 @@ simplify_truth_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
   bool sop = false;
   bool need_conversion;
 
+  /* We handle only !=/== case here.  */
+  gcc_assert (rhs_code == EQ_EXPR || rhs_code == NE_EXPR);
+
   op0 = gimple_assign_rhs1 (stmt);
   if (TYPE_PRECISION (TREE_TYPE (op0)) != 1)
     {
@@ -6772,53 +6778,40 @@ simplify_truth_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
         return false;
     }
 
-  if (rhs_code == TRUTH_NOT_EXPR)
+  op1 = gimple_assign_rhs2 (stmt);
+
+  /* Reduce number of cases to handle.  */
+  if (is_gimple_min_invariant (op1))
     {
-      rhs_code = NE_EXPR;
-      op1 = build_int_cst (TREE_TYPE (op0), 1);
+      if (!integer_zerop (op1)
+	  && !integer_onep (op1)
+	  && !integer_all_onesp (op1))
+	return false;
+
+      /* Limit the number of cases we have to consider.  */
+      if (rhs_code == EQ_EXPR)
+	{
+	  rhs_code = NE_EXPR;
+	  /* OP1 is a constant.  */
+	  op1 = fold_unary (TRUTH_NOT_EXPR, TREE_TYPE (op1), op1);
+	}
     }
   else
     {
-      op1 = gimple_assign_rhs2 (stmt);
+      /* Punt on A == B as there is no BIT_XNOR_EXPR.  */
+      if (rhs_code == EQ_EXPR)
+	return false;
 
-      /* Reduce number of cases to handle.  */
-      if (is_gimple_min_invariant (op1))
+      if (TYPE_PRECISION (TREE_TYPE (op1)) != 1)
 	{
-          /* Exclude anything that should have been already folded.  */
-	  if (rhs_code != EQ_EXPR
-	      && rhs_code != NE_EXPR
-	      && rhs_code != TRUTH_XOR_EXPR)
+	  vr = get_value_range (op1);
+	  val = compare_range_with_value (GE_EXPR, vr, integer_zero_node, &sop);
+	  if (!val || !integer_onep (val))
 	    return false;
 
-	  if (!integer_zerop (op1)
-	      && !integer_onep (op1)
-	      && !integer_all_onesp (op1))
+	  val = compare_range_with_value (LE_EXPR, vr, integer_one_node, &sop);
+	  if (!val || !integer_onep (val))
 	    return false;
-
-	  /* Limit the number of cases we have to consider.  */
-	  if (rhs_code == EQ_EXPR)
-	    {
-	      rhs_code = NE_EXPR;
-	      op1 = fold_unary (TRUTH_NOT_EXPR, TREE_TYPE (op1), op1);
-	    }
-	}
-      else
-	{
-	  /* Punt on A == B as there is no BIT_XNOR_EXPR.  */
-	  if (rhs_code == EQ_EXPR)
-	    return false;
-
-	  if (TYPE_PRECISION (TREE_TYPE (op1)) != 1)
-	    {
-	      vr = get_value_range (op1);
-	      val = compare_range_with_value (GE_EXPR, vr, integer_zero_node, &sop);
-	      if (!val || !integer_onep (val))
-	        return false;
-
-	      val = compare_range_with_value (LE_EXPR, vr, integer_one_node, &sop);
-	      if (!val || !integer_onep (val))
-	        return false;
-	    }
 	}
     }
 
@@ -6831,14 +6824,9 @@ simplify_truth_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
       else
 	location = gimple_location (stmt);
 
-      if (rhs_code == TRUTH_AND_EXPR || rhs_code == TRUTH_OR_EXPR)
-        warning_at (location, OPT_Wstrict_overflow,
-	            _("assuming signed overflow does not occur when "
-		      "simplifying && or || to & or |"));
-      else
-        warning_at (location, OPT_Wstrict_overflow,
-	            _("assuming signed overflow does not occur when "
-		      "simplifying ==, != or ! to identity or ^"));
+      warning_at (location, OPT_Wstrict_overflow,
+		  _("assuming signed overflow does not occur when "
+		    "simplifying ==, != or ! to identity or ^"));
     }
 
   need_conversion =
@@ -6853,13 +6841,6 @@ simplify_truth_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
 
   switch (rhs_code)
     {
-    case TRUTH_AND_EXPR:
-      rhs_code = BIT_AND_EXPR;
-      break;
-    case TRUTH_OR_EXPR:
-      rhs_code = BIT_IOR_EXPR;
-      break;
-    case TRUTH_XOR_EXPR:
     case NE_EXPR:
       if (integer_zerop (op1))
 	{
@@ -7399,6 +7380,121 @@ simplify_conversion_using_ranges (gimple stmt)
   return true;
 }
 
+/* Return whether the value range *VR fits in an integer type specified
+   by PRECISION and UNSIGNED_P.  */
+
+static bool
+range_fits_type_p (value_range_t *vr, unsigned precision, bool unsigned_p)
+{
+  tree src_type;
+  unsigned src_precision;
+  double_int tem;
+
+  /* We can only handle integral and pointer types.  */
+  src_type = TREE_TYPE (vr->min);
+  if (!INTEGRAL_TYPE_P (src_type)
+      && !POINTER_TYPE_P (src_type))
+    return false;
+
+  /* An extension is always fine, so is an identity transform.  */
+  src_precision = TYPE_PRECISION (TREE_TYPE (vr->min));
+  if (src_precision < precision
+      || (src_precision == precision
+	  && TYPE_UNSIGNED (src_type) == unsigned_p))
+    return true;
+
+  /* Now we can only handle ranges with constant bounds.  */
+  if (vr->type != VR_RANGE
+      || TREE_CODE (vr->min) != INTEGER_CST
+      || TREE_CODE (vr->max) != INTEGER_CST)
+    return false;
+
+  /* For precision-preserving sign-changes the MSB of the double-int
+     has to be clear.  */
+  if (src_precision == precision
+      && (TREE_INT_CST_HIGH (vr->min) | TREE_INT_CST_HIGH (vr->max)) < 0)
+    return false;
+
+  /* Then we can perform the conversion on both ends and compare
+     the result for equality.  */
+  tem = double_int_ext (tree_to_double_int (vr->min), precision, unsigned_p);
+  if (!double_int_equal_p (tree_to_double_int (vr->min), tem))
+    return false;
+  tem = double_int_ext (tree_to_double_int (vr->max), precision, unsigned_p);
+  if (!double_int_equal_p (tree_to_double_int (vr->max), tem))
+    return false;
+
+  return true;
+}
+
+/* Simplify a conversion from integral SSA name to float in STMT.  */
+
+static bool
+simplify_float_conversion_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
+{
+  tree rhs1 = gimple_assign_rhs1 (stmt);
+  value_range_t *vr = get_value_range (rhs1);
+  enum machine_mode fltmode = TYPE_MODE (TREE_TYPE (gimple_assign_lhs (stmt)));
+  enum machine_mode mode;
+  tree tem;
+  gimple conv;
+
+  /* We can only handle constant ranges.  */
+  if (vr->type != VR_RANGE
+      || TREE_CODE (vr->min) != INTEGER_CST
+      || TREE_CODE (vr->max) != INTEGER_CST)
+    return false;
+
+  /* First check if we can use a signed type in place of an unsigned.  */
+  if (TYPE_UNSIGNED (TREE_TYPE (rhs1))
+      && (can_float_p (fltmode, TYPE_MODE (TREE_TYPE (rhs1)), 0)
+	  != CODE_FOR_nothing)
+      && range_fits_type_p (vr, GET_MODE_PRECISION
+			          (TYPE_MODE (TREE_TYPE (rhs1))), 0))
+    mode = TYPE_MODE (TREE_TYPE (rhs1));
+  /* If we can do the conversion in the current input mode do nothing.  */
+  else if (can_float_p (fltmode, TYPE_MODE (TREE_TYPE (rhs1)),
+			TYPE_UNSIGNED (TREE_TYPE (rhs1))))
+    return false;
+  /* Otherwise search for a mode we can use, starting from the narrowest
+     integer mode available.  */
+  else
+    {
+      mode = GET_CLASS_NARROWEST_MODE (MODE_INT);
+      do
+	{
+	  /* If we cannot do a signed conversion to float from mode
+	     or if the value-range does not fit in the signed type
+	     try with a wider mode.  */
+	  if (can_float_p (fltmode, mode, 0) != CODE_FOR_nothing
+	      && range_fits_type_p (vr, GET_MODE_PRECISION (mode), 0))
+	    break;
+
+	  mode = GET_MODE_WIDER_MODE (mode);
+	  /* But do not widen the input.  Instead leave that to the
+	     optabs expansion code.  */
+	  if (GET_MODE_PRECISION (mode) > TYPE_PRECISION (TREE_TYPE (rhs1)))
+	    return false;
+	}
+      while (mode != VOIDmode);
+      if (mode == VOIDmode)
+	return false;
+    }
+
+  /* It works, insert a truncation or sign-change before the
+     float conversion.  */
+  tem = create_tmp_var (build_nonstandard_integer_type
+			  (GET_MODE_PRECISION (mode), 0), NULL);
+  conv = gimple_build_assign_with_ops (NOP_EXPR, tem, rhs1, NULL_TREE);
+  tem = make_ssa_name (tem, conv);
+  gimple_assign_set_lhs (conv, tem);
+  gsi_insert_before (gsi, conv, GSI_SAME_STMT);
+  gimple_assign_set_rhs1 (stmt, tem);
+  update_stmt (stmt);
+
+  return true;
+}
+
 /* Simplify STMT using ranges if possible.  */
 
 static bool
@@ -7414,14 +7510,9 @@ simplify_stmt_using_ranges (gimple_stmt_iterator *gsi)
 	{
 	case EQ_EXPR:
 	case NE_EXPR:
-	case TRUTH_NOT_EXPR:
-	case TRUTH_AND_EXPR:
-	case TRUTH_OR_EXPR:
-        case TRUTH_XOR_EXPR:
-          /* Transform EQ_EXPR, NE_EXPR, TRUTH_NOT_EXPR into BIT_XOR_EXPR
-	     or identity if the RHS is zero or one, and the LHS are known
-	     to be boolean values.  Transform all TRUTH_*_EXPR into
-             BIT_*_EXPR if both arguments are known to be boolean values.  */
+          /* Transform EQ_EXPR, NE_EXPR into BIT_XOR_EXPR or identity
+	     if the RHS is zero or one, and the LHS are known to be boolean
+	     values.  */
 	  if (INTEGRAL_TYPE_P (TREE_TYPE (rhs1)))
 	    return simplify_truth_ops_using_ranges (gsi, stmt);
 	  break;
@@ -7456,6 +7547,12 @@ simplify_stmt_using_ranges (gimple_stmt_iterator *gsi)
 	  if (TREE_CODE (rhs1) == SSA_NAME
 	      && INTEGRAL_TYPE_P (TREE_TYPE (rhs1)))
 	    return simplify_conversion_using_ranges (stmt);
+	  break;
+
+	case FLOAT_EXPR:
+	  if (TREE_CODE (rhs1) == SSA_NAME
+	      && INTEGRAL_TYPE_P (TREE_TYPE (rhs1)))
+	    return simplify_float_conversion_using_ranges (gsi, stmt);
 	  break;
 
 	default:
@@ -7700,7 +7797,8 @@ static void
 vrp_finalize (void)
 {
   size_t i;
-  unsigned num = num_ssa_names;
+
+  values_propagated = true;
 
   if (dump_file)
     {
@@ -7720,7 +7818,7 @@ vrp_finalize (void)
   identify_jump_threads ();
 
   /* Free allocated memory.  */
-  for (i = 0; i < num; i++)
+  for (i = 0; i < num_vr_values; i++)
     if (vr_value[i])
       {
 	BITMAP_FREE (vr_value[i]->equiv);

@@ -1167,6 +1167,22 @@ package Opt is
    --  GNAT
    --  Set True if a pragma Short_Descriptors applies to the current unit.
 
+   type SPARK_Version_Type is (SPARK_None, SPARK_95);
+   pragma Ordered (SPARK_Version_Type);
+   --  Versions of SPARK for SPARK_Version below. Note that these are ordered,
+   --  so that tests like SPARK_Version >= SPARK_95 are legitimate and useful.
+   --  Think twice before using "="; SPARK_Version >= SPARK_95 is more likely
+   --  what you want, because it will apply to future versions of the language.
+
+   SPARK_Version_Default : constant SPARK_Version_Type := SPARK_None;
+   --  GNAT
+   --  Default SPARK version if no switch given
+
+   SPARK_Version : SPARK_Version_Type := SPARK_Version_Default;
+   --  GNAT
+   --  Current SPARK version for compiler, as set by configuration pragmas or
+   --  compiler switches.
+
    Sprint_Line_Limit : Nat := 72;
    --  GNAT
    --  Limit values for chopping long lines in Sprint output, can be reset
@@ -1854,6 +1870,32 @@ package Opt is
    Tree_ASIS_Version_Number : Int;
    --  Used to store the ASIS version number read from a tree file to check if
    --  it is the same as stored in the ASIS version number in Tree_IO.
+
+   -----------------------------------
+   -- Modes for Formal Verification --
+   -----------------------------------
+
+   --  These modes are currently defined through debug flags
+
+   Formal_Verification_Mode : Boolean := False;
+   --  Set True if ALFA_Mode or SPARK_Mode
+
+   ALFA_Mode : Boolean := False;
+   --  Set True if ALFA_Through_SPARK_Mode or else ALFA_Through_Why_Mode
+
+   ALFA_Through_SPARK_Mode : Boolean := False;
+   --  Specific compiling mode targeting formal verification through
+   --  the generation of SPARK code for those parts of the input code that
+   --  belong to the ALFA subset of Ada. Set by debug flag -gnatd.E.
+
+   ALFA_Through_Why_Mode : Boolean := False;
+   --  Specific compiling mode targeting formal verification through
+   --  the generation of Why code for those parts of the input code that
+   --  belong to the ALFA subset of Ada. Set by debuf flag -gnatd.F.
+
+   SPARK_Mode : Boolean := False;
+   --  Reject constructs not allowed by SPARK. Set by flag -gnatd.D or
+   --  by pragma SPARK_95.
 
 private
 

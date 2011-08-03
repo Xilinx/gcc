@@ -100,6 +100,14 @@ package body Sem_Ch9 is
       T_Name : Node_Id;
 
    begin
+      --  Abort statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~abort statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Tasking_Used := True;
       T_Name := First (Names (N));
       while Present (T_Name) loop
@@ -169,6 +177,14 @@ package body Sem_Ch9 is
       Task_Nam  : Entity_Id;
 
    begin
+      --  Accept statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~accept statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Tasking_Used := True;
 
       --  Entry name is initialized to Any_Id. It should get reset to the
@@ -399,6 +415,14 @@ package body Sem_Ch9 is
       Trigger        : Node_Id;
 
    begin
+      --  Select statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~select statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Tasking_Used := True;
       Check_Restriction (Max_Asynchronous_Select_Nesting, N);
       Check_Restriction (No_Select_Statements, N);
@@ -444,6 +468,14 @@ package body Sem_Ch9 is
       Is_Disp_Select : Boolean := False;
 
    begin
+      --  Select statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~select statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
 
@@ -540,6 +572,14 @@ package body Sem_Ch9 is
    procedure Analyze_Delay_Relative (N : Node_Id) is
       E : constant Node_Id := Expression (N);
    begin
+      --  Delay statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~delay statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Check_Restriction (No_Relative_Delay, N);
       Tasking_Used := True;
       Check_Restriction (No_Delay, N);
@@ -557,6 +597,14 @@ package body Sem_Ch9 is
       Typ : Entity_Id;
 
    begin
+      --  Delay statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~delay statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Tasking_Used := True;
       Check_Restriction (No_Delay, N);
       Check_Potentially_Blocking_Operation (N);
@@ -843,6 +891,14 @@ package body Sem_Ch9 is
       Call : constant Node_Id := Entry_Call_Statement (N);
 
    begin
+      --  Entry call is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~entry call is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Tasking_Used := True;
 
       if Present (Pragmas_Before (N)) then
@@ -1293,6 +1349,14 @@ package body Sem_Ch9 is
       Outer_Ent   : Entity_Id;
 
    begin
+      --  Requeue statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~requeue statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Check_Restriction (No_Requeue_Statements, N);
       Check_Unreachable_Code (N);
       Tasking_Used := True;
@@ -1566,6 +1630,14 @@ package body Sem_Ch9 is
       Alt_Count         : Uint    := Uint_0;
 
    begin
+      --  Select statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~select statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
 
@@ -2094,6 +2166,14 @@ package body Sem_Ch9 is
       Is_Disp_Select : Boolean := False;
 
    begin
+      --  Select statement is not allowed in SPARK or ALFA
+
+      if Formal_Verification_Mode then
+         Error_Msg_F ("|~~select statement is not allowed", N);
+      end if;
+
+      --  Proceed with analysis
+
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
 
