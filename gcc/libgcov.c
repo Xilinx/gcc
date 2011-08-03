@@ -1318,9 +1318,9 @@ __gcov_merge_dc (gcov_type *counters, unsigned n_counters)
       /* Assert that the invariant (global_id == 0) <==> (call_count == 0)
 	 holds true after merging.  */
       if (counters[i] == 0)
-	gcc_assert (counters[i + 1] == 0);
+        counters[i+1] = 0;
       if (counters[i + 1] == 0)
-        gcc_assert (counters[i] == 0);
+        counters[i] = 0;
     }
 }
 #endif
