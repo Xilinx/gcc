@@ -94,42 +94,6 @@ pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
 }
 
 
-/* Get the section with name NAME and type SECTION_TYPE from FILE_DATA.
-   Return a pointer to the start of the section contents and store
-   the length of the section in *LEN_P.
-
-   FIXME pph, this does not currently handle multiple sections.  It
-   assumes that the file has exactly one section.  */
-
-static const char *
-pph_get_section_data (struct lto_file_decl_data *file_data,
-		      enum lto_section_type section_type ATTRIBUTE_UNUSED,
-		      const char *name ATTRIBUTE_UNUSED,
-		      size_t *len)
-{
-  /* FIXME pph - Stop abusing lto_file_decl_data fields.  */
-  const pph_stream *stream = (const pph_stream *) file_data->file_name;
-  *len = stream->encoder.r.file_size - sizeof (pph_file_header);
-  return (const char *) stream->encoder.r.file_data + sizeof (pph_file_header);
-}
-
-
-/* Free the section data from FILE_DATA of SECTION_TYPE and NAME that
-   starts at OFFSET and has LEN bytes.  */
-
-static void
-pph_free_section_data (struct lto_file_decl_data *file_data,
-		       enum lto_section_type section_type ATTRIBUTE_UNUSED,
-		       const char *name ATTRIBUTE_UNUSED,
-		       const char *offset ATTRIBUTE_UNUSED,
-		       size_t len ATTRIBUTE_UNUSED)
-{
-  /* FIXME pph - Stop abusing lto_file_decl_data fields.  */
-  const pph_stream *stream = (const pph_stream *) file_data->file_name;
-  free (stream->encoder.r.file_data);
-}
-
-
 /* Read into memory the contents of the file in STREAM.  Initialize
    internal tables and data structures needed to re-construct the
    ASTs in the file.  */
@@ -154,18 +118,12 @@ pph_init_read (pph_stream *stream)
 		      stream->encoder.r.file_size, stream->file);
   gcc_assert (bytes_read == stream->encoder.r.file_size);
 
-  /* Set LTO callbacks to read the PPH file.  */
+  /* Set up the file sections, header, body and string table for the
+     low-level streaming routines.  */
   stream->encoder.r.pph_sections = XCNEWVEC (struct lto_file_decl_data *,
 					     PPH_NUM_SECTIONS);
   for (i = 0; i < PPH_NUM_SECTIONS; i++)
-    {
-      stream->encoder.r.pph_sections[i] = XCNEW (struct lto_file_decl_data);
-      /* FIXME pph - Stop abusing fields in lto_file_decl_data.  */
-      stream->encoder.r.pph_sections[i]->file_name = (const char *) stream;
-    }
-
-  lto_set_in_hooks (stream->encoder.r.pph_sections, pph_get_section_data,
-		    pph_free_section_data);
+    stream->encoder.r.pph_sections[i] = XCNEW (struct lto_file_decl_data);
 
   header = (pph_file_header *) stream->encoder.r.file_data;
   strtab = (const char *) header + sizeof (pph_file_header);

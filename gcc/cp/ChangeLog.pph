@@ -1,5 +1,11 @@
 2011-08-04   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_get_section_data): Remove unused function.
+	(pph_free_section_data): Remove unused function.
+	(pph_init_read): Do not call lto_set_in_hooks.
+
+2011-08-04   Diego Novillo  <dnovillo@google.com>
+
 	* parser.c (cp_lexer_new_main): Move call to pph_init ...
 	(c_parse_file): ... here.
 	Call pph_finish only if pph_enabled_p returns true.
@@ -21,7 +27,7 @@
 	if no errors were found.
 	(pph_add_decl_to_symtab): Rename from pph_add_decl_to_register.
 	Update all users.
-	* gcc/cp/pph-streamer.c (pph_stream_open): Tidy.
+	* pph-streamer.c (pph_stream_open): Tidy.
 	Initialize stream->symtab.
 	(pph_stream_close_1): Factor out of ...
 	(pph_stream_close): ... here.
