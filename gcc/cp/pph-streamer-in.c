@@ -1412,6 +1412,25 @@ pph_in_symtab (pph_stream *stream)
 }
 
 
+/* Read all the images included by STREAM.  */
+
+static void
+pph_in_includes (pph_stream *stream)
+{
+  unsigned i, num;
+
+  num = pph_in_uint (stream);
+  for (i = 0; i < num; i++)
+    {
+      const char *include_name = pph_in_string (stream);
+      /* FIXME pph.  Disabled for now.  Need to re-work caching so
+	 external symbol references are properly saved and restored.  */
+      if (0)
+	pph_read_file (include_name);
+    }
+}
+
+
 /* Read contents of PPH file in STREAM.  */
 
 static void
@@ -1425,6 +1444,11 @@ pph_read_file_contents (pph_stream *stream)
   unsigned i;
   VEC(tree,gc) *file_unemitted_tinfo_decls;
 
+  /* Read all the images included by STREAM.  */
+  pph_in_includes (stream);
+
+  /* Read all the identifiers and pre-processor symbols in the global
+     namespace.  */
   pph_in_identifiers (stream, &idents_used);
 
   /* FIXME pph: This validation is weak.  */
@@ -1459,6 +1483,12 @@ pph_read_file_contents (pph_stream *stream)
 
   /* Read and process the symbol table.  */
   pph_in_symtab (stream);
+
+  /* If we are generating an image, the PPH contents we just read from
+     STREAM will need to be read again the next time we want to read
+     the image we are now generating.  */
+  if (pph_out_file)
+    pph_add_include (stream);
 }
 
 
@@ -1477,9 +1507,6 @@ pph_read_file (const char *filename)
     {
       pph_read_file_contents (stream);
       pph_stream_close (stream);
-
-      if (flag_pph_debug >= 1)
-        fprintf (pph_logfile, "PPH: Closing %s\n", filename);
     }
   else
     error ("Cannot open PPH file for reading: %s: %m", filename);

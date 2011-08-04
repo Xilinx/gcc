@@ -152,16 +152,17 @@ pph_init (void)
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Initializing.\n");
 
+  /* Set up the libcpp handler for #include.  */
   cb = cpp_get_callbacks (parse_in);
   cb->include = pph_include_handler;
-  /* FIXME pph: Use file change instead.
-  state->file_change_prev = cb->file_change;
-  cb->file_change = pph_file_change;
-  */
 
   table = cpp_lt_exchange (parse_in,
                            cpp_lt_create (cpp_lt_order, flag_pph_debug));
   gcc_assert (table == NULL);
+
+  /* If we are generating a PPH file, initialize the writer.  */
+  if (pph_out_file != NULL)
+    pph_writer_init ();
 }
 
 
@@ -171,13 +172,7 @@ void
 pph_finish (void)
 {
   if (pph_out_file != NULL)
-    {
-      const char *offending_file = cpp_main_missing_guard (parse_in);
-      if (offending_file == NULL)
-        pph_write_file ();
-      else
-        error ("header lacks guard for PPH: %s", offending_file);
-    }
+    pph_writer_finish ();
 
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Finishing.\n");

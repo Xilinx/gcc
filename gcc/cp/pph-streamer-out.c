@@ -33,26 +33,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "cgraph.h"
 
-/* FIXME pph.  This holds the FILE handle for the current PPH file
-   that we are writing.  It is necessary because the LTO callbacks do
-   not allow passing a FILE handle to them.  */
-static FILE *current_pph_file = NULL;
-
-/* List of declarations to register with the middle end.  This is
-   collected as the compiler instantiates symbols and functions.  Once
-   we finish parsing the header file, this array is written out to the
-   PPH image.  This way, the reader will be able to instantiate these
-   symbols in the same order that they were instantiated originally.  */
-typedef struct decls_to_register_t {
-  /* Table of all the declarations to register in declaration order.  */
-  VEC(tree,heap) *v;
-
-  /* Set of declarations to register used to avoid adding duplicate
-     entries to the table.  */
-  struct pointer_set_t *m;
-} decls_to_register_t;
-
-static decls_to_register_t decls_to_register = { NULL, NULL };
+/* PPH stream that we are currently generating.  FIXME pph, this
+   global is needed because we call back from various parts of the
+   compiler that do not know about PPH (e.g., some LTO callbacks,
+   cp_rest_of_decl_compilation).  */
+static pph_stream *pph_out_stream = NULL;
 
 /* Callback for packing value fields in ASTs.  BP is the bitpack 
    we are packing into.  EXPR is the tree to pack.  */
@@ -119,13 +104,13 @@ pph_begin_section (const char *name ATTRIBUTE_UNUSED)
 
 
 /* Callback for lang_hooks.lto.append_data.  Write LEN bytes from DATA
-   into current_pph_file.  BLOCK is currently unused.  */
+   into pph_out_stream.  BLOCK is currently unused.  */
 
 static void
 pph_out (const void *data, size_t len, void *block ATTRIBUTE_UNUSED)
 {
   if (data)
-    fwrite (data, len, 1, current_pph_file);
+    fwrite (data, len, 1, pph_out_stream->file);
 }
 
 
@@ -194,9 +179,6 @@ pph_out_body (pph_stream *stream)
 void
 pph_flush_buffers (pph_stream *stream)
 {
-  gcc_assert (current_pph_file == NULL);
-  current_pph_file = stream->file;
-
   /* Redirect the LTO basic I/O langhooks.  */
   lang_hooks.lto.begin_section = pph_begin_section;
   lang_hooks.lto.append_data = pph_out;
@@ -207,7 +189,6 @@ pph_flush_buffers (pph_stream *stream)
   pph_out_header (stream);
   pph_out_body (stream);
   lto_end_section ();
-  current_pph_file = NULL;
 }
 
 
@@ -1186,6 +1167,7 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 static inline void
 pph_out_symtab_marker (pph_stream *stream, enum pph_symtab_marker marker)
 {
+  gcc_assert (marker == (enum pph_symtab_marker)(unsigned char) marker);
   pph_out_uchar (stream, marker);
 }
 
@@ -1204,8 +1186,8 @@ pph_out_symtab (pph_stream *stream)
   tree decl;
   unsigned i;
 
-  pph_out_uint (stream, VEC_length (tree, decls_to_register.v));
-  FOR_EACH_VEC_ELT (tree, decls_to_register.v, i, decl)
+  pph_out_uint (stream, VEC_length (tree, stream->symtab.v));
+  FOR_EACH_VEC_ELT (tree, stream->symtab.v, i, decl)
     if (TREE_CODE (decl) == FUNCTION_DECL && DECL_STRUCT_FUNCTION (decl))
       {
 	if (DECL_SAVED_TREE (decl))
@@ -1219,13 +1201,20 @@ pph_out_symtab (pph_stream *stream)
 	pph_out_symtab_marker (stream, PPH_SYMTAB_DECL);
 	pph_out_tree (stream, decl);
       }
+}
 
-  if (decls_to_register.m)
-    {
-      VEC_free (tree, heap, decls_to_register.v);
-      pointer_set_destroy (decls_to_register.m);
-      decls_to_register.m = NULL;
-    }
+
+/* Emit the list of all the PPH files included by STREAM.  */
+
+static void
+pph_out_includes (pph_stream *stream)
+{
+  unsigned i;
+  pph_stream *include;
+
+  pph_out_uint (stream, VEC_length (pph_stream_ptr, stream->includes));
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, i, include)
+    pph_out_string (stream, include->name);
 }
 
 
@@ -1234,7 +1223,12 @@ pph_out_symtab (pph_stream *stream)
 static void
 pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
-  /* Emit all the identifiers and symbols in the global namespace.  */
+  /* Emit the list of PPH files included by STREAM.  These files will
+     be read and instantiated before any of the content in STREAM.  */
+  pph_out_includes (stream);
+
+  /* Emit all the identifiers and pre-processor symbols in the global
+     namespace.  */
   pph_out_identifiers (stream, idents_used);
 
   /* Emit the bindings for the global namespace.  */
@@ -1257,25 +1251,18 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 }
 
 
-/* Write PPH output file.  */
+/* Write all the collected parse trees to STREAM.  */
 
-void
-pph_write_file (void)
+static void
+pph_write_file (pph_stream *stream)
 {
-  pph_stream *stream;
   cpp_idents_used idents_used;
 
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
 
-  stream = pph_stream_open (pph_out_file, "wb");
-  if (!stream)
-    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
-
   idents_used = cpp_lt_capture (parse_in);
   pph_write_file_contents (stream, &idents_used);
-
-  pph_stream_close (stream);
 }
 
 
@@ -1634,18 +1621,58 @@ pph_write_tree (struct output_block *ob, tree expr,
 }
 
 
-/* Add DECL to the list of symbols that need to be registered with the
-   middle end when reading current_pph_stream.  */
+/* Add DECL to the symbol table for pph_out_stream.  */
 
 void
-pph_add_decl_to_register (tree decl)
+pph_add_decl_to_symtab (tree decl)
 {
-  if (decl)
-    {
-      if (decls_to_register.m == NULL)
-	decls_to_register.m = pointer_set_create ();
+  pph_stream *stream = pph_out_stream;
 
-      if (!pointer_set_insert (decls_to_register.m, decl))
-	VEC_safe_push (tree, heap, decls_to_register.v, decl);
-    }
+  if (decl == NULL || stream == NULL)
+    return;
+
+  if (!pointer_set_insert (stream->symtab.m, decl))
+    VEC_safe_push (tree, heap, stream->symtab.v, decl);
+}
+
+
+/* Add STREAM to the list of files included by pph_out_stream.  */
+
+void
+pph_add_include (pph_stream *stream)
+{
+  pph_stream *out_stream = pph_out_stream;
+  VEC_safe_push (pph_stream_ptr, heap, out_stream->includes, stream);
+  stream->nested_p = true;
+}
+
+
+/* Initialize the PPH writer.  */
+
+void
+pph_writer_init (void)
+{
+  gcc_assert (pph_out_stream == NULL);
+
+  pph_out_stream = pph_stream_open (pph_out_file, "wb");
+  if (pph_out_stream == NULL)
+    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
+}
+
+
+/* Finalize the PPH writer.  */
+
+void
+pph_writer_finish (void)
+{
+  pph_stream *out_stream = pph_out_stream;
+  const char *offending_file = cpp_main_missing_guard (parse_in);
+
+  if (offending_file == NULL)
+    pph_write_file (out_stream);
+  else
+    error ("header lacks guard for PPH: %s", offending_file);
+
+  pph_stream_close (out_stream);
+  pph_out_stream = NULL;
 }

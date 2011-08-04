@@ -1,3 +1,44 @@
+2011-08-04   Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (cp_lexer_new_main): Move call to pph_init ...
+	(c_parse_file): ... here.
+	Call pph_finish only if pph_enabled_p returns true.
+	* gcc/cp/pph-streamer-in.c (pph_in_includes): New.
+	(pph_read_file_contents): Call it.
+	(pph_read_file): Call pph_add_include.
+	* pph-streamer-out.c (current_pph_file): Remove.  Update all users.
+	(decls_to_register_t) Likewise.
+	(decls_to_register): Likewise.
+	(pph_out_stream): Declare.
+	(pph_out_symtab_marker): Assert that the MARKER fits in an
+	unsigned char.
+	(pph_out_includes): New.
+	(pph_write_file): Make static.  Assume that STREAM is opened and
+	closed by the caller.
+	(pph_add_include): New.
+	(pph_writer_init): Open pph_out_file into pph_out_stream.
+	(pph_writer_finish): Close pph_out_stream.  Call pph_write_file
+	if no errors were found.
+	(pph_add_decl_to_symtab): Rename from pph_add_decl_to_register.
+	Update all users.
+	* gcc/cp/pph-streamer.c (pph_stream_open): Tidy.
+	Initialize stream->symtab.
+	(pph_stream_close_1): Factor out of ...
+	(pph_stream_close): ... here.
+	Only call pph_stream_close_1 if STREAM is not nested in another
+	PPH file.
+	* pph-streamer.h (struct pph_symtab): Declare.
+	(pph_stream_ptr): Declare.
+	(struct pph_stream): Add fields open_p, nested_p, symtab
+	and includes.
+	(pph_add_decl_to_symtab): Declare.
+	(pph_add_include): Declare.
+	(pph_writer_init): Declare.
+	(pph_writer_finish): Declare.
+	* pph.c (pph_init): Call pph_writer_init if pph_out_file is set.
+	(pph_finish): Call pph_writer_finish if pph_out_file is set.
+	* pph.h (pph_enabled_p): New.
+
 2011-07-28   Lawrence Crowl  <crowl@google.com>
 
 	* pt.c (pph_in_tinst_level): Put tinst_level list in forward order.

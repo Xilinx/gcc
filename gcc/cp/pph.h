@@ -43,10 +43,17 @@ typedef struct cp_token_hunk *cp_token_hunk_ptr;
 DEF_VEC_P (cp_token_hunk_ptr);
 DEF_VEC_ALLOC_P (cp_token_hunk_ptr,gc);
 
+/* Return true if PPH has been enabled.  */
+static inline bool
+pph_enabled_p (void)
+{
+  return pph_out_file != NULL || query_have_pph_map ();
+}
+
 /* Global state.  FIXME pph, get rid of these.  */
 
 /* Log file where PPH analysis is written to.  Controlled by
-   -fpph_logfile.  If this flag is not given, stdout is used.  */
+   -fpph-logfile.  If this flag is not given, stdout is used.  */
 extern FILE *pph_logfile;
 
 /* In pph.c  */

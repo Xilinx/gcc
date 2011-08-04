@@ -127,37 +127,56 @@ pph_stream_open (const char *name, const char *mode)
 
   stream = NULL;
   f = fopen (name, mode);
-  if (f)
-    {
-      pph_hooks_init ();
-      stream = XCNEW (pph_stream);
-      stream->file = f;
-      stream->name = xstrdup (name);
-      stream->write_p = (strchr (mode, 'w') != NULL);
-      if (stream->write_p)
-	pph_init_write (stream);
-      else
-	pph_init_read (stream);
-      stream->cache.v = NULL;
-      stream->cache.m = pointer_map_create ();
-    }
+  if (!f)
+    return NULL;
+
+  pph_hooks_init ();
+  stream = XCNEW (pph_stream);
+  stream->file = f;
+  stream->name = xstrdup (name);
+  stream->write_p = (strchr (mode, 'w') != NULL);
+  stream->cache.m = pointer_map_create ();
+  stream->open_p = true;
+  stream->symtab.m = pointer_set_create ();
+  if (stream->write_p)
+    pph_init_write (stream);
+  else
+    pph_init_read (stream);
 
   return stream;
 }
 
 
-/* Close PPH stream STREAM.  Write all the ASTs to disk and deallocate
-   all memory used by it.  */
 
-void
-pph_stream_close (pph_stream *stream)
+/* Helper for pph_stream_close.  Do not check whether STREAM is a
+   nested header.  */
+
+static void
+pph_stream_close_1 (pph_stream *stream)
 {
+  unsigned i;
+  pph_stream *include;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Closing %s\n", stream->name);
+
+  /* If we were writing to STREAM, flush all the memory buffers.  This
+     does the actual writing of all the pickled data structures.  */
   if (stream->write_p)
     pph_flush_buffers (stream);
+
   fclose (stream->file);
+
+  /* Close all the streams we opened for included PPH images.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, i, include)
+    pph_stream_close_1 (include);
+
+  /* Deallocate all memory used.  */
   stream->file = NULL;
   VEC_free (void_p, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
+  VEC_free (tree, heap, stream->symtab.v);
+  pointer_set_destroy (stream->symtab.m);
 
   if (stream->write_p)
     {
@@ -178,6 +197,26 @@ pph_stream_close (pph_stream *stream)
     }
 
   free (stream);
+}
+
+
+/* Close PPH stream STREAM.  */
+
+void
+pph_stream_close (pph_stream *stream)
+{
+  /* If STREAM is nested into another PPH file, then we cannot
+     close it just yet.  The parent PPH file will need to access
+     STREAM's symbol table (to avoid writing the same symbol
+     more than once).  In this case, STREAM will be closed by the
+     parent file.  */
+  if (stream->nested_p)
+    {
+      gcc_assert (!stream->write_p);
+      return;
+    }
+
+  pph_stream_close_1 (stream);
 }
 
 

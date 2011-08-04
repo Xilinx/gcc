@@ -92,6 +92,22 @@ typedef struct pph_pickle_cache {
   struct pointer_map_t *m;
 } pph_pickle_cache;
 
+/* Symbol table for a PPH stream.  */
+typedef struct pph_symtab
+{
+  /* Table of all the declarations to register in declaration order.  */
+  VEC(tree,heap) *v;
+
+  /* Set of declarations to register used to avoid adding duplicate
+     entries to the table.  */
+  struct pointer_set_t *m;
+} pph_symtab;
+
+/* Vector of pph_stream pointers.  */
+struct pph_stream;
+typedef struct pph_stream *pph_stream_ptr;
+DEF_VEC_P(pph_stream_ptr);
+DEF_VEC_ALLOC_P(pph_stream_ptr,heap);
 
 /* Data structures used to encode and decode trees.  */
 
@@ -128,6 +144,27 @@ typedef struct pph_stream {
 
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
+
+  /* Nonzero if the file associated with this stream is open.
+     After we read a PPH image, we deallocate all the memory used
+     during streaming, but we keep the stream around to access its
+     symbol table.  */
+  unsigned int open_p : 1;
+
+  /* Nonzero if this PPH file is included from another PPH file.  */
+  unsigned int nested_p : 1;
+
+  /* Symbol table.  This is collected as the compiler instantiates
+    symbols and functions.  Once we finish parsing the header file,
+    this array is written out to the PPH image.  This way, the reader
+    will be able to instantiate these symbols in the same order that
+    they were instantiated originally.  */
+  pph_symtab symtab;
+
+  /* List of PPH files included by the PPH file that we are currently
+     generating.  Note that this list only contains PPH files, not
+     regular text headers.  Those are embedded in this stream.  */
+  VEC(pph_stream_ptr,heap) *includes;
 } pph_stream;
 
 /* Filter values for pph_out_chain_filtered.  */
@@ -154,8 +191,10 @@ void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
 void pph_pack_value_fields (struct bitpack_d *, tree);
 void pph_out_tree_header (struct output_block *, tree);
-void pph_write_file (void);
-void pph_add_decl_to_register (tree);
+void pph_add_decl_to_symtab (tree);
+void pph_add_include (pph_stream *);
+void pph_writer_init (void);
+void pph_writer_finish (void);
 
 /* In name-lookup.c.  */
 struct binding_table_s;
@@ -348,7 +387,7 @@ pph_in_bytes (pph_stream *stream, void *p, size_t n)
     pph_trace_bytes (stream, p, n);
 }
 
-/* Read and return a string of up to MAX characters from STREAM.  */
+/* Read and return a string from STREAM.  */
 
 static inline const char *
 pph_in_string (pph_stream *stream)

@@ -5879,10 +5879,9 @@ cp_rest_of_decl_compilation (tree decl, int top_level, int at_end)
 {
   rest_of_decl_compilation (decl, top_level, at_end);
 
-  /* If we are generating a PPH image, add DECL to the list of
-     declarations that need to be registered when this image is read.  */
+  /* If we are generating a PPH image, add DECL to its symbol table.  */
   if (pph_out_file)
-    pph_add_decl_to_register (decl);
+    pph_add_decl_to_symtab (decl);
 }
 
 
@@ -12815,10 +12814,9 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 
   store_parm_decls (current_function_parms);
 
-  /* If we are generating a PPH image, add DECL1 to the list of
-     declarations that need to be registered when restoring the image.  */
+  /* If we are generating a PPH image, add DECL1 to its symbol table.  */
   if (pph_out_file)
-    pph_add_decl_to_register (decl1);
+    pph_add_decl_to_symtab (decl1);
 }
 
 
