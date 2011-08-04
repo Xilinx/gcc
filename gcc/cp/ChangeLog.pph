@@ -1,5 +1,11 @@
 2011-08-04   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (string_tables): Declare.
+	(pph_init_read): Create a new entry in string_tables and copy
+	the string table from STREAM into it.
+
+2011-08-04   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_get_section_data): Remove unused function.
 	(pph_free_section_data): Remove unused function.
 	(pph_init_read): Do not call lto_set_in_hooks.

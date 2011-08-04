@@ -33,6 +33,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "toplev.h"
 
+typedef char *char_p;
+DEF_VEC_P(char_p);
+DEF_VEC_ALLOC_P(char_p,heap);
+
+/* String tables for all input streams.  These are allocated separately
+  from streams because they cannot be deallocated after the streams
+  have been read (string streaming works by pointing into these
+  tables).
+
+  Each stream will create a new entry in this table of tables.  The
+  memory will remain allocated until the end of compilation.  */
+static VEC(char_p,heap) *string_tables = NULL;
+
 /* Wrapper for memory allocation calls that should have their results
    registered in the PPH streamer cache.  DATA is the pointer returned
    by the memory allocation call in ALLOC_EXPR.  IX is the cache slot 
@@ -106,6 +119,7 @@ pph_init_read (pph_stream *stream)
   int retcode;
   pph_file_header *header;
   const char *strtab, *body;
+  char *new_strtab;
 
   lto_reader_init ();
 
@@ -134,16 +148,25 @@ pph_init_read (pph_stream *stream)
   body_size = stream->encoder.r.file_size
 	      - strtab_size - sizeof (pph_file_header);
 
+  /* Create a new string table for STREAM.  This table is not part of
+     STREAM because it needs to remain around until the end of
+     compilation (all the string streaming routines work by pointing
+     into the string table, so we cannot deallocate it after reading
+     STREAM).  */
+  new_strtab = XNEWVEC (char, strtab_size);
+  memcpy (new_strtab, strtab, strtab_size);
+  VEC_safe_push (char_p, heap, string_tables, new_strtab);
+
   /* Create an input block structure pointing right after the string
      table.  */
   stream->encoder.r.ib = XCNEW (struct lto_input_block);
   LTO_INIT_INPUT_BLOCK_PTR (stream->encoder.r.ib, body, 0, body_size);
   stream->encoder.r.data_in
-      = lto_data_in_create (stream->encoder.r.pph_sections[0], strtab,
-			    strtab_size, NULL);
+      = lto_data_in_create (stream->encoder.r.pph_sections[0],
+			    new_strtab, strtab_size, NULL);
 
-  /* Associate STREAM with STREAM->ENCODER.R.DATA_IN so we can recover it from
-     the streamer hooks.  */
+  /* Associate STREAM with STREAM->ENCODER.R.DATA_IN so we can recover
+     it from the streamer hooks.  */
   stream->encoder.r.data_in->sdata = (void *) stream;
 }
 
