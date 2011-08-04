@@ -4675,7 +4675,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	 (inarg (cond ( progarg 
 			(make_stringconst discr_string progarg))
 		      ( progarglist
-			 (split_string_comma discr_string progarglist)
+			 (split_string_comma discr_string (make_stringconst discr_string progarglist))
 			)
 		      (:else
 		       (errormsg_plain "invalid arg or arglist to translateinit mode")
@@ -5804,7 +5804,7 @@ has basic debug support thru debug_msg, assert_msg..."
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
-	(arglist (split_string_comma discr_string (melt_argument "arglist")))
+	(arglist (split_string_comma discr_string (make_stringconst discr_string (melt_argument "arglist"))))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(rlist (make_list discr_list))
 	(mdinfo 

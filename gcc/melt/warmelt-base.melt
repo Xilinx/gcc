@@ -570,25 +570,25 @@ an integer $I if $I is lower than $N.}#
   #{(meltgc_string_hex_md5sum_file_sequence ((melt_ptr_t) $PATHSEQ))}#)
 
 
-(defprimitive split_string_space (dis :cstring cs) :value
-  :doc #{Split a cstring $CS into a list of space separated strings of
+(defprimitive split_string_space (dis s) :value
+  :doc #{Split a string value $S into a list of space separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string($cs, ' ', (melt_ptr_t) $dis)}#)
+#{meltgc_new_split_string (melt_string_str ($S), ' ', (melt_ptr_t) $DIS)}#)
 
-(defprimitive split_string_comma (dis :cstring cs) :value
-  :doc #{Split a cstring $CS into a list of comma separated strings of
+(defprimitive split_string_comma (dis s) :value
+  :doc #{Split a string value $S into a list of comma separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string($cs, ',', (melt_ptr_t) $dis)}#)
+#{meltgc_new_split_string (melt_string_str ($S), ',', (melt_ptr_t) $DIS)}#)
 
-(defprimitive split_string_colon (dis :cstring cs) :value
-  :doc #{Split a cstring $CS into a list of colon separated strings of
+(defprimitive split_string_colon (dis s) :value
+  :doc #{Split a string value $S into a list of colon separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string($cs, ':', (melt_ptr_t)$dis)}#)
+#{meltgc_new_split_string (melt_string_str ($S), ':', (melt_ptr_t) $DIS)}#)
 
-(defprimitive split_string_equal (dis :cstring cs) :value
-  :doc #{Split a cstring $CS into a list of equal separated strings of
+(defprimitive split_string_equal (dis s) :value
+  :doc #{Split a string value $S into a list of equal separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string($cs, '=', (melt_ptr_t)$dis)}#)
+#{meltgc_new_split_string (melt_string_str ($S), '=', (melt_ptr_t) $DIS)}#)
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
