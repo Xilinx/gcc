@@ -605,7 +605,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	echo $(melt_make_cc1flags) $(meltarg_mode)=makedoc  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
-	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
+	      $(meltarg_workdir)=melt-workdir  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
 	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \

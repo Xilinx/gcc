@@ -1,4 +1,8 @@
 
+2011-08-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Use melt-workdir for meltgendoc.texi.
+	* melt-build.mk: Regenerate.
+
 2011-08-04  Romain Geissler  <romain.geissler@gmail.com>
 	* melt/warmelt-base.melt (split_string_space, split_string_comma)
 	(split_string_colon, split_string_equal): Operate on value
