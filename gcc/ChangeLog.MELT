@@ -1,5 +1,8 @@
 
 2011-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_run_make_for_plugin): Don't use fullbinfile.
+
+2011-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_load_one_module): Better error message
 	when descriptive file not found.
 	* melt-build.tpl: Use realpath when symlinking.

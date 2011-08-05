@@ -5044,13 +5044,13 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
     melt_fatal_error ("MELT module compilation failed for command %s", cmdstr);
   cmdstr = NULL;
   obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
-  debugeprintf ("melt_run_make_for_plugin meltplugin did built fullbinfile %s", 
-		fullbinfile);
-  if (IS_ABSOLUTE_PATH (fullbinfile))
-    inform (UNKNOWN_LOCATION, "MELT plugin has built module %s", fullbinfile);
+  debugeprintf ("melt_run_make_for_plugin meltplugin did built binbase %s flavor %s in workdir %s", 
+		binbase, flavor, workdir);
+  if (IS_ABSOLUTE_PATH (binbase))
+    inform (UNKNOWN_LOCATION, "MELT plugin has built module %s flavor %s", binbase, flavor);
   else
-    inform (UNKNOWN_LOCATION, "MELT plugin has built module %s in %s",
-	    fullbinfile, mycwd);
+    inform (UNKNOWN_LOCATION, "MELT plugin has built module %s flavor %s in %s",
+	    binbase, flavor, mycwd);
   return;
 }
 
