@@ -1,5 +1,5 @@
-#ifndef X0TMPLCLASS_H
-#define X0TMPLCLASS_H
+#ifndef A0TMPLCLASS_H
+#define A0TMPLCLASS_H
 template< typename T >
 struct wrapper {
   T value;

@@ -1,5 +1,5 @@
-#ifndef X0TEMPLATE_H
-#define X0TEMPLATE_H
+#ifndef A0TEMPLATE_H
+#define A0TEMPLATE_H
 extern int x;
 struct B;
 template< typename T >

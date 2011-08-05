@@ -1,3 +1,80 @@
+2011-08-04  Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/README: Add new file types.
+	* g++.dg/pph/a0expinstinl.h: New.
+	* g++.dg/pph/a0expinstnin.h: New.
+	* g++.dg/pph/a0inline.h: New.
+	* g++.dg/pph/a0keyed.h: New.
+	* g++.dg/pph/a0keyno.h: New.
+	* g++.dg/pph/a0noninline.h: New.
+	* g++.dg/pph/a0nontrivinit.h: New.
+	* g++.dg/pph/a0rawstruct.h: New.
+	* g++.dg/pph/a0rtti.h: New.
+	* g++.dg/pph/a0template.h: New.
+	* g++.dg/pph/a0tmplclass.h: New.
+	* g++.dg/pph/a0typedef.h: New.
+	* g++.dg/pph/a0variables1.h: New.
+	* g++.dg/pph/a0variables2.h: New.
+	* g++.dg/pph/c0inline1.h: New.
+	* g++.dg/pph/c0inline2.h: New.
+	* g++.dg/pph/c0rawstruct1.h: New.
+	* g++.dg/pph/c0rawstruct2.h: New.
+	* g++.dg/pph/c0typedef1.h: New.
+	* g++.dg/pph/c0typedef2.h: New.
+	* g++.dg/pph/c0variables.h: Contents to a0variables.h.
+	Renamed to c0variables1.h.
+	* g++.dg/pph/c0variables1.h: New.
+	* g++.dg/pph/c0variables2.h: New.
+	* g++.dg/pph/c0variables3.h: New.
+	* g++.dg/pph/c0variables4.h: New.
+	* g++.dg/pph/c1variables.cc: Handle renaming.
+	* g++.dg/pph/c3rawstruct.cc: New.
+	* g++.dg/pph/c3rawstruct.s: New.
+	* g++.dg/pph/c3typedef.cc: New.
+	* g++.dg/pph/c3variables.cc: New.
+	* g++.dg/pph/c4inline.cc: New.
+	* g++.dg/pph/e0noninline1.h: New.
+	* g++.dg/pph/e0noninline2.h: New.
+	* g++.dg/pph/e4noninline.cc: New.
+	* g++.dg/pph/e4variables.cc: New.
+	* g++.dg/pph/pph.exp: Add FIXME.
+	* g++.dg/pph/x0keyed1.h: New.
+	* g++.dg/pph/x0keyed2.h: New.
+	* g++.dg/pph/x0keyno1.h: New.
+	* g++.dg/pph/x0keyno2.h: New.
+	* g++.dg/pph/x0nontrivinit.h: Contents to a0nontrivinit.h.
+	Renamed to x0nontrivinit1.h.
+	* g++.dg/pph/x0nontrivinit1.h: Renamed from x0nontrivinit.h.
+	* g++.dg/pph/x0nontrivinit2.h: New.
+	* g++.dg/pph/x0template.h: Contents to a0template.h.
+	Renamed to x0template1.h.
+	* g++.dg/pph/x0template1.h: Renamed from x0template.
+	* g++.dg/pph/x0template2.h: New.
+	* g++.dg/pph/x0tmplclass.h: Contents to a0tmplclass.h.
+	Renamed to x0tmplclass1.h.
+	* g++.dg/pph/x0tmplclass1.h: Renamed from x0tmplclass.h.
+	* g++.dg/pph/x0tmplclass2.h: New.
+	* g++.dg/pph/x1keyed.cc: New.
+	* g++.dg/pph/x1keyno.cc: New.
+	* g++.dg/pph/x1nontrivinit.cc: Handle renaming.
+	* g++.dg/pph/x1template.cc: Handle renaming.
+	* g++.dg/pph/x1tmplclass.cc: Handle renaming.
+	* g++.dg/pph/x1variables.h: Handle renaming.
+	* g++.dg/pph/x4keyed.cc: New.
+	* g++.dg/pph/x4keyno.cc: New.
+	* g++.dg/pph/x4template.cc: New.
+	* g++.dg/pph/x5rtti1.h: New.
+	* g++.dg/pph/x5rtti2.h: New.
+	* g++.dg/pph/x6rtti.cc: New.
+	* g++.dg/pph/x7rtti.cc: New.
+	* g++.dg/pph/z0expinstinl1.h: New.
+	* g++.dg/pph/z0expinstinl2.h: New.
+	* g++.dg/pph/z0expinstnin1.h: New.
+	* g++.dg/pph/z0expinstnin2.h: New.
+	* g++.dg/pph/z4expinstinl.cc: New.
+	* g++.dg/pph/z4expinstnin.cc: New.
+	* g++.dg/pph/z4nontrivinit.cc: New.
+
 2011-08-04   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1pr44948-1a.cc: Use the same flags as the header file.

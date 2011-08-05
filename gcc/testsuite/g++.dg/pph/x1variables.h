@@ -1,6 +1,6 @@
 #ifndef X1VARIABLES_H
 #define X1VARIABLES_H
-#include "c0variables.h"
+#include "c0variables1.h"
 struct D {
     static int mbr_init_plain;
     static int mbr_uninit_plain;

@@ -1,5 +1,4 @@
-
-#include "x0tmplclass.h"
+#include "x0tmplclass1.h"
 
 int wrapper<char>::cache = 2;
 

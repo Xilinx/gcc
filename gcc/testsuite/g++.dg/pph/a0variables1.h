@@ -1,5 +1,5 @@
-#ifndef C0VARIABLES_H
-#define C0VARIABLES_H
+#ifndef A0VARIABLES1_H
+#define A0VARIABLES1_H
 extern int gbl_init_extern;
 extern int gbl_uninit_extern;
 int gbl_tentative;

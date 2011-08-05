@@ -4,13 +4,15 @@ names.
     [acdpxy][0-9]*
 
     a - auxillary headers
-    c - positive tests for c-level headers and sources
-    d - negative tests for c-level headers and sources
+    c - positive tests for C-level headers and sources
+    d - negative tests for C-level headers and sources
+    e - C-level tests for non-sharable headers
     p - positive tests for what would be c-level code, but which
         due to C++ standard namespace games are not quite C level
-        tests.
-    x - C++-level positive tests.
-    y - C++-level negative tests.
+        tests
+    x - C++-level positive tests
+    y - C++-level negative tests
+    z - C++-level tests for non-sharable headers
 
     0 - tests with no pph inclusions (usually headers)
     1 - tests with a single leading pph file
