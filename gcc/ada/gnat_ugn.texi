@@ -7,7 +7,7 @@
 @c                                                                            o
 @c                             G N A T _ U G N                                o
 @c                                                                            o
-@c                     Copyright (C) 1992-2010, AdaCore                       o
+@c                     Copyright (C) 1992-2011, AdaCore                       o
 @c                                                                            o
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
@@ -3961,10 +3961,9 @@ and @command{gcc} cannot be used to run the GNAT binder.
 
 @item -fno-inline
 @cindex @option{-fno-inline} (@command{gcc})
-Suppresses all back-end inlining, even if other optimization or inlining
-switches are set.
-This includes suppression of inlining that results
-from the use of the pragma @code{Inline_Always}.
+Suppresses all inlining, even if other optimization or inlining
+switches are set.  This includes suppression of inlining that
+results from the use of the pragma @code{Inline_Always}.
 Any occurrences of pragma @code{Inline} or @code{Inline_Always}
 are ignored, and @option{-gnatn} and @option{-gnatN} have no
 effect if this switch is present.
@@ -4007,7 +4006,7 @@ See @ref{Stack Overflow Checking} for details.
 @item -fstack-usage
 @cindex @option{-fstack-usage} (@command{gcc})
 Makes the compiler output stack usage information for the program, on a
-per-function basis. See @ref{Static Stack Usage Analysis} for details.
+per-subprogram basis. See @ref{Static Stack Usage Analysis} for details.
 
 @item -fcallgraph-info@r{[}=su@r{]}
 @cindex @option{-fcallgraph-info} (@command{gcc})
@@ -4116,9 +4115,12 @@ Defines a symbol, associated with @var{value}, for preprocessing.
 
 @item -gnateE
 @cindex @option{-gnateE} (@command{gcc})
-Generate extra information in exception messages, in particular display
+Generate extra information in exception messages. In particular, display
 extra column information and the value and range associated with index and
 range check failures, and extra column information for access checks.
+In cases where the compiler is able to determine at compile time that
+a check will fail, it gives a warning, and the extra information is not
+produced at run time.
 
 @item -gnatef
 @cindex @option{-gnatef} (@command{gcc})
@@ -4148,7 +4150,7 @@ Specify a preprocessing data file
 @cindex @option{-gnateP} (@command{gcc})
 Turn categorization dependency errors into warnings.
 Ada requires that units that WITH one another have compatible categories, for
-example a Pure unit cannto WITH a Preelaborate unit. If this switch is used,
+example a Pure unit cannot WITH a Preelaborate unit. If this switch is used,
 these errors become warnings (which can be ignored, or suppressed in the usual
 manner). This can be useful in some specialized circumstances such as the
 temporary use of special test software.
@@ -5824,9 +5826,14 @@ Similarly, @option{^-Wuninitialized^WARNINGS=UNINITIALIZED^} activates
 the back end warning for uninitialized variables. This switch must be
 used in conjunction with an optimization level greater than zero.
 
+@item -Wstack-usage=@var{len}
+@cindex @option{-Wstack-usage}
+Warn if the stack usage of a subprogram might be larger than @var{len} bytes.
+See @ref{Static Stack Usage Analysis} for details.
+
 @item ^-Wall^/ALL_BACK_END_WARNINGS^
 @cindex @option{-Wall}
-This switch enables all the above warnings from the @option{GCC} back end.
+This switch enables most warnings from the @option{GCC} back end.
 The code generator detects a number of warning situations that are missed
 by the @option{GNAT} front end, and this switch can be used to activate them.
 The use of this switch also sets the default front end warning mode to
@@ -8306,6 +8313,10 @@ Output object list (to standard output or to the named file).
 @cindex @option{^-p^/PESSIMISTIC_ELABORATION^} (@command{gnatbind})
 Pessimistic (worst-case) elaboration order
 
+@item ^-P^-P^
+@cindex @option{^-P^/CODEPEER^} (@command{gnatbind})
+Generate binder file suitable for CodePeer.
+
 @item ^-R^-R^
 @cindex @option{^-R^-R^} (@command{gnatbind})
 Output closure source list.
@@ -9130,6 +9141,14 @@ when multiple versions of the GNAT compiler are available.
 for further details. You would normally use the @option{-b} or
 @option{-V} switch instead.
 
+@item -M
+When linking an executable, create a map file. The name of the map file
+has the same name as the executable with extension ".map".
+
+@item -M=mapfile
+When linking an executable, create a map file. The name of the map file is
+"mapfile".
+
 @item --GCC=@var{compiler_name}
 @cindex @option{--GCC=compiler_name} (@command{gnatlink})
 Program used for compiling the binder file. The default is
@@ -9370,7 +9389,9 @@ to process the project files, especially when looking for sources that take a
 long time. If the source info file exists but cannot be parsed successfully,
 the Project Manager will attempt to recreate it. If the Project Manager fails
 to create the source info file, a message is issued, but gnatmake does not
-fail.
+fail. @command{gnatmake} "trusts" the source info file. This means that
+if the source files have changed (addition, deletion, moving to a different
+source directory), then the source info file need to be deleted and recreated.
 
 @ifclear vms
 @item --create-map-file
@@ -14356,12 +14377,14 @@ McCabe cyclomatic complexity;
 McCabe essential complexity;
 
 @item
-maximal loop nesting level
+maximal loop nesting level;
 
+@item
+extra exit points (for subprograms);
 @end itemize
 
 @noindent
-The McCabe complexity metrics are defined
+The McCabe cyclomatic complexity metric is defined
 in @url{http://www.mccabe.com/pdf/mccabe-nist235r.pdf}
 
 According to McCabe, both control statements and short-circuit control forms
@@ -14382,6 +14405,34 @@ cyclomatic complexity, which is the sum of these two values.
 @end itemize
 
 @noindent
+
+The origin of cyclomatic complexity metric is the need to estimate the number
+of independent paths in the control flow graph that in turn gives the number
+of tests needed to satisfy paths coverage testing completeness criterion.
+Considered from the testing point of view, a static Ada @code{loop} (that is,
+the @code{loop} statement having static subtype in loop parameter
+specification) does not add to cyclomatic complexity. By providing
+@option{^--no-static-loop^NO_STATIC_LOOP^} option a user
+may specify that such loops should not be counted when computing the
+cyclomatic complexity metric
+
+The Ada essential complexity metric is a McCabe cyclomatic complexity metric
+counted for the code that is reduced by excluding all the pure structural Ada
+control statements. An compound statement is considered as a non-structural
+if it contains a @code{raise} or @code{return} statement as it subcomponent,
+or if it contains a @code{goto} statement that transfers the control outside
+the operator. A selective accept statement with @code{terminate} alternative
+is considered as non-structural statement. When computing this metric,
+@code{exit} statements are treated in the same way as @code{goto}
+statements unless @option{^-ne^NO_EXITS_AS_GOTOS^} option is specified.
+
+The Ada essential complexity metric defined here is intended to quantify
+the extent to which the software is unstructured. It is adapted from
+the McCabe essential complexity metric defined in
+http://www.mccabe.com/pdf/nist235r.pdf but is modified to be more
+suitable for typical Ada usage. For example, short circuit forms
+are not penalized as unstructured in the Ada essential complexity metric.
+
 When computing cyclomatic and essential complexity, @command{gnatmetric} skips
 the code in the exception handlers and in all the nested program units.
 
@@ -14434,6 +14485,10 @@ bodies, task bodies, entry bodies and statement sequences in package bodies
 @item ^-ne^/NO_EXITS_AS_GOTOS^
 Do not consider @code{exit} statements as @code{goto}s when
 computing Essential Complexity
+
+@cindex @option{^--no-static-loop^/NO_STATIC_LOOP^} (@command{gnatmetric})
+@item ^--no-static-loop^/NO_STATIC_LOOP^
+Do not consider static loops when computing cyclomatic complexity
 
 @item ^--extra-exit-points^/EXTRA_EXIT_POINTS^
 Report the extra exit points for subprogram bodies. As an exit point, this
@@ -16424,10 +16479,10 @@ replace colons with semicolons in the assignments to these variables.
 @font@heightrm=cmr8
 @heightrm
 @end iftex
-# In this example, we create both ADA_INCLUDE_PATH and ADA_OBJECT_PATH.
+# In this example, we create both ADA_INCLUDE_PATH and ADA_OBJECTS_PATH.
 # This is the same thing as putting the -I arguments on the command line.
 # (the equivalent of using -aI on the command line would be to define
-#  only ADA_INCLUDE_PATH, the equivalent of -aO is ADA_OBJECT_PATH).
+#  only ADA_INCLUDE_PATH, the equivalent of -aO is ADA_OBJECTS_PATH).
 # You can of course have different values for these variables.
 #
 # Note also that we need to keep the previous values of these variables, since
@@ -16444,9 +16499,9 @@ space:=$@{empty@} $@{empty@}
 SOURCE_LIST := $@{subst $@{space@},:,$@{SOURCE_DIRS@}@}
 OBJECT_LIST := $@{subst $@{space@},:,$@{OBJECT_DIRS@}@}
 ADA_INCLUDE_PATH += $@{SOURCE_LIST@}
-ADA_OBJECT_PATH += $@{OBJECT_LIST@}
+ADA_OBJECTS_PATH += $@{OBJECT_LIST@}
 export ADA_INCLUDE_PATH
-export ADA_OBJECT_PATH
+export ADA_OBJECTS_PATH
 
 all:
         gnatmake main_unit
@@ -17171,6 +17226,10 @@ of the function stack analysis. When it is qualified with  @code{bounded}, it
 means that the second field is a reliable maximum of the function stack
 utilization.
 
+A unit compiled with @option{-Wstack-usage} will issue a warning for each
+subprogram whose stack usage might be larger than the specified amount of
+bytes.  The wording is in keeping with the qualifier documented above.
+
 @node Dynamic Stack Usage Analysis
 @section Dynamic Stack Usage Analysis
 
@@ -17200,7 +17259,7 @@ output this info at program termination. Results are displayed in four
 columns:
 
 @noindent
-Index | Task Name | Stack Size | Stack Usage [Value +/- Variation]
+Index | Task Name | Stack Size | Stack Usage
 
 @noindent
 where:
@@ -17218,8 +17277,7 @@ is the maximum size for the stack.
 @item Stack Usage
 is the measure done by the stack analyzer. In order to prevent overflow, the stack
 is not entirely analyzed, and it's not possible to know exactly how
-much has actually been used. The report thus contains the theoretical stack usage
-(Value) and the possible variation (Variation) around this value.
+much has actually been used.
 
 @end table
 
@@ -17227,6 +17285,9 @@ much has actually been used. The report thus contains the theoretical stack usag
 The environment task stack, e.g., the stack that contains the main unit, is
 only processed when the environment variable GNAT_STACK_LIMIT is set.
 
+@noindent
+The package @code{GNAT.Task_Stack_Usage} provides facilities to get
+stack usage reports at run-time. See its body for the details.
 
 @c *********************************
 @c *            GNATCHECK          *
@@ -17248,9 +17309,6 @@ legal Ada units. Moreover, when a unit depends semantically upon units located
 outside the current directory, the source search path has to be provided when
 calling @command{gnatcheck}, either through a specified project file or
 through @command{gnatcheck} switches.
-
-A number of rules are predefined in @command{gnatcheck} and are described
-later in this chapter.
 
 For full details, refer to @cite{GNATcheck Reference Manual} document.
 
@@ -27804,33 +27862,70 @@ Resources are an easy way to add Windows specific objects to your
 application. The objects that can be added as resources include:
 
 @itemize @bullet
-@item
-menus
+@item menus
 
-@item
-accelerators
+@item accelerators
 
-@item
-dialog boxes
+@item dialog boxes
 
-@item
-string tables
+@item string tables
 
-@item
-bitmaps
+@item bitmaps
 
-@item
-cursors
+@item cursors
 
-@item
-icons
+@item icons
 
-@item
-fonts
+@item fonts
+
+@item version information
 @end itemize
 
+For example, a version information resource can be defined as follow and
+embedded into an executable or DLL:
+
+A version information resource can be used to embed information into an
+executable or a DLL. These information can be viewed using the file properties
+from the Windows Explorer. Here is an example of a version information
+resource:
+
+@smallexample
+@group
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080904E4"
+    BEGIN
+      VALUE "CompanyName", "My Company Name"
+      VALUE "FileDescription", "My application"
+      VALUE "FileVersion", "1.0"
+      VALUE "InternalName", "my_app"
+      VALUE "LegalCopyright", "My Name"
+      VALUE "OriginalFilename", "my_app.exe"
+      VALUE "ProductName", "My App"
+      VALUE "ProductVersion", "1.0"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x809, 1252
+  END
+END
+@end group
+@end smallexample
+
+The value @code{0809} (langID) is for the U.K English language and
+@code{04E4} (charsetID), which is equal to @code{1252} decimal, for
+multilingual.
+
 @noindent
-This section explains how to build, compile and use resources.
+This section explains how to build, compile and use resources. Note that this
+section does not cover all resource objects, for a complete description see
+the corresponding Microsoft documentation.
 
 @node Building Resources
 @subsection Building Resources

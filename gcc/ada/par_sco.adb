@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2009-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2009-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -103,21 +103,22 @@ package body Par_SCO is
 
    procedure Process_Decisions (N : Node_Id; T : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
-   --  to output any decisions it contains. T is one of IEPWX (for context of
-   --  expression: if/exit when/pragma/while/expression). If T is other than X,
-   --  the node N is the conditional expression involved, and a decision is
-   --  always present (at the very least a simple decision is present at the
-   --  top level).
+   --  to output any decisions it contains. T is one of IEGPWX (for context of
+   --  expression: if/exit when/entry guard/pragma/while/expression). If T is
+   --  other than X, the node N is the conditional expression involved, and a
+   --  decision is always present (at the very least a simple decision is
+   --  present at the top level).
 
    procedure Process_Decisions (L : List_Id; T : Character);
    --  Calls above procedure for each element of the list L
 
    procedure Set_Table_Entry
-     (C1   : Character;
-      C2   : Character;
-      From : Source_Ptr;
-      To   : Source_Ptr;
-      Last : Boolean);
+     (C1          : Character;
+      C2          : Character;
+      From        : Source_Ptr;
+      To          : Source_Ptr;
+      Last        : Boolean;
+      Pragma_Sloc : Source_Ptr := No_Location);
    --  Append an entry to SCO_Table with fields set as per arguments
 
    procedure Traverse_Declarations_Or_Statements  (L : List_Id);
@@ -126,7 +127,8 @@ package body Par_SCO is
    procedure Traverse_Handled_Statement_Sequence  (N : Node_Id);
    procedure Traverse_Package_Body                (N : Node_Id);
    procedure Traverse_Package_Declaration         (N : Node_Id);
-   procedure Traverse_Subprogram_Body             (N : Node_Id);
+   procedure Traverse_Protected_Body              (N : Node_Id);
+   procedure Traverse_Subprogram_Or_Task_Body     (N : Node_Id);
    procedure Traverse_Subprogram_Declaration      (N : Node_Id);
    --  Traverse the corresponding construct, generating SCO table entries
 
@@ -328,8 +330,11 @@ package body Par_SCO is
 
    --  Version taking a node
 
-   procedure Process_Decisions (N : Node_Id; T : Character) is
+   Pragma_Sloc : Source_Ptr := No_Location;
+   --  While processing decisions within a pragma Assert/Debug/PPC, this is set
+   --  to the sloc of the pragma.
 
+   procedure Process_Decisions (N : Node_Id; T : Character) is
       Mark : Nat;
       --  This is used to mark the location of a decision sequence in the SCO
       --  table. We use it for backing out a simple decision in an expression
@@ -439,6 +444,9 @@ package body Par_SCO is
       -------------------
 
       procedure Output_Header (T : Character) is
+         Loc : Source_Ptr := No_Location;
+         --  Node whose sloc is used for the decision
+
       begin
          case T is
             when 'I' | 'E' | 'W' =>
@@ -446,55 +454,56 @@ package body Par_SCO is
                --  For IF, EXIT, WHILE, the token SLOC can be found from
                --  the SLOC of the parent of the expression.
 
-               Set_Table_Entry
-                 (C1   => T,
-                  C2   => ' ',
-                  From => Sloc (Parent (N)),
-                  To   => No_Location,
-                  Last => False);
+               Loc := Sloc (Parent (N));
 
-            when 'P' =>
+            when 'G' | 'P' =>
 
-               --  For PRAGMA, we must get the location from the pragma node.
+               --  For entry, the token sloc is from the N_Entry_Body. For
+               --  PRAGMA, we must get the location from the pragma node.
                --  Argument N is the pragma argument, and we have to go up two
                --  levels (through the pragma argument association) to get to
                --  the pragma node itself.
 
-               declare
-                  Loc : constant Source_Ptr := Sloc (Parent (Parent (N)));
+               Loc := Sloc (Parent (Parent (N)));
 
-               begin
-                  Set_Table_Entry
-                    (C1   => 'P',
-                     C2   => 'd',
-                     From => Loc,
-                     To   => No_Location,
-                     Last => False);
+               if T = 'P' then
 
-                  --  For pragmas we also must make an entry in the hash table
-                  --  for later access by Set_SCO_Pragma_Enabled. We set the
-                  --  pragma as disabled above, the call will change C2 to 'e'
-                  --  to enable the pragma header entry.
+                  --  Record sloc of pragma (pragmas don't nest)
 
-                  Condition_Pragma_Hash_Table.Set (Loc, SCO_Table.Last);
-               end;
+                  pragma Assert (Pragma_Sloc = No_Location);
+                  Pragma_Sloc := Loc;
+               end if;
 
             when 'X' =>
 
                --  For an expression, no Sloc
 
-               Set_Table_Entry
-                 (C1   => 'X',
-                  C2   => ' ',
-                  From => No_Location,
-                  To   => No_Location,
-                  Last => False);
+               null;
 
             --  No other possibilities
 
             when others =>
                raise Program_Error;
          end case;
+
+         Set_Table_Entry
+           (C1          => T,
+            C2          => ' ',
+            From        => Loc,
+            To          => No_Location,
+            Last        => False,
+            Pragma_Sloc => Pragma_Sloc);
+
+         if T = 'P' then
+
+            --  For pragmas we also must make an entry in the hash table for
+            --  later access by Set_SCO_Pragma_Enabled. We set the pragma as
+            --  disabled now, the call will change C2 to 'e' to enable the
+            --  pragma header entry.
+
+            SCO_Table.Table (SCO_Table.Last).C2 := 'd';
+            Condition_Pragma_Hash_Table.Set (Loc, SCO_Table.Last);
+         end if;
       end Output_Header;
 
       ------------------------------
@@ -524,8 +533,8 @@ package body Par_SCO is
       begin
          case Nkind (N) is
 
-               --  Logical operators, output table entries and then process
-               --  operands recursively to deal with nested conditions.
+            --  Logical operators, output table entries and then process
+            --  operands recursively to deal with nested conditions.
 
             when N_And_Then |
                  N_Or_Else  |
@@ -626,6 +635,12 @@ package body Par_SCO is
       end if;
 
       Traverse (N);
+
+      --  Reset Pragma_Sloc after full subtree traversal
+
+      if T = 'P' then
+         Pragma_Sloc := No_Location;
+      end if;
    end Process_Decisions;
 
    -----------
@@ -657,7 +672,7 @@ package body Par_SCO is
 
       procedure Debug_Put_SCOs is new Put_SCOs;
 
-      --  Start of processing for pscos
+   --  Start of processing for pscos
 
    begin
       Debug_Put_SCOs;
@@ -736,6 +751,34 @@ package body Par_SCO is
       Write_SCOs_To_ALI_File;
    end SCO_Output;
 
+   -------------------------
+   -- SCO_Pragma_Disabled --
+   -------------------------
+
+   function SCO_Pragma_Disabled (Loc : Source_Ptr) return Boolean is
+      Index : Nat;
+
+   begin
+      if Loc = No_Location then
+         return False;
+      end if;
+
+      Index := Condition_Pragma_Hash_Table.Get (Loc);
+
+      --  The test here for zero is to deal with possible previous errors, and
+      --  for the case of pragma statement SCOs, for which we always set the
+      --  Pragma_Sloc even if the particular pragma cannot be specifically
+      --  disabled.
+
+      if Index /= 0 then
+         pragma Assert (SCO_Table.Table (Index).C1 = 'P');
+         return SCO_Table.Table (Index).C2 = 'd';
+
+      else
+         return False;
+      end if;
+   end SCO_Pragma_Disabled;
+
    ----------------
    -- SCO_Record --
    ----------------
@@ -773,30 +816,35 @@ package body Par_SCO is
 
       --  Traverse the unit
 
-      if Nkind (Lu) = N_Subprogram_Body then
-         Traverse_Subprogram_Body (Lu);
+      case Nkind (Lu) is
+         when N_Protected_Body =>
+            Traverse_Protected_Body (Lu);
 
-      elsif Nkind (Lu) = N_Subprogram_Declaration then
-         Traverse_Subprogram_Declaration (Lu);
+         when N_Subprogram_Body | N_Task_Body =>
+            Traverse_Subprogram_Or_Task_Body (Lu);
 
-      elsif Nkind (Lu) = N_Package_Declaration then
-         Traverse_Package_Declaration (Lu);
+         when N_Subprogram_Declaration =>
+            Traverse_Subprogram_Declaration (Lu);
 
-      elsif Nkind (Lu) = N_Package_Body then
-         Traverse_Package_Body (Lu);
+         when N_Package_Declaration =>
+            Traverse_Package_Declaration (Lu);
 
-      elsif Nkind (Lu) = N_Generic_Package_Declaration then
-         Traverse_Generic_Package_Declaration (Lu);
+         when N_Package_Body =>
+            Traverse_Package_Body (Lu);
 
-      elsif Nkind (Lu) in N_Generic_Instantiation then
-         Traverse_Generic_Instantiation (Lu);
+         when N_Generic_Package_Declaration =>
+            Traverse_Generic_Package_Declaration (Lu);
 
-      --  All other cases of compilation units (e.g. renamings), generate
-      --  no SCO information.
+         when N_Generic_Instantiation =>
+            Traverse_Generic_Instantiation (Lu);
 
-      else
-         null;
-      end if;
+         when others =>
+
+            --  All other cases of compilation units (e.g. renamings), generate
+            --  no SCO information.
+
+            null;
+      end case;
 
       --  Make entry for new unit in unit tables, we will fill in the file
       --  name and dependency numbers later.
@@ -861,11 +909,12 @@ package body Par_SCO is
    ---------------------
 
    procedure Set_Table_Entry
-     (C1   : Character;
-      C2   : Character;
-      From : Source_Ptr;
-      To   : Source_Ptr;
-      Last : Boolean)
+     (C1          : Character;
+      C2          : Character;
+      From        : Source_Ptr;
+      To          : Source_Ptr;
+      Last        : Boolean;
+      Pragma_Sloc : Source_Ptr := No_Location)
    is
       function To_Source_Location (S : Source_Ptr) return Source_Location;
       --  Converts Source_Ptr value to Source_Location (line/col) format
@@ -889,11 +938,12 @@ package body Par_SCO is
 
    begin
       Add_SCO
-        (C1   => C1,
-         C2   => C2,
-         From => To_Source_Location (From),
-         To   => To_Source_Location (To),
-         Last => Last);
+        (C1          => C1,
+         C2          => C2,
+         From        => To_Source_Location (From),
+         To          => To_Source_Location (To),
+         Last        => Last,
+         Pragma_Sloc => Pragma_Sloc);
    end Set_Table_Entry;
 
    -----------------------------------------
@@ -985,9 +1035,13 @@ package body Par_SCO is
       procedure Set_Statement_Entry;
       --  If Start is No_Location, does nothing, otherwise outputs a SCO_Table
       --  statement entry for the range Start-Stop and then sets both Start
-      --  and Stop to No_Location. Unconditionally sets Term to True. This is
-      --  called when we find a statement or declaration that generates its
-      --  own table entry, so that we must end the current statement sequence.
+      --  and Stop to No_Location.
+      --  What are Start and Stop??? This comment seems completely unrelated
+      --  to the implementation!???
+      --  Unconditionally sets Term to True. What is Term???
+      --  This is called when we find a statement or declaration that generates
+      --  its own table entry, so that we must end the current statement
+      --  sequence.
 
       procedure Process_Decisions_Defer (N : Node_Id; T : Character);
       pragma Inline (Process_Decisions_Defer);
@@ -1020,14 +1074,23 @@ package body Par_SCO is
             end if;
 
             declare
-               SCE : SC_Entry renames SC.Table (J);
+               SCE         : SC_Entry renames SC.Table (J);
+               Pragma_Sloc : Source_Ptr := No_Location;
             begin
+               --  For the statement SCO for a pragma, set Pragma_Sloc so that
+               --  the SCO can be omitted if the pragma is disabled.
+
+               if SCE.Typ = 'P' then
+                  Pragma_Sloc := SCE.From;
+               end if;
+
                Set_Table_Entry
-                 (C1   => C1,
-                  C2   => SCE.Typ,
-                  From => SCE.From,
-                  To   => SCE.To,
-                  Last => (J = SC_Last));
+                 (C1          => C1,
+                  C2          => SCE.Typ,
+                  From        => SCE.From,
+                  To          => SCE.To,
+                  Last        => (J = SC_Last),
+                  Pragma_Sloc => Pragma_Sloc);
             end;
          end loop;
 
@@ -1144,11 +1207,34 @@ package body Par_SCO is
                     (Parameter_Specifications (Specification (N)), 'X');
                   Set_Statement_Entry;
 
-               --  Subprogram_Body
+               --  Task or subprogram body
 
-               when N_Subprogram_Body =>
+               when N_Task_Body | N_Subprogram_Body =>
                   Set_Statement_Entry;
-                  Traverse_Subprogram_Body (N);
+                  Traverse_Subprogram_Or_Task_Body (N);
+
+               --  Entry body
+
+               when N_Entry_Body =>
+                  declare
+                     Cond : constant Node_Id :=
+                              Condition (Entry_Body_Formal_Part (N));
+
+                  begin
+                     Set_Statement_Entry;
+
+                     if Present (Cond) then
+                        Process_Decisions_Defer (Cond, 'G');
+                     end if;
+
+                     Traverse_Subprogram_Or_Task_Body (N);
+                  end;
+
+               --  Protected body
+
+               when N_Protected_Body =>
+                  Set_Statement_Entry;
+                  Traverse_Protected_Body (N);
 
                --  Exit statement, which is an exit statement in the SCO sense,
                --  so it is included in the current statement sequence, but
@@ -1485,15 +1571,24 @@ package body Par_SCO is
       Traverse_Declarations_Or_Statements (Private_Declarations (Spec));
    end Traverse_Package_Declaration;
 
-   ------------------------------
-   -- Traverse_Subprogram_Body --
-   ------------------------------
+   -----------------------------
+   -- Traverse_Protected_Body --
+   -----------------------------
 
-   procedure Traverse_Subprogram_Body (N : Node_Id) is
+   procedure Traverse_Protected_Body (N : Node_Id) is
+   begin
+      Traverse_Declarations_Or_Statements (Declarations (N));
+   end Traverse_Protected_Body;
+
+   --------------------------------------
+   -- Traverse_Subprogram_Or_Task_Body --
+   --------------------------------------
+
+   procedure Traverse_Subprogram_Or_Task_Body (N : Node_Id) is
    begin
       Traverse_Declarations_Or_Statements (Declarations (N));
       Traverse_Handled_Statement_Sequence (Handled_Statement_Sequence (N));
-   end Traverse_Subprogram_Body;
+   end Traverse_Subprogram_Or_Task_Body;
 
    -------------------------------------
    -- Traverse_Subprogram_Declaration --

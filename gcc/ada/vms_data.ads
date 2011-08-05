@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -882,6 +882,12 @@ package VMS_Data is
    --   of the directory specified in the project file. If the subdirectory
    --   does not exist, it is created automatically.
 
+   S_Check_Template  : aliased constant S := "/TEMPLATE=@"                 &
+                                             "--write-rules=@";
+   --      /TEMPLATE=filename
+   --
+   --   Generate the rule template into the specified file.
+
    S_Check_Verb   : aliased constant S := "/VERBOSE "                      &
                                             "-v";
    --        /NOVERBOSE (D)
@@ -898,24 +904,25 @@ package VMS_Data is
    --   Specify the name of the output file.
 
    Check_Switches : aliased constant Switches :=
-                      (S_Check_Add    'Access,
-                       S_Check_All    'Access,
-                       S_Diagnosis    'Access,
-                       S_Check_Ext    'Access,
-                       S_Check_Files  'Access,
-                       S_Check_Follow 'Access,
-                       S_Check_Help   'Access,
-                       S_Check_Locs   'Access,
-                       S_Check_Mess   'Access,
-                       S_Check_Project'Access,
-                       S_Check_Quiet  'Access,
-                       S_Check_Time   'Access,
-                       S_Check_Log    'Access,
-                       S_Check_Short  'Access,
-                       S_Check_Include'Access,
-                       S_Check_Subdirs'Access,
-                       S_Check_Verb   'Access,
-                       S_Check_Out    'Access);
+                      (S_Check_Add     'Access,
+                       S_Check_All     'Access,
+                       S_Diagnosis     'Access,
+                       S_Check_Ext     'Access,
+                       S_Check_Files   'Access,
+                       S_Check_Follow  'Access,
+                       S_Check_Help    'Access,
+                       S_Check_Locs    'Access,
+                       S_Check_Mess    'Access,
+                       S_Check_Project 'Access,
+                       S_Check_Quiet   'Access,
+                       S_Check_Time    'Access,
+                       S_Check_Log     'Access,
+                       S_Check_Short   'Access,
+                       S_Check_Include 'Access,
+                       S_Check_Subdirs 'Access,
+                       S_Check_Template'Access,
+                       S_Check_Verb    'Access,
+                       S_Check_Out     'Access);
 
    ----------------------------
    -- Switches for GNAT CHOP --
@@ -1292,6 +1299,19 @@ package VMS_Data is
    --   mode, the compiler assumes that values may be invalid unless it can
    --   be sure that they are valid, and code is generated to allow for this
    --   possibility. The use of /ASSUME_VALID will improve the code.
+
+   S_GCC_CategW  : aliased constant S := "/CATEGORIZATION_WARNINGS "  &
+                                             "-gnateP";
+   --        /NO_CATEGORIZATION_WARNINGS (D)
+   --        /CATEGORIZATION_WARNINGS
+   --
+   --   Use to tell the compiler to disable categorization dependency errors.
+   --   Ada requires that units that WITH one another have compatible
+   --   categories, for example a Pure unit cannot WITH a Preelaborate unit.
+   --   If this switch is used, these errors become warnings (which can be
+   --   ignored, or suppressed in the usual manner). This can be useful in
+   --   some specialized circumstances such as the temporary use of special
+   --   test software.
 
    S_GCC_Checks  : aliased constant S := "/CHECKS="                        &
                                              "FULL "                       &
@@ -3517,6 +3537,7 @@ package VMS_Data is
                      S_GCC_Add     'Access,
                      S_GCC_Asm     'Access,
                      S_GCC_AValid  'Access,
+                     S_GCC_CategW  'Access,
                      S_GCC_Checks  'Access,
                      S_GCC_ChecksX 'Access,
                      S_GCC_Compres 'Access,
@@ -5442,6 +5463,14 @@ package VMS_Data is
    --   Do not count EXIT statements as GOTOs when computing the Essential
    --   Complexity.
 
+   S_Metric_No_Static_Loop : aliased constant S := "/NO_STATIC_LOOP " &
+                                                   "--no-static-loop";
+   --        /STATIC_LOOP (D)
+   --        /NO_STATIC_LOOP
+   --
+   --   Do not count static FOR loop statements when computing the Cyclomatic
+   --   Complexity.
+
    S_Metric_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="      &
                                              "DEFAULT "                    &
                                                 "-vP0 "                    &
@@ -5540,6 +5569,7 @@ package VMS_Data is
                         S_Metric_Mess             'Access,
                         S_Metric_No_Exits_As_Gotos'Access,
                         S_Metric_No_Local         'Access,
+                        S_Metric_No_Static_Loop   'Access,
                         S_Metric_Project          'Access,
                         S_Metric_Quiet            'Access,
                         S_Metric_Suffix           'Access,

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -57,7 +57,6 @@ package body Opt is
       External_Name_Exp_Casing_Config       := External_Name_Exp_Casing;
       External_Name_Imp_Casing_Config       := External_Name_Imp_Casing;
       Fast_Math_Config                      := Fast_Math;
-      Init_Or_Norm_Scalars_Config           := Init_Or_Norm_Scalars;
       Initialize_Scalars_Config             := Initialize_Scalars;
       Optimize_Alignment_Config             := Optimize_Alignment;
       Persistent_BSS_Mode_Config            := Persistent_BSS_Mode;
@@ -91,7 +90,6 @@ package body Opt is
       External_Name_Exp_Casing       := Save.External_Name_Exp_Casing;
       External_Name_Imp_Casing       := Save.External_Name_Imp_Casing;
       Fast_Math                      := Save.Fast_Math;
-      Init_Or_Norm_Scalars           := Save.Init_Or_Norm_Scalars;
       Initialize_Scalars             := Save.Initialize_Scalars;
       Optimize_Alignment             := Save.Optimize_Alignment;
       Optimize_Alignment_Local       := Save.Optimize_Alignment_Local;
@@ -99,6 +97,13 @@ package body Opt is
       Polling_Required               := Save.Polling_Required;
       Short_Descriptors              := Save.Short_Descriptors;
       Use_VADS_Size                  := Save.Use_VADS_Size;
+
+      --  Update consistently the value of Init_Or_Norm_Scalars. The value of
+      --  Normalize_Scalars is not saved/restored because after set to True its
+      --  value is never changed. That is, if a compilation unit has pragma
+      --  Normalize_Scalars then it forces that value for all with'ed units.
+
+      Init_Or_Norm_Scalars := Initialize_Scalars or Normalize_Scalars;
    end Restore_Opt_Config_Switches;
 
    ------------------------------
@@ -120,7 +125,6 @@ package body Opt is
       Save.External_Name_Exp_Casing       := External_Name_Exp_Casing;
       Save.External_Name_Imp_Casing       := External_Name_Imp_Casing;
       Save.Fast_Math                      := Fast_Math;
-      Save.Init_Or_Norm_Scalars           := Init_Or_Norm_Scalars;
       Save.Initialize_Scalars             := Initialize_Scalars;
       Save.Optimize_Alignment             := Optimize_Alignment;
       Save.Optimize_Alignment_Local       := Optimize_Alignment_Local;
@@ -187,12 +191,19 @@ package body Opt is
          External_Name_Exp_Casing    := External_Name_Exp_Casing_Config;
          External_Name_Imp_Casing    := External_Name_Imp_Casing_Config;
          Fast_Math                   := Fast_Math_Config;
-         Init_Or_Norm_Scalars        := Init_Or_Norm_Scalars_Config;
          Initialize_Scalars          := Initialize_Scalars_Config;
          Optimize_Alignment          := Optimize_Alignment_Config;
          Optimize_Alignment_Local    := False;
          Persistent_BSS_Mode         := Persistent_BSS_Mode_Config;
          Use_VADS_Size               := Use_VADS_Size_Config;
+
+         --  Update consistently the value of Init_Or_Norm_Scalars. The value
+         --  of Normalize_Scalars is not saved/restored because once set to
+         --  True its value is never changed. That is, if a compilation unit
+         --  has pragma Normalize_Scalars then it forces that value for all
+         --  with'ed units.
+
+         Init_Or_Norm_Scalars := Initialize_Scalars or Normalize_Scalars;
       end if;
 
       Default_Pool                   := Default_Pool_Config;

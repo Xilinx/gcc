@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,7 +23,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Einfo;    use Einfo;
@@ -65,7 +64,10 @@ package body Sem_Ch11 is
       Set_Etype                   (Id, Standard_Exception_Type);
       Set_Is_Statically_Allocated (Id);
       Set_Is_Pure                 (Id, PF);
-      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Id);
+      end if;
    end Analyze_Exception_Declaration;
 
    --------------------------------
@@ -207,15 +209,6 @@ package body Sem_Ch11 is
 
                Push_Scope (H_Scope);
                Set_Etype (H_Scope, Standard_Void_Type);
-
-               --  Set the Finalization Chain entity to Error means that it
-               --  should not be used at that level but the parent one should
-               --  be used instead.
-
-               --  ??? this usage needs documenting in Einfo/Exp_Ch7 ???
-               --  ??? using Error for this non-error condition is nasty ???
-
-               Set_Finalization_Chain_Entity (H_Scope, Error);
 
                Enter_Name (Choice);
                Set_Ekind (Choice, E_Variable);
@@ -441,6 +434,7 @@ package body Sem_Ch11 is
       P              : Node_Id;
 
    begin
+      Check_SPARK_Restriction ("raise statement is not allowed", N);
       Check_Unreachable_Code (N);
 
       --  Check exception restrictions on the original source
@@ -593,8 +587,9 @@ package body Sem_Ch11 is
             return Same_Expression (Right_Opnd (C1), Right_Opnd (C2));
 
          elsif Nkind (C1) in N_Binary_Op then
-            return Same_Expression (Left_Opnd (C1), Left_Opnd (C2))
-              and then Same_Expression (Right_Opnd (C1), Right_Opnd (C2));
+            return Same_Expression (Left_Opnd (C1),  Left_Opnd (C2))
+                     and then
+                   Same_Expression (Right_Opnd (C1), Right_Opnd (C2));
 
          elsif Nkind (C1) = N_Null then
             return True;
@@ -607,6 +602,8 @@ package body Sem_Ch11 is
    --  Start of processing for Analyze_Raise_xxx_Error
 
    begin
+      Check_SPARK_Restriction ("raise statement is not allowed", N);
+
       if No (Etype (N)) then
          Set_Etype (N, Standard_Void_Type);
       end if;

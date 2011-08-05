@@ -222,7 +222,7 @@ fi
 AC_ARG_WITH(demangler-in-ld,
 [AS_HELP_STRING([--with-demangler-in-ld], [try to use demangler in GNU ld])],
 demangler_in_ld="$with_demangler_in_ld",
-demangler_in_ld=no)
+demangler_in_ld=yes)
 
 # ----------------------
 # Find default assembler
@@ -638,6 +638,10 @@ AC_ARG_ENABLE(fixed-point,
 [],
 [
   case $target in
+    arm*)
+      enable_fixed_point=yes
+      ;;
+
     mips*-*-*)
       case $host in
 	mips*-sgi-irix*)
@@ -795,7 +799,7 @@ esac],
 [enable_languages=c])
 
 AC_ARG_WITH(multilib-list,
-[AS_HELP_STRING([--with-multilib-list], [select multilibs (SH only)])],
+[AS_HELP_STRING([--with-multilib-list], [select multilibs (SH and x86-64 only)])],
 :,
 with_multilib_list=default)
 
@@ -1041,7 +1045,14 @@ case "${host}" in
 esac
 AC_FUNC_FORK
 
-AM_ICONV
+# g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which exposes a different
+# iconv() prototype.
+AS_IF([test "$ENABLE_BUILD_WITH_CXX" = "yes"],
+  [AC_LANG_PUSH([C++])
+   AM_ICONV
+   AC_LANG_POP([C++])],
+  [AM_ICONV])
+
 # Until we have in-tree GNU iconv:
 LIBICONV_DEP=
 AC_SUBST(LIBICONV_DEP)
@@ -1340,7 +1351,7 @@ case ${enable_threads} in
     # default
     target_thread_file='single'
     ;;
-  aix | dce | lynx | mipssde | nks | posix | posix95 | rtems | \
+  aix | dce | lynx | mipssde | posix | posix95 | rtems | \
   single | tpf | vxworks | win32)
     target_thread_file=${enable_threads}
     ;;
@@ -1510,6 +1521,11 @@ else
 fi
 cat > plugin-version.h <<EOF
 #include "configargs.h"
+
+#define GCCPLUGIN_VERSION_MAJOR   `echo $gcc_BASEVER | sed -e 's/^\([0-9]*\).*$/\1/'`
+#define GCCPLUGIN_VERSION_MINOR   `echo $gcc_BASEVER | sed -e 's/^[0-9]*\.\([0-9]*\).*$/\1/'`
+#define GCCPLUGIN_VERSION_PATCHLEVEL   `echo $gcc_BASEVER | sed -e 's/^[0-9]*\.[0-9]*\.\([0-9]*\)$/\1/'`
+#define GCCPLUGIN_VERSION  (GCCPLUGIN_VERSION_MAJOR*1000 + GCCPLUGIN_VERSION_MINOR)
 
 static char basever[] = "$gcc_BASEVER";
 static char datestamp[] = "$gcc_DATESTAMP";
@@ -2168,7 +2184,7 @@ foobar:],[
 # Solaris 9/x86 as incorrectly emits an alias for a hidden symbol with
 # STV_HIDDEN, so disable .hidden support if so.
 case "${target}" in
-  i?86-*-solaris2*)
+  i?86-*-solaris2* | x86_64-*-solaris2.1[[0-9]]*)
     if test x$gcc_cv_as != x && test x$gcc_cv_objdump != x; then
       cat > conftest.s <<EOF
 .globl hidden
@@ -2423,7 +2439,7 @@ gcc_GAS_CHECK_FEATURE([cfi directives], gcc_cv_as_cfi_directive,
 	  gcc_cv_as_cfi_directive=no
 	else
 	  case "$target" in
-	    i?86-*-solaris2.1[[0-9]]*)
+	    i?86-*-solaris2.1[[0-9]]* | x86_64-*-solaris2.1[[0-9]]*)
 	      # On Solaris/x86, make sure that GCC and gas agree on using
 	      # read-only .eh_frame sections for 64-bit.
 	      if $gcc_cv_as --64 -o conftest.o conftest.s > /dev/null 2>&1 && \
@@ -2627,7 +2643,7 @@ else
              foo:
 	     '
            ;;
-         i?86-*-solaris2*)
+         i?86-*-solaris2* | x86_64-*-solaris2.1[[0-9]]*)
 	   conftest_s='
                .group foo,.text%foo,#comdat
                .section .text%foo, "ax", @progbits
@@ -2805,12 +2821,16 @@ foo:	.long	25
 	tls_first_major=2
 	tls_first_minor=17
 	;;
-  i[34567]86-*-*)
+  i[34567]86-*-* | x86_64-*-solaris2.1[0-9]*)
     case "$target" in
       i[34567]86-*-solaris2.*)
 	on_solaris=yes
 	tga_func=___tls_get_addr
 	;;
+      x86_64-*-solaris2.1[0-9]*)
+	on_solaris=yes
+	tga_func=__tls_get_addr
+        ;;
       *)
 	on_solaris=no
 	;;

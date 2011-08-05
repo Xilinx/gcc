@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1997-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1997-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -55,6 +55,7 @@ with Snames;   use Snames;
 with Stand;    use Stand;
 with Table;
 with Tbuild;   use Tbuild;
+with Uintp;    use Uintp;
 with Uname;    use Uname;
 
 package body Sem_Elab is
@@ -658,11 +659,10 @@ package body Sem_Elab is
          if Body_Acts_As_Spec then
             if Is_TSS (Ent, TSS_Deep_Initialize) then
                declare
-                  Typ  : Entity_Id;
+                  Typ  : constant Entity_Id := Etype (First_Formal (Ent));
                   Init : Entity_Id;
-               begin
-                  Typ  := Etype (Next_Formal (First_Formal (Ent)));
 
+               begin
                   if not Is_Controlled (Typ) then
                      return;
                   else
@@ -2157,9 +2157,10 @@ package body Sem_Elab is
                   Insert_Action (Declaration_Node (E),
                     Make_Object_Declaration (Loce,
                       Defining_Identifier => Ent,
-                      Object_Definition =>
-                        New_Occurrence_Of (Standard_Boolean, Loce),
-                      Expression => New_Occurrence_Of (Standard_False, Loce)));
+                      Object_Definition   =>
+                        New_Occurrence_Of (Standard_Short_Integer, Loce),
+                      Expression          =>
+                        Make_Integer_Literal (Loc, Uint_0)));
 
                   --  Set elaboration flag at the point of the body
 
@@ -2178,10 +2179,12 @@ package body Sem_Elab is
                end;
             end if;
 
-            --  Generate check of the elaboration Boolean
+            --  Generate check of the elaboration counter
 
             Insert_Elab_Check (N,
-              New_Occurrence_Of (Elaboration_Entity (E), Loc));
+               Make_Attribute_Reference (Loc,
+                 Attribute_Name => Name_Elaborated,
+                 Prefix         => New_Occurrence_Of (E, Loc)));
          end if;
 
          --  Generate the warning
@@ -2421,7 +2424,7 @@ package body Sem_Elab is
                 not Restriction_Active (No_Entry_Calls_In_Elaboration_Code)
             then
                --  Runtime elaboration check required. Generate check of the
-               --  elaboration Boolean for the unit containing the entity.
+               --  elaboration counter for the unit containing the entity.
 
                Insert_Elab_Check (N,
                  Make_Attribute_Reference (Loc,

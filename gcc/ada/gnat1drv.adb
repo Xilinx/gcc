@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -389,6 +389,18 @@ procedure Gnat1drv is
       else
          Back_End_Handles_Limited_Types := False;
       end if;
+
+      --  Set switches for formal verification modes
+
+      if Debug_Flag_Dot_EE then
+         ALFA_Through_SPARK_Mode := True;
+      end if;
+
+      if Debug_Flag_Dot_FF then
+         ALFA_Through_Why_Mode := True;
+      end if;
+
+      ALFA_Mode := ALFA_Through_SPARK_Mode or ALFA_Through_Why_Mode;
    end Adjust_Global_Switches;
 
    --------------------
@@ -1034,6 +1046,21 @@ begin
       end if;
 
       Write_ALI (Object => (Back_End_Mode = Generate_Object));
+
+      if not Compilation_Errors then
+
+         --  In case of ada backends, we need to make sure that the generated
+         --  object file has a timestamp greater than the ALI file. We do this
+         --  to make gnatmake happy when checking the ALI and obj timestamps,
+         --  where it expects the object file being written after the ali file.
+
+         --  Gnatmake's assumption is true for gcc platforms where the gcc
+         --  wrapper needs to call the assembler after calling gnat1, but is
+         --  not true for ada backends, where the object files are created
+         --  directly by gnat1 (so are created before the ali file).
+
+         Back_End.Gen_Or_Update_Object_File;
+      end if;
 
       --  Generate ASIS tree after writing the ALI file, since in ASIS mode,
       --  Write_ALI may in fact result in further tree decoration from the

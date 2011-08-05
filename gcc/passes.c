@@ -1363,6 +1363,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_parallelize_loops);
 	  NEXT_PASS (pass_loop_prefetch);
 	  NEXT_PASS (pass_iv_optimize);
+	  NEXT_PASS (pass_lim);
 	  NEXT_PASS (pass_tree_loop_done);
 	}
       NEXT_PASS (pass_cse_reciprocals);
@@ -1506,6 +1507,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_convert_to_eh_region_ranges);
 	  NEXT_PASS (pass_shorten_branches);
 	  NEXT_PASS (pass_set_nothrow_function_flags);
+	  NEXT_PASS (pass_dwarf2_frame);
 	  NEXT_PASS (pass_final);
 	}
       NEXT_PASS (pass_df_finish);
@@ -2030,6 +2032,8 @@ execute_one_pass (struct opt_pass *pass)
       do_per_function (apply_ipa_transforms, (void *)&applied);
       if (applied)
         cgraph_remove_unreachable_nodes (true, dump_file);
+      /* Restore current_pass.  */
+      current_pass = pass;
     }
 
   if (!quiet_flag && !cfun)

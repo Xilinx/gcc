@@ -1,3 +1,190 @@
+2011-08-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/linux-unwind.h (RT_SIGRETURN_SYSCALL): New.
+	(x86_64_fallback_frame_state): Use RT_SIGRETURN_SYSCALL and
+	long long to check rt_sigreturn syscall.
+
+2011-08-02  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/linux-unwind.h (frob_update_context <__powerpc64__>):
+	Restore for indirect call bcrtl from correct stack slot, and only
+	if cfa+40 isn't valid.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* config.host (arm*-*-linux*, arm*-*-uclinux*, arm*-*-eabi*)
+	(arm*-*-symbianelf*): Add t-fixedpoint-gnu-prefix makefile fragment.
+	* config/arm/bpabi-lib.h (LIBGCC2_FIXEDBIT_GNU_PREFIX): Define.
+
+2011-08-01  Julian Brown  <julian@codesourcery.com>
+
+	* Makefile.in (LIBGCC_VER_FIXEDPOINT_GNU_PREFIX): New.
+	(libgcc-std.ver.in): Use above.
+	* fixed-bit.h (LIBGCC2_FIXEDBIT_GNU_PREFIX): Define, if
+	LIBGCC2_GNU_PREFIX is defined.  Use instead of LIBGCC2_GNU_PREFIX
+	throughout file.
+	* config/t-fixedpoint-gnu-prefix: New file.
+	* config/t-gnu-prefix (LIBGCC_VER_FIXEDPOINT_GNU_PREFIX): Set.
+	* libgcc-std.ver.in (fixed-point routines): Use __FIXPTPFX__
+	instead of __PFX__.
+
+2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/morestack.S (X86_64_SAVE_NEW_STACK_BOUNDARY): New.
+	Use X86_64_SAVE_NEW_STACK_BOUNDARY to save the new stack boundary
+	for x86-64.  Properly check __x86_64__ and __LP64__.
+
+2010-07-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/64/sfp-machine.h (_FP_W_TYPE): Always use _WIN64
+	version.
+	(_FP_WS_TYPE): Likewise.
+	(_FP_I_TYPE): Likewise.
+
+2011-07-28  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/linux-unwind.h (frob_update_context <__powerpc64__>):
+	Leave r2 REG_UNSAVED if stopped on the instruction that saves r2
+	in a plt call stub.  Do restore r2 if stopped on bctrl.
+
+2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.host (i[3456x]86-*-netware*): Remove.
+	* config/i386/netware-crt0.c, config/i386/t-nwld,
+	config/i386/t-slibgcc-nwld: Remove.
+
+2011-07-15  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config.host: Handle tic6x-*-*.
+	* config/c6x/c6x-abi.h: New file.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/crtprec.c: New file.
+	* config/i386/t-crtpc: Use $(srcdir) to refer to crtprec.c.
+	* config.host (i[34567]86-*-darwin*): Add i386/t-crtpc to tmake_file.
+	Add crtprec32.o, crtprec64.o, crtprec80.o to extra_parts.
+	(x86_64-*-darwin*): Likewise.
+	(i[34567]86-*-solaris2*: Likewise.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/alpha/crtfastmath.c: New file.
+	* config/i386/crtfastmath.c: New file.
+	* config/ia64/crtfastmath.c: New file.
+	* config/mips/crtfastmath.c: New file.
+	* config/sparc/crtfastmath.c: New file.
+
+	* config/t-crtfm (crtfastmath.o): Use $(srcdir) to refer to
+	crtfastmath.c.
+	Add -frandom-seed=gcc-crtfastmath.
+	* config/alpha/t-crtfm: Remove.
+	* config/i386/t-crtfm: Use $(srcdir) to refer to crtfastmath.c.
+	* config/ia64/t-ia64 (crtfastmath.o): Remove.
+
+	* config.host (alpha*-*-linux*): Replace alpha/t-crtfm by t-crtfm.
+	(alpha*-dec-osf5.1*): Likewise.
+	(alpha*-*-freebsd*): Add t-crtfm to tmake_file.
+	Add crtfastmath.o to extra_parts.
+	(i[34567]86-*-darwin*): Add i386/t-crtfm to tmake_file.
+	Add crtfastmath.o to extra_parts.
+	(x86_64-*-darwin*): Likewise.
+	(x86_64-*-mingw*): Likewise.
+	(ia64*-*-elf*): Add t-crtfm to tmake_file.
+	(ia64*-*-freebsd*): Likewise.
+	(ia64*-*-linux*): Likewise.
+	(sparc64-*-freebsd*): Add t-crtfm to tmake_file.
+	Add crtfastmath.o to extra_parts.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/darwin-crt3.o: New file.
+	* config/rs6000/darwin-crt2.c: New file.
+	* config/t-darwin: New file.
+	* config/rs6000/t-darwin (DARWIN_EXTRA_CRT_BUILD_CFLAGS): New variable.
+	(crt2.o): New rule.
+	* config.host (*-*-darwin*): Add crt3.o to extra_parts.
+	(powerpc-*-darwin*): Add crt2.o to extra_parts.
+	(powerpc64-*-darwin*): Likewise.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/netware-crt0.c: New file.
+	* config/i386/t-nwld: Rename to ...
+	* config/i386/t-slibgcc-nwld: ... this.
+	* config/i386/t-nwld: New file.
+	* config.host (i[3456x]86-*-netware*): Add i386/t-slibgcc-nwld to
+	tmake_file.
+	Add crt0.o, libgcc.def, libc.def, libcpre.def, posixpre.def to
+	extra_parts.
+
+2011-07-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (i?86-*-solaris2*): Use libgcc copy of
+	i386/t-crtstuff.
+	* configure: Regenerate.
+
+2011-07-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* dfp-bit.c, dfp-bit.h: New files.
+	* Makefile.in (D32PBIT_FUNCS, D64PBIT_FUNCS, D128PBIT_FUNCS): New
+	variables.
+	($(d32pbit-o)): Use $(srcdir) to refer to dfp-bit.c
+	($(d64pbit-o)): Likewise.
+	($(d128pbit-o)): Likewise.
+	* config/t-dfprules: New file.
+	* config.host (i[34567]86-*-linux*): Add t-dfprules to tmake_file.
+	(i[34567]86-*-kfreebsd*-gnu, i[34567]86-*-knetbsd*-gnu,
+	i[34567]86-*-gnu*, i[34567]86-*-kopensolaris*-gnu): Likewise.
+	(x86_64-*-linux*): Likewise.
+	(x86_64-*-kfreebsd*-gnu, x86_64-*-knetbsd*-gnu): Likewise.
+	(i[34567]86-*-cygwin*): Likewise.
+	(i[34567]86-*-mingw*,  x86_64-*-mingw*): Likewise.
+	(powerpc-*-linux*, powerpc64-*-linux*): Likewise.
+
+2011-07-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makfile.in (LIBGCOV): New variable.
+	($(libgcov-objects)): Use $(srcdir) to refer to libgcov.c.
+	* libgcov.c: New file.
+
+2011-07-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* fixed-bit.c, fixed-bit.h: New files.
+	* fixed-obj.mk ($o$(objext), $(o)_s$(objext)): Use $(srcdir) to
+	refer to fixed-bit.c.
+
+2011-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.host (*local*): Remove.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* config.host (*-*-solaris2*): Handle x86_64-*-solaris2.1[0-9]*
+	like i?86-*-solaris2.1[0-9]*.
+	(i[34567]86-*-solaris2*): Also handle x86_64-*-solaris2.1[0-9]*.
+	* configure.ac (i?86-*-solaris2*): Likewise.
+	* configure: Regenerate.
+
+2011-07-06  Thomas Schwinge  <thomas@schwinge.name>
+
+	* config.host (i[34567]86-*-kfreebsd*-gnu, i[34567]86-*-knetbsd*-gnu)
+	(i[34567]86-*-gnu*, i[34567]86-*-kopensolaris*-gnu): Remove
+	md_unwind_header by splitting out of...
+	(i[34567]86-*-linux*): ... this.
+	* config.host (x86_64-*-kfreebsd*-gnu, x86_64-*-knetbsd*-gnu):
+	Remove md_unwind_header by splitting out of...
+	(x86_64-*-linux*): ... this.
+
+2011-07-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/t-avr (intfuncs16): Add _clrsbXX2.
+
+2011-06-28  Nick Clifton  <nickc@redhat.com>
+
+	* config.host: Recognize all V850 variants.
+
 2011-06-22  Uros Bizjak  <ubizjak@gmail.com>
 
 	* enable-execute-stack-empty.c (__enable_execute_stack): Add prototype.

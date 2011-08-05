@@ -207,7 +207,7 @@ esac
 # Link with -nostartfiles -nodefaultlibs since neither are present while
 # building libgcc.
 case ${host} in
-i?86-*-solaris2*)
+i?86-*-solaris2* | x86_64-*-solaris2.1[[0-9]]*)
   cat > conftest.s <<EOF
 	.section	.eh_frame,"a",@unwind
 	.zero	4
@@ -215,9 +215,7 @@ i?86-*-solaris2*)
 	.zero	8
 EOF
   if AC_TRY_COMMAND(${CC-cc} -shared -nostartfiles -nodefaultlibs -o conftest.so conftest.s 1>&AS_MESSAGE_LOG_FD); then
-      # configure expects config files in libgcc/config, so need a relative
-      # path here.
-      tmake_file="${tmake_file} ../../gcc/config/i386/t-crtstuff"
+      tmake_file="${tmake_file} i386/t-crtstuff"
   fi
   ;;
 esac

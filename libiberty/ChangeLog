@@ -1,3 +1,58 @@
+2011-08-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49932
+	* cp-demangle.c (d_prefix): Handle decltype.
+	* testsuite/demangle-expected: Test it.
+
+2011-07-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/demangle-expected: Remove an extra line.
+
+2011-07-26  Ian Lance Taylor  <iant@google.com>
+
+	* cp-demangle.c (d_print_init): Initialize pack_index field.
+	(d_print_comp): Check for NULL template argument.
+	* testsuite/demangle-expected: Add test case.
+
+2011-07-22  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	PR target/49817
+	* stack-limit.c: Include <stdint.h>.
+
+2011-07-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49756
+	* stack-limit.c: New file.
+	* Makefile.in: Regenerate deps.
+	(CFILES): Add stack-limit.c.
+	(REQUIRED_OFILES): Add ./stack-limit.$(objext).
+	* configure.ac (checkfuncs): Add getrlimit and setrlimit.
+	(AC_CHECK_FUNCS): Likewise.
+	* configure: Regenerated.
+	* config.in: Regenerated.
+
+2011-07-04  Jason Merrill  <jason@redhat.com>
+
+	* cp-demangle.c (d_expression): Handle 'this'.
+	(d_print_comp) [DEMANGLE_COMPONENT_FUNCTION_PARAM]: Likewise.
+
+2011-07-01  Joel Brobecker  <brobecker@adacore.com>
+
+	* filename_cmp.c (filename_cmp, filename_ncmp): Add handling of
+	HAVE_CASE_INSENSITIVE_FILE_SYSTEM.
+
+2011-07-01  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	PR debug/49408
+	* cp-demangle.c (d_print_comp): Suppress argument list for function
+	references by the '&' unary operator.  Keep also already processed
+	variant without the argument list.  Suppress argument list types for
+	function call used in an expression.
+	* testsuite/demangle-expected: Fix excessive argument list types in
+	`test for typed function in decltype'.  New testcase for no argument
+	list types printed.  3 new testcases for function references by the
+	'&' unary operator..
+
 2011-06-20  Jason Merrill  <jason@redhat.com>
 
 	PR c++/37089

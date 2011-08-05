@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,6 +28,8 @@ with Err_Vars; use Err_Vars;
 with Hostparm; use Hostparm;
 with Namet;    use Namet;
 with Opt;      use Opt;
+with Restrict; use Restrict;
+with Rident;   use Rident;
 with Scans;    use Scans;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
@@ -184,7 +186,7 @@ package body Scng is
               Tok_Separate | Tok_EOF | Tok_Semicolon | Tok_Arrow |
               Tok_Vertical_Bar | Tok_Dot_Dot | Tok_Project | Tok_Extends |
               Tok_External | Tok_External_As_List | Tok_Comment |
-              Tok_End_Of_Line | Tok_Special | No_Token =>
+              Tok_End_Of_Line | Tok_Special | Tok_SPARK_Hide | No_Token =>
 
             System.CRC32.Update
               (System.CRC32.CRC32 (Checksum),
@@ -249,7 +251,7 @@ package body Scng is
               Tok_Separate | Tok_EOF | Tok_Semicolon | Tok_Arrow |
               Tok_Vertical_Bar | Tok_Dot_Dot | Tok_Project | Tok_Extends |
               Tok_External | Tok_External_As_List | Tok_Comment |
-              Tok_End_Of_Line | Tok_Special | No_Token =>
+              Tok_End_Of_Line | Tok_Special | Tok_SPARK_Hide | No_Token =>
 
             System.CRC32.Update
               (System.CRC32.CRC32 (Checksum),
@@ -1760,6 +1762,47 @@ package body Scng is
                   Comment_Id := Name_Find;
                   Token := Tok_Comment;
                   return;
+               end if;
+
+               --  If the SPARK restriction is set for this unit, then generate
+               --  a token Tok_SPARK_Hide for a SPARK HIDE directive.
+
+               if Restriction_Check_Required (SPARK)
+                 and then Source (Start_Of_Comment) = '#'
+               then
+                  declare
+                     Scan_SPARK_Ptr : Source_Ptr;
+
+                  begin
+                     Scan_SPARK_Ptr := Start_Of_Comment + 1;
+
+                     --  Scan out blanks
+
+                     while Source (Scan_SPARK_Ptr) = ' '
+                       or else Source (Scan_SPARK_Ptr) = HT
+                     loop
+                        Scan_SPARK_Ptr := Scan_SPARK_Ptr + 1;
+                     end loop;
+
+                     --  Recognize HIDE directive. SPARK input cannot be
+                     --  encoded as wide characters, so only deal with
+                     --  lower/upper case.
+
+                     if (Source (Scan_SPARK_Ptr) = 'h'
+                          or else Source (Scan_SPARK_Ptr) = 'H')
+                       and then (Source (Scan_SPARK_Ptr + 1) = 'i'
+                                  or else Source (Scan_SPARK_Ptr + 1) = 'I')
+                       and then (Source (Scan_SPARK_Ptr + 2) = 'd'
+                                  or else Source (Scan_SPARK_Ptr + 2) = 'D')
+                       and then (Source (Scan_SPARK_Ptr + 3) = 'e'
+                                  or else Source (Scan_SPARK_Ptr + 3) = 'E')
+                       and then (Source (Scan_SPARK_Ptr + 4) = ' '
+                                  or else Source (Scan_SPARK_Ptr + 4) = HT)
+                     then
+                        Token := Tok_SPARK_Hide;
+                        return;
+                     end if;
+                  end;
                end if;
             end if;
          end Minus_Case;

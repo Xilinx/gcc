@@ -198,6 +198,8 @@ static rtx alpha_emit_xfloating_compare (enum rtx_code *, rtx, rtx);
 #if TARGET_ABI_OPEN_VMS
 static void alpha_write_linkage (FILE *, const char *, tree);
 static bool vms_valid_pointer_mode (enum machine_mode);
+#else
+#define vms_patch_builtins()  gcc_unreachable()
 #endif
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
@@ -567,59 +569,6 @@ direct_return (void)
 	  && get_frame_size () == 0
 	  && crtl->outgoing_args_size == 0
 	  && crtl->args.pretend_args_size == 0);
-}
-
-/* Return the ADDR_VEC associated with a tablejump insn.  */
-
-rtx
-alpha_tablejump_addr_vec (rtx insn)
-{
-  rtx tmp;
-
-  tmp = JUMP_LABEL (insn);
-  if (!tmp)
-    return NULL_RTX;
-  tmp = NEXT_INSN (tmp);
-  if (!tmp)
-    return NULL_RTX;
-  if (JUMP_P (tmp)
-      && GET_CODE (PATTERN (tmp)) == ADDR_DIFF_VEC)
-    return PATTERN (tmp);
-  return NULL_RTX;
-}
-
-/* Return the label of the predicted edge, or CONST0_RTX if we don't know.  */
-
-rtx
-alpha_tablejump_best_label (rtx insn)
-{
-  rtx jump_table = alpha_tablejump_addr_vec (insn);
-  rtx best_label = NULL_RTX;
-
-  /* ??? Once the CFG doesn't keep getting completely rebuilt, look
-     there for edge frequency counts from profile data.  */
-
-  if (jump_table)
-    {
-      int n_labels = XVECLEN (jump_table, 1);
-      int best_count = -1;
-      int i, j;
-
-      for (i = 0; i < n_labels; i++)
-	{
-	  int count = 1;
-
-	  for (j = i + 1; j < n_labels; j++)
-	    if (XEXP (XVECEXP (jump_table, 1, i), 0)
-		== XEXP (XVECEXP (jump_table, 1, j), 0))
-	      count++;
-
-	  if (count > best_count)
-	    best_count = count, best_label = XVECEXP (jump_table, 1, i);
-	}
-    }
-
-  return best_label ? best_label : const0_rtx;
 }
 
 /* Return the TLS model to use for SYMBOL.  */
@@ -5988,8 +5937,7 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   if (TARGET_ABI_OPEN_VMS)
     {
       t = make_tree (ptr_type_node, virtual_incoming_args_rtx);
-      t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t,
-		 size_int (offset + NUM_ARGS * UNITS_PER_WORD));
+      t = fold_build_pointer_plus_hwi (t, offset + NUM_ARGS * UNITS_PER_WORD);
       t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist, t);
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -6005,8 +5953,7 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 			     valist, offset_field, NULL_TREE);
 
       t = make_tree (ptr_type_node, virtual_incoming_args_rtx);
-      t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t,
-		  size_int (offset));
+      t = fold_build_pointer_plus_hwi (t, offset);
       t = build2 (MODIFY_EXPR, TREE_TYPE (base_field), base_field, t);
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -6067,8 +6014,7 @@ alpha_gimplify_va_arg_1 (tree type, tree base, tree offset,
     }
 
   /* Build the final address and force that value into a temporary.  */
-  addr = build2 (POINTER_PLUS_EXPR, ptr_type, fold_convert (ptr_type, base),
-	         fold_convert (sizetype, addend));
+  addr = fold_build_pointer_plus (fold_convert (ptr_type, base), addend);
   internal_post = NULL;
   gimplify_expr (&addr, pre_p, &internal_post, is_gimple_val, fb_rvalue);
   gimple_seq_add_seq (pre_p, internal_post);
@@ -6367,12 +6313,6 @@ alpha_init_builtins (void)
 
   dimode_integer_type_node = lang_hooks.types.type_for_mode (DImode, 0);
 
-  /* Fwrite on VMS is non-standard.  */
-#if TARGET_ABI_OPEN_VMS
-  implicit_built_in_decls[(int) BUILT_IN_FWRITE] = NULL_TREE;
-  implicit_built_in_decls[(int) BUILT_IN_FWRITE_UNLOCKED] = NULL_TREE;
-#endif
-
   ftype = build_function_type_list (dimode_integer_type_node, NULL_TREE);
   alpha_add_builtins (zero_arg_builtins, ARRAY_SIZE (zero_arg_builtins),
 		      ftype);
@@ -6409,6 +6349,8 @@ alpha_init_builtins (void)
 					NULL_TREE);
       alpha_builtin_function ("__builtin_revert_vms_condition_handler", ftype,
 			      ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER, 0);
+
+      vms_patch_builtins ();
     }
 
   alpha_v8qi_u = build_vector_type (unsigned_intQI_type_node, 8);
@@ -8159,7 +8101,8 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
 #endif
 
   /* End the function.  */
-  if (!flag_inhibit_size_directive)
+  if (TARGET_ABI_OPEN_VMS
+      || !flag_inhibit_size_directive)
     {
       fputs ("\t.end ", file);
       assemble_name (file, fnname);
@@ -8167,15 +8110,6 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
     }
   inside_function = FALSE;
 }
-
-#if TARGET_ABI_OPEN_VMS
-void avms_asm_output_external (FILE *file, tree decl ATTRIBUTE_UNUSED, const char *name)
-{
-#ifdef DO_CRTL_NAMES
-  DO_CRTL_NAMES;
-#endif
-}
-#endif
 
 #if TARGET_ABI_OSF
 /* Emit a tail call to FUNCTION after adjusting THIS by DELTA.

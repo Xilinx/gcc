@@ -4099,7 +4099,7 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
 		 DST is set to size 1 so the rest of the memory location
 		 does not count as source operand.  */
 	      rtx dstp1 = adjust_address (dst, VOIDmode, 1);
-	      set_mem_size (dst, const1_rtx);
+	      set_mem_size (dst, 1);
 
 	      emit_insn (gen_movmem_short (dstp1, dst,
 					   GEN_INT (INTVAL (len) - 2)));
@@ -4142,7 +4142,7 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
       else
 	{
 	  dstp1 = adjust_address (dst, VOIDmode, 1);
-	  set_mem_size (dst, const1_rtx);
+	  set_mem_size (dst, 1);
 
 	  /* Initialize memory by storing the first byte.  */
 	  emit_move_insn (adjust_address (dst, QImode, 0), val);
@@ -4551,7 +4551,7 @@ s390_expand_insv (rtx dest, rtx op1, rtx op2, rtx src)
 					GET_MODE_SIZE (word_mode) - size);
 
 	  dest = adjust_address (dest, BLKmode, 0);
-	  set_mem_size (dest, GEN_INT (size));
+	  set_mem_size (dest, size);
 	  s390_expand_movmem (dest, src_mem, GEN_INT (size));
 	}
 
@@ -4569,7 +4569,7 @@ s390_expand_insv (rtx dest, rtx op1, rtx op2, rtx src)
 
 	      emit_move_insn (adjust_address (dest, SImode, size),
 			      gen_lowpart (SImode, src));
-	      set_mem_size (dest, GEN_INT (size));
+	      set_mem_size (dest, size);
 	      emit_move_insn (gen_rtx_ZERO_EXTRACT (word_mode, dest, GEN_INT
 						    (stcmh_width), const0_rtx),
 			      gen_rtx_LSHIFTRT (word_mode, src, GEN_INT
@@ -7572,7 +7572,7 @@ s390_hard_regno_rename_ok (unsigned int old_reg, unsigned int new_reg)
 /* Maximum number of registers to represent a value of mode MODE
    in a register of class RCLASS.  */
 
-bool
+int
 s390_class_max_nregs (enum reg_class rclass, enum machine_mode mode)
 {
   switch (rclass)
@@ -8868,7 +8868,7 @@ s390_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 	fprintf (stderr, "va_start: n_gpr = %d, n_fpr = %d off %d\n",
 		 (int)n_gpr, (int)n_fpr, off);
 
-      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (ovf), t, size_int (off));
+      t = fold_build_pointer_plus_hwi (t, off);
 
       t = build2 (MODIFY_EXPR, TREE_TYPE (ovf), ovf, t);
       TREE_SIDE_EFFECTS (t) = 1;
@@ -8880,8 +8880,7 @@ s390_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
       || (cfun->va_list_fpr_size && n_fpr < FP_ARG_NUM_REG))
     {
       t = make_tree (TREE_TYPE (sav), return_address_pointer_rtx);
-      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (sav), t,
-	          size_int (-RETURN_REGNUM * UNITS_PER_LONG));
+      t = fold_build_pointer_plus_hwi (t, -RETURN_REGNUM * UNITS_PER_LONG);
 
       t = build2 (MODIFY_EXPR, TREE_TYPE (sav), sav, t);
       TREE_SIDE_EFFECTS (t) = 1;
@@ -9013,11 +9012,10 @@ s390_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   t = build3 (COND_EXPR, void_type_node, t, u, NULL_TREE);
   gimplify_and_add (t, pre_p);
 
-  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, sav,
-	      size_int (sav_ofs));
+  t = fold_build_pointer_plus_hwi (sav, sav_ofs);
   u = build2 (MULT_EXPR, TREE_TYPE (reg), reg,
 	      fold_convert (TREE_TYPE (reg), size_int (sav_scale)));
-  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t, fold_convert (sizetype, u));
+  t = fold_build_pointer_plus (t, u);
 
   gimplify_assign (addr, t, pre_p);
 
@@ -9030,15 +9028,13 @@ s390_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 
   t = ovf;
   if (size < UNITS_PER_LONG)
-    t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t,
-		size_int (UNITS_PER_LONG - size));
+    t = fold_build_pointer_plus_hwi (t, UNITS_PER_LONG - size);
 
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
 
   gimplify_assign (addr, t, pre_p);
 
-  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, t,
-	      size_int (size));
+  t = fold_build_pointer_plus_hwi (t, size);
   gimplify_assign (ovf, t, pre_p);
 
   gimple_seq_add_stmt (pre_p, gimple_build_label (lab_over));

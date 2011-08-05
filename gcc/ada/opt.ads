@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -111,10 +111,6 @@ package Opt is
    --  some cases, the values can also be modified by pragmas, and in the
    --  case of some binder variables, Gnatbind.Scan_Bind_Arg may modify
    --  the default values.
-
-   Ada_Bind_File : Boolean := True;
-   --  GNATBIND, GNATLINK
-   --  Set True if binder file to be generated in Ada rather than C
 
    type Ada_Version_Type is (Ada_83, Ada_95, Ada_2005, Ada_2012);
    pragma Ordered (Ada_Version_Type);
@@ -328,7 +324,7 @@ package Opt is
    --  of withing a package and using none of the entities in the package.
 
    CodePeer_Mode : Boolean := False;
-   --  GNAT
+   --  GNAT, GNATBIND
    --  Enable full CodePeer mode (SCIL generation, disable switches that
    --  interact badly with it, etc...).
 
@@ -1077,6 +1073,15 @@ package Opt is
    --  GNAT
    --  Set by switch -gnatep=. The file name of the preprocessing data file.
 
+   Preprocessing_Symbol_Defs : String_List_Access := new String_List (1 .. 4);
+   --  An extensible array to temporarily stores symbol definitions specified
+   --  on the command line with -gnateD switches.
+   --  What is this magic constant 4 ???
+   --  What is extensible about this fixed length array ???
+
+   Preprocessing_Symbol_Last : Natural := 0;
+   --  Index of last symbol definition in array Symbol_Definitions
+
    Print_Generated_Code : Boolean := False;
    --  GNAT
    --  Set to True to enable output of generated code in source form. This
@@ -1184,7 +1189,7 @@ package Opt is
    Style_Check : Boolean := False;
    --  GNAT
    --  Set True to perform style checks. Activates checks carried out in
-   --  package Style (see body of this package for details of checks) This
+   --  package Style (see body of this package for details of checks). This
    --  flag is set True by either the -gnatg or -gnaty switches.
 
    Suppress_All_Inlining : Boolean := False;
@@ -1709,11 +1714,6 @@ package Opt is
    --  used to set the initial value of Fast_Math at the start of each new
    --  compilation unit.
 
-   Init_Or_Norm_Scalars_Config : Boolean;
-   --  GNAT
-   --  This is the value of the configuration switch that is set by one
-   --  of the pragmas Initialize_Scalars or Normalize_Scalars.
-
    Initialize_Scalars_Config : Boolean;
    --  GNAT
    --  This is the value of the configuration switch that is set by the
@@ -1855,6 +1855,25 @@ package Opt is
    --  Used to store the ASIS version number read from a tree file to check if
    --  it is the same as stored in the ASIS version number in Tree_IO.
 
+   -----------------------------------
+   -- Modes for Formal Verification --
+   -----------------------------------
+
+   --  These modes are currently defined through debug flags
+
+   ALFA_Mode : Boolean := False;
+   --  Set True if ALFA_Through_SPARK_Mode or else ALFA_Through_Why_Mode
+
+   ALFA_Through_SPARK_Mode : Boolean := False;
+   --  Specific compiling mode targeting formal verification through
+   --  the generation of SPARK code for those parts of the input code that
+   --  belong to the ALFA subset of Ada. Set by debug flag -gnatd.E.
+
+   ALFA_Through_Why_Mode : Boolean := False;
+   --  Specific compiling mode targeting formal verification through
+   --  the generation of Why code for those parts of the input code that
+   --  belong to the ALFA subset of Ada. Set by debuf flag -gnatd.F.
+
 private
 
    --  The following type is used to save and restore settings of switches in
@@ -1878,8 +1897,8 @@ private
       External_Name_Exp_Casing       : External_Casing_Type;
       External_Name_Imp_Casing       : External_Casing_Type;
       Fast_Math                      : Boolean;
-      Init_Or_Norm_Scalars           : Boolean;
       Initialize_Scalars             : Boolean;
+      Normalize_Scalars              : Boolean;
       Optimize_Alignment             : Character;
       Optimize_Alignment_Local       : Boolean;
       Persistent_BSS_Mode            : Boolean;

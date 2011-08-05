@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -369,6 +369,8 @@ package body Sem_Ch4 is
       C        : Node_Id;
 
    begin
+      Check_SPARK_Restriction ("allocator is not allowed", N);
+
       --  Deal with allocator restrictions
 
       --  In accordance with H.4(7), the No_Allocators restriction only applies
@@ -649,13 +651,6 @@ package body Sem_Ch4 is
          Check_Restriction (No_Tasking, N);
          Check_Restriction (Max_Tasks, N);
          Check_Restriction (No_Task_Allocators, N);
-
-         --  Check that an allocator with task parts isn't for a nested access
-         --  type when restriction No_Task_Hierarchy applies.
-
-         if not Is_Library_Level_Entity (Acc_Type) then
-            Check_Restriction (No_Task_Hierarchy, N);
-         end if;
       end if;
 
       --  Check that an allocator of a nested access type doesn't create a
@@ -786,6 +781,10 @@ package body Sem_Ch4 is
       --  Flag indicates whether an interpretation of the prefix is a
       --  parameterless call that returns an access_to_subprogram.
 
+      procedure Check_Mixed_Parameter_And_Named_Associations;
+      --  Check that parameter and named associations are not mixed. This is
+      --  a restriction in SPARK mode.
+
       function Name_Denotes_Function return Boolean;
       --  If the type of the name is an access to subprogram, this may be the
       --  type of a name, or the return type of the function being called. If
@@ -795,6 +794,35 @@ package body Sem_Ch4 is
 
       procedure No_Interpretation;
       --  Output error message when no valid interpretation exists
+
+      --------------------------------------------------
+      -- Check_Mixed_Parameter_And_Named_Associations --
+      --------------------------------------------------
+
+      procedure Check_Mixed_Parameter_And_Named_Associations is
+         Actual     : Node_Id;
+         Named_Seen : Boolean;
+
+      begin
+         Named_Seen := False;
+
+         Actual := First (Actuals);
+         while Present (Actual) loop
+            case Nkind (Actual) is
+               when N_Parameter_Association =>
+                  if Named_Seen then
+                     Check_SPARK_Restriction
+                       ("named association cannot follow positional one",
+                        Actual);
+                     exit;
+                  end if;
+               when others =>
+                  Named_Seen := True;
+            end case;
+
+            Next (Actual);
+         end loop;
+      end Check_Mixed_Parameter_And_Named_Associations;
 
       ---------------------------
       -- Name_Denotes_Function --
@@ -853,6 +881,10 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Call
 
    begin
+      if Restriction_Check_Required (SPARK) then
+         Check_Mixed_Parameter_And_Named_Associations;
+      end if;
+
       --  Initialize the type of the result of the call to the error type,
       --  which will be reset if the type is successfully resolved.
 
@@ -1467,6 +1499,8 @@ package body Sem_Ch4 is
          return;
       end if;
 
+      Check_SPARK_Restriction ("conditional expression is not allowed", N);
+
       Else_Expr := Next (Then_Expr);
 
       if Comes_From_Source (N) then
@@ -1494,20 +1528,30 @@ package body Sem_Ch4 is
 
          begin
             Set_Etype (N, Any_Type);
+
+            --  Shouldn't the following statement be down in the ELSE of the
+            --  following loop? ???
+
             Get_First_Interp (Then_Expr, I, It);
-            while Present (It.Nam) loop
 
-               --  For each possible interpretation of the Then Expression,
-               --  add it only if the else expression has a compatible type.
+            --  if no Else_Expression the conditional must be boolean
 
-               --  Is this right if Else_Expr is empty?
+            if No (Else_Expr) then
+               Set_Etype (N, Standard_Boolean);
 
-               if Has_Compatible_Type (Else_Expr, It.Typ) then
-                  Add_One_Interp (N, It.Typ, It.Typ);
-               end if;
+            --  Else_Expression Present. For each possible intepretation of
+            --  the Then_Expression, add it only if the Else_Expression has
+            --  a compatible type.
 
-               Get_Next_Interp (I, It);
-            end loop;
+            else
+               while Present (It.Nam) loop
+                  if Has_Compatible_Type (Else_Expr, It.Typ) then
+                     Add_One_Interp (N, It.Typ, It.Typ);
+                  end if;
+
+                  Get_Next_Interp (I, It);
+               end loop;
+            end if;
          end;
       end if;
    end Analyze_Conditional_Expression;
@@ -1655,6 +1699,8 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Explicit_Dereference
 
    begin
+      Check_SPARK_Restriction ("explicit dereference is not allowed", N);
+
       Analyze (P);
       Set_Etype (N, Any_Type);
 
@@ -2441,17 +2487,21 @@ package body Sem_Ch4 is
          end if;
 
       --  If not a range, it can be a subtype mark, or else it is a degenerate
-      --  membership test with a singleton value, i.e. a test for equality.
+      --  membership test with a singleton value, i.e. a test for equality,
+      --  if the types are compatible.
 
       else
          Analyze (R);
+
          if Is_Entity_Name (R)
            and then Is_Type (Entity (R))
          then
             Find_Type (R);
             Check_Fully_Declared (Entity (R), R);
 
-         elsif Ada_Version >= Ada_2012 then
+         elsif Ada_Version >= Ada_2012
+           and then Has_Compatible_Type (R, Etype (L))
+         then
             if Nkind (N) = N_In then
                Rewrite (N,
                  Make_Op_Eq (Loc,
@@ -2468,8 +2518,8 @@ package body Sem_Ch4 is
             return;
 
          else
-            --  In previous version of the language this is an error that will
-            --  be diagnosed below.
+            --  In all versions of the language, if we reach this point there
+            --  is a previous error that will be diagnosed below.
 
             Find_Type (R);
          end if;
@@ -2532,6 +2582,8 @@ package body Sem_Ch4 is
 
    procedure Analyze_Null (N : Node_Id) is
    begin
+      Check_SPARK_Restriction ("null is not allowed", N);
+
       Set_Etype (N, Any_Access);
    end Analyze_Null;
 
@@ -2820,9 +2872,9 @@ package body Sem_Ch4 is
          Actual := First_Actual (N);
          Formal := First_Formal (Nam);
 
-         --  If we are analyzing a call rewritten from object notation,
-         --  skip first actual, which may be rewritten later as an
-         --  explicit dereference.
+         --  If we are analyzing a call rewritten from object notation, skip
+         --  first actual, which may be rewritten later as an explicit
+         --  dereference.
 
          if Must_Skip then
             Next_Actual (Actual);
@@ -3050,7 +3102,10 @@ package body Sem_Ch4 is
             T := It.Typ;
          end if;
 
-         if Is_Record_Type (T) then
+         --  Locate the component. For a private prefix the selector can denote
+         --  a discriminant.
+
+         if Is_Record_Type (T) or else Is_Private_Type (T) then
 
             --  If the prefix is a class-wide type, the visible components are
             --  those of the base type.
@@ -3216,14 +3271,16 @@ package body Sem_Ch4 is
       Iterator : Node_Id;
 
    begin
+      Check_SPARK_Restriction ("quantified expression is not allowed", N);
+
       Set_Etype  (Ent,  Standard_Void_Type);
       Set_Parent (Ent, N);
 
       if Present (Loop_Parameter_Specification (N)) then
          Iterator :=
            Make_Iteration_Scheme (Loc,
-              Loop_Parameter_Specification =>
-                Loop_Parameter_Specification (N));
+             Loop_Parameter_Specification =>
+               Loop_Parameter_Specification (N));
       else
          Iterator :=
            Make_Iteration_Scheme (Loc,
@@ -3670,6 +3727,7 @@ package body Sem_Ch4 is
       --  be done transitively, so note the new original discriminant.
 
       if Nkind (Sel) = N_Identifier
+        and then In_Instance
         and then Present (Original_Discriminant (Sel))
       then
          Comp := Find_Corresponding_Discriminant (Sel, Prefix_Type);
@@ -3826,7 +3884,7 @@ package body Sem_Ch4 is
             --  which can appear in expanded code in a tag check.
 
             if Ekind (Type_To_Use) = E_Record_Type_With_Private
-              and then  Chars (Selector_Name (N)) /= Name_uTag
+              and then Chars (Selector_Name (N)) /= Name_uTag
             then
                exit when Comp = Last_Entity (Type_To_Use);
             end if;
@@ -4242,6 +4300,8 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Slice
 
    begin
+      Check_SPARK_Restriction ("slice is not allowed", N);
+
       Analyze (P);
       Analyze (D);
 
@@ -5687,8 +5747,20 @@ package body Sem_Ch4 is
                Error_Msg_NE -- CODEFIX
                  ("operator for} is not directly visible!",
                   N, First_Subtype (Candidate_Type));
-               Error_Msg_N -- CODEFIX
-                 ("use clause would make operation legal!",  N);
+
+               declare
+                  U : constant Node_Id :=
+                        Cunit (Get_Source_Unit (Candidate_Type));
+               begin
+                  if Unit_Is_Visible (U) then
+                     Error_Msg_N -- CODEFIX
+                       ("use clause would make operation legal!",  N);
+                  else
+                     Error_Msg_NE  --  CODEFIX
+                       ("add with_clause and use_clause for&!",
+                          N, Defining_Entity (Unit (U)));
+                  end if;
+               end;
                return;
 
             --  If either operand is a junk operand (e.g. package name), then
@@ -6774,13 +6846,13 @@ package body Sem_Ch4 is
 
             Hom := Current_Entity (Subprog);
 
-            --  Find operation whose first parameter is of the class-wide
-            --  type, a subtype thereof, or an anonymous access to same.
+            --  Find a non-hidden operation whose first parameter is of the
+            --  class-wide type, a subtype thereof, or an anonymous access
+            --  to same.
 
             while Present (Hom) loop
-               if (Ekind (Hom) = E_Procedure
-                     or else
-                   Ekind (Hom) = E_Function)
+               if Ekind_In (Hom, E_Procedure, E_Function)
+                 and then not Is_Hidden (Hom)
                  and then Scope (Hom) = Scope (Anc_Type)
                  and then Present (First_Formal (Hom))
                  and then
@@ -6795,6 +6867,16 @@ package body Sem_Ch4 is
                               (Designated_Type (Etype (First_Formal (Hom)))) =
                                                                    Cls_Type))
                then
+                  --  If the context is a procedure call, ignore functions
+                  --  in the name of the call.
+
+                  if Ekind (Hom) = E_Function
+                    and then Nkind (Parent (N)) = N_Procedure_Call_Statement
+                    and then N = Name (Parent (N))
+                  then
+                     goto Next_Hom;
+                  end if;
+
                   Set_Etype (Call_Node, Any_Type);
                   Set_Is_Overloaded (Call_Node, False);
                   Success := False;
@@ -6836,7 +6918,8 @@ package body Sem_Ch4 is
                   end if;
                end if;
 
-               Hom := Homonym (Hom);
+               <<Next_Hom>>
+                  Hom := Homonym (Hom);
             end loop;
          end Traverse_Homonyms;
 
@@ -7157,7 +7240,8 @@ package body Sem_Ch4 is
 
               or else
                 (Ekind (Typ) = E_Anonymous_Access_Type
-                  and then Designated_Type (Typ) = Base_Type (Corr_Type));
+                  and then
+                    Base_Type (Designated_Type (Typ)) = Base_Type (Corr_Type));
          end Valid_First_Argument_Of;
 
       --  Start of processing for Try_Primitive_Operation

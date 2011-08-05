@@ -1231,9 +1231,10 @@ gimple_expand_builtin_pow (gimple_stmt_iterator *gsi, location_t loc,
       /* Attempt to fold powi(arg0, abs(n/2)) into multiplies.  If not
          possible or profitable, give up.  Skip the degenerate case when
          n is 1 or -1, where the result is always 1.  */
-      if (abs (n) != 1)
+      if (abs_hwi (n) != 1)
 	{
-	  powi_x_ndiv2 = gimple_expand_builtin_powi (gsi, loc, arg0, abs(n/2));
+	  powi_x_ndiv2 = gimple_expand_builtin_powi (gsi, loc, arg0,
+						     abs_hwi (n / 2));
 	  if (!powi_x_ndiv2)
 	    return NULL_TREE;
 	}
@@ -1242,7 +1243,7 @@ gimple_expand_builtin_pow (gimple_stmt_iterator *gsi, location_t loc,
 	 result of the optimal multiply sequence just calculated.  */
       sqrt_arg0 = build_and_insert_call (gsi, loc, &target, sqrtfn, arg0);
 
-      if (abs (n) == 1)
+      if (abs_hwi (n) == 1)
 	result = sqrt_arg0;
       else
 	result = build_and_insert_binop (gsi, loc, target, MULT_EXPR,
@@ -1284,10 +1285,10 @@ gimple_expand_builtin_pow (gimple_stmt_iterator *gsi, location_t loc,
       /* Attempt to fold powi(arg0, abs(n/3)) into multiplies.  If not
          possible or profitable, give up.  Skip the degenerate case when
          abs(n) < 3, where the result is always 1.  */
-      if (abs (n) >= 3)
+      if (abs_hwi (n) >= 3)
 	{
 	  powi_x_ndiv3 = gimple_expand_builtin_powi (gsi, loc, arg0,
-						     abs (n / 3));
+						     abs_hwi (n / 3));
 	  if (!powi_x_ndiv3)
 	    return NULL_TREE;
 	}
@@ -1297,14 +1298,14 @@ gimple_expand_builtin_pow (gimple_stmt_iterator *gsi, location_t loc,
          either cbrt(x) or cbrt(x) * cbrt(x).  */
       cbrt_x = build_and_insert_call (gsi, loc, &target, cbrtfn, arg0);
 
-      if (abs (n) % 3 == 1)
+      if (abs_hwi (n) % 3 == 1)
 	powi_cbrt_x = cbrt_x;
       else
 	powi_cbrt_x = build_and_insert_binop (gsi, loc, target, MULT_EXPR,
 					      cbrt_x, cbrt_x);
 
       /* Multiply the two subexpressions, unless powi(x,abs(n)/3) = 1.  */
-      if (abs (n) < 3)
+      if (abs_hwi (n) < 3)
 	result = powi_cbrt_x;
       else
 	result = build_and_insert_binop (gsi, loc, target, MULT_EXPR,
@@ -1543,6 +1544,9 @@ do_shift_rotate (enum tree_code code,
     default:
       return false;
     }
+  /* Zero unused bits for size.  */
+  if (n->size < (int)sizeof (HOST_WIDEST_INT))
+    n->n &= ((unsigned HOST_WIDEST_INT)1 << (n->size * BITS_PER_UNIT)) - 1;
   return true;
 }
 
@@ -1740,15 +1744,16 @@ find_bswap (gimple stmt)
 
   struct symbolic_number n;
   tree source_expr;
+  int limit;
 
   /* The last parameter determines the depth search limit.  It usually
      correlates directly to the number of bytes to be touched.  We
-     increase that number by one here in order to also cover signed ->
-     unsigned conversions of the src operand as can be seen in
-     libgcc.  */
-  source_expr =  find_bswap_1 (stmt, &n,
-			       TREE_INT_CST_LOW (
-				 TYPE_SIZE_UNIT (gimple_expr_type (stmt))) + 1);
+     increase that number by three  here in order to also
+     cover signed -> unsigned converions of the src operand as can be seen
+     in libgcc, and for initial shift/and operation of the src operand.  */
+  limit = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (gimple_expr_type (stmt)));
+  limit += 1 + (int) ceil_log2 ((unsigned HOST_WIDE_INT) limit);
+  source_expr =  find_bswap_1 (stmt, &n, limit);
 
   if (!source_expr)
     return NULL_TREE;
@@ -1817,7 +1822,11 @@ execute_optimize_bswap (void)
     {
       gimple_stmt_iterator gsi;
 
-      for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      /* We do a reverse scan for bswap patterns to make sure we get the
+	 widest match. As bswap pattern matching doesn't handle
+	 previously inserted smaller bswap replacements as sub-
+	 patterns, the wider variant wouldn't be detected.  */
+      for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
         {
 	  gimple stmt = gsi_stmt (gsi);
 	  tree bswap_src, bswap_type;

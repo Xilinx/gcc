@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2009-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2009-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -165,6 +165,12 @@ package SCOs is
    --    entries appear in one logical statement sequence, continuation lines
    --    are marked by Cs and appear immediately after the CS line.
 
+   --    Implementation permission: a SCO generator is permitted to emit a
+   --    narrower SLOC range for a statement if the corresponding code
+   --    generation circuitry ensures that all debug information for the code
+   --    implementing the statement will be labeled with SLOCs that fall within
+   --    that narrower range.
+
    --  Decisions
 
    --    Note: in the following description, logical operator includes only the
@@ -222,12 +228,13 @@ package SCOs is
 
    --      I  decision in IF statement or conditional expression
    --      E  decision in EXIT WHEN statement
+   --      G  decision in entry guard
    --      P  decision in pragma Assert/Check/Pre_Condition/Post_Condition
    --      W  decision in WHILE iteration scheme
    --      X  decision appearing in some other expression context
 
-   --    For I, E, P, W, sloc is the source location of the IF, EXIT, PRAGMA or
-   --    WHILE token.
+   --    For I, E, G, P, W, sloc is the source location of the IF, EXIT,
+   --    ENTRY, PRAGMA or WHILE token, respectively
 
    --    For X, sloc is omitted
 
@@ -246,16 +253,17 @@ package SCOs is
    --      term ::= element
    --      term ::= expression
 
-   --      element ::= outcome sloc-range
+   --      element ::= *sloc-range
 
-   --    outcome is one of the following letters:
+   --    where * is one of the following letters:
 
    --      c  condition
    --      t  true condition
    --      f  false condition
 
-   --      where t/f are used to mark a condition that has been recognized by
-   --      the compiler as always being true or false.
+   --      t/f are used to mark a condition that has been recognized by the
+   --      compiler as always being true or false. c is the normal case of
+   --      conditions whose value is not known at compile time.
 
    --    & indicates AND THEN connecting two conditions
 
@@ -277,7 +285,8 @@ package SCOs is
    --    form is used, e.g. A in (2,7,11.15).
 
    --    The expression can be followed by chaining indicators of the form
-   --    Tsloc-range or Fsloc-range.
+   --    Tsloc-range or Fsloc-range, where the sloc-range is that of some
+   --    entry on a CS line.
 
    --    T* is present when the statement with the given sloc range is executed
    --    if, and only if, the decision evaluates to TRUE.
@@ -303,6 +312,12 @@ package SCOs is
    --    statements.
 
    --    In all other cases, chaining indicators are omitted
+
+   --    Implementation permission: a SCO generator is permitted to emit a
+   --    narrower SLOC range for a condition if the corresponding code
+   --    generation circuitry ensures that all debug information for the code
+   --    evaluating the condition will be labeled with SLOCs that fall within
+   --    that narrower range.
 
    --  Case Expressions
 
@@ -338,6 +353,11 @@ package SCOs is
       C1   : Character;
       C2   : Character;
       Last : Boolean;
+
+      Pragma_Sloc : Source_Ptr := No_Location;
+      --  For the statement SCO for a pragma, or for any expression SCO nested
+      --  in a pragma Debug/Assert/PPC, location of PRAGMA token (used for
+      --  control of SCO output, value not recorded in ALI file).
    end record;
 
    package SCO_Table is new GNAT.Table (
@@ -462,11 +482,12 @@ package SCOs is
    --  Reset tables for a new compilation
 
    procedure Add_SCO
-     (From : Source_Location := No_Source_Location;
-      To   : Source_Location := No_Source_Location;
-      C1   : Character       := ' ';
-      C2   : Character       := ' ';
-      Last : Boolean         := False);
+     (From        : Source_Location := No_Source_Location;
+      To          : Source_Location := No_Source_Location;
+      C1          : Character       := ' ';
+      C2          : Character       := ' ';
+      Last        : Boolean         := False;
+      Pragma_Sloc : Source_Ptr      := No_Location);
    --  Adds one entry to SCO table with given field values
 
 end SCOs;

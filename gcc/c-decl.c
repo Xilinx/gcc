@@ -238,7 +238,7 @@ extern char C_SIZEOF_STRUCT_LANG_IDENTIFIER_isnt_accurate
 /* The resulting tree type.  */
 
 union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-       chain_next ("CODE_CONTAINS_STRUCT (TREE_CODE (&%h.generic), TS_TYPE_COMMON) ? (union lang_tree_node *) TYPE_NEXT_VARIANT (&%h.generic) : CODE_CONTAINS_STRUCT (TREE_CODE (&%h.generic), TS_COMMON) ? ((union lang_tree_node *) TREE_CHAIN (&%h.generic)) : NULL")))  lang_tree_node
+       chain_next ("(union lang_tree_node *) c_tree_chain_next (&%h.generic)"))) lang_tree_node
  {
   union tree_node GTY ((tag ("0"),
 			desc ("tree_node_structure (&%h)")))
@@ -3478,8 +3478,6 @@ c_init_decl_processing (void)
      using preprocessed headers.  */
   input_location = BUILTINS_LOCATION;
 
-  build_common_tree_nodes (flag_signed_char);
-
   c_common_nodes_and_builtins ();
 
   /* In C, comparisons and TRUTH_* expressions have type int.  */
@@ -4359,6 +4357,8 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	       when a tentative file-scope definition is seen.
 	       But at end of compilation, do output code for them.  */
 	    DECL_DEFER_OUTPUT (decl) = 1;
+	  if (asmspec && C_DECL_REGISTER (decl))
+	    DECL_HARD_REGISTER (decl) = 1;
 	  rest_of_decl_compilation (decl, true, 0);
 	}
       else
@@ -8499,6 +8499,14 @@ identifier_global_value	(tree t)
       return b->decl;
 
   return 0;
+}
+
+/* In C, the only C-linkage public declaration is at file scope.  */
+
+tree
+c_linkage_bindings (tree name)
+{
+  return identifier_global_value (name);
 }
 
 /* Record a builtin type for C.  If NAME is non-NULL, it is the name used;
