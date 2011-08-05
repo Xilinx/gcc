@@ -53,6 +53,14 @@ enum pph_symtab_marker {
    exactly 8 bytes in the file.  */
 static const char pph_id_str[] = "PPH0x42";
 
+/* When streaming out the line_table we will ignore the first 3 entries.
+   The first one is the entrance in the header, the second one is for
+   builtins, the third one is the command line, the fourth one is finally
+   the LC_RENAME back to the header file, we want to stream out starting at
+   that one, changing it's reason to LC_ENTER (as we ignored the original
+   entrance), and then streaming every other entry as is from that point on.  */
+#define PPH_NUM_IGNORED_LINE_TABLE_ENTRIES 3
+
 /* Structure of the header of a PPH file.  */
 typedef struct pph_file_header {
   /* Identification string.  */
@@ -195,6 +203,7 @@ void pph_add_decl_to_symtab (tree);
 void pph_add_include (pph_stream *);
 void pph_writer_init (void);
 void pph_writer_finish (void);
+void pph_write_location (struct output_block *, location_t);
 
 /* In name-lookup.c.  */
 struct binding_table_s;
@@ -207,6 +216,7 @@ void pph_read_tree (struct lto_input_block *, struct data_in *, tree);
 void pph_unpack_value_fields (struct bitpack_d *, tree);
 tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
 	             struct data_in *);
+location_t pph_read_location (struct lto_input_block *, struct data_in *);
 void pph_read_file (const char *);
 
 /* In pt.c.  */
@@ -334,7 +344,7 @@ pph_out_location (pph_stream *stream, location_t loc)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_location (stream, loc);
-  lto_output_location (stream->encoder.w.ob, loc);
+  pph_write_location (stream->encoder.w.ob, loc);
 }
 
 /* Write a chain of ASTs to STREAM starting with FIRST.  */
@@ -399,11 +409,15 @@ pph_in_string (pph_stream *stream)
   return s;
 }
 
-/* Read and return a location_t from STREAM.  */
+/* Read and return a location_t from STREAM.
+   FIXME pph: If pph_trace didn't depend on STREAM, we could avoid having to
+   call this function, only for it to call lto_input_location, which calls the
+   streamer hook back to pph_read_location.  */
+
 static inline location_t
 pph_in_location (pph_stream *stream)
 {
-  location_t loc = lto_input_location (stream->encoder.r.ib,
+  location_t loc = pph_read_location (stream->encoder.r.ib,
 				       stream->encoder.r.data_in);
   if (flag_pph_tracer >= 4)
     pph_trace_location (stream, loc);

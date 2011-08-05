@@ -94,18 +94,7 @@ linemap_add (struct line_maps *set, enum lc_reason reason,
   if (set->used && start_location < set->maps[set->used - 1].start_location)
     abort ();
 
-  if (set->used == set->allocated)
-    {
-      line_map_realloc reallocator
-	= set->reallocator ? set->reallocator : xrealloc;
-      set->allocated = 2 * set->allocated + 256;
-      set->maps
-	= (struct line_map *) (*reallocator) (set->maps,
-					      set->allocated
-					      * sizeof (struct line_map));
-      memset (&set->maps[set->used], 0, ((set->allocated - set->used)
-					 * sizeof (struct line_map)));
-    }
+  linemap_ensure_extra_space_available (set);
 
   map = &set->maps[set->used];
 
@@ -212,7 +201,7 @@ linemap_line_start (struct line_maps *set, linenum_type to_line,
 	  /* If the column number is ridiculous or we've allocated a huge
 	     number of source_locations, give up on column numbers. */
 	  max_column_hint = 0;
-	  if (highest >0xF0000000)
+	  if (highest > 0xF0000000)
 	    return 0;
 	  column_bits = 0;
 	}

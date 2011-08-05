@@ -112,6 +112,8 @@ pph_hooks_init (void)
   streamer_hooks.unpack_value_fields = pph_unpack_value_fields;
   streamer_hooks.alloc_tree = pph_alloc_tree;
   streamer_hooks.output_tree_header = pph_out_tree_header;
+  streamer_hooks.input_location = pph_read_location;
+  streamer_hooks.output_location = pph_write_location;
   streamer_hooks.has_unique_integer_csts_p = true;
 }
 

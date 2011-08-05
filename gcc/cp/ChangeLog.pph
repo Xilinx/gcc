@@ -1,3 +1,23 @@
+2011-08-04  Gabriel Charette  <gchare@google.com>
+
+	* decl.c (finish_function): Remove line 0 hack.
+	* pph-streamer-in.c (pph_loc_offset): New global variable.
+	(pph_read_location): New.
+	(pph_in_linenum_type): New.
+	(pph_in_source_location): New.
+	(pph_in_line_map): New.
+	(pph_in_and_merge_line_table): New.
+	(pph_read_file_contents): Call pph_in_and_merge_line_table.
+	* pph-streamer-out.c (pph_write_location): New.
+	(pph_out_linenum_type): New.
+	(pph_out_source_location): New.
+	(pph_out_line_map): New.
+	(pph_out_line_table): New.
+	(pph_write_file_contents): Call pph_out_line_table.
+	* pph-streamer.c (pph_hooks_init): Init input_location
+	and output_location hooks.
+	* pph-streamer.h (PPH_NUM_IGNORED_LINE_TABLE_ENTRIES): Define.
+
 2011-08-04   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (string_tables): Declare.

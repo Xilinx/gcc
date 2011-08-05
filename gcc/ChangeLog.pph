@@ -1,3 +1,12 @@
+2011-08-04  Gabriel Charette  <gchare@google.com>
+
+	* lto-streamer-in.c (lto_input_location): Handle input_location
+	streamer hook.
+	* lto-streamer-out.c (lto_output_location): Handle output_location
+	streamer hook.
+	* lto-streamer.h (streamer_hooks): Add input_location and
+	output_location hooks.
+
 2011-07-25  Lawrence Crowl  <crowl@google.com>
 
 	* lto-streamer-out.c (lto_output_location): Make external.

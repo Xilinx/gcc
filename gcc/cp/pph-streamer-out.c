@@ -122,6 +122,34 @@ pph_end_section (void)
 }
 
 
+/* Callback for streamer_hooks.output_location.  Output the LOC directly,
+   an offset will be applied on input after rebuilding the line_table.
+   OB and LOC are as in lto_output_location.  */
+
+void
+pph_write_location (struct output_block *ob, location_t loc)
+{
+  /* FIXME pph: we are streaming builtin locations, which implies that we are
+     streaming some builtins, we probably want to figure out what those are and
+     simply add them to the cache in the preload.  */
+  struct bitpack_d bp;
+  location_t highest_builtin_loc = line_table->maps[2].start_location - 1;
+
+  bp = bitpack_create (ob->main_stream);
+  if (loc < highest_builtin_loc)
+    bp_pack_value (&bp, true, 1);
+  else
+    {
+      gcc_assert (loc >=
+        line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location);
+      bp_pack_value (&bp, false, 1);
+    }
+
+  lto_output_bitpack (&bp);
+  lto_output_sleb128_stream (ob->main_stream, loc);
+}
+
+
 /* Write the header for the PPH file represented by STREAM.  */
 
 static void
@@ -1218,6 +1246,87 @@ pph_out_includes (pph_stream *stream)
 }
 
 
+/* Emit linenum_type LN to STREAM.  */
+
+static inline void
+pph_out_linenum_type (pph_stream *stream, linenum_type ln)
+{
+  pph_out_uint (stream, ln);
+}
+
+
+/* Emit source_location SL to STREAM.  */
+
+static inline void
+pph_out_source_location (pph_stream *stream, source_location sl)
+{
+  pph_out_uint (stream, sl);
+}
+
+
+/* Emit all information contained in LM to STREAM.  */
+
+static void
+pph_out_line_map (pph_stream *stream, struct line_map *lm)
+{
+  struct bitpack_d bp;
+
+  pph_out_string (stream, lm->to_file);
+  pph_out_linenum_type (stream, lm->to_line);
+  pph_out_source_location (stream, lm->start_location);
+  pph_out_uint (stream, (unsigned int) lm->included_from);
+
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, lm->reason, CHAR_BIT);
+  bp_pack_value (&bp, lm->sysp, CHAR_BIT);
+  bp_pack_value (&bp, lm->column_bits, COLUMN_BITS_BIT);
+  pph_out_bitpack (stream, &bp);
+}
+
+
+/* Emit the required line_map entry and some properties in LINETAB to STREAM,
+   ignoring builtin and command-line entries.  */
+
+static void
+pph_out_line_table (pph_stream *stream, struct line_maps *linetab)
+{
+  unsigned int ix;
+
+  /* Any #include should have been fully parsed and exited at this point.  */
+  gcc_assert (linetab->depth == 0);
+
+  /* Only output used as the number of line_map entries we actually output.  */
+  pph_out_uint (stream, linetab->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
+
+  /* Output all the non-ignored line_map entries.
+     Special casing the first one.  */
+  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES; ix < linetab->used; ix++)
+    {
+      struct line_map *lm = &linetab->maps[ix];
+
+      if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
+        {
+          /* The first non-ignored entry should be an LC_RENAME back in the
+            header after inserting the builtin and command-line entries.  When
+            reading the pph we want this to be a simple LC_ENTER as the builtin
+            and command_line entries will already exist and we are now entering
+	    a #include.  */
+          gcc_assert (lm->reason == LC_RENAME);
+          lm->reason = LC_ENTER;
+        }
+
+      pph_out_line_map (stream, lm);
+
+      if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
+        lm->reason = LC_RENAME;
+    }
+
+  pph_out_source_location (stream, linetab->highest_location);
+  pph_out_source_location (stream, linetab->highest_line);
+
+  pph_out_uint (stream, linetab->max_column_hint);
+}
+
 /* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
 
 static void
@@ -1230,6 +1339,9 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
   /* Emit all the identifiers and pre-processor symbols in the global
      namespace.  */
   pph_out_identifiers (stream, idents_used);
+
+  /* Emit the line table entries.  */
+  pph_out_line_table (stream, line_table);
 
   /* Emit the bindings for the global namespace.  */
   pph_out_scope_chain (stream, scope_chain);

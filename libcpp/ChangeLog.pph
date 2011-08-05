@@ -1,3 +1,13 @@
+2011-08-04  Gabriel Charette  <gchare@google.com>
+
+	* include/line-map.h (LC_REASON_BIT): Define as CHAR_BIT.
+	(COLUMN_BITS_BIT): Define as 8.
+	(struct line_map): Use LC_REASON_BIT and COLUMN_BITS_BIT to represent
+	field specific bit requirements.
+	* line-map.c (linemap_ensure_extra_space_available): New.
+	(linemap_add): Call linemap_ensure_extra_space_available.
+	(linemap_line_start): Fixed missing space.
+
 2011-07-20  Gabriel Charette  <gchare@google.com>
 
 	* include/cpplib.h (cpp_is_builtin): New.

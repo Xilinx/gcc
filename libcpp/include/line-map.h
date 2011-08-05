@@ -44,6 +44,9 @@ typedef unsigned int source_location;
 /* Memory allocation function typedef.  Works like xrealloc.  */
 typedef void *(*line_map_realloc) (void *, size_t);
 
+#define LC_REASON_BIT CHAR_BIT
+#define COLUMN_BITS_BIT 8
+
 /* Physical source file TO_FILE at line TO_LINE at column 0 is represented
    by the logical START_LOCATION.  TO_LINE+L at column C is represented by
    START_LOCATION+(L*(1<<column_bits))+C, as long as C<(1<<column_bits),
@@ -61,11 +64,11 @@ struct GTY(()) line_map {
   linenum_type to_line;
   source_location start_location;
   int included_from;
-  ENUM_BITFIELD (lc_reason) reason : CHAR_BIT;
+  ENUM_BITFIELD (lc_reason) reason : LC_REASON_BIT;
   /* The sysp field isn't really needed now that it's in cpp_buffer.  */
   unsigned char sysp;
   /* Number of the low-order source_location bits used for a column number.  */
-  unsigned int column_bits : 8;
+  unsigned int column_bits : COLUMN_BITS_BIT;
 };
 
 /* A set of chronological line_map structures.  */
@@ -189,5 +192,25 @@ extern const struct line_map *linemap_lookup
 
 extern source_location
 linemap_position_for_column (struct line_maps *set, unsigned int to_column);
+
+/* Makes sure SET has at least one more unused line_map allocated.
+   If it doesn't, this function allocates more room in SET.  */
+
+static inline void
+linemap_ensure_extra_space_available (struct line_maps *set)
+{
+  if (set->used == set->allocated)
+    {
+      line_map_realloc reallocator;
+      reallocator  = set->reallocator ? set->reallocator : xrealloc;
+
+      set->allocated = 2 * set->allocated + 256;
+      set->maps = (struct line_map *) (*reallocator) (set->maps,
+                               set->allocated * sizeof (struct line_map));
+
+      memset (&set->maps[set->used], 0,
+              (set->allocated - set->used) * sizeof (struct line_map));
+    }
+}
 
 #endif /* !LIBCPP_LINE_MAP_H  */

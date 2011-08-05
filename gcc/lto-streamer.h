@@ -832,6 +832,16 @@ struct streamer_hooks {
      the number of arguments to the CALL_EXPR).  */
   void (*output_tree_header) (struct output_block *, tree);
 
+  /* [OPT] Called by lto_input_location to retrieve the source location of the
+     tree currently being read. If this hook returns NULL, lto_input_location
+     defaults to calling lto_input_location_bitpack.  */
+  location_t (*input_location) (struct lto_input_block *, struct data_in *);
+
+  /* [OPT] Called by lto_output_location to write the source_location of the
+     tree currently being written. If this hook returns NULL,
+     lto_output_location defaults to calling lto_output_location_bitpack.  */
+  void (*output_location) (struct output_block *, location_t);
+
   /* [OPT] Non-zero if the streamer has special constants that cannot be
      shared and are used in pointer-equality tests (e.g., void_zero_node,
      truthvalue_false_node, etc).  These constants will be present in

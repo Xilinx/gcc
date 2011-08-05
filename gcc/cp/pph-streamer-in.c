@@ -68,6 +68,10 @@ static VEC(char_p,heap) *string_tables = NULL;
       pph_register_shared_data (STREAM, ALT_DATA, IX);			\
     } while (0)
 
+/* Set in pph_in_and_merge_line_table. Represents the source_location offset
+   which every streamed in token must add to it's serialized source_location. */
+static int pph_loc_offset;
+
 /* Callback for unpacking value fields in ASTs.  BP is the bitpack 
    we are unpacking from.  EXPR is the tree to unpack.  */
 
@@ -235,6 +239,32 @@ static void
 pph_register_shared_data (pph_stream *stream, void *data, unsigned ix)
 {
   pph_cache_insert_at (stream, data, ix);
+}
+
+
+/* Callback for streamer_hooks.input_location.  An offset is applied to
+   the location_t read in according to the properties of the merged
+   line_table.  IB and DATA_IN are as in lto_input_location.  This function
+   should only be called after pph_in_and_merge_line_table was called as
+   we expect pph_loc_offset to be set.  */
+
+location_t
+pph_read_location (struct lto_input_block *ib,
+                   struct data_in *data_in ATTRIBUTE_UNUSED)
+{
+  struct bitpack_d bp;
+  bool is_builtin;
+  unsigned HOST_WIDE_INT n;
+  location_t old_loc;
+
+  bp = lto_input_bitpack (ib);
+  is_builtin = bp_unpack_value (&bp, 1);
+
+  n = lto_input_uleb128 (ib);
+  old_loc = (location_t) n;
+  gcc_assert (old_loc == n);
+
+  return is_builtin ? old_loc : old_loc + pph_loc_offset;
 }
 
 
@@ -1412,6 +1442,106 @@ pph_in_includes (pph_stream *stream)
 }
 
 
+/* Read a linenum_type from STREAM.  */
+
+static inline linenum_type
+pph_in_linenum_type (pph_stream *stream)
+{
+  return (linenum_type) pph_in_uint (stream);
+}
+
+
+/* Read a source_location from STREAM.  */
+
+static inline source_location
+pph_in_source_location (pph_stream *stream)
+{
+  return (source_location) pph_in_uint (stream);
+}
+
+
+/* Read a line_map from STREAM into LM.  */
+
+static void
+pph_in_line_map (pph_stream *stream, struct line_map *lm)
+{
+  struct bitpack_d bp;
+
+  lm->to_file = pph_in_string (stream);
+  lm->to_line = pph_in_linenum_type (stream);
+  lm->start_location = pph_in_source_location (stream);
+  lm->included_from = (int) pph_in_uint (stream);
+
+  bp = pph_in_bitpack (stream);
+  lm->reason = (enum lc_reason) bp_unpack_value (&bp, LC_REASON_BIT);
+  gcc_assert (lm->reason == LC_ENTER
+              || lm->reason == LC_LEAVE
+              || lm->reason == LC_RENAME
+              || lm->reason == LC_RENAME_VERBATIM);
+  lm->sysp = (unsigned char) bp_unpack_value (&bp, CHAR_BIT);
+  lm->column_bits = bp_unpack_value (&bp, COLUMN_BITS_BIT);
+}
+
+
+/* Read the line_table from STREAM and merge it in LINETAB.  */
+
+static void
+pph_in_and_merge_line_table (pph_stream *stream, struct line_maps *linetab)
+{
+  unsigned int ix, pph_used, old_depth;
+  int entries_offset = linetab->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
+
+  pph_used = pph_in_uint (stream);
+
+  for (ix = 0; ix < pph_used; ix++, linetab->used++)
+    {
+      struct line_map *lm;
+
+      linemap_ensure_extra_space_available (linetab);
+
+      lm = &linetab->maps[linetab->used];
+
+      pph_in_line_map (stream, lm);
+
+      if (ix == 0)
+        {
+          pph_loc_offset = (linetab->highest_location + 1) - lm->start_location;
+
+          /* When parsing the pph the header itself wasn't included by anything,
+             now it's included by the C file we are currently compiling.  */
+          gcc_assert(lm->included_from == -1);
+          lm->included_from = linetab->used - 1;
+        }
+
+      /* For the other entries in the pph's line_table which were included_from
+         another entry, reflect their included_from to the new position of the
+         entry which they were included from.  */
+      else if (lm->included_from != -1)
+        lm->included_from += entries_offset;
+
+      gcc_assert (lm->included_from < (int) linetab->used);
+
+      lm->start_location += pph_loc_offset;
+    }
+
+  linetab->highest_location = pph_loc_offset + pph_in_uint (stream);
+  linetab->highest_line = pph_loc_offset + pph_in_uint (stream);
+
+  /* The MAX_COLUMN_HINT can be directly overwritten.  */
+  linetab->max_column_hint = pph_in_uint (stream);
+
+  /* The line_table doesn't store the last LC_LEAVE in any given compilation;
+     thus we need to replay the LC_LEAVE for the header now.  For that same
+     reason, the line_table should currently be in a state representing a depth
+     one include deeper then the depth at which this pph was included.  The
+     LC_LEAVE replay will then bring the depth back to what it was before
+     calling this function.  */
+  old_depth = linetab->depth++;
+  linemap_add (linetab, LC_LEAVE, 0, NULL, 0);
+  gcc_assert (linetab->depth == old_depth);
+}
+
+
 /* Read contents of PPH file in STREAM.  */
 
 static void
@@ -1440,6 +1570,9 @@ pph_read_file_contents (pph_stream *stream)
 
   /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
   cpp_lt_replay (parse_in, &idents_used);
+
+  /* Read in the pph's line table and merge it in the current line table.  */
+  pph_in_and_merge_line_table (stream, line_table);
 
   /* Read the bindings from STREAM and merge them with the current bindings.  */
   pph_in_scope_chain (stream);
