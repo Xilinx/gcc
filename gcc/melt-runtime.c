@@ -8923,7 +8923,8 @@ meltgc_load_one_module (const char*modul)
 		descrpath, dupmodul);
   if (!descrpath)
     {
-      error ("MELT failed to find module %s", dupmodul);
+      error ("MELT failed to find module %s with descriptive file %s", 
+	     dupmodul, descrfull);
       if (srcpathstr)
 	inform (UNKNOWN_LOCATION,
 		"MELT source path %s", srcpathstr);

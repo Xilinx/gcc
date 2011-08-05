@@ -39,7 +39,7 @@ melt_default_variant ?= optimized
 
 ## LN_S might not be defined, e.g. from MELT-Plugin-Makefile
 ifndef LN_S
-LN_S= ln -s
+LN_S= ln -sv
 endif
 
 ## GAWK is needed, the GNU awk
@@ -125,64 +125,64 @@ MELT_APPLICATION_SOURCE= $(patsubst %,$(melt_make_source_dir)/%.melt,$(MELT_APPL
 ## The cold stage 0 of the translator
 
 MELT_GENERATED_FIRST_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-first.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-first+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-first.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-first+*.c)
 MELT_GENERATED_FIRST_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_FIRST_C_FILES)))
 
 MELT_GENERATED_FIRST_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-first+meltdesc.c) 
 
 MELT_GENERATED_BASE_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-base.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-base+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-base.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-base+*.c)
 MELT_GENERATED_BASE_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_BASE_C_FILES)))
 
 MELT_GENERATED_BASE_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-base+meltdesc.c) 
 
 MELT_GENERATED_DEBUG_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-debug.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-debug+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-debug.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-debug+*.c)
 MELT_GENERATED_DEBUG_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_DEBUG_C_FILES)))
 
 MELT_GENERATED_DEBUG_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-debug+meltdesc.c) 
 
 MELT_GENERATED_MACRO_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-macro.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-macro+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-macro.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-macro+*.c)
 MELT_GENERATED_MACRO_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_MACRO_C_FILES)))
 
 MELT_GENERATED_MACRO_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-macro+meltdesc.c) 
 
 MELT_GENERATED_NORMAL_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-normal.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-normal+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-normal.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-normal+*.c)
 MELT_GENERATED_NORMAL_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_NORMAL_C_FILES)))
 
 MELT_GENERATED_NORMAL_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normal+meltdesc.c) 
 
 MELT_GENERATED_NORMATCH_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-normatch.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-normatch+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-normatch.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-normatch+*.c)
 MELT_GENERATED_NORMATCH_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_NORMATCH_C_FILES)))
 
 MELT_GENERATED_NORMATCH_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normatch+meltdesc.c) 
 
 MELT_GENERATED_GENOBJ_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-genobj.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-genobj+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-genobj.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-genobj+*.c)
 MELT_GENERATED_GENOBJ_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_GENOBJ_C_FILES)))
 
 MELT_GENERATED_GENOBJ_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-genobj+meltdesc.c) 
 
 MELT_GENERATED_OUTOBJ_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-outobj.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-outobj+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/warmelt-outobj.c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-outobj+*.c)
 MELT_GENERATED_OUTOBJ_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_OUTOBJ_C_FILES)))
 
@@ -561,7 +561,8 @@ melt-stage0-static.stamp:  melt-stage0-static melt-run.h  $(wildcard $(patsubst 
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 	rm -f $(patsubst %,melt-stage0-static/%*.c,$(MELT_TRANSLATOR_BASE))
-	$(LN_S)  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) melt-stage0-static/
+	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-static/
+	@echo STAMPstage0static after $@ ; ls -l  melt-stage0-static/*
 
 melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-dynamic/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
@@ -576,7 +577,8 @@ melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubs
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 	rm -f $(patsubst %,melt-stage0-dynamic/%*.c,$(MELT_TRANSLATOR_BASE))
-	$(LN_S)  $(sort $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE)))) melt-stage0-dynamic/
+	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-dynamic/
+	@echo STAMPstage0dynamic after $@ ; ls -l  melt-stage0-dynamic/*
 
 
 

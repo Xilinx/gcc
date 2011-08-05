@@ -42,7 +42,7 @@ melt_default_variant ?= optimized
 
 ## LN_S might not be defined, e.g. from MELT-Plugin-Makefile
 ifndef LN_S
-LN_S= ln -s
+LN_S= ln -sv
 endif
 
 ## GAWK is needed, the GNU awk
@@ -117,8 +117,8 @@ MELT_APPLICATION_SOURCE= $(patsubst %,$(melt_make_source_dir)/%.melt,$(MELT_APPL
 ## The cold stage 0 of the translator
 [+FOR melt_translator_file +]
 MELT_GENERATED_[+mkvarsuf+]_C_FILES= \
-                  $(melt_make_source_dir)/generated/[+base+].c \
-                  $(wildcard $(melt_make_source_dir)/generated/[+base+]+*.c)
+                  $(realpath $(melt_make_source_dir))/generated/[+base+].c \
+                  $(wildcard $(realpath $(melt_make_source_dir))/generated/[+base+]+*.c)
 MELT_GENERATED_[+mkvarsuf+]_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_[+mkvarsuf+]_C_FILES)))
 
@@ -182,7 +182,8 @@ melt-stage0-static.stamp:  melt-stage0-static melt-run.h  $(wildcard $(patsubst 
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 	rm -f $(patsubst %,melt-stage0-static/%*.c,$(MELT_TRANSLATOR_BASE))
-	$(LN_S)  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) melt-stage0-static/
+	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-static/
+	@echo STAMPstage0static after $@ ; ls -l  melt-stage0-static/*
 
 melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-dynamic/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
@@ -190,7 +191,8 @@ melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubs
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 	rm -f $(patsubst %,melt-stage0-dynamic/%*.c,$(MELT_TRANSLATOR_BASE))
-	$(LN_S)  $(sort $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE)))) melt-stage0-dynamic/
+	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-dynamic/
+	@echo STAMPstage0dynamic after $@ ; ls -l  melt-stage0-dynamic/*
 
 
 

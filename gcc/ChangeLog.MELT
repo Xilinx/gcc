@@ -1,4 +1,10 @@
 
+2011-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_load_one_module): Better error message
+	when descriptive file not found.
+	* melt-build.tpl: Use realpath when symlinking.
+	* melt-build.mk: Regenerate.
+
 2011-08-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Use melt-workdir for meltgendoc.texi.
 	* melt-build.mk: Regenerate.
