@@ -62,7 +62,9 @@
 #ifdef REG_VALUE_IN_UNWIND_CONTEXT
 typedef _Unwind_Word _Unwind_Context_Reg_Val;
 
-#define _Unwind_IsExtendedContext(c) 1
+#ifndef ASSUME_EXTENDED_UNWIND_CONTEXT
+#define ASSUME_EXTENDED_UNWIND_CONTEXT 1
+#endif
 
 static inline _Unwind_Word
 _Unwind_Get_Unwind_Word (_Unwind_Context_Reg_Val val)
@@ -78,8 +80,6 @@ _Unwind_Get_Unwind_Context_Reg_Val (_Unwind_Word val)
 #else
 typedef void *_Unwind_Context_Reg_Val;
 
-#define _Unwind_IsExtendedContext(c) ((c)->flags & EXTENDED_CONTEXT_BIT)
-
 static inline _Unwind_Word
 _Unwind_Get_Unwind_Word (_Unwind_Context_Reg_Val val)
 {
@@ -91,6 +91,10 @@ _Unwind_Get_Unwind_Context_Reg_Val (_Unwind_Word val)
 {
   return (_Unwind_Context_Reg_Val) (_Unwind_Internal_Ptr) val;
 }
+#endif
+
+#ifndef ASSUME_EXTENDED_UNWIND_CONTEXT
+#define ASSUME_EXTENDED_UNWIND_CONTEXT 0
 #endif
 
 /* This is the register and unwind state for a particular frame.  This
@@ -176,6 +180,13 @@ _Unwind_SetSignalFrame (struct _Unwind_Context *context, int val)
     context->flags |= SIGNAL_FRAME_BIT;
   else
     context->flags &= ~SIGNAL_FRAME_BIT;
+}
+
+static inline _Unwind_Word
+_Unwind_IsExtendedContext (struct _Unwind_Context *context)
+{
+  return (ASSUME_EXTENDED_UNWIND_CONTEXT
+	  || (context->flags & EXTENDED_CONTEXT_BIT));
 }
 
 /* Get the value of register INDEX as saved in CONTEXT.  */
@@ -1243,9 +1254,8 @@ __frame_state_for (void *pc_target, struct frame_state *state_in)
   int reg;
 
   memset (&context, 0, sizeof (struct _Unwind_Context));
-#ifndef REG_VALUE_IN_UNWIND_CONTEXT
-  context.flags = EXTENDED_CONTEXT_BIT;
-#endif
+  if (!ASSUME_EXTENDED_UNWIND_CONTEXT)
+    context.flags = EXTENDED_CONTEXT_BIT;
   context.ra = pc_target + 1;
 
   if (uw_frame_state_for (&context, &fs) != _URC_NO_REASON)
@@ -1483,9 +1493,8 @@ uw_init_context_1 (struct _Unwind_Context *context,
 
   memset (context, 0, sizeof (struct _Unwind_Context));
   context->ra = ra;
-#ifndef REG_VALUE_IN_UNWIND_CONTEXT
-  context->flags = EXTENDED_CONTEXT_BIT;
-#endif
+  if (!ASSUME_EXTENDED_UNWIND_CONTEXT)
+    context->flags = EXTENDED_CONTEXT_BIT;
 
   code = uw_frame_state_for (context, &fs);
   gcc_assert (code == _URC_NO_REASON);

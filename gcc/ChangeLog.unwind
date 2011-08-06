@@ -1,3 +1,15 @@
+2011-08-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* unwind-dw2.c (ASSUME_EXTENDED_UNWIND_CONTEXT): New.
+	(_Unwind_IsExtendedContext): Check ASSUME_EXTENDED_UNWIND_CONTEXT
+	for EXTENDED_CONTEXT_BIT.
+	(__frame_state_for): Likewise.
+	(uw_init_context_1): Likewise.
+
+	* doc/tm.texi.in: Update REG_VALUE_IN_UNWIND_CONTEXT and
+	document ASSUME_EXTENDED_UNWIND_CONTEXT.
+	* doc/tm.texi: Regenerated.
+
 2011-06-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* unwind-dw2.c (SIGNAL_FRAME_BIT): Don't redefine for x32.
