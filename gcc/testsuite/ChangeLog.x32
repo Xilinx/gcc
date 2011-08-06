@@ -1,5 +1,13 @@
 2011-08-06  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/pr47381-[12].c: Moved to ...
+	* gcc.dg/pr47381-[12].c: Here.
+
+	* gcc.target/i386/pr47381-3.c: Moved to ...
+	* gcc.target/i386/pr47381.c: Here.
+
+2011-08-06  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/pr47403-1.c: Moved to ...
 	* gcc.dg/tls/pr47715-5.c: This.
 
