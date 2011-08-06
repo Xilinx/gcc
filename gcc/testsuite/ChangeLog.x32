@@ -1,5 +1,10 @@
 2011-08-05  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/pr47369-1.c: Moved to ...
+	* gcc.dg/pr47369-1.c: Here.
+
+2011-08-05  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/pr47364-1.c: Moved to ...
 	* gcc.c-torture/compile/pr47364-1.c: Here.
 
