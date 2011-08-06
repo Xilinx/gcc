@@ -1,5 +1,6 @@
 /* { dg-do compile } */
 /* { dg-options "-O0" } */
+/* { dg-require-effective-target tls } */
 
 struct gomp_team_state
 {
