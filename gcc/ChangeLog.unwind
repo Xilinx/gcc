@@ -1,5 +1,9 @@
 2011-08-02  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* system.h (ASSUME_EXTENDED_UNWIND_CONTEXT): Poisoned.
+
+2011-08-02  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* unwind-dw2.c (ASSUME_EXTENDED_UNWIND_CONTEXT): New.
 	(_Unwind_IsExtendedContext): Check ASSUME_EXTENDED_UNWIND_CONTEXT
 	for EXTENDED_CONTEXT_BIT.
