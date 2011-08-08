@@ -1,3 +1,8 @@
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/48007
+	* config/i386/value-unwind.h: New.
+
 2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/morestack.S (X86_64_SAVE_NEW_STACK_BOUNDARY): New.
