@@ -1,3 +1,9 @@
+2011-08-08  Gabriel Charette  <gchare@google.com>
+
+	* (g++.dg/pph/x0hardorder1.h): New.
+	* (g++.dg/pph/x3hardorder2.h): New.
+	* (g++.dg/pph/x3hardorder.cc): New.
+
 2011-08-04  Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/README: Add new file types.
