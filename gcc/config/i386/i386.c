@@ -2969,6 +2969,11 @@ ix86_option_override_internal (bool main_args_p)
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_AVX
 	| PTA_CX16 | PTA_POPCNT | PTA_AES | PTA_PCLMUL},
+      {"core-avx-i", PROCESSOR_COREI7_64, CPU_COREI7,
+	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
+	| PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_AVX
+	| PTA_CX16 | PTA_POPCNT | PTA_AES | PTA_PCLMUL | PTA_FSGSBASE
+	| PTA_RDRND | PTA_F16C},
       {"atom", PROCESSOR_ATOM, CPU_ATOM,
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_CX16 | PTA_MOVBE},
@@ -7505,6 +7510,11 @@ setup_incoming_varargs_ms_64 (CUMULATIVE_ARGS *cum)
   alias_set_type set = get_varargs_alias_set ();
   int i;
 
+  /* Reset to zero, as there might be a sysv vaarg used
+     before.  */
+  ix86_varargs_gpr_size = 0;
+  ix86_varargs_fpr_size = 0;
+  
   for (i = cum->regno; i < X86_64_MS_REGPARM_MAX; i++)
     {
       rtx reg, mem;
@@ -8732,16 +8742,12 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
         cfun->machine->use_fast_prologue_epilogue
 	   = !expensive_function_p (count);
     }
-  if (TARGET_PROLOGUE_USING_MOVE
-      && cfun->machine->use_fast_prologue_epilogue)
-    frame->save_regs_using_mov = true;
-  else
-    frame->save_regs_using_mov = false;
 
-  /* If static stack checking is enabled and done with probes, the registers
-     need to be saved before allocating the frame.  */
-  if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK)
-    frame->save_regs_using_mov = false;
+  frame->save_regs_using_mov
+    = (TARGET_PROLOGUE_USING_MOVE && cfun->machine->use_fast_prologue_epilogue
+       /* If static stack checking is enabled and done with probes,
+	  the registers need to be saved before allocating the frame.  */
+       && flag_stack_check != STATIC_BUILTIN_STACK_CHECK);
 
   /* Skip return address.  */
   offset = UNITS_PER_WORD;
@@ -11096,6 +11102,30 @@ ix86_live_on_entry (bitmap regs)
     }
 }
 
+/* Determine if op is suitable SUBREG RTX for address.  */
+
+static bool
+ix86_address_subreg_operand (rtx op)
+{
+  enum machine_mode mode;
+
+  if (!REG_P (op))
+    return false;
+
+  mode = GET_MODE (op);
+
+  if (GET_MODE_CLASS (mode) != MODE_INT)
+    return false;
+
+  /* Don't allow SUBREGs that span more than a word.  It can lead to spill
+     failures when the register is one word out of a two word structure.  */
+  if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+    return false;
+
+  /* Allow only SUBREGs of non-eliminable hard registers.  */
+  return register_no_elim_operand (op, mode);
+}
+
 /* Extract the parts of an RTL expression that is a valid memory address
    for an instruction.  Return 0 if the structure of the address is
    grossly off.  Return -1 if the address contains ASHIFT, so it is not
@@ -11116,8 +11146,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     base = addr;
   else if (GET_CODE (addr) == SUBREG)
     {
-      /* Allow only subregs of DImode hard regs.  */
-      if (register_no_elim_operand (SUBREG_REG (addr), DImode))
+      if (ix86_address_subreg_operand (SUBREG_REG (addr)))
 	base = addr;
       else
 	return 0;
@@ -11175,8 +11204,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	      break;
 
 	    case SUBREG:
-	      /* Allow only subregs of DImode hard regs in PLUS chains.  */
-	      if (!register_no_elim_operand (SUBREG_REG (op), DImode))
+	      if (!ix86_address_subreg_operand (SUBREG_REG (op)))
 		return 0;
 	      /* FALLTHRU */
 
@@ -11228,9 +11256,8 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     {
       if (REG_P (index))
 	;
-      /* Allow only subregs of DImode hard regs.  */
       else if (GET_CODE (index) == SUBREG
-	       && register_no_elim_operand (SUBREG_REG (index), DImode))
+	       && ix86_address_subreg_operand (SUBREG_REG (index)))
 	;
       else
 	return 0;
@@ -11677,10 +11704,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
       if (REG_P (base))
   	reg = base;
       else if (GET_CODE (base) == SUBREG && REG_P (SUBREG_REG (base)))
-	{
-	  reg = SUBREG_REG (base);
-	  gcc_assert (register_no_elim_operand (reg, DImode));
-	}
+	reg = SUBREG_REG (base);
       else
 	/* Base is not a register.  */
 	return false;
@@ -11702,10 +11726,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
       if (REG_P (index))
   	reg = index;
       else if (GET_CODE (index) == SUBREG && REG_P (SUBREG_REG (index)))
-	{
-	  reg = SUBREG_REG (index);
-	  gcc_assert (register_no_elim_operand (reg, DImode));
-	}
+	reg = SUBREG_REG (index);
       else
 	/* Index is not a register.  */
 	return false;
@@ -14072,6 +14093,20 @@ ix86_print_operand_address (FILE *file, rtx addr)
   int ok = ix86_decompose_address (addr, &parts);
 
   gcc_assert (ok);
+
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    {
+      rtx tmp = SUBREG_REG (parts.base);
+      parts.base = simplify_subreg (GET_MODE (parts.base),
+				    tmp, GET_MODE (tmp), 0);
+    }
+
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    {
+      rtx tmp = SUBREG_REG (parts.index);
+      parts.index = simplify_subreg (GET_MODE (parts.index),
+				     tmp, GET_MODE (tmp), 0);
+    }
 
   base = parts.base;
   index = parts.index;
@@ -21486,7 +21521,17 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 		  rtx callarg2,
 		  rtx pop, bool sibcall)
 {
+  /* We need to represent that SI and DI registers are clobbered
+     by SYSV calls.  */
+  static int clobbered_registers[] = {
+	XMM6_REG, XMM7_REG, XMM8_REG,
+	XMM9_REG, XMM10_REG, XMM11_REG,
+	XMM12_REG, XMM13_REG, XMM14_REG,
+	XMM15_REG, SI_REG, DI_REG
+  };
+  rtx vec[ARRAY_SIZE (clobbered_registers) + 3];
   rtx use = NULL, call;
+  unsigned int vec_len;
 
   if (pop == const0_rtx)
     pop = NULL;
@@ -21530,52 +21575,40 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       fnaddr = gen_rtx_MEM (QImode, copy_to_mode_reg (Pmode, fnaddr));
     }
 
+  vec_len = 0;
   call = gen_rtx_CALL (VOIDmode, fnaddr, callarg1);
   if (retval)
     call = gen_rtx_SET (VOIDmode, retval, call);
+  vec[vec_len++] = call;
+
   if (pop)
     {
       pop = gen_rtx_PLUS (Pmode, stack_pointer_rtx, pop);
       pop = gen_rtx_SET (VOIDmode, stack_pointer_rtx, pop);
-      call = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, call, pop));
+      vec[vec_len++] = pop;
     }
+
   if (TARGET_64BIT_MS_ABI
       && (!callarg2 || INTVAL (callarg2) != -2))
     {
-      /* We need to represent that SI and DI registers are clobbered
-	 by SYSV calls.  */
-      static int clobbered_registers[] = {
-	XMM6_REG, XMM7_REG, XMM8_REG,
-	XMM9_REG, XMM10_REG, XMM11_REG,
-	XMM12_REG, XMM13_REG, XMM14_REG,
-	XMM15_REG, SI_REG, DI_REG
-      };
-      unsigned int i;
-      rtx vec[ARRAY_SIZE (clobbered_registers) + 2];
-      rtx unspec = gen_rtx_UNSPEC (VOIDmode, gen_rtvec (1, const0_rtx),
-      				   UNSPEC_MS_TO_SYSV_CALL);
+      unsigned i;
 
-      vec[0] = call;
-      vec[1] = unspec;
+      vec[vec_len++] = gen_rtx_UNSPEC (VOIDmode, gen_rtvec (1, const0_rtx),
+				       UNSPEC_MS_TO_SYSV_CALL);
+
       for (i = 0; i < ARRAY_SIZE (clobbered_registers); i++)
-        vec[i + 2] = gen_rtx_CLOBBER (SSE_REGNO_P (clobbered_registers[i])
-				      ? TImode : DImode,
-				      gen_rtx_REG
-				        (SSE_REGNO_P (clobbered_registers[i])
-						      ? TImode : DImode,
-					 clobbered_registers[i]));
-
-      call = gen_rtx_PARALLEL (VOIDmode,
-      			       gen_rtvec_v (ARRAY_SIZE (clobbered_registers)
-			       + 2, vec));
+        vec[vec_len++]
+	  = gen_rtx_CLOBBER (SSE_REGNO_P (clobbered_registers[i])
+			     ? TImode : DImode,
+			     gen_rtx_REG (SSE_REGNO_P (clobbered_registers[i])
+					  ? TImode : DImode,
+					  clobbered_registers[i]));
     }
 
   /* Add UNSPEC_CALL_NEEDS_VZEROUPPER decoration.  */
   if (TARGET_VZEROUPPER)
     {
-      rtx unspec;
       int avx256;
-
       if (cfun->machine->callee_pass_avx256_p)
 	{
 	  if (cfun->machine->callee_return_avx256_p)
@@ -21591,15 +21624,13 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       if (reload_completed)
 	emit_insn (gen_avx_vzeroupper (GEN_INT (avx256)));
       else
-	{
-	  unspec = gen_rtx_UNSPEC (VOIDmode,
-				   gen_rtvec (1, GEN_INT (avx256)),
-				   UNSPEC_CALL_NEEDS_VZEROUPPER);
-	  call = gen_rtx_PARALLEL (VOIDmode,
-				   gen_rtvec (2, call, unspec));
-	}
+	vec[vec_len++] = gen_rtx_UNSPEC (VOIDmode,
+					 gen_rtvec (1, GEN_INT (avx256)),
+					 UNSPEC_CALL_NEEDS_VZEROUPPER);
     }
 
+  if (vec_len > 1)
+    call = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (vec_len, vec));
   call = emit_call_insn (call);
   if (use)
     CALL_INSN_FUNCTION_USAGE (call) = use;
@@ -21610,9 +21641,20 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 void
 ix86_split_call_vzeroupper (rtx insn, rtx vzeroupper)
 {
-  rtx call = XVECEXP (PATTERN (insn), 0, 0);
+  rtx pat = PATTERN (insn);
+  rtvec vec = XVEC (pat, 0);
+  int len = GET_NUM_ELEM (vec) - 1;
+
+  /* Strip off the last entry of the parallel.  */
+  gcc_assert (GET_CODE (RTVEC_ELT (vec, len)) == UNSPEC);
+  gcc_assert (XINT (RTVEC_ELT (vec, len), 1) == UNSPEC_CALL_NEEDS_VZEROUPPER);
+  if (len == 1)
+    pat = RTVEC_ELT (vec, 0);
+  else
+    pat = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (len, &RTVEC_ELT (vec, 0)));
+
   emit_insn (gen_avx_vzeroupper (vzeroupper));
-  emit_call_insn (call);
+  emit_call_insn (pat);
 }
 
 /* Output the assembly for a call instruction.  */

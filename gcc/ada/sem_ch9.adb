@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -100,15 +100,9 @@ package body Sem_Ch9 is
       T_Name : Node_Id;
 
    begin
-      --  Abort statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~abort statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
       Tasking_Used := True;
+      Check_SPARK_Restriction ("abort statement is not allowed", N);
+
       T_Name := First (Names (N));
       while Present (T_Name) loop
          Analyze (T_Name);
@@ -177,15 +171,8 @@ package body Sem_Ch9 is
       Task_Nam  : Entity_Id;
 
    begin
-      --  Accept statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~accept statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
       Tasking_Used := True;
+      Check_SPARK_Restriction ("accept statement is not allowed", N);
 
       --  Entry name is initialized to Any_Id. It should get reset to the
       --  matching entry entity. An error is signalled if it is not reset.
@@ -415,15 +402,8 @@ package body Sem_Ch9 is
       Trigger        : Node_Id;
 
    begin
-      --  Select statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~select statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
       Tasking_Used := True;
+      Check_SPARK_Restriction ("select statement is not allowed", N);
       Check_Restriction (Max_Asynchronous_Select_Nesting, N);
       Check_Restriction (No_Select_Statements, N);
 
@@ -468,16 +448,9 @@ package body Sem_Ch9 is
       Is_Disp_Select : Boolean := False;
 
    begin
-      --  Select statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~select statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
-      Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
+      Check_SPARK_Restriction ("select statement is not allowed", N);
+      Check_Restriction (No_Select_Statements, N);
 
       --  Ada 2005 (AI-345): The trigger may be a dispatching call
 
@@ -572,16 +545,9 @@ package body Sem_Ch9 is
    procedure Analyze_Delay_Relative (N : Node_Id) is
       E : constant Node_Id := Expression (N);
    begin
-      --  Delay statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~delay statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
-      Check_Restriction (No_Relative_Delay, N);
       Tasking_Used := True;
+      Check_SPARK_Restriction ("delay statement is not allowed", N);
+      Check_Restriction (No_Relative_Delay, N);
       Check_Restriction (No_Delay, N);
       Check_Potentially_Blocking_Operation (N);
       Analyze_And_Resolve (E, Standard_Duration);
@@ -597,15 +563,8 @@ package body Sem_Ch9 is
       Typ : Entity_Id;
 
    begin
-      --  Delay statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~delay statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
       Tasking_Used := True;
+      Check_SPARK_Restriction ("delay statement is not allowed", N);
       Check_Restriction (No_Delay, N);
       Check_Potentially_Blocking_Operation (N);
       Analyze (E);
@@ -891,15 +850,8 @@ package body Sem_Ch9 is
       Call : constant Node_Id := Entry_Call_Statement (N);
 
    begin
-      --  Entry call is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~entry call is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
       Tasking_Used := True;
+      Check_SPARK_Restriction ("entry call is not allowed", N);
 
       if Present (Pragmas_Before (N)) then
          Analyze_List (Pragmas_Before (N));
@@ -933,6 +885,7 @@ package body Sem_Ch9 is
 
    begin
       Generate_Definition (Def_Id);
+      Set_Contract (Def_Id, Make_Contract (Sloc (Def_Id)));
       Tasking_Used := True;
 
       --  Case of no discrete subtype definition
@@ -976,7 +929,10 @@ package body Sem_Ch9 is
       end if;
 
       Generate_Reference_To_Formals (Def_Id);
-      Analyze_Aspect_Specifications (N, Def_Id, Aspect_Specifications (N));
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Def_Id);
+      end if;
    end Analyze_Entry_Declaration;
 
    ---------------------------------------
@@ -1159,6 +1115,7 @@ package body Sem_Ch9 is
 
    begin
       Tasking_Used := True;
+      Check_SPARK_Restriction ("protected definition is not allowed", N);
       Analyze_Declarations (Visible_Declarations (N));
 
       if Present (Private_Declarations (N))
@@ -1328,8 +1285,10 @@ package body Sem_Ch9 is
          end if;
       end if;
 
-      <<Leave>>
-         Analyze_Aspect_Specifications (N, Def_Id, Aspect_Specifications (N));
+   <<Leave>>
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Def_Id);
+      end if;
    end Analyze_Protected_Type_Declaration;
 
    ---------------------
@@ -1349,17 +1308,10 @@ package body Sem_Ch9 is
       Outer_Ent   : Entity_Id;
 
    begin
-      --  Requeue statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~requeue statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
+      Tasking_Used := True;
+      Check_SPARK_Restriction ("requeue statement is not allowed", N);
       Check_Restriction (No_Requeue_Statements, N);
       Check_Unreachable_Code (N);
-      Tasking_Used := True;
 
       Enclosing := Empty;
       for J in reverse 0 .. Scope_Stack.Last loop
@@ -1630,16 +1582,9 @@ package body Sem_Ch9 is
       Alt_Count         : Uint    := Uint_0;
 
    begin
-      --  Select statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~select statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
-      Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
+      Check_SPARK_Restriction ("select statement is not allowed", N);
+      Check_Restriction (No_Select_Statements, N);
 
       --  Loop to analyze alternatives
 
@@ -1798,7 +1743,10 @@ package body Sem_Ch9 is
       --  disastrous result.
 
       Analyze_Protected_Type_Declaration (N);
-      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Id);
+      end if;
    end Analyze_Single_Protected_Declaration;
 
    -------------------------------------
@@ -1865,7 +1813,10 @@ package body Sem_Ch9 is
       --  disastrous result.
 
       Analyze_Task_Type_Declaration (N);
-      Analyze_Aspect_Specifications (N, Id, Aspect_Specifications (N));
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Id);
+      end if;
    end Analyze_Single_Task_Declaration;
 
    -----------------------
@@ -2010,6 +1961,7 @@ package body Sem_Ch9 is
 
    begin
       Tasking_Used := True;
+      Check_SPARK_Restriction ("task definition is not allowed", N);
 
       if Present (Visible_Declarations (N)) then
          Analyze_Declarations (Visible_Declarations (N));
@@ -2136,7 +2088,9 @@ package body Sem_Ch9 is
          end if;
       end if;
 
-      Analyze_Aspect_Specifications (N, Def_Id, Aspect_Specifications (N));
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Def_Id);
+      end if;
    end Analyze_Task_Type_Declaration;
 
    -----------------------------------
@@ -2166,16 +2120,9 @@ package body Sem_Ch9 is
       Is_Disp_Select : Boolean := False;
 
    begin
-      --  Select statement is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~select statement is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
-
-      Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
+      Check_SPARK_Restriction ("select statement is not allowed", N);
+      Check_Restriction (No_Select_Statements, N);
 
       --  Ada 2005 (AI-345): The trigger may be a dispatching call
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -955,7 +955,12 @@ package body Erroutc is
       if Name_Len = 2 and then Name_Buffer (1 .. 2) = "RM" then
          Set_Msg_Name_Buffer;
 
-      --  Not RM: case appropriately and add surrounding quotes
+      --  We make a similar exception for ALFA
+
+      elsif Name_Len = 4 and then Name_Buffer (1 .. 4) = "ALFA" then
+         Set_Msg_Name_Buffer;
+
+      --  Neither RM nor ALFA: case appropriately and add surrounding quotes
 
       else
          Set_Casing (Keyword_Casing (Flag_Source), All_Lower_Case);

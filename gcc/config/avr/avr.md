@@ -202,8 +202,7 @@
   DONE;
 })
 
-
-(define_insn "*pushqi"
+(define_insn "pushqi1"
   [(set (mem:QI (post_dec:HI (reg:HI REG_SP)))
         (match_operand:QI 0 "reg_or_0_operand" "r,L"))]
   ""
@@ -212,33 +211,40 @@
 	push __zero_reg__"
   [(set_attr "length" "1,1")])
 
-(define_insn "*pushhi"
-  [(set (mem:HI (post_dec:HI (reg:HI REG_SP)))
-        (match_operand:HI 0 "reg_or_0_operand" "r,L"))]
-  ""
-  "@
-	push %B0\;push %A0
-	push __zero_reg__\;push __zero_reg__"
-  [(set_attr "length" "2,2")])
+;; All modes for a multi-byte push.  We must include complex modes here too,
+;; lest emit_single_push_insn "helpfully " create the auto-inc itself.
+(define_mode_iterator MPUSH
+  [(CQI "")
+   (HI "") (CHI "")
+   (SI "") (CSI "")
+   (DI "") (CDI "")
+   (SF "") (SC "")])
 
-(define_insn "*pushsi"
-  [(set (mem:SI (post_dec:HI (reg:HI REG_SP)))
-        (match_operand:SI 0 "reg_or_0_operand" "r,L"))]
+(define_expand "push<mode>1"
+  [(match_operand:MPUSH 0 "" "")]
   ""
-  "@
-	push %D0\;push %C0\;push %B0\;push %A0
-	push __zero_reg__\;push __zero_reg__\;push __zero_reg__\;push __zero_reg__"
-  [(set_attr "length" "4,4")])
+{
+  int i;
+  for (i = GET_MODE_SIZE (<MODE>mode) - 1; i >= 0; --i)
+    {
+      rtx part = simplify_gen_subreg (QImode, operands[0], <MODE>mode, i);
+      if (part != const0_rtx)
+	part = force_reg (QImode, part);
+      emit_insn (gen_pushqi1 (part));
+    }
+  DONE;
+})
 
-(define_insn "*pushsf"
-  [(set (mem:SF (post_dec:HI (reg:HI REG_SP)))
-        (match_operand:SF 0 "register_operand" "r"))]
-  ""
-  "push %D0
-	push %C0
-	push %B0
-	push %A0"
-  [(set_attr "length" "4")])
+;; Notice a special-case when adding N to SP where N results in a
+;; zero REG_ARGS_SIZE.  This is equivalent to a move from FP.
+(define_split
+  [(set (reg:HI REG_SP) (match_operand:HI 0 "register_operand" ""))]
+  "reload_completed
+   && frame_pointer_needed
+   && !cfun->calls_alloca
+   && find_reg_note (insn, REG_ARGS_SIZE, const0_rtx)"
+  [(set (reg:HI REG_SP) (reg:HI REG_Y))]
+  "")
 
 ;;========================================================================
 ;; move byte

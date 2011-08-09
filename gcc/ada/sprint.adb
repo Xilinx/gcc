@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1062,8 +1062,15 @@ package body Sprint is
             Write_Str_Sloc (" and then ");
             Sprint_Right_Opnd (Node);
 
+         --  Note: the following code for N_Aspect_Specification is not
+         --  normally used, since we deal with aspects as part of a
+         --  declaration, but it is here in case we deliberately try
+         --  to print an N_Aspect_Speficiation node (e.g. from GDB).
+
          when N_Aspect_Specification =>
-            raise Program_Error;
+            Sprint_Node (Identifier (Node));
+            Write_Str (" => ");
+            Sprint_Node (Expression (Node));
 
          when N_Assignment_Statement =>
             Write_Indent;
@@ -1340,6 +1347,12 @@ package body Sprint is
             Write_Str (" of ");
 
             Sprint_Node (Component_Definition (Node));
+
+         --  A contract node should not appear in the tree. It is a semantic
+         --  node attached to entry and [generic] subprogram entities.
+
+         when N_Contract =>
+            raise Program_Error;
 
          when N_Decimal_Fixed_Point_Definition =>
             Write_Str_With_Col_Check_Sloc (" delta ");
@@ -1619,6 +1632,16 @@ package body Sprint is
             Write_Str_With_Col_Check (" end");
             Indent_End;
             Write_Indent;
+
+         when N_Expression_Function =>
+            Write_Indent;
+            Sprint_Node_Sloc (Specification (Node));
+            Write_Str (" is");
+            Indent_Begin;
+            Write_Indent;
+            Sprint_Node (Expression (Node));
+            Write_Char (';');
+            Indent_End;
 
          when N_Extended_Return_Statement =>
             Write_Indent_Str_Sloc ("return ");
@@ -2487,17 +2510,6 @@ package body Sprint is
             else
                Write_Str (", ");
             end if;
-
-         when N_Parameterized_Expression =>
-            Write_Indent;
-            Sprint_Node_Sloc (Specification (Node));
-
-            Write_Str (" is");
-            Indent_Begin;
-            Write_Indent;
-            Sprint_Node (Expression (Node));
-            Write_Char (';');
-            Indent_End;
 
          when N_Pop_Constraint_Error_Label =>
             Write_Indent_Str ("%pop_constraint_error_label");

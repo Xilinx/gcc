@@ -2724,6 +2724,7 @@ repeat:
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
     case SCRATCH:
       /* SCRATCH must be shared because they represent distinct values.  */
       return;
@@ -2843,6 +2844,7 @@ repeat:
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
       return;
 
     case DEBUG_INSN:
@@ -3613,6 +3615,10 @@ try_split (rtx pat, rtx trial, int last)
 	    }
 	  break;
 #endif
+
+	case REG_ARGS_SIZE:
+	  fixup_args_size_notes (NULL_RTX, insn_last, INTVAL (XEXP (note, 0)));
+	  break;
 
 	default:
 	  break;
@@ -5257,6 +5263,7 @@ copy_insn_1 (rtx orig)
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
       return orig;
     case CLOBBER:
       if (REG_P (XEXP (orig, 0)) && REGNO (XEXP (orig, 0)) < FIRST_PSEUDO_REGISTER)

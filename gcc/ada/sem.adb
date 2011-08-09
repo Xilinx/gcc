@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -222,6 +222,9 @@ package body Sem is
 
          when N_Explicit_Dereference =>
             Analyze_Explicit_Dereference (N);
+
+         when N_Expression_Function =>
+            Analyze_Expression_Function (N);
 
          when N_Expression_With_Actions =>
             Analyze_Expression_With_Actions (N);
@@ -439,9 +442,6 @@ package body Sem is
          when N_Parameter_Association =>
             Analyze_Parameter_Association (N);
 
-         when N_Parameterized_Expression =>
-            Analyze_Parameterized_Expression (N);
-
          when N_Pragma =>
             Analyze_Pragma (N);
 
@@ -650,6 +650,7 @@ package body Sem is
            N_Component_Definition                   |
            N_Component_List                         |
            N_Constrained_Array_Definition           |
+           N_Contract                               |
            N_Decimal_Fixed_Point_Definition         |
            N_Defining_Character_Literal             |
            N_Defining_Identifier                    |

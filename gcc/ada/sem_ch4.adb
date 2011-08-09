@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
@@ -248,6 +249,12 @@ package body Sem_Ch4 is
    --  Ada 2005: implementation of AI-310. An abstract non-dispatching
    --  operation is not a candidate interpretation.
 
+   function Try_Container_Indexing
+     (N      : Node_Id;
+      Prefix : Node_Id;
+      Expr   : Node_Id) return Boolean;
+   --  AI05-0139: Generalized indexing to support iterators over containers
+
    function Try_Indexed_Call
      (N          : Node_Id;
       Nam        : Entity_Id;
@@ -301,7 +308,24 @@ package body Sem_Ch4 is
                Nam := Opnd;
             elsif Nkind (Opnd) = N_Function_Call then
                Nam := Name (Opnd);
-            else
+            elsif Ada_Version >= Ada_2012 then
+               declare
+                  It : Interp;
+                  I  : Interp_Index;
+
+               begin
+                  Get_First_Interp (Opnd, I, It);
+                  while Present (It.Nam) loop
+                     if Has_Implicit_Dereference (It.Typ) then
+                        Error_Msg_N
+                          ("can be interpreted as implicit dereference", Opnd);
+                        return;
+                     end if;
+
+                     Get_Next_Interp (I, It);
+                  end loop;
+               end;
+
                return;
             end if;
 
@@ -369,13 +393,7 @@ package body Sem_Ch4 is
       C        : Node_Id;
 
    begin
-      --  Allocator is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~allocator is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("allocator is not allowed", N);
 
       --  Deal with allocator restrictions
 
@@ -657,13 +675,6 @@ package body Sem_Ch4 is
          Check_Restriction (No_Tasking, N);
          Check_Restriction (Max_Tasks, N);
          Check_Restriction (No_Task_Allocators, N);
-
-         --  Check that an allocator with task parts isn't for a nested access
-         --  type when restriction No_Task_Hierarchy applies.
-
-         if not Is_Library_Level_Entity (Acc_Type) then
-            Check_Restriction (No_Task_Hierarchy, N);
-         end if;
       end if;
 
       --  Check that an allocator of a nested access type doesn't create a
@@ -794,6 +805,10 @@ package body Sem_Ch4 is
       --  Flag indicates whether an interpretation of the prefix is a
       --  parameterless call that returns an access_to_subprogram.
 
+      procedure Check_Mixed_Parameter_And_Named_Associations;
+      --  Check that parameter and named associations are not mixed. This is
+      --  a restriction in SPARK mode.
+
       function Name_Denotes_Function return Boolean;
       --  If the type of the name is an access to subprogram, this may be the
       --  type of a name, or the return type of the function being called. If
@@ -803,6 +818,35 @@ package body Sem_Ch4 is
 
       procedure No_Interpretation;
       --  Output error message when no valid interpretation exists
+
+      --------------------------------------------------
+      -- Check_Mixed_Parameter_And_Named_Associations --
+      --------------------------------------------------
+
+      procedure Check_Mixed_Parameter_And_Named_Associations is
+         Actual     : Node_Id;
+         Named_Seen : Boolean;
+
+      begin
+         Named_Seen := False;
+
+         Actual := First (Actuals);
+         while Present (Actual) loop
+            case Nkind (Actual) is
+               when N_Parameter_Association =>
+                  if Named_Seen then
+                     Check_SPARK_Restriction
+                       ("named association cannot follow positional one",
+                        Actual);
+                     exit;
+                  end if;
+               when others =>
+                  Named_Seen := True;
+            end case;
+
+            Next (Actual);
+         end loop;
+      end Check_Mixed_Parameter_And_Named_Associations;
 
       ---------------------------
       -- Name_Denotes_Function --
@@ -861,6 +905,10 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Call
 
    begin
+      if Restriction_Check_Required (SPARK) then
+         Check_Mixed_Parameter_And_Named_Associations;
+      end if;
+
       --  Initialize the type of the result of the call to the error type,
       --  which will be reset if the type is successfully resolved.
 
@@ -1475,13 +1523,7 @@ package body Sem_Ch4 is
          return;
       end if;
 
-      --  Conditional expression is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~conditional expression is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("conditional expression is not allowed", N);
 
       Else_Expr := Next (Then_Expr);
 
@@ -1681,13 +1723,7 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Explicit_Dereference
 
    begin
-      --  Explicit dereference is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~explicit dereference is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("explicit dereference is not allowed", N);
 
       Analyze (P);
       Set_Etype (N, Any_Type);
@@ -2003,6 +2039,9 @@ package body Sem_Ch4 is
             then
                return;
 
+            elsif Try_Container_Indexing (N, P, Exp) then
+               return;
+
             elsif Array_Type = Any_Type then
                Set_Etype (N, Any_Type);
 
@@ -2056,6 +2095,7 @@ package body Sem_Ch4 is
             end loop;
 
             Set_Etype (N, Component_Type (Array_Type));
+            Check_Implicit_Dereference (N, Etype (N));
 
             if Present (Index) then
                Error_Msg_N
@@ -2152,9 +2192,13 @@ package body Sem_Ch4 is
                end loop;
 
                if Found and then No (Index) and then No (Exp) then
-                  Add_One_Interp (N,
-                     Etype (Component_Type (Typ)),
-                     Etype (Component_Type (Typ)));
+                  declare
+                     CT : constant Entity_Id :=
+                            Base_Type (Component_Type (Typ));
+                  begin
+                     Add_One_Interp (N, CT, CT);
+                     Check_Implicit_Dereference (N, CT);
+                  end;
                end if;
             end if;
 
@@ -2475,17 +2519,21 @@ package body Sem_Ch4 is
          end if;
 
       --  If not a range, it can be a subtype mark, or else it is a degenerate
-      --  membership test with a singleton value, i.e. a test for equality.
+      --  membership test with a singleton value, i.e. a test for equality,
+      --  if the types are compatible.
 
       else
          Analyze (R);
+
          if Is_Entity_Name (R)
            and then Is_Type (Entity (R))
          then
             Find_Type (R);
             Check_Fully_Declared (Entity (R), R);
 
-         elsif Ada_Version >= Ada_2012 then
+         elsif Ada_Version >= Ada_2012
+           and then Has_Compatible_Type (R, Etype (L))
+         then
             if Nkind (N) = N_In then
                Rewrite (N,
                  Make_Op_Eq (Loc,
@@ -2502,8 +2550,8 @@ package body Sem_Ch4 is
             return;
 
          else
-            --  In previous version of the language this is an error that will
-            --  be diagnosed below.
+            --  In all versions of the language, if we reach this point there
+            --  is a previous error that will be diagnosed below.
 
             Find_Type (R);
          end if;
@@ -2566,13 +2614,7 @@ package body Sem_Ch4 is
 
    procedure Analyze_Null (N : Node_Id) is
    begin
-      --  Null is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~null is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("null is not allowed", N);
 
       Set_Etype (N, Any_Access);
    end Analyze_Null;
@@ -2634,6 +2676,7 @@ package body Sem_Ch4 is
       procedure Indicate_Name_And_Type is
       begin
          Add_One_Interp (N, Nam, Etype (Nam));
+         Check_Implicit_Dereference (N, Etype (Nam));
          Success := True;
 
          --  If the prefix of the call is a name, indicate the entity
@@ -2862,9 +2905,9 @@ package body Sem_Ch4 is
          Actual := First_Actual (N);
          Formal := First_Formal (Nam);
 
-         --  If we are analyzing a call rewritten from object notation,
-         --  skip first actual, which may be rewritten later as an
-         --  explicit dereference.
+         --  If we are analyzing a call rewritten from object notation, skip
+         --  first actual, which may be rewritten later as an explicit
+         --  dereference.
 
          if Must_Skip then
             Next_Actual (Actual);
@@ -3092,7 +3135,10 @@ package body Sem_Ch4 is
             T := It.Typ;
          end if;
 
-         if Is_Record_Type (T) then
+         --  Locate the component. For a private prefix the selector can denote
+         --  a discriminant.
+
+         if Is_Record_Type (T) or else Is_Private_Type (T) then
 
             --  If the prefix is a class-wide type, the visible components are
             --  those of the base type.
@@ -3120,6 +3166,7 @@ package body Sem_Ch4 is
                      Set_Entity (Sel, Comp);
                      Set_Etype (Sel, Etype (Comp));
                      Add_One_Interp (N, Etype (Comp), Etype (Comp));
+                     Check_Implicit_Dereference (N, Etype (Comp));
 
                      --  This also specifies a candidate to resolve the name.
                      --  Further overloading will be resolved from context.
@@ -3258,13 +3305,7 @@ package body Sem_Ch4 is
       Iterator : Node_Id;
 
    begin
-      --  Quantified expression is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~quantified expression is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("quantified expression is not allowed", N);
 
       Set_Etype  (Ent,  Standard_Void_Type);
       Set_Parent (Ent, N);
@@ -3720,6 +3761,7 @@ package body Sem_Ch4 is
       --  be done transitively, so note the new original discriminant.
 
       if Nkind (Sel) = N_Identifier
+        and then In_Instance
         and then Present (Original_Discriminant (Sel))
       then
          Comp := Find_Corresponding_Discriminant (Sel, Prefix_Type);
@@ -3732,6 +3774,7 @@ package body Sem_Ch4 is
            New_Occurrence_Of (Comp, Sloc (N)));
          Set_Original_Discriminant (Selector_Name (N), Comp);
          Set_Etype (N, Etype (Comp));
+         Check_Implicit_Dereference (N, Etype (Comp));
 
          if Is_Access_Type (Etype (Name)) then
             Insert_Explicit_Dereference (Name);
@@ -3868,6 +3911,7 @@ package body Sem_Ch4 is
                   Set_Etype (N, Etype (Comp));
                end if;
 
+               Check_Implicit_Dereference (N, Etype (N));
                return;
             end if;
 
@@ -3876,7 +3920,7 @@ package body Sem_Ch4 is
             --  which can appear in expanded code in a tag check.
 
             if Ekind (Type_To_Use) = E_Record_Type_With_Private
-              and then  Chars (Selector_Name (N)) /= Name_uTag
+              and then Chars (Selector_Name (N)) /= Name_uTag
             then
                exit when Comp = Last_Entity (Type_To_Use);
             end if;
@@ -3933,6 +3977,7 @@ package body Sem_Ch4 is
 
                   Set_Etype (Sel, Etype (Comp));
                   Set_Etype (N,   Etype (Comp));
+                  Check_Implicit_Dereference (N, Etype (N));
 
                   if Is_Generic_Type (Prefix_Type)
                     or else Is_Generic_Type (Root_Type (Prefix_Type))
@@ -4292,13 +4337,7 @@ package body Sem_Ch4 is
    --  Start of processing for Analyze_Slice
 
    begin
-      --  Slice is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~slice is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("slice is not allowed", N);
 
       Analyze (P);
       Analyze (D);
@@ -6241,6 +6280,131 @@ package body Sem_Ch4 is
       end if;
    end Remove_Abstract_Operations;
 
+   ----------------------------
+   -- Try_Container_Indexing --
+   ----------------------------
+
+   function Try_Container_Indexing
+     (N      : Node_Id;
+      Prefix : Node_Id;
+      Expr   : Node_Id) return Boolean
+   is
+      Loc       : constant Source_Ptr := Sloc (N);
+      Disc      : Entity_Id;
+      Func      : Entity_Id;
+      Func_Name : Node_Id;
+      Indexing  : Node_Id;
+      Is_Var    : Boolean;
+      Ritem     : Node_Id;
+
+   begin
+
+      --  Check whether type has a specified indexing aspect.
+
+      Func_Name := Empty;
+      Is_Var := False;
+
+      Ritem := First_Rep_Item (Etype (Prefix));
+      while Present (Ritem) loop
+         if Nkind (Ritem) = N_Aspect_Specification then
+
+            --  Prefer Variable_Indexing, but will settle for Constant.
+
+            if Get_Aspect_Id (Chars (Identifier (Ritem))) =
+                                                 Aspect_Constant_Indexing
+            then
+               Func_Name := Expression (Ritem);
+
+            elsif Get_Aspect_Id (Chars (Identifier (Ritem))) =
+                                                 Aspect_Variable_Indexing
+            then
+               Func_Name :=  Expression (Ritem);
+               Is_Var := True;
+               exit;
+            end if;
+         end if;
+
+         Next_Rep_Item (Ritem);
+      end loop;
+
+      --  If aspect does not exist the expression is illegal. Error is
+      --  diagnosed in caller.
+
+      if No (Func_Name) then
+         return False;
+      end if;
+
+      if Is_Var
+        and then not Is_Variable (Prefix)
+      then
+         Error_Msg_N ("Variable indexing cannot be applied to a constant", N);
+      end if;
+
+      if not Is_Overloaded (Func_Name) then
+         Func := Entity (Func_Name);
+         Indexing := Make_Function_Call (Loc,
+           Name => New_Occurrence_Of (Func, Loc),
+           Parameter_Associations =>
+             New_List (Relocate_Node (Prefix), Relocate_Node (Expr)));
+         Rewrite (N, Indexing);
+         Analyze (N);
+
+         --  The return type of the indexing function is a reference type, so
+         --  add the dereference as a possible interpretation.
+
+         Disc := First_Discriminant (Etype (Func));
+         while Present (Disc) loop
+            if Has_Implicit_Dereference (Disc) then
+               Add_One_Interp (N, Disc, Designated_Type (Etype (Disc)));
+               exit;
+            end if;
+
+            Next_Discriminant (Disc);
+         end loop;
+
+      else
+         Indexing := Make_Function_Call (Loc,
+           Name => Make_Identifier (Loc, Chars (Func_Name)),
+           Parameter_Associations =>
+             New_List (Relocate_Node (Prefix), Relocate_Node (Expr)));
+
+         Rewrite (N, Indexing);
+
+         declare
+            I  : Interp_Index;
+            It : Interp;
+            Success : Boolean;
+
+         begin
+            Get_First_Interp (Func_Name, I, It);
+            Set_Etype (N, Any_Type);
+            while Present (It.Nam) loop
+               Analyze_One_Call (N, It.Nam, False, Success);
+               if Success then
+                  Set_Etype (Name (N), It.Typ);
+
+                  --  Add implicit dereference interpretation.
+
+                  Disc := First_Discriminant (Etype (It.Nam));
+
+                  while Present (Disc) loop
+                     if Has_Implicit_Dereference (Disc) then
+                        Add_One_Interp
+                          (N, Disc, Designated_Type (Etype (Disc)));
+                        exit;
+                     end if;
+
+                     Next_Discriminant (Disc);
+                  end loop;
+               end if;
+               Get_Next_Interp (I, It);
+            end loop;
+         end;
+      end if;
+
+      return True;
+   end Try_Container_Indexing;
+
    -----------------------
    -- Try_Indirect_Call --
    -----------------------
@@ -6865,6 +7029,16 @@ package body Sem_Ch4 is
                               (Designated_Type (Etype (First_Formal (Hom)))) =
                                                                    Cls_Type))
                then
+                  --  If the context is a procedure call, ignore functions
+                  --  in the name of the call.
+
+                  if Ekind (Hom) = E_Function
+                    and then Nkind (Parent (N)) = N_Procedure_Call_Statement
+                    and then N = Name (Parent (N))
+                  then
+                     goto Next_Hom;
+                  end if;
+
                   Set_Etype (Call_Node, Any_Type);
                   Set_Is_Overloaded (Call_Node, False);
                   Success := False;
@@ -6906,7 +7080,8 @@ package body Sem_Ch4 is
                   end if;
                end if;
 
-               Hom := Homonym (Hom);
+               <<Next_Hom>>
+                  Hom := Homonym (Hom);
             end loop;
          end Traverse_Homonyms;
 
@@ -7227,7 +7402,8 @@ package body Sem_Ch4 is
 
               or else
                 (Ekind (Typ) = E_Anonymous_Access_Type
-                  and then Designated_Type (Typ) = Base_Type (Corr_Type));
+                  and then
+                    Base_Type (Designated_Type (Typ)) = Base_Type (Corr_Type));
          end Valid_First_Argument_Of;
 
       --  Start of processing for Try_Primitive_Operation

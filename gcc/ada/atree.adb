@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -481,34 +481,25 @@ package body Atree is
      (Src            : Node_Id;
       With_Extension : Boolean) return Node_Id
    is
-      New_Id : Node_Id     := Src;
-      Nod    : Node_Record := Default_Node;
-      Ext1   : Node_Record := Default_Node_Extension;
-      Ext2   : Node_Record := Default_Node_Extension;
-      Ext3   : Node_Record := Default_Node_Extension;
-      Ext4   : Node_Record := Default_Node_Extension;
+      New_Id : Node_Id;
 
    begin
-      if Present (Src) then
-         Nod := Nodes.Table (Src);
-
-         if Has_Extension (Src) then
-            Ext1 := Nodes.Table (Src + 1);
-            Ext2 := Nodes.Table (Src + 2);
-            Ext3 := Nodes.Table (Src + 3);
-            Ext4 := Nodes.Table (Src + 4);
-         end if;
-      end if;
-
-      if not (Present (Src)
-               and then not Has_Extension (Src)
-               and then With_Extension
-               and then Src = Nodes.Last)
+      if Present (Src)
+        and then not Has_Extension (Src)
+        and then With_Extension
+        and then Src = Nodes.Last
       then
+         New_Id := Src;
+      else
          --  We are allocating a new node, or extending a node
          --  other than Nodes.Last.
 
-         Nodes.Append (Nod);
+         if Present (Src) then
+            Nodes.Append (Nodes.Table (Src));
+         else
+            Nodes.Append (Default_Node);
+         end if;
+
          New_Id := Nodes.Last;
          Orig_Nodes.Append (New_Id);
          Node_Count := Node_Count + 1;
@@ -524,10 +515,15 @@ package body Atree is
       --  Set extension nodes if required
 
       if With_Extension then
-         Nodes.Append (Ext1);
-         Nodes.Append (Ext2);
-         Nodes.Append (Ext3);
-         Nodes.Append (Ext4);
+         if Present (Src) and then Has_Extension (Src) then
+            for J in 1 .. 4 loop
+               Nodes.Append (Nodes.Table (Src + Node_Id (J)));
+            end loop;
+         else
+            for J in 1 .. 4 loop
+               Nodes.Append (Default_Node_Extension);
+            end loop;
+         end if;
       end if;
 
       Orig_Nodes.Set_Last (Nodes.Last);
@@ -2457,6 +2453,17 @@ package body Atree is
          end if;
       end Elist4;
 
+      function Elist5 (N : Node_Id) return Elist_Id is
+         pragma Assert (N <= Nodes.Last);
+         Value : constant Union_Id := Nodes.Table (N).Field5;
+      begin
+         if Value = 0 then
+            return No_Elist;
+         else
+            return Elist_Id (Value);
+         end if;
+      end Elist5;
+
       function Elist8 (N : Node_Id) return Elist_Id is
          pragma Assert (Nkind (N) in N_Entity);
          Value : constant Union_Id := Nodes.Table (N + 1).Field8;
@@ -2544,6 +2551,17 @@ package body Atree is
             return Elist_Id (Value);
          end if;
       end Elist23;
+
+      function Elist24 (N : Node_Id) return Elist_Id is
+         pragma Assert (Nkind (N) in N_Entity);
+         Value : constant Union_Id := Nodes.Table (N + 4).Field6;
+      begin
+         if Value = 0 then
+            return No_Elist;
+         else
+            return Elist_Id (Value);
+         end if;
+      end Elist24;
 
       function Elist25 (N : Node_Id) return Elist_Id is
          pragma Assert (Nkind (N) in N_Entity);
@@ -4696,6 +4714,11 @@ package body Atree is
          Nodes.Table (N).Field4 := Union_Id (Val);
       end Set_Elist4;
 
+      procedure Set_Elist5 (N : Node_Id; Val : Elist_Id) is
+      begin
+         Nodes.Table (N).Field5 := Union_Id (Val);
+      end Set_Elist5;
+
       procedure Set_Elist8 (N : Node_Id; Val : Elist_Id) is
       begin
          pragma Assert (Nkind (N) in N_Entity);
@@ -4743,6 +4766,12 @@ package body Atree is
          pragma Assert (Nkind (N) in N_Entity);
          Nodes.Table (N + 3).Field10 := Union_Id (Val);
       end Set_Elist23;
+
+      procedure Set_Elist24 (N : Node_Id; Val : Elist_Id) is
+      begin
+         pragma Assert (Nkind (N) in N_Entity);
+         Nodes.Table (N + 4).Field6 := Union_Id (Val);
+      end Set_Elist24;
 
       procedure Set_Elist25 (N : Node_Id; Val : Elist_Id) is
       begin

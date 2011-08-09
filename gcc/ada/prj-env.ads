@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,7 +43,7 @@ package Prj.Env is
    --  corresponding to a source.
 
    procedure Create_Temp_File
-     (In_Tree   : Project_Tree_Ref;
+     (Shared    : Shared_Project_Tree_Data_Access;
       Path_FD   : out File_Descriptor;
       Path_Name : out Path_Name_Type;
       File_Use  : String);
@@ -71,7 +71,7 @@ package Prj.Env is
    --  individual units.
 
    procedure Create_New_Path_File
-     (In_Tree   : Project_Tree_Ref;
+     (Shared    : Shared_Project_Tree_Data_Access;
       Path_FD   : out File_Descriptor;
       Path_Name : out Path_Name_Type);
    --  Create a new temporary path file, placing file name in Path_Name
@@ -88,6 +88,7 @@ package Prj.Env is
 
    function Ada_Objects_Path
      (Project             : Project_Id;
+      In_Tree             : Project_Tree_Ref;
       Including_Libraries : Boolean := True) return String_Access;
    --  Get the ADA_OBJECTS_PATH of a Project file. For the first call, compute
    --  it and cache it. When Including_Libraries is False, do not include the
@@ -149,7 +150,9 @@ package Prj.Env is
 
    generic
       with procedure Action (Path : String);
-   procedure For_All_Object_Dirs (Project : Project_Id);
+   procedure For_All_Object_Dirs
+     (Project : Project_Id;
+      Tree    : Project_Tree_Ref);
    --  Iterate through all the object directories of a project, including those
    --  of imported or modified projects.
 
@@ -161,6 +164,26 @@ package Prj.Env is
    --  An abstraction of the project path. This object provides subprograms
    --  to search for projects on the path (and caches the results to improve
    --  efficiency).
+
+   No_Project_Search_Path : constant Project_Search_Path;
+
+   procedure Initialize_Default_Project_Path
+     (Self        : in out Project_Search_Path;
+      Target_Name : String);
+   --  Initialize Self. It will then contain the default project path on the
+   --  given target (including directories specified by the environment
+   --  variables ADA_PROJECT_PATH and GPR_PROJECT_PATH). This does nothing if
+   --  Self has already been initialized.
+
+   procedure Copy (From : Project_Search_Path; To : out Project_Search_Path);
+   --  Copy From into To
+
+   procedure Initialize_Empty (Self : in out Project_Search_Path);
+   --  Initialize self with an empty list of directories. If Self had already
+   --  been set, it is reset.
+
+   function Is_Initialized (Self : Project_Search_Path) return Boolean;
+   --  Whether Self has been initialized
 
    procedure Free (Self : in out Project_Search_Path);
    --  Free the memory used by Self
@@ -176,30 +199,26 @@ package Prj.Env is
    --  Calls to this subprogram must be performed before the first call to
    --  Find_Project below, or PATH will be added at the end of the search path.
 
-   procedure Get_Path
-     (Self        : in out Project_Search_Path;
-      Path        : out String_Access;
-      Target_Name : String := "");
+   procedure Get_Path (Self : Project_Search_Path; Path : out String_Access);
    --  Return the current value of the project path, either the value set
    --  during elaboration of the package or, if procedure Set_Project_Path has
    --  been called, the value set by the last call to Set_Project_Path. The
    --  returned value must not be modified.
+   --  Self must have been initialized first.
 
-   procedure Set_Path
-     (Self : in out Project_Search_Path; Path : String);
+   procedure Set_Path (Self : in out Project_Search_Path; Path : String);
    --  Override the value of the project path. This also removes the implicit
-   --  default search directories
+   --  default search directories.
 
    procedure Find_Project
      (Self               : in out Project_Search_Path;
       Project_File_Name  : String;
       Directory          : String;
-      Path               : out Namet.Path_Name_Type;
-      Target_Name        : String);
+      Path               : out Namet.Path_Name_Type);
    --  Search for a project with the given name either in Directory (which
    --  often will be the directory contain the project we are currently parsing
    --  and which we found a reference to another project), or in the project
-   --  path. Extra_Project_Path contains additional directories to search.
+   --  path Self. Self must have been initialized first.
    --
    --  Project_File_Name can optionally contain directories, and the extension
    --  (.gpr) for the file name is optional.
@@ -223,4 +242,9 @@ private
 
       Cache : Projects_Paths.Instance;
    end record;
+
+   No_Project_Search_Path : constant Project_Search_Path :=
+                              (Path  => null,
+                               Cache => Projects_Paths.Nil);
+
 end Prj.Env;
