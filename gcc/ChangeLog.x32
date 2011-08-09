@@ -1,5 +1,11 @@
 2011-08-08  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR middle-end/49721
+	* explow.c (convert_memory_address_addr_space): Also permute
+	zero-extend and addition of constant.
+
+2011-08-08  H.J. Lu  <hongjiu.lu@intel.com>
+
 	Revert
 	PR middle-end/49721
 	* explow.c (convert_memory_address_addr_space_1): New.
