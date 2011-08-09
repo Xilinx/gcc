@@ -793,13 +793,17 @@
   (ior (match_operand 0 "register_operand")
        (match_operand 0 "const0_operand")))
 
-;; Return true if op if a valid address, and does not contain
+;; Return true if op if a valid address for LEA, and does not contain
 ;; a segment override.
-(define_predicate "no_seg_address_operand"
+(define_predicate "lea_address_operand"
   (match_operand 0 "address_operand")
 {
   struct ix86_address parts;
   int ok;
+
+  /*  LEA handles zero-extend by itself.  */
+  if (GET_CODE (op) == ZERO_EXTEND)
+    return false;
 
   ok = ix86_decompose_address (op, &parts);
   gcc_assert (ok);
@@ -839,6 +843,11 @@
   /* Decode the address.  */
   ok = ix86_decompose_address (op, &parts);
   gcc_assert (ok);
+
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    parts.base = SUBREG_REG (parts.base);
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    parts.index = SUBREG_REG (parts.index);
 
   /* Look for some component that isn't known to be aligned.  */
   if (parts.index)
@@ -903,6 +912,12 @@
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
+
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    parts.base = SUBREG_REG (parts.base);
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    parts.index = SUBREG_REG (parts.index);
+
   if (parts.base == NULL_RTX
       || parts.base == arg_pointer_rtx
       || parts.base == frame_pointer_rtx

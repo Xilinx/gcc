@@ -3629,6 +3629,7 @@ cxx_init_decl_processing (void)
   current_lang_name = lang_name_cplusplus;
 
   {
+    tree newattrs;
     tree newtype, deltype;
     tree ptr_ftype_sizetype;
     tree new_eh_spec;
@@ -3656,7 +3657,13 @@ cxx_init_decl_processing (void)
     else
       new_eh_spec = noexcept_false_spec;
 
-    newtype = build_exception_variant (ptr_ftype_sizetype, new_eh_spec);
+    /* Ensure attribs.c is initialized.  */
+    init_attributes ();
+    newattrs
+      = build_tree_list (get_identifier ("alloc_size"),
+			 build_tree_list (NULL_TREE, integer_one_node));
+    newtype = cp_build_type_attribute_variant (ptr_ftype_sizetype, newattrs);
+    newtype = build_exception_variant (newtype, new_eh_spec);
     deltype = build_exception_variant (void_ftype_ptr, empty_except_spec);
     push_cp_library_fn (NEW_EXPR, newtype);
     push_cp_library_fn (VEC_NEW_EXPR, newtype);
@@ -13220,22 +13227,13 @@ finish_function (int flags)
     {
       if (DECL_MAIN_P (current_function_decl))
 	{
-	  tree stmt;
-
 	  /* Make it so that `main' always returns 0 by default (or
 	     1 for VMS).  */
 #if VMS_TARGET
-	  stmt = finish_return_stmt (integer_one_node);
+	  finish_return_stmt (integer_one_node);
 #else
-	  stmt = finish_return_stmt (integer_zero_node);
+	  finish_return_stmt (integer_zero_node);
 #endif
-	  /* Hack.  We don't want the middle-end to warn that this
-	     return is unreachable, so put the statement on the
-	     special line 0.  */
-	  {
-	    location_t linezero = linemap_line_start (line_table, 0, 1);
-	    SET_EXPR_LOCATION (stmt, linezero);
-	  }
 	}
 
       if (use_eh_spec_block (current_function_decl))

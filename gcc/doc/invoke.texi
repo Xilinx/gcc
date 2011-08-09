@@ -11533,7 +11533,7 @@ Schedules as an EV6 and supports the BWX, FIX, and MAX extensions.
 Schedules as an EV6 and supports the BWX, CIX, FIX, and MAX extensions.
 @end table
 
-Native Linux/GNU toolchains also support the value @samp{native},
+Native toolchains also support the value @samp{native},
 which selects the best architecture option for the host processor.
 @option{-mcpu=native} has no effect if GCC does not recognize
 the processor.
@@ -11543,7 +11543,7 @@ the processor.
 Set only the instruction scheduling parameters for machine type
 @var{cpu_type}.  The instruction set is not changed.
 
-Native Linux/GNU toolchains also support the value @samp{native},
+Native toolchains also support the value @samp{native},
 which selects the best architecture option for the host processor.
 @option{-mtune=native} has no effect if GCC does not recognize
 the processor.
@@ -12321,6 +12321,10 @@ and SSE4.2 instruction set support.
 @item corei7-avx
 Intel Core i7 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3,
 SSE4.1, SSE4.2, AVX, AES and PCLMUL instruction set support.
+@item core-avx-i
+Intel Core CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3,
+SSE4.1, SSE4.2, AVX, AES, PCLMUL, FSGSBASE, RDRND and F16C instruction
+set support.
 @item atom
 Intel Atom CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
 instruction set support.
@@ -14315,7 +14319,7 @@ The special value @samp{from-abi} selects the
 most compatible architecture for the selected ABI (that is,
 @samp{mips1} for 32-bit ABIs and @samp{mips3} for 64-bit ABIs)@.
 
-Native Linux/GNU toolchains also support the value @samp{native},
+Native Linux/GNU and IRIX toolchains also support the value @samp{native},
 which selects the best architecture option for the host processor.
 @option{-march=native} has no effect if GCC does not recognize
 the processor.
@@ -17259,6 +17263,11 @@ for machine type @var{cpu_type}.  Supported values for @var{cpu_type} are
 @samp{sparclet}, @samp{tsc701}, @samp{v9}, @samp{ultrasparc},
 @samp{ultrasparc3}, @samp{niagara} and @samp{niagara2}.
 
+Native Solaris toolchains also support the value @samp{native},
+which selects the best architecture option for the host processor.
+@option{-mcpu=native} has no effect if GCC does not recognize
+the processor.
+
 Default instruction scheduling parameters are used for values that select
 an architecture and not an implementation.  These are @samp{v7}, @samp{v8},
 @samp{sparclite}, @samp{sparclet}, @samp{v9}.
@@ -17323,7 +17332,8 @@ The same values for @option{-mcpu=@var{cpu_type}} can be used for
 that select a particular CPU implementation.  Those are @samp{cypress},
 @samp{supersparc}, @samp{hypersparc}, @samp{leon}, @samp{f930}, @samp{f934},
 @samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc}, @samp{ultrasparc3},
-@samp{niagara}, and @samp{niagara2}.
+@samp{niagara}, and @samp{niagara2}.  With native Solaris toolchains,
+@samp{native} can also be used.
 
 @item -mv8plus
 @itemx -mno-v8plus

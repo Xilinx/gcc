@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1690,7 +1690,7 @@ package body Checks is
 
       if Truncate and then Ilast < 0 then
          Hi := Succ (Expr_Type, UR_From_Uint (Ilast));
-         Lo_OK := False;
+         Hi_OK := False;
 
       elsif Truncate then
          Hi := Pred (Expr_Type, UR_From_Uint (Ilast + 1));
@@ -3087,6 +3087,20 @@ package body Checks is
    --  Start of processing for Determine_Range
 
    begin
+      --  For temporary constants internally generated to remove side effects
+      --  we must use the corresponding expression to determine the range of
+      --  the expression.
+
+      if Is_Entity_Name (N)
+        and then Nkind (Parent (Entity (N))) = N_Object_Declaration
+        and then Ekind (Entity (N)) = E_Constant
+        and then Is_Internal_Name (Chars (Entity (N)))
+      then
+         Determine_Range
+           (Expression (Parent (Entity (N))), OK, Lo, Hi, Assume_Valid);
+         return;
+      end if;
+
       --  Prevent junk warnings by initializing range variables
 
       Lo  := No_Uint;
@@ -3442,6 +3456,18 @@ package body Checks is
       --  At this stage, if OK1 is true, then we know that the actual result of
       --  the computed expression is in the range Lor .. Hir. We can use this
       --  to restrict the possible range of results.
+
+      --  If one of the computed bounds is outside the range of the base type,
+      --  the expression may raise an exception and we better indicate that
+      --  the evaluation has failed, at least if checks are enabled.
+
+      if Enable_Overflow_Checks
+        and then not Is_Entity_Name (N)
+        and then (Lor < Lo or else Hir > Hi)
+      then
+         OK := False;
+         return;
+      end if;
 
       if OK1 then
 

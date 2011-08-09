@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2000-2010, AdaCore                     --
+--                     Copyright (C) 2000-2011, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -215,7 +215,7 @@ package GNAT.AWK is
    --  a full AWK run. The state comprises a list of files, the current file,
    --  the number of line processed, the current line, the number of fields in
    --  the current line... A default session is provided (see Set_Current,
-   --  Current_Session and Default_Session above).
+   --  Current_Session and Default_Session below).
 
    ----------------------------
    -- Package initialization --
@@ -229,12 +229,12 @@ package GNAT.AWK is
    --  Set the session to be used by default. This file will be used when the
    --  Session parameter in following services is not specified.
 
-   function Current_Session return Session_Type;
+   function Current_Session return not null access Session_Type;
    --  Returns the session used by default by all services. This is the
    --  latest session specified by Set_Current service or the session
    --  provided by default with this implementation.
 
-   function Default_Session return Session_Type;
+   function Default_Session return not null access Session_Type;
    --  Returns the default session provided by this package. Note that this is
    --  the session return by Current_Session if Set_Current has not been used.
 
@@ -633,6 +633,7 @@ private
 
    type Session_Type is new Ada.Finalization.Limited_Controlled with record
       Data : Session_Data_Access;
+      Self : not null access Session_Type := Session_Type'Unchecked_Access;
    end record;
 
    procedure Initialize (Session : in out Session_Type);

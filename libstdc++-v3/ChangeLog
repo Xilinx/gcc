@@ -1,3 +1,149 @@
+2011-08-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/alloc_traits.h: Fix doxygen @headername.
+
+2011-08-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in (PDF_HYPERLINKS): To NO.
+
+2011-08-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Add scoped_allocator.
+
+	* include/debug/safe_sequence.h: Fix doxygen markup.
+	* include/debug/safe_unordered_base.h: Same.
+	* include/debug/safe_local_iterator.tcc: Same.
+	* include/debug/safe_unordered_container.h: Same.
+	* include/std/valarray: Same.
+	* include/std/iomanip: Same.
+	* include/std/streambuf: Same.
+	* include/std/bitset: Same.
+	* include/std/fstream: Same.
+	* include/std/functional: Same.
+	* include/std/istream: Same.
+	* include/std/ostream: Same.
+	* include/std/scoped_allocator: Same.
+	* include/std/sstream: Same.
+	* include/parallel/multiway_merge.h: Same.
+	* include/parallel/base.h: Same.
+	* include/parallel/for_each_selectors.h: Same.
+	* include/parallel/multiway_mergesort.h: Same.
+	* include/parallel/search.h: Same.
+	* include/parallel/partial_sum.h: Same.
+	* include/parallel/queue.h: Same.
+	* include/parallel/sort.h: Same.
+	* include/parallel/random_number.h: Same.
+	* include/ext/vstring.h: Same.
+	* include/ext/algorithm: Same.
+	* include/ext/pb_ds/assoc_container.h: Same.
+	* include/ext/bitmap_allocator.h: Same.
+	* include/ext/stdio_filebuf.h: Same.
+	* include/ext/memory: Same.
+	* include/ext/functional: Same.
+	* include/bits/basic_ios.h: Same.
+	* include/bits/stl_list.h: Same.
+	* include/bits/stl_map.h: Same.
+	* include/bits/stl_algobase.h: Same.
+	* include/bits/stl_queue.h: Same.
+	* include/bits/gslice.h: Same.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/stl_set.h: Same.
+	* include/bits/locale_facets.h: Same.
+	* include/bits/stl_stack.h: Same.
+	* include/bits/stl_heap.h: Same.
+	* include/bits/forward_list.h: Same.
+	* include/bits/stream_iterator.h: Same.
+	* include/bits/basic_string.h: Same.
+	* include/bits/stl_multimap.h: Same.
+	* include/bits/stl_pair.h: Same.
+	* include/bits/ios_base.h: Same.
+	* include/bits/stl_numeric.h: Same.
+	* include/bits/stl_vector.h: Same.
+	* include/bits/stl_deque.h: Same.
+	* include/bits/codecvt.h: Same.
+	* include/bits/stl_multiset.h: Same.
+	* include/bits/stl_uninitialized.h: Same.
+	* include/bits/ptr_traits.h: Same.
+	* include/bits/slice_array.h: Same.
+	* include/bits/stl_iterator_base_funcs.h: Same.
+	* include/bits/stl_algo.h: Same.
+	* include/bits/stl_iterator.h: Same.
+	* include/bits/stl_tempbuf.h: Same.
+	* include/bits/regex.h: Same.
+	* include/bits/range_access.h: Same.
+	* include/bits/random.h: Same.
+	* include/bits/alloc_traits.h: Same.
+	* include/bits/regex_error.h: Same.
+	* include/bits/locale_facets_nonio.h: Same.
+	* include/bits/stl_relops.h: Same.
+	* include/backward/auto_ptr.h: Same.
+	* libsupc++/initializer_list: Same.
+
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust line numbers.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/constructor_1_neg.cc:
+	Same.
+	* testsuite/23_containers/list/requirements/dr438/constructor_2_neg.cc:
+	Same.
+
+2011-08-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (GLIBCXX_EXPORT_INCLUDES): Point TOPLEVEL_INCLUDES
+	to $(toplevel_srcdir)/libgcc.
+	* configure: Regenerate.
+
+2011-08-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/build_hacking.xml: Use relative fileref for PNG
+	imagedata.
+	* doc/xml/manual/test_policy_data_structures.xml: Same.
+	* doc/xml/manual/policy_data_structures.xml: Same.
+
+	* doc/Makefile.am (stamp-html-docbook-images)
+	(stamp-html-docbook-lwg, stamp-html-docbook-data): New.
+	(xml_extra): Add lwg html file dependencies.
+	(xml_images): Add image html file dependencies.
+	* doc/Makefile.in: Regenerate.
+	(stamp-html): Change to stamp-html-docbook-data.
+	(stamp-html-copy): Remove.
+
+2011-08-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/atomic.cc: Use noexcept.
+	* include/std/atomic: Likewise.
+	* include/bits/atomic_0.h: Likewise.
+	* include/bits/atomic_2.h: Likewise.
+	* include/bits/atomic_base.h: Likewise.
+
+2011-08-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/performance/27_io/filebuf_sputn_unbuf.cc: Include
+	unistd.h for unlink.
+	* testsuite/performance/27_io/ofstream_insert_int.cc: Same.
+	* testsuite/performance/27_io/ifstream_extract_int.cc: Same.
+	* testsuite/performance/27_io/ifstream_getline-2.cc: Same.
+	* testsuite/performance/27_io/fstream_seek_write.cc: Same.
+	* testsuite/performance/27_io/ifstream_extract_chars.cc: Same.
+	* testsuite/performance/27_io/ofstream_insert_float.cc: Same.
+	* testsuite/performance/27_io/ifstream_extract_float.cc: Same.
+	* testsuite/performance/27_io/filebuf_sputc.cc: Same.
+
+2011-08-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/tuple: Mark more constructors constexpr.
+	* testsuite/20_util/tuple/cons/constexpr.cc: Split into and extend as:
+	* testsuite/20_util/tuple/cons/constexpr-2.cc: ...this.
+	* testsuite/20_util/tuple/cons/constexpr-3.cc: ... and this.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust line numbers.
+
+2011-08-03  Benjamin Kosnik  <bkoz@redhat.com>
+	    François Dumont  <francois.cppdevs@free.fr>
+
+	* testsuite/23_containers/array/at_neg.cc: Move...
+	* testsuite/23_containers/array/at.cc: ...here. Remove
+	-fno-exceptions, call const at member function.
+
 2011-08-01  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/abi/post/x86_64-linux-gnu/x32/baseline_symbols.txt: Generated.
@@ -941,13 +1087,6 @@
 	* testsuite/23_containers/vector/bool/capacity/shrink_to_fit.cc:
 	Likewise.
 	* testsuite/23_containers/deque/debug/shrink_to_fit.cc: Likewise.
-
-2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
-
-	* testsuite/tr1/6_containers/tuple/creation_functions/tie2.cc: Fix for
-	C++0x mode.
-	* testsuite/25_algorithms/sort/35588.cc: Likewise.
-	* testsuite/26_numerics/headers/complex/synopsis.cc: Likewise.
 
 2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -38,8 +38,10 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Output;   use Output;
 with Par_SCO;  use Par_SCO;
+with Restrict; use Restrict;
 with Scans;    use Scans;
 with Scn;      use Scn;
+with Sem_Util; use Sem_Util;
 with Sinput;   use Sinput;
 with Sinput.L; use Sinput.L;
 with Sinfo;    use Sinfo;
@@ -721,10 +723,6 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       function P_Loop_Parameter_Specification return Node_Id;
       --  Used in loop constructs and quantified expressions.
 
-      function P_Statement_Name (Name_Node : Node_Id) return Node_Id;
-      --  Given a node representing a name (which is a call), converts it
-      --  to the syntactically corresponding procedure call statement.
-
       function P_Sequence_Of_Statements (SS_Flags : SS_Rec) return List_Id;
       --  The argument indicates the acceptable termination tokens.
       --  See body in Par.Ch5 for details of the use of this parameter.
@@ -860,8 +858,8 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       --  attempt at an aspect specification. The default is more strict for
       --  Ada versions before Ada 2012 (where aspect specifications are not
       --  permitted). Note: this routine never checks the terminator token
-      --  for aspects so it does not matter whether the aspect speficiations
-      --  are terminated by semicolon or some other character
+      --  for aspects so it does not matter whether the aspect specifications
+      --  are terminated by semicolon or some other character.
 
       procedure P_Aspect_Specifications
         (Decl      : Node_Id;
@@ -870,7 +868,6 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       --  Semicolon is True, a terminating semicolon is also scanned. If this
       --  argument is False, the scan pointer is left pointing past the aspects
       --  and the caller must check for a proper terminator.
-      --  left pointing past the aspects, presumably pointing to a terminator.
       --
       --  P_Aspect_Specification is called with the current token pointing to
       --  either a WITH keyword starting an aspect specification, or an
@@ -880,9 +877,13 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       --  the given declaration node. A list of aspects is built and stored for
       --  this declaration node using a call to Set_Aspect_Specifications. If
       --  no WITH keyword is present, then this call has no effect other than
-      --  scanning out the terminator if it is a semicolon. If Decl is Error on
-      --  entry, any scanned aspect specifications are ignored and a message is
-      --  output saying aspect specifications not permitted here.
+      --  scanning out the terminator if it is a semicolon.
+
+      --  If Decl is Error on entry, any scanned aspect specifications are
+      --  ignored and a message is output saying aspect specifications not
+      --  permitted here. If Decl is Empty, then scanned aspect specifications
+      --  are also ignored, but no error message is given (this is used when
+      --  the caller has already taken care of the error message).
 
       function P_Code_Statement (Subtype_Mark : Node_Id) return Node_Id;
       --  Function to parse a code statement. The caller has scanned out
@@ -908,7 +909,9 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
    --  Routines for handling end lines, including scope recovery
 
    package Endh is
-      function Check_End (Decl : Node_Id := Empty) return Boolean;
+      function Check_End
+        (Decl   : Node_Id    := Empty;
+         Is_Loc : Source_Ptr := No_Location) return Boolean;
       --  Called when an end sequence is required. In the absence of an error
       --  situation, Token contains Tok_End on entry, but in a missing end
       --  case, this may not be the case. Pop_End_Context is used to determine
@@ -922,7 +925,15 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       --
       --  If Decl is non-empty, then aspect specifications are permitted
       --  following the end, and Decl is the declaration node with which
-      --  these aspect specifications are to be associated.
+      --  these aspect specifications are to be associated. If Decl is empty,
+      --  then aspect specifications are not permitted and will generate an
+      --  error message.
+      --
+      --  Is_Loc is set to other than the default only for the case of a
+      --  package declaration. It points to the IS keyword of the declaration,
+      --  and is used to specialize the error messages for misplaced aspect
+      --  specifications in this case. Note that Decl is always Empty if Is_Loc
+      --  is set.
 
       procedure End_Skip;
       --  Skip past an end sequence. On entry Token contains Tok_End, and we
@@ -933,8 +944,9 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       --  error messages while carrying this out.
 
       procedure End_Statements
-        (Parent : Node_Id := Empty;
-         Decl   : Node_Id := Empty);
+        (Parent  : Node_Id    := Empty;
+         Decl    : Node_Id    := Empty;
+         Is_Sloc : Source_Ptr := No_Location);
       --  Called when an end is required or expected to terminate a sequence
       --  of statements. The caller has already made an appropriate entry in
       --  the Scope.Table to describe the expected form of the end. This can
@@ -945,6 +957,14 @@ function Par (Configuration_Pragmas : Boolean) return List_Id is
       --  If Decl is non-null, then it is a declaration node, and aspect
       --  specifications are permitted after the end statement. These aspect
       --  specifications, if present, are stored in this declaration node.
+      --  If Decl is null, then aspect specifications are not permitted after
+      --  the end statement.
+      --
+      --  In the case where Decl is null, Is_Sloc determines the handling. If
+      --  it is set to No_Location, then aspect specifications are ignored and
+      --  an error message is given. Is_Sloc is used in the package declaration
+      --  case to point to the IS, and is used to specialize the error emssages
+      --  issued in this case.
    end Endh;
 
    --------------

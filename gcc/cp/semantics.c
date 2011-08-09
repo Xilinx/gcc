@@ -2042,12 +2042,14 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
 	 expressions with no type as being dependent.  */
       if (type_dependent_expression_p (fn)
 	  || any_type_dependent_arguments_p (*args)
-	  /* For a non-static member function, we need to specifically
+	  /* For a non-static member function that doesn't have an
+	     explicit object argument, we need to specifically
 	     test the type dependency of the "this" pointer because it
 	     is not included in *ARGS even though it is considered to
 	     be part of the list of arguments.  Note that this is
 	     related to CWG issues 515 and 1005.  */
-	  || (non_static_member_function_p (fn)
+	  || (TREE_CODE (fn) != COMPONENT_REF
+	      && non_static_member_function_p (fn)
 	      && current_class_ref
 	      && type_dependent_expression_p (current_class_ref)))
 	{
@@ -2379,6 +2381,9 @@ finish_compound_literal (tree type, tree compound_literal,
       && check_array_initializer (NULL_TREE, type, compound_literal))
     return error_mark_node;
   compound_literal = reshape_init (type, compound_literal, complain);
+  if (cxx_dialect >= cxx0x && SCALAR_TYPE_P (type)
+      && !BRACE_ENCLOSED_INITIALIZER_P (compound_literal))
+    check_narrowing (type, compound_literal);
   if (TREE_CODE (type) == ARRAY_TYPE
       && TYPE_DOMAIN (type) == NULL_TREE)
     {
@@ -3905,6 +3910,14 @@ finish_omp_clauses (tree clauses)
 	  OMP_CLAUSE_IF_EXPR (c) = t;
 	  break;
 
+	case OMP_CLAUSE_FINAL:
+	  t = OMP_CLAUSE_FINAL_EXPR (c);
+	  t = maybe_convert_cond (t);
+	  if (t == error_mark_node)
+	    remove = true;
+	  OMP_CLAUSE_FINAL_EXPR (c) = t;
+	  break;
+
 	case OMP_CLAUSE_NUM_THREADS:
 	  t = OMP_CLAUSE_NUM_THREADS_EXPR (c);
 	  if (t == error_mark_node)
@@ -3936,6 +3949,7 @@ finish_omp_clauses (tree clauses)
 	case OMP_CLAUSE_DEFAULT:
 	case OMP_CLAUSE_UNTIED:
 	case OMP_CLAUSE_COLLAPSE:
+	case OMP_CLAUSE_MERGEABLE:
 	  break;
 
 	default:
@@ -4030,6 +4044,8 @@ finish_omp_clauses (tree clauses)
 		case PLUS_EXPR:
 		case MULT_EXPR:
 		case MINUS_EXPR:
+		case MIN_EXPR:
+		case MAX_EXPR:
 		  break;
 		default:
 		  error ("%qE has invalid type for %<reduction(%s)%>",
@@ -4074,6 +4090,10 @@ finish_omp_clauses (tree clauses)
 	    case OMP_CLAUSE_DEFAULT_UNSPECIFIED:
 	      break;
 	    case OMP_CLAUSE_DEFAULT_SHARED:
+	      /* const vars may be specified in firstprivate clause.  */
+	      if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_FIRSTPRIVATE
+		  && cxx_omp_const_qual_no_mutable (t))
+		break;
 	      share_name = "shared";
 	      break;
 	    case OMP_CLAUSE_DEFAULT_PRIVATE:
@@ -4697,15 +4717,22 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 }
 
 void
-finish_omp_atomic (enum tree_code code, tree lhs, tree rhs)
+finish_omp_atomic (enum tree_code code, enum tree_code opcode, tree lhs,
+		   tree rhs, tree v, tree lhs1, tree rhs1)
 {
   tree orig_lhs;
   tree orig_rhs;
+  tree orig_v;
+  tree orig_lhs1;
+  tree orig_rhs1;
   bool dependent_p;
   tree stmt;
 
   orig_lhs = lhs;
   orig_rhs = rhs;
+  orig_v = v;
+  orig_lhs1 = lhs1;
+  orig_rhs1 = rhs1;
   dependent_p = false;
   stmt = NULL_TREE;
 
@@ -4714,22 +4741,53 @@ finish_omp_atomic (enum tree_code code, tree lhs, tree rhs)
   if (processing_template_decl)
     {
       dependent_p = (type_dependent_expression_p (lhs)
-		     || type_dependent_expression_p (rhs));
+		     || (rhs && type_dependent_expression_p (rhs))
+		     || (v && type_dependent_expression_p (v))
+		     || (lhs1 && type_dependent_expression_p (lhs1))
+		     || (rhs1 && type_dependent_expression_p (rhs1)));
       if (!dependent_p)
 	{
 	  lhs = build_non_dependent_expr (lhs);
-	  rhs = build_non_dependent_expr (rhs);
+	  if (rhs)
+	    rhs = build_non_dependent_expr (rhs);
+	  if (v)
+	    v = build_non_dependent_expr (v);
+	  if (lhs1)
+	    lhs1 = build_non_dependent_expr (lhs1);
+	  if (rhs1)
+	    rhs1 = build_non_dependent_expr (rhs1);
 	}
     }
   if (!dependent_p)
     {
-      stmt = c_finish_omp_atomic (input_location, code, lhs, rhs);
+      stmt = c_finish_omp_atomic (input_location, code, opcode, lhs, rhs,
+				  v, lhs1, rhs1);
       if (stmt == error_mark_node)
 	return;
     }
   if (processing_template_decl)
-    stmt = build2 (OMP_ATOMIC, void_type_node, integer_zero_node,
-		   build2 (code, void_type_node, orig_lhs, orig_rhs));
+    {
+      if (code == OMP_ATOMIC_READ)
+	{
+	  stmt = build_min_nt (OMP_ATOMIC_READ, orig_lhs);
+	  stmt = build2 (MODIFY_EXPR, void_type_node, orig_v, stmt);
+	}
+      else
+	{
+	  if (opcode == NOP_EXPR)
+	    stmt = build2 (MODIFY_EXPR, void_type_node, orig_lhs, orig_rhs);
+	  else 
+	    stmt = build2 (opcode, void_type_node, orig_lhs, orig_rhs);
+	  if (orig_rhs1)
+	    stmt = build_min_nt (COMPOUND_EXPR, orig_rhs1, stmt);
+	  if (code != OMP_ATOMIC)
+	    {
+	      stmt = build_min_nt (code, orig_lhs1, stmt);
+	      stmt = build2 (MODIFY_EXPR, void_type_node, orig_v, stmt);
+	    }
+	}
+      stmt = build2 (OMP_ATOMIC, void_type_node, integer_zero_node, stmt);
+    }
   add_stmt (stmt);
 }
 
@@ -4757,6 +4815,16 @@ void
 finish_omp_taskwait (void)
 {
   tree fn = built_in_decls[BUILT_IN_GOMP_TASKWAIT];
+  VEC(tree,gc) *vec = make_tree_vector ();
+  tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
+  release_tree_vector (vec);
+  finish_expr_stmt (stmt);
+}
+
+void
+finish_omp_taskyield (void)
+{
+  tree fn = built_in_decls[BUILT_IN_GOMP_TASKYIELD];
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4881,6 +4949,9 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
 	error ("decltype cannot resolve address of overloaded function");
       return error_mark_node;
     }
+
+  if (invalid_nonstatic_memfn_p (expr, complain))
+    return error_mark_node;
 
   /* To get the size of a static data member declared as an array of
      unknown bound, we need to instantiate it.  */
@@ -6362,11 +6433,18 @@ cxx_eval_array_reference (const constexpr_call *call, tree t,
   elem_type = TREE_TYPE (TREE_TYPE (ary));
   if (TREE_CODE (ary) == CONSTRUCTOR)
     len = CONSTRUCTOR_NELTS (ary);
-  else
+  else if (TREE_CODE (ary) == STRING_CST)
     {
       elem_nchars = (TYPE_PRECISION (elem_type)
 		     / TYPE_PRECISION (char_type_node));
       len = (unsigned) TREE_STRING_LENGTH (ary) / elem_nchars;
+    }
+  else
+    {
+      /* We can't do anything with other tree codes, so use
+	 VERIFY_CONSTANT to complain and fail.  */
+      VERIFY_CONSTANT (ary);
+      gcc_unreachable ();
     }
   if (compare_tree_int (index, len) >= 0)
     {
@@ -7657,7 +7735,17 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
 		  {
 		    tree x = get_nth_callarg (t, 0);
 		    if (is_this_parameter (x))
-		      /* OK.  */;
+		      {
+			if (DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)))
+			  {
+			    if (flags & tf_error)
+			      sorry ("calling a member function of the "
+				     "object being constructed in a constant "
+				     "expression");
+			    return false;
+			  }
+			/* Otherwise OK.  */;
+		      }
 		    else if (!potential_constant_expression_1 (x, rval, flags))
 		      return false;
 		    i = 1;

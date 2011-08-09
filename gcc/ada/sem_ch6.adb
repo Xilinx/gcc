@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,7 +23,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Debug;    use Debug;
@@ -128,6 +127,9 @@ package body Sem_Ch6 is
    --  If proper warnings are enabled and the subprogram contains a construct
    --  that cannot be inlined, the offending construct is flagged accordingly.
 
+   function Can_Override_Operator (Subp : Entity_Id) return Boolean;
+   --  Returns true if Subp can override a predefined operator.
+
    procedure Check_Conformance
      (New_Id                   : Entity_Id;
       Old_Id                   : Entity_Id;
@@ -215,141 +217,6 @@ package body Sem_Ch6 is
    --  setting the proper validity status for this entity, which depends on
    --  the kind of parameter and the validity checking mode.
 
-   ------------------------------
-   -- Analyze_Return_Statement --
-   ------------------------------
-
-   procedure Analyze_Return_Statement (N : Node_Id) is
-
-      pragma Assert (Nkind_In (N, N_Simple_Return_Statement,
-                                  N_Extended_Return_Statement));
-
-      Returns_Object : constant Boolean :=
-                         Nkind (N) = N_Extended_Return_Statement
-                           or else
-                            (Nkind (N) = N_Simple_Return_Statement
-                              and then Present (Expression (N)));
-      --  True if we're returning something; that is, "return <expression>;"
-      --  or "return Result : T [:= ...]". False for "return;". Used for error
-      --  checking: If Returns_Object is True, N should apply to a function
-      --  body; otherwise N should apply to a procedure body, entry body,
-      --  accept statement, or extended return statement.
-
-      function Find_What_It_Applies_To return Entity_Id;
-      --  Find the entity representing the innermost enclosing body, accept
-      --  statement, or extended return statement. If the result is a callable
-      --  construct or extended return statement, then this will be the value
-      --  of the Return_Applies_To attribute. Otherwise, the program is
-      --  illegal. See RM-6.5(4/2).
-
-      -----------------------------
-      -- Find_What_It_Applies_To --
-      -----------------------------
-
-      function Find_What_It_Applies_To return Entity_Id is
-         Result : Entity_Id := Empty;
-
-      begin
-         --  Loop outward through the Scope_Stack, skipping blocks and loops
-
-         for J in reverse 0 .. Scope_Stack.Last loop
-            Result := Scope_Stack.Table (J).Entity;
-            exit when Ekind (Result) /= E_Block and then
-                      Ekind (Result) /= E_Loop;
-         end loop;
-
-         pragma Assert (Present (Result));
-         return Result;
-      end Find_What_It_Applies_To;
-
-      --  Local declarations
-
-      Scope_Id   : constant Entity_Id   := Find_What_It_Applies_To;
-      Kind       : constant Entity_Kind := Ekind (Scope_Id);
-      Loc        : constant Source_Ptr  := Sloc (N);
-      Stm_Entity : constant Entity_Id   :=
-                     New_Internal_Entity
-                       (E_Return_Statement, Current_Scope, Loc, 'R');
-
-   --  Start of processing for Analyze_Return_Statement
-
-   begin
-      Set_Return_Statement_Entity (N, Stm_Entity);
-
-      Set_Etype (Stm_Entity, Standard_Void_Type);
-      Set_Return_Applies_To (Stm_Entity, Scope_Id);
-
-      --  Place Return entity on scope stack, to simplify enforcement of 6.5
-      --  (4/2): an inner return statement will apply to this extended return.
-
-      if Nkind (N) = N_Extended_Return_Statement then
-         Push_Scope (Stm_Entity);
-      end if;
-
-      --  Check that pragma No_Return is obeyed. Don't complain about the
-      --  implicitly-generated return that is placed at the end.
-
-      if No_Return (Scope_Id) and then Comes_From_Source (N) then
-         Error_Msg_N ("RETURN statement not allowed (No_Return)", N);
-      end if;
-
-      --  Warn on any unassigned OUT parameters if in procedure
-
-      if Ekind (Scope_Id) = E_Procedure then
-         Warn_On_Unassigned_Out_Parameter (N, Scope_Id);
-      end if;
-
-      --  Check that functions return objects, and other things do not
-
-      if Kind = E_Function or else Kind = E_Generic_Function then
-         if not Returns_Object then
-            Error_Msg_N ("missing expression in return from function", N);
-         end if;
-
-      elsif Kind = E_Procedure or else Kind = E_Generic_Procedure then
-         if Returns_Object then
-            Error_Msg_N ("procedure cannot return value (use function)", N);
-         end if;
-
-      elsif Kind = E_Entry or else Kind = E_Entry_Family then
-         if Returns_Object then
-            if Is_Protected_Type (Scope (Scope_Id)) then
-               Error_Msg_N ("entry body cannot return value", N);
-            else
-               Error_Msg_N ("accept statement cannot return value", N);
-            end if;
-         end if;
-
-      elsif Kind = E_Return_Statement then
-
-         --  We are nested within another return statement, which must be an
-         --  extended_return_statement.
-
-         if Returns_Object then
-            Error_Msg_N
-              ("extended_return_statement cannot return value; " &
-               "use `""RETURN;""`", N);
-         end if;
-
-      else
-         Error_Msg_N ("illegal context for return statement", N);
-      end if;
-
-      if Ekind_In (Kind, E_Function, E_Generic_Function) then
-         Analyze_Function_Return (N);
-
-      elsif Ekind_In (Kind, E_Procedure, E_Generic_Procedure) then
-         Set_Return_Present (Scope_Id);
-      end if;
-
-      if Nkind (N) = N_Extended_Return_Statement then
-         End_Scope;
-      end if;
-
-      Kill_Current_Values (Last_Assignment_Only => True);
-      Check_Unreachable_Code (N);
-   end Analyze_Return_Statement;
-
    ---------------------------------------------
    -- Analyze_Abstract_Subprogram_Declaration --
    ---------------------------------------------
@@ -360,15 +227,10 @@ package body Sem_Ch6 is
       Scop       : constant Entity_Id := Current_Scope;
 
    begin
-      --  Abstract subprogram is not allowed in SPARK or ALFA
-
-      if Formal_Verification_Mode then
-         Error_Msg_F ("|~~abstract subprogram is not allowed", N);
-      end if;
-
-      --  Proceed with analysis
+      Check_SPARK_Restriction ("abstract subprogram is not allowed", N);
 
       Generate_Definition (Designator);
+      Set_Contract (Designator, Make_Contract (Sloc (Designator)));
       Set_Is_Abstract_Subprogram (Designator);
       New_Overloaded_Entity (Designator);
       Check_Delayed_Subprogram (Designator);
@@ -395,8 +257,93 @@ package body Sem_Ch6 is
 
       Generate_Reference_To_Formals (Designator);
       Check_Eliminated (Designator);
-      Analyze_Aspect_Specifications (N, Designator, Aspect_Specifications (N));
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Designator);
+      end if;
    end Analyze_Abstract_Subprogram_Declaration;
+
+   ---------------------------------
+   -- Analyze_Expression_Function --
+   ---------------------------------
+
+   procedure Analyze_Expression_Function (N : Node_Id) is
+      Loc      : constant Source_Ptr := Sloc (N);
+      LocX     : constant Source_Ptr := Sloc (Expression (N));
+      Def_Id   : constant Entity_Id  := Defining_Entity (Specification (N));
+      New_Body : Node_Id;
+      New_Decl : Node_Id;
+
+      Prev : constant Entity_Id := Current_Entity_In_Scope (Def_Id);
+      --  If the expression is a completion, Prev is the entity whose
+      --  declaration is completed.
+
+   begin
+      --  This is one of the occasions on which we transform the tree during
+      --  semantic analysis. If this is a completion, transform the expression
+      --  function into an equivalent subprogram body, and analyze it.
+
+      --  Expression functions are inlined unconditionally. The back-end will
+      --  determine whether this is possible.
+
+      Inline_Processing_Required := True;
+
+      New_Body :=
+        Make_Subprogram_Body (Loc,
+          Specification              => Specification (N),
+          Declarations               => Empty_List,
+          Handled_Statement_Sequence =>
+            Make_Handled_Sequence_Of_Statements (LocX,
+              Statements => New_List (
+                Make_Simple_Return_Statement (LocX,
+                  Expression => Expression (N)))));
+
+      if Present (Prev)
+        and then Ekind (Prev) = E_Generic_Function
+      then
+         --  If the expression completes a generic subprogram, we must create a
+         --  separate node for the body, because at instantiation the original
+         --  node of the generic copy must be a generic subprogram body, and
+         --  cannot be a expression function. Otherwise we just rewrite the
+         --  expression with the non-generic body.
+
+         Insert_After (N, New_Body);
+         Rewrite (N, Make_Null_Statement (Loc));
+         Analyze (N);
+         Analyze (New_Body);
+         Set_Is_Inlined (Prev);
+
+      elsif Present (Prev) then
+         Rewrite (N, New_Body);
+         Set_Is_Inlined (Prev);
+         Analyze (N);
+
+      --  If this is not a completion, create both a declaration and a body,
+      --  so that the expression can be inlined whenever possible.
+
+      else
+         New_Decl :=
+           Make_Subprogram_Declaration (Loc,
+             Specification => Specification (N));
+         Rewrite (N, New_Decl);
+         Analyze (N);
+         Set_Is_Inlined (Defining_Entity (New_Decl));
+
+         --  Create new set of formals for specification in body.
+
+         Set_Specification (New_Body,
+           Make_Function_Specification (Loc,
+             Defining_Unit_Name =>
+               Make_Defining_Identifier (Loc, Chars (Defining_Entity (N))),
+             Parameter_Specifications =>
+               Copy_Parameter_List (Defining_Entity (New_Decl)),
+             Result_Definition =>
+               New_Copy_Tree (Result_Definition (Specification (New_Decl)))));
+
+         Insert_After (N, New_Body);
+         Analyze (New_Body);
+      end if;
+   end Analyze_Expression_Function;
 
    ----------------------------------------
    -- Analyze_Extended_Return_Statement  --
@@ -412,9 +359,9 @@ package body Sem_Ch6 is
    ----------------------------
 
    procedure Analyze_Function_Call (N : Node_Id) is
-      P      : constant Node_Id := Name (N);
-      L      : constant List_Id := Parameter_Associations (N);
-      Actual : Node_Id;
+      P       : constant Node_Id := Name (N);
+      Actuals : constant List_Id := Parameter_Associations (N);
+      Actual  : Node_Id;
 
    begin
       Analyze (P);
@@ -440,8 +387,8 @@ package body Sem_Ch6 is
 
       --  Otherwise analyze the parameters
 
-      if Present (L) then
-         Actual := First (L);
+      if Present (Actuals) then
+         Actual := First (Actuals);
          while Present (Actual) loop
             Analyze (Actual);
             Check_Parameterless_Call (Actual);
@@ -682,28 +629,55 @@ package body Sem_Ch6 is
 
       if Nkind (N) = N_Simple_Return_Statement then
          Expr := Expression (N);
-         Analyze_And_Resolve (Expr, R_Type);
-         Check_Limited_Return (Expr);
 
-         --  The only RETURN allowed in SPARK or ALFA is as the last statement
-         --  of the function.
+         --  Guard against a malformed expression. The parser may have tried to
+         --  recover but the node is not analyzable.
 
-         if Formal_Verification_Mode
-           and then Nkind (Parent (N)) /= N_Handled_Sequence_Of_Statements
+         if Nkind (Expr) = N_Error then
+            Set_Etype (Expr, Any_Type);
+            Expander_Mode_Save_And_Set (False);
+            return;
+
+         else
+            --  The resolution of a controlled [extension] aggregate associated
+            --  with a return statement creates a temporary which needs to be
+            --  finalized on function exit. Wrap the return statement inside a
+            --  block so that the finalization machinery can detect this case.
+            --  This early expansion is done only when the return statement is
+            --  not part of a handled sequence of statements.
+
+            if Nkind_In (Expr, N_Aggregate,
+                               N_Extension_Aggregate)
+              and then Needs_Finalization (R_Type)
+              and then Nkind (Parent (N)) /= N_Handled_Sequence_Of_Statements
+            then
+               Rewrite (N,
+                 Make_Block_Statement (Loc,
+                   Handled_Statement_Sequence =>
+                     Make_Handled_Sequence_Of_Statements (Loc,
+                       Statements => New_List (Relocate_Node (N)))));
+
+               Analyze (N);
+               return;
+            end if;
+
+            Analyze_And_Resolve (Expr, R_Type);
+            Check_Limited_Return (Expr);
+         end if;
+
+         --  RETURN only allowed in SPARK as the last statement in function
+
+         if Nkind (Parent (N)) /= N_Handled_Sequence_Of_Statements
            and then
              (Nkind (Parent (Parent (N))) /= N_Subprogram_Body
                or else Present (Next (N)))
          then
-            Error_Msg_F
-              ("|~~RETURN should be the last statement in function", N);
+            Check_SPARK_Restriction
+              ("RETURN should be the last statement in function", N);
          end if;
 
       else
-         --  Extended return is not allowed in SPARK or ALFA
-
-         if Formal_Verification_Mode then
-            Error_Msg_F ("|~~extended RETURN is not allowed", N);
-         end if;
+         Check_SPARK_Restriction ("extended RETURN is not allowed", N);
 
          --  Analyze parts specific to extended_return_statement:
 
@@ -989,7 +963,15 @@ package body Sem_Ch6 is
          end if;
 
          Set_Actual_Subtypes (N, Current_Scope);
-         Process_PPCs (N, Gen_Id, Body_Id);
+
+         --  Deal with preconditions and postconditions. In formal verification
+         --  mode, we keep pre- and postconditions attached to entities rather
+         --  than inserted in the code, in order to facilitate a distinct
+         --  treatment for them.
+
+         if not ALFA_Mode then
+            Process_PPCs (N, Gen_Id, Body_Id);
+         end if;
 
          --  If the generic unit carries pre- or post-conditions, copy them
          --  to the original generic tree, so that they are properly added
@@ -1094,55 +1076,6 @@ package body Sem_Ch6 is
    begin
       Analyze (Explicit_Actual_Parameter (N));
    end Analyze_Parameter_Association;
-
-   --------------------------------------
-   -- Analyze_Parameterized_Expression --
-   --------------------------------------
-
-   procedure Analyze_Parameterized_Expression (N : Node_Id) is
-      Loc      : constant Source_Ptr := Sloc (N);
-      LocX     : constant Source_Ptr := Sloc (Expression (N));
-      Def_Id   : constant Entity_Id  := Defining_Entity (Specification (N));
-      New_Body : Node_Id;
-
-      Prev : constant Entity_Id := Current_Entity_In_Scope (Def_Id);
-      --  If the expression is a completion, Prev is the entity whose
-      --  declaration is completed.
-
-   begin
-      --  This is one of the occasions on which we transform the tree during
-      --  semantic analysis. Transform the parameterized expression into an
-      --  equivalent subprogram body, and then analyze that.
-
-      New_Body :=
-        Make_Subprogram_Body (Loc,
-          Specification              => Specification (N),
-          Declarations               => Empty_List,
-          Handled_Statement_Sequence =>
-            Make_Handled_Sequence_Of_Statements (LocX,
-              Statements => New_List (
-                Make_Simple_Return_Statement (LocX,
-                  Expression => Expression (N)))));
-
-      if Present (Prev)
-        and then Ekind (Prev) = E_Generic_Function
-      then
-         --  If the expression completes a generic subprogram, we must create
-         --  a separate node for the body, because at instantiation the
-         --  original node of the generic copy must be a generic subprogram
-         --  body, and cannot be a parameterized expression. Otherwise we
-         --  just rewrite the expression with the non-generic body.
-
-         Insert_After (N, New_Body);
-         Rewrite (N, Make_Null_Statement (Loc));
-         Analyze (N);
-         Analyze (New_Body);
-
-      else
-         Rewrite (N, New_Body);
-         Analyze (N);
-      end if;
-   end Analyze_Parameterized_Expression;
 
    ----------------------------
    -- Analyze_Procedure_Call --
@@ -1372,6 +1305,141 @@ package body Sem_Ch6 is
       end if;
    end Analyze_Procedure_Call;
 
+   ------------------------------
+   -- Analyze_Return_Statement --
+   ------------------------------
+
+   procedure Analyze_Return_Statement (N : Node_Id) is
+
+      pragma Assert (Nkind_In (N, N_Simple_Return_Statement,
+                                  N_Extended_Return_Statement));
+
+      Returns_Object : constant Boolean :=
+                         Nkind (N) = N_Extended_Return_Statement
+                           or else
+                            (Nkind (N) = N_Simple_Return_Statement
+                              and then Present (Expression (N)));
+      --  True if we're returning something; that is, "return <expression>;"
+      --  or "return Result : T [:= ...]". False for "return;". Used for error
+      --  checking: If Returns_Object is True, N should apply to a function
+      --  body; otherwise N should apply to a procedure body, entry body,
+      --  accept statement, or extended return statement.
+
+      function Find_What_It_Applies_To return Entity_Id;
+      --  Find the entity representing the innermost enclosing body, accept
+      --  statement, or extended return statement. If the result is a callable
+      --  construct or extended return statement, then this will be the value
+      --  of the Return_Applies_To attribute. Otherwise, the program is
+      --  illegal. See RM-6.5(4/2).
+
+      -----------------------------
+      -- Find_What_It_Applies_To --
+      -----------------------------
+
+      function Find_What_It_Applies_To return Entity_Id is
+         Result : Entity_Id := Empty;
+
+      begin
+         --  Loop outward through the Scope_Stack, skipping blocks and loops
+
+         for J in reverse 0 .. Scope_Stack.Last loop
+            Result := Scope_Stack.Table (J).Entity;
+            exit when Ekind (Result) /= E_Block and then
+                      Ekind (Result) /= E_Loop;
+         end loop;
+
+         pragma Assert (Present (Result));
+         return Result;
+      end Find_What_It_Applies_To;
+
+      --  Local declarations
+
+      Scope_Id   : constant Entity_Id   := Find_What_It_Applies_To;
+      Kind       : constant Entity_Kind := Ekind (Scope_Id);
+      Loc        : constant Source_Ptr  := Sloc (N);
+      Stm_Entity : constant Entity_Id   :=
+                     New_Internal_Entity
+                       (E_Return_Statement, Current_Scope, Loc, 'R');
+
+   --  Start of processing for Analyze_Return_Statement
+
+   begin
+      Set_Return_Statement_Entity (N, Stm_Entity);
+
+      Set_Etype (Stm_Entity, Standard_Void_Type);
+      Set_Return_Applies_To (Stm_Entity, Scope_Id);
+
+      --  Place Return entity on scope stack, to simplify enforcement of 6.5
+      --  (4/2): an inner return statement will apply to this extended return.
+
+      if Nkind (N) = N_Extended_Return_Statement then
+         Push_Scope (Stm_Entity);
+      end if;
+
+      --  Check that pragma No_Return is obeyed. Don't complain about the
+      --  implicitly-generated return that is placed at the end.
+
+      if No_Return (Scope_Id) and then Comes_From_Source (N) then
+         Error_Msg_N ("RETURN statement not allowed (No_Return)", N);
+      end if;
+
+      --  Warn on any unassigned OUT parameters if in procedure
+
+      if Ekind (Scope_Id) = E_Procedure then
+         Warn_On_Unassigned_Out_Parameter (N, Scope_Id);
+      end if;
+
+      --  Check that functions return objects, and other things do not
+
+      if Kind = E_Function or else Kind = E_Generic_Function then
+         if not Returns_Object then
+            Error_Msg_N ("missing expression in return from function", N);
+         end if;
+
+      elsif Kind = E_Procedure or else Kind = E_Generic_Procedure then
+         if Returns_Object then
+            Error_Msg_N ("procedure cannot return value (use function)", N);
+         end if;
+
+      elsif Kind = E_Entry or else Kind = E_Entry_Family then
+         if Returns_Object then
+            if Is_Protected_Type (Scope (Scope_Id)) then
+               Error_Msg_N ("entry body cannot return value", N);
+            else
+               Error_Msg_N ("accept statement cannot return value", N);
+            end if;
+         end if;
+
+      elsif Kind = E_Return_Statement then
+
+         --  We are nested within another return statement, which must be an
+         --  extended_return_statement.
+
+         if Returns_Object then
+            Error_Msg_N
+              ("extended_return_statement cannot return value; " &
+               "use `""RETURN;""`", N);
+         end if;
+
+      else
+         Error_Msg_N ("illegal context for return statement", N);
+      end if;
+
+      if Ekind_In (Kind, E_Function, E_Generic_Function) then
+         Analyze_Function_Return (N);
+
+      elsif Ekind_In (Kind, E_Procedure, E_Generic_Procedure) then
+         Set_Return_Present (Scope_Id);
+      end if;
+
+      if Nkind (N) = N_Extended_Return_Statement then
+         End_Scope;
+      end if;
+
+      Kill_Current_Values (Last_Assignment_Only => True);
+      Check_Unreachable_Code (N);
+   end Analyze_Return_Statement;
+
    -------------------------------------
    -- Analyze_Simple_Return_Statement --
    -------------------------------------
@@ -1398,13 +1466,8 @@ package body Sem_Ch6 is
 
       if Result_Definition (N) /= Error then
          if Nkind (Result_Definition (N)) = N_Access_Definition then
-
-            --  Access result is not allowed in SPARK or ALFA
-
-            if Formal_Verification_Mode then
-               Error_Msg_F
-                 ("|~~access result is not allowed", Result_Definition (N));
-            end if;
+            Check_SPARK_Restriction
+              ("access result is not allowed", Result_Definition (N));
 
             --  Ada 2005 (AI-254): Handle anonymous access to subprograms
 
@@ -1434,15 +1497,14 @@ package body Sem_Ch6 is
             Typ := Entity (Result_Definition (N));
             Set_Etype (Designator, Typ);
 
-            --  Unconstrained array as result is not allowed in SPARK or ALFA
+            --  Unconstrained array as result is not allowed in SPARK
 
-            if Formal_Verification_Mode
-              and then Is_Array_Type (Typ)
+            if Is_Array_Type (Typ)
               and then not Is_Constrained (Typ)
             then
-               Error_Msg_F
-                 ("|~~returning an unconstrained array is not allowed",
-                 Result_Definition (N));
+               Check_SPARK_Restriction
+                 ("returning an unconstrained array is not allowed",
+                  Result_Definition (N));
             end if;
 
             --  Ada 2005 (AI-231): Ensure proper usage of null exclusion
@@ -1846,24 +1908,7 @@ package body Sem_Ch6 is
                Id := Body_Id;
             end if;
 
-            --  In formal mode, the last statement of a function should be a
-            --  return statement.
-
-            if Formal_Verification_Mode then
-               declare
-                  Stat : constant Node_Id := Last_Source_Statement (HSS);
-               begin
-                  if Present (Stat)
-                    and then not Nkind_In (Stat,
-                                           N_Simple_Return_Statement,
-                                           N_Extended_Return_Statement)
-                  then
-                     Error_Msg_F ("|~~last statement in function should "
-                                  & "be RETURN", Stat);
-                  end if;
-               end;
-
-            elsif Return_Present (Id) then
+            if Return_Present (Id) then
                Check_Returns (HSS, 'F', Missing_Ret);
 
                if Missing_Ret then
@@ -1877,11 +1922,36 @@ package body Sem_Ch6 is
                Error_Msg_N ("missing RETURN statement in function body", N);
             end if;
 
-         --  In formal mode, verify that a procedure has no return
+         --  If procedure with No_Return, check returns
 
-         elsif Formal_Verification_Mode
-           and then Nkind (Body_Spec) = N_Procedure_Specification
+         elsif Nkind (Body_Spec) = N_Procedure_Specification
+           and then Present (Spec_Id)
+           and then No_Return (Spec_Id)
          then
+            Check_Returns (HSS, 'P', Missing_Ret, Spec_Id);
+         end if;
+
+         --  Special checks in SPARK mode
+
+         if Nkind (Body_Spec) = N_Function_Specification then
+
+            --  In SPARK mode, last statement of a function should be a return
+
+            declare
+               Stat : constant Node_Id := Last_Source_Statement (HSS);
+            begin
+               if Present (Stat)
+                 and then not Nkind_In (Stat, N_Simple_Return_Statement,
+                                              N_Extended_Return_Statement)
+               then
+                  Check_SPARK_Restriction
+                    ("last statement in function should be RETURN", Stat);
+               end if;
+            end;
+
+         --  In SPARK mode, verify that a procedure has no return
+
+         elsif Nkind (Body_Spec) = N_Procedure_Specification then
             if Present (Spec_Id) then
                Id := Spec_Id;
             else
@@ -1892,16 +1962,9 @@ package body Sem_Ch6 is
             --  borrow the Check_Returns procedure here ???
 
             if Return_Present (Id) then
-               Error_Msg_F ("|~~procedure should not have RETURN", N);
+               Check_SPARK_Restriction
+                 ("procedure should not have RETURN", N);
             end if;
-
-         --  If procedure with No_Return, check returns
-
-         elsif Nkind (Body_Spec) = N_Procedure_Specification
-           and then Present (Spec_Id)
-           and then No_Return (Spec_Id)
-         then
-            Check_Returns (HSS, 'P', Missing_Ret, Spec_Id);
          end if;
       end Check_Missing_Return;
 
@@ -1926,6 +1989,10 @@ package body Sem_Ch6 is
             Formal := First_Formal (Body_Id);
             while Present (Formal) loop
                Formal_Typ := Etype (Formal);
+
+               if Is_Class_Wide_Type (Formal_Typ) then
+                  Formal_Typ := Root_Type (Formal_Typ);
+               end if;
 
                --  From concurrent type to corresponding record
 
@@ -2018,6 +2085,10 @@ package body Sem_Ch6 is
             Formal_Typ := Etype (First_Formal (Subp_Id));
 
             if Is_Concurrent_Record_Type (Formal_Typ) then
+               if Is_Class_Wide_Type (Formal_Typ) then
+                  Formal_Typ := Root_Type (Formal_Typ);
+               end if;
+
                Formal_Typ := Corresponding_Concurrent_Type (Formal_Typ);
             end if;
 
@@ -2099,8 +2170,16 @@ package body Sem_Ch6 is
                   Body_Spec);
             end if;
 
-         elsif Style_Check --  ??? incorrect use of Style_Check!
+         elsif Style_Check
            and then Present (Overridden_Operation (Spec_Id))
+         then
+            pragma Assert (Unit_Declaration_Node (Body_Id) = N);
+            Style.Missing_Overriding (N, Body_Id);
+
+         elsif Style_Check
+           and then Can_Override_Operator (Spec_Id)
+           and then not Is_Predefined_File_Name
+                          (Unit_File_Name (Get_Source_Unit (Spec_Id)))
          then
             pragma Assert (Unit_Declaration_Node (Body_Id) = N);
             Style.Missing_Overriding (N, Body_Id);
@@ -2449,9 +2528,9 @@ package body Sem_Ch6 is
 
            and then not In_Instance
 
-           --  No warnings for parameterized expressions
+           --  No warnings for expression functions
 
-           and then Nkind (Original_Node (N)) /= N_Parameterized_Expression
+           and then Nkind (Original_Node (N)) /= N_Expression_Function
          then
             Style.Body_With_No_Spec (N);
          end if;
@@ -2461,6 +2540,7 @@ package body Sem_Ch6 is
          if Nkind (N) /= N_Subprogram_Body_Stub then
             Set_Acts_As_Spec (N);
             Generate_Definition (Body_Id);
+            Set_Contract (Body_Id, Make_Contract (Sloc (Body_Id)));
             Generate_Reference
               (Body_Id, Body_Id, 'b', Set_Ref => False, Force => True);
             Generate_Reference_To_Formals (Body_Id);
@@ -2593,9 +2673,14 @@ package body Sem_Ch6 is
       HSS := Handled_Statement_Sequence (N);
       Set_Actual_Subtypes (N, Current_Scope);
 
-      --  Deal with preconditions and postconditions
+      --  Deal with preconditions and postconditions. In formal verification
+      --  mode, we keep pre- and postconditions attached to entities rather
+      --  than inserted in the code, in order to facilitate a distinct
+      --  treatment for them.
 
-      Process_PPCs (N, Spec_Id, Body_Id);
+      if not ALFA_Mode then
+         Process_PPCs (N, Spec_Id, Body_Id);
+      end if;
 
       --  Add a declaration for the Protection object, renaming declarations
       --  for discriminals and privals and finally a declaration for the entry
@@ -2764,7 +2849,8 @@ package body Sem_Ch6 is
                      --  raises an exception, but in any case it is not coming
                      --  back here, so turn on the flag.
 
-                     if Ekind (Ent) = E_Procedure
+                     if Present (Ent)
+                       and then Ekind (Ent) = E_Procedure
                        and then No_Return (Ent)
                      then
                         Set_Trivial_Subprogram (Stm);
@@ -2829,13 +2915,12 @@ package body Sem_Ch6 is
    --  Start of processing for Analyze_Subprogram_Declaration
 
    begin
-      --  Null procedures are not allowed in SPARK or ALFA
+      --  Null procedures are not allowed in SPARK
 
-      if Formal_Verification_Mode
-        and then Nkind (Specification (N)) = N_Procedure_Specification
+      if Nkind (Specification (N)) = N_Procedure_Specification
         and then Null_Present (Specification (N))
       then
-         Error_Msg_F ("|~~null procedure not allowed", N);
+         Check_SPARK_Restriction ("null procedure is not allowed", N);
       end if;
 
       --  For a null procedure, capture the profile before analysis, for
@@ -2899,6 +2984,7 @@ package body Sem_Ch6 is
 
       Designator := Analyze_Subprogram_Specification (Specification (N));
       Generate_Definition (Designator);
+      --  ??? why this call, already in Analyze_Subprogram_Specification
 
       if Debug_Flag_C then
          Write_Str ("==> subprogram spec ");
@@ -3056,7 +3142,10 @@ package body Sem_Ch6 is
       end if;
 
       List_Inherited_Pre_Post_Aspects (Designator);
-      Analyze_Aspect_Specifications (N, Designator, Aspect_Specifications (N));
+
+      if Has_Aspects (N) then
+         Analyze_Aspect_Specifications (N, Designator);
+      end if;
    end Analyze_Subprogram_Declaration;
 
    --------------------------------------
@@ -3074,18 +3163,18 @@ package body Sem_Ch6 is
    --  Start of processing for Analyze_Subprogram_Specification
 
    begin
-      --  User-defined operator is not allowed in SPARK or ALFA
+      --  User-defined operator is not allowed in SPARK, except as a renaming
 
-      if Formal_Verification_Mode
-        and then Comes_From_Source (N)
-        and then Nkind (Defining_Unit_Name (N)) = N_Defining_Operator_Symbol
+      if Nkind (Defining_Unit_Name (N)) = N_Defining_Operator_Symbol
+        and then Nkind (Parent (N)) /= N_Subprogram_Renaming_Declaration
       then
-         Error_Msg_F ("|~~user-defined operator is not allowed", N);
+         Check_SPARK_Restriction ("user-defined operator is not allowed", N);
       end if;
 
       --  Proceed with analysis
 
       Generate_Definition (Designator);
+      Set_Contract (Designator, Make_Contract (Sloc (Designator)));
 
       if Nkind (N) = N_Function_Specification then
          Set_Ekind (Designator, E_Function);
@@ -4145,14 +4234,21 @@ package body Sem_Ch6 is
 
             --  Ada 2005 (AI-231): In case of anonymous access types check
             --  the null-exclusion and access-to-constant attributes must
-            --  match.
+            --  match. For null exclusion, we test the types rather than the
+            --  formals themselves, since the attribute is only set reliably
+            --  on the formals in the Ada 95 case, and we exclude the case
+            --  where Old_Formal is marked as controlling, to avoid errors
+            --  when matching completing bodies with dispatching declarations
+            --  (access formals in the bodies aren't marked Can_Never_Be_Null).
 
             if Ada_Version >= Ada_2005
               and then Ekind (Etype (Old_Formal)) = E_Anonymous_Access_Type
               and then Ekind (Etype (New_Formal)) = E_Anonymous_Access_Type
               and then
-                (Can_Never_Be_Null (Old_Formal) /=
-                 Can_Never_Be_Null (New_Formal)
+                ((Can_Never_Be_Null (Etype (Old_Formal)) /=
+                  Can_Never_Be_Null (Etype (New_Formal))
+                    and then
+                      not Is_Controlling_Formal (Old_Formal))
                    or else
                  Is_Access_Constant (Etype (Old_Formal)) /=
                  Is_Access_Constant (Etype (New_Formal)))
@@ -4430,6 +4526,14 @@ package body Sem_Ch6 is
             Set_Has_Delayed_Freeze (Designator);
 
          elsif Ekind (T) = E_Incomplete_Type and then From_With_Type (T) then
+            Set_Has_Delayed_Freeze (Designator);
+
+         --  AI05-0151: In Ada 2012, Incomplete types can appear in the profile
+         --  of a subprogram or entry declaration.
+
+         elsif Ekind (T) = E_Incomplete_Type
+           and then Ada_Version >= Ada_2012
+         then
             Set_Has_Delayed_Freeze (Designator);
          end if;
 
@@ -4808,7 +4912,10 @@ package body Sem_Ch6 is
             end if;
 
          elsif Is_Subprogram (Subp) then
-            if No (Overridden_Operation (Subp)) then
+            if Is_Init_Proc (Subp) then
+               null;
+
+            elsif No (Overridden_Operation (Subp)) then
 
                --  For entities generated by Derive_Subprograms the overridden
                --  operation is the inherited primitive (which is available
@@ -4823,6 +4930,7 @@ package body Sem_Ch6 is
                  and then Comes_From_Source (Alias (Overridden_Subp))
                then
                   Set_Overridden_Operation (Subp, Alias (Overridden_Subp));
+
                else
                   Set_Overridden_Operation (Subp, Overridden_Subp);
                end if;
@@ -4854,61 +4962,50 @@ package body Sem_Ch6 is
       --  explicit overridden operation.
 
       elsif Nkind (Subp) = N_Defining_Operator_Symbol then
-         declare
-            Typ : constant Entity_Id :=
-                    Base_Type (Etype (First_Formal (Subp)));
+         if Must_Not_Override (Spec) then
 
-            Can_Override : constant Boolean :=
-                             Operator_Matches_Spec (Subp, Subp)
-                               and then Scope (Subp) = Scope (Typ)
-                               and then not Is_Class_Wide_Type (Typ);
+            --  If this is not a primitive or a protected subprogram, then
+            --  "not overriding" is illegal.
 
-         begin
-            if Must_Not_Override (Spec) then
-
-               --  If this is not a primitive or a protected subprogram, then
-               --  "not overriding" is illegal.
-
-               if not Is_Primitive
-                 and then Ekind (Scope (Subp)) /= E_Protected_Type
-               then
-                  Error_Msg_N
-                    ("overriding indicator only allowed "
-                     & "if subprogram is primitive", Subp);
-
-               elsif Can_Override then
-                  Error_Msg_NE
-                    ("subprogram& overrides predefined operator ", Spec, Subp);
-               end if;
-
-            elsif Must_Override (Spec) then
-               if No (Overridden_Operation (Subp))
-                 and then not Can_Override
-               then
-                  Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
-               end if;
-
-            elsif not Error_Posted (Subp)
-              and then Style_Check
-              and then Can_Override
-              and then
-                not Is_Predefined_File_Name
-                      (Unit_File_Name (Get_Source_Unit (Subp)))
+            if not Is_Primitive
+              and then Ekind (Scope (Subp)) /= E_Protected_Type
             then
-               --  If style checks are enabled, indicate that the indicator is
-               --  missing. However, at the point of declaration, the type of
-               --  which this is a primitive operation may be private, in which
-               --  case the indicator would be premature.
+               Error_Msg_N
+                 ("overriding indicator only allowed "
+                  & "if subprogram is primitive", Subp);
 
-               if Has_Private_Declaration (Etype (Subp))
-                 or else Has_Private_Declaration (Etype (First_Formal (Subp)))
-               then
-                  null;
-               else
-                  Style.Missing_Overriding (Decl, Subp);
-               end if;
+            elsif Can_Override_Operator (Subp) then
+               Error_Msg_NE
+                 ("subprogram& overrides predefined operator ", Spec, Subp);
             end if;
-         end;
+
+         elsif Must_Override (Spec) then
+            if No (Overridden_Operation (Subp))
+              and then not Can_Override_Operator (Subp)
+            then
+               Error_Msg_NE ("subprogram & is not overriding", Spec, Subp);
+            end if;
+
+         elsif not Error_Posted (Subp)
+           and then Style_Check
+           and then Can_Override_Operator (Subp)
+           and then
+             not Is_Predefined_File_Name
+                   (Unit_File_Name (Get_Source_Unit (Subp)))
+         then
+            --  If style checks are enabled, indicate that the indicator is
+            --  missing. However, at the point of declaration, the type of
+            --  which this is a primitive operation may be private, in which
+            --  case the indicator would be premature.
+
+            if Has_Private_Declaration (Etype (Subp))
+              or else Has_Private_Declaration (Etype (First_Formal (Subp)))
+            then
+               null;
+            else
+               Style.Missing_Overriding (Decl, Subp);
+            end if;
+         end if;
 
       elsif Must_Override (Spec) then
          if Ekind (Subp) = E_Entry then
@@ -5442,6 +5539,25 @@ package body Sem_Ch6 is
         (New_Id, Old_Id, Type_Conformant, True, Result, Err_Loc);
    end Check_Type_Conformant;
 
+   ---------------------------
+   -- Can_Override_Operator --
+   ---------------------------
+
+   function Can_Override_Operator (Subp : Entity_Id) return Boolean is
+      Typ : Entity_Id;
+   begin
+      if Nkind (Subp) /= N_Defining_Operator_Symbol then
+         return False;
+
+      else
+         Typ := Base_Type (Etype (First_Formal (Subp)));
+
+         return Operator_Matches_Spec (Subp, Subp)
+           and then Scope (Subp) = Scope (Typ)
+           and then not Is_Class_Wide_Type (Typ);
+      end if;
+   end Can_Override_Operator;
+
    ----------------------
    -- Conforming_Types --
    ----------------------
@@ -5962,24 +6078,15 @@ package body Sem_Ch6 is
                     E, BIP_Formal_Suffix (BIP_Alloc_Form));
             end if;
 
-            --  For functions whose result type has controlled parts, we have
-            --  an extra formal of type System.Finalization_Implementation.
-            --  Finalizable_Ptr_Ptr. That is, we are passing a pointer to a
-            --  finalization list (which is itself a pointer). This extra
-            --  formal is then passed along to Move_Final_List in case of
-            --  successful completion of a return statement. We cannot pass an
-            --  'in out' parameter, because we need to update the finalization
-            --  list during an abort-deferred region, rather than using
-            --  copy-back after the function returns. This is true even if we
-            --  are able to get away with having 'in out' parameters, which are
-            --  normally illegal for functions. This formal is also needed when
-            --  the function has a tagged result.
+            --  In the case of functions whose result type needs finalization,
+            --  add an extra formal of type Ada.Finalization.Heap_Management.
+            --  Finalization_Collection_Ptr.
 
-            if Needs_BIP_Final_List (E) then
+            if Needs_BIP_Collection (E) then
                Discard :=
                  Add_Extra_Formal
-                   (E, RTE (RE_Finalizable_Ptr_Ptr),
-                    E, BIP_Formal_Suffix (BIP_Final_List));
+                   (E, RTE (RE_Finalization_Collection_Ptr),
+                    E, BIP_Formal_Suffix (BIP_Collection));
             end if;
 
             --  If the result type contains tasks, we have two extra formals:
@@ -6178,7 +6285,7 @@ package body Sem_Ch6 is
                         Obj_Decl, Typ);
                      Error_Msg_N
                        ("\an equality operator cannot be declared after this "
-                         & "point ('R'M 4.5.2 (9.8)) (Ada 2012))?", Obj_Decl);
+                         & "point (RM 4.5.2 (9.8)) (Ada 2012))?", Obj_Decl);
                      exit;
                   end if;
 
@@ -6237,13 +6344,19 @@ package body Sem_Ch6 is
                if In_Instance then
                   Set_Convention (Designator, Convention (E));
 
-                  if Nkind (N) = N_Subprogram_Body
+                  --  Skip past subprogram bodies and subprogram renamings that
+                  --  may appear to have a matching spec, but that aren't fully
+                  --  conformant with it. That can occur in cases where an
+                  --  actual type causes unrelated homographs in the instance.
+
+                  if Nkind_In (N, N_Subprogram_Body,
+                                  N_Subprogram_Renaming_Declaration)
                     and then Present (Homonym (E))
-                    and then not Fully_Conformant (E, Designator)
+                    and then not Fully_Conformant (Designator, E)
                   then
                      goto Next_Entity;
 
-                  elsif not Subtype_Conformant (E, Designator) then
+                  elsif not Subtype_Conformant (Designator, E) then
                      goto Next_Entity;
                   end if;
                end if;
@@ -6300,8 +6413,9 @@ package body Sem_Ch6 is
 
                --  If the body already exists, then this is an error unless
                --  the previous declaration is the implicit declaration of a
-               --  derived subprogram, or this is a spurious overloading in an
-               --  instance.
+               --  derived subprogram. It is also legal for an instance to
+               --  contain type conformant overloadable declarations (but the
+               --  generic declaration may not), per 8.3(26/2).
 
                elsif No (Alias (E))
                  and then not Is_Intrinsic_Subprogram (E)
@@ -7199,7 +7313,8 @@ package body Sem_Ch6 is
 
          begin
             for J in Inherited'Range loop
-               P := Spec_PPC_List (Inherited (J));
+               P := Spec_PPC_List (Contract (Inherited (J)));
+
                while Present (P) loop
                   Error_Msg_Sloc := Sloc (P);
 
@@ -8358,7 +8473,17 @@ package body Sem_Ch6 is
                        and then Comes_From_Source (Alias (E))
                      then
                         Set_Overridden_Operation (S, Alias (E));
-                     else
+
+                     --  Normal case of setting entity as overridden
+
+                     --  Note: Static_Initialization and Overridden_Operation
+                     --  attributes use the same field in subprogram entities.
+                     --  Static_Initialization is only defined for internal
+                     --  initialization procedures, where Overridden_Operation
+                     --  is irrelevant. Therefore the setting of this attribute
+                     --  must check whether the target is an init_proc.
+
+                     elsif not Is_Init_Proc (S) then
                         Set_Overridden_Operation (S, E);
                      end if;
 
@@ -8499,19 +8624,18 @@ package body Sem_Ch6 is
          Check_Overriding_Indicator
            (S, Overridden_Subp, Is_Primitive => Is_Primitive_Subp);
 
-         --  Overloading is not allowed in SPARK or ALFA
+         --  Overloading is not allowed in SPARK, except for operators
 
-         if Formal_Verification_Mode
-           and then Comes_From_Source (S)
-         then
+         if Nkind (S) /= N_Defining_Operator_Symbol then
             Error_Msg_Sloc := Sloc (Homonym (S));
-            Error_Msg_F ("|~~overloading not allowed with entity#", S);
+            Check_SPARK_Restriction
+              ("overloading not allowed with entity#", S);
          end if;
 
          --  If S is a derived operation for an untagged type then by
          --  definition it's not a dispatching operation (even if the parent
-         --  operation was dispatching), so we don't call
-         --  Check_Dispatching_Operation in that case.
+         --  operation was dispatching), so Check_Dispatching_Operation is not
+         --  called in that case.
 
          if No (Derived_Type)
            or else Is_Tagged_Type (Derived_Type)
@@ -8595,8 +8719,8 @@ package body Sem_Ch6 is
       begin
          return Is_Class_Wide_Type (Designated_Type (Etype (D)))
            or else (Nkind (D) =  N_Attribute_Reference
-                      and then Attribute_Name (D) = Name_Access
-                      and then Is_Class_Wide_Type (Etype (Prefix (D))));
+                     and then Attribute_Name (D) = Name_Access
+                     and then Is_Class_Wide_Type (Etype (Prefix (D))));
       end Is_Class_Wide_Default;
 
    --  Start of processing for Process_Formals
@@ -8638,7 +8762,6 @@ package body Sem_Ch6 is
 
                if Is_Tagged_Type (Formal_Type) then
                   if Ekind (Scope (Current_Scope)) = E_Package
-                    and then In_Private_Part (Scope (Current_Scope))
                     and then not From_With_Type (Formal_Type)
                     and then not Is_Class_Wide_Type (Formal_Type)
                   then
@@ -8649,6 +8772,14 @@ package body Sem_Ch6 is
                         Append_Elmt
                           (Current_Scope,
                              Private_Dependents (Base_Type (Formal_Type)));
+
+                        --  Freezing is delayed to ensure that Register_Prim
+                        --  will get called for this operation, which is needed
+                        --  in cases where static dispatch tables aren't built.
+                        --  (Note that the same is done for controlling access
+                        --  parameter cases in function Access_Definition.)
+
+                        Set_Has_Delayed_Freeze (Current_Scope);
                      end if;
                   end if;
 
@@ -8764,24 +8895,12 @@ package body Sem_Ch6 is
          end if;
 
          Set_Etype (Formal, Formal_Type);
+
          Default := Expression (Param_Spec);
 
-         --  Access parameter is not allowed in SPARK or ALFA
-
-         if Formal_Verification_Mode
-           and then Ekind (Formal_Type) = E_Anonymous_Access_Type
-         then
-            Error_Msg_F ("|~~access parameter is not allowed", Param_Spec);
-         end if;
-
          if Present (Default) then
-            --  Default expression is not allowed in SPARK or ALFA
-
-            if Formal_Verification_Mode then
-               Error_Msg_F ("|~~default expression is not allowed", Default);
-            end if;
-
-            --  Proceed with analysis
+            Check_SPARK_Restriction
+              ("default expression is not allowed", Default);
 
             if Out_Present (Param_Spec) then
                Error_Msg_N
@@ -9088,7 +9207,7 @@ package body Sem_Ch6 is
          --  the body will be analyzed and converted when we scan the body
          --  declarations below.
 
-         Prag := Spec_PPC_List (Spec_Id);
+         Prag := Spec_PPC_List (Contract (Spec_Id));
          while Present (Prag) loop
             if Pragma_Name (Prag) = Name_Precondition then
 
@@ -9097,8 +9216,8 @@ package body Sem_Ch6 is
                --  will be executed at the start of the procedure. Note that
                --  this processing reverses the order of the list, which is
                --  what we want since new entries were chained to the head of
-               --  the list. There can be more then one precondition when we
-               --  use pragma Precondition
+               --  the list. There can be more than one precondition when we
+               --  use pragma Precondition.
 
                if not Class_Present (Prag) then
                   Prepend (Grab_PPC, Declarations (N));
@@ -9117,7 +9236,7 @@ package body Sem_Ch6 is
          --  Now deal with inherited preconditions
 
          for J in Inherited'Range loop
-            Prag := Spec_PPC_List (Inherited (J));
+            Prag := Spec_PPC_List (Contract (Inherited (J)));
 
             while Present (Prag) loop
                if Pragma_Name (Prag) = Name_Precondition
@@ -9297,7 +9416,7 @@ package body Sem_Ch6 is
 
                --  Loop through PPC pragmas from spec
 
-               Prag := Spec_PPC_List (Spec);
+               Prag := Spec_PPC_List (Contract (Spec));
                loop
                   if Pragma_Name (Prag) = Name_Postcondition
                     and then (not Class or else Class_Present (Prag))
@@ -9322,14 +9441,14 @@ package body Sem_Ch6 is
          --  Start of processing for Spec_Postconditions
 
          begin
-            if Present (Spec_PPC_List (Spec_Id)) then
+            if Present (Spec_PPC_List (Contract (Spec_Id))) then
                Process_Post_Conditions (Spec_Id, Class => False);
             end if;
 
             --  Process inherited postconditions
 
             for J in Inherited'Range loop
-               if Present (Spec_PPC_List (Inherited (J))) then
+               if Present (Spec_PPC_List (Contract (Inherited (J)))) then
                   Process_Post_Conditions (Inherited (J), Class => True);
                end if;
             end loop;
@@ -9436,6 +9555,9 @@ package body Sem_Ch6 is
                 Handled_Statement_Sequence =>
                   Make_Handled_Sequence_Of_Statements (Loc,
                     Statements => Plist)));
+
+            Set_Ekind (Post_Proc, E_Procedure);
+            Set_Is_Postcondition_Proc (Post_Proc);
 
             --  If this is a procedure, set the Postcondition_Proc attribute on
             --  the proper defining entity for the subprogram.

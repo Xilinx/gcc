@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1111,6 +1111,9 @@ package Atree is
       function Elist4 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist4);
 
+      function Elist5 (N : Node_Id) return Elist_Id;
+      pragma Inline (Elist5);
+
       function Elist8 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist8);
 
@@ -1134,6 +1137,9 @@ package Atree is
 
       function Elist23 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist23);
+
+      function Elist24 (N : Node_Id) return Elist_Id;
+      pragma Inline (Elist24);
 
       function Elist25 (N : Node_Id) return Elist_Id;
       pragma Inline (Elist25);
@@ -2177,6 +2183,9 @@ package Atree is
       procedure Set_Elist4 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist4);
 
+      procedure Set_Elist5 (N : Node_Id; Val : Elist_Id);
+      pragma Inline (Set_Elist5);
+
       procedure Set_Elist8 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist8);
 
@@ -2200,6 +2209,9 @@ package Atree is
 
       procedure Set_Elist23 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist23);
+
+      procedure Set_Elist24 (N : Node_Id; Val : Elist_Id);
+      pragma Inline (Set_Elist24);
 
       procedure Set_Elist25 (N : Node_Id; Val : Elist_Id);
       pragma Inline (Set_Elist25);

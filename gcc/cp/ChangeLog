@@ -1,3 +1,116 @@
+2011-08-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50020
+	* semantics.c (finish_call_expr): Don't look at 'this' if we
+	had an explicit object argument.
+
+	PR c++/50011
+	* typeck2.c (check_narrowing): Fix integer logic.
+
+2011-08-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Make-lang.in (g++$(exeext)): Add $(EXTRA_GCC_LIBS).
+
+2011-08-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48993
+	* semantics.c (potential_constant_expression_1) [CALL_EXPR]: Sorry
+	on 'this' in a constructor.
+
+	PR c++/49921
+	* semantics.c (finish_decltype_type): Call invalid_nonstatic_memfn_p.
+
+	PR c++/49669
+	* init.c (perform_member_init): Handle invalid array initializer.
+
+	PR c++/49988
+	* semantics.c (cxx_eval_array_reference): Handle failure to
+	reduce the array operand to something we can work with.
+
+2011-08-05  Gabriel Charette  <gchare@google.com>
+
+	* decl.c (finish_function): Remove unecessary line 0 hack.
+
+2011-08-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47453
+	* typeck.c (build_x_compound_expr_from_list): Also complain
+	about ({...}).
+
+	PR c++/49812
+	* typeck.c (cp_build_unary_op) [POSTINCREMENT_EXPR]: Strip cv-quals.
+
+	PR c++/49983
+	* parser.c (cp_parser_range_for): Only do auto deduction in
+	template if the range is non-dependent.
+
+	* init.c (perform_member_init): Always build_aggr_init
+	for a class member with an explicit mem-initializer.
+
+	* pt.c (unify) [TEMPLATE_TYPE_PARM]: Allow VLA for C++0x 'auto'.
+
+2011-08-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49905
+	* decl.c (cxx_init_decl_processing): Add alloc_size (1) attribute
+	for operator new and operator new [].  Call init_attributes.
+
+2011-08-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/43886
+	* parser.c (cp_parser_lambda_body): Clear local_variables_forbidden_p.
+
+	PR c++/49577
+	* typeck2.c (check_narrowing): Check unsigned mismatch.
+	* semantics.c (finish_compound_literal): check_narrowing.
+
+	PR c++/49593
+	* pt.c (find_parameter_packs_r): Handle CONSTRUCTOR.
+
+	PR c++/49803
+	* init.c (sort_mem_initializers): Initialize uses_unions_p here.
+	(build_field_list): Not here.
+
+	PR c++/49834
+	* parser.c (build_range_temp): Split out from...
+	(cp_convert_range_for): ...here.
+	(do_range_for_auto_deduction): New.
+	(cp_parser_range_for): Use it.
+
+2011-08-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* cp-tree.h (finish_omp_atomic): Adjust prototype.
+	(cxx_omp_const_qual_no_mutable): New prototype.
+	(finish_omp_taskyield): New prototype.
+	* parser.c (cp_parser_omp_atomic): (cp_parser_omp_atomic): Handle
+	parsing OpenMP 3.1 atomics.  Adjust finish_omp_atomic caller.
+	(cp_parser_omp_clause_name): Handle final and mergeable clauses.
+	(cp_parser_omp_clause_final, cp_parser_omp_clause_mergeable): New
+	functions.
+	(cp_parser_omp_all_clauses): Handle PRAGMA_OMP_CLAUSE_FINAL
+	and PRAGMA_OMP_CLAUSE_MERGEABLE.
+	(OMP_TASK_CLAUSE_MASK): Allow final and mergeable clauses.
+	(cp_parser_omp_taskyield): New function.
+	(cp_parser_pragma): Handle PRAGMA_OMP_TASKYIELD.
+	(cp_parser_omp_clause_reduction): Handle min and max.
+	* pt.c (tsubst_expr) <case OMP_ATOMIC>: Handle OpenMP 3.1 atomics.
+	(tsubst_omp_clauses): Handle OMP_CLAUSE_FINAL and
+	OMP_CLAUSE_MERGEABLE.
+	* semantics.c (finish_omp_atomic): Add OPCODE, V, LHS1 and RHS1
+	arguments.  Handle OpenMP 3.1 atomics.  Adjust c_finish_omp_atomic
+	caller.
+	(finish_omp_clauses): Don't complain about const qualified
+	predetermined vars and static data members in firstprivate clause.
+	Handle OMP_CLAUSE_FINAL and OMP_CLAUSE_MERGEABLE. Handle MIN_EXPR
+	and MAX_EXPR.
+	(finish_omp_taskyield): New function.
+	* cp-gimplify.c (cxx_omp_const_qual_no_mutable): New function.
+	(cxx_omp_predetermined_sharing): Use it.
+
+2011-08-02  Jason Merrill  <jason@redhat.com>
+
+	* call.c (build_call_a): Also check at_function_scope_p.
+
 2011-08-01  Jason Merrill  <jason@redhat.com>
 
 	PR c++/49932

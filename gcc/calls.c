@@ -434,6 +434,8 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
       rounded_stack_size_rtx = GEN_INT (rounded_stack_size);
       stack_pointer_delta -= n_popped;
 
+      add_reg_note (call_insn, REG_ARGS_SIZE, GEN_INT (stack_pointer_delta));
+
       /* If popup is needed, stack realign must use DRAP  */
       if (SUPPORTS_STACK_ALIGNMENT)
         crtl->need_drap = true;
@@ -3126,8 +3128,13 @@ expand_call (tree exp, rtx target, int ignore)
 
       if (old_stack_level)
 	{
+	  rtx prev = get_last_insn ();
+
 	  emit_stack_restore (SAVE_BLOCK, old_stack_level);
 	  stack_pointer_delta = old_stack_pointer_delta;
+
+	  fixup_args_size_notes (prev, get_last_insn (), stack_pointer_delta);
+
 	  pending_stack_adjust = old_pending_adj;
 	  old_stack_allocated = stack_pointer_delta - pending_stack_adjust;
 	  stack_arg_under_construction = old_stack_arg_under_construction;

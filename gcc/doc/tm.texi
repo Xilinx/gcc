@@ -3728,9 +3728,9 @@ return @code{@var{regno}}.
 @defmac REG_VALUE_IN_UNWIND_CONTEXT
 
 Define this macro if the target stores register values as
-@code{_Unwind_Word} type in unwind context.  It is needed if target
-register size is larger than the size of @code{void *}.  The default
-is to store register values as @code{void *} type.
+@code{_Unwind_Word} type in unwind context.  It should be defined if
+target register size is larger than the size of @code{void *}.  The
+default is to store register values as @code{void *} type.
 
 @end defmac
 

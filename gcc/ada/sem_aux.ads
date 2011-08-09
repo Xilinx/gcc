@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -106,7 +106,7 @@ package Sem_Aux is
 
    function Enclosing_Dynamic_Scope (Ent : Entity_Id) return Entity_Id;
    --  For any entity, Ent, returns the closest dynamic scope in which the
-   --  entity is declared or Standard_Standard for library-level entities
+   --  entity is declared or Standard_Standard for library-level entities.
 
    function First_Discriminant (Typ : Entity_Id) return Entity_Id;
    --  Typ is a type with discriminants. The discriminants are the first
@@ -216,6 +216,12 @@ package Sem_Aux is
 
    function Number_Discriminants (Typ : Entity_Id) return Pos;
    --  Typ is a type with discriminants, yields number of discriminants in type
+
+   function Initialization_Suppressed (Typ : Entity_Id) return Boolean;
+   pragma Inline (Initialization_Suppressed);
+   --  Returns True if initialization should be suppressed for the given type
+   --  or subtype. This is true if Suppress_Initialization is set either for
+   --  the subtype itself, or for the corresponding base type.
 
    function Ultimate_Alias (Prim : Entity_Id) return Entity_Id;
    pragma Inline (Ultimate_Alias);

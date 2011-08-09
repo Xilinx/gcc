@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---           Copyright (C) 2009-2010, Free Software Foundation, Inc.        --
+--           Copyright (C) 2009-2011, Free Software Foundation, Inc.        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -62,9 +62,9 @@ package body System.Stack_Usage.Tasking is
       Res : out Stack_Usage_Result);
    --  Convert an object of type System.Stack_Usage in a Stack_Usage_Result
 
-   --------------
-   --  Convert --
-   --------------
+   -------------
+   -- Convert --
+   -------------
 
    procedure Convert
      (TS  : System.Stack_Usage.Task_Result;
@@ -73,9 +73,9 @@ package body System.Stack_Usage.Tasking is
       Res := TS;
    end Convert;
 
-   ----------------------
-   --  Report_For_Task --
-   ----------------------
+   ---------------------
+   -- Report_For_Task --
+   ---------------------
 
    procedure Report_For_Task (Id : System.Tasking.Task_Id) is
    begin
@@ -83,16 +83,16 @@ package body System.Stack_Usage.Tasking is
       System.Stack_Usage.Report_Result (Id.Common.Analyzer);
    end Report_For_Task;
 
-   ------------------------
-   --  Compute_All_Tasks --
-   ------------------------
+   -----------------------
+   -- Compute_All_Tasks --
+   -----------------------
 
    procedure Compute_All_Tasks is
       Id : System.Tasking.Task_Id;
       use type System.Tasking.Task_Id;
    begin
       if not System.Stack_Usage.Is_Enabled then
-         Put ("Stack Usage not enabled: bind with -uNNN switch");
+         Put_Line ("Stack Usage not enabled: bind with -uNNN switch");
       else
 
          --  Loop over all tasks
@@ -111,14 +111,14 @@ package body System.Stack_Usage.Tasking is
       end if;
    end Compute_All_Tasks;
 
-   ---------------------------
-   --  Compute_Current_Task --
-   ---------------------------
+   --------------------------
+   -- Compute_Current_Task --
+   --------------------------
 
    procedure Compute_Current_Task is
    begin
       if not System.Stack_Usage.Is_Enabled then
-         Put ("Stack Usage not enabled: bind with -uNNN switch");
+         Put_Line ("Stack Usage not enabled: bind with -uNNN switch");
       else
 
          --  The current task
@@ -128,9 +128,9 @@ package body System.Stack_Usage.Tasking is
       end if;
    end Compute_Current_Task;
 
-   ------------------
-   --  Report_Impl --
-   ------------------
+   -----------------
+   -- Report_Impl --
+   -----------------
 
    procedure Report_Impl (All_Tasks : Boolean; Do_Print : Boolean) is
    begin
@@ -158,18 +158,18 @@ package body System.Stack_Usage.Tasking is
 
    end Report_Impl;
 
-   ----------------------
-   --  Report_All_Task --
-   ----------------------
+   ---------------------
+   -- Report_All_Task --
+   ---------------------
 
    procedure Report_All_Tasks is
    begin
       Report_Impl (True, True);
    end Report_All_Tasks;
 
-   --------------------------
-   --  Report_Current_Task --
-   --------------------------
+   -------------------------
+   -- Report_Current_Task --
+   -------------------------
 
    procedure Report_Current_Task is
       Res : Stack_Usage_Result;
@@ -178,9 +178,9 @@ package body System.Stack_Usage.Tasking is
       Print (Res);
    end Report_Current_Task;
 
-   --------------------------
-   --  Get_All_Tasks_Usage --
-   --------------------------
+   -------------------------
+   -- Get_All_Tasks_Usage --
+   -------------------------
 
    function Get_All_Tasks_Usage return Stack_Usage_Result_Array is
       Res : Stack_Usage_Result_Array
@@ -195,9 +195,9 @@ package body System.Stack_Usage.Tasking is
       return Res;
    end Get_All_Tasks_Usage;
 
-   -----------------------------
-   --  Get_Current_Task_Usage --
-   -----------------------------
+   ----------------------------
+   -- Get_Current_Task_Usage --
+   ----------------------------
 
    function Get_Current_Task_Usage return Stack_Usage_Result is
       Res : Stack_Usage_Result;
@@ -228,14 +228,14 @@ package body System.Stack_Usage.Tasking is
       return Res;
    end Get_Current_Task_Usage;
 
-   ------------
-   --  Print --
-   ------------
+   -----------
+   -- Print --
+   -----------
 
    procedure Print (Obj : Stack_Usage_Result) is
-      Pos : Positive;
-   begin
+      Pos : Positive := Obj.Task_Name'Last;
 
+   begin
       --  Simply trim the string containing the task name
 
       for S in Obj.Task_Name'Range loop
@@ -246,13 +246,12 @@ package body System.Stack_Usage.Tasking is
       end loop;
 
       declare
-         T_Name : constant String := Obj.Task_Name
-           (Obj.Task_Name'First .. Pos);
+         T_Name : constant String :=
+                    Obj.Task_Name (Obj.Task_Name'First .. Pos);
       begin
          Put_Line
-           ("| " & T_Name & " | " & Natural'Image (Obj.Max_Size) &
-            Natural'Image (Obj.Value) & " +/- " &
-            Natural'Image (Obj.Variation));
+           ("| " & T_Name & " | " & Natural'Image (Obj.Stack_Size) &
+            Natural'Image (Obj.Value));
       end;
    end Print;
 

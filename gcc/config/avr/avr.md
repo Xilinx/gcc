@@ -221,7 +221,7 @@
    (SF "") (SC "")])
 
 (define_expand "push<mode>1"
-  [(match_operand:MPUSH 0 "general_operand" "")]
+  [(match_operand:MPUSH 0 "" "")]
   ""
 {
   int i;
@@ -234,6 +234,17 @@
     }
   DONE;
 })
+
+;; Notice a special-case when adding N to SP where N results in a
+;; zero REG_ARGS_SIZE.  This is equivalent to a move from FP.
+(define_split
+  [(set (reg:HI REG_SP) (match_operand:HI 0 "register_operand" ""))]
+  "reload_completed
+   && frame_pointer_needed
+   && !cfun->calls_alloca
+   && find_reg_note (insn, REG_ARGS_SIZE, const0_rtx)"
+  [(set (reg:HI REG_SP) (reg:HI REG_Y))]
+  "")
 
 ;;========================================================================
 ;; move byte

@@ -3025,6 +3025,7 @@ find_parameter_packs_r (tree *tp, int *walk_subtrees, void* data)
       *walk_subtrees = 0;
       return NULL_TREE;
 
+    case CONSTRUCTOR:
     case TEMPLATE_DECL:
       cp_walk_tree (&TREE_TYPE (t),
 		    &find_parameter_packs_r, ppd, ppd->visited);
@@ -12181,6 +12182,7 @@ tsubst_omp_clauses (tree clauses, tree args, tsubst_flags_t complain,
 	case OMP_CLAUSE_NUM_THREADS:
 	case OMP_CLAUSE_SCHEDULE:
 	case OMP_CLAUSE_COLLAPSE:
+	case OMP_CLAUSE_FINAL:
 	  OMP_CLAUSE_OPERAND (nc, 0)
 	    = tsubst_expr (OMP_CLAUSE_OPERAND (oc, 0), args, complain, 
 			   in_decl, /*integral_constant_expression_p=*/false);
@@ -12189,6 +12191,7 @@ tsubst_omp_clauses (tree clauses, tree args, tsubst_flags_t complain,
 	case OMP_CLAUSE_ORDERED:
 	case OMP_CLAUSE_DEFAULT:
 	case OMP_CLAUSE_UNTIED:
+	case OMP_CLAUSE_MERGEABLE:
 	  break;
 	default:
 	  gcc_unreachable ();
@@ -12819,12 +12822,56 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
     case OMP_ATOMIC:
       gcc_assert (OMP_ATOMIC_DEPENDENT_P (t));
-      {
-	tree op1 = TREE_OPERAND (t, 1);
-	tree lhs = RECUR (TREE_OPERAND (op1, 0));
-	tree rhs = RECUR (TREE_OPERAND (op1, 1));
-	finish_omp_atomic (TREE_CODE (op1), lhs, rhs);
-      }
+      if (TREE_CODE (TREE_OPERAND (t, 1)) != MODIFY_EXPR)
+	{
+	  tree op1 = TREE_OPERAND (t, 1);
+	  tree rhs1 = NULL_TREE;
+	  tree lhs, rhs;
+	  if (TREE_CODE (op1) == COMPOUND_EXPR)
+	    {
+	      rhs1 = RECUR (TREE_OPERAND (op1, 0));
+	      op1 = TREE_OPERAND (op1, 1);
+	    }
+	  lhs = RECUR (TREE_OPERAND (op1, 0));
+	  rhs = RECUR (TREE_OPERAND (op1, 1));
+	  finish_omp_atomic (OMP_ATOMIC, TREE_CODE (op1), lhs, rhs,
+			     NULL_TREE, NULL_TREE, rhs1);
+	}
+      else
+	{
+	  tree op1 = TREE_OPERAND (t, 1);
+	  tree v = NULL_TREE, lhs, rhs = NULL_TREE, lhs1 = NULL_TREE;
+	  tree rhs1 = NULL_TREE;
+	  enum tree_code code = TREE_CODE (TREE_OPERAND (op1, 1));
+	  enum tree_code opcode = NOP_EXPR;
+	  if (code == OMP_ATOMIC_READ)
+	    {
+	      v = RECUR (TREE_OPERAND (op1, 0));
+	      lhs = RECUR (TREE_OPERAND (TREE_OPERAND (op1, 1), 0));
+	    }
+	  else if (code == OMP_ATOMIC_CAPTURE_OLD
+		   || code == OMP_ATOMIC_CAPTURE_NEW)
+	    {
+	      tree op11 = TREE_OPERAND (TREE_OPERAND (op1, 1), 1);
+	      v = RECUR (TREE_OPERAND (op1, 0));
+	      lhs1 = RECUR (TREE_OPERAND (TREE_OPERAND (op1, 1), 0));
+	      if (TREE_CODE (op11) == COMPOUND_EXPR)
+		{
+		  rhs1 = RECUR (TREE_OPERAND (op11, 0));
+		  op11 = TREE_OPERAND (op11, 1);
+		}
+	      lhs = RECUR (TREE_OPERAND (op11, 0));
+	      rhs = RECUR (TREE_OPERAND (op11, 1));
+	      opcode = TREE_CODE (op11);
+	    }
+	  else
+	    {
+	      code = OMP_ATOMIC;
+	      lhs = RECUR (TREE_OPERAND (op1, 0));
+	      rhs = RECUR (TREE_OPERAND (op1, 1));
+	    }
+	  finish_omp_atomic (code, opcode, lhs, rhs, v, lhs1, rhs1);
+	}
       break;
 
     case EXPR_PACK_EXPANSION:
@@ -15885,10 +15932,11 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
 	     that were talking about variable-sized arrays (like
 	     `int[n]'), rather than arrays of unknown size (like
 	     `int[]').)  We'll get very confused by such a type since
-	     the bound of the array will not be computable in an
-	     instantiation.  Besides, such types are not allowed in
-	     ISO C++, so we can do as we please here.  */
-	  if (variably_modified_type_p (arg, NULL_TREE))
+	     the bound of the array is not constant, and therefore
+	     not mangleable.  Besides, such types are not allowed in
+	     ISO C++, so we can do as we please here.  We do allow
+	     them for 'auto' deduction, since that isn't ABI-exposed.  */
+	  if (!is_auto (parm) && variably_modified_type_p (arg, NULL_TREE))
 	    return unify_vla_arg (explain_p, arg);
 
 	  /* Strip typedefs as in convert_template_argument.  */

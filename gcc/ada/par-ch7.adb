@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -98,10 +98,21 @@ package body Ch7 is
       Name_Node          : Node_Id;
       Package_Sloc       : Source_Ptr;
 
+      Aspect_Sloc : Source_Ptr := No_Location;
+      --  Save location of WITH for scanned aspects. Left set to No_Location
+      --  if no aspects scanned before the IS keyword.
+
+      Is_Sloc : Source_Ptr;
+      --  Save location of IS token for package declaration
+
       Dummy_Node : constant Node_Id :=
                      New_Node (N_Package_Specification, Token_Ptr);
       --  Dummy node to attach aspect specifications to until we properly
       --  figure out where they eventually belong.
+
+      Body_Is_Hidden_In_SPARK         : Boolean;
+      Private_Part_Is_Hidden_In_SPARK : Boolean;
+      Hidden_Region_Start             : Source_Ptr;
 
    begin
       Push_Scope_Stack;
@@ -146,7 +157,26 @@ package body Ch7 is
          else
             Package_Node := New_Node (N_Package_Body, Package_Sloc);
             Set_Defining_Unit_Name (Package_Node, Name_Node);
+
+            --  In SPARK, a HIDE directive can be placed at the beginning of a
+            --  package implementation, thus hiding the package body from SPARK
+            --  tool-set. No violation of the SPARK restriction should be
+            --  issued on nodes in a hidden part, which is obtained by marking
+            --  such hidden parts.
+
+            if Token = Tok_SPARK_Hide then
+               Body_Is_Hidden_In_SPARK := True;
+               Hidden_Region_Start     := Token_Ptr;
+               Scan; -- past HIDE directive
+            else
+               Body_Is_Hidden_In_SPARK := False;
+            end if;
+
             Parse_Decls_Begin_End (Package_Node);
+
+            if Body_Is_Hidden_In_SPARK then
+               Set_Hidden_Part_In_SPARK (Hidden_Region_Start, Token_Ptr);
+            end if;
          end if;
 
       --  Cases other than Package_Body
@@ -178,7 +208,12 @@ package body Ch7 is
          --  Generic package instantiation or package declaration
 
          else
-            P_Aspect_Specifications (Dummy_Node, Semicolon => False);
+            if Aspect_Specifications_Present then
+               Aspect_Sloc := Token_Ptr;
+               P_Aspect_Specifications (Dummy_Node, Semicolon => False);
+            end if;
+
+            Is_Sloc := Token_Ptr;
             TF_Is;
 
             --  Case of generic instantiation
@@ -189,6 +224,12 @@ package body Ch7 is
                      ("generic instantiation cannot appear here!");
                end if;
 
+               if Aspect_Sloc /= No_Location then
+                  Error_Msg
+                    ("misplaced aspects for package instantiation",
+                     Aspect_Sloc);
+               end if;
+
                Scan; -- past NEW
 
                Package_Node :=
@@ -197,7 +238,15 @@ package body Ch7 is
                Set_Name (Package_Node, P_Qualified_Simple_Name);
                Set_Generic_Associations
                  (Package_Node, P_Generic_Actual_Part_Opt);
-               P_Aspect_Specifications (Error);
+
+               if Aspect_Sloc /= No_Location
+                 and then not Aspect_Specifications_Present
+               then
+                  Error_Msg_SC ("\info: aspect specifications belong here");
+                  Move_Aspects (From => Dummy_Node, To => Package_Node);
+               end if;
+
+               P_Aspect_Specifications (Package_Node);
                Pop_Scope_Stack;
 
             --  Case of package declaration or package specification
@@ -223,8 +272,27 @@ package body Ch7 is
                   end if;
 
                   Scan; -- past PRIVATE
+
+                  if Token = Tok_SPARK_Hide then
+                     Private_Part_Is_Hidden_In_SPARK := True;
+                     Hidden_Region_Start             := Token_Ptr;
+                     Scan; -- past HIDE directive
+                  else
+                     Private_Part_Is_Hidden_In_SPARK := False;
+                  end if;
+
                   Set_Private_Declarations
                     (Specification_Node, P_Basic_Declarative_Items);
+
+                  --  In SPARK, a HIDE directive can be placed at the beginning
+                  --  of a private part, thus hiding all declarations in the
+                  --  private part from SPARK tool-set. No violation of the
+                  --  SPARK restriction should be issued on nodes in a hidden
+                  --  part, which is obtained by marking such hidden parts.
+
+                  if Private_Part_Is_Hidden_In_SPARK then
+                     Set_Hidden_Part_In_SPARK (Hidden_Region_Start, Token_Ptr);
+                  end if;
 
                   --  Deal gracefully with multiple PRIVATE parts
 
@@ -251,12 +319,12 @@ package body Ch7 is
                   Discard_Junk_List (P_Sequence_Of_Statements (SS_None));
                end if;
 
-               End_Statements (Specification_Node);
+               End_Statements (Specification_Node, Empty, Is_Sloc);
+               Move_Aspects (From => Dummy_Node, To => Package_Node);
             end if;
          end if;
       end if;
 
-      Move_Aspects (From => Dummy_Node, To => Package_Node);
       return Package_Node;
    end P_Package;
 

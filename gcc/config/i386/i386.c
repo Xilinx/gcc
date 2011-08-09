@@ -2969,6 +2969,11 @@ ix86_option_override_internal (bool main_args_p)
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_AVX
 	| PTA_CX16 | PTA_POPCNT | PTA_AES | PTA_PCLMUL},
+      {"core-avx-i", PROCESSOR_COREI7_64, CPU_COREI7,
+	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
+	| PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_AVX
+	| PTA_CX16 | PTA_POPCNT | PTA_AES | PTA_PCLMUL | PTA_FSGSBASE
+	| PTA_RDRND | PTA_F16C},
       {"atom", PROCESSOR_ATOM, CPU_ATOM,
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_CX16 | PTA_MOVBE},
@@ -7505,6 +7510,11 @@ setup_incoming_varargs_ms_64 (CUMULATIVE_ARGS *cum)
   alias_set_type set = get_varargs_alias_set ();
   int i;
 
+  /* Reset to zero, as there might be a sysv vaarg used
+     before.  */
+  ix86_varargs_gpr_size = 0;
+  ix86_varargs_fpr_size = 0;
+  
   for (i = cum->regno; i < X86_64_MS_REGPARM_MAX; i++)
     {
       rtx reg, mem;
@@ -8732,16 +8742,12 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
         cfun->machine->use_fast_prologue_epilogue
 	   = !expensive_function_p (count);
     }
-  if (TARGET_PROLOGUE_USING_MOVE
-      && cfun->machine->use_fast_prologue_epilogue)
-    frame->save_regs_using_mov = true;
-  else
-    frame->save_regs_using_mov = false;
 
-  /* If static stack checking is enabled and done with probes, the registers
-     need to be saved before allocating the frame.  */
-  if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK)
-    frame->save_regs_using_mov = false;
+  frame->save_regs_using_mov
+    = (TARGET_PROLOGUE_USING_MOVE && cfun->machine->use_fast_prologue_epilogue
+       /* If static stack checking is enabled and done with probes,
+	  the registers need to be saved before allocating the frame.  */
+       && flag_stack_check != STATIC_BUILTIN_STACK_CHECK);
 
   /* Skip return address.  */
   offset = UNITS_PER_WORD;
@@ -11136,6 +11142,14 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   int retval = 1;
   enum ix86_address_seg seg = SEG_DEFAULT;
 
+  /* Allow zero-extended SImode addresses,
+     they will be emitted with addr32 prefix.  */
+  if (TARGET_64BIT
+      && GET_CODE (addr) == ZERO_EXTEND
+      && GET_MODE (addr) == DImode
+      && GET_MODE (XEXP (addr, 0)) == SImode)
+    addr = XEXP (addr, 0);
+ 
   if (REG_P (addr))
     base = addr;
   else if (GET_CODE (addr) == SUBREG)
@@ -14088,6 +14102,20 @@ ix86_print_operand_address (FILE *file, rtx addr)
 
   gcc_assert (ok);
 
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    {
+      rtx tmp = SUBREG_REG (parts.base);
+      parts.base = simplify_subreg (GET_MODE (parts.base),
+				    tmp, GET_MODE (tmp), 0);
+    }
+
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    {
+      rtx tmp = SUBREG_REG (parts.index);
+      parts.index = simplify_subreg (GET_MODE (parts.index),
+				     tmp, GET_MODE (tmp), 0);
+    }
+
   base = parts.base;
   index = parts.index;
   disp = parts.disp;
@@ -14139,8 +14167,12 @@ ix86_print_operand_address (FILE *file, rtx addr)
     }
   else
     {
-      /* Print DImode registers on 64bit targets to avoid addr32 prefixes.  */
-      int code = TARGET_64BIT ? 'q' : 0;
+      int code = 0;
+
+      /* Print SImode registers for zero-extended addresses to force
+	 addr32 prefix.  Otherwise print DImode registers to avoid it.  */
+      if (TARGET_64BIT)
+	code = (GET_CODE (addr) == ZERO_EXTEND) ? 'l' : 'q';
 
       if (ASSEMBLER_DIALECT == ASM_ATT)
 	{
@@ -21501,7 +21533,17 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 		  rtx callarg2,
 		  rtx pop, bool sibcall)
 {
+  /* We need to represent that SI and DI registers are clobbered
+     by SYSV calls.  */
+  static int clobbered_registers[] = {
+	XMM6_REG, XMM7_REG, XMM8_REG,
+	XMM9_REG, XMM10_REG, XMM11_REG,
+	XMM12_REG, XMM13_REG, XMM14_REG,
+	XMM15_REG, SI_REG, DI_REG
+  };
+  rtx vec[ARRAY_SIZE (clobbered_registers) + 3];
   rtx use = NULL, call;
+  unsigned int vec_len;
 
   if (pop == const0_rtx)
     pop = NULL;
@@ -21545,52 +21587,40 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       fnaddr = gen_rtx_MEM (QImode, copy_to_mode_reg (Pmode, fnaddr));
     }
 
+  vec_len = 0;
   call = gen_rtx_CALL (VOIDmode, fnaddr, callarg1);
   if (retval)
     call = gen_rtx_SET (VOIDmode, retval, call);
+  vec[vec_len++] = call;
+
   if (pop)
     {
       pop = gen_rtx_PLUS (Pmode, stack_pointer_rtx, pop);
       pop = gen_rtx_SET (VOIDmode, stack_pointer_rtx, pop);
-      call = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, call, pop));
+      vec[vec_len++] = pop;
     }
+
   if (TARGET_64BIT_MS_ABI
       && (!callarg2 || INTVAL (callarg2) != -2))
     {
-      /* We need to represent that SI and DI registers are clobbered
-	 by SYSV calls.  */
-      static int clobbered_registers[] = {
-	XMM6_REG, XMM7_REG, XMM8_REG,
-	XMM9_REG, XMM10_REG, XMM11_REG,
-	XMM12_REG, XMM13_REG, XMM14_REG,
-	XMM15_REG, SI_REG, DI_REG
-      };
-      unsigned int i;
-      rtx vec[ARRAY_SIZE (clobbered_registers) + 2];
-      rtx unspec = gen_rtx_UNSPEC (VOIDmode, gen_rtvec (1, const0_rtx),
-      				   UNSPEC_MS_TO_SYSV_CALL);
+      unsigned i;
 
-      vec[0] = call;
-      vec[1] = unspec;
+      vec[vec_len++] = gen_rtx_UNSPEC (VOIDmode, gen_rtvec (1, const0_rtx),
+				       UNSPEC_MS_TO_SYSV_CALL);
+
       for (i = 0; i < ARRAY_SIZE (clobbered_registers); i++)
-        vec[i + 2] = gen_rtx_CLOBBER (SSE_REGNO_P (clobbered_registers[i])
-				      ? TImode : DImode,
-				      gen_rtx_REG
-				        (SSE_REGNO_P (clobbered_registers[i])
-						      ? TImode : DImode,
-					 clobbered_registers[i]));
-
-      call = gen_rtx_PARALLEL (VOIDmode,
-      			       gen_rtvec_v (ARRAY_SIZE (clobbered_registers)
-			       + 2, vec));
+        vec[vec_len++]
+	  = gen_rtx_CLOBBER (SSE_REGNO_P (clobbered_registers[i])
+			     ? TImode : DImode,
+			     gen_rtx_REG (SSE_REGNO_P (clobbered_registers[i])
+					  ? TImode : DImode,
+					  clobbered_registers[i]));
     }
 
   /* Add UNSPEC_CALL_NEEDS_VZEROUPPER decoration.  */
   if (TARGET_VZEROUPPER)
     {
-      rtx unspec;
       int avx256;
-
       if (cfun->machine->callee_pass_avx256_p)
 	{
 	  if (cfun->machine->callee_return_avx256_p)
@@ -21606,15 +21636,13 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       if (reload_completed)
 	emit_insn (gen_avx_vzeroupper (GEN_INT (avx256)));
       else
-	{
-	  unspec = gen_rtx_UNSPEC (VOIDmode,
-				   gen_rtvec (1, GEN_INT (avx256)),
-				   UNSPEC_CALL_NEEDS_VZEROUPPER);
-	  call = gen_rtx_PARALLEL (VOIDmode,
-				   gen_rtvec (2, call, unspec));
-	}
+	vec[vec_len++] = gen_rtx_UNSPEC (VOIDmode,
+					 gen_rtvec (1, GEN_INT (avx256)),
+					 UNSPEC_CALL_NEEDS_VZEROUPPER);
     }
 
+  if (vec_len > 1)
+    call = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (vec_len, vec));
   call = emit_call_insn (call);
   if (use)
     CALL_INSN_FUNCTION_USAGE (call) = use;
@@ -21625,9 +21653,20 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 void
 ix86_split_call_vzeroupper (rtx insn, rtx vzeroupper)
 {
-  rtx call = XVECEXP (PATTERN (insn), 0, 0);
+  rtx pat = PATTERN (insn);
+  rtvec vec = XVEC (pat, 0);
+  int len = GET_NUM_ELEM (vec) - 1;
+
+  /* Strip off the last entry of the parallel.  */
+  gcc_assert (GET_CODE (RTVEC_ELT (vec, len)) == UNSPEC);
+  gcc_assert (XINT (RTVEC_ELT (vec, len), 1) == UNSPEC_CALL_NEEDS_VZEROUPPER);
+  if (len == 1)
+    pat = RTVEC_ELT (vec, 0);
+  else
+    pat = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (len, &RTVEC_ELT (vec, 0)));
+
   emit_insn (gen_avx_vzeroupper (vzeroupper));
-  emit_call_insn (call);
+  emit_call_insn (pat);
 }
 
 /* Output the assembly for a call instruction.  */
@@ -21745,7 +21784,8 @@ assign_386_stack_local (enum machine_mode mode, enum ix86_stack_slot n)
 }
 
 /* Calculate the length of the memory address in the instruction
-   encoding.  Does not include the one-byte modrm, opcode, or prefix.  */
+   encoding.  Includes addr32 prefix, does not include the one-byte modrm,
+   opcode, or other prefixes.  */
 
 int
 memory_address_length (rtx addr)
@@ -21772,7 +21812,9 @@ memory_address_length (rtx addr)
   base = parts.base;
   index = parts.index;
   disp = parts.disp;
-  len = 0;
+
+  /* Add length of addr32 prefix.  */
+  len = (GET_CODE (addr) == ZERO_EXTEND);
 
   /* Rule of thumb:
        - esp as the base always wants an index,
@@ -28206,6 +28248,15 @@ ix86_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
 		       enum machine_mode mode,
 		       secondary_reload_info *sri ATTRIBUTE_UNUSED)
 {
+  /* Double-word spills from general registers to non-offsettable memory
+     references (zero-extended addresses) go through XMM register.  */
+  if (TARGET_64BIT
+      && MEM_P (x)
+      && GET_MODE_SIZE (mode) > UNITS_PER_WORD
+      && rclass == GENERAL_REGS
+      && !offsettable_memref_p (x))
+    return SSE_REGS;
+
   /* QImode spills from non-QI registers require
      intermediate register on 32bit targets.  */
   if (!TARGET_64BIT

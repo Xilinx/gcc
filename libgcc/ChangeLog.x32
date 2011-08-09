@@ -1,3 +1,8 @@
+2011-08-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/linux-unwind.h (RT_SIGRETURN_SYSCALL): Update x32
+	system call number.
+
 2011-07-28  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/morestack.S (X86_64_SAVE_NEW_STACK_BOUNDARY): New.

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -89,11 +89,23 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
 
    procedure Process_Restrictions_Or_Restriction_Warnings;
    --  Common processing for Restrictions and Restriction_Warnings pragmas.
-   --  This routine only processes the case of No_Obsolescent_Features,
-   --  which is the only restriction that has syntactic effects. No general
-   --  error checking is done, since this will be done in Sem_Prag. The
-   --  other case processed is pragma Restrictions No_Dependence, since
-   --  otherwise this is done too late.
+   --  For the most part, restrictions need not be processed at parse time,
+   --  since they only affect semantic processing. This routine handles the
+   --  exceptions as follows
+   --
+   --    No_Obsolescent_Features must be processed at parse time, since there
+   --    are some obsolescent features (e.g. character replacements) which are
+   --    handled at parse time.
+   --
+   --    SPARK must be processed at parse time, since this restriction controls
+   --    whether the scanner recognizes a spark HIDE directive formatted as an
+   --    Ada comment (and generates a Tok_SPARK_Hide token for the directive).
+   --
+   --    No_Dependence must be processed at parse time, since otherwise it gets
+   --    handled too late.
+   --
+   --  Note that we don't need to do full error checking for badly formed cases
+   --  of restrictions, since these will be caught during semantic analysis.
 
    ----------
    -- Arg1 --
@@ -224,11 +236,21 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
 
          if Id = No_Name
            and then Nkind (Expr) = N_Identifier
-           and then Get_Restriction_Id (Chars (Expr)) = No_Obsolescent_Features
          then
-            Set_Restriction (No_Obsolescent_Features, Pragma_Node);
-            Restriction_Warnings (No_Obsolescent_Features) :=
-              Prag_Id = Pragma_Restriction_Warnings;
+            case Get_Restriction_Id (Chars (Expr)) is
+               when No_Obsolescent_Features =>
+                  Set_Restriction (No_Obsolescent_Features, Pragma_Node);
+                  Restriction_Warnings (No_Obsolescent_Features) :=
+                    Prag_Id = Pragma_Restriction_Warnings;
+
+               when SPARK =>
+                  Set_Restriction (SPARK, Pragma_Node);
+                  Restriction_Warnings (SPARK) :=
+                    Prag_Id = Pragma_Restriction_Warnings;
+
+               when others =>
+                  null;
+            end case;
 
          elsif Id = Name_No_Dependence then
             Set_Restriction_No_Dependence
@@ -336,42 +358,16 @@ begin
       -- Debug --
       -----------
 
-      --  pragma Debug (PROCEDURE_CALL_STATEMENT);
+      --  pragma Debug ([boolean_EXPRESSION,] PROCEDURE_CALL_STATEMENT);
 
-      --  This has to be processed by the parser because of the very peculiar
-      --  form of the second parameter, which is syntactically from a formal
-      --  point of view a function call (since it must be an expression), but
-      --  semantically we treat it as a procedure call (which has exactly the
-      --  same syntactic form, so that's why we can get away with this!)
+      when Pragma_Debug =>
+         Check_No_Identifier (Arg1);
 
-      when Pragma_Debug => Debug : declare
-         Expr : Node_Id;
-
-      begin
          if Arg_Count = 2 then
-            Check_No_Identifier (Arg1);
             Check_No_Identifier (Arg2);
-            Expr := New_Copy (Expression (Arg2));
-
          else
             Check_Arg_Count (1);
-            Check_No_Identifier (Arg1);
-            Expr := New_Copy (Expression (Arg1));
          end if;
-
-         if Nkind (Expr) /= N_Indexed_Component
-           and then Nkind (Expr) /= N_Function_Call
-           and then Nkind (Expr) /= N_Identifier
-           and then Nkind (Expr) /= N_Selected_Component
-         then
-            Error_Msg
-              ("argument of pragma% is not procedure call", Sloc (Expr));
-            raise Error_Resync;
-         else
-            Set_Debug_Statement
-              (Pragma_Node, P_Statement_Name (Expr));
-         end if;
-      end Debug;
 
       -------------------------------
       -- Extensions_Allowed (GNAT) --
@@ -889,20 +885,6 @@ begin
          end if;
       end Source_Reference;
 
-      --------------
-      -- SPARK_95 --
-      --------------
-
-      --  This pragma must be processed at parse time, since we want to set the
-      --  SPARK version properly at parse time to recognize the appropriate
-      --  SPARK version syntax.
-
-      when Pragma_SPARK_95 =>
-         SPARK_Version := SPARK_95;
-         SPARK_Mode := True;
-         Set_Error_Msg_Lang ("spark");
-         Formal_Verification_Mode := True;
-
       -------------------------
       -- Style_Checks (GNAT) --
       -------------------------
@@ -1257,6 +1239,7 @@ begin
            Pragma_Task_Info                     |
            Pragma_Task_Name                     |
            Pragma_Task_Storage                  |
+           Pragma_Test_Case                     |
            Pragma_Thread_Local_Storage          |
            Pragma_Time_Slice                    |
            Pragma_Title                         |
