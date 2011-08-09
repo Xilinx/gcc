@@ -267,8 +267,6 @@ extern rtx convert_to_mode (enum machine_mode, rtx, int);
 
 /* Convert an rtx to MODE from OLDMODE and return the result.  */
 extern rtx convert_modes (enum machine_mode, enum machine_mode, rtx, int);
-extern rtx convert_modes_1 (enum machine_mode, enum machine_mode, rtx,
-			    int, bool);
 
 /* Emit code to move a block Y to a block X.  */
 

@@ -1661,13 +1661,8 @@ extern int byte_lowpart_offset (enum machine_mode, enum machine_mode);
 extern rtx make_safe_from (rtx, rtx);
 extern rtx convert_memory_address_addr_space (enum machine_mode, rtx,
 					      addr_space_t);
-extern rtx convert_memory_address_addr_space_1 (enum machine_mode, rtx,
-						addr_space_t, bool);
 #define convert_memory_address(to_mode,x) \
 	convert_memory_address_addr_space ((to_mode), (x), ADDR_SPACE_GENERIC)
-#define convert_memory_address_1(to_mode,x,no_emit) \
-	convert_memory_address_addr_space_1 ((to_mode), (x), \
-					     ADDR_SPACE_GENERIC, (no_emit))
 extern const char *get_insn_name (int);
 extern rtx get_last_insn_anywhere (void);
 extern rtx get_first_nonnote_insn (void);

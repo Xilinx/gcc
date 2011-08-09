@@ -320,9 +320,8 @@ break_out_memory_refs (rtx x)
    arithmetic insns can be used.  */
 
 rtx
-convert_memory_address_addr_space_1 (enum machine_mode to_mode ATTRIBUTE_UNUSED,
-				     rtx x, addr_space_t as ATTRIBUTE_UNUSED,
-				     bool no_emit ATTRIBUTE_UNUSED)
+convert_memory_address_addr_space (enum machine_mode to_mode ATTRIBUTE_UNUSED,
+				   rtx x, addr_space_t as ATTRIBUTE_UNUSED)
 {
 #ifndef POINTERS_EXTEND_UNSIGNED
   gcc_assert (GET_MODE (x) == to_mode || GET_MODE (x) == VOIDmode);
@@ -379,27 +378,27 @@ convert_memory_address_addr_space_1 (enum machine_mode to_mode ATTRIBUTE_UNUSED,
 
     case CONST:
       return gen_rtx_CONST (to_mode,
-			    convert_memory_address_addr_space_1
-			      (to_mode, XEXP (x, 0), as, no_emit));
+			    convert_memory_address_addr_space
+			      (to_mode, XEXP (x, 0), as));
       break;
 
     case PLUS:
     case MULT:
       /* For addition we can safely permute the conversion and addition
-	 operation if one operand is a constant and converting the
-	 constant does not change it or if one operand is a constant
-	 and we are using a ptr_extend instruction or zero-extending
-	 (POINTERS_EXTEND_UNSIGNED != 0).  We can always safely permute
-	 them if we are making the address narrower.  */
+	 operation if one operand is a constant and converting the constant
+	 does not change it or if one operand is a constant and we are
+	 using a ptr_extend instruction  (POINTERS_EXTEND_UNSIGNED < 0).
+	 We can always safely permute them if we are making the address
+	 narrower.  */
       if (GET_MODE_SIZE (to_mode) < GET_MODE_SIZE (from_mode)
 	  || (GET_CODE (x) == PLUS
 	      && CONST_INT_P (XEXP (x, 1))
-	      && (POINTERS_EXTEND_UNSIGNED != 0
-		  || XEXP (x, 1) == convert_memory_address_addr_space_1
-				      (to_mode, XEXP (x, 1), as, no_emit))))
+	      && (XEXP (x, 1) == convert_memory_address_addr_space
+				   (to_mode, XEXP (x, 1), as)
+                 || POINTERS_EXTEND_UNSIGNED < 0)))
 	return gen_rtx_fmt_ee (GET_CODE (x), to_mode,
-			       convert_memory_address_addr_space_1
-				 (to_mode, XEXP (x, 0), as, no_emit),
+			       convert_memory_address_addr_space
+				 (to_mode, XEXP (x, 0), as),
 			       XEXP (x, 1));
       break;
 
@@ -407,16 +406,9 @@ convert_memory_address_addr_space_1 (enum machine_mode to_mode ATTRIBUTE_UNUSED,
       break;
     }
 
-  return convert_modes_1 (to_mode, from_mode, x,
-			  POINTERS_EXTEND_UNSIGNED, no_emit);
+  return convert_modes (to_mode, from_mode,
+			x, POINTERS_EXTEND_UNSIGNED);
 #endif /* defined(POINTERS_EXTEND_UNSIGNED) */
-}
-
-rtx
-convert_memory_address_addr_space (enum machine_mode to_mode,
-				   rtx x, addr_space_t as)
-{
-  return convert_memory_address_addr_space_1 (to_mode, x, as, false);
 }
 
 /* Return something equivalent to X but valid as a memory address for something
