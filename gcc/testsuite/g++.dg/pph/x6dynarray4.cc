@@ -1,6 +1,5 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
 // { dg-bogus "error: Cannot open PPH file for reading: x6dynarray5.pph: No such file or directory" "" { xfail *-*-* } 0 }
-// { dg-prune-output "In file included from" }
 
 #include "x6dynarray5.h"
 

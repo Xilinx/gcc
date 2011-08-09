@@ -1,3 +1,15 @@
+2011-08-08  Lawrence Crowl  <crowl@google.com>
+
+	* (g++.dg/pph/x6dynarray4.cc): Remove dg-prune-output.
+	* (g++.dg/pph/x4keyed.cc): Adjust line numbers to conflicting commit.
+	Remove 'previously defined' match.
+	* (g++.dg/pph/c3rawstruct.s): Remove inadvertently committed temporary
+	file.
+	* (g++.dg/pph/x6dynarray5.h): Add bogus error.
+        * (g++.dg/pph/x6rtti.cc): Remove dg-bogus lines.  (The errors are
+	present and bogus, but matching is not working.)
+	* (g++.dg/pph/x7rtti.cc): Adjust line numbers to conflicting commit.
+
 2011-08-08  Gabriel Charette  <gchare@google.com>
 
 	* (g++.dg/pph/x0hardorder1.h): New.
