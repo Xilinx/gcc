@@ -61,6 +61,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_ROUND	OPTION_ISA_ROUND
 #define TARGET_ABM	OPTION_ISA_ABM
 #define TARGET_BMI	OPTION_ISA_BMI
+#define TARGET_LZCNT	OPTION_ISA_LZCNT
 #define TARGET_TBM	OPTION_ISA_TBM
 #define TARGET_POPCNT	OPTION_ISA_POPCNT
 #define TARGET_SAHF	OPTION_ISA_SAHF
@@ -1131,7 +1132,6 @@ enum target_cpu_default
 /* This is overridden by <cygwin.h>.  */
 #define MS_AGGREGATE_RETURN 0
 
-/* This is overridden by <netware.h>.  */
 #define KEEP_AGGREGATE_RETURN_POINTER 0
 
 /* Define the classes of registers for register constraints in the
@@ -1357,19 +1357,6 @@ enum reg_class
   (GET_MODE_BITSIZE (MODE) < 32 && INTEGRAL_MODE_P (MODE)	\
    ? mode_for_size (32, GET_MODE_CLASS (MODE), 0)		\
    : MODE)
-
-/* Return the maximum number of consecutive registers
-   needed to represent mode MODE in a register of class CLASS.  */
-/* On the 80386, this is the size of MODE in words,
-   except in the FP regs, where a single reg is always enough.  */
-#define CLASS_MAX_NREGS(CLASS, MODE)					\
-  (MAYBE_INTEGER_CLASS_P (CLASS)					\
-   ? ((MODE) == XFmode							\
-      ? (TARGET_64BIT ? 2 : 3)						\
-      : (MODE) == XCmode						\
-      ? (TARGET_64BIT ? 4 : 6)						\
-      : ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD))	\
-   : (COMPLEX_MODE_P (MODE) ? 2 : 1))
 
 /* Return a class of registers that cannot change FROM mode to TO mode.  */
 
@@ -1688,7 +1675,7 @@ typedef struct ix86_args {
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE \
- (!TARGET_64BIT || (flag_pic && ix86_cmodel != CM_LARGE_PIC) ? SImode : DImode)
+ (!TARGET_LP64 || (flag_pic && ix86_cmodel != CM_LARGE_PIC) ? SImode : DImode)
 
 /* Define this as 1 if `char' should by default be signed; else as 0.  */
 #define DEFAULT_SIGNED_CHAR 1
@@ -2302,7 +2289,7 @@ extern void debug_dispatch_window (int);
 #define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
 	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_BMI)
 #define CLZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
-	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_BMI)
+	((VALUE) = GET_MODE_BITSIZE (MODE), TARGET_LZCNT)
 
 
 /* Flags returned by ix86_get_callcvt ().  */

@@ -3078,8 +3078,7 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
 	    return error_mark_node;
 	}
       /* ...and then the delta in the PMF.  */
-      instance_ptr = build2 (POINTER_PLUS_EXPR, TREE_TYPE (instance_ptr),
-			     instance_ptr, fold_convert (sizetype, delta));
+      instance_ptr = fold_build_pointer_plus (instance_ptr, delta);
 
       /* Hand back the adjusted 'this' argument to our caller.  */
       *instance_ptrptr = instance_ptr;
@@ -3094,9 +3093,7 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
       TREE_NO_WARNING (vtbl) = 1;
 
       /* Finally, extract the function pointer from the vtable.  */
-      e2 = fold_build2_loc (input_location,
-			POINTER_PLUS_EXPR, TREE_TYPE (vtbl), vtbl,
-			fold_convert (sizetype, idx));
+      e2 = fold_build_pointer_plus_loc (input_location, vtbl, idx);
       e2 = cp_build_indirect_ref (e2, RO_NULL, tf_warning_or_error);
       TREE_CONSTANT (e2) = 1;
 
@@ -4841,8 +4838,8 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
     {
       tree type = build_pointer_type (argtype);
       tree op0 = fold_convert (type, TREE_OPERAND (val, 0));
-      tree op1 = fold_convert (sizetype, fold_offsetof (arg, val));
-      return fold_build2 (POINTER_PLUS_EXPR, type, op0, op1);
+      tree op1 = fold_offsetof (arg, val);
+      return fold_build_pointer_plus (op0, op1);
     }
 
   /* Handle complex lvalues (when permitted)
@@ -5223,6 +5220,9 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	      }
 	    val = boolean_increment (code, arg);
 	  }
+	else if (code == POSTINCREMENT_EXPR || code == POSTDECREMENT_EXPR)
+	  /* An rvalue has no cv-qualifiers.  */
+	  val = build2 (code, cv_unqualified (TREE_TYPE (arg)), arg, inc);
 	else
 	  val = build2 (code, TREE_TYPE (arg), arg, inc);
 
@@ -5469,6 +5469,16 @@ build_x_compound_expr_from_list (tree list, expr_list_kind exp,
 				 tsubst_flags_t complain)
 {
   tree expr = TREE_VALUE (list);
+
+  if (BRACE_ENCLOSED_INITIALIZER_P (expr)
+      && !CONSTRUCTOR_IS_DIRECT_INIT (expr))
+    {
+      if (complain & tf_error)
+	pedwarn (EXPR_LOC_OR_HERE (expr), 0, "list-initializer for "
+		 "non-class type must not be parenthesized");
+      else
+	return error_mark_node;
+    }
 
   if (TREE_CHAIN (list))
     {
@@ -6756,6 +6766,8 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  if (check_array_initializer (lhs, lhstype, newrhs))
 	    return error_mark_node;
 	  newrhs = digest_init (lhstype, newrhs, complain);
+	  if (newrhs == error_mark_node)
+	    return error_mark_node;
 	}
 
       else if (!same_or_base_type_p (TYPE_MAIN_VARIANT (lhstype),

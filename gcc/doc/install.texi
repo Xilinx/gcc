@@ -1165,14 +1165,10 @@ DCE thread support.
 LynxOS thread support.
 @item mipssde
 MIPS SDE thread support.
-@item nks
-Novell Kernel Services thread support.
 @item no
 This is an alias for @samp{single}.
 @item posix
 Generic POSIX/Unix98 thread support.
-@item posix95
-Generic POSIX/Unix95 thread support.
 @item rtems
 RTEMS thread support.
 @item single
@@ -1309,6 +1305,13 @@ will try to guess whether the @code{.init_array} and
 @item --enable-build-with-cxx
 Build GCC using a C++ compiler rather than a C compiler.  This is an
 experimental option which may become the default in a later release.
+
+@item --enable-build-poststage1-with-cxx
+When bootstrapping, build stages 2 and 3 of GCC using a C++ compiler
+rather than a C compiler.  Stage 1 is still built with a C compiler.
+This is an experimental option which may become the default in a later
+release.  This is enabled by default and may be disabled using
+@option{--disable-build-poststage1-with-cxx}.
 
 @item --enable-maintainer-mode
 The build rules that regenerate the Autoconf and Automake output files as
@@ -3113,6 +3116,8 @@ information are.
 @item
 @uref{#sparcv9-x-solaris2,,sparcv9-*-solaris2*}
 @item
+@uref{#c6x-x-x,,c6x-*-*}
+@item
 @uref{#x-x-vxworks,,*-*-vxworks*}
 @item
 @uref{#x86-64-x-x,,x86_64-*-*, amd64-*-*}
@@ -3723,6 +3728,15 @@ The native @command{as} and @command{ld} are recommended for bootstrapping
 on AIX@.  The GNU Assembler, GNU Linker, and GNU Binutils version 2.20
 is required to bootstrap on AIX 5@.  The native AIX tools do
 interoperate with GCC@.
+
+AIX 5.3 TL10, AIX 6.1 TL05 and AIX 7.1 TL00 introduced an AIX
+assembler change that sometimes produces corrupt assembly files
+causing AIX linker errors.  The bug breaks GCC bootstrap on AIX and
+can cause compilation failures with existing GCC installations.  An
+AIX iFix for AIX 5.3 is available (APAR IZ98385 for AIX 5.3 TL10, APAR
+IZ98477 for AIX 5.3 TL11 and IZ98134 for AIX 5.3 TL12).  Fixes for AIX
+6.1 (APAR IZ98732 for AIX 6.1 TL05 and APAR IZ98861 for AIX 6.1 TL06)
+and AIX 7.1 are in verification and packaging phases.
 
 Building @file{libstdc++.a} requires a fix for an AIX Assembler bug
 APAR IY26685 (AIX 4.3) or APAR IY25528 (AIX 5.1).  It also requires a
@@ -4420,6 +4434,13 @@ and @option{-xildoff} turns off the incremental linker.
 @heading @anchor{sparcv9-x-solaris2}sparcv9-*-solaris2*
 
 This is a synonym for @samp{sparc64-*-solaris2*}.
+
+@html
+<hr />
+@end html
+@heading @anchor{c6x-x-x}c6x-*-*
+
+The C6X family of processors. This port requires binutils-2.22 or newer.
 
 @html
 <hr />

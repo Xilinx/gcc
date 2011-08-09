@@ -735,6 +735,7 @@ LIBICONV_DEP
 LTLIBICONV
 LIBICONV
 LDEXP_LIB
+EXTRA_GCC_LIBS
 GNAT_LIBEXC
 COLLECT2_LIBS
 CXXCPP
@@ -899,7 +900,6 @@ enable_rpath
 with_libiconv_prefix
 enable_initfini_array
 enable_sjlj_exceptions
-with_system_libunwind
 enable_secureplt
 enable_leading_mingw64_underscores
 enable_cld
@@ -1676,7 +1676,6 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
-  --with-system-libunwind use installed libunwind
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
@@ -3430,7 +3429,7 @@ fi
 if test "${with_demangler_in_ld+set}" = set; then :
   withval=$with_demangler_in_ld; demangler_in_ld="$with_demangler_in_ld"
 else
-  demangler_in_ld=no
+  demangler_in_ld=yes
 fi
 
 
@@ -6982,6 +6981,10 @@ if test "${enable_fixed_point+set}" = set; then :
 else
 
   case $target in
+    arm*)
+      enable_fixed_point=yes
+      ;;
+
     mips*-*-*)
       case $host in
 	mips*-sgi-irix*)
@@ -8809,6 +8812,69 @@ GNAT_LIBEXC="$LIBS"
 LIBS="$save_LIBS"
 
 
+# To support -mcpu=native on Solaris/SPARC, we need libkstat.
+save_LIBS="$LIBS"
+LIBS=
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing kstat_open" >&5
+$as_echo_n "checking for library containing kstat_open... " >&6; }
+if test "${ac_cv_search_kstat_open+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char kstat_open ();
+int
+main ()
+{
+return kstat_open ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' kstat; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_kstat_open=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_kstat_open+set}" = set; then :
+  break
+fi
+done
+if test "${ac_cv_search_kstat_open+set}" = set; then :
+
+else
+  ac_cv_search_kstat_open=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_kstat_open" >&5
+$as_echo "$ac_cv_search_kstat_open" >&6; }
+ac_res=$ac_cv_search_kstat_open
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+
+fi
+
+EXTRA_GCC_LIBS="$LIBS"
+LIBS="$save_LIBS"
+
+
 # Some systems put ldexp and frexp in libm instead of libc; assume
 # they're both in the same place.  jcf-dump needs them.
 save_LIBS="$LIBS"
@@ -9361,6 +9427,8 @@ $as_echo "#define HAVE_WORKING_FORK 1" >>confdefs.h
 fi
 
 
+# g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which exposes a different
+# iconv() prototype.
 
       if test "X$prefix" = "XNONE"; then
     acl_final_prefix="$ac_default_prefix"
@@ -9902,6 +9970,175 @@ fi
   fi
 
 
+if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then :
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+
+
+
+
+          am_save_CPPFLAGS="$CPPFLAGS"
+
+  for element in $INCICONV; do
+    haveit=
+    for x in $CPPFLAGS; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+      if test "X$x" = "X$element"; then
+        haveit=yes
+        break
+      fi
+    done
+    if test -z "$haveit"; then
+      CPPFLAGS="${CPPFLAGS}${CPPFLAGS:+ }$element"
+    fi
+  done
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for iconv" >&5
+$as_echo_n "checking for iconv... " >&6; }
+if test "${am_cv_func_iconv+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    am_cv_func_iconv="no, consider installing GNU libiconv"
+    am_cv_lib_iconv=no
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stdlib.h>
+#include <iconv.h>
+int
+main ()
+{
+iconv_t cd = iconv_open("","");
+       iconv(cd,NULL,NULL,NULL,NULL);
+       iconv_close(cd);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  am_cv_func_iconv=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+    if test "$am_cv_func_iconv" != yes; then
+      am_save_LIBS="$LIBS"
+      LIBS="$LIBS $LIBICONV"
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stdlib.h>
+#include <iconv.h>
+int
+main ()
+{
+iconv_t cd = iconv_open("","");
+         iconv(cd,NULL,NULL,NULL,NULL);
+         iconv_close(cd);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  am_cv_lib_iconv=yes
+        am_cv_func_iconv=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+      LIBS="$am_save_LIBS"
+    fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+$as_echo "$am_cv_func_iconv" >&6; }
+  if test "$am_cv_func_iconv" = yes; then
+
+$as_echo "#define HAVE_ICONV 1" >>confdefs.h
+
+  fi
+  if test "$am_cv_lib_iconv" = yes; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to link with libiconv" >&5
+$as_echo_n "checking how to link with libiconv... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LIBICONV" >&5
+$as_echo "$LIBICONV" >&6; }
+  else
+            CPPFLAGS="$am_save_CPPFLAGS"
+    LIBICONV=
+    LTLIBICONV=
+  fi
+
+
+
+  if test "$am_cv_func_iconv" = yes; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for iconv declaration" >&5
+$as_echo_n "checking for iconv declaration... " >&6; }
+    if test "${am_cv_proto_iconv+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdlib.h>
+#include <iconv.h>
+extern
+#ifdef __cplusplus
+"C"
+#endif
+#if defined(__STDC__) || defined(__cplusplus)
+size_t iconv (iconv_t cd, char * *inbuf, size_t *inbytesleft, char * *outbuf, size_t *outbytesleft);
+#else
+size_t iconv();
+#endif
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  am_cv_proto_iconv_arg1=""
+else
+  am_cv_proto_iconv_arg1="const"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+      am_cv_proto_iconv="extern size_t iconv (iconv_t cd, $am_cv_proto_iconv_arg1 char * *inbuf, size_t *inbytesleft, char * *outbuf, size_t *outbytesleft);"
+fi
+
+    am_cv_proto_iconv=`echo "$am_cv_proto_iconv" | tr -s ' ' | sed -e 's/( /(/'`
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${ac_t:-
+         }$am_cv_proto_iconv" >&5
+$as_echo "${ac_t:-
+         }$am_cv_proto_iconv" >&6; }
+
+cat >>confdefs.h <<_ACEOF
+#define ICONV_CONST $am_cv_proto_iconv_arg1
+_ACEOF
+
+  fi
+
+   ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+else
 
 
 
@@ -10056,6 +10293,8 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
   fi
+
+fi
 
 # Until we have in-tree GNU iconv:
 LIBICONV_DEP=
@@ -10745,46 +10984,6 @@ _ACEOF
 
 fi
 
-# For platforms with the unwind ABI which includes an unwind library,
-# libunwind, we can choose to use the system libunwind.
-# config.gcc also contains tests of with_system_libunwind.
-
-
-# Check whether --with-system-libunwind was given.
-if test "${with_system_libunwind+set}" = set; then :
-  withval=$with_system_libunwind;
-fi
-
-  # If system-libunwind was not specifically set, pick a default setting.
-  if test x$with_system_libunwind = x; then
-    case ${target} in
-      ia64-*-hpux*) with_system_libunwind=yes ;;
-      *) with_system_libunwind=no ;;
-    esac
-  fi
-  # Based on system-libunwind and target, do we have ipinfo?
-  if  test x$with_system_libunwind = xyes; then
-    case ${target} in
-      ia64-*-*) have_unwind_getipinfo=no ;;
-      *) have_unwind_getipinfo=yes ;;
-    esac
-  else
-    # Darwin before version 9 does not have _Unwind_GetIPInfo.
-
-    case ${target} in
-      *-*-darwin[3-8]|*-*-darwin[3-8].*) have_unwind_getipinfo=no ;;
-      *) have_unwind_getipinfo=yes ;;
-    esac
-
-  fi
-
-  if test x$have_unwind_getipinfo = xyes; then
-
-$as_echo "#define HAVE_GETIPINFO 1" >>confdefs.h
-
-  fi
-
-
 # --------------------------------------------------------
 # Build, host, and target specific configuration fragments
 # --------------------------------------------------------
@@ -10966,7 +11165,7 @@ case ${enable_threads} in
     # default
     target_thread_file='single'
     ;;
-  aix | dce | lynx | mipssde | nks | posix | posix95 | rtems | \
+  aix | dce | lynx | mipssde | posix | rtems | \
   single | tpf | vxworks | win32)
     target_thread_file=${enable_threads}
     ;;
@@ -17710,7 +17909,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17713 "configure"
+#line 17912 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17816,7 +18015,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17819 "configure"
+#line 18018 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -21586,7 +21785,7 @@ else
   then gcc_cv_as_balign_and_p2align=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.balign 4
+    $as_echo '.balign 4
 .p2align 2' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
@@ -21622,7 +21821,7 @@ else
   then gcc_cv_as_max_skip_p2align=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.p2align 4,,7' > conftest.s
+    $as_echo '.p2align 4,,7' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -21657,7 +21856,7 @@ else
   then gcc_cv_as_literal16=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.literal16' > conftest.s
+    $as_echo '.literal16' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -21693,7 +21892,7 @@ else
   then gcc_cv_as_subsection_m1=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo 'conftest_label1: .word 0
+    $as_echo 'conftest_label1: .word 0
 .subsection -1
 conftest_label2: .word 0
 .previous' > conftest.s
@@ -21739,7 +21938,7 @@ else
   then gcc_cv_as_weak=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.weak foobar' > conftest.s
+    $as_echo '	.weak foobar' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -21774,7 +21973,7 @@ else
   then gcc_cv_as_weakref=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.weakref foobar, barfnot' > conftest.s
+    $as_echo '	.weakref foobar, barfnot' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -21809,7 +22008,7 @@ else
   then gcc_cv_as_nsubspa_comdat=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.SPACE $TEXT$
+    $as_echo '	.SPACE $TEXT$
 	.NSUBSPA $CODE$,COMDAT' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
@@ -21853,7 +22052,7 @@ else
   then gcc_cv_as_hidden=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.hidden foobar
+    $as_echo '	.hidden foobar
 foobar:' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
@@ -22103,7 +22302,7 @@ else
   then gcc_cv_as_leb128=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.data
+    $as_echo '	.data
 	.uleb128 L2 - L1
 L1:
 	.uleb128 1280
@@ -22155,7 +22354,7 @@ if test "${gcc_cv_as_cfi_directive+set}" = set; then :
 else
   gcc_cv_as_cfi_directive=no
   if test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 	.cfi_startproc
 	.cfi_offset 0, 0
 	.cfi_same_value 1
@@ -22228,7 +22427,7 @@ if test "${gcc_cv_as_cfi_advance_working+set}" = set; then :
 else
   gcc_cv_as_cfi_advance_working=no
   if test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 	.cfi_startproc
 	.cfi_adjust_cfa_offset 64
 	.skip 75040, 0
@@ -22277,7 +22476,7 @@ if test "${gcc_cv_as_cfi_personality_directive+set}" = set; then :
 else
   gcc_cv_as_cfi_personality_directive=no
   if test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 	.cfi_startproc
 	.cfi_personality 0, symbol
 	.cfi_endproc' > conftest.s
@@ -22313,7 +22512,7 @@ if test "${gcc_cv_as_cfi_sections_directive+set}" = set; then :
 else
   gcc_cv_as_cfi_sections_directive=no
   if test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 	.cfi_sections .debug_frame, .eh_frame
 	.cfi_startproc
 	.cfi_endproc' > conftest.s
@@ -22372,7 +22571,7 @@ else
   then gcc_cv_as_eh_frame=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 .LFB1:
 	.4byte	0
 .L1:
@@ -22473,7 +22672,7 @@ else
   then gcc_cv_as_shf_merge=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.section .rodata.str, "aMS", @progbits, 1' > conftest.s
+    $as_echo '.section .rodata.str, "aMS", @progbits, 1' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --fatal-warnings -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -22505,7 +22704,7 @@ else
   then gcc_cv_as_shf_merge=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.section .rodata.str, "aMS", %progbits, 1' > conftest.s
+    $as_echo '.section .rodata.str, "aMS", %progbits, 1' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --fatal-warnings -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -22543,7 +22742,7 @@ else
   then gcc_cv_as_comdat_group=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.section .text,"axG",@progbits,.foo,comdat' > conftest.s
+    $as_echo '.section .text,"axG",@progbits,.foo,comdat' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --fatal-warnings -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -22578,7 +22777,7 @@ else
   then gcc_cv_as_comdat_group_percent=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.section .text,"axG",%progbits,.foo,comdat' > conftest.s
+    $as_echo '.section .text,"axG",%progbits,.foo,comdat' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --fatal-warnings -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -22628,7 +22827,7 @@ if test "${gcc_cv_as_comdat_group_group+set}" = set; then :
 else
   gcc_cv_as_comdat_group_group=no
   if test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -22725,7 +22924,7 @@ else
   then gcc_cv_as_discriminator=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 	.file 1 "conf.c"
 	.loc 1 1 0 discriminator 1' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
@@ -23138,7 +23337,7 @@ else
   then gcc_cv_as_tls=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags $tls_as_opt -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -23481,7 +23680,7 @@ else
   then gcc_cv_as_alpha_explicit_relocs=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.set nomacro
+    $as_echo '	.set nomacro
 	.text
 	extbl	$3, $2, $3	!lituse_bytoff!1
 	ldq	$2, a($29)	!literal!1
@@ -23527,7 +23726,7 @@ else
   then gcc_cv_as_alpha_jsrdirect_relocs=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.set nomacro
+    $as_echo '	.set nomacro
 	.text
 	ldq	$27, a($29)	!literal!1
 	jsr	$26, ($27), a	!lituse_jsrdirect!1' > conftest.s
@@ -23567,7 +23766,7 @@ else
   then gcc_cv_as_cris_no_mul_bug=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.text' > conftest.s
+    $as_echo '.text' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -no-mul-bug-abort -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -23600,7 +23799,7 @@ if test "${gcc_cv_as_sparc_register_op+set}" = set; then :
 else
   gcc_cv_as_sparc_register_op=no
   if test x$gcc_cv_as != x; then
-    echo '.register %g2, #scratch' > conftest.s
+    $as_echo '.register %g2, #scratch' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -23631,7 +23830,7 @@ if test "${gcc_cv_as_sparc_relax+set}" = set; then :
 else
   gcc_cv_as_sparc_relax=no
   if test x$gcc_cv_as != x; then
-    echo '.text' > conftest.s
+    $as_echo '.text' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -relax -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -23662,7 +23861,7 @@ if test "${gcc_cv_as_sparc_gotdata_op+set}" = set; then :
 else
   gcc_cv_as_sparc_gotdata_op=no
   if test x$gcc_cv_as != x; then
-    echo '.text
+    $as_echo '.text
 .align 4
 foo:
 	nop
@@ -23711,7 +23910,7 @@ if test "${gcc_cv_as_sparc_ua_pcrel+set}" = set; then :
 else
   gcc_cv_as_sparc_ua_pcrel=no
   if test x$gcc_cv_as != x; then
-    echo '.text
+    $as_echo '.text
 foo:
 	nop
 .data
@@ -23751,7 +23950,7 @@ if test "${gcc_cv_as_sparc_ua_pcrel_hidden+set}" = set; then :
 else
   gcc_cv_as_sparc_ua_pcrel_hidden=no
   if test x$gcc_cv_as != x; then
-    echo '.data
+    $as_echo '.data
 .align 4
 .byte 0x31
 .uaword %r_disp32(foo)
@@ -23803,7 +24002,7 @@ if test "${gcc_cv_as_sparc_offsetable_lo10+set}" = set; then :
 else
   gcc_cv_as_sparc_offsetable_lo10=no
   if test x$gcc_cv_as != x; then
-    echo '.text
+    $as_echo '.text
 	or %g1, %lo(ab) + 12, %g1
 	or %g1, %lo(ab + 12), %g1' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -xarch=v9 -o conftest.o conftest.s >&5'
@@ -23877,7 +24076,7 @@ else
   then gcc_cv_as_comm_has_align=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.comm foo,1,32' > conftest.s
+    $as_echo '.comm foo,1,32' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -23913,7 +24112,7 @@ else
   then gcc_cv_as_ix86_pe_secrel32=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.text
+    $as_echo '.text
 foo:	nop
 .data
 	.secrel32 foo' > conftest.s
@@ -23958,7 +24157,7 @@ else
   then gcc_cv_as_section_has_align=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.section lto_test,"dr0"' > conftest.s
+    $as_echo '.section lto_test,"dr0"' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -fatal-warnings -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -23995,7 +24194,7 @@ if test "${gcc_cv_as_ix86_filds+set}" = set; then :
 else
   gcc_cv_as_ix86_filds=no
   if test x$gcc_cv_as != x; then
-    echo 'filds mem; fists mem' > conftest.s
+    $as_echo 'filds mem; fists mem' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24026,7 +24225,7 @@ if test "${gcc_cv_as_ix86_fildq+set}" = set; then :
 else
   gcc_cv_as_ix86_fildq=no
   if test x$gcc_cv_as != x; then
-    echo 'fildq mem; fistpq mem' > conftest.s
+    $as_echo 'fildq mem; fistpq mem' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24057,7 +24256,7 @@ if test "${gcc_cv_as_ix86_cmov_sun_syntax+set}" = set; then :
 else
   gcc_cv_as_ix86_cmov_sun_syntax=no
   if test x$gcc_cv_as != x; then
-    echo 'cmovl.l %edx, %eax' > conftest.s
+    $as_echo 'cmovl.l %edx, %eax' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24088,7 +24287,7 @@ if test "${gcc_cv_as_ix86_ffreep+set}" = set; then :
 else
   gcc_cv_as_ix86_ffreep=no
   if test x$gcc_cv_as != x; then
-    echo 'ffreep %st(1)' > conftest.s
+    $as_echo 'ffreep %st(1)' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24119,7 +24318,7 @@ if test "${gcc_cv_as_ix86_quad+set}" = set; then :
 else
   gcc_cv_as_ix86_quad=no
   if test x$gcc_cv_as != x; then
-    echo '.quad 0' > conftest.s
+    $as_echo '.quad 0' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24150,7 +24349,7 @@ if test "${gcc_cv_as_ix86_sahf+set}" = set; then :
 else
   gcc_cv_as_ix86_sahf=no
   if test x$gcc_cv_as != x; then
-    echo '.code64
+    $as_echo '.code64
        sahf' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
@@ -24182,7 +24381,7 @@ if test "${gcc_cv_as_ix86_swap+set}" = set; then :
 else
   gcc_cv_as_ix86_swap=no
   if test x$gcc_cv_as != x; then
-    echo 'movl.s %esp, %ebp' > conftest.s
+    $as_echo 'movl.s %esp, %ebp' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24213,7 +24412,7 @@ if test "${gcc_cv_as_ix86_diff_sect_delta+set}" = set; then :
 else
   gcc_cv_as_ix86_diff_sect_delta=no
   if test x$gcc_cv_as != x; then
-    echo '.section .rodata
+    $as_echo '.section .rodata
 .L1:
         .long .L2-.L1
         .long .L3-.L1
@@ -24256,7 +24455,7 @@ else
   then gcc_cv_as_ix86_gotoff_in_data=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 .L0:
 	nop
 	.data
@@ -24292,7 +24491,7 @@ if test "${gcc_cv_as_ix86_rep_lock_prefix+set}" = set; then :
 else
   gcc_cv_as_ix86_rep_lock_prefix=no
   if test x$gcc_cv_as != x; then
-    echo 'rep movsl
+    $as_echo 'rep movsl
 	 lock addl %edi, (%eax,%esi)
 	 lock orl $0, (%esp)' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
@@ -24325,7 +24524,7 @@ if test "${gcc_cv_as_ix86_tlsgdplt+set}" = set; then :
 else
   gcc_cv_as_ix86_tlsgdplt=no
   if test x$gcc_cv_as != x; then
-    echo 'call    tls_gd@tlsgdplt' > conftest.s
+    $as_echo 'call    tls_gd@tlsgdplt' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24356,7 +24555,7 @@ if test "${gcc_cv_as_ix86_tlsldmplt+set}" = set; then :
 else
   gcc_cv_as_ix86_tlsldmplt=no
   if test x$gcc_cv_as != x; then
-    echo 'call    tls_ld@tlsldmplt' > conftest.s
+    $as_echo 'call    tls_ld@tlsldmplt' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24394,7 +24593,7 @@ else
   then gcc_cv_as_ia64_ltoffx_ldxmov_relocs=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.text
+    $as_echo '	.text
 	addl r15 = @ltoffx(x#), gp
 	;;
 	ld8.mov r16 = [r15], x#' > conftest.s
@@ -24436,7 +24635,7 @@ if test "${gcc_cv_as_machine_directive+set}" = set; then :
 else
   gcc_cv_as_machine_directive=no
   if test x$gcc_cv_as != x; then
-    echo '	.machine ppc7400' > conftest.s
+    $as_echo '	.machine ppc7400' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24478,7 +24677,7 @@ else
   then gcc_cv_as_powerpc_mfcrf=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24522,7 +24721,7 @@ else
   then gcc_cv_as_powerpc_popcntb=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24566,7 +24765,7 @@ else
   then gcc_cv_as_powerpc_fprnd=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24610,7 +24809,7 @@ else
   then gcc_cv_as_powerpc_mfpgpr=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24658,7 +24857,7 @@ else
   then gcc_cv_as_powerpc_rel16=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24702,7 +24901,7 @@ else
   then gcc_cv_as_powerpc_cmpb=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24746,7 +24945,7 @@ else
   then gcc_cv_as_powerpc_dfp=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24790,7 +24989,7 @@ else
   then gcc_cv_as_powerpc_vsx=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24834,7 +25033,7 @@ else
   then gcc_cv_as_powerpc_popcntd=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24876,7 +25075,7 @@ else
   then gcc_cv_as_powerpc_lwsync=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24920,7 +25119,7 @@ else
   then gcc_cv_as_powerpc_dci=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -a32 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24955,7 +25154,7 @@ else
   then gcc_cv_as_powerpc_gnu_attribute=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.gnu_attribute 4,1' > conftest.s
+    $as_echo '.gnu_attribute 4,1' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -24990,7 +25189,7 @@ else
   then gcc_cv_as_powerpc_tls_markers=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo ' bl __tls_get_addr(x@tlsgd)' > conftest.s
+    $as_echo ' bl __tls_get_addr(x@tlsgd)' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25027,7 +25226,7 @@ else
   then :
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	.csect stuff[rw]
+    $as_echo '	.csect stuff[rw]
 	     stuff:
 		.long 1
 		.extern sym
@@ -25071,7 +25270,7 @@ else
   then gcc_cv_as_mips_explicit_relocs=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '	lw $4,%gp_rel(foo)($4)' > conftest.s
+    $as_echo '	lw $4,%gp_rel(foo)($4)' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25106,7 +25305,7 @@ else
   then gcc_cv_as_mips_no_shared=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo 'nop' > conftest.s
+    $as_echo 'nop' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags -mno-shared -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25141,7 +25340,7 @@ else
   then gcc_cv_as_mips_gnu_attribute=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.gnu_attribute 4,1' > conftest.s
+    $as_echo '.gnu_attribute 4,1' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25176,7 +25375,7 @@ else
   then gcc_cv_as_mips_dtprelword=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.section .tdata,"awT",@progbits
+    $as_echo '.section .tdata,"awT",@progbits
 x:
 	.word 2
 	.text
@@ -25211,7 +25410,7 @@ if test "${gcc_cv_as_mips_dspr1_mult+set}" = set; then :
 else
   gcc_cv_as_mips_dspr1_mult=no
   if test x$gcc_cv_as != x; then
-    echo '	.set	mips32r2
+    $as_echo '	.set	mips32r2
 	.set	nodspr2
 	.set	dsp
 	madd	$ac3,$4,$5
@@ -25386,7 +25585,7 @@ else
   then gcc_cv_as_dwarf2_debug_line=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$conftest_s" > conftest.s
+    $as_echo "$conftest_s" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25421,7 +25620,7 @@ if test "${gcc_cv_as_dwarf2_file_buggy+set}" = set; then :
 else
   gcc_cv_as_dwarf2_file_buggy=no
   if test x$gcc_cv_as != x; then
-    echo '	.file 1 "foo.s"
+    $as_echo '	.file 1 "foo.s"
 	.file 1 "bar.s"' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
@@ -25461,7 +25660,7 @@ else
   then gcc_cv_as_gdwarf2_flag=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$insn" > conftest.s
+    $as_echo "$insn" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --gdwarf2 -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25497,7 +25696,7 @@ else
   then gcc_cv_as_gstabs_flag=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$insn" > conftest.s
+    $as_echo "$insn" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --gstabs -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25543,7 +25742,7 @@ else
   then gcc_cv_as_debug_prefix_map_flag=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo "$insn" > conftest.s
+    $as_echo "$insn" > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags --debug-prefix-map /a=/b -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25575,7 +25774,7 @@ if test "${gcc_cv_as_lcomm_with_alignment+set}" = set; then :
 else
   gcc_cv_as_lcomm_with_alignment=no
   if test x$gcc_cv_as != x; then
-    echo '.lcomm bar,4,16' > conftest.s
+    $as_echo '.lcomm bar,4,16' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5
@@ -25619,7 +25818,7 @@ else
   then gcc_cv_as_gnu_unique_object=yes
 fi
   elif test x$gcc_cv_as != x; then
-    echo '.type foo, @gnu_unique_object' > conftest.s
+    $as_echo '.type foo, @gnu_unique_object' > conftest.s
     if { ac_try='$gcc_cv_as $gcc_cv_as_flags  -o conftest.o conftest.s >&5'
   { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_try\""; } >&5
   (eval $ac_try) 2>&5

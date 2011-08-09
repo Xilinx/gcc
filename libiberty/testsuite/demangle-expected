@@ -3901,6 +3901,10 @@ java resource java/util/iso4217.properties
 --format=gnu-v3
 _Z3addIidEDTplfp_fp0_ET_T0_
 decltype ({parm#1}+{parm#2}) add<int, double>(int, double)
+# decltype scope test
+--format=gnu-v3
+_Z1fI1SENDtfp_E4typeET_
+decltype ({parm#1})::type f<S>(S)
 # decltype/fn call test
 --format=gnu-v3
 _Z4add3IidEDTclL_Z1gEfp_fp0_EET_T0_
@@ -4009,6 +4013,11 @@ K<1, &S::m>::f()
 --format=gnu-v3
 _ZN1KILi1EXadL_ZN1S1mEEEE1fEv
 K<1, &S::m>::f()
+#
+# Used to crash -- binutils PR 13030.
+--format=gnu-v3
+_ZSt10_ConstructI10CellBorderIS0_EEvPT_DpOT0_
+_ZSt10_ConstructI10CellBorderIS0_EEvPT_DpOT0_
 #
 # Ada (GNAT) tests.
 #

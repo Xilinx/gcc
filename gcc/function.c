@@ -2576,16 +2576,13 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
       if (data->promoted_mode != BLKmode
 	  && data->promoted_mode != DECL_MODE (parm))
 	{
-	  set_mem_size (stack_parm,
-			GEN_INT (GET_MODE_SIZE (data->promoted_mode)));
-	  if (MEM_EXPR (stack_parm) && MEM_OFFSET (stack_parm))
+	  set_mem_size (stack_parm, GET_MODE_SIZE (data->promoted_mode));
+	  if (MEM_EXPR (stack_parm) && MEM_OFFSET_KNOWN_P (stack_parm))
 	    {
 	      int offset = subreg_lowpart_offset (DECL_MODE (parm),
 						  data->promoted_mode);
 	      if (offset)
-		set_mem_offset (stack_parm,
-				plus_constant (MEM_OFFSET (stack_parm),
-					       -offset));
+		set_mem_offset (stack_parm, MEM_OFFSET (stack_parm) - offset);
 	    }
 	}
     }
@@ -3199,10 +3196,9 @@ assign_parm_setup_stack (struct assign_parm_data_all *all, tree parm,
 	  /* ??? This may need a big-endian conversion on sparc64.  */
 	  data->stack_parm
 	    = adjust_address (data->stack_parm, data->nominal_mode, 0);
-	  if (offset && MEM_OFFSET (data->stack_parm))
+	  if (offset && MEM_OFFSET_KNOWN_P (data->stack_parm))
 	    set_mem_offset (data->stack_parm,
-			    plus_constant (MEM_OFFSET (data->stack_parm),
-					   offset));
+			    MEM_OFFSET (data->stack_parm) + offset);
 	}
     }
 
@@ -5309,7 +5305,8 @@ emit_use_return_register_into_block (basic_block bb)
 static void
 emit_return_into_block (basic_block bb)
 {
-  emit_jump_insn_after (gen_return (), BB_END (bb));
+  rtx jump = emit_jump_insn_after (gen_return (), BB_END (bb));
+  JUMP_LABEL (jump) = ret_rtx;
 }
 #endif /* HAVE_return */
 
@@ -5468,7 +5465,7 @@ thread_prologue_and_epilogue_insns (void)
 		 that with a conditional return instruction.  */
 	      else if (condjump_p (jump))
 		{
-		  if (! redirect_jump (jump, 0, 0))
+		  if (! redirect_jump (jump, ret_rtx, 0))
 		    {
 		      ei_next (&ei2);
 		      continue;
@@ -5551,6 +5548,8 @@ thread_prologue_and_epilogue_insns (void)
 #ifdef HAVE_epilogue
   if (HAVE_epilogue)
     {
+      rtx returnjump;
+
       start_sequence ();
       epilogue_end = emit_note (NOTE_INSN_EPILOGUE_BEG);
       seq = gen_epilogue ();
@@ -5561,11 +5560,25 @@ thread_prologue_and_epilogue_insns (void)
       record_insns (seq, NULL, &epilogue_insn_hash);
       set_insn_locators (seq, epilogue_locator);
 
+      returnjump = get_last_insn ();
       seq = get_insns ();
       end_sequence ();
 
       insert_insn_on_edge (seq, e);
       inserted = true;
+
+      if (JUMP_P (returnjump))
+	{
+	  rtx pat = PATTERN (returnjump);
+	  if (GET_CODE (pat) == PARALLEL)
+	    pat = XVECEXP (pat, 0, 0);
+	  if (ANY_RETURN_P (pat))
+	    JUMP_LABEL (returnjump) = pat;
+	  else
+	    JUMP_LABEL (returnjump) = ret_rtx;
+	}
+      else
+	returnjump = NULL_RTX;
     }
   else
 #endif

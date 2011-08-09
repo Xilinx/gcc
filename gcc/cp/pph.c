@@ -22,6 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "pph.h"
 #include "cpplib.h"
 #include "toplev.h"
 #include "tree.h"
@@ -35,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "tree-pretty-print.h"
 #include "parser.h"
-#include "pph.h"
 #include "pph-streamer.h"
 
 /* Log file where PPH analysis is written to.  Controlled by

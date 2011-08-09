@@ -3394,7 +3394,7 @@ optimize_bit_field_compare (location_t loc, enum tree_code code,
       && flag_strict_volatile_bitfields > 0)
     nmode = lmode;
   else
-    nmode = get_best_mode (lbitsize, lbitpos,
+    nmode = get_best_mode (lbitsize, lbitpos, 0, 0,
 			   const_p ? TYPE_ALIGN (TREE_TYPE (linner))
 			   : MIN (TYPE_ALIGN (TREE_TYPE (linner)),
 				  TYPE_ALIGN (TREE_TYPE (rinner))),
@@ -4221,8 +4221,7 @@ build_range_check (location_t loc, tree type, tree exp, int in_p,
 	  low = fold_convert_loc (loc, sizetype, low);
 	  low = fold_build1_loc (loc, NEGATE_EXPR, sizetype, low);
           return build_range_check (loc, type,
-			     	    fold_build2_loc (loc, POINTER_PLUS_EXPR,
-						 etype, exp, low),
+			     	    fold_build_pointer_plus_loc (loc, exp, low),
 			            1, build_int_cst (etype, 0), value);
 	}
       return 0;
@@ -5222,7 +5221,7 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
      to be relative to a field of that size.  */
   first_bit = MIN (ll_bitpos, rl_bitpos);
   end_bit = MAX (ll_bitpos + ll_bitsize, rl_bitpos + rl_bitsize);
-  lnmode = get_best_mode (end_bit - first_bit, first_bit,
+  lnmode = get_best_mode (end_bit - first_bit, first_bit, 0, 0,
 			  TYPE_ALIGN (TREE_TYPE (ll_inner)), word_mode,
 			  volatilep);
   if (lnmode == VOIDmode)
@@ -5287,7 +5286,7 @@ fold_truthop (location_t loc, enum tree_code code, tree truth_type,
 
       first_bit = MIN (lr_bitpos, rr_bitpos);
       end_bit = MAX (lr_bitpos + lr_bitsize, rr_bitpos + rr_bitsize);
-      rnmode = get_best_mode (end_bit - first_bit, first_bit,
+      rnmode = get_best_mode (end_bit - first_bit, first_bit, 0, 0,
 			      TYPE_ALIGN (TREE_TYPE (lr_inner)), word_mode,
 			      volatilep);
       if (rnmode == VOIDmode)
@@ -7038,8 +7037,7 @@ fold_plusminus_mult_expr (location_t loc, enum tree_code code, tree type,
       int11 = TREE_INT_CST_LOW (arg11);
 
       /* Move min of absolute values to int11.  */
-      if ((int01 >= 0 ? int01 : -int01)
-	  < (int11 >= 0 ? int11 : -int11))
+      if (abs_hwi (int01) < abs_hwi (int11))
         {
 	  tmp = int01, int01 = int11, int11 = tmp;
 	  alt0 = arg00, arg00 = arg10, arg10 = alt0;
@@ -7049,7 +7047,7 @@ fold_plusminus_mult_expr (location_t loc, enum tree_code code, tree type,
       else
 	maybe_same = arg11;
 
-      if (exact_log2 (abs (int11)) > 0 && int01 % int11 == 0
+      if (exact_log2 (abs_hwi (int11)) > 0 && int01 % int11 == 0
 	  /* The remainder should not be a constant, otherwise we
 	     end up folding i * 4 + 2 to (i * 2 + 1) * 2 which has
 	     increased the number of multiplications necessary.  */
@@ -7665,11 +7663,11 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	     non-integral type.
 	     Do not fold the result as that would not simplify further, also
 	     folding again results in recursions.  */
-	  if (INTEGRAL_TYPE_P (type))
+	  if (TREE_CODE (type) == BOOLEAN_TYPE)
 	    return build2_loc (loc, TREE_CODE (op0), type,
 			       TREE_OPERAND (op0, 0),
 			       TREE_OPERAND (op0, 1));
-	  else
+	  else if (!INTEGRAL_TYPE_P (type))
 	    return build3_loc (loc, COND_EXPR, type, op0,
 			       fold_convert (type, boolean_true_node),
 			       fold_convert (type, boolean_false_node));
@@ -9584,9 +9582,8 @@ fold_binary_loc (location_t loc,
 	  inner = fold_build2_loc (loc, PLUS_EXPR, sizetype,
 			       arg01, fold_convert_loc (loc, sizetype, arg1));
 	  return fold_convert_loc (loc, type,
-				   fold_build2_loc (loc, POINTER_PLUS_EXPR,
-						TREE_TYPE (arg00),
-						arg00, inner));
+				   fold_build_pointer_plus_loc (loc,
+								arg00, inner));
 	}
 
       /* PTR_CST +p CST -> CST1 */
@@ -9714,12 +9711,13 @@ fold_binary_loc (location_t loc,
 	  /* Reassociate (plus (plus (mult) (foo)) (mult)) as
 	     (plus (plus (mult) (mult)) (foo)) so that we can
 	     take advantage of the factoring cases below.  */
-	  if (((TREE_CODE (arg0) == PLUS_EXPR
-		|| TREE_CODE (arg0) == MINUS_EXPR)
-	       && TREE_CODE (arg1) == MULT_EXPR)
-	      || ((TREE_CODE (arg1) == PLUS_EXPR
-		   || TREE_CODE (arg1) == MINUS_EXPR)
-		  && TREE_CODE (arg0) == MULT_EXPR))
+	  if (TYPE_OVERFLOW_WRAPS (type)
+	      && (((TREE_CODE (arg0) == PLUS_EXPR
+		    || TREE_CODE (arg0) == MINUS_EXPR)
+		   && TREE_CODE (arg1) == MULT_EXPR)
+		  || ((TREE_CODE (arg1) == PLUS_EXPR
+		       || TREE_CODE (arg1) == MINUS_EXPR)
+		      && TREE_CODE (arg0) == MULT_EXPR)))
 	    {
 	      tree parg0, parg1, parg, marg;
 	      enum tree_code pcode;
@@ -12156,14 +12154,16 @@ fold_binary_loc (location_t loc,
       /* bool_var != 1 becomes !bool_var. */
       if (TREE_CODE (TREE_TYPE (arg0)) == BOOLEAN_TYPE && integer_onep (arg1)
           && code == NE_EXPR)
-        return fold_build1_loc (loc, TRUTH_NOT_EXPR, type,
-			    fold_convert_loc (loc, type, arg0));
+        return fold_convert_loc (loc, type,
+				 fold_build1_loc (loc, TRUTH_NOT_EXPR,
+						  TREE_TYPE (arg0), arg0));
 
       /* bool_var == 0 becomes !bool_var. */
       if (TREE_CODE (TREE_TYPE (arg0)) == BOOLEAN_TYPE && integer_zerop (arg1)
           && code == EQ_EXPR)
-        return fold_build1_loc (loc, TRUTH_NOT_EXPR, type,
-			    fold_convert_loc (loc, type, arg0));
+        return fold_convert_loc (loc, type,
+				 fold_build1_loc (loc, TRUTH_NOT_EXPR,
+						  TREE_TYPE (arg0), arg0));
 
       /* !exp != 0 becomes !exp */
       if (TREE_CODE (arg0) == TRUTH_NOT_EXPR && integer_zerop (arg1)

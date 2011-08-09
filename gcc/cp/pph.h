@@ -22,6 +22,19 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_CP_PPH_H
 #define GCC_CP_PPH_H
 
+/* In order for the format checking to accept the C++ front end
+   diagnostic framework extensions, you must include this file before
+   diagnostic-core.h, not after.  We override the definition of GCC_DIAG_STYLE
+   in c-common.h.  */
+#undef GCC_DIAG_STYLE
+#define GCC_DIAG_STYLE __gcc_cxxdiag__
+#if defined(GCC_DIAGNOSTIC_CORE_H) || defined (GCC_C_COMMON_H)
+#error \
+In order for the format checking to accept the C++ front end diagnostic \
+framework extensions, you must include this file before diagnostic-core.h and \
+c-common.h, not after.
+#endif
+
 #include "line-map.h"
 #include "hashtab.h"
 #include "cp/cp-tree.h"

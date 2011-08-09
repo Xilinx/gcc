@@ -2279,7 +2279,7 @@ may_trap_p_1 (const_rtx x, unsigned flags)
 	  code_changed
 	  || !MEM_NOTRAP_P (x))
 	{
-	  HOST_WIDE_INT size = MEM_SIZE (x) ? INTVAL (MEM_SIZE (x)) : 0;
+	  HOST_WIDE_INT size = MEM_SIZE_KNOWN_P (x) ? MEM_SIZE (x) : 0;
 	  return rtx_addr_can_trap_p_1 (XEXP (x, 0), 0, size,
 					GET_MODE (x), code_changed);
 	}
@@ -2660,8 +2660,11 @@ tablejump_p (const_rtx insn, rtx *labelp, rtx *tablep)
 {
   rtx label, table;
 
-  if (JUMP_P (insn)
-      && (label = JUMP_LABEL (insn)) != NULL_RTX
+  if (!JUMP_P (insn))
+    return false;
+
+  label = JUMP_LABEL (insn);
+  if (label != NULL_RTX && !ANY_RETURN_P (label)
       && (table = next_active_insn (label)) != NULL_RTX
       && JUMP_TABLE_DATA_P (table))
     {

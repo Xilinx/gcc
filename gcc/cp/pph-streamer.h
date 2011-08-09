@@ -22,6 +22,8 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_CP_PPH_STREAMER_H
 
 #include "lto-streamer.h"
+#include "data-streamer.h"
+#include "tree-streamer.h"
 #include "tree.h"
 
 /* Record markers.  */

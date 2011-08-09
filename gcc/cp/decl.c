@@ -3630,6 +3630,7 @@ cxx_init_decl_processing (void)
   current_lang_name = lang_name_cplusplus;
 
   {
+    tree newattrs;
     tree newtype, deltype;
     tree ptr_ftype_sizetype;
     tree new_eh_spec;
@@ -3657,7 +3658,13 @@ cxx_init_decl_processing (void)
     else
       new_eh_spec = noexcept_false_spec;
 
-    newtype = build_exception_variant (ptr_ftype_sizetype, new_eh_spec);
+    /* Ensure attribs.c is initialized.  */
+    init_attributes ();
+    newattrs
+      = build_tree_list (get_identifier ("alloc_size"),
+			 build_tree_list (NULL_TREE, integer_one_node));
+    newtype = cp_build_type_attribute_variant (ptr_ftype_sizetype, newattrs);
+    newtype = build_exception_variant (newtype, new_eh_spec);
     deltype = build_exception_variant (void_ftype_ptr, empty_except_spec);
     push_cp_library_fn (NEW_EXPR, newtype);
     push_cp_library_fn (VEC_NEW_EXPR, newtype);
@@ -4649,7 +4656,8 @@ build_init_list_var_init (tree decl, tree type, tree init, tree *array_init,
    is valid, i.e., does not have a designated initializer.  */
 
 static bool
-check_array_designated_initializer (const constructor_elt *ce)
+check_array_designated_initializer (const constructor_elt *ce,
+				    unsigned HOST_WIDE_INT index)
 {
   /* Designated initializers for array elements are not supported.  */
   if (ce->index)
@@ -4660,8 +4668,13 @@ check_array_designated_initializer (const constructor_elt *ce)
 	error ("name used in a GNU-style designated "
 	       "initializer for an array");
       else if (TREE_CODE (ce->index) == INTEGER_CST)
-	/* An index added by reshape_init.  */
-	return true;
+	{
+	  /* A C99 designator is OK if it matches the current index.  */
+	  if (TREE_INT_CST_LOW (ce->index) == index)
+	    return true;
+	  else
+	    sorry ("non-trivial designated initializers not supported");
+	}
       else
 	{
 	  gcc_assert (TREE_CODE (ce->index) == IDENTIFIER_NODE);
@@ -4703,7 +4716,7 @@ maybe_deduce_size_from_array_init (tree decl, tree init)
 	  constructor_elt *ce;
 	  HOST_WIDE_INT i;
 	  FOR_EACH_VEC_ELT (constructor_elt, v, i, ce)
-	    if (!check_array_designated_initializer (ce))
+	    if (!check_array_designated_initializer (ce, i))
 	      failure = 1;
 	}
 
@@ -4962,7 +4975,7 @@ reshape_init_array_1 (tree elt_type, tree max_index, reshape_iter *d,
     {
       tree elt_init;
 
-      check_array_designated_initializer (d->cur);
+      check_array_designated_initializer (d->cur, index);
       elt_init = reshape_init_r (elt_type, d, /*first_initializer_p=*/false,
 				 complain);
       if (elt_init == error_mark_node)
@@ -5928,7 +5941,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   cleanup = NULL_TREE;
 
   /* If a name was specified, get the string.  */
-  if (global_scope_p (current_binding_level))
+  if (at_namespace_scope_p ())
     asmspec_tree = maybe_apply_renaming_pragma (decl, asmspec_tree);
   if (asmspec_tree && asmspec_tree != error_mark_node)
     asmspec = TREE_STRING_POINTER (asmspec_tree);

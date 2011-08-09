@@ -1,3 +1,40 @@
+2011-07-23  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* intrinsics/ctime.c: Include <stdlib.h>.
+	* intrinsics/getlog.c: Likewise.
+	* runtime/stop.c: Likewise.
+
+2011-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49791
+	* io/list_read.c (nml_parse_qualifier): Remove check to
+	enabled extended read for another case.
+
+2011-07-15  Daniel Carrera  <dcarrera@gmail.com>
+
+	* caf/mpi.c (caf_runtime_error): Change fprintf to vfprintf.
+	* caf/single.c (caf_runtime_error): Ditto.
+
+2011-07-14  Daniel Carrera  <dcarrera@gmail.com>
+
+	* caf/single.c:  Include stdarg.h header.
+	(caf_runtime_error): New function. Use "exit(EXIT_FAILURE)".
+	(_gfortran_caf_register): Use caf_runtime_error.
+	(_gfortran_caf_sync_images): Use "exit(EXIT_FAILURE)".
+	* caf/mpi.c (caf_runtime_error): Remove "error" parameter.
+	Return EXIT_FAILURE instead.
+	(_gfortran_caf_register): Update call to caf_runtime_error.
+	(_gfortran_caf_sync_all): Ditto.
+	(_gfortran_caf_sync_images): Ditto.
+	(_gfortran_caf_error_stop_str): Use "exit(EXIT_FAILURE)".
+
+2011-07-13  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/49296
+	* io/list_read.c (read_logical): Don't error out if a valid value
+	is followed by EOF instead of a normal separator.
+	(read_integer): Likewise.
+
 2011-07-09  Tobias Burnus  <burnus@net-b.de>
 
 	* runtime/error.c (sys_abort): Change argument list

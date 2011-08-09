@@ -7787,6 +7787,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	  && GET_CODE (lhs) == ASHIFT
 	  && CONST_INT_P (XEXP (lhs, 1))
 	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1))
+	  && INTVAL (XEXP (lhs, 1)) >= 0
 	  && INTVAL (rhs) < mode_width)
 	{
 	  new_rtx = make_compound_operation (XEXP (lhs, 0), next_code);
@@ -13270,6 +13271,16 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 		 can now prove that the instructions can't trap.  Drop the
 		 note in this case.  */
 	    }
+	  break;
+
+	case REG_ARGS_SIZE:
+	  {
+	    /* ??? How to distribute between i3-i1.  Assume i3 contains the
+	       entire adjustment.  Assert i3 contains at least some adjust.  */
+	    int old_size, args_size = INTVAL (XEXP (note, 0));
+	    old_size = fixup_args_size_notes (PREV_INSN (i3), i3, args_size);
+	    gcc_assert (old_size != args_size);
+	  }
 	  break;
 
 	case REG_NORETURN:

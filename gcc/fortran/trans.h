@@ -517,7 +517,8 @@ void gfc_generate_constructors (void);
 /* Get the string length of an array constructor.  */
 bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor_base, tree *);
 
-/* Mark a condition as unlikely.  */
+/* Mark a condition as likely or unlikely.  */
+tree gfc_likely (tree);
 tree gfc_unlikely (tree);
 
 /* Generate a runtime error call.  */
@@ -541,11 +542,11 @@ tree gfc_call_malloc (stmtblock_t *, tree, tree);
 tree gfc_build_memcpy_call (tree, tree, tree);
 
 /* Allocate memory for allocatable variables, with optional status variable.  */
-tree gfc_allocate_allocatable_with_status (stmtblock_t*,
-					   tree, tree, tree, gfc_expr*);
+void gfc_allocate_allocatable (stmtblock_t*, tree, tree, tree,
+			       tree, tree, tree, gfc_expr*);
 
 /* Allocate memory, with optional status variable.  */
-tree gfc_allocate_with_status (stmtblock_t *, tree, tree, bool);
+void gfc_allocate_using_malloc (stmtblock_t *, tree, tree, tree);
 
 /* Generate code to deallocate an array.  */
 tree gfc_deallocate_with_status (tree, tree, bool, gfc_expr*);
@@ -736,6 +737,7 @@ struct GTY((variable_size))	lang_type	 {
   tree base_decl[2];
   tree nonrestricted_type;
   tree caf_token;
+  tree caf_offset;
 };
 
 struct GTY((variable_size)) lang_decl {
@@ -781,6 +783,7 @@ struct GTY((variable_size)) lang_decl {
 #define GFC_TYPE_ARRAY_RANK(node) (TYPE_LANG_SPECIFIC(node)->rank)
 #define GFC_TYPE_ARRAY_CORANK(node) (TYPE_LANG_SPECIFIC(node)->corank)
 #define GFC_TYPE_ARRAY_CAF_TOKEN(node) (TYPE_LANG_SPECIFIC(node)->caf_token)
+#define GFC_TYPE_ARRAY_CAF_OFFSET(node) (TYPE_LANG_SPECIFIC(node)->caf_offset)
 #define GFC_TYPE_ARRAY_SIZE(node) (TYPE_LANG_SPECIFIC(node)->size)
 #define GFC_TYPE_ARRAY_OFFSET(node) (TYPE_LANG_SPECIFIC(node)->offset)
 #define GFC_TYPE_ARRAY_AKIND(node) (TYPE_LANG_SPECIFIC(node)->akind)

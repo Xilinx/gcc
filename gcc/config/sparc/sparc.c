@@ -911,6 +911,8 @@ sparc_option_override (void)
     case PROCESSOR_NIAGARA2:
       sparc_costs = &niagara2_costs;
       break;
+    case PROCESSOR_NATIVE:
+      gcc_unreachable ();
     };
 
 #ifdef TARGET_DEFAULT_LONG_DOUBLE_128
@@ -6677,8 +6679,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   incr = valist;
   if (align)
     {
-      incr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr,
-			  size_int (align - 1));
+      incr = fold_build_pointer_plus_hwi (incr, align - 1);
       incr = fold_convert (sizetype, incr);
       incr = fold_build2 (BIT_AND_EXPR, sizetype, incr,
 			  size_int (-align));
@@ -6689,8 +6690,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   addr = incr;
 
   if (BYTES_BIG_ENDIAN && size < rsize)
-    addr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr,
-			size_int (rsize - size));
+    addr = fold_build_pointer_plus_hwi (incr, rsize - size);
 
   if (indirect)
     {
@@ -6714,8 +6714,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   else
     addr = fold_convert (ptrtype, addr);
 
-  incr
-    = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr, size_int (rsize));
+  incr = fold_build_pointer_plus_hwi (incr, rsize);
   gimplify_assign (valist, incr, post_p);
 
   return build_va_arg_indirect_ref (addr);
@@ -10022,6 +10021,10 @@ sparc_file_end (void)
 
   if (NEED_INDICATE_EXEC_STACK)
     file_end_indicate_exec_stack ();
+
+#ifdef TARGET_SOLARIS
+  solaris_file_end ();
+#endif
 }
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING

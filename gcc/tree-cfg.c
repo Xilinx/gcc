@@ -1421,7 +1421,7 @@ gimple_can_merge_blocks_p (basic_block a, basic_block b)
   if (!single_succ_p (a))
     return false;
 
-  if (single_succ_edge (a)->flags & (EDGE_ABNORMAL | EDGE_EH))
+  if (single_succ_edge (a)->flags & (EDGE_ABNORMAL | EDGE_EH | EDGE_PRESERVE))
     return false;
 
   if (single_succ (a) != b)
@@ -2680,7 +2680,8 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       break;
 
     case NON_LVALUE_EXPR:
-	gcc_unreachable ();
+    case TRUTH_NOT_EXPR:
+      gcc_unreachable ();
 
     CASE_CONVERT:
     case FIX_TRUNC_EXPR:
@@ -2688,7 +2689,6 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     case NEGATE_EXPR:
     case ABS_EXPR:
     case BIT_NOT_EXPR:
-    case TRUTH_NOT_EXPR:
       CHECK_OP (0, "invalid operand to unary operator");
       break;
 
@@ -3203,7 +3203,9 @@ verify_gimple_comparison (tree type, tree op0, tree op1)
        && (!POINTER_TYPE_P (op0_type)
 	   || !POINTER_TYPE_P (op1_type)
 	   || TYPE_MODE (op0_type) != TYPE_MODE (op1_type)))
-      || !INTEGRAL_TYPE_P (type))
+      || !INTEGRAL_TYPE_P (type)
+      || (TREE_CODE (type) != BOOLEAN_TYPE
+	  && TYPE_PRECISION (type) != 1))
     {
       error ("type mismatch in comparison expression");
       debug_generic_expr (type);
@@ -3343,19 +3345,6 @@ verify_gimple_assign_unary (gimple stmt)
     case VEC_UNPACK_FLOAT_LO_EXPR:
       /* FIXME.  */
       return false;
-
-    case TRUTH_NOT_EXPR:
-      /* We require two-valued operand types.  */
-      if (!(TREE_CODE (rhs1_type) == BOOLEAN_TYPE
-	    || (INTEGRAL_TYPE_P (rhs1_type)
-		&& TYPE_PRECISION (rhs1_type) == 1)))
-        {
-	  error ("invalid types in truth not");
-	  debug_generic_expr (lhs_type);
-	  debug_generic_expr (rhs1_type);
-	  return true;
-        }
-      break;
 
     case NEGATE_EXPR:
     case ABS_EXPR:

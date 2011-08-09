@@ -1,3 +1,11 @@
+2011-08-09   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 177573.
+
+	* Makefile.in (lto-streamer-in.o): Add dependency on
+	STREAMER_HOOKS_H.
+	* lto-streamer-in.c: Include streamer-hooks.h.
+
 2011-08-04  Gabriel Charette  <gchare@google.com>
 
 	* lto-streamer-in.c (lto_input_location): Handle input_location

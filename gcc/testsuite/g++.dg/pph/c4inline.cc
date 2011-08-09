@@ -1,4 +1,4 @@
-// pph asm xdiff 46031
+// pph asm xdiff 36250
 //Emitting a second copy of the inline function f.
 //With comdat, the linker may paper over the differences.
 

@@ -434,6 +434,8 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
       rounded_stack_size_rtx = GEN_INT (rounded_stack_size);
       stack_pointer_delta -= n_popped;
 
+      add_reg_note (call_insn, REG_ARGS_SIZE, GEN_INT (stack_pointer_delta));
+
       /* If popup is needed, stack realign must use DRAP  */
       if (SUPPORTS_STACK_ALIGNMENT)
         crtl->need_drap = true;
@@ -924,8 +926,8 @@ store_unaligned_arguments_into_pseudos (struct arg_data *args, int num_actuals)
 	    emit_move_insn (reg, const0_rtx);
 
 	    bytes -= bitsize / BITS_PER_UNIT;
-	    store_bit_field (reg, bitsize, endian_correction, word_mode,
-			     word);
+	    store_bit_field (reg, bitsize, endian_correction, 0, 0,
+			     word_mode, word);
 	  }
       }
 }
@@ -1481,7 +1483,7 @@ compute_argument_addresses (struct arg_data *args, rtx argblock, int num_actuals
 	      partial_mode = mode_for_size (units_on_stack * BITS_PER_UNIT,
 					    MODE_INT, 1);
 	      args[i].stack = gen_rtx_MEM (partial_mode, addr);
-	      set_mem_size (args[i].stack, GEN_INT (units_on_stack));
+	      set_mem_size (args[i].stack, units_on_stack);
 	    }
 	  else
 	    {
@@ -1513,7 +1515,7 @@ compute_argument_addresses (struct arg_data *args, rtx argblock, int num_actuals
 		 Generate a simple memory reference of the correct size.
 	       */
 	      args[i].stack_slot = gen_rtx_MEM (partial_mode, addr);
-	      set_mem_size (args[i].stack_slot, GEN_INT (units_on_stack));
+	      set_mem_size (args[i].stack_slot, units_on_stack);
 	    }
 	  else
 	    {
@@ -3126,8 +3128,13 @@ expand_call (tree exp, rtx target, int ignore)
 
       if (old_stack_level)
 	{
+	  rtx prev = get_last_insn ();
+
 	  emit_stack_restore (SAVE_BLOCK, old_stack_level);
 	  stack_pointer_delta = old_stack_pointer_delta;
+
+	  fixup_args_size_notes (prev, get_last_insn (), stack_pointer_delta);
+
 	  pending_stack_adjust = old_pending_adj;
 	  old_stack_allocated = stack_pointer_delta - pending_stack_adjust;
 	  stack_arg_under_construction = old_stack_arg_under_construction;
@@ -3829,13 +3836,43 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
       rtx val = argvec[argnum].value;
       rtx reg = argvec[argnum].reg;
       int partial = argvec[argnum].partial;
-
+#ifdef BLOCK_REG_PADDING
+      int size = 0;
+#endif
+      
       /* Handle calls that pass values in multiple non-contiguous
 	 locations.  The PA64 has examples of this for library calls.  */
       if (reg != 0 && GET_CODE (reg) == PARALLEL)
 	emit_group_load (reg, val, NULL_TREE, GET_MODE_SIZE (mode));
       else if (reg != 0 && partial == 0)
-	emit_move_insn (reg, val);
+        {
+	  emit_move_insn (reg, val);
+#ifdef BLOCK_REG_PADDING
+	  size = GET_MODE_SIZE (argvec[argnum].mode);
+
+	  /* Copied from load_register_parameters.  */
+
+	  /* Handle case where we have a value that needs shifting
+	     up to the msb.  eg. a QImode value and we're padding
+	     upward on a BYTES_BIG_ENDIAN machine.  */
+	  if (size < UNITS_PER_WORD
+	      && (argvec[argnum].locate.where_pad
+		  == (BYTES_BIG_ENDIAN ? upward : downward)))
+	    {
+	      rtx x;
+	      int shift = (UNITS_PER_WORD - size) * BITS_PER_UNIT;
+
+	      /* Assigning REG here rather than a temp makes CALL_FUSAGE
+		 report the whole reg as used.  Strictly speaking, the
+		 call only uses SIZE bytes at the msb end, but it doesn't
+		 seem worth generating rtl to say that.  */
+	      reg = gen_rtx_REG (word_mode, REGNO (reg));
+	      x = expand_shift (LSHIFT_EXPR, word_mode, reg, shift, reg, 1);
+	      if (x != reg)
+		emit_move_insn (reg, x);
+	    }
+#endif
+	}
 
       NO_DEFER_POP;
     }
@@ -3900,6 +3937,15 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 					   VOIDmode, void_type_node, true),
 	       valreg,
 	       old_inhibit_defer_pop + 1, call_fusage, flags, args_so_far);
+
+  /* Right-shift returned value if necessary.  */
+  if (!pcc_struct_value
+      && TYPE_MODE (tfom) != BLKmode
+      && targetm.calls.return_in_msb (tfom))
+    {
+      shift_return_value (TYPE_MODE (tfom), false, valreg);
+      valreg = gen_rtx_REG (TYPE_MODE (tfom), REGNO (valreg));
+    }
 
   /* For calls to `setjmp', etc., inform function.c:setjmp_warnings
      that it should complain if nonvolatile values are live.  For

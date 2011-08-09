@@ -63,7 +63,8 @@ g++spec.o: $(srcdir)/cp/g++spec.c $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H) \
 GXX_OBJS = $(GCC_OBJS) g++spec.o
 g++$(exeext): $(GXX_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a $(LIBDEPS)
 	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
-	  $(GXX_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a $(LIBS)
+	  $(GXX_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a \
+	  $(EXTRA_GCC_LIBS) $(LIBS)
 
 # Create a version of the g++ driver which calls the cross-compiler.
 g++-cross$(exeext): g++$(exeext)
@@ -150,6 +151,14 @@ c++.srcman: doc/g++.1
 # check targets.  However, our DejaGNU framework requires 'check-g++' as its
 # entry point.  We feed the former to the latter here.
 check-c++ : check-g++
+# Run the testsute in C++0x mode.
+check-c++0x:
+	$(MAKE) RUNTESTFLAGS="$(RUNTESTFLAGS) --extra_opts,-std=gnu++0x" \
+	  TESTSUITEDIR="$(TESTSUITEDIR).c++0x" check-g++
+# Run the testsuite with garbage collection at every opportunity.
+check-g++-strict-gc:
+	$(MAKE) RUNTESTFLAGS="$(RUNTESTFLAGS) --extra_opts,--param,ggc-min-heapsize=0,--param,ggc-min-expand=0" \
+	  TESTSUITEDIR="$(TESTSUITEDIR).gc" check-g++
 check-c++-subtargets : check-g++-subtargets
 # List of targets that can use the generic check- rule and its // variant.
 lang_checks += check-g++
@@ -258,7 +267,8 @@ CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 CXX_PPH_H = $(srcdir)/../libcpp/include/line-map.h $(HASHTAB_H) \
 	$(CXX_PARSER_H) $(TIMEVAR_H) $(CXX_TREE_H) cp/pph.h
-CXX_PPH_STREAMER_H = $(LTO_STREAMER_H) cp/pph-streamer.h $(TREE_H)
+CXX_PPH_STREAMER_H = $(LTO_STREAMER_H) cp/pph-streamer.h $(TREE_H) \
+	$(DATA_STREAMER_H) $(TREE_STREAMER_H)
 
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) output.h input.h cp/operators.def $(TM_P_H) \
@@ -309,7 +319,7 @@ cp/ptree.o: cp/ptree.c $(CXX_TREE_H) $(TM_H)
 cp/rtti.o: cp/rtti.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) convert.h \
   $(TARGET_H) $(C_PRAGMA_H) gt-cp-rtti.h intl.h
 cp/except.o: cp/except.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
-  cp/cfns.h $(TREE_INLINE_H) $(TARGET_H)
+  cp/cfns.h $(TREE_INLINE_H) $(TARGET_H) gt-cp-except.h
 cp/expr.o: cp/expr.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) $(TM_P_H)
 cp/pt.o: cp/pt.c $(CXX_TREE_H) $(TM_H) cp/decl.h cp/cp-objcp-common.h \
   toplev.h $(TREE_INLINE_H) pointer-set.h gt-cp-pt.h vecprim.h intl.h \
@@ -347,7 +357,8 @@ cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
 	$(CXX_PARSER_H) $(CXX_PPH_H) $(CXX_PPH_STREAMER_H)
 cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) $(CXX_PPH_STREAMER_H) \
-	$(CXX_PPH_H) $(TREE_PASS_H) version.h cppbuiltin.h tree-iterator.h
+	$(CXX_PPH_H) $(TREE_PASS_H) version.h cppbuiltin.h tree-iterator.h \
+	$(STREAMER_HOOKS_H)
 cp/pph-streamer-out.o: cp/pph-streamer-out.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
 	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \

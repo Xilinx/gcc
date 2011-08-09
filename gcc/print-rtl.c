@@ -323,9 +323,14 @@ print_rtx (const_rtx in_rtx)
 	      }
 	  }
 	else if (i == 8 && JUMP_P (in_rtx) && JUMP_LABEL (in_rtx) != NULL)
-	  /* Output the JUMP_LABEL reference.  */
-	  fprintf (outfile, "\n%s%*s -> %d", print_rtx_head, indent * 2, "",
-		   INSN_UID (JUMP_LABEL (in_rtx)));
+	  {
+	    /* Output the JUMP_LABEL reference.  */
+	    fprintf (outfile, "\n%s%*s -> ", print_rtx_head, indent * 2, "");
+	    if (GET_CODE (JUMP_LABEL (in_rtx)) == RETURN)
+	      fprintf (outfile, "return");
+	    else
+	      fprintf (outfile, "%d", INSN_UID (JUMP_LABEL (in_rtx)));
+	  }
 	else if (i == 0 && GET_CODE (in_rtx) == VALUE)
 	  {
 #ifndef GENERATOR_FILE
@@ -597,13 +602,11 @@ print_rtx (const_rtx in_rtx)
       if (MEM_EXPR (in_rtx))
 	print_mem_expr (outfile, MEM_EXPR (in_rtx));
 
-      if (MEM_OFFSET (in_rtx))
-	fprintf (outfile, "+" HOST_WIDE_INT_PRINT_DEC,
-		 INTVAL (MEM_OFFSET (in_rtx)));
+      if (MEM_OFFSET_KNOWN_P (in_rtx))
+	fprintf (outfile, "+" HOST_WIDE_INT_PRINT_DEC, MEM_OFFSET (in_rtx));
 
-      if (MEM_SIZE (in_rtx))
-	fprintf (outfile, " S" HOST_WIDE_INT_PRINT_DEC,
-		 INTVAL (MEM_SIZE (in_rtx)));
+      if (MEM_SIZE_KNOWN_P (in_rtx))
+	fprintf (outfile, " S" HOST_WIDE_INT_PRINT_DEC, MEM_SIZE (in_rtx));
 
       if (MEM_ALIGN (in_rtx) != 1)
 	fprintf (outfile, " A%u", MEM_ALIGN (in_rtx));

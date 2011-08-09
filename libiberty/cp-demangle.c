@@ -1,5 +1,5 @@
 /* Demangler for g++ V3 ABI.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Ian Lance Taylor <ian@wasabisystems.com>.
 
@@ -1280,6 +1280,7 @@ d_nested_name (struct d_info *di)
 /* <prefix> ::= <prefix> <unqualified-name>
             ::= <template-prefix> <template-args>
             ::= <template-param>
+            ::= <decltype>
             ::=
             ::= <substitution>
 
@@ -1308,10 +1309,19 @@ d_prefix (struct d_info *di)
 	 <template-param> here.  */
 
       comb_type = DEMANGLE_COMPONENT_QUAL_NAME;
-      if (IS_DIGIT (peek)
+      if (peek == 'D')
+	{
+	  char peek2 = d_peek_next_char (di);
+	  if (peek2 == 'T' || peek2 == 't')
+	    /* Decltype.  */
+	    dc = cplus_demangle_type (di);
+	  else
+	    /* Destructor name.  */
+	    dc = d_unqualified_name (di);
+	}
+      else if (IS_DIGIT (peek)
 	  || IS_LOWER (peek)
 	  || peek == 'C'
-	  || peek == 'D'
 	  || peek == 'U'
 	  || peek == 'L')
 	dc = d_unqualified_name (di);
@@ -3306,6 +3316,7 @@ d_print_init (struct d_print_info *dpi, demangle_callbackref callback,
   dpi->last_char = '\0';
   dpi->templates = NULL;
   dpi->modifiers = NULL;
+  dpi->pack_index = 0;
   dpi->flush_count = 0;
 
   dpi->callback = callback;
@@ -3893,6 +3904,13 @@ d_print_comp (struct d_print_info *dpi, int options,
 	    struct demangle_component *a = d_lookup_template_argument (dpi, sub);
 	    if (a && a->type == DEMANGLE_COMPONENT_TEMPLATE_ARGLIST)
 	      a = d_index_template_argument (a, dpi->pack_index);
+
+	    if (a == NULL)
+	      {
+		d_print_error (dpi);
+		return;
+	      }
+
 	    sub = a;
 	  }
 

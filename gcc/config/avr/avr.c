@@ -194,8 +194,8 @@ static const struct attribute_spec avr_attribute_table[] =
 #undef TARGET_SECTION_TYPE_FLAGS
 #define TARGET_SECTION_TYPE_FLAGS avr_section_type_flags
 
-/* `TARGET_ASM_NAMED_SECTION' must be defined in avr.h.  */
-
+#undef TARGET_ASM_NAMED_SECTION
+#define TARGET_ASM_NAMED_SECTION avr_asm_named_section
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS avr_asm_init_sections
 #undef TARGET_ENCODE_SECTION_INFO
@@ -1491,15 +1491,6 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
     }
 }
 
-/* Return maximum number of consecutive registers of
-   class CLASS needed to hold a value of mode MODE.  */
-
-int
-class_max_nregs (enum reg_class rclass ATTRIBUTE_UNUSED,enum machine_mode mode)
-{
-  return ((GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD);
-}
-
 /* Choose mode for jump insn:
    1 - relative jump in range -63 <= x <= 62 ;
    2 - relative jump in range -2046 <= x <= 2045 ;
@@ -1638,12 +1629,18 @@ byte_immediate_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 
 void
 final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
-		    int num_operands ATTRIBUTE_UNUSED)
+                    int num_operands ATTRIBUTE_UNUSED)
 {
   if (TARGET_ALL_DEBUG)
     {
-      fprintf (asm_out_file, "/* DEBUG: cost = %d.  */\n",
-	       rtx_cost (PATTERN (insn), INSN, !optimize_size));
+      rtx set = single_set (insn);
+
+      if (set)
+        fprintf (asm_out_file, "/* DEBUG: cost = %d.  */\n",
+                 rtx_cost (SET_SRC (set), SET, optimize_insn_for_speed_p()));
+      else
+        fprintf (asm_out_file, "/* DEBUG: pattern-cost = %d.  */\n",
+                 rtx_cost (PATTERN (insn), INSN, optimize_insn_for_speed_p()));
     }
 }
 
@@ -3150,8 +3147,11 @@ out_shift_with_cnt (const char *templ, rtx insn, rtx operands[],
     }
   else if (register_operand (operands[2], QImode))
     {
-      if (reg_unused_after (insn, operands[2]))
-	op[3] = op[2];
+      if (reg_unused_after (insn, operands[2])
+          && !reg_overlap_mentioned_p (operands[0], operands[2]))
+        {
+          op[3] = op[2];
+        }
       else
 	{
 	  op[3] = tmp_reg_rtx;
@@ -4438,7 +4438,9 @@ avr_rotate_bytes (rtx operands[])
     if (mode == DImode)
       move_mode = QImode;
     /* Make scratch smaller if needed.  */
-    if (GET_MODE (scratch) == HImode && move_mode == QImode)
+    if (SCRATCH != GET_CODE (scratch)
+        && HImode == GET_MODE (scratch)
+        && QImode == move_mode)
       scratch = simplify_gen_subreg (move_mode, scratch, HImode, 0); 
 
     move_size = GET_MODE_SIZE (move_mode);
@@ -4533,6 +4535,8 @@ avr_rotate_bytes (rtx operands[])
 		   Add move to put dst of blocked move into scratch.
 		   When this move occurs, it will break chain deadlock.
 		   The scratch register is substituted for real move.  */
+
+		gcc_assert (SCRATCH != GET_CODE (scratch));
 
 		move[size].src = move[blocked].dst;
 		move[size].dst =  scratch;
@@ -5091,8 +5095,11 @@ avr_asm_init_sections (void)
   progmem_section = get_unnamed_section (AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE,
 					 avr_output_progmem_section_asm_op,
 					 NULL);
-  readonly_data_section = data_section;
 
+  /* Override section callbacks to keep track of `avr_need_clear_bss_p'
+     resp. `avr_need_copy_data_p'.  */
+  
+  readonly_data_section->unnamed.callback = avr_output_data_section_asm_op;
   data_section->unnamed.callback = avr_output_data_section_asm_op;
   bss_section->unnamed.callback = avr_output_bss_section_asm_op;
 }
@@ -5101,7 +5108,7 @@ avr_asm_init_sections (void)
 /* Implement `TARGET_ASM_NAMED_SECTION'.  */
 /* Track need of __do_clear_bss, __do_copy_data for named sections.  */
 
-void
+static void
 avr_asm_named_section (const char *name, unsigned int flags, tree decl)
 {
   if (!avr_need_copy_data_p)
@@ -5334,14 +5341,14 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
     {
     case CONST_INT:
     case CONST_DOUBLE:
+    case SYMBOL_REF:
+    case CONST:
+    case LABEL_REF:
       /* Immediate constants are as cheap as registers.  */
       *total = 0;
       return true;
 
     case MEM:
-    case CONST:
-    case LABEL_REF:
-    case SYMBOL_REF:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
       return true;
 
@@ -5466,13 +5473,76 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
 
 	case HImode:
 	  if (AVR_HAVE_MUL)
-	    *total = COSTS_N_INSNS (!speed ? 7 : 10);
+            {
+              rtx op0 = XEXP (x, 0);
+              rtx op1 = XEXP (x, 1);
+              enum rtx_code code0 = GET_CODE (op0);
+              enum rtx_code code1 = GET_CODE (op1);
+              bool ex0 = SIGN_EXTEND == code0 || ZERO_EXTEND == code0;
+              bool ex1 = SIGN_EXTEND == code1 || ZERO_EXTEND == code1;
+
+              if (ex0
+                  && (u8_operand (op1, HImode)
+                      || s8_operand (op1, HImode)))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 4 : 6);
+                  return true;
+                }
+              if (ex0
+                  && register_operand (op1, HImode))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 5 : 8);
+                  return true;
+                }
+              else if (ex0 || ex1)
+                {
+                  *total = COSTS_N_INSNS (!speed ? 3 : 5);
+                  return true;
+                }
+              else if (register_operand (op0, HImode)
+                       && (u8_operand (op1, HImode)
+                           || s8_operand (op1, HImode)))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 6 : 9);
+                  return true;
+                }
+              else
+                *total = COSTS_N_INSNS (!speed ? 7 : 10);
+            }
 	  else if (!speed)
 	    *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
 	  else
 	    return false;
 	  break;
 
+	case SImode:
+	  if (AVR_HAVE_MUL)
+            {
+              if (!speed)
+                {
+                  /* Add some additional costs besides CALL like moves etc.  */
+
+                  *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 5 : 4);
+                }
+              else
+                {
+                  /* Just a rough estimate.  Even with -O2 we don't want bulky
+                     code expanded inline.  */
+
+                  *total = COSTS_N_INSNS (25);
+                }
+            }
+          else
+            {
+              if (speed)
+                *total = COSTS_N_INSNS (300);
+              else
+                /* Add some additional costs besides CALL like moves etc.  */
+                *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 5 : 4);
+            }
+          
+          return true;
+          
 	default:
 	  return false;
 	}
@@ -5549,6 +5619,17 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
 	  break;
 
 	case HImode:
+          if (AVR_HAVE_MUL)
+            {
+              if (const_2_to_7_operand (XEXP (x, 1), HImode)
+                  && (SIGN_EXTEND == GET_CODE (XEXP (x, 0))
+                      || ZERO_EXTEND == GET_CODE (XEXP (x, 0))))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 4 : 6);
+                  return true;
+                }
+            }
+          
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
 	      *total = COSTS_N_INSNS (!speed ? 5 : 41);

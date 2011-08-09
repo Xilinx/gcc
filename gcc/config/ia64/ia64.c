@@ -1047,7 +1047,7 @@ ia64_expand_load_address (rtx dest, rtx src)
       tmp = gen_rtx_PLUS (Pmode, tmp, pic_offset_table_rtx);
       emit_insn (gen_rtx_SET (VOIDmode, dest, tmp));
 
-      tmp = gen_rtx_LO_SUM (Pmode, dest, src);
+      tmp = gen_rtx_LO_SUM (Pmode, gen_const_mem (Pmode, dest), src);
       emit_insn (gen_rtx_SET (VOIDmode, dest, tmp));
 
       if (addend)
@@ -4738,12 +4738,9 @@ ia64_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   if ((TREE_CODE (type) == REAL_TYPE || TREE_CODE (type) == INTEGER_TYPE)
       ? int_size_in_bytes (type) > 8 : TYPE_ALIGN (type) > 8 * BITS_PER_UNIT)
     {
-      tree t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (valist), valist,
-		       size_int (2 * UNITS_PER_WORD - 1));
-      t = fold_convert (sizetype, t);
+      tree t = fold_build_pointer_plus_hwi (valist, 2 * UNITS_PER_WORD - 1);
       t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t,
-		  size_int (-2 * UNITS_PER_WORD));
-      t = fold_convert (TREE_TYPE (valist), t);
+		  build_int_cst (TREE_TYPE (t), -2 * UNITS_PER_WORD));
       gimplify_assign (unshare_expr (valist), t, pre_p);
     }
 

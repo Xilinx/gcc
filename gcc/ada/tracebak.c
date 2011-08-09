@@ -219,7 +219,14 @@ struct layout
 
 #define FRAME_OFFSET(FP) 0
 #define PC_ADJUST -4
-#define STOP_FRAME(CURRENT, TOP_STACK) ((void *) (CURRENT) < (TOP_STACK))
+
+/* Eventhough the base PPC ABI states that a toplevel frame entry
+   should to feature a null backchain, AIX might expose a null return
+   address instead.  */
+
+#define STOP_FRAME(CURRENT, TOP_STACK) \
+  (((void *) (CURRENT) < (TOP_STACK)) \
+   || (CURRENT)->return_address == NULL)
 
 /* The PPC ABI has an interesting specificity: the return address saved by a
    function is located in it's caller's frame, and the save operation only
@@ -332,7 +339,8 @@ struct layout
 #define STOP_FRAME(CURRENT, TOP_STACK) \
   (IS_BAD_PTR((long)(CURRENT)) \
    || IS_BAD_PTR((long)(CURRENT)->return_address) \
-   || (CURRENT)->return_address == 0|| (CURRENT)->next == 0  \
+   || (CURRENT)->return_address == 0 \
+   || (void *) ((CURRENT)->next) < (TOP_STACK)  \
    || (void *) (CURRENT) < (TOP_STACK))
 
 #define BASE_SKIP (1+FRAME_LEVEL)
@@ -482,12 +490,12 @@ __gnat_backtrace (void **array,
   while (cnt < size)
     {
       if (STOP_FRAME (current, top_stack) ||
-	  !VALID_STACK_FRAME((char *)(current->return_address + PC_ADJUST)))
+	  !VALID_STACK_FRAME(((char *) current->return_address) + PC_ADJUST))
         break;
 
       if (current->return_address < exclude_min
 	  || current->return_address > exclude_max)
-        array[cnt++] = current->return_address + PC_ADJUST;
+        array[cnt++] = ((char *) current->return_address) + PC_ADJUST;
 
       current = (struct layout *) ((size_t) current->next + FRAME_OFFSET (1));
     }

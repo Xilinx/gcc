@@ -21,16 +21,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "pph.h"
 #include "tree.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
 #include "tree-pretty-print.h"
 #include "lto-streamer.h"
 #include "pph-streamer.h"
-#include "pph.h"
 #include "tree-pass.h"
 #include "version.h"
 #include "cppbuiltin.h"
+#include "streamer-hooks.h"
 
 /* Return true if the given tree T is streamable.  */
 
