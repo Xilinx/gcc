@@ -1,3 +1,12 @@
+2011-08-10  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/x5dynarray7.h: Remove 2 bogus errors.
+	* g++.dg/pph/x6dynarray6.h: Remove 2 bogus errors.
+	Add 2 bogus errors.
+	* g++.dg/pph/x7dynarray5.cc: Remove 2 bogus errors.
+	* g++.dg/pph/x7dynarray6.cc: Remove 2 bogus errors.
+	* g++.dg/pph/x7dynarray7.cc: Remove 2 bogus errors.
+
 2011-08-09   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c4inline.cc: Update asm diff checksum.
