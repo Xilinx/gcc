@@ -1,3 +1,71 @@
+2011-08-10  Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp: Compile with -fno-dwarf2-cfi-asm to reduce
+	environmental differences.
+	* g++.dg/pph/z0expinstnin1.h: Remove in favor of new tests.
+	* g++.dg/pph/x0tmplfuncninl3.h: New.
+	* g++.dg/pph/x0tmplclass12.h: New.
+	* g++.dg/pph/a0tmplfuncninl_u.h: New.
+	* g++.dg/pph/x4tmplfuncninl.cc: New.
+	* g++.dg/pph/z4tmplfuncninl.cc: New.
+	* g++.dg/pph/x0tmplclass2.h: Remove in favor of new tests.
+	* g++.dg/pph/x1tmplfunc.cc: Remove in favor of new tests.
+	* g++.dg/pph/x0tmplfunc.h: Remove in favor of new tests.
+	* g++.dg/pph/x0tmplfuncinln3.h: New.
+	* g++.dg/pph/x0template2.h: Remove in favor of new tests.
+	* g++.dg/pph/z4expinstinl.cc: Remove in favor of new tests.
+	* g++.dg/pph/x0tmplclass21.h: New.
+	* g++.dg/pph/a0tmplfuncinln_u.h: New.
+	* g++.dg/pph/x4tmplfuncinln.cc: New.
+	* g++.dg/pph/z4tmplfuncinln.cc: New.
+	* g++.dg/pph/z0expinstnin2.h: Remove in favor of new tests.
+	* g++.dg/pph/a0template.h: Remove in favor of new tests.
+	* g++.dg/pph/pph.exp: Enable e and z tests.
+	* g++.dg/pph/z4tmplclass2.cc: New.
+	* g++.dg/pph/x0tmplfuncninl4.h: New.
+	* g++.dg/pph/a0tmplclass2_g.h: New.
+	* g++.dg/pph/x0tmplclass13.h: New.
+	* g++.dg/pph/x1template.cc: Remove in favor of new tests.
+	* g++.dg/pph/a0tmplclass2_s.h: New.
+	* g++.dg/pph/a0tmplclass1_u.h: New.
+	* g++.dg/pph/x4tmplclass1.cc: New.
+	* g++.dg/pph/x0tmplfuncinln4.h: New.
+	* g++.dg/pph/x1tmplclass.cc: Remove in favor of new tests.
+	* g++.dg/pph/a0expinstinl.h: Remove in favor of new tests.
+	* g++.dg/pph/x0tmplclass22.h: New.
+	* g++.dg/pph/x1tmplfuncninl.cc: New.
+	* g++.dg/pph/a0tmplclass.h: Remove in favor of new tests.
+	* g++.dg/pph/x4template.cc: Remove in favor of new tests.
+	* g++.dg/pph/x1tmplclass1.cc: New.
+	* g++.dg/pph/z4nontrivinit.cc: Add xdiff.
+	* g++.dg/pph/e4variables.cc: Add xdiff.
+	* g++.dg/pph/a0tmplfuncninl_g.h: New.
+	* g++.dg/pph/x0tmplfuncninl1.h: New.
+	* g++.dg/pph/z4expinstnin.cc: Remove in favor of new tests.
+	* g++.dg/pph/a0tmplfuncninl_s.h: New.
+	* g++.dg/pph/x0tmplclass14.h: New.
+	* g++.dg/pph/a0expinstnin.h: Remove in favor of new tests.
+	* g++.dg/pph/x1tmplfuncinln.cc: New.
+	* g++.dg/pph/z0expinstinl1.h: Remove in favor of new tests.
+	* g++.dg/pph/a0tmplfuncinln_g.h: New.
+	* g++.dg/pph/x0tmplfuncinln1.h: New.
+	* g++.dg/pph/a0tmplfuncinln_s.h: New.
+	* g++.dg/pph/x0tmplclass23.h: New.
+	* g++.dg/pph/x4tmplclass2.cc: New.
+	* g++.dg/pph/x0tmplfuncninl2.h: New.
+	* g++.dg/pph/a0tmplclass1_g.h: New.
+	* g++.dg/pph/x0tmplclass11.h: New.
+	* g++.dg/pph/e4noninline.cc: Remove xdiff.
+	* g++.dg/pph/a0tmplclass1_s.h: New.
+	* g++.dg/pph/z0expinstinl2.h: Remove in favor of new tests.
+	* g++.dg/pph/a0tmplclass2_u.h: New.
+	* g++.dg/pph/x0tmplclass1.h: Remove in favor of new tests.
+	* g++.dg/pph/x1tmplclass2.cc: New.
+	* g++.dg/pph/z4tmplclass1.cc: New.
+	* g++.dg/pph/x0tmplfuncinln2.h: New.
+	* g++.dg/pph/x0template1.h: Remove in favor of new tests.
+	* g++.dg/pph/x0tmplclass24.h: New.
+
 2011-08-10  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/x5dynarray7.h: Remove 2 bogus errors.

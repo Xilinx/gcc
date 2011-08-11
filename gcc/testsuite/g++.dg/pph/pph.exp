@@ -29,10 +29,9 @@ dg-init
 # FIXME set scenarios [list "" "-g" "-O"]
 set scenarios [list "" ]
 
-# FIXME enable p and z tests when we feel we are ready
-set hdr_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cdpxy\]*.h]]
+set hdr_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cdepxyz\]*.h]]
 set neg_tests [lsort [glob -nocomplain $srcdir/$subdir/\[dy\]*.cc]]
-set pos_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cpx\]*.cc]]
+set pos_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cepxz\]*.cc]]
 
 exec ls $srcdir/$subdir | sed -e /^\[cpdxy\].*\.h$/!d -e s/.*/&\t&/ -e s/\.h$/\.pph/ > pph.map
 exec echo "math.h	math.pph" >> pph.map
