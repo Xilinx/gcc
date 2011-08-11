@@ -1,3 +1,8 @@
+2011-08-11  David Li  <davidxl@google.com>
+
+	* l-ipo.c (process_module_scope_static_var): Handle aliases.
+	(process_module_scope_static_func): New function.
+
 2011-08-02   David Li  <davidxl@google.com>
 
 	Port 53689-p2 and 53705-p2 to v15

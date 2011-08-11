@@ -1846,12 +1846,38 @@ process_module_scope_static_var (struct varpool_node *vnode)
     }
 }
 
+/* Promote all aliases of CNODE.  */
+
+static void
+promote_function_aliases (struct cgraph_node *cnode, unsigned mod_id,
+                          bool is_extern)
+{
+  int i;
+  struct ipa_ref *ref;
+
+  for (i = 0; ipa_ref_list_refering_iterate (&cnode->ref_list, i, ref); i++)
+    {
+      if (ref->use == IPA_REF_ALIAS)
+        {
+          struct cgraph_node *alias = ipa_ref_refering_node (ref);
+          tree alias_decl = alias->decl;
+          /* Should assert  */
+          if (cgraph_get_module_id (alias_decl) == mod_id)
+            promote_static_var_func (mod_id, alias_decl, is_extern);
+        }
+    }
+}
+
 /* Promote static function CNODE->decl to be global.  */
 
 static void
 process_module_scope_static_func (struct cgraph_node *cnode)
 {
   tree decl = cnode->decl;
+  bool addr_taken;
+  unsigned mod_id;
+  struct ipa_ref *ref;
+  int i;
 
   if (TREE_PUBLIC (decl)
       || !TREE_STATIC (decl)
@@ -1865,7 +1891,18 @@ process_module_scope_static_func (struct cgraph_node *cnode)
 
   /* Can be local -- the promotion pass need to be done after
      callgraph build when address taken bit is set.  */
-  if (!cnode->address_taken)
+  addr_taken = cnode->address_taken;
+  if (!addr_taken)
+    {
+      for (i = 0; ipa_ref_list_refering_iterate (&cnode->ref_list, i, ref); i++)
+        if (ref->use == IPA_REF_ALIAS)
+          {
+	    struct cgraph_node *alias = ipa_ref_refering_node (ref);
+	    if (alias->address_taken)
+	      addr_taken = true;
+          }
+    }
+  if (!addr_taken)
     {
       tree assemb_id = create_unique_name (decl, cgraph_get_module_id (decl));
 
@@ -1875,12 +1912,16 @@ process_module_scope_static_func (struct cgraph_node *cnode)
       return;
     }
 
+  mod_id = cgraph_get_module_id (decl);
   if (cgraph_is_auxiliary (decl))
     {
-      gcc_assert (cgraph_get_module_id (decl) != primary_module_id);
+      gcc_assert (mod_id != primary_module_id);
       /* Promote static function to global.  */
-      if (cgraph_get_module_id (decl))
-        promote_static_var_func (cgraph_get_module_id (decl), decl, 1);
+      if (mod_id)
+        {
+          promote_static_var_func (mod_id, decl, 1);
+          promote_function_aliases (cnode, mod_id, 1);
+        }
     }
   else
     {
@@ -1888,8 +1929,10 @@ process_module_scope_static_func (struct cgraph_node *cnode)
           /* skip static_init routines.  */
           && !DECL_ARTIFICIAL (decl))
         {
-          promote_static_var_func (cgraph_get_module_id (decl), decl, 0);
+          promote_static_var_func (mod_id, decl, 0);
           cgraph_mark_if_needed (decl);
+
+          promote_function_aliases (cnode, mod_id, 0);
         }
     }
 }
