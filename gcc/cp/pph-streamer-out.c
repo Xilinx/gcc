@@ -1551,7 +1551,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
       pph_out_tree_common (stream, expr);
       pph_out_tree_or_ref_1 (stream, STATIC_ASSERT_CONDITION (expr), 3);
       pph_out_tree_or_ref_1 (stream, STATIC_ASSERT_MESSAGE (expr), 3);
-      /* FIXME pph: also STATIC_ASSERT_SOURCE_LOCATION (expr).  */
+      pph_out_location (stream, STATIC_ASSERT_SOURCE_LOCATION (expr));
       break;
 
     case ARGUMENT_PACK_SELECT:
@@ -1572,7 +1572,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
         struct tree_lambda_expr *e
             = (struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (expr);
         pph_out_tree_common (stream, expr);
-        /* FIXME pph: also e->locus.  */
+	pph_out_location (stream, e->locus);
         pph_out_tree_or_ref_1 (stream, e->capture_list, 3);
         pph_out_tree_or_ref_1 (stream, e->this_capture, 3);
         pph_out_tree_or_ref_1 (stream, e->return_type, 3);

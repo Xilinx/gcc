@@ -1715,8 +1715,6 @@ pph_read_tree_body (pph_stream *stream, tree expr)
         p->orig_level = pph_in_uint (stream);
         p->num_siblings = pph_in_uint (stream);
         p->decl = pph_in_tree (stream);
-        /* FIXME pph: Is TEMPLATE_PARM_PARAMETER_PACK using TREE_LANG_FLAG_0
-           already handled?  */
       }
       break;
 
@@ -1739,7 +1737,7 @@ pph_read_tree_body (pph_stream *stream, tree expr)
       pph_in_tree_common (stream, expr);
       STATIC_ASSERT_CONDITION (expr) = pph_in_tree (stream);
       STATIC_ASSERT_MESSAGE (expr) = pph_in_tree (stream);
-      /* FIXME pph: also STATIC_ASSERT_SOURCE_LOCATION (expr).  */
+      STATIC_ASSERT_SOURCE_LOCATION (expr) = pph_in_location (stream);
       break;
 
     case ARGUMENT_PACK_SELECT:
@@ -1760,7 +1758,7 @@ pph_read_tree_body (pph_stream *stream, tree expr)
         struct tree_lambda_expr *e
             = (struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (expr);
         pph_in_tree_common (stream, expr);
-        /* FIXME pph: also e->locus.  */
+	e->locus = pph_in_location (stream);
         e->capture_list = pph_in_tree (stream);
         e->this_capture = pph_in_tree (stream);
         e->return_type = pph_in_tree (stream);

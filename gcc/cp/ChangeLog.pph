@@ -1,5 +1,12 @@
 2011-08-11   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_read_tree_body): Read
+	STATIC_ASSERT_SOURCE_LOCATION and tree_lambda_expr::locus.
+	* pph-streamer-out.c (pph_write_tree_body): Write
+	STATIC_ASSERT_SOURCE_LOCATION and tree_labmda_expr::locus.
+
+2011-08-11   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_in_shared_data): Remove.  Update all users.
 	(pph_register_shared_data): Remove.  Update all users.
 
