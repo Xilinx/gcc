@@ -53,7 +53,7 @@ static VEC(char_p,heap) *string_tables = NULL;
 #define ALLOC_AND_REGISTER(STREAM, IX, DATA, ALLOC_EXPR)	\
     do {							\
       (DATA) = (ALLOC_EXPR);					\
-      pph_register_shared_data (STREAM, DATA, IX);		\
+      pph_cache_insert_at (STREAM, DATA, IX);			\
     } while (0)
 
 /* Same as ALLOC_AND_REGISTER, but instead of registering DATA into the
@@ -63,9 +63,9 @@ static VEC(char_p,heap) *string_tables = NULL;
    the current translation unit (see pph_in_binding_level for an
    example).  */
 #define ALLOC_AND_REGISTER_ALTERNATE(STREAM, IX, DATA, ALLOC_EXPR, ALT_DATA)\
-    do {								\
-      (DATA) = (ALLOC_EXPR);						\
-      pph_register_shared_data (STREAM, ALT_DATA, IX);			\
+    do {							\
+      (DATA) = (ALLOC_EXPR);					\
+      pph_cache_insert_at (STREAM, ALT_DATA, IX);		\
     } while (0)
 
 /* Set in pph_in_and_merge_line_table. Represents the source_location offset
@@ -177,30 +177,6 @@ pph_in_start_record (pph_stream *stream, unsigned *cache_ix)
     }
 
   return marker;
-}
-
-
-/* Return a shared pointer from the streamer cache in STREAM.  This is
-   called when pph_in_start_record returns PPH_RECORD_SHARED.  It means
-   that the data structure we are about to read has been instantiated
-   before and is present in the streamer cache.  */
-
-static void *
-pph_in_shared_data (pph_stream *stream, unsigned ix)
-{
-  return pph_cache_get (stream, ix);
-}
-
-
-/* Register DATA in STREAM's cache slot IX.  This is called when a
-   potentially shared data structure is first read from STREAM.
-   Subsequent reads of this data structure will get the index from the
-   table cache where this data was saved.  */
-
-static void
-pph_register_shared_data (pph_stream *stream, void *data, unsigned ix)
-{
-  pph_cache_insert_at (stream, data, ix);
 }
 
 
@@ -489,7 +465,7 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cxx_binding *) pph_in_shared_data (stream, ix);
+    return (cxx_binding *) pph_cache_get (stream, ix);
 
   value = pph_in_tree (stream);
   type = pph_in_tree (stream);
@@ -537,7 +513,7 @@ pph_in_class_binding (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cp_class_binding *) pph_in_shared_data (stream, ix);
+    return (cp_class_binding *) pph_cache_get (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, cb, ggc_alloc_cleared_cp_class_binding ());
   cb->base = pph_in_cxx_binding (stream);
@@ -560,7 +536,7 @@ pph_in_label_binding (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cp_label_binding *) pph_in_shared_data (stream, ix);
+    return (cp_label_binding *) pph_cache_get (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lb, ggc_alloc_cleared_cp_label_binding ());
   lb->label = pph_in_tree (stream);
@@ -600,7 +576,7 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cp_binding_level *) pph_in_shared_data (stream, ix);
+    return (cp_binding_level *) pph_cache_get (stream, ix);
 
   /* If TO_REGISTER is set, register that binding level instead of the newly
      allocated binding level into slot IX.  */
@@ -676,8 +652,7 @@ pph_in_c_language_function (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct c_language_function *) pph_in_shared_data (stream,
-	                                                               ix);
+    return (struct c_language_function *) pph_cache_get (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, clf,
 		      ggc_alloc_cleared_c_language_function ());
@@ -702,7 +677,7 @@ pph_in_language_function (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct language_function *) pph_in_shared_data (stream, ix);
+    return (struct language_function *) pph_cache_get (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lf, ggc_alloc_cleared_language_function ());
   memcpy (&lf->base, pph_in_c_language_function (stream),
@@ -899,7 +874,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
   else if (marker == PPH_RECORD_SHARED)
     {
       DECL_LANG_SPECIFIC (decl) =
-	(struct lang_decl *) pph_in_shared_data (stream, ix);
+	(struct lang_decl *) pph_cache_get (stream, ix);
       return;
     }
 
@@ -909,7 +884,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
 
   /* Now register it.  We would normally use ALLOC_AND_REGISTER,
      but retrofit_lang_decl does not return a pointer.  */
-  pph_register_shared_data (stream, ld, ix);
+  pph_cache_insert_at (stream, ld, ix);
 
   /* Read all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
@@ -943,8 +918,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
 /* Read all the fields in lang_type_header instance LTH from STREAM.  */
 
 static void
-pph_in_lang_type_header (pph_stream *stream,
-				  struct lang_type_header *lth)
+pph_in_lang_type_header (pph_stream *stream, struct lang_type_header *lth)
 {
   struct bitpack_d bp;
 
@@ -994,7 +968,7 @@ pph_in_sorted_fields_type (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct sorted_fields_type *) pph_in_shared_data (stream, ix);
+    return (struct sorted_fields_type *) pph_cache_get (stream, ix);
 
   num_fields = pph_in_uint (stream);
   ALLOC_AND_REGISTER (stream, ix, v, sorted_fields_type_new (num_fields));
@@ -1071,10 +1045,10 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   if (marker == PPH_RECORD_START)
     {
       ltc->nested_udts = pph_in_binding_table (stream);
-      pph_register_shared_data (stream, ltc->nested_udts, ix);
+      pph_cache_insert_at (stream, ltc->nested_udts, ix);
     }
   else if (marker == PPH_RECORD_SHARED)
-    ltc->nested_udts = (binding_table) pph_in_shared_data (stream, ix);
+    ltc->nested_udts = (binding_table) pph_cache_get (stream, ix);
 
   ltc->as_base = pph_in_tree (stream);
   ltc->pure_virtuals = pph_in_tree_vec (stream);
@@ -1113,7 +1087,7 @@ pph_in_lang_type (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct lang_type *) pph_in_shared_data (stream, ix);
+    return (struct lang_type *) pph_cache_get (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lt,
 		      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
@@ -1994,7 +1968,7 @@ pph_read_tree_header (pph_stream *stream, tree *expr_p, unsigned ix)
     }
 
   /* Add *EXPR_P to the pickle cache at slot IX.  */
-  pph_register_shared_data (stream, *expr_p, ix);
+  pph_cache_insert_at (stream, *expr_p, ix);
 
   return fully_read_p;
 }
@@ -2017,7 +1991,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (tree) pph_in_shared_data (stream, ix);
+    return (tree) pph_cache_get (stream, ix);
 
   /* We did not find the tree in the pickle cache, allocate the tree by
      reading the header fields (different tree nodes need to be
