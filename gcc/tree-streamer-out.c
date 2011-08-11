@@ -557,8 +557,8 @@ static void
 lto_output_ts_function_decl_tree_pointers (struct output_block *ob, tree expr,
 					   bool ref_p)
 {
-  /* DECL_STRUCT_FUNCTION is handled by lto_streamer-out.c:output_function
-     or by pph-specific code.  */
+  /* DECL_STRUCT_FUNCTION is handled by lto_output_function.  FIXME lto,
+     maybe it should be handled here?  */
   stream_write_tree (ob, DECL_FUNCTION_PERSONALITY (expr), ref_p);
   stream_write_tree (ob, DECL_FUNCTION_SPECIFIC_TARGET (expr), ref_p);
   stream_write_tree (ob, DECL_FUNCTION_SPECIFIC_OPTIMIZATION (expr), ref_p);

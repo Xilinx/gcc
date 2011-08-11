@@ -1,3 +1,7 @@
+2011-08-11   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 177665.
+
 2011-08-10   Diego Novillo  <dnovillo@google.com>
 
 	* tree-streamer-out.c (lto_output_ts_decl_with_vis_tree_pointers):
