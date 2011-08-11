@@ -33,52 +33,35 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "streamer-hooks.h"
 
-/* Return true if the given tree T is streamable.  */
+/* Pre-load common tree nodes into the pickle cache in STREAM.  These
+   nodes are always built by the front end, so there is no need to
+   pickle them.
 
-static bool
-pph_is_streamable (tree t ATTRIBUTE_UNUSED)
-{
-  /* We accept most trees.  */
-  return TREE_CODE (t) != SSA_NAME
-	 && (TREE_CODE (t) < OMP_PARALLEL
-	     || TREE_CODE (t) > OMP_CRITICAL);
-}
-
-
-/* Return true if T can be emitted in the decls table as a reference.
-   This should only handle C++ specific declarations.  All others are
-   handled by the LTO streamer directly.  */
-
-static bool
-pph_indexable_with_decls_p (tree t)
-{
-  return TREE_CODE (t) == TEMPLATE_DECL;
-}
-
-
-/* Pre-load common tree nodes into CACHE.  These nodes are always built by
-   the front end, so there is no need to pickle them.  */
+   FIXME pph - Every stream will have its own pickle cache.  Many
+   entries in all those caches will be the same.  Implement a common
+   cache for everything we preload here so that we do not have to
+   preload every cache we instantiate.  */
 
 static void
-pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
+pph_cache_preload (pph_stream *stream)
 {
   unsigned i;
 
   for (i = itk_char; i < itk_none; i++)
-    lto_streamer_cache_append (cache, integer_types[i]);
+    pph_cache_add (stream, integer_types[i], NULL);
 
   for (i = 0; i < TYPE_KIND_LAST; i++)
-    lto_streamer_cache_append (cache, sizetype_tab[i]);
+    pph_cache_add (stream, sizetype_tab[i], NULL);
 
   /* global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < TI_MAX; i++)
     if (global_trees[i])
-      lto_streamer_cache_append (cache, global_trees[i]);
+      pph_cache_add (stream, global_trees[i], NULL);
 
   /* c_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CTI_MAX; i++)
     if (c_global_trees[i])
-      lto_streamer_cache_append (cache, c_global_trees[i]);
+      pph_cache_add (stream, c_global_trees[i], NULL);
 
   /* cp_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CPTI_MAX; i++)
@@ -88,12 +71,13 @@ pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
 	continue;
 
       if (cp_global_trees[i])
-	lto_streamer_cache_append (cache, cp_global_trees[i]);
+	pph_cache_add (stream, cp_global_trees[i], NULL);
     }
 
-  lto_streamer_cache_append (cache, global_namespace);
-
-  lto_streamer_cache_append (cache, DECL_CONTEXT (global_namespace));
+  /* Add other well-known nodes that should always be taken from the
+     current compilation context.  */
+  pph_cache_add (stream, global_namespace, NULL);
+  pph_cache_add (stream, DECL_CONTEXT (global_namespace), NULL);
 }
 
 
@@ -103,19 +87,10 @@ static void
 pph_hooks_init (void)
 {
   streamer_hooks_init ();
-  streamer_hooks.name = "C++ AST";
-  streamer_hooks.preload_common_nodes = pph_preload_common_nodes;
-  streamer_hooks.is_streamable = pph_is_streamable;
   streamer_hooks.write_tree = pph_write_tree;
   streamer_hooks.read_tree = pph_read_tree;
-  streamer_hooks.pack_value_fields = pph_pack_value_fields;
-  streamer_hooks.indexable_with_decls_p = pph_indexable_with_decls_p;
-  streamer_hooks.unpack_value_fields = pph_unpack_value_fields;
-  streamer_hooks.alloc_tree = pph_alloc_tree;
-  streamer_hooks.output_tree_header = pph_out_tree_header;
   streamer_hooks.input_location = pph_read_location;
   streamer_hooks.output_location = pph_write_location;
-  streamer_hooks.has_unique_integer_csts_p = true;
 }
 
 
@@ -145,6 +120,8 @@ pph_stream_open (const char *name, const char *mode)
     pph_init_write (stream);
   else
     pph_init_read (stream);
+
+  pph_cache_preload (stream);
 
   return stream;
 }
@@ -433,15 +410,7 @@ pph_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
   void **map_slot;
 
   map_slot = pointer_map_insert (stream->cache.m, data);
-  if (*map_slot)
-    {
-      /* DATA already existed in the cache.  Do nothing, but check
-	 that we are trying to insert DATA in the same slot that we
-	 had it in before.  */
-      unsigned HOST_WIDE_INT prev_ix = (unsigned HOST_WIDE_INT) *map_slot;
-      gcc_assert (prev_ix == ix);
-    }
-  else
+  if (*map_slot == NULL)
     {
       *map_slot = (void *) (unsigned HOST_WIDE_INT) ix;
       if (ix + 1 > VEC_length (void_p, stream->cache.v))
@@ -451,9 +420,10 @@ pph_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
 }
 
 
-/* Add pointer DATA to the pickle cache in STREAM.  On exit, *IX_P will
-   contain the slot number where DATA is stored.  Return true if DATA
-   already existed in the cache, false otherwise.  */
+/* Add pointer DATA to the pickle cache in STREAM.  If IX_P is not
+   NULL, on exit *IX_P will contain the slot number where DATA is
+   stored.  Return true if DATA already existed in the cache, false
+   otherwise.  */
 
 bool
 pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
@@ -477,7 +447,8 @@ pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
       existed_p = true;
     }
 
-  *ix_p = ix;
+  if (ix_p)
+    *ix_p = ix;
 
   return existed_p;
 }

@@ -199,8 +199,6 @@ void *pph_cache_get (pph_stream *, unsigned);
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
-void pph_pack_value_fields (struct bitpack_d *, tree);
-void pph_out_tree_header (struct output_block *, tree);
 void pph_add_decl_to_symtab (tree);
 void pph_add_include (pph_stream *);
 void pph_writer_init (void);
@@ -214,10 +212,7 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
-void pph_read_tree (struct lto_input_block *, struct data_in *, tree);
-void pph_unpack_value_fields (struct bitpack_d *, tree);
-tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
-	             struct data_in *);
+tree pph_read_tree (struct lto_input_block *, struct data_in *);
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
 void pph_read_file (const char *);
 
@@ -236,7 +231,7 @@ pph_out_tree (pph_stream *stream, tree t)
 {
   if (flag_pph_tracer >= 1)
     pph_trace_tree (stream, t);
-  lto_output_tree (stream->encoder.w.ob, t, false);
+  pph_write_tree (stream->encoder.w.ob, t, false);
 }
 
 /* Output array A of cardinality C of ASTs to STREAM.  */
@@ -250,7 +245,7 @@ pph_out_tree_array (pph_stream *stream, tree *a, size_t c)
     {
       if (flag_pph_tracer >= 1)
         pph_trace_tree (stream, a[i]);
-      lto_output_tree (stream->encoder.w.ob, a[i]);
+      pph_write_tree (stream->encoder.w.ob, a[i]);
     }
 }
 #endif
@@ -262,7 +257,7 @@ pph_out_tree_or_ref_1 (pph_stream *stream, tree t, int tlevel)
 {
   if (flag_pph_tracer >= tlevel)
     pph_trace_tree (stream, t);
-  lto_output_tree (stream->encoder.w.ob, t, false);
+  pph_write_tree (stream->encoder.w.ob, t, false);
 }
 
 /* Output AST T to STREAM.  Trigger tracing at -fpph-tracer=2.  */
@@ -335,7 +330,7 @@ pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
     {
       if (flag_pph_tracer >= 1)
         pph_trace_tree (stream, t);
-      lto_output_tree (stream->encoder.w.ob, t);
+      pph_write_tree (stream->encoder.w.ob, t);
     }
 }
 #endif
@@ -430,7 +425,7 @@ pph_in_location (pph_stream *stream)
 static inline tree
 pph_in_tree (pph_stream *stream)
 {
-  tree t = lto_input_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
+  tree t = pph_read_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
   if (flag_pph_tracer >= 4)
     pph_trace_tree (stream, t);
   return t;
@@ -445,7 +440,7 @@ pph_in_tree_array (pph_stream *stream, tree *a, size_t c)
   size_t i;
   for (i = 0; i < c; ++i)
     {
-      tree t = lto_input_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
+      tree t = pph_read_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
       if (flag_pph_tracer >= 4)
         pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
       a[i] = t;
@@ -463,7 +458,7 @@ pph_in_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
   unsigned int c = pph_in_uint (stream);
   for (i = 0; i < c; ++i)
     {
-      tree t = lto_input_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
+      tree t = pph_read_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
       if (flag_pph_tracer >= 4)
         pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
       VEC_safe_push (tree, gc, v, t);

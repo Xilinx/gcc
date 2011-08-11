@@ -72,44 +72,6 @@ static VEC(char_p,heap) *string_tables = NULL;
    which every streamed in token must add to it's serialized source_location. */
 static int pph_loc_offset;
 
-/* Callback for unpacking value fields in ASTs.  BP is the bitpack 
-   we are unpacking from.  EXPR is the tree to unpack.  */
-
-void
-pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
-{
-  if (TYPE_P (expr))
-    {
-      TYPE_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
-      TYPE_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
-      TYPE_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
-      TYPE_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
-      TYPE_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
-      TYPE_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
-      TYPE_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
-    }
-  else if (DECL_P (expr))
-    {
-      DECL_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_7 (expr) = bp_unpack_value (bp, 1);
-      DECL_LANG_FLAG_8 (expr) = bp_unpack_value (bp, 1);
-    }
-
-  TREE_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
-  TREE_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
-  TREE_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
-  TREE_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
-  TREE_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
-  TREE_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
-  TREE_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
-}
-
 
 /* Read into memory the contents of the file in STREAM.  Initialize
    internal tables and data structures needed to re-construct the
@@ -978,28 +940,6 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
 }
 
 
-/* Allocate a tree node with code CODE.  IB and DATA_IN are used to
-   read more data from the stream, if needed to build this node.
-   Return NULL if we did not want to handle this node.  In that case,
-   the caller will call make_node to allocate this tree.  */
-
-tree
-pph_alloc_tree (enum tree_code code,
-	               struct lto_input_block *ib ATTRIBUTE_UNUSED,
-		       struct data_in *data_in)
-{
-  pph_stream *stream = (pph_stream *) data_in->sdata;
-
-  if (code == CALL_EXPR)
-    {
-      unsigned nargs = pph_in_uint (stream);
-      return build_vl_exp (CALL_EXPR, nargs + 3);
-    }
-
-  return NULL_TREE;
-}
-
-
 /* Read all the fields in lang_type_header instance LTH from STREAM.  */
 
 static void
@@ -1640,17 +1580,19 @@ pph_in_function_decl (pph_stream *stream, tree fndecl)
 }
 
 
-/* Callback for reading ASTs from a stream.  This reads all the fields
-   that are not processed by default by the common tree pickler.
-   IB, DATA_IN are as in lto_read_tree.  EXPR is the partially materialized
-   tree.  */
 
-void
-pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
-	       struct data_in *data_in, tree expr)
+/* Read the body fields of EXPR from STREAM.  */
+
+static void
+pph_read_tree_body (pph_stream *stream, tree expr)
 {
-  pph_stream *stream = (pph_stream *) data_in->sdata;
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  struct data_in *data_in = stream->encoder.r.data_in;
 
+  /* Read the language-independent parts of EXPR's body.  */
+  lto_input_tree_pointers (ib, data_in, expr);
+
+  /* Read all the language-dependent fields.  */
   switch (TREE_CODE (expr))
     {
     /* TREES NEEDING EXTRA WORK */
@@ -1958,4 +1900,131 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
         fprintf (pph_logfile, "PPH: unrecognized tree node %s\n",
                  tree_code_name[TREE_CODE (expr)]);
     }
+}
+
+
+/* Unpack language-dependent bitfields from BP into EXPR.  */
+
+static void
+pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
+{
+  if (TYPE_P (expr))
+    {
+      TYPE_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
+    }
+  else if (DECL_P (expr))
+    {
+      DECL_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_7 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_8 (expr) = bp_unpack_value (bp, 1);
+    }
+
+  TREE_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
+}
+
+
+/* Read a tree header from STREAM and allocate a memory instance for it.
+   Store the new tree in *EXPR_P and write it into the pickle cache at
+   slot IX.
+
+   The return code will indicate whether the caller needs to keep
+   reading the body for *EXPR_P.  Some trees are simple enough that
+   they are completely contained in the header.  In these cases, no
+   more reading is necessary, so we return true.  Otherwise, return
+   false to indicate that the caller should read the body of the tree.  */
+
+static bool
+pph_read_tree_header (pph_stream *stream, tree *expr_p, unsigned ix)
+{
+  enum LTO_tags tag;
+  bool fully_read_p;
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  struct data_in *data_in = stream->encoder.r.data_in;
+
+  tag = input_record_start (ib);
+  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
+
+  if (tag == LTO_builtin_decl)
+    {
+      /* If we are going to read a built-in function, all we need is
+	 the code and class.  */
+      *expr_p = lto_get_builtin_tree (ib, data_in);
+      fully_read_p = true;
+    }
+  else if (tag == lto_tree_code_to_tag (INTEGER_CST))
+    {
+      /* For integer constants we only need the type and its hi/low
+	 words.  */
+      *expr_p = lto_input_integer_cst (ib, data_in);
+      fully_read_p = true;
+    }
+  else
+    {
+      struct bitpack_d bp;
+
+      /* Otherwise, materialize a new node from IB.  This will also read
+	 all the language-independent bitfields for the new tree.  */
+      *expr_p = lto_materialize_tree (ib, data_in, tag);
+
+      /* Read the language-independent bitfields for *EXPR_P.  */
+      bp = tree_read_bitfields (ib, *expr_p);
+
+      /* Unpack all language-dependent bitfields.  */
+      pph_unpack_value_fields (&bp, *expr_p);
+
+      fully_read_p = false;
+    }
+
+  /* Add *EXPR_P to the pickle cache at slot IX.  */
+  pph_register_shared_data (stream, *expr_p, ix);
+
+  return fully_read_p;
+}
+
+
+/* Callback for reading ASTs from a stream.  Instantiate and return a
+   new tree from the PPH stream in DATA_IN.  */
+
+tree
+pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
+	       struct data_in *data_in)
+{
+  pph_stream *stream = (pph_stream *) data_in->sdata;
+  tree expr;
+  bool fully_read_p;
+  enum pph_record_marker marker;
+  unsigned ix;
+
+  marker = pph_in_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (tree) pph_in_shared_data (stream, ix);
+
+  /* We did not find the tree in the pickle cache, allocate the tree by
+     reading the header fields (different tree nodes need to be
+     allocated in different ways).  */
+  fully_read_p = pph_read_tree_header (stream, &expr, ix);
+  if (!fully_read_p)
+    pph_read_tree_body (stream, expr);
+
+  return expr;
 }

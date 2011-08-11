@@ -39,44 +39,6 @@ along with GCC; see the file COPYING3.  If not see
    cp_rest_of_decl_compilation).  */
 static pph_stream *pph_out_stream = NULL;
 
-/* Callback for packing value fields in ASTs.  BP is the bitpack 
-   we are packing into.  EXPR is the tree to pack.  */
-
-void
-pph_pack_value_fields (struct bitpack_d *bp, tree expr)
-{
-  if (TYPE_P (expr))
-    {
-      bp_pack_value (bp, TYPE_LANG_FLAG_0 (expr), 1);
-      bp_pack_value (bp, TYPE_LANG_FLAG_1 (expr), 1);
-      bp_pack_value (bp, TYPE_LANG_FLAG_2 (expr), 1);
-      bp_pack_value (bp, TYPE_LANG_FLAG_3 (expr), 1);
-      bp_pack_value (bp, TYPE_LANG_FLAG_4 (expr), 1);
-      bp_pack_value (bp, TYPE_LANG_FLAG_5 (expr), 1);
-      bp_pack_value (bp, TYPE_LANG_FLAG_6 (expr), 1);
-    }
-  else if (DECL_P (expr))
-    {
-      bp_pack_value (bp, DECL_LANG_FLAG_0 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_1 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_2 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_3 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_4 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_5 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_6 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_7 (expr), 1);
-      bp_pack_value (bp, DECL_LANG_FLAG_8 (expr), 1);
-    }
-
-  bp_pack_value (bp, TREE_LANG_FLAG_0 (expr), 1);
-  bp_pack_value (bp, TREE_LANG_FLAG_1 (expr), 1);
-  bp_pack_value (bp, TREE_LANG_FLAG_2 (expr), 1);
-  bp_pack_value (bp, TREE_LANG_FLAG_3 (expr), 1);
-  bp_pack_value (bp, TREE_LANG_FLAG_4 (expr), 1);
-  bp_pack_value (bp, TREE_LANG_FLAG_5 (expr), 1);
-  bp_pack_value (bp, TREE_LANG_FLAG_6 (expr), 1);
-}
-
 
 /* Initialize buffers and tables in STREAM for writing.  */
 
@@ -1378,20 +1340,6 @@ pph_write_file (pph_stream *stream)
 }
 
 
-/* Write header information for some AST nodes not handled by the
-   common streamer code.  EXPR is the tree to write to output block
-   OB.  If EXPR does not need to be handled specially, do nothing.  */
-
-void
-pph_out_tree_header (struct output_block *ob, tree expr)
-{
-  pph_stream *stream = (pph_stream *) ob->sdata;
-
-  if (TREE_CODE (expr) == CALL_EXPR)
-    pph_out_uint (stream, call_expr_nargs (expr));
-}
-
-
 /* Emit the fields of FUNCTION_DECL FNDECL to STREAM.  */
 
 static void
@@ -1410,16 +1358,23 @@ pph_out_function_decl (pph_stream *stream, tree fndecl)
 }
 
 
-/* Callback for writing ASTs to a stream.  This writes all the fields
-   that are not processed by default by the common tree pickler.
-   OB is as in lto_write_tree.  EXPR is the tree to write.  */
+/* Write the body of EXPR to STREAM.  This writes out all fields not
+   written by the generic tree streaming routines.  */
 
-void
-pph_write_tree (struct output_block *ob, tree expr,
-		bool ref_p ATTRIBUTE_UNUSED)
+static void
+pph_write_tree_body (pph_stream *stream, tree expr)
 {
-  pph_stream *stream = (pph_stream *) ob->sdata;
+  /* Write the language-independent parts of EXPR's body.  */
+  lto_output_tree_pointers (stream->encoder.w.ob, expr, false);
 
+  /* The following trees have language-dependent information that is
+     not written by the generic tree streaming routines.  Handle them
+     here.
+
+     FIXME pph.  This could be handled using TS_* markers in
+     treestruct.def but those markers are not complete.  To fix this,
+     embed the TS_* directly in the tree node definitions in tree.def
+     and cp/cp-tree.def.  */
   switch (TREE_CODE (expr))
     {
     /* TREES NEEDING EXTRA WORK */
@@ -1729,6 +1684,108 @@ pph_write_tree (struct output_block *ob, tree expr,
       if (flag_pph_untree)
         fprintf (pph_logfile, "PPH: unrecognized tree node %s\n",
                  tree_code_name[TREE_CODE (expr)]);
+    }
+}
+
+
+/* Pack all the bitfields of EXPR into BP.  */
+
+static void
+pph_pack_value_fields (struct bitpack_d *bp, tree expr)
+{
+  /* First pack all the language-independent bitfields.  */
+  pack_value_fields (bp, expr);
+
+  /* Now pack all the bitfields not handled by the generic packer.  */
+  if (TYPE_P (expr))
+    {
+      bp_pack_value (bp, TYPE_LANG_FLAG_0 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_1 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_2 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_3 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_4 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_5 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_6 (expr), 1);
+    }
+  else if (DECL_P (expr))
+    {
+      bp_pack_value (bp, DECL_LANG_FLAG_0 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_1 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_2 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_3 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_4 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_5 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_6 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_7 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_8 (expr), 1);
+    }
+
+  bp_pack_value (bp, TREE_LANG_FLAG_0 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_1 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_2 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_3 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_4 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_5 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_6 (expr), 1);
+}
+
+
+/* Write the header fields for EXPR to STREAM.  This header contains
+   all the data needed to rematerialize EXPR on the reader side and
+   a bitpack with all the bitfield values in EXPR.  */
+
+static void
+pph_write_tree_header (pph_stream *stream, tree expr)
+{
+  struct bitpack_d bp;
+  struct output_block *ob = stream->encoder.w.ob;
+
+  /* Write the header, containing everything needed to materialize EXPR
+     on the reading side.  */
+  lto_output_tree_header (ob, expr);
+
+  /* Pack all the non-pointer fields in EXPR into a bitpack and write
+     the resulting bitpack.  */
+  bp = bitpack_create (ob->main_stream);
+  pph_pack_value_fields (&bp, expr);
+  pph_out_bitpack (stream, &bp);
+}
+
+
+/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
+   in OB.  */
+
+void
+pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+{
+  pph_stream *stream = (pph_stream *) ob->sdata;
+
+  /* If EXPR is NULL or it already existed in the pickle cache,
+     nothing else needs to be done.  */
+  if (!pph_out_start_record (stream, expr))
+    return;
+
+  if (lto_stream_as_builtin_p (expr))
+    {
+      /* MD and NORMAL builtins do not need to be written out
+	 completely as they are always instantiated by the
+	 compiler on startup.  The only builtins that need to
+	 be written out are BUILT_IN_FRONTEND.  For all other
+	 builtins, we simply write the class and code.  */
+      lto_output_builtin_tree (ob, expr);
+    }
+  else if (TREE_CODE (expr) == INTEGER_CST)
+    {
+      /* INTEGER_CST nodes are special because they need their
+	 original type to be materialized by the reader (to implement
+	 TYPE_CACHED_VALUES).  */
+      lto_output_integer_cst (ob, expr, ref_p);
+    }
+  else
+    {
+      /* This is the first time we see EXPR, write it out.  */
+      pph_write_tree_header (stream, expr);
+      pph_write_tree_body (stream, expr);
     }
 }
 

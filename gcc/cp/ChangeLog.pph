@@ -1,3 +1,43 @@
+2011-08-10   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_unpack_value_fields): Make static.
+	Move down in the file.
+	(pph_alloc_tree): Remove.
+	(pph_read_tree_body): Factor out of pph_read_tree.
+	Call lto_input_tree_pointers.
+	(pph_read_tree_header): New.
+	(pph_read_tree): Call pph_read_tree_header and
+	pph_read_tree_body.
+	* pph-streamer-out.c (pph_pack_value_fields): Make static.
+	Move down in the file.
+	(pph_out_tree_header): Remove.
+	(pph_write_tree_body): Factor out of pph_write_tree.
+	Call lto_output_tree_pointers.
+	(pph_write_tree_header): New.
+	(pph_write_tree): Call lto_output_builtin_tree,
+	pph_write_tree_header and pph_write_tree_body.
+	* pph-streamer.c (pph_is_streamable): Remove.
+	(pph_indexable_with_decls_p): Remove.
+	(pph_cache_preload): Rename from pph_preload_common_nodes.
+	Re-implement using pickle cache in struct pph_stream.
+	(pph_hooks_init): Remove setting for all removed hooks.
+	(pph_stream_open): Call pph_cache_preload.
+	(pph_cache_insert_at): Allow the same pointer to be at two
+	different cache locations.
+	(pph_cache_add): If IX_P is NULL, do not try to set it.
+	* pph-streamer.h (pph_pack_value_fields): Remove.
+	(pph_out_tree_header): Remove.
+	(pph_unpack_value_fields): Remove.
+	(pph_alloc_tree): Remove.
+	(pph_read_tree): Update prototype.
+	(pph_out_tree): Call pph_write_tree instead of lto_output_tree.
+	(pph_out_tree_array): Likewise.
+	(pph_out_tree_or_ref_1): Likewise.
+	(pph_out_tree_VEC): Likewise.
+	(pph_in_tree): Call pph_read_tree instead of lto_input_tree.
+	(pph_in_tree_array): Likewise.
+	(pph_in_tree_VEC): Likewise.
+
 2011-08-09   Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (CXX_PPH_STREAMER_H): Add DATA_STREAMER_H

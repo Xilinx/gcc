@@ -1,3 +1,9 @@
+2011-08-10   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1tmplclass2.cc: Update expected ICE message.
+	* g++.dg/pph/x4tmplclass2.cc: Likewise.
+	* g++.dg/pph/z4tmplclass2.cc: Likewise.
+
 2011-08-10  Lawrence Crowl  <crowl@google.com>
 
 	* lib/dg-pph.exp: Compile with -fno-dwarf2-cfi-asm to reduce
