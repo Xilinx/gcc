@@ -1,5 +1,38 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* config/x86/tls.h (gtm_tx, set_gtm_tx, setup_gtm_thr): Removed.
+	(abi_disp, set_abi_disp): Move to tx's TLS slot.
+	(set_gtm_thr): New.
+	* config/generic/tls.h (gtm_tx, set_gtm_tx, setup_gtm_thr): Removed.
+	(set_gtm_thr): New.
+	(GTM::gtm_thread::thread_num): Removed.
+	(GTM::gtm_thread): Renamed to GTM::gtm_thread_tls.
+	* libitm_i.h (GTM::gtm_transaction): Renamed to GTM::gtm_thread. More
+	tx-to-thread renaming.
+	* beginend.cc: Adapted to tx-to-thread renaming.
+	(GTM::gtm_thread::~gtm_thread): Extracted from thread_exit_handler().
+	(GTM::gtm_thread::gtm_thread): Extracted from begin_transaction().
+	* query.cc (_ITM_getTransactionId, _ITM_inTransaction): Renamed
+	gtm_transaction to gtm_thread.
+	(_ITM_getThreadnum): Removed. Not supported anymore.
+	* testsuite/libitm.c/notx.c (main): Removed _ITM_getThreadnum call.
+	* libitm.texi: Documented that _ITM_getThreadnum is not supported.
+	* useraction.cc: Renamed gtm_transaction to gtm_thread. Adapted to
+	gtm_tx-to-gtm_thr renaming if necessary.
+	* eh_cpp.cc: Same.
+	* local.cc: Same.
+	* retry.cc: Same.
+	* clone.cc: Same.
+	* alloc.cc: Same.
+	* alloc_c.cc: Same.
+	* alloc_cpp.cc: Same.
+	* method-serial.cc: Same.
+	* config/generic/tls.cc: Same.
+	* config/posix/rwlock.h (gtm_rwlock): Same.
+	* config/posix/rwlock.cc: Same. Adapted to more tx-to-thread renaming.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* config/posix/rwlock.cc (gtm_rwlock::read_lock): Changed locking
 	implementation.
 	(gtm_rwlock::read_unlock): Same.

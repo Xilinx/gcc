@@ -46,33 +46,33 @@ void *
 _ITM_cxa_allocate_exception (size_t size)
 {
   void *r = __cxa_allocate_exception (size);
-  gtm_tx()->cxa_unthrown = r;
+  gtm_thr()->cxa_unthrown = r;
   return r;
 }
 
 void
 _ITM_cxa_throw (void *obj, void *tinfo, void *dest)
 {
-  gtm_tx()->cxa_unthrown = NULL;
+  gtm_thr()->cxa_unthrown = NULL;
   __cxa_throw (obj, tinfo, dest);
 }
 
 void *
 _ITM_cxa_begin_catch (void *exc_ptr)
 {
-  gtm_tx()->cxa_catch_count++;
+  gtm_thr()->cxa_catch_count++;
   return __cxa_begin_catch (exc_ptr);
 }
 
 void
 _ITM_cxa_end_catch (void)
 {
-  gtm_tx()->cxa_catch_count--;
+  gtm_thr()->cxa_catch_count--;
   __cxa_end_catch ();
 }
 
 void
-GTM::gtm_transaction::revert_cpp_exceptions (gtm_transaction_cp *cp)
+GTM::gtm_thread::revert_cpp_exceptions (gtm_transaction_cp *cp)
 {
   if (cp)
     {

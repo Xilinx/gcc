@@ -27,53 +27,37 @@
 
 namespace GTM HIDDEN {
 
-// All thread-local data required by the entire library.
-struct gtm_thread
+#if !defined(HAVE_ARCH_GTM_THREAD) || !defined(HAVE_ARCH_GTM_THREAD_DISP)
+// Provides a single place to store all this libraries thread-local data.
+struct gtm_thread_tls
 {
-#ifndef HAVE_ARCH_GTM_THREAD_TX
+#ifndef HAVE_ARCH_GTM_THREAD
   // The currently active transaction.  Elided if the target provides
   // some efficient mechanism for storing this.
-  gtm_transaction *tx;
+  gtm_thread *thr;
 #endif
 #ifndef HAVE_ARCH_GTM_THREAD_DISP
   // The dispatch table for the STM implementation currently in use.  Elided
   // if the target provides some efficient mechanism for storing this.
   abi_dispatch *disp;
 #endif
-
-  // The value returned by _ITM_getThreadnum to identify this thread.
-  // ??? At present, this is densely allocated beginning with 1 and
-  // we don't bother filling in this value until it is requested.
-  // Which means that the value returned is, as far as the user is
-  // concerned, essentially arbitrary.  We wouldn't need this at all
-  // if we knew that pthread_t is integral and fits into an int.
-  // ??? Consider using gettid on Linux w/ NPTL.  At least that would
-  // be a value meaningful to the user.
-  int thread_num;
 };
 
-// Don't access this variable directly; use the functions below.
-extern __thread gtm_thread _gtm_thr;
+extern __thread gtm_thread_tls _gtm_thr_tls;
+#endif
 
 #ifndef HAVE_ARCH_GTM_THREAD
 // If the target does not provide optimized access to the thread-local
 // data, simply access the TLS variable defined above.
-static inline gtm_thread *setup_gtm_thr() { return &_gtm_thr; }
-static inline gtm_thread *gtm_thr() { return &_gtm_thr; }
-#endif
-
-#ifndef HAVE_ARCH_GTM_THREAD_TX
-// If the target does not provide optimized access to the currently
-// active transaction, simply access via GTM_THR.
-static inline gtm_transaction * gtm_tx() { return gtm_thr()->tx; }
-static inline void set_gtm_tx(gtm_transaction *x) { gtm_thr()->tx = x; }
+static inline gtm_thread *gtm_thr() { return &_gtm_thr_tls.thr; }
+static inline void set_gtm_thr(gtm_thread *x) { _gtm_thr_tls.thr = x; }
 #endif
 
 #ifndef HAVE_ARCH_GTM_THREAD_DISP
 // If the target does not provide optimized access to the currently
 // active dispatch table, simply access via GTM_THR.
-static inline abi_dispatch * abi_disp() { return gtm_thr()->disp; }
-static inline void set_abi_disp(abi_dispatch *x) { gtm_thr()->disp = x; }
+static inline abi_dispatch * abi_disp() { return _gtm_thr_tls.disp; }
+static inline void set_abi_disp(abi_dispatch *x) { _gtm_thr_tls.disp = x; }
 #endif
 
 } // namespace GTM

@@ -87,7 +87,7 @@ enum gtm_restart_reason
 };
 
 // This type is private to alloc.c, but needs to be defined so that
-// the template used inside gtm_transaction can instantiate.
+// the template used inside gtm_thread can instantiate.
 struct gtm_alloc_action
 {
   void (*free_fn)(void *);
@@ -97,7 +97,7 @@ struct gtm_alloc_action
 // This type is private to local.c.
 struct gtm_local_undo;
 
-struct gtm_transaction;
+struct gtm_thread;
 
 // A transaction checkpoint: data that has to saved and restored when doing
 // closed nesting.
@@ -118,12 +118,22 @@ struct gtm_transaction_cp
   // the outermost transaction).
   uint32_t nesting;
 
-  void save(gtm_transaction* tx);
-  void commit(gtm_transaction* tx);
+  void save(gtm_thread* tx);
+  void commit(gtm_thread* tx);
 };
 
-// All data relevant to a single transaction.
-struct gtm_transaction
+// Contains all thread-specific data required by the entire library.
+// This includes all data relevant to a single transaction. Because most
+// thread-specific data is about the current transaction, we also refer to
+// the transaction-specific parts of gtm_thread as "the transaction" (the
+// same applies to names of variables and arguments).
+// All but the shared part of this data structure are thread-local data.
+// gtm_thread could be split into transaction-specific structures and other
+// per-thread data (with those parts then nested in gtm_thread), but this
+// would make it harder to later rearrange individual members to optimize data
+// accesses. Thus, for now we keep one flat object, and will only split it if
+// the code gets too messy.
+struct gtm_thread
 {
 
   struct user_action
@@ -187,12 +197,12 @@ struct gtm_transaction
   uint32_t restart_reason[NUM_RESTARTS];
   uint32_t restart_total;
 
-  // *** The shared part of gtm_transaction starts here. ***
+  // *** The shared part of gtm_thread starts here. ***
   // Shared state is on separate cachelines to avoid false sharing with
-  // thread-local parts of gtm_transaction.
+  // thread-local parts of gtm_thread.
 
-  // Points to the next transaction in the list of all threads' transactions.
-  gtm_transaction *next_tx __attribute__((__aligned__(HW_CACHELINE_SIZE)));
+  // Points to the next thread in the list of all threads.
+  gtm_thread *next_thread __attribute__((__aligned__(HW_CACHELINE_SIZE)));
 
   // If this transaction is inactive, shared_state is ~0. Otherwise, this is
   // an active or serial transaction.
@@ -204,10 +214,7 @@ struct gtm_transaction
   static gtm_rwlock serial_lock;
 
   // The head of the list of all threads' transactions.
-  static gtm_transaction *list_of_tx;
-
-  gtm_transaction() : shared_state(~(typeof shared_state)0)
-  {}
+  static gtm_thread *list_of_threads;
 
   // In alloc.cc
   void commit_allocations (bool, aa_tree<uintptr_t, gtm_alloc_action>*);
@@ -222,6 +229,9 @@ struct gtm_transaction
   void rollback (gtm_transaction_cp *cp = 0);
   bool trycommit ();
   void restart (gtm_restart_reason) ITM_NORETURN;
+
+  gtm_thread();
+  ~gtm_thread();
 
   static void *operator new(size_t);
   static void operator delete(void *);

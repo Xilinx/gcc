@@ -35,7 +35,7 @@ struct gtm_local_undo
 
 
 void
-gtm_transaction::commit_local ()
+gtm_thread::commit_local ()
 {
   size_t i, n = local_undo.size();
 
@@ -48,7 +48,7 @@ gtm_transaction::commit_local ()
 }
 
 void
-gtm_transaction::rollback_local (size_t until_size)
+gtm_thread::rollback_local (size_t until_size)
 {
   size_t i, n = local_undo.size();
 
@@ -69,7 +69,7 @@ gtm_transaction::rollback_local (size_t until_size)
 /* Forget any references to PTR in the local log.  */
 
 void
-gtm_transaction::drop_references_local (const void *ptr, size_t len)
+gtm_thread::drop_references_local (const void *ptr, size_t len)
 {
   size_t i, n = local_undo.size();
 
@@ -93,7 +93,7 @@ gtm_transaction::drop_references_local (const void *ptr, size_t len)
 void ITM_REGPARM
 GTM_LB (const void *ptr, size_t len)
 {
-  gtm_transaction *tx = gtm_tx();
+  gtm_thread *tx = gtm_thr();
   gtm_local_undo *undo;
 
   undo = (gtm_local_undo *) xmalloc (sizeof (struct gtm_local_undo) + len);

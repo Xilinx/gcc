@@ -23,9 +23,6 @@ int main()
 {
   pthread_t thread;
 
-  if (_ITM_getThreadnum() != 1)
-    abort();
-
   pthread_create(&thread, NULL, test1, NULL);
   pthread_join(thread, NULL);
 

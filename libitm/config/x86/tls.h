@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -29,7 +29,6 @@
 /* Use slots in the TCB head rather than __thread lookups.
    GLIBC has reserved words 10 through 13 for TM.  */
 #define HAVE_ARCH_GTM_THREAD 1
-#define HAVE_ARCH_GTM_THREAD_TX 1
 #define HAVE_ARCH_GTM_THREAD_DISP 1
 #endif
 
@@ -65,40 +64,22 @@ static inline struct gtm_thread *gtm_thr(void)
   return r;
 }
 
-static inline struct gtm_thread *setup_gtm_thr(void)
+static inline void set_gtm_thr(struct gtm_thread *x)
 {
-  gtm_thread *thr = gtm_thr();
-  if (thr == NULL)
-    {
-      thr = &_gtm_thr;
-      asm volatile (SEG_WRITE(10) : : "r"(thr));
-    }
-  return thr;
-}
-
-static inline struct gtm_transaction * gtm_tx(void)
-{
-  struct gtm_transaction *r;
-  asm (SEG_READ(11) : "=r"(r));
-  return r;
-}
-
-static inline void set_gtm_tx(struct gtm_transaction *x)
-{
-  asm volatile (SEG_WRITE(11) : : "r"(x));
+  asm volatile (SEG_WRITE(10) : : "r"(x));
 }
 
 static inline struct abi_dispatch *abi_disp(void)
 {
   struct abi_dispatch *r;
-  asm (SEG_DECODE_READ(12) : "=r"(r));
+  asm (SEG_DECODE_READ(11) : "=r"(r));
   return r;
 }
 
 static inline void set_abi_disp(struct abi_dispatch *x)
 {
   void *scratch;
-  asm volatile (SEG_ENCODE_WRITE(12) : "=r"(scratch) : "0"(x));
+  asm volatile (SEG_ENCODE_WRITE(11) : "=r"(scratch) : "0"(x));
 }
 
 #undef SEG_READ

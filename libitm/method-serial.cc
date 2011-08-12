@@ -156,9 +156,9 @@ class serialirr_onwrite_dispatch : public serialirr_dispatch
  protected:
   static void pre_write()
   {
-    gtm_transaction *tx = gtm_tx();
-    if (!(tx->state & (gtm_transaction::STATE_SERIAL
-        | gtm_transaction::STATE_IRREVOCABLE)))
+    gtm_thread *tx = gtm_thr();
+    if (!(tx->state & (gtm_thread::STATE_SERIAL
+        | gtm_thread::STATE_IRREVOCABLE)))
       tx->serialirr_mode();
   }
 
@@ -191,8 +191,8 @@ class serialirr_onwrite_dispatch : public serialirr_dispatch
 
   virtual void rollback(gtm_transaction_cp *cp)
   {
-    gtm_transaction *tx = gtm_tx();
-    if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
+    gtm_thread *tx = gtm_thr();
+    if (tx->state & gtm_thread::STATE_IRREVOCABLE)
       abort();
   }
 };
@@ -225,7 +225,7 @@ GTM::dispatch_serialirr_onwrite ()
 // Put the transaction into serial-irrevocable mode.
 
 void
-GTM::gtm_transaction::serialirr_mode ()
+GTM::gtm_thread::serialirr_mode ()
 {
   struct abi_dispatch *disp = abi_disp ();
   bool need_restart = true;
@@ -264,5 +264,5 @@ void ITM_REGPARM
 _ITM_changeTransactionMode (_ITM_transactionState state)
 {
   assert (state == modeSerialIrrevocable);
-  gtm_tx()->serialirr_mode ();
+  gtm_thr()->serialirr_mode ();
 }

@@ -83,7 +83,7 @@ _ZGTtnwX (size_t sz)
 {
   void *r = _ZnwX (sz);
   if (r)
-    gtm_tx()->record_allocation (r, _ZdlPv);
+    gtm_thr()->record_allocation (r, _ZdlPv);
   return r;
 }
 
@@ -93,7 +93,7 @@ _ZGTtnwXRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 {
   void *r = _ZnwXRKSt9nothrow_t (sz, nt);
   if (r)
-    gtm_tx()->record_allocation (r, del_opnt);
+    gtm_thr()->record_allocation (r, del_opnt);
   return r;
 }
 
@@ -103,7 +103,7 @@ _ZGTtnaX (size_t sz)
 {
   void *r = _ZnaX (sz);
   if (r)
-    gtm_tx()->record_allocation (r, _ZdaPv);
+    gtm_thr()->record_allocation (r, _ZdaPv);
   return r;
 }
 
@@ -113,7 +113,7 @@ _ZGTtnaXRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 {
   void *r = _ZnaXRKSt9nothrow_t (sz, nt);
   if (r)
-    gtm_tx()->record_allocation (r, del_opvnt);
+    gtm_thr()->record_allocation (r, del_opvnt);
   return r;
 }
 
@@ -122,7 +122,7 @@ void
 _ZGTtdlPv (void *ptr)
 {
   if (ptr)
-    gtm_tx()->forget_allocation (ptr, _ZdlPv);
+    gtm_thr()->forget_allocation (ptr, _ZdlPv);
 }
 
 /* Wrap: operator delete (void *ptr, const std::nothrow_t&)  */
@@ -130,7 +130,7 @@ void
 _ZGTtdlPvRKSt9nothrow_t (void *ptr, c_nothrow_p nt UNUSED)
 {
   if (ptr)
-    gtm_tx()->forget_allocation (ptr, del_opnt);
+    gtm_thr()->forget_allocation (ptr, del_opnt);
 }
 
 /* Wrap: operator delete[] (void *ptr)  */
@@ -138,7 +138,7 @@ void
 _ZGTtdaPv (void *ptr)
 {
   if (ptr)
-    gtm_tx()->forget_allocation (ptr, _ZdaPv);
+    gtm_thr()->forget_allocation (ptr, _ZdaPv);
 }
 
 /* Wrap: operator delete[] (void *ptr, const std::nothrow_t&)  */
@@ -146,7 +146,7 @@ void
 _ZGTtdaPvRKSt9nothrow_t (void *ptr, c_nothrow_p nt UNUSED)
 {
   if (ptr)
-    gtm_tx()->forget_allocation (ptr, del_opvnt);
+    gtm_thr()->forget_allocation (ptr, del_opvnt);
 }
 
 } // extern "C"

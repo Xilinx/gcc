@@ -27,7 +27,7 @@
 namespace GTM HIDDEN {
 
 void
-gtm_transaction::rollback_user_actions(size_t until_size)
+gtm_thread::rollback_user_actions(size_t until_size)
 {
   for (size_t s = user_actions.size(); s > until_size; s--)
     {
@@ -39,7 +39,7 @@ gtm_transaction::rollback_user_actions(size_t until_size)
 
 
 void
-gtm_transaction::commit_user_actions()
+gtm_thread::commit_user_actions()
 {
   for (vector<user_action>::iterator i = user_actions.begin(),
       ie = user_actions.end(); i != ie; i++)
@@ -58,11 +58,11 @@ void ITM_REGPARM
 _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
 			 _ITM_transactionId_t tid, void *arg)
 {
-  gtm_transaction *tx = gtm_tx();
+  gtm_thread *tx = gtm_thr();
   if (tid != _ITM_noTransactionId)
     GTM_fatal("resumingTransactionId in _ITM_addUserCommitAction must be "
               "_ITM_noTransactionId");
-  gtm_transaction::user_action *a = tx->user_actions.push();
+  gtm_thread::user_action *a = tx->user_actions.push();
   a->fn = fn;
   a->arg = arg;
   a->on_commit = true;
@@ -73,8 +73,8 @@ _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
 void ITM_REGPARM
 _ITM_addUserUndoAction(_ITM_userUndoFunction fn, void * arg)
 {
-  gtm_transaction *tx = gtm_tx();
-  gtm_transaction::user_action *a = tx->user_actions.push();
+  gtm_thread *tx = gtm_thr();
+  gtm_thread::user_action *a = tx->user_actions.push();
   a->fn = fn;
   a->arg = arg;
   a->on_commit = false;

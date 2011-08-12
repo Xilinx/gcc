@@ -1,4 +1,4 @@
-/* Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -82,7 +82,7 @@ _ITM_getTMCloneOrIrrevocable (void *ptr)
   if (ret)
     return ret;
 
-  gtm_tx()->serialirr_mode ();
+  gtm_thr()->serialirr_mode ();
 
   return ptr;
 }
@@ -125,17 +125,17 @@ class ExcludeTransaction
  public:
   ExcludeTransaction()
   { 
-    gtm_transaction *tx = gtm_tx();
-    do_lock = !(tx && (tx->state & gtm_transaction::STATE_SERIAL));
+    gtm_thread *tx = gtm_thr();
+    do_lock = !(tx && (tx->state & gtm_thread::STATE_SERIAL));
 
     if (do_lock)
-      gtm_transaction::serial_lock.write_lock ();
+      gtm_thread::serial_lock.write_lock ();
   }
 
   ~ExcludeTransaction()
   {
     if (do_lock)
-      gtm_transaction::serial_lock.write_unlock ();
+      gtm_thread::serial_lock.write_unlock ();
   }
 };
 

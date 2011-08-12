@@ -35,7 +35,7 @@ _ITM_malloc (size_t sz)
 {
   void *r = malloc (sz);
   if (r)
-    gtm_tx()->record_allocation (r, free);
+    gtm_thr()->record_allocation (r, free);
   return r;
 }
 
@@ -45,7 +45,7 @@ _ITM_calloc (size_t nm, size_t sz)
 {
   void *r = calloc (nm, sz);
   if (r)
-    gtm_tx()->record_allocation (r, free);
+    gtm_thr()->record_allocation (r, free);
   return r;
 }
 
@@ -54,7 +54,7 @@ void
 _ITM_free (void *ptr)
 {
   if (ptr)
-    gtm_tx()->forget_allocation (ptr, free);
+    gtm_thr()->forget_allocation (ptr, free);
 }
 
 /* Forget any internal references to PTR.  */

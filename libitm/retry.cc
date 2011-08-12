@@ -25,7 +25,7 @@
 #include "libitm_i.h"
 
 void
-GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
+GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
 {
   struct abi_dispatch *disp = abi_disp ();
 
@@ -83,7 +83,7 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
 // transaction. If the state is set to STATE_SERIAL, the caller will set the
 // dispatch.
 GTM::abi_dispatch*
-GTM::gtm_transaction::decide_begin_dispatch (uint32_t prop)
+GTM::gtm_thread::decide_begin_dispatch (uint32_t prop)
 {
   // ??? Probably want some environment variable to choose the default
   // STM implementation once we have more than one implemented.

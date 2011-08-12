@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -29,7 +29,7 @@
 
 namespace GTM HIDDEN {
 
-struct gtm_transaction;
+struct gtm_thread;
 
 // This datastructure is the blocking, mutex-based side of the Dekker-style
 // reader-writer lock used to provide mutual exclusion between active and
@@ -64,16 +64,16 @@ class gtm_rwlock
   gtm_rwlock();
   ~gtm_rwlock();
 
-  void read_lock (gtm_transaction *tx);
-  void read_unlock (gtm_transaction *tx);
+  void read_lock (gtm_thread *tx);
+  void read_unlock (gtm_thread *tx);
 
   void write_lock ();
   void write_unlock ();
 
-  bool write_upgrade (gtm_transaction *tx);
+  bool write_upgrade (gtm_thread *tx);
 
  protected:
-  bool write_lock_generic (gtm_transaction *tx);
+  bool write_lock_generic (gtm_thread *tx);
 };
 
 } // namespace GTM

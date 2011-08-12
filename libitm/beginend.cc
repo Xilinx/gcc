@@ -27,9 +27,12 @@
 
 using namespace GTM;
 
-__thread gtm_thread GTM::_gtm_thr;
-gtm_rwlock GTM::gtm_transaction::serial_lock;
-gtm_transaction *GTM::gtm_transaction::list_of_tx = 0;
+#if !defined(HAVE_ARCH_GTM_THREAD) || !defined(HAVE_ARCH_GTM_THREAD_DISP)
+extern __thread gtm_thread_tls _gtm_thr_tls;
+#endif
+
+gtm_rwlock GTM::gtm_thread::serial_lock;
+gtm_thread *GTM::gtm_thread::list_of_threads = 0;
 
 gtm_stmlock GTM::gtm_stmlock_array[LOCK_ARRAY_SIZE];
 gtm_version GTM::gtm_clock;
@@ -40,69 +43,89 @@ uint64_t GTM::gtm_spin_count_var = 1000;
 static _ITM_transactionId_t global_tid;
 
 // Provides a on-thread-exit callback used to release per-thread data.
-static pthread_key_t tx_release_key;
-static pthread_once_t tx_release_once = PTHREAD_ONCE_INIT;
+static pthread_key_t thr_release_key;
+static pthread_once_t thr_release_once = PTHREAD_ONCE_INIT;
 
 
 /* Allocate a transaction structure.  */
-
 void *
-GTM::gtm_transaction::operator new (size_t s)
+GTM::gtm_thread::operator new (size_t s)
 {
   void *tx;
 
-  assert(s == sizeof(gtm_transaction));
+  assert(s == sizeof(gtm_thread));
 
-  tx = xmalloc (sizeof (gtm_transaction), true);
-  memset (tx, 0, sizeof (gtm_transaction));
+  tx = xmalloc (sizeof (gtm_thread), true);
+  memset (tx, 0, sizeof (gtm_thread));
 
   return tx;
 }
 
 /* Free the given transaction. Raises an error if the transaction is still
    in use.  */
-
 void
-GTM::gtm_transaction::operator delete(void *tx)
+GTM::gtm_thread::operator delete(void *tx)
 {
   free(tx);
 }
 
 static void
-thread_exit_handler(void *dummy __attribute__((unused)))
+thread_exit_handler(void *)
 {
-  gtm_transaction *tx = gtm_tx();
-  if (tx)
-    {
-      if (tx->nesting > 0)
-        GTM_fatal("Thread exit while a transaction is still active.");
-
-      // Deregister this transaction.
-      gtm_transaction::serial_lock.write_lock ();
-      gtm_transaction **prev = &gtm_transaction::list_of_tx;
-      for (; *prev; prev = &(*prev)->next_tx)
-        {
-          if (*prev == tx)
-            {
-              *prev = (*prev)->next_tx;
-              break;
-            }
-        }
-      gtm_transaction::serial_lock.write_unlock ();
-
-      delete tx;
-      set_gtm_tx(NULL);
-    }
-  if (pthread_setspecific(tx_release_key, NULL))
-    GTM_fatal("Setting tx release TLS key failed.");
+  gtm_thread *thr = gtm_thr();
+  if (thr)
+    delete thr;
+  set_gtm_thr(0);
 }
 
 static void
 thread_exit_init()
 {
-  if (pthread_key_create(&tx_release_key, thread_exit_handler))
-    GTM_fatal("Creating tx release TLS key failed.");
+  if (pthread_key_create(&thr_release_key, thread_exit_handler))
+    GTM_fatal("Creating thread release TLS key failed.");
 }
+
+
+GTM::gtm_thread::~gtm_thread()
+{
+  if (nesting > 0)
+    GTM_fatal("Thread exit while a transaction is still active.");
+
+  // Deregister this transaction.
+  serial_lock.write_lock ();
+  gtm_thread **prev = &list_of_threads;
+  for (; *prev; prev = &(*prev)->next_thread)
+    {
+      if (*prev == this)
+        {
+          *prev = (*prev)->next_thread;
+          break;
+        }
+    }
+  serial_lock.write_unlock ();
+}
+
+GTM::gtm_thread::gtm_thread ()
+{
+  // This object's memory has been set to zero by operator new, so no need
+  // to initialize any of the other primitive-type members that do not have
+  // constructors.
+  shared_state = ~(typeof shared_state)0;
+
+  // Register this transaction with the list of all threads' transactions.
+  serial_lock.write_lock ();
+  next_thread = list_of_threads;
+  list_of_threads = this;
+  serial_lock.write_unlock ();
+
+  if (pthread_once(&thr_release_once, thread_exit_init))
+    GTM_fatal("Initializing thread release TLS key failed.");
+  // Any non-null value is sufficient to trigger destruction of this
+  // transaction when the current thread terminates.
+  if (pthread_setspecific(thr_release_key, this))
+    GTM_fatal("Setting thread release TLS key failed.");
+}
+
 
 
 #ifndef HAVE_64BIT_SYNC_BUILTINS
@@ -118,11 +141,11 @@ static inline uint32_t choose_code_path(uint32_t prop, abi_dispatch *disp)
 }
 
 uint32_t
-GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
+GTM::gtm_thread::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 {
   static const _ITM_transactionId_t tid_block_size = 1 << 16;
 
-  gtm_transaction *tx;
+  gtm_thread *tx;
   abi_dispatch *disp;
   uint32_t ret;
 
@@ -133,24 +156,13 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   if (unlikely(prop & pr_undoLogCode))
     GTM_fatal("pr_undoLogCode not supported");
 
-  tx = gtm_tx();
+  tx = gtm_thr();
   if (unlikely(tx == NULL))
     {
-      tx = new gtm_transaction;
-      set_gtm_tx(tx);
-
-      // Register this transaction with the list of all threads' transactions.
-      serial_lock.write_lock ();
-      tx->next_tx = list_of_tx;
-      list_of_tx = tx;
-      serial_lock.write_unlock ();
-
-      if (pthread_once(&tx_release_once, thread_exit_init))
-        GTM_fatal("Initializing tx release TLS key failed.");
-      // Any non-null value is sufficient to trigger releasing of this
-      // transaction when the current thread terminates.
-      if (pthread_setspecific(tx_release_key, tx))
-        GTM_fatal("Setting tx release TLS key failed.");
+      // Create the thread object. The constructor will also set up automatic
+      // deletion on thread termination.
+      tx = new gtm_thread();
+      set_gtm_thr(tx);
     }
 
   if (tx->nesting > 0)
@@ -272,7 +284,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 
 
 void
-GTM::gtm_transaction_cp::save(gtm_transaction* tx)
+GTM::gtm_transaction_cp::save(gtm_thread* tx)
 {
   // Save everything that we might have to restore on restarts or aborts.
   jb = tx->jb;
@@ -288,7 +300,7 @@ GTM::gtm_transaction_cp::save(gtm_transaction* tx)
 }
 
 void
-GTM::gtm_transaction_cp::commit(gtm_transaction* tx)
+GTM::gtm_transaction_cp::commit(gtm_thread* tx)
 {
   // Restore state that is not persistent across commits. Exception handling,
   // information, nesting level, and any logs do not need to be restored on
@@ -302,7 +314,7 @@ GTM::gtm_transaction_cp::commit(gtm_transaction* tx)
 
 
 void
-GTM::gtm_transaction::rollback (gtm_transaction_cp *cp)
+GTM::gtm_thread::rollback (gtm_transaction_cp *cp)
 {
   abi_disp()->rollback (cp);
 
@@ -351,12 +363,12 @@ GTM::gtm_transaction::rollback (gtm_transaction_cp *cp)
 void ITM_REGPARM
 _ITM_abortTransaction (_ITM_abortReason reason)
 {
-  gtm_transaction *tx = gtm_tx();
+  gtm_thread *tx = gtm_thr();
 
   assert (reason == userAbort);
   assert ((tx->prop & pr_hasNoAbort) == 0);
 
-  if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
+  if (tx->state & gtm_thread::STATE_IRREVOCABLE)
     abort ();
 
   // If the current method does not support closed nesting, we are nested, and
@@ -388,10 +400,10 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 
       // Aborting an outermost transaction finishes execution of the whole
       // transaction. Therefore, reset transaction state.
-      if (tx->state & gtm_transaction::STATE_SERIAL)
-        gtm_transaction::serial_lock.write_unlock ();
+      if (tx->state & gtm_thread::STATE_SERIAL)
+        gtm_thread::serial_lock.write_unlock ();
       else
-        gtm_transaction::serial_lock.read_unlock (tx);
+        gtm_thread::serial_lock.read_unlock (tx);
       tx->state = 0;
 
       GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables,
@@ -400,7 +412,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 }
 
 bool
-GTM::gtm_transaction::trycommit ()
+GTM::gtm_thread::trycommit ()
 {
   nesting--;
 
@@ -434,10 +446,10 @@ GTM::gtm_transaction::trycommit ()
 
       // TODO can release SI mode before committing user actions? If so,
       // we can release before ensuring privatization safety too.
-      if (state & gtm_transaction::STATE_SERIAL)
-	gtm_transaction::serial_lock.write_unlock ();
+      if (state & gtm_thread::STATE_SERIAL)
+	gtm_thread::serial_lock.write_unlock ();
       else
-	gtm_transaction::serial_lock.read_unlock (this);
+	gtm_thread::serial_lock.read_unlock (this);
       state = 0;
 
       return true;
@@ -446,7 +458,7 @@ GTM::gtm_transaction::trycommit ()
 }
 
 void ITM_NORETURN
-GTM::gtm_transaction::restart (gtm_restart_reason r)
+GTM::gtm_thread::restart (gtm_restart_reason r)
 {
   // Roll back to outermost transaction. Do not reset transaction state because
   // we will continue executing this transaction.
@@ -461,7 +473,7 @@ GTM::gtm_transaction::restart (gtm_restart_reason r)
 void ITM_REGPARM
 _ITM_commitTransaction(void)
 {
-  gtm_transaction *tx = gtm_tx();
+  gtm_thread *tx = gtm_thr();
   if (!tx->trycommit ())
     tx->restart (RESTART_VALIDATE_COMMIT);
 }
@@ -469,7 +481,7 @@ _ITM_commitTransaction(void)
 void ITM_REGPARM
 _ITM_commitTransactionEH(void *exc_ptr)
 {
-  gtm_transaction *tx = gtm_tx();
+  gtm_thread *tx = gtm_thr();
   if (!tx->trycommit ())
     {
       tx->eh_in_flight = exc_ptr;

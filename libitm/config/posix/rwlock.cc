@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -50,7 +50,7 @@ gtm_rwlock::~gtm_rwlock()
 // Acquire a RW lock for reading.
 
 void
-gtm_rwlock::read_lock (gtm_transaction *tx)
+gtm_rwlock::read_lock (gtm_thread *tx)
 {
   // Fast path: first announce our intent to read, then check for conflicting
   // intents to write. The barrier makes sure that this happens in exactly
@@ -120,7 +120,7 @@ gtm_rwlock::read_lock (gtm_transaction *tx)
 // this if this will actually happen often enough in real workloads.
 
 bool
-gtm_rwlock::write_lock_generic (gtm_transaction *tx)
+gtm_rwlock::write_lock_generic (gtm_thread *tx)
 {
   pthread_mutex_lock (&this->mutex);
 
@@ -190,8 +190,8 @@ gtm_rwlock::write_lock_generic (gtm_transaction *tx)
       // next retry instead? This might reduce the number of cache misses that
       // we get when checking reader flags.
       int readers = 0;
-      for (gtm_transaction *it = gtm_transaction::list_of_tx; it != 0;
-          it = it->next_tx)
+      for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
+          it = it->next_thread)
         {
           // Don't count ourself if this is an upgrade.
           if (it->shared_state != ~(typeof it->shared_state)0)
@@ -225,7 +225,7 @@ gtm_rwlock::write_lock ()
 // if this attempt fails (i.e. another thread also upgraded).
 
 bool
-gtm_rwlock::write_upgrade (gtm_transaction *tx)
+gtm_rwlock::write_upgrade (gtm_thread *tx)
 {
   return write_lock_generic (tx);
 }
@@ -234,7 +234,7 @@ gtm_rwlock::write_upgrade (gtm_transaction *tx)
 // Release a RW lock from reading.
 
 void
-gtm_rwlock::read_unlock (gtm_transaction *tx)
+gtm_rwlock::read_unlock (gtm_thread *tx)
 {
   tx->shared_state = ~(typeof tx->shared_state)0;
   __sync_synchronize();

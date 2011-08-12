@@ -27,7 +27,7 @@
 namespace GTM HIDDEN {
 
 void
-gtm_transaction::record_allocation (void *ptr, void (*free_fn)(void *))
+gtm_thread::record_allocation (void *ptr, void (*free_fn)(void *))
 {
   uintptr_t iptr = (uintptr_t) ptr;
 
@@ -40,7 +40,7 @@ gtm_transaction::record_allocation (void *ptr, void (*free_fn)(void *))
 }
 
 void
-gtm_transaction::forget_allocation (void *ptr, void (*free_fn)(void *))
+gtm_thread::forget_allocation (void *ptr, void (*free_fn)(void *))
 {
   uintptr_t iptr = (uintptr_t) ptr;
 
@@ -116,7 +116,7 @@ commit_allocations_1 (uintptr_t key, gtm_alloc_action *a, void *cb_data)
    REVERT_P is true if instead of committing the allocations, we want
    to roll them back (and vice versa).  */
 void
-gtm_transaction::commit_allocations (bool revert_p,
+gtm_thread::commit_allocations (bool revert_p,
     aa_tree<uintptr_t, gtm_alloc_action>* parent)
 {
   if (parent)

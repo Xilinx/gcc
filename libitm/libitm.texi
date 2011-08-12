@@ -325,6 +325,10 @@ the respective calls to @code{_ITM_addUserUndoAction} happened. The ordering of
 undo actions w.r.t. the roll-back of other actions (e.g., data transfers or
 memory allocations) is undefined.
 
+@code{_ITM_getThreadnum} is not supported currently because its only purpose
+is to provide a thread ID that matches some assumed performance tuning output,
+but this output is not part of the ABI nor further defined by it.
+
 @code{_ITM_dropReferences} is not supported currently because its semantics and
 the intention behind it is not entirely clear. The
 specification suggests that this function is necessary because of certain
