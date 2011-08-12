@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -41,6 +41,10 @@ class serialirr_dispatch : public abi_dispatch
   serialirr_dispatch() : abi_dispatch(false, true, true, false) { }
 
  protected:
+  serialirr_dispatch(bool ro, bool wt, bool uninstrumented,
+      bool closed_nesting) :
+    abi_dispatch(ro, wt, uninstrumented, closed_nesting) { }
+
   // Transactional loads and stores simply access memory directly.
   // These methods are static to avoid indirect calls, and will be used by the
   // virtual ABI dispatch methods or by static direct-access methods created
@@ -139,10 +143,65 @@ public:
   serial_dispatch() : abi_dispatch(false, true, false, true) { }
 };
 
+
+// Like serialirr_dispatch but does not requests serial-irrevocable mode until
+// the first write in the transaction. Can be useful for read-mostly workloads
+// and testing, but is likely too simple to be of general purpose.
+class serialirr_onwrite_dispatch : public serialirr_dispatch
+{
+ public:
+  serialirr_onwrite_dispatch() :
+    serialirr_dispatch(false, true, false, false) { }
+
+ protected:
+  static void pre_write()
+  {
+    gtm_transaction *tx = gtm_tx();
+    if (!(tx->state & (gtm_transaction::STATE_SERIAL
+        | gtm_transaction::STATE_IRREVOCABLE)))
+      tx->serialirr_mode();
+  }
+
+  // Transactional loads access memory directly.
+  // Transactional stores switch to serial mode first.
+  template <typename V> static void store(V* addr, const V value,
+      ls_modifier mod)
+  {
+    pre_write();
+    serialirr_dispatch::store(addr, value, mod);
+  }
+
+ public:
+  static void memtransfer_static(void *dst, const void* src, size_t size,
+      bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod)
+  {
+    pre_write();
+    serialirr_dispatch::memtransfer_static(dst, src, size, may_overlap,
+        dst_mod, src_mod);
+  }
+
+  static void memset_static(void *dst, int c, size_t size, ls_modifier mod)
+  {
+    pre_write();
+    serialirr_dispatch::memset_static(dst, c, size, mod);
+  }
+
+  CREATE_DISPATCH_METHODS(virtual, )
+  CREATE_DISPATCH_METHODS_MEM()
+
+  virtual void rollback(gtm_transaction_cp *cp)
+  {
+    gtm_transaction *tx = gtm_tx();
+    if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
+      abort();
+  }
+};
+
 } // anon namespace
 
 static const serialirr_dispatch o_serialirr_dispatch;
 static const serial_dispatch o_serial_dispatch;
+static const serialirr_onwrite_dispatch o_serialirr_onwrite_dispatch;
 
 abi_dispatch *
 GTM::dispatch_serialirr ()
@@ -154,6 +213,13 @@ abi_dispatch *
 GTM::dispatch_serial ()
 {
   return const_cast<serial_dispatch *>(&o_serial_dispatch);
+}
+
+abi_dispatch *
+GTM::dispatch_serialirr_onwrite ()
+{
+  return
+      const_cast<serialirr_onwrite_dispatch *>(&o_serialirr_onwrite_dispatch);
 }
 
 // Put the transaction into serial-irrevocable mode.

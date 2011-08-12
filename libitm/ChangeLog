@@ -1,5 +1,13 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* retry.cc (GTM::gtm_transaction::decide_begin_dispatch): Use
+	serialirr_onwrite_dispatch as new default for now.
+	* method-serial.cc (serialirr_onwrite_dispatch): New.
+	(GTM::dispatch_serialirr_onwrite): New.
+	* libitm_i.h: Same.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* beginend.cc (GTM::gtm_transaction::rollback): Roll back tx id as well.
 	* query.cc (_ITM_getTransactionId): There is no active transaction if
 	the current nesting level is zero.

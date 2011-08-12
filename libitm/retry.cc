@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -87,6 +87,8 @@ GTM::gtm_transaction::decide_begin_dispatch (uint32_t prop)
 {
   // ??? Probably want some environment variable to choose the default
   // STM implementation once we have more than one implemented.
+  if (prop & pr_hasNoAbort)
+    return dispatch_serialirr_onwrite();
   state = STATE_SERIAL;
   if (prop & pr_hasNoAbort)
     state |= STATE_IRREVOCABLE;

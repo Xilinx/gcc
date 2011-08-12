@@ -252,6 +252,7 @@ extern void GTM_fatal (const char *fmt, ...)
 
 extern abi_dispatch *dispatch_serial();
 extern abi_dispatch *dispatch_serialirr();
+extern abi_dispatch *dispatch_serialirr_onwrite();
 
 extern gtm_cacheline_mask gtm_mask_stack(gtm_cacheline *, gtm_cacheline_mask);
 
