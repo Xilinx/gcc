@@ -1,5 +1,9 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* testsuite/libitm.c++/static_ctor.C: New file.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* testsuite/libitm.c/reentrant.c: New file.
 
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
