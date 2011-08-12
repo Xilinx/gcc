@@ -63,8 +63,8 @@ HOST_WIDE_INT bp_unpack_var_len_int (struct bitpack_d *);
 
 /* In data-streamer-out.c  */
 void streamer_write_zero (struct output_block *);
-void streamer_write_wide_uint (struct output_block *, unsigned HOST_WIDE_INT);
-void streamer_write_wide_int (struct output_block *, HOST_WIDE_INT);
+void streamer_write_uhwi (struct output_block *, unsigned HOST_WIDE_INT);
+void streamer_write_hwi (struct output_block *, HOST_WIDE_INT);
 void streamer_write_string (struct output_block *, struct lto_output_stream *,
 			    const char *, bool);
 unsigned streamer_string_index (struct output_block *, const char *,
@@ -72,9 +72,9 @@ unsigned streamer_string_index (struct output_block *, const char *,
 void streamer_write_string_with_length (struct output_block *,
 					struct lto_output_stream *,
 					const char *, unsigned int, bool);
-void streamer_write_wide_uint_stream (struct lto_output_stream *,
-       				       unsigned HOST_WIDE_INT);
-void streamer_write_wide_int_stream (struct lto_output_stream *, HOST_WIDE_INT);
+void streamer_write_uhwi_stream (struct lto_output_stream *,
+				 unsigned HOST_WIDE_INT);
+void streamer_write_hwi_stream (struct lto_output_stream *, HOST_WIDE_INT);
 
 /* In data-streamer-in.c  */
 const char *string_for_index (struct data_in *, unsigned int, unsigned int *);
@@ -82,8 +82,8 @@ const char *streamer_read_string (struct data_in *, struct lto_input_block *);
 const char *streamer_read_indexed_string (struct data_in *,
 					  struct lto_input_block *,
 					  unsigned int *);
-unsigned HOST_WIDE_INT streamer_read_wide_uint (struct lto_input_block *);
-HOST_WIDE_INT streamer_read_wide_int (struct lto_input_block *);
+unsigned HOST_WIDE_INT streamer_read_uhwi (struct lto_input_block *);
+HOST_WIDE_INT streamer_read_hwi (struct lto_input_block *);
 
 /* Returns a hash code for P.  Adapted from libiberty's htab_hash_string
    to support strings that may not end in '\0'.  */
@@ -140,8 +140,8 @@ bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
      next one.  */
   if (pos + nbits > BITS_PER_BITPACK_WORD)
     {
-      streamer_write_wide_uint_stream ((struct lto_output_stream *) bp->stream,
-				       word);
+      streamer_write_uhwi_stream ((struct lto_output_stream *) bp->stream,
+				  word);
       word = val;
       pos = nbits;
     }
@@ -158,8 +158,8 @@ bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
 static inline void
 streamer_write_bitpack (struct bitpack_d *bp)
 {
-  streamer_write_wide_uint_stream ((struct lto_output_stream *) bp->stream,
-				   bp->word);
+  streamer_write_uhwi_stream ((struct lto_output_stream *) bp->stream,
+			      bp->word);
   bp->word = 0;
   bp->pos = 0;
 }
@@ -169,7 +169,7 @@ static inline struct bitpack_d
 streamer_read_bitpack (struct lto_input_block *ib)
 {
   struct bitpack_d bp;
-  bp.word = streamer_read_wide_uint (ib);
+  bp.word = streamer_read_uhwi (ib);
   bp.pos = 0;
   bp.stream = (void *)ib;
   return bp;
@@ -191,7 +191,7 @@ bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
   if (pos + nbits > BITS_PER_BITPACK_WORD)
     {
       bp->word = val 
-	= streamer_read_wide_uint ((struct lto_input_block *)bp->stream);
+	= streamer_read_uhwi ((struct lto_input_block *)bp->stream);
       bp->pos = nbits;
       return val & mask;
     }
@@ -235,7 +235,7 @@ streamer_read_uchar (struct lto_input_block *ib)
    Be host independent, limit range to 31bits.  */
 
 static inline void
-streamer_write_wide_int_in_range (struct lto_output_stream *obs,
+streamer_write_hwi_in_range (struct lto_output_stream *obs,
 				  HOST_WIDE_INT min,
 				  HOST_WIDE_INT max,
 				  HOST_WIDE_INT val)
@@ -259,7 +259,7 @@ streamer_write_wide_int_in_range (struct lto_output_stream *obs,
    to be compile time constant.  PURPOSE is used for error reporting.  */
 
 static inline HOST_WIDE_INT
-streamer_read_wide_int_in_range (struct lto_input_block *ib,
+streamer_read_hwi_in_range (struct lto_input_block *ib,
 				 const char *purpose,
 				 HOST_WIDE_INT min,
 				 HOST_WIDE_INT max)
@@ -324,13 +324,13 @@ bp_unpack_int_in_range (struct bitpack_d *bp,
 /* Output VAL of type "enum enum_name" into OBS.
    Assume range 0...ENUM_LAST - 1.  */
 #define streamer_write_enum(obs,enum_name,enum_last,val) \
-  streamer_write_wide_int_in_range ((obs), 0, (int)(enum_last) - 1, (int)(val))
+  streamer_write_hwi_in_range ((obs), 0, (int)(enum_last) - 1, (int)(val))
 
 /* Input enum of type "enum enum_name" from IB.
    Assume range 0...ENUM_LAST - 1.  */
 #define streamer_read_enum(ib,enum_name,enum_last) \
-  (enum enum_name)streamer_read_wide_int_in_range ((ib), #enum_name, 0, \
-						   (int)(enum_last) - 1)
+  (enum enum_name)streamer_read_hwi_in_range ((ib), #enum_name, 0, \
+					      (int)(enum_last) - 1)
 
 /* Output VAL of type "enum enum_name" into BP.
    Assume range 0...ENUM_LAST - 1.  */

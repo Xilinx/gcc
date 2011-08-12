@@ -273,7 +273,7 @@ pph_out_uint (pph_stream *stream, unsigned int value)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, value);
-  streamer_write_wide_int (stream->encoder.w.ob, value);
+  streamer_write_hwi (stream->encoder.w.ob, value);
 }
 
 /* Write an unsigned char VALUE to STREAM.  */
@@ -367,7 +367,7 @@ pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
 static inline unsigned int
 pph_in_uint (pph_stream *stream)
 {
-  HOST_WIDE_INT unsigned n = streamer_read_wide_uint (stream->encoder.r.ib);
+  HOST_WIDE_INT unsigned n = streamer_read_uhwi (stream->encoder.r.ib);
   gcc_assert (n == (unsigned) n);
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, n);

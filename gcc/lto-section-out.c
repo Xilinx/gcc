@@ -304,7 +304,7 @@ lto_output_decl_index (struct lto_output_stream *obs,
     }
 
   if (obs)
-    streamer_write_wide_uint_stream (obs, index);
+    streamer_write_uhwi_stream (obs, index);
   *this_index = index;
   return new_entry_p;
 }

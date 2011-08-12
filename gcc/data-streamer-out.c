@@ -64,7 +64,7 @@ streamer_string_index (struct output_block *ob, const char *s, unsigned int len,
       new_slot->len = len;
       new_slot->slot_num = start;
       *slot = new_slot;
-      streamer_write_wide_uint_stream (string_stream, len);
+      streamer_write_uhwi_stream (string_stream, len);
       lto_output_data_stream (string_stream, string, len);
       return start + 1;
     }
@@ -89,9 +89,8 @@ streamer_write_string_with_length (struct output_block *ob,
 				   bool persistent)
 {
   if (s)
-    streamer_write_wide_uint_stream (index_stream,
-				     streamer_string_index (ob, s, len,
-				                            persistent));
+    streamer_write_uhwi_stream (index_stream,
+			        streamer_string_index (ob, s, len, persistent));
   else
     streamer_write_char_stream (index_stream, 0);
 }
@@ -128,26 +127,26 @@ streamer_write_zero (struct output_block *ob)
 /* Write an unsigned HOST_WIDE_INT value WORK to OB->main_stream.  */
 
 void
-streamer_write_wide_uint (struct output_block *ob, unsigned HOST_WIDE_INT work)
+streamer_write_uhwi (struct output_block *ob, unsigned HOST_WIDE_INT work)
 {
-  streamer_write_wide_uint_stream (ob->main_stream, work);
+  streamer_write_uhwi_stream (ob->main_stream, work);
 }
 
 
 /* Write a HOST_WIDE_INT value WORK to OB->main_stream.  */
 
 void
-streamer_write_wide_int (struct output_block *ob, HOST_WIDE_INT work)
+streamer_write_hwi (struct output_block *ob, HOST_WIDE_INT work)
 {
-  streamer_write_wide_int_stream (ob->main_stream, work);
+  streamer_write_hwi_stream (ob->main_stream, work);
 }
 
 
 /* Write an unsigned HOST_WIDE_INT value WORK to OBS.  */
 
 void
-streamer_write_wide_uint_stream (struct lto_output_stream *obs,
-				 unsigned HOST_WIDE_INT work)
+streamer_write_uhwi_stream (struct lto_output_stream *obs,
+                            unsigned HOST_WIDE_INT work)
 {
   do
     {
@@ -166,8 +165,7 @@ streamer_write_wide_uint_stream (struct lto_output_stream *obs,
 /* Write a HOST_WIDE_INT value WORK to OBS.  */
 
 void
-streamer_write_wide_int_stream (struct lto_output_stream *obs,
-				HOST_WIDE_INT work)
+streamer_write_hwi_stream (struct lto_output_stream *obs, HOST_WIDE_INT work)
 {
   int more, byte;
 

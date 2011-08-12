@@ -72,7 +72,7 @@ streamer_read_chain (struct lto_input_block *ib, struct data_in *data_in)
   tree first, prev, curr;
 
   first = prev = NULL_TREE;
-  count = streamer_read_wide_int (ib);
+  count = streamer_read_hwi (ib);
   for (i = 0; i < count; i++)
     {
       curr = stream_read_tree (ib, data_in);
@@ -453,7 +453,7 @@ streamer_alloc_tree (struct lto_input_block *ib, struct data_in *data_in,
   /* Read the word representing the memory address for the tree
      as it was written by the writer.  This is useful when
      debugging differences between the writer and reader.  */
-  orig_address_in_writer = streamer_read_wide_int (ib);
+  orig_address_in_writer = streamer_read_hwi (ib);
   gcc_assert ((intptr_t) orig_address_in_writer == orig_address_in_writer);
 #endif
 
@@ -470,17 +470,17 @@ streamer_alloc_tree (struct lto_input_block *ib, struct data_in *data_in,
     result = input_identifier (data_in, ib);
   else if (CODE_CONTAINS_STRUCT (code, TS_VEC))
     {
-      HOST_WIDE_INT len = streamer_read_wide_int (ib);
+      HOST_WIDE_INT len = streamer_read_hwi (ib);
       result = make_tree_vec (len);
     }
   else if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
     {
-      unsigned HOST_WIDE_INT len = streamer_read_wide_uint (ib);
+      unsigned HOST_WIDE_INT len = streamer_read_uhwi (ib);
       result = make_tree_binfo (len);
     }
   else if (code == CALL_EXPR)
     {
-      unsigned HOST_WIDE_INT nargs = streamer_read_wide_uint (ib);
+      unsigned HOST_WIDE_INT nargs = streamer_read_uhwi (ib);
       return build_vl_exp (CALL_EXPR, nargs + 3);
     }
   else
@@ -760,7 +760,7 @@ lto_input_ts_exp_tree_pointers (struct lto_input_block *ib,
   int i, length;
   location_t loc;
 
-  length = streamer_read_wide_int (ib);
+  length = streamer_read_hwi (ib);
   gcc_assert (length == TREE_OPERAND_LENGTH (expr));
 
   for (i = 0; i < length; i++)
@@ -847,7 +847,7 @@ lto_input_ts_binfo_tree_pointers (struct lto_input_block *ib,
   BINFO_VIRTUALS (expr) = stream_read_tree (ib, data_in);
   BINFO_VPTR_FIELD (expr) = stream_read_tree (ib, data_in);
 
-  len = streamer_read_wide_uint (ib);
+  len = streamer_read_uhwi (ib);
   if (len > 0)
     {
       VEC_reserve_exact (tree, gc, BINFO_BASE_ACCESSES (expr), len);
@@ -874,7 +874,7 @@ lto_input_ts_constructor_tree_pointers (struct lto_input_block *ib,
 {
   unsigned i, len;
 
-  len = streamer_read_wide_uint (ib);
+  len = streamer_read_uhwi (ib);
   for (i = 0; i < len; i++)
     {
       tree index, value;
@@ -996,8 +996,8 @@ streamer_read_integer_cst (struct lto_input_block *ib, struct data_in *data_in)
 
   type = stream_read_tree (ib, data_in);
   overflow_p = (streamer_read_uchar (ib) != 0);
-  low = streamer_read_wide_uint (ib);
-  high = streamer_read_wide_uint (ib);
+  low = streamer_read_uhwi (ib);
+  high = streamer_read_uhwi (ib);
   result = build_int_cst_wide (type, low, high);
 
   /* If the original constant had overflown, build a replica of RESULT to
@@ -1022,7 +1022,7 @@ streamer_get_pickled_tree (struct lto_input_block *ib, struct data_in *data_in)
   tree result;
   enum LTO_tags expected_tag;
 
-  ix = streamer_read_wide_uint (ib);
+  ix = streamer_read_uhwi (ib);
   expected_tag = streamer_read_enum (ib, LTO_tags, LTO_NUM_TAGS);
 
   result = streamer_tree_cache_get (data_in->reader_cache, ix);
@@ -1047,7 +1047,7 @@ streamer_get_builtin_tree (struct lto_input_block *ib, struct data_in *data_in)
   fclass = streamer_read_enum (ib, built_in_class, BUILT_IN_LAST);
   gcc_assert (fclass == BUILT_IN_NORMAL || fclass == BUILT_IN_MD);
 
-  fcode = (enum built_in_function) streamer_read_wide_uint (ib);
+  fcode = (enum built_in_function) streamer_read_uhwi (ib);
 
   if (fclass == BUILT_IN_NORMAL)
     {

@@ -950,7 +950,7 @@ pure_const_write_summary (cgraph_node_set set,
 	count++;
     }
 
-  streamer_write_wide_uint_stream (ob->main_stream, count);
+  streamer_write_uhwi_stream (ob->main_stream, count);
 
   /* Process all of the functions.  */
   for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
@@ -967,7 +967,7 @@ pure_const_write_summary (cgraph_node_set set,
 
 	  encoder = ob->decl_state->cgraph_node_encoder;
 	  node_ref = lto_cgraph_encoder_encode (encoder, node);
-	  streamer_write_wide_uint_stream (ob->main_stream, node_ref);
+	  streamer_write_uhwi_stream (ob->main_stream, node_ref);
 
 	  /* Note that flags will need to be read in the opposite
 	     order as we are pushing the bitflags into FLAGS.  */
@@ -1006,7 +1006,7 @@ pure_const_read_summary (void)
       if (ib)
 	{
 	  unsigned int i;
-	  unsigned int count = streamer_read_wide_uint (ib);
+	  unsigned int count = streamer_read_uhwi (ib);
 
 	  for (i = 0; i < count; i++)
 	    {
@@ -1017,7 +1017,7 @@ pure_const_read_summary (void)
 	      lto_cgraph_encoder_t encoder;
 
 	      fs = XCNEW (struct funct_state_d);
-	      index = streamer_read_wide_uint (ib);
+	      index = streamer_read_uhwi (ib);
 	      encoder = file_data->cgraph_node_encoder;
 	      node = lto_cgraph_encoder_deref (encoder, index);
 	      set_function_state (node, fs);

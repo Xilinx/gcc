@@ -219,32 +219,32 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
   switch (tag)
     {
     case LTO_type_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = lto_file_decl_data_get_type (data_in->file_data, ix_u);
       break;
 
     case LTO_ssa_name_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = VEC_index (tree, SSANAMES (fn), ix_u);
       break;
 
     case LTO_field_decl_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = lto_file_decl_data_get_field_decl (data_in->file_data, ix_u);
       break;
 
     case LTO_function_decl_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = lto_file_decl_data_get_fn_decl (data_in->file_data, ix_u);
       break;
 
     case LTO_type_decl_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = lto_file_decl_data_get_type_decl (data_in->file_data, ix_u);
       break;
 
     case LTO_namespace_decl_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = lto_file_decl_data_get_namespace_decl (data_in->file_data, ix_u);
       break;
 
@@ -254,7 +254,7 @@ lto_input_tree_ref (struct lto_input_block *ib, struct data_in *data_in,
     case LTO_imported_decl_ref:
     case LTO_label_decl_ref:
     case LTO_translation_unit_decl_ref:
-      ix_u = streamer_read_wide_uint (ib);
+      ix_u = streamer_read_uhwi (ib);
       result = lto_file_decl_data_get_var_decl (data_in->file_data, ix_u);
       break;
 
@@ -329,15 +329,15 @@ input_eh_region (struct lto_input_block *ib, struct data_in *data_in, int ix)
     return NULL;
 
   r = ggc_alloc_cleared_eh_region_d ();
-  r->index = streamer_read_wide_int (ib);
+  r->index = streamer_read_hwi (ib);
 
   gcc_assert (r->index == ix);
 
   /* Read all the region pointers as region numbers.  We'll fix up
      the pointers once the whole array has been read.  */
-  r->outer = (eh_region) (intptr_t) streamer_read_wide_int (ib);
-  r->inner = (eh_region) (intptr_t) streamer_read_wide_int (ib);
-  r->next_peer = (eh_region) (intptr_t) streamer_read_wide_int (ib);
+  r->outer = (eh_region) (intptr_t) streamer_read_hwi (ib);
+  r->inner = (eh_region) (intptr_t) streamer_read_hwi (ib);
+  r->next_peer = (eh_region) (intptr_t) streamer_read_hwi (ib);
 
   switch (tag)
     {
@@ -362,7 +362,7 @@ input_eh_region (struct lto_input_block *ib, struct data_in *data_in, int ix)
 	  r->type = ERT_ALLOWED_EXCEPTIONS;
 	  r->u.allowed.type_list = stream_read_tree (ib, data_in);
 	  r->u.allowed.label = stream_read_tree (ib, data_in);
-	  r->u.allowed.filter = streamer_read_wide_uint (ib);
+	  r->u.allowed.filter = streamer_read_uhwi (ib);
 
 	  for (l = r->u.allowed.type_list; l ; l = TREE_CHAIN (l))
 	    add_type_for_runtime (TREE_VALUE (l));
@@ -379,7 +379,7 @@ input_eh_region (struct lto_input_block *ib, struct data_in *data_in, int ix)
 	gcc_unreachable ();
     }
 
-  r->landing_pads = (eh_landing_pad) (intptr_t) streamer_read_wide_int (ib);
+  r->landing_pads = (eh_landing_pad) (intptr_t) streamer_read_hwi (ib);
 
   return r;
 }
@@ -402,10 +402,10 @@ input_eh_lp (struct lto_input_block *ib, struct data_in *data_in, int ix)
   lto_tag_check_range (tag, LTO_eh_landing_pad, LTO_eh_landing_pad);
 
   lp = ggc_alloc_cleared_eh_landing_pad_d ();
-  lp->index = streamer_read_wide_int (ib);
+  lp->index = streamer_read_hwi (ib);
   gcc_assert (lp->index == ix);
-  lp->next_lp = (eh_landing_pad) (intptr_t) streamer_read_wide_int (ib);
-  lp->region = (eh_region) (intptr_t) streamer_read_wide_int (ib);
+  lp->next_lp = (eh_landing_pad) (intptr_t) streamer_read_hwi (ib);
+  lp->region = (eh_region) (intptr_t) streamer_read_hwi (ib);
   lp->post_landing_pad = stream_read_tree (ib, data_in);
 
   return lp;
@@ -514,11 +514,11 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
 
   gcc_assert (fn->eh);
 
-  root_region = streamer_read_wide_int (ib);
+  root_region = streamer_read_hwi (ib);
   gcc_assert (root_region == (int) root_region);
 
   /* Read the EH region array.  */
-  len = streamer_read_wide_int (ib);
+  len = streamer_read_hwi (ib);
   gcc_assert (len == (int) len);
   if (len > 0)
     {
@@ -531,7 +531,7 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
     }
 
   /* Read the landing pads.  */
-  len = streamer_read_wide_int (ib);
+  len = streamer_read_hwi (ib);
   gcc_assert (len == (int) len);
   if (len > 0)
     {
@@ -544,7 +544,7 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
     }
 
   /* Read the runtime type data.  */
-  len = streamer_read_wide_int (ib);
+  len = streamer_read_hwi (ib);
   gcc_assert (len == (int) len);
   if (len > 0)
     {
@@ -557,7 +557,7 @@ input_eh_regions (struct lto_input_block *ib, struct data_in *data_in,
     }
 
   /* Read the table of action chains.  */
-  len = streamer_read_wide_int (ib);
+  len = streamer_read_hwi (ib);
   gcc_assert (len == (int) len);
   if (len > 0)
     {
@@ -623,7 +623,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
   profile_status_for_function (fn) = streamer_read_enum (ib, profile_status_d,
 							 PROFILE_LAST);
 
-  bb_count = streamer_read_wide_uint (ib);
+  bb_count = streamer_read_uhwi (ib);
 
   last_basic_block_for_function (fn) = bb_count;
   if (bb_count > VEC_length (basic_block, basic_block_info_for_function (fn)))
@@ -634,7 +634,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
     VEC_safe_grow_cleared (basic_block, gc,
 			   label_to_block_map_for_function (fn), bb_count);
 
-  index = streamer_read_wide_int (ib);
+  index = streamer_read_hwi (ib);
   while (index != -1)
     {
       basic_block bb = BASIC_BLOCK_FOR_FUNCTION (fn, index);
@@ -643,7 +643,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
       if (bb == NULL)
 	bb = make_new_block (fn, index);
 
-      edge_count = streamer_read_wide_uint (ib);
+      edge_count = streamer_read_uhwi (ib);
 
       /* Connect up the CFG.  */
       for (i = 0; i < edge_count; i++)
@@ -655,11 +655,11 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
 	  gcov_type count;
 	  edge e;
 
-	  dest_index = streamer_read_wide_uint (ib);
-	  probability = (int) streamer_read_wide_int (ib);
-	  count = ((gcov_type) streamer_read_wide_int (ib) * count_materialization_scale
+	  dest_index = streamer_read_uhwi (ib);
+	  probability = (int) streamer_read_hwi (ib);
+	  count = ((gcov_type) streamer_read_hwi (ib) * count_materialization_scale
 		   + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
-	  edge_flags = streamer_read_wide_uint (ib);
+	  edge_flags = streamer_read_uhwi (ib);
 
 	  dest = BASIC_BLOCK_FOR_FUNCTION (fn, dest_index);
 
@@ -671,18 +671,18 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
 	  e->count = count;
 	}
 
-      index = streamer_read_wide_int (ib);
+      index = streamer_read_hwi (ib);
     }
 
   p_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION(fn);
-  index = streamer_read_wide_int (ib);
+  index = streamer_read_hwi (ib);
   while (index != -1)
     {
       basic_block bb = BASIC_BLOCK_FOR_FUNCTION (fn, index);
       bb->prev_bb = p_bb;
       p_bb->next_bb = bb;
       p_bb = bb;
-      index = streamer_read_wide_int (ib);
+      index = streamer_read_hwi (ib);
     }
 }
 
@@ -696,10 +696,10 @@ input_ssa_names (struct lto_input_block *ib, struct data_in *data_in,
 {
   unsigned int i, size;
 
-  size = streamer_read_wide_uint (ib);
+  size = streamer_read_uhwi (ib);
   init_ssanames (fn, size);
 
-  i = streamer_read_wide_uint (ib);
+  i = streamer_read_uhwi (ib);
   while (i)
     {
       tree ssa_name, name;
@@ -716,7 +716,7 @@ input_ssa_names (struct lto_input_block *ib, struct data_in *data_in,
       if (is_default_def)
 	set_default_def (SSA_NAME_VAR (ssa_name), ssa_name);
 
-      i = streamer_read_wide_uint (ib);
+      i = streamer_read_uhwi (ib);
     }
 }
 
@@ -788,7 +788,7 @@ input_struct_function_base (struct function *fn, struct data_in *data_in,
   fn->nonlocal_goto_save_area = stream_read_tree (ib, data_in);
 
   /* Read all the local symbols.  */
-  len = streamer_read_wide_int (ib);
+  len = streamer_read_hwi (ib);
   if (len > 0)
     {
       int i;
@@ -811,7 +811,7 @@ input_struct_function_base (struct function *fn, struct data_in *data_in,
   fn->function_end_locus = lto_input_location (ib, data_in);
 
   /* Input the current IL state of the function.  */
-  fn->curr_properties = streamer_read_wide_uint (ib);
+  fn->curr_properties = streamer_read_uhwi (ib);
 
   /* Read all the attributes for FN.  */
   bp = streamer_read_bitpack (ib);

@@ -41,7 +41,7 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
   int i, len;
   gimple result;
 
-  ix = streamer_read_wide_uint (ib);
+  ix = streamer_read_uhwi (ib);
   phi_result = VEC_index (tree, SSANAMES (fn), ix);
   len = EDGE_COUNT (bb->preds);
   result = create_phi_node (phi_result, bb);
@@ -53,7 +53,7 @@ input_phi (struct lto_input_block *ib, basic_block bb, struct data_in *data_in,
   for (i = 0; i < len; i++)
     {
       tree def = stream_read_tree (ib, data_in);
-      int src_index = streamer_read_wide_uint (ib);
+      int src_index = streamer_read_uhwi (ib);
       location_t arg_loc = lto_input_location (ib, data_in);
       basic_block sbb = BASIC_BLOCK_FOR_FUNCTION (fn, src_index);
 
@@ -109,7 +109,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
   switch (code)
     {
     case GIMPLE_RESX:
-      gimple_resx_set_region (stmt, streamer_read_wide_int (ib));
+      gimple_resx_set_region (stmt, streamer_read_hwi (ib));
       break;
 
     case GIMPLE_EH_MUST_NOT_THROW:
@@ -117,17 +117,17 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
       break;
 
     case GIMPLE_EH_DISPATCH:
-      gimple_eh_dispatch_set_region (stmt, streamer_read_wide_int (ib));
+      gimple_eh_dispatch_set_region (stmt, streamer_read_hwi (ib));
       break;
 
     case GIMPLE_ASM:
       {
 	/* FIXME lto.  Move most of this into a new gimple_asm_set_string().  */
 	tree str;
-	stmt->gimple_asm.ni = streamer_read_wide_uint (ib);
-	stmt->gimple_asm.no = streamer_read_wide_uint (ib);
-	stmt->gimple_asm.nc = streamer_read_wide_uint (ib);
-	stmt->gimple_asm.nl = streamer_read_wide_uint (ib);
+	stmt->gimple_asm.ni = streamer_read_uhwi (ib);
+	stmt->gimple_asm.no = streamer_read_uhwi (ib);
+	stmt->gimple_asm.nc = streamer_read_uhwi (ib);
+	stmt->gimple_asm.nl = streamer_read_uhwi (ib);
 	str = streamer_read_string_cst (data_in, ib);
 	stmt->gimple_asm.string = TREE_STRING_POINTER (str);
       }
@@ -286,14 +286,14 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
      basic GIMPLE routines that use CFUN.  */
   gcc_assert (cfun == fn);
 
-  index = streamer_read_wide_uint (ib);
+  index = streamer_read_uhwi (ib);
   bb = BASIC_BLOCK_FOR_FUNCTION (fn, index);
 
-  bb->count = (streamer_read_wide_int (ib) * count_materialization_scale
+  bb->count = (streamer_read_hwi (ib) * count_materialization_scale
 	       + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
-  bb->loop_depth = streamer_read_wide_int (ib);
-  bb->frequency = streamer_read_wide_int (ib);
-  bb->flags = streamer_read_wide_int (ib);
+  bb->loop_depth = streamer_read_hwi (ib);
+  bb->frequency = streamer_read_hwi (ib);
+  bb->flags = streamer_read_hwi (ib);
 
   /* LTO_bb1 has statements.  LTO_bb0 does not.  */
   if (tag == LTO_bb0)
@@ -315,7 +315,7 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
 
       if (tag == LTO_eh_region)
 	{
-	  HOST_WIDE_INT region = streamer_read_wide_int (ib);
+	  HOST_WIDE_INT region = streamer_read_hwi (ib);
 	  gcc_assert (region == (int) region);
 	  add_stmt_to_eh_lp (stmt, region);
 	}

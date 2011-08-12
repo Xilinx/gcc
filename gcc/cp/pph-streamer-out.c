@@ -108,7 +108,7 @@ pph_write_location (struct output_block *ob, location_t loc)
     }
 
   streamer_write_bitpack (&bp);
-  streamer_write_wide_int (ob, loc);
+  streamer_write_hwi (ob, loc);
 }
 
 

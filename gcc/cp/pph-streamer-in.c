@@ -198,7 +198,7 @@ pph_read_location (struct lto_input_block *ib,
   bp = streamer_read_bitpack (ib);
   is_builtin = bp_unpack_value (&bp, 1);
 
-  n = streamer_read_wide_uint (ib);
+  n = streamer_read_uhwi (ib);
   old_loc = (location_t) n;
   gcc_assert (old_loc == n);
 

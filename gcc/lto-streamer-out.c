@@ -210,7 +210,7 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
     {
     case SSA_NAME:
       streamer_write_record_start (ob, LTO_ssa_name_ref);
-      streamer_write_wide_uint (ob, SSA_NAME_VERSION (expr));
+      streamer_write_uhwi (ob, SSA_NAME_VERSION (expr));
       break;
 
     case FIELD_DECL:
@@ -396,7 +396,7 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
 	 we don't write it more than once.  Otherwise, the reader
 	 will instantiate two different nodes for the same object.  */
       streamer_write_record_start (ob, LTO_tree_pickle_reference);
-      streamer_write_wide_uint (ob, ix);
+      streamer_write_uhwi (ob, ix);
       streamer_write_enum (ob->main_stream, LTO_tags, LTO_NUM_TAGS,
 			   lto_tree_code_to_tag (TREE_CODE (expr)));
     }
@@ -464,20 +464,20 @@ output_eh_region (struct output_block *ob, eh_region r)
     gcc_unreachable ();
 
   streamer_write_record_start (ob, tag);
-  streamer_write_wide_int (ob, r->index);
+  streamer_write_hwi (ob, r->index);
 
   if (r->outer)
-    streamer_write_wide_int (ob, r->outer->index);
+    streamer_write_hwi (ob, r->outer->index);
   else
     streamer_write_zero (ob);
 
   if (r->inner)
-    streamer_write_wide_int (ob, r->inner->index);
+    streamer_write_hwi (ob, r->inner->index);
   else
     streamer_write_zero (ob);
 
   if (r->next_peer)
-    streamer_write_wide_int (ob, r->next_peer->index);
+    streamer_write_hwi (ob, r->next_peer->index);
   else
     streamer_write_zero (ob);
 
@@ -489,7 +489,7 @@ output_eh_region (struct output_block *ob, eh_region r)
     {
       stream_write_tree (ob, r->u.allowed.type_list, true);
       stream_write_tree (ob, r->u.allowed.label, true);
-      streamer_write_wide_uint (ob, r->u.allowed.filter);
+      streamer_write_uhwi (ob, r->u.allowed.filter);
     }
   else if (r->type == ERT_MUST_NOT_THROW)
     {
@@ -498,7 +498,7 @@ output_eh_region (struct output_block *ob, eh_region r)
     }
 
   if (r->landing_pads)
-    streamer_write_wide_int (ob, r->landing_pads->index);
+    streamer_write_hwi (ob, r->landing_pads->index);
   else
     streamer_write_zero (ob);
 }
@@ -516,14 +516,14 @@ output_eh_lp (struct output_block *ob, eh_landing_pad lp)
     }
 
   streamer_write_record_start (ob, LTO_eh_landing_pad);
-  streamer_write_wide_int (ob, lp->index);
+  streamer_write_hwi (ob, lp->index);
   if (lp->next_lp)
-    streamer_write_wide_int (ob, lp->next_lp->index);
+    streamer_write_hwi (ob, lp->next_lp->index);
   else
     streamer_write_zero (ob);
 
   if (lp->region)
-    streamer_write_wide_int (ob, lp->region->index);
+    streamer_write_hwi (ob, lp->region->index);
   else
     streamer_write_zero (ob);
 
@@ -546,22 +546,20 @@ output_eh_regions (struct output_block *ob, struct function *fn)
       streamer_write_record_start (ob, LTO_eh_table);
 
       /* Emit the index of the root of the EH region tree.  */
-      streamer_write_wide_int (ob, fn->eh->region_tree->index);
+      streamer_write_hwi (ob, fn->eh->region_tree->index);
 
       /* Emit all the EH regions in the region array.  */
-      streamer_write_wide_int (ob, VEC_length (eh_region,
-	                                       fn->eh->region_array));
+      streamer_write_hwi (ob, VEC_length (eh_region, fn->eh->region_array));
       FOR_EACH_VEC_ELT (eh_region, fn->eh->region_array, i, eh)
 	output_eh_region (ob, eh);
 
       /* Emit all landing pads.  */
-      streamer_write_wide_int (ob, VEC_length (eh_landing_pad,
-	                                       fn->eh->lp_array));
+      streamer_write_hwi (ob, VEC_length (eh_landing_pad, fn->eh->lp_array));
       FOR_EACH_VEC_ELT (eh_landing_pad, fn->eh->lp_array, i, lp)
 	output_eh_lp (ob, lp);
 
       /* Emit all the runtime type data.  */
-      streamer_write_wide_int (ob, VEC_length (tree, fn->eh->ttype_data));
+      streamer_write_hwi (ob, VEC_length (tree, fn->eh->ttype_data));
       FOR_EACH_VEC_ELT (tree, fn->eh->ttype_data, i, ttype)
 	stream_write_tree (ob, ttype, true);
 
@@ -569,18 +567,16 @@ output_eh_regions (struct output_block *ob, struct function *fn)
       if (targetm.arm_eabi_unwinder)
 	{
 	  tree t;
-	  streamer_write_wide_int (ob,
-	                           VEC_length (tree,
-				               fn->eh->ehspec_data.arm_eabi));
+	  streamer_write_hwi (ob, VEC_length (tree,
+				              fn->eh->ehspec_data.arm_eabi));
 	  FOR_EACH_VEC_ELT (tree, fn->eh->ehspec_data.arm_eabi, i, t)
 	    stream_write_tree (ob, t, true);
 	}
       else
 	{
 	  uchar c;
-	  streamer_write_wide_int (ob,
-	                           VEC_length (uchar,
-				               fn->eh->ehspec_data.other));
+	  streamer_write_hwi (ob, VEC_length (uchar,
+				              fn->eh->ehspec_data.other));
 	  FOR_EACH_VEC_ELT (uchar, fn->eh->ehspec_data.other, i, c)
 	    streamer_write_char_stream (ob->main_stream, c);
 	}
@@ -600,7 +596,7 @@ output_ssa_names (struct output_block *ob, struct function *fn)
   unsigned int i, len;
 
   len = VEC_length (tree, SSANAMES (fn));
-  streamer_write_wide_uint (ob, len);
+  streamer_write_uhwi (ob, len);
 
   for (i = 1; i < len; i++)
     {
@@ -611,7 +607,7 @@ output_ssa_names (struct output_block *ob, struct function *fn)
 	  || !is_gimple_reg (ptr))
 	continue;
 
-      streamer_write_wide_uint (ob, i);
+      streamer_write_uhwi (ob, i);
       streamer_write_char_stream (ob->main_stream,
 				  SSA_NAME_IS_DEFAULT_DEF (ptr));
       stream_write_tree (ob, SSA_NAME_VAR (ptr), true);
@@ -635,36 +631,36 @@ output_cfg (struct output_block *ob, struct function *fn)
 		       profile_status_for_function (fn));
 
   /* Output the number of the highest basic block.  */
-  streamer_write_wide_uint (ob, last_basic_block_for_function (fn));
+  streamer_write_uhwi (ob, last_basic_block_for_function (fn));
 
   FOR_ALL_BB_FN (bb, fn)
     {
       edge_iterator ei;
       edge e;
 
-      streamer_write_wide_int (ob, bb->index);
+      streamer_write_hwi (ob, bb->index);
 
       /* Output the successors and the edge flags.  */
-      streamer_write_wide_uint (ob, EDGE_COUNT (bb->succs));
+      streamer_write_uhwi (ob, EDGE_COUNT (bb->succs));
       FOR_EACH_EDGE (e, ei, bb->succs)
 	{
-	  streamer_write_wide_uint (ob, e->dest->index);
-	  streamer_write_wide_int (ob, e->probability);
-	  streamer_write_wide_int (ob, e->count);
-	  streamer_write_wide_uint (ob, e->flags);
+	  streamer_write_uhwi (ob, e->dest->index);
+	  streamer_write_hwi (ob, e->probability);
+	  streamer_write_hwi (ob, e->count);
+	  streamer_write_uhwi (ob, e->flags);
 	}
     }
 
-  streamer_write_wide_int (ob, -1);
+  streamer_write_hwi (ob, -1);
 
   bb = ENTRY_BLOCK_PTR;
   while (bb->next_bb)
     {
-      streamer_write_wide_int (ob, bb->next_bb->index);
+      streamer_write_hwi (ob, bb->next_bb->index);
       bb = bb->next_bb;
     }
 
-  streamer_write_wide_int (ob, -1);
+  streamer_write_hwi (ob, -1);
 
   ob->main_stream = tmp_stream;
 }
@@ -746,7 +742,7 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   stream_write_tree (ob, fn->nonlocal_goto_save_area, true);
 
   /* Output all the local variables in the function.  */
-  streamer_write_wide_int (ob, VEC_length (tree, fn->local_decls));
+  streamer_write_hwi (ob, VEC_length (tree, fn->local_decls));
   FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
     stream_write_tree (ob, t, true);
 
@@ -761,7 +757,7 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   lto_output_location (ob, fn->function_end_locus);
 
   /* Output current IL state of the function.  */
-  streamer_write_wide_uint (ob, fn->curr_properties);
+  streamer_write_uhwi (ob, fn->curr_properties);
 
   /* unsigned int last_verified;			-- ignored */
   /* const char *cannot_be_copied_reason;		-- ignored */

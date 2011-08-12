@@ -365,7 +365,7 @@ streamer_write_builtin (struct output_block *ob, tree expr)
   streamer_write_record_start (ob, LTO_builtin_decl);
   streamer_write_enum (ob->main_stream, built_in_class, BUILT_IN_LAST,
 		       DECL_BUILT_IN_CLASS (expr));
-  streamer_write_wide_uint (ob, DECL_FUNCTION_CODE (expr));
+  streamer_write_uhwi (ob, DECL_FUNCTION_CODE (expr));
 
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
     {
@@ -394,7 +394,7 @@ streamer_write_chain (struct output_block *ob, tree t, bool ref_p)
   int i, count;
 
   count = list_length (t);
-  streamer_write_wide_int (ob, count);
+  streamer_write_hwi (ob, count);
   for (i = 0; i < count; i++)
     {
       tree saved_chain;
@@ -650,7 +650,7 @@ write_ts_exp_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   int i;
 
-  streamer_write_wide_int (ob, TREE_OPERAND_LENGTH (expr));
+  streamer_write_hwi (ob, TREE_OPERAND_LENGTH (expr));
   for (i = 0; i < TREE_OPERAND_LENGTH (expr); i++)
     stream_write_tree (ob, TREE_OPERAND (expr, i), ref_p);
   lto_output_location (ob, EXPR_LOCATION (expr));
@@ -711,7 +711,7 @@ write_ts_binfo_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   stream_write_tree (ob, flag_wpa ? NULL : BINFO_VIRTUALS (expr), ref_p);
   stream_write_tree (ob, BINFO_VPTR_FIELD (expr), ref_p);
 
-  streamer_write_wide_uint (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
+  streamer_write_uhwi (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
   FOR_EACH_VEC_ELT (tree, BINFO_BASE_ACCESSES (expr), i, t)
     stream_write_tree (ob, t, ref_p);
 
@@ -732,7 +732,7 @@ write_ts_constructor_tree_pointers (struct output_block *ob, tree expr,
   unsigned i;
   tree index, value;
 
-  streamer_write_wide_uint (ob, CONSTRUCTOR_NELTS (expr));
+  streamer_write_uhwi (ob, CONSTRUCTOR_NELTS (expr));
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (expr), i, index, value)
     {
       stream_write_tree (ob, index, ref_p);
@@ -868,7 +868,7 @@ streamer_write_tree_header (struct output_block *ob, tree expr)
      value for EXPR can be used to track down the differences in
      the debugger.  */
   gcc_assert ((HOST_WIDEST_INT) (intptr_t) expr == (intptr_t) expr);
-  streamer_write_wide_int (ob, (HOST_WIDEST_INT) (intptr_t) expr);
+  streamer_write_hwi (ob, (HOST_WIDEST_INT) (intptr_t) expr);
 #endif
 
   /* The text in strings and identifiers are completely emitted in
@@ -878,11 +878,11 @@ streamer_write_tree_header (struct output_block *ob, tree expr)
   else if (CODE_CONTAINS_STRUCT (code, TS_IDENTIFIER))
     write_identifier (ob, ob->main_stream, expr);
   else if (CODE_CONTAINS_STRUCT (code, TS_VEC))
-    streamer_write_wide_int (ob, TREE_VEC_LENGTH (expr));
+    streamer_write_hwi (ob, TREE_VEC_LENGTH (expr));
   else if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
-    streamer_write_wide_uint (ob, BINFO_N_BASE_BINFOS (expr));
+    streamer_write_uhwi (ob, BINFO_N_BASE_BINFOS (expr));
   else if (TREE_CODE (expr) == CALL_EXPR)
-    streamer_write_wide_uint (ob, call_expr_nargs (expr));
+    streamer_write_uhwi (ob, call_expr_nargs (expr));
 }
 
 
@@ -895,6 +895,6 @@ streamer_write_integer_cst (struct output_block *ob, tree cst, bool ref_p)
   streamer_write_record_start (ob, lto_tree_code_to_tag (INTEGER_CST));
   stream_write_tree (ob, TREE_TYPE (cst), ref_p);
   streamer_write_char_stream (ob->main_stream, TREE_OVERFLOW_P (cst));
-  streamer_write_wide_uint (ob, TREE_INT_CST_LOW (cst));
-  streamer_write_wide_uint (ob, TREE_INT_CST_HIGH (cst));
+  streamer_write_uhwi (ob, TREE_INT_CST_LOW (cst));
+  streamer_write_uhwi (ob, TREE_INT_CST_HIGH (cst));
 }

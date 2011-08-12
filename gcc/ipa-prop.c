@@ -2644,7 +2644,7 @@ static void
 ipa_write_jump_function (struct output_block *ob,
 			 struct ipa_jump_func *jump_func)
 {
-  streamer_write_wide_uint (ob, jump_func->type);
+  streamer_write_uhwi (ob, jump_func->type);
 
   switch (jump_func->type)
     {
@@ -2658,13 +2658,13 @@ ipa_write_jump_function (struct output_block *ob,
       break;
     case IPA_JF_PASS_THROUGH:
       stream_write_tree (ob, jump_func->value.pass_through.operand, true);
-      streamer_write_wide_uint (ob, jump_func->value.pass_through.formal_id);
-      streamer_write_wide_uint (ob, jump_func->value.pass_through.operation);
+      streamer_write_uhwi (ob, jump_func->value.pass_through.formal_id);
+      streamer_write_uhwi (ob, jump_func->value.pass_through.operation);
       break;
     case IPA_JF_ANCESTOR:
-      streamer_write_wide_uint (ob, jump_func->value.ancestor.offset);
+      streamer_write_uhwi (ob, jump_func->value.ancestor.offset);
       stream_write_tree (ob, jump_func->value.ancestor.type, true);
-      streamer_write_wide_uint (ob, jump_func->value.ancestor.formal_id);
+      streamer_write_uhwi (ob, jump_func->value.ancestor.formal_id);
       break;
     case IPA_JF_CONST_MEMBER_PTR:
       stream_write_tree (ob, jump_func->value.member_cst.pfn, true);
@@ -2680,7 +2680,7 @@ ipa_read_jump_function (struct lto_input_block *ib,
 			struct ipa_jump_func *jump_func,
 			struct data_in *data_in)
 {
-  jump_func->type = (enum jump_func_type) streamer_read_wide_uint (ib);
+  jump_func->type = (enum jump_func_type) streamer_read_uhwi (ib);
 
   switch (jump_func->type)
     {
@@ -2694,14 +2694,14 @@ ipa_read_jump_function (struct lto_input_block *ib,
       break;
     case IPA_JF_PASS_THROUGH:
       jump_func->value.pass_through.operand = stream_read_tree (ib, data_in);
-      jump_func->value.pass_through.formal_id = streamer_read_wide_uint (ib);
+      jump_func->value.pass_through.formal_id = streamer_read_uhwi (ib);
       jump_func->value.pass_through.operation
-	= (enum tree_code) streamer_read_wide_uint (ib);
+	= (enum tree_code) streamer_read_uhwi (ib);
       break;
     case IPA_JF_ANCESTOR:
-      jump_func->value.ancestor.offset = streamer_read_wide_uint (ib);
+      jump_func->value.ancestor.offset = streamer_read_uhwi (ib);
       jump_func->value.ancestor.type = stream_read_tree (ib, data_in);
-      jump_func->value.ancestor.formal_id = streamer_read_wide_uint (ib);
+      jump_func->value.ancestor.formal_id = streamer_read_uhwi (ib);
       break;
     case IPA_JF_CONST_MEMBER_PTR:
       jump_func->value.member_cst.pfn = stream_read_tree (ib, data_in);
@@ -2720,15 +2720,15 @@ ipa_write_indirect_edge_info (struct output_block *ob,
   struct cgraph_indirect_call_info *ii = cs->indirect_info;
   struct bitpack_d bp;
 
-  streamer_write_wide_int (ob, ii->param_index);
-  streamer_write_wide_int (ob, ii->anc_offset);
+  streamer_write_hwi (ob, ii->param_index);
+  streamer_write_hwi (ob, ii->anc_offset);
   bp = bitpack_create (ob->main_stream);
   bp_pack_value (&bp, ii->polymorphic, 1);
   streamer_write_bitpack (&bp);
 
   if (ii->polymorphic)
     {
-      streamer_write_wide_int (ob, ii->otr_token);
+      streamer_write_hwi (ob, ii->otr_token);
       stream_write_tree (ob, ii->otr_type, true);
     }
 }
@@ -2744,13 +2744,13 @@ ipa_read_indirect_edge_info (struct lto_input_block *ib,
   struct cgraph_indirect_call_info *ii = cs->indirect_info;
   struct bitpack_d bp;
 
-  ii->param_index = (int) streamer_read_wide_int (ib);
-  ii->anc_offset = (HOST_WIDE_INT) streamer_read_wide_int (ib);
+  ii->param_index = (int) streamer_read_hwi (ib);
+  ii->anc_offset = (HOST_WIDE_INT) streamer_read_hwi (ib);
   bp = streamer_read_bitpack (ib);
   ii->polymorphic = bp_unpack_value (&bp, 1);
   if (ii->polymorphic)
     {
-      ii->otr_token = (HOST_WIDE_INT) streamer_read_wide_int (ib);
+      ii->otr_token = (HOST_WIDE_INT) streamer_read_hwi (ib);
       ii->otr_type = stream_read_tree (ib, data_in);
     }
 }
@@ -2769,7 +2769,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
 
   encoder = ob->decl_state->cgraph_node_encoder;
   node_ref = lto_cgraph_encoder_encode (encoder, node);
-  streamer_write_wide_uint (ob, node_ref);
+  streamer_write_uhwi (ob, node_ref);
 
   bp = bitpack_create (ob->main_stream);
   gcc_assert (info->uses_analysis_done
@@ -2783,7 +2783,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
     {
       struct ipa_edge_args *args = IPA_EDGE_REF (e);
 
-      streamer_write_wide_uint (ob, ipa_get_cs_argument_count (args));
+      streamer_write_uhwi (ob, ipa_get_cs_argument_count (args));
       for (j = 0; j < ipa_get_cs_argument_count (args); j++)
 	ipa_write_jump_function (ob, ipa_get_ith_jump_func (args, j));
     }
@@ -2791,7 +2791,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
     {
       struct ipa_edge_args *args = IPA_EDGE_REF (e);
 
-      streamer_write_wide_uint (ob, ipa_get_cs_argument_count (args));
+      streamer_write_uhwi (ob, ipa_get_cs_argument_count (args));
       for (j = 0; j < ipa_get_cs_argument_count (args); j++)
 	ipa_write_jump_function (ob, ipa_get_ith_jump_func (args, j));
       ipa_write_indirect_edge_info (ob, e);
@@ -2820,7 +2820,7 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
   for (e = node->callees; e; e = e->next_callee)
     {
       struct ipa_edge_args *args = IPA_EDGE_REF (e);
-      int count = streamer_read_wide_uint (ib);
+      int count = streamer_read_uhwi (ib);
 
       ipa_set_cs_argument_count (args, count);
       if (!count)
@@ -2834,7 +2834,7 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
   for (e = node->indirect_calls; e; e = e->next_callee)
     {
       struct ipa_edge_args *args = IPA_EDGE_REF (e);
-      int count = streamer_read_wide_uint (ib);
+      int count = streamer_read_uhwi (ib);
 
       ipa_set_cs_argument_count (args, count);
       if (count)
@@ -2871,7 +2871,7 @@ ipa_prop_write_jump_functions (cgraph_node_set set)
 	count++;
     }
 
-  streamer_write_wide_uint (ob, count);
+  streamer_write_uhwi (ob, count);
 
   /* Process all of the functions.  */
   for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
@@ -2908,7 +2908,7 @@ ipa_prop_read_section (struct lto_file_decl_data *file_data, const char *data,
   data_in =
     lto_data_in_create (file_data, (const char *) data + string_offset,
 			header->string_size, NULL);
-  count = streamer_read_wide_uint (&ib_main);
+  count = streamer_read_uhwi (&ib_main);
 
   for (i = 0; i < count; i++)
     {
@@ -2916,7 +2916,7 @@ ipa_prop_read_section (struct lto_file_decl_data *file_data, const char *data,
       struct cgraph_node *node;
       lto_cgraph_encoder_t encoder;
 
-      index = streamer_read_wide_uint (&ib_main);
+      index = streamer_read_uhwi (&ib_main);
       encoder = file_data->cgraph_node_encoder;
       node = lto_cgraph_encoder_deref (encoder, index);
       gcc_assert (node->analyzed);

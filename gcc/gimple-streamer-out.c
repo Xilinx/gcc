@@ -37,12 +37,12 @@ output_phi (struct output_block *ob, gimple phi)
   unsigned i, len = gimple_phi_num_args (phi);
 
   streamer_write_record_start (ob, lto_gimple_code_to_tag (GIMPLE_PHI));
-  streamer_write_wide_uint (ob, SSA_NAME_VERSION (PHI_RESULT (phi)));
+  streamer_write_uhwi (ob, SSA_NAME_VERSION (PHI_RESULT (phi)));
 
   for (i = 0; i < len; i++)
     {
       stream_write_tree (ob, gimple_phi_arg_def (phi, i), true);
-      streamer_write_wide_uint (ob, gimple_phi_arg_edge (phi, i)->src->index);
+      streamer_write_uhwi (ob, gimple_phi_arg_edge (phi, i)->src->index);
       lto_output_location (ob, gimple_phi_arg_location (phi, i));
     }
 }
@@ -83,7 +83,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
   switch (gimple_code (stmt))
     {
     case GIMPLE_RESX:
-      streamer_write_wide_int (ob, gimple_resx_region (stmt));
+      streamer_write_hwi (ob, gimple_resx_region (stmt));
       break;
 
     case GIMPLE_EH_MUST_NOT_THROW:
@@ -91,14 +91,14 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       break;
 
     case GIMPLE_EH_DISPATCH:
-      streamer_write_wide_int (ob, gimple_eh_dispatch_region (stmt));
+      streamer_write_hwi (ob, gimple_eh_dispatch_region (stmt));
       break;
 
     case GIMPLE_ASM:
-      streamer_write_wide_uint (ob, gimple_asm_ninputs (stmt));
-      streamer_write_wide_uint (ob, gimple_asm_noutputs (stmt));
-      streamer_write_wide_uint (ob, gimple_asm_nclobbers (stmt));
-      streamer_write_wide_uint (ob, gimple_asm_nlabels (stmt));
+      streamer_write_uhwi (ob, gimple_asm_ninputs (stmt));
+      streamer_write_uhwi (ob, gimple_asm_noutputs (stmt));
+      streamer_write_uhwi (ob, gimple_asm_nclobbers (stmt));
+      streamer_write_uhwi (ob, gimple_asm_nlabels (stmt));
       streamer_write_string (ob, ob->main_stream, gimple_asm_string (stmt),
 			     true);
       /* Fallthru  */
@@ -169,11 +169,11 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 			        ? LTO_bb1
 				: LTO_bb0);
 
-  streamer_write_wide_uint (ob, bb->index);
-  streamer_write_wide_int (ob, bb->count);
-  streamer_write_wide_int (ob, bb->loop_depth);
-  streamer_write_wide_int (ob, bb->frequency);
-  streamer_write_wide_int (ob, bb->flags);
+  streamer_write_uhwi (ob, bb->index);
+  streamer_write_hwi (ob, bb->count);
+  streamer_write_hwi (ob, bb->loop_depth);
+  streamer_write_hwi (ob, bb->frequency);
+  streamer_write_hwi (ob, bb->flags);
 
   if (!gsi_end_p (bsi) || phi_nodes (bb))
     {
@@ -191,7 +191,7 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	  if (region != 0)
 	    {
 	      streamer_write_record_start (ob, LTO_eh_region);
-	      streamer_write_wide_int (ob, region);
+	      streamer_write_hwi (ob, region);
 	    }
 	  else
 	    streamer_write_record_start (ob, LTO_null);

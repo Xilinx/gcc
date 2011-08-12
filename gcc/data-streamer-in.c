@@ -45,7 +45,7 @@ string_for_index (struct data_in *data_in, unsigned int loc, unsigned int *rlen)
   /* Get the string stored at location LOC in DATA_IN->STRINGS.  */
   LTO_INIT_INPUT_BLOCK (str_tab, data_in->strings, loc - 1,
 			data_in->strings_len);
-  len = streamer_read_wide_uint (&str_tab);
+  len = streamer_read_uhwi (&str_tab);
   *rlen = len;
 
   if (str_tab.p + len > data_in->strings_len)
@@ -64,7 +64,7 @@ const char *
 streamer_read_indexed_string (struct data_in *data_in,
 			      struct lto_input_block *ib, unsigned int *rlen)
 {
-  return string_for_index (data_in, streamer_read_wide_uint (ib), rlen);
+  return string_for_index (data_in, streamer_read_uhwi (ib), rlen);
 }
 
 
@@ -89,7 +89,7 @@ streamer_read_string (struct data_in *data_in, struct lto_input_block *ib)
 /* Read an unsigned HOST_WIDE_INT number from IB.  */
 
 unsigned HOST_WIDE_INT
-streamer_read_wide_uint (struct lto_input_block *ib)
+streamer_read_uhwi (struct lto_input_block *ib)
 {
   unsigned HOST_WIDE_INT result = 0;
   int shift = 0;
@@ -109,7 +109,7 @@ streamer_read_wide_uint (struct lto_input_block *ib)
 /* Read a HOST_WIDE_INT number from IB.  */
 
 HOST_WIDE_INT
-streamer_read_wide_int (struct lto_input_block *ib)
+streamer_read_hwi (struct lto_input_block *ib)
 {
   HOST_WIDE_INT result = 0;
   int shift = 0;
