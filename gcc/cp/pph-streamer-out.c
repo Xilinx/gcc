@@ -107,8 +107,8 @@ pph_write_location (struct output_block *ob, location_t loc)
       bp_pack_value (&bp, false, 1);
     }
 
-  lto_output_bitpack (&bp);
-  lto_output_sleb128_stream (ob->main_stream, loc);
+  streamer_write_bitpack (&bp);
+  streamer_write_wide_int (ob, loc);
 }
 
 
@@ -1365,7 +1365,7 @@ static void
 pph_write_tree_body (pph_stream *stream, tree expr)
 {
   /* Write the language-independent parts of EXPR's body.  */
-  lto_output_tree_pointers (stream->encoder.w.ob, expr, false);
+  streamer_write_tree_body (stream->encoder.w.ob, expr, false);
 
   /* The following trees have language-dependent information that is
      not written by the generic tree streaming routines.  Handle them
@@ -1694,7 +1694,7 @@ static void
 pph_pack_value_fields (struct bitpack_d *bp, tree expr)
 {
   /* First pack all the language-independent bitfields.  */
-  pack_value_fields (bp, expr);
+  streamer_pack_tree_bitfields (bp, expr);
 
   /* Now pack all the bitfields not handled by the generic packer.  */
   if (TYPE_P (expr))
@@ -1742,7 +1742,7 @@ pph_write_tree_header (pph_stream *stream, tree expr)
 
   /* Write the header, containing everything needed to materialize EXPR
      on the reading side.  */
-  lto_output_tree_header (ob, expr);
+  streamer_write_tree_header (ob, expr);
 
   /* Pack all the non-pointer fields in EXPR into a bitpack and write
      the resulting bitpack.  */
@@ -1765,21 +1765,21 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
   if (!pph_out_start_record (stream, expr))
     return;
 
-  if (lto_stream_as_builtin_p (expr))
+  if (streamer_handle_as_builtin_p (expr))
     {
       /* MD and NORMAL builtins do not need to be written out
 	 completely as they are always instantiated by the
 	 compiler on startup.  The only builtins that need to
 	 be written out are BUILT_IN_FRONTEND.  For all other
 	 builtins, we simply write the class and code.  */
-      lto_output_builtin_tree (ob, expr);
+      streamer_write_builtin (ob, expr);
     }
   else if (TREE_CODE (expr) == INTEGER_CST)
     {
       /* INTEGER_CST nodes are special because they need their
 	 original type to be materialized by the reader (to implement
 	 TYPE_CACHED_VALUES).  */
-      lto_output_integer_cst (ob, expr, ref_p);
+      streamer_write_integer_cst (ob, expr, ref_p);
     }
   else
     {

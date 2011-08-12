@@ -273,7 +273,7 @@ pph_out_uint (pph_stream *stream, unsigned int value)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, value);
-  lto_output_sleb128_stream (stream->encoder.w.ob->main_stream, value);
+  streamer_write_wide_int (stream->encoder.w.ob, value);
 }
 
 /* Write an unsigned char VALUE to STREAM.  */
@@ -282,7 +282,7 @@ pph_out_uchar (pph_stream *stream, unsigned char value)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, value);
-  lto_output_1_stream (stream->encoder.w.ob->main_stream, value);
+  streamer_write_char_stream (stream->encoder.w.ob->main_stream, value);
 }
 
 /* Write N bytes from P to STREAM.  */
@@ -300,8 +300,8 @@ pph_out_string (pph_stream *stream, const char *str)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_string (stream, str);
-  lto_output_string (stream->encoder.w.ob, stream->encoder.w.ob->main_stream,
-		     str, false);
+  streamer_write_string (stream->encoder.w.ob,
+			 stream->encoder.w.ob->main_stream, str, false);
 }
 
 /* Write string STR of length LEN to STREAM.  */
@@ -311,9 +311,9 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
 {
   if (flag_pph_tracer >= 4)
     pph_trace_string_with_length (stream, str, len);
-  lto_output_string_with_length (stream->encoder.w.ob,
-				 stream->encoder.w.ob->main_stream,
-				 str, len + 1, false);
+  streamer_write_string_with_length (stream->encoder.w.ob,
+				     stream->encoder.w.ob->main_stream,
+				     str, len + 1, false);
 }
 
 /* Output VEC V of ASTs to STREAM.  */
@@ -350,7 +350,7 @@ pph_out_chain (pph_stream *stream, tree first)
 {
   if (flag_pph_tracer >= 2)
     pph_trace_chain (stream, first);
-  lto_output_chain (stream->encoder.w.ob, first, false);
+  streamer_write_chain (stream->encoder.w.ob, first, false);
 }
 
 /* Write a bitpack BP to STREAM.  */
@@ -360,14 +360,14 @@ pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
   gcc_assert (stream->encoder.w.ob->main_stream == bp->stream);
   if (flag_pph_tracer >= 4)
     pph_trace_bitpack (stream, bp);
-  lto_output_bitpack (bp);
+  streamer_write_bitpack (bp);
 }
 
 /* Read an unsigned HOST_WIDE_INT integer from STREAM.  */
 static inline unsigned int
 pph_in_uint (pph_stream *stream)
 {
-  HOST_WIDE_INT unsigned n = lto_input_uleb128 (stream->encoder.r.ib);
+  HOST_WIDE_INT unsigned n = streamer_read_wide_uint (stream->encoder.r.ib);
   gcc_assert (n == (unsigned) n);
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, n);
@@ -378,7 +378,7 @@ pph_in_uint (pph_stream *stream)
 static inline unsigned char
 pph_in_uchar (pph_stream *stream)
 {
-  unsigned char n = lto_input_1_unsigned (stream->encoder.r.ib);
+  unsigned char n = streamer_read_uchar (stream->encoder.r.ib);
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, n);
   return n;
@@ -399,8 +399,8 @@ pph_in_bytes (pph_stream *stream, void *p, size_t n)
 static inline const char *
 pph_in_string (pph_stream *stream)
 {
-  const char *s = lto_input_string (stream->encoder.r.data_in,
-				    stream->encoder.r.ib);
+  const char *s = streamer_read_string (stream->encoder.r.data_in,
+				        stream->encoder.r.ib);
   if (flag_pph_tracer >= 4)
     pph_trace_string (stream, s);
   return s;
@@ -470,7 +470,8 @@ pph_in_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
 static inline tree
 pph_in_chain (pph_stream *stream)
 {
-  tree t = lto_input_chain (stream->encoder.r.ib, stream->encoder.r.data_in);
+  tree t = streamer_read_chain (stream->encoder.r.ib,
+                                stream->encoder.r.data_in);
   if (flag_pph_tracer >= 2)
     pph_trace_chain (stream, t);
   return t;
@@ -480,7 +481,7 @@ pph_in_chain (pph_stream *stream)
 static inline struct bitpack_d
 pph_in_bitpack (pph_stream *stream)
 {
-  struct bitpack_d bp = lto_input_bitpack (stream->encoder.r.ib);
+  struct bitpack_d bp = streamer_read_bitpack (stream->encoder.r.ib);
   if (flag_pph_tracer >= 4)
     pph_trace_bitpack (stream, &bp);
   return bp;

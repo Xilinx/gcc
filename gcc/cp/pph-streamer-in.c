@@ -195,10 +195,10 @@ pph_read_location (struct lto_input_block *ib,
   unsigned HOST_WIDE_INT n;
   location_t old_loc;
 
-  bp = lto_input_bitpack (ib);
+  bp = streamer_read_bitpack (ib);
   is_builtin = bp_unpack_value (&bp, 1);
 
-  n = lto_input_uleb128 (ib);
+  n = streamer_read_wide_uint (ib);
   old_loc = (location_t) n;
   gcc_assert (old_loc == n);
 
@@ -1564,7 +1564,7 @@ pph_read_tree_body (pph_stream *stream, tree expr)
   struct data_in *data_in = stream->encoder.r.data_in;
 
   /* Read the language-independent parts of EXPR's body.  */
-  lto_input_tree_pointers (ib, data_in, expr);
+  streamer_read_tree_body (ib, data_in, expr);
 
   /* Read all the language-dependent fields.  */
   switch (TREE_CODE (expr))
@@ -1931,21 +1931,21 @@ pph_read_tree_header (pph_stream *stream, tree *expr_p, unsigned ix)
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
 
-  tag = input_record_start (ib);
+  tag = streamer_read_record_start (ib);
   gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
 
   if (tag == LTO_builtin_decl)
     {
       /* If we are going to read a built-in function, all we need is
 	 the code and class.  */
-      *expr_p = lto_get_builtin_tree (ib, data_in);
+      *expr_p = streamer_get_builtin_tree (ib, data_in);
       fully_read_p = true;
     }
   else if (tag == lto_tree_code_to_tag (INTEGER_CST))
     {
       /* For integer constants we only need the type and its hi/low
 	 words.  */
-      *expr_p = lto_input_integer_cst (ib, data_in);
+      *expr_p = streamer_read_integer_cst (ib, data_in);
       fully_read_p = true;
     }
   else
@@ -1954,10 +1954,10 @@ pph_read_tree_header (pph_stream *stream, tree *expr_p, unsigned ix)
 
       /* Otherwise, materialize a new node from IB.  This will also read
 	 all the language-independent bitfields for the new tree.  */
-      *expr_p = lto_materialize_tree (ib, data_in, tag);
+      *expr_p = streamer_alloc_tree (ib, data_in, tag);
 
       /* Read the language-independent bitfields for *EXPR_P.  */
-      bp = tree_read_bitfields (ib, *expr_p);
+      bp = streamer_read_tree_bitfields (ib, *expr_p);
 
       /* Unpack all language-dependent bitfields.  */
       pph_unpack_value_fields (&bp, *expr_p);
