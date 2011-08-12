@@ -43,7 +43,7 @@ static _ITM_transactionId_t global_tid;
 void *
 GTM::gtm_transaction::operator new (size_t s)
 {
-  gtm_thread *thr = gtm_thr ();
+  gtm_thread *thr = setup_gtm_thr ();
   void *tx;
 
   assert(s == sizeof(gtm_transaction));
@@ -111,8 +111,6 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   // synchronization might perform better?
   if (unlikely(prop & pr_undoLogCode))
     GTM_fatal("pr_undoLogCode not supported");
-
-  gtm_thread *thr = setup_gtm_thr ();
 
   tx = gtm_tx();
   if (tx == NULL)
@@ -214,18 +212,18 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 
   // As long as we have not exhausted a previously allocated block of TIDs,
   // we can avoid an atomic operation on a shared cacheline.
-  if (thr->local_tid & (tid_block_size - 1))
-    tx->id = thr->local_tid++;
+  if (tx->local_tid & (tid_block_size - 1))
+    tx->id = tx->local_tid++;
   else
     {
 #ifdef HAVE_64BIT_SYNC_BUILTINS
       tx->id = __sync_add_and_fetch (&global_tid, tid_block_size);
-      thr->local_tid = tx->id + 1;
+      tx->local_tid = tx->id + 1;
 #else
       pthread_mutex_lock (&global_tid_lock);
       global_tid += tid_block_size;
       tx->id = global_tid;
-      thr->local_tid = tx->id + 1;
+      tx->local_tid = tx->id + 1;
       pthread_mutex_unlock (&global_tid_lock);
 #endif
     }

@@ -168,6 +168,12 @@ struct gtm_transaction
   // A bitmask of the above.
   uint32_t state;
 
+  // In order to reduce cacheline contention on global_tid during
+  // beginTransaction, we allocate a block of 2**N ids to the thread
+  // all at once.  This number is the next value to be allocated from
+  // the block, or 0 % 2**N if no such block is allocated.
+  _ITM_transactionId_t local_tid;
+
   // Data used by eh_cpp.c for managing exceptions within the transaction.
   uint32_t cxa_catch_count;
   void *cxa_unthrown;

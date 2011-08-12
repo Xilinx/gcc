@@ -50,12 +50,6 @@ struct gtm_thread
   void *free_tx[MAX_FREE_TX];
   unsigned free_tx_idx, free_tx_count;
 
-  // In order to reduce cacheline contention on global_tid during
-  // beginTransaction, we allocate a block of 2**N ids to the thread
-  // all at once.  This number is the next value to be allocated from
-  // the block, or 0 % 2**N if no such block is allocated.
-  _ITM_transactionId_t local_tid;
-
   // The value returned by _ITM_getThreadnum to identify this thread.
   // ??? At present, this is densely allocated beginning with 1 and
   // we don't bother filling in this value until it is requested.

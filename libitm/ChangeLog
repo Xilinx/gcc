@@ -1,5 +1,12 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* config/generic/tls.h (gtm_thread): Move local_tid from here ...
+	* libitm_i.h (local_tid): ... to here.
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Same.
+	(GTM::gtm_transaction::operator new): Set up gtm_thread if necessary.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* retry.cc (GTM::gtm_transaction::decide_begin_dispatch): Use
 	serialirr_onwrite_dispatch as new default for now.
 	* method-serial.cc (serialirr_onwrite_dispatch): New.
