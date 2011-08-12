@@ -187,10 +187,20 @@ struct gtm_transaction
   uint32_t restart_reason[NUM_RESTARTS];
   uint32_t restart_total;
 
+  // *** The shared part of gtm_transaction starts here. ***
+  // Shared state is on separate cachelines to avoid false sharing with
+  // thread-local parts of gtm_transaction.
+
+  // Points to the next transaction in the list of all threads' transactions.
+  gtm_transaction *next_tx __attribute__((__aligned__(HW_CACHELINE_SIZE)));
+
   // The lock that provides access to serial mode.  Non-serialized
   // transactions acquire read locks; a serialized transaction aquires
   // a write lock.
   static gtm_rwlock serial_lock;
+
+  // The head of the list of all threads' transactions.
+  static gtm_transaction *list_of_tx;
 
   // In alloc.cc
   void commit_allocations (bool, aa_tree<uintptr_t, gtm_alloc_action>*);

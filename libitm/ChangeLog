@@ -1,5 +1,14 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* libitm_i.h (next_tx): Add list of all threads' transaction.
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Register
+	transaction with list of transactions and ...
+	(thread_exit_handler): ... deregister here.
+	* config/alpha/target.h: Add HW_CACHELINE_SIZE setting.
+	* config/x86/target.h: Same.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* testsuite/libitm.c++/static_ctor.C: New file.
 
 2011-08-12  Torvald Riegel  <triegel@redhat.com>

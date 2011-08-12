@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -55,6 +55,10 @@ typedef struct gtm_jmpbuf
 /* x86 uses a fixed page size of 4K.  */
 #define PAGE_SIZE       4096
 #define FIXED_PAGE_SIZE 1
+
+/* The size of one line in hardware caches (in bytes). */
+#define HW_CACHELINE_SIZE 64
+
 
 static inline void
 cpu_relax (void)

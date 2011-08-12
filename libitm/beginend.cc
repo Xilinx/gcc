@@ -29,6 +29,7 @@ using namespace GTM;
 
 __thread gtm_thread GTM::_gtm_thr;
 gtm_rwlock GTM::gtm_transaction::serial_lock;
+gtm_transaction *GTM::gtm_transaction::list_of_tx = 0;
 
 gtm_stmlock GTM::gtm_stmlock_array[LOCK_ARRAY_SIZE];
 gtm_version GTM::gtm_clock;
@@ -75,6 +76,20 @@ thread_exit_handler(void *dummy __attribute__((unused)))
     {
       if (tx->nesting > 0)
         GTM_fatal("Thread exit while a transaction is still active.");
+
+      // Deregister this transaction.
+      gtm_transaction::serial_lock.write_lock ();
+      gtm_transaction **prev = &gtm_transaction::list_of_tx;
+      for (; *prev; prev = &(*prev)->next_tx)
+        {
+          if (*prev == tx)
+            {
+              *prev = (*prev)->next_tx;
+              break;
+            }
+        }
+      gtm_transaction::serial_lock.write_unlock ();
+
       delete tx;
       set_gtm_tx(NULL);
     }
@@ -123,6 +138,12 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
     {
       tx = new gtm_transaction;
       set_gtm_tx(tx);
+
+      // Register this transaction with the list of all threads' transactions.
+      serial_lock.write_lock ();
+      tx->next_tx = list_of_tx;
+      list_of_tx = tx;
+      serial_lock.write_unlock ();
 
       if (pthread_once(&tx_release_once, thread_exit_init))
         GTM_fatal("Initializing tx release TLS key failed.");
