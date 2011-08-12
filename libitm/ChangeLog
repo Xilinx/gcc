@@ -1,5 +1,10 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* query.cc (_ITM_getThreadnum): Set up gtm_thread if necessary. 
+	* testsuite/libitm.c/notx.c: New file.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* config/generic/tls.h (gtm_thread): Move local_tid from here ...
 	* libitm_i.h (local_tid): ... to here.
 	* beginend.cc (GTM::gtm_transaction::begin_transaction): Same.

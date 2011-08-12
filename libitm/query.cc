@@ -67,7 +67,7 @@ int ITM_REGPARM
 _ITM_getThreadnum (void)
 {
   static int global_num;
-  struct gtm_thread *thr = gtm_thr();
+  struct gtm_thread *thr = setup_gtm_thr();
   int num = thr->thread_num;
 
   if (num == 0)
