@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -40,15 +40,6 @@ struct gtm_thread
   // if the target provides some efficient mechanism for storing this.
   abi_dispatch *disp;
 #endif
-
-  // The maximum number of free gtm_transaction structs to be kept.
-  // This number must be greater than 1 in order for transaction abort
-  // to be handled properly.
-  static const unsigned MAX_FREE_TX = 8;
-
-  // A queue of free gtm_transaction structs.
-  void *free_tx[MAX_FREE_TX];
-  unsigned free_tx_idx, free_tx_count;
 
   // The value returned by _ITM_getThreadnum to identify this thread.
   // ??? At present, this is densely allocated beginning with 1 and

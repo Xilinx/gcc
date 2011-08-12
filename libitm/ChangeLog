@@ -1,5 +1,15 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* config/generic/tls.h: Remove the free list for transactions and ...
+	* beginend.cc (GTM::gtm_transaction::operator new): ... allocate ...
+	(GTM::gtm_transaction::operator delete): ... and release here.
+	(thread_exit_handler): New. Delete tx when thread terminates.
+	(thread_exit_init): New.
+	(GTM::gtm_transaction::begin_transaction): Set up on-exit handler.
+	* testsuite/libitm.c/txrelease.c: New file.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* query.cc (_ITM_getThreadnum): Set up gtm_thread if necessary. 
 	* testsuite/libitm.c/notx.c: New file.
 

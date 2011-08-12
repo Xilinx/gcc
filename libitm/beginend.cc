@@ -38,51 +38,57 @@ uint64_t GTM::gtm_spin_count_var = 1000;
 
 static _ITM_transactionId_t global_tid;
 
-/* Allocate a transaction structure.  Reuse an old one if possible.  */
+// Provides a on-thread-exit callback used to release per-thread data.
+static pthread_key_t tx_release_key;
+static pthread_once_t tx_release_once = PTHREAD_ONCE_INIT;
+
+
+/* Allocate a transaction structure.  */
 
 void *
 GTM::gtm_transaction::operator new (size_t s)
 {
-  gtm_thread *thr = setup_gtm_thr ();
   void *tx;
 
   assert(s == sizeof(gtm_transaction));
 
-  if (thr->free_tx_count == 0)
-    tx = xmalloc (sizeof (gtm_transaction));
-  else
-    {
-      thr->free_tx_count--;
-      tx = thr->free_tx[thr->free_tx_idx];
-      thr->free_tx_idx = (thr->free_tx_idx + 1) % gtm_thread::MAX_FREE_TX;
-    }
+  tx = xmalloc (sizeof (gtm_transaction), true);
   memset (tx, 0, sizeof (gtm_transaction));
 
   return tx;
 }
 
-/* Queue a transaction structure for freeing.  We never free the given
-   transaction immediately -- this is a requirement of abortTransaction
-   as the jmpbuf is used immediately after calling this function.  Thus
-   the requirement that this queue be per-thread.  */
+/* Free the given transaction. Raises an error if the transaction is still
+   in use.  */
 
 void
 GTM::gtm_transaction::operator delete(void *tx)
 {
-  gtm_thread *thr = gtm_thr ();
-  unsigned idx
-    = (thr->free_tx_idx + thr->free_tx_count) % gtm_thread::MAX_FREE_TX;
-
-  if (thr->free_tx_count == gtm_thread::MAX_FREE_TX)
-    {
-      thr->free_tx_idx = (thr->free_tx_idx + 1) % gtm_thread::MAX_FREE_TX;
-      free (thr->free_tx[idx]);
-    }
-  else
-    thr->free_tx_count++;
-
-  thr->free_tx[idx] = tx;
+  free(tx);
 }
+
+static void
+thread_exit_handler(void *dummy __attribute__((unused)))
+{
+  gtm_transaction *tx = gtm_tx();
+  if (tx)
+    {
+      if (tx->nesting > 0)
+        GTM_fatal("Thread exit while a transaction is still active.");
+      delete tx;
+      set_gtm_tx(NULL);
+    }
+  if (pthread_setspecific(tx_release_key, NULL))
+    GTM_fatal("Setting tx release TLS key failed.");
+}
+
+static void
+thread_exit_init()
+{
+  if (pthread_key_create(&tx_release_key, thread_exit_handler))
+    GTM_fatal("Creating tx release TLS key failed.");
+}
+
 
 #ifndef HAVE_64BIT_SYNC_BUILTINS
 static pthread_mutex_t global_tid_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -113,10 +119,17 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
     GTM_fatal("pr_undoLogCode not supported");
 
   tx = gtm_tx();
-  if (tx == NULL)
+  if (unlikely(tx == NULL))
     {
       tx = new gtm_transaction;
       set_gtm_tx(tx);
+
+      if (pthread_once(&tx_release_once, thread_exit_init))
+        GTM_fatal("Initializing tx release TLS key failed.");
+      // Any non-null value is sufficient to trigger releasing of this
+      // transaction when the current thread terminates.
+      if (pthread_setspecific(tx_release_key, tx))
+        GTM_fatal("Setting tx release TLS key failed.");
     }
 
   if (tx->nesting > 0)
