@@ -32,14 +32,14 @@ along with GCC; see the file COPYING3.  If not see
    table in OB.  Then put the index onto the INDEX_STREAM.  */
 
 static void
-output_string_cst (struct output_block *ob,
+write_string_cst (struct output_block *ob,
 		   struct lto_output_stream *index_stream,
 		   tree string)
 {
-  lto_output_string_with_length (ob, index_stream,
-				 TREE_STRING_POINTER (string),
-				 TREE_STRING_LENGTH (string),
-				 true);
+  streamer_write_string_with_length (ob, index_stream,
+				     TREE_STRING_POINTER (string),
+				     TREE_STRING_LENGTH (string),
+				     true);
 }
 
 
@@ -47,14 +47,14 @@ output_string_cst (struct output_block *ob,
    table in OB.  Then put the index onto the INDEX_STREAM.  */
 
 static void
-output_identifier (struct output_block *ob,
+write_identifier (struct output_block *ob,
 		   struct lto_output_stream *index_stream,
 		   tree id)
 {
-  lto_output_string_with_length (ob, index_stream,
-				 IDENTIFIER_POINTER (id),
-				 IDENTIFIER_LENGTH (id),
-				 true);
+  streamer_write_string_with_length (ob, index_stream,
+				     IDENTIFIER_POINTER (id),
+				     IDENTIFIER_LENGTH (id),
+				     true);
 }
 
 
@@ -238,7 +238,7 @@ pack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
 {
   /* For normal/md builtins we only write the class and code, so they
      should never be handled here.  */
-  gcc_assert (!lto_stream_as_builtin_p (expr));
+  gcc_assert (!streamer_handle_as_builtin_p (expr));
 
   bp_pack_enum (bp, built_in_class, BUILT_IN_LAST,
 		DECL_BUILT_IN_CLASS (expr));
@@ -306,10 +306,11 @@ pack_ts_translation_unit_decl_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSE
 {
 }
 
-/* Pack all the non-pointer fields in EXPR into a bit pack.  */
+
+/* Pack all the bitfields in EXPR into a bit pack.  */
 
 void
-pack_value_fields (struct bitpack_d *bp, tree expr)
+streamer_pack_tree_bitfields (struct bitpack_d *bp, tree expr)
 {
   enum tree_code code;
 
@@ -352,19 +353,19 @@ pack_value_fields (struct bitpack_d *bp, tree expr)
    the index into the streamer cache where EXPR is stored.*/
 
 void
-lto_output_builtin_tree (struct output_block *ob, tree expr)
+streamer_write_builtin (struct output_block *ob, tree expr)
 {
-  gcc_assert (lto_stream_as_builtin_p (expr));
+  gcc_assert (streamer_handle_as_builtin_p (expr));
 
   if (DECL_BUILT_IN_CLASS (expr) == BUILT_IN_MD
       && !targetm.builtin_decl)
-    sorry ("gimple bytecode streams do not support machine specific builtin "
+    sorry ("tree bytecode streams do not support machine specific builtin "
 	   "functions on this target");
 
-  output_record_start (ob, LTO_builtin_decl);
-  lto_output_enum (ob->main_stream, built_in_class, BUILT_IN_LAST,
-		   DECL_BUILT_IN_CLASS (expr));
-  output_uleb128 (ob, DECL_FUNCTION_CODE (expr));
+  streamer_write_record_start (ob, LTO_builtin_decl);
+  streamer_write_enum (ob->main_stream, built_in_class, BUILT_IN_LAST,
+		       DECL_BUILT_IN_CLASS (expr));
+  streamer_write_wide_uint (ob, DECL_FUNCTION_CODE (expr));
 
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
     {
@@ -374,12 +375,12 @@ lto_output_builtin_tree (struct output_block *ob, tree expr)
 	 reader side from adding a second '*', we omit it here.  */
       const char *str = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (expr));
       if (strlen (str) > 1 && str[0] == '*')
-	lto_output_string (ob, ob->main_stream, &str[1], true);
+	streamer_write_string (ob, ob->main_stream, &str[1], true);
       else
-	lto_output_string (ob, ob->main_stream, NULL, true);
+	streamer_write_string (ob, ob->main_stream, NULL, true);
     }
   else
-    lto_output_string (ob, ob->main_stream, NULL, true);
+    streamer_write_string (ob, ob->main_stream, NULL, true);
 }
 
 
@@ -388,12 +389,12 @@ lto_output_builtin_tree (struct output_block *ob, tree expr)
    as references.  */
 
 void
-lto_output_chain (struct output_block *ob, tree t, bool ref_p)
+streamer_write_chain (struct output_block *ob, tree t, bool ref_p)
 {
   int i, count;
 
   count = list_length (t);
-  output_sleb128 (ob, count);
+  streamer_write_wide_int (ob, count);
   for (i = 0; i < count; i++)
     {
       tree saved_chain;
@@ -416,8 +417,7 @@ lto_output_chain (struct output_block *ob, tree t, bool ref_p)
    fields.  */
 
 static void
-lto_output_ts_common_tree_pointers (struct output_block *ob, tree expr,
-				    bool ref_p)
+write_ts_common_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   if (TREE_CODE (expr) != IDENTIFIER_NODE)
     stream_write_tree (ob, TREE_TYPE (expr), ref_p);
@@ -429,10 +429,9 @@ lto_output_ts_common_tree_pointers (struct output_block *ob, tree expr,
    fields.  */
 
 static void
-lto_output_ts_vector_tree_pointers (struct output_block *ob, tree expr,
-				    bool ref_p)
+write_ts_vector_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
-  lto_output_chain (ob, TREE_VECTOR_CST_ELTS (expr), ref_p);
+  streamer_write_chain (ob, TREE_VECTOR_CST_ELTS (expr), ref_p);
 }
 
 
@@ -441,8 +440,7 @@ lto_output_ts_vector_tree_pointers (struct output_block *ob, tree expr,
    fields.  */
 
 static void
-lto_output_ts_complex_tree_pointers (struct output_block *ob, tree expr,
-				     bool ref_p)
+write_ts_complex_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   stream_write_tree (ob, TREE_REALPART (expr), ref_p);
   stream_write_tree (ob, TREE_IMAGPART (expr), ref_p);
@@ -454,8 +452,8 @@ lto_output_ts_complex_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_decl_minimal_tree_pointers (struct output_block *ob, tree expr,
-					  bool ref_p)
+write_ts_decl_minimal_tree_pointers (struct output_block *ob, tree expr,
+				     bool ref_p)
 {
   stream_write_tree (ob, DECL_NAME (expr), ref_p);
   stream_write_tree (ob, DECL_CONTEXT (expr), ref_p);
@@ -468,8 +466,8 @@ lto_output_ts_decl_minimal_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
-					 bool ref_p)
+write_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
+				    bool ref_p)
 {
   stream_write_tree (ob, DECL_SIZE (expr), ref_p);
   stream_write_tree (ob, DECL_SIZE_UNIT (expr), ref_p);
@@ -484,7 +482,7 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
      dwarf2out.c.  */
 
   if (TREE_CODE (expr) == PARM_DECL)
-    lto_output_chain (ob, TREE_CHAIN (expr), ref_p);
+    streamer_write_chain (ob, TREE_CHAIN (expr), ref_p);
 
   if ((TREE_CODE (expr) == VAR_DECL
        || TREE_CODE (expr) == PARM_DECL)
@@ -501,8 +499,8 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
-					     tree expr, bool ref_p)
+write_ts_decl_non_common_tree_pointers (struct output_block *ob, tree expr,
+				        bool ref_p)
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
@@ -518,8 +516,8 @@ lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
    pointer fields.  */
 
 static void
-lto_output_ts_decl_with_vis_tree_pointers (struct output_block *ob, tree expr,
-					   bool ref_p)
+write_ts_decl_with_vis_tree_pointers (struct output_block *ob, tree expr,
+			              bool ref_p)
 {
   /* Make sure we don't inadvertently set the assembler name.  */
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
@@ -537,15 +535,15 @@ lto_output_ts_decl_with_vis_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_field_decl_tree_pointers (struct output_block *ob, tree expr,
-					bool ref_p)
+write_ts_field_decl_tree_pointers (struct output_block *ob, tree expr,
+				   bool ref_p)
 {
   stream_write_tree (ob, DECL_FIELD_OFFSET (expr), ref_p);
   stream_write_tree (ob, DECL_BIT_FIELD_TYPE (expr), ref_p);
   stream_write_tree (ob, DECL_QUALIFIER (expr), ref_p);
   stream_write_tree (ob, DECL_FIELD_BIT_OFFSET (expr), ref_p);
   stream_write_tree (ob, DECL_FCONTEXT (expr), ref_p);
-  lto_output_chain (ob, TREE_CHAIN (expr), ref_p);
+  streamer_write_chain (ob, TREE_CHAIN (expr), ref_p);
 }
 
 
@@ -554,8 +552,8 @@ lto_output_ts_field_decl_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_function_decl_tree_pointers (struct output_block *ob, tree expr,
-					   bool ref_p)
+write_ts_function_decl_tree_pointers (struct output_block *ob, tree expr,
+				      bool ref_p)
 {
   /* DECL_STRUCT_FUNCTION is handled by lto_output_function.  FIXME lto,
      maybe it should be handled here?  */
@@ -570,8 +568,8 @@ lto_output_ts_function_decl_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_type_common_tree_pointers (struct output_block *ob, tree expr,
-					 bool ref_p)
+write_ts_type_common_tree_pointers (struct output_block *ob, tree expr,
+				    bool ref_p)
 {
   stream_write_tree (ob, TYPE_SIZE (expr), ref_p);
   stream_write_tree (ob, TYPE_SIZE_UNIT (expr), ref_p);
@@ -593,8 +591,8 @@ lto_output_ts_type_common_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_type_non_common_tree_pointers (struct output_block *ob,
-					     tree expr, bool ref_p)
+write_ts_type_non_common_tree_pointers (struct output_block *ob, tree expr,
+					bool ref_p)
 {
   if (TREE_CODE (expr) == ENUMERAL_TYPE)
     stream_write_tree (ob, TYPE_VALUES (expr), ref_p);
@@ -619,12 +617,11 @@ lto_output_ts_type_non_common_tree_pointers (struct output_block *ob,
    fields.  */
 
 static void
-lto_output_ts_list_tree_pointers (struct output_block *ob, tree expr,
-				  bool ref_p)
+write_ts_list_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   stream_write_tree (ob, TREE_PURPOSE (expr), ref_p);
   stream_write_tree (ob, TREE_VALUE (expr), ref_p);
-  lto_output_chain (ob, TREE_CHAIN (expr), ref_p);
+  streamer_write_chain (ob, TREE_CHAIN (expr), ref_p);
 }
 
 
@@ -633,12 +630,12 @@ lto_output_ts_list_tree_pointers (struct output_block *ob, tree expr,
    fields.  */
 
 static void
-lto_output_ts_vec_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
+write_ts_vec_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   int i;
 
   /* Note that the number of slots for EXPR has already been emitted
-     in EXPR's header (see lto_output_tree_header).  */
+     in EXPR's header (see streamer_write_tree_header).  */
   for (i = 0; i < TREE_VEC_LENGTH (expr); i++)
     stream_write_tree (ob, TREE_VEC_ELT (expr, i), ref_p);
 }
@@ -649,11 +646,11 @@ lto_output_ts_vec_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
    fields.  */
 
 static void
-lto_output_ts_exp_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
+write_ts_exp_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   int i;
 
-  output_sleb128 (ob, TREE_OPERAND_LENGTH (expr));
+  streamer_write_wide_int (ob, TREE_OPERAND_LENGTH (expr));
   for (i = 0; i < TREE_OPERAND_LENGTH (expr); i++)
     stream_write_tree (ob, TREE_OPERAND (expr, i), ref_p);
   lto_output_location (ob, EXPR_LOCATION (expr));
@@ -666,13 +663,12 @@ lto_output_ts_exp_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
    fields.  */
 
 static void
-lto_output_ts_block_tree_pointers (struct output_block *ob, tree expr,
-				   bool ref_p)
+write_ts_block_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   /* Do not stream BLOCK_SOURCE_LOCATION.  We cannot handle debug information
      for early inlining so drop it on the floor instead of ICEing in
      dwarf2out.c.  */
-  lto_output_chain (ob, BLOCK_VARS (expr), ref_p);
+  streamer_write_chain (ob, BLOCK_VARS (expr), ref_p);
 
   /* Do not stream BLOCK_NONLOCALIZED_VARS.  We cannot handle debug information
      for early inlining so drop it on the floor instead of ICEing in
@@ -694,14 +690,13 @@ lto_output_ts_block_tree_pointers (struct output_block *ob, tree expr,
    fields.  */
 
 static void
-lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
-				   bool ref_p)
+write_ts_binfo_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 {
   unsigned i;
   tree t;
 
   /* Note that the number of BINFO slots has already been emitted in
-     EXPR's header (see lto_output_tree_header) because this length
+     EXPR's header (see streamer_write_tree_header) because this length
      is needed to build the empty BINFO node on the reader side.  */
   FOR_EACH_VEC_ELT (tree, BINFO_BASE_BINFOS (expr), i, t)
     stream_write_tree (ob, t, ref_p);
@@ -716,7 +711,7 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
   stream_write_tree (ob, flag_wpa ? NULL : BINFO_VIRTUALS (expr), ref_p);
   stream_write_tree (ob, BINFO_VPTR_FIELD (expr), ref_p);
 
-  output_uleb128 (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
+  streamer_write_wide_uint (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
   FOR_EACH_VEC_ELT (tree, BINFO_BASE_ACCESSES (expr), i, t)
     stream_write_tree (ob, t, ref_p);
 
@@ -731,13 +726,13 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
    pointer fields.  */
 
 static void
-lto_output_ts_constructor_tree_pointers (struct output_block *ob, tree expr,
-					 bool ref_p)
+write_ts_constructor_tree_pointers (struct output_block *ob, tree expr,
+				    bool ref_p)
 {
   unsigned i;
   tree index, value;
 
-  output_uleb128 (ob, CONSTRUCTOR_NELTS (expr));
+  streamer_write_wide_uint (ob, CONSTRUCTOR_NELTS (expr));
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (expr), i, index, value)
     {
       stream_write_tree (ob, index, ref_p);
@@ -748,7 +743,7 @@ lto_output_ts_constructor_tree_pointers (struct output_block *ob, tree expr,
 /* Write a TS_TARGET_OPTION tree in EXPR to OB.  */
 
 static void
-lto_output_ts_target_option (struct output_block *ob, tree expr)
+write_ts_target_option (struct output_block *ob, tree expr)
 {
   struct cl_target_option *t = TREE_TARGET_OPTION (expr);
   struct bitpack_d bp;
@@ -763,85 +758,85 @@ lto_output_ts_target_option (struct output_block *ob, tree expr)
     bp_pack_value (&bp, ((unsigned char *)t)[i], 8);
   /* Catch struct size mismatches between reader and writer. */
   bp_pack_value (&bp, 0x12345678, 32);
-  lto_output_bitpack (&bp);
+  streamer_write_bitpack (&bp);
 }
 
 /* Write a TS_TRANSLATION_UNIT_DECL tree in EXPR to OB.  */
 
 static void
-lto_output_ts_translation_unit_decl_tree_pointers (struct output_block *ob,
-						   tree expr)
+write_ts_translation_unit_decl_tree_pointers (struct output_block *ob,
+					      tree expr)
 {
-  lto_output_string (ob, ob->main_stream,
-		     TRANSLATION_UNIT_LANGUAGE (expr), true);
+  streamer_write_string (ob, ob->main_stream,
+			 TRANSLATION_UNIT_LANGUAGE (expr), true);
 }
 
 /* Write all pointer fields in EXPR to output block OB.  If REF_P is true,
    the leaves of EXPR are emitted as references.  */
 
 void
-lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
+streamer_write_tree_body (struct output_block *ob, tree expr, bool ref_p)
 {
   enum tree_code code;
 
   code = TREE_CODE (expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_TYPED))
-    lto_output_ts_common_tree_pointers (ob, expr, ref_p);
+    write_ts_common_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_VECTOR))
-    lto_output_ts_vector_tree_pointers (ob, expr, ref_p);
+    write_ts_vector_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_COMPLEX))
-    lto_output_ts_complex_tree_pointers (ob, expr, ref_p);
+    write_ts_complex_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_MINIMAL))
-    lto_output_ts_decl_minimal_tree_pointers (ob, expr, ref_p);
+    write_ts_decl_minimal_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_COMMON))
-    lto_output_ts_decl_common_tree_pointers (ob, expr, ref_p);
+    write_ts_decl_common_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_NON_COMMON))
-    lto_output_ts_decl_non_common_tree_pointers (ob, expr, ref_p);
+    write_ts_decl_non_common_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
-    lto_output_ts_decl_with_vis_tree_pointers (ob, expr, ref_p);
+    write_ts_decl_with_vis_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_FIELD_DECL))
-    lto_output_ts_field_decl_tree_pointers (ob, expr, ref_p);
+    write_ts_field_decl_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
-    lto_output_ts_function_decl_tree_pointers (ob, expr, ref_p);
+    write_ts_function_decl_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_TYPE_COMMON))
-    lto_output_ts_type_common_tree_pointers (ob, expr, ref_p);
+    write_ts_type_common_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_TYPE_NON_COMMON))
-    lto_output_ts_type_non_common_tree_pointers (ob, expr, ref_p);
+    write_ts_type_non_common_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_LIST))
-    lto_output_ts_list_tree_pointers (ob, expr, ref_p);
+    write_ts_list_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_VEC))
-    lto_output_ts_vec_tree_pointers (ob, expr, ref_p);
+    write_ts_vec_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_EXP))
-    lto_output_ts_exp_tree_pointers (ob, expr, ref_p);
+    write_ts_exp_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
-    lto_output_ts_block_tree_pointers (ob, expr, ref_p);
+    write_ts_block_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
-    lto_output_ts_binfo_tree_pointers (ob, expr, ref_p);
+    write_ts_binfo_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_CONSTRUCTOR))
-    lto_output_ts_constructor_tree_pointers (ob, expr, ref_p);
+    write_ts_constructor_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
-    lto_output_ts_target_option (ob, expr);
+    write_ts_target_option (ob, expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
-    lto_output_ts_translation_unit_decl_tree_pointers (ob, expr);
+    write_ts_translation_unit_decl_tree_pointers (ob, expr);
 }
 
 
@@ -851,7 +846,7 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
    where EXPR is stored.  */
 
 void
-lto_output_tree_header (struct output_block *ob, tree expr)
+streamer_write_tree_header (struct output_block *ob, tree expr)
 {
   enum LTO_tags tag;
   enum tree_code code;
@@ -864,7 +859,7 @@ lto_output_tree_header (struct output_block *ob, tree expr)
      EXPR on the reading side (such as the number of slots in
      variable sized nodes).  */
   tag = lto_tree_code_to_tag (code);
-  output_record_start (ob, tag);
+  streamer_write_record_start (ob, tag);
 
   /* The following will cause bootstrap miscomparisons.  Enable with care.  */
 #ifdef LTO_STREAMER_DEBUG
@@ -873,21 +868,21 @@ lto_output_tree_header (struct output_block *ob, tree expr)
      value for EXPR can be used to track down the differences in
      the debugger.  */
   gcc_assert ((HOST_WIDEST_INT) (intptr_t) expr == (intptr_t) expr);
-  output_sleb128 (ob, (HOST_WIDEST_INT) (intptr_t) expr);
+  streamer_write_wide_int (ob, (HOST_WIDEST_INT) (intptr_t) expr);
 #endif
 
   /* The text in strings and identifiers are completely emitted in
      the header.  */
   if (CODE_CONTAINS_STRUCT (code, TS_STRING))
-    output_string_cst (ob, ob->main_stream, expr);
+    write_string_cst (ob, ob->main_stream, expr);
   else if (CODE_CONTAINS_STRUCT (code, TS_IDENTIFIER))
-    output_identifier (ob, ob->main_stream, expr);
+    write_identifier (ob, ob->main_stream, expr);
   else if (CODE_CONTAINS_STRUCT (code, TS_VEC))
-    output_sleb128 (ob, TREE_VEC_LENGTH (expr));
+    streamer_write_wide_int (ob, TREE_VEC_LENGTH (expr));
   else if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
-    output_uleb128 (ob, BINFO_N_BASE_BINFOS (expr));
+    streamer_write_wide_uint (ob, BINFO_N_BASE_BINFOS (expr));
   else if (TREE_CODE (expr) == CALL_EXPR)
-    output_uleb128 (ob, call_expr_nargs (expr));
+    streamer_write_wide_uint (ob, call_expr_nargs (expr));
 }
 
 
@@ -895,11 +890,11 @@ lto_output_tree_header (struct output_block *ob, tree expr)
    CST's type will be emitted as a reference.  */
 
 void
-lto_output_integer_cst (struct output_block *ob, tree cst, bool ref_p)
+streamer_write_integer_cst (struct output_block *ob, tree cst, bool ref_p)
 {
-  output_record_start (ob, lto_tree_code_to_tag (INTEGER_CST));
+  streamer_write_record_start (ob, lto_tree_code_to_tag (INTEGER_CST));
   stream_write_tree (ob, TREE_TYPE (cst), ref_p);
-  lto_output_1_stream (ob->main_stream, TREE_OVERFLOW_P (cst));
-  output_uleb128 (ob, TREE_INT_CST_LOW (cst));
-  output_uleb128 (ob, TREE_INT_CST_HIGH (cst));
+  streamer_write_char_stream (ob->main_stream, TREE_OVERFLOW_P (cst));
+  streamer_write_wide_uint (ob, TREE_INT_CST_LOW (cst));
+  streamer_write_wide_uint (ob, TREE_INT_CST_HIGH (cst));
 }
