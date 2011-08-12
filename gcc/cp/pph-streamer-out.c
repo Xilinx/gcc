@@ -45,7 +45,6 @@ static pph_stream *pph_out_stream = NULL;
 void
 pph_init_write (pph_stream *stream)
 {
-  lto_streamer_init ();
   stream->encoder.w.out_state = lto_new_out_decl_state ();
   lto_push_out_decl_state (stream->encoder.w.out_state);
   stream->encoder.w.decl_state_stream = XCNEW (struct lto_output_stream);
@@ -149,17 +148,7 @@ pph_out_body (pph_stream *stream)
   /* Write the string table.  */
   lto_write_stream (stream->encoder.w.ob->string_stream);
 
-  /* Write out the physical representation for every AST in all the
-     streams in STREAM->ENCODER.W.OUT_STATE.  */
-  lto_output_decl_state_streams (stream->encoder.w.ob,
-				 stream->encoder.w.out_state);
-
-  /* Now write the vector of all AST references.  */
-  lto_output_decl_state_refs (stream->encoder.w.ob,
-			      stream->encoder.w.decl_state_stream,
-			      stream->encoder.w.out_state);
-
-  /* Finally, physically write all the streams.  */
+  /* Write the main stream where we have been pickling the parse trees.  */
   lto_write_stream (stream->encoder.w.ob->main_stream);
 }
 

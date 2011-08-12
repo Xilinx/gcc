@@ -87,8 +87,6 @@ pph_init_read (pph_stream *stream)
   const char *strtab, *body;
   char *new_strtab;
 
-  lto_reader_init ();
-
   /* Read STREAM->NAME into the memory buffer stream->encoder.r.file_data.  */
   retcode = fstat (fileno (stream->file), &st);
   gcc_assert (retcode == 0);

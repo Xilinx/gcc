@@ -1,3 +1,10 @@
+2011-08-12   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_init_read): Do not call lto_reader_init.
+	* pph-streamer-out.c (pph_init_write): Do not call lto_streamer_init.
+	(pph_out_body): Do not call lto_output_decl_state_streams nor
+	lto_output_decl_state_refs.
+
 2011-08-11   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_tree_body): Read
