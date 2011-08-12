@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -59,7 +59,7 @@ _ITM_transactionId_t ITM_REGPARM
 _ITM_getTransactionId (void)
 {
   struct gtm_transaction *tx = gtm_tx();
-  return tx ? tx->id : _ITM_noTransactionId;
+  return (tx && (tx->nesting > 0)) ? tx->id : _ITM_noTransactionId;
 }
 
 

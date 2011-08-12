@@ -298,6 +298,7 @@ GTM::gtm_transaction::rollback (gtm_transaction_cp *cp)
       if (parent_txns.size() > 0)
         {
           jb = parent_txns[0].jb;
+          id = parent_txns[0].id;
           prop = parent_txns[0].prop;
         }
       // Reset the transaction. Do not reset this->state, which is handled by

@@ -1,3 +1,9 @@
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_transaction::rollback): Roll back tx id as well.
+	* query.cc (_ITM_getTransactionId): There is no active transaction if
+	the current nesting level is zero.
+
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
 	* beginend.cc (GTM::gtm_transaction::rollback): Fix nesting level
