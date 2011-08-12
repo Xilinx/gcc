@@ -1,5 +1,25 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* config/posix/rwlock.cc (gtm_rwlock::read_lock): Changed locking
+	implementation.
+	(gtm_rwlock::read_unlock): Same.
+	(gtm_rwlock::write_lock_generic): New. Generalized from ...
+	(gtm_rwlock::write_lock, gtm_rwlock::write_upgrade): ... these.
+	* libitm_i.h (GTM::gtm_transaction): Added shared_state.
+	* config/posix/rwlock.h (GTM::gtm_rwlock): Removed a_reader and
+	w_upgrade. Replaced by per-transaction flags (in shared_state).
+	Added c_confirmed_writers.
+	(GTM::gtm_rwlock::read_lock, GTM::gtm_rwlock::read_unlock,
+	GTM::gtm_rwlock::write_upgrade): Add tx parameter.
+	* retry.cc (GTM::gtm_transaction::decide_retry_strategy): Same.
+	* method-serial.cc (GTM::gtm_transaction::serialirr_mode): Same.
+	* beginend.cc (GTM::gtm_transaction::begin_transaction,
+	_ITM_abortTransaction, GTM::gtm_transaction::trycommit): Same.
+	* libitm.texi: Document locking conventions and implementations in
+	libitm.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm_i.h (next_tx): Add list of all threads' transaction.
 	* beginend.cc (GTM::gtm_transaction::begin_transaction): Register
 	transaction with list of transactions and ...

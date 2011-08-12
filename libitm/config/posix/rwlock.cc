@@ -33,7 +33,7 @@ gtm_rwlock::gtm_rwlock()
   : mutex (PTHREAD_MUTEX_INITIALIZER),
     c_readers (PTHREAD_COND_INITIALIZER),
     c_writers (PTHREAD_COND_INITIALIZER),
-    c_upgrade (PTHREAD_COND_INITIALIZER),
+    c_confirmed_writers (PTHREAD_COND_INITIALIZER),
     summary (0),
     a_readers (0),
     w_readers (0),
@@ -45,20 +45,52 @@ gtm_rwlock::~gtm_rwlock()
   pthread_mutex_destroy (&this->mutex);
   pthread_cond_destroy (&this->c_readers);
   pthread_cond_destroy (&this->c_writers);
-  pthread_cond_destroy (&this->c_upgrade);
 }
 
 // Acquire a RW lock for reading.
 
 void
-gtm_rwlock::read_lock ()
+gtm_rwlock::read_lock (gtm_transaction *tx)
 {
+  // Fast path: first announce our intent to read, then check for conflicting
+  // intents to write. The barrier makes sure that this happens in exactly
+  // this order.
+  tx->shared_state = 0;
+  __sync_synchronize();
+  unsigned int sum = this->summary;
+  if (likely(!(sum & (a_writer | w_writer))))
+    return;
+
+  // There seems to be an active, waiting, or confirmed writer, so enter the
+  // mutex-based slow path. To try to keep the number of readers small that
+  // the writer will see, we clear our read flag right away before entering
+  // the critical section. Otherwise, the writer would have to wait for us to
+  // get into the critical section. (Note that for correctness, this only has
+  // to happen before we leave the slow path and before we wait for any
+  // writer).
+  // ??? Add a barrier to enforce early visibility of this?
+  tx->shared_state = ~(typeof tx->shared_state)0;
+
   pthread_mutex_lock (&this->mutex);
 
-  unsigned int sum = this->summary;
+  // Read summary again after acquiring the mutex because it might have
+  // changed during waiting for the mutex to become free.
+  sum = this->summary;
 
-  // If there is a waiting upgrade, or an active writer, we must wait.
-  while (sum & (w_upgrade | a_writer | w_writer))
+  // If there is a writer waiting for readers, wake it up. Only do that if we
+  // might be the last reader that could do the wake-up, otherwise skip the
+  // wake-up but decrease a_readers to show that we have entered the slow path.
+  // This has to happen before we wait for any writers or upgraders.
+  // See write_lock_generic() for further explanations.
+  if (this->a_readers > 0)
+    {
+      this->a_readers--;
+      if (this->a_readers == 0)
+        pthread_cond_signal(&this->c_confirmed_writers);
+    }
+
+  // If there is an active or waiting writer, we must wait.
+  while (sum & (a_writer | w_writer))
     {
       this->summary = sum | w_reader;
       this->w_readers++;
@@ -69,25 +101,42 @@ gtm_rwlock::read_lock ()
     }
 
   // Otherwise we can acquire the lock for read.
-  this->summary = sum | a_reader;
-  this->a_readers++;
+  tx->shared_state = 0;
 
   pthread_mutex_unlock(&this->mutex);
 }
 
 
-// Acquire a RW lock for writing.
+// Acquire a RW lock for writing. Generic version that also works for
+// upgrades.
+// Note that an upgrade might fail (and thus waste previous work done during
+// this transaction) if there is another thread that tried to go into serial
+// mode earlier (i.e., upgrades do not have higher priority than pure writers).
+// However, this seems rare enough to not consider it further as we need both
+// a non-upgrade writer and a writer to happen to switch to serial mode
+// concurrently. If we'd want to handle this, a writer waiting for readers
+// would have to coordinate with later arriving upgrades and hand over the
+// lock to them, including the the reader-waiting state. We can try to support
+// this if this will actually happen often enough in real workloads.
 
-void
-gtm_rwlock::write_lock ()
+bool
+gtm_rwlock::write_lock_generic (gtm_transaction *tx)
 {
   pthread_mutex_lock (&this->mutex);
 
   unsigned int sum = this->summary;
 
-  // If there is a waiting upgrade, or an active reader or writer, wait.
-  while (sum & (w_upgrade | a_writer | a_reader))
+  // If there is an active writer, wait.
+  while (sum & a_writer)
     {
+      if (tx != 0)
+        {
+          // If this is an upgrade, we must not wait for other writers or
+          // upgrades that already have gone in
+          pthread_mutex_unlock (&this->mutex);
+          return false;
+        }
+
       this->summary = sum | w_writer;
       this->w_writers++;
       pthread_cond_wait (&this->c_writers, &this->mutex);
@@ -96,10 +145,78 @@ gtm_rwlock::write_lock ()
 	sum &= ~w_writer;
     }
 
-  // Otherwise we can acquire the lock for write.
+  // Otherwise we can acquire the lock for write. As a writer, we have
+  // priority, so we don't need to take this back.
   this->summary = sum | a_writer;
 
-  pthread_mutex_unlock(&this->mutex);
+  // We still need to wait for active readers to finish. The barrier makes
+  // sure that we first set our write intent and check for active readers
+  // after that, in strictly this order (similar to the barrier in the fast
+  // path of read_lock()).
+  __sync_synchronize();
+
+  // If this is an upgrade, we are not a reader anymore.
+  if (tx != 0)
+    tx->shared_state = ~(typeof tx->shared_state)0;
+
+  // Count the number of active readers to be able to decrease the number of
+  // wake-ups and wait calls that are necessary.
+  //
+  // This number is an upper bound of the number of readers that actually
+  // are still active and which we need to wait for:
+  // - We set our write flag before checking the reader flags, and readers
+  //   check our write flag after clearing their read flags in read_unlock().
+  //   Therefore, they will enter the slow path whenever we have seen them.
+  // - Readers will have cleared their read flags before leaving the slow
+  //   path in read_lock() (prevents lost wake-ups), and before waiting for
+  //   any writer (prevents deadlocks).
+  //
+  // However, this number is also just a lower bound of the number of readers
+  // that will actually enter the slow path in read_unlock() or read_lock():
+  // - Because the read flag is cleared outside of a critical section, writers
+  //   can see it as cleared while the reader still goes into the slow path.
+  //
+  // Therefore, readers can skip (lower bound - 1) wake-ups, but we do need
+  // the following loop to check that the readers that we wanted to wait for
+  // are actually those that entered the slow path so far (and either skipped
+  // or sent a wake-up).
+  //
+  // ??? Do we need to optimize further? (The writer could publish a list of
+  // readers that it suspects to be active. Readers could check this list and
+  // only decrement a_readers if they are in this list.)
+  for (;;)
+    {
+      // ??? Keep a list of active readers that we saw and update it on the
+      // next retry instead? This might reduce the number of cache misses that
+      // we get when checking reader flags.
+      int readers = 0;
+      for (gtm_transaction *it = gtm_transaction::list_of_tx; it != 0;
+          it = it->next_tx)
+        {
+          // Don't count ourself if this is an upgrade.
+          if (it->shared_state != ~(typeof it->shared_state)0)
+            readers++;
+        }
+
+      // If we have not seen any readers, we will not wait.
+      if (readers == 0)
+        break;
+
+      // We've seen a number of readers, so we publish this number and wait.
+      this->a_readers = readers;
+      pthread_cond_wait (&this->c_confirmed_writers, &this->mutex);
+    }
+
+  pthread_mutex_unlock (&this->mutex);
+  return true;
+}
+
+// Acquire a RW lock for writing.
+
+void
+gtm_rwlock::write_lock ()
+{
+  write_lock_generic (0);
 }
 
 
@@ -108,63 +225,40 @@ gtm_rwlock::write_lock ()
 // if this attempt fails (i.e. another thread also upgraded).
 
 bool
-gtm_rwlock::write_upgrade ()
+gtm_rwlock::write_upgrade (gtm_transaction *tx)
 {
-  pthread_mutex_lock (&this->mutex);
-
-  unsigned int sum = this->summary;
-
-  // If there's already someone trying to upgrade, then we fail.
-  if (unlikely (sum & w_upgrade))
-    {
-      pthread_mutex_unlock (&this->mutex);
-      return false;
-    }
-
-  // If there are more active readers, then we have to wait.
-  if (--this->a_readers > 0)
-    {
-      this->summary = sum | w_upgrade;
-      pthread_cond_wait (&this->c_upgrade, &this->mutex);
-      sum = this->summary & ~w_upgrade;
-      // We only return from upgrade when we've got it; don't loop.
-      assert ((sum & (a_reader | a_writer)) == 0);
-    }
-  else
-    {
-      // We were the only reader.
-      sum &= ~a_reader;
-    }
-
-  // Otherwise we can upgrade to writer.
-  this->summary = sum | a_writer;
-
-  pthread_mutex_unlock (&this->mutex);
-  return true;
+  return write_lock_generic (tx);
 }
 
 
 // Release a RW lock from reading.
 
 void
-gtm_rwlock::read_unlock ()
+gtm_rwlock::read_unlock (gtm_transaction *tx)
 {
+  tx->shared_state = ~(typeof tx->shared_state)0;
+  __sync_synchronize();
+  unsigned int sum = this->summary;
+  if (likely(!(sum & (a_writer | w_writer))))
+    return;
+
+  // There is a writer, either active or waiting for other readers or writers.
+  // Thus, enter the mutex-based slow path.
   pthread_mutex_lock (&this->mutex);
 
-  // If there are no more active readers, we may need to wake someone.
-  if (--this->a_readers == 0)
+  // If there is a writer waiting for readers, wake it up. Only do that if we
+  // might be the last reader that could do the wake-up, otherwise skip the
+  // wake-up and decrease a_readers to publish that we have entered the slow
+  // path but skipped the wake-up.
+  if (this->a_readers > 0)
     {
-      unsigned int sum = this->summary;
-      this->summary = sum & ~a_reader;
-
-      // If there is a waiting upgrade, wake it.
-      if (unlikely (sum & w_upgrade))
-	pthread_cond_signal (&this->c_upgrade);
-
-      // If there is a waiting writer, wake it.
-      else if (unlikely (sum & w_writer))
-	pthread_cond_signal (&this->c_writers);
+      this->a_readers--;
+      if (this->a_readers == 0)
+        pthread_cond_signal(&this->c_confirmed_writers);
     }
+
+  // We don't need to wake up any writers waiting for other writers. Active
+  // writers will take care of that.
 
   pthread_mutex_unlock (&this->mutex);
 }

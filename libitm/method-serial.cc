@@ -241,7 +241,7 @@ GTM::gtm_transaction::serialirr_mode ()
       disp->fini ();
       need_restart = false;
     }
-  else if (serial_lock.write_upgrade ())
+  else if (serial_lock.write_upgrade (this))
     {
       this->state |= STATE_SERIAL;
       if (disp->trycommit ())

@@ -194,6 +194,10 @@ struct gtm_transaction
   // Points to the next transaction in the list of all threads' transactions.
   gtm_transaction *next_tx __attribute__((__aligned__(HW_CACHELINE_SIZE)));
 
+  // If this transaction is inactive, shared_state is ~0. Otherwise, this is
+  // an active or serial transaction.
+  gtm_word shared_state;
+
   // The lock that provides access to serial mode.  Non-serialized
   // transactions acquire read locks; a serialized transaction aquires
   // a write lock.
@@ -201,6 +205,9 @@ struct gtm_transaction
 
   // The head of the list of all threads' transactions.
   static gtm_transaction *list_of_tx;
+
+  gtm_transaction() : shared_state(~(typeof shared_state)0)
+  {}
 
   // In alloc.cc
   void commit_allocations (bool, aa_tree<uintptr_t, gtm_alloc_action>*);

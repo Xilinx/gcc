@@ -232,7 +232,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
         }
       else
         {
-          serial_lock.read_lock ();
+          serial_lock.read_lock (tx);
         }
 
       set_abi_disp (disp);
@@ -391,7 +391,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
       if (tx->state & gtm_transaction::STATE_SERIAL)
         gtm_transaction::serial_lock.write_unlock ();
       else
-        gtm_transaction::serial_lock.read_unlock ();
+        gtm_transaction::serial_lock.read_unlock (tx);
       tx->state = 0;
 
       GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables,
@@ -437,7 +437,7 @@ GTM::gtm_transaction::trycommit ()
       if (state & gtm_transaction::STATE_SERIAL)
 	gtm_transaction::serial_lock.write_unlock ();
       else
-	gtm_transaction::serial_lock.read_unlock ();
+	gtm_transaction::serial_lock.read_unlock (this);
       state = 0;
 
       return true;

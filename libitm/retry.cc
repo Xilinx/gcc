@@ -52,7 +52,7 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
       if ((this->state & STATE_SERIAL) == 0)
 	{
 	  this->state |= STATE_SERIAL;
-	  serial_lock.read_unlock ();
+	  serial_lock.read_unlock (this);
 	  serial_lock.write_lock ();
 	}
 
