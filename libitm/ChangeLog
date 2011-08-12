@@ -1,5 +1,9 @@
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
+	* testsuite/libitm.c/reentrant.c: New file.
+
+2011-08-12  Torvald Riegel  <triegel@redhat.com>
+
 	* config/generic/tls.h: Remove the free list for transactions and ...
 	* beginend.cc (GTM::gtm_transaction::operator new): ... allocate ...
 	(GTM::gtm_transaction::operator delete): ... and release here.
