@@ -9064,6 +9064,11 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
     case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_N:
     case BUILT_IN_SYNC_MEM_LOAD_N:
     case BUILT_IN_SYNC_MEM_STORE_N:
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_N:
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_N:
+    case BUILT_IN_SYNC_MEM_AND_FETCH_N:
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_N:
+    case BUILT_IN_SYNC_MEM_OR_FETCH_N:
     case BUILT_IN_SYNC_MEM_FETCH_ADD_N:
     case BUILT_IN_SYNC_MEM_FETCH_SUB_N:
     case BUILT_IN_SYNC_MEM_FETCH_AND_N:

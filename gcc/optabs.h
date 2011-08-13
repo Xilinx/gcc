@@ -682,6 +682,11 @@ enum direct_optab_index
   DOI_sync_mem_compare_exchange,
   DOI_sync_mem_load,
   DOI_sync_mem_store,
+  DOI_sync_mem_add_fetch,
+  DOI_sync_mem_sub_fetch,
+  DOI_sync_mem_and_fetch,
+  DOI_sync_mem_xor_fetch,
+  DOI_sync_mem_or_fetch,
   DOI_sync_mem_fetch_add,
   DOI_sync_mem_fetch_sub,
   DOI_sync_mem_fetch_and,
@@ -748,6 +753,16 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_sync_mem_load])
 #define sync_mem_store_optab \
   (&direct_optab_table[(int) DOI_sync_mem_store])
+#define sync_mem_add_fetch_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_add_fetch])
+#define sync_mem_sub_fetch_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_sub_fetch])
+#define sync_mem_and_fetch_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_and_fetch])
+#define sync_mem_xor_fetch_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_xor_fetch])
+#define sync_mem_or_fetch_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_or_fetch])
 #define sync_mem_fetch_add_optab \
   (&direct_optab_table[(int) DOI_sync_mem_fetch_add])
 #define sync_mem_fetch_sub_optab \

@@ -6773,7 +6773,8 @@ stores in all threads.
 @end table
 
 When implementing patterns for these builtins, the memory model parameter can
-be ignored as long as the pattern implements the most restrictive __SYNC_MEM_SEQ_CST model. Any of the other memory models will execute correctly with this
+be ignored as long as the pattern implements the most restrictive __SYNC_MEM_SEQ_CST 
+model. Any of the other memory models will execute correctly with this
 memory model but they may not execute as efficiently as they could with a more
 appropriate implemention of the relaxed requirements.
 
@@ -6820,6 +6821,25 @@ False is returned otherwise, and the execution is considered to conform to
 __SYNC_MEM_ACQ_REL.  It also cannot be a stronger model than that specified
 by @var{success_memmodel}.
 
+@item @var{type} __sync_mem_add_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __sync_mem_sub_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __sync_mem_and_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __sync_mem_xor_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __sync_mem_or_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __sync_mem_add_fetch
+@findex __sync_mem_sub_fetch
+@findex __sync_mem_and_fetch
+@findex __sync_mem_xor_fetch
+@findex __sync_mem_or_fetch
+These builtins perform the operation suggested by the name, and return the result 
+of the operation. That is,
+
+@smallexample
+@{ *ptr @var{op}= val; return *ptr; @}
+@end smallexample
+
+All memory models are valid.
+
 @item @var{type} __sync_mem_fetch_add (@var{type} *ptr, @var{type} val, int memmodel)
 @itemx @var{type} __sync_mem_fetch_sub (@var{type} *ptr, @var{type} val, int memmodel)
 @itemx @var{type} __sync_mem_fetch_and (@var{type} *ptr, @var{type} val, int memmodel)
@@ -6842,14 +6862,16 @@ All memory models are valid.
 @item bool __sync_mem_flag_test_and_set (char *ptr, int memmodel)
 @findex __sync_mem_flag_test_and_set
 
-This builtin performs a test and set operation. The contents of @code{*@var{ptr}} will be set to true, and the previous value returned.
+This builtin performs a test and set operation. The contents of
+@code{*@var{ptr}} will be set to true, and the previous value returned.
 
 All memory orders are valid.
 
 @item void __sync_mem_flag_clear (char *ptr, int memmodel)
 @findex __sync_mem_flag_clear
 
-This builtin performs a clear operation. The contents of @code{*@var{ptr}} will be set to false.
+This builtin performs a clear operation. The contents of @code{*@var{ptr}}
+will be set to false.
 
 The memory order cannot be __SYNC_MEM_ACQUIRE or __SYNC_MEM_ACQ_REL.
 

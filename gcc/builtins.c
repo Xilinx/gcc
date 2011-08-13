@@ -5363,11 +5363,13 @@ expand_builtin_sync_mem_store (enum machine_mode mode, tree exp)
    	TYPE __sync_mem_fetch_XXX (TYPE *object, TYPE val, enum memmodel)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.
-   CODE is the operation, PLUS, MINUS, ADD, XOR, or IOR. */
+   CODE is the operation, PLUS, MINUS, ADD, XOR, or IOR.
+   FETCH_AFTER is true if returning the result of the operation.
+   FETCH_AFTER is false if returning the value before the operation.  */
 
 static rtx
 expand_builtin_sync_mem_fetch_op (enum machine_mode mode, tree exp, rtx target,
-				  enum rtx_code code)
+				  enum rtx_code code, bool fetch_after)
 {
   rtx val, mem;
   enum memmodel model;
@@ -5378,7 +5380,7 @@ expand_builtin_sync_mem_fetch_op (enum machine_mode mode, tree exp, rtx target,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_sync_mem_fetch_op (target, mem, val, code, model);
+  return expand_sync_mem_fetch_op (target, mem, val, code, model, fetch_after);
 }
 
 /* Expand the __sync_mem_flag_test_and_set intrinsic:
@@ -6355,13 +6357,71 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       expand_builtin_sync_mem_store (mode, exp);
       return const0_rtx;
 
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_1:
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_2:
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_4:
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_8:
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_ADD_FETCH_1);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, PLUS, true);
+      if (target)
+	return target;
+      break;
+ 
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_1:
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_2:
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_4:
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_8:
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_SUB_FETCH_1);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, MINUS, 
+						 true);
+      if (target)
+	return target;
+      break;
+ 
+    case BUILT_IN_SYNC_MEM_AND_FETCH_1:
+    case BUILT_IN_SYNC_MEM_AND_FETCH_2:
+    case BUILT_IN_SYNC_MEM_AND_FETCH_4:
+    case BUILT_IN_SYNC_MEM_AND_FETCH_8:
+    case BUILT_IN_SYNC_MEM_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_AND_FETCH_1);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, AND, true);
+      if (target)
+	return target;
+      break;
+ 
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_1:
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_2:
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_4:
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_8:
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_XOR_FETCH_1);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, XOR, true);
+      if (target)
+	return target;
+      break;
+ 
+    case BUILT_IN_SYNC_MEM_OR_FETCH_1:
+    case BUILT_IN_SYNC_MEM_OR_FETCH_2:
+    case BUILT_IN_SYNC_MEM_OR_FETCH_4:
+    case BUILT_IN_SYNC_MEM_OR_FETCH_8:
+    case BUILT_IN_SYNC_MEM_OR_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_OR_FETCH_1);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, IOR, true);
+      if (target)
+	return target;
+      break;
+ 
+
     case BUILT_IN_SYNC_MEM_FETCH_ADD_1:
     case BUILT_IN_SYNC_MEM_FETCH_ADD_2:
     case BUILT_IN_SYNC_MEM_FETCH_ADD_4:
     case BUILT_IN_SYNC_MEM_FETCH_ADD_8:
     case BUILT_IN_SYNC_MEM_FETCH_ADD_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_ADD_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, PLUS);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, PLUS,
+						 false);
       if (target)
 	return target;
       break;
@@ -6372,7 +6432,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_SYNC_MEM_FETCH_SUB_8:
     case BUILT_IN_SYNC_MEM_FETCH_SUB_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_SUB_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, MINUS);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, MINUS,
+						 false);
       if (target)
 	return target;
       break;
@@ -6383,7 +6444,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_SYNC_MEM_FETCH_AND_8:
     case BUILT_IN_SYNC_MEM_FETCH_AND_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_AND_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, AND);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, AND, false);
       if (target)
 	return target;
       break;
@@ -6394,7 +6455,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_SYNC_MEM_FETCH_XOR_8:
     case BUILT_IN_SYNC_MEM_FETCH_XOR_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_XOR_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, XOR);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, XOR, false);
       if (target)
 	return target;
       break;
@@ -6405,7 +6466,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_SYNC_MEM_FETCH_OR_8:
     case BUILT_IN_SYNC_MEM_FETCH_OR_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_OR_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, IOR);
+      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, IOR, false);
       if (target)
 	return target;
       break;

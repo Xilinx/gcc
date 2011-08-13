@@ -1,3 +1,13 @@
+2011-08-13  Andrew MacLeod  <amacleod@redhat.com>
+
+	* testsuite/gcc.dg/sync-mem-op-[1-5].c: Combine all sync_mem_fetch_{op} 
+	tests in one test file, and add new sync_mem_{op}_fetch tests.
+	* testsuite/gcc/dg/sync-mem-fetch-add-[1-5].c: Delete.
+	* testsuite/gcc/dg/sync-mem-fetch-sub-[1-5].c: Delete.
+	* testsuite/gcc/dg/sync-mem-fetch-and-[1-5].c: Delete.
+	* testsuite/gcc/dg/sync-mem-fetch-xor-[1-5].c: Delete.
+	* testsuite/gcc/dg/sync-mem-fetch-or-[1-5].c: Delete.
+	
 2011-07-27  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/sync-mem-{1-5}.c: Remove.

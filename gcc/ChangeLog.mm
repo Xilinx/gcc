@@ -1,3 +1,21 @@
+2011-08-13  Andrew MacLeod  <amacleod@redhat.com>
+
+	* sync-builtins.def (BUILT_IN_SYNC_MEM_{ADD,SUB,AND,XOR,OR}_FETCH): New.
+	* optabs.h (enum direct_optab_index): Add defines and access macros
+	for DOI_sync_mem_{add,sub,and,xor,or}_fetch.
+	* genopinit.c (optabs): Set handler for
+	sync_mem_{add,sub,and,xor,or}_fetch.
+	* expr.h (expand_sync_mem_fetch_op): Add parameter to prototype.
+	* optabs.c (expand_sync_mem_fetch_op): Add bool parameter to handle 
+	fetch_ops which return the result of the calculation.
+	* builtins.c (expand_builtin_sync_mem_fetch_op): Add bool parameter
+	to handle fetch_ops which return the result of the calculation.
+	(expand_builtin): Add new _SYNC_MEM cases and add bool parameter to
+	calls to expand_builtin_sync_mem_fetch_op.
+	* doc/extend.texi: Document __sync_mem_add_fetch, __sync_mem_sub_fetch,
+	__sync_mem_and_fetch, __sync_mem_xor_fetch, and __sync_mem_or_fetch.
+	Fix some formatting.
+	
 2011-07-27  Andrew Macleod  <amacleod@redhat.com>
 
 	* expr.h (expand_sync_mem_exchange): Change parameter order.

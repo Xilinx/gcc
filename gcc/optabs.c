@@ -7243,37 +7243,48 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
    CODE is the operation to be performed.
    atomically fetch MEM, perform the operation with VAL and return it to MEM.
    return the previous value of MEM.
+   FETCH_AFTER is true if the return value is the result of the operation.
+   FETCH_AFTER is false if it is the value before the operation.
 
    MEMMODEL is the memory model variant to use.
    TARGET is an option place to stick the return value.  */
 
 rtx
 expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
-			  enum memmodel model)
+			  enum memmodel model, bool fetch_after)
 {
   enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode;
+  enum insn_code icode = CODE_FOR_nothing;
+  struct direct_optab_d *optab;
 
   switch (code)
     {
       case PLUS:
-        icode = direct_optab_handler (sync_mem_fetch_add_optab, mode);
+        optab = fetch_after ? sync_mem_add_fetch_optab 
+			    : sync_mem_fetch_add_optab;
         break;
       case MINUS:
-        icode = direct_optab_handler (sync_mem_fetch_sub_optab, mode);
+        optab = fetch_after ? sync_mem_sub_fetch_optab 
+			    : sync_mem_fetch_sub_optab;
         break;
       case AND:
-        icode = direct_optab_handler (sync_mem_fetch_and_optab, mode);
+        optab = fetch_after ? sync_mem_and_fetch_optab 
+			    : sync_mem_fetch_and_optab;
         break;
       case XOR:
-        icode = direct_optab_handler (sync_mem_fetch_xor_optab, mode);
+        optab = fetch_after ? sync_mem_xor_fetch_optab 
+			    : sync_mem_fetch_xor_optab;
         break;
       case IOR:
-        icode = direct_optab_handler (sync_mem_fetch_or_optab, mode);
+        optab = fetch_after ? sync_mem_or_fetch_optab 
+			    : sync_mem_fetch_or_optab;
         break;
       default:
-        icode = CODE_FOR_nothing;
+        optab = NULL;
     }
+
+  if (optab)
+    icode = direct_optab_handler (optab, mode);
 
   /* If the target supports the operation directly, great.  */
   if (icode != CODE_FOR_nothing)
@@ -7289,8 +7300,8 @@ expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 	return ops[0].value;
     }
 
-   /* fetch_* operations are full barriers, so need nothign else.  */
-   target = expand_sync_fetch_operation (mem, val, code, false, target);
+   /* fetch_* operations are full barriers, so need nothing else.  */
+   target = expand_sync_fetch_operation (mem, val, code, fetch_after, target);
 
   return target;
 }
