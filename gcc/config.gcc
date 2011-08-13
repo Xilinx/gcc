@@ -1843,6 +1843,12 @@ microblaze*-linux*)
 	tmake_file="${tmake_file} t-slibgcc-elf-ver t-slibgcc-nolc-override t-linux microblaze/t-microblaze"
         extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o crtbeginT.o"
 	;;
+microblaze*-*-elf)
+	tm_file="${tm_file} dbxelf.h newlib-stdint.h"
+	c_target_objs="${c_target_objs} microblaze-c.o"
+	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
+	tmake_file="${tmake_file} microblaze/t-microblaze"
+        ;;
 microblaze*-*-*)
         tm_file="${tm_file} dbxelf.h"
 	c_target_objs="${c_target_objs} microblaze-c.o"
