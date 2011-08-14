@@ -1,3 +1,34 @@
+2011-08-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50034
+	* g++.dg/cpp0x/defaulted28.C: Add unevaluated case.
+
+2011-08-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/builtins-67.c: New test.
+	* gcc.target/i386/conversion.c: Ditto.
+
+2011-08-11  Romain Geissler  <romain.geissler@gmail.com>
+            Brian Hackett  <bhackett1024@gmail.com>
+
+	* g++.dg/plugin/decl_plugin.c: New.
+	* g++.dg/plugin/decl-plugin-test.C: New.
+	* g++.dg/plugin/plugin.exp: Add above testcase.
+
+2011-08-11  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/tree-ssa/pr41186.C: Un-XFAIL.
+
+2011-08-11  Michael Matz  <matz@suse.de>
+
+	* gcc.dg/graphite/run-id-pr47593.c: Remove -m32.
+
+2011-08-11  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50039
+	* gcc.dg/vect/vect.exp: Run no-tree-fre-* tests with -fno-tree-fre.
+	* gcc.dg/vect/no-tree-fre-pr50039.c: New test.
+
 2011-08-10  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* gcc.target/i386/sse4_1-blendps-2.c: Include <stdlib.h>.

@@ -652,7 +652,7 @@ struct output_block
   bool global;
 
   /* Cache of nodes written in this section.  */
-  struct lto_streamer_cache_d *writer_cache;
+  struct streamer_tree_cache_d *writer_cache;
 
   /* All data persistent across whole duration of output block
      can go here.  */
@@ -690,7 +690,7 @@ struct data_in
   VEC(ld_plugin_symbol_resolution_t,heap) *globals_resolution;
 
   /* Cache of pickled nodes.  */
-  struct lto_streamer_cache_d *reader_cache;
+  struct streamer_tree_cache_d *reader_cache;
 };
 
 
@@ -712,10 +712,6 @@ extern const char *lto_get_section_data (struct lto_file_decl_data *,
 extern void lto_free_section_data (struct lto_file_decl_data *,
 				   enum lto_section_type,
 				   const char *, const char *, size_t);
-extern unsigned HOST_WIDE_INT lto_input_uleb128 (struct lto_input_block *);
-extern unsigned HOST_WIDEST_INT lto_input_widest_uint_uleb128 (
-						struct lto_input_block *);
-extern HOST_WIDE_INT lto_input_sleb128 (struct lto_input_block *);
 extern htab_t lto_create_renaming_table (void);
 extern void lto_record_renamed_decl (struct lto_file_decl_data *,
 				     const char *, const char *);
@@ -742,12 +738,6 @@ extern void lto_end_section (void);
 extern void lto_write_stream (struct lto_output_stream *);
 extern void lto_output_data_stream (struct lto_output_stream *, const void *,
 				    size_t);
-extern void lto_output_uleb128_stream (struct lto_output_stream *,
-       				       unsigned HOST_WIDE_INT);
-extern void lto_output_widest_uint_uleb128_stream (struct lto_output_stream *,
-       					           unsigned HOST_WIDEST_INT);
-extern void lto_output_sleb128_stream (struct lto_output_stream *,
-				       HOST_WIDE_INT);
 extern bool lto_output_decl_index (struct lto_output_stream *,
 			    struct lto_tree_ref_encoder *,
 			    tree, unsigned int *);
@@ -809,6 +799,7 @@ tree lto_input_tree_ref (struct lto_input_block *, struct data_in *,
 			 struct function *, enum LTO_tags);
 void lto_tag_check_set (enum LTO_tags, int, ...);
 void lto_init_eh (void);
+tree lto_input_tree (struct lto_input_block *, struct data_in *);
 
 
 /* In lto-streamer-out.c  */
@@ -822,7 +813,6 @@ void lto_output_decl_state_streams (struct output_block *,
 void lto_output_decl_state_refs (struct output_block *,
 			         struct lto_output_stream *,
 			         struct lto_out_decl_state *);
-void lto_output_tree_ref (struct output_block *, tree);
 void lto_output_location (struct output_block *, location_t);
 
 
@@ -1014,17 +1004,6 @@ static inline bool
 emit_label_in_global_context_p (tree label)
 {
   return DECL_NONLOCAL (label) || FORCED_LABEL (label);
-}
-
-/* Return true if tree node EXPR should be streamed as a builtin.  For
-   these nodes, we just emit the class and function code.  */
-static inline bool
-lto_stream_as_builtin_p (tree expr)
-{
-  return (TREE_CODE (expr) == FUNCTION_DECL
-	  && DECL_IS_BUILTIN (expr)
-	  && (DECL_BUILT_IN_CLASS (expr) == BUILT_IN_NORMAL
-	      || DECL_BUILT_IN_CLASS (expr) == BUILT_IN_MD));
 }
 
 DEFINE_DECL_STREAM_FUNCS (TYPE, type)
