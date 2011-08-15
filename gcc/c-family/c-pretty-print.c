@@ -1453,6 +1453,11 @@ pp_c_postfix_expression (c_pretty_printer *pp, tree e)
       pp_expression (pp, TREE_OPERAND (e, 1));
       pp_c_right_bracket (pp);
       break;
+    case SYNC_STMT:
+      pp_c_identifier (pp, "_Cilk_sync");
+      break;
+
+
 
     case CALL_EXPR:
       {

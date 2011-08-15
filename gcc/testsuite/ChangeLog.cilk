@@ -1,0 +1,6 @@
+2011-08-15  Balaji V. Iyer. <balaji.v.iyer@intel.com>
+	
+	* Added: gcc.dg/cilk-plus and g++.dg/cilk-plus directories - They contain
+	files that check for Intel(R) Cilk(TM) Plus functionality 
+
+

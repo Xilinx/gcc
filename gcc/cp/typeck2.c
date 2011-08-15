@@ -1686,7 +1686,8 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
   for (; parms != NULL_TREE; parms = TREE_CHAIN (parms))
     VEC_safe_push (tree, gc, parmvec, TREE_VALUE (parms));
   exp = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				   &parmvec, type, LOOKUP_NORMAL, complain);
+				   &parmvec, type, LOOKUP_NORMAL, CALL_NORMAL,
+				   complain);
   release_tree_vector (parmvec);
 
   if (exp == error_mark_node)

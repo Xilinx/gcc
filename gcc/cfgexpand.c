@@ -97,6 +97,18 @@ gimple_assign_rhs_to_tree (gimple stmt)
 	      && gimple_block (stmt) != TREE_BLOCK (t)))
 	t = copy_node (t);
     }
+ else if (grhs_class == GIMPLE_SINGLE_RHS)
+  {
+    t = gimple_assign_rhs1 (stmt);
+    /* Avoid modifying this tree in place below.  */
+    if ((gimple_has_location (stmt) && CAN_HAVE_LOCATION_P (t)
+         && gimple_location (stmt) != EXPR_LOCATION (t))
+        || (gimple_block (stmt)
+            && currently_expanding_to_rtl
+            && EXPR_P (t)
+            && gimple_block (stmt) != TREE_BLOCK (t)))
+      t = copy_node (t);
+  }
   else
     gcc_unreachable ();
 
@@ -2066,8 +2078,11 @@ expand_gimple_stmt (gimple stmt)
      it would be better if the diagnostic routines used the source location
      embedded in the tree nodes rather than globals.  */
   if (gimple_has_location (stmt))
+  {
     input_location = gimple_location (stmt);
-
+    set_curr_insn_source_location (input_location);
+    set_curr_insn_block (gimple_block (stmt));
+  }
   expand_gimple_stmt_1 (stmt);
 
   /* Free any temporaries used to evaluate this statement.  */

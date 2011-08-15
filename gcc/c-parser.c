@@ -58,6 +58,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "plugin.h"
 
+extern tree c_build_sync (tree *);
+
+struct pragma_simd_values local_simd_values;
+
+
+
 
 /* Initialization routine for this file.  */
 
@@ -77,6 +83,8 @@ c_parse_init (void)
   mask |= D_CXXONLY;
   if (!flag_isoc99)
     mask |= D_C99;
+  if (flag_enable_cilk == 0)
+    mask |= D_CILK;
   if (flag_no_asm)
     {
       mask |= D_ASM | D_EXT;
@@ -108,6 +116,31 @@ c_parse_init (void)
       C_IS_RESERVED_WORD (id) = 1;
       ridpointers [(int) c_common_reswords[i].rid] = id;
     }
+
+    /* bviyer: here we initialize the local_simd_values structure. We only need it
+   * initialized the first time, after each consumptions, for-loop will
+   * automatically consume the values and delete the information.
+   */
+  local_simd_values.index              = 0;
+  local_simd_values.pragma_encountered = false;
+  local_simd_values.types              = P_SIMD_NOASSERT;
+  local_simd_values.vectorlength       = NULL_TREE;
+  local_simd_values.vec_length_list    = NULL;
+  local_simd_values.vec_length_size    = 0;
+  local_simd_values.private_vars       = NULL_TREE;
+  local_simd_values.priv_var_list      = NULL;
+  local_simd_values.priv_var_size      = 0;
+ 
+  local_simd_values.linear_vars        = NULL_TREE;
+  local_simd_values.linear_var_size    = 0;
+  local_simd_values.linear_var_list    = NULL;
+  local_simd_values.linear_steps       = NULL_TREE;
+  local_simd_values.linear_steps_list  = NULL;
+  local_simd_values.linear_steps_size  = 0;
+  local_simd_values.reduction_vals     = NULL;
+  local_simd_values.ptr_next           = NULL;
+
+  psv_head = NULL;
 }
 
 /* The C lexer intermediates between the lexer in cpplib and c-lex.c
@@ -1130,7 +1163,7 @@ static void c_parser_if_statement (c_parser *);
 static void c_parser_switch_statement (c_parser *);
 static void c_parser_while_statement (c_parser *);
 static void c_parser_do_statement (c_parser *);
-static void c_parser_for_statement (c_parser *);
+static void c_parser_for_statement (c_parser *, bool);
 static tree c_parser_asm_statement (c_parser *);
 static tree c_parser_asm_operands (c_parser *, bool);
 static tree c_parser_asm_goto_operands (c_parser *);
@@ -1188,7 +1221,13 @@ static void c_parser_objc_at_property_declaration (c_parser *);
 static void c_parser_objc_at_synthesize_declaration (c_parser *);
 static void c_parser_objc_at_dynamic_declaration (c_parser *);
 static bool c_parser_objc_diagnose_bad_element_prefix
-  (c_parser *, struct c_declspecs *);
+(c_parser *, struct c_declspecs *);
+static void c_parser_cilk_for_statement (c_parser *, tree);
+void c_parser_simd_linear (c_parser *);
+void c_parser_simd_private(c_parser *);
+void c_parser_simd_assert(c_parser *, bool);
+void c_parser_simd_vectorlength (c_parser *);
+void c_parser_simd_reduction (c_parser *);
 
 /* Parse a translation unit (C90 6.7, C99 6.9).
 
@@ -1737,6 +1776,14 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 	     by initializer_constant_valid_p.  See gcc.dg/nested-fn-2.c.  */
 	  DECL_STATIC_CHAIN (decl) = 1;
 	  add_stmt (fnbody);
+	  #if 1
+	  /* bviyer: I added this...not 100% sure..verify !!! */
+	  if (DECL_SAVED_TREE(current_function_decl))
+	  {
+	    VEC_safe_push (tree, gc, stmt_list_stack,
+			   DECL_SAVED_TREE(current_function_decl));
+	  }
+	  #endif
 	  finish_function ();
 	  c_pop_function_context ();
 	  add_stmt (build_stmt (DECL_SOURCE_LOCATION (decl), DECL_EXPR, decl));
@@ -1744,6 +1791,14 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
       else
 	{
 	  add_stmt (fnbody);
+	  #if 1
+	  /* bviyer: I added this...not 100% sure..verify !!! */
+	  if (DECL_SAVED_TREE(current_function_decl))
+	  {
+	    VEC_safe_push (tree, gc, stmt_list_stack,
+			   DECL_SAVED_TREE(current_function_decl));
+	  }
+	  #endif
 	  finish_function ();
 	}
 
@@ -4355,8 +4410,17 @@ c_parser_statement_after_labels (c_parser *parser)
 	  c_parser_do_statement (parser);
 	  break;
 	case RID_FOR:
-	  c_parser_for_statement (parser);
+	  c_parser_for_statement (parser, false);
 	  break;
+	     case RID_CILK_FOR:
+      c_parser_cilk_for_statement(parser, NULL_TREE);
+      break;
+    case RID_CILK_SYNC:
+      c_parser_consume_token (parser);
+      c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
+      /* stmt = */ c_build_sync (&stmt);
+      add_stmt (stmt);
+      break;
 	case RID_GOTO:
 	  c_parser_consume_token (parser);
 	  if (c_parser_next_token_is (parser, CPP_NAME))
@@ -4675,7 +4739,9 @@ c_parser_while_statement (c_parser *parser)
   save_cont = c_cont_label;
   c_cont_label = NULL_TREE;
   body = c_parser_c99_block_statement (parser);
-  c_finish_loop (loc, cond, NULL, body, c_break_label, c_cont_label, true);
+  c_finish_loop (loc, cond, NULL, body, c_break_label, c_cont_label,
+		 &local_simd_values,
+		 true);
   add_stmt (c_end_compound_stmt (loc, block, flag_isoc99));
   c_break_label = save_break;
   c_cont_label = save_cont;
@@ -4713,7 +4779,8 @@ c_parser_do_statement (c_parser *parser)
   cond = c_parser_paren_condition (parser);
   if (!c_parser_require (parser, CPP_SEMICOLON, "expected %<;%>"))
     c_parser_skip_to_end_of_block_or_statement (parser);
-  c_finish_loop (loc, cond, NULL, body, new_break, new_cont, false);
+  c_finish_loop (loc, cond, NULL, body, new_break, new_cont,
+		 &local_simd_values, false);
   add_stmt (c_end_compound_stmt (loc, block, flag_isoc99));
 }
 
@@ -4774,13 +4841,15 @@ c_parser_do_statement (c_parser *parser)
 */
 
 static void
-c_parser_for_statement (c_parser *parser)
+c_parser_for_statement (c_parser *parser, bool pragma_simd_found)
 {
   tree block, cond, incr, save_break, save_cont, body;
   /* The following are only used when parsing an ObjC foreach statement.  */
   tree object_expression;
   /* Silence the bogus uninitialized warning.  */
   tree collection_expression = NULL;
+  tree reset_stmt_list = NULL_TREE;
+  
   location_t loc = c_parser_peek_token (parser)->location;
   location_t for_loc = c_parser_peek_token (parser)->location;
   bool is_foreach_statement = false;
@@ -4917,10 +4986,18 @@ c_parser_for_statement (c_parser *parser)
   save_cont = c_cont_label;
   c_cont_label = NULL_TREE;
   body = c_parser_c99_block_statement (parser);
+
+  if (pragma_simd_found)
+    body = pragma_simd_create_private_vars(body, &reset_stmt_list,
+					   local_simd_values);
+  
   if (is_foreach_statement)
-    objc_finish_foreach_loop (loc, object_expression, collection_expression, body, c_break_label, c_cont_label);
+    objc_finish_foreach_loop (loc, object_expression, collection_expression,
+			      body, c_break_label, c_cont_label);
   else
-    c_finish_loop (loc, cond, incr, body, c_break_label, c_cont_label, true);
+    c_finish_loop (loc, cond, incr, body, c_break_label, c_cont_label,
+		   &local_simd_values,
+		   true);
   add_stmt (c_end_compound_stmt (loc, block, flag_isoc99 || c_dialect_objc ()));
   c_break_label = save_break;
   c_cont_label = save_cont;
@@ -6454,6 +6531,23 @@ c_parser_postfix_expression (c_parser *parser)
 	    expr.value = objc_build_encode_expr (type);
 	  }
 	  break;
+	      case RID_CILK_SPAWN:
+      c_parser_consume_token (parser);
+      expr = c_parser_postfix_expression (parser);
+      /* The postfix expression read above is a maximal
+	 postfix expression, not only a function designator.
+	 If the postfix expression turned out not to be a
+	 function, fail now.  This being C rather than C++
+	 any valid uses of spawn should be simple. */
+      if (expr.value == error_mark_node)
+	;
+      else if (! current_function_decl)
+	error ("Cilk spawn may only be used inside a function");
+      else if (TREE_CODE (expr.value) != CALL_EXPR)
+	error ("Only function calls can be spawned");
+      else
+	c_call_spawns (expr.value);
+      break;
 	default:
 	  c_parser_error (parser, "expected expression");
 	  expr.value = error_mark_node;
@@ -8194,7 +8288,617 @@ c_parser_objc_at_dynamic_declaration (c_parser *parser)
   objc_add_dynamic_declaration (loc, list);
 }
 
-
+
+
+void
+c_parser_simd_assert (c_parser *parser, bool is_assert)
+{
+  c_token *token;
+
+  if (local_simd_values.types == 1)
+  {
+    c_parser_error (parser, "multiple simd assert/noassert pragmas found");
+  }
+  else
+  {
+    if (is_assert == true)
+      local_simd_values.types |= P_SIMD_ASSERT;
+    else
+      local_simd_values.types |= P_SIMD_NOASSERT;
+  }
+
+  local_simd_values.pragma_encountered = true;
+  if (c_parser_next_token_is (parser, CPP_NAME))
+  {
+    token = c_parser_peek_token(parser);
+    c_parser_consume_token(parser);
+    if (strcmp (IDENTIFIER_POINTER(token->value), "linear") == 0)
+      c_parser_simd_linear(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "private") == 0)
+      c_parser_simd_private(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "vectorlength") == 0)
+      c_parser_simd_vectorlength(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "reduction") == 0)
+      c_parser_simd_reduction(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "assert") == 0)
+      c_parser_simd_assert(parser, true);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "noassert") == 0)
+      c_parser_simd_assert(parser, false);
+    else
+      c_parser_error (parser, "Unknown identifier");
+  }
+  else
+  {
+    c_parser_skip_to_pragma_eol (parser);
+    if (!c_parser_next_token_is_keyword (parser, RID_FOR))
+    {
+      c_parser_error (parser, "for statement expected");
+    }
+    else
+    {
+      if (same_var_in_multiple_lists_p(&local_simd_values) == true)
+      {
+	c_parser_error (parser,
+			"ill-formed pragma: Found same variable in multiple clauses ");
+      }
+      /* if the pragma simd found is true, it means that we should use the
+       * values given in the local_pragma_simd variable */
+      c_parser_for_statement(parser, true);
+    }
+  }
+}
+
+void
+c_parser_simd_linear (c_parser *parser)
+{
+ 
+  tree linear_var_list = NULL_TREE, linear_steps_list = NULL_TREE;
+  tree linear_var = NULL_TREE, linear_step = NULL_TREE;
+  c_token *token;
+  int ii = 0;
+  
+   local_simd_values.types |= P_SIMD_LINEAR;
+
+ 
+  if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
+  {
+    while (true)
+    {
+      if (c_parser_next_token_is_not (parser, CPP_NAME))
+      {
+	c_parser_error(parser,"expected variable");
+	c_parser_skip_until_found(parser, CPP_CLOSE_BRACE, NULL);
+	linear_var_list = NULL_TREE;
+	linear_steps_list = NULL_TREE;
+	break;
+      }
+      linear_var = c_parser_peek_token(parser)->value;
+      c_parser_consume_token(parser);
+      linear_var_list = tree_cons (NULL_TREE, linear_var, linear_var_list);
+      
+
+      if (c_parser_next_token_is (parser, CPP_COLON))
+      {
+     	c_parser_consume_token(parser);            
+	if (c_parser_next_token_is_not (parser, CPP_NUMBER))
+	{
+	  c_parser_error (parser, "expected step-size");
+	  c_parser_skip_to_pragma_eol (parser);
+	  return;
+	}
+      
+	linear_step = c_parser_peek_token(parser)->value;
+	c_parser_consume_token(parser);
+
+      }
+      else if (c_parser_next_token_is (parser, CPP_COMMA) ||
+	       c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+      {
+	linear_step = integer_one_node;
+	
+      }
+      else
+      {
+	c_parser_error (parser, "expected : or , after variable name");
+	c_parser_skip_to_pragma_eol (parser);
+	return;
+      }
+
+   
+      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+      {
+	c_parser_consume_token(parser);
+	linear_steps_list = tree_cons(NULL_TREE,
+				      linear_step,
+				      linear_steps_list);
+	break;
+      }
+
+      if (c_parser_next_token_is (parser, CPP_COMMA))
+      {
+	c_parser_consume_token (parser);
+	linear_steps_list = tree_cons(NULL_TREE,
+				      linear_step,
+				      linear_steps_list);
+      }
+    }
+  }
+  else
+  {
+    c_parser_error (parser, "expected %<(%>");
+    return;
+  }
+
+  gcc_assert (list_length (linear_steps_list) == list_length (linear_var_list));
+
+      
+  local_simd_values.linear_steps_size = ii;
+  local_simd_values.linear_var_size = ii;
+  
+  if (c_parser_next_token_is (parser, CPP_NAME))
+  {
+    token = c_parser_peek_token(parser);
+    c_parser_consume_token(parser);
+    if (strcmp (IDENTIFIER_POINTER(token->value), "linear") == 0)
+      c_parser_simd_linear(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "private") == 0)
+      c_parser_simd_private(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "vectorlength") == 0)
+      c_parser_simd_vectorlength(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "reduction") == 0)
+      c_parser_simd_reduction(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "assert") == 0)
+      c_parser_simd_assert(parser, true);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "noassert") == 0)
+      c_parser_simd_assert(parser, false);
+    else
+      c_parser_error (parser, "Unknown identifier");
+  }
+  else
+  {
+    c_parser_skip_to_pragma_eol (parser);
+    if (!c_parser_next_token_is_keyword (parser, RID_FOR))
+    {
+      c_parser_error (parser, "for statement expected");
+    }
+    else
+    {
+      if (same_var_in_multiple_lists_p(&local_simd_values) == true)
+      {
+	c_parser_error (parser,
+			"ill-formed pragma: Found same variable in multiple clauses ");
+      }
+
+      
+      /* if the pragma simd found is true, it means that we should use the
+       * values given in the local_pragma_simd variable */
+      c_parser_for_statement(parser, true);
+    }
+  }
+	   
+
+  local_simd_values.pragma_encountered = true;
+  return;
+}
+
+
+void
+c_parser_simd_private(c_parser *parser)
+{
+  tree private_var = NULL_TREE;
+  tree private_var_list = NULL_TREE;
+  int ii = 0;
+  tree p = NULL_TREE;
+  c_token *token;
+  
+  local_simd_values.types |= P_SIMD_PRIVATE;
+
+  local_simd_values.pragma_encountered = true;
+
+ 
+
+  if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
+  {
+    while (true)
+    {
+      if (c_parser_next_token_is_not(parser, CPP_NAME))
+      {
+	c_parser_error (parser, "expected variable!");
+	c_parser_skip_until_found(parser, CPP_CLOSE_BRACE, NULL);
+	private_var_list = NULL_TREE;
+	break;
+      }
+      private_var = c_parser_peek_token(parser)->value;
+      c_parser_consume_token(parser);
+
+      private_var_list = tree_cons(NULL_TREE, private_var, private_var_list);
+      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+      {
+	c_parser_consume_token(parser);
+	break;
+      }
+      if (c_parser_next_token_is (parser, CPP_COMMA))
+      {
+	c_parser_consume_token(parser);
+      }
+    }
+  }
+  else
+  {
+    c_parser_error (parser, "expected %<(%>");
+  }
+
+
+	   
+
+    
+  local_simd_values.private_vars = private_var_list;
+
+  local_simd_values.priv_var_size = list_length(private_var_list);
+  local_simd_values.priv_var_list = (char **)
+    xmalloc(sizeof (char *) * local_simd_values.priv_var_size);
+
+  ii = 0;
+
+  for (p = private_var_list; p != NULL_TREE; p = TREE_CHAIN(p))
+  {
+    local_simd_values.priv_var_list[ii] =
+      xstrdup(IDENTIFIER_POINTER(TREE_VALUE(p)));
+    ii++;
+  }
+
+  local_simd_values.priv_var_size = ii;
+
+  if (c_parser_next_token_is (parser, CPP_NAME))
+  {
+    token = c_parser_peek_token(parser);
+    c_parser_consume_token(parser);
+    if (strcmp (IDENTIFIER_POINTER(token->value), "linear") == 0)
+      c_parser_simd_linear(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "private") == 0)
+      c_parser_simd_private(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "vectorlength") == 0)
+      c_parser_simd_vectorlength(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "reduction") == 0)
+      c_parser_simd_reduction(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "assert") == 0)
+      c_parser_simd_assert(parser, true);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "noassert") == 0)
+      c_parser_simd_assert(parser, false);
+    else
+      c_parser_error (parser, "Unknown identifier");
+  }
+  else
+  {
+    c_parser_skip_to_pragma_eol (parser);
+    if (!c_parser_next_token_is_keyword (parser, RID_FOR))
+    {
+      c_parser_error (parser, "for statement expected");
+    }
+    else
+    {
+
+      if (same_var_in_multiple_lists_p(&local_simd_values) == true)
+      {
+	c_parser_error (parser,
+			"ill-formed pragma: Found same variable in multiple clauses ");
+      }
+      
+      
+      /* if the pragma simd found is true, it means that we should use the
+       * values given in the local_pragma_simd variable */
+      c_parser_for_statement(parser, true);
+    }
+  }
+	   
+  
+						      
+  /* c_parser_skip_to_pragma_eol (parser); */
+  
+  return;
+}
+
+
+void
+c_parser_simd_vectorlength (c_parser *parser)
+{
+  tree vec_length_list = NULL_TREE, v_length_value = NULL_TREE;
+  tree p = NULL_TREE;
+  int ii = 0;
+  c_token *token;
+
+    local_simd_values.pragma_encountered = true;
+  
+  if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
+  {
+
+    while (true)
+    {
+      if (c_parser_next_token_is_not(parser, CPP_NUMBER))
+      {
+	c_parser_error (parser, "expected number");
+	c_parser_skip_until_found(parser, CPP_CLOSE_BRACE, NULL);
+	vec_length_list = NULL_TREE;
+	break;
+      }
+
+      v_length_value = c_parser_peek_token(parser)->value;
+      c_parser_consume_token(parser);
+      vec_length_list = tree_cons (NULL_TREE, v_length_value, vec_length_list);
+      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+      {
+	c_parser_consume_token(parser);
+	break;
+      }
+      if (c_parser_next_token_is (parser, CPP_COMMA))
+      {
+	c_parser_consume_token(parser);
+      }
+    }
+  }
+  else
+  {
+    c_parser_error (parser, "expected %<(%>");
+  }
+
+  local_simd_values.vec_length_size = list_length(vec_length_list);
+
+  local_simd_values.vec_length_list =
+    (int *)xmalloc (sizeof (int) * local_simd_values.vec_length_size);
+
+  ii = 0;
+  for (p = (vec_length_list); p != NULL_TREE; p = TREE_CHAIN(p))
+  {
+    local_simd_values.vec_length_list[ii] = int_cst_value(TREE_VALUE(p));
+    ii++;
+  }
+ 
+
+  local_simd_values.vectorlength = vec_length_list;
+  local_simd_values.pragma_encountered = true;
+
+  if (c_parser_next_token_is (parser, CPP_NAME))
+  {
+    token = c_parser_peek_token(parser);
+    c_parser_consume_token(parser);
+    if (strcmp (IDENTIFIER_POINTER(token->value), "linear") == 0)
+      c_parser_simd_linear(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "private") == 0)
+      c_parser_simd_private(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "vectorlength") == 0)
+      c_parser_simd_vectorlength(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "reduction") == 0)
+      c_parser_simd_reduction(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "assert") == 0)
+      c_parser_simd_assert(parser, true);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "noassert") == 0)
+      c_parser_simd_assert(parser, false);
+    else
+      c_parser_error (parser, "Unknown identifier");
+  }
+  else
+  {
+    c_parser_skip_to_pragma_eol (parser);
+    if (!c_parser_next_token_is_keyword (parser, RID_FOR))
+    {
+      c_parser_error (parser, "for statement expected");
+    }
+    else
+    {
+
+      if (same_var_in_multiple_lists_p(&local_simd_values) == true)
+      {
+	c_parser_error (parser,
+			"ill-formed pragma: Found same variable in multiple clauses ");
+      }
+
+      
+      /* if the pragma simd found is true, it means that we should use the
+       * values given in the local_pragma_simd variable */
+      c_parser_for_statement(parser, true);
+    }
+      
+  }
+	   
+ 
+    
+  return;
+}
+
+void
+c_parser_simd_reduction (c_parser *parser)
+{
+  c_token *token;
+  tree var_list = NULL_TREE, vars = NULL_TREE;
+  enum tree_code op_code = PLUS_EXPR;
+
+
+  if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
+  {
+ 
+    switch (c_parser_peek_token(parser)->type) {
+    case CPP_PLUS:
+      op_code = PLUS_EXPR;
+      break;
+    case CPP_MINUS:
+      op_code = MINUS_EXPR;
+      break;
+    case CPP_MULT:
+      op_code = MULT_EXPR;
+      break;
+    case CPP_AND:
+      op_code = BIT_AND_EXPR;
+      break;
+    case CPP_OR:
+      op_code = BIT_IOR_EXPR;
+      break;
+    case CPP_XOR:
+      op_code = BIT_XOR_EXPR;
+      break;
+    case CPP_OR_OR:
+      op_code = TRUTH_ORIF_EXPR;
+      break;
+    case CPP_AND_AND:
+      op_code = TRUTH_ANDIF_EXPR;
+      break;
+    default:
+      c_parser_error (parser,"expected one of the following"
+		      "%<+%> %<-%> %<*%> %<&%> %<|%> %<^%> %<||%> %<&&%>");
+      c_parser_skip_until_found(parser, CPP_CLOSE_PAREN, NULL);
+      var_list = NULL_TREE;
+      vars = NULL_TREE;
+      return;
+    }
+    c_parser_consume_token(parser);
+
+    if (c_parser_next_token_is_not (parser, CPP_COLON))
+    {
+      c_parser_error (parser, "expected %<:%>");
+      c_parser_skip_until_found (parser, CPP_CLOSE_BRACE, NULL);
+      var_list = NULL_TREE;
+      vars = NULL_TREE;
+      return;
+    }
+    c_parser_consume_token(parser);
+    while (true)
+    {
+      if (c_parser_next_token_is_not (parser, CPP_NAME))
+      {
+	c_parser_error (parser, "expected variable name");
+	c_parser_skip_until_found (parser, CPP_CLOSE_BRACE, NULL);
+	var_list = NULL_TREE;
+	vars = NULL_TREE;
+	break;
+      }
+      vars = c_parser_peek_token (parser)->value;
+      c_parser_consume_token (parser);
+      var_list = tree_cons (NULL_TREE, vars, var_list);
+
+      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+      {
+	c_parser_consume_token(parser);
+	break;
+      }
+      if (c_parser_next_token_is (parser, CPP_COMMA))
+      {
+	c_parser_consume_token (parser);
+      }
+    }
+  }
+  else
+  {
+    c_parser_error (parser, "expected %<(%>");
+  }
+
+  insert_reduction_values (&local_simd_values.reduction_vals, op_code,
+			   var_list);
+	
+  local_simd_values.types |= P_SIMD_REDUCTION;
+  local_simd_values.pragma_encountered = true;
+
+
+  if (c_parser_next_token_is (parser, CPP_NAME))
+  {
+    token = c_parser_peek_token(parser);
+    c_parser_consume_token(parser);
+    if (strcmp (IDENTIFIER_POINTER(token->value), "linear") == 0)
+      c_parser_simd_linear(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "private") == 0)
+      c_parser_simd_private(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "vectorlength") == 0)
+      c_parser_simd_vectorlength(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "reduction") == 0)
+      c_parser_simd_reduction(parser);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "assert") == 0)
+      c_parser_simd_assert(parser, true);
+    else if (strcmp (IDENTIFIER_POINTER(token->value), "noassert") == 0)
+      c_parser_simd_assert(parser, false);
+    else
+      c_parser_error (parser, "Unknown identifier");
+  }
+  else
+  {
+    c_parser_skip_to_pragma_eol (parser);
+    if (!c_parser_next_token_is_keyword (parser, RID_FOR))
+    {
+      c_parser_error (parser, "for statement expected");
+    }
+    else if (same_var_in_multiple_lists_p(&local_simd_values) == true)
+    {
+      c_parser_error (parser,
+		      " pragma error: Found same variable in multiple clauses");
+    }
+    else
+    {
+      
+      /* if the pragma simd found is true, it means that we should use the
+       * values given in the local_pragma_simd variable */
+      c_parser_for_statement(parser, true);
+    }
+      
+  }
+
+  
+  return;
+}
+
+
+
+
+static void
+c_parser_cilk_grainsize(c_parser *parser)
+{
+  /* The correct grammar is
+     #pragma cilk grainsize = <EXP>
+  */
+
+
+  c_token *next_token;
+  struct c_expr grain_expr;
+  
+  c_parser_consume_pragma (parser);
+
+  if (flag_enable_cilk == 0)
+  {
+    warning (0, "%<#pragma cilk grainsize not recognized.");
+    return;
+  }
+  
+
+  if (c_parser_require(parser, CPP_EQ, "expected %<=%>") != 0)
+  {
+    grain_expr = c_parser_binary_expression (parser, NULL);
+
+    if ((grain_expr.value != NULL_TREE) &&
+	(grain_expr.value != error_mark_node))
+    {
+      c_parser_skip_to_pragma_eol (parser);
+      next_token = c_parser_peek_token(parser);
+
+      if ((next_token != NULL) &&
+	  (next_token->type == CPP_KEYWORD) &&
+	  (next_token->keyword == RID_CILK_FOR))
+      {
+	/* c_parser_consume_token(parser); */
+
+	c_parser_cilk_for_statement(parser, grain_expr.value);
+      }
+      else
+      {
+	warning (0,
+		 "%<#pragma cilk grainsize is not followed by %<cilk_for%>");
+      }
+      return;
+    }
+  }
+  return;
+}
+	    
+
+
+   
+
+
 /* Handle pragmas.  Some OpenMP pragmas are associated with, and therefore
    should be considered, statements.  ALLOW_STMT is true if we're within
    the context of a function and such pragmas are to be allowed.  Returns
@@ -8258,7 +8962,104 @@ c_parser_pragma (c_parser *parser, enum pragma_context context)
       c_parser_error (parser, "%<#pragma GCC pch_preprocess%> must be first");
       c_parser_skip_until_found (parser, CPP_PRAGMA_EOL, NULL);
       return false;
+  case PRAGMA_CILK_GRAINSIZE:
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma grainsize should be inside a function");
+      return false;
+    }
+    c_parser_cilk_grainsize(parser);
+    /* c_parser_skip_until_found(parser,CPP_PRAGMA_EOL,NULL); */
+    return false;
+    break;
 
+  case PRAGMA_SIMD_ASSERT:
+    flag_tree_vectorize = 1;
+    
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd assert should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma (parser);
+    c_parser_simd_assert(parser,true);
+    return false;
+
+  case PRAGMA_SIMD_NOASSERT:
+    flag_tree_vectorize = 1;
+    
+    
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd assert should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma (parser);
+    c_parser_simd_assert (parser,false);
+    return false;
+
+  case PRAGMA_SIMD_VECTORLENGTH:
+    flag_tree_vectorize = 1;
+    
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd assert should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma (parser);
+    c_parser_simd_vectorlength(parser);
+    return false;
+
+  case PRAGMA_SIMD_PRIVATE:
+    flag_tree_vectorize = 1;
+    
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd assert should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma (parser);
+    c_parser_simd_private(parser);
+    return false;
+
+  case PRAGMA_SIMD_LINEAR:
+
+    flag_tree_vectorize = 1;
+    
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd assert should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma (parser);
+    c_parser_simd_linear(parser);
+    return false;
+
+  case PRAGMA_SIMD_REDUCTION:
+
+    flag_tree_vectorize = 1;
+    if (context == pragma_external)
+    {
+      c_parser_error (parser,"pragma simd assert should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma (parser);
+    c_parser_simd_reduction(parser);
+    return false;
+
+  case PRAGMA_SIMD_EMPTY:
+    flag_tree_vectorize = 1;
+    optimize = 2;
+    if (context == pragma_external)
+    {
+      c_parser_error (parser, "pragma simd should be inside a function");
+      return false;
+    }
+    c_parser_consume_pragma(parser);
+    c_parser_simd_assert(parser,false);
+    return false;
+
+      
     default:
       if (id < PRAGMA_FIRST_EXTERNAL)
 	{
@@ -9988,5 +10789,94 @@ c_parse_file (void)
   c_parser_translation_unit (the_parser);
   the_parser = NULL;
 }
+
+/* Similar to c_parser_for_statement, but cilk_for */
+static void
+c_parser_cilk_for_statement (c_parser *parser, tree grain)
+{
+  tree block, cond, incr, save_break, save_cont, body;
+  tree cvar = NULL_TREE;
+  location_t loc;
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_CILK_FOR));
+  loc = c_parser_peek_token (parser)->location;
+  c_parser_consume_token (parser);
+  block = c_begin_compound_stmt (true);
+  if (c_parser_require (parser, CPP_OPEN_PAREN, "expected %<(%>"))
+  {
+    /* Parse the initialization declaration.  */
+    if (c_parser_next_tokens_start_declaration(parser))
+    {
+      c_parser_declaration_or_fndef (parser, true,false, true,
+				     false, false, NULL);
+      cvar = check_for_loop_decls (loc, flag_isoc99);
+    }
+    else
+    {
+      /* bviyer: If we are here, then we have a cilk_for loop of the form:
+
+       * int ii = <SOMETHING_OPTIONAL> ;
+       * . . .
+       * cilk_for (ii = <SOMETHING ELSE MAYBE> ; ii <OP> <X> ; ii <OP>)
+       *
+       */
+       
+      tree next_token = c_parser_peek_token(parser)->value;
+      if (c_parser_peek_token(parser)->type == CPP_NAME)
+      {
+	if (TREE_CODE(next_token) == IDENTIFIER_NODE)
+	{
+	  /* take the initial value of the set */
+	  tree init_exp = c_parser_expression(parser).value;
+
+	  cvar = lookup_name (next_token);
+	  /* set the initial value of the induction var as the value that
+	   * is set to whatever the induction variable is set here in the
+	   * init expression
+	   */
+	  if (TREE_CODE(init_exp) == MODIFY_EXPR)
+	    DECL_INITIAL(cvar) = TREE_OPERAND(init_exp,1);
+	}
+      }
+      c_parser_consume_token(parser);
+    }
+		
+    /* Parse the loop condition.  */
+    if (c_parser_next_token_is (parser, CPP_SEMICOLON))
+    {
+      c_parser_consume_token (parser);
+      cond = NULL_TREE;
+    }
+    else
+    {
+      cond = c_parser_condition (parser);
+      c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
+    }
+    /* Parse the increment expression.  */
+    if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+      incr = c_process_expr_stmt (loc, NULL_TREE);
+    else
+      incr = c_process_expr_stmt (loc,c_parser_expression (parser).value);
+    c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
+  }
+  else
+  {
+    cvar = error_mark_node;
+    cond = error_mark_node;
+    incr = error_mark_node;
+  }
+  save_break = c_break_label;
+  c_break_label = build_int_cst (size_type_node, 2);
+  save_cont = c_cont_label;
+  c_cont_label = NULL_TREE;
+  body = c_parser_c99_block_statement (parser);
+  c_finish_cilk_loop (loc, cvar, cond, incr, body, c_cont_label, grain);
+  add_stmt (c_end_compound_stmt (UNKNOWN_LOCATION, block, true));
+  c_break_label = save_break;
+  c_cont_label = save_cont;
+  /* XXX May need additional push_scope/pop_scope to force a BLOCK
+     to be created to make outlining happy. */
+}
+
+
 
 #include "gt-c-parser.h"

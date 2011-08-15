@@ -1,0 +1,36 @@
+This readme describes the gcc port of the Intel(R) Cilk(TM) Plus extensions to
+ C and C++ languages.
+
+The "cilkplus" GCC branch implements the Intel Cilk Plus language 
+extensions to C and C++ frontends. For more information about Intel Cilk Plus, 
+please refer to "Intel(R) Cilk(TM) Plus Language Specification" at 
+http://www.cilkplus.org.
+
+This release contains a subset of the full Intel Cilk Plus specification.  
+It includes the following features:
+1) Three Cilk Plus keywords: _Cilk_spawn, _Cilk_sync and _Cilk_for and a
+   pragma to set grainsize.
+2) Reducers provide an easy, lock-free way to deal with shared data.
+3) Pragmas that communicate SIMD information to the vectorizer to help ensure
+   that the loops are vectorized correctly/easily.
+
+This implementation has been tested on the x86 (both 32 and 64 bit)  
+architectures.  There is very little architecture-specific code and it should 
+not be too difficult for you to port to other architectures.  However, be aware 
+that the implementation assumes sequential consistency when accessing shared 
+variables, so architectures using a different memory model may require you to 
+insert additional memory barriers.
+
+These extensions provide a simple, well-structured and powerful model for 
+parallel programming. Intel hopes that you will find these extensions to be 
+ useful and a significant enhancement to the GCC C and C++ compilers.  We 
+welcome your support and comments to make this project successful. 
+
+
+If you have comments, suggestions or questions, please contact Balaji V. Iyer 
+  at balaji.v.iyer-AT-intel.com
+
+---------------------------------------------------------------------------
+Intel and Cilk are trademarks of Intel Corporation in the U.S. and/or other 
+countries.
+

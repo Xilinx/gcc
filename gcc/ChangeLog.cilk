@@ -1,0 +1,66 @@
+2011-08-08 Balaji V. Iyer    <balaji.v.iyer@intel.com>
+
+	* c-parser.c (c_parse_init): Added if statement to check if flag_enable_cilk is
+	turned off. If so, then or D_CILK mask with mask.
+	(c_parser_cilk_for_statement): Added new function
+	(c_parser_cilk_grainsize): Added new function
+	(c_parser_simd_linear): Added new function
+	(c_parser_simd_private): Added new function
+	(c_parser_simd_assert): Added new function
+	(c_parser_simd_vectorlength): Added new function
+	(c_parser_simd_reduction): Added new function
+	(c_parser_statement_after_labels): Added new case labels to handle
+	RID_CILK_FOR and RID_CILK_SYNC.
+	* c-typeck.c (c_finish_bc_stmt): Added "case 2" to check to see if there	
+	are break statements inside a cilk_for loop
+	(c_finish_cilk_loop): Added new function
+	(c_build_sync): Added new function
+	(c_calls_spawns): Added new function
+	* cilk.c: New file.
+	* cilk.h: New file.
+	* cilk-spawn.c: New file.
+	* function.h (struct GTY(()) function): Added "cilk_frame_decl" and 
+	"is_cilk_function" elements into this structure.
+	* gimplify.c (gimplify_call_expr): Added code to check if (is_detach) is set.
+	If so, then output the appropriate code for detach expression. Also, output
+	appropriate code for pop_frame operation.
+	(gimplify_expr): Check if a valid found is encountered. If found,
+	then do "cilk_gimplify_spawn" on the expression.
+	(gimplify_expr): Added case statements for CILK_FOR_STMT and 
+	SYNC_STMT. 
+	* Make-lang.in: Added the newly added files into the compiliation list.
+	* Makefile.in: Added cilk files to compile with the gcc files.
+	* pragma_simd.c: New file.
+	* passes.c(init_optimization_passes): Added NEXT_PASS(pass_expand_cilk)
+	* tree-pretty-print.c (dump_generic_node): Added a new case statement SYNC_STMT,
+	CILK_FOR_STMT, to print a cilk_for and sync statement. 
+	* tree.h (struct GTY(()) tree base): Added "is_cilk_spawn" element into 
+	structure. Also added "pragma_simd_index" element into this structure.
+	(SPAWN_CALL_P, SPAWN_DETACH_POINT, DECL_DETACHES_P, DECL_SET_KNOT):
+	New defines 
+	(CILK_KNOT_NONE, CILK_KNOT_SPAWN, CILK_KNOT_SYNC, CILK_KNOT_FLUSH):
+	New defines
+	(struct GTY(()) tree_function_decl): Added "cilk_knot_type" and 
+	"cilk_hyper_flag" into this structure
+	(FOR_STMT_CHECK2): Added new define to check if it is for or cilk_for
+	(FOR_INIT_STMT, FOR_COND, FOR_EXPR, FOR_BODY): New defines
+	(CILK_FOR_VAR, CILK_FOR_INIT, CILK_FOR_GRAIN): New defines
+	(INVALID_PRAGMA_SIMD_SLOT): New define
+	(enum pragma_simd_kind) : Newly added enum to hold different pragma simd
+	clauses
+	(struct reduction values): New structure to hold #pragma simd reduction
+	information
+	(struct pragma_simd_values): Structure to hold pragma simd clause 
+	values
+	(PRAGMA_SIMD_INDEX): New define
+	(LABEL_EXPR_PRAGMA_SIMD_INDEX): New define
+	(struct GTY(()) tree_label_decl): Added new variable "pragma_simd_index"
+	* tree-inline.c (struct copy_body_data): Added remap_var_for_cilk variable
+	* tree-vect-loop.c (vect_determine_vectorization_factor): Added if 
+	statements in multiple locations to check if flag enable cilk is enabled
+	and if pragma simd assert is requested. If so, then print appropriate 
+	error message.
+	(vect_determine_vectorization_factor): Added if statements
+	in multiple locations to check if flag_enable_cilk is enabled and if the
+	vectorlength constraint is not met. If so, then print an appropriate error 
+	message.

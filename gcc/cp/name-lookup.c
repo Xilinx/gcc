@@ -1443,6 +1443,8 @@ begin_scope (scope_kind kind, tree entity)
     case sk_try:
     case sk_catch:
     case sk_for:
+    case sk_cilk_for:
+    case sk_cilk_block:
     case sk_cond:
     case sk_class:
     case sk_scoped_enum:

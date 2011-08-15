@@ -429,6 +429,15 @@ flow_loops_find (struct loops *loops)
 	    {
 	      /* Shared headers should be eliminated by now.  */
 	      SET_BIT (headers, header->index);
+             /* bviyer: I am trying this here.. DODUBLE CHECK */
+              /* here, we are going to copy the pragma simd value from the
+               * latch to the header */
+              if ((header->pragma_simd_index == 0)  &&
+                  (latch->pragma_simd_index  != 0))
+              {
+                header->pragma_simd_index = latch->pragma_simd_index;
+              }
+
 	      num_loops++;
 	    }
 	}
@@ -469,6 +478,8 @@ flow_loops_find (struct loops *loops)
 
 	  loop->header = header;
 	  loop->num = num_loops;
+          loop->pragma_simd_index = header->pragma_simd_index;
+
 	  num_loops++;
 
 	  flow_loop_tree_node_add (header->loop_father, loop);

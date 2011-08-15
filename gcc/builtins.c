@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "diagnostic-core.h"
 #include "builtins.h"
+#include "cilk.h"
 
 
 #ifndef PAD_VARARGS_DOWN
@@ -5317,6 +5318,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
   /* When not optimizing, generate calls to library functions for a certain
      set of builtins.  */
   if (!optimize
+      && flag_enable_cilk == 0 /* bviyer:Added this for cilk */
       && !called_as_built_in (fndecl)
       && DECL_ASSEMBLER_NAME_SET_P (fndecl)
       && fcode != BUILT_IN_ALLOCA
@@ -6110,6 +6112,39 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_FREE:
       maybe_emit_free_warning (exp);
       break;
+
+    case BUILT_IN_CILK_DETACH:
+      /* return value is no interesting; It is used as success/failure 
+         indication */
+      target = expand_builtin_cilk_detach (exp);
+      if (target)
+        return target;
+      break;
+    case BUILT_IN_CILK_SYNCHED:
+      target = expand_builtin_cilk_synched (exp);
+      if (target)
+        return target;
+      break;
+
+    case BUILT_IN_CILK_STOLEN:
+      target = expand_builtin_cilk_stolen (exp);
+      if (target)
+        return target;
+      break;
+
+    case BUILT_IN_CILK_ENTER_FRAME:
+      target = expand_builtin_cilk_enter (exp);
+      if (target)
+        return target;
+      break;
+
+    case BUILT_IN_CILK_POP_FRAME:
+      /* return value is no interesting; used as success/failure indication */
+      target = expand_builtin_cilk_pop_frame (exp);
+      if (target)
+        return target;
+      break;
+
 
     default:	/* just do library call, if unknown builtin */
       break;

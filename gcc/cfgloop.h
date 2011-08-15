@@ -103,6 +103,10 @@ enum loop_estimation
 struct GTY ((chain_next ("%h.next"))) loop {
   /* Index into loops array.  */
   int num;
+  
+    /* this holds the pragma simd index */
+  int pragma_simd_index;
+
 
   /* Number of loop insns.  */
   unsigned ninsns;

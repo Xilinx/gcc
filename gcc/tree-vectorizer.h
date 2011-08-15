@@ -21,7 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GCC_TREE_VECTORIZER_H
 #define GCC_TREE_VECTORIZER_H
-
+#include "diagnostic-core.h"
 #include "tree-data-ref.h"
 
 typedef source_location LOC;

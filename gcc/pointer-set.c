@@ -301,3 +301,55 @@ void pointer_map_traverse (const struct pointer_map_t *pmap,
     if (pmap->keys[i] && !fn (pmap->keys[i], &pmap->values[i], data))
       break;
 }
+
+/* Traverse in a deterministic order based on the user-provided comparator.
+   Unlike the above operation, this call does not allow the user to modify
+   the value. */
+
+struct pair
+{
+  const void *key;
+  void **value;
+};
+
+static int (*current_cmp) (const void *, const void *);
+
+static int sort_helper (const void *p1, const void *p2)
+{
+  return current_cmp(((const struct pair *)p1)->key,
+                     ((const struct pair *)p2)->key);
+}
+
+
+
+void
+pointer_map_traverse_ordered (const struct pointer_map_t *pmap,
+			      bool (*fn) (const void *, void **, void *),
+			      int (*cmp) (const void *, const void *),
+			      void *data)
+{
+  int (*saved_cmp)(const void *, const void *);
+  struct pair *list;
+  size_t i, out;
+  if (pmap->n_slots == 0)
+    return;
+  saved_cmp = current_cmp;
+  current_cmp = cmp;
+  list = (struct pair *)alloca (pmap->n_slots * sizeof (struct pair));
+  out = 0;
+  for (i = 0; i < pmap->n_slots; i++)
+    if (pmap->keys[i])
+    {
+      list[out].key = pmap->keys[i];
+      list[out].value = &pmap->values[i];
+      out++;
+    }
+  qsort(list, out, sizeof (struct pair), sort_helper);
+  for (i = 0; i < out; i++)
+    if (! (*fn)(list[i].key, list[i].value, data))
+      break;
+  current_cmp = saved_cmp;
+}
+
+
+

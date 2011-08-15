@@ -1,0 +1,75 @@
+2011-08-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* call.c: Added #include "cilk.h"
+	(build_over_call, build_call_n, build_call_a, 
+	build_new_function_call, build_op_call_1, build_op_call, 
+	build_over_call, build_cxx_call, build_special_member_call,
+	build_new_method_call_1, build_new_method_call): Added a new parameter
+	called "enum call_context" to pass in whether it is a spawned function
+	or not.
+	* cilk.c: Added new file.
+	* cp-gimpify.c (cp_gimplify_expr): Added CILK_FOR_STMT, and 
+	SPAWN_STMT  case statements.
+	* cp-tree.def: Added "CILK_FOR_STMT"
+	(lang_name_cilk): New define
+	(CILK_FOR_VAR, CILK_FOR_INIT, CILK_FOR_GRAIN): New defines
+	(FOR_INIT_STMT, FOR_COND, FOR_EXPR,FOR_BODY, FOR_SCOPE):
+	New defines
+	(SF_CILK_NESTED): New define
+	(BUILT_IN_CILK_SYNC, BUILT_IN_CILK_FRAME): New defines
+	(BUILT_IN_CILK_DISABLE, BUILT_IN_CILK_ENABLE): New defines
+	(BUILT_IN_CILK_CLEAN, BUILD_IN_CILK_WRITE): New defines
+	(BUILT_IN_CILK_ACQUIRE, BUILT_IN_CILK_RELEASE): New defines
+	(BUILT_IN_CILK_WORKER): New defines
+	(enum call_context): New enum to say the context of the
+	function call.
+	* decl.c (pop_label): Added a if statement to check if  flag enable 
+	 cilk is turned on. If so, then we exit.
+	(is_cilk_function_decl): Added new function.
+	(duplicate_decls): Added new if statement to see if 
+	flag_enable_cilk is set and if it is a is_cilk_function_decl. If so 
+	then we return newdecl.
+	(initialize_predefined_identifiers): Added "Cilk+" element.
+	(finish_function_body): Check if cfun->calls_spawns is set.
+	if so, then call cp_make_cilk_frame.
+	* name-lookup.c (typedef enum scope_kind): Added "sk_cilk_for" and
+	"sk_cilk_block" type.
+	* parser.c (cp_parser_cilk_for): Added new function.
+	(cp_parser_cilk_for_init_statement): Added new function.
+	(cp_parser_cilk_grainsize): Added new function.
+	(cp_parser_cilk_for_condition): Added new function.
+	(cp_parser_cilk_for_expression_iterator): Added new function.
+	(cp_parser_simd_private): Added new function.
+	(cp_parser_simd_reduction): Added new function.
+	(cp_parser_simd_linear): Added new function.
+	(cp_parser_simd_assert): Added new function.
+	(cp_parser_simd_vectorlength): Added new function.
+	(cp_parser_postfix_expression): Added new case statements
+	"RID_CILK_SPAWN" to handle cilk_spawn
+	(cp_parser_statement): Added new case statement 
+	"RID_CILK_FOR," "RID_CILK_SYNC,"
+	(cp_parser_jump_statement): Added new case statement 
+	IN_CILK_SPAWN and IN_CILK_FOR in multiple places.
+	(cp_parser_pragma): Added the following case statements:
+	PRAGMA_SIMD_ASSERT, PRAGMA_SIMD_NOASSERT, PRAGMA_SIMD_VECTORLENGTH, 
+	PRAGMA_SIMD_PRIVATE, PRAGMA_SIMD_LINEAR, PRAGMA_SIMD_REDUCTION.
+	* pt.c (lookup_template_class_1): Check if the record is cilk or
+	if the template arguments are of type cilk. If so, set the appropriate
+	defines.
+	(tsubst_expr): Added "CILK_FOR_STMT" case statement.
+	* semantics.c (finish_cilk_for_cond): Added new function.
+	(finish_cilk_for_init_stmt): Added new function.
+	(begin_cilk_block): Added new function
+	(finish_cilk_block): Added new function
+	(finish_sync_stmt): Added new function.
+	(begin_cilk_for_stmt): Added new function.
+	(finish_cilk_for_stmt): Added new function.
+	(finish_cilk_for_init_stmt): Added new function.
+	(finish_cilk_for_cond): Added new function.
+	* Make-lang.in: Added cilk files and functions so that we can compile 
+	them with the gcc files
+	* tree.c (struct attribute_spec cxx_attribute table): Added "cilk" entry
+	(handle_cilk_linkage_attribute): New function.
+	* typeck.c (cp_build_function_call, cp_build_function_call_nary):
+	Added a new parameter called "enum call_context" to pass in whether
+	if is a spawned function or not.

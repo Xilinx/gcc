@@ -141,6 +141,9 @@ section *dtors_section;
 section *bss_section;
 section *sbss_section;
 
+section *cilk_metadata_default_section;
+
+
 /* Various forms of common section.  All are guaranteed to be nonnull.  */
 section *tls_comm_section;
 section *comm_section;

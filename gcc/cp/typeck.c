@@ -3122,7 +3122,8 @@ tree
 build_function_call (location_t loc ATTRIBUTE_UNUSED, 
 		     tree function, tree params)
 {
-  return cp_build_function_call (function, params, tf_warning_or_error);
+  return cp_build_function_call (function, params,CALL_NORMAL,
+				 tf_warning_or_error);
 }
 
 /* Used by the C-common bits.  */
@@ -3132,7 +3133,7 @@ build_function_call_vec (location_t loc ATTRIBUTE_UNUSED,
 			 VEC(tree,gc) *origtypes ATTRIBUTE_UNUSED)
 {
   VEC(tree,gc) *orig_params = params;
-  tree ret = cp_build_function_call_vec (function, &params,
+  tree ret = cp_build_function_call_vec (function, &params, CALL_NORMAL,
 					 tf_warning_or_error);
 
   /* cp_build_function_call_vec can reallocate PARAMS by adding
@@ -3146,7 +3147,8 @@ build_function_call_vec (location_t loc ATTRIBUTE_UNUSED,
 /* Build a function call using a tree list of arguments.  */
 
 tree
-cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
+cp_build_function_call (tree function, tree params, enum call_context spawning,
+			tsubst_flags_t complain)
 {
   VEC(tree,gc) *vec;
   tree ret;
@@ -3154,7 +3156,7 @@ cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
   vec = make_tree_vector ();
   for (; params != NULL_TREE; params = TREE_CHAIN (params))
     VEC_safe_push (tree, gc, vec, TREE_VALUE (params));
-  ret = cp_build_function_call_vec (function, &vec, complain);
+  ret = cp_build_function_call_vec (function, &vec, spawning, complain);
   release_tree_vector (vec);
   return ret;
 }
@@ -3162,7 +3164,8 @@ cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
 /* Build a function call using varargs.  */
 
 tree
-cp_build_function_call_nary (tree function, tsubst_flags_t complain, ...)
+cp_build_function_call_nary (tree function, enum call_context spawning,
+			     tsubst_flags_t complain, ...)
 {
   VEC(tree,gc) *vec;
   va_list args;
@@ -3173,7 +3176,7 @@ cp_build_function_call_nary (tree function, tsubst_flags_t complain, ...)
   for (t = va_arg (args, tree); t != NULL_TREE; t = va_arg (args, tree))
     VEC_safe_push (tree, gc, vec, t);
   va_end (args);
-  ret = cp_build_function_call_vec (function, &vec, complain);
+  ret = cp_build_function_call_vec (function, &vec, spawning, complain);
   release_tree_vector (vec);
   return ret;
 }
@@ -3184,6 +3187,7 @@ cp_build_function_call_nary (tree function, tsubst_flags_t complain, ...)
 
 tree
 cp_build_function_call_vec (tree function, VEC(tree,gc) **params,
+			    enum call_context spawning,
 			    tsubst_flags_t complain)
 {
   tree fntype, fndecl;
@@ -3274,7 +3278,7 @@ cp_build_function_call_vec (tree function, VEC(tree,gc) **params,
      null parameters.  */
   check_function_arguments (fntype, nargs, argarray);
 
-  ret = build_cxx_call (function, nargs, argarray);
+  ret = build_cxx_call (function, CALL_NORMAL, nargs, argarray);
 
   if (allocated != NULL)
     release_tree_vector (allocated);
@@ -6621,6 +6625,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  VEC(tree,gc) *rhs_vec = make_tree_vector_single (rhs);
 	  result = build_special_member_call (lhs, complete_ctor_identifier,
 					      &rhs_vec, lhstype, LOOKUP_NORMAL,
+                                              CALL_NORMAL,
                                               complain);
 	  release_tree_vector (rhs_vec);
 	  if (result == NULL_TREE)

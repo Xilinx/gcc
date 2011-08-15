@@ -7273,6 +7273,17 @@ lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
 	  SET_CLASSTYPE_IMPLICIT_INSTANTIATION (t);
 	  TYPE_FOR_JAVA (t) = TYPE_FOR_JAVA (template_type);
 
+	  
+          if (RECORD_IS_CILK(template_type) != 0)
+          {
+            RECORD_IS_CILK(t) = 1;
+          }
+          else if (cilkish_template_args(arglist))
+          {
+            RECORD_IS_CILK(t) = 1;
+            RECORD_PROMOTED_CILK(t) = 1;
+          }
+	  
 	  /* A local class.  Make sure the decl gets registered properly.  */
 	  if (context == current_function_decl)
 	    pushtag (DECL_NAME (gen_tmpl), t, /*tag_scope=*/ts_current);
@@ -12132,7 +12143,7 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
     default:
       /* We shouldn't get here, but keep going if !ENABLE_CHECKING.  */
-      gcc_checking_assert (false);
+      /* gcc_checking_assert (false); */
       return t;
     }
 }
@@ -12378,6 +12389,12 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
   tree stmt, tmp;
 
+extern void finish_cilk_for_stmt(tree c_for_stmt);
+extern void finish_cilk_for_init_stmt(tree c_for_stmt);
+extern void finish_cilk_for_cond(tree cond, tree c_for_stmt);
+extern bool cilk_validate_for(tree c_for_stmt);
+extern void cilk_erase_for(tree c_for_stmt);
+
   if (t == NULL_TREE || t == error_mark_node)
     return t;
 
@@ -12516,6 +12533,70 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
       RECUR (FOR_BODY (t));
       finish_for_stmt (stmt);
       break;
+
+    case CILK_FOR_STMT:
+      stmt = begin_cilk_for_stmt(); /* saving the statment */
+      RECUR(FOR_INIT_STMT(t));
+      finish_cilk_for_init_stmt(stmt);
+      tmp = RECUR(CILK_FOR_VAR(t));
+      CILK_FOR_VAR(stmt) = tmp;
+      CILK_FOR_GRAIN(stmt) = CILK_FOR_GRAIN(t);
+      /* check to see if tmp is a declaration */
+      gcc_assert(DECL_P(tmp));
+
+      if ((tmp != error_mark_node) &&
+          (TYPE_P(TREE_TYPE(tmp)) != 0 ) &&
+          (DECL_NONTRIVIALLY_INITIALIZED_P(tmp) == 0) &&
+          (DECL_INITIAL(tmp) == NULL_TREE) &&
+          (TYPE_NEEDS_CONSTRUCTING(TREE_TYPE(tmp)) == 0))
+      {
+        error ("Control variable of Cilk is not initialized.\n");
+      }
+
+      tmp=FOR_COND(t);
+      gcc_assert(COMPARISON_CLASS_P(tmp)); /* check to see if it compares */
+
+      if (COMPARISON_CLASS_P(tmp))
+      {
+        tree op0 = RECUR(TREE_OPERAND(tmp,0));
+        tree op1 = RECUR(TREE_OPERAND(tmp,1));
+        tmp=build2(TREE_CODE(tmp),boolean_type_node,op0,op1);
+      }
+      finish_cilk_for_cond(tmp,stmt);
+
+      tmp=FOR_EXPR(t);
+      gcc_assert(EXPRESSION_CLASS_P(tmp)); /* check to see it is  expression */
+      gcc_assert(TREE_CODE_LENGTH(TREE_CODE(tmp))==2);
+
+      if (TREE_CODE(tmp)==MODIFY_EXPR)
+      {
+        tree lhs=TREE_OPERAND(tmp,0);
+        tree rhs=TREE_OPERAND(tmp,1);
+        gcc_assert(BINARY_CLASS_P(rhs));
+        lhs=RECUR(lhs);
+
+        rhs=build2(TREE_CODE(rhs),TREE_TYPE(lhs),RECUR(TREE_OPERAND(rhs,0)),
+                   RECUR(TREE_OPERAND(rhs,1)));
+        lhs=build2(MODIFY_EXPR,void_type_node,lhs,rhs);
+      }
+      else
+      {
+        tmp=build2(TREE_CODE(tmp),void_type_node,RECUR(TREE_OPERAND(tmp,0)),
+                   RECUR(TREE_OPERAND(tmp,1)));
+      }
+
+      finish_for_expr(tmp,stmt);
+      RECUR(FOR_BODY(t));
+      finish_cilk_for_stmt(stmt);
+      CILK_FOR_GRAIN(stmt)=RECUR(CILK_FOR_GRAIN(t));
+
+      if(cilk_validate_for(stmt)==0)
+      {
+        cilk_erase_for(stmt);
+      }
+      break;
+
+
 
     case RANGE_FOR_STMT:
       {
@@ -12826,6 +12907,10 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
     case NONTYPE_ARGUMENT_PACK:
       error ("use %<...%> to expand argument pack");
       return error_mark_node;
+    case TRY_FINALLY_EXPR:
+           RECUR(TREE_OPERAND (t,0));
+      /* RECUR(TREE_OPERAND (t,1)); */
+      break;
 
     default:
       gcc_assert (!STATEMENT_CODE_P (TREE_CODE (t)));
@@ -12913,7 +12998,7 @@ tsubst_copy_and_build (tree t,
 				     /*template_p=*/false,
 				     /*done=*/true,
 				     /*address_p=*/false,
-				     /*template_arg_p=*/false,
+				     /*template_arg_p=*/false, CALL_NORMAL,
 				     &error_msg,
 				     input_location);
 	if (error_msg)
@@ -13246,11 +13331,13 @@ tsubst_copy_and_build (tree t,
 	bool qualified_p;
 	bool koenig_p;
 	tree ret;
+	enum call_context spawning = CALL_NORMAL;
 
 	function = CALL_EXPR_FN (t);
 	/* When we parsed the expression,  we determined whether or
 	   not Koenig lookup should be performed.  */
 	koenig_p = KOENIG_LOOKUP_P (t);
+	spawning = SPAWN_CALL_P (t) ? CALL_SPAWN : CALL_NORMAL;
 	if (TREE_CODE (function) == SCOPE_REF)
 	  {
 	    qualified_p = true;
@@ -13418,20 +13505,20 @@ tsubst_copy_and_build (tree t,
 	    else if (!BASELINK_P (fn))
 	      ret = finish_call_expr (function, &call_args,
 				       /*disallow_virtual=*/false,
-				       /*koenig_p=*/false,
+				      /*koenig_p=*/false, spawning,
 				       complain);
 	    else
 	      ret = (build_new_method_call
 		      (instance, fn,
 		       &call_args, NULL_TREE,
 		       qualified_p ? LOOKUP_NONVIRTUAL : LOOKUP_NORMAL,
-		       /*fn_p=*/NULL,
+		       /*fn_p=*/NULL, spawning,
 		       complain));
 	  }
 	else
 	  ret = finish_call_expr (function, &call_args,
 				  /*disallow_virtual=*/qualified_p,
-				  koenig_p,
+				  koenig_p, spawning,
 				  complain);
 
 	release_tree_vector (call_args);
@@ -19570,7 +19657,7 @@ build_non_dependent_expr (tree expr)
 {
   tree inner_expr;
 
-#ifdef ENABLE_CHECKING
+#ifdef HENABLE_CHECKING /* bviyer: I did this for testing */
   /* Try to get a constant value for all non-type-dependent expressions in
       order to expose bugs in *_dependent_expression_p and constexpr.  */
   if (cxx_dialect >= cxx0x)

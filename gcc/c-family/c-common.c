@@ -47,6 +47,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "target-def.h"
 #include "libfuncs.h"
+#include "cilk.h"
+
+
+enum expand_modifier {EXPAND_NORMAL = 0, EXPAND_STACK_PARM, EXPAND_SUM,
+                      EXPAND_CONST_ADDRESS, EXPAND_INITIALIZER, EXPAND_WRITE,
+                      EXPAND_MEMORY};
+
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -466,6 +473,12 @@ const struct c_common_resword c_common_reswords[] =
   { "__restrict__",	RID_RESTRICT,	0 },
   { "__signed",		RID_SIGNED,	0 },
   { "__signed__",	RID_SIGNED,	0 },
+  { "_Cilk_spawn",      RID_CILK_SPAWN, 0 },
+  { "cilk_spawn",       RID_CILK_SPAWN, D_CILK },
+  { "_Cilk_sync",       RID_CILK_SYNC,  0 },
+  { "cilk_sync",        RID_CILK_SYNC,  D_CILK },
+  { "_Cilk_for",        RID_CILK_FOR,   0 },
+  { "cilk_for",         RID_CILK_FOR,   D_CILK },
   { "__thread",		RID_THREAD,	0 },
   { "__typeof",		RID_TYPEOF,	0 },
   { "__typeof__",	RID_TYPEOF,	0 },
@@ -4567,6 +4580,9 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 		   built_in_attributes[(int) ATTRS], IMPLICIT);
 #include "builtins.def"
 #undef DEF_BUILTIN
+
+    cilk_init_builtins();
+
 
   targetm.init_builtins ();
 
@@ -8781,6 +8797,12 @@ invalid_indirection_error (location_t loc, tree type, ref_operator errstring)
 		"invalid type argument of implicit conversion (have %qT)",
 		type);
       break;
+          /* bviyer: I added this field in the case statement */
+     case RO_CILK_WRAPPER_GENERATION:
+       error_at (loc,
+                 "invalid type of Cilk Wrapper Generation (have %qT)",
+                  type);
+     break;
     default:
       gcc_unreachable ();
     }
@@ -9802,6 +9824,7 @@ void
 c_common_init_ts (void)
 {
   MARK_TS_TYPED (C_MAYBE_CONST_EXPR);
+  MARK_TS_TYPED (CILK_FOR_STMT);
   MARK_TS_TYPED (EXCESS_PRECISION_EXPR);
 }
 

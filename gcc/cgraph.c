@@ -464,6 +464,7 @@ cgraph_allocate_node (void)
   return node;
 }
 
+
 /* Allocate new callgraph node and insert it into basic data structures.  */
 
 static struct cgraph_node *
@@ -1782,6 +1783,12 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
   struct cgraph_edge *edge;
   int indirect_calls_count = 0;
 
+  if (node == NULL)
+  {
+    fprintf(f, "NODE IS NULL!\n");
+    return;
+  }
+  
   fprintf (f, "%s/%i", cgraph_node_name (node), node->uid);
   dump_addr (f, " @", (void *)node);
   if (DECL_ASSEMBLER_NAME_SET_P (node->decl))
@@ -2391,7 +2398,9 @@ cgraph_add_new_function (tree fndecl, bool lowered)
     {
       case CGRAPH_STATE_CONSTRUCTION:
 	/* Just enqueue function to be processed at nearest occurrence.  */
-	node = cgraph_create_node (fndecl);
+	/* bviyer: I made this cgraph_get_create_node instead of
+	   cgraph-create_node */
+	node = cgraph_get_create_node (fndecl);
 	node->next_needed = cgraph_new_nodes;
 	if (lowered)
 	  node->lowered = true;

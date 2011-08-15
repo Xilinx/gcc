@@ -3774,9 +3774,11 @@ build2_stat (enum tree_code code, tree tt, tree arg0, tree arg1 MEM_STAT_DECL)
       /* When sizetype precision doesn't match that of pointers
          we need to be able to build explicit extensions or truncations
 	 of the offset argument.  */
-      && TYPE_PRECISION (sizetype) == TYPE_PRECISION (tt))
-    gcc_assert (TREE_CODE (arg0) == INTEGER_CST
-		&& TREE_CODE (arg1) == INTEGER_CST);
+      && TYPE_PRECISION (sizetype) == TYPE_PRECISION (tt)) 
+    {
+    /* gcc_assert (TREE_CODE (arg0) == INTEGER_CST
+		&& TREE_CODE (arg1) == INTEGER_CST) */  ;
+    }
 
   if (code == POINTER_PLUS_EXPR && arg0 && arg1 && tt)
     gcc_assert (POINTER_TYPE_P (tt) && POINTER_TYPE_P (TREE_TYPE (arg0))
@@ -11306,5 +11308,110 @@ warn_deprecated_use (tree node, tree attr)
 	}
     }
 }
+
+static hashval_t
+type_hash_code (tree ttype)
+{
+  hashval_t hashcode = 0;
+  enum tree_code code = TREE_CODE (ttype);
+
+  hashcode = iterative_hash_object (code, hashcode);
+  if (TREE_TYPE (ttype))
+    hashcode = iterative_hash_object (TYPE_HASH (TREE_TYPE (ttype)),
+                                      hashcode);
+  hashcode = attribute_hash_list (TYPE_ATTRIBUTES (ttype), hashcode);
+
+  switch (TREE_CODE (ttype))
+  {
+  case METHOD_TYPE:
+  case FUNCTION_TYPE:
+  {
+    enum function_linkage linkage = FUNCTION_TYPE_LINKAGE (ttype);
+    hashcode = iterative_hash_object (linkage, hashcode);
+    /* Optionally hash in TYPE_METHOD_BASETYPE (ttype) here,
+       but that should not be necessary.  Methods have a
+       different code, causing them to hash differently than
+       a function with the same argument list (with or without
+       the this pointer). */
+    hashcode = type_hash_list (TYPE_ARG_TYPES (ttype), hashcode);
+  }
+  break;
+  case ARRAY_TYPE:
+    if (TYPE_DOMAIN (ttype))
+      hashcode = iterative_hash_object (TYPE_HASH (TYPE_DOMAIN (ttype)),
+                                        hashcode);
+    break;
+  case INTEGER_TYPE:
+    hashcode = iterative_hash_object
+      (TREE_INT_CST_LOW (TYPE_MAX_VALUE (ttype)), hashcode);
+    hashcode = iterative_hash_object
+      (TREE_INT_CST_HIGH (TYPE_MAX_VALUE (ttype)), hashcode);
+    break;
+  case REAL_TYPE:
+  {
+    unsigned int precision = TYPE_PRECISION (ttype);
+    hashcode = iterative_hash_object (precision, hashcode);
+  }
+  break;
+  default:
+    break;
+  }
+
+  return hashcode;
+}
+
+tree 
+build_function_linkage_variant (tree ttype, enum function_linkage linkage)
+{
+  tree t = ttype;
+  if (FUNCTION_TYPE_LINKAGE (ttype) != linkage)
+  {
+    hashval_t hashcode;
+    tree ntype;
+    int quals = TYPE_QUALS (ttype);
+
+    ntype = copy_node (ttype);
+
+    TYPE_POINTER_TO (ntype) = 0;
+    TYPE_REFERENCE_TO (ntype) = 0;
+
+    /* Create a new main variant of TYPE.  */
+    TYPE_MAIN_VARIANT (ntype) = ntype;
+    TYPE_NEXT_VARIANT (ntype) = 0;
+    set_type_quals (ntype, TYPE_UNQUALIFIED);
+    SET_FUNCTION_TYPE_LINKAGE (ntype, linkage);
+
+    hashcode = type_hash_code (ntype);
+    ntype = type_hash_canon (hashcode, ntype);
+    ttype = build_qualified_type (ntype, quals);
+  }
+
+  return t;
+}
+
+
+/* Build a CALL_EXPR of class tcc_vl_exp with the indicated RETURN_TYPE
+   and FN and a null static chain slot.  ARGLIST is a TREE_LIST of the
+   arguments.  */
+
+tree
+build_call_list (tree return_type, tree fn, tree arglist)
+{
+  tree t;
+  int i;
+
+  t = build_vl_exp (CALL_EXPR, list_length (arglist) + 3);
+  TREE_TYPE (t) = return_type;
+  CALL_EXPR_FN (t) = fn;
+  CALL_EXPR_STATIC_CHAIN (t) = NULL_TREE;
+  for (i = 0; arglist; arglist = TREE_CHAIN (arglist), i++)
+    CALL_EXPR_ARG (t, i) = TREE_VALUE (arglist);
+  process_call_operands (t);
+  return t;
+}
+
+
+
+
 
 #include "gt-tree.h"

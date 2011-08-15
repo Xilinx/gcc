@@ -2797,6 +2797,7 @@ init_dynamic_diag_info (void)
 		     xmemdup (gcc_diag_char_table,
 			      sizeof (gcc_diag_char_table),
 			      sizeof (gcc_diag_char_table));
+
       if (t)
 	{
 	  i = find_char_info_specifier_index (diag_fci, 'K');
@@ -2811,6 +2812,7 @@ init_dynamic_diag_info (void)
 		      xmemdup (gcc_tdiag_char_table,
 			       sizeof (gcc_tdiag_char_table),
 			       sizeof (gcc_tdiag_char_table));
+
       if (t)
 	{
 	  /* All specifiers taking a tree share the same struct.  */
@@ -2847,6 +2849,7 @@ init_dynamic_diag_info (void)
 			xmemdup (gcc_cxxdiag_char_table,
 				 sizeof (gcc_cxxdiag_char_table),
 				 sizeof (gcc_cxxdiag_char_table));
+
       if (t)
 	{
 	  /* All specifiers taking a tree share the same struct.  */

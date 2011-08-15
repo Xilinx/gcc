@@ -34,6 +34,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "alias.h"
 #include "flags.h"
 
+#define CILKPLUS_IMPLEMENTED /* bviyer: please do not delete this line */
+
+
+#define DECL_KILLS_REGISTERS_BITS 8
+#define FUNCTION_LINKAGE_BITS 1
+
+
+
 /* Codes of tree nodes */
 
 #define DEFTREECODE(SYM, STRING, TYPE, NARGS)   SYM,
@@ -44,8 +52,70 @@ enum tree_code {
 MAX_TREE_CODES
 };
 
+#define INVALID_PRAGMA_SIMD_SLOT 35
+
+typedef enum pragma_simd_kind
+{
+  P_SIMD_NOASSERT = 0, /* default is just to noassert */
+  P_SIMD_ASSERT = 1,
+  P_SIMD_VECTORLENGTH = 2,
+  P_SIMD_PRIVATE = 4,
+  P_SIMD_LINEAR = 8,
+  P_SIMD_REDUCTION = 16
+} pragma_simd_kind;
+
+struct reduction_values
+{
+  enum tree_code reduction_operator;
+/*   tree tree_reduction_operator; */
+  char **reduction_var_list;
+  tree tree_reduction_var_list;
+  int not_reduced;
+  struct reduction_values *ptr_next;
+};
+  
+
+
+/* bviyer: Since we can have multiple pragma simd, this will hold the values of
+ * each of the pragma simd and then as soon as it finds a for loop
+ * it will transfer those values into the loop tree structure
+ */
+struct pragma_simd_values
+{
+  int index;
+  bool pragma_encountered;
+  unsigned int types;
+  tree vectorlength;
+  bool vlength_OK;
+  int *vec_length_list;
+  int vec_length_size;
+  tree private_vars;
+  bool pvars_OK;
+  char **priv_var_list;
+  int priv_var_size;
+  tree linear_vars;
+  bool lvars_OK;
+  char **linear_var_list;
+  int linear_var_size;
+  tree linear_steps;
+  int *linear_steps_list;
+  int linear_steps_size;
+  struct reduction_values *reduction_vals;
+  bool rvars_OK;
+  struct pragma_simd_values *ptr_next;
+};
+
+
+
+
+extern struct pragma_simd_values *psv_head;
+
+
+
 #undef DEFTREECODE
 #undef END_OF_BASE_TREE_CODES
+
+
 
 extern unsigned char tree_contains_struct[MAX_TREE_CODES][64];
 #define CODE_CONTAINS_STRUCT(CODE, STRUCT) (tree_contains_struct[(CODE)][(STRUCT)])
@@ -448,7 +518,7 @@ struct GTY(()) tree_base {
   unsigned protected_flag : 1;
   unsigned deprecated_flag : 1;
   unsigned saturating_flag : 1;
-
+  unsigned is_cilk_spawn : 1;
   unsigned default_def_flag : 1;
   unsigned lang_flag_0 : 1;
   unsigned lang_flag_1 : 1;
@@ -464,6 +534,8 @@ struct GTY(()) tree_base {
   unsigned nameless_flag : 1;
 
   unsigned spare : 12;
+
+  unsigned int pragma_simd_index : 8; /* assuming only 256 pragma simds */
 
   /* This field is only used with type nodes; the only reason it is present
      in tree_base instead of tree_type is to save space.  The size of the
@@ -931,7 +1003,7 @@ enum tree_node_structure_enum {
    are chained together.  */
 
 #define TREE_CHAIN(NODE) __extension__ \
-(*({__typeof (NODE) const __t = CONTAINS_STRUCT_CHECK (NODE, TS_COMMON);\
+  (*({__typeof (NODE) const __t = /* CONTAINS_STRUCT_CHECK (NODE,TS_COMMON) */ NODE; \
     &__t->common.chain; }))
 
 /* In all nodes that are expressions, this is the data type of the expression.
@@ -1798,6 +1870,18 @@ extern void protected_set_expr_location (tree, location_t);
    operand array, even if it's not valid to dereference it.  */
 #define CALL_EXPR_ARGP(NODE) \
   (&(TREE_OPERAND (CALL_EXPR_CHECK (NODE), 0)) + 3)
+
+/* True if this call is a Cilk spawn.
+   This should not be set after gimplification. */
+/* #define SPAWN_CALL_P(NODE) (CALL_EXPR_CHECK (NODE)->base.saturating_flag) */
+#define FUNCTION_DECL_CALL_CHECK(N) \
+	(TREE_CODE(N) == CALL_EXPR || TREE_CODE(N) == FUNCTION_DECL)
+#define SPAWN_CALL_P(N) (/* FUNCTION_DECL_CALL_CHECK */(N)->base.is_cilk_spawn)
+
+/* True if this call is the point at which a wrapper should detach. */
+#define SPAWN_DETACH_POINT(NODE) (CALL_EXPR_CHECK (NODE)->base.default_def_flag)
+
+
 
 /* OpenMP directive and clause accessors.  */
 
@@ -3055,6 +3139,16 @@ struct GTY(()) tree_field_decl {
 #define EH_LANDING_PAD_NR(NODE) \
   (LABEL_DECL_CHECK (NODE)->label_decl.eh_landing_pad_nr)
 
+
+#define PRAGMA_SIMD_INDEX(NODE)					\
+  (LABEL_DECL_CHECK(NODE)->label_decl.pragma_simd_index)
+
+#define LABEL_EXPR_PRAGMA_SIMD_INDEX(NODE)			\
+  (PRAGMA_SIMD_INDEX(TREE_OPERAND(LABEL_EXPR_CHECK(NODE), 0)))
+
+
+
+
 /* In LABEL_DECL nodes, nonzero means that an error message about
    jumping into such a binding contour has been printed for this label.  */
 #define DECL_ERROR_ISSUED(NODE) \
@@ -3064,6 +3158,7 @@ struct GTY(()) tree_label_decl {
   struct tree_decl_with_rtl common;
   int label_decl_uid;
   int eh_landing_pad_nr;
+  int pragma_simd_index;
 };
 
 struct var_ann_d;
@@ -3409,6 +3504,37 @@ struct GTY(())
 #define DECL_NO_LIMIT_STACK(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.no_limit_stack)
 
+
+#define CILK_KNOT_NONE  0
+#define CILK_KNOT_SPAWN 1
+#define CILK_KNOT_SYNC  2
+#define CILK_KNOT_FLUSH 3
+
+/* In a FUNCTION_DECL for a Cilk function, indicates that the
+   function may detach. */
+#define DECL_DETACHES_P(NODE)						\
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_knot_type == CILK_KNOT_SPAWN)
+
+#define DECL_SET_KNOT(NODE, K)						\
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_knot_type = (K))
+
+/* In a FUNCTION_DECL, indicates that calling the function is a Cilk knot. */
+#define DECL_KNOT_P(NODE)					\
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_knot_type)
+
+/* In a FUNCTION_DECL for a Cilk function, indicates that the
+   function is a hyperobject lookup. */
+#define DECL_HYPER_LOOKUP_P(NODE)				\
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_hyper_flag)
+
+/* In a FUNCTION_DECL with a nonzero DECL_CONTEXT, indicates that
+   the static chain is an explicit argument.  */
+#define DECL_EXPLICIT_STATIC_CHAIN(NODE)				\
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.explicit_static_chain_flag)
+
+
+
+
 /* In a FUNCTION_DECL indicates that a static chain is needed.  */
 #define DECL_STATIC_CHAIN(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.regdecl_flag)
@@ -3510,13 +3636,16 @@ struct GTY(()) tree_function_decl {
   unsigned declared_inline_flag : 1;
   unsigned regdecl_flag : 1;
   unsigned no_inline_warning_flag : 1;
-
+  unsigned explicit_static_chain_flag : 1;
   unsigned no_instrument_function_entry_exit : 1;
   unsigned no_limit_stack : 1;
   unsigned disregard_inline_limits : 1;
   unsigned pure_flag : 1;
   unsigned looping_const_or_pure_flag : 1;
   unsigned has_debug_args_flag : 1;
+  unsigned cilk_knot_type : 2;
+  unsigned cilk_hyper_flag : 1;
+  signed int kills_registers : DECL_KILLS_REGISTERS_BITS;
 
   /* 2 bits left */
 };
@@ -3592,6 +3721,14 @@ struct GTY(()) tree_optimization_option {
   /* The optimization options used by the user.  */
   struct cl_optimization opts;
 };
+
+
+enum function_linkage
+{
+  linkage_native=0,
+  linkage_cilk
+};
+
 
 #define TREE_OPTIMIZATION(NODE) \
   (&OPTIMIZATION_NODE_CHECK (NODE)->optimization.opts)
@@ -5502,6 +5639,12 @@ extern tree build_duplicate_type (tree);
 /* The function does not lead to calls within current function unit.  */
 #define ECF_LEAF		  (1 << 10)
 
+/* The result of this call depends on the Cilk strand identity. */
+#define ECF_STRAND                (1 << 11)
+/* This call may change the Cilk strand identity. */
+#define ECF_KNOT                  (1 << 12)
+
+
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
 
@@ -5886,5 +6029,57 @@ is_lang_specific (tree t)
 
 /* In gimple-low.c.  */
 extern bool block_may_fallthru (const_tree);
+
+#define FUNCTION_TYPE_LINKAGE(N)					\
+  ((enum function_linkage) FUNC_OR_METHOD_CHECK(N)->type_common.transparent_aggr_flag)
+
+#define SET_FUNCTION_TYPE_LINKAGE(N,V)				\
+  (FUNC_OR_METHOD_CHECK(N)->type_common.transparent_aggr_flag=(V))
+
+#define DECL_KILLS_REGISTERS(NODE)				\
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.kills_registers)
+
+/* FOR_STMT accessors. These give access to the init statement,
+   condition, update expression, and body of the for statement,
+   respectively.  */
+#define FOR_STMT_CHECK2(NODE)   TREE_CHECK2  (NODE,FOR_STMT,CILK_FOR_STMT)
+#define FOR_INIT_STMT(NODE)	TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 0)
+#define FOR_COND(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 1)
+#define FOR_EXPR(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 2)
+#define FOR_BODY(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 3)
+
+/* Some cilk #defines */
+#define CILK_FOR_VAR(NODE)      TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),4)
+#define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),0)
+#define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),6)
+
+/* here are the pragma simd specific files used by the parser and vectorizer
+ * available in pragma_simd.c
+ */
+extern struct pragma_simd_values *psv_find_node(int psv_index);
+extern int psv_head_insert(struct pragma_simd_values local_simd_values);
+extern bool pragma_simd_acceptable_vlength_p(int ps_index,
+					    int possible_vectorization_factor,
+					    tree scalar_type);
+extern bool pragma_simd_assert_requested_p(int ps_index);
+extern bool pragma_simd_vectorize_loop_p(int ps_index);
+extern tree pragma_simd_create_private_vars(tree body,
+					    tree *reset_stmt_list,
+					    struct pragma_simd_values ps_info);
+
+extern void insert_reduction_values (struct reduction_values **,
+				     enum tree_code, tree);
+extern bool same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values);
+extern void check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index);
+extern bool all_reductions_satisfied_p (int pragma_simd_index);
+extern bool clause_resolved_p (enum pragma_simd_kind clause_type,
+			       int pragma_simd_index);
+extern void set_OK_for_certain_clause (enum pragma_simd_kind clause_type,
+				       bool set_value,
+				       int pragma_simd_index);
+extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
+
+tree build_call_list (tree return_type, tree fn, tree arglist);
+tree build_function_linkage_variant (tree ttype, enum function_linkage linkage);
 
 #endif  /* GCC_TREE_H  */

@@ -71,6 +71,9 @@ extern void gimple_check_failed (const_gimple, const char *, int,          \
 #define GIMPLE_CHECK(GS, CODE)			(void)0
 #endif
 
+#define GIMPLE_PRAGMA_SIMD_INDEX(GS) (GS->gsbase.pragma_simd_index)
+
+
 /* Class of GIMPLE expressions suitable for the RHS of assignments.  See
    get_gimple_rhs_class.  */
 enum gimple_rhs_class
@@ -333,6 +336,8 @@ struct GTY(()) gimple_statement_base {
   /* [ WORD 4 ]
      Lexical block holding this statement.  */
   tree block;
+
+  int pragma_simd_index;
 };
 
 

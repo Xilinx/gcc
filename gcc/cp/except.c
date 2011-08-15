@@ -140,7 +140,7 @@ build_eh_type_type (tree type)
 tree
 build_exc_ptr (void)
 {
-  return build_call_n (built_in_decls [BUILT_IN_EH_POINTER],
+  return build_call_n (built_in_decls [BUILT_IN_EH_POINTER],CALL_NORMAL,
 		       1, integer_zero_node);
 }
 
@@ -175,7 +175,7 @@ do_get_exception_ptr (void)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
     }
 
-  return cp_build_function_call_nary (fn, tf_warning_or_error,
+  return cp_build_function_call_nary (fn, CALL_NORMAL,tf_warning_or_error,
 				      build_exc_ptr (), NULL_TREE);
 }
 
@@ -194,7 +194,7 @@ do_begin_catch (void)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, ptr_type_node);
     }
 
-  return cp_build_function_call_nary (fn, tf_warning_or_error,
+  return cp_build_function_call_nary (fn,CALL_NORMAL, tf_warning_or_error,
 				      build_exc_ptr (), NULL_TREE);
 }
 
@@ -233,7 +233,7 @@ do_end_catch (tree type)
       TREE_NOTHROW (fn) = 0;
     }
 
-  cleanup = cp_build_function_call_vec (fn, NULL, tf_warning_or_error);
+  cleanup = cp_build_function_call_vec (fn, NULL, CALL_NORMAL,tf_warning_or_error);
   TREE_NOTHROW (cleanup) = dtor_nothrow (type);
 
   return cleanup;
@@ -581,7 +581,7 @@ do_allocate_exception (tree type)
       fn = declare_nothrow_library_fn (fn, ptr_type_node, size_type_node);
     }
 
-  return cp_build_function_call_nary (fn, tf_warning_or_error,
+  return cp_build_function_call_nary (fn,CALL_NORMAL, tf_warning_or_error,
 				      size_in_bytes (type), NULL_TREE);
 }
 
@@ -600,7 +600,7 @@ do_free_exception (tree ptr)
       fn = declare_nothrow_library_fn (fn, void_type_node, ptr_type_node);
     }
 
-  return cp_build_function_call_nary (fn, tf_warning_or_error, ptr, NULL_TREE);
+  return cp_build_function_call_nary (fn,CALL_NORMAL, tf_warning_or_error, ptr, NULL_TREE);
 }
 
 /* Wrap all cleanups for TARGET_EXPRs in MUST_NOT_THROW_EXPR.
@@ -681,7 +681,7 @@ build_throw (tree exp)
 	  return error_mark_node;
 	}
       fn = OVL_CURRENT (fn);
-      exp = cp_build_function_call_nary (fn, tf_warning_or_error,
+      exp = cp_build_function_call_nary (fn, CALL_NORMAL, tf_warning_or_error,
 					 exp, NULL_TREE);
     }
   else if (exp)
@@ -768,7 +768,7 @@ build_throw (tree exp)
 	  exp_vec = make_tree_vector_single (exp);
 	  exp = (build_special_member_call
 		 (object, complete_ctor_identifier, &exp_vec,
-		  TREE_TYPE (object), flags, tf_warning_or_error));
+		  TREE_TYPE (object), flags, CALL_NORMAL, tf_warning_or_error));
 	  release_tree_vector (exp_vec);
 	  if (exp == error_mark_node)
 	    {
@@ -811,7 +811,7 @@ build_throw (tree exp)
 	cleanup = build_int_cst (cleanup_type, 0);
 
       /* ??? Indicate that this function call throws throw_type.  */
-      tmp = cp_build_function_call_nary (fn, tf_warning_or_error,
+      tmp = cp_build_function_call_nary (fn, CALL_NORMAL,tf_warning_or_error,
 					 ptr, throw_type, cleanup, NULL_TREE);
 
       /* Tack on the initialization stuff.  */
@@ -831,7 +831,7 @@ build_throw (tree exp)
 
       /* ??? Indicate that this function call allows exceptions of the type
 	 of the enclosing catch block (if known).  */
-      exp = cp_build_function_call_vec (fn, NULL, tf_warning_or_error);
+      exp = cp_build_function_call_vec (fn, NULL, CALL_NORMAL,tf_warning_or_error);
     }
 
   exp = build1 (THROW_EXPR, void_type_node, exp);

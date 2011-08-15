@@ -1,0 +1,27 @@
+Release Notes for Intel(R) Cilk(TM) Plus for GCC Release 1.0
+
+This release of Intel Cilk Plus language extensions for GCC implements the 
+following features from the Intel Cilk Plus Language Specification:
+* Keywords for Tasking: _Cilk_spawn, _Cilk_sync, and _Cilk_for, as well as 
+  the pragma to allow users to control the grainsize of the _Cilk_for loop.
+* Hyperobjects: Full support for reducers is provided for both C and C++.
+* SIMD Loops : Pragma SIMD support and the following clauses:
+	- vectorlength
+	- linear
+	- assert
+	- reduction
+	- private
+   Note: These pragmas are supported for the innermost loops only.
+
+The following features are not implemented in this release
+* Array notations
+* Elemental functions
+
+Known Issues:
+* Exception support - Exceptions are not supported for Cilk keywords.
+* Metadata for tools like Cilkscreen is not generated.
+
+----------------------------------------------------------------------------
+Intel and Cilk are trademarks of Intel Corporation in the U.S. and/or other 
+countries.
+

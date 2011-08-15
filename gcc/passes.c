@@ -1194,6 +1194,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_fixup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
+      NEXT_PASS (pass_expand_cilk);
 
       NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_build_ssa);

@@ -944,6 +944,26 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
   return NULL_TREE;
 }
 
+/* Remap DECL if it is defined.  This is used in Cilk++. */
+static bool
+remap_var_for_cilk (tree *tp, copy_body_data *id)
+{
+  tree decl = *tp;
+  tree *n;
+
+  if (!DECL_P (decl))
+    return false;
+
+  n = (tree *) pointer_map_contains (id->decl_map, decl);
+
+
+  if (n == NULL)
+    return false;
+
+  *tp = (*n);
+  return true;
+}
+
 
 /* Called from copy_body_id via walk_tree.  DATA is really a
    `copy_body_data *'.  */
@@ -1008,6 +1028,8 @@ copy_tree_body_r (tree *tp, int *walk_subtrees, void *data)
       *tp = new_decl;
       *walk_subtrees = 0;
     }
+    else if (id->remap_var_for_cilk && remap_var_for_cilk(tp,id))
+    *walk_subtrees=0;
   else if (TREE_CODE (*tp) == STATEMENT_LIST)
     copy_statement_list (tp);
   else if (TREE_CODE (*tp) == SAVE_EXPR
@@ -4840,6 +4862,12 @@ copy_decl_no_change (tree decl, copy_body_data *id)
     {
       TREE_ADDRESSABLE (copy) = 0;
       LABEL_DECL_UID (copy) = -1;
+            if (TREE_CODE(decl) == LABEL_DECL) {
+        PRAGMA_SIMD_INDEX(copy) = PRAGMA_SIMD_INDEX(decl);
+      } 
+      else {
+        PRAGMA_SIMD_INDEX(copy) = 0;
+      }
     }
 
   return copy_decl_for_dup_finish (id, decl, copy);

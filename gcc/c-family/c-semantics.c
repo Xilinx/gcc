@@ -47,13 +47,14 @@ push_stmt_list (void)
 tree
 pop_stmt_list (tree t)
 {
-  tree u = NULL_TREE;
+  tree u = NULL_TREE, chain = NULL_TREE;
 
   /* Pop statement lists until we reach the target level.  The extra
      nestings will be due to outstanding cleanups.  */
   while (1)
     {
       u = VEC_pop (tree, stmt_list_stack);
+      
       if (!VEC_empty (tree, stmt_list_stack))
 	{
 	  tree x = VEC_last (tree, stmt_list_stack);
@@ -62,7 +63,7 @@ pop_stmt_list (tree t)
       if (t == u)
 	break;
     }
-
+  
   gcc_assert (u != NULL_TREE);
 
   /* If the statement list is completely empty, just return it.  This is

@@ -3816,4 +3816,9 @@ cache_cpool_data_ref (void)
     }
 }
 
+int cilk_valid_spawn (tree t)
+{
+  return 0;
+}
+
 #include "gt-java-expr.h"

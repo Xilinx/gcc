@@ -354,6 +354,12 @@ DEFTREECODE (PARM_DECL, "parm_decl", tcc_declaration, 0)
 DEFTREECODE (TYPE_DECL, "type_decl", tcc_declaration, 0)
 DEFTREECODE (RESULT_DECL, "result_decl", tcc_declaration, 0)
 
+
+/* Used by Cilk to represent hyperobject view changes. */
+DEFTREECODE (CILK_STRAND_TAG, "cilk_strand_tag", tcc_declaration, 0)
+
+
+
 /* A "declaration" of a debug temporary.  It should only appear in
    DEBUG stmts.  */
 DEFTREECODE (DEBUG_EXPR_DECL, "debug_expr_decl", tcc_declaration, 0)
@@ -1159,6 +1165,14 @@ DEFTREECODE (OPTIMIZATION_NODE, "optimization_node", tcc_exceptional, 0)
 
 /* TARGET_OPTION_NODE.  Node to store the target specific options.  */
 DEFTREECODE (TARGET_OPTION_NODE, "target_option_node", tcc_exceptional, 0)
+
+/* SYNC_STMT is tcc_expression so it has location. */
+DEFTREECODE (SPAWN_STMT, "spawn_stmt", tcc_statement, 1)
+
+/* SYNC_STMT is tcc_expression so it has location. */
+DEFTREECODE (SYNC_STMT, "sync_stmt", tcc_expression, 0)
+
+
 
 /*
 Local variables:

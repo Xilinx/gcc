@@ -1151,6 +1151,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	pp_string (buffer, "<anon>");
       break;
 
+    case CILK_STRAND_TAG:
     case VAR_DECL:
     case PARM_DECL:
     case FIELD_DECL:
@@ -1499,6 +1500,17 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       is_expr = false;
       break;
 
+         case SYNC_STMT:
+      pp_identifier (buffer, "_Cilk_sync");
+      /* No pp_semicolon; is_expr should be true */
+      break;
+
+    case SPAWN_STMT:
+      pp_identifier (buffer, "_Cilk_spawn");
+      /* No pp_semicolon; is_expr should be true */
+ 
+
+      
     case CALL_EXPR:
       print_call_name (buffer, CALL_EXPR_FN (node), flags);
 
@@ -2336,6 +2348,25 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       pp_string (buffer, " > ");
       break;
 
+           case CILK_FOR_STMT:
+      pp_string (buffer, "cilk_for (");
+      dump_generic_node (buffer, TREE_OPERAND (node, 0), spc, flags, false);
+      if (TREE_OPERAND (node, 1))
+        {
+          pp_string (buffer, " = ");
+          dump_generic_node (buffer, TREE_OPERAND (node, 1), spc, flags, false);
+        }
+      pp_string (buffer, "; ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 2), spc, flags, false);
+      pp_string (buffer, "; ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 3), spc, flags, false);
+      pp_string (buffer, ") ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 4), spc + 2, flags, false);
+      pp_string (buffer, " grain ");
+      dump_generic_node (buffer, TREE_OPERAND (node, 6), spc + 2, flags, false);
+      break;
+
+      
     default:
       NIY;
     }

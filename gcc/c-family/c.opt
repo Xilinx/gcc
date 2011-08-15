@@ -299,6 +299,25 @@ Wchar-subscripts
 C ObjC C++ ObjC++ Var(warn_char_subscripts) Warning
 Warn about subscripts whose type is \"char\"
 
+
+Wcilk-block
+C ObjC C++ ObjC++ Var(warn_cilk_block) Init(1)  Warning
+Warn about suspicious constructs in Cilk blocks
+
+Wcilk-for
+C ObjC C++ ObjC++ Var(warn_cilk_for) Init(1)  Warning
+Warn about suspicious constructs in cilk_for loops
+
+Wcilk-for-direction
+C ObjC C++ ObjC++ Var(warn_cilk_for_direction) Init(0)  Warning
+Warn when direction of cilk_for loop is not known at compile time
+
+Wcilk-scope
+C ObjC C++ ObjC++ Var(warn_cilk_scope) Init(1)  Warning
+Warn when Cilk scope rules may have surprising results
+
+
+
 Wclobbered
 C ObjC C++ ObjC++ Var(warn_clobbered) Init(-1) Warning
 Warn about variables that might be changed by \"longjmp\" or \"vfork\"
@@ -714,6 +733,32 @@ Recognize built-in functions
 
 fbuiltin-
 C ObjC C++ ObjC++ Joined
+
+fcilk
+C ObjC C++ ObjC++ Report Var(flag_enable_cilk) Init(1)
+Enable Cilk
+
+; fcilk-builtin
+; C++ Var(flag_cilk_builtin) Init(1)
+; Recognize Cilk++ built in functions
+
+fcilk-check-spawn-queue
+C++ Var(flag_check_spawn_queue) Init(1)
+Insert code to check for overflow of the Cilk spawn deque
+
+fcilkscreen
+C++ Var(flag_cilkscreen) Init(1)
+Generate Cilkscreen metadata
+
+fcilk-hyper-lookup
+C++ Var(flag_cilk_hyper) Init(1)
+Optimize accesses to Cilk++ hypervariables
+
+fcilk-optimize-sync
+C++ Var(flag_optimize_sync) Init(1)
+Eliminate redundant Cilk sync statements
+
+
 
 fcheck-new
 C++ ObjC++ Var(flag_check_new)

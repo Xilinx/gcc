@@ -6515,7 +6515,7 @@ else
 fi
 
 if test $enable_werror_always = yes; then :
-  strict_warn="$strict_warn${strict_warn:+ }-Werror"
+  strict_warn="$strict_warn${strict_warn:+ }"
 fi
 
 

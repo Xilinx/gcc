@@ -19,8 +19,8 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#ifndef GCC_RTL_H
-#define GCC_RTL_H
+#ifndef GCC_RTL_H_1
+#define GCC_RTL_H_1
 
 #include "statistics.h"
 #include "machmode.h"
@@ -2633,4 +2633,4 @@ extern void _fatal_insn (const char *, const_rtx, const char *, int, const char 
 
 
 
-#endif /* ! GCC_RTL_H */
+#endif /* ! GCC_RTL_H_1 */

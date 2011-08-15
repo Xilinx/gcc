@@ -38,5 +38,9 @@ void **pointer_map_contains (const struct pointer_map_t *pmap, const void *p);
 void **pointer_map_insert (struct pointer_map_t *pmap, const void *p);
 void pointer_map_traverse (const struct pointer_map_t *,
 			   bool (*) (const void *, void **, void *), void *);
+void pointer_map_traverse_ordered (const struct pointer_map_t *,
+				   bool (*) (const void *, void **, void *),
+				   int (*) (const void *, const void *),
+				   void *);
 
 #endif  /* POINTER_SET_H  */

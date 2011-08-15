@@ -408,6 +408,7 @@ extern struct gimple_opt_pass pass_lower_complex;
 extern struct gimple_opt_pass pass_lower_vector;
 extern struct gimple_opt_pass pass_lower_vector_ssa;
 extern struct gimple_opt_pass pass_lower_omp;
+extern struct gimple_opt_pass pass_expand_cilk;
 extern struct gimple_opt_pass pass_diagnose_omp_blocks;
 extern struct gimple_opt_pass pass_expand_omp;
 extern struct gimple_opt_pass pass_expand_omp_ssa;

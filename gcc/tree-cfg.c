@@ -1674,6 +1674,15 @@ gimple_merge_blocks (basic_block a, basic_block b)
   /* Ensure that B follows A.  */
   move_block_after (b, a);
 
+    if ((b->pragma_simd_index != 0) &&
+      (a->pragma_simd_index == 0))
+    a->pragma_simd_index = b->pragma_simd_index;
+  else if ((a->pragma_simd_index != 0)  &&
+	   (b->pragma_simd_index == 0))
+    b->pragma_simd_index = a->pragma_simd_index;
+    
+
+  
   gcc_assert (single_succ_edge (a)->flags & EDGE_FALLTHRU);
   gcc_assert (!last_stmt (a) || !stmt_ends_bb_p (last_stmt (a)));
 
@@ -3048,7 +3057,7 @@ verify_gimple_call (gimple stmt)
 {
   tree fn = gimple_call_fn (stmt);
   tree fntype, fndecl;
-  unsigned i;
+  /* unsigned i; */
 
   if (gimple_call_internal_p (stmt))
     {
@@ -3158,7 +3167,7 @@ verify_gimple_call (gimple stmt)
      didn't see a function declaration before the call.  So for now
      leave the call arguments mostly unverified.  Once we gimplify
      unit-at-a-time we have a chance to fix this.  */
-
+#if 0
   for (i = 0; i < gimple_call_num_args (stmt); ++i)
     {
       tree arg = gimple_call_arg (stmt, i);
@@ -3172,7 +3181,7 @@ verify_gimple_call (gimple stmt)
 	  return true;
 	}
     }
-
+#endif
   return false;
 }
 
@@ -6442,6 +6451,11 @@ dump_function_to_file (tree fn, FILE *file, int flags)
 DEBUG_FUNCTION void
 debug_function (tree fn, int flags)
 {
+  if (fn == NULL_TREE)
+  {
+    printf("NULL Function.\n");
+    return;
+  }
   dump_function_to_file (fn, stderr, flags);
 }
 

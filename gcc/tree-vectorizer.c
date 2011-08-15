@@ -191,7 +191,10 @@ vectorize_loops (void)
      than all previously defined loops.  This fact allows us to run
      only over initial loops skipping newly generated ones.  */
   FOR_EACH_LOOP (li, loop, 0)
-    if (optimize_loop_nest_for_speed_p (loop))
+       if (((flag_enable_cilk == 0) &&
+	 (optimize_loop_nest_for_speed_p (loop))) ||
+	((flag_enable_cilk == 1) &&
+	 (pragma_simd_vectorize_loop_p(loop->pragma_simd_index) == true)))
       {
 	loop_vec_info loop_vinfo;
 
@@ -208,6 +211,64 @@ vectorize_loops (void)
 
   vect_location = UNKNOWN_LOC;
 
+    FOR_EACH_LOOP (li, loop, 0)
+  {
+    if (flag_enable_cilk != 0)
+    {
+      if ((!clause_resolved_p(P_SIMD_VECTORLENGTH, loop->pragma_simd_index)))
+      {
+	if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	{
+	  error ("Vectorlength not picked from the list.\nASSERT REQUESTED");
+	  exit (ICE_EXIT_CODE);
+	}
+	else
+	{
+	  warning (0, "Vectorlength not picked from list...continuing\n");
+	}
+      }
+      if (!clause_resolved_p(P_SIMD_PRIVATE, loop->pragma_simd_index))
+      {
+	if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	{
+	  error ("Unable to make all variables private.\nASSERT REQUESTED");
+	  exit(ICE_EXIT_CODE);
+	}
+	else
+	{
+	  warning (0, "Unable to make all variables private...continuing");
+	}
+      }
+
+      if (!clause_resolved_p (P_SIMD_LINEAR, loop->pragma_simd_index))
+      {
+	if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	{
+	  error ("Unable to pick requested step-size.\nASSERT REQUESTED");
+	  exit(ICE_EXIT_CODE);
+	}
+	else
+	{
+	  warning (0, "Unable to pick requested step-size...continuing");
+	}
+      }
+
+      if (!clause_resolved_p (P_SIMD_REDUCTION, loop->pragma_simd_index))
+      {
+	if (pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	{
+	  error ("Unable to satisfy all reductions.\nASSERT REQUESTED");
+	  exit(ICE_EXIT_CODE);
+	}
+	else
+	{
+	  warning (0, "Unable to satisfy all reductions...continuing");
+	}
+
+      }
+    }
+  }
+  
   statistics_counter_event (cfun, "Vectorized loops", num_vectorized_loops);
   if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS)
       || (num_vectorized_loops > 0

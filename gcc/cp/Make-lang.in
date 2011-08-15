@@ -59,6 +59,13 @@ g++spec.o: $(srcdir)/cp/g++spec.c $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H) \
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
 		$(INCLUDES) $(srcdir)/cp/g++spec.c)
 
+cilk++spec.o: $(srcdir)/cp/g++spec.c $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H) $(CONFIG_H)
+        (SHLIB_LINK='$(SHLIB_LINK)'; \
+        $(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
+                $(INCLUDES) $(srcdir)/cp/g++spec.c)
+
+
+
 # Create the compiler driver for g++.
 GXX_OBJS = $(GCC_OBJS) g++spec.o
 g++$(exeext): $(GXX_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a $(LIBDEPS)
@@ -81,7 +88,7 @@ CXX_AND_OBJCXX_OBJS = cp/call.o cp/decl.o cp/expr.o cp/pt.o cp/typeck2.o \
  cp/typeck.o cp/cvt.o cp/except.o cp/friend.o cp/init.o cp/method.o \
  cp/search.o cp/semantics.o cp/tree.o cp/repo.o cp/dump.o cp/optimize.o \
  cp/mangle.o cp/cp-objcp-common.o cp/name-lookup.o cp/cxx-pretty-print.o \
- cp/cp-gimplify.o tree-mudflap.o $(CXX_C_OBJS)
+ cp/cp-gimplify.o cp/cilk.o tree-mudflap.o $(CXX_C_OBJS)
 
 # Language-specific object files for C++.
 CXX_OBJS = cp/cp-lang.o c-family/stub-objc.o $(CXX_AND_OBJCXX_OBJS)
@@ -264,6 +271,9 @@ CXX_TREE_H = $(TREE_H) cp/name-lookup.h cp/cp-tree.h $(C_COMMON_H) \
 CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 
+cp/cilk.o: cp/cilk.c cilk.h cp/decl.h $(CXX_TREE_H) $(CONFIG_H) $(SYSTEM_H) \
+  $(TREE_DUMP_H)
+
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) output.h input.h cp/operators.def $(TM_P_H) \
   c-family/c-objc.h
@@ -273,7 +283,7 @@ cp/cp-lang.o: cp/cp-lang.c $(CXX_TREE_H) $(TM_H) debug.h langhooks.h \
 cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(HASHTAB_H) $(RTL_H) \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
-  debug.h gt-cp-decl.h $(TIMEVAR_H) $(TARGET_H) $(PLUGIN_H) \
+  debug.h gt-cp-decl.h $(TIMEVAR_H) $(TARGET_H) cilk.h $(PLUGIN_H) \
   intl.h tree-iterator.h pointer-set.h $(SPLAY_TREE_H) \
   c-family/c-objc.h
 cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
@@ -295,7 +305,7 @@ cp/class.o: cp/class.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(SPLAY_TREE_H) pointer-set.h
 cp/call.o: cp/call.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(DIAGNOSTIC_CORE_H) intl.h gt-cp-call.h convert.h $(TARGET_H) langhooks.h \
-  $(TIMEVAR_H) c-family/c-objc.h
+  $(TIMEVAR_H) c-family/c-objc.h cilk.h
 cp/friend.o: cp/friend.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H)
 cp/init.o: cp/init.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(EXCEPT_H) $(TARGET_H)
@@ -334,7 +344,7 @@ cp/optimize.o: cp/optimize.c $(CXX_TREE_H) $(TM_H) \
 cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) $(REAL_H) \
   gt-cp-mangle.h $(TARGET_H) $(TM_P_H) $(CGRAPH_H)
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_CORE_H) \
-  gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h \
+  gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h  cilk.h \
   c-family/c-objc.h tree-pretty-print.h $(CXX_PARSER_H) $(TIMEVAR.H)
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h $(SPLAY_TREE_H)

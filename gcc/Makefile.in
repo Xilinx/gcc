@@ -1185,7 +1185,7 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-format.o c-family/c-gimplify.o c-family/c-lex.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
-  c-family/c-semantics.o c-family/c-ada-spec.o
+  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o 
 
 # Language-specific object files for C and Objective C.
 C_AND_OBJC_OBJS = attribs.o c-errors.o c-decl.o c-typeck.o \
@@ -1487,10 +1487,13 @@ OBJS = \
 	value-prof.o \
 	var-tracking.o \
 	varasm.o \
+        pragma_simd.o \
 	varpool.o \
 	vmsdbgout.o \
 	web.o \
 	xcoffout.o \
+        cilk.o \
+        cilk-low.o \
 	$(out_object_file) \
 	$(EXTRA_OBJS) \
 	$(host_hook_obj)
@@ -2018,7 +2021,7 @@ c-decl.o : c-decl.c c-lang.h $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(HASHTAB_H) $(LIBFUNCS_H) $(EXCEPT_H) $(LANGHOOKS_DEF_H) \
 	$(TREE_DUMP_H) $(C_COMMON_H) $(CPPLIB_H) $(DIAGNOSTIC_CORE_H) \
 	$(INPUT_H) langhooks.h tree-mudflap.h pointer-set.h tree-iterator.h \
-	$(PLUGIN_H) c-family/c-ada-spec.h c-family/c-objc.h
+	$(PLUGIN_H) c-family/c-ada-spec.h c-family/c-objc.h cilk.h
 
 c-errors.o: c-errors.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
 	$(C_TREE_H) $(FLAGS_H) $(DIAGNOSTIC_H) $(TM_P_H)
@@ -2040,12 +2043,12 @@ c-parser.o : c-parser.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(GGC_H) $(TIMEVAR_H) $(INPUT_H) $(FLAGS_H) output.h \
 	gt-c-parser.h langhooks.h \
 	$(VEC_H) $(TARGET_H) $(CGRAPH_H) $(PLUGIN_H) \
-	 c-family/c-objc.h
+	 c-family/c-objc.h cilk.h
 
 c-typeck.o : c-typeck.c c-lang.h $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(TREE_H) $(C_TREE_H) $(TARGET_H) $(FLAGS_H) intl.h output.h $(EXPR_H) \
 	langhooks.h tree-iterator.h $(BITMAP_H) $(GIMPLE_H) \
-	 c-family/c-objc.h
+	 c-family/c-objc.h cilk.h
 
 
 
@@ -2095,7 +2098,7 @@ c-family/c-common.o : c-family/c-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	intl.h $(OPTS_H) $(CPPLIB_H) $(TREE_INLINE_H) $(HASHTAB_H) \
 	$(BUILTINS_DEF) $(CGRAPH_H) $(BASIC_BLOCK_H) $(TARGET_DEF_H) \
 	$(LIBFUNCS_H) \
-	gt-c-family-c-common.h $(COMMON_TARGET_H)
+	gt-c-family-c-common.h cilk.h $(COMMON_TARGET_H)
 
 c-family/c-cppbuiltin.o : c-family/c-cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TM_H) $(TREE_H) version.h $(C_COMMON_H) $(C_PRAGMA_H) \
@@ -2916,7 +2919,7 @@ dojump.o : dojump.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) $(TREE_
 builtins.o : builtins.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TREE_H) $(GIMPLE_H) $(FLAGS_H) $(TARGET_H) $(FUNCTION_H) $(REGS_H) \
    $(EXPR_H) $(OPTABS_H) insn-config.h $(RECOG_H) output.h typeclass.h \
-   hard-reg-set.h $(DIAGNOSTIC_CORE_H) hard-reg-set.h $(EXCEPT_H) \
+   hard-reg-set.h $(DIAGNOSTIC_CORE_H) hard-reg-set.h $(EXCEPT_H) cilk.h \
    $(TM_P_H) $(PREDICT_H) $(LIBFUNCS_H) langhooks.h $(BASIC_BLOCK_H) \
    tree-mudflap.h realmpfr.h $(BUILTINS_DEF) $(MACHMODE_H) \
    $(DIAGNOSTIC_CORE_H) $(TREE_FLOW_H) value-prof.h
@@ -3500,6 +3503,22 @@ lower-subreg.o : lower-subreg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(MACHMODE_H) $(TM_H) $(RTL_H) $(TM_P_H) $(TIMEVAR_H) $(FLAGS_H) \
    insn-config.h $(BASIC_BLOCK_H) $(RECOG_H) $(OBSTACK_H) $(BITMAP_H) \
    $(EXPR_H) $(EXCEPT_H) $(REGS_H) $(TREE_PASS_H) $(DF_H) dce.h
+
+
+
+
+cilk.o: cilk.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(RTL_H) $(OPTABS_H) \
+   $(GIMPLE_H) $(RECOG_H) cilk.h
+
+cilk-low.o: cilk-low.c $(CONFIG_H) $(SYSTEM_H) $(GIMPLE_H) $(TREE_H) cilk.h
+
+cilk-spawn.o: cilk-spawn.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
+   $(TREE_INLINE_H) cilk.h
+
+pragma_simd.o: pragma_simd.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
+   $(TREE_INLINE_H)
+
+
 target-globals.o : target-globals.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) insn-config.h $(MACHMODE_H) $(GGC_H) toplev.h target-globals.h \
    $(FLAGS_H) $(REGS_H) $(RTL_H) reload.h expmed.h $(EXPR_H) $(OPTABS_H) \
@@ -3816,6 +3835,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/ipa-prop.h \
   $(srcdir)/lto-streamer.h \
   $(srcdir)/target-globals.h \
+  $(srcdir)/cilk.c $(srcdir)/cilk.h \
   $(srcdir)/ipa-inline.h \
   @all_gtfiles@
 

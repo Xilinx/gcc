@@ -532,6 +532,11 @@ struct GTY(()) function {
   /* Vector of function local variables, functions, types and constants.  */
   VEC(tree,gc) *local_decls;
 
+  
+
+  /* In a Cilk function, the VAR_DECL for the frame descriptor. */
+  tree cilk_frame_decl;
+  
   /* For md files.  */
 
   /* tm.h can use this to store whatever it likes.  */
@@ -586,6 +591,40 @@ struct GTY(()) function {
   /* Nonzero if function being compiled can call alloca,
      either as a subroutine or builtin.  */
   unsigned int calls_alloca : 1;
+
+    ENUM_BITFIELD(function_linkage) linkage : 2;
+
+  /* this will indicate whether a function is a cilk function */
+  unsigned int is_cilk_function : 1;
+
+    /* this variable when set will tell whether the current function
+   * is nested inside a cilk_function. Pretty much this is set it 
+   * means we are using a cilk-for inside a cilk_for  
+   */
+  unsigned int nested_inside_cilk_function : 1;
+  
+  /* Nonzero if this is a Cilk function that spawns. */
+  unsigned int calls_spawn : 1;
+
+  /* Nonzero if function being compiled is a Cilk function
+     with a variable size object or call to alloca. */
+  unsigned int has_cilk_dynamic : 1;
+
+    /* Does this Cilk function call alloca? */
+  unsigned int calls_cilk_alloca : 1;
+
+  /* Does this Cilk function restore its stack pointer in exception handlers? */
+  unsigned int restores_cilk_stack : 1;
+
+  /* Nonzero if this Cilk function may detach. */
+  unsigned int detaches : 1;
+
+  /* Nonzero if this Cilk function always detaches, i.e.
+     the detach can not be preempted by an exception. */
+  unsigned int always_detaches : 1;
+
+
+
 
   /* Nonzero if function being compiled receives nonlocal gotos
      from nested functions.  */

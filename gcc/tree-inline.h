@@ -126,6 +126,18 @@ typedef struct copy_body_data
      the originals have been mapped to a value rather than to a
      variable.  */
   struct pointer_map_t *debug_map;
+
+    /* Cilk currently needs to replace some variables that
+     ordinary nested functions do not. */
+  bool remap_var_for_cilk; 
+  
+ /* Take region number in the function being copied, add this value and
+    get eh region number of the duplicate in the function we inline into.  */
+  int eh_region_offset;
+  int eh_region;
+
+
+  
 } copy_body_data;
 
 /* Weights of constructions for estimate_num_insns.  */

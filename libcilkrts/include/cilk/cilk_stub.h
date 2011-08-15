@@ -1,0 +1,45 @@
+/*  cilk_stub.h                  -*-C++-*-
+ *
+ * Copyright (C) 2009-2011 
+ * Intel Corporation
+ * 
+ * This file is part of the Intel Cilk Plus Library.  This library is free
+ * software; you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 3, or (at your option)
+ * any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * Under Section 7 of GPL version 3, you are granted additional
+ * permissions described in the GCC Runtime Library Exception, version
+ * 3.1, as published by the Free Software Foundation.
+ * 
+ * You should have received a copy of the GNU General Public License and
+ * a copy of the GCC Runtime Library Exception along with this program;
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#ifndef INCLUDED_CILK_STUB_DOT_H
+#define INCLUDED_CILK_STUB_DOT_H
+
+/* Definitions for creating a serialization from a Cilk program.
+ * These definitions are suitable for use by a compiler that is not
+ * Cilk-enabled.
+ */
+
+/* Pretend we are a non-Cilk compiler */
+#undef __cilk
+#define CILK_STUB
+
+/* Replace Cilk keywords with serial equivalents */
+#define _Cilk_spawn
+#define _Cilk_sync
+#define _Cilk_for for
+
+#endif /* ! defined(INCLUDED_CILK_STUB_DOT_H) */

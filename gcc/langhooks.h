@@ -232,6 +232,14 @@ struct lang_hooks_for_decls
   void (*omp_finish_clause) (tree clause);
 };
 
+struct lang_hooks_for_cilk
+{
+  bool (*recognize_spawn) (tree);
+  bool (*spawnable_constructor) (tree);
+};
+
+
+
 /* Language hooks related to LTO serialization.  */
 
 struct lang_hooks_for_lto
@@ -415,6 +423,8 @@ struct lang_hooks
 
   struct lang_hooks_for_types types;
 
+  struct lang_hooks_for_cilk cilk;
+  
   struct lang_hooks_for_lto lto;
 
   /* Returns the generic parameters of an instantiation of

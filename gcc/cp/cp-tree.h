@@ -268,7 +268,7 @@ typedef struct ptrmem_cst * ptrmem_cst_t;
 #define BIND_EXPR_BODY_BLOCK(NODE) \
   TREE_LANG_FLAG_3 (BIND_EXPR_CHECK (NODE))
 #define FUNCTION_NEEDS_BODY_BLOCK(NODE) \
-  (DECL_CONSTRUCTOR_P (NODE) || DECL_DESTRUCTOR_P (NODE) \
+  (1 || DECL_CONSTRUCTOR_P (NODE) || DECL_DESTRUCTOR_P (NODE) \
    || LAMBDA_FUNCTION_P (NODE))
 
 #define STATEMENT_LIST_NO_SCOPE(NODE) \
@@ -803,6 +803,7 @@ enum cp_tree_index
 
     CPTI_LANG_NAME_C,
     CPTI_LANG_NAME_CPLUSPLUS,
+    CPTI_LANG_NAME_CILK,
     CPTI_LANG_NAME_JAVA,
 
     CPTI_EMPTY_EXCEPT_SPEC,
@@ -892,6 +893,7 @@ extern GTY(()) tree cp_global_trees[CPTI_MAX];
 /* The name of the std namespace.  */
 #define std_identifier			cp_global_trees[CPTI_STD_IDENTIFIER]
 #define lang_name_c			cp_global_trees[CPTI_LANG_NAME_C]
+#define lang_name_cilk			cp_global_trees[CPTI_LANG_NAME_CILK]
 #define lang_name_cplusplus		cp_global_trees[CPTI_LANG_NAME_CPLUSPLUS]
 #define lang_name_java			cp_global_trees[CPTI_LANG_NAME_JAVA]
 
@@ -2861,6 +2863,18 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define AGGR_INIT_VIA_CTOR_P(NODE) \
   TREE_LANG_FLAG_0 (AGGR_INIT_EXPR_CHECK (NODE))
 
+/* Nonzero if this AGGR_INIT_EXPR should be spawned.  */
+#define AGGR_INIT_VIA_SPAWN_P(NODE) \
+  TREE_LANG_FLAG_2 (AGGR_INIT_EXPR_CHECK (NODE))
+
+#define AGGR_INIT_DETACH(NODE) \
+  TREE_LANG_FLAG_3 (AGGR_INIT_EXPR_CHECK (NODE))
+
+
+
+
+
+
 /* Nonzero if expanding this AGGR_INIT_EXPR should first zero-initialize
    the object.  */
 #define AGGR_INIT_ZERO_FIRST(NODE) \
@@ -3864,11 +3878,20 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* FOR_STMT accessors. These give access to the init statement,
    condition, update expression, and body of the for statement,
    respectively.  */
-#define FOR_INIT_STMT(NODE)	TREE_OPERAND (FOR_STMT_CHECK (NODE), 0)
-#define FOR_COND(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 1)
-#define FOR_EXPR(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 2)
-#define FOR_BODY(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 3)
-#define FOR_SCOPE(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 4)
+#define FOR_INIT_STMT(NODE)	TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 0)
+#define FOR_COND(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 1)
+#define FOR_EXPR(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 2)
+#define FOR_BODY(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 3)
+#define FOR_SCOPE(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 4)
+
+#define FOR_STMT_PRAGMA_SIMD_INDEX(NODE)  \
+                    (FOR_STMT_CHECK(NODE)->base.pragma_simd_index)
+/* Some cilk #defines */
+#define CILK_FOR_VAR(NODE)      TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),4)
+#define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),0)
+#define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),6)
+
+
 
 /* RANGE_FOR_STMT accessors. These give access to the declarator,
    expression, body, and scope of the statement, respectively.  */
@@ -3908,6 +3931,16 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define DIRECT_INIT_EXPR_P(TYPE,EXPR)					\
   (TREE_CODE (EXPR) == TARGET_EXPR && TREE_LANG_FLAG_2 (EXPR)		\
    && same_type_ignoring_top_level_qualifiers_p (TYPE, TREE_TYPE (EXPR)))
+
+#define RECORD_IS_CILK(N)      \
+  (TREE_LANG_FLAG_0(TREE_CHECK2(N,RECORD_TYPE,UNION_TYPE)))
+#define CILK_FOR_NO_DEMOTE(N) (TREE_LANG_FLAG_0(TREE_CHECK(N,CILK_FOR_STMT)))
+#define RECORD_PROMOTED_CILK(N)  \
+  (TREE_LANG_FLAG_1(TREE_CHECK2(N,RECORD_TYPE,UNION_TYPE)))
+#define SPAWN_DELAYED_DETACH_P(N) (TREE_LANG_FLAG_0(TREE_CHECK(N,SPAWN_STMT)))
+
+
+
 
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
@@ -4261,6 +4294,9 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define LOOKUP_PREFER_TYPES (1 << 8)
 /* Do not accept objects, and possibly types.   */
 #define LOOKUP_PREFER_NAMESPACES (1 << 9)
+
+#define LOOKUP_CONSTRUCTOR_CALLABLE (1 << 10) 
+
 /* Accept types or namespaces.  */
 #define LOOKUP_PREFER_BOTH (LOOKUP_PREFER_TYPES | LOOKUP_PREFER_NAMESPACES)
 /* Return friend declarations and un-declared builtin functions.
@@ -4366,6 +4402,33 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 				   already been parsed.  */
 #define SF_INCLASS_INLINE    2  /* The function is an inline, defined
 				   in the class body.  */
+#define SF_CILK_PROMOTE      4 /* Promote type of function to Cilk */
+#define SF_CILK_NESTED       8 /* This function is a cilk lambda */
+
+#define BUILT_IN_CILK_SYNC      1
+#define BUILT_IN_CILK_FRAME     2
+/* #define BUILT_IN_CILK_DETACH    3 */
+#define BUILT_IN_CILK_SYNCHED   4
+#define BUILT_IN_CILK_METADATA  5
+#define BUILT_IN_CILK_DISABLE   6
+#define BUILT_IN_CILK_ENABLE    7
+#define BUILT_IN_CILK_CLEAN     8
+#define BUILT_IN_CILK_WRITE     9
+#define BUILT_IN_CILK_ACQUIRE   10
+#define BUILT_IN_CILK_RELEASE   11
+#define BUILT_IN_CILK_WORKER_ID 12
+#define BUILT_IN_CILK_WORKER    13
+
+enum call_context
+{
+  CALL_NORMAL = -1,
+  CALL_SPAWN = 1,
+  CALL_CILK_RUN = 2
+};
+
+
+
+
 
 /* Used with start_decl's initialized parameter.  */
 #define SD_UNINITIALIZED     0
@@ -4720,25 +4783,30 @@ extern bool check_dtor_name			(tree, tree);
 extern tree build_conditional_expr		(tree, tree, tree, 
                                                  tsubst_flags_t);
 extern tree build_addr_func			(tree);
-extern tree build_call_a			(tree, int, tree*);
-extern tree build_call_n			(tree, int, ...);
+extern tree build_call_a			(tree, enum call_context, int, tree*);
+extern tree build_call_n			(tree, enum call_context,  int, ...);
 extern bool null_ptr_cst_p			(tree);
 extern bool sufficient_parms_p			(const_tree);
 extern tree type_decays_to			(tree);
 extern tree build_user_type_conversion		(tree, tree, int);
 extern tree build_new_function_call		(tree, VEC(tree,gc) **, bool, 
+                                                 enum call_context, 
 						 tsubst_flags_t);
 extern tree build_operator_new_call		(tree, VEC(tree,gc) **, tree *,
 						 tree *, tree *);
 extern tree build_new_method_call		(tree, tree, VEC(tree,gc) **,
 						 tree, int, tree *,
+                                                 enum call_context, 
 						 tsubst_flags_t);
 extern tree build_special_member_call		(tree, tree, VEC(tree,gc) **,
-						 tree, int, tsubst_flags_t);
+						 tree, int,
+                                                 enum call_context, 
+						 tsubst_flags_t);
 extern tree build_new_op			(enum tree_code, int, tree, 
 						 tree, tree, tree *,
 						 tsubst_flags_t);
 extern tree build_op_call			(tree, VEC(tree,gc) **,
+                                                 enum call_context, 
 						 tsubst_flags_t);
 extern tree build_op_delete_call		(enum tree_code, tree, tree, bool, tree, tree);
 extern bool can_convert				(tree, tree);
@@ -4765,7 +4833,8 @@ extern tree build_integral_nontype_arg_conv	(tree, tree, tsubst_flags_t);
 extern tree perform_direct_initialization_if_possible (tree, tree, bool,
                                                        tsubst_flags_t);
 extern tree in_charge_arg_for_name		(tree);
-extern tree build_cxx_call			(tree, int, tree *);
+extern tree build_cxx_call			(tree, enum call_context,
+                                                int, tree *);
 extern bool is_std_init_list			(tree);
 extern bool is_list_ctor			(tree);
 #ifdef ENABLE_CHECKING
@@ -5346,6 +5415,9 @@ extern void finish_for_init_stmt		(tree);
 extern void finish_for_cond			(tree, tree);
 extern void finish_for_expr			(tree, tree);
 extern void finish_for_stmt			(tree);
+extern tree begin_cilk_for_stmt                 (void);
+extern tree finish_sync_stmt                    (bool);
+
 extern tree begin_range_for_stmt		(tree, tree);
 extern void finish_range_for_decl		(tree, tree, tree);
 extern void finish_range_for_stmt		(tree);
@@ -5386,7 +5458,8 @@ extern VEC(tree,heap)* cx_error_context (void);
 enum {
   BCS_NO_SCOPE = 1,
   BCS_TRY_BLOCK = 2,
-  BCS_FN_BODY = 4
+  BCS_FN_BODY = 4,
+  BCS_CILK_BLOCK = 8
 };
 extern tree begin_compound_stmt			(unsigned int);
 
@@ -5405,7 +5478,9 @@ bool empty_expr_stmt_p				(tree);
 extern tree perform_koenig_lookup		(tree, VEC(tree,gc) *, bool,
 						 tsubst_flags_t);
 extern tree finish_call_expr			(tree, VEC(tree,gc) **, bool,
-						 bool, tsubst_flags_t);
+						 bool,
+                                                 enum call_context, 
+                                                 tsubst_flags_t);
 extern tree finish_increment_expr		(tree, enum tree_code);
 extern tree finish_this_expr			(void);
 extern tree finish_pseudo_destructor_expr       (tree, tree, tree);
@@ -5424,6 +5499,7 @@ extern tree finish_id_expression		(tree, tree, tree,
 						 cp_id_kind *,
 						 bool, bool, bool *,
 						 bool, bool, bool, bool,
+                                                 enum call_context, 
 						 const char **,
                                                  location_t);
 extern tree finish_typeof			(tree);
@@ -5464,6 +5540,12 @@ extern void finish_static_assert                (tree, tree, location_t,
                                                  bool);
 extern tree finish_decltype_type                (tree, bool, tsubst_flags_t);
 extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
+
+
+extern void begin_cilk_block                    (void);
+extern void finish_cilk_block                   (void);
+
+
 extern tree build_lambda_expr                   (void);
 extern tree build_lambda_object			(tree);
 extern tree begin_lambda_type                   (tree);
@@ -5632,10 +5714,15 @@ extern tree build_array_ref			(location_t, tree, tree);
 extern tree cp_build_array_ref			(location_t, tree, tree,
 						 tsubst_flags_t);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
-extern tree cp_build_function_call              (tree, tree, tsubst_flags_t);
-extern tree cp_build_function_call_nary         (tree, tsubst_flags_t, ...)
+extern tree cp_build_function_call              (tree, tree, 
+                                                 enum call_context, 
+                                                 tsubst_flags_t);
+extern tree cp_build_function_call_nary         (tree, 
+                                                 enum call_context, 
+                                                tsubst_flags_t, ...)
 						ATTRIBUTE_SENTINEL;
 extern tree cp_build_function_call_vec		(tree, VEC(tree,gc) **,
+                                                 enum call_context, 
 						 tsubst_flags_t);
 extern tree build_x_binary_op			(enum tree_code, tree,
 						 enum tree_code, tree,
@@ -5775,6 +5862,47 @@ extern bool cxx_omp_privatize_by_reference	(const_tree);
 
 /* in name-lookup.c */
 extern void suggest_alternatives_for (location_t, tree);
+
+
+/* cilk.c */
+extern tree cilk_block_local_label              (tree);
+struct cp_binding_level *in_cilk_block          (void);
+bool cp_spawnable_constructor                   (tree);
+bool cp_recognize_spawn                         (tree);
+tree cp_make_cilk_frame                         (void);
+
+extern tree cilk_for_var_decl                   (tree, bool);
+extern void finish_cilk_for_stmt                (tree);
+extern void warn_unimplemented_cilk             (bool fatal);
+extern void build_cilk_types                    (void);
+/* extern void cilk_gimplify_sync                       (tree *);  */
+/* extern void cilk_gimplify_spawn                      (tree *, tree *, tree *); */
+extern void cilk_gimplify_run                   (tree *, gimple_seq *, gimple_seq *);
+extern void cilk_gimplify_for_stmt              (tree *, tree *);
+extern void gimplify_cilk_for_stmt              (tree *, gimple_seq *);
+extern tree build_cilk_run                      (tree);
+extern bool cilk_valid_spawn                    (tree);
+extern void cilk_init_frame_descriptor          (struct function *, bool);
+extern tree cilk_make_frame_descriptor          (struct function *);
+extern bool cilk_maybe_promote                  (tree fndecl);
+extern void cilk_promote                        (tree fndecl);
+extern void cilk_promote_struct_function        (tree fndecl);
+#define CILK_WRAP_INIT 1
+#define CILK_WRAP_FINI 2
+#define CILK_WRAP_DTOR 3
+extern tree push_cilk_void_wrapper              (tree wrapped, int style);
+extern tree build_cilk_void_wrapper             (tree wrapped, int style);
+extern bool finish_cilk_wrappers                (void);
+extern bool cilkish_type                        (tree type);
+extern bool cilkish_template_args               (tree type);
+extern bool cp_tree_uses_cilk                   (tree);
+
+
+extern void cilk_address_modified_variables     (tree);
+extern void mark_receiver_addressable           (tree, tree);
+
+extern void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *);
+
 
 /* -- end of C++ */
 

@@ -154,6 +154,7 @@ target_libraries="target-libgcc \
 		target-libgloss \
 		target-newlib \
 		target-libgomp \
+		target-libcilkrts \
 		target-libstdc++-v3 \
 		target-libmudflap \
 		target-libssp \

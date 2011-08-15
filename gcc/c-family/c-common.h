@@ -143,6 +143,9 @@ enum rid
   /* C++0x */
   RID_CONSTEXPR, RID_DECLTYPE, RID_NOEXCEPT, RID_NULLPTR, RID_STATIC_ASSERT,
 
+ /* Cilk */
+  RID_CILK_SPAWN, RID_CILK_SYNC, RID_CILK_FOR,
+
   /* Objective-C ("AT" reserved words - they are only keywords when
      they follow '@')  */
   RID_AT_ENCODE,   RID_AT_END,
@@ -358,6 +361,7 @@ struct c_common_resword
 #define D_OBJC		0x080	/* In Objective C and neither C nor C++.  */
 #define D_CXX_OBJC	0x100	/* In Objective C, and C++, but not C.  */
 #define D_CXXWARN	0x200	/* In C warn with -Wcxx-compat.  */
+#define D_CILK          0x400   /* Disable cilk keywords */
 
 /* The reserved keyword table.  */
 extern const struct c_common_resword c_common_reswords[];
@@ -470,7 +474,10 @@ typedef enum ref_operator {
   /* -> */
   RO_ARROW,
   /* implicit conversion */
-  RO_IMPLICIT_CONVERSION
+  RO_IMPLICIT_CONVERSION,
+  /* Cilk wrapper generation */
+  RO_CILK_WRAPPER_GENERATION
+
 } ref_operator;
 
 /* Information about a statement tree.  */

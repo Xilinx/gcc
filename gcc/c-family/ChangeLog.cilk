@@ -1,0 +1,11 @@
+2011-08-08 Balaji V. Iyer    <balaji.v.iyer@intel.com>
+	* c-common.c (c_common_reswords[]): Added "cilk_for", "cilk_spawn" 
+	and "cilk_sync" keywords.]
+	(c_common_init_ts): Added MARK_TS_TYPED(CILK_FOR_STMT)
+	(c_define_builtins): Called the function "cilk_init_builtins()"
+	* c.opt: Added support for flag_enable_cilk(fcilk), fcilk_builtin and 
+	started adding support for Cilkscreen
+	* c-pragmas.c (init_pragma): if flag_enable_cilk is turned on and 
+	preprocess only is off, tthen we call cpp_register_deferred pragmas on
+	pragma cilk gransize, pragma simd assert, noasssert, vectorlength, 
+	private, linear and reduction.

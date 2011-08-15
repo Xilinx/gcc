@@ -47,6 +47,8 @@ static tree build_local_temp (tree);
 static tree handle_java_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_com_interface_attribute (tree *, tree, tree, int, bool *);
 static tree handle_init_priority_attribute (tree *, tree, tree, int, bool *);
+static tree handle_cilk_linkage_attribute   (tree *, tree, tree, int, bool *);
+/* static tree handle_cilk_hyper_attribute     (tree *, tree, tree, int, bool *); */
 
 /* If REF is an lvalue, returns the kind of lvalue that REF is.
    Otherwise, returns clk_none.  */
@@ -508,6 +510,7 @@ build_vec_init_elt (tree type, tree init, tsubst_flags_t complain)
     }
   init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 				    &argvec, inner_type, LOOKUP_NORMAL,
+                                    CALL_NORMAL,
 				    complain);
   release_tree_vector (argvec);
 
@@ -2685,6 +2688,8 @@ const struct attribute_spec cxx_attribute_table[] =
     handle_com_interface_attribute, false },
   { "init_priority",  1, 1, true,  false, false,
     handle_init_priority_attribute, false },
+  { "cilk",           0, 0, true,  false, false, handle_cilk_linkage_attribute, false},
+ /* { "cilk_hyper",     0, 1, true,  false, false, handle_cilk_hyper_attribute}, */
   { NULL,	      0, 0, false, false, false, NULL, false }
 };
 
@@ -3487,5 +3492,99 @@ lang_check_failed (const char* file, int line, const char* function)
 		  function, trim_filename (file), line);
 }
 #endif /* ENABLE_TREE_CHECKING */
+
+static tree
+handle_cilk_linkage_attribute (tree *node, tree name,
+                                           tree args ATTRIBUTE_UNUSED,
+                                           int flags ATTRIBUTE_UNUSED,
+                                           bool *no_add_attrs)
+{
+  tree target=*node;
+
+  if ((TREE_CODE(target) != FUNCTION_TYPE) &&
+      (TREE_CODE(target) != METHOD_TYPE))
+  {
+    warning(0, "%qs attribute nly applies to functions",
+            IDENTIFIER_POINTER(name));
+  }
+  else
+  {
+    if (FUNCTION_TYPE_LINKAGE(target) != linkage_cilk) {
+      *node=build_function_linkage_variant(target,linkage_cilk);
+    }
+    else
+      *node=target;
+  }
+
+  *no_add_attrs=true;
+
+  return NULL_TREE;
+}
+#if 0
+static int
+cilk_hyper_attribute_arg(tree args)
+{
+  int val=0;
+
+  if (args==NULL_TREE)
+  {
+    return 0;
+  }
+
+  args=TREE_VALUE(args);
+
+  if (TREE_CODE(args) != INTEGER_CST)
+  {
+    error ("Cilk Hyperobject lookup type is not an integer constant.\n");
+    return -1;
+  }
+  val=TREE_INT_CST_LOW(args);
+  if ((val < 0) ||
+      (val > 1) ||
+      (TREE_INT_CST_HIGH(args) != 0))
+  {
+    error ("Cilk hyperobject lookup is out of range.\n");
+    return -1;
+  }
+  return val;
+}
+
+static tree
+handle_cilk_hyper_attribute (tree *node, tree name, tree args,
+                                         int flags ATTRIBUTE_UNUSED,
+                                         bool *no_add_attrs)
+{
+  tree target=*node;
+  int type=0;
+
+  if (TREE_CODE(target) != FUNCTION_DECL)
+  {
+    warning(0, "%qs attribute only applies to functions.",
+            IDENTIFIER_POINTER(name));
+  }
+  else if (flag_cilk_hyper==true)
+  {
+    type=cilk_hyper_attribute_arg(args);
+    if (type==0)
+    {
+      DECL_HYPER_LOOKUP_P(target)=1;
+    }
+    else if (type==1)
+    {
+      DECL_SET_KNOT(target,CILK_KNOT_FLUSH);
+    }
+    else
+    {
+      gcc_assert(type < 0);
+    }
+  }
+  *no_add_attrs=true;
+  return NULL_TREE;
+}
+
+#endif
+
+
+
 
 #include "gt-cp-tree.h"

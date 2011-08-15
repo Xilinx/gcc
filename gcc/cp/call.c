@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "c-family/c-objc.h"
 #include "timevar.h"
+#include "cilk.h"
 
 /* The various kinds of conversion.  */
 
@@ -143,7 +144,7 @@ static struct z_candidate * tourney (struct z_candidate *);
 static int equal_functions (tree, tree);
 static int joust (struct z_candidate *, struct z_candidate *, bool);
 static int compare_ics (conversion *, conversion *);
-static tree build_over_call (struct z_candidate *, int, tsubst_flags_t);
+static tree build_over_call (struct z_candidate *, int, enum call_context, tsubst_flags_t);
 static tree build_java_interface_fn_ref (tree, tree);
 #define convert_like(CONV, EXPR, COMPLAIN)			\
   convert_like_real ((CONV), (EXPR), NULL_TREE, 0, 0,		\
@@ -289,10 +290,10 @@ build_addr_func (tree function)
    arguments, while build_call_n is a wrapper that handles varargs.  */
 
 tree
-build_call_n (tree function, int n, ...)
+build_call_n (tree function, enum call_context spawning,  int n, ...)
 {
   if (n == 0)
-    return build_call_a (function, 0, NULL);
+    return build_call_a (function, spawning, 0, NULL);
   else
     {
       tree *argarray = XALLOCAVEC (tree, n);
@@ -303,12 +304,12 @@ build_call_n (tree function, int n, ...)
       for (i = 0; i < n; i++)
 	argarray[i] = va_arg (ap, tree);
       va_end (ap);
-      return build_call_a (function, n, argarray);
+      return build_call_a (function, spawning, n, argarray);
     }
 }
 
 tree
-build_call_a (tree function, int n, tree *argarray)
+build_call_a (tree function, enum call_context spawning, int n, tree *argarray)
 {
   int is_constructor = 0;
   int nothrow;
@@ -382,6 +383,7 @@ build_call_a (tree function, int n, tree *argarray)
 				   result_type, function, n, argarray);
   TREE_HAS_CONSTRUCTOR (function) = is_constructor;
   TREE_NOTHROW (function) = nothrow;
+   SPAWN_CALL_P(function)= (spawning == CALL_SPAWN);
 
   return function;
 }
@@ -3886,6 +3888,7 @@ print_error_for_call_failure (tree fn, VEC(tree,gc) *args, bool any_viable_p,
 
 tree
 build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p, 
+                         enum call_context spawning,
 			 tsubst_flags_t complain)
 {
   struct z_candidate *candidates, *cand;
@@ -3927,7 +3930,7 @@ build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p,
 	{
 	  if (!any_viable_p && candidates && ! candidates->next
 	      && (TREE_CODE (candidates->fn) == FUNCTION_DECL))
-	    return cp_build_function_call_vec (candidates->fn, args, complain);
+	    return cp_build_function_call_vec (candidates->fn, args, spawning,complain);
 	  if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
 	    fn = TREE_OPERAND (fn, 0);
 	  print_error_for_call_failure (fn, *args, any_viable_p, candidates);
@@ -3943,7 +3946,7 @@ build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p,
          about peculiar null pointer conversion.  */
       if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
         flags |= LOOKUP_EXPLICIT_TMPL_ARGS;
-      result = build_over_call (cand, flags, complain);
+      result = build_over_call (cand, flags, spawning, complain);
     }
 
   /* Free all the conversions we allocated.  */
@@ -4048,13 +4051,14 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
      *fn = cand->fn;
 
    /* Build the CALL_EXPR.  */
-   return build_over_call (cand, LOOKUP_NORMAL, tf_warning_or_error);
+   return build_over_call (cand, LOOKUP_NORMAL, CALL_NORMAL,
+                           tf_warning_or_error);
 }
 
 /* Build a new call to operator().  This may change ARGS.  */
 
 static tree
-build_op_call_1 (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
+build_op_call_1 (tree obj, VEC(tree,gc) **args, enum call_context spawning, tsubst_flags_t complain)
 {
   struct z_candidate *candidates = 0, *cand;
   tree fns, convs, first_mem_arg = NULL_TREE;
@@ -4169,13 +4173,13 @@ build_op_call_1 (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
 	 DECL_NAME here.  */
       else if (TREE_CODE (cand->fn) == FUNCTION_DECL
 	       && DECL_OVERLOADED_OPERATOR_P (cand->fn) == CALL_EXPR)
-	result = build_over_call (cand, LOOKUP_NORMAL, complain);
+	result = build_over_call (cand, LOOKUP_NORMAL, spawning, complain);
       else
 	{
 	  obj = convert_like_with_context (cand->convs[0], obj, cand->fn, -1,
 					   complain);
 	  obj = convert_from_reference (obj);
-	  result = cp_build_function_call_vec (obj, args, complain);
+	  result = cp_build_function_call_vec (obj, args, spawning, complain);
 	}
     }
 
@@ -4188,11 +4192,12 @@ build_op_call_1 (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
 /* Wrapper for above.  */
 
 tree
-build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
+build_op_call (tree obj, VEC(tree,gc) **args, enum call_context spawning, 
+               tsubst_flags_t complain)
 {
   tree ret;
   bool subtime = timevar_cond_start (TV_OVERLOAD);
-  ret = build_op_call_1 (obj, args, complain);
+  ret = build_op_call_1 (obj, args, spawning, complain);
   timevar_cond_stop (TV_OVERLOAD, subtime);
   return ret;
 }
@@ -5168,7 +5173,8 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  if (resolve_args (arglist, complain) == NULL)
 	    result = error_mark_node;
 	  else
-	    result = build_over_call (cand, LOOKUP_NORMAL, complain);
+	    result = build_over_call (cand, LOOKUP_NORMAL, 
+                                     CALL_NORMAL, complain);
 	}
       else
 	{
@@ -5510,7 +5516,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  for (i = 1; i < nargs; i++)
 	    argarray[i] = CALL_EXPR_ARG (placement, i);
 	  mark_used (fn);
-	  return build_cxx_call (fn, nargs, argarray);
+	  return build_cxx_call (fn, CALL_NORMAL, nargs, argarray);
 	}
       else
 	{
@@ -5519,7 +5525,8 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  VEC_quick_push (tree, args, addr);
 	  if (FUNCTION_ARG_CHAIN (fn) != void_list_node)
 	    VEC_quick_push (tree, args, size);
-	  ret = cp_build_function_call_vec (fn, &args, tf_warning_or_error);
+	  ret = cp_build_function_call_vec (fn, &args,CALL_NORMAL,
+                                            tf_warning_or_error);
 	  VEC_free (tree, gc, args);
 	  return ret;
 	}
@@ -5584,7 +5591,7 @@ build_temp (tree expr, tree type, int flags,
   savew = warningcount, savee = errorcount;
   args = make_tree_vector_single (expr);
   expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				    &args, type, flags, complain);
+				    &args, type, flags, CALL_NORMAL, complain);
   release_tree_vector (args);
   if (warningcount > savew)
     *diagnostic_kind = DK_WARNING;
@@ -5751,7 +5758,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	for (i = 0; i < cand->num_convs; ++i)
 	  cand->convs[i]->user_conv_p = true;
 
-	expr = build_over_call (cand, LOOKUP_NORMAL, complain);
+	expr = build_over_call (cand, LOOKUP_NORMAL, CALL_NORMAL, complain);
 
 	/* If this is a constructor or a function returning an aggr type,
 	   we need to build up a TARGET_EXPR.  */
@@ -6361,7 +6368,7 @@ magic_varargs_p (tree fn)
    bitmask of various LOOKUP_* flags which apply to the call itself.  */
 
 static tree
-build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
+build_over_call (struct z_candidate *cand, int flags, enum call_context spawning,  tsubst_flags_t complain)
 {
   tree fn = cand->fn;
   const VEC(tree,gc) *args = cand->args;
@@ -6789,7 +6796,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	      test = build2 (EQ_EXPR, boolean_type_node, arg0, arg1);
 	    }
 	  t = implicit_built_in_decls[BUILT_IN_MEMCPY];
-	  t = build_call_n (t, 3, arg0, arg1, arg2);
+	  t = build_call_n (t, CALL_NORMAL, 3, arg0, arg1, arg2);
 
 	  t = convert (TREE_TYPE (arg0), t);
 	  if (test)
@@ -6835,7 +6842,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
   else
     fn = build_addr_func (fn);
 
-  return build_cxx_call (fn, nargs, argarray);
+  return build_cxx_call (fn, spawning, nargs, argarray);
 }
 
 /* Build and return a call to FN, using NARGS arguments in ARGARRAY.
@@ -6843,13 +6850,13 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
    high-level operations.  */
 
 tree
-build_cxx_call (tree fn, int nargs, tree *argarray)
+build_cxx_call (tree fn, enum call_context spawning, int nargs, tree *argarray)
 {
   tree fndecl;
 
   /* Remember roughly where this call is.  */
   location_t loc = EXPR_LOC_OR_HERE (fn);
-  fn = build_call_a (fn, nargs, argarray);
+  fn = build_call_a (fn, spawning, nargs, argarray);
   SET_EXPR_LOCATION (fn, loc);
 
   /* If this call might throw an exception, note that fact.  */
@@ -6978,7 +6985,8 @@ in_charge_arg_for_name (tree name)
 
 tree
 build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
-			   tree binfo, int flags, tsubst_flags_t complain)
+			   tree binfo, int flags, enum call_context spawning, 
+                           tsubst_flags_t complain)
 {
   tree fns;
   /* The type of the subobject to be constructed or destroyed.  */
@@ -7075,7 +7083,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
 
   ret = build_new_method_call (instance, fns, args,
 			       TYPE_BINFO (BINFO_TYPE (binfo)),
-			       flags, /*fn=*/NULL,
+			       flags, /*fn=*/NULL, spawning,
 			       complain);
 
   if (allocated != NULL)
@@ -7136,7 +7144,8 @@ name_as_c_string (tree name, tree type, bool *free_p)
 static tree
 build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 		         tree conversion_path, int flags,
-		         tree *fn_p, tsubst_flags_t complain)
+		         tree *fn_p, enum call_context spawning, 
+                         tsubst_flags_t complain)
 {
   struct z_candidate *candidates = 0, *cand;
   tree explicit_targs = NULL_TREE;
@@ -7402,7 +7411,7 @@ build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 	      if (fn_p)
 		*fn_p = fn;
 	      /* Build the actual CALL_EXPR.  */
-	      call = build_over_call (cand, flags, complain);
+	      call = build_over_call (cand, flags, spawning, complain);
 	      /* In an expression of the form `a->f()' where `f' turns
 		 out to be a static member function, `a' is
 		 none-the-less evaluated.  */
@@ -7466,12 +7475,13 @@ build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 tree
 build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
 		       tree conversion_path, int flags,
-		       tree *fn_p, tsubst_flags_t complain)
+		       tree *fn_p, enum call_context spawning, 
+                       tsubst_flags_t complain)
 {
   tree ret;
   bool subtime = timevar_cond_start (TV_OVERLOAD);
   ret = build_new_method_call_1 (instance, fns, args, conversion_path, flags,
-                                 fn_p, complain);
+                                 fn_p, spawning, complain);
   timevar_cond_stop (TV_OVERLOAD, subtime);
   return ret;
 }
@@ -8551,7 +8561,8 @@ perform_direct_initialization_if_possible (tree type,
     {
       VEC(tree,gc) *args = make_tree_vector_single (expr);
       expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
-					&args, type, LOOKUP_NORMAL, complain);
+					&args, type, LOOKUP_NORMAL, CALL_NORMAL,
+                                        complain);
       release_tree_vector (args);
       return build_cplus_new (type, expr, complain);
     }

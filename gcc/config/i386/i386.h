@@ -79,6 +79,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define	OPTION_MASK_ISA_ROUND	OPTION_MASK_ISA_SSE4_1
 #define	OPTION_ISA_ROUND	((ix86_isa_flags & OPTION_MASK_ISA_ROUND) != 0)
 
+#define TARGET_CILK_SAVE_SIZE (TARGET_64BIT ? 5 : 3)
+
+
+
 #include "config/vxworks-dummy.h"
 
 #include "config/i386/i386-opts.h"
