@@ -1485,6 +1485,7 @@ pph_read_file_1 (pph_stream *stream)
   tree t, file_keyed_classes, file_static_aggregates;
   unsigned i;
   VEC(tree,gc) *file_unemitted_tinfo_decls;
+  source_location cpp_token_replay_loc;
 
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
@@ -1502,8 +1503,13 @@ pph_read_file_1 (pph_stream *stream)
     report_validation_error (stream->name, bad_use->ident_str, cur_def,
                              bad_use->before_str, bad_use->after_str);
 
-  /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
-  cpp_lt_replay (parse_in, &idents_used);
+  /* Re-instantiate all the pre-processor symbols defined by STREAM.  Force
+     their source_location to column 0 of the line the include occured on,
+     this avoids shifting all of the line_table's location as we would by adding
+     locations which wouldn't be there in the non-pph compile; thus working
+     towards an identical line_table in pph and non-pph.  */
+  cpp_token_replay_loc = linemap_position_for_column (line_table, 0);
+  cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
 
   /* Read in STREAM's line table and merge it in the current line table.  */
   pph_in_and_merge_line_table (stream, line_table);

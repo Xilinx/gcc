@@ -1,5 +1,10 @@
 2011-08-16  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer-in.c (pph_read_file_1): Set location of replayed
+	tokens to column 0 of the line the pph file was included on.
+
+2011-08-16  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-out.c (pph_write_location): Better asserts.
 	* pph-streamer.h (PPH_NUM_IGNORED_LINE_TABLE_ENTRIES): Set to 2.
 

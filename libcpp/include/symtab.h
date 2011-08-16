@@ -20,6 +20,7 @@ along with this program; see the file COPYING3.  If not see
 #define LIBCPP_SYMTAB_H
 
 #include "obstack.h"
+#include "line-map.h"
 
 #ifndef GTY
 #define GTY(x) /* nothing */
@@ -167,7 +168,8 @@ cpp_lt_verify (struct cpp_reader *reader, cpp_idents_used* identifiers,
 /* Replay the macro definitions captured by the table of IDENTIFIERS
    into the READER state.  */
 void
-cpp_lt_replay (struct cpp_reader *reader, cpp_idents_used* identifiers);
+cpp_lt_replay (struct cpp_reader *reader, cpp_idents_used* identifiers,
+               source_location *loc);
 
 /* Destroy IDENTIFIERS captured.  */
 void

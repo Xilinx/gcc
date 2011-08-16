@@ -818,10 +818,12 @@ cpp_lt_define_syntax (char *needed, const char *ident, const char *given)
 }
 
 /* Replay the macro definitions captured by the table of IDENTIFIERS
-   into the READER state.  */
+   into the READER state.  If LOC is non-null, assign *LOC as the
+   source_location to all macro definitions replayed.  */
 
 void
-cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
+cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers,
+               source_location *loc)
 {
   unsigned int i;
   unsigned int num_entries = identifiers->num_entries;
@@ -831,6 +833,9 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
 
   /* Prevent the lexer from invalidating the tokens we've read so far.  */
   reader->keep_tokens++;
+
+  if (loc)
+    cpp_force_token_locations (reader, loc);
 
   for (i = 0; i < num_entries; ++i)
     {
@@ -864,6 +869,9 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
     }
 
   reader->keep_tokens--;
+
+  if (loc)
+    cpp_stop_forcing_token_locations (reader);
 
   free (buffer);
 }

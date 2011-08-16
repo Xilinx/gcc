@@ -1,5 +1,11 @@
 2011-08-16  Gabriel Charette  <gchare@google.com>
 
+	* include/symtab.h (line-map.h): Add dependency.
+	* symtab.c (cpp_lt_replay): Add LOC parameter and force locations
+	of tokens replayed to *LOC if non-null.
+
+2011-08-16  Gabriel Charette  <gchare@google.com>
+
 	* init.c (cpp_create_reader): Inititalize forced_token_location_p.
 	* internal.h (struct cpp_reader): Add field forced_token_location_p.
 	* lex.c (_cpp_lex_direct): Use forced_token_location_p.
