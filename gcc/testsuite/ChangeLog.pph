@@ -1,3 +1,10 @@
+2011-08-16  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c0deepincl1.h: New.
+	* g++.dg/pph/c1deepincl2.h: New.
+	* g++.dg/pph/c2deepincl3.h: New.
+	* g++.dg/pph/c2deepincl.cc: New asm xdiff.
+
 2011-08-15   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1tmplclass2.cc: Update expected ICE.
