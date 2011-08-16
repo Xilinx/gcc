@@ -1,3 +1,14 @@
+2011-08-14  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* module.c (use_iso_fortran_env_module):  Spell 'referrenced' correctly.
+
+2011-08-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50073
+	* decl.c (check_function_name): New function, separated off from
+	'variable_decl' and slightly extended.
+	(variable_decl,attr_decl1): Call it.
+
 2011-08-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* Make-lang.in (gfortran$(exeext)): Add $(EXTRA_GCC_LIBS).

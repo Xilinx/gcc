@@ -4598,6 +4598,12 @@ grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
      explicitly); we need to allow the temporary to be initialized
      first.  */
   tmp = initialize_reference (type, init, decl, cleanup, tf_warning_or_error);
+  if (DECL_DECLARED_CONSTEXPR_P (decl))
+    {
+      tmp = cxx_constant_value (tmp);
+      DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)
+	= reduced_constant_expression_p (tmp);
+    }
 
   if (tmp == error_mark_node)
     return NULL_TREE;
@@ -6325,6 +6331,8 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
   if (was_readonly)
     TREE_READONLY (decl) = 1;
+
+  invoke_plugin_callbacks (PLUGIN_FINISH_DECL, decl);
 }
 
 /* Returns a declaration for a VAR_DECL as if:
