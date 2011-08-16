@@ -1,3 +1,9 @@
+2011-08-15   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1tmplclass2.cc: Update expected ICE.
+	* g++.dg/pph/x4tmplclass2.cc: Update expected ICE.
+	* g++.dg/pph/z4tmplclass2.cc: Update expected ICE.
+
 2011-08-10   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1tmplclass2.cc: Update expected ICE message.

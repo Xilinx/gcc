@@ -33,6 +33,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "toplev.h"
 
+/* List of PPH images read during parsing.  Images opened during #include
+   processing and opened from pph_in_includes cannot be closed
+   immediately after reading, because the pickle cache contained in
+   them may be referenced from other images.  We delay closing all of
+   them until the end of parsing (when pph_reader_finish is called).  */
+static VEC(pph_stream_ptr,heap) *pph_read_images = NULL;
+
 typedef char *char_p;
 DEF_VEC_P(char_p);
 DEF_VEC_ALLOC_P(char_p,heap);
@@ -135,43 +142,57 @@ pph_init_read (pph_stream *stream)
 }
 
 
-/* Read and return a record marker from STREAM.  When a PPH_RECORD_START
+/* Return true if MARKER is either PPH_RECORD_IREF or PPH_RECORD_XREF.  */
+
+static inline bool
+pph_is_reference_marker (enum pph_record_marker marker)
+{
+  return marker == PPH_RECORD_IREF || marker == PPH_RECORD_XREF;
+}
+
+
+/* Read and return a record header from STREAM.  When a PPH_RECORD_START
    marker is read, the next word read is an index into the streamer
    cache where the rematerialized data structure should be stored.
    When the writer stored this data structure for the first time, it
-   added it to its own streamer cache at slot number *CACHE_IX.
+   added it to its own streamer cache at slot number *CACHE_IX_P.
 
    This way, if the same data structure was written a second time to
    the stream, instead of writing the whole structure again, only the
-   index *CACHE_IX is written as a PPH_RECORD_SHARED record.
+   index *CACHE_IX_P is written as a PPH_RECORD_IREF record.
 
-   Therefore, when reading a PPH_RECORD_START marker, *CACHE_IX will
+   Therefore, when reading a PPH_RECORD_START marker, *CACHE_IX_P will
    contain the slot number where the materialized data should be
-   cached at.  When reading a PPH_RECORD_SHARED marker, *CACHE_IX will
+   cached at.  When reading a PPH_RECORD_IREF marker, *CACHE_IX_P will
    contain the slot number the reader can find the previously
-   materialized structure.  */
+   materialized structure.
+
+   If the record starts with PPH_RECORD_XREF, this means that the data
+   we are about to read is located in the pickle cache of one of
+   STREAM's included images.  In this case, the record consists of two
+   indices: the first one (*INCLUDE_IX_P) indicates which included
+   image contains the data (it is an index into STREAM->INCLUDES), the
+   second one indicates which slot in that image's pickle cache we can
+   find the data.  */
 
 static inline enum pph_record_marker
-pph_in_start_record (pph_stream *stream, unsigned *cache_ix)
+pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
+		     unsigned *cache_ix_p)
 {
-  enum pph_record_marker marker;
+  enum pph_record_marker marker = pph_in_record_marker (stream);
 
-  marker = (enum pph_record_marker) pph_in_uchar (stream);
+  *include_ix_p = (unsigned) -1;
+  *cache_ix_p = (unsigned) -1;
 
-  /* For PPH_RECORD_START and PPH_RECORD_SHARED markers, read the
+  /* For PPH_RECORD_START and PPH_RECORD_IREF markers, read the
      streamer cache slot where we should store or find the
      rematerialized data structure (see description above).  */
-  if (marker == PPH_RECORD_START || marker == PPH_RECORD_SHARED)
-    *cache_ix = pph_in_uint (stream);
-  else
+  if (marker == PPH_RECORD_START || marker == PPH_RECORD_IREF)
+    *cache_ix_p = pph_in_uint (stream);
+  else if (marker == PPH_RECORD_XREF)
     {
-      gcc_assert (marker == PPH_RECORD_END);
-
-      /* Initialize CACHE_IX to an invalid index. Even though this
-	 is never used in practice, the compiler will throw an error
-	 if the optimizer inlines this function in a given build as
-	 it will complain that " 'ix' may be used uninitialized".  */
-      *cache_ix = -1;
+      *include_ix_p = pph_in_uint (stream);
+      *cache_ix_p = pph_in_uint (stream);
     }
 
   return marker;
@@ -457,13 +478,13 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   cxx_binding *cb;
   tree value, type;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned ix, include_ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &include_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (cxx_binding *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (cxx_binding *) pph_cache_get (stream, include_ix, ix);
 
   value = pph_in_tree (stream);
   type = pph_in_tree (stream);
@@ -505,13 +526,13 @@ pph_in_class_binding (pph_stream *stream)
 {
   cp_class_binding *cb;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (cp_class_binding *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (cp_class_binding *) pph_cache_get (stream, image_ix, ix);
 
   ALLOC_AND_REGISTER (stream, ix, cb, ggc_alloc_cleared_cp_class_binding ());
   cb->base = pph_in_cxx_binding (stream);
@@ -528,13 +549,13 @@ pph_in_label_binding (pph_stream *stream)
 {
   cp_label_binding *lb;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (cp_label_binding *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (cp_label_binding *) pph_cache_get (stream, image_ix, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lb, ggc_alloc_cleared_cp_label_binding ());
   lb->label = pph_in_tree (stream);
@@ -565,16 +586,16 @@ pph_in_label_binding (pph_stream *stream)
 static cp_binding_level *
 pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
 {
-  unsigned i, num, ix;
+  unsigned i, num, image_ix, ix;
   cp_binding_level *bl;
   struct bitpack_d bp;
   enum pph_record_marker marker;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (cp_binding_level *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (cp_binding_level *) pph_cache_get (stream, image_ix, ix);
 
   /* If TO_REGISTER is set, register that binding level instead of the newly
      allocated binding level into slot IX.  */
@@ -644,13 +665,13 @@ pph_in_c_language_function (pph_stream *stream)
 {
   struct c_language_function *clf;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (struct c_language_function *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (struct c_language_function *) pph_cache_get (stream, image_ix, ix);
 
   ALLOC_AND_REGISTER (stream, ix, clf,
 		      ggc_alloc_cleared_c_language_function ());
@@ -669,13 +690,13 @@ pph_in_language_function (pph_stream *stream)
   struct bitpack_d bp;
   struct language_function *lf;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (struct language_function *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (struct language_function *) pph_cache_get (stream, image_ix, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lf, ggc_alloc_cleared_language_function ());
   memcpy (&lf->base, pph_in_c_language_function (stream),
@@ -759,17 +780,17 @@ static struct function *
 pph_in_struct_function (pph_stream *stream)
 {
   size_t count, i;
-  unsigned ix;
+  unsigned image_ix, ix;
   enum pph_record_marker marker;
   struct function *fn;
   tree decl;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
 
   /* Since struct function is embedded in every decl, fn cannot be shared.  */
-  gcc_assert (marker != PPH_RECORD_SHARED);
+  gcc_assert (!pph_is_reference_marker (marker));
 
   decl = pph_in_tree (stream);
   allocate_struct_function (decl, false);
@@ -864,15 +885,15 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return;
-  else if (marker == PPH_RECORD_SHARED)
+  else if (pph_is_reference_marker (marker))
     {
       DECL_LANG_SPECIFIC (decl) =
-	(struct lang_decl *) pph_cache_get (stream, ix);
+	(struct lang_decl *) pph_cache_get (stream, image_ix, ix);
       return;
     }
 
@@ -960,13 +981,13 @@ pph_in_sorted_fields_type (pph_stream *stream)
   unsigned i, num_fields;
   struct sorted_fields_type *v;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (struct sorted_fields_type *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (struct sorted_fields_type *) pph_cache_get (stream, image_ix, ix);
 
   num_fields = pph_in_uint (stream);
   ALLOC_AND_REGISTER (stream, ix, v, sorted_fields_type_new (num_fields));
@@ -984,7 +1005,7 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
 {
   struct bitpack_d bp;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
   ltc->align = pph_in_uchar (stream);
 
@@ -1039,14 +1060,14 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   ltc->typeinfo_var = pph_in_tree (stream);
   ltc->vbases = pph_in_tree_vec (stream);
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_START)
     {
       ltc->nested_udts = pph_in_binding_table (stream);
       pph_cache_insert_at (stream, ltc->nested_udts, ix);
     }
-  else if (marker == PPH_RECORD_SHARED)
-    ltc->nested_udts = (binding_table) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    ltc->nested_udts = (binding_table) pph_cache_get (stream, image_ix, ix);
 
   ltc->as_base = pph_in_tree (stream);
   ltc->pure_virtuals = pph_in_tree_vec (stream);
@@ -1079,13 +1100,13 @@ pph_in_lang_type (pph_stream *stream)
 {
   struct lang_type *lt;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (struct lang_type *) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (struct lang_type *) pph_cache_get (stream, image_ix, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lt,
 		      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
@@ -1346,10 +1367,8 @@ pph_in_includes (pph_stream *stream)
   for (i = 0; i < num; i++)
     {
       const char *include_name = pph_in_string (stream);
-      /* FIXME pph.  Disabled for now.  Need to re-work caching so
-	 external symbol references are properly saved and restored.  */
-      if (0)
-	pph_read_file (include_name);
+      pph_stream *include = pph_read_file (include_name);
+      pph_add_include (stream, include);
     }
 }
 
@@ -1454,10 +1473,10 @@ pph_in_and_merge_line_table (pph_stream *stream, struct line_maps *linetab)
 }
 
 
-/* Read contents of PPH file in STREAM.  */
+/* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
 
 static void
-pph_read_file_contents (pph_stream *stream)
+pph_read_file_1 (pph_stream *stream)
 {
   bool verified;
   cpp_ident_use *bad_use;
@@ -1466,6 +1485,9 @@ pph_read_file_contents (pph_stream *stream)
   tree t, file_keyed_classes, file_static_aggregates;
   unsigned i;
   VEC(tree,gc) *file_unemitted_tinfo_decls;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
 
   /* Read all the images included by STREAM.  */
   pph_in_includes (stream);
@@ -1483,7 +1505,7 @@ pph_read_file_contents (pph_stream *stream)
   /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
   cpp_lt_replay (parse_in, &idents_used);
 
-  /* Read in the pph's line table and merge it in the current line table.  */
+  /* Read in STREAM's line table and merge it in the current line table.  */
   pph_in_and_merge_line_table (stream, line_table);
 
   /* Read the bindings from STREAM and merge them with the current bindings.  */
@@ -1514,28 +1536,27 @@ pph_read_file_contents (pph_stream *stream)
      STREAM will need to be read again the next time we want to read
      the image we are now generating.  */
   if (pph_out_file)
-    pph_add_include (stream);
+    pph_add_include (NULL, stream);
 }
 
 
-/* Read PPH file FILENAME.  */
+/* Read PPH file FILENAME.  Return the in-memory pph_stream instance.  */
 
-void
+pph_stream *
 pph_read_file (const char *filename)
 {
   pph_stream *stream;
 
-  if (flag_pph_debug >= 1)
-    fprintf (pph_logfile, "PPH: Reading %s\n", filename);
-
   stream = pph_stream_open (filename, "rb");
   if (stream)
     {
-      pph_read_file_contents (stream);
-      pph_stream_close (stream);
+      pph_read_file_1 (stream);
+      VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
     }
   else
     error ("Cannot open PPH file for reading: %s: %m", filename);
+
+  return stream;
 }
 
 
@@ -1981,13 +2002,13 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
   tree expr;
   bool fully_read_p;
   enum pph_record_marker marker;
-  unsigned ix;
+  unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (tree) pph_cache_get (stream, ix);
+  else if (pph_is_reference_marker (marker))
+    return (tree) pph_cache_get (stream, image_ix, ix);
 
   /* We did not find the tree in the pickle cache, allocate the tree by
      reading the header fields (different tree nodes need to be
@@ -1997,4 +2018,18 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     pph_read_tree_body (stream, expr);
 
   return expr;
+}
+
+
+/* Finalize the PPH reader.  */
+
+void
+pph_reader_finish (void)
+{
+  unsigned i;
+  pph_stream *image;
+
+  /* Close any images read during parsing.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
+    pph_stream_close (image);
 }

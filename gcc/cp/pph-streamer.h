@@ -28,9 +28,26 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Record markers.  */
 enum pph_record_marker {
-  PPH_RECORD_START = 0xfd,
+  /* This record contains the physical representation of the memory data.  */
+  PPH_RECORD_START = 0x23,
+
+  /* End of record marker.  If a record starts with PPH_RECORD_END, the
+     reader should return a NULL pointer.  */
   PPH_RECORD_END,
-  PPH_RECORD_SHARED
+
+  /* Internal reference.  This marker indicates that this data has
+     been written before and it resides in the pickle cache for the
+     current image.  Following this marker, the reader will find the
+     cache slot where the data has been stored.  */
+  PPH_RECORD_IREF,
+
+  /* External reference.  This marker indicates that this data has
+     been written before and it resides in the pickle cache for
+     another image.  Following this marker, the reader will find two
+     indices: (1) the index into the include table where the other
+     image lives, and (2) the cache slot into that image's pickle
+     cache where the data resides.  */
+  PPH_RECORD_XREF
 };
 
 /* Symbol table markers.  These are all the symbols that need to be 
@@ -155,15 +172,6 @@ typedef struct pph_stream {
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
 
-  /* Nonzero if the file associated with this stream is open.
-     After we read a PPH image, we deallocate all the memory used
-     during streaming, but we keep the stream around to access its
-     symbol table.  */
-  unsigned int open_p : 1;
-
-  /* Nonzero if this PPH file is included from another PPH file.  */
-  unsigned int nested_p : 1;
-
   /* Symbol table.  This is collected as the compiler instantiates
     symbols and functions.  Once we finish parsing the header file,
     this array is written out to the PPH image.  This way, the reader
@@ -177,8 +185,10 @@ typedef struct pph_stream {
   VEC(pph_stream_ptr,heap) *includes;
 } pph_stream;
 
-/* Filter values for pph_out_chain_filtered.  */
-enum chain_filter { NONE, NO_BUILTINS };
+/* Filter values to avoid emitting certain objects to a PPH file.  */
+#define PPHF_NONE		0
+#define PPHF_NO_BUILTINS	(1 << 0)
+#define PPHF_NO_XREFS		(1 << 1)
 
 /* In pph-streamer.c.  */
 pph_stream *pph_stream_open (const char *, const char *);
@@ -192,15 +202,18 @@ void pph_trace_location (pph_stream *, location_t);
 void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
 void pph_cache_insert_at (pph_stream *, void *, unsigned);
+bool pph_cache_lookup (pph_stream *, void *, unsigned *);
+bool pph_cache_lookup_in_includes (pph_stream *, void *, unsigned *,
+				   unsigned *);
 bool pph_cache_add (pph_stream *, void *, unsigned *);
-void *pph_cache_get (pph_stream *, unsigned);
+void *pph_cache_get (pph_stream *, unsigned, unsigned);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
 void pph_add_decl_to_symtab (tree);
-void pph_add_include (pph_stream *);
+void pph_add_include (pph_stream *, pph_stream *);
 void pph_writer_init (void);
 void pph_writer_finish (void);
 void pph_write_location (struct output_block *, location_t);
@@ -214,7 +227,8 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
-void pph_read_file (const char *);
+pph_stream *pph_read_file (const char *);
+void pph_reader_finish (void);
 
 /* In pt.c.  */
 extern void pph_out_pending_templates_list (pph_stream *stream);
@@ -485,6 +499,26 @@ pph_in_bitpack (pph_stream *stream)
   if (flag_pph_tracer >= 4)
     pph_trace_bitpack (stream, &bp);
   return bp;
+}
+
+/* Write record MARKER to STREAM.  */
+static inline void
+pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker)
+{
+  gcc_assert (marker == (enum pph_record_marker)(unsigned char) marker);
+  pph_out_uchar (stream, marker);
+}
+
+/* Read and return a record marker from STREAM.  */
+static inline enum pph_record_marker
+pph_in_record_marker (pph_stream *stream)
+{
+  enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
+  gcc_assert (m == PPH_RECORD_START
+	      || m == PPH_RECORD_END
+	      || m == PPH_RECORD_IREF
+	      || m == PPH_RECORD_XREF);
+  return m;
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

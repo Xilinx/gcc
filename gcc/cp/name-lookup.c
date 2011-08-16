@@ -6002,12 +6002,12 @@ pph_out_binding_table (pph_stream *stream, binding_table bt)
     {
       if (bt->chain[i])
 	{
-	  pph_out_uchar (stream, PPH_RECORD_START);
+	  pph_out_record_marker (stream, PPH_RECORD_START);
 	  pph_out_tree_or_ref (stream, bt->chain[i]->name);
 	  pph_out_tree_or_ref (stream, bt->chain[i]->type);
 	}
       else
-	pph_out_uchar (stream, PPH_RECORD_END);
+	pph_out_record_marker (stream, PPH_RECORD_END);
     }
   pph_out_uint (stream, bt->entry_count);
 }
@@ -6025,13 +6025,15 @@ pph_in_binding_table (pph_stream *stream)
   bt = binding_table_new (chain_count);
   for (i = 0; i < chain_count; i++)
     {
-      unsigned char record_marker = pph_in_uchar (stream);
-      if (record_marker == PPH_RECORD_START)
+      enum pph_record_marker marker = pph_in_record_marker (stream);
+      if (marker == PPH_RECORD_START)
 	{
 	  tree name = pph_in_tree (stream);
 	  tree type = pph_in_tree (stream);
 	  binding_table_insert (bt, name, type);
 	}
+      else
+	gcc_assert (marker == PPH_RECORD_END);
     }
   bt->entry_count = pph_in_uint (stream);
 

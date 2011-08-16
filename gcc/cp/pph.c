@@ -171,9 +171,13 @@ pph_init (void)
 void
 pph_finish (void)
 {
-  if (pph_out_file != NULL)
+  /* Finalize the writer.  */
     pph_writer_finish ();
 
+  /* Finalize the reader.  */
+  pph_reader_finish ();
+
+  /* Close log files.  */
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Finishing.\n");
 

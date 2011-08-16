@@ -180,32 +180,43 @@ pph_flush_buffers (pph_stream *stream)
 static inline bool
 pph_out_start_record (pph_stream *stream, void *data)
 {
-  if (data)
-    {
-      bool existed_p;
-      unsigned ix;
-      enum pph_record_marker marker;
+  unsigned ix, include_ix;
 
-      /* If the memory at DATA has already been streamed out, make
-	 sure that we don't write it more than once.  Otherwise,
-	 the reader will instantiate two different pointers for
-	 the same object.
-
-	 Write the index into the cache where DATA has been stored.
-	 This way, the reader will know at which slot to
-	 re-materialize DATA the first time and where to access it on
-	 subsequent reads.  */
-      existed_p = pph_cache_add (stream, data, &ix);
-      marker = (existed_p) ? PPH_RECORD_SHARED : PPH_RECORD_START;
-      pph_out_uchar (stream, marker);
-      pph_out_uint (stream, ix);
-      return marker == PPH_RECORD_START;
-    }
-  else
+  /* Represent NULL pointers with a single PPH_RECORD_END.  */
+  if (data == NULL)
     {
-      pph_out_uchar (stream, PPH_RECORD_END);
+      pph_out_record_marker (stream, PPH_RECORD_END);
       return false;
     }
+
+  /* See if we have data in STREAM's cache.  If so, write an internal
+     reference to it and inform the caller that it should not write a
+     physical representation for DATA.  */
+  if (pph_cache_lookup (stream, data, &ix))
+    {
+      pph_out_record_marker (stream, PPH_RECORD_IREF);
+      pph_out_uint (stream, ix);
+      return false;
+    }
+
+  /* DATA is not in STREAM's cache.  See if it is in any of STREAM's
+     included images.  If it is, write an external reference to it
+     and inform the caller that it should not write a physical
+     representation for DATA.  */
+  if (pph_cache_lookup_in_includes (stream, data, &include_ix, &ix))
+    {
+      pph_out_record_marker (stream, PPH_RECORD_XREF);
+      pph_out_uint (stream, include_ix);
+      pph_out_uint (stream, ix);
+      return false;
+    }
+
+  /* DATA is in none of the pickle caches, add it to STREAM's pickle
+     cache and tell the caller that it should pickle DATA out.  */
+  pph_cache_add (stream, data, &ix);
+  pph_out_record_marker (stream, PPH_RECORD_START);
+  pph_out_uint (stream, ix);
+  return true;
 }
 
 
@@ -449,7 +460,25 @@ pph_out_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 }
 
 
-/* Write all the trees in gc VEC V to STREAM.  */
+/* Return true if T matches FILTER for STREAM.  */
+
+static inline bool
+pph_tree_matches (pph_stream *stream, tree t, unsigned filter)
+{
+  if ((filter & PPHF_NO_BUILTINS)
+      && DECL_P (t)
+      && DECL_IS_BUILTIN (t))
+    return false;
+
+  if ((filter & PPHF_NO_XREFS)
+      && pph_cache_lookup_in_includes (stream, t, NULL, NULL))
+    return false;
+
+  return true;
+}
+
+
+/* Write all the trees in VEC V to STREAM.  */
 
 static void
 pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
@@ -460,6 +489,34 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
   pph_out_uint (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT (tree, v, i, t)
     pph_out_tree_or_ref (stream, t);
+}
+
+
+/* Write all the trees matching FILTER in VEC V to STREAM.  */
+
+static void
+pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
+{
+  unsigned i;
+  tree t;
+  VEC(tree, heap) *to_write = NULL;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_out_tree_vec.  */
+  if (filter == PPHF_NONE)
+    {
+      pph_out_tree_vec (stream, v);
+      return;
+    }
+
+  /* Collect all the nodes that match the filter.  */
+  FOR_EACH_VEC_ELT (tree, v, i, t)
+    if (pph_tree_matches (stream, t, filter))
+      VEC_safe_push (tree, heap, to_write, t);
+
+  /* Write them.  */
+  pph_out_tree_vec (stream, (VEC(tree,gc) *)to_write);
+  VEC_free (tree, heap, to_write);
 }
 
 
@@ -482,7 +539,7 @@ pph_out_qual_use_vec (pph_stream *stream, VEC(qualified_typedef_usage_t,gc) *v)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static void pph_out_binding_level (pph_stream *, cp_binding_level *);
+static void pph_out_binding_level (pph_stream *, cp_binding_level *, unsigned);
 
 
 /* Helper for pph_out_cxx_binding.  STREAM and CB are as in
@@ -498,7 +555,7 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
 
   pph_out_tree_or_ref (stream, cb->value);
   pph_out_tree_or_ref (stream, cb->type);
-  pph_out_binding_level (stream, cb->scope);
+  pph_out_binding_level (stream, cb->scope, PPHF_NONE);
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, cb->value_is_inherited, 1);
   bp_pack_value (&bp, cb->is_local, 1);
@@ -573,61 +630,51 @@ pph_out_chained_tree (pph_stream *stream, tree t)
    nodes that do not match FILTER.  */
 
 static void
-pph_out_chain_filtered (pph_stream *stream, tree first, 
-			enum chain_filter filter)
+pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 {
-  unsigned count;
   tree t;
+  VEC(tree, heap) *to_write = NULL;
 
   /* Special case.  If the caller wants no filtering, it is much
      faster to just call pph_out_chain directly.  */
-  if (filter == NONE)
+  if (filter == PPHF_NONE)
     {
       pph_out_chain (stream, first);
       return;
     }
 
-  /* Count all the nodes that match the filter.  */
-  for (t = first, count = 0; t; t = TREE_CHAIN (t))
-    {
-      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
-	continue;
-      count++;
-    }
-  pph_out_uint (stream, count);
-
-  /* Output all the nodes that match the filter.  */
+  /* Collect all the nodes that match the filter.  */
   for (t = first; t; t = TREE_CHAIN (t))
-    {
-      /* Apply filters to T.  */
-      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
-	continue;
+    if (pph_tree_matches (stream, t, filter))
+      VEC_safe_push (tree, heap, to_write, t);
 
-      pph_out_chained_tree (stream, t);
-    }
+  /* Write them.  */
+  pph_out_tree_vec (stream, (VEC(tree,gc) *)to_write);
+  VEC_free (tree, heap, to_write);
 }
 
 
-/* Write all the fields of cp_binding_level instance BL to STREAM.  */
+/* Helper for pph_out_binding_level.  Write all the fields of BL to
+   STREAM, without checking whether BL was in the streamer cache or not.
+   Do not emit any nodes in BL that do not match FILTER.  */
 
 static void
-pph_out_binding_level (pph_stream *stream, cp_binding_level *bl)
+pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
+		         unsigned filter)
 {
   unsigned i;
   cp_class_binding *cs;
   cp_label_binding *sl;
   struct bitpack_d bp;
 
-  if (!pph_out_start_record (stream, bl))
-    return;
+  pph_out_chain_filtered (stream, bl->names, PPHF_NO_BUILTINS | filter);
+  pph_out_chain_filtered (stream, bl->namespaces, PPHF_NO_BUILTINS | filter);
 
-  pph_out_chain_filtered (stream, bl->names, NO_BUILTINS);
-  pph_out_chain_filtered (stream, bl->namespaces, NO_BUILTINS);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
 
-  pph_out_tree_vec (stream, bl->static_decls);
-
-  pph_out_chain_filtered (stream, bl->usings, NO_BUILTINS);
-  pph_out_chain_filtered (stream, bl->using_directives, NO_BUILTINS);
+  pph_out_chain_filtered (stream, bl->usings, PPHF_NO_BUILTINS | filter);
+  pph_out_chain_filtered (stream, bl->using_directives,
+			  PPHF_NO_BUILTINS | filter);
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
@@ -641,7 +688,7 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl)
 
   pph_out_chain (stream, bl->blocks);
   pph_out_tree_or_ref (stream, bl->this_entity);
-  pph_out_binding_level (stream, bl->level_chain);
+  pph_out_binding_level (stream, bl->level_chain, filter);
   pph_out_tree_vec (stream, bl->dead_vars_from_for);
   pph_out_chain (stream, bl->statement_list);
   pph_out_uint (stream, bl->binding_depth);
@@ -652,6 +699,20 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl)
   bp_pack_value (&bp, bl->more_cleanups_ok, 1);
   bp_pack_value (&bp, bl->have_cleanups, 1);
   pph_out_bitpack (stream, &bp);
+}
+
+
+/* Write all the fields of cp_binding_level instance BL to STREAM.  Do not
+   emit any nodes in BL that do not match FILTER.  */
+
+static void
+pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
+		       unsigned filter)
+{
+  if (!pph_out_start_record (stream, bl))
+    return;
+
+  pph_out_binding_level_1 (stream, bl, filter);
 }
 
 
@@ -708,7 +769,7 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
 
   /* FIXME pph.  We are not writing lf->x_named_labels.  */
 
-  pph_out_binding_level (stream, lf->bindings);
+  pph_out_binding_level (stream, lf->bindings, PPHF_NONE);
   pph_out_tree_vec (stream, lf->x_local_names);
 
   /* FIXME pph.  We are not writing lf->extern_decl_map.  */
@@ -847,7 +908,7 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
 static void
 pph_out_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  pph_out_binding_level (stream, ldns->level);
+  pph_out_binding_level (stream, ldns->level, PPHF_NONE);
 }
 
 
@@ -1058,36 +1119,46 @@ pph_out_lang_type (pph_stream *stream, tree type)
 }
 
 
-/* Write saved_scope information stored in SS into STREAM.
-   This does NOT output all fields, it is meant to be used for the
-   global variable scope_chain only.  */
+/* Write the global bindings in scope_chain to STREAM.  */
 
 static void
-pph_out_scope_chain (pph_stream *stream, struct saved_scope *ss)
+pph_out_scope_chain (pph_stream *stream)
 {
   /* old_namespace should be global_namespace and all entries listed below
      should be NULL or 0; otherwise the header parsed was incomplete.  */
-  gcc_assert (ss->old_namespace == global_namespace
-	      && !(ss->class_name
-		   || ss->class_type
-		   || ss->access_specifier
-		   || ss->function_decl
-		   || ss->template_parms
-		   || ss->x_saved_tree
-		   || ss->class_bindings
-		   || ss->prev
-		   || ss->unevaluated_operand
-		   || ss->inhibit_evaluation_warnings
-		   || ss->x_processing_template_decl
-		   || ss->x_processing_specialization
-		   || ss->x_processing_explicit_instantiation
-		   || ss->need_pop_function_context
-		   || ss->x_stmt_tree.x_cur_stmt_list
-		   || ss->x_stmt_tree.stmts_are_full_exprs_p));
+  gcc_assert (scope_chain->old_namespace == global_namespace
+	      && !(scope_chain->class_name
+		   || scope_chain->class_type
+		   || scope_chain->access_specifier
+		   || scope_chain->function_decl
+		   || scope_chain->template_parms
+		   || scope_chain->x_saved_tree
+		   || scope_chain->class_bindings
+		   || scope_chain->prev
+		   || scope_chain->unevaluated_operand
+		   || scope_chain->inhibit_evaluation_warnings
+		   || scope_chain->x_processing_template_decl
+		   || scope_chain->x_processing_specialization
+		   || scope_chain->x_processing_explicit_instantiation
+		   || scope_chain->need_pop_function_context
+		   || scope_chain->x_stmt_tree.x_cur_stmt_list
+		   || scope_chain->x_stmt_tree.stmts_are_full_exprs_p));
 
   /* We only need to write out the bindings, everything else should
-     be NULL or be some temporary disposable state.  */
-  pph_out_binding_level (stream, ss->bindings);
+     be NULL or be some temporary disposable state.
+
+     Note that we explicitly force the pickling of
+     scope_chain->bindings.  If we had previously read another PPH
+     image, scope_chain->bindings will be in the other image's pickle
+     cache.  This would cause pph_out_binding_level to emit a cache
+     reference to it, instead of writing its fields.  */
+  {
+    unsigned ix;
+    pph_cache_add (stream, scope_chain->bindings, &ix);
+    pph_out_record_marker (stream, PPH_RECORD_START);
+    pph_out_uint (stream, ix);
+    pph_out_binding_level_1 (stream, scope_chain->bindings, PPHF_NO_XREFS);
+  }
 }
 
 
@@ -1278,24 +1349,30 @@ pph_out_line_table (pph_stream *stream, struct line_maps *linetab)
   pph_out_uint (stream, linetab->max_column_hint);
 }
 
-/* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
+/* Write all the contents of STREAM.  */
 
 static void
-pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
-{ 
+pph_write_file (pph_stream *stream)
+{
+  cpp_idents_used idents_used;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
+
   /* Emit the list of PPH files included by STREAM.  These files will
      be read and instantiated before any of the content in STREAM.  */
   pph_out_includes (stream);
 
   /* Emit all the identifiers and pre-processor symbols in the global
      namespace.  */
-  pph_out_identifiers (stream, idents_used);
+  idents_used = cpp_lt_capture (parse_in);
+  pph_out_identifiers (stream, &idents_used);
 
   /* Emit the line table entries.  */
   pph_out_line_table (stream, line_table);
 
   /* Emit the bindings for the global namespace.  */
-  pph_out_scope_chain (stream, scope_chain);
+  pph_out_scope_chain (stream);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
 
@@ -1311,21 +1388,6 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 
   /* Emit the symbol table.  */
   pph_out_symtab (stream);
-}
-
-
-/* Write all the collected parse trees to STREAM.  */
-
-static void
-pph_write_file (pph_stream *stream)
-{
-  cpp_idents_used idents_used;
-
-  if (flag_pph_debug >= 1)
-    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
-
-  idents_used = cpp_lt_capture (parse_in);
-  pph_write_file_contents (stream, &idents_used);
 }
 
 
@@ -1794,14 +1856,16 @@ pph_add_decl_to_symtab (tree decl)
 }
 
 
-/* Add STREAM to the list of files included by pph_out_stream.  */
+/* Add INCLUDE to the list of files included by STREAM.  If STREAM is
+   NULL, INCLUDE is added to the list of includes for pph_out_stream
+   (the image that we are currently generating).  */
 
 void
-pph_add_include (pph_stream *stream)
+pph_add_include (pph_stream *stream, pph_stream *include)
 {
-  pph_stream *out_stream = pph_out_stream;
-  VEC_safe_push (pph_stream_ptr, heap, out_stream->includes, stream);
-  stream->nested_p = true;
+  if (stream == NULL)
+    stream = pph_out_stream;
+  VEC_safe_push (pph_stream_ptr, heap, stream->includes, include);
 }
 
 
@@ -1823,14 +1887,17 @@ pph_writer_init (void)
 void
 pph_writer_finish (void)
 {
-  pph_stream *out_stream = pph_out_stream;
-  const char *offending_file = cpp_main_missing_guard (parse_in);
+  const char *offending_file;
 
+  if (pph_out_stream == NULL)
+    return;
+
+  offending_file = cpp_main_missing_guard (parse_in);
   if (offending_file == NULL)
-    pph_write_file (out_stream);
+    pph_write_file (pph_out_stream);
   else
     error ("header lacks guard for PPH: %s", offending_file);
 
-  pph_stream_close (out_stream);
+  pph_stream_close (pph_out_stream);
   pph_out_stream = NULL;
 }

@@ -114,7 +114,6 @@ pph_stream_open (const char *name, const char *mode)
   stream->name = xstrdup (name);
   stream->write_p = (strchr (mode, 'w') != NULL);
   stream->cache.m = pointer_map_create ();
-  stream->open_p = true;
   stream->symtab.m = pointer_set_create ();
   if (stream->write_p)
     pph_init_write (stream);
@@ -128,15 +127,11 @@ pph_stream_open (const char *name, const char *mode)
 
 
 
-/* Helper for pph_stream_close.  Do not check whether STREAM is a
-   nested header.  */
+/* Close PPH stream STREAM.  */
 
-static void
-pph_stream_close_1 (pph_stream *stream)
+void
+pph_stream_close (pph_stream *stream)
 {
-  unsigned i;
-  pph_stream *include;
-
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Closing %s\n", stream->name);
 
@@ -146,10 +141,6 @@ pph_stream_close_1 (pph_stream *stream)
     pph_flush_buffers (stream);
 
   fclose (stream->file);
-
-  /* Close all the streams we opened for included PPH images.  */
-  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, i, include)
-    pph_stream_close_1 (include);
 
   /* Deallocate all memory used.  */
   stream->file = NULL;
@@ -177,26 +168,6 @@ pph_stream_close_1 (pph_stream *stream)
     }
 
   free (stream);
-}
-
-
-/* Close PPH stream STREAM.  */
-
-void
-pph_stream_close (pph_stream *stream)
-{
-  /* If STREAM is nested into another PPH file, then we cannot
-     close it just yet.  The parent PPH file will need to access
-     STREAM's symbol table (to avoid writing the same symbol
-     more than once).  In this case, STREAM will be closed by the
-     parent file.  */
-  if (stream->nested_p)
-    {
-      gcc_assert (!stream->write_p);
-      return;
-    }
-
-  pph_stream_close_1 (stream);
 }
 
 
@@ -420,13 +391,12 @@ pph_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
 }
 
 
-/* Add pointer DATA to the pickle cache in STREAM.  If IX_P is not
-   NULL, on exit *IX_P will contain the slot number where DATA is
-   stored.  Return true if DATA already existed in the cache, false
-   otherwise.  */
+/* Return true if DATA exists in STREAM's pickle cache.  If IX_P is not
+   NULL, store the cache slot where DATA resides in *IX_P (or (unsigned)-1
+   if DATA is not found).  */
 
 bool
-pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
+pph_cache_lookup (pph_stream *stream, void *data, unsigned *ix_p)
 {
   void **map_slot;
   unsigned ix;
@@ -436,13 +406,12 @@ pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
   if (map_slot == NULL)
     {
       existed_p = false;
-      ix = VEC_length (void_p, stream->cache.v);
-      pph_cache_insert_at (stream, data, ix);
+      ix = (unsigned) -1;
     }
   else
     {
-      unsigned HOST_WIDE_INT slot_ix = (unsigned HOST_WIDE_INT) *map_slot;
-      gcc_assert (slot_ix == (unsigned) slot_ix);
+      intptr_t slot_ix = (intptr_t) *map_slot;
+      gcc_assert (slot_ix == (intptr_t)(unsigned) slot_ix);
       ix = (unsigned) slot_ix;
       existed_p = true;
     }
@@ -454,13 +423,98 @@ pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
 }
 
 
-/* Return the pointer at slot IX in STREAM's pickle cache.  */
+/* Return true if DATA is in the pickle cache of one of STREAM's
+   included images.
+
+   If DATA is found:
+      - the index for INCLUDE_P into IMAGE->INCLUDES is returned in
+	*INCLUDE_IX_P (if INCLUDE_IX_P is not NULL),
+      - the cache slot index for DATA into *INCLUDE_P's pickle cache
+	is returned in *IX_P (if IX_P is not NULL), and,
+      - the function returns true.
+
+   If DATA is not found:
+      - *INCLUDE_IX_P is set to -1 (if INCLUDE_IX_P is not NULL),
+      - *IX_P is set to -1 (if IX_P is not NULL), and,
+      - the function returns false.  */
+
+bool
+pph_cache_lookup_in_includes (pph_stream *stream, void *data,
+			      unsigned *include_ix_p, unsigned *ix_p)
+{
+  unsigned include_ix, ix;
+  pph_stream *include;
+  bool found_it;
+
+  found_it = false;
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, include_ix, include)
+    if (pph_cache_lookup (include, data, &ix))
+      {
+	found_it = true;
+	break;
+      }
+
+  if (!found_it)
+    {
+      include_ix = ix = (unsigned) -1;
+      ix = (unsigned) -1;
+    }
+
+  if (include_ix_p)
+    *include_ix_p = include_ix;
+
+  if (ix_p)
+    *ix_p = ix;
+
+  return found_it;
+}
+
+
+/* Add pointer DATA to the pickle cache in STREAM.  If IX_P is not
+   NULL, on exit *IX_P will contain the slot number where DATA is
+   stored.  Return true if DATA already existed in the cache, false
+   otherwise.  */
+
+bool
+pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
+{
+  unsigned ix;
+  bool existed_p;
+
+  if (pph_cache_lookup (stream, data, &ix))
+    existed_p = true;
+  else
+    {
+      existed_p = false;
+      ix = VEC_length (void_p, stream->cache.v);
+      pph_cache_insert_at (stream, data, ix);
+    }
+
+  if (ix_p)
+    *ix_p = ix;
+
+  return existed_p;
+}
+
+
+/* Return the pointer at slot IX in STREAM's pickle cache.  If INCLUDE_IX
+   is not -1U, then instead of looking up in STREAM's pickle cache,
+   the pointer is looked up in the pickle cache for
+   STREAM->INCLUDES[INCLUDE_IX].  */
 
 void *
-pph_cache_get (pph_stream *stream, unsigned ix)
+pph_cache_get (pph_stream *stream, unsigned include_ix, unsigned ix)
 {
-  void *data = VEC_index (void_p, stream->cache.v, ix);
-  gcc_assert (data);
+  void *data;
+  pph_stream *image;
 
+  /* Determine which image's pickle cache to use.  */
+  if (include_ix == (unsigned) -1)
+    image = stream;
+  else
+    image = VEC_index (pph_stream_ptr, stream->includes, include_ix);
+
+  data = VEC_index (void_p, image->cache.v, ix);
+  gcc_assert (data);
   return data;
 }

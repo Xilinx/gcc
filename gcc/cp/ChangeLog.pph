@@ -1,3 +1,53 @@
+2011-08-15   Diego Novillo  <dnovillo@google.com>
+
+    	* name-lookup.c (pph_out_binding_table): Call
+    	pph_out_record_marker instead of pph_out_uchar.
+    	(pph_in_binding_table): Call pph_in_record_marker instead of
+    	pph_in_uchar.
+    	* pph-streamer-in.c (pph_read_images): Declare.
+    	(pph_is_reference_marker): New.  Update all previous users of
+    	PPH_RECORD_SHARED.
+    	(pph_in_start_record): Add argument INCLUDE_IX.  Update all
+    	users.
+    	Handle PPH_RECORD_XREF markers.
+    	(pph_in_includes): After reading INCLUDE_NAME, call
+    	pph_add_include.
+    	(pph_read_file_contents): Move debugging output from ...
+    	(pph_read_file): ... here.
+    	Change it to return the opened stream.
+    	Add STREAM to pph_read_images.
+    	(pph_reader_finish): New.
+    	(pph_read_file_1): Rename from pph_read_file_contents.  Update
+    	all users.
+    	* pph-streamer-out.c (pph_out_start_record): Re-write to
+    	handle PPH_RECORD_IREF and PPH_RECORD_XREF.
+    	(pph_write_file_contents): Embed ...
+    	(pph_write_file): ... here.
+    	(pph_add_include): Add new argument INCLUDE.  Update all
+    	users.
+    	(pph_writer_finish): Do nothing if pph_out_stream is NULL.
+    	(pph_tree_matches): New.
+    	(pph_out_tree_vec_filtered): New.
+    	(pph_out_binding_level): Add new argument FILTER.  Update all users.
+    	* pph-streamer.c (pph_stream_close_1): Embed ...
+    	(pph_stream_close): ... here.
+    	Do not traverse the list of includes.
+    	(pph_cache_lookup): Factor out of ...
+    	(pph_cache_add): ... here.
+    	(pph_cache_lookup_in_includes): New.
+    	(pph_cache_get): Add new argument INCLUDE_IX.  Update all users.
+    	* pph-streamer.h (enum pph_record_marker): Add PPH_RECORD_IREF
+    	and PPH_RECORD_XREF.  Remove PPH_RECORD_SHARED.  Update all users.
+    	(struct pph_stream): Remove field open_p and nested_p.  Update
+    	all users.
+    	(enum chain_filter): Remove.  Change values to #define constants.
+    	Update all users.
+    	(PPHF_NO_XREFS): Define.
+    	(pph_out_record_marker): New.
+    	(pph_in_record_marker): New.
+    	* pph.c (pph_finish): Always call pph_writer_finish.
+    	Call pph_reader_finish.
+
 2011-08-12   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_init_read): Do not call lto_reader_init.
