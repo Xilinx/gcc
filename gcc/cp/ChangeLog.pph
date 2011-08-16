@@ -1,3 +1,8 @@
+2011-08-16  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-out.c (pph_write_location): Better asserts.
+	* pph-streamer.h (PPH_NUM_IGNORED_LINE_TABLE_ENTRIES): Set to 2.
+
 2011-08-15   Diego Novillo  <dnovillo@google.com>
 
     	* name-lookup.c (pph_out_binding_table): Call

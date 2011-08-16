@@ -94,11 +94,19 @@ pph_write_location (struct output_block *ob, location_t loc)
      streaming some builtins, we probably want to figure out what those are and
      simply add them to the cache in the preload.  */
   struct bitpack_d bp;
-  location_t highest_builtin_loc = line_table->maps[2].start_location - 1;
+  location_t first_non_builtin_loc =
+    line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location;
 
   bp = bitpack_create (ob->main_stream);
-  if (loc < highest_builtin_loc)
-    bp_pack_value (&bp, true, 1);
+  if (loc < first_non_builtin_loc)
+    {
+      /* We should never stream out trees with locations between builtins
+	 and user locations (e.g. <command-line>).  */
+      if (loc > BUILTINS_LOCATION)
+        gcc_unreachable ();
+
+      bp_pack_value (&bp, true, 1);
+    }
   else
     {
       gcc_assert (loc >=

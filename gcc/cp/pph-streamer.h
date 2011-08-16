@@ -72,13 +72,13 @@ enum pph_symtab_marker {
    exactly 8 bytes in the file.  */
 static const char pph_id_str[] = "PPH0x42";
 
-/* When streaming out the line_table we will ignore the first 3 entries.
-   The first one is the entrance in the header, the second one is for
-   builtins, the third one is the command line, the fourth one is finally
-   the LC_RENAME back to the header file, we want to stream out starting at
-   that one, changing it's reason to LC_ENTER (as we ignored the original
-   entrance), and then streaming every other entry as is from that point on.  */
-#define PPH_NUM_IGNORED_LINE_TABLE_ENTRIES 3
+/* When streaming out the line_table we will ignore the first 2 entries.
+   The first one is the entrance in the header, the second one is the command
+   line, the third one is the LC_RENAME back to the header file: we want to
+   stream out starting at that one, changing it's reason to LC_ENTER (as we
+   ignored the original entrance), and then streaming every other entry as is
+   from that point on.  */
+#define PPH_NUM_IGNORED_LINE_TABLE_ENTRIES 2
 
 /* Structure of the header of a PPH file.  */
 typedef struct pph_file_header {
