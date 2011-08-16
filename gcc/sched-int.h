@@ -496,6 +496,9 @@ struct deps_desc
      scheduling is done.  */
   rtx sched_before_next_call;
 
+  /* Similarly, a list of insns which should not cross a branch.  */
+  rtx sched_before_next_jump;
+
   /* Used to keep post-call pseudo/hard reg movements together with
      the call.  */
   enum post_call_group in_post_call_group_p;
@@ -875,7 +878,7 @@ extern VEC(haifa_deps_insn_data_def, heap) *h_d_i_d;
 #define INSN_RESOLVED_FORW_DEPS(INSN) (HDID (INSN)->resolved_forw_deps)
 #define INSN_HARD_BACK_DEPS(INSN) (HDID (INSN)->hard_back_deps)
 #define INSN_SPEC_BACK_DEPS(INSN) (HDID (INSN)->spec_back_deps)
-#define INSN_COND(INSN)	(HDID (INSN)->cond)
+#define INSN_CACHED_COND(INSN)	(HDID (INSN)->cond)
 #define INSN_REVERSE_COND(INSN) (HDID (INSN)->reverse_cond)
 #define CANT_MOVE(INSN)	(HDID (INSN)->cant_move)
 #define CANT_MOVE_BY_LUID(LUID)	(VEC_index (haifa_deps_insn_data_def, h_d_i_d, \

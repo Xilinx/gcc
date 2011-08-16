@@ -499,27 +499,13 @@ deps_may_trap_p (const_rtx mem)
 
 /* Find the condition under which INSN is executed.  If REV is not NULL,
    it is set to TRUE when the returned comparison should be reversed
-   to get the actual condition.
-   We only do actual work the first time we come here for an insn; the
-   results are cached in INSN_COND and INSN_REVERSE_COND.  */
+   to get the actual condition.  */
 static rtx
-sched_get_condition_with_rev (const_rtx insn, bool *rev)
+sched_get_condition_with_rev_uncached (const_rtx insn, bool *rev)
 {
   rtx pat = PATTERN (insn);
   rtx src;
 
-  if (INSN_COND (insn) == const_true_rtx)
-    return NULL_RTX;
-
-  if (INSN_COND (insn) != NULL_RTX)
-    {
-      if (rev)
-	*rev = INSN_REVERSE_COND (insn);
-      return INSN_COND (insn);
-    }
-
-  INSN_COND (insn) = const_true_rtx;
-  INSN_REVERSE_COND (insn) = false;
   if (pat == 0)
     return 0;
 
@@ -527,10 +513,7 @@ sched_get_condition_with_rev (const_rtx insn, bool *rev)
     *rev = false;
 
   if (GET_CODE (pat) == COND_EXEC)
-    {
-      INSN_COND (insn) = COND_EXEC_TEST (pat);
-      return COND_EXEC_TEST (pat);
-    }
+    return COND_EXEC_TEST (pat);
 
   if (!any_condjump_p (insn) || !onlyjump_p (insn))
     return 0;
@@ -538,10 +521,7 @@ sched_get_condition_with_rev (const_rtx insn, bool *rev)
   src = SET_SRC (pc_set (insn));
 
   if (XEXP (src, 2) == pc_rtx)
-    {
-      INSN_COND (insn) = XEXP (src, 0);
-      return XEXP (src, 0);
-    }
+    return XEXP (src, 0);
   else if (XEXP (src, 1) == pc_rtx)
     {
       rtx cond = XEXP (src, 0);
@@ -552,12 +532,45 @@ sched_get_condition_with_rev (const_rtx insn, bool *rev)
 
       if (rev)
 	*rev = true;
-      INSN_COND (insn) = cond;
-      INSN_REVERSE_COND (insn) = true;
       return cond;
     }
 
   return 0;
+}
+
+/* Caching variant of sched_get_condition_with_rev_uncached.
+   We only do actual work the first time we come here for an insn; the
+   results are cached in INSN_CACHED_COND and INSN_REVERSE_COND.  */
+static rtx
+sched_get_condition_with_rev (const_rtx insn, bool *rev)
+{
+  bool tmp;
+
+  if (INSN_LUID (insn) == 0)
+    return sched_get_condition_with_rev_uncached (insn, rev);
+
+  if (INSN_CACHED_COND (insn) == const_true_rtx)
+    return NULL_RTX;
+
+  if (INSN_CACHED_COND (insn) != NULL_RTX)
+    {
+      if (rev)
+	*rev = INSN_REVERSE_COND (insn);
+      return INSN_CACHED_COND (insn);
+    }
+
+  INSN_CACHED_COND (insn) = sched_get_condition_with_rev_uncached (insn, &tmp);
+  INSN_REVERSE_COND (insn) = tmp;
+
+  if (INSN_CACHED_COND (insn) == NULL_RTX)
+    {
+      INSN_CACHED_COND (insn) = const_true_rtx;
+      return NULL_RTX;
+    }
+
+  if (rev)
+    *rev = INSN_REVERSE_COND (insn);
+  return INSN_CACHED_COND (insn);
 }
 
 /* True when we can find a condition under which INSN is executed.  */
@@ -2683,6 +2696,18 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
     add_dependence_list (insn, deps->last_function_call_may_noreturn,
 			 1, REG_DEP_ANTI);
 
+  /* We must avoid creating a situation in which two successors of the
+     current block have different unwind info after scheduling.  If at any
+     point the two paths re-join this leads to incorrect unwind info.  */
+  /* ??? There are certain situations involving a forced frame pointer in
+     which, with extra effort, we could fix up the unwind info at a later
+     CFG join.  However, it seems better to notice these cases earlier
+     during prologue generation and avoid marking the frame pointer setup
+     as frame-related at all.  */
+  if (RTX_FRAME_RELATED_P (insn))
+    deps->sched_before_next_jump
+      = alloc_INSN_LIST (insn, deps->sched_before_next_jump);
+
   if (code == COND_EXEC)
     {
       sched_analyze_2 (deps, COND_EXEC_TEST (x), insn);
@@ -2910,9 +2935,9 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
 	      for (list = reg_last->uses; list; list = XEXP (list, 1))
 		{
 		  rtx other = XEXP (list, 0);
-		  if (INSN_COND (other) != const_true_rtx
-		      && refers_to_regno_p (i, i + 1, INSN_COND (other), NULL))
-		    INSN_COND (other) = const_true_rtx;
+		  if (INSN_CACHED_COND (other) != const_true_rtx
+		      && refers_to_regno_p (i, i + 1, INSN_CACHED_COND (other), NULL))
+		    INSN_CACHED_COND (other) = const_true_rtx;
 		}
 	    }
 	}
@@ -3289,12 +3314,11 @@ deps_analyze_insn (struct deps_desc *deps, rtx insn)
   if (NONDEBUG_INSN_P (insn))
     sched_get_condition_with_rev (insn, NULL);
 
-  if (NONJUMP_INSN_P (insn) || DEBUG_INSN_P (insn) || JUMP_P (insn))
+  if (JUMP_P (insn))
     {
       /* Make each JUMP_INSN (but not a speculative check)
          a scheduling barrier for memory references.  */
       if (!deps->readonly
-          && JUMP_P (insn)
           && !(sel_sched_p ()
                && sel_insn_is_speculation_check (insn)))
         {
@@ -3313,6 +3337,15 @@ deps_analyze_insn (struct deps_desc *deps, rtx insn)
 	    }
         }
 
+      /* For each insn which shouldn't cross a jump, add a dependence.  */
+      add_dependence_list_and_free (deps, insn,
+				    &deps->sched_before_next_jump, 1,
+				    REG_DEP_ANTI);
+
+      sched_analyze_insn (deps, PATTERN (insn), insn);
+    }
+  else if (NONJUMP_INSN_P (insn) || DEBUG_INSN_P (insn))
+    {
       sched_analyze_insn (deps, PATTERN (insn), insn);
     }
   else if (CALL_P (insn))
@@ -3558,6 +3591,7 @@ init_deps (struct deps_desc *deps, bool lazy_reg_last)
   deps->last_function_call = 0;
   deps->last_function_call_may_noreturn = 0;
   deps->sched_before_next_call = 0;
+  deps->sched_before_next_jump = 0;
   deps->in_post_call_group_p = not_post_call;
   deps->last_debug_insn = 0;
   deps->last_reg_pending_barrier = NOT_A_BARRIER;

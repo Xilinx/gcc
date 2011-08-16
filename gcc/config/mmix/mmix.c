@@ -141,6 +141,8 @@ static void mmix_setup_incoming_varargs
 static void mmix_file_start (void);
 static void mmix_file_end (void);
 static bool mmix_rtx_costs (rtx, int, int, int *, bool);
+static int mmix_register_move_cost (enum machine_mode,
+				    reg_class_t, reg_class_t);
 static rtx mmix_struct_value_rtx (tree, int);
 static enum machine_mode mmix_promote_function_mode (const_tree,
 						     enum machine_mode,
@@ -224,6 +226,9 @@ static void mmix_conditional_register_usage (void);
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST mmix_register_move_cost
+
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG mmix_reorg
 
@@ -255,7 +260,7 @@ static void mmix_conditional_register_usage (void);
 #undef TARGET_PREFERRED_RELOAD_CLASS
 #define TARGET_PREFERRED_RELOAD_CLASS mmix_preferred_reload_class
 #undef TARGET_PREFERRED_OUTPUT_RELOAD_CLASS
-#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS mmix_preferred_reload_class
+#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS mmix_preferred_output_reload_class
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	mmix_legitimate_address_p
@@ -1233,12 +1238,15 @@ mmix_rtx_costs (rtx x ATTRIBUTE_UNUSED,
   return false;
 }
 
-/* REGISTER_MOVE_COST.  */
+/* TARGET_REGISTER_MOVE_COST.
 
-int
+   The special registers can only move to and from general regs, and we
+   need to check that their constraints match, so say 3 for them.  */
+
+static int
 mmix_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-			 enum reg_class from,
-			 enum reg_class to)
+			 reg_class_t from,
+			 reg_class_t to)
 {
   return (from == GENERAL_REGS && from == to) ? 2 : 3;
 }
