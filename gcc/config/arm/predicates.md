@@ -227,6 +227,13 @@
 	    (match_code "ashift,ashiftrt,lshiftrt,rotatert"))
        (match_test "mode == GET_MODE (op)")))
 
+;; True for shift operators which can be used with saturation instructions.
+(define_special_predicate "sat_shift_operator"
+  (and (match_code "ashift,ashiftrt")
+       (match_test "GET_CODE (XEXP (op, 1)) == CONST_INT
+		    && ((unsigned HOST_WIDE_INT) INTVAL (XEXP (op, 1)) <= 32)")
+       (match_test "mode == GET_MODE (op)")))
+
 ;; True for MULT, to identify which variant of shift_operator is in use.
 (define_special_predicate "mult_operator"
   (match_code "mult"))
@@ -732,9 +739,13 @@
   return true; 
 })
 
-(define_special_predicate "neon_struct_operand"
+(define_predicate "neon_struct_operand"
   (and (match_code "mem")
        (match_test "TARGET_32BIT && neon_vector_mem_operand (op, 2)")))
+
+(define_predicate "neon_struct_or_register_operand"
+  (ior (match_operand 0 "neon_struct_operand")
+       (match_operand 0 "s_register_operand")))
 
 (define_special_predicate "add_operator"
   (match_code "plus"))

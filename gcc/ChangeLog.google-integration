@@ -1,3 +1,10 @@
+2011-08-17   Diego Novillo  <dnovillo@google.com>
+
+	Mainline merge rev 177757.
+
+	* common.opt: Add empty placeholder for -gmlt.
+	* opts.c (common_handle_option): Likewise.
+
 2011-07-16  Diego Novillo  <dnovillo@google.com>
 
 	Mainline merge rev 175879.

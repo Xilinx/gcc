@@ -952,6 +952,7 @@ write_nested_name (const tree decl)
 /* <prefix> ::= <prefix> <unqualified-name>
 	    ::= <template-param>
 	    ::= <template-prefix> <template-args>
+	    ::= <decltype>
 	    ::= # empty
 	    ::= <substitution>  */
 
@@ -967,6 +968,12 @@ write_prefix (const tree node)
     return;
 
   MANGLE_TRACE_TREE ("prefix", node);
+
+  if (TREE_CODE (node) == DECLTYPE_TYPE)
+    {
+      write_type (node);
+      return;
+    }
 
   if (find_substitution (node))
     return;
@@ -3106,11 +3113,11 @@ mangle_decl_string (const tree decl)
   if (DECL_LANG_SPECIFIC (decl) && DECL_USE_TEMPLATE (decl))
     {
       struct tinst_level *tl = current_instantiation ();
-      if (!tl || tl->decl != decl)
+      if ((!tl || tl->decl != decl)
+	  && push_tinst_level (decl))
 	{
 	  template_p = true;
 	  saved_fn = current_function_decl;
-	  push_tinst_level (decl);
 	  current_function_decl = NULL_TREE;
 	}
     }

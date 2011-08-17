@@ -2230,6 +2230,18 @@ ggdb
 Common JoinedOrMissing
 Generate debug information in default extended format
 
+gno-record-gcc-switches
+Common RejectNegative Var(dwarf_record_gcc_switches,0) Init(0)
+Don't record gcc command line switches in DWARF DW_AT_producer.
+
+grecord-gcc-switches
+Common RejectNegative Var(dwarf_record_gcc_switches,1)
+Record gcc command line switches in DWARF DW_AT_producer.
+
+gmlt
+Common RejectNegative
+Generate debug information at level 1 with minimal line table
+
 gstabs
 Common JoinedOrMissing Negative(gstabs+)
 Generate debug information in STABS format

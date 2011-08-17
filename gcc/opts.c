@@ -1696,6 +1696,11 @@ common_handle_option (struct gcc_options *opts,
 		       loc);
       break;
 
+    case OPT_gmlt:
+      /* [google/integration] - Empty placeholder.  Real implementation
+	 in google/main.  */
+      break;
+
     case OPT_gvms:
       set_debug_level (VMS_DEBUG, false, arg, opts, opts_set, loc);
       break;

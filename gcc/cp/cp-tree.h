@@ -393,7 +393,9 @@ typedef enum cpp0x_warn_str
   /* defaulted and deleted functions */
   CPP0X_DEFAULTED_DELETED,
   /* inline namespaces */
-  CPP0X_INLINE_NAMESPACES
+  CPP0X_INLINE_NAMESPACES,
+  /* override controls, override/final */
+  CPP0X_OVERRIDE_CONTROLS
 } cpp0x_warn_str;
   
 /* The various kinds of operation used by composite_pointer_type. */
@@ -950,7 +952,7 @@ struct GTY(()) saved_scope {
   VEC(tree,gc) *lang_base;
   tree lang_name;
   tree template_parms;
-  struct cp_binding_level *x_previous_class_level;
+  cp_binding_level *x_previous_class_level;
   tree x_saved_tree;
 
   /* Only used for uses of this in trailing return type.  */
@@ -967,8 +969,8 @@ struct GTY(()) saved_scope {
 
   struct stmt_tree_s x_stmt_tree;
 
-  struct cp_binding_level *class_bindings;
-  struct cp_binding_level *bindings;
+  cp_binding_level *class_bindings;
+  cp_binding_level *bindings;
 
   struct saved_scope *prev;
 };
@@ -1054,7 +1056,7 @@ struct GTY(()) language_function {
   BOOL_BITFIELD can_throw : 1;
 
   htab_t GTY((param_is(struct named_label_entry))) x_named_labels;
-  struct cp_binding_level *bindings;
+  cp_binding_level *bindings;
   VEC(tree,gc) *x_local_names;
   htab_t GTY((param_is (struct cxx_int_tree_map))) extern_decl_map;
 };
@@ -1944,7 +1946,7 @@ struct GTY(()) lang_decl_fn {
 
 struct GTY(()) lang_decl_ns {
   struct lang_decl_base base;
-  struct cp_binding_level *level;
+  cp_binding_level *level;
 };
 
 /* DECL_LANG_SPECIFIC for parameters.  */
@@ -4679,6 +4681,9 @@ struct GTY((chain_next ("%h.next"))) tinst_level {
   /* The location where the template is instantiated.  */
   location_t locus;
 
+  /* errorcount+sorrycount when we pushed this level.  */
+  int errors;
+
   /* True if the location is in a system header.  */
   bool in_system_header_p;
 };
@@ -4857,7 +4862,7 @@ extern tree make_anon_name			(void);
 extern tree pushdecl_top_level_maybe_friend	(tree, bool);
 extern tree pushdecl_top_level_and_finish	(tree, tree);
 extern tree check_for_out_of_scope_variable	(tree);
-extern void print_other_binding_stack		(struct cp_binding_level *);
+extern void print_other_binding_stack		(cp_binding_level *);
 extern tree maybe_push_decl			(tree);
 extern tree current_decl_namespace		(void);
 
@@ -5158,7 +5163,8 @@ extern tree instantiate_class_template		(tree);
 extern tree instantiate_template		(tree, tree, tsubst_flags_t);
 extern int fn_type_unification			(tree, tree, tree,
 						 const tree *, unsigned int,
-						 tree, unification_kind_t, int);
+						 tree, unification_kind_t, int,
+						 bool);
 extern void mark_decl_instantiated		(tree, int);
 extern int more_specialized_fn			(tree, tree, int);
 extern void do_decl_instantiation		(tree, tree);
@@ -5448,10 +5454,12 @@ extern tree begin_omp_task			(void);
 extern tree finish_omp_task			(tree, tree);
 extern tree finish_omp_for			(location_t, tree, tree,
 						 tree, tree, tree, tree, tree);
-extern void finish_omp_atomic			(enum tree_code, tree, tree);
+extern void finish_omp_atomic			(enum tree_code, enum tree_code,
+						 tree, tree, tree, tree, tree);
 extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
+extern void finish_omp_taskyield		(void);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);
 extern void finish_static_assert                (tree, tree, location_t,
@@ -5759,6 +5767,7 @@ extern void init_shadowed_var_for_decl		(void);
 extern int cp_gimplify_expr			(tree *, gimple_seq *,
 						 gimple_seq *);
 extern void cp_genericize			(tree);
+extern bool cxx_omp_const_qual_no_mutable	(tree);
 extern enum omp_clause_default_kind cxx_omp_predetermined_sharing (tree);
 extern tree cxx_omp_clause_default_ctor		(tree, tree, tree);
 extern tree cxx_omp_clause_copy_ctor		(tree, tree, tree);

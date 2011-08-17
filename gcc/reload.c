@@ -347,9 +347,7 @@ push_secondary_reload (int in_p, rtx x, int opnum, int optional,
 
   /* If X is a paradoxical SUBREG, use the inner value to determine both the
      mode and object being reloaded.  */
-  if (GET_CODE (x) == SUBREG
-      && (GET_MODE_SIZE (GET_MODE (x))
-	  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (x)))))
+  if (paradoxical_subreg_p (x))
     {
       x = SUBREG_REG (x);
       reload_mode = GET_MODE (x);
@@ -1026,20 +1024,20 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	  || (((REG_P (SUBREG_REG (in))
 		&& REGNO (SUBREG_REG (in)) >= FIRST_PSEUDO_REGISTER)
 	       || MEM_P (SUBREG_REG (in)))
-	      && ((GET_MODE_SIZE (inmode)
-		   > GET_MODE_SIZE (GET_MODE (SUBREG_REG (in))))
+	      && ((GET_MODE_PRECISION (inmode)
+		   > GET_MODE_PRECISION (GET_MODE (SUBREG_REG (in))))
 #ifdef LOAD_EXTEND_OP
 		  || (GET_MODE_SIZE (inmode) <= UNITS_PER_WORD
 		      && (GET_MODE_SIZE (GET_MODE (SUBREG_REG (in)))
 			  <= UNITS_PER_WORD)
-		      && (GET_MODE_SIZE (inmode)
-			  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (in))))
+		      && (GET_MODE_PRECISION (inmode)
+			  > GET_MODE_PRECISION (GET_MODE (SUBREG_REG (in))))
 		      && INTEGRAL_MODE_P (GET_MODE (SUBREG_REG (in)))
 		      && LOAD_EXTEND_OP (GET_MODE (SUBREG_REG (in))) != UNKNOWN)
 #endif
 #ifdef WORD_REGISTER_OPERATIONS
-		  || ((GET_MODE_SIZE (inmode)
-		       < GET_MODE_SIZE (GET_MODE (SUBREG_REG (in))))
+		  || ((GET_MODE_PRECISION (inmode)
+		       < GET_MODE_PRECISION (GET_MODE (SUBREG_REG (in))))
 		      && ((GET_MODE_SIZE (inmode) - 1) / UNITS_PER_WORD ==
 			  ((GET_MODE_SIZE (GET_MODE (SUBREG_REG (in))) - 1)
 			   / UNITS_PER_WORD)))
@@ -1134,11 +1132,11 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	  || (((REG_P (SUBREG_REG (out))
 		&& REGNO (SUBREG_REG (out)) >= FIRST_PSEUDO_REGISTER)
 	       || MEM_P (SUBREG_REG (out)))
-	      && ((GET_MODE_SIZE (outmode)
-		   > GET_MODE_SIZE (GET_MODE (SUBREG_REG (out))))
+	      && ((GET_MODE_PRECISION (outmode)
+		   > GET_MODE_PRECISION (GET_MODE (SUBREG_REG (out))))
 #ifdef WORD_REGISTER_OPERATIONS
-		  || ((GET_MODE_SIZE (outmode)
-		       < GET_MODE_SIZE (GET_MODE (SUBREG_REG (out))))
+		  || ((GET_MODE_PRECISION (outmode)
+		       < GET_MODE_PRECISION (GET_MODE (SUBREG_REG (out))))
 		      && ((GET_MODE_SIZE (outmode) - 1) / UNITS_PER_WORD ==
 			  ((GET_MODE_SIZE (GET_MODE (SUBREG_REG (out))) - 1)
 			   / UNITS_PER_WORD)))
@@ -1769,9 +1767,9 @@ combine_reloads (void)
 	&& rld[i].when_needed != RELOAD_FOR_OUTPUT_ADDRESS
 	&& rld[i].when_needed != RELOAD_FOR_OUTADDR_ADDRESS
 	&& rld[i].when_needed != RELOAD_OTHER
-	&& (CLASS_MAX_NREGS (rld[i].rclass, rld[i].inmode)
-	    == CLASS_MAX_NREGS (rld[output_reload].rclass,
-				rld[output_reload].outmode))
+	&& (ira_reg_class_max_nregs [(int)rld[i].rclass][(int) rld[i].inmode]
+	    == ira_reg_class_max_nregs [(int) rld[output_reload].rclass]
+				       [(int) rld[output_reload].outmode])
 	&& rld[i].inc == 0
 	&& rld[i].reg_rtx == 0
 #ifdef SECONDARY_MEMORY_NEEDED
@@ -2220,15 +2218,15 @@ operands_match_p (rtx x, rtx y)
       else
 	j = REGNO (y);
 
-      /* On a WORDS_BIG_ENDIAN machine, point to the last register of a
+      /* On a REG_WORDS_BIG_ENDIAN machine, point to the last register of a
 	 multiple hard register group of scalar integer registers, so that
 	 for example (reg:DI 0) and (reg:SI 1) will be considered the same
 	 register.  */
-      if (WORDS_BIG_ENDIAN && GET_MODE_SIZE (GET_MODE (x)) > UNITS_PER_WORD
+      if (REG_WORDS_BIG_ENDIAN && GET_MODE_SIZE (GET_MODE (x)) > UNITS_PER_WORD
 	  && SCALAR_INT_MODE_P (GET_MODE (x))
 	  && i < FIRST_PSEUDO_REGISTER)
 	i += hard_regno_nregs[i][GET_MODE (x)] - 1;
-      if (WORDS_BIG_ENDIAN && GET_MODE_SIZE (GET_MODE (y)) > UNITS_PER_WORD
+      if (REG_WORDS_BIG_ENDIAN && GET_MODE_SIZE (GET_MODE (y)) > UNITS_PER_WORD
 	  && SCALAR_INT_MODE_P (GET_MODE (y))
 	  && j < FIRST_PSEUDO_REGISTER)
 	j += hard_regno_nregs[j][GET_MODE (y)] - 1;
@@ -4544,7 +4542,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	       > GET_MODE_SIZE (rld[i].inmode)))
 	  ? rld[i].outmode : rld[i].inmode;
 
-      rld[i].nregs = CLASS_MAX_NREGS (rld[i].rclass, rld[i].mode);
+      rld[i].nregs = ira_reg_class_max_nregs [rld[i].rclass][rld[i].mode];
     }
 
   /* Special case a simple move with an input reload and a
@@ -4593,7 +4591,8 @@ alternative_allows_const_pool_ref (rtx mem ATTRIBUTE_UNUSED,
   /* Skip alternatives before the one requested.  */
   while (altnum > 0)
     {
-      while (*constraint++ != ',');
+      while (*constraint++ != ',')
+	;
       altnum--;
     }
   /* Scan the requested alternative for TARGET_MEM_CONSTRAINT or 'o'.
@@ -4752,16 +4751,15 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
 
       if (regno >= FIRST_PSEUDO_REGISTER
 #ifdef LOAD_EXTEND_OP
-	       && (GET_MODE_SIZE (GET_MODE (x))
-		   <= GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
+	  && !paradoxical_subreg_p (x)
 #endif
-	       && (reg_equiv_address (regno) != 0
-		   || (reg_equiv_mem (regno) != 0
-		       && (! strict_memory_address_addr_space_p
-			       (GET_MODE (x), XEXP (reg_equiv_mem (regno), 0),
-				MEM_ADDR_SPACE (reg_equiv_mem (regno)))
-			   || ! offsettable_memref_p (reg_equiv_mem (regno))
-			   || num_not_at_initial_offset))))
+	  && (reg_equiv_address (regno) != 0
+	      || (reg_equiv_mem (regno) != 0
+		  && (! strict_memory_address_addr_space_p
+		      (GET_MODE (x), XEXP (reg_equiv_mem (regno), 0),
+		       MEM_ADDR_SPACE (reg_equiv_mem (regno)))
+		      || ! offsettable_memref_p (reg_equiv_mem (regno))
+		      || num_not_at_initial_offset))))
 	x = find_reloads_subreg_address (x, 1, opnum, type, ind_levels,
 					   insn, address_reloaded);
     }
@@ -5994,8 +5992,8 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 	  else
 	    {
 	      enum reg_class rclass = context_reg_class;
-	      if ((unsigned) CLASS_MAX_NREGS (rclass, GET_MODE (SUBREG_REG (x)))
-		  > reg_class_size[rclass])
+	      if (ira_reg_class_max_nregs [rclass][GET_MODE (SUBREG_REG (x))]
+		  > reg_class_size[(int) rclass])
 		{
 		  x = find_reloads_subreg_address (x, 0, opnum,
 						   ADDR_TYPE (type),
@@ -6139,11 +6137,11 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
 
 	      XEXP (tem, 0) = plus_constant (XEXP (tem, 0), offset);
 	      PUT_MODE (tem, GET_MODE (x));
-	      if (MEM_OFFSET (tem))
-		set_mem_offset (tem, plus_constant (MEM_OFFSET (tem), offset));
-	      if (MEM_SIZE (tem)
-		  && INTVAL (MEM_SIZE (tem)) != (HOST_WIDE_INT) outer_size)
-		set_mem_size (tem, GEN_INT (outer_size));
+	      if (MEM_OFFSET_KNOWN_P (tem))
+		set_mem_offset (tem, MEM_OFFSET (tem) + offset);
+	      if (MEM_SIZE_KNOWN_P (tem)
+		  && MEM_SIZE (tem) != (HOST_WIDE_INT) outer_size)
+		set_mem_size (tem, outer_size);
 
 	      /* If this was a paradoxical subreg that we replaced, the
 		 resulting memory must be sufficiently aligned to allow
@@ -7254,7 +7252,7 @@ reload_adjust_reg_for_mode (rtx reloadreg, enum machine_mode mode)
 
   regno = REGNO (reloadreg);
 
-  if (WORDS_BIG_ENDIAN)
+  if (REG_WORDS_BIG_ENDIAN)
     regno += (int) hard_regno_nregs[regno][GET_MODE (reloadreg)]
       - (int) hard_regno_nregs[regno][mode];
 

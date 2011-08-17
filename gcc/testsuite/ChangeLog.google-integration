@@ -1,3 +1,11 @@
+2011-08-17   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/plugin/decl_plugin.c: Include diagnostic.h.
+	* g++.dg/tree-prof/partition2.C: Skip.
+	* g++.dg/tree-ssa/pr41186.C: Mark xfail.
+	* gcc.dg/uninit-B.c: Remove xfail.
+	* gcc.dg/uninit-pr19430.c: Likewise.
+
 2011-07-21   Diego Novillo  <dnovillo@google.com>
 
 	* gcc.dg/inline_3.c: Remove dg-excess-errors.

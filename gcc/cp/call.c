@@ -352,7 +352,7 @@ build_call_a (tree function, int n, tree *argarray)
   nothrow = ((decl && TREE_NOTHROW (decl))
 	     || TYPE_NOTHROW_P (TREE_TYPE (TREE_TYPE (function))));
 
-  if (!nothrow && cfun && cp_function_chain)
+  if (!nothrow && at_function_scope_p () && cfun && cp_function_chain)
     cp_function_chain->can_throw = 1;
 
   if (decl && TREE_THIS_VOLATILE (decl) && cfun && cp_function_chain)
@@ -434,7 +434,10 @@ enum rejection_reason_code {
   rr_arity,
   rr_explicit_conversion,
   rr_arg_conversion,
-  rr_bad_arg_conversion
+  rr_bad_arg_conversion,
+  rr_template_unification,
+  rr_template_instantiation,
+  rr_invalid_copy
 };
 
 struct conversion_info {
@@ -462,6 +465,24 @@ struct rejection_reason {
     struct conversion_info conversion;
     /* Same, but for bad argument conversions.  */
     struct conversion_info bad_conversion;
+    /* Information about template unification failures.  These are the
+       parameters passed to fn_type_unification.  */
+    struct {
+      tree tmpl;
+      tree explicit_targs;
+      tree targs;
+      const tree *args;
+      unsigned int nargs;
+      tree return_type;
+      unification_kind_t strict;
+      int flags;
+    } template_unification;
+    /* Information about template instantiation failures.  These are the
+       parameters passed to instantiate_template.  */
+    struct {
+      tree tmpl;
+      tree targs;
+    } template_instantiation;
   } u;
 };
 
@@ -619,6 +640,50 @@ explicit_conversion_rejection (tree from, tree to)
   r->u.conversion.n_arg = 0;
   r->u.conversion.from_type = from;
   r->u.conversion.to_type = to;
+  return r;
+}
+
+static struct rejection_reason *
+template_unification_rejection (tree tmpl, tree explicit_targs, tree targs,
+				const tree *args, unsigned int nargs,
+				tree return_type, unification_kind_t strict,
+				int flags)
+{
+  size_t args_n_bytes = sizeof (*args) * nargs;
+  tree *args1 = (tree *) conversion_obstack_alloc (args_n_bytes);
+  struct rejection_reason *r = alloc_rejection (rr_template_unification);
+  r->u.template_unification.tmpl = tmpl;
+  r->u.template_unification.explicit_targs = explicit_targs;
+  r->u.template_unification.targs = targs;
+  /* Copy args to our own storage.  */
+  memcpy (args1, args, args_n_bytes);
+  r->u.template_unification.args = args1;
+  r->u.template_unification.nargs = nargs;
+  r->u.template_unification.return_type = return_type;
+  r->u.template_unification.strict = strict;
+  r->u.template_unification.flags = flags;
+  return r;
+}
+
+static struct rejection_reason *
+template_unification_error_rejection (void)
+{
+  return alloc_rejection (rr_template_unification);
+}
+
+static struct rejection_reason *
+template_instantiation_rejection (tree tmpl, tree targs)
+{
+  struct rejection_reason *r = alloc_rejection (rr_template_instantiation);
+  r->u.template_instantiation.tmpl = tmpl;
+  r->u.template_instantiation.targs = targs;
+  return r;
+}
+
+static struct rejection_reason *
+invalid_copy_with_fn_template_rejection (void)
+{
+  struct rejection_reason *r = alloc_rejection (rr_invalid_copy);
   return r;
 }
 
@@ -2859,6 +2924,7 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
   int i;
   tree fn;
   struct rejection_reason *reason = NULL;
+  int errs;
 
   /* We don't do deduction on the in-charge parameter, the VTT
      parameter or 'this'.  */
@@ -2901,17 +2967,31 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
     }
   gcc_assert (ia == nargs_without_in_chrg);
 
+  errs = errorcount+sorrycount;
   i = fn_type_unification (tmpl, explicit_targs, targs,
 			   args_without_in_chrg,
 			   nargs_without_in_chrg,
-			   return_type, strict, flags);
+			   return_type, strict, flags, false);
 
   if (i != 0)
-    goto fail;
+    {
+      /* Don't repeat unification later if it already resulted in errors.  */
+      if (errorcount+sorrycount == errs)
+	reason = template_unification_rejection (tmpl, explicit_targs,
+						 targs, args_without_in_chrg,
+						 nargs_without_in_chrg,
+						 return_type, strict, flags);
+      else
+	reason = template_unification_error_rejection ();
+      goto fail;
+    }
 
   fn = instantiate_template (tmpl, targs, tf_none);
   if (fn == error_mark_node)
-    goto fail;
+    {
+      reason = template_instantiation_rejection (tmpl, targs);
+      goto fail;
+    }
 
   /* In [class.copy]:
 
@@ -2940,7 +3020,10 @@ add_template_candidate_real (struct z_candidate **candidates, tree tmpl,
       tree arg_types = FUNCTION_FIRST_USER_PARMTYPE (fn);
       if (arg_types && same_type_p (TYPE_MAIN_VARIANT (TREE_VALUE (arg_types)),
 				    ctype))
-	goto fail;
+	{
+	  reason = invalid_copy_with_fn_template_rejection ();
+	  goto fail;
+	}
     }
 
   if (obj != NULL_TREE)
@@ -3108,6 +3191,18 @@ print_conversion_rejection (location_t loc, struct conversion_info *info)
 	    info->n_arg+1, info->from_type, info->to_type);
 }
 
+/* Print information about a candidate with WANT parameters and we found
+   HAVE.  */
+
+static void
+print_arity_information (location_t loc, unsigned int have, unsigned int want)
+{
+  inform_n (loc, want,
+	    "  candidate expects %d argument, %d provided",
+	    "  candidate expects %d arguments, %d provided",
+	    want, have);
+}
+
 /* Print information about one overload candidate CANDIDATE.  MSGSTR
    is the text to print before the candidate itself.
 
@@ -3154,10 +3249,8 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
       switch (r->code)
 	{
 	case rr_arity:
-	  inform_n (loc, r->u.arity.expected,
-		    "  candidate expects %d argument, %d provided",
-		    "  candidate expects %d arguments, %d provided",
-		    r->u.arity.expected, r->u.arity.actual);
+	  print_arity_information (loc, r->u.arity.actual,
+				   r->u.arity.expected);
 	  break;
 	case rr_arg_conversion:
 	  print_conversion_rejection (loc, &r->u.conversion);
@@ -3170,6 +3263,39 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
 		  "cannot be converted to %qT with a qualification "
 		  "conversion", r->u.conversion.from_type,
 		  r->u.conversion.to_type);
+	  break;
+	case rr_template_unification:
+	  /* We use template_unification_error_rejection if unification caused
+	     actual non-SFINAE errors, in which case we don't need to repeat
+	     them here.  */
+	  if (r->u.template_unification.tmpl == NULL_TREE)
+	    {
+	      inform (loc, "  substitution of deduced template arguments "
+		      "resulted in errors seen above");
+	      break;
+	    }
+	  /* Re-run template unification with diagnostics.  */
+	  inform (loc, "  template argument deduction/substitution failed:");
+	  fn_type_unification (r->u.template_unification.tmpl,
+			       r->u.template_unification.explicit_targs,
+			       r->u.template_unification.targs,
+			       r->u.template_unification.args,
+			       r->u.template_unification.nargs,
+			       r->u.template_unification.return_type,
+			       r->u.template_unification.strict,
+			       r->u.template_unification.flags,
+			       true);
+	  break;
+	case rr_template_instantiation:
+	  /* Re-run template instantiation with diagnostics.  */
+	  instantiate_template (r->u.template_instantiation.tmpl,
+				r->u.template_instantiation.targs,
+				tf_warning_or_error);
+	  break;
+	case rr_invalid_copy:
+	  inform (loc,
+		  "  a constructor taking a single argument of its own "
+		  "class type is invalid");
 	  break;
 	case rr_none:
 	default:
@@ -5971,7 +6097,7 @@ convert_arg_to_ellipsis (tree arg)
     {
       /* Build up a real lvalue-to-rvalue conversion in case the
 	 copy constructor is trivial but not callable.  */
-      if (CLASS_TYPE_P (arg_type))
+      if (!cp_unevaluated_operand && CLASS_TYPE_P (arg_type))
 	force_rvalue (arg, tf_warning_or_error);
 
       /* [expr.call] 5.2.2/7:
@@ -6640,35 +6766,22 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	}
       else
 	{
-	  /* We must only copy the non-tail padding parts.
-	     Use __builtin_memcpy for the bitwise copy.
-	     FIXME fix 22488 so we can go back to using MODIFY_EXPR
-	     instead of an explicit call to memcpy.  */
-	
-	  tree arg0, arg1, arg2, t;
-	  tree test = NULL_TREE;
+	  /* We must only copy the non-tail padding parts.  */
+	  tree arg0, arg2, t;
+	  tree array_type, alias_set;
 
 	  arg2 = TYPE_SIZE_UNIT (as_base);
-	  arg1 = arg;
 	  arg0 = cp_build_addr_expr (to, complain);
 
-	  if (!can_trust_pointer_alignment ())
-	    {
-	      /* If we can't be sure about pointer alignment, a call
-		 to __builtin_memcpy is expanded as a call to memcpy, which
-		 is invalid with identical args.  Otherwise it is
-		 expanded as a block move, which should be safe.  */
-	      arg0 = save_expr (arg0);
-	      arg1 = save_expr (arg1);
-	      test = build2 (EQ_EXPR, boolean_type_node, arg0, arg1);
-	    }
-	  t = implicit_built_in_decls[BUILT_IN_MEMCPY];
-	  t = build_call_n (t, 3, arg0, arg1, arg2);
-
-	  t = convert (TREE_TYPE (arg0), t);
-	  if (test)
-	    t = build3 (COND_EXPR, TREE_TYPE (t), test, arg0, t);
-	  val = cp_build_indirect_ref (t, RO_NULL, complain);
+	  array_type = build_array_type (char_type_node,
+					 build_index_type
+					   (size_binop (MINUS_EXPR,
+							arg2, size_int (1))));
+	  alias_set = build_int_cst (build_pointer_type (type), 0);
+	  t = build2 (MODIFY_EXPR, void_type_node,
+		      build2 (MEM_REF, array_type, arg0, alias_set),
+		      build2 (MEM_REF, array_type, arg, alias_set));
+	  val = build2 (COMPOUND_EXPR, TREE_TYPE (to), t, to);
           TREE_NO_WARNING (val) = 1;
 	}
 
@@ -6936,8 +7049,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
 		    current_vtt_parm,
 		    vtt);
       gcc_assert (BINFO_SUBVTT_INDEX (binfo));
-      sub_vtt = build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtt), vtt,
-			BINFO_SUBVTT_INDEX (binfo));
+      sub_vtt = fold_build_pointer_plus (vtt, BINFO_SUBVTT_INDEX (binfo));
 
       if (args == NULL)
 	{
@@ -8708,12 +8820,6 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 		    (build_pointer_type (base_conv_type), expr,
 		     complain));
 	  expr = build_nop (type, expr);
-	  if (DECL_DECLARED_CONSTEXPR_P (decl))
-	    {
-	      expr = cxx_constant_value (expr);
-	      DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)
-		= reduced_constant_expression_p (expr);
-	    }
 	}
     }
   else
