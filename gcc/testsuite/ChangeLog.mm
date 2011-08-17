@@ -1,3 +1,7 @@
+2011-08-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	* lib/gcc-memmodel-gdb-test.exp (memmmodel-gdb-test): Handle xfails.
+
 2011-08-17  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/memmodel/memmodel.gdb: Avoid pagination.
