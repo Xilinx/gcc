@@ -239,15 +239,6 @@ extern void pph_in_spec_entry_tables (pph_stream *stream);
 
 /* Inline functions.  */
 
-/* Output AST T to STREAM.  This function is the primary interface.  */
-static inline void
-pph_out_tree (pph_stream *stream, tree t)
-{
-  if (flag_pph_tracer >= 1)
-    pph_trace_tree (stream, t);
-  pph_write_tree (stream->encoder.w.ob, t, false);
-}
-
 /* Output array A of cardinality C of ASTs to STREAM.  */
 /* FIXME pph: hold for alternate routine. */
 #if 0
@@ -267,7 +258,7 @@ pph_out_tree_array (pph_stream *stream, tree *a, size_t c)
 /* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
    higher, T is sent to pph_trace_tree.  */
 static inline void
-pph_out_tree_or_ref_1 (pph_stream *stream, tree t, int tlevel)
+pph_out_tree_1 (pph_stream *stream, tree t, int tlevel)
 {
   if (flag_pph_tracer >= tlevel)
     pph_trace_tree (stream, t);
@@ -276,9 +267,9 @@ pph_out_tree_or_ref_1 (pph_stream *stream, tree t, int tlevel)
 
 /* Output AST T to STREAM.  Trigger tracing at -fpph-tracer=2.  */
 static inline void
-pph_out_tree_or_ref (pph_stream *stream, tree t)
+pph_out_tree (pph_stream *stream, tree t)
 {
-  pph_out_tree_or_ref_1 (stream, t, 2);
+  pph_out_tree_1 (stream, t, 2);
 }
 
 /* Write an unsigned int VALUE to STREAM.  */

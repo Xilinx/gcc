@@ -6012,8 +6012,8 @@ pph_out_binding_table (pph_stream *stream, binding_table bt)
       if (bt->chain[i])
 	{
 	  pph_out_record_marker (stream, PPH_RECORD_START);
-	  pph_out_tree_or_ref (stream, bt->chain[i]->name);
-	  pph_out_tree_or_ref (stream, bt->chain[i]->type);
+	  pph_out_tree (stream, bt->chain[i]->name);
+	  pph_out_tree (stream, bt->chain[i]->type);
 	}
       else
 	pph_out_record_marker (stream, PPH_RECORD_END);

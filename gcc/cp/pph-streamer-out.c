@@ -458,9 +458,9 @@ pph_out_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 static void
 pph_out_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 {
-  pph_out_tree_or_ref_1 (stream, ldm->template_info, 1);
+  pph_out_tree_1 (stream, ldm->template_info, 1);
   if (ldm->base.u2sel == 0)
-    pph_out_tree_or_ref_1 (stream, ldm->u2.access, 1);
+    pph_out_tree_1 (stream, ldm->u2.access, 1);
   else if (ldm->base.u2sel == 1)
     pph_out_uint (stream, ldm->u2.discriminator);
   else
@@ -496,7 +496,7 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 
   pph_out_uint (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT (tree, v, i, t)
-    pph_out_tree_or_ref (stream, t);
+    pph_out_tree (stream, t);
 }
 
 
@@ -539,8 +539,8 @@ pph_out_qual_use_vec (pph_stream *stream, VEC(qualified_typedef_usage_t,gc) *v)
   pph_out_uint (stream, VEC_length (qualified_typedef_usage_t, v));
   FOR_EACH_VEC_ELT (qualified_typedef_usage_t, v, i, q)
     {
-      pph_out_tree_or_ref (stream, q->typedef_decl);
-      pph_out_tree_or_ref (stream, q->context);
+      pph_out_tree (stream, q->typedef_decl);
+      pph_out_tree (stream, q->context);
       /* FIXME pph: also write location.  */
     }
 }
@@ -561,8 +561,8 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
   if (!pph_out_start_record (stream, cb))
     return;
 
-  pph_out_tree_or_ref (stream, cb->value);
-  pph_out_tree_or_ref (stream, cb->type);
+  pph_out_tree (stream, cb->value);
+  pph_out_tree (stream, cb->type);
   pph_out_binding_level (stream, cb->scope, PPHF_NONE);
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, cb->value_is_inherited, 1);
@@ -600,7 +600,7 @@ pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
     return;
 
   pph_out_cxx_binding (stream, cb->base);
-  pph_out_tree_or_ref (stream, cb->identifier);
+  pph_out_tree (stream, cb->identifier);
 }
 
 
@@ -612,8 +612,8 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
   if (!pph_out_start_record (stream, lb))
     return;
 
-  pph_out_tree_or_ref (stream, lb->label);
-  pph_out_tree_or_ref (stream, lb->prev_value);
+  pph_out_tree (stream, lb->label);
+  pph_out_tree (stream, lb->prev_value);
 }
 
 
@@ -628,7 +628,7 @@ pph_out_chained_tree (pph_stream *stream, tree t)
   saved_chain = TREE_CHAIN (t);
   TREE_CHAIN (t) = NULL_TREE;
 
-  pph_out_tree_or_ref_1 (stream, t, 2);
+  pph_out_tree_1 (stream, t, 2);
 
   TREE_CHAIN (t) = saved_chain;
 }
@@ -688,14 +688,14 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
     pph_out_class_binding (stream, cs);
 
-  pph_out_tree_or_ref (stream, bl->type_shadowed);
+  pph_out_tree (stream, bl->type_shadowed);
 
   pph_out_uint (stream, VEC_length (cp_label_binding, bl->shadowed_labels));
   FOR_EACH_VEC_ELT (cp_label_binding, bl->shadowed_labels, i, sl)
     pph_out_label_binding (stream, sl);
 
   pph_out_chain (stream, bl->blocks);
-  pph_out_tree_or_ref (stream, bl->this_entity);
+  pph_out_tree (stream, bl->this_entity);
   pph_out_binding_level (stream, bl->level_chain, filter);
   pph_out_tree_vec (stream, bl->dead_vars_from_for);
   pph_out_chain (stream, bl->statement_list);
@@ -730,7 +730,7 @@ static void
 pph_out_tree_common (pph_stream *stream, tree t)
 {
   /* The 'struct tree_typed typed' base class is handled in LTO.  */
-  pph_out_tree_or_ref (stream, TREE_CHAIN (t));
+  pph_out_tree (stream, TREE_CHAIN (t));
 }
 
 
@@ -759,13 +759,13 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
     return;
 
   pph_out_c_language_function (stream, &lf->base);
-  pph_out_tree_or_ref (stream, lf->x_cdtor_label);
-  pph_out_tree_or_ref (stream, lf->x_current_class_ptr);
-  pph_out_tree_or_ref (stream, lf->x_current_class_ref);
-  pph_out_tree_or_ref (stream, lf->x_eh_spec_block);
-  pph_out_tree_or_ref (stream, lf->x_in_charge_parm);
-  pph_out_tree_or_ref (stream, lf->x_vtt_parm);
-  pph_out_tree_or_ref (stream, lf->x_return_value);
+  pph_out_tree (stream, lf->x_cdtor_label);
+  pph_out_tree (stream, lf->x_current_class_ptr);
+  pph_out_tree (stream, lf->x_current_class_ref);
+  pph_out_tree (stream, lf->x_eh_spec_block);
+  pph_out_tree (stream, lf->x_in_charge_parm);
+  pph_out_tree (stream, lf->x_vtt_parm);
+  pph_out_tree (stream, lf->x_return_value);
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, lf->x_returns_value, 1);
   bp_pack_value (&bp, lf->x_returns_null, 1);
@@ -813,11 +813,11 @@ pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
   bp_pack_value (&bp, ldf->hidden_friend_p, 1);
   pph_out_bitpack (stream, &bp);
 
-  pph_out_tree_or_ref (stream, ldf->befriending_classes);
-  pph_out_tree_or_ref (stream, ldf->context);
+  pph_out_tree (stream, ldf->befriending_classes);
+  pph_out_tree (stream, ldf->context);
 
   if (ldf->thunk_p == 0)
-    pph_out_tree_or_ref (stream, ldf->u5.cloned_function);
+    pph_out_tree (stream, ldf->u5.cloned_function);
   else if (ldf->thunk_p == 1)
     pph_out_uint (stream, ldf->u5.fixed_offset);
   else
@@ -841,7 +841,7 @@ static int
 pph_out_used_types_slot (void **slot, void *aux)
 {
   struct pph_tree_info *pti = (struct pph_tree_info *) aux;
-  pph_out_tree_or_ref (pti->stream, (tree) *slot);
+  pph_out_tree (pti->stream, (tree) *slot);
   return 1;
 }
 
@@ -1001,8 +1001,8 @@ pph_out_tree_pair_vec (pph_stream *stream, VEC(tree_pair_s,gc) *v)
   pph_out_uint (stream, VEC_length (tree_pair_s, v));
   FOR_EACH_VEC_ELT (tree_pair_s, v, i, p)
     {
-      pph_out_tree_or_ref (stream, p->purpose);
-      pph_out_tree_or_ref (stream, p->value);
+      pph_out_tree (stream, p->purpose);
+      pph_out_tree (stream, p->value);
     }
 }
 
@@ -1019,7 +1019,7 @@ pph_out_sorted_fields_type (pph_stream *stream, struct sorted_fields_type *sft)
 
   pph_out_uint (stream, sft->len);
   for (i = 0; i < sft->len; i++)
-    pph_out_tree_or_ref (stream, sft->elts[i]);
+    pph_out_tree (stream, sft->elts[i]);
 }
 
 
@@ -1078,24 +1078,24 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   bp_pack_value (&bp, ltc->has_constexpr_ctor, 1);
   pph_out_bitpack (stream, &bp);
 
-  pph_out_tree_or_ref (stream, ltc->primary_base);
+  pph_out_tree (stream, ltc->primary_base);
   pph_out_tree_pair_vec (stream, ltc->vcall_indices);
-  pph_out_tree_or_ref (stream, ltc->vtables);
-  pph_out_tree_or_ref (stream, ltc->typeinfo_var);
+  pph_out_tree (stream, ltc->vtables);
+  pph_out_tree (stream, ltc->typeinfo_var);
   pph_out_tree_vec (stream, ltc->vbases);
   if (pph_out_start_record (stream, ltc->nested_udts))
     pph_out_binding_table (stream, ltc->nested_udts);
-  pph_out_tree_or_ref (stream, ltc->as_base);
+  pph_out_tree (stream, ltc->as_base);
   pph_out_tree_vec (stream, ltc->pure_virtuals);
-  pph_out_tree_or_ref (stream, ltc->friend_classes);
+  pph_out_tree (stream, ltc->friend_classes);
   pph_out_tree_vec (stream, ltc->methods);
-  pph_out_tree_or_ref (stream, ltc->key_method);
-  pph_out_tree_or_ref (stream, ltc->decl_list);
-  pph_out_tree_or_ref (stream, ltc->template_info);
-  pph_out_tree_or_ref (stream, ltc->befriending_classes);
-  pph_out_tree_or_ref (stream, ltc->objc_info);
+  pph_out_tree (stream, ltc->key_method);
+  pph_out_tree (stream, ltc->decl_list);
+  pph_out_tree (stream, ltc->template_info);
+  pph_out_tree (stream, ltc->befriending_classes);
+  pph_out_tree (stream, ltc->objc_info);
   pph_out_sorted_fields_type (stream, ltc->sorted_fields);
-  pph_out_tree_or_ref (stream, ltc->lambda_expr);
+  pph_out_tree (stream, ltc->lambda_expr);
 }
 
 
@@ -1104,7 +1104,7 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
 static void
 pph_out_lang_type_ptrmem (pph_stream *stream, struct lang_type_ptrmem *ltp)
 {
-  pph_out_tree_or_ref (stream, ltp->record);
+  pph_out_tree (stream, ltp->record);
 }
 
 
@@ -1410,10 +1410,10 @@ pph_out_function_decl (pph_stream *stream, tree fndecl)
      order when reading the image (the allocation of
      DECL_STRUCT_FUNCTION has the side effect of generating function
      sequence numbers (function.funcdef_no).  */
-  pph_out_tree_or_ref_1 (stream, DECL_INITIAL (fndecl), 3);
+  pph_out_tree_1 (stream, DECL_INITIAL (fndecl), 3);
   pph_out_lang_specific (stream, fndecl);
-  pph_out_tree_or_ref_1 (stream, DECL_SAVED_TREE (fndecl), 3);
-  pph_out_tree_or_ref_1 (stream, DECL_CHAIN (fndecl), 3);
+  pph_out_tree_1 (stream, DECL_SAVED_TREE (fndecl), 3);
+  pph_out_tree_1 (stream, DECL_CHAIN (fndecl), 3);
 }
 
 
@@ -1444,7 +1444,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
     case IMPORTED_DECL:
     case LABEL_DECL:
     case RESULT_DECL:
-      pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), 3);
+      pph_out_tree_1 (stream, DECL_INITIAL (expr), 3);
       break;
 
     case CONST_DECL:
@@ -1454,11 +1454,11 @@ pph_write_tree_body (pph_stream *stream, tree expr)
     case USING_DECL:
     case VAR_DECL:
       /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
-      pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), 3);
+      pph_out_tree_1 (stream, DECL_INITIAL (expr), 3);
       pph_out_lang_specific (stream, expr);
       /* DECL_CHAIN is handled by generic code, except for VAR_DECLs.  */
       if (TREE_CODE (expr) == VAR_DECL)
-	pph_out_tree_or_ref_1 (stream, DECL_CHAIN (expr), 3);
+	pph_out_tree_1 (stream, DECL_CHAIN (expr), 3);
       break;
 
     case FUNCTION_DECL:
@@ -1466,17 +1466,17 @@ pph_write_tree_body (pph_stream *stream, tree expr)
       break;
 
     case TYPE_DECL:
-      pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), 3);
+      pph_out_tree_1 (stream, DECL_INITIAL (expr), 3);
       pph_out_lang_specific (stream, expr);
-      pph_out_tree_or_ref_1 (stream, DECL_ORIGINAL_TYPE (expr), 3);
+      pph_out_tree_1 (stream, DECL_ORIGINAL_TYPE (expr), 3);
       break;
 
     case TEMPLATE_DECL:
-      pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), 3);
+      pph_out_tree_1 (stream, DECL_INITIAL (expr), 3);
       pph_out_lang_specific (stream, expr);
-      pph_out_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), 3);
-      pph_out_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), 3);
-      pph_out_tree_or_ref_1 (stream, DECL_CONTEXT (expr), 3);
+      pph_out_tree_1 (stream, DECL_TEMPLATE_RESULT (expr), 3);
+      pph_out_tree_1 (stream, DECL_TEMPLATE_PARMS (expr), 3);
+      pph_out_tree_1 (stream, DECL_CONTEXT (expr), 3);
       break;
 
     /* tcc_type */
@@ -1504,7 +1504,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
     case RECORD_TYPE:
     case UNION_TYPE:
       pph_out_lang_type (stream, expr);
-      pph_out_tree_or_ref_1 (stream, TYPE_BINFO (expr), 3);
+      pph_out_tree_1 (stream, TYPE_BINFO (expr), 3);
       break;
 
     case BOUND_TEMPLATE_TEMPLATE_PARM:
@@ -1514,7 +1514,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
     case TYPENAME_TYPE:
     case TYPEOF_TYPE:
       pph_out_lang_type (stream, expr);
-      pph_out_tree_or_ref_1 (stream, TYPE_CACHED_VALUES (expr), 3);
+      pph_out_tree_1 (stream, TYPE_CACHED_VALUES (expr), 3);
       /* Note that we are using TYPED_CACHED_VALUES for it access to
          the generic .values field of types. */
       break;
@@ -1534,7 +1534,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 
         /* Write the statements.  */
         for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	  pph_out_tree_or_ref_1 (stream, tsi_stmt (i), 3);
+	  pph_out_tree_1 (stream, tsi_stmt (i), 3);
       }
       break;
 
@@ -1552,7 +1552,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 
     case OVERLOAD:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_or_ref_1 (stream, OVL_CURRENT (expr), 3);
+      pph_out_tree_1 (stream, OVL_CURRENT (expr), 3);
       break;
 
     case IDENTIFIER_NODE:
@@ -1560,17 +1560,17 @@ pph_write_tree_body (pph_stream *stream, tree expr)
         struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
         pph_out_cxx_binding (stream, id->namespace_bindings);
         pph_out_cxx_binding (stream, id->bindings);
-        pph_out_tree_or_ref_1 (stream, id->class_template_info, 3);
-        pph_out_tree_or_ref_1 (stream, id->label_value, 3);
-	pph_out_tree_or_ref_1 (stream, TREE_TYPE (expr), 3);
+        pph_out_tree_1 (stream, id->class_template_info, 3);
+        pph_out_tree_1 (stream, id->label_value, 3);
+	pph_out_tree_1 (stream, TREE_TYPE (expr), 3);
       }
       break;
 
     case BASELINK:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_or_ref_1 (stream, BASELINK_BINFO (expr), 3);
-      pph_out_tree_or_ref_1 (stream, BASELINK_FUNCTIONS (expr), 3);
-      pph_out_tree_or_ref_1 (stream, BASELINK_ACCESS_BINFO (expr), 3);
+      pph_out_tree_1 (stream, BASELINK_BINFO (expr), 3);
+      pph_out_tree_1 (stream, BASELINK_FUNCTIONS (expr), 3);
+      pph_out_tree_1 (stream, BASELINK_ACCESS_BINFO (expr), 3);
       break;
 
     case TEMPLATE_INFO:
@@ -1587,7 +1587,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
         pph_out_uint (stream, p->level);
         pph_out_uint (stream, p->orig_level);
         pph_out_uint (stream, p->num_siblings);
-        pph_out_tree_or_ref_1 (stream, p->decl, 3);
+        pph_out_tree_1 (stream, p->decl, 3);
       }
       break;
 
@@ -1595,7 +1595,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 
     case PTRMEM_CST:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_or_ref_1 (stream, PTRMEM_CST_MEMBER (expr), 3);
+      pph_out_tree_1 (stream, PTRMEM_CST_MEMBER (expr), 3);
       break;
 
     /* tcc_exceptional */
@@ -1608,21 +1608,21 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 
     case STATIC_ASSERT:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_or_ref_1 (stream, STATIC_ASSERT_CONDITION (expr), 3);
-      pph_out_tree_or_ref_1 (stream, STATIC_ASSERT_MESSAGE (expr), 3);
+      pph_out_tree_1 (stream, STATIC_ASSERT_CONDITION (expr), 3);
+      pph_out_tree_1 (stream, STATIC_ASSERT_MESSAGE (expr), 3);
       pph_out_location (stream, STATIC_ASSERT_SOURCE_LOCATION (expr));
       break;
 
     case ARGUMENT_PACK_SELECT:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_or_ref_1 (stream, ARGUMENT_PACK_SELECT_FROM_PACK (expr), 3);
+      pph_out_tree_1 (stream, ARGUMENT_PACK_SELECT_FROM_PACK (expr), 3);
       pph_out_uint (stream, ARGUMENT_PACK_SELECT_INDEX (expr));
       break;
 
     case TRAIT_EXPR:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_or_ref_1 (stream, TRAIT_EXPR_TYPE1 (expr), 3);
-      pph_out_tree_or_ref_1 (stream, TRAIT_EXPR_TYPE2 (expr), 3);
+      pph_out_tree_1 (stream, TRAIT_EXPR_TYPE1 (expr), 3);
+      pph_out_tree_1 (stream, TRAIT_EXPR_TYPE2 (expr), 3);
       pph_out_uint (stream, TRAIT_EXPR_KIND (expr));
       break;
 
@@ -1632,10 +1632,10 @@ pph_write_tree_body (pph_stream *stream, tree expr)
             = (struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (expr);
         pph_out_tree_common (stream, expr);
 	pph_out_location (stream, e->locus);
-        pph_out_tree_or_ref_1 (stream, e->capture_list, 3);
-        pph_out_tree_or_ref_1 (stream, e->this_capture, 3);
-        pph_out_tree_or_ref_1 (stream, e->return_type, 3);
-        pph_out_tree_or_ref_1 (stream, e->extra_scope, 3);
+        pph_out_tree_1 (stream, e->capture_list, 3);
+        pph_out_tree_1 (stream, e->this_capture, 3);
+        pph_out_tree_1 (stream, e->return_type, 3);
+        pph_out_tree_1 (stream, e->extra_scope, 3);
         pph_out_uint (stream, e->discriminator);
       }
       break;

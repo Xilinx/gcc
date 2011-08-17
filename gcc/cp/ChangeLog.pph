@@ -1,3 +1,9 @@
+2011-08-17   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.h (pph_out_tree_1): Rename from pph_out_tree_or_ref_1.
+	Update all users.
+	(pph_out_tree): Rename from pph_out_tree_or_ref.  Update all users.
+
 2011-08-16  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_read_file_1): Set location of replayed

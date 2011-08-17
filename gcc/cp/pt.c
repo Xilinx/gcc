@@ -20213,9 +20213,9 @@ pph_out_spec_entry_slot (void **slot, void *aux)
 {
   pph_stream *stream = (pph_stream *)aux;
   struct spec_entry *entry = (struct spec_entry *) *slot;
-  pph_out_tree_or_ref (stream, entry->tmpl);
-  pph_out_tree_or_ref (stream, entry->args);
-  pph_out_tree_or_ref (stream, entry->spec);
+  pph_out_tree (stream, entry->tmpl);
+  pph_out_tree (stream, entry->args);
+  pph_out_tree (stream, entry->spec);
   return 1;
 }
 
