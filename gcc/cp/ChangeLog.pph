@@ -1,5 +1,10 @@
 2011-08-17   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_in_qual_use_vec): Read Q.LOCUS.
+	* pph-streamer-out.c (pph_out_qual_use_vec): Write Q->LOCUS.
+
+2011-08-17   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_get_type_from_index): Remove.
 	(pph_in_number): Remove.
 	(pph_in_token_value): Handle all cases that read a tree

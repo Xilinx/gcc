@@ -382,7 +382,7 @@ pph_in_qual_use_vec (pph_stream *stream)
       qualified_typedef_usage_t q;
       q.typedef_decl = pph_in_tree (stream);
       q.context = pph_in_tree (stream);
-      /* FIXME pph: also read location.  */
+      q.locus = pph_in_location (stream);
       VEC_safe_push (qualified_typedef_usage_t, gc, v, &q);
     }
 

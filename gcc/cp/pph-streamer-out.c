@@ -421,7 +421,7 @@ pph_out_qual_use_vec (pph_stream *stream, VEC(qualified_typedef_usage_t,gc) *v)
     {
       pph_out_tree (stream, q->typedef_decl);
       pph_out_tree (stream, q->context);
-      /* FIXME pph: also write location.  */
+      pph_out_location (stream, q->locus);
     }
 }
 
