@@ -228,120 +228,11 @@ pph_out_start_record (pph_stream *stream, void *data)
 }
 
 
-/* Compute an index value for TYPE suitable for restoring it later
-   from global_trees[] or integer_types.  The index is saved
-   in TYPE_IX_P and the number category (one of CPP_N_INTEGER,
-   CPP_N_FLOATING, etc) is saved in CATEGORY_P.  */
+/* Save the tree associated with TOKEN to STREAM.  */
 
 static void
-pph_get_index_from_type (tree type, unsigned *type_ix_p, unsigned *category_p)
+pph_out_token_value (pph_stream *stream, cp_token *token)
 {
-  void **val_p;
-  static struct pointer_map_t *type_cache = NULL;
-
-  /* For complex types we will just use the type of the components.  */
-  if (TREE_CODE (type) == COMPLEX_TYPE)
-    {
-      *type_ix_p = 0;
-      *category_p = CPP_N_IMAGINARY;
-      return;
-    }
-
-  if (type_cache == NULL)
-    type_cache = pointer_map_create ();
-
-  val_p = pointer_map_contains (type_cache, type);
-  if (val_p)
-    *type_ix_p = *((unsigned *) val_p);
-  else
-    {
-      if (CP_INTEGRAL_TYPE_P (type))
-	{
-	  unsigned i;
-	  for (i = itk_char; i < itk_none; i++)
-	    if (type == integer_types[i])
-	      {
-		*type_ix_p = (unsigned) i;
-		break;
-	      }
-
-	  gcc_assert (i != itk_none);
-	}
-      else if (FLOAT_TYPE_P (type) || FIXED_POINT_TYPE_P (type))
-	{
-	  unsigned i;
-
-	  for (i = TI_ERROR_MARK; i < TI_MAX; i++)
-	    if (global_trees[i] == type)
-	      {
-		*type_ix_p = (unsigned) i;
-		break;
-	      }
-
-	  gcc_assert (i != TI_MAX);
-	}
-      else
-	gcc_unreachable ();
-    }
-
-  if (CP_INTEGRAL_TYPE_P (type))
-    *category_p = CPP_N_INTEGER;
-  else if (FLOAT_TYPE_P (type))
-    *category_p = CPP_N_FLOATING;
-  else if (FIXED_POINT_TYPE_P (type))
-    *category_p = CPP_N_FRACT;
-  else
-    gcc_unreachable ();
-}
-
-
-/* Save the number VAL to file F.  */
-
-static void
-pph_out_number (pph_stream *f, tree val)
-{
-  unsigned type_idx, type_kind;
-
-  pph_get_index_from_type (TREE_TYPE (val), &type_idx, &type_kind);
-
-  pph_out_uint (f, type_idx);
-  pph_out_uint (f, type_kind);
-
-  if (type_kind == CPP_N_INTEGER)
-    {
-      HOST_WIDE_INT v[2];
-
-      v[0] = TREE_INT_CST_LOW (val);
-      v[1] = TREE_INT_CST_HIGH (val);
-      pph_out_bytes (f, v, 2 * sizeof (HOST_WIDE_INT));
-    }
-  else if (type_kind == CPP_N_FLOATING)
-    {
-      REAL_VALUE_TYPE r = TREE_REAL_CST (val);
-      pph_out_bytes (f, &r, sizeof (REAL_VALUE_TYPE));
-    }
-  else if (type_kind == CPP_N_FRACT)
-    {
-      FIXED_VALUE_TYPE fv = TREE_FIXED_CST (val);
-      pph_out_bytes (f, &fv, sizeof (FIXED_VALUE_TYPE));
-    }
-  else if (type_kind == CPP_N_IMAGINARY)
-    {
-      pph_out_number (f, TREE_REALPART (val));
-      pph_out_number (f, TREE_IMAGPART (val));
-    }
-  else
-    gcc_unreachable ();
-}
-
-
-/* Save the tree associated with TOKEN to file F.  */
-
-static void
-pph_out_token_value (pph_stream *f, cp_token *token)
-{
-  const char *str;
-  unsigned len;
   tree val;
 
   val = token->u.value;
@@ -349,13 +240,7 @@ pph_out_token_value (pph_stream *f, cp_token *token)
     {
       case CPP_TEMPLATE_ID:
       case CPP_NESTED_NAME_SPECIFIER:
-	break;
-
-      case CPP_NAME:
-	/* FIXME pph.  Hash the strings and emit a string table.  */
-	str = IDENTIFIER_POINTER (val);
-	len = IDENTIFIER_LENGTH (val);
-	pph_out_string_with_length (f, str, len);
+	/* FIXME pph - Need to handle struct tree_check.  */
 	break;
 
       case CPP_KEYWORD:
@@ -363,22 +248,17 @@ pph_out_token_value (pph_stream *f, cp_token *token)
 	   ridpointers[token->keyword] at load time.  */
 	break;
 
+      case CPP_NAME:
       case CPP_CHAR:
       case CPP_WCHAR:
       case CPP_CHAR16:
       case CPP_CHAR32:
       case CPP_NUMBER:
-	pph_out_number (f, val);
-	break;
-
       case CPP_STRING:
       case CPP_WSTRING:
       case CPP_STRING16:
       case CPP_STRING32:
-	/* FIXME pph.  Need to represent the type.  */
-	str = TREE_STRING_POINTER (val);
-	len = TREE_STRING_LENGTH (val);
-	pph_out_string_with_length (f, str, len);
+	pph_out_tree (stream, val);
 	break;
 
       case CPP_PRAGMA:
@@ -387,7 +267,7 @@ pph_out_token_value (pph_stream *f, cp_token *token)
 
       default:
 	gcc_assert (token->u.value == NULL);
-	pph_out_bytes (f, &token->u.value, sizeof (token->u.value));
+	pph_out_bytes (stream, &token->u.value, sizeof (token->u.value));
     }
 }
 

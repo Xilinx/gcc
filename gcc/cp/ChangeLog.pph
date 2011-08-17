@@ -1,5 +1,16 @@
 2011-08-17   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_get_type_from_index): Remove.
+	(pph_in_number): Remove.
+	(pph_in_token_value): Handle all cases that read a tree
+	with pph_in_tree.
+	* pph-streamer-out.c (pph_out_number): Remove.
+	(pph_get_index_from_type): Remove.
+	(pph_out_token_value): Handle all cases that write a tree
+	with pph_out_tree.
+
+2011-08-17   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer.h (pph_out_tree_1): Rename from pph_out_tree_or_ref_1.
 	Update all users.
 	(pph_out_tree): Rename from pph_out_tree_or_ref.  Update all users.
