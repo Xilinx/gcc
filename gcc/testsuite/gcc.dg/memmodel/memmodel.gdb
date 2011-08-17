@@ -1,3 +1,4 @@
+set height 0
 break main
 disp/i $pc
 run
