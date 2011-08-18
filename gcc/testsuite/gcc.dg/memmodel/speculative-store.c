@@ -1,5 +1,5 @@
 /* { dg-do link } */
-/* { dg-options "-O2 --param allow-store-data-races=0" } */
+/* { dg-options "--param allow-store-data-races=0" } */
 /* { dg-final { memmodel-gdb-test } } */
 
 #include <stdio.h>

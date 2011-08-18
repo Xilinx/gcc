@@ -1,5 +1,5 @@
 /* { dg-do link } */
-/* { dg-options "-O2 --param allow-load-data-races=0 --param allow-store-data-races=0" } */
+/* { dg-options "--param allow-load-data-races=0 --param allow-store-data-races=0" } */
 /* { dg-final { memmodel-gdb-test } } */
 
 /* Test that setting <var.a> does not touch either <var.b> or <var.c>.

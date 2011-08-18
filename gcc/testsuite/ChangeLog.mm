@@ -1,3 +1,10 @@
+2011-08-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/memmodel/memmodel.exp: Torture with more options.
+	* g++.dg/memmodel/memmodel.exp: Same.
+	* gcc.dg/memmodel/*.c: Remove optimization flags.
+	* g++.dg/memmodel/*.c: Remove optimization flags.
+
 2011-08-18  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/memmodel/memmodel.gdb: Short-circuit tests once a failure 

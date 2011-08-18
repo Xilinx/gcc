@@ -1,5 +1,5 @@
 /* { dg-do link } */
-/* { dg-options "-std=c++0x -O2" } */
+/* { dg-options "-std=c++0x" } */
 /* { dg-final { memmodel-gdb-test } } */
 
 using namespace std;

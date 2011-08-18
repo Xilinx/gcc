@@ -2,6 +2,7 @@
 
 load_lib g++-dg.exp
 load_lib gcc-memmodel-gdb-test.exp
+load_lib torture-options.exp
 
 proc check_guality {args} {
     set result [eval check_compile guality_check executable $args "-g -O0"]
@@ -17,6 +18,13 @@ proc check_guality {args} {
 }
 
 dg-init
+torture-init
+set-torture-options [list \
+	{ -O0 -g } \
+	{ -O1 -g } \
+	{ -O2 -g } \
+	{ -O3 -g } \
+	{ -Os -g } ]
 
 # Test the presence of gdb with the guality infrastructure.
 global GDB
@@ -37,9 +45,9 @@ if {[check_guality "
     return 0;
   }
 "]} {
-  dg-runtest [lsort [glob $srcdir/$subdir/*.C]] "-g" ""
+  gcc-dg-runtest [lsort [glob $srcdir/$subdir/*.C]] ""
 # Uncomment line below when we have common C/C++ tests.
-#  dg-runtest [lsort [glob $srcdir/c-c++-common/memmodel/*.c]] "-g" ""
+#  gcc-dg-runtest [lsort [glob $srcdir/c-c++-common/memmodel/*.c]] ""
 }
 
 if [info exists guality_gdb_name] {
