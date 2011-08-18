@@ -1,3 +1,12 @@
+2011-08-18  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/memmodel/memmodel.gdb: Short-circuit tests once a failure 
+	happens.
+	* gcc.dg/memmodel/sync-other-{short,int,longlong,int128}.c: New. Test
+	for proper atomic operation of all __sync_mem routines except load.
+	* gcc.dg/memmodel/sync-load-{short,int,longlong,int128}.c: New. Test
+	for proper atomic operation of __sync_mem_load.
+
 2011-08-17  Aldy Hernandez  <aldyh@redhat.com>
 
 	* lib/gcc-memmodel-gdb-test.exp (memmmodel-gdb-test): Handle xfails.
