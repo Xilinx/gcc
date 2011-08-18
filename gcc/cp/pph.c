@@ -163,6 +163,8 @@ pph_init (void)
   /* If we are generating a PPH file, initialize the writer.  */
   if (pph_out_file != NULL)
     pph_writer_init ();
+
+  pph_read_images = NULL;
 }
 
 
@@ -172,7 +174,7 @@ void
 pph_finish (void)
 {
   /* Finalize the writer.  */
-    pph_writer_finish ();
+  pph_writer_finish ();
 
   /* Finalize the reader.  */
   pph_reader_finish ();

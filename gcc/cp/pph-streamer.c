@@ -33,6 +33,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "streamer-hooks.h"
 
+/* List of PPH images read during parsing.  Images opened during #include
+   processing and opened from pph_in_includes cannot be closed
+   immediately after reading, because the pickle cache contained in
+   them may be referenced from other images.  We delay closing all of
+   them until the end of parsing (when pph_reader_finish is called).  */
+VEC(pph_stream_ptr, heap) *pph_read_images;
+
 /* Pre-load common tree nodes into the pickle cache in STREAM.  These
    nodes are always built by the front end, so there is no need to
    pickle them.
@@ -154,6 +161,7 @@ pph_stream_close (pph_stream *stream)
       destroy_output_block (stream->encoder.w.ob);
       free (stream->encoder.w.decl_state_stream);
       lto_delete_out_decl_state (stream->encoder.w.out_state);
+      VEC_free (pph_stream_ptr, heap, stream->encoder.w.includes);
     }
   else
     {
@@ -423,8 +431,7 @@ pph_cache_lookup (pph_stream *stream, void *data, unsigned *ix_p)
 }
 
 
-/* Return true if DATA is in the pickle cache of one of STREAM's
-   included images.
+/* Return true if DATA is in the pickle cache of one of the included images.
 
    If DATA is found:
       - the index for INCLUDE_P into IMAGE->INCLUDES is returned in
@@ -439,15 +446,15 @@ pph_cache_lookup (pph_stream *stream, void *data, unsigned *ix_p)
       - the function returns false.  */
 
 bool
-pph_cache_lookup_in_includes (pph_stream *stream, void *data,
-			      unsigned *include_ix_p, unsigned *ix_p)
+pph_cache_lookup_in_includes (void *data, unsigned *include_ix_p,
+                              unsigned *ix_p)
 {
   unsigned include_ix, ix;
   pph_stream *include;
   bool found_it;
 
   found_it = false;
-  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, include_ix, include)
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, include_ix, include)
     if (pph_cache_lookup (include, data, &ix))
       {
 	found_it = true;
@@ -512,7 +519,7 @@ pph_cache_get (pph_stream *stream, unsigned include_ix, unsigned ix)
   if (include_ix == (unsigned) -1)
     image = stream;
   else
-    image = VEC_index (pph_stream_ptr, stream->includes, include_ix);
+    image = VEC_index (pph_stream_ptr, pph_read_images, include_ix);
 
   data = VEC_index (void_p, image->cache.v, ix);
   gcc_assert (data);

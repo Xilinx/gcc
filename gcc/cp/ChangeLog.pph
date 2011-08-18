@@ -1,3 +1,28 @@
+2011-08-18  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_reading_includes): New.
+	(pph_in_includes): Add logic to control pph_reading_includes.
+	(pph_read_file_1): Only call pph_add_include if reading an include
+	from the main file (not from pph_in_includes).
+	(pph_read_file): Don't handle adding to pph_read_images here.
+	(pph_reader_finish): Free pph_read_images.
+	* pph-streamer-out.c (pph_tree_matches): Remove now unused STREAM
+	parameter. Update all users.
+	(pph_add_include): Changed signature to (stream, bool).
+	Update all users.
+	Handle adding INCLUDE to pph_read_images here.
+	* gcc/cp/pph-streamer.c (pph_read_images): Moved here from
+	pph-streamer-in.c
+	(pph_stream_close): Free stream->encoder.w.includes.
+	(pph_cache_lookup_in_includes): Lookup in pph_read_images.
+	Remove now unused STREAM parameter.
+	Update all users.
+	(pph_cache_get): Index in pph_read_images.
+	* pph-streamer.h (pph_stream): Move field includes to
+	pph_stream.encoder.w.includes. Update all users.
+	* gcc/cp/pph.c (pph_init): Initialize pph_read_images to NULL.
+	(pph_finish): Fixed extra space typo.
+
 2011-08-17   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_in_qual_use_vec): Read Q.LOCUS.

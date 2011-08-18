@@ -1,3 +1,7 @@
+2011-08-18  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c2deepincl.cc: Remove asm xdiff.
+
 2011-08-16  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/c0deepincl1.h: New.

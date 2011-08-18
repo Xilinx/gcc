@@ -207,11 +207,11 @@ pph_out_start_record (pph_stream *stream, void *data)
       return false;
     }
 
-  /* DATA is not in STREAM's cache.  See if it is in any of STREAM's
+  /* DATA is not in STREAM's cache.  See if it is in any of the
      included images.  If it is, write an external reference to it
      and inform the caller that it should not write a physical
      representation for DATA.  */
-  if (pph_cache_lookup_in_includes (stream, data, &include_ix, &ix))
+  if (pph_cache_lookup_in_includes (data, &include_ix, &ix))
     {
       pph_out_record_marker (stream, PPH_RECORD_XREF);
       pph_out_uint (stream, include_ix);
@@ -351,7 +351,7 @@ pph_out_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 /* Return true if T matches FILTER for STREAM.  */
 
 static inline bool
-pph_tree_matches (pph_stream *stream, tree t, unsigned filter)
+pph_tree_matches (tree t, unsigned filter)
 {
   if ((filter & PPHF_NO_BUILTINS)
       && DECL_P (t)
@@ -359,7 +359,7 @@ pph_tree_matches (pph_stream *stream, tree t, unsigned filter)
     return false;
 
   if ((filter & PPHF_NO_XREFS)
-      && pph_cache_lookup_in_includes (stream, t, NULL, NULL))
+      && pph_cache_lookup_in_includes (t, NULL, NULL))
     return false;
 
   return true;
@@ -399,7 +399,7 @@ pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 
   /* Collect all the nodes that match the filter.  */
   FOR_EACH_VEC_ELT (tree, v, i, t)
-    if (pph_tree_matches (stream, t, filter))
+    if (pph_tree_matches (t, filter))
       VEC_safe_push (tree, heap, to_write, t);
 
   /* Write them.  */
@@ -533,7 +533,7 @@ pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 
   /* Collect all the nodes that match the filter.  */
   for (t = first; t; t = TREE_CHAIN (t))
-    if (pph_tree_matches (stream, t, filter))
+    if (pph_tree_matches (t, filter))
       VEC_safe_push (tree, heap, to_write, t);
 
   /* Write them.  */
@@ -1150,8 +1150,9 @@ pph_out_includes (pph_stream *stream)
   unsigned i;
   pph_stream *include;
 
-  pph_out_uint (stream, VEC_length (pph_stream_ptr, stream->includes));
-  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, i, include)
+  pph_out_uint (stream, VEC_length (pph_stream_ptr,
+	                            stream->encoder.w.includes));
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->encoder.w.includes, i, include)
     pph_out_string (stream, include->name);
 }
 
@@ -1744,16 +1745,18 @@ pph_add_decl_to_symtab (tree decl)
 }
 
 
-/* Add INCLUDE to the list of files included by STREAM.  If STREAM is
-   NULL, INCLUDE is added to the list of includes for pph_out_stream
-   (the image that we are currently generating).  */
+/* Add INCLUDE to the list of files included by  the main pph_out_stream
+   if IS_MAIN_STREAM_INCLUDE, as well as to the global list of all read
+   includes.  */
 
 void
-pph_add_include (pph_stream *stream, pph_stream *include)
+pph_add_include (pph_stream *include, bool is_main_stream_include)
 {
-  if (stream == NULL)
-    stream = pph_out_stream;
-  VEC_safe_push (pph_stream_ptr, heap, stream->includes, include);
+  if (is_main_stream_include)
+    VEC_safe_push (pph_stream_ptr, heap,
+	           pph_out_stream->encoder.w.includes, include);
+
+  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, include);
 }
 
 

@@ -136,6 +136,13 @@ typedef struct pph_stream *pph_stream_ptr;
 DEF_VEC_P(pph_stream_ptr);
 DEF_VEC_ALLOC_P(pph_stream_ptr,heap);
 
+/* List of PPH images read during parsing.  Images opened during #include
+   processing and opened from pph_in_includes cannot be closed
+   immediately after reading, because the pickle cache contained in
+   them may be referenced from other images.  We delay closing all of
+   them until the end of parsing (when pph_reader_finish is called).  */
+extern VEC(pph_stream_ptr, heap) *pph_read_images;
+
 /* Data structures used to encode and decode trees.  */
 
 /* A PPH stream contains all the data and attributes needed to
@@ -154,6 +161,11 @@ typedef struct pph_stream {
 	struct output_block *ob;
 	struct lto_out_decl_state *out_state;
 	struct lto_output_stream *decl_state_stream;
+
+	/* List of PPH files included by the PPH file that we are currently
+	  generating.  Note that this list only contains PPH files, not
+	  regular text headers.  Those are embedded in this stream.  */
+	VEC(pph_stream_ptr,heap) *includes;
     } w;
 
     /* Decoding tables and buffers used to read trees from a file.  */
@@ -178,11 +190,6 @@ typedef struct pph_stream {
     will be able to instantiate these symbols in the same order that
     they were instantiated originally.  */
   pph_symtab symtab;
-
-  /* List of PPH files included by the PPH file that we are currently
-     generating.  Note that this list only contains PPH files, not
-     regular text headers.  Those are embedded in this stream.  */
-  VEC(pph_stream_ptr,heap) *includes;
 } pph_stream;
 
 /* Filter values to avoid emitting certain objects to a PPH file.  */
@@ -203,8 +210,7 @@ void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
 void pph_cache_insert_at (pph_stream *, void *, unsigned);
 bool pph_cache_lookup (pph_stream *, void *, unsigned *);
-bool pph_cache_lookup_in_includes (pph_stream *, void *, unsigned *,
-				   unsigned *);
+bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
 bool pph_cache_add (pph_stream *, void *, unsigned *);
 void *pph_cache_get (pph_stream *, unsigned, unsigned);
 
@@ -213,7 +219,7 @@ void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
 void pph_add_decl_to_symtab (tree);
-void pph_add_include (pph_stream *, pph_stream *);
+void pph_add_include (pph_stream *, bool);
 void pph_writer_init (void);
 void pph_writer_finish (void);
 void pph_write_location (struct output_block *, location_t);

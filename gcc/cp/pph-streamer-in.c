@@ -33,13 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "toplev.h"
 
-/* List of PPH images read during parsing.  Images opened during #include
-   processing and opened from pph_in_includes cannot be closed
-   immediately after reading, because the pickle cache contained in
-   them may be referenced from other images.  We delay closing all of
-   them until the end of parsing (when pph_reader_finish is called).  */
-static VEC(pph_stream_ptr,heap) *pph_read_images = NULL;
-
 typedef char *char_p;
 DEF_VEC_P(char_p);
 DEF_VEC_ALLOC_P(char_p,heap);
@@ -52,6 +45,12 @@ DEF_VEC_ALLOC_P(char_p,heap);
   Each stream will create a new entry in this table of tables.  The
   memory will remain allocated until the end of compilation.  */
 static VEC(char_p,heap) *string_tables = NULL;
+
+/* Increment when we are in the process of reading includes as we do not want
+   to add those to the parent pph stream's list of includes to be written out.
+   Decrement when done. We cannot use a simple true/false flag as read includes
+   will call pph_in_includes as well.  */
+static int pph_reading_includes = 0;
 
 /* Wrapper for memory allocation calls that should have their results
    registered in the PPH streamer cache.  DATA is the pointer returned
@@ -1289,13 +1288,17 @@ pph_in_includes (pph_stream *stream)
 {
   unsigned i, num;
 
+  pph_reading_includes++;
+
   num = pph_in_uint (stream);
   for (i = 0; i < num; i++)
     {
       const char *include_name = pph_in_string (stream);
       pph_stream *include = pph_read_file (include_name);
-      pph_add_include (stream, include);
+      pph_add_include (include, false);
     }
+
+  pph_reading_includes--;
 }
 
 
@@ -1467,8 +1470,8 @@ pph_read_file_1 (pph_stream *stream)
   /* If we are generating an image, the PPH contents we just read from
      STREAM will need to be read again the next time we want to read
      the image we are now generating.  */
-  if (pph_out_file)
-    pph_add_include (NULL, stream);
+  if (pph_out_file && !pph_reading_includes)
+    pph_add_include (stream, true);
 }
 
 
@@ -1481,10 +1484,7 @@ pph_read_file (const char *filename)
 
   stream = pph_stream_open (filename, "rb");
   if (stream)
-    {
-      pph_read_file_1 (stream);
-      VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
-    }
+    pph_read_file_1 (stream);
   else
     error ("Cannot open PPH file for reading: %s: %m", filename);
 
@@ -1964,4 +1964,6 @@ pph_reader_finish (void)
   /* Close any images read during parsing.  */
   FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
     pph_stream_close (image);
+
+  VEC_free (pph_stream_ptr, heap, pph_read_images);
 }
