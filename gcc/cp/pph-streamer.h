@@ -63,6 +63,21 @@ enum pph_symtab_marker {
   PPH_SYMTAB_DECL
 };
 
+/* Line table markers. We only stream line table entries from the parent header
+   file, other entries are referred to by the name of the file which is then
+   loaded as an include at the correct point in time.  */
+enum pph_linetable_marker {
+
+  /* A regular line_map entry in the line_table.  */
+  PPH_LINETABLE_ENTRY = 0x01,
+
+  /* A reference to another header to be loaded at this point.  */
+  PPH_LINETABLE_REFERENCE,
+
+  /* Marks the end of the line_map entries.  */
+  PPH_LINETABLE_END
+};
+
 /* Number of sections in a PPH file.  FIXME, currently only one section
    is supported.  To add more, it will also be necessary to handle
    section names in pph_get_section_data and pph_free_section_data.  */

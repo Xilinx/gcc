@@ -1,3 +1,29 @@
+2011-08-19  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_in_includes): Remove.
+	(pph_in_linetable_marker): New.
+	(pph_in_line_table_and_includes): Renamed from
+	pph_in_and_merge_line_table.
+	Now handles line_table and includes input in parallel.
+	Now returns source_location corresponding to line 1 / col 0
+	of the header currently loaded as pph.
+	(pph_read_file_1): Read line_table and includes before replaying
+	tokens. Use location returned by pph_in_line_table_and_includes
+	as forced token location for replayed tokens.
+	* pph-streamer-out.c (pph_out_includes): Remove.
+	(pph_out_linetable_marker): New.
+	(pph_filename_eq_ignoring_path): New.
+	(pph_get_next_include): New.
+	(pph_out_line_table_and_includes): Renamed from pph_out_line_table.
+	Now handles output of both the line_table and includes references
+	in parallel.
+	(pph_write_file): Write out line_table and includes before
+	identifiers.
+	* pph-streamer.h (enum pph_linetable_marker): New.
+	* pph.c (pph_include_handler): Add hack to mimic
+	line_table->highest_location behaviour in _cpp_stack_include used
+	by the non-pph compiler.
+
 2011-08-18  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_reading_includes): New.

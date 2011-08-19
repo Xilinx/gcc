@@ -1,3 +1,9 @@
+2011-08-19  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/p4eabi1.cc: Remove asm xdiff.
+	* g++.dg/pph/x4keyed.cc: Changed line info for expected failure.
+	* g++.dg/pph/x7rtti.cc: Changed line info for expected failures.
+
 2011-08-18  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/c2deepincl.cc: Remove asm xdiff.

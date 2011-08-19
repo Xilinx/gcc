@@ -1281,27 +1281,6 @@ pph_in_symtab (pph_stream *stream)
 }
 
 
-/* Read all the images included by STREAM.  */
-
-static void
-pph_in_includes (pph_stream *stream)
-{
-  unsigned i, num;
-
-  pph_reading_includes++;
-
-  num = pph_in_uint (stream);
-  for (i = 0; i < num; i++)
-    {
-      const char *include_name = pph_in_string (stream);
-      pph_stream *include = pph_read_file (include_name);
-      pph_add_include (include, false);
-    }
-
-  pph_reading_includes--;
-}
-
-
 /* Read a linenum_type from STREAM.  */
 
 static inline linenum_type
@@ -1317,6 +1296,20 @@ static inline source_location
 pph_in_source_location (pph_stream *stream)
 {
   return (source_location) pph_in_uint (stream);
+}
+
+
+/* Read a line table marker from STREAM.  */
+
+static inline enum pph_linetable_marker
+pph_in_linetable_marker (pph_stream *stream)
+{
+  enum pph_linetable_marker m =
+    (enum pph_linetable_marker) pph_in_uchar (stream);
+  gcc_assert (m == PPH_LINETABLE_ENTRY
+	      || m == PPH_LINETABLE_REFERENCE
+	      || m == PPH_LINETABLE_END);
+  return m;
 }
 
 
@@ -1343,46 +1336,99 @@ pph_in_line_map (pph_stream *stream, struct line_map *lm)
 }
 
 
-/* Read the line_table from STREAM and merge it in LINETAB.  */
+/* Read the line_table from STREAM and merge it in LINETAB.  At the same time
+   load includes in the order they were originally included by loading them at
+   the point they were referenced in the line_table.
 
-static void
-pph_in_and_merge_line_table (pph_stream *stream, struct line_maps *linetab)
+   Returns the source_location of line 1 / col 0 for this include.
+
+   FIXME pph: The line_table is now identical to the non-pph line_table, the
+   only problem is that we load line_table entries twice for headers that are
+   re-included and are #ifdef guarded; thus shouldn't be replayed.  This is
+   a known current issue, so I didn't bother working around it here for now.  */
+
+static source_location
+pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
 {
-  unsigned int ix, pph_used, old_depth;
+  unsigned int old_depth;
+  bool first;
+  int includer_ix = -1;
+  unsigned int used_before = linetab->used;
   int entries_offset = linetab->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
+  enum pph_linetable_marker next_lt_marker = pph_in_linetable_marker (stream);
 
-  pph_used = pph_in_uint (stream);
+  pph_reading_includes++;
 
-  for (ix = 0; ix < pph_used; ix++, linetab->used++)
+  for (first = true; next_lt_marker != PPH_LINETABLE_END;
+       next_lt_marker = pph_in_linetable_marker (stream))
     {
-      struct line_map *lm;
+      if (next_lt_marker == PPH_LINETABLE_REFERENCE)
+	{
+	  int old_loc_offset;
+	  const char *include_name = pph_in_string (stream);
+	  source_location prev_start_loc = pph_in_source_location (stream);
+	  pph_stream *include;
 
-      linemap_ensure_extra_space_available (linetab);
+	  gcc_assert (!first);
 
-      lm = &linetab->maps[linetab->used];
+	  linetab->highest_location = (prev_start_loc - 1) + pph_loc_offset;
 
-      pph_in_line_map (stream, lm);
+	  old_loc_offset = pph_loc_offset;
 
-      if (ix == 0)
-        {
-          pph_loc_offset = (linetab->highest_location + 1) - lm->start_location;
+	  include = pph_read_file (include_name);
+	  pph_add_include (include, false);
 
-          /* When parsing the pph the header itself wasn't included by anything,
-             now it's included by the C file we are currently compiling.  */
-          gcc_assert(lm->included_from == -1);
-          lm->included_from = linetab->used - 1;
-        }
+	  pph_loc_offset = old_loc_offset;
+	}
+      else
+	{
+	  struct line_map *lm;
 
-      /* For the other entries in the pph's line_table which were included_from
-         another entry, reflect their included_from to the new position of the
-         entry which they were included from.  */
-      else if (lm->included_from != -1)
-        lm->included_from += entries_offset;
+	  linemap_ensure_extra_space_available (linetab);
 
-      gcc_assert (lm->included_from < (int) linetab->used);
+	  lm = &linetab->maps[linetab->used];
 
-      lm->start_location += pph_loc_offset;
+	  pph_in_line_map (stream, lm);
+
+	  if (first)
+	    {
+	      first = false;
+
+	      pph_loc_offset = (linetab->highest_location + 1)
+		               - lm->start_location;
+
+	      includer_ix = linetab->used - 1;
+
+	      gcc_assert (lm->included_from == -1);
+	    }
+
+	  gcc_assert (includer_ix != -1);
+
+	  /* When parsing the pph: the header itself wasn't included by
+	    anything, now it's included by the file just before it in
+	    the current include tree.  */
+	  if (lm->included_from == -1)
+	    lm->included_from = includer_ix;
+	  /* For the other entries in the pph's line_table which were included
+	     from another entry, reflect their included_from to the new position
+	     of the entry which they were included from.  */
+	  else
+	    lm->included_from += entries_offset;
+
+	  gcc_assert (lm->included_from < (int) linetab->used);
+
+	  lm->start_location += pph_loc_offset;
+
+	  linetab->used++;
+	}
     }
+
+  pph_reading_includes--;
+
+  {
+    unsigned int expected_in = pph_in_uint (stream);
+    gcc_assert (linetab->used - used_before == expected_in);
+  }
 
   linetab->highest_location = pph_loc_offset + pph_in_uint (stream);
   linetab->highest_line = pph_loc_offset + pph_in_uint (stream);
@@ -1399,6 +1445,8 @@ pph_in_and_merge_line_table (pph_stream *stream, struct line_maps *linetab)
   old_depth = linetab->depth++;
   linemap_add (linetab, LC_LEAVE, 0, NULL, 0);
   gcc_assert (linetab->depth == old_depth);
+
+  return linetab->maps[used_before].start_location;
 }
 
 
@@ -1419,8 +1467,10 @@ pph_read_file_1 (pph_stream *stream)
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
 
-  /* Read all the images included by STREAM.  */
-  pph_in_includes (stream);
+  /* Read in STREAM's line table and merge it in the current line table.
+     At the same time, read in includes in the order they were originally
+     read.  */
+  cpp_token_replay_loc = pph_in_line_table_and_includes (stream, line_table);
 
   /* Read all the identifiers and pre-processor symbols in the global
      namespace.  */
@@ -1433,15 +1483,11 @@ pph_read_file_1 (pph_stream *stream)
                              bad_use->before_str, bad_use->after_str);
 
   /* Re-instantiate all the pre-processor symbols defined by STREAM.  Force
-     their source_location to column 0 of the line the include occured on,
-     this avoids shifting all of the line_table's location as we would by adding
-     locations which wouldn't be there in the non-pph compile; thus working
-     towards an identical line_table in pph and non-pph.  */
-  cpp_token_replay_loc = linemap_position_for_column (line_table, 0);
+     their source_location to line 1 / column 0 of the file they were included
+     in.  This avoids shifting all of the line_table's locations as we would by
+     adding locations which wouldn't be there in the non-pph compile; thus
+     working towards an identical line_table in pph and non-pph.  */
   cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
-
-  /* Read in STREAM's line table and merge it in the current line table.  */
-  pph_in_and_merge_line_table (stream, line_table);
 
   /* Read the bindings from STREAM and merge them with the current bindings.  */
   pph_in_scope_chain (stream);

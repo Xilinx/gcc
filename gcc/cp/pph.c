@@ -119,6 +119,10 @@ pph_include_handler (cpp_reader *reader,
   pph_file = query_pph_include_map (name);
   if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
     {
+      /* Hack. We do this to mimic what the non-pph compiler does in
+	_cpp_stack_include as our goal is to have identical line_tables.  */
+      line_table->highest_location--;
+
       pph_read_file (pph_file);
       read_text_file_p = false;
     }

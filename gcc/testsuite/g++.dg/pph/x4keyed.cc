@@ -1,5 +1,5 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x0keyed2.h:11:1: error: redefinition of 'const char _ZTS5keyed ..'" "" { xfail *-*-* } 0 }
+// { dg-bogus "x4keyed.cc:13:1: error: redefinition of 'const char _ZTS5keyed ..'" "" { xfail *-*-* } 0 }
 
 #include "x0keyed1.h"
 #include "x0keyed2.h"
