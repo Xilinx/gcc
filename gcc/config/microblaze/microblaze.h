@@ -61,6 +61,9 @@ extern enum pipeline_type microblaze_pipe;
 /* The default is to not support PIC.  */
 #define TARGET_SUPPORTS_PIC 0
 
+/* The default is to not support PIC.  */
+#define TARGET_SUPPORTS_PIC 0
+
 /* What is the default setting for -mcpu= . We set it to v4.00.a even though 
    we are actually ahead. This is safest version that has generate code 
    compatible for the original ISA */
