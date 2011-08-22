@@ -1,3 +1,9 @@
+2011-08-22   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1dynarray1.cc: Mark fixed.
+	* g++.dg/pph/x1dynarray2a.cc: Mark fixed.
+	* g++.dg/pph/x1dynarray2b.cc: Mark fixed.
+
 2011-08-19  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/p4eabi1.cc: Remove asm xdiff.

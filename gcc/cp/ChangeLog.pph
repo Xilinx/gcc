@@ -1,3 +1,12 @@
+2011-08-22   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_binding_level): Call pph_in_tree to
+	read BL->BLOCKS.
+	* pph-streamer-out.c (pph_out_binding_level_1): Call pph_out_tree
+	to write BL->BLOCKS.
+	(pph_out_symtab): Mark the function as having a body if it has a
+	cgraph node associated with it.
+
 2011-08-19  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_in_includes): Remove.

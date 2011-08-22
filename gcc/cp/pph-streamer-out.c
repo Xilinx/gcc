@@ -574,7 +574,7 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
   FOR_EACH_VEC_ELT (cp_label_binding, bl->shadowed_labels, i, sl)
     pph_out_label_binding (stream, sl);
 
-  pph_out_chain (stream, bl->blocks);
+  pph_out_tree (stream, bl->blocks);
   pph_out_tree (stream, bl->this_entity);
   pph_out_binding_level (stream, bl->level_chain, filter);
   pph_out_tree_vec (stream, bl->dead_vars_from_for);
@@ -1128,7 +1128,9 @@ pph_out_symtab (pph_stream *stream)
   FOR_EACH_VEC_ELT (tree, stream->symtab.v, i, decl)
     if (TREE_CODE (decl) == FUNCTION_DECL && DECL_STRUCT_FUNCTION (decl))
       {
-	if (DECL_SAVED_TREE (decl))
+	/* If this is a regular (non-template) function with a body,
+	   mark it for expansion during reading.  */
+	if (DECL_SAVED_TREE (decl) && cgraph_get_node (decl))
 	  pph_out_symtab_marker (stream, PPH_SYMTAB_FUNCTION_BODY);
 	else
 	  pph_out_symtab_marker (stream, PPH_SYMTAB_FUNCTION);

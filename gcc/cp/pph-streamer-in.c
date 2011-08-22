@@ -557,7 +557,7 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
       VEC_safe_push (cp_label_binding, gc, bl->shadowed_labels, sl);
     }
 
-  bl->blocks = pph_in_chain (stream);
+  bl->blocks = pph_in_tree (stream);
   bl->this_entity = pph_in_tree (stream);
   bl->level_chain = pph_in_binding_level (stream, NULL);
   bl->dead_vars_from_for = pph_in_tree_vec (stream);
