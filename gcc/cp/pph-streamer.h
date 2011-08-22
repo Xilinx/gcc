@@ -173,23 +173,23 @@ typedef struct pph_stream {
   union {
     /* Encoding tables and buffers used to write trees to a file.  */
     struct {
-	struct output_block *ob;
-	struct lto_out_decl_state *out_state;
-	struct lto_output_stream *decl_state_stream;
+      struct output_block *ob;
+      struct lto_out_decl_state *out_state;
+      struct lto_output_stream *decl_state_stream;
 
-	/* List of PPH files included by the PPH file that we are currently
-	  generating.  Note that this list only contains PPH files, not
-	  regular text headers.  Those are embedded in this stream.  */
-	VEC(pph_stream_ptr,heap) *includes;
+      /* List of PPH files included by the PPH file that we are currently
+        generating.  Note that this list only contains PPH files, not
+        regular text headers.  Those are embedded in this stream.  */
+      VEC(pph_stream_ptr,heap) *includes;
     } w;
 
     /* Decoding tables and buffers used to read trees from a file.  */
     struct {
-	struct lto_input_block *ib;
-	struct data_in *data_in;
-	struct lto_file_decl_data **pph_sections;
-	char *file_data;
-	size_t file_size;
+      struct lto_input_block *ib;
+      struct data_in *data_in;
+      struct lto_file_decl_data **pph_sections;
+      char *file_data;
+      size_t file_size;
     } r;
   } encoder;
 

@@ -1192,6 +1192,18 @@ pph_out_line_map (pph_stream *stream, struct line_map *lm)
 }
 
 
+/* Write a reference of INCLUDE to STREAM.  Also write the START_LOCATION of
+   this include in the current line_table.  */
+
+static void
+pph_out_include (pph_stream *stream, pph_stream *include,
+                 source_location start_location)
+{
+  pph_out_source_location (stream, start_location);
+  pph_out_string (stream, include->name);
+}
+
+
 /* Compare filenames of a header and it's potentially corresponding pph file,
    stripping the path passed in and the extension. Returns true if HEADER_PATH
    and PPH_PATH end with the same filename. We expect HEADER_PATH to end in .h
@@ -1232,7 +1244,8 @@ pph_filename_eq_ignoring_path (const char *header_path, const char *pph_path)
 
 
 /* Return the *NEXT_INCLUDE_IX'th pph_stream in STREAM's list of includes.
-   Returns NULL if we have read all includes.  */
+   Returns NULL if we have read all includes.  Increments *NEXT_INCLUDE_IX
+   when sucessful.  */
 
 static inline pph_stream *
 pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
@@ -1246,27 +1259,27 @@ pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
 
 
 /* Emit the required line_map entry (those directly related to this include)
-   and some properties in LINETAB to STREAM, ignoring builtin and command-line
-   entries.  We will write references to our direct includes children and skip
-   their actual line_map entries (unless they are non-pph children in which case
-   we have to write out their line_map entries as well).  We assume
-   stream->encoder.w.includes contains the pph headers included in the same
-   order they are seen in the line_table.  */
+   and some properties in the line_table to STREAM, ignoring builtin and
+   command-line entries.  We will write references to our direct includes
+   children and skip their actual line_map entries (unless they are non-pph
+   children in which case we have to write out their line_map entries as well).
+   We assume stream->encoder.w.includes contains the pph headers included in the
+   same order they are seen in the line_table.  */
 
 static void
-pph_out_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
+pph_out_line_table_and_includes (pph_stream *stream)
 {
   unsigned int ix, next_incl_ix = 0;
   pph_stream *current_include;
 
   /* Any #include should have been fully parsed and exited at this point.  */
-  gcc_assert (linetab->depth == 0);
+  gcc_assert (line_table->depth == 0);
 
   current_include = pph_get_next_include (stream, &next_incl_ix);
 
-  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES; ix < linetab->used; ix++)
+  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES; ix < line_table->used; ix++)
     {
-      struct line_map *lm = &linetab->maps[ix];
+      struct line_map *lm = &line_table->maps[ix];
 
       if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
         {
@@ -1289,23 +1302,20 @@ pph_out_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
 	  gcc_assert (lm->included_from != -1);
 
 	  pph_out_linetable_marker (stream, PPH_LINETABLE_REFERENCE);
-	  pph_out_string (stream, current_include->name);
 
-	  /* We also need to output the start_location to simulate the correct
-	      highest_location on the way in.  */
-	  pph_out_source_location (stream, lm->start_location);
+	  pph_out_include (stream, current_include, lm->start_location);
 
 	  /* Potentially lm could be included from a header other then the main
 	      one if a textual include includes a pph header (i.e. we can't
 	      simply rely on going back to included_from == -1).  */
-	  includer_level = INCLUDED_FROM (linetab, lm)->included_from;
+	  includer_level = INCLUDED_FROM (line_table, lm)->included_from;
 
 	  /* Skip all other linemap entries up to and including the LC_LEAVE
 	      from the referenced header back to the one including it.  */
-	  while (linetab->maps[++ix].included_from != includer_level)
+	  while (line_table->maps[++ix].included_from != includer_level)
 	    /* We should always leave this loop before the end of the
 		current line_table entries.  */
-	    gcc_assert (ix < linetab->used);
+	    gcc_assert (ix < line_table->used);
 
 	  current_include = pph_get_next_include (stream, &next_incl_ix);
 	}
@@ -1323,17 +1333,17 @@ pph_out_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
   pph_out_linetable_marker (stream, PPH_LINETABLE_END);
 
   /* Output the number of entries written to validate on input.  */
-  pph_out_uint (stream, linetab->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
+  pph_out_uint (stream, line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
 
   /* Every pph header included should have been seen and skipped in the
      line_table streaming above.  */
   gcc_assert (next_incl_ix == VEC_length (pph_stream_ptr,
 					  stream->encoder.w.includes));
 
-  pph_out_source_location (stream, linetab->highest_location);
-  pph_out_source_location (stream, linetab->highest_line);
+  pph_out_source_location (stream, line_table->highest_location);
+  pph_out_source_location (stream, line_table->highest_line);
 
-  pph_out_uint (stream, linetab->max_column_hint);
+  pph_out_uint (stream, line_table->max_column_hint);
 }
 
 /* Write all the contents of STREAM.  */
@@ -1347,7 +1357,7 @@ pph_write_file (pph_stream *stream)
     fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
 
   /* Emit the line table entries and references to our direct includes.   */
-  pph_out_line_table_and_includes (stream, line_table);
+  pph_out_line_table_and_includes (stream);
 
   /* Emit all the identifiers and pre-processor symbols in the global
      namespace.  */

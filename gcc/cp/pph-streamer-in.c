@@ -75,7 +75,11 @@ static int pph_reading_includes = 0;
     } while (0)
 
 /* Set in pph_in_and_merge_line_table. Represents the source_location offset
-   which every streamed in token must add to it's serialized source_location. */
+   which every streamed in token must add to it's serialized source_location.
+
+   FIXME pph: Ideally this would be in pph_stream.encoder.r, but for that we
+   first need to get rid of the dependency to the streamer_hook for locations.
+   */
 static int pph_loc_offset;
 
 
@@ -1336,9 +1340,37 @@ pph_in_line_map (pph_stream *stream, struct line_map *lm)
 }
 
 
-/* Read the line_table from STREAM and merge it in LINETAB.  At the same time
-   load includes in the order they were originally included by loading them at
-   the point they were referenced in the line_table.
+/* Read in from STREAM and merge a referenced include into the current parsing
+   context.  */
+
+static void
+pph_in_include (pph_stream *stream)
+{
+  int old_loc_offset;
+  const char *include_name;
+  pph_stream *include;
+  source_location prev_start_loc = pph_in_source_location (stream);
+
+  /* Simulate highest_location to be as it would be at this point in a non-pph
+     compilation.  */
+  line_table->highest_location = (prev_start_loc - 1) + pph_loc_offset;
+
+  /* FIXME pph: If we move pph_loc_offset to pph_stream.encoder.r, we could
+     have an independent offset for each stream and not have to save and
+     restore the state of a global pph_loc_offset as we are doing here.  */
+  old_loc_offset = pph_loc_offset;
+
+  include_name = pph_in_string (stream);
+  include = pph_read_file (include_name);
+  pph_add_include (include, false);
+
+  pph_loc_offset = old_loc_offset;
+}
+
+
+/* Read the line_table from STREAM and merge it in the current line_table.  At
+   the same time load includes in the order they were originally included by
+   loading them at the point they were referenced in the line_table.
 
    Returns the source_location of line 1 / col 0 for this include.
 
@@ -1348,13 +1380,13 @@ pph_in_line_map (pph_stream *stream, struct line_map *lm)
    a known current issue, so I didn't bother working around it here for now.  */
 
 static source_location
-pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
+pph_in_line_table_and_includes (pph_stream *stream)
 {
   unsigned int old_depth;
   bool first;
   int includer_ix = -1;
-  unsigned int used_before = linetab->used;
-  int entries_offset = linetab->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
+  unsigned int used_before = line_table->used;
+  int entries_offset = line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
   enum pph_linetable_marker next_lt_marker = pph_in_linetable_marker (stream);
 
   pph_reading_includes++;
@@ -1364,29 +1396,16 @@ pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
     {
       if (next_lt_marker == PPH_LINETABLE_REFERENCE)
 	{
-	  int old_loc_offset;
-	  const char *include_name = pph_in_string (stream);
-	  source_location prev_start_loc = pph_in_source_location (stream);
-	  pph_stream *include;
-
 	  gcc_assert (!first);
-
-	  linetab->highest_location = (prev_start_loc - 1) + pph_loc_offset;
-
-	  old_loc_offset = pph_loc_offset;
-
-	  include = pph_read_file (include_name);
-	  pph_add_include (include, false);
-
-	  pph_loc_offset = old_loc_offset;
+	  pph_in_include (stream);
 	}
       else
 	{
 	  struct line_map *lm;
 
-	  linemap_ensure_extra_space_available (linetab);
+	  linemap_ensure_extra_space_available (line_table);
 
-	  lm = &linetab->maps[linetab->used];
+	  lm = &line_table->maps[line_table->used];
 
 	  pph_in_line_map (stream, lm);
 
@@ -1394,10 +1413,10 @@ pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
 	    {
 	      first = false;
 
-	      pph_loc_offset = (linetab->highest_location + 1)
+	      pph_loc_offset = (line_table->highest_location + 1)
 		               - lm->start_location;
 
-	      includer_ix = linetab->used - 1;
+	      includer_ix = line_table->used - 1;
 
 	      gcc_assert (lm->included_from == -1);
 	    }
@@ -1415,11 +1434,11 @@ pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
 	  else
 	    lm->included_from += entries_offset;
 
-	  gcc_assert (lm->included_from < (int) linetab->used);
+	  gcc_assert (lm->included_from < (int) line_table->used);
 
 	  lm->start_location += pph_loc_offset;
 
-	  linetab->used++;
+	  line_table->used++;
 	}
     }
 
@@ -1427,14 +1446,14 @@ pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
 
   {
     unsigned int expected_in = pph_in_uint (stream);
-    gcc_assert (linetab->used - used_before == expected_in);
+    gcc_assert (line_table->used - used_before == expected_in);
   }
 
-  linetab->highest_location = pph_loc_offset + pph_in_uint (stream);
-  linetab->highest_line = pph_loc_offset + pph_in_uint (stream);
+  line_table->highest_location = pph_loc_offset + pph_in_uint (stream);
+  line_table->highest_line = pph_loc_offset + pph_in_uint (stream);
 
   /* The MAX_COLUMN_HINT can be directly overwritten.  */
-  linetab->max_column_hint = pph_in_uint (stream);
+  line_table->max_column_hint = pph_in_uint (stream);
 
   /* The line_table doesn't store the last LC_LEAVE in any given compilation;
      thus we need to replay the LC_LEAVE for the header now.  For that same
@@ -1442,11 +1461,11 @@ pph_in_line_table_and_includes (pph_stream *stream, struct line_maps *linetab)
      one include deeper then the depth at which this pph was included.  The
      LC_LEAVE replay will then bring the depth back to what it was before
      calling this function.  */
-  old_depth = linetab->depth++;
-  linemap_add (linetab, LC_LEAVE, 0, NULL, 0);
-  gcc_assert (linetab->depth == old_depth);
+  old_depth = line_table->depth++;
+  linemap_add (line_table, LC_LEAVE, 0, NULL, 0);
+  gcc_assert (line_table->depth == old_depth);
 
-  return linetab->maps[used_before].start_location;
+  return line_table->maps[used_before].start_location;
 }
 
 
@@ -1470,7 +1489,7 @@ pph_read_file_1 (pph_stream *stream)
   /* Read in STREAM's line table and merge it in the current line table.
      At the same time, read in includes in the order they were originally
      read.  */
-  cpp_token_replay_loc = pph_in_line_table_and_includes (stream, line_table);
+  cpp_token_replay_loc = pph_in_line_table_and_includes (stream);
 
   /* Read all the identifiers and pre-processor symbols in the global
      namespace.  */

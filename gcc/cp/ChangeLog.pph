@@ -1,3 +1,20 @@
+2011-08-22  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_loc_offset): Add FIXME to move this variable
+	to pph_stream.encoder.r
+	(pph_in_include): New.
+	(pph_in_line_table_and_includes): Remove LINETAB parameter. Update
+	all users to use global LINE_TABLE instead.
+	Remove code moved to new function pph_in_include. And call it.
+	(pph_read_file_1): Remove extra parameter in call to
+	pph_in_line_table_and_includes.
+	* pph-streamer-out.c (pph_out_include): New.
+	(pph_get_next_include): Fix comment.
+	(pph_out_line_table_and_includes): Remove LINETAB parameter. Update
+	all users to use global LINE_TABLE instead.
+	Remove code moved to new function pph_out_include. And call it.
+	* gcc/cp/pph-streamer.h (pph_stream): Fix indenting.
+
 2011-08-22   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_in_binding_level): Call pph_in_tree to
