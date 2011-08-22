@@ -601,6 +601,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+ARCH_FUTEX_FALSE
+ARCH_FUTEX_TRUE
 ARCH_X86_FALSE
 ARCH_X86_TRUE
 link_itm
@@ -762,6 +764,7 @@ enable_fast_install
 with_gnu_ld
 enable_libtool_lock
 enable_maintainer_mode
+enable_linux_futex
 enable_tls
 enable_symvers
 '
@@ -1412,6 +1415,7 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-maintainer-mode  enable make rules and dependencies not useful
 			  (and sometimes confusing) to the casual installer
+  --enable-linux-futex    use the Linux futex system call [default=default]
   --enable-tls            Use thread-local storage [default=yes]
   --enable-symvers=STYLE  enables symbol versioning of the shared library
                           [default=yes]
@@ -11811,7 +11815,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11814 "configure"
+#line 11818 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11917,7 +11921,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11920 "configure"
+#line 11924 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -19139,6 +19143,113 @@ $as_echo "#define HAVE_BROKEN_POSIX_SEMAPHORES 1" >>confdefs.h
     ;;
 esac
 
+ # Check whether --enable-linux-futex was given.
+if test "${enable_linux_futex+set}" = set; then :
+  enableval=$enable_linux_futex;
+      case "$enableval" in
+       yes|no|default) ;;
+       *) as_fn_error "Unknown argument to enable/disable linux-futex" "$LINENO" 5 ;;
+                          esac
+
+else
+  enable_linux_futex=default
+fi
+
+
+case "$target" in
+  *-linux*)
+    case "$enable_linux_futex" in
+      default)
+	# If headers don't have gettid/futex syscalls definition, then
+	# default to no, otherwise there will be compile time failures.
+	# Otherwise, default to yes.  If we don't detect we are
+	# compiled/linked against NPTL and not cross-compiling, check
+	# if programs are run by default against NPTL and if not, issue
+	# a warning.
+	enable_linux_futex=no
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/syscall.h>
+	   int lk;
+int
+main ()
+{
+syscall (SYS_gettid); syscall (SYS_futex, &lk, 0, 0, 0);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  save_LIBS="$LIBS"
+	   LIBS="-lpthread $LIBS"
+	   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef _GNU_SOURCE
+	     #define _GNU_SOURCE 1
+	     #endif
+	     #include <pthread.h>
+	     pthread_t th; void *status;
+int
+main ()
+{
+pthread_tryjoin_np (th, &status);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  enable_linux_futex=yes
+else
+  if test x$cross_compiling = xno; then
+	       if getconf GNU_LIBPTHREAD_VERSION 2>/dev/null \
+		  | LC_ALL=C grep -i NPTL > /dev/null 2>/dev/null; then :; else
+		 { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: The kernel might not support futex or gettid syscalls.
+If so, please configure with --disable-linux-futex" >&5
+$as_echo "$as_me: WARNING: The kernel might not support futex or gettid syscalls.
+If so, please configure with --disable-linux-futex" >&2;}
+	       fi
+	     fi
+	     enable_linux_futex=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	   LIBS="$save_LIBS"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	;;
+      yes)
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/syscall.h>
+	   int lk;
+int
+main ()
+{
+syscall (SYS_gettid); syscall (SYS_futex, &lk, 0, 0, 0);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+else
+  as_fn_error "SYS_gettid and SYS_futex required for --enable-linux-futex" "$LINENO" 5
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	;;
+    esac
+    ;;
+  *)
+    enable_linux_futex=no
+    ;;
+esac
+if test x$enable_linux_futex = xyes; then
+  :
+fi
+
+
 # See if we support thread-local storage.
 
 
@@ -20078,6 +20189,14 @@ else
   ARCH_X86_FALSE=
 fi
 
+ if test $enable_linux_futex = yes; then
+  ARCH_FUTEX_TRUE=
+  ARCH_FUTEX_FALSE='#'
+else
+  ARCH_FUTEX_TRUE='#'
+  ARCH_FUTEX_FALSE=
+fi
+
 
 ac_config_files="$ac_config_files Makefile testsuite/Makefile libitm.spec"
 
@@ -20221,6 +20340,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ARCH_X86_TRUE}" && test -z "${ARCH_X86_FALSE}"; then
   as_fn_error "conditional \"ARCH_X86\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ARCH_FUTEX_TRUE}" && test -z "${ARCH_FUTEX_FALSE}"; then
+  as_fn_error "conditional \"ARCH_FUTEX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

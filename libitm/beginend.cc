@@ -23,6 +23,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include "libitm_i.h"
+#include <pthread.h>
 
 
 using namespace GTM;

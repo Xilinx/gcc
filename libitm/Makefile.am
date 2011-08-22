@@ -51,6 +51,9 @@ x86_sse.lo : XCFLAGS += -msse
 x86_avx.lo : XCFLAGS += -mavx
 endif
 
+if ARCH_FUTEX
+libitm_la_SOURCES += futex.cc
+endif
 
 # Automake Documentation:
 # If your package has Texinfo files in many directories, you can use the

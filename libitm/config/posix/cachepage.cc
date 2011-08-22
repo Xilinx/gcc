@@ -23,6 +23,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include "libitm_i.h"
+#include <pthread.h>
 
 //
 // We have three possibilities for alloction: mmap, memalign, posix_memalign

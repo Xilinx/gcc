@@ -1,3 +1,23 @@
+2011-08-19  Torvald Riegel  <triegel@redhat.com>
+
+	* config/linux/rwlock.h: New file.
+	* config/linux/rwlock.c: New file.
+	* configure.ac: Reenable futex support (undo SVN rev 157758).
+	* Makefile.am: Same.
+	* configure.tgt: Same.
+	* config/linux/alpha/futex_bits.h: Same.
+	* config/linux/futex.h: Same. Return number of woken processes.
+	* config/linux/futex.cc: Same.
+	(futex_wait): Remove spinning.
+	* config/linux/x86/futex_bits.h: Same. Set futex timeout to zero.
+	Use __x86_64__ instead of __LP64__.
+	* aclocal.m4: Include generic futex checks.
+	* configure: Rebuild.
+	* Makefile.in: Rebuild.
+	* testsuite/Makefile.in: Rebuild.
+	* beginend.cc: Include pthread.h.
+	* config/posix/cachepage.cc: Same.
+
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
 	* config/x86/tls.h (gtm_tx, set_gtm_tx, setup_gtm_thr): Removed.
