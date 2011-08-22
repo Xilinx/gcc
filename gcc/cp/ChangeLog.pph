@@ -7,6 +7,21 @@
 	(pph_out_symtab): Mark the function as having a body if it has a
 	cgraph node associated with it.
 
+2011-08-22   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_tcc_declaration): Factor out
+	of pph_read_tree_body.  Handle all decls.
+	(pph_in_tcc_type): Factor out of pph_read_tree_body.  Handle
+	all types.
+	(pph_read_tree_body): Issue a fatal error if a node has not
+	been handled.
+	* pph-streamer-out.c (pph_out_tcc_declaration): Factor out of
+	pph_write_tree_body.  Handle all decls.
+	(pph_out_tcc_type): Factor out of pph_write_tree_body.  Handle
+	all types.
+	(pph_write_tree_body): Issue a fatal error if a node has not
+	been handled.
+
 2011-08-19  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_in_includes): Remove.

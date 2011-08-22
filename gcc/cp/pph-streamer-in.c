@@ -1538,18 +1538,71 @@ pph_read_file (const char *filename)
 }
 
 
-/* Read the attributes for a FUNCTION_DECL FNDECL.  If FNDECL had
-   a body, mark it for expansion.  */
+/* Read from STREAM the body of tcc_declaration tree DECL.  */
 
 static void
-pph_in_function_decl (pph_stream *stream, tree fndecl)
+pph_in_tcc_declaration (pph_stream *stream, tree decl)
 {
-  DECL_INITIAL (fndecl) = pph_in_tree (stream);
-  pph_in_lang_specific (stream, fndecl);
-  DECL_SAVED_TREE (fndecl) = pph_in_tree (stream);
-  DECL_CHAIN (fndecl) = pph_in_tree (stream);
+  pph_in_lang_specific (stream, decl);
+  DECL_INITIAL (decl) = pph_in_tree (stream);
+
+  /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.  */
+  if (TREE_CODE (decl) == VAR_DECL
+      || TREE_CODE (decl) == FUNCTION_DECL)
+    DECL_CHAIN (decl) = pph_in_tree (stream);
+
+  /* Handle some individual decl nodes.  */
+  switch (TREE_CODE (decl))
+    {
+    case FUNCTION_DECL:
+      DECL_SAVED_TREE (decl) = pph_in_tree (stream);
+      break;
+
+    case TYPE_DECL:
+      DECL_ORIGINAL_TYPE (decl) = pph_in_tree (stream);
+      break;
+
+    case TEMPLATE_DECL:
+      DECL_TEMPLATE_RESULT (decl) = pph_in_tree (stream);
+      DECL_TEMPLATE_PARMS (decl) = pph_in_tree (stream);
+      break;
+
+    default:
+      break;
+    }
 }
 
+
+/* Read from STREAM the body of tcc_type node TYPE.  */
+
+static void
+pph_in_tcc_type (pph_stream *stream, tree type)
+{
+  TYPE_LANG_SPECIFIC (type) = pph_in_lang_type (stream);
+  TYPE_POINTER_TO (type) = pph_in_tree (stream);
+  TYPE_REFERENCE_TO (type) = pph_in_tree (stream);
+  TYPE_NEXT_VARIANT (type) = pph_in_tree (stream);
+  /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
+     failures.  Why?  */
+
+  /* The type values cache is built as constants are instantiated,
+     so we only stream it on the nodes that use it for
+     other purposes.  */
+  switch (TREE_CODE (type))
+    {
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+    case DECLTYPE_TYPE:
+    case TEMPLATE_TEMPLATE_PARM:
+    case TEMPLATE_TYPE_PARM:
+    case TYPENAME_TYPE:
+    case TYPEOF_TYPE:
+      TYPE_VALUES_RAW (type) = pph_in_tree (stream);
+      break;
+
+    default:
+      break;
+    }
+}
 
 
 /* Read the body fields of EXPR from STREAM.  */
@@ -1559,98 +1612,55 @@ pph_read_tree_body (pph_stream *stream, tree expr)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
+  bool handled_p;
 
   /* Read the language-independent parts of EXPR's body.  */
   streamer_read_tree_body (ib, data_in, expr);
 
-  /* Read all the language-dependent fields.  */
+  /* Handle common tree code classes first.  */
+  handled_p = true;
+  switch (TREE_CODE_CLASS (TREE_CODE (expr)))
+    {
+      case tcc_declaration:
+	pph_in_tcc_declaration (stream, expr);
+	break;
+
+      case tcc_type:
+	pph_in_tcc_type (stream, expr);
+	break;
+
+      case tcc_constant:
+	if (TREE_CODE (expr) == PTRMEM_CST)
+	  {
+	    pph_in_tree_common (stream, expr);
+	    PTRMEM_CST_MEMBER (expr) = pph_in_tree (stream);
+	  }
+	break;
+
+      case tcc_expression:
+      case tcc_unary:
+      case tcc_binary:
+      case tcc_vl_exp:
+      case tcc_reference:
+      case tcc_comparison:
+      case tcc_statement:
+	/* These tree classes are completely handled by the tree streamer.  */
+	break;
+
+      default:
+	handled_p = false;
+	break;
+    }
+
+  /* If we've already handled the tree, we are done.  */
+  if (handled_p)
+    return;
+
+  /* Only tcc_exceptional tree codes are left to handle.  */
+  gcc_assert (TREE_CODE_CLASS (TREE_CODE (expr)) == tcc_exceptional);
+
   switch (TREE_CODE (expr))
     {
-    /* TREES NEEDING EXTRA WORK */
-
-    /* tcc_declaration */
-
-    case DEBUG_EXPR_DECL:
-    case IMPORTED_DECL:
-    case LABEL_DECL:
-    case RESULT_DECL:
-      DECL_INITIAL (expr) = pph_in_tree (stream);
-      break;
-
-    case CONST_DECL:
-    case FIELD_DECL:
-    case NAMESPACE_DECL:
-    case PARM_DECL:
-    case USING_DECL:
-    case VAR_DECL:
-      /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
-      DECL_INITIAL (expr) = pph_in_tree (stream);
-      pph_in_lang_specific (stream, expr);
-      /* DECL_CHAIN is handled by generic code, except for VAR_DECLs.  */
-      if (TREE_CODE (expr) == VAR_DECL)
-	DECL_CHAIN (expr) = pph_in_tree (stream);
-      break;
-
-    case FUNCTION_DECL:
-      pph_in_function_decl (stream, expr);
-      break;
-
-    case TYPE_DECL:
-      DECL_INITIAL (expr) = pph_in_tree (stream);
-      pph_in_lang_specific (stream, expr);
-      DECL_ORIGINAL_TYPE (expr) = pph_in_tree (stream);
-      break;
-
-    case TEMPLATE_DECL:
-      DECL_INITIAL (expr) = pph_in_tree (stream);
-      pph_in_lang_specific (stream, expr);
-      DECL_TEMPLATE_RESULT (expr) = pph_in_tree (stream);
-      DECL_TEMPLATE_PARMS (expr) = pph_in_tree (stream);
-      DECL_CONTEXT (expr) = pph_in_tree (stream);
-      break;
-
-    /* tcc_type */
-
-    case ARRAY_TYPE:
-    case BOOLEAN_TYPE:
-    case COMPLEX_TYPE:
-    case ENUMERAL_TYPE:
-    case FIXED_POINT_TYPE:
-    case FUNCTION_TYPE:
-    case INTEGER_TYPE:
-    case LANG_TYPE:
-    case METHOD_TYPE:
-    case NULLPTR_TYPE:
-    case OFFSET_TYPE:
-    case POINTER_TYPE:
-    case REAL_TYPE:
-    case REFERENCE_TYPE:
-    case VECTOR_TYPE:
-    case VOID_TYPE:
-      TYPE_LANG_SPECIFIC (expr) = pph_in_lang_type (stream);
-      break;
-
-    case QUAL_UNION_TYPE:
-    case RECORD_TYPE:
-    case UNION_TYPE:
-      TYPE_LANG_SPECIFIC (expr) = pph_in_lang_type (stream);
-      TYPE_BINFO (expr) = pph_in_tree (stream);
-      break;
-
-    case BOUND_TEMPLATE_TEMPLATE_PARM:
-    case DECLTYPE_TYPE:
-    case TEMPLATE_TEMPLATE_PARM:
-    case TEMPLATE_TYPE_PARM:
-    case TYPENAME_TYPE:
-    case TYPEOF_TYPE:
-      TYPE_LANG_SPECIFIC (expr) = pph_in_lang_type (stream);
-      TYPE_CACHED_VALUES (expr) = pph_in_tree (stream);
-      /* Note that we are using TYPED_CACHED_VALUES for it access to 
-         the generic .values field of types. */
-      break;
-
-    /* tcc_statement */
-
     case STATEMENT_LIST:
       {
         HOST_WIDE_INT i, num_trees = pph_in_uint (stream);
@@ -1661,18 +1671,6 @@ pph_read_tree_body (pph_stream *stream, tree expr)
 	  }
       }
       break;
-
-    /* tcc_expression */
-
-    /* tcc_unary */
-
-    /* tcc_vl_exp */
-
-    /* tcc_reference */
-
-    /* tcc_constant */
-
-    /* tcc_exceptional */
 
     case OVERLOAD:
       pph_in_tree_common (stream, expr);
@@ -1702,27 +1700,6 @@ pph_read_tree_body (pph_stream *stream, tree expr)
       TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
           = pph_in_qual_use_vec (stream);
       break;
-
-    case TEMPLATE_PARM_INDEX:
-      {
-        template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
-        pph_in_tree_common (stream, expr);
-        p->index = pph_in_uint (stream);
-        p->level = pph_in_uint (stream);
-        p->orig_level = pph_in_uint (stream);
-        p->num_siblings = pph_in_uint (stream);
-        p->decl = pph_in_tree (stream);
-      }
-      break;
-
-    /* tcc_constant */
-
-    case PTRMEM_CST:
-      pph_in_tree_common (stream, expr);
-      PTRMEM_CST_MEMBER (expr) = pph_in_tree (stream);
-      break;
-
-    /* tcc_exceptional */
 
     case DEFAULT_ARG:
       pph_in_tree_common (stream, expr);
@@ -1764,110 +1741,53 @@ pph_read_tree_body (pph_stream *stream, tree expr)
       }
       break;
 
+    case TREE_VEC:
+      /* TREE_VECs hold template argument lists.  */
+      NON_DEFAULT_TEMPLATE_ARGS_COUNT (expr) = pph_in_tree (stream);
+      break;
+
+    case PLACEHOLDER_EXPR:
+      TREE_TYPE (expr) = pph_in_tree (stream);
+      break;
+
+    case TEMPLATE_PARM_INDEX:
+      {
+        template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
+        pph_in_tree_common (stream, expr);
+        p->index = pph_in_uint (stream);
+        p->level = pph_in_uint (stream);
+        p->orig_level = pph_in_uint (stream);
+        p->num_siblings = pph_in_uint (stream);
+        p->decl = pph_in_tree (stream);
+      }
+      break;
+
+    case DEFERRED_NOEXCEPT:
+      DEFERRED_NOEXCEPT_PATTERN (expr) = pph_in_tree (stream);
+      DEFERRED_NOEXCEPT_ARGS (expr) = pph_in_tree (stream);
+      break;
 
     /* TREES ALREADY HANDLED */
-
-    /* tcc_declaration */
-
-    case TRANSLATION_UNIT_DECL:
-
-    /* tcc_exceptional */
-
-    case TREE_BINFO:
+    case ERROR_MARK:
     case TREE_LIST:
-    case TREE_VEC:
-
+    case BLOCK:
+    case CONSTRUCTOR:
+    case SSA_NAME:
+    case TREE_BINFO:
       break;
-
 
     /* TREES UNIMPLEMENTED */
-
-    /* tcc_declaration */
-
-    /* tcc_type */
-
-    case TYPE_ARGUMENT_PACK:
-    case TYPE_PACK_EXPANSION:
-    case UNBOUND_CLASS_TEMPLATE:
-
-    /* tcc_statement */
-
-    case USING_STMT:
-    case TRY_BLOCK:
-    case EH_SPEC_BLOCK:
-    case HANDLER:
-    case CLEANUP_STMT:
-    case IF_STMT:
-    case FOR_STMT:
-    case RANGE_FOR_STMT:
-    case WHILE_STMT:
-    case DO_STMT:
-    case BREAK_STMT:
-    case CONTINUE_STMT:
-    case SWITCH_STMT:
-
-    /* tcc_expression */
-
-    case NEW_EXPR:
-    case VEC_NEW_EXPR:
-    case DELETE_EXPR:
-    case VEC_DELETE_EXPR:
-    case TYPE_EXPR:
-    case VEC_INIT_EXPR:
-    case THROW_EXPR:
-    case EMPTY_CLASS_EXPR:
-    case TEMPLATE_ID_EXPR:
-    case PSEUDO_DTOR_EXPR:
-    case MODOP_EXPR:
-    case DOTSTAR_EXPR:
-    case TYPEID_EXPR:
-    case NON_DEPENDENT_EXPR:
-    case CTOR_INITIALIZER:
-    case MUST_NOT_THROW_EXPR:
-    case EXPR_STMT:
-    case TAG_DEFN:
-    case OFFSETOF_EXPR:
-    case SIZEOF_EXPR:
-    case ARROW_EXPR:
-    case ALIGNOF_EXPR:
-    case AT_ENCODE_EXPR:
-    case STMT_EXPR:
-    case NONTYPE_ARGUMENT_PACK:
-    case EXPR_PACK_EXPANSION:
-
-    /* tcc_unary */
-
-    case CAST_EXPR:
-    case REINTERPRET_CAST_EXPR:
-    case CONST_CAST_EXPR:
-    case STATIC_CAST_EXPR:
-    case DYNAMIC_CAST_EXPR:
-    case NOEXCEPT_EXPR:
-    case UNARY_PLUS_EXPR:
-
-    /* tcc_reference */
-
-    case MEMBER_REF:
-    case OFFSET_REF:
-    case SCOPE_REF:
-
-    /* tcc_vl_exp */
-
-    case AGGR_INIT_EXPR:
-
-
-      if (flag_pph_untree)
-        fprintf (pph_logfile, "PPH: unimplemented tree node %s\n",
-                 tree_code_name[TREE_CODE (expr)]);
+    case OMP_CLAUSE:
+    case OPTIMIZATION_NODE:
+    case TARGET_OPTION_NODE:
+      fatal_error ("PPH: unimplemented tree node '%s'",
+		   tree_code_name[TREE_CODE (expr)]);
       break;
 
-
     /* TREES UNRECOGNIZED */
-
     default:
-      if (flag_pph_untree)
-        fprintf (pph_logfile, "PPH: unrecognized tree node %s\n",
-                 tree_code_name[TREE_CODE (expr)]);
+      fatal_error ("PPH: unrecognized tree node '%s'",
+                   tree_code_name[TREE_CODE (expr)]);
     }
 }
 
