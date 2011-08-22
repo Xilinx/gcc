@@ -1,3 +1,7 @@
+2011-08-22   Diego Novillo  <dnovillo@google.com>
+
+	* c.opt (fpph-untree): Remove.
+
 2011-08-16  Gabriel Charette  <gchare@google.com>
 
 	* c-opts.c (c_finish_options): Force BUILTINS_LOCATION for tokens

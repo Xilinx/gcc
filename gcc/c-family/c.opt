@@ -964,10 +964,6 @@ fpph-tracer=
 C++ Joined RejectNegative UInteger Var(flag_pph_tracer)
 -fpph-tracer	Enable tracing of PPH streaming operations
 
-fpph-untree
-C++ Var(flag_pph_untree)
--fpph-untree   Report unrecognized trees while streaming PPH.
-
 fpreprocessed
 C ObjC C++ ObjC++
 Treat the input file as already preprocessed
