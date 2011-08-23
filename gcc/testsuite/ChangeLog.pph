@@ -1,3 +1,7 @@
+2011-08-23  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/p4eabi1.h: Remove fixed FIXME.
+
 2011-08-22   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1dynarray1.cc: Mark fixed.

@@ -1,5 +1,4 @@
 // { dg-options "-w -fpermissive" }
-// FIXME pph - Enabling PPH for this file causes memory problems in cc1plus.
 // c1eabi1.h	c1eabi1.pph
 
 #ifndef C4EABI1_H
