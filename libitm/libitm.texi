@@ -422,6 +422,47 @@ specification. Likewise, the TM runtime must ensure privatization safety.
 @node Internals
 @chapter Internals
 
+@section TM methods and method groups
+
+libitm supports several ways of synchronizing transactions with each other.
+These TM methods (or TM algorithms) are implemented in the form of
+subclasses of @code{abi_dispatch}, which provide methods for
+transactional loads and stores as well as callbacks for rollback and commit.
+All methods that are compatible with each other (i.e., that let concurrently
+running transactions still synchronize correctly even if different methods
+are used) belong to the same TM method group. Pointers to TM methods can be
+obtained using the factory methods prefixed with @code{dispatch_} in
+@file{libitm_i.h}. There are two special methods, @code{dispatch_serial} and
+@code{dispatch_serialirr}, that are compatible with all methods because they
+run transactions completely in serial mode.
+
+@subsection TM method life cycle
+
+The state of TM methods does not change after construction, but they do alter
+the state of transactions that use this method. However, because
+per-transaction data gets used by several methods, @code{gtm_thread} is
+responsible for setting an initial state that is useful for all methods.
+After that, methods are responsible for resetting/clearing this state on each
+rollback or commit (of outermost transactions), so that the transaction
+executed next is not affected by the previous transaction.
+
+There is also global state associated with each method group, which is
+initialized and shut down (@code{method_group::init()} and @code{fini()})
+when switching between method groups (see @file{retry.cc}).
+
+@subsection Selecting the default method
+
+The default method that libitm uses for freshly started transactions (but
+not necessarily for restarted transactions) can be set via an environment
+variable (@env{ITM_DEFAULT_METHOD}), whose value should be equal to the name
+of one of the factory methods returning abi_dispatch subclasses but without
+the "dispatch_" prefix (e.g., "serialirr" instead of
+@code{GTM::dispatch_serialirr()}).
+
+Note that this environment variable is only a hint for libitm and might not
+be supported in the future.
+
+
 @section Nesting: flat vs. closed
 
 We support two different kinds of nesting of transactions. In the case of
@@ -453,8 +494,8 @@ in libitm. We have to support serial(-irrevocable) mode, which is implemented
 using a global lock as explained next (called the @emph{serial lock}). To
 simplify the overall design, we use the same lock as catch-all locking
 mechanism for other infrequent tasks such as (de)registering clone tables or
-threads. Besides the serial lock, there are @emph{per-method-set locks} that
-are managed by specific method sets (i.e., groups of similar TM concurrency
+threads. Besides the serial lock, there are @emph{per-method-group locks} that
+are managed by specific method groups (i.e., groups of similar TM concurrency
 control algorithms), and lock-like constructs for quiescence-based operations
 such as ensuring privatization safety.
 
@@ -476,30 +517,30 @@ transaction.
 
 Application data is protected by the serial lock if there is a serial
 transaction and no concurrently running active transaction (i.e., non-serial).
-Otherwise, application data is protected by the currently selected method set,
-which might use per-method-set locks or other mechanisms. Also note that
-application data that is about to be privatized might not be allowed to be
+Otherwise, application data is protected by the currently selected method
+group, which might use per-method-group locks or other mechanisms. Also note
+that application data that is about to be privatized might not be allowed to be
 accessed by nontransactional code until privatization safety has been ensured;
-the details of this are handled by the current method set.
+the details of this are handled by the current method group.
 
 libitm-internal state is either protected by the serial lock or accessed
 through custom concurrent code. The latter applies to the public/shared part
-of a transaction object and most typical method-set-specific state.
+of a transaction object and most typical method-group-specific state.
 
 The former category (protected by the serial lock) includes:
 @itemize @bullet
 @item The list of active threads that have used transactions.
 @item The tables that map functions to their transactional clones.
-@item The current selection of which method set to use.
-@item Some method-set-specific data, or invariants of this data. For example,
-resetting a method set to its initial state is handled by switching to the
-same method set, so the serial lock protects such resetting as well.
+@item The current selection of which method group to use.
+@item Some method-group-specific data, or invariants of this data. For example,
+resetting a method group to its initial state is handled by switching to the
+same method group, so the serial lock protects such resetting as well.
 @end itemize
 In general, such state is immutable whenever there exists an active
 (non-serial) transaction. If there is no active transaction, a serial
 transaction (or a thread that is not currently executing a transaction but has
 acquired the serial lock) is allowed to modify this state (but must of course
-be careful to not surprise the current method set's implementation with such
+be careful to not surprise the current method group's implementation with such
 modifications).
 
 @subsection Lock acquisition order
@@ -510,13 +551,13 @@ necessarily apply to lock acquisitions that do not block (e.g., trylock()
 calls that do not get retried forever). Note that serial transactions are
 never return back to active transactions until the transaction has committed.
 Likewise, active transactions stay active until they have committed.
-Per-method-set locks are typically also not released before commit.
+Per-method-group locks are typically also not released before commit.
 
 Lock acquisition / blocking rules:
 @itemize @bullet
 
 @item Transactions must become active or serial before they are allowed to
-use method-set-specific locks or blocking (i.e., the serial lock must be
+use method-group-specific locks or blocking (i.e., the serial lock must be
 acquired before those other locks, either in serial or nonserial mode).
 
 @item Any number of threads that do not currently run active transactions can
@@ -525,35 +566,35 @@ transactions must not block when trying to upgrade to serial mode unless there
 is no other transaction that is trying that (the latter is ensured by the
 serial lock implementation.
 
-@item Method sets must prevent deadlocks on their locks. In particular, they
+@item Method groups must prevent deadlocks on their locks. In particular, they
 must also be prepared for another active transaction that has acquired
-method-set-specific locks but is blocked during an attempt to upgrade to
+method-group-specific locks but is blocked during an attempt to upgrade to
 being a serial transaction. See below for details.
 
-@item Serial transactions can acquire method-set-specific locks because there
+@item Serial transactions can acquire method-group-specific locks because there
 will be no other active nor serial transaction.
 
 @end itemize
 
-There is no single rule for per-method-set blocking because this depends on
+There is no single rule for per-method-group blocking because this depends on
 when a TM method might acquire locks. If no active transaction can upgrade to
-being a serial transaction after it has acquired per-method-set locks (e.g.,
+being a serial transaction after it has acquired per-method-group locks (e.g.,
 when those locks are only acquired during an attempt to commit), then the TM
 method does not need to consider a potential deadlock due to serial mode.
 
 If there can be upgrades to serial mode after the acquisition of
-per-method-set locks, then TM methods need to avoid those deadlocks:
+per-method-group locks, then TM methods need to avoid those deadlocks:
 @itemize @bullet
 @item When upgrading to a serial transaction, after acquiring exclusive rights
 to the serial lock but before waiting for concurrent active transactions to
 finish (@pxref{serial-lock-impl,,Serial lock implementation} for details),
 we have to wake up all active transactions waiting on the upgrader's
-per-method-set locks.
-@item Active transactions blocking on per-method-set locks need to check the
+per-method-group locks.
+@item Active transactions blocking on per-method-group locks need to check the
 serial lock and abort if there is a pending serial transaction.
 @item Lost wake-ups have to be prevented (e.g., by changing a bit in each
-per-method-set lock before doing the wake-up, and only blocking on this lock
-using a futex if this bit is not set).
+per-method-group lock before doing the wake-up, and only blocking on this lock
+using a futex if this bit is not group).
 @end itemize
 
 @strong{TODO}: Can reuse serial lock for gl-*? And if we can, does it make
@@ -647,7 +688,7 @@ a sufficiently recent snapshot to not access the privatized data anymore. This
 happens after the privatizing transaction has stopped being an active
 transaction, so waiting for quiescence does not contribute to deadlocks.
 
-In method sets that need to ensure publication safety explicitly, active
+In method groups that need to ensure publication safety explicitly, active
 transactions maintain a flag or timestamp in the public/shared part of the
 transaction descriptor. Before blocking, privatizers need to let the other
 transactions know that they should wake up the privatizer.
@@ -698,9 +739,6 @@ have threads with different priorities will likely also require lower latency
 or higher throughput for high-priority threads. Therefore, it probably makes
 not that much sense (except for eventual progress guarantees) to use
 priority inheritance until the TM has priority-aware contention management.
-
-@strong{TODO}: method sets, MS switch protocol and state (re)init after
-switch (e.g., clocks and counters),...
 
 
 @c ---------------------------------------------------------------------

@@ -34,6 +34,7 @@ extern __thread gtm_thread_tls _gtm_thr_tls;
 
 gtm_rwlock GTM::gtm_thread::serial_lock;
 gtm_thread *GTM::gtm_thread::list_of_threads = 0;
+unsigned GTM::gtm_thread::number_of_threads = 0;
 
 gtm_stmlock GTM::gtm_stmlock_array[LOCK_ARRAY_SIZE];
 gtm_version GTM::gtm_clock;
@@ -103,6 +104,8 @@ GTM::gtm_thread::~gtm_thread()
           break;
         }
     }
+  number_of_threads--;
+  number_of_threads_changed(number_of_threads + 1, number_of_threads);
   serial_lock.write_unlock ();
 }
 
@@ -117,6 +120,8 @@ GTM::gtm_thread::gtm_thread ()
   serial_lock.write_lock ();
   next_thread = list_of_threads;
   list_of_threads = this;
+  number_of_threads++;
+  number_of_threads_changed(number_of_threads - 1, number_of_threads);
   serial_lock.write_unlock ();
 
   if (pthread_once(&thr_release_once, thread_exit_init))
@@ -226,27 +231,16 @@ GTM::gtm_thread::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   else
     {
       // Outermost transaction
-      // TODO Pay more attention to prop flags (eg, *omitted) when selecting
-      // dispatch.
-      if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
-        tx->state = (STATE_SERIAL | STATE_IRREVOCABLE);
-
-      else
-        disp = tx->decide_begin_dispatch (prop);
-
-      if (tx->state & STATE_SERIAL)
+      disp = tx->decide_begin_dispatch (prop);
+      if (disp == dispatch_serialirr() || disp == dispatch_serial())
         {
+          tx->state = STATE_SERIAL;
+          if (disp == dispatch_serialirr())
+            tx->state |= STATE_IRREVOCABLE;
           serial_lock.write_lock ();
-
-          if (tx->state & STATE_IRREVOCABLE)
-            disp = dispatch_serialirr ();
-          else
-            disp = dispatch_serial ();
         }
       else
-        {
-          serial_lock.read_lock (tx);
-        }
+        serial_lock.read_lock (tx);
 
       set_abi_disp (disp);
     }
@@ -387,7 +381,6 @@ _ITM_abortTransaction (_ITM_abortReason reason)
       gtm_jmpbuf longjmp_jb = tx->jb;
 
       tx->rollback (cp);
-      abi_disp()->fini ();
 
       // Jump to nested transaction (use the saved jump buffer).
       GTM_longjmp (&longjmp_jb, a_abortTransaction | a_restoreLiveVariables,
@@ -397,7 +390,6 @@ _ITM_abortTransaction (_ITM_abortReason reason)
     {
       // There is no nested transaction, so roll back to outermost transaction.
       tx->rollback ();
-      abi_disp()->fini ();
 
       // Aborting an outermost transaction finishes execution of the whole
       // transaction. Therefore, reset transaction state.
@@ -439,11 +431,11 @@ GTM::gtm_thread::trycommit ()
       // FIXME: run after ensuring privatization safety:
       commit_user_actions ();
       commit_allocations (false, 0);
-      abi_disp()->fini ();
 
       // Reset transaction state.
       cxa_catch_count = 0;
       cxa_unthrown = NULL;
+      restart_total = 0;
 
       // TODO can release SI mode before committing user actions? If so,
       // we can release before ensuring privatization safety too.

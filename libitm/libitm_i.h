@@ -194,6 +194,8 @@ struct gtm_thread
 
   // Data used by retry.c for deciding what STM implementation should
   // be used for the next iteration of the transaction.
+  // Only restart_total is reset to zero when the transaction commits, the
+  // other counters are total values for all previously executed transactions.
   uint32_t restart_reason[NUM_RESTARTS];
   uint32_t restart_total;
 
@@ -215,6 +217,8 @@ struct gtm_thread
 
   // The head of the list of all threads' transactions.
   static gtm_thread *list_of_threads;
+  // The number of all registered threads.
+  static unsigned number_of_threads;
 
   // In alloc.cc
   void commit_allocations (bool, aa_tree<uintptr_t, gtm_alloc_action>*);
@@ -250,8 +254,12 @@ struct gtm_thread
   void drop_references_local (const void *, size_t);
 
   // In retry.cc
+  // Must be called outside of transactions (i.e., after rollback).
   void decide_retry_strategy (gtm_restart_reason);
   abi_dispatch* decide_begin_dispatch (uint32_t prop);
+  void number_of_threads_changed(unsigned previous, unsigned now);
+  // Must be called from serial mode. Does not call set_abi_disp().
+  void set_default_dispatch(abi_dispatch* disp);
 
   // In method-serial.cc
   void serialirr_mode ();

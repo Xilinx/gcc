@@ -1,5 +1,34 @@
 2011-08-23  Torvald Riegel  <triegel@redhat.com>
 
+	* retry.cc (GTM::gtm_thread::decide_retry_strategy): Cleanup. Fix
+	restarting without switching to serial mode.
+	(GTM::gtm_thread::decide_begin_dispatch): Let the caller set the
+	transaction state. Choose closed-nesting alternative if available.
+	(GTM::gtm_thread::set_default_dispatch): New.
+	(parse_default_method): New.
+	(GTM::gtm_thread::number_of_threads_changed): New.
+	* method-serial.cc (GTM::serial_mg): New method group class.
+	(GTM::serialirr_dispatch): Belongs to serial_mg. Remove reinit and
+	fini.
+	(GTM::serial_dispatch): Same.
+	(GTM::serialirr_onwrite_dispatch): Same.
+	(GTM::gtm_thread::serialirr_mode): Remove calls to fini.
+	* beginend.cc (GTM::gtm_thread::~gtm_thread): Maintain number of
+	registered threads.
+	(GTM::gtm_thread::gtm_thread): Same.
+	(_ITM_abortTransaction): Remove calls to abi_dispatch::fini().
+	(GTM::gtm_thread::trycommit): Same. Reset number of restarts.
+	(GTM::gtm_thread::begin_transaction): Let decide_begin_dispatch()
+	choose dispatch but set state according to dispatch here.
+	* dispatch.h (GTM::abi_dispatch::fini): Move to method group.
+	(GTM::method_group): New class.
+	(GTM::abi_dispatch): Add comments. Maintain pointer to method_group.
+	* libitm_i.h (GTM::gtm_thread): Add declarations for new members.
+	* libitm.texi: Document TM methods, method groups, method life cycle.
+	Rename method sets to method groups.
+
+2011-08-23  Torvald Riegel  <triegel@redhat.com>
+
 	* config/x86/tls.h: Moved to ...
 	* config/linux/x86/tls.h: ... here.
 

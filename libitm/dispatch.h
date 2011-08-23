@@ -236,8 +236,19 @@ namespace GTM HIDDEN {
 
 struct gtm_transaction_cp;
 
-// This pass-through method is the basis for other methods.
-// It can be used for serial-irrevocable mode.
+struct method_group
+{
+  // Start using a TM method from this group. This constructs required meta
+  // data on demand when this method group is actually used. Will be called
+  // either on first use or after a previous call to fini().
+  virtual void init() = 0;
+  // Stop using any method from this group for now. This can be used to
+  // destruct meta data as soon as this method group is not used anymore.
+  virtual void fini() = 0;
+};
+
+
+// This is the base interface that all TM methods have to implement.
 struct abi_dispatch
 {
 public:
@@ -249,16 +260,23 @@ private:
   abi_dispatch& operator=(const abi_dispatch &) = delete;
 
 public:
+  // Tries to commit the transaction. Iff this returns true, the transaction
+  // got committed and all per-transaction data will have been reset.
+  // Currently, this is called only for the commit of the outermost
+  // transaction, or when switching to serial mode (which can happen in a
+  // nested transaction).
+  // If the current transaction is in serial or serial-irrevocable mode, this
+  // must return true.
   virtual bool trycommit() = 0;
+  // Rolls back a transaction. Called on abort or after trycommit() returned
+  // false.
   virtual void rollback(gtm_transaction_cp *cp = 0) = 0;
-  virtual void reinit() = 0;
-
-  // Use fini instead of dtor to support a static subclasses that uses
-  // a unique object and so we don't want to destroy it from common code.
-  virtual void fini() = 0;
 
   // Return an alternative method that is compatible with the current
   // method but supports closed nesting. Return zero if there is none.
+  // Note that too be compatible, it must be possible to switch to this other
+  // method on begin of a nested transaction without committing or restarting
+  // the parent method.
   virtual abi_dispatch* closed_nesting_alternative() { return 0; }
 
   bool read_only () const { return m_read_only; }
@@ -267,7 +285,9 @@ public:
   {
     return m_can_run_uninstrumented_code;
   }
+  // Returns true iff this TM method supports closed nesting.
   bool closed_nesting() const { return m_closed_nesting; }
+  method_group* get_method_group() const { return m_method_group; }
 
   static void *operator new(size_t s) { return xmalloc (s); }
   static void operator delete(void *p) { free (p); }
@@ -288,10 +308,12 @@ protected:
   const bool m_write_through;
   const bool m_can_run_uninstrumented_code;
   const bool m_closed_nesting;
-  abi_dispatch(bool ro, bool wt, bool uninstrumented, bool closed_nesting) :
+  method_group* const m_method_group;
+  abi_dispatch(bool ro, bool wt, bool uninstrumented, bool closed_nesting,
+      method_group* mg) :
     m_read_only(ro), m_write_through(wt),
     m_can_run_uninstrumented_code(uninstrumented),
-    m_closed_nesting(closed_nesting)
+    m_closed_nesting(closed_nesting), m_method_group(mg)
   { }
 };
 

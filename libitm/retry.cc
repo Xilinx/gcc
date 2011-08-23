@@ -22,7 +22,15 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include "libitm_i.h"
+
+// The default TM method used when starting a new transaction.
+static GTM::abi_dispatch* default_dispatch = 0;
+// The default TM method as requested by the user, if any.
+static GTM::abi_dispatch* default_dispatch_user = 0;
 
 void
 GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
@@ -33,8 +41,10 @@ GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
   this->restart_total++;
 
   bool retry_irr = (r == RESTART_SERIAL_IRR);
-  bool retry_serial = (this->restart_total > 100 || retry_irr);
+  bool retry_serial = (retry_irr || this->restart_total > 100);
 
+  // We assume closed nesting to be infrequently required, so just use
+  // dispatch_serial (with undo logging) if required.
   if (r == RESTART_CLOSED_NESTING)
     retry_serial = true;
 
@@ -45,10 +55,12 @@ GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
       // write lock is not yet held, grab it.  Don't do this with
       // an upgrade, since we've no need to preserve the state we
       // acquired with the read.
-      // FIXME this might be dangerous if we use serial mode to change TM
-      // meta data (e.g., reallocate the lock array). Likewise, for
-      // privatization, we must get rid of old references (that is, abort)
-      // or let privatizers know we're still there by not releasing the lock.
+      // Note that we will be restarting with either dispatch_serial or
+      // dispatch_serialirr, which are compatible with all TM methods; if
+      // we would retry with a different method, we would have to first check
+      // whether the default dispatch or the method group have changed. Also,
+      // the caller must have rolled back the previous transaction, so we
+      // don't have to worry about things such as privatization.
       if ((this->state & STATE_SERIAL) == 0)
 	{
 	  this->state |= STATE_SERIAL;
@@ -56,20 +68,21 @@ GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
 	  serial_lock.write_lock ();
 	}
 
-      // ??? We can only retry with dispatch_serial when the transaction
-      // doesn't contain an abort.
+      // We can retry with dispatch_serialirr if the transaction
+      // doesn't contain an abort and if we don't need closed nesting.
       if ((this->prop & pr_hasNoAbort) && (r != RESTART_CLOSED_NESTING))
 	retry_irr = true;
     }
 
+  // Note that we can just use serial mode here without having to switch
+  // TM method sets because serial mode is compatible with all of them.
   if (retry_irr)
     {
       this->state = (STATE_SERIAL | STATE_IRREVOCABLE);
-      disp->fini ();
       disp = dispatch_serialirr ();
       set_abi_disp (disp);
     }
-  else
+  else if (retry_serial)
     {
       disp = dispatch_serial();
       set_abi_disp (disp);
@@ -79,18 +92,130 @@ GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
 
 // Decides which TM method should be used on the first attempt to run this
 // transaction.
-// serial_lock will not have been acquired if this is the outer-most
-// transaction. If the state is set to STATE_SERIAL, the caller will set the
-// dispatch.
 GTM::abi_dispatch*
 GTM::gtm_thread::decide_begin_dispatch (uint32_t prop)
 {
-  // ??? Probably want some environment variable to choose the default
-  // STM implementation once we have more than one implemented.
-  if (prop & pr_hasNoAbort)
-    return dispatch_serialirr_onwrite();
-  state = STATE_SERIAL;
-  if (prop & pr_hasNoAbort)
-    state |= STATE_IRREVOCABLE;
+  // TODO Pay more attention to prop flags (eg, *omitted) when selecting
+  // dispatch.
+  if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
+    return dispatch_serialirr();
+
+  // If we might need closed nesting and the default dispatch has an
+  // alternative that supports closed nesting, use it.
+  // ??? We could choose another TM method that we know supports closed
+  // nesting but isn't the default (e.g., dispatch_serial()). However, we
+  // assume that aborts that need closed nesting are infrequent, so don't
+  // choose a non-default method until we have to actually restart the
+  // transaction.
+  if (!(prop & pr_hasNoAbort) && !default_dispatch->closed_nesting()
+      && default_dispatch->closed_nesting_alternative())
+    return default_dispatch->closed_nesting_alternative();
+
+  // No special case, just use the default dispatch.
+  return default_dispatch;
+}
+
+
+void
+GTM::gtm_thread::set_default_dispatch(GTM::abi_dispatch* disp)
+{
+  if (default_dispatch == disp)
+    return;
+  if (default_dispatch)
+    {
+      // If we are switching method groups, initialize and shut down properly.
+      if (default_dispatch->get_method_group() != disp->get_method_group())
+        {
+          default_dispatch->get_method_group()->fini();
+          disp->get_method_group()->init();
+        }
+    }
+  else
+    disp->get_method_group()->init();
+  default_dispatch = disp;
+}
+
+
+static GTM::abi_dispatch*
+parse_default_method()
+{
+  const char *env = getenv("ITM_DEFAULT_METHOD");
+  GTM::abi_dispatch* disp = 0;
+  if (env == NULL)
+    return 0;
+
+  while (isspace((unsigned char) *env))
+    ++env;
+  if (strncmp(env, "serialirr_onwrite", 17) == 0)
+    {
+      disp = GTM::dispatch_serialirr_onwrite();
+      env += 17;
+    }
+  else if (strncmp(env, "serialirr", 9) == 0)
+    {
+      disp = GTM::dispatch_serialirr();
+      env += 9;
+    }
+  else if (strncmp(env, "serial", 6) == 0)
+    {
+      disp = GTM::dispatch_serial();
+      env += 6;
+    }
+  else
+    goto unknown;
+
+  while (isspace((unsigned char) *env))
+    ++env;
+  if (*env == '\0')
+    return disp;
+
+ unknown:
+  GTM::GTM_error("Unknown TM method in environment variable "
+      "ITM_DEFAULT_METHOD\n");
   return 0;
+}
+
+// Gets notifications when the number of registered threads changes. This is
+// used to initialize the method set choice and trigger straightforward choice
+// adaption.
+// This must be called only by serial threads.
+void
+GTM::gtm_thread::number_of_threads_changed(unsigned previous, unsigned now)
+{
+  if (previous == 0)
+    {
+      // No registered threads before, so initialize.
+      static bool initialized = false;
+      if (!initialized)
+        {
+          initialized = true;
+          // Check for user preferences here.
+          default_dispatch_user = parse_default_method();
+        }
+    }
+  else if (now == 0)
+    {
+      // No registered threads anymore. The dispatch based on serial mode do
+      // not have any global state, so this effectively shuts down properly.
+      set_default_dispatch(dispatch_serialirr());
+    }
+
+  if (now == 1)
+    {
+      // Only one thread, so use a serializing method.
+      // ??? If we don't have a fast serial mode implementation, it might be
+      // better to use the global lock method set here.
+      if (default_dispatch_user)
+        set_default_dispatch(default_dispatch_user);
+      else
+        set_default_dispatch(dispatch_serialirr());
+    }
+  else if (now > 1 && previous <= 1)
+    {
+      // More than one thread, use the default method.
+      if (default_dispatch_user)
+        set_default_dispatch(default_dispatch_user);
+      else
+        set_default_dispatch(dispatch_serialirr_onwrite());
+    }
 }

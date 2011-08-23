@@ -35,15 +35,28 @@ using namespace GTM;
 
 namespace {
 
+// This group consists of the serial, serialirr, and serialirr_onwrite
+// methods, which all need no global state (except what is already provided
+// by the serial mode implementation).
+struct serial_mg : public method_group
+{
+  virtual void init() { }
+  virtual void fini() { }
+};
+
+static serial_mg o_serial_mg;
+
+
 class serialirr_dispatch : public abi_dispatch
 {
  public:
-  serialirr_dispatch() : abi_dispatch(false, true, true, false) { }
+  serialirr_dispatch() : abi_dispatch(false, true, true, false, &o_serial_mg)
+  { }
 
  protected:
   serialirr_dispatch(bool ro, bool wt, bool uninstrumented,
-      bool closed_nesting) :
-    abi_dispatch(ro, wt, uninstrumented, closed_nesting) { }
+      bool closed_nesting, method_group* mg) :
+    abi_dispatch(ro, wt, uninstrumented, closed_nesting, mg) { }
 
   // Transactional loads and stores simply access memory directly.
   // These methods are static to avoid indirect calls, and will be used by the
@@ -79,8 +92,6 @@ class serialirr_dispatch : public abi_dispatch
 
   virtual bool trycommit() { return true; }
   virtual void rollback(gtm_transaction_cp *cp) { abort(); }
-  virtual void reinit() { }
-  virtual void fini() { }
 
   virtual abi_dispatch* closed_nesting_alternative()
   {
@@ -134,13 +145,11 @@ public:
   // Local undo will handle this.
   // trydropreference() need not be changed either.
   virtual void rollback(gtm_transaction_cp *cp) { }
-  virtual void reinit() { }
-  virtual void fini() { }
 
   CREATE_DISPATCH_METHODS(virtual, )
   CREATE_DISPATCH_METHODS_MEM()
 
-  serial_dispatch() : abi_dispatch(false, true, false, true) { }
+  serial_dispatch() : abi_dispatch(false, true, false, true, &o_serial_mg) { }
 };
 
 
@@ -151,7 +160,7 @@ class serialirr_onwrite_dispatch : public serialirr_dispatch
 {
  public:
   serialirr_onwrite_dispatch() :
-    serialirr_dispatch(false, true, false, false) { }
+    serialirr_dispatch(false, true, false, false, &o_serial_mg) { }
 
  protected:
   static void pre_write()
@@ -238,17 +247,13 @@ GTM::gtm_thread::serialirr_mode ()
       // Given that we're already serial, the trycommit better work.
       bool ok = disp->trycommit ();
       assert (ok);
-      disp->fini ();
       need_restart = false;
     }
   else if (serial_lock.write_upgrade (this))
     {
       this->state |= STATE_SERIAL;
       if (disp->trycommit ())
-	{
-	  disp->fini ();
-	  need_restart = false;
-	}
+        need_restart = false;
     }
 
   if (need_restart)
