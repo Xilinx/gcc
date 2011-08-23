@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -29,7 +29,7 @@
 
 _ITM_beginTransaction:
 	.cfi_startproc
-#ifdef __LP64__
+#ifdef __x86_64__
 	leaq	8(%rsp), %rax
 	movq	(%rsp), %r8
 	subq	$72, %rsp
@@ -72,7 +72,7 @@ _ITM_beginTransaction:
 
 GTM_longjmp:
 	.cfi_startproc
-#ifdef __LP64__
+#ifdef __x86_64__
 	movq	(%rdi), %rcx
 	movq	8(%rdi), %rdx
 	movq	16(%rdi), %rbx

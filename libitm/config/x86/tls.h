@@ -37,6 +37,7 @@
 #if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 10)
 namespace GTM HIDDEN {
 
+#ifdef __x86_64__
 #ifdef __LP64__
 # define SEG_READ(OFS)		"movq\t%%fs:(" #OFS "*8),%0"
 # define SEG_WRITE(OFS)		"movq\t%0,%%fs:(" #OFS "*8)"
@@ -46,6 +47,17 @@ namespace GTM HIDDEN {
 # define SEG_ENCODE_WRITE(OFS)	"xorq\t%%fs:48,%0\n\t" \
 				"rolq\t$17,%0\n\t" \
 				SEG_WRITE(OFS)
+#else
+// For X32.
+# define SEG_READ(OFS)          "movl\t%%fs:(" #OFS "*4),%0"
+# define SEG_WRITE(OFS)         "movl\t%0,%%fs:(" #OFS "*4)"
+# define SEG_DECODE_READ(OFS)   SEG_READ(OFS) "\n\t" \
+                                "rorl\t$9,%0\n\t" \
+                                "xorl\t%%fs:24,%0"
+# define SEG_ENCODE_WRITE(OFS)  "xorl\t%%fs:24,%0\n\t" \
+                                "roll\t$9,%0\n\t" \
+                                SEG_WRITE(OFS)
+#endif
 #else
 # define SEG_READ(OFS)  "movl\t%%gs:(" #OFS "*4),%0"
 # define SEG_WRITE(OFS) "movl\t%0,%%gs:(" #OFS "*4)"
