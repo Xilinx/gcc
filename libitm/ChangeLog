@@ -1,5 +1,10 @@
 2011-08-23  Torvald Riegel  <triegel@redhat.com>
 
+	* config/x86/tls.h: Moved to ...
+	* config/linux/x86/tls.h: ... here.
+
+2011-08-23  Torvald Riegel  <triegel@redhat.com>
+
 	* config/x86/tls.h: Use __x86_64__ instead of __LP64__.
 	Add X32 support.
 	* config/x86/sjlj.S: Same.
