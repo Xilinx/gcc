@@ -1,3 +1,9 @@
+2011-08-24  Simon Baldwin  <simonb@google.com>
+
+	Mainline cherry pick rev 178031.
+
+	* gengtype-state.c (write_state): Remove timestamped header line.
+
 2011-08-17   Diego Novillo  <dnovillo@google.com>
 
 	Mainline merge rev 177757.
