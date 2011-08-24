@@ -1,3 +1,6 @@
+2011-08-24  Alexandre Lissy  <alissy@mandriva.com>
+	* melt-runtime.c (melt_load_module_index): Correct handling of invalid
+	dlopen handle.
 
 2011-08-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_run_make_for_plugin): Don't use fullbinfile.

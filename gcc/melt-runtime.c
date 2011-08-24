@@ -8764,11 +8764,11 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 		  MELTDESCR_REQUIRED(melt_gen_timestamp), 
 		  MELTDESCR_REQUIRED(melt_build_timestamp));
       }
-      else 
-	{
-	  debugeprintf ("melt_load_module_index invalid dlh %p sopath %s", dlh, sopath);
-	  dlclose (dlh), dlh = NULL;
-	}
+    }
+    else 
+    {
+	debugeprintf ("melt_load_module_index invalid dlh %p sopath %s", dlh, sopath);
+	dlclose (dlh), dlh = NULL;
     }
  end:
   if (srcpath) 
