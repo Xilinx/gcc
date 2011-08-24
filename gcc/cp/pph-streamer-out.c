@@ -200,7 +200,7 @@ pph_out_start_record (pph_stream *stream, void *data)
   /* See if we have data in STREAM's cache.  If so, write an internal
      reference to it and inform the caller that it should not write a
      physical representation for DATA.  */
-  if (pph_cache_lookup (stream, data, &ix))
+  if (pph_cache_lookup (&stream->cache, data, &ix))
     {
       pph_out_record_marker (stream, PPH_RECORD_IREF);
       pph_out_uint (stream, ix);
@@ -221,7 +221,7 @@ pph_out_start_record (pph_stream *stream, void *data)
 
   /* DATA is in none of the pickle caches, add it to STREAM's pickle
      cache and tell the caller that it should pickle DATA out.  */
-  pph_cache_add (stream, data, &ix);
+  pph_cache_add (&stream->cache, data, &ix);
   pph_out_record_marker (stream, PPH_RECORD_START);
   pph_out_uint (stream, ix);
   return true;
@@ -1042,7 +1042,7 @@ pph_out_scope_chain (pph_stream *stream)
      reference to it, instead of writing its fields.  */
   {
     unsigned ix;
-    pph_cache_add (stream, scope_chain->bindings, &ix);
+    pph_cache_add (&stream->cache, scope_chain->bindings, &ix);
     pph_out_record_marker (stream, PPH_RECORD_START);
     pph_out_uint (stream, ix);
     pph_out_binding_level_1 (stream, scope_chain->bindings, PPHF_NO_XREFS);

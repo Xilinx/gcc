@@ -223,11 +223,11 @@ void pph_trace_string_with_length (pph_stream *, const char *, unsigned);
 void pph_trace_location (pph_stream *, location_t);
 void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
-void pph_cache_insert_at (pph_stream *, void *, unsigned);
-bool pph_cache_lookup (pph_stream *, void *, unsigned *);
+void pph_cache_insert_at (pph_pickle_cache *, void *, unsigned);
+bool pph_cache_lookup (pph_pickle_cache *, void *, unsigned *);
 bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
-bool pph_cache_add (pph_stream *, void *, unsigned *);
-void *pph_cache_get (pph_stream *, unsigned, unsigned);
+bool pph_cache_add (pph_pickle_cache *, void *, unsigned *);
+void *pph_cache_get (pph_pickle_cache *, unsigned, unsigned);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);

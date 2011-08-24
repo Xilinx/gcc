@@ -55,20 +55,20 @@ pph_cache_preload (pph_stream *stream)
   unsigned i;
 
   for (i = itk_char; i < itk_none; i++)
-    pph_cache_add (stream, integer_types[i], NULL);
+    pph_cache_add (&stream->cache, integer_types[i], NULL);
 
   for (i = 0; i < TYPE_KIND_LAST; i++)
-    pph_cache_add (stream, sizetype_tab[i], NULL);
+    pph_cache_add (&stream->cache, sizetype_tab[i], NULL);
 
   /* global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < TI_MAX; i++)
     if (global_trees[i])
-      pph_cache_add (stream, global_trees[i], NULL);
+      pph_cache_add (&stream->cache, global_trees[i], NULL);
 
   /* c_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CTI_MAX; i++)
     if (c_global_trees[i])
-      pph_cache_add (stream, c_global_trees[i], NULL);
+      pph_cache_add (&stream->cache, c_global_trees[i], NULL);
 
   /* cp_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CPTI_MAX; i++)
@@ -78,13 +78,13 @@ pph_cache_preload (pph_stream *stream)
 	continue;
 
       if (cp_global_trees[i])
-	pph_cache_add (stream, cp_global_trees[i], NULL);
+	pph_cache_add (&stream->cache, cp_global_trees[i], NULL);
     }
 
   /* Add other well-known nodes that should always be taken from the
      current compilation context.  */
-  pph_cache_add (stream, global_namespace, NULL);
-  pph_cache_add (stream, DECL_CONTEXT (global_namespace), NULL);
+  pph_cache_add (&stream->cache, global_namespace, NULL);
+  pph_cache_add (&stream->cache, DECL_CONTEXT (global_namespace), NULL);
 }
 
 
@@ -380,37 +380,36 @@ pph_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
 }
 
 
-/* Insert DATA in STREAM's pickle cache at slot IX.  If DATA already
-   existed in the cache, IX must be the same as the previous entry.  */
+/* Insert DATA in CACHE at slot IX.  If DATA already existed in the CACHE, IX
+   must be the same as the previous entry.  */
 
 void
-pph_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
+pph_cache_insert_at (pph_pickle_cache *cache, void *data, unsigned ix)
 {
   void **map_slot;
 
-  map_slot = pointer_map_insert (stream->cache.m, data);
+  map_slot = pointer_map_insert (cache->m, data);
   if (*map_slot == NULL)
     {
       *map_slot = (void *) (unsigned HOST_WIDE_INT) ix;
-      if (ix + 1 > VEC_length (void_p, stream->cache.v))
-	VEC_safe_grow_cleared (void_p, heap, stream->cache.v, ix + 1);
-      VEC_replace (void_p, stream->cache.v, ix, data);
+      if (ix + 1 > VEC_length (void_p, cache->v))
+	VEC_safe_grow_cleared (void_p, heap, cache->v, ix + 1);
+      VEC_replace (void_p, cache->v, ix, data);
     }
 }
 
 
-/* Return true if DATA exists in STREAM's pickle cache.  If IX_P is not
-   NULL, store the cache slot where DATA resides in *IX_P (or (unsigned)-1
-   if DATA is not found).  */
+/* Return true if DATA exists in CACHE.  If IX_P is not NULL, store the cache
+   slot where DATA resides in *IX_P (or (unsigned)-1 if DATA is not found).  */
 
 bool
-pph_cache_lookup (pph_stream *stream, void *data, unsigned *ix_p)
+pph_cache_lookup (pph_pickle_cache *cache, void *data, unsigned *ix_p)
 {
   void **map_slot;
   unsigned ix;
   bool existed_p;
 
-  map_slot = pointer_map_contains (stream->cache.m, data);
+  map_slot = pointer_map_contains (cache->m, data);
   if (map_slot == NULL)
     {
       existed_p = false;
@@ -455,7 +454,7 @@ pph_cache_lookup_in_includes (void *data, unsigned *include_ix_p,
 
   found_it = false;
   FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, include_ix, include)
-    if (pph_cache_lookup (include, data, &ix))
+    if (pph_cache_lookup (&include->cache, data, &ix))
       {
 	found_it = true;
 	break;
@@ -477,24 +476,23 @@ pph_cache_lookup_in_includes (void *data, unsigned *include_ix_p,
 }
 
 
-/* Add pointer DATA to the pickle cache in STREAM.  If IX_P is not
-   NULL, on exit *IX_P will contain the slot number where DATA is
-   stored.  Return true if DATA already existed in the cache, false
-   otherwise.  */
+/* Add pointer DATA to CACHE.  If IX_P is not NULL, on exit *IX_P will contain
+   the slot number where DATA is stored.  Return true if DATA already existed
+   in the CACHE, false otherwise.  */
 
 bool
-pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
+pph_cache_add (pph_pickle_cache *cache, void *data, unsigned *ix_p)
 {
   unsigned ix;
   bool existed_p;
 
-  if (pph_cache_lookup (stream, data, &ix))
+  if (pph_cache_lookup (cache, data, &ix))
     existed_p = true;
   else
     {
       existed_p = false;
-      ix = VEC_length (void_p, stream->cache.v);
-      pph_cache_insert_at (stream, data, ix);
+      ix = VEC_length (void_p, cache->v);
+      pph_cache_insert_at (cache, data, ix);
     }
 
   if (ix_p)
@@ -506,22 +504,22 @@ pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
 
 /* Return the pointer at slot IX in STREAM's pickle cache.  If INCLUDE_IX
    is not -1U, then instead of looking up in STREAM's pickle cache,
-   the pointer is looked up in the pickle cache for
-   STREAM->INCLUDES[INCLUDE_IX].  */
+   instead of looking up in CACHE, the pointer is looked up in the CACHE of
+   pph_read_images[INCLUDE_IX].  */
 
 void *
-pph_cache_get (pph_stream *stream, unsigned include_ix, unsigned ix)
+pph_cache_get (pph_pickle_cache *cache, unsigned include_ix, unsigned ix)
 {
   void *data;
-  pph_stream *image;
+  pph_pickle_cache *img_cache;
 
   /* Determine which image's pickle cache to use.  */
   if (include_ix == (unsigned) -1)
-    image = stream;
+    img_cache = cache;
   else
-    image = VEC_index (pph_stream_ptr, pph_read_images, include_ix);
+    img_cache = &VEC_index (pph_stream_ptr, pph_read_images, include_ix)->cache;
 
-  data = VEC_index (void_p, image->cache.v, ix);
+  data = VEC_index (void_p, img_cache->v, ix);
   gcc_assert (data);
   return data;
 }
