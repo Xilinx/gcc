@@ -1,3 +1,7 @@
+2011-08-23  Andrew MacLeod  <amacleod@redhat.com>
+
+	* types.def (BUILT_IN_SYNC_MEM_LOAD_*): Change to be const.
+
 2011-07-27  Andrew Macleod  <amacleod@redhat.com>
 
 	* types.def (BT_FN_VOID_INT): New type.

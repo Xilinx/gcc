@@ -1,3 +1,9 @@
+2011-08-23  Andrew MacLeod  <amacleod@redhat.com>
+
+	* builtin-types.def (BT_CONST_VOLATILE_PTR): New primitive type.
+	(BT_FN_I{1,2,4,8,16}_VPTR_INT): Change prototype to be const.
+	* sync-builtins.def (BUILT_IN_SYNC_MEM_LOAD_*): Change to be const.
+
 2011-08-13  Andrew MacLeod  <amacleod@redhat.com>
 
 	* sync-builtins.def (BUILT_IN_SYNC_MEM_{ADD,SUB,AND,XOR,OR}_FETCH): New.
