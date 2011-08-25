@@ -10,19 +10,20 @@
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 3,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 2,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
+ * for  more details.  You should have  received  a copy of the GNU General *
+ * Public License  distributed with GNAT;  see file COPYING.  If not, write *
+ * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
+ * Boston, MA 02110-1301, USA.                                              *
  *                                                                          *
- * As a special exception under Section 7 of GPL version 3, you are granted *
- * additional permissions described in the GCC Runtime Library Exception,   *
- * version 3.1, as published by the Free Software Foundation.               *
- *                                                                          *
- * You should have received a copy of the GNU General Public License and    *
- * a copy of the GCC Runtime Library Exception along with this program;     *
- * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
- * <http://www.gnu.org/licenses/>.                                          *
+ * As a  special  exception,  if you  link  this file  with other  files to *
+ * produce an executable,  this file does not by itself cause the resulting *
+ * executable to be covered by the GNU General Public License. This except- *
+ * ion does not  however invalidate  any other reasons  why the  executable *
+ * file might be covered by the  GNU Public License.                        *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -378,7 +379,7 @@ __gnat_error_handler (int sig, siginfo_t *si, void *ucontext)
     }
 
   recurse = 0;
-  Raise_From_Signal_Handler (exception, (const char *) msg);
+  Raise_From_Signal_Handler (exception, CONST_CAST (char *, msg));
 }
 
 void
@@ -787,7 +788,11 @@ extern struct Exception_Data _abort_signal;
 static void
 __gnat_error_handler (int sig, siginfo_t *reason, void *uc ATTRIBUTE_UNUSED)
 {
-  int code = reason == NULL ? 0 : reason->si_code;
+  /* This handler is installed with SA_SIGINFO cleared, but there's no
+     prototype for the resulting alternative three-argument form, so we
+     have to hack around this by casting reason to the int actually
+     passed.  */
+  int code = (int) reason;
   struct Exception_Data *exception;
   const char *msg;
 
@@ -872,7 +877,11 @@ __gnat_install_handler (void)
 
   /* Setup signal handler to map synchronous signals to appropriate
      exceptions.  Make sure that the handler isn't interrupted by another
-     signal that might cause a scheduling event!  */
+     signal that might cause a scheduling event!
+
+     The handler is installed with SA_SIGINFO cleared, but there's no
+     C++ prototype for the three-argument form, so fake it by using
+     sa_sigaction and casting the arguments instead.  */
 
   act.sa_sigaction = __gnat_error_handler;
   act.sa_flags = SA_NODEFER + SA_RESTART;
@@ -2017,7 +2026,7 @@ __gnat_init_float (void)
      to get correct Ada semantics.  Note that for AE653 vThreads, the HW
      overflow settings are an OS configuration issue.  The instructions
      below have no effect.  */
-#if defined (_ARCH_PPC) && !defined (_SOFT_FLOAT) && !defined (VTHREADS)
+#if defined (_ARCH_PPC) && !defined (_SOFT_FLOAT) && (!defined (VTHREADS) || defined (__VXWORKSMILS__))
 #if defined (__SPE__)
   {
      const unsigned long spefscr_mask = 0xfffffff3;

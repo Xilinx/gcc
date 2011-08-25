@@ -1759,7 +1759,8 @@ expand_return (tree retval)
 
 	  /* Use bitpos for the source extraction (left justified) and
 	     xbitpos for the destination store (right justified).  */
-	  store_bit_field (dst, bitsize, xbitpos % BITS_PER_WORD, word_mode,
+	  store_bit_field (dst, bitsize, xbitpos % BITS_PER_WORD,
+			   0, 0, word_mode,
 			   extract_bit_field (src, bitsize,
 					      bitpos % BITS_PER_WORD, 1, false,
 					      NULL_RTX, word_mode, word_mode));
@@ -2015,10 +2016,13 @@ expand_stack_save (void)
 void
 expand_stack_restore (tree var)
 {
-  rtx sa = expand_normal (var);
+  rtx prev, sa = expand_normal (var);
 
   sa = convert_memory_address (Pmode, sa);
+
+  prev = get_last_insn ();
   emit_stack_restore (SAVE_BLOCK, sa);
+  fixup_args_size_notes (prev, get_last_insn (), 0);
 }
 
 /* Do the insertion of a case label into case_list.  The labels are
@@ -2130,8 +2134,8 @@ bool lshift_cheap_p (void)
   if (!init[speed_p])
     {
       rtx reg = gen_rtx_REG (word_mode, 10000);
-      int cost = rtx_cost (gen_rtx_ASHIFT (word_mode, const1_rtx, reg), SET,
-      			   speed_p);
+      int cost = set_src_cost (gen_rtx_ASHIFT (word_mode, const1_rtx, reg),
+			       speed_p);
       cheap[speed_p] = cost < COSTS_N_INSNS (3);
       init[speed_p] = true;
     }

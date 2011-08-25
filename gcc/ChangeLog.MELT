@@ -1,4 +1,9 @@
 
+2011-08-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_linemap_compute_current_location): Use the
+	linemap_position_for_column function for GCC 4.7 when merging with
+	GCC trunk rev 178073.
+
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
 	* melt-build.tpl: Fix meltgendoc.texi target (missing .texi
 	extension for generated file).

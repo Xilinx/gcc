@@ -58,7 +58,7 @@ never after.
 /* Reserved identifiers.  This is the union of all the keywords for C,
    C++, and Objective-C.  All the type modifiers have to be in one
    block at the beginning, because they are used as mask bits.  There
-   are 27 type modifiers; if we add many more we will have to redesign
+   are 28 type modifiers; if we add many more we will have to redesign
    the mask mechanism.  */
 
 enum rid
@@ -69,6 +69,7 @@ enum rid
   RID_UNSIGNED, RID_LONG,    RID_CONST, RID_EXTERN,
   RID_REGISTER, RID_TYPEDEF, RID_SHORT, RID_INLINE,
   RID_VOLATILE, RID_SIGNED,  RID_AUTO,  RID_RESTRICT,
+  RID_NORETURN,
 
   /* C extensions */
   RID_COMPLEX, RID_THREAD, RID_SAT,
@@ -102,7 +103,7 @@ enum rid
   /* C extensions */
   RID_ASM,       RID_TYPEOF,   RID_ALIGNOF,  RID_ATTRIBUTE,  RID_VA_ARG,
   RID_EXTENSION, RID_IMAGPART, RID_REALPART, RID_LABEL,      RID_CHOOSE_EXPR,
-  RID_TYPES_COMPATIBLE_P,
+  RID_TYPES_COMPATIBLE_P,      RID_BUILTIN_COMPLEX,
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
   RID_FRACT, RID_ACCUM,
 
@@ -742,6 +743,7 @@ extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
 extern void c_common_init_ts (void);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
+extern bool unsafe_conversion_p (tree, tree, bool);
 extern bool decl_with_nonnull_addr_p (const_tree);
 extern tree c_fully_fold (tree, bool, bool *);
 extern tree decl_constant_value_for_optimization (tree);
@@ -985,7 +987,7 @@ extern void warn_for_sign_compare (location_t,
 				   enum tree_code resultcode);
 extern void do_warn_double_promotion (tree, tree, tree, const char *, 
 				      location_t);
-extern void set_underlying_type (tree x);
+extern void set_underlying_type (tree);
 extern VEC(tree,gc) *make_tree_vector (void);
 extern void release_tree_vector (VEC(tree,gc) *);
 extern VEC(tree,gc) *make_tree_vector_single (tree);
@@ -1029,9 +1031,11 @@ extern tree c_finish_omp_master (location_t, tree);
 extern tree c_finish_omp_critical (location_t, tree, tree);
 extern tree c_finish_omp_ordered (location_t, tree);
 extern void c_finish_omp_barrier (location_t);
-extern tree c_finish_omp_atomic (location_t, enum tree_code, tree, tree);
+extern tree c_finish_omp_atomic (location_t, enum tree_code, enum tree_code,
+				 tree, tree, tree, tree, tree);
 extern void c_finish_omp_flush (location_t);
 extern void c_finish_omp_taskwait (location_t);
+extern void c_finish_omp_taskyield (location_t);
 extern tree c_finish_omp_for (location_t, tree, tree, tree, tree, tree, tree);
 extern void c_split_parallel_clauses (location_t, tree, tree *, tree *);
 extern enum omp_clause_default_kind c_omp_predetermined_sharing (tree);

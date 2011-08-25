@@ -352,7 +352,7 @@ build_call_a (tree function, int n, tree *argarray)
   nothrow = ((decl && TREE_NOTHROW (decl))
 	     || TYPE_NOTHROW_P (TREE_TYPE (TREE_TYPE (function))));
 
-  if (!nothrow && cfun && cp_function_chain)
+  if (!nothrow && at_function_scope_p () && cfun && cp_function_chain)
     cp_function_chain->can_throw = 1;
 
   if (decl && TREE_THIS_VOLATILE (decl) && cfun && cp_function_chain)
@@ -541,20 +541,14 @@ null_ptr_cst_p (tree t)
     return true;
   if (CP_INTEGRAL_TYPE_P (TREE_TYPE (t)))
     {
-      if (cxx_dialect >= cxx0x)
-	{
-	  t = fold_non_dependent_expr (t);
-	  t = maybe_constant_value (t);
-	  if (TREE_CONSTANT (t) && integer_zerop (t))
-	    return true;
-	}
-      else
+      /* Core issue 903 says only literal 0 is a null pointer constant.  */
+      if (cxx_dialect < cxx0x)
 	{
 	  t = integral_constant_value (t);
 	  STRIP_NOPS (t);
-	  if (integer_zerop (t) && !TREE_OVERFLOW (t))
-	    return true;
 	}
+      if (integer_zerop (t) && !TREE_OVERFLOW (t))
+	return true;
     }
   return false;
 }
@@ -6097,7 +6091,7 @@ convert_arg_to_ellipsis (tree arg)
     {
       /* Build up a real lvalue-to-rvalue conversion in case the
 	 copy constructor is trivial but not callable.  */
-      if (CLASS_TYPE_P (arg_type))
+      if (!cp_unevaluated_operand && CLASS_TYPE_P (arg_type))
 	force_rvalue (arg, tf_warning_or_error);
 
       /* [expr.call] 5.2.2/7:
@@ -6766,35 +6760,22 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	}
       else
 	{
-	  /* We must only copy the non-tail padding parts.
-	     Use __builtin_memcpy for the bitwise copy.
-	     FIXME fix 22488 so we can go back to using MODIFY_EXPR
-	     instead of an explicit call to memcpy.  */
-	
-	  tree arg0, arg1, arg2, t;
-	  tree test = NULL_TREE;
+	  /* We must only copy the non-tail padding parts.  */
+	  tree arg0, arg2, t;
+	  tree array_type, alias_set;
 
 	  arg2 = TYPE_SIZE_UNIT (as_base);
-	  arg1 = arg;
 	  arg0 = cp_build_addr_expr (to, complain);
 
-	  if (!can_trust_pointer_alignment ())
-	    {
-	      /* If we can't be sure about pointer alignment, a call
-		 to __builtin_memcpy is expanded as a call to memcpy, which
-		 is invalid with identical args.  Otherwise it is
-		 expanded as a block move, which should be safe.  */
-	      arg0 = save_expr (arg0);
-	      arg1 = save_expr (arg1);
-	      test = build2 (EQ_EXPR, boolean_type_node, arg0, arg1);
-	    }
-	  t = implicit_built_in_decls[BUILT_IN_MEMCPY];
-	  t = build_call_n (t, 3, arg0, arg1, arg2);
-
-	  t = convert (TREE_TYPE (arg0), t);
-	  if (test)
-	    t = build3 (COND_EXPR, TREE_TYPE (t), test, arg0, t);
-	  val = cp_build_indirect_ref (t, RO_NULL, complain);
+	  array_type = build_array_type (char_type_node,
+					 build_index_type
+					   (size_binop (MINUS_EXPR,
+							arg2, size_int (1))));
+	  alias_set = build_int_cst (build_pointer_type (type), 0);
+	  t = build2 (MODIFY_EXPR, void_type_node,
+		      build2 (MEM_REF, array_type, arg0, alias_set),
+		      build2 (MEM_REF, array_type, arg, alias_set));
+	  val = build2 (COMPOUND_EXPR, TREE_TYPE (to), t, to);
           TREE_NO_WARNING (val) = 1;
 	}
 
@@ -8833,12 +8814,6 @@ initialize_reference (tree type, tree expr, tree decl, tree *cleanup,
 		    (build_pointer_type (base_conv_type), expr,
 		     complain));
 	  expr = build_nop (type, expr);
-	  if (DECL_DECLARED_CONSTEXPR_P (decl))
-	    {
-	      expr = cxx_constant_value (expr);
-	      DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)
-		= reduced_constant_expression_p (expr);
-	    }
 	}
     }
   else

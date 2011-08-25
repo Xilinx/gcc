@@ -297,6 +297,10 @@ case "$CC" in
 esac
 AC_SUBST(CFLAGS)
 
+# Determine PICFLAG for target gnatlib.
+GCC_PICFLAG_FOR_TARGET
+AC_SUBST(PICFLAG_FOR_TARGET)
+
 # -------------------------
 # Check C compiler features
 # -------------------------
@@ -638,6 +642,10 @@ AC_ARG_ENABLE(fixed-point,
 [],
 [
   case $target in
+    arm*)
+      enable_fixed_point=yes
+      ;;
+
     mips*-*-*)
       case $host in
 	mips*-sgi-irix*)
@@ -970,6 +978,14 @@ GNAT_LIBEXC="$LIBS"
 LIBS="$save_LIBS"
 AC_SUBST(GNAT_LIBEXC)
 
+# To support -mcpu=native on Solaris/SPARC, we need libkstat.
+save_LIBS="$LIBS"
+LIBS=
+AC_SEARCH_LIBS(kstat_open, kstat)
+EXTRA_GCC_LIBS="$LIBS"
+LIBS="$save_LIBS"
+AC_SUBST(EXTRA_GCC_LIBS)
+
 # Some systems put ldexp and frexp in libm instead of libc; assume
 # they're both in the same place.  jcf-dump needs them.
 save_LIBS="$LIBS"
@@ -1180,11 +1196,6 @@ if test $force_sjlj_exceptions = yes; then
     [Define 0/1 to force the choice for exception handling model.])
 fi
 
-# For platforms with the unwind ABI which includes an unwind library,
-# libunwind, we can choose to use the system libunwind.
-# config.gcc also contains tests of with_system_libunwind.
-GCC_CHECK_UNWIND_GETIPINFO
-
 # --------------------------------------------------------
 # Build, host, and target specific configuration fragments
 # --------------------------------------------------------
@@ -1347,7 +1358,7 @@ case ${enable_threads} in
     # default
     target_thread_file='single'
     ;;
-  aix | dce | lynx | mipssde | posix | posix95 | rtems | \
+  aix | dce | lynx | mipssde | posix | rtems | \
   single | tpf | vxworks | win32)
     target_thread_file=${enable_threads}
     ;;

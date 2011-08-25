@@ -965,6 +965,11 @@ extern Nat get_target_strict_alignment (void);
 extern Nat get_target_double_float_alignment (void);
 extern Nat get_target_double_scalar_alignment (void);
 
+/* This function is called by the front-end to enumerate all the supported
+   modes for the machine, as well as some predefined C types.  */
+extern void enumerate_modes (void (*f) (const char *, int, int, int, int, int,
+					int));
+
 #ifdef __cplusplus
 }
 #endif

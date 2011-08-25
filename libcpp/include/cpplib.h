@@ -1,6 +1,6 @@
 /* Definitions for CPP library.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2008, 2009, 2010
+   2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
@@ -314,6 +314,10 @@ struct cpp_options
 
   /* Nonzero means process u/U prefix literals (UTF-16/32).  */
   unsigned char uliterals;
+
+  /* Nonzero means process r/R raw strings.  If this is set, uliterals
+     must be set as well.  */
+  unsigned char rliterals;
 
   /* Nonzero means print names of header files (-H).  */
   unsigned char print_include_names;
@@ -984,5 +988,9 @@ extern int cpp_valid_state (cpp_reader *, const char *, int);
 extern void cpp_prepare_state (cpp_reader *, struct save_macro_data **);
 extern int cpp_read_state (cpp_reader *, const char *, FILE *,
 			   struct save_macro_data *);
+
+/* In lex.c */
+extern void cpp_force_token_locations (cpp_reader *, source_location *);
+extern void cpp_stop_forcing_token_locations (cpp_reader *);
 
 #endif /* ! LIBCPP_CPPLIB_H */

@@ -607,6 +607,20 @@ extern int arm_arch_thumb_hwdiv;
 #define WCHAR_TYPE_SIZE BITS_PER_WORD
 #endif
 
+/* Sized for fixed-point types.  */
+
+#define SHORT_FRACT_TYPE_SIZE 8
+#define FRACT_TYPE_SIZE 16
+#define LONG_FRACT_TYPE_SIZE 32
+#define LONG_LONG_FRACT_TYPE_SIZE 64
+
+#define SHORT_ACCUM_TYPE_SIZE 16
+#define ACCUM_TYPE_SIZE 32
+#define LONG_ACCUM_TYPE_SIZE 64
+#define LONG_LONG_ACCUM_TYPE_SIZE 64
+
+#define MAX_FIXED_MODE_SIZE 64
+
 #ifndef SIZE_TYPE
 #define SIZE_TYPE (TARGET_AAPCS_BASED ? "unsigned int" : "long unsigned int")
 #endif
@@ -1892,7 +1906,7 @@ typedef struct
       : min >= -4096 && max < 4096					\
       ? (ADDR_DIFF_VEC_FLAGS (body).offset_unsigned = 0, HImode)	\
       : SImode)								\
-   : ((min < 0 || max >= 0x2000 || !TARGET_THUMB2) ? SImode		\
+   : ((min < 0 || max >= 0x20000 || !TARGET_THUMB2) ? SImode		\
       : (max >= 0x200) ? HImode						\
       : QImode))
 

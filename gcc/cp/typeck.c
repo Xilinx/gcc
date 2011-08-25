@@ -1331,8 +1331,8 @@ structural_comptypes (tree t1, tree t2, int strict)
           != DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t2)
 	  || (DECLTYPE_FOR_LAMBDA_CAPTURE (t1)
 	      != DECLTYPE_FOR_LAMBDA_CAPTURE (t2))
-	  || (DECLTYPE_FOR_LAMBDA_RETURN (t1)
-	      != DECLTYPE_FOR_LAMBDA_RETURN (t2))
+	  || (DECLTYPE_FOR_LAMBDA_PROXY (t1)
+	      != DECLTYPE_FOR_LAMBDA_PROXY (t2))
           || !cp_tree_equal (DECLTYPE_TYPE_EXPR (t1), 
                              DECLTYPE_TYPE_EXPR (t2)))
         return false;
@@ -5220,6 +5220,9 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	      }
 	    val = boolean_increment (code, arg);
 	  }
+	else if (code == POSTINCREMENT_EXPR || code == POSTDECREMENT_EXPR)
+	  /* An rvalue has no cv-qualifiers.  */
+	  val = build2 (code, cv_unqualified (TREE_TYPE (arg)), arg, inc);
 	else
 	  val = build2 (code, TREE_TYPE (arg), arg, inc);
 
@@ -5466,6 +5469,16 @@ build_x_compound_expr_from_list (tree list, expr_list_kind exp,
 				 tsubst_flags_t complain)
 {
   tree expr = TREE_VALUE (list);
+
+  if (BRACE_ENCLOSED_INITIALIZER_P (expr)
+      && !CONSTRUCTOR_IS_DIRECT_INIT (expr))
+    {
+      if (complain & tf_error)
+	pedwarn (EXPR_LOC_OR_HERE (expr), 0, "list-initializer for "
+		 "non-class type must not be parenthesized");
+      else
+	return error_mark_node;
+    }
 
   if (TREE_CHAIN (list))
     {
@@ -6679,6 +6692,8 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	     side effect associated with any single compound assignment
 	     operator. -- end note ]  */
 	  lhs = stabilize_reference (lhs);
+	  if (TREE_SIDE_EFFECTS (rhs))
+	    rhs = mark_rvalue_use (rhs);
 	  rhs = stabilize_expr (rhs, &init);
 	  newrhs = cp_build_binary_op (input_location,
 				       modifycode, lhs, rhs,
@@ -6753,6 +6768,8 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	  if (check_array_initializer (lhs, lhstype, newrhs))
 	    return error_mark_node;
 	  newrhs = digest_init (lhstype, newrhs, complain);
+	  if (newrhs == error_mark_node)
+	    return error_mark_node;
 	}
 
       else if (!same_or_base_type_p (TYPE_MAIN_VARIANT (lhstype),
@@ -7640,15 +7657,14 @@ check_return_expr (tree retval, bool *no_warning)
 	  tree type = lambda_return_type (retval);
 	  tree oldtype = LAMBDA_EXPR_RETURN_TYPE (lambda);
 
-	  if (VOID_TYPE_P (type))
-	    { /* Nothing.  */ }
-	  else if (oldtype == NULL_TREE)
-	    {
-	      pedwarn (input_location, OPT_pedantic, "lambda return type "
-		       "can only be deduced when the return statement is "
-		       "the only statement in the function body");
-	      apply_lambda_return_type (lambda, type);
-	    }
+	  if (oldtype == NULL_TREE)
+	    apply_lambda_return_type (lambda, type);
+	  /* If one of the answers is type-dependent, we can't do any
+	     better until instantiation time.  */
+	  else if (oldtype == dependent_lambda_return_type_node)
+	    /* Leave it.  */;
+	  else if (type == dependent_lambda_return_type_node)
+	    apply_lambda_return_type (lambda, type);
 	  else if (!same_type_p (type, oldtype))
 	    error ("inconsistent types %qT and %qT deduced for "
 		   "lambda return type", type, oldtype);

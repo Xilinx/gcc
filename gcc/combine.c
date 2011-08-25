@@ -6827,11 +6827,11 @@ expand_compound_operation (rtx x)
       rtx temp2 = expand_compound_operation (temp);
 
       /* Make sure this is a profitable operation.  */
-      if (rtx_cost (x, SET, optimize_this_for_speed_p)
-          > rtx_cost (temp2, SET, optimize_this_for_speed_p))
+      if (set_src_cost (x, optimize_this_for_speed_p)
+          > set_src_cost (temp2, optimize_this_for_speed_p))
        return temp2;
-      else if (rtx_cost (x, SET, optimize_this_for_speed_p)
-               > rtx_cost (temp, SET, optimize_this_for_speed_p))
+      else if (set_src_cost (x, optimize_this_for_speed_p)
+               > set_src_cost (temp, optimize_this_for_speed_p))
        return temp;
       else
        return x;
@@ -7253,8 +7253,8 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 
 	  /* Prefer ZERO_EXTENSION, since it gives more information to
 	     backends.  */
-	  if (rtx_cost (temp, SET, optimize_this_for_speed_p)
-	      <= rtx_cost (temp1, SET, optimize_this_for_speed_p))
+	  if (set_src_cost (temp, optimize_this_for_speed_p)
+	      <= set_src_cost (temp1, optimize_this_for_speed_p))
 	    return temp;
 	  return temp1;
 	}
@@ -7455,8 +7455,8 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 
 	  /* Prefer ZERO_EXTENSION, since it gives more information to
 	     backends.  */
-	  if (rtx_cost (temp1, SET, optimize_this_for_speed_p)
-	      < rtx_cost (temp, SET, optimize_this_for_speed_p))
+	  if (set_src_cost (temp1, optimize_this_for_speed_p)
+	      < set_src_cost (temp, optimize_this_for_speed_p))
 	    temp = temp1;
 	}
       pos_rtx = temp;
@@ -7787,6 +7787,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	  && GET_CODE (lhs) == ASHIFT
 	  && CONST_INT_P (XEXP (lhs, 1))
 	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1))
+	  && INTVAL (XEXP (lhs, 1)) >= 0
 	  && INTVAL (rhs) < mode_width)
 	{
 	  new_rtx = make_compound_operation (XEXP (lhs, 0), next_code);
@@ -8222,8 +8223,8 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 
 	      y = simplify_gen_binary (AND, GET_MODE (x),
 				       XEXP (x, 0), GEN_INT (cval));
-	      if (rtx_cost (y, SET, optimize_this_for_speed_p)
-	          < rtx_cost (x, SET, optimize_this_for_speed_p))
+	      if (set_src_cost (y, optimize_this_for_speed_p)
+	          < set_src_cost (x, optimize_this_for_speed_p))
 		x = y;
 	    }
 
@@ -9376,8 +9377,8 @@ distribute_and_simplify_rtx (rtx x, int n)
   tmp = apply_distributive_law (simplify_gen_binary (inner_code, mode,
 						     new_op0, new_op1));
   if (GET_CODE (tmp) != outer_code
-      && rtx_cost (tmp, SET, optimize_this_for_speed_p)
-         < rtx_cost (x, SET, optimize_this_for_speed_p))
+      && (set_src_cost (tmp, optimize_this_for_speed_p)
+	  < set_src_cost (x, optimize_this_for_speed_p)))
     return tmp;
 
   return NULL_RTX;
@@ -13270,6 +13271,16 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 		 can now prove that the instructions can't trap.  Drop the
 		 note in this case.  */
 	    }
+	  break;
+
+	case REG_ARGS_SIZE:
+	  {
+	    /* ??? How to distribute between i3-i1.  Assume i3 contains the
+	       entire adjustment.  Assert i3 contains at least some adjust.  */
+	    int old_size, args_size = INTVAL (XEXP (note, 0));
+	    old_size = fixup_args_size_notes (PREV_INSN (i3), i3, args_size);
+	    gcc_assert (old_size != args_size);
+	  }
 	  break;
 
 	case REG_NORETURN:

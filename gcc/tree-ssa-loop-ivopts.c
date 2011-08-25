@@ -1035,7 +1035,7 @@ find_bivs (struct ivopts_data *data)
       if (step)
 	{
 	  if (POINTER_TYPE_P (type))
-	    step = fold_convert (sizetype, step);
+	    step = convert_to_ptrofftype (step);
 	  else
 	    step = fold_convert (type, step);
 	}
@@ -1635,7 +1635,8 @@ may_be_unaligned_p (tree ref, tree step)
   base = get_inner_reference (ref, &bitsize, &bitpos, &toffset, &mode,
 			      &unsignedp, &volatilep, true);
   base_type = TREE_TYPE (base);
-  base_align = TYPE_ALIGN (base_type);
+  base_align = get_object_alignment (base);
+  base_align = MAX (base_align, TYPE_ALIGN (base_type));
 
   if (mode != BLKmode)
     {
@@ -2753,7 +2754,7 @@ seq_cost (rtx seq, bool speed)
     {
       set = single_set (seq);
       if (set)
-	cost += rtx_cost (SET_SRC (set), SET, speed);
+	cost += set_src_cost (SET_SRC (set), speed);
       else
 	cost++;
     }
@@ -2875,7 +2876,7 @@ computation_cost (tree expr, bool speed)
     cost += address_cost (XEXP (rslt, 0), TYPE_MODE (type),
 			  TYPE_ADDR_SPACE (type), speed);
   else if (!REG_P (rslt))
-    cost += rtx_cost (rslt, SET, speed);
+    cost += set_src_cost (rslt, speed);
 
   return cost;
 }
@@ -2889,26 +2890,6 @@ var_at_stmt (struct loop *loop, struct iv_cand *cand, gimple stmt)
     return cand->var_after;
   else
     return cand->var_before;
-}
-
-/* Return the most significant (sign) bit of T.  Similar to tree_int_cst_msb,
-   but the bit is determined from TYPE_PRECISION, not MODE_BITSIZE.  */
-
-int
-tree_int_cst_sign_bit (const_tree t)
-{
-  unsigned bitno = TYPE_PRECISION (TREE_TYPE (t)) - 1;
-  unsigned HOST_WIDE_INT w;
-
-  if (bitno < HOST_BITS_PER_WIDE_INT)
-    w = TREE_INT_CST_LOW (t);
-  else
-    {
-      w = TREE_INT_CST_HIGH (t);
-      bitno -= HOST_BITS_PER_WIDE_INT;
-    }
-
-  return (w >> bitno) & 1;
 }
 
 /* If A is (TYPE) BA and B is (TYPE) BB, and the types of BA and BB have the

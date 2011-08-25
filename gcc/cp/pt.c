@@ -3025,6 +3025,7 @@ find_parameter_packs_r (tree *tp, int *walk_subtrees, void* data)
       *walk_subtrees = 0;
       return NULL_TREE;
 
+    case CONSTRUCTOR:
     case TEMPLATE_DECL:
       cp_walk_tree (&TREE_TYPE (t),
 		    &find_parameter_packs_r, ppd, ppd->visited);
@@ -4121,6 +4122,7 @@ build_template_decl (tree decl, tree parms, bool member_template_p)
   tree tmpl = build_lang_decl (TEMPLATE_DECL, DECL_NAME (decl), NULL_TREE);
   DECL_TEMPLATE_PARMS (tmpl) = parms;
   DECL_CONTEXT (tmpl) = DECL_CONTEXT (decl);
+  DECL_SOURCE_LOCATION (tmpl) = DECL_SOURCE_LOCATION (decl);
   DECL_MEMBER_TEMPLATE_P (tmpl) = member_template_p;
 
   return tmpl;
@@ -5555,41 +5557,45 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
      function). We just strip everything and get to the arg.
      See g++.old-deja/g++.oliva/template4.C and g++.dg/template/nontype9.C
      for examples.  */
-  if (TREE_CODE (expr) == NOP_EXPR)
+  if (TYPE_REF_OBJ_P (type) || TYPE_REFFN_P (type))
     {
-      if (TYPE_REF_OBJ_P (type) || TYPE_REFFN_P (type))
+      tree probe_type, probe = expr;
+      if (REFERENCE_REF_P (probe))
+	probe = TREE_OPERAND (probe, 0);
+      probe_type = TREE_TYPE (probe);
+      if (TREE_CODE (probe) == NOP_EXPR)
 	{
 	  /* ??? Maybe we could use convert_from_reference here, but we
 	     would need to relax its constraints because the NOP_EXPR
 	     could actually change the type to something more cv-qualified,
 	     and this is not folded by convert_from_reference.  */
-	  tree addr = TREE_OPERAND (expr, 0);
-	  gcc_assert (TREE_CODE (expr_type) == REFERENCE_TYPE);
+	  tree addr = TREE_OPERAND (probe, 0);
+	  gcc_assert (TREE_CODE (probe_type) == REFERENCE_TYPE);
 	  gcc_assert (TREE_CODE (addr) == ADDR_EXPR);
 	  gcc_assert (TREE_CODE (TREE_TYPE (addr)) == POINTER_TYPE);
 	  gcc_assert (same_type_ignoring_top_level_qualifiers_p
-		      (TREE_TYPE (expr_type),
+		      (TREE_TYPE (probe_type),
 		       TREE_TYPE (TREE_TYPE (addr))));
 
 	  expr = TREE_OPERAND (addr, 0);
 	  expr_type = TREE_TYPE (expr);
 	}
+    }
 
-      /* We could also generate a NOP_EXPR(ADDR_EXPR()) when the
-	 parameter is a pointer to object, through decay and
-	 qualification conversion. Let's strip everything.  */
-      else if (TYPE_PTROBV_P (type))
-	{
-	  STRIP_NOPS (expr);
-	  gcc_assert (TREE_CODE (expr) == ADDR_EXPR);
-	  gcc_assert (TREE_CODE (TREE_TYPE (expr)) == POINTER_TYPE);
-	  /* Skip the ADDR_EXPR only if it is part of the decay for
-	     an array. Otherwise, it is part of the original argument
-	     in the source code.  */
-	  if (TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == ARRAY_TYPE)
-	    expr = TREE_OPERAND (expr, 0);
-	  expr_type = TREE_TYPE (expr);
-	}
+  /* We could also generate a NOP_EXPR(ADDR_EXPR()) when the
+     parameter is a pointer to object, through decay and
+     qualification conversion. Let's strip everything.  */
+  else if (TREE_CODE (expr) == NOP_EXPR && TYPE_PTROBV_P (type))
+    {
+      STRIP_NOPS (expr);
+      gcc_assert (TREE_CODE (expr) == ADDR_EXPR);
+      gcc_assert (TREE_CODE (TREE_TYPE (expr)) == POINTER_TYPE);
+      /* Skip the ADDR_EXPR only if it is part of the decay for
+	 an array. Otherwise, it is part of the original argument
+	 in the source code.  */
+      if (TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == ARRAY_TYPE)
+	expr = TREE_OPERAND (expr, 0);
+      expr_type = TREE_TYPE (expr);
     }
 
   /* [temp.arg.nontype]/5, bullet 1
@@ -7884,8 +7890,13 @@ parameter_of_template_p (tree parm, tree templ)
   parms = INNERMOST_TEMPLATE_PARMS (parms);
 
   for (i = 0; i < TREE_VEC_LENGTH (parms); ++i)
-    if (parm == TREE_VALUE (TREE_VEC_ELT (parms, i)))
-      return true;
+    {
+      tree p = TREE_VALUE (TREE_VEC_ELT (parms, i));
+      if (parm == p
+	  || (DECL_INITIAL (parm)
+	      && DECL_INITIAL (parm) == DECL_INITIAL (p)))
+	return true;
+    }
 
   return false;
 }
@@ -8492,16 +8503,6 @@ instantiate_class_template_1 (tree type)
   input_location = DECL_SOURCE_LOCATION (TYPE_NAME (type)) =
     DECL_SOURCE_LOCATION (typedecl);
 
-  TYPE_HAS_USER_CONSTRUCTOR (type) = TYPE_HAS_USER_CONSTRUCTOR (pattern);
-  TYPE_HAS_NEW_OPERATOR (type) = TYPE_HAS_NEW_OPERATOR (pattern);
-  TYPE_HAS_ARRAY_NEW_OPERATOR (type) = TYPE_HAS_ARRAY_NEW_OPERATOR (pattern);
-  TYPE_GETS_DELETE (type) = TYPE_GETS_DELETE (pattern);
-  TYPE_HAS_COPY_ASSIGN (type) = TYPE_HAS_COPY_ASSIGN (pattern);
-  TYPE_HAS_CONST_COPY_ASSIGN (type) = TYPE_HAS_CONST_COPY_ASSIGN (pattern);
-  TYPE_HAS_COPY_CTOR (type) = TYPE_HAS_COPY_CTOR (pattern);
-  TYPE_HAS_CONST_COPY_CTOR (type) = TYPE_HAS_CONST_COPY_CTOR (pattern);
-  TYPE_HAS_DEFAULT_CONSTRUCTOR (type) = TYPE_HAS_DEFAULT_CONSTRUCTOR (pattern);
-  TYPE_HAS_CONVERSION (type) = TYPE_HAS_CONVERSION (pattern);
   TYPE_PACKED (type) = TYPE_PACKED (pattern);
   TYPE_ALIGN (type) = TYPE_ALIGN (pattern);
   TYPE_USER_ALIGN (type) = TYPE_USER_ALIGN (pattern);
@@ -8669,6 +8670,9 @@ instantiate_class_template_1 (tree type)
 		--processing_template_decl;
 	      set_current_access_from_decl (r);
 	      finish_member_declaration (r);
+	      /* Instantiate members marked with attribute used.  */
+	      if (r != error_mark_node && DECL_PRESERVE_P (r))
+		mark_used (r);
 	    }
 	  else
 	    {
@@ -8718,6 +8722,9 @@ instantiate_class_template_1 (tree type)
 			 /*init_const_expr_p=*/false,
 			 /*asmspec_tree=*/NULL_TREE,
 			 /*flags=*/0);
+		      /* Instantiate members marked with attribute used.  */
+		      if (r != error_mark_node && DECL_PRESERVE_P (r))
+			mark_used (r);
 		    }
 		  else if (TREE_CODE (r) == FIELD_DECL)
 		    {
@@ -8870,7 +8877,16 @@ instantiate_class_template_1 (tree type)
     }
 
   if (CLASSTYPE_LAMBDA_EXPR (type))
-    maybe_add_lambda_conv_op (type);
+    {
+      tree lambda = CLASSTYPE_LAMBDA_EXPR (type);
+      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda))
+	{
+	  apply_lambda_return_type (lambda, void_type_node);
+	  LAMBDA_EXPR_RETURN_TYPE (lambda) = NULL_TREE;
+	}
+      instantiate_decl (lambda_function (type), false, false);
+      maybe_add_lambda_conv_op (type);
+    }
 
   /* Set the file and line number information to whatever is given for
      the class itself.  This puts error messages involving generated
@@ -8940,6 +8956,10 @@ tsubst_template_arg (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 		       /*integral_constant_expression_p=*/true);
       if (!(complain & tf_warning))
 	--c_inhibit_evaluation_warnings;
+      /* Preserve the raw-reference nature of T.  */
+      if (TREE_TYPE (t) && TREE_CODE (TREE_TYPE (t)) == REFERENCE_TYPE
+	  && REFERENCE_REF_P (r))
+	r = TREE_OPERAND (r, 0);
     }
   return r;
 }
@@ -10980,7 +11000,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      }
 	    else
 	      /* TEMPLATE_TEMPLATE_PARM or TEMPLATE_PARM_INDEX.  */
-	      return unshare_expr (arg);
+	      return convert_from_reference (unshare_expr (arg));
 	  }
 
 	if (level == 1)
@@ -11399,8 +11419,6 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
 	if (DECLTYPE_FOR_LAMBDA_CAPTURE (t))
 	  type = lambda_capture_field_type (type);
-	else if (DECLTYPE_FOR_LAMBDA_RETURN (t))
-	  type = lambda_return_type (type);
 	else if (DECLTYPE_FOR_LAMBDA_PROXY (t))
 	  type = lambda_proxy_type (type);
 	else
@@ -12172,6 +12190,7 @@ tsubst_omp_clauses (tree clauses, tree args, tsubst_flags_t complain,
 	case OMP_CLAUSE_NUM_THREADS:
 	case OMP_CLAUSE_SCHEDULE:
 	case OMP_CLAUSE_COLLAPSE:
+	case OMP_CLAUSE_FINAL:
 	  OMP_CLAUSE_OPERAND (nc, 0)
 	    = tsubst_expr (OMP_CLAUSE_OPERAND (oc, 0), args, complain, 
 			   in_decl, /*integral_constant_expression_p=*/false);
@@ -12180,6 +12199,7 @@ tsubst_omp_clauses (tree clauses, tree args, tsubst_flags_t complain,
 	case OMP_CLAUSE_ORDERED:
 	case OMP_CLAUSE_DEFAULT:
 	case OMP_CLAUSE_UNTIED:
+	case OMP_CLAUSE_MERGEABLE:
 	  break;
 	default:
 	  gcc_unreachable ();
@@ -12810,12 +12830,56 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
     case OMP_ATOMIC:
       gcc_assert (OMP_ATOMIC_DEPENDENT_P (t));
-      {
-	tree op1 = TREE_OPERAND (t, 1);
-	tree lhs = RECUR (TREE_OPERAND (op1, 0));
-	tree rhs = RECUR (TREE_OPERAND (op1, 1));
-	finish_omp_atomic (TREE_CODE (op1), lhs, rhs);
-      }
+      if (TREE_CODE (TREE_OPERAND (t, 1)) != MODIFY_EXPR)
+	{
+	  tree op1 = TREE_OPERAND (t, 1);
+	  tree rhs1 = NULL_TREE;
+	  tree lhs, rhs;
+	  if (TREE_CODE (op1) == COMPOUND_EXPR)
+	    {
+	      rhs1 = RECUR (TREE_OPERAND (op1, 0));
+	      op1 = TREE_OPERAND (op1, 1);
+	    }
+	  lhs = RECUR (TREE_OPERAND (op1, 0));
+	  rhs = RECUR (TREE_OPERAND (op1, 1));
+	  finish_omp_atomic (OMP_ATOMIC, TREE_CODE (op1), lhs, rhs,
+			     NULL_TREE, NULL_TREE, rhs1);
+	}
+      else
+	{
+	  tree op1 = TREE_OPERAND (t, 1);
+	  tree v = NULL_TREE, lhs, rhs = NULL_TREE, lhs1 = NULL_TREE;
+	  tree rhs1 = NULL_TREE;
+	  enum tree_code code = TREE_CODE (TREE_OPERAND (op1, 1));
+	  enum tree_code opcode = NOP_EXPR;
+	  if (code == OMP_ATOMIC_READ)
+	    {
+	      v = RECUR (TREE_OPERAND (op1, 0));
+	      lhs = RECUR (TREE_OPERAND (TREE_OPERAND (op1, 1), 0));
+	    }
+	  else if (code == OMP_ATOMIC_CAPTURE_OLD
+		   || code == OMP_ATOMIC_CAPTURE_NEW)
+	    {
+	      tree op11 = TREE_OPERAND (TREE_OPERAND (op1, 1), 1);
+	      v = RECUR (TREE_OPERAND (op1, 0));
+	      lhs1 = RECUR (TREE_OPERAND (TREE_OPERAND (op1, 1), 0));
+	      if (TREE_CODE (op11) == COMPOUND_EXPR)
+		{
+		  rhs1 = RECUR (TREE_OPERAND (op11, 0));
+		  op11 = TREE_OPERAND (op11, 1);
+		}
+	      lhs = RECUR (TREE_OPERAND (op11, 0));
+	      rhs = RECUR (TREE_OPERAND (op11, 1));
+	      opcode = TREE_CODE (op11);
+	    }
+	  else
+	    {
+	      code = OMP_ATOMIC;
+	      lhs = RECUR (TREE_OPERAND (op1, 0));
+	      rhs = RECUR (TREE_OPERAND (op1, 1));
+	    }
+	  finish_omp_atomic (code, opcode, lhs, rhs, v, lhs1, rhs1);
+	}
       break;
 
     case EXPR_PACK_EXPANSION:
@@ -13815,10 +13879,17 @@ tsubst_copy_and_build (tree t,
 	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
 	LAMBDA_EXPR_DISCRIMINATOR (r)
 	  = (LAMBDA_EXPR_DISCRIMINATOR (t));
-	LAMBDA_EXPR_CAPTURE_LIST (r)
-	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
 	LAMBDA_EXPR_EXTRA_SCOPE (r)
 	  = RECUR (LAMBDA_EXPR_EXTRA_SCOPE (t));
+	if (LAMBDA_EXPR_RETURN_TYPE (t) == dependent_lambda_return_type_node)
+	  {
+	    LAMBDA_EXPR_RETURN_TYPE (r) = dependent_lambda_return_type_node;
+	    LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (r) = true;
+	  }
+	else
+	  LAMBDA_EXPR_RETURN_TYPE (r)
+	    = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
+
 	gcc_assert (LAMBDA_EXPR_THIS_CAPTURE (t) == NULL_TREE
 		    && LAMBDA_EXPR_PENDING_PROXIES (t) == NULL);
 
@@ -13828,9 +13899,10 @@ tsubst_copy_and_build (tree t,
 	   declaration of the op() for later calls to lambda_function.  */
 	complete_type (type);
 
-	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
-	if (type)
-	  apply_lambda_return_type (r, type);
+	/* The capture list refers to closure members, so this needs to
+	   wait until after we finish instantiating the type.  */
+	LAMBDA_EXPR_CAPTURE_LIST (r)
+	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
 
 	return build_lambda_object (r);
       }
@@ -15372,7 +15444,6 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
         tree arg = TREE_VEC_ELT (packed_args, i);
 	tree arg_expr = NULL_TREE;
         int arg_strict = strict;
-        bool skip_arg_p = false;
 
         if (call_args_p)
           {
@@ -15415,19 +15486,15 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
                     if (resolve_overloaded_unification
                         (tparms, targs, parm, arg,
 			 (unification_kind_t) strict,
-			 sub_strict, explain_p)
-                        != 0)
-                      return 1;
-                    skip_arg_p = true;
+			 sub_strict, explain_p))
+		      goto unified;
+		    return unify_overload_resolution_failure (explain_p, arg);
                   }
 
-                if (!skip_arg_p)
-                  {
-		    arg_expr = arg;
-                    arg = unlowered_expr_type (arg);
-                    if (arg == error_mark_node)
-                      return 1;
-                  }
+		arg_expr = arg;
+		arg = unlowered_expr_type (arg);
+		if (arg == error_mark_node)
+		  return unify_invalid (explain_p);
               }
       
             arg_strict = sub_strict;
@@ -15438,16 +15505,14 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
 						  &parm, &arg, arg_expr);
           }
 
-        if (!skip_arg_p)
-          {
-	    /* For deduction from an init-list we need the actual list.  */
-	    if (arg_expr && BRACE_ENCLOSED_INITIALIZER_P (arg_expr))
-	      arg = arg_expr;
-	    RECUR_AND_CHECK_FAILURE (tparms, targs, parm, arg, arg_strict,
-				     explain_p);
-          }
+	/* For deduction from an init-list we need the actual list.  */
+	if (arg_expr && BRACE_ENCLOSED_INITIALIZER_P (arg_expr))
+	  arg = arg_expr;
+	RECUR_AND_CHECK_FAILURE (tparms, targs, parm, arg, arg_strict,
+				 explain_p);
       }
 
+    unified:
       /* For each parameter pack, collect the deduced value.  */
       for (pack = packs; pack; pack = TREE_CHAIN (pack))
         {
@@ -15876,10 +15941,11 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
 	     that were talking about variable-sized arrays (like
 	     `int[n]'), rather than arrays of unknown size (like
 	     `int[]').)  We'll get very confused by such a type since
-	     the bound of the array will not be computable in an
-	     instantiation.  Besides, such types are not allowed in
-	     ISO C++, so we can do as we please here.  */
-	  if (variably_modified_type_p (arg, NULL_TREE))
+	     the bound of the array is not constant, and therefore
+	     not mangleable.  Besides, such types are not allowed in
+	     ISO C++, so we can do as we please here.  We do allow
+	     them for 'auto' deduction, since that isn't ABI-exposed.  */
+	  if (!is_auto (parm) && variably_modified_type_p (arg, NULL_TREE))
 	    return unify_vla_arg (explain_p, arg);
 
 	  /* Strip typedefs as in convert_template_argument.  */
@@ -19606,6 +19672,10 @@ build_non_dependent_expr (tree expr)
      expression, there are special rules if the second or third
      argument is a throw-expression.  */
   if (TREE_CODE (expr) == THROW_EXPR)
+    return expr;
+
+  /* Don't wrap an initializer list, we need to be able to look inside.  */
+  if (BRACE_ENCLOSED_INITIALIZER_P (expr))
     return expr;
 
   if (TREE_CODE (expr) == COND_EXPR)

@@ -5620,7 +5620,11 @@ melt_linemap_compute_current_location (struct reading_st* rd)
     else
       colnum++;
   }
+#if MELT_GCC_VERSION <= 4006 /* GCC 4.6 */
   LINEMAP_POSITION_FOR_COLUMN(rd->rsrcloc, line_table, colnum);
+#else /* GCC 4.7 or newer */
+  rd->rsrcloc = linemap_position_for_column (line_table, colnum);
+#endif /*MELT_GCC_VERSION*/
 }
 
 static melt_ptr_t meltgc_readstring (struct reading_st *rd);

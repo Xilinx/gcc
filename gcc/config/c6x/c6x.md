@@ -1427,8 +1427,10 @@
    (set_attr "cross" "y,n")
    (set_attr "dest_regfile" "b")])
 
+;; computed_jump_p returns true if it finds a constant; so use one in the
+;; unspec.
 (define_insn "indirect_jump_shadow"
-  [(set (pc) (unspec [(pc)] UNSPEC_JUMP_SHADOW))]
+  [(set (pc) (unspec [(const_int 1)] UNSPEC_JUMP_SHADOW))]
   ""
   ";; indirect jump occurs"
   [(set_attr "type" "shadow")])
@@ -2012,7 +2014,7 @@
 
 (define_expand "ctzdi2"
   [(set (match_operand:DI 0 "register_operand" "")
-	(ctz:SI (match_operand:DI 1 "register_operand" "")))]
+	(ctz:DI (match_operand:DI 1 "register_operand" "")))]
   "TARGET_INSNS_64"
 {
   rtx tmpreg = gen_reg_rtx (DImode);

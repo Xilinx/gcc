@@ -403,7 +403,13 @@ enum omp_clause_code
   OMP_CLAUSE_COLLAPSE,
 
   /* OpenMP clause: untied.  */
-  OMP_CLAUSE_UNTIED
+  OMP_CLAUSE_UNTIED,
+
+  /* OpenMP clause: final (scalar-expression).  */
+  OMP_CLAUSE_FINAL,
+
+  /* OpenMP clause: mergeable.  */
+  OMP_CLAUSE_MERGEABLE
 };
 
 /* The definition of tree nodes fills the next several pages.  */
@@ -1879,6 +1885,8 @@ extern void protected_set_expr_location (tree, location_t);
 #define OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ(NODE) \
   (OMP_CLAUSE_CHECK (NODE))->omp_clause.gimple_reduction_init
 
+#define OMP_CLAUSE_FINAL_EXPR(NODE) \
+  OMP_CLAUSE_OPERAND (OMP_CLAUSE_SUBCODE_CHECK (NODE, OMP_CLAUSE_FINAL), 0)
 #define OMP_CLAUSE_IF_EXPR(NODE) \
   OMP_CLAUSE_OPERAND (OMP_CLAUSE_SUBCODE_CHECK (NODE, OMP_CLAUSE_IF), 0)
 #define OMP_CLAUSE_NUM_THREADS_EXPR(NODE) \
@@ -4372,7 +4380,6 @@ tree_low_cst (const_tree t, int pos)
   return TREE_INT_CST_LOW (t);
 }
 #endif
-extern int tree_int_cst_msb (const_tree);
 extern int tree_int_cst_sgn (const_tree);
 extern int tree_int_cst_sign_bit (const_tree);
 extern unsigned int tree_int_cst_min_precision (tree, bool);
@@ -5305,6 +5312,25 @@ truth_value_p (enum tree_code code)
 	  || code == TRUTH_XOR_EXPR || code == TRUTH_NOT_EXPR);
 }
 
+/* Return whether TYPE is a type suitable for an offset for
+   a POINTER_PLUS_EXPR.  */
+static inline bool
+ptrofftype_p (tree type)
+{
+  return (INTEGRAL_TYPE_P (type)
+	  && TYPE_PRECISION (type) == TYPE_PRECISION (sizetype)
+	  && TYPE_UNSIGNED (type) == TYPE_UNSIGNED (sizetype));
+}
+
+/* Return OFF converted to a pointer offset type suitable as offset for
+   POINTER_PLUS_EXPR.  Use location LOC for this conversion.  */
+static inline tree
+convert_to_ptrofftype_loc (location_t loc, tree off)
+{
+  return fold_convert_loc (loc, sizetype, off);
+}
+#define convert_to_ptrofftype(t) convert_to_ptrofftype_loc (UNKNOWN_LOCATION, t)
+
 /* Build and fold a POINTER_PLUS_EXPR at LOC offsetting PTR by OFF.  */
 static inline tree
 fold_build_pointer_plus_loc (location_t loc, tree ptr, tree off)
@@ -5350,12 +5376,11 @@ extern tree build_va_arg_indirect_ref (tree);
 extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
-extern bool can_trust_pointer_alignment (void);
-extern unsigned int get_pointer_alignment (tree, unsigned int);
 extern bool is_builtin_name (const char *);
 extern bool is_builtin_fn (tree);
 extern unsigned int get_object_alignment_1 (tree, unsigned HOST_WIDE_INT *);
-extern unsigned int get_object_alignment (tree, unsigned int);
+extern unsigned int get_object_alignment (tree);
+extern unsigned int get_pointer_alignment (tree);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
 extern tree make_range (tree, int *, tree *, tree *, bool *);
@@ -5538,6 +5563,8 @@ extern bool must_pass_in_stack_var_size_or_pad (enum machine_mode, const_tree);
 /* In attribs.c.  */
 
 extern const struct attribute_spec *lookup_attribute_spec (const_tree);
+
+extern void init_attributes (void);
 
 /* Process the attributes listed in ATTRIBUTES and install them in *NODE,
    which is either a DECL (including a TYPE_DECL) or a TYPE.  If a DECL,

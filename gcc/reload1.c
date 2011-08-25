@@ -1646,8 +1646,7 @@ calculate_elim_costs_all_insns (void)
 		    {
 		      rtx t = eliminate_regs_1 (SET_SRC (set), VOIDmode, insn,
 						false, true);
-		      int cost = rtx_cost (t, SET,
-					   optimize_bb_for_speed_p (bb));
+		      int cost = set_src_cost (t, optimize_bb_for_speed_p (bb));
 		      int freq = REG_FREQ_FROM_BB (bb);
 
 		      reg_equiv_init_cost[regno] = cost * freq;
@@ -2505,7 +2504,7 @@ note_reg_elim_costly (rtx *px, void *data)
     {
       rtx t = reg_equiv_invariant (REGNO (x));
       rtx new_rtx = eliminate_regs_1 (t, Pmode, insn, true, true);
-      int cost = rtx_cost (new_rtx, SET, optimize_bb_for_speed_p (elim_bb));
+      int cost = set_src_cost (new_rtx, optimize_bb_for_speed_p (elim_bb));
       int freq = REG_FREQ_FROM_BB (elim_bb);
 
       if (cost != 0)
@@ -4548,7 +4547,7 @@ reload_as_needed (int live_known)
 #if defined (AUTO_INC_DEC)
   int i;
 #endif
-  rtx x;
+  rtx x, marker;
 
   memset (spill_reg_rtx, 0, sizeof spill_reg_rtx);
   memset (spill_reg_store, 0, sizeof spill_reg_store);
@@ -4558,6 +4557,10 @@ reload_as_needed (int live_known)
   CLEAR_HARD_REG_SET (reg_reloaded_call_part_clobbered);
 
   set_initial_elim_offsets ();
+
+  /* Generate a marker insn that we will move around.  */
+  marker = emit_note (NOTE_INSN_DELETED);
+  unlink_insn_chain (marker, marker);
 
   for (chain = reload_insn_chain; chain; chain = chain->next)
     {
@@ -4631,7 +4634,10 @@ reload_as_needed (int live_known)
 	      rtx next = NEXT_INSN (insn);
 	      rtx p;
 
+	      /* ??? PREV can get deleted by reload inheritance.
+		 Work around this by emitting a marker note.  */
 	      prev = PREV_INSN (insn);
+	      reorder_insns_nobb (marker, marker, prev);
 
 	      /* Now compute which reload regs to reload them into.  Perhaps
 		 reusing reload regs from previous insns, or else output
@@ -4649,9 +4655,21 @@ reload_as_needed (int live_known)
 		 and that we moved the structure into).  */
 	      subst_reloads (insn);
 
+	      prev = PREV_INSN (marker);
+	      unlink_insn_chain (marker, marker);
+
 	      /* Adjust the exception region notes for loads and stores.  */
 	      if (cfun->can_throw_non_call_exceptions && !CALL_P (insn))
 		fixup_eh_region_note (insn, prev, next);
+
+	      /* Adjust the location of REG_ARGS_SIZE.  */
+	      p = find_reg_note (insn, REG_ARGS_SIZE, NULL_RTX);
+	      if (p)
+		{
+		  remove_note (insn, p);
+		  fixup_args_size_notes (prev, PREV_INSN (next),
+					 INTVAL (XEXP (p, 0)));
+		}
 
 	      /* If this was an ASM, make sure that all the reload insns
 		 we have generated are valid.  If not, give an error

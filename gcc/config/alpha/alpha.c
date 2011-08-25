@@ -571,59 +571,6 @@ direct_return (void)
 	  && crtl->args.pretend_args_size == 0);
 }
 
-/* Return the ADDR_VEC associated with a tablejump insn.  */
-
-rtx
-alpha_tablejump_addr_vec (rtx insn)
-{
-  rtx tmp;
-
-  tmp = JUMP_LABEL (insn);
-  if (!tmp)
-    return NULL_RTX;
-  tmp = NEXT_INSN (tmp);
-  if (!tmp)
-    return NULL_RTX;
-  if (JUMP_P (tmp)
-      && GET_CODE (PATTERN (tmp)) == ADDR_DIFF_VEC)
-    return PATTERN (tmp);
-  return NULL_RTX;
-}
-
-/* Return the label of the predicted edge, or CONST0_RTX if we don't know.  */
-
-rtx
-alpha_tablejump_best_label (rtx insn)
-{
-  rtx jump_table = alpha_tablejump_addr_vec (insn);
-  rtx best_label = NULL_RTX;
-
-  /* ??? Once the CFG doesn't keep getting completely rebuilt, look
-     there for edge frequency counts from profile data.  */
-
-  if (jump_table)
-    {
-      int n_labels = XVECLEN (jump_table, 1);
-      int best_count = -1;
-      int i, j;
-
-      for (i = 0; i < n_labels; i++)
-	{
-	  int count = 1;
-
-	  for (j = i + 1; j < n_labels; j++)
-	    if (XEXP (XVECEXP (jump_table, 1, i), 0)
-		== XEXP (XVECEXP (jump_table, 1, j), 0))
-	      count++;
-
-	  if (count > best_count)
-	    best_count = count, best_label = XVECEXP (jump_table, 1, i);
-	}
-    }
-
-  return best_label ? best_label : const0_rtx;
-}
-
 /* Return the TLS model to use for SYMBOL.  */
 
 static enum tls_model
@@ -1207,7 +1154,7 @@ alpha_legitimize_reload_address (rtx x,
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-alpha_rtx_costs (rtx x, int code, int outer_code, int *total,
+alpha_rtx_costs (rtx x, int code, int outer_code, int opno, int *total,
 		 bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
@@ -1275,9 +1222,9 @@ alpha_rtx_costs (rtx x, int code, int outer_code, int *total,
 	       && const48_operand (XEXP (XEXP (x, 0), 1), VOIDmode))
 	{
 	  *total = (rtx_cost (XEXP (XEXP (x, 0), 0),
-			      (enum rtx_code) outer_code, speed)
+			      (enum rtx_code) outer_code, opno, speed)
 		    + rtx_cost (XEXP (x, 1),
-				(enum rtx_code) outer_code, speed)
+				(enum rtx_code) outer_code, opno, speed)
 		    + COSTS_N_INSNS (1));
 	  return true;
 	}
@@ -4683,6 +4630,13 @@ alpha_gp_save_rtx (void)
     }
 
   return m;
+}
+
+static void
+alpha_instantiate_decls (void)
+{
+  if (cfun->machine->gp_save_rtx != NULL_RTX)
+    instantiate_decl_rtl (cfun->machine->gp_save_rtx);
 }
 
 static int
@@ -9863,6 +9817,9 @@ alpha_conditional_register_usage (void)
 #define TARGET_FUNCTION_ARG_ADVANCE alpha_function_arg_advance
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT alpha_trampoline_init
+
+#undef TARGET_INSTANTIATE_DECLS
+#define TARGET_INSTANTIATE_DECLS alpha_instantiate_decls
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD alpha_secondary_reload

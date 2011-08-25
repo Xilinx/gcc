@@ -157,6 +157,22 @@ along with GCC; see the file COPYING3.  If not see
 %{!m32:%{!m64:%(cpp_arch_default)}} \
 "
 
+/* -mcpu=native handling only makes sense with compiler running on
+   a SPARC chip.  */
+#if defined(__sparc__)
+extern const char *host_detect_local_cpu (int argc, const char **argv);
+# define EXTRA_SPEC_FUNCTIONS						\
+  { "local_cpu_detect", host_detect_local_cpu },
+
+# define MCPU_MTUNE_NATIVE_SPECS					\
+   " %{mcpu=native:%<mcpu=native %:local_cpu_detect(cpu)}"		\
+   " %{mtune=native:%<mtune=native %:local_cpu_detect(tune)}"
+#else
+# define MCPU_MTUNE_NATIVE_SPECS ""
+#endif
+
+#define DRIVER_SELF_SPECS MCPU_MTUNE_NATIVE_SPECS
+
 #undef	CC1_SPEC
 #if DEFAULT_ARCH32_P
 #define CC1_SPEC "\
@@ -313,10 +329,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Use Solaris ELF section syntax with Sun as.  */
 #undef TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION sparc_solaris_elf_asm_named_section
-
-/* Emit COMDAT group signature symbols for Sun as.  */
-#undef TARGET_ASM_CODE_END
-#define TARGET_ASM_CODE_END solaris_code_end
 
 /* Sun as requires doublequoted section names on SPARC.  While GNU as
    supports that, too, we prefer the standard variant.  */

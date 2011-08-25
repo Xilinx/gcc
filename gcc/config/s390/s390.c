@@ -2374,8 +2374,8 @@ s390_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
    of the superexpression of x.  */
 
 static bool
-s390_rtx_costs (rtx x, int code, int outer_code, int *total,
-		bool speed ATTRIBUTE_UNUSED)
+s390_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		int *total, bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -2480,9 +2480,9 @@ s390_rtx_costs (rtx x, int code, int outer_code, int *total,
       /* Negate in the third argument is free: FMSUB.  */
       if (GET_CODE (XEXP (x, 2)) == NEG)
 	{
-	  *total += (rtx_cost (XEXP (x, 0), FMA, speed)
-		     + rtx_cost (XEXP (x, 1), FMA, speed)
-		     + rtx_cost (XEXP (XEXP (x, 2), 0), FMA, speed));
+	  *total += (rtx_cost (XEXP (x, 0), FMA, 0, speed)
+		     + rtx_cost (XEXP (x, 1), FMA, 1, speed)
+		     + rtx_cost (XEXP (XEXP (x, 2), 0), FMA, 2, speed));
 	  return true;
 	}
       return false;
@@ -4733,7 +4733,8 @@ s390_expand_cs_hqi (enum machine_mode mode, rtx target, rtx mem, rtx cmp, rtx ne
   if (ac.aligned && MEM_P (cmp))
     {
       cmpv = force_reg (SImode, val);
-      store_bit_field (cmpv, GET_MODE_BITSIZE (mode), 0, SImode, cmp);
+      store_bit_field (cmpv, GET_MODE_BITSIZE (mode), 0,
+		       0, 0, SImode, cmp);
     }
   else
     cmpv = force_reg (SImode, expand_simple_binop (SImode, IOR, cmp, val,
@@ -4741,7 +4742,8 @@ s390_expand_cs_hqi (enum machine_mode mode, rtx target, rtx mem, rtx cmp, rtx ne
   if (ac.aligned && MEM_P (new_rtx))
     {
       newv = force_reg (SImode, val);
-      store_bit_field (newv, GET_MODE_BITSIZE (mode), 0, SImode, new_rtx);
+      store_bit_field (newv, GET_MODE_BITSIZE (mode), 0,
+		       0, 0, SImode, new_rtx);
     }
   else
     newv = force_reg (SImode, expand_simple_binop (SImode, IOR, new_rtx, val,
@@ -4818,7 +4820,8 @@ s390_expand_atomic (enum machine_mode mode, enum rtx_code code,
       /* FALLTHRU */
     case SET:
       if (ac.aligned && MEM_P (val))
-	store_bit_field (new_rtx, GET_MODE_BITSIZE (mode), 0, SImode, val);
+	store_bit_field (new_rtx, GET_MODE_BITSIZE (mode), 0,
+			 0, 0, SImode, val);
       else
 	{
 	  new_rtx = expand_simple_binop (SImode, AND, new_rtx, ac.modemaski,

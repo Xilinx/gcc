@@ -244,7 +244,8 @@ Objective-C and Objective-C++ Dialects}.
 -Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2 @gol
 -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral @gol
 -Wformat-security  -Wformat-y2k @gol
--Wframe-larger-than=@var{len} -Wjump-misses-init -Wignored-qualifiers @gol
+-Wframe-larger-than=@var{len} -Wno-free-nonheap-object -Wjump-misses-init @gol
+-Wignored-qualifiers @gol
 -Wimplicit  -Wimplicit-function-declaration  -Wimplicit-int @gol
 -Winit-self  -Winline -Wmaybe-uninitialized @gol
 -Wno-int-to-pointer-cast -Wno-invalid-offsetof @gol
@@ -606,9 +607,9 @@ Objective-C and Objective-C++ Dialects}.
 -mincoming-stack-boundary=@var{num} @gol
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip -mvzeroupper @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
--maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfma @gol
--msse4a -m3dnow -mpopcnt -mabm -mbmi -mtbm -mfma4 -mxop -mlwp @gol
--mthreads  -mno-align-stringops  -minline-all-stringops @gol
+-mavx2 -maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfma @gol
+-msse4a -m3dnow -mpopcnt -mabm -mbmi -mtbm -mfma4 -mxop -mlzcnt @gol
+-mbmi2 -mlwp -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
 -m96bit-long-double  -mregparm=@var{num}  -msseregparm @gol
@@ -3964,6 +3965,12 @@ even if you do not get a warning.  In addition, any space allocated
 via @code{alloca}, variable-length arrays, or related constructs
 is not included by the compiler when determining
 whether or not to issue a warning.
+
+@item -Wno-free-nonheap-object
+@opindex Wno-free-nonheap-object
+@opindex Wfree-nonheap-object
+Do not warn when attempting to free an object which was not allocated
+on the heap.
 
 @item -Wstack-usage=@var{len}
 @opindex Wstack-usage
@@ -9064,6 +9071,11 @@ The maximum number of conditional stores paires that can be sunk.  Set to 0
 if either vectorization (@option{-ftree-vectorize}) or if-conversion
 (@option{-ftree-loop-if-convert}) is disabled.  The default is 2.
 
+@item allow-store-data-races
+Allow optimizers to introduce new data races on stores.
+Set to 1 to allow, otherwise to 0.  This option is enabled by default
+unless implicitly set by the @option{-fmemory-model=} option.
+
 @item case-values-threshold
 The smallest number of different values for which it is best to use a
 jump-table instead of a tree of conditional branches.  If the value is
@@ -11534,7 +11546,7 @@ Schedules as an EV6 and supports the BWX, FIX, and MAX extensions.
 Schedules as an EV6 and supports the BWX, CIX, FIX, and MAX extensions.
 @end table
 
-Native Linux/GNU toolchains also support the value @samp{native},
+Native toolchains also support the value @samp{native},
 which selects the best architecture option for the host processor.
 @option{-mcpu=native} has no effect if GCC does not recognize
 the processor.
@@ -11544,7 +11556,7 @@ the processor.
 Set only the instruction scheduling parameters for machine type
 @var{cpu_type}.  The instruction set is not changed.
 
-Native Linux/GNU toolchains also support the value @samp{native},
+Native toolchains also support the value @samp{native},
 which selects the best architecture option for the host processor.
 @option{-mtune=native} has no effect if GCC does not recognize
 the processor.
@@ -12322,6 +12334,10 @@ and SSE4.2 instruction set support.
 @item corei7-avx
 Intel Core i7 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3,
 SSE4.1, SSE4.2, AVX, AES and PCLMUL instruction set support.
+@item core-avx-i
+Intel Core CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3, SSSE3,
+SSE4.1, SSE4.2, AVX, AES, PCLMUL, FSGSBASE, RDRND and F16C instruction
+set support.
 @item atom
 Intel Atom CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
 instruction set support.
@@ -12663,6 +12679,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-sse4
 @itemx -mavx
 @itemx -mno-avx
+@itemx -mavx2
+@itemx -mno-avx2
 @itemx -maes
 @itemx -mno-aes
 @itemx -mpclmul
@@ -12692,7 +12710,11 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mabm
 @itemx -mno-abm
 @itemx -mbmi
+@itemx -mbmi2
 @itemx -mno-bmi
+@itemx -mno-bmi2
+@itemx -mlzcnt
+@itemx -mno-lzcnt
 @itemx -mtbm
 @itemx -mno-tbm
 @opindex mmmx
@@ -12702,8 +12724,9 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex m3dnow
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX, SSE,
-SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, FSGSBASE, RDRND, F16C, FMA,
-SSE4A, FMA4, XOP, LWP, ABM, BMI, or 3DNow!@: extended instruction sets.
+SSE2, SSE3, SSSE3, SSE4.1, AVX, AVX2, AES, PCLMUL, FSGSBASE, RDRND, F16C,
+FMA, SSE4A, FMA4, XOP, LWP, ABM, BMI, BMI2, LZCNT or 3DNow!
+@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -14314,7 +14337,7 @@ The special value @samp{from-abi} selects the
 most compatible architecture for the selected ABI (that is,
 @samp{mips1} for 32-bit ABIs and @samp{mips3} for 64-bit ABIs)@.
 
-Native Linux/GNU toolchains also support the value @samp{native},
+Native Linux/GNU and IRIX toolchains also support the value @samp{native},
 which selects the best architecture option for the host processor.
 @option{-march=native} has no effect if GCC does not recognize
 the processor.
@@ -17258,6 +17281,11 @@ for machine type @var{cpu_type}.  Supported values for @var{cpu_type} are
 @samp{sparclet}, @samp{tsc701}, @samp{v9}, @samp{ultrasparc},
 @samp{ultrasparc3}, @samp{niagara} and @samp{niagara2}.
 
+Native Solaris toolchains also support the value @samp{native},
+which selects the best architecture option for the host processor.
+@option{-mcpu=native} has no effect if GCC does not recognize
+the processor.
+
 Default instruction scheduling parameters are used for values that select
 an architecture and not an implementation.  These are @samp{v7}, @samp{v8},
 @samp{sparclite}, @samp{sparclet}, @samp{v9}.
@@ -17322,7 +17350,8 @@ The same values for @option{-mcpu=@var{cpu_type}} can be used for
 that select a particular CPU implementation.  Those are @samp{cypress},
 @samp{supersparc}, @samp{hypersparc}, @samp{leon}, @samp{f930}, @samp{f934},
 @samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc}, @samp{ultrasparc3},
-@samp{niagara}, and @samp{niagara2}.
+@samp{niagara}, and @samp{niagara2}.  With native Solaris toolchains,
+@samp{native} can also be used.
 
 @item -mv8plus
 @itemx -mno-v8plus
