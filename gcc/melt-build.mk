@@ -3509,7 +3509,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
 	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
-	      $(meltarg_output)=$(basename $@)  \
+	      $(meltarg_output)=$(basename $@).texi  \
               $(meltarg_arglist)=warmelt-first.melt,warmelt-base.melt,warmelt-debug.melt,warmelt-macro.melt,warmelt-normal.melt,warmelt-normatch.melt,warmelt-genobj.melt,warmelt-outobj.melt,\
 xtramelt-parse-infix-syntax.melt,xtramelt-ana-base.melt,xtramelt-ana-simple.melt,xtramelt-c-generator.melt,xtramelt-opengpu.melt \
               empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp

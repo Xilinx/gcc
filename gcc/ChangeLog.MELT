@@ -1,7 +1,12 @@
 
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* melt-build.tpl: Fix meltgendoc.texi target (missing .texi
+	extension for generated file).
+	* melt-built.mk: Regenerate.
+
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
 	* melt-build.tpl: Use -quicklybuilt instead of -static for
-	consistency with the whole build system
+	consistency with the whole build system.
 	* melt-built.mk: Regenerate.
 
 2011-08-24  Alexandre Lissy  <alissy@mandriva.com>

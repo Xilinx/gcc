@@ -611,7 +611,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
 	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
-	      $(meltarg_output)=$(basename $@)  \
+	      $(meltarg_output)=$(basename $@).texi  \
               $(meltarg_arglist)=[+FOR melt_translator_file+][+base+].melt,[+ENDFOR melt_translator_file+]\
 [+FOR melt_application_file "," +][+base+].melt[+ENDFOR melt_application_file+] \
               empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
