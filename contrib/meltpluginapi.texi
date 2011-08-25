@@ -2,6 +2,16 @@
 @c %**start of header
 @setfilename meltpluginapi.info
 @c don't need @include gcc-common.texi
+@c Macro to generate a "For the N.N.N version" subtitle on the title
+@c page of TeX documentation.  This macro should be used in the
+@c titlepage environment after the title and any other subtitles have
+@c been placed, and before any authors are placed.
+@macro versionsubtitle
+@subtitle For @sc{MELT} plugin of @sc{gcc}
+@c Even if there are no authors, the second titlepage line should be
+@c forced to the bottom of the page.
+@vskip 0pt plus 1filll
+@end macro
 
 @settitle MELT plugin API (generated documentation)
 
