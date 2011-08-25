@@ -1,4 +1,7 @@
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* MELT-Plugin-Makefile: Adding target to build .html and .pdf
+
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
 	* MELT-Plugin-Makefile (install-melt-modules): Fix installation paths
 
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>

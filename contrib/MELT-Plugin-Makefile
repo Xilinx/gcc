@@ -66,6 +66,9 @@ MAKEINFO?= makeinfo
 ## the GNU texi2pdf utility from makeinfo 
 TEXI2PDF?= texi2pdf
 
+## the GNU texi2html utility from makeinfo 
+TEXI2HTML?= texi2html
+
 ## an install driver, which could be sudo or echo, or stay empty
 INSTALL_DRIVER?=
 
@@ -245,6 +248,12 @@ MELTDOCSRC= meltplugin.texi meltpluginapi.texi
 MELTDOCPDF= $(patsubst %.texi,%.pdf,$(MELTDOCSRC))
 MELTDOCINFO= $(patsubst %.texi,%.info,$(MELTDOCSRC))
 MELTDOCHTML= $(patsubst %.texi,%.html,$(MELTDOCSRC))
+
+%.html: %.texi
+	$(TEXI2HTML) $(TEXI2HTML_FLAGS) $< -o $@
+
+%.pdf: %.texi
+	$(TEXI2PDF) $(TEXI2PDF_FLAGS) $< -o $@
 
 doc: meltgendoc.texi meltplugin.texi meltpluginapi.texi doc-pdf doc-info doc-html
 
