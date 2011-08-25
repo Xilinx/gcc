@@ -50,19 +50,6 @@ enum pph_record_marker {
   PPH_RECORD_XREF
 };
 
-/* Symbol table markers.  These are all the symbols that need to be 
-   registered with the middle end.  */
-enum pph_symtab_marker {
-  /* A FUNCTION_DECL with DECL_STRUCT_FUNCTION but no body.  */
-  PPH_SYMTAB_FUNCTION = 0x01,
-
-  /* A FUNCTION_DECL with DECL_STRUCT_FUNCTION and a body.  */
-  PPH_SYMTAB_FUNCTION_BODY,
-
-  /* All other symbols.  */
-  PPH_SYMTAB_DECL
-};
-
 /* Line table markers. We only stream line table entries from the parent header
    file, other entries are referred to by the name of the file which is then
    loaded as an include at the correct point in time.  */
@@ -134,15 +121,41 @@ typedef struct pph_pickle_cache {
   struct pointer_map_t *m;
 } pph_pickle_cache;
 
+
+/* Actions associated with each symbol table entry.  These indicate
+   what the reader should do when registering each entry with the
+   middle-end.  */
+enum pph_symtab_action {
+  /* Declare this symbol with rest_of_decl_compilation.  */
+  PPH_SYMTAB_DECLARE = 0x23,
+
+  /* Expand this function with expand_or_defer_fn.  */
+  PPH_SYMTAB_EXPAND
+};
+
+
+/* Symbol table entry.  */
+typedef struct pph_symtab_entry
+{
+  /* Registration action to perform by the reader.  */
+  enum pph_symtab_action action;
+
+  /* VAR_DECL or FUNCTION_DECL to declare.  */
+  tree decl;
+
+  /* Values to be passed to rest_of_decl_compilation.  */
+  unsigned int top_level : 1;
+  unsigned int at_end : 1;
+} pph_symtab_entry;
+
+DEF_VEC_O(pph_symtab_entry);
+DEF_VEC_ALLOC_O(pph_symtab_entry,heap);
+
 /* Symbol table for a PPH stream.  */
 typedef struct pph_symtab
 {
   /* Table of all the declarations to register in declaration order.  */
-  VEC(tree,heap) *v;
-
-  /* Set of declarations to register used to avoid adding duplicate
-     entries to the table.  */
-  struct pointer_set_t *m;
+  VEC(pph_symtab_entry,heap) *v;
 } pph_symtab;
 
 /* Vector of pph_stream pointers.  */
@@ -233,7 +246,7 @@ void *pph_cache_get (pph_pickle_cache *, unsigned, unsigned);
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
-void pph_add_decl_to_symtab (tree);
+void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 void pph_add_include (pph_stream *, bool);
 void pph_writer_init (void);
 void pph_writer_finish (void);
@@ -299,6 +312,20 @@ pph_out_uint (pph_stream *stream, unsigned int value)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, value);
+  streamer_write_uhwi (stream->encoder.w.ob, value);
+}
+
+/* Write an unsigned HOST_WIDE_INT VALUE to STREAM.  */
+static inline void
+pph_out_uhwi (pph_stream *stream, unsigned HOST_WIDE_INT value)
+{
+  streamer_write_uhwi (stream->encoder.w.ob, value);
+}
+
+/* Write a HOST_WIDE_INT VALUE to stream.  */
+static inline void
+pph_out_hwi (pph_stream *stream, HOST_WIDE_INT value)
+{
   streamer_write_hwi (stream->encoder.w.ob, value);
 }
 
@@ -389,7 +416,7 @@ pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
   streamer_write_bitpack (bp);
 }
 
-/* Read an unsigned HOST_WIDE_INT integer from STREAM.  */
+/* Read an unsigned integer from STREAM.  */
 static inline unsigned int
 pph_in_uint (pph_stream *stream)
 {
@@ -398,6 +425,20 @@ pph_in_uint (pph_stream *stream)
   if (flag_pph_tracer >= 4)
     pph_trace_uint (stream, n);
   return (unsigned) n;
+}
+
+/* Read an unsigned HOST_WIDE_INT from STREAM.  */
+static inline unsigned HOST_WIDE_INT
+pph_in_uhwi (pph_stream *stream)
+{
+  return streamer_read_uhwi (stream->encoder.r.ib);
+}
+
+/* Read a HOST_WIDE_INT from STREAM.  */
+static inline HOST_WIDE_INT
+pph_in_hwi (pph_stream *stream)
+{
+  return streamer_read_hwi (stream->encoder.r.ib);
 }
 
 /* Read an unsigned char VALUE to STREAM.  */

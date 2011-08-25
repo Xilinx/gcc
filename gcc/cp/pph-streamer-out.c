@@ -71,7 +71,10 @@ static void
 pph_out (const void *data, size_t len, void *block ATTRIBUTE_UNUSED)
 {
   if (data)
-    fwrite (data, len, 1, pph_out_stream->file);
+    {
+      size_t written = fwrite (data, 1, len, pph_out_stream->file);
+      gcc_assert (written == len);
+    }
 }
 
 
@@ -374,7 +377,12 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
   unsigned i;
   tree t;
 
-  pph_out_uint (stream, VEC_length (tree, v));
+  /* Note that we use the same format used by streamer_write_chain.
+     This is to support pph_out_chain_filtered, which writes the
+     filtered chain as a VEC.  Since the reader always reads chains
+     using streamer_read_chain, we have to write VECs in exactly the
+     same way as tree chains.  */
+  pph_out_hwi (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT (tree, v, i, t)
     pph_out_tree (stream, t);
 }
@@ -494,23 +502,6 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 
   pph_out_tree (stream, lb->label);
   pph_out_tree (stream, lb->prev_value);
-}
-
-
-/* Outputs chained tree T to STREAM by nulling out its chain first and
-   restoring it after the streaming is done.  */
-
-static inline void
-pph_out_chained_tree (pph_stream *stream, tree t)
-{
-  tree saved_chain;
-
-  saved_chain = TREE_CHAIN (t);
-  TREE_CHAIN (t) = NULL_TREE;
-
-  pph_out_tree_1 (stream, t, 2);
-
-  TREE_CHAIN (t) = saved_chain;
 }
 
 
@@ -1100,13 +1091,85 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Emit symbol table MARKER to STREAM.  */
+/* Emit symbol table ACTION to STREAM.  */
 
 static inline void
-pph_out_symtab_marker (pph_stream *stream, enum pph_symtab_marker marker)
+pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
 {
-  gcc_assert (marker == (enum pph_symtab_marker)(unsigned char) marker);
-  pph_out_uchar (stream, marker);
+  gcc_assert (action == (enum pph_symtab_action)(unsigned char) action);
+  pph_out_uchar (stream, action);
+}
+
+/* Emit callgraph NODE to STREAM.  */
+
+static void
+pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
+{
+  struct bitpack_d bp;
+
+  if (!pph_out_start_record (stream, node))
+    return;
+
+  pph_out_tree (stream, node->decl);
+  pph_out_cgraph_node (stream, node->origin);
+  pph_out_cgraph_node (stream, node->nested);
+  pph_out_cgraph_node (stream, node->next_nested);
+  pph_out_cgraph_node (stream, node->next_needed);
+  pph_out_cgraph_node (stream, node->next_sibling_clone);
+  pph_out_cgraph_node (stream, node->prev_sibling_clone);
+  pph_out_cgraph_node (stream, node->clones);
+  pph_out_cgraph_node (stream, node->clone_of);
+  pph_out_cgraph_node (stream, node->same_comdat_group);
+  gcc_assert (node->call_site_hash == NULL);
+  pph_out_tree (stream, node->former_clone_of);
+  gcc_assert (node->aux == NULL);
+  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
+
+  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
+  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
+
+  gcc_assert (node->local.lto_file_data == NULL);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, node->local.local, 1);
+  bp_pack_value (&bp, node->local.externally_visible, 1);
+  bp_pack_value (&bp, node->local.finalized, 1);
+  bp_pack_value (&bp, node->local.can_change_signature, 1);
+  bp_pack_value (&bp, node->local.redefined_extern_inline, 1);
+  pph_out_bitpack (stream, &bp);
+
+  pph_out_cgraph_node (stream, node->global.inlined_to);
+
+  pph_out_uint (stream, node->rtl.preferred_incoming_stack_boundary);
+
+  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
+  pph_out_uhwi (stream, node->thunk.fixed_offset);
+  pph_out_uhwi (stream, node->thunk.virtual_value);
+  pph_out_tree (stream, node->thunk.alias);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, node->thunk.this_adjusting, 1);
+  bp_pack_value (&bp, node->thunk.virtual_offset_p, 1);
+  bp_pack_value (&bp, node->thunk.thunk_p, 1);
+  pph_out_bitpack (stream, &bp);
+
+  pph_out_uhwi (stream, node->count);
+  pph_out_uint (stream, node->count_materialization_scale);
+
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, node->needed, 1);
+  bp_pack_value (&bp, node->address_taken, 1);
+  bp_pack_value (&bp, node->abstract_and_needed, 1);
+  bp_pack_value (&bp, node->reachable, 1);
+  bp_pack_value (&bp, node->reachable_from_other_partition, 1);
+  bp_pack_value (&bp, node->lowered, 1);
+  bp_pack_value (&bp, node->analyzed, 1);
+  bp_pack_value (&bp, node->in_other_partition, 1);
+  bp_pack_value (&bp, node->process, 1);
+  bp_pack_value (&bp, node->alias, 1);
+  bp_pack_value (&bp, node->same_body_alias, 1);
+  bp_pack_value (&bp, node->frequency, 2);
+  bp_pack_value (&bp, node->only_called_at_startup, 1);
+  bp_pack_value (&bp, node->only_called_at_exit, 1);
+  pph_out_bitpack (stream, &bp);
 }
 
 
@@ -1121,26 +1184,30 @@ pph_out_symtab_marker (pph_stream *stream, enum pph_symtab_marker marker)
 static void
 pph_out_symtab (pph_stream *stream)
 {
-  tree decl;
+  pph_symtab_entry *entry;
   unsigned i;
 
-  pph_out_uint (stream, VEC_length (tree, stream->symtab.v));
-  FOR_EACH_VEC_ELT (tree, stream->symtab.v, i, decl)
-    if (TREE_CODE (decl) == FUNCTION_DECL && DECL_STRUCT_FUNCTION (decl))
-      {
-	/* If this is a regular (non-template) function with a body,
-	   mark it for expansion during reading.  */
-	if (DECL_SAVED_TREE (decl) && cgraph_get_node (decl))
-	  pph_out_symtab_marker (stream, PPH_SYMTAB_FUNCTION_BODY);
-	else
-	  pph_out_symtab_marker (stream, PPH_SYMTAB_FUNCTION);
-	pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (decl));
-      }
-    else
-      {
-	pph_out_symtab_marker (stream, PPH_SYMTAB_DECL);
-	pph_out_tree (stream, decl);
-      }
+  pph_out_uint (stream, VEC_length (pph_symtab_entry, stream->symtab.v));
+  FOR_EACH_VEC_ELT (pph_symtab_entry, stream->symtab.v, i, entry)
+    {
+      pph_out_symtab_action (stream, entry->action);
+      pph_out_tree (stream, entry->decl);
+      if (entry->action == PPH_SYMTAB_DECLARE)
+	{
+	  struct bitpack_d bp;
+	  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+	  bp_pack_value (&bp, entry->top_level, 1);
+	  bp_pack_value (&bp, entry->at_end, 1);
+	  pph_out_bitpack (stream, &bp);
+	}
+      else if (entry->action == PPH_SYMTAB_EXPAND)
+	{
+	  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (entry->decl));
+	  pph_out_cgraph_node (stream, cgraph_get_node (entry->decl));
+	}
+      else
+	gcc_unreachable ();
+    }
 }
 
 
@@ -1437,6 +1504,7 @@ pph_out_tcc_type (pph_stream *stream, tree type)
   pph_out_tree (stream, TYPE_NEXT_VARIANT (type));
   /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
      failures.  Why?  */
+  pph_out_tree (stream, TREE_CHAIN (type));
 
   /* The type values cache is built as constants are instantiated,
      so we only stream it on the nodes that use it for
@@ -1751,18 +1819,26 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
 }
 
 
-/* Add DECL to the symbol table for pph_out_stream.  */
+/* Add DECL to the symbol table for pph_out_stream.  ACTION determines
+   how DECL should be presented to the middle-end when reading this
+   image.  TOP_LEVEL and AT_END are as in rest_of_decl_compilation.  */
 
 void
-pph_add_decl_to_symtab (tree decl)
+pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
+			bool top_level, bool at_end)
 {
-  pph_stream *stream = pph_out_stream;
+  pph_symtab_entry entry;
 
-  if (decl == NULL || stream == NULL)
+  if (decl == NULL || pph_out_stream == NULL)
     return;
 
-  if (!pointer_set_insert (stream->symtab.m, decl))
-    VEC_safe_push (tree, heap, stream->symtab.v, decl);
+  gcc_assert (DECL_P (decl));
+
+  entry.action = action;
+  entry.decl = decl;
+  entry.top_level = top_level;
+  entry.at_end = at_end;
+  VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
 }
 
 

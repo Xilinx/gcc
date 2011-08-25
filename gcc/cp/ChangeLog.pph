@@ -1,3 +1,42 @@
+2011-08-25   Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (cp/semantics.o): Add dependency on
+	$(CXX_PPH_STREAMER_H).
+	* decl.c (start_preparsed_function): Remove call to
+	pph_add_decl_to_symtab.
+	* pph-streamer-in.c (pph_in_ld_min): Call pph_in_hwi instead
+	of pph_in_uint.
+	(pph_in_struct_function): Do not return the allocated struct
+	function.
+	Add argument DECL.  Update all callers.
+	Allow references to an cached function.
+	(pph_in_cgraph_node): New.
+	(pph_in_symtab): Call it for PPH_SYMTAB_EXPAND records.
+	Call cgraph_finalize_function instead of expand_or_defer_fn.
+	(pph_in_tcc_declaration): Adjust DECL_EXTERNAL for
+	DECL_NOT_REALLY_EXTERN functions.  Document why.
+	* pph-streamer-out.c (pph_out): Assert that the call to fwrite
+	worked.
+	(pph_out_tree_vec): Output the length as a HOST_WIDE_INT.
+	Document why.
+	(pph_out_chained_tree): Remove unused function.
+	(pph_out_cgraph_node): New.
+	(pph_out_symtab): Call it for PPH_SYMTAB_EXPAND records.
+	(pph_add_decl_to_symtab): Add arguments ACTION, TOP_LEVEL and
+	AT_END.  Update all callers.
+	* pph-streamer.h (enum pph_symtab_action): Rename from
+	pph_symtab_marker.  Change values to PPH_SYMTAB_DECLARE and
+	PPH_SYMTAB_EXPAND.  Update all users.
+	(struct pph_symtab_entry): Declare.
+	(struct pph_symtab): Remove field 'm'.  Change field 'v' to be
+	VEC(pph_symtab_entry,heap).  Update all users.
+	(pph_out_uhwi): New.
+	(pph_out_hwi): New.
+	(pph_in_uhwi): New.
+	(pph_in_hwi): New.
+	* semantics.c: Include pph-streamer.h.
+	(expand_or_defer_fn_1): Call pph_add_decl_to_symtab.
+
 2011-08-24  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (ALLOC_AND_REGISTER): Take a pph_pickle_cache*

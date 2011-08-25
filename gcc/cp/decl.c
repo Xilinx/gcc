@@ -5900,7 +5900,7 @@ cp_rest_of_decl_compilation (tree decl, int top_level, int at_end)
 
   /* If we are generating a PPH image, add DECL to its symbol table.  */
   if (pph_out_file)
-    pph_add_decl_to_symtab (decl);
+    pph_add_decl_to_symtab (decl, PPH_SYMTAB_DECLARE, top_level, at_end);
 }
 
 
@@ -12834,10 +12834,6 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
   start_fname_decls ();
 
   store_parm_decls (current_function_parms);
-
-  /* If we are generating a PPH image, add DECL1 to its symbol table.  */
-  if (pph_out_file)
-    pph_add_decl_to_symtab (decl1);
 }
 
 

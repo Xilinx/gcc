@@ -121,7 +121,6 @@ pph_stream_open (const char *name, const char *mode)
   stream->name = xstrdup (name);
   stream->write_p = (strchr (mode, 'w') != NULL);
   stream->cache.m = pointer_map_create ();
-  stream->symtab.m = pointer_set_create ();
   if (stream->write_p)
     pph_init_write (stream);
   else
@@ -153,8 +152,7 @@ pph_stream_close (pph_stream *stream)
   stream->file = NULL;
   VEC_free (void_p, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
-  VEC_free (tree, heap, stream->symtab.v);
-  pointer_set_destroy (stream->symtab.m);
+  VEC_free (pph_symtab_entry, heap, stream->symtab.v);
 
   if (stream->write_p)
     {

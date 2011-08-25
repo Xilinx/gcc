@@ -355,10 +355,10 @@ pph_in_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 static VEC(tree,gc) *
 pph_in_tree_vec (pph_stream *stream)
 {
-  unsigned i, num;
+  HOST_WIDE_INT i, num;
   VEC(tree,gc) *v;
 
-  num = pph_in_uint (stream);
+  num = pph_in_hwi (stream);
   v = NULL;
   for (i = 0; i < num; i++)
     {
@@ -708,28 +708,36 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 
 
 /* Read applicable fields of struct function from STREAM.  Associate
-   the read structure to its corresponding FUNCTION_DECL and return
-   it.  */
+   the read structure to DECL.  */
 
-static struct function *
-pph_in_struct_function (pph_stream *stream)
+static void
+pph_in_struct_function (pph_stream *stream, tree decl)
 {
   size_t count, i;
   unsigned image_ix, ix;
   enum pph_record_marker marker;
   struct function *fn;
-  tree decl;
+  tree t;
 
   marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
-    return NULL;
+    return;
+  else if (pph_is_reference_marker (marker))
+    {
+      fn = (struct function *) pph_cache_get (&stream->cache, image_ix, ix);
+      gcc_assert (DECL_STRUCT_FUNCTION (decl) == fn);
+      return;
+    }
 
-  /* Since struct function is embedded in every decl, fn cannot be shared.  */
-  gcc_assert (!pph_is_reference_marker (marker));
-
-  decl = pph_in_tree (stream);
+  /* Allocate a new DECL_STRUCT_FUNCTION for DECL.  */
+  t = pph_in_tree (stream);
+  gcc_assert (t == decl);
   allocate_struct_function (decl, false);
   fn = DECL_STRUCT_FUNCTION (decl);
+
+  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
+     but allocate_struct_function does not return a pointer.  */
+  pph_cache_insert_at (&stream->cache, fn, ix);
 
   input_struct_function_base (fn, stream->encoder.r.data_in,
 			      stream->encoder.r.ib);
@@ -788,8 +796,6 @@ pph_in_struct_function (pph_stream *stream)
   /* unsigned int after_tree_profile : 1;			-- in base */
   /* unsigned int has_local_explicit_reg_vars : 1;		-- in base */
   /* unsigned int is_thunk : 1;					-- in base */
-
-  return fn;
 }
 
 
@@ -1233,14 +1239,94 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 
 /* Read a symbol table marker from STREAM.  */
 
-static inline enum pph_symtab_marker
-pph_in_symtab_marker (pph_stream *stream)
+static inline enum pph_symtab_action
+pph_in_symtab_action (pph_stream *stream)
 {
-  enum pph_symtab_marker m = (enum pph_symtab_marker) pph_in_uchar (stream);
-  gcc_assert (m == PPH_SYMTAB_FUNCTION
-	      || m == PPH_SYMTAB_FUNCTION_BODY
-	      || m == PPH_SYMTAB_DECL);
+  enum pph_symtab_action m = (enum pph_symtab_action) pph_in_uchar (stream);
+  gcc_assert (m == PPH_SYMTAB_DECLARE || m == PPH_SYMTAB_EXPAND);
   return m;
+}
+
+
+/* Read and return a callgraph node from STREAM.  If this is the first
+   time we read this node, add it to the callgraph.  */
+
+static struct cgraph_node *
+pph_in_cgraph_node (pph_stream *stream)
+{
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+  struct cgraph_node *node;
+  tree fndecl;
+  struct bitpack_d bp;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (struct cgraph_node *) pph_cache_get (&stream->cache, image_ix, ix);
+
+  fndecl = pph_in_tree (stream);
+  ALLOC_AND_REGISTER (&stream->cache, ix, node, cgraph_create_node (fndecl));
+
+  node->origin = pph_in_cgraph_node (stream);
+  node->nested = pph_in_cgraph_node (stream);
+  node->next_nested = pph_in_cgraph_node (stream);
+  node->next_needed = pph_in_cgraph_node (stream);
+  node->next_sibling_clone = pph_in_cgraph_node (stream);
+  node->prev_sibling_clone = pph_in_cgraph_node (stream);
+  node->clones = pph_in_cgraph_node (stream);
+  node->clone_of = pph_in_cgraph_node (stream);
+  node->same_comdat_group = pph_in_cgraph_node (stream);
+  gcc_assert (node->call_site_hash == NULL);
+  node->former_clone_of = pph_in_tree (stream);
+  gcc_assert (node->aux == NULL);
+  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
+
+  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
+  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
+
+  gcc_assert (node->local.lto_file_data == NULL);
+  bp = pph_in_bitpack (stream);
+  node->local.local = bp_unpack_value (&bp, 1);
+  node->local.externally_visible = bp_unpack_value (&bp, 1);
+  node->local.finalized = bp_unpack_value (&bp, 1);
+  node->local.can_change_signature = bp_unpack_value (&bp, 1);
+  node->local.redefined_extern_inline = bp_unpack_value (&bp, 1);
+
+  node->global.inlined_to = pph_in_cgraph_node (stream);
+
+  node->rtl.preferred_incoming_stack_boundary = pph_in_uint (stream);
+
+  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
+  node->thunk.fixed_offset = pph_in_uhwi (stream);
+  node->thunk.virtual_value = pph_in_uhwi (stream);
+  node->thunk.alias = pph_in_tree (stream);
+  bp = pph_in_bitpack (stream);
+  node->thunk.this_adjusting = bp_unpack_value (&bp, 1);
+  node->thunk.virtual_offset_p = bp_unpack_value (&bp, 1);
+  node->thunk.thunk_p = bp_unpack_value (&bp, 1);
+
+  node->count = pph_in_uhwi (stream);
+  node->count_materialization_scale = pph_in_uint (stream);
+
+  bp = pph_in_bitpack (stream);
+  node->needed = bp_unpack_value (&bp, 1);
+  node->address_taken = bp_unpack_value (&bp, 1);
+  node->abstract_and_needed = bp_unpack_value (&bp, 1);
+  node->reachable = bp_unpack_value (&bp, 1);
+  node->reachable_from_other_partition = bp_unpack_value (&bp, 1);
+  node->lowered = bp_unpack_value (&bp, 1);
+  node->analyzed = bp_unpack_value (&bp, 1);
+  node->in_other_partition = bp_unpack_value (&bp, 1);
+  node->process = bp_unpack_value (&bp, 1);
+  node->alias = bp_unpack_value (&bp, 1);
+  node->same_body_alias = bp_unpack_value (&bp, 1);
+  node->frequency = (enum node_frequency) bp_unpack_value (&bp, 2);
+  node->only_called_at_startup = bp_unpack_value (&bp, 1);
+  node->only_called_at_exit = bp_unpack_value (&bp, 1);
+
+  return node;
 }
 
 
@@ -1262,31 +1348,37 @@ pph_in_symtab (pph_stream *stream)
   num = pph_in_uint (stream);
   for (i = 0; i < num; i++)
     {
-      enum pph_symtab_marker kind = pph_in_symtab_marker (stream);
-      if (kind == PPH_SYMTAB_FUNCTION || kind == PPH_SYMTAB_FUNCTION_BODY)
+      enum pph_symtab_action action;
+      tree decl;
+      bool top_level, at_end;
+
+      action = pph_in_symtab_action (stream);
+      decl = pph_in_tree (stream);
+      if (action == PPH_SYMTAB_DECLARE)
 	{
-	  struct function *fn = pph_in_struct_function (stream);
-
-	  if (kind == PPH_SYMTAB_FUNCTION_BODY)
-	    {
-	      /* FIXME pph - This is somewhat gross.  When we
-		 generated the PPH image, the parser called
-		 expand_or_defer_fn on FN->DECL, which marked it
-		 DECL_EXTERNAL (see expand_or_defer_fn_1 for details).
-
-		 However, this is not really an extern definition, so
-		 it was also marked not-really-extern (yes, I
-		 know...). If this happens, we need to unmark it,
-		 otherwise the code generator will toss it out.  */
-	      if (DECL_NOT_REALLY_EXTERN (fn->decl))
-		DECL_EXTERNAL (fn->decl) = 0;
-	      expand_or_defer_fn (fn->decl);
-	    }
+	  struct bitpack_d bp;
+	  bp = pph_in_bitpack (stream);
+	  top_level = bp_unpack_value (&bp, 1);
+	  at_end = bp_unpack_value (&bp, 1);
+	  cp_rest_of_decl_compilation (decl, top_level, at_end);
 	}
-      else if (kind == PPH_SYMTAB_DECL)
+      else if (action == PPH_SYMTAB_EXPAND)
 	{
-	  tree t = pph_in_tree (stream);
-	  cp_rest_of_decl_compilation (t, decl_function_context (t) == NULL, 1);
+	  struct cgraph_node *node;
+
+	  pph_in_struct_function (stream, decl);
+	  node = pph_in_cgraph_node (stream);
+	  if (node && node->local.finalized)
+	    {
+	      /* Since the writer had finalized this cgraph node,
+		 we have to re-play its actions.  To do that, we need
+		 to clear the finalized and reachable bits in the
+		 node, otherwise cgraph_finalize_function will toss
+		 out this node.  */
+	      node->local.finalized = false;
+	      node->reachable = false;
+	      cgraph_finalize_function (node->decl, true);
+	    }
 	}
       else
 	gcc_unreachable ();
@@ -1598,6 +1690,20 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
     default:
       break;
     }
+
+  /* When the declaration was compiled originally, the parser marks
+     it DECL_EXTERNAL, to avoid emitting it more than once.  It also
+     remembers the true external state in DECL_NOT_REALLY_EXTERN.  So,
+     if both bits are set, the declaration should not be considered
+     external.  */
+  if (TREE_CODE (decl) == FUNCTION_DECL
+      && DECL_LANG_SPECIFIC (decl)
+      && DECL_NOT_REALLY_EXTERN (decl)
+      && DECL_EXTERNAL (decl))
+    {
+      DECL_EXTERNAL (decl) = 0;
+      DECL_NOT_REALLY_EXTERN (decl) = 0;
+    }
 }
 
 
@@ -1612,6 +1718,7 @@ pph_in_tcc_type (pph_stream *stream, tree type)
   TYPE_NEXT_VARIANT (type) = pph_in_tree (stream);
   /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
      failures.  Why?  */
+  TREE_CHAIN (type) = pph_in_tree (stream);
 
   /* The type values cache is built as constants are instantiated,
      so we only stream it on the nodes that use it for

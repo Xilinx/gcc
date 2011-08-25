@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "gimple.h"
 #include "bitmap.h"
+#include "pph-streamer.h"
 
 /* There routines provide a modular interface to perform many parsing
    operations.  They may therefore be used during actual parsing, or
@@ -3566,6 +3567,10 @@ is_instantiation_of_constexpr (tree fun)
 bool
 expand_or_defer_fn_1 (tree fn)
 {
+  /* If we are generating a PPH image, add FN to its symbol table.  */
+  if (pph_out_file)
+    pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND, false, at_eof);
+
   /* When the parser calls us after finishing the body of a template
      function, we don't really want to expand the body.  */
   if (processing_template_decl)
