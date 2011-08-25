@@ -1612,14 +1612,11 @@ pph_write_tree_body (pph_stream *stream, tree expr)
       break;
 
     case IDENTIFIER_NODE:
-      {
-        struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
-        pph_out_cxx_binding (stream, id->namespace_bindings);
-        pph_out_cxx_binding (stream, id->bindings);
-        pph_out_tree_1 (stream, id->class_template_info, 3);
-        pph_out_tree_1 (stream, id->label_value, 3);
-	pph_out_tree_1 (stream, TREE_TYPE (expr), 3);
-      }
+      pph_out_cxx_binding (stream, IDENTIFIER_NAMESPACE_BINDINGS (expr));
+      pph_out_cxx_binding (stream, IDENTIFIER_BINDING (expr));
+      pph_out_tree_1 (stream, IDENTIFIER_TEMPLATE (expr), 3);
+      pph_out_tree_1 (stream, IDENTIFIER_LABEL_VALUE (expr), 3);
+      pph_out_tree_1 (stream, REAL_IDENTIFIER_TYPE_VALUE (expr), 3);
       break;
 
     case BASELINK:
@@ -1661,17 +1658,13 @@ pph_write_tree_body (pph_stream *stream, tree expr)
       break;
 
     case LAMBDA_EXPR:
-      {
-        struct tree_lambda_expr *e
-            = (struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (expr);
-        pph_out_tree_common (stream, expr);
-	pph_out_location (stream, e->locus);
-        pph_out_tree_1 (stream, e->capture_list, 3);
-        pph_out_tree_1 (stream, e->this_capture, 3);
-        pph_out_tree_1 (stream, e->return_type, 3);
-        pph_out_tree_1 (stream, e->extra_scope, 3);
-        pph_out_uint (stream, e->discriminator);
-      }
+      pph_out_tree_common (stream, expr);
+      pph_out_location (stream, LAMBDA_EXPR_LOCATION (expr));
+      pph_out_tree_1 (stream, LAMBDA_EXPR_CAPTURE_LIST (expr), 3);
+      pph_out_tree_1 (stream, LAMBDA_EXPR_THIS_CAPTURE (expr), 3);
+      pph_out_tree_1 (stream, LAMBDA_EXPR_RETURN_TYPE (expr), 3);
+      pph_out_tree_1 (stream, LAMBDA_EXPR_EXTRA_SCOPE (expr), 3);
+      pph_out_uint (stream, LAMBDA_EXPR_DISCRIMINATOR (expr));
       break;
 
     case TREE_VEC:
@@ -1684,15 +1677,12 @@ pph_write_tree_body (pph_stream *stream, tree expr)
       break;
 
     case TEMPLATE_PARM_INDEX:
-      {
-        template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
-        pph_out_tree_common (stream, expr);
-        pph_out_uint (stream, p->index);
-        pph_out_uint (stream, p->level);
-        pph_out_uint (stream, p->orig_level);
-        pph_out_uint (stream, p->num_siblings);
-        pph_out_tree_1 (stream, p->decl, 3);
-      }
+      pph_out_tree_common (stream, expr);
+      pph_out_uint (stream, TEMPLATE_PARM_IDX (expr));
+      pph_out_uint (stream, TEMPLATE_PARM_LEVEL (expr));
+      pph_out_uint (stream, TEMPLATE_PARM_ORIG_LEVEL (expr));
+      pph_out_uint (stream, TEMPLATE_PARM_NUM_SIBLINGS (expr));
+      pph_out_tree_1 (stream, TEMPLATE_PARM_DECL (expr), 3);
       break;
 
     case DEFERRED_NOEXCEPT:

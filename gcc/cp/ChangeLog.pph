@@ -1,3 +1,10 @@
+2011-08-25  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_read_tree_body): Use accessor macros for
+	all fields. Use REAL_IDENTIFIER_TYPE_VALUE instead of TREE_TYPE
+	for the IDENTIFIER_NODE case.
+	* pph-streamer-out.c (pph_write_tree_body): Likewise.
+
 2011-08-25   Diego Novillo  <dnovillo@google.com>
 
 	* cp-tree.h (struct saved_scope): Add field x_brace_nesting.
