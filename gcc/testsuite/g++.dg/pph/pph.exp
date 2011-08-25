@@ -38,7 +38,6 @@ exec echo "math.h	math.pph" >> pph.map
 exec echo "stdio.h	stdio.pph" >> pph.map
 exec echo "stdlib.h	stdlib.pph" >> pph.map
 exec echo "string.h	string.pph" >> pph.map
-exec echo "sys/types.h	types.pph" >> pph.map
 
 set mapflag -fpph-map=pph.map
 

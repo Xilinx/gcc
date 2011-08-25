@@ -94,11 +94,30 @@ pph_dump_namespace (FILE *file, tree ns)
 }
 
 
+/* Return true if PPH image NAME can be used at the point of inclusion
+   (given by LOC).  */
+
+static bool
+pph_is_valid_here (const char *name, location_t loc)
+{
+  /* If we are inside a scope, reject the image.  We could be inside a
+     namespace or a structure which changes the parsing context for
+     the original text file.  */
+  if (scope_chain->x_brace_nesting > 0)
+    {
+      error_at (loc, "PPH file %s not included at global scope", name);
+      return false;
+    }
+
+  return true;
+}
+
+
 /* Record a #include or #include_next for PPH.  */
 
 static bool
 pph_include_handler (cpp_reader *reader,
-                     location_t loc ATTRIBUTE_UNUSED,
+                     location_t loc,
                      const unsigned char *dname,
                      const char *name,
                      int angle_brackets,
@@ -117,7 +136,9 @@ pph_include_handler (cpp_reader *reader,
 
   read_text_file_p = true;
   pph_file = query_pph_include_map (name);
-  if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
+  if (pph_file != NULL
+      && pph_is_valid_here (name, loc)
+      && !cpp_included_before (reader, name, input_location))
     {
       /* Hack. We do this to mimic what the non-pph compiler does in
 	_cpp_stack_include as our goal is to have identical line_tables.  */

@@ -1,3 +1,15 @@
+2011-08-25   Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (struct saved_scope): Add field x_brace_nesting.
+	* parser.c (cp_lexer_token_is_open_brace): New.
+	(cp_lexer_token_is_close_brace): New.
+	(cp_lexer_get_preprocessor_token): Call them.
+	Increase scope_chain->x_brace_nesting for open braces, decrease
+	for closing braces.
+	* pph.c (pph_is_valid_here): New.  Return false if
+	scope_chain->x_brace_nesting is greater than 0.
+	(pph_include_handler): Call it.
+
 2011-08-25  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_is_reference_marker): Handle PPH_RECORD_PREF.

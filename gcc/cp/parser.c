@@ -748,6 +748,31 @@ cp_lexer_saving_tokens (const cp_lexer* lexer)
   return VEC_length (cp_token_position, lexer->saved_tokens) != 0;
 }
 
+
+/* Return true if TOKEN is one of CPP_OPEN_SQUARE, CPP_OPEN_BRACE or
+   CPP_OPEN_PAREN.  */
+
+static inline bool
+cp_lexer_token_is_open_brace (cp_token *token)
+{
+  return token->type == CPP_OPEN_SQUARE
+	 || token->type == CPP_OPEN_BRACE
+	 || token->type == CPP_OPEN_PAREN;
+}
+
+
+/* Return true if TOKEN is one of CPP_CLOSE_SQUARE, CPP_CLOSE_BRACE or
+   CPP_CLOSE_PAREN.  */
+
+static inline bool
+cp_lexer_token_is_close_brace (cp_token *token)
+{
+  return token->type == CPP_CLOSE_SQUARE
+	 || token->type == CPP_CLOSE_BRACE
+	 || token->type == CPP_CLOSE_PAREN;
+}
+
+
 /* Store the next token from the preprocessor in *TOKEN.  Return true
    if we reach EOF.  If LEXER is NULL, assume we are handling an
    initial #pragma pch_preprocess, and thus want the lexer to return
@@ -835,7 +860,12 @@ cp_lexer_get_preprocessor_token (cp_lexer *lexer, cp_token *token)
 			    TREE_INT_CST_LOW (token->u.value));
       token->u.value = NULL_TREE;
     }
+  else if (cp_lexer_token_is_open_brace (token))
+    scope_chain->x_brace_nesting++;
+  else if (cp_lexer_token_is_close_brace (token))
+    scope_chain->x_brace_nesting--;
 }
+
 
 /* Update the globals input_location and the input file stack from TOKEN.  */
 static inline void

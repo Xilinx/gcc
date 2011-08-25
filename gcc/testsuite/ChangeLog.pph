@@ -1,5 +1,10 @@
 2011-08-25   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/pph.exp: Do not create a PPH image for sys/types.h.
+	* g++.dg/pph/y8inc-nmspc.cc: Mark fixed.
+
+2011-08-25   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/x7rtti.cc: Make it executable.
 
 2011-08-25   Diego Novillo  <dnovillo@google.com>

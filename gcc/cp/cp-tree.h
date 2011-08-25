@@ -973,6 +973,10 @@ struct GTY(()) saved_scope {
   cp_binding_level *bindings;
 
   struct saved_scope *prev;
+
+  /* Used during lexing to validate where PPH images are included, it
+     keeps track of nested bracing.  */
+  unsigned x_brace_nesting;
 };
 
 /* The current open namespace.  */
