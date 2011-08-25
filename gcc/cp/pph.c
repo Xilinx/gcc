@@ -168,6 +168,8 @@ pph_init (void)
   if (pph_out_file != NULL)
     pph_writer_init ();
 
+  pph_init_preloaded_cache ();
+
   pph_read_images = NULL;
 }
 

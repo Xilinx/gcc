@@ -40,35 +40,32 @@ along with GCC; see the file COPYING3.  If not see
    them until the end of parsing (when pph_reader_finish is called).  */
 VEC(pph_stream_ptr, heap) *pph_read_images;
 
-/* Pre-load common tree nodes into the pickle cache in STREAM.  These
-   nodes are always built by the front end, so there is no need to
-   pickle them.
+/* A cache of pre-loaded common tree nodes.  */
+static pph_pickle_cache *pph_preloaded_cache;
 
-   FIXME pph - Every stream will have its own pickle cache.  Many
-   entries in all those caches will be the same.  Implement a common
-   cache for everything we preload here so that we do not have to
-   preload every cache we instantiate.  */
+/* Pre-load common tree nodes into CACHE.  These nodes are always built by the
+   front end, so there is no need to pickle them.  */
 
 static void
-pph_cache_preload (pph_stream *stream)
+pph_cache_preload (pph_pickle_cache *cache)
 {
   unsigned i;
 
   for (i = itk_char; i < itk_none; i++)
-    pph_cache_add (&stream->cache, integer_types[i], NULL);
+    pph_cache_add (cache, integer_types[i], NULL);
 
   for (i = 0; i < TYPE_KIND_LAST; i++)
-    pph_cache_add (&stream->cache, sizetype_tab[i], NULL);
+    pph_cache_add (cache, sizetype_tab[i], NULL);
 
   /* global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < TI_MAX; i++)
     if (global_trees[i])
-      pph_cache_add (&stream->cache, global_trees[i], NULL);
+      pph_cache_add (cache, global_trees[i], NULL);
 
   /* c_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CTI_MAX; i++)
     if (c_global_trees[i])
-      pph_cache_add (&stream->cache, c_global_trees[i], NULL);
+      pph_cache_add (cache, c_global_trees[i], NULL);
 
   /* cp_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CPTI_MAX; i++)
@@ -78,13 +75,13 @@ pph_cache_preload (pph_stream *stream)
 	continue;
 
       if (cp_global_trees[i])
-	pph_cache_add (&stream->cache, cp_global_trees[i], NULL);
+	pph_cache_add (cache, cp_global_trees[i], NULL);
     }
 
   /* Add other well-known nodes that should always be taken from the
      current compilation context.  */
-  pph_cache_add (&stream->cache, global_namespace, NULL);
-  pph_cache_add (&stream->cache, DECL_CONTEXT (global_namespace), NULL);
+  pph_cache_add (cache, global_namespace, NULL);
+  pph_cache_add (cache, DECL_CONTEXT (global_namespace), NULL);
 }
 
 
@@ -98,6 +95,25 @@ pph_hooks_init (void)
   streamer_hooks.read_tree = pph_read_tree;
   streamer_hooks.input_location = pph_read_location;
   streamer_hooks.output_location = pph_write_location;
+}
+
+
+/* Initialize an empty pickle CACHE.  */
+
+static void
+pph_cache_init (pph_pickle_cache *cache)
+{
+  cache->v = NULL;
+  cache->m = pointer_map_create ();
+}
+
+
+void
+pph_init_preloaded_cache (void)
+{
+  pph_preloaded_cache = XCNEW (pph_pickle_cache);
+  pph_cache_init (pph_preloaded_cache);
+  pph_cache_preload (pph_preloaded_cache);
 }
 
 
@@ -120,13 +136,11 @@ pph_stream_open (const char *name, const char *mode)
   stream->file = f;
   stream->name = xstrdup (name);
   stream->write_p = (strchr (mode, 'w') != NULL);
-  stream->cache.m = pointer_map_create ();
+  pph_cache_init (&stream->cache);
   if (stream->write_p)
     pph_init_write (stream);
   else
     pph_init_read (stream);
-
-  pph_cache_preload (stream);
 
   return stream;
 }
@@ -398,7 +412,8 @@ pph_cache_insert_at (pph_pickle_cache *cache, void *data, unsigned ix)
 
 
 /* Return true if DATA exists in CACHE.  If IX_P is not NULL, store the cache
-   slot where DATA resides in *IX_P (or (unsigned)-1 if DATA is not found).  */
+   slot where DATA resides in *IX_P (or (unsigned)-1 if DATA is not found).
+   If CACHE is NULL use pph_preloaded_cache by default.  */
 
 bool
 pph_cache_lookup (pph_pickle_cache *cache, void *data, unsigned *ix_p)
@@ -406,6 +421,9 @@ pph_cache_lookup (pph_pickle_cache *cache, void *data, unsigned *ix_p)
   void **map_slot;
   unsigned ix;
   bool existed_p;
+
+  if (cache == NULL)
+    cache = pph_preloaded_cache;
 
   map_slot = pointer_map_contains (cache->m, data);
   if (map_slot == NULL)
@@ -500,24 +518,35 @@ pph_cache_add (pph_pickle_cache *cache, void *data, unsigned *ix_p)
 }
 
 
-/* Return the pointer at slot IX in STREAM's pickle cache.  If INCLUDE_IX
-   is not -1U, then instead of looking up in STREAM's pickle cache,
-   instead of looking up in CACHE, the pointer is looked up in the CACHE of
-   pph_read_images[INCLUDE_IX].  */
+/* Return the pointer at slot IX in STREAM_CACHE if MARKER is an IREF.  IF
+   MARKER is a XREF then instead of looking up in STREAM_CACHE, the pointer is
+   looked up in the CACHE of pph_read_images[INCLUDE_IX].  Finally if MARKER is
+   a PREF return the pointer at slot IX in the preloaded cache.  */
 
 void *
-pph_cache_get (pph_pickle_cache *cache, unsigned include_ix, unsigned ix)
+pph_cache_get (pph_pickle_cache *stream_cache, unsigned include_ix, unsigned ix,
+               enum pph_record_marker marker)
 {
   void *data;
-  pph_pickle_cache *img_cache;
+  pph_pickle_cache *cache;
 
-  /* Determine which image's pickle cache to use.  */
-  if (include_ix == (unsigned) -1)
-    img_cache = cache;
-  else
-    img_cache = &VEC_index (pph_stream_ptr, pph_read_images, include_ix)->cache;
+  /* Determine which cache to use.  */
+  switch (marker)
+    {
+    case PPH_RECORD_IREF:
+      cache = stream_cache;
+      break;
+    case PPH_RECORD_XREF:
+      cache = &VEC_index (pph_stream_ptr, pph_read_images, include_ix)->cache;
+      break;
+    case PPH_RECORD_PREF:
+      cache = pph_preloaded_cache;
+      break;
+    default:
+      gcc_unreachable ();
+    }
 
-  data = VEC_index (void_p, img_cache->v, ix);
+  data = VEC_index (void_p, cache->v, ix);
   gcc_assert (data);
   return data;
 }

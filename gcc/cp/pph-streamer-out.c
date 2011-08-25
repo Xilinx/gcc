@@ -222,6 +222,14 @@ pph_out_start_record (pph_stream *stream, void *data)
       return false;
     }
 
+  /* DATA is not in any stream's cache. See if it is a preloaded node.  */
+  if (pph_cache_lookup (NULL, data, &ix))
+    {
+      pph_out_record_marker (stream, PPH_RECORD_PREF);
+      pph_out_uint (stream, ix);
+      return false;
+    }
+
   /* DATA is in none of the pickle caches, add it to STREAM's pickle
      cache and tell the caller that it should pickle DATA out.  */
   pph_cache_add (&stream->cache, data, &ix);

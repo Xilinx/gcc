@@ -1,3 +1,21 @@
+2011-08-25  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_is_reference_marker): Handle PPH_RECORD_PREF.
+	(pph_in_start_record): Likewise.
+	* pph-streamer-out.c (pph_out_start_record): Add extra lookup in
+	pph_preloaded_cache if lookup in current and included streams failed.
+	* pph-streamer.c (pph_preloaded_cache): New.
+	(pph_cache_preload): Change first parameter to a pph_pickle_cache*
+	from a pph_stream*. Update all users.
+	(pph_cache_init): New.
+	(pph_init_preloaded_cache): New local variable.
+	(pph_stream_open): Use pph_cache_init. Do not call pph_cache_preload.
+	(pph_cache_get): Add a new pph_record_marker parameter which we
+	use to determine to type of get to do. Update all users.
+	* pph-streamer.h (enum pph_record_marker): Add PPH_RECORD_PREF.
+	(pph_in_record_marker): Handle PPH_RECORD_PREF.
+	* pph.c (pph_init): Call pph_init_preloaded_cache.
+
 2011-08-25   Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (cp/semantics.o): Add dependency on

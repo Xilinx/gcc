@@ -47,7 +47,12 @@ enum pph_record_marker {
      indices: (1) the index into the include table where the other
      image lives, and (2) the cache slot into that image's pickle
      cache where the data resides.  */
-  PPH_RECORD_XREF
+  PPH_RECORD_XREF,
+
+  /* Preloaded reference. This marker indicates that this data is a preloaded
+     node created by the front-end at the beginning of compilation, which we
+     do not need to stream out as it will already exist on the way in.  */
+  PPH_RECORD_PREF
 };
 
 /* Line table markers. We only stream line table entries from the parent header
@@ -226,6 +231,7 @@ typedef struct pph_stream {
 #define PPHF_NO_XREFS		(1 << 1)
 
 /* In pph-streamer.c.  */
+void pph_init_preloaded_cache (void);
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
 void pph_trace_tree (pph_stream *, tree);
@@ -240,7 +246,8 @@ void pph_cache_insert_at (pph_pickle_cache *, void *, unsigned);
 bool pph_cache_lookup (pph_pickle_cache *, void *, unsigned *);
 bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
 bool pph_cache_add (pph_pickle_cache *, void *, unsigned *);
-void *pph_cache_get (pph_pickle_cache *, unsigned, unsigned);
+void *pph_cache_get (pph_pickle_cache *, unsigned, unsigned,
+                     enum pph_record_marker);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
@@ -570,7 +577,8 @@ pph_in_record_marker (pph_stream *stream)
   gcc_assert (m == PPH_RECORD_START
 	      || m == PPH_RECORD_END
 	      || m == PPH_RECORD_IREF
-	      || m == PPH_RECORD_XREF);
+	      || m == PPH_RECORD_XREF
+	      || m == PPH_RECORD_PREF);
   return m;
 }
 
