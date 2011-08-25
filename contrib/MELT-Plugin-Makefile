@@ -149,8 +149,8 @@ melt_installed_module_makefile=$(MELTGCC_PLUGIN_DIR)/melt-module.mk
 ## should be 1 
 melt_is_plugin=1
 
-# we force the stage0 to be "static" i.e. with constant field offsets.
-MELT_STAGE_ZERO = melt-stage0-static
+# we force the stage0 to be "quicklybuilt" i.e. with constant field offsets.
+MELT_STAGE_ZERO = melt-stage0-quicklybuilt
 
 ## Tell GNU make to not build goals in parallel, that is to ignore any
 ## -j flag to make.

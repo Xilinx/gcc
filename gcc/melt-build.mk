@@ -199,7 +199,7 @@ melt-workdir:
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-first
-melt-stage0-static/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_FIRST_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_FIRST_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-first MELT_GENERATED_FIRST_CUMULMD5= $(MELT_GENERATED_FIRST_CUMULMD5)
@@ -209,9 +209,9 @@ melt-stage0-static/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.s
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-first \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_FIRST_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-first
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-first
 
-melt-stage0-static/warmelt-first.so:  melt-stage0-static/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-first.so:  melt-stage0-quicklybuilt/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-first
@@ -243,7 +243,7 @@ melt-stage0-dynamic/warmelt-first.quicklybuilt.so: melt-stage0-dynamic/warmelt-f
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-base
-melt-stage0-static/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_BASE_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_BASE_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-base MELT_GENERATED_BASE_CUMULMD5= $(MELT_GENERATED_BASE_CUMULMD5)
@@ -253,9 +253,9 @@ melt-stage0-static/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so:
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-base \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_BASE_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-base
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-base
 
-melt-stage0-static/warmelt-base.so:  melt-stage0-static/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-base.so:  melt-stage0-quicklybuilt/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-base
@@ -287,7 +287,7 @@ melt-stage0-dynamic/warmelt-base.quicklybuilt.so: melt-stage0-dynamic/warmelt-ba
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-debug
-melt-stage0-static/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_DEBUG_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_DEBUG_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-debug MELT_GENERATED_DEBUG_CUMULMD5= $(MELT_GENERATED_DEBUG_CUMULMD5)
@@ -297,9 +297,9 @@ melt-stage0-static/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.s
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-debug \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_DEBUG_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-debug
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-debug
 
-melt-stage0-static/warmelt-debug.so:  melt-stage0-static/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-debug.so:  melt-stage0-quicklybuilt/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-debug
@@ -331,7 +331,7 @@ melt-stage0-dynamic/warmelt-debug.quicklybuilt.so: melt-stage0-dynamic/warmelt-d
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-macro
-melt-stage0-static/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_MACRO_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_MACRO_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-macro MELT_GENERATED_MACRO_CUMULMD5= $(MELT_GENERATED_MACRO_CUMULMD5)
@@ -341,9 +341,9 @@ melt-stage0-static/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.s
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-macro \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_MACRO_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-macro
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-macro
 
-melt-stage0-static/warmelt-macro.so:  melt-stage0-static/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-macro.so:  melt-stage0-quicklybuilt/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-macro
@@ -375,7 +375,7 @@ melt-stage0-dynamic/warmelt-macro.quicklybuilt.so: melt-stage0-dynamic/warmelt-m
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-normal
-melt-stage0-static/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_NORMAL_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_NORMAL_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-normal MELT_GENERATED_NORMAL_CUMULMD5= $(MELT_GENERATED_NORMAL_CUMULMD5)
@@ -385,9 +385,9 @@ melt-stage0-static/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-normal \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_NORMAL_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-normal
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-normal
 
-melt-stage0-static/warmelt-normal.so:  melt-stage0-static/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-normal.so:  melt-stage0-quicklybuilt/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-normal
@@ -419,7 +419,7 @@ melt-stage0-dynamic/warmelt-normal.quicklybuilt.so: melt-stage0-dynamic/warmelt-
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-normatch
-melt-stage0-static/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_NORMATCH_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_NORMATCH_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-normatch MELT_GENERATED_NORMATCH_CUMULMD5= $(MELT_GENERATED_NORMATCH_CUMULMD5)
@@ -429,9 +429,9 @@ melt-stage0-static/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklyb
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-normatch \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_NORMATCH_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-normatch
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-normatch
 
-melt-stage0-static/warmelt-normatch.so:  melt-stage0-static/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-normatch.so:  melt-stage0-quicklybuilt/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-normatch
@@ -463,7 +463,7 @@ melt-stage0-dynamic/warmelt-normatch.quicklybuilt.so: melt-stage0-dynamic/warmel
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-genobj
-melt-stage0-static/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_GENOBJ_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_GENOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-genobj MELT_GENERATED_GENOBJ_CUMULMD5= $(MELT_GENERATED_GENOBJ_CUMULMD5)
@@ -473,9 +473,9 @@ melt-stage0-static/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-genobj \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_GENOBJ_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-genobj
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-genobj
 
-melt-stage0-static/warmelt-genobj.so:  melt-stage0-static/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-genobj.so:  melt-stage0-quicklybuilt/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-genobj
@@ -507,7 +507,7 @@ melt-stage0-dynamic/warmelt-genobj.quicklybuilt.so: melt-stage0-dynamic/warmelt-
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for warmelt-outobj
-melt-stage0-static/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_OUTOBJ_C_FILES) \
+melt-stage0-quicklybuilt/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_OUTOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static warmelt-outobj MELT_GENERATED_OUTOBJ_CUMULMD5= $(MELT_GENERATED_OUTOBJ_CUMULMD5)
@@ -517,9 +517,9 @@ melt-stage0-static/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/warmelt-outobj \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_OUTOBJ_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/warmelt-outobj
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/warmelt-outobj
 
-melt-stage0-static/warmelt-outobj.so:  melt-stage0-static/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt-outobj.so:  melt-stage0-quicklybuilt/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for warmelt-outobj
@@ -548,7 +548,7 @@ melt-stage0-dynamic/warmelt-outobj.quicklybuilt.so: melt-stage0-dynamic/warmelt-
 
 
 
-melt-stage0-static.stamp:  melt-stage0-static melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-static/warmelt.modlis
+melt-stage0-quicklybuilt.stamp:  melt-stage0-quicklybuilt melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-quicklybuilt/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h $(MELT_GENERATED_FIRST_C_FILES) >> $@-tmp
 	md5sum melt-run.h $(MELT_GENERATED_BASE_C_FILES) >> $@-tmp
@@ -560,9 +560,9 @@ melt-stage0-static.stamp:  melt-stage0-static melt-run.h  $(wildcard $(patsubst 
 	md5sum melt-run.h $(MELT_GENERATED_OUTOBJ_C_FILES) >> $@-tmp
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
-	rm -f $(patsubst %,melt-stage0-static/%*.c,$(MELT_TRANSLATOR_BASE))
-	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-static/
-	@echo STAMPstage0static after $@ ; ls -l  melt-stage0-static/*
+	rm -f $(patsubst %,melt-stage0-quicklybuilt/%*.c,$(MELT_TRANSLATOR_BASE))
+	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-quicklybuilt/
+	@echo STAMPstage0static after $@ ; ls -l  melt-stage0-quicklybuilt/*
 
 melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-dynamic/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
@@ -583,15 +583,15 @@ melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubs
 
 
 
-melt-stage0-static/warmelt.modlis: | \
-             melt-stage0-static/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so \
-             melt-stage0-static/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/warmelt.modlis: | \
+             melt-stage0-quicklybuilt/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so \
+             melt-stage0-quicklybuilt/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo $(melt_make_source_dir)/generated/warmelt-first.quicklybuilt >> $@-tmp
 	echo $(melt_make_source_dir)/generated/warmelt-base.quicklybuilt >> $@-tmp
@@ -630,7 +630,7 @@ empty-file-for-melt.c:
 	mv $@-tmp $@
 
 ## can be overridden manually to either melt-stage0-dynamic or
-## melt-stage0-static
+## melt-stage0-quicklybuilt
 .PHONY: warmelt0
 ## the default stage0 melt-stage0-dynamic
 MELT_STAGE_ZERO?= melt-stage0-dynamic
@@ -3550,8 +3550,8 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 ### MELT cleanup
 .PHONY: melt-clean
 melt-clean:
-	rm -rf *melt*.args melt-stage0-static melt-stage0-dynamic \
-	       melt-stage0-static.stamp melt-stage0-dynamic.stamp \
+	rm -rf *melt*.args melt-stage0-quicklybuilt melt-stage0-dynamic \
+	       melt-stage0-quicklybuilt.stamp melt-stage0-dynamic.stamp \
            melt-stage1  melt-stage1.stamp \
            melt-stage2  melt-stage2.stamp \
            melt-stage3  melt-stage3.stamp \

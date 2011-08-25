@@ -135,7 +135,7 @@ melt-workdir:
 ## from the MELT descriptor C file 
 
 ## using static object fields offsets for [+base+]
-melt-stage0-static/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
+melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h  $(melt_make_cc1_dependency)
 	@echo stage0static [+base+] MELT_GENERATED_[+mkvarsuf+]_CUMULMD5= $(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5)
@@ -145,9 +145,9 @@ melt-stage0-static/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCEBASE=$(melt_make_source_dir)/generated/[+base+] \
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5) \
-              GCCMELT_MODULE_BINARYBASE=melt-stage0-static/[+base+]
+              GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/[+base+]
 
-melt-stage0-static/[+base+].so:  melt-stage0-static/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/[+base+].so:  melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for [+base+]
@@ -176,14 +176,14 @@ melt-stage0-dynamic/[+base+].quicklybuilt.so: melt-stage0-dynamic/[+base+].$(MEL
 [+ENDFOR melt_translator_file+]
 
 
-melt-stage0-static.stamp:  melt-stage0-static melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-static/warmelt.modlis
+melt-stage0-quicklybuilt.stamp:  melt-stage0-quicklybuilt melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-quicklybuilt/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file "\n"+]	md5sum melt-run.h $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) >> $@-tmp[+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
-	rm -f $(patsubst %,melt-stage0-static/%*.c,$(MELT_TRANSLATOR_BASE))
-	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-static/
-	@echo STAMPstage0static after $@ ; ls -l  melt-stage0-static/*
+	rm -f $(patsubst %,melt-stage0-quicklybuilt/%*.c,$(MELT_TRANSLATOR_BASE))
+	$(LN_S)  $(realpath $(sort $(wildcard $(patsubst %,$(realpath $(melt_make_source_dir))/generated/%*.c,$(MELT_TRANSLATOR_BASE))))) melt-stage0-quicklybuilt/
+	@echo STAMPstage0static after $@ ; ls -l  melt-stage0-quicklybuilt/*
 
 melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubst %,$(melt_make_source_dir)/generated/%*.c,$(MELT_TRANSLATOR_BASE))) | melt-stage0-dynamic/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
@@ -197,8 +197,8 @@ melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-run.h  $(wildcard $(patsubs
 
 
 
-melt-stage0-static/warmelt.modlis: | \
-[+FOR melt_translator_file " \\\n" +]             melt-stage0-static/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so[+
+melt-stage0-quicklybuilt/warmelt.modlis: | \
+[+FOR melt_translator_file " \\\n" +]             melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file+]	echo $(melt_make_source_dir)/generated/[+base+].quicklybuilt >> $@-tmp
@@ -218,7 +218,7 @@ empty-file-for-melt.c:
 	mv $@-tmp $@
 
 ## can be overridden manually to either melt-stage0-dynamic or
-## melt-stage0-static
+## melt-stage0-quicklybuilt
 .PHONY: warmelt0
 ## the default stage0 melt-stage0-dynamic
 MELT_STAGE_ZERO?= melt-stage0-dynamic
@@ -652,8 +652,8 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 ### MELT cleanup
 .PHONY: melt-clean
 melt-clean:
-	rm -rf *melt*.args melt-stage0-static melt-stage0-dynamic \
-	       melt-stage0-static.stamp melt-stage0-dynamic.stamp \
+	rm -rf *melt*.args melt-stage0-quicklybuilt melt-stage0-dynamic \
+	       melt-stage0-quicklybuilt.stamp melt-stage0-dynamic.stamp \
 [+FOR melt_stage+]           [+melt_stage+]  [+melt_stage+].stamp \
 [+ENDFOR melt_stage+]               melt-sources melt-modules
 

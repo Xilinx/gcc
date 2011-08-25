@@ -1,3 +1,9 @@
+
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* melt-build.tpl: Use -quicklybuilt instead of -static for
+	consistency with the whole build system
+	* melt-built.mk: Regenerate.
+
 2011-08-24  Alexandre Lissy  <alissy@mandriva.com>
 	* melt-runtime.c (melt_load_module_index): Correct handling of invalid
 	dlopen handle.

@@ -1,4 +1,8 @@
 
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* MELT-Plugin-Makefile: Using -quicklybuilt instead of
+	-static.
+
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt_make_move): Use move-if-change.
 
