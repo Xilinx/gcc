@@ -1,5 +1,9 @@
 2011-08-25   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/x7rtti.cc: Make it executable.
+
+2011-08-25   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/x1keyed.cc: Mark fixed.
 	* g++.dg/pph/x1keyno.cc: Mark fixed.
 	* g++.dg/pph/x4keyno.cc: Change asm diff signature.  Document
