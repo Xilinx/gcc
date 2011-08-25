@@ -288,12 +288,12 @@ install-melt-sources: melt-sources  melt-all-sources
 ### phony makefile target from melt-build.mk
 install-melt-modules: melt-modules melt-all-modules
 	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
-	for d in $(wildcard melt-modules/*); do \
-	  $(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)/`basename $$d` ; \
-	  for f in $$d/*.so ; do \
-	     $(INSTALL_PROGRAM) $$f $(DESTDIR)/$(melt_module_dir)/`basename $$d`/`basename $$f ` ; \
-	  done; \
+	for l in $(wildcard melt-modules/*) : ; do \
+	   if [ "$$l" != ":" ]; then \
+	      $(INSTALL_PROGRAM) `readlink $$l` $(DESTDIR)$(melt_module_dir)/$$(basename `readlink $$l`) ; \
+	   fi; \
 	done
+
 
 ## install the makefile for MELT modules
 install-melt-mk: melt-module.mk
