@@ -125,7 +125,7 @@ $(GCCMELT_MODULE_WORKSPACE)/%.optimized.pic.o:
 	echo optimized base3name at  $(basename $(basename $(basename $@)))
 	echo optimized base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_OPTIMIZED  -DMELT_HAVE_DEBUG=0  $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
-	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)/%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
+	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 vpath %.quicklybuilt.pic.o $(GCCMELT_MODULE_WORKSPACE)
 $(GCCMELT_MODULE_WORKSPACE)/%.quicklybuilt.pic.o: 
@@ -141,7 +141,7 @@ $(GCCMELT_MODULE_WORKSPACE)/%.quicklybuilt.pic.o:
 	echo quicklybuilt base3name at  $(basename $(basename $(basename $@)))
 	echo quicklybuilt base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_QUICKLYBUILT -DMELT_HAVE_DEBUG=1 $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
-	  -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)/%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
+	  -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 vpath %.debugnoline.pic.o $(GCCMELT_MODULE_WORKSPACE)
 $(GCCMELT_MODULE_WORKSPACE)/%.debugnoline.pic.o: 
@@ -153,7 +153,7 @@ $(GCCMELT_MODULE_WORKSPACE)/%.debugnoline.pic.o:
 	   GCCMELT_MODULE_FLAVOR=$(GCCMELT_MODULE_FLAVOR) \
 	   GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5)
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
-	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)/%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
+	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
  $(GCCMELT_MODULE_WORKSPACE)/%.dynamic.pic.o: 
@@ -169,7 +169,7 @@ vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
 	echo dynamic base3name at  $(basename $(basename $(basename $@)))
 	echo dynamic base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
-	   -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)/%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
+	   -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 $(GCCMELT_MODULE_WORKSPACE)/$(basename $(notdir $(GCCMELT_DESC))).$(GCCMELT_CUMULATED_MD5).pic.o: $(GCCMELT_DESC)
 	echo descfile at $@ caret $^ GCCMELT_DESC=$(GCCMELT_DESC)

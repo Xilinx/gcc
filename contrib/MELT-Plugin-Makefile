@@ -275,28 +275,28 @@ install: all melt.so warmelt  \
     install-melt-mk install-melt-default-modules-list install-melt-so
 
 install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h melt/generated/meltrunsup.h
-	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_PLUGIN_DIR)/include/
+	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/include/
 	for f in $^; do \
-	   $(INSTALL_DATA) $$f $(DESTDIR)/$(MELTGCC_PLUGIN_DIR)/include/ ; \
+	   $(INSTALL_DATA) $$f $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/include/ ; \
 	done
 
 install-melt-so: melt.so
-	$(INSTALL_PROGRAM) $< $(DESTDIR)/$(MELTGCC_PLUGIN_DIR)/melt.so
+	$(INSTALL_PROGRAM) $< $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/melt.so
 
 
 
 ### notice that melt-sources is a directory, but melt-all-sources is a
 ### phony makefile target from melt-build.mk
 install-melt-sources: melt-sources  melt-all-sources
-	$(mkinstalldirs) $(DESTDIR)/$(melt_source_dir)
+	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
 	for f in melt-sources/*.c melt-sources/*.melt ; do \
-	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \
+	   $(INSTALL_DATA) $$f $(DESTDIR)$(melt_source_dir) ; \
 	done
 
 ### notice that melt-modules is a directory, but melt-all-modules is a
 ### phony makefile target from melt-build.mk
 install-melt-modules: melt-modules melt-all-modules
-	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
+	$(mkinstalldirs) $(DESTDIR)$(melt_module_dir)
 	for l in $(wildcard melt-modules/*) : ; do \
 	   if [ "$$l" != ":" ]; then \
 	      $(INSTALL_PROGRAM) `readlink $$l` $(DESTDIR)$(melt_module_dir)/$$(basename `readlink $$l`) ; \
@@ -306,18 +306,18 @@ install-melt-modules: melt-modules melt-all-modules
 
 ## install the makefile for MELT modules
 install-melt-mk: melt-module.mk
-	$(mkinstalldirs) $(DESTDIR)/$(libexecsubdir)
-	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_installed_module_makefile)
+	$(mkinstalldirs) $(DESTDIR)$(libexecsubdir)
+	$(INSTALL_DATA) $< $(DESTDIR)$(melt_installed_module_makefile)
 
 ## install the default modules list
 install-melt-default-modules-list: $(melt_default_modules_list).modlis 
-	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_module_dir) 
+	$(INSTALL_DATA) $< $(DESTDIR)$(melt_module_dir) 
 
 ### install the MELT documentation files
 install-melt-doc: doc doc-info doc-pdf doc-html
-	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_DOC_INFO_DIR)
-	$(INSTALL_DATA) *.info *.info-*[0-9] $(DESTDIR)/$(MELTGCC_DOC_INFO_DIR)
-	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_DOC_HTML_DIR)
-	$(INSTALL_DATA) *.html $(DESTDIR)/$(MELTGCC_DOC_HTML_DIR)
-	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_DOC_PDF_DIR)
-	$(INSTALL_DATA) *.pdf $(DESTDIR)/$(MELTGCC_DOC_PDF_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_DOC_INFO_DIR)
+	$(INSTALL_DATA) *.info *.info-*[0-9] $(DESTDIR)$(MELTGCC_DOC_INFO_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_DOC_HTML_DIR)
+	$(INSTALL_DATA) *.html $(DESTDIR)$(MELTGCC_DOC_HTML_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_DOC_PDF_DIR)
+	$(INSTALL_DATA) *.pdf $(DESTDIR)$(MELTGCC_DOC_PDF_DIR)

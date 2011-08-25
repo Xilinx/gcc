@@ -1,4 +1,10 @@
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* MELT-Plugin-Makefile: Remove useless '/' after $(DESTDIR)
+
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* meltpluginapi.texi: Adding missing versionsubtitle macro
+
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
 	* meltpluginapi.texi: Adding missing versionsubtitle macro
 
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
