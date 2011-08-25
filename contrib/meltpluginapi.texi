@@ -84,6 +84,9 @@ Additional tutorial information for GCC is linked to from
 
 @menu
 * MELT Programming Reference::            the MELT API.
+* GNU Project::
+* Copying::                               the GPLv3 license.
+* MELT API Index::
 @end menu
 
 @c the meltgendoc.texi is generated from various *.melt source files

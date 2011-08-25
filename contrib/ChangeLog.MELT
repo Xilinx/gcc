@@ -1,5 +1,9 @@
 
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
+	* meltpluginapi.texi: Fix nodes (thanks to Patrice Dumas
+	<pertusus@free.fr> for suggestions).
+
+2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
 	* MELT-Plugin-Makefile: Using -quicklybuilt instead of
 	-static.
 
