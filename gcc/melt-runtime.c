@@ -5244,2229 +5244,2235 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
    .so suffix.  The module build is done thru the melt-module.mk file
    [with the 'make' utility]. */
 
-static void
+void
 melt_compile_source (const char *srcbase, const char *binbase, const char*workdir, const char*flavor)
-{
-  /* The generated dynamic library should have the following
-     constant strings:
-     const char melt_compiled_timestamp[];
-     const char melt_md5[];
+ {
+   /* The generated dynamic library should have the following
+      constant strings:
+      const char melt_compiled_timestamp[];
+      const char melt_md5[];
 
-     The melt_compiled_timestamp should contain a human readable
-     timestamp the melt_md5 should contain the hexadecimal md5 digest,
-     followed by the source file name (i.e. the single line output by the
-     command: md5sum $Csourcefile; where $Csourcefile is replaced by the
-     source file path)
+      The melt_compiled_timestamp should contain a human readable
+      timestamp the melt_md5 should contain the hexadecimal md5 digest,
+      followed by the source file name (i.e. the single line output by the
+      command: md5sum $Csourcefile; where $Csourcefile is replaced by the
+      source file path)
 
-  */
-  char* srcdescrpath = NULL;
-  const char* ourmakecommand = NULL;
-  const char* ourmakefile = NULL;
-  const char* ourcflags = NULL;
-  const char* mycwd = NULL;
-#if MELT_HAVE_DEBUG
-  char curlocbuf[250];
-#endif
-  /* we want a MELT frame for MELT_LOCATION here */
-  MELT_ENTEREMPTYFRAME(NULL);
-  mycwd = getpwd ();
-  if (!flavor) 
-    flavor = MELT_DEFAULT_FLAVOR;
-  debugeprintf ("melt_compile_source start srcbase %s binbase %s flavor %s", 
-		srcbase, binbase, flavor);
-  debugeprintf ("melt_compile_source start workdir %s", workdir);
-  debugeprintf ("melt_compile_source start mycwd %s", mycwd);
-  MELT_LOCATION_HERE_PRINTF (curlocbuf,
-			     "melt_compile_source srcbase %s binbase %s flavor %s", 
-			     srcbase, binbase, flavor);
-  if (!srcbase) 
-    {
-      warning (0, "no source base given to compile");
-      goto end;
-    }
-  if (!binbase)
-    {
-      melt_fatal_error ("no binary base given to compile %s", srcbase);
-    }
-  srcdescrpath = concat (srcbase, MELT_DESC_FILESUFFIX, NULL);
-  if (access (srcdescrpath, R_OK)) 
-      melt_fatal_error ("Cannot access MELT descriptive file %s to compile - %m", 
-			srcdescrpath);
-  if (strchr(lbasename (binbase), '.'))
-    melt_fatal_error ("MELT binary base %s to compile %s should not have dots", binbase, srcbase);
-  if (strcmp(flavor, "quicklybuilt") && strcmp(flavor, "optimized") && strcmp(flavor, "debugnoline"))
-    melt_fatal_error ("invalid flavor %s to compile %s - expecting {quicklybuilt,optimized,debugnoline}", flavor, srcbase);
-  ourmakecommand = melt_argument ("module-make-command");
-  if (!ourmakecommand || !ourmakecommand[0])
-    ourmakecommand = melt_module_make_command;
-  debugeprintf ("melt_compile_source ourmakecommand='%s'", ourmakecommand);
-  gcc_assert (ourmakecommand[0]);
-  ourmakefile = melt_argument ("module-makefile");
-  if (!ourmakefile || !ourmakefile[0])
-    ourmakefile = melt_module_makefile;
-  debugeprintf ("melt_compile_source ourmakefile: %s", ourmakefile);
-  gcc_assert (ourmakefile[0]);
+   */
+   char* srcdescrpath = NULL;
+   const char* ourmakecommand = NULL;
+   const char* ourmakefile = NULL;
+   const char* ourcflags = NULL;
+   const char* mycwd = NULL;
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[250];
+ #endif
+   /* we want a MELT frame for MELT_LOCATION here */
+   MELT_ENTEREMPTYFRAME(NULL);
+   mycwd = getpwd ();
+   if (!flavor) 
+     flavor = MELT_DEFAULT_FLAVOR;
+   debugeprintf ("melt_compile_source start srcbase %s binbase %s flavor %s", 
+		 srcbase, binbase, flavor);
+   debugeprintf ("melt_compile_source start workdir %s", workdir);
+   debugeprintf ("melt_compile_source start mycwd %s", mycwd);
+   MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			      "melt_compile_source srcbase %s binbase %s flavor %s", 
+			      srcbase, binbase, flavor);
+   if (!srcbase) 
+     {
+       warning (0, "no source base given to compile");
+       goto end;
+     }
+   if (!binbase)
+     {
+       melt_fatal_error ("no binary base given to compile %s", srcbase);
+     }
+   if (!workdir || !workdir[0])
+     {
+       workdir = melt_argument("workdir");
+       if (!workdir)
+	 workdir = melt_tempdir_path (NULL, NULL);
+     }
+   srcdescrpath = concat (srcbase, MELT_DESC_FILESUFFIX, NULL);
+   if (access (srcdescrpath, R_OK)) 
+       melt_fatal_error ("Cannot access MELT descriptive file %s to compile - %m", 
+			 srcdescrpath);
+   if (strchr(lbasename (binbase), '.'))
+     melt_fatal_error ("MELT binary base %s to compile %s should not have dots", binbase, srcbase);
+   if (strcmp(flavor, "quicklybuilt") && strcmp(flavor, "optimized") && strcmp(flavor, "debugnoline"))
+     melt_fatal_error ("invalid flavor %s to compile %s - expecting {quicklybuilt,optimized,debugnoline}", flavor, srcbase);
+   ourmakecommand = melt_argument ("module-make-command");
+   if (!ourmakecommand || !ourmakecommand[0])
+     ourmakecommand = melt_module_make_command;
+   debugeprintf ("melt_compile_source ourmakecommand='%s'", ourmakecommand);
+   gcc_assert (ourmakecommand[0]);
+   ourmakefile = melt_argument ("module-makefile");
+   if (!ourmakefile || !ourmakefile[0])
+     ourmakefile = melt_module_makefile;
+   debugeprintf ("melt_compile_source ourmakefile: %s", ourmakefile);
+   gcc_assert (ourmakefile[0]);
 
-  ourcflags = melt_argument ("module-cflags");
-  if (!ourcflags || !ourcflags[0])
-    ourcflags = flag_melt_bootstrapping?NULL
-      :(getenv ("GCCMELT_MODULE_CFLAGS"));
-  if (!ourcflags || !ourcflags[0]) 
-    ourcflags = melt_module_cflags;
+   ourcflags = melt_argument ("module-cflags");
+   if (!ourcflags || !ourcflags[0])
+     ourcflags = flag_melt_bootstrapping?NULL
+       :(getenv ("GCCMELT_MODULE_CFLAGS"));
+   if (!ourcflags || !ourcflags[0]) 
+     ourcflags = melt_module_cflags;
 
-  /* We use printf, not inform, because we are not sure that diagnostic buffers are flushed.  */
-  printf ("\nMELT is building binary %s from source %s with flavor %s\n", binbase, srcbase, flavor);
+   /* We use printf, not inform, because we are not sure that diagnostic buffers are flushed.  */
+   printf ("\nMELT is building binary %s from source %s with flavor %s\n", binbase, srcbase, flavor);
 
-  fflush (stdout);
-  fflush (stderr);
+   fflush (stdout);
+   fflush (stderr);
 
-#ifdef MELT_IS_PLUGIN
-  melt_run_make_for_plugin (ourmakecommand, ourmakefile, ourcflags, 
-			    flavor, srcbase, binbase, workdir);
-#else /* not MELT_IS_PLUGIN */
-  melt_run_make_for_branch (ourmakecommand, ourmakefile, ourcflags, 
-			    flavor, srcbase, binbase, workdir);
-#endif /*MELT_IS_PLUGIN*/
+ #ifdef MELT_IS_PLUGIN
+   melt_run_make_for_plugin (ourmakecommand, ourmakefile, ourcflags, 
+			     flavor, srcbase, binbase, workdir);
+ #else /* not MELT_IS_PLUGIN */
+   melt_run_make_for_branch (ourmakecommand, ourmakefile, ourcflags, 
+			     flavor, srcbase, binbase, workdir);
+ #endif /*MELT_IS_PLUGIN*/
+  end:
+   debugeprintf ("melt_compile_source end srcbase %s binbase %s flavor %s", 
+		 srcbase, binbase, flavor);
+   MELT_EXITFRAME ();
+ }
+
+ /* compute the hexadecimal encoded md5sum string of a file */
+ melt_ptr_t 
+ meltgc_string_hex_md5sum_file (const char* path)
+ {
+   int ix = 0;
+   char md5srctab[16];
+   char md5hex[50];
+   FILE *fil = NULL;
+   MELT_ENTERFRAME(1, NULL);
+ #define resv meltfram__.mcfr_varptr[0]
+   memset (md5srctab, 0, sizeof (md5srctab));
+   memset (md5hex, 0, sizeof (md5hex));
+   if (!path || !path[0]) 
+     goto end;
+   fil = fopen(path, "r");
+   if (!fil)
+     goto end;
+   if (md5_stream (fil, &md5srctab))
+     melt_fatal_error
+       ("failed to compute md5sum of file %s - %m",
+	path);
+   fclose (fil);
+   fil = NULL;
+   path = NULL;
+   /* We forgot the path, so a GC could move it later! */
+   memset (md5hex, 0, sizeof(md5hex));
+   for (ix=0; ix<16; ix++) {
+     char hexb[4] = {0,0,0,0};
+     int curbyt = md5srctab[ix] & 0xff;
+     snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
+     md5hex[2*ix] = hexb[0];
+     md5hex[2*ix+1] = hexb[1];
+   }
+   resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
+  end:
+   MELT_EXITFRAME();
+   return (melt_ptr_t)resv;
+ #undef resv
+ }
+
+ /* compute the hexadecimal encoded md5sum string of a tuple of file
+    paths, or NULL on failure */
+ melt_ptr_t 
+ meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p)
+ {
+   int ix = 0;
+   char md5srctab[16];
+   char md5hex[50];
+   char bufblock[1024]; /* size should be multiple of 64 for md5_process_block */
+   FILE *fil = NULL;
+   int nbtup = 0;
+   int cnt = 0;
+   struct md5_ctx ctx;
+   MELT_ENTERFRAME(3, NULL);
+ #define resv       meltfram__.mcfr_varptr[0]
+ #define pathtupv   meltfram__.mcfr_varptr[1]
+ #define pathv   meltfram__.mcfr_varptr[2]
+   pathtupv = pathtup_p;
+   memset (&ctx, 0, sizeof(ctx));
+   memset (md5srctab, 0, sizeof (md5srctab));
+   memset (md5hex, 0, sizeof (md5hex));
+   memset (bufblock, 0, sizeof (bufblock));
+   if (melt_magic_discr ((melt_ptr_t)pathtupv) != MELTOBMAG_MULTIPLE)
+     goto end;
+   md5_init_ctx (&ctx);
+   nbtup = melt_multiple_length ((melt_ptr_t)pathtupv);
+   /* this loop does not garbage collect! */
+   for (ix=0; ix < nbtup; ix++) 
+     {
+       const char *curpath = NULL;
+       pathv = melt_multiple_nth ((melt_ptr_t)pathtupv, ix);
+       if (melt_magic_discr ((melt_ptr_t)pathv) != MELTOBMAG_STRING)
+	 goto end;
+       curpath = melt_string_str ((melt_ptr_t) pathv);
+       if (!curpath || !curpath[0])
+	 goto end;
+       fil = fopen(curpath, "r");
+       if (!fil)
+	 goto end;
+       while (!feof (fil))
+	 {
+	   memset (bufblock, 0, sizeof (bufblock));
+	   cnt = fread (bufblock, 1, sizeof(bufblock), fil);
+	   if (cnt ==sizeof(bufblock))
+	     {
+	       /* an entire block has been read. */
+	       md5_process_bytes (bufblock, sizeof(bufblock), &ctx);
+	     }
+	   else
+	     {
+	       md5_process_bytes (bufblock, (size_t) cnt, &ctx);
+	     }
+	 }
+       fclose (fil);
+       fil = NULL;
+       curpath = NULL;
+     }
+   md5_finish_ctx (&ctx, md5srctab);
+   memset (md5hex, 0, sizeof(md5hex));
+   for (ix=0; ix<16; ix++) {
+     char hexb[4] = {0,0,0,0};
+     int curbyt = md5srctab[ix] & 0xff;
+     snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
+     md5hex[2*ix] = hexb[0];
+     md5hex[2*ix+1] = hexb[1];
+   }
+   resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
+  end:
+   MELT_EXITFRAME();
+   return (melt_ptr_t)resv;
+ #undef resv
+ #undef pathtupv
+ #undef pathv
+ }
+
+ /* following code and comment is taken from the gcc/plugin.c file of
+    the plugins branch */
+
+ /* We need a union to cast dlsym return value to a function pointer
+    as ISO C forbids assignment between function pointer and 'void *'.
+    Use explicit union instead of __extension__(<union_cast>) for
+    portability.  */
+ #define PTR_UNION_TYPE(TOTYPE) union { void *_q; TOTYPE _nq; }
+ #define PTR_UNION_AS_VOID_PTR(NAME) (NAME._q)
+ #define PTR_UNION_AS_CAST_PTR(NAME) (NAME._nq)
+
+
+
+ void *
+ melt_dlsym_all (const char *nam)
+ {
+   int ix = 0;
+   melt_module_info_t *mi = 0;
+   /* Index 0 is unused in melt_modinfvec!  */
+   for (ix = 1; VEC_iterate (melt_module_info_t, melt_modinfvec, ix, mi); ix++)
+     {
+       void *p = (void *) dlsym ((void *) mi->mmi_dlh, nam);
+       gcc_assert (mi->mmi_magic == MELT_MODULE_MAGIC);
+       if (p)
+	 return p;
+     };
+   return (void *) dlsym (proghandle, nam);
+ }
+
+
+ /* Find a file path using either directories or colon-seperated paths,
+    return a malloc-ed string or null. */
+ static char*melt_find_file_at (int line, const char*path, ...) ATTRIBUTE_SENTINEL;
+ #define MELT_FIND_FILE(PATH,...) melt_find_file_at (__LINE__,(PATH),__VA_ARGS__,NULL)
+
+ #define MELT_FILE_IN_DIRECTORY "directory"
+ #define MELT_FILE_IN_PATH "path"
+
+
+ /* Called thru the MELT_FIND_FILE macro */
+ static char*
+ melt_find_file_at (int lin, const char*path, ...)
+ {
+   char* mode = NULL;
+   va_list args;
+   if (!path) 
+     return NULL;
+   va_start (args, path);
+   while ((mode=va_arg (args, char*)) != NULL) {
+     if (!strcmp(mode, MELT_FILE_IN_DIRECTORY))
+       {
+	 char* fipath = NULL;
+	 char* indir = va_arg (args, char*);
+	 if (!indir)
+	   continue;
+	 fipath = concat (indir, "/", path, NULL);
+	 if (!access(fipath, R_OK))
+	   {
+	     debugeprintf ("found file %s in directory %s [%s:%d]", 
+			   fipath, indir,
+			   lbasename(__FILE__), lin);
+	     return fipath;
+	   };
+	 free (fipath);
+       }
+     else if (!strcmp(mode, MELT_FILE_IN_PATH)) 
+       {
+	 char* inpath = va_arg(args, char*);
+	 char* dupinpath = NULL;
+	 char* pc = NULL;
+	 char* nextpc = NULL;
+	 char* col = NULL;
+	 char* fipath = NULL;
+	 if (!inpath) continue;
+	 dupinpath = xstrdup (inpath);
+	 pc = dupinpath;
+	 for (pc = dupinpath; pc && *pc; pc = nextpc) 
+	   {
+	     nextpc = NULL;
+	     col = strchr(pc, ':');
+	     if (col) 
+	       {
+		 *col = (char)0;
+		 nextpc = col+1;
+	       }
+	     else 
+	       col = pc + strlen(pc);
+	     fipath = concat (pc, "/", path, NULL);
+	     if (!access (fipath, R_OK)) 
+	       {
+		 debugeprintf ("found file %s in colon path %s [%s:%d]",
+			       fipath, inpath,
+			       lbasename(__FILE__), lin);
+		 free (dupinpath), dupinpath = NULL;
+		 return fipath;
+	       }
+	   };
+	 free (dupinpath), dupinpath = NULL;
+       }
+     else 
+       fatal_error ("MELT_FIND_FILE %s: bad mode %s [%s:%d]", 
+		    path, mode, lbasename(__FILE__), lin);
+   }
+   va_end (args);
+   debugeprintf ("not found file %s [%s:%d]", path, lbasename(__FILE__), lin);
+   return NULL;
+ }
+
+
+
+
+
+ /*************** initial load machinery *******************/
+
+
+ struct reading_st
+ {
+   FILE *rfil;
+   const char *rpath;
+   char *rcurlin;		/* current line mallocated buffer */
+   int rlineno;			/* current line number */
+   int rcol;			/* current column */
+   source_location rsrcloc;	/* current source location */
+   melt_ptr_t *rpfilnam;	        /* pointer to location of file name string */
+   bool rhas_file_location;	/* true iff the string comes from a file */
+ };
+
+ #define MELT_READ_TABULATION_FACTOR 8
+ /* Obstack used for reading strings */
+ static struct obstack melt_bstring_obstack;
+ #define rdback() (rd->rcol--)
+ #define rdnext() (rd->rcol++)
+ #define rdcurc() rd->rcurlin[rd->rcol]
+ #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
+ #define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
+
+ static void melt_linemap_compute_current_location (struct reading_st *rd);
+
+ #define READ_ERROR(Fmt,...)	do {					\
+   melt_linemap_compute_current_location (rd);				\
+   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
+   melt_fatal_error("MELT read failure <%s:%d>",				\
+	       lbasename(__FILE__), __LINE__);				\
+ } while(0)
+
+ #define READ_WARNING(Fmt,...)	do {					\
+   melt_linemap_compute_current_location (rd);				\
+   warning_at (rd->rsrcloc, 0, "MELT read warning: " Fmt, ##__VA_ARGS__); \
+ } while(0)
+
+ /* meltgc_readval returns the read value and sets *PGOT to true if something
+    was read */
+ static melt_ptr_t meltgc_readval (struct reading_st *rd, bool * pgot);
+
+ static void 
+ melt_linemap_compute_current_location (struct reading_st* rd)
+ {
+   int colnum = 1;
+   int cix = 0;
+   if (!rd || !rd->rcurlin || !rd->rhas_file_location)
+     return;
+   for (cix=0; cix<rd->rcol; cix++) {
+     char c = rd->rcurlin[cix];
+     if (!c) 
+       break;
+     else if (c == '\t')
+       {
+	 while (colnum % MELT_READ_TABULATION_FACTOR != 0) 
+	   colnum++;
+       }
+     else
+       colnum++;
+   }
+ #if MELT_GCC_VERSION <= 4006 /* GCC 4.6 */
+   LINEMAP_POSITION_FOR_COLUMN(rd->rsrcloc, line_table, colnum);
+ #else /* GCC 4.7 or newer */
+   rd->rsrcloc = linemap_position_for_column (line_table, colnum);
+ #endif /*MELT_GCC_VERSION*/
+ }
+
+ static melt_ptr_t meltgc_readstring (struct reading_st *rd);
+ static melt_ptr_t meltgc_readmacrostringsequence (struct reading_st *rd);
+
+ enum commenthandling_en
+   { COMMENT_SKIP, COMMENT_INFIX, COMMENT_NO };
+ static int
+ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
+ {
+   int c = 0;
+   int incomm = 0;
+  readagain:
+   if (rdeof ())
+     return EOF;
+   if (!rd->rcurlin)
+     goto readline;
+   c = rdcurc ();
+   if ((c == '\n' && !rdfollowc (1)) || c == 0)
+   readline:
+     {
+       /* we expect most lines to fit into linbuf, so we don't handle
+	  efficiently long lines */
+       static char linbuf[400];
+       char *mlin = 0;		/* partial mallocated line buffer when
+				    not fitting into linbuf */
+       char *eol = 0;
+       if (!rd->rfil)		/* reading from a buffer */
+	 return EOF;
+       if (rd->rcurlin)
+	 free ((void *) rd->rcurlin);
+       rd->rcurlin = NULL;
+       /* we really want getline here .... */
+       for (;;)
+	 {
+	   memset (linbuf, 0, sizeof (linbuf));
+	   eol = NULL;
+	   if (!fgets (linbuf, sizeof (linbuf) - 2, rd->rfil))
+	     {
+	       /* reached eof, so either give mlin or duplicate an empty
+		  line */
+	       if (mlin)
+		 rd->rcurlin = mlin;
+	       else
+		 rd->rcurlin = xstrdup ("");
+	       break;
+	     }
+	   else
+	     eol = strchr (linbuf, '\n');
+	   if (eol)
+	     {
+	       if (rd->rcurlin)
+		 free ((void *) rd->rcurlin);
+	       if (!mlin)
+		 rd->rcurlin = xstrdup (linbuf);
+	       else
+		 {
+		   rd->rcurlin = concat (mlin, linbuf, NULL);
+		   free (mlin);
+		 }
+	       break;
+	     }
+	   else
+	     {
+	       /* read partly a long line without reaching the end of line */
+	       if (mlin)
+		 {
+		   char *newmlin = concat (mlin, linbuf, NULL);
+		   free (mlin);
+		   mlin = newmlin;
+		 }
+	       else
+		 mlin = xstrdup (linbuf);
+	     }
+	 };
+       rd->rlineno++;
+       rd->rsrcloc =
+	 linemap_line_start (line_table, rd->rlineno, strlen (linbuf) + 1);
+       rd->rcol = 0;
+       if (comh == COMMENT_NO)
+	 return rdcurc();
+       goto readagain;
+     }
+   /** The comment ;;## <linenum> [<filename>]
+       is handled like #line, inspired by _cpp_do_file_change in
+       libcpp/directives.c */
+   else if (c == ';' && rdfollowc (1) == ';'
+	    && rdfollowc (2) == '#' && rdfollowc (3) == '#'
+	    && comh == COMMENT_SKIP)
+     {
+       char *endp = 0;
+       char *newpath = 0;
+       char* newpathdup = 0;
+       long newlineno = strtol (&rdfollowc (4), &endp, 10);
+       /* take as filename from the first non-space to the last non-space */
+       while (endp && *endp && ISSPACE(*endp)) endp++;
+       if (endp && *endp) newpath=endp;
+       if (endp && newpath) endp += strlen(endp) - 1;
+       while (newpath && ISSPACE(*endp)) endp--;
+       debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
+		     newlineno, newpath);
+       if (newlineno>0 && newpath)
+	 {
+	   int ix= 0;
+	   char *curpath=0;
+	   /* find the newpath in the parsedmeltfilevect or push it
+	      there */
+	   for (ix = 0;
+		VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
+		ix++)
+	     {
+	       if (curpath && !strcmp(newpath, curpath))
+		 newpathdup = curpath;
+	     }
+	   if (!newpathdup)
+	     {
+	       newpathdup = xstrdup (newpath);
+	       VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
+	     }
+	   (void) linemap_add (line_table, LC_RENAME_VERBATIM,
+			       false, newpathdup, newlineno);
+	 }
+       else if (newlineno>0)
+	 {
+	 }
+       goto readline;
+     }
+   else if (c == ';' && comh == COMMENT_SKIP)
+     goto readline;
+   /** In infix mode the comment //## <linenum> [<filename>]
+       is handled like #line, inspired by _cpp_do_file_change in
+       libcpp/directives.c */
+   else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/'
+	    && rdfollowc (2) == '#' && rdfollowc (3) == '#'
+	    )
+     {
+       char *endp = 0;
+       char *newpath = 0;
+       char* newpathdup = 0;
+       long newlineno = strtol (&rdfollowc (4), &endp, 10);
+       /* take as filename from the first non-space to the last non-space */
+       while (endp && *endp && ISSPACE(*endp)) endp++;
+       if (endp && *endp) newpath=endp;
+       if (endp && newpath) endp += strlen(endp) - 1;
+       while (newpath && ISSPACE(*endp)) endp--;
+       debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
+		     newlineno, newpath);
+       if (newlineno>0 && newpath)
+	 {
+	   int ix= 0;
+	   char *curpath=0;
+	   /* find the newpath in the parsedmeltfilevect or push it
+	      there */
+	   for (ix = 0;
+		VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
+		ix++)
+	     {
+	       if (curpath && !strcmp(newpath, curpath))
+		 newpathdup = curpath;
+	     }
+	   if (!newpathdup)
+	     {
+	       newpathdup = xstrdup (newpath);
+	       VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
+	     }
+	   (void) linemap_add (line_table, LC_RENAME_VERBATIM,
+			false, newpathdup, newlineno);
+	 }
+       else if (newlineno>0)
+	 {
+	 }
+       goto readline;
+     }
+   else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/')
+     /* monoline // comment syntax in infix mode */
+     goto readline;
+   else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '*')
+     {
+       /* parse the multiline slash-star comment syntax in infix mode */
+       incomm = 1;
+       rdnext ();
+       c = rdcurc ();
+       goto readagain;
+     }
+   else if (incomm && comh == COMMENT_INFIX && c == '*' && rdfollowc (1) == '/')
+     {
+       /* end a multiline start-slash comment syntax in infix mode */
+       incomm = 0;
+       rdnext ();
+       rdnext ();
+       c = rdcurc ();
+       goto readagain;
+     }
+   else if (c == '#' && comh == COMMENT_SKIP && rdfollowc (1) == '|')
+     {
+       incomm = 1;
+       rdnext ();
+       c = rdcurc ();
+       goto readagain;
+     }
+   else if (incomm && comh == COMMENT_SKIP && c == '|' && rdfollowc (1) == '#')
+     {
+       incomm = 0;
+       rdnext ();
+       rdnext ();
+       c = rdcurc ();
+       goto readagain;
+     }
+   else if (ISSPACE (c) || incomm)
+     {
+       rdnext ();
+       c = rdcurc ();
+       goto readagain;
+     }
+   else
+     return c;
+ }
+
+
+ #define EXTRANAMECHARS "_+-*/<>=!?:%~&@$|"
+ /* read a simple name on the melt_bname_obstack */
+ static char *
+ readsimplename (struct reading_st *rd)
+ {
+   int c = 0;
+   while (!rdeof () && (c = rdcurc ()) > 0 &&
+	  (ISALNUM (c) || strchr (EXTRANAMECHARS, c) != NULL))
+     {
+       obstack_1grow (&melt_bname_obstack, (char) c);
+       rdnext ();
+     }
+   obstack_1grow (&melt_bname_obstack, (char) 0);
+   return XOBFINISH (&melt_bname_obstack, char *);
+ }
+
+
+ /* read an integer, like +123, which may also be +%numbername */
+ static long
+ readsimplelong (struct reading_st *rd)
+ {
+   int c = 0;
+   long r = 0;
+   char *endp = 0;
+   char *nam = 0;
+   bool neg = FALSE;
+   /* we do not need any GC locals ie MELT_ENTERFRAME because no
+      garbage collection occurs here */
+   c = rdcurc ();
+   if (((c == '+' || c == '-') && ISDIGIT (rdfollowc (1))) || ISDIGIT (c))
+     {
+       /* R5RS and R6RS require decimal notation -since the binary and
+	  hex numbers are hash-prefixed but for convenience we accept
+	  them thru strtol */
+       r = strtol (&rdcurc (), &endp, 0);
+       if (r == 0 && endp <= &rdcurc ())
+	 READ_ERROR ("MELT: failed to read number %.20s", &rdcurc ());
+       rd->rcol += endp - &rdcurc ();
+       return r;
+     }
+   else if ((c == '+' || c == '-') && rdfollowc (1) == '%')
+     {
+       neg = (c == '-');
+       rdnext ();
+       rdnext ();
+       nam = readsimplename (rd);
+       r = -1;
+       /* the +%magicname notation is seldom used, we don't care to do
+	  many needless strcmp-s in that case, to be able to define the
+	  below simple macro */
+       if (!nam)
+	 READ_ERROR
+	   ("MELT: magic number name expected after +%% or -%% for magic %s",
+	    nam);
+ #define NUMNAM(N) else if (!strcmp(nam,#N)) r = (N)
+       NUMNAM (MELTOBMAG_OBJECT);
+       NUMNAM (MELTOBMAG_MULTIPLE);
+       NUMNAM (MELTOBMAG_BOX);
+       NUMNAM (MELTOBMAG_CLOSURE);
+       NUMNAM (MELTOBMAG_ROUTINE);
+       NUMNAM (MELTOBMAG_LIST);
+       NUMNAM (MELTOBMAG_PAIR);
+       NUMNAM (MELTOBMAG_INT);
+       NUMNAM (MELTOBMAG_MIXINT);
+       NUMNAM (MELTOBMAG_MIXLOC);
+       NUMNAM (MELTOBMAG_REAL);
+       NUMNAM (MELTOBMAG_STRING);
+       NUMNAM (MELTOBMAG_STRBUF);
+       NUMNAM (MELTOBMAG_TREE);
+       NUMNAM (MELTOBMAG_GIMPLE);
+       NUMNAM (MELTOBMAG_GIMPLESEQ);
+       NUMNAM (MELTOBMAG_BASICBLOCK);
+       NUMNAM (MELTOBMAG_EDGE);
+       NUMNAM (MELTOBMAG_MAPOBJECTS);
+       NUMNAM (MELTOBMAG_MAPSTRINGS);
+       NUMNAM (MELTOBMAG_MAPTREES);
+       NUMNAM (MELTOBMAG_MAPGIMPLES);
+       NUMNAM (MELTOBMAG_MAPGIMPLESEQS);
+       NUMNAM (MELTOBMAG_MAPBASICBLOCKS);
+       NUMNAM (MELTOBMAG_MAPEDGES);
+       NUMNAM (MELTOBMAG_DECAY);
+       NUMNAM (MELTOBMAG_SPEC_FILE);
+       NUMNAM (MELTOBMAG_SPEC_RAWFILE);
+       NUMNAM (MELTOBMAG_SPEC_MPFR);
+       NUMNAM (MELTOBMAG_SPECPPL_COEFFICIENT);
+       NUMNAM (MELTOBMAG_SPECPPL_LINEAR_EXPRESSION);
+       NUMNAM (MELTOBMAG_SPECPPL_CONSTRAINT);
+       NUMNAM (MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM);
+       NUMNAM (MELTOBMAG_SPECPPL_GENERATOR);
+       NUMNAM (MELTOBMAG_SPECPPL_GENERATOR_SYSTEM);
+       NUMNAM (MELTOBMAG_SPECPPL_POLYHEDRON);
+       /** the fields' ranks of melt.h have been removed in rev126278 */
+ #undef NUMNAM
+       if (r < 0)
+	 READ_ERROR ("MELT: bad magic number name %s", nam);
+       obstack_free (&melt_bname_obstack, nam);
+       return neg ? -r : r;
+     }
+   else
+     READ_ERROR ("MELT: invalid number %.20s", &rdcurc ());
+   return 0;
+ }
+
+
+ static melt_ptr_t
+ meltgc_readseqlist (struct reading_st *rd, int endc)
+ {
+   int c = 0;
+   int nbcomp = 0;
+   int startlin = rd->rlineno;
+   bool got = FALSE;
+   MELT_ENTERFRAME (4, NULL);
+ #define seqv  meltfram__.mcfr_varptr[0]
+ #define compv meltfram__.mcfr_varptr[1]
+ #define listv meltfram__.mcfr_varptr[2]
+ #define pairv meltfram__.mcfr_varptr[3]
+   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+  readagain:
+   compv = NULL;
+   c = skipspace_getc (rd, COMMENT_SKIP);
+   if (c == endc)
+     {
+       rdnext ();
+       goto end;
+     }
+   /* The lexing ##{ ... }# is to insert a macrostring inside the
+      current sequence. */
+   else if (c == '#' && rdfollowc(1) == '#' && rdfollowc(2) == '{') 
+     {
+       rdnext ();
+       rdnext ();
+       rdnext ();
+       got = FALSE;
+       listv = meltgc_readmacrostringsequence (rd);
+       if (melt_magic_discr ((melt_ptr_t)listv) == MELTOBMAG_LIST) 
+	 {
+	   got = TRUE;
+	   for (pairv = ((struct meltlist_st*)(listv))->first;
+		pairv && melt_magic_discr((melt_ptr_t)pairv) == MELTOBMAG_PAIR;
+		pairv = ((struct meltpair_st*)(pairv))->tl)
+	     {
+	       compv = ((struct meltpair_st*)(pairv))->hd;
+	       if (compv)
+		 {
+		   meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+		   nbcomp++;
+		 }
+	     }
+	 }
+       else if (!listv)
+	 got = TRUE;
+       if (!got)
+	 READ_ERROR ("MELT: unexpected stuff in macrostring seq %.20s ... started line %d",
+		     &rdcurc (), startlin);
+       goto readagain;
+     }
+   got = FALSE;
+   compv = meltgc_readval (rd, &got);
+   if (!compv && !got)
+     READ_ERROR ("MELT: unexpected stuff in seq %.20s ... started line %d",
+		 &rdcurc (), startlin);
+   meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+   nbcomp++;
+   goto readagain;
+  end:
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) seqv;
+ #undef compv
+ #undef seqv
+ #undef listv
+ #undef pairv
+ }
+
+
+
+
+ static melt_ptr_t
+ meltgc_makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
+	    location_t loc, bool ismacrostring)
+ {
+   MELT_ENTERFRAME (4, NULL);
+ #define sexprv  meltfram__.mcfr_varptr[0]
+ #define contsv   meltfram__.mcfr_varptr[1]
+ #define locmixv meltfram__.mcfr_varptr[2]
+ #define sexpclassv meltfram__.mcfr_varptr[3]
+   contsv = contents_p;
+   gcc_assert (melt_magic_discr ((melt_ptr_t) contsv) == MELTOBMAG_LIST);
+   if (loc == 0)
+     locmixv = meltgc_new_mixint ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
+				     *rd->rpfilnam, (long) lineno);
+   else
+     locmixv = meltgc_new_mixloc ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
+				     *rd->rpfilnam, (long) lineno, loc);
+   if (ismacrostring && (MELT_PREDEF (CLASS_SEXPR_MACROSTRING)))
+     sexpclassv = MELT_PREDEF (CLASS_SEXPR_MACROSTRING);
+   else
+     sexpclassv = MELT_PREDEF (CLASS_SEXPR);
+   sexprv = meltgc_new_raw_object ((meltobject_ptr_t) (sexpclassv),
+				   FSEXPR__LAST);
+   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
+     (melt_ptr_t) locmixv;
+   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] =
+     (melt_ptr_t) contsv;
+   meltgc_touch (sexprv);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) sexprv;
+ #undef sexprv
+ #undef contsv
+ #undef locmixv
+ #undef sexpclassv
+ }
+
+
+
+ melt_ptr_t
+ meltgc_named_symbol (const char *nam, int create)
+ {
+   int namlen = 0, ix = 0;
+   char *namdup = 0;
+   char tinybuf[130];
+   MELT_ENTERFRAME (4, NULL);
+ #define symbv    meltfram__.mcfr_varptr[0]
+ #define dictv    meltfram__.mcfr_varptr[1]
+ #define closv    meltfram__.mcfr_varptr[2]
+ #define nstrv    meltfram__.mcfr_varptr[3]
+   symbv = NULL;
+   dictv = NULL;
+   closv = NULL;
+   if (!nam || !MELT_PREDEF (INITIAL_SYSTEM_DATA))
+     goto end;
+   namlen = strlen (nam);
+   memset (tinybuf, 0, sizeof (tinybuf));
+   if (namlen < (int) sizeof (tinybuf) - 2)
+     namdup = strcpy (tinybuf, nam);
+   else
+     namdup = strcpy ((char *) xcalloc (namlen + 1, 1), nam);
+   gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA))
+	       == MELTOBMAG_OBJECT);
+   gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) ==
+	       MELTOBMAG_OBJECT);
+   for (ix = 0; ix < namlen; ix++)
+     if (ISALPHA (namdup[ix]))
+       namdup[ix] = TOUPPER (namdup[ix]);
+   if (MELT_PREDEF (INITIAL_SYSTEM_DATA) != 0)
+     {
+       dictv = melt_get_inisysdata (FSYSDAT_SYMBOLDICT);
+       if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS)
+	 symbv =
+	   melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
+				   namdup);
+       if (symbv || !create)
+	 goto end;
+       closv = melt_get_inisysdata (FSYSDAT_ADDSYMBOL);
+       if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
+	 {
+	   union meltparam_un pararg[1];
+	   memset (&pararg, 0, sizeof (pararg));
+	   nstrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
+	   pararg[0].meltbp_aptr = (melt_ptr_t *) & nstrv;
+	   symbv =
+	     melt_apply ((meltclosure_ptr_t) closv,
+			    (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
+			    MELTBPARSTR_PTR, pararg, "", NULL);
+	   goto end;
+	 }
+     }
+ end:;
+   if (namdup && namdup != tinybuf)
+     free (namdup);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) symbv;
+ #undef symbv
+ #undef dictv
+ #undef closv
+ #undef nstrv
+ }
+
+ melt_ptr_t
+ meltgc_intern_symbol (melt_ptr_t symb_p)
+ {
+   MELT_ENTERFRAME (4, NULL);
+ #define symbv    meltfram__.mcfr_varptr[0]
+ #define closv    meltfram__.mcfr_varptr[1]
+ #define nstrv    meltfram__.mcfr_varptr[2]
+ #define resv     meltfram__.mcfr_varptr[3]
+ #define obj_symbv    ((meltobject_ptr_t)(symbv))
+   symbv = symb_p;
+   if (melt_magic_discr ((melt_ptr_t) symbv) != MELTOBMAG_OBJECT
+       || obj_symbv->obj_len < FSYMB__LAST
+       || !melt_is_instance_of ((melt_ptr_t) symbv,
+				   (melt_ptr_t) MELT_PREDEF (CLASS_SYMBOL)))
+     goto fail;
+   nstrv = obj_symbv->obj_vartab[FNAMED_NAME];
+   if (melt_magic_discr ((melt_ptr_t) nstrv) != MELTOBMAG_STRING)
+     goto fail;
+   closv = melt_get_inisysdata (FSYSDAT_INTERNSYMBOL);
+   if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
+     goto fail;
+   else
+     {
+       union meltparam_un pararg[1];
+       memset (&pararg, 0, sizeof (pararg));
+       pararg[0].meltbp_aptr = (melt_ptr_t *) & symbv;
+       MELT_LOCATION_HERE ("intern symbol before apply");
+       resv =
+	 melt_apply ((meltclosure_ptr_t) closv,
+			(melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
+			MELTBPARSTR_PTR, pararg, "", NULL);
+       goto end;
+     }
+ fail:
+   resv = NULL;
+ end:;
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) resv;
+ #undef symbv
+ #undef closv
+ #undef nstrv
+ #undef resv
+ #undef obj_symbv
+ }
+
+
+ enum {MELT_INFIXREAD_MAGIC=0x69fd1769};
+
+ struct infixreading_st {
+   int infr_magic; /* always MELT_INFIXREAD_MAGIC */
+   struct reading_st infr_reading;
+   struct infixreading_st* infr_prev;
+ };
+ static struct infixreading_st* curinfixr;
+
+ void
+ melt_open_infix_file (const char* filnam)
+ {
+   struct infixreading_st* previnfix = curinfixr;
+   char* filnamdup = 0;
+   FILE* fil = 0;
+   gcc_assert (!previnfix || previnfix->infr_magic == MELT_INFIXREAD_MAGIC);
+   curinfixr = (struct infixreading_st*) xcalloc (sizeof(struct infixreading_st), 1);
+   memset (curinfixr, 0, sizeof(curinfixr));
+   filnamdup = xstrdup (filnam);
+   /* Store the filnamdup in the parsedmeltfilevect vector to be able
+      to free them at end; we need to duplicate filnam because
+      linemap_add store pointers to it. */
+   VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
+   debugeprintf ("meltgc_open_infix_file filnamdup %s", filnamdup);
+   fil = fopen (filnamdup, "rt");
+   if (!fil)
+     melt_fatal_error ("cannot open MELT infix file %s - %m", filnamdup);
+   /* warn if the filename has strange characters in its base name,
+      notably + */
+   {
+     const char* filbase = 0;
+     int warn = 0;
+     for (filbase = lbasename (filnamdup); *filbase; filbase++)
+       {
+	 if (ISALNUM (*filbase) || *filbase=='-'
+	     || *filbase=='_' || *filbase=='.')
+	   continue;
+	 warn = 1;
+       }
+     if (warn)
+       warning (0, "MELT infix file name %s has strange characters", filnamdup);
+   }
+   curinfixr->infr_magic = MELT_INFIXREAD_MAGIC;
+   curinfixr->infr_reading.rfil = fil;
+   curinfixr->infr_reading.rpath = filnamdup;
+   curinfixr->infr_reading.rlineno = 0;
+   (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
+   curinfixr->infr_prev = previnfix;
+   skipspace_getc (&curinfixr->infr_reading, COMMENT_INFIX);
+ }
+
+
+
+
+ melt_ptr_t
+ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
+ {
+   int c = 0;
+   struct reading_st *rd = 0;
+   int lineno = 0;
+   location_t loc = 0;
+   char* nam = 0;
+   char delimbuf[4] = {0};
+   MELT_ENTERFRAME (6, NULL);
+ #define locnamv    meltfram__.mcfr_varptr[0]
+ #define lexv       meltfram__.mcfr_varptr[1]
+ #define delimapv   meltfram__.mcfr_varptr[2]
+ #define readv      meltfram__.mcfr_varptr[3]
+ #define locmixv    meltfram__.mcfr_varptr[4]
+   locnamv = locnam_p;
+   delimapv = delimap_p;
+   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
+     melt_dbgshortbacktrace ("unexpected call to MELT infix_lexeme" ,
+			     100);
+     melt_fatal_error ("MELT infix_lexeme called outside of infix parsing (%s)",
+		       melt_string_str ((melt_ptr_t)locnamv));
+   }
+   if (melt_magic_discr ((melt_ptr_t) locnamv) != MELTOBMAG_STRING)
+     locnamv = 0;
+   curinfixr->infr_reading.rpfilnam = (melt_ptr_t*) (&locnamv);
+   rd = &curinfixr->infr_reading;
+   c = skipspace_getc (rd, COMMENT_INFIX);
+   lineno = rd->rlineno;
+   melt_linemap_compute_current_location (rd);
+   loc = rd->rsrcloc;
+   /* return nil on EOF */
+   if (c < 0 || !rd->rfil || feof(rd->rfil))
+     goto end;
+   memset (delimbuf, 0, sizeof(delimbuf));
+   if (loc == 0)
+     locmixv = meltgc_new_mixint
+       ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
+	(melt_ptr_t) locnamv, (long) lineno);
+   else
+     locmixv = meltgc_new_mixloc
+       ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
+	(melt_ptr_t) locnamv, (long) lineno, loc);
+   if (ISDIGIT (c)
+       || ((c == '-' || c == '+')
+	   && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
+	       || rdfollowc (1) == '|')))
+     {
+       long num = 0;
+       gcc_assert (MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL) != 0);
+       num = readsimplelong (rd);
+       readv =
+	 meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
+			    num);
+       lexv = meltgc_new_raw_object
+	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
+				     FSINFLEX__LAST);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	 = (melt_ptr_t) locmixv;
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	 = (melt_ptr_t) readv;
+       meltgc_touch (lexv);
+       goto end;
+     }
+   else if (c== '"')
+     {
+       rdnext ();
+       gcc_assert (MELT_PREDEF (CLASS_INFIX_STRING_LITERAL) != 0);
+       readv = meltgc_readstring (rd);
+       lexv = meltgc_new_raw_object
+	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_STRING_LITERAL),
+				     FSINFLEX__LAST);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	 = (melt_ptr_t) locmixv;
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	 = (melt_ptr_t) readv;
+       meltgc_touch (lexv);
+       goto end;
+     }
+   else if (c=='#' && rdfollowc(1) == '\'') {
+     /* #'a is the character a */
+     rdnext ();
+     rdnext ();
+     c = rdcurc ();
+     if (ISPRINT (c)) {
+       readv =
+	 meltgc_new_int
+	 ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
+	  c);
+       lexv = meltgc_new_raw_object
+	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
+				     FSINFLEX__LAST);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	 = (melt_ptr_t) locmixv;
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	 = (melt_ptr_t) readv;
+       meltgc_touch (lexv);
+       goto end;
+     }
+     else
+       READ_ERROR ("MELT INFIX: invalid character end #'%.20s", &rdcurc());
+   }
+   else if (c=='#' && rdfollowc(1) == '\\') {
+     /* #\n is the newline, etc */
+     long esc = 0;
+     switch (rdfollowc(2)) {
+     case 'a' : esc = '\a'; break;
+     case 'b' : esc = '\b'; break;
+     case 't' : esc = '\t'; break;
+     case 'n' : esc = '\n'; break;
+     case 'r' : esc = '\r'; break;
+     case 'v' : esc = '\v'; break;
+     case 'f' : esc = '\f'; break;
+     case '"' : esc = '\"'; break;
+     case '\'' : esc = '\''; break;
+     case '\\' : esc = '\\'; break;
+     case ' ' : case '_': esc = ' '; break;
+     default:
+       READ_ERROR ("MELT INFIX invalid char escape %.4s", &rdcurc ());
+     }
+     rdnext ();
+     rdnext ();
+       readv =
+	 meltgc_new_int
+	 ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
+	  esc);
+       lexv = meltgc_new_raw_object
+	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
+				     FSINFLEX__LAST);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	 = (melt_ptr_t) locmixv;
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	 = (melt_ptr_t) readv;
+       meltgc_touch (lexv);
+       goto end;
+   }
+   else if (c=='#' && rdfollowc(1) == '{') {
+     /* #{ starts a macrostring */
+     rdnext ();
+     rdnext ();
+     lexv = meltgc_readmacrostringsequence (rd);
+     goto end;
+   }
+
+   /* two characters delimiters found in the map */
+   else if (ISPUNCT(c) && ISPUNCT(rdfollowc(1))
+	    && ((delimbuf[0]=c),(delimbuf[1]=rdfollowc(1)),
+		(delimbuf[2]=(char)0),
+		(readv = melt_get_mapstrings
+		 ((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
+       gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
+       rdnext ();
+       rdnext ();
+       lexv = meltgc_new_raw_object
+	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
+				     FSINFLEX__LAST);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	 = (melt_ptr_t) locmixv;
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	 = (melt_ptr_t) readv;
+       meltgc_touch (lexv);
+       goto end;
+   }
+   /* single character delimiter found in the map */
+   else if (ISPUNCT(c) 
+	    && ((delimbuf[0]=c),(delimbuf[1]=(char)0),
+		(readv = melt_get_mapstrings
+		 ((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
+       gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
+       rdnext ();
+       lexv = meltgc_new_raw_object
+	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
+				     FSINFLEX__LAST);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+	 = (melt_ptr_t) locmixv;
+       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+	 = (melt_ptr_t) readv;
+       meltgc_touch (lexv);
+       goto end;
+   }
+   /* common macro to read symbols */
+ #define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv)			\
+       Nam = readsimplename (rd);					\
+       Readv = meltgc_named_symbol (Nam, MELT_CREATE);			\
+       gcc_assert (MELT_PREDEF (Claname) != 0);				\
+       Lexv = meltgc_new_raw_object					\
+	 ((meltobject_ptr_t)MELT_PREDEF (Claname),			\
+				     FSINFLEX__LAST);			\
+       ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_LOCATION]	\
+	 = (melt_ptr_t) locmixv;						\
+       ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_DATA]		\
+	 = (melt_ptr_t) Readv;						\
+       meltgc_touch (Lexv);
+
+   /* keywords start with a colon followed by a letter */
+   else if (c==':' && ISALPHA(rdfollowc(1))) {
+     rdnext ();
+     READ_INFIX_SYMBOL (CLASS_INFIX_KEYWORD,nam,readv,lexv);
+     goto end;
+   }
+
+   else if (ISALPHA(c) || c=='_' || c=='$') {
+     READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
+     goto end;
+   }
+   else if (c=='+' || c=='-' || c=='|')   {
+     READ_INFIX_SYMBOL (CLASS_INFIX_ADDITIVE_SYMBOL,nam,readv,lexv);
+     goto end;
+   }
+   else if (c=='*' || c=='/' || c=='&' || c=='%')   {
+     READ_INFIX_SYMBOL (CLASS_INFIX_MULTIPLICATIVE_SYMBOL,nam,readv,lexv);
+     goto end;
+   }
+   else if (c=='<' || c=='>' || c=='=' || c=='!' || c=='~' || c=='@') {
+     READ_INFIX_SYMBOL (CLASS_INFIX_RELATIONAL_SYMBOL,nam,readv,lexv);
+       goto end;
+   }
+   else if (c=='\\' && rdfollowc(1)
+	    && (ISALPHA(rdfollowc(1))
+		|| strchr (EXTRANAMECHARS, rdfollowc(1)))) {
+     rdnext ();
+     READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
+     goto end;
+   }
+   else { /* lexical failure - we abort */
+     READ_ERROR ("MELT INFIX: lexical failure:: got %.20s", &rdcurc ());
+     goto end;
+   }
  end:
-  debugeprintf ("melt_compile_source end srcbase %s binbase %s flavor %s", 
-		srcbase, binbase, flavor);
-  MELT_EXITFRAME ();
-}
-
-/* compute the hexadecimal encoded md5sum string of a file */
-melt_ptr_t 
-meltgc_string_hex_md5sum_file (const char* path)
-{
-  int ix = 0;
-  char md5srctab[16];
-  char md5hex[50];
-  FILE *fil = NULL;
-  MELT_ENTERFRAME(1, NULL);
-#define resv meltfram__.mcfr_varptr[0]
-  memset (md5srctab, 0, sizeof (md5srctab));
-  memset (md5hex, 0, sizeof (md5hex));
-  if (!path || !path[0]) 
-    goto end;
-  fil = fopen(path, "r");
-  if (!fil)
-    goto end;
-  if (md5_stream (fil, &md5srctab))
-    melt_fatal_error
-      ("failed to compute md5sum of file %s - %m",
-       path);
-  fclose (fil);
-  fil = NULL;
-  path = NULL;
-  /* We forgot the path, so a GC could move it later! */
-  memset (md5hex, 0, sizeof(md5hex));
-  for (ix=0; ix<16; ix++) {
-    char hexb[4] = {0,0,0,0};
-    int curbyt = md5srctab[ix] & 0xff;
-    snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
-    md5hex[2*ix] = hexb[0];
-    md5hex[2*ix+1] = hexb[1];
-  }
-  resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
- end:
-  MELT_EXITFRAME();
-  return (melt_ptr_t)resv;
-#undef resv
-}
-
-/* compute the hexadecimal encoded md5sum string of a tuple of file
-   paths, or NULL on failure */
-melt_ptr_t 
-meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p)
-{
-  int ix = 0;
-  char md5srctab[16];
-  char md5hex[50];
-  char bufblock[1024]; /* size should be multiple of 64 for md5_process_block */
-  FILE *fil = NULL;
-  int nbtup = 0;
-  int cnt = 0;
-  struct md5_ctx ctx;
-  MELT_ENTERFRAME(3, NULL);
-#define resv       meltfram__.mcfr_varptr[0]
-#define pathtupv   meltfram__.mcfr_varptr[1]
-#define pathv   meltfram__.mcfr_varptr[2]
-  pathtupv = pathtup_p;
-  memset (&ctx, 0, sizeof(ctx));
-  memset (md5srctab, 0, sizeof (md5srctab));
-  memset (md5hex, 0, sizeof (md5hex));
-  memset (bufblock, 0, sizeof (bufblock));
-  if (melt_magic_discr ((melt_ptr_t)pathtupv) != MELTOBMAG_MULTIPLE)
-    goto end;
-  md5_init_ctx (&ctx);
-  nbtup = melt_multiple_length ((melt_ptr_t)pathtupv);
-  /* this loop does not garbage collect! */
-  for (ix=0; ix < nbtup; ix++) 
-    {
-      const char *curpath = NULL;
-      pathv = melt_multiple_nth ((melt_ptr_t)pathtupv, ix);
-      if (melt_magic_discr ((melt_ptr_t)pathv) != MELTOBMAG_STRING)
-	goto end;
-      curpath = melt_string_str ((melt_ptr_t) pathv);
-      if (!curpath || !curpath[0])
-	goto end;
-      fil = fopen(curpath, "r");
-      if (!fil)
-	goto end;
-      while (!feof (fil))
-	{
-	  memset (bufblock, 0, sizeof (bufblock));
-	  cnt = fread (bufblock, 1, sizeof(bufblock), fil);
-	  if (cnt ==sizeof(bufblock))
-	    {
-	      /* an entire block has been read. */
-	      md5_process_bytes (bufblock, sizeof(bufblock), &ctx);
-	    }
-	  else
-	    {
-	      md5_process_bytes (bufblock, (size_t) cnt, &ctx);
-	    }
-	}
-      fclose (fil);
-      fil = NULL;
-      curpath = NULL;
-    }
-  md5_finish_ctx (&ctx, md5srctab);
-  memset (md5hex, 0, sizeof(md5hex));
-  for (ix=0; ix<16; ix++) {
-    char hexb[4] = {0,0,0,0};
-    int curbyt = md5srctab[ix] & 0xff;
-    snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
-    md5hex[2*ix] = hexb[0];
-    md5hex[2*ix+1] = hexb[1];
-  }
-  resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
- end:
-  MELT_EXITFRAME();
-  return (melt_ptr_t)resv;
-#undef resv
-#undef pathtupv
-#undef pathv
-}
-
-/* following code and comment is taken from the gcc/plugin.c file of
-   the plugins branch */
-
-/* We need a union to cast dlsym return value to a function pointer
-   as ISO C forbids assignment between function pointer and 'void *'.
-   Use explicit union instead of __extension__(<union_cast>) for
-   portability.  */
-#define PTR_UNION_TYPE(TOTYPE) union { void *_q; TOTYPE _nq; }
-#define PTR_UNION_AS_VOID_PTR(NAME) (NAME._q)
-#define PTR_UNION_AS_CAST_PTR(NAME) (NAME._nq)
-
-
-
-void *
-melt_dlsym_all (const char *nam)
-{
-  int ix = 0;
-  melt_module_info_t *mi = 0;
-  /* Index 0 is unused in melt_modinfvec!  */
-  for (ix = 1; VEC_iterate (melt_module_info_t, melt_modinfvec, ix, mi); ix++)
-    {
-      void *p = (void *) dlsym ((void *) mi->mmi_dlh, nam);
-      gcc_assert (mi->mmi_magic == MELT_MODULE_MAGIC);
-      if (p)
-	return p;
-    };
-  return (void *) dlsym (proghandle, nam);
-}
-
-
-/* Find a file path using either directories or colon-seperated paths,
-   return a malloc-ed string or null. */
-static char*melt_find_file_at (int line, const char*path, ...) ATTRIBUTE_SENTINEL;
-#define MELT_FIND_FILE(PATH,...) melt_find_file_at (__LINE__,(PATH),__VA_ARGS__,NULL)
-
-#define MELT_FILE_IN_DIRECTORY "directory"
-#define MELT_FILE_IN_PATH "path"
-
-
-/* Called thru the MELT_FIND_FILE macro */
-static char*
-melt_find_file_at (int lin, const char*path, ...)
-{
-  char* mode = NULL;
-  va_list args;
-  if (!path) 
-    return NULL;
-  va_start (args, path);
-  while ((mode=va_arg (args, char*)) != NULL) {
-    if (!strcmp(mode, MELT_FILE_IN_DIRECTORY))
-      {
-	char* fipath = NULL;
-	char* indir = va_arg (args, char*);
-	if (!indir)
-	  continue;
-	fipath = concat (indir, "/", path, NULL);
-	if (!access(fipath, R_OK))
-	  {
-	    debugeprintf ("found file %s in directory %s [%s:%d]", 
-			  fipath, indir,
-			  lbasename(__FILE__), lin);
-	    return fipath;
-	  };
-	free (fipath);
-      }
-    else if (!strcmp(mode, MELT_FILE_IN_PATH)) 
-      {
-	char* inpath = va_arg(args, char*);
-	char* dupinpath = NULL;
-	char* pc = NULL;
-	char* nextpc = NULL;
-	char* col = NULL;
-	char* fipath = NULL;
-	if (!inpath) continue;
-	dupinpath = xstrdup (inpath);
-	pc = dupinpath;
-	for (pc = dupinpath; pc && *pc; pc = nextpc) 
-	  {
-	    nextpc = NULL;
-	    col = strchr(pc, ':');
-	    if (col) 
-	      {
-		*col = (char)0;
-		nextpc = col+1;
-	      }
-	    else 
-	      col = pc + strlen(pc);
-	    fipath = concat (pc, "/", path, NULL);
-	    if (!access (fipath, R_OK)) 
-	      {
-		debugeprintf ("found file %s in colon path %s [%s:%d]",
-			      fipath, inpath,
-			      lbasename(__FILE__), lin);
-		free (dupinpath), dupinpath = NULL;
-		return fipath;
-	      }
-	  };
-	free (dupinpath), dupinpath = NULL;
-      }
-    else 
-      fatal_error ("MELT_FIND_FILE %s: bad mode %s [%s:%d]", 
-		   path, mode, lbasename(__FILE__), lin);
-  }
-  va_end (args);
-  debugeprintf ("not found file %s [%s:%d]", path, lbasename(__FILE__), lin);
-  return NULL;
-}
-
-
-
-
-
-/*************** initial load machinery *******************/
-
-
-struct reading_st
-{
-  FILE *rfil;
-  const char *rpath;
-  char *rcurlin;		/* current line mallocated buffer */
-  int rlineno;			/* current line number */
-  int rcol;			/* current column */
-  source_location rsrcloc;	/* current source location */
-  melt_ptr_t *rpfilnam;	        /* pointer to location of file name string */
-  bool rhas_file_location;	/* true iff the string comes from a file */
-};
-
-#define MELT_READ_TABULATION_FACTOR 8
-/* Obstack used for reading strings */
-static struct obstack melt_bstring_obstack;
-#define rdback() (rd->rcol--)
-#define rdnext() (rd->rcol++)
-#define rdcurc() rd->rcurlin[rd->rcol]
-#define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
-#define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
-
-static void melt_linemap_compute_current_location (struct reading_st *rd);
-
-#define READ_ERROR(Fmt,...)	do {					\
-  melt_linemap_compute_current_location (rd);				\
-  error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
-  melt_fatal_error("MELT read failure <%s:%d>",				\
-	      lbasename(__FILE__), __LINE__);				\
-} while(0)
-
-#define READ_WARNING(Fmt,...)	do {					\
-  melt_linemap_compute_current_location (rd);				\
-  warning_at (rd->rsrcloc, 0, "MELT read warning: " Fmt, ##__VA_ARGS__); \
-} while(0)
-
-/* meltgc_readval returns the read value and sets *PGOT to true if something
-   was read */
-static melt_ptr_t meltgc_readval (struct reading_st *rd, bool * pgot);
-
-static void 
-melt_linemap_compute_current_location (struct reading_st* rd)
-{
-  int colnum = 1;
-  int cix = 0;
-  if (!rd || !rd->rcurlin || !rd->rhas_file_location)
-    return;
-  for (cix=0; cix<rd->rcol; cix++) {
-    char c = rd->rcurlin[cix];
-    if (!c) 
-      break;
-    else if (c == '\t')
-      {
-	while (colnum % MELT_READ_TABULATION_FACTOR != 0) 
-	  colnum++;
-      }
-    else
-      colnum++;
-  }
-#if MELT_GCC_VERSION <= 4006 /* GCC 4.6 */
-  LINEMAP_POSITION_FOR_COLUMN(rd->rsrcloc, line_table, colnum);
-#else /* GCC 4.7 or newer */
-  rd->rsrcloc = linemap_position_for_column (line_table, colnum);
-#endif /*MELT_GCC_VERSION*/
-}
-
-static melt_ptr_t meltgc_readstring (struct reading_st *rd);
-static melt_ptr_t meltgc_readmacrostringsequence (struct reading_st *rd);
-
-enum commenthandling_en
-  { COMMENT_SKIP, COMMENT_INFIX, COMMENT_NO };
-static int
-skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
-{
-  int c = 0;
-  int incomm = 0;
- readagain:
-  if (rdeof ())
-    return EOF;
-  if (!rd->rcurlin)
-    goto readline;
-  c = rdcurc ();
-  if ((c == '\n' && !rdfollowc (1)) || c == 0)
-  readline:
-    {
-      /* we expect most lines to fit into linbuf, so we don't handle
-	 efficiently long lines */
-      static char linbuf[400];
-      char *mlin = 0;		/* partial mallocated line buffer when
-				   not fitting into linbuf */
-      char *eol = 0;
-      if (!rd->rfil)		/* reading from a buffer */
-	return EOF;
-      if (rd->rcurlin)
-	free ((void *) rd->rcurlin);
-      rd->rcurlin = NULL;
-      /* we really want getline here .... */
-      for (;;)
-	{
-	  memset (linbuf, 0, sizeof (linbuf));
-	  eol = NULL;
-	  if (!fgets (linbuf, sizeof (linbuf) - 2, rd->rfil))
-	    {
-	      /* reached eof, so either give mlin or duplicate an empty
-		 line */
-	      if (mlin)
-		rd->rcurlin = mlin;
-	      else
-		rd->rcurlin = xstrdup ("");
-	      break;
-	    }
-	  else
-	    eol = strchr (linbuf, '\n');
-	  if (eol)
-	    {
-	      if (rd->rcurlin)
-		free ((void *) rd->rcurlin);
-	      if (!mlin)
-		rd->rcurlin = xstrdup (linbuf);
-	      else
-		{
-		  rd->rcurlin = concat (mlin, linbuf, NULL);
-		  free (mlin);
-		}
-	      break;
-	    }
-	  else
-	    {
-	      /* read partly a long line without reaching the end of line */
-	      if (mlin)
-		{
-		  char *newmlin = concat (mlin, linbuf, NULL);
-		  free (mlin);
-		  mlin = newmlin;
-		}
-	      else
-		mlin = xstrdup (linbuf);
-	    }
-	};
-      rd->rlineno++;
-      rd->rsrcloc =
-	linemap_line_start (line_table, rd->rlineno, strlen (linbuf) + 1);
-      rd->rcol = 0;
-      if (comh == COMMENT_NO)
-	return rdcurc();
-      goto readagain;
-    }
-  /** The comment ;;## <linenum> [<filename>]
-      is handled like #line, inspired by _cpp_do_file_change in
-      libcpp/directives.c */
-  else if (c == ';' && rdfollowc (1) == ';'
-	   && rdfollowc (2) == '#' && rdfollowc (3) == '#'
-	   && comh == COMMENT_SKIP)
-    {
-      char *endp = 0;
-      char *newpath = 0;
-      char* newpathdup = 0;
-      long newlineno = strtol (&rdfollowc (4), &endp, 10);
-      /* take as filename from the first non-space to the last non-space */
-      while (endp && *endp && ISSPACE(*endp)) endp++;
-      if (endp && *endp) newpath=endp;
-      if (endp && newpath) endp += strlen(endp) - 1;
-      while (newpath && ISSPACE(*endp)) endp--;
-      debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
-		    newlineno, newpath);
-      if (newlineno>0 && newpath)
-	{
-	  int ix= 0;
-	  char *curpath=0;
-	  /* find the newpath in the parsedmeltfilevect or push it
-	     there */
-	  for (ix = 0;
-	       VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
-	       ix++)
-	    {
-	      if (curpath && !strcmp(newpath, curpath))
-		newpathdup = curpath;
-	    }
-	  if (!newpathdup)
-	    {
-	      newpathdup = xstrdup (newpath);
-	      VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
-	    }
-	  (void) linemap_add (line_table, LC_RENAME_VERBATIM,
-			      false, newpathdup, newlineno);
-	}
-      else if (newlineno>0)
-	{
-	}
-      goto readline;
-    }
-  else if (c == ';' && comh == COMMENT_SKIP)
-    goto readline;
-  /** In infix mode the comment //## <linenum> [<filename>]
-      is handled like #line, inspired by _cpp_do_file_change in
-      libcpp/directives.c */
-  else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/'
-	   && rdfollowc (2) == '#' && rdfollowc (3) == '#'
-	   )
-    {
-      char *endp = 0;
-      char *newpath = 0;
-      char* newpathdup = 0;
-      long newlineno = strtol (&rdfollowc (4), &endp, 10);
-      /* take as filename from the first non-space to the last non-space */
-      while (endp && *endp && ISSPACE(*endp)) endp++;
-      if (endp && *endp) newpath=endp;
-      if (endp && newpath) endp += strlen(endp) - 1;
-      while (newpath && ISSPACE(*endp)) endp--;
-      debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
-		    newlineno, newpath);
-      if (newlineno>0 && newpath)
-	{
-	  int ix= 0;
-	  char *curpath=0;
-	  /* find the newpath in the parsedmeltfilevect or push it
-	     there */
-	  for (ix = 0;
-	       VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
-	       ix++)
-	    {
-	      if (curpath && !strcmp(newpath, curpath))
-		newpathdup = curpath;
-	    }
-	  if (!newpathdup)
-	    {
-	      newpathdup = xstrdup (newpath);
-	      VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
-	    }
-	  (void) linemap_add (line_table, LC_RENAME_VERBATIM,
-		       false, newpathdup, newlineno);
-	}
-      else if (newlineno>0)
-	{
-	}
-      goto readline;
-    }
-  else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/')
-    /* monoline // comment syntax in infix mode */
-    goto readline;
-  else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '*')
-    {
-      /* parse the multiline slash-star comment syntax in infix mode */
-      incomm = 1;
-      rdnext ();
-      c = rdcurc ();
-      goto readagain;
-    }
-  else if (incomm && comh == COMMENT_INFIX && c == '*' && rdfollowc (1) == '/')
-    {
-      /* end a multiline start-slash comment syntax in infix mode */
-      incomm = 0;
-      rdnext ();
-      rdnext ();
-      c = rdcurc ();
-      goto readagain;
-    }
-  else if (c == '#' && comh == COMMENT_SKIP && rdfollowc (1) == '|')
-    {
-      incomm = 1;
-      rdnext ();
-      c = rdcurc ();
-      goto readagain;
-    }
-  else if (incomm && comh == COMMENT_SKIP && c == '|' && rdfollowc (1) == '#')
-    {
-      incomm = 0;
-      rdnext ();
-      rdnext ();
-      c = rdcurc ();
-      goto readagain;
-    }
-  else if (ISSPACE (c) || incomm)
-    {
-      rdnext ();
-      c = rdcurc ();
-      goto readagain;
-    }
-  else
-    return c;
-}
-
-
-#define EXTRANAMECHARS "_+-*/<>=!?:%~&@$|"
-/* read a simple name on the melt_bname_obstack */
-static char *
-readsimplename (struct reading_st *rd)
-{
-  int c = 0;
-  while (!rdeof () && (c = rdcurc ()) > 0 &&
-	 (ISALNUM (c) || strchr (EXTRANAMECHARS, c) != NULL))
-    {
-      obstack_1grow (&melt_bname_obstack, (char) c);
-      rdnext ();
-    }
-  obstack_1grow (&melt_bname_obstack, (char) 0);
-  return XOBFINISH (&melt_bname_obstack, char *);
-}
-
-
-/* read an integer, like +123, which may also be +%numbername */
-static long
-readsimplelong (struct reading_st *rd)
-{
-  int c = 0;
-  long r = 0;
-  char *endp = 0;
-  char *nam = 0;
-  bool neg = FALSE;
-  /* we do not need any GC locals ie MELT_ENTERFRAME because no
-     garbage collection occurs here */
-  c = rdcurc ();
-  if (((c == '+' || c == '-') && ISDIGIT (rdfollowc (1))) || ISDIGIT (c))
-    {
-      /* R5RS and R6RS require decimal notation -since the binary and
-         hex numbers are hash-prefixed but for convenience we accept
-         them thru strtol */
-      r = strtol (&rdcurc (), &endp, 0);
-      if (r == 0 && endp <= &rdcurc ())
-	READ_ERROR ("MELT: failed to read number %.20s", &rdcurc ());
-      rd->rcol += endp - &rdcurc ();
-      return r;
-    }
-  else if ((c == '+' || c == '-') && rdfollowc (1) == '%')
-    {
-      neg = (c == '-');
-      rdnext ();
-      rdnext ();
-      nam = readsimplename (rd);
-      r = -1;
-      /* the +%magicname notation is seldom used, we don't care to do
-         many needless strcmp-s in that case, to be able to define the
-         below simple macro */
-      if (!nam)
-	READ_ERROR
-	  ("MELT: magic number name expected after +%% or -%% for magic %s",
-	   nam);
-#define NUMNAM(N) else if (!strcmp(nam,#N)) r = (N)
-      NUMNAM (MELTOBMAG_OBJECT);
-      NUMNAM (MELTOBMAG_MULTIPLE);
-      NUMNAM (MELTOBMAG_BOX);
-      NUMNAM (MELTOBMAG_CLOSURE);
-      NUMNAM (MELTOBMAG_ROUTINE);
-      NUMNAM (MELTOBMAG_LIST);
-      NUMNAM (MELTOBMAG_PAIR);
-      NUMNAM (MELTOBMAG_INT);
-      NUMNAM (MELTOBMAG_MIXINT);
-      NUMNAM (MELTOBMAG_MIXLOC);
-      NUMNAM (MELTOBMAG_REAL);
-      NUMNAM (MELTOBMAG_STRING);
-      NUMNAM (MELTOBMAG_STRBUF);
-      NUMNAM (MELTOBMAG_TREE);
-      NUMNAM (MELTOBMAG_GIMPLE);
-      NUMNAM (MELTOBMAG_GIMPLESEQ);
-      NUMNAM (MELTOBMAG_BASICBLOCK);
-      NUMNAM (MELTOBMAG_EDGE);
-      NUMNAM (MELTOBMAG_MAPOBJECTS);
-      NUMNAM (MELTOBMAG_MAPSTRINGS);
-      NUMNAM (MELTOBMAG_MAPTREES);
-      NUMNAM (MELTOBMAG_MAPGIMPLES);
-      NUMNAM (MELTOBMAG_MAPGIMPLESEQS);
-      NUMNAM (MELTOBMAG_MAPBASICBLOCKS);
-      NUMNAM (MELTOBMAG_MAPEDGES);
-      NUMNAM (MELTOBMAG_DECAY);
-      NUMNAM (MELTOBMAG_SPEC_FILE);
-      NUMNAM (MELTOBMAG_SPEC_RAWFILE);
-      NUMNAM (MELTOBMAG_SPEC_MPFR);
-      NUMNAM (MELTOBMAG_SPECPPL_COEFFICIENT);
-      NUMNAM (MELTOBMAG_SPECPPL_LINEAR_EXPRESSION);
-      NUMNAM (MELTOBMAG_SPECPPL_CONSTRAINT);
-      NUMNAM (MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM);
-      NUMNAM (MELTOBMAG_SPECPPL_GENERATOR);
-      NUMNAM (MELTOBMAG_SPECPPL_GENERATOR_SYSTEM);
-      NUMNAM (MELTOBMAG_SPECPPL_POLYHEDRON);
-      /** the fields' ranks of melt.h have been removed in rev126278 */
-#undef NUMNAM
-      if (r < 0)
-	READ_ERROR ("MELT: bad magic number name %s", nam);
-      obstack_free (&melt_bname_obstack, nam);
-      return neg ? -r : r;
-    }
-  else
-    READ_ERROR ("MELT: invalid number %.20s", &rdcurc ());
-  return 0;
-}
-
-
-static melt_ptr_t
-meltgc_readseqlist (struct reading_st *rd, int endc)
-{
-  int c = 0;
-  int nbcomp = 0;
-  int startlin = rd->rlineno;
-  bool got = FALSE;
-  MELT_ENTERFRAME (4, NULL);
-#define seqv  meltfram__.mcfr_varptr[0]
-#define compv meltfram__.mcfr_varptr[1]
-#define listv meltfram__.mcfr_varptr[2]
-#define pairv meltfram__.mcfr_varptr[3]
-  seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
- readagain:
-  compv = NULL;
-  c = skipspace_getc (rd, COMMENT_SKIP);
-  if (c == endc)
-    {
-      rdnext ();
-      goto end;
-    }
-  /* The lexing ##{ ... }# is to insert a macrostring inside the
-     current sequence. */
-  else if (c == '#' && rdfollowc(1) == '#' && rdfollowc(2) == '{') 
-    {
-      rdnext ();
-      rdnext ();
-      rdnext ();
-      got = FALSE;
-      listv = meltgc_readmacrostringsequence (rd);
-      if (melt_magic_discr ((melt_ptr_t)listv) == MELTOBMAG_LIST) 
-	{
-	  got = TRUE;
-	  for (pairv = ((struct meltlist_st*)(listv))->first;
-	       pairv && melt_magic_discr((melt_ptr_t)pairv) == MELTOBMAG_PAIR;
-	       pairv = ((struct meltpair_st*)(pairv))->tl)
-	    {
-	      compv = ((struct meltpair_st*)(pairv))->hd;
-	      if (compv)
-		{
-		  meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-		  nbcomp++;
-		}
-	    }
-	}
-      else if (!listv)
-	got = TRUE;
-      if (!got)
-	READ_ERROR ("MELT: unexpected stuff in macrostring seq %.20s ... started line %d",
-		    &rdcurc (), startlin);
-      goto readagain;
-    }
-  got = FALSE;
-  compv = meltgc_readval (rd, &got);
-  if (!compv && !got)
-    READ_ERROR ("MELT: unexpected stuff in seq %.20s ... started line %d",
-		&rdcurc (), startlin);
-  meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-  nbcomp++;
-  goto readagain;
- end:
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) seqv;
-#undef compv
-#undef seqv
-#undef listv
-#undef pairv
-}
-
-
-
-
-static melt_ptr_t
-meltgc_makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
-	   location_t loc, bool ismacrostring)
-{
-  MELT_ENTERFRAME (4, NULL);
-#define sexprv  meltfram__.mcfr_varptr[0]
-#define contsv   meltfram__.mcfr_varptr[1]
-#define locmixv meltfram__.mcfr_varptr[2]
-#define sexpclassv meltfram__.mcfr_varptr[3]
-  contsv = contents_p;
-  gcc_assert (melt_magic_discr ((melt_ptr_t) contsv) == MELTOBMAG_LIST);
-  if (loc == 0)
-    locmixv = meltgc_new_mixint ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
-				    *rd->rpfilnam, (long) lineno);
-  else
-    locmixv = meltgc_new_mixloc ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
-				    *rd->rpfilnam, (long) lineno, loc);
-  if (ismacrostring && (MELT_PREDEF (CLASS_SEXPR_MACROSTRING)))
-    sexpclassv = MELT_PREDEF (CLASS_SEXPR_MACROSTRING);
-  else
-    sexpclassv = MELT_PREDEF (CLASS_SEXPR);
-  sexprv = meltgc_new_raw_object ((meltobject_ptr_t) (sexpclassv),
-				  FSEXPR__LAST);
-  ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
-    (melt_ptr_t) locmixv;
-  ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] =
-    (melt_ptr_t) contsv;
-  meltgc_touch (sexprv);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) sexprv;
-#undef sexprv
-#undef contsv
-#undef locmixv
-#undef sexpclassv
-}
-
-
-
-melt_ptr_t
-meltgc_named_symbol (const char *nam, int create)
-{
-  int namlen = 0, ix = 0;
-  char *namdup = 0;
-  char tinybuf[130];
-  MELT_ENTERFRAME (4, NULL);
-#define symbv    meltfram__.mcfr_varptr[0]
-#define dictv    meltfram__.mcfr_varptr[1]
-#define closv    meltfram__.mcfr_varptr[2]
-#define nstrv    meltfram__.mcfr_varptr[3]
-  symbv = NULL;
-  dictv = NULL;
-  closv = NULL;
-  if (!nam || !MELT_PREDEF (INITIAL_SYSTEM_DATA))
-    goto end;
-  namlen = strlen (nam);
-  memset (tinybuf, 0, sizeof (tinybuf));
-  if (namlen < (int) sizeof (tinybuf) - 2)
-    namdup = strcpy (tinybuf, nam);
-  else
-    namdup = strcpy ((char *) xcalloc (namlen + 1, 1), nam);
-  gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA))
-	      == MELTOBMAG_OBJECT);
-  gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) ==
-	      MELTOBMAG_OBJECT);
-  for (ix = 0; ix < namlen; ix++)
-    if (ISALPHA (namdup[ix]))
-      namdup[ix] = TOUPPER (namdup[ix]);
-  if (MELT_PREDEF (INITIAL_SYSTEM_DATA) != 0)
-    {
-      dictv = melt_get_inisysdata (FSYSDAT_SYMBOLDICT);
-      if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS)
-	symbv =
-	  melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
-				  namdup);
-      if (symbv || !create)
-	goto end;
-      closv = melt_get_inisysdata (FSYSDAT_ADDSYMBOL);
-      if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
-	{
-	  union meltparam_un pararg[1];
-	  memset (&pararg, 0, sizeof (pararg));
-	  nstrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
-	  pararg[0].meltbp_aptr = (melt_ptr_t *) & nstrv;
-	  symbv =
-	    melt_apply ((meltclosure_ptr_t) closv,
-			   (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-			   MELTBPARSTR_PTR, pararg, "", NULL);
-	  goto end;
-	}
-    }
-end:;
-  if (namdup && namdup != tinybuf)
-    free (namdup);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) symbv;
-#undef symbv
-#undef dictv
-#undef closv
-#undef nstrv
-}
-
-melt_ptr_t
-meltgc_intern_symbol (melt_ptr_t symb_p)
-{
-  MELT_ENTERFRAME (4, NULL);
-#define symbv    meltfram__.mcfr_varptr[0]
-#define closv    meltfram__.mcfr_varptr[1]
-#define nstrv    meltfram__.mcfr_varptr[2]
-#define resv     meltfram__.mcfr_varptr[3]
-#define obj_symbv    ((meltobject_ptr_t)(symbv))
-  symbv = symb_p;
-  if (melt_magic_discr ((melt_ptr_t) symbv) != MELTOBMAG_OBJECT
-      || obj_symbv->obj_len < FSYMB__LAST
-      || !melt_is_instance_of ((melt_ptr_t) symbv,
-				  (melt_ptr_t) MELT_PREDEF (CLASS_SYMBOL)))
-    goto fail;
-  nstrv = obj_symbv->obj_vartab[FNAMED_NAME];
-  if (melt_magic_discr ((melt_ptr_t) nstrv) != MELTOBMAG_STRING)
-    goto fail;
-  closv = melt_get_inisysdata (FSYSDAT_INTERNSYMBOL);
-  if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
-    goto fail;
-  else
-    {
-      union meltparam_un pararg[1];
-      memset (&pararg, 0, sizeof (pararg));
-      pararg[0].meltbp_aptr = (melt_ptr_t *) & symbv;
-      MELT_LOCATION_HERE ("intern symbol before apply");
-      resv =
-	melt_apply ((meltclosure_ptr_t) closv,
-		       (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-		       MELTBPARSTR_PTR, pararg, "", NULL);
-      goto end;
-    }
-fail:
-  resv = NULL;
-end:;
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) resv;
-#undef symbv
-#undef closv
-#undef nstrv
-#undef resv
-#undef obj_symbv
-}
-
-
-enum {MELT_INFIXREAD_MAGIC=0x69fd1769};
-
-struct infixreading_st {
-  int infr_magic; /* always MELT_INFIXREAD_MAGIC */
-  struct reading_st infr_reading;
-  struct infixreading_st* infr_prev;
-};
-static struct infixreading_st* curinfixr;
-
-void
-melt_open_infix_file (const char* filnam)
-{
-  struct infixreading_st* previnfix = curinfixr;
-  char* filnamdup = 0;
-  FILE* fil = 0;
-  gcc_assert (!previnfix || previnfix->infr_magic == MELT_INFIXREAD_MAGIC);
-  curinfixr = (struct infixreading_st*) xcalloc (sizeof(struct infixreading_st), 1);
-  memset (curinfixr, 0, sizeof(curinfixr));
-  filnamdup = xstrdup (filnam);
-  /* Store the filnamdup in the parsedmeltfilevect vector to be able
-     to free them at end; we need to duplicate filnam because
-     linemap_add store pointers to it. */
-  VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
-  debugeprintf ("meltgc_open_infix_file filnamdup %s", filnamdup);
-  fil = fopen (filnamdup, "rt");
-  if (!fil)
-    melt_fatal_error ("cannot open MELT infix file %s - %m", filnamdup);
-  /* warn if the filename has strange characters in its base name,
-     notably + */
-  {
-    const char* filbase = 0;
-    int warn = 0;
-    for (filbase = lbasename (filnamdup); *filbase; filbase++)
-      {
-	if (ISALNUM (*filbase) || *filbase=='-'
-	    || *filbase=='_' || *filbase=='.')
-	  continue;
-	warn = 1;
-      }
-    if (warn)
-      warning (0, "MELT infix file name %s has strange characters", filnamdup);
-  }
-  curinfixr->infr_magic = MELT_INFIXREAD_MAGIC;
-  curinfixr->infr_reading.rfil = fil;
-  curinfixr->infr_reading.rpath = filnamdup;
-  curinfixr->infr_reading.rlineno = 0;
-  (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
-  curinfixr->infr_prev = previnfix;
-  skipspace_getc (&curinfixr->infr_reading, COMMENT_INFIX);
-}
-
-
-
-
-melt_ptr_t
-meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
-{
-  int c = 0;
-  struct reading_st *rd = 0;
-  int lineno = 0;
-  location_t loc = 0;
-  char* nam = 0;
-  char delimbuf[4] = {0};
-  MELT_ENTERFRAME (6, NULL);
-#define locnamv    meltfram__.mcfr_varptr[0]
-#define lexv       meltfram__.mcfr_varptr[1]
-#define delimapv   meltfram__.mcfr_varptr[2]
-#define readv      meltfram__.mcfr_varptr[3]
-#define locmixv    meltfram__.mcfr_varptr[4]
-  locnamv = locnam_p;
-  delimapv = delimap_p;
-  if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
-    melt_dbgshortbacktrace ("unexpected call to MELT infix_lexeme" ,
-			    100);
-    melt_fatal_error ("MELT infix_lexeme called outside of infix parsing (%s)",
-		      melt_string_str ((melt_ptr_t)locnamv));
-  }
-  if (melt_magic_discr ((melt_ptr_t) locnamv) != MELTOBMAG_STRING)
-    locnamv = 0;
-  curinfixr->infr_reading.rpfilnam = (melt_ptr_t*) (&locnamv);
-  rd = &curinfixr->infr_reading;
-  c = skipspace_getc (rd, COMMENT_INFIX);
-  lineno = rd->rlineno;
-  melt_linemap_compute_current_location (rd);
-  loc = rd->rsrcloc;
-  /* return nil on EOF */
-  if (c < 0 || !rd->rfil || feof(rd->rfil))
-    goto end;
-  memset (delimbuf, 0, sizeof(delimbuf));
-  if (loc == 0)
-    locmixv = meltgc_new_mixint
-      ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
-       (melt_ptr_t) locnamv, (long) lineno);
-  else
-    locmixv = meltgc_new_mixloc
-      ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
-       (melt_ptr_t) locnamv, (long) lineno, loc);
-  if (ISDIGIT (c)
-      || ((c == '-' || c == '+')
-	  && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
-	      || rdfollowc (1) == '|')))
-    {
-      long num = 0;
-      gcc_assert (MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL) != 0);
-      num = readsimplelong (rd);
-      readv =
-	meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
-			   num);
-      lexv = meltgc_new_raw_object
-	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				    FSINFLEX__LAST);
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
-	= (melt_ptr_t) locmixv;
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
-	= (melt_ptr_t) readv;
-      meltgc_touch (lexv);
-      goto end;
-    }
-  else if (c== '"')
-    {
-      rdnext ();
-      gcc_assert (MELT_PREDEF (CLASS_INFIX_STRING_LITERAL) != 0);
-      readv = meltgc_readstring (rd);
-      lexv = meltgc_new_raw_object
-	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_STRING_LITERAL),
-				    FSINFLEX__LAST);
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
-	= (melt_ptr_t) locmixv;
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
-	= (melt_ptr_t) readv;
-      meltgc_touch (lexv);
-      goto end;
-    }
-  else if (c=='#' && rdfollowc(1) == '\'') {
-    /* #'a is the character a */
-    rdnext ();
-    rdnext ();
-    c = rdcurc ();
-    if (ISPRINT (c)) {
-      readv =
-	meltgc_new_int
-	((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
-	 c);
-      lexv = meltgc_new_raw_object
-	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				    FSINFLEX__LAST);
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
-	= (melt_ptr_t) locmixv;
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
-	= (melt_ptr_t) readv;
-      meltgc_touch (lexv);
-      goto end;
-    }
-    else
-      READ_ERROR ("MELT INFIX: invalid character end #'%.20s", &rdcurc());
-  }
-  else if (c=='#' && rdfollowc(1) == '\\') {
-    /* #\n is the newline, etc */
-    long esc = 0;
-    switch (rdfollowc(2)) {
-    case 'a' : esc = '\a'; break;
-    case 'b' : esc = '\b'; break;
-    case 't' : esc = '\t'; break;
-    case 'n' : esc = '\n'; break;
-    case 'r' : esc = '\r'; break;
-    case 'v' : esc = '\v'; break;
-    case 'f' : esc = '\f'; break;
-    case '"' : esc = '\"'; break;
-    case '\'' : esc = '\''; break;
-    case '\\' : esc = '\\'; break;
-    case ' ' : case '_': esc = ' '; break;
-    default:
-      READ_ERROR ("MELT INFIX invalid char escape %.4s", &rdcurc ());
-    }
-    rdnext ();
-    rdnext ();
-      readv =
-	meltgc_new_int
-	((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
-	 esc);
-      lexv = meltgc_new_raw_object
-	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				    FSINFLEX__LAST);
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
-	= (melt_ptr_t) locmixv;
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
-	= (melt_ptr_t) readv;
-      meltgc_touch (lexv);
-      goto end;
-  }
-  else if (c=='#' && rdfollowc(1) == '{') {
-    /* #{ starts a macrostring */
-    rdnext ();
-    rdnext ();
-    lexv = meltgc_readmacrostringsequence (rd);
-    goto end;
-  }
-    
-  /* two characters delimiters found in the map */
-  else if (ISPUNCT(c) && ISPUNCT(rdfollowc(1))
-	   && ((delimbuf[0]=c),(delimbuf[1]=rdfollowc(1)),
-	       (delimbuf[2]=(char)0),
-	       (readv = melt_get_mapstrings
-		((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
-      gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
-      rdnext ();
-      rdnext ();
-      lexv = meltgc_new_raw_object
-	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
-				    FSINFLEX__LAST);
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
-	= (melt_ptr_t) locmixv;
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
-	= (melt_ptr_t) readv;
-      meltgc_touch (lexv);
-      goto end;
-  }
-  /* single character delimiter found in the map */
-  else if (ISPUNCT(c) 
-	   && ((delimbuf[0]=c),(delimbuf[1]=(char)0),
-	       (readv = melt_get_mapstrings
-		((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
-      gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
-      rdnext ();
-      lexv = meltgc_new_raw_object
-	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
-				    FSINFLEX__LAST);
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
-	= (melt_ptr_t) locmixv;
-      ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
-	= (melt_ptr_t) readv;
-      meltgc_touch (lexv);
-      goto end;
-  }
-  /* common macro to read symbols */
-#define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv)			\
-      Nam = readsimplename (rd);					\
-      Readv = meltgc_named_symbol (Nam, MELT_CREATE);			\
-      gcc_assert (MELT_PREDEF (Claname) != 0);				\
-      Lexv = meltgc_new_raw_object					\
-	((meltobject_ptr_t)MELT_PREDEF (Claname),			\
-				    FSINFLEX__LAST);			\
-      ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_LOCATION]	\
-	= (melt_ptr_t) locmixv;						\
-      ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_DATA]		\
-	= (melt_ptr_t) Readv;						\
-      meltgc_touch (Lexv);
-
-  /* keywords start with a colon followed by a letter */
-  else if (c==':' && ISALPHA(rdfollowc(1))) {
-    rdnext ();
-    READ_INFIX_SYMBOL (CLASS_INFIX_KEYWORD,nam,readv,lexv);
-    goto end;
-  }
-  
-  else if (ISALPHA(c) || c=='_' || c=='$') {
-    READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
-    goto end;
-  }
-  else if (c=='+' || c=='-' || c=='|')   {
-    READ_INFIX_SYMBOL (CLASS_INFIX_ADDITIVE_SYMBOL,nam,readv,lexv);
-    goto end;
-  }
-  else if (c=='*' || c=='/' || c=='&' || c=='%')   {
-    READ_INFIX_SYMBOL (CLASS_INFIX_MULTIPLICATIVE_SYMBOL,nam,readv,lexv);
-    goto end;
-  }
-  else if (c=='<' || c=='>' || c=='=' || c=='!' || c=='~' || c=='@') {
-    READ_INFIX_SYMBOL (CLASS_INFIX_RELATIONAL_SYMBOL,nam,readv,lexv);
-      goto end;
-  }
-  else if (c=='\\' && rdfollowc(1)
-	   && (ISALPHA(rdfollowc(1))
-	       || strchr (EXTRANAMECHARS, rdfollowc(1)))) {
-    rdnext ();
-    READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
-    goto end;
-  }
-  else { /* lexical failure - we abort */
-    READ_ERROR ("MELT INFIX: lexical failure:: got %.20s", &rdcurc ());
-    goto end;
-  }
-end:
-  if (nam)
-    {
-      *nam = 0;
-      obstack_free (&melt_bname_obstack, nam);
-    };
-  curinfixr->infr_reading.rpfilnam = 0;
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) lexv;
-#undef locnamv
-#undef lexv
-#undef delimapv
-#undef readv
-#undef locmixv
-#undef READ_INFIX_SYMBOL
-}
-
-void
-melt_close_infix_file (void)
-{
-  struct infixreading_st* previnfix = curinfixr;
-  if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
-    melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
-			    100);
-    melt_fatal_error ("MELT close_infix_file called outside of infix parsing (%p)",
-		      (void*)curinfixr);
-  }
-  if (curinfixr->infr_reading.rfil)
-    fclose (curinfixr->infr_reading.rfil);
-  memset (curinfixr, 0, sizeof (struct infixreading_st));
-  free (curinfixr);
-  curinfixr = previnfix;
-}
-
-
-melt_ptr_t
-meltgc_intern_keyword (melt_ptr_t keyw_p)
-{
-  MELT_ENTERFRAME (4, NULL);
-#define keywv    meltfram__.mcfr_varptr[0]
-#define closv    meltfram__.mcfr_varptr[1]
-#define nstrv    meltfram__.mcfr_varptr[2]
-#define resv     meltfram__.mcfr_varptr[3]
-#define obj_keywv    ((meltobject_ptr_t)(keywv))
-  keywv = keyw_p;
-  if (melt_magic_discr ((melt_ptr_t) keywv) != MELTOBMAG_OBJECT
-      || melt_object_length ((melt_ptr_t) obj_keywv) < FSYMB__LAST
-      || !melt_is_instance_of ((melt_ptr_t) keywv,
-				  (melt_ptr_t) MELT_PREDEF (CLASS_KEYWORD)))
-    goto fail;
-  nstrv = obj_keywv->obj_vartab[FNAMED_NAME];
-  if (melt_magic_discr ((melt_ptr_t) nstrv) != MELTOBMAG_STRING)
-    goto fail;
-  closv = melt_get_inisysdata (FSYSDAT_INTERNKEYW);
-  if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
-    goto fail;
-  else
-    {
-      union meltparam_un pararg[1];
-      memset (&pararg, 0, sizeof (pararg));
-      pararg[0].meltbp_aptr = (melt_ptr_t *) & keywv;
-      MELT_LOCATION_HERE ("intern keyword before apply");
-      resv =
-	melt_apply ((meltclosure_ptr_t) closv,
-		       (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-		       MELTBPARSTR_PTR, pararg, "", NULL);
-      goto end;
-    }
-fail:
-  resv = NULL;
-end:;
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) resv;
-#undef symbv
-#undef closv
-#undef nstrv
-#undef resv
-#undef obj_symbv
-}
-
-
-
-
-
-
-melt_ptr_t
-meltgc_named_keyword (const char *nam, int create)
-{
-  int namlen = 0, ix = 0;
-  char *namdup = 0;
-  char tinybuf[130];
-  MELT_ENTERFRAME (4, NULL);
-#define keywv    meltfram__.mcfr_varptr[0]
-#define dictv    meltfram__.mcfr_varptr[1]
-#define closv    meltfram__.mcfr_varptr[2]
-#define nstrv    meltfram__.mcfr_varptr[3]
-  keywv = NULL;
-  dictv = NULL;
-  closv = NULL;
-  if (!nam || !MELT_PREDEF (INITIAL_SYSTEM_DATA))
-    goto end;
-  if (nam[0] == ':')
-    nam++;
-  namlen = strlen (nam);
-  memset (tinybuf, 0, sizeof (tinybuf));
-  if (namlen < (int) sizeof (tinybuf) - 2)
-    namdup = strcpy (tinybuf, nam);
-  else
-    namdup = strcpy ((char *) xcalloc (namlen + 1, 1), nam);
-  for (ix = 0; ix < namlen; ix++)
-    if (ISALPHA (namdup[ix]))
-      namdup[ix] = TOUPPER (namdup[ix]);
-  gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA))
-	      == MELTOBMAG_OBJECT);
-  gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) ==
-	      MELTOBMAG_OBJECT);
-  if (MELT_PREDEF (INITIAL_SYSTEM_DATA))
-    {
-      dictv = melt_get_inisysdata (FSYSDAT_KEYWDICT);
-      if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS)
-	keywv =
-	  melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
-				  namdup);
-      if (keywv || !create)
-	goto end;
-      closv = melt_get_inisysdata (FSYSDAT_ADDKEYW);
-      if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
-	{
-	  union meltparam_un pararg[1];
-	  memset (&pararg, 0, sizeof (pararg));
-	  nstrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
-	  pararg[0].meltbp_aptr = (melt_ptr_t *) & nstrv;
-	  keywv =
-	    melt_apply ((meltclosure_ptr_t) closv,
-			   (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
-			   MELTBPARSTR_PTR, pararg, "", NULL);
-	  goto end;
-	}
-    }
-end:;
-  if (namdup && namdup != tinybuf)
-    free (namdup);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) keywv;
-#undef keywv
-#undef dictv
-#undef closv
-#undef nstrv
-}
-
-
-
-static melt_ptr_t
-meltgc_readsexpr (struct reading_st *rd, int endc)
-{
-  int lineno = rd->rlineno;
-  location_t loc = 0;
-  MELT_ENTERFRAME (3, NULL);
-#define sexprv  meltfram__.mcfr_varptr[0]
-#define contv   meltfram__.mcfr_varptr[1]
-#define locmixv meltfram__.mcfr_varptr[2]
-  if (!endc || rdeof ())
-    READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
-  (void) skipspace_getc (rd, COMMENT_SKIP);
-  melt_linemap_compute_current_location (rd);
-  loc = rd->rsrcloc;
-  contv = meltgc_readseqlist (rd, endc);
-  sexprv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) sexprv;
-#undef sexprv
-#undef contv
-#undef locmixv
-}
-
-
-
-
-/* if the string ends with "_ call gettext on it to have it
-   localized/internationlized -i18n- */
-static melt_ptr_t
-meltgc_readstring (struct reading_st *rd)
-{
-  int c = 0;
-  int nbesc = 0;
-  char *cstr = 0, *endc = 0;
-  bool isintl = false;
-  MELT_ENTERFRAME (1, NULL);
-#define strv   meltfram__.mcfr_varptr[0]
-#define str_strv  ((struct meltstring_st*)(strv))
-  obstack_init (&melt_bstring_obstack);
-  while ((c = rdcurc ()) != '"' && !rdeof ())
-    {
-      if (c != '\\')
-	{
-	  obstack_1grow (&melt_bstring_obstack, (char) c);
-	  if (c == '\n') 
-	    {
-	      /* It is suspicious when a double-quote is parsed as the
-		 last character of a line; issue a warning in that
-		 case.  This helps to catch missing, mismatched or
-		 extra double-quotes! */
-	      if (obstack_object_size (&melt_bstring_obstack) <= 1)
-		warning_at (rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
-	      c = skipspace_getc (rd, COMMENT_NO);
-	      continue;
-	    }
-	  else
-	    rdnext ();
-	}
-      else
-	{
-	  rdnext ();
-	  c = rdcurc ();
-	  nbesc++;
-	  switch (c)
-	    {
-	    case 'a':
-	      c = '\a';
-	      rdnext ();
-	      break;
-	    case 'b':
-	      c = '\b';
-	      rdnext ();
-	      break;
-	    case 't':
-	      c = '\t';
-	      rdnext ();
-	      break;
-	    case 'n':
-	      c = '\n';
-	      rdnext ();
-	      break;
-	    case 'v':
-	      c = '\v';
-	      rdnext ();
-	      break;
-	    case 'f':
-	      c = '\f';
-	      rdnext ();
-	      break;
-	    case 'r':
-	      c = '\r';
-	      rdnext ();
-	      break;
-	    case '"':
-	      c = '\"';
-	      rdnext ();
-	      break;
-	    case '\\':
-	      c = '\\';
-	      rdnext ();
-	      break;
-	    case '\n':
-	    case '\r':
-	      skipspace_getc (rd, COMMENT_NO);
-	      continue;
-	    case ' ':
-	      c = ' ';
-	      rdnext ();
-	      break;
-	    case 'x':
-	      rdnext ();
-	      c = (char) strtol (&rdcurc (), &endc, 16);
-	      if (c == 0 && endc <= &rdcurc ())
-		READ_ERROR ("MELT: illegal hex \\x escape in string %.20s",
-			    &rdcurc ());
-	      if (*endc == ';')
-		endc++;
-	      rd->rcol += endc - &rdcurc ();
-	      break;
-	    case '{':
-	      {
-		int linbrac = rd->rlineno;
-		/* the escaped left brace \{ read verbatim all the string till the right brace } */
-		rdnext ();
-		while (rdcurc () != '}')
-		  {
-		    int cc;
-		    if (rdeof ())
-		      READ_ERROR
-			("MELT: reached end of file in braced block string starting line %d",
-			 linbrac);
-		    cc = rdcurc ();
-		    if (cc == '\n')
-		      cc = skipspace_getc (rd, COMMENT_NO);
-		    else
-		      obstack_1grow (&melt_bstring_obstack, (char) cc);
-		    rdnext ();
-		  };
-		rdnext ();
-	      }
-	      break;
-	    default:
-	      READ_ERROR
-		("MELT: illegal escape sequence %.10s in string -- got \\%c (hex %x)",
-		 &rdcurc () - 1, c, c);
-	    }
-	  obstack_1grow (&melt_bstring_obstack, (char) c);
-	}
-    }
-  if (c == '"')
-    rdnext ();
-  else
-    READ_ERROR ("MELT: unterminated string %.20s", &rdcurc ());
-  c = rdcurc ();
-  if (c == '_' && !rdeof ())
-    {
-      isintl = true;
-      rdnext ();
-    }
-  obstack_1grow (&melt_bstring_obstack, (char) 0);
-  cstr = XOBFINISH (&melt_bstring_obstack, char *);
-  if (isintl)
-    cstr = gettext (cstr);
-  strv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), cstr);
-  obstack_free (&melt_bstring_obstack, cstr);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) strv;
-#undef strv
-#undef str_strv
-}
-
-/**
-   macrostring so #{if ($A>0) printf("%s", $B);}# is parsed as would
-   be parsed the s-expr ("if (" A ">0) printf(\"%s\", " B ");")
-
-   read a macrostring sequence starting with #{ and ending with }#
-   perhaps spanning several lines in the source no escape characters
-   are handled (in particular no backslash escapes) except the dollar
-   sign $ and then ending }# 
-
-   A $ followed by alphabetical caracters (or as in C by underscores
-   or digits, provided the first is not a digit) is handled as a
-   symbol. If it is immediately followed by an hash # the # is
-   skipped
-
-**/
-static melt_ptr_t
-meltgc_readmacrostringsequence (struct reading_st *rd) 
-{
-  int lineno = rd->rlineno;
-  int escaped = 0;
-  int quoted = 0;
-  location_t loc = 0;
-  MELT_ENTERFRAME (6, NULL);
-#define readv    meltfram__.mcfr_varptr[0]
-#define strv     meltfram__.mcfr_varptr[1]
-#define symbv    meltfram__.mcfr_varptr[2]
-#define seqv     meltfram__.mcfr_varptr[3]
-#define sbufv    meltfram__.mcfr_varptr[4]
-  melt_linemap_compute_current_location (rd);
-  loc = rd->rsrcloc;
-  seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-  sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
-  if (rdcurc() == '$' && rdfollowc(1)=='\'') 
-    {
-      symbv = meltgc_named_symbol ("quote", MELT_CREATE);
-      quoted = 1;
-      meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) symbv);
-      symbv = NULL;
-      rdnext ();
-      rdnext ();
-    }
-  for(;;) {
-    if (rdeof()) 
-      READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", lineno);
-    if (!rdcurc()) {
-      /* reached end of line */
-      skipspace_getc(rd, COMMENT_NO);
-      continue;
-    }
-    if (rdcurc()=='}' && rdfollowc(1)=='#') {
-      rdnext (); 
-      rdnext ();
-      if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
-	strv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
-					melt_strbuf_str((melt_ptr_t) sbufv));
-	meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
-	if (!escaped && strstr (melt_string_str((melt_ptr_t) strv), "}#"))
-	  warning_at(rd->rsrcloc, 0, "MELT macrostring starting at line %d containing }# might be suspicious", lineno);
-	if (!escaped && strstr (melt_string_str((melt_ptr_t) strv), "#{"))
-	  warning_at(rd->rsrcloc, 0, "MELT macrostring starting at line %d containing #{ might be suspicious", lineno);
-	sbufv = NULL;
-	strv = NULL;
-      }
-      break;
-    }
-    else if (rdcurc()=='$') {
-      /* $ followed by letters or underscore makes a symbol */
-      if (ISALPHA(rdfollowc(1)) || rdfollowc(1)=='_') {
-	int lnam = 1;
-	char tinybuf[64];
-	/* if there is any sbuf, make a string of it and add the
-	   string into the sequence */
-	if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
-	  strv = meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+   if (nam)
+     {
+       *nam = 0;
+       obstack_free (&melt_bname_obstack, nam);
+     };
+   curinfixr->infr_reading.rpfilnam = 0;
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) lexv;
+ #undef locnamv
+ #undef lexv
+ #undef delimapv
+ #undef readv
+ #undef locmixv
+ #undef READ_INFIX_SYMBOL
+ }
+
+ void
+ melt_close_infix_file (void)
+ {
+   struct infixreading_st* previnfix = curinfixr;
+   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
+     melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
+			     100);
+     melt_fatal_error ("MELT close_infix_file called outside of infix parsing (%p)",
+		       (void*)curinfixr);
+   }
+   if (curinfixr->infr_reading.rfil)
+     fclose (curinfixr->infr_reading.rfil);
+   memset (curinfixr, 0, sizeof (struct infixreading_st));
+   free (curinfixr);
+   curinfixr = previnfix;
+ }
+
+
+ melt_ptr_t
+ meltgc_intern_keyword (melt_ptr_t keyw_p)
+ {
+   MELT_ENTERFRAME (4, NULL);
+ #define keywv    meltfram__.mcfr_varptr[0]
+ #define closv    meltfram__.mcfr_varptr[1]
+ #define nstrv    meltfram__.mcfr_varptr[2]
+ #define resv     meltfram__.mcfr_varptr[3]
+ #define obj_keywv    ((meltobject_ptr_t)(keywv))
+   keywv = keyw_p;
+   if (melt_magic_discr ((melt_ptr_t) keywv) != MELTOBMAG_OBJECT
+       || melt_object_length ((melt_ptr_t) obj_keywv) < FSYMB__LAST
+       || !melt_is_instance_of ((melt_ptr_t) keywv,
+				   (melt_ptr_t) MELT_PREDEF (CLASS_KEYWORD)))
+     goto fail;
+   nstrv = obj_keywv->obj_vartab[FNAMED_NAME];
+   if (melt_magic_discr ((melt_ptr_t) nstrv) != MELTOBMAG_STRING)
+     goto fail;
+   closv = melt_get_inisysdata (FSYSDAT_INTERNKEYW);
+   if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
+     goto fail;
+   else
+     {
+       union meltparam_un pararg[1];
+       memset (&pararg, 0, sizeof (pararg));
+       pararg[0].meltbp_aptr = (melt_ptr_t *) & keywv;
+       MELT_LOCATION_HERE ("intern keyword before apply");
+       resv =
+	 melt_apply ((meltclosure_ptr_t) closv,
+			(melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
+			MELTBPARSTR_PTR, pararg, "", NULL);
+       goto end;
+     }
+ fail:
+   resv = NULL;
+ end:;
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) resv;
+ #undef symbv
+ #undef closv
+ #undef nstrv
+ #undef resv
+ #undef obj_symbv
+ }
+
+
+
+
+
+
+ melt_ptr_t
+ meltgc_named_keyword (const char *nam, int create)
+ {
+   int namlen = 0, ix = 0;
+   char *namdup = 0;
+   char tinybuf[130];
+   MELT_ENTERFRAME (4, NULL);
+ #define keywv    meltfram__.mcfr_varptr[0]
+ #define dictv    meltfram__.mcfr_varptr[1]
+ #define closv    meltfram__.mcfr_varptr[2]
+ #define nstrv    meltfram__.mcfr_varptr[3]
+   keywv = NULL;
+   dictv = NULL;
+   closv = NULL;
+   if (!nam || !MELT_PREDEF (INITIAL_SYSTEM_DATA))
+     goto end;
+   if (nam[0] == ':')
+     nam++;
+   namlen = strlen (nam);
+   memset (tinybuf, 0, sizeof (tinybuf));
+   if (namlen < (int) sizeof (tinybuf) - 2)
+     namdup = strcpy (tinybuf, nam);
+   else
+     namdup = strcpy ((char *) xcalloc (namlen + 1, 1), nam);
+   for (ix = 0; ix < namlen; ix++)
+     if (ISALPHA (namdup[ix]))
+       namdup[ix] = TOUPPER (namdup[ix]);
+   gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA))
+	       == MELTOBMAG_OBJECT);
+   gcc_assert (melt_magic_discr ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) ==
+	       MELTOBMAG_OBJECT);
+   if (MELT_PREDEF (INITIAL_SYSTEM_DATA))
+     {
+       dictv = melt_get_inisysdata (FSYSDAT_KEYWDICT);
+       if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS)
+	 keywv =
+	   melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
+				   namdup);
+       if (keywv || !create)
+	 goto end;
+       closv = melt_get_inisysdata (FSYSDAT_ADDKEYW);
+       if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
+	 {
+	   union meltparam_un pararg[1];
+	   memset (&pararg, 0, sizeof (pararg));
+	   nstrv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), namdup);
+	   pararg[0].meltbp_aptr = (melt_ptr_t *) & nstrv;
+	   keywv =
+	     melt_apply ((meltclosure_ptr_t) closv,
+			    (melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA),
+			    MELTBPARSTR_PTR, pararg, "", NULL);
+	   goto end;
+	 }
+     }
+ end:;
+   if (namdup && namdup != tinybuf)
+     free (namdup);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) keywv;
+ #undef keywv
+ #undef dictv
+ #undef closv
+ #undef nstrv
+ }
+
+
+
+ static melt_ptr_t
+ meltgc_readsexpr (struct reading_st *rd, int endc)
+ {
+   int lineno = rd->rlineno;
+   location_t loc = 0;
+   MELT_ENTERFRAME (3, NULL);
+ #define sexprv  meltfram__.mcfr_varptr[0]
+ #define contv   meltfram__.mcfr_varptr[1]
+ #define locmixv meltfram__.mcfr_varptr[2]
+   if (!endc || rdeof ())
+     READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
+   (void) skipspace_getc (rd, COMMENT_SKIP);
+   melt_linemap_compute_current_location (rd);
+   loc = rd->rsrcloc;
+   contv = meltgc_readseqlist (rd, endc);
+   sexprv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) sexprv;
+ #undef sexprv
+ #undef contv
+ #undef locmixv
+ }
+
+
+
+
+ /* if the string ends with "_ call gettext on it to have it
+    localized/internationlized -i18n- */
+ static melt_ptr_t
+ meltgc_readstring (struct reading_st *rd)
+ {
+   int c = 0;
+   int nbesc = 0;
+   char *cstr = 0, *endc = 0;
+   bool isintl = false;
+   MELT_ENTERFRAME (1, NULL);
+ #define strv   meltfram__.mcfr_varptr[0]
+ #define str_strv  ((struct meltstring_st*)(strv))
+   obstack_init (&melt_bstring_obstack);
+   while ((c = rdcurc ()) != '"' && !rdeof ())
+     {
+       if (c != '\\')
+	 {
+	   obstack_1grow (&melt_bstring_obstack, (char) c);
+	   if (c == '\n') 
+	     {
+	       /* It is suspicious when a double-quote is parsed as the
+		  last character of a line; issue a warning in that
+		  case.  This helps to catch missing, mismatched or
+		  extra double-quotes! */
+	       if (obstack_object_size (&melt_bstring_obstack) <= 1)
+		 warning_at (rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
+	       c = skipspace_getc (rd, COMMENT_NO);
+	       continue;
+	     }
+	   else
+	     rdnext ();
+	 }
+       else
+	 {
+	   rdnext ();
+	   c = rdcurc ();
+	   nbesc++;
+	   switch (c)
+	     {
+	     case 'a':
+	       c = '\a';
+	       rdnext ();
+	       break;
+	     case 'b':
+	       c = '\b';
+	       rdnext ();
+	       break;
+	     case 't':
+	       c = '\t';
+	       rdnext ();
+	       break;
+	     case 'n':
+	       c = '\n';
+	       rdnext ();
+	       break;
+	     case 'v':
+	       c = '\v';
+	       rdnext ();
+	       break;
+	     case 'f':
+	       c = '\f';
+	       rdnext ();
+	       break;
+	     case 'r':
+	       c = '\r';
+	       rdnext ();
+	       break;
+	     case '"':
+	       c = '\"';
+	       rdnext ();
+	       break;
+	     case '\\':
+	       c = '\\';
+	       rdnext ();
+	       break;
+	     case '\n':
+	     case '\r':
+	       skipspace_getc (rd, COMMENT_NO);
+	       continue;
+	     case ' ':
+	       c = ' ';
+	       rdnext ();
+	       break;
+	     case 'x':
+	       rdnext ();
+	       c = (char) strtol (&rdcurc (), &endc, 16);
+	       if (c == 0 && endc <= &rdcurc ())
+		 READ_ERROR ("MELT: illegal hex \\x escape in string %.20s",
+			     &rdcurc ());
+	       if (*endc == ';')
+		 endc++;
+	       rd->rcol += endc - &rdcurc ();
+	       break;
+	     case '{':
+	       {
+		 int linbrac = rd->rlineno;
+		 /* the escaped left brace \{ read verbatim all the string till the right brace } */
+		 rdnext ();
+		 while (rdcurc () != '}')
+		   {
+		     int cc;
+		     if (rdeof ())
+		       READ_ERROR
+			 ("MELT: reached end of file in braced block string starting line %d",
+			  linbrac);
+		     cc = rdcurc ();
+		     if (cc == '\n')
+		       cc = skipspace_getc (rd, COMMENT_NO);
+		     else
+		       obstack_1grow (&melt_bstring_obstack, (char) cc);
+		     rdnext ();
+		   };
+		 rdnext ();
+	       }
+	       break;
+	     default:
+	       READ_ERROR
+		 ("MELT: illegal escape sequence %.10s in string -- got \\%c (hex %x)",
+		  &rdcurc () - 1, c, c);
+	     }
+	   obstack_1grow (&melt_bstring_obstack, (char) c);
+	 }
+     }
+   if (c == '"')
+     rdnext ();
+   else
+     READ_ERROR ("MELT: unterminated string %.20s", &rdcurc ());
+   c = rdcurc ();
+   if (c == '_' && !rdeof ())
+     {
+       isintl = true;
+       rdnext ();
+     }
+   obstack_1grow (&melt_bstring_obstack, (char) 0);
+   cstr = XOBFINISH (&melt_bstring_obstack, char *);
+   if (isintl)
+     cstr = gettext (cstr);
+   strv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), cstr);
+   obstack_free (&melt_bstring_obstack, cstr);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) strv;
+ #undef strv
+ #undef str_strv
+ }
+
+ /**
+    macrostring so #{if ($A>0) printf("%s", $B);}# is parsed as would
+    be parsed the s-expr ("if (" A ">0) printf(\"%s\", " B ");")
+
+    read a macrostring sequence starting with #{ and ending with }#
+    perhaps spanning several lines in the source no escape characters
+    are handled (in particular no backslash escapes) except the dollar
+    sign $ and then ending }# 
+
+    A $ followed by alphabetical caracters (or as in C by underscores
+    or digits, provided the first is not a digit) is handled as a
+    symbol. If it is immediately followed by an hash # the # is
+    skipped
+
+ **/
+ static melt_ptr_t
+ meltgc_readmacrostringsequence (struct reading_st *rd) 
+ {
+   int lineno = rd->rlineno;
+   int escaped = 0;
+   int quoted = 0;
+   location_t loc = 0;
+   MELT_ENTERFRAME (6, NULL);
+ #define readv    meltfram__.mcfr_varptr[0]
+ #define strv     meltfram__.mcfr_varptr[1]
+ #define symbv    meltfram__.mcfr_varptr[2]
+ #define seqv     meltfram__.mcfr_varptr[3]
+ #define sbufv    meltfram__.mcfr_varptr[4]
+   melt_linemap_compute_current_location (rd);
+   loc = rd->rsrcloc;
+   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
+   if (rdcurc() == '$' && rdfollowc(1)=='\'') 
+     {
+       symbv = meltgc_named_symbol ("quote", MELT_CREATE);
+       quoted = 1;
+       meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) symbv);
+       symbv = NULL;
+       rdnext ();
+       rdnext ();
+     }
+   for(;;) {
+     if (rdeof()) 
+       READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", lineno);
+     if (!rdcurc()) {
+       /* reached end of line */
+       skipspace_getc(rd, COMMENT_NO);
+       continue;
+     }
+     if (rdcurc()=='}' && rdfollowc(1)=='#') {
+       rdnext (); 
+       rdnext ();
+       if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
+	 strv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 					 melt_strbuf_str((melt_ptr_t) sbufv));
-	  gcc_assert (strv != NULL);
-	  meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
-	  sbufv = NULL;
-	  strv = NULL;
-	}
-	while (ISALNUM(rdfollowc(lnam)) || rdfollowc(lnam) == '_') 
-	  lnam++;
-	if (lnam< (int)sizeof(tinybuf)-2) {
-	  memset(tinybuf, 0, sizeof(tinybuf));
-	  memcpy(tinybuf, &rdfollowc(1), lnam-1);
-	  tinybuf[lnam] = (char)0;
-	  if (quoted) 
-	    READ_WARNING ("quoted macro string with $%s symbol", tinybuf);
-	  symbv = meltgc_named_symbol(tinybuf, MELT_CREATE);
-	}
-	else {
-	  char *nambuf = (char*) xcalloc(lnam+2, 1);
-	  memcpy(nambuf, &rdfollowc(1), lnam-1);
-	  nambuf[lnam] = (char)0;
-	  symbv = meltgc_named_symbol(nambuf, MELT_CREATE);
-	  if (quoted) 
-	    READ_WARNING ("quoted macro string with $%s symbol", nambuf);
-	  free(nambuf);
-	}
-	rd->rcol += lnam;
-	/* skip the hash # if just after the symbol */
-	if (rdcurc() == '#') 
-	  rdnext();
-	/* append the symbol */
-	meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) symbv);
-	symbv = NULL;
-      }
-      /* $. is silently skipped */
-      else if (rdfollowc(1) == '.') {
-	escaped = 1;
-	rdnext(); 
-	rdnext();
-      }
-      /* $$ is handled as a single dollar $ */
-      else if (rdfollowc(1) == '$') {
-	if (!sbufv)
-	  sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
-	meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, "$", 1);
-	rdnext();
-	rdnext();
-      }
-      /* $# is handled as a single hash # */
-      else if (rdfollowc(1) == '#') {
-	escaped = 1;
-	if (!sbufv)
-	  sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
-	meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, "#", 1);
-	rdnext();
-	rdnext();
-      }
-      /* any other dollar something is an error */
-      else READ_ERROR("unexpected dollar escape in macrostring %.4s started line %d",
-		      &rdcurc(), lineno);
-    }
-    else if ( ISALNUM(rdcurc()) || ISSPACE(rdcurc()) ) { 
-      /* handle efficiently the common case of alphanum and spaces */
-      int nbc = 0;
-      if (!sbufv)
-	sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
-      while (ISALNUM(rdfollowc(nbc)) || ISSPACE(rdfollowc(nbc))) 
-	nbc++;
-      meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, &rdcurc(), nbc);
-      rd->rcol += nbc;
-    }
-    else { /* the current char is not a dollar $ */
-      if (!sbufv)
-	sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
-      meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, &rdcurc(), 1);
-      rdnext();
-    }
-  }
-  readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 1);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) readv;
-#undef readv
-#undef strv
-#undef symbv
-#undef seqv
-#undef sbufv
-}
+	 meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
+	 if (!escaped && strstr (melt_string_str((melt_ptr_t) strv), "}#"))
+	   warning_at(rd->rsrcloc, 0, "MELT macrostring starting at line %d containing }# might be suspicious", lineno);
+	 if (!escaped && strstr (melt_string_str((melt_ptr_t) strv), "#{"))
+	   warning_at(rd->rsrcloc, 0, "MELT macrostring starting at line %d containing #{ might be suspicious", lineno);
+	 sbufv = NULL;
+	 strv = NULL;
+       }
+       break;
+     }
+     else if (rdcurc()=='$') {
+       /* $ followed by letters or underscore makes a symbol */
+       if (ISALPHA(rdfollowc(1)) || rdfollowc(1)=='_') {
+	 int lnam = 1;
+	 char tinybuf[64];
+	 /* if there is any sbuf, make a string of it and add the
+	    string into the sequence */
+	 if (sbufv && melt_strbuf_usedlength((melt_ptr_t)sbufv)>0) {
+	   strv = meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+					  melt_strbuf_str((melt_ptr_t) sbufv));
+	   gcc_assert (strv != NULL);
+	   meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) strv);
+	   sbufv = NULL;
+	   strv = NULL;
+	 }
+	 while (ISALNUM(rdfollowc(lnam)) || rdfollowc(lnam) == '_') 
+	   lnam++;
+	 if (lnam< (int)sizeof(tinybuf)-2) {
+	   memset(tinybuf, 0, sizeof(tinybuf));
+	   memcpy(tinybuf, &rdfollowc(1), lnam-1);
+	   tinybuf[lnam] = (char)0;
+	   if (quoted) 
+	     READ_WARNING ("quoted macro string with $%s symbol", tinybuf);
+	   symbv = meltgc_named_symbol(tinybuf, MELT_CREATE);
+	 }
+	 else {
+	   char *nambuf = (char*) xcalloc(lnam+2, 1);
+	   memcpy(nambuf, &rdfollowc(1), lnam-1);
+	   nambuf[lnam] = (char)0;
+	   symbv = meltgc_named_symbol(nambuf, MELT_CREATE);
+	   if (quoted) 
+	     READ_WARNING ("quoted macro string with $%s symbol", nambuf);
+	   free(nambuf);
+	 }
+	 rd->rcol += lnam;
+	 /* skip the hash # if just after the symbol */
+	 if (rdcurc() == '#') 
+	   rdnext();
+	 /* append the symbol */
+	 meltgc_append_list((melt_ptr_t) seqv, (melt_ptr_t) symbv);
+	 symbv = NULL;
+       }
+       /* $. is silently skipped */
+       else if (rdfollowc(1) == '.') {
+	 escaped = 1;
+	 rdnext(); 
+	 rdnext();
+       }
+       /* $$ is handled as a single dollar $ */
+       else if (rdfollowc(1) == '$') {
+	 if (!sbufv)
+	   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
+	 meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, "$", 1);
+	 rdnext();
+	 rdnext();
+       }
+       /* $# is handled as a single hash # */
+       else if (rdfollowc(1) == '#') {
+	 escaped = 1;
+	 if (!sbufv)
+	   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
+	 meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, "#", 1);
+	 rdnext();
+	 rdnext();
+       }
+       /* any other dollar something is an error */
+       else READ_ERROR("unexpected dollar escape in macrostring %.4s started line %d",
+		       &rdcurc(), lineno);
+     }
+     else if ( ISALNUM(rdcurc()) || ISSPACE(rdcurc()) ) { 
+       /* handle efficiently the common case of alphanum and spaces */
+       int nbc = 0;
+       if (!sbufv)
+	 sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
+       while (ISALNUM(rdfollowc(nbc)) || ISSPACE(rdfollowc(nbc))) 
+	 nbc++;
+       meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, &rdcurc(), nbc);
+       rd->rcol += nbc;
+     }
+     else { /* the current char is not a dollar $ */
+       if (!sbufv)
+	 sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
+       meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, &rdcurc(), 1);
+       rdnext();
+     }
+   }
+   readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 1);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) readv;
+ #undef readv
+ #undef strv
+ #undef symbv
+ #undef seqv
+ #undef sbufv
+ }
 
 
-static melt_ptr_t
-melrtgc_readhashescape (struct reading_st *rd)
-{
-  int c = 0;
-  char *nam = NULL;
-  int lineno = rd->rlineno;
-  MELT_ENTERFRAME (4, NULL);
-#define readv  meltfram__.mcfr_varptr[0]
-#define compv  meltfram__.mcfr_varptr[1]
-#define listv  meltfram__.mcfr_varptr[2]
-#define pairv  meltfram__.mcfr_varptr[3]
-  readv = NULL;
-  c = rdcurc ();
-  if (!c || rdeof ())
-    READ_ERROR ("MELT: eof in hashescape %.20s starting line %d", &rdcurc (), lineno);
-  if (c == '\\')
-    {
-      rdnext ();
-      if (ISALPHA (rdcurc ()) && rdcurc () != 'x' && ISALPHA (rdfollowc (1)))
-	{
-	  nam = readsimplename (rd);
-	  c = 0;
-	  if (!strcmp (nam, "nul"))
-	    c = 0;
-	  else if (!strcmp (nam, "alarm"))
-	    c = '\a';
-	  else if (!strcmp (nam, "backspace"))
-	    c = '\b';
-	  else if (!strcmp (nam, "tab"))
-	    c = '\t';
-	  else if (!strcmp (nam, "linefeed"))
-	    c = '\n';
-	  else if (!strcmp (nam, "vtab"))
-	    c = '\v';
-	  else if (!strcmp (nam, "page"))
-	    c = '\f';
-	  else if (!strcmp (nam, "return"))
-	    c = '\r';
-	  else if (!strcmp (nam, "space"))
-	    c = ' ';
-	  /* won't work on non ASCII or ISO or Unicode host, but we don't care */
-	  else if (!strcmp (nam, "delete"))
-	    c = 0xff;
-	  else if (!strcmp (nam, "esc"))
-	    c = 0x1b;
-	  else
-	    READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
-	  obstack_free (&melt_bname_obstack, nam);
-	char_escape:
-	  readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER), c);
-	}
-      else if (rdcurc () == 'x' && ISXDIGIT (rdfollowc (1)))
-	{
-	  char *endc = 0;
-	  rdnext ();
-	  c = strtol (&rdcurc (), &endc, 16);
-	  if (c == 0 && endc <= &rdcurc ())
-	    READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s starting line %d",
-			&rdcurc (), lineno);
-	  rd->rcol += endc - &rdcurc ();
-	  goto char_escape;
-	}
-      else if (ISPRINT (rdcurc ()))
-	{
-	  c = rdcurc ();
-	  rdnext ();
-	  goto char_escape;
-	}
-      else
-	READ_ERROR ("MELT: unrecognized char escape #\\%s starting line %d",
-		    &rdcurc (), lineno);
-    }
-  else if (c == '(')
-    {
-      int ln = 0, ix = 0;
-      listv = meltgc_readseqlist (rd, ')');
-      ln = melt_list_length ((melt_ptr_t) listv);
-      gcc_assert (ln >= 0);
-      readv = meltgc_new_multiple ((meltobject_ptr_t) MELT_PREDEF (DISCR_MULTIPLE), ln);
-      for ((ix = 0), (pairv =
-		      ((struct meltlist_st *) (listv))->first);
-	   ix < ln
-	   && melt_magic_discr ((melt_ptr_t) pairv) == MELTOBMAG_PAIR;
-	   pairv = ((struct meltpair_st *) (pairv))->tl)
-	((struct meltmultiple_st *) (readv))->tabval[ix++] =
-	  ((struct meltpair_st *) (pairv))->hd;
-      meltgc_touch (readv);
-    }
-  else if (c == '[')
-    {
-      /* a melt extension #[ .... ] for lists */
-      readv = meltgc_readseqlist (rd, ']');
-    }
-  else if ((c == 'b' || c == 'B') && ISDIGIT (rdfollowc (1)))
-    {
-      /* binary number */
-      char *endc = 0;
-      long n = 0;
-      rdnext ();
-      n = strtol (&rdcurc (), &endc, 2);
-      if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad binary number %s starting line %d", endc, lineno);
-      readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
-    }
-  else if ((c == 'o' || c == 'O') && ISDIGIT (rdfollowc (1)))
-    {
-      /* octal number */
-      char *endc = 0;
-      long n = 0;
-      rdnext ();
-      n = strtol (&rdcurc (), &endc, 8);
-      if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
-      readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
-    }
-  else if ((c == 'd' || c == 'D') && ISDIGIT (rdfollowc (1)))
-    {
-      /* decimal number */
-      char *endc = 0;
-      long n = 0;
-      rdnext ();
-      n = strtol (&rdcurc (), &endc, 10);
-      if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad decimal number %s starting line %d", endc, lineno);
-      readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
-    }
-  else if ((c == 'x' || c == 'x') && ISDIGIT (rdfollowc (1)))
-    {
-      /* hex number */
-      char *endc = 0;
-      long n = 0;
-      rdnext ();
-      n = strtol (&rdcurc (), &endc, 16);
-      if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
-      readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
-    }
-  else if (c == '+' && ISALPHA (rdfollowc (1)))
-    {
-      bool gotcomp = FALSE;
-      char *nam = 0;
-      nam = readsimplename (rd);
-      compv = meltgc_readval (rd, &gotcomp);
-      if (!strcmp (nam, "MELT"))
-	readv = compv;
-      else
-	readv = meltgc_readval (rd, &gotcomp);
-    }
-  /* #{ is a macrostringsequence; it is terminated by }# and each
-      occurrence of $ followed by alphanum char is considered as a
-      MELT symbol, the other caracters are considered as string
-      chunks; the entire read is a sequence */
-  else if (c == '{') 
-    {
-      rdnext ();
-      readv = meltgc_readmacrostringsequence(rd);
-    }
-  else
-    READ_ERROR ("MELT: invalid escape %.20s starting line %d", &rdcurc (), lineno);
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) readv;
-#undef readv
-#undef listv
-#undef compv
-#undef pairv
-}
+ static melt_ptr_t
+ melrtgc_readhashescape (struct reading_st *rd)
+ {
+   int c = 0;
+   char *nam = NULL;
+   int lineno = rd->rlineno;
+   MELT_ENTERFRAME (4, NULL);
+ #define readv  meltfram__.mcfr_varptr[0]
+ #define compv  meltfram__.mcfr_varptr[1]
+ #define listv  meltfram__.mcfr_varptr[2]
+ #define pairv  meltfram__.mcfr_varptr[3]
+   readv = NULL;
+   c = rdcurc ();
+   if (!c || rdeof ())
+     READ_ERROR ("MELT: eof in hashescape %.20s starting line %d", &rdcurc (), lineno);
+   if (c == '\\')
+     {
+       rdnext ();
+       if (ISALPHA (rdcurc ()) && rdcurc () != 'x' && ISALPHA (rdfollowc (1)))
+	 {
+	   nam = readsimplename (rd);
+	   c = 0;
+	   if (!strcmp (nam, "nul"))
+	     c = 0;
+	   else if (!strcmp (nam, "alarm"))
+	     c = '\a';
+	   else if (!strcmp (nam, "backspace"))
+	     c = '\b';
+	   else if (!strcmp (nam, "tab"))
+	     c = '\t';
+	   else if (!strcmp (nam, "linefeed"))
+	     c = '\n';
+	   else if (!strcmp (nam, "vtab"))
+	     c = '\v';
+	   else if (!strcmp (nam, "page"))
+	     c = '\f';
+	   else if (!strcmp (nam, "return"))
+	     c = '\r';
+	   else if (!strcmp (nam, "space"))
+	     c = ' ';
+	   /* won't work on non ASCII or ISO or Unicode host, but we don't care */
+	   else if (!strcmp (nam, "delete"))
+	     c = 0xff;
+	   else if (!strcmp (nam, "esc"))
+	     c = 0x1b;
+	   else
+	     READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
+	   obstack_free (&melt_bname_obstack, nam);
+	 char_escape:
+	   readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER), c);
+	 }
+       else if (rdcurc () == 'x' && ISXDIGIT (rdfollowc (1)))
+	 {
+	   char *endc = 0;
+	   rdnext ();
+	   c = strtol (&rdcurc (), &endc, 16);
+	   if (c == 0 && endc <= &rdcurc ())
+	     READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s starting line %d",
+			 &rdcurc (), lineno);
+	   rd->rcol += endc - &rdcurc ();
+	   goto char_escape;
+	 }
+       else if (ISPRINT (rdcurc ()))
+	 {
+	   c = rdcurc ();
+	   rdnext ();
+	   goto char_escape;
+	 }
+       else
+	 READ_ERROR ("MELT: unrecognized char escape #\\%s starting line %d",
+		     &rdcurc (), lineno);
+     }
+   else if (c == '(')
+     {
+       int ln = 0, ix = 0;
+       listv = meltgc_readseqlist (rd, ')');
+       ln = melt_list_length ((melt_ptr_t) listv);
+       gcc_assert (ln >= 0);
+       readv = meltgc_new_multiple ((meltobject_ptr_t) MELT_PREDEF (DISCR_MULTIPLE), ln);
+       for ((ix = 0), (pairv =
+		       ((struct meltlist_st *) (listv))->first);
+	    ix < ln
+	    && melt_magic_discr ((melt_ptr_t) pairv) == MELTOBMAG_PAIR;
+	    pairv = ((struct meltpair_st *) (pairv))->tl)
+	 ((struct meltmultiple_st *) (readv))->tabval[ix++] =
+	   ((struct meltpair_st *) (pairv))->hd;
+       meltgc_touch (readv);
+     }
+   else if (c == '[')
+     {
+       /* a melt extension #[ .... ] for lists */
+       readv = meltgc_readseqlist (rd, ']');
+     }
+   else if ((c == 'b' || c == 'B') && ISDIGIT (rdfollowc (1)))
+     {
+       /* binary number */
+       char *endc = 0;
+       long n = 0;
+       rdnext ();
+       n = strtol (&rdcurc (), &endc, 2);
+       if (n == 0 && endc <= &rdcurc ())
+	 READ_ERROR ("MELT: bad binary number %s starting line %d", endc, lineno);
+       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
+     }
+   else if ((c == 'o' || c == 'O') && ISDIGIT (rdfollowc (1)))
+     {
+       /* octal number */
+       char *endc = 0;
+       long n = 0;
+       rdnext ();
+       n = strtol (&rdcurc (), &endc, 8);
+       if (n == 0 && endc <= &rdcurc ())
+	 READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
+       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
+     }
+   else if ((c == 'd' || c == 'D') && ISDIGIT (rdfollowc (1)))
+     {
+       /* decimal number */
+       char *endc = 0;
+       long n = 0;
+       rdnext ();
+       n = strtol (&rdcurc (), &endc, 10);
+       if (n == 0 && endc <= &rdcurc ())
+	 READ_ERROR ("MELT: bad decimal number %s starting line %d", endc, lineno);
+       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
+     }
+   else if ((c == 'x' || c == 'x') && ISDIGIT (rdfollowc (1)))
+     {
+       /* hex number */
+       char *endc = 0;
+       long n = 0;
+       rdnext ();
+       n = strtol (&rdcurc (), &endc, 16);
+       if (n == 0 && endc <= &rdcurc ())
+	 READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
+       readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
+     }
+   else if (c == '+' && ISALPHA (rdfollowc (1)))
+     {
+       bool gotcomp = FALSE;
+       char *nam = 0;
+       nam = readsimplename (rd);
+       compv = meltgc_readval (rd, &gotcomp);
+       if (!strcmp (nam, "MELT"))
+	 readv = compv;
+       else
+	 readv = meltgc_readval (rd, &gotcomp);
+     }
+   /* #{ is a macrostringsequence; it is terminated by }# and each
+       occurrence of $ followed by alphanum char is considered as a
+       MELT symbol, the other caracters are considered as string
+       chunks; the entire read is a sequence */
+   else if (c == '{') 
+     {
+       rdnext ();
+       readv = meltgc_readmacrostringsequence(rd);
+     }
+   else
+     READ_ERROR ("MELT: invalid escape %.20s starting line %d", &rdcurc (), lineno);
+   MELT_EXITFRAME ();
+   return (melt_ptr_t) readv;
+ #undef readv
+ #undef listv
+ #undef compv
+ #undef pairv
+ }
 
 
 
-static melt_ptr_t
-meltgc_readval (struct reading_st *rd, bool * pgot)
-{
-  int c = 0;
-  char *nam = 0;
-  int lineno = rd->rlineno;
-  MELT_ENTERFRAME (4, NULL);
-#define readv   meltfram__.mcfr_varptr[0]
-#define compv   meltfram__.mcfr_varptr[1]
-#define seqv    meltfram__.mcfr_varptr[2]
-#define altv    meltfram__.mcfr_varptr[3]
-  readv = NULL;
-  c = skipspace_getc (rd, COMMENT_SKIP);
-  /*   debugeprintf ("start meltgc_readval line %d col %d char %c", rd->rlineno, rd->rcol,
-     ISPRINT (c) ? c : ' '); */
-  if (ISDIGIT (c)
-      || ((c == '-' || c == '+')
-	  && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
-	      || rdfollowc (1) == '|')))
-    {
-      long num = 0;
-      num = readsimplelong (rd);
-      readv =
-	meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
-			   num);
-      *pgot = TRUE;
-      goto end;
-    }				/* end if ISDIGIT or '-' or '+' */
-  else if (c == '"')
-    {
-      rdnext ();
-      readv = meltgc_readstring (rd);
-      *pgot = TRUE;
-      goto end;
-    }				/* end if '"' */
-  else if (c == '(')
-    {
-      rdnext ();
-      if (rdcurc () == ')')
-	{
-	  rdnext ();
-	  readv = NULL;
-	  *pgot = TRUE;
-	  goto end;
-	}
-      readv = meltgc_readsexpr (rd, ')');
-      *pgot = TRUE;
-      goto end;
-    }				/* end if '(' */
-  else if (c == ')')
-    {
-      readv = NULL;
-      *pgot = FALSE;
-      READ_ERROR ("MELT: unexpected closing parenthesis %.20s", &rdcurc ());
-      goto end;
-    }
-  else if (c == '[')
-    {
-      rdnext ();
-      readv = meltgc_readsexpr (rd, ']');
-      *pgot = TRUE;
-      goto end;
-    }	
-  else if (c == '#')
-    {
-      rdnext ();
-      c = rdcurc ();
-      readv = melrtgc_readhashescape (rd);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == '\'')
-    {
-      bool got = false;
-      location_t loc = 0;
-      rdnext ();
-      compv = meltgc_readval (rd, &got);
-      if (!got)
-	READ_ERROR ("MELT: expecting value after quote %.20s", &rdcurc ());
-      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-      altv = meltgc_named_symbol ("quote", MELT_CREATE);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      melt_linemap_compute_current_location (rd);
-      loc = rd->rsrcloc;
-      readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == '!' 
-	   && (ISALPHA (rdfollowc (1)) || ISSPACE (rdfollowc (1))
-	       || rdfollowc (1) == '('))
-    {
-      bool got = false;
-      location_t loc = 0;
-      rdnext ();
-      compv = meltgc_readval (rd, &got);
-      if (!got)
-	READ_ERROR ("MELT: expecting value after exclamation mark ! %.20s", &rdcurc ());
-      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-      altv = meltgc_named_symbol ("exclaim", MELT_CREATE);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      melt_linemap_compute_current_location (rd);
-      loc = rd->rsrcloc;
-      readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == '`')
-    {
-      bool got = false;
-      location_t loc = 0;
-      rdnext ();
-      melt_linemap_compute_current_location (rd);
-      loc = rd->rsrcloc;
-      compv = meltgc_readval (rd, &got);
-      if (!got)
-	READ_ERROR ("MELT: expecting value after backquote %.20s",
-		    &rdcurc ());
-      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-      altv = meltgc_named_symbol ("backquote", MELT_CREATE);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == ',')
-    {
-      bool got = false;
-      location_t loc = 0;
-      rdnext ();
-      melt_linemap_compute_current_location (rd);
-      loc = rd->rsrcloc;
-      compv = meltgc_readval (rd, &got);
-      if (!got)
-	READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
-      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-      altv = meltgc_named_symbol ("comma", MELT_CREATE);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == '@')
-    {
-      bool got = false;
-      location_t loc = 0;
-      rdnext ();
-      melt_linemap_compute_current_location (rd);
-      loc = rd->rsrcloc;
-      compv = meltgc_readval (rd, &got);
-      if (!got)
-	READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
-      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-      altv = meltgc_named_symbol ("at", MELT_CREATE);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == '?')
-    {
-      bool got = false;
-      location_t loc = 0;
-      rdnext ();
-      melt_linemap_compute_current_location (rd);
-      loc = rd->rsrcloc;
-      compv = meltgc_readval (rd, &got);
-      if (!got)
-	READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
-      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-      altv = meltgc_named_symbol ("question", MELT_CREATE);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
-      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (c == ':')
-    {
-      if (!ISALPHA (rdfollowc(1)))
-	READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", rdfollowc(1));
-      nam = readsimplename (rd);
-      readv = meltgc_named_keyword (nam, MELT_CREATE);
-      if (!readv)
-	READ_ERROR ("MELT: unknown named keyword %s", nam);
-      *pgot = TRUE;
-      goto end;
-    }
-  else if (ISALPHA (c) || strchr (EXTRANAMECHARS, c) != NULL)
-    {
-      nam = readsimplename (rd);
-      readv = meltgc_named_symbol (nam, MELT_CREATE);
-      *pgot = TRUE;
-      goto end;
-    }
-  else
-    {
-      if (c >= 0)
-	rdback ();
-      readv = NULL;
-    }
-end:
-  MELT_EXITFRAME ();
-  if (nam)
-    {
-      *nam = 0;
-      obstack_free (&melt_bname_obstack, nam);
-    };
-  return (melt_ptr_t) readv;
-#undef readv
-#undef compv
-#undef seqv
-#undef altv
-}
+ static melt_ptr_t
+ meltgc_readval (struct reading_st *rd, bool * pgot)
+ {
+   int c = 0;
+   char *nam = 0;
+   int lineno = rd->rlineno;
+   MELT_ENTERFRAME (4, NULL);
+ #define readv   meltfram__.mcfr_varptr[0]
+ #define compv   meltfram__.mcfr_varptr[1]
+ #define seqv    meltfram__.mcfr_varptr[2]
+ #define altv    meltfram__.mcfr_varptr[3]
+   readv = NULL;
+   c = skipspace_getc (rd, COMMENT_SKIP);
+   /*   debugeprintf ("start meltgc_readval line %d col %d char %c", rd->rlineno, rd->rcol,
+      ISPRINT (c) ? c : ' '); */
+   if (ISDIGIT (c)
+       || ((c == '-' || c == '+')
+	   && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
+	       || rdfollowc (1) == '|')))
+     {
+       long num = 0;
+       num = readsimplelong (rd);
+       readv =
+	 meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
+			    num);
+       *pgot = TRUE;
+       goto end;
+     }				/* end if ISDIGIT or '-' or '+' */
+   else if (c == '"')
+     {
+       rdnext ();
+       readv = meltgc_readstring (rd);
+       *pgot = TRUE;
+       goto end;
+     }				/* end if '"' */
+   else if (c == '(')
+     {
+       rdnext ();
+       if (rdcurc () == ')')
+	 {
+	   rdnext ();
+	   readv = NULL;
+	   *pgot = TRUE;
+	   goto end;
+	 }
+       readv = meltgc_readsexpr (rd, ')');
+       *pgot = TRUE;
+       goto end;
+     }				/* end if '(' */
+   else if (c == ')')
+     {
+       readv = NULL;
+       *pgot = FALSE;
+       READ_ERROR ("MELT: unexpected closing parenthesis %.20s", &rdcurc ());
+       goto end;
+     }
+   else if (c == '[')
+     {
+       rdnext ();
+       readv = meltgc_readsexpr (rd, ']');
+       *pgot = TRUE;
+       goto end;
+     }	
+   else if (c == '#')
+     {
+       rdnext ();
+       c = rdcurc ();
+       readv = melrtgc_readhashescape (rd);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == '\'')
+     {
+       bool got = false;
+       location_t loc = 0;
+       rdnext ();
+       compv = meltgc_readval (rd, &got);
+       if (!got)
+	 READ_ERROR ("MELT: expecting value after quote %.20s", &rdcurc ());
+       seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+       altv = meltgc_named_symbol ("quote", MELT_CREATE);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+       melt_linemap_compute_current_location (rd);
+       loc = rd->rsrcloc;
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == '!' 
+	    && (ISALPHA (rdfollowc (1)) || ISSPACE (rdfollowc (1))
+		|| rdfollowc (1) == '('))
+     {
+       bool got = false;
+       location_t loc = 0;
+       rdnext ();
+       compv = meltgc_readval (rd, &got);
+       if (!got)
+	 READ_ERROR ("MELT: expecting value after exclamation mark ! %.20s", &rdcurc ());
+       seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+       altv = meltgc_named_symbol ("exclaim", MELT_CREATE);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+       melt_linemap_compute_current_location (rd);
+       loc = rd->rsrcloc;
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == '`')
+     {
+       bool got = false;
+       location_t loc = 0;
+       rdnext ();
+       melt_linemap_compute_current_location (rd);
+       loc = rd->rsrcloc;
+       compv = meltgc_readval (rd, &got);
+       if (!got)
+	 READ_ERROR ("MELT: expecting value after backquote %.20s",
+		     &rdcurc ());
+       seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+       altv = meltgc_named_symbol ("backquote", MELT_CREATE);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == ',')
+     {
+       bool got = false;
+       location_t loc = 0;
+       rdnext ();
+       melt_linemap_compute_current_location (rd);
+       loc = rd->rsrcloc;
+       compv = meltgc_readval (rd, &got);
+       if (!got)
+	 READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
+       seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+       altv = meltgc_named_symbol ("comma", MELT_CREATE);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == '@')
+     {
+       bool got = false;
+       location_t loc = 0;
+       rdnext ();
+       melt_linemap_compute_current_location (rd);
+       loc = rd->rsrcloc;
+       compv = meltgc_readval (rd, &got);
+       if (!got)
+	 READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
+       seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+       altv = meltgc_named_symbol ("at", MELT_CREATE);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == '?')
+     {
+       bool got = false;
+       location_t loc = 0;
+       rdnext ();
+       melt_linemap_compute_current_location (rd);
+       loc = rd->rsrcloc;
+       compv = meltgc_readval (rd, &got);
+       if (!got)
+	 READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
+       seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+       altv = meltgc_named_symbol ("question", MELT_CREATE);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (c == ':')
+     {
+       if (!ISALPHA (rdfollowc(1)))
+	 READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", rdfollowc(1));
+       nam = readsimplename (rd);
+       readv = meltgc_named_keyword (nam, MELT_CREATE);
+       if (!readv)
+	 READ_ERROR ("MELT: unknown named keyword %s", nam);
+       *pgot = TRUE;
+       goto end;
+     }
+   else if (ISALPHA (c) || strchr (EXTRANAMECHARS, c) != NULL)
+     {
+       nam = readsimplename (rd);
+       readv = meltgc_named_symbol (nam, MELT_CREATE);
+       *pgot = TRUE;
+       goto end;
+     }
+   else
+     {
+       if (c >= 0)
+	 rdback ();
+       readv = NULL;
+     }
+ end:
+   MELT_EXITFRAME ();
+   if (nam)
+     {
+       *nam = 0;
+       obstack_free (&melt_bname_obstack, nam);
+     };
+   return (melt_ptr_t) readv;
+ #undef readv
+ #undef compv
+ #undef seqv
+ #undef altv
+ }
 
 
-void
-melt_error_str (melt_ptr_t mixloc_p, const char *msg,
-		   melt_ptr_t str_p)
-{
-  int mixmag = 0;
-  int lineno = 0;
-  location_t loc = 0;
-  MELT_ENTERFRAME (3, NULL);
-#define mixlocv    meltfram__.mcfr_varptr[0]
-#define strv       meltfram__.mcfr_varptr[1]
-#define finamv     meltfram__.mcfr_varptr[2]
-  gcc_assert (msg && msg[0]);
-  melt_error_counter ++;
-  mixlocv = mixloc_p;
-  strv = str_p;
-  mixmag = melt_magic_discr ((melt_ptr_t) mixlocv);
-  if (mixmag == MELTOBMAG_MIXLOC)
-    {
-      loc = melt_location_mixloc ((melt_ptr_t) mixlocv);
-      finamv = melt_val_mixloc ((melt_ptr_t) mixlocv);
-      lineno = melt_num_mixloc ((melt_ptr_t) mixlocv);
-    }
-  else if (mixmag == MELTOBMAG_MIXINT)
-    {
-      loc = 0;
-      finamv = melt_val_mixint ((melt_ptr_t) mixlocv);
-      lineno = melt_num_mixint ((melt_ptr_t) mixlocv);
-    }
-  else
-    {
-      loc = 0;
-      finamv = NULL;
-      lineno = 0;
-    }
-  if (loc)
-    {
-      const char *cstr = melt_string_str ((melt_ptr_t) strv);
-      if (cstr)
-	error_at (loc, "Melt Error[#%ld]: %s - %s", melt_dbgcounter,
-		  msg, cstr);
-      else
-	error_at (loc, "Melt Error[#%ld]: %s", melt_dbgcounter, msg);
-    }
-  else
-    {
-      const char *cfilnam = melt_string_str ((melt_ptr_t) finamv);
-      const char *cstr = melt_string_str ((melt_ptr_t) strv);
-      if (cfilnam)
-	{
-	  if (cstr)
-	    error ("Melt Error[#%ld] @ %s:%d: %s - %s", melt_dbgcounter,
-		   cfilnam, lineno, msg, cstr);
-	  else
-	    error ("Melt Error[#%ld] @ %s:%d: %s", melt_dbgcounter,
-		   cfilnam, lineno, msg);
-	}
-      else
-	{
-	  if (cstr)
-	    error ("Melt Error[#%ld]: %s - %s", melt_dbgcounter, msg,
-		   cstr);
-	  else
-	    error ("Melt Error[#%ld]: %s", melt_dbgcounter, msg);
-	}
-    }
-  MELT_EXITFRAME ();
-}
+ void
+ melt_error_str (melt_ptr_t mixloc_p, const char *msg,
+		    melt_ptr_t str_p)
+ {
+   int mixmag = 0;
+   int lineno = 0;
+   location_t loc = 0;
+   MELT_ENTERFRAME (3, NULL);
+ #define mixlocv    meltfram__.mcfr_varptr[0]
+ #define strv       meltfram__.mcfr_varptr[1]
+ #define finamv     meltfram__.mcfr_varptr[2]
+   gcc_assert (msg && msg[0]);
+   melt_error_counter ++;
+   mixlocv = mixloc_p;
+   strv = str_p;
+   mixmag = melt_magic_discr ((melt_ptr_t) mixlocv);
+   if (mixmag == MELTOBMAG_MIXLOC)
+     {
+       loc = melt_location_mixloc ((melt_ptr_t) mixlocv);
+       finamv = melt_val_mixloc ((melt_ptr_t) mixlocv);
+       lineno = melt_num_mixloc ((melt_ptr_t) mixlocv);
+     }
+   else if (mixmag == MELTOBMAG_MIXINT)
+     {
+       loc = 0;
+       finamv = melt_val_mixint ((melt_ptr_t) mixlocv);
+       lineno = melt_num_mixint ((melt_ptr_t) mixlocv);
+     }
+   else
+     {
+       loc = 0;
+       finamv = NULL;
+       lineno = 0;
+     }
+   if (loc)
+     {
+       const char *cstr = melt_string_str ((melt_ptr_t) strv);
+       if (cstr)
+	 error_at (loc, "Melt Error[#%ld]: %s - %s", melt_dbgcounter,
+		   msg, cstr);
+       else
+	 error_at (loc, "Melt Error[#%ld]: %s", melt_dbgcounter, msg);
+     }
+   else
+     {
+       const char *cfilnam = melt_string_str ((melt_ptr_t) finamv);
+       const char *cstr = melt_string_str ((melt_ptr_t) strv);
+       if (cfilnam)
+	 {
+	   if (cstr)
+	     error ("Melt Error[#%ld] @ %s:%d: %s - %s", melt_dbgcounter,
+		    cfilnam, lineno, msg, cstr);
+	   else
+	     error ("Melt Error[#%ld] @ %s:%d: %s", melt_dbgcounter,
+		    cfilnam, lineno, msg);
+	 }
+       else
+	 {
+	   if (cstr)
+	     error ("Melt Error[#%ld]: %s - %s", melt_dbgcounter, msg,
+		    cstr);
+	   else
+	     error ("Melt Error[#%ld]: %s", melt_dbgcounter, msg);
+	 }
+     }
+   MELT_EXITFRAME ();
+ }
 
-#undef mixlocv
-#undef strv
-#undef finamv
-
-
-void melt_warning_at_strbuf (location_t loc, melt_ptr_t msgbuf)
-{ 
-  char *str;
-  if (!msgbuf || melt_magic_discr (msgbuf) != MELTOBMAG_STRBUF) 
-    return;
-  str = xstrndup (melt_strbuf_str (msgbuf), 
-		  (size_t) melt_strbuf_usedlength(msgbuf));
-  if(str == NULL)
-    return;
-  warning_at (loc, /*no OPT_*/0, "Melt Warning[#%ld]: %s",  
-	      melt_dbgcounter, str);
-  free (str);
-}
+ #undef mixlocv
+ #undef strv
+ #undef finamv
 
 
-void
-melt_warning_str (int opt, melt_ptr_t mixloc_p, const char *msg,
-		     melt_ptr_t str_p)
-{
-  int mixmag = 0;
-  int lineno = 0;
-  location_t loc = 0;
-  MELT_ENTERFRAME (3, NULL);
-#define mixlocv    meltfram__.mcfr_varptr[0]
-#define strv       meltfram__.mcfr_varptr[1]
-#define finamv     meltfram__.mcfr_varptr[2]
-  gcc_assert (msg && msg[0]);
-  mixlocv = mixloc_p;
-  strv = str_p;
-  mixmag = melt_magic_discr ((melt_ptr_t) mixlocv);
-  if (mixmag == MELTOBMAG_MIXLOC)
-    {
-      loc = melt_location_mixloc ((melt_ptr_t) mixlocv);
-      finamv = melt_val_mixloc ((melt_ptr_t) mixlocv);
-      lineno = melt_num_mixloc ((melt_ptr_t) mixlocv);
-    }
-  else if (mixmag == MELTOBMAG_MIXINT)
-    {
-      loc = 0;
-      finamv = melt_val_mixint ((melt_ptr_t) mixlocv);
-      lineno = melt_num_mixint ((melt_ptr_t) mixlocv);
-    }
-  else
-    {
-      loc = 0;
-      finamv = NULL;
-      lineno = 0;
-    }
-  if (loc)
-    {
-      const char *cstr = melt_string_str ((melt_ptr_t) strv);
-      if (cstr)
-	warning_at (loc, opt, "Melt Warning[#%ld]: %s - %s",
-		    melt_dbgcounter, msg, cstr);
-      else
-	warning_at (loc, opt, "Melt Warning[#%ld]: %s", 
-		    melt_dbgcounter, msg);
-    }
-  else
-    {
-      const char *cfilnam = melt_string_str ((melt_ptr_t) finamv);
-      const char *cstr = melt_string_str ((melt_ptr_t) strv);
-      if (cfilnam)
-	{
-	  if (cstr)
-	    warning (opt, "Melt Warning[#%ld] @ %s:%d: %s - %s",
-		     melt_dbgcounter, cfilnam, lineno, msg, cstr);
-	  else
-	    warning (opt, "Melt Warning[#%ld] @ %s:%d: %s",
+ void melt_warning_at_strbuf (location_t loc, melt_ptr_t msgbuf)
+ { 
+   char *str;
+   if (!msgbuf || melt_magic_discr (msgbuf) != MELTOBMAG_STRBUF) 
+     return;
+   str = xstrndup (melt_strbuf_str (msgbuf), 
+		   (size_t) melt_strbuf_usedlength(msgbuf));
+   if(str == NULL)
+     return;
+   warning_at (loc, /*no OPT_*/0, "Melt Warning[#%ld]: %s",  
+	       melt_dbgcounter, str);
+   free (str);
+ }
+
+
+ void
+ melt_warning_str (int opt, melt_ptr_t mixloc_p, const char *msg,
+		      melt_ptr_t str_p)
+ {
+   int mixmag = 0;
+   int lineno = 0;
+   location_t loc = 0;
+   MELT_ENTERFRAME (3, NULL);
+ #define mixlocv    meltfram__.mcfr_varptr[0]
+ #define strv       meltfram__.mcfr_varptr[1]
+ #define finamv     meltfram__.mcfr_varptr[2]
+   gcc_assert (msg && msg[0]);
+   mixlocv = mixloc_p;
+   strv = str_p;
+   mixmag = melt_magic_discr ((melt_ptr_t) mixlocv);
+   if (mixmag == MELTOBMAG_MIXLOC)
+     {
+       loc = melt_location_mixloc ((melt_ptr_t) mixlocv);
+       finamv = melt_val_mixloc ((melt_ptr_t) mixlocv);
+       lineno = melt_num_mixloc ((melt_ptr_t) mixlocv);
+     }
+   else if (mixmag == MELTOBMAG_MIXINT)
+     {
+       loc = 0;
+       finamv = melt_val_mixint ((melt_ptr_t) mixlocv);
+       lineno = melt_num_mixint ((melt_ptr_t) mixlocv);
+     }
+   else
+     {
+       loc = 0;
+       finamv = NULL;
+       lineno = 0;
+     }
+   if (loc)
+     {
+       const char *cstr = melt_string_str ((melt_ptr_t) strv);
+       if (cstr)
+	 warning_at (loc, opt, "Melt Warning[#%ld]: %s - %s",
+		     melt_dbgcounter, msg, cstr);
+       else
+	 warning_at (loc, opt, "Melt Warning[#%ld]: %s", 
+		     melt_dbgcounter, msg);
+     }
+   else
+     {
+       const char *cfilnam = melt_string_str ((melt_ptr_t) finamv);
+       const char *cstr = melt_string_str ((melt_ptr_t) strv);
+       if (cfilnam)
+	 {
+	   if (cstr)
+	     warning (opt, "Melt Warning[#%ld] @ %s:%d: %s - %s",
+		      melt_dbgcounter, cfilnam, lineno, msg, cstr);
+	   else
+	     warning (opt, "Melt Warning[#%ld] @ %s:%d: %s",
 		     melt_dbgcounter, cfilnam, lineno, msg);
 	}
       else
@@ -9217,7 +9223,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 			    modulnam, maketarget);
   gcc_assert (flags == 0 && flag_melt_bootstrapping);
   melt_fatal_error
-    ("meltgc_make_load_melt_module unimplemented modulnam %s", modulnam);
+    ("meltgc_make_load_melt_module obsolete modulnam %s; should use melt_compile_source", modulnam);
   MELT_EXITFRAME ();
   return (melt_ptr_t) mdatav;
 #undef modulv

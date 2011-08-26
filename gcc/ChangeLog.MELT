@@ -1,5 +1,16 @@
 
 2011-08-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_compile_source): Add declaration.
+
+	* melt-runtime.c (melt_compile_source): Becomes an exported
+	function. Sets the workdir to tempdir if null.
+
+	* melt/warmelt-base.melt (generate_melt_module)
+	(generate_debug_melt_module, generate_quickly_melt_module): Use
+	melt_compile_source.
+
+2011-08-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (translatetomodule_docmd): Use
 	make_string_nakedbasename.
 

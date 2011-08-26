@@ -662,21 +662,35 @@ discriminant $DIS.}#
 (defprimitive generate_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
 and whose binary is named after $OUTNAM without any '.so' suffix.}#
-  #{meltgc_make_melt_module($src,$outnam,"melt_module");}#)
+  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+			 melt_string_str ((melt_ptr_t)$OUTNAM),
+			 NULL,
+			 "optimized"); /*generate_melt_module*/
+  }#)
 
 ;; generate a debug loadable module from a MELT generated C source file; the
 ;;  out is the dynloaded module without any *.so suffix 
 (defprimitive generate_debug_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
 and whose binary is named after $OUTNAM without any '.so' suffix.}#
-  #{meltgc_make_melt_module($src,$outnam,"melt_module_withoutline");}#)
+  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+			 melt_string_str ((melt_ptr_t)$OUTNAM),
+			 NULL,
+			 "debugnoline"); /*generate_debug_melt_module*/
+  }#
+)
 
 ;; quickly generate a loadable module from a MELT generated C source file; the
 ;;  out is the dynloaded module without any *.so suffix 
 (defprimitive generate_quickly_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
 and whose binary is named after $OUTNAM without any '.so' suffix.}#
-  #{meltgc_make_melt_module($src,$outnam,"melt_module_quickly");}#)
+  #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
+			 melt_string_str ((melt_ptr_t)$OUTNAM),
+			 NULL,
+			 "quicklybuilt"); /*generate_quickly_melt_module*/
+  }#
+)
 
 ;;;;;;;;;;;;;;;; the melt version string
 (defprimitive melt_version_str () :cstring
