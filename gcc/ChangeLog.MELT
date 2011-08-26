@@ -1,5 +1,9 @@
 
 2011-08-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translatetomodule_docmd): Use
+	make_string_nakedbasename.
+
+2011-08-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_string_generated_c_filename): Don't
 	append +00.
 

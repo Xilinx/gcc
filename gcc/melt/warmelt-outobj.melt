@@ -4427,7 +4427,8 @@
 		     (return)
 		     )))
 	   (outnam (or outarg basnam))
-	   (rawsrcnam (or coutarg (make_string_generated_c_filename discr_string outnam ())))
+	   (rawsrcnam (or coutarg
+			  (make_string_nakedbasename discr_string outnam)))
 	   )
       (debug_msg basnam "translatetomodule_docmd basnam")
       (debug_msg rawsrcnam "translatetomodule_docmd rawsrcnam")
