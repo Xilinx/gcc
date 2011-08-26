@@ -4342,7 +4342,7 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
   discrv = discr_p;
   if (!basepath || !basepath[0]) 
     goto end;
-  if (num >= 0) 
+  if (num > 0) 
     snprintf (numbuf, sizeof(numbuf)-1, "+%02d", num);
   if (!discrv) 
     discrv = MELT_PREDEF (DISCR_STRING);
@@ -4401,7 +4401,8 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
   strv = meltgc_allocate (sizeof (struct meltstring_st), spos + 1);
   str_strv->discr = obj_discrv;
   strncpy (str_strv->val, strcop, spos);
-  debugeprintf ("meltgc_new_string_generated_c_filename returns %s", strcop);
+  debugeprintf ("meltgc_new_string_generated_c_filename returns %s with basepath %s dirpath %s num %d", 
+		strcop, basepath, dirpath, num);
 end:
   if (strcop && strcop != tinybuf)
     free (strcop);

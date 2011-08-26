@@ -1,6 +1,10 @@
 
+2011-08-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_string_generated_c_filename): Don't
+	append +00.
+
 2011-08-25  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.c (melt_linemap_compute_current_location): Use the
+	* melt-runtime.c (elt_linemap_compute_current_location): Use the
 	linemap_position_for_column function for GCC 4.7 when merging with
 	GCC trunk rev 178073.
 
