@@ -3333,7 +3333,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-first
 ## dont indent the warmelt-first+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c > $(srcdir)/melt/generated/warmelt-first+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-first.c $(MELT_LAST_STAGE)/warmelt-first+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3352,7 +3352,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-base
 ## dont indent the warmelt-base+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c > $(srcdir)/melt/generated/warmelt-base+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-base.c $(MELT_LAST_STAGE)/warmelt-base+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3371,7 +3371,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-debug
 ## dont indent the warmelt-debug+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c > $(srcdir)/melt/generated/warmelt-debug+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-debug.c $(MELT_LAST_STAGE)/warmelt-debug+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3390,7 +3390,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-macro
 ## dont indent the warmelt-macro+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c > $(srcdir)/melt/generated/warmelt-macro+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-macro.c $(MELT_LAST_STAGE)/warmelt-macro+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3409,7 +3409,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-normal
 ## dont indent the warmelt-normal+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c > $(srcdir)/melt/generated/warmelt-normal+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-normal.c $(MELT_LAST_STAGE)/warmelt-normal+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3428,7 +3428,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-normatch
 ## dont indent the warmelt-normatch+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c > $(srcdir)/melt/generated/warmelt-normatch+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-normatch.c $(MELT_LAST_STAGE)/warmelt-normatch+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3447,7 +3447,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-genobj
 ## dont indent the warmelt-genobj+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c > $(srcdir)/melt/generated/warmelt-genobj+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-genobj.c $(MELT_LAST_STAGE)/warmelt-genobj+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
@@ -3466,7 +3466,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 	@echo upgrading MELT translator warmelt-outobj
 ## dont indent the warmelt-outobj+meltdesc.c 
-	$(melt_make_move) $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c~; \
+	cp $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c > $(srcdir)/melt/generated/warmelt-outobj+meltdesc.c 
 	for f in $(MELT_LAST_STAGE)/warmelt-outobj.c $(MELT_LAST_STAGE)/warmelt-outobj+[0-9]*.c ; do \
 	  bf=`basename $$f`; \

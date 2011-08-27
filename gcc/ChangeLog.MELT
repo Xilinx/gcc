@@ -1,3 +1,8 @@
+2011-08-27  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-build.tpl (warmelt-upgrade-translator): replace move-if-change
+	by a cp.
+	* melt-build.mk: Regenerate.
 
 2011-08-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
