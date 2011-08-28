@@ -311,7 +311,7 @@ install-melt-mk: melt-module.mk
 
 ## install the default modules list
 install-melt-default-modules-list: $(melt_default_modules_list).modlis 
-	$(INSTALL_DATA) $< $(DESTDIR)$(melt_module_dir) 
+	$(INSTALL_DATA) $< $(DESTDIR)$(melt_source_dir) 
 
 ### install the MELT documentation files
 install-melt-doc: doc doc-info doc-pdf doc-html

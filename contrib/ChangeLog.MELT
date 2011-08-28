@@ -1,3 +1,8 @@
+2011-08-28  Alexandre Lissy  <alissy@mandriva.com>
+	* MELT-Plugin-Makefile: Fix inconsistency source path for modlis loading and
+	modlis path installation, using 'source-path' as in melt-runtime.c and
+	old make/install shell script.
+
 2011-08-25  Alexandre Lissy  <alissy@mandriva.com>
 	* MELT-Plugin-Makefile: Remove useless '/' after $(DESTDIR)
 
