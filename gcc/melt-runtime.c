@@ -4362,7 +4362,7 @@ meltgc_new_string_without_suffix (meltobject_ptr_t discr_p,
     }
   else
     suflen = strlen (suffix);
-  if (suflen > slen && !strcmp (buf + slen - suflen, suffix))
+  if (suflen <= slen && !strcmp (buf + slen - suflen, suffix))
     { 
       buf[slen-suflen] = (char)0;      
       strv = meltgc_new_string_raw_len (obj_discrv, buf, slen - suflen);

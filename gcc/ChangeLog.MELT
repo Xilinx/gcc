@@ -1,5 +1,8 @@
 
 2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_string_without_suffix): Typo.
+
+2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_new_string_without_suffix): New
 	declaration.
 
