@@ -396,6 +396,25 @@ gfc_copy_expr (gfc_expr *p)
 }
 
 
+void
+gfc_clear_shape (mpz_t *shape, int rank)
+{
+  int i;
+
+  for (i = 0; i < rank; i++)
+    mpz_clear (shape[i]);
+}
+
+
+void
+gfc_free_shape (mpz_t **shape, int rank)
+{
+  gfc_clear_shape (*shape, rank);
+  free (*shape);
+  *shape = NULL;
+}
+
+
 /* Workhorse function for gfc_free_expr() that frees everything
    beneath an expression node, but not the node itself.  This is
    useful when we want to simplify a node and replace it with
@@ -404,8 +423,6 @@ gfc_copy_expr (gfc_expr *p)
 static void
 free_expr0 (gfc_expr *e)
 {
-  int n;
-
   switch (e->expr_type)
     {
     case EXPR_CONSTANT:
@@ -474,12 +491,7 @@ free_expr0 (gfc_expr *e)
 
   /* Free a shape array.  */
   if (e->shape != NULL)
-    {
-      for (n = 0; n < e->rank; n++)
-	mpz_clear (e->shape[n]);
-
-      free (e->shape);
-    }
+    gfc_free_shape (&e->shape, e->rank);
 
   gfc_free_ref_list (e->ref);
 
@@ -3187,6 +3199,53 @@ gfc_check_assign (gfc_expr *lvalue, gfc_expr *rvalue, int conform)
 		       ". This check can be disabled with the option "
 		       "-fno-range-check", &rvalue->where);
 	  return FAILURE;
+	}
+    }
+
+  /*  Warn about type-changing conversions for REAL or COMPLEX constants.
+      If lvalue and rvalue are mixed REAL and complex, gfc_compare_types
+      will warn anyway, so there is no need to to so here.  */
+
+  if (rvalue->expr_type == EXPR_CONSTANT && lvalue->ts.type == rvalue->ts.type
+      && (lvalue->ts.type == BT_REAL || lvalue->ts.type == BT_COMPLEX))
+    {
+      if (lvalue->ts.kind < rvalue->ts.kind && gfc_option.gfc_warn_conversion)
+	{
+	  /* As a special bonus, don't warn about REAL rvalues which are not
+	     changed by the conversion if -Wconversion is specified.  */
+	  if (rvalue->ts.type == BT_REAL && mpfr_number_p (rvalue->value.real))
+	    {
+	      /* Calculate the difference between the constant and the rounded
+		 value and check it against zero.  */
+	      mpfr_t rv, diff;
+	      gfc_set_model_kind (lvalue->ts.kind);
+	      mpfr_init (rv);
+	      gfc_set_model_kind (rvalue->ts.kind);
+	      mpfr_init (diff);
+	      
+	      mpfr_set (rv, rvalue->value.real, GFC_RND_MODE);
+	      mpfr_sub (diff, rv, rvalue->value.real, GFC_RND_MODE);
+	  
+	      if (!mpfr_zero_p (diff))
+		gfc_warning ("Change of value in conversion from "
+			     " %s to %s at %L", gfc_typename (&rvalue->ts),
+			     gfc_typename (&lvalue->ts), &rvalue->where);
+	      
+	      mpfr_clear (rv);
+	      mpfr_clear (diff);
+	    }
+	  else
+	    gfc_warning ("Possible change of value in conversion from %s "
+			 "to %s at %L",gfc_typename (&rvalue->ts),
+			 gfc_typename (&lvalue->ts), &rvalue->where);
+
+	}
+      else if (gfc_option.warn_conversion_extra
+	       && lvalue->ts.kind > rvalue->ts.kind)
+	{
+	  gfc_warning ("Conversion from %s to %s at %L",
+		       gfc_typename (&rvalue->ts),
+		       gfc_typename (&lvalue->ts), &rvalue->where);
 	}
     }
 
