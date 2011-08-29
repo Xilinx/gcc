@@ -8751,6 +8751,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
     {
       FILE *sfil = 0;
       char *curpath = 0;
+      char *srcpath = 0;
+      const char* srcpathstr = melt_argument ("source-path");
       int nbsecfile = 0;
       int cursecix = 0;
       time_t gentim = 0;
@@ -8769,7 +8771,15 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 		 melt_run_preprocessed_md5);
       nbsecfile = *(MELTDESCR_REQUIRED(melt_lastsecfileindex));
       debugeprintf ("melt_load_module_index descmodulename %s nbsecfile %d", descmodulename, nbsecfile);
-      curpath = concat (descmodulename, ".c", NULL);
+      srcpath = concat (descmodulename, ".c", NULL);
+      curpath = 
+          MELT_FIND_FILE (srcpath,
+		    MELT_FILE_IN_DIRECTORY, ".",
+		    MELT_FILE_IN_PATH, srcpathstr,
+		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+		    MELT_FILE_IN_DIRECTORY, melt_source_dir,
+		    NULL);
+      debugeprintf ("melt_load_module_index srcpath %s ", srcpath);
       sfil = fopen (curpath, "r");
       if (!sfil) 
 	warning (0,
@@ -8782,6 +8792,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 		     curpath, MELTDESCR_REQUIRED (melt_primaryhexmd5));
 	  fclose (sfil), sfil = NULL;
 	};
+      free (srcpath), srcpath = NULL;
       free (curpath), curpath = NULL;
       for (cursecix = 1; cursecix < nbsecfile; cursecix++) 
 	{
@@ -8790,7 +8801,15 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 	    continue;
 	  memset (suffixbuf, 0, sizeof(suffixbuf));
 	  snprintf (suffixbuf, sizeof(suffixbuf)-1, "+%02d.c", cursecix);
-	  curpath = concat (descmodulename, suffixbuf, NULL);
+	  srcpath = concat (descmodulename, suffixbuf, NULL);
+          curpath = 
+              MELT_FIND_FILE (srcpath,
+		    MELT_FILE_IN_DIRECTORY, ".",
+		    MELT_FILE_IN_PATH, srcpathstr,
+		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+		    MELT_FILE_IN_DIRECTORY, melt_source_dir,
+		    NULL);
+          debugeprintf ("melt_load_module_index srcpath %s ", srcpath);
 	  sfil = fopen (curpath, "r");
 	  if (!sfil) 
 	    warning (0,
@@ -8805,6 +8824,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 			 curpath, MELTDESCR_REQUIRED(melt_secondaryhexmd5tab)[cursecix]);
 	      fclose (sfil), sfil = NULL;
 	    };
+          free (srcpath), srcpath = NULL;
 	  free (curpath), curpath = NULL;
 	};
       if (MELTDESCR_OPTIONAL(melt_genversionstr)

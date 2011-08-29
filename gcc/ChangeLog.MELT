@@ -1,3 +1,8 @@
+2011-08-29  Alexandre Lissy  <alissy@mandriva.com>
+	* melt-runtime.c (melt_load_module_index): Fix loading path of .c
+	files.
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Fix generation
+	of melt_modulename (taking basename).
 
 2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_string_without_suffix): Typo.

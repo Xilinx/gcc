@@ -3791,7 +3791,12 @@
     (add2sbuf_strconst debuf " */")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_modulename[]=\"")
-    (add2sbuf_cencstring  debuf modnamstr)
+    (code_chunk
+     genmodnamstr
+     #{ /* output_melt_descriptor $GENMODNAMSTR + */
+     meltgc_add_strbuf_cstr ($DEBUF, lbasename (melt_string_str($MODNAMSTR)));
+     }#
+    )
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_modulerealpath[]=\"")
