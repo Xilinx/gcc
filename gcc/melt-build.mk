@@ -3384,25 +3384,29 @@ melt-modules/xtramelt-opengpu.quicklybuilt.so: melt-sources/xtramelt-opengpu.c \
 ################
 
 #@ from melt-build.tpl line 564
-melt-tiny-tests: melt-modules melt-sources melt-all-modules melt-all-sources
+melt-sayhello.melt: $(melt_default_modules_list).modlis
+	@date +'(code_chunk say%YM%mhello #{printf("hello_from_MELT on %c pid %%d\n", (int) getpid());}#)' > $@
+#@ from melt-build.tpl line 567
+
+#@ from melt-build.tpl line 569
+melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules melt-all-sources
 # test that a helloworld can be translated
-	@date +'(code_chunk say%YM%mhello #{printf("hello_from_MELT on %c pid %%d\n", (int) getpid());}#)' > melt-sayhello.melt
 	@echo	$(MELTCCAPPLICATION1ARGS) \
-	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum melt-sayhello.melt | cut -b-24) \
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-             $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-             $(meltarg_output)=melt-sayhello.c empty-file-for-melt.c > melt-sayhello.args-tmp
-	@mv melt-sayhello.args-tmp melt-sayhello.args
-	@echo -n melt-sayhello.args: ; cat melt-sayhello.args ; echo "***** doing " melt-sayhello
-	$(melt_make_cc1) @melt-sayhello.args
-#@ from melt-build.tpl line 577
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) $(meltarg_bootstrapping) \
+       $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
+	@mv $(basename $<).args-tmp $(basename $<).args
+	@echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)
+	$(melt_make_cc1) @$(basename $<).args
+#@ from melt-build.tpl line 581
 
 
 
 
 ################
-#@ from melt-build.tpl line 583
+#@ from melt-build.tpl line 587
 melt-all-modules:  melt-workdir \
     melt-modules/warmelt-first.optimized.so \
     melt-modules/warmelt-base.optimized.so \
@@ -3458,11 +3462,11 @@ $(melt_default_modules_list).modlis: melt-all-modules \
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(melt_default_modules_list)-$(melt_default_variant).modlis  $(notdir $@)
 
 
-#@ from melt-build.tpl line 606
+#@ from melt-build.tpl line 610
 ## MELT various variants of module lists
 
 
-#@ from melt-build.tpl line 610
+#@ from melt-build.tpl line 614
 ### quicklybuilt default module list
 $(melt_default_modules_list)-quicklybuilt.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.quicklybuilt.so)
 	@echo building quicklybuilt module list $@
@@ -3488,7 +3492,7 @@ $(melt_default_modules_list)-quicklybuilt.modlis:  melt-all-modules  melt-module
 	$(melt_make_move) $@-tmp $@
 
 
-#@ from melt-build.tpl line 610
+#@ from melt-build.tpl line 614
 ### optimized default module list
 $(melt_default_modules_list)-optimized.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.optimized.so)
 	@echo building optimized module list $@
@@ -3514,7 +3518,7 @@ $(melt_default_modules_list)-optimized.modlis:  melt-all-modules  melt-modules/ 
 	$(melt_make_move) $@-tmp $@
 
 
-#@ from melt-build.tpl line 610
+#@ from melt-build.tpl line 614
 ### debugnoline default module list
 $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.debugnoline.so)
 	@echo building debugnoline module list $@
@@ -3541,7 +3545,7 @@ $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules
 
 
 
-#@ from melt-build.tpl line 626
+#@ from melt-build.tpl line 630
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
@@ -3566,7 +3570,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-first
 ## dont indent the warmelt-first+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c~; \
@@ -3586,7 +3590,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-first*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-base
 ## dont indent the warmelt-base+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c~; \
@@ -3606,7 +3610,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-base*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-debug
 ## dont indent the warmelt-debug+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c~; \
@@ -3626,7 +3630,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-debug*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-macro
 ## dont indent the warmelt-macro+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c~; \
@@ -3646,7 +3650,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-macro*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-normal
 ## dont indent the warmelt-normal+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c~; \
@@ -3666,7 +3670,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-normal*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-normatch
 ## dont indent the warmelt-normatch+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c~; \
@@ -3686,7 +3690,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-normatch*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-genobj
 ## dont indent the warmelt-genobj+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c~; \
@@ -3706,7 +3710,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-genobj*.o
 
-#@ from melt-build.tpl line 639
+#@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-outobj
 ## dont indent the warmelt-outobj+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c~; \
@@ -3729,7 +3733,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 
 ### Generated MELT documentation
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 666
 meltgendoc.texi: $(melt_default_modules_list).modlis \
                     melt-sources/warmelt-first.melt \
                     melt-sources/warmelt-base.melt \
@@ -3769,7 +3773,7 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
-#@ from melt-build.tpl line 691
+#@ from melt-build.tpl line 695
 .PHONY: meltrun-generate
 meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
                    $(melt_make_cc1_dependency)
@@ -3802,5 +3806,5 @@ melt-clean:
            melt-stage3  melt-stage3.stamp \
                melt-sources melt-modules
 
-#@ from melt-build.tpl line 722
+#@ from melt-build.tpl line 726
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def

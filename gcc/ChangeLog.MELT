@@ -1,3 +1,8 @@
+
+2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-module.mk: Regenerate.
+
 2011-08-29  Alexandre Lissy  <alissy@mandriva.com>
 	* melt-build.tpl: Fix melt-tiny-tests failing target.
 
