@@ -4321,6 +4321,72 @@ end:
 }
 
 
+/* Return a new string of given discriminant, with the original STR
+   amputed of a given SUFFIX if appropriate, or else a copy of STR.  */
+melt_ptr_t
+meltgc_new_string_without_suffix (meltobject_ptr_t discr_p,
+				  const char* str,
+				  const char* suffix)
+{
+  char tinybuf[120];
+  char *buf = NULL;
+  int slen = 0;
+  int suflen = 0;
+  MELT_ENTERFRAME (2, NULL);
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
+#define obj_discrv  ((struct meltobject_st*)(discrv))
+#define str_strv  ((struct meltstring_st*)(strv))
+  memset (tinybuf, 0, sizeof(tinybuf));
+  discrv = discr_p;
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
+  if (obj_discrv->meltobj_magic != MELTOBMAG_STRING)
+    goto end;
+  if (!str) 
+    goto end;
+  debugeprintf ("meltgc_new_string_without_suffix str '%s' suffix '%s'", 
+		str, suffix);
+  slen = strlen (str);
+  if (slen < (int) sizeof(tinybuf) - 1)
+    {
+      strcpy (tinybuf, str);
+      buf = tinybuf;
+    }
+  else
+    buf = xstrdup (str);
+  if (!suffix)
+    {
+      suflen = 0;
+      suffix = "";
+    }
+  else
+    suflen = strlen (suffix);
+  if (suflen > slen && !strcmp (buf + slen - suflen, suffix))
+    { 
+      buf[slen-suflen] = (char)0;      
+      strv = meltgc_new_string_raw_len (obj_discrv, buf, slen - suflen);
+      debugeprintf ("meltgc_new_string_without_suffix strv %p truncate to '%s'",
+		    strv, buf);
+    }
+  else
+    {
+      strv = meltgc_new_string_raw_len (obj_discrv, buf, slen);
+      debugeprintf ("meltgc_new_string_without_suffix strv %p copy '%s'", 
+		    strv, buf);
+    }
+ end:
+  if (buf && buf != tinybuf)
+    free (buf), buf = NULL;
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) strv;
+#undef discrv
+#undef strv
+#undef obj_discrv
+#undef str_strv
+}
+
+
 melt_ptr_t
 meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
 					 const char* basepath,
@@ -4431,9 +4497,10 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
 #define obj_discrv  ((struct meltobject_st*)(discrv))
 #define str_strv  ((struct meltstring_st*)(strv))
   strv = 0;
+  discrv = discr_p;
+  debugeprintf ("meltgc_new_string_nakedbasename start str '%s'", str);
   if (!str)
     goto end;
-  discrv = discr_p;
   if (!discrv) 
     discrv = MELT_PREDEF (DISCR_STRING);
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
@@ -4457,6 +4524,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
 		     strlen (basestr) + 1);
   str_strv->discr = obj_discrv;
   strcpy (str_strv->val, basestr);
+  debugeprintf ("meltgc_new_string_nakedbasename gives basestr '%s'", basestr);
 end:
   if (strcop && strcop != tinybuf)
     free (strcop);

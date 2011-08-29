@@ -608,6 +608,17 @@ discriminant $DIS.}#
 					 melt_string_str((melt_ptr_t)($str)),
 					 ($suff)))}#)
 
+
+;; remove a suffix from a string or else copy it
+(defprimitive make_string_without_suffix (dis str :cstring suffix) :value
+  :doc #{Make a fresh copy with discriminant $DIS of string $STR 
+removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
+  #{/*make_string_without_suffix*/
+  (meltgc_new_string_without_suffix ((meltobject_ptr_t)($DIS),
+				     melt_string_str ((melt_ptr_t)($STR)),
+				     ($SUFFIX))) }#
+)
+
 ;; compute a generated C source file
 (defprimitive make_string_generated_c_filename (dis basestr dirstr) :value
   :doc #{make a generated C file path of discriminant $DIS with base $BASESTR and directory $DIRSTR adding a .c suffix.}#
@@ -2535,6 +2546,7 @@ polyhedron values.}#
  make_string_mixloc_file
  make_string_nakedbasename
  make_string_tempname_suffixed
+ make_string_without_suffix
  mapstring_count
  mapstring_every
  mapstring_iterate_test	

@@ -1290,6 +1290,13 @@ melt_ptr_t meltgc_new_string_nakedbasename (meltobject_ptr_t discr,
 melt_ptr_t meltgc_new_string_tempname_suffixed (meltobject_ptr_t discr,
 						const char *namstr, const char*suffix);
 
+/* Return a new string of given discriminant, with the original STR
+   amputed of a given SUFFIX if appropriate, or else a copy of STR.  */
+melt_ptr_t
+meltgc_new_string_without_suffix (meltobject_ptr_t discr_p,
+				  const char* str,
+				  const char* suffix);
+
 /* Compute the hexadecimal encoded md5sum string of a file, or NULL on
    failure.  */
 melt_ptr_t 

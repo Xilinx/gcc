@@ -4303,6 +4303,7 @@
 ;;; modsrcname is the string for the module source file path; its
 ;;; basename should not contains any dots
 (defun compile_one_or_more_files (files modsrcname curenv)
+  (debug_msg files "compile_one_or_more_files files")
   (assert_msg "check curenv" (is_a curenv class_environment))
   (debug_msg modsrcname "compile_one_or_more_files modsrcname")
   (assert_msg "check modsrcname" (is_string modsrcname))
@@ -4339,6 +4340,7 @@
       (foreach_in_list
        (files)
        (curpair curfile)
+       (debug_msg curfile "compile_one_or_more_files curfile")
        (assert_msg "check curfile" (is_string curfile))
        (informsg_strv "reading from file" curfile)
        (let ( (curead (read_file curfile))
@@ -4373,8 +4375,11 @@
     (debug_msg initial_environment "before read translatefile_docmd initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
-		    ( (is_string outarg) outarg)
-		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		    ( (is_string outarg) 
+		      (make_string_without_suffix discr_string outarg ".c")
+		      )
+		    ( (is_string inarg) 
+		      (make_string_nakedbasename discr_string inarg))
 		    (:else
 		     (errormsg_plain "invalid translatefile mode")
 		     (return)
@@ -4383,8 +4388,9 @@
     (debug_msg basnam "translatefile_mode basnam")
     (if (or (string_suffixed basnam ".so")
 	    (string_suffixed basnam ".melt")
+	    (string_suffixed basnam ".o")
 	    (string_suffixed basnam ".c"))
-	(progn 
+	(progn 	  
 	  (errormsg_strv "tranlatefile mode needs a base name without suffix" 
 		       basnam)
 	  (return)
@@ -4420,8 +4426,10 @@
     (debug_msg initial_environment "before read translatetomodule_docmd initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
-		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
-		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		    ( (is_string outarg)
+		      (make_string_without_suffix discr_string outarg ".c"))
+		    ( (is_string inarg) 
+		      (make_string_nakedbasename discr_string inarg))
 		    (:else
 		     (errormsg_plain "invalid translatetomodule mode")
 		     (return)
@@ -4466,8 +4474,10 @@
     (debug_msg initial_environment "before read translatedebug_docmd initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
-		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
-		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		    ( (is_string outarg) 
+		      (make_string_without_suffix discr_string outarg ".c"))
+		    ( (is_string inarg)
+		      (make_string_nakedbasename discr_string inarg))
 		    (:else
 		     (errormsg_plain "invalid translatedebug mode")
 		     (return)
@@ -4523,7 +4533,8 @@ assert_msg) is enabled"
     (debug_msg initial_environment "before read translatequickly_docmd initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
-		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
+		    ( (is_string outarg)
+		      (make_string_without_suffix discr_string outarg ".c"))
 		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
 		    (:else
 		     (errormsg_plain "invalid translatequickly mode")
@@ -4578,7 +4589,8 @@ assert_msg) is enabled"
 	   (modsrcname
 	    (cond
 	     ( (is_string outarg) 
-	       (setq modulnam (make_string_nakedbasename discr_string outarg))
+	       (setq modulnam
+		     (make_string_without_suffix discr_string outarg ".c"))
 	       outarg)
 	     ( (is_string inarg) 
 	       (setq modulnam (make_string_nakedbasename discr_string inarg))
@@ -4623,7 +4635,8 @@ has basic debug support thru debug_msg, assert_msg..."
 	   (modsrcname
 	    (cond
 	     ( (is_string outarg) 
-	       (setq modulnam (make_string_nakedbasename discr_string outarg))
+	       (setq modulnam
+		     (make_string_without_suffix discr_string outarg ".c"))
 	       outarg)
 	     ( (is_string inarg) 
 	       (setq modulnam (make_string_nakedbasename discr_string inarg))
@@ -4636,7 +4649,7 @@ has basic debug support thru debug_msg, assert_msg..."
 		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
 		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
 		    (:else
-		     (errormsg_plain "invalid rndebug mode")
+		     (errormsg_plain "invalid rundebug mode")
 		     (return)
 		     )))
 	   (dbgmodulnam 

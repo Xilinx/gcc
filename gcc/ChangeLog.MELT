@@ -1,5 +1,21 @@
 
 2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_new_string_without_suffix): New
+	declaration.
+
+	* melt-runtime.c (meltgc_new_string_without_suffix): New function.
+	(meltgc_new_string_generated_c_filename): Add debugeprintf-s.
+
+	* melt/warmelt-base.melt (make_string_without_suffix): New
+	primitive.
+
+	* melt/warmelt-outobj.melt (compile_one_or_more_files): More debug
+	message.
+	(translatefile_docmd, translatetomodule_docmd)
+	(translatedebug_docmd, translatequickly_docmd, runfile_docmd)
+	(rundebug_docmd): Use make_string_without_suffix to remove ".c".
+
+2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.tpl: Generate more comment lines with original
 	location in melt-module.tpl.
 	(melt-tiny-tests) New target.
