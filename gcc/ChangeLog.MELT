@@ -1,4 +1,7 @@
 2011-08-29  Alexandre Lissy  <alissy@mandriva.com>
+	* melt-build.tpl: Fix melt-tiny-tests failing target.
+
+2011-08-29  Alexandre Lissy  <alissy@mandriva.com>
 	* melt-runtime.c (melt_load_module_index): Fix loading path of .c
 	files.
 	* melt/warmelt-outobj.melt (output_melt_descriptor): Fix generation

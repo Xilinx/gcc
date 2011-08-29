@@ -562,18 +562,22 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
 ################
 
 #@ [+ (. (tpl-file-line))+]
-melt-tiny-tests: melt-modules melt-sources melt-all-modules melt-all-sources
+melt-sayhello.melt: $(melt_default_modules_list).modlis
+	@date +'(code_chunk say%YM%mhello #{printf("hello_from_MELT on %c pid %%d\n", (int) getpid());}#)' > $@
+#@ [+ (. (tpl-file-line))+]
+
+#@ [+ (. (tpl-file-line))+]
+melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules melt-all-sources
 # test that a helloworld can be translated
-	@date +'(code_chunk say%YM%mhello #{printf("hello_from_MELT on %c pid %%d\n", (int) getpid());}#)' > melt-sayhello.melt
 	@echo	$(MELTCCAPPLICATION1ARGS) \
-	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum melt-sayhello.melt | cut -b-24) \
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-             $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-             $(meltarg_output)=melt-sayhello.c empty-file-for-melt.c > melt-sayhello.args-tmp
-	@mv melt-sayhello.args-tmp melt-sayhello.args
-	@echo -n melt-sayhello.args: ; cat melt-sayhello.args ; echo "***** doing " melt-sayhello
-	$(melt_make_cc1) @melt-sayhello.args
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) $(meltarg_bootstrapping) \
+       $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
+	@mv $(basename $<).args-tmp $(basename $<).args
+	@echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)
+	$(melt_make_cc1) @$(basename $<).args
 #@ [+ (. (tpl-file-line))+]
 
 
