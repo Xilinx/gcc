@@ -38,6 +38,7 @@ mk
 ###                    MELT generated C code
 ### melt_default_variant can be quicklybuilt | optimized | debugnoline
 
+#@ [+ (. (tpl-file-line))+]
 melt_default_variant ?= optimized
 
 ## LN_S might not be defined, e.g. from MELT-Plugin-Makefile
@@ -116,6 +117,7 @@ MELT_APPLICATION_SOURCE= $(patsubst %,$(melt_make_source_dir)/%.melt,$(MELT_APPL
 
 ## The cold stage 0 of the translator
 [+FOR melt_translator_file +]
+#@ [+ (. (tpl-file-line))+]
 MELT_GENERATED_[+mkvarsuf+]_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/[+base+].c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/[+base+]+*.c)
@@ -134,6 +136,7 @@ melt-workdir:
 ## for STAGE0 in [+base+] use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ [+ (. (tpl-file-line))+]
 ## using static object fields offsets for [+base+]
 melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -150,6 +153,7 @@ melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quickl
 melt-stage0-quicklybuilt/[+base+].so:  melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ [+ (. (tpl-file-line))+]
 ## using dynamic object fields offsets for [+base+]
 melt-stage0-dynamic/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).dynamic.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -212,6 +216,7 @@ ENDFOR melt_translator_file+]
 [+ENDFOR melt_translator_file+]
 	$(melt_make_move) $@-tmp $@
 
+#@ [+ (. (tpl-file-line))+]
 ## An empty file is needed for every MELT translation!
 empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
@@ -232,6 +237,7 @@ $(MELT_STAGE_ZERO):
 #### making our melt stages
 
 [+FOR melt_stage+]
+#@ [+ (. (tpl-file-line))+]
 #### rules for [+melt_stage+][+ 
   (define stageindex (+ 1 (for-index)))
   (define previndex (for-index))
@@ -242,6 +248,7 @@ $(MELT_STAGE_ZERO):
   (define outbase (get "base")) (define outindex (for-index)) +]
 
 
+#@ [+ (. (tpl-file-line))+]
 ### the C source of [+melt_stage+] for [+ (. outbase)+]
 [+melt_stage+]/[+ (. outbase)+].c:  $(melt_make_source_dir)/[+ (. outbase)+].melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -274,6 +281,7 @@ $(MELT_STAGE_ZERO):
 	@echo -n $(notdir $(basename $@)[+melt_stage+].args): ; cat $(notdir $(basename $@))[+melt_stage+].args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)[+melt_stage+].args)
 
+#@ [+ (. (tpl-file-line))+]
 ################## quicklybuilt module [+ (. outbase)+] for [+melt_stage+]
 [+melt_stage+]/[+(. outbase)+].quicklybuilt.so: [+melt_stage+]/[+ (. outbase)+].c \
               $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
@@ -286,6 +294,7 @@ $(MELT_STAGE_ZERO):
 	      GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+ (. outbase)+] \
               GCCMELT_MODULE_BINARYBASE=$(realpath [+melt_stage+])/[+(. outbase)+]
 
+#@ [+ (. (tpl-file-line))+]
 ################## debugnoline module [+ (. outbase)+] for [+melt_stage+]
 [+melt_stage+]/[+(. outbase)+].debugnoline.so:   [+melt_stage+]/[+ (. outbase)+].c \
               $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
@@ -301,6 +310,7 @@ $(MELT_STAGE_ZERO):
 [+ENDFOR melt_translator_file+]
 
 
+#@ [+ (. (tpl-file-line))+]
 ## the module list in [+melt_stage+]
 [+melt_stage+]/warmelt.modlis:  \
 [+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].quicklybuilt.so[+
@@ -312,6 +322,7 @@ ENDFOR melt_translator_file+]
    (define lastindex stageindex)
 +]
 
+#@ [+ (. (tpl-file-line))+]
 [+melt_stage+]/warmelt.debugnoline.modlis:  \
 [+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].debugnoline.so[+
 ENDFOR melt_translator_file+]
@@ -323,6 +334,7 @@ ENDFOR melt_translator_file+]
 +]
 
 ## the stamp for [+melt_stage+], using an order only prerequisite
+#@ [+ (. (tpl-file-line))+]
 [+melt_stage+].stamp:  melt-run.h | [+melt_stage+]/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h >> $@-tmp
@@ -332,6 +344,7 @@ ENDFOR melt_translator_file+]
 
 
 ### phony targets for  [+melt_stage+]
+#@ [+ (. (tpl-file-line))+]
 .PHONY: warmelt[+(. stageindex)+] warmelt[+(. stageindex)+]n
 warmelt[+(. stageindex)+]:  [+melt_stage+] [+melt_stage+]/warmelt.modlis
 	@echo MELT build made $@
@@ -342,6 +355,7 @@ warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt.debugnoline.m
 [+ (define laststage (get "melt_stage"))+]
 ### end of [+melt_stage+]
 
+#@ [+ (. (tpl-file-line))+]
 [+ENDFOR melt_stage+]
 
 ######## last stage [+ (. laststage)+]
@@ -378,6 +392,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 #### melt-sources translator files
 [+FOR melt_translator_file+]
+#@ [+ (. (tpl-file-line))+]
 [+ (define transindex (for-index)) +]
 
 ## melt translator [+base+] # [+ (. transindex) +]
@@ -393,6 +408,7 @@ melt-sources/[+includeload+]: [+includeload+]
 	mv  melt-sources/[+includeload+]-tmp  melt-sources/[+includeload+]
 [+ENDFOR includeload+]
 
+#@ [+ (. (tpl-file-line))+]
 # MELT translator [+base+] in melt-sources/
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
@@ -413,6 +429,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 
 
 
+#@ [+ (. (tpl-file-line))+]
 melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -423,6 +440,7 @@ melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
               GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
+#@ [+ (. (tpl-file-line))+]
 melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -433,6 +451,7 @@ melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
               GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
+#@ [+ (. (tpl-file-line))+]
 melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -444,10 +463,13 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator [+base+]
 
+#@ [+ (. (tpl-file-line))+]
 [+ENDFOR melt_translator_file+]
 
+#@ [+ (. (tpl-file-line))+]
 
 [+FOR variant IN quicklybuilt optimized debugnoline+]
+#@ [+ (. (tpl-file-line))+]
 #### melt-sources warmelt-[+variant+] is the sequence of translator files:
 melt-sources/warmelt-[+variant+].modlis: [+FOR melt_translator_file " \\\n"+]melt-modules/[+base+].optimized.so [+ENDFOR melt_translator_file+]
 	@echo building [+variant+] module list $@
@@ -464,11 +486,13 @@ melt-sources/warmelt-[+variant+].modlis: [+FOR melt_translator_file " \\\n"+]mel
 [+ (define prevapplbase (list)) +]
 [+FOR melt_application_file+]
 
+#@ [+ (. (tpl-file-line))+]
 ## melt application [+base+]
 melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
 
 
+#@ [+ (. (tpl-file-line))+]
 ## melt application [+base+] generated files
 melt-sources/[+base+].c: melt-sources/[+base+].melt melt-sources/warmelt-optimized.modlis [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
@@ -488,6 +512,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt melt-sources/warmelt-optimiz
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
+#@ [+ (. (tpl-file-line))+]
 ## melt application [+base+] various flavors of modules
 melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
@@ -499,6 +524,7 @@ melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
               GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
+#@ [+ (. (tpl-file-line))+]
 melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h | melt-sources melt-modules
@@ -509,6 +535,7 @@ melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
               GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
+#@ [+ (. (tpl-file-line))+]
 melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h  | melt-sources melt-modules
@@ -519,13 +546,16 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
               GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
+#@ [+ (. (tpl-file-line))+]
 [+ (define prevapplbase (cons (get "base") prevapplbase)) +]
 # end application [+base+]
 
+#@ [+ (. (tpl-file-line))+]
 [+ENDFOR melt_application_file+]
 
 ######
 
+#@ [+ (. (tpl-file-line))+]
 melt-all-modules:  melt-workdir \
 [+FOR melt_translator_file+]    melt-modules/[+base+].optimized.so \
 [+ENDFOR melt_translator_file+] \
@@ -550,6 +580,7 @@ $(melt_default_modules_list).modlis: melt-all-modules \
 ## MELT various variants of module lists
 
 [+FOR variant IN quicklybuilt optimized debugnoline+]
+#@ [+ (. (tpl-file-line))+]
 ### [+variant+] default module list
 $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.[+variant+].so)
 	@echo building [+variant+] module list $@
@@ -565,6 +596,7 @@ $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules
 
 [+ENDFOR variant+]
 
+#@ [+ (. (tpl-file-line))+]
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
@@ -577,6 +609,7 @@ ENDFOR melt_translator_file+]
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 [+FOR melt_translator_file+]
+#@ [+ (. (tpl-file-line))+]
 	@echo upgrading MELT translator [+base+]
 ## dont indent the [+base+]+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/[+base+]+meltdesc.c  $(MELT_LAST_STAGE)/[+base+]+meltdesc.c~; \
@@ -599,6 +632,7 @@ ENDFOR melt_translator_file+]
 
 
 ### Generated MELT documentation
+#@ [+ (. (tpl-file-line))+]
 meltgendoc.texi: $(melt_default_modules_list).modlis \
 [+FOR melt_translator_file+]                    melt-sources/[+base+].melt \
 [+ENDFOR melt_translator_file+][+FOR melt_application_file+]                    melt-sources/[+base+].melt \
@@ -627,6 +661,7 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
+#@ [+ (. (tpl-file-line))+]
 .PHONY: meltrun-generate
 meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
                    $(melt_make_cc1_dependency)
@@ -657,4 +692,5 @@ melt-clean:
 [+FOR melt_stage+]           [+melt_stage+]  [+melt_stage+].stamp \
 [+ENDFOR melt_stage+]               melt-sources melt-modules
 
+#@ [+ (. (tpl-file-line))+]
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def

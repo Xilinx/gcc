@@ -35,6 +35,7 @@
 ###                    MELT generated C code
 ### melt_default_variant can be quicklybuilt | optimized | debugnoline
 
+#@ from melt-build.tpl line 41
 melt_default_variant ?= optimized
 
 ## LN_S might not be defined, e.g. from MELT-Plugin-Makefile
@@ -124,6 +125,7 @@ MELT_APPLICATION_SOURCE= $(patsubst %,$(melt_make_source_dir)/%.melt,$(MELT_APPL
 
 ## The cold stage 0 of the translator
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_FIRST_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-first.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-first+*.c)
@@ -132,6 +134,7 @@ MELT_GENERATED_FIRST_BASE= \
 
 MELT_GENERATED_FIRST_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-first+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_BASE_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-base.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-base+*.c)
@@ -140,6 +143,7 @@ MELT_GENERATED_BASE_BASE= \
 
 MELT_GENERATED_BASE_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-base+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_DEBUG_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-debug.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-debug+*.c)
@@ -148,6 +152,7 @@ MELT_GENERATED_DEBUG_BASE= \
 
 MELT_GENERATED_DEBUG_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-debug+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_MACRO_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-macro.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-macro+*.c)
@@ -156,6 +161,7 @@ MELT_GENERATED_MACRO_BASE= \
 
 MELT_GENERATED_MACRO_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-macro+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_NORMAL_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-normal.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-normal+*.c)
@@ -164,6 +170,7 @@ MELT_GENERATED_NORMAL_BASE= \
 
 MELT_GENERATED_NORMAL_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normal+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_NORMATCH_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-normatch.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-normatch+*.c)
@@ -172,6 +179,7 @@ MELT_GENERATED_NORMATCH_BASE= \
 
 MELT_GENERATED_NORMATCH_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normatch+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_GENOBJ_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-genobj.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-genobj+*.c)
@@ -180,6 +188,7 @@ MELT_GENERATED_GENOBJ_BASE= \
 
 MELT_GENERATED_GENOBJ_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-genobj+meltdesc.c) 
 
+#@ from melt-build.tpl line 120
 MELT_GENERATED_OUTOBJ_C_FILES= \
                   $(realpath $(melt_make_source_dir))/generated/warmelt-outobj.c \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/warmelt-outobj+*.c)
@@ -198,6 +207,7 @@ melt-workdir:
 ## for STAGE0 in warmelt-first use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-first
 melt-stage0-quicklybuilt/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_FIRST_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -214,6 +224,7 @@ melt-stage0-quicklybuilt/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklyb
 melt-stage0-quicklybuilt/warmelt-first.so:  melt-stage0-quicklybuilt/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-first
 melt-stage0-dynamic/warmelt-first.$(MELT_GENERATED_FIRST_CUMULMD5).dynamic.so: $(MELT_GENERATED_FIRST_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -242,6 +253,7 @@ melt-stage0-dynamic/warmelt-first.quicklybuilt.so: melt-stage0-dynamic/warmelt-f
 ## for STAGE0 in warmelt-base use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-base
 melt-stage0-quicklybuilt/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_BASE_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -258,6 +270,7 @@ melt-stage0-quicklybuilt/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybui
 melt-stage0-quicklybuilt/warmelt-base.so:  melt-stage0-quicklybuilt/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-base
 melt-stage0-dynamic/warmelt-base.$(MELT_GENERATED_BASE_CUMULMD5).dynamic.so: $(MELT_GENERATED_BASE_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -286,6 +299,7 @@ melt-stage0-dynamic/warmelt-base.quicklybuilt.so: melt-stage0-dynamic/warmelt-ba
 ## for STAGE0 in warmelt-debug use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-debug
 melt-stage0-quicklybuilt/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_DEBUG_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -302,6 +316,7 @@ melt-stage0-quicklybuilt/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklyb
 melt-stage0-quicklybuilt/warmelt-debug.so:  melt-stage0-quicklybuilt/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-debug
 melt-stage0-dynamic/warmelt-debug.$(MELT_GENERATED_DEBUG_CUMULMD5).dynamic.so: $(MELT_GENERATED_DEBUG_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -330,6 +345,7 @@ melt-stage0-dynamic/warmelt-debug.quicklybuilt.so: melt-stage0-dynamic/warmelt-d
 ## for STAGE0 in warmelt-macro use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-macro
 melt-stage0-quicklybuilt/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_MACRO_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -346,6 +362,7 @@ melt-stage0-quicklybuilt/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklyb
 melt-stage0-quicklybuilt/warmelt-macro.so:  melt-stage0-quicklybuilt/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-macro
 melt-stage0-dynamic/warmelt-macro.$(MELT_GENERATED_MACRO_CUMULMD5).dynamic.so: $(MELT_GENERATED_MACRO_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -374,6 +391,7 @@ melt-stage0-dynamic/warmelt-macro.quicklybuilt.so: melt-stage0-dynamic/warmelt-m
 ## for STAGE0 in warmelt-normal use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-normal
 melt-stage0-quicklybuilt/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_NORMAL_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -390,6 +408,7 @@ melt-stage0-quicklybuilt/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quickl
 melt-stage0-quicklybuilt/warmelt-normal.so:  melt-stage0-quicklybuilt/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-normal
 melt-stage0-dynamic/warmelt-normal.$(MELT_GENERATED_NORMAL_CUMULMD5).dynamic.so: $(MELT_GENERATED_NORMAL_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -418,6 +437,7 @@ melt-stage0-dynamic/warmelt-normal.quicklybuilt.so: melt-stage0-dynamic/warmelt-
 ## for STAGE0 in warmelt-normatch use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-normatch
 melt-stage0-quicklybuilt/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_NORMATCH_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -434,6 +454,7 @@ melt-stage0-quicklybuilt/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).qu
 melt-stage0-quicklybuilt/warmelt-normatch.so:  melt-stage0-quicklybuilt/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-normatch
 melt-stage0-dynamic/warmelt-normatch.$(MELT_GENERATED_NORMATCH_CUMULMD5).dynamic.so: $(MELT_GENERATED_NORMATCH_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -462,6 +483,7 @@ melt-stage0-dynamic/warmelt-normatch.quicklybuilt.so: melt-stage0-dynamic/warmel
 ## for STAGE0 in warmelt-genobj use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-genobj
 melt-stage0-quicklybuilt/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_GENOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -478,6 +500,7 @@ melt-stage0-quicklybuilt/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quickl
 melt-stage0-quicklybuilt/warmelt-genobj.so:  melt-stage0-quicklybuilt/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-genobj
 melt-stage0-dynamic/warmelt-genobj.$(MELT_GENERATED_GENOBJ_CUMULMD5).dynamic.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -506,6 +529,7 @@ melt-stage0-dynamic/warmelt-genobj.quicklybuilt.so: melt-stage0-dynamic/warmelt-
 ## for STAGE0 in warmelt-outobj use GAWK [GNU awk] to retrieve the cumulated_hexmd5
 ## from the MELT descriptor C file 
 
+#@ from melt-build.tpl line 139
 ## using static object fields offsets for warmelt-outobj
 melt-stage0-quicklybuilt/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so:  $(MELT_GENERATED_OUTOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -522,6 +546,7 @@ melt-stage0-quicklybuilt/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quickl
 melt-stage0-quicklybuilt/warmelt-outobj.so:  melt-stage0-quicklybuilt/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
+#@ from melt-build.tpl line 156
 ## using dynamic object fields offsets for warmelt-outobj
 melt-stage0-dynamic/warmelt-outobj.$(MELT_GENERATED_OUTOBJ_CUMULMD5).dynamic.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
@@ -624,6 +649,7 @@ melt-stage0-dynamic/warmelt.modlis: | \
 
 	$(melt_make_move) $@-tmp $@
 
+#@ from melt-build.tpl line 219
 ## An empty file is needed for every MELT translation!
 empty-file-for-melt.c:
 	date +"/* empty-file-for-melt.c %c */" > $@-tmp
@@ -644,10 +670,12 @@ $(MELT_STAGE_ZERO):
 #### making our melt stages
 
 
+#@ from melt-build.tpl line 240
 #### rules for melt-stage1, previous $(MELT_STAGE_ZERO)
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-first
 melt-stage1/warmelt-first.c:  $(melt_make_source_dir)/warmelt-first.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -675,6 +703,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-first for melt-stage1
 melt-stage1/warmelt-first.quicklybuilt.so: melt-stage1/warmelt-first.c \
               $(wildcard melt-stage1/warmelt-first+*.c) \
@@ -687,6 +716,7 @@ melt-stage1/warmelt-first.quicklybuilt.so: melt-stage1/warmelt-first.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-first \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-first
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-first for melt-stage1
 melt-stage1/warmelt-first.debugnoline.so:   melt-stage1/warmelt-first.c \
               $(wildcard melt-stage1/warmelt-first+*.c) \
@@ -702,6 +732,7 @@ melt-stage1/warmelt-first.debugnoline.so:   melt-stage1/warmelt-first.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-base
 melt-stage1/warmelt-base.c:  $(melt_make_source_dir)/warmelt-base.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -730,6 +761,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-base for melt-stage1
 melt-stage1/warmelt-base.quicklybuilt.so: melt-stage1/warmelt-base.c \
               $(wildcard melt-stage1/warmelt-base+*.c) \
@@ -742,6 +774,7 @@ melt-stage1/warmelt-base.quicklybuilt.so: melt-stage1/warmelt-base.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-base \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-base
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-base for melt-stage1
 melt-stage1/warmelt-base.debugnoline.so:   melt-stage1/warmelt-base.c \
               $(wildcard melt-stage1/warmelt-base+*.c) \
@@ -757,6 +790,7 @@ melt-stage1/warmelt-base.debugnoline.so:   melt-stage1/warmelt-base.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-debug
 melt-stage1/warmelt-debug.c:  $(melt_make_source_dir)/warmelt-debug.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -786,6 +820,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-debug for melt-stage1
 melt-stage1/warmelt-debug.quicklybuilt.so: melt-stage1/warmelt-debug.c \
               $(wildcard melt-stage1/warmelt-debug+*.c) \
@@ -798,6 +833,7 @@ melt-stage1/warmelt-debug.quicklybuilt.so: melt-stage1/warmelt-debug.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-debug \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-debug
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-debug for melt-stage1
 melt-stage1/warmelt-debug.debugnoline.so:   melt-stage1/warmelt-debug.c \
               $(wildcard melt-stage1/warmelt-debug+*.c) \
@@ -813,6 +849,7 @@ melt-stage1/warmelt-debug.debugnoline.so:   melt-stage1/warmelt-debug.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-macro
 melt-stage1/warmelt-macro.c:  $(melt_make_source_dir)/warmelt-macro.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -843,6 +880,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-macro for melt-stage1
 melt-stage1/warmelt-macro.quicklybuilt.so: melt-stage1/warmelt-macro.c \
               $(wildcard melt-stage1/warmelt-macro+*.c) \
@@ -855,6 +893,7 @@ melt-stage1/warmelt-macro.quicklybuilt.so: melt-stage1/warmelt-macro.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-macro \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-macro
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-macro for melt-stage1
 melt-stage1/warmelt-macro.debugnoline.so:   melt-stage1/warmelt-macro.c \
               $(wildcard melt-stage1/warmelt-macro+*.c) \
@@ -870,6 +909,7 @@ melt-stage1/warmelt-macro.debugnoline.so:   melt-stage1/warmelt-macro.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-normal
 melt-stage1/warmelt-normal.c:  $(melt_make_source_dir)/warmelt-normal.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -902,6 +942,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-normal for melt-stage1
 melt-stage1/warmelt-normal.quicklybuilt.so: melt-stage1/warmelt-normal.c \
               $(wildcard melt-stage1/warmelt-normal+*.c) \
@@ -914,6 +955,7 @@ melt-stage1/warmelt-normal.quicklybuilt.so: melt-stage1/warmelt-normal.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-normal \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-normal
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-normal for melt-stage1
 melt-stage1/warmelt-normal.debugnoline.so:   melt-stage1/warmelt-normal.c \
               $(wildcard melt-stage1/warmelt-normal+*.c) \
@@ -929,6 +971,7 @@ melt-stage1/warmelt-normal.debugnoline.so:   melt-stage1/warmelt-normal.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-normatch
 melt-stage1/warmelt-normatch.c:  $(melt_make_source_dir)/warmelt-normatch.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -961,6 +1004,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-normatch for melt-stage1
 melt-stage1/warmelt-normatch.quicklybuilt.so: melt-stage1/warmelt-normatch.c \
               $(wildcard melt-stage1/warmelt-normatch+*.c) \
@@ -973,6 +1017,7 @@ melt-stage1/warmelt-normatch.quicklybuilt.so: melt-stage1/warmelt-normatch.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-normatch \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-normatch
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-normatch for melt-stage1
 melt-stage1/warmelt-normatch.debugnoline.so:   melt-stage1/warmelt-normatch.c \
               $(wildcard melt-stage1/warmelt-normatch+*.c) \
@@ -988,6 +1033,7 @@ melt-stage1/warmelt-normatch.debugnoline.so:   melt-stage1/warmelt-normatch.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-genobj
 melt-stage1/warmelt-genobj.c:  $(melt_make_source_dir)/warmelt-genobj.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1021,6 +1067,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-genobj for melt-stage1
 melt-stage1/warmelt-genobj.quicklybuilt.so: melt-stage1/warmelt-genobj.c \
               $(wildcard melt-stage1/warmelt-genobj+*.c) \
@@ -1033,6 +1080,7 @@ melt-stage1/warmelt-genobj.quicklybuilt.so: melt-stage1/warmelt-genobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-genobj \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-genobj
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-genobj for melt-stage1
 melt-stage1/warmelt-genobj.debugnoline.so:   melt-stage1/warmelt-genobj.c \
               $(wildcard melt-stage1/warmelt-genobj+*.c) \
@@ -1048,6 +1096,7 @@ melt-stage1/warmelt-genobj.debugnoline.so:   melt-stage1/warmelt-genobj.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage1 for warmelt-outobj
 melt-stage1/warmelt-outobj.c:  $(melt_make_source_dir)/warmelt-outobj.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1082,6 +1131,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-outobj for melt-stage1
 melt-stage1/warmelt-outobj.quicklybuilt.so: melt-stage1/warmelt-outobj.c \
               $(wildcard melt-stage1/warmelt-outobj+*.c) \
@@ -1094,6 +1144,7 @@ melt-stage1/warmelt-outobj.quicklybuilt.so: melt-stage1/warmelt-outobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage1/warmelt-outobj \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage1)/warmelt-outobj
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-outobj for melt-stage1
 melt-stage1/warmelt-outobj.debugnoline.so:   melt-stage1/warmelt-outobj.c \
               $(wildcard melt-stage1/warmelt-outobj+*.c) \
@@ -1109,6 +1160,7 @@ melt-stage1/warmelt-outobj.debugnoline.so:   melt-stage1/warmelt-outobj.c \
 
 
 
+#@ from melt-build.tpl line 313
 ## the module list in melt-stage1
 melt-stage1/warmelt.modlis:  \
              melt-stage1/warmelt-first.quicklybuilt.so \
@@ -1131,6 +1183,7 @@ melt-stage1/warmelt.modlis:  \
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 325
 melt-stage1/warmelt.debugnoline.modlis:  \
              melt-stage1/warmelt-first.debugnoline.so \
              melt-stage1/warmelt-base.debugnoline.so \
@@ -1153,6 +1206,7 @@ melt-stage1/warmelt.debugnoline.modlis:  \
 
 
 ## the stamp for melt-stage1, using an order only prerequisite
+#@ from melt-build.tpl line 337
 melt-stage1.stamp:  melt-run.h | melt-stage1/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h >> $@-tmp
@@ -1169,6 +1223,7 @@ melt-stage1.stamp:  melt-run.h | melt-stage1/warmelt.modlis
 
 
 ### phony targets for  melt-stage1
+#@ from melt-build.tpl line 347
 .PHONY: warmelt1 warmelt1n
 warmelt1:  melt-stage1 melt-stage1/warmelt.modlis
 	@echo MELT build made $@
@@ -1179,11 +1234,14 @@ melt-stage1:
 
 ### end of melt-stage1
 
+#@ from melt-build.tpl line 358
 
+#@ from melt-build.tpl line 240
 #### rules for melt-stage2, previous melt-stage1
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-first
 melt-stage2/warmelt-first.c:  $(melt_make_source_dir)/warmelt-first.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1211,6 +1269,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-first for melt-stage2
 melt-stage2/warmelt-first.quicklybuilt.so: melt-stage2/warmelt-first.c \
               $(wildcard melt-stage2/warmelt-first+*.c) \
@@ -1223,6 +1282,7 @@ melt-stage2/warmelt-first.quicklybuilt.so: melt-stage2/warmelt-first.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-first \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-first
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-first for melt-stage2
 melt-stage2/warmelt-first.debugnoline.so:   melt-stage2/warmelt-first.c \
               $(wildcard melt-stage2/warmelt-first+*.c) \
@@ -1238,6 +1298,7 @@ melt-stage2/warmelt-first.debugnoline.so:   melt-stage2/warmelt-first.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-base
 melt-stage2/warmelt-base.c:  $(melt_make_source_dir)/warmelt-base.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1266,6 +1327,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-base for melt-stage2
 melt-stage2/warmelt-base.quicklybuilt.so: melt-stage2/warmelt-base.c \
               $(wildcard melt-stage2/warmelt-base+*.c) \
@@ -1278,6 +1340,7 @@ melt-stage2/warmelt-base.quicklybuilt.so: melt-stage2/warmelt-base.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-base \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-base
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-base for melt-stage2
 melt-stage2/warmelt-base.debugnoline.so:   melt-stage2/warmelt-base.c \
               $(wildcard melt-stage2/warmelt-base+*.c) \
@@ -1293,6 +1356,7 @@ melt-stage2/warmelt-base.debugnoline.so:   melt-stage2/warmelt-base.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-debug
 melt-stage2/warmelt-debug.c:  $(melt_make_source_dir)/warmelt-debug.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1322,6 +1386,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-debug for melt-stage2
 melt-stage2/warmelt-debug.quicklybuilt.so: melt-stage2/warmelt-debug.c \
               $(wildcard melt-stage2/warmelt-debug+*.c) \
@@ -1334,6 +1399,7 @@ melt-stage2/warmelt-debug.quicklybuilt.so: melt-stage2/warmelt-debug.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-debug \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-debug
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-debug for melt-stage2
 melt-stage2/warmelt-debug.debugnoline.so:   melt-stage2/warmelt-debug.c \
               $(wildcard melt-stage2/warmelt-debug+*.c) \
@@ -1349,6 +1415,7 @@ melt-stage2/warmelt-debug.debugnoline.so:   melt-stage2/warmelt-debug.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-macro
 melt-stage2/warmelt-macro.c:  $(melt_make_source_dir)/warmelt-macro.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1379,6 +1446,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-macro for melt-stage2
 melt-stage2/warmelt-macro.quicklybuilt.so: melt-stage2/warmelt-macro.c \
               $(wildcard melt-stage2/warmelt-macro+*.c) \
@@ -1391,6 +1459,7 @@ melt-stage2/warmelt-macro.quicklybuilt.so: melt-stage2/warmelt-macro.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-macro \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-macro
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-macro for melt-stage2
 melt-stage2/warmelt-macro.debugnoline.so:   melt-stage2/warmelt-macro.c \
               $(wildcard melt-stage2/warmelt-macro+*.c) \
@@ -1406,6 +1475,7 @@ melt-stage2/warmelt-macro.debugnoline.so:   melt-stage2/warmelt-macro.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-normal
 melt-stage2/warmelt-normal.c:  $(melt_make_source_dir)/warmelt-normal.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1438,6 +1508,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-normal for melt-stage2
 melt-stage2/warmelt-normal.quicklybuilt.so: melt-stage2/warmelt-normal.c \
               $(wildcard melt-stage2/warmelt-normal+*.c) \
@@ -1450,6 +1521,7 @@ melt-stage2/warmelt-normal.quicklybuilt.so: melt-stage2/warmelt-normal.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-normal \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-normal
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-normal for melt-stage2
 melt-stage2/warmelt-normal.debugnoline.so:   melt-stage2/warmelt-normal.c \
               $(wildcard melt-stage2/warmelt-normal+*.c) \
@@ -1465,6 +1537,7 @@ melt-stage2/warmelt-normal.debugnoline.so:   melt-stage2/warmelt-normal.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-normatch
 melt-stage2/warmelt-normatch.c:  $(melt_make_source_dir)/warmelt-normatch.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1497,6 +1570,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-normatch for melt-stage2
 melt-stage2/warmelt-normatch.quicklybuilt.so: melt-stage2/warmelt-normatch.c \
               $(wildcard melt-stage2/warmelt-normatch+*.c) \
@@ -1509,6 +1583,7 @@ melt-stage2/warmelt-normatch.quicklybuilt.so: melt-stage2/warmelt-normatch.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-normatch \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-normatch
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-normatch for melt-stage2
 melt-stage2/warmelt-normatch.debugnoline.so:   melt-stage2/warmelt-normatch.c \
               $(wildcard melt-stage2/warmelt-normatch+*.c) \
@@ -1524,6 +1599,7 @@ melt-stage2/warmelt-normatch.debugnoline.so:   melt-stage2/warmelt-normatch.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-genobj
 melt-stage2/warmelt-genobj.c:  $(melt_make_source_dir)/warmelt-genobj.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1557,6 +1633,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-genobj for melt-stage2
 melt-stage2/warmelt-genobj.quicklybuilt.so: melt-stage2/warmelt-genobj.c \
               $(wildcard melt-stage2/warmelt-genobj+*.c) \
@@ -1569,6 +1646,7 @@ melt-stage2/warmelt-genobj.quicklybuilt.so: melt-stage2/warmelt-genobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-genobj \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-genobj
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-genobj for melt-stage2
 melt-stage2/warmelt-genobj.debugnoline.so:   melt-stage2/warmelt-genobj.c \
               $(wildcard melt-stage2/warmelt-genobj+*.c) \
@@ -1584,6 +1662,7 @@ melt-stage2/warmelt-genobj.debugnoline.so:   melt-stage2/warmelt-genobj.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage2 for warmelt-outobj
 melt-stage2/warmelt-outobj.c:  $(melt_make_source_dir)/warmelt-outobj.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1618,6 +1697,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-outobj for melt-stage2
 melt-stage2/warmelt-outobj.quicklybuilt.so: melt-stage2/warmelt-outobj.c \
               $(wildcard melt-stage2/warmelt-outobj+*.c) \
@@ -1630,6 +1710,7 @@ melt-stage2/warmelt-outobj.quicklybuilt.so: melt-stage2/warmelt-outobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage2/warmelt-outobj \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage2)/warmelt-outobj
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-outobj for melt-stage2
 melt-stage2/warmelt-outobj.debugnoline.so:   melt-stage2/warmelt-outobj.c \
               $(wildcard melt-stage2/warmelt-outobj+*.c) \
@@ -1645,6 +1726,7 @@ melt-stage2/warmelt-outobj.debugnoline.so:   melt-stage2/warmelt-outobj.c \
 
 
 
+#@ from melt-build.tpl line 313
 ## the module list in melt-stage2
 melt-stage2/warmelt.modlis:  \
              melt-stage2/warmelt-first.quicklybuilt.so \
@@ -1667,6 +1749,7 @@ melt-stage2/warmelt.modlis:  \
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 325
 melt-stage2/warmelt.debugnoline.modlis:  \
              melt-stage2/warmelt-first.debugnoline.so \
              melt-stage2/warmelt-base.debugnoline.so \
@@ -1689,6 +1772,7 @@ melt-stage2/warmelt.debugnoline.modlis:  \
 
 
 ## the stamp for melt-stage2, using an order only prerequisite
+#@ from melt-build.tpl line 337
 melt-stage2.stamp:  melt-run.h | melt-stage2/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h >> $@-tmp
@@ -1705,6 +1789,7 @@ melt-stage2.stamp:  melt-run.h | melt-stage2/warmelt.modlis
 
 
 ### phony targets for  melt-stage2
+#@ from melt-build.tpl line 347
 .PHONY: warmelt2 warmelt2n
 warmelt2:  melt-stage2 melt-stage2/warmelt.modlis
 	@echo MELT build made $@
@@ -1715,11 +1800,14 @@ melt-stage2:
 
 ### end of melt-stage2
 
+#@ from melt-build.tpl line 358
 
+#@ from melt-build.tpl line 240
 #### rules for melt-stage3, previous melt-stage2
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-first
 melt-stage3/warmelt-first.c:  $(melt_make_source_dir)/warmelt-first.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1747,6 +1835,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-first for melt-stage3
 melt-stage3/warmelt-first.quicklybuilt.so: melt-stage3/warmelt-first.c \
               $(wildcard melt-stage3/warmelt-first+*.c) \
@@ -1759,6 +1848,7 @@ melt-stage3/warmelt-first.quicklybuilt.so: melt-stage3/warmelt-first.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-first \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-first
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-first for melt-stage3
 melt-stage3/warmelt-first.debugnoline.so:   melt-stage3/warmelt-first.c \
               $(wildcard melt-stage3/warmelt-first+*.c) \
@@ -1774,6 +1864,7 @@ melt-stage3/warmelt-first.debugnoline.so:   melt-stage3/warmelt-first.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-base
 melt-stage3/warmelt-base.c:  $(melt_make_source_dir)/warmelt-base.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1802,6 +1893,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-base for melt-stage3
 melt-stage3/warmelt-base.quicklybuilt.so: melt-stage3/warmelt-base.c \
               $(wildcard melt-stage3/warmelt-base+*.c) \
@@ -1814,6 +1906,7 @@ melt-stage3/warmelt-base.quicklybuilt.so: melt-stage3/warmelt-base.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-base \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-base
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-base for melt-stage3
 melt-stage3/warmelt-base.debugnoline.so:   melt-stage3/warmelt-base.c \
               $(wildcard melt-stage3/warmelt-base+*.c) \
@@ -1829,6 +1922,7 @@ melt-stage3/warmelt-base.debugnoline.so:   melt-stage3/warmelt-base.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-debug
 melt-stage3/warmelt-debug.c:  $(melt_make_source_dir)/warmelt-debug.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1858,6 +1952,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-debug for melt-stage3
 melt-stage3/warmelt-debug.quicklybuilt.so: melt-stage3/warmelt-debug.c \
               $(wildcard melt-stage3/warmelt-debug+*.c) \
@@ -1870,6 +1965,7 @@ melt-stage3/warmelt-debug.quicklybuilt.so: melt-stage3/warmelt-debug.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-debug \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-debug
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-debug for melt-stage3
 melt-stage3/warmelt-debug.debugnoline.so:   melt-stage3/warmelt-debug.c \
               $(wildcard melt-stage3/warmelt-debug+*.c) \
@@ -1885,6 +1981,7 @@ melt-stage3/warmelt-debug.debugnoline.so:   melt-stage3/warmelt-debug.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-macro
 melt-stage3/warmelt-macro.c:  $(melt_make_source_dir)/warmelt-macro.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1915,6 +2012,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-macro for melt-stage3
 melt-stage3/warmelt-macro.quicklybuilt.so: melt-stage3/warmelt-macro.c \
               $(wildcard melt-stage3/warmelt-macro+*.c) \
@@ -1927,6 +2025,7 @@ melt-stage3/warmelt-macro.quicklybuilt.so: melt-stage3/warmelt-macro.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-macro \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-macro
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-macro for melt-stage3
 melt-stage3/warmelt-macro.debugnoline.so:   melt-stage3/warmelt-macro.c \
               $(wildcard melt-stage3/warmelt-macro+*.c) \
@@ -1942,6 +2041,7 @@ melt-stage3/warmelt-macro.debugnoline.so:   melt-stage3/warmelt-macro.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-normal
 melt-stage3/warmelt-normal.c:  $(melt_make_source_dir)/warmelt-normal.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -1974,6 +2074,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-normal for melt-stage3
 melt-stage3/warmelt-normal.quicklybuilt.so: melt-stage3/warmelt-normal.c \
               $(wildcard melt-stage3/warmelt-normal+*.c) \
@@ -1986,6 +2087,7 @@ melt-stage3/warmelt-normal.quicklybuilt.so: melt-stage3/warmelt-normal.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-normal \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-normal
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-normal for melt-stage3
 melt-stage3/warmelt-normal.debugnoline.so:   melt-stage3/warmelt-normal.c \
               $(wildcard melt-stage3/warmelt-normal+*.c) \
@@ -2001,6 +2103,7 @@ melt-stage3/warmelt-normal.debugnoline.so:   melt-stage3/warmelt-normal.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-normatch
 melt-stage3/warmelt-normatch.c:  $(melt_make_source_dir)/warmelt-normatch.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -2033,6 +2136,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-normatch for melt-stage3
 melt-stage3/warmelt-normatch.quicklybuilt.so: melt-stage3/warmelt-normatch.c \
               $(wildcard melt-stage3/warmelt-normatch+*.c) \
@@ -2045,6 +2149,7 @@ melt-stage3/warmelt-normatch.quicklybuilt.so: melt-stage3/warmelt-normatch.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-normatch \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-normatch
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-normatch for melt-stage3
 melt-stage3/warmelt-normatch.debugnoline.so:   melt-stage3/warmelt-normatch.c \
               $(wildcard melt-stage3/warmelt-normatch+*.c) \
@@ -2060,6 +2165,7 @@ melt-stage3/warmelt-normatch.debugnoline.so:   melt-stage3/warmelt-normatch.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-genobj
 melt-stage3/warmelt-genobj.c:  $(melt_make_source_dir)/warmelt-genobj.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -2093,6 +2199,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-genobj for melt-stage3
 melt-stage3/warmelt-genobj.quicklybuilt.so: melt-stage3/warmelt-genobj.c \
               $(wildcard melt-stage3/warmelt-genobj+*.c) \
@@ -2105,6 +2212,7 @@ melt-stage3/warmelt-genobj.quicklybuilt.so: melt-stage3/warmelt-genobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-genobj \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-genobj
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-genobj for melt-stage3
 melt-stage3/warmelt-genobj.debugnoline.so:   melt-stage3/warmelt-genobj.c \
               $(wildcard melt-stage3/warmelt-genobj+*.c) \
@@ -2120,6 +2228,7 @@ melt-stage3/warmelt-genobj.debugnoline.so:   melt-stage3/warmelt-genobj.c \
 
 
 
+#@ from melt-build.tpl line 251
 ### the C source of melt-stage3 for warmelt-outobj
 melt-stage3/warmelt-outobj.c:  $(melt_make_source_dir)/warmelt-outobj.melt \
  $(MELT_TRANSLATOR_SOURCE) \
@@ -2154,6 +2263,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
+#@ from melt-build.tpl line 284
 ################## quicklybuilt module warmelt-outobj for melt-stage3
 melt-stage3/warmelt-outobj.quicklybuilt.so: melt-stage3/warmelt-outobj.c \
               $(wildcard melt-stage3/warmelt-outobj+*.c) \
@@ -2166,6 +2276,7 @@ melt-stage3/warmelt-outobj.quicklybuilt.so: melt-stage3/warmelt-outobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-stage3/warmelt-outobj \
               GCCMELT_MODULE_BINARYBASE=$(realpath melt-stage3)/warmelt-outobj
 
+#@ from melt-build.tpl line 297
 ################## debugnoline module warmelt-outobj for melt-stage3
 melt-stage3/warmelt-outobj.debugnoline.so:   melt-stage3/warmelt-outobj.c \
               $(wildcard melt-stage3/warmelt-outobj+*.c) \
@@ -2181,6 +2292,7 @@ melt-stage3/warmelt-outobj.debugnoline.so:   melt-stage3/warmelt-outobj.c \
 
 
 
+#@ from melt-build.tpl line 313
 ## the module list in melt-stage3
 melt-stage3/warmelt.modlis:  \
              melt-stage3/warmelt-first.quicklybuilt.so \
@@ -2203,6 +2315,7 @@ melt-stage3/warmelt.modlis:  \
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 325
 melt-stage3/warmelt.debugnoline.modlis:  \
              melt-stage3/warmelt-first.debugnoline.so \
              melt-stage3/warmelt-base.debugnoline.so \
@@ -2225,6 +2338,7 @@ melt-stage3/warmelt.debugnoline.modlis:  \
 
 
 ## the stamp for melt-stage3, using an order only prerequisite
+#@ from melt-build.tpl line 337
 melt-stage3.stamp:  melt-run.h | melt-stage3/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h >> $@-tmp
@@ -2241,6 +2355,7 @@ melt-stage3.stamp:  melt-run.h | melt-stage3/warmelt.modlis
 
 
 ### phony targets for  melt-stage3
+#@ from melt-build.tpl line 347
 .PHONY: warmelt3 warmelt3n
 warmelt3:  melt-stage3 melt-stage3/warmelt.modlis
 	@echo MELT build made $@
@@ -2251,6 +2366,7 @@ melt-stage3:
 
 ### end of melt-stage3
 
+#@ from melt-build.tpl line 358
 
 
 ######## last stage melt-stage3
@@ -2308,6 +2424,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 #### melt-sources translator files
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-first # 0
@@ -2317,6 +2434,7 @@ melt-sources/warmelt-first.melt: $(melt_make_source_dir)/warmelt-first.melt melt
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-first in melt-sources/
 melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2336,6 +2454,7 @@ melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-first.optimized.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2346,6 +2465,7 @@ melt-modules/warmelt-first.optimized.so: melt-sources/warmelt-first.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-first \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-first 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-first.debugnoline.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2356,6 +2476,7 @@ melt-modules/warmelt-first.debugnoline.so: melt-sources/warmelt-first.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-first \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-first 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-first.quicklybuilt.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2367,7 +2488,9 @@ melt-modules/warmelt-first.quicklybuilt.so: melt-sources/warmelt-first.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-first
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-base # 1
@@ -2377,6 +2500,7 @@ melt-sources/warmelt-base.melt: $(melt_make_source_dir)/warmelt-base.melt melt-s
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-base in melt-sources/
 melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2396,6 +2520,7 @@ melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-base.optimized.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2406,6 +2531,7 @@ melt-modules/warmelt-base.optimized.so: melt-sources/warmelt-base.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-base \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-base 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-base.debugnoline.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2416,6 +2542,7 @@ melt-modules/warmelt-base.debugnoline.so: melt-sources/warmelt-base.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-base \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-base 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-base.quicklybuilt.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2427,7 +2554,9 @@ melt-modules/warmelt-base.quicklybuilt.so: melt-sources/warmelt-base.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-base
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-debug # 2
@@ -2437,6 +2566,7 @@ melt-sources/warmelt-debug.melt: $(melt_make_source_dir)/warmelt-debug.melt melt
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-debug in melt-sources/
 melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2456,6 +2586,7 @@ melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-debug.optimized.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2466,6 +2597,7 @@ melt-modules/warmelt-debug.optimized.so: melt-sources/warmelt-debug.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-debug \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-debug 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-debug.debugnoline.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2476,6 +2608,7 @@ melt-modules/warmelt-debug.debugnoline.so: melt-sources/warmelt-debug.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-debug \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-debug 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-debug.quicklybuilt.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2487,7 +2620,9 @@ melt-modules/warmelt-debug.quicklybuilt.so: melt-sources/warmelt-debug.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-debug
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-macro # 3
@@ -2497,6 +2632,7 @@ melt-sources/warmelt-macro.melt: $(melt_make_source_dir)/warmelt-macro.melt melt
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-macro in melt-sources/
 melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2516,6 +2652,7 @@ melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-macro.optimized.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2526,6 +2663,7 @@ melt-modules/warmelt-macro.optimized.so: melt-sources/warmelt-macro.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-macro \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-macro 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-macro.debugnoline.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2536,6 +2674,7 @@ melt-modules/warmelt-macro.debugnoline.so: melt-sources/warmelt-macro.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-macro \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-macro 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-macro.quicklybuilt.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2547,7 +2686,9 @@ melt-modules/warmelt-macro.quicklybuilt.so: melt-sources/warmelt-macro.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-macro
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-normal # 4
@@ -2563,6 +2704,7 @@ melt-sources/warmelt-predef.melt: warmelt-predef.melt
 	mv  melt-sources/warmelt-predef.melt-tmp  melt-sources/warmelt-predef.melt
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-normal in melt-sources/
 melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/warmelt-predef.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2582,6 +2724,7 @@ melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/war
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-normal.optimized.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2592,6 +2735,7 @@ melt-modules/warmelt-normal.optimized.so: melt-sources/warmelt-normal.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normal \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normal 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-normal.debugnoline.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2602,6 +2746,7 @@ melt-modules/warmelt-normal.debugnoline.so: melt-sources/warmelt-normal.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normal \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normal 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-normal.quicklybuilt.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2613,7 +2758,9 @@ melt-modules/warmelt-normal.quicklybuilt.so: melt-sources/warmelt-normal.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-normal
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-normatch # 5
@@ -2623,6 +2770,7 @@ melt-sources/warmelt-normatch.melt: $(melt_make_source_dir)/warmelt-normatch.mel
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-normatch in melt-sources/
 melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2642,6 +2790,7 @@ melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-normatch.optimized.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2652,6 +2801,7 @@ melt-modules/warmelt-normatch.optimized.so: melt-sources/warmelt-normatch.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normatch \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normatch 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-normatch.debugnoline.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2662,6 +2812,7 @@ melt-modules/warmelt-normatch.debugnoline.so: melt-sources/warmelt-normatch.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-normatch \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-normatch 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-normatch.quicklybuilt.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2673,7 +2824,9 @@ melt-modules/warmelt-normatch.quicklybuilt.so: melt-sources/warmelt-normatch.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-normatch
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-genobj # 6
@@ -2683,6 +2836,7 @@ melt-sources/warmelt-genobj.melt: $(melt_make_source_dir)/warmelt-genobj.melt me
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-genobj in melt-sources/
 melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2702,6 +2856,7 @@ melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-genobj.optimized.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2712,6 +2867,7 @@ melt-modules/warmelt-genobj.optimized.so: melt-sources/warmelt-genobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-genobj \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-genobj 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-genobj.debugnoline.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2722,6 +2878,7 @@ melt-modules/warmelt-genobj.debugnoline.so: melt-sources/warmelt-genobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-genobj \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-genobj 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-genobj.quicklybuilt.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2733,7 +2890,9 @@ melt-modules/warmelt-genobj.quicklybuilt.so: melt-sources/warmelt-genobj.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-genobj
 
+#@ from melt-build.tpl line 466
 
+#@ from melt-build.tpl line 395
 
 
 ## melt translator warmelt-outobj # 7
@@ -2743,6 +2902,7 @@ melt-sources/warmelt-outobj.melt: $(melt_make_source_dir)/warmelt-outobj.melt me
 ### melt included files with (load ...) macro
 
 
+#@ from melt-build.tpl line 411
 # MELT translator warmelt-outobj in melt-sources/
 melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
@@ -2762,6 +2922,7 @@ melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
 
 
 
+#@ from melt-build.tpl line 432
 melt-modules/warmelt-outobj.optimized.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
         melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2772,6 +2933,7 @@ melt-modules/warmelt-outobj.optimized.so: melt-sources/warmelt-outobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-outobj \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-outobj 
 
+#@ from melt-build.tpl line 443
 melt-modules/warmelt-outobj.debugnoline.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2782,6 +2944,7 @@ melt-modules/warmelt-outobj.debugnoline.so: melt-sources/warmelt-outobj.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/warmelt-outobj \
               GCCMELT_MODULE_BINARYBASE=melt-modules/warmelt-outobj 
 
+#@ from melt-build.tpl line 454
 melt-modules/warmelt-outobj.quicklybuilt.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
          melt-modules melt-sources melt-run.h melt-runtime.h 
@@ -2793,10 +2956,13 @@ melt-modules/warmelt-outobj.quicklybuilt.so: melt-sources/warmelt-outobj.c \
               GCCMELT_MODULE_WORKSPACE=melt-workdir 
 # end translator warmelt-outobj
 
+#@ from melt-build.tpl line 466
 
 
+#@ from melt-build.tpl line 469
 
 
+#@ from melt-build.tpl line 472
 #### melt-sources warmelt-quicklybuilt is the sequence of translator files:
 melt-sources/warmelt-quicklybuilt.modlis: melt-modules/warmelt-first.optimized.so  \
 melt-modules/warmelt-base.optimized.so  \
@@ -2822,6 +2988,7 @@ melt-modules/warmelt-outobj.optimized.so
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 472
 #### melt-sources warmelt-optimized is the sequence of translator files:
 melt-sources/warmelt-optimized.modlis: melt-modules/warmelt-first.optimized.so  \
 melt-modules/warmelt-base.optimized.so  \
@@ -2847,6 +3014,7 @@ melt-modules/warmelt-outobj.optimized.so
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 472
 #### melt-sources warmelt-debugnoline is the sequence of translator files:
 melt-sources/warmelt-debugnoline.modlis: melt-modules/warmelt-first.optimized.so  \
 melt-modules/warmelt-base.optimized.so  \
@@ -2877,11 +3045,13 @@ melt-modules/warmelt-outobj.optimized.so
 
 
 
+#@ from melt-build.tpl line 489
 ## melt application xtramelt-parse-infix-syntax
 melt-sources/xtramelt-parse-infix-syntax.melt: $(melt_make_source_dir)/xtramelt-parse-infix-syntax.melt
 	cd melt-sources; rm -f xtramelt-parse-infix-syntax.melt; $(LN_S) $(realpath $^)
 
 
+#@ from melt-build.tpl line 495
 ## melt application xtramelt-parse-infix-syntax generated files
 melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-syntax.melt melt-sources/warmelt-optimized.modlis  \
  melt-modules $(MELT_TRANSLATOR_SOURCE) \
@@ -2900,6 +3070,7 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
+#@ from melt-build.tpl line 515
 ## melt application xtramelt-parse-infix-syntax various flavors of modules
 melt-modules/xtramelt-parse-infix-syntax.optimized.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
@@ -2911,6 +3082,7 @@ melt-modules/xtramelt-parse-infix-syntax.optimized.so: melt-sources/xtramelt-par
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-parse-infix-syntax \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-parse-infix-syntax 
 
+#@ from melt-build.tpl line 527
 melt-modules/xtramelt-parse-infix-syntax.debugnoline.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
         melt-run.h melt-runtime.h | melt-sources melt-modules
@@ -2921,6 +3093,7 @@ melt-modules/xtramelt-parse-infix-syntax.debugnoline.so: melt-sources/xtramelt-p
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-parse-infix-syntax \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-parse-infix-syntax 
 
+#@ from melt-build.tpl line 538
 melt-modules/xtramelt-parse-infix-syntax.quicklybuilt.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
         melt-run.h melt-runtime.h  | melt-sources melt-modules
@@ -2931,16 +3104,20 @@ melt-modules/xtramelt-parse-infix-syntax.quicklybuilt.so: melt-sources/xtramelt-
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-parse-infix-syntax \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-parse-infix-syntax 
 
+#@ from melt-build.tpl line 549
 
 # end application xtramelt-parse-infix-syntax
 
+#@ from melt-build.tpl line 553
 
 
+#@ from melt-build.tpl line 489
 ## melt application xtramelt-ana-base
 melt-sources/xtramelt-ana-base.melt: $(melt_make_source_dir)/xtramelt-ana-base.melt
 	cd melt-sources; rm -f xtramelt-ana-base.melt; $(LN_S) $(realpath $^)
 
 
+#@ from melt-build.tpl line 495
 ## melt application xtramelt-ana-base generated files
 melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt melt-sources/warmelt-optimized.modlis  \
  melt-modules $(MELT_TRANSLATOR_SOURCE) \
@@ -2959,6 +3136,7 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt melt-sourc
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
+#@ from melt-build.tpl line 515
 ## melt application xtramelt-ana-base various flavors of modules
 melt-modules/xtramelt-ana-base.optimized.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
@@ -2970,6 +3148,7 @@ melt-modules/xtramelt-ana-base.optimized.so: melt-sources/xtramelt-ana-base.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-ana-base \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-ana-base 
 
+#@ from melt-build.tpl line 527
 melt-modules/xtramelt-ana-base.debugnoline.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
         melt-run.h melt-runtime.h | melt-sources melt-modules
@@ -2980,6 +3159,7 @@ melt-modules/xtramelt-ana-base.debugnoline.so: melt-sources/xtramelt-ana-base.c 
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-ana-base \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-ana-base 
 
+#@ from melt-build.tpl line 538
 melt-modules/xtramelt-ana-base.quicklybuilt.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
         melt-run.h melt-runtime.h  | melt-sources melt-modules
@@ -2990,16 +3170,20 @@ melt-modules/xtramelt-ana-base.quicklybuilt.so: melt-sources/xtramelt-ana-base.c
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-ana-base \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-ana-base 
 
+#@ from melt-build.tpl line 549
 
 # end application xtramelt-ana-base
 
+#@ from melt-build.tpl line 553
 
 
+#@ from melt-build.tpl line 489
 ## melt application xtramelt-ana-simple
 melt-sources/xtramelt-ana-simple.melt: $(melt_make_source_dir)/xtramelt-ana-simple.melt
 	cd melt-sources; rm -f xtramelt-ana-simple.melt; $(LN_S) $(realpath $^)
 
 
+#@ from melt-build.tpl line 495
 ## melt application xtramelt-ana-simple generated files
 melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt melt-sources/warmelt-optimized.modlis  \
  melt-modules $(MELT_TRANSLATOR_SOURCE) \
@@ -3018,6 +3202,7 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt melt-s
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
+#@ from melt-build.tpl line 515
 ## melt application xtramelt-ana-simple various flavors of modules
 melt-modules/xtramelt-ana-simple.optimized.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
@@ -3029,6 +3214,7 @@ melt-modules/xtramelt-ana-simple.optimized.so: melt-sources/xtramelt-ana-simple.
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-ana-simple \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-ana-simple 
 
+#@ from melt-build.tpl line 527
 melt-modules/xtramelt-ana-simple.debugnoline.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
         melt-run.h melt-runtime.h | melt-sources melt-modules
@@ -3039,6 +3225,7 @@ melt-modules/xtramelt-ana-simple.debugnoline.so: melt-sources/xtramelt-ana-simpl
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-ana-simple \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-ana-simple 
 
+#@ from melt-build.tpl line 538
 melt-modules/xtramelt-ana-simple.quicklybuilt.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
         melt-run.h melt-runtime.h  | melt-sources melt-modules
@@ -3049,16 +3236,20 @@ melt-modules/xtramelt-ana-simple.quicklybuilt.so: melt-sources/xtramelt-ana-simp
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-ana-simple \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-ana-simple 
 
+#@ from melt-build.tpl line 549
 
 # end application xtramelt-ana-simple
 
+#@ from melt-build.tpl line 553
 
 
+#@ from melt-build.tpl line 489
 ## melt application xtramelt-c-generator
 melt-sources/xtramelt-c-generator.melt: $(melt_make_source_dir)/xtramelt-c-generator.melt
 	cd melt-sources; rm -f xtramelt-c-generator.melt; $(LN_S) $(realpath $^)
 
 
+#@ from melt-build.tpl line 495
 ## melt application xtramelt-c-generator generated files
 melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt melt-sources/warmelt-optimized.modlis  \
  melt-modules $(MELT_TRANSLATOR_SOURCE) \
@@ -3077,6 +3268,7 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt melt
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
+#@ from melt-build.tpl line 515
 ## melt application xtramelt-c-generator various flavors of modules
 melt-modules/xtramelt-c-generator.optimized.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
@@ -3088,6 +3280,7 @@ melt-modules/xtramelt-c-generator.optimized.so: melt-sources/xtramelt-c-generato
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-c-generator \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-c-generator 
 
+#@ from melt-build.tpl line 527
 melt-modules/xtramelt-c-generator.debugnoline.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
         melt-run.h melt-runtime.h | melt-sources melt-modules
@@ -3098,6 +3291,7 @@ melt-modules/xtramelt-c-generator.debugnoline.so: melt-sources/xtramelt-c-genera
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-c-generator \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-c-generator 
 
+#@ from melt-build.tpl line 538
 melt-modules/xtramelt-c-generator.quicklybuilt.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
         melt-run.h melt-runtime.h  | melt-sources melt-modules
@@ -3108,16 +3302,20 @@ melt-modules/xtramelt-c-generator.quicklybuilt.so: melt-sources/xtramelt-c-gener
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-c-generator \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-c-generator 
 
+#@ from melt-build.tpl line 549
 
 # end application xtramelt-c-generator
 
+#@ from melt-build.tpl line 553
 
 
+#@ from melt-build.tpl line 489
 ## melt application xtramelt-opengpu
 melt-sources/xtramelt-opengpu.melt: $(melt_make_source_dir)/xtramelt-opengpu.melt
 	cd melt-sources; rm -f xtramelt-opengpu.melt; $(LN_S) $(realpath $^)
 
 
+#@ from melt-build.tpl line 495
 ## melt application xtramelt-opengpu generated files
 melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt melt-sources/warmelt-optimized.modlis  \
  melt-modules $(MELT_TRANSLATOR_SOURCE) \
@@ -3136,6 +3334,7 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt melt-sources
 	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
+#@ from melt-build.tpl line 515
 ## melt application xtramelt-opengpu various flavors of modules
 melt-modules/xtramelt-opengpu.optimized.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
@@ -3147,6 +3346,7 @@ melt-modules/xtramelt-opengpu.optimized.so: melt-sources/xtramelt-opengpu.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-opengpu \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-opengpu 
 
+#@ from melt-build.tpl line 527
 melt-modules/xtramelt-opengpu.debugnoline.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
         melt-run.h melt-runtime.h | melt-sources melt-modules
@@ -3157,6 +3357,7 @@ melt-modules/xtramelt-opengpu.debugnoline.so: melt-sources/xtramelt-opengpu.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-opengpu \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-opengpu 
 
+#@ from melt-build.tpl line 538
 melt-modules/xtramelt-opengpu.quicklybuilt.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
         melt-run.h melt-runtime.h  | melt-sources melt-modules
@@ -3167,13 +3368,16 @@ melt-modules/xtramelt-opengpu.quicklybuilt.so: melt-sources/xtramelt-opengpu.c \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/xtramelt-opengpu \
               GCCMELT_MODULE_BINARYBASE=melt-modules/xtramelt-opengpu 
 
+#@ from melt-build.tpl line 549
 
 # end application xtramelt-opengpu
 
+#@ from melt-build.tpl line 553
 
 
 ######
 
+#@ from melt-build.tpl line 558
 melt-all-modules:  melt-workdir \
     melt-modules/warmelt-first.optimized.so \
     melt-modules/warmelt-base.optimized.so \
@@ -3231,6 +3435,7 @@ $(melt_default_modules_list).modlis: melt-all-modules \
 ## MELT various variants of module lists
 
 
+#@ from melt-build.tpl line 583
 ### quicklybuilt default module list
 $(melt_default_modules_list)-quicklybuilt.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.quicklybuilt.so)
 	@echo building quicklybuilt module list $@
@@ -3256,6 +3461,7 @@ $(melt_default_modules_list)-quicklybuilt.modlis:  melt-all-modules  melt-module
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 583
 ### optimized default module list
 $(melt_default_modules_list)-optimized.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.optimized.so)
 	@echo building optimized module list $@
@@ -3281,6 +3487,7 @@ $(melt_default_modules_list)-optimized.modlis:  melt-all-modules  melt-modules/ 
 	$(melt_make_move) $@-tmp $@
 
 
+#@ from melt-build.tpl line 583
 ### debugnoline default module list
 $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/*.debugnoline.so)
 	@echo building debugnoline module list $@
@@ -3307,6 +3514,7 @@ $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules
 
 
 
+#@ from melt-build.tpl line 599
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
@@ -3331,6 +3539,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-first
 ## dont indent the warmelt-first+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c~; \
@@ -3350,6 +3559,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-first*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-base
 ## dont indent the warmelt-base+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c~; \
@@ -3369,6 +3579,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-base*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-debug
 ## dont indent the warmelt-debug+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c~; \
@@ -3388,6 +3599,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-debug*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-macro
 ## dont indent the warmelt-macro+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c~; \
@@ -3407,6 +3619,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-macro*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-normal
 ## dont indent the warmelt-normal+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c~; \
@@ -3426,6 +3639,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-normal*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-normatch
 ## dont indent the warmelt-normatch+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c~; \
@@ -3445,6 +3659,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-normatch*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-genobj
 ## dont indent the warmelt-genobj+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c~; \
@@ -3464,6 +3679,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
         done
 	rm $(MELT_STAGE_ZERO)/warmelt-genobj*.o
 
+#@ from melt-build.tpl line 612
 	@echo upgrading MELT translator warmelt-outobj
 ## dont indent the warmelt-outobj+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c~; \
@@ -3486,6 +3702,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 
 ### Generated MELT documentation
+#@ from melt-build.tpl line 635
 meltgendoc.texi: $(melt_default_modules_list).modlis \
                     melt-sources/warmelt-first.melt \
                     melt-sources/warmelt-base.melt \
@@ -3525,6 +3742,7 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
+#@ from melt-build.tpl line 664
 .PHONY: meltrun-generate
 meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
                    $(melt_make_cc1_dependency)
@@ -3557,4 +3775,5 @@ melt-clean:
            melt-stage3  melt-stage3.stamp \
                melt-sources melt-modules
 
+#@ from melt-build.tpl line 695
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def

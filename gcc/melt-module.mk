@@ -120,10 +120,10 @@ $(GCCMELT_MODULE_WORKSPACE)/%.optimized.pic.o:
 	   GCCMELT_MODULE_WORKSPACE=$(GCCMELT_MODULE_WORKSPACE) \
 	   GCCMELT_MODULE_FLAVOR=$(GCCMELT_MODULE_FLAVOR) \
 	   GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5)
-	echo optimized base1name at  $(basename $@)
-	echo optimized base2name at  $(basename $(basename $@))
-	echo optimized base3name at  $(basename $(basename $(basename $@)))
-	echo optimized base4name at  $(basename $(basename $(basename $(basename $@))))
+#	echo optimized base1name at  $(basename $@)
+#	echo optimized base2name at  $(basename $(basename $@))
+#	echo optimized base3name at  $(basename $(basename $(basename $@)))
+#	echo optimized base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_OPTIMIZED  -DMELT_HAVE_DEBUG=0  $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
 	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
@@ -136,10 +136,10 @@ $(GCCMELT_MODULE_WORKSPACE)/%.quicklybuilt.pic.o:
 	   GCCMELT_MODULE_WORKSPACE=$(GCCMELT_MODULE_WORKSPACE) \
 	   GCCMELT_MODULE_FLAVOR=$(GCCMELT_MODULE_FLAVOR) \
 	   GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5)
-	echo quicklybuilt base1name at  $(basename $@)
-	echo quicklybuilt base2name at  $(basename $(basename $@))
-	echo quicklybuilt base3name at  $(basename $(basename $(basename $@)))
-	echo quicklybuilt base4name at  $(basename $(basename $(basename $(basename $@))))
+#	echo quicklybuilt base1name at  $(basename $@)
+#	echo quicklybuilt base2name at  $(basename $(basename $@))
+#	echo quicklybuilt base3name at  $(basename $(basename $(basename $@)))
+#	echo quicklybuilt base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_QUICKLYBUILT -DMELT_HAVE_DEBUG=1 $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
 	  -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
@@ -164,10 +164,10 @@ vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
 	   GCCMELT_MODULE_WORKSPACE=$(GCCMELT_MODULE_WORKSPACE) \
 	   GCCMELT_MODULE_FLAVOR=$(GCCMELT_MODULE_FLAVOR) \
 	   GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5)
-	echo dynamic base1name at  $(basename $@)
-	echo dynamic base2name at  $(basename $(basename $@))
-	echo dynamic base3name at  $(basename $(basename $(basename $@)))
-	echo dynamic base4name at  $(basename $(basename $(basename $(basename $@))))
+#	echo dynamic base1name at  $(basename $@)
+#	echo dynamic base2name at  $(basename $(basename $@))
+#	echo dynamic base3name at  $(basename $(basename $(basename $@)))
+#	echo dynamic base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
 	   -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
