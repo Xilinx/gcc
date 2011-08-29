@@ -1,5 +1,13 @@
 
 2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.tpl: Generate more comment lines with original
+	location in melt-module.tpl.
+	(melt-tiny-tests) New target.
+	(all-melt): Use it.
+
+	* melt-module.mk: Regenerate.
+
+2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk: Comment out debugging echo-s for base[1234]name.
 
 	* melt-build.tpl: Add generation of #@ from melt-build.tpl line XX.
