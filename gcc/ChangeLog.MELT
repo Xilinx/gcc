@@ -1,5 +1,12 @@
 
 2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-warmelt-predef.awk: Add POISON hack to help removing
+	obsolete predefined.
+
+	* melt-predef.list: Comment about POISON-ing.
+
+
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_load_modules_and_do_mode): Options are
 	given by colons, not equal signs.
 

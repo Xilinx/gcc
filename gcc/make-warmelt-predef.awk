@@ -1,6 +1,6 @@
 ## generator of the MELT file melt/warmeltmelt-predef.melt
 
-#	Copyright (C)  2009  Free Software Foundation, Inc.
+#	Copyright (C)  2009,2011  Free Software Foundation, Inc.
 #	Contributed by Basile Starynkevitch  <basile@starynkevitch.net>
 #
 # This file is part of GCC.
@@ -32,8 +32,15 @@ BEGIN {
 }
 
 {
+## special hack to ignore some obsolete predefined
     predefcount++;
-#    printf("  MELTGLOB_%s=%d,\n", $1, predefcount); 
+    if ($2 == "POISON")
+    {
+	printf (" (compile_warning \"poisoned predefined %s %d\")\n", 
+		$1, predefcount);
+	printf ("@@ Poisoned MELT predefined %s %d\n", $1, predefcount) > "/dev/stderr"
+	next;
+    }
     printf("  (code_chunk %s_chk #{ $curpredef = MELT_PREDEF(%s) /*%d*/; }#)\n",
 	   $1, $1, predefcount);
     printf("  (mapobject_put predefmap curpredef '%s) ; %d\n",

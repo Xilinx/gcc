@@ -19,6 +19,11 @@
 
 ## keep in alphabetical order!
 
+## To remove a predefined, mark it with POISON in second field, make
+## upgrade-warmelt, remove it entirely, and make upgrade-warmelt
+## again. Look into make-warmelt-predef.awk for details.
+
+
   CLASS_CITERATOR
   CLASS_CLASS
   CLASS_CMATCHER
