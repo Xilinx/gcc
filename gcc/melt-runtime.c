@@ -9498,7 +9498,7 @@ meltgc_load_modules_and_do_mode (void)
 	    optname = optc;
 	    while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
 	      optc++;
-	    if (*optc == '=') {
+	    if (*optc == ':') {
 	      *optc = (char)0;
 	      optc++;
 	      optvalue = optc;
