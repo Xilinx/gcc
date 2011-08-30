@@ -5822,7 +5822,9 @@ has basic debug support thru debug_msg, assert_msg..."
   (debug_msg moduldata "start makedoc_docmd moduldata")
   (let ( 
 	(parmodenv (parent_module_environment))
-	(curenv (if moduldata moduldata initial_environment))
+	(curenv (if moduldata 
+		    moduldata 
+		  (content (current_module_environment_container))))
 	(arglist (split_string_comma discr_string (make_stringconst discr_string (melt_argument "arglist"))))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(rlist (make_list discr_list))

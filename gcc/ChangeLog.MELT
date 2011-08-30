@@ -1,3 +1,17 @@
+
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_container, mexpand_content):
+	Add debug message.
+
+	* melt/warmelt-outobj.melt (makedoc_docmd): Use
+	current_module_environment_container.
+
+	* melt-build.tpl (warmelt-upgrade-translator): Need
+	meltrun-generate, and copy the newly generated meltrunsup*.[ch]
+	files.
+
+	* melt-build.mk: Regenerate.
+
 2011-08-30  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt/xtramelt-ana-base.melt (isnull_tree): Add primitive.

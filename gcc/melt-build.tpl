@@ -631,7 +631,7 @@ $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
-warmelt-upgrade-translator: $(WARMELT_LAST) \
+warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 [+FOR melt_translator_file " \\\n"
 +]   $(MELT_LAST_STAGE)/[+base+].c \
          $(wildcard  $(MELT_LAST_STAGE)/[+base+]+*.c)[+
@@ -657,7 +657,8 @@ ENDFOR melt_translator_file+]
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/[+base+]*.so $(MELT_STAGE_ZERO)/[+base+]*.c
 #@ [+ (. (tpl-file-line))+]
 

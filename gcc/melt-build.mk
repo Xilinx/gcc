@@ -3549,7 +3549,7 @@ $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
-warmelt-upgrade-translator: $(WARMELT_LAST) \
+warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
    $(MELT_LAST_STAGE)/warmelt-first.c \
          $(wildcard  $(MELT_LAST_STAGE)/warmelt-first+*.c) \
    $(MELT_LAST_STAGE)/warmelt-base.c \
@@ -3587,9 +3587,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-first*.so $(MELT_STAGE_ZERO)/warmelt-first*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3611,9 +3612,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-base*.so $(MELT_STAGE_ZERO)/warmelt-base*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3635,9 +3637,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-debug*.so $(MELT_STAGE_ZERO)/warmelt-debug*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3659,9 +3662,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-macro*.so $(MELT_STAGE_ZERO)/warmelt-macro*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3683,9 +3687,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-normal*.so $(MELT_STAGE_ZERO)/warmelt-normal*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3707,9 +3712,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-normatch*.so $(MELT_STAGE_ZERO)/warmelt-normatch*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3731,9 +3737,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-genobj*.so $(MELT_STAGE_ZERO)/warmelt-genobj*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3755,9 +3762,10 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done
+        done	
+	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
 	rm -f $(MELT_STAGE_ZERO)/warmelt-outobj*.so $(MELT_STAGE_ZERO)/warmelt-outobj*.c
-#@ from melt-build.tpl line 662
+#@ from melt-build.tpl line 663
 
 
 
@@ -3765,7 +3773,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 
 
 ### Generated MELT documentation
-#@ from melt-build.tpl line 670
+#@ from melt-build.tpl line 671
 meltgendoc.texi: $(melt_default_modules_list).modlis \
                     melt-sources/warmelt-first.melt \
                     melt-sources/warmelt-base.melt \
@@ -3805,7 +3813,7 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
-#@ from melt-build.tpl line 699
+#@ from melt-build.tpl line 700
 .PHONY: meltrun-generate
 meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
                    $(melt_make_cc1_dependency)
@@ -3838,5 +3846,5 @@ melt-clean:
            melt-stage3  melt-stage3.stamp \
                melt-sources melt-modules
 
-#@ from melt-build.tpl line 730
+#@ from melt-build.tpl line 731
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def

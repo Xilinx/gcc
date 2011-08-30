@@ -4390,8 +4390,10 @@ condition is a string such as "4.5." or a list of strings.}#)
 	  (debug_msg sinst "mexpand_container returns sinst")
 	  (return sinst)
 	  )
-      (error_plain loc "(CONTAINER <value>) where CLASS_CONTAINER is not visible"))
-    ))
+      (progn
+	(debug_msg clabind "mexpand_container unexpected clabind")
+	(error_plain loc "(CONTAINER <value>) where CLASS_CONTAINER is not visible"))
+    )))
 
 
 (defun patexpand_container (sexpr env pctx)
@@ -4476,7 +4478,9 @@ condition is a string such as "4.5." or a list of strings.}#)
 	  (debug_msg sget "mexpand_content returns sget")
 	  (return sget)
 	  )
-      (error_plain loc "(CONTENT <value>) where CLASS_CONTAINER is not visible"))
+      (progn
+	(debug_msg clabind "mexpand_content unexpected clabind")
+	(error_plain loc "(CONTENT <value>) where CLASS_CONTAINER is not visible")))
     ))
 
 (install_initial_macro 'content mexpand_content)
