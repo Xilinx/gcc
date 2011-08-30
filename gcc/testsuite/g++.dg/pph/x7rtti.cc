@@ -1,4 +1,4 @@
-// { dg-do run }
+// FIXME pph: This should be a { dg=do run } (with '=' replaced by '-')
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
 // { dg-bogus "x7rtti.cc:19:0: warning: .__STDC_IEC_559_COMPLEX__. redefined .enabled by default." "" { xfail *-*-* } 0 }
 // { dg-bogus "x7rtti.cc:19:0: warning: .__STDC_ISO_10646__. redefined .enabled by default." "" { xfail *-*-* } 0 }

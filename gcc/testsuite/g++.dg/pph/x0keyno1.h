@@ -1,4 +1,4 @@
-#ifndef X0KEYED1_H
-#define X0KEYED1_H
-#include "a0keyed.h"
+#ifndef X0KEYNO1_H
+#define X0KEYNO1_H
+#include "a0keyno.h"
 #endif

@@ -54,7 +54,7 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
     verbose -log "\nTesting $nshort, $options"
 
     set dg-do-what-default compile
-    dg-test -keep-output $test "-fno-dwarf2-cfi-asm $options $mapflag -I." ""
+    dg-test -keep-output $test "$options $mapflag -I. -fno-dwarf2-cfi-asm" ""
 
     if { [file_on_host exists "$bname.s"] } {
 	file_on_host delete "$bname.s"
@@ -76,7 +76,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 
     # Compile the file the first time for a base case.
     set dg-do-what-default compile
-    dg-test -keep-output $test "-fno-dwarf2-cfi-asm $options -I." ""
+    dg-test -keep-output $test "$options -I. -fno-dwarf2-cfi-asm" ""
 
     # Determine whether this is an assembly comparison test
     set is_exec [llength [grep $test "dg-do run"]]
@@ -102,7 +102,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     verbose -log ""
 
     # Compile a second time using the pph files.
-    dg-test -keep-output $test "-fno-dwarf2-cfi-asm $options $mapflag -I." ""
+    dg-test -keep-output $test "$options $mapflag -I. -fno-dwarf2-cfi-asm" ""
 
     if { !$is_asm } {
 	# No assembly means we cannot compare them,
@@ -127,16 +127,24 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 
     verbose -log ""
 
-    # Compare the two assembly files.  They should be identical.
+    # Compare the two assembly files.
+    # In most tests, they should be identical.
+    # Tests involving overload injection and such will have different assembly.
     set adiff [catch {exec diff "$bname.s-pph" "$bname.s+pph"} diff_result]
     # The sources mark when they expect the comparison to differ.
+    # When marked with xdiff, the difference is a problem.
+    # When marked with xwant, the difference is what we want.
     set xdiff_entry [grep $test "pph asm xdiff( )*\[0-9\]*"]
+    set xwant_entry [grep $test "pph asm xwant( )*\[0-9\]*"]
     set xdiff [llength $xdiff_entry]
+    set xwant [llength $xwant_entry]
     if { $adiff == 0 } {
 	if { $xdiff } {
-	    xpass "$nshort $options (assembly comparison)"
+	    xpass "$nshort $options (assembly equality)"
+	} elseif { $xwant } {
+	    fail "$nshort $options (assembly difference)"
 	} else {
-	    pass "$nshort $options (assembly comparison)"
+	    pass "$nshort $options (assembly equality)"
 	}
 	file_on_host delete "$bname.s-pph"
 	file_on_host delete "$bname.s+pph"
@@ -150,13 +158,21 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 	if { $xdiff } {
 	    set expectedSum [lindex [split $xdiff_entry " \}"] 3]
 	    if { $expectedSum == $actualSum } {
-	        xfail "$nshort $options (assembly comparison)"
+	        xfail "$nshort $options (assembly equality)"
 	    } else {
 		set sumMessage "sums $expectedSum=>$actualSum"
-	        fail "$nshort $options (assembly comparison, $sumMessage)"
+	        fail "$nshort $options (assembly equality, $sumMessage)"
+	    }
+	} elseif { $xwant } {
+	    set expectedSum [lindex [split $xwant_entry " \}"] 3]
+	    if { $expectedSum == $actualSum } {
+	        pass "$nshort $options (assembly difference)"
+	    } else {
+		set sumMessage "sums $expectedSum=>$actualSum"
+	        fail "$nshort $options (assembly equality, $sumMessage)"
 	    }
 	} else {
-	    fail "$nshort $options (assembly comparison, sum=$actualSum)"
+	    fail "$nshort $options (assembly equality, sum=$actualSum)"
 	}
     } else {
 	fail "$nshort $options comparison failure"

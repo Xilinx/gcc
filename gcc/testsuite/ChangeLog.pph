@@ -1,3 +1,23 @@
+2011-08-29   Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp: Move -fno-dwarf2-cfi-asm to end of command line.
+	Add recognition of "pph asm xwant" when we desire assembly differences
+	between pph and non-pph.
+	* g++.dg/pph/x0keyno1.h: Correct test to not have a key method.
+	* g++.dg/pph/x0keyno2.h: Likewise.
+	* g++.dg/pph/x1keyno.cc: Likewise.
+	* g++.dg/pph/x4keyno.cc: Likewise.
+	* g++.dg/pph/x4keyex.cc: New.  Add test to capture the broken behavior
+	in the original key4no.cc.
+	* g++.dg/pph/x7rtti.cc: Eliminate an unresolved test by turning off
+	dg-run until the compilation problems are fixed.
+	* g++.dg/pph/x0resolve1.h: New test for overload behavior.
+	* g++.dg/pph/x0resolve2.h: Likewise.
+	* g++.dg/pph/x1resolve1.cc: Likewise.
+	* g++.dg/pph/x1resolve2.cc: Likewise.
+	* g++.dg/pph/x4resolve1.cc: Likewise.
+	* g++.dg/pph/x4resolve2.cc: Likewise.
+
 2011-08-26   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x7rtti.cc: Adjust line numbers for expected errors.

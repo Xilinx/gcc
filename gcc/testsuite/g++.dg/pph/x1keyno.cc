@@ -2,6 +2,6 @@
 
 int main()
 {
-    keyed variable;
+    keyno variable;
     return variable.mix( 3 );
 }
