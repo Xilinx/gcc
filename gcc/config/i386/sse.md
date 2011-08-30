@@ -648,7 +648,7 @@
    (use (match_operand:VF 2 "nonimmediate_operand"    "xm,0, xm,x"))]
   "TARGET_SSE"
   "#"
-  "reload_completed"
+  "&& reload_completed"
   [(const_int 0)]
 {
   enum rtx_code absneg_op;
@@ -3708,7 +3708,7 @@
 	(vec_select:<ssehalfvecmode>
 	  (match_operand:VI8F_256 1 "nonimmediate_operand" "xm,x")
 	  (parallel [(const_int 0) (const_int 1)])))]
-  "TARGET_AVX"
+  "TARGET_AVX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -3742,7 +3742,7 @@
 	  (match_operand:VI4F_256 1 "nonimmediate_operand" "xm,x")
 	  (parallel [(const_int 0) (const_int 1)
 		     (const_int 2) (const_int 3)])))]
-  "TARGET_AVX"
+  "TARGET_AVX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -3779,7 +3779,7 @@
 		     (const_int 2) (const_int 3)
 		     (const_int 4) (const_int 5)
 		     (const_int 6) (const_int 7)])))]
-  "TARGET_AVX"
+  "TARGET_AVX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -3822,7 +3822,7 @@
 		     (const_int 10) (const_int 11)
 		     (const_int 12) (const_int 13)
 		     (const_int 14) (const_int 15)])))]
-  "TARGET_AVX"
+  "TARGET_AVX && !(MEM_P (operands[0]) && MEM_P (operands[1]))"
   "#"
   "&& reload_completed"
   [(const_int 0)]
@@ -3876,9 +3876,9 @@
        (vec_select:SF
 	 (match_operand:V4SF 1 "memory_operand" "o")
 	 (parallel [(match_operand 2 "const_0_to_3_operand" "n")])))]
-  ""
+  "TARGET_SSE"
   "#"
-  "reload_completed"
+  "&& reload_completed"
   [(const_int 0)]
 {
   int i = INTVAL (operands[2]);
@@ -4726,6 +4726,9 @@
 
   /* Extract the even bytes and merge them back together.  */
   ix86_expand_vec_extract_even_odd (operands[0], t[5], t[4], 0);
+
+  set_unique_reg_note (get_last_insn (), REG_EQUAL,
+		       gen_rtx_MULT (V16QImode, operands[1], operands[2]));
   DONE;
 })
 
@@ -5179,6 +5182,9 @@
 
   /* Merge the parts back together.  */
   emit_insn (gen_vec_interleave_lowv4si (op0, t5, t6));
+
+  set_unique_reg_note (get_last_insn (), REG_EQUAL,
+		       gen_rtx_MULT (V4SImode, operands[1], operands[2]));
   DONE;
 })
 
@@ -5261,6 +5267,9 @@
       emit_insn (gen_addv2di3 (t6, t1, t4));
       emit_insn (gen_addv2di3 (op0, t6, t5));
     }
+
+  set_unique_reg_note (get_last_insn (), REG_EQUAL,
+		       gen_rtx_MULT (V2DImode, operands[1], operands[2]));
   DONE;
 })
 
@@ -9646,6 +9655,40 @@
    (set_attr "prefix" "orig,vex")
    (set_attr "mode" "<MODE>")])
 
+(define_expand "round<mode>2"
+  [(set (match_dup 4)
+	(plus:VF
+	  (match_operand:VF 1 "nonimmediate_operand" "")
+	  (match_dup 3)))
+   (set (match_operand:VF 0 "register_operand" "")
+	(unspec:VF
+	  [(match_dup 4) (match_dup 5)]
+	  UNSPEC_ROUND))]
+  "TARGET_ROUND && !flag_trapping_math"
+{
+  enum machine_mode scalar_mode;
+  const struct real_format *fmt;
+  REAL_VALUE_TYPE pred_half, half_minus_pred_half;
+  rtx half, vec_half;
+
+  scalar_mode = GET_MODE_INNER (<MODE>mode);
+
+  /* load nextafter (0.5, 0.0) */
+  fmt = REAL_MODE_FORMAT (scalar_mode);
+  real_2expN (&half_minus_pred_half, -(fmt->p) - 1, scalar_mode);
+  REAL_ARITHMETIC (pred_half, MINUS_EXPR, dconsthalf, half_minus_pred_half);
+  half = const_double_from_real_value (pred_half, scalar_mode);
+
+  vec_half = ix86_build_const_vector (<MODE>mode, true, half);
+  vec_half = force_reg (<MODE>mode, vec_half);
+
+  operands[3] = gen_reg_rtx (<MODE>mode);
+  emit_insn (gen_copysign<mode>3 (operands[3], vec_half, operands[1]));
+
+  operands[4] = gen_reg_rtx (<MODE>mode);
+  operands[5] = GEN_INT (ROUND_TRUNC);
+})
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Intel SSE4.2 string/text processing instructions
@@ -9700,6 +9743,9 @@
 					   operands[2], operands[3],
 					   operands[4], operands[5],
 					   operands[6]));
+  if (!(flags || ecx || xmm0))
+    emit_note (NOTE_INSN_DELETED);
+
   DONE;
 }
   [(set_attr "type" "sselog")
@@ -9827,6 +9873,9 @@
     emit_insn (gen_sse4_2_pcmpistr_cconly (NULL, NULL,
 					   operands[2], operands[3],
 					   operands[4]));
+  if (!(flags || ecx || xmm0))
+    emit_note (NOTE_INSN_DELETED);
+
   DONE;
 }
   [(set_attr "type" "sselog")

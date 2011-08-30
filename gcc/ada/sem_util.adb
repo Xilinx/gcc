@@ -981,6 +981,27 @@ package body Sem_Util is
       Set_Has_Fully_Qualified_Name (Elab_Ent);
    end Build_Elaboration_Entity;
 
+   --------------------------------
+   -- Build_Explicit_Dereference --
+   --------------------------------
+
+   procedure Build_Explicit_Dereference
+     (Expr : Node_Id;
+      Disc : Entity_Id)
+   is
+      Loc : constant Source_Ptr := Sloc (Expr);
+   begin
+      Set_Is_Overloaded (Expr, False);
+      Rewrite (Expr,
+        Make_Explicit_Dereference (Loc,
+          Prefix =>
+            Make_Selected_Component (Loc,
+              Prefix        => Relocate_Node (Expr),
+              Selector_Name => New_Occurrence_Of (Disc, Loc))));
+      Set_Etype (Prefix (Expr), Etype (Disc));
+      Set_Etype (Expr, Designated_Type (Etype (Disc)));
+   end Build_Explicit_Dereference;
+
    -----------------------------------
    -- Cannot_Raise_Constraint_Error --
    -----------------------------------
@@ -1360,7 +1381,7 @@ package body Sem_Util is
          return;
       end if;
 
-      --  Ada 2012 AI04-0144-2: Dangerous order dependence. Actuals in nested
+      --  Ada 2012 AI05-0144-2: Dangerous order dependence. Actuals in nested
       --  calls within a construct have been collected. If one of them is
       --  writable and overlaps with another one, evaluation of the enclosing
       --  construct is nondeterministic. This is illegal in Ada 2012, but is
@@ -4168,6 +4189,15 @@ package body Sem_Util is
       end if;
    end Get_Actual_Subtype_If_Available;
 
+   ------------------------
+   -- Get_Body_From_Stub --
+   ------------------------
+
+   function Get_Body_From_Stub (N : Node_Id) return Node_Id is
+   begin
+      return Proper_Body (Unit (Library_Unit (N)));
+   end Get_Body_From_Stub;
+
    -------------------------------
    -- Get_Default_External_Name --
    -------------------------------
@@ -4271,11 +4301,15 @@ package body Sem_Util is
       if List_Length (Args) = 4 then
          Res := Pick (Args, 4);
 
-      else
+      elsif List_Length (Args) = 3 then
          Res := Pick (Args, 3);
+
          if Chars (Res) /= Name_Ensures then
             Res := Empty;
          end if;
+
+      else
+         Res := Empty;
       end if;
 
       return Res;
@@ -4430,8 +4464,14 @@ package body Sem_Util is
       Res  : Node_Id;
 
    begin
-      Res := Pick (Args, 3);
-      if Chars (Res) /= Name_Requires then
+      if List_Length (Args) >= 3 then
+         Res := Pick (Args, 3);
+
+         if Chars (Res) /= Name_Requires then
+            Res := Empty;
+         end if;
+
+      else
          Res := Empty;
       end if;
 
@@ -7125,6 +7165,51 @@ package body Sem_Util is
       end if;
    end Is_Fully_Initialized_Variant;
 
+   -----------------
+   -- Is_Iterator --
+   -----------------
+
+   function Is_Iterator (Typ : Entity_Id) return Boolean is
+      Ifaces_List : Elist_Id;
+      Iface_Elmt  : Elmt_Id;
+      Iface       : Entity_Id;
+
+   begin
+      if Is_Class_Wide_Type (Typ)
+        and then
+          (Chars (Etype (Typ)) = Name_Forward_Iterator
+             or else
+           Chars (Etype (Typ)) = Name_Reversible_Iterator)
+        and then
+          Is_Predefined_File_Name
+            (Unit_File_Name (Get_Source_Unit (Etype (Typ))))
+      then
+         return True;
+
+      elsif not Is_Tagged_Type (Typ) or else not Is_Derived_Type (Typ) then
+         return False;
+
+      else
+         Collect_Interfaces (Typ, Ifaces_List);
+
+         Iface_Elmt := First_Elmt (Ifaces_List);
+         while Present (Iface_Elmt) loop
+            Iface := Node (Iface_Elmt);
+            if Chars (Iface) = Name_Forward_Iterator
+              and then
+                Is_Predefined_File_Name
+                  (Unit_File_Name (Get_Source_Unit (Iface)))
+            then
+               return True;
+            end if;
+
+            Next_Elmt (Iface_Elmt);
+         end loop;
+
+         return False;
+      end if;
+   end Is_Iterator;
+
    ------------
    -- Is_LHS --
    ------------
@@ -7351,7 +7436,20 @@ package body Sem_Util is
       --  but we still want to allow the conversion if it converts a variable).
 
       elsif Original_Node (AV) /= AV then
-         return Is_OK_Variable_For_Out_Formal (Original_Node (AV));
+
+         --  In Ada2012, the explicit dereference may be a rewritten call to a
+         --  Reference function.
+
+         if Ada_Version >= Ada_2012
+           and then Nkind (Original_Node (AV)) = N_Function_Call
+           and then
+             Has_Implicit_Dereference (Etype (Name (Original_Node (AV))))
+         then
+            return True;
+
+         else
+            return Is_OK_Variable_For_Out_Formal (Original_Node (AV));
+         end if;
 
       --  All other non-variables are rejected
 
@@ -7584,9 +7682,9 @@ package body Sem_Util is
 
    begin
       --  Verify that prefix is analyzed and has the proper form. Note that
-      --  the attributes Elab_Spec, Elab_Body, and UET_Address, which also
-      --  produce the address of an entity, do not analyze their prefix
-      --  because they denote entities that are not necessarily visible.
+      --  the attributes Elab_Spec, Elab_Body, Elab_Subp_Body and UET_Address,
+      --  which also produce the address of an entity, do not analyze their
+      --  prefix because they denote entities that are not necessarily visible.
       --  Neither of them can apply to a protected type.
 
       return Ada_Version >= Ada_2005
@@ -7754,6 +7852,50 @@ package body Sem_Util is
 
       return False;
    end Is_Renamed_Entry;
+
+   ----------------------------
+   -- Is_Reversible_Iterator --
+   ----------------------------
+
+   function Is_Reversible_Iterator (Typ : Entity_Id) return Boolean is
+      Ifaces_List : Elist_Id;
+      Iface_Elmt  : Elmt_Id;
+      Iface       : Entity_Id;
+
+   begin
+      if Is_Class_Wide_Type (Typ)
+        and then  Chars (Etype (Typ)) = Name_Reversible_Iterator
+        and then
+          Is_Predefined_File_Name
+            (Unit_File_Name (Get_Source_Unit (Etype (Typ))))
+      then
+         return True;
+
+      elsif not Is_Tagged_Type (Typ)
+        or else not Is_Derived_Type (Typ)
+      then
+         return False;
+
+      else
+         Collect_Interfaces (Typ, Ifaces_List);
+
+         Iface_Elmt := First_Elmt (Ifaces_List);
+         while Present (Iface_Elmt) loop
+            Iface := Node (Iface_Elmt);
+            if Chars (Iface) = Name_Reversible_Iterator
+              and then
+                Is_Predefined_File_Name
+                  (Unit_File_Name (Get_Source_Unit (Iface)))
+            then
+               return True;
+            end if;
+
+            Next_Elmt (Iface_Elmt);
+         end loop;
+      end if;
+
+      return False;
+   end Is_Reversible_Iterator;
 
    ----------------------
    -- Is_Selector_Name --
@@ -7938,6 +8080,22 @@ package body Sem_Util is
         Nkind (N) in N_Statement_Other_Than_Procedure_Call
           or else Nkind (N) = N_Procedure_Call_Statement;
    end Is_Statement;
+
+   --------------------------------------------------
+   -- Is_Subprogram_Stub_Without_Prior_Declaration --
+   --------------------------------------------------
+
+   function Is_Subprogram_Stub_Without_Prior_Declaration
+     (N : Node_Id) return Boolean
+   is
+   begin
+      --  A subprogram stub without prior declaration serves as declaration for
+      --  the actual subprogram body. As such, it has an attached defining
+      --  entity of E_[Generic_]Function or E_[Generic_]Procedure.
+
+      return Nkind (N) = N_Subprogram_Body_Stub
+        and then Ekind (Defining_Entity (N)) /= E_Subprogram_Body;
+   end Is_Subprogram_Stub_Without_Prior_Declaration;
 
    ---------------------------------
    -- Is_Synchronized_Tagged_Type --
@@ -8348,6 +8506,19 @@ package body Sem_Util is
          return False;
       end if;
    end Is_Volatile_Object;
+
+   ---------------------------
+   -- Itype_Has_Declaration --
+   ---------------------------
+
+   function Itype_Has_Declaration (Id : Entity_Id) return Boolean is
+   begin
+      pragma Assert (Is_Itype (Id));
+      return Present (Parent (Id))
+        and then Nkind_In (Parent (Id), N_Full_Type_Declaration,
+                                        N_Subtype_Declaration)
+        and then Defining_Entity (Parent (Id)) = Id;
+   end Itype_Has_Declaration;
 
    -------------------------
    -- Kill_Current_Values --
@@ -10335,6 +10506,13 @@ package body Sem_Util is
                P : constant Node_Id := Prefix (Exp);
 
             begin
+               --  In formal verification mode, keep track of all reads and
+               --  writes through explicit dereferences.
+
+               if ALFA_Mode then
+                  ALFA.Generate_Dereference (N, 'm');
+               end if;
+
                if Nkind (P) = N_Selected_Component
                  and then Present (
                    Entry_Formal (Entity (Selector_Name (P))))
@@ -10525,8 +10703,14 @@ package body Sem_Util is
    --  Start of processing for Object_Access_Level
 
    begin
-      if Is_Entity_Name (Obj) then
-         E := Entity (Obj);
+      if Nkind (Obj) = N_Defining_Identifier
+        or else Is_Entity_Name (Obj)
+      then
+         if Nkind (Obj) = N_Defining_Identifier then
+            E := Obj;
+         else
+            E := Entity (Obj);
+         end if;
 
          if Is_Prival (E) then
             E := Prival_Link (E);
@@ -11677,10 +11861,10 @@ package body Sem_Util is
    -- Set_Current_Entity --
    ------------------------
 
-   --  The given entity is to be set as the currently visible definition
-   --  of its associated name (i.e. the Node_Id associated with its name).
-   --  All we have to do is to get the name from the identifier, and
-   --  then set the associated Node_Id to point to the given entity.
+   --  The given entity is to be set as the currently visible definition of its
+   --  associated name (i.e. the Node_Id associated with its name). All we have
+   --  to do is to get the name from the identifier, and then set the
+   --  associated Node_Id to point to the given entity.
 
    procedure Set_Current_Entity (E : Entity_Id) is
    begin
@@ -12336,21 +12520,56 @@ package body Sem_Util is
 
    function Unique_Defining_Entity (N : Node_Id) return Entity_Id is
    begin
-      case Nkind (N) is
-         when N_Package_Body =>
-            return Corresponding_Spec (N);
+      return Unique_Entity (Defining_Entity (N));
+   end Unique_Defining_Entity;
 
-         when N_Subprogram_Body =>
-            if Acts_As_Spec (N) then
-               return Defining_Entity (N);
+   -------------------
+   -- Unique_Entity --
+   -------------------
+
+   function Unique_Entity (E : Entity_Id) return Entity_Id is
+      U : Entity_Id := E;
+      P : Node_Id;
+
+   begin
+      case Ekind (E) is
+         when Type_Kind =>
+            if Present (Full_View (E)) then
+               U := Full_View (E);
+            end if;
+
+         when E_Package_Body =>
+            P := Parent (E);
+
+            if Nkind (P) = N_Defining_Program_Unit_Name then
+               P := Parent (P);
+            end if;
+
+            U := Corresponding_Spec (P);
+
+         when E_Subprogram_Body =>
+            P := Parent (E);
+
+            if Nkind (P) = N_Defining_Program_Unit_Name then
+               P := Parent (P);
+            end if;
+
+            P := Parent (P);
+
+            if Nkind (P) = N_Subprogram_Body_Stub then
+               if Present (Library_Unit (P)) then
+                  U := Get_Body_From_Stub (P);
+               end if;
             else
-               return Corresponding_Spec (N);
+               U := Corresponding_Spec (P);
             end if;
 
          when others =>
-            return Defining_Entity (N);
+            null;
       end case;
-   end Unique_Defining_Entity;
+
+      return U;
+   end Unique_Entity;
 
    -----------------
    -- Unique_Name --
@@ -12378,11 +12597,15 @@ package body Sem_Util is
          end if;
       end Get_Scoped_Name;
 
+   --  Start of processing for Unique_Name
+
    begin
       if E = Standard_Standard then
          return Get_Name_String (Name_Standard);
 
-      elsif Scope (E) = Standard_Standard then
+      elsif Scope (E) = Standard_Standard
+        and then not (Ekind (E) = E_Package or else Is_Subprogram (E))
+      then
          return Get_Name_String (Name_Standard) & "__" &
            Get_Name_String (Chars (E));
 
@@ -12428,7 +12651,13 @@ package body Sem_Util is
         and then Nkind (N) not in N_Generic_Renaming_Declaration
       loop
          N := Parent (N);
-         pragma Assert (Present (N));
+
+         --  We don't use Assert here, because that causes an infinite loop
+         --  when assertions are turned off. Better to crash.
+
+         if No (N) then
+            raise Program_Error;
+         end if;
       end loop;
 
       return N;

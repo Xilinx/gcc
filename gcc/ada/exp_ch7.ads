@@ -40,15 +40,42 @@ package Exp_Ch7 is
    --  Create the procedures Deep_Initialize, Deep_Adjust and Deep_Finalize
    --  that take care of finalization management at run-time.
 
-   procedure Build_Finalization_Collection
+   function Build_Exception_Handler
+     (Loc         : Source_Ptr;
+      E_Id        : Entity_Id;
+      Raised_Id   : Entity_Id;
+      For_Library : Boolean := False) return Node_Id;
+   --  Subsidiary to Build_Finalizer, Make_Deep_Array_Body and Make_Deep_Record
+   --  _Body. Create an exception handler of the following form:
+   --
+   --    when others =>
+   --       if not Raised_Id then
+   --          Raised_Id := True;
+   --          Save_Occurrence (E_Id, Get_Current_Excep.all.all);
+   --       end if;
+   --
+   --  If flag For_Library is set (and not in restricted profile):
+   --
+   --    when others =>
+   --       if not Raised_Id then
+   --          Raised_Id := True;
+   --          Save_Library_Occurrence (Get_Current_Excep.all.all);
+   --       end if;
+   --
+   --  E_Id denotes the defining identifier of a local exception occurrence.
+   --  Raised_Id is the entity of a local boolean flag. Flag For_Library is
+   --  used when operating at the library level, when enabled the current
+   --  exception will be saved to a global location.
+
+   procedure Build_Finalization_Master
      (Typ        : Entity_Id;
       Ins_Node   : Node_Id := Empty;
       Encl_Scope : Entity_Id := Empty);
-   --  Build a finalization collection for an access type. The designated type
-   --  may not necessarely be controlled or need finalization actions. The
-   --  routine creates a wrapper around a user-defined storage pool or the
-   --  general storage pool for access types. Ins_Nod and Encl_Scope are used
-   --  in conjunction with anonymous access types. Ins_Node designates the
+   --  Build a finalization master for an access type. The designated type may
+   --  not necessarely be controlled or need finalization actions. The routine
+   --  creates a wrapper around a user-defined storage pool or the general
+   --  storage pool for access types. Ins_Nod and Encl_Scope are used in
+   --  conjunction with anonymous access types. Ins_Node designates the
    --  insertion point before which the collection should be added. Encl_Scope
    --  is the scope of the context, either the enclosing record or the scope
    --  of the related function.
@@ -84,8 +111,8 @@ package Exp_Ch7 is
    --  Subsidiary to routines Build_Finalizer, Make_Deep_Array_Body and Make_
    --  Deep_Record_Body. Generate the following conditional raise statement:
    --
-   --    if Raised_Id then
-   --       Raise_From_Controlled_Operation (E_Id, Abort_Id);
+   --    if Raised_Id and then not Abort_Id then
+   --       Raise_From_Controlled_Operation (E_Id);
    --    end if;
    --
    --  Abort_Id is a local boolean flag which is set when the finalization was
@@ -173,13 +200,13 @@ package Exp_Ch7 is
    --  Create a special version of Deep_Finalize with identifier Nam. The
    --  routine has state information and can parform partial finalization.
 
-   function Make_Set_Finalize_Address_Ptr_Call
+   function Make_Set_Finalize_Address_Call
      (Loc     : Source_Ptr;
       Typ     : Entity_Id;
       Ptr_Typ : Entity_Id) return Node_Id;
    --  Generate the following call:
    --
-   --    Set_Finalize_Address_Ptr (<Ptr_Typ>FC, <Typ>FD'Unrestricted_Access);
+   --    Set_Finalize_Address (<Ptr_Typ>FM, <Typ>FD'Unrestricted_Access);
    --
    --  where Finalize_Address is the corresponding TSS primitive of type Typ
    --  and Ptr_Typ is the access type of the related allocation. Loc is the

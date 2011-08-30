@@ -1534,6 +1534,11 @@ get_proc_pointer_decl (gfc_symbol *sym)
 						  false, true);
     }
 
+  /* Handle threadprivate procedure pointers.  */
+  if (sym->attr.threadprivate
+      && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)))
+    DECL_TLS_MODEL (decl) = decl_default_tls_model (decl);
+
   attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
   decl_attributes (&decl, attributes, 0);
 
@@ -4236,7 +4241,7 @@ generate_coarray_sym_init (gfc_symbol *sym)
 
   tmp = build_call_expr_loc (input_location, gfor_fndecl_caf_register, 6, size,
 			     build_int_cst (integer_type_node,
-					    GFC_CAF_COARRAY_ALLOC), /* type.  */
+					    GFC_CAF_COARRAY_STATIC), /* type.  */
 			     token, null_pointer_node, /* token, stat.  */
 			     null_pointer_node, /* errgmsg, errmsg_len.  */
 			     build_int_cst (integer_type_node, 0));
@@ -5210,17 +5215,25 @@ gfc_generate_function_code (gfc_namespace * ns)
     {
       tree result = get_proc_result (sym);
 
-      if (result != NULL_TREE
-	    && sym->attr.function
-	    && !sym->attr.pointer)
+      if (result != NULL_TREE && sym->attr.function && !sym->attr.pointer)
 	{
 	  if (sym->attr.allocatable && sym->attr.dimension == 0
 	      && sym->result == sym)
 	    gfc_add_modify (&init, result, fold_convert (TREE_TYPE (result),
 							 null_pointer_node));
+	  else if (sym->ts.type == BT_CLASS
+		   && CLASS_DATA (sym)->attr.allocatable
+		   && sym->attr.dimension == 0 && sym->result == sym)
+	    {
+	      tmp = CLASS_DATA (sym)->backend_decl;
+	      tmp = fold_build3_loc (input_location, COMPONENT_REF,
+				     TREE_TYPE (tmp), result, tmp, NULL_TREE);
+	      gfc_add_modify (&init, tmp, fold_convert (TREE_TYPE (tmp),
+							null_pointer_node));
+	    }
 	  else if (sym->ts.type == BT_DERIVED
-	      && sym->ts.u.derived->attr.alloc_comp
-	      && !sym->attr.allocatable)
+		   && sym->ts.u.derived->attr.alloc_comp
+		   && !sym->attr.allocatable)
 	    {
 	      rank = sym->as ? sym->as->rank : 0;
 	      tmp = gfc_nullify_alloc_comp (sym->ts.u.derived, result, rank);

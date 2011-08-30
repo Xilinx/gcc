@@ -2930,6 +2930,7 @@ package body Sinfo is
       (N : Node_Id) return Boolean is
    begin
       pragma Assert (False
+        or else NT (N).Nkind = N_Formal_Incomplete_Type_Definition
         or else NT (N).Nkind = N_Formal_Private_Type_Definition
         or else NT (N).Nkind = N_Incomplete_Type_Declaration
         or else NT (N).Nkind = N_Private_Type_Declaration
@@ -3102,15 +3103,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_With_Clause);
       return Node1 (N);
    end Withed_Body;
-
-   function Zero_Cost_Handling
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Exception_Handler
-        or else NT (N).Nkind = N_Handled_Sequence_Of_Statements);
-      return Flag5 (N);
-   end Zero_Cost_Handling;
 
    --------------------------
    -- Field Set Procedures --
@@ -5980,6 +5972,7 @@ package body Sinfo is
       (N : Node_Id; Val : Boolean := True) is
    begin
       pragma Assert (False
+        or else NT (N).Nkind = N_Formal_Incomplete_Type_Definition
         or else NT (N).Nkind = N_Formal_Private_Type_Definition
         or else NT (N).Nkind = N_Incomplete_Type_Declaration
         or else NT (N).Nkind = N_Private_Type_Declaration
@@ -6152,15 +6145,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_With_Clause);
       Set_Node1 (N, Val);
    end Set_Withed_Body;
-
-   procedure Set_Zero_Cost_Handling
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Exception_Handler
-        or else NT (N).Nkind = N_Handled_Sequence_Of_Statements);
-      Set_Flag5 (N, Val);
-   end Set_Zero_Cost_Handling;
 
    -------------------------
    -- Iterator Procedures --

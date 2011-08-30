@@ -24,9 +24,11 @@
 ------------------------------------------------------------------------------
 
 with Debug;
+with Opt;
 with Osint;    use Osint;
 with Output;   use Output;
 with Prj.Attr;
+with Prj.Com;
 with Prj.Err;  use Prj.Err;
 with Snames;   use Snames;
 with Uintp;    use Uintp;
@@ -70,6 +72,10 @@ package body Prj is
    procedure Free_List (Languages : in out Language_List);
    --  Free memory allocated for the list of languages or sources
 
+   procedure Reset_Units_In_Table (Table : in out Units_Htable.Instance);
+   --  Resets all Units to No_Unit_Index Unit.File_Names (Spec).Unit &
+   --  Unit.File_Names (Impl).Unit in the given table.
+
    procedure Free_Units (Table : in out Units_Htable.Instance);
    --  Free memory allocated for unit information in the project
 
@@ -112,6 +118,28 @@ package body Prj is
       To (Last + 1 .. Last + S'Length) := S;
       Last := Last + S'Length;
    end Add_To_Buffer;
+
+   ---------------------------------
+   -- Current_Object_Path_File_Of --
+   ---------------------------------
+
+   function Current_Object_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access) return Path_Name_Type
+   is
+   begin
+      return Shared.Private_Part.Current_Object_Path_File;
+   end Current_Object_Path_File_Of;
+
+   ---------------------------------
+   -- Current_Source_Path_File_Of --
+   ---------------------------------
+
+   function Current_Source_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access)
+      return Path_Name_Type is
+   begin
+      return Shared.Private_Part.Current_Source_Path_File;
+   end Current_Source_Path_File_Of;
 
    ---------------------------
    -- Delete_Temporary_File --
@@ -671,6 +699,11 @@ package body Prj is
 
          Prj.Attr.Initialize;
 
+         --  Make sure that new reserved words after Ada 95 may be used as
+         --  identifiers.
+
+         Opt.Ada_Version := Opt.Ada_95;
+
          Set_Name_Table_Byte (Name_Project,  Token_Type'Pos (Tok_Project));
          Set_Name_Table_Byte (Name_Extends,  Token_Type'Pos (Tok_Extends));
          Set_Name_Table_Byte (Name_External, Token_Type'Pos (Tok_External));
@@ -918,6 +951,28 @@ package body Prj is
       end loop;
    end Free_List;
 
+   --------------------------
+   -- Reset_Units_In_Table --
+   --------------------------
+
+   procedure Reset_Units_In_Table (Table : in out Units_Htable.Instance) is
+      Unit : Unit_Index;
+
+   begin
+      Unit := Units_Htable.Get_First (Table);
+      while Unit /= No_Unit_Index loop
+         if Unit.File_Names (Spec) /= null then
+            Unit.File_Names (Spec).Unit := No_Unit_Index;
+         end if;
+
+         if Unit.File_Names (Impl) /= null then
+            Unit.File_Names (Impl).Unit := No_Unit_Index;
+         end if;
+
+         Unit := Units_Htable.Get_Next (Table);
+      end loop;
+   end Reset_Units_In_Table;
+
    ----------------
    -- Free_Units --
    ----------------
@@ -931,13 +986,10 @@ package body Prj is
    begin
       Unit := Units_Htable.Get_First (Table);
       while Unit /= No_Unit_Index loop
-         if Unit.File_Names (Spec) /= null then
-            Unit.File_Names (Spec).Unit := No_Unit_Index;
-         end if;
 
-         if Unit.File_Names (Impl) /= null then
-            Unit.File_Names (Impl).Unit := No_Unit_Index;
-         end if;
+         --  We cannot reset Unit.File_Names (Impl or Spec).Unit here as
+         --  Source_Data buffer is freed by the following instruction
+         --  Free_List (Tree.Projects, Free_Project => True);
 
          Unchecked_Free (Unit);
          Unit := Units_Htable.Get_Next (Table);
@@ -980,6 +1032,7 @@ package body Prj is
          Source_Paths_Htable.Reset (Tree.Source_Paths_HT);
          Source_Files_Htable.Reset (Tree.Source_Files_HT);
 
+         Reset_Units_In_Table (Tree.Units_HT);
          Free_List (Tree.Projects, Free_Project => True);
          Free_Units (Tree.Units_HT);
 
@@ -1025,9 +1078,50 @@ package body Prj is
 
       Tree.Replaced_Source_Number := 0;
 
+      Reset_Units_In_Table (Tree.Units_HT);
       Free_List (Tree.Projects, Free_Project => True);
       Free_Units (Tree.Units_HT);
    end Reset;
+
+   -------------------------------------
+   -- Set_Current_Object_Path_File_Of --
+   -------------------------------------
+
+   procedure Set_Current_Object_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access;
+      To     : Path_Name_Type)
+   is
+   begin
+      Shared.Private_Part.Current_Object_Path_File := To;
+   end Set_Current_Object_Path_File_Of;
+
+   -------------------------------------
+   -- Set_Current_Source_Path_File_Of --
+   -------------------------------------
+
+   procedure Set_Current_Source_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access;
+      To     : Path_Name_Type)
+   is
+   begin
+      Shared.Private_Part.Current_Source_Path_File := To;
+   end Set_Current_Source_Path_File_Of;
+
+   -----------------------
+   -- Set_Path_File_Var --
+   -----------------------
+
+   procedure Set_Path_File_Var (Name : String; Value : String) is
+      Host_Spec : String_Access := To_Host_File_Spec (Value);
+   begin
+      if Host_Spec = null then
+         Prj.Com.Fail
+           ("could not convert file name """ & Value & """ to host spec");
+      else
+         Setenv (Name, Host_Spec.all);
+         Free (Host_Spec);
+      end if;
+   end Set_Path_File_Var;
 
    -------------------
    -- Switches_Name --
@@ -1195,72 +1289,102 @@ package body Prj is
    -- Compute_All_Imported_Projects --
    -----------------------------------
 
-   procedure Compute_All_Imported_Projects (Tree : Project_Tree_Ref) is
-      Project : Project_Id;
+   procedure Compute_All_Imported_Projects
+     (Root_Project : Project_Id;
+      Tree         : Project_Tree_Ref)
+   is
+      procedure Analyze_Tree
+        (Local_Root : Project_Id;
+         Local_Tree : Project_Tree_Ref);
+      --  Process Project and all its aggregated project to analyze their own
+      --  imported projects.
 
-      procedure Recursive_Add
-        (Prj   : Project_Id;
-         Tree  : Project_Tree_Ref;
-         Dummy : in out Boolean);
-      --  Recursively add the projects imported by project Project, but not
-      --  those that are extended.
+      ------------------
+      -- Analyze_Tree --
+      ------------------
 
-      -------------------
-      -- Recursive_Add --
-      -------------------
-
-      procedure Recursive_Add
-        (Prj   : Project_Id;
-         Tree  : Project_Tree_Ref;
-         Dummy : in out Boolean)
+      procedure Analyze_Tree
+        (Local_Root : Project_Id;
+         Local_Tree : Project_Tree_Ref)
       is
-         pragma Unreferenced (Dummy, Tree);
+         pragma Unreferenced (Local_Root);
+
+         Project : Project_Id;
+
+         procedure Recursive_Add
+           (Prj   : Project_Id;
+            Tree  : Project_Tree_Ref;
+            Dummy : in out Boolean);
+         --  Recursively add the projects imported by project Project, but not
+         --  those that are extended.
+
+         -------------------
+         -- Recursive_Add --
+         -------------------
+
+         procedure Recursive_Add
+           (Prj   : Project_Id;
+            Tree  : Project_Tree_Ref;
+            Dummy : in out Boolean)
+         is
+            pragma Unreferenced (Dummy, Tree);
+            List : Project_List;
+            Prj2 : Project_Id;
+
+         begin
+            --  A project is not importing itself
+
+            Prj2 := Ultimate_Extending_Project_Of (Prj);
+
+            if Project /= Prj2 then
+
+               --  Check that the project is not already in the list. We know
+               --  the one passed to Recursive_Add have never been visited
+               --  before, but the one passed it are the extended projects.
+
+               List := Project.All_Imported_Projects;
+               while List /= null loop
+                  if List.Project = Prj2 then
+                     return;
+                  end if;
+
+                  List := List.Next;
+               end loop;
+
+               --  Add it to the list
+
+               Project.All_Imported_Projects :=
+                 new Project_List_Element'
+                   (Project => Prj2,
+                    Next    => Project.All_Imported_Projects);
+            end if;
+         end Recursive_Add;
+
+         procedure For_All_Projects is
+           new For_Every_Project_Imported (Boolean, Recursive_Add);
+
+         Dummy   : Boolean := False;
          List    : Project_List;
-         Prj2    : Project_Id;
 
       begin
-         --  A project is not importing itself
+         List := Local_Tree.Projects;
+         while List /= null loop
+            Project := List.Project;
+            Free_List
+              (Project.All_Imported_Projects, Free_Project => False);
+            For_All_Projects
+              (Project, Local_Tree, Dummy, Include_Aggregated => False);
+            List := List.Next;
+         end loop;
+      end Analyze_Tree;
 
-         Prj2 := Ultimate_Extending_Project_Of (Prj);
+      procedure For_Aggregates is
+        new For_Project_And_Aggregated (Analyze_Tree);
 
-         if Project /= Prj2 then
-
-            --  Check that the project is not already in the list. We know the
-            --  one passed to Recursive_Add have never been visited before, but
-            --  the one passed it are the extended projects.
-
-            List := Project.All_Imported_Projects;
-            while List /= null loop
-               if List.Project = Prj2 then
-                  return;
-               end if;
-
-               List := List.Next;
-            end loop;
-
-            --  Add it to the list
-
-            Project.All_Imported_Projects :=
-              new Project_List_Element'
-                (Project => Prj2,
-                 Next    => Project.All_Imported_Projects);
-         end if;
-      end Recursive_Add;
-
-      procedure For_All_Projects is
-        new For_Every_Project_Imported (Boolean, Recursive_Add);
-
-      Dummy : Boolean := False;
-      List  : Project_List;
+   --  Start of processing for Compute_All_Imported_Projects
 
    begin
-      List := Tree.Projects;
-      while List /= null loop
-         Project := List.Project;
-         Free_List (Project.All_Imported_Projects, Free_Project => False);
-         For_All_Projects (Project, Tree, Dummy, Include_Aggregated => False);
-         List := List.Next;
-      end loop;
+      For_Aggregates (Root_Project, Tree);
    end Compute_All_Imported_Projects;
 
    -------------------

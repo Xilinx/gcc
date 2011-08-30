@@ -33,6 +33,7 @@ GNATRTL_TASKING_OBJS= \
   a-reatim$(objext) \
   a-retide$(objext) \
   a-rttiev$(objext) \
+  a-synbar$(objext) \
   a-sytaco$(objext) \
   a-tasatt$(objext) \
   a-taside$(objext) \
@@ -154,13 +155,13 @@ GNATRTL_NONTASKING_OBJS= \
   a-envvar$(objext) \
   a-except$(objext) \
   a-exctra$(objext) \
-  a-fihema$(objext) \
   a-finali$(objext) \
   a-flteio$(objext) \
   a-fwteio$(objext) \
   a-fzteio$(objext) \
   a-inteio$(objext) \
   a-ioexce$(objext) \
+  a-iteint$(objext) \
   a-iwteio$(objext) \
   a-izteio$(objext) \
   a-lcteio$(objext) \
@@ -183,6 +184,9 @@ GNATRTL_NONTASKING_OBJS= \
   a-ngcoty$(objext) \
   a-ngelfu$(objext) \
   a-ngrear$(objext) \
+  a-nllrar$(objext) \
+  a-nlrear$(objext) \
+  a-nurear$(objext) \
   a-nlcefu$(objext) \
   a-nlcoty$(objext) \
   a-nlelfu$(objext) \
@@ -290,6 +294,7 @@ GNATRTL_NONTASKING_OBJS= \
   a-tiunio$(objext) \
   a-unccon$(objext) \
   a-uncdea$(objext) \
+  a-undesu$(objext) \
   a-wichha$(objext) \
   a-wichun$(objext) \
   a-widcha$(objext) \
@@ -477,6 +482,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-crtrun$(objext) \
   s-direio$(objext) \
   s-dsaser$(objext) \
+  s-excdeb$(objext) \
   s-except$(objext) \
   s-exctab$(objext) \
   s-exnint$(objext) \
@@ -495,6 +501,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-ficobl$(objext) \
   s-fileio$(objext) \
   s-filofl$(objext) \
+  s-finmas$(objext) \
   s-finroo$(objext) \
   s-fishfl$(objext) \
   s-flocon$(objext) \
@@ -605,12 +612,14 @@ GNATRTL_NONTASKING_OBJS= \
   s-sequio$(objext) \
   s-shasto$(objext) \
   s-soflin$(objext) \
+  s-spsufi$(objext) \
   s-stache$(objext) \
   s-stalib$(objext) \
   s-stausa$(objext) \
   s-stchop$(objext) \
   s-stoele$(objext) \
   s-stopoo$(objext) \
+  s-stposu$(objext) \
   s-stratt$(objext) \
   s-strhas$(objext) \
   s-string$(objext) \

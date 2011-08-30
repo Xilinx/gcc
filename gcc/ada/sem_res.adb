@@ -1685,6 +1685,7 @@ package body Sem_Res is
       Tsk : Node_Id := Empty;
 
       function Process_Discr (Nod : Node_Id) return Traverse_Result;
+      --  Comment needed???
 
       -------------------
       -- Process_Discr --
@@ -1753,15 +1754,6 @@ package body Sem_Res is
       It1       : Interp;
       Seen      : Entity_Id := Empty; -- prevent junk warning
 
-      procedure Build_Explicit_Dereference
-        (Expr : Node_Id;
-         Disc : Entity_Id);
-      --  AI05-139: Names with implicit dereference. If the expression N is a
-      --  reference type and the context imposes the corresponding designated
-      --  type, convert N into N.Disc.all. Such expressions are always over-
-      --  loaded with both interpretations, and the dereference interpretation
-      --  carries the name of the reference discriminant.
-
       function Comes_From_Predefined_Lib_Unit (Nod : Node_Id) return Boolean;
       --  Determine whether a node comes from a predefined library unit or
       --  Standard.
@@ -1776,30 +1768,6 @@ package body Sem_Res is
 
       procedure Resolution_Failed;
       --  Called when attempt at resolving current expression fails
-
-      --------------------------------
-      -- Build_Explicit_Dereference --
-      --------------------------------
-
-      procedure Build_Explicit_Dereference
-        (Expr : Node_Id;
-         Disc : Entity_Id)
-      is
-         Loc : constant Source_Ptr := Sloc (Expr);
-
-      begin
-         Set_Is_Overloaded (Expr, False);
-         Rewrite (Expr,
-           Make_Explicit_Dereference (Loc,
-             Prefix =>
-               Make_Selected_Component (Loc,
-                 Prefix => Relocate_Node (Expr),
-                 Selector_Name =>
-               New_Occurrence_Of (Disc, Loc))));
-
-         Set_Etype (Prefix (Expr), Etype (Disc));
-         Set_Etype (Expr, Typ);
-      end Build_Explicit_Dereference;
 
       ------------------------------------
       -- Comes_From_Predefined_Lib_Unit --
@@ -1819,18 +1787,14 @@ package body Sem_Res is
 
       procedure Patch_Up_Value (N : Node_Id; Typ : Entity_Id) is
       begin
-         if Nkind (N) = N_Integer_Literal
-           and then Is_Real_Type (Typ)
-         then
+         if Nkind (N) = N_Integer_Literal and then Is_Real_Type (Typ) then
             Rewrite (N,
               Make_Real_Literal (Sloc (N),
                 Realval => UR_From_Uint (Intval (N))));
             Set_Etype (N, Universal_Real);
             Set_Is_Static_Expression (N);
 
-         elsif Nkind (N) = N_Real_Literal
-           and then Is_Integer_Type (Typ)
-         then
+         elsif Nkind (N) = N_Real_Literal and then Is_Integer_Type (Typ) then
             Rewrite (N,
               Make_Integer_Literal (Sloc (N),
                 Intval => UR_To_Uint (Realval (N))));
@@ -1838,7 +1802,7 @@ package body Sem_Res is
             Set_Is_Static_Expression (N);
 
          elsif Nkind (N) = N_String_Literal
-           and then Is_Character_Type (Typ)
+                 and then Is_Character_Type (Typ)
          then
             Set_Character_Literal_Name (Char_Code (Character'Pos ('A')));
             Rewrite (N,
@@ -1849,15 +1813,13 @@ package body Sem_Res is
             Set_Etype (N, Any_Character);
             Set_Is_Static_Expression (N);
 
-         elsif Nkind (N) /= N_String_Literal
-           and then Is_String_Type (Typ)
-         then
+         elsif Nkind (N) /= N_String_Literal and then Is_String_Type (Typ) then
             Rewrite (N,
               Make_String_Literal (Sloc (N),
                 Strval => End_String));
 
          elsif Nkind (N) = N_Range then
-            Patch_Up_Value (Low_Bound (N), Typ);
+            Patch_Up_Value (Low_Bound (N),  Typ);
             Patch_Up_Value (High_Bound (N), Typ);
          end if;
       end Patch_Up_Value;
@@ -1878,7 +1840,7 @@ package body Sem_Res is
          then
             Error_Msg_NE ("ambiguous call to&", Arg, Name (Arg));
 
-            --  Could use comments on what is going on here ???
+            --  Could use comments on what is going on here???
 
             Get_First_Interp (Name (Arg), I, It);
             while Present (It.Nam) loop
@@ -1926,8 +1888,8 @@ package body Sem_Res is
          return;
       end if;
 
-      --  Access attribute on remote subprogram cannot be used for
-      --  a non-remote access-to-subprogram type.
+      --  Access attribute on remote subprogram cannot be used for a non-remote
+      --  access-to-subprogram type.
 
       if Nkind (N) = N_Attribute_Reference
         and then (Attribute_Name (N) = Name_Access              or else
@@ -3987,14 +3949,17 @@ package body Sem_Res is
                     ("& is not a dispatching operation of &!", A, Nam);
                end if;
 
+            --  Apply the checks described in 3.10.2(27): if the context is a
+            --  specific access-to-object, the actual cannot be class-wide.
+            --  Use base type to exclude access_to_subprogram cases.
+
             elsif Is_Access_Type (A_Typ)
               and then Is_Access_Type (F_Typ)
-              and then Ekind (F_Typ) /= E_Access_Subprogram_Type
-              and then Ekind (F_Typ) /= E_Anonymous_Access_Subprogram_Type
+              and then not Is_Access_Subprogram_Type (Base_Type (F_Typ))
               and then (Is_Class_Wide_Type (Designated_Type (A_Typ))
                          or else (Nkind (A) = N_Attribute_Reference
                                    and then
-                                     Is_Class_Wide_Type (Etype (Prefix (A)))))
+                                  Is_Class_Wide_Type (Etype (Prefix (A)))))
               and then not Is_Class_Wide_Type (Designated_Type (F_Typ))
               and then not Is_Controlling_Formal (F)
 
@@ -4008,9 +3973,7 @@ package body Sem_Res is
                Error_Msg_N
                  ("access to class-wide argument not allowed here!", A);
 
-               if Is_Subprogram (Nam)
-                 and then Comes_From_Source (Nam)
-               then
+               if Is_Subprogram (Nam) and then Comes_From_Source (Nam) then
                   Error_Msg_Node_2 := Designated_Type (F_Typ);
                   Error_Msg_NE
                     ("& is not a dispatching operation of &!", A, Nam);
@@ -4057,7 +4020,8 @@ package body Sem_Res is
    -----------------------
 
    procedure Resolve_Allocator (N : Node_Id; Typ : Entity_Id) is
-      E        : constant Node_Id := Expression (N);
+      Desig_T  : constant Entity_Id := Designated_Type (Typ);
+      E        : constant Node_Id   := Expression (N);
       Subtyp   : Entity_Id;
       Discrim  : Entity_Id;
       Constr   : Node_Id;
@@ -4159,7 +4123,7 @@ package body Sem_Res is
 
       if Nkind (E) = N_Qualified_Expression then
          if Is_Class_Wide_Type (Etype (E))
-           and then not Is_Class_Wide_Type (Designated_Type (Typ))
+           and then not Is_Class_Wide_Type (Desig_T)
            and then not In_Dispatching_Context
          then
             Error_Msg_N
@@ -4303,7 +4267,7 @@ package body Sem_Res is
       --  Expand_Allocator_Expression).
 
       if Ada_Version >= Ada_2005
-        and then Is_Class_Wide_Type (Designated_Type (Typ))
+        and then Is_Class_Wide_Type (Desig_T)
       then
          declare
             Exp_Typ : Entity_Id;
@@ -4365,7 +4329,7 @@ package body Sem_Res is
       --  type when restriction No_Task_Hierarchy applies.
 
       if not Is_Library_Level_Entity (Base_Type (Typ))
-        and then Has_Task (Base_Type (Designated_Type (Typ)))
+        and then Has_Task (Base_Type (Desig_T))
       then
          Check_Restriction (No_Task_Hierarchy, N);
       end if;
@@ -4382,6 +4346,26 @@ package body Sem_Res is
            and then Nkind (Associated_Node_For_Itype (Typ)) =
                       N_Discriminant_Specification
          then
+            declare
+               Discr : constant Entity_Id :=
+                         Defining_Identifier (Associated_Node_For_Itype (Typ));
+
+            begin
+               --  Ada 2012 AI05-0052: If the designated type of the allocator
+               --  is limited, then the allocator shall not be used to define
+               --  the value of an access discriminant unless the discriminated
+               --  type is immutably limited.
+
+               if Ada_Version >= Ada_2012
+                 and then Is_Limited_Type (Desig_T)
+                 and then not Is_Immutably_Limited_Type (Scope (Discr))
+               then
+                  Error_Msg_N
+                    ("only immutably limited types can have anonymous "
+                     & "access discriminants designating a limited type", N);
+               end if;
+            end;
+
             --  Avoid marking an allocator as a dynamic coextension if it is
             --  within a static construct.
 
@@ -4397,19 +4381,33 @@ package body Sem_Res is
          end if;
       end if;
 
-      --  Report a simple error:  if the designated object is a local task,
-      --  its body has not been seen yet, and its activation will fail
-      --  an elaboration check.
+      --  Report a simple error: if the designated object is a local task,
+      --  its body has not been seen yet, and its activation will fail an
+      --  elaboration check.
 
-      if Is_Task_Type (Designated_Type (Typ))
-        and then Scope (Base_Type (Designated_Type (Typ))) = Current_Scope
+      if Is_Task_Type (Desig_T)
+        and then Scope (Base_Type (Desig_T)) = Current_Scope
         and then Is_Compilation_Unit (Current_Scope)
         and then Ekind (Current_Scope) = E_Package
         and then not In_Package_Body (Current_Scope)
       then
-         Error_Msg_N
-           ("cannot activate task before body seen?", N);
+         Error_Msg_N ("cannot activate task before body seen?", N);
          Error_Msg_N ("\Program_Error will be raised at run time?", N);
+      end if;
+
+      --  Ada 2012 (AI05-0111-3): Issue a warning whenever allocating a task
+      --  or a type containing tasks on a subpool since the deallocation of
+      --  the subpool may lead to undefined task behavior. Perform the check
+      --  only when the allocator has not been converted into a Program_Error
+      --  due to a previous error.
+
+      if Ada_Version >= Ada_2012
+        and then Nkind (N) = N_Allocator
+        and then Present (Subpool_Handle_Name (N))
+        and then Has_Task (Desig_T)
+      then
+         Error_Msg_N ("?allocation of task on subpool may lead to " &
+                      "undefined behavior", N);
       end if;
    end Resolve_Allocator;
 
@@ -4656,13 +4654,16 @@ package body Sem_Res is
       --  universal real, since in this case we don't do a conversion to a
       --  specific fixed-point type (instead the expander handles the case).
 
+      --  Set the type of the node to its universal interpretation because
+      --  legality checks on an exponentiation operand need the context.
+
       elsif (B_Typ = Universal_Integer or else B_Typ = Universal_Real)
         and then Present (Universal_Interpretation (L))
         and then Present (Universal_Interpretation (R))
       then
+         Set_Etype (N, B_Typ);
          Resolve (L, Universal_Interpretation (L));
          Resolve (R, Universal_Interpretation (R));
-         Set_Etype (N, B_Typ);
 
       elsif (B_Typ = Universal_Real
               or else Etype (N) = Universal_Fixed
@@ -7817,6 +7818,14 @@ package body Sem_Res is
       if Is_Fixed_Point_Type (Typ) and then Comes_From_Source (N) then
          Error_Msg_N ("exponentiation not available for fixed point", N);
          return;
+
+      elsif Nkind (Parent (N)) in N_Op
+        and then Is_Fixed_Point_Type (Etype (Parent (N)))
+        and then Etype (N) = Universal_Real
+        and then Comes_From_Source (N)
+      then
+         Error_Msg_N ("exponentiation not available for fixed point", N);
+         return;
       end if;
 
       if Comes_From_Source (N)
@@ -8052,14 +8061,24 @@ package body Sem_Res is
 
    procedure Resolve_Quantified_Expression (N : Node_Id; Typ : Entity_Id) is
    begin
-      --  The loop structure is already resolved during its analysis, only the
-      --  resolution of the condition needs to be done. Expansion is disabled
-      --  so that checks and other generated code are inserted in the tree
-      --  after expression has been rewritten as a loop.
+      --  Normal mode (not ALFA)
 
-      Expander_Mode_Save_And_Set (False);
-      Resolve (Condition (N), Typ);
-      Expander_Mode_Restore;
+      if not ALFA_Mode then
+
+         --  The loop structure is already resolved during its analysis, only
+         --  the resolution of the condition needs to be done. Expansion is
+         --  disabled so that checks and other generated code are inserted in
+         --  the tree after expression has been rewritten as a loop.
+
+         Expander_Mode_Save_And_Set (False);
+         Resolve (Condition (N), Typ);
+         Expander_Mode_Restore;
+
+      --  In ALFA_Mode, no magic needed, we just resolve the underlying nodes
+
+      else
+         Resolve (Condition (N), Typ);
+      end if;
    end Resolve_Quantified_Expression;
 
    -------------------

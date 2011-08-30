@@ -508,6 +508,7 @@ package body Impunit is
    Non_Imp_File_Names_12 : constant File_List := (
      "s-multip",    -- System.Multiprocessors
      "s-mudido",    -- System.Multiprocessors.Dispatching_Domains
+     "s-stposu",    -- System.Storage_Pools.Subpools
      "a-cobove",    -- Ada.Containers.Bounded_Vectors
      "a-cbdlli",    -- Ada.Containers.Bounded_Doubly_Linked_Lists
      "a-cborse",    -- Ada.Containers.Bounded_Ordered_Sets
@@ -520,10 +521,12 @@ package body Impunit is
      "a-cbmutr",    -- Ada.Containers.Bounded_Multiway_Trees
      "a-extiin",    -- Ada.Execution_Time.Interrupts
      "a-iteint",    -- Ada.Iterator_Interfaces
+     "a-synbar",    -- Ada.Synchronous_Barriers
+     "a-undesu",    -- Ada.Unchecked_Deallocate_Subpool
 
-   -----------------------------------------
-   -- GNAT Defined Additions to Ada 20012 --
-   -----------------------------------------
+   ----------------------------------------
+   -- GNAT Defined Additions to Ada 2012 --
+   ----------------------------------------
 
      "a-cofove",    -- Ada.Containers.Formal_Vectors
      "a-cfdlli",    -- Ada.Containers.Formal_Doubly_Linked_Lists

@@ -1,3 +1,287 @@
+2011-08-30  Christian Bruel  <christian.bruel@st.com>
+
+	* coverage.c (coverage_init): Check flag_branch_probabilities instead of
+	flag_profile_use.
+	
+2011-08-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.opt (-msave-toc-indirect): Change default
+	to off.  Document switch.
+	* doc/invoke.texi (-msave-toc-indirect): Ditto.
+
+2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* gthr-posix.h (__gthread_active_p): Do not use preprocessor
+	conditionals and comments inside macro arguments.
+
+20011-08-29  Artjoms Sinkarovs  <artyom.shinkaroff@gmail.com>
+	     Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (constant_boolean_node): Adjust prototype.
+	* fold-const.c (fold_convert_loc): Move aggregate conversion
+	leeway down.
+	(constant_boolean_node): Make value parameter boolean, add
+	vector type handling.
+	(fold_unary_loc): Use constant_boolean_node.
+	(fold_binary_loc): Preserve types properly when folding
+	COMPLEX_EXPR <__real x, __imag x>.
+	* gimplify.c (gimplify_expr): Handle vector comparison.
+	* tree.def (EQ_EXPR, ...): Document behavior on vector typed
+	comparison.
+	* tree-cfg.c (verify_gimple_comparison): Verify vector typed
+	comparisons.
+
+2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48722
+	* emit-rtl.c (unshare_all_rtl_again): For CALL_INSNs,
+	reset_used_flags also in CALL_INSN_FUNCTION_USAGE.
+	(verify_rtl_sharing): Likewise and verify_rtx_sharing
+	in there too.
+	(unshare_all_rtl_in_chain): For CALL_INSNs
+	copy_rtx_if_shared also CALL_INSN_FUNCTION_USAGE.
+
+2011-08-29  Richard Guenther  <rguenther@suse.de>
+
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1): Set a location
+	on the built ADDR_EXPR.
+
+2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/50215
+	* var-tracking.c (create_entry_value): Call cselib_lookup_from_insn
+	before adding ENTRY_VALUE to val->locs.
+
+2011-08-28  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR bootstrap/50218
+	* tree-ssa-loop-ivopts.c (determine_use_iv_cost_condition): Initialize
+	comp.
+
+2011-08-27  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* doc/rtl.texi (simple_return): Document.
+	(parallel, PATTERN): Here too.
+	* doc/md.texi (return): Mention it's allowed to expand to simple_return
+	in some cases.
+	(simple_return): Document standard pattern.
+	* gengenrtl.c (special_rtx): SIMPLE_RETURN is special.
+	* final.c (final_scan_insn): Use ANY_RETURN_P on body.
+	* reorg.c (function_return_label, function_simple_return_label):
+	New static variables, replacing...
+	(end_of_function_label): ... this.
+	(simplejump_or_return_p): New static function.
+	(optimize_skip, steal_delay_list_from_fallthrough,
+	fill_slots_from_thread): Use it.
+	(relax_delay_slots): Likewise.  Use ANY_RETURN_P on body.
+	(rare_destination, follow_jumps): Use ANY_RETURN_P on body.
+	(find_end_label): Take a new arg which is one of the two return
+	rtxs.  Depending on which, set either function_return_label or
+	function_simple_return_label.  All callers changed.
+	(make_return_insns): Make both kinds.
+	(dbr_schedule): Adjust for two kinds of end labels.
+	* function.c (emit_return_into_block): Set JUMP_LABEL properly.
+	* genemit.c (gen_exp): Handle SIMPLE_RETURN.
+	(gen_expand, gen_split): Use ANY_RETURN_P.
+	* df-scan.c (df_uses_record): Handle SIMPLE_RETURN.
+	* rtl.def (SIMPLE_RETURN): New code.
+	* ifcvt.c (find_if_case_1): Be more careful about
+	redirecting jumps to the EXIT_BLOCK.
+	* jump.c (condjump_p, condjump_in_parallel_p, any_condjump_p,
+	returnjump_p_1): Handle SIMPLE_RETURNs.
+	* print-rtl.c (print_rtx): Likewise.
+	* rtl.c (copy_rtx): Likewise.
+	* bt-load.c (compute_defs_uses_and_gen): Use ANY_RETURN_P.
+	* combine.c (simplify_set): Likewise.
+	* resource.c (find_dead_or_set_registers, mark_set_resources):
+	Likewise.
+	* emit-rtl.c (verify_rtx_sharing, classify_insn, copy_insn_1,
+	copy_rtx_if_shared_1, mark_used_flags): Handle SIMPLE_RETURNs.
+	(init_emit_regs): Initialize simple_return_rtx.
+	* cfglayout.c (fixup_reorder_chain): Pass a JUMP_LABEL to
+	force_nonfallthru_and_redirect.
+	* rtl.h (ANY_RETURN_P): Allow SIMPLE_RETURN.
+	(GR_SIMPLE_RETURN): New enum value.
+	(simple_return_rtx): New macro.
+	* basic-block.h (force_nonfallthru_and_redirect): Adjust
+	declaration.
+	* cfgrtl.c (force_nonfallthru_and_redirect): Take a new jump_label
+	argument.  All callers changed.  Be careful about what kinds of
+	returnjumps to generate.
+	* config/i386/3i86.c (ix86_pad_returns, ix86_count_insn_bb,
+	ix86_pad_short_function): Likewise.
+	* config/arm/arm.c (arm_final_prescan_insn): Handle both kinds
+	of return.
+	* config/mips/mips.md (any_return): New code_iterator.
+	(optab): Add cases for return and simple_return.
+	(return): Expand to a simple_return.
+	(simple_return): New pattern.
+	(*<optab>, *<optab>_internal for any_return): New patterns.
+	(return_internal): Remove.
+	* config/mips/mips.c (mips_expand_epilogue): Make the last insn
+	a simple_return_internal.
+
+2011-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*absneg<mode>2): Fix split condition.
+	(vec_extract_lo_<mode>): Prevent both operands in memory.
+	(vec_extract_lo_v16hi): Ditto.
+	(*vec_extract_v4sf_mem): Add TARGET_SSE insn constraint.
+
+2011-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (mulv16qi3): Attach REG_EQUAL note.
+	(*sse2_mulv4si3): Ditto.
+	(mulv2di3): Ditto.
+	* config/i386/i386.c (legitimize_tls_address): Change REG_EQIV
+	notes to REG_EQUAL.
+
+2011-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/50202
+	* config/i386/sse.md (sse4_2_pcmpestr): Emit NOTE_INSN_DELETED note
+	when all outputs are unused.
+	(sse4_2_pcmpistr): Ditto.
+
+2011-08-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (round<mode>2): New expander.
+	* config/i386/i386.c (enum ix86_builtins): Add
+	IX86_BUILTIN_ROUND{PS,PD}_AZ{,256}.
+	(struct builtin_description): Add __builtin_ia32_round{ps,pd}_az{,256}
+	descriptions.
+	(ix86_builtin_vectorized_function): Handle BUILT_IN_ROUND{,F} builtins.
+	(ix86_build_const_vector): Rewrite using loop with RTVEC_ELT accessor.
+
+2011-08-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/50083
+	* convert.c (convert_to_integer) <BUIT_IN_ROUND{,F,L}>: Convert
+	only when TARGET_C99_FUNCTIONS.
+	<BUILT_IN_NEARBYINT{,F,L}>: Ditto.
+	<BUILT_IN_RINT{,F,L}>: Ditto.
+
+2011-08-26  Michael Matz  <matz@suse.de>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR lto/50165
+	* lto-streamer-in.c (canon_file_name): Initialize new_slot->len;
+	don't call strlen twice, use memcpy.
+
+2011-08-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/bmi2intrin.h: Allow in <immintrin.h>.
+	* config/i386/bmiintrin.h: Likewise.
+	* config/i386/lzcntintrin.h: Likewise.
+
+	* config/i386/immintrin.h: Include <lzcntintrin.h>,
+	<bmiintrin.h> and <bmi2intrin.h>.
+
+2011-08-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/50166
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Check count in main.
+	* configure: Regenerate.
+
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/50179
+	* c-typeck.c (c_process_expr_stmt): Skip over nops and
+	call mark_exp_read even if exprv is ADDR_EXPR.
+
+2011-08-26  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* df-problems.c (df_note_bb_compute): Pass uses rather than defs
+	to df_set_dead_notes_for_mw.
+
+2011-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* varasm.c (decode_addr_const): Handle MEM_REF[&X, OFF].
+
+2011-08-26  Zdenek Dvorak  <ook@ucw.cz>
+	    Tom de Vries  <tom@codesourcery.com>
+
+	* tree-ssa-loop-ivopts.c (struct cost_pair): Add comp field.
+	(struct ivopts_data): Add loop_single_exit_p field.
+	(niter_for_exit): Change parameter desc_p into return value.  Return
+	desc if	desc->may_be_zero.  Free desc if unused.
+	(niter_for_single_dom_exit): Change return type.
+	(find_induction_variables): Handle changed return type of
+	niter_for_single_dom_exit.  Dump may_be_zero.
+	(add_candidate_1): Keep original base and step type for IP_ORIGINAL.
+	(set_use_iv_cost): Add and handle comp parameter.
+	(determine_use_iv_cost_generic, determine_use_iv_cost_address): Add
+	comp argument to set_use_iv_cost.
+	(strip_wrap_conserving_type_conversions, expr_equal_p)
+	(difference_cannot_overflow_p, iv_elimination_compare_lt): New function.
+	(may_eliminate_iv): Add comp parameter.  Handle new return type of
+	niter_for_exit.  Use loop_single_exit_p.  Use iv_elimination_compare_lt.
+	(determine_use_iv_cost_condition): Add comp argument to set_use_iv_cost
+	and may_eliminate_iv.
+	(rewrite_use_compare): Move call to iv_elimination_compare to ...
+	(may_eliminate_iv): Here.
+	(tree_ssa_iv_optimize_loop): Initialize loop_single_exit_p.
+
+2011-08-26  Tom de Vries  <tom@codesourcery.com>
+
+	* tree-pretty-print (dump_generic_node): Test for NULL_TREE before
+	accessing TREE_TYPE.
+
+2011-08-26  Jiangning Liu  <jiangning.liu@arm.com>
+
+	* config/arm/arm.md (*ior_scc_scc): Enable for Thumb2 as well.
+	(*ior_scc_scc_cmp): Likewise
+	(*and_scc_scc): Likewise.
+	(*and_scc_scc_cmp): Likewise.
+	(*and_scc_scc_nodom): Likewise.
+	(*cmp_ite0, *cmp_ite1, *cmp_and, *cmp_ior): Handle Thumb2.
+
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* rtlanal.c (nonzero_bits1): Handle CLRSB.
+
+2011-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c (string_constant): Handle &MEM_REF.
+
+2011-08-26  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.c (struct four_ints): New type.
+	(count_insns_for_constant): Delete function.
+	(find_best_start): Delete function.
+	(optimal_immediate_sequence): New function.
+	(optimal_immediate_sequence_1): New function.
+	(arm_gen_constant): Move constant splitting code to
+	optimal_immediate_sequence.
+	Rewrite constant negation/invertion code.
+
+2011-08-26  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm-protos.h (const_ok_for_op): Add prototype.
+	* config/arm/arm.c (const_ok_for_op): Add support for addw/subw.
+	Remove prototype. Remove static function type.
+	* config/arm/arm.md (*arm_addsi3): Add addw/subw support.
+	Add arch attribute.
+	* config/arm/constraints.md (Pj, PJ): New constraints.
+
+2011-08-26  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/cortex-a9.md ("cortex_a9_mult_long"): New.
+	("cortex_a9_multiply_long"): New and use above.  Handle all
+	long multiply cases.
+	("cortex_a9_multiply"): Handle smmul and smmulr.
+	("cortex_a9_mac"): Handle smmla.
+
+2011-08-25  Richard Henderson  <rth@redhat.com>
+
+	PR 50132
+	PR 49864
+	* cfgcleanup.c (old_insns_match_p): Don't allow cross-jump for
+	non-constant stack adjutment.
+	* expr.c (find_args_size_adjust): Break out from ...
+	(fixup_args_size_notes): ... here.
+	* rtl.h (find_args_size_adjust): Declare.
+
 2011-08-25  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (isa): Add sse2, sse2_noavx, sse3,
@@ -368,8 +652,7 @@
 
 2011-08-22  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Error if __ELF__ isn't
-	defined.
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Error if __ELF__ isn't defined.
 	* configure: Regenerated.
 
 2011-08-22  Jakub Jelinek  <jakub@redhat.com>

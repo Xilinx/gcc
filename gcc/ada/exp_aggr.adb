@@ -4664,6 +4664,12 @@ package body Exp_Aggr is
          Check_Same_Aggr_Bounds (N, 1);
       end if;
 
+      --  In formal verification mode, leave the aggregate non-expanded
+
+      if ALFA_Mode then
+         return;
+      end if;
+
       --  STEP 2
 
       --  Here we test for is packed array aggregate that we can handle at
@@ -5093,6 +5099,16 @@ package body Exp_Aggr is
       --  semantics of Ada complicate the analysis and lead to anomalies in
       --  the gcc back-end if the aggregate is not expanded into assignments.
 
+      function Has_Visible_Private_Ancestor (Id : E) return Boolean;
+      --  If any ancestor of the current type is private, the aggregate
+      --  cannot be built in place. We canot rely on Has_Private_Ancestor,
+      --  because it will not be set when type and its parent are in the
+      --  same scope, and the parent component needs expansion.
+
+      function Top_Level_Aggregate (N : Node_Id) return Node_Id;
+      --  For nested aggregates return the ultimate enclosing aggregate; for
+      --  non-nested aggregates return N.
+
       ----------------------------------
       -- Component_Not_OK_For_Backend --
       ----------------------------------
@@ -5172,18 +5188,6 @@ package body Exp_Aggr is
          return False;
       end Component_Not_OK_For_Backend;
 
-      --  Remaining Expand_Record_Aggregate variables
-
-      Tag_Value : Node_Id;
-      Comp      : Entity_Id;
-      New_Comp  : Node_Id;
-
-      function Has_Visible_Private_Ancestor (Id : E) return Boolean;
-      --  If any ancestor of the current type is private, the aggregate
-      --  cannot be built in place. We canot rely on Has_Private_Ancestor,
-      --  because it will not be set when type and its parent are in the
-      --  same scope, and the parent component needs expansion.
-
       -----------------------------------
       --  Has_Visible_Private_Ancestor --
       -----------------------------------
@@ -5191,6 +5195,7 @@ package body Exp_Aggr is
       function Has_Visible_Private_Ancestor (Id : E) return Boolean is
          R  : constant Entity_Id := Root_Type (Id);
          T1 : Entity_Id := Id;
+
       begin
          loop
             if Is_Private_Type (T1) then
@@ -5204,6 +5209,32 @@ package body Exp_Aggr is
             end if;
          end loop;
       end Has_Visible_Private_Ancestor;
+
+      -------------------------
+      -- Top_Level_Aggregate --
+      -------------------------
+
+      function Top_Level_Aggregate (N : Node_Id) return Node_Id is
+         Aggr : Node_Id;
+
+      begin
+         Aggr := N;
+         while Present (Parent (Aggr))
+           and then Nkind_In (Parent (Aggr), N_Component_Association,
+                                             N_Aggregate)
+         loop
+            Aggr := Parent (Aggr);
+         end loop;
+
+         return Aggr;
+      end Top_Level_Aggregate;
+
+      --  Local variables
+
+      Top_Level_Aggr : constant Node_Id := Top_Level_Aggregate (N);
+      Tag_Value      : Node_Id;
+      Comp           : Entity_Id;
+      New_Comp       : Node_Id;
 
    --  Start of processing for Expand_Record_Aggregate
 
@@ -5311,8 +5342,8 @@ package body Exp_Aggr is
 
       elsif Has_Mutable_Components (Typ)
         and then
-          (Nkind (Parent (N)) /= N_Object_Declaration
-            or else not Constant_Present (Parent (N)))
+          (Nkind (Parent (Top_Level_Aggr)) /= N_Object_Declaration
+            or else not Constant_Present (Parent (Top_Level_Aggr)))
       then
          Convert_To_Assignments (N, Typ);
 

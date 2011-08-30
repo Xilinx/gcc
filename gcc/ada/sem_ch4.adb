@@ -30,6 +30,7 @@ with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
 with Exp_Util; use Exp_Util;
+with Expander; use Expander;
 with Fname;    use Fname;
 with Itypes;   use Itypes;
 with Lib;      use Lib;
@@ -443,7 +444,32 @@ package body Sem_Ch4 is
          end loop;
       end if;
 
-      --  Analyze the allocator
+      --  Ada 2012 (AI05-0111-3): Analyze the subpool_specification, if
+      --  any. The expected type for the name is any type. A non-overloading
+      --  rule then requires it to be of a type descended from
+      --  System.Storage_Pools.Subpools.Subpool_Handle.
+
+      --  This isn't exactly what the AI says, but it seems to be the right
+      --  rule. The AI should be fixed.???
+
+      declare
+         Subpool : constant Node_Id := Subpool_Handle_Name (N);
+
+      begin
+         if Present (Subpool) then
+            Analyze (Subpool);
+
+            if Is_Overloaded (Subpool) then
+               Error_Msg_N ("ambiguous subpool handle", Subpool);
+            end if;
+
+            --  Check that Etype (Subpool) is descended from Subpool_Handle
+
+            Resolve (Subpool);
+         end if;
+      end;
+
+      --  Analyze the qualified expression or subtype indication
 
       if Nkind (E) = N_Qualified_Expression then
          Acc_Type := Create_Itype (E_Allocator_Type, N);
@@ -451,7 +477,7 @@ package body Sem_Ch4 is
          Find_Type (Subtype_Mark (E));
 
          --  Analyze the qualified expression, and apply the name resolution
-         --  rule given in  4.7 (3).
+         --  rule given in  4.7(3).
 
          Analyze (E);
          Type_Id := Etype (E);
@@ -675,6 +701,16 @@ package body Sem_Ch4 is
          Check_Restriction (No_Tasking, N);
          Check_Restriction (Max_Tasks, N);
          Check_Restriction (No_Task_Allocators, N);
+      end if;
+
+      --  AI05-0013-1: No_Nested_Finalization forbids allocators if the access
+      --  type is nested, and the designated type needs finalization. The rule
+      --  is conservative in that class-wide types need finalization.
+
+      if Needs_Finalization (Designated_Type (Acc_Type))
+        and then not Is_Library_Level_Entity (Acc_Type)
+      then
+         Check_Restriction (No_Nested_Finalization, N);
       end if;
 
       --  Check that an allocator of a nested access type doesn't create a
@@ -1725,6 +1761,13 @@ package body Sem_Ch4 is
    begin
       Check_SPARK_Restriction ("explicit dereference is not allowed", N);
 
+      --  In formal verification mode, keep track of all reads and writes
+      --  through explicit dereferences.
+
+      if ALFA_Mode then
+         ALFA.Generate_Dereference (N);
+      end if;
+
       Analyze (P);
       Set_Etype (N, Any_Type);
 
@@ -2200,6 +2243,10 @@ package body Sem_Ch4 is
                      Check_Implicit_Dereference (N, CT);
                   end;
                end if;
+
+            elsif Try_Container_Indexing (N, P, First (Exprs)) then
+               return;
+
             end if;
 
             Get_Next_Interp (I, It);
@@ -3305,6 +3352,10 @@ package body Sem_Ch4 is
       Iterator : Node_Id;
 
    begin
+      --  Analyze construct with expansion disabled, because it will be
+      --  rewritten as a loop during expansion.
+
+      Expander_Mode_Save_And_Set (False);
       Check_SPARK_Restriction ("quantified expression is not allowed", N);
 
       Set_Etype  (Ent,  Standard_Void_Type);
@@ -3326,9 +3377,9 @@ package body Sem_Ch4 is
       Set_Parent (Iterator, N);
       Analyze_Iteration_Scheme (Iterator);
 
-      --  The loop specification may have been converted into an
-      --  iterator specification during its analysis. Update the
-      --  quantified node accordingly.
+      --  The loop specification may have been converted into an iterator
+      --  specification during its analysis. Update the quantified node
+      --  accordingly.
 
       if Present (Iterator_Specification (Iterator)) then
          Set_Iterator_Specification
@@ -3338,8 +3389,8 @@ package body Sem_Ch4 is
 
       Analyze (Condition (N));
       End_Scope;
-
       Set_Etype (N, Standard_Boolean);
+      Expander_Mode_Restore;
    end Analyze_Quantified_Expression;
 
    -------------------
@@ -6331,7 +6382,18 @@ package body Sem_Ch4 is
       --  diagnosed in caller.
 
       if No (Func_Name) then
-         return False;
+
+         --  The prefix itself may be an indexing of a container
+         --  rewrite as such and re-analyze.
+
+         if Has_Implicit_Dereference (Etype (Prefix)) then
+            Build_Explicit_Dereference
+              (Prefix, First_Discriminant (Etype (Prefix)));
+            return Try_Container_Indexing (N, Prefix, Expr);
+
+         else
+            return False;
+         end if;
       end if;
 
       if Is_Var

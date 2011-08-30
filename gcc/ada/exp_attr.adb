@@ -1813,11 +1813,11 @@ package body Exp_Attr is
       --  and then the Elab_Body/Spec attribute is replaced by a reference
       --  to this defining identifier.
 
-      when Attribute_Elab_Body |
-           Attribute_Elab_Spec =>
+      when Attribute_Elab_Body      |
+           Attribute_Elab_Spec      =>
 
          --  Leave attribute unexpanded in CodePeer mode: the gnat2scil
-         --  back-end knows how to handle this attribute directly.
+         --  back-end knows how to handle these attributes directly.
 
          if CodePeer_Mode then
             return;
@@ -1907,6 +1907,17 @@ package body Exp_Attr is
             Set_Entity (N, Ent);
             Rewrite (N, New_Occurrence_Of (Ent, Loc));
          end Elab_Body;
+
+      --------------------
+      -- Elab_Subp_Body --
+      --------------------
+
+      --  Always ignored. In CodePeer mode, gnat2scil knows how to handle
+      --  this attribute directly, and if we are not in CodePeer mode it is
+      --  entirely ignored ???
+
+      when Attribute_Elab_Subp_Body =>
+         return;
 
       ----------------
       -- Elaborated --
@@ -5368,6 +5379,7 @@ package body Exp_Attr is
            Attribute_Small                        |
            Attribute_Storage_Unit                 |
            Attribute_Stub_Type                    |
+           Attribute_System_Allocator_Alignment   |
            Attribute_Target_Name                  |
            Attribute_Type_Class                   |
            Attribute_Type_Key                     |

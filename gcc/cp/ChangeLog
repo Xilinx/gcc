@@ -1,3 +1,43 @@
+2011-08-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50224
+	* semantics.c (finish_id_expression): Mark captured variables used.
+
+2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/50207
+	* class.c (finish_struct_1): Complain if the first field is
+	artificial.
+
+2011-08-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50209
+	Core DR 994
+	* parser.c (cp_parser_default_argument): Use
+	cp_parser_initializer_clause.
+	(cp_parser_late_parsing_default_args): Likewise.
+
+2011-08-26  Jason Merrill  <jason@redhat.com>
+
+	Core DR 342
+	PR c++/48582
+	* pt.c (check_valid_ptrmem_cst_expr): A null member pointer value
+	is valid in C++11.
+	(convert_nontype_argument): Likewise.  Implicitly convert nullptr
+	and do constant folding.
+	* mangle.c (write_template_arg_literal): Mangle null member
+	pointer values as 0.
+	* call.c (null_member_pointer_value_p): New.
+	* cp-tree.h: Declare it.
+
+2011-08-25  Jason Merrill  <jason@redhat.com>
+
+	* call.c (convert_like_real): Remove redundant complain checks.
+
+	PR c++/50157
+	* call.c (convert_like_real): Exit early if bad and !tf_error.
+
 2011-08-23  Jason Merrill  <jason@redhat.com>
 
 	* typeck2.c (build_functional_cast): Don't try to avoid calling

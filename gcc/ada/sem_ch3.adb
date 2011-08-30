@@ -1353,7 +1353,7 @@ package body Sem_Ch3 is
       Set_Has_Task (T, False);
       Set_Has_Controlled_Component (T, False);
 
-      --  Initialize Associated_Collection explicitly to Empty, to avoid
+      --  Initialize field Finalization_Master explicitly to Empty, to avoid
       --  problems where an incomplete view of this entity has been previously
       --  established by a limited with and an overlaid version of this field
       --  (Stored_Constraint) was initialized for the incomplete view.
@@ -1361,10 +1361,10 @@ package body Sem_Ch3 is
       --  This reset is performed in most cases except where the access type
       --  has been created for the purposes of allocating or deallocating a
       --  build-in-place object. Such access types have explicitly set pools
-      --  and collections.
+      --  and finalization masters.
 
       if No (Associated_Storage_Pool (T)) then
-         Set_Associated_Collection (T, Empty);
+         Set_Finalization_Master (T, Empty);
       end if;
 
       --  Ada 2005 (AI-231): Propagate the null-excluding and access-constant
@@ -4757,6 +4757,8 @@ package body Sem_Ch3 is
 
       if Present (Component_Typ) then
          Element_Type := Process_Subtype (Component_Typ, P, Related_Id, 'C');
+
+         Set_Etype (Component_Typ, Element_Type);
 
          if not Nkind_In (Component_Typ, N_Identifier, N_Expanded_Name) then
             Check_SPARK_Restriction ("subtype mark required", Component_Typ);
@@ -14930,6 +14932,12 @@ package body Sem_Ch3 is
             Set_Has_Private_Declaration (Prev);
             Set_Has_Private_Declaration (Id);
 
+            --  Preserve aspect and iterator flags that may have been set on
+            --  the partial view.
+
+            Set_Has_Delayed_Aspects (Prev, Has_Delayed_Aspects (Id));
+            Set_Has_Implicit_Dereference (Prev, Has_Implicit_Dereference (Id));
+
             --  If no error, propagate freeze_node from private to full view.
             --  It may have been generated for an early operational item.
 
@@ -17164,9 +17172,8 @@ package body Sem_Ch3 is
             --  worst, and therefore defaults are not allowed if the parent is
             --  a generic formal private type (see ACATS B370001).
 
-            if Is_Access_Type (Discr_Type) then
+            if Is_Access_Type (Discr_Type) and then Default_Present then
                if Ekind (Discr_Type) /= E_Anonymous_Access_Type
-                 or else not Default_Present
                  or else Is_Limited_Record (Current_Scope)
                  or else Is_Concurrent_Type (Current_Scope)
                  or else Is_Concurrent_Record_Type (Current_Scope)
@@ -19698,14 +19705,14 @@ package body Sem_Ch3 is
       if ALFA_Mode then
 
          --  If the range of the type is already symmetric with a possible
-         --  extra negative value, just make the type its own base type.
+         --  extra negative value, leave it this way.
 
          if UI_Le (Lo_Val, Hi_Val)
            and then (UI_Eq (Lo_Val, UI_Negate (Hi_Val))
                       or else
                         UI_Eq (Lo_Val, UI_Sub (UI_Negate (Hi_Val), Uint_1)))
          then
-            Set_Etype (T, T);
+            null;
 
          else
             declare
@@ -19757,7 +19764,8 @@ package body Sem_Ch3 is
                      High_Bound => Ubound));
 
                Analyze (Decl);
-               Set_Etype (Implicit_Base, Implicit_Base);
+               Set_Etype (Implicit_Base, Base_Type (Implicit_Base));
+               Set_Etype (T, Base_Type (Implicit_Base));
                Insert_Before (Parent (Def), Decl);
             end;
          end if;

@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Checks;   use Checks;
 with Einfo;    use Einfo;
@@ -2005,7 +2006,20 @@ package body Sem_Ch5 is
                   Set_Parent (D_Copy, Parent (DS));
                   Pre_Analyze_Range (D_Copy);
 
+                  --  Ada2012: If the domain of iteration is a function call,
+                  --  it is the new iterator form.
+
+                  --  We have also implemented the shorter form : for X in S
+                  --  for Alfa use. In this case, 'Old and 'Result must be
+                  --  treated as entity names over which iterators are legal.
+
                   if Nkind (D_Copy) = N_Function_Call
+                    or else
+                      (ALFA_Mode
+                        and then (Nkind (D_Copy) = N_Attribute_Reference
+                        and then
+                          (Attribute_Name (D_Copy) = Name_Result
+                            or else Attribute_Name (D_Copy) = Name_Old)))
                     or else
                       (Is_Entity_Name (D_Copy)
                         and then not Is_Type (Entity (D_Copy)))
@@ -2027,6 +2041,14 @@ package body Sem_Ch5 is
                         Set_Iterator_Specification (N, I_Spec);
                         Set_Loop_Parameter_Specification (N, Empty);
                         Analyze_Iterator_Specification (I_Spec);
+
+                        --  In a generic context, analyze the original domain
+                        --  of iteration, for name capture.
+
+                        if not Expander_Active then
+                           Analyze (DS);
+                        end if;
+
                         return;
                      end;
 
@@ -2207,7 +2229,7 @@ package body Sem_Ch5 is
       Loc       : constant Source_Ptr := Sloc (N);
       Def_Id    : constant Node_Id    := Defining_Identifier (N);
       Subt      : constant Node_Id    := Subtype_Indication (N);
-      Container : constant Node_Id    := Name (N);
+      Iter_Name : constant Node_Id    := Name (N);
 
       Ent : Entity_Id;
       Typ : Entity_Id;
@@ -2220,45 +2242,81 @@ package body Sem_Ch5 is
          Analyze (Subt);
       end if;
 
-      --  If it is an expression, the container is pre-analyzed in the caller.
+      --  If it is an expression, the name is pre-analyzed in the caller.
       --  If it it of a controlled type we need a block for the finalization
       --  actions. As for loop bounds that need finalization, we create a
       --  declaration and an assignment to trigger these actions.
 
-      if Present (Etype (Container))
-        and then Is_Controlled (Etype (Container))
-        and then not Is_Entity_Name (Container)
+      if Present (Etype (Iter_Name))
+        and then Is_Controlled (Etype (Iter_Name))
+        and then not Is_Entity_Name (Iter_Name)
       then
          declare
-            Id : constant Entity_Id := Make_Temporary (Loc, 'R', Container);
+            Id : constant Entity_Id := Make_Temporary (Loc, 'R', Iter_Name);
 
             Decl   : Node_Id;
-            Assign : Node_Id;
 
          begin
-            Typ := Etype (Container);
+            Typ := Etype (Iter_Name);
 
             Decl :=
               Make_Object_Declaration (Loc,
                 Defining_Identifier => Id,
-                Object_Definition   => New_Occurrence_Of (Typ, Loc));
+                Object_Definition   => New_Occurrence_Of (Typ, Loc),
+                Expression          => Relocate_Node (Iter_Name));
 
-            Assign :=
-              Make_Assignment_Statement (Loc,
-                Name        => New_Occurrence_Of (Id, Loc),
-                Expression  => Relocate_Node (Container));
-
-            Insert_Actions (Parent (N), New_List (Decl, Assign));
+            Insert_Actions (Parent (Parent (N)), New_List (Decl));
+            Rewrite (Name (N), New_Occurrence_Of (Id, Loc));
+            Set_Etype (Id, Typ);
+            Set_Etype (Name (N), Typ);
          end;
 
+      --  Container is an entity or an array with uncontrolled components, or
+      --  else it is a container iterator given by a function call, typically
+      --  called Iterate in the case of predefined containers, even though
+      --  Iterate is not a reserved name. What matter is that the return type
+      --  of the function is an iterator type.
+
       else
+         Analyze (Iter_Name);
 
-         --  Container is an entity or an array with uncontrolled components
+         if Nkind (Iter_Name) = N_Function_Call then
+            declare
+               C  : constant Node_Id := Name (Iter_Name);
+               I  : Interp_Index;
+               It : Interp;
 
-         Analyze_And_Resolve (Container);
+            begin
+               if not Is_Overloaded (Iter_Name) then
+                  Resolve (Iter_Name, Etype (C));
+
+               else
+                  Get_First_Interp (C, I, It);
+                  while It.Typ /= Empty loop
+                     if Reverse_Present (N) then
+                        if Is_Reversible_Iterator (It.Typ) then
+                           Resolve (Iter_Name, It.Typ);
+                           exit;
+                        end if;
+
+                     elsif Is_Iterator (It.Typ) then
+                        Resolve (Iter_Name, It.Typ);
+                        exit;
+                     end if;
+
+                     Get_Next_Interp (I, It);
+                  end loop;
+               end if;
+            end;
+
+         --  Domain of iteration is not overloaded
+
+         else
+            Resolve (Iter_Name, Etype (Iter_Name));
+         end if;
       end if;
 
-      Typ := Etype (Container);
+      Typ := Etype (Iter_Name);
 
       if Is_Array_Type (Typ) then
          if Of_Present (N) then
@@ -2269,6 +2327,11 @@ package body Sem_Ch5 is
             Set_Etype (Def_Id, Etype (First_Index (Typ)));
          end if;
 
+         --  Check for type error in iterator
+
+      elsif Typ = Any_Type then
+         return;
+
       --  Iteration over a container
 
       else
@@ -2276,26 +2339,21 @@ package body Sem_Ch5 is
 
          if Of_Present (N) then
 
-            --  Find the Element_Type in the package instance that defines the
-            --  container type.
+            --  The type of the loop variable is the Iterator_Element aspect of
+            --  the container type.
 
-            Ent := First_Entity (Scope (Base_Type (Typ)));
-            while Present (Ent) loop
-               if Chars (Ent) = Name_Element_Type then
-                  Set_Etype (Def_Id, Ent);
-                  exit;
-               end if;
-
-               Next_Entity (Ent);
-            end loop;
+            Set_Etype (Def_Id,
+              Entity (Find_Aspect (Typ, Aspect_Iterator_Element)));
 
          else
-            --  Find the Cursor type in similar fashion
+            --  The result type of Iterate function is the classwide type of
+            --  the interface parent. We need the specific Cursor type defined
+            --  in the container package.
 
-            Ent := First_Entity (Scope (Base_Type (Typ)));
+            Ent := First_Entity (Scope (Typ));
             while Present (Ent) loop
                if Chars (Ent) = Name_Cursor then
-                  Set_Etype (Def_Id, Ent);
+                  Set_Etype (Def_Id, Etype (Ent));
                   exit;
                end if;
 
