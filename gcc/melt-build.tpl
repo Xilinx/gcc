@@ -658,7 +658,11 @@ ENDFOR melt_translator_file+]
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/[+base+]*.o
+	rm -f $(MELT_STAGE_ZERO)/[+base+]*.so $(MELT_STAGE_ZERO)/[+base+]*.c
+#@ [+ (. (tpl-file-line))+]
+
+
+
 [+ENDFOR melt_translator_file+]
 
 

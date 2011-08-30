@@ -21203,8 +21203,14 @@ lab_endgetargs:;
     /*^compute */
 
  /*_#NEED_DBG__L37*/ meltfnum[30] =
+      /*NEED_DBG */
+#if MELT_HAVE_DEBUG
       (flag_melt_debug && melt_dbgcounter >= melt_debugskipcount && (1) >= 0
-       && (1) <= MELTDBG_MAXDEPTH);;
+       && (1) <= MELTDBG_MAXDEPTH)
+#else
+      0				/* no need_dbg */
+#endif /*MELT_HAVE_DEBUG */
+      ;;
     MELT_LOCATION ("warmelt-normatch.melt:5940:/ cond");
     /*cond */ if ( /*_#NEED_DBG__L37*/ meltfnum[30])	/*then */
       {
@@ -22211,7 +22217,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /1263202b checkpair",
+      melt_assertmsg ("putpairhead /431f230 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NRESBIND__V174*/ meltfptr[173]))
 		      == MELTOBMAG_PAIR);

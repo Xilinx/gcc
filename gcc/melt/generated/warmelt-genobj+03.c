@@ -8819,8 +8819,14 @@ lab_endgetargs:;
     /*^compute */
 
  /*_#NEED_DBG__L5*/ meltfnum[0] =
+      /*NEED_DBG */
+#if MELT_HAVE_DEBUG
       (flag_melt_debug && melt_dbgcounter >= melt_debugskipcount && (0) >= 0
-       && (0) <= MELTDBG_MAXDEPTH);;
+       && (0) <= MELTDBG_MAXDEPTH)
+#else
+      0				/* no need_dbg */
+#endif /*MELT_HAVE_DEBUG */
+      ;;
     MELT_LOCATION ("warmelt-genobj.melt:3509:/ cond");
     /*cond */ if ( /*_#NEED_DBG__L5*/ meltfnum[0])	/*then */
       {

@@ -3588,7 +3588,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-first*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-first*.so $(MELT_STAGE_ZERO)/warmelt-first*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-base
@@ -3608,7 +3608,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-base*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-base*.so $(MELT_STAGE_ZERO)/warmelt-base*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-debug
@@ -3628,7 +3628,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-debug*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-debug*.so $(MELT_STAGE_ZERO)/warmelt-debug*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-macro
@@ -3648,7 +3648,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-macro*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-macro*.so $(MELT_STAGE_ZERO)/warmelt-macro*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-normal
@@ -3668,7 +3668,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-normal*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-normal*.so $(MELT_STAGE_ZERO)/warmelt-normal*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-normatch
@@ -3688,7 +3688,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-normatch*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-normatch*.so $(MELT_STAGE_ZERO)/warmelt-normatch*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-genobj
@@ -3708,7 +3708,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-genobj*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-genobj*.so $(MELT_STAGE_ZERO)/warmelt-genobj*.c
 
 #@ from melt-build.tpl line 643
 	@echo upgrading MELT translator warmelt-outobj
@@ -3728,7 +3728,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
-	rm $(MELT_STAGE_ZERO)/warmelt-outobj*.o
+	rm -f $(MELT_STAGE_ZERO)/warmelt-outobj*.so $(MELT_STAGE_ZERO)/warmelt-outobj*.c
 
 
 
