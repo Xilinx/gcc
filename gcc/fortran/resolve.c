@@ -950,6 +950,9 @@ resolve_contained_functions (gfc_namespace *ns)
 }
 
 
+static gfc_try resolve_fl_derived0 (gfc_symbol *sym);
+
+
 /* Resolve all of the elements of a structure constructor and make sure that
    the types are correct. The 'init' flag indicates that the given
    constructor is an initializer.  */
@@ -965,7 +968,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
   t = SUCCESS;
 
   if (expr->ts.type == BT_DERIVED)
-    resolve_symbol (expr->ts.u.derived);
+    resolve_fl_derived0 (expr->ts.u.derived);
 
   cons = gfc_constructor_first (expr->value.constructor);
   /* A constructor may have references if it is the result of substituting a
@@ -8821,6 +8824,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	case EXEC_OMP_SINGLE:
 	case EXEC_OMP_TASK:
 	case EXEC_OMP_TASKWAIT:
+	case EXEC_OMP_TASKYIELD:
 	case EXEC_OMP_WORKSHARE:
 	  break;
 
@@ -9387,6 +9391,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_OMP_SECTIONS:
 	case EXEC_OMP_SINGLE:
 	case EXEC_OMP_TASKWAIT:
+	case EXEC_OMP_TASKYIELD:
 	case EXEC_OMP_WORKSHARE:
 	  gfc_resolve_omp_directive (code, ns);
 	  break;
@@ -10164,15 +10169,22 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
 
       if (!gfc_is_constant_expr (e)
 	  && !(e->expr_type == EXPR_VARIABLE
-	       && e->symtree->n.sym->attr.flavor == FL_PARAMETER)
-	  && sym->ns->proc_name
-	  && (sym->ns->proc_name->attr.flavor == FL_MODULE
-	      || sym->ns->proc_name->attr.is_main_program)
-	  && !sym->attr.use_assoc)
+	       && e->symtree->n.sym->attr.flavor == FL_PARAMETER))
 	{
-	  gfc_error ("'%s' at %L must have constant character length "
-		     "in this context", sym->name, &sym->declared_at);
-	  return FAILURE;
+	  if (!sym->attr.use_assoc && sym->ns->proc_name
+	      && (sym->ns->proc_name->attr.flavor == FL_MODULE
+		  || sym->ns->proc_name->attr.is_main_program))
+	    {
+	      gfc_error ("'%s' at %L must have constant character length "
+			"in this context", sym->name, &sym->declared_at);
+	      return FAILURE;
+	    }
+	  if (sym->attr.in_common)
+	    {
+	      gfc_error ("COMMON variable '%s' at %L must have constant "
+			 "character length", sym->name, &sym->declared_at);
+	      return FAILURE;
+	    }
 	}
     }
 
@@ -10667,200 +10679,6 @@ error:
 }
 
 
-/* Check that it is ok for the typebound procedure proc to override the
-   procedure old.  */
-
-static gfc_try
-check_typebound_override (gfc_symtree* proc, gfc_symtree* old)
-{
-  locus where;
-  const gfc_symbol* proc_target;
-  const gfc_symbol* old_target;
-  unsigned proc_pass_arg, old_pass_arg, argpos;
-  gfc_formal_arglist* proc_formal;
-  gfc_formal_arglist* old_formal;
-
-  /* This procedure should only be called for non-GENERIC proc.  */
-  gcc_assert (!proc->n.tb->is_generic);
-
-  /* If the overwritten procedure is GENERIC, this is an error.  */
-  if (old->n.tb->is_generic)
-    {
-      gfc_error ("Can't overwrite GENERIC '%s' at %L",
-		 old->name, &proc->n.tb->where);
-      return FAILURE;
-    }
-
-  where = proc->n.tb->where;
-  proc_target = proc->n.tb->u.specific->n.sym;
-  old_target = old->n.tb->u.specific->n.sym;
-
-  /* Check that overridden binding is not NON_OVERRIDABLE.  */
-  if (old->n.tb->non_overridable)
-    {
-      gfc_error ("'%s' at %L overrides a procedure binding declared"
-		 " NON_OVERRIDABLE", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* It's an error to override a non-DEFERRED procedure with a DEFERRED one.  */
-  if (!old->n.tb->deferred && proc->n.tb->deferred)
-    {
-      gfc_error ("'%s' at %L must not be DEFERRED as it overrides a"
-		 " non-DEFERRED binding", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* If the overridden binding is PURE, the overriding must be, too.  */
-  if (old_target->attr.pure && !proc_target->attr.pure)
-    {
-      gfc_error ("'%s' at %L overrides a PURE procedure and must also be PURE",
-		 proc->name, &where);
-      return FAILURE;
-    }
-
-  /* If the overridden binding is ELEMENTAL, the overriding must be, too.  If it
-     is not, the overriding must not be either.  */
-  if (old_target->attr.elemental && !proc_target->attr.elemental)
-    {
-      gfc_error ("'%s' at %L overrides an ELEMENTAL procedure and must also be"
-		 " ELEMENTAL", proc->name, &where);
-      return FAILURE;
-    }
-  if (!old_target->attr.elemental && proc_target->attr.elemental)
-    {
-      gfc_error ("'%s' at %L overrides a non-ELEMENTAL procedure and must not"
-		 " be ELEMENTAL, either", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* If the overridden binding is a SUBROUTINE, the overriding must also be a
-     SUBROUTINE.  */
-  if (old_target->attr.subroutine && !proc_target->attr.subroutine)
-    {
-      gfc_error ("'%s' at %L overrides a SUBROUTINE and must also be a"
-		 " SUBROUTINE", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* If the overridden binding is a FUNCTION, the overriding must also be a
-     FUNCTION and have the same characteristics.  */
-  if (old_target->attr.function)
-    {
-      if (!proc_target->attr.function)
-	{
-	  gfc_error ("'%s' at %L overrides a FUNCTION and must also be a"
-		     " FUNCTION", proc->name, &where);
-	  return FAILURE;
-	}
-
-      /* FIXME:  Do more comprehensive checking (including, for instance, the
-	 rank and array-shape).  */
-      gcc_assert (proc_target->result && old_target->result);
-      if (!gfc_compare_types (&proc_target->result->ts,
-			      &old_target->result->ts))
-	{
-	  gfc_error ("'%s' at %L and the overridden FUNCTION should have"
-		     " matching result types", proc->name, &where);
-	  return FAILURE;
-	}
-    }
-
-  /* If the overridden binding is PUBLIC, the overriding one must not be
-     PRIVATE.  */
-  if (old->n.tb->access == ACCESS_PUBLIC
-      && proc->n.tb->access == ACCESS_PRIVATE)
-    {
-      gfc_error ("'%s' at %L overrides a PUBLIC procedure and must not be"
-		 " PRIVATE", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* Compare the formal argument lists of both procedures.  This is also abused
-     to find the position of the passed-object dummy arguments of both
-     bindings as at least the overridden one might not yet be resolved and we
-     need those positions in the check below.  */
-  proc_pass_arg = old_pass_arg = 0;
-  if (!proc->n.tb->nopass && !proc->n.tb->pass_arg)
-    proc_pass_arg = 1;
-  if (!old->n.tb->nopass && !old->n.tb->pass_arg)
-    old_pass_arg = 1;
-  argpos = 1;
-  for (proc_formal = proc_target->formal, old_formal = old_target->formal;
-       proc_formal && old_formal;
-       proc_formal = proc_formal->next, old_formal = old_formal->next)
-    {
-      if (proc->n.tb->pass_arg
-	  && !strcmp (proc->n.tb->pass_arg, proc_formal->sym->name))
-	proc_pass_arg = argpos;
-      if (old->n.tb->pass_arg
-	  && !strcmp (old->n.tb->pass_arg, old_formal->sym->name))
-	old_pass_arg = argpos;
-
-      /* Check that the names correspond.  */
-      if (strcmp (proc_formal->sym->name, old_formal->sym->name))
-	{
-	  gfc_error ("Dummy argument '%s' of '%s' at %L should be named '%s' as"
-		     " to match the corresponding argument of the overridden"
-		     " procedure", proc_formal->sym->name, proc->name, &where,
-		     old_formal->sym->name);
-	  return FAILURE;
-	}
-
-      /* Check that the types correspond if neither is the passed-object
-	 argument.  */
-      /* FIXME:  Do more comprehensive testing here.  */
-      if (proc_pass_arg != argpos && old_pass_arg != argpos
-	  && !gfc_compare_types (&proc_formal->sym->ts, &old_formal->sym->ts))
-	{
-	  gfc_error ("Types mismatch for dummy argument '%s' of '%s' %L "
-		     "in respect to the overridden procedure",
-		     proc_formal->sym->name, proc->name, &where);
-	  return FAILURE;
-	}
-
-      ++argpos;
-    }
-  if (proc_formal || old_formal)
-    {
-      gfc_error ("'%s' at %L must have the same number of formal arguments as"
-		 " the overridden procedure", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* If the overridden binding is NOPASS, the overriding one must also be
-     NOPASS.  */
-  if (old->n.tb->nopass && !proc->n.tb->nopass)
-    {
-      gfc_error ("'%s' at %L overrides a NOPASS binding and must also be"
-		 " NOPASS", proc->name, &where);
-      return FAILURE;
-    }
-
-  /* If the overridden binding is PASS(x), the overriding one must also be
-     PASS and the passed-object dummy arguments must correspond.  */
-  if (!old->n.tb->nopass)
-    {
-      if (proc->n.tb->nopass)
-	{
-	  gfc_error ("'%s' at %L overrides a binding with PASS and must also be"
-		     " PASS", proc->name, &where);
-	  return FAILURE;
-	}
-
-      if (proc_pass_arg != old_pass_arg)
-	{
-	  gfc_error ("Passed-object dummy argument of '%s' at %L must be at"
-		     " the same position as the passed-object dummy argument of"
-		     " the overridden procedure", proc->name, &where);
-	  return FAILURE;
-	}
-    }
-
-  return SUCCESS;
-}
-
-
 /* Check if two GENERIC targets are ambiguous and emit an error is they are.  */
 
 static gfc_try
@@ -11322,11 +11140,14 @@ resolve_typebound_procedure (gfc_symtree* stree)
       overridden = gfc_find_typebound_proc (super_type, NULL,
 					    stree->name, true, NULL);
 
-      if (overridden && overridden->n.tb)
-	stree->n.tb->overridden = overridden->n.tb;
+      if (overridden)
+	{
+	  if (overridden->n.tb)
+	    stree->n.tb->overridden = overridden->n.tb;
 
-      if (overridden && check_typebound_override (stree, overridden) == FAILURE)
-	goto error;
+	  if (gfc_check_typebound_override (stree, overridden) == FAILURE)
+	    goto error;
+	}
     }
 
   /* See if there's a name collision with a component directly in this type.  */
@@ -11361,9 +11182,14 @@ static gfc_try
 resolve_typebound_procedures (gfc_symbol* derived)
 {
   int op;
+  gfc_symbol* super_type;
 
   if (!derived->f2k_derived || !derived->f2k_derived->tb_sym_root)
     return SUCCESS;
+  
+  super_type = gfc_get_derived_super_type (derived);
+  if (super_type)
+    resolve_typebound_procedures (super_type);
 
   resolve_bindings_derived = derived;
   resolve_bindings_result = SUCCESS;
@@ -11475,28 +11301,17 @@ ensure_not_abstract (gfc_symbol* sub, gfc_symbol* ancestor)
 }
 
 
-/* Resolve the components of a derived type.  */
+/* Resolve the components of a derived type. This does not have to wait until
+   resolution stage, but can be done as soon as the dt declaration has been
+   parsed.  */
 
 static gfc_try
-resolve_fl_derived (gfc_symbol *sym)
+resolve_fl_derived0 (gfc_symbol *sym)
 {
   gfc_symbol* super_type;
   gfc_component *c;
 
   super_type = gfc_get_derived_super_type (sym);
-  
-  if (sym->attr.is_class && sym->ts.u.derived == NULL)
-    {
-      /* Fix up incomplete CLASS symbols.  */
-      gfc_component *data = gfc_find_component (sym, "_data", true, true);
-      gfc_component *vptr = gfc_find_component (sym, "_vptr", true, true);
-      if (vptr->ts.u.derived == NULL)
-	{
-	  gfc_symbol *vtab = gfc_find_derived_vtab (data->ts.u.derived);
-	  gcc_assert (vtab);
-	  vptr->ts.u.derived = vtab->ts.u.derived;
-	}
-    }
 
   /* F2008, C432. */
   if (super_type && sym->attr.coarray_comp && !super_type->attr.coarray_comp)
@@ -11508,7 +11323,7 @@ resolve_fl_derived (gfc_symbol *sym)
     }
 
   /* Ensure the extended type gets resolved before we do.  */
-  if (super_type && resolve_fl_derived (super_type) == FAILURE)
+  if (super_type && resolve_fl_derived0 (super_type) == FAILURE)
     return FAILURE;
 
   /* An ABSTRACT type must be extensible.  */
@@ -11861,14 +11676,6 @@ resolve_fl_derived (gfc_symbol *sym)
 	return FAILURE;
     }
 
-  /* Resolve the type-bound procedures.  */
-  if (resolve_typebound_procedures (sym) == FAILURE)
-    return FAILURE;
-
-  /* Resolve the finalizer procedures.  */
-  if (gfc_resolve_finalizers (sym) == FAILURE)
-    return FAILURE;
-
   /* If this is a non-ABSTRACT type extending an ABSTRACT one, ensure that
      all DEFERRED bindings are overridden.  */
   if (super_type && super_type->attr.abstract && !sym->attr.abstract
@@ -11879,6 +11686,42 @@ resolve_fl_derived (gfc_symbol *sym)
   /* Add derived type to the derived type list.  */
   add_dt_to_dt_list (sym);
 
+  return SUCCESS;
+}
+
+
+/* The following procedure does the full resolution of a derived type,
+   including resolution of all type-bound procedures (if present). In contrast
+   to 'resolve_fl_derived0' this can only be done after the module has been
+   parsed completely.  */
+
+static gfc_try
+resolve_fl_derived (gfc_symbol *sym)
+{
+  if (sym->attr.is_class && sym->ts.u.derived == NULL)
+    {
+      /* Fix up incomplete CLASS symbols.  */
+      gfc_component *data = gfc_find_component (sym, "_data", true, true);
+      gfc_component *vptr = gfc_find_component (sym, "_vptr", true, true);
+      if (vptr->ts.u.derived == NULL)
+	{
+	  gfc_symbol *vtab = gfc_find_derived_vtab (data->ts.u.derived);
+	  gcc_assert (vtab);
+	  vptr->ts.u.derived = vtab->ts.u.derived;
+	}
+    }
+  
+  if (resolve_fl_derived0 (sym) == FAILURE)
+    return FAILURE;
+  
+  /* Resolve the type-bound procedures.  */
+  if (resolve_typebound_procedures (sym) == FAILURE)
+    return FAILURE;
+
+  /* Resolve the finalizer procedures.  */
+  if (gfc_resolve_finalizers (sym) == FAILURE)
+    return FAILURE;
+  
   return SUCCESS;
 }
 
@@ -12410,29 +12253,41 @@ resolve_symbol (gfc_symbol *sym)
   /* F2008, C542.  */
   if (sym->ts.type == BT_DERIVED && sym->attr.dummy
       && sym->attr.intent == INTENT_OUT && sym->attr.lock_comp)
-    gfc_error ("Dummy argument '%s' at %L of LOCK_TYPE shall not be "
-	       "INTENT(OUT)", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Dummy argument '%s' at %L of LOCK_TYPE shall not be "
+		 "INTENT(OUT)", sym->name, &sym->declared_at);
+      return;
+    }
 
-  /* F2008, C526.  */
+  /* F2008, C525.  */
   if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
        || sym->attr.codimension)
-      && sym->attr.result)
-    gfc_error ("Function result '%s' at %L shall not be a coarray or have "
-	       "a coarray component", sym->name, &sym->declared_at);
+      && (sym->attr.result || sym->result == sym))
+    {
+      gfc_error ("Function result '%s' at %L shall not be a coarray or have "
+	         "a coarray component", sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C524.  */
   if (sym->attr.codimension && sym->ts.type == BT_DERIVED
       && sym->ts.u.derived->ts.is_iso_c)
-    gfc_error ("Variable '%s' at %L of TYPE(C_PTR) or TYPE(C_FUNPTR) "
-	       "shall not be a coarray", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L of TYPE(C_PTR) or TYPE(C_FUNPTR) "
+		 "shall not be a coarray", sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C525.  */
   if (sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp
       && (sym->attr.codimension || sym->attr.pointer || sym->attr.dimension
 	  || sym->attr.allocatable))
-    gfc_error ("Variable '%s' at %L with coarray component "
-	       "shall be a nonpointer, nonallocatable scalar",
-	       sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L with coarray component "
+		 "shall be a nonpointer, nonallocatable scalar",
+		 sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C526.  The function-result case was handled above.  */
   if (sym->attr.codimension
@@ -12441,32 +12296,46 @@ resolve_symbol (gfc_symbol *sym)
 	   || sym->ns->proc_name->attr.flavor == FL_MODULE
 	   || sym->ns->proc_name->attr.is_main_program
 	   || sym->attr.function || sym->attr.result || sym->attr.use_assoc))
-    gfc_error ("Variable '%s' at %L is a coarray and is not ALLOCATABLE, SAVE "
-	       "nor a dummy argument", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L is a coarray and is not ALLOCATABLE, SAVE "
+		 "nor a dummy argument", sym->name, &sym->declared_at);
+      return;
+    }
   /* F2008, C528.  */  /* FIXME: sym->as check due to PR 43412.  */
   else if (sym->attr.codimension && !sym->attr.allocatable
       && sym->as && sym->as->cotype == AS_DEFERRED)
-    gfc_error ("Coarray variable '%s' at %L shall not have codimensions with "
-		"deferred shape", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Coarray variable '%s' at %L shall not have codimensions with "
+		 "deferred shape", sym->name, &sym->declared_at);
+      return;
+    }
   else if (sym->attr.codimension && sym->attr.allocatable
       && (sym->as->type != AS_DEFERRED || sym->as->cotype != AS_DEFERRED))
-    gfc_error ("Allocatable coarray variable '%s' at %L must have "
-	       "deferred shape", sym->name, &sym->declared_at);
-
+    {
+      gfc_error ("Allocatable coarray variable '%s' at %L must have "
+		 "deferred shape", sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C541.  */
   if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
        || (sym->attr.codimension && sym->attr.allocatable))
       && sym->attr.dummy && sym->attr.intent == INTENT_OUT)
-    gfc_error ("Variable '%s' at %L is INTENT(OUT) and can thus not be an "
-	       "allocatable coarray or have coarray components",
-	       sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L is INTENT(OUT) and can thus not be an "
+		 "allocatable coarray or have coarray components",
+		 sym->name, &sym->declared_at);
+      return;
+    }
 
   if (sym->attr.codimension && sym->attr.dummy
       && sym->ns->proc_name && sym->ns->proc_name->attr.is_bind_c)
-    gfc_error ("Coarray dummy variable '%s' at %L not allowed in BIND(C) "
-	       "procedure '%s'", sym->name, &sym->declared_at,
-	       sym->ns->proc_name->name);
+    {
+      gfc_error ("Coarray dummy variable '%s' at %L not allowed in BIND(C) "
+		 "procedure '%s'", sym->name, &sym->declared_at,
+		 sym->ns->proc_name->name);
+      return;
+    }
 
   switch (sym->attr.flavor)
     {

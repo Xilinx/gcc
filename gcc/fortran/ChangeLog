@@ -1,3 +1,200 @@
+2011-08-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31461
+	* trans-decl.c (generate_local_decl): Warn about
+	unused explicitly imported module variables/parameters.
+
+2011-08-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50070
+	* resolve.c (resolve_fl_variable): Reject non-constant character lengths
+	in COMMON variables.
+
+2011-08-16  Tobias Burnus  <burnus@net-b.de>
+	    Dominique Dhumieres  <dominiq@lps.ens.fr>
+
+	PR fortran/50094
+	* resolve.c (resolve_symbol): Fix stupid typo.
+
+2011-08-15  Tobias Burnus  <burnus@net-b.de>
+
+	* resolve.c (resolve_symbol): Fix coarray result-var check.
+
+2011-08-14  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* module.c (use_iso_fortran_env_module):  Spell 'referrenced' correctly.
+
+2011-08-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50073
+	* decl.c (check_function_name): New function, separated off from
+	'variable_decl' and slightly extended.
+	(variable_decl,attr_decl1): Call it.
+
+2011-08-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Make-lang.in (gfortran$(exeext)): Add $(EXTRA_GCC_LIBS).
+
+2011-08-07  Janus Weil  <janus@gcc.gnu.org>
+	    Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/49638
+	* dependency.c (are_identical_variables): For dummy arguments only
+	check for equal names, not equal symbols.
+	* interface.c (gfc_check_typebound_override): Add checking for rank
+	and character length.
+
+2011-08-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49638
+	* dependency.h (gfc_is_same_range,gfc_are_identical_variables): Remove
+	two prototypes.
+	* dependency.c (gfc_are_identical_variables,are_identical_variables):
+	Renamed the former to the latter and made static.
+	(gfc_dep_compare_expr): Renamed 'gfc_are_identical_variables', handle
+	commutativity of multiplication.
+	(gfc_is_same_range,is_same_range): Renamed the former to the latter,
+	made static and removed argument 'def'.
+	(check_section_vs_section): Renamed 'gfc_is_same_range'.
+	* gfortran.h (gfc_check_typebound_override): New prototype.
+	* interface.c (gfc_check_typebound_override): Moved here from ...
+	* resolve.c (check_typebound_override): ... here (and renamed).
+	(resolve_typebound_procedure): Renamed 'check_typebound_override'.
+
+2011-08-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/50004
+	* target-memory.c (gfc_target_expr-size): Don't clobber typespec
+	for derived types.
+	* simplify.c (gfc_simplify_transfer): Don't calculate source_size
+	twice.
+
+2011-08-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/37211
+	* gfortran.h (gfc_calculate_transfer_sizes):  Add prototype.
+	* target-memory.h (gfc_target_interpret_expr):  Add boolean
+	argument wether to convert wide characters.
+	* target-memory.c (gfc_target_expr_size):  Also return length
+	of characters for non-constant expressions if these can be
+	determined from the cl.
+	(interpret_array):  Add argument for gfc_target_interpret_expr.
+	(gfc_interpret_derived):  Likewise.
+	(gfc_target_interpret_expr):  Likewise.
+	* check.c:  Include target-memory.h.
+	(gfc_calculate_transfer_sizes):  New function.
+	(gfc_check_transfer):  When -Wsurprising is in force, calculate
+	sizes and warn if result is larger than size (check moved from
+	gfc_simplify_transfer).
+	* simplify.c (gfc_simplify_transfer):  Use
+	gfc_calculate_transfer_sizes.  Remove warning.
+
+2011-08-04  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/49957
+	* trans-array.c (add_to_offset): New function.
+	(gfc_conv_array_ref): Build the array index expression in optimally
+	associated order.
+	(gfc_walk_variable_expr): Adjust for the backward walk.
+
+2011-08-02  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/49885
+	* trans-array.c (gfc_trans_auto_array_allocation): Change
+	gfc_start_block to gfc_init_block to avoid spurious extra-scope.
+
+2011-08-02  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (gfc_array_allocate): Pass token to
+	  gfc_allocate_allocatable for -fcoarray=lib.
+	* trans-stmt.c (gfc_trans_allocate): Update
+	gfc_allocate_allocatable call.
+	* trans.h (gfc_allocate_allocatable): Update prototype.
+	(gfc_allocate_using_lib): Remove.
+	* trans.c (gfc_allocate_using_lib): Make static, handle token.
+	(gfc_allocate_allocatable): Ditto.
+
+2011-08-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46752
+	* cpp.c (cpp_define_builtins): Change _OPENMP to 201107.
+	* openmp.c (gfc_free_omp_clauses): Free also final_expr.
+	(OMP_CLAUSE_FINAL, OMP_CLAUSE_MERGEABLE): Define.
+	(gfc_match_omp_clauses): Handle parsing final and mergeable
+	clauses.
+	(OMP_TASK_CLAUSES): Allow final and mergeable clauses.
+	(gfc_match_omp_taskyield): New function.
+	(resolve_omp_clauses): Resolve final clause.  Allow POINTERs and
+	Cray pointers in clauses other than REDUCTION.
+	(gfc_match_omp_atomic): Match optional
+	read/write/update/capture keywords after !$omp atomic.
+	(resolve_omp_atomic): Handle all OpenMP 3.1 atomic forms.
+	* dump-parse-tree.c (show_omp_node): Handle EXEC_OMP_TASKYIELD,
+	print final and mergeable clauses.
+	(show_code_node): Handle EXEC_OMP_TASKYIELD.
+	* trans-openmp.c (gfc_trans_omp_clauses): Handle final and
+	mergeable clauses.
+	(gfc_trans_omp_taskyield): New function.
+	(gfc_trans_omp_directive): Handle EXEC_OMP_TASKYIELD.
+	(gfc_trans_omp_atomic): Handle all OpenMP 3.1 atomic forms.
+	(gfc_omp_clause_copy_ctor): Handle non-allocated allocatable.
+	(gfc_omp_predetermined_sharing): Adjust comment.
+	* gfortran.h (gfc_statement): Add ST_OMP_TASKYIELD and
+	ST_OMP_END_ATOMIC.
+	(gfc_omp_clauses): Add final_expr and mergeable fields.
+	(gfc_exec_op): Add EXEC_OMP_TASKYIELD.
+	(gfc_omp_atomic_op): New enum typedef.
+	(struct gfc_code): Add ext.omp_atomic.
+	* trans.c (trans_code): Handle EXEC_OMP_TASKYIELD.
+	* frontend-passes.c (gfc_code_walker): Also walk final_expr.
+	* resolve.c (gfc_resolve_blocks, resolve_code): Handle
+	EXEC_OMP_TASKYIELD.
+	* st.c (gfc_free_statement): Likewise.
+	* match.h (gfc_match_omp_taskyield): New prototype.
+	* parse.c (decode_omp_directive): Handle taskyield directive.
+	Handle !$omp end atomic.
+	(case_executable): Add ST_OMP_TASKYIELD case.
+	(gfc_ascii_statement): Handle ST_OMP_TASKYIELD.
+	(parse_omp_atomic): Return gfc_statement instead of void.
+	For !$omp atomic capture parse two assignments instead of
+	just one and require !$omp end atomic afterwards, for
+	other !$omp atomic forms just allow !$omp end atomic at the
+	end.
+	(parse_omp_structured_block, parse_executable): Adjust
+	parse_omp_atomic callers.
+
+2011-08-02  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.c (OMP_LIB): Updated openmp_version's
+	value to 201107.
+	* gfortran.texi (OpenMP): Update ref to OpenMP 3.1.
+	* intrinsic.texi (OpenMP Modules): Update ref to OpenMP 3.1;
+	remove deleted omp_integer_kind and omp_logical_kind constants.
+
+2011-07-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49112
+	* resolve.c (resolve_structure_cons): Don't do the full dt resolution,
+	only call 'resolve_fl_derived0'.
+	(resolve_typebound_procedures): Resolve typebound procedures of
+	parent type.
+	(resolve_fl_derived0): New function, which does a part of the work
+	for 'resolve_fl_derived'.
+	(resolve_fl_derived): Call 'resolve_fl_derived0' and do some additional
+	things.
+
+2011-07-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/48876
+	* expr.c (gfc_simplify_expr):  If end of a string is less
+	than zero, set it to zero.
+
+2011-07-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/31067
+	* frontend-passes.c (optimize_minmaxloc): New function.
+	(optimize_expr): Call it.
+
 2011-07-27  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/45586

@@ -55,6 +55,8 @@
    UNSPEC_FMUL
    UNSPEC_FMULS
    UNSPEC_FMULSU
+   UNSPEC_COPYSIGN
+   UNSPEC_IDENTITY
    ])
 
 (define_c_enum "unspecv"
@@ -140,8 +142,12 @@
 (define_code_iterator any_extend2 [sign_extend zero_extend])
 
 ;; Define code attributes
-(define_code_attr extend_prefix
+(define_code_attr extend_su
   [(sign_extend "s")
+   (zero_extend "u")])
+
+(define_code_attr extend_u
+  [(sign_extend "")
    (zero_extend "u")])
 
 
@@ -201,8 +207,7 @@
   DONE;
 })
 
-
-(define_insn "*pushqi"
+(define_insn "pushqi1"
   [(set (mem:QI (post_dec:HI (reg:HI REG_SP)))
         (match_operand:QI 0 "reg_or_0_operand" "r,L"))]
   ""
@@ -211,33 +216,40 @@
 	push __zero_reg__"
   [(set_attr "length" "1,1")])
 
-(define_insn "*pushhi"
-  [(set (mem:HI (post_dec:HI (reg:HI REG_SP)))
-        (match_operand:HI 0 "reg_or_0_operand" "r,L"))]
-  ""
-  "@
-	push %B0\;push %A0
-	push __zero_reg__\;push __zero_reg__"
-  [(set_attr "length" "2,2")])
+;; All modes for a multi-byte push.  We must include complex modes here too,
+;; lest emit_single_push_insn "helpfully " create the auto-inc itself.
+(define_mode_iterator MPUSH
+  [(CQI "")
+   (HI "") (CHI "")
+   (SI "") (CSI "")
+   (DI "") (CDI "")
+   (SF "") (SC "")])
 
-(define_insn "*pushsi"
-  [(set (mem:SI (post_dec:HI (reg:HI REG_SP)))
-        (match_operand:SI 0 "reg_or_0_operand" "r,L"))]
+(define_expand "push<mode>1"
+  [(match_operand:MPUSH 0 "" "")]
   ""
-  "@
-	push %D0\;push %C0\;push %B0\;push %A0
-	push __zero_reg__\;push __zero_reg__\;push __zero_reg__\;push __zero_reg__"
-  [(set_attr "length" "4,4")])
+{
+  int i;
+  for (i = GET_MODE_SIZE (<MODE>mode) - 1; i >= 0; --i)
+    {
+      rtx part = simplify_gen_subreg (QImode, operands[0], <MODE>mode, i);
+      if (part != const0_rtx)
+	part = force_reg (QImode, part);
+      emit_insn (gen_pushqi1 (part));
+    }
+  DONE;
+})
 
-(define_insn "*pushsf"
-  [(set (mem:SF (post_dec:HI (reg:HI REG_SP)))
-        (match_operand:SF 0 "register_operand" "r"))]
-  ""
-  "push %D0
-	push %C0
-	push %B0
-	push %A0"
-  [(set_attr "length" "4")])
+;; Notice a special-case when adding N to SP where N results in a
+;; zero REG_ARGS_SIZE.  This is equivalent to a move from FP.
+(define_split
+  [(set (reg:HI REG_SP) (match_operand:HI 0 "register_operand" ""))]
+  "reload_completed
+   && frame_pointer_needed
+   && !cfun->calls_alloca
+   && find_reg_note (insn, REG_ARGS_SIZE, const0_rtx)"
+  [(set (reg:HI REG_SP) (reg:HI REG_Y))]
+  "")
 
 ;;========================================================================
 ;; move byte
@@ -1008,6 +1020,43 @@
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
+(define_insn "smulqi3_highpart"
+  [(set (match_operand:QI 0 "register_operand" "=r")
+	(truncate:QI
+         (lshiftrt:HI (mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
+                               (sign_extend:HI (match_operand:QI 2 "register_operand" "d")))
+                      (const_int 8))))]
+  "AVR_HAVE_MUL"
+  "muls %1,%2
+	mov %0,r1
+	clr __zero_reg__"
+  [(set_attr "length" "3")
+   (set_attr "cc" "clobber")])
+  
+(define_insn "umulqi3_highpart"
+  [(set (match_operand:QI 0 "register_operand" "=r")
+	(truncate:QI
+         (lshiftrt:HI (mult:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
+                               (zero_extend:HI (match_operand:QI 2 "register_operand" "r")))
+                      (const_int 8))))]
+  "AVR_HAVE_MUL"
+  "mul %1,%2
+	mov %0,r1
+	clr __zero_reg__"
+  [(set_attr "length" "3")
+   (set_attr "cc" "clobber")])
+
+;; Used when expanding div or mod inline for some special values
+(define_insn "*subqi3.ashiftrt7"
+  [(set (match_operand:QI 0 "register_operand"                       "=r")
+        (minus:QI (match_operand:QI 1 "register_operand"              "0")
+                  (ashiftrt:QI (match_operand:QI 2 "register_operand" "r")
+                               (const_int 7))))]
+  ""
+  "sbrc %2,7\;inc %0"
+  [(set_attr "length" "2")
+   (set_attr "cc" "clobber")])
+
 (define_insn "mulqihi3"
   [(set (match_operand:HI 0 "register_operand" "=r")
 	(mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
@@ -1360,9 +1409,7 @@
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
-;; Operand 2 (reg:SI 18) not clobbered on the enhanced core.
-;; All call-used registers clobbered otherwise - normal library call.
-;;    To support widening multiplicatioon with constant we postpone
+;; To support widening multiplicatioon with constant we postpone
 ;; expanding to the implicit library call until post combine and
 ;; prior to register allocation.  Clobber all hard registers that
 ;; might be used by the (widening) multiply until it is split and
@@ -1372,6 +1419,7 @@
   [(parallel [(set (match_operand:SI 0 "register_operand" "")
                    (mult:SI (match_operand:SI 1 "register_operand" "")
                             (match_operand:SI 2 "nonmemory_operand" "")))
+              (clobber (reg:HI 26))
               (clobber (reg:DI 18))])]
   "AVR_HAVE_MUL"
   {
@@ -1394,6 +1442,7 @@
   [(set (match_operand:SI 0 "pseudo_register_operand"                      "=r")
         (mult:SI (match_operand:SI 1 "pseudo_register_operand"              "r")
                  (match_operand:SI 2 "pseudo_register_or_const_int_operand" "rn")))
+   (clobber (reg:HI 26))
    (clobber (reg:DI 18))]
   "AVR_HAVE_MUL && !reload_completed"
   { gcc_unreachable(); }
@@ -1430,6 +1479,7 @@
   [(set (match_operand:SI 0 "pseudo_register_operand"                           "=r")
         (mult:SI (zero_extend:SI (match_operand:QIHI 1 "pseudo_register_operand" "r"))
                  (match_operand:SI 2 "pseudo_register_or_const_int_operand"      "rn")))
+   (clobber (reg:HI 26))
    (clobber (reg:DI 18))]
   "AVR_HAVE_MUL && !reload_completed"
   { gcc_unreachable(); }
@@ -1465,6 +1515,7 @@
   [(set (match_operand:SI 0 "pseudo_register_operand"                           "=r")
         (mult:SI (sign_extend:SI (match_operand:QIHI 1 "pseudo_register_operand" "r"))
                  (match_operand:SI 2 "pseudo_register_or_const_int_operand"      "rn")))
+   (clobber (reg:HI 26))
    (clobber (reg:DI 18))]
   "AVR_HAVE_MUL && !reload_completed"
   { gcc_unreachable(); }
@@ -1508,6 +1559,7 @@
         (mult:SI (not:SI (zero_extend:SI 
                           (not:HI (match_operand:HI 1 "pseudo_register_operand" "r"))))
                  (match_operand:SI 2 "pseudo_register_or_const_int_operand"     "rn")))
+   (clobber (reg:HI 26))
    (clobber (reg:DI 18))]
   "AVR_HAVE_MUL && !reload_completed"
   { gcc_unreachable(); }
@@ -1523,18 +1575,13 @@
         (reg:SI 22))]
   "")
 
-(define_expand "mulhisi3"
+;; "mulhisi3"
+;; "umulhisi3"
+(define_expand "<extend_u>mulhisi3"
   [(parallel [(set (match_operand:SI 0 "register_operand" "")
-                   (mult:SI (sign_extend:SI (match_operand:HI 1 "register_operand" ""))
-                            (sign_extend:SI (match_operand:HI 2 "register_operand" ""))))
-              (clobber (reg:DI 18))])]
-  "AVR_HAVE_MUL"
-  "")
-
-(define_expand "umulhisi3"
-  [(parallel [(set (match_operand:SI 0 "register_operand" "")
-                   (mult:SI (zero_extend:SI (match_operand:HI 1 "register_operand" ""))
-                            (zero_extend:SI (match_operand:HI 2 "register_operand" ""))))
+                   (mult:SI (any_extend:SI (match_operand:HI 1 "register_operand" ""))
+                            (any_extend:SI (match_operand:HI 2 "register_operand" ""))))
+              (clobber (reg:HI 26))
               (clobber (reg:DI 18))])]
   "AVR_HAVE_MUL"
   "")
@@ -1543,6 +1590,7 @@
   [(parallel [(set (match_operand:SI 0 "register_operand" "")
                    (mult:SI (zero_extend:SI (match_operand:HI 1 "register_operand" ""))
                             (sign_extend:SI (match_operand:HI 2 "register_operand" ""))))
+              (clobber (reg:HI 26))
               (clobber (reg:DI 18))])]
   "AVR_HAVE_MUL"
   "")
@@ -1552,10 +1600,11 @@
 ;; "*sumulqihisi3" "*sumulhiqisi3" "*sumulhihisi3" "*sumulqiqisi3"
 ;; "*ssmulqihisi3" "*ssmulhiqisi3" "*ssmulhihisi3" "*ssmulqiqisi3"
 (define_insn_and_split
-  "*<any_extend:extend_prefix><any_extend2:extend_prefix>mul<QIHI:mode><QIHI2:mode>si3"
+  "*<any_extend:extend_su><any_extend2:extend_su>mul<QIHI:mode><QIHI2:mode>si3"
   [(set (match_operand:SI 0 "pseudo_register_operand"                            "=r")
         (mult:SI (any_extend:SI (match_operand:QIHI 1 "pseudo_register_operand"   "r"))
                  (any_extend2:SI (match_operand:QIHI2 2 "pseudo_register_operand" "r"))))
+   (clobber (reg:HI 26))
    (clobber (reg:DI 18))]
   "AVR_HAVE_MUL && !reload_completed"
   { gcc_unreachable(); }
@@ -1602,6 +1651,24 @@
       }
   })
 
+;; "smulhi3_highpart"
+;; "umulhi3_highpart"
+(define_expand "<extend_su>mulhi3_highpart"
+  [(set (reg:HI 18)
+        (match_operand:HI 1 "nonmemory_operand" ""))
+   (set (reg:HI 26)
+        (match_operand:HI 2 "nonmemory_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (truncate:HI (lshiftrt:SI (mult:SI (any_extend:SI (reg:HI 18))
+                                                      (any_extend:SI (reg:HI 26)))
+                                             (const_int 16))))
+              (clobber (reg:HI 22))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 24))]
+  "AVR_HAVE_MUL"
+  "")
+
+
 (define_insn "*mulsi3_call"
   [(set (reg:SI 22)
         (mult:SI (reg:SI 22)
@@ -1612,21 +1679,27 @@
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
-(define_insn "*mulhisi3_call"
+;; "*mulhisi3_call"
+;; "*umulhisi3_call"
+(define_insn "*<extend_u>mulhisi3_call"
   [(set (reg:SI 22)
-        (mult:SI (sign_extend:SI (reg:HI 18))
-                 (sign_extend:SI (reg:HI 26))))]
+        (mult:SI (any_extend:SI (reg:HI 18))
+                 (any_extend:SI (reg:HI 26))))]
   "AVR_HAVE_MUL"
-  "%~call __mulhisi3"
+  "%~call __<extend_u>mulhisi3"
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
-(define_insn "*umulhisi3_call"
-  [(set (reg:SI 22)
-        (mult:SI (zero_extend:SI (reg:HI 18))
-                 (zero_extend:SI (reg:HI 26))))]
+;; "*umulhi3_highpart_call"
+;; "*smulhi3_highpart_call"
+(define_insn "*<extend_su>mulhi3_highpart_call"
+  [(set (reg:HI 24)
+        (truncate:HI (lshiftrt:SI (mult:SI (any_extend:SI (reg:HI 18))
+                                           (any_extend:SI (reg:HI 26)))
+                                  (const_int 16))))
+   (clobber (reg:HI 22))]
   "AVR_HAVE_MUL"
-  "%~call __umulhisi3"
+  "%~call __<extend_u>mulhisi3"
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
@@ -1639,21 +1712,12 @@
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
-(define_insn "*muluhisi3_call"
+(define_insn "*mul<extend_su>hisi3_call"
   [(set (reg:SI 22)
-        (mult:SI (zero_extend:SI (reg:HI 26))
+        (mult:SI (any_extend:SI (reg:HI 26))
                  (reg:SI 18)))]
   "AVR_HAVE_MUL"
-  "%~call __muluhisi3"
-  [(set_attr "type" "xcall")
-   (set_attr "cc" "clobber")])
-
-(define_insn "*mulshisi3_call"
-  [(set (reg:SI 22)
-        (mult:SI (sign_extend:SI (reg:HI 26))
-                 (reg:SI 18)))]
-  "AVR_HAVE_MUL"
-  "%~call __mulshisi3"
+  "%~call __mul<extend_su>hisi3"
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
@@ -2246,6 +2310,88 @@
   "* return ashlhi3_out (insn, operands, NULL);"
   [(set_attr "length" "6,0,2,2,4,10,10")
    (set_attr "cc" "clobber,none,set_n,clobber,set_n,clobber,clobber")])
+
+
+;; Insns like the following are generated when (implicitly) extending 8-bit shifts
+;; like char1 = char2 << char3.  Only the low-byte is needed in that situation.
+
+;; "*ashluqihiqi3"
+;; "*ashlsqihiqi3"
+(define_insn_and_split "*ashl<extend_su>qihiqi3"
+  [(set (match_operand:QI 0 "register_operand"                                     "=r")
+        (subreg:QI (ashift:HI (any_extend:HI (match_operand:QI 1 "register_operand" "0"))
+                              (match_operand:QI 2 "register_operand"                "r"))
+                   0))]
+  ""
+  "#"
+  ""
+  [(set (match_dup 0)
+        (ashift:QI (match_dup 1)
+                   (match_dup 2)))]
+  "")
+
+;; ??? Combiner does not recognize that it could split the following insn;
+;;     presumably because he has no register handy?
+
+;; "*ashluqihiqi3.mem"
+;; "*ashlsqihiqi3.mem"
+(define_insn_and_split "*ashl<extend_su>qihiqi3.mem"
+  [(set (match_operand:QI 0 "memory_operand" "=m")
+        (subreg:QI (ashift:HI (any_extend:HI (match_operand:QI 1 "register_operand" "r"))
+                              (match_operand:QI 2 "register_operand" "r"))
+                   0))]
+  "!reload_completed"
+  { gcc_unreachable(); }
+  "&& 1"
+  [(set (match_dup 3)
+        (ashift:QI (match_dup 1)
+                   (match_dup 2)))
+   (set (match_dup 0)
+        (match_dup 3))]
+  {
+    operands[3] = gen_reg_rtx (QImode);
+  })
+
+;; Similar.
+
+(define_insn_and_split "*ashlhiqi3"
+  [(set (match_operand:QI 0 "nonimmediate_operand" "=r")
+        (subreg:QI (ashift:HI (match_operand:HI 1 "register_operand" "0")
+                              (match_operand:QI 2 "register_operand" "r")) 0))]
+  "!reload_completed"
+  { gcc_unreachable(); }
+  "&& 1"
+  [(set (match_dup 4)
+        (ashift:QI (match_dup 3)
+                   (match_dup 2)))
+   (set (match_dup 0)
+        (match_dup 4))]
+  {
+    operands[3] = simplify_gen_subreg (QImode, operands[1], HImode, 0);
+    operands[4] = gen_reg_rtx (QImode);
+  })
+
+;; High part of 16-bit shift is unused after the instruction:
+;; No need to compute it, map to 8-bit shift.
+
+(define_peephole2
+  [(set (match_operand:HI 0 "register_operand" "")
+        (ashift:HI (match_dup 0)
+                   (match_operand:QI 1 "register_operand" "")))]
+  ""
+  [(set (match_dup 2)
+        (ashift:QI (match_dup 2)
+                   (match_dup 1)))
+   (clobber (match_dup 3))]
+  {
+    operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
+
+    if (!peep2_reg_dead_p (1, operands[3]))
+      FAIL;
+
+    operands[2] = simplify_gen_subreg (QImode, operands[0], HImode, 0);
+  })
+
 
 (define_insn "ashlsi3"
   [(set (match_operand:SI 0 "register_operand"           "=r,r,r,r,r,r,r")
@@ -3194,15 +3340,35 @@
 (define_insn "branch"
   [(set (pc)
         (if_then_else (match_operator 1 "simple_comparison_operator"
-                        [(cc0)
-                         (const_int 0)])
+                                      [(cc0)
+                                       (const_int 0)])
                       (label_ref (match_operand 0 "" ""))
                       (pc)))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0],insn), 0);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 0);
+  }
   [(set_attr "type" "branch")
    (set_attr "cc" "clobber")])
+
+
+;; Same as above but wrap SET_SRC so that this branch won't be transformed
+;; or optimized in the remainder.
+
+(define_insn "branch_unspec"
+  [(set (pc)
+        (unspec [(if_then_else (match_operator 1 "simple_comparison_operator"
+                                               [(cc0)
+                                                (const_int 0)])
+                               (label_ref (match_operand 0 "" ""))
+                               (pc))
+                 ] UNSPEC_IDENTITY))]
+  ""
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 0);
+  }
+  [(set_attr "type" "branch")
+   (set_attr "cc" "none")])
 
 ;; ****************************************************************
 ;; AVR does not have following conditional jumps: LE,LEU,GT,GTU.
@@ -3940,6 +4106,295 @@
 	brne 1b"
   [(set_attr "length" "9")
    (set_attr "cc" "clobber")])
+
+
+;; Parity
+
+(define_expand "parityhi2"
+  [(set (reg:HI 24)
+        (match_operand:HI 1 "register_operand" ""))
+   (set (reg:HI 24)
+        (parity:HI (reg:HI 24)))
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 24))]
+  ""
+  "")
+
+(define_expand "paritysi2"
+  [(set (reg:SI 22)
+        (match_operand:SI 1 "register_operand" ""))
+   (set (reg:HI 24)
+        (parity:HI (reg:SI 22)))
+   (set (match_dup 2)
+        (reg:HI 24))
+   (set (match_operand:SI 0 "register_operand" "")
+        (zero_extend:SI (match_dup 2)))]
+  ""
+  {
+    operands[2] = gen_reg_rtx (HImode);
+  })
+
+(define_insn "*parityhi2.libgcc"
+  [(set (reg:HI 24)
+        (parity:HI (reg:HI 24)))]
+  ""
+  "%~call __parityhi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*parityqihi2.libgcc"
+  [(set (reg:HI 24)
+        (parity:HI (reg:QI 24)))]
+  ""
+  "%~call __parityqi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*paritysihi2.libgcc"
+  [(set (reg:HI 24)
+        (parity:HI (reg:SI 22)))]
+  ""
+  "%~call __paritysi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+
+;; Popcount
+
+(define_expand "popcounthi2"
+  [(set (reg:HI 24)
+        (match_operand:HI 1 "register_operand" ""))
+   (set (reg:HI 24)
+        (popcount:HI (reg:HI 24)))
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 24))]
+  ""
+  "")
+
+(define_expand "popcountsi2"
+  [(set (reg:SI 22)
+        (match_operand:SI 1 "register_operand" ""))
+   (set (reg:HI 24)
+        (popcount:HI (reg:SI 22)))
+   (set (match_dup 2)
+        (reg:HI 24))
+   (set (match_operand:SI 0 "register_operand" "")
+        (zero_extend:SI (match_dup 2)))]
+  ""
+  {
+    operands[2] = gen_reg_rtx (HImode);
+  })
+
+(define_insn "*popcounthi2.libgcc"
+  [(set (reg:HI 24)
+        (popcount:HI (reg:HI 24)))]
+  ""
+  "%~call __popcounthi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*popcountsi2.libgcc"
+  [(set (reg:HI 24)
+        (popcount:HI (reg:SI 22)))]
+  ""
+  "%~call __popcountsi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*popcountqi2.libgcc"
+  [(set (reg:QI 24)
+        (popcount:QI (reg:QI 24)))]
+  ""
+  "%~call __popcountqi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn_and_split "*popcountqihi2.libgcc"
+  [(set (reg:HI 24)
+        (popcount:HI (reg:QI 24)))]
+  ""
+  "#"
+  ""
+  [(set (reg:QI 24)
+        (popcount:QI (reg:QI 24)))
+   (set (reg:QI 25)
+        (const_int 0))]
+  "")
+
+;; Count Leading Zeros
+
+(define_expand "clzhi2"
+  [(set (reg:HI 24)
+        (match_operand:HI 1 "register_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (clz:HI (reg:HI 24)))
+              (clobber (reg:QI 26))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 24))]
+  ""
+  "")
+
+(define_expand "clzsi2"
+  [(set (reg:SI 22)
+        (match_operand:SI 1 "register_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (clz:HI (reg:SI 22)))
+              (clobber (reg:QI 26))])
+   (set (match_dup 2)
+        (reg:HI 24))
+   (set (match_operand:SI 0 "register_operand" "")
+        (zero_extend:SI (match_dup 2)))]
+  ""
+  {
+    operands[2] = gen_reg_rtx (HImode);
+  })
+
+(define_insn "*clzhi2.libgcc"
+  [(set (reg:HI 24)
+        (clz:HI (reg:HI 24)))
+   (clobber (reg:QI 26))]
+  ""
+  "%~call __clzhi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*clzsihi2.libgcc"
+  [(set (reg:HI 24)
+        (clz:HI (reg:SI 22)))
+   (clobber (reg:QI 26))]
+  ""
+  "%~call __clzsi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+;; Count Trailing Zeros
+
+(define_expand "ctzhi2"
+  [(set (reg:HI 24)
+        (match_operand:HI 1 "register_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (ctz:HI (reg:HI 24)))
+              (clobber (reg:QI 26))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 24))]
+  ""
+  "")
+
+(define_expand "ctzsi2"
+  [(set (reg:SI 22)
+        (match_operand:SI 1 "register_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (ctz:HI (reg:SI 22)))
+              (clobber (reg:QI 22))
+              (clobber (reg:QI 26))])
+   (set (match_dup 2)
+        (reg:HI 24))
+   (set (match_operand:SI 0 "register_operand" "")
+        (zero_extend:SI (match_dup 2)))]
+  ""
+  {
+    operands[2] = gen_reg_rtx (HImode);
+  })
+
+(define_insn "*ctzhi2.libgcc"
+  [(set (reg:HI 24)
+        (ctz:HI (reg:HI 24)))
+   (clobber (reg:QI 26))]
+  ""
+  "%~call __ctzhi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*ctzsihi2.libgcc"
+  [(set (reg:HI 24)
+        (ctz:HI (reg:SI 22)))
+   (clobber (reg:QI 22))
+   (clobber (reg:QI 26))]
+  ""
+  "%~call __ctzsi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+;; Find First Set
+
+(define_expand "ffshi2"
+  [(set (reg:HI 24)
+        (match_operand:HI 1 "register_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (ffs:HI (reg:HI 24)))
+              (clobber (reg:QI 26))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 24))]
+  ""
+  "")
+
+(define_expand "ffssi2"
+  [(set (reg:SI 22)
+        (match_operand:SI 1 "register_operand" ""))
+   (parallel [(set (reg:HI 24)
+                   (ffs:HI (reg:SI 22)))
+              (clobber (reg:QI 22))
+              (clobber (reg:QI 26))])
+   (set (match_dup 2)
+        (reg:HI 24))
+   (set (match_operand:SI 0 "register_operand" "")
+        (zero_extend:SI (match_dup 2)))]
+  ""
+  {
+    operands[2] = gen_reg_rtx (HImode);
+  })
+
+(define_insn "*ffshi2.libgcc"
+  [(set (reg:HI 24)
+        (ffs:HI (reg:HI 24)))
+   (clobber (reg:QI 26))]
+  ""
+  "%~call __ffshi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*ffssihi2.libgcc"
+  [(set (reg:HI 24)
+        (ffs:HI (reg:SI 22)))
+   (clobber (reg:QI 22))
+   (clobber (reg:QI 26))]
+  ""
+  "%~call __ffssi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+;; Copysign
+
+(define_insn "copysignsf3"
+  [(set (match_operand:SF 0 "register_operand"             "=r")
+        (unspec:SF [(match_operand:SF 1 "register_operand"  "0")
+                    (match_operand:SF 2 "register_operand"  "r")]
+                   UNSPEC_COPYSIGN))]
+  ""
+  "bst %D2,7\;bld %D0,7"
+  [(set_attr "length" "2")
+   (set_attr "cc" "none")])
+  
+;; Swap Bytes (change byte-endianess)
+
+(define_expand "bswapsi2"
+  [(set (reg:SI 22)
+        (match_operand:SI 1 "register_operand" ""))
+   (set (reg:SI 22)
+        (bswap:SI (reg:SI 22)))
+   (set (match_operand:SI 0 "register_operand" "")
+        (reg:SI 22))]
+  ""
+  "")
+
+(define_insn "*bswapsi2.libgcc"
+  [(set (reg:SI 22)
+        (bswap:SI (reg:SI 22)))]
+  ""
+  "%~call __bswapsi2"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
 
 ;; CPU instructions
 

@@ -247,7 +247,9 @@ unsigned const char omp_clause_num_ops[] =
   0, /* OMP_CLAUSE_ORDERED  */
   0, /* OMP_CLAUSE_DEFAULT  */
   3, /* OMP_CLAUSE_COLLAPSE  */
-  0  /* OMP_CLAUSE_UNTIED   */
+  0, /* OMP_CLAUSE_UNTIED   */
+  1, /* OMP_CLAUSE_FINAL  */
+  0  /* OMP_CLAUSE_MERGEABLE  */
 };
 
 const char * const omp_clause_code_name[] =
@@ -267,7 +269,9 @@ const char * const omp_clause_code_name[] =
   "ordered",
   "default",
   "collapse",
-  "untied"
+  "untied",
+  "final",
+  "mergeable"
 };
 
 
@@ -3782,8 +3786,7 @@ build2_stat (enum tree_code code, tree tt, tree arg0, tree arg1 MEM_STAT_DECL)
 
   if (code == POINTER_PLUS_EXPR && arg0 && arg1 && tt)
     gcc_assert (POINTER_TYPE_P (tt) && POINTER_TYPE_P (TREE_TYPE (arg0))
-		&& INTEGRAL_TYPE_P (TREE_TYPE (arg1))
-		&& useless_type_conversion_p (sizetype, TREE_TYPE (arg1)));
+		&& ptrofftype_p (TREE_TYPE (arg1)));
 
   t = make_node_stat (code PASS_MEM_STAT);
   TREE_TYPE (t) = tt;
@@ -9230,6 +9233,8 @@ build_common_tree_nodes (bool signed_char, bool short_double)
     size_type_node = long_unsigned_type_node;
   else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
     size_type_node = long_long_unsigned_type_node;
+  else if (strcmp (SIZE_TYPE, "short unsigned int") == 0)
+    size_type_node = short_unsigned_type_node;
   else
     gcc_unreachable ();
 
@@ -10546,6 +10551,7 @@ walk_tree_1 (tree *tp, walk_tree_fn func, void *data,
 	case OMP_CLAUSE_FIRSTPRIVATE:
 	case OMP_CLAUSE_COPYIN:
 	case OMP_CLAUSE_COPYPRIVATE:
+	case OMP_CLAUSE_FINAL:
 	case OMP_CLAUSE_IF:
 	case OMP_CLAUSE_NUM_THREADS:
 	case OMP_CLAUSE_SCHEDULE:
@@ -10556,6 +10562,7 @@ walk_tree_1 (tree *tp, walk_tree_fn func, void *data,
 	case OMP_CLAUSE_ORDERED:
 	case OMP_CLAUSE_DEFAULT:
 	case OMP_CLAUSE_UNTIED:
+	case OMP_CLAUSE_MERGEABLE:
 	  WALK_SUBTREE_TAIL (OMP_CLAUSE_CHAIN (*tp));
 
 	case OMP_CLAUSE_LASTPRIVATE:

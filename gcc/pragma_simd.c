@@ -389,7 +389,7 @@ pragma_simd_create_private_vars(tree body,
     inside_body = body;
 
   for (ii_priv_list = ps_info.private_vars; ii_priv_list != NULL_TREE;
-       ii_priv_list = DECL_CHAIN(ii_priv_list))
+       ii_priv_list = TREE_CHAIN(ii_priv_list))
   {
     ii_priv_value = TREE_VALUE(ii_priv_list);
     var = NULL_TREE;
@@ -504,7 +504,7 @@ find_var_decl (tree t, const char *var_name, tree *var)
     {
       *var = t;
     }
-
+    return;
   case NON_LVALUE_EXPR:
   case CONVERT_EXPR:
   case NOP_EXPR:

@@ -47,7 +47,7 @@ push_stmt_list (void)
 tree
 pop_stmt_list (tree t)
 {
-  tree u = NULL_TREE, chain = NULL_TREE;
+  tree u = NULL_TREE;
 
   /* Pop statement lists until we reach the target level.  The extra
      nestings will be due to outstanding cleanups.  */

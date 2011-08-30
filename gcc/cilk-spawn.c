@@ -1553,7 +1553,7 @@ cilk_outline (tree inner_fn,
   id.decl_map = wd->decl_map;
   id.copy_decl = nested ? copy_decl_no_change : copy_decl_for_cilk;
   id.block = DECL_INITIAL (inner_fn);
-  id.transform_lang_insert_block = false; /* ? */
+  id.transform_lang_insert_block = NULL; /* ? */
 
   /* This runs before EH. */ /* XXX maybe not any more? */
   id.eh_region = 0;
@@ -1804,12 +1804,10 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
   
   tree var_type, count_type, difference_type, limit;
   enum tree_code incr_op;
-  bool inclusive, iterator, negate_incr, exactly_one, reversed=false;
-  int implied_direction, incr_direction, cond_direction, direction;
+  bool inclusive, iterator, negate_incr, exactly_one;
+  int incr_direction, cond_direction, direction;
 
-  tree init_expr;
-
-  init_expr = build2(MODIFY_EXPR, void_type_node, var, init);
+  /* init_expr = build2(MODIFY_EXPR, void_type_node, var, init); */
   
   switch (TREE_CODE (cond))
     {
@@ -1847,12 +1845,10 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
   if (tree_operand_noconv (cond, 0) == var)
     {
       limit = TREE_OPERAND (cond, 1);
-      reversed = false;
     }
   else if (tree_operand_noconv (cond, 1) == var)
     {
       limit = TREE_OPERAND (cond, 0);
-      reversed = true;
       cond_direction = -cond_direction;
     }
   else
@@ -1910,7 +1906,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
     case POSTINCREMENT_EXPR:
       negate_incr = false;
       incr_direction = 1; /* exact */
-      implied_direction = 1;
+      /* implied_direction = 1; */
       incr = TREE_OPERAND (incr, 1);
       if (incr == NULL_TREE)
 	{
@@ -1926,7 +1922,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
     case POSTDECREMENT_EXPR:
       negate_incr = true;  /* we store +1 and subtract it */
       incr_direction = -1; /* exact */
-      implied_direction = -1;
+      /* implied_direction = -1; */
       incr = TREE_OPERAND (incr, 1);
       if (incr == NULL_TREE)
 	{
@@ -1957,7 +1953,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 	  else
 	    gcc_unreachable ();
 	  negate_incr = false;
-	  implied_direction = 1;
+	  /* implied_direction = 1; */
 	  incr_direction = compute_incr_direction (incr);
 	  /* Adding a negative number treated as unsigned is
 	     adding a (large) positive number.  We already
@@ -1980,7 +1976,7 @@ extract_for_fields (struct cilk_for_desc *cfd, tree loop)
 	  /* Store the amount to be subtracted.
 	     Negating it could overflow. */
 	  negate_incr = true;
-	  implied_direction = -1;
+	  /* implied_direction = -1; */
 	  incr_direction = -compute_incr_direction (incr);
 	  /* Subtracting a negative number treated as unsigned
 	     is adding a large positive number. */

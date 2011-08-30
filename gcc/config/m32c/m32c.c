@@ -318,44 +318,31 @@ reg_push_size (int regno)
     }
 }
 
-static int *class_sizes = 0;
-
 /* Given two register classes, find the largest intersection between
    them.  If there is no intersection, return RETURNED_IF_EMPTY
    instead.  */
-static int
-reduce_class (int original_class, int limiting_class, int returned_if_empty)
+static reg_class_t
+reduce_class (reg_class_t original_class, reg_class_t limiting_class,
+	      reg_class_t returned_if_empty)
 {
-  int cc = class_contents[original_class][0];
-  int i, best = NO_REGS;
-  int best_size = 0;
+  HARD_REG_SET cc;
+  int i;
+  reg_class_t best = NO_REGS;
+  unsigned int best_size = 0;
 
   if (original_class == limiting_class)
     return original_class;
 
-  if (!class_sizes)
-    {
-      int r;
-      class_sizes = (int *) xmalloc (LIM_REG_CLASSES * sizeof (int));
-      for (i = 0; i < LIM_REG_CLASSES; i++)
-	{
-	  class_sizes[i] = 0;
-	  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-	    if (class_contents[i][0] & (1 << r))
-	      class_sizes[i]++;
-	}
-    }
+  cc = reg_class_contents[original_class];
+  AND_HARD_REG_SET (cc, reg_class_contents[limiting_class]);
 
-  cc &= class_contents[limiting_class][0];
   for (i = 0; i < LIM_REG_CLASSES; i++)
     {
-      int ic = class_contents[i][0];
-
-      if ((~cc & ic) == 0)
-	if (best_size < class_sizes[i])
+      if (hard_reg_set_subset_p (reg_class_contents[i], cc))
+	if (best_size < reg_class_size[i])
 	  {
-	    best = i;
-	    best_size = class_sizes[i];
+	    best = (reg_class_t) i;
+	    best_size = reg_class_size[i];
 	  }
 
     }
@@ -742,12 +729,16 @@ m32c_regno_ok_for_base_p (int regno)
 
 #define DEBUG_RELOAD 0
 
-/* Implements PREFERRED_RELOAD_CLASS.  In general, prefer general
+/* Implements TARGET_PREFERRED_RELOAD_CLASS.  In general, prefer general
    registers of the appropriate size.  */
-int
-m32c_preferred_reload_class (rtx x, int rclass)
+
+#undef TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS m32c_preferred_reload_class
+
+static reg_class_t
+m32c_preferred_reload_class (rtx x, reg_class_t rclass)
 {
-  int newclass = rclass;
+  reg_class_t newclass = rclass;
 
 #if DEBUG_RELOAD
   fprintf (stderr, "\npreferred_reload_class for %s is ",
@@ -772,7 +763,7 @@ m32c_preferred_reload_class (rtx x, int rclass)
   else if (newclass == QI_REGS && GET_MODE_SIZE (GET_MODE (x)) > 2)
     newclass = SI_REGS;
   else if (GET_MODE_SIZE (GET_MODE (x)) > 4
-	   && ~class_contents[rclass][0] & 0x000f)
+	   && ! reg_class_subset_p (R03_REGS, rclass))
     newclass = DI_REGS;
 
   rclass = reduce_class (rclass, newclass, rclass);
@@ -792,9 +783,13 @@ m32c_preferred_reload_class (rtx x, int rclass)
   return rclass;
 }
 
-/* Implements PREFERRED_OUTPUT_RELOAD_CLASS.  */
-int
-m32c_preferred_output_reload_class (rtx x, int rclass)
+/* Implements TARGET_PREFERRED_OUTPUT_RELOAD_CLASS.  */
+
+#undef TARGET_PREFERRED_OUTPUT_RELOAD_CLASS
+#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS m32c_preferred_output_reload_class
+
+static reg_class_t
+m32c_preferred_output_reload_class (rtx x, reg_class_t rclass)
 {
   return m32c_preferred_reload_class (x, rclass);
 }
@@ -845,7 +840,7 @@ m32c_secondary_reload_class (int rclass, enum machine_mode mode, rtx x)
   if (reg_classes_intersect_p (rclass, CR_REGS)
       && GET_CODE (x) == REG
       && REGNO (x) >= SB_REGNO && REGNO (x) <= SP_REGNO)
-    return TARGET_A16 ? HI_REGS : A_REGS;
+    return (TARGET_A16 || mode == HImode) ? HI_REGS : A_REGS;
   return NO_REGS;
 }
 

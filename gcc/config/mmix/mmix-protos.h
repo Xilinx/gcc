@@ -26,8 +26,6 @@ extern int mmix_starting_frame_offset (void);
 extern int mmix_function_arg_regno_p (int, int);
 extern void mmix_function_profiler (FILE *, int);
 extern int mmix_reversible_cc_mode (enum machine_mode);
-extern int mmix_register_move_cost
-  (enum machine_mode, enum reg_class, enum reg_class);
 extern const char *mmix_text_section_asm_op (void);
 extern const char *mmix_data_section_asm_op (void);
 extern void mmix_output_quoted_string (FILE *, const char *, int);
@@ -59,9 +57,6 @@ extern void mmix_asm_declare_register_global
   (FILE *, tree, int, const char *);
 extern void mmix_asm_output_addr_diff_elt (FILE *, rtx, int, int);
 extern void mmix_asm_output_addr_vec_elt (FILE *, int);
-extern enum reg_class mmix_preferred_reload_class (rtx, enum reg_class);
-extern enum reg_class mmix_preferred_output_reload_class
-  (rtx, enum reg_class);
 extern enum reg_class mmix_secondary_reload_class
   (enum reg_class, enum machine_mode, rtx, int);
 extern int mmix_const_ok_for_letter_p (HOST_WIDE_INT, int);

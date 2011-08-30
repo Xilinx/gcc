@@ -1466,7 +1466,7 @@ get_mem_align_offset (rtx mem, unsigned int align)
   /* This function can't use
      if (!MEM_EXPR (mem) || !MEM_OFFSET_KNOWN_P (mem)
 	 || (MAX (MEM_ALIGN (mem),
-	          get_object_alignment (MEM_EXPR (mem), align))
+	          MAX (align, get_object_alignment (MEM_EXPR (mem))))
 	     < align))
        return -1;
      else
@@ -1826,9 +1826,9 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	  apply_bitpos = bitpos;
 	}
 
-      if (!align_computed && !INDIRECT_REF_P (t))
+      if (!align_computed)
 	{
-	  unsigned int obj_align = get_object_alignment (t, BIGGEST_ALIGNMENT);
+	  unsigned int obj_align = get_object_alignment (t);
 	  attrs.align = MAX (attrs.align, obj_align);
 	}
     }
@@ -2724,6 +2724,7 @@ repeat:
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
     case SCRATCH:
       /* SCRATCH must be shared because they represent distinct values.  */
       return;
@@ -2843,6 +2844,7 @@ repeat:
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
       return;
 
     case DEBUG_INSN:
@@ -3322,13 +3324,16 @@ prev_label (rtx insn)
   return insn;
 }
 
-/* Return the last label to mark the same position as LABEL.  Return null
-   if LABEL itself is null.  */
+/* Return the last label to mark the same position as LABEL.  Return LABEL
+   itself if it is null or any return rtx.  */
 
 rtx
 skip_consecutive_labels (rtx label)
 {
   rtx insn;
+
+  if (label && ANY_RETURN_P (label))
+    return label;
 
   for (insn = label; insn != 0 && !INSN_P (insn); insn = NEXT_INSN (insn))
     if (LABEL_P (insn))
@@ -3610,6 +3615,10 @@ try_split (rtx pat, rtx trial, int last)
 	    }
 	  break;
 #endif
+
+	case REG_ARGS_SIZE:
+	  fixup_args_size_notes (NULL_RTX, insn_last, INTVAL (XEXP (note, 0)));
+	  break;
 
 	default:
 	  break;
@@ -5254,6 +5263,7 @@ copy_insn_1 (rtx orig)
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
       return orig;
     case CLOBBER:
       if (REG_P (XEXP (orig, 0)) && REGNO (XEXP (orig, 0)) < FIRST_PSEUDO_REGISTER)

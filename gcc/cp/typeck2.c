@@ -450,6 +450,12 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
       break;
 
     case LANG_TYPE:
+      if (type == init_list_type_node)
+	{
+	  emit_diagnostic (diag_kind, input_location, 0,
+			   "invalid use of brace-enclosed initializer list");
+	  break;
+	}
       gcc_assert (type == unknown_type_node);
       if (value && TREE_CODE (value) == COMPONENT_REF)
 	goto bad_member;
@@ -740,7 +746,10 @@ check_narrowing (tree type, tree init)
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (ftype)
 	   && CP_INTEGRAL_TYPE_P (type))
     {
-      if (TYPE_PRECISION (type) < TYPE_PRECISION (ftype)
+      if ((tree_int_cst_lt (TYPE_MAX_VALUE (type),
+			    TYPE_MAX_VALUE (ftype))
+	   || tree_int_cst_lt (TYPE_MIN_VALUE (ftype),
+			       TYPE_MIN_VALUE (type)))
 	  && (TREE_CODE (init) != INTEGER_CST
 	      || !int_fits_type_p (init, type)))
 	ok = false;

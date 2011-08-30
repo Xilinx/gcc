@@ -3514,12 +3514,178 @@ push_block (rtx size, int extra, int below)
   return memory_address (GET_CLASS_NARROWEST_MODE (MODE_INT), temp);
 }
 
-#ifdef PUSH_ROUNDING
+/* A utility routine that returns the base of an auto-inc memory, or NULL.  */
 
+static rtx
+mem_autoinc_base (rtx mem)
+{
+  if (MEM_P (mem))
+    {
+      rtx addr = XEXP (mem, 0);
+      if (GET_RTX_CLASS (GET_CODE (addr)) == RTX_AUTOINC)
+	return XEXP (addr, 0);
+    }
+  return NULL;
+}
+
+/* A utility routine used here, in reload, and in try_split.  The insns
+   after PREV up to and including LAST are known to adjust the stack,
+   with a final value of END_ARGS_SIZE.  Iterate backward from LAST
+   placing notes as appropriate.  PREV may be NULL, indicating the
+   entire insn sequence prior to LAST should be scanned.
+
+   The set of allowed stack pointer modifications is small:
+     (1) One or more auto-inc style memory references (aka pushes),
+     (2) One or more addition/subtraction with the SP as destination,
+     (3) A single move insn with the SP as destination,
+     (4) A call_pop insn.
+
+   Insns in the sequence that do not modify the SP are ignored.
+
+   The return value is the amount of adjustment that can be trivially
+   verified, via immediate operand or auto-inc.  If the adjustment
+   cannot be trivially extracted, the return value is INT_MIN.  */
+
+int
+fixup_args_size_notes (rtx prev, rtx last, int end_args_size)
+{
+  int args_size = end_args_size;
+  bool saw_unknown = false;
+  rtx insn;
+
+  for (insn = last; insn != prev; insn = PREV_INSN (insn))
+    {
+      rtx dest, set, pat;
+      HOST_WIDE_INT this_delta = 0;
+      int i;
+
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+      pat = PATTERN (insn);
+      set = NULL;
+
+      /* Look for a call_pop pattern.  */
+      if (CALL_P (insn))
+	{
+          /* We have to allow non-call_pop patterns for the case
+	     of emit_single_push_insn of a TLS address.  */
+	  if (GET_CODE (pat) != PARALLEL)
+	    continue;
+
+	  /* All call_pop have a stack pointer adjust in the parallel.
+	     The call itself is always first, and the stack adjust is
+	     usually last, so search from the end.  */
+	  for (i = XVECLEN (pat, 0) - 1; i > 0; --i)
+	    {
+	      set = XVECEXP (pat, 0, i);
+	      if (GET_CODE (set) != SET)
+		continue;
+	      dest = SET_DEST (set);
+	      if (dest == stack_pointer_rtx)
+		break;
+	    }
+	  /* We'd better have found the stack pointer adjust.  */
+	  if (i == 0)
+	    continue;
+	  /* Fall through to process the extracted SET and DEST
+	     as if it was a standalone insn.  */
+	}
+      else if (GET_CODE (pat) == SET)
+	set = pat;
+      else if ((set = single_set (insn)) != NULL)
+	;
+      else if (GET_CODE (pat) == PARALLEL)
+	{
+	  /* ??? Some older ports use a parallel with a stack adjust
+	     and a store for a PUSH_ROUNDING pattern, rather than a
+	     PRE/POST_MODIFY rtx.  Don't force them to update yet...  */
+	  /* ??? See h8300 and m68k, pushqi1.  */
+	  for (i = XVECLEN (pat, 0) - 1; i >= 0; --i)
+	    {
+	      set = XVECEXP (pat, 0, i);
+	      if (GET_CODE (set) != SET)
+		continue;
+	      dest = SET_DEST (set);
+	      if (dest == stack_pointer_rtx)
+		break;
+
+	      /* We do not expect an auto-inc of the sp in the parallel.  */
+	      gcc_checking_assert (mem_autoinc_base (dest)
+				   != stack_pointer_rtx);
+	      gcc_checking_assert (mem_autoinc_base (SET_SRC (set))
+				   != stack_pointer_rtx);
+	    }
+	  if (i < 0)
+	    continue;
+	}
+      else
+	continue;
+      dest = SET_DEST (set);
+
+      /* Look for direct modifications of the stack pointer.  */
+      if (REG_P (dest) && REGNO (dest) == STACK_POINTER_REGNUM)
+	{
+	  gcc_assert (!saw_unknown);
+	  /* Look for a trivial adjustment, otherwise assume nothing.  */
+	  /* Note that the SPU restore_stack_block pattern refers to
+	     the stack pointer in V4SImode.  Consider that non-trivial.  */
+	  if (SCALAR_INT_MODE_P (GET_MODE (dest))
+	      && GET_CODE (SET_SRC (set)) == PLUS
+	      && XEXP (SET_SRC (set), 0) == stack_pointer_rtx
+	      && CONST_INT_P (XEXP (SET_SRC (set), 1)))
+	    this_delta = INTVAL (XEXP (SET_SRC (set), 1));
+	  /* ??? Reload can generate no-op moves, which will be cleaned
+	     up later.  Recognize it and continue searching.  */
+	  else if (rtx_equal_p (dest, SET_SRC (set)))
+	    this_delta = 0;
+	  else
+	    saw_unknown = true;
+	}
+      /* Otherwise only think about autoinc patterns.  */
+      else if (mem_autoinc_base (dest) == stack_pointer_rtx)
+	{
+	  rtx addr = XEXP (dest, 0);
+	  gcc_assert (!saw_unknown);
+	  switch (GET_CODE (addr))
+	    {
+	    case PRE_INC:
+	    case POST_INC:
+	      this_delta = GET_MODE_SIZE (GET_MODE (dest));
+	      break;
+	    case PRE_DEC:
+	    case POST_DEC:
+	      this_delta = -GET_MODE_SIZE (GET_MODE (dest));
+	      break;
+	    case PRE_MODIFY:
+	    case POST_MODIFY:
+	      addr = XEXP (addr, 1);
+	      gcc_assert (GET_CODE (addr) == PLUS);
+	      gcc_assert (XEXP (addr, 0) == stack_pointer_rtx);
+	      gcc_assert (CONST_INT_P (XEXP (addr, 1)));
+	      this_delta = INTVAL (XEXP (addr, 1));
+	      break;
+	    default:
+	      gcc_unreachable ();
+	    }
+	}
+      else
+	continue;
+
+      add_reg_note (insn, REG_ARGS_SIZE, GEN_INT (args_size));
+#ifdef STACK_GROWS_DOWNWARD
+      this_delta = -this_delta;
+#endif
+      args_size -= this_delta;
+    }
+
+  return saw_unknown ? INT_MIN : args_size;
+}
+
+#ifdef PUSH_ROUNDING
 /* Emit single push insn.  */
 
 static void
-emit_single_push_insn (enum machine_mode mode, rtx x, tree type)
+emit_single_push_insn_1 (enum machine_mode mode, rtx x, tree type)
 {
   rtx dest_addr;
   unsigned rounded_size = PUSH_ROUNDING (GET_MODE_SIZE (mode));
@@ -3602,6 +3768,30 @@ emit_single_push_insn (enum machine_mode mode, rtx x, tree type)
 	set_mem_alias_set (dest, 0);
     }
   emit_move_insn (dest, x);
+}
+
+/* Emit and annotate a single push insn.  */
+
+static void
+emit_single_push_insn (enum machine_mode mode, rtx x, tree type)
+{
+  int delta, old_delta = stack_pointer_delta;
+  rtx prev = get_last_insn ();
+  rtx last;
+
+  emit_single_push_insn_1 (mode, x, type);
+
+  last = get_last_insn ();
+
+  /* Notice the common case where we emitted exactly one insn.  */
+  if (PREV_INSN (last) == prev)
+    {
+      add_reg_note (last, REG_ARGS_SIZE, GEN_INT (stack_pointer_delta));
+      return;
+    }
+
+  delta = fixup_args_size_notes (prev, last, stack_pointer_delta);
+  gcc_assert (delta == INT_MIN || delta == old_delta);
 }
 #endif
 
@@ -4158,7 +4348,10 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
 
   /* If other threads can't see this value, no need to restrict stores.  */
   if (ALLOW_STORE_DATA_RACES
-      || (!ptr_deref_may_alias_global_p (innerdecl)
+      || ((TREE_CODE (innerdecl) == MEM_REF
+	   || TREE_CODE (innerdecl) == TARGET_MEM_REF)
+	  && !ptr_deref_may_alias_global_p (TREE_OPERAND (innerdecl, 0)))
+      || (DECL_P (innerdecl)
 	  && (DECL_THREAD_LOCAL_P (innerdecl)
 	      || !TREE_STATIC (innerdecl))))
     {
@@ -4250,8 +4443,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
   if ((TREE_CODE (to) == MEM_REF
        || TREE_CODE (to) == TARGET_MEM_REF)
       && mode != BLKmode
-      && ((align = MAX (TYPE_ALIGN (TREE_TYPE (to)),
-			get_object_alignment (to, BIGGEST_ALIGNMENT)))
+      && ((align = MAX (TYPE_ALIGN (TREE_TYPE (to)), get_object_alignment (to)))
 	  < (signed) GET_MODE_ALIGNMENT (mode))
       && ((icode = optab_handler (movmisalign_optab, mode))
 	  != CODE_FOR_nothing))
@@ -7039,9 +7231,7 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
       {
 	tree tem = TREE_OPERAND (exp, 0);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))
-	  tem = build2 (POINTER_PLUS_EXPR, TREE_TYPE (TREE_OPERAND (exp, 1)),
-			tem,
-			double_int_to_tree (sizetype, mem_ref_offset (exp)));
+	  tem = fold_build_pointer_plus (tem, TREE_OPERAND (exp, 1));
 	return expand_expr (tem, target, tmode, modifier);
       }
 
@@ -7085,7 +7275,16 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
 	  /* If the DECL isn't in memory, then the DECL wasn't properly
 	     marked TREE_ADDRESSABLE, which will be either a front-end
 	     or a tree optimizer bug.  */
-	  gcc_assert (MEM_P (result));
+
+	  if (TREE_ADDRESSABLE (exp)
+	      && ! MEM_P (result)
+	      && ! targetm.calls.allocate_stack_slots_for_args())
+	    {
+	      error ("local frame unavailable (naked function?)");
+	      return result;
+	    }
+	  else
+	    gcc_assert (MEM_P (result));
 	  result = XEXP (result, 0);
 
 	  /* ??? Is this needed anymore?  */
@@ -8461,7 +8660,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   enum tree_code code = TREE_CODE (exp);
   rtx subtarget, original_target;
   int ignore;
-  tree context;
+  /* tree context; */
   bool reduce_bit_field;
   location_t loc = EXPR_LOCATION (exp);
   struct separate_ops ops;
@@ -8636,10 +8835,10 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Show we haven't gotten RTL for this yet.  */
       temp = 0;
 
+      #if 0
       /* Variables inherited from containing functions should have
 	 been lowered by this point.  */
       context = decl_function_context (exp);
-      #if 0
       gcc_assert (!context
 		  || context == current_function_decl
 		  || TREE_STATIC (exp)
@@ -8919,8 +9118,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	temp = gen_rtx_MEM (mode, op0);
 	set_mem_attributes (temp, exp, 0);
 	set_mem_addr_space (temp, as);
-	align = MAX (TYPE_ALIGN (TREE_TYPE (exp)),
-		     get_object_alignment (exp, BIGGEST_ALIGNMENT));
+	align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), get_object_alignment (exp));
 	if (mode != BLKmode
 	    && (unsigned) align < GET_MODE_ALIGNMENT (mode)
 	    /* If the target does not have special handling for unaligned
@@ -9000,8 +9198,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 			   gimple_assign_rhs1 (def_stmt), mask);
 	    TREE_OPERAND (exp, 0) = base;
 	  }
-	align = MAX (TYPE_ALIGN (TREE_TYPE (exp)),
-		     get_object_alignment (exp, BIGGEST_ALIGNMENT));
+	align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), get_object_alignment (exp));
 	op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_SUM);
 	op0 = memory_address_addr_space (address_mode, op0, as);
 	if (!integer_zerop (TREE_OPERAND (exp, 1)))

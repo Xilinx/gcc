@@ -490,11 +490,6 @@
   (and (match_code "symbol_ref")
        (match_test "op == ix86_tls_module_base ()")))
 
-(define_predicate "tp_or_register_operand"
-  (ior (match_operand 0 "register_operand")
-       (and (match_code "unspec")
-	    (match_test "XINT (op, 1) == UNSPEC_TP"))))
-
 ;; Test for a pc-relative call operand
 (define_predicate "constant_call_address_operand"
   (match_code "symbol_ref")
@@ -601,6 +596,12 @@
 (define_predicate "const128_operand"
   (and (match_code "const_int")
        (match_test "INTVAL (op) == 128")))
+
+;; Match exactly 0x0FFFFFFFF in anddi as a zero-extension operation
+(define_predicate "const_32bit_mask"
+  (and (match_code "const_int")
+       (match_test "trunc_int_for_mode (INTVAL (op), DImode)
+		    == (HOST_WIDE_INT) 0xffffffff")))
 
 ;; Match 2, 4, or 8.  Used for leal multiplicands.
 (define_predicate "const248_operand"
@@ -798,13 +799,18 @@
   (ior (match_operand 0 "register_operand")
        (match_operand 0 "const0_operand")))
 
-;; Return true if op if a valid address, and does not contain
+;; Return true if op if a valid address for LEA, and does not contain
 ;; a segment override.
-(define_predicate "no_seg_address_operand"
+(define_predicate "lea_address_operand"
   (match_operand 0 "address_operand")
 {
   struct ix86_address parts;
   int ok;
+
+  /*  LEA handles zero-extend by itself.  */
+  if (GET_CODE (op) == ZERO_EXTEND
+      || GET_CODE (op) == AND)
+    return false;
 
   ok = ix86_decompose_address (op, &parts);
   gcc_assert (ok);
@@ -844,6 +850,11 @@
   /* Decode the address.  */
   ok = ix86_decompose_address (op, &parts);
   gcc_assert (ok);
+
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    parts.base = SUBREG_REG (parts.base);
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    parts.index = SUBREG_REG (parts.index);
 
   /* Look for some component that isn't known to be aligned.  */
   if (parts.index)
@@ -908,6 +919,12 @@
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
+
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    parts.base = SUBREG_REG (parts.base);
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    parts.index = SUBREG_REG (parts.index);
+
   if (parts.base == NULL_RTX
       || parts.base == arg_pointer_rtx
       || parts.base == frame_pointer_rtx

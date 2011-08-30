@@ -51,6 +51,15 @@ extern "C" {
 #include "cacheLib.h"
 #endif /* __mips_vxworks */
 
+/* If SMP, access vxCpuConfiguredGet */
+#ifdef _WRS_CONFIG_SMP
+#include <vxCpuLib.h>
+#endif /* _WRS_CONFIG_SMP */
+
+/* We need to know the VxWorks version because some file operations
+   (such as chmod) are only available on VxWorks 6.  */
+#include "version.h"
+
 #endif /* VxWorks */
 
 #if (defined (__mips) && defined (__sgi)) || defined (__APPLE__)
@@ -77,6 +86,17 @@ extern "C" {
 #include <time.h>
 #ifdef VMS
 #include <unixio.h>
+#endif
+
+#ifdef __vxworks
+/* S_IREAD and S_IWRITE are not defined in VxWorks */
+#ifndef S_IREAD
+#define S_IREAD  (S_IRUSR | S_IRGRP | S_IROTH)
+#endif
+
+#ifndef S_IWRITE
+#define S_IWRITE (S_IWUSR)
+#endif
 #endif
 
 /* We don't have libiberty, so use malloc.  */
@@ -592,21 +612,27 @@ __gnat_get_maximum_file_name_length (void)
 
 /* Return nonzero if file names are case sensitive.  */
 
+static int file_names_case_sensitive_cache = -1;
+
 int
 __gnat_get_file_names_case_sensitive (void)
 {
-  const char *sensitive = getenv ("GNAT_FILE_NAME_CASE_SENSITIVE");
+  if (file_names_case_sensitive_cache == -1)
+    {
+      const char *sensitive = getenv ("GNAT_FILE_NAME_CASE_SENSITIVE");
 
-  if (sensitive != NULL
-      && (sensitive[0] == '0' || sensitive[0] == '1')
-      && sensitive[1] == '\0')
-    return sensitive[0] - '0';
-  else
+      if (sensitive != NULL
+          && (sensitive[0] == '0' || sensitive[0] == '1')
+          && sensitive[1] == '\0')
+        file_names_case_sensitive_cache = sensitive[0] - '0';
+      else
 #if defined (VMS) || defined (WINNT) || defined (__APPLE__)
-    return 0;
+        file_names_case_sensitive_cache = 0;
 #else
-    return 1;
+        file_names_case_sensitive_cache = 1;
 #endif
+    }
+  return file_names_case_sensitive_cache;
 }
 
 /* Return nonzero if environment variables are case sensitive.  */
@@ -1171,13 +1197,15 @@ __gnat_tmp_name (char *tmp_filename)
 #elif defined (__MINGW32__)
   {
     char *pname;
+    char prefix[25];
 
     /* tempnam tries to create a temporary file in directory pointed to by
        TMP environment variable, in c:\temp if TMP is not set, and in
        directory specified by P_tmpdir in stdio.h if c:\temp does not
        exist. The filename will be created with the prefix "gnat-".  */
 
-    pname = (char *) tempnam ("c:\\temp", "gnat-");
+    sprintf (prefix, "gnat-%d-", (int)getpid());
+    pname = (char *) _tempnam ("c:\\temp", prefix);
 
     /* if pname is NULL, the file was not created properly, the disk is full
        or there is no more free temporary files */
@@ -1370,7 +1398,7 @@ __gnat_file_time_name_attr (char* name, struct file_attributes* attr)
       TCHAR wname[GNAT_MAX_PATH_LEN];
       S2WSC (wname, name, GNAT_MAX_PATH_LEN);
 
-      if (res = GetFileAttributesEx (wname, GetFileExInfoStandard, &fad))
+      if ((res = GetFileAttributesEx (wname, GetFileExInfoStandard, &fad)))
 	f2t (&fad.ftLastWriteTime, &ret);
       attr->timestamp = (OS_Time) ret;
 #else
@@ -1697,6 +1725,7 @@ __gnat_stat (char *name, GNAT_STRUCT_STAT *statbuf)
   TCHAR wname [GNAT_MAX_PATH_LEN + 2];
   int name_len;
   BOOL res;
+  DWORD error;
 
   S2WSC (wname, name, GNAT_MAX_PATH_LEN + 2);
   name_len = _tcslen (wname);
@@ -1708,8 +1737,19 @@ __gnat_stat (char *name, GNAT_STRUCT_STAT *statbuf)
 
   res = GetFileAttributesEx (wname, GetFileExInfoStandard, &fad);
 
-  if (res == FALSE)
-    switch (GetLastError()) {
+  if (res == FALSE) {
+    error = GetLastError();
+
+    /* Check file existence using GetFileAttributes() which does not fail on
+       special Windows files like con:, aux:, nul: etc...  */
+
+    if (GetFileAttributes(wname) != INVALID_FILE_ATTRIBUTES) {
+      /* Just pretend that it is a regular and readable file  */
+      statbuf->st_mode = S_IFREG | S_IREAD | S_IWRITE;
+      return 0;
+    }
+
+    switch (error) {
       case ERROR_ACCESS_DENIED:
       case ERROR_SHARING_VIOLATION:
       case ERROR_LOCK_VIOLATION:
@@ -1722,6 +1762,7 @@ __gnat_stat (char *name, GNAT_STRUCT_STAT *statbuf)
       default:
 	return ENOENT;
     }
+  }
 
   f2t (&fad.ftCreationTime, &statbuf->st_ctime);
   f2t (&fad.ftLastWriteTime, &statbuf->st_mtime);
@@ -2126,8 +2167,16 @@ __gnat_is_executable_file_attr (char* name, struct file_attributes* attr)
            __gnat_check_OWNER_ACL (wname, FILE_EXECUTE, GenericMapping);
        }
      else
-       attr->executable = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES
-         && _tcsstr (wname, _T(".exe")) - wname == (int) (_tcslen (wname) - 4);
+       {
+	 TCHAR *l, *last = _tcsstr(wname, _T(".exe"));
+
+	 /* look for last .exe */
+	 if (last)
+	   while (l = _tcsstr(last+1, _T(".exe"))) last = l;
+
+	 attr->executable = GetFileAttributes (wname) != INVALID_FILE_ATTRIBUTES
+	   && last - wname == (int) (_tcslen (wname) - 4);
+       }
 #else
      __gnat_stat_to_attr (-1, name, attr);
 #endif
@@ -2157,7 +2206,8 @@ __gnat_set_writable (char *name)
 
   SetFileAttributes
     (wname, GetFileAttributes (wname) & ~FILE_ATTRIBUTE_READONLY);
-#elif ! defined (__vxworks) && ! defined(__nucleus__)
+#elif ! (defined (__vxworks) && _WRS_VXWORKS_MAJOR < 6) && \
+  ! defined(__nucleus__)
   GNAT_STRUCT_STAT statbuf;
 
   if (GNAT_STAT (name, &statbuf) == 0)
@@ -2179,7 +2229,8 @@ __gnat_set_executable (char *name)
   if (__gnat_can_use_acl (wname))
     __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_EXECUTE);
 
-#elif ! defined (__vxworks) && ! defined(__nucleus__)
+#elif ! (defined (__vxworks) && _WRS_VXWORKS_MAJOR < 6) && \
+  ! defined(__nucleus__)
   GNAT_STRUCT_STAT statbuf;
 
   if (GNAT_STAT (name, &statbuf) == 0)
@@ -2206,7 +2257,8 @@ __gnat_set_non_writable (char *name)
 
   SetFileAttributes
     (wname, GetFileAttributes (wname) | FILE_ATTRIBUTE_READONLY);
-#elif ! defined (__vxworks) && ! defined(__nucleus__)
+#elif ! (defined (__vxworks) && _WRS_VXWORKS_MAJOR < 6) && \
+  ! defined(__nucleus__)
   GNAT_STRUCT_STAT statbuf;
 
   if (GNAT_STAT (name, &statbuf) == 0)
@@ -2228,7 +2280,8 @@ __gnat_set_readable (char *name)
   if (__gnat_can_use_acl (wname))
     __gnat_set_OWNER_ACL (wname, GRANT_ACCESS, FILE_GENERIC_READ);
 
-#elif ! defined (__vxworks) && ! defined(__nucleus__)
+#elif ! (defined (__vxworks) && _WRS_VXWORKS_MAJOR < 6) && \
+  ! defined(__nucleus__)
   GNAT_STRUCT_STAT statbuf;
 
   if (GNAT_STAT (name, &statbuf) == 0)
@@ -2249,7 +2302,8 @@ __gnat_set_non_readable (char *name)
   if (__gnat_can_use_acl (wname))
     __gnat_set_OWNER_ACL (wname, DENY_ACCESS, FILE_GENERIC_READ);
 
-#elif ! defined (__vxworks) && ! defined(__nucleus__)
+#elif ! (defined (__vxworks) && _WRS_VXWORKS_MAJOR < 6) && \
+  ! defined(__nucleus__)
   GNAT_STRUCT_STAT statbuf;
 
   if (GNAT_STAT (name, &statbuf) == 0)
@@ -2260,7 +2314,8 @@ __gnat_set_non_readable (char *name)
 }
 
 int
-__gnat_is_symbolic_link_attr (char* name, struct file_attributes* attr)
+__gnat_is_symbolic_link_attr (char* name ATTRIBUTE_UNUSED,
+                              struct file_attributes* attr)
 {
    if (attr->symbolic_link == ATTR_UNSET) {
 #if defined (__vxworks) || defined (__nucleus__)
@@ -2412,6 +2467,12 @@ __gnat_number_of_cpus (void)
   status = LIB$GETSYI (&code, &res);
   if ((status & 1) != 0)
     cores = res;
+
+#elif defined (_WRS_CONFIG_SMP)
+  unsigned int vxCpuConfiguredGet (void);
+
+  cores = vxCpuConfiguredGet ();
+
 #endif
 
   return cores;
@@ -2686,10 +2747,11 @@ __gnat_os_exit (int status)
   exit (status);
 }
 
-/* Locate a regular file, give a Path value.  */
+/* Locate file on path, that matches a predicate */
 
 char *
-__gnat_locate_regular_file (char *file_name, char *path_val)
+__gnat_locate_file_with_predicate
+   (char *file_name, char *path_val, int (*predicate)(char*))
 {
   char *ptr;
   char *file_path = (char *) alloca (strlen (file_name) + 1);
@@ -2719,7 +2781,7 @@ __gnat_locate_regular_file (char *file_name, char *path_val)
 
   if (absolute)
     {
-     if (__gnat_is_regular_file (file_path))
+     if (predicate (file_path))
        return xstrdup (file_path);
 
       return 0;
@@ -2732,7 +2794,7 @@ __gnat_locate_regular_file (char *file_name, char *path_val)
 
   if (*ptr != 0)
     {
-      if (__gnat_is_regular_file (file_name))
+      if (predicate (file_name))
         return xstrdup (file_name);
     }
 
@@ -2773,7 +2835,7 @@ __gnat_locate_regular_file (char *file_name, char *path_val)
 
       strcpy (++ptr, file_name);
 
-      if (__gnat_is_regular_file (file_path))
+      if (predicate (file_path))
         return xstrdup (file_path);
 
       if (*path_val == 0)
@@ -2786,6 +2848,24 @@ __gnat_locate_regular_file (char *file_name, char *path_val)
   }
 
   return 0;
+}
+
+/* Locate an executable file, give a Path value.  */
+
+char *
+__gnat_locate_executable_file (char *file_name, char *path_val)
+{
+   return __gnat_locate_file_with_predicate
+      (file_name, path_val, &__gnat_is_executable_file);
+}
+
+/* Locate a regular file, give a Path value.  */
+
+char *
+__gnat_locate_regular_file (char *file_name, char *path_val)
+{
+   return __gnat_locate_file_with_predicate
+      (file_name, path_val, &__gnat_is_regular_file);
 }
 
 /* Locate an executable given a Path argument. This routine is only used by
@@ -2804,14 +2884,14 @@ __gnat_locate_exec (char *exec_name, char *path_val)
 
       strcpy (full_exec_name, exec_name);
       strcat (full_exec_name, HOST_EXECUTABLE_SUFFIX);
-      ptr = __gnat_locate_regular_file (full_exec_name, path_val);
+      ptr = __gnat_locate_executable_file (full_exec_name, path_val);
 
       if (ptr == 0)
-         return __gnat_locate_regular_file (exec_name, path_val);
+         return __gnat_locate_executable_file (exec_name, path_val);
       return ptr;
     }
   else
-    return __gnat_locate_regular_file (exec_name, path_val);
+    return __gnat_locate_executable_file (exec_name, path_val);
 }
 
 /* Locate an executable using the Systems default PATH.  */
@@ -3495,7 +3575,8 @@ char __gnat_environment_char = '$';
 int
 __gnat_copy_attribs (char *from, char *to, int mode)
 {
-#if defined (VMS) || defined (__vxworks) || defined (__nucleus__)
+#if defined (VMS) || (defined (__vxworks) && _WRS_VXWORKS_MAJOR < 6) || \
+  defined (__nucleus__)
   return -1;
 
 #elif defined (_WIN32) && !defined (RTX)

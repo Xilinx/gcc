@@ -1099,6 +1099,7 @@ convert_nonlocal_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 	  if (OMP_CLAUSE_SCHEDULE_CHUNK_EXPR (clause) == NULL)
 	    break;
 	  /* FALLTHRU */
+	case OMP_CLAUSE_FINAL:
 	case OMP_CLAUSE_IF:
 	case OMP_CLAUSE_NUM_THREADS:
 	  wi->val_only = true;
@@ -1113,6 +1114,7 @@ convert_nonlocal_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 	case OMP_CLAUSE_COPYIN:
 	case OMP_CLAUSE_COLLAPSE:
 	case OMP_CLAUSE_UNTIED:
+	case OMP_CLAUSE_MERGEABLE:
 	  break;
 
 	default:
@@ -1596,6 +1598,7 @@ convert_local_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 	  if (OMP_CLAUSE_SCHEDULE_CHUNK_EXPR (clause) == NULL)
 	    break;
 	  /* FALLTHRU */
+	case OMP_CLAUSE_FINAL:
 	case OMP_CLAUSE_IF:
 	case OMP_CLAUSE_NUM_THREADS:
 	  wi->val_only = true;
@@ -1610,6 +1613,7 @@ convert_local_omp_clauses (tree *pclauses, struct walk_stmt_info *wi)
 	case OMP_CLAUSE_COPYIN:
 	case OMP_CLAUSE_COLLAPSE:
 	case OMP_CLAUSE_UNTIED:
+	case OMP_CLAUSE_MERGEABLE:
 	  break;
 
 	default:
