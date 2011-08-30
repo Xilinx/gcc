@@ -1,7 +1,24 @@
 
-2011-08-29  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-module.mk: Regenerate.
-	* melt-module.tpl: When warmelt-upgrade-ing remove the old *.c &
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.mk: Regenerate.
+	* melt-predef.list: Poison DISCR_BOX.
+	* make-warmelt-predef.awk: Use @POISON instead of POISON.
+
+	{{Regenerate warmelt with poisoned DISCR_BOX}}
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+01.c: Regenerate.
+	* melt/generated/warmelt-normal+02.c: Regenerate.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.mk: Regenerate.
+	* melt-build.tpl: When warmelt-upgrade-ing remove the old *.c &
 	*.so symlinks in $(MELT_STAGE_ZERO).
 
 	{{Regenerate warmelt}}

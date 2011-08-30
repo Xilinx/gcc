@@ -34,7 +34,7 @@ BEGIN {
 {
 ## special hack to ignore some obsolete predefined
     predefcount++;
-    if ($2 == "POISON")
+    if ($2 == "@POISON")
     {
 	printf (" (compile_warning \"poisoned predefined %s %d\")\n", 
 		$1, predefcount);

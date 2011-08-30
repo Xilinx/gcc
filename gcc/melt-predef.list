@@ -83,7 +83,8 @@
   CTYPE_VOID
   DISCR_BASIC_BLOCK
   DISCR_BITMAP
-  DISCR_BOX
+#we want to remove DISCR_BOX so we poison it first
+  DISCR_BOX                                   @POISON
   DISCR_CHARACTER_INTEGER
   DISCR_CLASS_SEQUENCE
   DISCR_CLOSURE
