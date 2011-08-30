@@ -682,9 +682,10 @@ package body Sem_Ch8 is
    -----------------------------
 
    procedure Analyze_Object_Renaming (N : Node_Id) is
-      Id  : constant Entity_Id := Defining_Identifier (N);
+      Loc : constant Source_Ptr := Sloc (N);
+      Id  : constant Entity_Id  := Defining_Identifier (N);
       Dec : Node_Id;
-      Nam : constant Node_Id   := Name (N);
+      Nam : constant Node_Id    := Name (N);
       T   : Entity_Id;
       T2  : Entity_Id;
 
@@ -704,7 +705,6 @@ package body Sem_Ch8 is
       ------------------------------
 
       procedure Check_Constrained_Object is
-         Loc  : constant Source_Ptr := Sloc (N);
          Subt : Entity_Id;
 
       begin
@@ -805,6 +805,29 @@ package body Sem_Ch8 is
 
          Resolve (Nam, T);
 
+         --  If the renamed object is a function call of a limited type,
+         --  the expansion of the renaming is complicated by the presence
+         --  of various temporaries and subtypes that capture constraints
+         --  of the renamed object. Rewrite node as an object declaration,
+         --  whose expansion is simpler. Given that the object is limited
+         --  there is no copy involved and no performance hit.
+
+         if Nkind (Nam) = N_Function_Call
+           and then Is_Immutably_Limited_Type (Etype (Nam))
+           and then not Is_Constrained (Etype (Nam))
+           and then Comes_From_Source (N)
+         then
+            Set_Etype (Id, T);
+            Set_Ekind (Id, E_Constant);
+            Rewrite (N,
+              Make_Object_Declaration (Loc,
+                Defining_Identifier => Id,
+                Constant_Present    => True,
+                Object_Definition   => New_Occurrence_Of (Etype (Nam), Loc),
+                Expression          => Relocate_Node (Nam)));
+            return;
+         end if;
+
          --  Check that a class-wide object is not being renamed as an object
          --  of a specific type. The test for access types is needed to exclude
          --  cases where the renamed object is a dynamically tagged access
@@ -828,9 +851,9 @@ package body Sem_Ch8 is
 
          --  Ada 2005 AI05-105: if the declaration has an anonymous access
          --  type, the renamed object must also have an anonymous type, and
-         --  this is a name resolution rule. This was implicit in the last
-         --  part of the first sentence in 8.5.1.(3/2), and is made explicit
-         --  by this recent AI.
+         --  this is a name resolution rule. This was implicit in the last part
+         --  of the first sentence in 8.5.1(3/2), and is made explicit by this
+         --  recent AI.
 
          if not Is_Overloaded (Nam) then
             if Ekind (Etype (Nam)) /= Ekind (T) then
@@ -971,7 +994,7 @@ package body Sem_Ch8 is
 
       T2 := Etype (Nam);
 
-      --  (Ada 2005: AI-326): Handle wrong use of incomplete type
+      --  Ada 2005 (AI-326): Handle wrong use of incomplete type
 
       if Nkind (Nam) = N_Explicit_Dereference
         and then Ekind (Etype (T2)) = E_Incomplete_Type
@@ -1811,7 +1834,7 @@ package body Sem_Ch8 is
             Result := Defining_Entity (New_Decl);
          end if;
 
-         --  Return the class-wide operation if one was created.
+         --  Return the class-wide operation if one was created
 
          return Result;
       end Check_Class_Wide_Actual;
@@ -2330,9 +2353,7 @@ package body Sem_Ch8 is
          --  of a generic, its entity is set to the first available homonym.
          --  We must first disambiguate the name, then set the proper entity.
 
-         if Is_Actual
-           and then Is_Overloaded (Nam)
-         then
+         if Is_Actual and then Is_Overloaded (Nam) then
             Set_Entity (Nam, Old_S);
          end if;
       end if;
@@ -2403,12 +2424,12 @@ package body Sem_Ch8 is
       end if;
 
       if Old_S /= Any_Id then
-         if Is_Actual
-           and then From_Default (N)
-         then
+         if Is_Actual and then From_Default (N) then
+
             --  This is an implicit reference to the default actual
 
             Generate_Reference (Old_S, Nam, Typ => 'i', Force => True);
+
          else
             Generate_Reference (Old_S, Nam);
          end if;
@@ -2461,7 +2482,7 @@ package body Sem_Ch8 is
 
             --  If this a defaulted subprogram for a class-wide actual there is
             --  no check for mode conformance,  given that the signatures don't
-            --  match (the source mentions T but the actual mentions T'class).
+            --  match (the source mentions T but the actual mentions T'Class).
 
             if CW_Actual then
                null;
@@ -4820,7 +4841,9 @@ package body Sem_Ch8 is
             Set_Entity_Or_Discriminal (N, E);
 
             if Ada_Version >= Ada_2012
-              and then Nkind (Parent (N)) in N_Subexpr
+              and then
+                (Nkind (Parent (N)) in N_Subexpr
+                  or else Nkind (Parent (N)) = N_Object_Declaration)
             then
                Check_Implicit_Dereference (N, Etype (E));
             end if;
@@ -5118,7 +5141,7 @@ package body Sem_Ch8 is
                            Next_Entity (Id);
                         end loop;
 
-                        --  If not found,  standard error message.
+                        --  If not found, standard error message
 
                         Error_Msg_NE ("& not declared in&", N, Selector);
 
@@ -5510,12 +5533,28 @@ package body Sem_Ch8 is
 
                      if Present (Inst) then
                         if Within (It.Nam, Inst) then
-                           return (It.Nam);
+                           if Within (Old_S, Inst) then
+
+                              --  Choose the innermost subprogram, which would
+                              --  have hidden the outer one in the generic.
+
+                              if Scope_Depth (It.Nam) <
+                                Scope_Depth (Old_S)
+                              then
+                                 return Old_S;
+                              else
+                                 return It.Nam;
+                              end if;
+                           end if;
+
                         elsif Within (Old_S, Inst) then
                            return (Old_S);
+
                         else
                            return Report_Overload;
                         end if;
+
+                     --  If not within an instance, ambiguity is real
 
                      else
                         return Report_Overload;

@@ -409,6 +409,9 @@ gfc_clear_shape (mpz_t *shape, int rank)
 void
 gfc_free_shape (mpz_t **shape, int rank)
 {
+  if (*shape == NULL)
+    return;
+
   gfc_clear_shape (*shape, rank);
   free (*shape);
   *shape = NULL;
@@ -490,8 +493,7 @@ free_expr0 (gfc_expr *e)
     }
 
   /* Free a shape array.  */
-  if (e->shape != NULL)
-    gfc_free_shape (&e->shape, e->rank);
+  gfc_free_shape (&e->shape, e->rank);
 
   gfc_free_ref_list (e->ref);
 
@@ -2480,6 +2482,9 @@ check_init_expr (gfc_expr *e)
 		       e->symtree->n.sym->name, &e->where);
 	    m = MATCH_ERROR;
 	  }
+
+	if (m == MATCH_ERROR)
+	  return FAILURE;
 
 	/* Try to scalarize an elemental intrinsic function that has an
 	   array argument.  */

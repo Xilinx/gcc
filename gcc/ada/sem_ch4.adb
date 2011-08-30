@@ -443,7 +443,32 @@ package body Sem_Ch4 is
          end loop;
       end if;
 
-      --  Analyze the allocator
+      --  Ada 2012 (AI05-0111-3): Analyze the subpool_specification, if
+      --  any. The expected type for the name is any type. A non-overloading
+      --  rule then requires it to be of a type descended from
+      --  System.Storage_Pools.Subpools.Subpool_Handle.
+
+      --  This isn't exactly what the AI says, but it seems to be the right
+      --  rule. The AI should be fixed.???
+
+      declare
+         Subpool : constant Node_Id := Subpool_Handle_Name (N);
+
+      begin
+         if Present (Subpool) then
+            Analyze (Subpool);
+
+            if Is_Overloaded (Subpool) then
+               Error_Msg_N ("ambiguous subpool handle", Subpool);
+            end if;
+
+            --  Check that Etype (Subpool) is descended from Subpool_Handle
+
+            Resolve (Subpool);
+         end if;
+      end;
+
+      --  Analyze the qualified expression or subtype indication
 
       if Nkind (E) = N_Qualified_Expression then
          Acc_Type := Create_Itype (E_Allocator_Type, N);
@@ -451,7 +476,7 @@ package body Sem_Ch4 is
          Find_Type (Subtype_Mark (E));
 
          --  Analyze the qualified expression, and apply the name resolution
-         --  rule given in  4.7 (3).
+         --  rule given in  4.7(3).
 
          Analyze (E);
          Type_Id := Etype (E);
@@ -675,6 +700,16 @@ package body Sem_Ch4 is
          Check_Restriction (No_Tasking, N);
          Check_Restriction (Max_Tasks, N);
          Check_Restriction (No_Task_Allocators, N);
+      end if;
+
+      --  AI05-0013-1: No_Nested_Finalization forbids allocators if the access
+      --  type is nested, and the designated type needs finalization. The rule
+      --  is conservative in that class-wide types need finalization.
+
+      if Needs_Finalization (Designated_Type (Acc_Type))
+        and then not Is_Library_Level_Entity (Acc_Type)
+      then
+         Check_Restriction (No_Nested_Finalization, N);
       end if;
 
       --  Check that an allocator of a nested access type doesn't create a

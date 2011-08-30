@@ -943,11 +943,11 @@ package Sinfo is
    --    there is no requirement that these match, and there are obscure cases
    --    of generated code where they do not match.
 
-   --    Note: Aspect specifications, introduced in Ada2012, require additional
-   --    links between identifiers and various attributes. These attributes
-   --    can be of arbitrary types, and the entity field of identifiers that
-   --    denote aspects must be used to store arbitrary expressions for later
-   --    semantic checks. See section on Aspect specifications for details.
+   --    Note: Ada 2012 aspect specifications require additional links between
+   --    identifiers and various attributes. These attributes can be of
+   --    arbitrary types, and the entity field of identifiers that denote
+   --    aspects must be used to store arbitrary expressions for later semantic
+   --    checks. See section on aspect specifications for details.
 
    --  Entity_Or_Associated_Node (Node4-Sem)
    --    A synonym for both Entity and Associated_Node. Used by convention in
@@ -1805,14 +1805,6 @@ package Sinfo is
    --    the with_clause appears instantiates a generic contained in the
    --    library unit of the with_clause and as a result loads its body.
    --    Used for a more precise unit traversal for CodePeer.
-
-   --  Zero_Cost_Handling (Flag5-Sem)
-   --    This flag is set in all handled sequence of statement and exception
-   --    handler nodes if exceptions are to be handled using the zero-cost
-   --    mechanism (see Ada.Exceptions and System.Exceptions in files
-   --    a-except.ads/adb and s-except.ads for full details). What gigi needs
-   --    to do for such a handler is simply to put the code in the handler
-   --    somewhere. The front end has generated all necessary labels.
 
    --------------------------------------------------
    -- Note on Use of End_Label and End_Span Fields --
@@ -5957,7 +5949,6 @@ package Sinfo is
       --  Exception_Handlers (List5) (set to No_List if none present)
       --  At_End_Proc (Node1) (set to Empty if no clean up procedure)
       --  First_Real_Statement (Node2-Sem)
-      --  Zero_Cost_Handling (Flag5-Sem)
 
       --  Note: the parent always contains a Declarations field which contains
       --  declarations associated with the handled sequence of statements. This
@@ -5983,7 +5974,6 @@ package Sinfo is
       --  Exception_Choices (List4)
       --  Statements (List3)
       --  Exception_Label (Node5-Sem) (set to Empty of not present)
-      --  Zero_Cost_Handling (Flag5-Sem)
       --  Local_Raise_Statements (Elist1-Sem) (set to No_Elist if not present)
       --  Local_Raise_Not_OK (Flag7-Sem)
       --  Has_Local_Raise (Flag8-Sem)
@@ -6219,6 +6209,7 @@ package Sinfo is
       --    type DEFINING_IDENTIFIER [DISCRIMINANT_PART]
       --      is FORMAL_TYPE_DEFINITION
       --        [ASPECT_SPECIFICATIONS];
+      --  | type DEFINING_IDENTIFIER [DISCRIMINANT_PART] [is tagged]
 
       --  N_Formal_Type_Declaration
       --  Sloc points to TYPE
@@ -6244,6 +6235,12 @@ package Sinfo is
       --  | FORMAL_ARRAY_TYPE_DEFINITION
       --  | FORMAL_ACCESS_TYPE_DEFINITION
       --  | FORMAL_INTERFACE_TYPE_DEFINITION
+      --  | FORMAL_INCOMPLETE_TYPE_DEFINITION
+
+      --  The Ada 2012 syntax introduces two new non-terminals:
+      --  Formal_{Complete,Incomplete}_Type_Declaration just to introduce
+      --  the latter category. Here we introduce an incomplete type definition
+      --  in order to preserve as much as possible the existing structure.
 
       ---------------------------------------------
       -- 12.5.1  Formal Private Type Definition --
@@ -6277,6 +6274,16 @@ package Sinfo is
       --  Limited_Present (Flag17)
       --  Synchronized_Present (Flag7)
       --  Interface_List (List2) (set to No_List if none)
+
+      -----------------------------------------------
+      -- 12.5.1  Formal Incomplete Type Definition --
+      -----------------------------------------------
+
+      --  FORMAL_INCOMPLETE_TYPE_DEFINITION ::= [tagged]
+
+      --  N_Formal_Incomplete_Type_Definition
+      --  Sloc points to identifier of parent
+      --  Tagged_Present (Flag15)
 
       ---------------------------------------------
       -- 12.5.2  Formal Discrete Type Definition --
@@ -7815,6 +7822,7 @@ package Sinfo is
       N_Formal_Ordinary_Fixed_Point_Definition,
       N_Formal_Package_Declaration,
       N_Formal_Private_Type_Definition,
+      N_Formal_Incomplete_Type_Definition,
       N_Formal_Signed_Integer_Type_Definition,
       N_Freeze_Entity,
       N_Generic_Association,
@@ -9001,9 +9009,6 @@ package Sinfo is
    function Withed_Body
      (N : Node_Id) return Node_Id;    -- Node1
 
-   function Zero_Cost_Handling
-     (N : Node_Id) return Boolean;    -- Flag5
-
    --  End functions (note used by xsinfo utility program to end processing)
 
    ----------------------------
@@ -9972,9 +9977,6 @@ package Sinfo is
 
    procedure Set_Withed_Body
      (N : Node_Id; Val : Node_Id);            -- Node1
-
-   procedure Set_Zero_Cost_Handling
-     (N : Node_Id; Val : Boolean := True);    -- Flag5
 
    -------------------------
    -- Iterator Procedures --
@@ -11336,6 +11338,13 @@ package Sinfo is
         4 => False,   --  unused
         5 => False),  --  unused
 
+     N_Formal_Incomplete_Type_Definition =>
+       (1 => False,   --  unused
+        2 => False,   --  unused
+        3 => False,   --  unused
+        4 => False,   --  unused
+        5 => False),  --  unused
+
      N_Formal_Derived_Type_Definition =>
        (1 => False,   --  unused
         2 => True,    --  Interface_List (List2)
@@ -12037,7 +12046,6 @@ package Sinfo is
    pragma Inline (Used_Operations);
    pragma Inline (Was_Originally_Stub);
    pragma Inline (Withed_Body);
-   pragma Inline (Zero_Cost_Handling);
 
    pragma Inline (Set_ABE_Is_Certain);
    pragma Inline (Set_Abort_Present);
@@ -12357,7 +12365,6 @@ package Sinfo is
    pragma Inline (Set_Used_Operations);
    pragma Inline (Set_Was_Originally_Stub);
    pragma Inline (Set_Withed_Body);
-   pragma Inline (Set_Zero_Cost_Handling);
 
    --------------
    -- Synonyms --

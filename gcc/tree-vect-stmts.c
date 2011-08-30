@@ -1419,7 +1419,6 @@ vect_finish_stmt_generation (gimple stmt, gimple vec_stmt,
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
-  gimple_stmt_iterator si;
 
   gcc_assert (gimple_code (stmt) != GIMPLE_LABEL);
 
@@ -1434,13 +1433,7 @@ vect_finish_stmt_generation (gimple stmt, gimple vec_stmt,
       print_gimple_stmt (vect_dump, vec_stmt, 0, TDF_SLIM);
     }
 
-  si = *gsi;
-  if (is_gimple_debug (gsi_stmt (si)))
-    {
-      gsi_next_nondebug (&si);
-      gcc_assert (!gsi_end_p (si));
-    }
-  gimple_set_location (vec_stmt, gimple_location (gsi_stmt (si)));
+  gimple_set_location (vec_stmt, gimple_location (stmt));
 }
 
 /* Checks if CALL can be vectorized in type VECTYPE.  Returns
@@ -1704,7 +1697,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt)
 		}
 	      else
 		{
-		  vec_oprnd1 = gimple_call_arg (new_stmt, 2*i);
+		  vec_oprnd1 = gimple_call_arg (new_stmt, 2*i + 1);
 		  vec_oprnd0
 		    = vect_get_vec_def_for_stmt_copy (dt[i], vec_oprnd1);
 		  vec_oprnd1

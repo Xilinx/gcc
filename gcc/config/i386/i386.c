@@ -2664,6 +2664,7 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
     { "-mmmx",		OPTION_MASK_ISA_MMX },
     { "-mabm",		OPTION_MASK_ISA_ABM },
     { "-mbmi",		OPTION_MASK_ISA_BMI },
+    { "-mbmi2", 	OPTION_MASK_ISA_BMI2 },
     { "-mlzcnt",	OPTION_MASK_ISA_LZCNT },
     { "-mtbm",		OPTION_MASK_ISA_TBM },
     { "-mpopcnt",	OPTION_MASK_ISA_POPCNT },
@@ -2921,6 +2922,7 @@ ix86_option_override_internal (bool main_args_p)
 #define PTA_TBM		 	(HOST_WIDE_INT_1 << 28)
 #define PTA_XOP		 	(HOST_WIDE_INT_1 << 29)
 #define PTA_AVX2		(HOST_WIDE_INT_1 << 30)
+#define PTA_BMI2	 	(HOST_WIDE_INT_1 << 31)
 /* if this reaches 64, need to widen struct pta flags below */
 
   static struct pta
@@ -2978,8 +2980,8 @@ ix86_option_override_internal (bool main_args_p)
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_SSE4_1 | PTA_SSE4_2 | PTA_AVX | PTA_AVX2
 	| PTA_CX16 | PTA_POPCNT | PTA_AES | PTA_PCLMUL | PTA_FSGSBASE
-	| PTA_RDRND | PTA_F16C | PTA_BMI | PTA_LZCNT | PTA_FMA
-	| PTA_MOVBE},
+	| PTA_RDRND | PTA_F16C | PTA_BMI | PTA_BMI2 | PTA_LZCNT
+        | PTA_FMA | PTA_MOVBE},
       {"atom", PROCESSOR_ATOM, CPU_ATOM,
 	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
 	| PTA_SSSE3 | PTA_CX16 | PTA_MOVBE},
@@ -3300,6 +3302,9 @@ ix86_option_override_internal (bool main_args_p)
 	if (processor_alias_table[i].flags & PTA_TBM
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_TBM))
 	  ix86_isa_flags |= OPTION_MASK_ISA_TBM;
+	if (processor_alias_table[i].flags & PTA_BMI2
+	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_BMI2))
+	  ix86_isa_flags |= OPTION_MASK_ISA_BMI2;
 	if (processor_alias_table[i].flags & PTA_CX16
 	    && !(ix86_isa_flags_explicit & OPTION_MASK_ISA_CX16))
 	  ix86_isa_flags |= OPTION_MASK_ISA_CX16;
@@ -4053,6 +4058,7 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[],
     IX86_ATTR_ISA ("3dnow",	OPT_m3dnow),
     IX86_ATTR_ISA ("abm",	OPT_mabm),
     IX86_ATTR_ISA ("bmi",	OPT_mbmi),
+    IX86_ATTR_ISA ("bmi2",	OPT_mbmi2),
     IX86_ATTR_ISA ("lzcnt",	OPT_mlzcnt),
     IX86_ATTR_ISA ("tbm",	OPT_mtbm),
     IX86_ATTR_ISA ("aes",	OPT_maes),
@@ -12262,7 +12268,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	  tp = get_thread_pointer (true);
 	  dest = force_reg (Pmode, gen_rtx_PLUS (Pmode, tp, dest));
 
-	  set_unique_reg_note (get_last_insn (), REG_EQUIV, x);
+	  set_unique_reg_note (get_last_insn (), REG_EQUAL, x);
 	}
       else
 	{
@@ -12309,7 +12315,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	    emit_insn (gen_tls_dynamic_gnu2_32 (base, tmp, pic));
 
 	  tp = get_thread_pointer (true);
-	  set_unique_reg_note (get_last_insn (), REG_EQUIV,
+	  set_unique_reg_note (get_last_insn (), REG_EQUAL,
 			       gen_rtx_MINUS (Pmode, tmp, tp));
 	}
       else
@@ -12325,7 +12331,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      insns = get_insns ();
 	      end_sequence ();
 
-	      /* Attach a unique REG_EQUIV, to allow the RTL optimizers to
+	      /* Attach a unique REG_EQUAL, to allow the RTL optimizers to
 		 share the LD_BASE result with other LD model accesses.  */
 	      eqv = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
 				    UNSPEC_TLS_LD_BASE);
@@ -12346,7 +12352,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	{
 	  dest = force_reg (Pmode, gen_rtx_PLUS (Pmode, dest, tp));
 
-	  set_unique_reg_note (get_last_insn (), REG_EQUIV, x);
+	  set_unique_reg_note (get_last_insn (), REG_EQUAL, x);
 	}
       break;
 
@@ -16506,52 +16512,29 @@ ix86_expand_convert_uns_sisf_sse (rtx target, rtx input)
 rtx
 ix86_build_const_vector (enum machine_mode mode, bool vect, rtx value)
 {
+  int i, n_elt;
   rtvec v;
+  enum machine_mode scalar_mode;
+
   switch (mode)
     {
     case V4SImode:
-      gcc_assert (vect);
-      v = gen_rtvec (4, value, value, value, value);
-      return gen_rtx_CONST_VECTOR (V4SImode, v);
-
     case V2DImode:
       gcc_assert (vect);
-      v = gen_rtvec (2, value, value);
-      return gen_rtx_CONST_VECTOR (V2DImode, v);
-
     case V8SFmode:
-      if (vect)
-	v = gen_rtvec (8, value, value, value, value,
-		       value, value, value, value);
-      else
-	v = gen_rtvec (8, value, CONST0_RTX (SFmode),
-		       CONST0_RTX (SFmode), CONST0_RTX (SFmode),
-		       CONST0_RTX (SFmode), CONST0_RTX (SFmode),
-		       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
-      return gen_rtx_CONST_VECTOR (V8SFmode, v);
-
     case V4SFmode:
-      if (vect)
-	v = gen_rtvec (4, value, value, value, value);
-      else
-	v = gen_rtvec (4, value, CONST0_RTX (SFmode),
-		       CONST0_RTX (SFmode), CONST0_RTX (SFmode));
-      return gen_rtx_CONST_VECTOR (V4SFmode, v);
-
     case V4DFmode:
-      if (vect)
-	v = gen_rtvec (4, value, value, value, value);
-      else
-	v = gen_rtvec (4, value, CONST0_RTX (DFmode),
-		       CONST0_RTX (DFmode), CONST0_RTX (DFmode));
-      return gen_rtx_CONST_VECTOR (V4DFmode, v);
-
     case V2DFmode:
-      if (vect)
-	v = gen_rtvec (2, value, value);
-      else
-	v = gen_rtvec (2, value, CONST0_RTX (DFmode));
-      return gen_rtx_CONST_VECTOR (V2DFmode, v);
+      n_elt = GET_MODE_NUNITS (mode);
+      v = rtvec_alloc (n_elt);
+      scalar_mode = GET_MODE_INNER (mode);
+
+      RTVEC_ELT (v, 0) = value;
+
+      for (i = 1; i < n_elt; ++i)
+	RTVEC_ELT (v, i) = vect ? value : CONST0_RTX (scalar_mode);
+
+      return gen_rtx_CONST_VECTOR (mode, v);
 
     default:
       gcc_unreachable ();
@@ -23655,10 +23638,12 @@ enum ix86_builtins
   IX86_BUILTIN_CEILPD,
   IX86_BUILTIN_TRUNCPD,
   IX86_BUILTIN_RINTPD,
+  IX86_BUILTIN_ROUNDPD_AZ,
   IX86_BUILTIN_FLOORPS,
   IX86_BUILTIN_CEILPS,
   IX86_BUILTIN_TRUNCPS,
   IX86_BUILTIN_RINTPS,
+  IX86_BUILTIN_ROUNDPS_AZ,
 
   IX86_BUILTIN_PTESTZ,
   IX86_BUILTIN_PTESTC,
@@ -23831,10 +23816,12 @@ enum ix86_builtins
   IX86_BUILTIN_CEILPD256,
   IX86_BUILTIN_TRUNCPD256,
   IX86_BUILTIN_RINTPD256,
+  IX86_BUILTIN_ROUNDPD_AZ256,
   IX86_BUILTIN_FLOORPS256,
   IX86_BUILTIN_CEILPS256,
   IX86_BUILTIN_TRUNCPS256,
   IX86_BUILTIN_RINTPS256,
+  IX86_BUILTIN_ROUNDPS_AZ256,
 
   IX86_BUILTIN_UNPCKHPD256,
   IX86_BUILTIN_UNPCKLPD256,
@@ -24242,6 +24229,13 @@ enum ix86_builtins
   IX86_BUILTIN_BEXTRI32,
   IX86_BUILTIN_BEXTRI64,
 
+  /* BMI2 instructions. */
+  IX86_BUILTIN_BZHI32,
+  IX86_BUILTIN_BZHI64,
+  IX86_BUILTIN_PDEP32,
+  IX86_BUILTIN_PDEP64,
+  IX86_BUILTIN_PEXT32,
+  IX86_BUILTIN_PEXT64,
 
   /* FSGSBASE instructions.  */
   IX86_BUILTIN_RDFSBASE32,
@@ -25050,10 +25044,14 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_roundpd, "__builtin_ia32_truncpd", IX86_BUILTIN_TRUNCPD, (enum rtx_code) ROUND_TRUNC, (int) V2DF_FTYPE_V2DF_ROUND },
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_roundpd, "__builtin_ia32_rintpd", IX86_BUILTIN_RINTPD, (enum rtx_code) ROUND_MXCSR, (int) V2DF_FTYPE_V2DF_ROUND },
 
+  { OPTION_MASK_ISA_ROUND, CODE_FOR_roundv2df2, "__builtin_ia32_roundpd_az", IX86_BUILTIN_ROUNDPD_AZ, UNKNOWN, (int) V2DF_FTYPE_V2DF },
+
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_roundps, "__builtin_ia32_floorps", IX86_BUILTIN_FLOORPS, (enum rtx_code) ROUND_FLOOR, (int) V4SF_FTYPE_V4SF_ROUND },
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_roundps, "__builtin_ia32_ceilps", IX86_BUILTIN_CEILPS, (enum rtx_code) ROUND_CEIL, (int) V4SF_FTYPE_V4SF_ROUND },
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_roundps, "__builtin_ia32_truncps", IX86_BUILTIN_TRUNCPS, (enum rtx_code) ROUND_TRUNC, (int) V4SF_FTYPE_V4SF_ROUND },
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_roundps, "__builtin_ia32_rintps", IX86_BUILTIN_RINTPS, (enum rtx_code) ROUND_MXCSR, (int) V4SF_FTYPE_V4SF_ROUND },
+
+  { OPTION_MASK_ISA_ROUND, CODE_FOR_roundv4sf2, "__builtin_ia32_roundps_az", IX86_BUILTIN_ROUNDPS_AZ, UNKNOWN, (int) V4SF_FTYPE_V4SF },
 
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_ptest, "__builtin_ia32_ptestz128", IX86_BUILTIN_PTESTZ, EQ, (int) INT_FTYPE_V2DI_V2DI_PTEST },
   { OPTION_MASK_ISA_ROUND, CODE_FOR_sse4_1_ptest, "__builtin_ia32_ptestc128", IX86_BUILTIN_PTESTC, LTU, (int) INT_FTYPE_V2DI_V2DI_PTEST },
@@ -25172,10 +25170,14 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_roundpd256, "__builtin_ia32_truncpd256", IX86_BUILTIN_TRUNCPD256, (enum rtx_code) ROUND_TRUNC, (int) V4DF_FTYPE_V4DF_ROUND },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_roundpd256, "__builtin_ia32_rintpd256", IX86_BUILTIN_RINTPD256, (enum rtx_code) ROUND_MXCSR, (int) V4DF_FTYPE_V4DF_ROUND },
 
+  { OPTION_MASK_ISA_AVX, CODE_FOR_roundv4df2, "__builtin_ia32_roundpd_az256", IX86_BUILTIN_ROUNDPD_AZ256, UNKNOWN, (int) V4DF_FTYPE_V4DF },
+
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_roundps256, "__builtin_ia32_floorps256", IX86_BUILTIN_FLOORPS256, (enum rtx_code) ROUND_FLOOR, (int) V8SF_FTYPE_V8SF_ROUND },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_roundps256, "__builtin_ia32_ceilps256", IX86_BUILTIN_CEILPS256, (enum rtx_code) ROUND_CEIL, (int) V8SF_FTYPE_V8SF_ROUND },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_roundps256, "__builtin_ia32_truncps256", IX86_BUILTIN_TRUNCPS256, (enum rtx_code) ROUND_TRUNC, (int) V8SF_FTYPE_V8SF_ROUND },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_roundps256, "__builtin_ia32_rintps256", IX86_BUILTIN_RINTPS256, (enum rtx_code) ROUND_MXCSR, (int) V8SF_FTYPE_V8SF_ROUND },
+
+  { OPTION_MASK_ISA_AVX, CODE_FOR_roundv8sf2, "__builtin_ia32_roundps_az256", IX86_BUILTIN_ROUNDPS_AZ256, UNKNOWN, (int) V8SF_FTYPE_V8SF },
 
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_unpckhpd256,  "__builtin_ia32_unpckhpd256", IX86_BUILTIN_UNPCKHPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_unpcklpd256,  "__builtin_ia32_unpcklpd256", IX86_BUILTIN_UNPCKLPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
@@ -25375,6 +25377,14 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_F16C, CODE_FOR_vcvtph2ps256, "__builtin_ia32_vcvtph2ps256", IX86_BUILTIN_CVTPH2PS256, UNKNOWN, (int) V8SF_FTYPE_V8HI },
   { OPTION_MASK_ISA_F16C, CODE_FOR_vcvtps2ph, "__builtin_ia32_vcvtps2ph", IX86_BUILTIN_CVTPS2PH, UNKNOWN, (int) V8HI_FTYPE_V4SF_INT },
   { OPTION_MASK_ISA_F16C, CODE_FOR_vcvtps2ph256, "__builtin_ia32_vcvtps2ph256", IX86_BUILTIN_CVTPS2PH256, UNKNOWN, (int) V8HI_FTYPE_V8SF_INT },
+
+  /* BMI2 */
+  { OPTION_MASK_ISA_BMI2, CODE_FOR_bmi2_bzhi_si3, "__builtin_ia32_bzhi_si", IX86_BUILTIN_BZHI32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },
+  { OPTION_MASK_ISA_BMI2, CODE_FOR_bmi2_bzhi_di3, "__builtin_ia32_bzhi_di", IX86_BUILTIN_BZHI64, UNKNOWN, (int) UINT64_FTYPE_UINT64_UINT64 },
+  { OPTION_MASK_ISA_BMI2, CODE_FOR_bmi2_pdep_si3, "__builtin_ia32_pdep_si", IX86_BUILTIN_PDEP32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },
+  { OPTION_MASK_ISA_BMI2, CODE_FOR_bmi2_pdep_di3, "__builtin_ia32_pdep_di", IX86_BUILTIN_PDEP64, UNKNOWN, (int) UINT64_FTYPE_UINT64_UINT64 },
+  { OPTION_MASK_ISA_BMI2, CODE_FOR_bmi2_pext_si3, "__builtin_ia32_pext_si", IX86_BUILTIN_PEXT32, UNKNOWN, (int) UINT_FTYPE_UINT_UINT },
+  { OPTION_MASK_ISA_BMI2, CODE_FOR_bmi2_pext_di3, "__builtin_ia32_pext_di", IX86_BUILTIN_PEXT64, UNKNOWN, (int) UINT64_FTYPE_UINT64_UINT64 },
 };
 
 /* FMA4 and XOP.  */
@@ -27859,6 +27869,8 @@ rdrand_step:
       /* Force memory operand only with base register here.  But we
 	 don't want to do it on memory operand for other builtin
 	 functions.  */
+      if (GET_MODE (op1) != Pmode)
+	op1 = convert_to_mode (Pmode, op1, 1);
       op1 = force_reg (Pmode, op1);
       op1 = gen_rtx_MEM (mode1, op1);
 
@@ -28120,6 +28132,34 @@ ix86_builtin_vectorized_function (tree fndecl, tree type_out,
 	    return ix86_builtins[IX86_BUILTIN_RINTPS];
 	  else if (out_n == 8 && in_n == 8)
 	    return ix86_builtins[IX86_BUILTIN_RINTPS256];
+	}
+      break;
+
+    case BUILT_IN_ROUND:
+      /* The round insn does not trap on denormals.  */
+      if (flag_trapping_math || !TARGET_ROUND)
+	break;
+
+      if (out_mode == DFmode && in_mode == DFmode)
+	{
+	  if (out_n == 2 && in_n == 2)
+	    return ix86_builtins[IX86_BUILTIN_ROUNDPD_AZ];
+	  else if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_ROUNDPD_AZ256];
+	}
+      break;
+
+    case BUILT_IN_ROUNDF:
+      /* The round insn does not trap on denormals.  */
+      if (flag_trapping_math || !TARGET_ROUND)
+	break;
+
+      if (out_mode == SFmode && in_mode == SFmode)
+	{
+	  if (out_n == 4 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_ROUNDPS_AZ];
+	  else if (out_n == 8 && in_n == 8)
+	    return ix86_builtins[IX86_BUILTIN_ROUNDPS_AZ256];
 	}
       break;
 
@@ -30545,7 +30585,7 @@ ix86_pad_returns (void)
       rtx prev;
       bool replace = false;
 
-      if (!JUMP_P (ret) || GET_CODE (PATTERN (ret)) != RETURN
+      if (!JUMP_P (ret) || !ANY_RETURN_P (PATTERN (ret))
 	  || optimize_bb_for_size_p (bb))
 	continue;
       for (prev = PREV_INSN (ret); prev; prev = PREV_INSN (prev))
@@ -30596,7 +30636,7 @@ ix86_count_insn_bb (basic_block bb)
     {
       /* Only happen in exit blocks.  */
       if (JUMP_P (insn)
-	  && GET_CODE (PATTERN (insn)) == RETURN)
+	  && ANY_RETURN_P (PATTERN (insn)))
 	break;
 
       if (NONDEBUG_INSN_P (insn)
@@ -30669,7 +30709,7 @@ ix86_pad_short_function (void)
   FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
     {
       rtx ret = BB_END (e->src);
-      if (JUMP_P (ret) && GET_CODE (PATTERN (ret)) == RETURN)
+      if (JUMP_P (ret) && ANY_RETURN_P (PATTERN (ret)))
 	{
 	  int insn_count = ix86_count_insn (e->src);
 

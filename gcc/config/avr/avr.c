@@ -51,6 +51,9 @@
 /* Maximal allowed offset for an address in the LD command */
 #define MAX_LD_OFFSET(MODE) (64 - (signed)GET_MODE_SIZE (MODE))
 
+/* Return true if STR starts with PREFIX and false, otherwise.  */
+#define STR_PREFIX_P(STR,PREFIX) (0 == strncmp (STR, PREFIX, strlen (PREFIX)))
+
 static void avr_option_override (void);
 static int avr_naked_function_p (tree);
 static int interrupt_function_p (tree);
@@ -278,22 +281,6 @@ avr_option_override (void)
   init_machine_status = avr_init_machine_status;
 }
 
-/*  return register class from register number.  */
-
-static const enum reg_class reg_class_tab[]={
-  GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,
-  GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,
-  GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,
-  GENERAL_REGS, /* r0 - r15 */
-  LD_REGS,LD_REGS,LD_REGS,LD_REGS,LD_REGS,LD_REGS,LD_REGS,
-  LD_REGS,                      /* r16 - 23 */
-  ADDW_REGS,ADDW_REGS,          /* r24,r25 */
-  POINTER_X_REGS,POINTER_X_REGS, /* r26,27 */
-  POINTER_Y_REGS,POINTER_Y_REGS, /* r28,r29 */
-  POINTER_Z_REGS,POINTER_Z_REGS, /* r30,r31 */
-  STACK_REG,STACK_REG           /* SPL,SPH */
-};
-
 /* Function to set up the backend function structure.  */
 
 static struct machine_function *
@@ -307,8 +294,32 @@ avr_init_machine_status (void)
 enum reg_class
 avr_regno_reg_class (int r)
 {
+  static const enum reg_class reg_class_tab[] =
+    {
+      R0_REG,
+      /* r1 - r15 */
+      NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+      NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+      NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+      NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+      /* r16 - r23 */
+      SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS,
+      SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS,
+      /* r24, r25 */
+      ADDW_REGS, ADDW_REGS,
+      /* X: r26, 27 */
+      POINTER_X_REGS, POINTER_X_REGS,
+      /* Y: r28, r29 */
+      POINTER_Y_REGS, POINTER_Y_REGS,
+      /* Z: r30, r31 */
+      POINTER_Z_REGS, POINTER_Z_REGS,
+      /* SP: SPL, SPH */
+      STACK_REG, STACK_REG
+    };
+
   if (r <= 33)
     return reg_class_tab[r];
+  
   return ALL_REGS;
 }
 
@@ -1615,15 +1626,6 @@ ret_cond_branch (rtx x, int len, int reverse)
 	  }
     }
   return "";
-}
-
-/* Predicate function for immediate operand which fits to byte (8bit) */
-
-int
-byte_immediate_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  return (GET_CODE (op) == CONST_INT
-          && INTVAL (op) <= 0xff && INTVAL (op) >= 0);
 }
 
 /* Output insn cost for next insn.  */
@@ -4852,7 +4854,7 @@ avr_asm_declare_function_name (FILE *file, const char *name, tree decl)
 
   if (cfun->machine->is_interrupt)
     {
-      if (strncmp (name, "__vector", strlen ("__vector")) != 0)
+      if (!STR_PREFIX_P (name, "__vector"))
         {
           warning_at (DECL_SOURCE_LOCATION (decl), 0,
                       "%qs appears to be a misspelled interrupt handler",
@@ -4861,7 +4863,7 @@ avr_asm_declare_function_name (FILE *file, const char *name, tree decl)
     }
   else if (cfun->machine->is_signal)
     {
-      if (strncmp (name, "__vector", strlen ("__vector")) != 0)
+      if (!STR_PREFIX_P (name, "__vector"))
         {
            warning_at (DECL_SOURCE_LOCATION (decl), 0,
                        "%qs appears to be a misspelled signal handler",
@@ -5116,12 +5118,12 @@ static void
 avr_asm_named_section (const char *name, unsigned int flags, tree decl)
 {
   if (!avr_need_copy_data_p)
-    avr_need_copy_data_p = (0 == strncmp (name, ".data", 5)
-                            || 0 == strncmp (name, ".rodata", 7)
-                            || 0 == strncmp (name, ".gnu.linkonce.d", 15));
+    avr_need_copy_data_p = (STR_PREFIX_P (name, ".data")
+                            || STR_PREFIX_P (name, ".rodata")
+                            || STR_PREFIX_P (name, ".gnu.linkonce.d"));
   
   if (!avr_need_clear_bss_p)
-    avr_need_clear_bss_p = (0 == strncmp (name, ".bss", 4));
+    avr_need_clear_bss_p = STR_PREFIX_P (name, ".bss");
   
   default_elf_asm_named_section (name, flags, decl);
 }
@@ -5131,7 +5133,7 @@ avr_section_type_flags (tree decl, const char *name, int reloc)
 {
   unsigned int flags = default_section_type_flags (decl, name, reloc);
 
-  if (strncmp (name, ".noinit", 7) == 0)
+  if (STR_PREFIX_P (name, ".noinit"))
     {
       if (decl && TREE_CODE (decl) == VAR_DECL
 	  && DECL_INITIAL (decl) == NULL_TREE)
@@ -5141,7 +5143,7 @@ avr_section_type_flags (tree decl, const char *name, int reloc)
 		 ".noinit section");
     }
 
-  if (0 == strncmp (name, ".progmem.data", strlen (".progmem.data")))
+  if (STR_PREFIX_P (name, ".progmem.data"))
     flags &= ~SECTION_WRITE;
   
   return flags;

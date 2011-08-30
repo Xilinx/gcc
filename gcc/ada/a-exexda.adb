@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -612,13 +612,11 @@ package body Exception_Data is
    --  Start of processing for Set_Exception_C_Msg
 
    begin
-      Exception_Propagation.Setup_Exception (Excep, Excep);
       Excep.Exception_Raised := False;
       Excep.Id               := Id;
       Excep.Num_Tracebacks   := 0;
       Excep.Pid              := Local_Partition_ID;
       Excep.Msg_Length       := 0;
-      Excep.Cleanup_Flag     := False;
 
       while To_Ptr (Msg1) (Excep.Msg_Length + 1) /= ASCII.NUL
         and then Excep.Msg_Length < Exception_Msg_Max_Length
@@ -663,14 +661,12 @@ package body Exception_Data is
       Excep  : constant EOA := Get_Current_Excep.all;
 
    begin
-      Exception_Propagation.Setup_Exception (Excep, Excep);
       Excep.Exception_Raised := False;
       Excep.Msg_Length       := Len;
       Excep.Msg (1 .. Len)   := Message (First .. First + Len - 1);
       Excep.Id               := Id;
       Excep.Num_Tracebacks   := 0;
       Excep.Pid              := Local_Partition_ID;
-      Excep.Cleanup_Flag     := False;
 
    end Set_Exception_Msg;
 

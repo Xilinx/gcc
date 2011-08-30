@@ -1156,11 +1156,12 @@ package body Sem_Ch6 is
          end loop;
       end if;
 
-      --  Special processing for Elab_Spec and Elab_Body calls
+      --  Special processing for Elab_Spec, Elab_Body and Elab_Subp_Body calls
 
       if Nkind (P) = N_Attribute_Reference
         and then (Attribute_Name (P) = Name_Elab_Spec
-                   or else Attribute_Name (P) = Name_Elab_Body)
+                   or else Attribute_Name (P) = Name_Elab_Body
+                   or else Attribute_Name (P) = Name_Elab_Subp_Body)
       then
          if Present (Actuals) then
             Error_Msg_N
@@ -2339,14 +2340,15 @@ package body Sem_Ch6 is
          --  In general, the spec will be frozen when we start analyzing the
          --  body. However, for internally generated operations, such as
          --  wrapper functions for inherited operations with controlling
-         --  results, the spec may not have been frozen by the time we
-         --  expand the freeze actions that include the bodies. In particular,
-         --  extra formals for accessibility or for return-in-place may need
-         --  to be generated. Freeze nodes, if any, are inserted before the
-         --  current body.
+         --  results, the spec may not have been frozen by the time we expand
+         --  the freeze actions that include the bodies. In particular, extra
+         --  formals for accessibility or for return-in-place may need to be
+         --  generated. Freeze nodes, if any, are inserted before the current
+         --  body. These freeze actions are also needed in ASIS mode to enable
+         --  the proper back-annotations.
 
          if not Is_Frozen (Spec_Id)
-           and then Expander_Active
+           and then (Expander_Active or ASIS_Mode)
          then
             --  Force the generation of its freezing node to ensure proper
             --  management of access types in the backend.
@@ -4714,7 +4716,7 @@ package body Sem_Ch6 is
                --  Grouping (use of comma in param lists) must be the same
                --  This is where we catch a misconformance like:
 
-               --    A,B : Integer
+               --    A, B : Integer
                --    A : Integer; B : Integer
 
                --  which are represented identically in the tree except
@@ -5667,6 +5669,12 @@ package body Sem_Ch6 is
          then
             return True;
 
+         elsif From_With_Type (T1)
+           and then From_With_Type (T2)
+           and then Available_View (T1) = Available_View (T2)
+         then
+            return True;
+
          else
             return False;
          end if;
@@ -6079,14 +6087,13 @@ package body Sem_Ch6 is
             end if;
 
             --  In the case of functions whose result type needs finalization,
-            --  add an extra formal of type Ada.Finalization.Heap_Management.
-            --  Finalization_Collection_Ptr.
+            --  add an extra formal which represents the finalization master.
 
-            if Needs_BIP_Collection (E) then
+            if Needs_BIP_Finalization_Master (E) then
                Discard :=
                  Add_Extra_Formal
-                   (E, RTE (RE_Finalization_Collection_Ptr),
-                    E, BIP_Formal_Suffix (BIP_Collection));
+                   (E, RTE (RE_Finalization_Master_Ptr),
+                    E, BIP_Formal_Suffix (BIP_Finalization_Master));
             end if;
 
             --  If the result type contains tasks, we have two extra formals:
@@ -6361,7 +6368,19 @@ package body Sem_Ch6 is
                   end if;
                end if;
 
-               if not Has_Completion (E) then
+               --  Ada 2012 (AI05-0165): For internally generated bodies of
+               --  null procedures locate the internally generated spec. We
+               --  enforce mode conformance since a tagged type may inherit
+               --  from interfaces several null primitives which differ only
+               --  in the mode of the formals.
+
+               if not (Comes_From_Source (E))
+                 and then Is_Null_Procedure (E)
+                 and then not Mode_Conformant (Designator, E)
+               then
+                  null;
+
+               elsif not Has_Completion (E) then
                   if Nkind (N) /= N_Subprogram_Body_Stub then
                      Set_Corresponding_Spec (N, E);
                   end if;
@@ -7036,6 +7055,35 @@ package body Sem_Ch6 is
       Iface : constant Entity_Id := Find_Dispatching_Type (Iface_Prim);
       Typ   : constant Entity_Id := Find_Dispatching_Type (Prim);
 
+      function Controlling_Formal (Prim : Entity_Id) return Entity_Id;
+      --  Return the controlling formal of Prim
+
+      ------------------------
+      -- Controlling_Formal --
+      ------------------------
+
+      function Controlling_Formal (Prim : Entity_Id) return Entity_Id is
+         E : Entity_Id := First_Entity (Prim);
+
+      begin
+         while Present (E) loop
+            if Is_Formal (E) and then Is_Controlling_Formal (E) then
+               return E;
+            end if;
+
+            Next_Entity (E);
+         end loop;
+
+         return Empty;
+      end Controlling_Formal;
+
+      --  Local variables
+
+      Iface_Ctrl_F : constant Entity_Id := Controlling_Formal (Iface_Prim);
+      Prim_Ctrl_F  : constant Entity_Id := Controlling_Formal (Prim);
+
+   --  Start of processing for Is_Interface_Conformant
+
    begin
       pragma Assert (Is_Subprogram (Iface_Prim)
         and then Is_Subprogram (Prim)
@@ -7059,8 +7107,17 @@ package body Sem_Ch6 is
       then
          return False;
 
-      --  Case of a procedure, or a function that does not have a controlling
-      --  result (I or access I).
+      --  The mode of the controlling formals must match
+
+      elsif Present (Iface_Ctrl_F)
+         and then Present (Prim_Ctrl_F)
+         and then Ekind (Iface_Ctrl_F) /= Ekind (Prim_Ctrl_F)
+      then
+         return False;
+
+      --  Case of a procedure, or a function whose result type matches the
+      --  result type of the interface primitive, or a function that has no
+      --  controlling result (I or access I).
 
       elsif Ekind (Iface_Prim) = E_Procedure
         or else Etype (Prim) = Etype (Iface_Prim)
@@ -8251,6 +8308,18 @@ package body Sem_Ch6 is
             --  Definitely not interesting if not in the current scope
 
             if Scope (E) /= Current_Scope then
+               null;
+
+            --  Ada 2012 (AI05-0165): For internally generated bodies of
+            --  null procedures locate the internally generated spec. We
+            --  enforce mode conformance since a tagged type may inherit
+            --  from interfaces several null primitives which differ only
+            --  in the mode of the formals.
+
+            elsif not Comes_From_Source (S)
+              and then Is_Null_Procedure (S)
+              and then not Mode_Conformant (E, S)
+            then
                null;
 
             --  Check if we have type conformance
@@ -9557,7 +9626,6 @@ package body Sem_Ch6 is
                     Statements => Plist)));
 
             Set_Ekind (Post_Proc, E_Procedure);
-            Set_Is_Postcondition_Proc (Post_Proc);
 
             --  If this is a procedure, set the Postcondition_Proc attribute on
             --  the proper defining entity for the subprogram.

@@ -382,8 +382,9 @@ package body Prj.Conf is
 
       --  Local variables
 
-      Name   : Name_Id;
-      Naming : Project_Node_Id;
+      Name     : Name_Id;
+      Naming   : Project_Node_Id;
+      Compiler : Project_Node_Id;
 
    --  Start of processing for Add_Default_GNAT_Naming_Scheme
 
@@ -432,6 +433,12 @@ package body Prj.Conf is
          --  gnatmake).
 
          Create_Attribute (Name_Default_Language, "ada");
+
+         Compiler := Create_Package (Project_Tree, Config_File, "compiler");
+         Create_Attribute
+           (Name_Language_Kind, "unit_based", "ada", Pkg => Compiler);
+         Create_Attribute
+           (Name_Dependency_Kind, "ALI_File", "ada", Pkg => Compiler);
 
          Naming := Create_Package (Project_Tree, Config_File, "naming");
          Create_Attribute (Name_Spec_Suffix, ".ads", "ada",     Pkg => Naming);
@@ -717,26 +724,31 @@ package body Prj.Conf is
          IDE : constant Package_Id :=
                  Value_Of (Name_Ide, Project.Decl.Packages, Shared);
 
-         Prj_Iter : Project_List;
-         List     : String_List_Id;
-         Elem     : String_Element;
-         Lang     : Name_Id;
-         Variable : Variable_Value;
-         Name     : Name_Id;
-         Count    : Natural;
-         Result   : Argument_List_Access;
+         procedure Add_Config_Switches_For_Project
+           (Project    : Project_Id;
+            Tree       : Project_Tree_Ref;
+            With_State : in out Integer);
+         --  Add all --config switches for this project. This is also called
+         --  for aggregate projects.
 
-         Check_Default : Boolean;
+         procedure Add_Config_Switches_For_Project
+           (Project    : Project_Id;
+            Tree       : Project_Tree_Ref;
+            With_State : in out Integer)
+         is
+            pragma Unreferenced (With_State);
+            Shared : constant Shared_Project_Tree_Data_Access := Tree.Shared;
 
-      begin
-         Prj_Iter := Project_Tree.Projects;
-         while Prj_Iter /= null loop
-            if Might_Have_Sources (Prj_Iter.Project) then
+            Variable      : Variable_Value;
+            Check_Default : Boolean;
+            Lang          : Name_Id;
+            List          : String_List_Id;
+            Elem          : String_Element;
+
+         begin
+            if Might_Have_Sources (Project) then
                Variable :=
-                 Value_Of
-                   (Name_Languages,
-                    Prj_Iter.Project.Decl.Attributes,
-                    Shared);
+                 Value_Of (Name_Languages, Project.Decl.Attributes, Shared);
 
                if Variable = Nil_Variable_Value
                  or else Variable.Default
@@ -745,13 +757,13 @@ package body Prj.Conf is
                   --  project, or if it extends a project with no Languages,
                   --  check for Default_Language.
 
-                  Check_Default := Prj_Iter.Project.Extends = No_Project;
+                  Check_Default := Project.Extends = No_Project;
 
                   if not Check_Default then
                      Variable :=
                        Value_Of
                          (Name_Languages,
-                          Prj_Iter.Project.Extends.Decl.Attributes,
+                          Project.Extends.Decl.Attributes,
                           Shared);
                      Check_Default :=
                        Variable /= Nil_Variable_Value
@@ -762,7 +774,7 @@ package body Prj.Conf is
                      Variable :=
                        Value_Of
                          (Name_Default_Language,
-                          Prj_Iter.Project.Decl.Attributes,
+                          Project.Decl.Attributes,
                           Shared);
 
                      if Variable /= Nil_Variable_Value
@@ -798,9 +810,28 @@ package body Prj.Conf is
                   end loop;
                end if;
             end if;
+         end Add_Config_Switches_For_Project;
 
-            Prj_Iter := Prj_Iter.Next;
-         end loop;
+         procedure For_Every_Imported_Project is new For_Every_Project_Imported
+           (State => Integer, Action => Add_Config_Switches_For_Project);
+         --  Document this procedure ???
+
+         --  Local variables
+
+         Name     : Name_Id;
+         Count    : Natural;
+         Result   : Argument_List_Access;
+         Variable : Variable_Value;
+         Dummy    : Integer := 0;
+
+      --  Start of processing for Get_Config_Switches
+
+      begin
+         For_Every_Imported_Project
+           (By         => Project,
+            Tree       => Project_Tree,
+            With_State => Dummy,
+            Include_Aggregated => True);
 
          Name  := Language_Htable.Get_First;
          Count := 0;
@@ -814,6 +845,7 @@ package body Prj.Conf is
          Count := 1;
          Name  := Language_Htable.Get_First;
          while Name /= No_Name loop
+
             --  Check if IDE'Compiler_Command is declared for the language.
             --  If it is, use its value to invoke gprconfig.
 

@@ -410,8 +410,8 @@ package Prj is
 
    type Language_Config is record
       Kind : Language_Kind := File_Based;
-      --  Kind of language. All languages are file based, except Ada which is
-      --  unit based.
+      --  Kind of language. Most languages are file based. A few, such as Ada,
+      --  are unit based.
 
       Naming_Data : Lang_Naming_Data;
       --  The naming data for the languages (prefixes, etc.)
@@ -909,9 +909,11 @@ package Prj is
    --  If Only_If_Ada is True, then No_Name will be returned when the project
    --  doesn't Ada sources.
 
-   procedure Compute_All_Imported_Projects (Tree : Project_Tree_Ref);
+   procedure Compute_All_Imported_Projects
+     (Root_Project : Project_Id;
+      Tree         : Project_Tree_Ref);
    --  For all projects in the tree, compute the list of the projects imported
-   --  directly or indirectly by project Project. The result is stored in
+   --  directly or indirectly by project Root_Project. The result is stored in
    --  Project.All_Imported_Projects for each project
 
    function Ultimate_Extending_Project_Of
@@ -1594,6 +1596,27 @@ package Prj is
    function Switches_Name
      (Source_File_Name : File_Name_Type) return File_Name_Type;
    --  Returns the switches file name corresponding to a source file name
+
+   procedure Set_Path_File_Var (Name : String; Value : String);
+   --  Call Setenv, after calling To_Host_File_Spec
+
+   function Current_Source_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access) return Path_Name_Type;
+   --  Get the current include path file name
+
+   procedure Set_Current_Source_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access;
+      To     : Path_Name_Type);
+   --  Record the current include path file name
+
+   function Current_Object_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access) return Path_Name_Type;
+   --  Get the current object path file name
+
+   procedure Set_Current_Object_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access;
+      To     : Path_Name_Type);
+   --  Record the current object path file name
 
    -----------
    -- Flags --

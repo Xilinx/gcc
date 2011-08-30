@@ -151,9 +151,9 @@ package body Prj.Nmsc is
    --  be discarded as soon as we have finished processing the project
 
    type Tree_Processing_Data is record
-      Tree           : Project_Tree_Ref;
-      Node_Tree      : Prj.Tree.Project_Node_Tree_Ref;
-      Flags          : Prj.Processing_Flags;
+      Tree      : Project_Tree_Ref;
+      Node_Tree : Prj.Tree.Project_Node_Tree_Ref;
+      Flags     : Prj.Processing_Flags;
    end record;
    --  Temporary data which is needed while parsing a project. It does not need
    --  to be kept in memory once a project has been fully loaded, but is
@@ -281,14 +281,10 @@ package body Prj.Nmsc is
    --  Copy Str into Name_Buffer, replacing Pattern with Replacement. Str is
    --  converted to lower-case at the same time.
 
-   procedure Check_Ada_Name (Name : String; Unit : out Name_Id);
-   --  Check that a name is a valid Ada unit name
-
-   procedure Check_Package_Naming
+   procedure Check_Abstract_Project
      (Project : Project_Id;
       Data    : in out Tree_Processing_Data);
-   --  Check the naming scheme part of Data, and initialize the naming scheme
-   --  data in the config of the various languages.
+   --  Check abstract projects attributes
 
    procedure Check_Configuration
      (Project : Project_Id;
@@ -313,10 +309,11 @@ package body Prj.Nmsc is
    --  Check the library attributes of project Project in project tree
    --  and modify its data Data accordingly.
 
-   procedure Check_Abstract_Project
+   procedure Check_Package_Naming
      (Project : Project_Id;
       Data    : in out Tree_Processing_Data);
-   --  Check abstract projects attributes
+   --  Check the naming scheme part of Data, and initialize the naming scheme
+   --  data in the config of the various languages.
 
    procedure Check_Programming_Languages
      (Project : Project_Id;
@@ -330,6 +327,9 @@ package body Prj.Nmsc is
       Data    : in out Tree_Processing_Data);
    --  Check if project Project in project tree Data.Tree is a Stand-Alone
    --  Library project, and modify its data Data accordingly if it is one.
+
+   procedure Check_Unit_Name (Name : String; Unit : out Name_Id);
+   --  Check that a name is a valid unit name
 
    function Compute_Directory_Last (Dir : String) return Natural;
    --  Return the index of the last significant character in Dir. This is used
@@ -1010,52 +1010,6 @@ package body Prj.Nmsc is
       Free (Project_Path_For_Aggregate);
    end Process_Aggregated_Projects;
 
-   ----------------------------
-   -- Check_Abstract_Project --
-   ----------------------------
-
-   procedure Check_Abstract_Project
-     (Project : Project_Id;
-      Data    : in out Tree_Processing_Data)
-   is
-      Shared : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
-
-      Source_Dirs      : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Source_Dirs,
-                              Project.Decl.Attributes, Shared);
-      Source_Files     : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Source_Files,
-                              Project.Decl.Attributes, Shared);
-      Source_List_File : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Source_List_File,
-                              Project.Decl.Attributes, Shared);
-      Languages        : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Languages,
-                              Project.Decl.Attributes, Shared);
-
-   begin
-      if Project.Source_Dirs /= Nil_String then
-         if Source_Dirs.Values  = Nil_String
-           and then Source_Files.Values = Nil_String
-           and then Languages.Values = Nil_String
-           and then Source_List_File.Default
-         then
-            Project.Source_Dirs := Nil_String;
-
-         else
-            Error_Msg
-              (Data.Flags,
-               "at least one of Source_Files, Source_Dirs or Languages "
-               & "must be declared empty for an abstract project",
-               Project.Location, Project);
-         end if;
-      end if;
-   end Check_Abstract_Project;
-
    -----------
    -- Check --
    -----------
@@ -1112,188 +1066,51 @@ package body Prj.Nmsc is
       Debug_Decrease_Indent ("done check");
    end Check;
 
-   --------------------
-   -- Check_Ada_Name --
-   --------------------
+   ----------------------------
+   -- Check_Abstract_Project --
+   ----------------------------
 
-   procedure Check_Ada_Name (Name : String; Unit : out Name_Id) is
-      The_Name        : String := Name;
-      Real_Name       : Name_Id;
-      Need_Letter     : Boolean := True;
-      Last_Underscore : Boolean := False;
-      OK              : Boolean := The_Name'Length > 0;
-      First           : Positive;
+   procedure Check_Abstract_Project
+     (Project : Project_Id;
+      Data    : in out Tree_Processing_Data)
+   is
+      Shared : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
 
-      function Is_Reserved (Name : Name_Id) return Boolean;
-      function Is_Reserved (S    : String)  return Boolean;
-      --  Check that the given name is not an Ada 95 reserved word. The reason
-      --  for the Ada 95 here is that we do not want to exclude the case of an
-      --  Ada 95 unit called Interface (for example). In Ada 2005, such a unit
-      --  name would be rejected anyway by the compiler. That means there is no
-      --  requirement that the project file parser reject this.
-
-      -----------------
-      -- Is_Reserved --
-      -----------------
-
-      function Is_Reserved (S : String) return Boolean is
-      begin
-         Name_Len := 0;
-         Add_Str_To_Name_Buffer (S);
-         return Is_Reserved (Name_Find);
-      end Is_Reserved;
-
-      -----------------
-      -- Is_Reserved --
-      -----------------
-
-      function Is_Reserved (Name : Name_Id) return Boolean is
-      begin
-         if Get_Name_Table_Byte (Name) /= 0
-           and then Name /= Name_Project
-           and then Name /= Name_Extends
-           and then Name /= Name_External
-           and then Name not in Ada_2005_Reserved_Words
-         then
-            Unit := No_Name;
-            Debug_Output ("Ada reserved word: ", Name);
-            return True;
-
-         else
-            return False;
-         end if;
-      end Is_Reserved;
-
-   --  Start of processing for Check_Ada_Name
+      Source_Dirs      : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Source_Dirs,
+                              Project.Decl.Attributes, Shared);
+      Source_Files     : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Source_Files,
+                              Project.Decl.Attributes, Shared);
+      Source_List_File : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Source_List_File,
+                              Project.Decl.Attributes, Shared);
+      Languages        : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Languages,
+                              Project.Decl.Attributes, Shared);
 
    begin
-      To_Lower (The_Name);
-
-      Name_Len := The_Name'Length;
-      Name_Buffer (1 .. Name_Len) := The_Name;
-
-      --  Special cases of children of packages A, G, I and S on VMS
-
-      if OpenVMS_On_Target
-        and then Name_Len > 3
-        and then Name_Buffer (2 .. 3) = "__"
-        and then
-          ((Name_Buffer (1) = 'a') or else
-           (Name_Buffer (1) = 'g') or else
-           (Name_Buffer (1) = 'i') or else
-           (Name_Buffer (1) = 's'))
-      then
-         Name_Buffer (2) := '.';
-         Name_Buffer (3 .. Name_Len - 1) := Name_Buffer (4 .. Name_Len);
-         Name_Len := Name_Len - 1;
-      end if;
-
-      Real_Name := Name_Find;
-
-      if Is_Reserved (Real_Name) then
-         return;
-      end if;
-
-      First := The_Name'First;
-
-      for Index in The_Name'Range loop
-         if Need_Letter then
-
-            --  We need a letter (at the beginning, and following a dot),
-            --  but we don't have one.
-
-            if Is_Letter (The_Name (Index)) then
-               Need_Letter := False;
-
-            else
-               OK := False;
-
-               if Current_Verbosity = High then
-                  Debug_Indent;
-                  Write_Int  (Types.Int (Index));
-                  Write_Str  (": '");
-                  Write_Char (The_Name (Index));
-                  Write_Line ("' is not a letter.");
-               end if;
-
-               exit;
-            end if;
-
-         elsif Last_Underscore
-           and then (The_Name (Index) = '_' or else The_Name (Index) = '.')
+      if Project.Source_Dirs /= Nil_String then
+         if Source_Dirs.Values  = Nil_String
+           and then Source_Files.Values = Nil_String
+           and then Languages.Values = Nil_String
+           and then Source_List_File.Default
          then
-            --  Two underscores are illegal, and a dot cannot follow
-            --  an underscore.
-
-            OK := False;
-
-            if Current_Verbosity = High then
-               Debug_Indent;
-               Write_Int  (Types.Int (Index));
-               Write_Str  (": '");
-               Write_Char (The_Name (Index));
-               Write_Line ("' is illegal here.");
-            end if;
-
-            exit;
-
-         elsif The_Name (Index) = '.' then
-
-            --  First, check if the name before the dot is not a reserved word
-
-            if Is_Reserved (The_Name (First .. Index - 1)) then
-               return;
-            end if;
-
-            First := Index + 1;
-
-            --  We need a letter after a dot
-
-            Need_Letter := True;
-
-         elsif The_Name (Index) = '_' then
-            Last_Underscore := True;
+            Project.Source_Dirs := Nil_String;
 
          else
-            --  We need an letter or a digit
-
-            Last_Underscore := False;
-
-            if not Is_Alphanumeric (The_Name (Index)) then
-               OK := False;
-
-               if Current_Verbosity = High then
-                  Debug_Indent;
-                  Write_Int  (Types.Int (Index));
-                  Write_Str  (": '");
-                  Write_Char (The_Name (Index));
-                  Write_Line ("' is not alphanumeric.");
-               end if;
-
-               exit;
-            end if;
+            Error_Msg
+              (Data.Flags,
+               "at least one of Source_Files, Source_Dirs or Languages "
+               & "must be declared empty for an abstract project",
+               Project.Location, Project);
          end if;
-      end loop;
-
-      --  Cannot end with an underscore or a dot
-
-      OK := OK and then not Need_Letter and then not Last_Underscore;
-
-      if OK then
-         if First /= Name'First and then
-           Is_Reserved (The_Name (First .. The_Name'Last))
-         then
-            return;
-         end if;
-
-         Unit := Real_Name;
-
-      else
-         --  Signal a problem with No_Name
-
-         Unit := No_Name;
       end if;
-   end Check_Ada_Name;
+   end Check_Abstract_Project;
 
    -------------------------
    -- Check_Configuration --
@@ -1492,10 +1309,29 @@ package body Prj.Nmsc is
 
                      if Lang_Index /= No_Language_Index then
                         case Current_Array.Name is
+
+                        --  Attribute Dependency_Kind (<language>)
+
+                        when Name_Dependency_Kind =>
+                           Get_Name_String (Element.Value.Value);
+
+                           begin
+                              Lang_Index.Config.Dependency_Kind :=
+                                Dependency_File_Kind'Value
+                                  (Name_Buffer (1 .. Name_Len));
+
+                           exception
+                              when Constraint_Error =>
+                                 Error_Msg
+                                   (Data.Flags,
+                                    "illegal value for Dependency_Kind",
+                                    Element.Value.Location,
+                                    Project);
+                           end;
+
+                        --  Attribute Dependency_Switches (<language>)
+
                         when Name_Dependency_Switches =>
-
-                           --  Attribute Dependency_Switches (<language>)
-
                            if Lang_Index.Config.Dependency_Kind = None then
                               Lang_Index.Config.Dependency_Kind := Makefile;
                            end if;
@@ -1509,10 +1345,9 @@ package body Prj.Nmsc is
                                    In_Tree   => Data.Tree);
                            end if;
 
+                        --  Attribute Dependency_Driver (<language>)
+
                         when Name_Dependency_Driver =>
-
-                           --  Attribute Dependency_Driver (<language>)
-
                            if Lang_Index.Config.Dependency_Kind = None then
                               Lang_Index.Config.Dependency_Kind := Makefile;
                            end if;
@@ -1526,10 +1361,28 @@ package body Prj.Nmsc is
                                    In_Tree   => Data.Tree);
                            end if;
 
+                        --  Attribute Language_Kind (<language>)
+
+                        when Name_Language_Kind =>
+                           Get_Name_String (Element.Value.Value);
+
+                           begin
+                              Lang_Index.Config.Kind :=
+                                Language_Kind'Value
+                                  (Name_Buffer (1 .. Name_Len));
+
+                           exception
+                              when Constraint_Error =>
+                                 Error_Msg
+                                   (Data.Flags,
+                                    "illegal value for Language_Kind",
+                                    Element.Value.Location,
+                                    Project);
+                           end;
+
+                        --  Attribute Include_Switches (<language>)
+
                         when Name_Include_Switches =>
-
-                           --  Attribute Include_Switches (<language>)
-
                            List := Element.Value.Values;
 
                            if List = Nil_String then
@@ -1542,24 +1395,21 @@ package body Prj.Nmsc is
                                 From_List => List,
                                 In_Tree   => Data.Tree);
 
+                        --  Attribute Include_Path (<language>)
+
                         when Name_Include_Path =>
-
-                           --  Attribute Include_Path (<language>)
-
                            Lang_Index.Config.Include_Path :=
                              Element.Value.Value;
 
+                        --  Attribute Include_Path_File (<language>)
+
                         when Name_Include_Path_File =>
-
-                           --  Attribute Include_Path_File (<language>)
-
                            Lang_Index.Config.Include_Path_File :=
-                               Element.Value.Value;
+                             Element.Value.Value;
+
+                        --  Attribute Driver (<language>)
 
                         when Name_Driver =>
-
-                           --  Attribute Driver (<language>)
-
                            Lang_Index.Config.Compiler_Driver :=
                              File_Name_Type (Element.Value.Value);
 
@@ -1638,10 +1488,9 @@ package body Prj.Nmsc is
                                 From_List => Element.Value.Values,
                                 In_Tree   => Data.Tree);
 
+                        --  Attribute Compiler_Pic_Option (<language>)
+
                         when Name_Pic_Option =>
-
-                           --  Attribute Compiler_Pic_Option (<language>)
-
                            List := Element.Value.Values;
 
                            if List = Nil_String then
@@ -1656,10 +1505,9 @@ package body Prj.Nmsc is
                                 From_List => List,
                                 In_Tree   => Data.Tree);
 
+                        --  Attribute Mapping_File_Switches (<language>)
+
                         when Name_Mapping_File_Switches =>
-
-                           --  Attribute Mapping_File_Switches (<language>)
-
                            List := Element.Value.Values;
 
                            if List = Nil_String then
@@ -1674,24 +1522,21 @@ package body Prj.Nmsc is
                                 From_List => List,
                                 In_Tree   => Data.Tree);
 
+                        --  Attribute Mapping_Spec_Suffix (<language>)
+
                         when Name_Mapping_Spec_Suffix =>
-
-                           --  Attribute Mapping_Spec_Suffix (<language>)
-
                            Lang_Index.Config.Mapping_Spec_Suffix :=
                              File_Name_Type (Element.Value.Value);
 
+                        --  Attribute Mapping_Body_Suffix (<language>)
+
                         when Name_Mapping_Body_Suffix =>
-
-                           --  Attribute Mapping_Body_Suffix (<language>)
-
                            Lang_Index.Config.Mapping_Body_Suffix :=
                              File_Name_Type (Element.Value.Value);
 
+                        --  Attribute Config_File_Switches (<language>)
+
                         when Name_Config_File_Switches =>
-
-                           --  Attribute Config_File_Switches (<language>)
-
                            List := Element.Value.Values;
 
                            if List = Nil_String then
@@ -1706,70 +1551,57 @@ package body Prj.Nmsc is
                                 From_List => List,
                                 In_Tree   => Data.Tree);
 
+                        --  Attribute Objects_Path (<language>)
+
                         when Name_Objects_Path =>
-
-                           --  Attribute Objects_Path (<language>)
-
                            Lang_Index.Config.Objects_Path :=
                              Element.Value.Value;
 
+                        --  Attribute Objects_Path_File (<language>)
+
                         when Name_Objects_Path_File =>
-
-                           --  Attribute Objects_Path_File (<language>)
-
                            Lang_Index.Config.Objects_Path_File :=
                              Element.Value.Value;
 
+                        --  Attribute Config_Body_File_Name (<language>)
+
                         when Name_Config_Body_File_Name =>
-
-                           --  Attribute Config_Body_File_Name (<language>)
-
                            Lang_Index.Config.Config_Body :=
                              Element.Value.Value;
 
+                        --  Attribute Config_Body_File_Name_Index (< Language>)
+
                         when Name_Config_Body_File_Name_Index =>
-
-                           --  Attribute Config_Body_File_Name_Index
-                           --     ( < Language > )
-
                            Lang_Index.Config.Config_Body_Index :=
                              Element.Value.Value;
 
+                        --  Attribute Config_Body_File_Name_Pattern(<language>)
+
                         when Name_Config_Body_File_Name_Pattern =>
-
-                           --  Attribute Config_Body_File_Name_Pattern
-                           --    (<language>)
-
                            Lang_Index.Config.Config_Body_Pattern :=
                              Element.Value.Value;
 
-                        when Name_Config_Spec_File_Name =>
-
                            --  Attribute Config_Spec_File_Name (<language>)
 
+                        when Name_Config_Spec_File_Name =>
                            Lang_Index.Config.Config_Spec :=
                              Element.Value.Value;
 
+                        --  Attribute Config_Spec_File_Name_Index (<language>)
+
                         when Name_Config_Spec_File_Name_Index =>
-
-                           --  Attribute Config_Spec_File_Name_Index
-                           --    ( < Language > )
-
                            Lang_Index.Config.Config_Spec_Index :=
                              Element.Value.Value;
 
+                        --  Attribute Config_Spec_File_Name_Pattern(<language>)
+
                         when Name_Config_Spec_File_Name_Pattern =>
-
-                           --  Attribute Config_Spec_File_Name_Pattern
-                           --    (<language>)
-
                            Lang_Index.Config.Config_Spec_Pattern :=
                              Element.Value.Value;
 
+                        --  Attribute Config_File_Unique (<language>)
+
                         when Name_Config_File_Unique =>
-
-                           --  Attribute Config_File_Unique (<language>)
-
                            begin
                               Lang_Index.Config.Config_File_Unique :=
                                 Boolean'Value
@@ -2575,7 +2407,7 @@ package body Prj.Nmsc is
 
       Lang_Index := Project.Languages;
       while Lang_Index /= No_Language_Index loop
-         if Lang_Index.Name = Name_Ada then
+         if Lang_Index.Config.Kind = Unit_Based then
             Lang_Index.Config.Naming_Data.Casing := Casing;
             Lang_Index.Config.Naming_Data.Dot_Replacement := Dot_Replacement;
 
@@ -2627,7 +2459,7 @@ package body Prj.Nmsc is
                Prev_Index.Next := Lang_Index.Next;
             end if;
 
-         elsif Lang_Index.Name = Name_Ada then
+         elsif Lang_Index.Config.Kind = Unit_Based then
             Prev_Index := Lang_Index;
 
             --  For unit based languages, Dot_Replacement, Spec_Suffix and
@@ -2636,21 +2468,24 @@ package body Prj.Nmsc is
             if Lang_Index.Config.Naming_Data.Dot_Replacement = No_File then
                Error_Msg
                  (Data.Flags,
-                  "Dot_Replacement not specified for Ada",
+                  "Dot_Replacement not specified for " &
+                  Get_Name_String (Lang_Index.Name),
                   No_Location, Project);
             end if;
 
             if Lang_Index.Config.Naming_Data.Spec_Suffix = No_File then
                Error_Msg
                  (Data.Flags,
-                  "Spec_Suffix not specified for Ada",
+                  "Spec_Suffix not specified for " &
+                  Get_Name_String (Lang_Index.Name),
                   No_Location, Project);
             end if;
 
             if Lang_Index.Config.Naming_Data.Body_Suffix = No_File then
                Error_Msg
                  (Data.Flags,
-                  "Body_Suffix not specified for Ada",
+                  "Body_Suffix not specified for " &
+                  Get_Name_String (Lang_Index.Name),
                   No_Location, Project);
             end if;
 
@@ -2908,682 +2743,11 @@ package body Prj.Nmsc is
       end if;
    end Check_Interfaces;
 
-   --------------------------
-   -- Check_Package_Naming --
-   --------------------------
-
-   procedure Check_Package_Naming
-     (Project : Project_Id;
-      Data    : in out Tree_Processing_Data)
-   is
-      Shared    : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
-      Naming_Id : constant Package_Id :=
-                    Util.Value_Of
-                      (Name_Naming, Project.Decl.Packages, Shared);
-      Naming    : Package_Element;
-
-      Ada_Body_Suffix_Loc : Source_Ptr := No_Location;
-
-      procedure Check_Naming;
-      --  Check the validity of the Naming package (suffixes valid, ...)
-
-      procedure Check_Common
-        (Dot_Replacement : in out File_Name_Type;
-         Casing          : in out Casing_Type;
-         Casing_Defined  : out Boolean;
-         Separate_Suffix : in out File_Name_Type;
-         Sep_Suffix_Loc  : out Source_Ptr);
-      --  Check attributes common
-
-      procedure Process_Exceptions_File_Based
-        (Lang_Id : Language_Ptr;
-         Kind    : Source_Kind);
-      procedure Process_Exceptions_Unit_Based
-        (Lang_Id : Language_Ptr;
-         Kind    : Source_Kind);
-      --  Process the naming exceptions for the two types of languages
-
-      procedure Initialize_Naming_Data;
-      --  Initialize internal naming data for the various languages
-
-      ------------------
-      -- Check_Common --
-      ------------------
-
-      procedure Check_Common
-        (Dot_Replacement : in out File_Name_Type;
-         Casing          : in out Casing_Type;
-         Casing_Defined  : out Boolean;
-         Separate_Suffix : in out File_Name_Type;
-         Sep_Suffix_Loc  : out Source_Ptr)
-      is
-         Dot_Repl      : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Dot_Replacement,
-                              Naming.Decl.Attributes,
-                              Shared);
-         Casing_String : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Casing,
-                              Naming.Decl.Attributes,
-                              Shared);
-         Sep_Suffix    : constant Variable_Value :=
-                           Util.Value_Of
-                             (Name_Separate_Suffix,
-                              Naming.Decl.Attributes,
-                              Shared);
-         Dot_Repl_Loc  : Source_Ptr;
-
-      begin
-         Sep_Suffix_Loc := No_Location;
-
-         if not Dot_Repl.Default then
-            pragma Assert
-              (Dot_Repl.Kind = Single, "Dot_Replacement is not a string");
-
-            if Length_Of_Name (Dot_Repl.Value) = 0 then
-               Error_Msg
-                 (Data.Flags, "Dot_Replacement cannot be empty",
-                  Dot_Repl.Location, Project);
-            end if;
-
-            Dot_Replacement := Canonical_Case_File_Name (Dot_Repl.Value);
-            Dot_Repl_Loc    := Dot_Repl.Location;
-
-            declare
-               Repl : constant String := Get_Name_String (Dot_Replacement);
-
-            begin
-               --  Dot_Replacement cannot
-               --   - be empty
-               --   - start or end with an alphanumeric
-               --   - be a single '_'
-               --   - start with an '_' followed by an alphanumeric
-               --   - contain a '.' except if it is "."
-
-               if Repl'Length = 0
-                 or else Is_Alphanumeric (Repl (Repl'First))
-                 or else Is_Alphanumeric (Repl (Repl'Last))
-                 or else (Repl (Repl'First) = '_'
-                           and then
-                             (Repl'Length = 1
-                               or else
-                                 Is_Alphanumeric (Repl (Repl'First + 1))))
-                 or else (Repl'Length > 1
-                           and then
-                             Index (Source => Repl, Pattern => ".") /= 0)
-               then
-                  Error_Msg
-                    (Data.Flags,
-                     '"' & Repl &
-                     """ is illegal for Dot_Replacement.",
-                     Dot_Repl_Loc, Project);
-               end if;
-            end;
-         end if;
-
-         if Dot_Replacement /= No_File then
-            Write_Attr
-              ("Dot_Replacement", Get_Name_String (Dot_Replacement));
-         end if;
-
-         Casing_Defined := False;
-
-         if not Casing_String.Default then
-            pragma Assert
-              (Casing_String.Kind = Single, "Casing is not a string");
-
-            declare
-               Casing_Image : constant String :=
-                                Get_Name_String (Casing_String.Value);
-
-            begin
-               if Casing_Image'Length = 0 then
-                  Error_Msg
-                    (Data.Flags,
-                     "Casing cannot be an empty string",
-                     Casing_String.Location, Project);
-               end if;
-
-               Casing := Value (Casing_Image);
-               Casing_Defined := True;
-
-            exception
-               when Constraint_Error =>
-                  Name_Len := Casing_Image'Length;
-                  Name_Buffer (1 .. Name_Len) := Casing_Image;
-                  Err_Vars.Error_Msg_Name_1 := Name_Find;
-                  Error_Msg
-                    (Data.Flags,
-                     "%% is not a correct Casing",
-                     Casing_String.Location, Project);
-            end;
-         end if;
-
-         Write_Attr ("Casing", Image (Casing));
-
-         if not Sep_Suffix.Default then
-            if Length_Of_Name (Sep_Suffix.Value) = 0 then
-               Error_Msg
-                 (Data.Flags,
-                  "Separate_Suffix cannot be empty",
-                  Sep_Suffix.Location, Project);
-
-            else
-               Separate_Suffix := Canonical_Case_File_Name (Sep_Suffix.Value);
-               Sep_Suffix_Loc  := Sep_Suffix.Location;
-
-               Check_Illegal_Suffix
-                 (Project, Separate_Suffix,
-                  Dot_Replacement, "Separate_Suffix", Sep_Suffix.Location,
-                  Data);
-            end if;
-         end if;
-
-         if Separate_Suffix /= No_File then
-            Write_Attr
-              ("Separate_Suffix", Get_Name_String (Separate_Suffix));
-         end if;
-      end Check_Common;
-
-      -----------------------------------
-      -- Process_Exceptions_File_Based --
-      -----------------------------------
-
-      procedure Process_Exceptions_File_Based
-        (Lang_Id : Language_Ptr;
-         Kind    : Source_Kind)
-      is
-         Lang           : constant Name_Id := Lang_Id.Name;
-         Exceptions     : Array_Element_Id;
-         Exception_List : Variable_Value;
-         Element_Id     : String_List_Id;
-         Element        : String_Element;
-         File_Name      : File_Name_Type;
-         Source         : Source_Id;
-
-      begin
-         case Kind is
-            when Impl | Sep =>
-               Exceptions :=
-                 Value_Of
-                   (Name_Implementation_Exceptions,
-                    In_Arrays => Naming.Decl.Arrays,
-                    Shared    => Shared);
-
-            when Spec =>
-               Exceptions :=
-                 Value_Of
-                   (Name_Specification_Exceptions,
-                    In_Arrays => Naming.Decl.Arrays,
-                    Shared    => Shared);
-         end case;
-
-         Exception_List :=
-           Value_Of
-             (Index    => Lang,
-              In_Array => Exceptions,
-              Shared   => Shared);
-
-         if Exception_List /= Nil_Variable_Value then
-            Element_Id := Exception_List.Values;
-            while Element_Id /= Nil_String loop
-               Element   := Shared.String_Elements.Table (Element_Id);
-               File_Name := Canonical_Case_File_Name (Element.Value);
-
-               Source :=
-                 Source_Files_Htable.Get
-                   (Data.Tree.Source_Files_HT, File_Name);
-               while Source /= No_Source
-                 and then Source.Project /= Project
-               loop
-                  Source := Source.Next_With_File_Name;
-               end loop;
-
-               if Source = No_Source then
-                  Add_Source
-                    (Id               => Source,
-                     Data             => Data,
-                     Project          => Project,
-                     Source_Dir_Rank  => 0,
-                     Lang_Id          => Lang_Id,
-                     Kind             => Kind,
-                     File_Name        => File_Name,
-                     Display_File     => File_Name_Type (Element.Value),
-                     Naming_Exception => True,
-                     Location         => Element.Location);
-
-               else
-                  --  Check if the file name is already recorded for another
-                  --  language or another kind.
-
-                  if Source.Language /= Lang_Id then
-                     Error_Msg
-                       (Data.Flags,
-                        "the same file cannot be a source of two languages",
-                        Element.Location, Project);
-
-                  elsif Source.Kind /= Kind then
-                     Error_Msg
-                       (Data.Flags,
-                        "the same file cannot be a source and a template",
-                        Element.Location, Project);
-                  end if;
-
-                  --  If the file is already recorded for the same
-                  --  language and the same kind, it means that the file
-                  --  name appears several times in the *_Exceptions
-                  --  attribute; so there is nothing to do.
-               end if;
-
-               Element_Id := Element.Next;
-            end loop;
-         end if;
-      end Process_Exceptions_File_Based;
-
-      -----------------------------------
-      -- Process_Exceptions_Unit_Based --
-      -----------------------------------
-
-      procedure Process_Exceptions_Unit_Based
-        (Lang_Id : Language_Ptr;
-         Kind    : Source_Kind)
-      is
-         Lang       : constant Name_Id := Lang_Id.Name;
-         Exceptions : Array_Element_Id;
-         Element    : Array_Element;
-         Unit       : Name_Id;
-         Index      : Int;
-         File_Name  : File_Name_Type;
-         Source     : Source_Id;
-
-      begin
-         case Kind is
-            when Impl | Sep =>
-               Exceptions :=
-                 Value_Of
-                   (Name_Body,
-                    In_Arrays => Naming.Decl.Arrays,
-                    Shared    => Shared);
-
-               if Exceptions = No_Array_Element then
-                  Exceptions :=
-                    Value_Of
-                      (Name_Implementation,
-                       In_Arrays => Naming.Decl.Arrays,
-                       Shared    => Shared);
-               end if;
-
-            when Spec =>
-               Exceptions :=
-                 Value_Of
-                   (Name_Spec,
-                    In_Arrays => Naming.Decl.Arrays,
-                    Shared    => Shared);
-
-               if Exceptions = No_Array_Element then
-                  Exceptions :=
-                    Value_Of
-                      (Name_Spec,
-                       In_Arrays => Naming.Decl.Arrays,
-                       Shared    => Shared);
-               end if;
-         end case;
-
-         while Exceptions /= No_Array_Element loop
-            Element   := Shared.Array_Elements.Table (Exceptions);
-            File_Name := Canonical_Case_File_Name (Element.Value.Value);
-
-            Get_Name_String (Element.Index);
-            To_Lower (Name_Buffer (1 .. Name_Len));
-            Unit  := Name_Find;
-            Index := Element.Value.Index;
-
-            --  For Ada, check if it is a valid unit name
-
-            if Lang = Name_Ada then
-               Get_Name_String (Element.Index);
-               Check_Ada_Name (Name_Buffer (1 .. Name_Len), Unit);
-
-               if Unit = No_Name then
-                  Err_Vars.Error_Msg_Name_1 := Element.Index;
-                  Error_Msg
-                    (Data.Flags,
-                     "%% is not a valid unit name.",
-                     Element.Value.Location, Project);
-               end if;
-            end if;
-
-            if Unit /= No_Name then
-               Add_Source
-                 (Id               => Source,
-                  Data             => Data,
-                  Project          => Project,
-                  Source_Dir_Rank  => 0,
-                  Lang_Id          => Lang_Id,
-                  Kind             => Kind,
-                  File_Name        => File_Name,
-                  Display_File     => File_Name_Type (Element.Value.Value),
-                  Unit             => Unit,
-                  Index            => Index,
-                  Location         => Element.Value.Location,
-                  Naming_Exception => True);
-            end if;
-
-            Exceptions := Element.Next;
-         end loop;
-      end Process_Exceptions_Unit_Based;
-
-      ------------------
-      -- Check_Naming --
-      ------------------
-
-      procedure Check_Naming is
-         Dot_Replacement : File_Name_Type :=
-                             File_Name_Type
-                               (First_Name_Id + Character'Pos ('-'));
-         Separate_Suffix : File_Name_Type := No_File;
-         Casing          : Casing_Type    := All_Lower_Case;
-         Casing_Defined  : Boolean;
-         Lang_Id         : Language_Ptr;
-         Sep_Suffix_Loc  : Source_Ptr;
-         Suffix          : Variable_Value;
-         Lang            : Name_Id;
-
-      begin
-         Check_Common
-           (Dot_Replacement => Dot_Replacement,
-            Casing          => Casing,
-            Casing_Defined  => Casing_Defined,
-            Separate_Suffix => Separate_Suffix,
-            Sep_Suffix_Loc  => Sep_Suffix_Loc);
-
-         --  For all unit based languages, if any, set the specified value
-         --  of Dot_Replacement, Casing and/or Separate_Suffix. Do not
-         --  systematically overwrite, since the defaults come from the
-         --  configuration file.
-
-         if Dot_Replacement /= No_File
-           or else Casing_Defined
-           or else Separate_Suffix /= No_File
-         then
-            Lang_Id := Project.Languages;
-            while Lang_Id /= No_Language_Index loop
-               if Lang_Id.Config.Kind = Unit_Based then
-                  if Dot_Replacement /= No_File then
-                     Lang_Id.Config.Naming_Data.Dot_Replacement :=
-                         Dot_Replacement;
-                  end if;
-
-                  if Casing_Defined then
-                     Lang_Id.Config.Naming_Data.Casing := Casing;
-                  end if;
-               end if;
-
-               Lang_Id := Lang_Id.Next;
-            end loop;
-         end if;
-
-         --  Next, get the spec and body suffixes
-
-         Lang_Id := Project.Languages;
-         while Lang_Id /= No_Language_Index loop
-            Lang := Lang_Id.Name;
-
-            --  Spec_Suffix
-
-            Suffix := Value_Of
-              (Name                    => Lang,
-               Attribute_Or_Array_Name => Name_Spec_Suffix,
-               In_Package              => Naming_Id,
-               Shared                  => Shared);
-
-            if Suffix = Nil_Variable_Value then
-               Suffix := Value_Of
-                 (Name                    => Lang,
-                  Attribute_Or_Array_Name => Name_Specification_Suffix,
-                  In_Package              => Naming_Id,
-                  Shared                  => Shared);
-            end if;
-
-            if Suffix /= Nil_Variable_Value then
-               Lang_Id.Config.Naming_Data.Spec_Suffix :=
-                   File_Name_Type (Suffix.Value);
-
-               Check_Illegal_Suffix
-                 (Project,
-                  Lang_Id.Config.Naming_Data.Spec_Suffix,
-                  Lang_Id.Config.Naming_Data.Dot_Replacement,
-                  "Spec_Suffix", Suffix.Location, Data);
-
-               Write_Attr
-                 ("Spec_Suffix",
-                  Get_Name_String (Lang_Id.Config.Naming_Data.Spec_Suffix));
-            end if;
-
-            --  Body_Suffix
-
-            Suffix :=
-              Value_Of
-                (Name                    => Lang,
-                 Attribute_Or_Array_Name => Name_Body_Suffix,
-                 In_Package              => Naming_Id,
-                 Shared                  => Shared);
-
-            if Suffix = Nil_Variable_Value then
-               Suffix :=
-                 Value_Of
-                   (Name                    => Lang,
-                    Attribute_Or_Array_Name => Name_Implementation_Suffix,
-                    In_Package              => Naming_Id,
-                    Shared                  => Shared);
-            end if;
-
-            if Suffix /= Nil_Variable_Value then
-               Lang_Id.Config.Naming_Data.Body_Suffix :=
-                 File_Name_Type (Suffix.Value);
-
-               --  The default value of separate suffix should be the same as
-               --  the body suffix, so we need to compute that first.
-
-               if Separate_Suffix = No_File then
-                  Lang_Id.Config.Naming_Data.Separate_Suffix :=
-                    Lang_Id.Config.Naming_Data.Body_Suffix;
-                  Write_Attr
-                    ("Sep_Suffix",
-                     Get_Name_String
-                       (Lang_Id.Config.Naming_Data.Separate_Suffix));
-               else
-                  Lang_Id.Config.Naming_Data.Separate_Suffix :=
-                    Separate_Suffix;
-               end if;
-
-               Check_Illegal_Suffix
-                 (Project,
-                  Lang_Id.Config.Naming_Data.Body_Suffix,
-                  Lang_Id.Config.Naming_Data.Dot_Replacement,
-                  "Body_Suffix", Suffix.Location, Data);
-
-               Write_Attr
-                 ("Body_Suffix",
-                  Get_Name_String (Lang_Id.Config.Naming_Data.Body_Suffix));
-
-            elsif Separate_Suffix /= No_File then
-               Lang_Id.Config.Naming_Data.Separate_Suffix := Separate_Suffix;
-            end if;
-
-            --  Spec_Suffix cannot be equal to Body_Suffix or Separate_Suffix,
-            --  since that would cause a clear ambiguity. Note that we do allow
-            --  a Spec_Suffix to have the same termination as one of these,
-            --  which causes a potential ambiguity, but we resolve that by
-            --  matching the longest possible suffix.
-
-            if Lang_Id.Config.Naming_Data.Spec_Suffix /= No_File
-              and then Lang_Id.Config.Naming_Data.Spec_Suffix =
-                       Lang_Id.Config.Naming_Data.Body_Suffix
-            then
-               Error_Msg
-                 (Data.Flags,
-                  "Body_Suffix ("""
-                  & Get_Name_String (Lang_Id.Config.Naming_Data.Body_Suffix)
-                  & """) cannot be the same as Spec_Suffix.",
-                  Ada_Body_Suffix_Loc, Project);
-            end if;
-
-            if Lang_Id.Config.Naming_Data.Body_Suffix /=
-               Lang_Id.Config.Naming_Data.Separate_Suffix
-              and then Lang_Id.Config.Naming_Data.Spec_Suffix =
-                       Lang_Id.Config.Naming_Data.Separate_Suffix
-            then
-               Error_Msg
-                 (Data.Flags,
-                  "Separate_Suffix ("""
-                  & Get_Name_String
-                    (Lang_Id.Config.Naming_Data.Separate_Suffix)
-                  & """) cannot be the same as Spec_Suffix.",
-                  Sep_Suffix_Loc, Project);
-            end if;
-
-            Lang_Id := Lang_Id.Next;
-         end loop;
-
-         --  Get the naming exceptions for all languages
-
-         for Kind in Spec_Or_Body loop
-            Lang_Id := Project.Languages;
-            while Lang_Id /= No_Language_Index loop
-               case Lang_Id.Config.Kind is
-                  when File_Based =>
-                     Process_Exceptions_File_Based (Lang_Id, Kind);
-
-                  when Unit_Based =>
-                     Process_Exceptions_Unit_Based (Lang_Id, Kind);
-               end case;
-
-               Lang_Id := Lang_Id.Next;
-            end loop;
-         end loop;
-      end Check_Naming;
-
-      ----------------------------
-      -- Initialize_Naming_Data --
-      ----------------------------
-
-      procedure Initialize_Naming_Data is
-         Specs : Array_Element_Id :=
-                   Util.Value_Of
-                     (Name_Spec_Suffix,
-                      Naming.Decl.Arrays,
-                      Shared);
-
-         Impls : Array_Element_Id :=
-                   Util.Value_Of
-                     (Name_Body_Suffix,
-                      Naming.Decl.Arrays,
-                      Shared);
-
-         Lang      : Language_Ptr;
-         Lang_Name : Name_Id;
-         Value     : Variable_Value;
-         Extended  : Project_Id;
-
-      begin
-         --  At this stage, the project already contains the default extensions
-         --  for the various languages. We now merge those suffixes read in the
-         --  user project, and they override the default.
-
-         while Specs /= No_Array_Element loop
-            Lang_Name := Shared.Array_Elements.Table (Specs).Index;
-            Lang :=
-              Get_Language_From_Name
-                (Project, Name => Get_Name_String (Lang_Name));
-
-            --  An extending project inherits its parent projects' languages
-            --  so if needed we should create entries for those languages
-
-            if Lang = null  then
-               Extended := Project.Extends;
-               while Extended /= null loop
-                  Lang := Get_Language_From_Name
-                    (Extended, Name => Get_Name_String (Lang_Name));
-                  exit when Lang /= null;
-
-                  Extended := Extended.Extends;
-               end loop;
-
-               if Lang /= null then
-                  Lang := new Language_Data'(Lang.all);
-                  Lang.First_Source := null;
-                  Lang.Next := Project.Languages;
-                  Project.Languages := Lang;
-               end if;
-            end if;
-
-            --  If language was not found in project or the projects it extends
-
-            if Lang = null then
-               Debug_Output
-                 ("ignoring spec naming data (lang. not in project): ",
-                  Lang_Name);
-
-            else
-               Value := Shared.Array_Elements.Table (Specs).Value;
-
-               if Value.Kind = Single then
-                  Lang.Config.Naming_Data.Spec_Suffix :=
-                    Canonical_Case_File_Name (Value.Value);
-               end if;
-            end if;
-
-            Specs := Shared.Array_Elements.Table (Specs).Next;
-         end loop;
-
-         while Impls /= No_Array_Element loop
-            Lang_Name := Shared.Array_Elements.Table (Impls).Index;
-            Lang :=
-              Get_Language_From_Name
-                (Project, Name => Get_Name_String (Lang_Name));
-
-            if Lang = null then
-               Debug_Output
-                 ("ignoring impl naming data (lang. not in project): ",
-                  Lang_Name);
-            else
-               Value := Shared.Array_Elements.Table (Impls).Value;
-
-               if Lang.Name = Name_Ada then
-                  Ada_Body_Suffix_Loc := Value.Location;
-               end if;
-
-               if Value.Kind = Single then
-                  Lang.Config.Naming_Data.Body_Suffix :=
-                    Canonical_Case_File_Name (Value.Value);
-               end if;
-            end if;
-
-            Impls := Shared.Array_Elements.Table (Impls).Next;
-         end loop;
-      end Initialize_Naming_Data;
-
-   --  Start of processing for Check_Naming_Schemes
-
-   begin
-      --  No Naming package or parsing a configuration file? nothing to do
-
-      if Naming_Id /= No_Package
-        and then Project.Qualifier /= Configuration
-      then
-         Naming := Shared.Packages.Table (Naming_Id);
-         Debug_Increase_Indent ("checking package Naming for ", Project.Name);
-         Initialize_Naming_Data;
-         Check_Naming;
-         Debug_Decrease_Indent ("done checking package naming");
-      end if;
-   end Check_Package_Naming;
-
    ------------------------------
    -- Check_Library_Attributes --
    ------------------------------
+
+   --  This procedure is awfully long (over 700 lines) should be broken up???
 
    procedure Check_Library_Attributes
      (Project : Project_Id;
@@ -3803,8 +2967,7 @@ package body Prj.Nmsc is
             else
                Dir_Exists :=
                  Is_Directory
-                   (Get_Name_String
-                        (Project.Library_Dir.Display_Name));
+                   (Get_Name_String (Project.Library_Dir.Display_Name));
             end if;
 
             if not Dir_Exists then
@@ -3821,8 +2984,7 @@ package body Prj.Nmsc is
 
             elsif not Project.Externally_Built then
 
-               --  The library directory cannot be the same as the Object
-               --  directory.
+               --  Library directory cannot be the same as Object directory
 
                if Project.Library_Dir.Name = Project.Object_Directory.Name then
                   Error_Msg
@@ -4304,6 +3466,675 @@ package body Prj.Nmsc is
       end if;
    end Check_Library_Attributes;
 
+   --------------------------
+   -- Check_Package_Naming --
+   --------------------------
+
+   procedure Check_Package_Naming
+     (Project : Project_Id;
+      Data    : in out Tree_Processing_Data)
+   is
+      Shared    : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
+      Naming_Id : constant Package_Id :=
+                    Util.Value_Of
+                      (Name_Naming, Project.Decl.Packages, Shared);
+      Naming    : Package_Element;
+
+      Ada_Body_Suffix_Loc : Source_Ptr := No_Location;
+
+      procedure Check_Naming;
+      --  Check the validity of the Naming package (suffixes valid, ...)
+
+      procedure Check_Common
+        (Dot_Replacement : in out File_Name_Type;
+         Casing          : in out Casing_Type;
+         Casing_Defined  : out Boolean;
+         Separate_Suffix : in out File_Name_Type;
+         Sep_Suffix_Loc  : out Source_Ptr);
+      --  Check attributes common
+
+      procedure Process_Exceptions_File_Based
+        (Lang_Id : Language_Ptr;
+         Kind    : Source_Kind);
+      procedure Process_Exceptions_Unit_Based
+        (Lang_Id : Language_Ptr;
+         Kind    : Source_Kind);
+      --  Process the naming exceptions for the two types of languages
+
+      procedure Initialize_Naming_Data;
+      --  Initialize internal naming data for the various languages
+
+      ------------------
+      -- Check_Common --
+      ------------------
+
+      procedure Check_Common
+        (Dot_Replacement : in out File_Name_Type;
+         Casing          : in out Casing_Type;
+         Casing_Defined  : out Boolean;
+         Separate_Suffix : in out File_Name_Type;
+         Sep_Suffix_Loc  : out Source_Ptr)
+      is
+         Dot_Repl      : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Dot_Replacement,
+                              Naming.Decl.Attributes,
+                              Shared);
+         Casing_String : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Casing,
+                              Naming.Decl.Attributes,
+                              Shared);
+         Sep_Suffix    : constant Variable_Value :=
+                           Util.Value_Of
+                             (Name_Separate_Suffix,
+                              Naming.Decl.Attributes,
+                              Shared);
+         Dot_Repl_Loc  : Source_Ptr;
+
+      begin
+         Sep_Suffix_Loc := No_Location;
+
+         if not Dot_Repl.Default then
+            pragma Assert
+              (Dot_Repl.Kind = Single, "Dot_Replacement is not a string");
+
+            if Length_Of_Name (Dot_Repl.Value) = 0 then
+               Error_Msg
+                 (Data.Flags, "Dot_Replacement cannot be empty",
+                  Dot_Repl.Location, Project);
+            end if;
+
+            Dot_Replacement := Canonical_Case_File_Name (Dot_Repl.Value);
+            Dot_Repl_Loc    := Dot_Repl.Location;
+
+            declare
+               Repl : constant String := Get_Name_String (Dot_Replacement);
+
+            begin
+               --  Dot_Replacement cannot
+               --   - be empty
+               --   - start or end with an alphanumeric
+               --   - be a single '_'
+               --   - start with an '_' followed by an alphanumeric
+               --   - contain a '.' except if it is "."
+
+               if Repl'Length = 0
+                 or else Is_Alphanumeric (Repl (Repl'First))
+                 or else Is_Alphanumeric (Repl (Repl'Last))
+                 or else (Repl (Repl'First) = '_'
+                           and then
+                             (Repl'Length = 1
+                               or else
+                                 Is_Alphanumeric (Repl (Repl'First + 1))))
+                 or else (Repl'Length > 1
+                           and then
+                             Index (Source => Repl, Pattern => ".") /= 0)
+               then
+                  Error_Msg
+                    (Data.Flags,
+                     '"' & Repl &
+                     """ is illegal for Dot_Replacement.",
+                     Dot_Repl_Loc, Project);
+               end if;
+            end;
+         end if;
+
+         if Dot_Replacement /= No_File then
+            Write_Attr
+              ("Dot_Replacement", Get_Name_String (Dot_Replacement));
+         end if;
+
+         Casing_Defined := False;
+
+         if not Casing_String.Default then
+            pragma Assert
+              (Casing_String.Kind = Single, "Casing is not a string");
+
+            declare
+               Casing_Image : constant String :=
+                                Get_Name_String (Casing_String.Value);
+
+            begin
+               if Casing_Image'Length = 0 then
+                  Error_Msg
+                    (Data.Flags,
+                     "Casing cannot be an empty string",
+                     Casing_String.Location, Project);
+               end if;
+
+               Casing := Value (Casing_Image);
+               Casing_Defined := True;
+
+            exception
+               when Constraint_Error =>
+                  Name_Len := Casing_Image'Length;
+                  Name_Buffer (1 .. Name_Len) := Casing_Image;
+                  Err_Vars.Error_Msg_Name_1 := Name_Find;
+                  Error_Msg
+                    (Data.Flags,
+                     "%% is not a correct Casing",
+                     Casing_String.Location, Project);
+            end;
+         end if;
+
+         Write_Attr ("Casing", Image (Casing));
+
+         if not Sep_Suffix.Default then
+            if Length_Of_Name (Sep_Suffix.Value) = 0 then
+               Error_Msg
+                 (Data.Flags,
+                  "Separate_Suffix cannot be empty",
+                  Sep_Suffix.Location, Project);
+
+            else
+               Separate_Suffix := Canonical_Case_File_Name (Sep_Suffix.Value);
+               Sep_Suffix_Loc  := Sep_Suffix.Location;
+
+               Check_Illegal_Suffix
+                 (Project, Separate_Suffix,
+                  Dot_Replacement, "Separate_Suffix", Sep_Suffix.Location,
+                  Data);
+            end if;
+         end if;
+
+         if Separate_Suffix /= No_File then
+            Write_Attr
+              ("Separate_Suffix", Get_Name_String (Separate_Suffix));
+         end if;
+      end Check_Common;
+
+      -----------------------------------
+      -- Process_Exceptions_File_Based --
+      -----------------------------------
+
+      procedure Process_Exceptions_File_Based
+        (Lang_Id : Language_Ptr;
+         Kind    : Source_Kind)
+      is
+         Lang           : constant Name_Id := Lang_Id.Name;
+         Exceptions     : Array_Element_Id;
+         Exception_List : Variable_Value;
+         Element_Id     : String_List_Id;
+         Element        : String_Element;
+         File_Name      : File_Name_Type;
+         Source         : Source_Id;
+
+      begin
+         case Kind is
+            when Impl | Sep =>
+               Exceptions :=
+                 Value_Of
+                   (Name_Implementation_Exceptions,
+                    In_Arrays => Naming.Decl.Arrays,
+                    Shared    => Shared);
+
+            when Spec =>
+               Exceptions :=
+                 Value_Of
+                   (Name_Specification_Exceptions,
+                    In_Arrays => Naming.Decl.Arrays,
+                    Shared    => Shared);
+         end case;
+
+         Exception_List :=
+           Value_Of
+             (Index    => Lang,
+              In_Array => Exceptions,
+              Shared   => Shared);
+
+         if Exception_List /= Nil_Variable_Value then
+            Element_Id := Exception_List.Values;
+            while Element_Id /= Nil_String loop
+               Element   := Shared.String_Elements.Table (Element_Id);
+               File_Name := Canonical_Case_File_Name (Element.Value);
+
+               Source :=
+                 Source_Files_Htable.Get
+                   (Data.Tree.Source_Files_HT, File_Name);
+               while Source /= No_Source
+                 and then Source.Project /= Project
+               loop
+                  Source := Source.Next_With_File_Name;
+               end loop;
+
+               if Source = No_Source then
+                  Add_Source
+                    (Id               => Source,
+                     Data             => Data,
+                     Project          => Project,
+                     Source_Dir_Rank  => 0,
+                     Lang_Id          => Lang_Id,
+                     Kind             => Kind,
+                     File_Name        => File_Name,
+                     Display_File     => File_Name_Type (Element.Value),
+                     Naming_Exception => True,
+                     Location         => Element.Location);
+
+               else
+                  --  Check if the file name is already recorded for another
+                  --  language or another kind.
+
+                  if Source.Language /= Lang_Id then
+                     Error_Msg
+                       (Data.Flags,
+                        "the same file cannot be a source of two languages",
+                        Element.Location, Project);
+
+                  elsif Source.Kind /= Kind then
+                     Error_Msg
+                       (Data.Flags,
+                        "the same file cannot be a source and a template",
+                        Element.Location, Project);
+                  end if;
+
+                  --  If the file is already recorded for the same
+                  --  language and the same kind, it means that the file
+                  --  name appears several times in the *_Exceptions
+                  --  attribute; so there is nothing to do.
+               end if;
+
+               Element_Id := Element.Next;
+            end loop;
+         end if;
+      end Process_Exceptions_File_Based;
+
+      -----------------------------------
+      -- Process_Exceptions_Unit_Based --
+      -----------------------------------
+
+      procedure Process_Exceptions_Unit_Based
+        (Lang_Id : Language_Ptr;
+         Kind    : Source_Kind)
+      is
+         Exceptions : Array_Element_Id;
+         Element    : Array_Element;
+         Unit       : Name_Id;
+         Index      : Int;
+         File_Name  : File_Name_Type;
+         Source     : Source_Id;
+
+      begin
+         case Kind is
+            when Impl | Sep =>
+               Exceptions :=
+                 Value_Of
+                   (Name_Body,
+                    In_Arrays => Naming.Decl.Arrays,
+                    Shared    => Shared);
+
+               if Exceptions = No_Array_Element then
+                  Exceptions :=
+                    Value_Of
+                      (Name_Implementation,
+                       In_Arrays => Naming.Decl.Arrays,
+                       Shared    => Shared);
+               end if;
+
+            when Spec =>
+               Exceptions :=
+                 Value_Of
+                   (Name_Spec,
+                    In_Arrays => Naming.Decl.Arrays,
+                    Shared    => Shared);
+
+               if Exceptions = No_Array_Element then
+                  Exceptions :=
+                    Value_Of
+                      (Name_Spec,
+                       In_Arrays => Naming.Decl.Arrays,
+                       Shared    => Shared);
+               end if;
+         end case;
+
+         while Exceptions /= No_Array_Element loop
+            Element   := Shared.Array_Elements.Table (Exceptions);
+            File_Name := Canonical_Case_File_Name (Element.Value.Value);
+
+            Get_Name_String (Element.Index);
+            To_Lower (Name_Buffer (1 .. Name_Len));
+            Index := Element.Value.Index;
+
+            --  Check if it is a valid unit name
+
+            Get_Name_String (Element.Index);
+            Check_Unit_Name (Name_Buffer (1 .. Name_Len), Unit);
+
+            if Unit = No_Name then
+               Err_Vars.Error_Msg_Name_1 := Element.Index;
+               Error_Msg
+                 (Data.Flags,
+                  "%% is not a valid unit name.",
+                  Element.Value.Location, Project);
+            end if;
+
+            if Unit /= No_Name then
+               Add_Source
+                 (Id               => Source,
+                  Data             => Data,
+                  Project          => Project,
+                  Source_Dir_Rank  => 0,
+                  Lang_Id          => Lang_Id,
+                  Kind             => Kind,
+                  File_Name        => File_Name,
+                  Display_File     => File_Name_Type (Element.Value.Value),
+                  Unit             => Unit,
+                  Index            => Index,
+                  Location         => Element.Value.Location,
+                  Naming_Exception => True);
+            end if;
+
+            Exceptions := Element.Next;
+         end loop;
+      end Process_Exceptions_Unit_Based;
+
+      ------------------
+      -- Check_Naming --
+      ------------------
+
+      procedure Check_Naming is
+         Dot_Replacement : File_Name_Type :=
+                             File_Name_Type
+                               (First_Name_Id + Character'Pos ('-'));
+         Separate_Suffix : File_Name_Type := No_File;
+         Casing          : Casing_Type    := All_Lower_Case;
+         Casing_Defined  : Boolean;
+         Lang_Id         : Language_Ptr;
+         Sep_Suffix_Loc  : Source_Ptr;
+         Suffix          : Variable_Value;
+         Lang            : Name_Id;
+
+      begin
+         Check_Common
+           (Dot_Replacement => Dot_Replacement,
+            Casing          => Casing,
+            Casing_Defined  => Casing_Defined,
+            Separate_Suffix => Separate_Suffix,
+            Sep_Suffix_Loc  => Sep_Suffix_Loc);
+
+         --  For all unit based languages, if any, set the specified value
+         --  of Dot_Replacement, Casing and/or Separate_Suffix. Do not
+         --  systematically overwrite, since the defaults come from the
+         --  configuration file.
+
+         if Dot_Replacement /= No_File
+           or else Casing_Defined
+           or else Separate_Suffix /= No_File
+         then
+            Lang_Id := Project.Languages;
+            while Lang_Id /= No_Language_Index loop
+               if Lang_Id.Config.Kind = Unit_Based then
+                  if Dot_Replacement /= No_File then
+                     Lang_Id.Config.Naming_Data.Dot_Replacement :=
+                         Dot_Replacement;
+                  end if;
+
+                  if Casing_Defined then
+                     Lang_Id.Config.Naming_Data.Casing := Casing;
+                  end if;
+               end if;
+
+               Lang_Id := Lang_Id.Next;
+            end loop;
+         end if;
+
+         --  Next, get the spec and body suffixes
+
+         Lang_Id := Project.Languages;
+         while Lang_Id /= No_Language_Index loop
+            Lang := Lang_Id.Name;
+
+            --  Spec_Suffix
+
+            Suffix := Value_Of
+              (Name                    => Lang,
+               Attribute_Or_Array_Name => Name_Spec_Suffix,
+               In_Package              => Naming_Id,
+               Shared                  => Shared);
+
+            if Suffix = Nil_Variable_Value then
+               Suffix := Value_Of
+                 (Name                    => Lang,
+                  Attribute_Or_Array_Name => Name_Specification_Suffix,
+                  In_Package              => Naming_Id,
+                  Shared                  => Shared);
+            end if;
+
+            if Suffix /= Nil_Variable_Value then
+               Lang_Id.Config.Naming_Data.Spec_Suffix :=
+                   File_Name_Type (Suffix.Value);
+
+               Check_Illegal_Suffix
+                 (Project,
+                  Lang_Id.Config.Naming_Data.Spec_Suffix,
+                  Lang_Id.Config.Naming_Data.Dot_Replacement,
+                  "Spec_Suffix", Suffix.Location, Data);
+
+               Write_Attr
+                 ("Spec_Suffix",
+                  Get_Name_String (Lang_Id.Config.Naming_Data.Spec_Suffix));
+            end if;
+
+            --  Body_Suffix
+
+            Suffix :=
+              Value_Of
+                (Name                    => Lang,
+                 Attribute_Or_Array_Name => Name_Body_Suffix,
+                 In_Package              => Naming_Id,
+                 Shared                  => Shared);
+
+            if Suffix = Nil_Variable_Value then
+               Suffix :=
+                 Value_Of
+                   (Name                    => Lang,
+                    Attribute_Or_Array_Name => Name_Implementation_Suffix,
+                    In_Package              => Naming_Id,
+                    Shared                  => Shared);
+            end if;
+
+            if Suffix /= Nil_Variable_Value then
+               Lang_Id.Config.Naming_Data.Body_Suffix :=
+                 File_Name_Type (Suffix.Value);
+
+               --  The default value of separate suffix should be the same as
+               --  the body suffix, so we need to compute that first.
+
+               if Separate_Suffix = No_File then
+                  Lang_Id.Config.Naming_Data.Separate_Suffix :=
+                    Lang_Id.Config.Naming_Data.Body_Suffix;
+                  Write_Attr
+                    ("Sep_Suffix",
+                     Get_Name_String
+                       (Lang_Id.Config.Naming_Data.Separate_Suffix));
+               else
+                  Lang_Id.Config.Naming_Data.Separate_Suffix :=
+                    Separate_Suffix;
+               end if;
+
+               Check_Illegal_Suffix
+                 (Project,
+                  Lang_Id.Config.Naming_Data.Body_Suffix,
+                  Lang_Id.Config.Naming_Data.Dot_Replacement,
+                  "Body_Suffix", Suffix.Location, Data);
+
+               Write_Attr
+                 ("Body_Suffix",
+                  Get_Name_String (Lang_Id.Config.Naming_Data.Body_Suffix));
+
+            elsif Separate_Suffix /= No_File then
+               Lang_Id.Config.Naming_Data.Separate_Suffix := Separate_Suffix;
+            end if;
+
+            --  Spec_Suffix cannot be equal to Body_Suffix or Separate_Suffix,
+            --  since that would cause a clear ambiguity. Note that we do allow
+            --  a Spec_Suffix to have the same termination as one of these,
+            --  which causes a potential ambiguity, but we resolve that by
+            --  matching the longest possible suffix.
+
+            if Lang_Id.Config.Naming_Data.Spec_Suffix /= No_File
+              and then Lang_Id.Config.Naming_Data.Spec_Suffix =
+                       Lang_Id.Config.Naming_Data.Body_Suffix
+            then
+               Error_Msg
+                 (Data.Flags,
+                  "Body_Suffix ("""
+                  & Get_Name_String (Lang_Id.Config.Naming_Data.Body_Suffix)
+                  & """) cannot be the same as Spec_Suffix.",
+                  Ada_Body_Suffix_Loc, Project);
+            end if;
+
+            if Lang_Id.Config.Naming_Data.Body_Suffix /=
+               Lang_Id.Config.Naming_Data.Separate_Suffix
+              and then Lang_Id.Config.Naming_Data.Spec_Suffix =
+                       Lang_Id.Config.Naming_Data.Separate_Suffix
+            then
+               Error_Msg
+                 (Data.Flags,
+                  "Separate_Suffix ("""
+                  & Get_Name_String
+                    (Lang_Id.Config.Naming_Data.Separate_Suffix)
+                  & """) cannot be the same as Spec_Suffix.",
+                  Sep_Suffix_Loc, Project);
+            end if;
+
+            Lang_Id := Lang_Id.Next;
+         end loop;
+
+         --  Get the naming exceptions for all languages
+
+         for Kind in Spec_Or_Body loop
+            Lang_Id := Project.Languages;
+            while Lang_Id /= No_Language_Index loop
+               case Lang_Id.Config.Kind is
+                  when File_Based =>
+                     Process_Exceptions_File_Based (Lang_Id, Kind);
+
+                  when Unit_Based =>
+                     Process_Exceptions_Unit_Based (Lang_Id, Kind);
+               end case;
+
+               Lang_Id := Lang_Id.Next;
+            end loop;
+         end loop;
+      end Check_Naming;
+
+      ----------------------------
+      -- Initialize_Naming_Data --
+      ----------------------------
+
+      procedure Initialize_Naming_Data is
+         Specs : Array_Element_Id :=
+                   Util.Value_Of
+                     (Name_Spec_Suffix,
+                      Naming.Decl.Arrays,
+                      Shared);
+
+         Impls : Array_Element_Id :=
+                   Util.Value_Of
+                     (Name_Body_Suffix,
+                      Naming.Decl.Arrays,
+                      Shared);
+
+         Lang      : Language_Ptr;
+         Lang_Name : Name_Id;
+         Value     : Variable_Value;
+         Extended  : Project_Id;
+
+      begin
+         --  At this stage, the project already contains the default extensions
+         --  for the various languages. We now merge those suffixes read in the
+         --  user project, and they override the default.
+
+         while Specs /= No_Array_Element loop
+            Lang_Name := Shared.Array_Elements.Table (Specs).Index;
+            Lang :=
+              Get_Language_From_Name
+                (Project, Name => Get_Name_String (Lang_Name));
+
+            --  An extending project inherits its parent projects' languages
+            --  so if needed we should create entries for those languages
+
+            if Lang = null  then
+               Extended := Project.Extends;
+               while Extended /= null loop
+                  Lang := Get_Language_From_Name
+                    (Extended, Name => Get_Name_String (Lang_Name));
+                  exit when Lang /= null;
+
+                  Extended := Extended.Extends;
+               end loop;
+
+               if Lang /= null then
+                  Lang := new Language_Data'(Lang.all);
+                  Lang.First_Source := null;
+                  Lang.Next := Project.Languages;
+                  Project.Languages := Lang;
+               end if;
+            end if;
+
+            --  If language was not found in project or the projects it extends
+
+            if Lang = null then
+               Debug_Output
+                 ("ignoring spec naming data (lang. not in project): ",
+                  Lang_Name);
+
+            else
+               Value := Shared.Array_Elements.Table (Specs).Value;
+
+               if Value.Kind = Single then
+                  Lang.Config.Naming_Data.Spec_Suffix :=
+                    Canonical_Case_File_Name (Value.Value);
+               end if;
+            end if;
+
+            Specs := Shared.Array_Elements.Table (Specs).Next;
+         end loop;
+
+         while Impls /= No_Array_Element loop
+            Lang_Name := Shared.Array_Elements.Table (Impls).Index;
+            Lang :=
+              Get_Language_From_Name
+                (Project, Name => Get_Name_String (Lang_Name));
+
+            if Lang = null then
+               Debug_Output
+                 ("ignoring impl naming data (lang. not in project): ",
+                  Lang_Name);
+            else
+               Value := Shared.Array_Elements.Table (Impls).Value;
+
+               if Lang.Name = Name_Ada then
+                  Ada_Body_Suffix_Loc := Value.Location;
+               end if;
+
+               if Value.Kind = Single then
+                  Lang.Config.Naming_Data.Body_Suffix :=
+                    Canonical_Case_File_Name (Value.Value);
+               end if;
+            end if;
+
+            Impls := Shared.Array_Elements.Table (Impls).Next;
+         end loop;
+      end Initialize_Naming_Data;
+
+   --  Start of processing for Check_Naming_Schemes
+
+   begin
+      --  No Naming package or parsing a configuration file? nothing to do
+
+      if Naming_Id /= No_Package
+        and then Project.Qualifier /= Configuration
+      then
+         Naming := Shared.Packages.Table (Naming_Id);
+         Debug_Increase_Indent ("checking package Naming for ", Project.Name);
+         Initialize_Naming_Data;
+         Check_Naming;
+         Debug_Decrease_Indent ("done checking package naming");
+      end if;
+   end Check_Package_Naming;
+
    ---------------------------------
    -- Check_Programming_Languages --
    ---------------------------------
@@ -4344,13 +4175,6 @@ package body Prj.Nmsc is
          Project.Languages := Lang;
          Lang.Name         := Name;
          Lang.Display_Name := Display_Name;
-
-         if Name = Name_Ada then
-            Lang.Config.Kind            := Unit_Based;
-            Lang.Config.Dependency_Kind := ALI_File;
-         else
-            Lang.Config.Kind := File_Based;
-         end if;
       end Add_Language;
 
    --  Start of processing for Check_Programming_Languages
@@ -4979,6 +4803,189 @@ package body Prj.Nmsc is
          end if;
       end if;
    end Check_Stand_Alone_Library;
+
+   ---------------------
+   -- Check_Unit_Name --
+   ---------------------
+
+   procedure Check_Unit_Name (Name : String; Unit : out Name_Id) is
+      The_Name        : String := Name;
+      Real_Name       : Name_Id;
+      Need_Letter     : Boolean := True;
+      Last_Underscore : Boolean := False;
+      OK              : Boolean := The_Name'Length > 0;
+      First           : Positive;
+
+      function Is_Reserved (Name : Name_Id) return Boolean;
+      function Is_Reserved (S    : String)  return Boolean;
+      --  Check that the given name is not an Ada 95 reserved word. The reason
+      --  for the Ada 95 here is that we do not want to exclude the case of an
+      --  Ada 95 unit called Interface (for example). In Ada 2005, such a unit
+      --  name would be rejected anyway by the compiler. That means there is no
+      --  requirement that the project file parser reject this.
+
+      -----------------
+      -- Is_Reserved --
+      -----------------
+
+      function Is_Reserved (S : String) return Boolean is
+      begin
+         Name_Len := 0;
+         Add_Str_To_Name_Buffer (S);
+         return Is_Reserved (Name_Find);
+      end Is_Reserved;
+
+      -----------------
+      -- Is_Reserved --
+      -----------------
+
+      function Is_Reserved (Name : Name_Id) return Boolean is
+      begin
+         if Get_Name_Table_Byte (Name) /= 0
+           and then Name /= Name_Project
+           and then Name /= Name_Extends
+           and then Name /= Name_External
+           and then Name not in Ada_2005_Reserved_Words
+         then
+            Unit := No_Name;
+            Debug_Output ("Ada reserved word: ", Name);
+            return True;
+
+         else
+            return False;
+         end if;
+      end Is_Reserved;
+
+   --  Start of processing for Check_Unit_Name
+
+   begin
+      To_Lower (The_Name);
+
+      Name_Len := The_Name'Length;
+      Name_Buffer (1 .. Name_Len) := The_Name;
+
+      --  Special cases of children of packages A, G, I and S on VMS
+
+      if OpenVMS_On_Target
+        and then Name_Len > 3
+        and then Name_Buffer (2 .. 3) = "__"
+        and then
+          ((Name_Buffer (1) = 'a') or else
+           (Name_Buffer (1) = 'g') or else
+           (Name_Buffer (1) = 'i') or else
+           (Name_Buffer (1) = 's'))
+      then
+         Name_Buffer (2) := '.';
+         Name_Buffer (3 .. Name_Len - 1) := Name_Buffer (4 .. Name_Len);
+         Name_Len := Name_Len - 1;
+      end if;
+
+      Real_Name := Name_Find;
+
+      if Is_Reserved (Real_Name) then
+         return;
+      end if;
+
+      First := The_Name'First;
+
+      for Index in The_Name'Range loop
+         if Need_Letter then
+
+            --  We need a letter (at the beginning, and following a dot),
+            --  but we don't have one.
+
+            if Is_Letter (The_Name (Index)) then
+               Need_Letter := False;
+
+            else
+               OK := False;
+
+               if Current_Verbosity = High then
+                  Debug_Indent;
+                  Write_Int  (Types.Int (Index));
+                  Write_Str  (": '");
+                  Write_Char (The_Name (Index));
+                  Write_Line ("' is not a letter.");
+               end if;
+
+               exit;
+            end if;
+
+         elsif Last_Underscore
+           and then (The_Name (Index) = '_' or else The_Name (Index) = '.')
+         then
+            --  Two underscores are illegal, and a dot cannot follow
+            --  an underscore.
+
+            OK := False;
+
+            if Current_Verbosity = High then
+               Debug_Indent;
+               Write_Int  (Types.Int (Index));
+               Write_Str  (": '");
+               Write_Char (The_Name (Index));
+               Write_Line ("' is illegal here.");
+            end if;
+
+            exit;
+
+         elsif The_Name (Index) = '.' then
+
+            --  First, check if the name before the dot is not a reserved word
+
+            if Is_Reserved (The_Name (First .. Index - 1)) then
+               return;
+            end if;
+
+            First := Index + 1;
+
+            --  We need a letter after a dot
+
+            Need_Letter := True;
+
+         elsif The_Name (Index) = '_' then
+            Last_Underscore := True;
+
+         else
+            --  We need an letter or a digit
+
+            Last_Underscore := False;
+
+            if not Is_Alphanumeric (The_Name (Index)) then
+               OK := False;
+
+               if Current_Verbosity = High then
+                  Debug_Indent;
+                  Write_Int  (Types.Int (Index));
+                  Write_Str  (": '");
+                  Write_Char (The_Name (Index));
+                  Write_Line ("' is not alphanumeric.");
+               end if;
+
+               exit;
+            end if;
+         end if;
+      end loop;
+
+      --  Cannot end with an underscore or a dot
+
+      OK := OK and then not Need_Letter and then not Last_Underscore;
+
+      if OK then
+         if First /= Name'First and then
+           Is_Reserved (The_Name (First .. The_Name'Last))
+         then
+            return;
+         end if;
+
+         Unit := Real_Name;
+
+      else
+         --  Signal a problem with No_Name
+
+         Unit := No_Name;
+      end if;
+   end Check_Unit_Name;
 
    ----------------------------
    -- Compute_Directory_Last --
@@ -5690,7 +5697,7 @@ package body Prj.Nmsc is
       --  Name_Buffer contains the name of the unit in lower-cases. Check
       --  that this is a valid unit name
 
-      Check_Ada_Name (Name_Buffer (1 .. Name_Len), Unit);
+      Check_Unit_Name (Name_Buffer (1 .. Name_Len), Unit);
 
       --  If there is a naming exception for the same unit, the file is not
       --  a source for the unit.
@@ -6844,8 +6851,8 @@ package body Prj.Nmsc is
       --  several times, and to avoid cycles that may be introduced by symbolic
       --  links.
 
-      File_Pattern    : GNAT.Regexp.Regexp;
-      --  Pattern to use when matching file names.
+      File_Pattern : GNAT.Regexp.Regexp;
+      --  Pattern to use when matching file names
 
       Visited : Recursive_Dirs.Instance;
 
@@ -7692,6 +7699,7 @@ package body Prj.Nmsc is
          Src     : Source_Info;
          Id      : Source_Id;
          Lang_Id : Language_Ptr;
+
       begin
          Initialize (Iter, Project.Project.Name);
 

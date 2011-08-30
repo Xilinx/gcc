@@ -141,6 +141,15 @@ package Sem_Util is
    --  the compilation unit, and install it in the Elaboration_Entity field
    --  of Spec_Id, the entity for the compilation unit.
 
+      procedure Build_Explicit_Dereference
+        (Expr : Node_Id;
+         Disc : Entity_Id);
+      --  AI05-139: Names with implicit dereference. If the expression N is a
+      --  reference type and the context imposes the corresponding designated
+      --  type, convert N into N.Disc.all. Such expressions are always over-
+      --  loaded with both interpretations, and the dereference interpretation
+      --  carries the name of the reference discriminant.
+
    function Cannot_Raise_Constraint_Error (Expr : Node_Id) return Boolean;
    --  Returns True if the expression cannot possibly raise Constraint_Error.
    --  The response is conservative in the sense that a result of False does
@@ -479,6 +488,9 @@ package Sem_Util is
    --  Actual_Subtype field of the corresponding entity is set, then it is
    --  returned. Otherwise the Etype of the node is returned.
 
+   function Get_Body_From_Stub (N : Node_Id) return Node_Id;
+   --  Return the body node for a stub (subprogram or package)
+
    function Get_Default_External_Name (E : Node_Or_Entity_Id) return Node_Id;
    --  This is used to construct the string literal node representing a
    --  default external name, i.e. one that is constructed from the name of an
@@ -507,11 +519,11 @@ package Sem_Util is
      (T   : Entity_Id;
       Pos : Uint;
       Loc : Source_Ptr) return Node_Id;
-   --  This function obtains the E_Enumeration_Literal entity for the specified
-   --  value from the enumeration type or subtype T and returns an identifier
-   --  node referencing this value. The second argument is the Pos value, which
-   --  is assumed to be in range. The third argument supplies a source location
-   --  for constructed nodes returned by this function.
+   --  This function returns an identifier denoting the E_Enumeration_Literal
+   --  entity for the specified value from the enumeration type or subtype T.
+   --  The second argument is the Pos value, which is assumed to be in range.
+   --  The third argument supplies a source location for constructed nodes
+   --  returned by this function.
 
    procedure Get_Library_Unit_Name_String (Decl_Node : Node_Id);
    --  Retrieve the fully expanded name of the library unit declared by
@@ -792,9 +804,14 @@ package Sem_Util is
    --  by a derived type declaration.
 
    function Is_Inherited_Operation_For_Type
-     (E : Entity_Id; Typ : Entity_Id) return Boolean;
+     (E   : Entity_Id;
+      Typ : Entity_Id) return Boolean;
    --  E is a subprogram. Return True is E is an implicit operation inherited
    --  by the derived type declaration for type Typ.
+
+   function Is_Iterator (Typ : Entity_Id) return Boolean;
+   --  AI05-0139-2: Check whether Typ is derived from the predefined interface
+   --  Ada.Iterator_Interfaces.Forward_Iterator.
 
    function Is_LHS (N : Node_Id) return Boolean;
    --  Returns True iff N is used as Name in an assignment statement
@@ -863,6 +880,10 @@ package Sem_Util is
    function Is_Renamed_Entry (Proc_Nam : Entity_Id) return Boolean;
    --  Return True if Proc_Nam is a procedure renaming of an entry
 
+   function Is_Reversible_Iterator (Typ : Entity_Id) return Boolean;
+   --  AI05-0139-2: Check whether Typ is derived from the predefined interface
+   --  Ada.Iterator_Interfaces.Reversible_Iterator.
+
    function Is_Selector_Name (N : Node_Id) return Boolean;
    --  Given an N_Identifier node N, determines if it is a Selector_Name.
    --  As described in Sinfo, Selector_Names are special because they
@@ -883,6 +904,11 @@ package Sem_Util is
    --  the case of procedure call statements (unlike the direct use of
    --  the N_Statement_Other_Than_Procedure_Call subtype from Sinfo).
    --  Note that a label is *not* a statement, and will return False.
+
+   function Is_Subprogram_Stub_Without_Prior_Declaration
+     (N : Node_Id) return Boolean;
+   --  Return True if N is a subprogram stub with no prior subprogram
+   --  declaration.
 
    function Is_Synchronized_Tagged_Type (E : Entity_Id) return Boolean;
    --  Returns True if E is a synchronized tagged type (AARM 3.9.4 (6/2))
@@ -1297,7 +1323,7 @@ package Sem_Util is
    procedure Set_Current_Entity (E : Entity_Id);
    pragma Inline (Set_Current_Entity);
    --  Establish the entity E as the currently visible definition of its
-   --  associated name (i.e. the Node_Id associated with its name)
+   --  associated name (i.e. the Node_Id associated with its name).
 
    procedure Set_Debug_Info_Needed (T : Entity_Id);
    --  Sets the Debug_Info_Needed flag on entity T , and also on any entities

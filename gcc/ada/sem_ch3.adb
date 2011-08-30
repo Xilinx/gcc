@@ -1353,7 +1353,7 @@ package body Sem_Ch3 is
       Set_Has_Task (T, False);
       Set_Has_Controlled_Component (T, False);
 
-      --  Initialize Associated_Collection explicitly to Empty, to avoid
+      --  Initialize field Finalization_Master explicitly to Empty, to avoid
       --  problems where an incomplete view of this entity has been previously
       --  established by a limited with and an overlaid version of this field
       --  (Stored_Constraint) was initialized for the incomplete view.
@@ -1361,10 +1361,10 @@ package body Sem_Ch3 is
       --  This reset is performed in most cases except where the access type
       --  has been created for the purposes of allocating or deallocating a
       --  build-in-place object. Such access types have explicitly set pools
-      --  and collections.
+      --  and finalization masters.
 
       if No (Associated_Storage_Pool (T)) then
-         Set_Associated_Collection (T, Empty);
+         Set_Finalization_Master (T, Empty);
       end if;
 
       --  Ada 2005 (AI-231): Propagate the null-excluding and access-constant
@@ -4741,6 +4741,48 @@ package body Sem_Ch3 is
 
          Make_Index (Index, P, Related_Id, Nb_Index);
 
+         --  In formal verification mode, create an explicit subtype for every
+         --  index if not already a subtype_mark, and replace the existing type
+         --  of index by this new type. Having a declaration for all type
+         --  entities facilitates the task of the formal verification back-end.
+
+         if ALFA_Mode
+           and then not Nkind_In (Index, N_Identifier, N_Expanded_Name)
+         then
+            declare
+               Loc     : constant Source_Ptr := Sloc (Def);
+               New_E   : Entity_Id;
+               Decl    : Entity_Id;
+               Sub_Ind : Node_Id;
+
+            begin
+               New_E :=
+                 New_External_Entity
+                   (E_Void, Current_Scope, Sloc (P), Related_Id, 'D',
+                    Nb_Index, 'T');
+
+               if Nkind (Index) = N_Subtype_Indication then
+                  Sub_Ind := Relocate_Node (Index);
+               else
+                  Sub_Ind :=
+                    Make_Subtype_Indication (Loc,
+                      Subtype_Mark =>
+                        New_Occurrence_Of (Base_Type (Etype (Index)), Loc),
+                      Constraint =>
+                        Make_Range_Constraint (Loc,
+                          Range_Expression => Relocate_Node (Index)));
+               end if;
+
+               Decl :=
+                 Make_Subtype_Declaration (Loc,
+                   Defining_Identifier => New_E,
+                   Subtype_Indication  => Sub_Ind);
+
+               Insert_Action (Parent (Def), Decl);
+               Set_Etype (Index, New_E);
+            end;
+         end if;
+
          --  Check error of subtype with predicate for index type
 
          Bad_Predicated_Subtype_Use
@@ -4756,7 +4798,38 @@ package body Sem_Ch3 is
       --  Process subtype indication if one is present
 
       if Present (Component_Typ) then
-         Element_Type := Process_Subtype (Component_Typ, P, Related_Id, 'C');
+
+         --  In formal verification mode, create an explicit subtype for the
+         --  component type if not already a subtype_mark. Having a declaration
+         --  for all type entities facilitates the task of the formal
+         --  verification back-end.
+
+         if ALFA_Mode
+           and then Nkind (Component_Typ) = N_Subtype_Indication
+         then
+            declare
+               Loc  : constant Source_Ptr := Sloc (Def);
+               Decl : Entity_Id;
+
+            begin
+               Element_Type :=
+                 New_External_Entity
+                   (E_Void, Current_Scope, Sloc (P), Related_Id, 'C', 0, 'T');
+
+               Decl :=
+                 Make_Subtype_Declaration (Loc,
+                   Defining_Identifier => Element_Type,
+                   Subtype_Indication  => Relocate_Node (Component_Typ));
+
+               Insert_Action (Parent (Def), Decl);
+            end;
+
+         else
+            Element_Type :=
+              Process_Subtype (Component_Typ, P, Related_Id, 'C');
+         end if;
+
+         Set_Etype (Component_Typ, Element_Type);
 
          if not Nkind_In (Component_Typ, N_Identifier, N_Expanded_Name) then
             Check_SPARK_Restriction ("subtype mark required", Component_Typ);
@@ -17164,9 +17237,8 @@ package body Sem_Ch3 is
             --  worst, and therefore defaults are not allowed if the parent is
             --  a generic formal private type (see ACATS B370001).
 
-            if Is_Access_Type (Discr_Type) then
+            if Is_Access_Type (Discr_Type) and then Default_Present then
                if Ekind (Discr_Type) /= E_Anonymous_Access_Type
-                 or else not Default_Present
                  or else Is_Limited_Record (Current_Scope)
                  or else Is_Concurrent_Type (Current_Scope)
                  or else Is_Concurrent_Record_Type (Current_Scope)
@@ -19698,14 +19770,14 @@ package body Sem_Ch3 is
       if ALFA_Mode then
 
          --  If the range of the type is already symmetric with a possible
-         --  extra negative value, just make the type its own base type.
+         --  extra negative value, leave it this way.
 
          if UI_Le (Lo_Val, Hi_Val)
            and then (UI_Eq (Lo_Val, UI_Negate (Hi_Val))
                       or else
                         UI_Eq (Lo_Val, UI_Sub (UI_Negate (Hi_Val), Uint_1)))
          then
-            Set_Etype (T, T);
+            null;
 
          else
             declare
@@ -19757,7 +19829,8 @@ package body Sem_Ch3 is
                      High_Bound => Ubound));
 
                Analyze (Decl);
-               Set_Etype (Implicit_Base, Implicit_Base);
+               Set_Etype (Implicit_Base, Base_Type (Implicit_Base));
+               Set_Etype (T, Base_Type (Implicit_Base));
                Insert_Before (Parent (Def), Decl);
             end;
          end if;

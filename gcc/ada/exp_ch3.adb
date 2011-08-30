@@ -2616,7 +2616,7 @@ package body Exp_Ch3 is
                      Make_Raise_Statement (Loc)))));
             end;
          else
-            Set_Exception_Handlers (Handled_Stmt_Node, Empty_List);
+            Set_Exception_Handlers (Handled_Stmt_Node, No_List);
          end if;
 
          Set_Handled_Statement_Sequence (Body_Node, Handled_Stmt_Node);
@@ -5108,25 +5108,24 @@ package body Exp_Ch3 is
 
                begin
                   --  The re-assignment of the tag has to be done even if the
-                  --  object is a constant.
+                  --  object is a constant. The assignment must be analyzed
+                  --  after the declaration.
 
                   New_Ref :=
                     Make_Selected_Component (Loc,
-                       Prefix => New_Reference_To (Def_Id, Loc),
+                       Prefix => New_Occurrence_Of (Def_Id, Loc),
                        Selector_Name =>
                          New_Reference_To (First_Tag_Component (Full_Typ),
                                            Loc));
                   Set_Assignment_OK (New_Ref);
 
-                  Insert_After (Init_After,
+                  Insert_Action_After (Init_After,
                     Make_Assignment_Statement (Loc,
-                      Name => New_Ref,
+                      Name       => New_Ref,
                       Expression =>
                         Unchecked_Convert_To (RTE (RE_Tag),
                           New_Reference_To
-                            (Node
-                              (First_Elmt
-                                (Access_Disp_Table (Full_Typ))),
+                            (Node (First_Elmt (Access_Disp_Table (Full_Typ))),
                              Loc))));
                end;
 
@@ -5196,10 +5195,6 @@ package body Exp_Ch3 is
          if (Is_Possibly_Unaligned_Slice (Expr)
                or else (Is_Possibly_Unaligned_Object (Expr)
                           and then not Represented_As_Scalar (Etype (Expr))))
-
-            --  The exclusion of the unconstrained case is wrong, but for now
-            --  it is too much trouble ???
-
            and then not (Is_Array_Type (Etype (Expr))
                            and then not Is_Constrained (Etype (Expr)))
          then
@@ -5302,7 +5297,7 @@ package body Exp_Ch3 is
 
    --  If the last variant does not contain the Others choice, replace it with
    --  an N_Others_Choice node since Gigi always wants an Others. Note that we
-   --  do not bother to call Analyze on the modified variant part, since it's
+   --  do not bother to call Analyze on the modified variant part, since its
    --  only effect would be to compute the Others_Discrete_Choices node
    --  laboriously, and of course we already know the list of choices that
    --  corresponds to the others choice (it's the list we are replacing!)
@@ -5487,12 +5482,13 @@ package body Exp_Ch3 is
                   Build_Slice_Assignment (Typ);
                end if;
 
-            --  ??? This may not be necessary after all
+            --  ??? Now that masters acts as heterogeneous lists, it might be
+            --  worthwhile to revisit the global master approach.
 
             elsif Ekind (Comp_Typ) = E_Anonymous_Access_Type
               and then Needs_Finalization (Directly_Designated_Type (Comp_Typ))
             then
-               Build_Finalization_Collection (Comp_Typ);
+               Build_Finalization_Master (Comp_Typ);
             end if;
          end if;
 
@@ -5586,8 +5582,8 @@ package body Exp_Ch3 is
          return;
       end if;
 
-      --  Generate the body of Finalize_Address. This routine is accessible
-      --  through the TSS mechanism.
+      --  Create the body of TSS primitive Finalize_Address. This automatically
+      --  sets the TSS entry for the class-wide type.
 
       Make_Finalize_Address_Body (Typ);
    end Expand_Freeze_Class_Wide_Type;
@@ -6315,13 +6311,17 @@ package body Exp_Ch3 is
          --  compiling a CPP tagged type.
 
          elsif not Restriction_Active (No_Dispatching_Calls) then
-            Predef_List := Predefined_Primitive_Bodies (Def_Id, Renamed_Eq);
-            Append_Freeze_Actions (Def_Id, Predef_List);
 
-            --  Create the body of Finalize_Address, a helper routine used in
-            --  conjunction with controlled objects on the heap.
+            --  Create the body of TSS primitive Finalize_Address. This must
+            --  be done before the bodies of all predefined primitives are
+            --  created. If Def_Id is limited, Stream_Input and Streap_Read
+            --  may produce build-in-place allocations and for that the
+            --  expander needs Finalize_Address.
 
             Make_Finalize_Address_Body (Def_Id);
+
+            Predef_List := Predefined_Primitive_Bodies (Def_Id, Renamed_Eq);
+            Append_Freeze_Actions (Def_Id, Predef_List);
          end if;
 
          --  Ada 2005 (AI-391): If any wrappers were created for nonoverridden
@@ -6369,7 +6369,7 @@ package body Exp_Ch3 is
 
            and then Directly_Designated_Type (Comp_Typ) /= Def_Id
          then
-            Build_Finalization_Collection
+            Build_Finalization_Master
              (Typ        => Comp_Typ,
               Ins_Node   => Parent (Def_Id),
               Encl_Scope => Scope (Def_Id));
@@ -6626,38 +6626,34 @@ package body Exp_Ch3 is
             --  finalization support if not needed.
 
             if not Comes_From_Source (Def_Id)
-               and then not Has_Private_Declaration (Def_Id)
+              and then not Has_Private_Declaration (Def_Id)
             then
                null;
 
-            elsif (Needs_Finalization (Desig_Type)
-                    and then Convention (Desig_Type) /= Convention_Java
-                    and then Convention (Desig_Type) /= Convention_CIL)
+            --  An exception is made for types defined in the run-time because
+            --  Ada.Tags.Tag itself is such a type and cannot afford this
+            --  unnecessary overhead that would generates a loop in the
+            --  expansion scheme. Another exception is if Restrictions
+            --  (No_Finalization) is active, since then we know nothing is
+            --  controlled.
+
+            elsif Restriction_Active (No_Finalization)
+              or else In_Runtime (Def_Id)
+            then
+               null;
+
+            --  The machinery assumes that incomplete or private types are
+            --  always completed by a controlled full vies.
+
+            elsif Needs_Finalization (Desig_Type)
               or else
                 (Is_Incomplete_Or_Private_Type (Desig_Type)
-                  and then No (Full_View (Desig_Type))
-
-                  --  An exception is made for types defined in the run-time
-                  --  because Ada.Tags.Tag itself is such a type and cannot
-                  --  afford this unnecessary overhead that would generates a
-                  --  loop in the expansion scheme...
-
-                   and then not In_Runtime (Def_Id)
-
-                  --  Another exception is if Restrictions (No_Finalization)
-                  --  is active, since then we know nothing is controlled.
-
-                   and then not Restriction_Active (No_Finalization))
-
-               --  If the designated type is not frozen yet, its controlled
-               --  status must be retrieved explicitly.
-
+                  and then No (Full_View (Desig_Type)))
               or else
                 (Is_Array_Type (Desig_Type)
-                  and then not Is_Frozen (Desig_Type)
                   and then Needs_Finalization (Component_Type (Desig_Type)))
             then
-               Build_Finalization_Collection (Def_Id);
+               Build_Finalization_Master (Def_Id);
             end if;
          end;
 
@@ -6838,7 +6834,7 @@ package body Exp_Ch3 is
                (Get_Rep_Item_For_Entity
                  (First_Subtype (T), Name_Default_Value)));
 
-      --  Othersie, for scalars, we must have normalize/initialize scalars
+      --  Otherwise, for scalars, we must have normalize/initialize scalars
       --  case, or if the node N is an 'Invalid_Value attribute node.
 
       elsif Is_Scalar_Type (T) then
@@ -6854,8 +6850,8 @@ package body Exp_Ch3 is
             Size_To_Use := Size;
          end if;
 
-         --  Maximum size to use is 64 bits, since we will create values
-         --  of type Unsigned_64 and the range must fit this type.
+         --  Maximum size to use is 64 bits, since we will create values of
+         --  type Unsigned_64 and the range must fit this type.
 
          if Size_To_Use /= No_Uint and then Size_To_Use > Uint_64 then
             Size_To_Use := Uint_64;
@@ -6883,7 +6879,7 @@ package body Exp_Ch3 is
 
             --  For signed integer types that have no negative values, either
             --  there is room for negative values, or there is not. If there
-            --  is, then all 1 bits may be interpreted as minus one, which is
+            --  is, then all 1-bits may be interpreted as minus one, which is
             --  certainly invalid. Alternatively it is treated as the largest
             --  positive value, in which case the observation for modular types
             --  still applies.
@@ -6897,8 +6893,8 @@ package body Exp_Ch3 is
             then
                Val := Make_Integer_Literal (Loc, 2 ** Size_To_Use - 1);
 
-               --  Resolve as Unsigned_64, because the largest number we
-               --  can generate is out of range of universal integer.
+               --  Resolve as Unsigned_64, because the largest number we can
+               --  generate is out of range of universal integer.
 
                Analyze_And_Resolve (Val, RTE (RE_Unsigned_64));
 
@@ -6910,10 +6906,10 @@ package body Exp_Ch3 is
                                   UI_Min (Uint_63, Size_To_Use - 1);
 
                begin
-                  --  Normally we like to use the most negative number. The
-                  --  one exception is when this number is in the known
-                  --  subtype range and the largest positive number is not in
-                  --  the known subtype range.
+                  --  Normally we like to use the most negative number. The one
+                  --  exception is when this number is in the known subtype
+                  --  range and the largest positive number is not in the known
+                  --  subtype range.
 
                   --  For this exceptional case, use largest positive value
 
@@ -6923,7 +6919,7 @@ package body Exp_Ch3 is
                   then
                      Val := Make_Integer_Literal (Loc, 2 ** Signed_Size - 1);
 
-                     --  Normal case of largest negative value
+                  --  Normal case of largest negative value
 
                   else
                      Val := Make_Integer_Literal (Loc, -(2 ** Signed_Size));
@@ -6992,14 +6988,14 @@ package body Exp_Ch3 is
 
          --  The final expression is obtained by doing an unchecked conversion
          --  of this result to the base type of the required subtype. We use
-         --  the base type to avoid the unchecked conversion from chopping
+         --  the base type to prevent the unchecked conversion from chopping
          --  bits, and then we set Kill_Range_Check to preserve the "bad"
          --  value.
 
          Result := Unchecked_Convert_To (Base_Type (T), Val);
 
-         --  Ensure result is not truncated, since we want the "bad" bits
-         --  and also kill range check on result.
+         --  Ensure result is not truncated, since we want the "bad" bits, and
+         --  also kill range check on result.
 
          if Nkind (Result) = N_Unchecked_Type_Conversion then
             Set_No_Truncation (Result);
@@ -7031,12 +7027,11 @@ package body Exp_Ch3 is
       --  Access type is initialized to null
 
       elsif Is_Access_Type (T) then
-         return
-           Make_Null (Loc);
+         return Make_Null (Loc);
 
-      --  No other possibilities should arise, since we should only be
-      --  calling Get_Simple_Init_Val if Needs_Simple_Initialization
-      --  returned True, indicating one of the above cases held.
+      --  No other possibilities should arise, since we should only be calling
+      --  Get_Simple_Init_Val if Needs_Simple_Initialization returned True,
+      --  indicating one of the above cases held.
 
       else
          raise Program_Error;
@@ -7085,7 +7080,7 @@ package body Exp_Ch3 is
          S1 := Scope (S1);
       end loop;
 
-      return Chars (S1) = Name_System or else Chars (S1) = Name_Ada;
+      return Is_RTU (S1, System) or else Is_RTU (S1, Ada);
    end In_Runtime;
 
    ----------------------------
@@ -8405,7 +8400,7 @@ package body Exp_Ch3 is
       end if;
 
       --  All tagged types receive their own Deep_Adjust and Deep_Finalize
-      --  regardless of whether they are controlled or contain controlled
+      --  regardless of whether they are controlled or may contain controlled
       --  components.
 
       --  Do not generate the routines if finalization is disabled
@@ -8420,12 +8415,10 @@ package body Exp_Ch3 is
 
       else
          if not Is_Limited_Type (Tag_Typ) then
-            Append_To (Res,
-              Predef_Deep_Spec (Loc, Tag_Typ, TSS_Deep_Adjust));
+            Append_To (Res, Predef_Deep_Spec (Loc, Tag_Typ, TSS_Deep_Adjust));
          end if;
 
-         Append_To (Res,
-           Predef_Deep_Spec (Loc, Tag_Typ, TSS_Deep_Finalize));
+         Append_To (Res, Predef_Deep_Spec (Loc, Tag_Typ, TSS_Deep_Finalize));
       end if;
 
       Predef_List := Res;
@@ -9034,9 +9027,9 @@ package body Exp_Ch3 is
       --  to be (implicitly) inherited in that case because it can lead to a VM
       --  exception.
 
-      --  Do not generate stream routines for type Finalization_Collection
-      --  because collection may never appear in types and therefore cannot be
-      --  read or written.
+      --  Do not generate stream routines for type Finalization_Master because
+      --  a master may never appear in types and therefore cannot be read or
+      --  written.
 
       return
           (not Is_Limited_Type (Typ)
@@ -9059,7 +9052,7 @@ package body Exp_Ch3 is
         and then RTE_Available (RE_Tag)
         and then No (Type_Without_Stream_Operation (Typ))
         and then RTE_Available (RE_Root_Stream_Type)
-        and then not Is_RTE (Typ, RE_Finalization_Collection);
+        and then not Is_RTE (Typ, RE_Finalization_Master);
    end Stream_Operation_OK;
 
 end Exp_Ch3;

@@ -1,3 +1,654 @@
+20011-08-29  Artjoms Sinkarovs  <artyom.shinkaroff@gmail.com>
+	Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (constant_boolean_node): Adjust prototype.
+	* fold-const.c (fold_convert_loc): Move aggregate conversion
+	leeway down.
+	(constant_boolean_node): Make value parameter boolean, add
+	vector type handling.
+	(fold_unary_loc): Use constant_boolean_node.
+	(fold_binary_loc): Preserve types properly when folding
+	COMPLEX_EXPR <__real x, __imag x>.
+	* gimplify.c (gimplify_expr): Handle vector comparison.
+	* tree.def (EQ_EXPR, ...): Document behavior on vector typed
+	comparison.
+	* tree-cfg.c (verify_gimple_comparison): Verify vector typed
+	comparisons.
+
+2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48722
+	* emit-rtl.c (unshare_all_rtl_again): For CALL_INSNs,
+	reset_used_flags also in CALL_INSN_FUNCTION_USAGE.
+	(verify_rtl_sharing): Likewise and verify_rtx_sharing
+	in there too.
+	(unshare_all_rtl_in_chain): For CALL_INSNs
+	copy_rtx_if_shared also CALL_INSN_FUNCTION_USAGE.
+
+2011-08-29  Richard Guenther  <rguenther@suse.de>
+
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1): Set a location
+	on the built ADDR_EXPR.
+
+2011-08-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/50215
+	* var-tracking.c (create_entry_value): Call cselib_lookup_from_insn
+	before adding ENTRY_VALUE to val->locs.
+
+2011-08-28  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR bootstrap/50218
+	* tree-ssa-loop-ivopts.c (determine_use_iv_cost_condition): Initialize
+	comp.
+
+2011-08-27  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* doc/rtl.texi (simple_return): Document.
+	(parallel, PATTERN): Here too.
+	* doc/md.texi (return): Mention it's allowed to expand to simple_return
+	in some cases.
+	(simple_return): Document standard pattern.
+	* gengenrtl.c (special_rtx): SIMPLE_RETURN is special.
+	* final.c (final_scan_insn): Use ANY_RETURN_P on body.
+	* reorg.c (function_return_label, function_simple_return_label):
+	New static variables, replacing...
+	(end_of_function_label): ... this.
+	(simplejump_or_return_p): New static function.
+	(optimize_skip, steal_delay_list_from_fallthrough,
+	fill_slots_from_thread): Use it.
+	(relax_delay_slots): Likewise.  Use ANY_RETURN_P on body.
+	(rare_destination, follow_jumps): Use ANY_RETURN_P on body.
+	(find_end_label): Take a new arg which is one of the two return
+	rtxs.  Depending on which, set either function_return_label or
+	function_simple_return_label.  All callers changed.
+	(make_return_insns): Make both kinds.
+	(dbr_schedule): Adjust for two kinds of end labels.
+	* function.c (emit_return_into_block): Set JUMP_LABEL properly.
+	* genemit.c (gen_exp): Handle SIMPLE_RETURN.
+	(gen_expand, gen_split): Use ANY_RETURN_P.
+	* df-scan.c (df_uses_record): Handle SIMPLE_RETURN.
+	* rtl.def (SIMPLE_RETURN): New code.
+	* ifcvt.c (find_if_case_1): Be more careful about
+	redirecting jumps to the EXIT_BLOCK.
+	* jump.c (condjump_p, condjump_in_parallel_p, any_condjump_p,
+	returnjump_p_1): Handle SIMPLE_RETURNs.
+	* print-rtl.c (print_rtx): Likewise.
+	* rtl.c (copy_rtx): Likewise.
+	* bt-load.c (compute_defs_uses_and_gen): Use ANY_RETURN_P.
+	* combine.c (simplify_set): Likewise.
+	* resource.c (find_dead_or_set_registers, mark_set_resources):
+	Likewise.
+	* emit-rtl.c (verify_rtx_sharing, classify_insn, copy_insn_1,
+	copy_rtx_if_shared_1, mark_used_flags): Handle SIMPLE_RETURNs.
+	(init_emit_regs): Initialize simple_return_rtx.
+	* cfglayout.c (fixup_reorder_chain): Pass a JUMP_LABEL to
+	force_nonfallthru_and_redirect.
+	* rtl.h (ANY_RETURN_P): Allow SIMPLE_RETURN.
+	(GR_SIMPLE_RETURN): New enum value.
+	(simple_return_rtx): New macro.
+	* basic-block.h (force_nonfallthru_and_redirect): Adjust
+	declaration.
+	* cfgrtl.c (force_nonfallthru_and_redirect): Take a new jump_label
+	argument.  All callers changed.  Be careful about what kinds of
+	returnjumps to generate.
+	* config/i386/3i86.c (ix86_pad_returns, ix86_count_insn_bb,
+	ix86_pad_short_function): Likewise.
+	* config/arm/arm.c (arm_final_prescan_insn): Handle both kinds
+	of return.
+	* config/mips/mips.md (any_return): New code_iterator.
+	(optab): Add cases for return and simple_return.
+	(return): Expand to a simple_return.
+	(simple_return): New pattern.
+	(*<optab>, *<optab>_internal for any_return): New patterns.
+	(return_internal): Remove.
+	* config/mips/mips.c (mips_expand_epilogue): Make the last insn
+	a simple_return_internal.
+
+2011-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*absneg<mode>2): Fix split condition.
+	(vec_extract_lo_<mode>): Prevent both operands in memory.
+	(vec_extract_lo_v16hi): Ditto.
+	(*vec_extract_v4sf_mem): Add TARGET_SSE insn constraint.
+
+2011-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (mulv16qi3): Attach REG_EQUAL note.
+	(*sse2_mulv4si3): Ditto.
+	(mulv2di3): Ditto.
+	* config/i386/i386.c (legitimize_tls_address): Change REG_EQIV
+	notes to REG_EQUAL.
+
+2011-08-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/50202
+	* config/i386/sse.md (sse4_2_pcmpestr): Emit NOTE_INSN_DELETED note
+	when all outputs are unused.
+	(sse4_2_pcmpistr): Ditto.
+
+2011-08-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (round<mode>2): New expander.
+	* config/i386/i386.c (enum ix86_builtins): Add
+	IX86_BUILTIN_ROUND{PS,PD}_AZ{,256}.
+	(struct builtin_description): Add __builtin_ia32_round{ps,pd}_az{,256}
+	descriptions.
+	(ix86_builtin_vectorized_function): Handle BUILT_IN_ROUND{,F} builtins.
+	(ix86_build_const_vector): Rewrite using loop with RTVEC_ELT accessor.
+
+2011-08-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/50083
+	* convert.c (convert_to_integer) <BUIT_IN_ROUND{,F,L}>: Convert
+	only when TARGET_C99_FUNCTIONS.
+	<BUILT_IN_NEARBYINT{,F,L}>: Ditto.
+	<BUILT_IN_RINT{,F,L}>: Ditto.
+
+2011-08-26  Michael Matz  <matz@suse.de>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR lto/50165
+	* lto-streamer-in.c (canon_file_name): Initialize new_slot->len;
+	don't call strlen twice, use memcpy.
+
+2011-08-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/bmi2intrin.h: Allow in <immintrin.h>.
+	* config/i386/bmiintrin.h: Likewise.
+	* config/i386/lzcntintrin.h: Likewise.
+
+	* config/i386/immintrin.h: Include <lzcntintrin.h>,
+	<bmiintrin.h> and <bmi2intrin.h>.
+
+2011-08-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/50166
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Check count in main.
+	* configure: Regenerate.
+
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/50179
+	* c-typeck.c (c_process_expr_stmt): Skip over nops and
+	call mark_exp_read even if exprv is ADDR_EXPR.
+
+2011-08-26  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* df-problems.c (df_note_bb_compute): Pass uses rather than defs
+	to df_set_dead_notes_for_mw.
+
+2011-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* varasm.c (decode_addr_const): Handle MEM_REF[&X, OFF].
+
+2011-08-26  Zdenek Dvorak  <ook@ucw.cz>
+	    Tom de Vries  <tom@codesourcery.com>
+
+	* tree-ssa-loop-ivopts.c (struct cost_pair): Add comp field.
+	(struct ivopts_data): Add loop_single_exit_p field.
+	(niter_for_exit): Change parameter desc_p into return value.  Return
+	desc if	desc->may_be_zero.  Free desc if unused.
+	(niter_for_single_dom_exit): Change return type.
+	(find_induction_variables): Handle changed return type of
+	niter_for_single_dom_exit.  Dump may_be_zero.
+	(add_candidate_1): Keep original base and step type for IP_ORIGINAL.
+	(set_use_iv_cost): Add and handle comp parameter.
+	(determine_use_iv_cost_generic, determine_use_iv_cost_address): Add
+	comp argument to set_use_iv_cost.
+	(strip_wrap_conserving_type_conversions, expr_equal_p)
+	(difference_cannot_overflow_p, iv_elimination_compare_lt): New function.
+	(may_eliminate_iv): Add comp parameter.  Handle new return type of
+	niter_for_exit.  Use loop_single_exit_p.  Use iv_elimination_compare_lt.
+	(determine_use_iv_cost_condition): Add comp argument to set_use_iv_cost
+	and may_eliminate_iv.
+	(rewrite_use_compare): Move call to iv_elimination_compare to ...
+	(may_eliminate_iv): Here.
+	(tree_ssa_iv_optimize_loop): Initialize loop_single_exit_p.
+
+2011-08-26  Tom de Vries  <tom@codesourcery.com>
+
+	* tree-pretty-print (dump_generic_node): Test for NULL_TREE before
+	accessing TREE_TYPE.
+
+2011-08-26  Jiangning Liu  <jiangning.liu@arm.com>
+
+	* config/arm/arm.md (*ior_scc_scc): Enable for Thumb2 as well.
+	(*ior_scc_scc_cmp): Likewise
+	(*and_scc_scc): Likewise.
+	(*and_scc_scc_cmp): Likewise.
+	(*and_scc_scc_nodom): Likewise.
+	(*cmp_ite0, *cmp_ite1, *cmp_and, *cmp_ior): Handle Thumb2.
+
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* rtlanal.c (nonzero_bits1): Handle CLRSB.
+
+2011-08-26  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c (string_constant): Handle &MEM_REF.
+
+2011-08-26  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.c (struct four_ints): New type.
+	(count_insns_for_constant): Delete function.
+	(find_best_start): Delete function.
+	(optimal_immediate_sequence): New function.
+	(optimal_immediate_sequence_1): New function.
+	(arm_gen_constant): Move constant splitting code to
+	optimal_immediate_sequence.
+	Rewrite constant negation/invertion code.
+
+2011-08-26  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm-protos.h (const_ok_for_op): Add prototype.
+	* config/arm/arm.c (const_ok_for_op): Add support for addw/subw.
+	Remove prototype. Remove static function type.
+	* config/arm/arm.md (*arm_addsi3): Add addw/subw support.
+	Add arch attribute.
+	* config/arm/constraints.md (Pj, PJ): New constraints.
+
+2011-08-26  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/arm/cortex-a9.md ("cortex_a9_mult_long"): New.
+	("cortex_a9_multiply_long"): New and use above.  Handle all
+	long multiply cases.
+	("cortex_a9_multiply"): Handle smmul and smmulr.
+	("cortex_a9_mac"): Handle smmla.
+
+2011-08-25  Richard Henderson  <rth@redhat.com>
+
+	PR 50132
+	PR 49864
+	* cfgcleanup.c (old_insns_match_p): Don't allow cross-jump for
+	non-constant stack adjutment.
+	* expr.c (find_args_size_adjust): Break out from ...
+	(fixup_args_size_notes): ... here.
+	* rtl.h (find_args_size_adjust): Declare.
+
+2011-08-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (isa): Add sse2, sse2_noavx, sse3,
+	sse4 and sse4_noavx.
+	(enabled): Handle sse2, sse2_noavx, sse3, sse4 and sse4_noavx.
+	(*pushdf_rex64): Change Y2 register constraint to x.
+	(*movdf_internal_rex64): Ditto.
+	(*zero_extendsidi2_rex64): Ditto.
+	(*movdi_internal): Change Y2 register constraint to x
+	and update "isa" attribute.
+	(*pushdf): Ditto.
+	(*movdf internal): Ditto.
+	(zero_extendsidi2_1): Ditto.
+	(*truncdfdf_mixed): Ditto.
+	(*truncxfdf2_mixed): Ditto.
+	* config/i386/mmx.md (*mov<mode>_internal_rex64): Change Y2
+	register constraint to x.
+	(*movv2sf_internal_rex64): Ditto.
+	(*mov<mode>_internal): Change Y2 register constraint to x
+	and add "isa" attribute.
+	(*movv2sf_internal): Ditto.
+	(*vec_extractv2si_1): Ditto.
+	* config/i386/sse.md ("vec_set<mode>_0): Change Y2 and Y4 register
+	constraints to x and update "isa" attribute.
+	(*vec_interleave_highv2df): Change Y3 registerconstraint
+	to x and update "isa" attribute.
+	(*vec_interleave_lowv2df): Ditto.
+	(*vec_concatv2df): Change Y2 register constraint to x and
+	update "isa" attribute.
+	(sse2_loadld): Ditto.
+	(*vec_extractv2di_1): Ditto.
+	(*vec_dupv4si): Ditto.
+	(*vec_dupv2di): Ditto.
+	(*vec_concatv4si): Ditto.
+	(vec_concatv2di): Ditto.
+	* config/i386/constraints.md (Y2): Remove.
+	(Y3): Ditto.
+	(Y4): Ditto.
+
+2011-08-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* regrename.c (scan_rtx_reg, scan_rtx_address, build_def_use,
+	dump_def_use_chain): Don't declare.
+	(mark_conflict, create_new_chain): Move before users.
+	(regrename_optimize): Move to near end of file.
+
+2011-08-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr-protos.h (byte_immediate_operand): Remove Prototype.
+	(secondary_input_reload_class): Remove Prototype.
+	* config/avr/avr.c (byte_immediate_operand): Remove Function.
+	* config/avr/avr.md (setmemhi): Use u8_operand.
+	(strlenhi): Use const0_rtx for comparison.
+	* config/avr/avr.h (avr_reg_order): Remove Declaration.
+
+2011-08-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (reg_class_tab): Make local to
+	avr_regno_reg_class.  Return smallest register class available.
+
+2011-08-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (STR_PREFIX_P): New Define.
+	(avr_asm_declare_function_name): Use it.
+	(avr_asm_named_section): Use it.
+	(avr_section_type_flags): Use it.
+
+2011-08-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* doc/md.texi (automata_option): Document collapse-ndfa.
+	* genautomata.c (COLLAPSE_OPTION): New macro.
+	(collapse_flag): New static variable.
+	(struct description): New member normal_decls_num.
+	(struct automaton): New members advance_ainsn and collapse_ainsn.
+	(gen_automata_option): Check for COLLAPSE_OPTION.
+	(collapse_ndfa_insn_decl): New static variable.
+	(add_collapse_ndfa_insn_decl, special_decl_p): New functions.
+	(find_arc): If insn is the collapse-ndfa insn, accept any arc we find.
+	(transform_insn_regexps): Call add_collapse_ndfa_insn_decl if
+	necessary.  Use normal_decls_num rather than decls_num, remove
+	test for special decls.
+	(create_alt_states, form_ainsn_with_same_reservs): Use special_decl_p.
+	(make_automaton); Likewise.  Use the new advance_cycle_insn member
+	of struct automaton.
+	(create_composed_state): Disallow advance-cycle arcs if collapse_flag
+	is set.
+	(NDFA_to_DFA): Don't create composed states for the collapse-ndfa
+	transition.  Create the necessary transitions for it.
+	(create_ainsns): Return void.  Take an automaton_t argument, and
+	update its ainsn_list, advance_ainsn and collapse_ainsn members.  All
+	callers changed.
+	(COLLAPSE_NDFA_VALUE_NAME): New macro.
+	(output_tables): Output code to define it.
+	(output_internal_insn_code_evaluation): Output code to accept
+	const0_rtx as collapse-ndfa transition.
+	(output_default_latencies, output_print_reservation_func,
+	output_print_description): Reorganize loops to use normal_decls_num
+	as loop bound; remove special case for advance_cycle_insn_decl.
+	(initiate_automaton_gen): Handle COLLAPSE_OPTION.
+	(check_automata_insn_issues): Check for collapse_ainsn.
+	(expand_automate): Allocate sufficient space.  Initialize
+	normal_decls_num.
+
+2011-08-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: Fix indentation from r177991.
+
+2011-08-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* regrename.c (struct du_head): Remove member terminated.
+	(create_new_chain): Don't initialize it.
+	(scan_rtx_reg): Don't set or test it, test the open_chains_set
+	bitmap instead.
+	(tick, this_tick): New global variables, moved out of
+	regrename_optimize.
+	(current_id, open_chains, closed_chains, open_chains_set,
+	live_in_chains, live_hard_regs): Reorder declarations.
+	(dump_def_use_chain): Move function earlier in the file.
+	(rename_chains): New static function, broken out of
+	regrename_optimize.
+	(regrename_optimize): Use it.  Remove #if 0'ed code.
+
+2011-08-25  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* varasm.c: (default_binds_local_p_1): Commentary typo fix.
+
+2011-08-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/50172
+	* config/i386/i386.c (ix86_expand_builtin): Convert to Pmode if needed.
+
+2011-08-24  Richard Guenther  <rguenther@suse.de>
+
+	* tree-data-ref.c (dr_analyze_indices): Avoid unsharing the
+	ref in the basic-block case.  Move stripping array-refs
+	to the place we create an access-function for it.  Remove
+	bogus stripping down a MEM_REF to its base.
+
+2011-08-24  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (fold_comparison): Fold &a < &a + 4 even
+	with -fno-strict-overflow.
+
+2011-08-24  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vectorizer.c (vect_print_dump_info): Avoid the
+	file and location clutter when dumping to dump files.
+
+2011-08-24  Simon Baldwin  <simonb@google.com>
+
+	* gengtype-state.c (write_state): Remove timestamped header line.
+
+2011-08-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (CFLAGS-collect2.o, CFLAGS-c-family/c-opts.o)
+	(CFLAGS-c-family/c-pch.o, CFLAGS-prefix.o, CFLAGS-version.o)
+	(CFLAGS-lto-compress.o, CFLAGS-toplev.o, CFLAGS-intl.o)
+	(CFLAGS-cppbuiltin.o, CFLAGS-cppdefault.o): New.
+	(collect2.o, c-family/c-cppbuiltin.o, c-family/c-opts.o)
+	(c-family/c-pch.o, prefix.o, version.o, lto-compress.o, toplev.o)
+	(intl.o, cppbuiltin.o, cppdefault.o): Remove explicit compilation
+	rules.
+	(lto-wrapper$(exeext)): Use $(LINKER) not $(COMPILER).
+
+2011-08-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (ALL_CXXFLAGS): Include $(CFLAGS-$@).
+
+2011-08-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50067
+	* tree-data-ref.c (dr_analyze_indices): Do not add an access
+	function for a MEM_REF base that has no evolution in the loop
+	nest or that is not analyzable.
+
+2011-08-23  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* ira.c (ira_init_register_move_cost): Check small subclasses
+	through ira_reg_class_max_nregs and ira_available_class_regs.
+
+2011-08-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/constraints.md (Yp): New register constraint.
+	* config/i386/i386.md (*addhi_1): Merge with *addhi_1_lea using
+	Yp register constraint.
+	(*addqi_1): Merge with *addqi_1_lea using Yp register constraint.
+	(*ashlhi3_1): Merge with *ashlhi3_1_lea using Yp register constraint.
+	(*ashlqi3_1): Merge with *ashlqi3_1_lea using Yp register constraint.
+
+2011-08-23  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md (<s>mul<mode>3_highpart): Update.
+
+2011-08-23  Mark Heffernan  <meheff@google.com>
+
+	PR middle-end/38509
+	* common.opt (Wfree-nonheap-object): New option.
+	* doc/invoke.texi (Warning options): Document -Wfree-nonheap-object.
+	* builtins.c (maybe_emit_free_warning): Add OPT_Wfree_nonheap_object
+	to warning.
+	(expand_builtin): Make warning conditional.
+
+2011-08-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (type): Add imulx, ishiftx and rotatex.
+	(length_immediate): Handle imulx, ishiftx and rotatex.
+	(imm_disp): Ditto.
+	(isa): Add bmi2.
+	(enabled): Handle bmi2.
+	(*mul<mode><dwi>3): Split from *<u>mul<mode><dwi>3.
+	(*umul<mode><dwi>3): Ditto.  Add imulx BMI2 alternative.
+	(*bmi2_umulditi3_1): New insn pattern.
+	(*bmi2_umulsidi3_1): Ditto.
+	(*umul<mode><dwi>3 splitter): New splitter to avoid flags dependency.
+	(*bmi2_ashl<mode>3_1): New insn pattern.
+	(*ashl<mode>3_1): Add ishiftx BMI2 alternative.
+	(*ashl<mode>3_1 splitter): New splitter to avoid flags dependency.
+	(*bmi2_ashlsi3_1_zext): New insn pattern.
+	(*ashlsi3_1_zext): Add ishiftx BMI2 alternative.
+	(*ashlsi3_1_zext splitter): New splitter to avoid flags dependency.
+	(*bmi2_<shiftrt_insn><mode>3_1): New insn pattern.
+	(*<shiftrt_insn><mode>3_1): Add ishiftx BMI2 alternative.
+	(*<shiftrt_insn><mode>3_1 splitter): New splitter to avoid
+	flags dependency.
+	(*bmi2_<shiftrt_insn>si3_1_zext): New insn pattern.
+	(*<shiftrt_insn>si3_1_zext): Add ishiftx BMI2 alternative.
+	(*<shiftrt_insn>si3_1_zext splitter): New splitter to avoid
+	flags dependency.
+	(*bmi2_rorx<mode>3_1): New insn pattern.
+	(*<rotate_insn><mode>3_1): Add rotatex BMI2 alternative.
+	(*rotate<mode>3_1 splitter): New splitter to avoid flags dependency.
+	(*rotatert<mode>3_1 splitter): Ditto.
+	(*bmi2_rorxsi3_1_zext): New insn pattern.
+	(*<rotate_insn>si3_1_zext): Add rotatex BMI2 alternative.
+	(*rotatesi3_1_zext splitter): New splitter to avoid flags dependency.
+	(*rotatertsi3_1_zext splitter): Ditto.
+
+2011-08-23  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* common/config/i386/i386-common.c (OPTION_MASK_ISA_BMI2_SET): New.
+	(OPTION_MASK_ISA_BMI2_UNSET): Likewise.
+	(ix86_handle_option): Handle OPT_mbmi2 case.
+	* config.gcc (i[34567]86-*-*): Add bmi2intrin.h.
+	(x86_64-*-*): Likewise.
+	* config/i386/bmi2intrin.h: New file.
+	* config/i386/cpuid.h (bit_BMI2): New.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Detect
+	BMI2 feature.
+	* config/i386/i386-c.c (ix86_target_macros_internal):
+	Conditionally define __BMI2__.
+	* config/i386/i386.c (ix86_option_override_internal): Define PTA_BMI2.
+	Handle BMI2 option.
+	(ix86_valid_target_attribute_inner_p): Handle BMI2 option.
+	(print_reg): New code.
+	(ix86_print_operand): Likewise.
+	(ix86_builtins): Add IX86_BUILTIN_BZHI32, IX86_BUILTIN_BZHI64,
+	IX86_BUILTIN_PDEP32, IX86_BUILTIN_PDEP64, IX86_BUILTIN_PEXT32,
+	IX86_BUILTIN_PEXT64.
+	(bdesc_args): Add IX86_BUILTIN_BZHI32, IX86_BUILTIN_BZHI64,
+	IX86_BUILTIN_PDEP32, IX86_BUILTIN_PDEP64, IX86_BUILTIN_PEXT32,
+	IX86_BUILTIN_PEXT64.
+	* config/i386/i386.h (TARGET_BMI2): New.
+	* config/i386/i386.md (UNSPEC_PDEP): New.
+	(UNSPEC_PEXT): Likewise.
+	(*bmi2_bzhi_<mode>3): Likewise.
+	(*bmi2_pdep_<mode>3): Likewise.
+	(*bmi2_pext_<mode>3): Likewise.
+	* config/i386/i386.opt (mbmi2): New.
+	* config/i386/x86intrin.h: Include bmi2intrin.h when __BMI2__
+	is defined.
+	* doc/extend.texi: Document BMI2 built-in functions.
+	* doc/invoke.texi: Document -mbmi2.
+
+2011-08-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/50161
+	* simplify-rtx.c (simplify_const_unary_operation): If
+	op is CONST_INT, don't look at op_mode, but use instead mode.
+	* optabs.c (add_equal_note): For FFS, CLZ, CTZ,
+	CLRSB, POPCOUNT, PARITY and BSWAP use operand mode for
+	operation and TRUNCATE/ZERO_EXTEND if needed.
+	* doc/rtl.texi (ffs, clrsb, clz, ctz, popcount, parity, bswap):
+	Document that operand mode must be same as operation mode,
+	or VOIDmode.
+	* config/avr/avr.md (paritysi2, *parityqihi2.libgcc,
+	*paritysihi2.libgcc, popcountsi2, *popcountsi2.libgcc,
+	*popcountqihi2.libgcc, clzsi2, *clzsihi2.libgcc, ctzsi2,
+	*ctzsihi2.libgcc, ffssi2, *ffssihi2.libgcc): For unary ops
+	use the mode of operand for the operation and add truncate
+	or zero_extend around if needed.
+	* config/c6x/c6x.md (ctzdi2): Likewise.
+	* config/bfin/bfin.md (clrsbsi2, signbitssi2): Likewise.
+
+2011-08-12  Michael Matz  <matz@suse.de>
+
+	* cfgexpand.c (expand_one_register_var): Use get_pointer_alignment.
+	(gimple_expand_cfg): Merge alignment info for coalesced pointer
+	SSA names.
+
+2011-08-23  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (tree-data-ref.o): Add tree-affine.h dependency.
+	* tree-affine.h (aff_comb_cannot_overlap_p): Declare.
+	* tree-affine.c (aff_comb_cannot_overlap_p): New function, moved
+	from ...
+	* tree-ssa-loop-im.c (cannot_overlap_p): ... here.
+	(mem_refs_may_alias_p): Adjust.
+	* tree-data-ref.h (dr_may_alias_p): Adjust.
+	* tree-data-ref.c: Include tree-affine.h.
+	(dr_analyze_indices): Do nothing for the non-loop case.
+	(dr_may_alias_p): Distinguish loop and non-loop case.  Disambiguate
+	more cases in the non-loop case.
+	* graphite-sese-to-poly.c (write_alias_graph_to_ascii_dimacs): Adjust
+	calls to dr_may_alias_p.
+	(write_alias_graph_to_ascii_ecc): Likewise.
+	(write_alias_graph_to_ascii_dot): Likewise.
+	(build_alias_set_optimal_p): Likewise.
+
+2011-08-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50162
+	* tree-vect-stmts.c (vectorizable_call): Fix argument lookup.
+
+2011-08-23  Richard Guenther  <rguenther@suse.de>
+
+	* tree-data-ref.c (dr_analyze_indices): Add comments, handle
+	REALPART_EXPR and IMAGPART_EXPR similar to ARRAY_REFs.
+	(create_data_ref): Also dump access functions for the created data-ref.
+
+2011-08-22  Uros Bizjak  <ubizjak@gmail.com>
+	    Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	PR target/50155
+	* config/i386/sse.md (VI_AVX2): New.
+	(<plusminus_insn><mode>3): Use VI_AVX2 mode iterator.
+	(*<plusminus_insn><mode>3): Ditto.
+	(<sse2_avx2>_andnot<mode>3): Ditto.
+	(*andnot<mode>3): Fix order of cond operands.
+	Add asserts for correct TARGET_xxx.
+	(*<any_logic:code><mode>3): Ditto.
+
+2011-08-22  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/m32c/m32c.h (CLASS_MAX_NREGS): Remove macro.
+	* config/m32c/m32c-protos.h (m32c_class_max_nregs): Remove.
+	* config/m32c/m32c.c (m32c_class_max_nregs): Make static. Change
+	regclass argument type to reg_class_t. Change 'max' and 'v' vars
+	and return types to unsigned char. Use reg_class_contents instead
+	of class_contents.
+	(TARGET_CLASS_MAX_NREGS): Define.
+
+2011-08-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/c6x/c6x.md (indirect_jump_shadow): Tweak representation
+	to make computed_jump_p return true.
+
+2011-08-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (GCC_PICFLAG_FOR_TARGET): Call it.
+	(PICFLAG_FOR_TARGET): Substitute.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2011-08-22  Dodji Seketeli  <dodji@redhat.com>
+
+	* c-family/c-pch.c (c_common_read_pch): Re-set line table right
+	after reading in the pch.
+
+2011-08-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Error if __ELF__ isn't defined.
+	* configure: Regenerated.
+
+2011-08-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50133
+	* tree-vect-stmts.c (vect_finish_stmt_generation): Copy location
+	from stmt instead of some statement around gsi.
+
+	PR middle-end/50141
+	* expr.c (get_bit_range): Only use DECL_THREAD_LOCAL_P if
+	innerdecl is a VAR_DECL.
+
 2011-08-22  Kirill Yukhin  <kirill.yukhin@intel.com>
 
 	* config/i386/avx2intrin.h: New file.
@@ -218,7 +869,7 @@
 	IX86_BUILTIN_GATHERSIV8SI, IX86_BUILTIN_GATHERDIV4SI,
 	IX86_BUILTIN_GATHERDIV8SI.
 	(ix86_preferred_simd_mode): Support AVX2 modes.
-	(ix86_expand_args_builtin): Support AVX2 built-ins.
+	(ix86_expand_args_builtin): Support AVX2 builtins.
 	(ix86_expand_special_args_builtin): Likewise.
 	(ix86_expand_builtin): Likewise.
 	* config/i386/i386.md (UNSPEC_VPERMSI): New.
@@ -231,8 +882,7 @@
 	* config/i386/immintrin.h: Include avx2intrin.h when __AVX2__
 	is defined.
 	* config/i386/predicates.md (const1248_operand): New.
-	* config/i386/sse.md (VI_AVX2):
-	(VI1_AVX2): Likewise.
+	* config/i386/sse.md (VI1_AVX2): New mode iterator.
 	(VI2_AVX2): Likewise.
 	(VI4_AVX2): Likewise.
 	(VI8_AVX2): Likewise.
@@ -240,111 +890,53 @@
 	(SSESCALARMODE): Likewise.
 	(VI12_AVX2): Likewise.
 	(VI24_AVX2): Likewise.
-	(VI124_AVX2): Likeuse_submit_for_speed = 1
-	wise.
+	(VI124_AVX2): Likewise.
 	(VI248_AVX2): Likewise.
 	(VI48_AVX2): Likewise.
 	(VI4SD_AVX2): Likewise.
 	(V48_AVX2): Likewise.
-	(avx2modesuffix): Likewise.
-	(sse_avx2): Likewise.
-	(sse2_avx2): Likewise.
+	(AVX256MODE2P): Likewise.
+	(AVXMODE48P_DI): Likewise.
+	(sse2_avx2): New mode attribute.
 	(ssse3_avx2): Likewise.
 	(sse4_1_avx2): Likewise.
 	(avx_avx2): Likewise.
-	(lshift)<code_oterator>: Likewise.
-	(lshift_insn): Likewise.
-	(lshift)<code_attr>: Likewise.
-	(SSESHORTMODE): Likewise.
-	(SSELONGMODE): Likewise.
-	(SSEBYTEMODE): Likewise.
+	(ssebytemode): Likewise.
 	(AVXTOSSEMODE): Likewise.
-	(shortmode): Likewise.
-	(ssescalarmodesuffix): Update.
-	(sseunpackmode): Likewise.
-	(ssepackmode): Likewise.
-	(AVX256MODEI): New.
-	(AVX256MODE124): Likewise.
-	(AVX256MODE1248): Likewise.
-	(AVX256MODE248): Likewise.
-	(AVXMODE48P_SI): Likewise.
-	(AVXMODE48P_SI): Likewise.
-	(AVXMODE48P_DI): Likewise.
 	(AVXMODE48P_DI): Likewise.
 	(gthrfirstp): Likewise.
 	(gthrlastp): Likewise.
-	(avx2): Likwise.
-	(ssevecsize): Likewise.
-	(ssedoublesizemode): Likewise.
-	(avxvecmode): Likewise.
-	(avxvecsize): Likewise.
-	(avxhalfvecmode): Likewise.
-	(avxscalarmode): Likewise.
-	(avxpermvecmode): Likewise.
-	(avxmodesuffixp): Likewise.
-	(avxmodesuffix): Likewise.
-	(avx2_vec_dupv4sf): New.
+	(lshift): New code_iterator
+	(lshift): New code attribute.
+	(lshift): Likewise.
+	(ssescalarmodesuffix): Update.
+	(sseunpackmode): Likewise.
+	(ssepackmode): Likewise.
+	(avx2_vec_dupv4sf): New insn pattern.
 	(avx2_vec_dupv8sf): Likewise.
 	(avx2_interleave_highv4di): Likewise.
 	(avx2_interleave_lowv4di): Likewise.
-	(<plusminus_insn><mode>3): Update.
-	(*<plusminus_insn><mode>3): Likewise.
-	(sse2_<plusminus_insn><mode>3): Rename to ...
-	("<sse2_avx2>_<plusminus_insn><mode>3): ... this. updated.
-	(*sse2_<plusminus_insn><mode>3): Likewise.
-	(*<sse2_avx2>_<plusminus_insn><mode>3): Likewise.
-	(mulv8hi3): Likewise.
-	(mul<mode>3): Likewise.
-	(*mulv8hi3): Likewise.
-	(*mul<mode>3): Likewise.
-	(<s>mulv8hi3_highpart): Likewise.
-	(<s>mul<mode>3_highpart): Likewise.
-	(*<s>mulv8hi3_highpart): Likewise.
-	(*<s>mul<mode>3_highpart): Likewise.
-	(avx2_umulv4siv4di3): Likewise.
-	(*avx_umulv4siv4di3): Likewise.
-	(sse4_1_mulv2siv2di3): Likewise.
-	(<sse4_1_avx2>_mul<shortmode><mode>3): Likewise.
-	(*sse4_1_mulv2siv2di3): Likewise.
-	(*<sse4_1_avx2>_mulv2siv2di3): Likewise.
-	(avx2_pmaddwd): New.
+	(avx2_umulv4siv4di3): Likewise
+	(*avx2_umulv4siv4di3): Likewise
+	(avx2_pmaddwd): Likewise.
 	(*avx2_pmaddwd): Likewise.
-	(mulv4si3): Rename to ...
-	(mul<mode>3): ... this. Update.
-	(*sse4_1_mulv4si3): Likewise.
-	(*<sse4_1_avx2>_mul<mode>3): Likewise.
-	(ashr<mode>3): Update.
-	(avx2_lshrqv4di3): New.
-	(lshr<mode>3): Update.
-	(avx2_lshlqv4di3): New.
+	(avx2_lshrqv4di3): Likewise.
+	(avx2_lshlqv4di3): Likewise.
 	(avx2_lshl<mode>3): Likewise.
-	(sse2_ashlv1ti3): Rename to ...
-	(<sse2_avx2>_ashl<mode>3): ... this. Update.
-	(avx2_<code><mode>3)<umaxmin>: New.
-	(*avx2_<code><mode>3)<umaxmin>: Likewise.
-	(avx2_<code><mode>3)<smaxmin>: New.
-	(*avx2_<code><mode>3)<smaxmin>: Likewise.
+	(avx2_<umaxmin:code><mode>3): Likewise.
+	(*avx2_<umaxmin:code><mode>3): Likewise.
+	(avx2_<smaxmin:code><mode>3): Likewise.
+	(*avx2_<smaxmin:code><mode>3): Likewise.
 	(avx2_eq<mode>3): Likewise.
 	(*avx2_eq<mode>3): Likewise.
 	(avx2_gt<mode>3): Likewise.
-	(sse2_andnot<mode>3): Rename to ...
-	(<sse2_avx2>_andnot<mode>3): ... this. Update.
-	(*andnot<mode>3): Update.
-	(<code><mode>3)<any_logic>: Update.
-	(*<code><mode>3)<any_logic>: Likewise.
-	(sse2_packsswb): Rename to ...
-	(<sse2_avx2>_packsswb): ... this. Update.
-	(sse2_packssdw): Likewise.
-	(<sse2_avx2>_packssdw): Likewise.
-	(sse2_packuswb): Likewise.
-	(<sse2_avx2>_packuswb): Likewise.
 	(avx2_interleave_highv32qi): New.
 	(avx2_interleave_lowv32qi): Likewise.
 	(avx2_interleave_highv16hi): Likewise.
 	(avx2_interleave_lowv16hi): Likewise.
 	(avx2_interleave_highv8si): Likewise.
 	(avx2_interleave_lowv8si): Likewise.
-	(avx2_pshufd): New
+	(avx2_pshufd): Likewise.
 	(avx2_pshufd_1): Likewise.
 	(avx2_pshuflwv3): Likewise.
 	(avx2_pshuflw_1): Likewise.
@@ -354,9 +946,7 @@
 	(*avx2_uavgv32qi3): Likewise.
 	(avx2_uavgv16hi3): Likewise.
 	(*avx2_uavgv16hi3): Likewise.
-	(sse2_psadbw): Rename to ...
-	(<sse2_avx2>_psadbw): ... this. Update.
-	(avx2_pmovmskb): New.
+	(avx2_pmovmskb): Likewise.
 	(avx2_phaddwv16hi3): Likewise.
 	(avx2_phadddv8si3): Likewise.
 	(avx2_phaddswv16hi3): Likewise.
@@ -366,23 +956,8 @@
 	(avx2_pmaddubsw256): Likewise.
 	(avx2_umulhrswv16hi3): Likewise.
 	(*avx2_umulhrswv16hi3): Likewise.
-	(ssse3_pshufbv16qi3): Rename to ...
-	(<ssse3_avx2>_pshufb<mode>3): ... this. Update.
-	(ssse3_psign<mode>3): Likewise.
-	(<ssse3_avx2>_psign<mode>3): Likewise.
-	(ssse3_palignrti): Likewise.
-	(<ssse3_avx2>_palignr<mode>): Likewise.
-	(abs<mode>2): Likewise.
-	(sse4_1_movntdqa): Rename to ...
-	(<sse4_1_avx2>_movntdqa): ... this. Update.
-	(sse4_1_mpsadbw): Likewise.
-	(<sse4_1_avx2>_mpsadbw): Likewise.
-	(avx2_packusdw): New.
-	(sse4_1_pblendvb): Rename to ...
-	(<sse4_1_avx2>_pblendvb): ... this. Update.
-	(sse4_1_pblendw): Likewise.
-	(<sse4_1_avx2>_pblendw): Likewise.
-	(avx2_pblendd<mode>): New.
+	(avx2_packusdw): Likewise.
+	(avx2_pblendd<mode>): Likewise.
 	(avx2_<code>v16qiv16hi2): Likewise.
 	(avx2_<code>v8qiv8si2): Likewise.
 	(avx2_<code>v8hiv8si2): Likewise.
@@ -399,12 +974,7 @@
 	(avx2_vbroadcasti128_<mode>): Likewise.
 	(avx2_vec_set_lo_v4di): Likewise.
 	(avx2_vec_set_hi_v4di): Likewise.
-	(avx_maskload<ssemodesuffix><avxsizesuffix>): Rename to ...
-	(<avx_avx2>_maskload<avx2modesuffix><avxmodesuffix>): ... this.
-	Update.
-	(avx_maskstore<ssemodesuffix><avxsizesuffix>): Likewise.
-	(<avx_avx2>_maskstore<avx2modesuffix><avxmodesuffix>): Likewise.
-	(*avx2_maskmov<avx2modesuffix><avxmodesuffix>): New.
+	(*avx2_maskmov<avx2modesuffix><avxmodesuffix>): Likewise.
 	(avx2_extracti128): Likewise.
 	(avx2_inserti128): Likewise.
 	(avx2_ashrvv8si): Likewise.
@@ -418,6 +988,58 @@
 	(*avx2_gatherdi<mode>): Likewise.
 	(avx2_gatherdi<mode>256): Likewise.
 	(*avx2_gatherdi<mode>256): Likewise.
+	(<plusminus_insn><mode>3): Use VI mode iterator.
+	(*<plusminus_insn><mode>3): Use VI mode iterator.
+	(<sse2_avx2>_<plusminus_insn><mode>3): Rename from
+	sse2_<plusminus_insn><mode>3.  Use VI12_AVX2 mode iterator.
+	(*<sse2_avx2>_<plusminus_insn><mode>3): Rename from
+	*sse2_<plusminus_insn><mode>3.  Use VI12_AVX2 mode iterator.
+	(mul<mode>3): Rename from mulv8hi3.  Use VI2_AVX2 mode iterator.
+	(*mul<mode>3): Rename from *mulv8hi3.  Use VI2_AVX2 mode iterator.
+	(<s>mul<mode>3_highpart): Rename from <s>mulv8hi3_highpart.
+	Use VI2_AVX2 mode iterator.
+	(*<s>mul<mode>3_highpart): Rename from *<s>mulv8hi3_highpart.
+	Use VI2_AVX2 mode iterator.
+	(mul<mode>3): Rename from mulv4si3.  Use VI4_AVX2 mode iterator.
+	(*mul<mode>3): Rename from *mulv4si3.  Use VI4_AVX2 mode iterator.
+	(*<sse4_1_avx2>_mulv2siv2di3): Rename from *sse4_1_mulv4si3.
+	Use VI4_AVX2 mode iterator.
+	(ashr<mode>3): Use VI24_AVX2 mode iterator.
+	(lshr<mode>3): Use VI248_AVX2 mode iterator.
+	(<sse2_avx2>_ashl<mode>3): Rename from sse2_ashlv1ti3.
+	Use VIMAX_AVX2 mode iterator.
+	(<sse2_avx2>_andnot<mode>3): Rename from sse2_andnot<mode>3.
+	Use VI mode iterator.
+	(*andnot<mode>3): Update for AVX2.
+	(*<any_logic:code><mode>3): Likewise.
+	(<sse2_avx2>_packsswb): Rename from sse2_packsswb.
+	Use VI1_AVX mode iterator.
+	(<sse2_avx2>_packssdw):  Rename from sse2_packssdw.
+	Use VI2_AVX mode iterator.
+	(<sse2_avx2>_packuswb): Rename from sse2_packsswb.
+	Use VI1_AVX mode iterator.
+	(<sse2_avx2>_psadbw): Rename from sse2_psadbw.
+	Use VI8_AVX2 mode iterator.
+	(<ssse3_avx2>_pshufb<mode>3): Rename from ssse3_pshufbv16qi3.
+	Use VI1_AVX2 mode iterator.
+	(<ssse3_avx2>_psign<mode>3): Rename from ssse3_psign<mode>3.
+	Use VI124_AVX2 mode iterator.
+	(<ssse3_avx2>_palignr<mode>): Rename from ssse3_palignrti.
+	Use SSESCALARMODE mode iterator.
+	(abs<mode>2): Use VI124_AVX2 mode iterator.
+	(<sse4_1_avx2>_movntdqa): Rename from sse4_1_movntdqa.
+	Use VI8_AVX2 mode iterator.
+	(<sse4_1_avx2>_mpsadbw): Rename from sse4_1_mpsadbw.
+	Use VI1_AVX2 mode iterator.
+	(<sse4_1_avx2>_pblendvb): Rename from sse4_1_pblendvb.
+	Use VI1_AVX2 mode iterator.
+	(<sse4_1_avx2>_pblendw): Rename from sse4_1_pblendvb.
+	Use VI2_AVX2 mode iterator.
+	(<avx_avx2>_maskload<avx2modesuffix><avxmodesuffix>): Rename from
+	avx_maskload<ssemodesuffix><avxsizesuffix>. Use V48_AVX2 mode iterator.
+	(<avx_avx2>_maskstore<avx2modesuffix><avxmodesuffix>): Rename from
+	avx_maskstore<ssemodesuffix><avxsizesuffix>.
+	Use V48_AVX2 mode iterator.
 	* doc/extend.texi: Document AVX2 built-in functions.
 	* doc/invoke.texi: Document -mavx2.
 

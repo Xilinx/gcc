@@ -1,3 +1,70 @@
+2011-08-29  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-decl.c (generate_coarray_sym_init): Use
+	GFC_CAF_COARRAY_STATIC for static coarrays.
+
+2011-08-28  Dodji Seketeli  <dodji@redhat.com>
+
+	* scanner.c (load_file): Don't abuse LC_RENAME reason while
+	(indirectly) calling linemap_add.
+
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-decl.c (get_proc_pointer_decl): Set DECL_TLS_MODEL
+	if threadprivate.
+	* symbol.c (check_conflict): Allow threadprivate attribute with
+	FL_PROCEDURE if proc_pointer.
+
+2011-08-25  Mikael Morin  <mikael.morin@gcc.gnu.org>
+
+	PR fortran/50050
+	* expr.c (gfc_free_shape): Do nothing if shape is NULL.
+	(free_expr0): Remove redundant NULL shape check.
+	* resolve.c (check_host_association): Ditto.
+	* trans-expr.c (gfc_trans_subarray_assign): Assert that shape is
+	non-NULL.
+	* trans-io.c (transfer_array_component): Ditto.
+
+2011-08-25  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (gfc_conv_descriptor_token): Add assert.
+	* trans-decl.c (gfc_build_qualified_array,
+	create_function_arglist): Handle assumed-shape arrays.
+	* trans-expr.c (gfc_conv_procedure_call): Ditto.
+	* trans-types.c (gfc_get_array_descriptor_base): Ditto, don't
+	add "caf_token" to assumed-shape descriptors, new akind argument.
+	(gfc_get_array_type_bounds): Pass akind.
+	* trans.h (lang_decl): New elements caf_offset and token.
+	(GFC_DECL_TOKEN, GFC_DECL_CAF_OFFSET): New macros.
+
+2011-08-25  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (structure_alloc_comps): Fix for allocatable
+	scalar coarray components.
+	* trans-expr.c (gfc_conv_component_ref): Ditto.
+	* trans-type.c (gfc_get_derived_type): Ditto.
+
+2011-08-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50163
+	* expr.c (check_init_expr): Return when an error occured.
+
+2011-08-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (fortran/cpp.o): Remove explicit compilation rule.
+
+2011-08-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31600
+	* symbol.c (gfc_add_type): Better diagnostic if redefining
+	use-associated symbol.
+	* module.c (gfc_use_module): Use module name as locus.
+
+2011-08-22  Gabriel Charette  <gchare@google.com>
+
+	* cpp.c (gfc_cpp_init): Force BUILTINS_LOCATION for tokens
+	defined in cpp_define_builtins.
+
 2011-08-22  Mikael Morin  <mikael.morin@gcc.gnu.org>
 
 	PR fortran/50050

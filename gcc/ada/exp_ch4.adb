@@ -91,12 +91,13 @@ package body Exp_Ch4 is
    --  If a boolean array assignment can be done in place, build call to
    --  corresponding library procedure.
 
-   procedure Complete_Controlled_Allocation (Temp_Decl : Node_Id);
-   --  Subsidiary to Expand_N_Allocator and Expand_Allocator_Expression. Formal
-   --  Temp_Decl is the declaration of a temporary which hold the value of the
-   --  original allocator. Create a custom Allocate routine for the expression
-   --  of Temp_Decl. The routine does special processing for anonymous access
-   --  types.
+   function Current_Unit_First_Declaration return Node_Id;
+   --  Return the current unit's first declaration. If the declaration list is
+   --  empty, the routine generates a null statement and returns it.
+
+   function Current_Unit_Scope return Entity_Id;
+   --  Return the scope of the current unit. If the current unit is a body,
+   --  return the scope of the spec.
 
    procedure Displace_Allocator_Pointer (N : Node_Id);
    --  Ada 2005 (AI-251): Subsidiary procedure to Expand_N_Allocator and
@@ -375,118 +376,78 @@ package body Exp_Ch4 is
    end Build_Boolean_Array_Proc_Call;
 
    ------------------------------------
-   -- Complete_Controlled_Allocation --
+   -- Current_Unit_First_Declaration --
    ------------------------------------
 
-   procedure Complete_Controlled_Allocation (Temp_Decl : Node_Id) is
-      pragma Assert (Nkind (Temp_Decl) = N_Object_Declaration);
-
-      Ptr_Typ : constant Entity_Id := Etype (Defining_Identifier (Temp_Decl));
-
-      function First_Declaration_Of_Current_Unit return Node_Id;
-      --  Return the current unit's first declaration. If the declaration list
-      --  is empty, the routine generates a null statement and returns it.
-
-      ---------------------------------------
-      -- First_Declaration_Of_Current_Unit --
-      ---------------------------------------
-
-      function First_Declaration_Of_Current_Unit return Node_Id is
-         Sem_U : Node_Id := Unit (Cunit (Current_Sem_Unit));
-         Decl  : Node_Id;
-         Decls : List_Id;
-
-      begin
-         if Nkind (Sem_U) = N_Package_Declaration then
-            Sem_U := Specification (Sem_U);
-            Decls := Visible_Declarations (Sem_U);
-
-            if No (Decls) then
-               Decl  := Make_Null_Statement (Sloc (Sem_U));
-               Decls := New_List (Decl);
-               Set_Visible_Declarations (Sem_U, Decls);
-            else
-               Decl := First (Decls);
-            end if;
-
-         else
-            Decls := Declarations (Sem_U);
-
-            if No (Decls) then
-               Decl  := Make_Null_Statement (Sloc (Sem_U));
-               Decls := New_List (Decl);
-               Set_Declarations (Sem_U, Decls);
-            else
-               Decl := First (Decls);
-            end if;
-         end if;
-
-         return Decl;
-      end First_Declaration_Of_Current_Unit;
-
-   --  Start of processing for Complete_Controlled_Allocation
+   function Current_Unit_First_Declaration return Node_Id is
+      Sem_U : Node_Id := Unit (Cunit (Current_Sem_Unit));
+      Decl  : Node_Id;
+      Decls : List_Id;
 
    begin
-      --  Certain run-time configurations and targets do not provide support
-      --  for controlled types.
+      if Nkind (Sem_U) = N_Package_Declaration then
+         Sem_U := Specification (Sem_U);
+         Decls := Visible_Declarations (Sem_U);
 
-      if Restriction_Active (No_Finalization) then
-         return;
+         if No (Decls) then
+            Decl := Make_Null_Statement (Sloc (Sem_U));
+            Decls := New_List (Decl);
+            Set_Visible_Declarations (Sem_U, Decls);
 
-      --  Do nothing if the access type may never allocate an object
+         elsif Is_Empty_List (Decls) then
+            Decl := Make_Null_Statement (Sloc (Sem_U));
+            Append_To (Decls, Decl);
 
-      elsif No_Pool_Assigned (Ptr_Typ) then
-         return;
+         else
+            Decl := First (Decls);
+         end if;
 
-      --  Access-to-controlled types are not supported on .NET/JVM
+      else
+         Decls := Declarations (Sem_U);
 
-      elsif VM_Target /= No_VM then
-         return;
+         if No (Decls) then
+            Decl := Make_Null_Statement (Sloc (Sem_U));
+            Decls := New_List (Decl);
+            Set_Declarations (Sem_U, Decls);
+
+         elsif Is_Empty_List (Decls) then
+            Decl := Make_Null_Statement (Sloc (Sem_U));
+            Append_To (Decls, Decl);
+
+         else
+            Decl := First (Decls);
+         end if;
       end if;
 
-      --  Processing for anonymous access-to-controlled types. These access
-      --  types receive a special collection which appears on the declarations
-      --  of the enclosing semantic unit.
+      return Decl;
+   end Current_Unit_First_Declaration;
 
-      if Ekind (Ptr_Typ) = E_Anonymous_Access_Type
-        and then No (Associated_Collection (Ptr_Typ))
-        and then
-          (not Restriction_Active (No_Nested_Finalization)
-             or else Is_Library_Level_Entity (Ptr_Typ))
-      then
-         declare
-            Pool_Id : constant Entity_Id :=
-                        Get_Global_Pool_For_Access_Type (Ptr_Typ);
-            Scop    : Node_Id := Cunit_Entity (Current_Sem_Unit);
+   ------------------------
+   -- Current_Unit_Scope --
+   ------------------------
 
-         begin
-            --  Use the scope of the current semantic unit when analyzing
+   function Current_Unit_Scope return Entity_Id is
+      Scop_Id  : Entity_Id := Cunit_Entity (Current_Sem_Unit);
+      Subp_Bod : Node_Id;
 
-            if Ekind (Scop) = E_Subprogram_Body then
-               Scop := Corresponding_Spec (Parent (Parent (Parent (Scop))));
-            end if;
+   begin
+      if Ekind (Scop_Id) = E_Subprogram_Body then
 
-            Build_Finalization_Collection
-              (Typ        => Ptr_Typ,
-               Ins_Node   => First_Declaration_Of_Current_Unit,
-               Encl_Scope => Scop);
+         --  When processing subprogram bodies, the proper scope is always
+         --  that of the spec.
 
-            --  Decorate the anonymous access type and the allocator node
+         Subp_Bod := Scop_Id;
+         while Present (Subp_Bod)
+           and then Nkind (Subp_Bod) /= N_Subprogram_Body
+         loop
+            Subp_Bod := Parent (Subp_Bod);
+         end loop;
 
-            Set_Associated_Storage_Pool (Ptr_Typ, Pool_Id);
-            Set_Storage_Pool (Expression (Temp_Decl), Pool_Id);
-         end;
+         Scop_Id := Corresponding_Spec (Subp_Bod);
       end if;
 
-      --  Since the temporary object reuses the original allocator, generate a
-      --  custom Allocate routine for the temporary.
-
-      if Present (Associated_Collection (Ptr_Typ)) then
-         Build_Allocate_Deallocate_Proc
-           (N           => Temp_Decl,
-            Is_Allocate => True);
-      end if;
-   end Complete_Controlled_Allocation;
+      return Scop_Id;
+   end Current_Unit_Scope;
 
    --------------------------------
    -- Displace_Allocator_Pointer --
@@ -774,14 +735,13 @@ package body Exp_Ch4 is
             return;
          end if;
 
-         --    Actions inserted before:
-         --              Temp : constant ptr_T := new T'(Expression);
-         --   <no CW>    Temp._tag := T'tag;
-         --   <CTRL>     Adjust (Finalizable (Temp.all));
-         --   <CTRL>     Attach_To_Final_List (Finalizable (Temp.all));
+         --  Actions inserted before:
+         --    Temp : constant ptr_T := new T'(Expression);
+         --    Temp._tag = T'tag;  --  when not class-wide
+         --    [Deep_]Adjust (Temp.all);
 
-         --  We analyze by hand the new internal allocator to avoid
-         --  any recursion and inappropriate call to Initialize
+         --  We analyze by hand the new internal allocator to avoid any
+         --  recursion and inappropriate call to Initialize
 
          --  We don't want to remove side effects when the expression must be
          --  built in place. In the case of a build-in-place function call,
@@ -855,17 +815,17 @@ package body Exp_Ch4 is
                Set_No_Initialization (Expression (Temp_Decl));
                Insert_Action (N, Temp_Decl);
 
-               Complete_Controlled_Allocation (Temp_Decl);
+               Build_Allocate_Deallocate_Proc (Temp_Decl, True);
                Convert_Aggr_In_Allocator (N, Temp_Decl, Exp);
 
-               --  Attach the object to the associated finalization collection.
+               --  Attach the object to the associated finalization master.
                --  This is done manually on .NET/JVM since those compilers do
                --  no support pools and can't benefit from internally generated
                --  Allocate / Deallocate procedures.
 
                if VM_Target /= No_VM
                  and then Is_Controlled (DesigT)
-                 and then Present (Associated_Collection (PtrT))
+                 and then Present (Finalization_Master (PtrT))
                then
                   Insert_Action (N,
                     Make_Attach_Call (
@@ -886,16 +846,16 @@ package body Exp_Ch4 is
                    Expression          => Node);
 
                Insert_Action (N, Temp_Decl);
-               Complete_Controlled_Allocation (Temp_Decl);
+               Build_Allocate_Deallocate_Proc (Temp_Decl, True);
 
-               --  Attach the object to the associated finalization collection.
+               --  Attach the object to the associated finalization master.
                --  This is done manually on .NET/JVM since those compilers do
                --  no support pools and can't benefit from internally generated
                --  Allocate / Deallocate procedures.
 
                if VM_Target /= No_VM
                  and then Is_Controlled (DesigT)
-                 and then Present (Associated_Collection (PtrT))
+                 and then Present (Finalization_Master (PtrT))
                then
                   Insert_Action (N,
                     Make_Attach_Call (
@@ -931,8 +891,7 @@ package body Exp_Ch4 is
                --  Inherit the allocation-related attributes from the original
                --  access type.
 
-               Set_Associated_Collection (Def_Id,
-                 Associated_Collection (PtrT));
+               Set_Finalization_Master (Def_Id, Finalization_Master (PtrT));
 
                Set_Associated_Storage_Pool (Def_Id,
                  Associated_Storage_Pool (PtrT));
@@ -959,7 +918,7 @@ package body Exp_Ch4 is
                   Set_No_Initialization (Expression (Temp_Decl));
                   Insert_Action (N, Temp_Decl);
 
-                  Complete_Controlled_Allocation (Temp_Decl);
+                  Build_Allocate_Deallocate_Proc (Temp_Decl, True);
                   Convert_Aggr_In_Allocator (N, Temp_Decl, Exp);
 
                else
@@ -974,7 +933,7 @@ package body Exp_Ch4 is
                       Expression          => Node);
 
                   Insert_Action (N, Temp_Decl);
-                  Complete_Controlled_Allocation (Temp_Decl);
+                  Build_Allocate_Deallocate_Proc (Temp_Decl, True);
                end if;
 
                --  Generate an additional object containing the address of the
@@ -1085,19 +1044,18 @@ package body Exp_Ch4 is
             end if;
 
             --  Generate:
-            --    Set_Finalize_Address_Ptr
-            --      (Collection, <Finalize_Address>'Unrestricted_Access)
+            --    Set_Finalize_Address (<PtrT>FM, <T>FD'Unrestricted_Access);
 
             --  Since .NET/JVM compilers do not support address arithmetic,
             --  this call is skipped. The same is done for CodePeer because
-            --  Finalize_Address is never generated.
+            --  primitive Finalize_Address is never generated.
 
             if VM_Target = No_VM
               and then not CodePeer_Mode
-              and then Present (Associated_Collection (PtrT))
+              and then Present (Finalization_Master (PtrT))
             then
                Insert_Action (N,
-                 Make_Set_Finalize_Address_Ptr_Call
+                 Make_Set_Finalize_Address_Call
                    (Loc     => Loc,
                     Typ     => T,
                     Ptr_Typ => PtrT));
@@ -1136,17 +1094,17 @@ package body Exp_Ch4 is
          Set_No_Initialization (Expression (Temp_Decl));
          Insert_Action (N, Temp_Decl);
 
-         Complete_Controlled_Allocation (Temp_Decl);
+         Build_Allocate_Deallocate_Proc (Temp_Decl, True);
          Convert_Aggr_In_Allocator (N, Temp_Decl, Exp);
 
-         --  Attach the object to the associated finalization collection. This
-         --  is done manually on .NET/JVM since those compilers do no support
+         --  Attach the object to the associated finalization master. Thisis
+         --  done manually on .NET/JVM since those compilers do no support
          --  pools and cannot benefit from internally generated Allocate and
          --  Deallocate procedures.
 
          if VM_Target /= No_VM
            and then Is_Controlled (DesigT)
-           and then Present (Associated_Collection (PtrT))
+           and then Present (Finalization_Master (PtrT))
          then
             Insert_Action (N,
               Make_Attach_Call
@@ -1225,7 +1183,8 @@ package body Exp_Ch4 is
                Insert_Action (Exp,
                  Make_Subtype_Declaration (Loc,
                    Defining_Identifier => ConstrT,
-                   Subtype_Indication  => Make_Subtype_From_Expr (Exp, T)));
+                   Subtype_Indication  =>
+                     Make_Subtype_From_Expr (Internal_Exp, T)));
                Freeze_Itype (ConstrT, Exp);
                Rewrite (Exp, OK_Convert_To (ConstrT, Internal_Exp));
             end;
@@ -3267,8 +3226,9 @@ package body Exp_Ch4 is
       Etyp  : constant Entity_Id  := Etype (Expression (N));
       Loc   : constant Source_Ptr := Sloc (N);
       Desig : Entity_Id;
-      Temp  : Entity_Id;
       Nod   : Node_Id;
+      Pool  : Entity_Id;
+      Temp  : Entity_Id;
 
       procedure Rewrite_Coextension (N : Node_Id);
       --  Static coextensions have the same lifetime as the entity they
@@ -3391,22 +3351,55 @@ package body Exp_Ch4 is
 
       Validate_Remote_Access_To_Class_Wide_Type (N);
 
-      --  Set the Storage Pool
+      --  Processing for anonymous access-to-controlled types. These access
+      --  types receive a special finalization master which appears in the
+      --  declarations of the enclosing semantic unit. This expansion is done
+      --  now to ensure that any additional types generated by this routine
+      --  or Expand_Allocator_Expression inherit the proper type attributes.
 
-      Set_Storage_Pool (N, Associated_Storage_Pool (Root_Type (PtrT)));
+      if Ekind (PtrT) = E_Anonymous_Access_Type
+        and then Needs_Finalization (Dtyp)
+      then
+         --  Anonymous access-to-controlled types allocate on the global pool.
+         --  Do not set this attribute on .NET/JVM since those targets do not
+         --  support pools.
 
-      if Present (Storage_Pool (N)) then
-         if Is_RTE (Storage_Pool (N), RE_SS_Pool) then
+         if No (Associated_Storage_Pool (PtrT))
+           and then VM_Target = No_VM
+         then
+            Set_Associated_Storage_Pool (PtrT,
+              Get_Global_Pool_For_Access_Type (PtrT));
+         end if;
+
+         --  The finalization master must be inserted and analyzed as part of
+         --  the current semantic unit.
+
+         if No (Finalization_Master (PtrT)) then
+            Build_Finalization_Master
+              (Typ        => PtrT,
+               Ins_Node   => Current_Unit_First_Declaration,
+               Encl_Scope => Current_Unit_Scope);
+         end if;
+      end if;
+
+      --  Set the storage pool and find the appropriate version of Allocate to
+      --  call.
+
+      Pool := Associated_Storage_Pool (Root_Type (PtrT));
+      Set_Storage_Pool (N, Pool);
+
+      if Present (Pool) then
+         if Is_RTE (Pool, RE_SS_Pool) then
             if VM_Target = No_VM then
                Set_Procedure_To_Call (N, RTE (RE_SS_Allocate));
             end if;
 
-         elsif Is_Class_Wide_Type (Etype (Storage_Pool (N))) then
+         elsif Is_Class_Wide_Type (Etype (Pool)) then
             Set_Procedure_To_Call (N, RTE (RE_Allocate_Any));
 
          else
             Set_Procedure_To_Call (N,
-              Find_Prim_Op (Etype (Storage_Pool (N)), Name_Allocate));
+              Find_Prim_Op (Etype (Pool), Name_Allocate));
          end if;
       end if;
 
@@ -3564,10 +3557,10 @@ package body Exp_Ch4 is
             --  do not support pools, this step is skipped.
 
             if VM_Target = No_VM
-              and then Present (Associated_Collection (PtrT))
+              and then Present (Finalization_Master (PtrT))
             then
                Build_Allocate_Deallocate_Proc
-                 (N           => Parent (N),
+                 (N           => N,
                   Is_Allocate => True);
             end if;
 
@@ -3805,14 +3798,13 @@ package body Exp_Ch4 is
                Nod := Relocate_Node (N);
 
                --  Here is the transformation:
-               --    input:  new T
-               --    output: Temp : constant ptr_T := new T;
-               --            Init (Temp.all, ...);
-               --    <CTRL>  Attach_To_Final_List (Finalizable (Temp.all));
-               --    <CTRL>  Initialize (Finalizable (Temp.all));
+               --    input:  new Ctrl_Typ
+               --    output: Temp : constant Ctrl_Typ_Ptr := new Ctrl_Typ;
+               --            Ctrl_TypIP (Temp.all, ...);
+               --            [Deep_]Initialize (Temp.all);
 
-               --  Here ptr_T is the pointer type for the allocator, and is the
-               --  subtype of the allocator.
+               --  Here Ctrl_Typ_Ptr is the pointer type for the allocator, and
+               --  is the subtype of the allocator.
 
                Temp_Decl :=
                  Make_Object_Declaration (Loc,
@@ -3824,7 +3816,7 @@ package body Exp_Ch4 is
                Set_Assignment_OK (Temp_Decl);
                Insert_Action (N, Temp_Decl, Suppress => All_Checks);
 
-               Complete_Controlled_Allocation (Temp_Decl);
+               Build_Allocate_Deallocate_Proc (Temp_Decl, True);
 
                --  If the designated type is a task type or contains tasks,
                --  create block to activate created tasks, and insert
@@ -3858,35 +3850,35 @@ package body Exp_Ch4 is
                       (Obj_Ref => New_Copy_Tree (Init_Arg1),
                        Typ     => T));
 
-                  if Present (Associated_Collection (PtrT)) then
+                  if Present (Finalization_Master (PtrT)) then
 
                      --  Special processing for .NET/JVM, the allocated object
-                     --  is attached to the finalization collection. Generate:
+                     --  is attached to the finalization master. Generate:
 
-                     --    Attach (<PtrT>FC, Root_Controlled_Ptr (Init_Arg1));
+                     --    Attach (<PtrT>FM, Root_Controlled_Ptr (Init_Arg1));
 
                      --  Types derived from [Limited_]Controlled are the only
                      --  ones considered since they have fields Prev and Next.
 
-                     if VM_Target /= No_VM then
-                        if Is_Controlled (T) then
-                           Insert_Action (N,
-                             Make_Attach_Call
-                               (Obj_Ref => New_Copy_Tree (Init_Arg1),
-                                Ptr_Typ => PtrT));
-                        end if;
+                     if VM_Target /= No_VM
+                       and then Is_Controlled (T)
+                     then
+                        Insert_Action (N,
+                          Make_Attach_Call
+                            (Obj_Ref => New_Copy_Tree (Init_Arg1),
+                             Ptr_Typ => PtrT));
 
                      --  Default case, generate:
 
-                     --    Set_Finalize_Address_Ptr
-                     --      (Pool, <Finalize_Address>'Unrestricted_Access)
+                     --    Set_Finalize_Address
+                     --      (<PtrT>FM, <T>FD'Unrestricted_Access);
 
                      --  Do not generate the above for CodePeer compilations
-                     --  because Finalize_Address is never built.
+                     --  because primitive Finalize_Address is never built.
 
                      elsif not CodePeer_Mode then
                         Insert_Action (N,
-                          Make_Set_Finalize_Address_Ptr_Call
+                          Make_Set_Finalize_Address_Call
                             (Loc     => Loc,
                              Typ     => T,
                              Ptr_Typ => PtrT));
@@ -5545,25 +5537,6 @@ package body Exp_Ch4 is
       elsif Is_Integer_Type (Typ) then
          Apply_Divide_Check (N);
 
-         --  Check for 64-bit division available, or long shifts if the divisor
-         --  is a small power of 2 (since such divides will be converted into
-         --  long shifts).
-
-         if Esize (Ltyp) > 32
-           and then not Support_64_Bit_Divides_On_Target
-           and then
-             (not Rknow
-                or else not Support_Long_Shifts_On_Target
-                or else (Rval /= Uint_2  and then
-                         Rval /= Uint_4  and then
-                         Rval /= Uint_8  and then
-                         Rval /= Uint_16 and then
-                         Rval /= Uint_32 and then
-                         Rval /= Uint_64))
-         then
-            Error_Msg_CRT ("64-bit division", N);
-         end if;
-
       --  Deal with Vax_Float
 
       elsif Vax_Float (Typ) then
@@ -6193,6 +6166,12 @@ package body Exp_Ch4 is
    begin
       Binary_Op_Validity_Checks (N);
 
+      --  CodePeer and GNATprove want to see the unexpanded N_Op_Expon node
+
+      if CodePeer_Mode or ALFA_Mode then
+         return;
+      end if;
+
       --  If either operand is of a private type, then we have the use of an
       --  intrinsic operator, and we get rid of the privateness, by using root
       --  types of underlying types for the actual operation. Otherwise the
@@ -6201,12 +6180,9 @@ package body Exp_Ch4 is
       --  different from the base type.
 
       if Is_Private_Type (Etype (Base))
-           or else
-         Is_Private_Type (Typ)
-           or else
-         Is_Private_Type (Exptyp)
-           or else
-         Rtyp /= Root_Type (Bastyp)
+        or else Is_Private_Type (Typ)
+        or else Is_Private_Type (Exptyp)
+        or else Rtyp /= Root_Type (Bastyp)
       then
          declare
             Bt : constant Entity_Id := Root_Type (Underlying_Type (Bastyp));
@@ -7158,9 +7134,10 @@ package body Exp_Ch4 is
          end;
       end if;
 
-      --  Only array types need any other processing
+      --  Only array types need any other processing. In formal verification
+      --  mode, no other processing is done.
 
-      if not Is_Array_Type (Typ) then
+      if not Is_Array_Type (Typ) or else ALFA_Mode then
          return;
       end if;
 
@@ -7616,6 +7593,13 @@ package body Exp_Ch4 is
       Test         : Node_Id;
 
    begin
+      --  Do not expand quantified expressions in ALFA mode
+      --  why not???
+
+      if ALFA_Mode then
+         return;
+      end if;
+
       Decl :=
         Make_Object_Declaration (Loc,
           Defining_Identifier => Tnn,

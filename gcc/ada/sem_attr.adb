@@ -1945,6 +1945,8 @@ package body Sem_Attr is
            and then
          Aname /= Name_Elab_Spec
            and then
+         Aname /= Name_Elab_Subp_Body
+           and then
          Aname /= Name_UET_Address
            and then
          Aname /= Name_Enabled
@@ -3012,9 +3014,12 @@ package body Sem_Attr is
       -- Elab_Body --
       ---------------
 
-      --  Also handles processing for Elab_Spec
+      --  Also handles processing for Elab_Spec and Elab_Subp_Body
 
-      when Attribute_Elab_Body | Attribute_Elab_Spec =>
+      when Attribute_Elab_Body      |
+           Attribute_Elab_Spec      |
+           Attribute_Elab_Subp_Body =>
+
          Check_E0;
          Check_Unit_Name (P);
          Set_Etype (N, Standard_Void_Type);
@@ -4557,6 +4562,13 @@ package body Sem_Attr is
                Enable_Range_Check (E1);
             end if;
          end if;
+
+      --------------------------------
+      -- System_Allocator_Alignment --
+      --------------------------------
+
+      when Attribute_System_Allocator_Alignment =>
+         Standard_Attribute (Ttypes.System_Allocator_Alignment);
 
       ---------
       -- Tag --
@@ -7693,60 +7705,62 @@ package body Sem_Attr is
       --  Note that in some cases, the values have already been folded as
       --  a result of the processing in Analyze_Attribute.
 
-      when Attribute_Abort_Signal             |
-           Attribute_Access                   |
-           Attribute_Address                  |
-           Attribute_Address_Size             |
-           Attribute_Asm_Input                |
-           Attribute_Asm_Output               |
-           Attribute_Base                     |
-           Attribute_Bit_Order                |
-           Attribute_Bit_Position             |
-           Attribute_Callable                 |
-           Attribute_Caller                   |
-           Attribute_Class                    |
-           Attribute_Code_Address             |
-           Attribute_Compiler_Version         |
-           Attribute_Count                    |
-           Attribute_Default_Bit_Order        |
-           Attribute_Elaborated               |
-           Attribute_Elab_Body                |
-           Attribute_Elab_Spec                |
-           Attribute_Enabled                  |
-           Attribute_External_Tag             |
-           Attribute_Fast_Math                |
-           Attribute_First_Bit                |
-           Attribute_Input                    |
-           Attribute_Last_Bit                 |
-           Attribute_Maximum_Alignment        |
-           Attribute_Old                      |
-           Attribute_Output                   |
-           Attribute_Partition_ID             |
-           Attribute_Pool_Address             |
-           Attribute_Position                 |
-           Attribute_Priority                 |
-           Attribute_Read                     |
-           Attribute_Result                   |
-           Attribute_Storage_Pool             |
-           Attribute_Storage_Size             |
-           Attribute_Storage_Unit             |
-           Attribute_Stub_Type                |
-           Attribute_Tag                      |
-           Attribute_Target_Name              |
-           Attribute_Terminated               |
-           Attribute_To_Address               |
-           Attribute_Type_Key                 |
-           Attribute_UET_Address              |
-           Attribute_Unchecked_Access         |
-           Attribute_Universal_Literal_String |
-           Attribute_Unrestricted_Access      |
-           Attribute_Valid                    |
-           Attribute_Value                    |
-           Attribute_Wchar_T_Size             |
-           Attribute_Wide_Value               |
-           Attribute_Wide_Wide_Value          |
-           Attribute_Word_Size                |
-           Attribute_Write                    =>
+      when Attribute_Abort_Signal               |
+           Attribute_Access                     |
+           Attribute_Address                    |
+           Attribute_Address_Size               |
+           Attribute_Asm_Input                  |
+           Attribute_Asm_Output                 |
+           Attribute_Base                       |
+           Attribute_Bit_Order                  |
+           Attribute_Bit_Position               |
+           Attribute_Callable                   |
+           Attribute_Caller                     |
+           Attribute_Class                      |
+           Attribute_Code_Address               |
+           Attribute_Compiler_Version           |
+           Attribute_Count                      |
+           Attribute_Default_Bit_Order          |
+           Attribute_Elaborated                 |
+           Attribute_Elab_Body                  |
+           Attribute_Elab_Spec                  |
+           Attribute_Elab_Subp_Body             |
+           Attribute_Enabled                    |
+           Attribute_External_Tag               |
+           Attribute_Fast_Math                  |
+           Attribute_First_Bit                  |
+           Attribute_Input                      |
+           Attribute_Last_Bit                   |
+           Attribute_Maximum_Alignment          |
+           Attribute_Old                        |
+           Attribute_Output                     |
+           Attribute_Partition_ID               |
+           Attribute_Pool_Address               |
+           Attribute_Position                   |
+           Attribute_Priority                   |
+           Attribute_Read                       |
+           Attribute_Result                     |
+           Attribute_Storage_Pool               |
+           Attribute_Storage_Size               |
+           Attribute_Storage_Unit               |
+           Attribute_Stub_Type                  |
+           Attribute_System_Allocator_Alignment |
+           Attribute_Tag                        |
+           Attribute_Target_Name                |
+           Attribute_Terminated                 |
+           Attribute_To_Address                 |
+           Attribute_Type_Key                   |
+           Attribute_UET_Address                |
+           Attribute_Unchecked_Access           |
+           Attribute_Universal_Literal_String   |
+           Attribute_Unrestricted_Access        |
+           Attribute_Valid                      |
+           Attribute_Value                      |
+           Attribute_Wchar_T_Size               |
+           Attribute_Wide_Value                 |
+           Attribute_Wide_Wide_Value            |
+           Attribute_Word_Size                  |
+           Attribute_Write                      =>
 
          raise Program_Error;
       end case;
