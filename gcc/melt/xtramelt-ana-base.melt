@@ -1447,11 +1447,14 @@
 
 (defprimitive gimpleseq_content (v) :gimple_seq
   #{(melt_gimpleseq_content((melt_ptr_t)($v)))}# )
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprimitive is_tree (v) :long
   #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_TREE)}# )
+
+(defprimitive isnull_tree (:tree tr) :long
+  #{$tr == (tree)0}#
+)
 
 (defprimitive make_tree (discr :tree g) :value
   #{(meltgc_new_tree((meltobject_ptr_t)($discr),($g)))}# )
@@ -3597,7 +3600,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  is_mapgimple 
  is_maploop
  is_maptree
- is_tree  
+ is_tree
+ isnull_tree
  isnull_basicblock
  loop_body_tuple
  loop_can_be_parallel

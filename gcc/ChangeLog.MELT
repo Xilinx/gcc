@@ -1,5 +1,9 @@
 2011-08-30  Pierre Vittet  <piervit@pvittet.com>
 
+	* melt/xtramelt-ana-base.melt (isnull_tree): Add primitive.
+
+2011-08-30  Pierre Vittet  <piervit@pvittet.com>
+
 	* melt/warmelt-base.melt (read_strv): New primitive.
 
 2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
