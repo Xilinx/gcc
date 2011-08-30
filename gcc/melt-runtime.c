@@ -5979,7 +5979,6 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define NUMNAM(N) else if (!strcmp(nam,#N)) r = (N)
        NUMNAM (MELTOBMAG_OBJECT);
        NUMNAM (MELTOBMAG_MULTIPLE);
-       NUMNAM (MELTOBMAG_BOX);
        NUMNAM (MELTOBMAG_CLOSURE);
        NUMNAM (MELTOBMAG_ROUTINE);
        NUMNAM (MELTOBMAG_LIST);

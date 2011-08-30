@@ -601,14 +601,6 @@ melt_ptr_t
 meltgc_sort_multiple(melt_ptr_t mult_p, melt_ptr_t clo_p, melt_ptr_t discrm_p); 
 
 
-/* Boxes are obsolete; use containers instead. */
-#warning MELT boxes are obsolete
-#define MELTOBMAG_BOX 0
-#define meltgc_new_box(D,V) ((melt_ptr_t)NULL)
-#define melt_box_content(B) ((melt_ptr_t)NULL)
-#define meltgc_box_put(B,V) do{ \
-  melt_fatal_error("impossible meltgc_box_put B=%p", (void*)(B));}while(0)
-
 
 
 /* safely return the calue inside a container - instance of CLASS_CONTAINER */

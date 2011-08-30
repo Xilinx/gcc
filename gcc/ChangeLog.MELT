@@ -1,5 +1,10 @@
 
 2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELTOBMAG_BOX, meltgc_new_box, melt_box_content)
+	(meltgc_box_put): Remove, as all box related code.
+	* melt-runtime.c (readsimplelong): Remove read of +%MELTOBMAG_BOX
+
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list (DISCR_BOX):  Remove.
 	* melt-runtime.h (MELTGLOB__SPARE5):  New.
 	* melt-runtime.c (melt_minor_copying_garbage_collector): Clear
