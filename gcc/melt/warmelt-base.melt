@@ -275,6 +275,10 @@ number $NUM opaque location number $LOC.}#
   :doc #{Read from file named by the $FILNAM string balue a list of MELT s-expressions.}#
   #{(meltgc_read_file (melt_string_str((melt_ptr_t)($filnam)), (char*)0))}#)
 
+(defprimitive read_strv (strv) :value
+  :doc #{Return the list of s-exprs contained in in parsed string
+  $STRV. $STRV can be a boxed string or a strbuf value.}#
+  #{(meltgc_read_from_val ((melt_ptr_t) ($STRV), NULL))}# )
 
 ;; to signal an error in a  source with some additional string value
 (defprimitive error_strv (loc :cstring cmsg :value strv) :void
@@ -2603,6 +2607,7 @@ polyhedron values.}#
  pair_set_head 
  ppstrbuf_mixbigint
  read_file
+ read_strv
  register_pass_execution_hook
  register_pragma_handler
  register_pre_genericize_hook_first
