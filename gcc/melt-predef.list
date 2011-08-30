@@ -21,7 +21,9 @@
 
 ## To remove a predefined, mark it with POISON in second field, make
 ## upgrade-warmelt, remove it entirely, and make upgrade-warmelt
-## again. Look into make-warmelt-predef.awk for details.
+## again.  Look into make-warmelt-predef.awk for details.  Don't
+## forget to remove all MELT related file in the build tree before
+## making upgrade-warmelt.
 
 
   CLASS_CITERATOR
@@ -83,8 +85,8 @@
   CTYPE_VOID
   DISCR_BASIC_BLOCK
   DISCR_BITMAP
-#we want to remove DISCR_BOX so we poison it first
-  DISCR_BOX                                   @POISON
+#we remove DISCR_BOX 
+##  DISCR_BOX                                   @POISON
   DISCR_CHARACTER_INTEGER
   DISCR_CLASS_SEQUENCE
   DISCR_CLOSURE

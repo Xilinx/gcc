@@ -1426,37 +1426,6 @@ make a $CURAT string.}#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; BOX primitives (boxed values, i.e. reference)
-;; test
-(defprimitive is_box (box) :long
-  :doc #{Test if value $BOX is a box, ie a reference.}#
-  #{(melt_magic_discr((melt_ptr_t)($box)) == MELTOBMAG_BOX)}#)
-;; safe fetch content
-(defprimitive box_content (box) :value
-  :doc #{Safely retrieve the content of a box value $BOX or else null.}#
-  #{melt_box_content((meltbox_ptr_t)($box))}#)
-;; put into a box
-(defprimitive box_put (box val) :void
-  :doc #{Safely put into box value $BOX the value $VAL.}#
-  #{meltgc_box_put((melt_ptr_t)($box), (melt_ptr_t)($val))}#)
-;; make a box
-(defprimitive make_box (discr valb) :value
-  :doc #{Make a box value of discriminant $DISCR and content $VALB.}#
-  #{meltgc_new_box((meltobject_ptr_t)($discr), (melt_ptr_t)($valb))}#)
-;;; pattern
-(defcmatcher box_of 
-  (:value bx)
-  (:value v)
-  boxof
-  :doc #{The $BOX_OF patern matches a value box $BX. If indeed it
-  is a box, its content should match the subpattern $V.
-  It fails if $BX is not a boxed integer. See also $MAKE_BOX $BOX_CONTENT.}#
-  ;; test
-  #{ /* $BOXOF ?*/ $BX && melt_magic_discr($bx) == MELTOBMAG_BOX }#
-  ;; fill
-  #{ /* $BOXOF !*/ $V = ((struct meltbox_st*)$bx)->val; }#
-)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; LIST primitives
 ;; test
 (defprimitive is_list (li) :long
@@ -4041,9 +4010,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ==s
  >=i
  assert_failed
- box_content
- box_of
- box_put
  closure_nth
  closure_routine
  closure_size
@@ -4057,7 +4023,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  informsg_long
  informsg_strv
  is_a
- is_box
  is_closure
  is_integerbox
  is_list
@@ -4080,7 +4045,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  list_length
  list_popfirst
  list_prepend
- make_box
  make_integerbox
  make_list
  make_mapobject

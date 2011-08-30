@@ -2269,6 +2269,7 @@ enum melt_globalix_en
   MELTGLOB___SPARE2,
   MELTGLOB___SPARE3,
   MELTGLOB___SPARE4,
+  MELTGLOB___SPARE5,
   /*****/
   MELTGLOB__LASTGLOB
 };

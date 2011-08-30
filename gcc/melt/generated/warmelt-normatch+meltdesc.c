@@ -11,22 +11,22 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Aug 30 10:50:00 2011 CEST";
-const long long melt_gen_timenum=1314694200;
+const char melt_gen_timestamp[]="Tue Aug 30 11:24:22 2011 CEST";
+const long long melt_gen_timenum=1314696262;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="f7f5d46ea30fd76b3ac4652a4158ce50";
+const char melt_prepromd5meltrun[]="f2144e7628bf973044b172f1d92c04af";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="832dafdebc6f661856cee25b0352fbb5";
+const char melt_primaryhexmd5[]="b60a15b57377d12df2f86dd2c401be41";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+01.c #1 */ "3730e2547623c0f12e78dbb51761a670",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+02.c #2 */ "eac476677e20dbd688c9c931a1ce161c",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+03.c #3 */ "6da472fadc21b443de47ed83a2cae91b",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+04.c #4 */ "bd85cc6a44cba9a273471baaf35ba5dc",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+02.c #2 */ "289b0ece05a9489cdd251bed8f27f511",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+03.c #3 */ "d2dadeae9f182a595efeb9501c8227e5",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-normatch+04.c #4 */ "71751ff87dfb9df58d557235bd5a3e7e",
  /*nosecfile*/ (const char*)0,
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
@@ -35,5 +35,5 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=4;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="e1dc34d2209b078fa2f8b1290132f62f";
+const char melt_cumulated_hexmd5[]="afbe9c666b7e46e21dff4804d45a9698";
 /* end of melt descriptor file */

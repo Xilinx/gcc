@@ -1045,8 +1045,11 @@ melt_minor_copying_garbage_collector (size_t wanted)
 
   melt_is_forwarding = TRUE;
   melt_forward_counter = 0;
-  for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
+  for (ix = 0; ix < MELTGLOB__LASTWIRED; ix++)
     MELT_FORWARDED (melt_globarr[ix]);
+  for (ix = MELTGLOB__LASTWIRED; ix < MELTGLOB__LASTGLOB; ix++)
+    melt_globarr[ix] = NULL;
+
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
       int varix = 0;
