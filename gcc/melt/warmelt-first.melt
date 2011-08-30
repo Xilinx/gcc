@@ -1970,6 +1970,11 @@ the routine pointer and the constants inside MELT function closure values. See a
 (defun install_ctype_descr (ctyp :cstring descr)
   :doc #{Install a new ctype $CTYP with descriptive string $DESCR. 
 Also add the ctype as symbol data in the keyword and the alternate keyword if provided.}#
+  (if (is_not_a ctyp class_ctype)
+      (code_chunk invalidctype 
+		  #{/*$INVALIDCTYPE*/error("MELT invalid ctype: %s", $DESCR);
+      }#)
+      )
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (if (unsafe_get_field :ctype_descr ctyp)
       (return))

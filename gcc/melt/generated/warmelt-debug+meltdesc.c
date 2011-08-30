@@ -11,8 +11,8 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Aug 30 10:34:41 2011 CEST";
-const long long melt_gen_timenum=1314693281;
+const char melt_gen_timestamp[]="Tue Aug 30 10:49:56 2011 CEST";
+const long long melt_gen_timenum=1314694196;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */

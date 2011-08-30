@@ -1,5 +1,22 @@
 
 2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (install_ctype_descr): Give an error
+	when bad $CTYP.
+	{{Regenerate warmelt}}
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first+01.c: Regenerate.
+	* melt/generated/warmelt-first+02.c: Regenerate.
+	* melt/generated/warmelt-first+03.c: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.mk: Regenerate.
 	* melt-predef.list: Poison DISCR_BOX.
 	* make-warmelt-predef.awk: Use @POISON instead of POISON.
