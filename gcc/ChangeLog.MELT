@@ -1,3 +1,13 @@
+2011-08-30  Alexandre Lissy  <alissy@mandriva.com>
+	* melt-runtime.c (melt_load_module_index):
+	  - Export melt_versionstr from meltdesc instead of
+	    melt_genversionstr.
+	  - Make use of melt_version_str() instead of MELT_VERSION_STR.
+	  - Compare melt_version_str() against melt_versionstr instead of
+	    melt_genversionstr.
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Make use of
+	melt_version_str() to build melt_versionstr instead of using
+	MELT_VERSION_STRING.
 
 2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl (melt-all-modules): Typo, removed bad ".

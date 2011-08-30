@@ -3778,7 +3778,7 @@
     (code_chunk 
      genvmeltch
      #{ /* output_melt_descriptor $GENVMELTCH + */
-     meltgc_add_strbuf_cstr ($DEBUF, MELT_VERSION_STRING) ;
+     meltgc_add_strbuf_cstr ($DEBUF, melt_version_str ()) ;
      }#)
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
