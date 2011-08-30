@@ -1,5 +1,13 @@
 
 2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-all-modules): Typo, removed bad ".
+	(meltrun-generate): Moved. Use melt-workdir.
+	(warmelt-upgrade-translator): Redirect which to /dev/null. Indent
+	the generated meltrunsup* files.
+
+	* melt-build.mk: Regenerate.
+
+2011-08-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_container, mexpand_content):
 	Add debug message.
 

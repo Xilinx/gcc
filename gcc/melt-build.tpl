@@ -593,7 +593,7 @@ melt-all-modules:  melt-workdir \
 [+FOR melt_translator_file+]    melt-modules/[+base+].debugnoline.so \
 [+ENDFOR melt_translator_file+] \
     \
-[+FOR melt_application_file "+]    melt-modules/[+base+].optimized.so \
+[+FOR melt_application_file+]    melt-modules/[+base+].optimized.so \
 [+ENDFOR melt_application_file+] \
 [+FOR melt_application_file+]    melt-modules/[+base+].quicklybuilt.so \
 [+ENDFOR melt_application_file+] \
@@ -629,16 +629,48 @@ $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules
 
 #@ [+ (. (tpl-file-line))+]
 ### MELT upgrade
-.PHONY: warmelt-upgrade-translator
+.PHONY: warmelt-upgrade-translator meltrun-generate
 
+
+#@ [+ (. (tpl-file-line))+]
+####### generate the runtime support files meltrunsup.h meltrunsup-inc.c
+meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+                   $(melt_make_cc1_dependency)
+	@rm -f $(wildcard meltrunsup*)
+	@echo $(melt_make_cc1flags) \
+	      $(meltarg_mode)=runtypesupport  \
+	      $(meltarg_workdir)=melt-workdir $(meltarg_bootstrapping)  $(MELT_DEBUG) \
+	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
+	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
+	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
+	      $(meltarg_output)=meltrunsup  \
+	      empty-file-for-melt.c > $(basename $@).args-tmp
+	@mv $(basename $@).args-tmp $(basename $@).args
+	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	 $(melt_make_cc1) @$(basename $@).args
+	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
+	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
+	     do mv $$f $$f.bak; \
+	   done; \
+	   cp -v meltrunsup*.[ch] "$(GCCMELTRUNGEN_DEST)" ; \
+        fi
+	ls -l meltrunsup*.[ch]
+
+
+###### generate the translator files warmelt*.c
+#@ [+ (. (tpl-file-line))+]
 warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 [+FOR melt_translator_file " \\\n"
 +]   $(MELT_LAST_STAGE)/[+base+].c \
          $(wildcard  $(MELT_LAST_STAGE)/[+base+]+*.c)[+
 ENDFOR melt_translator_file+]
 	@echo upgrading the MELT translator
-	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
-	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
+	@which unifdef > /dev/null || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
+	@which indent  > /dev/null || (echo missing indent for warmelt-upgrade-translator; exit 1)
+	ls -l meltrunsup.h meltrunsup-inc.c 
+	indent meltrunsup.h
+	indent meltrunsup-inc.c
+#@ [+ (. (tpl-file-line))+]
 [+FOR melt_translator_file+]
 #@ [+ (. (tpl-file-line))+]
 	@echo upgrading MELT translator [+base+]
@@ -657,14 +689,16 @@ ENDFOR melt_translator_file+]
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/[+base+]*.so $(MELT_STAGE_ZERO)/[+base+]*.c
+#@ [+ (. (tpl-file-line))+]
+#
+[+ENDFOR melt_translator_file+]
+	cp -v meltrunsup*.[ch]   $(srcdir)/melt/generated/
 #@ [+ (. (tpl-file-line))+]
 
 
 
-[+ENDFOR melt_translator_file+]
 
 
 ### Generated MELT documentation
@@ -697,28 +731,6 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
-#@ [+ (. (tpl-file-line))+]
-.PHONY: meltrun-generate
-meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
-                   $(melt_make_cc1_dependency)
-	rm -f $(wildcard meltrunsup*)
-	@echo  \
-	      $(meltarg_mode)=runtypesupport  \
-	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
-	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
-	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
-	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
-	      $(meltarg_output)=meltrunsup  \
-	      empty-file-for-melt.c > $(basename $@).args-tmp
-	@mv $(basename $@).args-tmp $(basename $@).args
-	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
-	 $(melt_make_cc1flags) @$(basename $@).args
-	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
-	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
-	     do mv $$f $$f.bak; \
-	   done; \
-	   cp -v meltrunsup*.[ch] "$(GCCMELTRUNGEN_DEST)" ; \
-        fi
 
 ### MELT cleanup
 .PHONY: melt-clean

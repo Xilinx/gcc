@@ -3547,8 +3547,36 @@ $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules
 
 #@ from melt-build.tpl line 630
 ### MELT upgrade
-.PHONY: warmelt-upgrade-translator
+.PHONY: warmelt-upgrade-translator meltrun-generate
 
+
+#@ from melt-build.tpl line 635
+####### generate the runtime support files meltrunsup.h meltrunsup-inc.c
+meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+                   $(melt_make_cc1_dependency)
+	@rm -f $(wildcard meltrunsup*)
+	@echo $(melt_make_cc1flags) \
+	      $(meltarg_mode)=runtypesupport  \
+	      $(meltarg_workdir)=melt-workdir $(meltarg_bootstrapping)  $(MELT_DEBUG) \
+	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
+	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
+	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
+	      $(meltarg_output)=meltrunsup  \
+	      empty-file-for-melt.c > $(basename $@).args-tmp
+	@mv $(basename $@).args-tmp $(basename $@).args
+	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	 $(melt_make_cc1) @$(basename $@).args
+	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
+	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
+	     do mv $$f $$f.bak; \
+	   done; \
+	   cp -v meltrunsup*.[ch] "$(GCCMELTRUNGEN_DEST)" ; \
+        fi
+	ls -l meltrunsup*.[ch]
+
+
+###### generate the translator files warmelt*.c
+#@ from melt-build.tpl line 661
 warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
    $(MELT_LAST_STAGE)/warmelt-first.c \
          $(wildcard  $(MELT_LAST_STAGE)/warmelt-first+*.c) \
@@ -3567,10 +3595,14 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
    $(MELT_LAST_STAGE)/warmelt-outobj.c \
          $(wildcard  $(MELT_LAST_STAGE)/warmelt-outobj+*.c)
 	@echo upgrading the MELT translator
-	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
-	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
+	@which unifdef > /dev/null || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
+	@which indent  > /dev/null || (echo missing indent for warmelt-upgrade-translator; exit 1)
+	ls -l meltrunsup.h meltrunsup-inc.c 
+	indent meltrunsup.h
+	indent mentrunsup-inc.c
+#@ from melt-build.tpl line 673
 
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-first
 ## dont indent the warmelt-first+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c~; \
@@ -3587,15 +3619,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-first*.so $(MELT_STAGE_ZERO)/warmelt-first*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-base
 ## dont indent the warmelt-base+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c~; \
@@ -3612,15 +3641,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-base*.so $(MELT_STAGE_ZERO)/warmelt-base*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-debug
 ## dont indent the warmelt-debug+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c~; \
@@ -3637,15 +3663,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-debug*.so $(MELT_STAGE_ZERO)/warmelt-debug*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-macro
 ## dont indent the warmelt-macro+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c~; \
@@ -3662,15 +3685,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-macro*.so $(MELT_STAGE_ZERO)/warmelt-macro*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-normal
 ## dont indent the warmelt-normal+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c~; \
@@ -3687,15 +3707,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-normal*.so $(MELT_STAGE_ZERO)/warmelt-normal*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-normatch
 ## dont indent the warmelt-normatch+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c~; \
@@ -3712,15 +3729,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-normatch*.so $(MELT_STAGE_ZERO)/warmelt-normatch*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-genobj
 ## dont indent the warmelt-genobj+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c~; \
@@ -3737,15 +3751,12 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-genobj*.so $(MELT_STAGE_ZERO)/warmelt-genobj*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
-
-
-
-#@ from melt-build.tpl line 643
+#@ from melt-build.tpl line 675
 	@echo upgrading MELT translator warmelt-outobj
 ## dont indent the warmelt-outobj+meltdesc.c 
 	cp $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c~; \
@@ -3762,18 +3773,20 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	  fi ; \
 	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
-        done	
-	$(melt_make_move) meltrunsup*.[ch]   $(srcdir)/melt/generated/
+        done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-outobj*.so $(MELT_STAGE_ZERO)/warmelt-outobj*.c
-#@ from melt-build.tpl line 663
+#@ from melt-build.tpl line 694
+#
 
+	cp -v meltrunsup*.[ch]   $(srcdir)/melt/generated/
+#@ from melt-build.tpl line 698
 
 
 
 
 
 ### Generated MELT documentation
-#@ from melt-build.tpl line 671
+#@ from melt-build.tpl line 705
 meltgendoc.texi: $(melt_default_modules_list).modlis \
                     melt-sources/warmelt-first.melt \
                     melt-sources/warmelt-base.melt \
@@ -3813,28 +3826,6 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
-#@ from melt-build.tpl line 700
-.PHONY: meltrun-generate
-meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
-                   $(melt_make_cc1_dependency)
-	rm -f $(wildcard meltrunsup*)
-	@echo  \
-	      $(meltarg_mode)=runtypesupport  \
-	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
-	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
-	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
-	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
-	      $(meltarg_output)=meltrunsup  \
-	      empty-file-for-melt.c > $(basename $@).args-tmp
-	@mv $(basename $@).args-tmp $(basename $@).args
-	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
-	 $(melt_make_cc1flags) @$(basename $@).args
-	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
-	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
-	     do mv $$f $$f.bak; \
-	   done; \
-	   cp -v meltrunsup*.[ch] "$(GCCMELTRUNGEN_DEST)" ; \
-        fi
 
 ### MELT cleanup
 .PHONY: melt-clean
@@ -3846,5 +3837,5 @@ melt-clean:
            melt-stage3  melt-stage3.stamp \
                melt-sources melt-modules
 
-#@ from melt-build.tpl line 731
+#@ from melt-build.tpl line 743
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def
