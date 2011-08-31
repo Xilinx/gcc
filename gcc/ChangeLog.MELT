@@ -1,4 +1,12 @@
 
+2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (outpucod_initialroutine): Emit code to
+	define constant strings
+	meltmodule_<modulename>__melt_have_debug_enabled or
+	meltmodule_<modulename>__melt_have_debug_disabled, depending upon
+	MELT_HAVE_DEBUG preprocessor symbol.
+
 2011-08-31  Pierre Vittet  <piervit@pvittet.com>
 	* melt-runtime.c (meltgc_read_file): Use LC_ENTER, not LC_RENAME
 	for linemap_add.
