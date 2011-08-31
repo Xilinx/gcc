@@ -1,5 +1,10 @@
 
 2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compile2obj_procedure): When making a
+	procedure from a cloned symbol [in particular a LAMBDA] use the
+	cloned rank in the generated C name of that procedure.
+
+2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_load_module_list): Transform modlistpath
 	to a realpath when relative. Free it at end.
 	(meltgc_load_one_module): Likewise.

@@ -792,7 +792,7 @@ $SBUF.}#
 	 (:long funum (+i 1 (get_int mofuncount)))
 	 )
     (if (is_a pro class_nrep_defunroutproc)
-	  (put_int mofuncount funum))
+	(put_int mofuncount funum))
     (add2sbuf_strconst namsbuf "meltrout_")
     (add2sbuf_longdec namsbuf num)
     (add2sbuf_strconst namsbuf "_")
@@ -804,7 +804,14 @@ $SBUF.}#
 	      (progn
 		(setq routfunam (unsafe_get_field :named_name pronam))
 		(add2sbuf_strconst namsbuf "_")
-		(add2sbuf_cident namsbuf (unsafe_get_field :named_name pronam)))
+		(add2sbuf_cident namsbuf (unsafe_get_field :named_name pronam))
+		(if (is_a pronam class_cloned_symbol)
+		    (progn
+		      (add2sbuf_strconst namsbuf "__")
+		      (add2sbuf_longdec namsbuf (get_int (get_field :csym_urank pronam)))
+		      (add2sbuf_strconst namsbuf "__")
+		      ))
+		)
 	    )))
     (let ( 
 	  (nbody (unsafe_get_field :nproc_body pro))
@@ -876,17 +883,17 @@ $SBUF.}#
 		))
 	    ))
 	  )
-      ;;; grow the file tuple if needed
+;;; grow the file tuple if needed
       (if (>=i filenum nbfiles)
 	  (let ( (:long newnbfiles (+i nbfiles (+i 2 (/iraw filenum 4))))
 		 (newfiletup (make_multiple discr_multiple newnbfiles))
-		)
+		 )
 	    (put_fields modctx :mocx_filetuple newfiletup)
 	    (foreach_in_multiple 
 	     (mofiles)
 	     (curfile :long curix)
 	     (multiple_put_nth newfiletup curix curfile))
-	      ))
+	    ))
       ;; associate the procedure with its objroutine in the compiler cache
       (mapobject_put compicache pro obrout)
       (unsafe_put_fields obrout :oprout_getargs gtatup)
