@@ -6,6 +6,7 @@
      and Pierre Vittet  <piervit@pvittet.com>
      and Romain Geissler  <romain.geissler@gmail.com>
      and Jeremie Salvucci  <jeremie.salvucci@free.fr>
+     and Alexandre Lissy  <alissy@mandriva.com>
 
      Indented with GNU indent.
 

@@ -1,5 +1,11 @@
 
 2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Also contributed by Alexandre Lissy.
+
+	* melt/warmelt-debug.melt (debug_msg_fun): Use dump_file or else
+	stderr, and inform once the user about this.
+
+2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compile2obj_procedure): When making a
 	procedure from a cloned symbol [in particular a LAMBDA] use the
 	cloned rank in the generated C name of that procedure.

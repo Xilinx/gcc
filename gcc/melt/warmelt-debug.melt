@@ -64,14 +64,28 @@ $FILENAM and $LINENO}#
   (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
   (if (need_dbg 0) 
       (let ( (:long dbgcounter 0)
-	     (out (get_field :sysdata_dumpfile initial_system_data)) 
+	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
+	     (stderrf (get_field :sysdata_stderr initial_system_data)) 
+	     (out dumpf)
 	     (occmap (make_mapobject discr_map_objects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
 	     )
 	(code_chunk getdbgcounter 
 		    #{/*$GETDBGCOUNTER*/ $dbgcounter = melt_dbgcounter;
 		    }#)
-	;; if we don't have a dumpfile, use stderr
+	;; if we don't have a dumpfile, use stderr; this may also
+	;; happens when the dumpf exists, but its dump_file is null.
+	(code_chunk ensuregoodout #{/*$ENSUREGOODOUT*/
+		    static int nbwarn;
+		    if (melt_get_file ($OUT) == NULL) {
+		      gcc_assert (melt_get_file ($STDERRF) == stderr);
+		      $OUT = $STDERRF;
+		      if (nbwarn++ <= 0) {
+		        inform (UNKNOWN_LOCATION, 
+				"MELT debug output goes to stderr because we have no dump_file.");
+		      }
+		    }
+		    }#)
 	(if (null out)
 	    (setq out (get_field :sysdata_stderr initial_system_data)))
 	;; it may happen that OUT is null, e.g. because the dumpfile &
