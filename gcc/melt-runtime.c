@@ -7712,7 +7712,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   rds.rfil = fil;
   rds.rpath = filnamdup;
   rds.rlineno = 0;
-  (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
+  (void) linemap_add (line_table, LC_ENTER, false, filnamdup, 0);
   rd = &rds;
   locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   rds.rpfilnam = (melt_ptr_t *) & locnamv;

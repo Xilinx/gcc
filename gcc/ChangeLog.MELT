@@ -1,3 +1,10 @@
+
+2011-08-31  Pierre Vittet  <piervit@pvittet.com>
+	* melt-runtime.c (meltgc_read_file): Use LC_ENTER, not LC_RENAME
+	for linemap_add.
+
+	* melt-build.mk: Regenerate.
+
 2011-08-30  Alexandre Lissy  <alissy@mandriva.com>
 	* melt-runtime.c (melt_load_module_index):
 	  - Export melt_versionstr from meltdesc instead of

@@ -3599,7 +3599,7 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 	@which indent  > /dev/null || (echo missing indent for warmelt-upgrade-translator; exit 1)
 	ls -l meltrunsup.h meltrunsup-inc.c 
 	indent meltrunsup.h
-	indent mentrunsup-inc.c
+	indent meltrunsup-inc.c
 #@ from melt-build.tpl line 673
 
 #@ from melt-build.tpl line 675
