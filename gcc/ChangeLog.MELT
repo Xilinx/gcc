@@ -1,5 +1,12 @@
 
 2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (compile_one_or_more_files): Renamed.
+	(translate_to_c_one_or_more_melt_files): New name.
+	(translatetomodule_docmd, translatedebug_docmd)
+	(translatequickly_docmd, runfile_docmd, rundebug_docmd)
+	(translatefile_docmd): Change accordingly.
+
+2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_compile_source): Improve explanatory comment.
 
 	* melt/warmelt-base.melt (load_melt_module): Remove.
