@@ -1,5 +1,10 @@
 
 2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_load_module_list): Transform modlistpath
+	to a realpath when relative. Free it at end.
+	(meltgc_load_one_module): Likewise.
+
+2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (compile_one_or_more_files): Renamed.
 	(translate_to_c_one_or_more_melt_files): New name.
 	(translatetomodule_docmd, translatedebug_docmd)

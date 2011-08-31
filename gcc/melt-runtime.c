@@ -5564,7 +5564,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define MELT_FILE_IN_PATH "path"
 
 
- /* Called thru the MELT_FIND_FILE macro */
+ /* Called thru the MELT_FIND_FILE macro, returns a malloced string. */
  static char*
  melt_find_file_at (int lin, const char*path, ...)
  {
@@ -8990,7 +8990,7 @@ meltgc_load_one_module (const char*modul)
   int modix = 0;
 #if MELT_HAVE_DEBUG
   /* The location buffer is local, since this function recurses!  */
-  char curlocbuf[200];
+  char curlocbuf[220];
 #endif
   MELT_ENTEREMPTYFRAME (NULL);
 #if MELT_HAVE_DEBUG
@@ -9038,6 +9038,14 @@ meltgc_load_one_module (const char*modul)
 		"builtin MELT source directory %s", melt_source_dir);
       melt_fatal_error ("failed to find MELT module %s", dupmodul);
     }
+  if (!IS_ABSOLUTE_PATH(descrpath)) 
+    {
+      char *realdescrpath = lrealpath (descrpath);
+      debugeprintf ("meltgc_load_one_module realdescrpath %s", realdescrpath);
+      free (descrpath), descrpath = NULL;
+      gcc_assert (realdescrpath != NULL);
+      descrpath = realdescrpath;
+    }
   /* remove the +meltdesc.c suffix */
   {
     char* pc = strstr (descrpath, MELT_DESC_FILESUFFIX);
@@ -9077,7 +9085,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
   const char* srcpathstr = melt_argument ("source-path");
 #if MELT_HAVE_DEBUG
   /* The location buffer is local, since this function recurses!  */
-  char curlocbuf[200];
+  char curlocbuf[220];
 #endif
   MELT_ENTEREMPTYFRAME (NULL);
 #if MELT_HAVE_DEBUG
@@ -9103,7 +9111,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
 		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
 		    MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_source_dir,
 		    NULL);
-  debugeprintf("meltgc_load_module_list modlistpath %s", modlistpath);
+  debugeprintf ("meltgc_load_module_list modlistpath %s", modlistpath);
   if (!modlistpath)
     {
       error ("cannot load MELT module list %s", modlistbase);
@@ -9119,8 +9127,14 @@ meltgc_load_module_list (int depth, const char *modlistbase)
 		"builtin MELT source directory %s", melt_source_dir);
       melt_fatal_error ("MELT failed to load module list %s", modlistfull);
     }
+  if (!IS_ABSOLUTE_PATH (modlistpath)) {
+      char *realmodlistpath = lrealpath (modlistpath);
+      debugeprintf ("real module list path %s", realmodlistpath);
+      free (modlistpath), modlistpath = NULL;
+      modlistpath = realmodlistpath;
+  }
   filmod = fopen (modlistpath, "r");
-  dbgprintf ("reading module list '%s'", modlistpath);
+  debugeprintf ("reading module list '%s'", modlistpath);
   if (!filmod)
     melt_fatal_error ("failed to open melt module list file %s - %m",
 		 modlistpath);
@@ -9173,6 +9187,8 @@ meltgc_load_module_list (int depth, const char *modlistbase)
     free(modlistfull), modlistfull = NULL;
   if (modlin)
     free (modlin), modlin = NULL;
+  if (modlistpath)
+    free (modlistpath), modlistpath = NULL;
   return;
 }
 
