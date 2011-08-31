@@ -2318,6 +2318,16 @@ meltrout_168_warmelt_genobj_LAMBDA_ (meltclosure_ptr_t closp_,
 
 void *start_module_melt (void *);
 
+/* define different names when debugging or not */
+#if MELT_HAVE_DEBUG
+extern const char meltmodule_warmelt_genobj__melt_have_debug_enabled[];
+#define melt_have_debug_string meltmodule_warmelt_genobj__melt_have_debug_enabled
+#else /*!MELT_HAVE_DEBUG */
+extern const char meltmodule_warmelt_genobj__melt_have_debug_disabled[];
+#define melt_have_debug_string meltmodule_warmelt_genobj__melt_have_debug_disabled
+#endif /*!MELT_HAVE_DEBUG */
+
+
 struct frame_start_module_melt_st;
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_0 (struct
 							       frame_start_module_melt_st
@@ -7565,7 +7575,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /18f5301 checkpair",
+      melt_assertmsg ("putpairhead /e91e812 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.OFRESHENV__V69*/ meltfptr[68]))
 		      == MELTOBMAG_PAIR);
@@ -7877,7 +7887,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /21f6ae88 checkpair",
+      melt_assertmsg ("putpairhead /3733ca13 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.BOXLOC__V82*/ meltfptr[81])) ==
 		      MELTOBMAG_PAIR);
@@ -8730,7 +8740,7 @@ lab_endgetargs:;
 
 	    /*^putpairhead */
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /a7fb3cb checkpair",
+	    melt_assertmsg ("putpairhead /19eb83f7 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVALUEIMPORTER__V127*/
 					       meltfptr[126])) ==
@@ -9269,7 +9279,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /3ce35274 checkpair",
+      melt_assertmsg ("putpairhead /34a8c8b4 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.RETINIT__V150*/ meltfptr[120]))
 		      == MELTOBMAG_PAIR);
@@ -11461,7 +11471,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /c49416d checkpair",
+      melt_assertmsg ("putpairhead /231fdd5c checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.OIMPLOCV__V14*/ meltfptr[13]))
 		      == MELTOBMAG_PAIR);

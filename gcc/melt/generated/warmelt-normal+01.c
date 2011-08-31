@@ -2082,6 +2082,16 @@ meltrout_163_warmelt_normal_LAMBDA_ (meltclosure_ptr_t closp_,
 
 void *start_module_melt (void *);
 
+/* define different names when debugging or not */
+#if MELT_HAVE_DEBUG
+extern const char meltmodule_warmelt_normal__melt_have_debug_enabled[];
+#define melt_have_debug_string meltmodule_warmelt_normal__melt_have_debug_enabled
+#else /*!MELT_HAVE_DEBUG */
+extern const char meltmodule_warmelt_normal__melt_have_debug_disabled[];
+#define melt_have_debug_string meltmodule_warmelt_normal__melt_have_debug_disabled
+#endif /*!MELT_HAVE_DEBUG */
+
+
 struct frame_start_module_melt_st;
 void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_0 (struct
 							       frame_start_module_melt_st
@@ -18293,7 +18303,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /357113e checkpair",
+      melt_assertmsg ("putpairhead /5c9f536 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CBIND__V39*/ meltfptr[38])) ==
 		      MELTOBMAG_PAIR);
