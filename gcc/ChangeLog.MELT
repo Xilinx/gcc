@@ -1,5 +1,10 @@
 
 2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_compile_source): Improve explanatory comment.
+
+	* melt/warmelt-base.melt (load_melt_module): Remove.
+
+2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

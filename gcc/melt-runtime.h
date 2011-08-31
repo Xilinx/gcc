@@ -2139,9 +2139,13 @@ melt_ptr_t meltgc_start_module_by_index (melt_ptr_t env_p, int modix);
    started. ENV_P is the parent environment. */
 melt_ptr_t meltgc_start_all_new_modules (melt_ptr_t env_p);
 
-/* compile a SRCBASE file (without .c) into a BINBASE file (without
+/* Compile a SRCBASE file (without .c) into a BINBASE file (without
    .so) in a WORKDIR (or the tempdir) with given FLAVOR. See
-   melt-module.mk file.  */
+   melt-module.mk file.  Actually compiles several files, that is
+   SRCBASE.c SRCBASE+01.c ... SRCBASE+meltdesc.c into
+   BINBASE.SRCMD5SUM.FLAVOR.so dynamically loadable shared object file
+   in the WORKDIR (which also keeps the intermediate *.pic.o
+   files).  */
 void melt_compile_source (const char *srcbase, const char *binbase, const char*workdir, const char*flavor);
 
 #warning meltgc_make_load_melt_module & meltgc_make_melt_module are obsolete

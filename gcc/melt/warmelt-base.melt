@@ -633,21 +633,9 @@ removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; obsolete compilation primitives
-(compile_warning "load_melt_module load_quickly_melt_module, load_debug_melt_module, generate_melt_module are obsolete")
+(compile_warning "load_quickly_melt_module, load_debug_melt_module, generate_melt_module are obsolete")
 
 
-;;;; compile a C code file as module and load it. First argument is an
-;;;; environment, second argument is the string containing the C file
-;;;; path. Return value is the new environment provided by the loaded
-;;;; module.
-(defprimitive load_melt_module (env str) :value
-  :doc #{load a MELT module by C compilation of file $STR with
-  environment $ENV. Gives the new environment after loading the module.}#
-  #{(meltgc_make_load_melt_module ((melt_ptr_t)($env),
-				   melt_string_str((melt_ptr_t)($str)),
-				   /*load_melt_module*/
-				   "melt_module",
-				   MELTLOADFLAG_NONE))}#)
 
 ;;;; compile quickly a C code file as module and load it. First argument is an
 ;;;; environment, second argument is the string containing the C file
@@ -2539,7 +2527,6 @@ polyhedron values.}#
  is_stringconst
  load_debug_melt_module
  load_quickly_melt_module
- load_melt_module
  longbacktrace_dbg
  make_mixint
  make_mixloc
