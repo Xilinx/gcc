@@ -2130,6 +2130,15 @@ void meltgc_load_module_list (int depth, const char *modlistbase);
    MODULBASE.FLAVOR string.  Give the module index.  */
 int meltgc_load_one_module (const char*modul);
 
+/* Load a single module of base MODULBASE and given FLAVOR but don't
+   start it.  Give the module index.  */
+int meltgc_load_flavored_module (const char*modulbase, const char*flavor);
+
+/* Load a single module MODULBASE of given FLAVOR and start it with
+   all new modules in environment ENV.  Return the resulting new environment. */
+melt_ptr_t 
+meltgc_start_flavored_module (melt_ptr_t env_p, const char*modulbase, const char*flavor);
+
 /* Run the start routine of a module already loaded. ENV_P is the
    parent environment, MODIX is the index of the module. Result is the
    new environment produced by the module.  */

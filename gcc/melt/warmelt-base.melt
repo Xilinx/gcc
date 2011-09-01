@@ -644,7 +644,8 @@ removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
 (defprimitive load_quickly_melt_module (env str) :value
   :doc #{load a MELT module by C compilation of file $STR with
   environment $ENV. Gives the new environment after loading the module.}#
-  #{(meltgc_make_load_melt_module ((melt_ptr_t)($env),
+  #{#warning load_quickly_melt_module obsolete primitive
+(meltgc_make_load_melt_module ((melt_ptr_t)($env),
 				   melt_string_str((melt_ptr_t)($str)),
 				   /*load_quickly_melt_module*/
 				   "melt_module_quickly",
@@ -654,7 +655,8 @@ removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
 (defprimitive load_debug_melt_module (env str) :value
   :doc #{load a MELT module by C compilation of file $STR with
   environment $ENV. Gives the new environment after loading the module.}#
-  #{(meltgc_make_load_melt_module ((melt_ptr_t)($ENV),
+  #{#warning load_debug_melt_module obsolete primitive
+    (meltgc_make_load_melt_module ((melt_ptr_t)($ENV),
 				   melt_string_str((melt_ptr_t)($STR)),
 				   /*load_debug_melt_module*/
 				   "melt_module_withoutline",
@@ -694,6 +696,15 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
 			 "quicklybuilt"); /*generate_quickly_melt_module*/
   }#
 )
+
+;; primitive to load and initialize a module with a flavor in a given environement 
+(defprimitive start_melt_module_of_flavor (env modname flavor) :value
+  :doc #{start in environment $ENV  and load module of basename $MODNAME and $FLAVOR. Gives the new environment.}#
+  #{meltgc_start_flavored_module ((melt_ptr_t)$ENV,
+				  melt_string_str ((melt_ptr_t) $MODNAME),
+				  melt_string_str ((melt_ptr_t) $FLAVOR));
+  }#)
+
 
 ;;;;;;;;;;;;;;;; the melt version string
 (defprimitive melt_version_str () :cstring
@@ -2613,7 +2624,8 @@ polyhedron values.}#
  split_string_colon
  split_string_comma
  split_string_equal
- split_string_space
+ split_string_space 
+ start_melt_module_of_flavor 
  strbuf2string
  strbuf_usedlength
  string_ends

@@ -8899,41 +8899,43 @@ meltgc_start_all_new_modules (melt_ptr_t env_p)
 #define MODLIS_SUFFIX ".modlis"
 #define MODLIS_MAXDEPTH 8
 
+
+
 /* Load a single module, but don't initialize it. */
 int
-meltgc_load_one_module (const char*modul)
+meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 {
   const char* srcpathstr = melt_argument ("source-path");
   char* dupmodul = NULL;
   char* descrpath = NULL;
   char* descrfull = NULL;
   char* lastdot = NULL;
-  const char* flavor = NULL;
   int modix = 0;
 #if MELT_HAVE_DEBUG
-  /* The location buffer is local, since this function recurses!  */
+  /* The location buffer is local, since this function may recurse!  */
   char curlocbuf[220];
 #endif
   MELT_ENTEREMPTYFRAME (NULL);
 #if MELT_HAVE_DEBUG
   memset (curlocbuf, 0, sizeof (curlocbuf));
 #endif
-  debugeprintf("meltgc_load_one_module start %s", modul);
-  if (!modul || !modul[0]) 
+  debugeprintf("meltgc_load_flavored_module start %s", modulbase);
+  if (!modulbase || !modulbase[0]) 
     goto end;
-  dupmodul = xstrdup(modul);
-  lastdot = strrchr (lbasename (dupmodul), '.');
-  if (lastdot) {
-    *lastdot = (char)0;
-    flavor = lastdot+1;
-  }
-  if (!flavor)
+  dupmodul = xstrdup(modulbase);
+  if (!flavor || !flavor[0])
     flavor = MELT_DEFAULT_FLAVOR;
-  debugeprintf ("meltgc_load_one_module dupmodul %s flavor %s", 
+  debugeprintf ("meltgc_load_flavored_module dupmodul %s flavor %s", 
 		dupmodul, flavor);
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
-			     "meltgc_load_one_module dupmodul %s flavor %s", 
+			     "meltgc_load_flavored_module module %s flavor %s", 
 			     dupmodul, flavor);
+  {
+    char *modulbasename = lbasename (modulbase);
+    if (modulbasename && strchr (modulbasename, '.'))
+      melt_fatal_error ("invalid module base to load %s with dot in base name",
+			modulbase);
+  }
   descrfull = concat (dupmodul, MELT_DESC_FILESUFFIX, NULL);
   descrpath = 
     MELT_FIND_FILE (descrfull,
@@ -8942,7 +8944,7 @@ meltgc_load_one_module (const char*modul)
 		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
 		    MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_source_dir,
 		    NULL);
-  debugeprintf ("meltgc_load_one_module descrpath %s dupmodul %s", 
+  debugeprintf ("meltgc_load_flavored_module descrpath %s dupmodul %s", 
 		descrpath, dupmodul);
   if (!descrpath)
     {
@@ -8963,7 +8965,8 @@ meltgc_load_one_module (const char*modul)
   if (!IS_ABSOLUTE_PATH(descrpath)) 
     {
       char *realdescrpath = lrealpath (descrpath);
-      debugeprintf ("meltgc_load_one_module realdescrpath %s", realdescrpath);
+      debugeprintf ("meltgc_load_flavored_module realdescrpath %s", 
+		    realdescrpath);
       free (descrpath), descrpath = NULL;
       gcc_assert (realdescrpath != NULL);
       descrpath = realdescrpath;
@@ -8974,9 +8977,9 @@ meltgc_load_one_module (const char*modul)
     gcc_assert (pc != NULL);
     *pc = (char)0;
   }
-  debugeprintf ("meltgc_load_one_module truncated descrpath %s flavor %s before melt_load_module_index", descrpath, flavor);
+  debugeprintf ("meltgc_load_flavored_module truncated descrpath %s flavor %s before melt_load_module_index", descrpath, flavor);
   modix = melt_load_module_index (descrpath, flavor);
-  debugeprintf ("meltgc_load_one_module after melt_load_module_index modix %d descrpath %s", 
+  debugeprintf ("meltgc_load_flavored_module after melt_load_module_index modix %d descrpath %s", 
 		modix, descrpath);
   if (modix < 0)
     melt_fatal_error ("failed to load MELT module %s flavor %s", 
@@ -8987,10 +8990,139 @@ meltgc_load_one_module (const char*modul)
     free (dupmodul), dupmodul = NULL;
   if (descrpath)
     free (descrpath), descrpath = NULL;
-  debugeprintf ("meltgc_load_one_module modul %s return modix %d", 
-		modul, modix);
+  debugeprintf ("meltgc_load_flavored_module modul %s return modix %d", 
+		dupmodul, modix);
   return modix;
 }
+
+
+melt_ptr_t 
+meltgc_start_flavored_module (melt_ptr_t env_p, const char*modulbase, const char*flavor)
+{
+  char *moduldup = NULL;
+  char *flavordup = NULL;
+  int modix = -1;
+  char modulbuf[80];
+  char flavorbuf[32];
+#if MELT_HAVE_DEBUG
+  /* The location buffer is local, since this function may recurse!  */
+  char curlocbuf[220];
+#endif
+  MELT_ENTERFRAME(1, NULL);
+#define env       meltfram__.mcfr_varptr[0]
+#if MELT_HAVE_DEBUG
+  memset (curlocbuf, 0, sizeof (curlocbuf));
+#endif
+  env = env_p;
+  memset (modulbuf, 0, sizeof(modulbuf));
+  memset (flavorbuf, 0, sizeof(flavorbuf));
+  debugeprintf ("meltgc_start_flavored_module env %p modulbase %s flavor %s",
+		env, modulbase?modulbase:"*none*", flavor?flavor:"*none*");
+  if (!modulbase) {
+    env = NULL;
+    goto end;
+  }
+  /* copy the flavor and the modulebase */
+  if (strlen (modulbase) < sizeof(modulbuf))
+    {
+      strncpy (modulbuf, modulbase, sizeof(modulbuf));
+      moduldup = modulbuf;
+    }
+  else
+    moduldup = xstrdup (modulbase);
+  if (!flavor)
+    flavordup = NULL;
+  else if (strlen (flavor) < sizeof(flavorbuf))
+    {
+      strncpy (flavorbuf, flavor, sizeof(flavorbuf));
+    }
+  else
+    flavordup = xstrdup (flavor);
+  if (flavordup) 
+    {
+      char *pc;
+      for (pc = flavordup; *pc; pc++) 
+	*pc = TOLOWER (*pc);
+    }
+  MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			     "meltgc_start_flavored_module module %s flavor %s",
+			     moduldup, flavordup?flavordup:"*none*");
+  modix = meltgc_load_flavored_module (moduldup, flavordup);
+  debugeprintf ("meltgc_start_flavored_module moduldup %s flavordup %s got modix %d", 
+		moduldup, flavordup?flavordup:"*none*");
+  if (modix < 0)
+    {
+      error ("MELT failed to load started module %s flavor %s",
+	     moduldup, flavordup?flavordup:"*none*");
+      env = NULL;
+      goto end;
+    }
+  debugeprintf ("meltgc_start_flavored_module moduldup %s before starting all new", moduldup);
+  env = meltgc_start_all_new_modules ((melt_ptr_t) env);
+  debugeprintf ("meltgc_start_flavored_module moduldup %s after starting all new env %p", moduldup, env);
+ end:
+  if (moduldup && moduldup != modulbuf) 
+    free (moduldup), moduldup = NULL;
+  if (flavordup && flavordup != flavorbuf)
+    free (flavordup), flavordup = NULL;
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) env;
+#undef env
+}
+
+int
+meltgc_load_one_module (const char*flavoredmodule)
+{
+  int modix = -1;
+  char tinybuf[80];
+  char* dupflavmod = NULL;
+  char* dotptr = NULL;
+  char* flavor = NULL;
+#if MELT_HAVE_DEBUG
+  /* The location buffer is local, since this function may recurse!  */
+  char curlocbuf[220];
+#endif
+  MELT_ENTEREMPTYFRAME (NULL);
+#if MELT_HAVE_DEBUG
+  memset (curlocbuf, 0, sizeof (curlocbuf));
+#endif
+  if (!flavoredmodule) 
+    goto end;
+  memset (tinybuf, 0, sizeof(tinybuf));
+  debugeprintf ("meltgc_load_one_module start flavoredmodule %s", 
+		flavoredmodule);
+  MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			     "meltgc_load_one_module flavoredmodule %s", 
+			     flavoredmodule);
+  if (strlen (flavoredmodule) < sizeof(tinybuf)-1)
+    {
+      strncpy (tinybuf, flavoredmodule, sizeof(tinybuf)-1);
+      dupflavmod = tinybuf;
+    }
+  else
+    dupflavmod = xstrdup (flavoredmodule);
+  dotptr = strchr (lbasename (dupflavmod), '.');
+  if (dotptr)
+    {
+      *dotptr = NULL;
+      flavor = dotptr + 1;
+      debugeprintf ("meltgc_load_one_module got flavor %s", flavor);
+    }
+  debugeprintf ("meltgc_load_one_module before loading module %s flavor %s",
+		dupflavmod, flavor?flavor:"*none*");
+  modix = meltgc_load_flavored_module (dupflavmod, flavor);
+  debugeprintf ("meltgc_load_one_module after loading module %s modix %d", 
+		dupflavmod, modix);
+ end:
+  if (dupflavmod && dupflavmod != tinybuf)
+    free (dupflavmod), dupflavmod = NULL;
+  debugeprintf ("meltgc_load_one_module flavoredmodule %s gives modix %d", 
+		flavoredmodule, modix);
+  MELT_EXITFRAME ();
+  return modix;
+}
+
+
 
 /* Load a module list, but don't initialize the modules yet. */
 void
@@ -9249,9 +9381,8 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   MELT_LOCATION_HERE_PRINTF(curlocbuf,
 			    "meltgc_make_load_melt_module modulnam %s maketarget %s", 
 			    modulnam, maketarget);
-  gcc_assert (flags == 0 && flag_melt_bootstrapping);
   melt_fatal_error
-    ("meltgc_make_load_melt_module obsolete modulnam %s; should use melt_compile_source", modulnam);
+    ("meltgc_make_load_melt_module obsolete modulnam %s maketarget %s cwd %s; should use melt_compile_source", modulnam, maketarget, getpwd ());
   MELT_EXITFRAME ();
   return (melt_ptr_t) mdatav;
 #undef modulv

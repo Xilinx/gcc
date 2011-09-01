@@ -70,6 +70,8 @@ meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
 meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
 meltarg_modulecflags=$(if $(melt_is_plugin),-fplugin-arg-melt-module-cflags,-fmelt-module-cflags)
 meltarg_inhibitautobuild=$(if $(melt_is_plugin),-fplugin-arg-melt-inhibit-auto-build,-fmelt-inhibit-auto-build)
+
+#@ [+ (. (tpl-file-line))+]
 ## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
 ## the invocation to translate the very first initial MELT file
 MELTCCINIT1ARGS= $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
@@ -78,6 +80,7 @@ MELTCCINIT1ARGS= $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit
               "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping) $(MELT_DEBUG)
 
+#@ [+ (. (tpl-file-line))+]
 ## the invocation to translate the other files
 MELTCCFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
@@ -85,6 +88,7 @@ MELTCCFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefil
               "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
 
+#@ [+ (. (tpl-file-line))+]
 ## the invocation to translate the application files -don't pass the -fmelt-bootstrap flag
 MELTCCAPPLICATION1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
@@ -92,6 +96,15 @@ MELTCCAPPLICATION1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=trans
               "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(MELT_DEBUG)
 MELTCCAPPLICATION1=$(melt_make_cc1) $(MELTCCAPPLICATION1ARGS)
+
+#@ [+ (. (tpl-file-line))+]
+## the invocation to run the application files -don't pass the -fmelt-bootstrap flag
+MELTCCRUNFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=runfile  \
+	      $(meltarg_makefile)=$(melt_make_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
+	      $(meltarg_tempdir)=. $(MELT_DEBUG)
+MELTCCRUNFILE1=$(melt_make_cc1) $(MELTCCRUNFILE1ARGS)
 
 vpath %.so $(melt_make_module_dir) . 
 #vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
@@ -566,18 +579,29 @@ melt-sayhello.melt: $(melt_default_modules_list).modlis
 	@date +'(code_chunk say%YM%mhello #{printf("hello_from_MELT on %c pid %%d\n", (int) getpid());}#)' > $@
 #@ [+ (. (tpl-file-line))+]
 
-#@ [+ (. (tpl-file-line))+]
-melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules melt-all-sources
-# test that a helloworld can be translated
+melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules melt-all-sources melt-default-modules-quicklybuilt.modlis
+# test that a helloworld can be translated [+ (. (tpl-file-line))+]
 	@echo	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) $(meltarg_bootstrapping) \
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
 	@mv $(basename $<).args-tmp $(basename $<).args
 	@echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)
 	$(melt_make_cc1) @$(basename $<).args
+# test that a helloworld can be run [+ (. (tpl-file-line))+]
+	@echo	$(MELTCCRUNFILE1ARGS) $(meltarg_init)=@melt-default-modules-quicklybuilt \
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	     $(meltarg_module_path)=$(realpath melt-modules) \
+	     $(meltarg_source_path)=$(realpath melt-sources) \
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+       $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<)-run.args-tmp
+	@mv $(basename $<)-run.args-tmp $(basename $<)-run.args
+	@echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run
+	$(melt_make_cc1) @$(basename $<)-run.args
+
+
 #@ [+ (. (tpl-file-line))+]
 
 

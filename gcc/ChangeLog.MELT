@@ -1,5 +1,27 @@
 
 2011-09-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_load_flavored_module)
+	(meltgc_start_flavored_module): New declarations.
+
+	* melt-runtime.c (meltgc_load_flavored_module)
+	(meltgc_start_flavored_module): New functions.
+	(meltgc_load_one_module): Call meltgc_load_flavored_module.
+	(meltgc_load_module_list): Better fatal error.
+
+	* melt-built.tpl (melt-tiny-tests): Add test to run
+	melt-sayhello.melt.
+
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-base.melt (load_quickly_melt_module)
+	(load_debug_melt_module): Obsolete primitives generate #warning.
+	(start_melt_module_of_flavor): New primitive.
+
+	* melt/warmelt-outobj.melt (runfile_docmd, rundebug_docmd):
+	Use start_melt_module_of_flavor
+
+2011-09-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_box, melt_box_content)
 	(meltgc_box_put): Code entirely removed, these functions where #if
 	0-ed.
