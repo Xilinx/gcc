@@ -2553,85 +2553,6 @@ end:
 }
 
 
-#warning MELT boxes are obsolete, we are removing them
-#if 0
-/***** boxes and DISCR_BOX is obsolete. Use containers of
-       CLASS_CONTAINER instead. *****/
-
-/* allocate a new box of given DISCR & content VAL */
-melt_ptr_t
-meltgc_new_box (meltobject_ptr_t discr_p, melt_ptr_t val_p)
-{
-  static int nbwarn;
-  MELT_ENTERFRAME (3, NULL);
-#define boxv meltfram__.mcfr_varptr[0]
-#define discrv  meltfram__.mcfr_varptr[1]
-#define valv   meltfram__.mcfr_varptr[2]
-#define object_discrv ((meltobject_ptr_t)(discrv))
-  discrv = (void *) discr_p;
-  valv = (void *) val_p;
-  boxv = NULL;
-  if (nbwarn <= 0) {
-    melt_dbgshortbacktrace ("meltgc_new_box called", 30);
-    warning (0, "MELT meltgc_new_box is obsolete");
-  }
-  nbwarn++;
-  if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
-    goto end;
-  if (object_discrv->meltobj_magic != MELTOBMAG_BOX)
-    goto end;
-  boxv = meltgc_allocate (sizeof (struct meltbox_st), 0);
-  ((struct meltbox_st *) (boxv))->discr = (meltobject_ptr_t) discrv;
-  ((struct meltbox_st *) (boxv))->val = (melt_ptr_t) valv;
-end:
-  MELT_EXITFRAME ();
-  return (melt_ptr_t) boxv;
-#undef boxv
-#undef discrv
-#undef valv
-#undef object_discrv
-}
-
-/* return the content of a box */
-melt_ptr_t 
-melt_box_content (meltbox_ptr_t box)
-{
-  static int nbwarn;
-  if (nbwarn <= 0) {
-    melt_dbgshortbacktrace ("melt_box_content called", 30);
-    warning (0, "MELT melt_box_content is obsolete");
-  }
-  nbwarn++;
-  if (!box || box->discr->meltobj_magic != MELTOBMAG_BOX)
-    return NULL;
-  return box->val;
-}
-
-/* put inside a box */
-void
-meltgc_box_put (melt_ptr_t box_p, melt_ptr_t val_p)
-{
-  static int nbwarn;
-  MELT_ENTERFRAME (2, NULL);
-#define boxv meltfram__.mcfr_varptr[0]
-#define valv   meltfram__.mcfr_varptr[1]
-  boxv = box_p;
-  valv = val_p;
-  if (nbwarn <= 0) {
-    melt_dbgshortbacktrace ("meltgc_box_put called", 30);
-    warning (0, "MELT meltgc_box_put is obsolete");
-  }
-  nbwarn++;
-  if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_BOX)
-    goto end;
-  ((meltbox_ptr_t) boxv)->val = (melt_ptr_t) valv;
-  meltgc_touch_dest (boxv, valv);
-end:
-  MELT_EXITFRAME ();
-#undef boxv
-#undef valv
-}
-#endif
 
 /* safely return the content of a container - instance of CLASS_CONTAINER */
 melt_ptr_t
@@ -9345,7 +9266,6 @@ melt_ptr_t meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const ch
   char*srcdup = NULL;
   char* outdup = NULL;
   char* outso = NULL;
-  int outduplen = 0;
   char* mytmpdir = NULL;
   char* mycwd = getpwd ();
   MELT_ENTERFRAME (2, NULL);
@@ -9360,8 +9280,8 @@ melt_ptr_t meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const ch
   outdup = xstrdup(melt_string_str((melt_ptr_t) outv));
   debugeprintf ("meltgc_make_melt_module srcdup %s outdup %s maketarget %s",
 		srcdup, outdup, maketarget);
-  melt_fatal_error ("meltgc_make_melt_module obsolete srcdup %s outdup %s maketarget %s",
-		srcdup, outdup, maketarget);
+  melt_fatal_error ("meltgc_make_melt_module obsolete srcdup %s outdup %s maketarget %s cwd %s",
+		    srcdup, outdup, maketarget, mycwd);
  end:
   free ((void*)srcdup);
   free ((void*)outdup);

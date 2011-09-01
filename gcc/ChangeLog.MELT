@@ -1,4 +1,10 @@
 
+2011-09-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_box, melt_box_content)
+	(meltgc_box_put): Code entirely removed, these functions where #if
+	0-ed.
+	(meltgc_make_melt_module): Fatal error also displays the cwd.
+
 2011-08-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: Also contributed by Alexandre Lissy.
 
