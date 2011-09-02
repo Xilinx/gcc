@@ -8895,7 +8895,6 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
   char* dupmodul = NULL;
   char* descrpath = NULL;
   char* descrfull = NULL;
-  char* lastdot = NULL;
   int modix = 0;
 #if MELT_HAVE_DEBUG
   /* The location buffer is local, since this function may recurse!  */
@@ -8917,7 +8916,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 			     "meltgc_load_flavored_module module %s flavor %s", 
 			     dupmodul, flavor);
   {
-    char *modulbasename = lbasename (modulbase);
+    const char *modulbasename = lbasename (modulbase);
     if (modulbasename && strchr (modulbasename, '.'))
       melt_fatal_error ("invalid module base to load %s with dot in base name",
 			modulbase);
@@ -9038,7 +9037,7 @@ meltgc_start_flavored_module (melt_ptr_t env_p, const char*modulbase, const char
 			     moduldup, flavordup?flavordup:"*none*");
   modix = meltgc_load_flavored_module (moduldup, flavordup);
   debugeprintf ("meltgc_start_flavored_module moduldup %s flavordup %s got modix %d", 
-		moduldup, flavordup?flavordup:"*none*");
+		moduldup, flavordup?flavordup:"*none*", modix);
   if (modix < 0)
     {
       error ("MELT failed to load started module %s flavor %s",
@@ -9093,7 +9092,7 @@ meltgc_load_one_module (const char*flavoredmodule)
   dotptr = strchr (lbasename (dupflavmod), '.');
   if (dotptr)
     {
-      *dotptr = NULL;
+      *dotptr = (char)0;
       flavor = dotptr + 1;
       debugeprintf ("meltgc_load_one_module got flavor %s", flavor);
     }
