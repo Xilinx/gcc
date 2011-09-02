@@ -1,5 +1,15 @@
 
 2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_make_load_melt_module): Remove
+	declaration.
+
+	* melt-runtime.c (meltgc_make_load_melt_module)
+	(meltgc_make_melt_module): Remove obsolete functions.
+
+	* melt/warmelt-base.melt (load_quickly_melt_module)
+	(load_debug_melt_module): Remobe obsolete primitives.
+
+2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

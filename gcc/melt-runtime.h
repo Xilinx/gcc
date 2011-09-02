@@ -2157,10 +2157,6 @@ melt_ptr_t meltgc_start_all_new_modules (melt_ptr_t env_p);
    files).  */
 void melt_compile_source (const char *srcbase, const char *binbase, const char*workdir, const char*flavor);
 
-#warning meltgc_make_load_melt_module & meltgc_make_melt_module are obsolete
-#define MELTLOADFLAG_NONE 0
-melt_ptr_t meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const char*maketarget,  unsigned flags);
-
 
 /* get (or create) the symbol of a given name, using the INITIAL_SYSTEM_DATA
    global; the NAM string can be in the GC-allocated heap since it is
