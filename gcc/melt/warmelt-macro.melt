@@ -2623,6 +2623,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	    (return)))
 |#
 ;;;;
+    (error_plain loc "(DEFINE ...) not yet implemented")
     (assert_msg "$@$ mexpand_define unimplemented")
     ))
 
