@@ -1223,6 +1223,12 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		       (debug_msg resf "macroexpand_1 result for field resf")
 		       (return resf)
 		       ))
+		   ;; formals and local variables are always applied.
+		   ( (is_a opbind class_formal_binding)
+		     (expand_apply sexpr env mexpander))
+		   ( (is_a opbind class_let_binding)
+		     (expand_apply sexpr env mexpander))
+		   ;;; [imported] value bindings are handled case by case
 		   ( (is_a opbind class_value_binding)
 		     (let ( (val (unsafe_get_field :vbind_value opbind))
 			    )
