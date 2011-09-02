@@ -9035,6 +9035,7 @@ meltgc_start_flavored_module (melt_ptr_t env_p, const char*modulbase, const char
   else if (strlen (flavor) < sizeof(flavorbuf))
     {
       strncpy (flavorbuf, flavor, sizeof(flavorbuf));
+      flavordup = flavorbuf;
     }
   else
     flavordup = xstrdup (flavor);
@@ -9044,6 +9045,8 @@ meltgc_start_flavored_module (melt_ptr_t env_p, const char*modulbase, const char
       for (pc = flavordup; *pc; pc++) 
 	*pc = TOLOWER (*pc);
     }
+  debugeprintf ("meltgc_start_flavored_module moduldup %s flavordup %s before load",
+		moduldup?moduldup:"*none*", flavordup?flavordup:"*none*");
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
 			     "meltgc_start_flavored_module module %s flavor %s",
 			     moduldup, flavordup?flavordup:"*none*");
