@@ -521,8 +521,8 @@ package body Einfo is
 
    --    Has_Implicit_Dereference        Flag251
    --    Is_Processed_Transient          Flag252
+   --    Has_Anonymous_Master            Flag253
 
-   --    (unused)                        Flag253
    --    (unused)                        Flag254
 
    -----------------------
@@ -1038,7 +1038,8 @@ package body Einfo is
 
    function Extra_Accessibility (Id : E) return E is
    begin
-      pragma Assert (Is_Formal (Id) or else Ekind (Id) = E_Variable);
+      pragma Assert
+        (Is_Formal (Id) or else Ekind_In (Id, E_Variable, E_Constant));
       return Node13 (Id);
    end Extra_Accessibility;
 
@@ -1181,6 +1182,13 @@ package body Einfo is
    begin
       return Flag201 (Id);
    end Has_Anon_Block_Suffix;
+
+   function Has_Anonymous_Master (Id : E) return B is
+   begin
+      pragma Assert
+        (Ekind_In (Id, E_Function, E_Package, E_Package_Body, E_Procedure));
+      return Flag253 (Id);
+   end Has_Anonymous_Master;
 
    function Has_Atomic_Components (Id : E) return B is
    begin
@@ -1591,7 +1599,7 @@ package body Einfo is
 
    function Has_Xref_Entry (Id : E) return B is
    begin
-      return Flag182 (Implementation_Base_Type (Id));
+      return Flag182 (Id);
    end Has_Xref_Entry;
 
    function Hiding_Loop_Variable (Id : E) return E is
@@ -3506,7 +3514,8 @@ package body Einfo is
 
    procedure Set_Extra_Accessibility (Id : E; V : E) is
    begin
-      pragma Assert (Is_Formal (Id) or else Ekind (Id) = E_Variable);
+      pragma Assert
+        (Is_Formal (Id) or else Ekind_In (Id, E_Variable, E_Constant));
       Set_Node13 (Id, V);
    end Set_Extra_Accessibility;
 
@@ -3659,6 +3668,13 @@ package body Einfo is
    begin
       Set_Flag201 (Id, V);
    end Set_Has_Anon_Block_Suffix;
+
+   procedure Set_Has_Anonymous_Master (Id : E; V : B := True) is
+   begin
+      pragma Assert
+        (Ekind_In (Id, E_Function, E_Package, E_Package_Body, E_Procedure));
+      Set_Flag253 (Id, V);
+   end Set_Has_Anonymous_Master;
 
    procedure Set_Has_Atomic_Components (Id : E; V : B := True) is
    begin
@@ -5459,12 +5475,23 @@ package body Einfo is
       Set_Uint14 (Id, No_Uint);  -- Normalized_Position
    end Init_Component_Location;
 
+   ----------------------------
+   -- Init_Object_Size_Align --
+   ----------------------------
+
+   procedure Init_Object_Size_Align (Id : E) is
+   begin
+      Set_Uint12 (Id, Uint_0);  -- Esize
+      Set_Uint14 (Id, Uint_0);  -- Alignment
+   end Init_Object_Size_Align;
+
    ---------------
    -- Init_Size --
    ---------------
 
    procedure Init_Size (Id : E; V : Int) is
    begin
+      pragma Assert (not Is_Object (Id));
       Set_Uint12 (Id, UI_From_Int (V));  -- Esize
       Set_Uint13 (Id, UI_From_Int (V));  -- RM_Size
    end Init_Size;
@@ -5475,6 +5502,7 @@ package body Einfo is
 
    procedure Init_Size_Align (Id : E) is
    begin
+      pragma Assert (not Is_Object (Id));
       Set_Uint12 (Id, Uint_0);  -- Esize
       Set_Uint13 (Id, Uint_0);  -- RM_Size
       Set_Uint14 (Id, Uint_0);  -- Alignment
@@ -6907,7 +6935,14 @@ package body Einfo is
       if Is_Concurrent_Type (Id) then
          if Present (Corresponding_Record_Type (Id)) then
             return Direct_Primitive_Operations
-                     (Corresponding_Record_Type (Id));
+              (Corresponding_Record_Type (Id));
+
+         --  If expansion is disabled the corresponding record type is absent,
+         --  but if the type has ancestors it may have primitive operations.
+
+         elsif Is_Tagged_Type (Id) then
+            return Direct_Primitive_Operations (Id);
+
          else
             return No_Elist;
          end if;
@@ -7397,6 +7432,7 @@ package body Einfo is
       W ("Has_Alignment_Clause",            Flag46  (Id));
       W ("Has_All_Calls_Remote",            Flag79  (Id));
       W ("Has_Anon_Block_Suffix",           Flag201 (Id));
+      W ("Has_Anonymous_Master",            Flag253 (Id));
       W ("Has_Atomic_Components",           Flag86  (Id));
       W ("Has_Biased_Representation",       Flag139 (Id));
       W ("Has_Completion",                  Flag26  (Id));

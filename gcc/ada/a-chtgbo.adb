@@ -136,15 +136,27 @@ package body Ada.Containers.Hash_Tables.Generic_Bounded_Operations is
      (HT : in out Hash_Table_Type'Class;
       X  : Count_Type)
    is
-      pragma Assert (X > 0);
+      N : Nodes_Type renames HT.Nodes;
+
+   begin
+      --  This subprogram "deallocates" a node by relinking the node off of the
+      --  active list and onto the free list. Previously it would flag index
+      --  value 0 as an error. The precondition was weakened, so that index
+      --  value 0 is now allowed, and this value is interpreted to mean "do
+      --  nothing". This makes its behavior analogous to the behavior of
+      --  Ada.Unchecked_Conversion, and allows callers to avoid having to add
+      --  special-case checks at the point of call.
+
+      if X = 0 then
+         return;
+      end if;
+
       pragma Assert (X <= HT.Capacity);
 
-      N : Nodes_Type renames HT.Nodes;
       --  pragma Assert (N (X).Prev >= 0);  -- node is active
       --  Find a way to mark a node as active vs. inactive; we could
       --  use a special value in Color_Type for this.  ???
 
-   begin
       --  The hash table actually contains two data structures: a list for
       --  the "active" nodes that contain elements that have been inserted
       --  onto the container, and another for the "inactive" nodes of the free

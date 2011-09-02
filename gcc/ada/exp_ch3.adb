@@ -5129,9 +5129,13 @@ package body Exp_Ch3 is
                              Loc))));
                end;
 
-            elsif Is_Tagged_Type (Typ)
-              and then Is_CPP_Constructor_Call (Expr)
-            then
+            --  Handle C++ constructor calls. Note that we do not check that
+            --  Typ is a tagged type since the equivalent Ada type of a C++
+            --  class that has no virtual methods is a non-tagged limited
+            --  record type.
+
+            elsif Is_CPP_Constructor_Call (Expr) then
+
                --  The call to the initialization procedure does NOT freeze the
                --  object being initialized.
 
@@ -5259,6 +5263,52 @@ package body Exp_Ch3 is
                end if;
             end;
          end if;
+      end if;
+
+      if Nkind (N) = N_Object_Declaration
+        and then Nkind (Object_Definition (N)) = N_Access_Definition
+        and then not Is_Local_Anonymous_Access (Etype (Def_Id))
+      then
+         --  An Ada 2012 stand-alone object of an anonymous access type
+
+         declare
+            Loc : constant Source_Ptr := Sloc (N);
+
+            Level : constant Entity_Id :=
+                      Make_Defining_Identifier (Sloc (N),
+                        Chars =>
+                          New_External_Name (Chars (Def_Id), Suffix => "L"));
+
+            Level_Expr : Node_Id;
+            Level_Decl : Node_Id;
+
+         begin
+            Set_Ekind (Level, Ekind (Def_Id));
+            Set_Etype (Level, Standard_Natural);
+            Set_Scope (Level, Scope (Def_Id));
+
+            if No (Expr) then
+
+               --  Set accessibility level of null
+
+               Level_Expr :=
+                 Make_Integer_Literal (Loc, Scope_Depth (Standard_Standard));
+
+            else
+               Level_Expr := Dynamic_Accessibility_Level (Expr);
+            end if;
+
+            Level_Decl := Make_Object_Declaration (Loc,
+             Defining_Identifier => Level,
+             Object_Definition => New_Occurrence_Of (Standard_Natural, Loc),
+             Expression => Level_Expr,
+             Constant_Present => Constant_Present (N),
+             Has_Init_Expression => True);
+
+            Insert_Action_After (Init_After, Level_Decl);
+
+            Set_Extra_Accessibility (Def_Id, Level);
+         end;
       end if;
 
    --  Exception on library entity not available
@@ -5481,14 +5531,18 @@ package body Exp_Ch3 is
                then
                   Build_Slice_Assignment (Typ);
                end if;
+            end if;
 
-            --  ??? Now that masters acts as heterogeneous lists, it might be
-            --  worthwhile to revisit the global master approach.
+            --  Create a finalization master to service the anonymous access
+            --  components of the array.
 
-            elsif Ekind (Comp_Typ) = E_Anonymous_Access_Type
-              and then Needs_Finalization (Directly_Designated_Type (Comp_Typ))
+            if Ekind (Comp_Typ) = E_Anonymous_Access_Type
+              and then Needs_Finalization (Designated_Type (Comp_Typ))
             then
-               Build_Finalization_Master (Comp_Typ);
+               Build_Finalization_Master
+                 (Typ        => Comp_Typ,
+                  Ins_Node   => Parent (Typ),
+                  Encl_Scope => Scope (Typ));
             end if;
          end if;
 
@@ -5902,6 +5956,7 @@ package body Exp_Ch3 is
       Type_Decl   : constant Node_Id := Parent (Def_Id);
       Comp        : Entity_Id;
       Comp_Typ    : Entity_Id;
+      Has_AACC    : Boolean;
       Predef_List : List_Id;
 
       Renamed_Eq : Node_Id := Empty;
@@ -5970,7 +6025,9 @@ package body Exp_Ch3 is
 
       --  Update task and controlled component flags, because some of the
       --  component types may have been private at the point of the record
-      --  declaration.
+      --  declaration. Detect anonymous access-to-controlled components.
+
+      Has_AACC := False;
 
       Comp := First_Component (Def_Id);
       while Present (Comp) loop
@@ -5988,6 +6045,14 @@ package body Exp_Ch3 is
                                 and then Is_Controlled (Comp_Typ)))
          then
             Set_Has_Controlled_Component (Def_Id);
+
+         --  Non-self-referential anonymous access-to-controlled component
+
+         elsif Ekind (Comp_Typ) = E_Anonymous_Access_Type
+           and then Needs_Finalization (Designated_Type (Comp_Typ))
+           and then Designated_Type (Comp_Typ) /= Def_Id
+         then
+            Has_AACC := True;
          end if;
 
          Next_Component (Comp);
@@ -6355,28 +6420,103 @@ package body Exp_Ch3 is
          end;
       end if;
 
-      --  Processing for components of anonymous access type that designate
-      --  a controlled type.
+      --  Create a heterogeneous finalization master to service the anonymous
+      --  access-to-controlled components of the record type.
 
-      Comp := First_Component (Def_Id);
-      while Present (Comp) loop
-         Comp_Typ := Etype (Comp);
+      if Has_AACC then
+         declare
+            Encl_Scope : constant Entity_Id  := Scope (Def_Id);
+            Ins_Node   : constant Node_Id    := Parent (Def_Id);
+            Loc        : constant Source_Ptr := Sloc (Def_Id);
+            Fin_Mas_Id : Entity_Id;
 
-         if Ekind (Comp_Typ) = E_Anonymous_Access_Type
-           and then Needs_Finalization (Directly_Designated_Type (Comp_Typ))
+            Attributes_Set : Boolean := False;
+            Master_Built   : Boolean := False;
+            --  Two flags which control the creation and initialization of a
+            --  common heterogeneous master.
 
-            --  Avoid self-references
+         begin
+            Comp := First_Component (Def_Id);
+            while Present (Comp) loop
+               Comp_Typ := Etype (Comp);
 
-           and then Directly_Designated_Type (Comp_Typ) /= Def_Id
-         then
-            Build_Finalization_Master
-             (Typ        => Comp_Typ,
-              Ins_Node   => Parent (Def_Id),
-              Encl_Scope => Scope (Def_Id));
-         end if;
+               --  A non-self-referential anonymous access-to-controlled
+               --  component.
 
-         Next_Component (Comp);
-      end loop;
+               if Ekind (Comp_Typ) = E_Anonymous_Access_Type
+                 and then Needs_Finalization (Designated_Type (Comp_Typ))
+                 and then Designated_Type (Comp_Typ) /= Def_Id
+               then
+                  if VM_Target = No_VM then
+
+                     --  Build a homogeneous master for the first anonymous
+                     --  access-to-controlled component. This master may be
+                     --  converted into a heterogeneous collection if more
+                     --  components are to follow.
+
+                     if not Master_Built then
+                        Master_Built := True;
+
+                        --  All anonymous access-to-controlled types allocate
+                        --  on the global pool.
+
+                        Set_Associated_Storage_Pool (Comp_Typ,
+                          Get_Global_Pool_For_Access_Type (Comp_Typ));
+
+                        Build_Finalization_Master
+                          (Typ        => Comp_Typ,
+                           Ins_Node   => Ins_Node,
+                           Encl_Scope => Encl_Scope);
+
+                        Fin_Mas_Id := Finalization_Master (Comp_Typ);
+
+                     --  Subsequent anonymous access-to-controlled components
+                     --  reuse the already available master.
+
+                     else
+                        --  All anonymous access-to-controlled types allocate
+                        --  on the global pool.
+
+                        Set_Associated_Storage_Pool (Comp_Typ,
+                          Get_Global_Pool_For_Access_Type (Comp_Typ));
+
+                        --  Shared the master among multiple components
+
+                        Set_Finalization_Master (Comp_Typ, Fin_Mas_Id);
+
+                        --  Convert the master into a heterogeneous collection.
+                        --  Generate:
+                        --
+                        --    Set_Is_Heterogeneous (<Fin_Mas_Id>);
+
+                        if not Attributes_Set then
+                           Attributes_Set := True;
+
+                           Insert_Action (Ins_Node,
+                             Make_Procedure_Call_Statement (Loc,
+                               Name =>
+                                 New_Reference_To
+                                   (RTE (RE_Set_Is_Heterogeneous), Loc),
+                               Parameter_Associations => New_List (
+                                 New_Reference_To (Fin_Mas_Id, Loc))));
+                        end if;
+                     end if;
+
+                  --  Since .NET/JVM targets do not support heterogeneous
+                  --  masters, each component must have its own master.
+
+                  else
+                     Build_Finalization_Master
+                       (Typ        => Comp_Typ,
+                        Ins_Node   => Ins_Node,
+                        Encl_Scope => Encl_Scope);
+                  end if;
+               end if;
+
+               Next_Component (Comp);
+            end loop;
+         end;
+      end if;
    end Expand_Freeze_Record_Type;
 
    ------------------------------
@@ -6669,16 +6809,16 @@ package body Exp_Ch3 is
             end if;
 
             --  For access-to-controlled types (including class-wide types and
-            --  Taft-amendment types which potentially have controlled
+            --  Taft-amendment types, which potentially have controlled
             --  components), expand the list controller object that will store
-            --  the dynamically allocated objects. Do not do this
-            --  transformation for expander-generated access types, but do it
-            --  for types that are the full view of types derived from other
-            --  private types. Also suppress the list controller in the case
-            --  of a designated type with convention Java, since this is used
-            --  when binding to Java API specs, where there's no equivalent of
-            --  a finalization list and we don't want to pull in the
-            --  finalization support if not needed.
+            --  the dynamically allocated objects. Don't do this transformation
+            --  for expander-generated access types, but do it for types that
+            --  are the full view of types derived from other private types.
+            --  Also suppress the list controller in the case of a designated
+            --  type with convention Java, since this is used when binding to
+            --  Java API specs, where there's no equivalent of a finalization
+            --  list and we don't want to pull in the finalization support if
+            --  not needed.
 
             if not Comes_From_Source (Def_Id)
               and then not Has_Private_Declaration (Def_Id)
@@ -6697,8 +6837,8 @@ package body Exp_Ch3 is
             then
                null;
 
-            --  The machinery assumes that incomplete or private types are
-            --  always completed by a controlled full vies.
+            --  Assume that incomplete and private types are always completed
+            --  by a controlled full view.
 
             elsif Needs_Finalization (Desig_Type)
               or else
@@ -7999,14 +8139,20 @@ package body Exp_Ch3 is
             Field_Name := Chars (Defining_Identifier (C));
 
             --  The tags must not be compared: they are not part of the value.
-            --  Ditto for the controller component, if present.
+            --  Ditto for parent interfaces because their equality operator is
+            --  abstract.
 
             --  Note also that in the following, we use Make_Identifier for
             --  the component names. Use of New_Reference_To to identify the
             --  components would be incorrect because the wrong entities for
             --  discriminants could be picked up in the private type case.
 
-            if Field_Name /= Name_uTag then
+            if Field_Name = Name_uParent
+              and then Is_Interface (Etype (Defining_Identifier (C)))
+            then
+               null;
+
+            elsif Field_Name /= Name_uTag then
                Evolve_Or_Else (Cond,
                  Make_Op_Ne (Loc,
                    Left_Opnd =>

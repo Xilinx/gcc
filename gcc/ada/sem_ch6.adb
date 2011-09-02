@@ -564,6 +564,15 @@ package body Sem_Ch6 is
                Error_Msg_N ("must use anonymous access type", Subtype_Ind);
             end if;
 
+         --  If the return object is of an anonymous access type, then report
+         --  an error if the function's result type is not also anonymous.
+
+         elsif R_Stm_Type_Is_Anon_Access
+           and then not R_Type_Is_Anon_Access
+         then
+            Error_Msg_N ("anonymous access not allowed for function with " &
+                         "named access result", Subtype_Ind);
+
          --  Subtype indication case: check that the return object's type is
          --  covered by the result type, and that the subtypes statically match
          --  when the result subtype is constrained. Also handle record types
@@ -969,7 +978,7 @@ package body Sem_Ch6 is
          --  than inserted in the code, in order to facilitate a distinct
          --  treatment for them.
 
-         if not ALFA_Mode then
+         if not Alfa_Mode then
             Process_PPCs (N, Gen_Id, Body_Id);
          end if;
 
@@ -1341,12 +1350,13 @@ package body Sem_Ch6 is
          Result : Entity_Id := Empty;
 
       begin
-         --  Loop outward through the Scope_Stack, skipping blocks and loops
+         --  Loop outward through the Scope_Stack, skipping blocks, loops,
+         --  and postconditions.
 
          for J in reverse 0 .. Scope_Stack.Last loop
             Result := Scope_Stack.Table (J).Entity;
-            exit when Ekind (Result) /= E_Block and then
-                      Ekind (Result) /= E_Loop;
+            exit when not Ekind_In (Result, E_Block, E_Loop)
+              and then Chars (Result) /= Name_uPostconditions;
          end loop;
 
          pragma Assert (Present (Result));
@@ -1585,6 +1595,16 @@ package body Sem_Ch6 is
                      Error_Msg_NE
                        ("invalid use of untagged incomplete type&",
                           Designator, Typ);
+                  end if;
+
+                  --  The type must be completed in the current package. This
+                  --  is checked at the end of the package declaraton, when
+                  --  Taft amemdment types are identified.
+
+                  if Ekind (Scope (Current_Scope)) = E_Package
+                    and then In_Private_Part (Scope (Current_Scope))
+                  then
+                     Append_Elmt (Designator, Private_Dependents (Typ));
                   end if;
 
                else
@@ -2545,10 +2565,14 @@ package body Sem_Ch6 is
             Set_Contract (Body_Id, Make_Contract (Sloc (Body_Id)));
             Generate_Reference
               (Body_Id, Body_Id, 'b', Set_Ref => False, Force => True);
-            Generate_Reference_To_Formals (Body_Id);
             Install_Formals (Body_Id);
             Push_Scope (Body_Id);
          end if;
+
+         --  For stubs and bodies with no previous spec, generate references to
+         --  formals.
+
+         Generate_Reference_To_Formals (Body_Id);
       end if;
 
       --  If the return type is an anonymous access type whose designated type
@@ -2580,7 +2604,7 @@ package body Sem_Ch6 is
 
       --  If this is the proper body of a stub, we must verify that the stub
       --  conforms to the body, and to the previous spec if one was present.
-      --  we know already that the body conforms to that spec. This test is
+      --  We know already that the body conforms to that spec. This test is
       --  only required for subprograms that come from source.
 
       if Nkind (Parent (N)) = N_Subunit
@@ -2606,8 +2630,8 @@ package body Sem_Ch6 is
 
                if not Conformant then
 
-                  --  The stub was taken to be a new declaration. Indicate
-                  --  that it lacks a body.
+                  --  The stub was taken to be a new declaration. Indicate that
+                  --  it lacks a body.
 
                   Set_Has_Completion (Old_Id, False);
                end if;
@@ -2631,7 +2655,7 @@ package body Sem_Ch6 is
       end if;
 
       --  Ada 2005 (AI-262): In library subprogram bodies, after the analysis
-      --  if its specification we have to install the private withed units.
+      --  of the specification we have to install the private withed units.
       --  This holds for child units as well.
 
       if Is_Compilation_Unit (Body_Id)
@@ -2680,7 +2704,7 @@ package body Sem_Ch6 is
       --  than inserted in the code, in order to facilitate a distinct
       --  treatment for them.
 
-      if not ALFA_Mode then
+      if not Alfa_Mode then
          Process_PPCs (N, Spec_Id, Body_Id);
       end if;
 
@@ -2690,7 +2714,7 @@ package body Sem_Ch6 is
       --  when the Expander is active because Install_Private_Data_Declarations
       --  references entities which were created during regular expansion.
 
-      if Expander_Active
+      if Full_Expander_Active
         and then Comes_From_Source (N)
         and then Present (Prot_Typ)
         and then Present (Spec_Id)
@@ -2743,8 +2767,8 @@ package body Sem_Ch6 is
 
          if Present (Last_Real_Spec_Entity) then
 
-            --  No body entities (happens when the only real spec entities
-            --  come from precondition and postcondition pragmas)
+            --  No body entities (happens when the only real spec entities come
+            --  from precondition and postcondition pragmas).
 
             if No (Last_Entity (Body_Id)) then
                Set_First_Entity
@@ -2761,8 +2785,8 @@ package body Sem_Ch6 is
             Set_Last_Entity (Body_Id, Last_Entity (Spec_Id));
             Set_Last_Entity (Spec_Id, Last_Real_Spec_Entity);
 
-         --  Case where there are no spec entities, in this case there can
-         --  be no body entities either, so just move everything.
+         --  Case where there are no spec entities, in this case there can be
+         --  no body entities either, so just move everything.
 
          else
             pragma Assert (No (Last_Entity (Body_Id)));
@@ -2784,7 +2808,7 @@ package body Sem_Ch6 is
       --  might be the following common idiom for a stubbed function:
       --  statement of the procedure raises an exception. In particular this
       --  deals with the common idiom of a stubbed function, which might
-      --  appear as something like
+      --  appear as something like:
 
       --     function F (A : Integer) return Some_Type;
       --        X : Some_Type;
@@ -4216,7 +4240,26 @@ package body Sem_Ch6 is
 
          if Ctype >= Mode_Conformant then
             if Parameter_Mode (Old_Formal) /= Parameter_Mode (New_Formal) then
-               Conformance_Error ("\mode of & does not match!", New_Formal);
+               if not Ekind_In (New_Id, E_Function, E_Procedure)
+                 or else not Is_Primitive_Wrapper (New_Id)
+               then
+                  Conformance_Error ("\mode of & does not match!", New_Formal);
+
+               else
+                  declare
+                     T : constant  Entity_Id := Find_Dispatching_Type (New_Id);
+                  begin
+                     if Is_Protected_Type
+                          (Corresponding_Concurrent_Type (T))
+                     then
+                        Error_Msg_PT (T, New_Id);
+                     else
+                        Conformance_Error
+                          ("\mode of & does not match!", New_Formal);
+                     end if;
+                  end;
+               end if;
+
                return;
 
             --  Part of mode conformance for access types is having the same
@@ -6077,9 +6120,7 @@ package body Sem_Ch6 is
             --  dispatching context and such calls must be handled like calls
             --  to a class-wide function.
 
-            if not Is_Constrained (Underlying_Type (Result_Subt))
-              or else Is_Tagged_Type (Underlying_Type (Result_Subt))
-            then
+            if Needs_BIP_Alloc_Form (E) then
                Discard :=
                  Add_Extra_Formal
                    (E, Standard_Natural,
@@ -7175,6 +7216,7 @@ package body Sem_Ch6 is
 
       function Get_Generic_Parent_Type (F_Typ : Entity_Id) return Entity_Id is
          G_Typ : Entity_Id;
+         Defn  : Node_Id;
          Indic : Node_Id;
 
       begin
@@ -7187,19 +7229,21 @@ package body Sem_Ch6 is
             --  is needed for cases where a full derived type has been
             --  rewritten.)
 
-            Indic := Subtype_Indication
-                       (Type_Definition (Original_Node (Parent (F_Typ))));
+            Defn := Type_Definition (Original_Node (Parent (F_Typ)));
+            if Nkind (Defn) = N_Derived_Type_Definition then
+               Indic := Subtype_Indication (Defn);
 
-            if Nkind (Indic) = N_Subtype_Indication then
-               G_Typ := Entity (Subtype_Mark (Indic));
-            else
-               G_Typ := Entity (Indic);
-            end if;
+               if Nkind (Indic) = N_Subtype_Indication then
+                  G_Typ := Entity (Subtype_Mark (Indic));
+               else
+                  G_Typ := Entity (Indic);
+               end if;
 
-            if Nkind (Parent (G_Typ)) = N_Subtype_Declaration
-              and then Present (Generic_Parent_Type (Parent (G_Typ)))
-            then
-               return Generic_Parent_Type (Parent (G_Typ));
+               if Nkind (Parent (G_Typ)) = N_Subtype_Declaration
+                 and then Present (Generic_Parent_Type (Parent (G_Typ)))
+               then
+                  return Generic_Parent_Type (Parent (G_Typ));
+               end if;
             end if;
          end if;
 
@@ -7256,9 +7300,10 @@ package body Sem_Ch6 is
         and then In_Private_Part (Current_Scope)
         and then Comes_From_Source (New_E)
       then
-         --  We examine the formals and result subtype of the inherited
-         --  operation, to determine whether their type is derived from (the
-         --  instance of) a generic type.
+         --  We examine the formals and result type of the inherited operation,
+         --  to determine whether their type is derived from (the instance of)
+         --  a generic type. The first such formal or result type is the one
+         --  tested.
 
          Formal := First_Formal (Prev_E);
          while Present (Formal) loop
@@ -7269,6 +7314,7 @@ package body Sem_Ch6 is
             end if;
 
             G_Typ := Get_Generic_Parent_Type (F_Typ);
+            exit when Present (G_Typ);
 
             Next_Formal (Formal);
          end loop;
@@ -7961,6 +8007,7 @@ package body Sem_Ch6 is
             --  to retrieve the corresponding concurrent type.
 
             elsif Is_Concurrent_Record_Type (Typ)
+              and then not Is_Class_Wide_Type (Typ)
               and then Present (Corresponding_Concurrent_Type (Typ))
             then
                Typ := Corresponding_Concurrent_Type (Typ);
@@ -8088,16 +8135,11 @@ package body Sem_Ch6 is
                  and then Is_Protected_Type (Typ)
                  and then
                    (Is_Limited_Interface (Iface_Typ)
-                      or else Is_Protected_Interface (Iface_Typ)
-                      or else Is_Synchronized_Interface (Iface_Typ)
-                      or else Is_Task_Interface (Iface_Typ))
+                     or else Is_Protected_Interface (Iface_Typ)
+                     or else Is_Synchronized_Interface (Iface_Typ)
+                     or else Is_Task_Interface (Iface_Typ))
                then
-                  Error_Msg_NE
-                    ("first formal of & must be of mode `OUT`, `IN OUT`"
-                      & " or access-to-variable", Typ, Candidate);
-                  Error_Msg_N
-                    ("\in order to be overridden by protected procedure or "
-                      & "entry (RM 9.4(11.9/2))", Typ);
+                  Error_Msg_PT (Parent (Typ), Candidate);
                end if;
             end if;
 
@@ -8860,7 +8902,6 @@ package body Sem_Ch6 is
                elsif not Nkind_In (Parent (T), N_Access_Function_Definition,
                                                N_Access_Procedure_Definition)
                then
-
                   --  AI05-0151: Tagged incomplete types are allowed in all
                   --  formal parts. Untagged incomplete types are not allowed
                   --  in bodies.
@@ -8893,6 +8934,14 @@ package body Sem_Ch6 is
                Error_Msg_NE
                  ("premature use of&",
                   Parameter_Type (Param_Spec), Formal_Type);
+            end if;
+
+            --  Ada 2012 (AI-142): Handle aliased parameters
+
+            if Ada_Version >= Ada_2012
+              and then Aliased_Present (Param_Spec)
+            then
+               Set_Is_Aliased (Formal);
             end if;
 
             --  Ada 2005 (AI-231): Create and decorate an internal subtype
@@ -8964,6 +9013,8 @@ package body Sem_Ch6 is
          end if;
 
          Set_Etype (Formal, Formal_Type);
+
+         --  Deal with default expression if present
 
          Default := Expression (Param_Spec);
 
@@ -9076,6 +9127,12 @@ package body Sem_Ch6 is
 
          elsif Ekind (Formal) = E_In_Out_Parameter then
             Num_Out_Params := Num_Out_Params + 1;
+         end if;
+
+         --  Force call by reference if aliased
+
+         if Is_Aliased (Formal) then
+            Set_Mechanism (Formal, By_Reference);
          end if;
 
          Next (Param_Spec);
@@ -9539,8 +9596,7 @@ package body Sem_Ch6 is
          if Ekind (Designator) /= E_Procedure then
             declare
                Rent : constant Entity_Id :=
-                        Make_Defining_Identifier (Loc,
-                          Chars => Name_uResult);
+                        Make_Defining_Identifier (Loc, Name_uResult);
                Ftyp : constant Entity_Id := Etype (Designator);
 
             begin
@@ -9752,10 +9808,9 @@ package body Sem_Ch6 is
                --  If expansion is active, the formal is replaced by a local
                --  variable that renames the corresponding entry of the
                --  parameter block, and it is this local variable that may
-               --  require an actual subtype. In ALFA mode, expansion of accept
-               --  statements is skipped.
+               --  require an actual subtype.
 
-               if Expander_Active and not ALFA_Mode then
+               if Full_Expander_Active then
                   Decl := Build_Actual_Subtype (T, Renamed_Object (Formal));
                else
                   Decl := Build_Actual_Subtype (T, Formal);
@@ -9794,8 +9849,7 @@ package body Sem_Ch6 is
             end if;
 
             if Nkind (N) = N_Accept_Statement
-              and then Expander_Active
-              and then not ALFA_Mode
+              and then Full_Expander_Active
             then
                Set_Actual_Subtype (Renamed_Object (Formal),
                  Defining_Identifier (Decl));

@@ -7857,7 +7857,6 @@ Followed.  Executable code is generated in some cases, e.g.@: loops
 to initialize large arrays.
 
 @unnumberedsec C.5(8): Pragma @code{Discard_Names}
-
 @sp 1
 @cartouche
 If the pragma applies to an entity, then the implementation should

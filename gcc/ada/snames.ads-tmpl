@@ -156,6 +156,7 @@ package Snames is
    Name_uChain                         : constant Name_Id := N + $;
    Name_uController                    : constant Name_Id := N + $;
    Name_uCPU                           : constant Name_Id := N + $;
+   Name_uDispatching_Domain            : constant Name_Id := N + $;
    Name_uEntry_Bodies                  : constant Name_Id := N + $;
    Name_uExpunge                       : constant Name_Id := N + $;
    Name_uFinalizer                     : constant Name_Id := N + $;
@@ -360,6 +361,7 @@ package Snames is
    Name_Detect_Blocking                : constant Name_Id := N + $; -- Ada 05
    Name_Default_Storage_Pool           : constant Name_Id := N + $; -- Ada 12
    Name_Discard_Names                  : constant Name_Id := N + $;
+   Name_Dispatching_Domain             : constant Name_Id := N + $; -- Ada 12
    Name_Elaboration_Checks             : constant Name_Id := N + $; -- GNAT
    Name_Eliminate                      : constant Name_Id := N + $; -- GNAT
    Name_Extend_System                  : constant Name_Id := N + $; -- GNAT
@@ -790,6 +792,7 @@ package Snames is
    Name_Null_Parameter                 : constant Name_Id := N + $; -- GNAT
    Name_Object_Size                    : constant Name_Id := N + $; -- GNAT
    Name_Old                            : constant Name_Id := N + $; -- GNAT
+   Name_Overlaps_Storage               : constant Name_Id := N + $; -- GNAT
    Name_Partition_ID                   : constant Name_Id := N + $;
    Name_Passed_By_Reference            : constant Name_Id := N + $; -- GNAT
    Name_Pool_Address                   : constant Name_Id := N + $;
@@ -806,6 +809,7 @@ package Snames is
    Name_Safe_Large                     : constant Name_Id := N + $; -- Ada 83
    Name_Safe_Last                      : constant Name_Id := N + $;
    Name_Safe_Small                     : constant Name_Id := N + $; -- Ada 83
+   Name_Same_Storage                   : constant Name_Id := N + $; -- Ada 12
    Name_Scale                          : constant Name_Id := N + $;
    Name_Scaling                        : constant Name_Id := N + $;
    Name_Signed_Zeros                   : constant Name_Id := N + $;
@@ -1193,6 +1197,7 @@ package Snames is
    Name_Shared_Library_Suffix            : constant Name_Id := N + $;
    Name_Separate_Suffix                  : constant Name_Id := N + $;
    Name_Source_Dirs                      : constant Name_Id := N + $;
+   Name_Source_File_Switches             : constant Name_Id := N + $;
    Name_Source_Files                     : constant Name_Id := N + $;
    Name_Source_List_File                 : constant Name_Id := N + $;
    Name_Spec                             : constant Name_Id := N + $;
@@ -1341,6 +1346,7 @@ package Snames is
       Attribute_Null_Parameter,
       Attribute_Object_Size,
       Attribute_Old,
+      Attribute_Overlaps_Storage,
       Attribute_Partition_ID,
       Attribute_Passed_By_Reference,
       Attribute_Pool_Address,
@@ -1357,6 +1363,7 @@ package Snames is
       Attribute_Safe_Large,
       Attribute_Safe_Last,
       Attribute_Safe_Small,
+      Attribute_Same_Storage,
       Attribute_Scale,
       Attribute_Scaling,
       Attribute_Signed_Zeros,
@@ -1522,6 +1529,7 @@ package Snames is
       Pragma_Detect_Blocking,
       Pragma_Default_Storage_Pool,
       Pragma_Discard_Names,
+      Pragma_Dispatching_Domain,
       Pragma_Elaboration_Checks,
       Pragma_Eliminate,
       Pragma_Extend_System,

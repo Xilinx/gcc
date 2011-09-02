@@ -526,9 +526,10 @@ package body Prj.Env is
          while Element (Iter) /= No_Source loop
             Source := Element (Iter);
 
-            if Source.Index >= 1
-              and then not Source.Locally_Removed
+            if not Source.Locally_Removed
               and then Source.Unit /= null
+              and then
+                (Source.Index >= 1 or else Source.Naming_Exception /= No)
             then
                Put (Source);
             end if;
@@ -835,7 +836,23 @@ package body Prj.Env is
                   or else Source.Unit /= No_Unit_Index)
             then
                if Source.Unit /= No_Unit_Index then
-                  Get_Name_String (Source.Unit.Name);
+
+                  --  Put the encoded unit name in the name buffer
+
+                  declare
+                     Uname : constant String :=
+                               Get_Name_String (Source.Unit.Name);
+
+                  begin
+                     Name_Len := 0;
+                     for J in Uname'Range loop
+                        if Uname (J) in Upper_Half_Character then
+                           Store_Encoded_Character (Get_Char_Code (Uname (J)));
+                        else
+                           Add_Char_To_Name_Buffer (Uname (J));
+                        end if;
+                     end loop;
+                  end;
 
                   if Source.Language.Config.Kind = Unit_Based then
 
@@ -861,8 +878,7 @@ package body Prj.Env is
                      end case;
 
                      if Suffix /= No_File then
-                        Add_Str_To_Name_Buffer
-                          (Get_Name_String (Suffix));
+                        Add_Str_To_Name_Buffer (Get_Name_String (Suffix));
                      end if;
                   end if;
 
@@ -888,6 +904,8 @@ package body Prj.Env is
 
       procedure For_Every_Imported_Project is new
         For_Every_Project_Imported (State => Integer, Action => Process);
+
+      --  Local variables
 
       Dummy : Integer := 0;
 
@@ -1326,19 +1344,20 @@ package body Prj.Env is
 
          while Unit /= null loop
             if Unit.File_Names (Spec) /= null
+              and then not Unit.File_Names (Spec).Locally_Removed
               and then Unit.File_Names (Spec).File /= No_File
               and then
                 (Namet.Get_Name_String
-                     (Unit.File_Names (Spec).File) = Original_Name
-                 or else (Unit.File_Names (Spec).Path /=
-                            No_Path_Information
+                   (Unit.File_Names (Spec).File) = Original_Name
+                 or else (Unit.File_Names (Spec).Path /= No_Path_Information
                           and then
                             Namet.Get_Name_String
-                              (Unit.File_Names (Spec).Path.Name) =
-                            Original_Name))
+                               (Unit.File_Names (Spec).Path.Name) =
+                                                           Original_Name))
             then
-               Project := Ultimate_Extending_Project_Of
-                          (Unit.File_Names (Spec).Project);
+               Project :=
+                 Ultimate_Extending_Project_Of
+                   (Unit.File_Names (Spec).Project);
                Path := Unit.File_Names (Spec).Path.Display_Name;
 
                if Current_Verbosity > Default then
@@ -1350,17 +1369,18 @@ package body Prj.Env is
 
             elsif Unit.File_Names (Impl) /= null
               and then Unit.File_Names (Impl).File /= No_File
+              and then not Unit.File_Names (Impl).Locally_Removed
               and then
                 (Namet.Get_Name_String
                    (Unit.File_Names (Impl).File) = Original_Name
-                 or else (Unit.File_Names (Impl).Path /=
-                            No_Path_Information
-                          and then Namet.Get_Name_String
-                            (Unit.File_Names (Impl).Path.Name) =
-                            Original_Name))
+                  or else (Unit.File_Names (Impl).Path /= No_Path_Information
+                            and then Namet.Get_Name_String
+                                       (Unit.File_Names (Impl).Path.Name) =
+                                                              Original_Name))
             then
-               Project := Ultimate_Extending_Project_Of
-                            (Unit.File_Names (Impl).Project);
+               Project :=
+                 Ultimate_Extending_Project_Of
+                   (Unit.File_Names (Impl).Project);
                Path := Unit.File_Names (Impl).Path.Display_Name;
 
                if Current_Verbosity > Default then

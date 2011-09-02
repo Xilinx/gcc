@@ -1149,27 +1149,41 @@ package body Sem_Ch13 is
 
                   pragma Assert (not Delay_Required);
 
-               when Aspect_Priority | Aspect_Interrupt_Priority => declare
-                  Pname : Name_Id;
+               when Aspect_Priority           |
+                    Aspect_Interrupt_Priority |
+                    Aspect_Dispatching_Domain |
+                    Aspect_CPU                =>
+                  declare
+                     Pname : Name_Id;
 
-               begin
-                  if A_Id = Aspect_Priority then
-                     Pname := Name_Priority;
-                  else
-                     Pname := Name_Interrupt_Priority;
-                  end if;
+                  begin
+                     if A_Id = Aspect_Priority then
+                        Pname := Name_Priority;
 
-                  Aitem :=
-                    Make_Pragma (Loc,
-                      Pragma_Identifier            =>
-                        Make_Identifier (Sloc (Id), Pname),
-                      Pragma_Argument_Associations =>
-                        New_List (Relocate_Node (Expr)));
+                     elsif A_Id = Aspect_Interrupt_Priority then
+                        Pname := Name_Interrupt_Priority;
 
-                  Set_From_Aspect_Specification (Aitem, True);
+                     elsif A_Id = Aspect_CPU then
+                        Pname := Name_CPU;
 
-                  pragma Assert (not Delay_Required);
-               end;
+                     else
+                        Pname := Name_Dispatching_Domain;
+                     end if;
+
+                     Aitem :=
+                       Make_Pragma (Loc,
+                           Pragma_Identifier            =>
+                             Make_Identifier (Sloc (Id), Pname),
+                           Pragma_Argument_Associations =>
+                             New_List
+                               (Make_Pragma_Argument_Association
+                                  (Sloc       => Sloc (Id),
+                                   Expression => Relocate_Node (Expr))));
+
+                     Set_From_Aspect_Specification (Aitem, True);
+
+                     pragma Assert (not Delay_Required);
+                  end;
 
                --  Aspects Pre/Post generate Precondition/Postcondition pragmas
                --  with a first argument that is the expression, and a second
@@ -1486,9 +1500,13 @@ package body Sem_Ch13 is
 
                      --  For Priority aspects, insert into the task or
                      --  protected definition, which we need to create if it's
-                     --  not there.
+                     --  not there. The same applies to CPU and
+                     --  Dispatching_Domain but only to tasks.
 
-                     when Aspect_Priority | Aspect_Interrupt_Priority =>
+                     when Aspect_Priority           |
+                          Aspect_Interrupt_Priority |
+                          Aspect_Dispatching_Domain |
+                          Aspect_CPU                =>
                         declare
                            T : Node_Id; -- the type declaration
                            L : List_Id; -- list of decls of task/protected
@@ -1496,12 +1514,14 @@ package body Sem_Ch13 is
                         begin
                            if Nkind (N) = N_Object_Declaration then
                               T := Parent (Etype (Defining_Identifier (N)));
-
                            else
                               T := N;
                            end if;
 
-                           if Nkind (T) = N_Protected_Type_Declaration then
+                           if Nkind (T) = N_Protected_Type_Declaration
+                             and then A_Id /= Aspect_Dispatching_Domain
+                             and then A_Id /= Aspect_CPU
+                           then
                               pragma Assert
                                 (Present (Protected_Definition (T)));
 
@@ -1518,14 +1538,19 @@ package body Sem_Ch13 is
                                        End_Label => Empty));
                               end if;
 
-                              L := Visible_Declarations
-                                     (Task_Definition (T));
+                              L := Visible_Declarations (Task_Definition (T));
 
                            else
                               raise Program_Error;
                            end if;
 
                            Prepend (Aitem, To => L);
+
+                           --  Analyze rewritten pragma. Otherwise, its
+                           --  analysis is done too late, after the task or
+                           --  protected object has been created.
+
+                           Analyze (Aitem);
                         end;
 
                      --  For all other cases, insert in sequence
@@ -2009,10 +2034,10 @@ package body Sem_Ch13 is
       end if;
 
       --  Process Ignore_Rep_Clauses option (we also ignore rep clauses in
-      --  CodePeer mode or ALFA mode, since they are not relevant in these
+      --  CodePeer mode or Alfa mode, since they are not relevant in these
       --  contexts).
 
-      if Ignore_Rep_Clauses or CodePeer_Mode or ALFA_Mode then
+      if Ignore_Rep_Clauses or CodePeer_Mode or Alfa_Mode then
          case Id is
 
             --  The following should be ignored. They do not affect legality
@@ -2032,7 +2057,7 @@ package body Sem_Ch13 is
                Rewrite (N, Make_Null_Statement (Sloc (N)));
                return;
 
-            --  We do not want too ignore 'Small in CodePeer_Mode or ALFA_Mode,
+            --  We do not want too ignore 'Small in CodePeer_Mode or Alfa_Mode,
             --  since it has an impact on the exact computations performed.
 
             --  Perhaps 'Small should also not be ignored by
@@ -3904,9 +3929,7 @@ package body Sem_Ch13 is
             --  This seems dubious, this destroys the source tree in a manner
             --  not detectable by ASIS ???
 
-            if Operating_Mode = Check_Semantics
-              and then ASIS_Mode
-            then
+            if Operating_Mode = Check_Semantics and then ASIS_Mode then
                AtM_Nod :=
                  Make_Attribute_Definition_Clause (Loc,
                    Name       => New_Reference_To (Base_Type (Rectype), Loc),
@@ -5873,6 +5896,12 @@ package body Sem_Ch13 is
 
          when Aspect_Bit_Order =>
             T := RTE (RE_Bit_Order);
+
+         when Aspect_CPU =>
+            T := RTE (RE_CPU_Range);
+
+         when Aspect_Dispatching_Domain =>
+            T := RTE (RE_Dispatching_Domain);
 
          when Aspect_External_Tag =>
             T := Standard_String;

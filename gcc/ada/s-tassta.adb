@@ -475,6 +475,7 @@ package body System.Tasking.Stages is
       Task_Info         : System.Task_Info.Task_Info_Type;
       CPU               : Integer;
       Relative_Deadline : Ada.Real_Time.Time_Span;
+      Domain            : Dispatching_Domain_Access;
       Num_Entries       : Task_Entry_Index;
       Master            : Master_Level;
       State             : Task_Procedure_Access;
@@ -491,6 +492,8 @@ package body System.Tasking.Stages is
       Base_Priority : System.Any_Priority;
       Len           : Natural;
       Base_CPU      : System.Multiprocessors.CPU_Range;
+
+      use type System.Multiprocessors.CPU_Range;
 
       pragma Unreferenced (Relative_Deadline);
       --  EDF scheduling is not supported by any of the target platforms so
@@ -587,7 +590,7 @@ package body System.Tasking.Stages is
       end if;
 
       Initialize_ATCB (Self_ID, State, Discriminants, P, Elaborated,
-        Base_Priority, Base_CPU, Task_Info, Size, T, Success);
+        Base_Priority, Base_CPU, Domain, Task_Info, Size, T, Success);
 
       if not Success then
          Free (T);
@@ -638,12 +641,53 @@ package body System.Tasking.Stages is
          T.Common.Task_Image_Len := Len;
       end if;
 
+      --  The task inherits the dispatching domain of the parent only if no
+      --  specific domain has been defined in the spec of the task (using the
+      --  dispatching domain pragma or aspect).
+
+      if T.Common.Domain /= null then
+         null;
+      elsif T.Common.Activator /= null then
+         T.Common.Domain := T.Common.Activator.Common.Domain;
+      else
+         T.Common.Domain := System.Tasking.System_Domain;
+      end if;
+
       Unlock (Self_ID);
       Unlock_RTS;
 
-      --  Note: we should not call 'new' while holding locks since new
-      --  may use locks (e.g. RTS_Lock under Windows) itself and cause a
-      --  deadlock.
+      --  The CPU associated to the task (if any) must belong to the
+      --  dispatching domain.
+
+      if Base_CPU /= System.Multiprocessors.Not_A_Specific_CPU
+        and then
+          (Base_CPU not in T.Common.Domain'Range
+            or else not T.Common.Domain (Base_CPU))
+      then
+         Initialization.Undefer_Abort_Nestable (Self_ID);
+         raise Tasking_Error with "CPU not in dispatching domain";
+      end if;
+
+      --  To handle the interaction between pragma CPU and dispatching domains
+      --  we need to signal that this task is being allocated to a processor.
+      --  This is needed only for tasks belonging to the system domain (the
+      --  creation of new dispatching domains can only take processors from the
+      --  system domain) and only before the environment task calls the main
+      --  procedure (dispatching domains cannot be created after this).
+
+      if Base_CPU /= System.Multiprocessors.Not_A_Specific_CPU
+        and then T.Common.Domain = System.Tasking.System_Domain
+        and then not System.Tasking.Dispatching_Domains_Frozen
+      then
+         --  Increase the number of tasks attached to the CPU to which this
+         --  task is being moved.
+
+         Dispatching_Domain_Tasks (Base_CPU) :=
+           Dispatching_Domain_Tasks (Base_CPU) + 1;
+      end if;
+
+      --  Note: we should not call 'new' while holding locks since new may use
+      --  locks (e.g. RTS_Lock under Windows) itself and cause a deadlock.
 
       if Build_Entry_Names then
          T.Entry_Names :=
@@ -1023,9 +1067,10 @@ package body System.Tasking.Stages is
       Secondary_Stack_Size :
         constant SSE.Storage_Offset :=
           Self_ID.Common.Compiler_Data.Pri_Stack_Info.Size *
-          SSE.Storage_Offset (Parameters.Sec_Stack_Ratio) / 100;
+            SSE.Storage_Offset (Parameters.Sec_Stack_Percentage) / 100;
 
       Secondary_Stack : aliased SSE.Storage_Array (1 .. Secondary_Stack_Size);
+      --  Actual area allocated for secondary stack
 
       Secondary_Stack_Address : System.Address := Secondary_Stack'Address;
       --  Address of secondary stack. In the fixed secondary stack case, this
@@ -1085,6 +1130,8 @@ package body System.Tasking.Stages is
             return;
          end if;
       end Search_Fall_Back_Handler;
+
+   --  Start of processing for Task_Wrapper
 
    begin
       pragma Assert (Self_ID.Deferral_Level = 1);

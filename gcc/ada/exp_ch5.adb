@@ -62,17 +62,17 @@ with Validsw;  use Validsw;
 package body Exp_Ch5 is
 
    function Change_Of_Representation (N : Node_Id) return Boolean;
-   --  Determine if the right hand side of the assignment N is a type
-   --  conversion which requires a change of representation. Called
-   --  only for the array and record cases.
+   --  Determine if the right hand side of assignment N is a type conversion
+   --  which requires a change of representation. Called only for the array
+   --  and record cases.
 
    procedure Expand_Assign_Array (N : Node_Id; Rhs : Node_Id);
    --  N is an assignment which assigns an array value. This routine process
    --  the various special cases and checks required for such assignments,
    --  including change of representation. Rhs is normally simply the right
-   --  hand side of the assignment, except that if the right hand side is
-   --  a type conversion or a qualified expression, then the Rhs is the
-   --  actual expression inside any such type conversions or qualifications.
+   --  hand side of the assignment, except that if the right hand side is a
+   --  type conversion or a qualified expression, then the RHS is the actual
+   --  expression inside any such type conversions or qualifications.
 
    function Expand_Assign_Array_Loop
      (N      : Node_Id;
@@ -1788,9 +1788,8 @@ package body Exp_Ch5 is
 
       --  If the type is private without discriminants, and the full type
       --  has discriminants (necessarily with defaults) a check may still be
-      --  necessary if the Lhs is aliased. The private determinants must be
+      --  necessary if the Lhs is aliased. The private discriminants must be
       --  visible to build the discriminant constraints.
-      --  What is a "determinant"???
 
       --  Only an explicit dereference that comes from source indicates
       --  aliasing. Access to formals of protected operations and entries
@@ -1802,11 +1801,28 @@ package body Exp_Ch5 is
         and then Comes_From_Source (Lhs)
       then
          declare
-            Lt : constant Entity_Id := Etype (Lhs);
+            Lt  : constant Entity_Id := Etype (Lhs);
+            Ubt : Entity_Id          := Base_Type (Typ);
+
          begin
-            Set_Etype (Lhs, Typ);
-            Rewrite (Rhs, OK_Convert_To (Base_Type (Typ), Rhs));
-            Apply_Discriminant_Check (Rhs, Typ, Lhs);
+            --  In the case of an expander-generated record subtype whose base
+            --  type still appears private, Typ will have been set to that
+            --  private type rather than the underlying record type (because
+            --  Underlying type will have returned the record subtype), so it's
+            --  necessary to apply Underlying_Type again to the base type to
+            --  get the record type we need for the discriminant check. Such
+            --  subtypes can be created for assignments in certain cases, such
+            --  as within an instantiation passed this kind of private type.
+            --  It would be good to avoid this special test, but making changes
+            --  to prevent this odd form of record subtype seems difficult. ???
+
+            if Is_Private_Type (Ubt) then
+               Ubt := Underlying_Type (Ubt);
+            end if;
+
+            Set_Etype (Lhs, Ubt);
+            Rewrite (Rhs, OK_Convert_To (Base_Type (Ubt), Rhs));
+            Apply_Discriminant_Check (Rhs, Ubt, Lhs);
             Set_Etype (Lhs, Lt);
          end;
 
@@ -1883,6 +1899,71 @@ package body Exp_Ch5 is
         and then not Can_Never_Be_Null (Etype (Rhs))
       then
          Apply_Constraint_Check (Rhs, Etype (Lhs));
+      end if;
+
+      --  Ada 2012 (AI05-148): Update current accessibility level if Rhs is a
+      --  stand-alone obj of an anonymous access type.
+
+      if Is_Access_Type (Typ)
+        and then Is_Entity_Name (Lhs)
+        and then Present (Effective_Extra_Accessibility (Entity (Lhs))) then
+         declare
+            function Lhs_Entity return Entity_Id;
+            --  Look through renames to find the underlying entity.
+            --  For assignment to a rename, we don't care about the
+            --  Enclosing_Dynamic_Scope of the rename declaration.
+
+            ----------------
+            -- Lhs_Entity --
+            ----------------
+
+            function Lhs_Entity return Entity_Id is
+               Result : Entity_Id := Entity (Lhs);
+
+            begin
+               while Present (Renamed_Object (Result)) loop
+
+                  --  Renamed_Object must return an Entity_Name here
+                  --  because of preceding "Present (E_E_A (...))" test.
+
+                  Result := Entity (Renamed_Object (Result));
+               end loop;
+
+               return Result;
+            end Lhs_Entity;
+
+            --  Local Declarations
+
+            Access_Check : constant Node_Id :=
+                             Make_Raise_Program_Error (Loc,
+                               Condition =>
+                                 Make_Op_Gt (Loc,
+                                   Left_Opnd  =>
+                                     Dynamic_Accessibility_Level (Rhs),
+                                   Right_Opnd =>
+                                     Make_Integer_Literal (Loc,
+                                       Intval =>
+                                         Scope_Depth
+                                           (Enclosing_Dynamic_Scope
+                                             (Lhs_Entity)))),
+                               Reason => PE_Accessibility_Check_Failed);
+
+            Access_Level_Update : constant Node_Id :=
+                                    Make_Assignment_Statement (Loc,
+                                     Name       =>
+                                       New_Occurrence_Of
+                                         (Effective_Extra_Accessibility
+                                            (Entity (Lhs)), Loc),
+                                     Expression =>
+                                        Dynamic_Accessibility_Level (Rhs));
+
+         begin
+            if not Accessibility_Checks_Suppressed (Entity (Lhs)) then
+               Insert_Action (N, Access_Check);
+            end if;
+
+            Insert_Action (N, Access_Level_Update);
+         end;
       end if;
 
       --  Case of assignment to a bit packed array element. If there is a
@@ -2824,7 +2905,7 @@ package body Exp_Ch5 is
       Loc    : constant Source_Ptr := Sloc (N);
 
       Container     : constant Node_Id   := Name (I_Spec);
-      Container_Typ : constant Entity_Id := Etype (Container);
+      Container_Typ : constant Entity_Id := Base_Type (Etype (Container));
       Cursor        : Entity_Id;
       Iterator      : Entity_Id;
       New_Loop      : Node_Id;
@@ -2891,14 +2972,17 @@ package body Exp_Ch5 is
       --  Processing for containers
 
       else
-         --  For an iterator of the form "Of" then name is some expression,
-         --  which is transformed into a call to the default iterator.
+         --  For an "of" iterator the name is a container expression, which
+         --  is transformed into a call to the default iterator.
 
-         --  For an iterator of the form "in" then name is a function call
-         --  that delivers an iterator.
+         --  For an iterator of the form "in" the name is a function call
+         --  that delivers an iterator type.
+
+         --  In both cases, analysis of the iterator has introduced an object
+         --  declaration to capture the domain, so that Container is an entity.
 
          --  The for loop is expanded into a while loop which uses a container
-         --  specific cursor to examine each element.
+         --  specific cursor to desgnate each element.
 
          --    Iter : Iterator_Type := Container.Iterate;
          --    Cursor : Cursor_type := First (Iter);
@@ -2906,7 +2990,7 @@ package body Exp_Ch5 is
          --       declare
          --       --  the block is added when Element_Type is controlled
 
-         --          Obj : Pack.Element_Type := Element (Iterator);
+         --          Obj : Pack.Element_Type := Element (Cursor);
          --          --  for the "of" loop form
          --       begin
          --          <original loop statements>
@@ -2917,7 +3001,7 @@ package body Exp_Ch5 is
 
          --  If "reverse" is present, then the initialization of the cursor
          --  uses Last and the step becomes Prev. Pack is the name of the
-         --  package which instantiates the container.
+         --  scope where the container package is instantiated.
 
          declare
             Element_Type : constant Entity_Id := Etype (Id);
@@ -2928,19 +3012,30 @@ package body Exp_Ch5 is
             Name_Step    : Name_Id;
 
          begin
-
             --  The type of the iterator is the return type of the Iterate
             --  function used. For the "of" form this is the default iterator
             --  for the type, otherwise it is the type of the explicit
-            --  function used in the loop.
+            --  function used in the iterator specification. The most common
+            --  case will be an Iterate function in the container package.
+
+            --  The primitive operations of the container type may not be
+            --  use-visible, so we introduce the name of the enclosing package
+            --  in the declarations below. The Iterator type is declared in a
+            --  an instance within the container package itself.
+
+            --  If the container type is a derived type, the cursor type is
+            --  found in the package of the parent type.
+
+            if Is_Derived_Type (Container_Typ) then
+               Pack := Scope (Root_Type (Container_Typ));
+            else
+               Pack := Scope (Container_Typ);
+            end if;
 
             Iter_Type := Etype (Name (I_Spec));
 
-            if Is_Entity_Name (Container) then
-               Pack := Scope (Etype (Container));
-
-            else
-               Pack := Scope (Entity (Name (Container)));
+            if Is_Iterator (Iter_Type) then
+               Pack := Scope (Pack);
             end if;
 
             --  The "of" case uses an internally generated cursor whose type
@@ -2982,8 +3077,6 @@ package body Exp_Ch5 is
                         Container_Arg := New_Copy_Tree (Container);
 
                      else
-                        Pack := Scope (Default_Iter);
-
                         Container_Arg :=
                           Make_Type_Conversion (Loc,
                             Subtype_Mark =>
@@ -3057,10 +3150,12 @@ package body Exp_Ch5 is
                end;
 
             --  X in Iterate (S) : type of iterator is type of explicitly
-            --  given Iterate function.
+            --  given Iterate function, and the loop variable is the cursor.
+            --  It will be assigned in the loop and must be a variable.
 
             else
                Cursor := Id;
+               Set_Ekind (Cursor, E_Variable);
             end if;
 
             Iterator := Make_Temporary (Loc, 'I');
@@ -3130,9 +3225,12 @@ package body Exp_Ch5 is
                 End_Label  => Empty);
 
             --  Create the declarations for Iterator and cursor and insert then
-            --  before the source loop. Generate:
+            --  before the source loop. Given that the domain of iteration is
+            --  already an entity, the iterator is just a renaming of that
+            --  entity. Possible optimization ???
+            --  Generate:
 
-            --    I : Iterator_Type := Iterate (Container);
+            --    I : Iterator_Type renames Container;
             --    C : Pack.Cursor_Type := Container.[First | Last];
 
             declare
@@ -3141,11 +3239,12 @@ package body Exp_Ch5 is
 
             begin
                Decl1 :=
-                 Make_Object_Declaration (Loc,
+                 Make_Object_Renaming_Declaration (Loc,
                    Defining_Identifier => Iterator,
-                   Object_Definition   => New_Occurrence_Of (Iter_Type, Loc),
-                   Expression          => Relocate_Node (Name (I_Spec)));
-               Set_Assignment_OK (Decl1);
+                   Subtype_Mark  => New_Occurrence_Of (Iter_Type, Loc),
+                   Name          => Relocate_Node (Name (I_Spec)));
+
+               --  Create declaration for cursor
 
                Decl2 :=
                  Make_Object_Declaration (Loc,
@@ -3160,8 +3259,7 @@ package body Exp_Ch5 is
 
                Set_Assignment_OK (Decl2);
 
-               Insert_Actions (N,
-                 New_List (Decl1, Decl2));
+               Insert_Actions (N, New_List (Decl1, Decl2));
             end;
 
             --  The Iterator is not modified in the source, but of course will

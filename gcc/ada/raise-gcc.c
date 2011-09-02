@@ -35,14 +35,6 @@
 #ifdef IN_RTS
 #include "tconfig.h"
 #include "tsystem.h"
-/* In the top-of-tree GCC, tconfig does not include tm.h, but in GCC 3.2
-   it does.  To avoid branching raise.c just for that purpose, we kludge by
-   looking for a symbol always defined by tm.h and if it's not defined,
-   we include it.  */
-#ifndef FIRST_PSEUDO_REGISTER
-#include "coretypes.h"
-#include "tm.h"
-#endif
 #include <sys/stat.h>
 #include <stdarg.h>
 typedef char bool;
@@ -217,7 +209,7 @@ db (int db_code, char * msg_format, ...)
 static void
 db_phases (int phases)
 {
-  phase_descriptor *a = phase_descriptors;
+  const phase_descriptor *a = phase_descriptors;
 
   if (! (db_accepted_codes() & DB_PHASES))
     return;
@@ -901,6 +893,7 @@ is_handled_by (_Unwind_Ptr choice, _GNAT_Exception * propagated_exception)
 static void
 get_action_description_for (_Unwind_Context *uw_context,
                             _Unwind_Exception *uw_exception,
+                            _Unwind_Action uw_phase,
                             region_descriptor *region,
                             action_descriptor *action)
 {
@@ -965,17 +958,22 @@ get_action_description_for (_Unwind_Context *uw_context,
 	  /* Positive filters are for regular handlers.  */
 	  else if (ar_filter > 0)
 	    {
-	      /* See if the filter we have is for an exception which matches
-		 the one we are propagating.  */
-	      _Unwind_Ptr choice = get_ttype_entry_for (region, ar_filter);
+              /* Do not catch an exception if the _UA_FORCE_UNWIND flag is
+                 passed (to follow the ABI).  */
+              if (!(uw_phase & _UA_FORCE_UNWIND))
+                {
+                  /* See if the filter we have is for an exception which
+                     matches the one we are propagating.  */
+                  _Unwind_Ptr choice = get_ttype_entry_for (region, ar_filter);
 
-	      if (is_handled_by (choice, gnat_exception))
-		{
-		  action->kind = handler;
-		  action->ttype_filter = ar_filter;
-		  action->ttype_entry = choice;
-		  return;
-		}
+                  if (is_handled_by (choice, gnat_exception))
+                    {
+                      action->kind = handler;
+                      action->ttype_filter = ar_filter;
+                      action->ttype_entry = choice;
+                      return;
+                    }
+                }
 	    }
 
 	  /* Negative filter values are for C++ exception specifications.
@@ -1001,11 +999,6 @@ setup_to_install (_Unwind_Context *uw_context,
                   _Unwind_Ptr uw_landing_pad,
                   int uw_filter)
 {
-#ifndef EH_RETURN_DATA_REGNO
-  /* We should not be called if the appropriate underlying support is not
-     there.  */
-  abort ();
-#else
   /* 1/ exception object pointer, which might be provided back to
      _Unwind_Resume (and thus to this personality routine) if we are jumping
      to a cleanup.  */
@@ -1020,7 +1013,6 @@ setup_to_install (_Unwind_Context *uw_context,
   /* Setup the address we should jump at to reach the code where there is the
      "something" we found.  */
   _Unwind_SetIP (uw_context, uw_landing_pad);
-#endif
 }
 
 /* The following is defined from a-except.adb. Its purpose is to enable
@@ -1128,7 +1120,8 @@ PERSONALITY_FUNCTION (version_arg_t version_arg,
 
   /* Search the call-site and action-record tables for the action associated
      with this IP.  */
-  get_action_description_for (uw_context, uw_exception, &region, &action);
+  get_action_description_for (uw_context, uw_exception, uw_phases,
+                              &region, &action);
   db_action_for (&action, uw_context);
 
   /* Whatever the phase, if there is nothing relevant in this frame,

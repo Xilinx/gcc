@@ -1,5 +1,5 @@
 # Makefile.rtl for GNU Ada Compiler (GNAT).
-#   Copyright (C) 2003-2010, Free Software Foundation, Inc.
+#   Copyright (C) 2003-2011, Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -48,7 +48,7 @@ GNATRTL_TASKING_OBJS= \
   s-inmaop$(objext) \
   s-interr$(objext) \
   s-intman$(objext) \
-  s-oscons$(objext) \
+  s-mudido$(objext) \
   s-osinte$(objext) \
   s-proinf$(objext) \
   s-solita$(objext) \
@@ -93,6 +93,8 @@ GNATRTL_NONTASKING_OBJS= \
   a-cbdlli$(objext) \
   a-cbmutr$(objext) \
   a-cborma$(objext) \
+  a-cbprqu$(objext) \
+  a-cbsyqu$(objext) \
   a-cdlili$(objext) \
   a-cfdlli$(objext) \
   a-cfhama$(objext) \
@@ -143,6 +145,9 @@ GNATRTL_NONTASKING_OBJS= \
   a-crdlli$(objext) \
   a-comutr$(objext) \
   a-cimutr$(objext) \
+  a-csquin$(objext) \
+  a-cuprqu$(objext) \
+  a-cusyqu$(objext) \
   a-cwila1$(objext) \
   a-cwila9$(objext) \
   a-decima$(objext) \
@@ -536,6 +541,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-memory$(objext) \
   s-multip$(objext) \
   s-os_lib$(objext) \
+  s-oscons$(objext) \
   s-osprim$(objext) \
   s-pack03$(objext) \
   s-pack05$(objext) \
@@ -602,6 +608,7 @@ GNATRTL_NONTASKING_OBJS= \
   s-powtab$(objext) \
   s-purexc$(objext) \
   s-rannum$(objext) \
+  s-ransee$(objext) \
   s-regexp$(objext) \
   s-regpat$(objext) \
   s-restri$(objext) \

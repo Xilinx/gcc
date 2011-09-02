@@ -206,7 +206,8 @@ package body Sinfo is
    begin
       pragma Assert (False
         or else NT (N).Nkind = N_Component_Definition
-        or else NT (N).Nkind = N_Object_Declaration);
+        or else NT (N).Nkind = N_Object_Declaration
+        or else NT (N).Nkind = N_Parameter_Specification);
       return Flag4 (N);
    end Aliased_Present;
 
@@ -1470,6 +1471,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Task_Definition);
       return Flag14 (N);
    end Has_Pragma_CPU;
+
+   function Has_Pragma_Dispatching_Domain
+     (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Task_Definition);
+      return Flag15 (N);
+   end Has_Pragma_Dispatching_Domain;
 
    function Has_Pragma_Priority
       (N : Node_Id) return Boolean is
@@ -3257,7 +3266,8 @@ package body Sinfo is
    begin
       pragma Assert (False
         or else NT (N).Nkind = N_Component_Definition
-        or else NT (N).Nkind = N_Object_Declaration);
+        or else NT (N).Nkind = N_Object_Declaration
+        or else NT (N).Nkind = N_Parameter_Specification);
       Set_Flag4 (N, Val);
    end Set_Aliased_Present;
 
@@ -4512,6 +4522,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Task_Definition);
       Set_Flag14 (N, Val);
    end Set_Has_Pragma_CPU;
+
+   procedure Set_Has_Pragma_Dispatching_Domain
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Task_Definition);
+      Set_Flag15 (N, Val);
+   end Set_Has_Pragma_Dispatching_Domain;
 
    procedure Set_Has_Pragma_Priority
       (N : Node_Id; Val : Boolean := True) is

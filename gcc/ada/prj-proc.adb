@@ -398,69 +398,62 @@ package body Prj.Proc is
          Arr := Shared.Arrays.Table (A1);
          A1  := Arr.Next;
 
-         if not Restricted
-           or else
-             (Arr.Name /= Snames.Name_Body           and then
-              Arr.Name /= Snames.Name_Spec           and then
-              Arr.Name /= Snames.Name_Implementation and then
-              Arr.Name /= Snames.Name_Specification)
-         then
+         --  Remove the Next component
+
+         Arr.Next := No_Array;
+         Array_Table.Increment_Last (Shared.Arrays);
+
+         --  Create new Array declaration
+
+         if To.Arrays = No_Array then
+            To.Arrays := Array_Table.Last (Shared.Arrays);
+         else
+            Shared.Arrays.Table (A2).Next :=
+              Array_Table.Last (Shared.Arrays);
+         end if;
+
+         A2 := Array_Table.Last (Shared.Arrays);
+
+         --  Don't store the array as its first element has not been set yet
+
+         --  Copy the array elements of the array
+
+         E1 := Arr.Value;
+         Arr.Value := No_Array_Element;
+         while E1 /= No_Array_Element loop
+
+            --  Copy the array element
+
+            Elm := Shared.Array_Elements.Table (E1);
+            E1 := Elm.Next;
+
             --  Remove the Next component
 
-            Arr.Next := No_Array;
-            Array_Table.Increment_Last (Shared.Arrays);
+            Elm.Next := No_Array_Element;
 
-            --  Create new Array declaration
+            Elm.Restricted := Restricted;
 
-            if To.Arrays = No_Array then
-               To.Arrays := Array_Table.Last (Shared.Arrays);
+            --  Change the location
+
+            Elm.Value.Location := New_Loc;
+            Array_Element_Table.Increment_Last (Shared.Array_Elements);
+
+            --  Create new array element
+
+            if Arr.Value = No_Array_Element then
+               Arr.Value := Array_Element_Table.Last (Shared.Array_Elements);
             else
-               Shared.Arrays.Table (A2).Next :=
-                 Array_Table.Last (Shared.Arrays);
+               Shared.Array_Elements.Table (E2).Next :=
+                 Array_Element_Table.Last (Shared.Array_Elements);
             end if;
 
-            A2 := Array_Table.Last (Shared.Arrays);
+            E2 := Array_Element_Table.Last (Shared.Array_Elements);
+            Shared.Array_Elements.Table (E2) := Elm;
+         end loop;
 
-            --  Don't store the array as its first element has not been set yet
+         --  Finally, store the new array
 
-            --  Copy the array elements of the array
-
-            E1 := Arr.Value;
-            Arr.Value := No_Array_Element;
-            while E1 /= No_Array_Element loop
-
-               --  Copy the array element
-
-               Elm := Shared.Array_Elements.Table (E1);
-               E1 := Elm.Next;
-
-               --  Remove the Next component
-
-               Elm.Next := No_Array_Element;
-
-               --  Change the location
-
-               Elm.Value.Location := New_Loc;
-               Array_Element_Table.Increment_Last (Shared.Array_Elements);
-
-               --  Create new array element
-
-               if Arr.Value = No_Array_Element then
-                  Arr.Value :=
-                    Array_Element_Table.Last (Shared.Array_Elements);
-               else
-                  Shared.Array_Elements.Table (E2).Next :=
-                    Array_Element_Table.Last (Shared.Array_Elements);
-               end if;
-
-               E2 := Array_Element_Table.Last (Shared.Array_Elements);
-               Shared.Array_Elements.Table (E2) := Elm;
-            end loop;
-
-            --  Finally, store the new array
-
-            Shared.Arrays.Table (A2) := Arr;
-         end if;
+         Shared.Arrays.Table (A2) := Arr;
       end loop;
    end Copy_Package_Declarations;
 
@@ -1940,6 +1933,7 @@ package body Prj.Proc is
             Shared.Array_Elements.Table
               (Elem) :=
               (Index                => Index_Name,
+               Restricted           => False,
                Src_Index            => Source_Index,
                Index_Case_Sensitive =>
                   not Case_Insensitive (Current, Node_Tree),
@@ -1992,7 +1986,7 @@ package body Prj.Proc is
          Var  : Variable_Id := No_Variable;
 
       begin
-         --  First, find the list where to find the variable or attribute.
+         --  First, find the list where to find the variable or attribute
 
          if Is_Attribute then
             if Pkg /= No_Package then
@@ -2009,7 +2003,7 @@ package body Prj.Proc is
             end if;
          end if;
 
-         --  Loop through the list, to find if it has already been declared.
+         --  Loop through the list, to find if it has already been declared
 
          while Var /= No_Variable
            and then Shared.Variable_Elements.Table (Var).Name /= Name
@@ -2496,7 +2490,7 @@ package body Prj.Proc is
       Extended_By            : Project_Id)
    is
       Shared : constant Shared_Project_Tree_Data_Access :=
-        In_Tree.Shared;
+                 In_Tree.Shared;
 
       Child_Env              : Prj.Tree.Environment;
       --  Only used for the root aggregate project (if any). This is left
@@ -2778,13 +2772,16 @@ package body Prj.Proc is
                return;
             end if;
 
-            Project := new Project_Data'
-              (Empty_Project
-                 (Project_Qualifier_Of
+            Project :=
+              new Project_Data'
+                (Empty_Project
+                  (Project_Qualifier_Of
                     (From_Project_Node, From_Project_Node_Tree)));
-            In_Tree.Projects := new Project_List_Element'
-              (Project => Project,
-               Next    => In_Tree.Projects);
+
+            In_Tree.Projects :=
+              new Project_List_Element'
+                    (Project => Project,
+                     Next    => In_Tree.Projects);
 
             Processed_Projects.Set (Name, Project);
 
@@ -2834,10 +2831,12 @@ package body Prj.Proc is
               and then In_Tree.Is_Root_Tree
             then
                Initialize_And_Copy (Child_Env, Copy_From => Env);
+
             else
                --  No need to initialize Child_Env, since it will not be
                --  used anyway by Process_Declarative_Items (only the root
                --  aggregate can modify it, and it is never read anyway).
+
                null;
             end if;
 

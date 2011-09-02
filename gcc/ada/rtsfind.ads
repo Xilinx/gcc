@@ -371,6 +371,10 @@ package Rtsfind is
       System_WWd_Enum,
       System_WWd_Wchar,
 
+      --  Children of System.Multiprocessors
+
+      System_Multiprocessors_Dispatching_Domains,
+
       --  Children of System.Storage_Pools
 
       System_Storage_Pools_Subpools,
@@ -439,6 +443,11 @@ package Rtsfind is
    subtype System_Child is RTU_Id
      range System_Address_Image .. System_Tasking_Stages;
    --  Range of values for children or grandchildren of System
+
+   subtype System_Multiprocessors_Child is RTU_Id
+     range System_Multiprocessors_Dispatching_Domains ..
+       System_Multiprocessors_Dispatching_Domains;
+   --  Range of values for children of System.Multiprocessors
 
    subtype System_Storage_Pools_Child is RTU_Id
      range System_Storage_Pools_Subpools .. System_Storage_Pools_Subpools;
@@ -546,6 +555,7 @@ package Rtsfind is
 
      RE_Root_Stream_Type,                -- Ada.Streams
      RE_Stream_Element,                  -- Ada.Streams
+     RE_Stream_Element_Offset,           -- Ada.Streams
 
      RE_Stream_Access,                   -- Ada.Streams.Stream_IO
 
@@ -803,6 +813,7 @@ package Rtsfind is
      RE_Finalization_Master_Ptr,         -- System.Finalization_Masters
      RE_Set_Base_Pool,                   -- System.Finalization_Masters
      RE_Set_Finalize_Address,            -- System.Finalization_Masters
+     RE_Set_Is_Heterogeneous,            -- System.Finalization_Masters
 
      RE_Root_Controlled,                 -- System.Finalization_Root
      RE_Root_Controlled_Ptr,             -- System.Finalization_Root
@@ -1445,6 +1456,8 @@ package Rtsfind is
 
      RE_Unspecified_CPU,                 -- System.Tasking
 
+     RE_Dispatching_Domain_Access,       -- System.Tasking
+
      RE_Abort_Defer,                     -- System.Soft_Links
      RE_Abort_Undefer,                   -- System.Soft_Links
      RE_Complete_Master,                 -- System.Soft_Links
@@ -1586,6 +1599,8 @@ package Rtsfind is
 
      RE_Width_Wide_Character,            -- System.Wid_WChar
      RE_Width_Wide_Wide_Character,       -- System.Wid_WChar
+
+     RE_Dispatching_Domain,              -- Dispatching_Domains
 
      RE_Protected_Entry_Body_Array,      -- Tasking.Protected_Objects.Entries
      RE_Protection_Entries,              -- Tasking.Protected_Objects.Entries
@@ -1734,6 +1749,7 @@ package Rtsfind is
 
      RE_Root_Stream_Type                 => Ada_Streams,
      RE_Stream_Element                   => Ada_Streams,
+     RE_Stream_Element_Offset            => Ada_Streams,
 
      RE_Stream_Access                    => Ada_Streams_Stream_IO,
 
@@ -1991,6 +2007,7 @@ package Rtsfind is
      RE_Finalization_Master_Ptr          => System_Finalization_Masters,
      RE_Set_Base_Pool                    => System_Finalization_Masters,
      RE_Set_Finalize_Address             => System_Finalization_Masters,
+     RE_Set_Is_Heterogeneous             => System_Finalization_Masters,
 
      RE_Root_Controlled                  => System_Finalization_Root,
      RE_Root_Controlled_Ptr              => System_Finalization_Root,
@@ -2633,6 +2650,8 @@ package Rtsfind is
 
      RE_Unspecified_CPU                  => System_Tasking,
 
+     RE_Dispatching_Domain_Access        => System_Tasking,
+
      RE_Abort_Defer                      => System_Soft_Links,
      RE_Abort_Undefer                    => System_Soft_Links,
      RE_Complete_Master                  => System_Soft_Links,
@@ -2775,6 +2794,9 @@ package Rtsfind is
 
      RE_Width_Wide_Character             => System_Wid_WChar,
      RE_Width_Wide_Wide_Character        => System_Wid_WChar,
+
+     RE_Dispatching_Domain               =>
+       System_Multiprocessors_Dispatching_Domains,
 
      RE_Protected_Entry_Body_Array       =>
        System_Tasking_Protected_Objects_Entries,

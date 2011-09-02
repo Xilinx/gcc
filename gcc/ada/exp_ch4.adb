@@ -31,6 +31,7 @@ with Elists;   use Elists;
 with Errout;   use Errout;
 with Exp_Aggr; use Exp_Aggr;
 with Exp_Atag; use Exp_Atag;
+with Exp_Ch2;  use Exp_Ch2;
 with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch6;  use Exp_Ch6;
 with Exp_Ch7;  use Exp_Ch7;
@@ -57,6 +58,7 @@ with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
+with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -91,13 +93,11 @@ package body Exp_Ch4 is
    --  If a boolean array assignment can be done in place, build call to
    --  corresponding library procedure.
 
-   function Current_Unit_First_Declaration return Node_Id;
-   --  Return the current unit's first declaration. If the declaration list is
-   --  empty, the routine generates a null statement and returns it.
-
-   function Current_Unit_Scope return Entity_Id;
-   --  Return the scope of the current unit. If the current unit is a body,
-   --  return the scope of the spec.
+   function Current_Anonymous_Master return Entity_Id;
+   --  Return the entity of the heterogeneous finalization master belonging to
+   --  the current unit (either function, package or procedure). This master
+   --  services all anonymous access-to-controlled types. If the current unit
+   --  does not have such master, create one.
 
    procedure Displace_Allocator_Pointer (N : Node_Id);
    --  Ada 2005 (AI-251): Subsidiary procedure to Expand_N_Allocator and
@@ -375,79 +375,166 @@ package body Exp_Ch4 is
          return;
    end Build_Boolean_Array_Proc_Call;
 
-   ------------------------------------
-   -- Current_Unit_First_Declaration --
-   ------------------------------------
+   ------------------------------
+   -- Current_Anonymous_Master --
+   ------------------------------
 
-   function Current_Unit_First_Declaration return Node_Id is
-      Sem_U : Node_Id := Unit (Cunit (Current_Sem_Unit));
-      Decl  : Node_Id;
-      Decls : List_Id;
+   function Current_Anonymous_Master return Entity_Id is
+      Decls      : List_Id;
+      Fin_Mas_Id : Entity_Id;
+      Loc        : Source_Ptr;
+      Subp_Body  : Node_Id;
+      Unit_Decl  : Node_Id;
+      Unit_Id    : Entity_Id;
 
    begin
-      if Nkind (Sem_U) = N_Package_Declaration then
-         Sem_U := Specification (Sem_U);
-         Decls := Visible_Declarations (Sem_U);
+      Unit_Id := Cunit_Entity (Current_Sem_Unit);
+
+      --  Find the entity of the current unit
+
+      if Ekind (Unit_Id) = E_Subprogram_Body then
+
+         --  When processing subprogram bodies, the proper scope is always that
+         --  of the spec.
+
+         Subp_Body := Unit_Id;
+         while Present (Subp_Body)
+           and then Nkind (Subp_Body) /= N_Subprogram_Body
+         loop
+            Subp_Body := Parent (Subp_Body);
+         end loop;
+
+         Unit_Id := Corresponding_Spec (Subp_Body);
+      end if;
+
+      Loc := Sloc (Unit_Id);
+      Unit_Decl := Unit (Cunit (Current_Sem_Unit));
+
+      --  Find the declarations list of the current unit
+
+      if Nkind (Unit_Decl) = N_Package_Declaration then
+         Unit_Decl := Specification (Unit_Decl);
+         Decls := Visible_Declarations (Unit_Decl);
 
          if No (Decls) then
-            Decl := Make_Null_Statement (Sloc (Sem_U));
-            Decls := New_List (Decl);
-            Set_Visible_Declarations (Sem_U, Decls);
+            Decls := New_List (Make_Null_Statement (Loc));
+            Set_Visible_Declarations (Unit_Decl, Decls);
 
          elsif Is_Empty_List (Decls) then
-            Decl := Make_Null_Statement (Sloc (Sem_U));
-            Append_To (Decls, Decl);
-
-         else
-            Decl := First (Decls);
+            Append_To (Decls, Make_Null_Statement (Loc));
          end if;
 
       else
-         Decls := Declarations (Sem_U);
+         Decls := Declarations (Unit_Decl);
 
          if No (Decls) then
-            Decl := Make_Null_Statement (Sloc (Sem_U));
-            Decls := New_List (Decl);
-            Set_Declarations (Sem_U, Decls);
+            Decls := New_List (Make_Null_Statement (Loc));
+            Set_Declarations (Unit_Decl, Decls);
 
          elsif Is_Empty_List (Decls) then
-            Decl := Make_Null_Statement (Sloc (Sem_U));
-            Append_To (Decls, Decl);
-
-         else
-            Decl := First (Decls);
+            Append_To (Decls, Make_Null_Statement (Loc));
          end if;
       end if;
 
-      return Decl;
-   end Current_Unit_First_Declaration;
+      --  The current unit has an existing anonymous master, traverse its
+      --  declarations and locate the entity.
 
-   ------------------------
-   -- Current_Unit_Scope --
-   ------------------------
+      if Has_Anonymous_Master (Unit_Id) then
+         Fin_Mas_Id := First_Entity (Unit_Id);
+         while Present (Fin_Mas_Id) loop
 
-   function Current_Unit_Scope return Entity_Id is
-      Scop_Id  : Entity_Id := Cunit_Entity (Current_Sem_Unit);
-      Subp_Bod : Node_Id;
+            --  Look for the first variable whose type is Finalization_Master
 
-   begin
-      if Ekind (Scop_Id) = E_Subprogram_Body then
+            if Ekind (Fin_Mas_Id) = E_Variable
+              and then Etype (Fin_Mas_Id) = RTE (RE_Finalization_Master)
+            then
+               return Fin_Mas_Id;
+            end if;
 
-         --  When processing subprogram bodies, the proper scope is always
-         --  that of the spec.
-
-         Subp_Bod := Scop_Id;
-         while Present (Subp_Bod)
-           and then Nkind (Subp_Bod) /= N_Subprogram_Body
-         loop
-            Subp_Bod := Parent (Subp_Bod);
+            Next_Entity (Fin_Mas_Id);
          end loop;
 
-         Scop_Id := Corresponding_Spec (Subp_Bod);
-      end if;
+         raise Program_Error;
 
-      return Scop_Id;
-   end Current_Unit_Scope;
+      --  Create a new anonymous master
+
+      else
+         declare
+            First_Decl : constant Node_Id := First (Decls);
+            Action     : Node_Id;
+
+         begin
+            --  Since the master and its associated initialization is inserted
+            --  at top level, use the scope of the unit when analyzing.
+
+            Push_Scope (Unit_Id);
+
+            --  Create the finalization master
+
+            Fin_Mas_Id :=
+              Make_Defining_Identifier (Loc,
+                Chars => New_External_Name (Chars (Unit_Id), "AM"));
+
+            --  Generate:
+            --    <Fin_Mas_Id> : Finalization_Master;
+
+            Action :=
+              Make_Object_Declaration (Loc,
+                Defining_Identifier => Fin_Mas_Id,
+                Object_Definition =>
+                  New_Reference_To (RTE (RE_Finalization_Master), Loc));
+
+            Insert_Before_And_Analyze (First_Decl, Action);
+
+            --  Mark the unit to prevent the generation of multiple masters
+
+            Set_Has_Anonymous_Master (Unit_Id);
+
+            --  Do not set the base pool and mode of operation on .NET/JVM
+            --  since those targets do not support pools and all VM masters
+            --  are heterogeneous by default.
+
+            if VM_Target = No_VM then
+
+               --  Generate:
+               --    Set_Base_Pool
+               --      (<Fin_Mas_Id>, Global_Pool_Object'Unrestricted_Access);
+
+               Action :=
+                 Make_Procedure_Call_Statement (Loc,
+                   Name =>
+                     New_Reference_To (RTE (RE_Set_Base_Pool), Loc),
+
+                   Parameter_Associations => New_List (
+                     New_Reference_To (Fin_Mas_Id, Loc),
+                     Make_Attribute_Reference (Loc,
+                       Prefix =>
+                         New_Reference_To (RTE (RE_Global_Pool_Object), Loc),
+                       Attribute_Name => Name_Unrestricted_Access)));
+
+               Insert_Before_And_Analyze (First_Decl, Action);
+
+               --  Generate:
+               --    Set_Is_Heterogeneous (<Fin_Mas_Id>);
+
+               Action :=
+                 Make_Procedure_Call_Statement (Loc,
+                   Name =>
+                     New_Reference_To (RTE (RE_Set_Is_Heterogeneous), Loc),
+                   Parameter_Associations => New_List (
+                     New_Reference_To (Fin_Mas_Id, Loc)));
+
+               Insert_Before_And_Analyze (First_Decl, Action);
+            end if;
+
+            --  Restore the original state of the scope stack
+
+            Pop_Scope;
+
+            return Fin_Mas_Id;
+         end;
+      end if;
+   end Current_Anonymous_Master;
 
    --------------------------------
    -- Displace_Allocator_Pointer --
@@ -1050,11 +1137,14 @@ package body Exp_Ch4 is
 
             --  Since .NET/JVM compilers do not support address arithmetic,
             --  this call is skipped. The same is done for CodePeer because
-            --  primitive Finalize_Address is never generated.
+            --  primitive Finalize_Address is never generated. Do not create
+            --  this call if there is no allocator available any more.
 
             if VM_Target = No_VM
               and then not CodePeer_Mode
               and then Present (Finalization_Master (PtrT))
+              and then Present (Temp_Decl)
+              and then Nkind (Expression (Temp_Decl)) = N_Allocator
             then
                Insert_Action (N,
                  Make_Set_Finalize_Address_Call
@@ -3372,18 +3462,15 @@ package body Exp_Ch4 is
          if No (Associated_Storage_Pool (PtrT))
            and then VM_Target = No_VM
          then
-            Set_Associated_Storage_Pool (PtrT,
-              Get_Global_Pool_For_Access_Type (PtrT));
+            Set_Associated_Storage_Pool
+              (PtrT, Get_Global_Pool_For_Access_Type (PtrT));
          end if;
 
          --  The finalization master must be inserted and analyzed as part of
          --  the current semantic unit.
 
          if No (Finalization_Master (PtrT)) then
-            Build_Finalization_Master
-              (Typ        => PtrT,
-               Ins_Node   => Current_Unit_First_Declaration,
-               Encl_Scope => Current_Unit_Scope);
+            Set_Finalization_Master (PtrT, Current_Anonymous_Master);
          end if;
       end if;
 
@@ -3865,13 +3952,13 @@ package body Exp_Ch4 is
                      --  Types derived from [Limited_]Controlled are the only
                      --  ones considered since they have fields Prev and Next.
 
-                     if VM_Target /= No_VM
-                       and then Is_Controlled (T)
-                     then
-                        Insert_Action (N,
-                          Make_Attach_Call
-                            (Obj_Ref => New_Copy_Tree (Init_Arg1),
-                             Ptr_Typ => PtrT));
+                     if VM_Target /= No_VM then
+                        if Is_Controlled (T) then
+                           Insert_Action (N,
+                             Make_Attach_Call
+                               (Obj_Ref => New_Copy_Tree (Init_Arg1),
+                                Ptr_Typ => PtrT));
+                        end if;
 
                      --  Default case, generate:
 
@@ -4099,8 +4186,8 @@ package body Exp_Ch4 is
 
          if Present (Actions) then
 
-            --  If we are not allowed to use Expression_With_Actions, just
-            --  skip the optimization, it is not critical for correctness.
+            --  If we are not allowed to use Expression_With_Actions, just skip
+            --  the optimization, it is not critical for correctness.
 
             if not Use_Expression_With_Actions then
                goto Skip_Optimization;
@@ -4331,10 +4418,35 @@ package body Exp_Ch4 is
       ------------------------------
 
       procedure Process_Transient_Object (Decl : Node_Id) is
-         Ins_Nod : constant Node_Id := Parent (N);
-         --  To avoid the insertion of generated code in the list of Actions,
-         --  Insert_Action must look at the parent field of the EWA.
 
+         function Find_Insertion_Node return Node_Id;
+         --  Complex conditions in if statements may be converted into nested
+         --  EWAs. In this case, any generated code must be inserted before the
+         --  if statement to ensure proper visibility of the hook objects. This
+         --  routine returns the top most short circuit operator or the parent
+         --  of the EWA if no nesting was detected.
+
+         -------------------------
+         -- Find_Insertion_Node --
+         -------------------------
+
+         function Find_Insertion_Node return Node_Id is
+            Par : Node_Id;
+
+         begin
+            --  Climb up the branches of a complex condition
+
+            Par := N;
+            while Nkind_In (Parent (Par), N_And_Then, N_Op_Not, N_Or_Else) loop
+               Par := Parent (Par);
+            end loop;
+
+            return Par;
+         end Find_Insertion_Node;
+
+         --  Local variables
+
+         Ins_Node  : constant Node_Id    := Find_Insertion_Node;
          Loc       : constant Source_Ptr := Sloc (Decl);
          Obj_Id    : constant Entity_Id  := Defining_Identifier (Decl);
          Obj_Typ   : constant Entity_Id  := Etype (Obj_Id);
@@ -4345,9 +4457,11 @@ package body Exp_Ch4 is
          Temp_Decl : Node_Id;
          Temp_Id   : Node_Id;
 
+      --  Start of processing for Process_Transient_Object
+
       begin
-         --  Step 1: Create the access type which provides a reference to
-         --  the transient object.
+         --  Step 1: Create the access type which provides a reference to the
+         --  transient object.
 
          if Is_Access_Type (Obj_Typ) then
             Desig_Typ := Directly_Designated_Type (Obj_Typ);
@@ -4363,13 +4477,13 @@ package body Exp_Ch4 is
          Ptr_Decl :=
            Make_Full_Type_Declaration (Loc,
              Defining_Identifier => Ptr_Id,
-               Type_Definition =>
-                 Make_Access_To_Object_Definition (Loc,
-                   All_Present        =>
-                     Ekind (Obj_Typ) = E_General_Access_Type,
-                   Subtype_Indication => New_Reference_To (Desig_Typ, Loc)));
+             Type_Definition     =>
+               Make_Access_To_Object_Definition (Loc,
+                 All_Present        =>
+                   Ekind (Obj_Typ) = E_General_Access_Type,
+                 Subtype_Indication => New_Reference_To (Desig_Typ, Loc)));
 
-         Insert_Action (Ins_Nod, Ptr_Decl);
+         Insert_Action (Ins_Node, Ptr_Decl);
          Analyze (Ptr_Decl);
 
          --  Step 2: Create a temporary which acts as a hook to the transient
@@ -4384,16 +4498,16 @@ package body Exp_Ch4 is
              Defining_Identifier => Temp_Id,
              Object_Definition   => New_Reference_To (Ptr_Id, Loc));
 
-         Insert_Action (Ins_Nod, Temp_Decl);
+         Insert_Action (Ins_Node, Temp_Decl);
          Analyze (Temp_Decl);
 
-         --  Mark this temporary as created for the purposes of "exporting" the
+         --  Mark this temporary as created for the purposes of exporting the
          --  transient declaration out of the Actions list. This signals the
          --  machinery in Build_Finalizer to recognize this special case.
 
          Set_Return_Flag_Or_Transient_Decl (Temp_Id, Decl);
 
-         --  Step 3: "Hook" the transient object to the temporary
+         --  Step 3: Hook the transient object to the temporary
 
          if Is_Access_Type (Obj_Typ) then
             Expr := Convert_To (Ptr_Id, New_Reference_To (Obj_Id, Loc));
@@ -4414,6 +4528,8 @@ package body Exp_Ch4 is
              Name       => New_Reference_To (Temp_Id, Loc),
              Expression => Expr));
       end Process_Transient_Object;
+
+      --  Local variables
 
       Decl : Node_Id;
 
@@ -4954,6 +5070,124 @@ package body Exp_Ch4 is
 
                Rewrite (N, Cond);
                Analyze_And_Resolve (N, Restyp);
+            end if;
+
+            --  Ada 2012 (AI05-0149): Handle membership tests applied to an
+            --  expression of an anonymous access type. This can involve an
+            --  accessibility test and a tagged type membership test in the
+            --  case of tagged designated types.
+
+            if Ada_Version >= Ada_2012
+              and then Is_Acc
+              and then Ekind (Ltyp) = E_Anonymous_Access_Type
+            then
+               declare
+                  Expr_Entity : Entity_Id := Empty;
+                  New_N       : Node_Id;
+                  Param_Level : Node_Id;
+                  Type_Level  : Node_Id;
+
+               begin
+                  if Is_Entity_Name (Lop) then
+                     Expr_Entity := Param_Entity (Lop);
+
+                     if not Present (Expr_Entity) then
+                        Expr_Entity := Entity (Lop);
+                     end if;
+                  end if;
+
+                  --  If a conversion of the anonymous access value to the
+                  --  tested type would be illegal, then the result is False.
+
+                  if not Valid_Conversion
+                           (Lop, Rtyp, Lop, Report_Errs => False)
+                  then
+                     Rewrite (N, New_Occurrence_Of (Standard_False, Loc));
+                     Analyze_And_Resolve (N, Restyp);
+
+                  --  Apply an accessibility check if the access object has an
+                  --  associated access level and when the level of the type is
+                  --  less deep than the level of the access parameter. This
+                  --  only occur for access parameters and stand-alone objects
+                  --  of an anonymous access type.
+
+                  else
+                     if Present (Expr_Entity)
+                       and then
+                         Present
+                           (Effective_Extra_Accessibility (Expr_Entity))
+                       and then UI_Gt (Object_Access_Level (Lop),
+                                       Type_Access_Level (Rtyp))
+                     then
+                        Param_Level :=
+                          New_Occurrence_Of
+                            (Effective_Extra_Accessibility (Expr_Entity), Loc);
+
+                        Type_Level :=
+                          Make_Integer_Literal (Loc, Type_Access_Level (Rtyp));
+
+                        --  Return True only if the accessibility level of the
+                        --  expression entity is not deeper than the level of
+                        --  the tested access type.
+
+                        Rewrite (N,
+                          Make_And_Then (Loc,
+                            Left_Opnd  => Relocate_Node (N),
+                            Right_Opnd => Make_Op_Le (Loc,
+                                            Left_Opnd  => Param_Level,
+                                            Right_Opnd => Type_Level)));
+
+                        Analyze_And_Resolve (N);
+                     end if;
+
+                     --  If the designated type is tagged, do tagged membership
+                     --  operation.
+
+                     --  *** NOTE: we have to check not null before doing the
+                     --  tagged membership test (but maybe that can be done
+                     --  inside Tagged_Membership?).
+
+                     if Is_Tagged_Type (Typ) then
+                        Rewrite (N,
+                          Make_And_Then (Loc,
+                            Left_Opnd  => Relocate_Node (N),
+                            Right_Opnd =>
+                              Make_Op_Ne (Loc,
+                                Left_Opnd  => Obj,
+                                Right_Opnd => Make_Null (Loc))));
+
+                        --  No expansion will be performed when VM_Target, as
+                        --  the VM back-ends will handle the membership tests
+                        --  directly (tags are not explicitly represented in
+                        --  Java objects, so the normal tagged membership
+                        --  expansion is not what we want).
+
+                        if Tagged_Type_Expansion then
+
+                           --  Note that we have to pass Original_Node, because
+                           --  the membership test might already have been
+                           --  rewritten by earlier parts of membership test.
+
+                           Tagged_Membership
+                             (Original_Node (N), SCIL_Node, New_N);
+
+                           --  Update decoration of relocated node referenced
+                           --  by the SCIL node.
+
+                           if Generate_SCIL and then Present (SCIL_Node) then
+                              Set_SCIL_Node (New_N, SCIL_Node);
+                           end if;
+
+                           Rewrite (N,
+                             Make_And_Then (Loc,
+                               Left_Opnd  => Relocate_Node (N),
+                               Right_Opnd => New_N));
+
+                           Analyze_And_Resolve (N, Restyp);
+                        end if;
+                     end if;
+                  end if;
+               end;
             end if;
          end;
       end if;
@@ -6173,7 +6407,7 @@ package body Exp_Ch4 is
 
       --  CodePeer and GNATprove want to see the unexpanded N_Op_Expon node
 
-      if CodePeer_Mode or ALFA_Mode then
+      if CodePeer_Mode or Alfa_Mode then
          return;
       end if;
 
@@ -7139,10 +7373,9 @@ package body Exp_Ch4 is
          end;
       end if;
 
-      --  Only array types need any other processing. In formal verification
-      --  mode, no other processing is done.
+      --  Only array types need any other processing
 
-      if not Is_Array_Type (Typ) or else ALFA_Mode then
+      if not Is_Array_Type (Typ) then
          return;
       end if;
 
@@ -7598,13 +7831,6 @@ package body Exp_Ch4 is
       Test         : Node_Id;
 
    begin
-      --  Do not expand quantified expressions in ALFA mode
-      --  why not???
-
-      if ALFA_Mode then
-         return;
-      end if;
-
       Decl :=
         Make_Object_Declaration (Loc,
           Defining_Identifier => Tnn,
@@ -7652,11 +7878,6 @@ package body Exp_Ch4 is
           Iteration_Scheme => I_Scheme,
           Statements       => New_List (Test),
           End_Label        => Empty));
-
-      --  The components of the scheme have already been analyzed, and the loop
-      --  parameter declaration has been processed.
-
-      Set_Analyzed (Iteration_Scheme (Last (Actions)));
 
       Rewrite (N,
         Make_Expression_With_Actions (Loc,
@@ -7731,6 +7952,12 @@ package body Exp_Ch4 is
       --  Insert explicit dereference if required
 
       if Is_Access_Type (Ptyp) then
+
+         --  First set prefix type to proper access type, in case it currently
+         --  has a private (non-access) view of this type.
+
+         Set_Etype (P, Ptyp);
+
          Insert_Explicit_Dereference (P);
          Analyze_And_Resolve (P, Designated_Type (Ptyp));
 
@@ -8163,6 +8390,10 @@ package body Exp_Ch4 is
       procedure Real_Range_Check;
       --  Handles generation of range check for real target value
 
+      function Has_Extra_Accessibility (Id : Entity_Id) return Boolean;
+      --  True iff Present (Effective_Extra_Accessibility (Id)) successfully
+      --  evaluates to True.
+
       -----------------------------------
       -- Handle_Changed_Representation --
       -----------------------------------
@@ -8462,6 +8693,22 @@ package body Exp_Ch4 is
          Analyze_And_Resolve (N, Btyp);
       end Real_Range_Check;
 
+      -----------------------------
+      -- Has_Extra_Accessibility --
+      -----------------------------
+
+      --  Returns true for a formal of an anonymous access type or for
+      --  an Ada 2012-style stand-alone object of an anonymous access type.
+
+      function Has_Extra_Accessibility (Id : Entity_Id) return Boolean is
+      begin
+         if Is_Formal (Id) or else Ekind_In (Id, E_Constant, E_Variable) then
+            return Present (Effective_Extra_Accessibility (Id));
+         else
+            return False;
+         end if;
+      end Has_Extra_Accessibility;
+
    --  Start of processing for Expand_N_Type_Conversion
 
    begin
@@ -8620,13 +8867,7 @@ package body Exp_Ch4 is
          --  as tagged type checks).
 
          if Is_Entity_Name (Operand)
-           and then
-             (Is_Formal (Entity (Operand))
-               or else
-                 (Present (Renamed_Object (Entity (Operand)))
-                   and then Is_Entity_Name (Renamed_Object (Entity (Operand)))
-                   and then Is_Formal
-                              (Entity (Renamed_Object (Entity (Operand))))))
+           and then Has_Extra_Accessibility (Entity (Operand))
            and then Ekind (Etype (Operand)) = E_Anonymous_Access_Type
            and then (Nkind (Original_Node (N)) /= N_Attribute_Reference
                       or else Attribute_Name (Original_Node (N)) = Name_Access)
@@ -10908,6 +11149,15 @@ package body Exp_Ch4 is
 
       Left_Type  := Available_View (Etype (Left));
       Right_Type := Available_View (Etype (Right));
+
+      --  In the case where the type is an access type, the test is applied
+      --  using the designated types (needed in Ada 2012 for implicit anonymous
+      --  access conversions, for AI05-0149).
+
+      if Is_Access_Type (Right_Type) then
+         Left_Type  := Designated_Type (Left_Type);
+         Right_Type := Designated_Type (Right_Type);
+      end if;
 
       if Is_Class_Wide_Type (Left_Type) then
          Left_Type := Root_Type (Left_Type);

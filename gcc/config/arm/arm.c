@@ -2624,7 +2624,7 @@ optimal_immediate_sequence_1 (enum rtx_code code, unsigned HOST_WIDE_INT val,
   do
     {
       int end;
-      int b1, b2, b3, b4;
+      unsigned int b1, b2, b3, b4;
       unsigned HOST_WIDE_INT result;
       int loc;
 
@@ -3367,8 +3367,8 @@ arm_gen_constant (enum rtx_code code, enum machine_mode mode, rtx cond,
 
 	  if (code == SET)
 	    {
+	      can_negate = can_invert;
 	      can_invert = 0;
-	      can_negate = 1;
 	      code = PLUS;
 	    }
 	  else if (code == MINUS)

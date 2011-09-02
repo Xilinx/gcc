@@ -601,6 +601,14 @@ package body Sem_Ch5 is
       then
          if Is_Local_Anonymous_Access (T1)
            or else Ekind (T2) = E_Anonymous_Access_Subprogram_Type
+
+           --  Handle assignment to an Ada 2012 stand-alone object
+           --  of an anonymous access type.
+
+           or else (Ekind (T1) = E_Anonymous_Access_Type
+                     and then Nkind (Associated_Node_For_Itype (T1)) =
+                                                       N_Object_Declaration)
+
          then
             Rewrite (Rhs, Convert_To (T1, Relocate_Node (Rhs)));
             Analyze_And_Resolve (Rhs, T1);
@@ -2015,7 +2023,7 @@ package body Sem_Ch5 is
 
                   if Nkind (D_Copy) = N_Function_Call
                     or else
-                      (ALFA_Mode
+                      (Alfa_Mode
                         and then (Nkind (D_Copy) = N_Attribute_Reference
                         and then
                           (Attribute_Name (D_Copy) = Name_Result
@@ -2049,6 +2057,11 @@ package body Sem_Ch5 is
                            Analyze (DS);
                         end if;
 
+                        --  Set kind of loop parameter, which may be used in
+                        --  the subsequent analysis of the condition in a
+                        --  quantified expression.
+
+                        Set_Ekind (Id, E_Loop_Parameter);
                         return;
                      end;
 
@@ -2235,26 +2248,26 @@ package body Sem_Ch5 is
       Typ : Entity_Id;
 
    begin
-      Enter_Name (Def_Id);
+      --  In semantics mode, introduce loop variable so that loop body can be
+      --  properly analyzed. Otherwise this is one after expansion.
+
+      if Operating_Mode = Check_Semantics then
+         Enter_Name (Def_Id);
+      end if;
+
       Set_Ekind (Def_Id, E_Variable);
 
       if Present (Subt) then
          Analyze (Subt);
       end if;
 
-      --  If it is an expression, the name is pre-analyzed in the caller.
-      --  If it it of a controlled type we need a block for the finalization
-      --  actions. As for loop bounds that need finalization, we create a
-      --  declaration and an assignment to trigger these actions.
+      --  If domain of iteration is an expression, create a declaration for it,
+      --  so that finalization actions are introduced outside of the loop.
 
-      if Present (Etype (Iter_Name))
-        and then Is_Controlled (Etype (Iter_Name))
-        and then not Is_Entity_Name (Iter_Name)
-      then
+      if not Is_Entity_Name (Iter_Name) then
          declare
-            Id : constant Entity_Id := Make_Temporary (Loc, 'R', Iter_Name);
-
-            Decl   : Node_Id;
+            Id   : constant Entity_Id := Make_Temporary (Loc, 'R', Iter_Name);
+            Decl : Node_Id;
 
          begin
             Typ := Etype (Iter_Name);
@@ -2324,6 +2337,10 @@ package body Sem_Ch5 is
          else
             Error_Msg_N
               ("to iterate over the elements of an array, use OF", N);
+
+            --  Prevent cascaded errors
+
+            Set_Ekind (Def_Id, E_Constant);
             Set_Etype (Def_Id, Etype (First_Index (Typ)));
          end if;
 
@@ -2474,12 +2491,26 @@ package body Sem_Ch5 is
 
       --  If the expander is not active, then we want to analyze the loop body
       --  now even in the Ada 2012 iterator case, since the rewriting will not
-      --  be done.
+      --  be done. Insert the loop variable in the current scope, if not done
+      --  when analysing the iteration scheme.
 
       if No (Iter)
         or else No (Iterator_Specification (Iter))
         or else not Expander_Active
       then
+         if Present (Iter)
+           and then Present (Iterator_Specification (Iter))
+         then
+            declare
+               Id : constant Entity_Id :=
+                      Defining_Identifier (Iterator_Specification (Iter));
+            begin
+               if Scope (Id) /= Current_Scope then
+                  Enter_Name (Id);
+               end if;
+            end;
+         end if;
+
          Analyze_Statements (Statements (Loop_Statement));
       end if;
 

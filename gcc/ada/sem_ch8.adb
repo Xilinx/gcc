@@ -802,8 +802,13 @@ package body Sem_Ch8 is
          T := Entity (Subtype_Mark (N));
          Analyze (Nam);
 
+         --  Reject renamings of conversions unless the type is tagged, or
+         --  the conversion is implicit (which can occur for cases of anonymous
+         --  access types in Ada 2012).
+
          if Nkind (Nam) = N_Type_Conversion
-            and then not Is_Tagged_Type (T)
+           and then Comes_From_Source (Nam)
+           and then not Is_Tagged_Type (T)
          then
             Error_Msg_N
               ("renaming of conversion only allowed for tagged types", Nam);
@@ -832,6 +837,22 @@ package body Sem_Ch8 is
                 Object_Definition   => New_Occurrence_Of (Etype (Nam), Loc),
                 Expression          => Relocate_Node (Nam)));
             return;
+         end if;
+
+         --  Ada 2012 (AI05-149): Reject renaming of an anonymous access object
+         --  when renaming declaration has a named access type. The Ada 2012
+         --  coverage rules allow an anonymous access type in the context of
+         --  an expected named general access type, but the renaming rules
+         --  require the types to be the same. (An exception is when the type
+         --  of the renaming is also an anonymous access type, which can only
+         --  happen due to a renaming created by the expander.)
+
+         if Nkind (Nam) = N_Type_Conversion
+           and then not Comes_From_Source (Nam)
+           and then Ekind (Etype (Expression (Nam))) = E_Anonymous_Access_Type
+           and then Ekind (T) /= E_Anonymous_Access_Type
+         then
+            Wrong_Type (Expression (Nam), T); -- Should we give better error???
          end if;
 
          --  Check that a class-wide object is not being renamed as an object
@@ -1116,7 +1137,12 @@ package body Sem_Ch8 is
       end if;
 
       Set_Ekind (Id, E_Variable);
-      Init_Size_Align (Id);
+
+      --  Initialize the object size and alignment. Note that we used to call
+      --  Init_Size_Align here, but that's wrong for objects which have only
+      --  an Esize, not an RM_Size field!
+
+      Init_Object_Size_Align (Id);
 
       if T = Any_Type or else Etype (Nam) = Any_Type then
          return;
@@ -1996,7 +2022,7 @@ package body Sem_Ch8 is
          --  expanded in subsequent instantiations.
 
          if Is_Actual and then Is_Abstract_Subprogram (Formal_Spec)
-           and then Expander_Active
+           and then Full_Expander_Active
          then
             declare
                Stream_Prim : Entity_Id;
@@ -3264,10 +3290,15 @@ package body Sem_Ch8 is
       --  type is still not frozen). We exclude from this processing generic
       --  formal subprograms found in instantiations and AST_Entry renamings.
 
-      --  We must exclude VM targets because entity AST_Handler is defined in
-      --  package System.Aux_Dec which is not available in those platforms.
+      --  We must exclude VM targets and restricted run-time libraries because
+      --  entity AST_Handler is defined in package System.Aux_Dec which is not
+      --  available in those platforms. Note that we cannot use the function
+      --  Restricted_Profile (instead of Configurable_Run_Time_Mode) because
+      --  the ZFP run-time library is not defined as a profile, and we do not
+      --  want to deal with AST_Handler in ZFP mode.
 
       if VM_Target = No_VM
+        and then not Configurable_Run_Time_Mode
         and then not Present (Corresponding_Formal_Spec (N))
         and then Etype (Nam) /= RTE (RE_AST_Handler)
       then

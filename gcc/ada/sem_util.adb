@@ -2372,6 +2372,29 @@ package body Sem_Util is
       end if;
    end Current_Subprogram;
 
+   ----------------------------------
+   -- Deepest_Type_Access_Level --
+   ----------------------------------
+
+   function Deepest_Type_Access_Level (Typ : Entity_Id) return Uint is
+   begin
+      if Ekind (Typ) = E_Anonymous_Access_Type
+        and then not Is_Local_Anonymous_Access (Typ)
+        and then Nkind (Associated_Node_For_Itype (Typ)) = N_Object_Declaration
+      then
+         --  Typ is the type of an Ada 2012 stand-alone object of an anonymous
+         --  access type.
+
+         return
+           Scope_Depth (Enclosing_Dynamic_Scope
+                         (Defining_Identifier
+                           (Associated_Node_For_Itype (Typ))));
+
+      else
+         return Type_Access_Level (Typ);
+      end if;
+   end Deepest_Type_Access_Level;
+
    ---------------------
    -- Defining_Entity --
    ---------------------
@@ -2847,6 +2870,99 @@ package body Sem_Util is
          return False;
       end if;
    end Designate_Same_Unit;
+
+   ------------------------------------------
+   -- function Dynamic_Accessibility_Level --
+   ------------------------------------------
+
+   function Dynamic_Accessibility_Level (Expr : Node_Id) return Node_Id is
+      E : Entity_Id;
+      Loc : constant Source_Ptr := Sloc (Expr);
+   begin
+      if Is_Entity_Name (Expr) then
+         E := Entity (Expr);
+
+         if Present (Renamed_Object (E)) then
+            return Dynamic_Accessibility_Level (Renamed_Object (E));
+         end if;
+
+         if Is_Formal (E) or else Ekind_In (E, E_Variable, E_Constant) then
+            if Present (Extra_Accessibility (E)) then
+               return New_Occurrence_Of (Extra_Accessibility (E), Loc);
+            end if;
+         end if;
+      end if;
+
+      --  unimplemented: Ptr.all'Access, where Ptr has Extra_Accessibility ???
+
+      case Nkind (Expr) is
+         --  for access discriminant, the level of the enclosing object
+
+         when N_Selected_Component =>
+            if Ekind (Entity (Selector_Name (Expr))) = E_Discriminant
+              and then Ekind (Etype (Entity (Selector_Name (Expr)))) =
+              E_Anonymous_Access_Type then
+
+               return Make_Integer_Literal (Loc, Object_Access_Level (Expr));
+            end if;
+
+         when N_Attribute_Reference =>
+            case Get_Attribute_Id (Attribute_Name (Expr)) is
+
+               --  For X'Access, the level of the prefix X
+
+               when Attribute_Access =>
+                  return Make_Integer_Literal (Loc,
+                    Object_Access_Level (Prefix (Expr)));
+
+               --  Treat the unchecked attributes as library-level
+
+               when Attribute_Unchecked_Access |
+                 Attribute_Unrestricted_Access =>
+                  return Make_Integer_Literal (Loc,
+                    Scope_Depth (Standard_Standard));
+
+               --  No other access-valued attributes
+
+               when others =>
+                  raise Program_Error;
+            end case;
+
+         when N_Allocator =>
+            --  Unimplemented: depends on context. As an actual
+            --  parameter where formal type is anonymous, use
+            --    Scope_Depth (Current_Scope) + 1.
+            --  For other cases, see 3.10.2(14/3) and following. ???
+            null;
+
+         when N_Type_Conversion =>
+            if not Is_Local_Anonymous_Access (Etype (Expr)) then
+               --  Handle type conversions introduced for a
+               --  rename of an Ada2012 stand-alone object of an
+               --  anonymous access type.
+               return Dynamic_Accessibility_Level (Expression (Expr));
+            end if;
+
+         when others =>
+            null;
+      end case;
+
+      return Make_Integer_Literal (Loc, Type_Access_Level (Etype (Expr)));
+   end Dynamic_Accessibility_Level;
+
+   -----------------------------------
+   -- Effective_Extra_Accessibility --
+   -----------------------------------
+
+   function Effective_Extra_Accessibility (Id : Entity_Id) return Entity_Id is
+   begin
+      if Present (Renamed_Object (Id))
+        and then Is_Entity_Name (Renamed_Object (Id)) then
+         return Effective_Extra_Accessibility (Entity (Renamed_Object (Id)));
+      end if;
+
+      return Extra_Accessibility (Id);
+   end Effective_Extra_Accessibility;
 
    --------------------------
    -- Enclosing_CPP_Parent --
@@ -3585,13 +3701,22 @@ package body Sem_Util is
    function Find_Body_Discriminal
      (Spec_Discriminant : Entity_Id) return Entity_Id
    is
-      pragma Assert (Is_Concurrent_Record_Type (Scope (Spec_Discriminant)));
-
-      Tsk  : constant Entity_Id :=
-               Corresponding_Concurrent_Type (Scope (Spec_Discriminant));
+      Tsk  : Entity_Id;
       Disc : Entity_Id;
 
    begin
+      --  If expansion is suppressed, then the scope can be the concurrent type
+      --  itself rather than a corresponding concurrent record type.
+
+      if Is_Concurrent_Type (Scope (Spec_Discriminant)) then
+         Tsk := Scope (Spec_Discriminant);
+
+      else
+         pragma Assert (Is_Concurrent_Record_Type (Scope (Spec_Discriminant)));
+
+         Tsk := Corresponding_Concurrent_Type (Scope (Spec_Discriminant));
+      end if;
+
       --  Find discriminant of original concurrent type, and use its current
       --  discriminal, which is the renaming within the task/protected body.
 
@@ -8354,7 +8479,7 @@ package body Sem_Util is
               or else  K = E_In_Out_Parameter
               or else  K = E_Generic_In_Out_Parameter
 
-               --  Current instance of type:
+               --  Current instance of type
 
               or else (Is_Type (E) and then In_Open_Scopes (E))
               or else (Is_Incomplete_Or_Private_Type (E)
@@ -8598,8 +8723,8 @@ package body Sem_Util is
 
          Kill_Current_Values_For_Entity_Chain (First_Entity (S));
 
-         --  If scope is a package, also clear current values of all
-         --  private entities in the scope.
+         --  If scope is a package, also clear current values of all private
+         --  entities in the scope.
 
          if Is_Package_Or_Generic_Package (S)
            or else Is_Concurrent_Type (S)
@@ -8900,7 +9025,7 @@ package body Sem_Util is
          --  is an lvalue, but the prefix is never an lvalue, since it is just
          --  the scope where the name is found.
 
-         when N_Expanded_Name        =>
+         when N_Expanded_Name =>
             if N = Prefix (P) then
                return May_Be_Lvalue (P);
             else
@@ -8913,7 +9038,7 @@ package body Sem_Util is
          --  it is. Note however that A is not an lvalue if it is of an access
          --  type since this is an implicit dereference.
 
-         when N_Selected_Component   =>
+         when N_Selected_Component =>
             if N = Prefix (P)
               and then Present (Etype (N))
               and then Is_Access_Type (Etype (N))
@@ -8928,7 +9053,7 @@ package body Sem_Util is
          --  or slice is an lvalue, except if it is an access type, where we
          --  have an implicit dereference.
 
-         when N_Indexed_Component    =>
+         when N_Indexed_Component | N_Slice =>
             if N /= Prefix (P)
               or else (Present (Etype (N)) and then Is_Access_Type (Etype (N)))
             then
@@ -8939,7 +9064,7 @@ package body Sem_Util is
 
          --  Prefix of a reference is an lvalue if the reference is an lvalue
 
-         when N_Reference            =>
+         when N_Reference =>
             return May_Be_Lvalue (P);
 
          --  Prefix of explicit dereference is never an lvalue
@@ -8956,14 +9081,12 @@ package body Sem_Util is
               N_Entry_Call_Statement     |
               N_Accept_Statement
          =>
-            if Nkind (P) = N_Function_Call
-              and then Ada_Version < Ada_2012
-            then
+            if Nkind (P) = N_Function_Call and then Ada_Version < Ada_2012 then
                return False;
             end if;
 
-            --  The following mechanism is clumsy and fragile. A single
-            --  flag set in Resolve_Actuals would be preferable ???
+            --  The following mechanism is clumsy and fragile. A single flag
+            --  set in Resolve_Actuals would be preferable ???
 
             declare
                Proc : Entity_Id;
@@ -8977,8 +9100,8 @@ package body Sem_Util is
                   return True;
                end if;
 
-               --  If we are not a list member, something is strange, so
-               --  be conservative and return True.
+               --  If we are not a list member, something is strange, so be
+               --  conservative and return True.
 
                if not Is_List_Member (N) then
                   return True;
@@ -8990,8 +9113,8 @@ package body Sem_Util is
                Form := First_Formal (Proc);
                Act  := N;
                loop
-                  --  If no formal, something is weird, so be conservative
-                  --  and return True.
+                  --  If no formal, something is weird, so be conservative and
+                  --  return True.
 
                   if No (Form) then
                      return True;
@@ -10509,8 +10632,8 @@ package body Sem_Util is
                --  In formal verification mode, keep track of all reads and
                --  writes through explicit dereferences.
 
-               if ALFA_Mode then
-                  ALFA.Generate_Dereference (N, 'm');
+               if Alfa_Mode then
+                  Alfa.Generate_Dereference (N, 'm');
                end if;
 
                if Nkind (P) = N_Selected_Component
@@ -10587,6 +10710,17 @@ package body Sem_Util is
                  and then Present (Renamed_Object (Ent))
                then
                   Exp := Renamed_Object (Ent);
+                  goto Continue;
+
+               --  The expression may be the renaming of a subcomponent of an
+               --  array or container. The assignment to the subcomponent is
+               --  a modification of the container.
+
+               elsif Comes_From_Source (Original_Node (Exp))
+                 and then Nkind_In (Original_Node (Exp), N_Selected_Component,
+                                                         N_Indexed_Component)
+               then
+                  Exp := Prefix (Original_Node (Exp));
                   goto Continue;
                end if;
 
@@ -12533,6 +12667,11 @@ package body Sem_Util is
 
    begin
       case Ekind (E) is
+         when E_Constant =>
+            if Present (Full_View (E)) then
+               U := Full_View (E);
+            end if;
+
          when Type_Kind =>
             if Present (Full_View (E)) then
                U := Full_View (E);
@@ -12977,6 +13116,22 @@ package body Sem_Util is
       if Expec_Type = Any_Type
         or else Found_Type = Any_Type
         or else Error_Posted (Expr)
+      then
+         return;
+
+      --  If one of the types is a Taft-Amendment type and the other it its
+      --  completion, it must be an illegal use of a TAT in the spec, for
+      --  which an error was already emitted. Avoid cascaded errors.
+
+      elsif Is_Incomplete_Type (Expec_Type)
+        and then Has_Completion_In_Body (Expec_Type)
+        and then Full_View (Expec_Type) = Etype (Expr)
+      then
+         return;
+
+      elsif Is_Incomplete_Type (Etype (Expr))
+        and then Has_Completion_In_Body (Etype (Expr))
+        and then Full_View (Etype (Expr)) = Expec_Type
       then
          return;
 
