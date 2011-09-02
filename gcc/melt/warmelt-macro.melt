@@ -1015,6 +1015,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	 (stargs ())		;set to the tuple of start expressions
 	 (varformals ())	;set to the varformals binding tuple
 	 (bodytup ())		;set to the body tuple
+	 (newenv (fresh_env env))
 	 )
     ;; parse the startargs
     (if  (is_pair spair)
@@ -1034,7 +1035,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		    (unsafe_get_field :named_name citer))
 	(return)
 	))
-    ;; parse the varformals
+    ;; parse the varformals and bind them in the newenv
     (if  (is_pair spair)
 	(let ( (varexp (pair_head spair)) )
 	  (setq spair (pair_tail spair))
@@ -1045,8 +1046,10 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		    (unsafe_get_field :named_name citer))
 	(return)
 	))
-    ;; parse the body
-    (setq bodytup (expand_pairlist_as_tuple spair env mexpander))
+    (multiple_every varformals 
+		    (lambda (lb) (put_env newenv lb)))
+    ;; parse the body in the new environment
+    (setq bodytup (expand_pairlist_as_tuple spair newenv mexpander))
     ;; build & return the result
     (let ( (sciter (instance class_source_citeration
 			     :loca_location sloc
@@ -2520,9 +2523,16 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 	 (symb (pair_head curpair))
 	 (newenv (fresh_env env))
 	 (docv ())
+	 (fbind 
+	  (instance class_function_binding
+		    :binder symb
+		    :fubind_defun ()	;to be filled later
+		    ))
 	 )
     (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for DEFUN"_))
+    (warn_if_redefined symb env loc)
+    (put_env env fbind)
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
     (let ( (curpairhead (pair_head curpair)) 
@@ -2561,14 +2571,8 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 			:sformal_args btup
 			:sfun_body bodytup
 			))
-	     (fbind 
-	      (instance class_function_binding
-			:binder symb
-			:fubind_defun sdefun
-			))
 	     )
-	(warn_if_redefined symb env loc)
-	(put_env env fbind)
+	(put_fields fbind :fubind_defun sdefun)
 	sdefun
 	))))
 (install_initial_macro 'defun mexpand_defun)
@@ -3011,7 +3015,16 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
     (if (is_not_a symb class_symbol)
 	(error_plain loc "missing symbol for DEFINSTANCE"_))
     (setq curpair (pair_tail curpair))
-    (let ( (nam (pair_head curpair)) )
+    (let ( 
+	  (nam (pair_head curpair)) 
+	  (ibind 
+	   (instance class_instance_binding
+		     :binder symb
+		     :ibind_iclass (); filled later
+		     ))
+	  )
+      (warn_if_redefined symb env loc)
+      (put_env env ibind)
       (if (is_not_a nam class_symbol)
 	  (error_plain loc "missing class name for DEFINSTANCE"_))
       (let ( (bnd (find_env env nam)) 
@@ -3078,14 +3091,8 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 			  :sinst_objnum objnum
 			  :sinst_fields fastup
 			  ))
-	       (ibind 
-		(instance class_instance_binding
-			  :binder symb
-			  :ibind_iclass cla
-			  ))
 	       )
-	  (warn_if_redefined symb env loc)
-	  (put_env env ibind)
+	  (put_fields ibind :ibind_iclass cla)
 	  (debug_msg sinst "mexp.definstance sinst")
 	  (return sinst)
 	  )))))
@@ -3125,11 +3132,19 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	  (error_plain loc "missing symbol for (DEFSELECTOR <name> <class> ...)"_)
 	  (return)))
     (setq curpair (pair_tail curpair))
-    (let ( (nam (pair_head curpair)) )
+    (let ( (nam (pair_head curpair)) 
+	   (selbind (instance class_selector_binding
+			      :binder symb
+			      :sbind_selectordef (); filled later
+			      ))
+	   )
       (if (is_not_a nam class_symbol)
 	  (progn
 	    (error_plain loc "missing class name for (DEFSELECTOR <name> <class> ...)"_)
 	    (return)))
+      (warn_if_redefined symb env loc)
+      (put_env env selbind)
+      ;;
       (setq claname nam)
       (debug_msg claname "mexpand_defselector claname")
       (let ( (bnd (find_env env claname)) 
@@ -3225,13 +3240,8 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 			      :sinst_fields fastup
 			      :sdefsel_formals formals
 			      ))
-	       (selbind (instance class_selector_binding
-				  :binder symb
-				  :sbind_selectordef res
-				  ))
 	       )
-	  (warn_if_redefined symb env loc)
-	  (put_env env selbind)
+	  (put_fields selbind :sbind_selectordef res)
 	  res
 	  )))))
 (install_initial_macro 'defselector mexpand_defselector)

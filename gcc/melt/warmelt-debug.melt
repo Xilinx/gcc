@@ -831,15 +831,6 @@ $TORANK}#
 (install_method class_named dbg_outputagain dbgoutagain_namedobject_method)
 
 ;;;; symbol output debug & again
-(defun dbgout_symbol_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_a self class_symbol))
-  (if (<=i depth 0)
-      (dbgout_namedobject_method self dbgi 0)
-    (dbgoutagain_symbol_method self dbgi depth)))
-(install_method class_symbol dbg_output dbgout_symbol_method)
-
-
 
 (defun dbgoutagain_symbol_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
@@ -859,6 +850,15 @@ $TORANK}#
     ))
 (install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
 
+(defun dbgout_symbol_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_a self class_symbol))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_symbol_method self dbgi depth)))
+(install_method class_symbol dbg_output dbgout_symbol_method)
+
+
 ;;;; class output debug & again
 (defun dbgout_class_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
@@ -870,14 +870,6 @@ $TORANK}#
 
 
 ;;;; keyword output debug & again
-(defun dbgout_keyword_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_a self class_keyword))
-  (if (<=i depth 0)
-      (dbgout_namedobject_method self dbgi 0)
-    (dbgoutagain_keyword_method self dbgi depth)))
-(install_method class_keyword dbg_output dbgout_keyword_method)
-
 (defun dbgoutagain_keyword_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (assert_msg "check self" (is_a self class_keyword))
@@ -891,16 +883,16 @@ $TORANK}#
     ))
 (install_method class_keyword dbg_outputagain dbgoutagain_keyword_method)
 
-;;;; cloned_symbol output debug & again
-(defun dbgout_cloned_symbol_method (self dbgi :long depth)
+(defun dbgout_keyword_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_a self class_cloned_symbol))
+  (assert_msg "check self" (is_a self class_keyword))
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
-    (dbgoutagain_cloned_symbol_method self dbgi depth)
-    ))
-(install_method class_cloned_symbol dbg_output dbgout_cloned_symbol_method)
+    (dbgoutagain_keyword_method self dbgi depth)))
+(install_method class_keyword dbg_output dbgout_keyword_method)
 
+
+;;;; cloned_symbol output debug & again
 (defun dbgoutagain_cloned_symbol_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
@@ -915,6 +907,15 @@ $TORANK}#
     (add2out_longhex out (obj_hash self))
     ))
 (install_method class_cloned_symbol dbg_outputagain dbgoutagain_cloned_symbol_method)
+
+(defun dbgout_cloned_symbol_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_a self class_cloned_symbol))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_cloned_symbol_method self dbgi depth)
+    ))
+(install_method class_cloned_symbol dbg_output dbgout_cloned_symbol_method)
 
 
 ;;;; environment output debug
@@ -959,15 +960,6 @@ $TORANK}#
 
 
 ;;;; ctype output debug & again
-(defun dbgout_ctype_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (assert_msg "check self" (is_a self class_ctype))
-  (if (<=i depth 0)
-      (dbgout_namedobject_method self dbgi 0)
-    (dbgoutagain_ctype_method self dbgi depth)
-    ))
-(install_method class_ctype dbg_output dbgout_ctype_method)
-
 (defun dbgoutagain_ctype_method (self dbgi :long depth)
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi))
@@ -979,6 +971,15 @@ $TORANK}#
     ))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
 
+
+(defun dbgout_ctype_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_a self class_ctype))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_ctype_method self dbgi depth)
+    ))
+(install_method class_ctype dbg_output dbgout_ctype_method)
 
 ;;;; any binding debug output
 (defun dbgout_anybinding_method (self dbgi :long depth)
