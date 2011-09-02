@@ -1,5 +1,9 @@
 
 2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt: (+iv, -iv, *iv, /iv, %iv): Adding boxed
+	arithmetic.
+
+2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Up to 0.9rc0
 
 	* melt-module.mk: Remove all echos.

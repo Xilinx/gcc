@@ -155,6 +155,54 @@ given a string $MSG, with gdb when desperate.}#
 (defprimitive noti (:long i) :long :doc #{Integer unary bitwise complement of $i.}# 
   #{(~($i))}#)
 
+
+;;; functions for boxed arithmetic are costly, but you might find them useful.
+(defun +iv (a b) 
+  :doc #{Boxed integer addition of two boxed integers. 
+  It is slow, since it is boxing.}#
+  (if (is_integerbox a)
+      (if (is_integerbox b)
+	  (make_integerbox discr_constant_integer 
+			   (+i (get_int a) (get_int b))))))
+
+(defun -iv (a b) 
+  :doc #{Boxed integer substraction of two boxed integers. 
+  It is slow, since it is boxing.}#
+  (if (is_integerbox a)
+      (if (is_integerbox b)
+	  (make_integerbox discr_constant_integer 
+			   (-i (get_int a) (get_int b))))))
+
+
+(defun *iv (a b) 
+  :doc #{Boxed integer multiplication of two boxed integers. 
+  It is slow, since it is boxing.}#
+  (if (is_integerbox a)
+      (if (is_integerbox b)
+	  (make_integerbox discr_constant_integer 
+			   (*i (get_int a) (get_int b))))))
+
+(defun /iv (a b) 
+  :doc #{Boxed integer division of two boxed integers. 
+  It is slow, since it is boxing. Return null when undefined.}#
+  (if (is_integerbox a)
+      (if (is_integerbox b)
+	  (if (get_int b)
+	      (make_integerbox discr_constant_integer 
+			       (/i (get_int a) (get_int b)))))))
+
+
+(defun %iv (a b) 
+  :doc #{Boxed integer remainder of two boxed integers. 
+  It is slow, since it is boxing. Return null when undefined.}#
+  (if (is_integerbox a)
+      (if (is_integerbox b)
+	  (let ( (:long ib (get_int b)) )
+	    (if ib
+		(make_integerbox discr_constant_integer 
+				 (%i (get_int a) ib)))))))
+
+
 ;;; various tests
 
 (defprimitive notnull (v) :long :doc #{Test that $V is not the null value.}#
@@ -2441,6 +2489,13 @@ polyhedron values.}#
  -i
  <=i
  ==i
+
+ +iv
+ -iv
+ *iv
+ /iv
+ %iv
+
  add2out_ccomconst
  add2out_ccomstrbuf
  add2out_ccomstring 
