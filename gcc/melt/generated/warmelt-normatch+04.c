@@ -22267,7 +22267,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /19644721 checkpair",
+      melt_assertmsg ("putpairhead /218674a5 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NRESBIND__V174*/ meltfptr[173]))
 		      == MELTOBMAG_PAIR);
