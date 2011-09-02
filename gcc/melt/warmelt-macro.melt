@@ -4388,22 +4388,14 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(progn
 	  (error_plain loc "(CONTAINER <value>) needs exactly one argument")
 	  (return)))
-    (if 
-	(or 
-	 (and
-	  (is_a clabind class_class_binding)
-	  (== (get_field :cbind_class clabind) class_container))
-	 (and
-	  (is_a clabind class_value_binding)
-	  (== (get_field :vbind_value clabind) class_container)))
-	(progn
-	  (debug_msg sinst "mexpand_container returns sinst")
-	  (return sinst)
-	  )
-      (progn
-	(debug_msg clabind "mexpand_container unexpected clabind")
-	(error_plain loc "(CONTAINER <value>) where CLASS_CONTAINER is not visible"))
-    )))
+    ;; testing that clabind binds exactly the same class_container
+    ;; don't work well for makedoc mode.
+    (if (null clabind)
+	(warning_plain loc  "(CONTAINER <value>) where CLASS_CONTAINER is not visible"))
+    ;;
+    (debug_msg sinst "mexpand_container returns sinst")
+    (return sinst)
+))
 
 
 (defun patexpand_container (sexpr env pctx)
@@ -4476,22 +4468,12 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(progn
 	  (error_plain loc "(CONTENT <value>) needs exactly one argument")
 	  (return)))
-    (if 
-	(or 
-	 (and
-	  (is_a clabind class_class_binding)
-	  (== (get_field :cbind_class clabind) class_container))
-	 (and
-	  (is_a clabind class_value_binding)
-	  (== (get_field :vbind_value clabind) class_container)))
-	(progn
-	  (debug_msg sget "mexpand_content returns sget")
-	  (return sget)
-	  )
-      (progn
-	(debug_msg clabind "mexpand_content unexpected clabind")
-	(error_plain loc "(CONTENT <value>) where CLASS_CONTAINER is not visible")))
-    ))
+    ;; testing that clabind binds exactly the same class_container
+    ;; don't work well for makedoc mode.
+    (if (null clabind)
+	(warning_plain loc  "(CONTENT <value>) where CLASS_CONTAINER is not visible"))
+    (debug_msg sget "mexpand_content returns sget")
+    (return sget)))
 
 (install_initial_macro 'content mexpand_content)
 (export_macro 
