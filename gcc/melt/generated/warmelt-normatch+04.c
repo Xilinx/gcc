@@ -151,12 +151,14 @@ meltrout_8_warmelt_normatch_SCANPAT_SRCPATOR (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_9_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				     melt_ptr_t firstargp_,
-				     const melt_argdescr_cell_t xargdescr_[],
-				     union meltparam_un *xargtab_,
-				     const melt_argdescr_cell_t xresdescr_[],
-				     union meltparam_un *xrestab_);
+meltrout_9_warmelt_normatch_LAMBDA___1__ (meltclosure_ptr_t closp_,
+					  melt_ptr_t firstargp_,
+					  const melt_argdescr_cell_t
+					  xargdescr_[],
+					  union meltparam_un *xargtab_,
+					  const melt_argdescr_cell_t
+					  xresdescr_[],
+					  union meltparam_un *xrestab_);
 
 
 
@@ -286,12 +288,14 @@ meltrout_17_warmelt_normatch_NORMVARPAT_GENREUSETEST (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_18_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_18_warmelt_normatch_LAMBDA___2__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
@@ -340,23 +344,27 @@ meltrout_21_warmelt_normatch_NORMPAT_INSTANCEPAT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_22_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_22_warmelt_normatch_LAMBDA___3__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_23_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_23_warmelt_normatch_LAMBDA___4__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
@@ -375,12 +383,14 @@ meltrout_24_warmelt_normatch_NORMPAT_ANDPAT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_25_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_25_warmelt_normatch_LAMBDA___5__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
@@ -399,34 +409,40 @@ meltrout_26_warmelt_normatch_NORMPAT_ORPAT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_27_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_27_warmelt_normatch_LAMBDA___6__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_28_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_28_warmelt_normatch_LAMBDA___7__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_29_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_29_warmelt_normatch_LAMBDA___8__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
@@ -447,45 +463,53 @@ meltrout_30_warmelt_normatch_NORMPAT_ANYMATCHPAT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_31_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_31_warmelt_normatch_LAMBDA___9__ (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_32_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_32_warmelt_normatch_LAMBDA___10__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_33_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_33_warmelt_normatch_LAMBDA___11__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_34_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_34_warmelt_normatch_LAMBDA___12__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
@@ -504,12 +528,14 @@ meltrout_35_warmelt_normatch_NORMPAT_CONSTPAT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_36_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_36_warmelt_normatch_LAMBDA___13__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
@@ -632,12 +658,14 @@ meltrout_44_warmelt_normatch_NORMEXP_MATCH (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_45_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_45_warmelt_normatch_LAMBDA___14__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
@@ -779,12 +807,14 @@ meltrout_55_warmelt_normatch_FILL_MATCHCASE (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_56_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_56_warmelt_normatch_LAMBDA___15__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
@@ -1061,23 +1091,27 @@ meltrout_75_warmelt_normatch_TRANSLPAT_ORPAT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_76_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_76_warmelt_normatch_LAMBDA___16__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_77_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_77_warmelt_normatch_LAMBDA___17__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
@@ -1241,12 +1275,14 @@ meltrout_87_warmelt_normatch_TRANSLATE_MATCHCASE (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_88_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_88_warmelt_normatch_LAMBDA___18__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
@@ -1392,51 +1428,53 @@ meltrout_98_warmelt_normatch_NORMSTEP_MGROUP (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_99_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un *xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un *xrestab_);
+meltrout_99_warmelt_normatch_LAMBDA___19__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_100_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_100_warmelt_normatch_LAMBDA___20__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_101_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_101_warmelt_normatch_LAMBDA___21__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_102_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_102_warmelt_normatch_LAMBDA___22__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
@@ -1609,14 +1647,14 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_114_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_114_warmelt_normatch_LAMBDA___23__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
@@ -1635,14 +1673,14 @@ meltrout_115_warmelt_normatch_NORMEXP_ALTMATCH (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_116_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_116_warmelt_normatch_LAMBDA___24__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
@@ -1681,66 +1719,66 @@ meltrout_118_warmelt_normatch_MG_ALTDRAW_GRAPHVIZ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_119_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_119_warmelt_normatch_LAMBDA___25__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_120_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_120_warmelt_normatch_LAMBDA___26__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_121_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_121_warmelt_normatch_LAMBDA___27__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_122_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_122_warmelt_normatch_LAMBDA___28__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_123_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_123_warmelt_normatch_LAMBDA___29__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 void *start_module_melt (void *);
@@ -3746,12 +3784,14 @@ labend_rout:
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_99_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				      melt_ptr_t firstargp_,
-				      const melt_argdescr_cell_t xargdescr_[],
-				      union meltparam_un * xargtab_,
-				      const melt_argdescr_cell_t xresdescr_[],
-				      union meltparam_un * xrestab_)
+meltrout_99_warmelt_normatch_LAMBDA___19__ (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un * xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -3763,7 +3803,7 @@ meltrout_99_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_99_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_99_warmelt_normatch_LAMBDA___19___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3852,21 +3892,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_99_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_99_warmelt_normatch_LAMBDA___19__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_100_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_100_warmelt_normatch_LAMBDA___20__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -3878,7 +3918,7 @@ meltrout_100_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_100_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_100_warmelt_normatch_LAMBDA___20___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -3967,21 +4007,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_100_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_100_warmelt_normatch_LAMBDA___20__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_101_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_101_warmelt_normatch_LAMBDA___21__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -3993,7 +4033,7 @@ meltrout_101_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_101_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_101_warmelt_normatch_LAMBDA___21___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -4082,21 +4122,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_101_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_101_warmelt_normatch_LAMBDA___21__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_102_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_102_warmelt_normatch_LAMBDA___22__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -4108,7 +4148,7 @@ meltrout_102_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_102_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_102_warmelt_normatch_LAMBDA___22___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -4197,7 +4237,7 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_102_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_102_warmelt_normatch_LAMBDA___22__ */
 
 
 
@@ -18256,14 +18296,14 @@ labend_rout:
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_114_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_114_warmelt_normatch_LAMBDA___23__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -18275,7 +18315,7 @@ meltrout_114_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_114_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_114_warmelt_normatch_LAMBDA___23___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -18670,7 +18710,7 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_114_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_114_warmelt_normatch_LAMBDA___23__ */
 
 
 
@@ -22457,14 +22497,14 @@ labend_rout:
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_116_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_116_warmelt_normatch_LAMBDA___24__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -22476,7 +22516,7 @@ meltrout_116_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_116_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_116_warmelt_normatch_LAMBDA___24___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -22797,7 +22837,7 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_116_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_116_warmelt_normatch_LAMBDA___24__ */
 
 
 
@@ -25180,14 +25220,14 @@ labend_rout:
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_119_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_119_warmelt_normatch_LAMBDA___25__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -25199,7 +25239,7 @@ meltrout_119_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_119_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_119_warmelt_normatch_LAMBDA___25___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -25716,21 +25756,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_119_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_119_warmelt_normatch_LAMBDA___25__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_120_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_120_warmelt_normatch_LAMBDA___26__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -25742,7 +25782,7 @@ meltrout_120_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_120_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_120_warmelt_normatch_LAMBDA___26___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -26385,21 +26425,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_120_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_120_warmelt_normatch_LAMBDA___26__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_121_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_121_warmelt_normatch_LAMBDA___27__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -26411,7 +26451,7 @@ meltrout_121_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_121_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_121_warmelt_normatch_LAMBDA___27___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -26713,21 +26753,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_121_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_121_warmelt_normatch_LAMBDA___27__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_122_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_122_warmelt_normatch_LAMBDA___28__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -26739,7 +26779,7 @@ meltrout_122_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_122_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_122_warmelt_normatch_LAMBDA___28___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -26908,21 +26948,21 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_122_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_122_warmelt_normatch_LAMBDA___28__ */
 
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_123_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un * xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un * xrestab_)
+meltrout_123_warmelt_normatch_LAMBDA___29__ (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un * xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un * xrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -26934,7 +26974,7 @@ meltrout_123_warmelt_normatch_LAMBDA_ (meltclosure_ptr_t closp_,
 #define meltcallcount 0L
 #endif
 
-  struct frame_meltrout_123_warmelt_normatch_LAMBDA__st
+  struct frame_meltrout_123_warmelt_normatch_LAMBDA___29___st
   {
     int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
@@ -27103,7 +27143,7 @@ labend_rout:
 #undef meltfram__
 #undef MELTFRAM_NBVARNUM
 #undef MELTFRAM_NBVARPTR
-}				/*end meltrout_123_warmelt_normatch_LAMBDA_ */
+}				/*end meltrout_123_warmelt_normatch_LAMBDA___29__ */
 
 
 
