@@ -98,7 +98,7 @@ extern char* melt_gccversionstr;
 extern const int melt_gcc_version;
 
 /* the version string of MELT */
-#define MELT_VERSION_STRING "0.9pre"
+#define MELT_VERSION_STRING "0.9rc0"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);

@@ -1,5 +1,10 @@
 
 2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Up to 0.9rc0
+
+	* melt-module.mk: Remove all echos.
+
+2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

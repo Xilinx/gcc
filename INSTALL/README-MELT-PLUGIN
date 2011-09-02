@@ -144,13 +144,29 @@ the subject line]
 #######################################################################
 NEWS for 0.9 MELT plugin for gcc-4.6
 
-July 2Xth, 2011: Release of MELT plugin 0.9 for gcc-4.6
+September XXth, 2011: Release of MELT plugin 0.9 for gcc-4.6
 
 New features:
 
     Documentation is generated
 
     The PLUGIN_PRE_GENERICIZE event is interfaced.
+
+    The build machinery and the binary module loading has been
+    significantly updated.  Modules shared objects are like
+    warmelt-macro.3461497d8ef7239dc1f2f132623e6dd5.quicklybuilt.so and
+    they contain the md5sum of the catenation of all C files. They
+    also come in various flavor: quicklybuilt (the generated C is
+    compiled with -O0 -DMELT_HAVE_DEBUG), optimized (the generated C
+    is compiled with -01 and without -DMELT_HAVE_DEBUG), debugnoline
+    (the generated C is compiled with -g and -DMELT_HAVE_DEBUG but no
+    #line directives).
+
+    Conceptually, a module is loaded by loading its +meltdesc.c
+    file. That file (e.g. warmelt-macro+meltdesc.c corresponding to
+    warmelt-macro.melt) should never be moved or even edited.  It is
+    parsed at module load time, and contains the various md5sum of
+    real generated C files.
 
     New option -fplugin-arg-melt-workdir= for the work directory,
     where every .c or .so files are generated.

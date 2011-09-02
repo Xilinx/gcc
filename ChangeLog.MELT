@@ -1,5 +1,9 @@
 
 2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* INSTALL/README-MELT-PLUGIN: Document the build machinery with
+	md5sum signatures...
+
+2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 178437 using svnmerge.
 
