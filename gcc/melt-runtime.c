@@ -4953,14 +4953,6 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   if (warnescapedchar)
     warning (0, "escaped character[s] in MELT module makefile %s", ourmakefile);
   obstack_1grow (&cmd_obstack, ' ');
-  /* add the -C workdir argument if workdir is not the current directory */
-  if (workdir && strcmp(workdir, ".") && strcmp (workdir, "./") && strcmp(workdir, mycwd)) {
-    debugeprintf ("melt_run_make_for_plugin  dochdir in workdir %s", workdir);
-    obstack_grow (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
-    obstack_1grow (&cmd_obstack, ' ');
-    (void) obstack_add_escaped_path (&cmd_obstack, workdir);
-    obstack_1grow (&cmd_obstack, ' ');
-  }
 
   /* add the source argument */
   obstack_grow (&cmd_obstack, MODULE_SOURCEBASE_ARG, strlen (MODULE_SOURCEBASE_ARG));
@@ -5085,12 +5077,6 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   argv[argc++] = "-f";
   argv[argc++] = ourmakefile;
   debugeprintf("melt_run_make_for_branch arg ourmakefile %s", ourmakefile);
-
-  if (workdir && strcmp(workdir, ".") && strcmp(workdir, "./") && strcmp(workdir, mycwd)) {
-    debugeprintf("melt_run_make_for_branch dochdir workdir %s", workdir);
-    argv[argc++] = MAKECHDIR_ARG;
-    argv[argc++] = workdir;
-  }
 	
   /* the source base argument */
   if (IS_ABSOLUTE_PATH(srcbase))

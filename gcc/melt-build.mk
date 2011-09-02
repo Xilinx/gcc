@@ -715,7 +715,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -773,7 +773,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -832,7 +832,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -892,7 +892,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -954,7 +954,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -1016,7 +1016,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -1079,7 +1079,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -1143,7 +1143,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)m
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage1.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage1.args-tmp $(notdir $(basename $@))melt-stage1.args
-	@echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage1.args): ; cat $(notdir $(basename $@))melt-stage1.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage1.args)
 
 #@ from melt-build.tpl line 299
@@ -1281,7 +1281,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1339,7 +1339,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1398,7 +1398,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1458,7 +1458,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1520,7 +1520,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1582,7 +1582,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1645,7 +1645,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1709,7 +1709,7 @@ melt-stage1/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage2.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage2.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage2.args-tmp $(notdir $(basename $@))melt-stage2.args
-	@echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage2.args): ; cat $(notdir $(basename $@))melt-stage2.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage2.args)
 
 #@ from melt-build.tpl line 299
@@ -1847,7 +1847,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -1905,7 +1905,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -1964,7 +1964,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -2024,7 +2024,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -2086,7 +2086,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -2148,7 +2148,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -2211,7 +2211,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -2275,7 +2275,7 @@ melt-stage2/warmelt-outobj.quicklybuilt > $(notdir $(basename $@)melt-stage3.arg
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)melt-stage3.args-tmp)
 	@mv $(notdir $(basename $@))melt-stage3.args-tmp $(notdir $(basename $@))melt-stage3.args
-	@echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)melt-stage3.args): ; cat $(notdir $(basename $@))melt-stage3.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)melt-stage3.args)
 
 #@ from melt-build.tpl line 299
@@ -2468,7 +2468,7 @@ melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2534,7 +2534,7 @@ melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2600,7 +2600,7 @@ melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2666,7 +2666,7 @@ melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2738,7 +2738,7 @@ melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/war
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2804,7 +2804,7 @@ melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2870,7 +2870,7 @@ melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -2936,7 +2936,7 @@ melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -3086,7 +3086,7 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
 	     $(meltarg_init)=@warmelt-optimized: \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 #@ from melt-build.tpl line 534
@@ -3152,7 +3152,7 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt melt-sourc
 	     $(meltarg_init)=@warmelt-optimized:xtramelt-parse-infix-syntax \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 #@ from melt-build.tpl line 534
@@ -3218,7 +3218,7 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt melt-s
 	     $(meltarg_init)=@warmelt-optimized:xtramelt-parse-infix-syntax:xtramelt-ana-base \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 #@ from melt-build.tpl line 534
@@ -3284,7 +3284,7 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt melt
 	     $(meltarg_init)=@warmelt-optimized:xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 #@ from melt-build.tpl line 534
@@ -3350,7 +3350,7 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt melt-sources
 	     $(meltarg_init)=@warmelt-optimized:xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple:xtramelt-c-generator \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 #@ from melt-build.tpl line 534
@@ -3410,7 +3410,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules m
        $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
 	@mv $(basename $<).args-tmp $(basename $<).args
-	@echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)
+	@echo; echo; echo; echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)
 	$(melt_make_cc1) @$(basename $<).args
 # test that a helloworld can be run from melt-build.tpl line 593
 	@echo	$(MELTCCRUNFILE1ARGS) $(meltarg_init)=@melt-default-modules-quicklybuilt \
@@ -3420,7 +3420,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules m
        $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<)-run.args-tmp
 	@mv $(basename $<)-run.args-tmp $(basename $<)-run.args
-	@echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run
+	@echo; echo; echo; echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run
 	$(melt_make_cc1) @$(basename $<)-run.args
 
 
@@ -3588,7 +3588,7 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
-	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	 $(melt_make_cc1) @$(basename $@).args
 	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
 	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
@@ -3839,7 +3839,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 xtramelt-parse-infix-syntax.melt,xtramelt-ana-base.melt,xtramelt-ana-simple.melt,xtramelt-c-generator.melt,xtramelt-opengpu.melt \
               empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	mv  $(notdir $(basename $@)).args-tmp  $(notdir $(basename $@)).args
-	@echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 
