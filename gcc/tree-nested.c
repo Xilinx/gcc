@@ -142,7 +142,6 @@ create_tmp_var_for (struct nesting_info *info, tree type, const char *prefix)
   /* If the type is of variable size or a type which must be created by the
      frontend, something is wrong.  Note that we explicitly allow
      incomplete types here, since we create them ourselves here.  */
-  /* gcc_assert (!TREE_ADDRESSABLE (type)); */
   gcc_assert (!TYPE_SIZE_UNIT (type)
 	      || TREE_CODE (TYPE_SIZE_UNIT (type)) == INTEGER_CST);
 
@@ -956,7 +955,6 @@ convert_nonlocal_reference_op (tree *tp, int *walk_subtrees, void *data)
 
     case FDESC_EXPR:
     case ADDR_EXPR:
-      
       {
 	bool save_val_only = wi->val_only;
 
@@ -2059,30 +2057,30 @@ convert_gimple_call (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       walk_body (convert_gimple_call, NULL, info, gimple_omp_body (stmt));
       break;
 
-          /* XXX GIMPLE_ASSIGN here may be inefficient; it is needed to
-       see the FDESC_EXPR in a cilk_for call. */
-  case GIMPLE_ASSIGN:
-  {
-    tree rhs = gimple_assign_rhs1 (stmt);
-    if (TREE_CODE (rhs) == FDESC_EXPR && TREE_INT_CST_LOW (rhs) == 1)
-    {
-      tree ctx;
-      tree decl = TREE_OPERAND (rhs, 0);
-      target_context = decl_function_context (decl);
-      if (target_context && DECL_STATIC_CHAIN (decl))
+      /* XXX GIMPLE_ASSIGN here may be inefficient; it is needed to
+	 see the FDESC_EXPR in a cilk_for call. */
+    case GIMPLE_ASSIGN:
       {
-	ctx = build_addr (info->frame_decl, target_context);
-	/*info->static_chain_added
-	  |= (1 << (info->context != target_context));*/
+	tree rhs = gimple_assign_rhs1 (stmt);
+	if (TREE_CODE (rhs) == FDESC_EXPR && TREE_INT_CST_LOW (rhs) == 1)
+	  {
+	    tree ctx;
+	    tree decl = TREE_OPERAND (rhs, 0);
+	    target_context = decl_function_context (decl);
+	    if (target_context && DECL_STATIC_CHAIN (decl))
+	      {
+		ctx = build_addr (info->frame_decl, target_context);
+		/*info->static_chain_added
+		  |= (1 << (info->context != target_context));*/
+	      }
+	    else
+	      {
+		ctx = null_pointer_node;
+	      }
+	    gimple_assign_set_rhs1 (stmt, ctx);
+	  }
       }
-      else
-      {
-	ctx = null_pointer_node;
-      }
-      gimple_assign_set_rhs1 (stmt, ctx);
-    }
-  }
-  break;
+      break;
       
     default:
       /* Keep looking for other operands.  */

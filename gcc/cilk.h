@@ -1,25 +1,24 @@
 /* This file is part of the Intel(R) Cilk(TM) Plus support
    This file contains Cilk Support files.
-   
    Copyright (C) 2011  Free Software Foundation, Inc.
-   Written by Balaji V. Iyer <balaji.v.iyer@intel.com>,
+   Contributed by Balaji V. Iyer <balaji.v.iyer@intel.com>,
               Intel Corporation
 
-   This file is part of GCC.
+This file is part of GCC.
 
-   GCC is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3, or (at your option)
-   any later version.
+GCC is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
 
-   GCC is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+GCC is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING3.  If not see
-   <http://www.gnu.org/licenses/>.  */
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 
 #ifndef GCC_CILK_H
@@ -160,12 +159,10 @@ extern tree cilk_frame_ref (tree frame, tree field, bool volatile_p);
 
 extern void cilk_init_frame (tree frame);
 
-
-/* #ifdef GCC_RTL_H */ #if 1
 /* Call the Cilk runtime to allocate a variable sized object in
    the current frame. */
 extern rtx allocate_cilk_dynamic (rtx target, rtx size);
-#endif
+
 
 /* Like build_stack_save_restore, but handles Cilk dynamic frame
    extensions instead of updating the stack pointer. */
@@ -176,7 +173,7 @@ extern tree cilk_detach (tree worker);
 
 extern void cilk_init_builtins (void);
 
-#if /* def GCC_RTL_H */ 1
+
 extern rtx expand_cilk_frame (tree);
 
 extern rtx expand_builtin_cilk_pop_frame (tree);
@@ -184,12 +181,11 @@ extern rtx expand_builtin_cilk_detach (tree);
 extern rtx expand_builtin_cilk_stolen (tree);
 extern rtx expand_builtin_cilk_synched (tree);
 extern rtx expand_builtin_cilk_enter (tree);
-#endif
+
 
 extern bool cilk_valid_spawn (tree) __attribute__((weak));
-/* bviyer: I commented these out */
-extern void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *) __attribute__ ((weak));
-extern void gimplify_cilk_sync (tree *, gimple_seq *) __attribute__ ((weak));
+extern void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *) __attribute__((weak));
+extern void gimplify_cilk_sync (tree *, gimple_seq *) __attribute__((weak));
 extern void gimplify_cilk_for (tree *, gimple_seq *, gimple_seq *) __attribute__ ((weak));
 
 

@@ -595,10 +595,9 @@ cxx_dup_lang_specific_decl (tree node)
     size = sizeof (struct lang_decl_parm);
   else if (LANG_DECL_HAS_MIN (node))
     size = sizeof (struct lang_decl_min);
-  else {
-    /* debug_tree(node); */
+  else
     gcc_unreachable ();
-  }
+
   ld = ggc_alloc_lang_decl (size);
   memcpy (ld, DECL_LANG_SPECIFIC (node), size);
   DECL_LANG_SPECIFIC (node) = ld;

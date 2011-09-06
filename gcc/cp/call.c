@@ -144,7 +144,8 @@ static struct z_candidate * tourney (struct z_candidate *);
 static int equal_functions (tree, tree);
 static int joust (struct z_candidate *, struct z_candidate *, bool);
 static int compare_ics (conversion *, conversion *);
-static tree build_over_call (struct z_candidate *, int, enum call_context, tsubst_flags_t);
+static tree build_over_call (struct z_candidate *, int, enum call_context,
+			     tsubst_flags_t);
 static tree build_java_interface_fn_ref (tree, tree);
 #define convert_like(CONV, EXPR, COMPLAIN)			\
   convert_like_real ((CONV), (EXPR), NULL_TREE, 0, 0,		\
@@ -383,7 +384,7 @@ build_call_a (tree function, enum call_context spawning, int n, tree *argarray)
 				   result_type, function, n, argarray);
   TREE_HAS_CONSTRUCTOR (function) = is_constructor;
   TREE_NOTHROW (function) = nothrow;
-   SPAWN_CALL_P(function)= (spawning == CALL_SPAWN);
+  SPAWN_CALL_P (function) = (spawning == CALL_SPAWN);
 
   return function;
 }
@@ -3888,8 +3889,7 @@ print_error_for_call_failure (tree fn, VEC(tree,gc) *args, bool any_viable_p,
 
 tree
 build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p, 
-                         enum call_context spawning,
-			 tsubst_flags_t complain)
+                         enum call_context spawning, tsubst_flags_t complain)
 {
   struct z_candidate *candidates, *cand;
   bool any_viable_p;
@@ -3930,7 +3930,8 @@ build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p,
 	{
 	  if (!any_viable_p && candidates && ! candidates->next
 	      && (TREE_CODE (candidates->fn) == FUNCTION_DECL))
-	    return cp_build_function_call_vec (candidates->fn, args, spawning,complain);
+	    return cp_build_function_call_vec (candidates->fn, args, spawning,
+					       complain);
 	  if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
 	    fn = TREE_OPERAND (fn, 0);
 	  print_error_for_call_failure (fn, *args, any_viable_p, candidates);
@@ -4050,9 +4051,9 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
    if (fn)
      *fn = cand->fn;
 
-   /* Build the CALL_EXPR.  */
-   return build_over_call (cand, LOOKUP_NORMAL, CALL_NORMAL,
-                           tf_warning_or_error);
+  /* Build the CALL_EXPR.  */
+  return build_over_call (cand, LOOKUP_NORMAL, CALL_NORMAL,
+			  tf_warning_or_error);
 }
 
 /* Build a new call to operator().  This may change ARGS.  */
@@ -5174,7 +5175,7 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	    result = error_mark_node;
 	  else
 	    result = build_over_call (cand, LOOKUP_NORMAL, 
-                                     CALL_NORMAL, complain);
+				      CALL_NORMAL, complain);
 	}
       else
 	{
@@ -5525,7 +5526,7 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	  VEC_quick_push (tree, args, addr);
 	  if (FUNCTION_ARG_CHAIN (fn) != void_list_node)
 	    VEC_quick_push (tree, args, size);
-	  ret = cp_build_function_call_vec (fn, &args,CALL_NORMAL,
+	  ret = cp_build_function_call_vec (fn, &args, CALL_NORMAL,
                                             tf_warning_or_error);
 	  VEC_free (tree, gc, args);
 	  return ret;
@@ -6368,7 +6369,8 @@ magic_varargs_p (tree fn)
    bitmask of various LOOKUP_* flags which apply to the call itself.  */
 
 static tree
-build_over_call (struct z_candidate *cand, int flags, enum call_context spawning,  tsubst_flags_t complain)
+build_over_call (struct z_candidate *cand, int flags,
+		 enum call_context spawning,  tsubst_flags_t complain)
 {
   tree fn = cand->fn;
   const VEC(tree,gc) *args = cand->args;

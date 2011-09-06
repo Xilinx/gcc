@@ -454,15 +454,14 @@ cp_dump_tree (void* dump_info, tree t)
       break;
    case CILK_FOR_STMT:
       dump_stmt(di, t);
-      dump_child ("init ", FOR_INIT_STMT(t));
-      dump_child ("cond ", FOR_COND(t));
-      dump_child ("expr ", FOR_EXPR(t));
-      dump_child ("body ", FOR_BODY(t));
-      dump_child ("var  ", CILK_FOR_VAR(t));
-      dump_child ("grain", CILK_FOR_GRAIN(t));
+      dump_child ("init ", FOR_INIT_STMT (t));
+      dump_child ("cond ", FOR_COND (t));
+      dump_child ("expr ", FOR_EXPR (t));
+      dump_child ("body ", FOR_BODY (t));
+      dump_child ("var  ", CILK_FOR_VAR (t));
+      dump_child ("grain", CILK_FOR_GRAIN (t));
       break;
-
-
+      
     case RANGE_FOR_STMT:
       dump_stmt (di, t);
       dump_child ("decl", RANGE_FOR_DECL (t));

@@ -370,6 +370,9 @@ pop_binding (tree id, tree decl)
   /* Get the innermost binding for ID.  */
   binding = IDENTIFIER_BINDING (id);
 
+  if (flag_enable_cilk && (binding == NULL))
+    return;
+
   /* The name should be bound.  */
   gcc_assert (binding != NULL);
 

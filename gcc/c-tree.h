@@ -562,8 +562,7 @@ extern tree c_begin_compound_stmt (bool);
 extern tree c_end_compound_stmt (location_t, tree, bool);
 extern void c_finish_if_stmt (location_t, tree, tree, tree, bool);
 extern void c_finish_loop (location_t, tree, tree, tree, tree, tree,
-			   struct pragma_simd_values *,
-			   bool);
+			   struct pragma_simd_values *, bool);
 extern tree c_begin_stmt_expr (void);
 extern tree c_finish_stmt_expr (location_t, tree);
 extern tree c_process_expr_stmt (location_t, tree);
@@ -609,12 +608,13 @@ extern void pedwarn_c99 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_D
 
 extern void c_call_spawns (tree);
 extern tree c_make_cilk_frame (void);
-extern tree c_build_sync(tree *);
+extern tree c_build_sync (tree *);
 
-extern tree build_unary_op (location_t location, enum tree_code code, tree xarg, int flag);
+extern tree build_unary_op (location_t location, enum tree_code code,
+			    tree xarg, int flag);
 
-extern void c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar, 
-                                tree cond, tree incr, tree body, tree clab, 
-                                tree grain);
+extern void c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED,
+				tree cvar, tree cond, tree incr, tree body,
+				tree clab, tree grain);
 
 #endif /* ! GCC_C_TREE_H */

@@ -3122,7 +3122,7 @@ tree
 build_function_call (location_t loc ATTRIBUTE_UNUSED, 
 		     tree function, tree params)
 {
-  return cp_build_function_call (function, params,CALL_NORMAL,
+  return cp_build_function_call (function, params, CALL_NORMAL,
 				 tf_warning_or_error);
 }
 
@@ -3278,7 +3278,7 @@ cp_build_function_call_vec (tree function, VEC(tree,gc) **params,
      null parameters.  */
   check_function_arguments (fntype, nargs, argarray);
 
-  ret = build_cxx_call (function, CALL_NORMAL, nargs, argarray);
+  ret = build_cxx_call (function, spawning, nargs, argarray);
 
   if (allocated != NULL)
     release_tree_vector (allocated);

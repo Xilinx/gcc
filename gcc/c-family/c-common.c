@@ -4608,8 +4608,10 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
 #include "builtins.def"
 #undef DEF_BUILTIN
 
+  /* this function will initialize all the builtin functions required by
+   * the cilkplus port */
+  if (flag_enable_cilk)
     cilk_init_builtins();
-
 
   targetm.init_builtins ();
 
@@ -8824,7 +8826,8 @@ invalid_indirection_error (location_t loc, tree type, ref_operator errstring)
 		"invalid type argument of implicit conversion (have %qT)",
 		type);
       break;
-          /* bviyer: I added this field in the case statement */
+      
+      /* bviyer: I added this field in the case statement */
      case RO_CILK_WRAPPER_GENERATION:
        error_at (loc,
                  "invalid type of Cilk Wrapper Generation (have %qT)",

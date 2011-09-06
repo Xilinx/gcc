@@ -464,7 +464,6 @@ cgraph_allocate_node (void)
   return node;
 }
 
-
 /* Allocate new callgraph node and insert it into basic data structures.  */
 
 static struct cgraph_node *
@@ -1784,10 +1783,10 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
   int indirect_calls_count = 0;
 
   if (node == NULL)
-  {
-    fprintf(f, "NODE IS NULL!\n");
-    return;
-  }
+    {
+      fprintf(f, "NODE IS NULL!\n");
+      return;
+    }
   
   fprintf (f, "%s/%i", cgraph_node_name (node), node->uid);
   dump_addr (f, " @", (void *)node);

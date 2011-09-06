@@ -3780,8 +3780,9 @@ build2_stat (enum tree_code code, tree tt, tree arg0, tree arg1 MEM_STAT_DECL)
 	 of the offset argument.  */
       && TYPE_PRECISION (sizetype) == TYPE_PRECISION (tt)) 
     {
-    /* gcc_assert (TREE_CODE (arg0) == INTEGER_CST
-		&& TREE_CODE (arg1) == INTEGER_CST) */  ;
+      if (!flag_enable_cilk)
+	gcc_assert (TREE_CODE (arg0) == INTEGER_CST &&
+		    TREE_CODE (arg1) == INTEGER_CST);
     }
 
   if (code == POINTER_PLUS_EXPR && arg0 && arg1 && tt)

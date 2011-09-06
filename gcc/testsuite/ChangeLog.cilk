@@ -1,6 +1,29 @@
 2011-08-15  Balaji V. Iyer. <balaji.v.iyer@intel.com>
-	
-	* Added: gcc.dg/cilk-plus and g++.dg/cilk-plus directories - They contain
-	files that check for Intel(R) Cilk(TM) Plus functionality 
 
-
+	* gcc.dg/cilk-plus/cilk-for.c: New
+	* gcc.dg/cilk-plus/fib.c: New
+	* gcc.dg/cilk-plus/nested-cilk-for.c: New
+	* gcc.dg/cilk-plus/pragma-simd-for.c: New
+	* gcc.dg/cilk-plus/steal_check.c: New
+	* g++.dg/cilk-plus/cast.cpp: New
+	* g++.dg/cilk-plus/c++-cilk-for.cpp: New
+	* g++.dg/cilk-plus/c++-fib.cpp: New
+	* g++.dg/cilk-plus/cilk-for.cpp: New
+	* g++.dg/cilk-plus/cilk-for-incr-decr-not-one.cpp: New
+	* g++.dg/cilk-plus/cilk_plus.exp: New
+	* g++.dg/cilk-plus/Clock.cpp: New
+	* g++.dg/cilk-plus/c++-n-fib.cpp: New
+	* g++.dg/cilk-plus/explicit_ctor.cpp: New	
+	* g++.dg/cilk-plus/fib.cpp: New
+	* g++.dg/cilk-plus/fib-with-struct-params-and-overloading.cpp: New
+	* g++.dg/cilk-plus/fib-with-templates.cpp: New
+	* g++.dg/cilk-plus/label_test.cpp: New
+	* g++.dg/cilk-plus/nested-cilk-for.cpp: New
+	* g++.dg/cilk-plus/plus-equal-one.cpp: New
+	* g++.dg/cilk-plus/pragma-simd-for.cpp: New
+	* g++.dg/cilk-plus/stl_test.cpp: New
+	* g++.dg/cilk-plus/stl_test-iterators.cpp: New
+	* g++.dg/cilk-plus/stl_test-rev-iterators.cpp: New
+	* g++.dg/cilk-plus/test_goto.cpp: New
+	* g++.dg/cilk-plus/test_rts_foo.cpp: New
+	* g++.dg/cilk-plus/varargs_test.cpp: New

@@ -282,8 +282,3 @@ get_c_kind(const char *c_kind_name, CInteropKind_t kinds_table[])
 
   return ISOCBINDING_INVALID;
 }
-
-int cilk_valid_spawn (tree t)
-{
-  return 0;
-}

@@ -578,9 +578,7 @@ extern GTY(()) section *tls_comm_section;
 extern GTY(()) section *comm_section;
 extern GTY(()) section *lcomm_section;
 extern GTY(()) section *bss_noswitch_section;
-
 extern GTY(()) section *cilk_metadata_default_section;
-
 extern GTY(()) section *in_section;
 extern GTY(()) bool in_cold_section_p;
 

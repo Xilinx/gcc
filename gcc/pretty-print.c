@@ -466,52 +466,7 @@ pp_base_format (pretty_printer *pp, text_info *text)
 	    pp_integer_with_precision
 	      (pp, *text->args_ptr, precision, unsigned, "x");
 	  break;
-#if 0
-        case 'H':
-          {
-            location_t *locus = va_arg (*text->args_ptr, location_t *);
-            gcc_assert (text->locus != NULL);
-            *text->locus = *locus;
-          }
-          break;
 
-        case 'J':
-          {
-            tree t = va_arg (*text->args_ptr, tree);
-            gcc_assert (text->locus != NULL);
-            *text->locus = DECL_SOURCE_LOCATION (t);
-          }
-          break;
-
-        case 'K':
-          {
-            tree t = va_arg (*text->args_ptr, tree), block;
-            gcc_assert (text->locus != NULL);
-            *text->locus = EXPR_LOCATION (t);
-            gcc_assert (text->abstract_origin != NULL);
-            block = TREE_BLOCK (t);
-            *text->abstract_origin = NULL;
-            while (block
-                   && TREE_CODE (block) == BLOCK
-                   && BLOCK_ABSTRACT_ORIGIN (block))
-              {
-                tree ao = BLOCK_ABSTRACT_ORIGIN (block);
-
-                while (TREE_CODE (ao) == BLOCK
-                       && BLOCK_ABSTRACT_ORIGIN (ao)
-                       && BLOCK_ABSTRACT_ORIGIN (ao) != ao)
-                  ao = BLOCK_ABSTRACT_ORIGIN (ao);
-
-                if (TREE_CODE (ao) == FUNCTION_DECL)
-                  {
-                    *text->abstract_origin = block;
-                    break;
-                  }
-                block = BLOCK_SUPERCONTEXT (block);
-              }
-          }
-          break;
-#endif
 	case '.':
 	  {
 	    int n;

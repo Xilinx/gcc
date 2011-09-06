@@ -3733,7 +3733,7 @@ struct GTY(()) tree_optimization_option {
 
 enum function_linkage
 {
-  linkage_native=0,
+  linkage_native = 0,
   linkage_cilk
 };
 
@@ -6070,16 +6070,16 @@ extern bool block_may_fallthru (const_tree);
 /* FOR_STMT accessors. These give access to the init statement,
    condition, update expression, and body of the for statement,
    respectively.  */
-#define FOR_STMT_CHECK2(NODE)   TREE_CHECK2  (NODE,FOR_STMT,CILK_FOR_STMT)
+#define FOR_STMT_CHECK2(NODE)   TREE_CHECK2  (NODE, FOR_STMT, CILK_FOR_STMT)
 #define FOR_INIT_STMT(NODE)	TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 0)
 #define FOR_COND(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 1)
 #define FOR_EXPR(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 2)
 #define FOR_BODY(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 3)
 
 /* Some cilk #defines */
-#define CILK_FOR_VAR(NODE)      TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),4)
-#define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),0)
-#define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK(NODE),6)
+#define CILK_FOR_VAR(NODE)      TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 4)
+#define CILK_FOR_INIT(NODE)     TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 0)
+#define CILK_FOR_GRAIN(NODE)    TREE_OPERAND (CILK_FOR_STMT_CHECK (NODE), 6)
 
 /* here are the pragma simd specific files used by the parser and vectorizer
  * available in pragma_simd.c
@@ -6108,6 +6108,7 @@ extern void set_OK_for_certain_clause (enum pragma_simd_kind clause_type,
 extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
 
 tree build_call_list (tree return_type, tree fn, tree arglist);
-tree build_function_linkage_variant (tree ttype, enum function_linkage linkage);
+tree build_function_linkage_variant (tree ttype,
+				     enum function_linkage linkage);
 
 #endif  /* GCC_TREE_H  */

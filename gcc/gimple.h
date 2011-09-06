@@ -338,6 +338,7 @@ struct GTY(()) gimple_statement_base {
      Lexical block holding this statement.  */
   tree block;
 
+  /* Index to the PRAGMA simd internal structure */
   int pragma_simd_index;
 };
 

@@ -314,7 +314,6 @@ cgraph_reset_node (struct cgraph_node *node)
   /* bviyer: We need this for Cilk because we insert new functions during
    * gimplification of cilk_for and Cilk_spawn
    */
-  
    /* We may need to re-queue the node for assembling in case
      we already proceeded it and ignored as not needed or got
      a re-declaration in IMA mode.  */
@@ -328,8 +327,6 @@ cgraph_reset_node (struct cgraph_node *node)
       if (!n)
 	node->reachable = 0;
     }
-
-  
 }
 
 static void
@@ -1136,11 +1133,10 @@ cgraph_analyze_functions (void)
       for (edge = node->callees; edge; edge = edge->next_callee)
 	if (!edge->callee->reachable)
 	  cgraph_mark_reachable_node (edge->callee);
-      
       for (edge = node->callers; edge; edge = edge->next_caller)
 	if (!edge->caller->reachable && edge->caller->thunk.thunk_p)
 	  cgraph_mark_reachable_node (edge->caller);
-      
+
       if (node->same_comdat_group)
 	{
 	  for (next = node->same_comdat_group;

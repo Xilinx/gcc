@@ -7616,17 +7616,6 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
   treeop1 = ops->op1;
   treeop2 = ops->op2;
 
-  switch (get_gimple_rhs_class (code))
-  {
-  case GIMPLE_UNARY_RHS:
-  case GIMPLE_BINARY_RHS:
-  case GIMPLE_TERNARY_RHS:
-    break;
-  default:
-    ;
-    break;
-  }
-  
   /* We should be called only on simple (binary or unary) expressions,
      exactly those that are valid in gimple expressions that aren't
      GIMPLE_SINGLE_RHS (or invalid).  */
@@ -8660,7 +8649,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   enum tree_code code = TREE_CODE (exp);
   rtx subtarget, original_target;
   int ignore;
-  /* tree context; */
+  tree context;
   bool reduce_bit_field;
   location_t loc = EXPR_LOCATION (exp);
   struct separate_ops ops;
@@ -8835,17 +8824,18 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Show we haven't gotten RTL for this yet.  */
       temp = 0;
 
-      #if 0
-      /* Variables inherited from containing functions should have
-	 been lowered by this point.  */
-      context = decl_function_context (exp);
-      gcc_assert (!context
-		  || context == current_function_decl
-		  || TREE_STATIC (exp)
-		  || DECL_EXTERNAL (exp)
-		  /* ??? C++ creates functions that are not TREE_STATIC.  */
-		  || TREE_CODE (exp) == FUNCTION_DECL);
-      #endif
+      if (!flag_enable_cilk) 
+	{
+	  /* Variables inherited from containing functions should have
+	    been lowered by this point.  */
+	    context = decl_function_context (exp);
+	    gcc_assert (!context
+			|| context == current_function_decl
+		        || TREE_STATIC (exp)
+			|| DECL_EXTERNAL (exp)
+		      /* ??? C++ creates functions that are not TREE_STATIC.  */
+			|| TREE_CODE (exp) == FUNCTION_DECL);
+	}
 
       /* This is the case of an array whose size is to be determined
 	 from its initializer, while the initializer is still being parsed.
@@ -9046,65 +9036,35 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
       return expand_constructor (exp, target, modifier, false);
 
-        case INDIRECT_REF:
-  {
-    tree exp1 = TREE_OPERAND (exp, 0);
+    case INDIRECT_REF:
+      {
+	tree exp1 = TREE_OPERAND (exp, 0);
 
-    if (modifier != EXPAND_WRITE)
-    {
-      tree t;
+	if (modifier != EXPAND_WRITE)
+	  {
+	    tree t;
 
-      t = fold_read_from_constant_string (exp);
-      if (t)
-	return expand_expr (t, target, tmode, modifier);
-    }
+	    t = fold_read_from_constant_string (exp);
+	    if (t)
+	      return expand_expr (t, target, tmode, modifier);
+	  }
 
-    op0 = expand_expr (exp1, NULL_RTX, VOIDmode, EXPAND_SUM);
-    op0 = memory_address (mode, op0);
-#if 0
-    if (code == ALIGN_INDIRECT_REF)
-    {
-      int align = TYPE_ALIGN_UNIT (type);
-      op0 = gen_rtx_AND (Pmode, op0, GEN_INT (-align));
-      op0 = memory_address (mode, op0);
-    }
-#endif
-    temp = gen_rtx_MEM (mode, op0);
+	op0 = expand_expr (exp1, NULL_RTX, VOIDmode, EXPAND_SUM);
+	op0 = memory_address (mode, op0);
+	
+	temp = gen_rtx_MEM (mode, op0);
 
-    set_mem_attributes (temp, exp, 0);
+	set_mem_attributes (temp, exp, 0);
 
-    /* Resolve the misalignment now, so that we don't have to remember
-       to resolve it later.  Of course, this only works for reads.  */
-    /* ??? When we get around to supporting writes, we'll have to handle
-       this in store_expr directly.  The vectorizer isn't generating
-       those yet, however.  */
-#if 0
-    if (code == MISALIGNED_INDIRECT_REF)
-    {
-      int icode;
-      rtx reg, insn;
+	/* Resolve the misalignment now, so that we don't have to remember
+	   to resolve it later.  Of course, this only works for reads.  */
+	/* ??? When we get around to supporting writes, we'll have to handle
+	   this in store_expr directly.  The vectorizer isn't generating
+	   those yet, however.  */
 
-      gcc_assert (modifier == EXPAND_NORMAL
-		  || modifier == EXPAND_STACK_PARM);
-
-      /* The vectorizer should have already checked the mode.  */
-      icode = optab_handler (movmisalign_optab, mode)->insn_code;
-      gcc_assert (icode != CODE_FOR_nothing);
-
-      /* We've already validated the memory, and we're creating a
-	 new pseudo destination.  The predicates really can't fail.  */
-      reg = gen_reg_rtx (mode);
-
-      /* Nor can the insn generator.  */
-      insn = GEN_FCN (icode) (reg, temp);
-      emit_insn (insn);
-
-      return reg;
-    }
-#endif
-    return temp;
-  }
-      
+	return temp;
+      }
+	
     case TARGET_MEM_REF:
       {
 	addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (exp));

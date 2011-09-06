@@ -151,7 +151,7 @@ genericize_eh_spec_block (tree *stmt_p)
   tree body = EH_SPEC_STMTS (*stmt_p);
   tree allowed = EH_SPEC_RAISES (*stmt_p);
   tree failure = build_call_n (call_unexpected_node, CALL_NORMAL,
-                                1, build_exc_ptr ());
+			       1, build_exc_ptr ());
 
   *stmt_p = build_gimple_eh_filter_tree (body, allowed, failure);
   TREE_NO_WARNING (*stmt_p) = true;
@@ -196,13 +196,13 @@ genericize_if_stmt (tree *stmt_p)
 
 static gimple_seq
 gimplify_cp_loop (tree cond, tree body, tree incr, bool cond_is_first, 
-                  int pragma_simd_index)
+		  int pragma_simd_index)
 {
   gimple top, entry, stmt;
   gimple_seq stmt_list, body_seq, incr_seq, exit_seq, reset_seq;
   tree cont_block, break_block;
   location_t stmt_locus;
-   struct pragma_simd_values *ps_value= NULL;
+  struct pragma_simd_values *ps_value = NULL;
   tree reset_stmt_list = NULL_TREE;
 
   stmt_locus = input_location;
@@ -212,6 +212,7 @@ gimplify_cp_loop (tree cond, tree body, tree incr, bool cond_is_first,
   exit_seq = NULL;
   entry = NULL;
   reset_seq = NULL;
+
   break_block = begin_bc_block (bc_break);
   cont_block = begin_bc_block (bc_continue);
 
@@ -235,13 +236,12 @@ gimplify_cp_loop (tree cond, tree body, tree incr, bool cond_is_first,
       tree label = create_artificial_label (stmt_locus);
       PRAGMA_SIMD_INDEX (label) = pragma_simd_index;
       top = gimple_build_label (label);
-         ps_value = psv_find_node (PRAGMA_SIMD_INDEX(label));
-    if (ps_value != NULL)
-    {
-      body = pragma_simd_create_private_vars (body, &reset_stmt_list,
-                                              *ps_value);
-    }
-
+      ps_value = psv_find_node (PRAGMA_SIMD_INDEX (label));
+      if (ps_value != NULL)
+	{
+	  body = pragma_simd_create_private_vars (body, &reset_stmt_list, 
+						  *ps_value);
+	}
 
       /* If we have an exit condition, then we build an IF with gotos either
 	 out of the loop, or to the top of it.  If there's no exit condition,
@@ -291,15 +291,13 @@ gimplify_cp_loop (tree cond, tree body, tree incr, bool cond_is_first,
   gimple_seq_add_seq (&stmt_list, exit_seq);
 
   annotate_all_with_location (stmt_list, stmt_locus);
-  
-   stmt_list = finish_bc_block (bc_break, break_block, stmt_list);
 
-  /* bviyer: We changed this finish_bc_block with this so that we can add
-   * the reset statement after the loop exit label */
+ /* bviyer: We changed this finish_bc_block with this so that we can add
+  * the reset statement after the loop exit label */
+  stmt_list = finish_bc_block (bc_break, break_block,  stmt_list);
   gimplify_stmt (&reset_stmt_list, &reset_seq);
   gimple_seq_add_seq (&stmt_list, reset_seq);
 
-  
   return stmt_list;
 }
 
@@ -311,19 +309,14 @@ gimplify_for_stmt (tree *stmt_p, gimple_seq *pre_p)
 {
   tree stmt = *stmt_p;
   int ps_index = INVALID_PRAGMA_SIMD_SLOT;
+
   if (FOR_INIT_STMT (stmt))
     gimplify_and_add (FOR_INIT_STMT (stmt), pre_p);
 
-
-    if (TREE_CODE(*stmt_p) == FOR_STMT)
-  {
-    ps_index = FOR_STMT_PRAGMA_SIMD_INDEX(*stmt_p);
-  }
+  if (TREE_CODE (*stmt_p) == FOR_STMT)
+    ps_index = FOR_STMT_PRAGMA_SIMD_INDEX (*stmt_p);
   else
-  {
     ps_index = INVALID_PRAGMA_SIMD_SLOT;
-  }
-
 
   gimple_seq_add_seq (pre_p,
 		      gimplify_cp_loop (FOR_COND (stmt), FOR_BODY (stmt),
@@ -340,7 +333,7 @@ gimplify_while_stmt (tree *stmt_p, gimple_seq *pre_p)
   gimple_seq_add_seq (pre_p,
 		      gimplify_cp_loop (WHILE_COND (stmt), WHILE_BODY (stmt),
 					NULL_TREE, 1, 
-                                        INVALID_PRAGMA_SIMD_SLOT));
+					INVALID_PRAGMA_SIMD_SLOT));
   *stmt_p = NULL_TREE;
 }
 
@@ -353,7 +346,7 @@ gimplify_do_stmt (tree *stmt_p, gimple_seq *pre_p)
   gimple_seq_add_seq (pre_p,
 		      gimplify_cp_loop (DO_COND (stmt), DO_BODY (stmt),
 					NULL_TREE, 0,
-                                        INVALID_PRAGMA_SIMD_SLOT));
+					INVALID_PRAGMA_SIMD_SLOT));
   *stmt_p = NULL_TREE;
 }
 
@@ -477,13 +470,8 @@ cp_gimplify_init_expr (tree *expr_p)
     {
       tree sub = TREE_CODE (t) == COMPOUND_EXPR ? TREE_OPERAND (t, 0) : t;
 
-
-   if (TREE_CODE(sub)==CILK_RUN_EXPR)
-      sub=TREE_OPERAND(sub,0);
-
-
-
-
+      if (TREE_CODE(sub) == CILK_RUN_EXPR)
+	sub = TREE_OPERAND (sub, 0);
 
       /* If we are initializing from an AGGR_INIT_EXPR, drop the INIT_EXPR and
 	 replace the slot operand with our target.
@@ -688,11 +676,12 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       gimplify_for_stmt (expr_p, pre_p);
       ret = GS_OK;
       break;
-  case CILK_FOR_STMT:
-    gimplify_cilk_for_stmt(expr_p,pre_p);
-    /* cilk_gimplify_for (expr_p, pre_p,post_p);   */
-    ret=GS_ALL_DONE;
-    break;
+
+    case CILK_FOR_STMT:
+      gimplify_cilk_for_stmt (expr_p, pre_p);
+      ret = GS_ALL_DONE;
+      break;
+
     case WHILE_STMT:
       gimplify_while_stmt (expr_p, pre_p);
       ret = GS_OK;
@@ -724,17 +713,17 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       *expr_p = NULL_TREE;
       ret = GS_ALL_DONE;
       break;
-  case SPAWN_STMT:
-    gimplify_cilk_spawn(expr_p,pre_p, post_p);
-    gcc_assert(TREE_CODE(*expr_p) != SPAWN_STMT);
-    ret=GS_OK;
-    break;
 
-  case CILK_RUN_EXPR:
-    cilk_gimplify_run(expr_p,pre_p,post_p);
-    ret=GS_OK;
-    break;
+    case SPAWN_STMT:
+      gimplify_cilk_spawn (expr_p, pre_p, post_p);
+      gcc_assert (TREE_CODE (*expr_p) != SPAWN_STMT);
+      ret = GS_OK;
+      break;
 
+    case CILK_RUN_EXPR:
+      cilk_gimplify_run (expr_p, pre_p, post_p);
+      ret = GS_OK;
+      break;
 
     case EXPR_STMT:
       gimplify_expr_stmt (expr_p);
@@ -750,12 +739,14 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	ret = GS_OK;
       }
       break;
+
     case CALL_EXPR:
       if (SPAWN_CALL_P (*expr_p))
-      {
-        if (cfun->cilk_frame_decl != NULL_TREE)
-          TREE_USED(cfun->cilk_frame_decl) = 1;
-      }
+	{
+	  if (cfun->cilk_frame_decl != NULL_TREE)
+	    TREE_USED (cfun->cilk_frame_decl) = 1;
+	}
+
     default:
       ret = (enum gimplify_status) c_gimplify_expr (expr_p, pre_p, post_p);
       break;

@@ -480,8 +480,6 @@ DEFTREECODE (CILK_FOR_STMT,"cilk_for_stmt", tcc_statement, 7)
 /* Cilk Run: Argument is expression to run */
 DEFTREECODE (CILK_RUN_EXPR, "cilk_run_expr", tcc_expression, 1)
 
-
-
 /*
 Local variables:
 mode:c

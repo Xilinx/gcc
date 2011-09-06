@@ -3327,7 +3327,7 @@ generate_ctor_or_dtor_function (bool constructor_p, int priority,
 	  if (! body)
 	    body = start_objects (function_key, priority);
 
-	  call = cp_build_function_call_nary (fndecl,CALL_NORMAL,
+	  call = cp_build_function_call_nary (fndecl, CALL_NORMAL,
                                               tf_warning_or_error,
 					      build_int_cst (NULL_TREE,
 							     constructor_p),
@@ -4108,10 +4108,10 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
     }
 
   if (CLASS_TYPE_P (TREE_TYPE (fn)))
-    expr = build_op_call (fn, args,CALL_NORMAL, tf_warning_or_error);
+    expr = build_op_call (fn, args, CALL_NORMAL, tf_warning_or_error);
   else
-    expr = cp_build_function_call_vec (fn, args,CALL_NORMAL,
-                                       tf_warning_or_error);
+    expr = cp_build_function_call_vec (fn, args, CALL_NORMAL,
+				       tf_warning_or_error);
   if (processing_template_decl && expr != error_mark_node)
     expr = build_min_non_dep_call_vec (expr, orig_fn, orig_args);
 

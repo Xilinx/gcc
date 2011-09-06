@@ -835,7 +835,8 @@ locate_fn_flags (tree type, tree name, tree argtype, int flags,
     }
 
   fns = lookup_fnfields (binfo, name, 0);
-  rval = build_new_method_call (ob, fns, &args, binfo, flags, &fn,CALL_NORMAL, complain);
+  rval = build_new_method_call (ob, fns, &args, binfo, flags, &fn,
+				CALL_NORMAL, complain);
 
   release_tree_vector (args);
   if (fn && rval == error_mark_node)

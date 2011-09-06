@@ -82,8 +82,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #define TARGET_CILK_SAVE_SIZE (TARGET_64BIT ? 5 : 3)
 
-
-
 #include "config/vxworks-dummy.h"
 
 #include "config/i386/i386-opts.h"

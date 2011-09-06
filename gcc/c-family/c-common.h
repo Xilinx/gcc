@@ -143,7 +143,7 @@ enum rid
   /* C++0x */
   RID_CONSTEXPR, RID_DECLTYPE, RID_NOEXCEPT, RID_NULLPTR, RID_STATIC_ASSERT,
 
- /* Cilk */
+  /* Cilk Plus keywords */
   RID_CILK_SPAWN, RID_CILK_SYNC, RID_CILK_FOR,
 
   /* Objective-C ("AT" reserved words - they are only keywords when

@@ -127,16 +127,14 @@ typedef struct copy_body_data
      variable.  */
   struct pointer_map_t *debug_map;
 
-    /* Cilk currently needs to replace some variables that
+  /* Cilk currently needs to replace some variables that
      ordinary nested functions do not. */
   bool remap_var_for_cilk; 
   
- /* Take region number in the function being copied, add this value and
-    get eh region number of the duplicate in the function we inline into.  */
+  /* Take region number in the function being copied, add this value and
+     get eh region number of the duplicate in the function we inline into.  */
   int eh_region_offset;
   int eh_region;
-
-
   
 } copy_body_data;
 

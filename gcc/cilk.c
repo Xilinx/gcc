@@ -1,25 +1,24 @@
 /* This file is part of the Intel(R) Cilk(TM) Plus support
    This file contains the CilkPlus Intrinsics
-   
    Copyright (C) 2011  Free Software Foundation, Inc.
-   Written by Balaji V. Iyer <balaji.v.iyer@intel.com>,
-              Intel Corporation
+   Contributed by Balaji V. Iyer <balaji.v.iyer@intel.com>,
+   Intel Corporation
 
-   This file is part of GCC.
+This file is part of GCC.
 
-   GCC is free software; you can redistribute it and/or modify it
-   under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3, or (at your option)
-   any later version.
+GCC is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
 
-   GCC is distributed in the hope that it will be useful, but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.
+GCC is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING3.  If not see
-   <http://www.gnu.org/licenses/>.  */
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -85,12 +84,11 @@ install_builtin (const char *name, tree fntype, enum built_in_function code,
 static void
 mark_cold (tree fndecl)
 {
-  DECL_ATTRIBUTES (fndecl)
-    = tree_cons (get_identifier ("cold"),
-		 NULL_TREE,
-		 DECL_ATTRIBUTES (fndecl));
+  DECL_ATTRIBUTES (fndecl) = tree_cons (get_identifier ("cold"), NULL_TREE,
+					DECL_ATTRIBUTES (fndecl));
 }
 
+/* This function wil initialize/create all the builtin cilk plus functions */
 void
 cilk_init_builtins (void)
 {
@@ -110,6 +108,7 @@ cilk_init_builtins (void)
   tree fptr_arglist; /* (frame *) */
   tree fptr_fun; /* void(frame *) */
   tree frame_pred;
+  tree s_type_node;
 
   /* Make the frame and worker tags first because they reference each other. */
   worker = lang_hooks.types.make_type (RECORD_TYPE);
@@ -143,12 +142,12 @@ cilk_init_builtins (void)
   cilk_trees[CILK_TI_FRAME_WORKER] = fields;
   fields = add_field ("except_data", ptr_type_node, fields);
   cilk_trees[CILK_TI_FRAME_EXCEPTION] = fields;
+
+  s_type_node = build_int_cst (size_type_node, 4);
   fields =
     add_field ("ctx", 
 	       build_array_type (ptr_type_node,
-				 build_index_type (
-				   build_int_cst (size_type_node, 4))),
-	       fields);
+				 build_index_type (s_type_node)), fields);
   cilk_trees[CILK_TI_FRAME_CONTEXT] = fields;
   /* ??? */
   TYPE_ALIGN (frame) = PREFERRED_STACK_BOUNDARY;
@@ -160,8 +159,8 @@ cilk_init_builtins (void)
   cilk_frame_type_decl = frame;
   lang_hooks.types.register_builtin_type (frame, "__cilkrts_frame_t");
 
-  cilk_frame_ptr_type_decl
-    = build_qualified_type (fptr_type, TYPE_QUAL_RESTRICT);
+  cilk_frame_ptr_type_decl = build_qualified_type (fptr_type,
+						   TYPE_QUAL_RESTRICT);
 
   /* object could be named __cilk_frame_var for compatibility */
 
@@ -190,7 +189,6 @@ cilk_init_builtins (void)
   cilk_trees[CILK_TI_WORKER_LTQ_LIMIT] = fields;
   fields = add_field ("self", unsigned_type_node, fields);
   cilk_trees[CILK_TI_WORKER_SELF] = fields;
-  /*fields = add_field ("parallelism_disabled", unsigned_type_node, fields);*/
   {
     tree g = lang_hooks.types.make_type (RECORD_TYPE);
     finish_builtin_struct (g, "__cilkrts_global_state", NULL_TREE, NULL_TREE);
@@ -222,16 +220,11 @@ cilk_init_builtins (void)
     fn = build_fn_decl ("__cilkrts_current_worker_id",
 			build_function_type (integer_type_node,
 					     void_list_node));
-    /*DECL_BUILT_IN_CLASS (fn) = BUILT_IN_NORMAL;
-      DECL_FUNCTION_CODE (fn) = BUILT_IN_CILK_WORKER_ID;*/
     lang_hooks.decls.pushdecl (fn);
     /* XXX set attributes */
 
     fn = build_fn_decl ("__cilkrts_current_worker",
 			build_function_type (wptr_type, void_list_node));
-    /* XXX set attributes */
-    /*DECL_BUILT_IN_CLASS (fn) = BUILT_IN_NORMAL;
-      DECL_FUNCTION_CODE (fn) = BUILT_IN_CILK_WORKER_PTR;*/
     lang_hooks.decls.pushdecl (fn);
   }
 
@@ -281,6 +274,7 @@ cilk_init_builtins (void)
      Exceptions from spawns earlier in the same spawn scope
      may be deferred until a sync. */
   TREE_NOTHROW (cilk_sync_fndecl) = 0;
+  
   /* A call to __cilkrts_sync is a knot, but not a detach. */
   DECL_SET_KNOT (cilk_sync_fndecl, 2);
   cilk_sync_fndecl = lang_hooks.decls.pushdecl (cilk_sync_fndecl);
@@ -311,6 +305,7 @@ cilk_init_builtins (void)
   }
 }
 
+/* this function will call the value in a structure. eg. x.y */
 static tree
 dot (tree frame, int field_number, bool volatil)
 {
@@ -321,6 +316,7 @@ dot (tree frame, int field_number, bool volatil)
   return field;
 }
 
+/* this function will call the address in a structure. e.g. (&x)->y */
 static tree
 arrow (tree fptr, int field_number, bool volatil)
 {
@@ -474,31 +470,37 @@ rtx
 expand_builtin_cilk_enter (tree exp)
 {
   if (false)
-  {
-    tree x, fptr;
-    rtx mem;
+    {
+      tree x, fptr;
+      rtx mem;
 
-    fptr = get_frame_arg (exp);
+      fptr = get_frame_arg (exp);
 
-    /* w = get worker
-       if (!w)
-       slow path
-       else
-       flags <- 0
-       parent <- w->current
-       w->current <- self
-    */
-    x = arrow (fptr, CILK_TI_FRAME_FLAGS, false);
-    mem = expand_expr (x, NULL_RTX,
-		       TYPE_MODE (TREE_TYPE (cilk_trees[CILK_TI_FRAME_FLAGS])),
-		       EXPAND_WRITE);
-    emit_move_insn (mem,
-		    GEN_INT (cfun->always_detaches ? CILK_FRAME_DETACHED : 0));
-    return const0_rtx;
-  }
+      /* w = get worker
+	 if (!w)
+	 slow path
+	 else
+	 flags <- 0
+	 parent <- w->current
+	 w->current <- self
+      */
+      x = arrow (fptr, CILK_TI_FRAME_FLAGS, false);
+      mem = expand_expr (x, NULL_RTX,
+			 TYPE_MODE (TREE_TYPE (cilk_trees[CILK_TI_FRAME_FLAGS])),
+			 EXPAND_WRITE);
+      emit_move_insn (mem,
+		      GEN_INT (cfun->always_detaches ? CILK_FRAME_DETACHED : 0));
+      return const0_rtx;
+    }
   return NULL_RTX;
 }
 
+/* this function will explain the __pop frame function call . This function
+ * expands to the following:
+ * w = sf->worker;
+ * w->current = sf->parent;
+ * sf->parent = 0
+ */
 rtx
 expand_builtin_cilk_pop_frame (tree exp)
 {
@@ -516,85 +518,9 @@ expand_builtin_cilk_pop_frame (tree exp)
   x = expand_expr (assign, const0_rtx, VOIDmode, EXPAND_NORMAL);
   gcc_assert (GET_CODE (x) != REG);
 
-
-  /* w = sf->worker; w->current = sf->parent; sf->parent = 0 */
-
   return const0_rtx;
 }
-#if 0
-tree
-create_detach_expr(tree frame)
-{
-  tree worker = NULL_TREE,parent = NULL_TREE, flags = NULL_TREE;
-  tree tail = NULL_TREE;
-  tree flag_expr = NULL_TREE, assign = NULL_TREE;
-  tree increment_expr = NULL_TREE;
-  tree fptr_type = NULL_TREE, fptr_ptr_type = NULL_TREE,temp_var = NULL_TREE;
-  tree temp_ptr = NULL_TREE;
 
-  tree detach_stmt_list;
-
-  detach_stmt_list = make_node(STATEMENT_LIST);
-  
-  if (frame ==NULL_TREE)
-  {
-    return NULL_TREE;
-  }
-
-  flags = arrow(frame,CILK_TI_FRAME_FLAGS,0);
-  parent = arrow(frame,CILK_TI_FRAME_PARENT,0);
-  worker = arrow(frame,CILK_TI_FRAME_WORKER,0);
-  tail = arrow(worker,CILK_TI_WORKER_TAIL,1);
-  
-  /* tail_ptr = dot(worker,CILK_TI_WORKER_TAIL,1); */
-
-  /* this will create volatile * */
-  fptr_type = build_qualified_type(cilk_frame_ptr_type_decl,
-				   TYPE_QUAL_VOLATILE);
-  
-  fptr_ptr_type = build_pointer_type(fptr_type);
-
-  
-  temp_var = build_decl(UNKNOWN_LOCATION, VAR_DECL,
-			get_identifier("cilk_temp_tail"),
-			fptr_ptr_type);
-  DECL_CONTEXT(temp_var)=DECL_CONTEXT(frame);
-  DECL_SEEN_IN_BIND_EXPR_P(temp_var)=1;
-
-  append_to_statement_list_force(temp_var,&detach_stmt_list); 
-  
-  temp_ptr = build_modify_expr(UNKNOWN_LOCATION, temp_var, TREE_TYPE(temp_var),
-			       NOP_EXPR, UNKNOWN_LOCATION, tail,
-			       TREE_TYPE(tail));
-  
-  append_to_statement_list_force(temp_ptr,&detach_stmt_list);
-  
-  temp_ptr = build_unary_op(UNKNOWN_LOCATION, POSTINCREMENT_EXPR, temp_var, 0);
-  
-  temp_ptr = build_indirect_ref(UNKNOWN_LOCATION, temp_ptr, RO_UNARY_STAR);
-
-
-  increment_expr = build_modify_expr (UNKNOWN_LOCATION, temp_ptr,
-				      TREE_TYPE(temp_ptr), NOP_EXPR,
-				      UNKNOWN_LOCATION, parent,
-				      TREE_TYPE(parent));
-
-  append_to_statement_list_force(increment_expr, &detach_stmt_list);
-  
-  assign = build_modify_expr (UNKNOWN_LOCATION, tail, TREE_TYPE(tail), NOP_EXPR,
-			      UNKNOWN_LOCATION, temp_var, TREE_TYPE(temp_var));
-  append_to_statement_list_force(assign, &detach_stmt_list);
-  
-  flag_expr = build2(MODIFY_EXPR,void_type_node, flags,
-		     build2(BIT_IOR_EXPR,TREE_TYPE(flags), flags,
-			    build_int_cst(TREE_TYPE(flags),
-					  CILK_FRAME_DETACHED)));
-
-  append_to_statement_list_force(flag_expr, &detach_stmt_list);
-  
-  return detach_stmt_list;
-}
-#endif
 tree
 build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
 {
@@ -606,7 +532,7 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
   tree func_ptr = NULL_TREE;
   tree sync_expr = NULL_TREE;
 
- /* tree debug_stmt=NULL_TREE; */
+  /* tree debug_stmt=NULL_TREE; */
   
   addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
   
@@ -616,12 +542,12 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
 
   /* append_to_statement_list(debug_stmt, &epi); */
   if (needs_sync == true)
-  {
-    sync_expr = build_cilk_sync();
-    /* For now always sync.  The optimizer can delete it later. */
-    append_to_statement_list (sync_expr, &epi);
+    {
+      sync_expr = build_cilk_sync();
+      /* For now always sync.  The optimizer can delete it later. */
+      append_to_statement_list (sync_expr, &epi);
 
-  }
+    }
   
   func_ptr = (addr);
   worker = arrow(func_ptr,CILK_TI_FRAME_WORKER,0);
@@ -635,18 +561,18 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
   append_to_statement_list (call, &epi);
   clear_parent = build2(MODIFY_EXPR,void_type_node, parent,
 			build_int_cst (TREE_TYPE (parent), 0));
-			append_to_statement_list(clear_parent,&epi);
-			/* append_to_statement_list (call, &epi); */
+  append_to_statement_list(clear_parent,&epi);
+  /* append_to_statement_list (call, &epi); */
   call = build_call_expr (cilk_leave_fndecl, 1, addr);
   if (detaches==false)
-  {
-    tree flags_cmp_expr = NULL_TREE;
-    tree flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
-    flags_cmp_expr = fold_build2 (NE_EXPR, TREE_TYPE(flags), flags,
-				build_int_cst (TREE_TYPE (flags), 0));
-    call = fold_build3 (COND_EXPR, void_type_node, flags_cmp_expr,
-			call, build_empty_stmt (EXPR_LOCATION(flags)));
-  }
+    {
+      tree flags_cmp_expr = NULL_TREE;
+      tree flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
+      flags_cmp_expr = fold_build2 (NE_EXPR, TREE_TYPE(flags), flags,
+				    build_int_cst (TREE_TYPE (flags), 0));
+      call = fold_build3 (COND_EXPR, void_type_node, flags_cmp_expr,
+			  call, build_empty_stmt (EXPR_LOCATION(flags)));
+    }
   append_to_statement_list (call, &epi);
   return epi;
 }
@@ -678,9 +604,12 @@ make_cilk_frame (tree fn)
 
 
 /*
-  cilk_sync
-  becomes
-  if (frame.flags & 2) __cilkrts_sync(&frame); else <NOTHING> ;
+ * This function will expand a cilk_sync call.
+ * cilk_sync becomes
+ * if (frame.flags & 2)
+ *         __cilkrts_sync(&frame);
+ * else
+ *         <NOTHING> ;
 */
 
 tree
@@ -724,6 +653,7 @@ build_cilk_sync (void)
   return sync;
 }
 
+/* this function will gimplify the cilk_sync expression */
 void
 gimplify_cilk_sync (tree *expr_p, gimple_seq *pre_p)
 {

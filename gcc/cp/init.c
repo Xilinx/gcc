@@ -344,8 +344,7 @@ build_value_init (tree type, tsubst_flags_t complain)
 	return build_aggr_init_expr
 	  (type,
 	   build_special_member_call (NULL_TREE, complete_ctor_identifier,
-				      NULL, type, LOOKUP_NORMAL,
-                                      CALL_NORMAL,
+				      NULL, type, LOOKUP_NORMAL, CALL_NORMAL,
 				      complain),
 	   complain);
       else if (TYPE_HAS_COMPLEX_DFLT (type))
@@ -356,7 +355,7 @@ build_value_init (tree type, tsubst_flags_t complain)
 	     This will be handled in simplify_aggr_init_expr.  */
 	  tree ctor = build_special_member_call
 	    (NULL_TREE, complete_ctor_identifier,
-	     NULL, type, LOOKUP_NORMAL,CALL_NORMAL, complain);
+	     NULL, type, LOOKUP_NORMAL, CALL_NORMAL, complain);
 	  if (ctor != error_mark_node)
 	    {
 	      ctor = build_aggr_init_expr (type, ctor, complain);
@@ -1521,8 +1520,7 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
     ctor_name = base_ctor_identifier;
 
   rval = build_special_member_call (exp, ctor_name, &parms, binfo, flags,
-                                    CALL_NORMAL,
-                                    complain);
+                                    CALL_NORMAL, complain);
 
   if (parms != NULL)
     release_tree_vector (parms);
@@ -1884,7 +1882,7 @@ static tree
 build_builtin_delete_call (tree addr)
 {
   mark_used (global_delete_fndecl);
-  return build_call_n (global_delete_fndecl,CALL_NORMAL, 1, addr);
+  return build_call_n (global_delete_fndecl, CALL_NORMAL, 1, addr);
 }
 
 /* Build and return a NEW_EXPR.  If NELTS is non-NULL, TYPE[NELTS] is
@@ -2208,9 +2206,8 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	  alloc_call = build_new_method_call (build_dummy_object (elt_type),
 					      fns, placement,
 					      /*conversion_path=*/NULL_TREE,
-					      LOOKUP_NORMAL,
-					      &alloc_fn, CALL_NORMAL,
-					      complain);
+					      LOOKUP_NORMAL, &alloc_fn,
+					      CALL_NORMAL, complain);
 	}
       else
 	{
@@ -2384,7 +2381,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	    init_expr = build_special_member_call (init_expr,
 						   complete_ctor_identifier,
 						   init, elt_type,
-						   LOOKUP_NORMAL,CALL_NORMAL,
+						   LOOKUP_NORMAL, CALL_NORMAL,
 						   complain);
 	  stable = stabilize_init (init_expr, &init_preeval_expr);
 	}
@@ -2449,7 +2446,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	      init_expr = build_special_member_call (init_expr,
 						     complete_ctor_identifier,
 						     init, elt_type,
-						     LOOKUP_NORMAL,CALL_NORMAL,
+						     LOOKUP_NORMAL, CALL_NORMAL,
                                                      complain);
 	    }
 	  else if (explicit_value_init_p)
@@ -3406,7 +3403,7 @@ build_dtor_call (tree exp, special_function_kind dtor_kind, int flags,
 				/*args=*/NULL,
 				/*conversion_path=*/NULL_TREE,
 				flags,
-				/*fn_p=*/NULL,CALL_NORMAL,
+				/*fn_p=*/NULL, CALL_NORMAL,
 				complain);
 }
 

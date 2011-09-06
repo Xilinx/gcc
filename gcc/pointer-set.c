@@ -314,10 +314,11 @@ struct pair
 
 static int (*current_cmp) (const void *, const void *);
 
-static int sort_helper (const void *p1, const void *p2)
+static int
+sort_helper (const void *p1, const void *p2)
 {
-  return current_cmp(((const struct pair *)p1)->key,
-                     ((const struct pair *)p2)->key);
+  return current_cmp (((const struct pair *)p1)->key,
+                      ((const struct pair *)p2)->key);
 }
 
 
@@ -331,6 +332,7 @@ pointer_map_traverse_ordered (const struct pointer_map_t *pmap,
   int (*saved_cmp)(const void *, const void *);
   struct pair *list;
   size_t i, out;
+  
   if (pmap->n_slots == 0)
     return;
   saved_cmp = current_cmp;

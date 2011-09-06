@@ -560,9 +560,7 @@ gimple
 gimple_build_label (tree label)
 {
   gimple p = gimple_build_with_ops (GIMPLE_LABEL, ERROR_MARK, 1);
-
-    GIMPLE_PRAGMA_SIMD_INDEX(p) = PRAGMA_SIMD_INDEX(label);
-  
+  GIMPLE_PRAGMA_SIMD_INDEX (p) = PRAGMA_SIMD_INDEX (label);
   gimple_label_set_label (p, label);
   return p;
 }
@@ -2028,14 +2026,9 @@ gimple_set_bb (gimple stmt, basic_block bb)
 {
   stmt->gsbase.bb = bb;
 
-    if ((gimple_code(stmt) == GIMPLE_LABEL) &&
-      (bb != NULL))
-  {
-    bb->pragma_simd_index = GIMPLE_PRAGMA_SIMD_INDEX(stmt);
-  }
-  
+  if ( (bb != NULL) && (gimple_code (stmt) == GIMPLE_LABEL))
+    bb->pragma_simd_index = GIMPLE_PRAGMA_SIMD_INDEX (stmt);
 
-  
   /* If the statement is a label, add the label to block-to-labels map
      so that we can speed up edge creation for GIMPLE_GOTOs.  */
   if (cfun->cfg && gimple_code (stmt) == GIMPLE_LABEL)
@@ -2738,11 +2731,10 @@ is_gimple_address (const_tree t)
 {
   tree op;
 
-    if (TREE_CODE(t) == FDESC_EXPR)
-    return (TREE_CODE(TREE_OPERAND(t,0))==FUNCTION_DECL &&
-	    TREE_CODE(TREE_OPERAND(t,0))==INTEGER_CST);
+  if (TREE_CODE (t) == FDESC_EXPR)
+    return ((TREE_CODE (TREE_OPERAND (t, 0)) == FUNCTION_DECL) &&
+	    (TREE_CODE (TREE_OPERAND (t, 0)) == INTEGER_CST));
 
-  
   if (TREE_CODE (t) != ADDR_EXPR)
     return false;
 

@@ -784,7 +784,6 @@ DEF_BUILTIN_STUB (BUILT_IN_EH_POINTER, "__builtin_eh_pointer")
 DEF_BUILTIN_STUB (BUILT_IN_EH_FILTER, "__builtin_eh_filter")
 DEF_BUILTIN_STUB (BUILT_IN_EH_COPY_VALUES, "__builtin_eh_copy_values")
 
-
 /* Cilk */
 DEF_BUILTIN_STUB(BUILT_IN_CILK_WORKER_ID, "__cilkrts_current_worker_id")
 DEF_BUILTIN_STUB(BUILT_IN_CILK_WORKER_PTR, "__cilkrts_current_worker")
@@ -793,10 +792,6 @@ DEF_BUILTIN_STUB(BUILT_IN_CILK_SYNCHED, "__cilkrts_synched")
 DEF_BUILTIN_STUB(BUILT_IN_CILK_STOLEN, "__cilkrts_was_stolen")
 DEF_BUILTIN_STUB(BUILT_IN_CILK_ENTER_FRAME, "__cilkrts_enter_frame")
 DEF_BUILTIN_STUB(BUILT_IN_CILK_POP_FRAME, "__cilkrts_pop_frame")
-
-
-
-
 
 /* Synchronization Primitives.  */
 #include "sync-builtins.def"
