@@ -18,6 +18,6 @@
 load_lib g++-dg.exp
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cpp]] "-fsyntax-only -w -lcilkrts -ldl " " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cpp]] " -w -lcilkrts -ldl -I  $srcdir/../../libcilkrts/include " " "
 
 dg-finish

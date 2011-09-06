@@ -18,6 +18,6 @@
 load_lib gcc-dg.exp
 
 dg-init
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] "-fsyntax-only -lcilkrts -ldl -std=c99" " "
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.\[cS\]]] " -ldl -lcilkrts -I $srcdir/../../libcilkrts/include -std=c99 " " "
 
 dg-finish
