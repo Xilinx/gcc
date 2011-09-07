@@ -1254,10 +1254,6 @@ init_optimization_passes (void)
     {
       struct opt_pass **p = &pass_ipa_multiversion_dispatch.pass.sub;
       NEXT_PASS (pass_tree_convert_builtin_dispatch);
-      /* Rebuilding cgraph edges is necessary as the above passes change
-         the call graph.  Otherwise, future optimizations use the old
-	 call graph and make wrong decisions sometimes.*/
-      NEXT_PASS (pass_rebuild_cgraph_edges);
     }
   NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;

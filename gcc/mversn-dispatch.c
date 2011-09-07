@@ -1166,6 +1166,10 @@ specialize_call (tree clone_decl, int side)
           gsi = gsi_for_stmt (specialized_call_stmt);
 	}
     }
+
+  /* Rebuild cgraph edges for the clone. */
+  rebuild_cgraph_edges ();
+
   current_function_decl = old_current_function_decl;
   pop_cfun ();
 }
@@ -1282,6 +1286,8 @@ clone_and_dispatch_function (struct cgraph_node *orig_node, tree *clone_0,
      global. */
   update_ssa (TODO_update_ssa);
 
+  /* cgraph edges need to be updated before computing inline parameters. */
+  rebuild_cgraph_edges ();
   compute_inline_parameters (cgraph_get_create_node (orig_fndecl), false);
   DECL_DECLARED_INLINE_P (orig_fndecl) = 1;
   DECL_UNINLINABLE (orig_fndecl) = 0;
@@ -1623,7 +1629,6 @@ convert_builtin_dispatch (gimple stmt)
       phinode = create_phi_node (tmp_var, bb4);
       add_phi_arg (phinode, ssa_if_name, e24, UNKNOWN_LOCATION);
       add_phi_arg (phinode, ssa_else_name, e34, UNKNOWN_LOCATION);
-      mark_symbols_for_renaming (phinode);
       gcc_assert (lhs_result);
       assign_stmt
         = gimple_build_assign (lhs_result, gimple_phi_result (phinode));
@@ -1732,6 +1737,8 @@ do_convert_builtin_dispatch (void)
        ++ix)
     convert_builtin_dispatch (builtin_stmt);
 
+  /* cgraph edges need to be updated before computing inline parameters. */
+  rebuild_cgraph_edges ();
   compute_inline_parameters (cgraph_get_create_node (current_function_decl),
 			     false);
  
