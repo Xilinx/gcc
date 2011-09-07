@@ -450,6 +450,12 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
       break;
 
     case LANG_TYPE:
+      if (type == init_list_type_node)
+	{
+	  emit_diagnostic (diag_kind, input_location, 0,
+			   "invalid use of brace-enclosed initializer list");
+	  break;
+	}
       gcc_assert (type == unknown_type_node);
       if (value && TREE_CODE (value) == COMPONENT_REF)
 	goto bad_member;
@@ -1671,16 +1677,10 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
      void type, creates an rvalue of the specified type, which is
      value-initialized.  */
 
-  if (parms == NULL_TREE
-      /* If there's a user-defined constructor, value-initialization is
-	 just calling the constructor, so fall through.  */
-      && !TYPE_HAS_USER_CONSTRUCTOR (type))
+  if (parms == NULL_TREE)
     {
       exp = build_value_init (type, complain);
       exp = get_target_expr_sfinae (exp, complain);
-      /* FIXME this is wrong */
-      if (literal_type_p (type))
-	TREE_CONSTANT (exp) = true;
       return exp;
     }
 

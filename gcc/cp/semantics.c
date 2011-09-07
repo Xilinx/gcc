@@ -2950,6 +2950,9 @@ finish_id_expression (tree id_expression,
 	  tree lambda_expr = NULL_TREE;
 	  tree initializer = convert_from_reference (decl);
 
+	  /* Mark it as used now even if the use is ill-formed.  */
+	  mark_used (decl);
+
 	  /* Core issue 696: "[At the July 2009 meeting] the CWG expressed
 	     support for an approach in which a reference to a local
 	     [constant] automatic variable in a nested class or lambda body
@@ -3249,7 +3252,7 @@ finish_id_expression (tree id_expression,
       if (scope)
 	{
 	  decl = (adjust_result_of_qualified_name_lookup
-		  (decl, scope, current_class_type));
+		  (decl, scope, current_nonlambda_class_type()));
 
 	  if (TREE_CODE (decl) == FUNCTION_DECL)
 	    mark_used (decl);
@@ -6520,7 +6523,8 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
       if (field == part)
         return value;
     }
-  if (TREE_CODE (TREE_TYPE (whole)) == UNION_TYPE)
+  if (TREE_CODE (TREE_TYPE (whole)) == UNION_TYPE
+      && CONSTRUCTOR_NELTS (whole) > 0)
     {
       /* DR 1188 says we don't have to deal with this.  */
       if (!allow_non_constant)
@@ -6529,8 +6533,12 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
       *non_constant_p = true;
       return t;
     }
-  gcc_unreachable();
-  return error_mark_node;
+
+  /* If there's no explicit init for this field, it's value-initialized.  */
+  value = build_value_init (TREE_TYPE (t), tf_warning_or_error);
+  return cxx_eval_constant_expression (call, value,
+				       allow_non_constant, addr,
+				       non_constant_p);
 }
 
 /* Subroutine of cxx_eval_constant_expression.
@@ -7547,6 +7555,7 @@ maybe_constant_value (tree t)
 
   if (type_dependent_expression_p (t)
       || type_unknown_p (t)
+      || BRACE_ENCLOSED_INITIALIZER_P (t)
       || !potential_constant_expression (t)
       || value_dependent_expression_p (t))
     {
@@ -7686,21 +7695,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case IDENTIFIER_NODE:
       /* We can see a FIELD_DECL in a pointer-to-member expression.  */
     case FIELD_DECL:
-      return true;
-
     case PARM_DECL:
-      /* -- this (5.1) unless it appears as the postfix-expression in a
-            class member access expression, including the result of the
-            implicit transformation in the body of the non-static
-            member function (9.3.1);  */
-      /* FIXME this restriction seems pointless since the standard dropped
-	 "potential constant expression".  */
-      if (is_this_parameter (t))
-        {
-          if (flags & tf_error)
-            error ("%qE is not a potential constant expression", t);
-          return false;
-        }
       return true;
 
     case AGGR_INIT_EXPR:
@@ -8341,18 +8336,14 @@ tree
 lambda_return_type (tree expr)
 {
   tree type;
-  if (BRACE_ENCLOSED_INITIALIZER_P (expr))
+  if (type_unknown_p (expr)
+      || BRACE_ENCLOSED_INITIALIZER_P (expr))
     {
-      warning (0, "cannot deduce lambda return type from a braced-init-list");
+      cxx_incomplete_type_error (expr, TREE_TYPE (expr));
       return void_type_node;
     }
   if (type_dependent_expression_p (expr))
-    {
-      type = cxx_make_type (DECLTYPE_TYPE);
-      DECLTYPE_TYPE_EXPR (type) = expr;
-      DECLTYPE_FOR_LAMBDA_RETURN (type) = true;
-      SET_TYPE_STRUCTURAL_EQUALITY (type);
-    }
+    type = dependent_lambda_return_type_node;
   else
     type = cv_unqualified (type_decays_to (unlowered_expr_type (expr)));
   return type;
@@ -8412,11 +8403,9 @@ apply_lambda_return_type (tree lambda, tree return_type)
 
   LAMBDA_EXPR_RETURN_TYPE (lambda) = return_type;
 
-  /* If we got a DECLTYPE_TYPE, don't stick it in the function yet,
-     it would interfere with instantiating the closure type.  */
-  if (dependent_type_p (return_type))
-    return;
   if (return_type == error_mark_node)
+    return;
+  if (TREE_TYPE (TREE_TYPE (fco)) == return_type)
     return;
 
   /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
@@ -8430,6 +8419,7 @@ apply_lambda_return_type (tree lambda, tree return_type)
   /* We already have a DECL_RESULT from start_preparsed_function.
      Now we need to redo the work it and allocate_struct_function
      did to reflect the new type.  */
+  gcc_assert (current_function_decl == fco);
   result = build_decl (input_location, RESULT_DECL, NULL_TREE,
 		       TYPE_MAIN_VARIANT (return_type));
   DECL_ARTIFICIAL (result) = 1;
@@ -8666,6 +8656,9 @@ add_capture (tree lambda, tree id, tree initializer, bool by_reference_p,
       if (!real_lvalue_p (initializer))
 	error ("cannot capture %qE by reference", initializer);
     }
+  else
+    /* Capture by copy requires a complete type.  */
+    type = complete_type (type);
 
   /* Add __ to the beginning of the field name so that user code
      won't find the field with name lookup.  We can't just leave the name

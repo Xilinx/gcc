@@ -12895,7 +12895,7 @@ cp_parser_type_specifier (cp_parser* parser,
 	    cp_parser_set_decl_spec_type (decl_specs,
 					  type_spec,
 					  token->location,
-					  /*user_defined_p=*/true);
+					  /*type_definition_p=*/true);
 	  return type_spec;
 	}
       else
@@ -12924,7 +12924,7 @@ cp_parser_type_specifier (cp_parser* parser,
 	    cp_parser_set_decl_spec_type (decl_specs,
 					  type_spec,
 					  token->location,
-					  /*user_defined_p=*/true);
+					  /*type_definition_p=*/true);
 	  return type_spec;
 	}
 
@@ -12946,7 +12946,7 @@ cp_parser_type_specifier (cp_parser* parser,
 	cp_parser_set_decl_spec_type (decl_specs,
 				      type_spec,
 				      token->location,
-				      /*user_defined_p=*/true);
+				      /*type_definition_p=*/false);
       return type_spec;
 
     case RID_CONST:
@@ -13139,7 +13139,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       if (decl_specs)
 	cp_parser_set_decl_spec_type (decl_specs, type,
 				      token->location,
-				      /*user_defined_p=*/true);
+				      /*type_definition_p=*/false);
 
       return type;
 
@@ -13149,7 +13149,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       if (decl_specs)
 	cp_parser_set_decl_spec_type (decl_specs, type,
 				      token->location,
-				      /*user_defined_p=*/true);
+				      /*type_definition_p=*/false);
 
       return type;
 
@@ -13166,7 +13166,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       if (decl_specs)
 	cp_parser_set_decl_spec_type (decl_specs, type,
 				      token->location,
-				      /*user_defined_p=*/true);
+				      /*type_definition_p=*/false);
       cp_lexer_consume_token (parser->lexer);
       return type;
     }
@@ -13183,7 +13183,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
 	cp_parser_set_decl_spec_type (decl_specs,
 				      type,
 				      token->location,
-				      /*user_defined=*/false);
+				      /*type_definition_p=*/false);
       if (decl_specs)
 	decl_specs->any_specifiers_p = true;
 
@@ -13258,7 +13258,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
       if (type && decl_specs)
 	cp_parser_set_decl_spec_type (decl_specs, type,
 				      token->location,
-				      /*user_defined=*/true);
+				      /*type_definition_p=*/false);
     }
 
   /* If we didn't get a type-name, issue an error message.  */
@@ -16853,6 +16853,7 @@ cp_parser_default_argument (cp_parser *parser, bool template_parm_p)
   tree default_argument = NULL_TREE;
   bool saved_greater_than_is_operator_p;
   bool saved_local_variables_forbidden_p;
+  bool non_constant_p;
 
   /* Make sure that PARSER->GREATER_THAN_IS_OPERATOR_P is
      set correctly.  */
@@ -16866,7 +16867,9 @@ cp_parser_default_argument (cp_parser *parser, bool template_parm_p)
   if (template_parm_p)
     push_deferring_access_checks (dk_no_deferred);
   default_argument
-    = cp_parser_assignment_expression (parser, /*cast_p=*/false, NULL);
+    = cp_parser_initializer_clause (parser, &non_constant_p);
+  if (BRACE_ENCLOSED_INITIALIZER_P (default_argument))
+    maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
   if (template_parm_p)
     pop_deferring_access_checks ();
   parser->greater_than_is_operator_p = saved_greater_than_is_operator_p;
@@ -21060,6 +21063,7 @@ static void
 cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
 {
   bool saved_local_variables_forbidden_p;
+  bool non_constant_p;
   tree parm, parmdecl;
 
   /* While we're parsing the default args, we might (due to the
@@ -21104,12 +21108,14 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
       start_lambda_scope (parmdecl);
 
       /* Parse the assignment-expression.  */
-      parsed_arg = cp_parser_assignment_expression (parser, /*cast_p=*/false, NULL);
+      parsed_arg = cp_parser_initializer_clause (parser, &non_constant_p);
       if (parsed_arg == error_mark_node)
 	{
 	  cp_parser_pop_lexer (parser);
 	  continue;
 	}
+      if (BRACE_ENCLOSED_INITIALIZER_P (parsed_arg))
+	maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
 
       if (!processing_template_decl)
 	parsed_arg = check_default_argument (TREE_VALUE (parm), parsed_arg);
@@ -21327,15 +21333,14 @@ cp_parser_set_storage_class (cp_parser *parser,
     decl_specs->conflicting_specifiers_p = true;
 }
 
-/* Update the DECL_SPECS to reflect the TYPE_SPEC.  If USER_DEFINED_P
-   is true, the type is a user-defined type; otherwise it is a
-   built-in type specified by a keyword.  */
+/* Update the DECL_SPECS to reflect the TYPE_SPEC.  If TYPE_DEFINITION_P
+   is true, the type is a class or enum definition.  */
 
 static void
 cp_parser_set_decl_spec_type (cp_decl_specifier_seq *decl_specs,
 			      tree type_spec,
 			      location_t location,
-			      bool user_defined_p)
+			      bool type_definition_p)
 {
   decl_specs->any_specifiers_p = true;
 
@@ -21345,7 +21350,7 @@ cp_parser_set_decl_spec_type (cp_decl_specifier_seq *decl_specs,
      declarations so that G++ can work with system headers that are not
      C++-safe.  */
   if (decl_specs->specs[(int) ds_typedef]
-      && !user_defined_p
+      && !type_definition_p
       && (type_spec == boolean_type_node
 	  || type_spec == char16_type_node
 	  || type_spec == char32_type_node
@@ -21360,7 +21365,7 @@ cp_parser_set_decl_spec_type (cp_decl_specifier_seq *decl_specs,
       if (!decl_specs->type)
 	{
 	  decl_specs->type = type_spec;
-	  decl_specs->user_defined_type_p = false;
+	  decl_specs->type_definition_p = false;
 	  decl_specs->type_location = location;
 	}
     }
@@ -21369,7 +21374,7 @@ cp_parser_set_decl_spec_type (cp_decl_specifier_seq *decl_specs,
   else
     {
       decl_specs->type = type_spec;
-      decl_specs->user_defined_type_p = user_defined_p;
+      decl_specs->type_definition_p = type_definition_p;
       decl_specs->redefined_builtin_type = NULL_TREE;
       decl_specs->type_location = location;
     }

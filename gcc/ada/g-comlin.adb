@@ -3236,9 +3236,10 @@ package body GNAT.Command_Line is
    ------------
 
    procedure Getopt
-     (Config   : Command_Line_Configuration;
-      Callback : Switch_Handler := null;
-      Parser   : Opt_Parser     := Command_Line_Parser)
+     (Config      : Command_Line_Configuration;
+      Callback    : Switch_Handler := null;
+      Parser      : Opt_Parser := Command_Line_Parser;
+      Concatenate : Boolean := True)
    is
       Getopt_Switches : String_Access;
       C               : Character := ASCII.NUL;
@@ -3291,10 +3292,14 @@ package body GNAT.Command_Line is
                             & Switch & "'";
                   end;
 
+                  return;
+
                when Switch_String =>
                   Free (Config.Switches (Index).String_Output.all);
                   Config.Switches (Index).String_Output.all :=
                     new String'(Parameter);
+                  return;
+
             end case;
          end if;
 
@@ -3370,7 +3375,7 @@ package body GNAT.Command_Line is
 
       loop
          C := Getopt (Switches    => Getopt_Switches.all,
-                      Concatenate => True,
+                      Concatenate => Concatenate,
                       Parser      => Parser);
 
          if C = '*' then

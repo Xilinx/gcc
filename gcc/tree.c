@@ -3797,8 +3797,7 @@ build2_stat (enum tree_code code, tree tt, tree arg0, tree arg1 MEM_STAT_DECL)
 
   if (code == POINTER_PLUS_EXPR && arg0 && arg1 && tt)
     gcc_assert (POINTER_TYPE_P (tt) && POINTER_TYPE_P (TREE_TYPE (arg0))
-		&& INTEGRAL_TYPE_P (TREE_TYPE (arg1))
-		&& useless_type_conversion_p (sizetype, TREE_TYPE (arg1)));
+		&& ptrofftype_p (TREE_TYPE (arg1)));
 
   t = make_node_stat (code PASS_MEM_STAT);
   TREE_TYPE (t) = tt;
@@ -4411,7 +4410,7 @@ free_lang_data_in_one_sizepos (tree *expr_p)
 
 
 /* Reset all the fields in a binfo node BINFO.  We only keep
-   BINFO_VIRTUALS, which is used by gimple_fold_obj_type_ref.  */
+   BINFO_VTABLE, which is used by gimple_fold_obj_type_ref.  */
 
 static void
 free_lang_data_in_binfo (tree binfo)
@@ -4421,7 +4420,7 @@ free_lang_data_in_binfo (tree binfo)
 
   gcc_assert (TREE_CODE (binfo) == TREE_BINFO);
 
-  BINFO_VTABLE (binfo) = NULL_TREE;
+  BINFO_VIRTUALS (binfo) = NULL_TREE;
   BINFO_BASE_ACCESSES (binfo) = NULL;
   BINFO_INHERITANCE_CHAIN (binfo) = NULL_TREE;
   BINFO_SUBVTT_INDEX (binfo) = NULL_TREE;
@@ -6527,21 +6526,23 @@ tree_low_cst (const_tree t, int pos)
   return TREE_INT_CST_LOW (t);
 }
 
-/* Return the most significant bit of the integer constant T.  */
+/* Return the most significant (sign) bit of T.  */
 
 int
-tree_int_cst_msb (const_tree t)
+tree_int_cst_sign_bit (const_tree t)
 {
-  int prec;
-  HOST_WIDE_INT h;
-  unsigned HOST_WIDE_INT l;
+  unsigned bitno = TYPE_PRECISION (TREE_TYPE (t)) - 1;
+  unsigned HOST_WIDE_INT w;
 
-  /* Note that using TYPE_PRECISION here is wrong.  We care about the
-     actual bits, not the (arbitrary) range of the type.  */
-  prec = GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (t))) - 1;
-  rshift_double (TREE_INT_CST_LOW (t), TREE_INT_CST_HIGH (t), prec,
-		 2 * HOST_BITS_PER_WIDE_INT, &l, &h, 0);
-  return (l & 1) == 1;
+  if (bitno < HOST_BITS_PER_WIDE_INT)
+    w = TREE_INT_CST_LOW (t);
+  else
+    {
+      w = TREE_INT_CST_HIGH (t);
+      bitno -= HOST_BITS_PER_WIDE_INT;
+    }
+
+  return (w >> bitno) & 1;
 }
 
 /* Return an indication of the sign of the integer constant T.

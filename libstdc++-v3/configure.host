@@ -285,7 +285,7 @@ case "${host_os}" in
     exit 1
     ;;
   solaris2.[89] | solaris2.1[0-9])
-    os_include_dir="os/solaris/solaris2.7"
+    os_include_dir="os/solaris/solaris2.8"
     ;;
   tpf)
     os_include_dir="os/tpf"

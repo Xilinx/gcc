@@ -1,6 +1,6 @@
 /* Functions related to building classes and their related objects.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -5808,6 +5808,27 @@ finish_struct_1 (tree t)
 
   /* Finish debugging output for this type.  */
   rest_of_type_compilation (t, ! LOCAL_CLASS_P (t));
+
+  if (TYPE_TRANSPARENT_AGGR (t))
+    {
+      tree field = first_field (t);
+      if (field == NULL_TREE || error_operand_p (field))
+	{
+	  error ("type transparent class %qT does not have any fields", t);
+	  TYPE_TRANSPARENT_AGGR (t) = 0;
+	}
+      else if (DECL_ARTIFICIAL (field))
+	{
+	  if (DECL_FIELD_IS_BASE (field))
+	    error ("type transparent class %qT has base classes", t);
+	  else
+	    {
+	      gcc_checking_assert (DECL_VIRTUAL_P (field));
+	      error ("type transparent class %qT has virtual functions", t);
+	    }
+	  TYPE_TRANSPARENT_AGGR (t) = 0;
+	}
+    }
 }
 
 /* When T was built up, the member declarations were added in reverse

@@ -190,7 +190,7 @@
     case 2: gcc_unreachable ();
     case 4: return "vmov\t%Q0, %R0, %P1  @ <mode>";
     case 5: return "vmov\t%P0, %Q1, %R1  @ <mode>";
-    default: return output_move_double (operands);
+    default: return output_move_double (operands, true, NULL);
     }
 }
  [(set_attr "neon_type" "neon_int_1,*,neon_vmov,*,neon_mrrc,neon_mcr_2_mcrr,*,*,*")
@@ -1600,7 +1600,7 @@
 ;; where op3 is <, <=, ==, !=, >= or >.  Operations are performed
 ;; element-wise.
 
-(define_expand "vcond<mode>"
+(define_expand "vcond<mode><mode>"
   [(set (match_operand:VDQW 0 "s_register_operand" "")
 	(if_then_else:VDQW
 	  (match_operator 3 "arm_comparison_operator"
@@ -1680,7 +1680,7 @@
   DONE;
 })
 
-(define_expand "vcondu<mode>"
+(define_expand "vcondu<mode><mode>"
   [(set (match_operand:VDQIW 0 "s_register_operand" "")
 	(if_then_else:VDQIW
 	  (match_operator 3 "arm_comparison_operator"
