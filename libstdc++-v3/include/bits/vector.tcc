@@ -158,6 +158,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     vector<_Tp, _Alloc>::
     operator=(const vector<_Tp, _Alloc>& __x)
     {
+#if __google_stl_debug_dangling_vector
+      if (!this->_M_is_valid() || !__x._M_is_valid())
+	__throw_logic_error("operator=() on corrupt (dangling?) vector");
+#endif
       if (&__x != this)
 	{
 #ifdef __GXX_EXPERIMENTAL_CXX0X__

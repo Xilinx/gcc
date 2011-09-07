@@ -1,4 +1,10 @@
-2011-08-17   Diego Novillo  <dnovillo@google.com>
+2011-09-06  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* include/bits/stl_vector.h (_M_is_valid): New function.
+	(begin, end, size, capacity, swap, clear): Call it.
+	* include/bits/vector.tcc (operator=): Likewise.
+
+2011-08-17  Diego Novillo  <dnovillo@google.com>
 
 	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
 	Specify line 0 for "no matching" expected error.
