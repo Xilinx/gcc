@@ -2347,6 +2347,34 @@
    }#
 )
 
+;;
+(defun bb_dominator_iterator (bb f data)
+  :doc #{apply function $F on each dominator of $BB.}#
+  (calculate_dominance_info)
+  (let ( (dom (get_immediate_dominator bb)) )
+  (if dom
+    (progn 
+      (f data dom)
+      (bb_dominator_iterator dom f data)
+    )
+  ))
+)
+
+;;
+(defun bb_post_dominator_iterator (bb f data)
+  :doc #{apply function $F on each dominator of $BB.}#
+  (debugbasicblock "entering bb_post_dominator_iterator" (basicblock_content
+                                                          bb))
+  (calculate_post_dominance_info)
+  (let ( (dom (get_immediate_post_dominator bb)) )
+  (if (basicblock_content dom)
+    (progn 
+      (f data dom)
+      (bb_post_dominator_iterator dom f data)
+    )
+  ))
+)
+
 ;;;;;;;;;;;;;;;; iterating on edges preceding a given basic_block
 (defciterator foreach_edge_bb_preds
   (:basic_block bb)			;the input formal
@@ -3457,6 +3485,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
+ bb_dominator_iterator
+ bb_post_dominator_iterator
  build_identifier_tree
  build_int_tree
  build_string_tree

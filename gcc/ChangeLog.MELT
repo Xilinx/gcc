@@ -1,4 +1,9 @@
 
+2011-09-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Pierre Vittet  <piervit@pvittet.com>
+	* melt/xtramelt-ana-base.melt (bb_dominator_iterator)
+	(bb_post_dominator_iterator): New functions.
+
 2011-09-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt: (+iv, -iv, *iv, /iv, %iv): Adding boxed
 	arithmetic.
