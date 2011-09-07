@@ -772,10 +772,16 @@ package body Sem_Ch3 is
             Anon_Scope := Scope (Defining_Entity (Related_Nod));
          end if;
 
-      else
-         --  For access formals, access components, and access discriminants,
-         --  the scope is that of the enclosing declaration,
+      --  For an access type definition, if the current scope is a child
+      --  unit it is the scope of the type.
 
+      elsif Is_Compilation_Unit (Current_Scope) then
+         Anon_Scope := Current_Scope;
+
+      --  For access formals, access components, and access discriminants, the
+      --  scope is that of the enclosing declaration,
+
+      else
          Anon_Scope := Scope (Current_Scope);
       end if;
 
@@ -815,7 +821,7 @@ package body Sem_Ch3 is
          Set_Can_Use_Internal_Rep
            (Anon_Type, not Always_Compatible_Rep_On_Target);
 
-         --  If the anonymous access is associated with a protected operation
+         --  If the anonymous access is associated with a protected operation,
          --  create a reference to it after the enclosing protected definition
          --  because the itype will be used in the subsequent bodies.
 
@@ -902,10 +908,10 @@ package body Sem_Ch3 is
                  Make_Object_Declaration (Loc,
                    Defining_Identifier =>
                      Make_Defining_Identifier (Loc, Name_uMaster),
-                   Constant_Present => True,
-                   Object_Definition =>
+                   Constant_Present    => True,
+                   Object_Definition   =>
                      New_Reference_To (RTE (RE_Master_Id), Loc),
-                   Expression =>
+                   Expression          =>
                      Make_Explicit_Dereference (Loc,
                        New_Reference_To (RTE (RE_Current_Master), Loc)));
 
@@ -2192,6 +2198,8 @@ package body Sem_Ch3 is
                   Prag := Next_Pragma (Prag);
                end loop;
 
+               Check_Subprogram_Contract (Sent);
+
                Prag := Spec_TC_List (Contract (Sent));
                while Present (Prag) loop
                   Analyze_TC_In_Decl_Part (Prag, Sent);
@@ -3265,6 +3273,15 @@ package body Sem_Ch3 is
 
       if Is_Indefinite_Subtype (T) then
 
+         --  In SPARK, a declaration of unconstrained type is allowed
+         --  only for constants of type string.
+
+         if Is_String_Type (T) and then not Constant_Present (N) then
+            Check_SPARK_Restriction
+              ("declaration of object of unconstrained type not allowed",
+               N);
+         end if;
+
          --  Nothing to do in deferred constant case
 
          if Constant_Present (N) and then No (E) then
@@ -3311,9 +3328,12 @@ package body Sem_Ch3 is
          --  Case of initialization present
 
          else
-            --  Not allowed in Ada 83
+            --  Check restrictions in Ada 83
 
             if not Constant_Present (N) then
+
+               --  Unconstrained variables not allowed in Ada 83 mode
+
                if Ada_Version = Ada_83
                  and then Comes_From_Source (Object_Definition (N))
                then
@@ -9105,9 +9125,16 @@ package body Sem_Ch3 is
                         begin
                            E := Subp;
                            while Present (Alias (E)) loop
-                              Error_Msg_Sloc := Sloc (E);
-                              Error_Msg_NE
-                                ("\& has been inherited #", T, Subp);
+
+                              --  Avoid reporting redundant errors on entities
+                              --  inherited from interfaces
+
+                              if Sloc (E) /= Sloc (T) then
+                                 Error_Msg_Sloc := Sloc (E);
+                                 Error_Msg_NE
+                                   ("\& has been inherited #", T, Subp);
+                              end if;
+
                               E := Alias (E);
                            end loop;
 
@@ -15039,6 +15066,15 @@ package body Sem_Ch3 is
             end if;
          end if;
 
+         if Present (Prev)
+           and then Nkind (Parent (Prev)) = N_Incomplete_Type_Declaration
+           and then Present (Premature_Use (Parent (Prev)))
+         then
+            Error_Msg_Sloc := Sloc (N);
+            Error_Msg_N
+              ("\full declaration #", Premature_Use (Parent (Prev)));
+         end if;
+
          return New_Id;
       end if;
    end Find_Type_Name;
@@ -15691,20 +15727,30 @@ package body Sem_Ch3 is
          ------------------------
 
          procedure Set_Anonymous_Type (Id : Entity_Id) is
-            Typ : constant Entity_Id := Etype (Old_C);
+            Old_Typ : constant Entity_Id := Etype (Old_C);
 
          begin
             if Scope (Parent_Base) = Scope (Derived_Base) then
-               Set_Etype (Id, Typ);
+               Set_Etype (Id, Old_Typ);
 
             --  The parent and the derived type are in two different scopes.
             --  Reuse the type of the original discriminant / component by
-            --  copying it in order to preserve all attributes and update the
-            --  scope.
+            --  copying it in order to preserve all attributes.
 
             else
-               Set_Etype (Id, New_Copy (Typ));
-               Set_Scope (Etype (Id), Current_Scope);
+               declare
+                  Typ : constant Entity_Id := New_Copy (Old_Typ);
+
+               begin
+                  Set_Etype (Id, Typ);
+
+                  --  Since we do not generate component declarations for
+                  --  inherited components, associate the itype with the
+                  --  derived type.
+
+                  Set_Associated_Node_For_Itype (Typ, Parent (Derived_Base));
+                  Set_Scope                     (Typ, Derived_Base);
+               end;
             end if;
          end Set_Anonymous_Type;
 
@@ -16820,11 +16866,16 @@ package body Sem_Ch3 is
       --  function calls. The function call may have been given in prefixed
       --  notation, in which case the original node is an indexed component.
       --  If the function is parameterless, the original node was an explicit
-      --  dereference.
+      --  dereference. The function may also be parameterless, in which case
+      --  the source node is just an identifier.
 
       case Nkind (Original_Node (Exp)) is
          when N_Aggregate | N_Extension_Aggregate | N_Function_Call | N_Op =>
             return True;
+
+         when N_Identifier =>
+            return Present (Entity (Original_Node (Exp)))
+              and then Ekind (Entity (Original_Node (Exp))) = E_Function;
 
          when N_Qualified_Expression =>
             return

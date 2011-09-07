@@ -195,16 +195,21 @@ package body System.HTable is
       ------------------------
 
       function Set_If_Not_Present (E : Elmt_Ptr) return Boolean is
-         K     : constant Key := Get_Key (E);
+         K : Key renames Get_Key (E);
+         --  Note that it is important to use a renaming here rather than
+         --  define a constant initialized by the call, because the latter
+         --  construct runs into bootstrap problems with earlier versions
+         --  of the GNAT compiler.
+
          Index : constant Header_Num := Hash (K);
-         Elmt  : Elmt_Ptr := Table (Index);
+         Elmt  : Elmt_Ptr;
 
       begin
+         Elmt := Table (Index);
          loop
             if Elmt = Null_Ptr then
                Set_Next (E, Table (Index));
                Table (Index) := E;
-
                return True;
 
             elsif Equal (Get_Key (Elmt), K) then

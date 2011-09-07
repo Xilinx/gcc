@@ -1799,6 +1799,29 @@ package body Exp_Attr is
          Analyze_And_Resolve (N, Typ);
       end Count;
 
+      ---------------------
+      -- Descriptor_Size --
+      ---------------------
+
+      when Attribute_Descriptor_Size =>
+
+         --  Attribute Descriptor_Size is handled by the back end when applied
+         --  to an unconstrained array type.
+
+         if Is_Array_Type (Ptyp)
+           and then not Is_Constrained (Ptyp)
+         then
+            Apply_Universal_Integer_Attribute_Checks (N);
+
+         --  For any other type, the descriptor size is 0 because there is no
+         --  actual descriptor, but the result is not formally static.
+
+         else
+            Rewrite (N, Make_Integer_Literal (Loc, 0));
+            Analyze (N);
+            Set_Is_Static_Expression (N, False);
+         end if;
+
       ---------------
       -- Elab_Body --
       ---------------
@@ -2531,8 +2554,12 @@ package body Exp_Attr is
                   return;
                end if;
 
+               --  Build the type's Input function, passing the subtype rather
+               --  than its base type, because checks are needed in the case of
+               --  constrained discriminants (see Ada 2012 AI05-0192).
+
                Build_Record_Or_Elementary_Input_Function
-                 (Loc, Base_Type (U_Type), Decl, Fname);
+                 (Loc, U_Type, Decl, Fname);
                Insert_Action (N, Decl);
 
                if Nkind (Parent (N)) = N_Object_Declaration

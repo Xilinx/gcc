@@ -1576,9 +1576,10 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 
   if (TREE_CODE (from) == REFERENCE_TYPE)
     {
-      /* Anything with reference type is an lvalue.  */
-      is_lvalue = clk_ordinary;
       from = TREE_TYPE (from);
+      if (!TYPE_REF_IS_RVALUE (rfrom)
+	  || TREE_CODE (from) == FUNCTION_TYPE)
+	is_lvalue = clk_ordinary;
     }
 
   if (expr && BRACE_ENCLOSED_INITIALIZER_P (expr))
@@ -1652,6 +1653,10 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 	/* The top-level caller requested that we pretend that the lvalue
 	   be treated as an rvalue.  */
 	conv->rvaluedness_matches_p = TYPE_REF_IS_RVALUE (rto);
+      else if (TREE_CODE (rfrom) == REFERENCE_TYPE)
+	/* Handle rvalue reference to function properly.  */
+	conv->rvaluedness_matches_p
+	  = (TYPE_REF_IS_RVALUE (rto) == TYPE_REF_IS_RVALUE (rfrom));
       else
 	conv->rvaluedness_matches_p 
           = (TYPE_REF_IS_RVALUE (rto) == !is_lvalue);
@@ -7960,13 +7965,13 @@ compare_ics (conversion *ics1, conversion *ics2)
 
   if (ref_conv1 && ref_conv2)
     {
-      if (!ref_conv1->this_p && !ref_conv2->this_p
-	  && (TYPE_REF_IS_RVALUE (ref_conv1->type)
-	      != TYPE_REF_IS_RVALUE (ref_conv2->type)))
+      if (!ref_conv1->this_p && !ref_conv2->this_p)
 	{
-	  if (ref_conv1->rvaluedness_matches_p)
+	  if (ref_conv1->rvaluedness_matches_p
+	      > ref_conv2->rvaluedness_matches_p)
 	    return 1;
-	  if (ref_conv2->rvaluedness_matches_p)
+	  if (ref_conv2->rvaluedness_matches_p
+	      > ref_conv1->rvaluedness_matches_p)
 	    return -1;
 	}
 

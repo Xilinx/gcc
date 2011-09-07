@@ -1563,7 +1563,21 @@ package body Exp_Ch3 is
                    Discriminant_Constraint (Full_Type));
             end;
 
-            if In_Init_Proc then
+            --  If the target has access discriminants, and is constrained by
+            --  an access to the enclosing construct, i.e. a current instance,
+            --  replace the reference to the type by a reference to the object.
+
+            if Nkind (Arg) = N_Attribute_Reference
+              and then Is_Access_Type (Etype (Arg))
+              and then Is_Entity_Name (Prefix (Arg))
+              and then Is_Type (Entity (Prefix (Arg)))
+            then
+               Arg :=
+                 Make_Attribute_Reference (Loc,
+                   Prefix         => New_Copy (Prefix (Id_Ref)),
+                   Attribute_Name => Name_Unrestricted_Access);
+
+            elsif In_Init_Proc then
 
                --  Replace any possible references to the discriminant in the
                --  call to the record initialization procedure with references
@@ -1573,19 +1587,6 @@ package body Exp_Ch3 is
                   and then Ekind (Entity (Arg)) = E_Discriminant
                then
                   Arg := New_Reference_To (Discriminal (Entity (Arg)), Loc);
-
-               --  Case of access discriminants. We replace the reference
-               --  to the type by a reference to the actual object
-
-               elsif Nkind (Arg) = N_Attribute_Reference
-                 and then Is_Access_Type (Etype (Arg))
-                 and then Is_Entity_Name (Prefix (Arg))
-                 and then Is_Type (Entity (Prefix (Arg)))
-               then
-                  Arg :=
-                    Make_Attribute_Reference (Loc,
-                      Prefix         => New_Copy (Prefix (Id_Ref)),
-                      Attribute_Name => Name_Unrestricted_Access);
 
                --  Otherwise make a copy of the default expression. Note that
                --  we use the current Sloc for this, because we do not want the
@@ -4841,11 +4842,11 @@ package body Exp_Ch3 is
             return;
 
          --  Ada 2005 (AI-251): Rewrite the expression that initializes a
-         --  class-wide object to ensure that we copy the full object,
-         --  unless we are targetting a VM where interfaces are handled by
-         --  VM itself. Note that if the root type of Typ is an ancestor
-         --  of Expr's type, both types share the same dispatch table and
-         --  there is no need to displace the pointer.
+         --  class-wide interface object to ensure that we copy the full
+         --  object, unless we are targetting a VM where interfaces are handled
+         --  by VM itself. Note that if the root type of Typ is an ancestor of
+         --  Expr's type, both types share the same dispatch table and there is
+         --  no need to displace the pointer.
 
          elsif Comes_From_Source (N)
            and then Is_Interface (Typ)
@@ -4978,13 +4979,30 @@ package body Exp_Ch3 is
 
                      --  Copy the object
 
-                     Insert_Action (N,
-                       Make_Object_Declaration (Loc,
-                         Defining_Identifier => Obj_Id,
-                         Object_Definition =>
-                           New_Occurrence_Of
-                             (Etype (Object_Definition (N)), Loc),
-                         Expression => New_Expr));
+                     if not Is_Limited_Record (Expr_Typ) then
+                        Insert_Action (N,
+                          Make_Object_Declaration (Loc,
+                            Defining_Identifier => Obj_Id,
+                            Object_Definition   =>
+                              New_Occurrence_Of
+                                (Etype (Object_Definition (N)), Loc),
+                            Expression => New_Expr));
+
+                     --  Rename limited type object since they cannot be copied
+                     --  This case occurs when the initialization expression
+                     --  has been previously expanded into a temporary object.
+
+                     else pragma Assert (not Comes_From_Source (Expr_Q));
+                        Insert_Action (N,
+                          Make_Object_Renaming_Declaration (Loc,
+                            Defining_Identifier => Obj_Id,
+                            Subtype_Mark        =>
+                              New_Occurrence_Of
+                                (Etype (Object_Definition (N)), Loc),
+                            Name                =>
+                              Unchecked_Convert_To
+                                (Etype (Object_Definition (N)), New_Expr)));
+                     end if;
 
                      --  Dynamically reference the tag associated with the
                      --  interface.
@@ -5633,6 +5651,12 @@ package body Exp_Ch3 is
       --  mode since the routine contains an Unchecked_Conversion.
 
       elsif CodePeer_Mode then
+         return;
+
+      --  Do not create TSS routine Finalize_Address when compiling in Alfa
+      --  mode because it is not necessary and results in useless expansion.
+
+      elsif Alfa_Mode then
          return;
       end if;
 
@@ -6379,11 +6403,14 @@ package body Exp_Ch3 is
 
             --  Create the body of TSS primitive Finalize_Address. This must
             --  be done before the bodies of all predefined primitives are
-            --  created. If Def_Id is limited, Stream_Input and Streap_Read
-            --  may produce build-in-place allocations and for that the
-            --  expander needs Finalize_Address.
+            --  created. If Def_Id is limited, Stream_Input and Stream_Read
+            --  may produce build-in-place allocations and for those the
+            --  expander needs Finalize_Address. Do not create the body of
+            --  Finalize_Address in Alfa mode since it is not needed.
 
-            Make_Finalize_Address_Body (Def_Id);
+            if not Alfa_Mode then
+               Make_Finalize_Address_Body (Def_Id);
+            end if;
 
             Predef_List := Predefined_Primitive_Bodies (Def_Id, Renamed_Eq);
             Append_Freeze_Actions (Def_Id, Predef_List);

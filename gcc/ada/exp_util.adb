@@ -480,6 +480,13 @@ package body Exp_Util is
    --  Start of processing for Build_Allocate_Deallocate_Proc
 
    begin
+      --  Do not perform this expansion in Alfa mode because it is not
+      --  necessary.
+
+      if Alfa_Mode then
+         return;
+      end if;
+
       --  Obtain the attributes of the allocation / deallocation
 
       if Nkind (N) = N_Free_Statement then
@@ -1515,9 +1522,6 @@ package body Exp_Util is
 
       if Ekind (Typ) in Protected_Kind then
          if Has_Entries (Typ)
-           or else Has_Interrupt_Handler (Typ)
-           or else (Has_Attach_Handler (Typ)
-                      and then not Restricted_Profile)
 
             --  A protected type without entries that covers an interface and
             --  overrides the abstract routines with protected procedures is
@@ -1527,12 +1531,16 @@ package body Exp_Util is
             --  node to recognize this case.
 
            or else Present (Interface_List (Parent (Typ)))
+           or else
+             (((Has_Attach_Handler (Typ) and then not Restricted_Profile)
+                 or else Has_Interrupt_Handler (Typ))
+               and then not Restriction_Active (No_Dynamic_Attachment))
          then
             if Abort_Allowed
               or else Restriction_Active (No_Entry_Queue) = False
               or else Number_Entries (Typ) > 1
               or else (Has_Attach_Handler (Typ)
-                         and then not Restricted_Profile)
+                        and then not Restricted_Profile)
             then
                Pkg_Id := System_Tasking_Protected_Objects_Entries;
             else
@@ -1559,10 +1567,8 @@ package body Exp_Util is
 
       if Act_ST = Etype (Exp) then
          return;
-
       else
-         Rewrite (Exp,
-           Convert_To (Act_ST, Relocate_Node (Exp)));
+         Rewrite (Exp, Convert_To (Act_ST, Relocate_Node (Exp)));
          Analyze_And_Resolve (Exp, Act_ST);
       end if;
    end Convert_To_Actual_Subtype;
@@ -1643,7 +1649,6 @@ package body Exp_Util is
       Name_Req : Boolean := False) return Node_Id
    is
       New_Exp : Node_Id;
-
    begin
       Remove_Side_Effects (Exp, Name_Req);
       New_Exp := New_Copy_Tree (Exp);
@@ -3882,50 +3887,61 @@ package body Exp_Util is
         (Trans_Id   : Entity_Id;
          First_Stmt : Node_Id) return Boolean
       is
-         function Extract_Renamed_Object
-           (Ren_Decl : Node_Id) return Entity_Id;
+         function Find_Renamed_Object (Ren_Decl : Node_Id) return Entity_Id;
          --  Given an object renaming declaration, retrieve the entity of the
          --  renamed name. Return Empty if the renamed name is anything other
          --  than a variable or a constant.
 
-         ----------------------------
-         -- Extract_Renamed_Object --
-         ----------------------------
+         -------------------------
+         -- Find_Renamed_Object --
+         -------------------------
 
-         function Extract_Renamed_Object
-           (Ren_Decl : Node_Id) return Entity_Id
-         is
-            Change  : Boolean;
-            Ren_Obj : Node_Id;
+         function Find_Renamed_Object (Ren_Decl : Node_Id) return Entity_Id is
+            Ren_Obj : Node_Id := Empty;
+
+            function Find_Object (N : Node_Id) return Traverse_Result;
+            --  Try to detect an object which is either a constant or a
+            --  variable.
+
+            -----------------
+            -- Find_Object --
+            -----------------
+
+            function Find_Object (N : Node_Id) return Traverse_Result is
+            begin
+               --  Stop the search once a constant or a variable has been
+               --  detected.
+
+               if Nkind (N) = N_Identifier
+                 and then Present (Entity (N))
+                 and then Ekind_In (Entity (N), E_Constant, E_Variable)
+               then
+                  Ren_Obj := Entity (N);
+                  return Abandon;
+               end if;
+
+               return OK;
+            end Find_Object;
+
+            procedure Search is new Traverse_Proc (Find_Object);
+
+            --  Local variables
+
+            Typ : constant Entity_Id := Etype (Defining_Identifier (Ren_Decl));
+
+         --  Start of processing for Find_Renamed_Object
 
          begin
-            Change  := True;
-            Ren_Obj := Renamed_Object (Defining_Identifier (Ren_Decl));
+            --  Actions related to dispatching calls may appear as renamings of
+            --  tags. Do not process this type of renaming because it does not
+            --  use the actual value of the object.
 
-            while Change loop
-               Change := False;
-
-               if Nkind_In (Ren_Obj, N_Explicit_Dereference,
-                                     N_Indexed_Component,
-                                     N_Selected_Component)
-               then
-                  Ren_Obj := Prefix (Ren_Obj);
-                  Change := True;
-
-               elsif Nkind_In (Ren_Obj, N_Type_Conversion,
-                                        N_Unchecked_Type_Conversion)
-               then
-                  Ren_Obj := Expression (Ren_Obj);
-                  Change := True;
-               end if;
-            end loop;
-
-            if Nkind (Ren_Obj) in N_Has_Entity then
-               return Entity (Ren_Obj);
+            if not Is_RTE (Typ, RE_Tag_Ptr) then
+               Search (Name (Ren_Decl));
             end if;
 
-            return Empty;
-         end Extract_Renamed_Object;
+            return Ren_Obj;
+         end Find_Renamed_Object;
 
          --  Local variables
 
@@ -3950,7 +3966,7 @@ package body Exp_Util is
                end if;
 
             elsif Nkind (Stmt) = N_Object_Renaming_Declaration then
-               Ren_Obj := Extract_Renamed_Object (Stmt);
+               Ren_Obj := Find_Renamed_Object (Stmt);
 
                if Present (Ren_Obj)
                  and then Ren_Obj = Trans_Id
@@ -3971,7 +3987,6 @@ package body Exp_Util is
 
       function Is_Allocated (Trans_Id : Entity_Id) return Boolean is
          Expr : constant Node_Id := Expression (Parent (Trans_Id));
-
       begin
          return
            Is_Access_Type (Etype (Trans_Id))
@@ -3994,30 +4009,30 @@ package body Exp_Util is
           and then Requires_Transient_Scope (Desig)
           and then Nkind (Rel_Node) /= N_Simple_Return_Statement
 
-         --  Do not consider renamed or 'reference-d transient objects because
-         --  the act of renaming extends the object's lifetime.
+          --  Do not consider renamed or 'reference-d transient objects because
+          --  the act of renaming extends the object's lifetime.
 
           and then not Is_Aliased (Obj_Id, Decl)
 
-         --  Do not consider transient objects allocated on the heap since they
-         --  are attached to a finalization master.
+          --  Do not consider transient objects allocated on the heap since
+          --  they are attached to a finalization master.
 
           and then not Is_Allocated (Obj_Id)
 
-         --  If the transient object is a pointer, check that it is not
-         --  initialized by a function which returns a pointer or acts as a
-         --  renaming of another pointer.
+          --  If the transient object is a pointer, check that it is not
+          --  initialized by a function which returns a pointer or acts as a
+          --  renaming of another pointer.
 
           and then
             (not Is_Access_Type (Obj_Typ)
                or else not Initialized_By_Access (Obj_Id))
 
-         --  Do not consider transient objects which act as indirect aliases of
-         --  build-in-place function results.
+          --  Do not consider transient objects which act as indirect aliases
+          --  of build-in-place function results.
 
           and then not Initialized_By_Aliased_BIP_Func_Call (Obj_Id)
 
-         --  Do not consider conversions of tags to class-wide types
+          --  Do not consider conversions of tags to class-wide types
 
           and then not Is_Tag_To_CW_Conversion (Obj_Id);
    end Is_Finalizable_Transient;
@@ -4200,8 +4215,7 @@ package body Exp_Util is
          begin
             --  If component reference is for an array with non-static bounds,
             --  then it is always aligned: we can only process unaligned arrays
-            --  with static bounds (more accurately bounds known at compile
-            --  time).
+            --  with static bounds (more precisely compile time known bounds).
 
             if Is_Array_Type (T)
               and then not Compile_Time_Known_Bounds (T)
@@ -4261,6 +4275,8 @@ package body Exp_Util is
             --  If the component reference is for a record that has a specified
             --  alignment, and we either know it is too small, or cannot tell,
             --  then the component may be unaligned.
+
+            --  What is the following commented out code ???
 
             --  if Known_Alignment (Etype (P))
             --    and then Alignment (Etype (P)) < Ttypes.Maximum_Alignment
@@ -5687,6 +5703,12 @@ package body Exp_Util is
 
          when N_Slice =>
             return Possible_Bit_Aligned_Component (Prefix (N));
+
+         --  For an unchecked conversion, check whether the expression may
+         --  be bit-aligned.
+
+         when N_Unchecked_Type_Conversion =>
+            return Possible_Bit_Aligned_Component (Expression (N));
 
          --  If we have none of the above, it means that we have fallen off the
          --  top testing prefixes recursively, and we now have a stand alone

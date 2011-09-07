@@ -36,6 +36,7 @@ with Sinput.P;
 with Snames;   use Snames;
 with Targparm; use Targparm;
 
+with Ada;                        use Ada;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Directories;            use Ada.Directories;
 with Ada.Strings;                use Ada.Strings;
@@ -81,8 +82,7 @@ package body Prj.Nmsc is
       Hash       => Hash,
       Equal      => "=");
    --  File name information found in string list attribute (Source_Files or
-   --  Source_List_File). Except is set to True if source is a naming exception
-   --  in the project. Used to check that all referenced files were indeed
+   --  Source_List_File). Used to check that all referenced files were indeed
    --  found on the disk.
 
    type Unit_Exception is record
@@ -217,8 +217,8 @@ package body Prj.Nmsc is
 
    generic
       with procedure Callback
-        (Path            : Path_Information;
-         Pattern_Index   : Natural);
+        (Path          : Path_Information;
+         Pattern_Index : Natural);
    procedure Expand_Subdirectory_Pattern
      (Project       : Project_Id;
       Data          : in out Tree_Processing_Data;
@@ -376,8 +376,7 @@ package body Prj.Nmsc is
    --  otherwise only those currently set in the Source_Names hash table.
 
    procedure Check_File_Naming_Schemes
-     (In_Tree               : Project_Tree_Ref;
-      Project               : Project_Processing_Data;
+     (Project               : Project_Processing_Data;
       File_Name             : File_Name_Type;
       Alternate_Languages   : out Language_List;
       Language              : out Language_Ptr;
@@ -392,8 +391,8 @@ package body Prj.Nmsc is
    --  the same value.
 
    procedure Get_Directories
-     (Project     : Project_Id;
-      Data        : in out Tree_Processing_Data);
+     (Project : Project_Id;
+      Data    : in out Tree_Processing_Data);
    --  Get the object directory, the exec directory and the source directories
    --  of a project.
 
@@ -426,8 +425,7 @@ package body Prj.Nmsc is
       Naming    : Lang_Naming_Data;
       Kind      : out Source_Kind;
       Unit      : out Name_Id;
-      Project   : Project_Processing_Data;
-      In_Tree   : Project_Tree_Ref);
+      Project   : Project_Processing_Data);
    --  Check whether the file matches the naming scheme. If it does,
    --  compute its unit name. If Unit is set to No_Name on exit, none of the
    --  other out parameters are relevant.
@@ -636,11 +634,11 @@ package body Prj.Nmsc is
       Locally_Removed     : Boolean               := False;
       Location            : Source_Ptr            := No_Location)
    is
-      Config    : constant Language_Config := Lang_Id.Config;
-      UData     : Unit_Index;
-      Add_Src   : Boolean;
-      Source    : Source_Id;
-      Prev_Unit : Unit_Index := No_Unit_Index;
+      Config            : constant Language_Config := Lang_Id.Config;
+      UData             : Unit_Index;
+      Add_Src           : Boolean;
+      Source            : Source_Id;
+      Prev_Unit         : Unit_Index := No_Unit_Index;
       Source_To_Replace : Source_Id := No_Source;
 
    begin
@@ -665,9 +663,7 @@ package body Prj.Nmsc is
          Source := Source_Files_Htable.Get
            (Data.Tree.Source_Files_HT, File_Name);
 
-         if Source /= No_Source
-           and then Source.Index = Index
-         then
+         if Source /= No_Source and then Source.Index = Index then
             Add_Src := False;
          end if;
       end if;
@@ -891,9 +887,10 @@ package body Prj.Nmsc is
          Remove_Source (Data.Tree, Source_To_Replace, Id);
       end if;
 
-      if Data.Tree.Replaced_Source_Number > 0 and then
-         Replaced_Source_HTable.Get (Data.Tree.Replaced_Sources, Id.File) /=
-           No_File
+      if Data.Tree.Replaced_Source_Number > 0
+        and then
+          Replaced_Source_HTable.Get
+            (Data.Tree.Replaced_Sources, Id.File) /= No_File
       then
          Replaced_Source_HTable.Remove (Data.Tree.Replaced_Sources, Id.File);
          Data.Tree.Replaced_Source_Number :=
@@ -981,7 +978,7 @@ package body Prj.Nmsc is
    --  Start of processing for Check_Aggregate_Project
 
    begin
-      pragma Assert (Project.Qualifier = Aggregate);
+      pragma Assert (Project.Qualifier in Aggregate_Project);
 
       if Project_Files.Default then
          Error_Msg_Name_1 := Snames.Name_Project_Files;
@@ -1023,7 +1020,7 @@ package body Prj.Nmsc is
      (Project : Project_Id;
       Data    : in out Tree_Processing_Data)
    is
-      Shared : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
+      Shared   : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
       Prj_Data : Project_Processing_Data;
 
    begin
@@ -1031,20 +1028,28 @@ package body Prj.Nmsc is
 
       Initialize (Prj_Data, Project);
 
-      Check_If_Externally_Built   (Project, Data);
-
-      if Project.Qualifier /= Aggregate then
-         Get_Directories             (Project, Data);
-         Check_Programming_Languages (Project, Data);
-
-         if Current_Verbosity = High then
-            Show_Source_Dirs (Project, Shared);
-         end if;
-      end if;
+      Check_If_Externally_Built (Project, Data);
 
       case Project.Qualifier is
-         when Dry       => Check_Abstract_Project  (Project, Data);
-         when others    => null;
+         when Aggregate =>
+            null;
+
+         when Aggregate_Library =>
+            if Project.Object_Directory = No_Path_Information then
+               Project.Object_Directory := Project.Directory;
+            end if;
+
+         when others =>
+            Get_Directories (Project, Data);
+            Check_Programming_Languages (Project, Data);
+
+            if Current_Verbosity = High then
+               Show_Source_Dirs (Project, Shared);
+            end if;
+
+            if Project.Qualifier = Dry then
+               Check_Abstract_Project (Project, Data);
+            end if;
       end case;
 
       --  Check configuration. This must be done even for gnatmake (even though
@@ -1056,7 +1061,13 @@ package body Prj.Nmsc is
       if Project.Qualifier /= Aggregate then
          Check_Library_Attributes (Project, Data);
          Check_Package_Naming (Project, Data);
-         Look_For_Sources (Prj_Data, Data);
+
+         --  An aggregate library has no source, no need to look for them
+
+         if Project.Qualifier /= Aggregate_Library then
+            Look_For_Sources (Prj_Data, Data);
+         end if;
+
          Check_Interfaces (Project, Data);
 
          if Project.Library then
@@ -1125,8 +1136,8 @@ package body Prj.Nmsc is
      (Project : Project_Id;
       Data    : in out Tree_Processing_Data)
    is
-      Shared       : constant Shared_Project_Tree_Data_Access :=
-        Data.Tree.Shared;
+      Shared          : constant Shared_Project_Tree_Data_Access :=
+                          Data.Tree.Shared;
 
       Dot_Replacement : File_Name_Type := No_File;
       Casing          : Casing_Type    := All_Lower_Case;
@@ -1418,8 +1429,9 @@ package body Prj.Nmsc is
                            Lang_Index.Config.Compiler_Driver :=
                              File_Name_Type (Element.Value.Value);
 
-                        when Name_Required_Switches |
-                             Name_Leading_Required_Switches =>
+                        when Name_Required_Switches
+                           | Name_Leading_Required_Switches
+                           =>
                            Put (Into_List =>
                                   Lang_Index.Config.
                                     Compiler_Leading_Required_Switches,
@@ -2703,8 +2715,8 @@ package body Prj.Nmsc is
                   Source := Prj.Element (Iter);
                   exit when Source = No_Source;
 
-                  if Source.Unit /= No_Unit_Index and then
-                     Source.Unit.Name = Name_Id (Name)
+                  if Source.Unit /= No_Unit_Index
+                    and then Source.Unit.Name = Name_Id (Name)
                   then
                      if not Source.Locally_Removed then
                         Source.In_Interfaces := True;
@@ -2856,8 +2868,8 @@ package body Prj.Nmsc is
                   end if;
                end if;
 
-            elsif Project.Library_Kind /= Static and then
-                  Proj.Library_Kind = Static
+            elsif Project.Library_Kind /= Static
+              and then Proj.Library_Kind = Static
             then
                Error_Msg_Name_1 := Project.Name;
                Error_Msg_Name_2 := Proj.Name;
@@ -2951,8 +2963,8 @@ package body Prj.Nmsc is
 
       if Project.Library_Name /= No_Name then
          if Current_Verbosity = High then
-            Write_Attr ("Library name: ",
-                        Get_Name_String (Project.Library_Name));
+            Write_Attr
+              ("Library name: ", Get_Name_String (Project.Library_Name));
          end if;
 
          pragma Assert (Lib_Dir.Kind = Single);
@@ -3096,7 +3108,7 @@ package body Prj.Nmsc is
 
       Project.Library :=
         Project.Library_Dir /= No_Path_Information
-          and then Project.Library_Name /= No_Name;
+        and then Project.Library_Name /= No_Name;
 
       if Project.Extends = No_Project then
          case Project.Qualifier is
@@ -3179,8 +3191,8 @@ package body Prj.Nmsc is
                      Lib_ALI_Dir.Location, Project);
                end if;
 
-               if (not Project.Externally_Built) and then
-                  Project.Library_ALI_Dir /= Project.Library_Dir
+               if not Project.Externally_Built
+                 and then Project.Library_ALI_Dir /= Project.Library_Dir
                then
                   --  The library ALI directory cannot be the same as the
                   --  Object directory.
@@ -3378,7 +3390,9 @@ package body Prj.Nmsc is
                end;
             end if;
 
-            if Project.Library then
+            if Project.Library
+              and then Project.Qualifier /= Aggregate_Library
+            then
                Debug_Output ("this is a library project file");
 
                Check_Library (Project.Extends, Extends => True);
@@ -4285,6 +4299,12 @@ package body Prj.Nmsc is
    is
       Shared : constant Shared_Project_Tree_Data_Access := Data.Tree.Shared;
 
+      Lib_Name            : constant Prj.Variable_Value :=
+                              Prj.Util.Value_Of
+                               (Snames.Name_Library_Name,
+                                Project.Decl.Attributes,
+                                Shared);
+
       Lib_Interfaces      : constant Prj.Variable_Value :=
                               Prj.Util.Value_Of
                                 (Snames.Name_Library_Interface,
@@ -4336,6 +4356,46 @@ package body Prj.Nmsc is
       --  Library_Interface is defined.
 
       if not Lib_Interfaces.Default then
+
+         --  The name of a stand-alone library needs to have the syntax of an
+         --  Ada identifier.
+
+         declare
+            Name : constant String := Get_Name_String (Project.Library_Name);
+            OK   : Boolean         := Is_Letter (Name (Name'First));
+
+            Underline : Boolean := False;
+
+         begin
+            for J in Name'First + 1 .. Name'Last loop
+               exit when not OK;
+
+               if Is_Alphanumeric (Name (J)) then
+                  Underline := False;
+
+               elsif Name (J) = '_' then
+                  if Underline then
+                     OK := False;
+                  else
+                     Underline := True;
+                  end if;
+
+               else
+                  OK := False;
+               end if;
+            end loop;
+
+            OK := OK and not Underline;
+
+            if not OK then
+               Error_Msg
+                 (Data.Flags,
+                  "Incorrect library name for a Stand-Alone Library",
+                  Lib_Name.Location, Project);
+               return;
+            end if;
+         end;
+
          declare
             Interfaces     : String_List_Id := Lib_Interfaces.Values;
             Interface_ALIs : String_List_Id := Nil_String;
@@ -4373,7 +4433,18 @@ package body Prj.Nmsc is
                   Error_Msg_Name_1 := Unit;
 
                   Next_Proj := Project.Extends;
-                  Iter := For_Each_Source (Data.Tree, Project);
+
+                  if Project.Qualifier = Aggregate_Library then
+
+                     --  For an aggregate library we want to consider sources
+                     --  of all aggregated projects.
+
+                     Iter := For_Each_Source (Data.Tree);
+
+                  else
+                     Iter := For_Each_Source (Data.Tree, Project);
+                  end if;
+
                   loop
                      while Prj.Element (Iter) /= No_Source
                        and then
@@ -4405,6 +4476,7 @@ package body Prj.Nmsc is
                   if Source /= No_Source then
                      if Source.Project /= Project
                        and then not Is_Extending (Project, Source.Project)
+                       and then Project.Qualifier /= Aggregate_Library
                      then
                         Source := No_Source;
                      end if;
@@ -4429,13 +4501,13 @@ package body Prj.Nmsc is
 
                      Shared.String_Elements.Table
                        (String_Element_Table.Last (Shared.String_Elements)) :=
-                       (Value         => Name_Id (Source.Dep_Name),
-                        Index         => 0,
-                        Display_Value => Name_Id (Source.Dep_Name),
-                        Location      =>
-                          Shared.String_Elements.Table (Interfaces).Location,
-                        Flag          => False,
-                        Next          => Interface_ALIs);
+                         (Value         => Name_Id (Source.Dep_Name),
+                          Index         => 0,
+                          Display_Value => Name_Id (Source.Dep_Name),
+                          Location      =>
+                            Shared.String_Elements.Table (Interfaces).Location,
+                          Flag          => False,
+                          Next          => Interface_ALIs);
 
                      Interface_ALIs :=
                        String_Element_Table.Last (Shared.String_Elements);
@@ -4890,10 +4962,10 @@ package body Prj.Nmsc is
         and then Name_Len > 3
         and then Name_Buffer (2 .. 3) = "__"
         and then
-          ((Name_Buffer (1) = 'a') or else
-           (Name_Buffer (1) = 'g') or else
-           (Name_Buffer (1) = 'i') or else
-           (Name_Buffer (1) = 's'))
+          (Name_Buffer (1) = 'a' or else
+           Name_Buffer (1) = 'g' or else
+           Name_Buffer (1) = 'i' or else
+           Name_Buffer (1) = 's')
       then
          Name_Buffer (2) := '.';
          Name_Buffer (3 .. Name_Len - 1) := Name_Buffer (4 .. Name_Len);
@@ -4992,8 +5064,8 @@ package body Prj.Nmsc is
       OK := OK and then not Need_Letter and then not Last_Underscore;
 
       if OK then
-         if First /= Name'First and then
-           Is_Reserved (The_Name (First .. The_Name'Last))
+         if First /= Name'First
+           and then Is_Reserved (The_Name (First .. The_Name'Last))
          then
             return;
          end if;
@@ -5179,12 +5251,12 @@ package body Prj.Nmsc is
       No_Sources : constant Boolean :=
                      ((not Source_Files.Default
                         and then Source_Files.Values = Nil_String)
-                       or else
-                         (not Source_Dirs.Default
-                           and then Source_Dirs.Values = Nil_String)
-                       or else
-                         (not Languages.Default
-                           and then Languages.Values = Nil_String))
+                      or else
+                        (not Source_Dirs.Default
+                          and then Source_Dirs.Values = Nil_String)
+                      or else
+                        (not Languages.Default
+                          and then Languages.Values = Nil_String))
                      and then Project.Extends = No_Project;
 
    --  Start of processing for Get_Directories
@@ -5231,9 +5303,8 @@ package body Prj.Nmsc is
                Must_Exist       => False,
                Externally_Built => Project.Externally_Built);
 
-            if not Dir_Exists
-              and then not Project.Externally_Built
-            then
+            if not Dir_Exists and then not Project.Externally_Built then
+
                --  The object directory does not exist, report an error if the
                --  project is not externally built.
 
@@ -5273,7 +5344,7 @@ package body Prj.Nmsc is
 
       --  We set the object directory to its default
 
-      Project.Exec_Directory   := Project.Object_Directory;
+      Project.Exec_Directory := Project.Object_Directory;
 
       if Exec_Dir.Value /= Empty_String then
          Get_Name_String (Exec_Dir.Value);
@@ -5342,19 +5413,19 @@ package body Prj.Nmsc is
 
          Remove_Source_Dirs := False;
          Add_To_Or_Remove_From_Source_Dirs
-           (Path  => (Name         => Project.Directory.Name,
-                      Display_Name => Project.Directory.Display_Name),
-            Rank  => 1);
+           (Path => (Name         => Project.Directory.Name,
+                     Display_Name => Project.Directory.Display_Name),
+            Rank => 1);
 
       else
          Remove_Source_Dirs := False;
          Find_Source_Dirs
-           (Project         => Project,
-            Data            => Data,
-            Patterns        => Source_Dirs.Values,
-            Ignore          => Ignore_Source_Sub_Dirs.Values,
-            Search_For      => Search_Directories,
-            Resolve_Links   => Opt.Follow_Links_For_Dirs);
+           (Project       => Project,
+            Data          => Data,
+            Patterns      => Source_Dirs.Values,
+            Ignore        => Ignore_Source_Sub_Dirs.Values,
+            Search_For    => Search_Directories,
+            Resolve_Links => Opt.Follow_Links_For_Dirs);
 
          if Project.Source_Dirs = Nil_String
            and then Project.Qualifier = Standard
@@ -5371,12 +5442,12 @@ package body Prj.Nmsc is
       then
          Remove_Source_Dirs := True;
          Find_Source_Dirs
-           (Project         => Project,
-            Data            => Data,
-            Patterns        => Excluded_Source_Dirs.Values,
-            Ignore          => Nil_String,
-            Search_For      => Search_Directories,
-            Resolve_Links   => Opt.Follow_Links_For_Dirs);
+           (Project       => Project,
+            Data          => Data,
+            Patterns      => Excluded_Source_Dirs.Values,
+            Ignore        => Nil_String,
+            Search_For    => Search_Directories,
+            Resolve_Links => Opt.Follow_Links_For_Dirs);
       end if;
 
       Debug_Output ("putting source directories in canonical cases");
@@ -5554,8 +5625,7 @@ package body Prj.Nmsc is
       Naming    : Lang_Naming_Data;
       Kind      : out Source_Kind;
       Unit      : out Name_Id;
-      Project   : Project_Processing_Data;
-      In_Tree   : Project_Tree_Ref)
+      Project   : Project_Processing_Data)
    is
       Filename : constant String  := Get_Name_String (File_Name);
       Last     : Integer          := Filename'Last;
@@ -6216,8 +6286,10 @@ package body Prj.Nmsc is
                --  need for an object directory, if not specified.
 
                if Project.Project.Extends = No_Project
-                 and then Project.Project.Object_Directory =
-                   Project.Project.Directory
+                 and then
+                   Project.Project.Object_Directory = Project.Project.Directory
+                 and then
+                   not (Project.Project.Qualifier = Aggregate_Library)
                then
                   Project.Project.Object_Directory := No_Path_Information;
                end if;
@@ -6291,9 +6363,11 @@ package body Prj.Nmsc is
 
          declare
             Source_File_Path_Name : constant String :=
-              Path_Name_Of
-                (File_Name_Type (Source_List_File.Value),
-                 Project.Project.Directory.Display_Name);
+                                      Path_Name_Of
+                                        (File_Name_Type
+                                           (Source_List_File.Value),
+                                         Project.Project.
+                                           Directory.Display_Name);
 
          begin
             Has_Explicit_Sources := True;
@@ -6544,8 +6618,7 @@ package body Prj.Nmsc is
    -------------------------------
 
    procedure Check_File_Naming_Schemes
-     (In_Tree               : Project_Tree_Ref;
-      Project               : Project_Processing_Data;
+     (Project               : Project_Processing_Data;
       File_Name             : File_Name_Type;
       Alternate_Languages   : out Language_List;
       Language              : out Language_Ptr;
@@ -6643,12 +6716,11 @@ package body Prj.Nmsc is
 
                if not Header_File then
                   Compute_Unit_Name
-                    (File_Name       => File_Name,
-                     Naming          => Config.Naming_Data,
-                     Kind            => Kind,
-                     Unit            => Unit,
-                     Project         => Project,
-                     In_Tree         => In_Tree);
+                    (File_Name => File_Name,
+                     Naming    => Config.Naming_Data,
+                     Kind      => Kind,
+                     Unit      => Unit,
+                     Project   => Project);
 
                   if Unit /= No_Name then
                      Language    := Tmp_Lang;
@@ -6701,8 +6773,12 @@ package body Prj.Nmsc is
                        & " kind=" & Source.Kind'Img);
       end if;
 
-      if Source.Kind in Spec_Or_Body and then Source.Unit /= null then
-         Source.Unit.File_Names (Source.Kind) := Source;
+      if Source.Unit /= null then
+         if Source.Kind = Spec then
+            Source.Unit.File_Names (Spec) := Source;
+         else
+            Source.Unit.File_Names (Impl) := Source;
+         end if;
       end if;
    end Override_Kind;
 
@@ -6837,7 +6913,6 @@ package body Prj.Nmsc is
                         Name_Loc.Source.Unit.Name,
                         Name_Loc.Source.Unit);
                   end if;
-
                end if;
             end if;
          end if;
@@ -6845,8 +6920,7 @@ package body Prj.Nmsc is
 
       if Check_Name then
          Check_File_Naming_Schemes
-           (In_Tree               => Data.Tree,
-            Project               => Project,
+           (Project               => Project,
             File_Name             => File_Name,
             Alternate_Languages   => Alternate_Languages,
             Language              => Language,
@@ -7028,7 +7102,8 @@ package body Prj.Nmsc is
             exit when Last = 0;
 
             if Name (1 .. Last) /= "."
-              and then Name (1 .. Last) /= ".."
+                 and then
+               Name (1 .. Last) /= ".."
             then
                declare
                   Path_Name : constant String :=
@@ -7181,6 +7256,7 @@ package body Prj.Nmsc is
          end if;
 
          if not Has_Error then
+
             --  Links have been resolved if necessary, and Path_Name
             --  always ends with a directory separator.
 
@@ -7252,8 +7328,9 @@ package body Prj.Nmsc is
 
       --  Loop through subdirectories
 
-      Source_Dir := Project.Project.Source_Dirs;
       Src_Dir_Rank := Project.Project.Source_Dir_Ranks;
+
+      Source_Dir := Project.Project.Source_Dirs;
       while Source_Dir /= Nil_String loop
          begin
             Num_Nod := Shared.Number_Lists.Table (Src_Dir_Rank);
@@ -7292,7 +7369,6 @@ package body Prj.Nmsc is
 
                   loop
                      Read (Dir, Name, Last);
-
                      exit when Last = 0;
 
                      --  In fast project loading mode (without -eL), the user
@@ -7459,8 +7535,8 @@ package body Prj.Nmsc is
          if Source.Unit /= No_Unit_Index then
             declare
                Unit_Except : Unit_Exception :=
-                 Unit_Exceptions_Htable.Get
-                   (Project.Unit_Exceptions, Source.Unit.Name);
+                               Unit_Exceptions_Htable.Get
+                                 (Project.Unit_Exceptions, Source.Unit.Name);
 
             begin
                Unit_Except.Name := Source.Unit.Name;
@@ -7516,7 +7592,7 @@ package body Prj.Nmsc is
 
       procedure Check_Missing_Sources is
          Extending    : constant Boolean :=
-           Project.Project.Extends /= No_Project;
+                          Project.Project.Extends /= No_Project;
          Language     : Language_Ptr;
          Source       : Source_Id;
          Alt_Lang     : Language_List;
@@ -7787,8 +7863,8 @@ package body Prj.Nmsc is
             Id.Project := Project.Project;
 
             Lang_Id := Project.Project.Languages;
-            while Lang_Id /= No_Language_Index and then
-            Lang_Id.Name /= Src.Language
+            while Lang_Id /= No_Language_Index
+              and then Lang_Id.Name /= Src.Language
             loop
                Lang_Id := Lang_Id.Next;
             end loop;
@@ -7802,9 +7878,9 @@ package body Prj.Nmsc is
                   " in source info file");
             end if;
 
-            Id.Language            := Lang_Id;
-            Id.Kind                := Src.Kind;
-            Id.Index               := Src.Index;
+            Id.Language := Lang_Id;
+            Id.Kind     := Src.Kind;
+            Id.Index    := Src.Index;
 
             Id.Path :=
               (Path_Name_Type (Src.Display_Path_Name),
@@ -7812,8 +7888,7 @@ package body Prj.Nmsc is
 
             Name_Len := 0;
             Add_Str_To_Name_Buffer
-              (Ada.Directories.Simple_Name
-                 (Get_Name_String (Src.Path_Name)));
+              (Directories.Simple_Name (Get_Name_String (Src.Path_Name)));
             Id.File := Name_Find;
 
             Id.Next_With_File_Name :=
@@ -7822,16 +7897,16 @@ package body Prj.Nmsc is
 
             Name_Len := 0;
             Add_Str_To_Name_Buffer
-              (Ada.Directories.Simple_Name
+              (Directories.Simple_Name
                  (Get_Name_String (Src.Display_Path_Name)));
             Id.Display_File := Name_Find;
 
-            Id.Dep_Name            := Dependency_Name
-              (Id.File, Id.Language.Config.Dependency_Kind);
-            Id.Naming_Exception    := Src.Naming_Exception;
-            Id.Object              := Object_Name
-              (Id.File, Id.Language.Config.Object_File_Suffix);
-            Id.Switches            := Switches_Name (Id.File);
+            Id.Dep_Name         :=
+              Dependency_Name (Id.File, Id.Language.Config.Dependency_Kind);
+            Id.Naming_Exception := Src.Naming_Exception;
+            Id.Object           :=
+              Object_Name (Id.File, Id.Language.Config.Object_File_Suffix);
+            Id.Switches         := Switches_Name (Id.File);
 
             --  Add the source id to the Unit_Sources_HT hash table, if the
             --  unit name is not null.
@@ -7840,7 +7915,8 @@ package body Prj.Nmsc is
 
                declare
                   UData : Unit_Index :=
-                    Units_Htable.Get (Data.Tree.Units_HT, Src.Unit_Name);
+                            Units_Htable.Get
+                              (Data.Tree.Units_HT, Src.Unit_Name);
                begin
                   if UData = No_Unit_Index then
                      UData := new Unit_Data;
@@ -8014,9 +8090,8 @@ package body Prj.Nmsc is
          when Warning | Error =>
             declare
                Msg : constant String :=
-                       "<there are no " &
-                       Lang_Name &
-                       " sources in this project";
+                       "<there are no "
+                       & Lang_Name & " sources in this project";
 
             begin
                Error_Msg_Warn := Data.Flags.When_No_Sources = Warning;

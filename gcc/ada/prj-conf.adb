@@ -436,6 +436,8 @@ package body Prj.Conf is
 
          Compiler := Create_Package (Project_Tree, Config_File, "compiler");
          Create_Attribute
+           (Name_Driver, "gcc", "ada", Pkg => Compiler);
+         Create_Attribute
            (Name_Language_Kind, "unit_based", "ada", Pkg => Compiler);
          Create_Attribute
            (Name_Dependency_Kind, "ALI_File", "ada", Pkg => Compiler);
@@ -508,10 +510,10 @@ package body Prj.Conf is
 
                else
                   Add_Attributes
-                    (Project_Tree      => Project_Tree,
-                     Conf_Decl         => Conf_Pack.Decl,
-                     User_Decl         =>
-                       Shared.Packages.Table (User_Pack_Id).Decl);
+                    (Project_Tree => Project_Tree,
+                     Conf_Decl    => Conf_Pack.Decl,
+                     User_Decl    => Shared.Packages.Table
+                                       (User_Pack_Id).Decl);
                end if;
 
                Conf_Pack_Id := Conf_Pack.Next;
@@ -522,18 +524,17 @@ package body Prj.Conf is
             --  For aggregate projects, we need to apply the config to all
             --  their aggregated trees as well.
 
-            if Proj.Project.Qualifier = Aggregate then
+            if Proj.Project.Qualifier in Aggregate_Project then
                declare
-                  List : Aggregated_Project_List :=
-                           Proj.Project.Aggregated_Projects;
+                  List : Aggregated_Project_List;
                begin
+                  List := Proj.Project.Aggregated_Projects;
                   while List /= null loop
                      Debug_Output
                        ("Recursively apply config to aggregated tree",
                         List.Project.Name);
                      Apply_Config_File
-                       (Config_File,
-                        Project_Tree      => List.Tree);
+                       (Config_File, Project_Tree => List.Tree);
                      List := List.Next;
                   end loop;
                end;
@@ -958,6 +959,13 @@ package body Prj.Conf is
             end if;
          end loop;
 
+         --  Make sure that Obj_Dir ends with a directory separator
+
+         if Name_Buffer (Name_Len) /= Directory_Separator then
+            Name_Len := Name_Len + 1;
+            Name_Buffer (Name_Len) := Directory_Separator;
+         end if;
+
          declare
             Obj_Dir         : constant String := Name_Buffer (1 .. Name_Len);
             Config_Switches : Argument_List_Access;
@@ -1132,8 +1140,7 @@ package body Prj.Conf is
 
             if Config_File_Name = "" then
                if Obj_Dir_Exists then
-                  Args (3) :=
-                    new String'(Obj_Dir & Directory_Separator & Auto_Cgpr);
+                  Args (3) := new String'(Obj_Dir & Auto_Cgpr);
 
                else
                   declare
@@ -1154,9 +1161,7 @@ package body Prj.Conf is
                      else
                         --  We'll have an error message later on
 
-                        Args (3) :=
-                          new String'
-                            (Obj_Dir & Directory_Separator & Auto_Cgpr);
+                        Args (3) := new String'(Obj_Dir & Auto_Cgpr);
                      end if;
                   end;
                end if;

@@ -1702,9 +1702,11 @@ fold_builtin_alloca_for_var (gimple stmt)
 
   /* Detect constant argument.  */
   arg = get_constant_value (gimple_call_arg (stmt, 0));
-  if (arg == NULL_TREE || TREE_CODE (arg) != INTEGER_CST
+  if (arg == NULL_TREE
+      || TREE_CODE (arg) != INTEGER_CST
       || !host_integerp (arg, 1))
     return NULL_TREE;
+
   size = TREE_INT_CST_LOW (arg);
 
   /* Heuristic: don't fold large vlas.  */
@@ -1722,6 +1724,8 @@ fold_builtin_alloca_for_var (gimple stmt)
   elem_type = build_nonstandard_integer_type (BITS_PER_UNIT, 1);
   n_elem = size * 8 / BITS_PER_UNIT;
   align = MIN (size * 8, BIGGEST_ALIGNMENT);
+  if (align < BITS_PER_UNIT)
+    align = BITS_PER_UNIT;
   array_type = build_array_type_nelts (elem_type, n_elem);
   var = create_tmp_var (array_type, NULL);
   DECL_ALIGN (var) = align;
@@ -1804,12 +1808,12 @@ ccp_fold_stmt (gimple_stmt_iterator *gsi)
         if (gimple_call_alloca_for_var_p (stmt))
           {
             tree new_rhs = fold_builtin_alloca_for_var (stmt);
-            bool res;
-            if (new_rhs == NULL_TREE)
-              return false;
-            res = update_call_from_tree (gsi, new_rhs);
-            gcc_assert (res);
-            return true;
+            if (new_rhs)
+	      {
+		bool res = update_call_from_tree (gsi, new_rhs);
+		gcc_assert (res);
+		return true;
+	      }
           }
 
 	/* Propagate into the call arguments.  Compared to replace_uses_in

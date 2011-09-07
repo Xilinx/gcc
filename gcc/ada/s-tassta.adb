@@ -529,12 +529,15 @@ package body System.Tasking.Stages is
 
       if CPU /= Unspecified_CPU
         and then (CPU < Integer (System.Multiprocessors.CPU_Range'First)
-          or else CPU > Integer (System.Multiprocessors.CPU_Range'Last)
-          or else CPU > Integer (System.Multiprocessors.Number_Of_CPUs))
+                    or else
+                  CPU > Integer (System.Multiprocessors.CPU_Range'Last)
+                    or else
+                  CPU > Integer (System.Multiprocessors.Number_Of_CPUs))
       then
          raise Tasking_Error with "CPU not in range";
 
       --  Normal CPU affinity
+
       else
          Base_CPU :=
            (if CPU = Unspecified_CPU
@@ -966,12 +969,11 @@ package body System.Tasking.Stages is
          Free_Entry_Names (T);
          System.Task_Primitives.Operations.Finalize_TCB (T);
 
-      --  If the task is not terminated, then we simply ignore the call. This
-      --  happens when a user program attempts an unchecked deallocation on
-      --  a non-terminated task.
-
       else
-         null;
+         --  If the task is not terminated, then mark the task as to be freed
+         --  upon termination.
+
+         T.Free_On_Termination := True;
       end if;
    end Free_Task;
 
@@ -1001,8 +1003,8 @@ package body System.Tasking.Stages is
 
       Initialization.Defer_Abort (Self_ID);
 
-      --  Loop through the From chain, changing their Master_of_Task
-      --  fields, and to find the end of the chain.
+      --  Loop through the From chain, changing their Master_of_Task fields,
+      --  and to find the end of the chain.
 
       loop
          C.Master_of_Task := New_Master;
@@ -1088,10 +1090,10 @@ package body System.Tasking.Stages is
       --  Indicates the reason why this task terminates. Normal corresponds to
       --  a task terminating due to completing the last statement of its body,
       --  or as a result of waiting on a terminate alternative. If the task
-      --  terminates because it is being aborted then Cause will be set to
-      --  Abnormal. If the task terminates because of an exception raised by
-      --  the execution of its task body, then Cause is set to
-      --  Unhandled_Exception.
+      --  terminates because it is being aborted then Cause will be set
+      --  to Abnormal. If the task terminates because of an exception
+      --  raised by the execution of its task body, then Cause is set
+      --  to Unhandled_Exception.
 
       EO : Exception_Occurrence;
       --  If the task terminates because of an exception raised by the
@@ -1172,14 +1174,16 @@ package body System.Tasking.Stages is
             --  smaller values resulted in segmentation faults from dynamic
             --  stack analysis.
 
-            Big_Overflow_Guard : constant := 16 * 1024;
+            Big_Overflow_Guard : constant := 64 * 1024 + 8 * 1024;
             Small_Stack_Limit  : constant := 64 * 1024;
             --  ??? These three values are experimental, and seem to work on
             --  most platforms. They still need to be analyzed further. They
-            --  also need documentation, what are they???
+            --  also need documentation, what are they and why does the logic
+            --  differ depending on whether the stack is large or small???
 
             Pattern_Size : Natural :=
-              Natural (Self_ID.Common.Compiler_Data.Pri_Stack_Info.Size);
+                             Natural (Self_ID.Common.
+                                        Compiler_Data.Pri_Stack_Info.Size);
             --  Size of the pattern
 
             Stack_Base : Address;
@@ -1187,6 +1191,7 @@ package body System.Tasking.Stages is
 
          begin
             Stack_Base := Self_ID.Common.Compiler_Data.Pri_Stack_Info.Base;
+
             if Stack_Base = Null_Address then
 
                --  On many platforms, we don't know the real stack base
@@ -1211,6 +1216,7 @@ package body System.Tasking.Stages is
                     else Big_Overflow_Guard);
             else
                --  Reduce by the size of the final guard page
+
                Pattern_Size := Pattern_Size - Guard_Page_Size;
             end if;
 
@@ -1256,8 +1262,7 @@ package body System.Tasking.Stages is
       end if;
 
       if Global_Task_Debug_Event_Set then
-         Debug.Signal_Debug_Event
-          (Debug.Debug_Event_Run, Self_ID);
+         Debug.Signal_Debug_Event (Debug.Debug_Event_Run, Self_ID);
       end if;
 
       begin
@@ -1311,6 +1316,7 @@ package body System.Tasking.Stages is
                    (Debug.Debug_Event_Abort_Terminated, Self_ID);
                end if;
             end if;
+
          when others =>
             --  ??? Using an E : others here causes CD2C11A to fail on Tru64
 
@@ -1395,10 +1401,9 @@ package body System.Tasking.Stages is
    -- Terminate_Task --
    --------------------
 
-   --  Before we allow the thread to exit, we must clean up. This is a
-   --  delicate job. We must wake up the task's master, who may immediately try
-   --  to deallocate the ATCB out from under the current task WHILE IT IS STILL
-   --  EXECUTING.
+   --  Before we allow the thread to exit, we must clean up. This is a delicate
+   --  job. We must wake up the task's master, who may immediately try to
+   --  deallocate the ATCB from the current task WHILE IT IS STILL EXECUTING.
 
    --  To avoid this, the parent task must be blocked up to the latest
    --  statement executed. The trouble is that we have another step that we
@@ -1423,6 +1428,7 @@ package body System.Tasking.Stages is
    procedure Terminate_Task (Self_ID : Task_Id) is
       Environment_Task : constant Task_Id := STPO.Environment_Task;
       Master_of_Task   : Integer;
+      Deallocate       : Boolean;
 
    begin
       Debug.Task_Termination_Hook;
@@ -1433,8 +1439,7 @@ package body System.Tasking.Stages is
 
       --  Since GCC cannot allocate stack chunks efficiently without reordering
       --  some of the allocations, we have to handle this unexpected situation
-      --  here. We should normally never have to call Vulnerable_Complete_Task
-      --  here.
+      --  here. Normally we never have to call Vulnerable_Complete_Task here.
 
       if Self_ID.Common.Activator /= null then
          Vulnerable_Complete_Task (Self_ID);
@@ -1455,6 +1460,7 @@ package body System.Tasking.Stages is
          if Single_Lock then
             Utilities.Independent_Task_Count :=
               Utilities.Independent_Task_Count - 1;
+
          else
             Write_Lock (Environment_Task);
             Utilities.Independent_Task_Count :=
@@ -1468,6 +1474,7 @@ package body System.Tasking.Stages is
       Stack_Guard (Self_ID, False);
 
       Utilities.Make_Passive (Self_ID, Task_Completed => True);
+      Deallocate := Self_ID.Free_On_Termination;
 
       if Single_Lock then
          Unlock_RTS;
@@ -1479,7 +1486,12 @@ package body System.Tasking.Stages is
       Initialization.Final_Task_Unlock (Self_ID);
 
       --  WARNING: past this point, this thread must assume that the ATCB has
-      --  been deallocated. It should not be accessed again.
+      --  been deallocated, and can't access it anymore (which is why we have
+      --  saved the Free_On_Termination flag in a temporary variable).
+
+      if Deallocate then
+         Free_Task (Self_ID);
+      end if;
 
       if Master_of_Task > 0 then
          STPO.Exit_Task;
@@ -1581,8 +1593,8 @@ package body System.Tasking.Stages is
 
       pragma Assert (Self_ID.Common.Activator /= null);
 
-      --  Remove dangling reference to Activator, since a task may
-      --  outlive its activator.
+      --  Remove dangling reference to Activator, since a task may outlive its
+      --  activator.
 
       Self_ID.Common.Activator := null;
 
@@ -1713,11 +1725,12 @@ package body System.Tasking.Stages is
 
          if C.Common.Activator = Self_ID and then C.Master_of_Task = CM then
 
-            pragma Assert (C.Common.State = Unactivated);
             --  Usually, C.Common.Activator = Self_ID implies C.Master_of_Task
             --  = CM. The only case where C is pending activation by this
             --  task, but the master of C is not CM is in Ada 2005, when C is
             --  part of a return object of a build-in-place function.
+
+            pragma Assert (C.Common.State = Unactivated);
 
             Write_Lock (C);
             C.Common.Activator := null;
@@ -1933,9 +1946,8 @@ package body System.Tasking.Stages is
             declare
                Detach_Interrupt_Entries_Index : constant Task_Entry_Index := 1;
                --  Corresponds to the entry index of System.Interrupts.
-               --  Interrupt_Manager.Detach_Interrupt_Entries.
-               --  Be sure to update this value when changing
-               --  Interrupt_Manager specs.
+               --  Interrupt_Manager.Detach_Interrupt_Entries. Be sure
+               --  to update this value when changing Interrupt_Manager specs.
 
                type Param_Type is access all Task_Id;
 

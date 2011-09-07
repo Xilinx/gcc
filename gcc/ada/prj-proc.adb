@@ -462,9 +462,9 @@ package body Prj.Proc is
    -------------------------
 
    function Get_Attribute_Index
-     (Tree   : Project_Node_Tree_Ref;
-      Attr   : Project_Node_Id;
-      Index  : Name_Id) return Name_Id
+     (Tree  : Project_Node_Tree_Ref;
+      Attr  : Project_Node_Id;
+      Index : Name_Id) return Name_Id
    is
    begin
       if Index = All_Other_Names
@@ -685,8 +685,8 @@ package body Prj.Proc is
                   Index           : Name_Id := No_Name;
 
                begin
-                  if Present (Term_Project) and then
-                     Term_Project /= From_Project_Node
+                  if Present (Term_Project)
+                    and then Term_Project /= From_Project_Node
                   then
                      --  This variable or attribute comes from another project
 
@@ -1331,8 +1331,8 @@ package body Prj.Proc is
 
          --  Should never happen
 
-         Write_Line ("package """ & Get_Name_String (With_Name) &
-                     """ not found");
+         Write_Line
+           ("package """ & Get_Name_String (With_Name) & """ not found");
          raise Program_Error;
 
       else
@@ -1363,8 +1363,8 @@ package body Prj.Proc is
          Env                    => Env,
          Reset_Tree             => Reset_Tree);
 
-      if Project_Qualifier_Of (From_Project_Node, From_Project_Node_Tree) /=
-        Configuration
+      if Project_Qualifier_Of
+           (From_Project_Node, From_Project_Node_Tree) /= Configuration
       then
          Process_Project_Tree_Phase_2
            (In_Tree                => In_Tree,
@@ -1381,17 +1381,16 @@ package body Prj.Proc is
    -------------------------------
 
    procedure Process_Declarative_Items
-     (Project                : Project_Id;
-      In_Tree                : Project_Tree_Ref;
-      From_Project_Node      : Project_Node_Id;
-      Node_Tree              : Project_Node_Tree_Ref;
-      Env                    : Prj.Tree.Environment;
-      Pkg                    : Package_Id;
-      Item                   : Project_Node_Id;
-      Child_Env              : in out Prj.Tree.Environment)
+     (Project           : Project_Id;
+      In_Tree           : Project_Tree_Ref;
+      From_Project_Node : Project_Node_Id;
+      Node_Tree         : Project_Node_Tree_Ref;
+      Env               : Prj.Tree.Environment;
+      Pkg               : Package_Id;
+      Item              : Project_Node_Id;
+      Child_Env         : in out Prj.Tree.Environment)
    is
-      Shared : constant Shared_Project_Tree_Data_Access :=
-        In_Tree.Shared;
+      Shared : constant Shared_Project_Tree_Data_Access := In_Tree.Shared;
 
       procedure Check_Or_Set_Typed_Variable
         (Value       : in out Variable_Value;
@@ -1459,8 +1458,8 @@ package body Prj.Proc is
                 (String_Type_Of (Declaration, Node_Tree), Node_Tree);
 
             while Present (Current_String)
-              and then String_Value_Of (Current_String, Node_Tree) /=
-                                                                 Value.Value
+              and then
+                String_Value_Of (Current_String, Node_Tree) /= Value.Value
             loop
                Current_String :=
                  Next_Literal_String (Current_String, Node_Tree);
@@ -1548,16 +1547,17 @@ package body Prj.Proc is
 
                   declare
                      Project_Name : constant Name_Id :=
-                       Name_Of (Project_Of_Renamed_Package, Node_Tree);
+                                      Name_Of (Project_Of_Renamed_Package,
+                                               Node_Tree);
 
                      Renamed_Project : constant Project_Id :=
-                       Imported_Or_Extended_Project_From
-                         (Project, Project_Name);
+                                         Imported_Or_Extended_Project_From
+                                           (Project, Project_Name);
 
                      Renamed_Package : constant Package_Id :=
-                       Package_From
-                         (Renamed_Project, Shared,
-                          Name_Of (Current_Item, Node_Tree));
+                                         Package_From
+                                           (Renamed_Project, Shared,
+                                            Name_Of (Current_Item, Node_Tree));
 
                   begin
                      --  For a renamed package, copy the declarations of the
@@ -1566,8 +1566,9 @@ package body Prj.Proc is
                      --  declaration.
 
                      Copy_Package_Declarations
-                       (From => Shared.Packages.Table (Renamed_Package).Decl,
-                        To   => Shared.Packages.Table (New_Pkg).Decl,
+                       (From       => Shared.Packages.Table
+                                        (Renamed_Package).Decl,
+                        To         => Shared.Packages.Table (New_Pkg).Decl,
                         New_Loc    => Location_Of (Current_Item, Node_Tree),
                         Restricted => False,
                         Shared     => Shared);
@@ -2359,8 +2360,8 @@ package body Prj.Proc is
           (Warning_Mode /= Treat_As_Error or else Warnings_Detected = 0);
 
       if Current_Verbosity = High then
-         Debug_Decrease_Indent ("Done Process tree, phase 1, Success="
-                                & Success'Img);
+         Debug_Decrease_Indent
+           ("Done Process tree, phase 1, Success=" & Success'Img);
       end if;
    end Process_Project_Tree_Phase_1;
 
@@ -2396,12 +2397,10 @@ package body Prj.Proc is
       --  all virtual extending projects to object directory of main project.
 
       if Project /= No_Project
-        and then
-          Is_Extending_All (From_Project_Node, From_Project_Node_Tree)
+        and then Is_Extending_All (From_Project_Node, From_Project_Node_Tree)
       then
          declare
-            Object_Dir : constant Path_Information :=
-                           Project.Object_Directory;
+            Object_Dir : constant Path_Information := Project.Object_Directory;
 
          begin
             Prj := In_Tree.Projects;
@@ -2471,10 +2470,9 @@ package body Prj.Proc is
 
       Debug_Decrease_Indent ("Done Process tree, phase 2");
 
-      Success :=
-        Total_Errors_Detected = 0
-          and then
-            (Warning_Mode /= Treat_As_Error or else Warnings_Detected = 0);
+      Success := Total_Errors_Detected = 0
+        and then
+          (Warning_Mode /= Treat_As_Error or else Warnings_Detected = 0);
    end Process_Project_Tree_Phase_2;
 
    -----------------------
@@ -2489,8 +2487,7 @@ package body Prj.Proc is
       Env                    : in out Prj.Tree.Environment;
       Extended_By            : Project_Id)
    is
-      Shared : constant Shared_Project_Tree_Data_Access :=
-                 In_Tree.Shared;
+      Shared : constant Shared_Project_Tree_Data_Access := In_Tree.Shared;
 
       Child_Env              : Prj.Tree.Environment;
       --  Only used for the root aggregate project (if any). This is left
@@ -2576,21 +2573,23 @@ package body Prj.Proc is
       ---------------------------------
 
       procedure Process_Aggregated_Projects is
-         List : Aggregated_Project_List;
+         List           : Aggregated_Project_List;
          Loaded_Project : Prj.Tree.Project_Node_Id;
-         Success     : Boolean := True;
+         Success        : Boolean := True;
+         Tree           : Project_Tree_Ref;
+
       begin
-         if Project.Qualifier /= Aggregate then
+         if Project.Qualifier not in Aggregate_Project then
             return;
          end if;
 
          Debug_Increase_Indent ("Process_Aggregated_Projects", Project.Name);
 
          Prj.Nmsc.Process_Aggregated_Projects
-           (Tree         => In_Tree,
-            Project      => Project,
-            Node_Tree    => From_Project_Node_Tree,
-            Flags        => Env.Flags);
+           (Tree      => In_Tree,
+            Project   => Project,
+            Node_Tree => From_Project_Node_Tree,
+            Flags     => Env.Flags);
 
          List := Project.Aggregated_Projects;
          while Success and then List /= null loop
@@ -2610,6 +2609,15 @@ package body Prj.Proc is
                Prj.Initialize (List.Tree);
                List.Tree.Shared := In_Tree.Shared;
 
+               --  In aggregate library, aggregated projects are parsed using
+               --  the aggregate library tree.
+
+               if Project.Qualifier = Aggregate_Library then
+                  Tree := In_Tree;
+               else
+                  Tree := List.Tree;
+               end if;
+
                --  We can only do the phase 1 of the processing, since we do
                --  not have access to the configuration file yet (this is
                --  called when doing phase 1 of the processing for the root
@@ -2617,7 +2625,7 @@ package body Prj.Proc is
 
                if In_Tree.Is_Root_Tree then
                   Process_Project_Tree_Phase_1
-                    (In_Tree                => List.Tree,
+                    (In_Tree                => Tree,
                      Project                => List.Project,
                      Success                => Success,
                      From_Project_Node      => Loaded_Project,
@@ -2628,7 +2636,7 @@ package body Prj.Proc is
                   --  use the same environment as the rest of the aggregated
                   --  projects, ie the one that was setup by the root aggregate
                   Process_Project_Tree_Phase_1
-                    (In_Tree                => List.Tree,
+                    (In_Tree                => Tree,
                      Project                => List.Project,
                      Success                => Success,
                      From_Project_Node      => Loaded_Project,
@@ -2636,6 +2644,7 @@ package body Prj.Proc is
                      Env                    => Env,
                      Reset_Tree             => False);
                end if;
+
             else
                Debug_Output ("Failed to parse", Name_Id (List.Path));
             end if;
@@ -2667,8 +2676,8 @@ package body Prj.Proc is
 
             Current_Pkg := First;
             while Current_Pkg /= No_Package
-              and then Shared.Packages.Table (Current_Pkg).Name /=
-              Element.Name
+              and then
+                Shared.Packages.Table (Current_Pkg).Name /= Element.Name
             loop
                Current_Pkg := Shared.Packages.Table (Current_Pkg).Next;
             end loop;
@@ -2702,9 +2711,8 @@ package body Prj.Proc is
             Attribute1 := Attr_Value1.Next;
          end loop;
 
-         if Attribute1 = No_Variable
-           or else Attr_Value1.Value.Default
-         then
+         if Attribute1 = No_Variable or else Attr_Value1.Value.Default then
+
             --  Attribute Languages is not declared in the extending project.
             --  Check if it is declared in the project being extended.
 
@@ -2715,8 +2723,8 @@ package body Prj.Proc is
                Attribute2 := Attr_Value2.Next;
             end loop;
 
-            if Attribute2 /= No_Variable and then
-              not Attr_Value2.Value.Default
+            if Attribute2 /= No_Variable
+              and then not Attr_Value2.Value.Default
             then
                --  As attribute Languages is declared in the project being
                --  extended, copy its value for the extending project.
@@ -2793,8 +2801,8 @@ package body Prj.Proc is
             --  being a virtual extending project.
 
             if Name_Len > Virtual_Prefix'Length
-              and then Name_Buffer (1 .. Virtual_Prefix'Length) =
-                         Virtual_Prefix
+              and then
+                Name_Buffer (1 .. Virtual_Prefix'Length) = Virtual_Prefix
             then
                Project.Virtual := True;
             end if;
@@ -2827,10 +2835,14 @@ package body Prj.Proc is
 
             Process_Imported_Projects (Imported, Limited_With => False);
 
-            if Project.Qualifier = Aggregate
-              and then In_Tree.Is_Root_Tree
-            then
+            if Project.Qualifier = Aggregate and then In_Tree.Is_Root_Tree then
                Initialize_And_Copy (Child_Env, Copy_From => Env);
+
+            elsif Project.Qualifier = Aggregate_Library then
+
+               --  The child environment is the same as the current one
+
+               Child_Env := Env;
 
             else
                --  No need to initialize Child_Env, since it will not be
@@ -2872,11 +2884,29 @@ package body Prj.Proc is
 
             if Err_Vars.Total_Errors_Detected = 0 then
                Process_Aggregated_Projects;
+
+               --  For an aggregate library we add the aggregated projects as
+               --  imported ones. This is necessary to give visibility to all
+               --  sources from the aggregates from the aggregated library
+               --  projects.
+
+               if Project.Qualifier = Aggregate_Library then
+                  declare
+                     L : Aggregated_Project_List;
+                  begin
+                     L := Project.Aggregated_Projects;
+                     while L /= null loop
+                        Project.Imported_Projects :=
+                          new Project_List_Element'
+                            (Project => L.Project,
+                             Next    => Project.Imported_Projects);
+                        L := L.Next;
+                     end loop;
+                  end;
+               end if;
             end if;
 
-            if Project.Qualifier = Aggregate
-              and then In_Tree.Is_Root_Tree
-            then
+            if Project.Qualifier = Aggregate and then In_Tree.Is_Root_Tree then
                Free (Child_Env);
             end if;
          end;

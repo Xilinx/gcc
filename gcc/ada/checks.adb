@@ -1877,6 +1877,10 @@ package body Checks is
       if Is_Subscr_Ref then
          Arr := Prefix (Parnt);
          Arr_Typ := Get_Actual_Subtype_If_Available (Arr);
+
+         if Is_Access_Type (Arr_Typ) then
+            Arr_Typ := Directly_Designated_Type (Arr_Typ);
+         end if;
       end if;
 
       if not Do_Range_Check (Expr) then
@@ -3479,10 +3483,11 @@ package body Checks is
       --  to restrict the possible range of results.
 
       --  If one of the computed bounds is outside the range of the base type,
-      --  the expression may raise an exception and we better indicate that
+      --  the expression may raise an exception and we had better indicate that
       --  the evaluation has failed, at least if checks are enabled.
 
-      if Enable_Overflow_Checks
+      if OK1
+        and then Enable_Overflow_Checks
         and then not Is_Entity_Name (N)
         and then (Lor < Lo or else Hir > Hi)
       then

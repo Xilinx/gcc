@@ -590,6 +590,14 @@ package body Sinfo is
       return Flag14 (N);
    end Conversion_OK;
 
+   function Corresponding_Aspect
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      return Node3 (N);
+   end Corresponding_Aspect;
+
    function Corresponding_Body
       (N : Node_Id) return Node_Id is
    begin
@@ -1336,22 +1344,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subprogram_Renaming_Declaration);
       return Flag6 (N);
    end From_Default;
-
-   function From_Dynamic_Predicate
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Pragma);
-      return Flag7 (N);
-   end From_Dynamic_Predicate;
-
-   function From_Static_Predicate
-      (N : Node_Id) return Boolean is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Pragma);
-      return Flag8 (N);
-   end From_Static_Predicate;
 
    function Generic_Associations
       (N : Node_Id) return List_Id is
@@ -2458,6 +2450,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Slice);
       return Node3 (N);
    end Prefix;
+
+   function Premature_Use
+      (N : Node_Id) return Node_Id is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Incomplete_Type_Declaration);
+      return Node5 (N);
+   end Premature_Use;
 
    function Present_Expr
       (N : Node_Id) return Uint is
@@ -3650,6 +3650,14 @@ package body Sinfo is
       Set_Flag14 (N, Val);
    end Set_Conversion_OK;
 
+   procedure Set_Corresponding_Aspect
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Pragma);
+      Set_Node3 (N, Val);
+   end Set_Corresponding_Aspect;
+
    procedure Set_Corresponding_Body
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -4387,22 +4395,6 @@ package body Sinfo is
         or else NT (N).Nkind = N_Subprogram_Renaming_Declaration);
       Set_Flag6 (N, Val);
    end Set_From_Default;
-
-   procedure Set_From_Dynamic_Predicate
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Pragma);
-      Set_Flag7 (N, Val);
-   end Set_From_Dynamic_Predicate;
-
-   procedure Set_From_Static_Predicate
-      (N : Node_Id; Val : Boolean := True) is
-   begin
-      pragma Assert (False
-        or else NT (N).Nkind = N_Pragma);
-      Set_Flag8 (N, Val);
-   end Set_From_Static_Predicate;
 
    procedure Set_Generic_Associations
       (N : Node_Id; Val : List_Id) is
@@ -5509,6 +5501,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_Slice);
       Set_Node3_With_Parent (N, Val);
    end Set_Prefix;
+
+   procedure Set_Premature_Use
+      (N : Node_Id; Val : Node_Id) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Incomplete_Type_Declaration);
+      Set_Node5 (N, Val);
+   end Set_Premature_Use;
 
    procedure Set_Present_Expr
       (N : Node_Id; Val : Uint) is

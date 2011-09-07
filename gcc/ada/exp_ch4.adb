@@ -380,12 +380,11 @@ package body Exp_Ch4 is
    ------------------------------
 
    function Current_Anonymous_Master return Entity_Id is
-      Decls      : List_Id;
-      Fin_Mas_Id : Entity_Id;
-      Loc        : Source_Ptr;
-      Subp_Body  : Node_Id;
-      Unit_Decl  : Node_Id;
-      Unit_Id    : Entity_Id;
+      Decls     : List_Id;
+      Loc       : Source_Ptr;
+      Subp_Body : Node_Id;
+      Unit_Decl : Node_Id;
+      Unit_Id   : Entity_Id;
 
    begin
       Unit_Id := Cunit_Entity (Current_Sem_Unit);
@@ -440,21 +439,35 @@ package body Exp_Ch4 is
       --  declarations and locate the entity.
 
       if Has_Anonymous_Master (Unit_Id) then
-         Fin_Mas_Id := First_Entity (Unit_Id);
-         while Present (Fin_Mas_Id) loop
+         declare
+            Decl       : Node_Id;
+            Fin_Mas_Id : Entity_Id;
 
-            --  Look for the first variable whose type is Finalization_Master
+         begin
+            Decl := First (Decls);
+            while Present (Decl) loop
 
-            if Ekind (Fin_Mas_Id) = E_Variable
-              and then Etype (Fin_Mas_Id) = RTE (RE_Finalization_Master)
-            then
-               return Fin_Mas_Id;
-            end if;
+               --  Look for the first variable in the declarations whole type
+               --  is Finalization_Master.
 
-            Next_Entity (Fin_Mas_Id);
-         end loop;
+               if Nkind (Decl) = N_Object_Declaration then
+                  Fin_Mas_Id := Defining_Identifier (Decl);
 
-         raise Program_Error;
+                  if Ekind (Fin_Mas_Id) = E_Variable
+                    and then Etype (Fin_Mas_Id) = RTE (RE_Finalization_Master)
+                  then
+                     return Fin_Mas_Id;
+                  end if;
+               end if;
+
+               Next (Decl);
+            end loop;
+
+            --  The master was not found even though the unit was labeled as
+            --  having one.
+
+            raise Program_Error;
+         end;
 
       --  Create a new anonymous master
 
@@ -462,6 +475,7 @@ package body Exp_Ch4 is
          declare
             First_Decl : constant Node_Id := First (Decls);
             Action     : Node_Id;
+            Fin_Mas_Id : Entity_Id;
 
          begin
             --  Since the master and its associated initialization is inserted
@@ -751,11 +765,38 @@ package body Exp_Ch4 is
    --  Start of processing for Expand_Allocator_Expression
 
    begin
-      --  WOuld be nice to comment the branches of this very long if ???
+      --  In the case of an Ada2012 allocator whose initial value comes from a
+      --  function call, pass "the accessibility level determined by the point
+      --  of call" (AI05-0234) to the function. Conceptually, this belongs in
+      --  Expand_Call but it couldn't be done there (because the Etype of the
+      --  allocator wasn't set then) so we generate the parameter here. See
+      --  the Boolean variable Defer in (a block within) Expand_Call.
 
-      if Is_Tagged_Type (T)
-        or else Needs_Finalization (T)
-      then
+      if Ada_Version >= Ada_2012 and then Nkind (Exp) = N_Function_Call then
+         declare
+            Subp : Entity_Id;
+
+         begin
+            if Nkind (Name (Exp)) = N_Explicit_Dereference then
+               Subp := Designated_Type (Etype (Prefix (Name (Exp))));
+            else
+               Subp := Entity (Name (Exp));
+            end if;
+
+            Subp := Ultimate_Alias (Subp);
+
+            if Present (Extra_Accessibility_Of_Result (Subp)) then
+               Add_Extra_Actual_To_Call
+                 (Subprogram_Call => Exp,
+                  Extra_Formal    => Extra_Accessibility_Of_Result (Subp),
+                  Extra_Actual    => Dynamic_Accessibility_Level (PtrT));
+            end if;
+         end;
+      end if;
+
+      --  Would be nice to comment the branches of this very long if ???
+
+      if Is_Tagged_Type (T) or else Needs_Finalization (T) then
          if Is_CPP_Constructor_Call (Exp) then
 
             --  Generate:
@@ -797,10 +838,10 @@ package body Exp_Ch4 is
 
                Insert_List_After_And_Analyze (P,
                  Build_Initialization_Call (Loc,
-                   Id_Ref =>
+                   Id_Ref          =>
                      Make_Explicit_Dereference (Loc,
                        Prefix => New_Reference_To (Temp, Loc)),
-                   Typ => Etype (Exp),
+                   Typ             => Etype (Exp),
                    Constructor_Ref => Exp));
             end;
 
@@ -1135,12 +1176,19 @@ package body Exp_Ch4 is
             --  Generate:
             --    Set_Finalize_Address (<PtrT>FM, <T>FD'Unrestricted_Access);
 
-            --  Since .NET/JVM compilers do not support address arithmetic,
-            --  this call is skipped. The same is done for CodePeer because
-            --  primitive Finalize_Address is never generated. Do not create
-            --  this call if there is no allocator available any more.
+            --  Do not generate this call in the following cases:
+
+            --    * .NET/JVM - these targets do not support address arithmetic
+            --    and unchecked conversion, key elements of Finalize_Address.
+
+            --    * Alfa mode - the call is useless and results in unwanted
+            --    expansion.
+
+            --    * CodePeer mode - TSS primitive Finalize_Address is not
+            --    created in this mode.
 
             if VM_Target = No_VM
+              and then not Alfa_Mode
               and then not CodePeer_Mode
               and then Present (Finalization_Master (PtrT))
               and then Present (Temp_Decl)
@@ -3467,9 +3515,12 @@ package body Exp_Ch4 is
          end if;
 
          --  The finalization master must be inserted and analyzed as part of
-         --  the current semantic unit.
+         --  the current semantic unit. This form of expansion is not carried
+         --  out in Alfa mode because it is useless.
 
-         if No (Finalization_Master (PtrT)) then
+         if No (Finalization_Master (PtrT))
+           and then not Alfa_Mode
+         then
             Set_Finalization_Master (PtrT, Current_Anonymous_Master);
          end if;
       end if;
@@ -3965,10 +4016,17 @@ package body Exp_Ch4 is
                      --    Set_Finalize_Address
                      --      (<PtrT>FM, <T>FD'Unrestricted_Access);
 
-                     --  Do not generate the above for CodePeer compilations
-                     --  because primitive Finalize_Address is never built.
+                     --  Do not generate this call in the following cases:
+                     --
+                     --    * Alfa mode - the call is useless and results in
+                     --    unwanted expansion.
+                     --
+                     --    * CodePeer mode - TSS primitive Finalize_Address is
+                     --    not created in this mode.
 
-                     elsif not CodePeer_Mode then
+                     elsif not Alfa_Mode
+                       and then not CodePeer_Mode
+                     then
                         Insert_Action (N,
                           Make_Set_Finalize_Address_Call
                             (Loc     => Loc,
@@ -4093,14 +4151,13 @@ package body Exp_Ch4 is
       Alt := First (Alternatives (N));
       while Present (Alt) loop
          declare
-            Aexp : Node_Id             := Expression (Alt);
-            Aloc : constant Source_Ptr := Sloc (Aexp);
+            Aexp  : Node_Id             := Expression (Alt);
+            Aloc  : constant Source_Ptr := Sloc (Aexp);
+            Stats : List_Id;
 
          begin
-            --  Propagate declarations inserted in the node by Insert_Actions
-            --  (for example, temporaries generated to remove side effects).
-
-            Append_List_To (Actions, Sinfo.Actions (Alt));
+            --  As described above, take Unrestricted_Access for case of non-
+            --  scalar types, to avoid big copies, and special cases.
 
             if not Is_Scalar_Type (Typ) then
                Aexp :=
@@ -4109,14 +4166,25 @@ package body Exp_Ch4 is
                    Attribute_Name => Name_Unrestricted_Access);
             end if;
 
+            Stats := New_List (
+              Make_Assignment_Statement (Aloc,
+                Name       => New_Occurrence_Of (Tnn, Loc),
+                Expression => Aexp));
+
+            --  Propagate declarations inserted in the node by Insert_Actions
+            --  (for example, temporaries generated to remove side effects).
+            --  These actions must remain attached to the alternative, given
+            --  that they are generated by the corresponding expression.
+
+            if Present (Sinfo.Actions (Alt)) then
+               Prepend_List (Sinfo.Actions (Alt), Stats);
+            end if;
+
             Append_To
               (Alternatives (Cstmt),
                Make_Case_Statement_Alternative (Sloc (Alt),
                  Discrete_Choices => Discrete_Choices (Alt),
-                 Statements       => New_List (
-                   Make_Assignment_Statement (Aloc,
-                     Name       => New_Occurrence_Of (Tnn, Loc),
-                     Expression => Aexp))));
+                 Statements       => Stats));
          end;
 
          Next (Alt);

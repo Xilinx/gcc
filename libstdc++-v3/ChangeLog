@@ -1,3 +1,59 @@
+2011-09-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/tuple (_Tuple_impl::_M_head, _M_tail): Mark constexpr.
+	(tuple(tuple&&)): Same.
+	(tuple(const tuple<_UElements...>& __in)): Same.
+	(tuple(tuple<_UElements...>&& __in)): Same.
+	(tuple_cat(const tuple<_TElements...>&, const tuple<_UElements...>&)):
+	Same.
+	(get): Same.
+	* include/std/array: Consolidate array::data usage.
+	* testsuite/23_containers/array/requirements/constexpr_functions.cc:
+	Remove extra include.
+	* testsuite/20_util/tuple/creation_functions/constexpr.cc: New.
+	* testsuite/20_util/tuple/cons/constexpr-2.cc: Add tests.
+	* testsuite/20_util/tuple/cons/constexpr-3.cc: Same.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust line numbers.
+
+2011-09-06  François Dumont  <fdumont@gcc.gnu.org>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable_policy.h (_Prime_rehash_policy::
+	_M_next_bkt): Cast _M_max_load_factor to long double.
+	(_Prime_rehash_policy::_M_bkt_for_elements): Use _M_next_bkt.
+	(_Prime_rehash_policy::_M_need_rehash): Likewise; cast all
+	float quantities to long double.
+
+2011-09-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/50257
+	* include/bits/hashtable_policy.h (_Prime_rehash_policy::
+   	_M_next_bkt): Optimize for small argument.
+
+2011-09-02  François Dumont  <fdumont@gcc.gnu.org>
+
+	* testsuite/util/testsuite_allocator.h (tracker_allocator_counter::
+	allocate): Update allocation count only if allocation succeeded.
+
+2011-09-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/bitset: Trivial formatting fixes.
+
+2011-09-02  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Marc Glisse  <marc.glisse@normalesup.org>
+
+	* include/std/bitset (_Base_bitset<>::_M_are_all_aux): Remove.
+	(_Base_bitset<>::_M_are_all): Add.
+	(bitset<>::all): Use the latter, improve implementation.
+
+2011-09-02  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++/50268
+	* include/std/bitset (struct _Sanitize_val): Add.
+	(bitset<>::bitset(unsigned long long)): Fix.
+	* testsuite/23_containers/bitset/cons/50268.cc: New.
+
 2011-09-01  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/hashtable.h (_Hashtable<>::_Hashtable(_Hashtable&&)):

@@ -837,7 +837,13 @@ package body Sem_Attr is
            and then not In_Instance
            and then not In_Inlined_Body
          then
-            Error_Attr_P ("prefix of % attribute must be aliased");
+            if Restriction_Check_Required (No_Implicit_Aliasing) then
+               Error_Attr_P
+                 ("prefix of % attribute must be explicitly aliased");
+            else
+               Error_Attr_P
+                 ("prefix of % attribute must be aliased");
+            end if;
          end if;
       end Analyze_Access_Attribute;
 
@@ -1900,7 +1906,7 @@ package body Sem_Attr is
          end if;
       end Validate_Non_Static_Attribute_Function_Call;
 
-   --   Start of processing for Analyze_Attribute
+   --  Start of processing for Analyze_Attribute
 
    begin
       --  Immediate return if unrecognized attribute (already diagnosed
@@ -2221,11 +2227,19 @@ package body Sem_Attr is
                then
                   Set_Address_Taken (Ent);
 
-               --  If we have an address of an object, and the attribute
-               --  comes from source, then set the object as potentially
-               --  source modified. We do this because the resulting address
-               --  can potentially be used to modify the variable and we
-               --  might not detect this, leading to some junk warnings.
+                  --  Deal with No_Implicit_Aliasing restriction
+
+                  if Restriction_Check_Required (No_Implicit_Aliasing) then
+                     if not Is_Aliased_View (P) then
+                        Check_Restriction (No_Implicit_Aliasing, P);
+                     end if;
+                  end if;
+
+                  --  If we have an address of an object, and the attribute
+                  --  comes from source, then set the object as potentially
+                  --  source modified. We do this because the resulting address
+                  --  can potentially be used to modify the variable and we
+                  --  might not detect this, leading to some junk warnings.
 
                   Set_Never_Set_In_Source (Ent, False);
 
@@ -2999,6 +3013,21 @@ package body Sem_Attr is
       when Attribute_Denorm =>
          Check_Floating_Point_Type_0;
          Set_Etype (N, Standard_Boolean);
+
+      ---------------------
+      -- Descriptor_Size --
+      ---------------------
+
+      when Attribute_Descriptor_Size =>
+         Check_E0;
+
+         if not Is_Entity_Name (P)
+           or else not Is_Type (Entity (P))
+         then
+            Error_Attr_P ("prefix of attribute % must denote a type");
+         end if;
+
+         Set_Etype (N, Universal_Integer);
 
       ------------
       -- Digits --
@@ -4925,8 +4954,18 @@ package body Sem_Attr is
       --  all scope checks and checks for aliased views are omitted.
 
       when Attribute_Unrestricted_Access =>
+
+         --  If from source, deal with relevant restrictions
+
          if Comes_From_Source (N) then
             Check_Restriction (No_Unchecked_Access, N);
+
+            if Nkind (P) in N_Has_Entity
+              and then Present (Entity (P))
+              and then Is_Object (Entity (P))
+            then
+               Check_Restriction (No_Implicit_Aliasing, N);
+            end if;
          end if;
 
          if Is_Entity_Name (P) then
@@ -5239,6 +5278,9 @@ package body Sem_Attr is
       --  Computes the Fore value for the current attribute prefix, which is
       --  known to be a static fixed-point type. Used by Fore and Width.
 
+      function Is_VAX_Float (Typ : Entity_Id) return Boolean;
+      --  Determine whether Typ denotes a VAX floating point type
+
       function Mantissa return Uint;
       --  Returns the Mantissa value for the prefix type
 
@@ -5368,6 +5410,19 @@ package body Sem_Attr is
 
          return R;
       end Fore_Value;
+
+      ------------------
+      -- Is_VAX_Float --
+      ------------------
+
+      function Is_VAX_Float (Typ : Entity_Id) return Boolean is
+      begin
+         return
+           Is_Floating_Point_Type (Typ)
+             and then
+               (Float_Format = 'V'
+                  or else Float_Rep (Typ) = VAX_Native);
+      end Is_VAX_Float;
 
       --------------
       -- Mantissa --
@@ -6206,6 +6261,13 @@ package body Sem_Attr is
          Fold_Uint
            (N, UI_From_Int (Boolean'Pos (Denorm_On_Target)), True);
 
+      ---------------------
+      -- Descriptor_Size --
+      ---------------------
+
+      when Attribute_Descriptor_Size =>
+         null;
+
       ------------
       -- Digits --
       ------------
@@ -6315,6 +6377,16 @@ package body Sem_Attr is
             else
                Fold_Uint  (N, Expr_Value (Lo_Bound), Static);
             end if;
+
+         --  Replace VAX Float_Type'First with a reference to the temporary
+         --  which represents the low bound of the type. This transformation
+         --  is needed since the back end cannot evaluate 'First on VAX.
+
+         elsif Is_VAX_Float (P_Type)
+           and then Nkind (Lo_Bound) = N_Identifier
+         then
+            Rewrite (N, New_Reference_To (Entity (Lo_Bound), Sloc (N)));
+            Analyze (N);
 
          else
             Check_Concurrent_Discriminant (Lo_Bound);
@@ -6506,6 +6578,16 @@ package body Sem_Attr is
             else
                Fold_Uint  (N, Expr_Value (Hi_Bound), Static);
             end if;
+
+         --  Replace VAX Float_Type'Last with a reference to the temporary
+         --  which represents the high bound of the type. This transformation
+         --  is needed since the back end cannot evaluate 'Last on VAX.
+
+         elsif Is_VAX_Float (P_Type)
+           and then Nkind (Hi_Bound) = N_Identifier
+         then
+            Rewrite (N, New_Reference_To (Entity (Hi_Bound), Sloc (N)));
+            Analyze (N);
 
          else
             Check_Concurrent_Discriminant (Hi_Bound);
@@ -8892,8 +8974,8 @@ package body Sem_Attr is
                LB :=
                  Make_Attribute_Reference (Loc,
                    Prefix          => P,
-                   Attribute_Name => Name_First,
-                   Expressions => (Dims));
+                   Attribute_Name  => Name_First,
+                   Expressions     => (Dims));
 
                --  Do not share the dimension indicator, if present. Even
                --  though it is a static constant, its source location

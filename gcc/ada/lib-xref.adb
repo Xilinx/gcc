@@ -205,7 +205,7 @@ package body Lib.Xref is
 
    function Equal (F1, F2 : Xref_Entry_Number) return Boolean is
       Result : constant Boolean :=
-        Xrefs.Table (F1).Key = Xrefs.Table (F2).Key;
+                 Xrefs.Table (F1).Key = Xrefs.Table (F2).Key;
    begin
       return Result;
    end Equal;
@@ -373,12 +373,12 @@ package body Lib.Xref is
       Set_Ref : Boolean   := True;
       Force   : Boolean   := False)
    is
-      Nod  : Node_Id;
-      Ref  : Source_Ptr;
-      Def  : Source_Ptr;
-      Ent  : Entity_Id;
+      Nod : Node_Id;
+      Ref : Source_Ptr;
+      Def : Source_Ptr;
+      Ent : Entity_Id;
 
-      Actual_Typ  : Character := Typ;
+      Actual_Typ : Character := Typ;
 
       Ref_Scope      : Entity_Id;
       Ent_Scope      : Entity_Id;
@@ -512,6 +512,16 @@ package body Lib.Xref is
                      return False;
                   end if;
                end if;
+
+            --  A reference to a formal in a named parameter association does
+            --  not make the formal referenced. Formals that are unused in the
+            --  subprogram body are properly flagged as such, even if calls
+            --  elsewhere use named notation.
+
+            elsif Nkind (P) = N_Parameter_Association
+              and then N = Selector_Name (P)
+            then
+               return False;
             end if;
          end if;
 
@@ -1057,7 +1067,16 @@ package body Lib.Xref is
 
       XE : Xref_Entry renames Xrefs.Table (F);
       type M is mod 2**32;
-      H : constant M := M'Mod (XE.Key.Ent) + 2**7 * M'Mod (XE.Key.Loc);
+
+      H : constant M := M (XE.Key.Ent) + 2 ** 7 * M (abs XE.Key.Loc);
+      --  It would be more natural to write:
+      --
+      --    H : constant M := M'Mod (XE.Key.Ent) + 2**7 * M'Mod (XE.Key.Loc);
+      --
+      --  But we can't use M'Mod, because it prevents bootstrapping with older
+      --  compilers. Loc can be negative, so we do "abs" before converting.
+      --  One day this can be cleaned up ???
+
    begin
       return Header_Num (H mod Num_Buckets);
    end Hash;
@@ -1154,7 +1173,7 @@ package body Lib.Xref is
 
       procedure Output_Import_Export_Info (Ent : Entity_Id);
       --  Output language and external name information for an interfaced
-      --  entity, using the format <language, external_name>,
+      --  entity, using the format <language, external_name>.
 
       ------------------------
       -- Get_Type_Reference --
@@ -1882,10 +1901,10 @@ package body Lib.Xref is
 
                if XE.Key.Typ = 'e'
                  and then Ent /= Curent
-                 and then (Refno = Nrefs or else
-                             Ent /= Xrefs.Table (Rnums (Refno + 1)).Key.Ent)
-                 and then
-                   not In_Extended_Main_Source_Unit (Ent)
+                 and then (Refno = Nrefs
+                            or else
+                              Ent /= Xrefs.Table (Rnums (Refno + 1)).Key.Ent)
+                 and then not In_Extended_Main_Source_Unit (Ent)
                then
                   goto Continue;
                end if;
