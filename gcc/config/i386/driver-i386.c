@@ -393,10 +393,10 @@ const char *host_detect_local_cpu (int argc, const char **argv)
   unsigned int has_lahf_lm = 0, has_sse4a = 0;
   unsigned int has_longmode = 0, has_3dnowp = 0, has_3dnow = 0;
   unsigned int has_movbe = 0, has_sse4_1 = 0, has_sse4_2 = 0;
-  unsigned int has_popcnt = 0, has_aes = 0, has_avx = 0;
+  unsigned int has_popcnt = 0, has_aes = 0, has_avx = 0, has_avx2 = 0;
   unsigned int has_pclmul = 0, has_abm = 0, has_lwp = 0;
   unsigned int has_fma = 0, has_fma4 = 0, has_xop = 0;
-  unsigned int has_bmi = 0, has_tbm = 0, has_lzcnt = 0;
+  unsigned int has_bmi = 0, has_bmi2 = 0, has_tbm = 0, has_lzcnt = 0;
 
   bool arch;
 
@@ -474,6 +474,8 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       __cpuid (0x7, eax, ebx, ecx, edx);
 
       has_bmi = ebx & bit_BMI;
+      has_avx2 = ebx & bit_AVX2;
+      has_bmi2 = ebx & bit_BMI2;
     }
 
   if (!arch)
@@ -714,15 +716,17 @@ const char *host_detect_local_cpu (int argc, const char **argv)
       const char *fma4 = has_fma4 ? " -mfma4" : " -mno-fma4";
       const char *xop = has_xop ? " -mxop" : " -mno-xop";
       const char *bmi = has_bmi ? " -mbmi" : " -mno-bmi";
+      const char *bmi2 = has_bmi2 ? " -mbmi2" : " -mno-bmi2";
       const char *tbm = has_tbm ? " -mtbm" : " -mno-tbm";
       const char *avx = has_avx ? " -mavx" : " -mno-avx";
+      const char *avx2 = has_avx2 ? " -mavx2" : " -mno-avx2";
       const char *sse4_2 = has_sse4_2 ? " -msse4.2" : " -mno-sse4.2";
       const char *sse4_1 = has_sse4_1 ? " -msse4.1" : " -mno-sse4.1";
       const char *lzcnt = has_lzcnt ? " -mlzcnt" : " -mno-lzcnt";
 
       options = concat (options, cx16, sahf, movbe, ase, pclmul,
-			popcnt, abm, lwp, fma, fma4, xop, bmi, tbm,
-			avx, sse4_2, sse4_1, lzcnt, NULL);
+			popcnt, abm, lwp, fma, fma4, xop, bmi, bmi2,
+			tbm, avx, avx2, sse4_2, sse4_1, lzcnt, NULL);
     }
 
 done:

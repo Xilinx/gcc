@@ -913,6 +913,16 @@ the order of instructions is important for correctness when scheduling, but\n\
 also the latencies of operations.",
 bool, false)
 
+/* The following member value is a function that returns number
+   of operations reassociator should try to put in parallel for
+   statements of the given type.  By default 1 is used.  */
+DEFHOOK
+(reassociation_width,
+"This hook is called by tree reassociator to determine a level of\n\
+parallelism required in output calculations chain.",
+int, (unsigned int opc, enum machine_mode mode),
+hook_int_uint_mode_1)
+
 HOOK_VECTOR_END (sched)
 
 /* Functions relating to vectorization.  */
@@ -1645,8 +1655,8 @@ DEFHOOKPOD
 DEFHOOK
 (rtx_costs,
  "",
- bool, (rtx x, int code, int outer_code, int *total, bool speed),
- hook_bool_rtx_int_int_intp_bool_false)
+ bool, (rtx x, int code, int outer_code, int opno, int *total, bool speed),
+ hook_bool_rtx_int_int_int_intp_bool_false)
 
 /* Compute the cost of X, used as an address.  Never called with
    invalid addresses.  */
@@ -2450,6 +2460,12 @@ DEFHOOK
  visibility or perform any other required target modifications).",
  void, (tree type),
  hook_void_tree)
+
+DEFHOOK
+(decl_mangling_context,
+ "Return target-specific mangling context of @var{decl} or @code{NULL_TREE}.",
+ tree, (const_tree decl),
+ hook_tree_const_tree_null)
 
 HOOK_VECTOR_END (cxx)
 

@@ -4569,10 +4569,11 @@ resolve_array_ref (gfc_array_ref *ar)
       /* Fill in the upper bound, which may be lower than the
 	 specified one for something like a(2:10:5), which is
 	 identical to a(2:7:5).  Only relevant for strides not equal
-	 to one.  */
+	 to one.  Don't try a division by zero.  */
       if (ar->dimen_type[i] == DIMEN_RANGE
 	  && ar->stride[i] != NULL && ar->stride[i]->expr_type == EXPR_CONSTANT
-	  && mpz_cmp_si (ar->stride[i]->value.integer, 1L) != 0)
+	  && mpz_cmp_si (ar->stride[i]->value.integer, 1L) != 0
+	  && mpz_cmp_si (ar->stride[i]->value.integer, 0L) != 0)
 	{
 	  mpz_t size, end;
 
@@ -5197,13 +5198,7 @@ check_host_association (gfc_expr *e)
 	      && sym->attr.contained)
 	{
 	  /* Clear the shape, since it might not be valid.  */
-	  if (e->shape != NULL)
-	    {
-	      for (n = 0; n < e->rank; n++)
-		mpz_clear (e->shape[n]);
-
-	      free (e->shape);
-	    }
+	  gfc_free_shape (&e->shape, e->rank);
 
 	  /* Give the expression the right symtree!  */
 	  gfc_find_sym_tree (e->symtree->name, NULL, 1, &st);
@@ -6558,10 +6553,13 @@ gfc_expr_to_initialize (gfc_expr *e)
 	for (i = 0; i < ref->u.ar.dimen; i++)
 	  ref->u.ar.start[i] = ref->u.ar.end[i] = ref->u.ar.stride[i] = NULL;
 
-	result->rank = ref->u.ar.dimen;
 	break;
       }
 
+  gfc_free_shape (&result->shape, result->rank);
+
+  /* Recalculate rank, shape, etc.  */
+  gfc_resolve_expr (result);
   return result;
 }
 
@@ -6806,7 +6804,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 
       /* Check F2008, C642.  */
       if (code->expr3->ts.type == BT_DERIVED
-	  && ((codimension &&  gfc_expr_attr (code->expr3).lock_comp)
+	  && ((codimension && gfc_expr_attr (code->expr3).lock_comp)
 	      || (code->expr3->ts.u.derived->from_intmod
 		     == INTMOD_ISO_FORTRAN_ENV
 		  && code->expr3->ts.u.derived->intmod_sym_id
@@ -8202,7 +8200,7 @@ find_reachable_labels (gfc_code *block)
      up through the code_stack.  */
   for (c = block; c; c = c->next)
     {
-      if (c->here && c->op != EXEC_END_BLOCK)
+      if (c->here && c->op != EXEC_END_NESTED_BLOCK)
 	bitmap_set_bit (cs_base->reachable_labels, c->here->value);
     }
 
@@ -8224,10 +8222,9 @@ resolve_lock_unlock (gfc_code *code)
       || code->expr1->ts.u.derived->from_intmod != INTMOD_ISO_FORTRAN_ENV
       || code->expr1->ts.u.derived->intmod_sym_id != ISOFORTRAN_LOCK_TYPE
       || code->expr1->rank != 0
-      || !(gfc_expr_attr (code->expr1).codimension
-	   || gfc_is_coindexed (code->expr1)))
-    gfc_error ("Lock variable at %L must be a scalar coarray of type "
-	       "LOCK_TYPE", &code->expr1->where);
+      || (!gfc_is_coarray (code->expr1) && !gfc_is_coindexed (code->expr1)))
+    gfc_error ("Lock variable at %L must be a scalar of type LOCK_TYPE",
+	       &code->expr1->where);
 
   /* Check STAT.  */
   if (code->expr2
@@ -8382,7 +8379,7 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 
   if (stack)
     {
-      gcc_assert (stack->current->next->op == EXEC_END_BLOCK);
+      gcc_assert (stack->current->next->op == EXEC_END_NESTED_BLOCK);
       return;
     }
 
@@ -8429,11 +8426,8 @@ ignore:
   result = SUCCESS;
 
 over:
-  for (i--; i >= 0; i--)
-    {
-      mpz_clear (shape[i]);
-      mpz_clear (shape2[i]);
-    }
+  gfc_clear_shape (shape, i);
+  gfc_clear_shape (shape2, i);
   return result;
 }
 
@@ -9118,6 +9112,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	{
 	case EXEC_NOP:
 	case EXEC_END_BLOCK:
+	case EXEC_END_NESTED_BLOCK:
 	case EXEC_CYCLE:
 	case EXEC_PAUSE:
 	case EXEC_STOP:
@@ -12221,12 +12216,14 @@ resolve_symbol (gfc_symbol *sym)
 
   /* F2008, C1302.  */
   if (sym->ts.type == BT_DERIVED
-      && sym->ts.u.derived->from_intmod == INTMOD_ISO_FORTRAN_ENV
-      && sym->ts.u.derived->intmod_sym_id == ISOFORTRAN_LOCK_TYPE
-      && !sym->attr.codimension)
+      && ((sym->ts.u.derived->from_intmod == INTMOD_ISO_FORTRAN_ENV
+	   && sym->ts.u.derived->intmod_sym_id == ISOFORTRAN_LOCK_TYPE)
+	  || sym->ts.u.derived->attr.lock_comp)
+      && !sym->attr.codimension && !sym->ts.u.derived->attr.coarray_comp)
     {
-      gfc_error ("Variable '%s' at %L of type LOCK_TYPE must be a coarray",
-		 sym->name, &sym->declared_at);
+      gfc_error ("Variable %s at %L of type LOCK_TYPE or with subcomponent of "
+		 "type LOCK_TYPE must be a coarray", sym->name,
+		 &sym->declared_at);
       return;
     }
 

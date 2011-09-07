@@ -165,6 +165,9 @@ static GTY(()) struct elab_info *elab_info_list;
    are in an exception handler.  Not used in the zero-cost case.  */
 static GTY(()) VEC(tree,gc) *gnu_except_ptr_stack;
 
+/* In ZCX case, current exception pointer.  Used to re-raise it.  */
+static GTY(()) tree gnu_incoming_exc_ptr;
+
 /* Stack for storing the current elaboration procedure decl.  */
 static GTY(()) VEC(tree,gc) *gnu_elab_proc_stack;
 
@@ -448,6 +451,12 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 			   Empty);
   DECL_IGNORED_P (end_handler_decl) = 1;
 
+  reraise_zcx_decl
+    = create_subprog_decl (get_identifier ("__gnat_reraise_zcx"), NULL_TREE,
+			   ftype, NULL_TREE, false, true, true, true, NULL,
+			   Empty);
+  DECL_IGNORED_P (reraise_zcx_decl) = 1;
+
   /* If in no exception handlers mode, all raise statements are redirected to
      __gnat_last_chance_handler.  No need to redefine raise_nodefer_decl since
      this procedure will never be called in this mode.  */
@@ -559,8 +568,8 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
     longest_float_type_node = TREE_TYPE (long_long_float_type);
 
   /* Dummy objects to materialize "others" and "all others" in the exception
-     tables.  These are exported by a-exexpr.adb, so see this unit for the
-     types to use.  */
+     tables.  These are exported by a-exexpr-gcc.adb, so see this unit for
+     the types to use.  */
   others_decl
     = create_var_decl (get_identifier ("OTHERS"),
 		       get_identifier ("__gnat_others_value"),
@@ -1865,6 +1874,20 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 
       /* Note this size cannot be self-referential.  */
       gnu_result = TYPE_SIZE (TREE_TYPE (gnu_type));
+      gnu_result_type = get_unpadded_type (Etype (gnat_node));
+      prefix_unused = true;
+      break;
+
+    case Attr_Descriptor_Size:
+      gnu_type = TREE_TYPE (gnu_prefix);
+      gcc_assert (TREE_CODE (gnu_type) == UNCONSTRAINED_ARRAY_TYPE);
+
+      /* What we want is the offset of the ARRAY field in the record that the
+        thin pointer designates, but the components have been shifted so this
+        is actually the opposite of the offset of the BOUNDS field.  */
+      gnu_type = TYPE_OBJECT_RECORD_TYPE (gnu_type);
+      gnu_result = size_binop (MINUS_EXPR, bitsize_zero_node,
+                               bit_position (TYPE_FIELDS (gnu_type)));
       gnu_result_type = get_unpadded_type (Etype (gnat_node));
       prefix_unused = true;
       break;
@@ -3760,7 +3783,7 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
   tree gnu_expr;
   tree gnu_etype;
   tree gnu_current_exc_ptr;
-  tree gnu_incoming_exc_ptr;
+  tree prev_gnu_incoming_exc_ptr;
   Node_Id gnat_temp;
 
   /* We build a TREE_LIST of nodes representing what exception types this
@@ -3832,6 +3855,7 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
   gnu_current_exc_ptr
     = build_call_expr (built_in_decls [BUILT_IN_EH_POINTER],
 		       1, integer_zero_node);
+  prev_gnu_incoming_exc_ptr = gnu_incoming_exc_ptr;
   gnu_incoming_exc_ptr = create_var_decl (get_identifier ("EXPTR"), NULL_TREE,
 					  ptr_type_node, gnu_current_exc_ptr,
 					  false, false, false, false,
@@ -3845,6 +3869,8 @@ Exception_Handler_to_gnu_zcx (Node_Id gnat_node)
 	       Empty);
   add_stmt_list (Statements (gnat_node));
   gnat_poplevel ();
+
+  gnu_incoming_exc_ptr = prev_gnu_incoming_exc_ptr;
 
   return build2 (CATCH_EXPR, void_type_node, gnu_etypes_list,
 		 end_stmt_group ());
@@ -5452,7 +5478,27 @@ gnat_to_gnu (Node_Id gnat_node)
 	gnu_result = Exception_Handler_to_gnu_zcx (gnat_node);
       else
 	gcc_unreachable ();
+      break;
 
+    case N_Raise_Statement:
+      /* Only for reraise in back-end exceptions mode.  */
+      gcc_assert (No (Name (gnat_node))
+		  && Exception_Mechanism == Back_End_Exceptions);
+
+      start_stmt_group ();
+      gnat_pushlevel ();
+
+      /* Clear the current exception pointer so that the occurrence won't be
+	 deallocated.  */
+      gnu_expr = create_var_decl (get_identifier ("SAVED_EXPTR"), NULL_TREE,
+				  ptr_type_node, gnu_incoming_exc_ptr,
+				  false, false, false, false, NULL, gnat_node);
+
+      add_stmt (build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_incoming_exc_ptr,
+				 convert (ptr_type_node, integer_zero_node)));
+      add_stmt (build_call_1_expr (reraise_zcx_decl, gnu_expr));
+      gnat_poplevel ();
+      gnu_result = end_stmt_group ();
       break;
 
     case N_Push_Constraint_Error_Label:
