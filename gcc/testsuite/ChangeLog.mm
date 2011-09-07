@@ -1,3 +1,7 @@
+2011-09-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/dg.exp: Exclude memmodel tests.
+
 2011-08-18  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gcc.dg/memmodel/memmodel.exp: Torture with more options.
