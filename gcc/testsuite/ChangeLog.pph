@@ -1,3 +1,17 @@
+2011-09-07   Lawrence Crowl  <crowl@google.com>
+
+	* a0vardef.h: New.
+	* c0vardef1.h: New.
+	* x4structover1.cc: New.
+	* c0vardef2.h: New.
+	* x0structover1.h: New.
+	* c4vardef.cc: New.
+	* x4structover2.cc: New.
+	* x0structover2.h: New.
+	* x4resolve1.cc: Add more overloaded calls.
+	* x4resolve2.cc: Add more overloaded calls.
+
+
 2011-08-29   Lawrence Crowl  <crowl@google.com>
 
 	* lib/dg-pph.exp: Move -fno-dwarf2-cfi-asm to end of command line.
