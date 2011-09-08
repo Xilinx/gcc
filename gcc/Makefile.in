@@ -2836,7 +2836,7 @@ common/common-targhooks.o : common/common-targhooks.c $(CONFIG_H) $(SYSTEM_H) \
 ## FIXME: melt_installed_cflags may vary from stage1 to stage2 so
 ## melt-runtime.o fails in the compare step.
 MELT_RUNTIME_CPPDEFS= \
-	  -DMELT_GCC_VERSION=$(shell cat $(BASEVER) | $(AWK) '{split($$0,vertab,"."); printf "%d", strtonum(vertab[1])*1000+strtonum(vertab[2])}') \
+	  -DMELT_GCC_VERSION=$(shell cat $(BASEVER) | $(AWK) '{split($$0,vertab,"."); printf "%d", vertab[1]*1000+vertab[2]}') \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
 	  -DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\" \
