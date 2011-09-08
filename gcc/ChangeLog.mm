@@ -1,3 +1,7 @@
+2011-09-08  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Merge from trunk at revision 178608.
+
 2011-08-23  Andrew MacLeod  <amacleod@redhat.com>
 
 	* builtin-types.def (BT_CONST_VOLATILE_PTR): New primitive type.

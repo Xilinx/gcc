@@ -20,11 +20,18 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-/* Solaris allows 64 bit out and global registers in 32 bit mode.
-   sparc_override_options will disable V8+ if not generating V9 code.  */
+/* Solaris allows 64-bit out and global registers to be used in 32-bit mode.
+   sparc_override_options will disable V8+ if either not generating V9 code
+   or generating 64-bit code.  */
 #undef TARGET_DEFAULT
-#define TARGET_DEFAULT (MASK_V8PLUS + MASK_APP_REGS + MASK_FPU \
-			+ MASK_LONG_DOUBLE_128)
+#ifdef TARGET_64BIT_DEFAULT
+#define TARGET_DEFAULT \
+  (MASK_V9 + MASK_64BIT + MASK_PTR64 + MASK_STACK_BIAS + \
+   MASK_V8PLUS + MASK_APP_REGS + MASK_FPU + MASK_LONG_DOUBLE_128)
+#else
+#define TARGET_DEFAULT \
+  (MASK_V8PLUS + MASK_APP_REGS + MASK_FPU + MASK_LONG_DOUBLE_128)
+#endif
 
 /* The default code model used to be CM_MEDANY on Solaris
    but even Sun eventually found it to be quite wasteful
@@ -114,13 +121,39 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_CPU_DEFAULT_SPEC ASM_CPU32_DEFAULT_SPEC
 #endif
 
+#if TARGET_CPU_DEFAULT == TARGET_CPU_niagara3
+#undef CPP_CPU64_DEFAULT_SPEC
+#define CPP_CPU64_DEFAULT_SPEC ""
+#undef ASM_CPU32_DEFAULT_SPEC
+#define ASM_CPU32_DEFAULT_SPEC "-xarch=v8plusb"
+#undef ASM_CPU64_DEFAULT_SPEC
+#define ASM_CPU64_DEFAULT_SPEC AS_SPARC64_FLAG "b"
+#undef ASM_CPU_DEFAULT_SPEC
+#define ASM_CPU_DEFAULT_SPEC ASM_CPU32_DEFAULT_SPEC
+#endif
+
+#if TARGET_CPU_DEFAULT == TARGET_CPU_niagara4
+#undef CPP_CPU64_DEFAULT_SPEC
+#define CPP_CPU64_DEFAULT_SPEC ""
+#undef ASM_CPU32_DEFAULT_SPEC
+#define ASM_CPU32_DEFAULT_SPEC "-xarch=v8plusb"
+#undef ASM_CPU64_DEFAULT_SPEC
+#define ASM_CPU64_DEFAULT_SPEC AS_SPARC64_FLAG "b"
+#undef ASM_CPU_DEFAULT_SPEC
+#define ASM_CPU_DEFAULT_SPEC ASM_CPU32_DEFAULT_SPEC
+#endif
+
+/* Both Sun as and GNU as understand -K PIC.  */
+#undef ASM_SPEC
+#define ASM_SPEC ASM_SPEC_BASE ASM_PIC_SPEC
+
 #undef CPP_CPU_SPEC
 #define CPP_CPU_SPEC "\
 %{mcpu=sparclet|mcpu=tsc701:-D__sparclet__} \
 %{mcpu=sparclite|mcpu-f930|mcpu=f934:-D__sparclite__} \
 %{mcpu=v8:" DEF_ARCH32_SPEC("-D__sparcv8") "} \
 %{mcpu=supersparc:-D__supersparc__ " DEF_ARCH32_SPEC("-D__sparcv8") "} \
-%{mcpu=v9|mcpu=ultrasparc|mcpu=ultrasparc3|mcpu=niagara|mcpu=niagara2:" DEF_ARCH32_SPEC("-D__sparcv8") "} \
+%{mcpu=v9|mcpu=ultrasparc|mcpu=ultrasparc3|mcpu=niagara|mcpu=niagara2|mcpu=niagara3|mcpu=niagara4:" DEF_ARCH32_SPEC("-D__sparcv8") "} \
 %{!mcpu*:%(cpp_cpu_default)} \
 "
 
@@ -145,6 +178,22 @@ along with GCC; see the file COPYING3.  If not see
 %{m64:%(cpp_arch64)} \
 %{!m32:%{!m64:%(cpp_arch_default)}} \
 "
+
+/* -mcpu=native handling only makes sense with compiler running on
+   a SPARC chip.  */
+#if defined(__sparc__)
+extern const char *host_detect_local_cpu (int argc, const char **argv);
+# define EXTRA_SPEC_FUNCTIONS						\
+  { "local_cpu_detect", host_detect_local_cpu },
+
+# define MCPU_MTUNE_NATIVE_SPECS					\
+   " %{mcpu=native:%<mcpu=native %:local_cpu_detect(cpu)}"		\
+   " %{mtune=native:%<mtune=native %:local_cpu_detect(tune)}"
+#else
+# define MCPU_MTUNE_NATIVE_SPECS ""
+#endif
+
+#define DRIVER_SELF_SPECS MCPU_MTUNE_NATIVE_SPECS
 
 #undef	CC1_SPEC
 #if DEFAULT_ARCH32_P
@@ -191,19 +240,11 @@ along with GCC; see the file COPYING3.  If not see
 %{mcpu=ultrasparc3:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
 %{mcpu=niagara:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
 %{mcpu=niagara2:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
-%{!mcpu=niagara2:%{!mcpu=niagara:%{!mcpu=ultrasparc3:%{!mcpu=ultrasparc:%{!mcpu=v9:%{mcpu*:" DEF_ARCH32_SPEC("-xarch=v8") DEF_ARCH64_SPEC(AS_SPARC64_FLAG) "}}}}}} \
+%{mcpu=niagara3:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
+%{mcpu=niagara4:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
+%{!mcpu=niagara4:%{!mcpu=niagara3:%{!mcpu=niagara2:%{!mcpu=niagara:%{!mcpu=ultrasparc3:%{!mcpu=ultrasparc:%{!mcpu=v9:%{mcpu*:" DEF_ARCH32_SPEC("-xarch=v8") DEF_ARCH64_SPEC(AS_SPARC64_FLAG) "}}}}}}}} \
 %{!mcpu*:%(asm_cpu_default)} \
 "
-
-#undef ASM_CPU_DEFAULT_SPEC
-#define ASM_CPU_DEFAULT_SPEC \
-(DEFAULT_ARCH32_P ? "\
-%{m64:" ASM_CPU64_DEFAULT_SPEC "} \
-%{!m64:" ASM_CPU32_DEFAULT_SPEC "} \
-" : "\
-%{m32:" ASM_CPU32_DEFAULT_SPEC "} \
-%{!m32:" ASM_CPU64_DEFAULT_SPEC "} \
-")
 
 #undef ASM_ARCH32_SPEC
 #define ASM_ARCH32_SPEC ""
@@ -312,10 +353,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Use Solaris ELF section syntax with Sun as.  */
 #undef TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION sparc_solaris_elf_asm_named_section
-
-/* Emit COMDAT group signature symbols for Sun as.  */
-#undef TARGET_ASM_CODE_END
-#define TARGET_ASM_CODE_END solaris_code_end
 
 /* Sun as requires doublequoted section names on SPARC.  While GNU as
    supports that, too, we prefer the standard variant.  */

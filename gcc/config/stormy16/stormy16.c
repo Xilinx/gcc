@@ -57,7 +57,7 @@ static void xstormy16_asm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
 
 static void xstormy16_init_builtins (void);
 static rtx xstormy16_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
-static bool xstormy16_rtx_costs (rtx, int, int, int *, bool);
+static bool xstormy16_rtx_costs (rtx, int, int, int, int *, bool);
 static int xstormy16_address_cost (rtx, bool);
 static bool xstormy16_return_in_memory (const_tree, const_tree);
 
@@ -69,7 +69,8 @@ static GTY(()) section *bss100_section;
 
 static bool
 xstormy16_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED,
-		     int *total, bool speed ATTRIBUTE_UNUSED)
+		     int opno ATTRIBUTE_UNUSED, int *total,
+		     bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -1292,7 +1293,7 @@ xstormy16_expand_builtin_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
   t = make_tree (TREE_TYPE (base), virtual_incoming_args_rtx);
   u = build_int_cst (NULL_TREE, - INCOMING_FRAME_SP_OFFSET);
   u = fold_convert (TREE_TYPE (count), u);
-  t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base), t, u);
+  t = fold_build_pointer_plus (t, u);
   t = build2 (MODIFY_EXPR, TREE_TYPE (base), base, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -1350,7 +1351,7 @@ xstormy16_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 		  NULL_TREE);
       gimplify_and_add (t, pre_p);
 
-      t = build2 (POINTER_PLUS_EXPR, ptr_type_node, base, count_tmp);
+      t = fold_build_pointer_plus (base, count_tmp);
       gimplify_assign (addr, t, pre_p);
 
       t = build1 (GOTO_EXPR, void_type_node, lab_gotaddr);
@@ -1385,7 +1386,7 @@ xstormy16_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 	      fold_convert (TREE_TYPE (count), size_tree));
   t = fold_convert (TREE_TYPE (t), fold (t));
   t = fold_build1 (NEGATE_EXPR, TREE_TYPE (t), t);
-  t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (base), base, t);
+  t = fold_build_pointer_plus (base, t);
   gimplify_assign (addr, t, pre_p);
 
   t = build1 (LABEL_EXPR, void_type_node, lab_gotaddr);

@@ -99,21 +99,18 @@ along with GCC; see the file COPYING3.  If not see
 	TARGET_SUB_OS_CPP_BUILTINS();			\
     } while (0)
 
-/* It's safe to pass -s always, even if -g is not used.  */
-#undef ASM_SPEC
-#define ASM_SPEC "\
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{Ym,*} -s \
-%{fpic|fpie|fPIC|fPIE:-K PIC} \
-%(asm_cpu) \
-"
+/* It's safe to pass -s always, even if -g is not used.  Those options are
+   handled by both Sun as and GNU as.  */
+#define ASM_SPEC_BASE \
+"%{v:-V} %{Qy:} %{!Qn:-Qy} %{Ym,*} -s %(asm_cpu)"
+
+#define ASM_PIC_SPEC " %{fpic|fpie|fPIC|fPIE:-K PIC}"
 
 #undef LIB_SPEC
 #define LIB_SPEC \
   "%{!symbolic:\
-     %{pthreads|pthread:" \
-        LIB_THREAD_LDFLAGS_SPEC " -lpthread " LIB_TLS_SPEC "} \
-     %{fprofile-generate*:" \
-        LIB_THREAD_LDFLAGS_SPEC " " LIB_TLS_SPEC "} \
+     %{pthreads|pthread:-lpthread} \
+     %{pthreads|pthread|fprofile-generate*:" LIB_TLS_SPEC "} \
      %{p|pg:-ldl} -lc}"
 
 #ifndef CROSS_DIRECTORY_STRUCTURE
@@ -176,6 +173,7 @@ along with GCC; see the file COPYING3.  If not see
    %{static:-dn -Bstatic} \
    %{shared:-G -dy %{!mimpure-text:-z text}} \
    %{symbolic:-Bsymbolic -G -dy -z text} \
+   %{pthreads|pthread|fprofile-generate*:" LIB_THREAD_LDFLAGS_SPEC "} \
    %(link_arch) \
    %{Qy:} %{!Qn:-Qy}"
 
@@ -185,6 +183,11 @@ along with GCC; see the file COPYING3.  If not see
 #if defined(HAVE_LD_EH_FRAME_HDR) && defined(TARGET_DL_ITERATE_PHDR)
 #define LINK_EH_SPEC "%{!static:--eh-frame-hdr} "
 #endif /* HAVE_LD_EH_FRAME && TARGET_DL_ITERATE_PHDR */
+#endif
+
+#ifndef USE_GLD
+/* The default MFLIB_SPEC is GNU ld specific.  */
+#define MFLIB_SPEC ""
 #endif
 
 /* collect2.c can only parse GNU nm -n output.  Solaris nm needs -png to
@@ -213,6 +216,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Allow macro expansion in #pragma pack.  */
 #define HANDLE_PRAGMA_PACK_WITH_EXPANSION
+
+#define TARGET_CXX_DECL_MANGLING_CONTEXT solaris_cxx_decl_mangling_context
 
 /* Solaris/x86 as and gas support unquoted section names.  */
 #define SECTION_NAME_FORMAT	"%s"

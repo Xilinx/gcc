@@ -428,7 +428,7 @@ static const char *get_some_local_dynamic_name (void);
 static int get_some_local_dynamic_name_1 (rtx *, void *);
 static int sparc_register_move_cost (enum machine_mode,
 				     reg_class_t, reg_class_t);
-static bool sparc_rtx_costs (rtx, int, int, int *, bool);
+static bool sparc_rtx_costs (rtx, int, int, int, int *, bool);
 static rtx sparc_function_value (const_tree, const_tree, bool);
 static rtx sparc_libcall_value (enum machine_mode, const_rtx);
 static bool sparc_function_value_regno_p (const unsigned int);
@@ -460,7 +460,6 @@ static unsigned int sparc_function_arg_boundary (enum machine_mode,
 						 const_tree);
 static int sparc_arg_partial_bytes (cumulative_args_t,
 				    enum machine_mode, tree, bool);
-static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
 static void sparc_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void sparc_file_end (void);
 static bool sparc_frame_pointer_required (void);
@@ -611,9 +610,6 @@ char sparc_hard_reg_printed[8];
 #undef TARGET_VECTORIZE_PREFERRED_SIMD_MODE
 #define TARGET_VECTORIZE_PREFERRED_SIMD_MODE sparc_preferred_simd_mode
 
-#undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
-#define TARGET_DWARF_HANDLE_FRAME_UNSPEC sparc_dwarf_handle_frame_unspec
-
 #ifdef SUBTARGET_INSERT_ATTRIBUTES
 #undef TARGET_INSERT_ATTRIBUTES
 #define TARGET_INSERT_ATTRIBUTES SUBTARGET_INSERT_ATTRIBUTES
@@ -713,6 +709,8 @@ sparc_option_override (void)
     { TARGET_CPU_ultrasparc3, PROCESSOR_ULTRASPARC3 },
     { TARGET_CPU_niagara, PROCESSOR_NIAGARA },
     { TARGET_CPU_niagara2, PROCESSOR_NIAGARA2 },
+    { TARGET_CPU_niagara3, PROCESSOR_NIAGARA3 },
+    { TARGET_CPU_niagara4, PROCESSOR_NIAGARA4 },
     { -1, PROCESSOR_V7 }
   };
   const struct cpu_default *def;
@@ -752,6 +750,10 @@ sparc_option_override (void)
     { MASK_ISA,
       MASK_V9|MASK_DEPRECATED_V8_INSNS},
     /* UltraSPARC T2 */
+    { MASK_ISA, MASK_V9},
+    /* UltraSPARC T3 */
+    { MASK_ISA, MASK_V9},
+    /* UltraSPARC T4 */
     { MASK_ISA, MASK_V9},
   };
   const struct cpu_table *cpu;
@@ -861,7 +863,9 @@ sparc_option_override (void)
       && (sparc_cpu == PROCESSOR_ULTRASPARC
 	  || sparc_cpu == PROCESSOR_ULTRASPARC3
 	  || sparc_cpu == PROCESSOR_NIAGARA
-	  || sparc_cpu == PROCESSOR_NIAGARA2))
+	  || sparc_cpu == PROCESSOR_NIAGARA2
+	  || sparc_cpu == PROCESSOR_NIAGARA3
+	  || sparc_cpu == PROCESSOR_NIAGARA4))
     align_functions = 32;
 
   /* Validate PCC_STRUCT_RETURN.  */
@@ -913,8 +917,12 @@ sparc_option_override (void)
       sparc_costs = &niagara_costs;
       break;
     case PROCESSOR_NIAGARA2:
+    case PROCESSOR_NIAGARA3:
+    case PROCESSOR_NIAGARA4:
       sparc_costs = &niagara2_costs;
       break;
+    case PROCESSOR_NATIVE:
+      gcc_unreachable ();
     };
 
 #ifdef TARGET_DEFAULT_LONG_DOUBLE_128
@@ -925,7 +933,9 @@ sparc_option_override (void)
   maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES,
 			 ((sparc_cpu == PROCESSOR_ULTRASPARC
 			   || sparc_cpu == PROCESSOR_NIAGARA
-			   || sparc_cpu == PROCESSOR_NIAGARA2)
+			   || sparc_cpu == PROCESSOR_NIAGARA2
+			   || sparc_cpu == PROCESSOR_NIAGARA3
+			   || sparc_cpu == PROCESSOR_NIAGARA4)
 			  ? 2
 			  : (sparc_cpu == PROCESSOR_ULTRASPARC3
 			     ? 8 : 3)),
@@ -935,7 +945,9 @@ sparc_option_override (void)
 			 ((sparc_cpu == PROCESSOR_ULTRASPARC
 			   || sparc_cpu == PROCESSOR_ULTRASPARC3
 			   || sparc_cpu == PROCESSOR_NIAGARA
-			   || sparc_cpu == PROCESSOR_NIAGARA2)
+			   || sparc_cpu == PROCESSOR_NIAGARA2
+			   || sparc_cpu == PROCESSOR_NIAGARA3
+			   || sparc_cpu == PROCESSOR_NIAGARA4)
 			  ? 64 : 32),
 			 global_options.x_param_values,
 			 global_options_set.x_param_values);
@@ -4153,7 +4165,7 @@ save_local_or_in_reg_p (unsigned int regno, int leaf_function)
   if (regno == RETURN_ADDR_REGNUM && return_addr_reg_needed_p (leaf_function))
     return true;
 
-  /* PIC register (%l7) if needed.  */
+  /* GOT register (%l7) if needed.  */
   if (regno == PIC_OFFSET_TABLE_REGNUM && crtl->uses_pic_offset_table)
     return true;
 
@@ -4594,48 +4606,30 @@ emit_save_or_restore_local_in_regs (rtx base, int offset, sorr_act_t action)
 			     save_local_or_in_reg_p, action, SORR_ADVANCE);
 }
 
-/* Generate a save_register_window insn.  */
+/* Emit a window_save insn.  */
 
 static rtx
-gen_save_register_window (rtx increment)
+emit_window_save (rtx increment)
 {
-  if (TARGET_ARCH64)
-    return gen_save_register_windowdi (increment);
-  else
-    return gen_save_register_windowsi (increment);
-}
+  rtx insn = emit_insn (gen_window_save (increment));
+  RTX_FRAME_RELATED_P (insn) = 1;
 
-/* Generate a create_flat_frame_1 insn.  */
+  /* The incoming return address (%o7) is saved in %i7.  */
+  add_reg_note (insn, REG_CFA_REGISTER,
+		gen_rtx_SET (VOIDmode,
+			     gen_rtx_REG (Pmode, RETURN_ADDR_REGNUM),
+			     gen_rtx_REG (Pmode,
+					  INCOMING_RETURN_ADDR_REGNUM)));
 
-static rtx
-gen_create_flat_frame_1 (rtx increment)
-{
-  if (TARGET_ARCH64)
-    return gen_create_flat_frame_1di (increment);
-  else
-    return gen_create_flat_frame_1si (increment);
-}
+  /* The window save event.  */
+  add_reg_note (insn, REG_CFA_WINDOW_SAVE, const0_rtx);
 
-/* Generate a create_flat_frame_2 insn.  */
+  /* The CFA is %fp, the hard frame pointer.  */
+  add_reg_note (insn, REG_CFA_DEF_CFA,
+		plus_constant (hard_frame_pointer_rtx,
+			       INCOMING_FRAME_SP_OFFSET));
 
-static rtx
-gen_create_flat_frame_2 (rtx increment)
-{
-  if (TARGET_ARCH64)
-    return gen_create_flat_frame_2di (increment);
-  else
-    return gen_create_flat_frame_2si (increment);
-}
-
-/* Generate a create_flat_frame_3 insn.  */
-
-static rtx
-gen_create_flat_frame_3 (rtx increment)
-{
-  if (TARGET_ARCH64)
-    return gen_create_flat_frame_3di (increment);
-  else
-    return gen_create_flat_frame_3si (increment);
+  return insn;
 }
 
 /* Generate an increment for the stack pointer.  */
@@ -4671,7 +4665,6 @@ sparc_expand_prologue (void)
 {
   HOST_WIDE_INT size;
   rtx insn;
-  int i;
 
   /* Compute a snapshot of current_function_uses_only_leaf_regs.  Relying
      on the final value of the flag means deferring the prologue/epilogue
@@ -4710,8 +4703,10 @@ sparc_expand_prologue (void)
     ; /* do nothing.  */
   else if (sparc_leaf_function_p)
     {
+      rtx size_int_rtx = GEN_INT (-size);
+
       if (size <= 4096)
-	insn = emit_insn (gen_stack_pointer_inc (GEN_INT (-size)));
+	insn = emit_insn (gen_stack_pointer_inc (size_int_rtx));
       else if (size <= 8192)
 	{
 	  insn = emit_insn (gen_stack_pointer_inc (GEN_INT (-4096)));
@@ -4721,35 +4716,33 @@ sparc_expand_prologue (void)
 	}
       else
 	{
-	  rtx reg = gen_rtx_REG (Pmode, 1);
-	  emit_move_insn (reg, GEN_INT (-size));
-	  insn = emit_insn (gen_stack_pointer_inc (reg));
+	  rtx size_rtx = gen_rtx_REG (Pmode, 1);
+	  emit_move_insn (size_rtx, size_int_rtx);
+	  insn = emit_insn (gen_stack_pointer_inc (size_rtx));
 	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
-			gen_stack_pointer_inc (GEN_INT (-size)));
+			gen_stack_pointer_inc (size_int_rtx));
 	}
 
       RTX_FRAME_RELATED_P (insn) = 1;
     }
   else
     {
+      rtx size_int_rtx = GEN_INT (-size);
+
       if (size <= 4096)
-	insn = emit_insn (gen_save_register_window (GEN_INT (-size)));
+	emit_window_save (size_int_rtx);
       else if (size <= 8192)
 	{
-	  insn = emit_insn (gen_save_register_window (GEN_INT (-4096)));
+	  emit_window_save (GEN_INT (-4096));
 	  /* %sp is not the CFA register anymore.  */
 	  emit_insn (gen_stack_pointer_inc (GEN_INT (4096 - size)));
 	}
       else
 	{
-	  rtx reg = gen_rtx_REG (Pmode, 1);
-	  emit_move_insn (reg, GEN_INT (-size));
-	  insn = emit_insn (gen_save_register_window (reg));
+	  rtx size_rtx = gen_rtx_REG (Pmode, 1);
+	  emit_move_insn (size_rtx, size_int_rtx);
+	  emit_window_save (size_rtx);
 	}
-
-      RTX_FRAME_RELATED_P (insn) = 1;
-      for (i=0; i < XVECLEN (PATTERN (insn), 0); i++)
-        RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, i)) = 1;
     }
 
   if (sparc_leaf_function_p)
@@ -4786,7 +4779,6 @@ sparc_flat_expand_prologue (void)
 {
   HOST_WIDE_INT size;
   rtx insn;
-  int i;
 
   sparc_leaf_function_p = optimize > 0 && current_function_is_leaf;
 
@@ -4804,84 +4796,19 @@ sparc_flat_expand_prologue (void)
 
   if (size == 0)
     ; /* do nothing.  */
-  else if (frame_pointer_needed)
-    {
-      if (size <= 4096)
-	{
-	  if (return_addr_reg_needed_p (sparc_leaf_function_p))
-	    insn = emit_insn (gen_create_flat_frame_1 (GEN_INT (-size)));
-	  else
-	    insn = emit_insn (gen_create_flat_frame_2 (GEN_INT (-size)));
-	  RTX_FRAME_RELATED_P (insn) = 1;
-	  for (i=0; i < XVECLEN (PATTERN (insn), 0); i++)
-	    RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, i)) = 1;
-	}
-      else
-	{
-	  rtx reg = gen_rtx_REG (Pmode, 1), note;
-	  emit_move_insn (reg, GEN_INT (-size));
-	  if (return_addr_reg_needed_p (sparc_leaf_function_p))
-	    {
-	      insn = emit_insn (gen_create_flat_frame_1 (reg));
-	      note
-		= gen_rtx_PARALLEL (VOIDmode,
-				    gen_rtvec
-				    (3, copy_rtx
-					(XVECEXP (PATTERN (insn), 0, 0)),
-					gen_stack_pointer_inc
-					(GEN_INT (-size)),
-					copy_rtx
-					(XVECEXP (PATTERN (insn), 0, 2))));
-	    }
-	  else
-	    {
-	      insn = emit_insn (gen_create_flat_frame_2 (reg));
-	      note
-		= gen_rtx_PARALLEL (VOIDmode,
-				    gen_rtvec
-				    (2, copy_rtx
-					(XVECEXP (PATTERN (insn), 0, 0)),
-					gen_stack_pointer_inc
-					(GEN_INT (-size))));
-	    }
-
-	  RTX_FRAME_RELATED_P (insn) = 1;
-	  add_reg_note (insn, REG_FRAME_RELATED_EXPR, note);
-	  for (i=0; i < XVECLEN (note, 0); i++)
-	    RTX_FRAME_RELATED_P (XVECEXP (note, 0, i)) = 1;
-	}
-    }
-  else if (return_addr_reg_needed_p (sparc_leaf_function_p))
-    {
-      if (size <= 4096)
-	{
-	  insn = emit_insn (gen_create_flat_frame_3 (GEN_INT (-size)));
-	  RTX_FRAME_RELATED_P (insn) = 1;
-	  for (i=0; i < XVECLEN (PATTERN (insn), 0); i++)
-	    RTX_FRAME_RELATED_P (XVECEXP (PATTERN (insn), 0, i)) = 1;
-	}
-      else
-	{
-	  rtx reg = gen_rtx_REG (Pmode, 1), note;
-	  emit_move_insn (reg, GEN_INT (-size));
-	  insn = emit_insn (gen_create_flat_frame_3 (reg));
-	  note
-	    = gen_rtx_PARALLEL (VOIDmode,
-				gen_rtvec
-				(2, gen_stack_pointer_inc (GEN_INT (-size)),
-				    copy_rtx
-				    (XVECEXP (PATTERN (insn), 0, 1))));
-	  RTX_FRAME_RELATED_P (insn) = 1;
-	  add_reg_note (insn, REG_FRAME_RELATED_EXPR, note);
-	  for (i=0; i < XVECLEN (note, 0); i++)
-	    RTX_FRAME_RELATED_P (XVECEXP (note, 0, i)) = 1;
-	}
-    }
   else
     {
+      rtx size_int_rtx, size_rtx;
+
+      size_rtx = size_int_rtx = GEN_INT (-size);
+
+      /* We establish the frame (i.e. decrement the stack pointer) first, even
+	 if we use a frame pointer, because we cannot clobber any call-saved
+	 registers, including the frame pointer, if we haven't created a new
+	 register save area, for the sake of compatibility with the ABI.  */
       if (size <= 4096)
-	insn = emit_insn (gen_stack_pointer_inc (GEN_INT (-size)));
-      else if (size <= 8192)
+	insn = emit_insn (gen_stack_pointer_inc (size_int_rtx));
+      else if (size <= 8192 && !frame_pointer_needed)
 	{
 	  insn = emit_insn (gen_stack_pointer_inc (GEN_INT (-4096)));
 	  RTX_FRAME_RELATED_P (insn) = 1;
@@ -4889,18 +4816,47 @@ sparc_flat_expand_prologue (void)
 	}
       else
 	{
-	  rtx reg = gen_rtx_REG (Pmode, 1);
-	  emit_move_insn (reg, GEN_INT (-size));
-	  insn = emit_insn (gen_stack_pointer_inc (reg));
-	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
-			gen_stack_pointer_inc (GEN_INT (-size)));
+	  size_rtx = gen_rtx_REG (Pmode, 1);
+	  emit_move_insn (size_rtx, size_int_rtx);
+	  insn = emit_insn (gen_stack_pointer_inc (size_rtx));
+	  add_reg_note (insn, REG_CFA_ADJUST_CFA,
+			gen_stack_pointer_inc (size_int_rtx));
+	}
+      RTX_FRAME_RELATED_P (insn) = 1;
+
+      /* Ensure nothing is scheduled until after the frame is established.  */
+      emit_insn (gen_blockage ());
+
+      if (frame_pointer_needed)
+	{
+	  insn = emit_insn (gen_rtx_SET (VOIDmode, hard_frame_pointer_rtx,
+					 gen_rtx_MINUS (Pmode,
+							stack_pointer_rtx,
+							size_rtx)));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+
+	  add_reg_note (insn, REG_CFA_ADJUST_CFA,
+			gen_rtx_SET (VOIDmode, hard_frame_pointer_rtx,
+				     plus_constant (stack_pointer_rtx,
+						    size)));
 	}
 
-      RTX_FRAME_RELATED_P (insn) = 1;
-    }
+      if (return_addr_reg_needed_p (sparc_leaf_function_p))
+	{
+	  rtx o7 = gen_rtx_REG (Pmode, INCOMING_RETURN_ADDR_REGNUM);
+	  rtx i7 = gen_rtx_REG (Pmode, RETURN_ADDR_REGNUM);
 
-  /* Make sure nothing is scheduled until after the frame is established.  */
-  emit_insn (gen_blockage ());
+	  insn = emit_move_insn (i7, o7);
+	  RTX_FRAME_RELATED_P (insn) = 1;
+
+	  add_reg_note (insn, REG_CFA_REGISTER,
+			gen_rtx_SET (VOIDmode, i7, o7));
+
+	  /* Prevent this instruction from ever being considered dead,
+	     even if this function has no epilogue.  */
+	  emit_insn (gen_rtx_USE (VOIDmode, i7));
+	}
+    }
 
   if (frame_pointer_needed)
     {
@@ -6737,8 +6693,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   incr = valist;
   if (align)
     {
-      incr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr,
-			  size_int (align - 1));
+      incr = fold_build_pointer_plus_hwi (incr, align - 1);
       incr = fold_convert (sizetype, incr);
       incr = fold_build2 (BIT_AND_EXPR, sizetype, incr,
 			  size_int (-align));
@@ -6749,8 +6704,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   addr = incr;
 
   if (BYTES_BIG_ENDIAN && size < rsize)
-    addr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr,
-			size_int (rsize - size));
+    addr = fold_build_pointer_plus_hwi (incr, rsize - size);
 
   if (indirect)
     {
@@ -6774,8 +6728,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   else
     addr = fold_convert (ptrtype, addr);
 
-  incr
-    = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr, size_int (rsize));
+  incr = fold_build_pointer_plus_hwi (incr, rsize);
   gimplify_assign (valist, incr, post_p);
 
   return build_va_arg_indirect_ref (addr);
@@ -8403,7 +8356,9 @@ sparc32_initialize_trampoline (rtx m_tramp, rtx fnaddr, rtx cxt)
   if (sparc_cpu != PROCESSOR_ULTRASPARC
       && sparc_cpu != PROCESSOR_ULTRASPARC3
       && sparc_cpu != PROCESSOR_NIAGARA
-      && sparc_cpu != PROCESSOR_NIAGARA2)
+      && sparc_cpu != PROCESSOR_NIAGARA2
+      && sparc_cpu != PROCESSOR_NIAGARA3
+      && sparc_cpu != PROCESSOR_NIAGARA4)
     emit_insn (gen_flush (validize_mem (adjust_address (m_tramp, SImode, 8))));
 
   /* Call __enable_execute_stack after writing onto the stack to make sure
@@ -8446,7 +8401,9 @@ sparc64_initialize_trampoline (rtx m_tramp, rtx fnaddr, rtx cxt)
   if (sparc_cpu != PROCESSOR_ULTRASPARC
       && sparc_cpu != PROCESSOR_ULTRASPARC3
       && sparc_cpu != PROCESSOR_NIAGARA
-      && sparc_cpu != PROCESSOR_NIAGARA2)
+      && sparc_cpu != PROCESSOR_NIAGARA2
+      && sparc_cpu != PROCESSOR_NIAGARA3
+      && sparc_cpu != PROCESSOR_NIAGARA4)
     emit_insn (gen_flushdi (validize_mem (adjust_address (m_tramp, DImode, 8))));
 
   /* Call __enable_execute_stack after writing onto the stack to make sure
@@ -8639,7 +8596,9 @@ static int
 sparc_use_sched_lookahead (void)
 {
   if (sparc_cpu == PROCESSOR_NIAGARA
-      || sparc_cpu == PROCESSOR_NIAGARA2)
+      || sparc_cpu == PROCESSOR_NIAGARA2
+      || sparc_cpu == PROCESSOR_NIAGARA3
+      || sparc_cpu == PROCESSOR_NIAGARA4)
     return 0;
   if (sparc_cpu == PROCESSOR_ULTRASPARC
       || sparc_cpu == PROCESSOR_ULTRASPARC3)
@@ -8658,6 +8617,8 @@ sparc_issue_rate (void)
     {
     case PROCESSOR_NIAGARA:
     case PROCESSOR_NIAGARA2:
+    case PROCESSOR_NIAGARA3:
+    case PROCESSOR_NIAGARA4:
     default:
       return 1;
     case PROCESSOR_V9:
@@ -9475,8 +9436,8 @@ sparc_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED,
    ??? the latencies and then CSE will just use that.  */
 
 static bool
-sparc_rtx_costs (rtx x, int code, int outer_code, int *total,
-		 bool speed ATTRIBUTE_UNUSED)
+sparc_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		 int *total, bool speed ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = GET_MODE (x);
   bool float_mode_p = FLOAT_MODE_P (mode);
@@ -9696,7 +9657,9 @@ sparc_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
       if (sparc_cpu == PROCESSOR_ULTRASPARC
 	  || sparc_cpu == PROCESSOR_ULTRASPARC3
 	  || sparc_cpu == PROCESSOR_NIAGARA
-	  || sparc_cpu == PROCESSOR_NIAGARA2)
+	  || sparc_cpu == PROCESSOR_NIAGARA2
+	  || sparc_cpu == PROCESSOR_NIAGARA3
+	  || sparc_cpu == PROCESSOR_NIAGARA4)
 	return 12;
 
       return 6;
@@ -10000,20 +9963,6 @@ get_some_local_dynamic_name_1 (rtx *px, void *data ATTRIBUTE_UNUSED)
   return 0;
 }
 
-/* Handle the TARGET_DWARF_HANDLE_FRAME_UNSPEC hook.
-
-   This is called from dwarf2out.c to emit call frame instructions
-   for frame-related insns containing UNSPECs and UNSPEC_VOLATILEs.  */
-
-static void
-sparc_dwarf_handle_frame_unspec (const char *label,
-				 rtx pattern ATTRIBUTE_UNUSED,
-				 int index ATTRIBUTE_UNUSED)
-{
-  gcc_assert (index == UNSPECV_SAVEW);
-  dwarf2out_window_save (label);
-}
-
 /* This is called from dwarf2out.c via TARGET_ASM_OUTPUT_DWARF_DTPREL.
    We need to emit DTP-relative relocations.  */
 
@@ -10096,6 +10045,10 @@ sparc_file_end (void)
 
   if (NEED_INDICATE_EXEC_STACK)
     file_end_indicate_exec_stack ();
+
+#ifdef TARGET_SOLARIS
+  solaris_file_end ();
+#endif
 }
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
@@ -10223,6 +10176,11 @@ sparc_frame_pointer_required (void)
   /* If the stack pointer is dynamically modified in the function, it cannot
      serve as the frame pointer.  */
   if (cfun->calls_alloca)
+    return true;
+
+  /* If the function receives nonlocal gotos, it needs to save the frame
+     pointer in the nonlocal_goto_save_area object.  */
+  if (cfun->has_nonlocal_label)
     return true;
 
   /* In flat mode, that's it.  */

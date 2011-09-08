@@ -542,13 +542,13 @@ cgraph_address_taken_from_non_vtable_p (struct cgraph_node *node)
 {
   int i;
   struct ipa_ref *ref;
-  for (i = 0; ipa_ref_list_reference_iterate (&node->ref_list, i, ref); i++)
+  for (i = 0; ipa_ref_list_refering_iterate (&node->ref_list, i, ref); i++)
     if (ref->use == IPA_REF_ADDR)
       {
 	struct varpool_node *node;
-	if (ref->refered_type == IPA_REF_CGRAPH)
+	if (ref->refering_type == IPA_REF_CGRAPH)
 	  return true;
-	node = ipa_ref_varpool_node (ref);
+	node = ipa_ref_refering_varpool_node (ref);
 	if (!DECL_VIRTUAL_P (node->decl))
 	  return true;
       }
@@ -865,31 +865,14 @@ function_and_variable_visibility (bool whole_program)
 	  decl_node = cgraph_function_node (decl_node->callees->callee, NULL);
 
 	  /* Thunks have the same visibility as function they are attached to.
-	     For some reason C++ frontend don't seem to care. I.e. in 
-	     g++.dg/torture/pr41257-2.C the thunk is not comdat while function
-	     it is attached to is.
-
-	     We also need to arrange the thunk into the same comdat group as
-	     the function it reffers to.  */
+	     Make sure the C++ front end set this up properly.  */
 	  if (DECL_ONE_ONLY (decl_node->decl))
 	    {
-	      DECL_COMDAT (node->decl) = DECL_COMDAT (decl_node->decl);
-	      DECL_COMDAT_GROUP (node->decl) = DECL_COMDAT_GROUP (decl_node->decl);
-	      if (DECL_ONE_ONLY (decl_node->decl) && !node->same_comdat_group)
-		{
-		  node->same_comdat_group = decl_node;
-		  if (!decl_node->same_comdat_group)
-		    decl_node->same_comdat_group = node;
-		  else
-		    {
-		      struct cgraph_node *n;
-		      for (n = decl_node->same_comdat_group;
-			   n->same_comdat_group != decl_node;
-			   n = n->same_comdat_group)
-			;
-		      n->same_comdat_group = node;
-		    }
-		}
+	      gcc_checking_assert (DECL_COMDAT (node->decl)
+				   == DECL_COMDAT (decl_node->decl));
+	      gcc_checking_assert (DECL_COMDAT_GROUP (node->decl)
+				   == DECL_COMDAT_GROUP (decl_node->decl));
+	      gcc_checking_assert (node->same_comdat_group);
 	    }
 	  if (DECL_EXTERNAL (decl_node->decl))
 	    DECL_EXTERNAL (node->decl) = 1;

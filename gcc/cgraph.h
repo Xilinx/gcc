@@ -84,9 +84,12 @@ struct GTY(()) cgraph_local_info {
 
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
-  
+
   /* Set once it has been finalized so we consider it to be output.  */
   unsigned finalized : 1;
+
+  /* False when there is something makes versioning impossible.  */
+  unsigned versionable : 1;
 
   /* False when function calling convention and signature can not be changed.
      This is the case when __builtin_apply_args is used.  */
@@ -314,9 +317,6 @@ struct GTY(()) cgraph_indirect_call_info
   HOST_WIDE_INT anc_offset;
   /* OBJ_TYPE_REF_TOKEN of a polymorphic call (if polymorphic is set).  */
   HOST_WIDE_INT otr_token;
-  /* Delta by which must be added to this parameter to compensate for a skipped
-     this adjusting thunk.  */
-  HOST_WIDE_INT thunk_delta;
   /* Type of the object from OBJ_TYPE_REF_OBJECT. */
   tree otr_type;
   /* Index of the parameter that is called.  */
@@ -469,6 +469,7 @@ void debug_cgraph_node (struct cgraph_node *);
 void cgraph_insert_node_to_hashtable (struct cgraph_node *node);
 void cgraph_remove_edge (struct cgraph_edge *);
 void cgraph_remove_node (struct cgraph_node *);
+void cgraph_add_to_same_comdat_group (struct cgraph_node *, struct cgraph_node *);
 void cgraph_remove_node_and_inline_clones (struct cgraph_node *);
 void cgraph_release_function_body (struct cgraph_node *);
 void cgraph_node_remove_callees (struct cgraph_node *node);
@@ -479,7 +480,6 @@ struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple,
 						 int, gcov_type, int);
 struct cgraph_indirect_call_info *cgraph_allocate_init_indirect_info (void);
 struct cgraph_node * cgraph_get_node (const_tree);
-struct cgraph_node * cgraph_get_node_or_alias (const_tree);
 struct cgraph_node * cgraph_create_node (tree);
 struct cgraph_node * cgraph_get_create_node (tree);
 struct cgraph_node * cgraph_same_body_alias (struct cgraph_node *, tree, tree);
@@ -507,8 +507,7 @@ struct cgraph_node * cgraph_clone_node (struct cgraph_node *, tree, gcov_type,
 struct cgraph_node *cgraph_create_function_alias (tree, tree);
 
 void cgraph_redirect_edge_callee (struct cgraph_edge *, struct cgraph_node *);
-void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *,
-			      HOST_WIDE_INT);
+void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *);
 bool cgraph_only_called_directly_p (struct cgraph_node *);
 
 struct cgraph_asm_node *cgraph_add_asm_node (tree);
@@ -947,7 +946,8 @@ varpool_can_remove_if_no_refs (struct varpool_node *node)
 static inline bool
 varpool_all_refs_explicit_p (struct varpool_node *vnode)
 {
-  return (!vnode->externally_visible
+  return (vnode->analyzed
+	  && !vnode->externally_visible
 	  && !vnode->used_from_other_partition
 	  && !vnode->force_output);
 }
@@ -981,7 +981,7 @@ varpool_alias_aliased_node (struct varpool_node *n)
 
   ipa_ref_list_reference_iterate (&n->ref_list, 0, ref);
   gcc_checking_assert (ref->use == IPA_REF_ALIAS);
-  if (ref->refered_type == IPA_REF_CGRAPH)
+  if (ref->refered_type == IPA_REF_VARPOOL)
     return ipa_ref_varpool_node (ref);
   return NULL;
 }
@@ -1011,7 +1011,7 @@ cgraph_function_node (struct cgraph_node *node, enum availability *availability)
 	    *availability = a;
 	}
     }
-  if (*availability)
+  if (availability)
     *availability = AVAIL_NOT_AVAILABLE;
   return NULL;
 }
@@ -1039,7 +1039,7 @@ cgraph_function_or_thunk_node (struct cgraph_node *node, enum availability *avai
 	    *availability = a;
 	}
     }
-  if (*availability)
+  if (availability)
     *availability = AVAIL_NOT_AVAILABLE;
   return NULL;
 }
@@ -1067,7 +1067,7 @@ varpool_variable_node (struct varpool_node *node, enum availability *availabilit
 	    *availability = a;
 	}
     }
-  if (*availability)
+  if (availability)
     *availability = AVAIL_NOT_AVAILABLE;
   return NULL;
 }

@@ -364,7 +364,8 @@ static void frv_setup_incoming_varargs		(cumulative_args_t,
 						 tree, int *, int);
 static rtx frv_expand_builtin_saveregs		(void);
 static void frv_expand_builtin_va_start		(tree, rtx);
-static bool frv_rtx_costs			(rtx, int, int, int*, bool);
+static bool frv_rtx_costs			(rtx, int, int, int, int*,
+						 bool);
 static int frv_register_move_cost		(enum machine_mode,
 						 reg_class_t, reg_class_t);
 static int frv_memory_move_cost			(enum machine_mode,
@@ -6818,6 +6819,13 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 
     case QUAD_REGS:
     case GPR_REGS:
+    case GR8_REGS:
+    case GR9_REGS:
+    case GR89_REGS:
+    case FDPIC_REGS:
+    case FDPIC_FPTR_REGS:
+    case FDPIC_CALL_REGS:
+
       switch (to)
 	{
 	default:
@@ -6825,6 +6833,13 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 
 	case QUAD_REGS:	
 	case GPR_REGS:
+	case GR8_REGS:
+	case GR9_REGS:
+	case GR89_REGS:
+	case FDPIC_REGS:
+	case FDPIC_FPTR_REGS:
+	case FDPIC_CALL_REGS:
+
 	  return LOW_COST;
 
 	case FPR_REGS:
@@ -6844,6 +6859,13 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 
 	case QUAD_REGS:
 	case GPR_REGS:
+	case GR8_REGS:
+	case GR9_REGS:
+	case GR89_REGS:
+	case FDPIC_REGS:
+	case FDPIC_FPTR_REGS:
+	case FDPIC_CALL_REGS:
+
 	case QUAD_ACC_REGS:
 	case ACCG_REGS:
 	  return MEDIUM_COST;
@@ -6862,6 +6884,13 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 
 	case QUAD_REGS:
 	case GPR_REGS:
+	case GR8_REGS:
+	case GR9_REGS:
+	case GR89_REGS:
+	case FDPIC_REGS:
+	case FDPIC_FPTR_REGS:
+	case FDPIC_CALL_REGS:
+
 	  return MEDIUM_COST;
 	}
 
@@ -9468,6 +9497,7 @@ static bool
 frv_rtx_costs (rtx x,
                int code ATTRIBUTE_UNUSED,
                int outer_code ATTRIBUTE_UNUSED,
+	       int opno ATTRIBUTE_UNUSED,
                int *total,
 	       bool speed ATTRIBUTE_UNUSED)
 {

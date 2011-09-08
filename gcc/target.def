@@ -296,6 +296,15 @@ DEFHOOK
  section *, (tree decl),
  default_function_rodata_section)
 
+/* Nonnull if the target wants to override the default ".rodata" prefix
+   for mergeable data sections.  */
+DEFHOOKPOD
+(mergeable_rodata_prefix,
+ "Usually, the compiler uses the prefix @code{\".rodata\"} to construct\n\
+section names for mergeable constant data.  Define this macro to override\n\
+the string if a different section name should be used.",
+ const char *, ".rodata")
+
 /* Output a constructor for a symbol with a given priority.  */
 DEFHOOK
 (constructor,
@@ -903,6 +912,16 @@ DEFHOOKPOD
 the order of instructions is important for correctness when scheduling, but\n\
 also the latencies of operations.",
 bool, false)
+
+/* The following member value is a function that returns number
+   of operations reassociator should try to put in parallel for
+   statements of the given type.  By default 1 is used.  */
+DEFHOOK
+(reassociation_width,
+"This hook is called by tree reassociator to determine a level of\n\
+parallelism required in output calculations chain.",
+int, (unsigned int opc, enum machine_mode mode),
+hook_int_uint_mode_1)
 
 HOOK_VECTOR_END (sched)
 
@@ -1636,8 +1655,8 @@ DEFHOOKPOD
 DEFHOOK
 (rtx_costs,
  "",
- bool, (rtx x, int code, int outer_code, int *total, bool speed),
- hook_bool_rtx_int_int_intp_bool_false)
+ bool, (rtx x, int code, int outer_code, int opno, int *total, bool speed),
+ hook_bool_rtx_int_int_int_intp_bool_false)
 
 /* Compute the cost of X, used as an address.  Never called with
    invalid addresses.  */
@@ -2021,6 +2040,15 @@ DEFHOOK
  unsigned int, (enum machine_mode mode, const_tree type),
  default_function_arg_boundary)
 
+DEFHOOK
+(function_arg_round_boundary,
+ "Normally, the size of an argument is rounded up to @code{PARM_BOUNDARY},\n\
+which is the default value for this hook.  You can define this hook to\n\
+return a different value if an argument size must be rounded to a larger\n\
+value.",
+ unsigned int, (enum machine_mode mode, const_tree type),
+ default_function_arg_round_boundary)
+
 /* Return the diagnostic message string if function without a prototype
    is not allowed for this 'val' argument; NULL otherwise. */
 DEFHOOK
@@ -2227,6 +2255,14 @@ DEFHOOK
  bool, (reg_class_t rclass),
  default_class_likely_spilled_p)
 
+/* Return the maximum number of consecutive registers
+   needed to represent mode MODE in a register of class RCLASS.  */
+DEFHOOK
+(class_max_nregs,
+ "",
+ unsigned char, (reg_class_t rclass, enum machine_mode mode),
+ default_class_max_nregs)
+
 DEFHOOK
 (preferred_rename_class,
  "A target hook that places additional preference on the register\
@@ -2425,6 +2461,12 @@ DEFHOOK
  void, (tree type),
  hook_void_tree)
 
+DEFHOOK
+(decl_mangling_context,
+ "Return target-specific mangling context of @var{decl} or @code{NULL_TREE}.",
+ tree, (const_tree decl),
+ hook_tree_const_tree_null)
+
 HOOK_VECTOR_END (cxx)
 
 /* Functions and data for emulated TLS support.  */
@@ -2542,13 +2584,6 @@ DEFHOOK
 DEFHOOK
 (override,
  "",
- void, (void),
- hook_void_void)
-
-DEFHOOK
-(default_params,
-"Set target-dependent default values for @option{--param} settings, using\
- calls to @code{set_default_param_value}.",
  void, (void),
  hook_void_void)
 

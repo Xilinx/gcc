@@ -590,6 +590,7 @@ dnl  GLIBCXX_TEST_WCHAR_T
 dnl  GLIBCXX_TEST_THREAD
 dnl Substs:
 dnl  baseline_dir
+dnl  baseline_subdir_switch
 dnl
 AC_DEFUN([GLIBCXX_CONFIGURE_TESTSUITE], [
   if $GLIBCXX_IS_NATIVE ; then
@@ -617,6 +618,8 @@ AC_DEFUN([GLIBCXX_CONFIGURE_TESTSUITE], [
   # Export file names for ABI checking.
   baseline_dir="$glibcxx_srcdir/config/abi/post/${abi_baseline_pair}"
   AC_SUBST(baseline_dir)
+  baseline_subdir_switch="$abi_baseline_subdir_switch"
+  AC_SUBST(baseline_subdir_switch)
 ])
 
 
@@ -682,9 +685,9 @@ AC_DEFUN([GLIBCXX_EXPORT_INCLUDES], [
   fi
 
   # Stuff in the actual top level.  Currently only used by libsupc++ to
-  # get unwind* headers from the gcc dir.
-  #TOPLEVEL_INCLUDES='-I$(toplevel_srcdir)/gcc -I$(toplevel_srcdir)/include'
-  TOPLEVEL_INCLUDES='-I$(toplevel_srcdir)/gcc'
+  # get unwind* headers from the libgcc dir.
+  #TOPLEVEL_INCLUDES='-I$(toplevel_srcdir)/libgcc -I$(toplevel_srcdir)/include'
+  TOPLEVEL_INCLUDES='-I$(toplevel_srcdir)/libgcc'
 
   # Now, export this to all the little Makefiles....
   AC_SUBST(GLIBCXX_INCLUDES)
@@ -1690,6 +1693,100 @@ AC_DEFUN([GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS], [
 ])
 
 dnl
+dnl Check whether required C++ overloads are present in <math.h>.
+dnl
+
+AC_DEFUN([GLIBCXX_CHECK_MATH_PROTO], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+
+  case "$host" in
+    *-*-solaris2.*)
+      # Solaris 8 FCS only had an overload for double std::abs(double) in
+      # <iso/math_iso.h>.  Patches 111721-04 (SPARC) and 112757-01 (x86)
+      # introduced the full set also found from Solaris 9 onwards.
+      AC_MSG_CHECKING([for float std::abs(float) overload])
+      AC_CACHE_VAL(glibcxx_cv_abs_float, [
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	  [#include <math.h>
+	   namespace std {
+	     inline float abs(float __x)
+	     {  return __builtin_fabsf(__x); }
+	   }
+	])],
+        [glibcxx_cv_abs_float=no],
+        [glibcxx_cv_abs_float=yes]
+      )])
+
+      # autoheader cannot handle indented templates.
+      AH_VERBATIM([__CORRECT_ISO_CPP_MATH_H_PROTO1],
+        [/* Define if all C++ overloads are available in <math.h>.  */
+#if __cplusplus >= 199711L
+#undef __CORRECT_ISO_CPP_MATH_H_PROTO1
+#endif])
+      AH_VERBATIM([__CORRECT_ISO_CPP_MATH_H_PROTO2],
+        [/* Define if only double std::abs(double) is available in <math.h>.  */
+#if __cplusplus >= 199711L
+#undef __CORRECT_ISO_CPP_MATH_H_PROTO2
+#endif])
+
+      if test $glibcxx_cv_abs_float = yes; then
+        AC_DEFINE(__CORRECT_ISO_CPP_MATH_H_PROTO1)
+      else
+        AC_DEFINE(__CORRECT_ISO_CPP_MATH_H_PROTO2)
+      fi
+      AC_MSG_RESULT($glibcxx_cv_abs_float)
+      ;;
+  esac
+
+  AC_LANG_RESTORE
+])
+
+dnl
+dnl Check whether required C++ overloads are present in <stdlib.h>.
+dnl
+
+AC_DEFUN([GLIBCXX_CHECK_STDLIB_PROTO], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+
+  case "$host" in
+    *-*-solaris2.*)
+      # Solaris 8 FCS lacked the overloads for long std::abs(long) and
+      # ldiv_t std::div(long, long) in <iso/stdlib_iso.h>.  Patches 109607-02
+      # (SPARC) and 109608-02 (x86) introduced them.
+      AC_MSG_CHECKING([for long std::abs(long) overload])
+      AC_CACHE_VAL(glibcxx_cv_abs_long, [
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	  [#include <stdlib.h>
+	   namespace std {
+	     inline long
+	     abs(long __i) { return labs(__i); }
+	   }
+        ])],
+        [glibcxx_cv_abs_long=no],
+        [glibcxx_cv_abs_long=yes]
+      )])
+
+      # autoheader cannot handle indented templates.
+      AH_VERBATIM([__CORRECT_ISO_CPP_STDLIB_H_PROTO],
+        [/* Define if all C++ overloads are available in <stdlib.h>.  */
+#if __cplusplus >= 199711L
+#undef __CORRECT_ISO_CPP_STDLIB_H_PROTO
+#endif])
+      if test $glibcxx_cv_abs_long = yes; then
+        AC_DEFINE(__CORRECT_ISO_CPP_STDLIB_H_PROTO, 1)
+      fi
+      AC_MSG_RESULT($glibcxx_cv_abs_long)
+      ;;
+  esac
+
+  AC_LANG_RESTORE
+])
+
+dnl
 dnl Check whether macros, etc are present for <system_error>
 dnl
 AC_DEFUN([GLIBCXX_CHECK_SYSTEM_ERROR], [
@@ -1697,7 +1794,9 @@ AC_DEFUN([GLIBCXX_CHECK_SYSTEM_ERROR], [
 m4_pushdef([n_syserr], [1])dnl
 m4_foreach([syserr], [EOWNERDEAD, ENOTRECOVERABLE, ENOLINK, EPROTO, ENODATA,
 		      ENOSR, ENOSTR, ETIME, EBADMSG, ECANCELED,
-		      EOVERFLOW, ENOTSUP, EIDRM, ETXTBSY],
+		      EOVERFLOW, ENOTSUP, EIDRM, ETXTBSY,
+		      ECHILD, ENOSPC, EPERM,
+		      ETIMEDOUT, EWOULDBLOCK],
 [m4_pushdef([SYSERR], m4_toupper(syserr))dnl
 AC_MSG_CHECKING([for syserr])
 AC_CACHE_VAL([glibcxx_cv_system_error[]n_syserr], [
@@ -1753,7 +1852,7 @@ dnl
 AC_DEFUN([GLIBCXX_ENABLE_CLOCALE], [
   GLIBCXX_ENABLE(clocale,auto,[[[=MODEL]]],
     [use MODEL for target locale package],
-    [permit generic|gnu|ieee_1003.1-2001|yes|no|auto])
+    [permit generic|gnu|ieee_1003.1-2001|newlib|yes|no|auto])
 
   # Deal with gettext issues.  Default to not using it (=no) until we detect
   # support for it later.  Let the user turn it off via --e/d, but let that
@@ -1764,7 +1863,7 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCALE], [
     [],
     [enable_nls=yes])
 
-  # Either a known packaage, or "auto"
+  # Either a known package, or "auto"
   if test $enable_clocale = no || test $enable_clocale = yes; then
      enable_clocale=auto
   fi
@@ -1781,7 +1880,11 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCALE], [
 	enable_clocale_flag=darwin
 	;;
       *)
-	enable_clocale_flag=generic
+	if test x"$with_newlib" = x"yes"; then
+	  enable_clocale_flag=newlib
+	else
+	  enable_clocale_flag=generic
+	fi
 	;;
     esac
   fi
@@ -1909,6 +2012,22 @@ AC_DEFUN([GLIBCXX_ENABLE_CLOCALE], [
       CCTYPE_CC=config/locale/generic/ctype_members.cc
       CMESSAGES_H=config/locale/ieee_1003.1-2001/messages_members.h
       CMESSAGES_CC=config/locale/ieee_1003.1-2001/messages_members.cc
+      CMONEY_CC=config/locale/generic/monetary_members.cc
+      CNUMERIC_CC=config/locale/generic/numeric_members.cc
+      CTIME_H=config/locale/generic/time_members.h
+      CTIME_CC=config/locale/generic/time_members.cc
+      CLOCALE_INTERNAL_H=config/locale/generic/c++locale_internal.h
+      ;;
+    newlib)
+      AC_MSG_RESULT(newlib)
+
+      CLOCALE_H=config/locale/generic/c_locale.h
+      CLOCALE_CC=config/locale/generic/c_locale.cc
+      CCODECVT_CC=config/locale/generic/codecvt_members.cc
+      CCOLLATE_CC=config/locale/generic/collate_members.cc
+      CCTYPE_CC=config/locale/newlib/ctype_members.cc
+      CMESSAGES_H=config/locale/generic/messages_members.h
+      CMESSAGES_CC=config/locale/generic/messages_members.cc
       CMONEY_CC=config/locale/generic/monetary_members.cc
       CNUMERIC_CC=config/locale/generic/numeric_members.cc
       CTIME_H=config/locale/generic/time_members.h
@@ -3152,6 +3271,22 @@ AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
   ac_save_CXXFLAGS="$CXXFLAGS"
   CXXFLAGS="$CXXFLAGS -fno-exceptions -I${toplevel_srcdir}/gcc"
 
+  AC_MSG_CHECKING([check whether it can be safely assumed that mutex_timedlock is available])
+
+  AC_TRY_COMPILE([#include <unistd.h>],
+    [
+      #if !defined(_POSIX_TIMEOUTS) || _POSIX_TIMEOUTS < 0
+      #error
+      #endif
+    ], [ac_gthread_use_mutex_timedlock=1], [ac_gthread_use_mutex_timedlock=0])
+
+  AC_DEFINE_UNQUOTED(_GTHREAD_USE_MUTEX_TIMEDLOCK, $ac_gthread_use_mutex_timedlock,
+                     [Define to 1 if mutex_timedlock is available.])
+
+  if test $ac_gthread_use_mutex_timedlock = 1 ; then res_mutex_timedlock=yes ;
+  else res_mutex_timedlock=no ; fi
+  AC_MSG_RESULT([$res_mutex_timedlock])
+
   target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
   case $target_thread_file in
     posix)
@@ -3160,7 +3295,10 @@ AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
 
   AC_MSG_CHECKING([for gthreads library])
 
-  AC_TRY_COMPILE([#include "gthr.h"],
+  AC_TRY_COMPILE([
+                  #include "gthr.h"
+		  #include <unistd.h>
+                 ],
     [
       #ifndef __GTHREADS_CXX0X
       #error

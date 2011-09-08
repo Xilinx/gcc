@@ -123,7 +123,7 @@ static void cris_init_libfuncs (void);
 
 static int cris_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
 static int cris_memory_move_cost (enum machine_mode, reg_class_t, bool);
-static bool cris_rtx_costs (rtx, int, int, int *, bool);
+static bool cris_rtx_costs (rtx, int, int, int, int *, bool);
 static int cris_address_cost (rtx, bool);
 static bool cris_pass_by_reference (cumulative_args_t, enum machine_mode,
 				    const_tree, bool);
@@ -1777,7 +1777,7 @@ cris_expand_return (bool on_stack)
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-cris_rtx_costs (rtx x, int code, int outer_code, int *total,
+cris_rtx_costs (rtx x, int code, int outer_code, int opno, int *total,
 		bool speed)
 {
   switch (code)
@@ -1871,7 +1871,8 @@ cris_rtx_costs (rtx x, int code, int outer_code, int *total,
           && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (XEXP (x, 1)), 'I'))
 	{
 	  *total
-	    = (rtx_cost (XEXP (x, 0), (enum rtx_code) outer_code, speed) + 2
+	    = (rtx_cost (XEXP (x, 0), (enum rtx_code) outer_code,
+			 opno, speed) + 2
 	       + 2 * GET_MODE_NUNITS (GET_MODE (XEXP (x, 0))));
 	  return true;
 	}
@@ -1883,7 +1884,7 @@ cris_rtx_costs (rtx x, int code, int outer_code, int *total,
       /* fall through */
 
     case ZERO_EXTEND: case SIGN_EXTEND:
-      *total = rtx_cost (XEXP (x, 0), (enum rtx_code) outer_code, speed);
+      *total = rtx_cost (XEXP (x, 0), (enum rtx_code) outer_code, opno, speed);
       return true;
 
     default:
@@ -2275,12 +2276,22 @@ cris_legitimate_pic_operand (rtx x)
 void
 cris_asm_output_case_end (FILE *stream, int num, rtx table)
 {
+  /* Step back, over the label for the table, to the actual casejump and
+     assert that we find only what's expected.  */
+  rtx whole_jump_insn = prev_nonnote_nondebug_insn (table);
+  gcc_assert (whole_jump_insn != NULL_RTX && LABEL_P (whole_jump_insn));
+  whole_jump_insn = prev_nonnote_nondebug_insn (whole_jump_insn);
+  gcc_assert (whole_jump_insn != NULL_RTX
+	      && (JUMP_P (whole_jump_insn)
+		  || (TARGET_V32 && INSN_P (whole_jump_insn)
+		      && GET_CODE (PATTERN (whole_jump_insn)) == SEQUENCE)));
+  /* Get the pattern of the casejump, so we can extract the default label.  */
+  whole_jump_insn = PATTERN (whole_jump_insn);
+
   if (TARGET_V32)
     {
-      rtx whole_jump_insn = PATTERN (PREV_INSN (PREV_INSN (table)));
-
       /* This can be a SEQUENCE, meaning the delay-slot of the jump is
-	 filled.  */
+	 filled.  We also output the offset word a little differently.  */
       rtx parallel_jump
 	= (GET_CODE (whole_jump_insn) == SEQUENCE
 	   ? PATTERN (XVECEXP (whole_jump_insn, 0, 0)) : whole_jump_insn);
@@ -2298,11 +2309,7 @@ cris_asm_output_case_end (FILE *stream, int num, rtx table)
 	       "\t.word %LL%d-%LL%d%s\n",
 	       CODE_LABEL_NUMBER (XEXP
 				  (XEXP
-				   (XEXP
-				    (XVECEXP
-				     (PATTERN
-				      (PREV_INSN
-				       (PREV_INSN (table))), 0, 0), 1),
+				   (XEXP (XVECEXP (whole_jump_insn, 0, 0), 1), 
 				    2), 0)),
 	       num,
 	       (TARGET_PDEBUG ? "; default" : ""));
