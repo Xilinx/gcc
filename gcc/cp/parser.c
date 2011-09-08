@@ -259,7 +259,7 @@ cp_lexer_dump_tokens (FILE *file, VEC(cp_token,gc) *buffer,
 		      cp_token *start_token, unsigned num,
 		      cp_token *curr_token)
 {
-  unsigned i;
+  unsigned i, nprinted;
   cp_token *token;
   bool do_print;
 
@@ -281,7 +281,8 @@ cp_lexer_dump_tokens (FILE *file, VEC(cp_token,gc) *buffer,
     }
 
   do_print = false;
-  for (i = 0; VEC_iterate (cp_token, buffer, i, token) && i < num; i++)
+  nprinted = 0;
+  for (i = 0; VEC_iterate (cp_token, buffer, i, token) && nprinted < num; i++)
     {
       if (token == start_token)
 	do_print = true;
@@ -289,6 +290,7 @@ cp_lexer_dump_tokens (FILE *file, VEC(cp_token,gc) *buffer,
       if (!do_print)
 	continue;
 
+      nprinted++;
       if (token == curr_token)
 	fprintf (file, "[[");
 
@@ -462,7 +464,7 @@ cp_debug_parser_tokens (FILE *file, cp_parser *parser, int window_size)
 void
 cp_debug_parser (FILE *file, cp_parser *parser)
 {
-  const size_t window_size = 200;
+  const size_t window_size = 20;
 
   if (file == NULL)
     file = stderr;
