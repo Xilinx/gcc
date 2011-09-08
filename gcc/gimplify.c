@@ -2317,12 +2317,6 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   if (! EXPR_HAS_LOCATION (*expr_p))
     SET_EXPR_LOCATION (*expr_p, input_location);
 
-  if (SPAWN_CALL_P (*expr_p))
-    {
-      SPAWN_CALL_P (*expr_p) = 0;
-      warning (0, "Unsupported use of _Cilk_spawn.");
-    }
-  
   is_detach = SPAWN_DETACH_POINT (*expr_p);
   SPAWN_DETACH_POINT (*expr_p) = 0;
   /* This may be a call to a builtin function.

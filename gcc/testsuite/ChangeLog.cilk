@@ -2,6 +2,7 @@
 
 	* gcc.dg/cilk-plus/label_test.c: New.
 	* g++.dg/cilk-plus/label_test.cpp: New.
+	* g++.dg/cilk-plus/spawn_inside_ctor_dtor.cpp: New.
 
 2011-09-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
