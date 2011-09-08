@@ -9422,7 +9422,7 @@ cp_parser_jump_statement (cp_parser* parser)
 	  /* Labels declared outside a Cilk block are not usable
 	     inside a Cilk block.  Labels declared inside a Cilk
 	     block are local to the Cilk block. */
-	  if (parser->in_statement & (IN_CILK_FOR | IN_CILK_SPAWN))
+	  if (parser->in_statement & IN_CILK_SPAWN)
 	    dest = cilk_block_local_label (dest);
 	  finish_goto_stmt (dest);
 	}
