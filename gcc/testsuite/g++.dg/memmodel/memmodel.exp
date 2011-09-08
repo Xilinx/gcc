@@ -54,4 +54,5 @@ if [info exists guality_gdb_name] {
     unsetenv GUALITY_GDB_NAME
 }
 
+torture-finish
 dg-finish

@@ -1,5 +1,10 @@
 2011-09-07  Aldy Hernandez  <aldyh@redhat.com>
 
+	* gcc.dg/memmodel/memmodel.exp: Call torture-finish.
+	* g++.dg/memmodel/memmodel.exp: Likewise.
+
+2011-09-07  Aldy Hernandez  <aldyh@redhat.com>
+
 	* gcc.dg/dg.exp: Exclude memmodel tests.
 
 2011-08-18  Aldy Hernandez  <aldyh@redhat.com>
