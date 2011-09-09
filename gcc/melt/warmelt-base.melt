@@ -203,6 +203,124 @@ given a string $MSG, with gdb when desperate.}#
 				 (%i (get_int a) ib)))))))
 
 
+(defprimitive +ivi (a :long lb) :value
+  :doc #{Add boxed integer $A to constant raw long $LB. Return null if $A is not a boxed integer.}#
+  #{/*+ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT)?
+	 (meltgc_new_int
+	   ((meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_INTEGER),
+            (melt_unsafe_boxed_int_value($A) + ($LB))))
+         :(melt_ptr_t)NULL)}#)
+
+
+
+(defprimitive -ivi (a :long lb) :value
+  :doc #{substract from boxed integer $A the constant raw long $LB. Return null if $A is not a boxed integer.}#
+  #{/* -ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT)?
+	 (meltgc_new_int
+	   ((meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_INTEGER),
+            (melt_unsafe_boxed_int_value($A) - ($LB))))
+         :(melt_ptr_t)NULL)}#)
+
+
+(defprimitive *ivi (a :long lb) :value
+  :doc #{multiply boxed integer $A by constant raw long $LB. Return null if $A is not a boxed integer.}#
+  #{/* *ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT)?
+	 (meltgc_new_int
+	   ((meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_INTEGER),
+            (melt_unsafe_boxed_int_value($A) * ($LB))))
+         :(melt_ptr_t)NULL)}#)
+
+
+(defprimitive /ivi (a :long lb) :value
+  :doc #{divide boxed integer $A by constant raw long $LB. Return null if $A is not a boxed integer or $LB is zero.}#
+  #{/* /ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT && ($LB != 0L))?
+	 (meltgc_new_int
+	   ((meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_INTEGER),
+            (melt_unsafe_boxed_int_value($A) / ($LB))))
+         :(melt_ptr_t)NULL)}#)
+
+
+(defprimitive %ivi (a :long lb) :value
+  :doc #{modulus boxed integer $A by constant raw long $LB. Return null if $A is not a boxed integer or $LB is zero.}#
+  #{/* %ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT && ($LB != 0L))?
+	 (meltgc_new_int
+	   ((meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_INTEGER),
+            (melt_unsafe_boxed_int_value($A) % ($LB))))
+         :(melt_ptr_t)NULL)}#)
+
+
+(defprimitive <iv (a b) :long
+  :doc #{Boxed integer compare of $A and $B for less than. 
+Return 0 for non-boxed integer values.}#
+  #{/* <iv */ ((melt_magic_discr((melt_ptr_t)($A)) == MELTOBMAG_INT)
+           && (melt_magic_discr((melt_ptr_t)($B)) == MELTOBMAG_INT)
+	   && (melt_unsafe_boxed_int_value($A)
+               < (melt_unsafe_boxed_int_value($B))))}#)
+
+(defprimitive <=iv (a b) :long
+  :doc #{Boxed integer compare of $A and $B for less or equal. 
+Return 0 for non-boxed integer values.}#
+  #{/* <=iv */ ((melt_magic_discr((melt_ptr_t)($A)) == MELTOBMAG_INT)
+           && (melt_magic_discr((melt_ptr_t)($B)) == MELTOBMAG_INT)
+	   && (melt_unsafe_boxed_int_value($A)
+               <= (melt_unsafe_boxed_int_value($B))))}#)
+
+(defprimitive =iv (a b) :long
+  :doc #{Boxed integer compare of $A and $B for numeric equality. 
+Return 0 for non-boxed integer values.}#
+  #{/* =iv */ ((melt_magic_discr((melt_ptr_t)($A)) == MELTOBMAG_INT)
+           && (melt_magic_discr((melt_ptr_t)($B)) == MELTOBMAG_INT)
+	   && (melt_unsafe_boxed_int_value($A)
+               == (melt_unsafe_boxed_int_value($B))))}#)
+
+(defprimitive !=iv (a b) :long
+  :doc #{Boxed integer compare of $A and $B for numeric inequality. 
+Return 0 for non-boxed integer values.}#
+  #{/* !=iv */ ((melt_magic_discr((melt_ptr_t)($A)) == MELTOBMAG_INT)
+           && (melt_magic_discr((melt_ptr_t)($B)) == MELTOBMAG_INT)
+	   && (melt_unsafe_boxed_int_value($A)
+               != (melt_unsafe_boxed_int_value($B))))}#)
+
+(defprimitive >iv (a b) :long
+  :doc #{Boxed integer compare of $A and $B for greater than. 
+Return 0 for non-boxed integer values.}#
+  #{/* >iv */ ((melt_magic_discr((melt_ptr_t)($A)) == MELTOBMAG_INT)
+           && (melt_magic_discr((melt_ptr_t)($B)) == MELTOBMAG_INT)
+	   && (melt_unsafe_boxed_int_value($A)
+               > (melt_unsafe_boxed_int_value($B))))}#)
+
+(defprimitive >=iv (a b) :long
+  :doc #{Boxed integer compare of $A and $B for greater or equal. 
+Return 0 for non-boxed integer values.}#
+  #{/* >=iv */ ((melt_magic_discr((melt_ptr_t)($A)) == MELTOBMAG_INT)
+           && (melt_magic_discr((melt_ptr_t)($B)) == MELTOBMAG_INT)
+	   && (melt_unsafe_boxed_int_value($A)
+               >= (melt_unsafe_boxed_int_value($B))))}#)
+
+(defprimitive <ivi (a :long lb) :long
+  :doc #{Compare boxed integer $A with constant raw long $LB for less than. Return 0 if $A is not a boxed integer.}#
+  #{/* <ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT) && (melt_unsafe_boxed_int_value($A) < ($LB)))}#)
+
+(defprimitive <=ivi (a :long lb) :long
+  :doc #{Compare boxed integer $A with constant raw long $LB for less or equal. Return 0 if $A is not a boxed integer.}#
+  #{/* <=ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT) && (melt_unsafe_boxed_int_value($A) <= ($LB)))}#)
+
+(defprimitive >ivi (a :long lb) :long
+  :doc #{Compare boxed integer $A with constant raw long $LB for greater than. Return 0 if $A is not a boxed integer.}#
+  #{/* >ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT) && (melt_unsafe_boxed_int_value($A) > ($LB)))}#)
+
+(defprimitive >=ivi (a :long lb) :long
+  :doc #{Compare boxed integer $A with constant raw long $LB for greater or equal. Return 0 if $A is not a boxed integer.}#
+  #{/* >=ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT) && (melt_unsafe_boxed_int_value($A) >= ($LB)))}#)
+
+(defprimitive =ivi (a :long lb) :long
+  :doc #{Compare boxed integer $A with constant raw long $LB for numeric equality. Return 0 if $A is not a boxed integer.}#
+  #{/* >=ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT) && (melt_unsafe_boxed_int_value($A) == ($LB)))}#)
+
+(defprimitive !=ivi (a :long lb) :long
+  :doc #{Compare boxed integer $A with constant raw long $LB for numeric inequality. Return 0 if $A is not a boxed integer.}#
+  #{/* >=ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT) && (melt_unsafe_boxed_int_value($A) != ($LB)))}#)
+
 ;;; various tests
 
 (defprimitive notnull (v) :long :doc #{Test that $V is not the null value.}#
@@ -2023,6 +2141,12 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_membchunk #{$' /* from VALDESC_INT in warmelt-base.melt */
     long val;
   }#
+  :valdesc_declchunk #{$' /* decl VALDESC_INT in warmelt-base.melt */
+  typedef struct meltint_st *meltint_ptr_t;
+  #define melt_unsafe_boxed_int_value(V) (((meltint_ptr_t)(V))->val)
+  static inline long melt_boxed_int_value(melt_ptr_t v)
+  { return (melt_magic_discr(v)==MELTOBMAG_INT)? melt_unsafe_boxed_int_value(v) : 0L; }
+  }#
   :valdesc_copychunk #{$' /* from VALDESC_INT */
 /* ggc_alloc_meltint_st should be gengtype generated for VALDESC_INT */
 #ifndef ggc_alloc_meltint_st
@@ -2495,6 +2619,26 @@ polyhedron values.}#
  *iv
  /iv
  %iv
+
+ <iv
+ <=iv
+ =iv
+ !=iv
+ >iv 
+ >=iv
+
+ <ivi
+ <=ivi
+ =ivi
+ !=ivi
+ >ivi
+ >=ivi
+
+ +ivi
+ -ivi
+ *ivi
+ /ivi
+ %ivi
 
  add2out_ccomconst
  add2out_ccomstrbuf
