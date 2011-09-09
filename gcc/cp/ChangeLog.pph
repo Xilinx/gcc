@@ -1,5 +1,18 @@
 2011-09-09   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_image_already_read): New.
+	(pph_read_file_1): Call pph_image_already_read.  If it returns
+	true, return after reading the line table.
+	(pph_add_read_image): New.
+	(pph_read_file): Change return value to void.  Update all callers.
+	Call pph_add_read_image.
+	* pph-streamer-out.c (pph_add_include): Remove second argument.
+	Update all callers.
+	Do not add INCLUDE to pph_read_images.
+	* pph-streamer.h (pph_add_include): Update prototype.
+
+2011-09-09   Diego Novillo  <dnovillo@google.com>
+
 	* class.c (finish_struct_methods): Make extern.
 	* cp-tree.h (finish_struct_methdods): Declare.
 	* pph-streamer-in.c (pph_in_tcc_type): Call it.

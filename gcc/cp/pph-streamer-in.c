@@ -1462,7 +1462,6 @@ pph_in_include (pph_stream *stream)
 {
   int old_loc_offset;
   const char *include_name;
-  pph_stream *include;
   source_location prev_start_loc = pph_in_source_location (stream);
 
   /* Simulate highest_location to be as it would be at this point in a non-pph
@@ -1475,8 +1474,7 @@ pph_in_include (pph_stream *stream)
   old_loc_offset = pph_loc_offset;
 
   include_name = pph_in_string (stream);
-  include = pph_read_file (include_name);
-  pph_add_include (include, false);
+  pph_read_file (include_name);
 
   pph_loc_offset = old_loc_offset;
 }
@@ -1583,6 +1581,23 @@ pph_in_line_table_and_includes (pph_stream *stream)
 }
 
 
+/* If FILENAME has already been read, return the stream associated with it.  */
+
+static pph_stream *
+pph_image_already_read (const char *filename)
+{
+  pph_stream *include;
+  unsigned i;
+
+  /* FIXME pph, implement a hash map to avoid this linear search.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
+    if (strcmp (include->name, filename) == 0)
+      return include;
+
+  return NULL;
+}
+
+
 /* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
 
 static void
@@ -1604,6 +1619,11 @@ pph_read_file_1 (pph_stream *stream)
      At the same time, read in includes in the order they were originally
      read.  */
   cpp_token_replay_loc = pph_in_line_table_and_includes (stream);
+
+  /* If we have read STREAM before, we do not need to re-read the rest
+     of its body.  We only needed to read its line table.  */
+  if (pph_image_already_read (stream->name))
+    return;
 
   /* Read all the identifiers and pre-processor symbols in the global
      namespace.  */
@@ -1650,13 +1670,22 @@ pph_read_file_1 (pph_stream *stream)
      STREAM will need to be read again the next time we want to read
      the image we are now generating.  */
   if (pph_out_file && !pph_reading_includes)
-    pph_add_include (stream, true);
+    pph_add_include (stream);
+}
+
+
+/* Add STREAM to the list of read images.  */
+
+static void
+pph_add_read_image (pph_stream *stream)
+{
+  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
 }
 
 
 /* Read PPH file FILENAME.  Return the in-memory pph_stream instance.  */
 
-pph_stream *
+void
 pph_read_file (const char *filename)
 {
   pph_stream *stream;
@@ -1667,7 +1696,7 @@ pph_read_file (const char *filename)
   else
     error ("Cannot open PPH file for reading: %s: %m", filename);
 
-  return stream;
+  pph_add_read_image (stream);
 }
 
 

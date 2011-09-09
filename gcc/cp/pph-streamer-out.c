@@ -1845,18 +1845,13 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
 }
 
 
-/* Add INCLUDE to the list of files included by  the main pph_out_stream
-   if IS_MAIN_STREAM_INCLUDE, as well as to the global list of all read
-   includes.  */
+/* Add INCLUDE to the list of files included by pph_out_stream.  */
 
 void
-pph_add_include (pph_stream *include, bool is_main_stream_include)
+pph_add_include (pph_stream *include)
 {
-  if (is_main_stream_include)
-    VEC_safe_push (pph_stream_ptr, heap,
-	           pph_out_stream->encoder.w.includes, include);
-
-  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, include);
+  VEC_safe_push (pph_stream_ptr, heap, pph_out_stream->encoder.w.includes,
+		 include);
 }
 
 

@@ -255,7 +255,7 @@ void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
-void pph_add_include (pph_stream *, bool);
+void pph_add_include (pph_stream *);
 void pph_writer_init (void);
 void pph_writer_finish (void);
 void pph_write_location (struct output_block *, location_t);
@@ -269,7 +269,7 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
-pph_stream *pph_read_file (const char *);
+void pph_read_file (const char *);
 void pph_reader_finish (void);
 
 /* In pt.c.  */
