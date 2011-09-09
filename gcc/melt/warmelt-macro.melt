@@ -2146,6 +2146,14 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 	    (return)))
       (setq expaft  (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpaft))))
       )
+    ;; parse the documentation, if any
+    (if (== (pair_head curpair) ':doc)
+	(progn
+	  (setq curpair (pair_tail curpair))
+	  (if docv (error_plain loc
+				"duplicate documentation in DEFCITERATOR"))
+	  (setq docv (pair_head curpair))
+	  (setq curpair (pair_tail curpair))))
     ;; make the citerator and binding
     (let ( (citer (instance class_citerator
 			    :named_name (unsafe_get_field :named_name symb)

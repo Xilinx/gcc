@@ -1,5 +1,9 @@
 
 2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_defciterator): More flexible on
+	position of :doc.
+
+2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
