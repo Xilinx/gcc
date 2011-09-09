@@ -1,3 +1,8 @@
+
+2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (MELTGCC_LIBES): New variable.
+	(melt.so): Use it.
+
 2011-08-28  Alexandre Lissy  <alissy@mandriva.com>
 	* MELT-Plugin-Makefile: Fix inconsistency source path for modlis loading and
 	modlis path installation, using 'source-path' as in melt-runtime.c and

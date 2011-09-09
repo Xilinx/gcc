@@ -3,7 +3,7 @@
 ##    Middle End Lisp Translator = MELT
 ##
 ##    Copyright (C) 2011 Free Software Foundation, Inc.
-##    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+##    Contributed by Basile Starynkevitch <basile@starynkevitch.net> and others
 ## 
 ## This file contrib/MELT-Plugin-Makefile is part of GCC.
 ## 
@@ -44,6 +44,11 @@ MELTGCC_GENGTYPEFLAGS = -v
 
 ## its state file
 MELTGCC_GTYPESTATE  := $(shell $(MELTGCC) -print-file-name=gtype.state)
+
+## MELT plugin extra libraries and flags for melt.so; We really need
+## the C interface to the Parma Polyhedra Library, even if cc1 don't
+## always link it.
+MELTGCC_LIBES ?= -lppl_c
 
 ### the GNU awk (cannot be a non GNU awk like nawk or mawk ...)
 GAWK?= gawk
@@ -225,7 +230,7 @@ melt.so: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 	   '-DMELT_MODULE_CFLAGS="$(melt_installed_cflags)"' \
 	   -DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\" \
 	   -DMELT_DEFAULT_MODLIS=\"melt-default-modules\" \
-	-o $@ $<
+	-o $@ $< $(MELTGCC_LIBES)
 
 clean:
 	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp
