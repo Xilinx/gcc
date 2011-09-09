@@ -12,11 +12,14 @@
 	(gimple_assign_round_mod, gimple_assign_binaryop)
 	(gimple_cond_lessequal, gimple_cond_less, gimple_cond_notequal)
 	(gimple_cond_equal, gimple_cond_greater)
-	(gimple_cond_greater_or_equal): Add operator expansion to make
+	(gimple_cond_greater_or_equal, gimpleval): Add operator expansion to make
 	these usable as primitives in expression context and as pattern in
 	pattern context.
 	(gimple_build_assign_convert, gimple_build_assign_view_convert)
-	(gimple_build_assign_fix_trunc, gimple_build_assign_float): New primitives.
+	(gimple_build_assign_fix_trunc, gimple_build_assign_float, gimple_build_return)
+	(gimple_seq_add_stmt, gimplify_seq_add_stmt, gimple_seq_add_seq)
+	(gimple_seq_copy, gimple_seq_boxed_add_stmt)
+	(gimplify_seq_boxed_add_stmt, gimple_seq_boxed_add_seq): New primitives.
 
 2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_defciterator): More flexible on

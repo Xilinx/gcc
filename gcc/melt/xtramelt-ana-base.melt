@@ -324,6 +324,8 @@
   (gv)					;match & no ins
   (:gimple g) 				;outs
   gimpsta				;statesymb
+  :doc #{Match a gimple boxed value $GV and extract its gimple stuff $G.
+ As operator, build a boxed gimple from $G.}#
   ;; test expansion
   #{ (melt_magic_discr((melt_ptr_t)($gv)) == MELTOBMAG_GIMPLE) }#
   ;; fill expansion
@@ -3759,6 +3761,7 @@ Don't scan operands of the added $G.}#
  gimple_build_assign_fix_trunc
  gimple_build_assign_float
  gimple_build_assign_view_convert
+ gimple_build_return
  gimple_call
  gimple_call_1
  gimple_call_1_more
@@ -3798,6 +3801,11 @@ Don't scan operands of the added $G.}#
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
  gimple_return
+ gimple_seq_add_seq
+ gimple_seq_add_stmt
+ gimple_seq_boxed_add_seq
+ gimple_seq_boxed_add_stmt
+ gimple_seq_copy
  gimple_seq_first_stmt
  gimple_seq_last_stmt
  gimple_seq_of_basic_block 
@@ -3806,6 +3814,8 @@ Don't scan operands of the added $G.}#
  gimple_switch_label
  gimpleseq_content 
  gimpleval
+ gimplify_seq_add_stmt
+ gimplify_seq_boxed_add_stmt
  has_cfun
  inform_at_gimple
  inform_at_tree
