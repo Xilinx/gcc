@@ -1,3 +1,11 @@
+2011-09-09   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x6dynarray3.cc: Change failure from ICE to asm diff.
+	* g++.dg/pph/x6dynarray4.cc: Change expected failure.
+	* g++.dg/pph/x6dynarray5.h: Mark fixed.
+	* g++.dg/pph/x6dynarray6.h: Mark fixed.
+	* g++.dg/pph/x7dynarray5.cc: Change expected failure.
+
 2011-09-07   Lawrence Crowl  <crowl@google.com>
 
 	* a0vardef.h: New.
@@ -10,7 +18,6 @@
 	* x0structover2.h: New.
 	* x4resolve1.cc: Add more overloaded calls.
 	* x4resolve2.cc: Add more overloaded calls.
-
 
 2011-08-29   Lawrence Crowl  <crowl@google.com>
 

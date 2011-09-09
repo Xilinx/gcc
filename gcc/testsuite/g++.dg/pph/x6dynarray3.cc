@@ -1,6 +1,5 @@
-// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x6dynarray3.cc:1:0: internal compiler error: in chainon, at tree.c" "" { xfail *-*-* } 0 }
-
+// pph asm xdiff 30893
+// .Lnn labels emitted with different values of 'nn'.
 #include "x5dynarray3.h"
 
 #include "a0integer.h"

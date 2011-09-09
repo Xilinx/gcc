@@ -369,6 +369,10 @@ pph_tree_matches (tree t, unsigned filter)
       && DECL_IS_BUILTIN (t))
     return false;
 
+  if ((filter & PPHF_NO_PREFS)
+      && pph_cache_lookup (NULL, t, NULL))
+    return false;
+
   if ((filter & PPHF_NO_XREFS)
       && pph_cache_lookup_in_includes (t, NULL, NULL))
     return false;
@@ -1044,7 +1048,8 @@ pph_out_scope_chain (pph_stream *stream)
     pph_cache_add (&stream->cache, scope_chain->bindings, &ix);
     pph_out_record_marker (stream, PPH_RECORD_START);
     pph_out_uint (stream, ix);
-    pph_out_binding_level_1 (stream, scope_chain->bindings, PPHF_NO_XREFS);
+    pph_out_binding_level_1 (stream, scope_chain->bindings,
+			     PPHF_NO_XREFS | PPHF_NO_PREFS);
   }
 }
 

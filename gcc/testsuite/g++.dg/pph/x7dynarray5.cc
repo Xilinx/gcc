@@ -1,5 +1,5 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "wchar.h:1:0: error: PPH file stdio.pph fails macro validation, _WCHAR_H" "" { xfail *-*-* } 0 }
+// { dg-bogus "internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
 
 #include "x0dynarray4.h"
 #include "x6dynarray5.h"

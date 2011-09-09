@@ -1,5 +1,16 @@
 2011-09-09   Diego Novillo  <dnovillo@google.com>
 
+	* class.c (finish_struct_methods): Make extern.
+	* cp-tree.h (finish_struct_methdods): Declare.
+	* pph-streamer-in.c (pph_in_tcc_type): Call it.
+	* pph-streamer.h (PPHF_NO_PREFS): Define.
+	* pph-streamer-out.c (pph_tree_matches): Use it to filter trees
+	present in the preloaded cache.
+	(pph_out_scope_chain): Call pph_out_binding_level_1 with
+	PPH_NO_PREFS in the filter.
+
+2011-09-09   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer.c (pph_stream_close): Handle NULL streams.
 
 2011-09-08   Diego Novillo  <dnovillo@google.com>

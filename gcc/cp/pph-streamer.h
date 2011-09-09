@@ -229,6 +229,7 @@ typedef struct pph_stream {
 #define PPHF_NONE		0
 #define PPHF_NO_BUILTINS	(1 << 0)
 #define PPHF_NO_XREFS		(1 << 1)
+#define PPHF_NO_PREFS		(1 << 2)
 
 /* In pph-streamer.c.  */
 void pph_init_preloaded_cache (void);

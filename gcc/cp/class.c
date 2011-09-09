@@ -127,7 +127,6 @@ static void handle_using_decl (tree, tree);
 static tree dfs_modify_vtables (tree, void *);
 static tree modify_all_vtables (tree, tree);
 static void determine_primary_bases (tree);
-static void finish_struct_methods (tree);
 static void maybe_warn_about_overly_private_class (tree);
 static int method_name_cmp (const void *, const void *);
 static int resort_method_name_cmp (const void *, const void *);
@@ -1793,7 +1792,7 @@ resort_type_method_vec (void* obj,
    and type conversion operators) so that we can find them faster in
    search.  */
 
-static void
+void
 finish_struct_methods (tree t)
 {
   tree fn_fields;

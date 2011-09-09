@@ -1750,6 +1750,15 @@ pph_in_tcc_type (pph_stream *stream, tree type)
     default:
       break;
     }
+
+  /* If TYPE has a METHOD_VEC, we need to resort it.  Name lookup in
+     classes relies on the specific ordering of the class method
+     pointers.  Since we generally instantiate them in a different
+     order than the original compile, the pointer values will be
+     different.  This will cause name lookups to fail, unless we
+     resort the vector.  */
+  if (TYPE_LANG_SPECIFIC (type) && CLASSTYPE_METHOD_VEC (type))
+    finish_struct_methods (type);
 }
 
 
