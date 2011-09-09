@@ -6747,7 +6747,7 @@ are not prevented from being speculated to before the barrier.
 @section Built-in functions for memory model aware atomic operations.
 
 The following builtins approximately match the requirements for
-C++1x memory model. Many are similar to the ``__sync'' prefixed builtins, but
+C++11 memory model. Many are similar to the ``__sync'' prefixed builtins, but
 all also have a memory model parameter.  These are all identified by being
 prefixed with ``__sync_mem'', and most are overloaded such that they work
 with multiple types.
@@ -6763,7 +6763,7 @@ synchronization fences surrounding it in order to achieve the proper behaviour.
 Execution in this case is subject to the same restrictions as those builtins.
 
 There are 6 different memory models which can be specified.  These map to the
-same names in the C++1x standard.  Refer there or to the GCC wiki on atomics for
+same names in the C++11 standard.  Refer there or to the GCC wiki on atomics for
 more detailed definitions.  These memory models integrate both barriers to
 code motion as well as synchronization requirements with other threads. These
 are listed in approximately ascending order of strength.
@@ -6788,10 +6788,16 @@ stores in all threads.
 @end table
 
 When implementing patterns for these builtins, the memory model parameter can
-be ignored as long as the pattern implements the most restrictive __SYNC_MEM_SEQ_CST 
-model. Any of the other memory models will execute correctly with this
-memory model but they may not execute as efficiently as they could with a more
-appropriate implemention of the relaxed requirements.
+be ignored as long as the pattern implements the most restrictive 
+__SYNC_MEM_SEQ_CST model.  Any of the other memory models will execute 
+correctly with this memory model but they may not execute as efficiently as 
+they could with a more appropriate implemention of the relaxed requirements.
+
+Note that the C++11 standard allows for the memory model parameter to be
+determined at runtime rather than at compile time.  These builtins will map any 
+runtime value to __SYNC_MEM_SEQ_CST rather than invoke a runtime library 
+call or inline a switch statement.  This is standard compliant, safe, and the 
+simplest approach for now.
 
 @item @var{type} __sync_mem_load (@var{type} *ptr, int memmodel)
 @findex __sync_mem_load

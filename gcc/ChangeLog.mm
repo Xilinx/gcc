@@ -1,3 +1,9 @@
+2011-09-08  Andrew MacLeod  <amacleod@redhat.com>
+
+	* builtins.c (get_memmodel): If the memory model is not a compile time
+	constant, default to SEQ_CST mode.
+	* doc/extend.texi: Document behaviour.
+
 2011-09-08  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from trunk at revision 178608.

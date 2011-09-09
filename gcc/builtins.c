@@ -5246,16 +5246,16 @@ get_memmodel (tree exp)
 {
   rtx op;
 
+  /* If the parameter is not a constant, it's a run time value so we'll just
+     convert it to MEMMODEL_SEQ_CST to avoid annoying runtime checking.  */
   if (TREE_CODE (exp) != INTEGER_CST)
-    {
-      error ("invalid memory model argument to builtin");
-      return MEMMODEL_RELAXED;
-    }
+    return MEMMODEL_SEQ_CST;
+
   op = expand_normal (exp);
   if (INTVAL (op) < 0 || INTVAL (op) >= MEMMODEL_LAST)
     {
       error ("invalid memory model argument to builtin");
-      return MEMMODEL_RELAXED;
+      return MEMMODEL_SEQ_CST;
     }
   return (enum memmodel) INTVAL (op);
 }
