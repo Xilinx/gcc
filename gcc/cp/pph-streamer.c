@@ -152,6 +152,11 @@ pph_stream_open (const char *name, const char *mode)
 void
 pph_stream_close (pph_stream *stream)
 {
+  /* STREAM can be NULL if it could not be properly opened.  An error
+     has already been emitted, so avoid crashing here.  */
+  if (stream == NULL)
+    return;
+
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Closing %s\n", stream->name);
 

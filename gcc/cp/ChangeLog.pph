@@ -1,3 +1,7 @@
+2011-09-09   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.c (pph_stream_close): Handle NULL streams.
+
 2011-09-08   Diego Novillo  <dnovillo@google.com>
 
 	* parser.c (cp_lexer_dump_tokens): Properly count number of printed
