@@ -6,6 +6,7 @@
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
                 and Pierre Vittet  <piervit@pvittet.com>
+                and Romain Geissler  <romain.geissler@gmail.com>
 
     This file is part of GCC.
 
@@ -34,7 +35,14 @@
 ))
 
 (defprimitive install_melt_gcc_pass 
-  (:value pass :cstring positioning refpassname :long refpassnum) :void
+  (:value pass :cstring positioning refpassname :long refpassnum) 
+  :void
+  :doc #{Install a GCC pass coded in MELT. The $PASS should be an
+  object, instance of a sub-class of $CLASS_GCC_PASS, e.g. of
+  $CLASS_GCC_GIMPLE_PASS. The $POSITIONNING is "before"
+  or "after". The reference pass is given thru $REFPASSNAME and
+  $REFPASSNUM. Usually $INSTALL_MELT_GCC_PASS is called from a mode
+  initializer.}#
   #{ meltgc_register_pass ($pass, $positioning, $refpassname, $refpassnum); 
   }#)
 
@@ -43,30 +51,41 @@
 ;;;;; gimple & tree related primitives
 
 (defprimitive is_gimple (v) :long
+   :doc #{Test if value $V is a boxed gimple.}#
    #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_GIMPLE)}# )
 
 (defprimitive make_gimple (discr :gimple g) :value
+  :doc #{Make a boxed gimple of given $DISCR and gimple $G.}#
   #{(meltgc_new_gimple((meltobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive gimple_content (v) :gimple
+  :doc #{Retrieve the gimple stuff inside boxed gimple $V or else NULL}#
   #{(melt_gimple_content((melt_ptr_t)($v)))}# )
 
 (defprimitive ==g (:gimple g1 g2) :long
+  :doc #{Equality of gimples $G1 & $G2}#
   #{(($g1) == ($g2))}#)
 
-(defprimitive null_gimple () :gimple #{((gimple)0)}#)
+(defprimitive null_gimple () 
+  :gimple 
+  :doc #{The null gimple.}#
+   #{((gimple)0)}#)
 
 (defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
+  :doc #{Retrieve the gimple seq inside basic block $BB or null.}#
   #{(($bb)?bb_seq(($bb)):NULL)}#)
 
 (defprimitive gimple_seq_first_stmt (:gimple_seq gs) :gimple
+  :doc #{Retrieve the first gimple inside basic block $BB or null.}#
   #{(($GS)?gimple_seq_first_stmt(($GS)):NULL)}#)
 
 (defprimitive gimple_seq_last_stmt (:gimple_seq gs) :gimple
+  :doc #{Retrieve the last gimple inside basic block $BB or null.}#
   #{(($GS)?gimple_seq_last_stmt(($GS)):NULL)}#)
 
 ;;; copy an unboxed gimple_copy
 (defprimitive gimple_copy (:gimple g) :gimple
+  :doc #{Copy gimple stuff $G.}#
   #{ (($g)?gimple_copy($g):NULL) }#)
 
 ;;;;;;;;;;;;;;;; map associating GCC gimple-s to non-null MELT values
@@ -102,6 +121,7 @@
   (gimap)				; startformals
   eachgimap 				;state symbol
   (:gimple att :value val)	;local formals
+  :doc #{Iterate inside the $GIMAP value -a map from gimples to values- for each gimple $ATT and value $VAL.}#
   ;; before expansion
   #{
    /*$eachgimap*/ int $eachgimap#_rk=0;
@@ -126,7 +146,7 @@
   #{(meltgc_new_edge((meltobject_ptr_t)($DISCR),($EDG)))}# )
 
 (defprimitive edge_content (val) :edge
-  :doc #{Retrieve teh edge stuff from boxed edge value $VAL.}#
+  :doc #{Retrieve the edge stuff from boxed edge value $VAL.}#
   #{(melt_edge_content((melt_ptr_t)($VAL)))}# )
 
 (defprimitive is_edge (val) :long
@@ -134,9 +154,12 @@
   #{(($VAL) && melt_magic_discr ($VAL) == MELTOBMAG_EDGE)}#)
 
 (defprimitive ==e (:edge e1 e2) :long
+  :doc #{Test physical equality, that is identity, of edge stuff $E1 and $E2.}#
   #{(($E1) == ($E2))}#)
 
-(defprimitive null_edge () :edge #{((edge)0)}#)
+(defprimitive null_edge () :edge
+  :doc #{The null edge stuff.}#
+   #{((edge)0)}#)
 
 
 ;;;;;;;;;;;;;;;; map associating GCC edge-s to non-null MELT values
@@ -310,14 +333,15 @@
   #{ (meltgc_new_gimple((meltobject_ptr_t)NULL, ($g))) }#
 )
 
-;; match a gimple single assign
+;; match or build a gimple single assign
 (defcmatcher gimple_assign_single
   (:gimple ga)				;match
   ;; outputs
   (:tree lhs				;left hand side
    :tree rhs				;first right operand
-  )					
+  )
   gimpassi
+  :doc #{Match gimple $GA as a single assign into tree $LHS of tree $RHS, or build such an assign.}#
   ;; test expansion
   #{/*$gimpassi test*/ ($ga && gimple_assign_single_p ($ga))}#
   ;;fill expansion
@@ -325,6 +349,8 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs = gimple_assign_rhs1($ga);
    }#
+  ;; operator expansion
+  #{($LHS != NULL_TREE && $RHS != NULL_TREE)?gimple_build_assign(($LHS),($RHS)):((gimple)0)}#
 )
 
 
@@ -335,6 +361,8 @@
    :tree rhs				;first right operand
   )					;outs
   gimpascs
+  :doc #{Match gimple $GA as a casting assign into tree $LHS of tree $RHS. 
+See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPLE_BUILD_ASSIGN_FLOAT.}#
   ;;test expansion
   #{/*$gimpascs test*/($ga && gimple_assign_cast_p ($ga))}#
   ;;fill expansion
@@ -342,6 +370,26 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs = gimple_assign_rhs1($ga);
   }#
+)
+
+(defprimitive gimple_build_assign_convert (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign and convert to $TLHS the tree $TRHS, if both are non-null.}#
+  #{($TLHS != (tree)0 && $TRHS != (tree)0)?gimple_build_assign_with_ops(CONVERT_EXPR,($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+(defprimitive gimple_build_assign_view_convert (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign and view convert to $TLHS the tree $TRHS, if both are non-null.}#
+  #{($TLHS != (tree)0 && $TRHS != (tree)0)?gimple_build_assign_with_ops(VIEW_CONVERT_EXPR,($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+(defprimitive gimple_build_assign_fix_trunc (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign and fixed truncation to $TLHS the tree $TRHS, if both are non-null.}#
+  #{($TLHS != (tree)0 && $TRHS != (tree)0)?gimple_build_assign_with_ops(FIX_TRUNC_EXPR,($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+(defprimitive gimple_build_assign_float (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign the conversion to float $TLHS the tree $TRHS, if both are non-null.}#
+  #{($TLHS != (tree)0 && $TRHS != (tree)0)?gimple_build_assign_with_ops(FLOAT_EXPR,($TLHS),($TRHS), NULL):((gimple)0)}#
 )
 
 ;; match a gimple copy assign
@@ -383,6 +431,7 @@
    :tree rhs				;first right operand
   )					;outs
   gimpasg
+  :doc #{$GIMPLE_ASSIGN_UNARY_NOP match or build an unary nop assign into $LHS of $RHS.}# 
   ;;test expansion
   #{($ga && gimple_assign_unary_nop_p ($ga))}#
   ;;fill expansion
@@ -390,6 +439,8 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs = gimple_assign_rhs1($ga);
   }#
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(NOP_EXPR, $LHS, $RHS, NULL_TREE)}#
 )
 
 ;;; match a gimple assign with unary minus X = -Y
@@ -406,7 +457,10 @@
   #{
        $lhs = gimple_assign_lhs ($ga);
        $rhs = gimple_assign_rhs1 ($ga);
-  }#)
+  }#
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(NEGATE_EXPR, $LHS, $RHS, NULL_TREE)}#
+  )
 
 ;;;; match a gimple assign with addition ie X = Y + Z
 
@@ -417,6 +471,7 @@
    :tree rhs2
    )
   gasplus
+  :doc #{$GIMPLE_ASSIGN_PLUS match or build addition into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == PLUS_EXPR)}#
   ;; fill
@@ -424,7 +479,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(PLUS_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with substraction ie X = Y - Z
 (defcmatcher gimple_assign_minus
@@ -433,7 +491,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasplus
+  gasminus
+  :doc #{$GIMPLE_ASSIGN_MINUS match or build substraction into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MINUS_EXPR)}#
   ;; fill
@@ -441,7 +500,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(MINUS_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 (defcmatcher gimple_assign_pointerplus
@@ -450,7 +512,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasplus
+  gaspplus
+  :doc #{$GIMPLE_ASSIGN_POINTERMINUS match or build pointer addition into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{ $ga && is_gimple_assign($ga) 
      && gimple_expr_code($ga) == POINTER_PLUS_EXPR }#
@@ -459,7 +522,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-  }# )
+  }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(POINTER_PLUS_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 ;;;; match a gimple assign with multiplication ie X = Y * Z
@@ -471,6 +537,7 @@
    :tree rhs2
    )
   gasmult
+  :doc #{$GIMPLE_ASSIGN_MULT match or build multiplication into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MULT_EXPR)}#
   ;; fill
@@ -478,7 +545,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(MULT_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 
@@ -489,7 +559,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gastdiv
+  :doc #{$GIMPLE_ASSIGN_TRUNC_DIC match or build truncated division into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == TRUNC_DIV_EXPR)}#
   ;; fill
@@ -497,7 +568,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(TRUNC_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with ceil division ie X = Y /ceil Z
 (defcmatcher gimple_assign_ceil_div
@@ -506,7 +580,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gascdiv
+  :doc #{$GIMPLE_ASSIGN_TRUNC_DIC match or build ceiling division into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == CEIL_DIV_EXPR)}#
   ;; fill
@@ -514,7 +589,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(CEIL_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with floor division ie X = Y /floor Z
 (defcmatcher gimple_assign_floor_div
@@ -523,7 +601,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gasfdiv
+  :doc #{$GIMPLE_ASSIGN_TRUNC_DIV match or build floor division into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_DIV_EXPR)}#
   ;; fill
@@ -531,7 +610,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(FLOOR_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 ;;;; match a gimple assign with round division ie X = Y /round Z
@@ -541,7 +623,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gasrdiv
+  :doc #{$GIMPLE_ASSIGN_ROUND_DIV match or build rounding division into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_DIV_EXPR)}#
   ;; fill
@@ -549,7 +632,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(ROUND_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with real division ie X = Y /real Z
 (defcmatcher gimple_assign_rdiv
@@ -558,7 +644,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gasrediv
+  :doc #{$GIMPLE_ASSIGN_RDIV match or build reaol division into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == RDIV_EXPR)}#
   ;; fill
@@ -566,7 +653,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(RDIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with exact division ie X = Y /exact Z
 (defcmatcher gimple_assign_exact_div
@@ -575,7 +665,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gasxdiv
+  :doc #{$GIMPLE_ASSIGN_EXACT_DIV match or build exact division into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == EXACT_DIV_EXPR)}#
   ;; fill
@@ -583,7 +674,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(EXACT_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 ;;;;;;;;;;;;;;;;
@@ -594,7 +688,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gastmod
+  :doc #{$GIMPLE_ASSIGN_TRUNC_MOD match or build truncated modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == TRUNC_MOD_EXPR)}#
   ;; fill
@@ -602,7 +697,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(TRUNC_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with ceil remainder ie X = Y %ceil Z
 (defcmatcher gimple_assign_ceil_mod
@@ -611,7 +709,8 @@
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gascmod
+  :doc #{$GIMPLE_ASSIGN_TRUNC_MOD match or build ceil modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == CEIL_MOD_EXPR)}#
   ;; fill
@@ -619,7 +718,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(CEIL_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;; match a gimple assign with floor remainder ie X = Y %floor Z
 (defcmatcher gimple_assign_floor_mod
@@ -629,6 +731,7 @@
    :tree rhs2
    )
   gasmult
+  :doc #{$GIMPLE_ASSIGN_FLOOR_MOD match or build floor modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_MOD_EXPR)}#
   ;; fill
@@ -636,7 +739,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(FLOOR_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 ;;;; match a gimple assign with round remainder ie X = Y %round Z
@@ -647,6 +753,7 @@
    :tree rhs2
    )
   gasmult
+  :doc #{$GIMPLE_ASSIGN_ROUND_MOD match or build rounded modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_MOD_EXPR)}#
   ;; fill
@@ -654,7 +761,10 @@
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(ROUND_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+)
 
 
 
@@ -666,7 +776,8 @@
    :tree rhs2
    :long opcode
    )
-  gasplus
+  gasbinop
+  :doc #{$GIMPLE_ASSIGN_BINARYOP match or build a binary operator of $OPCODE into $LHS of $RHS1 and $RHS2.}#
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_num_ops($ga) >= 3)}#
   ;; fill
@@ -675,7 +786,10 @@
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    $opcode = gimple_assign_rhs_code($ga);
-   }# )
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops($OPCODE, $LHS, $RHS1, $RHS2)}#
+)
 
 ;;;;;;;;;;;;;;;;
 ;;; match a gimple cond less or equal
@@ -685,6 +799,7 @@
    :tree rhs
    )
   gimpcondle
+  :doc #{$GIMPLE_COND_LESSEQUAL match or build a <= condition between $LHS and $RHS.}#
   ;; test expansion
   #{($gc && gimple_code($gc)==GIMPLE_COND 
      && gimple_cond_code($gc)==LE_EXPR)}#
@@ -692,7 +807,10 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-  }# )
+  }# 
+  ;; operator expansion
+  #{gimple_build_cond(LE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
 
 ;;; match a gimple cond less 
 (defcmatcher gimple_cond_less
@@ -701,6 +819,7 @@
    :tree rhs
    )
   gimpcondle
+  :doc #{$GIMPLE_COND_LESSEQUAL match or build a < condition between $LHS and $RHS.}#
   ; test expansion
   #{($gc && gimple_code($gc)==GIMPLE_COND
      && gimple_cond_code($gc)==LT_EXPR)}#
@@ -708,7 +827,10 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-  }# )
+  }# 
+  ;; operator expansion
+  #{gimple_build_cond(LT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
 
 ;;;;;;;;;;;;;;;;
 ;;; match a gimple cond not equal
@@ -718,6 +840,7 @@
    :tree rhs
    )
   gimpcondle
+  :doc #{$GIMPLE_COND_LESSEQUAL match or build a != condition between $LHS and $RHS.}#
   ;; test expansion
   #{($gc && gimple_code($gc)==GIMPLE_COND 
      && gimple_cond_code($gc)==NE_EXPR)}#
@@ -725,7 +848,10 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-  }#)
+  }#
+  ;; operator expansion
+  #{gimple_build_cond(NE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
 
 ;;; match a gimple_cond equal
 (defcmatcher gimple_cond_equal
@@ -733,17 +859,21 @@
   (:tree lhs
    :tree rhs)
   gce
-
+  :doc #{$GIMPLE_COND_EQUAL match or build a == condition between $LHS and $RHS.}#
+  ;; test expansion
   #{
        ($gc &&
 	gimple_code ($gc) == GIMPLE_COND &&
 	gimple_cond_code ($gc) == EQ_EXPR)
   }#
-
+  ;; fill expansion
   #{
        $lhs = gimple_cond_lhs ($gc);
        $rhs = gimple_cond_rhs ($gc);
-  }#)
+  }#
+  ;; operator expansion
+  #{gimple_build_cond(EQ_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
 
 ;;; match a gimple cond greater
 (defcmatcher gimple_cond_greater
@@ -752,6 +882,7 @@
    :tree rhs
    )
   gimpcondle
+  :doc #{$GIMPLE_COND_GREATER match or build a > condition between $LHS and $RHS.}#
   ;; test expansion
   #{($gc && gimple_code($gc)==GIMPLE_COND 
       && gimple_cond_code($gc)==GT_EXPR)}#
@@ -759,7 +890,10 @@
   #{
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
-  }# )
+  }# 
+  ;; operator expansion
+  #{gimple_build_cond(GT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
 
 ;;; match a gimple_cond greater or equal
 (defcmatcher gimple_cond_greater_or_equal
@@ -767,6 +901,7 @@
   (:tree lhs
    :tree rhs)
   gcgoe
+  :doc #{$GIMPLE_COND_GREATER match or build a >= condition between $LHS and $RHS.}#
   ;; test
   #{
        ($gc && 
@@ -777,7 +912,10 @@
   #{
        $lhs = gimple_cond_lhs ($gc);
        $rhs = gimple_cond_rhs ($gc);
-  }#)
+  }#
+  ;; operator expansion
+  #{gimple_build_cond(GE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
 
 ;; match a gimple cond true
 (defcmatcher gimple_cond_true
@@ -1214,7 +1352,7 @@
   :doc #{Safely retrieve in gimple call $GC its $N-th argument.}#
   #{(($gc && gimple_code($gc) == GIMPLE_CALL && ($n)>=0 
       && ($n) < gimple_call_num_args($gc)) 
-     ? gimple_call_arg(($gc), ($n)) : (tree)0)}# )
+     ? gimple_call_arg(($gc), ($n)) : NULL_TREE)}# )
 
 
 
@@ -1453,7 +1591,7 @@
   #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_TREE)}# )
 
 (defprimitive isnull_tree (:tree tr) :long
-  #{$tr == (tree)0}#
+  #{$tr == NULL_TREE}#
 )
 
 (defprimitive make_tree (discr :tree g) :value
@@ -1465,7 +1603,7 @@
 (defprimitive ==t (:tree t1 t2) :long
   #{(($t1) == ($t2))}# )
 
-(defprimitive null_tree () :tree #{((tree)0)}#)
+(defprimitive null_tree () :tree #{(NULL_TREE)}#)
 
 (defprimitive inform_at_tree (:tree tr :cstring msg) :void
   ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
@@ -1644,8 +1782,8 @@
     int $TREEARRAYREFFULL#_len = TREE_OPERAND_LENGTH($TR);
     $TRARR = TREE_OPERAND ($TR, 0);
     $TRINDEX = TREE_OPERAND ($TR, 1);
-    $TRMIN = ($TREEARRAYREFFULL#_len >= 3) ? TREE_OPERAND ($TR, 2) : ((tree)0);
-    $TRSIZE = ($TREEARRAYREFFULL#_len >= 4) ? TREE_OPERAND ($TR, 3) : ((tree)0);
+    $TRMIN = ($TREEARRAYREFFULL#_len >= 3) ? TREE_OPERAND ($TR, 2) : (NULL_TREE);
+    $TRSIZE = ($TREEARRAYREFFULL#_len >= 4) ? TREE_OPERAND ($TR, 3) : (NULL_TREE);
   }#)
 
 ;;;;;;;;;;;;;;;;
@@ -1675,7 +1813,7 @@
     int $TREECOMPONENTREFFULL#_len = TREE_OPERAND_LENGTH($TR);
     $TRAGGR = TREE_OPERAND ($TR, 0);
     $TRFIELD = TREE_OPERAND ($TR, 1);
-    $TROFF = ($TREECOMPONENTREFFULL#_len > 2) ? TREE_OPERAND ($TR, 2) : (tree)0;
+    $TROFF = ($TREECOMPONENTREFFULL#_len > 2) ? TREE_OPERAND ($TR, 2) : NULL_TREE;
   }#)
 
 (defcmatcher tree_component_ref_typed
@@ -3108,16 +3246,16 @@
        "each_local_decl_cfun [$EACHLOCALCFUN] called without cfun");
    if (cfun->local_decls) {
      unsigned $EACHLOCALCFUN#_ix = 0;
-     tree $EACHLOCALCFUN#_tdcl = (tree)0;
+     tree $EACHLOCALCFUN#_tdcl = NULL_TREE;
      FOR_EACH_LOCAL_DECL (cfun, $EACHLOCALCFUN#_ix, $EACHLOCALCFUN#_tdcl) {
         $TLOCDECL = $EACHLOCALCFUN#_tdcl;
         $IX = $EACHLOCALCFUN#_ix;
   }#
   ;; after expansion
   #{ /* end $EACHLOCALCFUN */
-        $TLOCDECL = (tree)0;
+        $TLOCDECL = NULL_TREE;
       }; /* end FOR_EACH_LOCAL_DECL $EACHLOCALCFUN */
-    $EACHLOCALCFUN#_tdcl = (tree)0;
+    $EACHLOCALCFUN#_tdcl = NULL_TREE;
     $EACHLOCALCFUN#_ix = 0;
     } /* end if cfun $EACHLOCALCFUN */ 
   }#
@@ -3186,8 +3324,57 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 (defprimitive debugbasicblock(:cstring msg :basic_block bb) :void
   #{ do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
   if (flag_melt_debug && $bb) debug_bb($bb);}while(0) 
-}#)
+}#
+)
 
+
+(defprimitive gimple_seq_add_stmt (:gimple_seq gs :gimple g) :void
+  :doc #{Add to end of gimple_seq $GS the gimple $G if non-null. May allocate $GS if it was null.}#
+  #{if ($G) gimple_seq_add_stmt (&($GS), ($G));}#
+)
+
+(defprimitive gimplify_seq_add_stmt (:gimple_seq gs :gimple g) :void
+  :doc #{Add to end of gimple_seq $GS the gimple $G if non-null. May allocate $GS if it was null. 
+Don't scan operands of the added $G.}#
+  #{if ($G) gimplify_seq_add_stmt (&($GS), ($G));}#
+)
+
+(defprimitive gimple_seq_add_seq (:gimple_seq gsdst gssrc) :void
+  :doc #{Add to end of gimple_seq $GSDST the gimple sequence $GSSRC. May allocate $GSDST.}#
+  #{if ($GSSRC) gimple_seq_add_seq (&($GSDST), ($GSSRC));}#
+)
+
+(defprimitive gimple_seq_copy (:gimple_seq gs) :gimple_seq 
+  :doc #{Return a deep copy of gimple_seq $GS.}#
+  #{(($GS)?gimple_seq_copy(($GS)):((gimple_seq)0))}#
+)
+
+(defprimitive gimple_seq_boxed_add_stmt (bgs :gimple g) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.}#
+  #{/*gimple_seq_boxed_add_stmt*/
+  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $G != (gimple)0) 
+     gimple_seq_add_stmt (&(((meltgimpleseq_st*)($BGS))->val), ($G));}#
+)
+
+(defprimitive gimplify_seq_boxed_add_stmt (bgs :gimple g) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.
+  Don't scan operands of the added $G.}#
+  #{/*gimple_seq_boxed_add_stmt*/
+  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $G != (gimple)0) 
+     gimplify_seq_add_stmt (&(((meltgimpleseq_st*)($BGS))->val), ($G));}#
+)
+
+(defprimitive gimple_seq_boxed_add_seq  (bgs :gimple_seq gs) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple_seq $GS. May fill $BGS if it contained a null gimple_seq.}#
+  #{/*gimple_seq_boxed_add_seq*/
+  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $GS != (gimple_seq)0) 
+     gimple_seq_add_seq (&(((meltgimpleseq_st*)($BGS))->val), ($GS));}#
+)
+
+(defprimitive gimple_build_return (:tree tr) :gimple
+  :doc #{Build a gimple to return $TR, if non-null.}#
+  #{($TR)?gimple_build_return(($TR)):((gimple)0)}#
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a gimpleseq
@@ -3568,6 +3755,10 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_assign_unary_minus
  gimple_assign_unary_nop
  gimple_bind
+ gimple_build_assign_convert
+ gimple_build_assign_fix_trunc
+ gimple_build_assign_float
+ gimple_build_assign_view_convert
  gimple_call
  gimple_call_1
  gimple_call_1_more

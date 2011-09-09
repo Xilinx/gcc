@@ -1,5 +1,24 @@
 
 2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: Added some :doc.
+	(gimple_assign_single, gimple_assign_unary_nop)
+	(gimple_assign_unary_minus, gimple_assign_plus)
+	(gimple_assign_minus, gimple_assign_pointerplus)
+	(gimple_assign_mult, gimple_assign_trunc_div)
+	(gimple_assign_ceil_div, gimple_assign_floor_div)
+	(gimple_assign_round_div, gimple_assign_rdiv)
+	(gimple_assign_exact_div, gimple_assign_trunc_mod)
+	(gimple_assign_ceil_mod, gimple_assign_floor_mod)
+	(gimple_assign_round_mod, gimple_assign_binaryop)
+	(gimple_cond_lessequal, gimple_cond_less, gimple_cond_notequal)
+	(gimple_cond_equal, gimple_cond_greater)
+	(gimple_cond_greater_or_equal): Add operator expansion to make
+	these usable as primitives in expression context and as pattern in
+	pattern context.
+	(gimple_build_assign_convert, gimple_build_assign_view_convert)
+	(gimple_build_assign_fix_trunc, gimple_build_assign_float): New primitives.
+
+2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_defciterator): More flexible on
 	position of :doc.
 
