@@ -1,5 +1,35 @@
 
 2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerated}}
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/meltrunsup-inc.c: Regenerate.
+	* melt/generated/warmelt-base+01.c: Regenerate.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug.c: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+01.c: Regenerate.
+	* melt/generated/warmelt-genobj+04.c: Regenerate.
+	* melt/generated/warmelt-genobj+05.c: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-genobj.c: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro.c: Regenerate.
+	* melt/generated/warmelt-normal+01.c: Regenerate.
+	* melt/generated/warmelt-normal+02.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+02.c: Regenerate.
+	* melt/generated/warmelt-normatch+03.c: Regenerate.
+	* melt/generated/warmelt-normatch+04.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch.c: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
+
+2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt
 	(<iv , <=iv , =iv , !=iv , >iv , >=iv , <ivi , <=ivi , =ivi )
 	(!=ivi , >ivi , >=ivi , +ivi , -ivi , *ivi , /ivi , %ivi):
