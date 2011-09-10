@@ -1,5 +1,11 @@
 2011-09-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* tree.c (walk_tree_1): Handled the "cilk_for" case.
+	* tree.h (CILK_FOR_VAR): Use 5 instead of 4 as TREE_OPERAND
+	argument.
+
+2011-09-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* pragma_simd.c: Added the standard GCC header.
 
 2011-09-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>

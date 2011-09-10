@@ -10606,6 +10606,15 @@ walk_tree_1 (tree *tp, walk_tree_fn func, void *data,
 	WALK_SUBTREE_TAIL (TREE_OPERAND (*tp, len));
       }
 
+    case CILK_FOR_STMT:
+      WALK_SUBTREE (CILK_FOR_INIT (*tp));
+      WALK_SUBTREE (FOR_COND (*tp));
+      WALK_SUBTREE (FOR_EXPR (*tp));
+      WALK_SUBTREE (FOR_BODY (*tp));
+      WALK_SUBTREE (CILK_FOR_GRAIN (*tp));
+      WALK_SUBTREE (CILK_FOR_VAR (*tp));
+      break;
+
     case DECL_EXPR:
       /* If this is a TYPE_DECL, walk into the fields of the type that it's
 	 defining.  We only want to walk into these fields of a type in this

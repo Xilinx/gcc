@@ -3874,7 +3874,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    condition, update expression, and body of the for statement,
    respectively.  */
 /* bviyer: we need it in C, so I have defined them in tree.h */
-#define FOR_SCOPE(NODE)		TREE_OPERAND (FOR_STMT_CHECK (NODE), 4)
+#define FOR_SCOPE(NODE)		TREE_OPERAND (FOR_STMT_CHECK2 (NODE), 4)
 #define FOR_STMT_PRAGMA_SIMD_INDEX(NODE)               \
  (FOR_STMT_CHECK(NODE)->base.pragma_simd_index)
 

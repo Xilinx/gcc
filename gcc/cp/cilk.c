@@ -1024,17 +1024,18 @@ check_incr(tree var, tree arith_type, tree incr)
   if (TREE_CODE (incr) == MODIFY_EXPR)
     {
       modify = true;
-      if (TREE_OPERAND (incr, 0) != var)
+      if (TREE_OPERAND (incr, 0) != var
+	  && DECL_NAME (TREE_OPERAND (incr, 0)) != DECL_NAME (var))
 	{
 	  error("Cilk for increment does not modify the loop variable.\n");
 	  return false;
 	}
       incr = TREE_OPERAND (incr, 1);
       incr_code = TREE_CODE (incr);
-      gcc_assert (TREE_OPERAND (incr, 0) == var);
     
     }
-  else if (TREE_OPERAND (incr, 0) != var)
+  else if (TREE_OPERAND (incr, 0) != var
+	   && DECL_NAME (TREE_OPERAND (incr, 0)) != DECL_NAME (var))
     {
       error ("Cilk for increment does not modify the loop variable.");
       return false;
@@ -2589,7 +2590,6 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
     case MODIFY_EXPR:
       /* We don't get here unless the expression has the form
 	 (modify var (op var incr)) */
-      gcc_assert (TREE_OPERAND (incr, 0) == var);
       incr = TREE_OPERAND (incr, 1);
       /* again, should have checked form of increment earlier */
       if (TREE_CODE (incr) == PLUS_EXPR)
@@ -2597,9 +2597,9 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
 	  tree op0 = TREE_OPERAND (incr, 0);
 	  tree op1 = TREE_OPERAND (incr, 1);
 
-	  if (op0 == var)
+	  if (op0 == var || DECL_NAME (op0) == DECL_NAME (var))
 	    incr = op1;
-	  else if (op1 == var)
+	  else if (op1 == var || DECL_NAME (op1) == DECL_NAME (var))
 	    incr = op0;
 	  else
 	    gcc_unreachable ();
@@ -2637,8 +2637,13 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
 	  tree op0 = TREE_OPERAND (incr, 0);
 	  tree op1 = TREE_OPERAND (incr, 1);
 
-	  gcc_assert (op0 == var);
-	  incr = op1;
+	  if (op0 == var || DECL_NAME (op0) == DECL_NAME (var))
+	    incr = op1;
+	  else if (op1 == var || DECL_NAME (op1) == DECL_NAME(var))
+	    incr = op0;
+	  else
+	    gcc_unreachable();
+	  
 	  /* Store the amount to be subtracted.
 	     Negating it could overflow. */
 	  negate_incr = true;
