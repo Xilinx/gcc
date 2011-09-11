@@ -19,6 +19,7 @@
 
 load_lib copy-file.exp
 
+# Generate a PPH image from a header file.
 proc dg-pph-hdr { subdir test options mapflag suffix } {
 
     global runtests dg-do-what-default
@@ -40,6 +41,8 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
     }
 }
 
+# Run a negative PPH test.  These tests are expected to produce an error
+# as they represent files that are not compatible with PPH.
 proc dg-pph-neg { subdir test options mapflag suffix } {
 
     global runtests dg-do-what-default
@@ -61,6 +64,11 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
     }
 }
 
+# Run a positive PPH test (a test expected to work with PPH).  Tests not
+# marked 'dg-do run' or 'dg-do link' are compiled twice.  The first time
+# with PPH disabled, the second time with PPH enabled.  The assembly
+# output from both compiles is then compared.  The test succeeds if both
+# assembly outputs are identical.
 proc dg-pph-pos { subdir test options mapflag suffix } {
 
     global runtests dg-do-what-default
@@ -70,13 +78,10 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 	return
     }
 
+    set dg-do-what-default compile
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
     verbose -log "\nTesting $nshort, $options"
-
-    # Compile the file the first time for a base case.
-    set dg-do-what-default compile
-    dg-test -keep-output $test "$options -I. -fno-dwarf2-cfi-asm" ""
 
     # Determine whether this is an assembly comparison test
     set is_exec [llength [grep $test "dg-do run"]]
@@ -88,11 +93,31 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     }
 
     if { $is_asm } {
+	# Compile the file the first time for a base case.
+	global target_triplet
+
+	# First, gather additional options specified by the test.
+	set all_dg_options [dg-get-options $test]
+	set other_options ""
+	foreach dg_option $all_dg_options {
+	    set cmd [lindex $dg_option 0]
+	    if { [string match "dg-options" $cmd] } {
+		set other_options "$other_options [lindex $dg_option 2]"
+	    }
+	}
+
+	# Now, compile the file but prune the result to avoid considering
+	# it part of the testsuite.  We just want to compile it to provide
+	# a base assembly output to compare against.
+	set comp_output [g++-dg-test $test compile "$options $other_options"]
+	set comp_output [g++-dg-prune $target_triplet $comp_output]
+
 	# Wanted assembly, so quit if it did not compile successfully.
 	if { ![file_on_host exists "$bname.s"] } {
 	    fail "$nshort $options (regular assembly missing)"
 	    return
 	}
+
 	# Rename the .s file into .s-pph to compare it after the second build.
 	remote_upload host "$bname.s" "$bname.s-pph"
 	remote_download host "$bname.s-pph"
@@ -101,8 +126,8 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 
     verbose -log ""
 
-    # Compile a second time using the pph files.
-    dg-test -keep-output $test "$options $mapflag -I. -fno-dwarf2-cfi-asm" ""
+    # Compile a second time using the PPH files.
+    dg-test -keep-output $test "$options $mapflag" ""
 
     if { !$is_asm } {
 	# No assembly means we cannot compare them,
@@ -131,6 +156,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     # In most tests, they should be identical.
     # Tests involving overload injection and such will have different assembly.
     set adiff [catch {exec diff "$bname.s-pph" "$bname.s+pph"} diff_result]
+
     # The sources mark when they expect the comparison to differ.
     # When marked with xdiff, the difference is a problem.
     # When marked with xwant, the difference is what we want.
