@@ -181,9 +181,6 @@ package body Sem_Ch6 is
    --  This procedure makes S, a new overloaded entity, into the first visible
    --  entity with that name.
 
-   procedure Install_Entity (E : Entity_Id);
-   --  Make single entity visible (used for generic formals as well)
-
    function Is_Non_Overriding_Operation
      (Prev_E : Entity_Id;
       New_E  : Entity_Id) return Boolean;
@@ -1727,6 +1724,11 @@ package body Sem_Ch6 is
       --  mechanism is used to find the corresponding spec of the primitive
       --  body.
 
+      procedure Exchange_Limited_Views (Subp_Id : Entity_Id);
+      --  Ada 2012 (AI05-0151): Detect whether the profile of Subp_Id contains
+      --  incomplete types coming from a limited context and swap their limited
+      --  views with the non-limited ones.
+
       function Is_Private_Concurrent_Primitive
         (Subp_Id : Entity_Id) return Boolean;
       --  Determine whether subprogram Subp_Id is a primitive of a concurrent
@@ -2092,6 +2094,65 @@ package body Sem_Ch6 is
          return Spec_N;
       end Disambiguate_Spec;
 
+      ----------------------------
+      -- Exchange_Limited_Views --
+      ----------------------------
+
+      procedure Exchange_Limited_Views (Subp_Id : Entity_Id) is
+         procedure Detect_And_Exchange (Id : Entity_Id);
+         --  Determine whether Id's type denotes an incomplete type associated
+         --  with a limited with clause and exchange the limited view with the
+         --  non-limited one.
+
+         -------------------------
+         -- Detect_And_Exchange --
+         -------------------------
+
+         procedure Detect_And_Exchange (Id : Entity_Id) is
+            Typ : constant Entity_Id := Etype (Id);
+
+         begin
+            if Ekind (Typ) = E_Incomplete_Type
+              and then From_With_Type (Typ)
+              and then Present (Non_Limited_View (Typ))
+            then
+               Set_Etype (Id, Non_Limited_View (Typ));
+            end if;
+         end Detect_And_Exchange;
+
+         --  Local variables
+
+         Formal : Entity_Id;
+
+      --  Start of processing for Exchange_Limited_Views
+
+      begin
+         if No (Subp_Id) then
+            return;
+
+         --  Do not process subprogram bodies as they already use the non-
+         --  limited view of types.
+
+         elsif not Ekind_In (Subp_Id, E_Function, E_Procedure) then
+            return;
+         end if;
+
+         --  Examine all formals and swap views when applicable
+
+         Formal := First_Formal (Subp_Id);
+         while Present (Formal) loop
+            Detect_And_Exchange (Formal);
+
+            Next_Formal (Formal);
+         end loop;
+
+         --  Process the return type of a function
+
+         if Ekind (Subp_Id) = E_Function then
+            Detect_And_Exchange (Subp_Id);
+         end if;
+      end Exchange_Limited_Views;
+
       -------------------------------------
       -- Is_Private_Concurrent_Primitive --
       -------------------------------------
@@ -2285,7 +2346,12 @@ package body Sem_Ch6 is
             --  expansion has generated an equivalent type that is used when
             --  elaborating the body.
 
-            if No (Spec_Id) then
+            --  An exception in the case of Ada2012, AI05-177: The bodies
+            --  created for expression functions do not freeze.
+
+            if No (Spec_Id)
+              and then Nkind (Original_Node (N)) /= N_Expression_Function
+            then
                Freeze_Before (N, Body_Id);
 
             elsif Nkind (Parent (N)) = N_Compilation_Unit then
@@ -2712,16 +2778,27 @@ package body Sem_Ch6 is
       --  for discriminals and privals and finally a declaration for the entry
       --  family index (if applicable). This form of early expansion is done
       --  when the Expander is active because Install_Private_Data_Declarations
-      --  references entities which were created during regular expansion.
+      --  references entities which were created during regular expansion. The
+      --  body may be the rewritting of an expression function, and we need to
+      --  verify that the original node is in the source.
 
       if Full_Expander_Active
-        and then Comes_From_Source (N)
+        and then Comes_From_Source (Original_Node (N))
         and then Present (Prot_Typ)
         and then Present (Spec_Id)
         and then not Is_Eliminated (Spec_Id)
       then
          Install_Private_Data_Declarations
            (Sloc (N), Spec_Id, Prot_Typ, N, Declarations (N));
+      end if;
+
+      --  Ada 2012 (AI05-0151): Incomplete types coming from a limited context
+      --  may now appear in parameter and result profiles. Since the analysis
+      --  of a subprogram body may use the parameter and result profile of the
+      --  spec, swap any limited views with their non-limited counterpart.
+
+      if Ada_Version >= Ada_2012 then
+         Exchange_Limited_Views (Spec_Id);
       end if;
 
       --  Analyze the declarations (this call will analyze the precondition
@@ -6224,7 +6301,7 @@ package body Sem_Ch6 is
       --  build-in-place formals are needed in some cases (limited 'Input).
 
       if Is_Predefined_Internal_Operation (E) then
-         goto Test_For_BIP_Extras;
+         goto Test_For_Func_Result_Extras;
       end if;
 
       Formal := First_Formal (E);
@@ -6323,7 +6400,15 @@ package body Sem_Ch6 is
          Next_Formal (Formal);
       end loop;
 
-      <<Test_For_BIP_Extras>>
+      <<Test_For_Func_Result_Extras>>
+
+      --  Ada 2012 (AI05-234): "the accessibility level of the result of a
+      --  function call is ... determined by the point of call ...".
+
+      if Needs_Result_Accessibility_Level (E) then
+         Set_Extra_Accessibility_Of_Result
+           (E, Add_Extra_Formal (E, Standard_Natural, E, "L"));
+      end if;
 
       --  Ada 2005 (AI-318-02): In the case of build-in-place functions, add
       --  appropriate extra formals. See type Exp_Ch6.BIP_Formal_Kind.
@@ -6365,11 +6450,11 @@ package body Sem_Ch6 is
                     E, BIP_Formal_Suffix (BIP_Finalization_Master));
             end if;
 
-            --  If the result type contains tasks, we have two extra formals:
-            --  the master of the tasks to be created, and the caller's
-            --  activation chain.
+            --  When the result type contains tasks, add two extra formals: the
+            --  master of the tasks to be created, and the caller's activation
+            --  chain.
 
-            if Has_Task (Result_Subt) then
+            if Has_Task (Available_View (Result_Subt)) then
                Discard :=
                  Add_Extra_Formal
                    (E, RTE (RE_Master_Id),

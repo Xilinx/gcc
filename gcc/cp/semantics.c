@@ -5490,7 +5490,6 @@ is_valid_constexpr_fn (tree fun, bool complain)
 	    }
 	}
 
-      /* Check this again here for cxx_eval_call_expression.  */
       if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
 	  && !CLASSTYPE_LITERAL_P (DECL_CONTEXT (fun)))
 	{
@@ -5505,29 +5504,6 @@ is_valid_constexpr_fn (tree fun, bool complain)
     }
 
   return ret;
-}
-
-/* Return non-null if FUN certainly designates a valid constexpr function
-   declaration.  Otherwise return NULL.  Issue appropriate diagnostics
-   if necessary.  Note that we only check the declaration, not the body
-   of the function.  */
-
-tree
-validate_constexpr_fundecl (tree fun)
-{
-  if (processing_template_decl || !DECL_DECLARED_CONSTEXPR_P (fun))
-    return NULL;
-  else if (DECL_CLONED_FUNCTION_P (fun))
-    /* We already checked the original function.  */
-    return fun;
-
-  if (!is_valid_constexpr_fn (fun, !DECL_TEMPLATE_INFO (fun)))
-    {
-      DECL_DECLARED_CONSTEXPR_P (fun) = false;
-      return NULL;
-    }
-
-  return fun;
 }
 
 /* Subroutine of  build_constexpr_constructor_member_initializers.
@@ -5780,6 +5756,63 @@ massage_constexpr_body (tree fun, tree body)
   return body;
 }
 
+/* FUN is a constexpr constructor with massaged body BODY.  Return true
+   if some bases/fields are uninitialized, and complain if COMPLAIN.  */
+
+static bool
+cx_check_missing_mem_inits (tree fun, tree body, bool complain)
+{
+  bool bad;
+  tree field;
+  unsigned i, nelts;
+
+  if (TREE_CODE (body) != CONSTRUCTOR)
+    return false;
+
+  bad = false;
+  nelts = CONSTRUCTOR_NELTS (body);
+  field = TYPE_FIELDS (DECL_CONTEXT (fun));
+  for (i = 0; i <= nelts; ++i)
+    {
+      tree index;
+      if (i == nelts)
+	index = NULL_TREE;
+      else
+	{
+	  index = CONSTRUCTOR_ELT (body, i)->index;
+	  /* Skip base and vtable inits.  */
+	  if (TREE_CODE (index) != FIELD_DECL)
+	    continue;
+	}
+      for (; field != index; field = DECL_CHAIN (field))
+	{
+	  tree ftype;
+	  if (TREE_CODE (field) != FIELD_DECL
+	      || (DECL_C_BIT_FIELD (field) && !DECL_NAME (field)))
+	    continue;
+	  if (!complain)
+	    return true;
+	  ftype = strip_array_types (TREE_TYPE (field));
+	  if (type_has_constexpr_default_constructor (ftype))
+	    {
+	      /* It's OK to skip a member with a trivial constexpr ctor.
+	         A constexpr ctor that isn't trivial should have been
+	         added in by now.  */
+	      gcc_checking_assert (!TYPE_HAS_COMPLEX_DFLT (ftype));
+	      continue;
+	    }
+	  error ("uninitialized member %qD in %<constexpr%> constructor",
+		 field);
+	  bad = true;
+	}
+      if (field == NULL_TREE)
+	break;
+      field = DECL_CHAIN (field);
+    }
+
+  return bad;
+}
+
 /* We are processing the definition of the constexpr function FUN.
    Check that its BODY fulfills the propriate requirements and
    enter it in the constexpr function definition table.
@@ -5792,6 +5825,9 @@ register_constexpr_fundef (tree fun, tree body)
   constexpr_fundef entry;
   constexpr_fundef **slot;
 
+  if (!is_valid_constexpr_fn (fun, !DECL_TEMPLATE_INFO (fun)))
+    return NULL;
+
   body = massage_constexpr_body (fun, body);
   if (body == NULL_TREE || body == error_mark_node)
     {
@@ -5802,11 +5838,14 @@ register_constexpr_fundef (tree fun, tree body)
 
   if (!potential_rvalue_constant_expression (body))
     {
-      DECL_DECLARED_CONSTEXPR_P (fun) = false;
       if (!DECL_TEMPLATE_INFO (fun))
 	require_potential_rvalue_constant_expression (body);
       return NULL;
     }
+
+  if (DECL_CONSTRUCTOR_P (fun)
+      && cx_check_missing_mem_inits (fun, body, !DECL_TEMPLATE_INFO (fun)))
+    return NULL;
 
   /* Create the constexpr function table if necessary.  */
   if (constexpr_fundef_table == NULL)
@@ -5836,8 +5875,9 @@ explain_invalid_constexpr_fn (tree fun)
   static struct pointer_set_t *diagnosed;
   tree body;
   location_t save_loc;
-  /* Only diagnose instantiations of constexpr templates.  */
-  if (!is_instantiation_of_constexpr (fun))
+  /* Only diagnose defaulted functions or instantiations.  */
+  if (!DECL_DEFAULTED_FN (fun)
+      && !is_instantiation_of_constexpr (fun))
     return;
   if (diagnosed == NULL)
     diagnosed = pointer_set_create ();
@@ -5847,8 +5887,7 @@ explain_invalid_constexpr_fn (tree fun)
 
   save_loc = input_location;
   input_location = DECL_SOURCE_LOCATION (fun);
-  inform (0, "%q+D is not constexpr because it does not satisfy the "
-	  "requirements:", fun);
+  inform (0, "%q+D is not usable as a constexpr function because:", fun);
   /* First check the declaration.  */
   if (is_valid_constexpr_fn (fun, true))
     {
@@ -5859,6 +5898,8 @@ explain_invalid_constexpr_fn (tree fun)
 	{
 	  body = massage_constexpr_body (fun, DECL_SAVED_TREE (fun));
 	  require_potential_rvalue_constant_expression (body);
+	  if (DECL_CONSTRUCTOR_P (fun))
+	    cx_check_missing_mem_inits (fun, body, true);
 	}
     }
   input_location = save_loc;
@@ -6208,7 +6249,16 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
       if (new_call.fundef == NULL || new_call.fundef->body == NULL)
         {
 	  if (!allow_non_constant)
-	    error_at (loc, "%qD used before its definition", fun);
+	    {
+	      if (DECL_SAVED_TREE (fun))
+		{
+		  /* The definition of fun was somehow unsuitable.  */
+		  error_at (loc, "%qD called in a constant expression", fun);
+		  explain_invalid_constexpr_fn (fun);
+		}
+	      else
+		error_at (loc, "%qD used before its definition", fun);
+	    }
 	  *non_constant_p = true;
           return t;
         }
@@ -7181,7 +7231,17 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 
     case PARM_DECL:
       if (call && DECL_CONTEXT (t) == call->fundef->decl)
-	r = lookup_parameter_binding (call, t);
+	{
+	  if (DECL_ARTIFICIAL (t) && DECL_CONSTRUCTOR_P (DECL_CONTEXT (t)))
+	    {
+	      if (!allow_non_constant)
+		sorry ("use of the value of the object being constructed "
+		       "in a constant expression");
+	      *non_constant_p = true;
+	    }
+	  else
+	    r = lookup_parameter_binding (call, t);
+	}
       else if (addr)
 	/* Defer in case this is only used for its type.  */;
       else

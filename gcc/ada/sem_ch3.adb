@@ -772,10 +772,16 @@ package body Sem_Ch3 is
             Anon_Scope := Scope (Defining_Entity (Related_Nod));
          end if;
 
-      else
-         --  For access formals, access components, and access discriminants,
-         --  the scope is that of the enclosing declaration,
+      --  For an access type definition, if the current scope is a child
+      --  unit it is the scope of the type.
 
+      elsif Is_Compilation_Unit (Current_Scope) then
+         Anon_Scope := Current_Scope;
+
+      --  For access formals, access components, and access discriminants, the
+      --  scope is that of the enclosing declaration,
+
+      else
          Anon_Scope := Scope (Current_Scope);
       end if;
 
@@ -815,7 +821,7 @@ package body Sem_Ch3 is
          Set_Can_Use_Internal_Rep
            (Anon_Type, not Always_Compatible_Rep_On_Target);
 
-         --  If the anonymous access is associated with a protected operation
+         --  If the anonymous access is associated with a protected operation,
          --  create a reference to it after the enclosing protected definition
          --  because the itype will be used in the subsequent bodies.
 
@@ -902,10 +908,10 @@ package body Sem_Ch3 is
                  Make_Object_Declaration (Loc,
                    Defining_Identifier =>
                      Make_Defining_Identifier (Loc, Name_uMaster),
-                   Constant_Present => True,
-                   Object_Definition =>
+                   Constant_Present    => True,
+                   Object_Definition   =>
                      New_Reference_To (RTE (RE_Master_Id), Loc),
-                   Expression =>
+                   Expression          =>
                      Make_Explicit_Dereference (Loc,
                        New_Reference_To (RTE (RE_Current_Master), Loc)));
 
@@ -3267,6 +3273,15 @@ package body Sem_Ch3 is
 
       if Is_Indefinite_Subtype (T) then
 
+         --  In SPARK, a declaration of unconstrained type is allowed
+         --  only for constants of type string.
+
+         if Is_String_Type (T) and then not Constant_Present (N) then
+            Check_SPARK_Restriction
+              ("declaration of object of unconstrained type not allowed",
+               N);
+         end if;
+
          --  Nothing to do in deferred constant case
 
          if Constant_Present (N) and then No (E) then
@@ -3313,18 +3328,9 @@ package body Sem_Ch3 is
          --  Case of initialization present
 
          else
-            --  Check restrictions in Ada 83 and SPARK modes
+            --  Check restrictions in Ada 83
 
             if not Constant_Present (N) then
-
-               --  In SPARK, a declaration of unconstrained type is allowed
-               --  only for constants of type string.
-
-               if Nkind (E) = N_String_Literal then
-                  Check_SPARK_Restriction
-                    ("declaration of object of unconstrained type not allowed",
-                     E);
-               end if;
 
                --  Unconstrained variables not allowed in Ada 83 mode
 
@@ -15059,6 +15065,7 @@ package body Sem_Ch3 is
                Tag_Mismatch;
             end if;
          end if;
+
          if Present (Prev)
            and then Nkind (Parent (Prev)) = N_Incomplete_Type_Declaration
            and then Present (Premature_Use (Parent (Prev)))
@@ -16859,11 +16866,16 @@ package body Sem_Ch3 is
       --  function calls. The function call may have been given in prefixed
       --  notation, in which case the original node is an indexed component.
       --  If the function is parameterless, the original node was an explicit
-      --  dereference.
+      --  dereference. The function may also be parameterless, in which case
+      --  the source node is just an identifier.
 
       case Nkind (Original_Node (Exp)) is
          when N_Aggregate | N_Extension_Aggregate | N_Function_Call | N_Op =>
             return True;
+
+         when N_Identifier =>
+            return Present (Entity (Original_Node (Exp)))
+              and then Ekind (Entity (Original_Node (Exp))) = E_Function;
 
          when N_Qualified_Expression =>
             return

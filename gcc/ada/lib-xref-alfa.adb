@@ -586,10 +586,12 @@ package body Alfa is
          function Is_Alfa_Reference
            (E   : Entity_Id;
             Typ : Character) return Boolean;
-         --  Return whether the reference is adequate for this entity
+         --  Return whether entity reference E meets Alfa requirements. Typ
+         --  is the reference type.
 
          function Is_Alfa_Scope (E : Entity_Id) return Boolean;
-         --  Return whether the entity or reference scope is adequate
+         --  Return whether the entity or reference scope meets requirements
+         --  for being an Alfa scope.
 
          function Is_Global_Constant (E : Entity_Id) return Boolean;
          --  Return True if E is a global constant for which we should ignore
@@ -608,20 +610,30 @@ package body Alfa is
             --  On non-callable entities, the only references of interest are
             --  reads and writes.
 
-            case Ekind (E) is
-               when Overloadable_Kind =>
-                  return Typ = 's';
+            if Ekind (E) in Overloadable_Kind then
+               return Typ = 's';
 
-               --  References to IN parameters are not considered in Alfa
-               --  section, as these will be translated as constants in the
-               --  intermediate language for formal verification.
+            --  References to constant objects are not considered in Alfa
+            --  section, as these will be translated as constants in the
+            --  intermediate language for formal verification, and should
+            --  therefore never appear in frame conditions.
 
-               when E_In_Parameter =>
+            elsif Is_Constant_Object (E) then
                   return False;
 
-               when others =>
-                  return Typ = 'r' or else Typ = 'm';
-            end case;
+            --  Objects of Task type or protected type are not Alfa references
+
+            elsif Present (Etype (E))
+              and then Ekind (Etype (E)) in Concurrent_Kind
+            then
+               return False;
+
+            --  In all other cases, result is true for reference/modify cases,
+            --  and false for all other cases.
+
+            else
+               return Typ = 'r' or else Typ = 'm';
+            end if;
          end Is_Alfa_Reference;
 
          -------------------

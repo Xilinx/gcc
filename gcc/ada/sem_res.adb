@@ -2810,7 +2810,16 @@ package body Sem_Res is
          --  default expression mode (the Freeze_Expression routine tests this
          --  flag and only freezes static types if it is set).
 
-         Freeze_Expression (N);
+         --  AI05-177 (Ada2012): Expression functions do not freeze. Only
+         --  their use (in an expanded call) freezes.
+
+         if Ekind (Current_Scope) /= E_Function
+           or else
+             Nkind (Original_Node (Unit_Declaration_Node (Current_Scope))) /=
+                                                        N_Expression_Function
+         then
+            Freeze_Expression (N);
+         end if;
 
          --  Now we can do the expansion
 
@@ -7145,6 +7154,8 @@ package body Sem_Res is
          return Res;
       end Convert_Operand;
 
+   --  Start of processing for Resolve_Intrinsic_Operator
+
    begin
       --  We must preserve the original entity in a generic setting, so that
       --  the legality of the operation can be verified in an instance.
@@ -7162,13 +7173,17 @@ package body Sem_Res is
       Set_Entity (N, Op);
       Set_Is_Overloaded (N, False);
 
-      --  If the operand type is private, rewrite with suitable conversions on
-      --  the operands and the result, to expose the proper underlying numeric
-      --  type.
+      --  If the result or operand types are private, rewrite with unchecked
+      --  conversions on the operands and the result, to expose the proper
+      --  underlying numeric type.
 
-      if Is_Private_Type (Typ) then
+      if Is_Private_Type (Typ)
+        or else Is_Private_Type (Etype (Left_Opnd (N)))
+        or else Is_Private_Type (Etype (Right_Opnd (N)))
+      then
          Arg1 := Convert_Operand (Left_Opnd (N));
          --  Unchecked_Convert_To (Btyp, Left_Opnd  (N));
+         --  What on earth is this commented out fragment of code???
 
          if Nkind (N) = N_Op_Expon then
             Arg2 := Unchecked_Convert_To (Standard_Integer, Right_Opnd (N));
