@@ -9049,6 +9049,10 @@ grokdeclarator (const cp_declarator *declarator,
             virt_specifiers = declarator->u.function.virt_specifiers;
 	    /* Pick up the exception specifications.  */
 	    raises = declarator->u.function.exception_specification;
+	    /* If the exception-specification is ill-formed, let's pretend
+	       there wasn't one.  */
+	    if (raises == error_mark_node)
+	      raises = NULL_TREE;
 
 	    /* Say it's a definition only for the CALL_EXPR
 	       closest to the identifier.  */
@@ -13387,6 +13391,10 @@ finish_function (int flags)
 		   "parameter %q+D set but not used", decl);
       unused_but_set_errorcount = errorcount;
     }
+
+  /* Complain about locally defined typedefs that are not used in this
+     function.  */
+  maybe_warn_unused_local_typedefs ();
 
   /* Genericize before inlining.  */
   if (!processing_template_decl)
