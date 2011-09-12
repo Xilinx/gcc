@@ -1,4 +1,9 @@
 2011-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_defined_value_binding): New.
+
+	* melt/warmelt-macro.melt (mexpand_define): More, but incomplete.
+
+2011-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

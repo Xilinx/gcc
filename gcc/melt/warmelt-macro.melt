@@ -2600,37 +2600,63 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 
 
 ;;;;;;;;;;;;;;;;;; the define expander
-;;;(DEFINE name expr [:doc documentation])
+;;;(DEFINE name [:doc documentation] expr ...)
+ ;; same as defun, Scheme syntax sugar:
+;;;(DEFINE (name formals...) [:doc documentation] expr ...)
 (defun mexpand_define (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (defname ())
-	 (defexpr ())
-	 (defdoc ())
+	 (curpair (pair_tail (list_first cont)))
+	 (curelem (pair_head curpair))
+	 (newenv (fresh_env env))
 	 )
-#| ;; this match fail to be compiled with the old match implementation...
-    (match cont 
-	   (?(list ?_ 
-		   ?(and ?name ?(instance class_symbol))
-		   ?expr)
-	     (setq defname name)
-	     (setq defexpr expr)
+    (cond 
+     ((is_a curelem class_symbol)
+      ;; case (DEFINE name ...)
+      (let ( 
+	    (defname curelem)
+	    (defexpr ())
+	    (defdoc ())
+	    (defvalbind (instance class_defined_value_binding
+				  :binder defname
+				  :defvalbind_define () ;filled below
+				  ))
+	    )
+	(setq curpair (pair_tail curpair))
+	(if (== (pair_head curpair) ':doc)
+	    (progn
+	      (setq curpair (pair_tail curpair))
+	      (setq defdoc (pair_head curpair))
+	      (setq curpair (pair_tail curpair))))
+	;;
+	(put_env defname defvalbind)
+	(let ( (body (expand_pairlist_as_tuple curpair newenv mexpander))
+	       )
+	  (debug_msg body "mexpand_define body")
+	  (compile_warning "incomplete mexpand_define for simple name")
+	  )))
+     ;;
+     ((is_a curelem class_sexpr)
+      ;; case (DEFINE (name formals ...) ...)
+      (let ( (floc (unsafe_get_field :loca_location curelem))
+	     (fcont (unsafe_get_field :sexp_contents curelem))
+	     (funame (pair_head (list_first fcont)))
+	     (cursubpair (pair_tail (list_first fcont)))
+	     (formals (lambda_arg_bindings cursubpair))
 	     )
-	   (?(list ?_
-		   ?(and ?name ?(instance class_symbol))
-		   ?expr
-		   :doc ?doc)
-	     (setq defname name)
-	     (setq defexpr expr)
-	     (setq defdoc doc))
-	   (?_
-	    
-	    (error_plain loc "bad syntax for (DEFINE name expr [:doc documentation])"_)
-	    (return)))
-|#
-;;;;
+	(if (is_not_a funame class_symbol)
+	    (progn
+	      (error_plain floc 
+			   "Bad function name, expecting (DEFINE (name formals) ...")
+	      (return)))
+	))
+     ;;
+     (:else
+      (error_plain loc "Expects <name> or (<name> <formals) after DEFINE")
+      (return)
+      ))
     (error_plain loc "(DEFINE ...) not yet implemented")
     (assert_msg "$@$ mexpand_define unimplemented")
     ))
