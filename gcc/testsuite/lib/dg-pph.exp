@@ -19,10 +19,13 @@
 
 load_lib copy-file.exp
 
+# Options needed for assembly stability across platforms.
+set stable "-fno-dwarf2-cfi-asm"
+
 # Generate a PPH image from a header file.
 proc dg-pph-hdr { subdir test options mapflag suffix } {
 
-    global runtests dg-do-what-default
+    global runtests dg-do-what-default stable
 
     # If we're only testing specific files and this isn't one of them, skip it.
     if { ![runtest_file_p $runtests $test] } {
@@ -34,7 +37,7 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
     verbose -log "\nTesting $nshort, $options"
 
     set dg-do-what-default preparse
-    dg-test -keep-output $test "-fpph-gen $options $mapflag -I." ""
+    dg-test -keep-output $test "-fpph-gen $options $mapflag $stable" ""
 
     if { [file_on_host exists "$bname.s"] } {
 	file_on_host delete "$bname.s"
@@ -45,7 +48,7 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
 # as they represent files that are not compatible with PPH.
 proc dg-pph-neg { subdir test options mapflag suffix } {
 
-    global runtests dg-do-what-default
+    global runtests dg-do-what-default stable
 
     # If we're only testing specific files and this isn't one of them, skip it.
     if { ![runtest_file_p $runtests $test] } {
@@ -57,7 +60,7 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
     verbose -log "\nTesting $nshort, $options"
 
     set dg-do-what-default compile
-    dg-test -keep-output $test "$options $mapflag -I. -fno-dwarf2-cfi-asm" ""
+    dg-test -keep-output $test "$options $mapflag $stable" ""
 
     if { [file_on_host exists "$bname.s"] } {
 	file_on_host delete "$bname.s"
@@ -71,7 +74,7 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
 # assembly outputs are identical.
 proc dg-pph-pos { subdir test options mapflag suffix } {
 
-    global runtests dg-do-what-default
+    global runtests dg-do-what-default stable
 
     # If we're only testing specific files and this isn't one of them, skip it.
     if { ![runtest_file_p $runtests $test] } {
@@ -109,7 +112,8 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 	# Now, compile the file but prune the result to avoid considering
 	# it part of the testsuite.  We just want to compile it to provide
 	# a base assembly output to compare against.
-	set comp_output [g++-dg-test $test compile "$options $other_options"]
+        set full_options "$options $other_options $stable"
+	set comp_output [g++-dg-test $test compile "$full_options"]
 	set comp_output [g++-dg-prune $target_triplet $comp_output]
 
 	# Wanted assembly, so quit if it did not compile successfully.
@@ -127,7 +131,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     verbose -log ""
 
     # Compile a second time using the PPH files.
-    dg-test -keep-output $test "$options $mapflag" ""
+    dg-test -keep-output $test "$options $mapflag $stable" ""
 
     if { !$is_asm } {
 	# No assembly means we cannot compare them,

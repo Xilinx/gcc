@@ -1,3 +1,8 @@
+2011-09-12   Lawrence Crowl  <crowl@google.com>
+
+        * lib/dg-pph.exp: Restore -fno-dwarf2-cfi-asm option for
+        stability across platforms.
+
 2011-09-11   Diego Novillo  <dnovillo@google.com>
 
 	* lib/dg-pph.exp (dg-pph-pos): Do not compile base cases with
