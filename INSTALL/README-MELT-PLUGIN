@@ -171,7 +171,7 @@ New features:
     New option -fplugin-arg-melt-workdir= for the work directory,
     where every .c or .so files are generated.
 
-    Boxed values using discr_box are obsolete.
+    The DISCR_BOX discriminant has been removed. Use containers instead.
 
     Containers, that is instances of class_container having one single field 
     :container_value, are supported by syntactic macros and sugar & function.
@@ -202,11 +202,17 @@ New features:
    written ##{...}# is expanded as several components, not a single
    list.
 
+   Slow boxed arithmetic operations are available (e.g. +iv gets two
+   boxed integer and gives the boxed integer of their sum).
+
 Many bug fixes.
 
 The build system has been revamped. The generated .c files should be
 available when running MELT.
 
+
+Thanks to Pierre Vittet, Alexandre Lissy, Romain Geissler for
+feedback, patches, suggestions.
 
 #######################################################################
 NEWS for 0.8 MELT plugin for gcc-4.6

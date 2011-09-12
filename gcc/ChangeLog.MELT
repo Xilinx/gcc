@@ -1,4 +1,7 @@
 
+2011-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9rc1
+
 2011-09-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Added some :doc.
 	(gimple_assign_single, gimple_assign_unary_nop)
