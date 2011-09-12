@@ -3196,6 +3196,9 @@ meltgc_new_mapobjects (meltobject_ptr_t discr_p, unsigned len)
 	   && primlen <= (int) len; lenix++);
       maplen = primlen;
     };
+  meltgc_reserve (sizeof(struct meltmapobjects_st)
+		  + maplen * sizeof (struct entryobjectsmelt_st)
+		  + 8 * sizeof(void*));
   newmapv =
     meltgc_allocate (offsetof
 			(struct meltmapobjects_st, map_space),
@@ -3508,6 +3511,7 @@ unsafe_index_mapstring (struct entrystringsmelt_st *tab,
 melt_ptr_t
 meltgc_new_mapstrings (meltobject_ptr_t discr_p, unsigned len)
 {
+  int lenix = -1, primlen = 0;
   MELT_ENTERFRAME (2, NULL);
 #define discrv meltfram__.mcfr_varptr[0]
 #define newmapv meltfram__.mcfr_varptr[1]
@@ -3518,15 +3522,21 @@ meltgc_new_mapstrings (meltobject_ptr_t discr_p, unsigned len)
     goto end;
   if (object_discrv->meltobj_magic != MELTOBMAG_MAPSTRINGS)
     goto end;
-  newmapv = meltgc_allocate (sizeof (struct meltmapstrings_st), 0);
-  mapstring_newmapv->discr = object_discrv;
   if (len > 0)
     {
-      int lenix, primlen;
       gcc_assert (len < (unsigned) MELT_MAXLEN);
       for (lenix = 1;
 	   (primlen = (int) melt_primtab[lenix]) != 0
 	   && primlen <= (int) len; lenix++);
+    };
+  gcc_assert (primlen > (int) len);
+  meltgc_reserve (sizeof (struct meltmapstrings_st) 
+		  + primlen * sizeof (struct entrystringsmelt_st)
+		  + 8 * sizeof(void*));
+  newmapv = meltgc_allocate (sizeof (struct meltmapstrings_st), 0);
+  mapstring_newmapv->discr = object_discrv;
+  if (len > 0)
+    {
       /* the newmapv is always young */
       mapstring_newmapv->entab = (struct entrystringsmelt_st *)
 	meltgc_allocate (primlen *
@@ -3900,6 +3910,9 @@ meltgc_raw_new_mappointers (meltobject_ptr_t discr_p, unsigned len)
 	      sizeof (struct entryedgemelt_st));
   gcc_assert (sizeof (struct entrypointermelt_st) ==
 	      sizeof (struct entrybasicblockmelt_st));
+  meltgc_reserve (sizeof (struct meltmappointers_st)
+		  + primlen * sizeof (struct entrypointermelt_st)
+		  + 8 * sizeof(void*));
   newmapv =
     meltgc_allocate (offsetof
 			(struct meltmappointers_st,

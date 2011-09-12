@@ -1,3 +1,9 @@
+
+2011-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_mapobjects, meltgc_new_mapstrings)
+	(meltgc_raw_new_mappointers): Call meltgc_reserve before
+	allocation, to ensure that all fits into same zone.
+
 2011-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (class_defined_value_binding): New.
 
