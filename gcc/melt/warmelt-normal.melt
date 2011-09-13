@@ -5604,9 +5604,12 @@ source location.}#
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
+	(sbody (unsafe_get_field :sdefine_body recv))
+	(bindsel (find_env env sname))
+	(namdata (normal_symbol_data sname ncx sloc))
 	)
     (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
-		(get_field :named_name sname))
+		(get_field :named_name sname))	
     (assert_msg "$@$unimplemented normexp_define")
     ))
 (install_method class_source_define normal_exp normexp_define)

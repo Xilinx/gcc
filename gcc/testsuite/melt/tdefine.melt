@@ -1,0 +1,12 @@
+; -*- lisp -*-
+;; file tdefine.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-stage3:.    -fmelt-source-path=melt-stage3:. \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt \
+    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tdefine.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(define one (debug_msg one "one inside definition") '1)
+(debug_msg one "one after definition")
