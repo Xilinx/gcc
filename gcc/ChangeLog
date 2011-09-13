@@ -1,3 +1,85 @@
+2011-09-13  Revital Eres  <revital.eres@linaro.org>
+
+	modulo-sched.c (remove_node_from_ps): Return void instead of bool.
+	(optimize_sc): Adjust call to remove_node_from_ps.
+	(sms_schedule): Add print info.
+
+2011-09-13  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* rtl.c (copy_rtx): Do not handle frame_related, jump or call
+	flags specially.
+
+2011-09-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/50010
+	* dwarf2cfi.c (add_cfis_to_fde): Ignore non-active insns in between
+	NOTE_INSN_CFI notes, with the exception of
+	NOTE_INSN_SWITCH_TEXT_SECTIONS.
+
+2011-09-12  Bernd Schmidt  <bernds@codesourcery.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_epilogue): New structure.
+	(mips16e_save_restore_reg): Queue REG_CFA_RESTORE notes when
+	restoring registers.
+	(mips_epilogue_emit_cfa_restores): New function.
+	(mips_epilogue_set_cfa): Likewise.
+	(mips_restore_reg): Queue REG_CFA_RESTORE notes.  When restoring
+	the current CFA register from the stack, redefine the CFA in terms
+	of the stack pointer.
+	(mips_expand_epilogue): Set up mips_epilogue.  Attach CFA information
+	to the epilogue instructions.
+
+2011-09-12  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips16e_save_restore_reg): Add a reg_parm_p
+	argument.
+	(mips16e_build_save_restore): Update accordingly.
+
+2011-09-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/50212
+	* bb-reorder.c (find_rarely_executed_basic_blocks_and_crossing_edges):
+	Skip also lps with NULL landing_pad or non-LABEL_P landing_pad.
+
+	PR debug/50299
+	* calls.c (load_register_parameters): Use use_reg_mode instead
+	of use_reg when adding a single register CALL_INSN_FUNCTION_USAGE
+	entry.
+	(expand_call): Set EXPR_LIST mode to TYPE_MODE of the argument
+	for stack CALL_INSN_FUNCTION_USAGE uses.
+	* expr.h (use_reg_mode): New prototype.
+	(use_reg): Changed into inline around use_reg_mode.
+	* expr.c (use_reg): Renamed to...
+	(use_reg_mode): ... this.  Added MODE argument, set EXPR_LIST
+	mode to that mode instead of VOIDmode.
+	* var-tracking.c (prepare_call_arguments): Don't track parameters
+	whose EXPR_LIST mode is VOIDmode, BLKmode or X mode isn't convertible
+	to it using lowpart_subreg.  Convert VALUE and REG/MEM to the
+	EXPR_LIST mode.
+
+2011-09-12  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/43746
+	* config/avr/avr.c (AVR_SECTION_PROGMEM): New Define.
+	(progmem_section): New Variable.
+	(avr_asm_init_sections): Initialize it.
+	(TARGET_ASM_SELECT_SECTION): Define to...
+	(avr_asm_select_section): ... this new Function.
+	(avr_replace_prefix): New Function.
+	(avr_asm_function_rodata_section): Use it.
+	(avr_insert_attributes): Don't add section attribute for PROGMEM.
+	(avr_section_type_flags): Use avr_progmem_p instead of section
+	name to detect if object is in PROGMEM.
+	(avr_asm_named_section): Set section name prefix for objects in
+	PROGMEM.
+
+2011-09-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/50352
+	* config/arm/arm.md (*push_fp_multi): Add % before %( and %) in the
+	sprintf format string.
+
 2011-09-12  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/50343
