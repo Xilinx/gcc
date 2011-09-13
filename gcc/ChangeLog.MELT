@@ -1,4 +1,11 @@
 
+2011-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (class_source_define): Replace field
+	sdefine_expr by sdefine_body.
+	(mexpand_define): Complete.
+
+	* melt/warmelt-normal.melt (normexp_define): Add stub.
+
 2011-09-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_mapobjects, meltgc_new_mapstrings)
 	(meltgc_raw_new_mappointers): Call meltgc_reserve before

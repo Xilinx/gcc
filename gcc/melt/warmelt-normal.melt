@@ -5595,6 +5595,25 @@ source location.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize a DEFINE 
+(defun normexp_define (recv env ncx psloc)
+  (assert_msg "check define recv" (is_a recv class_source_define))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp define recv")
+  (let ( 
+	(sloc (unsafe_get_field :loca_location recv))
+	(sname (unsafe_get_field :sdef_name recv))
+	)
+    (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
+		(get_field :named_name sname))
+    (assert_msg "$@$unimplemented normexp_define")
+    ))
+(install_method class_source_define normal_exp normexp_define)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFSELECTOR
 (defun normexp_defselector (recv env ncx psloc)
   (assert_msg "check defselector recv" (is_a recv class_source_defselector))

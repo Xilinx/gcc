@@ -254,8 +254,9 @@ documentation $SEXPSYN_DOC.}#
 (defclass class_source_define
   :super class_source_definition
   :doc #{The $CLASS_SOURCE_DEFINE is for value definitions. Field
- $SDEFINE_EXPR is the expression of the value bound to $SDEF_NAME.}#
-  :fields (sdefine_expr))
+ $SDEFINE_BODY is the tuple of expressions of the value bound to
+ $SDEF_NAME.}#
+  :fields (sdefine_body))
 
 ;;; superclass for all definitions with formal arglist
 (defclass class_source_definition_formal
@@ -2599,6 +2600,12 @@ in sequence. The value of the last is returned. See also $RETURN and
 $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VALUES to be visible outside its module.}#)
 
 
+
+
+
+
+
+
 ;;;;;;;;;;;;;;;;;; the define expander
 ;;;(DEFINE name [:doc documentation] expr ...)
  ;; same as defun, Scheme syntax sugar:
@@ -2610,63 +2617,116 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
 	 (curelem (pair_head curpair))
-	 (newenv (fresh_env env))
 	 )
+    (debug_msg sexpr "mexpand_define start sexpr")
     (cond 
+     ;;
+     ;; case (DEFINE name ...)
      ((is_a curelem class_symbol)
-      ;; case (DEFINE name ...)
       (let ( 
 	    (defname curelem)
-	    (defexpr ())
 	    (defdoc ())
 	    (defvalbind (instance class_defined_value_binding
 				  :binder defname
 				  :defvalbind_define () ;filled below
 				  ))
 	    )
+	(warn_if_redefined defname env loc)
+	(put_env env defvalbind)
 	(setq curpair (pair_tail curpair))
+	;; consume the doc
 	(if (== (pair_head curpair) ':doc)
 	    (progn
 	      (setq curpair (pair_tail curpair))
 	      (setq defdoc (pair_head curpair))
 	      (setq curpair (pair_tail curpair))))
 	;;
-	(put_env defname defvalbind)
-	(let ( (body (expand_pairlist_as_tuple curpair newenv mexpander))
-	       )
-	  (debug_msg body "mexpand_define body")
-	  (compile_warning "incomplete mexpand_define for simple name")
+	(let ( 
+	      (bodytup (expand_pairlist_as_tuple curpair env mexpander))
+	      (sdefine (instance class_source_define
+				 :loca_location loc
+				 :sdef_name defname
+				 :sdef_doc defdoc
+				 :sdefine_body bodytup
+				 ))
+	      )
+	  (put_fields defvalbind  :defvalbind_define sdefine)
+	  (setq curpair (pair_tail curpair))
+	  (debug_msg sdefine "mexpand_define simple value sdefine")
+	  (return sdefine)
 	  )))
      ;;
+     ;; case (DEFINE (name formals ...) [:doc <docstr>] ...)
      ((is_a curelem class_sexpr)
-      ;; case (DEFINE (name formals ...) ...)
       (let ( (floc (unsafe_get_field :loca_location curelem))
 	     (fcont (unsafe_get_field :sexp_contents curelem))
 	     (funame (pair_head (list_first fcont)))
 	     (cursubpair (pair_tail (list_first fcont)))
-	     (formals (lambda_arg_bindings cursubpair))
+	     (formaltup (lambda_arg_bindings cursubpair :true))
+	     (defdoc ())
+	     (fbind (instance class_function_binding
+			      :binder funame
+			      :fubind_defun () ;to be filled later
+			      ))
 	     )
+	;; check the funame
 	(if (is_not_a funame class_symbol)
 	    (progn
-	      (error_plain floc 
-			   "Bad function name, expecting (DEFINE (name formals) ...")
+	      (error_plain loc 
+			   "Bad function name, expecting (DEFINE (name formals...) ...")
 	      (return)))
-	))
+	(warn_if_redefined funame env loc)
+	(put_env env fbind)
+	;; consume the doc
+	(if (== (pair_head curpair) ':doc)
+	    (progn
+	      (setq curpair (pair_tail curpair))
+	      (setq defdoc (pair_head curpair))
+	      (setq curpair (pair_tail curpair))))
+	;;
+	(let ( 
+	      (newenv (fresh_env env))
+	      (sdefun
+	       (instance class_source_defun
+			 :loca_location loc
+			 :sdef_name funame
+			 :sdef_doc defdoc
+			 :sformal_args formaltup
+			 :sfun_body ()	;filled later
+			 ))
+	      (formal0bind (multiple_nth formaltup 0))
+	      )
+	  ;; check that the first formal, if given, is a :value
+	  (if formal0bind
+	      (if (!= (get_field :fbind_type formal0bind) ctype_value)
+		  (progn
+		    (debug_msg formal0bind "bad formal0bind")
+		    (error_strv floc "invalid first formal argument in DEFINE-d function, expecting a :value"
+			        (get_field :named_name funame))
+		    (return))))
+	  ;; bind the formals and expand the body
+	  (multiple_every formaltup (lambda (fb) (put_env newenv fb)))
+	  (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
+		 )
+	    (put_fields sdefun :sfun_body bodytup)
+	    (debug_msg sdefun "mexpand_defun return sdefun")
+	    (return sdefun)
+	    ))))
      ;;
+     ;; bad DEFINE
      (:else
       (error_plain loc "Expects <name> or (<name> <formals) after DEFINE")
       (return)
       ))
-    (error_plain loc "(DEFINE ...) not yet implemented")
-    (assert_msg "$@$ mexpand_define unimplemented")
     ))
 
 (install_initial_macro 'define mexpand_define)
 (export_macro define mexpand_define
 	      :doc #{The $DEFINE macro defines a named non-recursive
-value.  Syntax is ($DEFINE @var{name} @var{expr} 
-[:doc @var{documentation}]). Use $EXPORT_VALUES to make that name visible
-outside its module.}#)
+value.  Syntax (like in Scheme) is 
+($DEFINE @var{name} [:doc @var{documentation}] @var{expr} ...) to define a value, and
+($DEFINE (@var{funame} @var{formals}...) [:doc @var{documentation}]  @var{expr} ...) 
+to define a function like $DEFUN does. Use $EXPORT_VALUES to make that name visible outside its module.}#)
 
 ;;;;;;;;;;;;;;;; the defclass expander
 
