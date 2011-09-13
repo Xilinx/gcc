@@ -1,5 +1,8 @@
 
 2011-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9rc2
+
+2011-09-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_define): More but still incomplete.
 	* testsuite/melt/tdefine.melt: New.
 
