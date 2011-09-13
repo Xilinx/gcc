@@ -139,7 +139,7 @@ melt_make_cc1flags= -fplugin=$(realpath melt.so) -I $(realpath .) -o /dev/null
 melt_cflags=  -I $(realpath .) -I $(realpath melt/generated)  -DIN_GCC -DMELT_IS_PLUGIN $(MELTGCC_INCLUDEFLAGS)
 export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
-melt_extra_cflags= -g
+melt_extra_cflags=
 export melt_extra_cflags
 melt_installed_cflags= $(MELTGCC_INCLUDEFLAGS) -DIN_GCC -DMELT_IS_PLUGIN -O
 melt_default_modules_list=melt-default-modules
