@@ -584,10 +584,10 @@ extern const char *pch_file;
 
 extern const char *pph_out_file;
 
-/* Query if we have any map from INCLUDE to PPH file.  */
+/* Return true if we have any map from INCLUDE to PPH file.  */
 
 extern bool
-query_have_pph_map (void);
+pph_reader_enabled_p (void);
 
 /* Query for a mapping from an INCLUDE to a PPH file.
    Return the filename, without ownership.

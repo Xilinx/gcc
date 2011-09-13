@@ -3571,7 +3571,7 @@ bool
 expand_or_defer_fn_1 (tree fn)
 {
   /* If we are generating a PPH image, add FN to its symbol table.  */
-  if (pph_out_file)
+  if (pph_writer_enabled_p ())
     pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND, false, at_eof);
 
   /* When the parser calls us after finishing the body of a template

@@ -186,7 +186,7 @@ pph_init (void)
   gcc_assert (table == NULL);
 
   /* If we are generating a PPH file, initialize the writer.  */
-  if (pph_out_file != NULL)
+  if (pph_writer_enabled_p ())
     pph_writer_init ();
 
   pph_init_preloaded_cache ();

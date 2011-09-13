@@ -1,3 +1,8 @@
+2011-09-13   Diego Novillo  <dnovillo@google.com>
+
+	* c-opts.c (pph_reader_enabled_p): Rename from query_have_pph_map.
+	Update all users.
+
 2011-08-22   Diego Novillo  <dnovillo@google.com>
 
 	* c.opt (fpph-untree): Remove.

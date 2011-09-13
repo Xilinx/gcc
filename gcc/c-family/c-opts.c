@@ -129,13 +129,13 @@ static void c_finish_options (void);
 #endif
 
 /* Mappings from include directive to PPH file.  */
+static strstrmap_t *include_pph_mapping;
 
-strstrmap_t *include_pph_mapping;
 
-/* Query if we have any map from INCLUDE to PPH file.  */
+/* Return true if we have any map from INCLUDE to PPH file.  */
 
 bool
-query_have_pph_map (void)
+pph_reader_enabled_p (void)
 {
   return include_pph_mapping != NULL;
 }

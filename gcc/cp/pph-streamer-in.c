@@ -1669,7 +1669,7 @@ pph_read_file_1 (pph_stream *stream)
   /* If we are generating an image, the PPH contents we just read from
      STREAM will need to be read again the next time we want to read
      the image we are now generating.  */
-  if (pph_out_file && !pph_reading_includes)
+  if (pph_writer_enabled_p () && !pph_reading_includes)
     pph_add_include (stream);
 }
 

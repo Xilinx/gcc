@@ -281,6 +281,21 @@ extern void pph_in_spec_entry_tables (pph_stream *stream);
 
 /* Inline functions.  */
 
+/* Return true if we are generating a PPH image.  */
+static inline bool
+pph_writer_enabled_p (void)
+{
+  return pph_out_file != NULL;
+}
+
+/* Return true if PPH has been enabled.  */
+static inline bool
+pph_enabled_p (void)
+{
+  return pph_writer_enabled_p () || pph_reader_enabled_p ();
+}
+
+
 /* Output array A of cardinality C of ASTs to STREAM.  */
 /* FIXME pph: hold for alternate routine. */
 #if 0

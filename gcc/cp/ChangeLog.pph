@@ -1,3 +1,15 @@
+2011-09-13   Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (cp/parser.o): Add dependency on CXX_PPH_STREAMER_H.
+	* parser.c: Include pph-streamer.h
+	* decl.c (cp_rest_of_decl_compilation): Call pph_writer_enabled_p.
+	* pph-streamer-in.c (pph_read_file_1): Likewise.
+	* semantics.c (expand_or_defer_fn_1): Likewise.
+	* pph-streamer.h (pph_writer_enabled_p): New.
+	(pph_enabled_p): Move from pph.h.
+	* pph.c (pph_init): Call pph_writer_enabled_p.
+	* pph.h: Move to pph-streamer.h.
+
 2011-09-09   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_image_already_read): New.
