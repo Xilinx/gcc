@@ -1,5 +1,9 @@
 
 2011-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_run_make_for_plugin)
+	(melt_run_make_for_branch): Better error message when make fails.
+
+2011-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-modules): Use readlink to install the
 	linked to file.
 

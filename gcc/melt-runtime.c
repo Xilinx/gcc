@@ -5040,7 +5040,8 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   err = system (cmdstr);
   debugeprintf("melt_run_make_for_plugin command got %d", err);
   if (err)
-    melt_fatal_error ("MELT module compilation failed for command %s", cmdstr);
+    melt_fatal_error ("MELT plugin module compilation failed (%d) in %s for command %s", 
+		      err, getpwd (), cmdstr);
   cmdstr = NULL;
   obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
   debugeprintf ("melt_run_make_for_plugin meltplugin did built binbase %s flavor %s in workdir %s", 
@@ -5194,14 +5195,15 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
     cmdbuf = XOBFINISH (&cmd_obstack, char *);
     error ("MELT failed command: %s",  cmdbuf);
     melt_fatal_error
-      ("MELT failed (%s %d) to build module using %s, source %s, binary %s, flavor %s",
+      ("MELT branch failed (%s %d) to build module using %s -f %s, source %s, binary %s, flavor %s",
        WIFEXITED (cstatus)?"exit"
        : WIFSIGNALED(cstatus)? "got signal"
        : WIFSTOPPED(cstatus)?"stopped"
        : "crashed",
        WIFEXITED (cstatus) ? WEXITSTATUS(cstatus)
        : WIFSIGNALED(cstatus) ? WTERMSIG(cstatus)
-       : cstatus, ourmakecommand, srcarg, binarg, flavorarg);
+       : cstatus, ourmakecommand, ourmakefile,
+       srcarg, binarg, flavorarg);
   }
   pex_free (pex);
   myusrtime = (double) ptime.user_seconds
