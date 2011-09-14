@@ -1,4 +1,3 @@
-/* { dg-options "-O2" }  -  This test is flaky under GRTE.  */
 #include <vector>
 
 int main() {

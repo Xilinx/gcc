@@ -1,3 +1,11 @@
+2011-09-14   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Revert to mainline variant.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc: Likewise.
+
 2011-09-06  Paul Pluzhnikov  <ppluzhnikov@google.com>
 
 	* include/bits/stl_vector.h (_M_is_valid): New function.

@@ -2592,6 +2592,12 @@ decode_addr_const (tree exp, struct addr_const *value)
 		     * tree_low_cst (TREE_OPERAND (target, 1), 0));
 	  target = TREE_OPERAND (target, 0);
 	}
+      else if (TREE_CODE (target) == MEM_REF
+	       && TREE_CODE (TREE_OPERAND (target, 0)) == ADDR_EXPR)
+	{
+	  offset += mem_ref_offset (target).low;
+	  target = TREE_OPERAND (TREE_OPERAND (target, 0), 0);
+	}
       else if (TREE_CODE (target) == INDIRECT_REF
 	       && TREE_CODE (TREE_OPERAND (target, 0)) == NOP_EXPR
 	       && TREE_CODE (TREE_OPERAND (TREE_OPERAND (target, 0), 0))
@@ -4628,9 +4634,10 @@ output_constant (tree exp, unsigned HOST_WIDE_INT size, unsigned int align)
 static unsigned HOST_WIDE_INT
 array_size_for_constructor (tree val)
 {
-  tree max_index, i;
+  tree max_index;
   unsigned HOST_WIDE_INT cnt;
   tree index, value, tmp;
+  double_int i;
 
   /* This code used to attempt to handle string constants that are not
      arrays of single-bytes, but nothing else does, so there's no point in
@@ -4652,14 +4659,15 @@ array_size_for_constructor (tree val)
 
   /* Compute the total number of array elements.  */
   tmp = TYPE_MIN_VALUE (TYPE_DOMAIN (TREE_TYPE (val)));
-  i = size_binop (MINUS_EXPR, fold_convert (sizetype, max_index),
-		  fold_convert (sizetype, tmp));
-  i = size_binop (PLUS_EXPR, i, size_one_node);
+  i = double_int_sub (tree_to_double_int (max_index), tree_to_double_int (tmp));
+  i = double_int_add (i, double_int_one);
 
   /* Multiply by the array element unit size to find number of bytes.  */
-  i = size_binop (MULT_EXPR, i, TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (val))));
+  i = double_int_mul (i, tree_to_double_int
+		           (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (val)))));
 
-  return tree_low_cst (i, 1);
+  gcc_assert (double_int_fits_in_uhwi_p (i));
+  return i.low;
 }
 
 /* Other datastructures + helpers for output_constructor.  */
@@ -6707,7 +6715,7 @@ default_binds_local_p_1 (const_tree exp, int shlib)
   bool resolved_to_local_def = false;
 
   /* With resolution file in hands, take look into resolutions.
-     We can't just return true for resolved_localy symbols,
+     We can't just return true for resolved_locally symbols,
      because dynamic linking might overwrite symbols
      in shared libraries.  */
   if (TREE_CODE (exp) == VAR_DECL && TREE_PUBLIC (exp)
@@ -6816,7 +6824,7 @@ decl_binds_to_current_def_p (tree decl)
 	return resolution_to_local_definition_p (node->resolution);
     }
   /* Otherwise we have to assume the worst for DECL_WEAK (hidden weaks
-     binds localy but still can be overwritten).
+     binds locally but still can be overwritten).
      This rely on fact that binds_local_p behave as decl_replaceable_p
      for all other declaration types.  */
   return !DECL_WEAK (decl);
@@ -7348,6 +7356,64 @@ make_debug_expr_from_rtl (const_rtx exp)
   DEBUG_EXPR_TREE_DECL (dval) = ddecl;
   SET_DECL_RTL (ddecl, dval);
   return dval;
+}
+
+static GTY(()) section *elf_init_array_section;
+static GTY(()) section *elf_fini_array_section;
+
+static section *
+get_elf_initfini_array_priority_section (int priority,
+					 bool constructor_p)
+{
+  section *sec;
+  if (priority != DEFAULT_INIT_PRIORITY)
+    {
+      char buf[18];
+      sprintf (buf, "%s.%.5u", 
+	       constructor_p ? ".init_array" : ".fini_array",
+	       priority);
+      sec = get_section (buf, SECTION_WRITE, NULL_TREE);
+    }
+  else
+    {
+      if (constructor_p)
+	{
+	  if (elf_init_array_section == NULL)
+	    elf_init_array_section
+	      = get_unnamed_section (0, output_section_asm_op,
+				     "\t.section\t.init_array");
+	  sec = elf_init_array_section;
+	}
+      else
+	{
+	  if (elf_fini_array_section == NULL)
+	    elf_fini_array_section
+	      = get_unnamed_section (0, output_section_asm_op,
+				     "\t.section\t.fini_array");
+	  sec = elf_fini_array_section;
+	}
+    }
+  return sec;
+}
+
+/* Use .init_array section for constructors. */
+
+void
+default_elf_init_array_asm_out_constructor (rtx symbol, int priority)
+{
+  section *sec = get_elf_initfini_array_priority_section (priority,
+							  true);
+  assemble_addr_to_section (symbol, sec);
+}
+
+/* Use .fini_array section for destructors. */
+
+void
+default_elf_fini_array_asm_out_destructor (rtx symbol, int priority)
+{
+  section *sec = get_elf_initfini_array_priority_section (priority,
+							  false);
+  assemble_addr_to_section (symbol, sec);
 }
 
 #include "gt-varasm.h"

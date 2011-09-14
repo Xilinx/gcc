@@ -2769,7 +2769,15 @@ pushdecl (tree x)
 
  skip_external_and_shadow_checks:
   if (TREE_CODE (x) == TYPE_DECL)
-    set_underlying_type (x);
+    {
+      /* So this is a typedef, set its underlying type.  */
+      set_underlying_type (x);
+
+      /* If X is a typedef defined in the current function, record it
+	 for the purpose of implementing the -Wunused-local-typedefs
+	 warning.  */
+      record_locally_defined_typedef (x);
+    }
 
   bind (name, x, scope, /*invisible=*/false, nested, locus);
 
@@ -3435,7 +3443,10 @@ lookup_name (tree name)
 {
   struct c_binding *b = I_SYMBOL_BINDING (name);
   if (b && !b->invisible)
-    return b->decl;
+    {
+      maybe_record_typedef_use (b->decl);
+      return b->decl;
+    }
   return 0;
 }
 
@@ -3714,6 +3725,12 @@ shadow_tag_warned (const struct c_declspecs *declspecs, int warned)
       warned = 1;
     }
 
+  if (declspecs->noreturn_p)
+    {
+      error ("%<_Noreturn%> in empty declaration");
+      warned = 1;
+    }
+
   if (current_scope == file_scope && declspecs->storage_class == csc_auto)
     {
       error ("%<auto%> in file-scope empty declaration");
@@ -3780,6 +3797,7 @@ quals_from_declspecs (const struct c_declspecs *specs)
 	      && !specs->unsigned_p
 	      && !specs->complex_p
 	      && !specs->inline_p
+	      && !specs->noreturn_p
 	      && !specs->thread_p);
   return quals;
 }
@@ -5734,6 +5752,8 @@ grokdeclarator (const struct c_declarator *declarator,
 	C_TYPEDEF_EXPLICITLY_SIGNED (decl) = 1;
       if (declspecs->inline_p)
 	pedwarn (loc, 0,"typedef %q+D declared %<inline%>", decl);
+      if (declspecs->noreturn_p)
+	pedwarn (loc, 0,"typedef %q+D declared %<_Noreturn%>", decl);
 
       if (warn_cxx_compat && declarator->u.id != NULL_TREE)
 	{
@@ -5765,7 +5785,7 @@ grokdeclarator (const struct c_declarator *declarator,
       /* Note that the grammar rejects storage classes in typenames
 	 and fields.  */
       gcc_assert (storage_class == csc_none && !threadp
-		  && !declspecs->inline_p);
+		  && !declspecs->inline_p && !declspecs->noreturn_p);
       if (pedantic && TREE_CODE (type) == FUNCTION_TYPE
 	  && type_quals)
 	pedwarn (loc, OPT_pedantic,
@@ -5862,13 +5882,15 @@ grokdeclarator (const struct c_declarator *declarator,
 	DECL_ARG_TYPE (decl) = promoted_type;
 	if (declspecs->inline_p)
 	  pedwarn (loc, 0, "parameter %q+D declared %<inline%>", decl);
+	if (declspecs->noreturn_p)
+	  pedwarn (loc, 0, "parameter %q+D declared %<_Noreturn%>", decl);
       }
     else if (decl_context == FIELD)
       {
 	/* Note that the grammar rejects storage classes in typenames
 	   and fields.  */
 	gcc_assert (storage_class == csc_none && !threadp
-		    && !declspecs->inline_p);
+		    && !declspecs->inline_p && !declspecs->noreturn_p);
 
 	/* Structure field.  It may not be a function.  */
 
@@ -5960,15 +5982,34 @@ grokdeclarator (const struct c_declarator *declarator,
 	if (declspecs->default_int_p)
 	  C_FUNCTION_IMPLICIT_INT (decl) = 1;
 
-	/* Record presence of `inline', if it is reasonable.  */
+	/* Record presence of `inline' and `_Noreturn', if it is
+	   reasonable.  */
 	if (flag_hosted && MAIN_NAME_P (declarator->u.id))
 	  {
 	    if (declspecs->inline_p)
 	      pedwarn (loc, 0, "cannot inline function %<main%>");
+	    if (declspecs->noreturn_p)
+	      pedwarn (loc, 0, "%<main%> declared %<_Noreturn%>");
 	  }
-	else if (declspecs->inline_p)
-	  /* Record that the function is declared `inline'.  */
-	  DECL_DECLARED_INLINE_P (decl) = 1;
+	else
+	  {
+	    if (declspecs->inline_p)
+	      /* Record that the function is declared `inline'.  */
+	      DECL_DECLARED_INLINE_P (decl) = 1;
+	    if (declspecs->noreturn_p)
+	      {
+		if (!flag_isoc1x)
+		  {
+		    if (flag_isoc99)
+		      pedwarn (loc, OPT_pedantic,
+			       "ISO C99 does not support %<_Noreturn%>");
+		    else
+		      pedwarn (loc, OPT_pedantic,
+			       "ISO C90 does not support %<_Noreturn%>");
+		  }
+		TREE_THIS_VOLATILE (decl) = 1;
+	      }
+	  }
       }
     else
       {
@@ -6004,6 +6045,8 @@ grokdeclarator (const struct c_declarator *declarator,
 
 	if (declspecs->inline_p)
 	  pedwarn (loc, 0, "variable %q+D declared %<inline%>", decl);
+	if (declspecs->noreturn_p)
+	  pedwarn (loc, 0, "variable %q+D declared %<_Noreturn%>", decl);
 
 	/* At file scope, an initialized extern declaration may follow
 	   a static declaration.  In that case, DECL_EXTERNAL will be
@@ -8160,6 +8203,9 @@ store_parm_decls (void)
   /* Initialize the RTL code for the function.  */
   allocate_struct_function (fndecl, false);
 
+  if (warn_unused_local_typedefs)
+    cfun->language = ggc_alloc_cleared_language_function ();
+
   /* Begin the statement tree for this function.  */
   DECL_SAVED_TREE (fndecl) = push_stmt_list ();
 
@@ -8267,6 +8313,10 @@ finish_function (void)
 		      "parameter %qD set but not used", decl);
     }
 
+  /* Complain about locally defined typedefs that are not used in this
+     function.  */
+  maybe_warn_unused_local_typedefs ();
+
   /* Store the end of the function, so that we get good line number
      info for the epilogue.  */
   cfun->function_end_locus = input_location;
@@ -8311,6 +8361,12 @@ finish_function (void)
 
   if (!decl_function_context (fndecl))
     undef_nested_function = false;
+
+  if (cfun->language != NULL)
+    {
+      ggc_free (cfun->language);
+      cfun->language = NULL;
+    }
 
   /* We're leaving the context of this function, so zap cfun.
      It's still in DECL_STRUCT_FUNCTION, and we'll restore it in
@@ -8423,9 +8479,11 @@ check_for_loop_decls (location_t loc, bool turn_off_iso_c99_error)
 void
 c_push_function_context (void)
 {
-  struct language_function *p;
-  p = ggc_alloc_language_function ();
-  cfun->language = p;
+  struct language_function *p = cfun->language;
+  /* cfun->language might have been already allocated by the use of
+     -Wunused-local-typedefs.  In that case, just re-use it.  */
+  if (p == NULL)
+    cfun->language = p = ggc_alloc_cleared_language_function ();
 
   p->base.x_stmt_tree = c_stmt_tree;
   c_stmt_tree.x_cur_stmt_list
@@ -8451,7 +8509,11 @@ c_pop_function_context (void)
 
   pop_function_context ();
   p = cfun->language;
-  cfun->language = NULL;
+  /* When -Wunused-local-typedefs is in effect, cfun->languages is
+     used to store data throughout the life time of the current cfun,
+     So don't deallocate it.  */
+  if (!warn_unused_local_typedefs)
+    cfun->language = NULL;
 
   if (DECL_STRUCT_FUNCTION (current_function_decl) == 0
       && DECL_SAVED_TREE (current_function_decl) == NULL_TREE)
@@ -8646,6 +8708,7 @@ build_null_declspecs (void)
   ret->unsigned_p = false;
   ret->complex_p = false;
   ret->inline_p = false;
+  ret->noreturn_p = false;
   ret->thread_p = false;
   ret->const_p = false;
   ret->volatile_p = false;
@@ -9366,6 +9429,11 @@ declspecs_add_scspec (struct c_declspecs *specs, tree scspec)
 	 difference between gnu89 and C99 inline.  */
       dupe = false;
       specs->inline_p = true;
+      break;
+    case RID_NORETURN:
+      /* Duplicate _Noreturn is permitted.  */
+      dupe = false;
+      specs->noreturn_p = true;
       break;
     case RID_THREAD:
       dupe = specs->thread_p;

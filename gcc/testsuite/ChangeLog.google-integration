@@ -1,3 +1,23 @@
+2011-09-14   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/tree-prof/partition2.C: Revert to mainline variant.
+	* g++.dg/tree-ssa/pr41186.C: Likewise.
+	* gcc.dg/cproj-fails-with-broken-glibc.c: Likewise.
+	* gcc.dg/guality/sra-1.c: Likewise.
+	* gcc.dg/guality/vla-1.c: Likewise.
+	* gcc.dg/guality/vla-2.c: Likewise.
+	* gcc.dg/inline_3.c: Likewise.
+	* gcc.dg/inline_4.c: Likewise.
+	* gcc.dg/tree-ssa/vrp47.c: Likewise.
+	* gcc.dg/uninit-B.c: Likewise.
+	* gcc.dg/uninit-pr19430.c: Likewise.
+	* gcc.dg/unroll_2.c: Likewise.
+	* gcc.dg/unroll_3.c: Likewise.
+	* gcc.dg/unroll_4.c: Likewise.
+	* gcc.target/i386/pr27827.c: Likewise.
+	* gcc.target/i386/sse4_1-blendps-2.c: Likewise.
+	* gcc.target/i386/sse4_1-blendps.c: Likewise.
+
 2011-08-17   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/plugin/decl_plugin.c: Include diagnostic.h.

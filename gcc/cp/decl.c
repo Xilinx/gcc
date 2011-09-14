@@ -643,6 +643,9 @@ poplevel (int keep, int reverse, int functionbody)
   for (link = decls; link; link = TREE_CHAIN (link))
     {
       if (leaving_for_scope && TREE_CODE (link) == VAR_DECL
+	  /* It's hard to make this ARM compatibility hack play nicely with
+	     lambdas, and it really isn't necessary in C++11 mode.  */
+	  && cxx_dialect < cxx0x
 	  && DECL_NAME (link))
 	{
 	  tree name = DECL_NAME (link);
@@ -3596,6 +3599,10 @@ cxx_init_decl_processing (void)
 
   init_list_type_node = make_node (LANG_TYPE);
   record_unknown_type (init_list_type_node, "init list");
+
+  dependent_lambda_return_type_node = make_node (LANG_TYPE);
+  record_unknown_type (dependent_lambda_return_type_node,
+		       "undeduced lambda return type");
 
   {
     /* Make sure we get a unique function type, so we can give
@@ -9042,6 +9049,10 @@ grokdeclarator (const cp_declarator *declarator,
             virt_specifiers = declarator->u.function.virt_specifiers;
 	    /* Pick up the exception specifications.  */
 	    raises = declarator->u.function.exception_specification;
+	    /* If the exception-specification is ill-formed, let's pretend
+	       there wasn't one.  */
+	    if (raises == error_mark_node)
+	      raises = NULL_TREE;
 
 	    /* Say it's a definition only for the CALL_EXPR
 	       closest to the identifier.  */
@@ -9636,6 +9647,7 @@ grokdeclarator (const cp_declarator *declarator,
 	  && TYPE_NAME (type)
 	  && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
 	  && TYPE_ANONYMOUS_P (type)
+	  && declspecs->type_definition_p
 	  && cp_type_quals (type) == TYPE_UNQUALIFIED)
 	{
 	  tree t;
@@ -12651,10 +12663,6 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
 	maybe_apply_pragma_weak (decl1);
     }
 
-  /* constexpr functions must have literal argument types and
-     literal return type.  */
-  validate_constexpr_fundecl (decl1);
-
   /* Reset this in case the call to pushdecl changed it.  */
   current_function_decl = decl1;
 
@@ -13383,6 +13391,10 @@ finish_function (int flags)
 		   "parameter %q+D set but not used", decl);
       unused_but_set_errorcount = errorcount;
     }
+
+  /* Complain about locally defined typedefs that are not used in this
+     function.  */
+  maybe_warn_unused_local_typedefs ();
 
   /* Genericize before inlining.  */
   if (!processing_template_decl)

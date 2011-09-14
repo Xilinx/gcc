@@ -37,7 +37,7 @@ int f(int x)
 /* { dg-final { scan-tree-dump-times "\[xy\]\[^ \]* !=" 0 "vrp1" } } */
 
 /* This one needs more copy propagation that only happens in dom1.  */
-/* { dg-final { scan-tree-dump-times "x\[^ \]* & y" 1 "dom1" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times "x\[^ \]* & y" 1 "dom1" } } */
 /* { dg-final { scan-tree-dump-times "x\[^ \]* & y" 1 "vrp1" { xfail *-*-* } } } */
 
 /* These two are fully simplified by VRP.  */

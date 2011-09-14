@@ -1,7 +1,7 @@
 /* Analyze RTL for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -3674,11 +3674,12 @@ label_is_jump_target_p (const_rtx label, const_rtx jump_insn)
    Another is in rtl generation, to pick the cheapest way to multiply.
    Other uses like the latter are expected in the future.
 
-   SPEED parameter specify whether costs optimized for speed or size should
+   X appears as operand OPNO in an expression with code OUTER_CODE.
+   SPEED specifies whether costs optimized for speed or size should
    be returned.  */
 
 int
-rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
+rtx_cost (rtx x, enum rtx_code outer_code, int opno, bool speed)
 {
   int i, j;
   enum rtx_code code;
@@ -3726,7 +3727,7 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
       break;
 
     default:
-      if (targetm.rtx_costs (x, code, outer_code, &total, speed))
+      if (targetm.rtx_costs (x, code, outer_code, opno, &total, speed))
 	return total;
       break;
     }
@@ -3737,22 +3738,23 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
   fmt = GET_RTX_FORMAT (code);
   for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
     if (fmt[i] == 'e')
-      total += rtx_cost (XEXP (x, i), code, speed);
+      total += rtx_cost (XEXP (x, i), code, i, speed);
     else if (fmt[i] == 'E')
       for (j = 0; j < XVECLEN (x, i); j++)
-	total += rtx_cost (XVECEXP (x, i, j), code, speed);
+	total += rtx_cost (XVECEXP (x, i, j), code, i, speed);
 
   return total;
 }
 
 /* Fill in the structure C with information about both speed and size rtx
-   costs for X, with outer code OUTER.  */
+   costs for X, which is operand OPNO in an expression with code OUTER.  */
 
 void
-get_full_rtx_cost (rtx x, enum rtx_code outer, struct full_rtx_costs *c)
+get_full_rtx_cost (rtx x, enum rtx_code outer, int opno,
+		   struct full_rtx_costs *c)
 {
-  c->speed = rtx_cost (x, outer, true);
-  c->size = rtx_cost (x, outer, false);
+  c->speed = rtx_cost (x, outer, opno, true);
+  c->size = rtx_cost (x, outer, opno, false);
 }
 
 
@@ -3780,7 +3782,7 @@ address_cost (rtx x, enum machine_mode mode, addr_space_t as, bool speed)
 int
 default_address_cost (rtx x, bool speed)
 {
-  return rtx_cost (x, MEM, speed);
+  return rtx_cost (x, MEM, 0, speed);
 }
 
 
@@ -4269,6 +4271,11 @@ nonzero_bits1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
 	  |= ((unsigned HOST_WIDE_INT) 1 << (floor_log2 (mode_width))) - 1;
       else
 	nonzero = -1;
+      break;
+
+    case CLRSB:
+      /* This is at most the number of bits in the mode minus 1.  */
+      nonzero = ((unsigned HOST_WIDE_INT) 1 << (floor_log2 (mode_width))) - 1;
       break;
 
     case PARITY:
@@ -4782,7 +4789,7 @@ insn_rtx_cost (rtx pat, bool speed)
   else
     return 0;
 
-  cost = rtx_cost (SET_SRC (set), SET, speed);
+  cost = set_src_cost (SET_SRC (set), speed);
   return cost > 0 ? cost : COSTS_N_INSNS (1);
 }
 

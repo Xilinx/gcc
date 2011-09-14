@@ -1,7 +1,6 @@
 /* { dg-do run } */
 /* { dg-require-effective-target sse4 } */
-/* FIXME - Forced -O0.  This test is flaky as of trunk@175879.  */
-/* { dg-options "-O0 -msse4.1" } */
+/* { dg-options "-O2 -msse4.1" } */
 
 #ifndef CHECK_H
 #define CHECK_H "sse4_1-check.h"

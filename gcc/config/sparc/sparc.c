@@ -428,7 +428,7 @@ static const char *get_some_local_dynamic_name (void);
 static int get_some_local_dynamic_name_1 (rtx *, void *);
 static int sparc_register_move_cost (enum machine_mode,
 				     reg_class_t, reg_class_t);
-static bool sparc_rtx_costs (rtx, int, int, int *, bool);
+static bool sparc_rtx_costs (rtx, int, int, int, int *, bool);
 static rtx sparc_function_value (const_tree, const_tree, bool);
 static rtx sparc_libcall_value (enum machine_mode, const_rtx);
 static bool sparc_function_value_regno_p (const unsigned int);
@@ -709,6 +709,8 @@ sparc_option_override (void)
     { TARGET_CPU_ultrasparc3, PROCESSOR_ULTRASPARC3 },
     { TARGET_CPU_niagara, PROCESSOR_NIAGARA },
     { TARGET_CPU_niagara2, PROCESSOR_NIAGARA2 },
+    { TARGET_CPU_niagara3, PROCESSOR_NIAGARA3 },
+    { TARGET_CPU_niagara4, PROCESSOR_NIAGARA4 },
     { -1, PROCESSOR_V7 }
   };
   const struct cpu_default *def;
@@ -748,6 +750,10 @@ sparc_option_override (void)
     { MASK_ISA,
       MASK_V9|MASK_DEPRECATED_V8_INSNS},
     /* UltraSPARC T2 */
+    { MASK_ISA, MASK_V9},
+    /* UltraSPARC T3 */
+    { MASK_ISA, MASK_V9},
+    /* UltraSPARC T4 */
     { MASK_ISA, MASK_V9},
   };
   const struct cpu_table *cpu;
@@ -857,7 +863,9 @@ sparc_option_override (void)
       && (sparc_cpu == PROCESSOR_ULTRASPARC
 	  || sparc_cpu == PROCESSOR_ULTRASPARC3
 	  || sparc_cpu == PROCESSOR_NIAGARA
-	  || sparc_cpu == PROCESSOR_NIAGARA2))
+	  || sparc_cpu == PROCESSOR_NIAGARA2
+	  || sparc_cpu == PROCESSOR_NIAGARA3
+	  || sparc_cpu == PROCESSOR_NIAGARA4))
     align_functions = 32;
 
   /* Validate PCC_STRUCT_RETURN.  */
@@ -909,6 +917,8 @@ sparc_option_override (void)
       sparc_costs = &niagara_costs;
       break;
     case PROCESSOR_NIAGARA2:
+    case PROCESSOR_NIAGARA3:
+    case PROCESSOR_NIAGARA4:
       sparc_costs = &niagara2_costs;
       break;
     case PROCESSOR_NATIVE:
@@ -923,7 +933,9 @@ sparc_option_override (void)
   maybe_set_param_value (PARAM_SIMULTANEOUS_PREFETCHES,
 			 ((sparc_cpu == PROCESSOR_ULTRASPARC
 			   || sparc_cpu == PROCESSOR_NIAGARA
-			   || sparc_cpu == PROCESSOR_NIAGARA2)
+			   || sparc_cpu == PROCESSOR_NIAGARA2
+			   || sparc_cpu == PROCESSOR_NIAGARA3
+			   || sparc_cpu == PROCESSOR_NIAGARA4)
 			  ? 2
 			  : (sparc_cpu == PROCESSOR_ULTRASPARC3
 			     ? 8 : 3)),
@@ -933,7 +945,9 @@ sparc_option_override (void)
 			 ((sparc_cpu == PROCESSOR_ULTRASPARC
 			   || sparc_cpu == PROCESSOR_ULTRASPARC3
 			   || sparc_cpu == PROCESSOR_NIAGARA
-			   || sparc_cpu == PROCESSOR_NIAGARA2)
+			   || sparc_cpu == PROCESSOR_NIAGARA2
+			   || sparc_cpu == PROCESSOR_NIAGARA3
+			   || sparc_cpu == PROCESSOR_NIAGARA4)
 			  ? 64 : 32),
 			 global_options.x_param_values,
 			 global_options_set.x_param_values);
@@ -8342,7 +8356,9 @@ sparc32_initialize_trampoline (rtx m_tramp, rtx fnaddr, rtx cxt)
   if (sparc_cpu != PROCESSOR_ULTRASPARC
       && sparc_cpu != PROCESSOR_ULTRASPARC3
       && sparc_cpu != PROCESSOR_NIAGARA
-      && sparc_cpu != PROCESSOR_NIAGARA2)
+      && sparc_cpu != PROCESSOR_NIAGARA2
+      && sparc_cpu != PROCESSOR_NIAGARA3
+      && sparc_cpu != PROCESSOR_NIAGARA4)
     emit_insn (gen_flush (validize_mem (adjust_address (m_tramp, SImode, 8))));
 
   /* Call __enable_execute_stack after writing onto the stack to make sure
@@ -8385,7 +8401,9 @@ sparc64_initialize_trampoline (rtx m_tramp, rtx fnaddr, rtx cxt)
   if (sparc_cpu != PROCESSOR_ULTRASPARC
       && sparc_cpu != PROCESSOR_ULTRASPARC3
       && sparc_cpu != PROCESSOR_NIAGARA
-      && sparc_cpu != PROCESSOR_NIAGARA2)
+      && sparc_cpu != PROCESSOR_NIAGARA2
+      && sparc_cpu != PROCESSOR_NIAGARA3
+      && sparc_cpu != PROCESSOR_NIAGARA4)
     emit_insn (gen_flushdi (validize_mem (adjust_address (m_tramp, DImode, 8))));
 
   /* Call __enable_execute_stack after writing onto the stack to make sure
@@ -8578,7 +8596,9 @@ static int
 sparc_use_sched_lookahead (void)
 {
   if (sparc_cpu == PROCESSOR_NIAGARA
-      || sparc_cpu == PROCESSOR_NIAGARA2)
+      || sparc_cpu == PROCESSOR_NIAGARA2
+      || sparc_cpu == PROCESSOR_NIAGARA3
+      || sparc_cpu == PROCESSOR_NIAGARA4)
     return 0;
   if (sparc_cpu == PROCESSOR_ULTRASPARC
       || sparc_cpu == PROCESSOR_ULTRASPARC3)
@@ -8597,6 +8617,8 @@ sparc_issue_rate (void)
     {
     case PROCESSOR_NIAGARA:
     case PROCESSOR_NIAGARA2:
+    case PROCESSOR_NIAGARA3:
+    case PROCESSOR_NIAGARA4:
     default:
       return 1;
     case PROCESSOR_V9:
@@ -9414,8 +9436,8 @@ sparc_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED,
    ??? the latencies and then CSE will just use that.  */
 
 static bool
-sparc_rtx_costs (rtx x, int code, int outer_code, int *total,
-		 bool speed ATTRIBUTE_UNUSED)
+sparc_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		 int *total, bool speed ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode = GET_MODE (x);
   bool float_mode_p = FLOAT_MODE_P (mode);
@@ -9635,7 +9657,9 @@ sparc_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
       if (sparc_cpu == PROCESSOR_ULTRASPARC
 	  || sparc_cpu == PROCESSOR_ULTRASPARC3
 	  || sparc_cpu == PROCESSOR_NIAGARA
-	  || sparc_cpu == PROCESSOR_NIAGARA2)
+	  || sparc_cpu == PROCESSOR_NIAGARA2
+	  || sparc_cpu == PROCESSOR_NIAGARA3
+	  || sparc_cpu == PROCESSOR_NIAGARA4)
 	return 12;
 
       return 6;

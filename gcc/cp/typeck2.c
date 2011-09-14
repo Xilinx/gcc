@@ -1,7 +1,7 @@
 /* Report error messages, build initializers, and perform
    some front-end optimizations for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -450,6 +450,12 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
       break;
 
     case LANG_TYPE:
+      if (type == init_list_type_node)
+	{
+	  emit_diagnostic (diag_kind, input_location, 0,
+			   "invalid use of brace-enclosed initializer list");
+	  break;
+	}
       gcc_assert (type == unknown_type_node);
       if (value && TREE_CODE (value) == COMPONENT_REF)
 	goto bad_member;
@@ -806,8 +812,9 @@ digest_init_r (tree type, tree init, bool nested, int flags,
 
   /* We must strip the outermost array type when completing the type,
      because the its bounds might be incomplete at the moment.  */
-  if (!complete_type_or_else (TREE_CODE (type) == ARRAY_TYPE
-			      ? TREE_TYPE (type) : type, NULL_TREE))
+  if (!complete_type_or_maybe_complain (TREE_CODE (type) == ARRAY_TYPE
+					? TREE_TYPE (type) : type, NULL_TREE,
+					complain))
     return error_mark_node;
 
   /* Strip NON_LVALUE_EXPRs since we aren't using as an lvalue
@@ -1671,16 +1678,10 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
      void type, creates an rvalue of the specified type, which is
      value-initialized.  */
 
-  if (parms == NULL_TREE
-      /* If there's a user-defined constructor, value-initialization is
-	 just calling the constructor, so fall through.  */
-      && !TYPE_HAS_USER_CONSTRUCTOR (type))
+  if (parms == NULL_TREE)
     {
       exp = build_value_init (type, complain);
       exp = get_target_expr_sfinae (exp, complain);
-      /* FIXME this is wrong */
-      if (literal_type_p (type))
-	TREE_CONSTANT (exp) = true;
       return exp;
     }
 

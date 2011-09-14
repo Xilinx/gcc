@@ -5240,6 +5240,8 @@ check_valid_ptrmem_cst_expr (tree type, tree expr,
   STRIP_NOPS (expr);
   if (expr && (null_ptr_cst_p (expr) || TREE_CODE (expr) == PTRMEM_CST))
     return true;
+  if (cxx_dialect >= cxx0x && null_member_pointer_value_p (expr))
+    return true;
   if (complain & tf_error)
     {
       error ("%qE is not a valid template argument for type %qT",
@@ -5550,6 +5552,17 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
   else
     expr = mark_rvalue_use (expr);
 
+  /* 14.3.2/5: The null pointer{,-to-member} conversion is applied
+     to a non-type argument of "nullptr".  */
+  if (expr == nullptr_node
+      && (TYPE_PTR_P (type) || TYPE_PTR_TO_MEMBER_P (type)))
+    expr = convert (type, expr);
+
+  /* In C++11, non-type template arguments can be arbitrary constant
+     expressions.  But don't fold a PTRMEM_CST to a CONSTRUCTOR yet.  */
+  if (cxx_dialect >= cxx0x && TREE_CODE (expr) != PTRMEM_CST)
+    expr = maybe_constant_value (expr);
+
   /* HACK: Due to double coercion, we can get a
      NOP_EXPR<REFERENCE_TYPE>(ADDR_EXPR<POINTER_TYPE> (arg)) here,
      which is the tree that we built on the first call (see
@@ -5658,6 +5671,8 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
       if (DECL_P (expr) && DECL_TEMPLATE_PARM_P (expr))
 	/* Non-type template parameters are OK.  */
 	;
+      else if (cxx_dialect >= cxx0x && integer_zerop (expr))
+	/* Null pointer values are OK in C++11.  */;
       else if (TREE_CODE (expr) != ADDR_EXPR
 	       && TREE_CODE (expr_type) != ARRAY_TYPE)
 	{
@@ -5784,6 +5799,10 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	  if (expr == error_mark_node)
 	    return error_mark_node;
 	}
+
+      if (cxx_dialect >= cxx0x && integer_zerop (expr))
+	/* Null pointer values are OK in C++11.  */
+	return perform_qualification_conversions (type, expr);
 
       expr = convert_nontype_argument_function (type, expr);
       if (!expr || expr == error_mark_node)
@@ -7890,8 +7909,13 @@ parameter_of_template_p (tree parm, tree templ)
   parms = INNERMOST_TEMPLATE_PARMS (parms);
 
   for (i = 0; i < TREE_VEC_LENGTH (parms); ++i)
-    if (parm == TREE_VALUE (TREE_VEC_ELT (parms, i)))
-      return true;
+    {
+      tree p = TREE_VALUE (TREE_VEC_ELT (parms, i));
+      if (parm == p
+	  || (DECL_INITIAL (parm)
+	      && DECL_INITIAL (parm) == DECL_INITIAL (p)))
+	return true;
+    }
 
   return false;
 }
@@ -8498,16 +8522,6 @@ instantiate_class_template_1 (tree type)
   input_location = DECL_SOURCE_LOCATION (TYPE_NAME (type)) =
     DECL_SOURCE_LOCATION (typedecl);
 
-  TYPE_HAS_USER_CONSTRUCTOR (type) = TYPE_HAS_USER_CONSTRUCTOR (pattern);
-  TYPE_HAS_NEW_OPERATOR (type) = TYPE_HAS_NEW_OPERATOR (pattern);
-  TYPE_HAS_ARRAY_NEW_OPERATOR (type) = TYPE_HAS_ARRAY_NEW_OPERATOR (pattern);
-  TYPE_GETS_DELETE (type) = TYPE_GETS_DELETE (pattern);
-  TYPE_HAS_COPY_ASSIGN (type) = TYPE_HAS_COPY_ASSIGN (pattern);
-  TYPE_HAS_CONST_COPY_ASSIGN (type) = TYPE_HAS_CONST_COPY_ASSIGN (pattern);
-  TYPE_HAS_COPY_CTOR (type) = TYPE_HAS_COPY_CTOR (pattern);
-  TYPE_HAS_CONST_COPY_CTOR (type) = TYPE_HAS_CONST_COPY_CTOR (pattern);
-  TYPE_HAS_DEFAULT_CONSTRUCTOR (type) = TYPE_HAS_DEFAULT_CONSTRUCTOR (pattern);
-  TYPE_HAS_CONVERSION (type) = TYPE_HAS_CONVERSION (pattern);
   TYPE_PACKED (type) = TYPE_PACKED (pattern);
   TYPE_ALIGN (type) = TYPE_ALIGN (pattern);
   TYPE_USER_ALIGN (type) = TYPE_USER_ALIGN (pattern);
@@ -8675,6 +8689,9 @@ instantiate_class_template_1 (tree type)
 		--processing_template_decl;
 	      set_current_access_from_decl (r);
 	      finish_member_declaration (r);
+	      /* Instantiate members marked with attribute used.  */
+	      if (r != error_mark_node && DECL_PRESERVE_P (r))
+		mark_used (r);
 	    }
 	  else
 	    {
@@ -8724,6 +8741,9 @@ instantiate_class_template_1 (tree type)
 			 /*init_const_expr_p=*/false,
 			 /*asmspec_tree=*/NULL_TREE,
 			 /*flags=*/0);
+		      /* Instantiate members marked with attribute used.  */
+		      if (r != error_mark_node && DECL_PRESERVE_P (r))
+			mark_used (r);
 		    }
 		  else if (TREE_CODE (r) == FIELD_DECL)
 		    {
@@ -8876,7 +8896,16 @@ instantiate_class_template_1 (tree type)
     }
 
   if (CLASSTYPE_LAMBDA_EXPR (type))
-    maybe_add_lambda_conv_op (type);
+    {
+      tree lambda = CLASSTYPE_LAMBDA_EXPR (type);
+      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda))
+	{
+	  apply_lambda_return_type (lambda, void_type_node);
+	  LAMBDA_EXPR_RETURN_TYPE (lambda) = NULL_TREE;
+	}
+      instantiate_decl (lambda_function (type), false, false);
+      maybe_add_lambda_conv_op (type);
+    }
 
   /* Set the file and line number information to whatever is given for
      the class itself.  This puts error messages involving generated
@@ -9561,14 +9590,13 @@ tsubst_aggr_type (tree t,
 	  /* First, determine the context for the type we are looking
 	     up.  */
 	  context = TYPE_CONTEXT (t);
-	  if (context)
+	  if (context && TYPE_P (context))
 	    {
 	      context = tsubst_aggr_type (context, args, complain,
 					  in_decl, /*entering_scope=*/1);
 	      /* If context is a nested class inside a class template,
 	         it may still need to be instantiated (c++/33959).  */
-	      if (TYPE_P (context))
-		context = complete_type (context);
+	      context = complete_type (context);
 	    }
 
 	  /* Then, figure out what arguments are appropriate for the
@@ -11409,8 +11437,6 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
 	if (DECLTYPE_FOR_LAMBDA_CAPTURE (t))
 	  type = lambda_capture_field_type (type);
-	else if (DECLTYPE_FOR_LAMBDA_RETURN (t))
-	  type = lambda_return_type (type);
 	else if (DECLTYPE_FOR_LAMBDA_PROXY (t))
 	  type = lambda_proxy_type (type);
 	else
@@ -13871,10 +13897,17 @@ tsubst_copy_and_build (tree t,
 	LAMBDA_EXPR_MUTABLE_P (r) = LAMBDA_EXPR_MUTABLE_P (t);
 	LAMBDA_EXPR_DISCRIMINATOR (r)
 	  = (LAMBDA_EXPR_DISCRIMINATOR (t));
-	LAMBDA_EXPR_CAPTURE_LIST (r)
-	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
 	LAMBDA_EXPR_EXTRA_SCOPE (r)
 	  = RECUR (LAMBDA_EXPR_EXTRA_SCOPE (t));
+	if (LAMBDA_EXPR_RETURN_TYPE (t) == dependent_lambda_return_type_node)
+	  {
+	    LAMBDA_EXPR_RETURN_TYPE (r) = dependent_lambda_return_type_node;
+	    LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (r) = true;
+	  }
+	else
+	  LAMBDA_EXPR_RETURN_TYPE (r)
+	    = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
+
 	gcc_assert (LAMBDA_EXPR_THIS_CAPTURE (t) == NULL_TREE
 		    && LAMBDA_EXPR_PENDING_PROXIES (t) == NULL);
 
@@ -13884,9 +13917,10 @@ tsubst_copy_and_build (tree t,
 	   declaration of the op() for later calls to lambda_function.  */
 	complete_type (type);
 
-	type = tsubst (LAMBDA_EXPR_RETURN_TYPE (t), args, complain, in_decl);
-	if (type)
-	  apply_lambda_return_type (r, type);
+	/* The capture list refers to closure members, so this needs to
+	   wait until after we finish instantiating the type.  */
+	LAMBDA_EXPR_CAPTURE_LIST (r)
+	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
 
 	return build_lambda_object (r);
       }
@@ -14770,6 +14804,10 @@ type_unification_real (tree tparms,
 
   if (!subr)
     {
+      tsubst_flags_t complain = (explain_p
+				 ? tf_warning_or_error
+				 : tf_none);
+
       /* Check to see if we need another pass before we start clearing
 	 ARGUMENT_PACK_INCOMPLETE_P.  */
       for (i = 0; i < ntparms; i++)
@@ -14820,11 +14858,8 @@ type_unification_real (tree tparms,
 	    {
 	      tree parm = TREE_VALUE (TREE_VEC_ELT (tparms, i));
 	      tree arg = TREE_PURPOSE (TREE_VEC_ELT (tparms, i));
-	      arg = tsubst_template_arg (arg, targs, tf_none, NULL_TREE);
-	      arg = convert_template_argument (parm, arg, targs,
-					       (explain_p
-						? tf_warning_or_error
-						: tf_none),
+	      arg = tsubst_template_arg (arg, targs, complain, NULL_TREE);
+	      arg = convert_template_argument (parm, arg, targs, complain,
 					       i, NULL_TREE);
 	      if (arg == error_mark_node)
 		return 1;
@@ -15428,7 +15463,6 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
         tree arg = TREE_VEC_ELT (packed_args, i);
 	tree arg_expr = NULL_TREE;
         int arg_strict = strict;
-        bool skip_arg_p = false;
 
         if (call_args_p)
           {
@@ -15471,19 +15505,15 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
                     if (resolve_overloaded_unification
                         (tparms, targs, parm, arg,
 			 (unification_kind_t) strict,
-			 sub_strict, explain_p)
-                        != 0)
-                      return 1;
-                    skip_arg_p = true;
+			 sub_strict, explain_p))
+		      goto unified;
+		    return unify_overload_resolution_failure (explain_p, arg);
                   }
 
-                if (!skip_arg_p)
-                  {
-		    arg_expr = arg;
-                    arg = unlowered_expr_type (arg);
-                    if (arg == error_mark_node)
-                      return 1;
-                  }
+		arg_expr = arg;
+		arg = unlowered_expr_type (arg);
+		if (arg == error_mark_node)
+		  return unify_invalid (explain_p);
               }
       
             arg_strict = sub_strict;
@@ -15494,16 +15524,14 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
 						  &parm, &arg, arg_expr);
           }
 
-        if (!skip_arg_p)
-          {
-	    /* For deduction from an init-list we need the actual list.  */
-	    if (arg_expr && BRACE_ENCLOSED_INITIALIZER_P (arg_expr))
-	      arg = arg_expr;
-	    RECUR_AND_CHECK_FAILURE (tparms, targs, parm, arg, arg_strict,
-				     explain_p);
-          }
+	/* For deduction from an init-list we need the actual list.  */
+	if (arg_expr && BRACE_ENCLOSED_INITIALIZER_P (arg_expr))
+	  arg = arg_expr;
+	RECUR_AND_CHECK_FAILURE (tparms, targs, parm, arg, arg_strict,
+				 explain_p);
       }
 
+    unified:
       /* For each parameter pack, collect the deduced value.  */
       for (pack = packs; pack; pack = TREE_CHAIN (pack))
         {
@@ -19663,6 +19691,10 @@ build_non_dependent_expr (tree expr)
      expression, there are special rules if the second or third
      argument is a throw-expression.  */
   if (TREE_CODE (expr) == THROW_EXPR)
+    return expr;
+
+  /* Don't wrap an initializer list, we need to be able to look inside.  */
+  if (BRACE_ENCLOSED_INITIALIZER_P (expr))
     return expr;
 
   if (TREE_CODE (expr) == COND_EXPR)

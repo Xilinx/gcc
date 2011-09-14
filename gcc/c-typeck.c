@@ -3652,7 +3652,7 @@ build_unary_op (location_t location,
 	      }
 
 	    inc = c_size_in_bytes (TREE_TYPE (argtype));
-	    inc = fold_convert_loc (location, sizetype, inc);
+	    inc = convert_to_ptrofftype_loc (location, inc);
 	  }
 	else if (FRACT_MODE_P (TYPE_MODE (argtype)))
 	  {
@@ -9109,7 +9109,11 @@ c_process_expr_stmt (location_t loc, tree expr)
   exprv = expr;
   while (TREE_CODE (exprv) == COMPOUND_EXPR)
     exprv = TREE_OPERAND (exprv, 1);
-  if (DECL_P (exprv) || handled_component_p (exprv))
+  while (CONVERT_EXPR_P (exprv))
+    exprv = TREE_OPERAND (exprv, 0);
+  if (DECL_P (exprv)
+      || handled_component_p (exprv)
+      || TREE_CODE (exprv) == ADDR_EXPR)
     mark_exp_read (exprv);
 
   /* If the expression is not of a type to which we cannot assign a line

@@ -986,8 +986,6 @@ dump_inline_summary (FILE * f, struct cgraph_node *node)
 	fprintf (f, " always_inline");
       if (s->inlinable)
 	fprintf (f, " inlinable");
-      if (s->versionable)
-	fprintf (f, " versionable");
       fprintf (f, "\n  self time:       %i\n",
 	       s->self_time);
       fprintf (f, "  global time:     %i\n", s->time);
@@ -1187,6 +1185,8 @@ set_cond_stmt_execution_predicate (struct ipa_node_params *info,
       || gimple_call_num_args (set_stmt) != 1)
     return;
   op2 = gimple_call_arg (set_stmt, 0);
+  if (TREE_CODE (op2) != SSA_NAME)
+    return;
   if (!SSA_NAME_IS_DEFAULT_DEF (op2))
     return;
   index = ipa_get_param_decl_index (info, SSA_NAME_VAR (op2));
@@ -1642,7 +1642,7 @@ compute_inline_parameters (struct cgraph_node *node, bool early)
       struct inline_edge_summary *es = inline_edge_summary (node->callees);
       struct predicate t = true_predicate ();
 
-      info->inlinable = info->versionable = 0;
+      info->inlinable = 0;
       node->callees->call_stmt_cannot_inline_p = true;
       node->local.can_change_signature = false;
       es->call_stmt_time = 1;
@@ -1660,18 +1660,28 @@ compute_inline_parameters (struct cgraph_node *node, bool early)
   /* Can this function be inlined at all?  */
   info->inlinable = tree_inlinable_function_p (node->decl);
 
-  /* Inlinable functions always can change signature.  */
-  if (info->inlinable)
-    node->local.can_change_signature = true;
+  /* Type attributes can use parameter indices to describe them.  */
+  if (TYPE_ATTRIBUTES (TREE_TYPE (node->decl)))
+    node->local.can_change_signature = false;
   else
     {
-      /* Functions calling builtin_apply can not change signature.  */
-      for (e = node->callees; e; e = e->next_callee)
-	if (DECL_BUILT_IN (e->callee->decl)
-	    && DECL_BUILT_IN_CLASS (e->callee->decl) == BUILT_IN_NORMAL
-	    && DECL_FUNCTION_CODE (e->callee->decl) == BUILT_IN_APPLY_ARGS)
-	  break;
-      node->local.can_change_signature = !e;
+      /* Otherwise, inlinable functions always can change signature.  */
+      if (info->inlinable)
+	node->local.can_change_signature = true;
+      else
+	{
+	  /* Functions calling builtin_apply can not change signature.  */
+	  for (e = node->callees; e; e = e->next_callee)
+	    {
+	      tree cdecl = e->callee->decl;
+	      if (DECL_BUILT_IN (cdecl)
+		  && DECL_BUILT_IN_CLASS (cdecl) == BUILT_IN_NORMAL
+		  && (DECL_FUNCTION_CODE (cdecl) == BUILT_IN_APPLY_ARGS
+		      || DECL_FUNCTION_CODE (cdecl) == BUILT_IN_VA_START))
+		break;
+	    }
+	  node->local.can_change_signature = !e;
+	}
     }
   estimate_function_body_sizes (node, early);
 
@@ -2398,7 +2408,6 @@ inline_read_section (struct lto_file_decl_data *file_data, const char *data,
 
       bp = streamer_read_bitpack (&ib);
       info->inlinable = bp_unpack_value (&bp, 1);
-      info->versionable = bp_unpack_value (&bp, 1);
 
       count2 = streamer_read_uhwi (&ib);
       gcc_assert (!info->conds);
@@ -2529,7 +2538,6 @@ inline_write_summary (cgraph_node_set set,
 	  int i;
 	  size_time_entry *e;
 	  struct condition *c;
-	  
 
 	  streamer_write_uhwi (ob, lto_cgraph_encoder_encode (encoder, node));
 	  streamer_write_hwi (ob, info->estimated_self_stack_size);
@@ -2537,7 +2545,6 @@ inline_write_summary (cgraph_node_set set,
 	  streamer_write_hwi (ob, info->self_time);
 	  bp = bitpack_create (ob->main_stream);
 	  bp_pack_value (&bp, info->inlinable, 1);
-	  bp_pack_value (&bp, info->versionable, 1);
 	  streamer_write_bitpack (&bp);
 	  streamer_write_uhwi (ob, VEC_length (condition, info->conds));
 	  for (i = 0; VEC_iterate (condition, info->conds, i, c); i++)

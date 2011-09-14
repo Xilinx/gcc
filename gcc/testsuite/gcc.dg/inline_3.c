@@ -20,3 +20,4 @@ int foo2 (void)
 
 /* { dg-final { scan-tree-dump-times "bar" 5 "optimized" } } */
 /* { dg-final { cleanup-tree-dump "optimized" } } */
+/* { dg-excess-errors "extra notes" } */

@@ -216,13 +216,93 @@ add_equal_note (rtx insns, rtx target, enum rtx_code code, rtx op0, rtx op1)
     }
 
   if (GET_RTX_CLASS (code) == RTX_UNARY)
-    note = gen_rtx_fmt_e (code, GET_MODE (target), copy_rtx (op0));
+    switch (code)
+      {
+      case FFS:
+      case CLZ:
+      case CTZ:
+      case CLRSB:
+      case POPCOUNT:
+      case PARITY:
+      case BSWAP:
+	if (GET_MODE (op0) != VOIDmode && GET_MODE (target) != GET_MODE (op0))
+	  {
+	    note = gen_rtx_fmt_e (code, GET_MODE (op0), copy_rtx (op0));
+	    if (GET_MODE_SIZE (GET_MODE (op0))
+		> GET_MODE_SIZE (GET_MODE (target)))
+	      note = simplify_gen_unary (TRUNCATE, GET_MODE (target),
+					 note, GET_MODE (op0));
+	    else
+	      note = simplify_gen_unary (ZERO_EXTEND, GET_MODE (target),
+					 note, GET_MODE (op0));
+	    break;
+	  }
+	/* FALLTHRU */
+      default:
+	note = gen_rtx_fmt_e (code, GET_MODE (target), copy_rtx (op0));
+	break;
+      }
   else
     note = gen_rtx_fmt_ee (code, GET_MODE (target), copy_rtx (op0), copy_rtx (op1));
 
   set_unique_reg_note (last_insn, REG_EQUAL, note);
 
   return 1;
+}
+
+/* Given two input operands, OP0 and OP1, determine what the correct from_mode
+   for a widening operation would be.  In most cases this would be OP0, but if
+   that's a constant it'll be VOIDmode, which isn't useful.  */
+
+static enum machine_mode
+widened_mode (enum machine_mode to_mode, rtx op0, rtx op1)
+{
+  enum machine_mode m0 = GET_MODE (op0);
+  enum machine_mode m1 = GET_MODE (op1);
+  enum machine_mode result;
+
+  if (m0 == VOIDmode && m1 == VOIDmode)
+    return to_mode;
+  else if (m0 == VOIDmode || GET_MODE_SIZE (m0) < GET_MODE_SIZE (m1))
+    result = m1;
+  else
+    result = m0;
+
+  if (GET_MODE_SIZE (result) > GET_MODE_SIZE (to_mode))
+    return to_mode;
+
+  return result;
+}
+
+/* Find a widening optab even if it doesn't widen as much as we want.
+   E.g. if from_mode is HImode, and to_mode is DImode, and there is no
+   direct HI->SI insn, then return SI->DI, if that exists.
+   If PERMIT_NON_WIDENING is non-zero then this can be used with
+   non-widening optabs also.  */
+
+enum insn_code
+find_widening_optab_handler_and_mode (optab op, enum machine_mode to_mode,
+				      enum machine_mode from_mode,
+				      int permit_non_widening,
+				      enum machine_mode *found_mode)
+{
+  for (; (permit_non_widening || from_mode != to_mode)
+	 && GET_MODE_SIZE (from_mode) <= GET_MODE_SIZE (to_mode)
+	 && from_mode != VOIDmode;
+       from_mode = GET_MODE_WIDER_MODE (from_mode))
+    {
+      enum insn_code handler = widening_optab_handler (op, to_mode,
+						       from_mode);
+
+      if (handler != CODE_FOR_nothing)
+	{
+	  if (found_mode)
+	    *found_mode = from_mode;
+	  return handler;
+	}
+    }
+
+  return CODE_FOR_nothing;
 }
 
 /* Widen OP to MODE and return the rtx for the widened operand.  UNSIGNEDP
@@ -515,8 +595,9 @@ expand_widen_pattern_expr (sepops ops, rtx op0, rtx op1, rtx wide_op,
     optab_for_tree_code (ops->code, TREE_TYPE (oprnd0), optab_default);
   if (ops->code == WIDEN_MULT_PLUS_EXPR
       || ops->code == WIDEN_MULT_MINUS_EXPR)
-    icode = optab_handler (widen_pattern_optab,
-			   TYPE_MODE (TREE_TYPE (ops->op2)));
+    icode = find_widening_optab_handler (widen_pattern_optab,
+					 TYPE_MODE (TREE_TYPE (ops->op2)),
+					 tmode0, 0);
   else
     icode = optab_handler (widen_pattern_optab, tmode0);
   gcc_assert (icode != CODE_FOR_nothing);
@@ -1204,21 +1285,21 @@ commutative_optab_p (optab binoptab)
 	  || binoptab == umul_highpart_optab);
 }
 
-/* X is to be used in mode MODE as an operand to BINOPTAB.  If we're
+/* X is to be used in mode MODE as operand OPN to BINOPTAB.  If we're
    optimizing, and if the operand is a constant that costs more than
    1 instruction, force the constant into a register and return that
    register.  Return X otherwise.  UNSIGNEDP says whether X is unsigned.  */
 
 static rtx
 avoid_expensive_constant (enum machine_mode mode, optab binoptab,
-			  rtx x, bool unsignedp)
+			  int opn, rtx x, bool unsignedp)
 {
   bool speed = optimize_insn_for_speed_p ();
 
   if (mode != VOIDmode
       && optimize
       && CONSTANT_P (x)
-      && rtx_cost (x, binoptab->code, speed) > rtx_cost (x, SET, speed))
+      && rtx_cost (x, binoptab->code, opn, speed) > set_src_cost (x, speed))
     {
       if (CONST_INT_P (x))
 	{
@@ -1242,7 +1323,9 @@ expand_binop_directly (enum machine_mode mode, optab binoptab,
 		       rtx target, int unsignedp, enum optab_methods methods,
 		       rtx last)
 {
-  enum insn_code icode = optab_handler (binoptab, mode);
+  enum machine_mode from_mode = widened_mode (mode, op0, op1);
+  enum insn_code icode = find_widening_optab_handler (binoptab, mode,
+						      from_mode, 1);
   enum machine_mode xmode0 = insn_data[(int) icode].operand[1].mode;
   enum machine_mode xmode1 = insn_data[(int) icode].operand[2].mode;
   enum machine_mode mode0, mode1, tmp_mode;
@@ -1265,9 +1348,9 @@ expand_binop_directly (enum machine_mode mode, optab binoptab,
     }
 
   /* If we are optimizing, force expensive constants into a register.  */
-  xop0 = avoid_expensive_constant (xmode0, binoptab, xop0, unsignedp);
+  xop0 = avoid_expensive_constant (xmode0, binoptab, 0, xop0, unsignedp);
   if (!shift_optab_p (binoptab))
-    xop1 = avoid_expensive_constant (xmode1, binoptab, xop1, unsignedp);
+    xop1 = avoid_expensive_constant (xmode1, binoptab, 1, xop1, unsignedp);
 
   /* In case the insn wants input operands in modes different from
      those of the actual operands, convert the operands.  It would
@@ -1389,7 +1472,9 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
   /* If we can do it with a three-operand insn, do so.  */
 
   if (methods != OPTAB_MUST_WIDEN
-      && optab_handler (binoptab, mode) != CODE_FOR_nothing)
+      && find_widening_optab_handler (binoptab, mode,
+				      widened_mode (mode, op0, op1), 1)
+	    != CODE_FOR_nothing)
     {
       temp = expand_binop_directly (mode, binoptab, op0, op1, target,
 				    unsignedp, methods, last);
@@ -1429,8 +1514,9 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 
   if (binoptab == smul_optab
       && GET_MODE_2XWIDER_MODE (mode) != VOIDmode
-      && (optab_handler ((unsignedp ? umul_widen_optab : smul_widen_optab),
-			 GET_MODE_2XWIDER_MODE (mode))
+      && (widening_optab_handler ((unsignedp ? umul_widen_optab
+					     : smul_widen_optab),
+				  GET_MODE_2XWIDER_MODE (mode), mode)
 	  != CODE_FOR_nothing))
     {
       temp = expand_binop (GET_MODE_2XWIDER_MODE (mode),
@@ -1460,9 +1546,11 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	if (optab_handler (binoptab, wider_mode) != CODE_FOR_nothing
 	    || (binoptab == smul_optab
 		&& GET_MODE_WIDER_MODE (wider_mode) != VOIDmode
-		&& (optab_handler ((unsignedp ? umul_widen_optab
-				    : smul_widen_optab),
-				   GET_MODE_WIDER_MODE (wider_mode))
+		&& (find_widening_optab_handler ((unsignedp
+						  ? umul_widen_optab
+						  : smul_widen_optab),
+						 GET_MODE_WIDER_MODE (wider_mode),
+						 mode, 0)
 		    != CODE_FOR_nothing)))
 	  {
 	    rtx xop0 = op0, xop1 = op1;
@@ -1479,10 +1567,10 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 		&& mclass == MODE_INT)
 	      {
 		no_extend = 1;
-		xop0 = avoid_expensive_constant (mode, binoptab,
+		xop0 = avoid_expensive_constant (mode, binoptab, 0,
 						 xop0, unsignedp);
 		if (binoptab != ashl_optab)
-		  xop1 = avoid_expensive_constant (mode, binoptab,
+		  xop1 = avoid_expensive_constant (mode, binoptab, 1,
 						   xop1, unsignedp);
 	      }
 
@@ -1895,8 +1983,8 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
       && optab_handler (add_optab, word_mode) != CODE_FOR_nothing)
     {
       rtx product = NULL_RTX;
-
-      if (optab_handler (umul_widen_optab, mode) != CODE_FOR_nothing)
+      if (widening_optab_handler (umul_widen_optab, mode, word_mode)
+	    != CODE_FOR_nothing)
 	{
 	  product = expand_doubleword_mult (mode, op0, op1, target,
 					    true, methods);
@@ -1905,7 +1993,8 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	}
 
       if (product == NULL_RTX
-	  && optab_handler (smul_widen_optab, mode) != CODE_FOR_nothing)
+	  && widening_optab_handler (smul_widen_optab, mode, word_mode)
+		!= CODE_FOR_nothing)
 	{
 	  product = expand_doubleword_mult (mode, op0, op1, target,
 					    false, methods);
@@ -1996,7 +2085,8 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	   wider_mode != VOIDmode;
 	   wider_mode = GET_MODE_WIDER_MODE (wider_mode))
 	{
-	  if (optab_handler (binoptab, wider_mode) != CODE_FOR_nothing
+	  if (find_widening_optab_handler (binoptab, wider_mode, mode, 1)
+		  != CODE_FOR_nothing
 	      || (methods == OPTAB_LIB
 		  && optab_libfunc (binoptab, wider_mode)))
 	    {
@@ -2216,8 +2306,8 @@ expand_twoval_binop (optab binoptab, rtx op0, rtx op1, rtx targ0, rtx targ1,
       rtx xop0 = op0, xop1 = op1;
 
       /* If we are optimizing, force expensive constants into a register.  */
-      xop0 = avoid_expensive_constant (mode0, binoptab, xop0, unsignedp);
-      xop1 = avoid_expensive_constant (mode1, binoptab, xop1, unsignedp);
+      xop0 = avoid_expensive_constant (mode0, binoptab, 0, xop0, unsignedp);
+      xop1 = avoid_expensive_constant (mode1, binoptab, 1, xop1, unsignedp);
 
       create_fixed_operand (&ops[0], targ0);
       create_convert_operand_from (&ops[1], op0, mode, unsignedp);
@@ -3790,12 +3880,12 @@ prepare_cmp_insn (rtx x, rtx y, enum rtx_code comparison, rtx size,
 
   /* If we are optimizing, force expensive constants into a register.  */
   if (CONSTANT_P (x) && optimize
-      && (rtx_cost (x, COMPARE, optimize_insn_for_speed_p ())
+      && (rtx_cost (x, COMPARE, 0, optimize_insn_for_speed_p ())
           > COSTS_N_INSNS (1)))
     x = force_reg (mode, x);
 
   if (CONSTANT_P (y) && optimize
-      && (rtx_cost (y, COMPARE, optimize_insn_for_speed_p ())
+      && (rtx_cost (y, COMPARE, 1, optimize_insn_for_speed_p ())
           > COSTS_N_INSNS (1)))
     y = force_reg (mode, y);
 
@@ -6530,27 +6620,33 @@ vector_compare_rtx (tree cond, bool unsignedp, enum insn_code icode)
   return gen_rtx_fmt_ee (rcode, VOIDmode, ops[0].value, ops[1].value);
 }
 
-/* Return insn code for TYPE, the type of a VEC_COND_EXPR.  */
+/* Return insn code for a conditional operator with a comparison in
+   mode CMODE, unsigned if UNS is true, resulting in a value of mode VMODE.  */
 
 static inline enum insn_code
-get_vcond_icode (tree type, enum machine_mode mode)
+get_vcond_icode (enum machine_mode vmode, enum machine_mode cmode, bool uns)
 {
   enum insn_code icode = CODE_FOR_nothing;
-
-  if (TYPE_UNSIGNED (type))
-    icode = direct_optab_handler (vcondu_optab, mode);
+  if (uns)
+    icode = convert_optab_handler (vcondu_optab, vmode, cmode);
   else
-    icode = direct_optab_handler (vcond_optab, mode);
+    icode = convert_optab_handler (vcond_optab, vmode, cmode);
   return icode;
 }
 
 /* Return TRUE iff, appropriate vector insns are available
-   for vector cond expr with type TYPE in VMODE mode.  */
+   for vector cond expr with vector type VALUE_TYPE and a comparison
+   with operand vector types in CMP_OP_TYPE.  */
 
 bool
-expand_vec_cond_expr_p (tree type, enum machine_mode vmode)
+expand_vec_cond_expr_p (tree value_type, tree cmp_op_type)
 {
-  if (get_vcond_icode (type, vmode) == CODE_FOR_nothing)
+  enum machine_mode value_mode = TYPE_MODE (value_type);
+  enum machine_mode cmp_op_mode = TYPE_MODE (cmp_op_type);
+  if (GET_MODE_SIZE (value_mode) != GET_MODE_SIZE (cmp_op_mode)
+      || GET_MODE_NUNITS (value_mode) != GET_MODE_NUNITS (cmp_op_mode)
+      || get_vcond_icode (TYPE_MODE (value_type), TYPE_MODE (cmp_op_type),
+			  TYPE_UNSIGNED (cmp_op_type)) == CODE_FOR_nothing)
     return false;
   return true;
 }
@@ -6566,9 +6662,18 @@ expand_vec_cond_expr (tree vec_cond_type, tree op0, tree op1, tree op2,
   enum insn_code icode;
   rtx comparison, rtx_op1, rtx_op2;
   enum machine_mode mode = TYPE_MODE (vec_cond_type);
-  bool unsignedp = TYPE_UNSIGNED (vec_cond_type);
+  enum machine_mode cmp_op_mode;
+  bool unsignedp;
 
-  icode = get_vcond_icode (vec_cond_type, mode);
+  gcc_assert (COMPARISON_CLASS_P (op0));
+
+  unsignedp = TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (op0, 0)));
+  cmp_op_mode = TYPE_MODE (TREE_TYPE (TREE_OPERAND (op0, 0)));
+
+  gcc_assert (GET_MODE_SIZE (mode) == GET_MODE_SIZE (cmp_op_mode)
+	      && GET_MODE_NUNITS (mode) == GET_MODE_NUNITS (cmp_op_mode));
+
+  icode = get_vcond_icode (mode, cmp_op_mode, unsignedp);
   if (icode == CODE_FOR_nothing)
     return 0;
 

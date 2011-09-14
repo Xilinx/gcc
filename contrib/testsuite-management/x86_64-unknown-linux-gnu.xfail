@@ -1,0 +1,59 @@
+# These tests fail in trunk in all configurations.
+FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for errors, line 1222)
+FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for errors, line 1152)
+FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for errors, line 1152)
+FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
+FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for errors, line 1263)
+FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
+XPASS: gcc.dg/inline_3.c (test for excess errors)
+XPASS: gcc.dg/inline_4.c (test for excess errors)
+FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom1 "x[^ ]* & y" 1
+XPASS: gcc.dg/uninit-B.c uninit i warning (test for warnings, line 12)
+XPASS: gcc.dg/uninit-pr19430.c uninitialized (test for warnings, line 41)
+XPASS: gcc.dg/uninit-pr19430.c (test for warnings, line 32)
+XPASS: gcc.dg/unroll_2.c (test for excess errors)
+XPASS: gcc.dg/unroll_3.c (test for excess errors)
+XPASS: gcc.dg/unroll_4.c (test for excess errors)
+FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
+
+# The following tests are failing with gold.  The LTO plugin is not resolving
+# names properly.  Only builds configured to use gold will show these.
+UNRESOLVED: gcc.c-torture/execute/20010209-1.c execution,  -O2 -flto -flto-partition=none
+UNRESOLVED: gcc.c-torture/execute/20010209-1.c execution,  -O2 -flto
+FAIL: gcc.c-torture/execute/20010209-1.c compilation,  -O2 -flto  (internal compiler error)
+FAIL: gcc.c-torture/execute/20010209-1.c compilation,  -O2 -flto -flto-partition=none  (internal compiler error)
+
+# These tests fail in trunk when compiled with -m32.
+FAIL: boehm-gc.c/thread_leak_test.c -O2 (test for excess errors)
+FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O1  (internal compiler error)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O1  (test for excess errors)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O2  (internal compiler error)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O2  (test for excess errors)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer  (internal compiler error)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer  (test for excess errors)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-loops  (internal compiler error)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-loops  (test for excess errors)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (internal compiler error)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (test for excess errors)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -g  (internal compiler error)
+FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -g  (test for excess errors)
+UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -g  compilation failed to produce executable
+UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O1  compilation failed to produce executable
+UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  compilation failed to produce executable
+UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O2  compilation failed to produce executable
+UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -fomit-frame-pointer  compilation failed to produce executable
+UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -fomit-frame-pointer -funroll-loops  compilation failed to produce executable
+
+# These are flaky when tested in loaded machines (they exceed the timeout)
+flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) output pattern test
+flaky | FAIL: libmudflap.cth/pass40-frag.c (-static -DSTATIC) execution test
+flaky | FAIL: libmudflap.cth/pass40-frag.c (-O3) execution test
+flaky | FAIL: libmudflap.cth/pass40-frag.c (-static -DSTATIC) output pattern test
+flaky | FAIL: libmudflap.cth/pass40-frag.c (-O3) output pattern test
+flaky | FAIL: libmudflap.cth/pass40-frag.c execution test
+flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
+flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test

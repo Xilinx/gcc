@@ -1,3 +1,283 @@
+2011-09-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/50327
+	* frontend-passes.c (dummy_expr_callback):  New function.
+	(convert_do_while):  New function.
+	(optimize_namespace):  Call code walker to convert do while loops.
+
+2011-09-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/35831
+	PR fortran/47978
+	* interface.c (check_dummy_characteristics): New function to check the
+	characteristics of dummy arguments.
+	(gfc_compare_interfaces,gfc_check_typebound_override): Call it here.
+
+2011-09-08  Mikael Morin  <mikael.morin@sfr.fr>
+
+	* trans-array.c (gfc_trans_constant_array_constructor): Remove
+	superfluous initialisation of DIM field.
+	(gfc_trans_array_constructor): Assert that DIMEN field is properly set.
+	(gfc_conv_expr_descriptor): Ditto.
+	* trans-expr.c (gfc_conv_procedure_call): Ditto.
+
+2011-09-08  Mikael Morin  <mikael.morin@sfr.fr>
+
+	* trans-array.h (gfc_get_scalar_ss): New prototype.
+	* trans-array.c (gfc_get_scalar_ss): New function.
+	(gfc_walk_variable_expr, gfc_walk_op_expr,
+	gfc_walk_elemental_function_args): Re-use gfc_get_scalar_ss.
+	* trans-expr.c (gfc_trans_subarray_assign): Ditto.
+	(gfc_trans_assignment_1): Ditto.
+	* trans-stmt.c (compute_inner_temp_size, gfc_trans_where_assign,
+	gfc_trans_where_3): Ditto.
+
+2011-09-08  Mikael Morin  <mikael.morin@sfr.fr>
+
+	* trans-array.h (gfc_get_temp_ss): New prototype.
+	* trans-array.c (gfc_get_temp_ss): New function.
+	(gfc_conv_resolve_dependencies): Re-use gfc_get_temp_ss.
+	(gfc_conv_expr_descriptor): Ditto.
+	* trans-expr.c (gfc_conv_subref_array_arg): Ditto.
+
+2011-09-08  Mikael Morin  <mikael.morin@sfr.fr>
+
+	* trans-array.h (gfc_get_array_ss): New prototype.
+	* trans-array.c (gfc_get_array_ss): New function.
+	(gfc_walk_variable_expr, gfc_walk_function_expr,
+	gfc_walk_array_constructor): Re-use gfc_get_array_ss.
+	* trans-expr.c (gfc_trans_subarray_assign): Ditto.
+	* trans-intrinsic.c (gfc_walk_intrinsic_bound,
+	gfc_walk_intrinsic_libfunc): Ditto.
+	* trans-io.c (transfer_array_component): Ditto.
+
+2011-09-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/44646
+	* decl.c (gfc_match_entry, gfc_match_end): Handle COMP_DO_CONCURRENT.
+	* dump-parse-tree.c (show_code_node): Handle EXEC_DO_CONCURRENT.
+	* gfortran.h (gfc_exec_op): Add EXEC_DO_CONCURRENT.
+	* match.c (gfc_match_critical, match_exit_cycle, gfc_match_stopcode,
+	lock_unlock_statement, sync_statement, gfc_match_allocate,
+	gfc_match_deallocate, gfc_match_return): Add DO CONCURRENT diagnostic.
+	(gfc_match_do): Match DO CONCURRENT.
+	(match_derived_type_spec, match_type_spec, gfc_free_forall_iterator,
+	match_forall_iterator, match_forall_header, match_simple_forall,
+	gfc_match_forall): Move up in the file.
+	* parse.c (check_do_closure, parse_do_block): Handle do concurrent.
+	* parse.h (gfc_compile_state): Add COMP_DO_CONCURRENT.
+	* resolve.c (do_concurrent_flag): New global variable.
+	(resolve_function, pure_subroutine, resolve_branch,
+	gfc_resolve_blocks, resolve_code, resolve_types): Add do concurrent
+	diagnostic.
+	* st.c (gfc_free_statement): Handle EXEC_DO_CONCURRENT.
+	* trans-stmt.c (gfc_trans_do_concurrent): New function.
+	(gfc_trans_forall_1): Handle do concurrent.
+	* trans-stmt.h (gfc_trans_do_concurrent): New function prototype.
+	* trans.c (trans_code): Call it.
+	* frontend-passes.c (gfc_code_walker): Handle EXEC_DO_CONCURRENT.
+
+2011-09-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48095
+	* primary.c (gfc_match_structure_constructor): Handle parsing of
+	procedure pointers components in structure constructors.
+	* resolve.c (resolve_structure_cons): Check interface of procedure
+	pointer components. Changed wording of some error messages.
+
+2011-09-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50227
+	* trans-types.c (gfc_sym_type): Check for proc_name.
+
+2011-08-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45044
+	* trans-common.c (build_common_decl): Warn if named common
+	block's size is not everywhere the same.
+
+2011-08-30  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/45170
+	* trans-stmt.c (gfc_trans_allocate): Evaluate the substring.
+
+2011-08-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50225
+	* trans-decl.c (gfc_generate_function_code): Nullify polymorphic
+	allocatable function results.
+
+2011-08-29  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-decl.c (generate_coarray_sym_init): Use
+	GFC_CAF_COARRAY_STATIC for static coarrays.
+
+2011-08-28  Dodji Seketeli  <dodji@redhat.com>
+
+	* scanner.c (load_file): Don't abuse LC_RENAME reason while
+	(indirectly) calling linemap_add.
+
+2011-08-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-decl.c (get_proc_pointer_decl): Set DECL_TLS_MODEL
+	if threadprivate.
+	* symbol.c (check_conflict): Allow threadprivate attribute with
+	FL_PROCEDURE if proc_pointer.
+
+2011-08-25  Mikael Morin  <mikael.morin@gcc.gnu.org>
+
+	PR fortran/50050
+	* expr.c (gfc_free_shape): Do nothing if shape is NULL.
+	(free_expr0): Remove redundant NULL shape check.
+	* resolve.c (check_host_association): Ditto.
+	* trans-expr.c (gfc_trans_subarray_assign): Assert that shape is
+	non-NULL.
+	* trans-io.c (transfer_array_component): Ditto.
+
+2011-08-25  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (gfc_conv_descriptor_token): Add assert.
+	* trans-decl.c (gfc_build_qualified_array,
+	create_function_arglist): Handle assumed-shape arrays.
+	* trans-expr.c (gfc_conv_procedure_call): Ditto.
+	* trans-types.c (gfc_get_array_descriptor_base): Ditto, don't
+	add "caf_token" to assumed-shape descriptors, new akind argument.
+	(gfc_get_array_type_bounds): Pass akind.
+	* trans.h (lang_decl): New elements caf_offset and token.
+	(GFC_DECL_TOKEN, GFC_DECL_CAF_OFFSET): New macros.
+
+2011-08-25  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (structure_alloc_comps): Fix for allocatable
+	scalar coarray components.
+	* trans-expr.c (gfc_conv_component_ref): Ditto.
+	* trans-type.c (gfc_get_derived_type): Ditto.
+
+2011-08-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50163
+	* expr.c (check_init_expr): Return when an error occured.
+
+2011-08-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (fortran/cpp.o): Remove explicit compilation rule.
+
+2011-08-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31600
+	* symbol.c (gfc_add_type): Better diagnostic if redefining
+	use-associated symbol.
+	* module.c (gfc_use_module): Use module name as locus.
+
+2011-08-22  Gabriel Charette  <gchare@google.com>
+
+	* cpp.c (gfc_cpp_init): Force BUILTINS_LOCATION for tokens
+	defined in cpp_define_builtins.
+
+2011-08-22  Mikael Morin  <mikael.morin@gcc.gnu.org>
+
+	PR fortran/50050
+	* gfortran.h (gfc_clear_shape, gfc_free_shape): New prototypes.
+	* expr.c (gfc_clear_shape, gfc_free_shape): New functions.
+	(free_expr0): Re-use gfc_free_shape.
+	* trans-expr.c (gfc_trans_subarray_assign): Ditto.
+	* trans-io.c (transfer_array_component): Ditto.
+	* resolve.c (check_host_association): Ditto.
+	(gfc_expr_to_initialize): Don't force the rank value and free the shape
+	after updating the expression. Recalculate shape and rank.
+	(resolve_where_shape): Re-use gfc_clear_shape.
+	* array.c (gfc_array_ref_shape): Ditto.
+
+2011-08-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/47659
+	* expr.c (gfc_check_assign): Check for type conversions when the
+	right-hand side is a constant REAL/COMPLEX contstant the left-hand
+	side is also REAL/COMPLEX.  Don't warn when a narrowing conversion
+	for REAL does not change the value of the constant.
+
+2011-08-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/50130
+	* resolve.c (resolve_array_ref):  Don't calculate upper bound
+	if the stride is zero.
+
+2011-08-20  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49638
+	* dependency.c (gfc_dep_compare_expr): Add new result value "-3".
+	(gfc_check_element_vs_section,gfc_check_element_vs_element): Handle
+	result value "-3".
+	* frontend-passes.c (optimize_comparison): Ditto.
+	* interface.c (gfc_check_typebound_override): Ditto.
+
+2011-08-19  Mikael Morin  <mikael.morin@sfr.fr>
+
+	PR fortran/50129
+	* parse.c (parse_where): Undo changes after emitting an error. 
+
+2011-08-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49792
+	* trans-expr.c (gfc_trans_assignment_1): Set OMPWS_SCALARIZER_WS
+	bit in ompws_flags only if loop.temp_ss is NULL, and clear it if
+	lhs needs reallocation.
+	* trans-openmp.c (gfc_trans_omp_workshare): Don't return early if
+	code is NULL, emit a barrier if workshare emitted no code at all
+	and NOWAIT clause isn't present.
+
+2011-08-19  Mikael Morin  <mikael.morin@sfr.fr>
+
+	PR fortran/50071
+	* gfortran.h (gfc_exec_op): New constant EXEC_END_NESTED_BLOCK.
+	* parse.c (check_statement_label): Accept ST_END_BLOCK and
+	ST_END_ASSOCIATE as valid branch target.
+	(accept_statement): Change EXEC_END_BLOCK to EXEC_END_NESTED_BLOCK.
+	Add EXEC_END_BLOCK code in the ST_END_BLOCK and ST_END_ASSOCIATE cases.
+	* resolve.c (find_reachable_labels): Change EXEC_END_BLOCK to
+	EXEC_END_NESTED_BLOCK.
+	(resolve_branch): Ditto.
+	(resolve_code): Add EXEC_END_NESTED_BLOCK case.
+	* st.c (gfc_free_statement): Ditto.
+	* trans.c (trans_code): Ditto.
+
+2011-08-18  Mikael Morin  <mikael.morin@sfr.fr>
+
+	PR fortran/50071
+	* symbol.c (gfc_get_st_label): Use the derived type namespace when
+	we are parsing a derived type definition.
+
+2011-08-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* parse.c (parse_derived): Add lock_type
+	checks, improve coarray_comp handling.
+	* resolve.c (resolve_allocate_expr,
+	resolve_lock_unlock, resolve_symbol): Fix lock_type
+	constraint checks.
+
+2011-08-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/31461
+	* trans-decl.c (generate_local_decl): Warn about
+	unused explicitly imported module variables/parameters.
+
+2011-08-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50070
+	* resolve.c (resolve_fl_variable): Reject non-constant character lengths
+	in COMMON variables.
+
+2011-08-16  Tobias Burnus  <burnus@net-b.de>
+	    Dominique Dhumieres  <dominiq@lps.ens.fr>
+
+	PR fortran/50094
+	* resolve.c (resolve_symbol): Fix stupid typo.
+
+2011-08-15  Tobias Burnus  <burnus@net-b.de>
+
+	* resolve.c (resolve_symbol): Fix coarray result-var check.
+
 2011-08-14  Steven G. Kargl  <kargl@gcc.gnu.org>
 
 	* module.c (use_iso_fortran_env_module):  Spell 'referrenced' correctly.

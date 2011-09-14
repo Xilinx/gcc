@@ -58,9 +58,10 @@ code_stack;
 static code_stack *cs_base = NULL;
 
 
-/* Nonzero if we're inside a FORALL block.  */
+/* Nonzero if we're inside a FORALL or DO CONCURRENT block.  */
 
 static int forall_flag;
+static int do_concurrent_flag;
 
 /* Nonzero if we're inside a OpenMP WORKSHARE or PARALLEL WORKSHARE block.  */
 
@@ -1013,7 +1014,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
       if (cons->expr->expr_type != EXPR_NULL && rank != cons->expr->rank
 	  && (comp->attr.allocatable || cons->expr->rank))
 	{
-	  gfc_error ("The rank of the element in the derived type "
+	  gfc_error ("The rank of the element in the structure "
 		     "constructor at %L does not match that of the "
 		     "component (%d/%d)", &cons->expr->where,
 		     cons->expr->rank, rank);
@@ -1035,7 +1036,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 	      t = SUCCESS;
 	    }
 	  else if (comp->attr.pointer && cons->expr->ts.type != BT_UNKNOWN)
-	    gfc_error ("The element in the derived type constructor at %L, "
+	    gfc_error ("The element in the structure constructor at %L, "
 		       "for pointer component '%s', is %s but should be %s",
 		       &cons->expr->where, comp->name,
 		       gfc_basic_typename (cons->expr->ts.type),
@@ -1113,10 +1114,44 @@ resolve_structure_cons (gfc_expr *expr, int init)
 		       || CLASS_DATA (comp)->attr.allocatable))))
 	{
 	  t = FAILURE;
-	  gfc_error ("The NULL in the derived type constructor at %L is "
+	  gfc_error ("The NULL in the structure constructor at %L is "
 		     "being applied to component '%s', which is neither "
 		     "a POINTER nor ALLOCATABLE", &cons->expr->where,
 		     comp->name);
+	}
+
+      if (comp->attr.proc_pointer && comp->ts.interface)
+	{
+	  /* Check procedure pointer interface.  */
+	  gfc_symbol *s2 = NULL;
+	  gfc_component *c2;
+	  const char *name;
+	  char err[200];
+
+	  if (gfc_is_proc_ptr_comp (cons->expr, &c2))
+	    {
+	      s2 = c2->ts.interface;
+	      name = c2->name;
+	    }
+	  else if (cons->expr->expr_type == EXPR_FUNCTION)
+	    {
+	      s2 = cons->expr->symtree->n.sym->result;
+	      name = cons->expr->symtree->n.sym->result->name;
+	    }
+	  else if (cons->expr->expr_type != EXPR_NULL)
+	    {
+	      s2 = cons->expr->symtree->n.sym;
+	      name = cons->expr->symtree->n.sym->name;
+	    }
+
+	  if (s2 && !gfc_compare_interfaces (comp->ts.interface, s2, name, 0, 1,
+					     err, sizeof (err)))
+	    {
+	      gfc_error ("Interface mismatch for procedure-pointer component "
+			 "'%s' in structure constructor at %L: %s",
+			 comp->name, &cons->expr->where, err);
+	      return FAILURE;
+	    }
 	}
 
       if (!comp->attr.pointer || comp->attr.proc_pointer
@@ -1128,7 +1163,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
       if (!a.pointer && !a.target)
 	{
 	  t = FAILURE;
-	  gfc_error ("The element in the derived type constructor at %L, "
+	  gfc_error ("The element in the structure constructor at %L, "
 		     "for pointer component '%s' should be a POINTER or "
 		     "a TARGET", &cons->expr->where, comp->name);
 	}
@@ -1156,7 +1191,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 	      || gfc_is_coindexed (cons->expr)))
 	{
 	  t = FAILURE;
-	  gfc_error ("Invalid expression in the derived type constructor for "
+	  gfc_error ("Invalid expression in the structure constructor for "
 		     "pointer component '%s' at %L in PURE procedure",
 		     comp->name, &cons->expr->where);
 	}
@@ -3125,9 +3160,16 @@ resolve_function (gfc_expr *expr)
     {
       if (forall_flag)
 	{
-	  gfc_error ("reference to non-PURE function '%s' at %L inside a "
+	  gfc_error ("Reference to non-PURE function '%s' at %L inside a "
 		     "FORALL %s", name, &expr->where,
 		     forall_flag == 2 ? "mask" : "block");
+	  t = FAILURE;
+	}
+      else if (do_concurrent_flag)
+	{
+	  gfc_error ("Reference to non-PURE function '%s' at %L inside a "
+		     "DO CONCURRENT %s", name, &expr->where,
+		     do_concurrent_flag == 2 ? "mask" : "block");
 	  t = FAILURE;
 	}
       else if (gfc_pure (NULL))
@@ -3196,6 +3238,9 @@ pure_subroutine (gfc_code *c, gfc_symbol *sym)
   if (forall_flag)
     gfc_error ("Subroutine call to '%s' in FORALL block at %L is not PURE",
 	       sym->name, &c->loc);
+  else if (do_concurrent_flag)
+    gfc_error ("Subroutine call to '%s' in DO CONCURRENT block at %L is not "
+	       "PURE", sym->name, &c->loc);
   else if (gfc_pure (NULL))
     gfc_error ("Subroutine call to '%s' at %L is not PURE", sym->name,
 	       &c->loc);
@@ -4569,10 +4614,11 @@ resolve_array_ref (gfc_array_ref *ar)
       /* Fill in the upper bound, which may be lower than the
 	 specified one for something like a(2:10:5), which is
 	 identical to a(2:7:5).  Only relevant for strides not equal
-	 to one.  */
+	 to one.  Don't try a division by zero.  */
       if (ar->dimen_type[i] == DIMEN_RANGE
 	  && ar->stride[i] != NULL && ar->stride[i]->expr_type == EXPR_CONSTANT
-	  && mpz_cmp_si (ar->stride[i]->value.integer, 1L) != 0)
+	  && mpz_cmp_si (ar->stride[i]->value.integer, 1L) != 0
+	  && mpz_cmp_si (ar->stride[i]->value.integer, 0L) != 0)
 	{
 	  mpz_t size, end;
 
@@ -5197,13 +5243,7 @@ check_host_association (gfc_expr *e)
 	      && sym->attr.contained)
 	{
 	  /* Clear the shape, since it might not be valid.  */
-	  if (e->shape != NULL)
-	    {
-	      for (n = 0; n < e->rank; n++)
-		mpz_clear (e->shape[n]);
-
-	      free (e->shape);
-	    }
+	  gfc_free_shape (&e->shape, e->rank);
 
 	  /* Give the expression the right symtree!  */
 	  gfc_find_sym_tree (e->symtree->name, NULL, 1, &st);
@@ -6558,10 +6598,13 @@ gfc_expr_to_initialize (gfc_expr *e)
 	for (i = 0; i < ref->u.ar.dimen; i++)
 	  ref->u.ar.start[i] = ref->u.ar.end[i] = ref->u.ar.stride[i] = NULL;
 
-	result->rank = ref->u.ar.dimen;
 	break;
       }
 
+  gfc_free_shape (&result->shape, result->rank);
+
+  /* Recalculate rank, shape, etc.  */
+  gfc_resolve_expr (result);
   return result;
 }
 
@@ -6806,7 +6849,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 
       /* Check F2008, C642.  */
       if (code->expr3->ts.type == BT_DERIVED
-	  && ((codimension &&  gfc_expr_attr (code->expr3).lock_comp)
+	  && ((codimension && gfc_expr_attr (code->expr3).lock_comp)
 	      || (code->expr3->ts.u.derived->from_intmod
 		     == INTMOD_ISO_FORTRAN_ENV
 		  && code->expr3->ts.u.derived->intmod_sym_id
@@ -8202,7 +8245,7 @@ find_reachable_labels (gfc_code *block)
      up through the code_stack.  */
   for (c = block; c; c = c->next)
     {
-      if (c->here && c->op != EXEC_END_BLOCK)
+      if (c->here && c->op != EXEC_END_NESTED_BLOCK)
 	bitmap_set_bit (cs_base->reachable_labels, c->here->value);
     }
 
@@ -8224,10 +8267,9 @@ resolve_lock_unlock (gfc_code *code)
       || code->expr1->ts.u.derived->from_intmod != INTMOD_ISO_FORTRAN_ENV
       || code->expr1->ts.u.derived->intmod_sym_id != ISOFORTRAN_LOCK_TYPE
       || code->expr1->rank != 0
-      || !(gfc_expr_attr (code->expr1).codimension
-	   || gfc_is_coindexed (code->expr1)))
-    gfc_error ("Lock variable at %L must be a scalar coarray of type "
-	       "LOCK_TYPE", &code->expr1->where);
+      || (!gfc_is_coarray (code->expr1) && !gfc_is_coindexed (code->expr1)))
+    gfc_error ("Lock variable at %L must be a scalar of type LOCK_TYPE",
+	       &code->expr1->where);
 
   /* Check STAT.  */
   if (code->expr2
@@ -8354,10 +8396,16 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 	 whether the label is still visible outside of the CRITICAL block,
 	 which is invalid.  */
       for (stack = cs_base; stack; stack = stack->prev)
-	if (stack->current->op == EXEC_CRITICAL
-	    && bitmap_bit_p (stack->reachable_labels, label->value))
-	  gfc_error ("GOTO statement at %L leaves CRITICAL construct for label"
-		      " at %L", &code->loc, &label->where);
+	{
+	  if (stack->current->op == EXEC_CRITICAL
+	      && bitmap_bit_p (stack->reachable_labels, label->value))
+	    gfc_error ("GOTO statement at %L leaves CRITICAL construct for "
+		      "label at %L", &code->loc, &label->where);
+	  else if (stack->current->op == EXEC_DO_CONCURRENT
+		   && bitmap_bit_p (stack->reachable_labels, label->value))
+	    gfc_error ("GOTO statement at %L leaves DO CONCURRENT construct "
+		      "for label at %L", &code->loc, &label->where);
+	}
 
       return;
     }
@@ -8378,11 +8426,17 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 		      " at %L", &code->loc, &label->where);
 	  return;
 	}
+      else if (stack->current->op == EXEC_DO_CONCURRENT)
+	{
+	  gfc_error ("GOTO statement at %L leaves DO CONCURRENT construct for "
+		     "label at %L", &code->loc, &label->where);
+	  return;
+	}
     }
 
   if (stack)
     {
-      gcc_assert (stack->current->next->op == EXEC_END_BLOCK);
+      gcc_assert (stack->current->next->op == EXEC_END_NESTED_BLOCK);
       return;
     }
 
@@ -8429,11 +8483,8 @@ ignore:
   result = SUCCESS;
 
 over:
-  for (i--; i >= 0; i--)
-    {
-      mpz_clear (shape[i]);
-      mpz_clear (shape2[i]);
-    }
+  gfc_clear_shape (shape, i);
+  gfc_clear_shape (shape2, i);
   return result;
 }
 
@@ -8804,6 +8855,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	case EXEC_FORALL:
 	case EXEC_DO:
 	case EXEC_DO_WHILE:
+	case EXEC_DO_CONCURRENT:
 	case EXEC_CRITICAL:
 	case EXEC_READ:
 	case EXEC_WRITE:
@@ -9043,7 +9095,7 @@ static void
 resolve_code (gfc_code *code, gfc_namespace *ns)
 {
   int omp_workshare_save;
-  int forall_save;
+  int forall_save, do_concurrent_save;
   code_stack frame;
   gfc_try t;
 
@@ -9057,6 +9109,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
     {
       frame.current = code;
       forall_save = forall_flag;
+      do_concurrent_save = do_concurrent_flag;
 
       if (code->op == EXEC_FORALL)
 	{
@@ -9089,6 +9142,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	      /* Blocks are handled in resolve_select_type because we have
 		 to transform the SELECT TYPE into ASSOCIATE first.  */
 	      break;
+            case EXEC_DO_CONCURRENT:
+	      do_concurrent_flag = 1;
+	      gfc_resolve_blocks (code->block, ns);
+	      do_concurrent_flag = 2;
+	      break;
 	    case EXEC_OMP_WORKSHARE:
 	      omp_workshare_save = omp_workshare_flag;
 	      omp_workshare_flag = 1;
@@ -9106,6 +9164,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
       if (code->op != EXEC_COMPCALL && code->op != EXEC_CALL_PPC)
 	t = gfc_resolve_expr (code->expr1);
       forall_flag = forall_save;
+      do_concurrent_flag = do_concurrent_save;
 
       if (gfc_resolve_expr (code->expr2) == FAILURE)
 	t = FAILURE;
@@ -9118,6 +9177,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	{
 	case EXEC_NOP:
 	case EXEC_END_BLOCK:
+	case EXEC_END_NESTED_BLOCK:
 	case EXEC_CYCLE:
 	case EXEC_PAUSE:
 	case EXEC_STOP:
@@ -9372,6 +9432,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  resolve_transfer (code);
 	  break;
 
+	case EXEC_DO_CONCURRENT:
 	case EXEC_FORALL:
 	  resolve_forall_iterators (code->ext.forall_iterator);
 
@@ -10169,15 +10230,22 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
 
       if (!gfc_is_constant_expr (e)
 	  && !(e->expr_type == EXPR_VARIABLE
-	       && e->symtree->n.sym->attr.flavor == FL_PARAMETER)
-	  && sym->ns->proc_name
-	  && (sym->ns->proc_name->attr.flavor == FL_MODULE
-	      || sym->ns->proc_name->attr.is_main_program)
-	  && !sym->attr.use_assoc)
+	       && e->symtree->n.sym->attr.flavor == FL_PARAMETER))
 	{
-	  gfc_error ("'%s' at %L must have constant character length "
-		     "in this context", sym->name, &sym->declared_at);
-	  return FAILURE;
+	  if (!sym->attr.use_assoc && sym->ns->proc_name
+	      && (sym->ns->proc_name->attr.flavor == FL_MODULE
+		  || sym->ns->proc_name->attr.is_main_program))
+	    {
+	      gfc_error ("'%s' at %L must have constant character length "
+			"in this context", sym->name, &sym->declared_at);
+	      return FAILURE;
+	    }
+	  if (sym->attr.in_common)
+	    {
+	      gfc_error ("COMMON variable '%s' at %L must have constant "
+			 "character length", sym->name, &sym->declared_at);
+	      return FAILURE;
+	    }
 	}
     }
 
@@ -12214,12 +12282,14 @@ resolve_symbol (gfc_symbol *sym)
 
   /* F2008, C1302.  */
   if (sym->ts.type == BT_DERIVED
-      && sym->ts.u.derived->from_intmod == INTMOD_ISO_FORTRAN_ENV
-      && sym->ts.u.derived->intmod_sym_id == ISOFORTRAN_LOCK_TYPE
-      && !sym->attr.codimension)
+      && ((sym->ts.u.derived->from_intmod == INTMOD_ISO_FORTRAN_ENV
+	   && sym->ts.u.derived->intmod_sym_id == ISOFORTRAN_LOCK_TYPE)
+	  || sym->ts.u.derived->attr.lock_comp)
+      && !sym->attr.codimension && !sym->ts.u.derived->attr.coarray_comp)
     {
-      gfc_error ("Variable '%s' at %L of type LOCK_TYPE must be a coarray",
-		 sym->name, &sym->declared_at);
+      gfc_error ("Variable %s at %L of type LOCK_TYPE or with subcomponent of "
+		 "type LOCK_TYPE must be a coarray", sym->name,
+		 &sym->declared_at);
       return;
     }
 
@@ -12246,29 +12316,41 @@ resolve_symbol (gfc_symbol *sym)
   /* F2008, C542.  */
   if (sym->ts.type == BT_DERIVED && sym->attr.dummy
       && sym->attr.intent == INTENT_OUT && sym->attr.lock_comp)
-    gfc_error ("Dummy argument '%s' at %L of LOCK_TYPE shall not be "
-	       "INTENT(OUT)", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Dummy argument '%s' at %L of LOCK_TYPE shall not be "
+		 "INTENT(OUT)", sym->name, &sym->declared_at);
+      return;
+    }
 
-  /* F2008, C526.  */
+  /* F2008, C525.  */
   if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
        || sym->attr.codimension)
-      && sym->attr.result)
-    gfc_error ("Function result '%s' at %L shall not be a coarray or have "
-	       "a coarray component", sym->name, &sym->declared_at);
+      && (sym->attr.result || sym->result == sym))
+    {
+      gfc_error ("Function result '%s' at %L shall not be a coarray or have "
+	         "a coarray component", sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C524.  */
   if (sym->attr.codimension && sym->ts.type == BT_DERIVED
       && sym->ts.u.derived->ts.is_iso_c)
-    gfc_error ("Variable '%s' at %L of TYPE(C_PTR) or TYPE(C_FUNPTR) "
-	       "shall not be a coarray", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L of TYPE(C_PTR) or TYPE(C_FUNPTR) "
+		 "shall not be a coarray", sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C525.  */
   if (sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp
       && (sym->attr.codimension || sym->attr.pointer || sym->attr.dimension
 	  || sym->attr.allocatable))
-    gfc_error ("Variable '%s' at %L with coarray component "
-	       "shall be a nonpointer, nonallocatable scalar",
-	       sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L with coarray component "
+		 "shall be a nonpointer, nonallocatable scalar",
+		 sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C526.  The function-result case was handled above.  */
   if (sym->attr.codimension
@@ -12277,32 +12359,46 @@ resolve_symbol (gfc_symbol *sym)
 	   || sym->ns->proc_name->attr.flavor == FL_MODULE
 	   || sym->ns->proc_name->attr.is_main_program
 	   || sym->attr.function || sym->attr.result || sym->attr.use_assoc))
-    gfc_error ("Variable '%s' at %L is a coarray and is not ALLOCATABLE, SAVE "
-	       "nor a dummy argument", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L is a coarray and is not ALLOCATABLE, SAVE "
+		 "nor a dummy argument", sym->name, &sym->declared_at);
+      return;
+    }
   /* F2008, C528.  */  /* FIXME: sym->as check due to PR 43412.  */
   else if (sym->attr.codimension && !sym->attr.allocatable
       && sym->as && sym->as->cotype == AS_DEFERRED)
-    gfc_error ("Coarray variable '%s' at %L shall not have codimensions with "
-		"deferred shape", sym->name, &sym->declared_at);
+    {
+      gfc_error ("Coarray variable '%s' at %L shall not have codimensions with "
+		 "deferred shape", sym->name, &sym->declared_at);
+      return;
+    }
   else if (sym->attr.codimension && sym->attr.allocatable
       && (sym->as->type != AS_DEFERRED || sym->as->cotype != AS_DEFERRED))
-    gfc_error ("Allocatable coarray variable '%s' at %L must have "
-	       "deferred shape", sym->name, &sym->declared_at);
-
+    {
+      gfc_error ("Allocatable coarray variable '%s' at %L must have "
+		 "deferred shape", sym->name, &sym->declared_at);
+      return;
+    }
 
   /* F2008, C541.  */
   if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
        || (sym->attr.codimension && sym->attr.allocatable))
       && sym->attr.dummy && sym->attr.intent == INTENT_OUT)
-    gfc_error ("Variable '%s' at %L is INTENT(OUT) and can thus not be an "
-	       "allocatable coarray or have coarray components",
-	       sym->name, &sym->declared_at);
+    {
+      gfc_error ("Variable '%s' at %L is INTENT(OUT) and can thus not be an "
+		 "allocatable coarray or have coarray components",
+		 sym->name, &sym->declared_at);
+      return;
+    }
 
   if (sym->attr.codimension && sym->attr.dummy
       && sym->ns->proc_name && sym->ns->proc_name->attr.is_bind_c)
-    gfc_error ("Coarray dummy variable '%s' at %L not allowed in BIND(C) "
-	       "procedure '%s'", sym->name, &sym->declared_at,
-	       sym->ns->proc_name->name);
+    {
+      gfc_error ("Coarray dummy variable '%s' at %L not allowed in BIND(C) "
+		 "procedure '%s'", sym->name, &sym->declared_at,
+		 sym->ns->proc_name->name);
+      return;
+    }
 
   switch (sym->attr.flavor)
     {
@@ -13506,6 +13602,7 @@ resolve_types (gfc_namespace *ns)
     }
 
   forall_flag = 0;
+  do_concurrent_flag = 0;
   gfc_check_interfaces (ns);
 
   gfc_traverse_ns (ns, resolve_values);

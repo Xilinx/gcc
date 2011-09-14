@@ -1188,6 +1188,7 @@ trans_code (gfc_code * code, tree cond)
 	{
 	case EXEC_NOP:
 	case EXEC_END_BLOCK:
+	case EXEC_END_NESTED_BLOCK:
 	case EXEC_END_PROCEDURE:
 	  res = NULL_TREE;
 	  break;
@@ -1300,6 +1301,10 @@ trans_code (gfc_code * code, tree cond)
 
 	case EXEC_DO:
 	  res = gfc_trans_do (code, cond);
+	  break;
+
+	case EXEC_DO_CONCURRENT:
+	  res = gfc_trans_do_concurrent (code);
 	  break;
 
 	case EXEC_DO_WHILE:

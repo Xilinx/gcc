@@ -58,7 +58,7 @@ never after.
 /* Reserved identifiers.  This is the union of all the keywords for C,
    C++, and Objective-C.  All the type modifiers have to be in one
    block at the beginning, because they are used as mask bits.  There
-   are 27 type modifiers; if we add many more we will have to redesign
+   are 28 type modifiers; if we add many more we will have to redesign
    the mask mechanism.  */
 
 enum rid
@@ -69,6 +69,7 @@ enum rid
   RID_UNSIGNED, RID_LONG,    RID_CONST, RID_EXTERN,
   RID_REGISTER, RID_TYPEDEF, RID_SHORT, RID_INLINE,
   RID_VOLATILE, RID_SIGNED,  RID_AUTO,  RID_RESTRICT,
+  RID_NORETURN,
 
   /* C extensions */
   RID_COMPLEX, RID_THREAD, RID_SAT,
@@ -102,7 +103,7 @@ enum rid
   /* C extensions */
   RID_ASM,       RID_TYPEOF,   RID_ALIGNOF,  RID_ATTRIBUTE,  RID_VA_ARG,
   RID_EXTENSION, RID_IMAGPART, RID_REALPART, RID_LABEL,      RID_CHOOSE_EXPR,
-  RID_TYPES_COMPATIBLE_P,
+  RID_TYPES_COMPATIBLE_P,      RID_BUILTIN_COMPLEX,
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
   RID_FRACT, RID_ACCUM,
 
@@ -505,6 +506,10 @@ struct GTY(()) c_language_function {
   /* While we are parsing the function, this contains information
      about the statement-tree that we are building.  */
   struct stmt_tree_s x_stmt_tree;
+
+  /* Vector of locally defined typedefs, for
+     -Wunused-local-typedefs.  */
+  VEC(tree,gc) *local_typedefs;
 };
 
 #define stmt_list_stack (current_stmt_tree ()->x_cur_stmt_list)
@@ -987,6 +992,9 @@ extern void warn_for_sign_compare (location_t,
 extern void do_warn_double_promotion (tree, tree, tree, const char *, 
 				      location_t);
 extern void set_underlying_type (tree);
+extern void record_locally_defined_typedef (tree);
+extern void maybe_record_typedef_use (tree);
+extern void maybe_warn_unused_local_typedefs (void);
 extern VEC(tree,gc) *make_tree_vector (void);
 extern void release_tree_vector (VEC(tree,gc) *);
 extern VEC(tree,gc) *make_tree_vector_single (tree);

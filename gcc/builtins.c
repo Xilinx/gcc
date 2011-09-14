@@ -1680,6 +1680,7 @@ expand_builtin_apply (rtx function, rtx arguments, rtx argsize)
   else
 #endif
     emit_stack_restore (SAVE_BLOCK, old_stack_level);
+  fixup_args_size_notes (call_insn, get_last_insn(), 0);
 
   OK_DEFER_POP;
 
@@ -3630,7 +3631,8 @@ expand_builtin_bzero (tree exp)
      calling bzero instead of memset.  */
 
   return expand_builtin_memset_args (dest, integer_zero_node,
-				     fold_convert_loc (loc, sizetype, size),
+				     fold_convert_loc (loc,
+						       size_type_node, size),
 				     const0_rtx, VOIDmode, exp);
 }
 
@@ -4224,11 +4226,10 @@ std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 		  fold_build_pointer_plus_hwi (valist_tmp, boundary - 1));
       gimplify_and_add (t, pre_p);
 
-      t = fold_convert (sizetype, valist_tmp);
       t = build2 (MODIFY_EXPR, TREE_TYPE (valist), valist_tmp,
-		  fold_convert (TREE_TYPE (valist),
-				fold_build2 (BIT_AND_EXPR, sizetype, t,
-					     size_int (-boundary))));
+		  fold_build2 (BIT_AND_EXPR, TREE_TYPE (valist),
+			       valist_tmp,
+			       build_int_cst (TREE_TYPE (valist), -boundary)));
       gimplify_and_add (t, pre_p);
     }
   else
@@ -6095,7 +6096,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_FREE:
-      maybe_emit_free_warning (exp);
+      if (warn_free_nonheap_object)
+	maybe_emit_free_warning (exp);
       break;
 
     default:	/* just do library call, if unknown builtin */
@@ -7968,7 +7970,7 @@ fold_builtin_bzero (location_t loc, tree dest, tree size, bool ignore)
      calling bzero instead of memset.  */
 
   return fold_builtin_memset (loc, dest, integer_zero_node,
-			      fold_convert_loc (loc, sizetype, size),
+			      fold_convert_loc (loc, size_type_node, size),
 			      void_type_node, ignore);
 }
 
@@ -11914,11 +11916,11 @@ maybe_emit_free_warning (tree exp)
     return;
 
   if (SSA_VAR_P (arg))
-    warning_at (tree_nonartificial_location (exp),
-		0, "%Kattempt to free a non-heap object %qD", exp, arg);
+    warning_at (tree_nonartificial_location (exp), OPT_Wfree_nonheap_object,
+		"%Kattempt to free a non-heap object %qD", exp, arg);
   else
-    warning_at (tree_nonartificial_location (exp),
-		0, "%Kattempt to free a non-heap object", exp);
+    warning_at (tree_nonartificial_location (exp), OPT_Wfree_nonheap_object,
+		"%Kattempt to free a non-heap object", exp);
 }
 
 /* Fold a call to __builtin_object_size with arguments PTR and OST,

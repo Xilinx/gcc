@@ -1124,13 +1124,19 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   is a padded record whose field is of self-referential size.  In
 	   the former case, converting will generate unnecessary evaluations
 	   of the CONSTRUCTOR to compute the size and in the latter case, we
-	   want to only copy the actual data.  */
+	   want to only copy the actual data.  Also don't convert to a record
+	   type with a variant part from a record type without one, to keep
+	   the object simpler.  */
 	if (gnu_expr
 	    && TREE_CODE (gnu_type) != UNCONSTRAINED_ARRAY_TYPE
 	    && !CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type))
 	    && !(TYPE_IS_PADDING_P (gnu_type)
 		 && CONTAINS_PLACEHOLDER_P
-		    (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type))))))
+		    (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type)))))
+	    && !(TREE_CODE (gnu_type) == RECORD_TYPE
+		 && TREE_CODE (TREE_TYPE (gnu_expr)) == RECORD_TYPE
+		 && get_variant_part (gnu_type) != NULL_TREE
+		 && get_variant_part (TREE_TYPE (gnu_expr)) == NULL_TREE))
 	  gnu_expr = convert (gnu_type, gnu_expr);
 
 	/* If this is a pointer that doesn't have an initializing expression,
@@ -1350,13 +1356,19 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	   is a padded record whose field is of self-referential size.  In
 	   the former case, converting will generate unnecessary evaluations
 	   of the CONSTRUCTOR to compute the size and in the latter case, we
-	   want to only copy the actual data.  */
+	   want to only copy the actual data.  Also don't convert to a record
+	   type with a variant part from a record type without one, to keep
+	   the object simpler.  */
 	if (gnu_expr
 	    && TREE_CODE (gnu_type) != UNCONSTRAINED_ARRAY_TYPE
 	    && !CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type))
 	    && !(TYPE_IS_PADDING_P (gnu_type)
 		 && CONTAINS_PLACEHOLDER_P
-		    (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type))))))
+		    (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (gnu_type)))))
+	    && !(TREE_CODE (gnu_type) == RECORD_TYPE
+		 && TREE_CODE (TREE_TYPE (gnu_expr)) == RECORD_TYPE
+		 && get_variant_part (gnu_type) != NULL_TREE
+		 && get_variant_part (TREE_TYPE (gnu_expr)) == NULL_TREE))
 	  gnu_expr = convert (gnu_type, gnu_expr);
 
 	/* If this name is external or there was a name specified, use it,
@@ -1480,8 +1492,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		|| (flag_stack_check == GENERIC_STACK_CHECK
 		    && compare_tree_int (DECL_SIZE_UNIT (gnu_decl),
 					 STACK_CHECK_MAX_VAR_SIZE) > 0)))
-	  add_stmt_with_node (build_call_1_expr
-			      (update_setjmp_buf_decl,
+	  add_stmt_with_node (build_call_n_expr
+			      (update_setjmp_buf_decl, 1,
 			       build_unary_op (ADDR_EXPR, NULL_TREE,
 					       get_block_jmpbuf_decl ())),
 			      gnat_entity);
@@ -6509,6 +6521,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
   if (align != 0
       && TREE_CODE (type) == RECORD_TYPE
       && TYPE_MODE (type) == BLKmode
+      && !TREE_ADDRESSABLE (type)
       && TREE_CODE (orig_size) == INTEGER_CST
       && !TREE_OVERFLOW (orig_size)
       && compare_tree_int (orig_size, MAX_FIXED_MODE_SIZE) <= 0
