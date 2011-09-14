@@ -139,7 +139,7 @@ MELT_GENERATED_[+mkvarsuf+]_C_FILES= \
 MELT_GENERATED_[+mkvarsuf+]_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_[+mkvarsuf+]_C_FILES)))
 
-MELT_GENERATED_[+mkvarsuf+]_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c) 
+MELT_GENERATED_[+mkvarsuf+]_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c)
 [+ENDFOR melt_translator_file+]
 
 melt-workdir:

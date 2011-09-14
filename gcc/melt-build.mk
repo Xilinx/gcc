@@ -147,7 +147,7 @@ MELT_GENERATED_FIRST_C_FILES= \
 MELT_GENERATED_FIRST_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_FIRST_C_FILES)))
 
-MELT_GENERATED_FIRST_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-first+meltdesc.c) 
+MELT_GENERATED_FIRST_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-first+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_BASE_C_FILES= \
@@ -156,7 +156,7 @@ MELT_GENERATED_BASE_C_FILES= \
 MELT_GENERATED_BASE_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_BASE_C_FILES)))
 
-MELT_GENERATED_BASE_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-base+meltdesc.c) 
+MELT_GENERATED_BASE_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-base+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_DEBUG_C_FILES= \
@@ -165,7 +165,7 @@ MELT_GENERATED_DEBUG_C_FILES= \
 MELT_GENERATED_DEBUG_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_DEBUG_C_FILES)))
 
-MELT_GENERATED_DEBUG_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-debug+meltdesc.c) 
+MELT_GENERATED_DEBUG_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-debug+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_MACRO_C_FILES= \
@@ -174,7 +174,7 @@ MELT_GENERATED_MACRO_C_FILES= \
 MELT_GENERATED_MACRO_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_MACRO_C_FILES)))
 
-MELT_GENERATED_MACRO_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-macro+meltdesc.c) 
+MELT_GENERATED_MACRO_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-macro+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_NORMAL_C_FILES= \
@@ -183,7 +183,7 @@ MELT_GENERATED_NORMAL_C_FILES= \
 MELT_GENERATED_NORMAL_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_NORMAL_C_FILES)))
 
-MELT_GENERATED_NORMAL_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normal+meltdesc.c) 
+MELT_GENERATED_NORMAL_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normal+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_NORMATCH_C_FILES= \
@@ -192,7 +192,7 @@ MELT_GENERATED_NORMATCH_C_FILES= \
 MELT_GENERATED_NORMATCH_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_NORMATCH_C_FILES)))
 
-MELT_GENERATED_NORMATCH_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normatch+meltdesc.c) 
+MELT_GENERATED_NORMATCH_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-normatch+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_GENOBJ_C_FILES= \
@@ -201,7 +201,7 @@ MELT_GENERATED_GENOBJ_C_FILES= \
 MELT_GENERATED_GENOBJ_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_GENOBJ_C_FILES)))
 
-MELT_GENERATED_GENOBJ_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-genobj+meltdesc.c) 
+MELT_GENERATED_GENOBJ_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-genobj+meltdesc.c)
 
 #@ from melt-build.tpl line 135
 MELT_GENERATED_OUTOBJ_C_FILES= \
@@ -210,7 +210,7 @@ MELT_GENERATED_OUTOBJ_C_FILES= \
 MELT_GENERATED_OUTOBJ_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_OUTOBJ_C_FILES)))
 
-MELT_GENERATED_OUTOBJ_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-outobj+meltdesc.c) 
+MELT_GENERATED_OUTOBJ_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/warmelt-outobj+meltdesc.c)
 
 
 melt-workdir:
