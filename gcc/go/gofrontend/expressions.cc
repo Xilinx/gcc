@@ -1436,7 +1436,6 @@ Unknown_expression::do_dump_expression(Ast_dump_context* ast_dump_context) const
 Expression*
 Expression::make_unknown_reference(Named_object* no, source_location location)
 {
-  go_assert(no->resolve()->is_unknown());
   return new Unknown_expression(no, location);
 }
 
@@ -9240,7 +9239,13 @@ Call_expression::check_argument_type(int i, const Type* parameter_type,
 				     bool issued_error)
 {
   std::string reason;
-  if (!Type::are_assignable(parameter_type, argument_type, &reason))
+  bool ok;
+  if (this->are_hidden_fields_ok_)
+    ok = Type::are_assignable_hidden_ok(parameter_type, argument_type,
+					&reason);
+  else
+    ok = Type::are_assignable(parameter_type, argument_type, &reason);
+  if (!ok)
     {
       if (!issued_error)
 	{

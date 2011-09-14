@@ -4315,6 +4315,8 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define LOOKUP_ALREADY_DIGESTED (LOOKUP_DEFAULTED << 1)
 /* An instantiation with explicit template arguments.  */
 #define LOOKUP_EXPLICIT_TMPL_ARGS (LOOKUP_ALREADY_DIGESTED << 1)
+/* Like LOOKUP_NO_TEMP_BIND, but also prevent binding to xvalues.  */
+#define LOOKUP_NO_RVAL_BIND (LOOKUP_EXPLICIT_TMPL_ARGS << 1)
 
 #define LOOKUP_NAMESPACES_ONLY(F)  \
   (((F) & LOOKUP_PREFER_NAMESPACES) && !((F) & LOOKUP_PREFER_TYPES))
@@ -4806,7 +4808,8 @@ extern tree type_passed_as			(tree);
 extern tree convert_for_arg_passing		(tree, tree);
 extern bool is_properly_derived_from		(tree, tree);
 extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
-extern tree initialize_reference		(tree, tree, tree, tree *, tsubst_flags_t);
+extern tree initialize_reference		(tree, tree, tree, tree *, int,
+						 tsubst_flags_t);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
 extern bool reference_related_p			(tree, tree);

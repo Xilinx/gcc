@@ -1,3 +1,71 @@
+2011-09-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (maybe_unconstrained_array): In the reference
+	to unconstrained array case, deal with each branch of a COND_EXPR.
+	* gcc-interface/utils2.c (build_allocator): Deal with each branch of
+	a COND_EXPR in the initializer, if present.
+
+2011-09-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (maybe_pad_type): Do not try to change the form
+	of an addressable type.
+	* gcc-interface/trans.c (gnat_gimplify_expr) <VIEW_CONVERT_EXPR>: New.
+	Deal with those cases for which creating a temporary is mandatory.
+
+2011-09-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (call_to_gnu): Use local variable.  Make sure
+	this is a real formal parameter before testing whether it is by ref.
+
+2011-09-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (build_call_0_expr): Delete.
+	(build_call_1_expr): Likewise.
+	(build_call_2_expr): Likewise.
+	(build_call_n_expr): New prototype.
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Use build_call_n_expr.
+	* gcc-interface/trans.c (establish_gnat_vms_condition_handler): Ditto.
+	(Handled_Sequence_Of_Statements_to_gnu): Likewise.
+	(Exception_Handler_to_gnu_zcx): Likewise.
+	(gnat_to_gnu): Likewise.
+	(build_binary_op_trapv): Likewise.
+	* gcc-interface/utils2.c (build_call_0_expr): Delete.
+	(build_call_1_expr): Likewise.
+	(build_call_2_expr): Likewise.
+	(build_call_n_expr): New function.
+	(build_call_raise): Use build_call_n_expr.
+	(build_call_raise_range): Likewise.
+	(build_call_raise_column): Likewise.
+	(build_call_alloc_dealloc_proc): Likewise.
+	(maybe_wrap_malloc): Likewise.
+	(maybe_wrap_free): Likewise.
+
+2011-09-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (build_return_expr): Use void_type_node for
+	MODIFY_EXPR.
+	* gcc-interface/utils2.c (build_binary_op) <MODIFY_EXPR>: Assert that
+	the result type is null if ENABLE_CHECKING.  Set operation_type at the
+	end unconditionally if not set in the previous cases.
+	Use build2 and void_type_node for MODIFY_EXPR.
+	(build_allocator): Use NULL_TREE for MODIFY_EXPR.
+
+2011-09-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (unchecked_convert): Use a field of the right
+	precision when converting to or from an integral type whose precision
+	is not equal to its size.
+
+2011-09-08  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* traceback.c (Darwin) USE_GCC_UNWINDER for Darwin versions >= 8.
+
+2011-09-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc-interface/Makefile.in (darwin): Provide powerpc64 system
+	implementation.
+	* system-darwin-ppc64.ads: New file.
+
 2011-09-06  Iain Sandoe  <iains@gcc.gnu.org>
 
 	* gcc-interface/Makefile.in (gnatlib-shared-darwin): Remove
@@ -10,7 +78,7 @@
 
 2011-09-06  Iain Sandoe  <iains@gcc.gnu.org>
 
-	* gcc-interface/Makefile.in (x86_64 darwin arch): Adjust 
+	* gcc-interface/Makefile.in (x86_64 darwin arch): Adjust
 	LIBGNAT_TARGET_PAIRS for x86 and x86_64 variants.
 
 2011-09-06  Arnaud Charlet  <charlet@adacore.com>
