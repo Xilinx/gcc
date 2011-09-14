@@ -5482,11 +5482,8 @@ install-melt-sources: melt-sources  melt-all-sources
 ### phony makefile target from melt-build.mk
 install-melt-modules: melt-modules melt-all-modules
 	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
-	for v in quicklybuilt debugnoline optimized ; do \
-	  $(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)/$$v ; \
-	  for f in $</$$v/*.so ; do \
-	    $(INSTALL_PROGRAM)  -m 755 $$f $(DESTDIR)/$(melt_module_dir)/$$v/ ; \
-	  done ; \
+	for f in $</*.so ; do \
+	    $(INSTALL_PROGRAM)  -m 755 `readlink -f $$f` $(DESTDIR)/$(melt_module_dir)/ ; \
 	done
 
 
