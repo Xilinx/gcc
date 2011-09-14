@@ -138,10 +138,11 @@ MELT_GENERATED_[+mkvarsuf+]_C_FILES= \
                   $(wildcard $(realpath $(melt_make_source_dir))/generated/[+base+]+*.c)
 MELT_GENERATED_[+mkvarsuf+]_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_[+mkvarsuf+]_C_FILES)))
-
-MELT_GENERATED_[+mkvarsuf+]_CUMULMD5 := $(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c)
+## avoid spaces in MELT_GENERATED_[+mkvarsuf+]_CUMULMD5 below [+ (. (tpl-file-line))+]
+MELT_GENERATED_[+mkvarsuf+]_CUMULMD5:=$(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c)
 [+ENDFOR melt_translator_file+]
 
+#@ [+ (. (tpl-file-line))+]
 melt-workdir:
 	mkdir -p melt-workdir
 ## the rules to build the static and dynamic version of stage0, that
