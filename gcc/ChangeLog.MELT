@@ -1,5 +1,11 @@
 
 2011-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (runfile_docmd): Don't pass a .c file
+	to translate_to_c_one_or_more_melt_files.
+
+	* testsuite/melt/tdefine.melt: Better command in comment.
+
+2011-09-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_run_make_for_plugin)
 	(melt_run_make_for_branch): Better error message when make fails.
 

@@ -4660,9 +4660,9 @@ assert_msg) is enabled"
 	      (return)
 	      )))
 	   )
-      (translate_to_c_one_or_more_melt_files inarg modsrcname curenv)
+      (debug_msg modulnam "before compilation runfile_mode modulnam")
+      (translate_to_c_one_or_more_melt_files inarg modulnam curenv)
       (debug_msg modsrcname "after compilation runfile_mode modsrcname")
-      (debug_msg modulnam "after compilation runfile_mode modulnam")
       (generate_quickly_melt_module modsrcname modulnam)
       (debug_msg modulnam "after generation of module runfile_mode modulnam")
       ;; the new environment is silently discarded
