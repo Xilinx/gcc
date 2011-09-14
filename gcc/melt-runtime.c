@@ -10521,7 +10521,9 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 	    PTR_UNION_AS_CAST_PTR (funad) = curout->routfunad;
 	    if (dladdr (PTR_UNION_AS_VOID_PTR (funad), &funinf)) {
 	      if (funinf.dli_fname)
-		fprintf (stderr, "\n  %s ", funinf.dli_fname);
+		/* Just print the basename of the *.so since it has an
+		   md5sum in the path.  */
+		fprintf (stderr, "\n  %s ", lbasename (funinf.dli_fname));
 	      if (funinf.dli_sname)
 		fprintf (stderr, "\n  [%s=%p] ", 
 			 funinf.dli_sname, funinf.dli_saddr);

@@ -5608,6 +5608,8 @@ source location.}#
 	(bindsel (find_env env sname))
 	(namdata (normal_symbol_data sname ncx sloc))
 	)
+    (debug_msg namdata "normexp_define namdata")
+    (debug_msg bindsel "normexp_define bindsel")
     (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
 		(get_field :named_name sname))	
     (assert_msg "$@$unimplemented normexp_define")
