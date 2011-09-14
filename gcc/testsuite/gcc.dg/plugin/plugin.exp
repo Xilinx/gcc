@@ -1,4 +1,4 @@
-#   Copyright (C) 2009 Free Software Foundation, Inc.
+#   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,3 +68,15 @@ foreach plugin_test $plugin_test_list {
     set plugin_input_tests [lreplace $plugin_test 0 0]
     plugin-test-execute $plugin_src $plugin_input_tests
 }
+
+# run the plugindir tests
+
+# Initialize `dg'.
+dg-init
+
+# Main loop.
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/plugindir*.\[cSi\]]] \
+	"" $DEFAULT_CFLAGS
+
+# All done.
+dg-finish

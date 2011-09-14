@@ -24,6 +24,9 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 
 /* Written by Tom Tromey <tromey@redhat.com>.  */
 
+/* FIXME: Still need to include rtl.h here (see below).  */
+#undef IN_GCC_FRONTEND
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -33,8 +36,9 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "flags.h"
 #include "langhooks.h"
 #include "java-tree.h"
-#include <stdarg.h>
-#include "convert.h"
+
+/* FIXME: All these headers are necessary for sync_compare_and_swap.
+   Front ends should never have to look at that.  */
 #include "rtl.h"
 #include "insn-codes.h"
 #include "expr.h"
@@ -279,10 +283,7 @@ static tree
 build_addr_sum (tree type, tree addr, tree offset)
 {
   tree ptr_type = build_pointer_type (type);
-  return fold_build2 (POINTER_PLUS_EXPR,
-		      ptr_type,
-		      fold_convert (ptr_type, addr),
-		      fold_convert (sizetype, offset));
+  return fold_build_pointer_plus (fold_convert (ptr_type, addr), offset);
 }
 
 /* Make sure that this-arg is non-NULL.  This is a security check.  */
@@ -318,7 +319,8 @@ compareAndSwapInt_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			   tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (int_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing
+  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
+      != CODE_FOR_nothing
       || flag_use_atomic_builtins)
     {
       tree addr, stmt;
@@ -326,8 +328,9 @@ compareAndSwapInt_builtin (tree method_return_type ATTRIBUTE_UNUSED,
       (void) value_type; /* Avoid set but not used warning.  */
 
       addr = build_addr_sum (int_type_node, obj_arg, offset_arg);
-      stmt = build_call_expr (built_in_decls[BUILT_IN_BOOL_COMPARE_AND_SWAP_4],
-			      3, addr, expected_arg, value_arg);
+      stmt = build_call_expr 
+			(built_in_decls[BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4],
+			 3, addr, expected_arg, value_arg);
 
       return build_check_this (stmt, this_arg);
     }
@@ -339,7 +342,8 @@ compareAndSwapLong_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			    tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing
+  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
+      != CODE_FOR_nothing
       || (GET_MODE_SIZE (mode) <= GET_MODE_SIZE (word_mode)
 	  && flag_use_atomic_builtins))
     /* We don't trust flag_use_atomic_builtins for multi-word
@@ -351,8 +355,9 @@ compareAndSwapLong_builtin (tree method_return_type ATTRIBUTE_UNUSED,
       (void) value_type; /* Avoid set but not used warning.  */
 
       addr = build_addr_sum (long_type_node, obj_arg, offset_arg);
-      stmt = build_call_expr (built_in_decls[BUILT_IN_BOOL_COMPARE_AND_SWAP_8],
-			      3, addr, expected_arg, value_arg);
+      stmt = build_call_expr 
+			(built_in_decls[BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8],
+			 3, addr, expected_arg, value_arg);
 
       return build_check_this (stmt, this_arg);
     }
@@ -363,7 +368,8 @@ compareAndSwapObject_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			      tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (ptr_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing
+  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
+      != CODE_FOR_nothing
       || flag_use_atomic_builtins)
   {
     tree addr, stmt;
@@ -371,8 +377,8 @@ compareAndSwapObject_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 
     UNMARSHAL5 (orig_call);
     builtin = (POINTER_SIZE == 32 
-	       ? BUILT_IN_BOOL_COMPARE_AND_SWAP_4 
-	       : BUILT_IN_BOOL_COMPARE_AND_SWAP_8);
+	       ? BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4 
+	       : BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8);
 
     addr = build_addr_sum (value_type, obj_arg, offset_arg);
     stmt = build_call_expr (built_in_decls[builtin],
@@ -395,7 +401,7 @@ putVolatile_builtin (tree method_return_type ATTRIBUTE_UNUSED,
     = fold_convert (build_pointer_type (build_type_variant (value_type, 0, 1)),
 		    addr);
   
-  stmt = build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0);
+  stmt = build_call_expr (built_in_decls[BUILT_IN_SYNC_SYNCHRONIZE], 0);
   modify_stmt = fold_build2 (MODIFY_EXPR, value_type,
 			     build_java_indirect_ref (value_type, addr,
 						      flag_check_references),
@@ -419,7 +425,7 @@ getVolatile_builtin (tree method_return_type ATTRIBUTE_UNUSED,
     = fold_convert (build_pointer_type (build_type_variant 
 					(method_return_type, 0, 1)), addr);
   
-  stmt = build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0);
+  stmt = build_call_expr (built_in_decls[BUILT_IN_SYNC_SYNCHRONIZE], 0);
   
   tmp = build_decl (BUILTINS_LOCATION, VAR_DECL, NULL, method_return_type);
   DECL_IGNORED_P (tmp) = 1;
@@ -443,7 +449,8 @@ VMSupportsCS8_builtin (tree method_return_type,
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
   gcc_assert (method_return_type == boolean_type_node);
-  if (sync_compare_and_swap[mode] != CODE_FOR_nothing)
+  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
+      != CODE_FOR_nothing)
     return boolean_true_node;
   else
     return boolean_false_node;
@@ -489,7 +496,6 @@ initialize_builtins (void)
   tree double_ftype_double, double_ftype_double_double;
   tree float_ftype_float_float;
   tree boolean_ftype_boolean_boolean;
-  tree t;
   int i;
 
   for (i = 0; java_builtins[i].builtin_code != END_BUILTINS; ++i)
@@ -503,14 +509,15 @@ initialize_builtins (void)
 
   void_list_node = end_params_node;
 
-  t = tree_cons (NULL_TREE, float_type_node, end_params_node);
-  t = tree_cons (NULL_TREE, float_type_node, t);
-  float_ftype_float_float = build_function_type (float_type_node, t);
+  float_ftype_float_float
+    = build_function_type_list (float_type_node,
+				float_type_node, float_type_node, NULL_TREE);
 
-  t = tree_cons (NULL_TREE, double_type_node, end_params_node);
-  double_ftype_double = build_function_type (double_type_node, t);
-  t = tree_cons (NULL_TREE, double_type_node, t);
-  double_ftype_double_double = build_function_type (double_type_node, t);
+  double_ftype_double
+    = build_function_type_list (double_type_node, double_type_node, NULL_TREE);
+  double_ftype_double_double
+    = build_function_type_list (double_type_node,
+				double_type_node, double_type_node, NULL_TREE);
 
   define_builtin (BUILT_IN_FMOD, "__builtin_fmod",
 		  double_ftype_double_double, "fmod", BUILTIN_CONST);
@@ -557,29 +564,30 @@ initialize_builtins (void)
 		  double_ftype_double, "_ZN4java4lang4Math3tanEJdd",
 		  BUILTIN_CONST);
   
-  t = tree_cons (NULL_TREE, boolean_type_node, end_params_node);
-  t = tree_cons (NULL_TREE, boolean_type_node, t);
-  boolean_ftype_boolean_boolean = build_function_type (boolean_type_node, t);
+  boolean_ftype_boolean_boolean
+    = build_function_type_list (boolean_type_node,
+				boolean_type_node, boolean_type_node,
+				NULL_TREE);
   define_builtin (BUILT_IN_EXPECT, "__builtin_expect", 
 		  boolean_ftype_boolean_boolean,
 		  "__builtin_expect",
 		  BUILTIN_CONST | BUILTIN_NOTHROW);
-  define_builtin (BUILT_IN_BOOL_COMPARE_AND_SWAP_4, 
+  define_builtin (BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4, 
 		  "__sync_bool_compare_and_swap_4",
 		  build_function_type_list (boolean_type_node,
 					    int_type_node, 
 					    build_pointer_type (int_type_node),
 					    int_type_node, NULL_TREE), 
 		  "__sync_bool_compare_and_swap_4", 0);
-  define_builtin (BUILT_IN_BOOL_COMPARE_AND_SWAP_8, 
+  define_builtin (BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8, 
 		  "__sync_bool_compare_and_swap_8",
 		  build_function_type_list (boolean_type_node,
 					    long_type_node, 
 					    build_pointer_type (long_type_node),
 					    int_type_node, NULL_TREE), 
 		  "__sync_bool_compare_and_swap_8", 0);
-  define_builtin (BUILT_IN_SYNCHRONIZE, "__sync_synchronize",
-		  build_function_type (void_type_node, void_list_node),
+  define_builtin (BUILT_IN_SYNC_SYNCHRONIZE, "__sync_synchronize",
+		  build_function_type_list (void_type_node, NULL_TREE),
 		  "__sync_synchronize", BUILTIN_NOTHROW);
   
   define_builtin (BUILT_IN_RETURN_ADDRESS, "__builtin_return_address",

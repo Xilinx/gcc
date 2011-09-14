@@ -1,7 +1,6 @@
 /* { dg-do run } */
-/* { dg-xfail-if "PR23614" { "*-*-*" } { "*" } { "-fnext-runtime" } } */
 /* { dg-xfail-run-if "Needs OBJC2 ABI" { *-*-darwin* && { lp64 && { ! objc2 } } } { "-fnext-runtime" } { "" } } */
-#include "../objc-obj-c++-shared/Object1.h"
+#include "../objc-obj-c++-shared/TestsuiteObject.m"
 #include <stdlib.h>
 
 class MyWidget {
@@ -16,13 +15,13 @@ MyWidget gWidget;
 - (MyWidget *)widget;
 @end
 
-@interface Foo: Object
+@interface Foo: TestsuiteObject
 @end
 
 @interface Bar: Foo <MyProto>
 @end
 
-@interface Container: Object
+@interface Container: TestsuiteObject
 + (MyWidget *)elementForView:(Foo *)view;
 @end
 
@@ -38,8 +37,9 @@ MyWidget gWidget;
 @implementation Container
 + (MyWidget *)elementForView:(Foo *)view
 {
-    MyWidget *widget = nil;
-    if ([view conformsTo:@protocol(MyProto)]) {
+    MyWidget *widget = 0;
+    if (class_conformsToProtocol (object_getClass (view),
+				  @protocol(MyProto))) {
         widget = [(Foo <MyProto> *)view widget];
     }
     return widget;
@@ -56,4 +56,3 @@ int main(void) {
   return 0;
 }
 
-#include "../objc-obj-c++-shared/Object1-implementation.h"

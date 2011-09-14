@@ -1,3 +1,97 @@
+2011-08-23  Steve Ellcey  <sje@cup.hp.com>
+
+	PR libstdc++/50153
+	* inclhack.def (hpux11_abs): Extend to all hpux machines.
+	* fixincl.x: Regenerate.
+
+2011-08-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+	    Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++-v3/1773
+	* inclhack.def (solaris_cxx_linkage, solaris_getc_strict_stdc)
+	(solaris_longjmp_noreturn, solaris_pow_int_overload)
+	(solaris_std___filbuf): New fixes.
+	* tests/base/iso/math_iso.h, tests/base/iso/setjmp_iso.h,
+	tests/base/iso/stdio_iso.h, tests/base/iso/stdlib_iso.h: New tests.
+	* tests/base/stdio.h [SOLARIS_STD___FILBUF_CHECK]: New test.
+
+2011-07-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR c++/49347
+	* inclhack.def (solaris_posix_spawn_restrict): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/spawn.h: New test.
+
+2011-06-08  Douglas B Rupp  <rupp@gnat.com>
+
+	* configure.ac (AC_USE_SYSTEM_EXTENSIONS): Add.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+
+2011-06-06  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	* inclhack.def (aix_net_if_arp): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/net/if_arp.h [AIX_NET_IF_ARP_CHECK]: New test.
+
+2011-05-17  Tristan Gingold  <gingold@adacore.com>
+
+	* inclhack.def (solaris_complex_cxx): Fix syntax.
+	* fixincl.x: Regenerate.
+
+2011-05-17  Tristan Gingold  <gingold@adacore.com>
+
+	* check.tpl: Shell-quote testing file.
+
+2011-03-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* mkfixinc.sh: Don't handle i?86-moss-msdos* or i?86-*-pe.
+
+2010-11-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/46202
+	* Makefile.in (install-strip): New phony target.
+	(all, check, install): Also mark as phony.
+
+2010-11-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* inclhack.def (irix_pthread_init): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/pthread.h [IRIX_PTHREAD_INIT_CHECK]: New test.
+
+2010-10-20  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR c++/46024
+	* inclhack.def (solaris_sys_va_list): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/va_list.h: New test.
+
+2010-09-07  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* inclhack.def (hpux_htonl): Allow trailing whitespace in select.
+	* fixincl.x: Regenerate.
+
+2010-07-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* inclhack.def (solaris_cond_init): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/pthread.h [SOLARIS_COND_INIT_CHECK]: New test.
+	[SOLARIS_MUTEX_INIT_2_CHECK]: Adapt.
+
+2010-06-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* inclhack.def (solaris__restrict, solaris_complex_cxx): New fixes
+	* fixincl.x: Regenerate.
+	* tests/base/complex.h [SOLARIS_COMPLEX_CXX_CHECK]: New test.
+	* tests/base/sys/feature_tests.h: New file.
+
+2010-06-03  Joern Rennecke <joern.rennecke@embecosm.com>
+	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/42798
+	* configure.ac: Check for declaration of 'basename(char *)'.
+	* configure: Regenerate.
+
 2010-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* inclhack.def (alpha_wchar): Remove.

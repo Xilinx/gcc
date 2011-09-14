@@ -24,7 +24,7 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file iomanip
+/** @file include/iomanip
  *  This is a Standard C++ Library header.
  */
 
@@ -45,7 +45,9 @@
 #include <locale>
 #endif
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // [27.6.3] standard manipulators
   // Also see DR 183.
@@ -54,10 +56,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Manipulator for @c setf.
-   *  @param  mask  A format flags mask.
+   *  @param  __mask  A format flags mask.
    *
    *  Sent to a stream object, this manipulator resets the specified flags,
-   *  via @e stream.setf(0,mask).
+   *  via @e stream.setf(0,__mask).
   */
   inline _Resetiosflags 
   resetiosflags(ios_base::fmtflags __mask)
@@ -84,10 +86,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Manipulator for @c setf.
-   *  @param  mask  A format flags mask.
+   *  @param  __mask  A format flags mask.
    *
    *  Sent to a stream object, this manipulator sets the format flags
-   *  to @a mask.
+   *  to @a __mask.
   */
   inline _Setiosflags 
   setiosflags(ios_base::fmtflags __mask)
@@ -114,11 +116,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Manipulator for @c setf.
-   *  @param  base  A numeric base.
+   *  @param  __base  A numeric base.
    *
    *  Sent to a stream object, this manipulator changes the
    *  @c ios_base::basefield flags to @c oct, @c dec, or @c hex when @a base
-   *  is 8, 10, or 16, accordingly, and to 0 if @a base is any other value.
+   *  is 8, 10, or 16, accordingly, and to 0 if @a __base is any other value.
   */
   inline _Setbase 
   setbase(int __base)
@@ -152,9 +154,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Manipulator for @c fill.
-   *  @param  c  The new fill character.
+   *  @param  __c  The new fill character.
    *
-   *  Sent to a stream object, this manipulator calls @c fill(c) for that
+   *  Sent to a stream object, this manipulator calls @c fill(__c) for that
    *  object.
   */
   template<typename _CharT>
@@ -183,9 +185,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Manipulator for @c precision.
-   *  @param  n  The new precision.
+   *  @param  __n  The new precision.
    *
-   *  Sent to a stream object, this manipulator calls @c precision(n) for
+   *  Sent to a stream object, this manipulator calls @c precision(__n) for
    *  that object.
   */
   inline _Setprecision 
@@ -213,9 +215,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Manipulator for @c width.
-   *  @param  n  The new width.
+   *  @param  __n  The new width.
    *
-   *  Sent to a stream object, this manipulator calls @c width(n) for
+   *  Sent to a stream object, this manipulator calls @c width(__n) for
    *  that object.
   */
   inline _Setw 
@@ -245,11 +247,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Extended manipulator for extracting money.
-   *  @param  mon  Either long double or a specialization of @c basic_string.
-   *  @param  intl A bool indicating whether international format 
-   *               is to be used.
+   *  @param  __mon  Either long double or a specialization of @c basic_string.
+   *  @param  __intl A bool indicating whether international format 
+   *                 is to be used.
    *
-   *  Sent to a stream object, this manipulator extracts @a mon.
+   *  Sent to a stream object, this manipulator extracts @a __mon.
   */
   template<typename _MoneyT>
     inline _Get_money<_MoneyT>
@@ -281,11 +283,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Extended manipulator for inserting money.
-   *  @param  mon  Either long double or a specialization of @c basic_string.
-   *  @param  intl A bool indicating whether international format 
-   *               is to be used.
+   *  @param  __mon  Either long double or a specialization of @c basic_string.
+   *  @param  __intl A bool indicating whether international format 
+   *                 is to be used.
    *
-   *  Sent to a stream object, this manipulator inserts @a mon.
+   *  Sent to a stream object, this manipulator inserts @a __mon.
   */
   template<typename _MoneyT>
     inline _Put_money<_MoneyT>
@@ -344,6 +346,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #endif
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _GLIBCXX_IOMANIP */

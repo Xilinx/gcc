@@ -23,12 +23,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
-#include "diagnostic.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
 #include "timevar.h"
@@ -103,9 +100,9 @@ create_iv (tree base, tree step, tree var, struct loop *loop,
     {
       if (TREE_CODE (base) == ADDR_EXPR)
 	mark_addressable (TREE_OPERAND (base, 0));
-      step = fold_convert (sizetype, step);
+      step = convert_to_ptrofftype (step);
       if (incr_op == MINUS_EXPR)
-	step = fold_build1 (NEGATE_EXPR, sizetype, step);
+	step = fold_build1 (NEGATE_EXPR, TREE_TYPE (step), step);
       incr_op = POINTER_PLUS_EXPR;
     }
   /* Gimplify the step if necessary.  We put the computations in front of the
@@ -443,7 +440,7 @@ check_loop_closed_ssa_stmt (basic_block bb, gimple stmt)
 /* Checks that invariants of the loop closed ssa form are preserved.
    Call verify_ssa when VERIFY_SSA_P is true.  */
 
-void
+DEBUG_FUNCTION void
 verify_loop_closed_ssa (bool verify_ssa_p)
 {
   basic_block bb;
@@ -458,6 +455,8 @@ verify_loop_closed_ssa (bool verify_ssa_p)
   if (verify_ssa_p)
     verify_ssa (false);
 
+  timevar_push (TV_VERIFY_LOOP_CLOSED);
+
   FOR_EACH_BB (bb)
     {
       for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
@@ -471,6 +470,8 @@ verify_loop_closed_ssa (bool verify_ssa_p)
       for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	check_loop_closed_ssa_stmt (bb, gsi_stmt (bsi));
     }
+
+  timevar_pop (TV_VERIFY_LOOP_CLOSED);
 }
 
 /* Split loop exit edge EXIT.  The things are a bit complicated by a need to
@@ -704,7 +705,7 @@ determine_exit_conditions (struct loop *loop, struct tree_niter_desc *desc,
   enum tree_code cmp = desc->cmp;
   tree cond = boolean_true_node, assum;
 
-  /* For pointers, do the arithmetics in the type of step (sizetype).  */
+  /* For pointers, do the arithmetics in the type of step.  */
   base = fold_convert (type, base);
   bound = fold_convert (type, bound);
 
@@ -1048,7 +1049,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
   free (wont_exit);
   gcc_assert (ok);
 
-  for (i = 0; VEC_iterate (edge, to_remove, i, e); i++)
+  FOR_EACH_VEC_ELT (edge, to_remove, i, e)
     {
       ok = remove_path (e);
       gcc_assert (ok);
@@ -1084,7 +1085,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
 
   /* Finally create the new counter for number of iterations and add the new
      exit instruction.  */
-  bsi = gsi_last_bb (exit_bb);
+  bsi = gsi_last_nondebug_bb (exit_bb);
   exit_if = gsi_stmt (bsi);
   create_iv (exit_base, exit_step, NULL_TREE, loop,
 	     &bsi, false, &ctr_before, &ctr_after);
@@ -1199,18 +1200,36 @@ canonicalize_loop_ivs (struct loop *loop, tree *nit, bool bump_in_latch)
   gimple stmt;
   edge exit = single_dom_exit (loop);
   gimple_seq stmts;
+  enum machine_mode mode;
+  bool unsigned_p = false;
 
   for (psi = gsi_start_phis (loop->header);
        !gsi_end_p (psi); gsi_next (&psi))
     {
       gimple phi = gsi_stmt (psi);
       tree res = PHI_RESULT (phi);
+      bool uns;
 
-      if (is_gimple_reg (res) && TYPE_PRECISION (TREE_TYPE (res)) > precision)
-	precision = TYPE_PRECISION (TREE_TYPE (res));
+      type = TREE_TYPE (res);
+      if (!is_gimple_reg (res)
+	  || (!INTEGRAL_TYPE_P (type)
+	      && !POINTER_TYPE_P (type))
+	  || TYPE_PRECISION (type) < precision)
+	continue;
+
+      uns = POINTER_TYPE_P (type) | TYPE_UNSIGNED (type);
+
+      if (TYPE_PRECISION (type) > precision)
+	unsigned_p = uns;
+      else
+	unsigned_p |= uns;
+
+      precision = TYPE_PRECISION (type);
     }
 
-  type = lang_hooks.types.type_for_size (precision, 1);
+  mode = smallest_mode_for_size (precision, MODE_INT);
+  precision = GET_MODE_PRECISION (mode);
+  type = build_nonstandard_integer_type (precision, unsigned_p);
 
   if (original_precision != precision)
     {
@@ -1220,7 +1239,10 @@ canonicalize_loop_ivs (struct loop *loop, tree *nit, bool bump_in_latch)
 	gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
     }
 
-  gsi = gsi_last_bb (bump_in_latch ? loop->latch : loop->header);
+  if (bump_in_latch)
+    gsi = gsi_last_bb (loop->latch);
+  else
+    gsi = gsi_last_nondebug_bb (loop->header);
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
 	     loop, &gsi, bump_in_latch, &var_before, NULL);
 

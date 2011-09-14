@@ -1,6 +1,6 @@
 // <forward_list.h> -*- C++ -*-
 
-// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -22,8 +22,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file forward_list.h
- *  This is a Standard C++ Library header.
+/** @file bits/forward_list.h
+ *  This is an internal header file, included by other library headers.
+ *  Do not attempt to use it directly. @headername{forward_list}
  */
 
 #ifndef _FORWARD_LIST_H
@@ -34,7 +35,9 @@
 #include <memory>
 #include <initializer_list>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
   /**
    *  @brief  A helper basic node class for %forward_list.
@@ -46,10 +49,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     _Fwd_list_node_base() : _M_next(0) { }
 
     _Fwd_list_node_base* _M_next;
-
-    static void
-    swap(_Fwd_list_node_base& __x, _Fwd_list_node_base& __y)
-    { std::swap(__x._M_next, __y._M_next); }
 
     _Fwd_list_node_base*
     _M_transfer_after(_Fwd_list_node_base* __begin)
@@ -77,7 +76,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
     void
-    _M_reverse_after()
+    _M_reverse_after() noexcept
     {
       _Fwd_list_node_base* __tail = _M_next;
       if (!__tail)
@@ -139,7 +138,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       pointer
       operator->() const
-      { return &static_cast<_Node*>(this->_M_node)->_M_value; }
+      { return std::__addressof(static_cast<_Node*>
+				(this->_M_node)->_M_value); }
 
       _Self&
       operator++()
@@ -210,7 +210,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       pointer
       operator->() const
-      { return &static_cast<_Node*>(this->_M_node)->_M_value; }
+      { return std::__addressof(static_cast<_Node*>
+				(this->_M_node)->_M_value); }
 
       _Self&
       operator++()
@@ -289,6 +290,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         _Fwd_list_impl(const _Node_alloc_type& __a)
         : _Node_alloc_type(__a), _M_head()
         { }
+
+        _Fwd_list_impl(_Node_alloc_type&& __a)
+	: _Node_alloc_type(std::move(__a)), _M_head()
+        { }
       };
 
       _Fwd_list_impl _M_impl;
@@ -299,32 +304,34 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef _Fwd_list_node<_Tp>                     _Node;
 
       _Node_alloc_type&
-      _M_get_Node_allocator()
+      _M_get_Node_allocator() noexcept
       { return *static_cast<_Node_alloc_type*>(&this->_M_impl); }
 
       const _Node_alloc_type&
-      _M_get_Node_allocator() const
+      _M_get_Node_allocator() const noexcept
       { return *static_cast<const _Node_alloc_type*>(&this->_M_impl); }
 
       _Fwd_list_base()
-      : _M_impl()
-      { this->_M_impl._M_head._M_next = 0; }
+      : _M_impl() { }
 
-      _Fwd_list_base(const _Alloc& __a)
+      _Fwd_list_base(const _Node_alloc_type& __a)
+      : _M_impl(__a) { }
+
+      _Fwd_list_base(const _Fwd_list_base& __lst, const _Node_alloc_type& __a);
+
+      _Fwd_list_base(_Fwd_list_base&& __lst, const _Node_alloc_type& __a)
       : _M_impl(__a)
-      { this->_M_impl._M_head._M_next = 0; }
-
-      _Fwd_list_base(const _Fwd_list_base& __lst, const _Alloc& __a);
-
-      _Fwd_list_base(_Fwd_list_base&& __lst, const _Alloc& __a)
-      : _M_impl(__a)
-      { _Fwd_list_node_base::swap(this->_M_impl._M_head,
-				  __lst._M_impl._M_head); }
+      {
+	this->_M_impl._M_head._M_next = __lst._M_impl._M_head._M_next;
+	__lst._M_impl._M_head._M_next = 0;
+      }
 
       _Fwd_list_base(_Fwd_list_base&& __lst)
-      : _M_impl(__lst._M_get_Node_allocator())
-      { _Fwd_list_node_base::swap(this->_M_impl._M_head,
-				  __lst._M_impl._M_head); }
+      : _M_impl(std::move(__lst._M_get_Node_allocator()))
+      {
+	this->_M_impl._M_head._M_next = __lst._M_impl._M_head._M_next;
+	__lst._M_impl._M_head._M_next = 0;
+      }
 
       ~_Fwd_list_base()
       { _M_erase_after(&_M_impl._M_head, 0); }
@@ -362,10 +369,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _M_put_node(_Node* __p)
       { _M_get_Node_allocator().deallocate(__p, 1); }
 
-      void
+      _Fwd_list_node_base*
       _M_erase_after(_Fwd_list_node_base* __pos);
 
-      void
+      _Fwd_list_node_base*
       _M_erase_after(_Fwd_list_node_base* __pos, 
                      _Fwd_list_node_base* __last);
     };
@@ -409,6 +416,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef _Fwd_list_node<_Tp>                          _Node;
       typedef _Fwd_list_node_base                          _Node_base;
       typedef typename _Base::_Tp_alloc_type               _Tp_alloc_type;
+      typedef typename _Base::_Node_alloc_type             _Node_alloc_type;
 
     public:
       // types:
@@ -428,69 +436,71 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Creates a %forward_list with no elements.
-       *  @param  al  An allocator object.
+       *  @param  __al  An allocator object.
        */
       explicit
       forward_list(const _Alloc& __al = _Alloc())
-      : _Base(__al)
+      : _Base(_Node_alloc_type(__al))
       { }
 
       /**
        *  @brief  Copy constructor with allocator argument.
-       *  @param  list  Input list to copy.
-       *  @param  al    An allocator object.
+       *  @param  __list  Input list to copy.
+       *  @param  __al    An allocator object.
        */
       forward_list(const forward_list& __list, const _Alloc& __al)
-      : _Base(__list, __al)
+      : _Base(__list, _Node_alloc_type(__al))
       { }
 
       /**
        *  @brief  Move constructor with allocator argument.
-       *  @param  list  Input list to move.
-       *  @param  al    An allocator object.
+       *  @param  __list  Input list to move.
+       *  @param  __al    An allocator object.
        */
       forward_list(forward_list&& __list, const _Alloc& __al)
-      : _Base(std::forward<_Base>(__list), __al)
+      : _Base(std::move(__list), _Node_alloc_type(__al))
       { }
 
       /**
        *  @brief  Creates a %forward_list with default constructed elements.
-       *  @param  n  The number of elements to initially create.
+       *  @param  __n  The number of elements to initially create.
        *
-       *  This constructor creates the %forward_list with @a n default
+       *  This constructor creates the %forward_list with @a __n default
        *  constructed elements.
        */
       explicit
-      forward_list(size_type __n);
+      forward_list(size_type __n)
+      : _Base()
+      { _M_default_initialize(__n); }
 
       /**
        *  @brief  Creates a %forward_list with copies of an exemplar element.
-       *  @param  n      The number of elements to initially create.
-       *  @param  value  An element to copy.
-       *  @param  al     An allocator object.
+       *  @param  __n      The number of elements to initially create.
+       *  @param  __value  An element to copy.
+       *  @param  __al     An allocator object.
        *
-       *  This constructor fills the %forward_list with @a n copies of @a
-       *  value.
+       *  This constructor fills the %forward_list with @a __n copies of
+       *  @a __value.
        */
       forward_list(size_type __n, const _Tp& __value,
                    const _Alloc& __al = _Alloc())
-      : _Base(__al)
+      : _Base(_Node_alloc_type(__al))
       { _M_fill_initialize(__n, __value); }
 
       /**
        *  @brief  Builds a %forward_list from a range.
-       *  @param  first  An input iterator.
-       *  @param  last   An input iterator.
-       *  @param  al     An allocator object.
+       *  @param  __first  An input iterator.
+       *  @param  __last   An input iterator.
+       *  @param  __al     An allocator object.
        *
        *  Create a %forward_list consisting of copies of the elements from
-       *  [@a first,@a last).  This is linear in N (where N is
-       *  distance(@a first,@a last)).
+       *  [@a __first,@a __last).  This is linear in N (where N is
+       *  distance(@a __first,@a __last)).
        */
       template<typename _InputIterator>
         forward_list(_InputIterator __first, _InputIterator __last,
                      const _Alloc& __al = _Alloc())
-        : _Base(__al)
+	: _Base(_Node_alloc_type(__al))
         {
           // Check whether it's an integral type.  If so, it's not an iterator.
           typedef typename std::__is_integer<_InputIterator>::__type _Integral;
@@ -499,11 +509,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  The %forward_list copy constructor.
-       *  @param  list  A %forward_list of identical element and allocator
+       *  @param  __list  A %forward_list of identical element and allocator
        *                types.
        *
        *  The newly-created %forward_list uses a copy of the allocation
-       *  object used by @a list.
+       *  object used by @a __list.
        */
       forward_list(const forward_list& __list)
       : _Base(__list._M_get_Node_allocator())
@@ -511,41 +521,41 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  The %forward_list move constructor.
-       *  @param  list  A %forward_list of identical element and allocator
+       *  @param  __list  A %forward_list of identical element and allocator
        *                types.
        *
        *  The newly-created %forward_list contains the exact contents of @a
-       *  forward_list. The contents of @a list are a valid, but unspecified
+       *  forward_list. The contents of @a __list are a valid, but unspecified
        *  %forward_list.
        */
-      forward_list(forward_list&& __list)
-      : _Base(std::forward<_Base>(__list)) { }
+      forward_list(forward_list&& __list) noexcept
+      : _Base(std::move(__list)) { }
 
       /**
        *  @brief  Builds a %forward_list from an initializer_list
-       *  @param  il  An initializer_list of value_type.
-       *  @param  al  An allocator object.
+       *  @param  __il  An initializer_list of value_type.
+       *  @param  __al  An allocator object.
        *
        *  Create a %forward_list consisting of copies of the elements
-       *  in the initializer_list @a il.  This is linear in il.size().
+       *  in the initializer_list @a __il.  This is linear in __il.size().
        */
       forward_list(std::initializer_list<_Tp> __il,
                    const _Alloc& __al = _Alloc())
-      : _Base(__al)
+      : _Base(_Node_alloc_type(__al))
       { _M_initialize_dispatch(__il.begin(), __il.end(), __false_type()); }
 
       /**
        *  @brief  The forward_list dtor.
        */
-      ~forward_list()
+      ~forward_list() noexcept
       { }
 
       /**
        *  @brief  The %forward_list assignment operator.
-       *  @param  list  A %forward_list of identical element and allocator
+       *  @param  __list  A %forward_list of identical element and allocator
        *                types.
        *
-       *  All the elements of @a list are copied, but unlike the copy
+       *  All the elements of @a __list are copied, but unlike the copy
        *  constructor, the allocator object is not copied.
        */
       forward_list&
@@ -553,11 +563,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  The %forward_list move assignment operator.
-       *  @param  list  A %forward_list of identical element and allocator
+       *  @param  __list  A %forward_list of identical element and allocator
        *                types.
        *
-       *  The contents of @a list are moved into this %forward_list
-       *  (without copying). @a list is a valid, but unspecified
+       *  The contents of @a __list are moved into this %forward_list
+       *  (without copying). @a __list is a valid, but unspecified
        *  %forward_list
        */
       forward_list&
@@ -572,11 +582,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  The %forward_list initializer list assignment operator.
-       *  @param  il  An initializer_list of value_type.
+       *  @param  __il  An initializer_list of value_type.
        *
        *  Replace the contents of the %forward_list with copies of the
-       *  elements in the initializer_list @a il.  This is linear in
-       *  il.size().
+       *  elements in the initializer_list @a __il.  This is linear in
+       *  __il.size().
        */
       forward_list&
       operator=(std::initializer_list<_Tp> __il)
@@ -587,11 +597,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Assigns a range to a %forward_list.
-       *  @param  first  An input iterator.
-       *  @param  last   An input iterator.
+       *  @param  __first  An input iterator.
+       *  @param  __last   An input iterator.
        *
        *  This function fills a %forward_list with copies of the elements
-       *  in the range [@a first,@a last).
+       *  in the range [@a __first,@a __last).
        *
        *  Note that the assignment completely changes the %forward_list and
        *  that the resulting %forward_list's size is the same as the number
@@ -607,10 +617,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Assigns a given value to a %forward_list.
-       *  @param  n  Number of elements to be assigned.
-       *  @param  val  Value to be assigned.
+       *  @param  __n  Number of elements to be assigned.
+       *  @param  __val  Value to be assigned.
        *
-       *  This function fills a %forward_list with @a n copies of the given
+       *  This function fills a %forward_list with @a __n copies of the given
        *  value.  Note that the assignment completely changes the
        *  %forward_list and that the resulting %forward_list's size is the
        *  same as the number of elements assigned.  Old data may be lost.
@@ -624,10 +634,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Assigns an initializer_list to a %forward_list.
-       *  @param  il  An initializer_list of value_type.
+       *  @param  __il  An initializer_list of value_type.
        *
        *  Replace the contents of the %forward_list with copies of the
-       *  elements in the initializer_list @a il.  This is linear in
+       *  elements in the initializer_list @a __il.  This is linear in
        *  il.size().
        */
       void
@@ -639,8 +649,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /// Get a copy of the memory allocation object.
       allocator_type
-      get_allocator() const
-      { return this->_M_get_Node_allocator(); }
+      get_allocator() const noexcept
+      { return allocator_type(this->_M_get_Node_allocator()); }
 
       // 23.2.3.2 iterators:
 
@@ -649,7 +659,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  in the %forward_list.  Iteration is done in ordinary element order.
        */
       iterator
-      before_begin()
+      before_begin() noexcept
       { return iterator(&this->_M_impl._M_head); }
 
       /**
@@ -658,7 +668,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  element order.
        */
       const_iterator
-      before_begin() const
+      before_begin() const noexcept
       { return const_iterator(&this->_M_impl._M_head); }
 
       /**
@@ -666,7 +676,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  in the %forward_list.  Iteration is done in ordinary element order.
        */
       iterator
-      begin()
+      begin() noexcept
       { return iterator(this->_M_impl._M_head._M_next); }
 
       /**
@@ -675,7 +685,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  element order.
        */
       const_iterator
-      begin() const
+      begin() const noexcept
       { return const_iterator(this->_M_impl._M_head._M_next); }
 
       /**
@@ -684,7 +694,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  element order.
        */
       iterator
-      end()
+      end() noexcept
       { return iterator(0); }
 
       /**
@@ -693,7 +703,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  element order.
        */
       const_iterator
-      end() const
+      end() const noexcept
       { return const_iterator(0); }
 
       /**
@@ -702,7 +712,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  element order.
        */
       const_iterator
-      cbegin() const
+      cbegin() const noexcept
       { return const_iterator(this->_M_impl._M_head._M_next); }
 
       /**
@@ -711,7 +721,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  element order.
        */
       const_iterator
-      cbefore_begin() const
+      cbefore_begin() const noexcept
       { return const_iterator(&this->_M_impl._M_head); }
 
       /**
@@ -720,7 +730,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  ordinary element order.
        */
       const_iterator
-      cend() const
+      cend() const noexcept
       { return const_iterator(0); }
 
       /**
@@ -728,14 +738,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  equal end().)
        */
       bool
-      empty() const
+      empty() const noexcept
       { return this->_M_impl._M_head._M_next == 0; }
 
       /**
        *  Returns the largest possible size of %forward_list.
        */
       size_type
-      max_size() const
+      max_size() const noexcept
       { return this->_M_get_Node_allocator().max_size(); }
 
       // 23.2.3.3 element access:
@@ -767,7 +777,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Constructs object in %forward_list at the front of the
        *          list.
-       *  @param  args  Arguments.
+       *  @param  __args  Arguments.
        *
        *  This function will insert an object of type Tp constructed
        *  with Tp(std::forward<Args>(args)...) at the front of the list
@@ -783,7 +793,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Add data to the front of the %forward_list.
-       *  @param  val  Data to be added.
+       *  @param  __val  Data to be added.
        *
        *  This is a typical stack operation.  The function creates an
        *  element at the front of the %forward_list and assigns the given
@@ -821,8 +831,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Constructs object in %forward_list after the specified
        *          iterator.
-       *  @param  pos  A const_iterator into the %forward_list.
-       *  @param  args  Arguments.
+       *  @param  __pos  A const_iterator into the %forward_list.
+       *  @param  __args  Arguments.
        *  @return  An iterator that points to the inserted data.
        *
        *  This function will insert an object of type T constructed
@@ -840,8 +850,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Inserts given value into %forward_list after specified
        *          iterator.
-       *  @param  pos  An iterator into the %forward_list.
-       *  @param  val  Data to be inserted.
+       *  @param  __pos  An iterator into the %forward_list.
+       *  @param  __val  Data to be inserted.
        *  @return  An iterator that points to the inserted data.
        *
        *  This function will insert a copy of the given value after
@@ -863,9 +873,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Inserts a number of copies of given data into the
        *          %forward_list.
-       *  @param  pos  An iterator into the %forward_list.
-       *  @param  n  Number of elements to be inserted.
-       *  @param  val  Data to be inserted.
+       *  @param  __pos  An iterator into the %forward_list.
+       *  @param  __n  Number of elements to be inserted.
+       *  @param  __val  Data to be inserted.
        *  @return  An iterator pointing to the last inserted copy of
        *           @a val or @a pos if @a n == 0.
        *
@@ -880,15 +890,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Inserts a range into the %forward_list.
-       *  @param  position  An iterator into the %forward_list.
-       *  @param  first  An input iterator.
-       *  @param  last   An input iterator.
+       *  @param  __pos  An iterator into the %forward_list.
+       *  @param  __first  An input iterator.
+       *  @param  __last   An input iterator.
        *  @return  An iterator pointing to the last inserted element or
-       *           @a pos if @a first == @a last.
+       *           @a __pos if @a __first == @a __last.
        *
-       *  This function will insert copies of the data in the range [@a
-       *  first,@a last) into the %forward_list after the location specified
-       *  by @a pos.
+       *  This function will insert copies of the data in the range
+       *  [@a __first,@a __last) into the %forward_list after the
+       *  location specified by @a __pos.
        *
        *  This operation is linear in the number of elements inserted and
        *  does not invalidate iterators and references.
@@ -901,14 +911,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Inserts the contents of an initializer_list into
        *          %forward_list after the specified iterator.
-       *  @param  pos  An iterator into the %forward_list.
-       *  @param  il  An initializer_list of value_type.
+       *  @param  __pos  An iterator into the %forward_list.
+       *  @param  __il  An initializer_list of value_type.
        *  @return  An iterator pointing to the last inserted element
-       *           or @a pos if @a il is empty.
+       *           or @a __pos if @a __il is empty.
        *
        *  This function will insert copies of the data in the
-       *  initializer_list @a il into the %forward_list before the location
-       *  specified by @a pos.
+       *  initializer_list @a __il into the %forward_list before the location
+       *  specified by @a __pos.
        *
        *  This operation is linear in the number of elements inserted and
        *  does not invalidate iterators and references.
@@ -919,7 +929,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Removes the element pointed to by the iterator following
        *          @c pos.
-       *  @param  pos  Iterator pointing before element to be erased.
+       *  @param  __pos  Iterator pointing before element to be erased.
+       *  @return  An iterator pointing to the element following the one
+       *           that was erased, or end() if no such element exists.
        *
        *  This function will erase the element at the given position and
        *  thus shorten the %forward_list by one.
@@ -931,19 +943,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  is itself a pointer, the pointed-to memory is not touched in
        *  any way.  Managing the pointer is the user's responsibility.
        */
-      void
+      iterator
       erase_after(const_iterator __pos)
-      { this->_M_erase_after(const_cast<_Node_base*>(__pos._M_node)); }
+      { return iterator(this->_M_erase_after(const_cast<_Node_base*>
+					     (__pos._M_node))); }
 
       /**
        *  @brief  Remove a range of elements.
-       *  @param  pos  Iterator pointing before the first element to be
-       *               erased.
-       *  @param  last  Iterator pointing to one past the last element to be
-       *                erased.
+       *  @param  __pos  Iterator pointing before the first element to be
+       *                 erased.
+       *  @param  __last  Iterator pointing to one past the last element to be
+       *                  erased.
+       *  @return  @ __last.
        *
-       *  This function will erase the elements in the range @a
-       *  (pos,last) and shorten the %forward_list accordingly.
+       *  This function will erase the elements in the range
+       *  @a (__pos,__last) and shorten the %forward_list accordingly.
        *
        *  This operation is linear time in the size of the range and only
        *  invalidates iterators/references to the element being removed.
@@ -952,15 +966,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  pointed-to memory is not touched in any way.  Managing the pointer
        *  is the user's responsibility.
        */
-      void
+      iterator
       erase_after(const_iterator __pos, const_iterator __last)
-      { this->_M_erase_after(const_cast<_Node_base*>(__pos._M_node),
-			     const_cast<_Node_base*>(__last._M_node)); }
+      { return iterator(this->_M_erase_after(const_cast<_Node_base*>
+					     (__pos._M_node),
+					     const_cast<_Node_base*>
+					     (__last._M_node))); }
 
       /**
        *  @brief  Swaps data with another %forward_list.
-       *  @param  list  A %forward_list of the same element and allocator
-       *                types.
+       *  @param  __list  A %forward_list of the same element and allocator
+       *                  types.
        *
        *  This exchanges the elements between two lists in constant
        *  time.  Note that the global std::swap() function is
@@ -969,12 +985,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        */
       void
       swap(forward_list& __list)
-      { _Node_base::swap(this->_M_impl._M_head, __list._M_impl._M_head); }
+      { std::swap(this->_M_impl._M_head._M_next,
+		  __list._M_impl._M_head._M_next); }
 
       /**
        *  @brief Resizes the %forward_list to the specified number of
        *         elements.
-       *  @param sz Number of elements the %forward_list should contain.
+       *  @param __sz Number of elements the %forward_list should contain.
        *
        *  This function will %resize the %forward_list to the specified
        *  number of elements.  If the number is smaller than the
@@ -988,8 +1005,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief Resizes the %forward_list to the specified number of
        *         elements.
-       *  @param sz Number of elements the %forward_list should contain.
-       *  @param val Data with which new elements should be populated.
+       *  @param __sz Number of elements the %forward_list should contain.
+       *  @param __val Data with which new elements should be populated.
        *
        *  This function will %resize the %forward_list to the specified
        *  number of elements.  If the number is smaller than the
@@ -998,7 +1015,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  populated with given data.
        */
       void
-      resize(size_type __sz, value_type __val);
+      resize(size_type __sz, const value_type& __val);
 
       /**
        *  @brief  Erases all the elements.
@@ -1009,15 +1026,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  Managing the pointer is the user's responsibility.
        */
       void
-      clear()
+      clear() noexcept
       { this->_M_erase_after(&this->_M_impl._M_head, 0); }
 
       // 23.2.3.5 forward_list operations:
 
       /**
        *  @brief  Insert contents of another %forward_list.
-       *  @param  pos  Iterator referencing the element to insert after.
-       *  @param  list  Source list.
+       *  @param  __pos  Iterator referencing the element to insert after.
+       *  @param  __list  Source list.
        *
        *  The elements of @a list are inserted in constant time after
        *  the element referenced by @a pos.  @a list becomes an empty
@@ -1034,10 +1051,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Insert element from another %forward_list.
-       *  @param  pos  Iterator referencing the element to insert after.
-       *  @param  list  Source list.
-       *  @param  i   Iterator referencing the element before the element
-       *              to move.
+       *  @param  __pos  Iterator referencing the element to insert after.
+       *  @param  __list  Source list.
+       *  @param  __i   Iterator referencing the element before the element
+       *                to move.
        *
        *  Removes the element in list @a list referenced by @a i and
        *  inserts it into the current list after @a pos.
@@ -1056,16 +1073,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Insert range from another %forward_list.
-       *  @param  pos  Iterator referencing the element to insert after.
-       *  @param  list  Source list.
-       *  @param  before  Iterator referencing before the start of range
-       *                  in list.
-       *  @param  last  Iterator referencing the end of range in list.
+       *  @param  __pos  Iterator referencing the element to insert after.
+       *  @param  __list  Source list.
+       *  @param  __before  Iterator referencing before the start of range
+       *                    in list.
+       *  @param  __last  Iterator referencing the end of range in list.
        *
-       *  Removes elements in the range (before,last) and inserts them
-       *  after @a pos in constant time.
+       *  Removes elements in the range (__before,__last) and inserts them
+       *  after @a __pos in constant time.
        *
-       *  Undefined if @a pos is in (before,last).
+       *  Undefined if @a __pos is in (__before,__last).
        */
       void
       splice_after(const_iterator __pos, forward_list&& __list,
@@ -1073,9 +1090,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Remove all elements equal to value.
-       *  @param  val  The value to remove.
+       *  @param  __val  The value to remove.
        *
-       *  Removes every element in the list equal to @a value.
+       *  Removes every element in the list equal to @a __val.
        *  Remaining elements stay in list order.  Note that this
        *  function only erases the elements, and that if the elements
        *  themselves are pointers, the pointed-to memory is not
@@ -1087,7 +1104,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Remove all elements satisfying a predicate.
-       *  @param  pred  Unary predicate function or object.
+       *  @param  __pred  Unary predicate function or object.
        *
        *  Removes every element in the list for which the predicate
        *  returns true.  Remaining elements stay in list order.  Note
@@ -1116,7 +1133,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Remove consecutive elements satisfying a predicate.
-       *  @param  binary_pred  Binary predicate function or object.
+       *  @param  __binary_pred  Binary predicate function or object.
        *
        *  For each consecutive set of elements [first,last) that
        *  satisfy predicate(first,i) where i is an iterator in
@@ -1132,12 +1149,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Merge sorted lists.
-       *  @param  list  Sorted list to merge.
+       *  @param  __list  Sorted list to merge.
        *
        *  Assumes that both @a list and this list are sorted according to
-       *  operator<().  Merges elements of @a list into this list in
-       *  sorted order, leaving @a list empty when complete.  Elements in
-       *  this list precede elements in @a list that are equal.
+       *  operator<().  Merges elements of @a __list into this list in
+       *  sorted order, leaving @a __list empty when complete.  Elements in
+       *  this list precede elements in @a __list that are equal.
        */
       void
       merge(forward_list&& __list)
@@ -1145,13 +1162,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Merge sorted lists according to comparison function.
-       *  @param  list  Sorted list to merge.
-       *  @param  comp Comparison function defining sort order.
+       *  @param  __list  Sorted list to merge.
+       *  @param  __comp Comparison function defining sort order.
        *
-       *  Assumes that both @a list and this list are sorted according to
-       *  comp.  Merges elements of @a list into this list
-       *  in sorted order, leaving @a list empty when complete.  Elements
-       *  in this list precede elements in @a list that are equivalent
+       *  Assumes that both @a __list and this list are sorted according to
+       *  comp.  Merges elements of @a __list into this list
+       *  in sorted order, leaving @a __list empty when complete.  Elements
+       *  in this list precede elements in @a __list that are equivalent
        *  according to comp().
        */
       template<typename _Comp>
@@ -1184,7 +1201,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  Reverse the order of elements in the list in linear time.
        */
       void
-      reverse()
+      reverse() noexcept
       { this->_M_impl._M_head._M_reverse_after(); }
 
     private:
@@ -1207,12 +1224,20 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       // Called by splice_after and insert_after.
       iterator
       _M_splice_after(const_iterator __pos, forward_list&& __list);
+
+      // Called by forward_list(n).
+      void
+      _M_default_initialize(size_type __n);
+
+      // Called by resize(sz).
+      void
+      _M_default_insert_after(const_iterator __pos, size_type __n);
     };
 
   /**
    *  @brief  Forward list equality comparison.
-   *  @param  lx  A %forward_list
-   *  @param  ly  A %forward_list of the same type as @a lx.
+   *  @param  __lx  A %forward_list
+   *  @param  __ly  A %forward_list of the same type as @a __lx.
    *  @return  True iff the size and elements of the forward lists are equal.
    *
    *  This is an equivalence relation.  It is linear in the size of the
@@ -1226,9 +1251,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Forward list ordering relation.
-   *  @param  lx  A %forward_list.
-   *  @param  ly  A %forward_list of the same type as @a lx.
-   *  @return  True iff @a lx is lexicographically less than @a ly.
+   *  @param  __lx  A %forward_list.
+   *  @param  __ly  A %forward_list of the same type as @a __lx.
+   *  @return  True iff @a __lx is lexicographically less than @a __ly.
    *
    *  This is a total ordering relation.  It is linear in the size of the
    *  forward lists.  The elements must be comparable with @c <.
@@ -1277,6 +1302,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	 forward_list<_Tp, _Alloc>& __ly)
     { __lx.swap(__ly); }
 
-_GLIBCXX_END_NAMESPACE // namespace std
+_GLIBCXX_END_NAMESPACE_CONTAINER
+} // namespace std
 
 #endif // _FORWARD_LIST_H

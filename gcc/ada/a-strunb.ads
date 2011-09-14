@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -259,6 +259,15 @@ package Ada.Strings.Unbounded is
    procedure Find_Token
      (Source : Unbounded_String;
       Set    : Maps.Character_Set;
+      From   : Positive;
+      Test   : Membership;
+      First  : out Positive;
+      Last   : out Natural);
+   pragma Ada_2012 (Find_Token);
+
+   procedure Find_Token
+     (Source : Unbounded_String;
+      Set    : Maps.Character_Set;
       Test   : Membership;
       First  : out Positive;
       Last   : out Natural);
@@ -424,5 +433,5 @@ private
    Null_Unbounded_String : constant Unbounded_String :=
                              (AF.Controlled with
                                 Reference => Null_String'Access,
-                                Last => 0);
+                                Last      => 0);
 end Ada.Strings.Unbounded;

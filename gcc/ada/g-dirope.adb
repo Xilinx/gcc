@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1998-2009, AdaCore                     --
+--                     Copyright (C) 1998-2010, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -719,11 +717,10 @@ package body GNAT.Directory_Operations is
       Recursive : Boolean := False)
    is
       C_Dir_Name  : constant String := Dir_Name & ASCII.NUL;
-      Current_Dir : constant Dir_Name_Str := Get_Current_Dir;
       Last        : Integer;
       Str         : String (1 .. Filename_Max);
       Success     : Boolean;
-      Working_Dir : Dir_Type;
+      Current_Dir : Dir_Type;
 
    begin
       --  Remove the directory only if it is empty
@@ -736,51 +733,40 @@ package body GNAT.Directory_Operations is
       --  Remove directory and all files and directories that it may contain
 
       else
-         --  Substantial comments needed. See RH for revision 1.50 ???
+         Open (Current_Dir, Dir_Name);
 
-         begin
-            Change_Dir (Dir_Name);
-            Open (Working_Dir, ".");
+         loop
+            Read (Current_Dir, Str, Last);
+            exit when Last = 0;
 
-            loop
-               Read (Working_Dir, Str, Last);
-               exit when Last = 0;
+            if GNAT.OS_Lib.Is_Directory
+                 (Dir_Name & Dir_Separator &  Str (1 .. Last))
+            then
+               if Str (1 .. Last) /= "."
+                 and then
+                   Str (1 .. Last) /= ".."
+               then
+                  --  Recursive call to remove a subdirectory and all its
+                  --  files.
 
-               if GNAT.OS_Lib.Is_Directory (Str (1 .. Last)) then
-                  if Str (1 .. Last) /= "."
-                       and then
-                     Str (1 .. Last) /= ".."
-                  then
-                     Remove_Dir (Str (1 .. Last), True);
-                  end if;
-
-               else
-                  GNAT.OS_Lib.Delete_File (Str (1 .. Last), Success);
-
-                  if not Success then
-                     Change_Dir (Current_Dir);
-                     raise Directory_Error;
-                  end if;
+                  Remove_Dir
+                    (Dir_Name & Dir_Separator &  Str (1 .. Last),
+                     True);
                end if;
-            end loop;
 
-            Change_Dir (Current_Dir);
-            Close (Working_Dir);
-            Remove_Dir (Dir_Name);
+            else
+               GNAT.OS_Lib.Delete_File
+                 (Dir_Name & Dir_Separator &  Str (1 .. Last),
+                  Success);
 
-         exception
-            when others =>
+               if not Success then
+                  raise Directory_Error;
+               end if;
+            end if;
+         end loop;
 
-               --  An exception occurred. We must make sure the current working
-               --  directory is unchanged.
-
-               Change_Dir (Current_Dir);
-
-               --  What if the Change_Dir raises an exception itself, shouldn't
-               --  that be protected? ???
-
-               raise;
-         end;
+         Close (Current_Dir);
+         Remove_Dir (Dir_Name);
       end if;
    end Remove_Dir;
 

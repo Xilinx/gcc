@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,7 +36,7 @@ with Sem_Aux;  use Sem_Aux;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
-with Uintp;    use Uintp;
+with Urealp;   use Urealp;
 
 package body Tbuild is
 
@@ -198,6 +198,40 @@ package body Tbuild is
               New_Reference_To (First_Tag_Component (Full_Type), Loc)));
    end Make_DT_Access;
 
+   ------------------------
+   -- Make_Float_Literal --
+   ------------------------
+
+   function Make_Float_Literal
+     (Loc         : Source_Ptr;
+      Radix       : Uint;
+      Significand : Uint;
+      Exponent    : Uint) return Node_Id
+   is
+   begin
+      if Radix = 2 and then abs Significand /= 1 then
+         return
+           Make_Float_Literal
+             (Loc, Uint_16,
+              Significand * Radix**(Exponent mod 4),
+              Exponent / 4);
+
+      else
+         declare
+            N : constant Node_Id := New_Node (N_Real_Literal, Loc);
+
+         begin
+            Set_Realval (N,
+              UR_From_Components
+                (Num      => abs Significand,
+                 Den      => -Exponent,
+                 Rbase    => UI_To_Int (Radix),
+                 Negative => Significand < 0));
+            return N;
+         end;
+      end if;
+   end Make_Float_Literal;
+
    -------------------------------------
    -- Make_Implicit_Exception_Handler --
    -------------------------------------
@@ -354,14 +388,12 @@ package body Tbuild is
    function Make_Pragma
      (Sloc                         : Source_Ptr;
       Chars                        : Name_Id;
-      Pragma_Argument_Associations : List_Id := No_List;
-      Debug_Statement              : Node_Id := Empty) return Node_Id
+      Pragma_Argument_Associations : List_Id := No_List) return Node_Id
    is
    begin
       return
         Make_Pragma (Sloc,
           Pragma_Argument_Associations => Pragma_Argument_Associations,
-          Debug_Statement              => Debug_Statement,
           Pragma_Identifier            => Make_Identifier (Sloc, Chars));
    end Make_Pragma;
 
@@ -442,9 +474,9 @@ package body Tbuild is
    function Make_Temporary
      (Loc          : Source_Ptr;
       Id           : Character;
-      Related_Node : Node_Id := Empty) return Node_Id
+      Related_Node : Node_Id := Empty) return Entity_Id
    is
-      Temp : constant Node_Id :=
+      Temp : constant Entity_Id :=
                Make_Defining_Identifier (Loc,
                  Chars => New_Internal_Name (Id));
    begin
@@ -659,7 +691,7 @@ package body Tbuild is
 
          --  We don't really need these shift operators, since they never
          --  appear as operators in the source, but the path of least
-         --  resistance is to put them in (the aggregate must be complete)
+         --  resistance is to put them in (the aggregate must be complete).
 
          N_Op_Rotate_Left            => Name_Rotate_Left,
          N_Op_Rotate_Right           => Name_Rotate_Right,
@@ -685,8 +717,8 @@ package body Tbuild is
      (Def_Id : Entity_Id;
       Loc    : Source_Ptr) return Node_Id
    is
+      pragma Assert (Nkind (Def_Id) in N_Entity);
       Occurrence : Node_Id;
-
    begin
       Occurrence := New_Node (N_Identifier, Loc);
       Set_Chars (Occurrence, Chars (Def_Id));
@@ -733,8 +765,9 @@ package body Tbuild is
      (Typ  : Entity_Id;
       Expr : Node_Id) return Node_Id
    is
-      Loc    : constant Source_Ptr := Sloc (Expr);
-      Result : Node_Id;
+      Loc         : constant Source_Ptr := Sloc (Expr);
+      Result      : Node_Id;
+      Expr_Parent : Node_Id;
 
    begin
       --  If the expression is already of the correct type, then nothing
@@ -764,10 +797,18 @@ package body Tbuild is
       --  All other cases
 
       else
+         --  Capture the parent of the expression before relocating it and
+         --  creating the conversion, so the conversion's parent can be set
+         --  to the original parent below.
+
+         Expr_Parent := Parent (Expr);
+
          Result :=
            Make_Unchecked_Type_Conversion (Loc,
              Subtype_Mark => New_Occurrence_Of (Typ, Loc),
              Expression   => Relocate_Node (Expr));
+
+         Set_Parent (Result, Expr_Parent);
       end if;
 
       Set_Etype (Result, Typ);

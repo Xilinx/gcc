@@ -1,5 +1,5 @@
 /* Tail call optimization on trees.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -23,19 +23,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
 #include "tm_p.h"
-#include "hard-reg-set.h"
 #include "basic-block.h"
 #include "function.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
-#include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "except.h"
 #include "tree-pass.h"
 #include "flags.h"
 #include "langhooks.h"
 #include "dbgcnt.h"
+#include "target.h"
+#include "common/common-target.h"
 
 /* The file implements the tail recursion elimination.  It is also used to
    analyze the tail calls in general, passing the results to the rtl level
@@ -130,31 +130,8 @@ static void find_tail_calls (basic_block, struct tailcall **);
 static bool
 suitable_for_tail_opt_p (void)
 {
-  referenced_var_iterator rvi;
-  tree var;
-
   if (cfun->stdarg)
     return false;
-
-  /* No local variable nor structure field should escape to callees.  */
-  FOR_EACH_REFERENCED_VAR (var, rvi)
-    {
-      if (!is_global_var (var)
-	  /* ???  We do not have a suitable predicate for escaping to
-	     callees.  With IPA-PTA the following might be incorrect.
-	     We want to catch
-	       foo {
-	         int i;
-		 bar (&i);
-		 foo ();
-	       }
-	     where bar might store &i somewhere and in the next
-	     recursion should not be able to tell if it got the
-	     same (with tail-recursion applied) or a different
-	     address.  */
-	  && is_call_clobbered (var))
-	return false;
-    }
 
   return true;
 }
@@ -176,7 +153,8 @@ suitable_for_tail_call_opt_p (void)
   /* If we are using sjlj exceptions, we may need to add a call to
      _Unwind_SjLj_Unregister at exit of the function.  Which means
      that we cannot do any sibcall transformations.  */
-  if (USING_SJLJ_EXCEPTIONS && current_function_has_exception_handlers ())
+  if (targetm_common.except_unwind_info (&global_options) == UI_SJLJ
+      && current_function_has_exception_handlers ())
     return false;
 
   /* Any function that calls setjmp might have longjmp called from
@@ -189,7 +167,7 @@ suitable_for_tail_call_opt_p (void)
      but not in all cases.  See PR15387 and PR19616.  Revisit for 4.1.  */
   for (param = DECL_ARGUMENTS (current_function_decl);
        param;
-       param = TREE_CHAIN (param))
+       param = DECL_CHAIN (param))
     if (TREE_ADDRESSABLE (param))
       return false;
 
@@ -277,7 +255,7 @@ static bool
 process_assignment (gimple stmt, gimple_stmt_iterator call, tree *m,
 		    tree *a, tree *ass_var)
 {
-  tree op0, op1, non_ass_var;
+  tree op0, op1 = NULL_TREE, non_ass_var = NULL_TREE;
   tree dest = gimple_assign_lhs (stmt);
   enum tree_code code = gimple_assign_rhs_code (stmt);
   enum gimple_rhs_class rhs_class = get_gimple_rhs_class (code);
@@ -303,8 +281,20 @@ process_assignment (gimple stmt, gimple_stmt_iterator call, tree *m,
       return true;
     }
 
-  if (rhs_class != GIMPLE_BINARY_RHS)
-    return false;
+  switch (rhs_class)
+    {
+    case GIMPLE_BINARY_RHS:
+      op1 = gimple_assign_rhs2 (stmt);
+
+      /* Fall through.  */
+
+    case GIMPLE_UNARY_RHS:
+      op0 = gimple_assign_rhs1 (stmt);
+      break;
+
+    default:
+      return false;
+    }
 
   /* Accumulator optimizations will reverse the order of operations.
      We can only do that for floating-point types if we're assuming
@@ -313,20 +303,9 @@ process_assignment (gimple stmt, gimple_stmt_iterator call, tree *m,
     if (FLOAT_TYPE_P (TREE_TYPE (DECL_RESULT (current_function_decl))))
       return false;
 
-  /* We only handle the code like
-
-     x = call ();
-     y = m * x;
-     z = y + a;
-     return z;
-
-     TODO -- Extend it for cases where the linear transformation of the output
-     is expressed in a more complicated way.  */
-
-  op0 = gimple_assign_rhs1 (stmt);
-  op1 = gimple_assign_rhs2 (stmt);
-
-  if (op0 == *ass_var
+  if (rhs_class == GIMPLE_UNARY_RHS)
+    ;
+  else if (op0 == *ass_var
       && (non_ass_var = independent_of_stmt_p (op1, stmt, call)))
     ;
   else if (op1 == *ass_var
@@ -347,8 +326,32 @@ process_assignment (gimple stmt, gimple_stmt_iterator call, tree *m,
       *ass_var = dest;
       return true;
 
-      /* TODO -- Handle other codes (NEGATE_EXPR, MINUS_EXPR,
-	 POINTER_PLUS_EXPR).  */
+    case NEGATE_EXPR:
+      if (FLOAT_TYPE_P (TREE_TYPE (op0)))
+        *m = build_real (TREE_TYPE (op0), dconstm1);
+      else
+        *m = build_int_cst (TREE_TYPE (op0), -1);
+
+      *ass_var = dest;
+      return true;
+
+    case MINUS_EXPR:
+      if (*ass_var == op0)
+        *a = fold_build1 (NEGATE_EXPR, TREE_TYPE (non_ass_var), non_ass_var);
+      else
+        {
+          if (FLOAT_TYPE_P (TREE_TYPE (non_ass_var)))
+            *m = build_real (TREE_TYPE (non_ass_var), dconstm1);
+          else
+            *m = build_int_cst (TREE_TYPE (non_ass_var), -1);
+
+          *a = fold_build1 (NEGATE_EXPR, TREE_TYPE (non_ass_var), non_ass_var);
+        }
+
+      *ass_var = dest;
+      return true;
+
+      /* TODO -- Handle POINTER_PLUS_EXPR.  */
 
     default:
       return false;
@@ -387,6 +390,8 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   tree m, a;
   basic_block abb;
   size_t idx;
+  tree var;
+  referenced_var_iterator rvi;
 
   if (!single_succ_p (bb))
     return;
@@ -395,8 +400,10 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
     {
       stmt = gsi_stmt (gsi);
 
-      /* Ignore labels.  */
-      if (gimple_code (stmt) == GIMPLE_LABEL || is_gimple_debug (stmt))
+      /* Ignore labels, returns and debug stmts.  */
+      if (gimple_code (stmt) == GIMPLE_LABEL
+	  || gimple_code (stmt) == GIMPLE_RETURN
+	  || is_gimple_debug (stmt))
 	continue;
 
       /* Check for a call.  */
@@ -442,12 +449,11 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
   func = gimple_call_fndecl (call);
   if (func == current_function_decl)
     {
-      tree arg, var;
-      referenced_var_iterator rvi;
+      tree arg;
 
       for (param = DECL_ARGUMENTS (func), idx = 0;
 	   param && idx < gimple_call_num_args (call);
-	   param = TREE_CHAIN (param), idx ++)
+	   param = DECL_CHAIN (param), idx ++)
 	{
 	  arg = gimple_call_arg (call, idx);
 	  if (param != arg)
@@ -474,15 +480,17 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
 	}
       if (idx == gimple_call_num_args (call) && !param)
 	tail_recursion = true;
+    }
 
-      /* Make sure the tail invocation of this function does not refer
-	 to local variables.  */
-      FOR_EACH_REFERENCED_VAR (var, rvi)
-	{
-	  if (!is_global_var (var)
-	      && ref_maybe_used_by_stmt_p (call, var))
-	    return;
-	}
+  /* Make sure the tail invocation of this function does not refer
+     to local variables.  */
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
+    {
+      if (TREE_CODE (var) != PARM_DECL
+	  && auto_var_in_fn_p (var, cfun->decl)
+	  && (ref_maybe_used_by_stmt_p (call, var)
+	      || call_may_clobber_ref_p (call, var)))
+	return;
     }
 
   /* Now check the statements after the call.  None of them has virtual
@@ -527,20 +535,22 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
 
       if (tmp_a)
 	{
+	  tree type = TREE_TYPE (tmp_a);
 	  if (a)
-	    a = fold_build2 (PLUS_EXPR, TREE_TYPE (tmp_a), a, tmp_a);
+	    a = fold_build2 (PLUS_EXPR, type, fold_convert (type, a), tmp_a);
 	  else
 	    a = tmp_a;
 	}
       if (tmp_m)
 	{
+	  tree type = TREE_TYPE (tmp_m);
 	  if (m)
-	    m = fold_build2 (MULT_EXPR, TREE_TYPE (tmp_m), m, tmp_m);
+	    m = fold_build2 (MULT_EXPR, type, fold_convert (type, m), tmp_m);
 	  else
 	    m = tmp_m;
 
 	  if (a)
-	    a = fold_build2 (MULT_EXPR, TREE_TYPE (tmp_m), a, tmp_m);
+	    a = fold_build2 (MULT_EXPR, type, fold_convert (type, a), tmp_m);
 	}
     }
 
@@ -597,13 +607,10 @@ adjust_return_value_with_ops (enum tree_code code, const char *label,
 {
 
   tree ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
-  tree tmp = create_tmp_var (ret_type, label);
+  tree tmp = create_tmp_reg (ret_type, label);
   gimple stmt;
   tree result;
 
-  if (TREE_CODE (ret_type) == COMPLEX_TYPE
-      || TREE_CODE (ret_type) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
 
   if (types_compatible_p (TREE_TYPE (acc), TREE_TYPE (op1)))
@@ -833,7 +840,7 @@ eliminate_tail_call (struct tailcall *t)
   for (param = DECL_ARGUMENTS (current_function_decl),
 	 idx = 0, gsi = gsi_start_phis (first);
        param;
-       param = TREE_CHAIN (param), idx++)
+       param = DECL_CHAIN (param), idx++)
     {
       if (!arg_needs_copy_p (param))
 	continue;
@@ -885,7 +892,7 @@ add_virtual_phis (void)
      this, we cannot do much better than to rebuild the ssa form for
      possibly affected virtual ssa names from scratch.  */
 
-  FOR_EACH_REFERENCED_VAR (var, rvi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
     {
       if (!is_gimple_reg (var) && gimple_default_def (cfun, var) != NULL_TREE)
 	mark_sym_for_renaming (var);
@@ -930,12 +937,9 @@ static tree
 create_tailcall_accumulator (const char *label, basic_block bb, tree init)
 {
   tree ret_type = TREE_TYPE (DECL_RESULT (current_function_decl));
-  tree tmp = create_tmp_var (ret_type, label);
+  tree tmp = create_tmp_reg (ret_type, label);
   gimple phi;
 
-  if (TREE_CODE (ret_type) == COMPLEX_TYPE
-      || TREE_CODE (ret_type) == VECTOR_TYPE)
-    DECL_GIMPLE_REG_P (tmp) = 1;
   add_referenced_var (tmp);
   phi = create_phi_node (tmp, bb);
   /* RET_TYPE can be a float when -ffast-maths is enabled.  */
@@ -993,7 +997,7 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
 	  /* Copy the args if needed.  */
 	  for (param = DECL_ARGUMENTS (current_function_decl);
 	       param;
-	       param = TREE_CHAIN (param))
+	       param = DECL_CHAIN (param))
 	    if (arg_needs_copy_p (param))
 	      {
 		tree name = gimple_default_def (cfun, param);
@@ -1016,6 +1020,14 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
       if (act->mult && !m_acc)
 	m_acc = create_tailcall_accumulator ("mult_acc", first,
 					     integer_one_node);
+    }
+
+  if (a_acc || m_acc)
+    {
+      /* When the tail call elimination using accumulators is performed,
+	 statements adding the accumulated value are inserted at all exits.
+	 This turns all other tail calls to non-tail ones.  */
+      opt_tailcalls = false;
     }
 
   for (; tailcalls; tailcalls = next)
@@ -1081,7 +1093,7 @@ struct gimple_opt_pass pass_tail_recursion =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+  TODO_verify_ssa	                /* todo_flags_finish */
  }
 };
 
@@ -1100,6 +1112,6 @@ struct gimple_opt_pass pass_tail_calls =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+  TODO_verify_ssa	                /* todo_flags_finish */
  }
 };

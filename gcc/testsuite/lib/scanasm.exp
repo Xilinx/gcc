@@ -1,4 +1,5 @@
-# Copyright (C) 2000, 2002, 2003, 2007, 2008 Free Software Foundation, Inc.
+# Copyright (C) 2000, 2002, 2003, 2007, 2008, 2010, 2011
+# Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,15 +50,21 @@ proc dg-scan { name positive testcase output_file orig_args } {
 	}
     }
 
+    set pattern [lindex $orig_args 0]
+    set printable_pattern [make_pattern_printable $pattern]
+
     if { [is_remote host] } {
 	remote_upload host "$output_file"
     } 
+    set files [glob -nocomplain $output_file]
+    if { $files == "" } {
+	verbose -log "$testcase: output file does not exist"
+	unresolved "$testcase $name $printable_pattern"
+	return
+    }
     set fd [open $output_file r]
     set text [read $fd]
     close $fd
-
-    set pattern [lindex $orig_args 0]
-    set printable_pattern [make_pattern_printable $pattern]
 
     set match [regexp -- $pattern $text]
     if { $match == $positive } {
@@ -154,6 +161,28 @@ proc scan-file-not { output_file args } {
     dg-scan "scan-file-not" 0 $testcase $output_file $args
 }
 
+# Look for a pattern in the .su file produced by the compiler.  See
+# dg-scan for details.
+
+proc scan-stack-usage { args } {
+    upvar 2 name testcase
+    set testcase [lindex $testcase 0]
+    set output_file "[file rootname [file tail $testcase]].su"
+
+    dg-scan "scan-file" 1 $testcase $output_file $args
+}
+
+# Check that a pattern is not present in the .su file produced by the
+# compiler.  See dg-scan for details.
+
+proc scan-stack-usage-not { args } {
+    upvar 2 name testcase
+    set testcase [lindex $testcase 0]
+    set output_file "[file rootname [file tail $testcase]].su"
+
+    dg-scan "scan-file-not" 0 $testcase $output_file $args
+}
+
 # Call pass if pattern is present given number of times, otherwise fail.
 proc scan-assembler-times { args } {
     if { [llength $args] < 2 } {
@@ -179,15 +208,23 @@ proc scan-assembler-times { args } {
     upvar 2 name testcase
     set testcase [lindex $testcase 0]
 
+    set pattern [lindex $args 0]
+    set pp_pattern [make_pattern_printable $pattern]
+
     # This must match the rule in gcc-dg.exp.
     set output_file "[file rootname [file tail $testcase]].s"
+
+    set files [glob -nocomplain $output_file]
+    if { $files == "" } {
+	verbose -log "$testcase: output file does not exist"
+	unresolved "$testcase scan-assembler-times $pp_pattern [lindex $args 1]"
+	return
+    }
 
     set fd [open $output_file r]
     set text [read $fd]
     close $fd
 
-    set pattern [lindex $args 0]
-    set pp_pattern [make_pattern_printable $pattern]
     if { [llength [regexp -inline -all -- $pattern $text]] == [lindex $args 1]} {
 	pass "$testcase scan-assembler-times $pp_pattern [lindex $args 1]"
     } else {
@@ -230,13 +267,20 @@ proc scan-assembler-dem { args } {
 
     upvar 2 name testcase
     set testcase [lindex $testcase 0]
+    set pattern [lindex $args 0]
+    set pp_pattern [make_pattern_printable $pattern]
     set output_file "[file rootname [file tail $testcase]].s"
+
+    set files [glob -nocomplain $output_file]
+    if { $files == "" } {
+	verbose -log "$testcase: output file does not exist"
+	unresolved "$testcase scan-assembler-dem $pp_pattern"
+	return
+    }
 
     set output [remote_exec host "$cxxfilt" "" "$output_file"]
     set text [lindex $output 1]
 
-    set pattern [lindex $args 0]
-    set pp_pattern [make_pattern_printable $pattern]
     if [regexp -- $pattern $text] {
 	pass "$testcase scan-assembler-dem $pp_pattern"
     } else {
@@ -278,16 +322,162 @@ proc scan-assembler-dem-not { args } {
 
     upvar 2 name testcase
     set testcase [lindex $testcase 0]
+    set pattern [lindex $args 0]
+    set pp_pattern [make_pattern_printable $pattern]
     set output_file "[file rootname [file tail $testcase]].s"
+
+    set files [glob -nocomplain $output_file]
+    if { $files == "" } {
+	verbose -log "$testcase: output file does not exist"
+	unresolved "$testcase scan-assembler-dem-not $pp_pattern"
+	return
+    }
 
     set output [remote_exec host "$cxxfilt" "" "$output_file"]
     set text [lindex $output 1]
 
-    set pattern [lindex $args 0]
-    set pp_pattern [make_pattern_printable $pattern]
     if ![regexp -- $pattern $text] {
 	pass "$testcase scan-assembler-dem-not $pp_pattern"
     } else {
 	fail "$testcase scan-assembler-dem-not $pp_pattern"
     }
+}
+
+# Call pass if object size is ok, otherwise fail.
+# example: /* { dg-final { object-size text <= 54 } } */
+proc object-size { args } {
+    global size
+    global base_dir
+
+    if { [llength $args] < 3 } {
+	error "object-size: too few arguments"
+        return
+    }
+    if { [llength $args] > 4 } {
+	error "object-size: too many arguments"
+	return
+    }
+    if { [llength $args] >= 4 } {
+	switch [dg-process-target [lindex $args 3]] {
+	    "S" { }
+	    "N" { return }
+	    "F" { setup_xfail "*-*-*" }
+	    "P" { }
+	}
+    }
+
+    # Find size like we find g++ in g++.exp.
+    if ![info exists size]  {
+	set size [findfile $base_dir/../../../binutils/size \
+		  $base_dir/../../../binutils/size \
+		  [findfile $base_dir/../../size $base_dir/../../size \
+		   [findfile $base_dir/size $base_dir/size \
+		    [transform size]]]]
+	verbose -log "size is $size"
+    }
+
+    upvar 2 name testcase
+    set testcase [lindex $testcase 0]
+
+    set what [lindex $args 0]
+    set where [lsearch { text data bss total } $what]
+    if { $where == -1 } {
+        error "object-size: illegal argument: $what"
+        return
+    }
+    set cmp [lindex $args 1]
+    if { [lsearch { < > <= >= == != } $cmp] == -1 } {
+        error "object-size: illegal argument: $cmp"
+        return
+    }
+    set with [lindex $args 2]
+    if ![string is integer $with ] {
+        error "object-size: illegal argument: $with"
+        return
+    }
+
+    set output_file "[file rootname [file tail $testcase]].o"
+    if ![file_on_host exists $output_file] {
+	verbose -log "$testcase: $output_file does not exist"
+	unresolved "$testcase object-size $what $cmp $with"
+	return
+    }
+    set output [remote_exec host "$size" "$output_file"]
+    set status [lindex $output 0]
+    if { $status != 0 } {
+        verbose -log "$testcase object-size: $size failed"
+        unresolved "$testcase object-size $what $cmp $with"
+        return
+    }
+
+    set text [lindex $output 1]
+    set lines [split $text "\n"]
+
+    set line0 [lindex $lines 0]
+    if ![regexp {^\s*text\s+data\s+bss\s+dec\s+hex\s+filename\s*$} $line0] {
+        verbose -log "$testcase object-size: $size did not produce expected first line: $line0"
+        unresolved "$testcase object-size $what $cmp $with"
+        return
+    }
+
+    set line1 [lindex $lines 1]
+    if ![regexp {^\s*\d+\s+\d+\s+\d+\s+\d+\s+[\da-fA-F]+\s+} $line1] {
+        verbose -log "$testcase object-size: $size did not produce expected second line: $line1"
+        unresolved "$testcase object-size $what $cmp $with"
+        return
+    }
+
+    set actual [lindex $line1 $where]
+    verbose -log "$what size is $actual"
+
+    if [expr $actual $cmp $with] {
+	pass "$testcase object-size $what $cmp $with"
+    } else {
+	fail "$testcase object-size $what $cmp $with"
+    }
+}
+
+# Utility for testing that a function is defined on the current line.
+# Call pass if so, otherwise fail.  Invoked directly; the file must
+# have been compiled with -g -dA.
+#
+# Argument 0 is the current line, passed implicitly by dejagnu
+# Argument 1 is the function to check
+# Argument 2 handles expected failures and the like
+# Argument 3 is "." to match the current line, or an integer to match
+# an explicit line.
+proc dg-function-on-line { args } {
+    # Upvar from dg-final:
+    upvar dg-final-code final-code
+
+    set line [lindex $args 0]
+    set symbol [lindex $args 1]
+    set failures [lindex $args 2]
+
+    if { [llength $args] >= 4 } {
+	switch [lindex $args 3] {
+	    "." { }
+	    "default" { set line [lindex $args 3] }
+	}
+    }
+
+    if { [istarget hppa*-*-*] } {
+	set pattern [format {\t;[^:]+:%d\n(\t[^\t]+\n)+%s:\n\t.PROC} \
+                     $line $symbol]
+    } elseif { [istarget mips-sgi-irix*] } {
+	set pattern [format {\t\.loc [0-9]+ %d 0( [^\n]*)?\n\t\.set\t(no)?mips16\n\t\.ent\t%s\n\t\.type\t%s, @function\n%s:\n} \
+		     $line $symbol $symbol $symbol]
+    } else {
+	set pattern [format {%s:[^\t]*(\t.(fnstart|frame|mask|file)[^\t]*)*\t[^:]+:%d\n} \
+                     $symbol $line]
+    }
+
+    # The lack of spaces around $pattern is important, since they'd
+    # become part of the regex scan-assembler tries to match.
+    set cmd "scan-assembler {$pattern}"
+    if { [llength $args] >= 3 } {
+        set cmd "$cmd {$failures}"
+    }
+
+    append final-code "$cmd\n"
 }

@@ -57,7 +57,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "function.h"
 #include "except.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "tm_p.h"
 #include "obstack.h"
 #include "timevar.h"
@@ -84,13 +84,13 @@ void
 init_flow (struct function *the_fun)
 {
   if (!the_fun->cfg)
-    the_fun->cfg = GGC_CNEW (struct control_flow_graph);
+    the_fun->cfg = ggc_alloc_cleared_control_flow_graph ();
   n_edges_for_function (the_fun) = 0;
   ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun)
-    = GGC_CNEW (struct basic_block_def);
+    = ggc_alloc_cleared_basic_block_def ();
   ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun)->index = ENTRY_BLOCK;
   EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun)
-    = GGC_CNEW (struct basic_block_def);
+    = ggc_alloc_cleared_basic_block_def ();
   EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun)->index = EXIT_BLOCK;
   ENTRY_BLOCK_PTR_FOR_FUNCTION (the_fun)->next_bb
     = EXIT_BLOCK_PTR_FOR_FUNCTION (the_fun);
@@ -139,7 +139,7 @@ basic_block
 alloc_block (void)
 {
   basic_block bb;
-  bb = GGC_CNEW (struct basic_block_def);
+  bb = ggc_alloc_cleared_basic_block_def ();
   return bb;
 }
 
@@ -277,7 +277,7 @@ edge
 unchecked_make_edge (basic_block src, basic_block dst, int flags)
 {
   edge e;
-  e = GGC_CNEW (struct edge_def);
+  e = ggc_alloc_cleared_edge_def ();
   n_edges++;
 
   e->src = src;
@@ -402,8 +402,8 @@ redirect_edge_succ_nodup (edge e, basic_block new_succ)
       if (s->probability > REG_BR_PROB_BASE)
 	s->probability = REG_BR_PROB_BASE;
       s->count += e->count;
-      remove_edge (e);
       redirect_edge_var_map_dup (s, e);
+      remove_edge (e);
       e = s;
     }
   else
@@ -514,7 +514,7 @@ dump_regset (regset r, FILE *outf)
    stream.  This function is designed to be used from within the
    debugger.  */
 
-void
+DEBUG_FUNCTION void
 debug_regset (regset r)
 {
   dump_regset (r, stderr);
@@ -549,6 +549,26 @@ dump_bb_info (basic_block bb, bool header, bool footer, int flags,
 	fputs (", maybe hot", file);
       if (cfun && probably_never_executed_bb_p (bb))
 	fputs (", probably never executed", file);
+      if (bb->flags)
+	{
+	  static const char * const bits[] = {
+	    "new", "reachable", "irr_loop", "superblock", "disable_sched",
+	    "hot_partition", "cold_partition", "duplicated",
+	    "non_local_goto_target", "rtl", "forwarder", "nonthreadable",
+	    "modified"
+	  };
+	  unsigned int flags;
+
+	  fputs (", flags:", file);
+	  for (flags = bb->flags; flags ; flags &= flags - 1)
+	    {
+	      unsigned i = ctz_hwi (flags);
+	      if (i < ARRAY_SIZE (bits))
+		fprintf (file, " %s", bits[i]);
+	      else
+		fprintf (file, " <%d>", i);
+	    }
+	}
       fputs (".\n", file);
 
       fprintf (file, "%sPredecessors: ", prefix);
@@ -668,7 +688,7 @@ dump_flow_info (FILE *file, int flags)
   putc ('\n', file);
 }
 
-void
+DEBUG_FUNCTION void
 debug_flow_info (void)
 {
   dump_flow_info (stderr, TDF_DETAILS);
@@ -700,7 +720,7 @@ dump_edge_info (FILE *file, edge e, int do_succ)
       static const char * const bitnames[] = {
 	"fallthru", "ab", "abcall", "eh", "fake", "dfs_back",
 	"can_fallthru", "irreducible", "sibcall", "loop_exit",
-	"true", "false", "exec"
+	"true", "false", "exec", "crossing", "preserve"
       };
       int comma = 0;
       int i, flags = e->flags;
@@ -734,7 +754,7 @@ static void *first_edge_aux_obj = 0;
 /* Allocate a memory block of SIZE as BB->aux.  The obstack must
    be first initialized by alloc_aux_for_blocks.  */
 
-void
+static void
 alloc_aux_for_block (basic_block bb, int size)
 {
   /* Verify that aux field is clear.  */
@@ -765,7 +785,7 @@ alloc_aux_for_blocks (int size)
     {
       basic_block bb;
 
-      FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+      FOR_ALL_BB (bb)
 	alloc_aux_for_block (bb, size);
     }
 }
@@ -777,7 +797,7 @@ clear_aux_for_blocks (void)
 {
   basic_block bb;
 
-  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+  FOR_ALL_BB (bb)
     bb->aux = NULL;
 }
 
@@ -797,7 +817,7 @@ free_aux_for_blocks (void)
 /* Allocate a memory edge of SIZE as BB->aux.  The obstack must
    be first initialized by alloc_aux_for_edges.  */
 
-void
+static void
 alloc_aux_for_edge (edge e, int size)
 {
   /* Verify that aux field is clear.  */
@@ -868,13 +888,13 @@ free_aux_for_edges (void)
   clear_aux_for_edges ();
 }
 
-void
+DEBUG_FUNCTION void
 debug_bb (basic_block bb)
 {
   dump_bb (bb, stderr, 0);
 }
 
-basic_block
+DEBUG_FUNCTION basic_block
 debug_bb_n (int n)
 {
   basic_block bb = BASIC_BLOCK (n);

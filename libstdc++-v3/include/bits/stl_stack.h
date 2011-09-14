@@ -1,6 +1,7 @@
 // Stack implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+// 2010, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -49,9 +50,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_stack.h
+/** @file bits/stl_stack.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{stack}
  */
 
 #ifndef _STL_STACK_H
@@ -60,7 +61,9 @@
 #include <bits/concept_check.h>
 #include <debug/debug.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @brief  A standard container giving FILO behavior.
@@ -171,7 +174,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Add data to the top of the %stack.
-       *  @param  x  Data to be added.
+       *  @param  __x  Data to be added.
        *
        *  This is a typical %stack operation.  The function creates an
        *  element at the top of the %stack and assigns the given data
@@ -214,14 +217,18 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       void
       swap(stack& __s)
-      { c.swap(__s.c); }
+      noexcept(noexcept(swap(c, __s.c)))
+      {
+	using std::swap;
+	swap(c, __s.c);
+      }
 #endif
     };
 
   /**
    *  @brief  Stack equality comparison.
-   *  @param  x  A %stack.
-   *  @param  y  A %stack of the same type as @a x.
+   *  @param  __x  A %stack.
+   *  @param  __y  A %stack of the same type as @a __x.
    *  @return  True iff the size and elements of the stacks are equal.
    *
    *  This is an equivalence relation.  Complexity and semantics
@@ -237,9 +244,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Stack ordering relation.
-   *  @param  x  A %stack.
-   *  @param  y  A %stack of the same type as @a x.
-   *  @return  True iff @a x is lexicographically less than @a y.
+   *  @param  __x  A %stack.
+   *  @param  __y  A %stack of the same type as @a x.
+   *  @return  True iff @a x is lexicographically less than @a __y.
    *
    *  This is an total ordering relation.  Complexity and semantics
    *  depend on the underlying sequence type, but the expected rules
@@ -281,9 +288,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp, typename _Seq>
     inline void
     swap(stack<_Tp, _Seq>& __x, stack<_Tp, _Seq>& __y)
+    noexcept(noexcept(__x.swap(__y)))
     { __x.swap(__y); }
+
+  template<typename _Tp, typename _Seq, typename _Alloc>
+    struct uses_allocator<stack<_Tp, _Seq>, _Alloc>
+    : public uses_allocator<_Seq, _Alloc>::type { };
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _STL_STACK_H */

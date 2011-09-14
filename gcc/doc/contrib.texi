@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,
-@c 2001,2002,2003,2004,2005,2006,2007,2008,2009, 2010
+@c 2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -80,7 +80,7 @@ Janne Blomqvist for contributions to GNU Fortran.
 Segher Boessenkool for various fixes.
 
 @item
-Hans-J. Boehm for his @uref{http://www.hpl.hp.com/personal/Hans_Boehm/gc/,,
+Hans-J. Boehm for his @uref{http://www.hpl.hp.com/@/personal/@/Hans_Boehm/@/gc/,,
 garbage collector}, IA-64 libffi port, and other Java work.
 
 @item
@@ -237,6 +237,9 @@ architecture, libio maintenance, and early math work.
 
 @item
 Zdenek Dvorak for a new loop unroller and various fixes.
+
+@item
+Michael Eager for his work on the Xilinx MicroBlaze port.
 
 @item
 Richard Earnshaw for his ongoing work with the ARM@.
@@ -803,8 +806,8 @@ Tobias Schl@"uter for work on GNU Fortran.
 
 @item
 Bernd Schmidt for various code generation improvements and major
-work in the reload pass as well a serving as release manager for
-GCC 2.95.3.
+work in the reload pass, serving as release manager for
+GCC 2.95.3, and work on the Blackfin and C6X ports.
 
 @item
 Peter Schmid for constant testing of libstdc++---especially application
@@ -819,6 +822,9 @@ Andreas Schwab for his work on the m68k port.
 
 @item
 Lars Segerlund for work on GNU Fortran.
+
+@item
+Dodji Seketeli for numerous C++ bug fixes and debug info improvements.
 
 @item
 Joel Sherrill for his direction via the steering committee, RTEMS
@@ -862,6 +868,10 @@ rudimentary support for @code{INTEGER*1}, @code{INTEGER*2}, and
 @code{LOGICAL*1}.
 
 @item
+Zdenek Sojka for running automated regression testing of GCC and reporting
+numerous bugs.
+
+@item
 Brad Spencer for contributions to the GLIBCPP_FORCE_NEW technique.
 
 @item
@@ -894,8 +904,8 @@ Jeff Sturm for Java porting help, bug fixes, and encouragement.
 Shigeya Suzuki for this fixes for the bsdi platforms.
 
 @item
-Ian Lance Taylor for his mips16 work, general configury hacking,
-fixincludes, etc.
+Ian Lance Taylor for the Go frontend, the initial mips16 and mips64
+support, general configury hacking, fixincludes, etc.
 
 @item
 Holger Teutsch provided the support for the Clipper CPU@.
@@ -928,8 +938,8 @@ Teemu Torma for thread safe exception handling support.
 Leonard Tower wrote parts of the parser, RTL generator, and RTL
 definitions, and of the VAX machine description.
 
-@item 
-Daniel Towner and Hariharan Sandanagobalane contributed and 
+@item
+Daniel Towner and Hariharan Sandanagobalane contributed and
 maintain the picoChip port.
 
 @item

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -108,6 +108,12 @@ package body Layout is
    --  Standard.Unsigned. Takes care of the case where the operands
    --  are of an enumeration type (so that the subtraction cannot be
    --  done directly) by applying the Pos operator to Hi/Lo first.
+
+   procedure Compute_Size_Depends_On_Discriminant (E : Entity_Id);
+   --  Given an array type or an array subtype E, compute whether its size
+   --  depends on the value of one or more discriminants and set the flag
+   --  Size_Depends_On_Discriminant accordingly. This need not be called
+   --  in front end layout mode since it does the computation on its own.
 
    function Expr_From_SO_Ref
      (Loc  : Source_Ptr;
@@ -620,7 +626,7 @@ package body Layout is
                    Name                   => New_Occurrence_Of (Ent, Loc),
                    Parameter_Associations => New_List (
                      Make_Selected_Component (Loc,
-                       Prefix        => Make_Identifier (Loc, Chars => Vname),
+                       Prefix        => Make_Identifier (Loc, Vname),
                        Selector_Name => New_Occurrence_Of (Comp, Loc))));
 
             else
@@ -628,7 +634,7 @@ package body Layout is
                  Make_Function_Call (Loc,
                    Name                   => New_Occurrence_Of (Ent, Loc),
                    Parameter_Associations => New_List (
-                     Make_Identifier (Loc, Chars => Vname)));
+                     Make_Identifier (Loc, Vname)));
             end if;
 
          else
@@ -727,7 +733,7 @@ package body Layout is
          Size := (Dynamic, Expr_From_SO_Ref (Loc, Component_Size (E)));
       end if;
 
-      --  Loop through indices
+      --  Loop through indexes
 
       Indx := First_Index (E);
       while Present (Indx) loop
@@ -988,7 +994,7 @@ package body Layout is
 
             N :=
               Make_Selected_Component (Loc,
-                Prefix        => Make_Identifier (Loc, Chars => Vname),
+                Prefix        => Make_Identifier (Loc, Vname),
                 Selector_Name => New_Occurrence_Of (Entity (N), Loc));
 
             --  Set the Etype attributes of the selected name and its prefix.
@@ -1059,7 +1065,7 @@ package body Layout is
          Size := (Dynamic, Expr_From_SO_Ref (Loc, Component_Size (E)));
       end if;
 
-      --  Loop to process array indices
+      --  Loop to process array indexes
 
       Indx := First_Index (E);
       while Present (Indx) loop
@@ -1274,8 +1280,8 @@ package body Layout is
             end;
          end if;
 
-         --  Now set the dynamic size (the Value_Size is always the same
-         --  as the Object_Size for arrays whose length is dynamic).
+         --  Now set the dynamic size (the Value_Size is always the same as the
+         --  Object_Size for arrays whose length is dynamic).
 
          --  ??? If Size.Status = Dynamic, Vtyp will not have been set.
          --  The added initialization sets it to Empty now, but is this
@@ -1288,6 +1294,51 @@ package body Layout is
          Set_RM_Size (E, Esize (E));
       end if;
    end Layout_Array_Type;
+
+   ------------------------------------------
+   -- Compute_Size_Depends_On_Discriminant --
+   ------------------------------------------
+
+   procedure Compute_Size_Depends_On_Discriminant (E : Entity_Id) is
+      Indx : Node_Id;
+      Ityp : Entity_Id;
+      Lo   : Node_Id;
+      Hi   : Node_Id;
+      Res  : Boolean := False;
+
+   begin
+      --  Loop to process array indexes
+
+      Indx := First_Index (E);
+      while Present (Indx) loop
+         Ityp := Etype (Indx);
+
+         --  If an index of the array is a generic formal type then there is
+         --  no point in determining a size for the array type.
+
+         if Is_Generic_Type (Ityp) then
+            return;
+         end if;
+
+         Lo := Type_Low_Bound (Ityp);
+         Hi := Type_High_Bound (Ityp);
+
+         if (Nkind (Lo) = N_Identifier
+              and then Ekind (Entity (Lo)) = E_Discriminant)
+           or else
+            (Nkind (Hi) = N_Identifier
+              and then Ekind (Entity (Hi)) = E_Discriminant)
+         then
+            Res := True;
+         end if;
+
+         Next_Index (Indx);
+      end loop;
+
+      if Res then
+         Set_Size_Depends_On_Discriminant (E);
+      end if;
+   end Compute_Size_Depends_On_Discriminant;
 
    -------------------
    -- Layout_Object --
@@ -1990,7 +2041,7 @@ package body Layout is
                        Make_Function_Call (Loc,
                          Name => New_Occurrence_Of (RMS_Ent, Loc),
                          Parameter_Associations => New_List (
-                           Make_Identifier (Loc, Chars => Vname)));
+                           Make_Identifier (Loc, Vname)));
 
                   --  If the size is represented by a constant, then the
                   --  expression we want is a reference to this constant
@@ -2104,7 +2155,7 @@ package body Layout is
                            Discrim :=
                              Make_Selected_Component (Loc,
                                Prefix        =>
-                                 Make_Identifier (Loc, Chars => Vname),
+                                 Make_Identifier (Loc, Vname),
                                Selector_Name =>
                                  New_Occurrence_Of
                                    (Entity (Name (Vpart)), Loc));
@@ -2130,10 +2181,9 @@ package body Layout is
                               Append (
                                 Make_Selected_Component (Loc,
                                   Prefix        =>
-                                    Make_Identifier (Loc, Chars => Vname),
+                                    Make_Identifier (Loc, Vname),
                                   Selector_Name =>
-                                    New_Occurrence_Of
-                                      (D_Entity, Loc)),
+                                    New_Occurrence_Of (D_Entity, Loc)),
                                 D_List);
 
                               D_Entity := Next_Discriminant (D_Entity);
@@ -2524,27 +2574,11 @@ package body Layout is
             end;
          end if;
 
-         --  If RM_Size is known, set Esize if not known
-
-         if Known_RM_Size (E) and then Unknown_Esize (E) then
-
-            --  If the alignment is known, we bump the Esize up to the next
-            --  alignment boundary if it is not already on one.
-
-            if Known_Alignment (E) then
-               declare
-                  A : constant Uint   := Alignment_In_Bits (E);
-                  S : constant SO_Ref := RM_Size (E);
-               begin
-                  Set_Esize (E, (S + A - 1) / A * A);
-               end;
-            end if;
-
          --  If Esize is set, and RM_Size is not, RM_Size is copied from Esize.
          --  At least for now this seems reasonable, and is in any case needed
          --  for compatibility with old versions of gigi.
 
-         elsif Known_Esize (E) and then Unknown_RM_Size (E) then
+         if Known_Esize (E) and then Unknown_RM_Size (E) then
             Set_RM_Size (E, Esize (E));
          end if;
 
@@ -2560,22 +2594,17 @@ package body Layout is
 
             begin
                --  For some reasons, access types can cause trouble, So let's
-               --  just do this for discrete types ???
+               --  just do this for scalar types ???
 
                if Present (CT)
-                 and then Is_Discrete_Type (CT)
+                 and then Is_Scalar_Type (CT)
                  and then Known_Static_Esize (CT)
                then
                   declare
                      S : constant Uint := Esize (CT);
-
                   begin
-                     if S = 8  or else
-                        S = 16 or else
-                        S = 32 or else
-                        S = 64
-                     then
-                        Set_Component_Size (E, Esize (CT));
+                     if Addressable (S) then
+                        Set_Component_Size (E, S);
                      end if;
                   end;
                end if;
@@ -2637,6 +2666,15 @@ package body Layout is
                   Set_Alignment (E, Uint_1);
                end if;
             end if;
+
+            --  We need to know whether the size depends on the value of one
+            --  or more discriminants to select the return mechanism. Skip if
+            --  errors are present, to prevent cascaded messages.
+
+            if Serious_Errors_Detected = 0 then
+               Compute_Size_Depends_On_Discriminant (E);
+            end if;
+
          end if;
       end if;
 
@@ -2736,8 +2774,7 @@ package body Layout is
       begin
          if Spec < Min then
             Error_Msg_Uint_1 := Min;
-            Error_Msg_NE
-              ("size for & too small, minimum allowed is ^", SC, E);
+            Error_Msg_NE ("size for & too small, minimum allowed is ^", SC, E);
             Init_Esize   (E);
             Init_RM_Size (E);
          end if;
@@ -3119,11 +3156,7 @@ package body Layout is
       Make_Func : Boolean   := False) return Dynamic_SO_Ref
    is
       Loc  : constant Source_Ptr := Sloc (Ins_Type);
-
-      K : constant Entity_Id :=
-            Make_Defining_Identifier (Loc,
-              Chars => New_Internal_Name ('K'));
-
+      K    : constant Entity_Id := Make_Temporary (Loc, 'K');
       Decl : Node_Id;
 
       Vtype_Primary_View : Entity_Id;

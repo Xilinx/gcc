@@ -1,7 +1,7 @@
 // { dg-do compile }
 // -*- C++ -*-
 
-// Copyright (C) 2006, 2007, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2006, 2007, 2009, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -30,10 +30,9 @@ template<typename T>
 
 int main()
 {
-  check_add_unsigned<float>();  // { dg-error "instantiated from" }
+  check_add_unsigned<float>();  // { dg-error "required from" }
   return 0;
 }
 
-// { dg-error "instantiated from" "" { target *-*-* } 28 } 
-// { dg-error "no type" "" { target *-*-* } 67 } 
-// { dg-excess-errors "In instantiation of" }
+// { dg-error "required from" "" { target *-*-* } 28 }
+// { dg-error "no type" "" { target *-*-* } 69 } 

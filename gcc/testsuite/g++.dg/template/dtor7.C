@@ -1,5 +1,5 @@
 // PR c++/40373
-// { dg-compile }
+// { dg-do compile }
 
 struct A;
 namespace
@@ -18,5 +18,5 @@ foo (T t)
 void
 bar ()
 {
-  foo (B ());	// { dg-bogus "instantiated from here" "" { xfail *-*-* } }
+  foo (B ());	// { dg-bogus "required from here" "" { xfail *-*-* } }
 }

@@ -1,9 +1,10 @@
 // { dg-options "-std=c++0x" }
 
 template<class U, class... T>
-void f()
+void f()			// { dg-message "note" }
 {
   f<T...>(); // { dg-error "no matching" }
+  // { dg-message "(candidate|deduce template parameter)" "candidate note" { target *-*-* } 6 }
 }
 
 template<>

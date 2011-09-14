@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for IBM RS/6000 POWER running AIX V5.3.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by David Edelsohn (edelsohn@gnu.org).
 
@@ -20,14 +20,8 @@
    along with GCC; see the file COPYING3.  If not see
    <http://www.gnu.org/licenses/>.  */
 
-/* Sometimes certain combinations of command options do not make sense
-   on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
-   get control.  */
+/* The macro SUBTARGET_OVERRIDE_OPTIONS is provided for subtargets, to
+   get control in TARGET_OPTION_OVERRIDE.  */
 
 #define NON_POWERPC_MASKS (MASK_POWER | MASK_POWER2)
 #define SUBTARGET_OVERRIDE_OPTIONS					\
@@ -45,7 +39,7 @@ do {									\
   if (TARGET_SOFT_FLOAT && TARGET_LONG_DOUBLE_128)			\
     {									\
       rs6000_long_double_type_size = 64;				\
-      if (rs6000_explicit_options.long_double)				\
+      if (global_options_set.x_rs6000_long_double_type_size)		\
 	warning (0, "soft-float and long-double-128 are incompatible");	\
     }									\
   if (TARGET_POWERPC64 && ! TARGET_64BIT)				\

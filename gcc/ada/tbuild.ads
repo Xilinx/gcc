@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,12 +23,13 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package contains various utility procedures to assist in
---  building specific types of tree nodes.
+--  This package contains various utility procedures to assist in building
+--  specific types of tree nodes.
 
 with Namet; use Namet;
 with Sinfo; use Sinfo;
 with Types; use Types;
+with Uintp; use Uintp;
 
 package Tbuild is
 
@@ -74,6 +75,14 @@ package Tbuild is
      (Loc : Source_Ptr; Rec : Node_Id; Typ : Entity_Id) return Node_Id;
    --  Create an access to the Dispatch Table by using the Tag field of a
    --  tagged record : Acc_Dt (Rec.tag).all
+
+   function Make_Float_Literal
+     (Loc         : Source_Ptr;
+      Radix       : Uint;
+      Significand : Uint;
+      Exponent    : Uint) return Node_Id;
+   --  Create a real literal for the floating point expression value
+   --  Significand * Radix ** Exponent. Radix must be greater than 1.
 
    function Make_Implicit_Exception_Handler
      (Sloc              : Source_Ptr;
@@ -141,8 +150,7 @@ package Tbuild is
    function Make_Pragma
      (Sloc                         : Source_Ptr;
       Chars                        : Name_Id;
-      Pragma_Argument_Associations : List_Id := No_List;
-      Debug_Statement              : Node_Id := Empty) return Node_Id;
+      Pragma_Argument_Associations : List_Id := No_List) return Node_Id;
    --  A convenient form of Make_Pragma not requiring a Pragma_Identifier
    --  argument (this argument is built from the value given for Chars).
 
@@ -167,30 +175,39 @@ package Tbuild is
       Condition : Node_Id := Empty;
       Reason    : RT_Exception_Code) return Node_Id;
    pragma Inline (Make_Raise_Storage_Error);
-   --  A convenient form of Make_Raise_Storage_Error where the Reason
-   --  is given simply as an enumeration value, rather than a Uint code.
+   --  A convenient form of Make_Raise_Storage_Error where the Reason is given
+   --  simply as an enumeration value, rather than a Uint code.
 
    function Make_String_Literal
      (Sloc   : Source_Ptr;
       Strval : String) return Node_Id;
-   --  A convenient form of Make_String_Literal, where the string value
-   --  is given as a normal string instead of a String_Id value.
+   --  A convenient form of Make_String_Literal, where the string value is
+   --  given as a normal string instead of a String_Id value.
 
    function Make_Temporary
      (Loc          : Source_Ptr;
       Id           : Character;
-      Related_Node : Node_Id := Empty) return Node_Id;
-   --  Create a defining identifier to capture the value of an expression
-   --  or aggregate, and link it to the expression that it replaces, in
-   --  order to provide better CodePeer reports. The defining identifier
-   --  name is obtained by Make_Internal_Name (Id).
+      Related_Node : Node_Id := Empty) return Entity_Id;
+   --  This function should be used for all cases where a defining identifier
+   --  is to be built with a name to be obtained by New_Internal_Name (here Id
+   --  is the character passed as the argument to New_Internal_Name). Loc is
+   --  the location for the Sloc value of the resulting Entity. Note that this
+   --  can be used for all kinds of temporary defining identifiers used in
+   --  expansion (objects, subtypes, functions etc).
+   --
+   --  Related_Node is used when the defining identifier is for an object that
+   --  captures the value of an expression (e.g. an aggregate). It should be
+   --  set whenever possible to point to the expression that is being captured.
+   --  This is provided to get better error messages, e.g. from CodePeer.
+   --
+   --  Make_Temp_Id would probably be a better name for this function???
 
    function Make_Unsuppress_Block
      (Loc   : Source_Ptr;
       Check : Name_Id;
       Stmts : List_Id) return Node_Id;
-   --  Build a block with a pragma Suppress on 'Check'. Stmts is the
-   --  statements list that needs protection against the check
+   --  Build a block with a pragma Suppress on 'Check'. Stmts is the statements
+   --  list that needs protection against the check
 
    function New_Constraint_Error (Loc : Source_Ptr) return Node_Id;
    --  This function builds a tree corresponding to the Ada statement
@@ -268,6 +285,9 @@ package Tbuild is
    --  if the identical unit is compiled with a semantically consistent set
    --  of sources, the numbers will be consistent. This means that it is fine
    --  to use these as public symbols.
+   --
+   --  Note: Nearly all uses of this function are via calls to Make_Temporary,
+   --  but there are just a few cases where it is called directly.
 
    function New_Occurrence_Of
      (Def_Id : Entity_Id;
@@ -281,8 +301,8 @@ package Tbuild is
    function New_Reference_To
      (Def_Id : Entity_Id;
       Loc    : Source_Ptr) return Node_Id;
-   --  This is like New_Occurrence_Of, but it does not set the Etype field.
-   --  It is used from the expander, where Etype fields are generally not set,
+   --  This is like New_Occurrence_Of, but it does not set the Etype field. It
+   --  is used from the expander, where Etype fields are generally not set,
    --  since they are set when the expanded tree is reanalyzed.
 
    function New_Suffixed_Name
@@ -295,13 +315,13 @@ package Tbuild is
    --  fixed-point type (as passed in Related_Id), and Suffix is "SMALL".
 
    function OK_Convert_To (Typ : Entity_Id; Expr : Node_Id) return Node_Id;
-   --  Like Convert_To, except that a conversion node is always generated,
-   --  and the Conversion_OK flag is set on this conversion node.
+   --  Like Convert_To, except that a conversion node is always generated, and
+   --  the Conversion_OK flag is set on this conversion node.
 
    function Unchecked_Convert_To
      (Typ  : Entity_Id;
       Expr : Node_Id) return Node_Id;
-   --  Like Convert_To, but if a conversion is actually needed, constructs
-   --  an N_Unchecked_Type_Conversion node to do the required conversion.
+   --  Like Convert_To, but if a conversion is actually needed, constructs an
+   --  N_Unchecked_Type_Conversion node to do the required conversion.
 
 end Tbuild;

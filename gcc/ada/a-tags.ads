@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -75,6 +75,9 @@ package Ada.Tags is
    function Interface_Ancestor_Tags (T : Tag) return Tag_Array;
    pragma Ada_05 (Interface_Ancestor_Tags);
 
+   function Type_Is_Abstract (T : Tag) return Boolean;
+   pragma Ada_2012 (Type_Is_Abstract);
+
    Tag_Error : exception;
 
 private
@@ -101,9 +104,11 @@ private
    --                                    +-------------------+
    --                                    |   hash table link |
    --                                    +-------------------+
-   --                                    | remotely callable |
+   --                                    |   transportable   |
    --                                    +-------------------+
-   --                                    | rec ctrler offset |
+   --                                    |  type_is_abstract |
+   --                                    +-------------------+
+   --                                    | needs finalization|
    --                                    +-------------------+
    --                                    |   Ifaces_Table   ---> Interface Data
    --                                    +-------------------+   +------------+
@@ -115,7 +120,7 @@ private
    --         +------------------+       +-------------------+   +------------+
    --         |table of          |
    --         :   entry          :
-   --         |      indices     |
+   --         |      indexes     |
    --         +------------------+
 
    --  Structure of the GNAT Secondary Dispatch Table
@@ -280,9 +285,11 @@ private
       --  for being used in remote calls as actuals for classwide formals or as
       --  return values for classwide functions.
 
-      RC_Offset : SSE.Storage_Offset;
-      --  Controller Offset: Used to give support to tagged controlled objects
-      --  (see Get_Deep_Controller at s-finimp)
+      Type_Is_Abstract : Boolean;
+      --  True if the type is abstract (Ada 2012: AI05-0173)
+
+      Needs_Finalization : Boolean;
+      --  Used to dynamically check whether an object is controlled or not
 
       Size_Func : Size_Ptr;
       --  Pointer to the subprogram computing the _size of the object. Used by
@@ -296,10 +303,10 @@ private
       --  abstract interface type conversions (Ada 2005:AI-251)
 
       SSD : Select_Specific_Data_Ptr;
-      --  Pointer to a table of records used in dispatching selects. This
-      --  field has a meaningful value for all tagged types that implement
-      --  a limited, protected, synchronized or task interfaces and have
-      --  non-predefined primitive operations.
+      --  Pointer to a table of records used in dispatching selects. This field
+      --  has a meaningful value for all tagged types that implement a limited,
+      --  protected, synchronized or task interfaces and have non-predefined
+      --  primitive operations.
 
       Tags_Table : Tag_Table (0 .. Idepth);
       --  Table of ancestor tags. Its size actually depends on the inheritance
@@ -406,12 +413,16 @@ private
    type Object_Specific_Data_Ptr is access all Object_Specific_Data;
    pragma No_Strict_Aliasing (Object_Specific_Data_Ptr);
 
-   --  The following subprogram specifications are placed here instead of
-   --  the package body to see them from the frontend through rtsfind.
+   --  The following subprogram specifications are placed here instead of the
+   --  package body to see them from the frontend through rtsfind.
 
    function Base_Address (This : System.Address) return System.Address;
-   --  Ada 2005 (AI-251): Displace "This" to point to the base address of
-   --  the object (that is, the address of the primary tag of the object).
+   --  Ada 2005 (AI-251): Displace "This" to point to the base address of the
+   --  object (that is, the address of the primary tag of the object).
+
+   procedure Check_TSD (TSD : Type_Specific_Data_Ptr);
+   --  Ada 2012 (AI-113): Raise Program_Error if the external tag of this TSD
+   --  is the same as the external tag for some other tagged type declaration.
 
    function Displace (This : System.Address; T : Tag) return System.Address;
    --  Ada 2005 (AI-251): Displace "This" to point to the secondary dispatch
@@ -432,8 +443,8 @@ private
    function Get_Offset_Index
      (T        : Tag;
       Position : Positive) return Positive;
-   --  Ada 2005 (AI-251): Given a pointer to a secondary dispatch table (T) and
-   --  a position of an operation in the DT, retrieve the corresponding
+   --  Ada 2005 (AI-251): Given a pointer to a secondary dispatch table (T)
+   --  and a position of an operation in the DT, retrieve the corresponding
    --  operation's position in the primary dispatch table from the Offset
    --  Specific Data table of T.
 
@@ -442,15 +453,6 @@ private
       Position : Positive) return Prim_Op_Kind;
    --  Ada 2005 (AI-251): Return a primitive operation's kind given a dispatch
    --  table T and a position of a primitive operation in T.
-
-   function Get_RC_Offset (T : Tag) return SSE.Storage_Offset;
-   --  Return the Offset of the implicit record controller when the object
-   --  has controlled components, returns zero if no controlled components.
-
-   pragma Export (Ada, Get_RC_Offset, "ada__tags__get_rc_offset");
-   --  This procedure is used in s-finimp to compute the deep routines
-   --  it is exported manually in order to avoid changing completely the
-   --  organization of the run time.
 
    function Get_Tagged_Kind (T : Tag) return Tagged_Kind;
    --  Ada 2005 (AI-345): Given a pointer to either a primary or a secondary
@@ -473,10 +475,15 @@ private
 
    function Offset_To_Top
      (This : System.Address) return SSE.Storage_Offset;
-   --  Ada 2005 (AI-251): Returns the current value of the offset_to_top
+   --  Ada 2005 (AI-251): Returns the current value of the Offset_To_Top
    --  component available in the prologue of the dispatch table. If the parent
    --  of the tagged type has discriminants this value is stored in a record
    --  component just immediately after the tag component.
+
+   function Needs_Finalization (T : Tag) return Boolean;
+   --  A helper routine used in conjunction with finalization collections which
+   --  service class-wide types. The function dynamically determines whether an
+   --  object is controlled or has controlled components.
 
    function Parent_Size
      (Obj : System.Address;
@@ -504,8 +511,8 @@ private
    --  access to function that must be called to evaluate the offset.
 
    procedure Register_Tag (T : Tag);
-   --  Insert the Tag and its associated external_tag in a table for the
-   --  sake of Internal_Tag
+   --  Insert the Tag and its associated external_tag in a table for the sake
+   --  of Internal_Tag.
 
    procedure Set_Dynamic_Offset_To_Top
      (This         : System.Address;
@@ -534,6 +541,9 @@ private
       Value    : Prim_Op_Kind);
    --  Ada 2005 (AI-251): Set the kind of a primitive operation in T's TSD
    --  table indexed by Position.
+
+   procedure Unregister_Tag (T : Tag);
+   --  Remove a particular tag from the external tag hash table
 
    Max_Predef_Prims : constant Positive := 16;
    --  Number of reserved slots for the following predefined ada primitives:

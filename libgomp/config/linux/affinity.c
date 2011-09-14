@@ -1,4 +1,5 @@
-/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>.
 
    This file is part of the GNU OpenMP Library (libgomp).
@@ -28,7 +29,7 @@
 #define _GNU_SOURCE 1
 #endif
 #include "libgomp.h"
-#include <sched.h>
+#include "proc.h"
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -39,8 +40,9 @@ static unsigned int affinity_counter;
 void
 gomp_init_affinity (void)
 {
-  cpu_set_t cpuset;
+  cpu_set_t cpuset, cpusetnew;
   size_t idx, widx;
+  unsigned long cpus = 0;
 
   if (pthread_getaffinity_np (pthread_self (), sizeof (cpuset), &cpuset))
     {
@@ -51,10 +53,37 @@ gomp_init_affinity (void)
       return;
     }
 
-  for (widx = idx = 0; idx < gomp_cpu_affinity_len; idx++)
-    if (gomp_cpu_affinity[idx] < CPU_SETSIZE
-        && CPU_ISSET (gomp_cpu_affinity[idx], &cpuset))
-      gomp_cpu_affinity[widx++] = gomp_cpu_affinity[idx];
+  CPU_ZERO (&cpusetnew);
+  if (gomp_cpu_affinity_len == 0)
+    {
+      unsigned long count = gomp_cpuset_popcount (&cpuset);
+      if (count >= 65536)
+	count = 65536;
+      gomp_cpu_affinity = malloc (count * sizeof (unsigned short));
+      if (gomp_cpu_affinity == NULL)
+	{
+	  gomp_error ("not enough memory to store CPU affinity list");
+	  return;
+	}
+      for (widx = idx = 0; widx < count && idx < 65536; idx++)
+	if (CPU_ISSET (idx, &cpuset))
+	  {
+	    cpus++;
+	    gomp_cpu_affinity[widx++] = idx;
+	  }
+    }
+  else
+    for (widx = idx = 0; idx < gomp_cpu_affinity_len; idx++)
+      if (gomp_cpu_affinity[idx] < CPU_SETSIZE
+	  && CPU_ISSET (gomp_cpu_affinity[idx], &cpuset))
+	{
+	  if (! CPU_ISSET (gomp_cpu_affinity[idx], &cpusetnew))
+	    {
+	      cpus++;
+	      CPU_SET (gomp_cpu_affinity[idx], &cpusetnew);
+	    }
+	  gomp_cpu_affinity[widx++] = gomp_cpu_affinity[idx];
+	}
 
   if (widx == 0)
     {
@@ -66,6 +95,8 @@ gomp_init_affinity (void)
     }
 
   gomp_cpu_affinity_len = widx;
+  if (cpus < gomp_available_cpus)
+    gomp_available_cpus = cpus;
   CPU_ZERO (&cpuset);
   CPU_SET (gomp_cpu_affinity[0], &cpuset);
   pthread_setaffinity_np (pthread_self (), sizeof (cpuset), &cpuset);

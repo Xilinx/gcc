@@ -1,3 +1,7 @@
+2011-09-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Merge from mainline rev 178608.
+
 2010-04-19  Aldy Hernandez  <aldyh@redhat.com>
 
 	* libstdc++-v3/testsuite/util/testsuite_abi.cc (check_version):

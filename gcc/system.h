@@ -1,7 +1,7 @@
 /* Get common system includes and various definitions and declarations based
    on autoconf macros.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
-   2009
+   2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -90,6 +90,10 @@ along with GCC; see the file COPYING3.  If not see
 #  define fputc(C, Stream) fputc_unlocked (C, Stream)
 # endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 # ifdef HAVE_CLEARERR_UNLOCKED
 #  undef clearerr
 #  define clearerr(Stream) clearerr_unlocked (Stream)
@@ -170,6 +174,10 @@ extern int fprintf_unlocked (FILE *, const char *, ...);
 #  endif
 # endif
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 /* ??? Glibc's fwrite/fread_unlocked macros cause
@@ -180,7 +188,7 @@ extern int fprintf_unlocked (FILE *, const char *, ...);
 /* There are an extraordinary number of issues with <ctype.h>.
    The last straw is that it varies with the locale.  Use libiberty's
    replacement instead.  */
-#include <safe-ctype.h>
+#include "safe-ctype.h"
 
 #include <sys/types.h>
 
@@ -188,6 +196,10 @@ extern int fprintf_unlocked (FILE *, const char *, ...);
 
 #if !defined (errno) && defined (HAVE_DECL_ERRNO) && !HAVE_DECL_ERRNO
 extern int errno;
+#endif
+
+#ifdef __cplusplus
+# include <cstring>
 #endif
 
 /* Some of glibc's string inlines cause warnings.  Plus we'd rather
@@ -314,6 +326,9 @@ extern int errno;
 #ifndef O_WRONLY
 # define O_WRONLY 1
 #endif
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
 
 /* Some systems define these in, e.g., param.h.  We undefine these names
    here to avoid the warnings.  We prefer to use our definitions since we
@@ -353,10 +368,39 @@ extern int errno;
 #define WCOREFLG 0200
 #endif
 
+#include <signal.h>
+#if !defined (SIGCHLD) && defined (SIGCLD)
+# define SIGCHLD SIGCLD
+#endif
+
+#ifdef HAVE_SYS_MMAN_H
+# include <sys/mman.h>
+#endif
+
+#ifndef MAP_FAILED
+# define MAP_FAILED ((void *)-1)
+#endif
+
+#if !defined (MAP_ANONYMOUS) && defined (MAP_ANON)
+# define MAP_ANONYMOUS MAP_ANON
+#endif
+
+#ifdef HAVE_SYS_RESOURCE_H
+# include <sys/resource.h>
+#endif
+
+#ifdef HAVE_SYS_TIMES_H
+# include <sys/times.h>
+#endif
+
 /* The HAVE_DECL_* macros are three-state, undefined, 0 or 1.  If they
    are defined to 0 then we must provide the relevant declaration
    here.  These checks will be in the undefined state while configure
    is running so be careful to test "defined (HAVE_DECL_*)".  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #if defined (HAVE_DECL_ATOF) && !HAVE_DECL_ATOF
 extern double atof (const char *);
@@ -398,8 +442,16 @@ extern void *sbrk (int);
 extern char *strstr (const char *, const char *);
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #if defined (HAVE_DECL_MALLOC) && !HAVE_DECL_MALLOC
@@ -414,12 +466,20 @@ extern void *calloc (size_t, size_t);
 extern void *realloc (void *, size_t);
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
 
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /* If the system doesn't provide strsignal, we get it defined in
@@ -461,11 +521,21 @@ extern int snprintf (char *, size_t, const char *, ...);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
 /* 1 if we have C99 designated initializers.  */
 #if !defined(HAVE_DESIGNATED_INITIALIZERS)
 #define HAVE_DESIGNATED_INITIALIZERS \
   (((GCC_VERSION >= 2007) || (__STDC_VERSION__ >= 199901L)) \
    && !defined(__cplusplus))
+#endif
+
+#if !defined(HAVE_DESIGNATED_UNION_INITIALIZERS)
+#define HAVE_DESIGNATED_UNION_INITIALIZERS \
+  (((GCC_VERSION >= 2007) || (__STDC_VERSION__ >= 199901L)) \
+   && (!defined(__cplusplus) || (GCC_VERSION >= 4007)))
 #endif
 
 #if HAVE_SYS_STAT_H
@@ -526,6 +596,10 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 # define mkdir(a,b) mkdir(a)
 #endif
 
+#ifndef HAVE_KILL
+# define kill(p,s) raise(s)
+#endif
+
 /* Provide a way to print an address via printf.  */
 #ifndef HOST_PTR_PRINTF
 #define HOST_PTR_PRINTF "%p"
@@ -547,6 +621,11 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 # endif
 #endif
 
+#if defined (ENABLE_PLUGIN) && defined (HAVE_DLFCN_H)
+/* If plugin support is enabled, we could use libdl.  */
+#include <dlfcn.h>
+#endif
+
 /* Get libiberty declarations.  */
 #include "libiberty.h"
 
@@ -555,15 +634,6 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 
 #ifndef HOST_BIT_BUCKET
 #define HOST_BIT_BUCKET "/dev/null"
-#endif
-
-/* Be conservative and only use enum bitfields with GCC.
-   FIXME: provide a complete autoconf test for buggy enum bitfields.  */
-
-#if (GCC_VERSION > 2000)
-#define ENUM_BITFIELD(TYPE) __extension__ enum TYPE
-#else
-#define ENUM_BITFIELD(TYPE) unsigned int
 #endif
 
 #ifndef offsetof
@@ -599,6 +669,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 #else
 /* Include EXPR, so that unused variable warnings do not occur.  */
 #define gcc_assert(EXPR) ((void)(0 && (EXPR)))
+#endif
+
+#ifdef ENABLE_CHECKING
+#define gcc_checking_assert(EXPR) gcc_assert (EXPR)
+#else
+#define gcc_checking_assert(EXPR) ((void)(0 && (EXPR)))
 #endif
 
 /* Use gcc_unreachable() to mark unreachable locations (like an
@@ -678,6 +754,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
  #pragma GCC poison malloc realloc
 #endif
 
+/* The %m format should be used when GCC's main diagnostic functions
+   supporting %m are available, and xstrerror from libiberty
+   otherwise.  */
+#undef strerror
+ #pragma GCC poison strerror
+
 /* Old target macros that have moved to the target hooks structure.  */
  #pragma GCC poison ASM_OPEN_PAREN ASM_CLOSE_PAREN			\
 	FUNCTION_PROLOGUE FUNCTION_EPILOGUE				\
@@ -708,7 +790,20 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	FUNCTION_ARG_PARTIAL_NREGS ASM_OUTPUT_DWARF_DTPREL		\
 	ALLOCATE_INITIAL_VALUE LEGITIMIZE_ADDRESS FRAME_POINTER_REQUIRED \
 	CAN_ELIMINATE TRAMPOLINE_TEMPLATE INITIALIZE_TRAMPOLINE		\
-	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING
+	TRAMPOLINE_ADJUST_ADDRESS STATIC_CHAIN STATIC_CHAIN_INCOMING	\
+	RETURN_POPS_ARGS UNITS_PER_SIMD_WORD OVERRIDE_OPTIONS		\
+	OPTIMIZATION_OPTIONS CLASS_LIKELY_SPILLED_P			\
+	USING_SJLJ_EXCEPTIONS TARGET_UNWIND_INFO			\
+	LABEL_ALIGN_MAX_SKIP LOOP_ALIGN_MAX_SKIP			\
+	LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP JUMP_ALIGN_MAX_SKIP 		\
+	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
+	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P ALWAYS_STRIP_DOTDOT
+
+/* Target macros only used for code built for the target, that have
+   moved to libgcc-tm.h or have never been present elsewhere.  */
+ #pragma GCC poison DECLARE_LIBRARY_RENAMES LIBGCC2_GNU_PREFIX		\
+	MD_UNWIND_SUPPORT MD_FROB_UPDATE_CONTEXT ENABLE_EXECUTE_STACK	\
+	REG_VALUE_IN_UNWIND_CONTEXT ASSUME_EXTENDED_UNWIND_CONTEXT
 
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have
@@ -761,7 +856,18 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	TARGET_ASM_EXCEPTION_SECTION TARGET_ASM_EH_FRAME_SECTION	   \
 	SMALL_ARG_MAX ASM_OUTPUT_SHARED_BSS ASM_OUTPUT_SHARED_COMMON	   \
 	ASM_OUTPUT_SHARED_LOCAL ASM_MAKE_LABEL_LINKONCE			   \
-	STACK_CHECK_PROBE_INTERVAL STACK_CHECK_PROBE_LOAD
+	STACK_CHECK_PROBE_INTERVAL STACK_CHECK_PROBE_LOAD		   \
+	ORDER_REGS_FOR_LOCAL_ALLOC FUNCTION_OUTGOING_VALUE		   \
+	ASM_DECLARE_CONSTANT_NAME MODIFY_TARGET_NAME SWITCHES_NEED_SPACES  \
+	SWITCH_CURTAILS_COMPILATION SWITCH_TAKES_ARG WORD_SWITCH_TAKES_ARG \
+	TARGET_OPTION_TRANSLATE_TABLE HANDLE_PRAGMA_PACK_PUSH_POP	   \
+	HANDLE_SYSV_PRAGMA HANDLE_PRAGMA_WEAK CONDITIONAL_REGISTER_USAGE   \
+	FUNCTION_ARG_BOUNDARY MUST_USE_SJLJ_EXCEPTIONS US_SOFTWARE_GOFAST  \
+	USING_SVR4_H SVR4_ASM_SPEC FUNCTION_ARG FUNCTION_ARG_ADVANCE	   \
+	FUNCTION_INCOMING_ARG IRA_COVER_CLASSES TARGET_VERSION		   \
+	MACHINE_TYPE TARGET_HAS_TARGETCM ASM_OUTPUT_BSS			   \
+	SETJMP_VIA_SAVE_AREA FORBIDDEN_INC_DEC_CLASSES			   \
+	PREFERRED_OUTPUT_RELOAD_CLASS
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -770,10 +876,17 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LANG_HOOKS_PUSHLEVEL LANG_HOOKS_SET_BLOCK \
 	LANG_HOOKS_MAYBE_BUILD_CLEANUP LANG_HOOKS_UPDATE_DECL_AFTER_SAVING \
 	LANG_HOOKS_POPLEVEL LANG_HOOKS_TRUTHVALUE_CONVERSION \
-	TARGET_PROMOTE_FUNCTION_ARGS TARGET_PROMOTE_FUNCTION_RETURN
+	TARGET_PROMOTE_FUNCTION_ARGS TARGET_PROMOTE_FUNCTION_RETURN \
+	LANG_HOOKS_MISSING_ARGUMENT LANG_HOOKS_HASH_TYPES \
+	TARGET_HANDLE_OFAST TARGET_OPTION_OPTIMIZATION \
+        TARGET_IRA_COVER_CLASSES TARGET_HELP
+
+/* Hooks into libgcc2.  */
+ #pragma GCC poison LIBGCC2_DOUBLE_TYPE_SIZE LIBGCC2_WORDS_BIG_ENDIAN \
+   LIBGCC2_FLOAT_WORDS_BIG_ENDIAN
 
 /* Miscellaneous macros that are no longer used.  */
- #pragma GCC poison USE_MAPPED_LOCATION
+ #pragma GCC poison USE_MAPPED_LOCATION GET_ENVIRONMENT
 
 /* Libiberty macros that are no longer used in GCC.  */
 #undef ANSI_PROTOTYPES
@@ -787,6 +900,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
  #pragma GCC poison ANSI_PROTOTYPES PTR_CONST LONG_DOUBLE VPARAMS VA_OPEN \
   VA_FIXEDARG VA_CLOSE VA_START
 #endif /* IN_GCC */
+
+/* Front ends should never have to include middle-end headers.  Enforce
+   this by poisoning the header double-include protection defines.  */
+#ifdef IN_GCC_FRONTEND
+#pragma GCC poison GCC_RTL_H GCC_EXCEPT_H GCC_EXPR_H
+#endif
 
 /* Note: not all uses of the `index' token (e.g. variable names and
    structure members) have been eliminated.  */
@@ -821,6 +940,20 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 /* GCC 4.0.x has a bug where it may ICE on this expression,
    so does GCC 3.4.x (PR17436).  */
 #define CONST_CAST2(TOTYPE,FROMTYPE,X) ((__extension__(union {FROMTYPE _q; TOTYPE _nq;})(X))._nq)
+#elif defined(__GNUC__)
+static inline char *
+helper_const_non_const_cast (const char *p)
+{
+  union {
+    const char *const_c;
+    char *c;
+  } val;
+  val.const_c = p;
+  return val.c;
+}
+
+#define CONST_CAST2(TOTYPE,FROMTYPE,X) \
+	((TOTYPE) helper_const_non_const_cast ((const char *) (FROMTYPE) (X)))
 #else
 #define CONST_CAST2(TOTYPE,FROMTYPE,X) ((TOTYPE)(FROMTYPE)(X))
 #endif
@@ -864,6 +997,16 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 #define VALGRIND_DISCARD(x)
 #define VALGRIND_MALLOCLIKE_BLOCK(w,x,y,z)
 #define VALGRIND_FREELIKE_BLOCK(x,y)
+#endif
+
+/* In LTO -fwhole-program build we still want to keep the debug functions available
+   for debugger.  Mark them as used to prevent removal.  */
+#if (GCC_VERSION > 4000)
+#define DEBUG_FUNCTION __attribute__ ((__used__))
+#define DEBUG_VARIABLE __attribute__ ((__used__))
+#else
+#define DEBUG_FUNCTION
+#define DEBUG_VARIABLE
 #endif
 
 #endif /* ! GCC_SYSTEM_H */

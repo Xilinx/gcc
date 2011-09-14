@@ -1,6 +1,6 @@
 /* Structure for saving state for a nested function.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -25,6 +25,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "hashtab.h"
 #include "vecprim.h"
+#include "tm.h"		/* For CUMULATIVE_ARGS.  */
+#include "hard-reg-set.h"
 
 /* Stack of pending (incomplete) sequences saved by `start_sequence'.
    Each element describes one pending sequence.
@@ -167,6 +169,7 @@ struct gimple_df;
 struct temp_slot;
 typedef struct temp_slot *temp_slot_p;
 struct call_site_record_d;
+struct dw_fde_struct;
 
 DEF_VEC_P(temp_slot_p);
 DEF_VEC_ALLOC_P(temp_slot_p,gc);
@@ -175,17 +178,6 @@ typedef struct ipa_opt_pass_d *ipa_opt_pass;
 
 DEF_VEC_P(ipa_opt_pass);
 DEF_VEC_ALLOC_P(ipa_opt_pass,heap);
-
-enum function_frequency {
-  /* This function most likely won't be executed at all.
-     (set only when profile feedback is available or via function attribute). */
-  FUNCTION_FREQUENCY_UNLIKELY_EXECUTED,
-  /* The default value.  */
-  FUNCTION_FREQUENCY_NORMAL,
-  /* Optimize this function hard
-     (set only when profile feedback is available or via function attribute). */
-  FUNCTION_FREQUENCY_HOT
-};
 
 struct GTY(()) varasm_status {
   /* If we're using a per-function constant pool, this is it.  */
@@ -235,11 +227,17 @@ struct GTY(()) function_subsections {
   const char *cold_section_label;
   const char *hot_section_end_label;
   const char *cold_section_end_label;
+};
 
-  /* String to be used for name of cold text sections, via
-     targetm.asm_out.named_section.  */
+/* Describe an empty area of space in the stack frame.  These can be chained
+   into a list; this is used to keep track of space wasted for alignment
+   reasons.  */
+struct GTY(()) frame_space
+{
+  struct frame_space *next;
 
-  const char *unlikely_text_section_name;
+  HOST_WIDE_INT start;
+  HOST_WIDE_INT length;
 };
 
 /* Datastructures maintained for currently processed function in RTL form.  */
@@ -288,6 +286,9 @@ struct GTY(()) rtl_data {
   /* List (chain of EXPR_LISTs) of all stack slots in this function.
      Made for the sake of unshare_all_rtl.  */
   rtx x_stack_slot_list;
+
+  /* List of empty areas in the stack frame.  */
+  struct frame_space *frame_space_list;
 
   /* Place after which to insert the tail_recursion_label if we need one.  */
   rtx x_stack_check_probe_note;
@@ -433,6 +434,12 @@ struct GTY(()) rtl_data {
      TREE_NOTHROW (current_function_decl) it is set even for overwritable
      function where currently compiled version of it is nothrow.  */
   bool nothrow;
+
+  /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
+     asm.  Unlike regs_ever_live, elements of this array corresponding
+     to eliminable regs (like the frame pointer) are set if an asm
+     sets them.  */
+  HARD_REG_SET asm_clobbers;
 };
 
 #define return_label (crtl->x_return_label)
@@ -465,6 +472,33 @@ struct GTY(()) tm_restart_node {
   tree label_or_list;
 };
 
+struct GTY(()) stack_usage
+{
+  /* # of bytes of static stack space allocated by the function.  */
+  HOST_WIDE_INT static_stack_size;
+
+  /* # of bytes of dynamic stack space allocated by the function.  This is
+     meaningful only if has_unbounded_dynamic_stack_size is zero.  */
+  HOST_WIDE_INT dynamic_stack_size;
+
+  /* # of bytes of space pushed onto the stack after the prologue.  If
+     !ACCUMULATE_OUTGOING_ARGS, it contains the outgoing arguments.  */
+  int pushed_stack_size;
+
+  /* Nonzero if the amount of stack space allocated dynamically cannot
+     be bounded at compile-time.  */
+  unsigned int has_unbounded_dynamic_stack_size : 1;
+};
+
+#define current_function_static_stack_size (cfun->su->static_stack_size)
+#define current_function_dynamic_stack_size (cfun->su->dynamic_stack_size)
+#define current_function_pushed_stack_size (cfun->su->pushed_stack_size)
+#define current_function_has_unbounded_dynamic_stack_size \
+  (cfun->su->has_unbounded_dynamic_stack_size)
+#define current_function_allocates_dynamic_stack_space    \
+  (current_function_dynamic_stack_size != 0               \
+   || current_function_has_unbounded_dynamic_stack_size)
+
 /* This structure can save all the important global and static variables
    describing the status of the current function.  */
 
@@ -482,6 +516,9 @@ struct GTY(()) function {
 
   /* The loops in this function.  */
   struct loops *x_current_loops;
+
+  /* The stack usage of this function.  */
+  struct stack_usage *su;
 
   /* Value histograms attached to particular statements.  */
   htab_t GTY((skip)) value_histograms;
@@ -504,8 +541,8 @@ struct GTY(()) function {
      pointer.  */
   tree nonlocal_goto_save_area;
 
-  /* List of function local variables, functions, types and constants.  */
-  tree local_decls;
+  /* Vector of function local variables, functions, types and constants.  */
+  VEC(tree,gc) *local_decls;
 
   /* For md files.  */
 
@@ -517,6 +554,11 @@ struct GTY(()) function {
 
   /* Used types hash table.  */
   htab_t GTY ((param_is (union tree_node))) used_types_hash;
+
+  /* Dwarf2 Frame Description Entry, containing the Call Frame Instructions
+     used for unwinding.  Only set when either dwarf2 unwinding or dwarf2
+     debugging is enabled.  */
+  struct dw_fde_struct *fde;
 
   /* Last statement uid.  */
   int last_stmt_uid;
@@ -550,10 +592,6 @@ struct GTY(()) function {
      function.  */
   unsigned int va_list_fpr_size : 8;
 
-  /* How commonly executed the function is.  Initialized during branch
-     probabilities pass.  */
-  ENUM_BITFIELD (function_frequency) function_frequency : 2;
-
   /* Nonzero if function being compiled can call setjmp.  */
   unsigned int calls_setjmp : 1;
 
@@ -573,17 +611,12 @@ struct GTY(()) function {
   /* Nonzero if current function uses stdarg.h or equivalent.  */
   unsigned int stdarg : 1;
 
-  /* Nonzero if the back-end should not keep track of expressions that
-     determine the size of variable-sized objects.  Normally, such
-     expressions are saved away, and then expanded when the next
-     function is started.  For example, if a parameter has a
-     variable-sized type, then the size of the parameter is computed
-     when the function body is entered.  However, some front-ends do
-     not desire this behavior.  */
-  unsigned int dont_save_pending_sizes_p : 1;
-
   unsigned int after_inlining : 1;
   unsigned int always_inline_functions_inlined : 1;
+
+  /* Nonzero if function being compiled can throw synchronous non-call
+     exceptions.  */
+  unsigned int can_throw_non_call_exceptions : 1;
 
   /* Fields below this point are not set for abstract functions; see
      allocate_struct_function.  */
@@ -609,6 +642,17 @@ struct GTY(()) function {
      function.  */
   unsigned int is_thunk : 1;
 };
+
+/* Add the decl D to the local_decls list of FUN.  */
+
+static inline void
+add_local_decl (struct function *fun, tree d)
+{
+  VEC_safe_push (tree, gc, fun->local_decls, d);
+}
+
+#define FOR_EACH_LOCAL_DECL(FUN, I, D)		\
+  FOR_EACH_VEC_ELT_REVERSE (tree, (FUN)->local_decls, I, D)
 
 /* If va_list_[gf]pr_size is set to this, it means we don't know how
    many units need to be saved.  */
@@ -646,9 +690,9 @@ hashval_t types_used_by_vars_do_hash (const void*);
 int types_used_by_vars_eq (const void *, const void *);
 void types_used_by_var_decl_insert (tree type, tree var_decl);
 
-/* During parsing of a global variable, this linked list points to
-   the list of types referenced by the global variable.  */
-extern GTY(()) tree types_used_by_cur_var_decl;
+/* During parsing of a global variable, this vector contains the types
+   referenced by the global variable.  */
+extern GTY(()) VEC(tree,gc) *types_used_by_cur_var_decl;
 
 
 /* cfun shouldn't be set directly; use one of these functions instead.  */
@@ -674,6 +718,7 @@ extern void number_blocks (tree);
 
 extern void clear_block_marks (tree);
 extern tree blocks_nreverse (tree);
+extern tree block_chainon (tree, tree);
 
 /* Return size needed for stack frame based on slots so far allocated.
    This size counts from zero.  It is not rounded to STACK_BOUNDARY;
@@ -715,4 +760,10 @@ extern bool reference_callee_copied (CUMULATIVE_ARGS *, enum machine_mode,
 extern void used_types_insert (tree);
 
 extern int get_next_funcdef_no (void);
+extern int get_last_funcdef_no (void);
+
+/* In predict.c */
+extern bool optimize_function_for_size_p (struct function *);
+extern bool optimize_function_for_speed_p (struct function *);
+
 #endif  /* GCC_FUNCTION_H */

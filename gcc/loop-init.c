@@ -1,5 +1,5 @@
 /* Loop optimizer initialization routines and RTL loop optimization passes.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -45,7 +45,7 @@ loop_optimizer_init (unsigned flags)
   struct loops *loops;
 
   gcc_assert (!current_loops);
-  loops = GGC_CNEW (struct loops);
+  loops = ggc_alloc_cleared_loops ();
 
   /* Find the loops.  */
 
@@ -123,14 +123,6 @@ loop_optimizer_finalize (void)
     {
       bb->loop_father = NULL;
     }
-
-  /* Checking.  */
-#ifdef ENABLE_CHECKING
-  /* FIXME: no point to verify flow info after bundling on ia64.  Use this
-     hack for achieving this.  */
-  if (!reload_completed)
-    verify_flow_info ();
-#endif
 }
 
 
@@ -166,7 +158,6 @@ struct rtl_opt_pass pass_loop2 =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
   TODO_ggc_collect                      /* todo_flags_finish */
  }
 };
@@ -200,7 +191,7 @@ struct rtl_opt_pass pass_rtl_loop_init =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing /* todo_flags_finish */
+  TODO_verify_rtl_sharing               /* todo_flags_finish */
  }
 };
 
@@ -235,7 +226,8 @@ struct rtl_opt_pass pass_rtl_loop_done =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing /* todo_flags_finish */
+  TODO_verify_flow
+    | TODO_verify_rtl_sharing           /* todo_flags_finish */
  }
 };
 
@@ -271,8 +263,7 @@ struct rtl_opt_pass pass_rtl_move_loop_invariants =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_verify |
-  TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func                        /* todo_flags_finish */
+  TODO_df_finish | TODO_verify_rtl_sharing  /* todo_flags_finish */
  }
 };
 
@@ -307,7 +298,7 @@ struct rtl_opt_pass pass_rtl_unswitch =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing, /* todo_flags_finish */
+  TODO_verify_rtl_sharing,              /* todo_flags_finish */
  }
 };
 
@@ -355,7 +346,7 @@ struct rtl_opt_pass pass_rtl_unroll_and_peel_loops =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing, /* todo_flags_finish */
+  TODO_verify_rtl_sharing,              /* todo_flags_finish */
  }
 };
 
@@ -396,7 +387,6 @@ struct rtl_opt_pass pass_rtl_doloop =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing /* todo_flags_finish */
+  TODO_verify_rtl_sharing               /* todo_flags_finish */
  }
 };
-

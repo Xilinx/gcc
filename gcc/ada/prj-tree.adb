@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with Osint;   use Osint;
+with Prj.Env; use Prj.Env;
 with Prj.Err;
 
 with Ada.Unchecked_Deallocation;
@@ -143,9 +144,9 @@ package body Prj.Tree is
 
             --  Create new N_Comment node
 
-            if (Where = After or else Where = After_End) and then
-              Token /= Tok_EOF and then
-              Comments.Table (J).Follows_Empty_Line
+            if (Where = After or else Where = After_End)
+              and then Token /= Tok_EOF
+              and then Comments.Table (J).Follows_Empty_Line
             then
                Comments.Table (1 .. Comments.Last - J + 1) :=
                  Comments.Table (J .. Comments.Last);
@@ -558,11 +559,12 @@ package body Prj.Tree is
 
    function Expression_Kind_Of
      (Node    : Project_Node_Id;
-      In_Tree : Project_Node_Tree_Ref) return Variable_Kind is
+      In_Tree : Project_Node_Tree_Ref) return Variable_Kind
+   is
    begin
       pragma Assert
         (Present (Node)
-           and then
+           and then -- should use Nkind_In here ??? why not???
              (In_Tree.Project_Nodes.Table (Node).Kind = N_Literal_String
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind = N_Attribute_Declaration
@@ -570,7 +572,7 @@ package body Prj.Tree is
               In_Tree.Project_Nodes.Table (Node).Kind = N_Variable_Declaration
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind =
-                       N_Typed_Variable_Declaration
+                                                  N_Typed_Variable_Declaration
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind = N_Package_Declaration
                 or else
@@ -580,9 +582,9 @@ package body Prj.Tree is
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind = N_Variable_Reference
                 or else
-              In_Tree.Project_Nodes.Table (Node).Kind =
-                        N_Attribute_Reference));
-
+              In_Tree.Project_Nodes.Table (Node).Kind = N_Attribute_Reference
+                or else
+              In_Tree.Project_Nodes.Table (Node).Kind = N_External_Value));
       return In_Tree.Project_Nodes.Table (Node).Expr_Kind;
    end Expression_Kind_Of;
 
@@ -984,11 +986,61 @@ package body Prj.Tree is
    begin
       Project_Node_Table.Init (Tree.Project_Nodes);
       Projects_Htable.Reset (Tree.Projects_HT);
-
-      --  Do not reset the external references, in case we are reloading a
-      --  project, since we want to preserve the current environment
-      --  Name_To_Name_HTable.Reset (Tree.External_References);
    end Initialize;
+
+   --------------------
+   -- Override_Flags --
+   --------------------
+
+   procedure Override_Flags
+     (Self  : in out Environment;
+      Flags : Prj.Processing_Flags)
+   is
+   begin
+      Self.Flags := Flags;
+   end Override_Flags;
+
+   ----------------
+   -- Initialize --
+   ----------------
+
+   procedure Initialize
+     (Self      : out Environment;
+      Flags     : Processing_Flags) is
+   begin
+      --  Do not reset the external references, in case we are reloading a
+      --  project, since we want to preserve the current environment. But we
+      --  still need to ensure that the external references are properly
+      --  initialized.
+      --  Prj.Ext.Reset (Tree.External);
+
+      Prj.Ext.Initialize (Self.External);
+
+      Self.Flags := Flags;
+   end Initialize;
+
+   -------------------------
+   -- Initialize_And_Copy --
+   -------------------------
+
+   procedure Initialize_And_Copy
+     (Self      : out Environment;
+      Copy_From : Environment) is
+   begin
+      Self.Flags := Copy_From.Flags;
+      Prj.Ext.Initialize (Self.External, Copy_From => Copy_From.External);
+      Prj.Env.Copy (From => Copy_From.Project_Path, To => Self.Project_Path);
+   end Initialize_And_Copy;
+
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Self : in out Environment) is
+   begin
+      Prj.Ext.Free (Self.External);
+      Free (Self.Project_Path);
+   end Free;
 
    ----------
    -- Free --
@@ -1001,8 +1053,6 @@ package body Prj.Tree is
       if Proj /= null then
          Project_Node_Table.Free (Proj.Project_Nodes);
          Projects_Htable.Reset (Proj.Projects_HT);
-         Name_To_Name_HTable.Reset (Proj.External_References);
-         Free (Proj.Project_Path);
          Unchecked_Free (Proj);
       end if;
    end Free;
@@ -1836,7 +1886,7 @@ package body Prj.Tree is
    begin
       pragma Assert
         (Present (Node)
-           and then
+           and then -- should use Nkind_In here ??? why not???
              (In_Tree.Project_Nodes.Table (Node).Kind = N_Literal_String
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind = N_Attribute_Declaration
@@ -1844,7 +1894,7 @@ package body Prj.Tree is
               In_Tree.Project_Nodes.Table (Node).Kind = N_Variable_Declaration
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind =
-                N_Typed_Variable_Declaration
+                                                  N_Typed_Variable_Declaration
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind = N_Package_Declaration
                 or else
@@ -1854,8 +1904,9 @@ package body Prj.Tree is
                 or else
               In_Tree.Project_Nodes.Table (Node).Kind = N_Variable_Reference
                 or else
-              In_Tree.Project_Nodes.Table (Node).Kind =
-                N_Attribute_Reference));
+              In_Tree.Project_Nodes.Table (Node).Kind = N_Attribute_Reference
+                or else
+              In_Tree.Project_Nodes.Table (Node).Kind = N_External_Value));
       In_Tree.Project_Nodes.Table (Node).Expr_Kind := To;
    end Set_Expression_Kind_Of;
 
@@ -2219,8 +2270,7 @@ package body Prj.Tree is
    begin
       pragma Assert
         (Present (Node)
-          and then
-             In_Tree.Project_Nodes.Table (Node).Kind = N_With_Clause);
+          and then In_Tree.Project_Nodes.Table (Node).Kind = N_With_Clause);
       In_Tree.Project_Nodes.Table (Node).Flag1 := True;
    end Set_Is_Not_Last_In_List;
 

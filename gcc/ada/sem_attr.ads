@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -171,6 +171,17 @@ package Sem_Attr is
       --  which it is useful to be able to call this elaboration procedure from
       --  Ada code, e.g. if it is necessary to do selective reelaboration to
       --  fix some error.
+
+      --------------------
+      -- Elab_Subp_Body --
+      --------------------
+
+      Attribute_Elab_Subp_Body => True,
+      --  This attribute can only be applied to a library level subprogram
+      --  name and is only relevant in CodePeer mode. It returns the entity
+      --  for the corresponding elaboration procedure for elaborating the body
+      --  of the referenced subprogram unit. This is used in the main generated
+      --  elaboration procedure by the binder in CodePeer mode only.
 
       ---------------
       -- Elab_Spec --
@@ -395,6 +406,15 @@ package Sem_Attr is
       --  as Range applied to the array itself. The result is of type universal
       --  integer.
 
+      ---------
+      -- Ref --
+      ---------
+
+      Attribute_Ref => True,
+      --  System.Address'Ref (Address is the only permissible prefix) is
+      --  equivalent to System'To_Address, provided for compatibility with
+      --  other compilers.
+
       ------------------
       -- Storage_Unit --
       ------------------
@@ -439,7 +459,7 @@ package Sem_Attr is
       ----------------
 
       Attribute_To_Address => True,
-      --  System'To_Address (Address is the only permissible prefix) is a
+      --  System'To_Address (System is the only permissible prefix) is a
       --  function that takes any integer value, and converts it into an
       --  address value. The semantics is to first convert the integer value to
       --  type Integer_Address according to normal conversion rules, and then
@@ -493,15 +513,12 @@ package Sem_Attr is
       ------------------------------
 
       Attribute_Universal_Literal_String => True,
-      --  The prefix of 'Universal_Literal_String must be a named number. The
-      --  static result is the string consisting of the characters of the
-      --  number as defined in the original source. This allows the user
-      --  program to access the actual text of named numbers without
-      --  intermediate conversions and without the need to enclose the strings
-      --  in quotes (which would preclude their use as numbers). This is used
-      --  internally for the construction of values of the floating-point
-      --  attributes from the file ttypef.ads, but may also be used by user
-      --  programs.
+      --  The prefix of 'Universal_Literal_String must be a named number.
+      --  The static result is the string consisting of the characters of
+      --  the number as defined in the original source. This allows the
+      --  user program to access the actual text of named numbers without
+      --  intermediate conversions and without the need to enclose the
+      --  strings in quotes (which would preclude their use as numbers).
 
       -------------------------
       -- Unrestricted_Access --

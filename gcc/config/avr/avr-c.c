@@ -1,4 +1,4 @@
-/* Copyright (C) 2009
+/* Copyright (C) 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Anatoly Sokolov (aesok@post.ru)
 
@@ -24,9 +24,9 @@
 #include "coretypes.h"
 #include "tm.h"
 #include "tm_p.h"
-#include "regs.h"
-#include "c-common.h"
-
+#include "cpplib.h"
+#include "tree.h"
+#include "c-family/c-common.h"
 
 /* Not included in avr.c since this requires C front end.  */
 
@@ -81,5 +81,28 @@ avr_cpu_cpp_builtins (struct cpp_reader *pfile)
 
   if (TARGET_NO_INTERRUPTS)
     cpp_define (pfile, "__NO_INTERRUPTS__");
-}
 
+  if (avr_current_device->errata_skip)
+    {
+      cpp_define (pfile, "__AVR_ERRATA_SKIP__");
+      
+      if (avr_current_arch->have_jmp_call)
+        cpp_define (pfile, "__AVR_ERRATA_SKIP_JMP_CALL__");
+    }
+
+  /* Define builtin macros so that the user can
+     easily query if or if not a specific builtin
+     is available. */
+
+  cpp_define (pfile, "__BUILTIN_AVR_NOP");
+  cpp_define (pfile, "__BUILTIN_AVR_SEI");
+  cpp_define (pfile, "__BUILTIN_AVR_CLI");
+  cpp_define (pfile, "__BUILTIN_AVR_WDR");
+  cpp_define (pfile, "__BUILTIN_AVR_SLEEP");
+  cpp_define (pfile, "__BUILTIN_AVR_SWAP");
+  cpp_define (pfile, "__BUILTIN_AVR_DELAY_CYCLES");
+
+  cpp_define (pfile, "__BUILTIN_AVR_FMUL");
+  cpp_define (pfile, "__BUILTIN_AVR_FMULS");
+  cpp_define (pfile, "__BUILTIN_AVR_FMULSU");
+}

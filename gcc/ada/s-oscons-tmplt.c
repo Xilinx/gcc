@@ -7,7 +7,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2000-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -98,6 +98,22 @@ pragma Style_Checks ("M32766");
 #include <limits.h>
 #include <fcntl.h>
 
+#if defined (__alpha__) && defined (__osf__)
+/** Tru64 is unable to do vector IO operations with default value of IOV_MAX,
+ ** so its value is redefined to a small one which is known to work properly.
+ **/
+#undef IOV_MAX
+#define IOV_MAX 16
+#endif
+
+#if defined (__VMS)
+/** VMS is unable to do vector IO operations with default value of IOV_MAX,
+ ** so its value is redefined to a small one which is known to work properly.
+ **/
+#undef IOV_MAX
+#define IOV_MAX 16
+#endif
+
 #if ! (defined (__vxworks) || defined (__VMS) || defined (__MINGW32__) || \
        defined (__nucleus__))
 # define HAVE_TERMIOS
@@ -145,6 +161,11 @@ pragma Style_Checks ("M32766");
 
 #ifdef __APPLE__
 # include <_types.h>
+#endif
+
+#ifdef __linux__
+# include <pthread.h>
+# include <signal.h>
 #endif
 
 #ifdef NATIVE
@@ -932,7 +953,7 @@ CND(AF_INET, "IPv4 address family")
 #endif
 
 /**
- ** Tru64 UNIX V4.0F defines AF_INET6 without IPv6 support, specificially
+ ** Tru64 UNIX V4.0F defines AF_INET6 without IPv6 support, specifically
  ** without struct sockaddr_in6.  We use _SS_MAXSIZE (used for the definition
  ** of struct sockaddr_storage on Tru64 UNIX V5.1) to detect this.
  **/
@@ -1068,7 +1089,13 @@ CND(MSG_PEEK, "Peek at incoming data")
 CND(MSG_EOR, "Send end of record")
 
 #ifndef MSG_WAITALL
+#ifdef __MINWGW32__
+/* The value of MSG_WAITALL is 8.  Nevertheless winsock.h doesn't
+   define it, but it is still usable as we link to winsock2 API.  */
+# define MSG_WAITALL (1 << 3)
+#else
 # define MSG_WAITALL -1
+#endif
 #endif
 CND(MSG_WAITALL, "Wait for full reception")
 
@@ -1197,6 +1224,26 @@ CND(IP_PKTINFO, "Get datagram info")
 CND(SIZEOF_tv_sec, "tv_sec")
 #define SIZEOF_tv_usec (sizeof tv.tv_usec)
 CND(SIZEOF_tv_usec, "tv_usec")
+/*
+
+   --  Maximum allowed value for tv_sec
+*/
+
+/**
+ ** On Solaris and IRIX, field tv_sec in struct timeval has an undocumented
+ ** hard-wired limit of 100 million.
+ ** On IA64 HP-UX the limit is 2**31 - 1.
+ **/
+#if defined (sun) || (defined (__mips) && defined (__sgi))
+# define MAX_tv_sec "100_000_000"
+
+#elif defined (__hpux__)
+# define MAX_tv_sec "16#7fffffff#"
+
+#else
+# define MAX_tv_sec "2 ** (SIZEOF_tv_sec * 8 - 1) - 1"
+#endif
+CNS(MAX_tv_sec, "")
 }
 /*
 
@@ -1214,25 +1261,18 @@ CND(SIZEOF_sockaddr_in6, "struct sockaddr_in6")
 
 #define SIZEOF_fd_set (sizeof (fd_set))
 CND(SIZEOF_fd_set, "fd_set");
+CND(FD_SETSIZE, "Max fd value");
+
+#define SIZEOF_struct_hostent (sizeof (struct hostent))
+CND(SIZEOF_struct_hostent, "struct hostent");
 
 #define SIZEOF_struct_servent (sizeof (struct servent))
 CND(SIZEOF_struct_servent, "struct servent");
-/*
 
-   --  Fields of struct hostent
-*/
-
-#ifdef __MINGW32__
-# define h_addrtype_t "short"
-# define h_length_t   "short"
-#else
-# define h_addrtype_t "int"
-# define h_length_t   "int"
+#if defined (__linux__)
+#define SIZEOF_sigset (sizeof (sigset_t))
+CND(SIZEOF_sigset, "sigset");
 #endif
-
-TXT("   subtype H_Addrtype_T is Interfaces.C." h_addrtype_t ";")
-TXT("   subtype H_Length_T   is Interfaces.C." h_length_t ";")
-
 /*
 
    --  Fields of struct msghdr
@@ -1255,6 +1295,7 @@ TXT("   subtype Msg_Iovlen_T is Interfaces.C." msg_iovlen_t ";")
 */
 
 CND(Need_Netdb_Buffer, "Need buffer for Netdb ops")
+CND(Need_Netdb_Lock,   "Need lock for Netdb ops")
 CND(Has_Sockaddr_Len,  "Sockaddr has sa_len field")
 
 /**
@@ -1321,43 +1362,51 @@ CND(WSAEDISCON,         "Disconnected")
    putchar ('\n');
 #endif
 
-#if defined (__APPLE__) || defined (DUMMY)
+#if defined (__APPLE__) || defined (__linux__) || defined (DUMMY)
 /*
 
-   -------------------------------
-   -- Darwin-specific constants --
-   -------------------------------
-
-   --  These constants may be used only within the Darwin version of the GNAT
-   --  runtime library.
+   --  Sizes of pthread data types (on Darwin these are padding)
 */
 
-#define PTHREAD_SIZE __PTHREAD_SIZE__
-CND(PTHREAD_SIZE, "Pad in pthread_t")
-
-#define PTHREAD_ATTR_SIZE __PTHREAD_ATTR_SIZE__
-CND(PTHREAD_ATTR_SIZE, "Pad in pthread_attr_t")
-
-#define PTHREAD_MUTEXATTR_SIZE __PTHREAD_MUTEXATTR_SIZE__
-CND(PTHREAD_MUTEXATTR_SIZE, "Pad in pthread_mutexattr_t")
-
-#define PTHREAD_MUTEX_SIZE __PTHREAD_MUTEX_SIZE__
-CND(PTHREAD_MUTEX_SIZE, "Pad in pthread_mutex_t")
-
-#define PTHREAD_CONDATTR_SIZE __PTHREAD_CONDATTR_SIZE__
-CND(PTHREAD_CONDATTR_SIZE, "Pad in pthread_condattr_t")
-
-#define PTHREAD_COND_SIZE __PTHREAD_COND_SIZE__
-CND(PTHREAD_COND_SIZE, "Pad in pthread_cond_t")
-
+#if defined (__APPLE__) || defined (DUMMY)
+#define PTHREAD_SIZE            __PTHREAD_SIZE__
+#define PTHREAD_ATTR_SIZE       __PTHREAD_ATTR_SIZE__
+#define PTHREAD_MUTEXATTR_SIZE  __PTHREAD_MUTEXATTR_SIZE__
+#define PTHREAD_MUTEX_SIZE      __PTHREAD_MUTEX_SIZE__
+#define PTHREAD_CONDATTR_SIZE   __PTHREAD_CONDATTR_SIZE__
+#define PTHREAD_COND_SIZE       __PTHREAD_COND_SIZE__
 #define PTHREAD_RWLOCKATTR_SIZE __PTHREAD_RWLOCKATTR_SIZE__
-CND(PTHREAD_RWLOCKATTR_SIZE, "Pad in pthread_rwlockattr_t")
+#define PTHREAD_RWLOCK_SIZE     __PTHREAD_RWLOCK_SIZE__
+#define PTHREAD_ONCE_SIZE       __PTHREAD_ONCE_SIZE__
+#else
+#define PTHREAD_SIZE            (sizeof (pthread_t))
+#define PTHREAD_ATTR_SIZE       (sizeof (pthread_attr_t))
+#define PTHREAD_MUTEXATTR_SIZE  (sizeof (pthread_mutexattr_t))
+#define PTHREAD_MUTEX_SIZE      (sizeof (pthread_mutex_t))
+#define PTHREAD_CONDATTR_SIZE   (sizeof (pthread_condattr_t))
+#define PTHREAD_COND_SIZE       (sizeof (pthread_cond_t))
+#define PTHREAD_RWLOCKATTR_SIZE (sizeof (pthread_rwlockattr_t))
+#define PTHREAD_RWLOCK_SIZE     (sizeof (pthread_rwlock_t))
+#define PTHREAD_ONCE_SIZE       (sizeof (pthread_once_t))
+#endif
 
-#define PTHREAD_RWLOCK_SIZE __PTHREAD_RWLOCK_SIZE__
-CND(PTHREAD_RWLOCK_SIZE, "Pad in pthread_rwlock_t")
+CND(PTHREAD_SIZE, "pthread_t")
 
-#define PTHREAD_ONCE_SIZE __PTHREAD_ONCE_SIZE__
-CND(PTHREAD_ONCE_SIZE, "Pad in pthread_once_t")
+CND(PTHREAD_ATTR_SIZE, "pthread_attr_t")
+
+CND(PTHREAD_MUTEXATTR_SIZE, "pthread_mutexattr_t")
+
+CND(PTHREAD_MUTEX_SIZE, "pthread_mutex_t")
+
+CND(PTHREAD_CONDATTR_SIZE, "pthread_condattr_t")
+
+CND(PTHREAD_COND_SIZE, "pthread_cond_t")
+
+CND(PTHREAD_RWLOCKATTR_SIZE, "pthread_rwlockattr_t")
+
+CND(PTHREAD_RWLOCK_SIZE, "pthread_rwlock_t")
+
+CND(PTHREAD_ONCE_SIZE, "pthread_once_t")
 
 #endif
 

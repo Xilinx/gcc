@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -229,9 +229,9 @@ package Stand is
    type Standard_Entity_Array_Type is array (Standard_Entity_Type) of Node_Id;
 
    Standard_Entity : Standard_Entity_Array_Type;
-   --  This array contains pointers to the Defining Identifier nodes
-   --  for each of the entities defined in Standard_Entities_Type. It
-   --  is initialized by the Create_Standard procedure.
+   --  This array contains pointers to the Defining Identifier nodes for each
+   --  of the visible entities defined in Standard_Entities_Type. The array is
+   --  initialized by the Create_Standard procedure.
 
    Standard_Package_Node : Node_Id;
    --  Points to the N_Package_Declaration node for standard. Also
@@ -336,12 +336,20 @@ package Stand is
    --  carrying the enumeration literal names.
 
    Standard_A_Char : Entity_Id;
-   --  Access to character, used as a component of the exception type to
-   --  denote a thin pointer component.
+   --  Access to character, used as a component of the exception type to denote
+   --  a thin pointer component.
 
    Standard_Debug_Renaming_Type : Entity_Id;
-   --  A zero-size subtype of Integer, used as the type of variables used
-   --  to provide the debugger with name encodings for renaming declarations.
+   --  A zero-size subtype of Integer, used as the type of variables used to
+   --  provide the debugger with name encodings for renaming declarations.
+
+   Predefined_Float_Types : Elist_Id;
+   --  Entities for predefined floating point types. These are used by
+   --  the semantic phase to select appropriate types for floating point
+   --  declarations. This list is ordered by preference. All types up to
+   --  Long_Long_Float_Type are considered for plain "digits N" declarations,
+   --  while selection of later types requires a range specification and
+   --  possibly other attributes or pragmas.
 
    --  The entities labeled Any_xxx are used in situations where the full
    --  characteristics of an entity are not yet known, e.g. Any_Character
@@ -387,9 +395,9 @@ package Stand is
    --  Used to represent some unknown integer type
 
    Any_Modular : Entity_Id;
-   --  Used to represent the result type of a boolean operation on an
-   --  integer literal. The result is not Universal_Integer, because it is
-   --  only legal in a modular context.
+   --  Used to represent the result type of a boolean operation on an integer
+   --  literal. The result is not Universal_Integer, because it is only legal
+   --  in a modular context.
 
    Any_Numeric : Entity_Id;
    --  Used to represent some unknown numeric type
@@ -401,10 +409,10 @@ package Stand is
    --  Used to represent some unknown scalar type
 
    Any_String : Entity_Id;
-   --  The type Any_String is used for string literals before type
-   --  resolution. It corresponds to array (Positive range <>) of character
-   --  where the component type is compatible with any character type,
-   --  not just Standard_Character.
+   --  The type Any_String is used for string literals before type resolution.
+   --  It corresponds to array (Positive range <>) of character where the
+   --  component type is compatible with any character type, not just
+   --  Standard_Character.
 
    Universal_Integer : Entity_Id;
    --  Entity for universal integer type. The bounds of this type correspond
@@ -413,9 +421,9 @@ package Stand is
 
    Universal_Real : Entity_Id;
    --  Entity for universal real type. The bounds of this type correspond to
-   --  to the largest supported real type (i.e. Long_Long_Real). It is the
+   --  to the largest supported real type (i.e. Long_Long_Float). It is the
    --  type used for runtime calculations in type universal real. Note that
-   --  this type is always IEEE format, even if Long_Long_Real is Vax_Float
+   --  this type is always IEEE format, even if Long_Long_Float is Vax_Float
    --  (and in that case the bounds don't correspond exactly).
 
    Universal_Fixed : Entity_Id;
@@ -430,9 +438,9 @@ package Stand is
    Standard_Integer_16 : Entity_Id;
    Standard_Integer_32 : Entity_Id;
    Standard_Integer_64 : Entity_Id;
-   --  These are signed integer types with the indicated sizes, They are
-   --  used for the underlying implementation types for fixed-point and
-   --  enumeration types.
+   --  These are signed integer types with the indicated sizes, They are used
+   --  for the underlying implementation types for fixed-point and enumeration
+   --  types.
 
    Standard_Unsigned : Entity_Id;
    --  An unsigned type of the same size as Standard_Integer
@@ -457,7 +465,7 @@ package Stand is
    --  initialization that is carried out by Create_Standard.
 
    procedure Tree_Write;
-   --  Writes out the entity values in this package to the current
-   --  tree file using Osint.Tree_Write.
+   --  Writes out the entity values in this package to the current tree file
+   --  using Osint.Tree_Write.
 
 end Stand;

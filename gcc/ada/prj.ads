@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -76,6 +76,9 @@ package Prj is
    --    Aggregate:            aggregate project is
    --    Aggregate_Library:    aggregate library project is ...
    --    Configuration:        configuration project is ...
+
+   subtype Aggregate_Project is
+     Project_Qualifier range Aggregate .. Aggregate_Library;
 
    All_Packages : constant String_List_Access;
    --  Default value of parameter Packages of procedures Parse, in Prj.Pars and
@@ -187,8 +190,9 @@ package Prj is
    No_Array_Element : constant Array_Element_Id := 0;
    type Array_Element is record
       Index                : Name_Id;
-      Src_Index            : Int := 0;
-      Index_Case_Sensitive : Boolean := True;
+      Restricted           : Boolean          := False;
+      Src_Index            : Int              := 0;
+      Index_Case_Sensitive : Boolean          := True;
       Value                : Variable_Value;
       Next                 : Array_Element_Id := No_Array_Element;
    end record;
@@ -235,10 +239,10 @@ package Prj is
    --  packages) for a project or a package in a project.
 
    No_Declarations : constant Declarations :=
-     (Variables  => No_Variable,
-      Attributes => No_Variable,
-      Arrays     => No_Array,
-      Packages   => No_Package);
+                       (Variables  => No_Variable,
+                        Attributes => No_Variable,
+                        Arrays     => No_Array,
+                        Packages   => No_Package);
    --  Default value of Declarations: indicates that there is no declarations
 
    type Package_Element is record
@@ -292,17 +296,16 @@ package Prj is
 
    Makefile_Dependency_Suffix : constant String := ".d";
    ALI_Dependency_Suffix      : constant String := ".ali";
-
    Switches_Dependency_Suffix : constant String := ".cswi";
 
-   Binder_Exchange_Suffix     : constant String := ".bexch";
+   Binder_Exchange_Suffix : constant String := ".bexch";
    --  Suffix for binder exchange files
 
-   Library_Exchange_Suffix     : constant String := ".lexch";
+   Library_Exchange_Suffix : constant String := ".lexch";
    --  Suffix for library exchange files
 
    type Name_List_Index is new Nat;
-   No_Name_List            : constant Name_List_Index := 0;
+   No_Name_List : constant Name_List_Index := 0;
 
    type Name_Node is record
       Name : Name_Id         := No_Name;
@@ -411,8 +414,8 @@ package Prj is
 
    type Language_Config is record
       Kind : Language_Kind := File_Based;
-      --  Kind of language. All languages are file based, except Ada which is
-      --  unit based.
+      --  Kind of language. Most languages are file based. A few, such as Ada,
+      --  are unit based.
 
       Naming_Data : Lang_Naming_Data;
       --  The naming data for the languages (prefixes, etc.)
@@ -447,6 +450,11 @@ package Prj is
       Path_Syntax : Path_Syntax_Kind := Host;
       --  Value may be Canonical (Unix style) or Host (host syntax, for example
       --  on VMS for DEC C).
+
+      Source_File_Switches : Name_List_Index := No_Name_List;
+      --  Optional switches to be put before the source file. The source file
+      --  path name is appended to the last switch in the list.
+      --  Example: ("-i", "");
 
       Object_File_Suffix : Name_Id := No_Name;
       --  Optional alternate object file suffix
@@ -576,11 +584,14 @@ package Prj is
                            Include_Compatible_Languages => No_Name_List,
                            Compiler_Driver              => No_File,
                            Compiler_Driver_Path         => null,
-                           Compiler_Leading_Required_Switches  => No_Name_List,
-                           Compiler_Trailing_Required_Switches => No_Name_List,
+                           Compiler_Leading_Required_Switches
+                                                        => No_Name_List,
+                           Compiler_Trailing_Required_Switches
+                                                        => No_Name_List,
                            Multi_Unit_Switches          => No_Name_List,
                            Multi_Unit_Object_Separator  => ' ',
                            Path_Syntax                  => Canonical,
+                           Source_File_Switches         => No_Name_List,
                            Object_File_Suffix           => No_Name,
                            Object_File_Switches         => No_Name_List,
                            Compilation_PIC_Option       => No_Name_List,
@@ -661,11 +672,31 @@ package Prj is
    No_Unit_Index : constant Unit_Index := null;
    --  Used to indicate a null entry for no unit
 
+   type Source_Roots;
+   type Roots_Access is access Source_Roots;
+   type Source_Roots is record
+      Root : Source_Id;
+      Next : Roots_Access;
+   end record;
+   --  A list to store the roots associated with a main unit. These are the
+   --  files that need to linked along with the main (for instance a C file
+   --  corresponding to an Ada file). In general, these are dependencies that
+   --  cannot be computed automatically by the builder.
+
+   type Naming_Exception_Type is (No, Yes, Inherited);
+
    --  Structure to define source data
 
    type Source_Data is record
+      Initialized : Boolean := False;
+      --  Set to True when Source_Data is completely initialized
+
       Project : Project_Id := No_Project;
       --  Project of the source
+
+      Location : Source_Ptr := No_Location;
+      --  Location in the project file of the declaration of the source in
+      --  package Naming.
 
       Source_Dir_Rank : Natural := 0;
       --  The rank of the source directory in list declared with attribute
@@ -702,6 +733,13 @@ package Prj is
       --  is duplicated several times when there are several units in the same
       --  file). Index is 0 if there is either no unit or a single one, and
       --  starts at 1 when there are multiple units
+
+      Compilable : Yes_No_Unknown := Unknown;
+      --  Updated at the first call to Is_Compilable. Yes if source file is
+      --  compilable.
+
+      In_The_Queue : Boolean := False;
+      --  True if the source has been put in the queue
 
       Locally_Removed : Boolean := False;
       --  True if the source has been "excluded"
@@ -759,15 +797,27 @@ package Prj is
       Switches_TS : Time_Stamp_Type := Empty_Time_Stamp;
       --  Switches file time stamp
 
-      Naming_Exception : Boolean := False;
+      Naming_Exception : Naming_Exception_Type := No;
       --  True if the source has an exceptional name
+
+      Duplicate_Unit : Boolean := False;
+      --  True when a duplicate unit has been reported for this source
 
       Next_In_Lang : Source_Id := No_Source;
       --  Link to another source of the same language in the same project
+
+      Next_With_File_Name : Source_Id := No_Source;
+      --  Link to another source with the same base file name
+
+      Roots : Roots_Access := null;
+      --  The roots for a main unit
+
    end record;
 
    No_Source_Data : constant Source_Data :=
-                      (Project                => No_Project,
+                      (Initialized            => False,
+                       Project                => No_Project,
+                       Location               => No_Location,
                        Source_Dir_Rank        => 0,
                        Language               => No_Language_Index,
                        In_Interfaces          => True,
@@ -777,6 +827,8 @@ package Prj is
                        Unit                   => No_Unit_Index,
                        Index                  => 0,
                        Locally_Removed        => False,
+                       Compilable             => Unknown,
+                       In_The_Queue           => False,
                        Replaced_By            => No_Source,
                        File                   => No_File,
                        Display_File           => No_File,
@@ -794,8 +846,20 @@ package Prj is
                        Switches               => No_File,
                        Switches_Path          => No_Path,
                        Switches_TS            => Empty_Time_Stamp,
-                       Naming_Exception       => False,
-                       Next_In_Lang           => No_Source);
+                       Naming_Exception       => No,
+                       Duplicate_Unit         => False,
+                       Next_In_Lang           => No_Source,
+                       Next_With_File_Name    => No_Source,
+                       Roots                  => null);
+
+   package Source_Files_Htable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => Source_Id,
+      No_Element => No_Source,
+      Key        => File_Name_Type,
+      Hash       => Hash,
+      Equal      => "=");
+   --  Mapping of source file names to source ids
 
    package Source_Paths_Htable is new Simple_HTable
      (Header_Num => Header_Num,
@@ -805,23 +869,6 @@ package Prj is
       Hash       => Hash,
       Equal      => "=");
    --  Mapping of source paths to source ids
-
-   package Unit_Sources_Htable is new Simple_HTable
-     (Header_Num => Header_Num,
-      Element    => Source_Id,
-      No_Element => No_Source,
-      Key        => Name_Id,
-      Hash       => Hash,
-      Equal      => "=");
-
-   type Verbosity is (Default, Medium, High);
-   --  Verbosity when parsing GNAT Project Files
-   --    Default is default (very quiet, if no errors).
-   --    Medium is more verbose.
-   --    High is extremely verbose.
-
-   Current_Verbosity : Verbosity := Default;
-   --  The current value of the verbosity the project files are parsed with
 
    type Lib_Kind is (Static, Dynamic, Relocatable);
 
@@ -863,14 +910,16 @@ package Prj is
    --  Return the object directory to use for the project. This depends on
    --  whether we have a library project or a standard project. This function
    --  might return No_Name when no directory applies.
-   --  If we have a a library project file and Including_Libraries is True then
+   --  If we have a library project file and Including_Libraries is True then
    --  the library dir is returned instead of the object dir.
    --  If Only_If_Ada is True, then No_Name will be returned when the project
    --  doesn't Ada sources.
 
-   procedure Compute_All_Imported_Projects (Tree : Project_Tree_Ref);
+   procedure Compute_All_Imported_Projects
+     (Root_Project : Project_Id;
+      Tree         : Project_Tree_Ref);
    --  For all projects in the tree, compute the list of the projects imported
-   --  directly or indirectly by project Project. The result is stored in
+   --  directly or indirectly by project Root_Project. The result is stored in
    --  Project.All_Imported_Projects for each project
 
    function Ultimate_Extending_Project_Of
@@ -895,7 +944,11 @@ package Prj is
      (None,
       GNU,
       Object_List,
-      Option_List);
+      Option_List,
+      GCC,
+      GCC_GNU,
+      GCC_Object_List,
+      GCC_Option_List);
    --  The format of the different response files
 
    type Project_Configuration is record
@@ -933,7 +986,7 @@ package Prj is
       Map_File_Option : Name_Id := No_Name;
       --  Option to use when invoking the linker to build a map file
 
-      Minimum_Linker_Options : Name_List_Index := No_Name_List;
+      Trailing_Linker_Required_Switches : Name_List_Index := No_Name_List;
       --  The minimum options for the linker driver. Specified in the
       --  configuration.
 
@@ -1032,7 +1085,8 @@ package Prj is
                                Executable_Suffix             => No_Name,
                                Linker                        => No_Path,
                                Map_File_Option               => No_Name,
-                               Minimum_Linker_Options        => No_Name_List,
+                               Trailing_Linker_Required_Switches =>
+                                 No_Name_List,
                                Linker_Executable_Option      => No_Name_List,
                                Linker_Lib_Dir_Option         => No_Name,
                                Linker_Lib_Name_Option        => No_Name,
@@ -1055,13 +1109,37 @@ package Prj is
                                Lib_Maj_Min_Id_Supported      => False,
                                Auto_Init_Supported           => False);
 
+   -------------------------
+   -- Aggregated projects --
+   -------------------------
+
+   type Aggregated_Project;
+   type Aggregated_Project_List is access all Aggregated_Project;
+   type Aggregated_Project is record
+      Path    : Path_Name_Type;
+      Tree    : Project_Tree_Ref;
+      Project : Project_Id;
+      Next    : Aggregated_Project_List;
+   end record;
+
+   procedure Free (List : in out Aggregated_Project_List);
+   --  Free the memory used for List
+
+   procedure Add_Aggregated_Project
+     (Project : Project_Id;
+      Path    : Path_Name_Type);
+   --  Add a new aggregated project in Project.
+   --  The aggregated project has not been processed yet. This procedure should
+   --  the called while processing the aggregate project, and as a result
+   --  Prj.Proc.Process will then automatically process the aggregated projects
+
+   ------------------
+   -- Project_Data --
+   ------------------
+
    --  The following record describes a project file representation
 
-   --  Note that it is not specified if the path names of directories (source,
-   --  object, library or exec directories) end with or without a directory
-   --  separator.
-
-   type Project_Data is record
+   type Project_Data (Qualifier : Project_Qualifier := Unspecified) is record
 
       -------------
       -- General --
@@ -1072,9 +1150,6 @@ package Prj is
 
       Display_Name : Name_Id := No_Name;
       --  The name of the project with the spelling of its declaration
-
-      Qualifier : Project_Qualifier := Unspecified;
-      --  The eventual qualifier for this project
 
       Externally_Built : Boolean := False;
       --  True if the project is externally built. In such case, the Project
@@ -1121,10 +1196,10 @@ package Prj is
       --  The declarations (variables, attributes and packages) of this project
       --  file.
 
-      Imported_Projects : Project_List;
+      Imported_Projects : Project_List := null;
       --  The list of all directly imported projects, if any
 
-      All_Imported_Projects : Project_List;
+      All_Imported_Projects : Project_List := null;
       --  The list of all projects imported directly or indirectly, if any.
       --  This does not include the project itself.
 
@@ -1264,9 +1339,24 @@ package Prj is
       --  True if there are comments in the project sources that cannot be kept
       --  in the project tree.
 
+      -----------------------------
+      -- Qualifier-Specific data --
+      -----------------------------
+
+      --  The following fields are only valid for specific types of projects
+
+      case Qualifier is
+         when Aggregate | Aggregate_Library =>
+            Aggregated_Projects : Aggregated_Project_List := null;
+            --  List of aggregated projects (which could themselves be
+            --  aggregate projects).
+
+         when others =>
+            null;
+      end case;
    end record;
 
-   function Empty_Project return Project_Data;
+   function Empty_Project (Qualifier : Project_Qualifier) return  Project_Data;
    --  Return the representation of an empty project
 
    function Is_Extending
@@ -1313,39 +1403,113 @@ package Prj is
       Project          : Project_Id;
       In_Imported_Only : Boolean := False;
       In_Extended_Only : Boolean := False;
-      Base_Name        : File_Name_Type) return Source_Id;
-   --  Find the first source file with the given name either in the whole tree
-   --  (if In_Imported_Only is False) or in the projects imported or extended
-   --  by Project otherwise. In_Extended_Only implies In_Imported_Only, and
-   --  will only look in Project and the projects it extends
+      Base_Name        : File_Name_Type;
+      Index            : Int := 0) return Source_Id;
+   --  Find the first source file with the given name.
+   --  If In_Extended_Only is True, it will search in project and the project
+   --     it extends, but not in the imported projects.
+   --  Elsif In_Imported_Only is True, it will search in project and the
+   --     projects it imports, but not in the others or in aggregated projects.
+   --  Else it searches in the whole tree.
+   --  If Index is specified, this only search for a source with that index.
 
    -----------------------
    -- Project_Tree_Data --
    -----------------------
 
+   package Replaced_Source_HTable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => File_Name_Type,
+      No_Element => No_File,
+      Key        => File_Name_Type,
+      Hash       => Hash,
+      Equal      => "=");
+
    type Private_Project_Tree_Data is private;
    --  Data for a project tree that is used only by the Project Manager
 
-   type Project_Tree_Data is
-      record
-         Name_Lists        : Name_List_Table.Instance;
-         Number_Lists      : Number_List_Table.Instance;
-         String_Elements   : String_Element_Table.Instance;
-         Variable_Elements : Variable_Element_Table.Instance;
-         Array_Elements    : Array_Element_Table.Instance;
-         Arrays            : Array_Table.Instance;
-         Packages          : Package_Table.Instance;
-         Projects          : Project_List;
+   type Shared_Project_Tree_Data is record
+      Name_Lists        : Name_List_Table.Instance;
+      Number_Lists      : Number_List_Table.Instance;
+      String_Elements   : String_Element_Table.Instance;
+      Variable_Elements : Variable_Element_Table.Instance;
+      Array_Elements    : Array_Element_Table.Instance;
+      Arrays            : Array_Table.Instance;
+      Packages          : Package_Table.Instance;
+      Private_Part      : Private_Project_Tree_Data;
+   end record;
+   type Shared_Project_Tree_Data_Access is access all Shared_Project_Tree_Data;
+   --  The data that is shared among multiple trees, when these trees are
+   --  loaded through the same aggregate project.
+   --  To avoid ambiguities, limit the number of parameters to the
+   --  subprograms (we would have to parse the "root project tree" since this
+   --  is where the configuration file was loaded, in addition to the project's
+   --  own tree) and make the comparison of projects easier, all trees store
+   --  the lists in the same tables.
 
-         Units_HT          : Units_Htable.Instance;
-         --  Unit name to Unit_Index (and from there so Source_Id)
+   type Project_Tree_Appdata is tagged null record;
+   type Project_Tree_Appdata_Access is access all Project_Tree_Appdata'Class;
+   --  Application-specific data that can be associated with a project tree.
+   --  We do not make the Project_Tree_Data itself tagged for several reasons:
+   --    - it couldn't have a default value for its discriminant
+   --    - it would require a "factory" to allocate such data, because trees
+   --      are created automatically when parsing aggregate projects.
 
-         Source_Paths_HT   : Source_Paths_Htable.Instance;
-         --  Full path to Source_Id
+   procedure Free (Tree : in out Project_Tree_Appdata);
+   --  Should be overridden if your derive your own data
 
-         Private_Part      : Private_Project_Tree_Data;
-      end record;
+   type Project_Tree_Data (Is_Root_Tree : Boolean := True) is record
+      --  The root tree is the one loaded by the user from the command line.
+      --  Is_Root_Tree is only false for projects aggregated within a root
+      --  aggregate project.
+
+      Projects : Project_List;
+      --  List of projects in this tree
+
+      Replaced_Sources : Replaced_Source_HTable.Instance;
+      --  The list of sources that have been replaced by sources with
+      --  different file names.
+
+      Replaced_Source_Number : Natural := 0;
+      --  The number of entries in Replaced_Sources
+
+      Units_HT : Units_Htable.Instance;
+      --  Unit name to Unit_Index (and from there to Source_Id)
+
+      Source_Files_HT : Source_Files_Htable.Instance;
+      --  Base source file names to Source_Id list
+
+      Source_Paths_HT : Source_Paths_Htable.Instance;
+      --  Full path to Source_Id
+      --  ??? What is behavior for multi-unit source files, where there are
+      --  several source_id per file ?
+
+      Source_Info_File_Name : String_Access := null;
+      --  The name of the source info file, if specified by the builder
+
+      Source_Info_File_Exists : Boolean := False;
+      --  True when a source info file has been successfully read
+
+      Shared : Shared_Project_Tree_Data_Access;
+      --  The shared data for this tree and all aggregated trees
+
+      Appdata : Project_Tree_Appdata_Access;
+      --  Application-specific data for this tree
+
+      case Is_Root_Tree is
+         when True =>
+            Shared_Data : aliased Shared_Project_Tree_Data;
+            --  Do not access directly, only through Shared
+
+         when False =>
+            null;
+      end case;
+   end record;
    --  Data for a project tree
+
+   function Debug_Name (Tree : Project_Tree_Ref) return Name_Id;
+   --  If debug traces are activated, return an identitier for the project
+   --  tree. This modifies Name_Buffer.
 
    procedure Expect (The_Token : Token_Type; Token_Image : String);
    --  Check that the current token is The_Token. If it is not, then output
@@ -1370,25 +1534,47 @@ package Prj is
    --  whether a project was already processed for instance.
 
    generic
+      with procedure Action (Project : Project_Id; Tree : Project_Tree_Ref);
+   procedure For_Project_And_Aggregated
+     (Root_Project : Project_Id;
+      Root_Tree    : Project_Tree_Ref);
+   --  Execute Action for Root_Project and all its aggregated projects
+   --  recursively.
+
+   generic
       type State is limited private;
       with procedure Action
         (Project    : Project_Id;
+         Tree       : Project_Tree_Ref;
          With_State : in out State);
    procedure For_Every_Project_Imported
-     (By             : Project_Id;
-      With_State     : in out State;
-      Imported_First : Boolean := False);
+     (By                 : Project_Id;
+      Tree               : Project_Tree_Ref;
+      With_State         : in out State;
+      Include_Aggregated : Boolean := True;
+      Imported_First     : Boolean := False);
    --  Call Action for each project imported directly or indirectly by project
    --  By, as well as extended projects.
+   --
    --  The order of processing depends on Imported_First:
-   --  If False, Action is called according to the order of importation: if A
-   --  imports B, directly or indirectly, Action will be called for A before
-   --  it is called for B. If two projects import each other directly or
-   --  indirectly (using at least one "limited with"), it is not specified
-   --  for which of these two projects Action will be called first.
-   --  The order is reversed if Imported_First is True.
+   --
+   --    If False, Action is called according to the order of importation: if A
+   --    imports B, directly or indirectly, Action will be called for A before
+   --    it is called for B. If two projects import each other directly or
+   --    indirectly (using at least one "limited with"), it is not specified
+   --    for which of these two projects Action will be called first.
+   --
+   --    The order is reversed if Imported_First is True
+   --
    --  With_State may be used by Action to choose a behavior or to report some
    --  global result.
+   --
+   --  If Include_Aggregated is True, then an aggregate project will recurse
+   --  into the projects it aggregates. Otherwise, the latter are never
+   --  returned
+   --
+   --  The Tree argument passed to the callback is required in the case of
+   --  aggregated projects, since they might not be using the same tree as 'By'
 
    function Extend_Name
      (File        : File_Name_Type;
@@ -1417,6 +1603,27 @@ package Prj is
      (Source_File_Name : File_Name_Type) return File_Name_Type;
    --  Returns the switches file name corresponding to a source file name
 
+   procedure Set_Path_File_Var (Name : String; Value : String);
+   --  Call Setenv, after calling To_Host_File_Spec
+
+   function Current_Source_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access) return Path_Name_Type;
+   --  Get the current include path file name
+
+   procedure Set_Current_Source_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access;
+      To     : Path_Name_Type);
+   --  Record the current include path file name
+
+   function Current_Object_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access) return Path_Name_Type;
+   --  Get the current object path file name
+
+   procedure Set_Current_Object_Path_File_Of
+     (Shared : Shared_Project_Tree_Data_Access;
+      To     : Path_Name_Type);
+   --  Record the current object path file name
+
    -----------
    -- Flags --
    -----------
@@ -1439,7 +1646,7 @@ package Prj is
    type Error_Handler is access procedure
      (Project    : Project_Id;
       Is_Warning : Boolean);
-   --  This warngs when an error was found when parsing a project. The error
+   --  This warns when an error was found when parsing a project. The error
    --  itself is handled through Prj.Err (and Prj.Err.Finalize should be called
    --  to actually print the error). This ensures that duplicate error messages
    --  are always correctly removed, that errors msgs are sorted, and that all
@@ -1448,11 +1655,14 @@ package Prj is
    function Create_Flags
      (Report_Error               : Error_Handler;
       When_No_Sources            : Error_Warning;
-      Require_Sources_Other_Lang : Boolean := True;
-      Allow_Duplicate_Basenames  : Boolean := True;
-      Compiler_Driver_Mandatory  : Boolean := False;
-      Error_On_Unknown_Language  : Boolean := True;
-      Require_Obj_Dirs           : Error_Warning := Error)
+      Require_Sources_Other_Lang : Boolean       := True;
+      Allow_Duplicate_Basenames  : Boolean       := True;
+      Compiler_Driver_Mandatory  : Boolean       := False;
+      Error_On_Unknown_Language  : Boolean       := True;
+      Require_Obj_Dirs           : Error_Warning := Error;
+      Allow_Invalid_External     : Error_Warning := Error;
+      Missing_Source_Files       : Error_Warning := Error;
+      Ignore_Missing_With        : Boolean       := False)
       return Processing_Flags;
    --  Function used to create Processing_Flags structure
    --
@@ -1481,6 +1691,25 @@ package Prj is
    --  If Require_Obj_Dirs is true, then all object directories must exist
    --  (possibly after they have been created automatically if the appropriate
    --  switches were specified), or an error is raised.
+   --
+   --  If Allow_Invalid_External is Silent, then no error is reported when an
+   --  invalid value is used for an external variable (and it doesn't match its
+   --  type). Instead, the first possible value is used.
+   --
+   --  Missing_Source_Files indicates whether it is an error or a warning that
+   --  a source file mentioned in the Source_Files attributes is not actually
+   --  found in the source directories. This also impacts errors for missing
+   --  source directories.
+   --
+   --  If Ignore_Missing_With is True, then a "with" statement that cannot be
+   --  resolved will simply be ignored. However, in such a case, the flag
+   --  Incomplete_With in the project tree will be set to True.
+   --  This is meant for use by tools so that they can properly set the
+   --  project path in such a case:
+   --       * no "gnatls" found (so no default project path)
+   --       * user project sets Project.IDE'gnatls attribute to a cross gnatls
+   --       * user project also includes a "with" that can only be resolved
+   --         once we have found the gnatls
 
    Gprbuild_Flags : constant Processing_Flags;
    Gprclean_Flags : constant Processing_Flags;
@@ -1493,22 +1722,61 @@ package Prj is
    ----------------
 
    procedure Record_Temp_File
-     (Tree : Project_Tree_Ref;
-      Path : Path_Name_Type);
+     (Shared : Shared_Project_Tree_Data_Access;
+      Path   : Path_Name_Type);
    --  Record the path of a newly created temporary file, so that it can be
    --  deleted later.
 
-   procedure Delete_All_Temp_Files (Tree : Project_Tree_Ref);
+   procedure Delete_All_Temp_Files
+     (Shared : Shared_Project_Tree_Data_Access);
    --  Delete all recorded temporary files.
    --  Does nothing if Debug.Debug_Flag_N is set
 
+   procedure Delete_Temp_Config_Files (Project_Tree : Project_Tree_Ref);
+   --  Delete all temporary config files. Does nothing if Debug.Debug_Flag_N is
+   --  set or if Project_Tree is null. This initially came from gnatmake
+   --  ??? Should this be combined with Delete_All_Temp_Files above
+
    procedure Delete_Temporary_File
-     (Tree : Project_Tree_Ref;
-      Path : Path_Name_Type);
+     (Shared : Shared_Project_Tree_Data_Access := null;
+      Path   : Path_Name_Type);
    --  Delete a temporary file from the disk. The file is also removed from the
    --  list of temporary files to delete at the end of the program, in case
-   --  another program running on the same machine has recreated it.
-   --  Does nothing if Debug.Debug_Flag_N is set
+   --  another program running on the same machine has recreated it. Does
+   --  nothing if Debug.Debug_Flag_N is set
+
+   Virtual_Prefix : constant String := "v$";
+   --  The prefix for virtual extending projects. Because of the '$', which is
+   --  normally forbidden for project names, there cannot be any name clash.
+
+   -----------
+   -- Debug --
+   -----------
+
+   type Verbosity is (Default, Medium, High);
+   pragma Ordered (Verbosity);
+   --  Verbosity when parsing GNAT Project Files
+   --    Default is default (very quiet, if no errors).
+   --    Medium is more verbose.
+   --    High is extremely verbose.
+
+   Current_Verbosity : Verbosity := Default;
+   --  The current value of the verbosity the project files are parsed with
+
+   procedure Debug_Indent;
+   --  Inserts a series of blanks depending on the current indentation level
+
+   procedure Debug_Output (Str : String);
+   procedure Debug_Output (Str : String; Str2 : Name_Id);
+   --  If Current_Verbosity is not Default, outputs Str.
+   --  This indents Str based on the current indentation level for traces
+   --  Debug_Error is intended to be used to report an error in the traces.
+
+   procedure Debug_Increase_Indent
+     (Str : String := ""; Str2 : Name_Id := No_Name);
+   procedure Debug_Decrease_Indent (Str : String := "");
+   --  Increase or decrease the indentation level for debug traces. This
+   --  indentation level only affects output done through Debug_Output.
 
 private
 
@@ -1523,10 +1791,6 @@ private
                            Kind     => Undefined,
                            Location => No_Location,
                            Default  => False);
-
-   Virtual_Prefix : constant String := "v$";
-   --  The prefix for virtual extending projects. Because of the '$', which is
-   --  normally forbidden for project names, there cannot be any name clash.
 
    type Source_Iterator is record
       In_Tree : Project_Tree_Ref;
@@ -1589,33 +1853,45 @@ private
       Compiler_Driver_Mandatory  : Boolean;
       Error_On_Unknown_Language  : Boolean;
       Require_Obj_Dirs           : Error_Warning;
+      Allow_Invalid_External     : Error_Warning;
+      Missing_Source_Files       : Error_Warning;
+      Ignore_Missing_With        : Boolean;
    end record;
 
    Gprbuild_Flags : constant Processing_Flags :=
-     (Report_Error               => null,
-      When_No_Sources            => Warning,
-      Require_Sources_Other_Lang => True,
-      Allow_Duplicate_Basenames  => False,
-      Compiler_Driver_Mandatory  => True,
-      Error_On_Unknown_Language  => True,
-      Require_Obj_Dirs           => Error);
+                      (Report_Error               => null,
+                       When_No_Sources            => Warning,
+                       Require_Sources_Other_Lang => True,
+                       Allow_Duplicate_Basenames  => False,
+                       Compiler_Driver_Mandatory  => True,
+                       Error_On_Unknown_Language  => True,
+                       Require_Obj_Dirs           => Error,
+                       Allow_Invalid_External     => Error,
+                       Missing_Source_Files       => Error,
+                       Ignore_Missing_With        => False);
 
    Gprclean_Flags : constant Processing_Flags :=
-     (Report_Error               => null,
-      When_No_Sources            => Warning,
-      Require_Sources_Other_Lang => True,
-      Allow_Duplicate_Basenames  => False,
-      Compiler_Driver_Mandatory  => True,
-      Error_On_Unknown_Language  => True,
-      Require_Obj_Dirs           => Warning);
+                      (Report_Error               => null,
+                       When_No_Sources            => Warning,
+                       Require_Sources_Other_Lang => True,
+                       Allow_Duplicate_Basenames  => False,
+                       Compiler_Driver_Mandatory  => True,
+                       Error_On_Unknown_Language  => True,
+                       Require_Obj_Dirs           => Warning,
+                       Allow_Invalid_External     => Error,
+                       Missing_Source_Files       => Error,
+                       Ignore_Missing_With        => False);
 
    Gnatmake_Flags : constant Processing_Flags :=
-     (Report_Error               => null,
-      When_No_Sources            => Error,
-      Require_Sources_Other_Lang => False,
-      Allow_Duplicate_Basenames  => False,
-      Compiler_Driver_Mandatory  => False,
-      Error_On_Unknown_Language  => False,
-      Require_Obj_Dirs           => Error);
+                      (Report_Error               => null,
+                       When_No_Sources            => Error,
+                       Require_Sources_Other_Lang => False,
+                       Allow_Duplicate_Basenames  => False,
+                       Compiler_Driver_Mandatory  => False,
+                       Error_On_Unknown_Language  => False,
+                       Require_Obj_Dirs           => Error,
+                       Allow_Invalid_External     => Error,
+                       Missing_Source_Files       => Error,
+                       Ignore_Missing_With        => False);
 
 end Prj;

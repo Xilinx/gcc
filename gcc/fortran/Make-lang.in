@@ -1,6 +1,6 @@
 # -*- makefile -*-
 # Top level makefile fragment for GNU gfortran, the GNU Fortran 95 compiler.
-# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 # Free Software Foundation, Inc.
 # Contributed by Paul Brook <paul@nowt.org
 # and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -53,20 +53,20 @@ fortran-warn = $(STRICT_WARN)
 # from the parse tree to GENERIC
 
 F95_PARSER_OBJS = fortran/arith.o fortran/array.o fortran/bbt.o \
-    fortran/check.o fortran/constructor.o fortran/cpp.o fortran/data.o \
-    fortran/decl.o fortran/dump-parse-tree.o fortran/error.o fortran/expr.o \
-    fortran/interface.o fortran/intrinsic.o fortran/io.o fortran/iresolve.o \
-    fortran/match.o fortran/matchexp.o fortran/misc.o fortran/module.o \
-    fortran/openmp.o fortran/options.o fortran/parse.o fortran/primary.o \
-    fortran/resolve.o fortran/scanner.o fortran/simplify.o fortran/st.o \
-    fortran/symbol.o fortran/target-memory.o
+    fortran/check.o fortran/class.o fortran/constructor.o fortran/cpp.o \
+    fortran/data.o fortran/decl.o fortran/dump-parse-tree.o fortran/error.o \
+    fortran/expr.o fortran/interface.o fortran/intrinsic.o fortran/io.o \
+    fortran/iresolve.o fortran/match.o fortran/matchexp.o fortran/misc.o \
+    fortran/module.o fortran/openmp.o fortran/options.o fortran/parse.o \
+    fortran/primary.o fortran/resolve.o fortran/scanner.o fortran/simplify.o \
+    fortran/st.o fortran/symbol.o fortran/target-memory.o
 
 F95_OBJS = $(F95_PARSER_OBJS) $(FORTRAN_TARGET_OBJS) \
     fortran/convert.o fortran/dependency.o fortran/f95-lang.o \
     fortran/trans.o fortran/trans-array.o fortran/trans-common.o \
     fortran/trans-const.o fortran/trans-decl.o fortran/trans-expr.o \
     fortran/trans-intrinsic.o fortran/trans-io.o fortran/trans-openmp.o \
-    fortran/trans-stmt.o fortran/trans-types.o
+    fortran/trans-stmt.o fortran/trans-types.o fortran/frontend-passes.o
 
 fortran_OBJS = $(F95_OBJS) gfortranspec.o
 
@@ -78,16 +78,18 @@ fortran: f951$(exeext)
 .PHONY: fortran
 
 gfortranspec.o: $(srcdir)/fortran/gfortranspec.c $(SYSTEM_H) $(TM_H) $(GCC_H) \
-	$(CONFIG_H) coretypes.h intl.h
+	$(CONFIG_H) coretypes.h intl.h $(OPTS_H)
 	(SHLIB_LINK='$(SHLIB_LINK)'; \
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
 		$(INCLUDES) $(srcdir)/fortran/gfortranspec.c)
 
 # Create the compiler driver gfortran.
-GFORTRAN_D_OBJS = $(GCC_OBJS) gfortranspec.o version.o prefix.o intl.o
-gfortran$(exeext): $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBDEPS)
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
-	  $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBS)
+GFORTRAN_D_OBJS = $(GCC_OBJS) gfortranspec.o
+gfortran$(exeext): $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a \
+	$(LIBDEPS)
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
+	  $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a \
+	  $(EXTRA_GCC_LIBS) $(LIBS)
 
 # Create a version of the gfortran driver which calls the cross-compiler.
 gfortran-cross$(exeext): gfortran$(exeext)
@@ -97,7 +99,7 @@ gfortran-cross$(exeext): gfortran$(exeext)
 # The compiler itself is called f951.
 f951$(exeext): $(F95_OBJS) \
 		$(BACKEND) $(LIBDEPS) attribs.o
-	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
 		$(F95_OBJS) $(BACKEND) $(LIBS) attribs.o $(BACKENDLIBS)
 
 gt-fortran-trans.h    : s-gtype; @true
@@ -170,9 +172,12 @@ check-fortran-subtargets : check-gfortran-subtargets
 lang_checks += check-gfortran
 lang_checks_parallelized += check-gfortran
 # For description see comment above check_gcc_parallelize in gcc/Makefile.in.
-check_gfortran_parallelize = dg.exp=gfortran.dg/\[a-cA-C\]* \
-			     dg.exp=gfortran.dg/\[d-mD-M\]* \
-			     dg.exp=gfortran.dg/\[n-zN-Z0-9\]*
+check_gfortran_parallelize = dg.exp=gfortran.dg/\[adAD\]* \
+			     dg.exp=gfortran.dg/\[bcBC\]* \
+			     dg.exp=gfortran.dg/\[nopNOP\]* \
+			     dg.exp=gfortran.dg/\[isuvISUV\]* \
+			     dg.exp=gfortran.dg/\[efhkqrxzEFHKQRXZ\]* \
+			     dg.exp=gfortran.dg/\[0-9gjlmtwyGJLMTWY\]*
 
 # GFORTRAN documentation.
 GFORTRAN_TEXI = \
@@ -336,22 +341,24 @@ GFORTRAN_TRANS_DEPS = fortran/gfortran.h fortran/libgfortran.h \
 fortran/f95-lang.o: $(GFORTRAN_TRANS_DEPS) fortran/mathbuiltins.def \
   gt-fortran-f95-lang.h gtype-fortran.h $(CGRAPH_H) $(TARGET_H) fortran/cpp.h \
   $(BUILTINS_DEF) fortran/types.def \
-  libfuncs.h expr.h except.h
+  $(TM_H) debug.h langhooks.h $(FLAGS_H) $(EXPR_H) $(LANGHOOKS_DEF_H) \
+  libfuncs.h expr.h $(DIAGNOSTIC_H)
 fortran/scanner.o: toplev.h fortran/cpp.h
 fortran/convert.o: $(GFORTRAN_TRANS_DEPS)
+fortran/frontend-passes.o: $(GFORTRAN_TRANS_DEPS)
 fortran/trans.o: $(GFORTRAN_TRANS_DEPS) tree-iterator.h
 fortran/trans-decl.o: $(GFORTRAN_TRANS_DEPS) gt-fortran-trans-decl.h \
   $(CGRAPH_H) $(TARGET_H) $(FUNCTION_H) $(FLAGS_H) $(RTL_H) $(GIMPLE_H) \
   $(TREE_DUMP_H) debug.h pointer-set.h
 fortran/trans-types.o: $(GFORTRAN_TRANS_DEPS) gt-fortran-trans-types.h \
   $(REAL_H) toplev.h $(TARGET_H) $(FLAGS_H) dwarf2out.h
-fortran/trans-const.o: $(GFORTRAN_TRANS_DEPS)
+fortran/trans-const.o: $(GFORTRAN_TRANS_DEPS) realmpfr.h
 fortran/trans-expr.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h
 fortran/trans-stmt.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h
 fortran/trans-openmp.o: $(GFORTRAN_TRANS_DEPS)
 fortran/trans-io.o: $(GFORTRAN_TRANS_DEPS) gt-fortran-trans-io.h \
   fortran/ioparm.def
-fortran/trans-array.o: $(GFORTRAN_TRANS_DEPS)
+fortran/trans-array.o: $(GFORTRAN_TRANS_DEPS) $(GIMPLE_H)
 fortran/trans-intrinsic.o: $(GFORTRAN_TRANS_DEPS) fortran/mathbuiltins.def \
   gt-fortran-trans-intrinsic.h
 fortran/dependency.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h
@@ -359,6 +366,4 @@ fortran/trans-common.o: $(GFORTRAN_TRANS_DEPS) $(TARGET_H) $(RTL_H)
 fortran/resolve.o: fortran/dependency.h fortran/data.h fortran/target-memory.h
 fortran/data.o: fortran/data.h
 fortran/options.o: $(PARAMS_H) $(TARGET_H) fortran/cpp.h
-fortran/cpp.o: fortran/cpp.c $(BASEVER) incpath.h incpath.o
-	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
-		-DBASEVER=$(BASEVER_s) $< $(OUTPUT_OPTION)
+fortran/cpp.o: fortran/cpp.c incpath.h incpath.o cppbuiltin.h

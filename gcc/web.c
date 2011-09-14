@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 
 #include "rtl.h"
 #include "hard-reg-set.h"
@@ -377,7 +377,17 @@ web_main (void)
     FOR_BB_INSNS (bb, insn)
     {
       unsigned int uid = INSN_UID (insn);
-      if (NONDEBUG_INSN_P (insn))
+
+      if (NONDEBUG_INSN_P (insn)
+	  /* Ignore naked clobber.  For example, reg 134 in the second insn
+	     of the following sequence will not be replaced.
+
+	       (insn (clobber (reg:SI 134)))
+
+	       (insn (set (reg:SI 0 r0) (reg:SI 134)))
+
+	     Thus the later passes can optimize them away.  */
+	  && GET_CODE (PATTERN (insn)) != CLOBBER)
 	{
 	  df_ref *use_rec;
 	  df_ref *def_rec;
@@ -423,8 +433,6 @@ struct rtl_opt_pass pass_web =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func                        /* todo_flags_finish */
+  TODO_df_finish | TODO_verify_rtl_sharing  /* todo_flags_finish */
  }
 };
-

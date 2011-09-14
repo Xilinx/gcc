@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2003-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2003-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -22,8 +22,6 @@
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
-
-with Ada.Unchecked_Deallocation;
 
 with Errout;   use Errout;
 with Lib.Writ; use Lib.Writ;
@@ -47,27 +45,13 @@ package body Prepcomp is
 
    --  The following variable should be a constant, but this is not possible
    --  because its type GNAT.Dynamic_Tables.Instance has a component P of
-   --  unitialized private type GNAT.Dynamic_Tables.Table_Private and there
+   --  uninitialized private type GNAT.Dynamic_Tables.Table_Private and there
    --  are no exported values for this private type. Warnings are Off because
    --  it is never assigned a value.
 
    pragma Warnings (Off);
    No_Mapping : Prep.Symbol_Table.Instance;
    pragma Warnings (On);
-
-   type String_Ptr is access String;
-   type String_Array is array (Positive range <>) of String_Ptr;
-   type String_Array_Ptr is access String_Array;
-
-   procedure Free is
-      new Ada.Unchecked_Deallocation (String_Array, String_Array_Ptr);
-
-   Symbol_Definitions : String_Array_Ptr := new String_Array (1 .. 4);
-   --  An extensible array to temporarily stores symbol definitions specified
-   --  on the command line with -gnateD switches.
-
-   Last_Definition : Natural := 0;
-   --  Index of last symbol definition in array Symbol_Definitions
 
    type Preproc_Data is record
       Mapping      : Symbol_Table.Instance;
@@ -160,31 +144,6 @@ package body Prepcomp is
          Add_Preprocessing_Dependency (Dependencies.Table (Index));
       end loop;
    end Add_Dependencies;
-
-   ---------------------------
-   -- Add_Symbol_Definition --
-   ---------------------------
-
-   procedure Add_Symbol_Definition (Def : String) is
-   begin
-      --  If Symbol_Definitions is not large enough, double it
-
-      if Last_Definition = Symbol_Definitions'Last then
-         declare
-            New_Symbol_Definitions : constant String_Array_Ptr :=
-              new String_Array (1 .. 2 * Last_Definition);
-
-         begin
-            New_Symbol_Definitions (Symbol_Definitions'Range) :=
-              Symbol_Definitions.all;
-            Free (Symbol_Definitions);
-            Symbol_Definitions := New_Symbol_Definitions;
-         end;
-      end if;
-
-      Last_Definition := Last_Definition + 1;
-      Symbol_Definitions (Last_Definition) := new String'(Def);
-   end Add_Symbol_Definition;
 
    -------------------
    -- Check_Symbols --
@@ -342,7 +301,8 @@ package body Prepcomp is
 
          while Token /= Tok_End_Of_Line and then Token /= Tok_EOF loop
             if Token /= Tok_Minus then
-               Error_Msg ("`'-` expected", Token_Ptr);
+               Error_Msg -- CODEFIX
+                 ("`'-` expected", Token_Ptr);
                Skip_To_End_Of_Line;
                goto Scan_Line;
             end if;
@@ -463,7 +423,8 @@ package body Prepcomp is
                         Scan;
 
                         if Token /= Tok_Equal then
-                           Error_Msg ("`=` expected", Token_Ptr);
+                           Error_Msg -- CODEFIX
+                             ("`=` expected", Token_Ptr);
                            Skip_To_End_Of_Line;
                            goto Scan_Line;
                         end if;
@@ -738,12 +699,12 @@ package body Prepcomp is
       --  The command line definitions have been stored temporarily in
       --  array Symbol_Definitions.
 
-      for Index in 1 .. Last_Definition loop
+      for Index in 1 .. Preprocessing_Symbol_Last loop
          --  Check each symbol definition, fail immediately if syntax is not
          --  correct.
 
          Check_Command_Line_Symbol_Definition
-           (Definition => Symbol_Definitions (Index).all,
+           (Definition => Preprocessing_Symbol_Defs (Index).all,
             Data       => Symbol_Data);
          Found := False;
 

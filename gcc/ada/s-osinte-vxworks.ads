@@ -7,25 +7,23 @@
 --                                   S p e c                                --
 --                                                                          --
 --            Copyright (C) 1991-1994, Florida State University             --
---          Copyright (C) 1995-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -43,11 +41,13 @@
 with Interfaces.C;
 with System.VxWorks;
 with System.VxWorks.Ext;
+with System.Multiprocessors;
 
 package System.OS_Interface is
    pragma Preelaborate;
 
    subtype int             is Interfaces.C.int;
+   subtype unsigned        is Interfaces.C.unsigned;
    subtype short           is Short_Integer;
    type unsigned_int       is mod 2 ** int'Size;
    type long               is new Long_Integer;
@@ -471,9 +471,14 @@ package System.OS_Interface is
       Handler   : Interrupt_Handler;
       Parameter : System.Address := System.Null_Address) return int;
    pragma Inline (Interrupt_Connect);
-   --  Use this to set up an user handler. The routine installs a a user
+   --  Use this to set up an user handler. The routine installs a user
    --  handler which is invoked after the OS has saved enough context for a
    --  high-level language routine to be safely invoked.
+
+   function Interrupt_Context return int;
+   pragma Inline (Interrupt_Context);
+   --  Return 1 if executing in an interrupt context; return 0 if executing in
+   --  a task context.
 
    function Interrupt_Number_To_Vector (intNum : int) return Interrupt_Vector;
    pragma Inline (Interrupt_Number_To_Vector);
@@ -489,9 +494,19 @@ package System.OS_Interface is
    --  For SMP run-times the affinity to CPU.
    --  For uniprocessor systems return ERROR status.
 
-private
-   type sigset_t is new unsigned_long_long;
+   function taskMaskAffinitySet (tid : t_id; CPU_Set : unsigned) return int
+     renames System.VxWorks.Ext.taskMaskAffinitySet;
+   --  For SMP run-times the affinity to CPU_Set.
+   --  For uniprocessor systems return ERROR status.
 
+   ---------------------
+   -- Multiprocessors --
+   ---------------------
+
+   function Current_CPU return Multiprocessors.CPU;
+   --  Return the id of the current CPU
+
+private
    type pid_t is new int;
 
    ERROR_PID : constant pid_t := -1;
@@ -499,4 +514,5 @@ private
    type clockid_t is new int;
    CLOCK_REALTIME : constant clockid_t := 0;
 
+   type sigset_t is new System.VxWorks.Ext.sigset_t;
 end System.OS_Interface;

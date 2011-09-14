@@ -3,7 +3,7 @@
 // { dg-require-cstdint "" }
 // 2008-07-31 Chris Fairles <chris.fairles@gmail.com>
 
-// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -29,9 +29,8 @@ void test01()
   typedef int rep_type;
   typedef int period_type;
   typedef std::chrono::duration<rep_type, period_type> test_type;
-  test_type d;
+  test_type d;			// { dg-error "required from here" }
 }
 
-// { dg-error "must be a specialization of ratio" "" { target *-*-* } 204 }
-// { dg-error "instantiated from here" "" { target *-*-* } 32 }
-// { dg-excess-errors "In instantiation of" }
+// { dg-error "must be a specialization of ratio" "" { target *-*-* } 227 }
+// { dg-prune-output "not a member" }

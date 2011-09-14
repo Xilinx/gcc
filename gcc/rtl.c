@@ -1,6 +1,7 @@
 /* RTL utility routines.
    Copyright (C) 1987, 1988, 1991, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -30,12 +31,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "rtl.h"
-#include "real.h"
 #include "ggc.h"
 #ifdef GENERATOR_FILE
 # include "errors.h"
 #else
-# include "toplev.h"
+# include "diagnostic-core.h"
 #endif
 
 
@@ -150,7 +150,7 @@ rtvec_alloc (int n)
 {
   rtvec rt;
 
-  rt = ggc_alloc_rtvec (n);
+  rt = ggc_alloc_rtvec_sized (n);
   /* Clear out the vector.  */
   memset (&rt->elem[0], 0, n * sizeof (rtx));
 
@@ -194,9 +194,8 @@ rtx_size (const_rtx x)
 rtx
 rtx_alloc_stat (RTX_CODE code MEM_STAT_DECL)
 {
-  rtx rt;
-
-  rt = (rtx) ggc_alloc_zone_pass_stat (RTX_CODE_SIZE (code), &rtl_zone);
+  rtx rt = ggc_alloc_zone_rtx_def_stat (&rtl_zone, RTX_CODE_SIZE (code)
+                                        PASS_MEM_STAT);
 
   /* We want to clear everything up to the FLD array.  Normally, this
      is one int, but we don't want to assume that and it isn't very
@@ -256,6 +255,8 @@ copy_rtx (rtx orig)
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
+    case SIMPLE_RETURN:
     case SCRATCH:
       /* SCRATCH must be shared because they represent distinct values.  */
       return orig;
@@ -338,7 +339,7 @@ rtx
 shallow_copy_rtx_stat (const_rtx orig MEM_STAT_DECL)
 {
   const unsigned int size = rtx_size (orig);
-  rtx const copy = (rtx) ggc_alloc_zone_pass_stat (size, &rtl_zone);
+  rtx const copy = ggc_alloc_zone_rtx_def_stat (&rtl_zone, size PASS_MEM_STAT);
   return (rtx) memcpy (copy, orig, size);
 }
 
@@ -409,6 +410,17 @@ rtx_equal_p_cb (const_rtx x, const_rtx y, rtx_equal_p_callback_function cb)
     case CONST_FIXED:
       return 0;
 
+    case DEBUG_IMPLICIT_PTR:
+      return DEBUG_IMPLICIT_PTR_DECL (x)
+	     == DEBUG_IMPLICIT_PTR_DECL (y);
+
+    case DEBUG_PARAMETER_REF:
+      return DEBUG_PARAMETER_REF_DECL (x)
+	     == DEBUG_PARAMETER_REF_DECL (x);
+
+    case ENTRY_VALUE:
+      return rtx_equal_p_cb (ENTRY_VALUE_EXP (x), ENTRY_VALUE_EXP (y), cb);
+
     default:
       break;
     }
@@ -429,7 +441,15 @@ rtx_equal_p_cb (const_rtx x, const_rtx y, rtx_equal_p_callback_function cb)
 	case 'n':
 	case 'i':
 	  if (XINT (x, i) != XINT (y, i))
-	    return 0;
+	    {
+#ifndef GENERATOR_FILE
+	      if (((code == ASM_OPERANDS && i == 6)
+		   || (code == ASM_INPUT && i == 1))
+		  && locator_eq (XINT (x, i), XINT (y, i)))
+		break;
+#endif
+	      return 0;
+	    }
 	  break;
 
 	case 'V':
@@ -529,6 +549,17 @@ rtx_equal_p (const_rtx x, const_rtx y)
     case CONST_FIXED:
       return 0;
 
+    case DEBUG_IMPLICIT_PTR:
+      return DEBUG_IMPLICIT_PTR_DECL (x)
+	     == DEBUG_IMPLICIT_PTR_DECL (y);
+
+    case DEBUG_PARAMETER_REF:
+      return DEBUG_PARAMETER_REF_DECL (x)
+	     == DEBUG_PARAMETER_REF_DECL (y);
+
+    case ENTRY_VALUE:
+      return rtx_equal_p (ENTRY_VALUE_EXP (x), ENTRY_VALUE_EXP (y));
+
     default:
       break;
     }
@@ -549,7 +580,15 @@ rtx_equal_p (const_rtx x, const_rtx y)
 	case 'n':
 	case 'i':
 	  if (XINT (x, i) != XINT (y, i))
-	    return 0;
+	    {
+#ifndef GENERATOR_FILE
+	      if (((code == ASM_OPERANDS && i == 6)
+		   || (code == ASM_INPUT && i == 1))
+		  && locator_eq (XINT (x, i), XINT (y, i)))
+		break;
+#endif
+	      return 0;
+	    }
 	  break;
 
 	case 'V':
@@ -593,6 +632,80 @@ rtx_equal_p (const_rtx x, const_rtx y)
 	}
     }
   return 1;
+}
+
+/* Iteratively hash rtx X.  */
+
+hashval_t
+iterative_hash_rtx (const_rtx x, hashval_t hash)
+{
+  enum rtx_code code;
+  enum machine_mode mode;
+  int i, j;
+  const char *fmt;
+
+  if (x == NULL_RTX)
+    return hash;
+  code = GET_CODE (x);
+  hash = iterative_hash_object (code, hash);
+  mode = GET_MODE (x);
+  hash = iterative_hash_object (mode, hash);
+  switch (code)
+    {
+    case REG:
+      i = REGNO (x);
+      return iterative_hash_object (i, hash);
+    case CONST_INT:
+      return iterative_hash_object (INTVAL (x), hash);
+    case SYMBOL_REF:
+      if (XSTR (x, 0))
+	return iterative_hash (XSTR (x, 0), strlen (XSTR (x, 0)) + 1,
+			       hash);
+      return hash;
+    case LABEL_REF:
+    case DEBUG_EXPR:
+    case VALUE:
+    case SCRATCH:
+    case CONST_DOUBLE:
+    case CONST_FIXED:
+    case DEBUG_IMPLICIT_PTR:
+    case DEBUG_PARAMETER_REF:
+      return hash;
+    default:
+      break;
+    }
+
+  fmt = GET_RTX_FORMAT (code);
+  for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
+    switch (fmt[i])
+      {
+      case 'w':
+	hash = iterative_hash_object (XWINT (x, i), hash);
+	break;
+      case 'n':
+      case 'i':
+	hash = iterative_hash_object (XINT (x, i), hash);
+	break;
+      case 'V':
+      case 'E':
+	j = XVECLEN (x, i);
+	hash = iterative_hash_object (j, hash);
+	for (j = 0; j < XVECLEN (x, i); j++)
+	  hash = iterative_hash_rtx (XVECEXP (x, i, j), hash);
+	break;
+      case 'e':
+	hash = iterative_hash_rtx (XEXP (x, i), hash);
+	break;
+      case 'S':
+      case 's':
+	if (XSTR (x, i))
+	  hash = iterative_hash (XSTR (x, 0), strlen (XSTR (x, 0)) + 1,
+				 hash);
+	break;
+      default:
+	break;
+      }
+  return hash;
 }
 
 void

@@ -1,6 +1,6 @@
 ;; GCC machine description for CRIS cpu cores.
 ;; Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-;; 2008, 2009  Free Software Foundation, Inc.
+;; 2008, 2009, 2010  Free Software Foundation, Inc.
 ;; Contributed by Axis Communications.
 
 ;; This file is part of GCC.
@@ -1831,7 +1831,7 @@
    add%u2 %2,%0
    addo.%Z2 %2,%1,%0"
   [(set_attr "slottable" "yes,yes,yes,yes,yes,yes,yes,no,no,no,no,no,no")
-   (set_attr "cc" "*,none,*,none,*,*,none,*,*,*,*,*,none")])
+   (set_attr "cc" "*,none,*,none,*,*,none,*,none,*,*,*,none")])
 
 (define_insn "*addhi3_non_v32"
   [(set (match_operand:HI 0 "register_operand"		"=r,r, r,r,r,r")
@@ -2509,7 +2509,7 @@
 
 ;; The addi insn as it is normally used.
 
-;; Make the the ACR alternative taste bad enough to not choose it as a
+;; Make the ACR alternative taste bad enough to not choose it as a
 ;; preference to avoid spilling problems (unwind-dw2-fde.c at build).
 ;; FIXME: Revisit for new register allocator.
 

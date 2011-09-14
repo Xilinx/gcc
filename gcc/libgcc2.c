@@ -1,7 +1,7 @@
 /* More subroutines needed by GCC output code on some machines.  */
 /* Compile this one with gcc.  */
 /* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -36,15 +36,11 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define ATTRIBUTE_HIDDEN
 #endif
 
-#ifndef MIN_UNITS_PER_WORD
-#define MIN_UNITS_PER_WORD UNITS_PER_WORD
-#endif
-
 /* Work out the largest "word" size that we can deal with on this target.  */
 #if MIN_UNITS_PER_WORD > 4
 # define LIBGCC2_MAX_UNITS_PER_WORD 8
 #elif (MIN_UNITS_PER_WORD > 2 \
-       || (MIN_UNITS_PER_WORD > 1 && LONG_LONG_TYPE_SIZE > 32))
+       || (MIN_UNITS_PER_WORD > 1 && __SIZEOF_LONG_LONG__ > 4))
 # define LIBGCC2_MAX_UNITS_PER_WORD 4
 #else
 # define LIBGCC2_MAX_UNITS_PER_WORD MIN_UNITS_PER_WORD
@@ -411,7 +407,7 @@ __lshrdi3 (DWtype u, shift_count_type b)
     return u;
 
   const DWunion uu = {.ll = u};
-  const shift_count_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
+  const shift_count_type bm = W_TYPE_SIZE - b;
   DWunion w;
 
   if (bm <= 0)
@@ -439,7 +435,7 @@ __ashldi3 (DWtype u, shift_count_type b)
     return u;
 
   const DWunion uu = {.ll = u};
-  const shift_count_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
+  const shift_count_type bm = W_TYPE_SIZE - b;
   DWunion w;
 
   if (bm <= 0)
@@ -467,13 +463,13 @@ __ashrdi3 (DWtype u, shift_count_type b)
     return u;
 
   const DWunion uu = {.ll = u};
-  const shift_count_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
+  const shift_count_type bm = W_TYPE_SIZE - b;
   DWunion w;
 
   if (bm <= 0)
     {
       /* w.s.high = 1..1 or 0..0 */
-      w.s.high = uu.s.high >> (sizeof (Wtype) * BITS_PER_UNIT - 1);
+      w.s.high = uu.s.high >> (W_TYPE_SIZE - 1);
       w.s.low = uu.s.high >> -bm;
     }
   else
@@ -538,7 +534,7 @@ __ffsDI2 (DWtype u)
   if (uu.s.low != 0)
     word = uu.s.low, add = 0;
   else if (uu.s.high != 0)
-    word = uu.s.high, add = BITS_PER_UNIT * sizeof (Wtype);
+    word = uu.s.high, add = W_TYPE_SIZE;
   else
     return 0;
 
@@ -766,7 +762,50 @@ __ctzDI2 (UDWtype x)
   return ret + add;
 }
 #endif
+
+#ifdef L_clrsbsi2
+#undef int
+int
+__clrsbSI2 (Wtype x)
+{
+  Wtype ret;
 
+  if (x < 0)
+    x = ~x;
+  if (x == 0)
+    return W_TYPE_SIZE - 1;
+  count_leading_zeros (ret, x);
+  return ret - 1;
+}
+#endif
+
+#ifdef L_clrsbdi2
+#undef int
+int
+__clrsbDI2 (DWtype x)
+{
+  const DWunion uu = {.ll = x};
+  UWtype word;
+  Wtype ret, add;
+
+  if (uu.s.high == 0)
+    word = uu.s.low, add = W_TYPE_SIZE;
+  else if (uu.s.high == -1)
+    word = ~uu.s.low, add = W_TYPE_SIZE;
+  else if (uu.s.high >= 0)
+    word = uu.s.high, add = 0;
+  else
+    word = ~uu.s.high, add = 0;
+
+  if (word == 0)
+    ret = W_TYPE_SIZE;
+  else
+    count_leading_zeros (ret, word);
+
+  return ret + add - 1;
+}
+#endif
+
 #ifdef L_popcount_tab
 const UQItype __popcount_tab[256] =
 {
@@ -2031,24 +2070,12 @@ __clear_cache (char *beg __attribute__((__unused__)),
 
 #endif /* L_clear_cache */
 
-#ifdef L_enable_execute_stack
-/* Attempt to turn on execute permission for the stack.  */
-
-#ifdef ENABLE_EXECUTE_STACK
-  ENABLE_EXECUTE_STACK
-#else
-void
-__enable_execute_stack (void *addr __attribute__((__unused__)))
-{}
-#endif /* ENABLE_EXECUTE_STACK */
-
-#endif /* L_enable_execute_stack */
-
 #ifdef L_trampoline
 
 /* Jump to a trampoline, loading the static chain address.  */
 
 #if defined(WINNT) && ! defined(__CYGWIN__)
+#include <windows.h>
 int getpagesize (void);
 int mprotect (char *,int, int);
 

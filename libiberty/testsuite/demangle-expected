@@ -3220,6 +3220,16 @@ _26_GLOBAL_$N$_tmp_n.iilg4Gya$app_instance
 {anonymous}::app_instance
 {anonymous}::app_instance
 #
+--format=gnu-v3 --no-params
+_Z3fo5n
+fo5(__int128)
+fo5
+#
+--format=gnu-v3 --no-params
+_Z3fo5o
+fo5(unsigned __int128)
+fo5
+#
 --format=java
 _ZN4java3awt10ScrollPane7addImplEPNS0_9ComponentEPNS_4lang6ObjectEi
 java.awt.ScrollPane.addImpl(java.awt.Component, java.lang.Object, int)
@@ -3315,8 +3325,13 @@ first<Duo>
 #
 --format=gnu-v3 --no-params
 _Z3fooIiFvdEiEvv
-void foo<int, void ()(double), int>()
-foo<int, void ()(double), int>
+void foo<int, void (double), int>()
+foo<int, void (double), int>
+#
+--format=gnu-v3 --no-params
+_Z1fIFvvEEvv
+void f<void ()>()
+f<void ()>
 #
 --format=gnu-v3 --no-params
 _ZN1N1fE
@@ -3595,8 +3610,8 @@ std::_Alloc_traits<std::basic_string<char, std::string_char_traits<char>, libcw:
 #
 --format=gnu-v3 --no-params
 _GLOBAL__I__Z2fnv
-global constructors keyed to _Z2fnv
-global constructors keyed to _Z2fnv
+global constructors keyed to fn()
+global constructors keyed to fn()
 #
 --format=gnu-v3 --no-params
 _Z1rM1GFivEMS_KFivES_M1HFivES1_4whatIKS_E5what2IS8_ES3_
@@ -3886,10 +3901,18 @@ java resource java/util/iso4217.properties
 --format=gnu-v3
 _Z3addIidEDTplfp_fp0_ET_T0_
 decltype ({parm#1}+{parm#2}) add<int, double>(int, double)
+# decltype scope test
+--format=gnu-v3
+_Z1fI1SENDtfp_E4typeET_
+decltype ({parm#1})::type f<S>(S)
 # decltype/fn call test
 --format=gnu-v3
 _Z4add3IidEDTclL_Z1gEfp_fp0_EET_T0_
 decltype (g({parm#1}, {parm#2})) add3<int, double>(int, double)
+# 'this' test
+--format=gnu-v3
+_ZN1A1fIiEEDTcldtdtdefpT1b1fIT_EEEv
+decltype ((((*this).b).(f<int>))()) A::f<int>()
 # new (2008) built in types test
 --format=gnu-v3
 _Z1fDfDdDeDhDsDi
@@ -3905,7 +3928,11 @@ decltype (({parm#1}.(g<double>))()) h<A<int>, double>(A<int>, double)
 # test for typed function in decltype
 --format=gnu-v3
 _ZN1AIiE1jIiEEDTplfp_clL_Z1xvEEET_
-decltype ({parm#1}+((x())())) A<int>::j<int>(int)
+decltype ({parm#1}+(x())) A<int>::j<int>(int)
+# typed function in decltype with an argument list
+--format=gnu-v3
+_Z1tIlEDTplcvT_Li5EclL_Z1qsELi6EEEv
+decltype (((long)(5))+(q(6))) t<long>()
 # test for expansion of function parameter pack
 --format=gnu-v3
 _Z1gIIidEEDTclL_Z1fEspplfp_Li1EEEDpT_
@@ -3938,6 +3965,59 @@ decltype ((operator+)({parm#1}, {parm#1})) f<A>(A)
 --format=gnu-v3
 _Z1hI1AEDTcldtfp_miEET_
 decltype (({parm#1}.(operator-))()) h<A>(A)
+--format=gnu-v3
+_Z1fDn
+f(decltype(nullptr))
+--format=gnu-v3
+_Z1fIRiEvOT_b
+void f<int&>(int&, bool)
+--format=gnu-v3
+_ZN5aaaaa6bbbbbb5cccccIN23ddddddddddddddddddddddd3eeeENS2_4ffff16ggggggggggggggggENS0_9hhhhhhhhhES6_S6_S6_S6_S6_S6_S6_EE
+aaaaa::bbbbbb::ccccc<ddddddddddddddddddddddd::eee, ddddddddddddddddddddddd::ffff::gggggggggggggggg, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh, aaaaa::bbbbbb::hhhhhhhhh>
+--format=gnu-v3
+_Z5outerIsEcPFilE
+char outer<short>(int (*)(long))
+--format=gnu-v3
+_Z5outerPFsiEl
+outer(short (*)(int), long)
+--format=gnu-v3
+_Z6outer2IsEPFilES1_
+int (*outer2<short>(int (*)(long)))(long)
+--format=gnu-v3 --ret-postfix
+_Z5outerIsEcPFilE
+outer<short>(int (*)(long))char
+--format=gnu-v3 --ret-postfix
+_Z5outerPFsiEl
+outer(short (*)(int), long)
+--format=gnu-v3 --ret-postfix
+_Z6outer2IsEPFilES1_
+outer2<short>(int (*)(long))int (*)(long)
+--format=gnu-v3 --ret-drop
+_Z5outerIsEcPFilE
+outer<short>(int (*)(long))
+--format=gnu-v3 --ret-drop
+_Z5outerPFsiEl
+outer(short (*)(int), long)
+--format=gnu-v3 --ret-drop
+_Z6outer2IsEPFilES1_
+outer2<short>(int (*)(long))
+#
+--format=gnu-v3 --no-params
+_ZN1KIXadL_ZN1S1mEiEEE1fEv
+K<&S::m>::f()
+K<&S::m>::f
+--format=gnu-v3
+_ZN1KILi1EXadL_ZN1S1mEiEEE1fEv
+K<1, &S::m>::f()
+# Here the `(int)' argument list of `S::m' is already removed.
+--format=gnu-v3
+_ZN1KILi1EXadL_ZN1S1mEEEE1fEv
+K<1, &S::m>::f()
+#
+# Used to crash -- binutils PR 13030.
+--format=gnu-v3
+_ZSt10_ConstructI10CellBorderIS0_EEvPT_DpOT0_
+_ZSt10_ConstructI10CellBorderIS0_EEvPT_DpOT0_
 #
 # Ada (GNAT) tests.
 #
@@ -4031,8 +4111,43 @@ prot.lock.update
 --format=gnat
 prot__lock__update_E6s
 prot.lock.update
+# Controlled types
+--format=gnat
+gnat__sockets__sockets_library_controllerDF__2
+gnat.sockets.sockets_library_controller.Finalize
+--format=gnat
+system__partition_interface__racw_stub_typeDA
+system.partition_interface.racw_stub_type.Adjust
+# Stream operations
+--format=gnat
+gnat__wide_wide_string_split__slice_setSR__2
+gnat.wide_wide_string_split.slice_set'Read
+--format=gnat
+ada__real_time__timing_events__events__listSW__2Xnn
+ada.real_time.timing_events.events.list'Write
+--format=gnat
+system__finalization_root__root_controlledSI
+system.finalization_root.root_controlled'Input
+--format=gnat
+ada__finalization__limited_controlledSO__2
+ada.finalization.limited_controlled'Output
+# Tagged types
+--format=gnat
+ada__synchronous_task_control___size__2
+ada.synchronous_task_control'Size
+--format=gnat
+ada__real_time__timing_events__events___alignment__2Xnn
+ada.real_time.timing_events.events'Alignment
+--format=gnat
+system__finalization_root___assign__2
+system.finalization_root.":="
 #
 # Used to crash the demangler.
 --format=gnu-v3
 DFA
 DFA
+#
+# http://sourceware.org/bugzilla/show_bug.cgi?id=11572
+--format=auto
+_ZN3Psi7VariantIIcPKcEE5visitIIRZN11VariantTest9TestVisit11test_methodEvEUlS2_E0_RZNS6_11test_methodEvEUlcE1_RZNS6_11test_methodEvEUlNS_4NoneEE_EEENS_13VariantDetail19SelectVisitorResultIIDpT_EE4typeEDpOSG_
+Psi::VariantDetail::SelectVisitorResult<VariantTest::TestVisit::test_method()::{lambda(char const*)#2}&, VariantTest::TestVisit::test_method()::{lambda(char)#3}&, VariantTest::TestVisit::test_method()::{lambda(Psi::None)#1}&>::type Psi::Variant<char, char const*>::visit<VariantTest::TestVisit::test_method()::{lambda(char const*)#2}&, VariantTest::TestVisit::test_method()::{lambda(char)#3}&, VariantTest::TestVisit::test_method()::{lambda(Psi::None)#1}&>((VariantTest::TestVisit::test_method()::{lambda(Psi::None)#1}&)...)

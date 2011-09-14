@@ -1,5 +1,5 @@
 /* Post reload partially redundant load elimination
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 
 #include "rtl.h"
 #include "tree.h"
@@ -30,7 +30,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "flags.h"
-#include "real.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "basic-block.h"
@@ -924,6 +923,9 @@ bb_has_well_behaved_predecessors (basic_block bb)
       if ((pred->flags & EDGE_ABNORMAL) && EDGE_CRITICAL_P (pred))
 	return false;
 
+      if ((pred->flags & EDGE_ABNORMAL_CALL) && cfun->has_nonlocal_label)
+	return false;
+
       if (JUMP_TABLE_DATA_P (BB_END (pred->src)))
 	return false;
     }
@@ -1129,7 +1131,8 @@ eliminate_partially_redundant_load (basic_block bb, rtx insn,
      discover additional redundancies, so mark it for later deletion.  */
   for (a_occr = get_bb_avail_insn (bb, expr->avail_occr);
        a_occr && (a_occr->insn != insn);
-       a_occr = get_bb_avail_insn (bb, a_occr->next));
+       a_occr = get_bb_avail_insn (bb, a_occr->next))
+    ;
 
   if (!a_occr)
     {
@@ -1201,7 +1204,7 @@ eliminate_partially_redundant_loads (void)
 		  /* Are the operands unchanged since the start of the
 		     block?  */
 		  && oprs_unchanged_p (src, insn, false)
-		  && !(flag_non_call_exceptions && may_trap_p (src))
+		  && !(cfun->can_throw_non_call_exceptions && may_trap_p (src))
 		  && !side_effects_p (src)
 		  /* Is the expression recorded?  */
 		  && (expr = lookup_expr_in_table (src)) != NULL)
@@ -1295,6 +1298,13 @@ gcse_after_reload_main (rtx f ATTRIBUTE_UNUSED)
 	  fprintf (dump_file, "insns deleted:   %d\n", stats.insns_deleted);
 	  fprintf (dump_file, "\n\n");
 	}
+
+      statistics_counter_event (cfun, "copies inserted",
+				stats.copies_inserted);
+      statistics_counter_event (cfun, "moves inserted",
+				stats.moves_inserted);
+      statistics_counter_event (cfun, "insns deleted",
+				stats.insns_deleted);
     }
 
   /* We are finished with alias.  */
@@ -1335,8 +1345,7 @@ struct rtl_opt_pass pass_gcse2 =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing
+  TODO_verify_rtl_sharing
   | TODO_verify_flow | TODO_ggc_collect /* todo_flags_finish */
  }
 };
-

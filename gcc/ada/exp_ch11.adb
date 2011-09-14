@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -469,9 +469,7 @@ package body Exp_Ch11 is
                Local_Expansion_Required := True;
 
                declare
-                  L : constant Entity_Id :=
-                        Make_Defining_Identifier (Sloc (H),
-                          Chars => New_Internal_Name ('L'));
+                  L : constant Entity_Id := Make_Temporary (Sloc (H), 'L');
                begin
                   Set_Exception_Label (H, L);
                   Add_Label_Declaration (L);
@@ -646,9 +644,7 @@ package body Exp_Ch11 is
          declare
             --  L3 is the label to exit the HSS
 
-            L3_Dent : constant Entity_Id :=
-                        Make_Defining_Identifier (Loc,
-                          Chars => New_Internal_Name ('L'));
+            L3_Dent : constant Entity_Id := Make_Temporary (Loc, 'L');
 
             Labl_L3 : constant Node_Id :=
                         Make_Label (Loc,
@@ -670,7 +666,8 @@ package body Exp_Ch11 is
 
             Rewrite (HSS,
               Make_Handled_Sequence_Of_Statements (Loc,
-                Statements => New_List (Blk_Stm)));
+                Statements => New_List (Blk_Stm),
+                End_Label  => Relocate_Node (End_Label (HSS))));
 
             --  Set block statement as analyzed, we don't want to actually call
             --  Analyze on this block, it would cause a recursion in exception
@@ -745,13 +742,12 @@ package body Exp_Ch11 is
                         Relmt := First_Elmt (Local_Raise_Statements (Handler));
                         while Present (Relmt) loop
                            declare
-                              Raise_S : constant Node_Id := Node (Relmt);
-
+                              Raise_S : constant Node_Id    := Node (Relmt);
+                              RLoc    : constant Source_Ptr := Sloc (Raise_S);
                               Name_L1 : constant Node_Id :=
                                           New_Occurrence_Of (L1_Dent, Loc);
-
                               Goto_L1 : constant Node_Id :=
-                                          Make_Goto_Statement (Loc,
+                                          Make_Goto_Statement (RLoc,
                                             Name => Name_L1);
 
                            begin
@@ -972,6 +968,8 @@ package body Exp_Ch11 is
 
       Handler := First_Non_Pragma (Handlrs);
       Handler_Loop : while Present (Handler) loop
+         Process_Statements_For_Controlled_Objects (Handler);
+
          Next_Handler := Next_Non_Pragma (Handler);
 
          --  Remove source handler if gnat debug flag .x is set
@@ -1099,8 +1097,9 @@ package body Exp_Ch11 is
                   --  any case this entire handling is relevant only if aborts
                   --  are allowed!
 
-               elsif Abort_Allowed then
-
+               elsif Abort_Allowed
+                 and then Exception_Mechanism /= Back_End_Exceptions
+               then
                   --  There are some special cases in which we do not do the
                   --  undefer. In particular a finalization (AT END) handler
                   --  wants to operate with aborts still deferred.
@@ -1124,7 +1123,6 @@ package body Exp_Ch11 is
                       (Others_Choice
                         and then
                           All_Others (First (Exception_Choices (Handler))))
-                    and then Abort_Allowed
                   then
                      Prepend_Call_To_Handler (RE_Abort_Undefer);
                   end if;
@@ -1253,7 +1251,8 @@ package body Exp_Ch11 is
 
    begin
       --  There is no expansion needed when compiling for the JVM since the
-      --  JVM has a built-in exception mechanism. See 4jexcept.ads for details.
+      --  JVM has a built-in exception mechanism. See cil/gnatlib/a-except.ads
+      --  for details.
 
       if VM_Target /= No_VM then
          return;
@@ -1268,7 +1267,7 @@ package body Exp_Ch11 is
           Object_Definition   => New_Occurrence_Of (Standard_String, Loc),
           Expression          =>
             Make_String_Literal (Loc,
-              Strval => Full_Qualified_Name (Id))));
+              Strval => Fully_Qualified_Name_String (Id))));
 
       Set_Is_Statically_Allocated (Exname);
 
@@ -1442,6 +1441,7 @@ package body Exp_Ch11 is
       E     : Entity_Id;
       Str   : String_Id;
       H     : Node_Id;
+      Src   : Boolean;
 
    begin
       --  Processing for locally handled exception (exclude reraise case)
@@ -1513,21 +1513,12 @@ package body Exp_Ch11 is
          return;
       end if;
 
-      --  Remaining processing is for the case where no string expression
-      --  is present.
+      --  Remaining processing is for the case where no string expression is
+      --  present.
 
-      --  There is no expansion needed for statement "raise <exception>;" when
-      --  compiling for the JVM since the JVM has a built-in exception
-      --  mechanism. However we need to keep the expansion for "raise;"
-      --  statements. See 4jexcept.ads for details.
-
-      if Present (Name (N)) and then VM_Target /= No_VM then
-         return;
-      end if;
-
-      --  Don't expand a raise statement that does not come from source
-      --  if we have already had configurable run-time violations, since
-      --  most likely it will be junk cascaded nonsense.
+      --  Don't expand a raise statement that does not come from source if we
+      --  have already had configurable run-time violations, since most likely
+      --  it will be junk cascaded nonsense.
 
       if Configurable_Run_Time_Violations > 0
         and then not Comes_From_Source (N)
@@ -1538,27 +1529,30 @@ package body Exp_Ch11 is
       --  Convert explicit raise of Program_Error, Constraint_Error, and
       --  Storage_Error into the corresponding raise (in High_Integrity_Mode
       --  all other raises will get normal expansion and be disallowed,
-      --  but this is also faster in all modes).
+      --  but this is also faster in all modes). Propagate Comes_From_Source
+      --  flag to the new node.
 
       if Present (Name (N)) and then Nkind (Name (N)) = N_Identifier then
+         Src := Comes_From_Source (N);
+
          if Entity (Name (N)) = Standard_Constraint_Error then
             Rewrite (N,
-              Make_Raise_Constraint_Error (Loc,
-                Reason => CE_Explicit_Raise));
+              Make_Raise_Constraint_Error (Loc, Reason => CE_Explicit_Raise));
+            Set_Comes_From_Source (N, Src);
             Analyze (N);
             return;
 
          elsif Entity (Name (N)) = Standard_Program_Error then
             Rewrite (N,
-              Make_Raise_Program_Error (Loc,
-                Reason => PE_Explicit_Raise));
+              Make_Raise_Program_Error (Loc, Reason => PE_Explicit_Raise));
+            Set_Comes_From_Source (N, Src);
             Analyze (N);
             return;
 
          elsif Entity (Name (N)) = Standard_Storage_Error then
             Rewrite (N,
-              Make_Raise_Storage_Error (Loc,
-                Reason => SE_Explicit_Raise));
+              Make_Raise_Storage_Error (Loc, Reason => SE_Explicit_Raise));
+            Set_Comes_From_Source (N, Src);
             Analyze (N);
             return;
          end if;
@@ -1671,6 +1665,19 @@ package body Exp_Ch11 is
       --  does not have a choice parameter specification, then we provide one.
 
       else
+         --  Bypass expansion to a run-time call when back-end exception
+         --  handling is active, unless the target is a VM, CodePeer or
+         --  GNATprove. In CodePeer, raising an exception is treated as an
+         --  error, while in GNATprove all code with exceptions falls outside
+         --  the subset of code which can be formally analyzed.
+
+         if VM_Target = No_VM
+           and then not CodePeer_Mode
+           and then Exception_Mechanism = Back_End_Exceptions
+         then
+            return;
+         end if;
+
          --  Find innermost enclosing exception handler (there must be one,
          --  since the semantics has already verified that this raise statement
          --  is valid, and a raise with no arguments is only permitted in the
@@ -1686,7 +1693,7 @@ package body Exp_Ch11 is
          --  be referencing this entity by normal visibility methods.
 
          if No (Choice_Parameter (Ehand)) then
-            E := Make_Defining_Identifier (Loc, New_Internal_Name ('E'));
+            E := Make_Temporary (Loc, 'E');
             Set_Choice_Parameter (Ehand, E);
             Set_Ekind (E, E_Variable);
             Set_Etype (E, RTE (RE_Exception_Occurrence));
@@ -2019,7 +2026,7 @@ package body Exp_Ch11 is
 
    procedure Warn_If_No_Propagation (N : Node_Id) is
    begin
-      if Restriction_Active (No_Exception_Propagation)
+      if Restriction_Check_Required (No_Exception_Propagation)
         and then Warn_On_Non_Local_Exception
       then
          Warn_No_Exception_Propagation_Active (N);

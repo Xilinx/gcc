@@ -6,32 +6,32 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2002-2009, AdaCore                     --
+--                     Copyright (C) 2002-2011, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.IO_Exceptions; use Ada.IO_Exceptions;
+with Ada.IO_Exceptions;       use Ada.IO_Exceptions;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Directories;
 
 with GNAT.Heap_Sort_G;
 with GNAT.OS_Lib;      use GNAT.OS_Lib;
@@ -103,7 +103,7 @@ package body GNAT.Perfect_Hash_Generators is
    No_Table  : constant Table_Id  := -1;
 
    type Word_Type is new String_Access;
-   procedure Free_Word (W : in out Word_Type);
+   procedure Free_Word (W : in out Word_Type) renames Free;
    function New_Word (S : String) return Word_Type;
 
    procedure Resize_Word (W : in out Word_Type; Len : Natural);
@@ -142,6 +142,9 @@ package body GNAT.Perfect_Hash_Generators is
    function Image (Str : String;  W : Natural := 0) return String;
    --  Return a string which includes string Str or integer Int preceded by
    --  leading spaces if required by width W.
+
+   function Trim_Trailing_Nuls (Str : String) return String;
+   --  Return Str with trailing NUL characters removed
 
    Output : File_Descriptor renames GNAT.OS_Lib.Standout;
    --  Shortcuts
@@ -212,6 +215,12 @@ package body GNAT.Perfect_Hash_Generators is
 
    procedure Put_Vertex_Table (File : File_Descriptor; Title : String);
    --  Output a title and a vertex table
+
+   function Ada_File_Base_Name (Pkg_Name : String) return String;
+   --  Return the base file name (i.e. without .ads/.adb extension) for an
+   --  Ada source file containing the named package, using the standard GNAT
+   --  file-naming convention. For example, if Pkg_Name is "Parent.Child", we
+   --  return "parent-child".
 
    ----------------------------------
    -- Character Position Selection --
@@ -494,11 +503,29 @@ package body GNAT.Perfect_Hash_Generators is
       return True;
    end Acyclic;
 
+   ------------------------
+   -- Ada_File_Base_Name --
+   ------------------------
+
+   function Ada_File_Base_Name (Pkg_Name : String) return String is
+   begin
+      --  Convert to lower case, then replace '.' with '-'
+
+      return Result : String := To_Lower (Pkg_Name) do
+         for J in Result'Range loop
+            if Result (J) = '.' then
+               Result (J) := '-';
+            end if;
+         end loop;
+      end return;
+   end Ada_File_Base_Name;
+
    ---------
    -- Add --
    ---------
 
    procedure Add (C : Character) is
+      pragma Assert (C /= ASCII.NUL);
    begin
       Line (Last + 1) := C;
       Last := Last + 1;
@@ -511,6 +538,11 @@ package body GNAT.Perfect_Hash_Generators is
    procedure Add (S : String) is
       Len : constant Natural := S'Length;
    begin
+      for J in S'Range loop
+         pragma Assert (S (J) /= ASCII.NUL);
+         null;
+      end loop;
+
       Line (Last + 1 .. Last + Len) := S;
       Last := Last + Len;
    end Add;
@@ -519,10 +551,18 @@ package body GNAT.Perfect_Hash_Generators is
    -- Allocate --
    --------------
 
-   function  Allocate (N : Natural; S : Natural := 1) return Table_Id is
+   function Allocate (N : Natural; S : Natural := 1) return Table_Id is
       L : constant Integer := IT.Last;
    begin
       IT.Set_Last (L + N * S);
+
+      --  Initialize, so debugging printouts don't trip over uninitialized
+      --  components.
+
+      for J in L + 1 .. IT.Last loop
+         IT.Table (J) := -1;
+      end loop;
+
       return L + 1;
    end Allocate;
 
@@ -864,12 +904,24 @@ package body GNAT.Perfect_Hash_Generators is
 
    procedure Finalize is
    begin
-      --  Deallocate all the WT components (both initial and reduced
-      --  ones) to avoid memory leaks.
+      if Verbose then
+         Put (Output, "Finalize");
+         New_Line (Output);
+      end if;
+
+      --  Deallocate all the WT components (both initial and reduced ones) to
+      --  avoid memory leaks.
 
       for W in 0 .. WT.Last loop
-         Free_Word (WT.Table (W));
+
+         --  Note: WT.Table (NK) is a temporary variable, do not free it since
+         --  this would cause a double free.
+
+         if W /= NK then
+            Free_Word (WT.Table (W));
+         end if;
       end loop;
+
       WT.Release;
       IT.Release;
 
@@ -902,17 +954,6 @@ package body GNAT.Perfect_Hash_Generators is
       Max_Key_Len := 0;
       Min_Key_Len := 0;
    end Finalize;
-
-   ---------------
-   -- Free_Word --
-   ---------------
-
-   procedure Free_Word (W : in out Word_Type) is
-   begin
-      if W /= null then
-         Free (W);
-      end if;
-   end Free_Word;
 
    ----------------------------
    -- Generate_Mapping_Table --
@@ -1137,10 +1178,15 @@ package body GNAT.Perfect_Hash_Generators is
    procedure Initialize
      (Seed   : Natural;
       K_To_V : Float        := Default_K_To_V;
-      Optim  : Optimization := CPU_Time;
+      Optim  : Optimization := Memory_Space;
       Tries  : Positive     := Default_Tries)
    is
    begin
+      if Verbose then
+         Put (Output, "Initialize");
+         New_Line (Output);
+      end if;
+
       --  Deallocate the part of the table concerning the reduced words.
       --  Initial words are already present in the table. We may have reduced
       --  words already there because a previous computation failed. We are
@@ -1208,6 +1254,11 @@ package body GNAT.Perfect_Hash_Generators is
       --  explicitly initialized to null.
 
       WT.Set_Last (Reduced (NK - 1));
+
+      --  Note: Reduced (0) = NK + 1
+
+      WT.Table (NK) := null;
+
       for W in 0 .. NK - 1 loop
          WT.Table (Reduced (W)) := null;
       end loop;
@@ -1221,6 +1272,16 @@ package body GNAT.Perfect_Hash_Generators is
       Len  : constant Natural := Value'Length;
 
    begin
+      if Verbose then
+         Put (Output, "Inserting """ & Value & """");
+         New_Line (Output);
+      end if;
+
+      for J in Value'Range loop
+         pragma Assert (Value (J) /= ASCII.NUL);
+         null;
+      end loop;
+
       WT.Set_Last (NK);
       WT.Table (NK) := New_Word (Value);
       NK := NK + 1;
@@ -1369,8 +1430,11 @@ package body GNAT.Perfect_Hash_Generators is
    -- Produce --
    -------------
 
-   procedure Produce (Pkg_Name  : String := Default_Pkg_Name) is
-      File : File_Descriptor;
+   procedure Produce
+     (Pkg_Name   : String  := Default_Pkg_Name;
+      Use_Stdout : Boolean := False)
+   is
+      File : File_Descriptor := Standout;
 
       Status : Boolean;
       --  For call to Close
@@ -1462,27 +1526,27 @@ package body GNAT.Perfect_Hash_Generators is
       L : Natural;
       P : Natural;
 
-      PLen  : constant Natural := Pkg_Name'Length;
-      FName : String (1 .. PLen + 4);
+      FName : String := Ada_File_Base_Name (Pkg_Name) & ".ads";
+      --  Initially, the name of the spec file, then modified to be the name of
+      --  the body file. Not used if Use_Stdout is True.
 
    --  Start of processing for Produce
 
    begin
-      FName (1 .. PLen) := Pkg_Name;
-      for J in 1 .. PLen loop
-         if FName (J) in 'A' .. 'Z' then
-            FName (J) := Character'Val (Character'Pos (FName (J))
-                                        - Character'Pos ('A')
-                                        + Character'Pos ('a'));
 
-         elsif FName (J) = '.' then
-            FName (J) := '-';
+      if Verbose and then not Use_Stdout then
+         Put (Output,
+              "Producing " & Ada.Directories.Current_Directory & "/" & FName);
+         New_Line (Output);
+      end if;
+
+      if not Use_Stdout then
+         File := Create_File (FName, Binary);
+
+         if File = Invalid_FD then
+            raise Program_Error with "cannot create: " & FName;
          end if;
-      end loop;
-
-      FName (PLen + 1 .. PLen + 4) := ".ads";
-
-      File := Create_File (FName, Binary);
+      end if;
 
       Put      (File, "package ");
       Put      (File, Pkg_Name);
@@ -1494,15 +1558,27 @@ package body GNAT.Perfect_Hash_Generators is
       Put      (File, Pkg_Name);
       Put      (File, ";");
       New_Line (File);
-      Close    (File, Status);
 
-      if not Status then
-         raise Device_Error;
+      if not Use_Stdout then
+         Close (File, Status);
+
+         if not Status then
+            raise Device_Error;
+         end if;
       end if;
 
-      FName (PLen + 4) := 'b';
+      if not Use_Stdout then
 
-      File := Create_File (FName, Binary);
+         --  Set to body file name
+
+         FName (FName'Last) := 'b';
+
+         File := Create_File (FName, Binary);
+
+         if File = Invalid_FD then
+            raise Program_Error with "cannot create: " & FName;
+         end if;
+      end if;
 
       Put      (File, "with Interfaces; use Interfaces;");
       New_Line (File);
@@ -1540,39 +1616,41 @@ package body GNAT.Perfect_Hash_Generators is
 
       New_Line (File);
 
-      if Opt = CPU_Time then
-         Put_Int_Matrix
-           (File,
-            Array_Img ("T1", Type_Img (NV),
-                       Range_Img (0, T1_Len - 1),
-                       Range_Img (0, T2_Len - 1, Type_Img (256))),
-            T1, T1_Len, T2_Len);
+      case Opt is
+         when CPU_Time =>
+            Put_Int_Matrix
+              (File,
+               Array_Img ("T1", Type_Img (NV),
+                          Range_Img (0, T1_Len - 1),
+                          Range_Img (0, T2_Len - 1, Type_Img (256))),
+               T1, T1_Len, T2_Len);
 
-      else
-         Put_Int_Matrix
-           (File,
-            Array_Img ("T1", Type_Img (NV),
-                       Range_Img (0, T1_Len - 1)),
-            T1, T1_Len, 0);
-      end if;
+         when Memory_Space =>
+            Put_Int_Matrix
+              (File,
+               Array_Img ("T1", Type_Img (NV),
+                          Range_Img (0, T1_Len - 1)),
+               T1, T1_Len, 0);
+      end case;
 
       New_Line (File);
 
-      if Opt = CPU_Time then
-         Put_Int_Matrix
-           (File,
-            Array_Img ("T2", Type_Img (NV),
-                       Range_Img (0, T1_Len - 1),
-                       Range_Img (0, T2_Len - 1, Type_Img (256))),
-            T2, T1_Len, T2_Len);
+      case Opt is
+         when CPU_Time =>
+            Put_Int_Matrix
+              (File,
+               Array_Img ("T2", Type_Img (NV),
+                          Range_Img (0, T1_Len - 1),
+                          Range_Img (0, T2_Len - 1, Type_Img (256))),
+               T2, T1_Len, T2_Len);
 
-      else
-         Put_Int_Matrix
-           (File,
-            Array_Img ("T2", Type_Img (NV),
-                       Range_Img (0, T1_Len - 1)),
-            T2, T1_Len, 0);
-      end if;
+         when Memory_Space =>
+            Put_Int_Matrix
+              (File,
+               Array_Img ("T2", Type_Img (NV),
+                          Range_Img (0, T1_Len - 1)),
+               T2, T1_Len, 0);
+      end case;
 
       New_Line (File);
 
@@ -1594,11 +1672,12 @@ package body GNAT.Perfect_Hash_Generators is
 
       Put (File, "      J : ");
 
-      if Opt = CPU_Time then
-         Put (File, Type_Img (256));
-      else
-         Put (File, "Natural");
-      end if;
+      case Opt is
+         when CPU_Time =>
+            Put (File, Type_Img (256));
+         when Memory_Space =>
+            Put (File, "Natural");
+      end case;
 
       Put (File, ";");
       New_Line (File);
@@ -1611,11 +1690,12 @@ package body GNAT.Perfect_Hash_Generators is
       New_Line (File);
       Put      (File, "         J  := ");
 
-      if Opt = CPU_Time then
-         Put (File, "C");
-      else
-         Put (File, "Character'Pos");
-      end if;
+      case Opt is
+         when CPU_Time =>
+            Put (File, "C");
+         when Memory_Space =>
+            Put (File, "Character'Pos");
+      end case;
 
       Put      (File, " (S (P (K) + F));");
       New_Line (File);
@@ -1670,10 +1750,13 @@ package body GNAT.Perfect_Hash_Generators is
       Put      (File, Pkg_Name);
       Put      (File, ";");
       New_Line (File);
-      Close    (File, Status);
 
-      if not Status then
-         raise Device_Error;
+      if not Use_Stdout then
+         Close (File, Status);
+
+         if not Status then
+            raise Device_Error;
+         end if;
       end if;
    end Produce;
 
@@ -1684,6 +1767,11 @@ package body GNAT.Perfect_Hash_Generators is
    procedure Put (File : File_Descriptor; Str : String) is
       Len : constant Natural := Str'Length;
    begin
+      for J in Str'Range loop
+         pragma Assert (Str (J) /= ASCII.NUL);
+         null;
+      end loop;
+
       if Write (File, Str'Address, Len) /= Len then
          raise Program_Error;
       end if;
@@ -1726,13 +1814,12 @@ package body GNAT.Perfect_Hash_Generators is
          Last := 0;
       end if;
 
-      if Last + Len + 3 > Max then
+      if Last + Len + 3 >= Max then
          Flush;
       end if;
 
       if Last = 0 then
-         Line (Last + 1 .. Last + 5) := "     ";
-         Last := Last + 5;
+         Add ("     ");
 
          if F1 <= L1 then
             if C1 = F1 and then C2 = F2 then
@@ -1759,8 +1846,7 @@ package body GNAT.Perfect_Hash_Generators is
          Add (' ');
       end if;
 
-      Line (Last + 1 .. Last + Len) := S;
-      Last := Last + Len;
+      Add (S);
 
       if C2 = L2 then
          Add (')');
@@ -1827,7 +1913,8 @@ package body GNAT.Perfect_Hash_Generators is
          K := Get_Key (J);
          Put (File, Image (J, M),           F1, L1, J, 1, 3, 1);
          Put (File, Image (K.Edge, M),      F1, L1, J, 1, 3, 2);
-         Put (File, WT.Table (Initial (J)).all, F1, L1, J, 1, 3, 3);
+         Put (File, Trim_Trailing_Nuls (WT.Table (Initial (J)).all),
+                    F1, L1, J, 1, 3, 3);
       end loop;
    end Put_Initial_Keys;
 
@@ -1908,7 +1995,8 @@ package body GNAT.Perfect_Hash_Generators is
          K := Get_Key (J);
          Put (File, Image (J, M),           F1, L1, J, 1, 3, 1);
          Put (File, Image (K.Edge, M),      F1, L1, J, 1, 3, 2);
-         Put (File, WT.Table (Reduced (J)).all, F1, L1, J, 1, 3, 3);
+         Put (File, Trim_Trailing_Nuls (WT.Table (Reduced (J)).all),
+                    F1, L1, J, 1, 3, 3);
       end loop;
    end Put_Reduced_Keys;
 
@@ -2295,7 +2383,8 @@ package body GNAT.Perfect_Hash_Generators is
                     Same_Keys_Sets_Table (J).First ..
                     Same_Keys_Sets_Table (J).Last
                   loop
-                     Put (Output, WT.Table (Reduced (K)).all);
+                     Put (Output,
+                          Trim_Trailing_Nuls (WT.Table (Reduced (K)).all));
                      New_Line (Output);
                   end loop;
                   Put (Output, "--");
@@ -2428,23 +2517,39 @@ package body GNAT.Perfect_Hash_Generators is
       R : Natural;
 
    begin
-      if Opt = CPU_Time then
-         for J in 0 .. T1_Len - 1 loop
-            exit when Word (J + 1) = ASCII.NUL;
-            R := Get_Table (Table, J, Get_Used_Char (Word (J + 1)));
-            S := (S + R) mod NV;
-         end loop;
+      case Opt is
+         when CPU_Time =>
+            for J in 0 .. T1_Len - 1 loop
+               exit when Word (J + 1) = ASCII.NUL;
+               R := Get_Table (Table, J, Get_Used_Char (Word (J + 1)));
+               S := (S + R) mod NV;
+            end loop;
 
-      else
-         for J in 0 .. T1_Len - 1 loop
-            exit when Word (J + 1) = ASCII.NUL;
-            R := Get_Table (Table, J, 0);
-            S := (S + R * Character'Pos (Word (J + 1))) mod NV;
-         end loop;
-      end if;
+         when Memory_Space =>
+            for J in 0 .. T1_Len - 1 loop
+               exit when Word (J + 1) = ASCII.NUL;
+               R := Get_Table (Table, J, 0);
+               S := (S + R * Character'Pos (Word (J + 1))) mod NV;
+            end loop;
+      end case;
 
       return S;
    end Sum;
+
+   ------------------------
+   -- Trim_Trailing_Nuls --
+   ------------------------
+
+   function Trim_Trailing_Nuls (Str : String) return String is
+   begin
+      for J in reverse Str'Range loop
+         if Str (J) /= ASCII.NUL then
+            return Str (Str'First .. J);
+         end if;
+      end loop;
+
+      return Str;
+   end Trim_Trailing_Nuls;
 
    ---------------
    -- Type_Size --

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,6 +28,7 @@ with Types;  use Types;
 
 package Sem_Ch3 is
    procedure Analyze_Component_Declaration         (N : Node_Id);
+   procedure Analyze_Full_Type_Declaration         (N : Node_Id);
    procedure Analyze_Incomplete_Type_Decl          (N : Node_Id);
    procedure Analyze_Itype_Reference               (N : Node_Id);
    procedure Analyze_Number_Declaration            (N : Node_Id);
@@ -35,7 +36,6 @@ package Sem_Ch3 is
    procedure Analyze_Others_Choice                 (N : Node_Id);
    procedure Analyze_Private_Extension_Declaration (N : Node_Id);
    procedure Analyze_Subtype_Indication            (N : Node_Id);
-   procedure Analyze_Type_Declaration              (N : Node_Id);
    procedure Analyze_Variant_Part                  (N : Node_Id);
 
    procedure Analyze_Subtype_Declaration
@@ -84,13 +84,11 @@ package Sem_Ch3 is
    procedure Access_Type_Declaration (T : Entity_Id; Def : Node_Id);
    --  Process an access type declaration
 
-   procedure Build_Itype_Reference
-     (Ityp : Entity_Id;
-      Nod  : Node_Id);
+   procedure Build_Itype_Reference (Ityp : Entity_Id; Nod : Node_Id);
    --  Create a reference to an internal type, for use by Gigi. The back-end
-   --  elaborates itypes on demand, i.e. when their first use is seen. This
-   --  can lead to scope anomalies if the first use is within a scope that is
-   --  nested within the scope that contains  the point of definition of the
+   --  elaborates itypes on demand, i.e. when their first use is seen. This can
+   --  lead to scope anomalies if the first use is within a scope that is
+   --  nested within the scope that contains the point of definition of the
    --  itype. The Itype_Reference node forces the elaboration of the itype
    --  in the proper scope. The node is inserted after Nod, which is the
    --  enclosing declaration that generated Ityp.
@@ -159,7 +157,10 @@ package Sem_Ch3 is
    function Find_Type_Name (N : Node_Id) return Entity_Id;
    --  Enter the identifier in a type definition, or find the entity already
    --  declared, in the case of the full declaration of an incomplete or
-   --  private type.
+   --  private type. If the previous declaration is tagged then the class-wide
+   --  entity is propagated to the identifier to prevent multiple incompatible
+   --  class-wide types that may be created for self-referential anonymous
+   --  access components.
 
    function Get_Discriminant_Value
      (Discriminant       : Entity_Id;
@@ -168,6 +169,12 @@ package Sem_Ch3 is
    --  ??? MORE DOCUMENTATION
    --  Given a discriminant somewhere in the Typ_For_Constraint tree and a
    --  Constraint, return the value of that discriminant.
+
+   function Is_Constant_Bound (Exp : Node_Id) return Boolean;
+   --  Exp is the expression for an array bound. Determines whether the
+   --  bound is a compile-time known value, or a constant entity, or an
+   --  enumeration literal, or an expression composed of constant-bound
+   --  subexpressions which are evaluated by means of standard operators.
 
    function Is_Null_Extension (T : Entity_Id) return Boolean;
    --  Returns True if the tagged type T has an N_Full_Type_Declaration that
@@ -185,14 +192,17 @@ package Sem_Ch3 is
      (I            : Node_Id;
       Related_Nod  : Node_Id;
       Related_Id   : Entity_Id := Empty;
-      Suffix_Index : Nat := 1);
+      Suffix_Index : Nat := 1;
+      In_Iter_Schm : Boolean := False);
    --  Process an index that is given in an array declaration, an entry
    --  family declaration or a loop iteration. The index is given by an
    --  index declaration (a 'box'), or by a discrete range. The later can
    --  be the name of a discrete type, or a subtype indication.
    --
    --  Related_Nod is the node where the potential generated implicit types
-   --  will be inserted. The 2 last parameters are used for creating the name.
+   --  will be inserted. The next last parameters are used for creating the
+   --  name. In_Iter_Schm is True if Make_Index is called on the discrete
+   --  subtype definition in an iteration scheme.
 
    procedure Make_Class_Wide_Type (T : Entity_Id);
    --  A Class_Wide_Type is created for each tagged type definition. The
@@ -229,6 +239,8 @@ package Sem_Ch3 is
    --  In_Default_Expression flag. See the documentation section entitled
    --  "Handling of Default and Per-Object Expressions" in sem.ads for full
    --  details. N is the expression to be analyzed, T is the expected type.
+   --  This mechanism is also used for aspect specifications that have an
+   --  expression parameter that needs similar preanalysis.
 
    procedure Process_Full_View (N : Node_Id; Full_T, Priv_T : Entity_Id);
    --  Process some semantic actions when the full view of a private type is
@@ -242,10 +254,11 @@ package Sem_Ch3 is
    --    Priv_T is the private view of the type whose full declaration is in N.
 
    procedure Process_Range_Expr_In_Decl
-     (R           : Node_Id;
-      T           : Entity_Id;
-      Check_List  : List_Id := Empty_List;
-      R_Check_Off : Boolean := False);
+     (R            : Node_Id;
+      T            : Entity_Id;
+      Check_List   : List_Id := Empty_List;
+      R_Check_Off  : Boolean := False;
+      In_Iter_Schm : Boolean := False);
    --  Process a range expression that appears in a declaration context. The
    --  range is analyzed and resolved with the base type of the given type, and
    --  an appropriate check for expressions in non-static contexts made on the
@@ -256,7 +269,8 @@ package Sem_Ch3 is
    --  when the subprogram is called from Build_Record_Init_Proc and is used to
    --  return a set of constraint checking statements generated by the Checks
    --  package. R_Check_Off is set to True when the call to Range_Check is to
-   --  be skipped.
+   --  be skipped. In_Iter_Schm is True if Process_Range_Expr_In_Decl is called
+   --  on the discrete subtype definition in an iteration scheme.
 
    function Process_Subtype
      (S           : Node_Id;
@@ -274,6 +288,10 @@ package Sem_Ch3 is
    --  Process the discriminants contained in an N_Full_Type_Declaration or
    --  N_Incomplete_Type_Decl node N. If the declaration is a completion,
    --  Prev is entity on the partial view, on which references are posted.
+   --  However, note that Process_Discriminants is called for a completion only
+   --  if partial view had no discriminants (else we just check conformance
+   --  between the two views and do not call Process_Discriminants again for
+   --  the completion).
 
    function Replace_Anonymous_Access_To_Protected_Subprogram
      (N : Node_Id) return Entity_Id;

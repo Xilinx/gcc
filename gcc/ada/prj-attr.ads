@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -44,8 +44,8 @@ package Prj.Attr is
    --  packages and their attribute. This procedure should be called by
    --  Prj.Initialize.
 
-   type Attribute_Kind is
-     (Unknown,
+   type Attribute_Kind is (
+      Unknown,
       --  The attribute does not exist
 
       Single,
@@ -61,9 +61,10 @@ package Prj.Attr is
       Case_Insensitive_Associative_Array,
       --  Associative array attribute with a case insensitive index
 
-      Optional_Index_Case_Insensitive_Associative_Array);
+      Optional_Index_Case_Insensitive_Associative_Array
       --  Associative array attribute with a case insensitive index and an
       --  optional source index.
+   );
    --  Characteristics of an attribute. Optional_Index indicates that there
    --  may be an optional index in the index of the associative array, as in
    --     for Switches ("files.ada" at 2) use ...
@@ -72,6 +73,11 @@ package Prj.Attr is
      range Single .. Optional_Index_Case_Insensitive_Associative_Array;
    --  Subset of Attribute_Kinds that may be used for the attributes that is
    --  used when defining a new package.
+
+   subtype All_Case_Insensitive_Associative_Array is Attribute_Kind range
+     Case_Insensitive_Associative_Array ..
+     Optional_Index_Case_Insensitive_Associative_Array;
+   --  Subtype including both cases of Case_Insensitive_Associative_Array
 
    Max_Attribute_Name_Length : constant := 64;
    --  The maximum length of attribute names
@@ -146,6 +152,22 @@ package Prj.Attr is
      (Attribute : Attribute_Node_Id) return Attribute_Kind;
    --  Returns the attribute kind of a known attribute. Returns Unknown if
    --  Attribute is Empty_Attribute.
+   --
+   --  To use this function, the following code should be used:
+   --
+   --      Pkg : constant Package_Node_Id :=
+   --              Prj.Attr.Package_Node_Id_Of (Name => <package name>);
+   --      Att : constant Attribute_Node_Id :=
+   --              Prj.Attr.Attribute_Node_Id_Of
+   --                (Name        => <attribute name>,
+   --                 Starting_At => First_Attribute_Of (Pkg));
+   --      Kind : constant Attribute_Kind := Attribute_Kind_Of (Att);
+   --
+   --  However, do not use this function once you have an already parsed
+   --  project tree. Instead, given a Project_Node_Id corresponding to the
+   --  attribute declaration ("for Attr (index) use ..."), use for example:
+   --
+   --      if Case_Insensitive (Attr, Tree) then ...
 
    procedure Set_Attribute_Kind_Of
      (Attribute : Attribute_Node_Id;

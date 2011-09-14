@@ -1,7 +1,7 @@
 /* Optimize by combining instructions for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -92,8 +92,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "insn-attr.h"
 #include "recog.h"
-#include "real.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "target.h"
 #include "optabs.h"
 #include "insn-codes.h"
@@ -105,6 +104,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "df.h"
 #include "cgraph.h"
+#include "obstack.h"
 
 /* Number of attempts to combine instructions in this function.  */
 
@@ -310,12 +310,37 @@ static int max_uid_known;
 static int *uid_insn_cost;
 
 /* The following array records the LOG_LINKS for every insn in the
-   instruction stream as an INSN_LIST rtx.  */
+   instruction stream as struct insn_link pointers.  */
 
-static rtx *uid_log_links;
+struct insn_link {
+  rtx insn;
+  struct insn_link *next;
+};
+
+static struct insn_link **uid_log_links;
 
 #define INSN_COST(INSN)		(uid_insn_cost[INSN_UID (INSN)])
 #define LOG_LINKS(INSN)		(uid_log_links[INSN_UID (INSN)])
+
+#define FOR_EACH_LOG_LINK(L, INSN)				\
+  for ((L) = LOG_LINKS (INSN); (L); (L) = (L)->next)
+
+/* Links for LOG_LINKS are allocated from this obstack.  */
+
+static struct obstack insn_link_obstack;
+
+/* Allocate a link.  */
+
+static inline struct insn_link *
+alloc_insn_link (rtx insn, struct insn_link *next)
+{
+  struct insn_link *l
+    = (struct insn_link *) obstack_alloc (&insn_link_obstack,
+					  sizeof (struct insn_link));
+  l->insn = insn;
+  l->next = next;
+  return l;
+}
 
 /* Incremented for each basic block.  */
 
@@ -385,15 +410,15 @@ static void init_reg_last (void);
 static void setup_incoming_promotions (rtx);
 static void set_nonzero_bits_and_sign_copies (rtx, const_rtx, void *);
 static int cant_combine_insn_p (rtx);
-static int can_combine_p (rtx, rtx, rtx, rtx, rtx *, rtx *);
-static int combinable_i3pat (rtx, rtx *, rtx, rtx, int, rtx *);
+static int can_combine_p (rtx, rtx, rtx, rtx, rtx, rtx, rtx *, rtx *);
+static int combinable_i3pat (rtx, rtx *, rtx, rtx, rtx, int, int, rtx *);
 static int contains_muldiv (rtx);
-static rtx try_combine (rtx, rtx, rtx, int *);
+static rtx try_combine (rtx, rtx, rtx, rtx, int *, rtx);
 static void undo_all (void);
 static void undo_commit (void);
-static rtx *find_split_point (rtx *, rtx);
-static rtx subst (rtx, rtx, rtx, int, int);
-static rtx combine_simplify_rtx (rtx, enum machine_mode, int);
+static rtx *find_split_point (rtx *, rtx, bool);
+static rtx subst (rtx, rtx, rtx, int, int, int);
+static rtx combine_simplify_rtx (rtx, enum machine_mode, int, int);
 static rtx simplify_if_then_else (rtx);
 static rtx simplify_set (rtx);
 static rtx simplify_logical (rtx);
@@ -425,6 +450,7 @@ static rtx simplify_shift_const (rtx, enum rtx_code, enum machine_mode, rtx,
 				 int);
 static int recog_for_combine (rtx *, rtx, rtx *);
 static rtx gen_lowpart_for_combine (enum machine_mode, rtx);
+static enum rtx_code simplify_compare_const (enum rtx_code, rtx, rtx *);
 static enum rtx_code simplify_comparison (enum rtx_code, rtx *, rtx *);
 static void update_table_tick (rtx);
 static void record_value_for_reg (rtx, rtx, rtx);
@@ -438,8 +464,8 @@ static void reg_dead_at_p_1 (rtx, const_rtx, void *);
 static int reg_dead_at_p (rtx, rtx);
 static void move_deaths (rtx, rtx, int, rtx, rtx *);
 static int reg_bitfield_target_p (rtx, rtx);
-static void distribute_notes (rtx, rtx, rtx, rtx, rtx, rtx);
-static void distribute_links (rtx);
+static void distribute_notes (rtx, rtx, rtx, rtx, rtx, rtx, rtx);
+static void distribute_links (struct insn_link *);
 static void mark_used_regs_combine (rtx);
 static void record_promoted_value (rtx, rtx);
 static int unmentioned_reg_p_1 (rtx *, void *);
@@ -610,7 +636,7 @@ find_single_use (rtx dest, rtx insn, rtx *ploc)
   basic_block bb;
   rtx next;
   rtx *result;
-  rtx link;
+  struct insn_link *link;
 
 #ifdef HAVE_cc0
   if (dest == cc0_rtx)
@@ -636,8 +662,8 @@ find_single_use (rtx dest, rtx insn, rtx *ploc)
        next = NEXT_INSN (next))
     if (INSN_P (next) && dead_or_set_p (next, dest))
       {
-	for (link = LOG_LINKS (next); link; link = XEXP (link, 1))
-	  if (XEXP (link, 0) == insn)
+	FOR_EACH_LOG_LINK (link, next)
+	  if (link->insn == insn)
 	    break;
 
 	if (link)
@@ -764,20 +790,19 @@ do_SUBST_MODE (rtx *into, enum machine_mode newval)
 
 #define SUBST_MODE(INTO, NEWVAL)  do_SUBST_MODE(&(INTO), (NEWVAL))
 
-/* Subroutine of try_combine.  Determine whether the combine replacement
-   patterns NEWPAT, NEWI2PAT and NEWOTHERPAT are cheaper according to
-   insn_rtx_cost that the original instruction sequence I1, I2, I3 and
-   undobuf.other_insn.  Note that I1 and/or NEWI2PAT may be NULL_RTX.
-   NEWOTHERPAT and undobuf.other_insn may also both be NULL_RTX.  This
-   function returns false, if the costs of all instructions can be
-   estimated, and the replacements are more expensive than the original
-   sequence.  */
+/* Subroutine of try_combine.  Determine whether the replacement patterns
+   NEWPAT, NEWI2PAT and NEWOTHERPAT are cheaper according to insn_rtx_cost
+   than the original sequence I0, I1, I2, I3 and undobuf.other_insn.  Note
+   that I0, I1 and/or NEWI2PAT may be NULL_RTX.  Similarly, NEWOTHERPAT and
+   undobuf.other_insn may also both be NULL_RTX.  Return false if the cost
+   of all the instructions can be estimated and the replacements are more
+   expensive than the original sequence.  */
 
 static bool
-combine_validate_cost (rtx i1, rtx i2, rtx i3, rtx newpat, rtx newi2pat,
-		       rtx newotherpat)
+combine_validate_cost (rtx i0, rtx i1, rtx i2, rtx i3, rtx newpat,
+		       rtx newi2pat, rtx newotherpat)
 {
-  int i1_cost, i2_cost, i3_cost;
+  int i0_cost, i1_cost, i2_cost, i3_cost;
   int new_i2_cost, new_i3_cost;
   int old_cost, new_cost;
 
@@ -788,13 +813,23 @@ combine_validate_cost (rtx i1, rtx i2, rtx i3, rtx newpat, rtx newi2pat,
   if (i1)
     {
       i1_cost = INSN_COST (i1);
-      old_cost = (i1_cost > 0 && i2_cost > 0 && i3_cost > 0)
-		 ? i1_cost + i2_cost + i3_cost : 0;
+      if (i0)
+	{
+	  i0_cost = INSN_COST (i0);
+	  old_cost = (i0_cost > 0 && i1_cost > 0 && i2_cost > 0 && i3_cost > 0
+		      ? i0_cost + i1_cost + i2_cost + i3_cost : 0);
+	}
+      else
+	{
+	  old_cost = (i1_cost > 0 && i2_cost > 0 && i3_cost > 0
+		      ? i1_cost + i2_cost + i3_cost : 0);
+	  i0_cost = 0;
+	}
     }
   else
     {
       old_cost = (i2_cost > 0 && i3_cost > 0) ? i2_cost + i3_cost : 0;
-      i1_cost = 0;
+      i1_cost = i0_cost = 0;
     }
 
   /* Calculate the replacement insn_rtx_costs.  */
@@ -826,14 +861,22 @@ combine_validate_cost (rtx i1, rtx i2, rtx i3, rtx newpat, rtx newi2pat,
 	old_cost = 0;
     }
 
-  /* Disallow this recombination if both new_cost and old_cost are
-     greater than zero, and new_cost is greater than old cost.  */
-  if (old_cost > 0
-      && new_cost > old_cost)
+  /* Disallow this combination if both new_cost and old_cost are greater than
+     zero, and new_cost is greater than old cost.  */
+  if (old_cost > 0 && new_cost > old_cost)
     {
       if (dump_file)
 	{
-	  if (i1)
+	  if (i0)
+	    {
+	      fprintf (dump_file,
+		       "rejecting combination of insns %d, %d, %d and %d\n",
+		       INSN_UID (i0), INSN_UID (i1), INSN_UID (i2),
+		       INSN_UID (i3));
+	      fprintf (dump_file, "original costs %d + %d + %d + %d = %d\n",
+		       i0_cost, i1_cost, i2_cost, i3_cost, old_cost);
+	    }
+	  else if (i1)
 	    {
 	      fprintf (dump_file,
 		       "rejecting combination of insns %d, %d and %d\n",
@@ -866,7 +909,11 @@ combine_validate_cost (rtx i1, rtx i2, rtx i3, rtx newpat, rtx newi2pat,
   INSN_COST (i2) = new_i2_cost;
   INSN_COST (i3) = new_i3_cost;
   if (i1)
-    INSN_COST (i1) = 0;
+    {
+      INSN_COST (i1) = 0;
+      if (i0)
+	INSN_COST (i0) = 0;
+    }
 
   return true;
 }
@@ -943,7 +990,7 @@ create_log_links (void)
               /* Do not make the log link for frame pointer.  */
               if ((regno == FRAME_POINTER_REGNUM
                    && (! reload_completed || frame_pointer_needed))
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
                   || (regno == HARD_FRAME_POINTER_REGNUM
                       && (! reload_completed || frame_pointer_needed))
 #endif
@@ -967,15 +1014,14 @@ create_log_links (void)
                       || asm_noperands (PATTERN (use_insn)) < 0)
 		    {
 		      /* Don't add duplicate links between instructions.  */
-		      rtx links;
-		      for (links = LOG_LINKS (use_insn); links;
-			   links = XEXP (links, 1))
-		        if (insn == XEXP (links, 0))
+		      struct insn_link *links;
+		      FOR_EACH_LOG_LINK (links, use_insn)
+		        if (insn == links->insn)
 			  break;
 
 		      if (!links)
-			LOG_LINKS (use_insn) =
-			  alloc_INSN_LIST (insn, LOG_LINKS (use_insn));
+			LOG_LINKS (use_insn)
+			  = alloc_insn_link (insn, LOG_LINKS (use_insn));
 		    }
                 }
               next_use[regno] = NULL_RTX;
@@ -999,16 +1045,25 @@ create_log_links (void)
   free (next_use);
 }
 
-/* Clear LOG_LINKS fields of insns.  */
+/* Walk the LOG_LINKS of insn B to see if we find a reference to A.  Return
+   true if we found a LOG_LINK that proves that A feeds B.  This only works
+   if there are no instructions between A and B which could have a link
+   depending on A, since in that case we would not record a link for B.
+   We also check the implicit dependency created by a cc0 setter/user
+   pair.  */
 
-static void
-clear_log_links (void)
+static bool
+insn_a_feeds_b (rtx a, rtx b)
 {
-  rtx insn;
-
-  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
-    if (INSN_P (insn))
-      free_INSN_LIST_list (&LOG_LINKS (insn));
+  struct insn_link *links;
+  FOR_EACH_LOG_LINK (links, b)
+    if (links->insn == a)
+      return true;
+#ifdef HAVE_cc0
+  if (sets_cc0_p (a))
+    return true;
+#endif
+  return false;
 }
 
 /* Main entry point for combiner.  F is the first insn of the function.
@@ -1023,7 +1078,7 @@ combine_instructions (rtx f, unsigned int nregs)
 #ifdef HAVE_cc0
   rtx prev;
 #endif
-  rtx links, nextlinks;
+  struct insn_link *links, *nextlinks;
   rtx first;
   basic_block last_bb;
 
@@ -1047,8 +1102,9 @@ combine_instructions (rtx f, unsigned int nregs)
 
   /* Allocate array for insn info.  */
   max_uid_known = get_max_uid ();
-  uid_log_links = XCNEWVEC (rtx, max_uid_known + 1);
+  uid_log_links = XCNEWVEC (struct insn_link *, max_uid_known + 1);
   uid_insn_cost = XCNEWVEC (int, max_uid_known + 1);
+  gcc_obstack_init (&insn_link_obstack);
 
   nonzero_bits_mode = mode_for_size (HOST_BITS_PER_WIDE_INT, MODE_INT, 0);
 
@@ -1086,6 +1142,10 @@ combine_instructions (rtx f, unsigned int nregs)
       FOR_BB_INSNS (this_basic_block, insn)
         if (INSN_P (insn) && BLOCK_FOR_INSN (insn))
 	  {
+#ifdef AUTO_INC_DEC
+            rtx links;
+#endif
+
             subst_low_luid = DF_INSN_LUID (insn);
             subst_insn = insn;
 
@@ -1120,6 +1180,7 @@ combine_instructions (rtx f, unsigned int nregs)
 
   FOR_EACH_BB (this_basic_block)
     {
+      rtx last_combined_insn = NULL_RTX;
       optimize_this_for_speed_p = optimize_bb_for_speed_p (this_basic_block);
       last_call_luid = 0;
       mem_last_set = -1;
@@ -1138,6 +1199,15 @@ combine_instructions (rtx f, unsigned int nregs)
 	  next = 0;
 	  if (NONDEBUG_INSN_P (insn))
 	    {
+	      while (last_combined_insn
+		     && INSN_DELETED_P (last_combined_insn))
+		last_combined_insn = PREV_INSN (last_combined_insn);
+	      if (last_combined_insn == NULL_RTX
+		  || BARRIER_P (last_combined_insn)
+		  || BLOCK_FOR_INSN (last_combined_insn) != this_basic_block
+		  || DF_INSN_LUID (last_combined_insn) <= DF_INSN_LUID (insn))
+		last_combined_insn = insn;
+
 	      /* See if we know about function return values before this
 		 insn based upon SUBREG flags.  */
 	      check_promoted_subreg (insn, PATTERN (insn));
@@ -1149,28 +1219,27 @@ combine_instructions (rtx f, unsigned int nregs)
 
 	      /* Try this insn with each insn it links back to.  */
 
-	      for (links = LOG_LINKS (insn); links; links = XEXP (links, 1))
-		if ((next = try_combine (insn, XEXP (links, 0),
-					 NULL_RTX, &new_direct_jump_p)) != 0)
+	      FOR_EACH_LOG_LINK (links, insn)
+		if ((next = try_combine (insn, links->insn, NULL_RTX,
+					 NULL_RTX, &new_direct_jump_p,
+					 last_combined_insn)) != 0)
 		  goto retry;
 
 	      /* Try each sequence of three linked insns ending with this one.  */
 
-	      for (links = LOG_LINKS (insn); links; links = XEXP (links, 1))
+	      FOR_EACH_LOG_LINK (links, insn)
 		{
-		  rtx link = XEXP (links, 0);
+		  rtx link = links->insn;
 
 		  /* If the linked insn has been replaced by a note, then there
 		     is no point in pursuing this chain any further.  */
 		  if (NOTE_P (link))
 		    continue;
 
-		  for (nextlinks = LOG_LINKS (link);
-		       nextlinks;
-		       nextlinks = XEXP (nextlinks, 1))
-		    if ((next = try_combine (insn, link,
-					     XEXP (nextlinks, 0),
-					     &new_direct_jump_p)) != 0)
+		  FOR_EACH_LOG_LINK (nextlinks, link)
+		    if ((next = try_combine (insn, link, nextlinks->insn,
+					     NULL_RTX, &new_direct_jump_p,
+					     last_combined_insn)) != 0)
 		      goto retry;
 		}
 
@@ -1187,15 +1256,15 @@ combine_instructions (rtx f, unsigned int nregs)
 		  && NONJUMP_INSN_P (prev)
 		  && sets_cc0_p (PATTERN (prev)))
 		{
-		  if ((next = try_combine (insn, prev,
-					   NULL_RTX, &new_direct_jump_p)) != 0)
+		  if ((next = try_combine (insn, prev, NULL_RTX, NULL_RTX,
+					   &new_direct_jump_p,
+					   last_combined_insn)) != 0)
 		    goto retry;
 
-		  for (nextlinks = LOG_LINKS (prev); nextlinks;
-		       nextlinks = XEXP (nextlinks, 1))
-		    if ((next = try_combine (insn, prev,
-					     XEXP (nextlinks, 0),
-					     &new_direct_jump_p)) != 0)
+		  FOR_EACH_LOG_LINK (nextlinks, prev)
+		    if ((next = try_combine (insn, prev, nextlinks->insn,
+					     NULL_RTX, &new_direct_jump_p,
+					     last_combined_insn)) != 0)
 		      goto retry;
 		}
 
@@ -1207,48 +1276,105 @@ combine_instructions (rtx f, unsigned int nregs)
 		  && GET_CODE (PATTERN (insn)) == SET
 		  && reg_mentioned_p (cc0_rtx, SET_SRC (PATTERN (insn))))
 		{
-		  if ((next = try_combine (insn, prev,
-					   NULL_RTX, &new_direct_jump_p)) != 0)
+		  if ((next = try_combine (insn, prev, NULL_RTX, NULL_RTX,
+					   &new_direct_jump_p,
+					   last_combined_insn)) != 0)
 		    goto retry;
 
-		  for (nextlinks = LOG_LINKS (prev); nextlinks;
-		       nextlinks = XEXP (nextlinks, 1))
-		    if ((next = try_combine (insn, prev,
-					     XEXP (nextlinks, 0),
-					     &new_direct_jump_p)) != 0)
+		  FOR_EACH_LOG_LINK (nextlinks, prev)
+		    if ((next = try_combine (insn, prev, nextlinks->insn,
+					     NULL_RTX, &new_direct_jump_p,
+					     last_combined_insn)) != 0)
 		      goto retry;
 		}
 
 	      /* Finally, see if any of the insns that this insn links to
 		 explicitly references CC0.  If so, try this insn, that insn,
 		 and its predecessor if it sets CC0.  */
-	      for (links = LOG_LINKS (insn); links; links = XEXP (links, 1))
-		if (NONJUMP_INSN_P (XEXP (links, 0))
-		    && GET_CODE (PATTERN (XEXP (links, 0))) == SET
-		    && reg_mentioned_p (cc0_rtx, SET_SRC (PATTERN (XEXP (links, 0))))
-		    && (prev = prev_nonnote_insn (XEXP (links, 0))) != 0
+	      FOR_EACH_LOG_LINK (links, insn)
+		if (NONJUMP_INSN_P (links->insn)
+		    && GET_CODE (PATTERN (links->insn)) == SET
+		    && reg_mentioned_p (cc0_rtx, SET_SRC (PATTERN (links->insn)))
+		    && (prev = prev_nonnote_insn (links->insn)) != 0
 		    && NONJUMP_INSN_P (prev)
 		    && sets_cc0_p (PATTERN (prev))
-		    && (next = try_combine (insn, XEXP (links, 0),
-					    prev, &new_direct_jump_p)) != 0)
+		    && (next = try_combine (insn, links->insn,
+					    prev, NULL_RTX, &new_direct_jump_p,
+					    last_combined_insn)) != 0)
 		  goto retry;
 #endif
 
 	      /* Try combining an insn with two different insns whose results it
 		 uses.  */
-	      for (links = LOG_LINKS (insn); links; links = XEXP (links, 1))
-		for (nextlinks = XEXP (links, 1); nextlinks;
-		     nextlinks = XEXP (nextlinks, 1))
-		  if ((next = try_combine (insn, XEXP (links, 0),
-					   XEXP (nextlinks, 0),
-					   &new_direct_jump_p)) != 0)
+	      FOR_EACH_LOG_LINK (links, insn)
+		for (nextlinks = links->next; nextlinks;
+		     nextlinks = nextlinks->next)
+		  if ((next = try_combine (insn, links->insn,
+					   nextlinks->insn, NULL_RTX,
+					   &new_direct_jump_p,
+					   last_combined_insn)) != 0)
 		    goto retry;
 
+	      /* Try four-instruction combinations.  */
+	      FOR_EACH_LOG_LINK (links, insn)
+		{
+		  struct insn_link *next1;
+		  rtx link = links->insn;
+
+		  /* If the linked insn has been replaced by a note, then there
+		     is no point in pursuing this chain any further.  */
+		  if (NOTE_P (link))
+		    continue;
+
+		  FOR_EACH_LOG_LINK (next1, link)
+		    {
+		      rtx link1 = next1->insn;
+		      if (NOTE_P (link1))
+			continue;
+		      /* I0 -> I1 -> I2 -> I3.  */
+		      FOR_EACH_LOG_LINK (nextlinks, link1)
+			if ((next = try_combine (insn, link, link1,
+						 nextlinks->insn,
+						 &new_direct_jump_p,
+						 last_combined_insn)) != 0)
+			  goto retry;
+		      /* I0, I1 -> I2, I2 -> I3.  */
+		      for (nextlinks = next1->next; nextlinks;
+			   nextlinks = nextlinks->next)
+			if ((next = try_combine (insn, link, link1,
+						 nextlinks->insn,
+						 &new_direct_jump_p,
+						 last_combined_insn)) != 0)
+			  goto retry;
+		    }
+
+		  for (next1 = links->next; next1; next1 = next1->next)
+		    {
+		      rtx link1 = next1->insn;
+		      if (NOTE_P (link1))
+			continue;
+		      /* I0 -> I2; I1, I2 -> I3.  */
+		      FOR_EACH_LOG_LINK (nextlinks, link)
+			if ((next = try_combine (insn, link, link1,
+						 nextlinks->insn,
+						 &new_direct_jump_p,
+						 last_combined_insn)) != 0)
+			  goto retry;
+		      /* I0 -> I1; I1, I2 -> I3.  */
+		      FOR_EACH_LOG_LINK (nextlinks, link1)
+			if ((next = try_combine (insn, link, link1,
+						 nextlinks->insn,
+						 &new_direct_jump_p,
+						 last_combined_insn)) != 0)
+			  goto retry;
+		    }
+		}
+
 	      /* Try this insn with each REG_EQUAL note it links back to.  */
-	      for (links = LOG_LINKS (insn); links; links = XEXP (links, 1))
+	      FOR_EACH_LOG_LINK (links, insn)
 		{
 		  rtx set, note;
-		  rtx temp = XEXP (links, 0);
+		  rtx temp = links->insn;
 		  if ((set = single_set (temp)) != 0
 		      && (note = find_reg_equal_equiv_note (temp)) != 0
 		      && (note = XEXP (note, 0), GET_CODE (note)) != EXPR_LIST
@@ -1267,8 +1393,9 @@ combine_instructions (rtx f, unsigned int nregs)
 		      i2mod = temp;
 		      i2mod_old_rhs = copy_rtx (orig);
 		      i2mod_new_rhs = copy_rtx (note);
-		      next = try_combine (insn, i2mod, NULL_RTX,
-					  &new_direct_jump_p);
+		      next = try_combine (insn, i2mod, NULL_RTX, NULL_RTX,
+					  &new_direct_jump_p,
+					  last_combined_insn);
 		      i2mod = NULL_RTX;
 		      if (next)
 			goto retry;
@@ -1286,12 +1413,12 @@ combine_instructions (rtx f, unsigned int nregs)
     }
 
   default_rtl_profile ();
-  clear_log_links ();
   clear_bb_flags ();
   new_direct_jump_p |= purge_all_dead_edges ();
   delete_noop_moves ();
 
   /* Clean up.  */
+  obstack_free (&insn_link_obstack, NULL);
   free (uid_log_links);
   free (uid_insn_cost);
   VEC_free (reg_stat_type, heap, reg_stat);
@@ -1328,7 +1455,7 @@ init_reg_last (void)
   unsigned int i;
   reg_stat_type *p;
 
-  for (i = 0; VEC_iterate (reg_stat_type, reg_stat, i, p); ++i)
+  FOR_EACH_VEC_ELT (reg_stat_type, reg_stat, i, p)
     memset (p, 0, offsetof (reg_stat_type, sign_bit_copies));
 }
 
@@ -1341,7 +1468,7 @@ setup_incoming_promotions (rtx first)
   bool strictly_local = false;
 
   for (arg = DECL_ARGUMENTS (current_function_decl); arg;
-       arg = TREE_CHAIN (arg))
+       arg = DECL_CHAIN (arg))
     {
       rtx x, reg = DECL_INCOMING_RTL (arg);
       int uns1, uns3;
@@ -1433,7 +1560,7 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
 	 say what its contents were.  */
       && ! REGNO_REG_SET_P
            (DF_LR_IN (ENTRY_BLOCK_PTR->next_bb), REGNO (x))
-      && GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT)
+      && HWI_COMPUTABLE_MODE_P (GET_MODE (x)))
     {
       reg_stat_type *rsp = VEC_index (reg_stat_type, reg_stat, REGNO (x));
 
@@ -1462,13 +1589,11 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
 	  && !REGNO_REG_SET_P (DF_LR_IN (BLOCK_FOR_INSN (insn)),
 			       REGNO (x)))
 	{
-	  rtx link;
+	  struct insn_link *link;
 
-	  for (link = LOG_LINKS (insn); link; link = XEXP (link, 1))
-	    {
-	      if (dead_or_set_p (XEXP (link, 0), x))
-		break;
-	    }
+	  FOR_EACH_LOG_LINK (link, insn)
+	    if (dead_or_set_p (link->insn, x))
+	      break;
 	  if (!link)
 	    {
 	      rsp->nonzero_bits = GET_MODE_MASK (GET_MODE (x));
@@ -1485,9 +1610,7 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
 	 set what we know about X.  */
 
       if (SET_DEST (set) == x
-	  || (GET_CODE (SET_DEST (set)) == SUBREG
-	      && (GET_MODE_SIZE (GET_MODE (SET_DEST (set)))
-		  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (SET_DEST (set)))))
+	  || (paradoxical_subreg_p (SET_DEST (set))
 	      && SUBREG_REG (SET_DEST (set)) == x))
 	{
 	  rtx src = SET_SRC (set);
@@ -1502,15 +1625,11 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
 	     ??? For 2.5, try to tighten up the MD files in this regard
 	     instead of this kludge.  */
 
-	  if (GET_MODE_BITSIZE (GET_MODE (x)) < BITS_PER_WORD
+	  if (GET_MODE_PRECISION (GET_MODE (x)) < BITS_PER_WORD
 	      && CONST_INT_P (src)
 	      && INTVAL (src) > 0
-	      && 0 != (INTVAL (src)
-		       & ((HOST_WIDE_INT) 1
-			  << (GET_MODE_BITSIZE (GET_MODE (x)) - 1))))
-	    src = GEN_INT (INTVAL (src)
-			   | ((HOST_WIDE_INT) (-1)
-			      << GET_MODE_BITSIZE (GET_MODE (x))));
+	      && val_signbit_known_set_p (GET_MODE (x), INTVAL (src)))
+	    src = GEN_INT (INTVAL (src) | ~GET_MODE_MASK (GET_MODE (x)));
 #endif
 
 	  /* Don't call nonzero_bits if it cannot change anything.  */
@@ -1529,9 +1648,10 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
     }
 }
 
-/* See if INSN can be combined into I3.  PRED and SUCC are optionally
-   insns that were previously combined into I3 or that will be combined
-   into the merger of INSN and I3.
+/* See if INSN can be combined into I3.  PRED, PRED2, SUCC and SUCC2 are
+   optionally insns that were previously combined into I3 or that will be
+   combined into the merger of INSN and I3.  The order is PRED, PRED2,
+   INSN, SUCC, SUCC2, I3.
 
    Return 0 if the combination is not allowed for any reason.
 
@@ -1540,7 +1660,8 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
    will return 1.  */
 
 static int
-can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
+can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED,
+	       rtx pred2 ATTRIBUTE_UNUSED, rtx succ, rtx succ2,
 	       rtx *pdest, rtx *psrc)
 {
   int i;
@@ -1550,10 +1671,25 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
 #ifdef AUTO_INC_DEC
   rtx link;
 #endif
-  int all_adjacent = (succ ? (next_active_insn (insn) == succ
-			      && next_active_insn (succ) == i3)
-		      : next_active_insn (insn) == i3);
+  bool all_adjacent = true;
 
+  if (succ)
+    {
+      if (succ2)
+	{
+	  if (next_active_insn (succ2) != i3)
+	    all_adjacent = false;
+	  if (next_active_insn (succ) != succ2)
+	    all_adjacent = false;
+	}
+      else if (next_active_insn (succ) != i3)
+	all_adjacent = false;
+      if (next_active_insn (insn) != succ)
+	all_adjacent = false;
+    }
+  else if (next_active_insn (insn) != i3)
+    all_adjacent = false;
+    
   /* Can combine only if previous insn is a SET of a REG, a SUBREG or CC0.
      or a PARALLEL consisting of such a SET and CLOBBERs.
 
@@ -1678,11 +1814,15 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
       /* Don't substitute into an incremented register.  */
       || FIND_REG_INC_NOTE (i3, dest)
       || (succ && FIND_REG_INC_NOTE (succ, dest))
+      || (succ2 && FIND_REG_INC_NOTE (succ2, dest))
       /* Don't substitute into a non-local goto, this confuses CFG.  */
       || (JUMP_P (i3) && find_reg_note (i3, REG_NON_LOCAL_GOTO, NULL_RTX))
       /* Make sure that DEST is not used after SUCC but before I3.  */
-      || (succ && ! all_adjacent
-	  && reg_used_between_p (dest, succ, i3))
+      || (!all_adjacent
+	  && ((succ2
+	       && (reg_used_between_p (dest, succ2, i3)
+		   || reg_used_between_p (dest, succ, succ2)))
+	      || (!succ2 && succ && reg_used_between_p (dest, succ, i3))))
       /* Make sure that the value that is to be substituted for the register
 	 does not use any registers whose values alter in between.  However,
 	 If the insns are adjacent, a use can't cross a set even though we
@@ -1765,13 +1905,12 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
 
   if (GET_CODE (src) == ASM_OPERANDS || volatile_refs_p (src))
     {
-      /* Make sure succ doesn't contain a volatile reference.  */
+      /* Make sure neither succ nor succ2 contains a volatile reference.  */
+      if (succ2 != 0 && volatile_refs_p (PATTERN (succ2)))
+	return 0;
       if (succ != 0 && volatile_refs_p (PATTERN (succ)))
 	return 0;
-
-      for (p = NEXT_INSN (insn); p != i3; p = NEXT_INSN (p))
-	if (INSN_P (p) && p != succ && volatile_refs_p (PATTERN (p)))
-	  return 0;
+      /* We'll check insns between INSN and I3 below.  */
     }
 
   /* If INSN is an asm, and DEST is a hard register, reject, since it has
@@ -1785,7 +1924,7 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
      they might affect machine state.  */
 
   for (p = NEXT_INSN (insn); p != i3; p = NEXT_INSN (p))
-    if (INSN_P (p) && p != succ && volatile_insn_p (PATTERN (p)))
+    if (INSN_P (p) && p != succ && p != succ2 && volatile_insn_p (PATTERN (p)))
       return 0;
 
   /* If INSN contains an autoincrement or autodecrement, make sure that
@@ -1801,8 +1940,12 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
 	    || reg_used_between_p (XEXP (link, 0), insn, i3)
 	    || (pred != NULL_RTX
 		&& reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (pred)))
+	    || (pred2 != NULL_RTX
+		&& reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (pred2)))
 	    || (succ != NULL_RTX
 		&& reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (succ)))
+	    || (succ2 != NULL_RTX
+		&& reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (succ2)))
 	    || reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (i3))))
       return 0;
 #endif
@@ -1836,8 +1979,8 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
    of a PARALLEL of the pattern.  We validate that it is valid for combining.
 
    One problem is if I3 modifies its output, as opposed to replacing it
-   entirely, we can't allow the output to contain I2DEST or I1DEST as doing
-   so would produce an insn that is not equivalent to the original insns.
+   entirely, we can't allow the output to contain I2DEST, I1DEST or I0DEST as
+   doing so would produce an insn that is not equivalent to the original insns.
 
    Consider:
 
@@ -1858,7 +2001,8 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
    must reject the combination.  This case occurs when I2 and I1 both
    feed into I3, rather than when I1 feeds into I2, which feeds into I3.
    If I1_NOT_IN_SRC is nonzero, it means that finding I1 in the source
-   of a SET must prevent combination from occurring.
+   of a SET must prevent combination from occurring.  The same situation
+   can occur for I0, in which case I0_NOT_IN_SRC is set.
 
    Before doing the above check, we first try to expand a field assignment
    into a set of logical operations.
@@ -1870,8 +2014,8 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED, rtx succ,
    Return 1 if the combination is valid, zero otherwise.  */
 
 static int
-combinable_i3pat (rtx i3, rtx *loc, rtx i2dest, rtx i1dest,
-		  int i1_not_in_src, rtx *pi3dest_killed)
+combinable_i3pat (rtx i3, rtx *loc, rtx i2dest, rtx i1dest, rtx i0dest,
+		  int i1_not_in_src, int i0_not_in_src, rtx *pi3dest_killed)
 {
   rtx x = *loc;
 
@@ -1895,9 +2039,11 @@ combinable_i3pat (rtx i3, rtx *loc, rtx i2dest, rtx i1dest,
       if ((inner_dest != dest &&
 	   (!MEM_P (inner_dest)
 	    || rtx_equal_p (i2dest, inner_dest)
-	    || (i1dest && rtx_equal_p (i1dest, inner_dest)))
+	    || (i1dest && rtx_equal_p (i1dest, inner_dest))
+	    || (i0dest && rtx_equal_p (i0dest, inner_dest)))
 	   && (reg_overlap_mentioned_p (i2dest, inner_dest)
-	       || (i1dest && reg_overlap_mentioned_p (i1dest, inner_dest))))
+	       || (i1dest && reg_overlap_mentioned_p (i1dest, inner_dest))
+	       || (i0dest && reg_overlap_mentioned_p (i0dest, inner_dest))))
 
 	  /* This is the same test done in can_combine_p except we can't test
 	     all_adjacent; we don't have to, since this instruction will stay
@@ -1913,7 +2059,8 @@ combinable_i3pat (rtx i3, rtx *loc, rtx i2dest, rtx i1dest,
 	      && REGNO (inner_dest) < FIRST_PSEUDO_REGISTER
 	      && (! HARD_REGNO_MODE_OK (REGNO (inner_dest),
 					GET_MODE (inner_dest))))
-	  || (i1_not_in_src && reg_overlap_mentioned_p (i1dest, src)))
+	  || (i1_not_in_src && reg_overlap_mentioned_p (i1dest, src))
+	  || (i0_not_in_src && reg_overlap_mentioned_p (i0dest, src)))
 	return 0;
 
       /* If DEST is used in I3, it is being killed in this insn, so
@@ -1932,7 +2079,7 @@ combinable_i3pat (rtx i3, rtx *loc, rtx i2dest, rtx i1dest,
 	  && REG_P (subdest)
 	  && reg_referenced_p (subdest, PATTERN (i3))
 	  && REGNO (subdest) != FRAME_POINTER_REGNUM
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
 	  && REGNO (subdest) != HARD_FRAME_POINTER_REGNUM
 #endif
 #if ARG_POINTER_REGNUM != FRAME_POINTER_REGNUM
@@ -1953,8 +2100,8 @@ combinable_i3pat (rtx i3, rtx *loc, rtx i2dest, rtx i1dest,
       int i;
 
       for (i = 0; i < XVECLEN (x, 0); i++)
-	if (! combinable_i3pat (i3, &XVECEXP (x, 0, i), i2dest, i1dest,
-				i1_not_in_src, pi3dest_killed))
+	if (! combinable_i3pat (i3, &XVECEXP (x, 0, i), i2dest, i1dest, i0dest,
+				i1_not_in_src, i0_not_in_src, pi3dest_killed))
 	  return 0;
     }
 
@@ -1974,7 +2121,7 @@ contains_muldiv (rtx x)
 
     case MULT:
       return ! (CONST_INT_P (XEXP (x, 1))
-		&& exact_log2 (INTVAL (XEXP (x, 1))) >= 0);
+		&& exact_log2 (UINTVAL (XEXP (x, 1))) >= 0);
     default:
       if (BINARY_P (x))
 	return contains_muldiv (XEXP (x, 0))
@@ -2020,12 +2167,12 @@ cant_combine_insn_p (rtx insn)
   if (GET_CODE (dest) == SUBREG)
     dest = SUBREG_REG (dest);
   if (REG_P (src) && REG_P (dest)
-      && ((REGNO (src) < FIRST_PSEUDO_REGISTER
-	   && ! fixed_regs[REGNO (src)]
-	   && CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (REGNO (src))))
-	  || (REGNO (dest) < FIRST_PSEUDO_REGISTER
-	      && ! fixed_regs[REGNO (dest)]
-	      && CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (REGNO (dest))))))
+      && ((HARD_REGISTER_P (src)
+	   && ! TEST_HARD_REG_BIT (fixed_reg_set, REGNO (src))
+	   && targetm.class_likely_spilled_p (REGNO_REG_CLASS (REGNO (src))))
+	  || (HARD_REGISTER_P (dest)
+	      && ! TEST_HARD_REG_BIT (fixed_reg_set, REGNO (dest))
+	      && targetm.class_likely_spilled_p (REGNO_REG_CLASS (REGNO (dest))))))
     return 1;
 
   return 0;
@@ -2076,14 +2223,14 @@ likely_spilled_retval_p (rtx insn)
   unsigned regno, nregs;
   /* We assume here that no machine mode needs more than
      32 hard registers when the value overlaps with a register
-     for which FUNCTION_VALUE_REGNO_P is true.  */
+     for which TARGET_FUNCTION_VALUE_REGNO_P is true.  */
   unsigned mask;
   struct likely_spilled_retval_info info;
 
   if (!NONJUMP_INSN_P (use) || GET_CODE (PATTERN (use)) != USE || insn == use)
     return 0;
   reg = XEXP (PATTERN (use), 0);
-  if (!REG_P (reg) || !FUNCTION_VALUE_REGNO_P (REGNO (reg)))
+  if (!REG_P (reg) || !targetm.calls.function_value_regno_p (REGNO (reg)))
     return 0;
   regno = REGNO (reg);
   nregs = hard_regno_nregs[regno][GET_MODE (reg)];
@@ -2106,7 +2253,7 @@ likely_spilled_retval_p (rtx insn)
   do
     {
       if ((mask & 1 << nregs)
-	  && CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (regno + nregs)))
+	  && targetm.class_likely_spilled_p (REGNO_REG_CLASS (regno + nregs)))
 	return 1;
     } while (nregs--);
   return 0;
@@ -2126,7 +2273,7 @@ adjust_for_new_dest (rtx insn)
   /* The new insn will have a destination that was previously the destination
      of an insn just above it.  Call distribute_links to make a LOG_LINK from
      the next use of that destination.  */
-  distribute_links (gen_rtx_INSN_LIST (VOIDmode, insn, NULL_RTX));
+  distribute_links (alloc_insn_link (insn, NULL));
 
   df_insn_rescan (insn);
 }
@@ -2175,13 +2322,11 @@ reg_subword_p (rtx x, rtx reg)
 }
 
 #ifdef AUTO_INC_DEC
-/* Replace auto-increment addressing modes with explicit operations to
-   access the same addresses without modifying the corresponding
-   registers.  If AFTER holds, SRC is meant to be reused after the
-   side effect, otherwise it is to be reused before that.  */
+/* Replace auto-increment addressing modes with explicit operations to access
+   the same addresses without modifying the corresponding registers.  */
 
 static rtx
-cleanup_auto_inc_dec (rtx src, bool after, enum machine_mode mem_mode)
+cleanup_auto_inc_dec (rtx src, enum machine_mode mem_mode)
 {
   rtx x = src;
   const RTX_CODE code = GET_CODE (x);
@@ -2218,26 +2363,20 @@ cleanup_auto_inc_dec (rtx src, bool after, enum machine_mode mem_mode)
 
     case PRE_INC:
     case PRE_DEC:
+      gcc_assert (mem_mode != VOIDmode && mem_mode != BLKmode);
+      return gen_rtx_PLUS (GET_MODE (x),
+			   cleanup_auto_inc_dec (XEXP (x, 0), mem_mode),
+			   GEN_INT (code == PRE_INC
+				    ? GET_MODE_SIZE (mem_mode)
+				    : -GET_MODE_SIZE (mem_mode)));
+
     case POST_INC:
     case POST_DEC:
-      gcc_assert (mem_mode != VOIDmode && mem_mode != BLKmode);
-      if (after == (code == PRE_INC || code == PRE_DEC))
-	x = cleanup_auto_inc_dec (XEXP (x, 0), after, mem_mode);
-      else
-	x = gen_rtx_PLUS (GET_MODE (x),
-			  cleanup_auto_inc_dec (XEXP (x, 0), after, mem_mode),
-			  GEN_INT ((code == PRE_INC || code == POST_INC)
-				   ? GET_MODE_SIZE (mem_mode)
-				   : -GET_MODE_SIZE (mem_mode)));
-      return x;
-
     case PRE_MODIFY:
     case POST_MODIFY:
-      if (after == (code == PRE_MODIFY))
-	x = XEXP (x, 0);
-      else
-	x = XEXP (x, 1);
-      return cleanup_auto_inc_dec (x, after, mem_mode);
+      return cleanup_auto_inc_dec (code == PRE_MODIFY
+				   ? XEXP (x, 1) : XEXP (x, 0),
+				   mem_mode);
 
     default:
       break;
@@ -2260,18 +2399,19 @@ cleanup_auto_inc_dec (rtx src, bool after, enum machine_mode mem_mode)
   fmt = GET_RTX_FORMAT (code);
   for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
     if (fmt[i] == 'e')
-      XEXP (x, i) = cleanup_auto_inc_dec (XEXP (x, i), after, mem_mode);
+      XEXP (x, i) = cleanup_auto_inc_dec (XEXP (x, i), mem_mode);
     else if (fmt[i] == 'E' || fmt[i] == 'V')
       {
 	int j;
 	XVEC (x, i) = rtvec_alloc (XVECLEN (x, i));
 	for (j = 0; j < XVECLEN (x, i); j++)
 	  XVECEXP (x, i, j)
-	    = cleanup_auto_inc_dec (XVECEXP (src, i, j), after, mem_mode);
+	    = cleanup_auto_inc_dec (XVECEXP (src, i, j), mem_mode);
       }
 
   return x;
 }
+#endif
 
 /* Auxiliary data structure for propagate_for_debug_stmt.  */
 
@@ -2279,7 +2419,6 @@ struct rtx_subst_pair
 {
   rtx to;
   bool adjusted;
-  bool after;
 };
 
 /* DATA points to an rtx_subst_pair.  Return the value that should be
@@ -2295,53 +2434,44 @@ propagate_for_debug_subst (rtx from, const_rtx old_rtx, void *data)
   if (!pair->adjusted)
     {
       pair->adjusted = true;
-      pair->to = cleanup_auto_inc_dec (pair->to, pair->after, VOIDmode);
+#ifdef AUTO_INC_DEC
+      pair->to = cleanup_auto_inc_dec (pair->to, VOIDmode);
+#else
+      pair->to = copy_rtx (pair->to);
+#endif
+      pair->to = make_compound_operation (pair->to, SET);
       return pair->to;
     }
   return copy_rtx (pair->to);
 }
-#endif
 
-/* Replace occurrences of DEST with SRC in DEBUG_INSNs between INSN
-   and LAST.  If MOVE holds, debug insns must also be moved past
-   LAST.  */
+/* Replace all the occurrences of DEST with SRC in DEBUG_INSNs between INSN
+   and LAST, not including INSN, but including LAST.  Also stop at the end
+   of THIS_BASIC_BLOCK.  */
 
 static void
-propagate_for_debug (rtx insn, rtx last, rtx dest, rtx src, bool move)
+propagate_for_debug (rtx insn, rtx last, rtx dest, rtx src)
 {
-  rtx next, move_pos = move ? last : NULL_RTX, loc;
+  rtx next, loc, end = NEXT_INSN (BB_END (this_basic_block));
 
-#ifdef AUTO_INC_DEC
   struct rtx_subst_pair p;
   p.to = src;
   p.adjusted = false;
-  p.after = move;
-#endif
 
   next = NEXT_INSN (insn);
-  while (next != last)
+  last = NEXT_INSN (last);
+  while (next != last && next != end)
     {
       insn = next;
       next = NEXT_INSN (insn);
       if (DEBUG_INSN_P (insn))
 	{
-#ifdef AUTO_INC_DEC
 	  loc = simplify_replace_fn_rtx (INSN_VAR_LOCATION_LOC (insn),
 					 dest, propagate_for_debug_subst, &p);
-#else
-	  loc = simplify_replace_rtx (INSN_VAR_LOCATION_LOC (insn), dest, src);
-#endif
 	  if (loc == INSN_VAR_LOCATION_LOC (insn))
 	    continue;
 	  INSN_VAR_LOCATION_LOC (insn) = loc;
-	  if (move_pos)
-	    {
-	      remove_insn (insn);
-	      PREV_INSN (insn) = NEXT_INSN (insn) = NULL_RTX;
-	      move_pos = emit_debug_insn_after (insn, move_pos);
-	    }
-	  else
-	    df_insn_rescan (insn);
+	  df_insn_rescan (insn);
 	}
     }
 }
@@ -2355,62 +2485,88 @@ static void
 update_cfg_for_uncondjump (rtx insn)
 {
   basic_block bb = BLOCK_FOR_INSN (insn);
-  bool at_end = (BB_END (bb) == insn);
+  gcc_assert (BB_END (bb) == insn);
 
-  if (at_end)
-    purge_dead_edges (bb);
+  purge_dead_edges (bb);
 
   delete_insn (insn);
-  if (at_end && EDGE_COUNT (bb->succs) == 1)
-    single_succ_edge (bb)->flags |= EDGE_FALLTHRU;
+  if (EDGE_COUNT (bb->succs) == 1)
+    {
+      rtx insn;
+
+      single_succ_edge (bb)->flags |= EDGE_FALLTHRU;
+
+      /* Remove barriers from the footer if there are any.  */
+      for (insn = bb->il.rtl->footer; insn; insn = NEXT_INSN (insn))
+	if (BARRIER_P (insn))
+	  {
+	    if (PREV_INSN (insn))
+	      NEXT_INSN (PREV_INSN (insn)) = NEXT_INSN (insn);
+	    else
+	      bb->il.rtl->footer = NEXT_INSN (insn);
+	    if (NEXT_INSN (insn))
+	      PREV_INSN (NEXT_INSN (insn)) = PREV_INSN (insn);
+	  }
+	else if (LABEL_P (insn))
+	  break;
+    }
 }
 
+/* Try to combine the insns I0, I1 and I2 into I3.
+   Here I0, I1 and I2 appear earlier than I3.
+   I0 and I1 can be zero; then we combine just I2 into I3, or I1 and I2 into
+   I3.
 
-/* Try to combine the insns I1 and I2 into I3.
-   Here I1 and I2 appear earlier than I3.
-   I1 can be zero; then we combine just I2 into I3.
-
-   If we are combining three insns and the resulting insn is not recognized,
-   try splitting it into two insns.  If that happens, I2 and I3 are retained
-   and I1 is pseudo-deleted by turning it into a NOTE.  Otherwise, I1 and I2
-   are pseudo-deleted.
+   If we are combining more than two insns and the resulting insn is not
+   recognized, try splitting it into two insns.  If that happens, I2 and I3
+   are retained and I1/I0 are pseudo-deleted by turning them into a NOTE.
+   Otherwise, I0, I1 and I2 are pseudo-deleted.
 
    Return 0 if the combination does not work.  Then nothing is changed.
    If we did the combination, return the insn at which combine should
    resume scanning.
 
    Set NEW_DIRECT_JUMP_P to a nonzero value if try_combine creates a
-   new direct jump instruction.  */
+   new direct jump instruction.
+
+   LAST_COMBINED_INSN is either I3, or some insn after I3 that has
+   been I3 passed to an earlier try_combine within the same basic
+   block.  */
 
 static rtx
-try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
+try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p,
+	     rtx last_combined_insn)
 {
   /* New patterns for I3 and I2, respectively.  */
   rtx newpat, newi2pat = 0;
   rtvec newpat_vec_with_clobbers = 0;
-  int substed_i2 = 0, substed_i1 = 0;
-  /* Indicates need to preserve SET in I1 or I2 in I3 if it is not dead.  */
-  int added_sets_1, added_sets_2;
+  int substed_i2 = 0, substed_i1 = 0, substed_i0 = 0;
+  /* Indicates need to preserve SET in I0, I1 or I2 in I3 if it is not
+     dead.  */
+  int added_sets_0, added_sets_1, added_sets_2;
   /* Total number of SETs to put into I3.  */
   int total_sets;
-  /* Nonzero if I2's body now appears in I3.  */
-  int i2_is_used;
+  /* Nonzero if I2's or I1's body now appears in I3.  */
+  int i2_is_used = 0, i1_is_used = 0;
   /* INSN_CODEs for new I3, new I2, and user of condition code.  */
   int insn_code_number, i2_code_number = 0, other_code_number = 0;
   /* Contains I3 if the destination of I3 is used in its source, which means
      that the old life of I3 is being killed.  If that usage is placed into
      I2 and not in I3, a REG_DEAD note must be made.  */
   rtx i3dest_killed = 0;
-  /* SET_DEST and SET_SRC of I2 and I1.  */
-  rtx i2dest = 0, i2src = 0, i1dest = 0, i1src = 0;
+  /* SET_DEST and SET_SRC of I2, I1 and I0.  */
+  rtx i2dest = 0, i2src = 0, i1dest = 0, i1src = 0, i0dest = 0, i0src = 0;
+  /* Copy of SET_SRC of I1, if needed.  */
+  rtx i1src_copy = 0;
   /* Set if I2DEST was reused as a scratch register.  */
   bool i2scratch = false;
-  /* PATTERN (I1) and PATTERN (I2), or a copy of it in certain cases.  */
-  rtx i1pat = 0, i2pat = 0;
+  /* The PATTERNs of I0, I1, and I2, or a copy of them in certain cases.  */
+  rtx i0pat = 0, i1pat = 0, i2pat = 0;
   /* Indicates if I2DEST or I1DEST is in I2SRC or I1_SRC.  */
   int i2dest_in_i2src = 0, i1dest_in_i1src = 0, i2dest_in_i1src = 0;
-  int i2dest_killed = 0, i1dest_killed = 0;
-  int i1_feeds_i3 = 0;
+  int i0dest_in_i0src = 0, i1dest_in_i0src = 0, i2dest_in_i0src = 0;
+  int i2dest_killed = 0, i1dest_killed = 0, i0dest_killed = 0;
+  int i1_feeds_i2_n = 0, i0_feeds_i2_n = 0, i0_feeds_i1_n = 0;
   /* Notes that must be added to REG_NOTES in I3 and I2.  */
   rtx new_i3_notes, new_i2_notes;
   /* Notes that we substituted I3 into I2 instead of the normal case.  */
@@ -2422,16 +2578,52 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
   int maxreg;
   rtx temp;
-  rtx link;
+  struct insn_link *link;
   rtx other_pat = 0;
   rtx new_other_notes;
   int i;
+
+  /* Only try four-insn combinations when there's high likelihood of
+     success.  Look for simple insns, such as loads of constants or
+     binary operations involving a constant.  */
+  if (i0)
+    {
+      int i;
+      int ngood = 0;
+      int nshift = 0;
+
+      if (!flag_expensive_optimizations)
+	return 0;
+
+      for (i = 0; i < 4; i++)
+	{
+	  rtx insn = i == 0 ? i0 : i == 1 ? i1 : i == 2 ? i2 : i3;
+	  rtx set = single_set (insn);
+	  rtx src;
+	  if (!set)
+	    continue;
+	  src = SET_SRC (set);
+	  if (CONSTANT_P (src))
+	    {
+	      ngood += 2;
+	      break;
+	    }
+	  else if (BINARY_P (src) && CONSTANT_P (XEXP (src, 1)))
+	    ngood++;
+	  else if (GET_CODE (src) == ASHIFT || GET_CODE (src) == ASHIFTRT
+		   || GET_CODE (src) == LSHIFTRT)
+	    nshift++;
+	}
+      if (ngood < 2 && nshift < 2)
+	return 0;
+    }
 
   /* Exit early if one of the insns involved can't be used for
      combinations.  */
   if (cant_combine_insn_p (i3)
       || cant_combine_insn_p (i2)
       || (i1 && cant_combine_insn_p (i1))
+      || (i0 && cant_combine_insn_p (i0))
       || likely_spilled_retval_p (i3))
     return 0;
 
@@ -2443,7 +2635,10 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
-      if (i1)
+      if (i0)
+	fprintf (dump_file, "\nTrying %d, %d, %d -> %d:\n",
+		 INSN_UID (i0), INSN_UID (i1), INSN_UID (i2), INSN_UID (i3));
+      else if (i1)
 	fprintf (dump_file, "\nTrying %d, %d -> %d:\n",
 		 INSN_UID (i1), INSN_UID (i2), INSN_UID (i3));
       else
@@ -2451,14 +2646,18 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 		 INSN_UID (i2), INSN_UID (i3));
     }
 
-  /* If I1 and I2 both feed I3, they can be in any order.  To simplify the
-     code below, set I1 to be the earlier of the two insns.  */
+  /* If multiple insns feed into one of I2 or I3, they can be in any
+     order.  To simplify the code below, reorder them in sequence.  */
+  if (i0 && DF_INSN_LUID (i0) > DF_INSN_LUID (i2))
+    temp = i2, i2 = i0, i0 = temp;
+  if (i0 && DF_INSN_LUID (i0) > DF_INSN_LUID (i1))
+    temp = i1, i1 = i0, i0 = temp;
   if (i1 && DF_INSN_LUID (i1) > DF_INSN_LUID (i2))
     temp = i1, i1 = i2, i2 = temp;
 
   added_links_insn = 0;
 
-  /* First check for one important special-case that the code below will
+  /* First check for one important special case that the code below will
      not handle.  Namely, the case where I1 is zero, I2 is a PARALLEL
      and I3 is a SET whose SET_SRC is a SET_DEST in I2.  In that case,
      we may be able to replace that destination with the destination of I3.
@@ -2466,8 +2665,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
      remainder into a structure, in which case we want to do the computation
      directly into the structure to avoid register-register copies.
 
-     Note that this case handles both multiple sets in I2 and also
-     cases where I2 has a number of CLOBBER or PARALLELs.
+     Note that this case handles both multiple sets in I2 and also cases
+     where I2 has a number of CLOBBERs inside the PARALLEL.
 
      We make very conservative checks below and only try to handle the
      most common cases of this.  For example, we only handle the case
@@ -2511,8 +2710,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
       if (i == XVECLEN (p2, 0))
 	for (i = 0; i < XVECLEN (p2, 0); i++)
-	  if ((GET_CODE (XVECEXP (p2, 0, i)) == SET
-	       || GET_CODE (XVECEXP (p2, 0, i)) == CLOBBER)
+	  if (GET_CODE (XVECEXP (p2, 0, i)) == SET
 	      && SET_DEST (XVECEXP (p2, 0, i)) == SET_SRC (PATTERN (i3)))
 	    {
 	      combine_merges++;
@@ -2520,17 +2718,15 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	      subst_insn = i3;
 	      subst_low_luid = DF_INSN_LUID (i2);
 
-	      added_sets_2 = added_sets_1 = 0;
-	      i2src = SET_DEST (PATTERN (i3));
-	      i2dest = SET_SRC (PATTERN (i3));
+	      added_sets_2 = added_sets_1 = added_sets_0 = 0;
+	      i2src = SET_SRC (XVECEXP (p2, 0, i));
+	      i2dest = SET_DEST (XVECEXP (p2, 0, i));
 	      i2dest_killed = dead_or_set_p (i2, i2dest);
 
 	      /* Replace the dest in I2 with our dest and make the resulting
-		 insn the new pattern for I3.  Then skip to where we
-		 validate the pattern.  Everything was set up above.  */
-	      SUBST (SET_DEST (XVECEXP (p2, 0, i)),
-		     SET_DEST (PATTERN (i3)));
-
+		 insn the new pattern for I3.  Then skip to where we validate
+		 the pattern.  Everything was set up above.  */
+	      SUBST (SET_DEST (XVECEXP (p2, 0, i)), SET_DEST (PATTERN (i3)));
 	      newpat = p2;
 	      i3_subst_into_i2 = 1;
 	      goto validate_replacement;
@@ -2562,14 +2758,14 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	      offset = INTVAL (XEXP (dest, 2));
 	      dest = XEXP (dest, 0);
 	      if (BITS_BIG_ENDIAN)
-		offset = GET_MODE_BITSIZE (GET_MODE (dest)) - width - offset;
+		offset = GET_MODE_PRECISION (GET_MODE (dest)) - width - offset;
 	    }
 	}
       else
 	{
 	  if (GET_CODE (dest) == STRICT_LOW_PART)
 	    dest = XEXP (dest, 0);
-	  width = GET_MODE_BITSIZE (GET_MODE (dest));
+	  width = GET_MODE_PRECISION (GET_MODE (dest));
 	  offset = 0;
 	}
 
@@ -2579,89 +2775,35 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  if (subreg_lowpart_p (dest))
 	    ;
 	  /* Handle the case where inner is twice the size of outer.  */
-	  else if (GET_MODE_BITSIZE (GET_MODE (SET_DEST (temp)))
-		   == 2 * GET_MODE_BITSIZE (GET_MODE (dest)))
-	    offset += GET_MODE_BITSIZE (GET_MODE (dest));
+	  else if (GET_MODE_PRECISION (GET_MODE (SET_DEST (temp)))
+		   == 2 * GET_MODE_PRECISION (GET_MODE (dest)))
+	    offset += GET_MODE_PRECISION (GET_MODE (dest));
 	  /* Otherwise give up for now.  */
 	  else
 	    offset = -1;
 	}
 
       if (offset >= 0
-	  && (GET_MODE_BITSIZE (GET_MODE (SET_DEST (temp)))
-	      <= HOST_BITS_PER_WIDE_INT * 2))
+	  && (GET_MODE_PRECISION (GET_MODE (SET_DEST (temp)))
+	      <= HOST_BITS_PER_DOUBLE_INT))
 	{
-	  HOST_WIDE_INT mhi, ohi, ihi;
-	  HOST_WIDE_INT mlo, olo, ilo;
+	  double_int m, o, i;
 	  rtx inner = SET_SRC (PATTERN (i3));
 	  rtx outer = SET_SRC (temp);
 
-	  if (CONST_INT_P (outer))
-	    {
-	      olo = INTVAL (outer);
-	      ohi = olo < 0 ? -1 : 0;
-	    }
-	  else
-	    {
-	      olo = CONST_DOUBLE_LOW (outer);
-	      ohi = CONST_DOUBLE_HIGH (outer);
-	    }
+	  o = rtx_to_double_int (outer);
+	  i = rtx_to_double_int (inner);
 
-	  if (CONST_INT_P (inner))
-	    {
-	      ilo = INTVAL (inner);
-	      ihi = ilo < 0 ? -1 : 0;
-	    }
-	  else
-	    {
-	      ilo = CONST_DOUBLE_LOW (inner);
-	      ihi = CONST_DOUBLE_HIGH (inner);
-	    }
-
-	  if (width < HOST_BITS_PER_WIDE_INT)
-	    {
-	      mlo = ((unsigned HOST_WIDE_INT) 1 << width) - 1;
-	      mhi = 0;
-	    }
-	  else if (width < HOST_BITS_PER_WIDE_INT * 2)
-	    {
-	      mhi = ((unsigned HOST_WIDE_INT) 1
-		     << (width - HOST_BITS_PER_WIDE_INT)) - 1;
-	      mlo = -1;
-	    }
-	  else
-	    {
-	      mlo = -1;
-	      mhi = -1;
-	    }
-
-	  ilo &= mlo;
-	  ihi &= mhi;
-
-	  if (offset >= HOST_BITS_PER_WIDE_INT)
-	    {
-	      mhi = mlo << (offset - HOST_BITS_PER_WIDE_INT);
-	      mlo = 0;
-	      ihi = ilo << (offset - HOST_BITS_PER_WIDE_INT);
-	      ilo = 0;
-	    }
-	  else if (offset > 0)
-	    {
-	      mhi = (mhi << offset) | ((unsigned HOST_WIDE_INT) mlo
-		     		       >> (HOST_BITS_PER_WIDE_INT - offset));
-	      mlo = mlo << offset;
-	      ihi = (ihi << offset) | ((unsigned HOST_WIDE_INT) ilo
-		     		       >> (HOST_BITS_PER_WIDE_INT - offset));
-	      ilo = ilo << offset;
-	    }
-
-	  olo = (olo & ~mlo) | ilo;
-	  ohi = (ohi & ~mhi) | ihi;
+	  m = double_int_mask (width);
+	  i = double_int_and (i, m);
+	  m = double_int_lshift (m, offset, HOST_BITS_PER_DOUBLE_INT, false);
+	  i = double_int_lshift (i, offset, HOST_BITS_PER_DOUBLE_INT, false);
+	  o = double_int_ior (double_int_and_not (o, m), i);
 
 	  combine_merges++;
 	  subst_insn = i3;
 	  subst_low_luid = DF_INSN_LUID (i2);
-	  added_sets_2 = added_sets_1 = 0;
+	  added_sets_2 = added_sets_1 = added_sets_0 = 0;
 	  i2dest = SET_DEST (temp);
 	  i2dest_killed = dead_or_set_p (i2, i2dest);
 
@@ -2669,7 +2811,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	     resulting insn the new pattern for I3.  Then skip to where we
 	     validate the pattern.  Everything was set up above.  */
 	  SUBST (SET_SRC (temp),
-		 immed_double_const (olo, ohi, GET_MODE (SET_DEST (temp))));
+		 immed_double_int_const (o, GET_MODE (SET_DEST (temp))));
 
 	  newpat = PATTERN (i2);
 
@@ -2717,8 +2859,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	     as I2 will not cause a problem.  */
 
 	  i1 = gen_rtx_INSN (VOIDmode, INSN_UID (i2), NULL_RTX, i2,
-			     BLOCK_FOR_INSN (i2), INSN_LOCATOR (i2),
-			     XVECEXP (PATTERN (i2), 0, 1), -1, NULL_RTX);
+			     BLOCK_FOR_INSN (i2), XVECEXP (PATTERN (i2), 0, 1),
+			     INSN_LOCATOR (i2), -1, NULL_RTX);
 
 	  SUBST (PATTERN (i2), XVECEXP (PATTERN (i2), 0, 0));
 	  SUBST (XEXP (SET_SRC (PATTERN (i2)), 0),
@@ -2728,8 +2870,11 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 #endif
 
   /* Verify that I2 and I1 are valid for combining.  */
-  if (! can_combine_p (i2, i3, i1, NULL_RTX, &i2dest, &i2src)
-      || (i1 && ! can_combine_p (i1, i3, NULL_RTX, i2, &i1dest, &i1src)))
+  if (! can_combine_p (i2, i3, i0, i1, NULL_RTX, NULL_RTX, &i2dest, &i2src)
+      || (i1 && ! can_combine_p (i1, i3, i0, NULL_RTX, i2, NULL_RTX,
+				 &i1dest, &i1src))
+      || (i0 && ! can_combine_p (i0, i3, NULL_RTX, NULL_RTX, i1, i2,
+				 &i0dest, &i0src)))
     {
       undo_all ();
       return 0;
@@ -2740,16 +2885,26 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
   i2dest_in_i2src = reg_overlap_mentioned_p (i2dest, i2src);
   i1dest_in_i1src = i1 && reg_overlap_mentioned_p (i1dest, i1src);
   i2dest_in_i1src = i1 && reg_overlap_mentioned_p (i2dest, i1src);
+  i0dest_in_i0src = i0 && reg_overlap_mentioned_p (i0dest, i0src);
+  i1dest_in_i0src = i0 && reg_overlap_mentioned_p (i1dest, i0src);
+  i2dest_in_i0src = i0 && reg_overlap_mentioned_p (i2dest, i0src);
   i2dest_killed = dead_or_set_p (i2, i2dest);
   i1dest_killed = i1 && dead_or_set_p (i1, i1dest);
+  i0dest_killed = i0 && dead_or_set_p (i0, i0dest);
 
-  /* See if I1 directly feeds into I3.  It does if I1DEST is not used
-     in I2SRC.  */
-  i1_feeds_i3 = i1 && ! reg_overlap_mentioned_p (i1dest, i2src);
+  /* For the earlier insns, determine which of the subsequent ones they
+     feed.  */
+  i1_feeds_i2_n = i1 && insn_a_feeds_b (i1, i2);
+  i0_feeds_i1_n = i0 && insn_a_feeds_b (i0, i1);
+  i0_feeds_i2_n = (i0 && (!i0_feeds_i1_n ? insn_a_feeds_b (i0, i2)
+			  : (!reg_overlap_mentioned_p (i1dest, i0dest)
+			     && reg_overlap_mentioned_p (i0dest, i2src))));
 
   /* Ensure that I3's pattern can be the destination of combines.  */
-  if (! combinable_i3pat (i3, &PATTERN (i3), i2dest, i1dest,
-			  i1 && i2dest_in_i1src && i1_feeds_i3,
+  if (! combinable_i3pat (i3, &PATTERN (i3), i2dest, i1dest, i0dest,
+			  i1 && i2dest_in_i1src && !i1_feeds_i2_n,
+			  i0 && ((i2dest_in_i0src && !i0_feeds_i2_n)
+				 || (i1dest_in_i0src && !i0_feeds_i1_n)),
 			  &i3dest_killed))
     {
       undo_all ();
@@ -2761,6 +2916,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
      here.  */
   if (GET_CODE (i2src) == MULT
       || (i1 != 0 && GET_CODE (i1src) == MULT)
+      || (i0 != 0 && GET_CODE (i0src) == MULT)
       || (GET_CODE (PATTERN (i3)) == SET
 	  && GET_CODE (SET_SRC (PATTERN (i3))) == MULT))
     have_mult = 1;
@@ -2781,15 +2937,18 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     /* It's not the exception.  */
 #endif
 #ifdef AUTO_INC_DEC
-    for (link = REG_NOTES (i3); link; link = XEXP (link, 1))
-      if (REG_NOTE_KIND (link) == REG_INC
-	  && (reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (i2))
-	      || (i1 != 0
-		  && reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (i1)))))
-	{
-	  undo_all ();
-	  return 0;
-	}
+    {
+      rtx link;
+      for (link = REG_NOTES (i3); link; link = XEXP (link, 1))
+	if (REG_NOTE_KIND (link) == REG_INC
+	    && (reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (i2))
+		|| (i1 != 0
+		    && reg_overlap_mentioned_p (XEXP (link, 0), PATTERN (i1)))))
+	  {
+	    undo_all ();
+	    return 0;
+	  }
+    }
 #endif
 
   /* See if the SETs in I1 or I2 need to be kept around in the merged
@@ -2800,14 +2959,34 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
      feed into I3, the set in I1 needs to be kept around if I1DEST dies
      or is set in I3.  Otherwise (if I1 feeds I2 which feeds I3), the set
      in I1 needs to be kept around unless I1DEST dies or is set in either
-     I2 or I3.  We can distinguish these cases by seeing if I2SRC mentions
-     I1DEST.  If so, we know I1 feeds into I2.  */
+     I2 or I3.  The same consideration applies to I0.  */
 
-  added_sets_2 = ! dead_or_set_p (i3, i2dest);
+  added_sets_2 = !dead_or_set_p (i3, i2dest);
 
-  added_sets_1
-    = i1 && ! (i1_feeds_i3 ? dead_or_set_p (i3, i1dest)
-	       : (dead_or_set_p (i3, i1dest) || dead_or_set_p (i2, i1dest)));
+  if (i1)
+    added_sets_1 = !(dead_or_set_p (i3, i1dest)
+		     || (i1_feeds_i2_n && dead_or_set_p (i2, i1dest)));
+  else
+    added_sets_1 = 0;
+
+  if (i0)
+    added_sets_0 =  !(dead_or_set_p (i3, i0dest)
+		      || (i0_feeds_i2_n && dead_or_set_p (i2, i0dest))
+		      || (i0_feeds_i1_n && dead_or_set_p (i1, i0dest)));
+  else
+    added_sets_0 = 0;
+
+  /* We are about to copy insns for the case where they need to be kept
+     around.  Check that they can be copied in the merged instruction.  */
+
+  if (targetm.cannot_copy_insn_p
+      && ((added_sets_2 && targetm.cannot_copy_insn_p (i2))
+	  || (i1 && added_sets_1 && targetm.cannot_copy_insn_p (i1))
+	  || (i0 && added_sets_0 && targetm.cannot_copy_insn_p (i0))))
+    {
+      undo_all ();
+      return 0;
+    }
 
   /* If the set in I2 needs to be kept around, we must make a copy of
      PATTERN (I2), so that when we substitute I1SRC for I1DEST in
@@ -2832,6 +3011,14 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	i1pat = copy_rtx (PATTERN (i1));
     }
 
+  if (added_sets_0)
+    {
+      if (GET_CODE (PATTERN (i0)) == PARALLEL)
+	i0pat = gen_rtx_SET (VOIDmode, i0dest, copy_rtx (i0src));
+      else
+	i0pat = copy_rtx (PATTERN (i0));
+    }
+
   combine_merges++;
 
   /* Substitute in the latest insn for the regs set by the earlier ones.  */
@@ -2854,63 +3041,103 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
   if (i1 == 0 && added_sets_2 && GET_CODE (PATTERN (i3)) == SET
       && GET_CODE (SET_SRC (PATTERN (i3))) == COMPARE
-      && XEXP (SET_SRC (PATTERN (i3)), 1) == const0_rtx
+      && CONST_INT_P (XEXP (SET_SRC (PATTERN (i3)), 1))
       && rtx_equal_p (XEXP (SET_SRC (PATTERN (i3)), 0), i2dest))
     {
-#ifdef SELECT_CC_MODE
-      rtx *cc_use;
-      enum machine_mode compare_mode;
-#endif
+      rtx newpat_dest;
+      rtx *cc_use_loc = NULL, cc_use_insn = NULL_RTX;
+      rtx op0 = i2src, op1 = XEXP (SET_SRC (PATTERN (i3)), 1);
+      enum machine_mode compare_mode, orig_compare_mode;
+      enum rtx_code compare_code = UNKNOWN, orig_compare_code = UNKNOWN;
 
       newpat = PATTERN (i3);
-      SUBST (XEXP (SET_SRC (newpat), 0), i2src);
+      newpat_dest = SET_DEST (newpat);
+      compare_mode = orig_compare_mode = GET_MODE (newpat_dest);
 
-      i2_is_used = 1;
-
-#ifdef SELECT_CC_MODE
-      /* See if a COMPARE with the operand we substituted in should be done
-	 with the mode that is currently being used.  If not, do the same
-	 processing we do in `subst' for a SET; namely, if the destination
-	 is used only once, try to replace it with a register of the proper
-	 mode and also replace the COMPARE.  */
       if (undobuf.other_insn == 0
-	  && (cc_use = find_single_use (SET_DEST (newpat), i3,
-					&undobuf.other_insn))
-	  && ((compare_mode = SELECT_CC_MODE (GET_CODE (*cc_use),
-					      i2src, const0_rtx))
-	      != GET_MODE (SET_DEST (newpat))))
+	  && (cc_use_loc = find_single_use (SET_DEST (newpat), i3,
+					    &cc_use_insn)))
 	{
-	  if (can_change_dest_mode(SET_DEST (newpat), added_sets_2,
-				   compare_mode))
-	    {
-	      unsigned int regno = REGNO (SET_DEST (newpat));
-	      rtx new_dest;
-
-	      if (regno < FIRST_PSEUDO_REGISTER)
-		new_dest = gen_rtx_REG (compare_mode, regno);
-	      else
-		{
-		  SUBST_MODE (regno_reg_rtx[regno], compare_mode);
-		  new_dest = regno_reg_rtx[regno];
-		}
-
-	      SUBST (SET_DEST (newpat), new_dest);
-	      SUBST (XEXP (*cc_use, 0), new_dest);
-	      SUBST (SET_SRC (newpat),
-		     gen_rtx_COMPARE (compare_mode, i2src, const0_rtx));
-	    }
-	  else
-	    undobuf.other_insn = 0;
+	  compare_code = orig_compare_code = GET_CODE (*cc_use_loc);
+	  compare_code = simplify_compare_const (compare_code,
+						 op0, &op1);
+#ifdef CANONICALIZE_COMPARISON
+	  CANONICALIZE_COMPARISON (compare_code, op0, op1);
+#endif
 	}
+
+      /* Do the rest only if op1 is const0_rtx, which may be the
+	 result of simplification.  */
+      if (op1 == const0_rtx)
+	{
+	  /* If a single use of the CC is found, prepare to modify it
+	     when SELECT_CC_MODE returns a new CC-class mode, or when
+	     the above simplify_compare_const() returned a new comparison
+	     operator.  undobuf.other_insn is assigned the CC use insn
+	     when modifying it.  */
+	  if (cc_use_loc)
+	    {
+#ifdef SELECT_CC_MODE
+	      enum machine_mode new_mode
+		= SELECT_CC_MODE (compare_code, op0, op1);
+	      if (new_mode != orig_compare_mode
+		  && can_change_dest_mode (SET_DEST (newpat),
+					   added_sets_2, new_mode))
+		{
+		  unsigned int regno = REGNO (newpat_dest);
+		  compare_mode = new_mode;
+		  if (regno < FIRST_PSEUDO_REGISTER)
+		    newpat_dest = gen_rtx_REG (compare_mode, regno);
+		  else
+		    {
+		      SUBST_MODE (regno_reg_rtx[regno], compare_mode);
+		      newpat_dest = regno_reg_rtx[regno];
+		    }
+		}
 #endif
+	      /* Cases for modifying the CC-using comparison.  */
+	      if (compare_code != orig_compare_code
+		  /* ??? Do we need to verify the zero rtx?  */
+		  && XEXP (*cc_use_loc, 1) == const0_rtx)
+		{
+		  /* Replace cc_use_loc with entire new RTX.  */
+		  SUBST (*cc_use_loc,
+			 gen_rtx_fmt_ee (compare_code, compare_mode,
+					 newpat_dest, const0_rtx));
+		  undobuf.other_insn = cc_use_insn;
+		}
+	      else if (compare_mode != orig_compare_mode)
+		{
+		  /* Just replace the CC reg with a new mode.  */
+		  SUBST (XEXP (*cc_use_loc, 0), newpat_dest);
+		  undobuf.other_insn = cc_use_insn;
+		}	      
+	    }
+
+	  /* Now we modify the current newpat:
+	     First, SET_DEST(newpat) is updated if the CC mode has been
+	     altered. For targets without SELECT_CC_MODE, this should be
+	     optimized away.  */
+	  if (compare_mode != orig_compare_mode)
+	    SUBST (SET_DEST (newpat), newpat_dest);
+	  /* This is always done to propagate i2src into newpat.  */
+	  SUBST (SET_SRC (newpat),
+		 gen_rtx_COMPARE (compare_mode, op0, op1));
+	  /* Create new version of i2pat if needed; the below PARALLEL
+	     creation needs this to work correctly.  */
+	  if (! rtx_equal_p (i2src, op0))
+	    i2pat = gen_rtx_SET (VOIDmode, i2dest, op0);
+	  i2_is_used = 1;
+	}
     }
-  else
 #endif
+
+  if (i2_is_used == 0)
     {
       /* It is possible that the source of I2 or I1 may be performing
 	 an unneeded operation, such as a ZERO_EXTEND of something
 	 that is known to have the high part zero.  Handle that case
-	 by letting subst look at the innermost one of them.
+	 by letting subst look at the inner insns.
 
 	 Another way to do this would be to have a function that tries
 	 to simplify a single insn instead of merging two or more
@@ -2933,32 +3160,33 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  if (i1)
 	    {
 	      subst_low_luid = DF_INSN_LUID (i1);
-	      i1src = subst (i1src, pc_rtx, pc_rtx, 0, 0);
+	      i1src = subst (i1src, pc_rtx, pc_rtx, 0, 0, 0);
 	    }
-	  else
-	    {
-	      subst_low_luid = DF_INSN_LUID (i2);
-	      i2src = subst (i2src, pc_rtx, pc_rtx, 0, 0);
-	    }
+
+	  subst_low_luid = DF_INSN_LUID (i2);
+	  i2src = subst (i2src, pc_rtx, pc_rtx, 0, 0, 0);
 	}
 
       n_occurrences = 0;		/* `subst' counts here */
-
-      /* If I1 feeds into I2 (not into I3) and I1DEST is in I1SRC, we
-	 need to make a unique copy of I2SRC each time we substitute it
-	 to avoid self-referential rtl.  */
-
       subst_low_luid = DF_INSN_LUID (i2);
-      newpat = subst (PATTERN (i3), i2dest, i2src, 0,
-		      ! i1_feeds_i3 && i1dest_in_i1src);
+
+      /* If I1 feeds into I2 and I1DEST is in I1SRC, we need to make a unique
+	 copy of I2SRC each time we substitute it, in order to avoid creating
+	 self-referential RTL when we will be substituting I1SRC for I1DEST
+	 later.  Likewise if I0 feeds into I2, either directly or indirectly
+	 through I1, and I0DEST is in I0SRC.  */
+      newpat = subst (PATTERN (i3), i2dest, i2src, 0, 0,
+		      (i1_feeds_i2_n && i1dest_in_i1src)
+		      || ((i0_feeds_i2_n || (i0_feeds_i1_n && i1_feeds_i2_n))
+			  && i0dest_in_i0src));
       substed_i2 = 1;
 
-      /* Record whether i2's body now appears within i3's body.  */
+      /* Record whether I2's body now appears within I3's body.  */
       i2_is_used = n_occurrences;
     }
 
-  /* If we already got a failure, don't try to do more.  Otherwise,
-     try to substitute in I1 if we have it.  */
+  /* If we already got a failure, don't try to do more.  Otherwise, try to
+     substitute I1 if we have it.  */
 
   if (i1 && GET_CODE (newpat) != CLOBBER)
     {
@@ -2966,13 +3194,14 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	 This happens if I1DEST is mentioned in I2 and dies there, and
 	 has disappeared from the new pattern.  */
       if ((FIND_REG_INC_NOTE (i1, NULL_RTX) != 0
-	   && !i1_feeds_i3
+	   && i1_feeds_i2_n
 	   && dead_or_set_p (i2, i1dest)
 	   && !reg_overlap_mentioned_p (i1dest, newpat))
-	  /* Before we can do this substitution, we must redo the test done
-	     above (see detailed comments there) that ensures  that I1DEST
-	     isn't mentioned in any SETs in NEWPAT that are field assignments.  */
-          || !combinable_i3pat (NULL_RTX, &newpat, i1dest, NULL_RTX, 0, 0))
+	   /* Before we can do this substitution, we must redo the test done
+	      above (see detailed comments there) that ensures I1DEST isn't
+	      mentioned in any SETs in NEWPAT that are field assignments.  */
+	  || !combinable_i3pat (NULL_RTX, &newpat, i1dest, NULL_RTX, NULL_RTX,
+				0, 0, 0))
 	{
 	  undo_all ();
 	  return 0;
@@ -2980,8 +3209,43 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
       n_occurrences = 0;
       subst_low_luid = DF_INSN_LUID (i1);
-      newpat = subst (newpat, i1dest, i1src, 0, 0);
+
+      /* If I0 feeds into I1 and I0DEST is in I0SRC, we need to make a unique
+	 copy of I1SRC each time we substitute it, in order to avoid creating
+	 self-referential RTL when we will be substituting I0SRC for I0DEST
+	 later.  */
+      newpat = subst (newpat, i1dest, i1src, 0, 0,
+		      i0_feeds_i1_n && i0dest_in_i0src);
       substed_i1 = 1;
+
+      /* Record whether I1's body now appears within I3's body.  */
+      i1_is_used = n_occurrences;
+    }
+
+  /* Likewise for I0 if we have it.  */
+
+  if (i0 && GET_CODE (newpat) != CLOBBER)
+    {
+      if ((FIND_REG_INC_NOTE (i0, NULL_RTX) != 0
+	   && ((i0_feeds_i2_n && dead_or_set_p (i2, i0dest))
+	       || (i0_feeds_i1_n && dead_or_set_p (i1, i0dest)))
+	   && !reg_overlap_mentioned_p (i0dest, newpat))
+	  || !combinable_i3pat (NULL_RTX, &newpat, i0dest, NULL_RTX, NULL_RTX,
+				0, 0, 0))
+	{
+	  undo_all ();
+	  return 0;
+	}
+
+      /* If the following substitution will modify I1SRC, make a copy of it
+	 for the case where it is substituted for I1DEST in I2PAT later.  */
+      if (i0_feeds_i1_n && added_sets_2 && i1_feeds_i2_n)
+	i1src_copy = copy_rtx (i1src);
+
+      n_occurrences = 0;
+      subst_low_luid = DF_INSN_LUID (i0);
+      newpat = subst (newpat, i0dest, i0src, 0, 0, 0);
+      substed_i0 = 1;
     }
 
   /* Fail if an autoincrement side-effect has been duplicated.  Be careful
@@ -2989,7 +3253,12 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
   if ((FIND_REG_INC_NOTE (i2, NULL_RTX) != 0
        && i2_is_used + added_sets_2 > 1)
       || (i1 != 0 && FIND_REG_INC_NOTE (i1, NULL_RTX) != 0
-	  && (n_occurrences + added_sets_1 + (added_sets_2 && ! i1_feeds_i3)
+	  && (i1_is_used + added_sets_1 + (added_sets_2 && i1_feeds_i2_n)
+	      > 1))
+      || (i0 != 0 && FIND_REG_INC_NOTE (i0, NULL_RTX) != 0
+	  && (n_occurrences + added_sets_0
+	      + (added_sets_1 && i0_feeds_i1_n)
+	      + (added_sets_2 && i0_feeds_i2_n)
 	      > 1))
       /* Fail if we tried to make a new register.  */
       || max_reg_num () != maxreg
@@ -3009,14 +3278,15 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
      we must make a new PARALLEL for the latest insn
      to hold additional the SETs.  */
 
-  if (added_sets_1 || added_sets_2)
+  if (added_sets_0 || added_sets_1 || added_sets_2)
     {
+      int extra_sets = added_sets_0 + added_sets_1 + added_sets_2;
       combine_extras++;
 
       if (GET_CODE (newpat) == PARALLEL)
 	{
 	  rtvec old = XVEC (newpat, 0);
-	  total_sets = XVECLEN (newpat, 0) + added_sets_1 + added_sets_2;
+	  total_sets = XVECLEN (newpat, 0) + extra_sets;
 	  newpat = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (total_sets));
 	  memcpy (XVEC (newpat, 0)->elem, &old->elem[0],
 		  sizeof (old->elem[0]) * old->num_elem);
@@ -3024,25 +3294,32 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
       else
 	{
 	  rtx old = newpat;
-	  total_sets = 1 + added_sets_1 + added_sets_2;
+	  total_sets = 1 + extra_sets;
 	  newpat = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (total_sets));
 	  XVECEXP (newpat, 0, 0) = old;
 	}
 
-      if (added_sets_1)
-	XVECEXP (newpat, 0, --total_sets) = i1pat;
+      if (added_sets_0)
+	XVECEXP (newpat, 0, --total_sets) = i0pat;
 
+      if (added_sets_1)
+	{
+	  rtx t = i1pat;
+	  if (i0_feeds_i1_n)
+	    t = subst (t, i0dest, i0src, 0, 0, 0);
+
+	  XVECEXP (newpat, 0, --total_sets) = t;
+	}
       if (added_sets_2)
 	{
-	  /* If there is no I1, use I2's body as is.  We used to also not do
-	     the subst call below if I2 was substituted into I3,
-	     but that could lose a simplification.  */
-	  if (i1 == 0)
-	    XVECEXP (newpat, 0, --total_sets) = i2pat;
-	  else
-	    /* See comment where i2pat is assigned.  */
-	    XVECEXP (newpat, 0, --total_sets)
-	      = subst (i2pat, i1dest, i1src, 0, 0);
+	  rtx t = i2pat;
+	  if (i1_feeds_i2_n)
+	    t = subst (t, i1dest, i1src_copy ? i1src_copy : i1src, 0, 0,
+		       i0_feeds_i1_n && i0dest_in_i0src);
+	  if ((i0_feeds_i1_n && i1_feeds_i2_n) || i0_feeds_i2_n)
+	    t = subst (t, i0dest, i0src, 0, 0, 0);
+
+	  XVECEXP (newpat, 0, --total_sets) = t;
 	}
     }
 
@@ -3215,7 +3492,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	    newpat = m_split;
 	}
       else if (m_split && NEXT_INSN (NEXT_INSN (m_split)) == NULL_RTX
-	       && (next_real_insn (i2) == i3
+	       && (next_nonnote_nondebug_insn (i2) == i3
 		   || ! use_crosses_set_p (PATTERN (m_split), DF_INSN_LUID (i2))))
 	{
 	  rtx i2set, i3set;
@@ -3232,7 +3509,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	     is used between I2 and I3, we also can't use these insns.  */
 
 	  if (i2_code_number >= 0 && i2set && i3set
-	      && (next_real_insn (i2) == i3
+	      && (next_nonnote_nondebug_insn (i2) == i3
 		  || ! reg_used_between_p (SET_DEST (i2set), i2, i3)))
 	    insn_code_number = recog_for_combine (&newi3pat, i3,
 						  &new_i3_notes);
@@ -3267,7 +3544,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
       /* If we can split it and use I2DEST, go ahead and see if that
 	 helps things be recognized.  Verify that none of the registers
 	 are set between I2 and I3.  */
-      if (insn_code_number < 0 && (split = find_split_point (&newpat, i3)) != 0
+      if (insn_code_number < 0
+          && (split = find_split_point (&newpat, i3, false)) != 0
 #ifdef HAVE_cc0
 	  && REG_P (i2dest)
 #endif
@@ -3279,7 +3557,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	      || GET_MODE (*split) == VOIDmode
 	      || can_change_dest_mode (i2dest, added_sets_2,
 				       GET_MODE (*split)))
-	  && (next_real_insn (i2) == i3
+	  && (next_nonnote_nondebug_insn (i2) == i3
 	      || ! use_crosses_set_p (*split, DF_INSN_LUID (i2)))
 	  /* We can't overwrite I2DEST if its value is still used by
 	     NEWPAT.  */
@@ -3292,6 +3570,14 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  newi2pat = NULL_RTX;
 
 	  i2scratch = true;
+
+	  /* *SPLIT may be part of I2SRC, so make sure we have the
+	     original expression around for later debug processing.
+	     We should not need I2SRC any more in other cases.  */
+	  if (MAY_HAVE_DEBUG_INSNS)
+	    i2src = copy_rtx (i2src);
+	  else
+	    i2src = NULL;
 
 	  /* Get NEWDEST as a register in the proper mode.  We have already
 	     validated that we can do this.  */
@@ -3312,7 +3598,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  if (split_code == MULT
 	      && CONST_INT_P (XEXP (*split, 1))
 	      && INTVAL (XEXP (*split, 1)) > 0
-	      && (i = exact_log2 (INTVAL (XEXP (*split, 1)))) >= 0)
+	      && (i = exact_log2 (UINTVAL (XEXP (*split, 1)))) >= 0)
 	    {
 	      SUBST (*split, gen_rtx_ASHIFT (split_mode,
 					     XEXP (*split, 0), GEN_INT (i)));
@@ -3459,8 +3745,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 		 (REG_P (temp)
 		  && VEC_index (reg_stat_type, reg_stat,
 				REGNO (temp))->nonzero_bits != 0
-		  && GET_MODE_BITSIZE (GET_MODE (temp)) < BITS_PER_WORD
-		  && GET_MODE_BITSIZE (GET_MODE (temp)) < HOST_BITS_PER_INT
+		  && GET_MODE_PRECISION (GET_MODE (temp)) < BITS_PER_WORD
+		  && GET_MODE_PRECISION (GET_MODE (temp)) < HOST_BITS_PER_INT
 		  && (VEC_index (reg_stat_type, reg_stat,
 				 REGNO (temp))->nonzero_bits
 		      != GET_MODE_MASK (word_mode))))
@@ -3469,8 +3755,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 		     (REG_P (temp)
 		      && VEC_index (reg_stat_type, reg_stat,
 				    REGNO (temp))->nonzero_bits != 0
-		      && GET_MODE_BITSIZE (GET_MODE (temp)) < BITS_PER_WORD
-		      && GET_MODE_BITSIZE (GET_MODE (temp)) < HOST_BITS_PER_INT
+		      && GET_MODE_PRECISION (GET_MODE (temp)) < BITS_PER_WORD
+		      && GET_MODE_PRECISION (GET_MODE (temp)) < HOST_BITS_PER_INT
 		      && (VEC_index (reg_stat_type, reg_stat,
 				     REGNO (temp))->nonzero_bits
 			  != GET_MODE_MASK (word_mode)))))
@@ -3509,42 +3795,65 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	   && GET_CODE (XVECEXP (newpat, 0, 1)) == SET
 	   && GET_CODE (SET_DEST (XVECEXP (newpat, 0, 1))) != ZERO_EXTRACT
 	   && GET_CODE (SET_DEST (XVECEXP (newpat, 0, 1))) != STRICT_LOW_PART
-	   && ! use_crosses_set_p (SET_SRC (XVECEXP (newpat, 0, 1)),
-				   DF_INSN_LUID (i2))
 	   && ! reg_referenced_p (SET_DEST (XVECEXP (newpat, 0, 1)),
 				  XVECEXP (newpat, 0, 0))
 	   && ! reg_referenced_p (SET_DEST (XVECEXP (newpat, 0, 0)),
 				  XVECEXP (newpat, 0, 1))
 	   && ! (contains_muldiv (SET_SRC (XVECEXP (newpat, 0, 0)))
-		 && contains_muldiv (SET_SRC (XVECEXP (newpat, 0, 1))))
-#ifdef HAVE_cc0
-	   /* We cannot split the parallel into two sets if both sets
-	      reference cc0.  */
-	   && ! (reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 0))
-		 && reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 1)))
-#endif
-	   )
+		 && contains_muldiv (SET_SRC (XVECEXP (newpat, 0, 1)))))
     {
       /* Normally, it doesn't matter which of the two is done first,
-	 but it does if one references cc0.  In that case, it has to
+	 but the one that references cc0 can't be the second, and
+	 one which uses any regs/memory set in between i2 and i3 can't
 	 be first.  */
+      if (!use_crosses_set_p (SET_SRC (XVECEXP (newpat, 0, 1)),
+			      DF_INSN_LUID (i2))
 #ifdef HAVE_cc0
-      if (reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 0)))
+	  && !reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 0))
+#endif
+	 )
+	{
+	  newi2pat = XVECEXP (newpat, 0, 1);
+	  newpat = XVECEXP (newpat, 0, 0);
+	}
+      else if (!use_crosses_set_p (SET_SRC (XVECEXP (newpat, 0, 0)),
+				   DF_INSN_LUID (i2))
+#ifdef HAVE_cc0
+	       && !reg_referenced_p (cc0_rtx, XVECEXP (newpat, 0, 1))
+#endif
+	      )
 	{
 	  newi2pat = XVECEXP (newpat, 0, 0);
 	  newpat = XVECEXP (newpat, 0, 1);
 	}
       else
-#endif
 	{
-	  newi2pat = XVECEXP (newpat, 0, 1);
-	  newpat = XVECEXP (newpat, 0, 0);
+	  undo_all ();
+	  return 0;
 	}
 
       i2_code_number = recog_for_combine (&newi2pat, i2, &new_i2_notes);
 
       if (i2_code_number >= 0)
-	insn_code_number = recog_for_combine (&newpat, i3, &new_i3_notes);
+	{
+	  /* recog_for_combine might have added CLOBBERs to newi2pat.
+	     Make sure NEWPAT does not depend on the clobbered regs.  */
+	  if (GET_CODE (newi2pat) == PARALLEL)
+	    {
+	      for (i = XVECLEN (newi2pat, 0) - 1; i >= 0; i--)
+		if (GET_CODE (XVECEXP (newi2pat, 0, i)) == CLOBBER)
+		  {
+		    rtx reg = XEXP (XVECEXP (newi2pat, 0, i), 0);
+		    if (reg_overlap_mentioned_p (reg, newpat))
+		      {
+			undo_all ();
+			return 0;
+		      }
+		  }
+	    }
+
+	  insn_code_number = recog_for_combine (&newpat, i3, &new_i3_notes);
+	}
     }
 
   /* If it still isn't recognized, fail and change things back the way they
@@ -3589,7 +3898,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
   /* Only allow this combination if insn_rtx_costs reports that the
      replacement instructions are cheaper than the originals.  */
-  if (!combine_validate_cost (i1, i2, i3, newpat, newi2pat, other_pat))
+  if (!combine_validate_cost (i0, i1, i2, i3, newpat, newi2pat, other_pat))
     {
       undo_all ();
       return 0;
@@ -3616,7 +3925,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 		   i2src while its original mode is temporarily
 		   restored, and then clear i2scratch so that we don't
 		   do it again later.  */
-		propagate_for_debug (i2, i3, reg, i2src, false);
+		propagate_for_debug (i2, last_combined_insn, reg, i2src);
 		i2scratch = false;
 		/* Put back the new mode.  */
 		adjust_reg_mode (reg, new_mode);
@@ -3629,13 +3938,16 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 		if (reg == i2dest)
 		  {
 		    first = i2;
-		    last = i3;
+		    last = last_combined_insn;
 		  }
 		else
 		  {
 		    first = i3;
 		    last = undobuf.other_insn;
 		    gcc_assert (last);
+		    if (DF_INSN_LUID (last)
+			< DF_INSN_LUID (last_combined_insn))
+		      last = last_combined_insn;
 		  }
 
 		/* We're dealing with a reg that changed mode but not
@@ -3647,11 +3959,10 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 		   with this copy we have created; then, replace the
 		   copy with the SUBREG of the original shared reg,
 		   once again changed to the new mode.  */
-		propagate_for_debug (first, last, reg, tempreg, false);
+		propagate_for_debug (first, last, reg, tempreg);
 		adjust_reg_mode (reg, new_mode);
 		propagate_for_debug (first, last, tempreg,
-				     lowpart_subreg (old_mode, reg, new_mode),
-				     false);
+				     lowpart_subreg (old_mode, reg, new_mode));
 	      }
 	  }
     }
@@ -3688,13 +3999,14 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	}
 
       distribute_notes (new_other_notes, undobuf.other_insn,
-			undobuf.other_insn, NULL_RTX, NULL_RTX, NULL_RTX);
+			undobuf.other_insn, NULL_RTX, NULL_RTX, NULL_RTX,
+			NULL_RTX);
     }
 
   if (swap_i2i3)
     {
       rtx insn;
-      rtx link;
+      struct insn_link *link;
       rtx ni2dest;
 
       /* I3 now uses what used to be its destination and which is now
@@ -3724,10 +4036,9 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	{
 	  if (INSN_P (insn) && reg_referenced_p (ni2dest, PATTERN (insn)))
 	    {
-	      for (link = LOG_LINKS (insn); link;
-		   link = XEXP (link, 1))
-		if (XEXP (link, 0) == i3)
-		  XEXP (link, 0) = i1;
+	      FOR_EACH_LOG_LINK (link, insn)
+		if (link->insn == i3)
+		  link->insn = i1;
 
 	      break;
 	    }
@@ -3735,21 +4046,25 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     }
 
   {
-    rtx i3notes, i2notes, i1notes = 0;
-    rtx i3links, i2links, i1links = 0;
+    rtx i3notes, i2notes, i1notes = 0, i0notes = 0;
+    struct insn_link *i3links, *i2links, *i1links = 0, *i0links = 0;
     rtx midnotes = 0;
-    unsigned int regno;
+    int from_luid;
     /* Compute which registers we expect to eliminate.  newi2pat may be setting
        either i3dest or i2dest, so we must check it.  Also, i1dest may be the
        same as i3dest, in which case newi2pat may be setting i1dest.  */
     rtx elim_i2 = ((newi2pat && reg_set_p (i2dest, newi2pat))
-		   || i2dest_in_i2src || i2dest_in_i1src
+		   || i2dest_in_i2src || i2dest_in_i1src || i2dest_in_i0src
 		   || !i2dest_killed
 		   ? 0 : i2dest);
-    rtx elim_i1 = (i1 == 0 || i1dest_in_i1src
+    rtx elim_i1 = (i1 == 0 || i1dest_in_i1src || i1dest_in_i0src
 		   || (newi2pat && reg_set_p (i1dest, newi2pat))
 		   || !i1dest_killed
 		   ? 0 : i1dest);
+    rtx elim_i0 = (i0 == 0 || i0dest_in_i0src
+		   || (newi2pat && reg_set_p (i0dest, newi2pat))
+		   || !i0dest_killed
+		   ? 0 : i0dest);
 
     /* Get the old REG_NOTES and LOG_LINKS from all our insns and
        clear them.  */
@@ -3757,6 +4072,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     i2notes = REG_NOTES (i2), i2links = LOG_LINKS (i2);
     if (i1)
       i1notes = REG_NOTES (i1), i1links = LOG_LINKS (i1);
+    if (i0)
+      i0notes = REG_NOTES (i0), i0links = LOG_LINKS (i0);
 
     /* Ensure that we do not have something that should not be shared but
        occurs multiple times in the new insns.  Check this by first
@@ -3765,6 +4082,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     reset_used_flags (i3notes);
     reset_used_flags (i2notes);
     reset_used_flags (i1notes);
+    reset_used_flags (i0notes);
     reset_used_flags (newpat);
     reset_used_flags (newi2pat);
     if (undobuf.other_insn)
@@ -3773,6 +4091,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     i3notes = copy_rtx_if_shared (i3notes);
     i2notes = copy_rtx_if_shared (i2notes);
     i1notes = copy_rtx_if_shared (i1notes);
+    i0notes = copy_rtx_if_shared (i0notes);
     newpat = copy_rtx_if_shared (newpat);
     newi2pat = copy_rtx_if_shared (newi2pat);
     if (undobuf.other_insn)
@@ -3789,10 +4108,18 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	call_usage = copy_rtx (call_usage);
 
 	if (substed_i2)
-	  replace_rtx (call_usage, i2dest, i2src);
+	  {
+	    /* I2SRC must still be meaningful at this point.  Some splitting
+	       operations can invalidate I2SRC, but those operations do not
+	       apply to calls.  */
+	    gcc_assert (i2src);
+	    replace_rtx (call_usage, i2dest, i2src);
+	  }
 
 	if (substed_i1)
 	  replace_rtx (call_usage, i1dest, i1src);
+	if (substed_i0)
+	  replace_rtx (call_usage, i0dest, i0src);
 
 	CALL_INSN_FUNCTION_USAGE (i3) = call_usage;
       }
@@ -3823,9 +4150,9 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 			  || BB_HEAD (this_basic_block) != temp);
 		 temp = NEXT_INSN (temp))
 	      if (temp != i3 && INSN_P (temp))
-		for (link = LOG_LINKS (temp); link; link = XEXP (link, 1))
-		  if (XEXP (link, 0) == i2)
-		    XEXP (link, 0) = i3;
+		FOR_EACH_LOG_LINK (link, temp)
+		  if (link->insn == i2)
+		    link->insn = i3;
 
 	if (i3notes)
 	  {
@@ -3839,32 +4166,41 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	i2notes = 0;
       }
 
-    LOG_LINKS (i3) = 0;
+    LOG_LINKS (i3) = NULL;
     REG_NOTES (i3) = 0;
-    LOG_LINKS (i2) = 0;
+    LOG_LINKS (i2) = NULL;
     REG_NOTES (i2) = 0;
 
     if (newi2pat)
       {
 	if (MAY_HAVE_DEBUG_INSNS && i2scratch)
-	  propagate_for_debug (i2, i3, i2dest, i2src, false);
+	  propagate_for_debug (i2, last_combined_insn, i2dest, i2src);
 	INSN_CODE (i2) = i2_code_number;
 	PATTERN (i2) = newi2pat;
       }
     else
       {
 	if (MAY_HAVE_DEBUG_INSNS && i2src)
-	  propagate_for_debug (i2, i3, i2dest, i2src, i3_subst_into_i2);
+	  propagate_for_debug (i2, last_combined_insn, i2dest, i2src);
 	SET_INSN_DELETED (i2);
       }
 
     if (i1)
       {
-	LOG_LINKS (i1) = 0;
+	LOG_LINKS (i1) = NULL;
 	REG_NOTES (i1) = 0;
 	if (MAY_HAVE_DEBUG_INSNS)
-	  propagate_for_debug (i1, i3, i1dest, i1src, false);
+	  propagate_for_debug (i1, last_combined_insn, i1dest, i1src);
 	SET_INSN_DELETED (i1);
+      }
+
+    if (i0)
+      {
+	LOG_LINKS (i0) = NULL;
+	REG_NOTES (i0) = 0;
+	if (MAY_HAVE_DEBUG_INSNS)
+	  propagate_for_debug (i0, last_combined_insn, i0dest, i0src);
+	SET_INSN_DELETED (i0);
       }
 
     /* Get death notes for everything that is now used in either I3 or
@@ -3872,38 +4208,44 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
        patterns, move from I1 to I2 then I2 to I3 so that we get the
        proper movement on registers that I2 modifies.  */
 
-    if (newi2pat)
-      {
-	move_deaths (newi2pat, NULL_RTX, DF_INSN_LUID (i1), i2, &midnotes);
-	move_deaths (newpat, newi2pat, DF_INSN_LUID (i1), i3, &midnotes);
-      }
+    if (i0)
+      from_luid = DF_INSN_LUID (i0);
+    else if (i1)
+      from_luid = DF_INSN_LUID (i1);
     else
-      move_deaths (newpat, NULL_RTX, i1 ? DF_INSN_LUID (i1) : DF_INSN_LUID (i2),
-		   i3, &midnotes);
+      from_luid = DF_INSN_LUID (i2);
+    if (newi2pat)
+      move_deaths (newi2pat, NULL_RTX, from_luid, i2, &midnotes);
+    move_deaths (newpat, newi2pat, from_luid, i3, &midnotes);
 
     /* Distribute all the LOG_LINKS and REG_NOTES from I1, I2, and I3.  */
     if (i3notes)
       distribute_notes (i3notes, i3, i3, newi2pat ? i2 : NULL_RTX,
-			elim_i2, elim_i1);
+			elim_i2, elim_i1, elim_i0);
     if (i2notes)
       distribute_notes (i2notes, i2, i3, newi2pat ? i2 : NULL_RTX,
-			elim_i2, elim_i1);
+			elim_i2, elim_i1, elim_i0);
     if (i1notes)
       distribute_notes (i1notes, i1, i3, newi2pat ? i2 : NULL_RTX,
-			elim_i2, elim_i1);
+			elim_i2, elim_i1, elim_i0);
+    if (i0notes)
+      distribute_notes (i0notes, i0, i3, newi2pat ? i2 : NULL_RTX,
+			elim_i2, elim_i1, elim_i0);
     if (midnotes)
       distribute_notes (midnotes, NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
-			elim_i2, elim_i1);
+			elim_i2, elim_i1, elim_i0);
 
     /* Distribute any notes added to I2 or I3 by recog_for_combine.  We
        know these are REG_UNUSED and want them to go to the desired insn,
        so we always pass it as i3.  */
 
     if (newi2pat && new_i2_notes)
-      distribute_notes (new_i2_notes, i2, i2, NULL_RTX, NULL_RTX, NULL_RTX);
+      distribute_notes (new_i2_notes, i2, i2, NULL_RTX, NULL_RTX, NULL_RTX,
+			NULL_RTX);
 
     if (new_i3_notes)
-      distribute_notes (new_i3_notes, i3, i3, NULL_RTX, NULL_RTX, NULL_RTX);
+      distribute_notes (new_i3_notes, i3, i3, NULL_RTX, NULL_RTX, NULL_RTX,
+			NULL_RTX);
 
     /* If I3DEST was used in I3SRC, it really died in I3.  We may need to
        put a REG_DEAD note for it somewhere.  If NEWI2PAT exists and sets
@@ -3917,43 +4259,55 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	if (newi2pat && reg_set_p (i3dest_killed, newi2pat))
 	  distribute_notes (alloc_reg_note (REG_DEAD, i3dest_killed,
 					    NULL_RTX),
-			    NULL_RTX, i2, NULL_RTX, elim_i2, elim_i1);
+			    NULL_RTX, i2, NULL_RTX, elim_i2, elim_i1, elim_i0);
 	else
 	  distribute_notes (alloc_reg_note (REG_DEAD, i3dest_killed,
 					    NULL_RTX),
 			    NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
-			    elim_i2, elim_i1);
+			    elim_i2, elim_i1, elim_i0);
       }
 
     if (i2dest_in_i2src)
       {
+	rtx new_note = alloc_reg_note (REG_DEAD, i2dest, NULL_RTX);
 	if (newi2pat && reg_set_p (i2dest, newi2pat))
-	  distribute_notes (alloc_reg_note (REG_DEAD, i2dest, NULL_RTX),
-			    NULL_RTX, i2, NULL_RTX, NULL_RTX, NULL_RTX);
-	else
-	  distribute_notes (alloc_reg_note (REG_DEAD, i2dest, NULL_RTX),
-			    NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
+	  distribute_notes (new_note,  NULL_RTX, i2, NULL_RTX, NULL_RTX,
 			    NULL_RTX, NULL_RTX);
+	else
+	  distribute_notes (new_note, NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
+			    NULL_RTX, NULL_RTX, NULL_RTX);
       }
 
     if (i1dest_in_i1src)
       {
+	rtx new_note = alloc_reg_note (REG_DEAD, i1dest, NULL_RTX);
 	if (newi2pat && reg_set_p (i1dest, newi2pat))
-	  distribute_notes (alloc_reg_note (REG_DEAD, i1dest, NULL_RTX),
-			    NULL_RTX, i2, NULL_RTX, NULL_RTX, NULL_RTX);
-	else
-	  distribute_notes (alloc_reg_note (REG_DEAD, i1dest, NULL_RTX),
-			    NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
+	  distribute_notes (new_note, NULL_RTX, i2, NULL_RTX, NULL_RTX,
 			    NULL_RTX, NULL_RTX);
+	else
+	  distribute_notes (new_note, NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
+			    NULL_RTX, NULL_RTX, NULL_RTX);
+      }
+
+    if (i0dest_in_i0src)
+      {
+	rtx new_note = alloc_reg_note (REG_DEAD, i0dest, NULL_RTX);
+	if (newi2pat && reg_set_p (i0dest, newi2pat))
+	  distribute_notes (new_note, NULL_RTX, i2, NULL_RTX, NULL_RTX,
+			    NULL_RTX, NULL_RTX);
+	else
+	  distribute_notes (new_note, NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
+			    NULL_RTX, NULL_RTX, NULL_RTX);
       }
 
     distribute_links (i3links);
     distribute_links (i2links);
     distribute_links (i1links);
+    distribute_links (i0links);
 
     if (REG_P (i2dest))
       {
-	rtx link;
+	struct insn_link *link;
 	rtx i2_insn = 0, i2_val = 0, set;
 
 	/* The insn that used to set this register doesn't exist, and
@@ -3963,11 +4317,10 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	   this and I2 set the register to a value that depended on its old
 	   contents, we will get confused.  If this insn is used, thing
 	   will be set correctly in combine_instructions.  */
-
-	for (link = LOG_LINKS (i3); link; link = XEXP (link, 1))
-	  if ((set = single_set (XEXP (link, 0))) != 0
+	FOR_EACH_LOG_LINK (link, i3)
+	  if ((set = single_set (link->insn)) != 0
 	      && rtx_equal_p (i2dest, SET_DEST (set)))
-	    i2_insn = XEXP (link, 0), i2_val = SET_SRC (set);
+	    i2_insn = link->insn, i2_val = SET_SRC (set);
 
 	record_value_for_reg (i2dest, i2_insn, i2_val);
 
@@ -3976,27 +4329,39 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	if (! added_sets_2
 	    && (newi2pat == 0 || ! reg_mentioned_p (i2dest, newi2pat))
 	    && ! i2dest_in_i2src)
-	  {
-	    regno = REGNO (i2dest);
-	    INC_REG_N_SETS (regno, -1);
-	  }
+	  INC_REG_N_SETS (REGNO (i2dest), -1);
       }
 
     if (i1 && REG_P (i1dest))
       {
-	rtx link;
+	struct insn_link *link;
 	rtx i1_insn = 0, i1_val = 0, set;
 
-	for (link = LOG_LINKS (i3); link; link = XEXP (link, 1))
-	  if ((set = single_set (XEXP (link, 0))) != 0
+	FOR_EACH_LOG_LINK (link, i3)
+	  if ((set = single_set (link->insn)) != 0
 	      && rtx_equal_p (i1dest, SET_DEST (set)))
-	    i1_insn = XEXP (link, 0), i1_val = SET_SRC (set);
+	    i1_insn = link->insn, i1_val = SET_SRC (set);
 
 	record_value_for_reg (i1dest, i1_insn, i1_val);
 
-	regno = REGNO (i1dest);
 	if (! added_sets_1 && ! i1dest_in_i1src)
-	  INC_REG_N_SETS (regno, -1);
+	  INC_REG_N_SETS (REGNO (i1dest), -1);
+      }
+
+    if (i0 && REG_P (i0dest))
+      {
+	struct insn_link *link;
+	rtx i0_insn = 0, i0_val = 0, set;
+
+	FOR_EACH_LOG_LINK (link, i3)
+	  if ((set = single_set (link->insn)) != 0
+	      && rtx_equal_p (i0dest, SET_DEST (set)))
+	    i0_insn = link->insn, i0_val = SET_SRC (set);
+
+	record_value_for_reg (i0dest, i0_insn, i0_val);
+
+	if (! added_sets_0 && ! i0dest_in_i0src)
+	  INC_REG_N_SETS (REGNO (i0dest), -1);
       }
 
     /* Update reg_stat[].nonzero_bits et al for any changes that may have
@@ -4016,6 +4381,16 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  dump_insn_slim (dump_file, undobuf.other_insn);
 	}
       df_insn_rescan (undobuf.other_insn);
+    }
+
+  if (i0 && !(NOTE_P(i0) && (NOTE_KIND (i0) == NOTE_INSN_DELETED)))
+    {
+      if (dump_file)
+	{
+	  fprintf (dump_file, "modifying insn i1 ");
+	  dump_insn_slim (dump_file, i0);
+	}
+      df_insn_rescan (i0);
     }
 
   if (i1 && !(NOTE_P(i1) && (NOTE_KIND (i1) == NOTE_INSN_DELETED)))
@@ -4068,12 +4443,23 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 
   /* A noop might also need cleaning up of CFG, if it comes from the
      simplification of a jump.  */
-  if (GET_CODE (newpat) == SET
+  if (JUMP_P (i3)
+      && GET_CODE (newpat) == SET
       && SET_SRC (newpat) == pc_rtx
       && SET_DEST (newpat) == pc_rtx)
     {
       *new_direct_jump_p = 1;
       update_cfg_for_uncondjump (i3);
+    }
+
+  if (undobuf.other_insn != NULL_RTX
+      && JUMP_P (undobuf.other_insn)
+      && GET_CODE (PATTERN (undobuf.other_insn)) == SET
+      && SET_SRC (PATTERN (undobuf.other_insn)) == pc_rtx
+      && SET_DEST (PATTERN (undobuf.other_insn)) == pc_rtx)
+    {
+      *new_direct_jump_p = 1;
+      update_cfg_for_uncondjump (undobuf.other_insn);
     }
 
   combine_successes++;
@@ -4144,7 +4530,7 @@ undo_commit (void)
    two insns.  */
 
 static rtx *
-find_split_point (rtx *loc, rtx insn)
+find_split_point (rtx *loc, rtx insn, bool set_src)
 {
   rtx x = *loc;
   enum rtx_code code = GET_CODE (x);
@@ -4164,7 +4550,7 @@ find_split_point (rtx *loc, rtx insn)
       if (MEM_P (SUBREG_REG (x)))
 	return loc;
 #endif
-      return find_split_point (&SUBREG_REG (x), insn);
+      return find_split_point (&SUBREG_REG (x), insn, false);
 
     case MEM:
 #ifdef HAVE_lo_sum
@@ -4281,26 +4667,25 @@ find_split_point (rtx *loc, rtx insn)
 #endif
 
       /* See if we can split SET_SRC as it stands.  */
-      split = find_split_point (&SET_SRC (x), insn);
+      split = find_split_point (&SET_SRC (x), insn, true);
       if (split && split != &SET_SRC (x))
 	return split;
 
       /* See if we can split SET_DEST as it stands.  */
-      split = find_split_point (&SET_DEST (x), insn);
+      split = find_split_point (&SET_DEST (x), insn, false);
       if (split && split != &SET_DEST (x))
 	return split;
 
       /* See if this is a bitfield assignment with everything constant.  If
 	 so, this is an IOR of an AND, so split it into that.  */
       if (GET_CODE (SET_DEST (x)) == ZERO_EXTRACT
-	  && (GET_MODE_BITSIZE (GET_MODE (XEXP (SET_DEST (x), 0)))
-	      <= HOST_BITS_PER_WIDE_INT)
+	  && HWI_COMPUTABLE_MODE_P (GET_MODE (XEXP (SET_DEST (x), 0)))
 	  && CONST_INT_P (XEXP (SET_DEST (x), 1))
 	  && CONST_INT_P (XEXP (SET_DEST (x), 2))
 	  && CONST_INT_P (SET_SRC (x))
 	  && ((INTVAL (XEXP (SET_DEST (x), 1))
 	       + INTVAL (XEXP (SET_DEST (x), 2)))
-	      <= GET_MODE_BITSIZE (GET_MODE (XEXP (SET_DEST (x), 0))))
+	      <= GET_MODE_PRECISION (GET_MODE (XEXP (SET_DEST (x), 0))))
 	  && ! side_effects_p (XEXP (SET_DEST (x), 0)))
 	{
 	  HOST_WIDE_INT pos = INTVAL (XEXP (SET_DEST (x), 2));
@@ -4308,11 +4693,12 @@ find_split_point (rtx *loc, rtx insn)
 	  unsigned HOST_WIDE_INT src = INTVAL (SET_SRC (x));
 	  rtx dest = XEXP (SET_DEST (x), 0);
 	  enum machine_mode mode = GET_MODE (dest);
-	  unsigned HOST_WIDE_INT mask = ((HOST_WIDE_INT) 1 << len) - 1;
+	  unsigned HOST_WIDE_INT mask
+	    = ((unsigned HOST_WIDE_INT) 1 << len) - 1;
 	  rtx or_mask;
 
 	  if (BITS_BIG_ENDIAN)
-	    pos = GET_MODE_BITSIZE (mode) - len - pos;
+	    pos = GET_MODE_PRECISION (mode) - len - pos;
 
 	  or_mask = gen_int_mode (src << pos, mode);
 	  if (src == mask)
@@ -4330,7 +4716,7 @@ find_split_point (rtx *loc, rtx insn)
 
 	  SUBST (SET_DEST (x), dest);
 
-	  split = find_split_point (&SET_SRC (x), insn);
+	  split = find_split_point (&SET_SRC (x), insn, true);
 	  if (split && split != &SET_SRC (x))
 	    return split;
 	}
@@ -4353,7 +4739,7 @@ find_split_point (rtx *loc, rtx insn)
 
 	  if (CONST_INT_P (XEXP (SET_SRC (x), 1))
 	      && REG_P (XEXP (SET_SRC (x), 0))
-	      && (pos = exact_log2 (INTVAL (XEXP (SET_SRC (x), 1)))) >= 7
+	      && (pos = exact_log2 (UINTVAL (XEXP (SET_SRC (x), 1)))) >= 7
 	      && REG_P (SET_DEST (x))
 	      && (split = find_single_use (SET_DEST (x), insn, (rtx*) 0)) != 0
 	      && (GET_CODE (*split) == EQ || GET_CODE (*split) == NE)
@@ -4366,7 +4752,7 @@ find_split_point (rtx *loc, rtx insn)
 	      if (extraction != 0)
 		{
 		  SUBST (SET_SRC (x), extraction);
-		  return find_split_point (loc, insn);
+		  return find_split_point (loc, insn, false);
 		}
 	    }
 	  break;
@@ -4388,7 +4774,7 @@ find_split_point (rtx *loc, rtx insn)
 						    XEXP (SET_SRC (x), 0),
 						    GEN_INT (pos))));
 
-	      split = find_split_point (&SET_SRC (x), insn);
+	      split = find_split_point (&SET_SRC (x), insn, true);
 	      if (split && split != &SET_SRC (x))
 		return split;
 	    }
@@ -4405,7 +4791,7 @@ find_split_point (rtx *loc, rtx insn)
 	    break;
 
 	  pos = 0;
-	  len = GET_MODE_BITSIZE (GET_MODE (inner));
+	  len = GET_MODE_PRECISION (GET_MODE (inner));
 	  unsignedp = 0;
 	  break;
 
@@ -4419,7 +4805,7 @@ find_split_point (rtx *loc, rtx insn)
 	      pos = INTVAL (XEXP (SET_SRC (x), 2));
 
 	      if (BITS_BIG_ENDIAN)
-		pos = GET_MODE_BITSIZE (GET_MODE (inner)) - len - pos;
+		pos = GET_MODE_PRECISION (GET_MODE (inner)) - len - pos;
 	      unsignedp = (code == ZERO_EXTRACT);
 	    }
 	  break;
@@ -4428,7 +4814,8 @@ find_split_point (rtx *loc, rtx insn)
 	  break;
 	}
 
-      if (len && pos >= 0 && pos + len <= GET_MODE_BITSIZE (GET_MODE (inner)))
+      if (len && pos >= 0
+	  && pos + len <= GET_MODE_PRECISION (GET_MODE (inner)))
 	{
 	  enum machine_mode mode = GET_MODE (SET_SRC (x));
 
@@ -4445,9 +4832,10 @@ find_split_point (rtx *loc, rtx insn)
 				  gen_rtx_LSHIFTRT
 				  (mode, gen_lowpart (mode, inner),
 				   GEN_INT (pos)),
-				  GEN_INT (((HOST_WIDE_INT) 1 << len) - 1)));
+				  GEN_INT (((unsigned HOST_WIDE_INT) 1 << len)
+					   - 1)));
 
-	      split = find_split_point (&SET_SRC (x), insn);
+	      split = find_split_point (&SET_SRC (x), insn, true);
 	      if (split && split != &SET_SRC (x))
 		return split;
 	    }
@@ -4458,11 +4846,11 @@ find_split_point (rtx *loc, rtx insn)
 		     (unsignedp ? LSHIFTRT : ASHIFTRT, mode,
 		      gen_rtx_ASHIFT (mode,
 				      gen_lowpart (mode, inner),
-				      GEN_INT (GET_MODE_BITSIZE (mode)
+				      GEN_INT (GET_MODE_PRECISION (mode)
 					       - len - pos)),
-		      GEN_INT (GET_MODE_BITSIZE (mode) - len)));
+		      GEN_INT (GET_MODE_PRECISION (mode) - len)));
 
-	      split = find_split_point (&SET_SRC (x), insn);
+	      split = find_split_point (&SET_SRC (x), insn, true);
 	      if (split && split != &SET_SRC (x))
 		return split;
 	    }
@@ -4502,7 +4890,7 @@ find_split_point (rtx *loc, rtx insn)
 					      GET_MODE (x),
 					      XEXP (XEXP (x, 0), 0),
 					      XEXP (XEXP (x, 1), 0))));
-	  return find_split_point (loc, insn);
+	  return find_split_point (loc, insn, set_src);
 	}
 
       /* Many RISC machines have a large set of logical insns.  If the
@@ -4516,6 +4904,31 @@ find_split_point (rtx *loc, rtx insn)
 	}
       break;
 
+    case PLUS:
+    case MINUS:
+      /* Canonicalization can produce (minus A (mult B C)), where C is a
+	 constant.  It may be better to try splitting (plus (mult B -C) A)
+	 instead if this isn't a multiply by a power of two.  */
+      if (set_src && code == MINUS && GET_CODE (XEXP (x, 1)) == MULT
+	  && GET_CODE (XEXP (XEXP (x, 1), 1)) == CONST_INT
+	  && exact_log2 (INTVAL (XEXP (XEXP (x, 1), 1))) < 0)
+	{
+	  enum machine_mode mode = GET_MODE (x);
+	  unsigned HOST_WIDE_INT this_int = INTVAL (XEXP (XEXP (x, 1), 1));
+	  HOST_WIDE_INT other_int = trunc_int_for_mode (-this_int, mode);
+	  SUBST (*loc, gen_rtx_PLUS (mode, gen_rtx_MULT (mode,
+							 XEXP (XEXP (x, 1), 0),
+							 GEN_INT (other_int)),
+				     XEXP (x, 0)));
+	  return find_split_point (loc, insn, set_src);
+	}
+
+      /* Split at a multiply-accumulate instruction.  However if this is
+         the SET_SRC, we likely do not have such an instruction and it's
+         worthless to try this split.  */
+      if (!set_src && GET_CODE (XEXP (x, 0)) == MULT)
+        return loc;
+
     default:
       break;
     }
@@ -4525,7 +4938,7 @@ find_split_point (rtx *loc, rtx insn)
     {
     case RTX_BITFIELD_OPS:		/* This is ZERO_EXTRACT and SIGN_EXTRACT.  */
     case RTX_TERNARY:
-      split = find_split_point (&XEXP (x, 2), insn);
+      split = find_split_point (&XEXP (x, 2), insn, false);
       if (split)
 	return split;
       /* ... fall through ...  */
@@ -4533,7 +4946,7 @@ find_split_point (rtx *loc, rtx insn)
     case RTX_COMM_ARITH:
     case RTX_COMPARE:
     case RTX_COMM_COMPARE:
-      split = find_split_point (&XEXP (x, 1), insn);
+      split = find_split_point (&XEXP (x, 1), insn, false);
       if (split)
 	return split;
       /* ... fall through ...  */
@@ -4543,7 +4956,7 @@ find_split_point (rtx *loc, rtx insn)
       if (GET_CODE (x) != AND && GET_CODE (XEXP (x, 0)) == AND)
 	return &XEXP (x, 0);
 
-      split = find_split_point (&XEXP (x, 0), insn);
+      split = find_split_point (&XEXP (x, 0), insn, false);
       if (split)
 	return split;
       return loc;
@@ -4570,11 +4983,13 @@ find_split_point (rtx *loc, rtx insn)
 
    IN_DEST is nonzero if we are processing the SET_DEST of a SET.
 
+   IN_COND is nonzero if we are at the top level of a condition.
+
    UNIQUE_COPY is nonzero if each substitution must be unique.  We do this
    by copying if `n_occurrences' is nonzero.  */
 
 static rtx
-subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
+subst (rtx x, rtx from, rtx to, int in_dest, int in_cond, int unique_copy)
 {
   enum rtx_code code = GET_CODE (x);
   enum machine_mode op0_mode = VOIDmode;
@@ -4635,7 +5050,7 @@ subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
       && GET_CODE (XVECEXP (x, 0, 0)) == SET
       && GET_CODE (SET_SRC (XVECEXP (x, 0, 0))) == ASM_OPERANDS)
     {
-      new_rtx = subst (XVECEXP (x, 0, 0), from, to, 0, unique_copy);
+      new_rtx = subst (XVECEXP (x, 0, 0), from, to, 0, 0, unique_copy);
 
       /* If this substitution failed, this whole thing fails.  */
       if (GET_CODE (new_rtx) == CLOBBER
@@ -4652,7 +5067,7 @@ subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
 	      && GET_CODE (dest) != CC0
 	      && GET_CODE (dest) != PC)
 	    {
-	      new_rtx = subst (dest, from, to, 0, unique_copy);
+	      new_rtx = subst (dest, from, to, 0, 0, unique_copy);
 
 	      /* If this substitution failed, this whole thing fails.  */
 	      if (GET_CODE (new_rtx) == CLOBBER
@@ -4698,8 +5113,8 @@ subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
 		    }
 		  else
 		    {
-		      new_rtx = subst (XVECEXP (x, i, j), from, to, 0,
-				   unique_copy);
+		      new_rtx = subst (XVECEXP (x, i, j), from, to, 0, 0,
+				       unique_copy);
 
 		      /* If this substitution failed, this whole thing
 			 fails.  */
@@ -4776,7 +5191,9 @@ subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
 				&& (code == SUBREG || code == STRICT_LOW_PART
 				    || code == ZERO_EXTRACT))
 			       || code == SET)
-			      && i == 0), unique_copy);
+			      && i == 0),
+				 code == IF_THEN_ELSE && i == 0,
+				 unique_copy);
 
 	      /* If we found that we will have to reject this combination,
 		 indicate that by returning the CLOBBER ourselves, rather than
@@ -4833,7 +5250,7 @@ subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
       /* If X is sufficiently simple, don't bother trying to do anything
 	 with it.  */
       if (code != CONST_INT && code != REG && code != CLOBBER)
-	x = combine_simplify_rtx (x, op0_mode, in_dest);
+	x = combine_simplify_rtx (x, op0_mode, in_dest, in_cond);
 
       if (GET_CODE (x) == code)
 	break;
@@ -4853,10 +5270,12 @@ subst (rtx x, rtx from, rtx to, int in_dest, int unique_copy)
    expression.
 
    OP0_MODE is the original mode of XEXP (x, 0).  IN_DEST is nonzero
-   if we are inside a SET_DEST.  */
+   if we are inside a SET_DEST.  IN_COND is nonzero if we are at the top level
+   of a condition.  */
 
 static rtx
-combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
+combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest,
+		      int in_cond)
 {
   enum rtx_code code = GET_CODE (x);
   enum machine_mode mode = GET_MODE (x);
@@ -4911,8 +5330,8 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	     false arms to store-flag values.  Be careful to use copy_rtx
 	     here since true_rtx or false_rtx might share RTL with x as a
 	     result of the if_then_else_cond call above.  */
-	  true_rtx = subst (copy_rtx (true_rtx), pc_rtx, pc_rtx, 0, 0);
-	  false_rtx = subst (copy_rtx (false_rtx), pc_rtx, pc_rtx, 0, 0);
+	  true_rtx = subst (copy_rtx (true_rtx), pc_rtx, pc_rtx, 0, 0, 0);
+	  false_rtx = subst (copy_rtx (false_rtx), pc_rtx, pc_rtx, 0, 0, 0);
 
 	  /* If true_rtx and false_rtx are not general_operands, an if_then_else
 	     is unlikely to be simpler.  */
@@ -5126,7 +5545,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 
       if (GET_CODE (temp) == ASHIFTRT
 	  && CONST_INT_P (XEXP (temp, 1))
-	  && INTVAL (XEXP (temp, 1)) == GET_MODE_BITSIZE (mode) - 1)
+	  && INTVAL (XEXP (temp, 1)) == GET_MODE_PRECISION (mode) - 1)
 	return simplify_shift_const (NULL_RTX, LSHIFTRT, mode, XEXP (temp, 0),
 				     INTVAL (XEXP (temp, 1)));
 
@@ -5145,8 +5564,8 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	  rtx temp1 = simplify_shift_const
 	    (NULL_RTX, ASHIFTRT, mode,
 	     simplify_shift_const (NULL_RTX, ASHIFT, mode, temp,
-				   GET_MODE_BITSIZE (mode) - 1 - i),
-	     GET_MODE_BITSIZE (mode) - 1 - i);
+				   GET_MODE_PRECISION (mode) - 1 - i),
+	     GET_MODE_PRECISION (mode) - 1 - i);
 
 	  /* If all we did was surround TEMP with the two shifts, we
 	     haven't improved anything, so don't use it.  Otherwise,
@@ -5165,7 +5584,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
       if (GET_MODE_CLASS (mode) == MODE_PARTIAL_INT)
 	break;
 
-      if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+      if (HWI_COMPUTABLE_MODE_P (mode))
 	SUBST (XEXP (x, 0),
 	       force_to_mode (XEXP (x, 0), GET_MODE (XEXP (x, 0)),
 			      GET_MODE_MASK (mode), 0));
@@ -5177,8 +5596,8 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
       /* Similarly to what we do in simplify-rtx.c, a truncate of a register
 	 whose value is a comparison can be replaced with a subreg if
 	 STORE_FLAG_VALUE permits.  */
-      if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	  && ((HOST_WIDE_INT) STORE_FLAG_VALUE & ~GET_MODE_MASK (mode)) == 0
+      if (HWI_COMPUTABLE_MODE_P (mode)
+	  && (STORE_FLAG_VALUE & ~GET_MODE_MASK (mode)) == 0
 	  && (temp = get_last_value (XEXP (x, 0)))
 	  && COMPARISON_P (temp))
 	return gen_lowpart (mode, XEXP (x, 0));
@@ -5213,22 +5632,22 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	  && CONST_INT_P (XEXP (x, 1))
 	  && CONST_INT_P (XEXP (XEXP (x, 0), 1))
 	  && INTVAL (XEXP (x, 1)) == -INTVAL (XEXP (XEXP (x, 0), 1))
-	  && ((i = exact_log2 (INTVAL (XEXP (XEXP (x, 0), 1)))) >= 0
-	      || (i = exact_log2 (INTVAL (XEXP (x, 1)))) >= 0)
-	  && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+	  && ((i = exact_log2 (UINTVAL (XEXP (XEXP (x, 0), 1)))) >= 0
+	      || (i = exact_log2 (UINTVAL (XEXP (x, 1)))) >= 0)
+	  && HWI_COMPUTABLE_MODE_P (mode)
 	  && ((GET_CODE (XEXP (XEXP (x, 0), 0)) == AND
 	       && CONST_INT_P (XEXP (XEXP (XEXP (x, 0), 0), 1))
-	       && (INTVAL (XEXP (XEXP (XEXP (x, 0), 0), 1))
-		   == ((HOST_WIDE_INT) 1 << (i + 1)) - 1))
+	       && (UINTVAL (XEXP (XEXP (XEXP (x, 0), 0), 1))
+		   == ((unsigned HOST_WIDE_INT) 1 << (i + 1)) - 1))
 	      || (GET_CODE (XEXP (XEXP (x, 0), 0)) == ZERO_EXTEND
-		  && (GET_MODE_BITSIZE (GET_MODE (XEXP (XEXP (XEXP (x, 0), 0), 0)))
+		  && (GET_MODE_PRECISION (GET_MODE (XEXP (XEXP (XEXP (x, 0), 0), 0)))
 		      == (unsigned int) i + 1))))
 	return simplify_shift_const
 	  (NULL_RTX, ASHIFTRT, mode,
 	   simplify_shift_const (NULL_RTX, ASHIFT, mode,
 				 XEXP (XEXP (XEXP (x, 0), 0), 0),
-				 GET_MODE_BITSIZE (mode) - (i + 1)),
-	   GET_MODE_BITSIZE (mode) - (i + 1));
+				 GET_MODE_PRECISION (mode) - (i + 1)),
+	   GET_MODE_PRECISION (mode) - (i + 1));
 
       /* If only the low-order bit of X is possibly nonzero, (plus x -1)
 	 can become (ashiftrt (ashift (xor x 1) C) C) where C is
@@ -5242,26 +5661,31 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	return simplify_shift_const (NULL_RTX, ASHIFTRT, mode,
 	   simplify_shift_const (NULL_RTX, ASHIFT, mode,
 				 gen_rtx_XOR (mode, XEXP (x, 0), const1_rtx),
-				 GET_MODE_BITSIZE (mode) - 1),
-	   GET_MODE_BITSIZE (mode) - 1);
+				 GET_MODE_PRECISION (mode) - 1),
+	   GET_MODE_PRECISION (mode) - 1);
 
       /* If we are adding two things that have no bits in common, convert
 	 the addition into an IOR.  This will often be further simplified,
 	 for example in cases like ((a & 1) + (a & 2)), which can
 	 become a & 3.  */
 
-      if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+      if (HWI_COMPUTABLE_MODE_P (mode)
 	  && (nonzero_bits (XEXP (x, 0), mode)
 	      & nonzero_bits (XEXP (x, 1), mode)) == 0)
 	{
 	  /* Try to simplify the expression further.  */
 	  rtx tor = simplify_gen_binary (IOR, mode, XEXP (x, 0), XEXP (x, 1));
-	  temp = combine_simplify_rtx (tor, mode, in_dest);
+	  temp = combine_simplify_rtx (tor, VOIDmode, in_dest, 0);
 
 	  /* If we could, great.  If not, do not go ahead with the IOR
 	     replacement, since PLUS appears in many special purpose
 	     address arithmetic instructions.  */
-	  if (GET_CODE (temp) != CLOBBER && temp != tor)
+	  if (GET_CODE (temp) != CLOBBER
+	      && (GET_CODE (temp) != IOR
+		  || ((XEXP (temp, 0) != XEXP (x, 0)
+		       || XEXP (temp, 1) != XEXP (x, 1))
+		      && (XEXP (temp, 0) != XEXP (x, 1)
+			  || XEXP (temp, 1) != XEXP (x, 0)))))
 	    return temp;
 	}
       break;
@@ -5271,7 +5695,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	 (and <foo> (const_int pow2-1))  */
       if (GET_CODE (XEXP (x, 1)) == AND
 	  && CONST_INT_P (XEXP (XEXP (x, 1), 1))
-	  && exact_log2 (-INTVAL (XEXP (XEXP (x, 1), 1))) >= 0
+	  && exact_log2 (-UINTVAL (XEXP (XEXP (x, 1), 1))) >= 0
 	  && rtx_equal_p (XEXP (XEXP (x, 1), 0), XEXP (x, 0)))
 	return simplify_and_const_int (NULL_RTX, mode, XEXP (x, 0),
 				       -INTVAL (XEXP (XEXP (x, 1), 1)) - 1);
@@ -5305,7 +5729,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
       /* If this is a divide by a power of two, treat it as a shift if
 	 its first operand is a shift.  */
       if (CONST_INT_P (XEXP (x, 1))
-	  && (i = exact_log2 (INTVAL (XEXP (x, 1)))) >= 0
+	  && (i = exact_log2 (UINTVAL (XEXP (x, 1)))) >= 0
 	  && (GET_CODE (XEXP (x, 0)) == ASHIFT
 	      || GET_CODE (XEXP (x, 0)) == LSHIFTRT
 	      || GET_CODE (XEXP (x, 0)) == ASHIFTRT
@@ -5347,9 +5771,17 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	     Remove any ZERO_EXTRACT we made when thinking this was a
 	     comparison.  It may now be simpler to use, e.g., an AND.  If a
 	     ZERO_EXTRACT is indeed appropriate, it will be placed back by
-	     the call to make_compound_operation in the SET case.  */
+	     the call to make_compound_operation in the SET case.
 
-	  if (STORE_FLAG_VALUE == 1
+	     Don't apply these optimizations if the caller would
+	     prefer a comparison rather than a value.
+	     E.g., for the condition in an IF_THEN_ELSE most targets need
+	     an explicit comparison.  */
+
+	  if (in_cond)
+	    ;
+
+	  else if (STORE_FLAG_VALUE == 1
 	      && new_code == NE && GET_MODE_CLASS (mode) == MODE_INT
 	      && op1 == const0_rtx
 	      && mode == GET_MODE (op0)
@@ -5362,7 +5794,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 		   && op1 == const0_rtx
 		   && mode == GET_MODE (op0)
 		   && (num_sign_bit_copies (op0, mode)
-		       == GET_MODE_BITSIZE (mode)))
+		       == GET_MODE_PRECISION (mode)))
 	    {
 	      op0 = expand_compound_operation (op0);
 	      return simplify_gen_unary (NEG, mode,
@@ -5387,7 +5819,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 		   && op1 == const0_rtx
 		   && mode == GET_MODE (op0)
 		   && (num_sign_bit_copies (op0, mode)
-		       == GET_MODE_BITSIZE (mode)))
+		       == GET_MODE_PRECISION (mode)))
 	    {
 	      op0 = expand_compound_operation (op0);
 	      return plus_constant (gen_lowpart (mode, op0), 1);
@@ -5395,11 +5827,14 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 
 	  /* If STORE_FLAG_VALUE is -1, we have cases similar to
 	     those above.  */
-	  if (STORE_FLAG_VALUE == -1
+	  if (in_cond)
+	    ;
+
+	  else if (STORE_FLAG_VALUE == -1
 	      && new_code == NE && GET_MODE_CLASS (mode) == MODE_INT
 	      && op1 == const0_rtx
 	      && (num_sign_bit_copies (op0, mode)
-		  == GET_MODE_BITSIZE (mode)))
+		  == GET_MODE_PRECISION (mode)))
 	    return gen_lowpart (mode,
 				expand_compound_operation (op0));
 
@@ -5420,7 +5855,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 		   && op1 == const0_rtx
 		   && mode == GET_MODE (op0)
 		   && (num_sign_bit_copies (op0, mode)
-		       == GET_MODE_BITSIZE (mode)))
+		       == GET_MODE_PRECISION (mode)))
 	    {
 	      op0 = expand_compound_operation (op0);
 	      return simplify_gen_unary (NOT, mode,
@@ -5445,16 +5880,15 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
 	     AND with STORE_FLAG_VALUE when we are done, since we are only
 	     going to test the sign bit.  */
 	  if (new_code == NE && GET_MODE_CLASS (mode) == MODE_INT
-	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	      && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-		  == (unsigned HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (mode) - 1))
+	      && HWI_COMPUTABLE_MODE_P (mode)
+	      && val_signbit_p (mode, STORE_FLAG_VALUE)
 	      && op1 == const0_rtx
 	      && mode == GET_MODE (op0)
 	      && (i = exact_log2 (nonzero_bits (op0, mode))) >= 0)
 	    {
 	      x = simplify_shift_const (NULL_RTX, ASHIFT, mode,
 					expand_compound_operation (op0),
-					GET_MODE_BITSIZE (mode) - 1 - i);
+					GET_MODE_PRECISION (mode) - 1 - i);
 	      if (GET_CODE (x) == AND && XEXP (x, 1) == const_true_rtx)
 		return XEXP (x, 0);
 	      else
@@ -5505,7 +5939,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest)
       else if (SHIFT_COUNT_TRUNCATED && !REG_P (XEXP (x, 1)))
 	SUBST (XEXP (x, 1),
 	       force_to_mode (XEXP (x, 1), GET_MODE (XEXP (x, 1)),
-			      ((HOST_WIDE_INT) 1
+			      ((unsigned HOST_WIDE_INT) 1
 			       << exact_log2 (GET_MODE_BITSIZE (GET_MODE (x))))
 			      - 1,
 			      0));
@@ -5580,7 +6014,7 @@ simplify_if_then_else (rtx x)
 	}
       else if (true_code == EQ && true_val == const0_rtx
 	       && (num_sign_bit_copies (from, GET_MODE (from))
-		   == GET_MODE_BITSIZE (GET_MODE (from))))
+		   == GET_MODE_PRECISION (GET_MODE (from))))
 	{
 	  false_code = EQ;
 	  false_val = constm1_rtx;
@@ -5593,11 +6027,11 @@ simplify_if_then_else (rtx x)
       if (reg_mentioned_p (from, true_rtx))
 	true_rtx = subst (known_cond (copy_rtx (true_rtx), true_code,
 				      from, true_val),
-		      pc_rtx, pc_rtx, 0, 0);
+			  pc_rtx, pc_rtx, 0, 0, 0);
       if (reg_mentioned_p (from, false_rtx))
 	false_rtx = subst (known_cond (copy_rtx (false_rtx), false_code,
 				   from, false_val),
-		       pc_rtx, pc_rtx, 0, 0);
+			   pc_rtx, pc_rtx, 0, 0, 0);
 
       SUBST (XEXP (x, 1), swapped ? false_rtx : true_rtx);
       SUBST (XEXP (x, 2), swapped ? true_rtx : false_rtx);
@@ -5750,8 +6184,8 @@ simplify_if_then_else (rtx x)
 	       && rtx_equal_p (SUBREG_REG (XEXP (XEXP (t, 0), 0)), f)
 	       && (num_sign_bit_copies (f, GET_MODE (f))
 		   > (unsigned int)
-		     (GET_MODE_BITSIZE (mode)
-		      - GET_MODE_BITSIZE (GET_MODE (XEXP (XEXP (t, 0), 0))))))
+		     (GET_MODE_PRECISION (mode)
+		      - GET_MODE_PRECISION (GET_MODE (XEXP (XEXP (t, 0), 0))))))
 	{
 	  c1 = XEXP (XEXP (t, 0), 1); z = f; op = GET_CODE (XEXP (t, 0));
 	  extend_op = SIGN_EXTEND;
@@ -5766,8 +6200,8 @@ simplify_if_then_else (rtx x)
 	       && rtx_equal_p (SUBREG_REG (XEXP (XEXP (t, 0), 1)), f)
 	       && (num_sign_bit_copies (f, GET_MODE (f))
 		   > (unsigned int)
-		     (GET_MODE_BITSIZE (mode)
-		      - GET_MODE_BITSIZE (GET_MODE (XEXP (XEXP (t, 0), 1))))))
+		     (GET_MODE_PRECISION (mode)
+		      - GET_MODE_PRECISION (GET_MODE (XEXP (XEXP (t, 0), 1))))))
 	{
 	  c1 = XEXP (XEXP (t, 0), 0); z = f; op = GET_CODE (XEXP (t, 0));
 	  extend_op = SIGN_EXTEND;
@@ -5782,7 +6216,7 @@ simplify_if_then_else (rtx x)
 		   || GET_CODE (XEXP (t, 0)) == LSHIFTRT
 		   || GET_CODE (XEXP (t, 0)) == ASHIFTRT)
 	       && GET_CODE (XEXP (XEXP (t, 0), 0)) == SUBREG
-	       && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+	       && HWI_COMPUTABLE_MODE_P (mode)
 	       && subreg_lowpart_p (XEXP (XEXP (t, 0), 0))
 	       && rtx_equal_p (SUBREG_REG (XEXP (XEXP (t, 0), 0)), f)
 	       && ((nonzero_bits (f, GET_MODE (f))
@@ -5798,7 +6232,7 @@ simplify_if_then_else (rtx x)
 		   || GET_CODE (XEXP (t, 0)) == IOR
 		   || GET_CODE (XEXP (t, 0)) == XOR)
 	       && GET_CODE (XEXP (XEXP (t, 0), 1)) == SUBREG
-	       && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+	       && HWI_COMPUTABLE_MODE_P (mode)
 	       && subreg_lowpart_p (XEXP (XEXP (t, 0), 1))
 	       && rtx_equal_p (SUBREG_REG (XEXP (XEXP (t, 0), 1)), f)
 	       && ((nonzero_bits (f, GET_MODE (f))
@@ -5814,11 +6248,11 @@ simplify_if_then_else (rtx x)
 	{
 	  temp = subst (simplify_gen_relational (true_code, m, VOIDmode,
 						 cond_op0, cond_op1),
-			pc_rtx, pc_rtx, 0, 0);
+			pc_rtx, pc_rtx, 0, 0, 0);
 	  temp = simplify_gen_binary (MULT, m, temp,
 				      simplify_gen_binary (MULT, m, c1,
 							   const_true_rtx));
-	  temp = subst (temp, pc_rtx, pc_rtx, 0, 0);
+	  temp = subst (temp, pc_rtx, pc_rtx, 0, 0, 0);
 	  temp = simplify_gen_binary (op, m, gen_lowpart (m, z), temp);
 
 	  if (extend_op != UNKNOWN)
@@ -5836,10 +6270,10 @@ simplify_if_then_else (rtx x)
   if (true_code == NE && XEXP (cond, 1) == const0_rtx
       && false_rtx == const0_rtx && CONST_INT_P (true_rtx)
       && ((1 == nonzero_bits (XEXP (cond, 0), mode)
-	   && (i = exact_log2 (INTVAL (true_rtx))) >= 0)
+	   && (i = exact_log2 (UINTVAL (true_rtx))) >= 0)
 	  || ((num_sign_bit_copies (XEXP (cond, 0), mode)
-	       == GET_MODE_BITSIZE (mode))
-	      && (i = exact_log2 (-INTVAL (true_rtx))) >= 0)))
+	       == GET_MODE_PRECISION (mode))
+	      && (i = exact_log2 (-UINTVAL (true_rtx))) >= 0)))
     return
       simplify_shift_const (NULL_RTX, ASHIFT, mode,
 			    gen_lowpart (mode, XEXP (cond, 0)), i);
@@ -5848,9 +6282,9 @@ simplify_if_then_else (rtx x)
   if (true_code == NE && XEXP (cond, 1) == const0_rtx
       && false_rtx == const0_rtx && CONST_INT_P (true_rtx)
       && GET_MODE (XEXP (cond, 0)) == mode
-      && (INTVAL (true_rtx) & GET_MODE_MASK (mode))
+      && (UINTVAL (true_rtx) & GET_MODE_MASK (mode))
 	  == nonzero_bits (XEXP (cond, 0), mode)
-      && (i = exact_log2 (INTVAL (true_rtx) & GET_MODE_MASK (mode))) >= 0)
+      && (i = exact_log2 (UINTVAL (true_rtx) & GET_MODE_MASK (mode))) >= 0)
     return XEXP (cond, 0);
 
   return x;
@@ -5869,17 +6303,16 @@ simplify_set (rtx x)
   rtx *cc_use;
 
   /* (set (pc) (return)) gets written as (return).  */
-  if (GET_CODE (dest) == PC && GET_CODE (src) == RETURN)
+  if (GET_CODE (dest) == PC && ANY_RETURN_P (src))
     return src;
 
   /* Now that we know for sure which bits of SRC we are using, see if we can
      simplify the expression for the object knowing that we only need the
      low-order bits.  */
 
-  if (GET_MODE_CLASS (mode) == MODE_INT
-      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+  if (GET_MODE_CLASS (mode) == MODE_INT && HWI_COMPUTABLE_MODE_P (mode))
     {
-      src = force_to_mode (src, mode, ~(HOST_WIDE_INT) 0, 0);
+      src = force_to_mode (src, mode, ~(unsigned HOST_WIDE_INT) 0, 0);
       SUBST (SET_SRC (x), src);
     }
 
@@ -5898,10 +6331,18 @@ simplify_set (rtx x)
       enum rtx_code new_code;
       rtx op0, op1, tmp;
       int other_changed = 0;
+      rtx inner_compare = NULL_RTX;
       enum machine_mode compare_mode = GET_MODE (dest);
 
       if (GET_CODE (src) == COMPARE)
-	op0 = XEXP (src, 0), op1 = XEXP (src, 1);
+	{
+	  op0 = XEXP (src, 0), op1 = XEXP (src, 1);
+	  if (GET_CODE (op0) == COMPARE && op1 == const0_rtx)
+	    {
+	      inner_compare = op0;
+	      op0 = XEXP (inner_compare, 0), op1 = XEXP (inner_compare, 1);
+	    }
+	}
       else
 	op0 = src, op1 = CONST0_RTX (GET_MODE (src));
 
@@ -5943,6 +6384,12 @@ simplify_set (rtx x)
 	 need to use a different CC mode here.  */
       if (GET_MODE_CLASS (GET_MODE (op0)) == MODE_CC)
 	compare_mode = GET_MODE (op0);
+      else if (inner_compare
+	       && GET_MODE_CLASS (GET_MODE (inner_compare)) == MODE_CC
+	       && new_code == old_code
+	       && op0 == XEXP (inner_compare, 0)
+	       && op1 == XEXP (inner_compare, 1))
+	compare_mode = GET_MODE (inner_compare);
       else
 	compare_mode = SELECT_CC_MODE (new_code, op0, op1);
 
@@ -5998,7 +6445,7 @@ simplify_set (rtx x)
 	  if (((old_code == NE && new_code == EQ)
 	       || (old_code == EQ && new_code == NE))
 	      && ! other_changed_previously && op1 == const0_rtx
-	      && GET_MODE_BITSIZE (GET_MODE (op0)) <= HOST_BITS_PER_WIDE_INT
+	      && HWI_COMPUTABLE_MODE_P (GET_MODE (op0))
 	      && exact_log2 (mask = nonzero_bits (op0, GET_MODE (op0))) >= 0)
 	    {
 	      rtx pat = PATTERN (other_insn), note = 0;
@@ -6091,17 +6538,15 @@ simplify_set (rtx x)
   if (dest == cc0_rtx
       && GET_CODE (src) == SUBREG
       && subreg_lowpart_p (src)
-      && (GET_MODE_BITSIZE (GET_MODE (src))
-	  < GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (src)))))
+      && (GET_MODE_PRECISION (GET_MODE (src))
+	  < GET_MODE_PRECISION (GET_MODE (SUBREG_REG (src)))))
     {
       rtx inner = SUBREG_REG (src);
       enum machine_mode inner_mode = GET_MODE (inner);
 
       /* Here we make sure that we don't have a sign bit on.  */
-      if (GET_MODE_BITSIZE (inner_mode) <= HOST_BITS_PER_WIDE_INT
-	  && (nonzero_bits (inner, inner_mode)
-	      < ((unsigned HOST_WIDE_INT) 1
-		 << (GET_MODE_BITSIZE (GET_MODE (src)) - 1))))
+      if (val_signbit_known_clear_p (GET_MODE (src),
+				     nonzero_bits (inner, inner_mode)))
 	{
 	  SUBST (SET_SRC (x), inner);
 	  src = SET_SRC (x);
@@ -6118,8 +6563,7 @@ simplify_set (rtx x)
       && INTEGRAL_MODE_P (GET_MODE (SUBREG_REG (src)))
       && LOAD_EXTEND_OP (GET_MODE (SUBREG_REG (src))) != UNKNOWN
       && SUBREG_BYTE (src) == 0
-      && (GET_MODE_SIZE (GET_MODE (src))
-	  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (src))))
+      && paradoxical_subreg_p (src)
       && MEM_P (SUBREG_REG (src)))
     {
       SUBST (SET_SRC (x),
@@ -6147,7 +6591,7 @@ simplify_set (rtx x)
 #endif
       && (num_sign_bit_copies (XEXP (XEXP (src, 0), 0),
 			       GET_MODE (XEXP (XEXP (src, 0), 0)))
-	  == GET_MODE_BITSIZE (GET_MODE (XEXP (XEXP (src, 0), 0))))
+	  == GET_MODE_PRECISION (GET_MODE (XEXP (XEXP (src, 0), 0))))
       && ! side_effects_p (src))
     {
       rtx true_rtx = (GET_CODE (XEXP (src, 0)) == NE
@@ -6214,7 +6658,7 @@ simplify_logical (rtx x)
 	 any (sign) bits when converting INTVAL (op1) to
 	 "unsigned HOST_WIDE_INT".  */
       if (CONST_INT_P (op1)
-	  && (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+	  && (HWI_COMPUTABLE_MODE_P (mode)
 	      || INTVAL (op1) > 0))
 	{
 	  x = simplify_and_const_int (x, mode, op0, INTVAL (op1));
@@ -6323,7 +6767,7 @@ expand_compound_operation (rtx x)
       if (! SCALAR_INT_MODE_P (GET_MODE (XEXP (x, 0))))
 	return x;
 
-      len = GET_MODE_BITSIZE (GET_MODE (XEXP (x, 0)));
+      len = GET_MODE_PRECISION (GET_MODE (XEXP (x, 0)));
       /* If the inner object has VOIDmode (the only way this can happen
 	 is if it is an ASM_OPERANDS), we can't do anything since we don't
 	 know how much masking to do.  */
@@ -6357,11 +6801,11 @@ expand_compound_operation (rtx x)
       pos = INTVAL (XEXP (x, 2));
 
       /* This should stay within the object being extracted, fail otherwise.  */
-      if (len + pos > GET_MODE_BITSIZE (GET_MODE (XEXP (x, 0))))
+      if (len + pos > GET_MODE_PRECISION (GET_MODE (XEXP (x, 0))))
 	return x;
 
       if (BITS_BIG_ENDIAN)
-	pos = GET_MODE_BITSIZE (GET_MODE (XEXP (x, 0))) - len - pos;
+	pos = GET_MODE_PRECISION (GET_MODE (XEXP (x, 0))) - len - pos;
 
       break;
 
@@ -6372,7 +6816,7 @@ expand_compound_operation (rtx x)
      bit is not set, as this is easier to optimize.  It will be converted
      back to cheaper alternative in make_extraction.  */
   if (GET_CODE (x) == SIGN_EXTEND
-      && (GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT
+      && (HWI_COMPUTABLE_MODE_P (GET_MODE (x))
 	  && ((nonzero_bits (XEXP (x, 0), GET_MODE (XEXP (x, 0)))
 		& ~(((unsigned HOST_WIDE_INT)
 		      GET_MODE_MASK (GET_MODE (XEXP (x, 0))))
@@ -6383,11 +6827,11 @@ expand_compound_operation (rtx x)
       rtx temp2 = expand_compound_operation (temp);
 
       /* Make sure this is a profitable operation.  */
-      if (rtx_cost (x, SET, optimize_this_for_speed_p)
-          > rtx_cost (temp2, SET, optimize_this_for_speed_p))
+      if (set_src_cost (x, optimize_this_for_speed_p)
+          > set_src_cost (temp2, optimize_this_for_speed_p))
        return temp2;
-      else if (rtx_cost (x, SET, optimize_this_for_speed_p)
-               > rtx_cost (temp, SET, optimize_this_for_speed_p))
+      else if (set_src_cost (x, optimize_this_for_speed_p)
+               > set_src_cost (temp, optimize_this_for_speed_p))
        return temp;
       else
        return x;
@@ -6401,7 +6845,7 @@ expand_compound_operation (rtx x)
 	 set.  */
       if (GET_CODE (XEXP (x, 0)) == TRUNCATE
 	  && GET_MODE (XEXP (XEXP (x, 0), 0)) == GET_MODE (x)
-	  && GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT
+	  && HWI_COMPUTABLE_MODE_P (GET_MODE (x))
 	  && (nonzero_bits (XEXP (XEXP (x, 0), 0), GET_MODE (x))
 	      & ~GET_MODE_MASK (GET_MODE (XEXP (x, 0)))) == 0)
 	return XEXP (XEXP (x, 0), 0);
@@ -6410,7 +6854,7 @@ expand_compound_operation (rtx x)
       if (GET_CODE (XEXP (x, 0)) == SUBREG
 	  && GET_MODE (SUBREG_REG (XEXP (x, 0))) == GET_MODE (x)
 	  && subreg_lowpart_p (XEXP (x, 0))
-	  && GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT
+	  && HWI_COMPUTABLE_MODE_P (GET_MODE (x))
 	  && (nonzero_bits (SUBREG_REG (XEXP (x, 0)), GET_MODE (x))
 	      & ~GET_MODE_MASK (GET_MODE (XEXP (x, 0)))) == 0)
 	return SUBREG_REG (XEXP (x, 0));
@@ -6422,10 +6866,9 @@ expand_compound_operation (rtx x)
       if (GET_CODE (XEXP (x, 0)) == TRUNCATE
 	  && GET_MODE (XEXP (XEXP (x, 0), 0)) == GET_MODE (x)
 	  && COMPARISON_P (XEXP (XEXP (x, 0), 0))
-	  && (GET_MODE_BITSIZE (GET_MODE (XEXP (x, 0)))
+	  && (GET_MODE_PRECISION (GET_MODE (XEXP (x, 0)))
 	      <= HOST_BITS_PER_WIDE_INT)
-	  && ((HOST_WIDE_INT) STORE_FLAG_VALUE
-	      & ~GET_MODE_MASK (GET_MODE (XEXP (x, 0)))) == 0)
+	  && (STORE_FLAG_VALUE & ~GET_MODE_MASK (GET_MODE (XEXP (x, 0)))) == 0)
 	return XEXP (XEXP (x, 0), 0);
 
       /* Likewise for (zero_extend:DI (subreg:SI foo:DI 0)).  */
@@ -6433,10 +6876,9 @@ expand_compound_operation (rtx x)
 	  && GET_MODE (SUBREG_REG (XEXP (x, 0))) == GET_MODE (x)
 	  && subreg_lowpart_p (XEXP (x, 0))
 	  && COMPARISON_P (SUBREG_REG (XEXP (x, 0)))
-	  && (GET_MODE_BITSIZE (GET_MODE (XEXP (x, 0)))
+	  && (GET_MODE_PRECISION (GET_MODE (XEXP (x, 0)))
 	      <= HOST_BITS_PER_WIDE_INT)
-	  && ((HOST_WIDE_INT) STORE_FLAG_VALUE
-	      & ~GET_MODE_MASK (GET_MODE (XEXP (x, 0)))) == 0)
+	  && (STORE_FLAG_VALUE & ~GET_MODE_MASK (GET_MODE (XEXP (x, 0)))) == 0)
 	return SUBREG_REG (XEXP (x, 0));
 
     }
@@ -6453,11 +6895,11 @@ expand_compound_operation (rtx x)
      count.  This can happen in a case like (x >> 31) & 255 on machines
      that can't shift by a constant.  On those machines, we would first
      combine the shift with the AND to produce a variable-position
-     extraction.  Then the constant of 31 would be substituted in to produce
-     a such a position.  */
+     extraction.  Then the constant of 31 would be substituted in
+     to produce such a position.  */
 
-  modewidth = GET_MODE_BITSIZE (GET_MODE (x));
-  if (modewidth + len >= pos)
+  modewidth = GET_MODE_PRECISION (GET_MODE (x));
+  if (modewidth >= pos + len)
     {
       enum machine_mode mode = GET_MODE (x);
       tem = gen_lowpart (mode, XEXP (x, 0));
@@ -6473,7 +6915,7 @@ expand_compound_operation (rtx x)
 				  simplify_shift_const (NULL_RTX, LSHIFTRT,
 							GET_MODE (x),
 							XEXP (x, 0), pos),
-				  ((HOST_WIDE_INT) 1 << len) - 1);
+				  ((unsigned HOST_WIDE_INT) 1 << len) - 1);
   else
     /* Any other cases we can't handle.  */
     return x;
@@ -6510,7 +6952,7 @@ expand_field_assignment (const_rtx x)
 	  && GET_CODE (XEXP (SET_DEST (x), 0)) == SUBREG)
 	{
 	  inner = SUBREG_REG (XEXP (SET_DEST (x), 0));
-	  len = GET_MODE_BITSIZE (GET_MODE (XEXP (SET_DEST (x), 0)));
+	  len = GET_MODE_PRECISION (GET_MODE (XEXP (SET_DEST (x), 0)));
 	  pos = GEN_INT (subreg_lsb (XEXP (SET_DEST (x), 0)));
 	}
       else if (GET_CODE (SET_DEST (x)) == ZERO_EXTRACT
@@ -6522,23 +6964,23 @@ expand_field_assignment (const_rtx x)
 
 	  /* A constant position should stay within the width of INNER.  */
 	  if (CONST_INT_P (pos)
-	      && INTVAL (pos) + len > GET_MODE_BITSIZE (GET_MODE (inner)))
+	      && INTVAL (pos) + len > GET_MODE_PRECISION (GET_MODE (inner)))
 	    break;
 
 	  if (BITS_BIG_ENDIAN)
 	    {
 	      if (CONST_INT_P (pos))
-		pos = GEN_INT (GET_MODE_BITSIZE (GET_MODE (inner)) - len
+		pos = GEN_INT (GET_MODE_PRECISION (GET_MODE (inner)) - len
 			       - INTVAL (pos));
 	      else if (GET_CODE (pos) == MINUS
 		       && CONST_INT_P (XEXP (pos, 1))
 		       && (INTVAL (XEXP (pos, 1))
-			   == GET_MODE_BITSIZE (GET_MODE (inner)) - len))
+			   == GET_MODE_PRECISION (GET_MODE (inner)) - len))
 		/* If position is ADJUST - X, new position is X.  */
 		pos = XEXP (pos, 0);
 	      else
 		pos = simplify_gen_binary (MINUS, GET_MODE (pos),
-					   GEN_INT (GET_MODE_BITSIZE (
+					   GEN_INT (GET_MODE_PRECISION (
 						    GET_MODE (inner))
 						    - len),
 					   pos);
@@ -6594,7 +7036,7 @@ expand_field_assignment (const_rtx x)
       /* Now compute the equivalent expression.  Make a copy of INNER
 	 for the SET_DEST in case it is a MEM into which we will substitute;
 	 we don't want shared RTL in that case.  */
-      mask = GEN_INT (((HOST_WIDE_INT) 1 << len) - 1);
+      mask = GEN_INT (((unsigned HOST_WIDE_INT) 1 << len) - 1);
       cleared = simplify_gen_binary (AND, compute_mode,
 				     simplify_gen_unary (NOT, compute_mode,
 				       simplify_gen_binary (ASHIFT,
@@ -6670,7 +7112,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
   else if (GET_CODE (inner) == ASHIFT
 	   && CONST_INT_P (XEXP (inner, 1))
 	   && pos_rtx == 0 && pos == 0
-	   && len > (unsigned HOST_WIDE_INT) INTVAL (XEXP (inner, 1)))
+	   && len > UINTVAL (XEXP (inner, 1)))
     {
       /* We're extracting the least significant bits of an rtx
 	 (ashift X (const_int C)), where LEN > C.  Extract the
@@ -6702,8 +7144,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 	   && !MEM_P (inner)
 	   && (inner_mode == tmode
 	       || !REG_P (inner)
-	       || TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (tmode),
-					 GET_MODE_BITSIZE (inner_mode))
+	       || TRULY_NOOP_TRUNCATION_MODES_P (tmode, inner_mode)
 	       || reg_truncated_to_mode (tmode, inner))
 	   && (! in_dest
 	       || (REG_P (inner)
@@ -6714,7 +7155,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 		     : BITS_PER_UNIT)) == 0
 	      /* We can't do this if we are widening INNER_MODE (it
 		 may not be aligned, for one thing).  */
-	      && GET_MODE_BITSIZE (inner_mode) >= GET_MODE_BITSIZE (tmode)
+	      && GET_MODE_PRECISION (inner_mode) >= GET_MODE_PRECISION (tmode)
 	      && (inner_mode == tmode
 		  || (! mode_dependent_address_p (XEXP (inner, 0))
 		      && ! MEM_VOLATILE_P (inner))))))
@@ -6732,7 +7173,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 
 	  /* POS counts from lsb, but make OFFSET count in memory order.  */
 	  if (BYTES_BIG_ENDIAN)
-	    offset = (GET_MODE_BITSIZE (is_mode) - len - pos) / BITS_PER_UNIT;
+	    offset = (GET_MODE_PRECISION (is_mode) - len - pos) / BITS_PER_UNIT;
 	  else
 	    offset = pos / BITS_PER_UNIT;
 
@@ -6802,11 +7243,9 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 	 bit is not set, convert the extraction to the cheaper of
 	 sign and zero extension, that are equivalent in these cases.  */
       if (flag_expensive_optimizations
-	  && (GET_MODE_BITSIZE (tmode) <= HOST_BITS_PER_WIDE_INT
+	  && (HWI_COMPUTABLE_MODE_P (tmode)
 	      && ((nonzero_bits (new_rtx, tmode)
-		   & ~(((unsigned HOST_WIDE_INT)
-			GET_MODE_MASK (tmode))
-		       >> 1))
+		   & ~(((unsigned HOST_WIDE_INT)GET_MODE_MASK (tmode)) >> 1))
 		  == 0)))
 	{
 	  rtx temp = gen_rtx_ZERO_EXTEND (mode, new_rtx);
@@ -6814,8 +7253,8 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 
 	  /* Prefer ZERO_EXTENSION, since it gives more information to
 	     backends.  */
-	  if (rtx_cost (temp, SET, optimize_this_for_speed_p)
-	      <= rtx_cost (temp1, SET, optimize_this_for_speed_p))
+	  if (set_src_cost (temp, optimize_this_for_speed_p)
+	      <= set_src_cost (temp1, optimize_this_for_speed_p))
 	    return temp;
 	  return temp1;
 	}
@@ -6839,7 +7278,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
      other cases, we would only be going outside our object in cases when
      an original shift would have been undefined.  */
   if (MEM_P (inner)
-      && ((pos_rtx == 0 && pos + len > GET_MODE_BITSIZE (is_mode))
+      && ((pos_rtx == 0 && pos + len > GET_MODE_PRECISION (is_mode))
 	  || (pos_rtx != 0 && len != 1)))
     return 0;
 
@@ -6972,8 +7411,8 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
       /* On the LHS, don't create paradoxical subregs implicitely truncating
 	 the register unless TRULY_NOOP_TRUNCATION.  */
       if (in_dest
-	  && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (inner)),
-				     GET_MODE_BITSIZE (wanted_inner_mode)))
+	  && !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (inner),
+					     wanted_inner_mode))
 	return NULL_RTX;
 
       if (GET_MODE (inner) != wanted_inner_mode
@@ -7005,7 +7444,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 	 SIGN_EXTENSION or ZERO_EXTENSION, that are equivalent in these
 	 cases.  */
       if (flag_expensive_optimizations
-	  && (GET_MODE_BITSIZE (GET_MODE (pos_rtx)) <= HOST_BITS_PER_WIDE_INT
+	  && (HWI_COMPUTABLE_MODE_P (GET_MODE (pos_rtx))
 	      && ((nonzero_bits (pos_rtx, GET_MODE (pos_rtx))
 		   & ~(((unsigned HOST_WIDE_INT)
 			GET_MODE_MASK (GET_MODE (pos_rtx)))
@@ -7016,8 +7455,8 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 
 	  /* Prefer ZERO_EXTENSION, since it gives more information to
 	     backends.  */
-	  if (rtx_cost (temp1, SET, optimize_this_for_speed_p)
-	      < rtx_cost (temp, SET, optimize_this_for_speed_p))
+	  if (set_src_cost (temp1, optimize_this_for_speed_p)
+	      < set_src_cost (temp, optimize_this_for_speed_p))
 	    temp = temp1;
 	}
       pos_rtx = temp;
@@ -7076,7 +7515,8 @@ extract_left_shift (rtx x, int count)
       /* If we can safely shift this constant and we find the inner shift,
 	 make a new operation.  */
       if (CONST_INT_P (XEXP (x, 1))
-	  && (INTVAL (XEXP (x, 1)) & ((((HOST_WIDE_INT) 1 << count)) - 1)) == 0
+	  && (UINTVAL (XEXP (x, 1))
+	      & ((((unsigned HOST_WIDE_INT) 1 << count)) - 1)) == 0
 	  && (tem = extract_left_shift (XEXP (x, 0), count)) != 0)
 	return simplify_gen_binary (code, mode, tem,
 				    GEN_INT (INTVAL (XEXP (x, 1)) >> count));
@@ -7113,7 +7553,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 {
   enum rtx_code code = GET_CODE (x);
   enum machine_mode mode = GET_MODE (x);
-  int mode_width = GET_MODE_BITSIZE (mode);
+  int mode_width = GET_MODE_PRECISION (mode);
   rtx rhs, lhs;
   enum rtx_code next_code;
   int i, j;
@@ -7125,7 +7565,9 @@ make_compound_operation (rtx x, enum rtx_code in_code)
      address, we stay there.  If we have a comparison, set to COMPARE,
      but once inside, go back to our default of SET.  */
 
-  next_code = (code == MEM || code == PLUS || code == MINUS ? MEM
+  next_code = (code == MEM ? MEM
+	       : ((code == PLUS || code == MINUS)
+		  && SCALAR_INT_MODE_P (mode)) ? MEM
 	       : ((code == COMPARE || COMPARISON_P (x))
 		  && XEXP (x, 1) == const0_rtx) ? COMPARE
 	       : in_code == COMPARE ? SET : in_code);
@@ -7140,14 +7582,81 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	 an address.  */
       if (in_code == MEM && CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT
-	  && INTVAL (XEXP (x, 1)) >= 0)
+	  && INTVAL (XEXP (x, 1)) >= 0
+	  && SCALAR_INT_MODE_P (mode))
 	{
+	  HOST_WIDE_INT count = INTVAL (XEXP (x, 1));
+	  HOST_WIDE_INT multval = (HOST_WIDE_INT) 1 << count;
+
 	  new_rtx = make_compound_operation (XEXP (x, 0), next_code);
-	  new_rtx = gen_rtx_MULT (mode, new_rtx,
-			      GEN_INT ((HOST_WIDE_INT) 1
-				       << INTVAL (XEXP (x, 1))));
+	  if (GET_CODE (new_rtx) == NEG)
+	    {
+	      new_rtx = XEXP (new_rtx, 0);
+	      multval = -multval;
+	    }
+	  multval = trunc_int_for_mode (multval, mode);
+	  new_rtx = gen_rtx_MULT (mode, new_rtx, GEN_INT (multval));
 	}
       break;
+
+    case PLUS:
+      lhs = XEXP (x, 0);
+      rhs = XEXP (x, 1);
+      lhs = make_compound_operation (lhs, next_code);
+      rhs = make_compound_operation (rhs, next_code);
+      if (GET_CODE (lhs) == MULT && GET_CODE (XEXP (lhs, 0)) == NEG
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (XEXP (lhs, 0), 0),
+				     XEXP (lhs, 1));
+	  new_rtx = simplify_gen_binary (MINUS, mode, rhs, tem);
+	}
+      else if (GET_CODE (lhs) == MULT
+	       && (CONST_INT_P (XEXP (lhs, 1)) && INTVAL (XEXP (lhs, 1)) < 0))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (lhs, 0),
+				     simplify_gen_unary (NEG, mode,
+							 XEXP (lhs, 1),
+							 mode));
+	  new_rtx = simplify_gen_binary (MINUS, mode, rhs, tem);
+	}
+      else
+	{
+	  SUBST (XEXP (x, 0), lhs);
+	  SUBST (XEXP (x, 1), rhs);
+	  goto maybe_swap;
+	}
+      x = gen_lowpart (mode, new_rtx);
+      goto maybe_swap;
+
+    case MINUS:
+      lhs = XEXP (x, 0);
+      rhs = XEXP (x, 1);
+      lhs = make_compound_operation (lhs, next_code);
+      rhs = make_compound_operation (rhs, next_code);
+      if (GET_CODE (rhs) == MULT && GET_CODE (XEXP (rhs, 0)) == NEG
+	  && SCALAR_INT_MODE_P (mode))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (XEXP (rhs, 0), 0),
+				     XEXP (rhs, 1));
+	  new_rtx = simplify_gen_binary (PLUS, mode, tem, lhs);
+	}
+      else if (GET_CODE (rhs) == MULT
+	       && (CONST_INT_P (XEXP (rhs, 1)) && INTVAL (XEXP (rhs, 1)) < 0))
+	{
+	  tem = simplify_gen_binary (MULT, mode, XEXP (rhs, 0),
+				     simplify_gen_unary (NEG, mode,
+							 XEXP (rhs, 1),
+							 mode));
+	  new_rtx = simplify_gen_binary (PLUS, mode, tem, lhs);
+	}
+      else
+	{
+	  SUBST (XEXP (x, 0), lhs);
+	  SUBST (XEXP (x, 1), rhs);
+	  return x;
+	}
+      return gen_lowpart (mode, new_rtx);
 
     case AND:
       /* If the second operand is not a constant, we can't do anything
@@ -7158,7 +7667,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       /* If the constant is a power of two minus one and the first operand
 	 is a logical right shift, make an extraction.  */
       if (GET_CODE (XEXP (x, 0)) == LSHIFTRT
-	  && (i = exact_log2 (INTVAL (XEXP (x, 1)) + 1)) >= 0)
+	  && (i = exact_log2 (UINTVAL (XEXP (x, 1)) + 1)) >= 0)
 	{
 	  new_rtx = make_compound_operation (XEXP (XEXP (x, 0), 0), next_code);
 	  new_rtx = make_extraction (mode, new_rtx, 0, XEXP (XEXP (x, 0), 1), i, 1,
@@ -7169,7 +7678,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       else if (GET_CODE (XEXP (x, 0)) == SUBREG
 	       && subreg_lowpart_p (XEXP (x, 0))
 	       && GET_CODE (SUBREG_REG (XEXP (x, 0))) == LSHIFTRT
-	       && (i = exact_log2 (INTVAL (XEXP (x, 1)) + 1)) >= 0)
+	       && (i = exact_log2 (UINTVAL (XEXP (x, 1)) + 1)) >= 0)
 	{
 	  new_rtx = make_compound_operation (XEXP (SUBREG_REG (XEXP (x, 0)), 0),
 					 next_code);
@@ -7182,7 +7691,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 		|| GET_CODE (XEXP (x, 0)) == IOR)
 	       && GET_CODE (XEXP (XEXP (x, 0), 0)) == LSHIFTRT
 	       && GET_CODE (XEXP (XEXP (x, 0), 1)) == LSHIFTRT
-	       && (i = exact_log2 (INTVAL (XEXP (x, 1)) + 1)) >= 0)
+	       && (i = exact_log2 (UINTVAL (XEXP (x, 1)) + 1)) >= 0)
 	{
 	  /* Apply the distributive law, and then try to make extractions.  */
 	  new_rtx = gen_rtx_fmt_ee (GET_CODE (XEXP (x, 0)), mode,
@@ -7198,12 +7707,12 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 
       else if (GET_CODE (XEXP (x, 0)) == ROTATE
 	       && CONST_INT_P (XEXP (XEXP (x, 0), 1))
-	       && (i = exact_log2 (INTVAL (XEXP (x, 1)) + 1)) >= 0
+	       && (i = exact_log2 (UINTVAL (XEXP (x, 1)) + 1)) >= 0
 	       && i <= INTVAL (XEXP (XEXP (x, 0), 1)))
 	{
 	  new_rtx = make_compound_operation (XEXP (XEXP (x, 0), 0), next_code);
 	  new_rtx = make_extraction (mode, new_rtx,
-				 (GET_MODE_BITSIZE (mode)
+				 (GET_MODE_PRECISION (mode)
 				  - INTVAL (XEXP (XEXP (x, 0), 1))),
 				 NULL_RTX, i, 1, 0, in_code == COMPARE);
 	}
@@ -7234,7 +7743,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	 representable by an extraction even if no shift is present.
 	 If it doesn't end up being a ZERO_EXTEND, we will ignore it unless
 	 we are in a COMPARE.  */
-      else if ((i = exact_log2 (INTVAL (XEXP (x, 1)) + 1)) >= 0)
+      else if ((i = exact_log2 (UINTVAL (XEXP (x, 1)) + 1)) >= 0)
 	new_rtx = make_extraction (mode,
 			       make_compound_operation (XEXP (x, 0),
 							next_code),
@@ -7243,7 +7752,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       /* If we are in a comparison and this is an AND with a power of two,
 	 convert this into the appropriate bit extract.  */
       else if (in_code == COMPARE
-	       && (i = exact_log2 (INTVAL (XEXP (x, 1)))) >= 0)
+	       && (i = exact_log2 (UINTVAL (XEXP (x, 1)))) >= 0)
 	new_rtx = make_extraction (mode,
 			       make_compound_operation (XEXP (x, 0),
 							next_code),
@@ -7278,6 +7787,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	  && GET_CODE (lhs) == ASHIFT
 	  && CONST_INT_P (XEXP (lhs, 1))
 	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1))
+	  && INTVAL (XEXP (lhs, 1)) >= 0
 	  && INTVAL (rhs) < mode_width)
 	{
 	  new_rtx = make_compound_operation (XEXP (lhs, 0), next_code);
@@ -7310,22 +7820,22 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       /* Call ourselves recursively on the inner expression.  If we are
 	 narrowing the object and it has a different RTL code from
 	 what it originally did, do this SUBREG as a force_to_mode.  */
-
-      tem = make_compound_operation (SUBREG_REG (x), in_code);
-
       {
-	rtx simplified = simplify_subreg (mode, tem, GET_MODE (SUBREG_REG (x)),
-					  SUBREG_BYTE (x));
+	rtx inner = SUBREG_REG (x), simplified;
+	
+	tem = make_compound_operation (inner, in_code);
 
+	simplified
+	  = simplify_subreg (mode, tem, GET_MODE (inner), SUBREG_BYTE (x));
 	if (simplified)
 	  tem = simplified;
 
-	if (GET_CODE (tem) != GET_CODE (SUBREG_REG (x))
-	    && GET_MODE_SIZE (mode) < GET_MODE_SIZE (GET_MODE (SUBREG_REG (x)))
+	if (GET_CODE (tem) != GET_CODE (inner)
+	    && GET_MODE_SIZE (mode) < GET_MODE_SIZE (GET_MODE (inner))
 	    && subreg_lowpart_p (x))
 	  {
-	    rtx newer = force_to_mode (tem, mode, ~(HOST_WIDE_INT) 0,
-				       0);
+	    rtx newer
+	      = force_to_mode (tem, mode, ~(unsigned HOST_WIDE_INT) 0, 0);
 
 	    /* If we have something other than a SUBREG, we might have
 	       done an expansion, so rerun ourselves.  */
@@ -7333,9 +7843,16 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	      newer = make_compound_operation (newer, in_code);
 
 	    /* force_to_mode can expand compounds.  If it just re-expanded the
-	       compound use gen_lowpart instead to convert to the desired
-	       mode.  */
-	    if (rtx_equal_p (newer, x))
+	       compound, use gen_lowpart to convert to the desired mode.  */
+	    if (rtx_equal_p (newer, x)
+		/* Likewise if it re-expanded the compound only partially.
+		   This happens for SUBREG of ZERO_EXTRACT if they extract
+		   the same number of bits.  */
+		|| (GET_CODE (newer) == SUBREG
+		    && (GET_CODE (SUBREG_REG (newer)) == LSHIFTRT
+			|| GET_CODE (SUBREG_REG (newer)) == ASHIFTRT)
+		    && GET_CODE (inner) == AND
+		    && rtx_equal_p (SUBREG_REG (newer), XEXP (inner, 0))))
 	      return gen_lowpart (GET_MODE (x), tem);
 
 	    return newer;
@@ -7356,7 +7873,20 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       code = GET_CODE (x);
     }
 
-  /* Now recursively process each operand of this operation.  */
+  /* Now recursively process each operand of this operation.  We need to
+     handle ZERO_EXTEND specially so that we don't lose track of the
+     inner mode.  */
+  if (GET_CODE (x) == ZERO_EXTEND)
+    {
+      new_rtx = make_compound_operation (XEXP (x, 0), next_code);
+      tem = simplify_const_unary_operation (ZERO_EXTEND, GET_MODE (x),
+					    new_rtx, GET_MODE (XEXP (x, 0)));
+      if (tem)
+	return tem;
+      SUBST (XEXP (x, 0), new_rtx);
+      return x;
+    }
+
   fmt = GET_RTX_FORMAT (code);
   for (i = 0; i < GET_RTX_LENGTH (code); i++)
     if (fmt[i] == 'e')
@@ -7371,6 +7901,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	  SUBST (XVECEXP (x, i, j), new_rtx);
 	}
 
+ maybe_swap:
   /* If this is a commutative operation, the changes to the operands
      may have made it noncanonical.  */
   if (COMMUTATIVE_ARITH_P (x)
@@ -7395,7 +7926,7 @@ static int
 get_pos_from_mask (unsigned HOST_WIDE_INT m, unsigned HOST_WIDE_INT *plen)
 {
   /* Get the bit number of the first 1 bit from the right, -1 if none.  */
-  int pos = exact_log2 (m & -m);
+  int pos = m ? ctz_hwi (m) : -1;
   int len = 0;
 
   if (pos >= 0)
@@ -7518,8 +8049,7 @@ gen_lowpart_or_truncate (enum machine_mode mode, rtx x)
 {
   if (!CONST_INT_P (x)
       && GET_MODE_SIZE (mode) < GET_MODE_SIZE (GET_MODE (x))
-      && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode),
-				 GET_MODE_BITSIZE (GET_MODE (x)))
+      && !TRULY_NOOP_TRUNCATION_MODES_P (mode, GET_MODE (x))
       && !(REG_P (x) && reg_truncated_to_mode (mode, x)))
     {
       /* Bit-cast X into an integer mode.  */
@@ -7574,7 +8104,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
   /* It is not valid to do a right-shift in a narrower mode
      than the one it came in with.  */
   if ((code == LSHIFTRT || code == ASHIFTRT)
-      && GET_MODE_BITSIZE (mode) < GET_MODE_BITSIZE (GET_MODE (x)))
+      && GET_MODE_PRECISION (mode) < GET_MODE_PRECISION (GET_MODE (x)))
     op_mode = GET_MODE (x);
 
   /* Truncate MASK to fit OP_MODE.  */
@@ -7677,23 +8207,24 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 
 	  if (GET_CODE (x) == AND && CONST_INT_P (XEXP (x, 1))
 	      && GET_MODE_MASK (GET_MODE (x)) != mask
-	      && GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT)
+	      && HWI_COMPUTABLE_MODE_P (GET_MODE (x)))
 	    {
-	      HOST_WIDE_INT cval = (INTVAL (XEXP (x, 1))
-				    | (GET_MODE_MASK (GET_MODE (x)) & ~mask));
-	      int width = GET_MODE_BITSIZE (GET_MODE (x));
+	      unsigned HOST_WIDE_INT cval
+		= UINTVAL (XEXP (x, 1))
+		  | (GET_MODE_MASK (GET_MODE (x)) & ~mask);
+	      int width = GET_MODE_PRECISION (GET_MODE (x));
 	      rtx y;
 
 	      /* If MODE is narrower than HOST_WIDE_INT and CVAL is a negative
 		 number, sign extend it.  */
 	      if (width > 0 && width < HOST_BITS_PER_WIDE_INT
-		  && (cval & ((HOST_WIDE_INT) 1 << (width - 1))) != 0)
-		cval |= (HOST_WIDE_INT) -1 << width;
+		  && (cval & ((unsigned HOST_WIDE_INT) 1 << (width - 1))) != 0)
+		cval |= (unsigned HOST_WIDE_INT) -1 << width;
 
 	      y = simplify_gen_binary (AND, GET_MODE (x),
 				       XEXP (x, 0), GEN_INT (cval));
-	      if (rtx_cost (y, SET, optimize_this_for_speed_p)
-	          < rtx_cost (x, SET, optimize_this_for_speed_p))
+	      if (set_src_cost (y, optimize_this_for_speed_p)
+	          < set_src_cost (x, optimize_this_for_speed_p))
 		x = y;
 	    }
 
@@ -7709,15 +8240,15 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	 This may eliminate that PLUS and, later, the AND.  */
 
       {
-	unsigned int width = GET_MODE_BITSIZE (mode);
+	unsigned int width = GET_MODE_PRECISION (mode);
 	unsigned HOST_WIDE_INT smask = mask;
 
 	/* If MODE is narrower than HOST_WIDE_INT and mask is a negative
 	   number, sign extend it.  */
 
 	if (width < HOST_BITS_PER_WIDE_INT
-	    && (smask & ((HOST_WIDE_INT) 1 << (width - 1))) != 0)
-	  smask |= (HOST_WIDE_INT) -1 << width;
+	    && (smask & ((unsigned HOST_WIDE_INT) 1 << (width - 1))) != 0)
+	  smask |= (unsigned HOST_WIDE_INT) (-1) << width;
 
 	if (CONST_INT_P (XEXP (x, 1))
 	    && exact_log2 (- smask) >= 0
@@ -7753,8 +8284,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
       /* Similarly, if C contains every bit in the fuller_mask, then we may
 	 replace with (not Y).  */
       if (CONST_INT_P (XEXP (x, 0))
-	  && ((INTVAL (XEXP (x, 0)) | (HOST_WIDE_INT) fuller_mask)
-	      == INTVAL (XEXP (x, 0))))
+	  && ((UINTVAL (XEXP (x, 0)) | fuller_mask) == UINTVAL (XEXP (x, 0))))
 	{
 	  x = simplify_gen_unary (NOT, GET_MODE (x),
 				  XEXP (x, 1), GET_MODE (x));
@@ -7778,8 +8308,8 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	  && CONST_INT_P (XEXP (x, 1))
 	  && ((INTVAL (XEXP (XEXP (x, 0), 1))
 	       + floor_log2 (INTVAL (XEXP (x, 1))))
-	      < GET_MODE_BITSIZE (GET_MODE (x)))
-	  && (INTVAL (XEXP (x, 1))
+	      < GET_MODE_PRECISION (GET_MODE (x)))
+	  && (UINTVAL (XEXP (x, 1))
 	      & ~nonzero_bits (XEXP (x, 0), GET_MODE (x))) == 0)
 	{
 	  temp = GEN_INT ((INTVAL (XEXP (x, 1)) & mask)
@@ -7823,10 +8353,10 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 
       if (! (CONST_INT_P (XEXP (x, 1))
 	     && INTVAL (XEXP (x, 1)) >= 0
-	     && INTVAL (XEXP (x, 1)) < GET_MODE_BITSIZE (mode))
+	     && INTVAL (XEXP (x, 1)) < GET_MODE_PRECISION (mode))
 	  && ! (GET_MODE (XEXP (x, 1)) != VOIDmode
 		&& (nonzero_bits (XEXP (x, 1), GET_MODE (XEXP (x, 1)))
-		    < (unsigned HOST_WIDE_INT) GET_MODE_BITSIZE (mode))))
+		    < (unsigned HOST_WIDE_INT) GET_MODE_PRECISION (mode))))
 	break;
 
       /* If the shift count is a constant and we can do arithmetic in
@@ -7834,8 +8364,8 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	 conservative form of the mask.  */
       if (CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) >= 0
-	  && INTVAL (XEXP (x, 1)) < GET_MODE_BITSIZE (op_mode)
-	  && GET_MODE_BITSIZE (op_mode) <= HOST_BITS_PER_WIDE_INT)
+	  && INTVAL (XEXP (x, 1)) < GET_MODE_PRECISION (op_mode)
+	  && HWI_COMPUTABLE_MODE_P (op_mode))
 	mask >>= INTVAL (XEXP (x, 1));
       else
 	mask = fuller_mask;
@@ -7855,7 +8385,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 
       if (CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT
-	  && GET_MODE_BITSIZE (op_mode) <= HOST_BITS_PER_WIDE_INT)
+	  && HWI_COMPUTABLE_MODE_P (op_mode))
 	{
 	  rtx inner = XEXP (x, 0);
 	  unsigned HOST_WIDE_INT inner_mask;
@@ -7885,17 +8415,17 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	     bit.  */
 	  && ((INTVAL (XEXP (x, 1))
 	       + num_sign_bit_copies (XEXP (x, 0), GET_MODE (XEXP (x, 0))))
-	      >= GET_MODE_BITSIZE (GET_MODE (x)))
+	      >= GET_MODE_PRECISION (GET_MODE (x)))
 	  && exact_log2 (mask + 1) >= 0
 	  /* Number of bits left after the shift must be more than the mask
 	     needs.  */
 	  && ((INTVAL (XEXP (x, 1)) + exact_log2 (mask + 1))
-	      <= GET_MODE_BITSIZE (GET_MODE (x)))
+	      <= GET_MODE_PRECISION (GET_MODE (x)))
 	  /* Must be more sign bit copies than the mask needs.  */
 	  && ((int) num_sign_bit_copies (XEXP (x, 0), GET_MODE (XEXP (x, 0)))
 	      >= exact_log2 (mask + 1)))
 	x = simplify_gen_binary (LSHIFTRT, GET_MODE (x), XEXP (x, 0),
-				 GEN_INT (GET_MODE_BITSIZE (GET_MODE (x))
+				 GEN_INT (GET_MODE_PRECISION (GET_MODE (x))
 					  - exact_log2 (mask + 1)));
 
       goto shiftrt;
@@ -7903,9 +8433,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
     case ASHIFTRT:
       /* If we are just looking for the sign bit, we don't need this shift at
 	 all, even if it has a variable count.  */
-      if (GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT
-	  && (mask == ((unsigned HOST_WIDE_INT) 1
-		       << (GET_MODE_BITSIZE (GET_MODE (x)) - 1))))
+      if (val_signbit_p (GET_MODE (x), mask))
 	return force_to_mode (XEXP (x, 0), mode, mask, next_select);
 
       /* If this is a shift by a constant, get a mask that contains those bits
@@ -7924,20 +8452,20 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	     represent a mask for all its bits in a single scalar.
 	     But we only care about the lower bits, so calculate these.  */
 
-	  if (GET_MODE_BITSIZE (GET_MODE (x)) > HOST_BITS_PER_WIDE_INT)
+	  if (GET_MODE_PRECISION (GET_MODE (x)) > HOST_BITS_PER_WIDE_INT)
 	    {
-	      nonzero = ~(HOST_WIDE_INT) 0;
+	      nonzero = ~(unsigned HOST_WIDE_INT) 0;
 
-	      /* GET_MODE_BITSIZE (GET_MODE (x)) - INTVAL (XEXP (x, 1))
+	      /* GET_MODE_PRECISION (GET_MODE (x)) - INTVAL (XEXP (x, 1))
 		 is the number of bits a full-width mask would have set.
 		 We need only shift if these are fewer than nonzero can
 		 hold.  If not, we must keep all bits set in nonzero.  */
 
-	      if (GET_MODE_BITSIZE (GET_MODE (x)) - INTVAL (XEXP (x, 1))
+	      if (GET_MODE_PRECISION (GET_MODE (x)) - INTVAL (XEXP (x, 1))
 		  < HOST_BITS_PER_WIDE_INT)
 		nonzero >>= INTVAL (XEXP (x, 1))
 			    + HOST_BITS_PER_WIDE_INT
-			    - GET_MODE_BITSIZE (GET_MODE (x)) ;
+			    - GET_MODE_PRECISION (GET_MODE (x)) ;
 	    }
 	  else
 	    {
@@ -7957,7 +8485,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	    {
 	      x = simplify_shift_const
 		  (NULL_RTX, LSHIFTRT, GET_MODE (x), XEXP (x, 0),
-		   GET_MODE_BITSIZE (GET_MODE (x)) - 1 - i);
+		   GET_MODE_PRECISION (GET_MODE (x)) - 1 - i);
 
 	      if (GET_CODE (x) != ASHIFTRT)
 		return force_to_mode (x, mode, mask, next_select);
@@ -7980,7 +8508,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	  && CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) >= 0
 	  && (INTVAL (XEXP (x, 1))
-	      <= GET_MODE_BITSIZE (GET_MODE (x)) - (floor_log2 (mask) + 1))
+	      <= GET_MODE_PRECISION (GET_MODE (x)) - (floor_log2 (mask) + 1))
 	  && GET_CODE (XEXP (x, 0)) == ASHIFT
 	  && XEXP (XEXP (x, 0), 1) == XEXP (x, 1))
 	return force_to_mode (XEXP (XEXP (x, 0), 0), mode, mask,
@@ -8028,7 +8556,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
 	  && CONST_INT_P (XEXP (XEXP (x, 0), 1))
 	  && INTVAL (XEXP (XEXP (x, 0), 1)) >= 0
 	  && (INTVAL (XEXP (XEXP (x, 0), 1)) + floor_log2 (mask)
-	      < GET_MODE_BITSIZE (GET_MODE (x)))
+	      < GET_MODE_PRECISION (GET_MODE (x)))
 	  && INTVAL (XEXP (XEXP (x, 0), 1)) < HOST_BITS_PER_WIDE_INT)
 	{
 	  temp = gen_int_mode (mask << INTVAL (XEXP (XEXP (x, 0), 1)),
@@ -8057,7 +8585,8 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
       /* (and (ne FOO 0) CONST) can be (and FOO CONST) if CONST is included
 	 in STORE_FLAG_VALUE and FOO has a single bit that might be nonzero,
 	 which is equal to STORE_FLAG_VALUE.  */
-      if ((mask & ~STORE_FLAG_VALUE) == 0 && XEXP (x, 1) == const0_rtx
+      if ((mask & ~STORE_FLAG_VALUE) == 0
+	  && XEXP (x, 1) == const0_rtx
 	  && GET_MODE (XEXP (x, 0)) == mode
 	  && exact_log2 (nonzero_bits (XEXP (x, 0), mode)) >= 0
 	  && (nonzero_bits (XEXP (x, 0), mode)
@@ -8279,15 +8808,14 @@ if_then_else_cond (rtx x, rtx *ptrue, rtx *pfalse)
      false values when testing X.  */
   else if (x == constm1_rtx || x == const0_rtx
 	   || (mode != VOIDmode
-	       && num_sign_bit_copies (x, mode) == GET_MODE_BITSIZE (mode)))
+	       && num_sign_bit_copies (x, mode) == GET_MODE_PRECISION (mode)))
     {
       *ptrue = constm1_rtx, *pfalse = const0_rtx;
       return x;
     }
 
   /* Likewise for 0 or a single bit.  */
-  else if (SCALAR_INT_MODE_P (mode)
-	   && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+  else if (HWI_COMPUTABLE_MODE_P (mode)
 	   && exact_log2 (nz = nonzero_bits (x, mode)) >= 0)
     {
       *ptrue = gen_int_mode (nz, mode), *pfalse = const0_rtx;
@@ -8612,8 +9140,8 @@ make_field_assignment (rtx x)
     return x;
 
   pos = get_pos_from_mask ((~c1) & GET_MODE_MASK (GET_MODE (dest)), &len);
-  if (pos < 0 || pos + len > GET_MODE_BITSIZE (GET_MODE (dest))
-      || GET_MODE_BITSIZE (GET_MODE (dest)) > HOST_BITS_PER_WIDE_INT
+  if (pos < 0 || pos + len > GET_MODE_PRECISION (GET_MODE (dest))
+      || GET_MODE_PRECISION (GET_MODE (dest)) > HOST_BITS_PER_WIDE_INT
       || (c1 & nonzero_bits (other, GET_MODE (dest))) != 0)
     return x;
 
@@ -8634,7 +9162,7 @@ make_field_assignment (rtx x)
 						     other, pos),
 			       dest);
   src = force_to_mode (src, mode,
-		       GET_MODE_BITSIZE (mode) >= HOST_BITS_PER_WIDE_INT
+		       GET_MODE_PRECISION (mode) >= HOST_BITS_PER_WIDE_INT
 		       ? ~(unsigned HOST_WIDE_INT) 0
 		       : ((unsigned HOST_WIDE_INT) 1 << len) - 1,
 		       0);
@@ -8646,8 +9174,8 @@ make_field_assignment (rtx x)
       && INTVAL (XEXP (assign, 1)) < HOST_BITS_PER_WIDE_INT
       && GET_CODE (src) == AND
       && CONST_INT_P (XEXP (src, 1))
-      && ((unsigned HOST_WIDE_INT) INTVAL (XEXP (src, 1))
-	  == ((unsigned HOST_WIDE_INT) 1 << INTVAL (XEXP (assign, 1))) - 1))
+      && UINTVAL (XEXP (src, 1))
+	 == ((unsigned HOST_WIDE_INT) 1 << INTVAL (XEXP (assign, 1))) - 1)
     src = XEXP (src, 0);
 
   return gen_rtx_SET (VOIDmode, assign, src);
@@ -8728,15 +9256,13 @@ apply_distributive_law (rtx x)
 	  || ! subreg_lowpart_p (lhs)
 	  || (GET_MODE_CLASS (GET_MODE (lhs))
 	      != GET_MODE_CLASS (GET_MODE (SUBREG_REG (lhs))))
-	  || (GET_MODE_SIZE (GET_MODE (lhs))
-	      > GET_MODE_SIZE (GET_MODE (SUBREG_REG (lhs))))
+	  || paradoxical_subreg_p (lhs)
 	  || VECTOR_MODE_P (GET_MODE (lhs))
 	  || GET_MODE_SIZE (GET_MODE (SUBREG_REG (lhs))) > UNITS_PER_WORD
 	  /* Result might need to be truncated.  Don't change mode if
 	     explicit truncation is needed.  */
-	  || !TRULY_NOOP_TRUNCATION
-	       (GET_MODE_BITSIZE (GET_MODE (x)),
-		GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (lhs)))))
+	  || !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (x),
+					     GET_MODE (SUBREG_REG (lhs))))
 	return x;
 
       tem = simplify_gen_binary (code, GET_MODE (SUBREG_REG (lhs)),
@@ -8851,8 +9377,8 @@ distribute_and_simplify_rtx (rtx x, int n)
   tmp = apply_distributive_law (simplify_gen_binary (inner_code, mode,
 						     new_op0, new_op1));
   if (GET_CODE (tmp) != outer_code
-      && rtx_cost (tmp, SET, optimize_this_for_speed_p)
-         < rtx_cost (x, SET, optimize_this_for_speed_p))
+      && (set_src_cost (tmp, optimize_this_for_speed_p)
+	  < set_src_cost (x, optimize_this_for_speed_p)))
     return tmp;
 
   return NULL_RTX;
@@ -9046,15 +9572,11 @@ reg_nonzero_bits_for_combine (const_rtx x, enum machine_mode mode,
 	 ??? For 2.5, try to tighten up the MD files in this regard
 	 instead of this kludge.  */
 
-      if (GET_MODE_BITSIZE (GET_MODE (x)) < GET_MODE_BITSIZE (mode)
+      if (GET_MODE_PRECISION (GET_MODE (x)) < GET_MODE_PRECISION (mode)
 	  && CONST_INT_P (tem)
 	  && INTVAL (tem) > 0
-	  && 0 != (INTVAL (tem)
-		   & ((HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (GET_MODE (x)) - 1))))
-	tem = GEN_INT (INTVAL (tem)
-		       | ((HOST_WIDE_INT) (-1)
-			  << GET_MODE_BITSIZE (GET_MODE (x))));
+	  && val_signbit_known_set_p (GET_MODE (x), INTVAL (tem)))
+	tem = GEN_INT (INTVAL (tem) | ~GET_MODE_MASK (GET_MODE (x)));
 #endif
       return tem;
     }
@@ -9062,7 +9584,7 @@ reg_nonzero_bits_for_combine (const_rtx x, enum machine_mode mode,
     {
       unsigned HOST_WIDE_INT mask = rsp->nonzero_bits;
 
-      if (GET_MODE_BITSIZE (GET_MODE (x)) < GET_MODE_BITSIZE (mode))
+      if (GET_MODE_PRECISION (GET_MODE (x)) < GET_MODE_PRECISION (mode))
 	/* We don't know anything about the upper bits.  */
 	mask |= GET_MODE_MASK (mode) ^ GET_MODE_MASK (GET_MODE (x));
       *nonzero &= mask;
@@ -9108,7 +9630,7 @@ reg_num_sign_bit_copies_for_combine (const_rtx x, enum machine_mode mode,
     return tem;
 
   if (nonzero_sign_valid && rsp->sign_bit_copies != 0
-      && GET_MODE_BITSIZE (GET_MODE (x)) == GET_MODE_BITSIZE (mode))
+      && GET_MODE_PRECISION (GET_MODE (x)) == GET_MODE_PRECISION (mode))
     *result = rsp->sign_bit_copies;
 
   return NULL;
@@ -9132,8 +9654,8 @@ extended_count (const_rtx x, enum machine_mode mode, int unsignedp)
     return 0;
 
   return (unsignedp
-	  ? (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	     ? (unsigned int) (GET_MODE_BITSIZE (mode) - 1
+	  ? (HWI_COMPUTABLE_MODE_P (mode)
+	     ? (unsigned int) (GET_MODE_PRECISION (mode) - 1
 			       - floor_log2 (nonzero_bits (x, mode)))
 	     : 0)
 	  : num_sign_bit_copies (x, mode) - 1);
@@ -9284,7 +9806,7 @@ try_widen_shift_mode (enum rtx_code code, rtx op, int count,
 {
   if (orig_mode == mode)
     return mode;
-  gcc_assert (GET_MODE_BITSIZE (mode) > GET_MODE_BITSIZE (orig_mode));
+  gcc_assert (GET_MODE_PRECISION (mode) > GET_MODE_PRECISION (orig_mode));
 
   /* In general we can't perform in wider mode for right shift and rotate.  */
   switch (code)
@@ -9293,14 +9815,14 @@ try_widen_shift_mode (enum rtx_code code, rtx op, int count,
       /* We can still widen if the bits brought in from the left are identical
 	 to the sign bit of ORIG_MODE.  */
       if (num_sign_bit_copies (op, mode)
-	  > (unsigned) (GET_MODE_BITSIZE (mode)
-			- GET_MODE_BITSIZE (orig_mode)))
+	  > (unsigned) (GET_MODE_PRECISION (mode)
+			- GET_MODE_PRECISION (orig_mode)))
 	return mode;
       return orig_mode;
 
     case LSHIFTRT:
       /* Similarly here but with zero bits.  */
-      if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+      if (HWI_COMPUTABLE_MODE_P (mode)
 	  && (nonzero_bits (op, mode) & ~GET_MODE_MASK (orig_mode)) == 0)
 	return mode;
 
@@ -9311,7 +9833,7 @@ try_widen_shift_mode (enum rtx_code code, rtx op, int count,
 	  int care_bits = low_bitmask_len (orig_mode, outer_const);
 
 	  if (care_bits >= 0
-	      && GET_MODE_BITSIZE (orig_mode) - care_bits >= count)
+	      && GET_MODE_PRECISION (orig_mode) - care_bits >= count)
 	    return mode;
 	}
       /* fall through */
@@ -9327,9 +9849,9 @@ try_widen_shift_mode (enum rtx_code code, rtx op, int count,
     }
 }
 
-/* Simplify a shift of VAROP by COUNT bits.  CODE says what kind of shift.
-   The result of the shift is RESULT_MODE.  Return NULL_RTX if we cannot
-   simplify it.  Otherwise, return a simplified value.
+/* Simplify a shift of VAROP by ORIG_COUNT bits.  CODE says what kind
+   of shift.  The result of the shift is RESULT_MODE.  Return NULL_RTX
+   if we cannot simplify it.  Otherwise, return a simplified value.
 
    The shift is normally computed in the widest mode we find in VAROP, as
    long as it isn't a different number of words than RESULT_MODE.  Exceptions
@@ -9361,7 +9883,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
   /* If we were given an invalid count, don't do anything except exactly
      what was requested.  */
 
-  if (orig_count < 0 || orig_count >= (int) GET_MODE_BITSIZE (mode))
+  if (orig_count < 0 || orig_count >= (int) GET_MODE_PRECISION (mode))
     return NULL_RTX;
 
   count = orig_count;
@@ -9378,7 +9900,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
       /* Convert ROTATERT to ROTATE.  */
       if (code == ROTATERT)
 	{
-	  unsigned int bitsize = GET_MODE_BITSIZE (result_mode);;
+	  unsigned int bitsize = GET_MODE_PRECISION (result_mode);
 	  code = ROTATE;
 	  if (VECTOR_MODE_P (result_mode))
 	    count = bitsize / GET_MODE_NUNITS (result_mode) - count;
@@ -9399,12 +9921,12 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	 multiple operations, each of which are defined, we know what the
 	 result is supposed to be.  */
 
-      if (count > (GET_MODE_BITSIZE (shift_mode) - 1))
+      if (count > (GET_MODE_PRECISION (shift_mode) - 1))
 	{
 	  if (code == ASHIFTRT)
-	    count = GET_MODE_BITSIZE (shift_mode) - 1;
+	    count = GET_MODE_PRECISION (shift_mode) - 1;
 	  else if (code == ROTATE || code == ROTATERT)
-	    count %= GET_MODE_BITSIZE (shift_mode);
+	    count %= GET_MODE_PRECISION (shift_mode);
 	  else
 	    {
 	      /* We can't simply return zero because there may be an
@@ -9424,7 +9946,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	 is a no-op.  */
       if (code == ASHIFTRT
 	  && (num_sign_bit_copies (varop, shift_mode)
-	      == GET_MODE_BITSIZE (shift_mode)))
+	      == GET_MODE_PRECISION (shift_mode)))
 	{
 	  count = 0;
 	  break;
@@ -9437,25 +9959,23 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 
       if (code == ASHIFTRT
 	  && (count + num_sign_bit_copies (varop, shift_mode)
-	      >= GET_MODE_BITSIZE (shift_mode)))
-	count = GET_MODE_BITSIZE (shift_mode) - 1;
+	      >= GET_MODE_PRECISION (shift_mode)))
+	count = GET_MODE_PRECISION (shift_mode) - 1;
 
       /* We simplify the tests below and elsewhere by converting
 	 ASHIFTRT to LSHIFTRT if we know the sign bit is clear.
 	 `make_compound_operation' will convert it to an ASHIFTRT for
 	 those machines (such as VAX) that don't have an LSHIFTRT.  */
-      if (GET_MODE_BITSIZE (shift_mode) <= HOST_BITS_PER_WIDE_INT
-	  && code == ASHIFTRT
-	  && ((nonzero_bits (varop, shift_mode)
-	       & ((HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (shift_mode) - 1)))
-	      == 0))
+      if (code == ASHIFTRT
+	  && val_signbit_known_clear_p (shift_mode,
+					nonzero_bits (varop, shift_mode)))
 	code = LSHIFTRT;
 
       if (((code == LSHIFTRT
-	    && GET_MODE_BITSIZE (shift_mode) <= HOST_BITS_PER_WIDE_INT
+	    && HWI_COMPUTABLE_MODE_P (shift_mode)
 	    && !(nonzero_bits (varop, shift_mode) >> count))
 	   || (code == ASHIFT
-	       && GET_MODE_BITSIZE (shift_mode) <= HOST_BITS_PER_WIDE_INT
+	       && HWI_COMPUTABLE_MODE_P (shift_mode)
 	       && !((nonzero_bits (varop, shift_mode) << count)
 		    & GET_MODE_MASK (shift_mode))))
 	  && !side_effects_p (varop))
@@ -9505,7 +10025,9 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 		  > GET_MODE_SIZE (GET_MODE (varop)))
 	      && (unsigned int) ((GET_MODE_SIZE (GET_MODE (SUBREG_REG (varop)))
 				  + (UNITS_PER_WORD - 1)) / UNITS_PER_WORD)
-		 == mode_words)
+		 == mode_words
+	      && GET_MODE_CLASS (GET_MODE (varop)) == MODE_INT
+	      && GET_MODE_CLASS (GET_MODE (SUBREG_REG (varop))) == MODE_INT)
 	    {
 	      varop = SUBREG_REG (varop);
 	      if (GET_MODE_SIZE (GET_MODE (varop)) > GET_MODE_SIZE (mode))
@@ -9519,13 +10041,13 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	     is cheaper.  But it is still better on those machines to
 	     merge two shifts into one.  */
 	  if (CONST_INT_P (XEXP (varop, 1))
-	      && exact_log2 (INTVAL (XEXP (varop, 1))) >= 0)
+	      && exact_log2 (UINTVAL (XEXP (varop, 1))) >= 0)
 	    {
 	      varop
 		= simplify_gen_binary (ASHIFT, GET_MODE (varop),
 				       XEXP (varop, 0),
 				       GEN_INT (exact_log2 (
-						INTVAL (XEXP (varop, 1)))));
+						UINTVAL (XEXP (varop, 1)))));
 	      continue;
 	    }
 	  break;
@@ -9533,13 +10055,13 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	case UDIV:
 	  /* Similar, for when divides are cheaper.  */
 	  if (CONST_INT_P (XEXP (varop, 1))
-	      && exact_log2 (INTVAL (XEXP (varop, 1))) >= 0)
+	      && exact_log2 (UINTVAL (XEXP (varop, 1))) >= 0)
 	    {
 	      varop
 		= simplify_gen_binary (LSHIFTRT, GET_MODE (varop),
 				       XEXP (varop, 0),
 				       GEN_INT (exact_log2 (
-						INTVAL (XEXP (varop, 1)))));
+						UINTVAL (XEXP (varop, 1)))));
 	      continue;
 	    }
 	  break;
@@ -9568,9 +10090,9 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	     AND of a new shift with a mask.  We compute the result below.  */
 	  if (CONST_INT_P (XEXP (varop, 1))
 	      && INTVAL (XEXP (varop, 1)) >= 0
-	      && INTVAL (XEXP (varop, 1)) < GET_MODE_BITSIZE (GET_MODE (varop))
-	      && GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT
-	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
+	      && INTVAL (XEXP (varop, 1)) < GET_MODE_PRECISION (GET_MODE (varop))
+	      && HWI_COMPUTABLE_MODE_P (result_mode)
+	      && HWI_COMPUTABLE_MODE_P (mode)
 	      && !VECTOR_MODE_P (result_mode))
 	    {
 	      enum rtx_code first_code = GET_CODE (varop);
@@ -9583,16 +10105,16 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 		 we have (ashift:M1 (subreg:M1 (ashiftrt:M2 FOO C1) 0) C2)
 		 with C2 == GET_MODE_BITSIZE (M1) - GET_MODE_BITSIZE (M2),
 		 we can convert it to
-		 (ashiftrt:M1 (ashift:M1 (and:M1 (subreg:M1 FOO 0 C2) C3) C1).
+		 (ashiftrt:M1 (ashift:M1 (and:M1 (subreg:M1 FOO 0) C3) C2) C1).
 		 This simplifies certain SIGN_EXTEND operations.  */
 	      if (code == ASHIFT && first_code == ASHIFTRT
-		  && count == (GET_MODE_BITSIZE (result_mode)
-			       - GET_MODE_BITSIZE (GET_MODE (varop))))
+		  && count == (GET_MODE_PRECISION (result_mode)
+			       - GET_MODE_PRECISION (GET_MODE (varop))))
 		{
 		  /* C3 has the low-order C1 bits zero.  */
 
-		  mask = (GET_MODE_MASK (mode)
-			  & ~(((HOST_WIDE_INT) 1 << first_count) - 1));
+		  mask = GET_MODE_MASK (mode)
+			 & ~(((unsigned HOST_WIDE_INT) 1 << first_count) - 1);
 
 		  varop = simplify_and_const_int (NULL_RTX, result_mode,
 						  XEXP (varop, 0), mask);
@@ -9655,7 +10177,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 
 	      if (code == ASHIFTRT
 		  || (code == ROTATE && first_code == ASHIFTRT)
-		  || GET_MODE_BITSIZE (mode) > HOST_BITS_PER_WIDE_INT
+		  || GET_MODE_PRECISION (mode) > HOST_BITS_PER_WIDE_INT
 		  || (GET_MODE (varop) != result_mode
 		      && (first_code == ASHIFTRT || first_code == LSHIFTRT
 			  || first_code == ROTATE
@@ -9743,7 +10265,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	      && XEXP (XEXP (varop, 0), 1) == constm1_rtx
 	      && (STORE_FLAG_VALUE == 1 || STORE_FLAG_VALUE == -1)
 	      && (code == LSHIFTRT || code == ASHIFTRT)
-	      && count == (GET_MODE_BITSIZE (GET_MODE (varop)) - 1)
+	      && count == (GET_MODE_PRECISION (GET_MODE (varop)) - 1)
 	      && rtx_equal_p (XEXP (XEXP (varop, 0), 0), XEXP (varop, 1)))
 	    {
 	      count = 0;
@@ -9805,17 +10327,16 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	case EQ:
 	  /* Convert (lshiftrt (eq FOO 0) C) to (xor FOO 1) if STORE_FLAG_VALUE
 	     says that the sign bit can be tested, FOO has mode MODE, C is
-	     GET_MODE_BITSIZE (MODE) - 1, and FOO has only its low-order bit
+	     GET_MODE_PRECISION (MODE) - 1, and FOO has only its low-order bit
 	     that may be nonzero.  */
 	  if (code == LSHIFTRT
 	      && XEXP (varop, 1) == const0_rtx
 	      && GET_MODE (XEXP (varop, 0)) == result_mode
-	      && count == (GET_MODE_BITSIZE (result_mode) - 1)
-	      && GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT
+	      && count == (GET_MODE_PRECISION (result_mode) - 1)
+	      && HWI_COMPUTABLE_MODE_P (result_mode)
 	      && STORE_FLAG_VALUE == -1
 	      && nonzero_bits (XEXP (varop, 0), result_mode) == 1
-	      && merge_outer_ops (&outer_op, &outer_const, XOR,
-				  (HOST_WIDE_INT) 1, result_mode,
+	      && merge_outer_ops (&outer_op, &outer_const, XOR, 1, result_mode,
 				  &complement_p))
 	    {
 	      varop = XEXP (varop, 0);
@@ -9828,7 +10349,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	  /* (lshiftrt (neg A) C) where A is either 0 or 1 and C is one less
 	     than the number of bits in the mode is equivalent to A.  */
 	  if (code == LSHIFTRT
-	      && count == (GET_MODE_BITSIZE (result_mode) - 1)
+	      && count == (GET_MODE_PRECISION (result_mode) - 1)
 	      && nonzero_bits (XEXP (varop, 0), result_mode) == 1)
 	    {
 	      varop = XEXP (varop, 0);
@@ -9839,8 +10360,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	  /* NEG commutes with ASHIFT since it is multiplication.  Move the
 	     NEG outside to allow shifts to combine.  */
 	  if (code == ASHIFT
-	      && merge_outer_ops (&outer_op, &outer_const, NEG,
-				  (HOST_WIDE_INT) 0, result_mode,
+	      && merge_outer_ops (&outer_op, &outer_const, NEG, 0, result_mode,
 				  &complement_p))
 	    {
 	      varop = XEXP (varop, 0);
@@ -9853,11 +10373,10 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	     is one less than the number of bits in the mode is
 	     equivalent to (xor A 1).  */
 	  if (code == LSHIFTRT
-	      && count == (GET_MODE_BITSIZE (result_mode) - 1)
+	      && count == (GET_MODE_PRECISION (result_mode) - 1)
 	      && XEXP (varop, 1) == constm1_rtx
 	      && nonzero_bits (XEXP (varop, 0), result_mode) == 1
-	      && merge_outer_ops (&outer_op, &outer_const, XOR,
-				  (HOST_WIDE_INT) 1, result_mode,
+	      && merge_outer_ops (&outer_op, &outer_const, XOR, 1, result_mode,
 				  &complement_p))
 	    {
 	      count = 0;
@@ -9882,7 +10401,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	    }
 	  else if ((code == ASHIFTRT || code == LSHIFTRT)
 		   && count < HOST_BITS_PER_WIDE_INT
-		   && GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT
+		   && HWI_COMPUTABLE_MODE_P (result_mode)
 		   && 0 == (nonzero_bits (XEXP (varop, 0), result_mode)
 			    >> count)
 		   && 0 == (nonzero_bits (XEXP (varop, 0), result_mode)
@@ -9938,7 +10457,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 
 	  if ((STORE_FLAG_VALUE == 1 || STORE_FLAG_VALUE == -1)
 	      && GET_CODE (XEXP (varop, 0)) == ASHIFTRT
-	      && count == (GET_MODE_BITSIZE (GET_MODE (varop)) - 1)
+	      && count == (GET_MODE_PRECISION (GET_MODE (varop)) - 1)
 	      && (code == LSHIFTRT || code == ASHIFTRT)
 	      && CONST_INT_P (XEXP (XEXP (varop, 0), 1))
 	      && INTVAL (XEXP (XEXP (varop, 0), 1)) == count
@@ -9962,8 +10481,8 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	      && GET_CODE (XEXP (varop, 0)) == LSHIFTRT
 	      && CONST_INT_P (XEXP (XEXP (varop, 0), 1))
 	      && (INTVAL (XEXP (XEXP (varop, 0), 1))
-		  >= (GET_MODE_BITSIZE (GET_MODE (XEXP (varop, 0)))
-		      - GET_MODE_BITSIZE (GET_MODE (varop)))))
+		  >= (GET_MODE_PRECISION (GET_MODE (XEXP (varop, 0)))
+		      - GET_MODE_PRECISION (GET_MODE (varop)))))
 	    {
 	      rtx varop_inner = XEXP (varop, 0);
 
@@ -10035,7 +10554,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
   if (outer_op != UNKNOWN)
     {
       if (GET_RTX_CLASS (outer_op) != RTX_UNARY
-	  && GET_MODE_BITSIZE (result_mode) < HOST_BITS_PER_WIDE_INT)
+	  && GET_MODE_PRECISION (result_mode) < HOST_BITS_PER_WIDE_INT)
 	outer_const = trunc_int_for_mode (outer_const, result_mode);
 
       if (outer_op == AND)
@@ -10326,6 +10845,191 @@ gen_lowpart_for_combine (enum machine_mode omode, rtx x)
   return gen_rtx_CLOBBER (omode, const0_rtx);
 }
 
+/* Try to simplify a comparison between OP0 and a constant OP1,
+   where CODE is the comparison code that will be tested, into a
+   (CODE OP0 const0_rtx) form.
+
+   The result is a possibly different comparison code to use.
+   *POP1 may be updated.  */
+
+static enum rtx_code
+simplify_compare_const (enum rtx_code code, rtx op0, rtx *pop1)
+{
+  enum machine_mode mode = GET_MODE (op0);
+  unsigned int mode_width = GET_MODE_PRECISION (mode);
+  HOST_WIDE_INT const_op = INTVAL (*pop1);
+
+  /* Get the constant we are comparing against and turn off all bits
+     not on in our mode.  */
+  if (mode != VOIDmode)
+    const_op = trunc_int_for_mode (const_op, mode);
+
+  /* If we are comparing against a constant power of two and the value
+     being compared can only have that single bit nonzero (e.g., it was
+     `and'ed with that bit), we can replace this with a comparison
+     with zero.  */
+  if (const_op
+      && (code == EQ || code == NE || code == GE || code == GEU
+	  || code == LT || code == LTU)
+      && mode_width <= HOST_BITS_PER_WIDE_INT
+      && exact_log2 (const_op) >= 0
+      && nonzero_bits (op0, mode) == (unsigned HOST_WIDE_INT) const_op)
+    {
+      code = (code == EQ || code == GE || code == GEU ? NE : EQ);
+      const_op = 0;
+    }
+
+  /* Similarly, if we are comparing a value known to be either -1 or
+     0 with -1, change it to the opposite comparison against zero.  */
+  if (const_op == -1
+      && (code == EQ || code == NE || code == GT || code == LE
+	  || code == GEU || code == LTU)
+      && num_sign_bit_copies (op0, mode) == mode_width)
+    {
+      code = (code == EQ || code == LE || code == GEU ? NE : EQ);
+      const_op = 0;
+    }
+
+  /* Do some canonicalizations based on the comparison code.  We prefer
+     comparisons against zero and then prefer equality comparisons.
+     If we can reduce the size of a constant, we will do that too.  */
+  switch (code)
+    {
+    case LT:
+      /* < C is equivalent to <= (C - 1) */
+      if (const_op > 0)
+	{
+	  const_op -= 1;
+	  code = LE;
+	  /* ... fall through to LE case below.  */
+	}
+      else
+	break;
+
+    case LE:
+      /* <= C is equivalent to < (C + 1); we do this for C < 0  */
+      if (const_op < 0)
+	{
+	  const_op += 1;
+	  code = LT;
+	}
+
+      /* If we are doing a <= 0 comparison on a value known to have
+	 a zero sign bit, we can replace this with == 0.  */
+      else if (const_op == 0
+	       && mode_width <= HOST_BITS_PER_WIDE_INT
+	       && (nonzero_bits (op0, mode)
+		   & ((unsigned HOST_WIDE_INT) 1 << (mode_width - 1)))
+	       == 0)
+	code = EQ;
+      break;
+
+    case GE:
+      /* >= C is equivalent to > (C - 1).  */
+      if (const_op > 0)
+	{
+	  const_op -= 1;
+	  code = GT;
+	  /* ... fall through to GT below.  */
+	}
+      else
+	break;
+
+    case GT:
+      /* > C is equivalent to >= (C + 1); we do this for C < 0.  */
+      if (const_op < 0)
+	{
+	  const_op += 1;
+	  code = GE;
+	}
+
+      /* If we are doing a > 0 comparison on a value known to have
+	 a zero sign bit, we can replace this with != 0.  */
+      else if (const_op == 0
+	       && mode_width <= HOST_BITS_PER_WIDE_INT
+	       && (nonzero_bits (op0, mode)
+		   & ((unsigned HOST_WIDE_INT) 1 << (mode_width - 1)))
+	       == 0)
+	code = NE;
+      break;
+
+    case LTU:
+      /* < C is equivalent to <= (C - 1).  */
+      if (const_op > 0)
+	{
+	  const_op -= 1;
+	  code = LEU;
+	  /* ... fall through ...  */
+	}
+      /* (unsigned) < 0x80000000 is equivalent to >= 0.  */
+      else if (mode_width <= HOST_BITS_PER_WIDE_INT
+	       && (unsigned HOST_WIDE_INT) const_op
+	       == (unsigned HOST_WIDE_INT) 1 << (mode_width - 1))
+	{
+	  const_op = 0;
+	  code = GE;
+	  break;
+	}
+      else
+	break;
+
+    case LEU:
+      /* unsigned <= 0 is equivalent to == 0 */
+      if (const_op == 0)
+	code = EQ;
+      /* (unsigned) <= 0x7fffffff is equivalent to >= 0.  */
+      else if (mode_width <= HOST_BITS_PER_WIDE_INT
+	       && (unsigned HOST_WIDE_INT) const_op
+	       == ((unsigned HOST_WIDE_INT) 1 << (mode_width - 1)) - 1)
+	{
+	  const_op = 0;
+	  code = GE;
+	}
+      break;
+
+    case GEU:
+      /* >= C is equivalent to > (C - 1).  */
+      if (const_op > 1)
+	{
+	  const_op -= 1;
+	  code = GTU;
+	  /* ... fall through ...  */
+	}
+
+      /* (unsigned) >= 0x80000000 is equivalent to < 0.  */
+      else if (mode_width <= HOST_BITS_PER_WIDE_INT
+	       && (unsigned HOST_WIDE_INT) const_op
+	       == (unsigned HOST_WIDE_INT) 1 << (mode_width - 1))
+	{
+	  const_op = 0;
+	  code = LT;
+	  break;
+	}
+      else
+	break;
+
+    case GTU:
+      /* unsigned > 0 is equivalent to != 0 */
+      if (const_op == 0)
+	code = NE;
+      /* (unsigned) > 0x7fffffff is equivalent to < 0.  */
+      else if (mode_width <= HOST_BITS_PER_WIDE_INT
+	       && (unsigned HOST_WIDE_INT) const_op
+	       == ((unsigned HOST_WIDE_INT) 1 << (mode_width - 1)) - 1)
+	{
+	  const_op = 0;
+	  code = LT;
+	}
+      break;
+
+    default:
+      break;
+    }
+
+  *pop1 = GEN_INT (const_op);
+  return code;
+}
+
 /* Simplify a comparison between *POP0 and *POP1 where CODE is the
    comparison code that will be tested.
 
@@ -10365,8 +11069,8 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  && XEXP (op0, 1) == XEXP (XEXP (op0, 0), 1)
 	  && XEXP (op0, 1) == XEXP (XEXP (op1, 0), 1)
 	  && (INTVAL (XEXP (op0, 1))
-	      == (GET_MODE_BITSIZE (GET_MODE (op0))
-		  - (GET_MODE_BITSIZE
+	      == (GET_MODE_PRECISION (GET_MODE (op0))
+		  - (GET_MODE_PRECISION
 		     (GET_MODE (SUBREG_REG (XEXP (XEXP (op0, 0), 0))))))))
 	{
 	  op0 = SUBREG_REG (XEXP (XEXP (op0, 0), 0));
@@ -10379,7 +11083,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	 this shift are known to be zero for both inputs and if the type of
 	 comparison is compatible with the shift.  */
       if (GET_CODE (op0) == GET_CODE (op1)
-	  && GET_MODE_BITSIZE (GET_MODE (op0)) <= HOST_BITS_PER_WIDE_INT
+	  && HWI_COMPUTABLE_MODE_P (GET_MODE(op0))
 	  && ((GET_CODE (op0) == ROTATE && (code == NE || code == EQ))
 	      || ((GET_CODE (op0) == LSHIFTRT || GET_CODE (op0) == ASHIFT)
 		  && (code != GT && code != LT && code != GE && code != LE))
@@ -10430,12 +11134,11 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  HOST_WIDE_INT c1 = INTVAL (XEXP (op1, 1));
 	  int changed = 0;
 
-	  if (GET_CODE (inner_op0) == SUBREG && GET_CODE (inner_op1) == SUBREG
-	      && (GET_MODE_SIZE (GET_MODE (inner_op0))
-		  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (inner_op0))))
+	  if (paradoxical_subreg_p (inner_op0)
+	      && GET_CODE (inner_op1) == SUBREG
 	      && (GET_MODE (SUBREG_REG (inner_op0))
 		  == GET_MODE (SUBREG_REG (inner_op1)))
-	      && (GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (inner_op0)))
+	      && (GET_MODE_PRECISION (GET_MODE (SUBREG_REG (inner_op0)))
 		  <= HOST_BITS_PER_WIDE_INT)
 	      && (0 == ((~c0) & nonzero_bits (SUBREG_REG (inner_op0),
 					     GET_MODE (SUBREG_REG (inner_op0)))))
@@ -10498,7 +11201,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
   while (CONST_INT_P (op1))
     {
       enum machine_mode mode = GET_MODE (op0);
-      unsigned int mode_width = GET_MODE_BITSIZE (mode);
+      unsigned int mode_width = GET_MODE_PRECISION (mode);
       unsigned HOST_WIDE_INT mask = GET_MODE_MASK (mode);
       int equality_comparison_p;
       int sign_bit_comparison_p;
@@ -10515,179 +11218,10 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		&& (GET_CODE (op0) == COMPARE || COMPARISON_P (op0))))
 	break;
 
-      /* Get the constant we are comparing against and turn off all bits
-	 not on in our mode.  */
+      /* Try to simplify the compare to constant, possibly changing the
+	 comparison op, and/or changing op1 to zero.  */
+      code = simplify_compare_const (code, op0, &op1);
       const_op = INTVAL (op1);
-      if (mode != VOIDmode)
-	const_op = trunc_int_for_mode (const_op, mode);
-      op1 = GEN_INT (const_op);
-
-      /* If we are comparing against a constant power of two and the value
-	 being compared can only have that single bit nonzero (e.g., it was
-	 `and'ed with that bit), we can replace this with a comparison
-	 with zero.  */
-      if (const_op
-	  && (code == EQ || code == NE || code == GE || code == GEU
-	      || code == LT || code == LTU)
-	  && mode_width <= HOST_BITS_PER_WIDE_INT
-	  && exact_log2 (const_op) >= 0
-	  && nonzero_bits (op0, mode) == (unsigned HOST_WIDE_INT) const_op)
-	{
-	  code = (code == EQ || code == GE || code == GEU ? NE : EQ);
-	  op1 = const0_rtx, const_op = 0;
-	}
-
-      /* Similarly, if we are comparing a value known to be either -1 or
-	 0 with -1, change it to the opposite comparison against zero.  */
-
-      if (const_op == -1
-	  && (code == EQ || code == NE || code == GT || code == LE
-	      || code == GEU || code == LTU)
-	  && num_sign_bit_copies (op0, mode) == mode_width)
-	{
-	  code = (code == EQ || code == LE || code == GEU ? NE : EQ);
-	  op1 = const0_rtx, const_op = 0;
-	}
-
-      /* Do some canonicalizations based on the comparison code.  We prefer
-	 comparisons against zero and then prefer equality comparisons.
-	 If we can reduce the size of a constant, we will do that too.  */
-
-      switch (code)
-	{
-	case LT:
-	  /* < C is equivalent to <= (C - 1) */
-	  if (const_op > 0)
-	    {
-	      const_op -= 1;
-	      op1 = GEN_INT (const_op);
-	      code = LE;
-	      /* ... fall through to LE case below.  */
-	    }
-	  else
-	    break;
-
-	case LE:
-	  /* <= C is equivalent to < (C + 1); we do this for C < 0  */
-	  if (const_op < 0)
-	    {
-	      const_op += 1;
-	      op1 = GEN_INT (const_op);
-	      code = LT;
-	    }
-
-	  /* If we are doing a <= 0 comparison on a value known to have
-	     a zero sign bit, we can replace this with == 0.  */
-	  else if (const_op == 0
-		   && mode_width <= HOST_BITS_PER_WIDE_INT
-		   && (nonzero_bits (op0, mode)
-		       & ((HOST_WIDE_INT) 1 << (mode_width - 1))) == 0)
-	    code = EQ;
-	  break;
-
-	case GE:
-	  /* >= C is equivalent to > (C - 1).  */
-	  if (const_op > 0)
-	    {
-	      const_op -= 1;
-	      op1 = GEN_INT (const_op);
-	      code = GT;
-	      /* ... fall through to GT below.  */
-	    }
-	  else
-	    break;
-
-	case GT:
-	  /* > C is equivalent to >= (C + 1); we do this for C < 0.  */
-	  if (const_op < 0)
-	    {
-	      const_op += 1;
-	      op1 = GEN_INT (const_op);
-	      code = GE;
-	    }
-
-	  /* If we are doing a > 0 comparison on a value known to have
-	     a zero sign bit, we can replace this with != 0.  */
-	  else if (const_op == 0
-		   && mode_width <= HOST_BITS_PER_WIDE_INT
-		   && (nonzero_bits (op0, mode)
-		       & ((HOST_WIDE_INT) 1 << (mode_width - 1))) == 0)
-	    code = NE;
-	  break;
-
-	case LTU:
-	  /* < C is equivalent to <= (C - 1).  */
-	  if (const_op > 0)
-	    {
-	      const_op -= 1;
-	      op1 = GEN_INT (const_op);
-	      code = LEU;
-	      /* ... fall through ...  */
-	    }
-
-	  /* (unsigned) < 0x80000000 is equivalent to >= 0.  */
-	  else if ((mode_width <= HOST_BITS_PER_WIDE_INT)
-		   && (const_op == (HOST_WIDE_INT) 1 << (mode_width - 1)))
-	    {
-	      const_op = 0, op1 = const0_rtx;
-	      code = GE;
-	      break;
-	    }
-	  else
-	    break;
-
-	case LEU:
-	  /* unsigned <= 0 is equivalent to == 0 */
-	  if (const_op == 0)
-	    code = EQ;
-
-	  /* (unsigned) <= 0x7fffffff is equivalent to >= 0.  */
-	  else if ((mode_width <= HOST_BITS_PER_WIDE_INT)
-		   && (const_op == ((HOST_WIDE_INT) 1 << (mode_width - 1)) - 1))
-	    {
-	      const_op = 0, op1 = const0_rtx;
-	      code = GE;
-	    }
-	  break;
-
-	case GEU:
-	  /* >= C is equivalent to > (C - 1).  */
-	  if (const_op > 1)
-	    {
-	      const_op -= 1;
-	      op1 = GEN_INT (const_op);
-	      code = GTU;
-	      /* ... fall through ...  */
-	    }
-
-	  /* (unsigned) >= 0x80000000 is equivalent to < 0.  */
-	  else if ((mode_width <= HOST_BITS_PER_WIDE_INT)
-		   && (const_op == (HOST_WIDE_INT) 1 << (mode_width - 1)))
-	    {
-	      const_op = 0, op1 = const0_rtx;
-	      code = LT;
-	      break;
-	    }
-	  else
-	    break;
-
-	case GTU:
-	  /* unsigned > 0 is equivalent to != 0 */
-	  if (const_op == 0)
-	    code = NE;
-
-	  /* (unsigned) > 0x7fffffff is equivalent to < 0.  */
-	  else if ((mode_width <= HOST_BITS_PER_WIDE_INT)
-		   && (const_op == ((HOST_WIDE_INT) 1 << (mode_width - 1)) - 1))
-	    {
-	      const_op = 0, op1 = const0_rtx;
-	      code = LT;
-	    }
-	  break;
-
-	default:
-	  break;
-	}
 
       /* Compute some predicates to simplify code below.  */
 
@@ -10698,11 +11232,10 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 
       /* If this is a sign bit comparison and we can do arithmetic in
 	 MODE, say that we will only be needing the sign bit of OP0.  */
-      if (sign_bit_comparison_p
-	  && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+      if (sign_bit_comparison_p && HWI_COMPUTABLE_MODE_P (mode))
 	op0 = force_to_mode (op0, mode,
-			     ((HOST_WIDE_INT) 1
-			      << (GET_MODE_BITSIZE (mode) - 1)),
+			     (unsigned HOST_WIDE_INT) 1
+			     << (GET_MODE_PRECISION (mode) - 1),
 			     0);
 
       /* Now try cases based on the opcode of OP0.  If none of the cases
@@ -10722,7 +11255,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && CONST_INT_P (XEXP (op0, 0))
 	      && XEXP (op0, 1) == const1_rtx
 	      && equality_comparison_p && const_op == 0
-	      && (i = exact_log2 (INTVAL (XEXP (op0, 0)))) >= 0)
+	      && (i = exact_log2 (UINTVAL (XEXP (op0, 0)))) >= 0)
 	    {
 	      if (BITS_BIG_ENDIAN)
 		{
@@ -10733,7 +11266,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		  else
 		    {
 		      mode = new_mode;
-		      i = (GET_MODE_BITSIZE (mode) - 1 - i);
+		      i = (GET_MODE_PRECISION (mode) - 1 - i);
 		    }
 		}
 
@@ -10798,7 +11331,8 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && (GET_CODE (XEXP (op0, 0)) == ABS
 		  || (mode_width <= HOST_BITS_PER_WIDE_INT
 		      && (nonzero_bits (XEXP (op0, 0), mode)
-			  & ((HOST_WIDE_INT) 1 << (mode_width - 1))) == 0)))
+			  & ((unsigned HOST_WIDE_INT) 1 << (mode_width - 1)))
+			 == 0)))
 	    {
 	      op0 = XEXP (op0, 0);
 	      code = (code == LT ? NE : EQ);
@@ -10835,7 +11369,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && mode_width <= HOST_BITS_PER_WIDE_INT)
 	    {
 	      op0 = simplify_and_const_int (NULL_RTX, mode, XEXP (op0, 0),
-					    ((HOST_WIDE_INT) 1
+					    ((unsigned HOST_WIDE_INT) 1
 					     << (mode_width - 1
 						 - INTVAL (XEXP (op0, 1)))));
 	      code = (code == LT ? NE : EQ);
@@ -10865,10 +11399,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  mode = GET_MODE (XEXP (op0, 0));
 	  if (mode != VOIDmode && GET_MODE_CLASS (mode) == MODE_INT
 	      && ! unsigned_comparison_p
-	      && (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
-	      && ((unsigned HOST_WIDE_INT) const_op
-		  < (((unsigned HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (mode) - 1))))
+	      && val_signbit_known_clear_p (mode, const_op)
 	      && have_insn_for (COMPARE, mode))
 	    {
 	      op0 = XEXP (op0, 0);
@@ -10899,7 +11430,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 
 	  if (mode_width <= HOST_BITS_PER_WIDE_INT
 	      && subreg_lowpart_p (op0)
-	      && GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (op0))) > mode_width
+	      && GET_MODE_PRECISION (GET_MODE (SUBREG_REG (op0))) > mode_width
 	      && GET_CODE (SUBREG_REG (op0)) == PLUS
 	      && CONST_INT_P (XEXP (SUBREG_REG (op0), 1)))
 	    {
@@ -10919,14 +11450,14 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		       /* (A - C1) sign-extends if it is positive and 1-extends
 			  if it is negative, C2 both sign- and 1-extends.  */
 		       || (num_sign_bit_copies (a, inner_mode)
-			   > (unsigned int) (GET_MODE_BITSIZE (inner_mode)
+			   > (unsigned int) (GET_MODE_PRECISION (inner_mode)
 					     - mode_width)
 			   && const_op < 0)))
 		  || ((unsigned HOST_WIDE_INT) c1
 		       < (unsigned HOST_WIDE_INT) 1 << (mode_width - 2)
 		      /* (A - C1) always sign-extends, like C2.  */
 		      && num_sign_bit_copies (a, inner_mode)
-			 > (unsigned int) (GET_MODE_BITSIZE (inner_mode)
+			 > (unsigned int) (GET_MODE_PRECISION (inner_mode)
 					   - (mode_width - 1))))
 		{
 		  op0 = SUBREG_REG (op0);
@@ -10937,7 +11468,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  /* If the inner mode is narrower and we are extracting the low part,
 	     we can treat the SUBREG as if it were a ZERO_EXTEND.  */
 	  if (subreg_lowpart_p (op0)
-	      && GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (op0))) < mode_width)
+	      && GET_MODE_PRECISION (GET_MODE (SUBREG_REG (op0))) < mode_width)
 	    /* Fall through */ ;
 	  else
 	    break;
@@ -10948,7 +11479,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  mode = GET_MODE (XEXP (op0, 0));
 	  if (mode != VOIDmode && GET_MODE_CLASS (mode) == MODE_INT
 	      && (unsigned_comparison_p || equality_comparison_p)
-	      && (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+	      && HWI_COMPUTABLE_MODE_P (mode)
 	      && ((unsigned HOST_WIDE_INT) const_op < GET_MODE_MASK (mode))
 	      && have_insn_for (COMPARE, mode))
 	    {
@@ -11012,8 +11543,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	     of bits in X minus 1, is one iff X > 0.  */
 	  if (sign_bit_comparison_p && GET_CODE (XEXP (op0, 0)) == ASHIFTRT
 	      && CONST_INT_P (XEXP (XEXP (op0, 0), 1))
-	      && (unsigned HOST_WIDE_INT) INTVAL (XEXP (XEXP (op0, 0), 1))
-		 == mode_width - 1
+	      && UINTVAL (XEXP (XEXP (op0, 0), 1)) == mode_width - 1
 	      && rtx_equal_p (XEXP (XEXP (op0, 0), 0), XEXP (op0, 1)))
 	    {
 	      op0 = XEXP (op0, 1);
@@ -11056,11 +11586,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  /* Check for the cases where we simply want the result of the
 	     earlier test or the opposite of that result.  */
 	  if (code == NE || code == EQ
-	      || (GET_MODE_BITSIZE (GET_MODE (op0)) <= HOST_BITS_PER_WIDE_INT
-		  && GET_MODE_CLASS (GET_MODE (op0)) == MODE_INT
-		  && (STORE_FLAG_VALUE
-		      & (((HOST_WIDE_INT) 1
-			  << (GET_MODE_BITSIZE (GET_MODE (op0)) - 1))))
+	      || (val_signbit_known_set_p (GET_MODE (op0), STORE_FLAG_VALUE)
 		  && (code == LT || code == GE)))
 	    {
 	      enum rtx_code new_code;
@@ -11099,11 +11625,9 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && GET_CODE (XEXP (op0, 0)) == ASHIFT
 	      && XEXP (XEXP (op0, 0), 0) == const1_rtx)
 	    {
-	      op0 = simplify_and_const_int
-		(NULL_RTX, mode, gen_rtx_LSHIFTRT (mode,
-						   XEXP (op0, 1),
-						   XEXP (XEXP (op0, 0), 1)),
-		 (HOST_WIDE_INT) 1);
+	      op0 = gen_rtx_LSHIFTRT (mode, XEXP (op0, 1),
+				      XEXP (XEXP (op0, 0), 1));
+	      op0 = simplify_and_const_int (NULL_RTX, mode, op0, 1);
 	      continue;
 	    }
 
@@ -11160,13 +11684,12 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	     transformation is invalid.  */
 	  if ((equality_comparison_p || unsigned_comparison_p)
 	      && CONST_INT_P (XEXP (op0, 1))
-	      && (i = exact_log2 ((INTVAL (XEXP (op0, 1))
+	      && (i = exact_log2 ((UINTVAL (XEXP (op0, 1))
 				   & GET_MODE_MASK (mode))
 				  + 1)) >= 0
 	      && const_op >> i == 0
 	      && (tmode = mode_for_size (i, MODE_INT, 1)) != BLKmode
-	      && (TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (tmode),
-					 GET_MODE_BITSIZE (GET_MODE (op0)))
+	      && (TRULY_NOOP_TRUNCATION_MODES_P (tmode, GET_MODE (op0))
 		  || (REG_P (XEXP (op0, 0))
 		      && reg_truncated_to_mode (tmode, XEXP (op0, 0)))))
 	    {
@@ -11194,14 +11717,14 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		     the code has been changed.  */
 		  && (0
 #ifdef WORD_REGISTER_OPERATIONS
-		      || (mode_width > GET_MODE_BITSIZE (tmode)
+		      || (mode_width > GET_MODE_PRECISION (tmode)
 			  && mode_width <= BITS_PER_WORD)
 #endif
-		      || (mode_width <= GET_MODE_BITSIZE (tmode)
+		      || (mode_width <= GET_MODE_PRECISION (tmode)
 			  && subreg_lowpart_p (XEXP (op0, 0))))
 		  && CONST_INT_P (XEXP (op0, 1))
 		  && mode_width <= HOST_BITS_PER_WIDE_INT
-		  && GET_MODE_BITSIZE (tmode) <= HOST_BITS_PER_WIDE_INT
+		  && HWI_COMPUTABLE_MODE_P (tmode)
 		  && ((c1 = INTVAL (XEXP (op0, 1))) & ~mask) == 0
 		  && (c1 & ~GET_MODE_MASK (tmode)) == 0
 		  && c1 != mask
@@ -11220,8 +11743,8 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && XEXP (op0, 1) == const1_rtx
 	      && GET_CODE (XEXP (op0, 0)) == NOT)
 	    {
-	      op0 = simplify_and_const_int
-		(NULL_RTX, mode, XEXP (XEXP (op0, 0), 0), (HOST_WIDE_INT) 1);
+	      op0 = simplify_and_const_int (NULL_RTX, mode,
+					    XEXP (XEXP (op0, 0), 0), 1);
 	      code = (code == NE ? EQ : NE);
 	      continue;
 	    }
@@ -11240,14 +11763,14 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		  || (GET_CODE (shift_op) == XOR
 		      && CONST_INT_P (XEXP (shift_op, 1))
 		      && CONST_INT_P (shift_count)
-		      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-		      && (INTVAL (XEXP (shift_op, 1))
-			  == (HOST_WIDE_INT) 1 << INTVAL (shift_count))))
+		      && HWI_COMPUTABLE_MODE_P (mode)
+		      && (UINTVAL (XEXP (shift_op, 1))
+			  == (unsigned HOST_WIDE_INT) 1
+			       << INTVAL (shift_count))))
 		{
-		  op0 = simplify_and_const_int
-		    (NULL_RTX, mode,
-		     gen_rtx_LSHIFTRT (mode, XEXP (shift_op, 0), shift_count),
-		     (HOST_WIDE_INT) 1);
+		  op0
+		    = gen_rtx_LSHIFTRT (mode, XEXP (shift_op, 0), shift_count);
+		  op0 = simplify_and_const_int (NULL_RTX, mode, op0, 1);
 		  code = (code == NE ? EQ : NE);
 		  continue;
 		}
@@ -11264,8 +11787,9 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && INTVAL (XEXP (op0, 1)) >= 0
 	      && ((INTVAL (XEXP (op0, 1)) + ! equality_comparison_p)
 		  < HOST_BITS_PER_WIDE_INT)
-	      && ((const_op
-		   & (((HOST_WIDE_INT) 1 << INTVAL (XEXP (op0, 1))) - 1)) == 0)
+	      && (((unsigned HOST_WIDE_INT) const_op
+		   & (((unsigned HOST_WIDE_INT) 1 << INTVAL (XEXP (op0, 1)))
+		      - 1)) == 0)
 	      && mode_width <= HOST_BITS_PER_WIDE_INT
 	      && (nonzero_bits (XEXP (op0, 0), mode)
 		  & ~(mask >> (INTVAL (XEXP (op0, 1))
@@ -11287,7 +11811,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && mode_width <= HOST_BITS_PER_WIDE_INT)
 	    {
 	      op0 = simplify_and_const_int (NULL_RTX, mode, XEXP (op0, 0),
-					    ((HOST_WIDE_INT) 1
+					    ((unsigned HOST_WIDE_INT) 1
 					     << (mode_width - 1
 						 - INTVAL (XEXP (op0, 1)))));
 	      code = (code == LT ? NE : EQ);
@@ -11299,11 +11823,9 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	     low-order bit.  */
 	  if (const_op == 0 && equality_comparison_p
 	      && CONST_INT_P (XEXP (op0, 1))
-	      && (unsigned HOST_WIDE_INT) INTVAL (XEXP (op0, 1))
-		 == mode_width - 1)
+	      && UINTVAL (XEXP (op0, 1)) == mode_width - 1)
 	    {
-	      op0 = simplify_and_const_int (NULL_RTX, mode, XEXP (op0, 0),
-					    (HOST_WIDE_INT) 1);
+	      op0 = simplify_and_const_int (NULL_RTX, mode, XEXP (op0, 0), 1);
 	      continue;
 	    }
 	  break;
@@ -11367,13 +11889,14 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  /* If we have (compare (xshiftrt FOO N) (const_int C)) and
 	     the low order N bits of FOO are known to be zero, we can do this
 	     by comparing FOO with C shifted left N bits so long as no
-	     overflow occurs.  */
+	     overflow occurs.  Even if the low order N bits of FOO aren't known
+	     to be zero, if the comparison is >= or < we can use the same
+	     optimization and for > or <= by setting all the low
+	     order N bits in the comparison constant.  */
 	  if (CONST_INT_P (XEXP (op0, 1))
-	      && INTVAL (XEXP (op0, 1)) >= 0
+	      && INTVAL (XEXP (op0, 1)) > 0
 	      && INTVAL (XEXP (op0, 1)) < HOST_BITS_PER_WIDE_INT
 	      && mode_width <= HOST_BITS_PER_WIDE_INT
-	      && (nonzero_bits (XEXP (op0, 0), mode)
-		  & (((HOST_WIDE_INT) 1 << INTVAL (XEXP (op0, 1))) - 1)) == 0
 	      && (((unsigned HOST_WIDE_INT) const_op
 		   + (GET_CODE (op0) != LSHIFTRT
 		      ? ((GET_MODE_MASK (mode) >> INTVAL (XEXP (op0, 1)) >> 1)
@@ -11381,15 +11904,27 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 		      : 0))
 		  <= GET_MODE_MASK (mode) >> INTVAL (XEXP (op0, 1))))
 	    {
-	      /* If the shift was logical, then we must make the condition
-		 unsigned.  */
-	      if (GET_CODE (op0) == LSHIFTRT)
-		code = unsigned_condition (code);
+	      unsigned HOST_WIDE_INT low_bits
+		= (nonzero_bits (XEXP (op0, 0), mode)
+		   & (((unsigned HOST_WIDE_INT) 1
+		       << INTVAL (XEXP (op0, 1))) - 1));
+	      if (low_bits == 0 || !equality_comparison_p)
+		{
+		  /* If the shift was logical, then we must make the condition
+		     unsigned.  */
+		  if (GET_CODE (op0) == LSHIFTRT)
+		    code = unsigned_condition (code);
 
-	      const_op <<= INTVAL (XEXP (op0, 1));
-	      op1 = GEN_INT (const_op);
-	      op0 = XEXP (op0, 0);
-	      continue;
+		  const_op <<= INTVAL (XEXP (op0, 1));
+		  if (low_bits != 0
+		      && (code == GT || code == GTU
+			  || code == LE || code == LEU))
+		    const_op
+		      |= (((HOST_WIDE_INT) 1 << INTVAL (XEXP (op0, 1))) - 1);
+		  op1 = GEN_INT (const_op);
+		  op0 = XEXP (op0, 0);
+		  continue;
+		}
 	    }
 
 	  /* If we are using this shift to extract just the sign bit, we
@@ -11397,8 +11932,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  if (const_op == 0
 	      && (equality_comparison_p || sign_bit_comparison_p)
 	      && CONST_INT_P (XEXP (op0, 1))
-	      && (unsigned HOST_WIDE_INT) INTVAL (XEXP (op0, 1))
-		 == mode_width - 1)
+	      && UINTVAL (XEXP (op0, 1)) == mode_width - 1)
 	    {
 	      op0 = XEXP (op0, 0);
 	      code = (code == NE || code == GT ? LT : GE);
@@ -11443,8 +11977,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
       && GET_MODE_CLASS (GET_MODE (SUBREG_REG (op0))) == MODE_INT
       && (code == NE || code == EQ))
     {
-      if (GET_MODE_SIZE (GET_MODE (op0))
-	  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (op0))))
+      if (paradoxical_subreg_p (op0))
 	{
 	  /* For paradoxical subregs, allow case 1 as above.  Case 3 isn't
 	     implemented.  */
@@ -11454,7 +11987,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      op1 = gen_lowpart (GET_MODE (op0), op1);
 	    }
 	}
-      else if ((GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (op0)))
+      else if ((GET_MODE_PRECISION (GET_MODE (SUBREG_REG (op0)))
 		<= HOST_BITS_PER_WIDE_INT)
 	       && (nonzero_bits (SUBREG_REG (op0),
 				 GET_MODE (SUBREG_REG (op0)))
@@ -11479,8 +12012,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
       && GET_MODE_SIZE (mode) < UNITS_PER_WORD
       && ! have_insn_for (COMPARE, mode))
     for (tmode = GET_MODE_WIDER_MODE (mode);
-	 (tmode != VOIDmode
-	  && GET_MODE_BITSIZE (tmode) <= HOST_BITS_PER_WIDE_INT);
+	 (tmode != VOIDmode && HWI_COMPUTABLE_MODE_P (tmode));
 	 tmode = GET_MODE_WIDER_MODE (tmode))
       if (have_insn_for (COMPARE, tmode))
 	{
@@ -11491,11 +12023,11 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	     a paradoxical subreg to extend OP0.  */
 
 	  if (op1 == const0_rtx && (code == LT || code == GE)
-	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+	      && HWI_COMPUTABLE_MODE_P (mode))
 	    {
 	      op0 = simplify_gen_binary (AND, tmode,
 					 gen_lowpart (tmode, op0),
-					 GEN_INT ((HOST_WIDE_INT) 1
+					 GEN_INT ((unsigned HOST_WIDE_INT) 1
 						  << (GET_MODE_BITSIZE (mode)
 						      - 1)));
 	      code = (code == LT) ? NE : EQ;
@@ -11517,11 +12049,11 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 
 	  if (zero_extended
 	      || ((num_sign_bit_copies (op0, tmode)
-		   > (unsigned int) (GET_MODE_BITSIZE (tmode)
-				     - GET_MODE_BITSIZE (mode)))
+		   > (unsigned int) (GET_MODE_PRECISION (tmode)
+				     - GET_MODE_PRECISION (mode)))
 		  && (num_sign_bit_copies (op1, tmode)
-		      > (unsigned int) (GET_MODE_BITSIZE (tmode)
-					- GET_MODE_BITSIZE (mode)))))
+		      > (unsigned int) (GET_MODE_PRECISION (tmode)
+					- GET_MODE_PRECISION (mode)))))
 	    {
 	      /* If OP0 is an AND and we don't have an AND in MODE either,
 		 make a new AND in the proper mode.  */
@@ -11783,7 +12315,7 @@ record_value_for_reg (rtx reg, rtx insn, rtx value)
       subst_low_luid = DF_INSN_LUID (insn);
       rsp->last_set_mode = mode;
       if (GET_MODE_CLASS (mode) == MODE_INT
-	  && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+	  && HWI_COMPUTABLE_MODE_P (mode))
 	mode = nonzero_bits_mode;
       rsp->last_set_nonzero_bits = nonzero_bits (value, mode);
       rsp->last_set_sign_bit_copies
@@ -11820,7 +12352,7 @@ record_dead_and_set_regs_1 (rtx dest, const_rtx setter, void *data)
       else if (GET_CODE (setter) == SET
 	       && GET_CODE (SET_DEST (setter)) == SUBREG
 	       && SUBREG_REG (SET_DEST (setter)) == dest
-	       && GET_MODE_BITSIZE (GET_MODE (dest)) <= BITS_PER_WORD
+	       && GET_MODE_PRECISION (GET_MODE (dest)) <= BITS_PER_WORD
 	       && subreg_lowpart_p (SET_DEST (setter)))
 	record_value_for_reg (dest, record_dead_insn,
 			      gen_lowpart (GET_MODE (dest),
@@ -11912,25 +12444,26 @@ record_dead_and_set_regs (rtx insn)
 static void
 record_promoted_value (rtx insn, rtx subreg)
 {
-  rtx links, set;
+  struct insn_link *links;
+  rtx set;
   unsigned int regno = REGNO (SUBREG_REG (subreg));
   enum machine_mode mode = GET_MODE (subreg);
 
-  if (GET_MODE_BITSIZE (mode) > HOST_BITS_PER_WIDE_INT)
+  if (GET_MODE_PRECISION (mode) > HOST_BITS_PER_WIDE_INT)
     return;
 
   for (links = LOG_LINKS (insn); links;)
     {
       reg_stat_type *rsp;
 
-      insn = XEXP (links, 0);
+      insn = links->insn;
       set = single_set (insn);
 
       if (! set || !REG_P (SET_DEST (set))
 	  || REGNO (SET_DEST (set)) != regno
 	  || GET_MODE (SET_DEST (set)) != GET_MODE (SUBREG_REG (subreg)))
 	{
-	  links = XEXP (links, 1);
+	  links = links->next;
 	  continue;
 	}
 
@@ -11967,8 +12500,7 @@ reg_truncated_to_mode (enum machine_mode mode, const_rtx x)
     return false;
   if (GET_MODE_SIZE (truncated) <= GET_MODE_SIZE (mode))
     return true;
-  if (TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode),
-			     GET_MODE_BITSIZE (truncated)))
+  if (TRULY_NOOP_TRUNCATION_MODES_P (mode, truncated))
     return true;
   return false;
 }
@@ -11993,8 +12525,7 @@ record_truncated_value (rtx *p, void *data ATTRIBUTE_UNUSED)
       if (GET_MODE_SIZE (original_mode) <= GET_MODE_SIZE (truncated_mode))
 	return -1;
 
-      if (TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (truncated_mode),
-				 GET_MODE_BITSIZE (original_mode)))
+      if (TRULY_NOOP_TRUNCATION_MODES_P (truncated_mode, original_mode))
 	return -1;
 
       x = SUBREG_REG (x);
@@ -12181,8 +12712,7 @@ get_last_value (const_rtx x)
      we cannot predict what values the "extra" bits might have.  */
   if (GET_CODE (x) == SUBREG
       && subreg_lowpart_p (x)
-      && (GET_MODE_SIZE (GET_MODE (x))
-	  <= GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
+      && !paradoxical_subreg_p (x)
       && (value = get_last_value (SUBREG_REG (x))) != 0)
     return gen_lowpart (GET_MODE (x), value);
 
@@ -12411,7 +12941,7 @@ mark_used_regs_combine (rtx x)
 	{
 	  /* None of this applies to the stack, frame or arg pointers.  */
 	  if (regno == STACK_POINTER_REGNUM
-#if FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
 	      || regno == HARD_FRAME_POINTER_REGNUM
 #endif
 #if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
@@ -12680,29 +13210,6 @@ reg_bitfield_target_p (rtx x, rtx body)
 
   return 0;
 }
-
-/* Return the next insn after INSN that is neither a NOTE nor a
-   DEBUG_INSN.  This routine does not look inside SEQUENCEs.  */
-
-static rtx
-next_nonnote_nondebug_insn (rtx insn)
-{
-  while (insn)
-    {
-      insn = NEXT_INSN (insn);
-      if (insn == 0)
-	break;
-      if (NOTE_P (insn))
-	continue;
-      if (DEBUG_INSN_P (insn))
-	continue;
-      break;
-    }
-
-  return insn;
-}
-
-
 
 /* Given a chain of REG_NOTES originally from FROM_INSN, try to place them
    as appropriate.  I3 and I2 are the insns resulting from the combination
@@ -12717,7 +13224,7 @@ next_nonnote_nondebug_insn (rtx insn)
 
 static void
 distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
-		  rtx elim_i1)
+		  rtx elim_i1, rtx elim_i0)
 {
   rtx note, next_note;
   rtx tem;
@@ -12735,10 +13242,6 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	     It is preferable to keep these notes on branches, which is most
 	     likely to be i3.  */
 	  place = i3;
-	  break;
-
-	case REG_VALUE_PROFILE:
-	  /* Just get rid of this note, as it is unused later anyway.  */
 	  break;
 
 	case REG_NON_LOCAL_GOTO:
@@ -12759,7 +13262,7 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	    place = i2;
 	  else
 	    {
-	      gcc_assert (flag_non_call_exceptions);
+	      gcc_assert (cfun->can_throw_non_call_exceptions);
 	      if (may_trap_p (i3))
 		place = i3;
 	      else if (i2 && may_trap_p (i2))
@@ -12768,6 +13271,16 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 		 can now prove that the instructions can't trap.  Drop the
 		 note in this case.  */
 	    }
+	  break;
+
+	case REG_ARGS_SIZE:
+	  {
+	    /* ??? How to distribute between i3-i1.  Assume i3 contains the
+	       entire adjustment.  Assert i3 contains at least some adjust.  */
+	    int old_size, args_size = INTVAL (XEXP (note, 0));
+	    old_size = fixup_args_size_notes (PREV_INSN (i3), i3, args_size);
+	    gcc_assert (old_size != args_size);
+	  }
 	  break;
 
 	case REG_NORETURN:
@@ -12964,7 +13477,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			&& !(i2mod
 			     && reg_overlap_mentioned_p (XEXP (note, 0),
 							 i2mod_old_rhs)))
-		       || rtx_equal_p (XEXP (note, 0), elim_i1))
+		       || rtx_equal_p (XEXP (note, 0), elim_i1)
+		       || rtx_equal_p (XEXP (note, 0), elim_i0))
 		break;
 	      tem = i3;
 	    }
@@ -13031,7 +13545,7 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			  REG_NOTES (tem) = NULL;
 
 			  distribute_notes (old_notes, tem, tem, NULL_RTX,
-					    NULL_RTX, NULL_RTX);
+					    NULL_RTX, NULL_RTX, NULL_RTX);
 			  distribute_links (LOG_LINKS (tem));
 
 			  SET_INSN_DELETED (tem);
@@ -13048,7 +13562,7 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 
 			      distribute_notes (old_notes, cc0_setter,
 						cc0_setter, NULL_RTX,
-						NULL_RTX, NULL_RTX);
+						NULL_RTX, NULL_RTX, NULL_RTX);
 			      distribute_links (LOG_LINKS (cc0_setter));
 
 			      SET_INSN_DELETED (cc0_setter);
@@ -13090,8 +13604,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			  && DF_INSN_LUID (from_insn) > DF_INSN_LUID (i2)
 			  && reg_referenced_p (XEXP (note, 0), PATTERN (i2)))
 			{
-			  rtx links = LOG_LINKS (place);
-			  LOG_LINKS (place) = 0;
+			  struct insn_link *links = LOG_LINKS (place);
+			  LOG_LINKS (place) = NULL;
 			  distribute_links (links);
 			}
 		      break;
@@ -13168,7 +13682,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 							     NULL_RTX);
 
 			      distribute_notes (new_note, place, place,
-						NULL_RTX, NULL_RTX, NULL_RTX);
+						NULL_RTX, NULL_RTX, NULL_RTX,
+						NULL_RTX);
 			    }
 			  else if (! refers_to_regno_p (i, i + 1,
 							PATTERN (place), 0)
@@ -13221,9 +13736,9 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
    pointing at I3 when I3's destination is changed.  */
 
 static void
-distribute_links (rtx links)
+distribute_links (struct insn_link *links)
 {
-  rtx link, next_link;
+  struct insn_link *link, *next_link;
 
   for (link = links; link; link = next_link)
     {
@@ -13231,7 +13746,7 @@ distribute_links (rtx links)
       rtx insn;
       rtx set, reg;
 
-      next_link = XEXP (link, 1);
+      next_link = link->next;
 
       /* If the insn that this link points to is a NOTE or isn't a single
 	 set, ignore it.  In the latter case, it isn't clear what we
@@ -13244,8 +13759,8 @@ distribute_links (rtx links)
 	 replace I3, I2, and I1 by I3 and I2.  But in that case the
 	 destination of I2 also remains unchanged.  */
 
-      if (NOTE_P (XEXP (link, 0))
-	  || (set = single_set (XEXP (link, 0))) == 0)
+      if (NOTE_P (link->insn)
+	  || (set = single_set (link->insn)) == 0)
 	continue;
 
       reg = SET_DEST (set);
@@ -13262,7 +13777,7 @@ distribute_links (rtx links)
 	 I3 to I2.  Also note that not much searching is typically done here
 	 since most links don't point very far away.  */
 
-      for (insn = NEXT_INSN (XEXP (link, 0));
+      for (insn = NEXT_INSN (link->insn);
 	   (insn && (this_basic_block->next_bb == EXIT_BLOCK_PTR
 		     || BB_HEAD (this_basic_block->next_bb) != insn));
 	   insn = NEXT_INSN (insn))
@@ -13288,15 +13803,15 @@ distribute_links (rtx links)
 
       if (place)
 	{
-	  rtx link2;
+	  struct insn_link *link2;
 
-	  for (link2 = LOG_LINKS (place); link2; link2 = XEXP (link2, 1))
-	    if (XEXP (link2, 0) == XEXP (link, 0))
+	  FOR_EACH_LOG_LINK (link2, place)
+	    if (link2->insn == link->insn)
 	      break;
 
-	  if (link2 == 0)
+	  if (link2 == NULL)
 	    {
-	      XEXP (link, 1) = LOG_LINKS (place);
+	      link->next = LOG_LINKS (place);
 	      LOG_LINKS (place) = link;
 
 	      /* Set added_links_insn to the earliest insn we added a
@@ -13405,7 +13920,6 @@ struct rtl_opt_pass pass_combine =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
   TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_ggc_collect,                     /* todo_flags_finish */
  }

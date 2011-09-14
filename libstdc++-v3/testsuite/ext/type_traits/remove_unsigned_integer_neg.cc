@@ -1,7 +1,7 @@
 // { dg-do compile }
 // -*- C++ -*-
 
-// Copyright (C) 2006, 2007, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2006, 2007, 2009, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -30,10 +30,10 @@ template<typename T>
 
 int main()
 {
-  check_remove_unsigned<bool>();  // { dg-error "instantiated from" }
-  check_remove_unsigned<wchar_t>();  // { dg-error "instantiated from" }
+  check_remove_unsigned<bool>();  // { dg-error "required from" }
+  check_remove_unsigned<wchar_t>();  // { dg-error "required from" }
   return 0;
 }
 
 // { dg-error "invalid use of incomplete" "" { target *-*-* } 28 } 
-// { dg-error "declaration of" "" { target *-*-* } 104 }
+// { dg-error "declaration of" "" { target *-*-* } 106 }

@@ -1,4 +1,4 @@
-! { dg-do "compile" }
+! { dg-do compile }
 ! { dg-options "-O3 -fwhole-file -fdump-tree-optimized" }
 ! { dg-add-options bind_pic_locally }
 !
@@ -11,9 +11,9 @@ INTEGER FUNCTION f()
 END FUNCTION
 
 PROGRAM main
-  INTEGER :: a
+  INTEGER :: a, f
   a = f()
-  print *, a
+  print *, a, f()
 END PROGRAM
 
 ! { dg-final { scan-tree-dump-times "= f \\(\\)" 0 "optimized" } }

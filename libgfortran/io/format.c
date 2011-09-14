@@ -1,9 +1,9 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,29 +33,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <ctype.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
-#define FARRAY_SIZE 64
-
-typedef struct fnode_array
-{
-  struct fnode_array *next;
-  fnode array[FARRAY_SIZE];
-}
-fnode_array;
-
-typedef struct format_data
-{
-  char *format_string, *string;
-  const char *error;
-  char error_element;
-  format_token saved_token;
-  int value, format_string_len, reversion_ok;
-  fnode *avail;
-  const fnode *saved_format;
-  fnode_array *last;
-  fnode_array array;
-}
-format_data;
 
 static const fnode colon_node = { FMT_COLON, 0, NULL, NULL, {{ 0, 0, 0 }}, 0,
 				  NULL };
@@ -90,7 +69,7 @@ free_format_hash_table (gfc_unit *u)
       if (u->format_hash_table[i].hashed_fmt != NULL)
 	{
 	  free_format_data (u->format_hash_table[i].hashed_fmt);
-	  free_mem (u->format_hash_table[i].key);
+	  free (u->format_hash_table[i].key);
 	}
       u->format_hash_table[i].key = NULL;
       u->format_hash_table[i].key_len = 0;      
@@ -170,8 +149,7 @@ save_parsed_format (st_parameter_dt *dtp)
     free_format_data (u->format_hash_table[hash].hashed_fmt);
   u->format_hash_table[hash].hashed_fmt = NULL;
 
-  if (u->format_hash_table[hash].key != NULL)
-    free_mem (u->format_hash_table[hash].key);
+  free (u->format_hash_table[hash].key);
   u->format_hash_table[hash].key = get_mem (dtp->format_len);
   memcpy (u->format_hash_table[hash].key, dtp->format, dtp->format_len);
 
@@ -282,10 +260,10 @@ free_format_data (format_data *fmt)
   for (fa = fmt->array.next; fa; fa = fa_next)
     {
       fa_next = fa->next;
-      free_mem (fa);
+      free (fa);
     }
 
-  free_mem (fmt);
+  free (fmt);
   fmt = NULL;
 }
 
@@ -611,13 +589,13 @@ format_lex (format_data *fmt)
  * parenthesis node which contains the rest of the list. */
 
 static fnode *
-parse_format_list (st_parameter_dt *dtp, bool *save_ok)
+parse_format_list (st_parameter_dt *dtp, bool *save_ok, bool *seen_dd)
 {
   fnode *head, *tail;
   format_token t, u, t2;
   int repeat;
   format_data *fmt = dtp->u.p.fmt;
-  bool saveit;
+  bool saveit, seen_data_desc = false;
 
   head = tail = NULL;
   saveit = *save_ok;
@@ -637,10 +615,14 @@ parse_format_list (st_parameter_dt *dtp, bool *save_ok)
 	}
       get_fnode (fmt, &head, &tail, FMT_LPAREN);
       tail->repeat = -2;  /* Signifies unlimited format.  */
-      tail->u.child = parse_format_list (dtp, &saveit);
+      tail->u.child = parse_format_list (dtp, &saveit, &seen_data_desc);
       if (fmt->error != NULL)
 	goto finished;
-
+      if (!seen_data_desc)
+	{
+	  fmt->error = "'*' requires at least one associated data descriptor";
+	  goto finished;
+	}
       goto between_desc;
 
     case FMT_POSINT:
@@ -652,7 +634,8 @@ parse_format_list (st_parameter_dt *dtp, bool *save_ok)
 	case FMT_LPAREN:
 	  get_fnode (fmt, &head, &tail, FMT_LPAREN);
 	  tail->repeat = repeat;
-	  tail->u.child = parse_format_list (dtp, &saveit);
+	  tail->u.child = parse_format_list (dtp, &saveit, &seen_data_desc);
+	  *seen_dd = seen_data_desc;
 	  if (fmt->error != NULL)
 	    goto finished;
 
@@ -679,7 +662,8 @@ parse_format_list (st_parameter_dt *dtp, bool *save_ok)
     case FMT_LPAREN:
       get_fnode (fmt, &head, &tail, FMT_LPAREN);
       tail->repeat = 1;
-      tail->u.child = parse_format_list (dtp, &saveit);
+      tail->u.child = parse_format_list (dtp, &saveit, &seen_data_desc);
+      *seen_dd = seen_data_desc;
       if (fmt->error != NULL)
 	goto finished;
 
@@ -820,6 +804,7 @@ parse_format_list (st_parameter_dt *dtp, bool *save_ok)
     case FMT_F:
     case FMT_G:
       repeat = 1;
+      *seen_dd = true;
       goto data_desc;
 
     case FMT_H:
@@ -1141,16 +1126,17 @@ void
 format_error (st_parameter_dt *dtp, const fnode *f, const char *message)
 {
   int width, i, j, offset;
-  char *p, buffer[300];
+#define BUFLEN 300
+  char *p, buffer[BUFLEN];
   format_data *fmt = dtp->u.p.fmt;
 
   if (f != NULL)
     fmt->format_string = f->source;
 
   if (message == unexpected_element)
-    sprintf (buffer, message, fmt->error_element);
+    snprintf (buffer, BUFLEN, message, fmt->error_element);
   else
-    sprintf (buffer, "%s\n", message);
+    snprintf (buffer, BUFLEN, "%s\n", message);
 
   j = fmt->format_string - dtp->format;
 
@@ -1216,7 +1202,7 @@ void
 parse_format (st_parameter_dt *dtp)
 {
   format_data *fmt;
-  bool format_cache_ok;
+  bool format_cache_ok, seen_data_desc = false;
 
   /* Don't cache for internal units and set an arbitrary limit on the size of
      format strings we will cache.  (Avoids memory issues.)  */
@@ -1265,7 +1251,8 @@ parse_format (st_parameter_dt *dtp)
   fmt->avail++;
 
   if (format_lex (fmt) == FMT_LPAREN)
-    fmt->array.array[0].u.child = parse_format_list (dtp, &format_cache_ok);
+    fmt->array.array[0].u.child = parse_format_list (dtp, &format_cache_ok,
+						     &seen_data_desc);
   else
     fmt->error = "Missing initial left parenthesis in format";
 

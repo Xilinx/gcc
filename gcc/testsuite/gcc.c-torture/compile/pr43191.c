@@ -1,3 +1,5 @@
+/* { dg-require-effective-target int32plus } */
+
 struct S0
 {
 };

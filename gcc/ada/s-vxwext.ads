@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---            Copyright (C) 2008-2009, Free Software Foundation, Inc.       --
+--            Copyright (C) 2008-2011, Free Software Foundation, Inc.       --
 --                                                                          --
 -- GNARL is free software;  you can redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,8 +39,12 @@ package System.VxWorks.Ext is
    subtype SEM_ID is Long_Integer;
    --  typedef struct semaphore *SEM_ID;
 
+   type sigset_t is mod 2 ** Interfaces.C.long'Size;
+
    type t_id is new Long_Integer;
+
    subtype int is Interfaces.C.int;
+   subtype unsigned is Interfaces.C.unsigned;
 
    type Interrupt_Handler is access procedure (parameter : System.Address);
    pragma Convention (C, Interrupt_Handler);
@@ -58,6 +62,9 @@ package System.VxWorks.Ext is
       Handler   : Interrupt_Handler;
       Parameter : System.Address := System.Null_Address) return int;
    pragma Import (C, Interrupt_Connect, "intConnect");
+
+   function Interrupt_Context return int;
+   pragma Import (C, Interrupt_Context, "intContext");
 
    function Interrupt_Number_To_Vector
      (intNum : int) return Interrupt_Vector;
@@ -88,6 +95,11 @@ package System.VxWorks.Ext is
    function taskCpuAffinitySet (tid : t_id; CPU : int) return int;
    pragma Convention (C, taskCpuAffinitySet);
    --  For SMP run-times set the CPU affinity.
+   --  For uniprocessor systems return ERROR status.
+
+   function taskMaskAffinitySet (tid : t_id; CPU_Set : unsigned) return int;
+   pragma Convention (C, taskMaskAffinitySet);
+   --  For SMP run-times set the CPU mask affinity.
    --  For uniprocessor systems return ERROR status.
 
 end System.VxWorks.Ext;

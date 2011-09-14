@@ -27,20 +27,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "ggc.h"
-#include "tree.h"
-#include "real.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "cfgloop.h"
 #include "tree-flow.h"
 #include "tree-chrec.h"
 #include "tree-pass.h"
 #include "params.h"
-#include "flags.h"
 #include "tree-scalar-evolution.h"
-
-
 
 /* Extended folder for chrecs.  */
 
@@ -102,14 +95,14 @@ chrec_fold_plus_poly_poly (enum tree_code code,
   tree left, right;
   struct loop *loop0 = get_chrec_loop (poly0);
   struct loop *loop1 = get_chrec_loop (poly1);
-  tree rtype = code == POINTER_PLUS_EXPR ? sizetype : type;
+  tree rtype = code == POINTER_PLUS_EXPR ? chrec_type (poly1) : type;
 
   gcc_assert (poly0);
   gcc_assert (poly1);
   gcc_assert (TREE_CODE (poly0) == POLYNOMIAL_CHREC);
   gcc_assert (TREE_CODE (poly1) == POLYNOMIAL_CHREC);
   if (POINTER_TYPE_P (chrec_type (poly0)))
-    gcc_assert (chrec_type (poly1) == sizetype);
+    gcc_assert (ptrofftype_p (chrec_type (poly1)));
   else
     gcc_assert (chrec_type (poly0) == chrec_type (poly1));
   gcc_assert (type == chrec_type (poly0));
@@ -269,8 +262,6 @@ static tree
 chrec_fold_plus_1 (enum tree_code code, tree type,
 		   tree op0, tree op1)
 {
-  tree op1_type = code == POINTER_PLUS_EXPR ? sizetype : type;
-
   if (automatically_generated_chrec_p (op0)
       || automatically_generated_chrec_p (op1))
     return chrec_fold_automatically_generated_operands (op0, op1);
@@ -334,9 +325,15 @@ chrec_fold_plus_1 (enum tree_code code, tree type,
 		&& size < PARAM_VALUE (PARAM_SCEV_MAX_EXPR_SIZE))
 	      return build2 (code, type, op0, op1);
 	    else if (size < PARAM_VALUE (PARAM_SCEV_MAX_EXPR_SIZE))
-	      return fold_build2 (code, type,
-				  fold_convert (type, op0),
-				  fold_convert (op1_type, op1));
+	      {
+		if (code == POINTER_PLUS_EXPR)
+		  return fold_build_pointer_plus (fold_convert (type, op0),
+						  op1);
+		else
+		  return fold_build2 (code, type,
+				      fold_convert (type, op0),
+				      fold_convert (type, op1));
+	      }
 	    else
 	      return chrec_dont_know;
 	  }
@@ -594,31 +591,48 @@ chrec_apply (unsigned var,
       || chrec_contains_symbols_defined_in_loop (chrec, var))
     return chrec_dont_know;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     fprintf (dump_file, "(chrec_apply \n");
 
   if (TREE_CODE (x) == INTEGER_CST && SCALAR_FLOAT_TYPE_P (type))
     x = build_real_from_int_cst (type, x);
 
-  if (evolution_function_is_affine_p (chrec))
+  switch (TREE_CODE (chrec))
     {
-      /* "{a, +, b} (x)"  ->  "a + b*x".  */
-      x = chrec_convert_rhs (type, x, NULL);
-      res = chrec_fold_multiply (TREE_TYPE (x), CHREC_RIGHT (chrec), x);
-      res = chrec_fold_plus (type, CHREC_LEFT (chrec), res);
+    case POLYNOMIAL_CHREC:
+      if (evolution_function_is_affine_p (chrec))
+	{
+	  if (CHREC_VARIABLE (chrec) != var)
+	    return build_polynomial_chrec
+	      (CHREC_VARIABLE (chrec),
+	       chrec_apply (var, CHREC_LEFT (chrec), x),
+	       chrec_apply (var, CHREC_RIGHT (chrec), x));
+
+	  /* "{a, +, b} (x)"  ->  "a + b*x".  */
+	  x = chrec_convert_rhs (type, x, NULL);
+	  res = chrec_fold_multiply (TREE_TYPE (x), CHREC_RIGHT (chrec), x);
+	  res = chrec_fold_plus (type, CHREC_LEFT (chrec), res);
+	}
+      else if (TREE_CODE (x) == INTEGER_CST
+	       && tree_int_cst_sgn (x) == 1)
+	/* testsuite/.../ssa-chrec-38.c.  */
+	res = chrec_evaluate (var, chrec, x, 0);
+      else
+	res = chrec_dont_know;
+      break;
+
+    CASE_CONVERT:
+      res = chrec_convert (TREE_TYPE (chrec),
+			   chrec_apply (var, TREE_OPERAND (chrec, 0), x),
+			   NULL);
+      break;
+
+    default:
+      res = chrec;
+      break;
     }
 
-  else if (TREE_CODE (chrec) != POLYNOMIAL_CHREC)
-    res = chrec;
-
-  else if (TREE_CODE (x) == INTEGER_CST
-	   && tree_int_cst_sgn (x) == 1)
-    /* testsuite/.../ssa-chrec-38.c.  */
-    res = chrec_evaluate (var, chrec, x, 0);
-  else
-    res = chrec_dont_know;
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (varying_loop = %d\n", var);
       fprintf (dump_file, ")\n  (chrec = ");
@@ -631,6 +645,23 @@ chrec_apply (unsigned var,
     }
 
   return res;
+}
+
+/* For a given CHREC and an induction variable map IV_MAP that maps
+   (loop->num, expr) for every loop number of the current_loops an
+   expression, calls chrec_apply when the expression is not NULL.  */
+
+tree
+chrec_apply_map (tree chrec, VEC (tree, heap) *iv_map)
+{
+  int i;
+  tree expr;
+
+  FOR_EACH_VEC_ELT (tree, iv_map, i, expr)
+    if (expr)
+      chrec = chrec_apply (i, chrec, expr);
+
+  return chrec;
 }
 
 /* Replaces the initial condition in CHREC with INIT_COND.  */
@@ -804,7 +835,7 @@ reset_evolution_in_loop (unsigned loop_num,
   struct loop *loop = get_loop (loop_num);
 
   if (POINTER_TYPE_P (chrec_type (chrec)))
-    gcc_assert (sizetype == chrec_type (new_evol));
+    gcc_assert (ptrofftype_p (chrec_type (new_evol)));
   else
     gcc_assert (chrec_type (chrec) == chrec_type (new_evol));
 
@@ -816,8 +847,7 @@ reset_evolution_in_loop (unsigned loop_num,
       tree right = reset_evolution_in_loop (loop_num, CHREC_RIGHT (chrec),
 					    new_evol);
       return build3 (POLYNOMIAL_CHREC, TREE_TYPE (left),
-		     build_int_cst (NULL_TREE, CHREC_VARIABLE (chrec)),
-		     left, right);
+		     CHREC_VAR (chrec), left, right);
     }
 
   while (TREE_CODE (chrec) == POLYNOMIAL_CHREC
@@ -1211,8 +1241,11 @@ convert_affine_scev (struct loop *loop, tree type,
      performed by default when CT is signed.  */
   new_step = *step;
   if (TYPE_PRECISION (step_type) > TYPE_PRECISION (ct) && TYPE_UNSIGNED (ct))
-    new_step = chrec_convert_1 (signed_type_for (ct), new_step, at_stmt,
-				use_overflow_semantics);
+    {
+      tree signed_ct = build_nonstandard_integer_type (TYPE_PRECISION (ct), 0);
+      new_step = chrec_convert_1 (signed_ct, new_step, at_stmt,
+                                  use_overflow_semantics);
+    }
   new_step = chrec_convert_1 (step_type, new_step, at_stmt, use_overflow_semantics);
 
   if (automatically_generated_chrec_p (new_base)
@@ -1231,13 +1264,15 @@ convert_affine_scev (struct loop *loop, tree type,
 }
 
 
-/* Convert CHREC for the right hand side of a CREC.
+/* Convert CHREC for the right hand side of a CHREC.
    The increment for a pointer type is always sizetype.  */
+
 tree
 chrec_convert_rhs (tree type, tree chrec, gimple at_stmt)
 {
   if (POINTER_TYPE_P (type))
-   type = sizetype;
+    type = sizetype;
+
   return chrec_convert (type, chrec, at_stmt);
 }
 
@@ -1398,6 +1433,16 @@ eq_evolutions_p (const_tree chrec0, const_tree chrec1)
       return (CHREC_VARIABLE (chrec0) == CHREC_VARIABLE (chrec1)
 	      && eq_evolutions_p (CHREC_LEFT (chrec0), CHREC_LEFT (chrec1))
 	      && eq_evolutions_p (CHREC_RIGHT (chrec0), CHREC_RIGHT (chrec1)));
+
+    case PLUS_EXPR:
+    case MULT_EXPR:
+    case MINUS_EXPR:
+    case POINTER_PLUS_EXPR:
+      return eq_evolutions_p (TREE_OPERAND (chrec0, 0),
+			      TREE_OPERAND (chrec1, 0))
+	  && eq_evolutions_p (TREE_OPERAND (chrec0, 1),
+			      TREE_OPERAND (chrec1, 1));
+
     default:
       return false;
     }
@@ -1540,4 +1585,3 @@ evolution_function_right_is_integer_cst (const_tree chrec)
       return false;
     }
 }
-

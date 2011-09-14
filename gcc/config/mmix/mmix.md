@@ -1,5 +1,5 @@
 ;; GCC machine description for MMIX
-;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007
+;; Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2010
 ;; Free Software Foundation, Inc.
 ;; Contributed by Hans-Peter Nilsson (hp@bitrange.com)
 
@@ -333,7 +333,7 @@
 ;; The %2-is-%1-case is there just to make sure things don't fail.  Could
 ;; presumably happen with optimizations off; no evidence.
 (define_insn "*divdi3_nonknuth"
-  [(set (match_operand:DI 0 "register_operand" "=&r,r")
+  [(set (match_operand:DI 0 "register_operand" "=&r,&r")
 	(div:DI (match_operand:DI 1 "register_operand" "r,r")
 		(match_operand:DI 2 "register_operand" "1,r")))
    (clobber (match_scratch:DI 3 "=1,1"))
@@ -359,7 +359,7 @@ DIVU %0,%1,%2\;NEGU %1,0,%0\;CSN %0,$255,%1")
 ;; The %2-is-%1-case is there just to make sure things don't fail.  Could
 ;; presumably happen with optimizations off; no evidence.
 (define_insn "*moddi3_nonknuth"
-  [(set (match_operand:DI 0 "register_operand" "=&r,r")
+  [(set (match_operand:DI 0 "register_operand" "=&r,&r")
 	(mod:DI (match_operand:DI 1 "register_operand" "r,r")
 		(match_operand:DI 2 "register_operand" "1,r")))
    (clobber (match_scratch:DI 3 "=1,1"))
@@ -625,8 +625,8 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
 ;; define_expand with the old pattern as "anonymous".
 ;; FIXME: Perhaps with SECONDARY_MEMORY_NEEDED?
 (define_expand "truncdfsf2"
-  [(set (match_operand:SF 0 "memory_operand" "")
-	(float_truncate:SF (match_operand:DF 1 "register_operand" "")))]
+  [(set (match_operand:SF 0 "nonimmediate_operand")
+	(float_truncate:SF (match_operand:DF 1 "register_operand")))]
   ""
   "
 {
@@ -660,8 +660,8 @@ DIVU %1,%1,%2\;GET %0,:rR\;NEGU %2,0,%0\;CSNN %0,$255,%2")
 
 ;; Same comment as for truncdfsf2.
 (define_expand "extendsfdf2"
-  [(set (match_operand:DF 0 "register_operand" "=r")
-	(float_extend:DF (match_operand:SF 1 "memory_operand" "m")))]
+  [(set (match_operand:DF 0 "register_operand")
+	(float_extend:DF (match_operand:SF 1 "nonimmediate_operand")))]
   ""
   "
 {

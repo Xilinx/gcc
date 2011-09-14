@@ -1,7 +1,8 @@
 /* Specialized bits of code needed to support construction and
    destruction of file-scope objects in C++ code.
    Copyright (C) 1991, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
-   2002, 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Ron Guilmette (rfg@monkeys.com).
 
 This file is part of GCC.
@@ -84,6 +85,15 @@ call_ ## FUNC (void)					\
     && defined(HAVE_LD_EH_FRAME_HDR) \
     && !defined(inhibit_libc) && !defined(CRTSTUFFT_O) \
     && defined(__FreeBSD__) && __FreeBSD__ >= 7
+#include <link.h>
+# define USE_PT_GNU_EH_FRAME
+#endif
+
+#if defined(OBJECT_FORMAT_ELF) \
+    && !defined(OBJECT_FORMAT_FLAT) \
+    && defined(HAVE_LD_EH_FRAME_HDR) && defined(TARGET_DL_ITERATE_PHDR) \
+    && !defined(inhibit_libc) && !defined(CRTSTUFFT_O) \
+    && defined(__sun__) && defined(__svr4__)
 #include <link.h>
 # define USE_PT_GNU_EH_FRAME
 #endif
@@ -183,6 +193,9 @@ typedef void (*func_ptr) (void);
    refer to only the __CTOR_END__ symbol in crtend.o and the __DTOR_LIST__
    symbol in crtbegin.o, where they are defined.  */
 
+/* No need for .ctors/.dtors section if linker can place them in
+   .init_array/.fini_array section.  */
+#ifndef USE_INITFINI_ARRAY
 /* The -1 is a flag to __do_global_[cd]tors indicating that this table
    does not start with a count of elements.  */
 #ifdef CTOR_LIST_BEGIN
@@ -190,14 +203,14 @@ CTOR_LIST_BEGIN;
 #elif defined(CTORS_SECTION_ASM_OP)
 /* Hack: force cc1 to switch to .data section early, so that assembling
    __CTOR_LIST__ does not undo our behind-the-back change to .ctors.  */
-static func_ptr force_to_data[1] __attribute__ ((__unused__)) = { };
+static func_ptr force_to_data[1] __attribute__ ((__used__)) = { };
 asm (CTORS_SECTION_ASM_OP);
 STATIC func_ptr __CTOR_LIST__[1]
-  __attribute__ ((__unused__, aligned(sizeof(func_ptr))))
+  __attribute__ ((__used__, aligned(sizeof(func_ptr))))
   = { (func_ptr) (-1) };
 #else
 STATIC func_ptr __CTOR_LIST__[1]
-  __attribute__ ((__unused__, section(".ctors"), aligned(sizeof(func_ptr))))
+  __attribute__ ((__used__, section(".ctors"), aligned(sizeof(func_ptr))))
   = { (func_ptr) (-1) };
 #endif /* __CTOR_LIST__ alternatives */
 
@@ -213,6 +226,7 @@ STATIC func_ptr __DTOR_LIST__[1]
   __attribute__((section(".dtors"), aligned(sizeof(func_ptr))))
   = { (func_ptr) (-1) };
 #endif /* __DTOR_LIST__ alternatives */
+#endif /* USE_INITFINI_ARRAY */
 
 #ifdef USE_EH_FRAME_REGISTRY
 /* Stick a label at the beginning of the frame unwind info so we can register
@@ -226,7 +240,7 @@ STATIC EH_FRAME_SECTION_CONST char __EH_FRAME_BEGIN__[]
 /* Stick a label at the beginning of the java class registration info
    so we can register them properly.  */
 STATIC void *__JCR_LIST__[]
-  __attribute__ ((unused, section(JCR_SECTION_NAME), aligned(sizeof(void*))))
+  __attribute__ ((used, section(JCR_SECTION_NAME), aligned(sizeof(void*))))
   = { };
 #endif /* JCR_SECTION_NAME */
 
@@ -351,7 +365,7 @@ __do_global_dtors_aux (void)
 CRT_CALL_STATIC_FUNCTION (FINI_SECTION_ASM_OP, __do_global_dtors_aux)
 #elif defined (FINI_ARRAY_SECTION_ASM_OP)
 static func_ptr __do_global_dtors_aux_fini_array_entry[]
-  __attribute__ ((__unused__, section(".fini_array")))
+  __attribute__ ((__used__, section(".fini_array")))
   = { __do_global_dtors_aux };
 #else /* !FINI_SECTION_ASM_OP && !FINI_ARRAY_SECTION_ASM_OP */
 static void __attribute__((used))
@@ -404,7 +418,7 @@ frame_dummy (void)
 CRT_CALL_STATIC_FUNCTION (INIT_SECTION_ASM_OP, frame_dummy)
 #else /* defined(INIT_SECTION_ASM_OP) */
 static func_ptr __frame_dummy_init_array_entry[]
-  __attribute__ ((__unused__, section(".init_array")))
+  __attribute__ ((__used__, section(".init_array")))
   = { frame_dummy };
 #endif /* !defined(INIT_SECTION_ASM_OP) */
 #endif /* USE_EH_FRAME_REGISTRY || JCR_SECTION_NAME */
@@ -508,6 +522,9 @@ __do_global_ctors_1(void)
 
 #elif defined(CRT_END) /* ! CRT_BEGIN */
 
+/* No need for .ctors/.dtors section if linker can place them in
+   .init_array/.fini_array section.  */
+#ifndef USE_INITFINI_ARRAY
 /* Put a word containing zero at the end of each of our two lists of function
    addresses.  Note that the words defined here go into the .ctors and .dtors
    sections of the crtend.o file, and since that file is always linked in
@@ -519,7 +536,7 @@ CTOR_LIST_END;
 #elif defined(CTORS_SECTION_ASM_OP)
 /* Hack: force cc1 to switch to .data section early, so that assembling
    __CTOR_LIST__ does not undo our behind-the-back change to .ctors.  */
-static func_ptr force_to_data[1] __attribute__ ((__unused__)) = { };
+static func_ptr force_to_data[1] __attribute__ ((__used__)) = { };
 asm (CTORS_SECTION_ASM_OP);
 STATIC func_ptr __CTOR_END__[1]
   __attribute__((aligned(sizeof(func_ptr))))
@@ -537,7 +554,7 @@ DTOR_LIST_END;
 asm (DTORS_SECTION_ASM_OP);
 #endif
 func_ptr __DTOR_END__[1]
-  __attribute__ ((unused,
+  __attribute__ ((used,
 #ifndef DTORS_SECTION_ASM_OP
 		  section(".dtors"),
 #endif
@@ -546,13 +563,14 @@ func_ptr __DTOR_END__[1]
 #elif defined(DTORS_SECTION_ASM_OP)
 asm (DTORS_SECTION_ASM_OP);
 STATIC func_ptr __DTOR_END__[1]
-  __attribute__ ((unused, aligned(sizeof(func_ptr))))
+  __attribute__ ((used, aligned(sizeof(func_ptr))))
   = { (func_ptr) 0 };
 #else
 STATIC func_ptr __DTOR_END__[1]
-  __attribute__((unused, section(".dtors"), aligned(sizeof(func_ptr))))
+  __attribute__((used, section(".dtors"), aligned(sizeof(func_ptr))))
   = { (func_ptr) 0 };
 #endif
+#endif /* USE_INITFINI_ARRAY */
 
 #ifdef EH_FRAME_SECTION_NAME
 /* Terminate the frame unwind info section with a 4byte 0 as a sentinel;
@@ -567,7 +585,7 @@ typedef short int32;
 #  error "Missing a 4 byte integer"
 # endif
 STATIC EH_FRAME_SECTION_CONST int32 __FRAME_END__[]
-     __attribute__ ((unused, section(EH_FRAME_SECTION_NAME),
+     __attribute__ ((used, section(EH_FRAME_SECTION_NAME),
 		     aligned(sizeof(int32))))
      = { 0 };
 #endif /* EH_FRAME_SECTION_NAME */
@@ -575,7 +593,7 @@ STATIC EH_FRAME_SECTION_CONST int32 __FRAME_END__[]
 #ifdef JCR_SECTION_NAME
 /* Null terminate the .jcr section array.  */
 STATIC void *__JCR_END__[1]
-   __attribute__ ((unused, section(JCR_SECTION_NAME),
+   __attribute__ ((used, section(JCR_SECTION_NAME),
 		   aligned(sizeof(void *))))
    = { 0 };
 #endif /* JCR_SECTION_NAME */

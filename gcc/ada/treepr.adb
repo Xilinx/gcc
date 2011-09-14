@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,6 +23,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Aspects;  use Aspects;
 with Atree;    use Atree;
 with Csets;    use Csets;
 with Debug;    use Debug;
@@ -38,6 +39,7 @@ with Snames;   use Snames;
 with Sinput;   use Sinput;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
+with SCIL_LL;  use SCIL_LL;
 with Treeprs;  use Treeprs;
 with Uintp;    use Uintp;
 with Urealp;   use Urealp;
@@ -261,10 +263,39 @@ package body Treepr is
    -- pn --
    --------
 
-   procedure pn (N : Node_Id) is
+   procedure pn (N : Union_Id) is
    begin
-      Print_Tree_Node (N);
+      case N is
+         when List_Low_Bound .. List_High_Bound - 1 =>
+            pl (Int (N));
+         when Node_Range =>
+            Print_Tree_Node (Node_Id (N));
+         when Elist_Range =>
+            Print_Tree_Elist (Elist_Id (N));
+         when Elmt_Range =>
+            raise Program_Error;
+         when Names_Range =>
+            Namet.wn (Name_Id (N));
+         when Strings_Range =>
+            Write_String_Table_Entry (String_Id (N));
+         when Uint_Range =>
+            Uintp.pid (From_Union (N));
+         when Ureal_Range =>
+            Urealp.pr (From_Union (N));
+         when others =>
+            Write_Str ("Invalid Union_Id: ");
+            Write_Int (Int (N));
+      end case;
    end pn;
+
+   --------
+   -- pp --
+   --------
+
+   procedure pp (N : Union_Id) is
+   begin
+      pn (N);
+   end pp;
 
    ----------------
    -- Print_Char --
@@ -623,6 +654,22 @@ package body Treepr is
          Write_Field27_Name (Ent);
          Write_Str (" = ");
          Print_Field (Field27 (Ent));
+         Print_Eol;
+      end if;
+
+      if Field_Present (Field28 (Ent)) then
+         Print_Str (Prefix);
+         Write_Field28_Name (Ent);
+         Write_Str (" = ");
+         Print_Field (Field28 (Ent));
+         Print_Eol;
+      end if;
+
+      if Field_Present (Field29 (Ent)) then
+         Print_Str (Prefix);
+         Write_Field29_Name (Ent);
+         Write_Str (" = ");
+         Print_Field (Field29 (Ent));
          Print_Eol;
       end if;
 
@@ -1001,6 +1048,12 @@ package body Treepr is
                Print_Eol;
             end if;
 
+            if Has_Aspects (N) then
+               Print_Str (Prefix_Str_Char);
+               Print_Str ("Has_Aspects = True");
+               Print_Eol;
+            end if;
+
             if Has_Dynamic_Range_Check (N) then
                Print_Str (Prefix_Str_Char);
                Print_Str ("Has_Dynamic_Range_Check = True");
@@ -1090,6 +1143,10 @@ package body Treepr is
             when F_Field5 =>
                Field_To_Be_Printed := Field5 (N) /= Union_Id (Empty);
 
+            --  Flag3 is obsolete, so this probably gets removed ???
+
+            when F_Flag3 => Field_To_Be_Printed := Has_Aspects (N);
+
             when F_Flag4  => Field_To_Be_Printed := Flag4  (N);
             when F_Flag5  => Field_To_Be_Printed := Flag5  (N);
             when F_Flag6  => Field_To_Be_Printed := Flag6  (N);
@@ -1106,12 +1163,10 @@ package body Treepr is
             when F_Flag17 => Field_To_Be_Printed := Flag17 (N);
             when F_Flag18 => Field_To_Be_Printed := Flag18 (N);
 
-            --  Flag1,2,3 are no longer used
+            --  Flag1,2 are no longer used
 
             when F_Flag1  => raise Program_Error;
             when F_Flag2  => raise Program_Error;
-            when F_Flag3  => raise Program_Error;
-
          end case;
 
          --  Print field if it is to be printed
@@ -1161,11 +1216,14 @@ package body Treepr is
                when F_Flag17 => Print_Flag  (Flag17 (N));
                when F_Flag18 => Print_Flag  (Flag18 (N));
 
-               --  Flag1,2,3 are no longer used
+               --  Flag1,2 are no longer used
 
                when F_Flag1  => raise Program_Error;
                when F_Flag2  => raise Program_Error;
-               when F_Flag3  => raise Program_Error;
+
+               --  Not clear why we need the following ???
+
+               when F_Flag3  => Print_Flag (Has_Aspects (N));
             end case;
 
             Print_Eol;
@@ -1179,8 +1237,16 @@ package body Treepr is
                P := P + 1;
             end loop;
          end if;
-
       end loop;
+
+      --  Print aspects if present
+
+      if Has_Aspects (N) then
+         Print_Str (Prefix_Str_Char);
+         Print_Str ("Aspect_Specifications = ");
+         Print_Field (Union_Id (Aspect_Specifications (N)));
+         Print_Eol;
+      end if;
 
       --  Print entity information for entities
 
@@ -1188,6 +1254,14 @@ package body Treepr is
          Print_Entity_Info (N, Prefix_Str_Char);
       end if;
 
+      --  Print the SCIL node (if available)
+
+      if Present (Get_SCIL_Node (N)) then
+         Print_Str (Prefix_Str_Char);
+         Print_Str ("SCIL_Node = ");
+         Print_Node_Ref (Get_SCIL_Node (N));
+         Print_Eol;
+      end if;
    end Print_Node;
 
    ---------------------
@@ -1425,6 +1499,15 @@ package body Treepr is
    begin
       Print_Node_Subtree (N);
    end pt;
+
+   ---------
+   -- ppp --
+   ---------
+
+   procedure ppp (N : Node_Id) is
+   begin
+      pt (N);
+   end ppp;
 
    -------------------
    -- Serial_Number --
@@ -1889,6 +1972,10 @@ package body Treepr is
          Visit_Descendent (Field3 (N));
          Visit_Descendent (Field4 (N));
          Visit_Descendent (Field5 (N));
+
+         if Has_Aspects (N) then
+            Visit_Descendent (Union_Id (Aspect_Specifications (N)));
+         end if;
 
       --  Entity case
 

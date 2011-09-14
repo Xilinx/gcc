@@ -1,5 +1,6 @@
 /* Generic implementation of the PACK intrinsic
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -152,14 +153,11 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
 	  GFC_DIMENSION_SET(ret->dim[0], 0, total-1, 1);
 
 	  ret->offset = 0;
+	  /* internal_malloc_size allocates a single byte for zero size.  */
+	  ret->data = internal_malloc_size (size * total);
+
 	  if (total == 0)
-	    {
-	      /* In this case, nothing remains to be done.  */
-	      ret->data = internal_malloc_size (1);
-	      return;
-	    }
-	  else
-	    ret->data = internal_malloc_size (size * total);
+	    return;      /* In this case, nothing remains to be done.  */
 	}
       else 
 	{
@@ -273,14 +271,12 @@ pack (gfc_array_char *ret, const gfc_array_char *array,
 
     case GFC_DTYPE_LOGICAL_4:
     case GFC_DTYPE_INTEGER_4:
-
       pack_i4 ((gfc_array_i4 *) ret, (gfc_array_i4 *) array,
 	       (gfc_array_l1 *) mask, (gfc_array_i4 *) vector);
       return;
 
     case GFC_DTYPE_LOGICAL_8:
     case GFC_DTYPE_INTEGER_8:
-
       pack_i8 ((gfc_array_i8 *) ret, (gfc_array_i8 *) array,
 	       (gfc_array_l1 *) mask, (gfc_array_i8 *) vector);
       return;
@@ -288,11 +284,11 @@ pack (gfc_array_char *ret, const gfc_array_char *array,
 #ifdef HAVE_GFC_INTEGER_16
     case GFC_DTYPE_LOGICAL_16:
     case GFC_DTYPE_INTEGER_16:
-
       pack_i16 ((gfc_array_i16 *) ret, (gfc_array_i16 *) array,
 		(gfc_array_l1 *) mask, (gfc_array_i16 *) vector);
       return;
 #endif
+
     case GFC_DTYPE_REAL_4:
       pack_r4 ((gfc_array_r4 *) ret, (gfc_array_r4 *) array,
 	       (gfc_array_l1 *) mask, (gfc_array_r4 *) vector);
@@ -303,19 +299,28 @@ pack (gfc_array_char *ret, const gfc_array_char *array,
 	       (gfc_array_l1 *) mask, (gfc_array_r8 *) vector);
       return;
 
-#ifdef HAVE_GFC_REAL_10
+/* FIXME: This here is a hack, which will have to be removed when
+   the array descriptor is reworked.  Currently, we don't store the
+   kind value for the type, but only the size.  Because on targets with
+   __float128, we have sizeof(logn double) == sizeof(__float128),
+   we cannot discriminate here and have to fall back to the generic
+   handling (which is suboptimal).  */
+#if !defined(GFC_REAL_16_IS_FLOAT128)
+# ifdef HAVE_GFC_REAL_10
     case GFC_DTYPE_REAL_10:
       pack_r10 ((gfc_array_r10 *) ret, (gfc_array_r10 *) array,
 		(gfc_array_l1 *) mask, (gfc_array_r10 *) vector);
       return;
-#endif
+# endif
 
-#ifdef HAVE_GFC_REAL_16
+# ifdef HAVE_GFC_REAL_16
     case GFC_DTYPE_REAL_16:
       pack_r16 ((gfc_array_r16 *) ret, (gfc_array_r16 *) array,
 		(gfc_array_l1 *) mask, (gfc_array_r16 *) vector);
       return;
+# endif
 #endif
+
     case GFC_DTYPE_COMPLEX_4:
       pack_c4 ((gfc_array_c4 *) ret, (gfc_array_c4 *) array,
 	       (gfc_array_l1 *) mask, (gfc_array_c4 *) vector);
@@ -326,18 +331,26 @@ pack (gfc_array_char *ret, const gfc_array_char *array,
 	       (gfc_array_l1 *) mask, (gfc_array_c8 *) vector);
       return;
 
-#ifdef HAVE_GFC_COMPLEX_10
+/* FIXME: This here is a hack, which will have to be removed when
+   the array descriptor is reworked.  Currently, we don't store the
+   kind value for the type, but only the size.  Because on targets with
+   __float128, we have sizeof(logn double) == sizeof(__float128),
+   we cannot discriminate here and have to fall back to the generic
+   handling (which is suboptimal).  */
+#if !defined(GFC_REAL_16_IS_FLOAT128)
+# ifdef HAVE_GFC_COMPLEX_10
     case GFC_DTYPE_COMPLEX_10:
       pack_c10 ((gfc_array_c10 *) ret, (gfc_array_c10 *) array,
 		(gfc_array_l1 *) mask, (gfc_array_c10 *) vector);
       return;
-#endif
+# endif
 
-#ifdef HAVE_GFC_COMPLEX_16
+# ifdef HAVE_GFC_COMPLEX_16
     case GFC_DTYPE_COMPLEX_16:
       pack_c16 ((gfc_array_c16 *) ret, (gfc_array_c16 *) array,
 		(gfc_array_l1 *) mask, (gfc_array_c16 *) vector);
       return;
+# endif
 #endif
 
       /* For derived types, let's check the actual alignment of the
@@ -374,6 +387,7 @@ pack (gfc_array_char *ret, const gfc_array_char *array,
 	{
 	  pack_i8 ((gfc_array_i8 *) ret, (gfc_array_i8 *) array,
 		   (gfc_array_l1 *) mask, (gfc_array_i8 *) vector);
+	  return;
 	}
 
 #ifdef HAVE_GFC_INTEGER_16
@@ -506,13 +520,10 @@ pack_s_internal (gfc_array_char *ret, const gfc_array_char *array,
 
       ret->offset = 0;
 
+      ret->data = internal_malloc_size (size * total);
+
       if (total == 0)
-	{
-	  ret->data = internal_malloc_size (1);
-	  return;
-	}
-      else
-	ret->data = internal_malloc_size (size * total);
+	return;
     }
 
   rstride0 = GFC_DESCRIPTOR_STRIDE_BYTES(ret,0);

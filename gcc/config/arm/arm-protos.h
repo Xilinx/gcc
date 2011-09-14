@@ -1,6 +1,6 @@
 /* Prototypes for exported functions defined in arm.c and pe.c
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
+   2009, 2010 Free Software Foundation, Inc.
    Contributed by Richard Earnshaw (rearnsha@arm.com)
    Minor hacks by Nick Clifton (nickc@cygnus.com)
 
@@ -23,8 +23,7 @@
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
 
-extern void arm_override_options (void);
-extern void arm_optimization_options (int, int);
+extern enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 extern int use_return_insn (int, rtx);
 extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
@@ -45,27 +44,35 @@ extern void arm_output_fn_unwind (FILE *, bool);
 
 #ifdef RTX_CODE
 extern bool arm_vector_mode_supported_p (enum machine_mode);
+extern bool arm_small_register_classes_for_mode_p (enum machine_mode);
 extern int arm_hard_regno_mode_ok (unsigned int, enum machine_mode);
 extern int const_ok_for_arm (HOST_WIDE_INT);
+extern int const_ok_for_op (HOST_WIDE_INT, enum rtx_code);
 extern int arm_split_constant (RTX_CODE, enum machine_mode, rtx,
 			       HOST_WIDE_INT, rtx, rtx, int);
-extern RTX_CODE arm_canonicalize_comparison (RTX_CODE, enum machine_mode,
-					     rtx *);
+extern RTX_CODE arm_canonicalize_comparison (RTX_CODE, rtx *, rtx *);
 extern int legitimate_pic_operand_p (rtx);
 extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
 extern rtx legitimize_tls_address (rtx, rtx);
 extern int arm_legitimate_address_outer_p (enum machine_mode, rtx, RTX_CODE, int);
 extern int thumb_legitimate_offset_p (enum machine_mode, HOST_WIDE_INT);
+extern bool arm_legitimize_reload_address (rtx *, enum machine_mode, int, int,
+					   int);
 extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
+extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
 extern int arm_const_double_rtx (rtx);
 extern int neg_const_double_rtx_ok_for_fpa (rtx);
 extern int vfp3_const_double_rtx (rtx);
 extern int neon_immediate_valid_for_move (rtx, enum machine_mode, rtx *, int *);
 extern int neon_immediate_valid_for_logic (rtx, enum machine_mode, int, rtx *,
 					   int *);
+extern int neon_immediate_valid_for_shift (rtx, enum machine_mode, rtx *,
+					   int *, bool);
 extern char *neon_output_logic_immediate (const char *, rtx *,
 					  enum machine_mode, int, int);
+extern char *neon_output_shift_immediate (const char *, char, rtx *,
+					  enum machine_mode, int, bool);
 extern void neon_pairwise_reduce (rtx, rtx, enum machine_mode,
 				  rtx (*) (rtx, rtx, rtx));
 extern rtx neon_make_constant (rtx);
@@ -81,13 +88,14 @@ extern void neon_disambiguate_copy (rtx *, rtx *, rtx *, unsigned int);
 extern enum reg_class coproc_secondary_reload_class (enum machine_mode, rtx,
 						     bool);
 extern bool arm_tls_referenced_p (rtx);
-extern bool arm_cannot_force_const_mem (rtx);
 
 extern int cirrus_memory_offset (rtx);
 extern int arm_coproc_mem_operand (rtx, bool);
 extern int neon_vector_mem_operand (rtx, int);
 extern int neon_struct_mem_operand (rtx);
 extern int arm_no_early_store_addr_dep (rtx, rtx);
+extern int arm_early_store_addr_dep (rtx, rtx);
+extern int arm_early_load_addr_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_dep (rtx, rtx);
 extern int arm_no_early_alu_shift_value_dep (rtx, rtx);
 extern int arm_no_early_mul_dep (rtx, rtx);
@@ -98,14 +106,11 @@ extern int symbol_mentioned_p (rtx);
 extern int label_mentioned_p (rtx);
 extern RTX_CODE minmax_code (rtx);
 extern int adjacent_mem_locations (rtx, rtx);
-extern int load_multiple_sequence (rtx *, int, int *, int *, HOST_WIDE_INT *);
-extern const char *emit_ldm_seq (rtx *, int);
-extern int store_multiple_sequence (rtx *, int, int *, int *, HOST_WIDE_INT *);
-extern const char * emit_stm_seq (rtx *, int);
-extern rtx arm_gen_load_multiple (int, int, rtx, int, int,
-				  rtx, HOST_WIDE_INT *);
-extern rtx arm_gen_store_multiple (int, int, rtx, int, int,
-				   rtx, HOST_WIDE_INT *);
+extern bool gen_ldm_seq (rtx *, int, bool);
+extern bool gen_stm_seq (rtx *, int);
+extern bool gen_const_stm_seq (rtx *, int);
+extern rtx arm_gen_load_multiple (int *, int, rtx, int, rtx, HOST_WIDE_INT *);
+extern rtx arm_gen_store_multiple (int *, int, rtx, int, rtx, HOST_WIDE_INT *);
 extern int arm_gen_movmemqi (rtx *);
 extern enum machine_mode arm_select_cc_mode (RTX_CODE, rtx, rtx);
 extern enum machine_mode arm_select_dominance_cc_mode (rtx, rtx,
@@ -116,6 +121,7 @@ extern void arm_reload_in_hi (rtx *);
 extern void arm_reload_out_hi (rtx *);
 extern int arm_const_double_inline_cost (rtx);
 extern bool arm_const_double_by_parts (rtx);
+extern bool arm_const_double_by_immediates (rtx);
 extern const char *fp_immediate_constant (rtx);
 extern void arm_emit_call_insn (rtx, rtx);
 extern const char *output_call (rtx *);
@@ -126,17 +132,18 @@ extern const char *output_mov_long_double_arm_from_fpa (rtx *);
 extern const char *output_mov_long_double_arm_from_arm (rtx *);
 extern const char *output_mov_double_fpa_from_arm (rtx *);
 extern const char *output_mov_double_arm_from_fpa (rtx *);
-extern const char *output_move_double (rtx *);
+extern const char *output_move_double (rtx *, bool, int *count);
 extern const char *output_move_quad (rtx *);
+extern int arm_count_output_move_double_insns (rtx *);
 extern const char *output_move_vfp (rtx *operands);
 extern const char *output_move_neon (rtx *operands);
+extern int arm_attr_length_move_neon (rtx);
+extern int arm_address_offset_is_imm (rtx);
 extern const char *output_add_immediate (rtx *);
 extern const char *arithmetic_instr (rtx, int);
 extern void output_ascii_pseudo_op (FILE *, const unsigned char *, int);
 extern const char *output_return_instruction (rtx, int, int);
 extern void arm_poke_function_name (FILE *, const char *);
-extern void arm_print_operand (FILE *, rtx, int);
-extern void arm_print_operand_address (FILE *, rtx);
 extern void arm_final_prescan_insn (rtx);
 extern int arm_debugger_arg_offset (int, rtx);
 extern bool arm_is_long_call_p (tree);
@@ -147,17 +154,17 @@ extern const char *vfp_output_fstmd (rtx *);
 extern void arm_set_return_address (rtx, rtx);
 extern int arm_eliminable_register (rtx);
 extern const char *arm_output_shift(rtx *, int);
-
-extern bool arm_output_addr_const_extra (FILE *, rtx);
+extern void arm_expand_sync (enum machine_mode, struct arm_sync_generator *,
+ 			     rtx, rtx, rtx, rtx);
+extern const char *arm_output_memory_barrier (rtx *);
+extern const char *arm_output_sync_insn (rtx, rtx *);
+extern unsigned int arm_sync_loop_insns (rtx , rtx *);
+extern int arm_attr_length_push_multi(rtx, rtx);
 
 #if defined TREE_CODE
-extern rtx arm_function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern void arm_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
-				      tree, bool);
 extern void arm_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
 extern bool arm_pad_arg_upward (enum machine_mode, const_tree);
 extern bool arm_pad_reg_upward (enum machine_mode, tree, int);
-extern bool arm_needs_doubleword_align (enum machine_mode, tree);
 #endif
 extern int arm_apply_result_size (void);
 extern rtx aapcs_libcall_value (enum machine_mode);
@@ -171,6 +178,7 @@ extern void arm_init_expanders (void);
 extern const char *thumb_unexpanded_epilogue (void);
 extern void thumb1_expand_prologue (void);
 extern void thumb1_expand_epilogue (void);
+extern const char *thumb1_output_interwork (void);
 #ifdef TREE_CODE
 extern int is_called_in_ARM_mode (tree);
 #endif
@@ -212,5 +220,26 @@ extern void arm_lang_object_attributes_init(void);
 extern const char *arm_mangle_type (const_tree);
 
 extern void arm_order_regs_for_local_alloc (void);
+
+#ifdef RTX_CODE
+/* This needs to be here because we need RTX_CODE and similar.  */
+
+struct tune_params
+{
+  bool (*rtx_costs) (rtx, RTX_CODE, RTX_CODE, int *, bool);
+  bool (*sched_adjust_cost) (rtx, rtx, rtx, int *);
+  int constant_limit;
+  /* Maximum number of instructions to conditionalise in
+     arm_final_prescan_insn.  */
+  int max_insns_skipped;
+  int num_prefetch_slots;
+  int l1_cache_size;
+  int l1_cache_line_size;
+  bool prefer_constant_pool;
+  int (*branch_cost) (bool, bool);
+};
+
+extern const struct tune_params *current_tune;
+#endif /* RTX_CODE */
 
 #endif /* ! GCC_ARM_PROTOS_H */

@@ -1,7 +1,8 @@
 /* Medium-level subroutines: convert bit-field store and extract
    and shifts, multiplies and divides to rtl instructions.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -25,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "rtl.h"
 #include "tree.h"
 #include "tm_p.h"
@@ -33,21 +34,32 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "expr.h"
 #include "optabs.h"
-#include "real.h"
 #include "recog.h"
 #include "langhooks.h"
 #include "df.h"
 #include "target.h"
+#include "expmed.h"
+
+struct target_expmed default_target_expmed;
+#if SWITCHABLE_TARGET
+struct target_expmed *this_target_expmed = &default_target_expmed;
+#endif
 
 static void store_fixed_bit_field (rtx, unsigned HOST_WIDE_INT,
 				   unsigned HOST_WIDE_INT,
-				   unsigned HOST_WIDE_INT, rtx);
+				   unsigned HOST_WIDE_INT,
+				   unsigned HOST_WIDE_INT,
+				   unsigned HOST_WIDE_INT,
+				   rtx);
 static void store_split_bit_field (rtx, unsigned HOST_WIDE_INT,
-				   unsigned HOST_WIDE_INT, rtx);
+				   unsigned HOST_WIDE_INT,
+				   unsigned HOST_WIDE_INT,
+				   unsigned HOST_WIDE_INT,
+				   rtx);
 static rtx extract_fixed_bit_field (enum machine_mode, rtx,
 				    unsigned HOST_WIDE_INT,
 				    unsigned HOST_WIDE_INT,
-				    unsigned HOST_WIDE_INT, rtx, int);
+				    unsigned HOST_WIDE_INT, rtx, int, bool);
 static rtx mask_rtx (enum machine_mode, int, int, int);
 static rtx lshift_value (enum machine_mode, rtx, int, int);
 static rtx extract_split_bit_field (rtx, unsigned HOST_WIDE_INT,
@@ -59,25 +71,10 @@ static rtx expand_sdiv_pow2 (enum machine_mode, rtx, HOST_WIDE_INT);
 /* Test whether a value is zero of a power of two.  */
 #define EXACT_POWER_OF_2_OR_ZERO_P(x) (((x) & ((x) - 1)) == 0)
 
-/* Nonzero means divides or modulus operations are relatively cheap for
-   powers of two, so don't use branches; emit the operation instead.
-   Usually, this will mean that the MD file will emit non-branch
-   sequences.  */
-
-static bool sdiv_pow2_cheap[2][NUM_MACHINE_MODES];
-static bool smod_pow2_cheap[2][NUM_MACHINE_MODES];
-
 #ifndef SLOW_UNALIGNED_ACCESS
 #define SLOW_UNALIGNED_ACCESS(MODE, ALIGN) STRICT_ALIGNMENT
 #endif
 
-/* For compilers that support multiple targets with different word sizes,
-   MAX_BITS_PER_WORD contains the biggest value of BITS_PER_WORD.  An example
-   is the H8/300(H) compiler.  */
-
-#ifndef MAX_BITS_PER_WORD
-#define MAX_BITS_PER_WORD BITS_PER_WORD
-#endif
 
 /* Reduce conditional compilation elsewhere.  */
 #ifndef HAVE_insv
@@ -95,21 +92,6 @@ static bool smod_pow2_cheap[2][NUM_MACHINE_MODES];
 #define CODE_FOR_extzv	CODE_FOR_nothing
 #define gen_extzv(a,b,c,d) NULL_RTX
 #endif
-
-/* Cost of various pieces of RTL.  Note that some of these are indexed by
-   shift count and some by mode.  */
-static int zero_cost[2];
-static int add_cost[2][NUM_MACHINE_MODES];
-static int neg_cost[2][NUM_MACHINE_MODES];
-static int shift_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int shiftadd_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int shiftsub0_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int shiftsub1_cost[2][NUM_MACHINE_MODES][MAX_BITS_PER_WORD];
-static int mul_cost[2][NUM_MACHINE_MODES];
-static int sdiv_cost[2][NUM_MACHINE_MODES];
-static int udiv_cost[2][NUM_MACHINE_MODES];
-static int mul_widen_cost[2][NUM_MACHINE_MODES];
-static int mul_highpart_cost[2][NUM_MACHINE_MODES];
 
 void
 init_expmed (void)
@@ -214,7 +196,7 @@ init_expmed (void)
   for (speed = 0; speed < 2; speed++)
     {
       crtl->maybe_hot_insn_p = speed;
-      zero_cost[speed] = rtx_cost (const0_rtx, SET, speed);
+      zero_cost[speed] = set_src_cost (const0_rtx, speed);
 
       for (mode = GET_CLASS_NARROWEST_MODE (MODE_INT);
 	   mode != VOIDmode;
@@ -235,15 +217,15 @@ init_expmed (void)
 	  PUT_MODE (&all.shift_sub0, mode);
 	  PUT_MODE (&all.shift_sub1, mode);
 
-	  add_cost[speed][mode] = rtx_cost (&all.plus, SET, speed);
-	  neg_cost[speed][mode] = rtx_cost (&all.neg, SET, speed);
-	  mul_cost[speed][mode] = rtx_cost (&all.mult, SET, speed);
-	  sdiv_cost[speed][mode] = rtx_cost (&all.sdiv, SET, speed);
-	  udiv_cost[speed][mode] = rtx_cost (&all.udiv, SET, speed);
+	  add_cost[speed][mode] = set_src_cost (&all.plus, speed);
+	  neg_cost[speed][mode] = set_src_cost (&all.neg, speed);
+	  mul_cost[speed][mode] = set_src_cost (&all.mult, speed);
+	  sdiv_cost[speed][mode] = set_src_cost (&all.sdiv, speed);
+	  udiv_cost[speed][mode] = set_src_cost (&all.udiv, speed);
 
-	  sdiv_pow2_cheap[speed][mode] = (rtx_cost (&all.sdiv_32, SET, speed)
+	  sdiv_pow2_cheap[speed][mode] = (set_src_cost (&all.sdiv_32, speed)
 				          <= 2 * add_cost[speed][mode]);
-	  smod_pow2_cheap[speed][mode] = (rtx_cost (&all.smod_32, SET, speed)
+	  smod_pow2_cheap[speed][mode] = (set_src_cost (&all.smod_32, speed)
 				          <= 4 * add_cost[speed][mode]);
 
 	  wider_mode = GET_MODE_WIDER_MODE (mode);
@@ -255,9 +237,9 @@ init_expmed (void)
 	      XEXP (&all.wide_lshr, 1) = GEN_INT (GET_MODE_BITSIZE (mode));
 
 	      mul_widen_cost[speed][wider_mode]
-	        = rtx_cost (&all.wide_mult, SET, speed);
+	        = set_src_cost (&all.wide_mult, speed);
 	      mul_highpart_cost[speed][mode]
-	        = rtx_cost (&all.wide_trunc, SET, speed);
+	        = set_src_cost (&all.wide_trunc, speed);
 	    }
 
 	  shift_cost[speed][mode][0] = 0;
@@ -270,13 +252,20 @@ init_expmed (void)
 	      XEXP (&all.shift, 1) = cint[m];
 	      XEXP (&all.shift_mult, 1) = pow2[m];
 
-	      shift_cost[speed][mode][m] = rtx_cost (&all.shift, SET, speed);
-	      shiftadd_cost[speed][mode][m] = rtx_cost (&all.shift_add, SET, speed);
-	      shiftsub0_cost[speed][mode][m] = rtx_cost (&all.shift_sub0, SET, speed);
-	      shiftsub1_cost[speed][mode][m] = rtx_cost (&all.shift_sub1, SET, speed);
+	      shift_cost[speed][mode][m] = set_src_cost (&all.shift, speed);
+	      shiftadd_cost[speed][mode][m] = set_src_cost (&all.shift_add,
+							    speed);
+	      shiftsub0_cost[speed][mode][m] = set_src_cost (&all.shift_sub0,
+							     speed);
+	      shiftsub1_cost[speed][mode][m] = set_src_cost (&all.shift_sub1,
+							     speed);
 	    }
 	}
     }
+  if (alg_hash_used_p)
+    memset (alg_hash, 0, sizeof (alg_hash));
+  else
+    alg_hash_used_p = true;
   default_rtl_profile ();
 }
 
@@ -302,7 +291,7 @@ negate_rtx (enum machine_mode mode, rtx x)
 enum machine_mode
 mode_for_extraction (enum extraction_pattern pattern, int opno)
 {
-  const struct insn_data *data;
+  const struct insn_data_d *data;
 
   switch (pattern)
     {
@@ -343,22 +332,6 @@ mode_for_extraction (enum extraction_pattern pattern, int opno)
     return word_mode;
   return data->operand[opno].mode;
 }
-
-/* Return true if X, of mode MODE, matches the predicate for operand
-   OPNO of instruction ICODE.  Allow volatile memories, regardless of
-   the ambient volatile_ok setting.  */
-
-static bool
-check_predicate_volatile_ok (enum insn_code icode, int opno,
-			     rtx x, enum machine_mode mode)
-{
-  bool save_volatile_ok, result;
-
-  save_volatile_ok = volatile_ok;
-  result = insn_data[(int) icode].operand[opno].predicate (x, mode);
-  volatile_ok = save_volatile_ok;
-  return result;
-}
 
 /* A subroutine of store_bit_field, with the same arguments.  Return true
    if the operation could be implemented.
@@ -369,7 +342,10 @@ check_predicate_volatile_ok (enum insn_code icode, int opno,
 
 static bool
 store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
-		   unsigned HOST_WIDE_INT bitnum, enum machine_mode fieldmode,
+		   unsigned HOST_WIDE_INT bitnum,
+		   unsigned HOST_WIDE_INT bitregion_start,
+		   unsigned HOST_WIDE_INT bitregion_end,
+		   enum machine_mode fieldmode,
 		   rtx value, bool fallback_p)
 {
   unsigned int unit
@@ -420,46 +396,22 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
      available.  */
   if (VECTOR_MODE_P (GET_MODE (op0))
       && !MEM_P (op0)
-      && (optab_handler (vec_set_optab, GET_MODE (op0))->insn_code
-	  != CODE_FOR_nothing)
+      && optab_handler (vec_set_optab, GET_MODE (op0)) != CODE_FOR_nothing
       && fieldmode == GET_MODE_INNER (GET_MODE (op0))
       && bitsize == GET_MODE_BITSIZE (GET_MODE_INNER (GET_MODE (op0)))
       && !(bitnum % GET_MODE_BITSIZE (GET_MODE_INNER (GET_MODE (op0)))))
     {
+      struct expand_operand ops[3];
       enum machine_mode outermode = GET_MODE (op0);
       enum machine_mode innermode = GET_MODE_INNER (outermode);
-      int icode = (int) optab_handler (vec_set_optab, outermode)->insn_code;
+      enum insn_code icode = optab_handler (vec_set_optab, outermode);
       int pos = bitnum / GET_MODE_BITSIZE (innermode);
-      rtx rtxpos = GEN_INT (pos);
-      rtx src = value;
-      rtx dest = op0;
-      rtx pat, seq;
-      enum machine_mode mode0 = insn_data[icode].operand[0].mode;
-      enum machine_mode mode1 = insn_data[icode].operand[1].mode;
-      enum machine_mode mode2 = insn_data[icode].operand[2].mode;
 
-      start_sequence ();
-
-      if (! (*insn_data[icode].operand[1].predicate) (src, mode1))
-	src = copy_to_mode_reg (mode1, src);
-
-      if (! (*insn_data[icode].operand[2].predicate) (rtxpos, mode2))
-	rtxpos = copy_to_mode_reg (mode1, rtxpos);
-
-      /* We could handle this, but we should always be called with a pseudo
-	 for our targets and all insns should take them as outputs.  */
-      gcc_assert ((*insn_data[icode].operand[0].predicate) (dest, mode0)
-		  && (*insn_data[icode].operand[1].predicate) (src, mode1)
-		  && (*insn_data[icode].operand[2].predicate) (rtxpos, mode2));
-      pat = GEN_FCN (icode) (dest, src, rtxpos);
-      seq = get_insns ();
-      end_sequence ();
-      if (pat)
-	{
-	  emit_insn (seq);
-	  emit_insn (pat);
-	  return true;
-	}
+      create_fixed_operand (&ops[0], op0);
+      create_input_operand (&ops[1], value, innermode);
+      create_integer_operand (&ops[2], pos);
+      if (maybe_expand_insn (icode, 3, ops))
+	return true;
     }
 
   /* If the target is a register, overwriting the entire object, or storing
@@ -478,8 +430,10 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       && bitsize == GET_MODE_BITSIZE (fieldmode)
       && (!MEM_P (op0)
 	  ? ((GET_MODE_SIZE (fieldmode) >= UNITS_PER_WORD
-	     || GET_MODE_SIZE (GET_MODE (op0)) == GET_MODE_SIZE (fieldmode))
-	     && byte_offset % GET_MODE_SIZE (fieldmode) == 0)
+	      || GET_MODE_SIZE (GET_MODE (op0)) == GET_MODE_SIZE (fieldmode))
+	     && ((GET_MODE (op0) == fieldmode && byte_offset == 0)
+		 || validate_subreg (fieldmode, GET_MODE (op0), op0,
+				     byte_offset)))
 	  : (! SLOW_UNALIGNED_ACCESS (fieldmode, MEM_ALIGN (op0))
 	     || (offset * BITS_PER_UNIT % bitsize == 0
 		 && MEM_ALIGN (op0) % GET_MODE_BITSIZE (fieldmode) == 0))))
@@ -513,6 +467,7 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
   /* We may be accessing data outside the field, which means
      we can alias adjacent data.  */
+  /* ?? not always for C++0x memory model ?? */
   if (MEM_P (op0))
     {
       op0 = shallow_copy_rtx (op0);
@@ -534,47 +489,36 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
   if (!MEM_P (op0)
       && (BYTES_BIG_ENDIAN ? bitpos + bitsize == unit : bitpos == 0)
       && bitsize == GET_MODE_BITSIZE (fieldmode)
-      && (optab_handler (movstrict_optab, fieldmode)->insn_code
-	  != CODE_FOR_nothing))
+      && optab_handler (movstrict_optab, fieldmode) != CODE_FOR_nothing)
     {
-      int icode = optab_handler (movstrict_optab, fieldmode)->insn_code;
-      rtx insn;
-      rtx start = get_last_insn ();
+      struct expand_operand ops[2];
+      enum insn_code icode = optab_handler (movstrict_optab, fieldmode);
       rtx arg0 = op0;
+      unsigned HOST_WIDE_INT subreg_off;
 
-      /* Get appropriate low part of the value being stored.  */
-      if (CONST_INT_P (value) || REG_P (value))
-	value = gen_lowpart (fieldmode, value);
-      else if (!(GET_CODE (value) == SYMBOL_REF
-		 || GET_CODE (value) == LABEL_REF
-		 || GET_CODE (value) == CONST))
-	value = convert_to_mode (fieldmode, value, 0);
-
-      if (! (*insn_data[icode].operand[1].predicate) (value, fieldmode))
-	value = copy_to_mode_reg (fieldmode, value);
-
-      if (GET_CODE (op0) == SUBREG)
+      if (GET_CODE (arg0) == SUBREG)
 	{
 	  /* Else we've got some float mode source being extracted into
 	     a different float mode destination -- this combination of
 	     subregs results in Severe Tire Damage.  */
-	  gcc_assert (GET_MODE (SUBREG_REG (op0)) == fieldmode
+	  gcc_assert (GET_MODE (SUBREG_REG (arg0)) == fieldmode
 		      || GET_MODE_CLASS (fieldmode) == MODE_INT
 		      || GET_MODE_CLASS (fieldmode) == MODE_PARTIAL_INT);
-	  arg0 = SUBREG_REG (op0);
+	  arg0 = SUBREG_REG (arg0);
 	}
 
-      insn = (GEN_FCN (icode)
-		 (gen_rtx_SUBREG (fieldmode, arg0,
-				  (bitnum % BITS_PER_WORD) / BITS_PER_UNIT
-				  + (offset * UNITS_PER_WORD)),
-				  value));
-      if (insn)
+      subreg_off = (bitnum % BITS_PER_WORD) / BITS_PER_UNIT
+		   + (offset * UNITS_PER_WORD);
+      if (validate_subreg (fieldmode, GET_MODE (arg0), arg0, subreg_off))
 	{
-	  emit_insn (insn);
-	  return true;
+	  arg0 = gen_rtx_SUBREG (fieldmode, arg0, subreg_off);
+
+	  create_fixed_operand (&ops[0], arg0);
+	  /* Shrink the source operand to FIELDMODE.  */
+	  create_convert_operand_to (&ops[1], value, fieldmode, false);
+	  if (maybe_expand_insn (icode, 2, ops))
+	    return true;
 	}
-      delete_insns_since (start);
     }
 
   /* Handle fields bigger than a word.  */
@@ -616,7 +560,9 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
 	  if (!store_bit_field_1 (op0, MIN (BITS_PER_WORD,
 					    bitsize - i * BITS_PER_WORD),
-				  bitnum + bit_offset, word_mode,
+				  bitnum + bit_offset,
+				  bitregion_start, bitregion_end,
+				  word_mode,
 				  value_word, fallback_p))
 	    {
 	      delete_insns_since (last);
@@ -675,16 +621,13 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       && bitsize > 0
       && GET_MODE_BITSIZE (op_mode) >= bitsize
       && ! ((REG_P (op0) || GET_CODE (op0) == SUBREG)
-	    && (bitsize + bitpos > GET_MODE_BITSIZE (op_mode)))
-      && insn_data[CODE_FOR_insv].operand[1].predicate (GEN_INT (bitsize),
-							VOIDmode)
-      && check_predicate_volatile_ok (CODE_FOR_insv, 0, op0, VOIDmode))
+	    && (bitsize + bitpos > GET_MODE_BITSIZE (op_mode))))
     {
+      struct expand_operand ops[4];
       int xbitpos = bitpos;
       rtx value1;
       rtx xop0 = op0;
       rtx last = get_last_insn ();
-      rtx pat;
       bool copy_back = false;
 
       /* Add OFFSET into OP0's address.  */
@@ -707,9 +650,8 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	 X) 0)) is (reg:N X).  */
       if (GET_CODE (xop0) == SUBREG
 	  && REG_P (SUBREG_REG (xop0))
-	  && (!TRULY_NOOP_TRUNCATION
-	      (GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (xop0))),
-	       GET_MODE_BITSIZE (op_mode))))
+	  && (!TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (SUBREG_REG (xop0)),
+					      op_mode)))
 	{
 	  rtx tem = gen_reg_rtx (op_mode);
 	  emit_move_insn (tem, xop0);
@@ -765,17 +707,12 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	    gcc_assert (CONSTANT_P (value));
 	}
 
-      /* If this machine's insv insists on a register,
-	 get VALUE1 into a register.  */
-      if (! ((*insn_data[(int) CODE_FOR_insv].operand[3].predicate)
-	     (value1, op_mode)))
-	value1 = force_reg (op_mode, value1);
-
-      pat = gen_insv (xop0, GEN_INT (bitsize), GEN_INT (xbitpos), value1);
-      if (pat)
+      create_fixed_operand (&ops[0], xop0);
+      create_integer_operand (&ops[1], bitsize);
+      create_integer_operand (&ops[2], xbitpos);
+      create_input_operand (&ops[3], value1, op_mode);
+      if (maybe_expand_insn (CODE_FOR_insv, 4, ops))
 	{
-	  emit_insn (pat);
-
 	  if (copy_back)
 	    convert_move (op0, xop0, true);
 	  return true;
@@ -788,6 +725,10 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
   if (HAVE_insv && MEM_P (op0))
     {
       enum machine_mode bestmode;
+      unsigned HOST_WIDE_INT maxbits = MAX_FIXED_MODE_SIZE;
+
+      if (bitregion_end)
+	maxbits = bitregion_end - bitregion_start + 1;
 
       /* Get the mode to use for inserting into this field.  If OP0 is
 	 BLKmode, get the smallest mode consistent with the alignment. If
@@ -795,9 +736,12 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	 mode. Otherwise, use the smallest mode containing the field.  */
 
       if (GET_MODE (op0) == BLKmode
+	  || GET_MODE_BITSIZE (GET_MODE (op0)) > maxbits
 	  || (op_mode != MAX_MACHINE_MODE
 	      && GET_MODE_SIZE (GET_MODE (op0)) > GET_MODE_SIZE (op_mode)))
-	bestmode = get_best_mode (bitsize, bitnum, MEM_ALIGN (op0),
+	bestmode = get_best_mode  (bitsize, bitnum,
+				  bitregion_start, bitregion_end,
+				  MEM_ALIGN (op0),
 				  (op_mode == MAX_MACHINE_MODE
 				   ? VOIDmode : op_mode),
 				  MEM_VOLATILE_P (op0));
@@ -826,6 +770,7 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	     the unit.  */
 	  tempreg = copy_to_reg (xop0);
 	  if (store_bit_field_1 (tempreg, bitsize, xbitpos,
+				 bitregion_start, bitregion_end,
 				 fieldmode, orig_value, false))
 	    {
 	      emit_move_insn (xop0, tempreg);
@@ -838,21 +783,59 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
   if (!fallback_p)
     return false;
 
-  store_fixed_bit_field (op0, offset, bitsize, bitpos, value);
+  store_fixed_bit_field (op0, offset, bitsize, bitpos,
+			 bitregion_start, bitregion_end, value);
   return true;
 }
 
 /* Generate code to store value from rtx VALUE
    into a bit-field within structure STR_RTX
    containing BITSIZE bits starting at bit BITNUM.
+
+   BITREGION_START is bitpos of the first bitfield in this region.
+   BITREGION_END is the bitpos of the ending bitfield in this region.
+   These two fields are 0, if the C++ memory model does not apply,
+   or we are not interested in keeping track of bitfield regions.
+
    FIELDMODE is the machine-mode of the FIELD_DECL node for this field.  */
 
 void
 store_bit_field (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
-		 unsigned HOST_WIDE_INT bitnum, enum machine_mode fieldmode,
+		 unsigned HOST_WIDE_INT bitnum,
+		 unsigned HOST_WIDE_INT bitregion_start,
+		 unsigned HOST_WIDE_INT bitregion_end,
+		 enum machine_mode fieldmode,
 		 rtx value)
 {
-  if (!store_bit_field_1 (str_rtx, bitsize, bitnum, fieldmode, value, true))
+  /* Under the C++0x memory model, we must not touch bits outside the
+     bit region.  Adjust the address to start at the beginning of the
+     bit region.  */
+  if (MEM_P (str_rtx)
+      && bitregion_start > 0)
+    {
+      enum machine_mode bestmode;
+      enum machine_mode op_mode;
+      unsigned HOST_WIDE_INT offset;
+
+      op_mode = mode_for_extraction (EP_insv, 3);
+      if (op_mode == MAX_MACHINE_MODE)
+	op_mode = VOIDmode;
+
+      offset = bitregion_start / BITS_PER_UNIT;
+      bitnum -= bitregion_start;
+      bitregion_end -= bitregion_start;
+      bitregion_start = 0;
+      bestmode = get_best_mode (bitsize, bitnum,
+				bitregion_start, bitregion_end,
+				MEM_ALIGN (str_rtx),
+				op_mode,
+				MEM_VOLATILE_P (str_rtx));
+      str_rtx = adjust_address (str_rtx, bestmode, offset);
+    }
+
+  if (!store_bit_field_1 (str_rtx, bitsize, bitnum,
+			  bitregion_start, bitregion_end,
+			  fieldmode, value, true))
     gcc_unreachable ();
 }
 
@@ -868,7 +851,10 @@ store_bit_field (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 static void
 store_fixed_bit_field (rtx op0, unsigned HOST_WIDE_INT offset,
 		       unsigned HOST_WIDE_INT bitsize,
-		       unsigned HOST_WIDE_INT bitpos, rtx value)
+		       unsigned HOST_WIDE_INT bitpos,
+		       unsigned HOST_WIDE_INT bitregion_start,
+		       unsigned HOST_WIDE_INT bitregion_end,
+		       rtx value)
 {
   enum machine_mode mode;
   unsigned int total_bits = BITS_PER_WORD;
@@ -889,12 +875,19 @@ store_fixed_bit_field (rtx op0, unsigned HOST_WIDE_INT offset,
       /* Special treatment for a bit field split across two registers.  */
       if (bitsize + bitpos > BITS_PER_WORD)
 	{
-	  store_split_bit_field (op0, bitsize, bitpos, value);
+	  store_split_bit_field (op0, bitsize, bitpos,
+				 bitregion_start, bitregion_end,
+				 value);
 	  return;
 	}
     }
   else
     {
+      unsigned HOST_WIDE_INT maxbits = MAX_FIXED_MODE_SIZE;
+
+      if (bitregion_end)
+	maxbits = bitregion_end - bitregion_start + 1;
+
       /* Get the proper mode to use for this field.  We want a mode that
 	 includes the entire field.  If such a mode would be larger than
 	 a word, we won't be doing the extraction the normal way.
@@ -904,15 +897,23 @@ store_fixed_bit_field (rtx op0, unsigned HOST_WIDE_INT offset,
       if (GET_MODE_BITSIZE (mode) == 0
 	  || GET_MODE_BITSIZE (mode) > GET_MODE_BITSIZE (word_mode))
 	mode = word_mode;
-      mode = get_best_mode (bitsize, bitpos + offset * BITS_PER_UNIT,
-			    MEM_ALIGN (op0), mode, MEM_VOLATILE_P (op0));
+
+      if (MEM_VOLATILE_P (op0)
+          && GET_MODE_BITSIZE (GET_MODE (op0)) > 0
+	  && GET_MODE_BITSIZE (GET_MODE (op0)) <= maxbits
+	  && flag_strict_volatile_bitfields > 0)
+	mode = GET_MODE (op0);
+      else
+	mode = get_best_mode (bitsize, bitpos + offset * BITS_PER_UNIT,
+			      bitregion_start, bitregion_end,
+			      MEM_ALIGN (op0), mode, MEM_VOLATILE_P (op0));
 
       if (mode == VOIDmode)
 	{
 	  /* The only way this should occur is if the field spans word
 	     boundaries.  */
 	  store_split_bit_field (op0, bitsize, bitpos + offset * BITS_PER_UNIT,
-				 value);
+				 bitregion_start, bitregion_end, value);
 	  return;
 	}
 
@@ -987,7 +988,7 @@ store_fixed_bit_field (rtx op0, unsigned HOST_WIDE_INT offset,
 			      NULL_RTX, 1, OPTAB_LIB_WIDEN);
       if (bitpos > 0)
 	value = expand_shift (LSHIFT_EXPR, mode, value,
-			      build_int_cst (NULL_TREE, bitpos), NULL_RTX, 1);
+			      bitpos, NULL_RTX, 1);
     }
 
   /* Now clear the chosen bits in OP0,
@@ -1032,7 +1033,10 @@ store_fixed_bit_field (rtx op0, unsigned HOST_WIDE_INT offset,
 
 static void
 store_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
-		       unsigned HOST_WIDE_INT bitpos, rtx value)
+		       unsigned HOST_WIDE_INT bitpos,
+		       unsigned HOST_WIDE_INT bitregion_start,
+		       unsigned HOST_WIDE_INT bitregion_end,
+		       rtx value)
 {
   unsigned int unit;
   unsigned int bitsdone = 0;
@@ -1099,7 +1103,7 @@ store_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 	       endianness compensation) to fetch the piece we want.  */
 	    part = extract_fixed_bit_field (word_mode, value, 0, thissize,
 					    total_bits - bitsize + bitsdone,
-					    NULL_RTX, 1);
+					    NULL_RTX, 1, false);
 	}
       else
 	{
@@ -1110,7 +1114,7 @@ store_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 			    & (((HOST_WIDE_INT) 1 << thissize) - 1));
 	  else
 	    part = extract_fixed_bit_field (word_mode, value, 0, thissize,
-					    bitsdone, NULL_RTX, 1);
+					    bitsdone, NULL_RTX, 1, false);
 	}
 
       /* If OP0 is a register, then handle OFFSET here.
@@ -1122,22 +1126,32 @@ store_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
       if (GET_CODE (op0) == SUBREG)
 	{
 	  int word_offset = (SUBREG_BYTE (op0) / UNITS_PER_WORD) + offset;
-	  word = operand_subword_force (SUBREG_REG (op0), word_offset,
-					GET_MODE (SUBREG_REG (op0)));
+	  enum machine_mode sub_mode = GET_MODE (SUBREG_REG (op0));
+	  if (sub_mode != BLKmode && GET_MODE_SIZE (sub_mode) < UNITS_PER_WORD)
+	    word = word_offset ? const0_rtx : op0;
+	  else
+	    word = operand_subword_force (SUBREG_REG (op0), word_offset,
+					  GET_MODE (SUBREG_REG (op0)));
 	  offset = 0;
 	}
       else if (REG_P (op0))
 	{
-	  word = operand_subword_force (op0, offset, GET_MODE (op0));
+	  enum machine_mode op0_mode = GET_MODE (op0);
+	  if (op0_mode != BLKmode && GET_MODE_SIZE (op0_mode) < UNITS_PER_WORD)
+	    word = offset ? const0_rtx : op0;
+	  else
+	    word = operand_subword_force (op0, offset, GET_MODE (op0));
 	  offset = 0;
 	}
       else
 	word = op0;
 
       /* OFFSET is in UNITs, and UNIT is in bits.
-         store_fixed_bit_field wants offset in bytes.  */
-      store_fixed_bit_field (word, offset * unit / BITS_PER_UNIT, thissize,
-			     thispos, part);
+	 store_fixed_bit_field wants offset in bytes.  If WORD is const0_rtx,
+	 it is just an out-of-bounds access.  Ignore it.  */
+      if (word != const0_rtx)
+	store_fixed_bit_field (word, offset * unit / BITS_PER_UNIT, thissize,
+			       thispos, bitregion_start, bitregion_end, part);
       bitsdone += thissize;
     }
 }
@@ -1176,7 +1190,8 @@ convert_extracted_bit_field (rtx x, enum machine_mode mode,
 
 static rtx
 extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
-		     unsigned HOST_WIDE_INT bitnum, int unsignedp, rtx target,
+		     unsigned HOST_WIDE_INT bitnum,
+		     int unsignedp, bool packedp, rtx target,
 		     enum machine_mode mode, enum machine_mode tmode,
 		     bool fallback_p)
 {
@@ -1187,7 +1202,6 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
   enum machine_mode int_mode;
   enum machine_mode ext_mode;
   enum machine_mode mode1;
-  enum insn_code icode;
   int byte_offset;
 
   if (tmode == VOIDmode)
@@ -1220,7 +1234,6 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       && GET_MODE_INNER (GET_MODE (op0)) != tmode)
     {
       enum machine_mode new_mode;
-      int nunits = GET_MODE_NUNITS (GET_MODE (op0));
 
       if (GET_MODE_CLASS (tmode) == MODE_FLOAT)
 	new_mode = MIN_MODE_VECTOR_FLOAT;
@@ -1236,8 +1249,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	new_mode = MIN_MODE_VECTOR_INT;
 
       for (; new_mode != VOIDmode ; new_mode = GET_MODE_WIDER_MODE (new_mode))
-	if (GET_MODE_NUNITS (new_mode) == nunits
-	    && GET_MODE_SIZE (new_mode) == GET_MODE_SIZE (GET_MODE (op0))
+	if (GET_MODE_SIZE (new_mode) == GET_MODE_SIZE (GET_MODE (op0))
 	    && targetm.vector_mode_supported_p (new_mode))
 	  break;
       if (new_mode != VOIDmode)
@@ -1248,55 +1260,25 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
      available.  */
   if (VECTOR_MODE_P (GET_MODE (op0))
       && !MEM_P (op0)
-      && (optab_handler (vec_extract_optab, GET_MODE (op0))->insn_code
-	  != CODE_FOR_nothing)
+      && optab_handler (vec_extract_optab, GET_MODE (op0)) != CODE_FOR_nothing
       && ((bitnum + bitsize - 1) / GET_MODE_BITSIZE (GET_MODE_INNER (GET_MODE (op0)))
 	  == bitnum / GET_MODE_BITSIZE (GET_MODE_INNER (GET_MODE (op0)))))
     {
+      struct expand_operand ops[3];
       enum machine_mode outermode = GET_MODE (op0);
       enum machine_mode innermode = GET_MODE_INNER (outermode);
-      int icode = (int) optab_handler (vec_extract_optab, outermode)->insn_code;
+      enum insn_code icode = optab_handler (vec_extract_optab, outermode);
       unsigned HOST_WIDE_INT pos = bitnum / GET_MODE_BITSIZE (innermode);
-      rtx rtxpos = GEN_INT (pos);
-      rtx src = op0;
-      rtx dest = NULL, pat, seq;
-      enum machine_mode mode0 = insn_data[icode].operand[0].mode;
-      enum machine_mode mode1 = insn_data[icode].operand[1].mode;
-      enum machine_mode mode2 = insn_data[icode].operand[2].mode;
 
-      if (innermode == tmode || innermode == mode)
-	dest = target;
-
-      if (!dest)
-	dest = gen_reg_rtx (innermode);
-
-      start_sequence ();
-
-      if (! (*insn_data[icode].operand[0].predicate) (dest, mode0))
-	dest = copy_to_mode_reg (mode0, dest);
-
-      if (! (*insn_data[icode].operand[1].predicate) (src, mode1))
-	src = copy_to_mode_reg (mode1, src);
-
-      if (! (*insn_data[icode].operand[2].predicate) (rtxpos, mode2))
-	rtxpos = copy_to_mode_reg (mode1, rtxpos);
-
-      /* We could handle this, but we should always be called with a pseudo
-	 for our targets and all insns should take them as outputs.  */
-      gcc_assert ((*insn_data[icode].operand[0].predicate) (dest, mode0)
-		  && (*insn_data[icode].operand[1].predicate) (src, mode1)
-		  && (*insn_data[icode].operand[2].predicate) (rtxpos, mode2));
-
-      pat = GEN_FCN (icode) (dest, src, rtxpos);
-      seq = get_insns ();
-      end_sequence ();
-      if (pat)
+      create_output_operand (&ops[0], target, innermode);
+      create_input_operand (&ops[1], op0, outermode);
+      create_integer_operand (&ops[2], pos);
+      if (maybe_expand_insn (icode, 3, ops))
 	{
-	  emit_insn (seq);
-	  emit_insn (pat);
-      	  if (mode0 != mode)
-	    return gen_lowpart (tmode, dest);
-	  return dest;
+	  target = ops[0].value;
+      	  if (GET_MODE (target) != mode)
+	    return gen_lowpart (tmode, target);
+	  return target;
 	}
     }
 
@@ -1378,6 +1360,14 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	    ? mode_for_size (bitsize, GET_MODE_CLASS (tmode), 0)
 	    : mode);
 
+  /* If the bitfield is volatile, we need to make sure the access
+     remains on a type-aligned boundary.  */
+  if (GET_CODE (op0) == MEM
+      && MEM_VOLATILE_P (op0)
+      && GET_MODE_BITSIZE (GET_MODE (op0)) > 0
+      && flag_strict_volatile_bitfields > 0)
+    goto no_subreg_mode_swap;
+
   if (((bitsize >= BITS_PER_WORD && bitsize == GET_MODE_BITSIZE (mode)
 	&& bitpos % BITS_PER_WORD == 0)
        || (mode1 != BLKmode
@@ -1389,8 +1379,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	       ? bitpos + bitsize == BITS_PER_WORD
 	       : bitpos == 0)))
       && ((!MEM_P (op0)
-	   && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode1),
-				     GET_MODE_BITSIZE (GET_MODE (op0)))
+	   && TRULY_NOOP_TRUNCATION_MODES_P (mode1, GET_MODE (op0))
 	   && GET_MODE_SIZE (mode1) != 0
 	   && byte_offset % GET_MODE_SIZE (mode1) == 0)
 	  || (MEM_P (op0)
@@ -1426,7 +1415,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       unsigned int nwords = (bitsize + (BITS_PER_WORD - 1)) / BITS_PER_WORD;
       unsigned int i;
 
-      if (target == 0 || !REG_P (target))
+      if (target == 0 || !REG_P (target) || !valid_multiword_target_p (target))
 	target = gen_reg_rtx (mode);
 
       /* Indicate for flow that the entire target reg is being set.  */
@@ -1450,7 +1439,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	  rtx result_part
 	    = extract_bit_field (op0, MIN (BITS_PER_WORD,
 					   bitsize - i * BITS_PER_WORD),
-				 bitnum + bit_offset, 1, target_part, mode,
+				 bitnum + bit_offset, 1, false, target_part, mode,
 				 word_mode);
 
 	  gcc_assert (target_part);
@@ -1480,13 +1469,9 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
       /* Signed bit field: sign-extend with two arithmetic shifts.  */
       target = expand_shift (LSHIFT_EXPR, mode, target,
-			     build_int_cst (NULL_TREE,
-					    GET_MODE_BITSIZE (mode) - bitsize),
-			     NULL_RTX, 0);
+			     GET_MODE_BITSIZE (mode) - bitsize, NULL_RTX, 0);
       return expand_shift (RSHIFT_EXPR, mode, target,
-			   build_int_cst (NULL_TREE,
-					  GET_MODE_BITSIZE (mode) - bitsize),
-			   NULL_RTX, 0);
+			   GET_MODE_BITSIZE (mode) - bitsize, NULL_RTX, 0);
     }
 
   /* From here on we know the desired field is smaller than a word.  */
@@ -1519,7 +1504,6 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
   /* Now OFFSET is nonzero only for memory operands.  */
   ext_mode = mode_for_extraction (unsignedp ? EP_extzv : EP_extv, 0);
-  icode = unsignedp ? CODE_FOR_extzv : CODE_FOR_extv;
   if (ext_mode != MAX_MACHINE_MODE
       && bitsize > 0
       && GET_MODE_BITSIZE (ext_mode) >= bitsize
@@ -1527,17 +1511,14 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	 acceptable to the format of ext(z)v.  */
       && !(GET_CODE (op0) == SUBREG && GET_MODE (op0) != ext_mode)
       && !((REG_P (op0) || GET_CODE (op0) == SUBREG)
-	   && (bitsize + bitpos > GET_MODE_BITSIZE (ext_mode)))
-      && check_predicate_volatile_ok (icode, 1, op0, GET_MODE (op0)))
+	   && (bitsize + bitpos > GET_MODE_BITSIZE (ext_mode))))
     {
+      struct expand_operand ops[4];
       unsigned HOST_WIDE_INT xbitpos = bitpos, xoffset = offset;
-      rtx bitsize_rtx, bitpos_rtx;
-      rtx last = get_last_insn ();
       rtx xop0 = op0;
       rtx xtarget = target;
       rtx xspec_target = target;
       rtx xspec_target_subreg = 0;
-      rtx pat;
 
       /* If op0 is a register, we need it in EXT_MODE to make it
 	 acceptable to the format of ext(z)v.  */
@@ -1568,39 +1549,31 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	     mode.  Instead, create a temporary and use convert_move to set
 	     the target.  */
 	  if (REG_P (xtarget)
-	      && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (xtarget)),
-					GET_MODE_BITSIZE (ext_mode)))
+	      && TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (xtarget), ext_mode))
 	    {
 	      xtarget = gen_lowpart (ext_mode, xtarget);
-	      if (GET_MODE_SIZE (ext_mode)
-		  > GET_MODE_SIZE (GET_MODE (xspec_target)))
+	      if (GET_MODE_PRECISION (ext_mode)
+		  > GET_MODE_PRECISION (GET_MODE (xspec_target)))
 		xspec_target_subreg = xtarget;
 	    }
 	  else
 	    xtarget = gen_reg_rtx (ext_mode);
 	}
 
-      /* If this machine's ext(z)v insists on a register target,
-	 make sure we have one.  */
-      if (!insn_data[(int) icode].operand[0].predicate (xtarget, ext_mode))
-	xtarget = gen_reg_rtx (ext_mode);
-
-      bitsize_rtx = GEN_INT (bitsize);
-      bitpos_rtx = GEN_INT (xbitpos);
-
-      pat = (unsignedp
-	     ? gen_extzv (xtarget, xop0, bitsize_rtx, bitpos_rtx)
-	     : gen_extv (xtarget, xop0, bitsize_rtx, bitpos_rtx));
-      if (pat)
+      create_output_operand (&ops[0], xtarget, ext_mode);
+      create_fixed_operand (&ops[1], xop0);
+      create_integer_operand (&ops[2], bitsize);
+      create_integer_operand (&ops[3], xbitpos);
+      if (maybe_expand_insn (unsignedp ? CODE_FOR_extzv : CODE_FOR_extv,
+			     4, ops))
 	{
-	  emit_insn (pat);
+	  xtarget = ops[0].value;
 	  if (xtarget == xspec_target)
 	    return xtarget;
 	  if (xtarget == xspec_target_subreg)
 	    return xspec_target;
 	  return convert_extracted_bit_field (xtarget, mode, tmode, unsignedp);
 	}
-      delete_insns_since (last);
     }
 
   /* If OP0 is a memory, try copying it to a register and seeing if a
@@ -1618,7 +1591,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       if (GET_MODE (op0) == BLKmode
 	  || (ext_mode != MAX_MACHINE_MODE
 	      && GET_MODE_SIZE (GET_MODE (op0)) > GET_MODE_SIZE (ext_mode)))
-	bestmode = get_best_mode (bitsize, bitnum, MEM_ALIGN (op0),
+	bestmode = get_best_mode (bitsize, bitnum, 0, 0, MEM_ALIGN (op0),
 				  (ext_mode == MAX_MACHINE_MODE
 				   ? VOIDmode : ext_mode),
 				  MEM_VOLATILE_P (op0));
@@ -1649,7 +1622,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	      xop0 = adjust_address (op0, bestmode, xoffset);
 	      xop0 = force_reg (bestmode, xop0);
 	      result = extract_bit_field_1 (xop0, bitsize, xbitpos,
-					    unsignedp, target,
+					    unsignedp, packedp, target,
 					    mode, tmode, false);
 	      if (result)
 		return result;
@@ -1663,7 +1636,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
     return NULL;
 
   target = extract_fixed_bit_field (int_mode, op0, offset, bitsize,
-				    bitpos, target, unsignedp);
+				    bitpos, target, unsignedp, packedp);
   return convert_extracted_bit_field (target, mode, tmode, unsignedp);
 }
 
@@ -1674,6 +1647,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
    STR_RTX is the structure containing the byte (a REG or MEM).
    UNSIGNEDP is nonzero if this is an unsigned bit field.
+   PACKEDP is nonzero if the field has the packed attribute.
    MODE is the natural mode of the field value once extracted.
    TMODE is the mode the caller would like the value to have;
    but the value may be returned with type MODE instead.
@@ -1685,10 +1659,10 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
 rtx
 extract_bit_field (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
-		   unsigned HOST_WIDE_INT bitnum, int unsignedp, rtx target,
-		   enum machine_mode mode, enum machine_mode tmode)
+		   unsigned HOST_WIDE_INT bitnum, int unsignedp, bool packedp,
+		   rtx target, enum machine_mode mode, enum machine_mode tmode)
 {
-  return extract_bit_field_1 (str_rtx, bitsize, bitnum, unsignedp,
+  return extract_bit_field_1 (str_rtx, bitsize, bitnum, unsignedp, packedp,
 			      target, mode, tmode, true);
 }
 
@@ -1704,6 +1678,8 @@ extract_bit_field (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
      which is significant on bigendian machines.)
 
    UNSIGNEDP is nonzero for an unsigned bit field (don't sign-extend value).
+   PACKEDP is true if the field has the packed attribute.
+
    If TARGET is nonzero, attempts to store the value there
    and return TARGET, but this is not guaranteed.
    If TARGET is not used, create a pseudo-reg of mode TMODE for the value.  */
@@ -1713,7 +1689,7 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 			 unsigned HOST_WIDE_INT offset,
 			 unsigned HOST_WIDE_INT bitsize,
 			 unsigned HOST_WIDE_INT bitpos, rtx target,
-			 int unsignedp)
+			 int unsignedp, bool packedp)
 {
   unsigned int total_bits = BITS_PER_WORD;
   enum machine_mode mode;
@@ -1730,8 +1706,19 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 	 includes the entire field.  If such a mode would be larger than
 	 a word, we won't be doing the extraction the normal way.  */
 
-      mode = get_best_mode (bitsize, bitpos + offset * BITS_PER_UNIT,
-			    MEM_ALIGN (op0), word_mode, MEM_VOLATILE_P (op0));
+      if (MEM_VOLATILE_P (op0)
+	  && flag_strict_volatile_bitfields > 0)
+	{
+	  if (GET_MODE_BITSIZE (GET_MODE (op0)) > 0)
+	    mode = GET_MODE (op0);
+	  else if (target && GET_MODE_BITSIZE (GET_MODE (target)) > 0)
+	    mode = GET_MODE (target);
+	  else
+	    mode = tmode;
+	}
+      else
+	mode = get_best_mode (bitsize, bitpos + offset * BITS_PER_UNIT, 0, 0,
+			      MEM_ALIGN (op0), word_mode, MEM_VOLATILE_P (op0));
 
       if (mode == VOIDmode)
 	/* The only way this should occur is if the field spans word
@@ -1752,12 +1739,67 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 		     * BITS_PER_UNIT);
 	}
 
-      /* Get ref to an aligned byte, halfword, or word containing the field.
-	 Adjust BITPOS to be position within a word,
-	 and OFFSET to be the offset of that word.
-	 Then alter OP0 to refer to that word.  */
-      bitpos += (offset % (total_bits / BITS_PER_UNIT)) * BITS_PER_UNIT;
-      offset -= (offset % (total_bits / BITS_PER_UNIT));
+      /* If we're accessing a volatile MEM, we can't do the next
+	 alignment step if it results in a multi-word access where we
+	 otherwise wouldn't have one.  So, check for that case
+	 here.  */
+      if (MEM_P (op0)
+	  && MEM_VOLATILE_P (op0)
+	  && flag_strict_volatile_bitfields > 0
+	  && bitpos + bitsize <= total_bits
+	  && bitpos + bitsize + (offset % (total_bits / BITS_PER_UNIT)) * BITS_PER_UNIT > total_bits)
+	{
+	  if (STRICT_ALIGNMENT)
+	    {
+	      static bool informed_about_misalignment = false;
+	      bool warned;
+
+	      if (packedp)
+		{
+		  if (bitsize == total_bits)
+		    warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
+					 "multiple accesses to volatile structure member"
+					 " because of packed attribute");
+		  else
+		    warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
+					 "multiple accesses to volatile structure bitfield"
+					 " because of packed attribute");
+
+		  return extract_split_bit_field (op0, bitsize,
+						  bitpos + offset * BITS_PER_UNIT,
+						  unsignedp);
+		}
+
+	      if (bitsize == total_bits)
+		warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
+				     "mis-aligned access used for structure member");
+	      else
+		warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
+				     "mis-aligned access used for structure bitfield");
+
+	      if (! informed_about_misalignment && warned)
+		{
+		  informed_about_misalignment = true;
+		  inform (input_location,
+			  "when a volatile object spans multiple type-sized locations,"
+			  " the compiler must choose between using a single mis-aligned access to"
+			  " preserve the volatility, or using multiple aligned accesses to avoid"
+			  " runtime faults; this code may fail at runtime if the hardware does"
+			  " not allow this access");
+		}
+	    }
+	}
+      else
+	{
+
+	  /* Get ref to an aligned byte, halfword, or word containing the field.
+	     Adjust BITPOS to be position within a word,
+	     and OFFSET to be the offset of that word.
+	     Then alter OP0 to refer to that word.  */
+	  bitpos += (offset % (total_bits / BITS_PER_UNIT)) * BITS_PER_UNIT;
+	  offset -= (offset % (total_bits / BITS_PER_UNIT));
+	}
+
       op0 = adjust_address (op0, mode, offset);
     }
 
@@ -1777,12 +1819,11 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 	{
 	  /* If the field does not already start at the lsb,
 	     shift it so it does.  */
-	  tree amount = build_int_cst (NULL_TREE, bitpos);
 	  /* Maybe propagate the target for the shift.  */
 	  /* But not if we will return it--could confuse integrate.c.  */
 	  rtx subtarget = (target != 0 && REG_P (target) ? target : 0);
 	  if (tmode != mode) subtarget = 0;
-	  op0 = expand_shift (RSHIFT_EXPR, mode, op0, amount, subtarget, 1);
+	  op0 = expand_shift (RSHIFT_EXPR, mode, op0, bitpos, subtarget, 1);
 	}
       /* Convert the value to the desired mode.  */
       if (mode != tmode)
@@ -1801,8 +1842,6 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
   /* To extract a signed bit-field, first shift its msb to the msb of the word,
      then arithmetic-shift its lsb to the lsb of the word.  */
   op0 = force_reg (mode, op0);
-  if (mode != tmode)
-    target = 0;
 
   /* Find the narrowest integer mode that contains the field.  */
 
@@ -1814,20 +1853,19 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 	break;
       }
 
+  if (mode != tmode)
+    target = 0;
+
   if (GET_MODE_BITSIZE (mode) != (bitsize + bitpos))
     {
-      tree amount
-	= build_int_cst (NULL_TREE,
-			 GET_MODE_BITSIZE (mode) - (bitsize + bitpos));
+      int amount = GET_MODE_BITSIZE (mode) - (bitsize + bitpos);
       /* Maybe propagate the target for the shift.  */
       rtx subtarget = (target != 0 && REG_P (target) ? target : 0);
       op0 = expand_shift (LSHIFT_EXPR, mode, op0, amount, subtarget, 1);
     }
 
   return expand_shift (RSHIFT_EXPR, mode, op0,
-		       build_int_cst (NULL_TREE,
-				      GET_MODE_BITSIZE (mode) - bitsize),
-		       target, 0);
+		       GET_MODE_BITSIZE (mode) - bitsize, target, 0);
 }
 
 /* Return a constant integer (CONST_INT or CONST_DOUBLE) mask value
@@ -1839,39 +1877,15 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 static rtx
 mask_rtx (enum machine_mode mode, int bitpos, int bitsize, int complement)
 {
-  HOST_WIDE_INT masklow, maskhigh;
+  double_int mask;
 
-  if (bitsize == 0)
-    masklow = 0;
-  else if (bitpos < HOST_BITS_PER_WIDE_INT)
-    masklow = (HOST_WIDE_INT) -1 << bitpos;
-  else
-    masklow = 0;
-
-  if (bitpos + bitsize < HOST_BITS_PER_WIDE_INT)
-    masklow &= ((unsigned HOST_WIDE_INT) -1
-		>> (HOST_BITS_PER_WIDE_INT - bitpos - bitsize));
-
-  if (bitpos <= HOST_BITS_PER_WIDE_INT)
-    maskhigh = -1;
-  else
-    maskhigh = (HOST_WIDE_INT) -1 << (bitpos - HOST_BITS_PER_WIDE_INT);
-
-  if (bitsize == 0)
-    maskhigh = 0;
-  else if (bitpos + bitsize > HOST_BITS_PER_WIDE_INT)
-    maskhigh &= ((unsigned HOST_WIDE_INT) -1
-		 >> (2 * HOST_BITS_PER_WIDE_INT - bitpos - bitsize));
-  else
-    maskhigh = 0;
+  mask = double_int_mask (bitsize);
+  mask = double_int_lshift (mask, bitpos, HOST_BITS_PER_DOUBLE_INT, false);
 
   if (complement)
-    {
-      maskhigh = ~maskhigh;
-      masklow = ~masklow;
-    }
+    mask = double_int_not (mask);
 
-  return immed_double_const (masklow, maskhigh, mode);
+  return immed_double_int_const (mask, mode);
 }
 
 /* Return a constant integer (CONST_INT or CONST_DOUBLE) rtx with the value
@@ -1880,24 +1894,12 @@ mask_rtx (enum machine_mode mode, int bitpos, int bitsize, int complement)
 static rtx
 lshift_value (enum machine_mode mode, rtx value, int bitpos, int bitsize)
 {
-  unsigned HOST_WIDE_INT v = INTVAL (value);
-  HOST_WIDE_INT low, high;
+  double_int val;
+  
+  val = double_int_zext (uhwi_to_double_int (INTVAL (value)), bitsize);
+  val = double_int_lshift (val, bitpos, HOST_BITS_PER_DOUBLE_INT, false);
 
-  if (bitsize < HOST_BITS_PER_WIDE_INT)
-    v &= ~((HOST_WIDE_INT) -1 << bitsize);
-
-  if (bitpos < HOST_BITS_PER_WIDE_INT)
-    {
-      low = v << bitpos;
-      high = (bitpos > 0 ? (v >> (HOST_BITS_PER_WIDE_INT - bitpos)) : 0);
-    }
-  else
-    {
-      low = 0;
-      high = v << (bitpos - HOST_BITS_PER_WIDE_INT);
-    }
-
-  return immed_double_const (low, high, mode);
+  return immed_double_int_const (val, mode);
 }
 
 /* Extract a bit field that is split across two words
@@ -1966,7 +1968,7 @@ extract_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 	 extract_fixed_bit_field wants offset in bytes.  */
       part = extract_fixed_bit_field (word_mode, word,
 				      offset * unit / BITS_PER_UNIT,
-				      thissize, thispos, 0, 1);
+				      thissize, thispos, 0, 1, false);
       bitsdone += thissize;
 
       /* Shift this part into place for the result.  */
@@ -1974,15 +1976,13 @@ extract_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 	{
 	  if (bitsize != bitsdone)
 	    part = expand_shift (LSHIFT_EXPR, word_mode, part,
-				 build_int_cst (NULL_TREE, bitsize - bitsdone),
-				 0, 1);
+				 bitsize - bitsdone, 0, 1);
 	}
       else
 	{
 	  if (bitsdone != thissize)
 	    part = expand_shift (LSHIFT_EXPR, word_mode, part,
-				 build_int_cst (NULL_TREE,
-						bitsdone - thissize), 0, 1);
+				 bitsdone - thissize, 0, 1);
 	}
 
       if (first)
@@ -2001,11 +2001,9 @@ extract_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
     return result;
   /* Signed bit field: sign-extend with two arithmetic shifts.  */
   result = expand_shift (LSHIFT_EXPR, word_mode, result,
-			 build_int_cst (NULL_TREE, BITS_PER_WORD - bitsize),
-			 NULL_RTX, 0);
+			 BITS_PER_WORD - bitsize, NULL_RTX, 0);
   return expand_shift (RSHIFT_EXPR, word_mode, result,
-		       build_int_cst (NULL_TREE, BITS_PER_WORD - bitsize),
-		       NULL_RTX, 0);
+		       BITS_PER_WORD - bitsize, NULL_RTX, 0);
 }
 
 /* Try to read the low bits of SRC as an rvalue of mode MODE, preserving
@@ -2108,14 +2106,14 @@ expand_dec (rtx target, rtx dec)
 
 /* Output a shift instruction for expression code CODE,
    with SHIFTED being the rtx for the value to shift,
-   and AMOUNT the tree for the amount to shift by.
+   and AMOUNT the rtx for the amount to shift by.
    Store the result in the rtx TARGET, if that is convenient.
    If UNSIGNEDP is nonzero, do a logical shift; otherwise, arithmetic.
    Return the rtx for where the value is.  */
 
-rtx
-expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
-	      tree amount, rtx target, int unsignedp)
+static rtx
+expand_shift_1 (enum tree_code code, enum machine_mode mode, rtx shifted,
+		rtx amount, rtx target, int unsignedp)
 {
   rtx op1, temp = 0;
   int left = (code == LSHIFT_EXPR || code == LROTATE_EXPR);
@@ -2129,7 +2127,7 @@ expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
   int attempt;
   bool speed = optimize_insn_for_speed_p ();
 
-  op1 = expand_normal (amount);
+  op1 = amount;
   op1_mode = GET_MODE (op1);
 
   /* Determine whether the shift/rotate amount is a vector, or scalar.  If the
@@ -2168,7 +2166,7 @@ expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
   if (code == LSHIFT_EXPR
       && CONST_INT_P (op1)
       && INTVAL (op1) > 0
-      && INTVAL (op1) < GET_MODE_BITSIZE (mode)
+      && INTVAL (op1) < GET_MODE_PRECISION (mode)
       && INTVAL (op1) < MAX_BITS_PER_WORD
       && shift_cost[speed][mode][INTVAL (op1)] > INTVAL (op1) * add_cost[speed][mode]
       && shift_cost[speed][mode][INTVAL (op1)] != MAX_COST)
@@ -2214,24 +2212,26 @@ expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
 		 code below.  */
 
 	      rtx subtarget = target == shifted ? 0 : target;
-	      tree new_amount, other_amount;
+	      rtx new_amount, other_amount;
 	      rtx temp1;
-	      tree type = TREE_TYPE (amount);
-	      if (GET_MODE (op1) != TYPE_MODE (type)
-		  && GET_MODE (op1) != VOIDmode)
-		op1 = convert_to_mode (TYPE_MODE (type), op1, 1);
-	      new_amount = make_tree (type, op1);
-	      other_amount
-		= fold_build2 (MINUS_EXPR, type,
-			       build_int_cst (type, GET_MODE_BITSIZE (mode)),
-			       new_amount);
+
+	      new_amount = op1;
+	      if (CONST_INT_P (op1))
+		other_amount = GEN_INT (GET_MODE_BITSIZE (mode)
+					- INTVAL (op1));
+	      else
+		other_amount
+		  = simplify_gen_binary (MINUS, GET_MODE (op1),
+					 GEN_INT (GET_MODE_PRECISION (mode)),
+					 op1);
 
 	      shifted = force_reg (mode, shifted);
 
-	      temp = expand_shift (left ? LSHIFT_EXPR : RSHIFT_EXPR,
-				   mode, shifted, new_amount, 0, 1);
-	      temp1 = expand_shift (left ? RSHIFT_EXPR : LSHIFT_EXPR,
-				    mode, shifted, other_amount, subtarget, 1);
+	      temp = expand_shift_1 (left ? LSHIFT_EXPR : RSHIFT_EXPR,
+				     mode, shifted, new_amount, 0, 1);
+	      temp1 = expand_shift_1 (left ? RSHIFT_EXPR : LSHIFT_EXPR,
+				      mode, shifted, other_amount,
+				      subtarget, 1);
 	      return expand_binop (mode, ior_optab, temp, temp1, target,
 				   unsignedp, methods);
 	    }
@@ -2274,114 +2274,38 @@ expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
   gcc_assert (temp);
   return temp;
 }
-
-enum alg_code {
-  alg_unknown,
-  alg_zero,
-  alg_m, alg_shift,
-  alg_add_t_m2,
-  alg_sub_t_m2,
-  alg_add_factor,
-  alg_sub_factor,
-  alg_add_t2_m,
-  alg_sub_t2_m,
-  alg_impossible
-};
 
-/* This structure holds the "cost" of a multiply sequence.  The
-   "cost" field holds the total rtx_cost of every operator in the
-   synthetic multiplication sequence, hence cost(a op b) is defined
-   as rtx_cost(op) + cost(a) + cost(b), where cost(leaf) is zero.
-   The "latency" field holds the minimum possible latency of the
-   synthetic multiply, on a hypothetical infinitely parallel CPU.
-   This is the critical path, or the maximum height, of the expression
-   tree which is the sum of rtx_costs on the most expensive path from
-   any leaf to the root.  Hence latency(a op b) is defined as zero for
-   leaves and rtx_cost(op) + max(latency(a), latency(b)) otherwise.  */
+/* Output a shift instruction for expression code CODE,
+   with SHIFTED being the rtx for the value to shift,
+   and AMOUNT the amount to shift by.
+   Store the result in the rtx TARGET, if that is convenient.
+   If UNSIGNEDP is nonzero, do a logical shift; otherwise, arithmetic.
+   Return the rtx for where the value is.  */
 
-struct mult_cost {
-  short cost;     /* Total rtx_cost of the multiplication sequence.  */
-  short latency;  /* The latency of the multiplication sequence.  */
-};
-
-/* This macro is used to compare a pointer to a mult_cost against an
-   single integer "rtx_cost" value.  This is equivalent to the macro
-   CHEAPER_MULT_COST(X,Z) where Z = {Y,Y}.  */
-#define MULT_COST_LESS(X,Y) ((X)->cost < (Y)	\
-			     || ((X)->cost == (Y) && (X)->latency < (Y)))
-
-/* This macro is used to compare two pointers to mult_costs against
-   each other.  The macro returns true if X is cheaper than Y.
-   Currently, the cheaper of two mult_costs is the one with the
-   lower "cost".  If "cost"s are tied, the lower latency is cheaper.  */
-#define CHEAPER_MULT_COST(X,Y)  ((X)->cost < (Y)->cost		\
-				 || ((X)->cost == (Y)->cost	\
-				     && (X)->latency < (Y)->latency))
-
-/* This structure records a sequence of operations.
-   `ops' is the number of operations recorded.
-   `cost' is their total cost.
-   The operations are stored in `op' and the corresponding
-   logarithms of the integer coefficients in `log'.
-
-   These are the operations:
-   alg_zero		total := 0;
-   alg_m		total := multiplicand;
-   alg_shift		total := total * coeff
-   alg_add_t_m2		total := total + multiplicand * coeff;
-   alg_sub_t_m2		total := total - multiplicand * coeff;
-   alg_add_factor	total := total * coeff + total;
-   alg_sub_factor	total := total * coeff - total;
-   alg_add_t2_m		total := total * coeff + multiplicand;
-   alg_sub_t2_m		total := total * coeff - multiplicand;
-
-   The first operand must be either alg_zero or alg_m.  */
-
-struct algorithm
+rtx
+expand_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
+	      int amount, rtx target, int unsignedp)
 {
-  struct mult_cost cost;
-  short ops;
-  /* The size of the OP and LOG fields are not directly related to the
-     word size, but the worst-case algorithms will be if we have few
-     consecutive ones or zeros, i.e., a multiplicand like 10101010101...
-     In that case we will generate shift-by-2, add, shift-by-2, add,...,
-     in total wordsize operations.  */
-  enum alg_code op[MAX_BITS_PER_WORD];
-  char log[MAX_BITS_PER_WORD];
-};
+  return expand_shift_1 (code, mode,
+			 shifted, GEN_INT (amount), target, unsignedp);
+}
 
-/* The entry for our multiplication cache/hash table.  */
-struct alg_hash_entry {
-  /* The number we are multiplying by.  */
-  unsigned HOST_WIDE_INT t;
+/* Output a shift instruction for expression code CODE,
+   with SHIFTED being the rtx for the value to shift,
+   and AMOUNT the tree for the amount to shift by.
+   Store the result in the rtx TARGET, if that is convenient.
+   If UNSIGNEDP is nonzero, do a logical shift; otherwise, arithmetic.
+   Return the rtx for where the value is.  */
 
-  /* The mode in which we are multiplying something by T.  */
-  enum machine_mode mode;
+rtx
+expand_variable_shift (enum tree_code code, enum machine_mode mode, rtx shifted,
+		       tree amount, rtx target, int unsignedp)
+{
+  return expand_shift_1 (code, mode,
+			 shifted, expand_normal (amount), target, unsignedp);
+}
 
-  /* The best multiplication algorithm for t.  */
-  enum alg_code alg;
-
-  /* The cost of multiplication if ALG_CODE is not alg_impossible.
-     Otherwise, the cost within which multiplication by T is
-     impossible.  */
-  struct mult_cost cost;
-
-  /* OPtimized for speed? */
-  bool speed;
-};
-
-/* The number of cache/hash entries.  */
-#if HOST_BITS_PER_WIDE_INT == 64
-#define NUM_ALG_HASH_ENTRIES 1031
-#else
-#define NUM_ALG_HASH_ENTRIES 307
-#endif
-
-/* Each entry of ALG_HASH caches alg_code for some integer.  This is
-   actually a hash table.  If we have a collision, that the older
-   entry is kicked out.  */
-static struct alg_hash_entry alg_hash[NUM_ALG_HASH_ENTRIES];
-
+
 /* Indicates the type of fixup needed after a constant multiplication.
    BASIC_VARIANT means no fixup is needed, NEGATE_VARIANT means that
    the result should be negated, and ADD_VARIANT means that the
@@ -3006,25 +2930,21 @@ expand_mult_const (enum machine_mode mode, rtx op0, HOST_WIDE_INT val,
       switch (alg->op[opno])
 	{
 	case alg_shift:
-	  accum = expand_shift (LSHIFT_EXPR, mode, accum,
-				build_int_cst (NULL_TREE, log),
-				NULL_RTX, 0);
+	  tem = expand_shift (LSHIFT_EXPR, mode, accum, log, NULL_RTX, 0);
+	  /* REG_EQUAL note will be attached to the following insn.  */
+	  emit_move_insn (accum, tem);
 	  val_so_far <<= log;
 	  break;
 
 	case alg_add_t_m2:
-	  tem = expand_shift (LSHIFT_EXPR, mode, op0,
-			      build_int_cst (NULL_TREE, log),
-			      NULL_RTX, 0);
+	  tem = expand_shift (LSHIFT_EXPR, mode, op0, log, NULL_RTX, 0);
 	  accum = force_operand (gen_rtx_PLUS (mode, accum, tem),
 				 add_target ? add_target : accum_target);
 	  val_so_far += (HOST_WIDE_INT) 1 << log;
 	  break;
 
 	case alg_sub_t_m2:
-	  tem = expand_shift (LSHIFT_EXPR, mode, op0,
-			      build_int_cst (NULL_TREE, log),
-			      NULL_RTX, 0);
+	  tem = expand_shift (LSHIFT_EXPR, mode, op0, log, NULL_RTX, 0);
 	  accum = force_operand (gen_rtx_MINUS (mode, accum, tem),
 				 add_target ? add_target : accum_target);
 	  val_so_far -= (HOST_WIDE_INT) 1 << log;
@@ -3032,9 +2952,7 @@ expand_mult_const (enum machine_mode mode, rtx op0, HOST_WIDE_INT val,
 
 	case alg_add_t2_m:
 	  accum = expand_shift (LSHIFT_EXPR, mode, accum,
-				build_int_cst (NULL_TREE, log),
-				shift_subtarget,
-				0);
+				log, shift_subtarget, 0);
 	  accum = force_operand (gen_rtx_PLUS (mode, accum, op0),
 				 add_target ? add_target : accum_target);
 	  val_so_far = (val_so_far << log) + 1;
@@ -3042,26 +2960,21 @@ expand_mult_const (enum machine_mode mode, rtx op0, HOST_WIDE_INT val,
 
 	case alg_sub_t2_m:
 	  accum = expand_shift (LSHIFT_EXPR, mode, accum,
-				build_int_cst (NULL_TREE, log),
-				shift_subtarget, 0);
+				log, shift_subtarget, 0);
 	  accum = force_operand (gen_rtx_MINUS (mode, accum, op0),
 				 add_target ? add_target : accum_target);
 	  val_so_far = (val_so_far << log) - 1;
 	  break;
 
 	case alg_add_factor:
-	  tem = expand_shift (LSHIFT_EXPR, mode, accum,
-			      build_int_cst (NULL_TREE, log),
-			      NULL_RTX, 0);
+	  tem = expand_shift (LSHIFT_EXPR, mode, accum, log, NULL_RTX, 0);
 	  accum = force_operand (gen_rtx_PLUS (mode, accum, tem),
 				 add_target ? add_target : accum_target);
 	  val_so_far += val_so_far << log;
 	  break;
 
 	case alg_sub_factor:
-	  tem = expand_shift (LSHIFT_EXPR, mode, accum,
-			      build_int_cst (NULL_TREE, log),
-			      NULL_RTX, 0);
+	  tem = expand_shift (LSHIFT_EXPR, mode, accum, log, NULL_RTX, 0);
 	  accum = force_operand (gen_rtx_MINUS (mode, tem, accum),
 				 (add_target
 				  ? add_target : (optimize ? 0 : tem)));
@@ -3167,8 +3080,9 @@ expand_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 		 result is interpreted as an unsigned coefficient.
 		 Exclude cost of op0 from max_cost to match the cost
 		 calculation of the synth_mult.  */
-	      max_cost = rtx_cost (gen_rtx_MULT (mode, fake_reg, op1), SET, speed)
-			 - neg_cost[speed][mode];
+	      max_cost = (set_src_cost (gen_rtx_MULT (mode, fake_reg, op1),
+					speed)
+			  - neg_cost[speed][mode]);
 	      if (max_cost > 0
 		  && choose_mult_variant (mode, -INTVAL (op1), &algorithm,
 					  &variant, max_cost))
@@ -3194,8 +3108,7 @@ expand_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 	      int shift = floor_log2 (CONST_DOUBLE_HIGH (op1))
 			  + HOST_BITS_PER_WIDE_INT;
 	      return expand_shift (LSHIFT_EXPR, mode, op0,
-				   build_int_cst (NULL_TREE, shift),
-				   target, unsignedp);
+				   shift, target, unsignedp);
 	    }
 	}
 
@@ -3208,12 +3121,11 @@ expand_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 	  /* Special case powers of two.  */
 	  if (EXACT_POWER_OF_2_OR_ZERO_P (coeff))
 	    return expand_shift (LSHIFT_EXPR, mode, op0,
-				 build_int_cst (NULL_TREE, floor_log2 (coeff)),
-				 target, unsignedp);
+				 floor_log2 (coeff), target, unsignedp);
 
 	  /* Exclude cost of op0 from max_cost to match the cost
 	     calculation of the synth_mult.  */
-	  max_cost = rtx_cost (gen_rtx_MULT (mode, fake_reg, op1), SET, speed);
+	  max_cost = set_src_cost (gen_rtx_MULT (mode, fake_reg, op1), speed);
 	  if (choose_mult_variant (mode, coeff, &algorithm, &variant,
 				   max_cost))
 	    return expand_mult_const (mode, op0, coeff, target,
@@ -3252,6 +3164,59 @@ expand_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 		      op0, op1, target, unsignedp, OPTAB_LIB_WIDEN);
   gcc_assert (op0);
   return op0;
+}
+
+/* Perform a widening multiplication and return an rtx for the result.
+   MODE is mode of value; OP0 and OP1 are what to multiply (rtx's);
+   TARGET is a suggestion for where to store the result (an rtx).
+   THIS_OPTAB is the optab we should use, it must be either umul_widen_optab
+   or smul_widen_optab.
+
+   We check specially for a constant integer as OP1, comparing the
+   cost of a widening multiply against the cost of a sequence of shifts
+   and adds.  */
+
+rtx
+expand_widening_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
+		      int unsignedp, optab this_optab)
+{
+  bool speed = optimize_insn_for_speed_p ();
+  rtx cop1;
+
+  if (CONST_INT_P (op1)
+      && GET_MODE (op0) != VOIDmode
+      && (cop1 = convert_modes (mode, GET_MODE (op0), op1,
+				this_optab == umul_widen_optab))
+      && CONST_INT_P (cop1)
+      && (INTVAL (cop1) >= 0
+	  || HWI_COMPUTABLE_MODE_P (mode)))
+    {
+      HOST_WIDE_INT coeff = INTVAL (cop1);
+      int max_cost;
+      enum mult_variant variant;
+      struct algorithm algorithm;
+
+      /* Special case powers of two.  */
+      if (EXACT_POWER_OF_2_OR_ZERO_P (coeff))
+	{
+	  op0 = convert_to_mode (mode, op0, this_optab == umul_widen_optab);
+	  return expand_shift (LSHIFT_EXPR, mode, op0,
+			       floor_log2 (coeff), target, unsignedp);
+	}
+
+      /* Exclude cost of op0 from max_cost to match the cost
+	 calculation of the synth_mult.  */
+      max_cost = mul_widen_cost[speed][mode];
+      if (choose_mult_variant (mode, coeff, &algorithm, &variant,
+			       max_cost))
+	{
+	  op0 = convert_to_mode (mode, op0, this_optab == umul_widen_optab);
+	  return expand_mult_const (mode, op0, coeff, target,
+				    &algorithm, variant);
+	}
+    }
+  return expand_binop (mode, this_optab, op0, op1, target,
+		       unsignedp, OPTAB_LIB_WIDEN);
 }
 
 /* Return the smallest n such that 2**n >= X.  */
@@ -3409,16 +3374,14 @@ expand_mult_highpart_adjust (enum machine_mode mode, rtx adj_operand, rtx op0,
   enum rtx_code adj_code = unsignedp ? PLUS : MINUS;
 
   tem = expand_shift (RSHIFT_EXPR, mode, op0,
-		      build_int_cst (NULL_TREE, GET_MODE_BITSIZE (mode) - 1),
-		      NULL_RTX, 0);
+		      GET_MODE_BITSIZE (mode) - 1, NULL_RTX, 0);
   tem = expand_and (mode, tem, op1, NULL_RTX);
   adj_operand
     = force_operand (gen_rtx_fmt_ee (adj_code, mode, adj_operand, tem),
 		     adj_operand);
 
   tem = expand_shift (RSHIFT_EXPR, mode, op1,
-		      build_int_cst (NULL_TREE, GET_MODE_BITSIZE (mode) - 1),
-		      NULL_RTX, 0);
+		      GET_MODE_BITSIZE (mode) - 1, NULL_RTX, 0);
   tem = expand_and (mode, tem, op0, NULL_RTX);
   target = force_operand (gen_rtx_fmt_ee (adj_code, mode, adj_operand, tem),
 			  target);
@@ -3440,7 +3403,7 @@ extract_high_half (enum machine_mode mode, rtx op)
 
   wider_mode = GET_MODE_WIDER_MODE (mode);
   op = expand_shift (RSHIFT_EXPR, wider_mode, op,
-		     build_int_cst (NULL_TREE, GET_MODE_BITSIZE (mode)), 0, 1);
+		     GET_MODE_BITSIZE (mode), 0, 1);
   return convert_modes (mode, wider_mode, op, 0);
 }
 
@@ -3491,7 +3454,7 @@ expand_mult_highpart_optab (enum machine_mode mode, rtx op0, rtx op1,
 
   /* Try widening multiplication.  */
   moptab = unsignedp ? umul_widen_optab : smul_widen_optab;
-  if (optab_handler (moptab, wider_mode)->insn_code != CODE_FOR_nothing
+  if (optab_handler (moptab, wider_mode) != CODE_FOR_nothing
       && mul_widen_cost[speed][wider_mode] < max_cost)
     {
       tem = expand_binop (wider_mode, moptab, op0, narrow_op1, 0,
@@ -3501,7 +3464,7 @@ expand_mult_highpart_optab (enum machine_mode mode, rtx op0, rtx op1,
     }
 
   /* Try widening the mode and perform a non-widening multiplication.  */
-  if (optab_handler (smul_optab, wider_mode)->insn_code != CODE_FOR_nothing
+  if (optab_handler (smul_optab, wider_mode) != CODE_FOR_nothing
       && size - 1 < BITS_PER_WORD
       && mul_cost[speed][wider_mode] + shift_cost[speed][mode][size-1] < max_cost)
     {
@@ -3528,7 +3491,7 @@ expand_mult_highpart_optab (enum machine_mode mode, rtx op0, rtx op1,
 
   /* Try widening multiplication of opposite signedness, and adjust.  */
   moptab = unsignedp ? smul_widen_optab : umul_widen_optab;
-  if (optab_handler (moptab, wider_mode)->insn_code != CODE_FOR_nothing
+  if (optab_handler (moptab, wider_mode) != CODE_FOR_nothing
       && size - 1 < BITS_PER_WORD
       && (mul_widen_cost[speed][wider_mode] + 2 * shift_cost[speed][mode][size-1]
 	  + 4 * add_cost[speed][mode] < max_cost))
@@ -3573,7 +3536,7 @@ expand_mult_highpart (enum machine_mode mode, rtx op0, rtx op1,
 
   gcc_assert (!SCALAR_FLOAT_MODE_P (mode));
   /* We can't support modes wider than HOST_BITS_PER_INT.  */
-  gcc_assert (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT);
+  gcc_assert (HWI_COMPUTABLE_MODE_P (mode));
 
   cnst1 = INTVAL (op1) & GET_MODE_MASK (mode);
 
@@ -3650,8 +3613,9 @@ expand_smod_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
 	     use a LSHIFTRT, 1 ADD, 1 SUB and an AND.  */
 
 	  temp = gen_rtx_LSHIFTRT (mode, result, shift);
-	  if (optab_handler (lshr_optab, mode)->insn_code == CODE_FOR_nothing
-	      || rtx_cost (temp, SET, optimize_insn_for_speed_p ()) > COSTS_N_INSNS (2))
+	  if (optab_handler (lshr_optab, mode) == CODE_FOR_nothing
+	      || (set_src_cost (temp, optimize_insn_for_speed_p ())
+		  > COSTS_N_INSNS (2)))
 	    {
 	      temp = expand_binop (mode, xor_optab, op0, signmask,
 				   NULL_RTX, 1, OPTAB_LIB_WIDEN);
@@ -3727,11 +3691,9 @@ static rtx
 expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
 {
   rtx temp, label;
-  tree shift;
   int logd;
 
   logd = floor_log2 (d);
-  shift = build_int_cst (NULL_TREE, logd);
 
   if (d == 2
       && BRANCH_COST (optimize_insn_for_speed_p (),
@@ -3741,7 +3703,7 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
       temp = emit_store_flag (temp, LT, op0, const0_rtx, mode, 0, 1);
       temp = expand_binop (mode, add_optab, temp, op0, NULL_RTX,
 			   0, OPTAB_LIB_WIDEN);
-      return expand_shift (RSHIFT_EXPR, mode, temp, shift, NULL_RTX, 0);
+      return expand_shift (RSHIFT_EXPR, mode, temp, logd, NULL_RTX, 0);
     }
 
 #ifdef HAVE_conditional_move
@@ -3769,7 +3731,7 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
 	  rtx seq = get_insns ();
 	  end_sequence ();
 	  emit_insn (seq);
-	  return expand_shift (RSHIFT_EXPR, mode, temp2, shift, NULL_RTX, 0);
+	  return expand_shift (RSHIFT_EXPR, mode, temp2, logd, NULL_RTX, 0);
 	}
       end_sequence ();
     }
@@ -3787,11 +3749,10 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
 			     NULL_RTX, 0, OPTAB_LIB_WIDEN);
       else
 	temp = expand_shift (RSHIFT_EXPR, mode, temp,
-			     build_int_cst (NULL_TREE, ushift),
-			     NULL_RTX, 1);
+			     ushift, NULL_RTX, 1);
       temp = expand_binop (mode, add_optab, temp, op0, NULL_RTX,
 			   0, OPTAB_LIB_WIDEN);
-      return expand_shift (RSHIFT_EXPR, mode, temp, shift, NULL_RTX, 0);
+      return expand_shift (RSHIFT_EXPR, mode, temp, logd, NULL_RTX, 0);
     }
 
   label = gen_label_rtx ();
@@ -3799,7 +3760,7 @@ expand_sdiv_pow2 (enum machine_mode mode, rtx op0, HOST_WIDE_INT d)
   do_cmp_and_jump (temp, const0_rtx, GE, mode, label);
   expand_inc (temp, GEN_INT (d - 1));
   emit_label (label);
-  return expand_shift (RSHIFT_EXPR, mode, temp, shift, NULL_RTX, 0);
+  return expand_shift (RSHIFT_EXPR, mode, temp, logd, NULL_RTX, 0);
 }
 
 /* Emit the code to divide OP0 by OP1, putting the result in TARGET
@@ -3954,8 +3915,8 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 
   for (compute_mode = mode; compute_mode != VOIDmode;
        compute_mode = GET_MODE_WIDER_MODE (compute_mode))
-    if (optab_handler (optab1, compute_mode)->insn_code != CODE_FOR_nothing
-	|| optab_handler (optab2, compute_mode)->insn_code != CODE_FOR_nothing)
+    if (optab_handler (optab1, compute_mode) != CODE_FOR_nothing
+	|| optab_handler (optab2, compute_mode) != CODE_FOR_nothing)
       break;
 
   if (compute_mode == VOIDmode)
@@ -4063,9 +4024,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			  return gen_lowpart (mode, remainder);
 		      }
 		    quotient = expand_shift (RSHIFT_EXPR, compute_mode, op0,
-					     build_int_cst (NULL_TREE,
-							    pre_shift),
-					     tquotient, 1);
+					     pre_shift, tquotient, 1);
 		  }
 		else if (size <= HOST_BITS_PER_WIDE_INT)
 		  {
@@ -4117,17 +4076,14 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			    t2 = force_operand (gen_rtx_MINUS (compute_mode,
 							       op0, t1),
 						NULL_RTX);
-			    t3 = expand_shift
-			      (RSHIFT_EXPR, compute_mode, t2,
-			       build_int_cst (NULL_TREE, 1),
-			       NULL_RTX,1);
+			    t3 = expand_shift (RSHIFT_EXPR, compute_mode,
+					       t2, 1, NULL_RTX, 1);
 			    t4 = force_operand (gen_rtx_PLUS (compute_mode,
 							      t1, t3),
 						NULL_RTX);
 			    quotient = expand_shift
 			      (RSHIFT_EXPR, compute_mode, t4,
-			       build_int_cst (NULL_TREE, post_shift - 1),
-			       tquotient, 1);
+			       post_shift - 1, tquotient, 1);
 			  }
 			else
 			  {
@@ -4139,8 +4095,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 
 			    t1 = expand_shift
 			      (RSHIFT_EXPR, compute_mode, op0,
-			       build_int_cst (NULL_TREE, pre_shift),
-			       NULL_RTX, 1);
+			       pre_shift, NULL_RTX, 1);
 			    extra_cost
 			      = (shift_cost[speed][compute_mode][pre_shift]
 				 + shift_cost[speed][compute_mode][post_shift]);
@@ -4151,8 +4106,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			      goto fail1;
 			    quotient = expand_shift
 			      (RSHIFT_EXPR, compute_mode, t2,
-			       build_int_cst (NULL_TREE, post_shift),
-			       tquotient, 1);
+			       post_shift, tquotient, 1);
 			  }
 		      }
 		  }
@@ -4210,11 +4164,11 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			    optab has an expander for this mode.  */
 			 && ((optab_handler ((rem_flag ? smod_optab
 					      : sdiv_optab),
-					      compute_mode)->insn_code
+					     compute_mode)
 			      != CODE_FOR_nothing)
-			     || (optab_handler(sdivmod_optab,
-					       compute_mode)
-				 ->insn_code != CODE_FOR_nothing)))
+			     || (optab_handler (sdivmod_optab,
+						compute_mode)
+				 != CODE_FOR_nothing)))
 		  ;
 		else if (EXACT_POWER_OF_2_OR_ZERO_P (abs_d))
 		  {
@@ -4226,9 +4180,9 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		      }
 
 		    if (sdiv_pow2_cheap[speed][compute_mode]
-			&& ((optab_handler (sdiv_optab, compute_mode)->insn_code
+			&& ((optab_handler (sdiv_optab, compute_mode)
 			     != CODE_FOR_nothing)
-			    || (optab_handler (sdivmod_optab, compute_mode)->insn_code
+			    || (optab_handler (sdivmod_optab, compute_mode)
 				!= CODE_FOR_nothing)))
 		      quotient = expand_divmod (0, TRUNC_DIV_EXPR,
 						compute_mode, op0,
@@ -4284,12 +4238,10 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			  goto fail1;
 			t2 = expand_shift
 			  (RSHIFT_EXPR, compute_mode, t1,
-			   build_int_cst (NULL_TREE, post_shift),
-			   NULL_RTX, 0);
+			   post_shift, NULL_RTX, 0);
 			t3 = expand_shift
 			  (RSHIFT_EXPR, compute_mode, op0,
-			   build_int_cst (NULL_TREE, size - 1),
-			   NULL_RTX, 0);
+			   size - 1, NULL_RTX, 0);
 			if (d < 0)
 			  quotient
 			    = force_operand (gen_rtx_MINUS (compute_mode,
@@ -4324,12 +4276,10 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 					    NULL_RTX);
 			t3 = expand_shift
 			  (RSHIFT_EXPR, compute_mode, t2,
-			   build_int_cst (NULL_TREE, post_shift),
-			   NULL_RTX, 0);
+			   post_shift, NULL_RTX, 0);
 			t4 = expand_shift
 			  (RSHIFT_EXPR, compute_mode, op0,
-			   build_int_cst (NULL_TREE, size - 1),
-			   NULL_RTX, 0);
+			   size - 1, NULL_RTX, 0);
 			if (d < 0)
 			  quotient
 			    = force_operand (gen_rtx_MINUS (compute_mode,
@@ -4386,8 +4336,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		      }
 		    quotient = expand_shift
 		      (RSHIFT_EXPR, compute_mode, op0,
-		       build_int_cst (NULL_TREE, pre_shift),
-		       tquotient, 0);
+		       pre_shift, tquotient, 0);
 		  }
 		else
 		  {
@@ -4402,8 +4351,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		      {
 			t1 = expand_shift
 			  (RSHIFT_EXPR, compute_mode, op0,
-			   build_int_cst (NULL_TREE, size - 1),
-			   NULL_RTX, 0);
+			   size - 1, NULL_RTX, 0);
 			t2 = expand_binop (compute_mode, xor_optab, op0, t1,
 					   NULL_RTX, 0, OPTAB_WIDEN);
 			extra_cost = (shift_cost[speed][compute_mode][post_shift]
@@ -4416,8 +4364,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 			  {
 			    t4 = expand_shift
 			      (RSHIFT_EXPR, compute_mode, t3,
-			       build_int_cst (NULL_TREE, post_shift),
-			       NULL_RTX, 1);
+			       post_shift, NULL_RTX, 1);
 			    quotient = expand_binop (compute_mode, xor_optab,
 						     t4, t1, tquotient, 0,
 						     OPTAB_WIDEN);
@@ -4434,8 +4381,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 				   0, OPTAB_WIDEN);
 		nsign = expand_shift
 		  (RSHIFT_EXPR, compute_mode, t2,
-		   build_int_cst (NULL_TREE, size - 1),
-		   NULL_RTX, 0);
+		   size - 1, NULL_RTX, 0);
 		t3 = force_operand (gen_rtx_MINUS (compute_mode, t1, nsign),
 				    NULL_RTX);
 		t4 = expand_divmod (0, TRUNC_DIV_EXPR, compute_mode, t3, op1,
@@ -4549,8 +4495,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		rtx t1, t2, t3;
 		unsigned HOST_WIDE_INT d = INTVAL (op1);
 		t1 = expand_shift (RSHIFT_EXPR, compute_mode, op0,
-				   build_int_cst (NULL_TREE, floor_log2 (d)),
-				   tquotient, 1);
+				   floor_log2 (d), tquotient, 1);
 		t2 = expand_binop (compute_mode, and_optab, op0,
 				   GEN_INT (d - 1),
 				   NULL_RTX, 1, OPTAB_LIB_WIDEN);
@@ -4647,8 +4592,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		rtx t1, t2, t3;
 		unsigned HOST_WIDE_INT d = INTVAL (op1);
 		t1 = expand_shift (RSHIFT_EXPR, compute_mode, op0,
-				   build_int_cst (NULL_TREE, floor_log2 (d)),
-				   tquotient, 0);
+				   floor_log2 (d), tquotient, 0);
 		t2 = expand_binop (compute_mode, and_optab, op0,
 				   GEN_INT (d - 1),
 				   NULL_RTX, 1, OPTAB_LIB_WIDEN);
@@ -4769,8 +4713,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 	    pre_shift = floor_log2 (d & -d);
 	    ml = invert_mod2n (d >> pre_shift, size);
 	    t1 = expand_shift (RSHIFT_EXPR, compute_mode, op0,
-			       build_int_cst (NULL_TREE, pre_shift),
-			       NULL_RTX, unsignedp);
+			       pre_shift, NULL_RTX, unsignedp);
 	    quotient = expand_mult (compute_mode, t1,
 				    gen_int_mode (ml, compute_mode),
 				    NULL_RTX, 1);
@@ -4803,9 +4746,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 					  remainder, 1, OPTAB_LIB_WIDEN);
 	      }
 	    tem = plus_constant (op1, -1);
-	    tem = expand_shift (RSHIFT_EXPR, compute_mode, tem,
-				build_int_cst (NULL_TREE, 1),
-				NULL_RTX, 1);
+	    tem = expand_shift (RSHIFT_EXPR, compute_mode, tem, 1, NULL_RTX, 1);
 	    do_cmp_and_jump (remainder, tem, LEU, compute_mode, label);
 	    expand_inc (quotient, const1_rtx);
 	    expand_dec (remainder, op1);
@@ -4830,14 +4771,12 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 	    abs_rem = expand_abs (compute_mode, remainder, NULL_RTX, 1, 0);
 	    abs_op1 = expand_abs (compute_mode, op1, NULL_RTX, 1, 0);
 	    tem = expand_shift (LSHIFT_EXPR, compute_mode, abs_rem,
-				build_int_cst (NULL_TREE, 1),
-				NULL_RTX, 1);
+				1, NULL_RTX, 1);
 	    do_cmp_and_jump (tem, abs_op1, LTU, compute_mode, label);
 	    tem = expand_binop (compute_mode, xor_optab, op0, op1,
 				NULL_RTX, 0, OPTAB_WIDEN);
 	    mask = expand_shift (RSHIFT_EXPR, compute_mode, tem,
-				 build_int_cst (NULL_TREE, size - 1),
-				 NULL_RTX, 0);
+				 size - 1, NULL_RTX, 0);
 	    tem = expand_binop (compute_mode, xor_optab, mask, const1_rtx,
 				NULL_RTX, 0, OPTAB_WIDEN);
 	    tem = expand_binop (compute_mode, sub_optab, tem, mask,
@@ -4876,7 +4815,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 	    = sign_expand_binop (compute_mode, umod_optab, smod_optab,
 				 op0, op1, target,
 				 unsignedp,
-				 ((optab_handler (optab2, compute_mode)->insn_code
+				 ((optab_handler (optab2, compute_mode)
 				   != CODE_FOR_nothing)
 				  ? OPTAB_DIRECT : OPTAB_WIDEN));
 	  if (remainder == 0)
@@ -4904,7 +4843,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 	= sign_expand_binop (compute_mode, udiv_optab, sdiv_optab,
 			     op0, op1, rem_flag ? NULL_RTX : target,
 			     unsignedp,
-			     ((optab_handler (optab2, compute_mode)->insn_code
+			     ((optab_handler (optab2, compute_mode)
 			       != CODE_FOR_nothing)
 			      ? OPTAB_DIRECT : OPTAB_WIDEN));
 
@@ -5133,19 +5072,14 @@ emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
 	     int unsignedp, rtx x, rtx y, int normalizep,
 	     enum machine_mode target_mode)
 {
-  rtx op0, last, comparison, subtarget, pattern;
+  struct expand_operand ops[4];
+  rtx op0, last, comparison, subtarget;
   enum machine_mode result_mode = insn_data[(int) icode].operand[0].mode;
 
   last = get_last_insn ();
   x = prepare_operand (icode, x, 2, mode, compare_mode, unsignedp);
   y = prepare_operand (icode, y, 3, mode, compare_mode, unsignedp);
-  comparison = gen_rtx_fmt_ee (code, result_mode, x, y);
-  if (!x || !y
-      || !insn_data[icode].operand[2].predicate
-	  (x, insn_data[icode].operand[2].mode)
-      || !insn_data[icode].operand[3].predicate
-	  (y, insn_data[icode].operand[3].mode)
-      || !insn_data[icode].operand[1].predicate (comparison, VOIDmode))
+  if (!x || !y)
     {
       delete_insns_since (last);
       return NULL_RTX;
@@ -5156,16 +5090,18 @@ emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
   if (!target)
     target = gen_reg_rtx (target_mode);
 
-  if (optimize
-      || !(insn_data[(int) icode].operand[0].predicate (target, result_mode)))
-    subtarget = gen_reg_rtx (result_mode);
-  else
-    subtarget = target;
+  comparison = gen_rtx_fmt_ee (code, result_mode, x, y);
 
-  pattern = GEN_FCN (icode) (subtarget, comparison, x, y);
-  if (!pattern)
-    return NULL_RTX;
-  emit_insn (pattern);
+  create_output_operand (&ops[0], optimize ? NULL_RTX : target, result_mode);
+  create_fixed_operand (&ops[1], comparison);
+  create_fixed_operand (&ops[2], x);
+  create_fixed_operand (&ops[3], y);
+  if (!maybe_expand_insn (icode, 4, ops))
+    {
+      delete_insns_since (last);
+      return NULL_RTX;
+    }
+  subtarget = ops[0].value;
 
   /* If we are converting to a wider mode, first convert to
      TARGET_MODE, then normalize.  This produces better combining
@@ -5178,10 +5114,8 @@ emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
   if (GET_MODE_SIZE (target_mode) > GET_MODE_SIZE (result_mode))
     {
       convert_move (target, subtarget,
-		    (GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT)
-		    && 0 == (STORE_FLAG_VALUE
-			     & ((HOST_WIDE_INT) 1
-				<< (GET_MODE_BITSIZE (result_mode) -1))));
+		    val_signbit_known_clear_p (result_mode,
+					       STORE_FLAG_VALUE));
       op0 = target;
       result_mode = target_mode;
     }
@@ -5205,11 +5139,9 @@ emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
   /* We don't want to use STORE_FLAG_VALUE < 0 below since this makes
      it hard to use a value of just the sign bit due to ANSI integer
      constant typing rules.  */
-  else if (GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT
-	   && (STORE_FLAG_VALUE
-	       & ((HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (result_mode) - 1))))
+  else if (val_signbit_known_set_p (result_mode, STORE_FLAG_VALUE))
     op0 = expand_shift (RSHIFT_EXPR, result_mode, op0,
-			size_int (GET_MODE_BITSIZE (result_mode) - 1), subtarget,
+			GET_MODE_BITSIZE (result_mode) - 1, subtarget,
 			normalizep == 1);
   else
     {
@@ -5345,9 +5277,9 @@ emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	    target = gen_reg_rtx (target_mode);
 
 	  convert_move (target, tem,
-			0 == ((normalizep ? normalizep : STORE_FLAG_VALUE)
-			      & ((HOST_WIDE_INT) 1
-				 << (GET_MODE_BITSIZE (word_mode) -1))));
+			!val_signbit_known_set_p (word_mode,
+						  (normalizep ? normalizep
+						   : STORE_FLAG_VALUE)));
 	  return target;
 	}
     }
@@ -5357,10 +5289,7 @@ emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
   if (op1 == const0_rtx && (code == LT || code == GE)
       && GET_MODE_CLASS (mode) == MODE_INT
       && (normalizep || STORE_FLAG_VALUE == 1
-	  || (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	      && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-		  == ((unsigned HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (mode) - 1))))))
+	  || val_signbit_p (mode, STORE_FLAG_VALUE)))
     {
       subtarget = target;
 
@@ -5389,7 +5318,7 @@ emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	   a logical shift from the sign bit to the low-order bit; for
 	   a -1/0 value, we do an arithmetic shift.  */
 	op0 = expand_shift (RSHIFT_EXPR, mode, op0,
-			    size_int (GET_MODE_BITSIZE (mode) - 1),
+			    GET_MODE_BITSIZE (mode) - 1,
 			    subtarget, normalizep != -1);
 
       if (mode != target_mode)
@@ -5403,7 +5332,7 @@ emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
        compare_mode = GET_MODE_WIDER_MODE (compare_mode))
     {
      enum machine_mode optab_mode = mclass == MODE_CC ? CCmode : compare_mode;
-     icode = optab_handler (cstore_optab, optab_mode)->insn_code;
+     icode = optab_handler (cstore_optab, optab_mode);
      if (icode != CODE_FOR_nothing)
 	{
 	  do_pending_stack_adjust ();
@@ -5469,9 +5398,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
       if (STORE_FLAG_VALUE == 1 || STORE_FLAG_VALUE == -1)
 	normalizep = STORE_FLAG_VALUE;
 
-      else if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	       && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-		   == (unsigned HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (mode) - 1)))
+      else if (val_signbit_p (mode, STORE_FLAG_VALUE))
 	;
       else
 	return 0;
@@ -5504,7 +5431,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 
 	  /* For the reverse comparison, use either an addition or a XOR.  */
           if (want_add
-	      && rtx_cost (GEN_INT (normalizep), PLUS,
+	      && rtx_cost (GEN_INT (normalizep), PLUS, 1,
 			   optimize_insn_for_speed_p ()) == 0)
 	    {
 	      tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
@@ -5515,7 +5442,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 				     target, 0, OPTAB_WIDEN);
 	    }
           else if (!want_add
-	           && rtx_cost (trueval, XOR,
+	           && rtx_cost (trueval, XOR, 1,
 			        optimize_insn_for_speed_p ()) == 0)
 	    {
 	      tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
@@ -5598,7 +5525,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
      as "-(int)X >> 31" is still cheaper than inverting "(int)X == 0".  */
   rcode = reverse_condition (code);
   if (can_compare_p (rcode, mode, ccp_store_flag)
-      && ! (optab_handler (cstore_optab, mode)->insn_code == CODE_FOR_nothing
+      && ! (optab_handler (cstore_optab, mode) == CODE_FOR_nothing
 	    && code == NE
 	    && GET_MODE_SIZE (mode) < UNITS_PER_WORD
 	    && op1 == const0_rtx))
@@ -5608,7 +5535,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 
       /* Again, for the reverse comparison, use either an addition or a XOR.  */
       if (want_add
-	  && rtx_cost (GEN_INT (normalizep), PLUS,
+	  && rtx_cost (GEN_INT (normalizep), PLUS, 1,
 		       optimize_insn_for_speed_p ()) == 0)
 	{
 	  tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
@@ -5618,7 +5545,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 				GEN_INT (normalizep), target, 0, OPTAB_WIDEN);
 	}
       else if (!want_add
-	       && rtx_cost (trueval, XOR,
+	       && rtx_cost (trueval, XOR, 1,
 			    optimize_insn_for_speed_p ()) == 0)
 	{
 	  tem = emit_store_flag_1 (subtarget, rcode, op0, op1, mode, 0,
@@ -5674,7 +5601,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	subtarget = 0;
 
       tem = expand_shift (RSHIFT_EXPR, mode, op0,
-			  size_int (GET_MODE_BITSIZE (mode) - 1),
+			  GET_MODE_BITSIZE (mode) - 1,
 			  subtarget, 0);
       tem = expand_binop (mode, sub_optab, tem, op0, subtarget, 0,
 			  OPTAB_WIDEN);
@@ -5697,9 +5624,9 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	 that is compensated by the subsequent overflow when subtracting
 	 one / negating.  */
 
-      if (optab_handler (abs_optab, mode)->insn_code != CODE_FOR_nothing)
+      if (optab_handler (abs_optab, mode) != CODE_FOR_nothing)
 	tem = expand_unop (mode, abs_optab, op0, subtarget, 1);
-      else if (optab_handler (ffs_optab, mode)->insn_code != CODE_FOR_nothing)
+      else if (optab_handler (ffs_optab, mode) != CODE_FOR_nothing)
 	tem = expand_unop (mode, ffs_optab, op0, subtarget, 1);
       else if (GET_MODE_SIZE (mode) < UNITS_PER_WORD)
 	{
@@ -5740,7 +5667,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
 
   if (tem && normalizep)
     tem = expand_shift (RSHIFT_EXPR, mode, tem,
-			size_int (GET_MODE_BITSIZE (mode) - 1),
+			GET_MODE_BITSIZE (mode) - 1,
 			subtarget, normalizep == 1);
 
   if (tem)

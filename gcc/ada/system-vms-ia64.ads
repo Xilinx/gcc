@@ -7,7 +7,7 @@
 --                                 S p e c                                  --
 --            (OpenVMS 64bit Itanium GCC_ZCX DEC Threads Version)           --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -149,7 +149,6 @@ private
    Stack_Check_Default       : constant Boolean := True;
    Stack_Check_Probes        : constant Boolean := True;
    Stack_Check_Limits        : constant Boolean := False;
-   Support_64_Bit_Divides    : constant Boolean := True;
    Support_Aggregates        : constant Boolean := True;
    Support_Composite_Assign  : constant Boolean := True;
    Support_Composite_Compare : constant Boolean := True;
@@ -158,7 +157,6 @@ private
    Suppress_Standard_Library : constant Boolean := False;
    Use_Ada_Main_Program_Name : constant Boolean := False;
    ZCX_By_Default            : constant Boolean := True;
-   GCC_ZCX_Support           : constant Boolean := True;
 
    --------------------------
    -- Underlying Priorities --
@@ -239,7 +237,7 @@ private
    -- Special VMS Interfaces --
    ----------------------------
 
-   procedure Lib_Stop (I : Integer);
+   procedure Lib_Stop (Cond_Value : Integer);
    pragma Interface (C, Lib_Stop);
    pragma Import_Procedure (Lib_Stop, "LIB$STOP", Mechanism => (Value));
    --  Interface to VMS condition handling. Used by RTSfind and pragma
@@ -250,5 +248,8 @@ private
    pragma Export_Object (ADA_GNAT, "ADA$GNAT");
    --  Ubiquitous global symbol identifying a GNAT compiled image to VMS Debug.
    --  Do not remove!
+
+   pragma Ident ("GNAT"); --  Gnat_Static_Version_String
+   --  Default ident for all VMS images.
 
 end System;

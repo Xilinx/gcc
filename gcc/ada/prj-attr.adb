@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -71,7 +71,6 @@ package body Prj.Attr is
    "SVRproject_dir#" &
    "lVmain#" &
    "LVlanguages#" &
-   "SVmain_language#" &
    "Lbroots#" &
    "SVexternally_built#" &
 
@@ -82,6 +81,7 @@ package body Prj.Attr is
    "LVsource_dirs#" &
    "Lainherit_source_path#" &
    "LVexcluded_source_dirs#" &
+   "LVignore_source_sub_dirs#" &
 
    --  Source files
 
@@ -92,6 +92,12 @@ package body Prj.Attr is
    "SVexcluded_source_list_file#" &
    "LVinterfaces#" &
 
+   --  Projects (in aggregate projects)
+
+   "LVproject_files#" &
+   "LVproject_path#" &
+   "SAexternal#" &
+
    --  Libraries
 
    "SVlibrary_dir#" &
@@ -100,6 +106,7 @@ package body Prj.Attr is
    "SVlibrary_version#" &
    "LVlibrary_interface#" &
    "SVlibrary_auto_init#" &
+   "LVleading_library_options#" &
    "LVlibrary_options#" &
    "SVlibrary_src_dir#" &
    "SVlibrary_ali_dir#" &
@@ -147,19 +154,21 @@ package body Prj.Attr is
    "Saruntime_source_dir#" &
 
    --  package Naming
+   --  Some attributes are obsolescent, and renamed in the tree (see
+   --  Prj.Dect.Rename_Obsolescent_Attributes).
 
    "Pnaming#" &
-   "Saspecification_suffix#" &
+   "Saspecification_suffix#" &  --  Always renamed to "spec_suffix" in tree
    "Saspec_suffix#" &
-   "Saimplementation_suffix#" &
+   "Saimplementation_suffix#" & --  Always renamed to "body_suffix" in tree
    "Sabody_suffix#" &
    "SVseparate_suffix#" &
    "SVcasing#" &
    "SVdot_replacement#" &
-   "sAspecification#" &
-   "sAspec#" &
-   "sAimplementation#" &
-   "sAbody#" &
+   "saspecification#" &  --  Always renamed to "spec" in project tree
+   "saspec#" &
+   "saimplementation#" & --  Always renamed to "body" in project tree
+   "sabody#" &
    "Laspecification_exceptions#" &
    "Laimplementation_exceptions#" &
 
@@ -174,11 +183,14 @@ package body Prj.Attr is
    --  Configuration - Compiling
 
    "Sadriver#" &
+   "Salanguage_kind#" &
+   "Sadependency_kind#" &
    "Larequired_switches#" &
    "Laleading_required_switches#" &
    "Latrailing_required_switches#" &
    "Lapic_option#" &
    "Sapath_syntax#" &
+   "Lasource_file_switches#" &
    "Saobject_file_suffix#" &
    "Laobject_file_switches#" &
    "Lamulti_unit_switches#" &
@@ -247,6 +259,7 @@ package body Prj.Attr is
    "Plinker#" &
    "LVrequired_switches#" &
    "Ladefault_switches#" &
+   "LcOleading_switches#" &
    "LcOswitches#" &
    "LVlinker_options#" &
    "SVmap_file_option#" &
@@ -325,6 +338,7 @@ package body Prj.Attr is
    "SVvcs_kind#" &
    "SVvcs_file_check#" &
    "SVvcs_log_check#" &
+   "SVdocumentation_dir#" &
 
    --  package Stack
 

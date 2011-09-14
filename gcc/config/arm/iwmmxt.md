@@ -1,6 +1,7 @@
 ;; ??? This file needs auditing for thumb2
 ;; Patterns for the Intel Wireless MMX technology architecture.
-;; Copyright (C) 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2003, 2004, 2005, 2007, 2008, 2010
+;; Free Software Foundation, Inc.
 ;; Contributed by Red Hat.
 
 ;; This file is part of GCC.
@@ -19,14 +20,6 @@
 ;; along with GCC; see the file COPYING3.  If not see
 ;; <http://www.gnu.org/licenses/>.
 
-;; Integer element sizes implemented by IWMMXT.
-(define_mode_iterator VMMX [V2SI V4HI V8QI])
-
-;; Integer element sizes for shifts.
-(define_mode_iterator VSHFT [V4HI V2SI DI])
-
-;; Determine element size suffix from vector mode.
-(define_mode_attr MMX_char [(V8QI "b") (V4HI "h") (V2SI "w") (DI "d")])
 
 (define_insn "iwmmxt_iordi3"
   [(set (match_operand:DI         0 "register_operand" "=y,?&r,?&r")
@@ -83,7 +76,7 @@
   switch (which_alternative)
     {
     default:
-      return output_move_double (operands);
+      return output_move_double (operands, true, NULL);
     case 0:
       return \"#\";
     case 3:
@@ -180,7 +173,7 @@
    case 3: return \"tmrrc%?\\t%Q0, %R0, %1\";
    case 4: return \"tmcrr%?\\t%0, %Q1, %R1\";
    case 5: return \"#\";
-   default: return output_move_double (operands);
+   default: return output_move_double (operands, true, NULL);
    }"
   [(set_attr "predicable" "yes")
    (set_attr "length"         "4,     4,   4,4,4,8,   8,8")
@@ -558,7 +551,7 @@
 ;;
 ;; Note - you cannot use patterns like these here:
 ;;
-;;   (set:<vector> (match:<vector>) (<comparator>:<vector> (match:<vector>) (match:<vector>)))
+;;   (set (match:<vector>) (<comparator>:<vector> (match:<vector>) (match:<vector>)))
 ;;
 ;; Because GCC will assume that the truth value (1 or 0) is installed
 ;; into the entire destination vector, (with the '1' going into the least

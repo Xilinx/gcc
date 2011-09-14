@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -89,11 +89,23 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
 
    procedure Process_Restrictions_Or_Restriction_Warnings;
    --  Common processing for Restrictions and Restriction_Warnings pragmas.
-   --  This routine only processes the case of No_Obsolescent_Features,
-   --  which is the only restriction that has syntactic effects. No general
-   --  error checking is done, since this will be done in Sem_Prag. The
-   --  other case processed is pragma Restrictions No_Dependence, since
-   --  otherwise this is done too late.
+   --  For the most part, restrictions need not be processed at parse time,
+   --  since they only affect semantic processing. This routine handles the
+   --  exceptions as follows
+   --
+   --    No_Obsolescent_Features must be processed at parse time, since there
+   --    are some obsolescent features (e.g. character replacements) which are
+   --    handled at parse time.
+   --
+   --    SPARK must be processed at parse time, since this restriction controls
+   --    whether the scanner recognizes a spark HIDE directive formatted as an
+   --    Ada comment (and generates a Tok_SPARK_Hide token for the directive).
+   --
+   --    No_Dependence must be processed at parse time, since otherwise it gets
+   --    handled too late.
+   --
+   --  Note that we don't need to do full error checking for badly formed cases
+   --  of restrictions, since these will be caught during semantic analysis.
 
    ----------
    -- Arg1 --
@@ -150,8 +162,7 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
          Error_Msg_Name_2 := Name_On;
          Error_Msg_Name_3 := Name_Off;
 
-         Error_Msg
-           ("argument for pragma% must be% or%", Sloc (Argx));
+         Error_Msg ("argument for pragma% must be% or%", Sloc (Argx));
          raise Error_Resync;
       end if;
    end Check_Arg_Is_On_Or_Off;
@@ -225,11 +236,21 @@ function Prag (Pragma_Node : Node_Id; Semi : Source_Ptr) return Node_Id is
 
          if Id = No_Name
            and then Nkind (Expr) = N_Identifier
-           and then Get_Restriction_Id (Chars (Expr)) = No_Obsolescent_Features
          then
-            Set_Restriction (No_Obsolescent_Features, Pragma_Node);
-            Restriction_Warnings (No_Obsolescent_Features) :=
-              Prag_Id = Pragma_Restriction_Warnings;
+            case Get_Restriction_Id (Chars (Expr)) is
+               when No_Obsolescent_Features =>
+                  Set_Restriction (No_Obsolescent_Features, Pragma_Node);
+                  Restriction_Warnings (No_Obsolescent_Features) :=
+                    Prag_Id = Pragma_Restriction_Warnings;
+
+               when SPARK =>
+                  Set_Restriction (SPARK, Pragma_Node);
+                  Restriction_Warnings (SPARK) :=
+                    Prag_Id = Pragma_Restriction_Warnings;
+
+               when others =>
+                  null;
+            end case;
 
          elsif Id = Name_No_Dependence then
             Set_Restriction_No_Dependence
@@ -307,57 +328,46 @@ begin
       -- Ada_05/Ada_2005 --
       ---------------------
 
-      --  This pragma must be processed at parse time, since we want to set
+      --  These pragmas must be processed at parse time, since we want to set
       --  the Ada version properly at parse time to recognize the appropriate
       --  Ada version syntax. However, it is only the zero argument form that
       --  must be processed at parse time.
 
       when Pragma_Ada_05 | Pragma_Ada_2005 =>
          if Arg_Count = 0 then
-            Ada_Version := Ada_05;
-            Ada_Version_Explicit := Ada_05;
+            Ada_Version := Ada_2005;
+            Ada_Version_Explicit := Ada_2005;
+         end if;
+
+      ---------------------
+      -- Ada_12/Ada_2012 --
+      ---------------------
+
+      --  These pragmas must be processed at parse time, since we want to set
+      --  the Ada version properly at parse time to recognize the appropriate
+      --  Ada version syntax. However, it is only the zero argument form that
+      --  must be processed at parse time.
+
+      when Pragma_Ada_12 | Pragma_Ada_2012 =>
+         if Arg_Count = 0 then
+            Ada_Version := Ada_2012;
+            Ada_Version_Explicit := Ada_2012;
          end if;
 
       -----------
       -- Debug --
       -----------
 
-      --  pragma Debug (PROCEDURE_CALL_STATEMENT);
+      --  pragma Debug ([boolean_EXPRESSION,] PROCEDURE_CALL_STATEMENT);
 
-      --  This has to be processed by the parser because of the very peculiar
-      --  form of the second parameter, which is syntactically from a formal
-      --  point of view a function call (since it must be an expression), but
-      --  semantically we treat it as a procedure call (which has exactly the
-      --  same syntactic form, so that's why we can get away with this!)
+      when Pragma_Debug =>
+         Check_No_Identifier (Arg1);
 
-      when Pragma_Debug => Debug : declare
-         Expr : Node_Id;
-
-      begin
          if Arg_Count = 2 then
-            Check_No_Identifier (Arg1);
             Check_No_Identifier (Arg2);
-            Expr := New_Copy (Expression (Arg2));
-
          else
             Check_Arg_Count (1);
-            Check_No_Identifier (Arg1);
-            Expr := New_Copy (Expression (Arg1));
          end if;
-
-         if Nkind (Expr) /= N_Indexed_Component
-           and then Nkind (Expr) /= N_Function_Call
-           and then Nkind (Expr) /= N_Identifier
-           and then Nkind (Expr) /= N_Selected_Component
-         then
-            Error_Msg
-              ("argument of pragma% is not procedure call", Sloc (Expr));
-            raise Error_Resync;
-         else
-            Set_Debug_Statement
-              (Pragma_Node, P_Statement_Name (Expr));
-         end if;
-      end Debug;
 
       -------------------------------
       -- Extensions_Allowed (GNAT) --
@@ -375,8 +385,10 @@ begin
 
          if Chars (Expression (Arg1)) = Name_On then
             Extensions_Allowed := True;
+            Ada_Version := Ada_2012;
          else
             Extensions_Allowed := False;
+            Ada_Version := Ada_Version_Explicit;
          end if;
 
       ----------------
@@ -423,37 +435,37 @@ begin
          List_Pragmas.Increment_Last;
          List_Pragmas.Table (List_Pragmas.Last) := (Page, Semi);
 
-         ------------------
-         -- Restrictions --
-         ------------------
+      ------------------
+      -- Restrictions --
+      ------------------
 
-         --  pragma Restrictions (RESTRICTION {, RESTRICTION});
+      --  pragma Restrictions (RESTRICTION {, RESTRICTION});
 
-         --  RESTRICTION ::=
-         --    restriction_IDENTIFIER
-         --  | restriction_parameter_IDENTIFIER => EXPRESSION
+      --  RESTRICTION ::=
+      --    restriction_IDENTIFIER
+      --  | restriction_parameter_IDENTIFIER => EXPRESSION
 
-         --  We process the case of No_Obsolescent_Features, since this has
-         --  a syntactic effect that we need to detect at parse time (the use
-         --  of replacement characters such as colon for pound sign).
+      --  We process the case of No_Obsolescent_Features, since this has
+      --  a syntactic effect that we need to detect at parse time (the use
+      --  of replacement characters such as colon for pound sign).
 
-         when Pragma_Restrictions =>
-            Process_Restrictions_Or_Restriction_Warnings;
+      when Pragma_Restrictions =>
+         Process_Restrictions_Or_Restriction_Warnings;
 
-         --------------------------
-         -- Restriction_Warnings --
-         --------------------------
+      --------------------------
+      -- Restriction_Warnings --
+      --------------------------
 
-         --  pragma Restriction_Warnings (RESTRICTION {, RESTRICTION});
+      --  pragma Restriction_Warnings (RESTRICTION {, RESTRICTION});
 
-         --  RESTRICTION ::=
-         --    restriction_IDENTIFIER
-         --  | restriction_parameter_IDENTIFIER => EXPRESSION
+      --  RESTRICTION ::=
+      --    restriction_IDENTIFIER
+      --  | restriction_parameter_IDENTIFIER => EXPRESSION
 
-         --  See above comment for pragma Restrictions
+      --  See above comment for pragma Restrictions
 
-         when Pragma_Restriction_Warnings =>
-            Process_Restrictions_Or_Restriction_Warnings;
+      when Pragma_Restriction_Warnings =>
+         Process_Restrictions_Or_Restriction_Warnings;
 
       ----------------------------------------------------------
       -- Source_File_Name and Source_File_Name_Project (GNAT) --
@@ -943,7 +955,11 @@ begin
                OK := False;
 
             elsif Chars (A) = Name_All_Checks then
-               Stylesw.Set_Default_Style_Check_Options;
+               if GNAT_Mode then
+                  Stylesw.Set_GNAT_Style_Check_Options;
+               else
+                  Stylesw.Set_Default_Style_Check_Options;
+               end if;
 
             elsif Chars (A) = Name_On then
                Style_Check := True;
@@ -961,6 +977,33 @@ begin
             end if;
          end if;
       end Style_Checks;
+
+      -------------------------
+      -- Suppress_All (GNAT) --
+      -------------------------
+
+      --  pragma Suppress_All
+
+      --  This is a rather odd pragma, because other compilers allow it in
+      --  strange places. DEC allows it at the end of units, and Rational
+      --  allows it as a program unit pragma, when it would be more natural
+      --  if it were a configuration pragma.
+
+      --  Since the reason we provide this pragma is for compatibility with
+      --  these other compilers, we want to accommodate these strange placement
+      --  rules, and the easiest thing is simply to allow it anywhere in a
+      --  unit. If this pragma appears anywhere within a unit, then the effect
+      --  is as though a pragma Suppress (All_Checks) had appeared as the first
+      --  line of the current file, i.e. as the first configuration pragma in
+      --  the current unit.
+
+      --  To get this effect, we set the flag Has_Pragma_Suppress_All in the
+      --  compilation unit node for the current source file then in the last
+      --  stage of parsing a file, if this flag is set, we materialize the
+      --  Suppress (All_Checks) pragma, marked as not coming from Source.
+
+      when Pragma_Suppress_All =>
+         Set_Has_Pragma_Suppress_All (Cunit (Current_Source_Unit));
 
       ---------------------
       -- Warnings (GNAT) --
@@ -1071,6 +1114,7 @@ begin
            Pragma_CPP_Constructor               |
            Pragma_CPP_Virtual                   |
            Pragma_CPP_Vtable                    |
+           Pragma_CPU                           |
            Pragma_C_Pass_By_Copy                |
            Pragma_Comment                       |
            Pragma_Common_Object                 |
@@ -1081,8 +1125,10 @@ begin
            Pragma_Convention                    |
            Pragma_Debug_Policy                  |
            Pragma_Detect_Blocking               |
+           Pragma_Default_Storage_Pool          |
            Pragma_Dimension                     |
            Pragma_Discard_Names                 |
+           Pragma_Dispatching_Domain            |
            Pragma_Eliminate                     |
            Pragma_Elaborate                     |
            Pragma_Elaborate_All                 |
@@ -1103,7 +1149,8 @@ begin
            Pragma_Finalize_Storage_Only         |
            Pragma_Float_Representation          |
            Pragma_Ident                         |
-           Pragma_Implemented_By_Entry          |
+           Pragma_Implementation_Defined        |
+           Pragma_Implemented                   |
            Pragma_Implicit_Packing              |
            Pragma_Import                        |
            Pragma_Import_Exception              |
@@ -1111,6 +1158,8 @@ begin
            Pragma_Import_Object                 |
            Pragma_Import_Procedure              |
            Pragma_Import_Valued_Procedure       |
+           Pragma_Independent                   |
+           Pragma_Independent_Components        |
            Pragma_Initialize_Scalars            |
            Pragma_Inline                        |
            Pragma_Inline_Always                 |
@@ -1121,6 +1170,7 @@ begin
            Pragma_Interrupt_Handler             |
            Pragma_Interrupt_State               |
            Pragma_Interrupt_Priority            |
+           Pragma_Invariant                     |
            Pragma_Java_Constructor              |
            Pragma_Java_Interface                |
            Pragma_Keep_Names                    |
@@ -1139,10 +1189,11 @@ begin
            Pragma_Memory_Size                   |
            Pragma_No_Body                       |
            Pragma_No_Return                     |
-           Pragma_Obsolescent                   |
            Pragma_No_Run_Time                   |
            Pragma_No_Strict_Aliasing            |
            Pragma_Normalize_Scalars             |
+           Pragma_Obsolescent                   |
+           Pragma_Ordered                       |
            Pragma_Optimize                      |
            Pragma_Optimize_Alignment            |
            Pragma_Pack                          |
@@ -1152,6 +1203,7 @@ begin
            Pragma_Persistent_BSS                |
            Pragma_Postcondition                 |
            Pragma_Precondition                  |
+           Pragma_Predicate                     |
            Pragma_Preelaborate                  |
            Pragma_Preelaborate_05               |
            Pragma_Priority                      |
@@ -1174,13 +1226,13 @@ begin
            Pragma_Shared                        |
            Pragma_Shared_Passive                |
            Pragma_Short_Circuit_And_Or          |
+           Pragma_Short_Descriptors             |
            Pragma_Storage_Size                  |
            Pragma_Storage_Unit                  |
            Pragma_Static_Elaboration_Desired    |
            Pragma_Stream_Convert                |
            Pragma_Subtitle                      |
            Pragma_Suppress                      |
-           Pragma_Suppress_All                  |
            Pragma_Suppress_Debug_Info           |
            Pragma_Suppress_Exception_Locations  |
            Pragma_Suppress_Initialization       |
@@ -1189,6 +1241,7 @@ begin
            Pragma_Task_Info                     |
            Pragma_Task_Name                     |
            Pragma_Task_Storage                  |
+           Pragma_Test_Case                     |
            Pragma_Thread_Local_Storage          |
            Pragma_Time_Slice                    |
            Pragma_Title                         |

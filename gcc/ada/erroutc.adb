@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
---                                                                          --
--- You should have received a copy of the GNU General Public License along  --
--- with this program; see file COPYING3.  If not see                        --
--- <http://www.gnu.org/licenses/>.                                          --
+-- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
+-- for  more details.  You should have  received  a copy of the GNU General --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -717,11 +716,31 @@ package body Erroutc is
       Sindex_Loc  : Source_File_Index;
       Sindex_Flag : Source_File_Index;
 
+      procedure Set_At;
+      --  Outputs "at " unless last characters in buffer are " from ". Certain
+      --  messages read better with from than at.
+
+      ------------
+      -- Set_At --
+      ------------
+
+      procedure Set_At is
+      begin
+         if Msglen < 6
+           or else Msg_Buffer (Msglen - 5 .. Msglen) /= " from "
+         then
+            Set_Msg_Str ("at ");
+         end if;
+      end Set_At;
+
+   --  Start of processing for Set_Msg_Insertion_Line_Number
+
    begin
       Set_Msg_Blank;
 
       if Loc = No_Location then
-         Set_Msg_Str ("at unknown location");
+         Set_At;
+         Set_Msg_Str ("unknown location");
 
       elsif Loc = System_Location then
          Set_Msg_Str ("in package System");
@@ -743,7 +762,7 @@ package body Erroutc is
          Sindex_Flag := Get_Source_File_Index (Flag);
 
          if Full_File_Name (Sindex_Loc) /= Full_File_Name (Sindex_Flag) then
-            Set_Msg_Str ("at ");
+            Set_At;
             Get_Name_String
               (Reference_Name (Get_Source_File_Index (Loc)));
             Set_Msg_Name_Buffer;
@@ -752,7 +771,8 @@ package body Erroutc is
          --  If in current file, add text "at line "
 
          else
-            Set_Msg_Str ("at line ");
+            Set_At;
+            Set_Msg_Str ("line ");
          end if;
 
          --  Output line number for reference
@@ -935,7 +955,12 @@ package body Erroutc is
       if Name_Len = 2 and then Name_Buffer (1 .. 2) = "RM" then
          Set_Msg_Name_Buffer;
 
-      --  Not RM: case appropriately and add surrounding quotes
+      --  We make a similar exception for Alfa
+
+      elsif Name_Len = 4 and then Name_Buffer (1 .. 4) = "Alfa" then
+         Set_Msg_Name_Buffer;
+
+      --  Neither RM nor Alfa: case appropriately and add surrounding quotes
 
       else
          Set_Casing (Keyword_Casing (Flag_Source), All_Lower_Case);

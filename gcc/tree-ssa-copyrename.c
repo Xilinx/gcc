@@ -1,5 +1,6 @@
 /* Rename SSA copies.
-   Copyright (C) 2004, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
@@ -27,7 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "basic-block.h"
 #include "function.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "bitmap.h"
 #include "tree-flow.h"
 #include "gimple.h"
@@ -38,6 +39,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-live.h"
 #include "tree-pass.h"
 #include "langhooks.h"
+
+static struct
+{
+  /* Number of copies coalesced.  */
+  int coalesced;
+} stats;
 
 /* The following routines implement the SSA copy renaming phase.
 
@@ -169,7 +176,7 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
       return false;
     }
 
-  /* Never attempt to coalesce 2 difference parameters.  */
+  /* Never attempt to coalesce 2 different parameters.  */
   if (TREE_CODE (root1) == PARM_DECL && TREE_CODE (root2) == PARM_DECL)
     {
       if (debug)
@@ -225,8 +232,25 @@ copy_rename_partition_coalesce (var_map map, tree var1, tree var2, FILE *debug)
       ign2 = false;
     }
 
-  /* Don't coalesce if the two variables aren't type compatible.  */
-  if (!types_compatible_p (TREE_TYPE (root1), TREE_TYPE (root2)))
+  /* Don't coalesce if the new chosen root variable would be read-only.
+     If both ign1 && ign2, then the root var of the larger partition
+     wins, so reject in that case if any of the root vars is TREE_READONLY.
+     Otherwise reject only if the root var, on which replace_ssa_name_symbol
+     will be called below, is readonly.  */
+  if ((TREE_READONLY (root1) && ign2) || (TREE_READONLY (root2) && ign1))
+    {
+      if (debug)
+	fprintf (debug, " : Readonly variable.  No coalesce.\n");
+      return false;
+    }
+
+  /* Don't coalesce if the two variables aren't type compatible .  */
+  if (!types_compatible_p (TREE_TYPE (root1), TREE_TYPE (root2))
+      /* There is a disconnect between the middle-end type-system and
+         VRP, avoid coalescing enum types with different bounds.  */
+      || ((TREE_CODE (TREE_TYPE (root1)) == ENUMERAL_TYPE
+	   || TREE_CODE (TREE_TYPE (root2)) == ENUMERAL_TYPE)
+	  && TREE_TYPE (root1) != TREE_TYPE (root2)))
     {
       if (debug)
 	fprintf (debug, " : Incompatible types.  No coalesce.\n");
@@ -271,6 +295,8 @@ rename_ssa_copies (void)
   unsigned x;
   FILE *debug;
   bool updated = false;
+
+  memset (&stats, 0, sizeof (stats));
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     debug = dump_file;
@@ -331,20 +357,22 @@ rename_ssa_copies (void)
       if (!part_var)
         continue;
       var = ssa_name (x);
+      if (SSA_NAME_VAR (var) == SSA_NAME_VAR (part_var))
+	continue;
       if (debug)
         {
-	  if (SSA_NAME_VAR (var) != SSA_NAME_VAR (part_var))
-	    {
-	      fprintf (debug, "Coalesced ");
-	      print_generic_expr (debug, var, TDF_SLIM);
-	      fprintf (debug, " to ");
-	      print_generic_expr (debug, part_var, TDF_SLIM);
-	      fprintf (debug, "\n");
-	    }
+	  fprintf (debug, "Coalesced ");
+	  print_generic_expr (debug, var, TDF_SLIM);
+	  fprintf (debug, " to ");
+	  print_generic_expr (debug, part_var, TDF_SLIM);
+	  fprintf (debug, "\n");
 	}
+      stats.coalesced++;
       replace_ssa_name_symbol (var, SSA_NAME_VAR (part_var));
     }
 
+  statistics_counter_event (cfun, "copies coalesced",
+			    stats.coalesced);
   delete_var_map (map);
   return updated ? TODO_remove_unused_locals : 0;
 }
@@ -372,6 +400,6 @@ struct gimple_opt_pass pass_rename_ssa_copies =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa      /* todo_flags_finish */
+  TODO_verify_ssa                       /* todo_flags_finish */
  }
 };

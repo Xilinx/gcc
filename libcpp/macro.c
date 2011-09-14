@@ -1,7 +1,7 @@
 /* Part of CPP library.  (Macro and #define handling.)
    Copyright (C) 1986, 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Written by Per Bothner, 1994.
    Based on CCCP program by Paul Rubin, June 1986
    Adapted to ANSI C, Richard Stallman, Jan 1987
@@ -65,7 +65,7 @@ static bool create_iso_definition (cpp_reader *, cpp_macro *);
 
 static cpp_token *alloc_expansion_token (cpp_reader *, cpp_macro *);
 static cpp_token *lex_expansion_token (cpp_reader *, cpp_macro *);
-static bool warn_of_redefinition (cpp_reader *, const cpp_hashnode *,
+static bool warn_of_redefinition (cpp_reader *, cpp_hashnode *,
 				  const cpp_macro *);
 static bool parse_params (cpp_reader *, cpp_macro *);
 static void check_trad_stringification (cpp_reader *, const cpp_macro *,
@@ -835,7 +835,9 @@ enter_macro_context (cpp_reader *pfile, cpp_hashnode *node,
   if ((node->flags & NODE_BUILTIN) && !(node->flags & NODE_USED))
     {
       node->flags |= NODE_USED;
-      if (pfile->cb.used_define)
+      if ((!pfile->cb.user_builtin_macro
+	   || !pfile->cb.user_builtin_macro (pfile, node))
+	  && pfile->cb.used_define)
 	pfile->cb.used_define (pfile, pfile->directive_line, node);
     }
 
@@ -1062,8 +1064,7 @@ replace_args (cpp_reader *pfile, cpp_hashnode *node, cpp_macro *macro, macro_arg
 
   /* Free the expanded arguments.  */
   for (i = 0; i < macro->paramc; i++)
-    if (args[i].expanded)
-      free (args[i].expanded);
+    free (args[i].expanded);
 
   push_ptoken_context (pfile, node, buff, first, dest - first);
 }
@@ -1430,7 +1431,7 @@ _cpp_backup_tokens (cpp_reader *pfile, unsigned int count)
 
 /* Returns nonzero if a macro redefinition warning is required.  */
 static bool
-warn_of_redefinition (cpp_reader *pfile, const cpp_hashnode *node,
+warn_of_redefinition (cpp_reader *pfile, cpp_hashnode *node,
 		      const cpp_macro *macro2)
 {
   const cpp_macro *macro1;
@@ -1442,7 +1443,11 @@ warn_of_redefinition (cpp_reader *pfile, const cpp_hashnode *node,
 
   /* Suppress warnings for builtins that lack the NODE_WARN flag.  */
   if (node->flags & NODE_BUILTIN)
-    return false;
+    {
+      if (!pfile->cb.user_builtin_macro
+	  || !pfile->cb.user_builtin_macro (pfile, node))
+	return false;
+    }
 
   /* Redefinitions of conditional (context-sensitive) macros, on
      the other hand, must be allowed silently.  */
@@ -1583,13 +1588,13 @@ parse_params (cpp_reader *pfile, cpp_macro *macro)
 				   pfile->spec_nodes.n__VA_ARGS__);
 	      pfile->state.va_args_ok = 1;
 	      if (! CPP_OPTION (pfile, c99)
-		  && CPP_OPTION (pfile, pedantic)
+		  && CPP_OPTION (pfile, cpp_pedantic)
 		  && CPP_OPTION (pfile, warn_variadic_macros))
 		cpp_pedwarning
                   (pfile, CPP_W_VARIADIC_MACROS,
 		   "anonymous variadic macros were introduced in C99");
 	    }
-	  else if (CPP_OPTION (pfile, pedantic)
+	  else if (CPP_OPTION (pfile, cpp_pedantic)
 		   && CPP_OPTION (pfile, warn_variadic_macros))
 	    cpp_pedwarning (pfile, CPP_W_VARIADIC_MACROS,
 		            "ISO C does not permit named variadic macros");
@@ -1982,19 +1987,26 @@ check_trad_stringification (cpp_reader *pfile, const cpp_macro *macro,
    Caller is expected to generate the "#define" bit if needed.  The
    returned text is temporary, and automatically freed later.  */
 const unsigned char *
-cpp_macro_definition (cpp_reader *pfile, const cpp_hashnode *node)
+cpp_macro_definition (cpp_reader *pfile, cpp_hashnode *node)
 {
   unsigned int i, len;
-  const cpp_macro *macro = node->value.macro;
+  const cpp_macro *macro;
   unsigned char *buffer;
 
   if (node->type != NT_MACRO || (node->flags & NODE_BUILTIN))
     {
-      cpp_error (pfile, CPP_DL_ICE,
-		 "invalid hash type %d in cpp_macro_definition", node->type);
-      return 0;
+      if (node->type != NT_MACRO
+	  || !pfile->cb.user_builtin_macro
+          || !pfile->cb.user_builtin_macro (pfile, node))
+	{
+	  cpp_error (pfile, CPP_DL_ICE,
+		     "invalid hash type %d in cpp_macro_definition",
+		     node->type);
+	  return 0;
+	}
     }
 
+  macro = node->value.macro;
   /* Calculate length.  */
   len = NODE_LEN (node) + 2;			/* ' ' and NUL.  */
   if (macro->fun_like)

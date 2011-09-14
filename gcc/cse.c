@@ -1,7 +1,7 @@
 /* Common subexpression elimination for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -20,7 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
-/* stdio.h must precede rtl.h for FFS.  */
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -30,11 +29,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "basic-block.h"
 #include "flags.h"
-#include "real.h"
 #include "insn-config.h"
 #include "recog.h"
 #include "function.h"
 #include "expr.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "output.h"
 #include "ggc.h"
@@ -476,8 +475,8 @@ struct table_elt
    || (HARD_REGISTER_NUM_P (N)						\
        && FIXED_REGNO_P (N) && REGNO_REG_CLASS (N) != NO_REGS))
 
-#define COST(X) (REG_P (X) ? 0 : notreg_cost (X, SET))
-#define COST_IN(X,OUTER) (REG_P (X) ? 0 : notreg_cost (X, OUTER))
+#define COST(X) (REG_P (X) ? 0 : notreg_cost (X, SET, 1))
+#define COST_IN(X, OUTER, OPNO) (REG_P (X) ? 0 : notreg_cost (X, OUTER, OPNO))
 
 /* Get the number of times this register has been updated in this
    basic block.  */
@@ -553,7 +552,7 @@ static bitmap cse_ebb_live_in, cse_ebb_live_out;
 static sbitmap cse_visited_basic_blocks;
 
 static bool fixed_base_plus_p (rtx x);
-static int notreg_cost (rtx, enum rtx_code);
+static int notreg_cost (rtx, enum rtx_code, int);
 static int approx_reg_cost_1 (rtx *, void *);
 static int approx_reg_cost (rtx);
 static int preferable (int, int, int, int);
@@ -686,7 +685,7 @@ approx_reg_cost_1 (rtx *xp, void *data)
 	{
 	  if (regno < FIRST_PSEUDO_REGISTER)
 	    {
-	      if (SMALL_REGISTER_CLASSES)
+	      if (targetm.small_register_classes_for_mode_p (GET_MODE (x)))
 		return 1;
 	      *cost_p += 2;
 	    }
@@ -753,7 +752,7 @@ preferable (int cost_a, int regcost_a, int cost_b, int regcost_b)
    from COST macro to keep it simple.  */
 
 static int
-notreg_cost (rtx x, enum rtx_code outer)
+notreg_cost (rtx x, enum rtx_code outer, int opno)
 {
   return ((GET_CODE (x) == SUBREG
 	   && REG_P (SUBREG_REG (x))
@@ -762,10 +761,10 @@ notreg_cost (rtx x, enum rtx_code outer)
 	   && (GET_MODE_SIZE (GET_MODE (x))
 	       < GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
 	   && subreg_lowpart_p (x)
-	   && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (x)),
-				     GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (x)))))
+	   && TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (x),
+					     GET_MODE (SUBREG_REG (x))))
 	  ? 0
-	  : rtx_cost (x, outer, optimize_this_for_speed_p) * 2);
+	  : rtx_cost (x, outer, opno, optimize_this_for_speed_p) * 2);
 }
 
 
@@ -797,8 +796,7 @@ init_cse_reg_info (unsigned int nregs)
 	}
 
       /* Reallocate the table with NEW_SIZE entries.  */
-      if (cse_reg_info_table)
-	free (cse_reg_info_table);
+      free (cse_reg_info_table);
       cse_reg_info_table = XNEWVEC (struct cse_reg_info, new_size);
       cse_reg_info_table_size = new_size;
       cse_reg_info_table_first_uninitialized = 0;
@@ -1639,8 +1637,10 @@ insert_with_costs (rtx x, struct table_elt *classp, unsigned int hash,
 	  /* Put it after the last element cheaper than X.  */
 	  struct table_elt *p, *next;
 
-	  for (p = classp; (next = p->next_same_value) && CHEAPER (next, elt);
-	       p = next);
+	  for (p = classp;
+	       (next = p->next_same_value) && CHEAPER (next, elt);
+	       p = next)
+	    ;
 
 	  /* Put it after P and before NEXT.  */
 	  elt->next_same_value = next;
@@ -2287,7 +2287,7 @@ hash_rtx_cb (const_rtx x, enum machine_mode mode,
 
 	       On all machines, we can't record any global registers.
 	       Nor should we record any register that is in a small
-	       class, as defined by CLASS_LIKELY_SPILLED_P.  */
+	       class, as defined by TARGET_CLASS_LIKELY_SPILLED_P.  */
 	    bool record;
 
 	    if (regno >= FIRST_PSEUDO_REGISTER)
@@ -2304,9 +2304,9 @@ hash_rtx_cb (const_rtx x, enum machine_mode mode,
 	      record = true;
 	    else if (GET_MODE_CLASS (GET_MODE (x)) == MODE_CC)
 	      record = true;
-	    else if (SMALL_REGISTER_CLASSES)
+	    else if (targetm.small_register_classes_for_mode_p (GET_MODE (x)))
 	      record = false;
-	    else if (CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (regno)))
+	    else if (targetm.class_likely_spilled_p (REGNO_REG_CLASS (regno)))
 	      record = false;
 	    else
 	      record = true;
@@ -3065,12 +3065,8 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 		 for STORE_FLAG_VALUE, also look at LT and GE operations.  */
 	      || ((code == NE
 		   || (code == LT
-		       && GET_MODE_CLASS (inner_mode) == MODE_INT
-		       && (GET_MODE_BITSIZE (inner_mode)
-			   <= HOST_BITS_PER_WIDE_INT)
-		       && (STORE_FLAG_VALUE
-			   & ((HOST_WIDE_INT) 1
-			      << (GET_MODE_BITSIZE (inner_mode) - 1))))
+		       && val_signbit_known_set_p (inner_mode,
+						   STORE_FLAG_VALUE))
 #ifdef FLOAT_STORE_FLAG_VALUE
 		   || (code == LT
 		       && SCALAR_FLOAT_MODE_P (inner_mode)
@@ -3085,12 +3081,8 @@ find_comparison_args (enum rtx_code code, rtx *parg1, rtx *parg2,
 	    }
 	  else if ((code == EQ
 		    || (code == GE
-			&& GET_MODE_CLASS (inner_mode) == MODE_INT
-			&& (GET_MODE_BITSIZE (inner_mode)
-			    <= HOST_BITS_PER_WIDE_INT)
-			&& (STORE_FLAG_VALUE
-			    & ((HOST_WIDE_INT) 1
-			       << (GET_MODE_BITSIZE (inner_mode) - 1))))
+			&& val_signbit_known_set_p (inner_mode,
+						    STORE_FLAG_VALUE))
 #ifdef FLOAT_STORE_FLAG_VALUE
 		    || (code == GE
 			&& SCALAR_FLOAT_MODE_P (inner_mode)
@@ -3304,7 +3296,7 @@ fold_rtx (rtx x, rtx insn)
 	   argument.  */
 	if (const_arg != 0
 	    && const_arg != folded_arg
-	    && COST_IN (const_arg, code) <= COST_IN (folded_arg, code)
+	    && COST_IN (const_arg, code, i) <= COST_IN (folded_arg, code, i)
 
 	    /* It's not safe to substitute the operand of a conversion
 	       operator with a constant, as the conversion's identity
@@ -3660,7 +3652,7 @@ fold_rtx (rtx x, rtx insn)
 	      enum rtx_code associate_code;
 
 	      if (is_shift
-		  && (INTVAL (const_arg1) >= GET_MODE_BITSIZE (mode)
+		  && (INTVAL (const_arg1) >= GET_MODE_PRECISION (mode)
 		      || INTVAL (const_arg1) < 0))
 		{
 		  if (SHIFT_COUNT_TRUNCATED)
@@ -3709,7 +3701,7 @@ fold_rtx (rtx x, rtx insn)
                 break;
 
 	      if (is_shift
-		  && (INTVAL (inner_const) >= GET_MODE_BITSIZE (mode)
+		  && (INTVAL (inner_const) >= GET_MODE_PRECISION (mode)
 		      || INTVAL (inner_const) < 0))
 		{
 		  if (SHIFT_COUNT_TRUNCATED)
@@ -3739,7 +3731,7 @@ fold_rtx (rtx x, rtx insn)
 
 	      if (is_shift
 		  && CONST_INT_P (new_const)
-		  && INTVAL (new_const) >= GET_MODE_BITSIZE (mode))
+		  && INTVAL (new_const) >= GET_MODE_PRECISION (mode))
 		{
 		  /* As an exception, we can turn an ASHIFTRT of this
 		     form into a shift of the number of bits - 1.  */
@@ -3969,9 +3961,7 @@ record_jump_cond (enum rtx_code code, enum machine_mode mode, rtx op0,
      is not worth testing for with no SUBREG).  */
 
   /* Note that GET_MODE (op0) may not equal MODE.  */
-  if (code == EQ && GET_CODE (op0) == SUBREG
-      && (GET_MODE_SIZE (GET_MODE (op0))
-	  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (op0)))))
+  if (code == EQ && paradoxical_subreg_p (op0))
     {
       enum machine_mode inner_mode = GET_MODE (SUBREG_REG (op0));
       rtx tem = record_jump_cond_subreg (inner_mode, op1);
@@ -3980,9 +3970,7 @@ record_jump_cond (enum rtx_code code, enum machine_mode mode, rtx op0,
 			  reversed_nonequality);
     }
 
-  if (code == EQ && GET_CODE (op1) == SUBREG
-      && (GET_MODE_SIZE (GET_MODE (op1))
-	  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (op1)))))
+  if (code == EQ && paradoxical_subreg_p (op1))
     {
       enum machine_mode inner_mode = GET_MODE (SUBREG_REG (op1));
       rtx tem = record_jump_cond_subreg (inner_mode, op0);
@@ -4349,12 +4337,23 @@ cse_insn (rtx insn)
       if (MEM_P (XEXP (x, 0)))
 	canon_reg (XEXP (x, 0), insn);
     }
-
   /* Canonicalize a USE of a pseudo register or memory location.  */
   else if (GET_CODE (x) == USE
 	   && ! (REG_P (XEXP (x, 0))
 		 && REGNO (XEXP (x, 0)) < FIRST_PSEUDO_REGISTER))
-    canon_reg (XEXP (x, 0), insn);
+    canon_reg (x, insn);
+  else if (GET_CODE (x) == ASM_OPERANDS)
+    {
+      for (i = ASM_OPERANDS_INPUT_LENGTH (x) - 1; i >= 0; i--)
+	{
+	  rtx input = ASM_OPERANDS_INPUT (x, i);
+	  if (!(REG_P (input) && REGNO (input) < FIRST_PSEUDO_REGISTER))
+	    {
+	      input = canon_reg (input, insn);
+	      validate_change (insn, &ASM_OPERANDS_INPUT (x, i), input, 1);
+	    }
+	}
+    }
   else if (GET_CODE (x) == CALL)
     {
       /* The result of apply_change_group can be ignored; see canon_reg.  */
@@ -4555,9 +4554,7 @@ cse_insn (rtx insn)
 	 treat it as volatile.  It may do the work of an SI in one context
 	 where the extra bits are not being used, but cannot replace an SI
 	 in general.  */
-      if (GET_CODE (src) == SUBREG
-	  && (GET_MODE_SIZE (GET_MODE (src))
-	      > GET_MODE_SIZE (GET_MODE (SUBREG_REG (src)))))
+      if (paradoxical_subreg_p (src))
 	sets[i].src_volatile = 1;
 #endif
 
@@ -4677,13 +4674,13 @@ cse_insn (rtx insn)
 
       if (src_const && src_related == 0 && CONST_INT_P (src_const)
 	  && GET_MODE_CLASS (mode) == MODE_INT
-	  && GET_MODE_BITSIZE (mode) < BITS_PER_WORD)
+	  && GET_MODE_PRECISION (mode) < BITS_PER_WORD)
 	{
 	  enum machine_mode wider_mode;
 
 	  for (wider_mode = GET_MODE_WIDER_MODE (mode);
 	       wider_mode != VOIDmode
-	       && GET_MODE_BITSIZE (wider_mode) <= BITS_PER_WORD
+	       && GET_MODE_PRECISION (wider_mode) <= BITS_PER_WORD
 	       && src_related == 0;
 	       wider_mode = GET_MODE_WIDER_MODE (wider_mode))
 	    {
@@ -4835,9 +4832,7 @@ cse_insn (rtx insn)
 
 	  /* Also skip paradoxical subregs, unless that's what we're
 	     looking for.  */
-	  if (code == SUBREG
-	      && (GET_MODE_SIZE (GET_MODE (p->exp))
-		  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (p->exp))))
+	  if (paradoxical_subreg_p (p->exp)
 	      && ! (src != 0
 		    && GET_CODE (src) == SUBREG
 		    && GET_MODE (src) == GET_MODE (p->exp)
@@ -4946,9 +4941,7 @@ cse_insn (rtx insn)
 	     size, but later may be adjusted so that the upper bits aren't
 	     what we want.  So reject it.  */
 	  if (elt != 0
-	      && GET_CODE (elt->exp) == SUBREG
-	      && (GET_MODE_SIZE (GET_MODE (elt->exp))
-		  > GET_MODE_SIZE (GET_MODE (SUBREG_REG (elt->exp))))
+	      && paradoxical_subreg_p (elt->exp)
 	      /* It is okay, though, if the rtx we're trying to match
 		 will ignore any of the bits we can't predict.  */
 	      && ! (src != 0
@@ -5026,7 +5019,7 @@ cse_insn (rtx insn)
 	      dest = canon_rtx (SET_DEST (sets[i].rtl));
 
 	      if (!MEM_P (src) || !MEM_P (dest)
-		  || !nonoverlapping_memrefs_p (src, dest))
+		  || !nonoverlapping_memrefs_p (src, dest, false))
 		break;
 	    }
 
@@ -5040,7 +5033,7 @@ cse_insn (rtx insn)
 	      && CONST_INT_P (XEXP (SET_DEST (sets[i].rtl), 1))
 	      && CONST_INT_P (XEXP (SET_DEST (sets[i].rtl), 2))
 	      && REG_P (XEXP (SET_DEST (sets[i].rtl), 0))
-	      && (GET_MODE_BITSIZE (GET_MODE (SET_DEST (sets[i].rtl)))
+	      && (GET_MODE_PRECISION (GET_MODE (SET_DEST (sets[i].rtl)))
 		  >= INTVAL (XEXP (SET_DEST (sets[i].rtl), 1)))
 	      && ((unsigned) INTVAL (XEXP (SET_DEST (sets[i].rtl), 1))
 		  + (unsigned) INTVAL (XEXP (SET_DEST (sets[i].rtl), 2))
@@ -5067,7 +5060,7 @@ cse_insn (rtx insn)
 		  HOST_WIDE_INT mask;
 		  unsigned int shift;
 		  if (BITS_BIG_ENDIAN)
-		    shift = GET_MODE_BITSIZE (GET_MODE (dest_reg))
+		    shift = GET_MODE_PRECISION (GET_MODE (dest_reg))
 			    - INTVAL (pos) - INTVAL (width);
 		  else
 		    shift = INTVAL (pos);
@@ -5709,9 +5702,7 @@ cse_insn (rtx insn)
 	       some tracking to be wrong.
 
 	       ??? Think about this more later.  */
-	    || (GET_CODE (dest) == SUBREG
-		&& (GET_MODE_SIZE (GET_MODE (dest))
-		    > GET_MODE_SIZE (GET_MODE (SUBREG_REG (dest))))
+	    || (paradoxical_subreg_p (dest)
 		&& (GET_CODE (sets[i].src) == SIGN_EXTEND
 		    || GET_CODE (sets[i].src) == ZERO_EXTEND)))
 	  continue;
@@ -6193,7 +6184,9 @@ cse_find_path (basic_block first_bb, struct cse_basic_block_data *data,
 	  else
 	    e = NULL;
 
-	  if (e && e->dest != EXIT_BLOCK_PTR
+	  if (e
+	      && !((e->flags & EDGE_ABNORMAL_CALL) && cfun->has_nonlocal_label)
+	      && e->dest != EXIT_BLOCK_PTR
 	      && single_pred_p (e->dest)
 	      /* Avoid visiting basic blocks twice.  The large comment
 		 above explains why this can happen.  */
@@ -6317,9 +6310,9 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 	    }
 	}
 
+      optimize_this_for_speed_p = optimize_bb_for_speed_p (bb);
       FOR_BB_INSNS (bb, insn)
 	{
-	  optimize_this_for_speed_p = optimize_bb_for_speed_p (bb);
 	  /* If we have processed 1,000 insns, flush the hash table to
 	     avoid extreme quadratic behavior.  We must not include NOTEs
 	     in the count since there may be more of them when generating
@@ -6359,29 +6352,31 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 		recorded_label_ref = true;
 
 #ifdef HAVE_cc0
-	      /* If the previous insn set CC0 and this insn no longer
-		 references CC0, delete the previous insn.  Here we use
-		 fact that nothing expects CC0 to be valid over an insn,
-		 which is true until the final pass.  */
-	      {
-		rtx prev_insn, tem;
-
-		prev_insn = PREV_INSN (insn);
-		if (prev_insn && NONJUMP_INSN_P (prev_insn)
-		    && (tem = single_set (prev_insn)) != 0
-		    && SET_DEST (tem) == cc0_rtx
-		    && ! reg_mentioned_p (cc0_rtx, PATTERN (insn)))
-		  delete_insn (prev_insn);
-	      }
-
-	      /* If this insn is not the last insn in the basic block,
-		 it will be PREV_INSN(insn) in the next iteration.  If
-		 we recorded any CC0-related information for this insn,
-		 remember it.  */
-	      if (insn != BB_END (bb))
+	      if (NONDEBUG_INSN_P (insn))
 		{
-		  prev_insn_cc0 = this_insn_cc0;
-		  prev_insn_cc0_mode = this_insn_cc0_mode;
+		  /* If the previous insn sets CC0 and this insn no
+		     longer references CC0, delete the previous insn.
+		     Here we use fact that nothing expects CC0 to be
+		     valid over an insn, which is true until the final
+		     pass.  */
+		  rtx prev_insn, tem;
+
+		  prev_insn = prev_nonnote_nondebug_insn (insn);
+		  if (prev_insn && NONJUMP_INSN_P (prev_insn)
+		      && (tem = single_set (prev_insn)) != NULL_RTX
+		      && SET_DEST (tem) == cc0_rtx
+		      && ! reg_mentioned_p (cc0_rtx, PATTERN (insn)))
+		    delete_insn (prev_insn);
+
+		  /* If this insn is not the last insn in the basic
+		     block, it will be PREV_INSN(insn) in the next
+		     iteration.  If we recorded any CC0-related
+		     information for this insn, remember it.  */
+		  if (insn != BB_END (bb))
+		    {
+		      prev_insn_cc0 = this_insn_cc0;
+		      prev_insn_cc0_mode = this_insn_cc0_mode;
+		    }
 		}
 #endif
 	    }
@@ -6390,7 +6385,7 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
       /* With non-call exceptions, we are not always able to update
 	 the CFG properly inside cse_insn.  So clean up possibly
 	 redundant EH edges here.  */
-      if (flag_non_call_exceptions && have_eh_succ_edges (bb))
+      if (cfun->can_throw_non_call_exceptions && have_eh_succ_edges (bb))
 	cse_cfg_altered |= purge_dead_edges (bb);
 
       /* If we changed a conditional jump, we may have terminated
@@ -6573,8 +6568,9 @@ check_for_label_ref (rtx *rtl, void *data)
    Don't count a usage of DEST, which is the SET_DEST of a SET which
    contains X in its SET_SRC.  This is because such a SET does not
    modify the liveness of DEST.
-   DEST is set to pc_rtx for a trapping insn, which means that we must count
-   uses of a SET_DEST regardless because the insn can't be deleted here.  */
+   DEST is set to pc_rtx for a trapping insn, or for an insn with side effects.
+   We must then count uses of a SET_DEST regardless, because the insn can't be
+   deleted here.  */
 
 static void
 count_reg_usage (rtx x, int *counts, rtx dest, int incr)
@@ -6627,9 +6623,10 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     case CALL_INSN:
     case INSN:
     case JUMP_INSN:
-      /* We expect dest to be NULL_RTX here.  If the insn may trap, mark
-         this fact by setting DEST to pc_rtx.  */
-      if (insn_could_throw_p (x))
+      /* We expect dest to be NULL_RTX here.  If the insn may trap,
+	 or if it cannot be deleted due to side-effects, mark this fact
+	 by setting DEST to pc_rtx.  */
+      if (insn_could_throw_p (x) || side_effects_p (PATTERN (x)))
 	dest = pc_rtx;
       if (code == CALL_INSN)
 	count_reg_usage (CALL_INSN_FUNCTION_USAGE (x), counts, dest, incr);
@@ -6669,10 +6666,6 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
       return;
 
     case ASM_OPERANDS:
-      /* If the asm is volatile, then this insn cannot be deleted,
-	 and so the inputs *must* be live.  */
-      if (MEM_VOLATILE_P (x))
-	dest = NULL_RTX;
       /* Iterate over just the inputs, not the constraints as well.  */
       for (i = ASM_OPERANDS_INPUT_LENGTH (x) - 1; i >= 0; i--)
 	count_reg_usage (ASM_OPERANDS_INPUT (x, i), counts, dest, incr);
@@ -6696,14 +6689,11 @@ count_reg_usage (rtx x, int *counts, rtx dest, int incr)
     }
 }
 
-/* Return true if a register is dead.  Can be used in for_each_rtx.  */
+/* Return true if X is a dead register.  */
 
-static int
-is_dead_reg (rtx *loc, void *data)
+static inline int
+is_dead_reg (rtx x, int *counts)
 {
-  rtx x = *loc;
-  int *counts = (int *)data;
-
   return (REG_P (x)
 	  && REGNO (x) >= FIRST_PSEUDO_REGISTER
 	  && counts[REGNO (x)] == 0);
@@ -6724,12 +6714,12 @@ set_live_p (rtx set, rtx insn ATTRIBUTE_UNUSED, /* Only used with HAVE_cc0.  */
 #ifdef HAVE_cc0
   else if (GET_CODE (SET_DEST (set)) == CC0
 	   && !side_effects_p (SET_SRC (set))
-	   && ((tem = next_nonnote_insn (insn)) == 0
+	   && ((tem = next_nonnote_nondebug_insn (insn)) == NULL_RTX
 	       || !INSN_P (tem)
 	       || !reg_referenced_p (cc0_rtx, PATTERN (tem))))
     return false;
 #endif
-  else if (!is_dead_reg (&SET_DEST (set), counts)
+  else if (!is_dead_reg (SET_DEST (set), counts)
 	   || side_effects_p (SET_SRC (set)))
     return true;
   return false;
@@ -6773,19 +6763,66 @@ insn_live_p (rtx insn, int *counts)
 	else if (INSN_VAR_LOCATION_DECL (insn) == INSN_VAR_LOCATION_DECL (next))
 	  return false;
 
-      /* If this debug insn references a dead register, drop the
-	 location expression for now.  ??? We could try to find the
-	 def and see if propagation is possible.  */
-      if (for_each_rtx (&INSN_VAR_LOCATION_LOC (insn), is_dead_reg, counts))
-	{
-	  INSN_VAR_LOCATION_LOC (insn) = gen_rtx_UNKNOWN_VAR_LOC ();
-	  df_insn_rescan (insn);
-	}
-
       return true;
     }
   else
     return true;
+}
+
+/* Count the number of stores into pseudo.  Callback for note_stores.  */
+
+static void
+count_stores (rtx x, const_rtx set ATTRIBUTE_UNUSED, void *data)
+{
+  int *counts = (int *) data;
+  if (REG_P (x) && REGNO (x) >= FIRST_PSEUDO_REGISTER)
+    counts[REGNO (x)]++;
+}
+
+struct dead_debug_insn_data
+{
+  int *counts;
+  rtx *replacements;
+  bool seen_repl;
+};
+
+/* Return if a DEBUG_INSN needs to be reset because some dead
+   pseudo doesn't have a replacement.  Callback for for_each_rtx.  */
+
+static int
+is_dead_debug_insn (rtx *loc, void *data)
+{
+  rtx x = *loc;
+  struct dead_debug_insn_data *ddid = (struct dead_debug_insn_data *) data;
+
+  if (is_dead_reg (x, ddid->counts))
+    {
+      if (ddid->replacements && ddid->replacements[REGNO (x)] != NULL_RTX)
+	ddid->seen_repl = true;
+      else
+	return 1;
+    }
+  return 0;
+}
+
+/* Replace a dead pseudo in a DEBUG_INSN with replacement DEBUG_EXPR.
+   Callback for simplify_replace_fn_rtx.  */
+
+static rtx
+replace_dead_reg (rtx x, const_rtx old_rtx ATTRIBUTE_UNUSED, void *data)
+{
+  rtx *replacements = (rtx *) data;
+
+  if (REG_P (x)
+      && REGNO (x) >= FIRST_PSEUDO_REGISTER
+      && replacements[REGNO (x)] != NULL_RTX)
+    {
+      if (GET_MODE (x) == GET_MODE (replacements[REGNO (x)]))
+	return replacements[REGNO (x)];
+      return lowpart_subreg (GET_MODE (x), replacements[REGNO (x)],
+			     GET_MODE (replacements[REGNO (x)]));
+    }
+  return NULL_RTX;
 }
 
 /* Scan all the insns and delete any that are dead; i.e., they store a register
@@ -6801,22 +6838,51 @@ delete_trivially_dead_insns (rtx insns, int nreg)
 {
   int *counts;
   rtx insn, prev;
+  rtx *replacements = NULL;
   int ndead = 0;
 
   timevar_push (TV_DELETE_TRIVIALLY_DEAD);
   /* First count the number of times each register is used.  */
-  counts = XCNEWVEC (int, nreg);
-  for (insn = insns; insn; insn = NEXT_INSN (insn))
-    if (INSN_P (insn))
-      count_reg_usage (insn, counts, NULL_RTX, 1);
-
+  if (MAY_HAVE_DEBUG_INSNS)
+    {
+      counts = XCNEWVEC (int, nreg * 3);
+      for (insn = insns; insn; insn = NEXT_INSN (insn))
+	if (DEBUG_INSN_P (insn))
+	  count_reg_usage (INSN_VAR_LOCATION_LOC (insn), counts + nreg,
+			   NULL_RTX, 1);
+	else if (INSN_P (insn))
+	  {
+	    count_reg_usage (insn, counts, NULL_RTX, 1);
+	    note_stores (PATTERN (insn), count_stores, counts + nreg * 2);
+	  }
+      /* If there can be debug insns, COUNTS are 3 consecutive arrays.
+	 First one counts how many times each pseudo is used outside
+	 of debug insns, second counts how many times each pseudo is
+	 used in debug insns and third counts how many times a pseudo
+	 is stored.  */
+    }
+  else
+    {
+      counts = XCNEWVEC (int, nreg);
+      for (insn = insns; insn; insn = NEXT_INSN (insn))
+	if (INSN_P (insn))
+	  count_reg_usage (insn, counts, NULL_RTX, 1);
+      /* If no debug insns can be present, COUNTS is just an array
+	 which counts how many times each pseudo is used.  */
+    }
   /* Go from the last insn to the first and delete insns that only set unused
      registers or copy a register to itself.  As we delete an insn, remove
      usage counts for registers it uses.
 
      The first jump optimization pass may leave a real insn as the last
      insn in the function.   We must not skip that insn or we may end
-     up deleting code that is not really dead.  */
+     up deleting code that is not really dead.
+
+     If some otherwise unused register is only used in DEBUG_INSNs,
+     try to create a DEBUG_EXPR temporary and emit a DEBUG_INSN before
+     the setter.  Then go through DEBUG_INSNs and if a DEBUG_EXPR
+     has been created for the unused register, replace it with
+     the DEBUG_EXPR, otherwise reset the DEBUG_INSN.  */
   for (insn = get_last_insn (); insn; insn = prev)
     {
       int live_insn = 0;
@@ -6832,10 +6898,77 @@ delete_trivially_dead_insns (rtx insns, int nreg)
 
       if (! live_insn && dbg_cnt (delete_trivial_dead))
 	{
-	  count_reg_usage (insn, counts, NULL_RTX, -1);
+	  if (DEBUG_INSN_P (insn))
+	    count_reg_usage (INSN_VAR_LOCATION_LOC (insn), counts + nreg,
+			     NULL_RTX, -1);
+	  else
+	    {
+	      rtx set;
+	      if (MAY_HAVE_DEBUG_INSNS
+		  && (set = single_set (insn)) != NULL_RTX
+		  && is_dead_reg (SET_DEST (set), counts)
+		  /* Used at least once in some DEBUG_INSN.  */
+		  && counts[REGNO (SET_DEST (set)) + nreg] > 0
+		  /* And set exactly once.  */
+		  && counts[REGNO (SET_DEST (set)) + nreg * 2] == 1
+		  && !side_effects_p (SET_SRC (set))
+		  && asm_noperands (PATTERN (insn)) < 0)
+		{
+		  rtx dval, bind;
+
+		  /* Create DEBUG_EXPR (and DEBUG_EXPR_DECL).  */
+		  dval = make_debug_expr_from_rtl (SET_DEST (set));
+
+		  /* Emit a debug bind insn before the insn in which
+		     reg dies.  */
+		  bind = gen_rtx_VAR_LOCATION (GET_MODE (SET_DEST (set)),
+					       DEBUG_EXPR_TREE_DECL (dval),
+					       SET_SRC (set),
+					       VAR_INIT_STATUS_INITIALIZED);
+		  count_reg_usage (bind, counts + nreg, NULL_RTX, 1);
+
+		  bind = emit_debug_insn_before (bind, insn);
+		  df_insn_rescan (bind);
+
+		  if (replacements == NULL)
+		    replacements = XCNEWVEC (rtx, nreg);
+		  replacements[REGNO (SET_DEST (set))] = dval;
+		}
+
+	      count_reg_usage (insn, counts, NULL_RTX, -1);
+	      ndead++;
+	    }
 	  delete_insn_and_edges (insn);
-	  ndead++;
 	}
+    }
+
+  if (MAY_HAVE_DEBUG_INSNS)
+    {
+      struct dead_debug_insn_data ddid;
+      ddid.counts = counts;
+      ddid.replacements = replacements;
+      for (insn = get_last_insn (); insn; insn = PREV_INSN (insn))
+	if (DEBUG_INSN_P (insn))
+	  {
+	    /* If this debug insn references a dead register that wasn't replaced
+	       with an DEBUG_EXPR, reset the DEBUG_INSN.  */
+	    ddid.seen_repl = false;
+	    if (for_each_rtx (&INSN_VAR_LOCATION_LOC (insn),
+			      is_dead_debug_insn, &ddid))
+	      {
+		INSN_VAR_LOCATION_LOC (insn) = gen_rtx_UNKNOWN_VAR_LOC ();
+		df_insn_rescan (insn);
+	      }
+	    else if (ddid.seen_repl)
+	      {
+		INSN_VAR_LOCATION_LOC (insn)
+		  = simplify_replace_fn_rtx (INSN_VAR_LOCATION_LOC (insn),
+					     NULL_RTX, replace_dead_reg,
+					     replacements);
+		df_insn_rescan (insn);
+	      }
+	  }
+      free (replacements);
     }
 
   if (dump_file && ndead)
@@ -7273,7 +7406,6 @@ struct rtl_opt_pass pass_cse =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow,                     /* todo_flags_finish */
  }
@@ -7336,7 +7468,6 @@ struct rtl_opt_pass pass_cse2 =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow                      /* todo_flags_finish */
  }
@@ -7397,7 +7528,6 @@ struct rtl_opt_pass pass_cse_after_global_opts =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow                      /* todo_flags_finish */
  }

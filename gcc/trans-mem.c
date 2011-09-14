@@ -38,6 +38,8 @@
 #include "params.h"
 #include "target.h"
 #include "langhooks.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -450,7 +452,7 @@ record_tm_replacement (tree from, tree to)
   if (tm_wrap_map == NULL)
     tm_wrap_map = htab_create_ggc (32, tree_map_hash, tree_map_eq, 0);
 
-  h = GGC_NEW (struct tree_map);
+  h = ggc_alloc_tree_map ();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -947,8 +949,7 @@ tm_log_delete (void)
 static bool
 transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
 {
-  if ((TREE_CODE (mem) == INDIRECT_REF
-       || TREE_CODE (mem) == MISALIGNED_INDIRECT_REF)
+  if (TREE_CODE (mem) == INDIRECT_REF
       && TREE_CODE (TREE_OPERAND (mem, 0)) == SSA_NAME)
     {
       basic_block def_bb;
@@ -1074,7 +1075,7 @@ tm_log_emit_stmt (tree addr, gimple stmt)
   tree size = TYPE_SIZE_UNIT (type);
   gimple_stmt_iterator gsi = gsi_for_stmt (stmt);
   gimple log;
-  enum built_in_function code;
+  enum built_in_function code = BUILT_IN_TM_LOG;
 
   if (type == float_type_node)
     code = BUILT_IN_TM_LOG_FLOAT;
@@ -1432,7 +1433,7 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
   switch (TREE_CODE (x))
     {
     case INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
+      /* case MISALIGNED_INDIRECT_REF: */
       {
 	enum thread_memory_type ret;
 
@@ -1450,15 +1451,10 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
 	return false;
       }
 
-    case ALIGN_INDIRECT_REF:
-      /* ??? Insert an irrevocable when it comes to vectorized loops,
-	 or handle these somehow.  */
-      gcc_unreachable ();
-
     case TARGET_MEM_REF:
-      x = TMR_SYMBOL (x);
-      if (x == NULL)
+      if (TREE_CODE (TMR_BASE (x)) != ADDR_EXPR)
 	return true;
+      x = TREE_OPERAND (TMR_BASE (x), 0);
       if (TREE_CODE (x) == PARM_DECL)
 	return false;
       gcc_assert (TREE_CODE (x) == VAR_DECL);
@@ -1490,7 +1486,7 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
 	     lower_sequence_tm altogether.  */
 	  needs_to_live_in_memory (x)
 	  /* X escapes.  */
-	  || is_call_clobbered (x))
+	  || ptr_deref_may_alias_global_p (x))
 	return true;
       else
 	{
@@ -2228,7 +2224,7 @@ expand_call_tm (struct tm_region *region,
       return false;
     }
 
-  node = cgraph_node (fn_decl);
+  node = cgraph_get_node (fn_decl);
   if (node->local.tm_may_enter_irr)
     transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
@@ -2474,7 +2470,7 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
   n = (struct tm_restart_node *) *slot;
   if (n == NULL)
     {
-      n = GGC_NEW (struct tm_restart_node);
+      n = ggc_alloc_tm_restart_node ();
       *n = dummy;
     }
   else
@@ -3630,7 +3626,7 @@ ipa_tm_scan_irr_block (basic_block bb)
 	      if (find_tm_replacement_function (fn))
 		break;
 
-	      d = get_cg_data (cgraph_node (fn));
+	      d = get_cg_data (cgraph_get_node (fn));
 	      if (d->is_irrevocable)
 		return true;
 	    }
@@ -3784,7 +3780,7 @@ ipa_tm_decrement_clone_counts (basic_block bb, bool for_clone)
 	      if (find_tm_replacement_function (fndecl))
 		continue;
 
-	      d = get_cg_data (cgraph_node (fndecl));
+	      d = get_cg_data (cgraph_get_node (fndecl));
 	      pcallers = (for_clone ? &d->tm_callers_clone
 			  : &d->tm_callers_normal);
 
@@ -4105,6 +4101,47 @@ tm_mangle (tree old_asm_id)
   return new_asm_id;
 }
 
+/* Callback data for callback_mark_needed.  */
+struct mark_needed_info
+{
+  struct cgraph_node *old_node;
+  tree new_decl;
+};
+
+static bool
+callback_mark_needed (struct cgraph_node *node, void *data)
+{
+  struct mark_needed_info *info = (struct mark_needed_info *)data;
+  if (node->alias || node->thunk.thunk_p)
+    {
+      tree tm_name = tm_mangle (DECL_ASSEMBLER_NAME (node->decl));
+      tree tm_alias = build_decl (DECL_SOURCE_LOCATION (node->decl),
+				  TREE_CODE (node->decl), tm_name,
+				  TREE_TYPE (node->decl));
+
+      SET_DECL_ASSEMBLER_NAME (tm_alias, tm_name);
+      SET_DECL_RTL (tm_alias, NULL);
+
+      /* Based loosely on C++'s make_alias_for().  */
+      TREE_PUBLIC (tm_alias) = TREE_PUBLIC (node->decl);
+      DECL_CONTEXT (tm_alias) = NULL;
+      TREE_READONLY (tm_alias) = TREE_READONLY (node->decl);
+      DECL_EXTERNAL (tm_alias) = 0;
+      DECL_ARTIFICIAL (tm_alias) = 1;
+      TREE_ADDRESSABLE (tm_alias) = 1;
+      TREE_USED (tm_alias) = 1;
+      TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (tm_alias)) = 1;
+
+      cgraph_same_body_alias (NULL, tm_alias, info->new_decl);
+
+      record_tm_clone_pair (node->decl, tm_alias);
+
+      if (info->old_node->needed)
+	cgraph_mark_needed_node (cgraph_get_node (tm_alias));
+    }
+  return false;
+}
+
 /* Create a copy of the function (possibly declaration only) of OLD_NODE,
    appropriate for the transactional clone.  */
 
@@ -4128,7 +4165,7 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   if (DECL_COMDAT (new_decl))
     DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
 
-  new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
+  new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL, NULL);
   get_cg_data (old_node)->clone = new_node;
 
   if (cgraph_function_body_availability (old_node) >= AVAIL_OVERWRITABLE)
@@ -4141,7 +4178,8 @@ ipa_tm_create_version (struct cgraph_node *old_node)
 	  TREE_PUBLIC (new_decl) = 0;
 	}
 
-      tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
+      tree_function_versioning (old_decl, new_decl, NULL, false, NULL,
+				NULL, NULL);
     }
 
   /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
@@ -4155,40 +4193,12 @@ ipa_tm_create_version (struct cgraph_node *old_node)
     cgraph_mark_needed_node (new_node);
 
   /* Do the same thing, but for any aliases of the original node.  */
-  if (old_node->same_body)
-    {
-      struct cgraph_node *alias;
-      tree tm_alias;
-
-      for (alias = old_node->same_body; alias; alias = alias->next)
-	{
-	  tm_name = tm_mangle (DECL_ASSEMBLER_NAME (alias->decl));
-	  tm_alias = build_decl (DECL_SOURCE_LOCATION (alias->decl),
-				 TREE_CODE (alias->decl), tm_name,
-				 TREE_TYPE (alias->decl));
-
-	  SET_DECL_ASSEMBLER_NAME (tm_alias, tm_name);
-	  SET_DECL_RTL (tm_alias, NULL);
-
-	  /* Based loosely on C++'s make_alias_for().  */
-	  TREE_PUBLIC (tm_alias) = TREE_PUBLIC (alias->decl);
-	  /* ?? Do we need all of these too.  ??  */
-	  DECL_CONTEXT (tm_alias) = NULL;
-	  TREE_READONLY (tm_alias) = TREE_READONLY (alias->decl);
-	  DECL_EXTERNAL (tm_alias) = 0;
-	  DECL_ARTIFICIAL (tm_alias) = 1;
-	  TREE_ADDRESSABLE (tm_alias) = 1;
-	  TREE_USED (tm_alias) = 1;
-	  TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (tm_alias)) = 1;
-
-	  cgraph_same_body_alias (tm_alias, new_decl);
-
-	  record_tm_clone_pair (alias->decl, tm_alias);
-
-	  if (old_node->needed)
-	    cgraph_mark_needed_node (cgraph_node (tm_alias));
-	}
-    }
+  {
+    struct mark_needed_info data;
+    data.old_node = old_node;
+    data.new_decl = new_decl;
+    cgraph_for_node_and_aliases (old_node, callback_mark_needed, &data, true);
+  }
 }
 
 /* Construct a call to TM_IRREVOCABLE and insert it at the beginning of BB.  */
@@ -4210,11 +4220,10 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
 
   cgraph_create_edge (node,
-		      cgraph_node (built_in_decls[BUILT_IN_TM_IRREVOCABLE]),
-		      g, 0,
-		      compute_call_stmt_bb_frequency (node->decl,
-						      gimple_bb (g)),
-		      bb->loop_depth);
+	       cgraph_get_create_node (built_in_decls[BUILT_IN_TM_IRREVOCABLE]),
+	       g, 0,
+	       compute_call_stmt_bb_frequency (node->decl,
+					       gimple_bb (g)));
 }
 
 /* Construct a call to TM_GETTMCLONE and insert it before GSI.  */
@@ -4239,9 +4248,9 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
          technically taking the address of the original function and
          its clone.  Explain this so inlining will know this function
          is needed.  */
-      cgraph_mark_address_taken_node (cgraph_node (fndecl));
+      cgraph_mark_address_taken_node (cgraph_get_node (fndecl));
       if (clone)
-	cgraph_mark_address_taken_node (cgraph_node (clone));
+	cgraph_mark_address_taken_node (cgraph_get_node (clone));
     }
 
   safe = is_tm_safe (TREE_TYPE (old_fn));
@@ -4263,9 +4272,9 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
-  cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0,
+  cgraph_create_edge (node, cgraph_get_create_node (gettm_fn), g, 0,
 		      compute_call_stmt_bb_frequency (node->decl,
-						      gimple_bb(g)), 0);
+						      gimple_bb(g)));
 
   /* Cast return value from tm_gettmclone* into appropriate function
      pointer.  */
@@ -4281,7 +4290,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
      which we would have derived from the decl.  Failure to save
      this bit means we might have to split the basic block.  */
   if (gimple_call_nothrow_p (stmt))
-    gimple_call_set_nothrow_p (stmt);
+    gimple_call_set_nothrow (stmt, true);
 
   /* ??? This is a hack to prevent tree-eh.c inlineable_call_p from
      deciding that the indirect call we have after this transformation
@@ -4356,7 +4365,7 @@ ipa_tm_transform_calls_redirect (struct cgraph_node *node,
   fndecl = find_tm_replacement_function (fndecl);
   if (fndecl)
     {
-      new_node = cgraph_node (fndecl);
+      new_node = cgraph_get_create_node (fndecl);
 
       /* ??? Mark all transaction_wrap functions tm_may_enter_irr.
 

@@ -48,8 +48,8 @@ class aa_node_base
 
  public:
   aa_node_base(level_type l = 1)
-    : m_link({ const_cast<aa_node_base *>(&s_nil),
-	     const_cast<aa_node_base *>(&s_nil) }),
+    : m_link { const_cast<aa_node_base *>(&s_nil),
+               const_cast<aa_node_base *>(&s_nil) },
       m_level(l)
   { }
 

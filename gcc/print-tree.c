@@ -25,12 +25,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "real.h"
-#include "fixed-value.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
 #include "diagnostic.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
 
@@ -51,11 +50,25 @@ static struct bucket **table;
    Most nodes referred to by this one are printed recursively
    down to a depth of six.  */
 
-void
+DEBUG_FUNCTION void
 debug_tree (tree node)
 {
   table = XCNEWVEC (struct bucket *, HASH_SIZE);
   print_node (stderr, "", node, 0);
+  free (table);
+  table = 0;
+  putc ('\n', stderr);
+}
+
+/* Print the vector of trees VEC on standard error, for debugging.
+   Most nodes referred to by this one are printed recursively
+   down to a depth of six.  */
+
+DEBUG_FUNCTION void
+debug_vec_tree (VEC(tree,gc) *vec)
+{
+  table = XCNEWVEC (struct bucket *, HASH_SIZE);
+  print_vec_tree (stderr, "", vec, 0);
   free (table);
   table = 0;
   putc ('\n', stderr);
@@ -308,7 +321,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (indent <= 4)
 	print_node_brief (file, "type", TREE_TYPE (node), indent + 4);
     }
-  else
+  else if (CODE_CONTAINS_STRUCT (code, TS_TYPED))
     {
       print_node (file, "type", TREE_TYPE (node), indent + 4);
       if (TREE_TYPE (node))
@@ -428,6 +441,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 
       if (code == VAR_DECL && DECL_IN_TEXT_SECTION (node))
 	fputs (" in-text-section", file);
+      if (code == VAR_DECL && DECL_IN_CONSTANT_POOL (node))
+	fputs (" in-constant-pool", file);
       if (code == VAR_DECL && DECL_COMMON (node))
 	fputs (" common", file);
       if (code == VAR_DECL && DECL_THREAD_LOCAL_P (node))
@@ -743,7 +758,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	      print_node (file, temp, TREE_OPERAND (node, i), indent + 4);
 	    }
 	}
-      print_node (file, "chain", TREE_CHAIN (node), indent + 4);
+      if (CODE_CONTAINS_STRUCT (code, TS_COMMON))
+	print_node (file, "chain", TREE_CHAIN (node), indent + 4);
       break;
 
     case tcc_constant:
@@ -839,11 +855,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	      }
 	    fputc ('\"', file);
 	  }
-	  /* Print the chain at second level.  */
-	  if (indent == 4)
-	    print_node (file, "chain", TREE_CHAIN (node), indent + 4);
-	  else
-	    print_node_brief (file, "chain", TREE_CHAIN (node), indent + 4);
 	  break;
 
 	case IDENTIFIER_NODE:
@@ -863,8 +874,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	      {
 		char temp[10];
 		sprintf (temp, "elt %d", i);
-		indent_to (file, indent + 4);
-		print_node_brief (file, temp, TREE_VEC_ELT (node, i), 0);
+		print_node (file, temp, TREE_VEC_ELT (node, i), indent + 4);
 	      }
 	  break;
 
@@ -903,7 +913,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 		print_node (file, "stmt", tsi_stmt (i), indent + 4);
 	      }
 	  }
-	  print_node (file, "chain", TREE_CHAIN (node), indent + 4);
 	  break;
 
 	case BLOCK:
@@ -981,4 +990,28 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
     }
 
   fprintf (file, ">");
+}
+
+/* Print the tree vector VEC in full on file FILE, preceded by PREFIX,
+   starting in column INDENT.  */
+
+void
+print_vec_tree (FILE *file, const char *prefix, VEC(tree,gc) *vec, int indent)
+{
+  tree elt;
+  unsigned ix;
+
+  /* Indent to the specified column, since this is the long form.  */
+  indent_to (file, indent);
+
+  /* Print the slot this node is in, and its code, and address.  */
+  fprintf (file, "%s <VEC", prefix);
+  dump_addr (file, " ", vec);
+
+  FOR_EACH_VEC_ELT (tree, vec, ix, elt)
+    {
+      char temp[10];
+      sprintf (temp, "elt %d", ix);
+      print_node (file, temp, elt, indent + 4);
+    }
 }

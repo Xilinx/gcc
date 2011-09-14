@@ -19,7 +19,7 @@
 
 // TR1 2.2.2 Template class shared_ptr [tr.util.smartptr.shared]
 
-#include <tr1/memory>  // { dg-excess-errors "In file included from" }
+#include <tr1/memory>
 #include <testsuite_hooks.h>
 
 struct A { };
@@ -46,6 +46,6 @@ main()
   test01();
   return 0;
 }
-// { dg-error "In member function" "" { target *-*-* } 0 }
+// { dg-error "In instantiation" "" { target *-*-* } 0 }
 // { dg-error "cannot convert" "" { target *-*-* } 0 }
-// { dg-error "instantiated from" "" { target *-*-* } 0 }
+// { dg-error "required from" "" { target *-*-* } 0 }

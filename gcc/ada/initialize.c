@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -32,10 +32,14 @@
 /*  This unit provides default implementation for __gnat_initialize ()
     which is called before the elaboration of the partition. It is provided
     in a separate file/object so that users can replace it easily.
-    The default implementation should be null on most targets. */
+    The default implementation should be null on most targets.  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* The following include is here to meet the published VxWorks requirement
-   that the __vxworks header appear before any other include. */
+   that the __vxworks header appear before any other include.  */
 #ifdef __vxworks
 #include "vxWorks.h"
 #endif
@@ -217,8 +221,7 @@ __gnat_initialize (void *eh ATTRIBUTE_UNUSED)
 
 		     FindClose (hDir);
 
-		     if (dir != NULL)
-		       free (dir);
+		     free (dir);
 		   }
 	       }
 	     else
@@ -307,13 +310,10 @@ __gnat_initialize (void *eh)
      or the other, except for the mixed Ada/C++ case in which the first scheme
      would fail for the same reason as in the linked-with-kernel situation.
 
-     Selecting the crt set with the ctors/dtors capabilities (first scheme
-     above) is triggered by adding "-dynamic" to the gcc *link* command line
-     options. Selecting the other set is achieved by using "-static" instead.
-
-     This is a first approach, tightly synchronized with a number of GCC
-     configuration and crtstuff changes. We need to ensure that those changes
-     are there to activate this circuitry.  */
+     The crt set selection is controlled by command line options via GCC's
+     STARTFILE_SPEC in rs6000/vxworks.h.  This is tightly synchronized with a
+     number of other GCC configuration and crtstuff changes, and we need to
+     ensure that those changes are there to activate this circuitry.  */
 
 #if (__GNUC__ >= 3) && (defined (_ARCH_PPC) || defined (__ppc))
  {
@@ -362,4 +362,8 @@ __gnat_initialize (void *eh ATTRIBUTE_UNUSED)
 {
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

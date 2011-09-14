@@ -1,6 +1,6 @@
 /* Definitions for CPP library.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2008, 2009
+   2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
@@ -155,7 +155,8 @@ enum cpp_ttype
 #undef TK
 
 /* C language kind, used when calling cpp_create_reader.  */
-enum c_lang {CLK_GNUC89 = 0, CLK_GNUC99, CLK_STDC89, CLK_STDC94, CLK_STDC99,
+enum c_lang {CLK_GNUC89 = 0, CLK_GNUC99, CLK_GNUC1X,
+	     CLK_STDC89, CLK_STDC94, CLK_STDC99, CLK_STDC1X,
 	     CLK_GNUCXX, CLK_CXX98, CLK_GNUCXX0X, CLK_CXX0X, CLK_ASM};
 
 /* Payload of a NUMBER, STRING, CHAR or COMMENT token.  */
@@ -314,11 +315,15 @@ struct cpp_options
   /* Nonzero means process u/U prefix literals (UTF-16/32).  */
   unsigned char uliterals;
 
+  /* Nonzero means process r/R raw strings.  If this is set, uliterals
+     must be set as well.  */
+  unsigned char rliterals;
+
   /* Nonzero means print names of header files (-H).  */
   unsigned char print_include_names;
 
   /* Nonzero means complain about deprecated features.  */
-  unsigned char warn_deprecated;
+  unsigned char cpp_warn_deprecated;
 
   /* Nonzero means warn if slash-star appears in a comment.  */
   unsigned char warn_comments;
@@ -335,10 +340,10 @@ struct cpp_options
 
   /* Nonzero means warn about various incompatibilities with
      traditional C.  */
-  unsigned char warn_traditional;
+  unsigned char cpp_warn_traditional;
 
   /* Nonzero means warn about long long numeric constants.  */
-  unsigned char warn_long_long;
+  unsigned char cpp_warn_long_long;
 
   /* Nonzero means warn about text after an #endif (or #else).  */
   unsigned char warn_endif_labels;
@@ -382,14 +387,11 @@ struct cpp_options
   unsigned char std;
 
   /* Nonzero means give all the error messages the ANSI standard requires.  */
-  unsigned char pedantic;
+  unsigned char cpp_pedantic;
 
   /* Nonzero means we're looking at already preprocessed code, so don't
      bother trying to do macro expansion and whatnot.  */
   unsigned char preprocessed;
-
-  /* Print column number in error messages.  */
-  unsigned char show_column;
 
   /* Nonzero means handle C++ alternate operator names.  */
   unsigned char operator_names;
@@ -481,12 +483,12 @@ struct cpp_callbacks
   void (*file_change) (cpp_reader *, const struct line_map *);
 
   void (*dir_change) (cpp_reader *, const char *);
-  void (*include) (cpp_reader *, unsigned int, const unsigned char *,
+  void (*include) (cpp_reader *, source_location, const unsigned char *,
 		   const char *, int, const cpp_token **);
-  void (*define) (cpp_reader *, unsigned int, cpp_hashnode *);
-  void (*undef) (cpp_reader *, unsigned int, cpp_hashnode *);
-  void (*ident) (cpp_reader *, unsigned int, const cpp_string *);
-  void (*def_pragma) (cpp_reader *, unsigned int);
+  void (*define) (cpp_reader *, source_location, cpp_hashnode *);
+  void (*undef) (cpp_reader *, source_location, cpp_hashnode *);
+  void (*ident) (cpp_reader *, source_location, const cpp_string *);
+  void (*def_pragma) (cpp_reader *, source_location);
   int (*valid_pch) (cpp_reader *, const char *, int);
   void (*read_pch) (cpp_reader *, const char *, int, const char *);
   missing_header_cb missing_header;
@@ -503,14 +505,17 @@ struct cpp_callbacks
 
   /* Callbacks for when a macro is expanded, or tested (whether
      defined or not at the time) in #ifdef, #ifndef or "defined".  */
-  void (*used_define) (cpp_reader *, unsigned int, cpp_hashnode *);
-  void (*used_undef) (cpp_reader *, unsigned int, cpp_hashnode *);
+  void (*used_define) (cpp_reader *, source_location, cpp_hashnode *);
+  void (*used_undef) (cpp_reader *, source_location, cpp_hashnode *);
   /* Called before #define and #undef or other macro definition
      changes are processed.  */
   void (*before_define) (cpp_reader *);
   /* Called whenever a macro is expanded or tested.
      Second argument is the location of the start of the current expansion.  */
   void (*used) (cpp_reader *, source_location, cpp_hashnode *);
+
+  /* Callback that can change a user builtin into normal macro.  */
+  bool (*user_builtin_macro) (cpp_reader *, cpp_hashnode *);
 };
 
 #ifdef VMS
@@ -601,7 +606,9 @@ enum cpp_builtin_type
   BT_STDC,			/* `__STDC__' */
   BT_PRAGMA,			/* `_Pragma' operator */
   BT_TIMESTAMP,			/* `__TIMESTAMP__' */
-  BT_COUNTER			/* `__COUNTER__' */
+  BT_COUNTER,			/* `__COUNTER__' */
+  BT_FIRST_USER,		/* User defined builtin macros.  */
+  BT_LAST_USER = BT_FIRST_USER + 31
 };
 
 #define CPP_HASHNODE(HNODE)	((cpp_hashnode *) (HNODE))
@@ -728,7 +735,7 @@ extern const cpp_token *cpp_get_token (cpp_reader *);
 extern const cpp_token *cpp_get_token_with_location (cpp_reader *,
 						     source_location *);
 extern const unsigned char *cpp_macro_definition (cpp_reader *,
-						  const cpp_hashnode *);
+						  cpp_hashnode *);
 extern void _cpp_backup_tokens (cpp_reader *, unsigned int);
 extern const cpp_token *cpp_peek_token (cpp_reader *, int);
 
@@ -754,9 +761,6 @@ extern void cpp_define_formatted (cpp_reader *pfile,
 extern void cpp_assert (cpp_reader *, const char *);
 extern void cpp_undef (cpp_reader *, const char *);
 extern void cpp_unassert (cpp_reader *, const char *);
-
-extern cpp_macro *cpp_push_definition (cpp_reader *, const char *);
-extern void cpp_pop_definition (cpp_reader *, const char *, cpp_macro *);
 
 /* Undefine all macros and assertions.  */
 extern void cpp_undef_all (cpp_reader *);
@@ -984,5 +988,9 @@ extern int cpp_valid_state (cpp_reader *, const char *, int);
 extern void cpp_prepare_state (cpp_reader *, struct save_macro_data **);
 extern int cpp_read_state (cpp_reader *, const char *, FILE *,
 			   struct save_macro_data *);
+
+/* In lex.c */
+extern void cpp_force_token_locations (cpp_reader *, source_location *);
+extern void cpp_stop_forcing_token_locations (cpp_reader *);
 
 #endif /* ! LIBCPP_CPPLIB_H */

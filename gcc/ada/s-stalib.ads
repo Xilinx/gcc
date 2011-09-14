@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,11 +33,11 @@
 --  are required to be part of every Ada program. A special mechanism is
 --  required to ensure that these are loaded, since it may be the case in
 --  some programs that the only references to these required packages are
---  from C code or from code generated directly by Gigi, an in both cases
+--  from C code or from code generated directly by Gigi, and in both cases
 --  the binder is not aware of such references.
 
 --  System.Standard_Library also includes data that must be present in every
---  program, in particular the definitions of all the standard and also some
+--  program, in particular data for all the standard exceptions, and also some
 --  subprograms that must be present in every program.
 
 --  The binder unconditionally includes s-stalib.ali, which ensures that this
@@ -57,9 +57,19 @@ package System.Standard_Library is
    pragma Preelaborate_05;
    pragma Warnings (On);
 
-   type Big_String_Ptr is access all String (Positive);
+   subtype Big_String is String (1 .. Positive'Last);
+   pragma Suppress_Initialization (Big_String);
+   --  Type used to obtain string access to given address. Initialization is
+   --  suppressed, since we never want to have variables of this type, and
+   --  we never want to attempt initialiazation of virtual variables of this
+   --  type (e.g. when pragma Normalize_Scalars is used).
+
+   type Big_String_Ptr is access all Big_String;
    for Big_String_Ptr'Storage_Size use 0;
-   --  A non-fat pointer type for null terminated strings
+   --  We use this access type to pass a pointer to an area of storage to be
+   --  accessed as a string. Of course when this pointer is used, it is the
+   --  responsibility of the accessor to ensure proper bounds. The storage
+   --  size clause ensures we do not allocate variables of this type.
 
    function To_Ptr is
      new Ada.Unchecked_Conversion (System.Address, Big_String_Ptr);

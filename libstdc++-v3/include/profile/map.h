@@ -1,6 +1,6 @@
 // Profiling map implementation -*- C++ -*-
 
-// Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -37,7 +37,7 @@
 #include <utility>
 #include <profile/base.h>
 
-namespace std
+namespace std _GLIBCXX_VISIBILITY(default)
 {
 namespace __profile
 {
@@ -45,9 +45,9 @@ namespace __profile
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
     class map
-    : public _GLIBCXX_STD_D::map<_Key, _Tp, _Compare, _Allocator>
+    : public _GLIBCXX_STD_C::map<_Key, _Tp, _Compare, _Allocator>
     {
-      typedef _GLIBCXX_STD_D::map<_Key, _Tp, _Compare, _Allocator> _Base;
+      typedef _GLIBCXX_STD_C::map<_Key, _Tp, _Compare, _Allocator> _Base;
 
     public:
       // types:
@@ -68,36 +68,32 @@ namespace __profile
       typedef std::reverse_iterator<iterator>       reverse_iterator;
       typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
-      using _Base::value_compare;
-
       // 23.3.1.1 construct/copy/destroy:
-      explicit map(const _Compare& __comp = _Compare(),
-		   const _Allocator& __a = _Allocator())
-      : _Base(__comp, __a) {
-          __profcxx_map_to_unordered_map_construct(this);
-      }
+      explicit
+      map(const _Compare& __comp = _Compare(),
+	  const _Allocator& __a = _Allocator())
+      : _Base(__comp, __a)
+      { __profcxx_map_to_unordered_map_construct(this); }
 
       template<typename _InputIterator>
         map(_InputIterator __first, _InputIterator __last,
 	    const _Compare& __comp = _Compare(),
 	    const _Allocator& __a = _Allocator())
-	: _Base(__first, __last, __comp, __a) {
-          __profcxx_map_to_unordered_map_construct(this);
-        }
+	: _Base(__first, __last, __comp, __a)
+        { __profcxx_map_to_unordered_map_construct(this); }
 
       map(const map& __x)
-      : _Base(__x) {
-          __profcxx_map_to_unordered_map_construct(this);
-      }
+      : _Base(__x)
+      { __profcxx_map_to_unordered_map_construct(this); }
 
       map(const _Base& __x)
-      : _Base(__x) {
-          __profcxx_map_to_unordered_map_construct(this);
-      }
+      : _Base(__x)
+      { __profcxx_map_to_unordered_map_construct(this); }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       map(map&& __x)
-      : _Base(std::forward<map>(__x))
+      noexcept(is_nothrow_copy_constructible<_Compare>::value)
+      : _Base(std::move(__x))
       { }
 
       map(initializer_list<value_type> __l,
@@ -106,9 +102,8 @@ namespace __profile
       : _Base(__l, __c, __a) { }
 #endif
 
-      ~map() {
-          __profcxx_map_to_unordered_map_destruct(this);
-      }
+      ~map() _GLIBCXX_NOEXCEPT
+      { __profcxx_map_to_unordered_map_destruct(this); }
 
       map&
       operator=(const map& __x)
@@ -143,44 +138,44 @@ namespace __profile
 
       // iterators:
       iterator 
-      begin()
+      begin() _GLIBCXX_NOEXCEPT
       { return _Base::begin(); }
 
       const_iterator
-      begin() const
+      begin() const _GLIBCXX_NOEXCEPT
       { return _Base::begin(); }
 
       iterator
-      end()
+      end() _GLIBCXX_NOEXCEPT
       { return _Base::end(); }
 
       const_iterator
-      end() const
+      end() const _GLIBCXX_NOEXCEPT
       { return _Base::end(); }
 
       reverse_iterator
-      rbegin()
+      rbegin() _GLIBCXX_NOEXCEPT
       { 
         __profcxx_map_to_unordered_map_invalidate(this);
         return reverse_iterator(end()); 
       }
 
       const_reverse_iterator
-      rbegin() const
+      rbegin() const _GLIBCXX_NOEXCEPT
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(end());
       }
 
       reverse_iterator
-      rend()
+      rend() _GLIBCXX_NOEXCEPT
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return reverse_iterator(begin());
       }
 
       const_reverse_iterator
-      rend() const
+      rend() const _GLIBCXX_NOEXCEPT
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(begin());
@@ -188,22 +183,22 @@ namespace __profile
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       const_iterator
-      cbegin() const
+      cbegin() const noexcept
       { return const_iterator(_Base::begin()); }
 
       const_iterator
-      cend() const
+      cend() const noexcept
       { return const_iterator(_Base::end()); }
 
       const_reverse_iterator
-      crbegin() const
+      crbegin() const noexcept
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(end());
       }
 
       const_reverse_iterator
-      crend() const
+      crend() const noexcept
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(begin());
@@ -222,6 +217,15 @@ namespace __profile
         __profcxx_map_to_unordered_map_find(this, size());
         return _Base::operator[](__k);
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      mapped_type&
+      operator[](key_type&& __k)
+      {
+        __profcxx_map_to_unordered_map_find(this, size());
+        return _Base::operator[](std::move(__k));
+      }
+#endif
 
       mapped_type&
       at(const key_type& __k)
@@ -249,24 +253,61 @@ namespace __profile
       }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _Pair, typename = typename
+	       std::enable_if<std::is_convertible<_Pair,
+						  value_type>::value>::type>
+        std::pair<iterator, bool>
+        insert(_Pair&& __x)
+        {
+	  __profcxx_map_to_unordered_map_insert(this, size(), 1);
+	  typedef typename _Base::iterator _Base_iterator;
+	  std::pair<_Base_iterator, bool> __res
+	    = _Base::insert(std::forward<_Pair>(__x));
+	  return std::pair<iterator, bool>(iterator(__res.first),
+					   __res.second);
+	}
+#endif
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
       void
       insert(std::initializer_list<value_type> __list)
       { 
         size_type size_before = size();
         _Base::insert(__list); 
         __profcxx_map_to_unordered_map_insert(this, size_before, 
-                                                size() - size_before);
+					      size() - size_before);
       }
 #endif
 
       iterator
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      insert(const_iterator __position, const value_type& __x)
+#else
       insert(iterator __position, const value_type& __x)
+#endif
       {
         size_type size_before = size();
-	return iterator(_Base::insert(__position, __x));
+	iterator __i = iterator(_Base::insert(__position, __x));
         __profcxx_map_to_unordered_map_insert(this, size_before, 
-                                                size() - size_before);
+					      size() - size_before);
+	return __i;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _Pair, typename = typename
+	       std::enable_if<std::is_convertible<_Pair,
+						  value_type>::value>::type>
+        iterator
+        insert(const_iterator __position, _Pair&& __x)
+        {
+	  size_type size_before = size();
+	  iterator __i
+	    = iterator(_Base::insert(__position, std::forward<_Pair>(__x)));
+	  __profcxx_map_to_unordered_map_insert(this, size_before, 
+						size() - size_before);
+	  return __i;
+      }
+#endif
 
       template<typename _InputIterator>
         void
@@ -280,7 +321,7 @@ namespace __profile
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       iterator
-      erase(iterator __position)
+      erase(const_iterator __position)
       {
 	iterator __i = _Base::erase(__position);
         __profcxx_map_to_unordered_map_erase(this, size(), 1);
@@ -310,34 +351,20 @@ namespace __profile
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       iterator
-      erase(iterator __first, iterator __last)
-      {
-	// _GLIBCXX_RESOLVE_LIB_DEFECTS
-	// 151. can't currently clear() empty container
-	while (__first != __last)
-	  this->erase(__first++);
-	return __last;
-      }
+      erase(const_iterator __first, const_iterator __last)
+      { return iterator(_Base::erase(__first, __last)); }
 #else
       void
       erase(iterator __first, iterator __last)
-      {
-	// _GLIBCXX_RESOLVE_LIB_DEFECTS
-	// 151. can't currently clear() empty container
-	while (__first != __last)
-	  this->erase(__first++);
-      }
+      { _Base::erase(__first, __last); }
 #endif
 
       void
-
       swap(map& __x)
-      {
-	_Base::swap(__x);
-      }
+      { _Base::swap(__x); }
 
       void
-      clear()
+      clear() _GLIBCXX_NOEXCEPT
       { this->erase(begin(), end()); }
 
       // observers:
@@ -416,10 +443,10 @@ namespace __profile
       }
 
       _Base& 
-      _M_base() { return *this; }
+      _M_base() _GLIBCXX_NOEXCEPT       { return *this; }
 
       const _Base&
-      _M_base() const { return *this; }
+      _M_base() const _GLIBCXX_NOEXCEPT { return *this; }
 
     };
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -119,6 +119,15 @@ package body Ada.Strings.Fixed is
      (Source : String;
       Set    : Maps.Character_Set) return Natural
    renames Ada.Strings.Search.Count;
+
+   procedure Find_Token
+     (Source : String;
+      Set    : Maps.Character_Set;
+      From   : Positive;
+      Test   : Membership;
+      First  : out Positive;
+      Last   : out Natural)
+   renames Ada.Strings.Search.Find_Token;
 
    procedure Find_Token
      (Source : String;
@@ -476,8 +485,8 @@ package body Ada.Strings.Fixed is
                           Integer'Max (0, Low - Source'First);
             --  Length of prefix of Source copied to result
 
-            Back_Len  : constant Integer :=
-                          Integer'Max (0, Source'Last - High);
+            Back_Len : constant Integer :=
+                         Integer'Max (0, Source'Last - High);
             --  Length of suffix of Source copied to result
 
             Result_Length : constant Integer :=
@@ -487,13 +496,10 @@ package body Ada.Strings.Fixed is
             Result : String (1 .. Result_Length);
 
          begin
-            Result (1 .. Front_Len) :=
-              Source (Source'First .. Low - 1);
-            Result (Front_Len + 1 .. Front_Len + By'Length) :=
-              By;
+            Result (1 .. Front_Len) := Source (Source'First .. Low - 1);
+            Result (Front_Len + 1 .. Front_Len + By'Length) := By;
             Result (Front_Len + By'Length + 1 .. Result'Length) :=
               Source (High + 1 .. Source'Last);
-
             return Result;
          end;
 

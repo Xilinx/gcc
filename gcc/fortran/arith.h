@@ -1,5 +1,5 @@
 /* Compiler arithmetic header.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
@@ -21,8 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #ifndef GFC_ARITH_H
 #define GFC_ARITH_H
-
-#include "gfortran.h"
 
 /* MPFR also does not have the conversion of a mpfr_t to a mpz_t, so declare
    a function for this as well.  */

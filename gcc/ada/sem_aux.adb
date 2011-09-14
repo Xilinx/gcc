@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -48,7 +48,7 @@ package body Sem_Aux is
       --  If this is first subtype, or is a base type, then there is no
       --  ancestor subtype, so we return Empty to indicate this fact.
 
-      if Is_First_Subtype (Typ) or else Typ = Base_Type (Typ) then
+      if Is_First_Subtype (Typ) or else Is_Base_Type (Typ) then
          return Empty;
       end if;
 
@@ -180,10 +180,16 @@ package body Sem_Aux is
          if No (S) then
             return Standard_Standard;
 
-         --  Quit if we get to standard or a dynamic scope
+         --  Quit if we get to standard or a dynamic scope. We must also
+         --  handle enclosing scopes that have a full view; required to
+         --  locate enclosing scopes that are synchronized private types
+         --  whose full view is a task type.
 
          elsif S = Standard_Standard
            or else Is_Dynamic_Scope (S)
+           or else (Is_Private_Type (S)
+                     and then Present (Full_View (S))
+                     and then Is_Dynamic_Scope (Full_View (S)))
          then
             return S;
 
@@ -204,20 +210,15 @@ package body Sem_Aux is
 
    begin
       pragma Assert
-        (Has_Discriminants (Typ)
-          or else Has_Unknown_Discriminants (Typ));
+        (Has_Discriminants (Typ) or else Has_Unknown_Discriminants (Typ));
 
       Ent := First_Entity (Typ);
 
       --  The discriminants are not necessarily contiguous, because access
       --  discriminants will generate itypes. They are not the first entities
-      --  either, because tag and controller record must be ahead of them.
+      --  either because the tag must be ahead of them.
 
       if Chars (Ent) = Name_uTag then
-         Ent := Next_Entity (Ent);
-      end if;
-
-      if Chars (Ent) = Name_uController then
          Ent := Next_Entity (Ent);
       end if;
 
@@ -284,17 +285,11 @@ package body Sem_Aux is
          Ent := Next_Entity (Ent);
       end if;
 
-      if Chars (Ent) = Name_uController then
-         Ent := Next_Entity (Ent);
-      end if;
-
       if Has_Completely_Hidden_Discriminant (Ent) then
-
          while Present (Ent) loop
             exit when Is_Completely_Hidden (Ent);
             Ent := Next_Entity (Ent);
          end loop;
-
       end if;
 
       pragma Assert (Ekind (Ent) = E_Discriminant);
@@ -312,8 +307,8 @@ package body Sem_Aux is
       Ent : Entity_Id;
 
    begin
-      --  If the base type has no freeze node, it is a type in Standard,
-      --  and always acts as its own first subtype unless it is one of the
+      --  If the base type has no freeze node, it is a type in Standard, and
+      --  always acts as its own first subtype, except where it is one of the
       --  predefined integer types. If the type is formal, it is also a first
       --  subtype, and its base type has no freeze node. On the other hand, a
       --  subtype of a generic formal is not its own first subtype. Its base
@@ -321,7 +316,6 @@ package body Sem_Aux is
       --  the first subtype is obtained.
 
       if No (F) then
-
          if B = Base_Type (Standard_Integer) then
             return Standard_Integer;
 
@@ -405,6 +399,16 @@ package body Sem_Aux is
       return Empty;
    end First_Tag_Component;
 
+   -------------------------------
+   -- Initialization_Suppressed --
+   -------------------------------
+
+   function Initialization_Suppressed (Typ : Entity_Id) return Boolean is
+   begin
+      return Suppress_Initialization (Typ)
+        or else Suppress_Initialization (Base_Type (Typ));
+   end Initialization_Suppressed;
+
    ----------------
    -- Initialize --
    ----------------
@@ -441,9 +445,7 @@ package body Sem_Aux is
       Btype : constant Entity_Id := Base_Type (Ent);
 
    begin
-      if Error_Posted (Ent)
-        or else Error_Posted (Btype)
-      then
+      if Error_Posted (Ent) or else Error_Posted (Btype) then
          return False;
 
       elsif Is_Private_Type (Btype) then
@@ -539,6 +541,25 @@ package body Sem_Aux is
       end if;
    end Is_Derived_Type;
 
+   -----------------------
+   -- Is_Generic_Formal --
+   -----------------------
+
+   function Is_Generic_Formal (E : Entity_Id) return Boolean is
+      Kind : Node_Kind;
+   begin
+      if No (E) then
+         return False;
+      else
+         Kind := Nkind (Parent (E));
+         return
+           Nkind_In (Kind, N_Formal_Object_Declaration,
+                           N_Formal_Package_Declaration,
+                           N_Formal_Type_Declaration)
+             or else Is_Formal_Subprogram (E);
+      end if;
+   end Is_Generic_Formal;
+
    ---------------------------
    -- Is_Indefinite_Subtype --
    ---------------------------
@@ -571,24 +592,54 @@ package body Sem_Aux is
       end if;
    end Is_Indefinite_Subtype;
 
-   --------------------------------
-   -- Is_Inherently_Limited_Type --
-   --------------------------------
+   -------------------------------
+   -- Is_Immutably_Limited_Type --
+   -------------------------------
 
-   function Is_Inherently_Limited_Type (Ent : Entity_Id) return Boolean is
-      Btype : constant Entity_Id := Base_Type (Ent);
+   function Is_Immutably_Limited_Type (Ent : Entity_Id) return Boolean is
+      Btype : constant Entity_Id := Available_View (Base_Type (Ent));
 
    begin
-      if Is_Private_Type (Btype) then
-         declare
-            Utyp : constant Entity_Id := Underlying_Type (Btype);
-         begin
-            if No (Utyp) then
+      if Is_Limited_Record (Btype) then
+         return True;
+
+      elsif Ekind (Btype) = E_Limited_Private_Type
+        and then Nkind (Parent (Btype)) = N_Formal_Type_Declaration
+      then
+         return not In_Package_Body (Scope ((Btype)));
+
+      elsif Is_Private_Type (Btype) then
+
+         --  AI05-0063: A type derived from a limited private formal type is
+         --  not immutably limited in a generic body.
+
+         if Is_Derived_Type (Btype)
+           and then Is_Generic_Type (Etype (Btype))
+         then
+            if not Is_Limited_Type (Etype (Btype)) then
                return False;
+
+            --  A descendant of a limited formal type is not immutably limited
+            --  in the generic body, or in the body of a generic child.
+
+            elsif Ekind (Scope (Etype (Btype))) = E_Generic_Package then
+               return not In_Package_Body (Scope (Btype));
+
             else
-               return Is_Inherently_Limited_Type (Utyp);
+               return False;
             end if;
-         end;
+
+         else
+            declare
+               Utyp : constant Entity_Id := Underlying_Type (Btype);
+            begin
+               if No (Utyp) then
+                  return False;
+               else
+                  return Is_Immutably_Limited_Type (Utyp);
+               end if;
+            end;
+         end if;
 
       elsif Is_Concurrent_Type (Btype) then
          return True;
@@ -602,11 +653,8 @@ package body Sem_Aux is
          --  handled as build in place even though they might return objects
          --  of a type that is not inherently limited.
 
-         if Is_Limited_Record (Btype) then
-            return True;
-
-         elsif Is_Class_Wide_Type (Btype) then
-            return Is_Inherently_Limited_Type (Root_Type (Btype));
+         if Is_Class_Wide_Type (Btype) then
+            return Is_Immutably_Limited_Type (Root_Type (Btype));
 
          else
             declare
@@ -620,10 +668,10 @@ package body Sem_Aux is
                   --  only occur in the case of a _parent component anyway).
                   --  They don't have any components, plus it would cause this
                   --  function to return true for nonlimited types derived from
-                  --  limited intefaces.
+                  --  limited interfaces.
 
                   if not Is_Interface (Etype (C))
-                    and then Is_Inherently_Limited_Type (Etype (C))
+                    and then Is_Immutably_Limited_Type (Etype (C))
                   then
                      return True;
                   end if;
@@ -636,12 +684,12 @@ package body Sem_Aux is
          end if;
 
       elsif Is_Array_Type (Btype) then
-         return Is_Inherently_Limited_Type (Component_Type (Btype));
+         return Is_Immutably_Limited_Type (Component_Type (Btype));
 
       else
          return False;
       end if;
-   end Is_Inherently_Limited_Type;
+   end Is_Immutably_Limited_Type;
 
    ---------------------
    -- Is_Limited_Type --
@@ -723,6 +771,46 @@ package body Sem_Aux is
       end if;
    end Is_Limited_Type;
 
+   ----------------------
+   -- Nearest_Ancestor --
+   ----------------------
+
+   function Nearest_Ancestor (Typ : Entity_Id) return Entity_Id is
+         D : constant Node_Id := Declaration_Node (Typ);
+
+   begin
+      --  If we have a subtype declaration, get the ancestor subtype
+
+      if Nkind (D) = N_Subtype_Declaration then
+         if Nkind (Subtype_Indication (D)) = N_Subtype_Indication then
+            return Entity (Subtype_Mark (Subtype_Indication (D)));
+         else
+            return Entity (Subtype_Indication (D));
+         end if;
+
+      --  If derived type declaration, find who we are derived from
+
+      elsif Nkind (D) = N_Full_Type_Declaration
+        and then Nkind (Type_Definition (D)) = N_Derived_Type_Definition
+      then
+         declare
+            DTD : constant Entity_Id := Type_Definition (D);
+            SI  : constant Entity_Id := Subtype_Indication (DTD);
+         begin
+            if Is_Entity_Name (SI) then
+               return Entity (SI);
+            else
+               return Entity (Subtype_Mark (SI));
+            end if;
+         end;
+
+      --  Otherwise, nothing useful to return, return Empty
+
+      else
+         return Empty;
+      end if;
+   end Nearest_Ancestor;
+
    ---------------------------
    -- Nearest_Dynamic_Scope --
    ---------------------------
@@ -799,5 +887,21 @@ package body Sem_Aux is
    begin
       Obsolescent_Warnings.Tree_Write;
    end Tree_Write;
+
+   --------------------
+   -- Ultimate_Alias --
+   --------------------
+
+   function Ultimate_Alias (Prim : Entity_Id) return Entity_Id is
+      E : Entity_Id := Prim;
+
+   begin
+      while Present (Alias (E)) loop
+         pragma Assert (Alias (E) /= E);
+         E := Alias (E);
+      end loop;
+
+      return E;
+   end Ultimate_Alias;
 
 end Sem_Aux;

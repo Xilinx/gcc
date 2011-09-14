@@ -1,5 +1,6 @@
 /* Definitions for the Blackfin port.
-   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -21,60 +22,14 @@
 #ifndef _BFIN_CONFIG
 #define _BFIN_CONFIG
 
+#ifndef BFIN_OPTS_H
+#include "config/bfin/bfin-opts.h"
+#endif
+
 #define OBJECT_FORMAT_ELF
 
 #define BRT 1
 #define BRF 0
-
-/* CPU type.  */
-typedef enum bfin_cpu_type
-{
-  BFIN_CPU_UNKNOWN,
-  BFIN_CPU_BF512,
-  BFIN_CPU_BF514,
-  BFIN_CPU_BF516,
-  BFIN_CPU_BF518,
-  BFIN_CPU_BF522,
-  BFIN_CPU_BF523,
-  BFIN_CPU_BF524,
-  BFIN_CPU_BF525,
-  BFIN_CPU_BF526,
-  BFIN_CPU_BF527,
-  BFIN_CPU_BF531,
-  BFIN_CPU_BF532,
-  BFIN_CPU_BF533,
-  BFIN_CPU_BF534,
-  BFIN_CPU_BF536,
-  BFIN_CPU_BF537,
-  BFIN_CPU_BF538,
-  BFIN_CPU_BF539,
-  BFIN_CPU_BF542,
-  BFIN_CPU_BF542M,
-  BFIN_CPU_BF544,
-  BFIN_CPU_BF544M,
-  BFIN_CPU_BF547,
-  BFIN_CPU_BF547M,
-  BFIN_CPU_BF548,
-  BFIN_CPU_BF548M,
-  BFIN_CPU_BF549,
-  BFIN_CPU_BF549M,
-  BFIN_CPU_BF561
-} bfin_cpu_t;
-
-/* Value of -mcpu= */
-extern bfin_cpu_t bfin_cpu_type;
-
-/* Value of -msi-revision= */
-extern int bfin_si_revision;
-
-extern unsigned int bfin_workarounds;
-
-/* Print subsidiary information on the compiler version in use.  */
-#define TARGET_VERSION fprintf (stderr, " (BlackFin bfin)")
-
-/* Run-time compilation parameters selecting different hardware subsets.  */
-
-extern int target_flags;
 
 /* Predefinition in the preprocessor for this target machine */
 #ifndef TARGET_CPU_CPP_BUILTINS
@@ -185,6 +140,10 @@ extern int target_flags;
 	case BFIN_CPU_BF561:			\
 	  builtin_define ("__ADSPBF561__");	\
 	  break;				\
+	case BFIN_CPU_BF592:            \
+	  builtin_define ("__ADSPBF592__"); \
+	  builtin_define ("__ADSPBF59x__"); \
+	  break;                \
 	}					\
 						\
       if (bfin_si_revision != -1)		\
@@ -242,29 +201,16 @@ extern int target_flags;
   %{mfast-fp:-lbffastfp} %G %L %{mfast-fp:-lbffastfp} %G \
 "
 
-/* A C string constant that tells the GCC driver program options to pass to
-   the assembler.  It can also specify how to translate options you give to GNU
-   CC into options for GCC to pass to the assembler.  See the file `sun3.h'
-   for an example of this.
-
-   Do not define this macro if it does not need to do anything.
-
-   Defined in svr4.h.  */
 #undef  ASM_SPEC
 #define ASM_SPEC "\
-%{G*} %{v} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
     %{mno-fdpic:-mnopic} %{mfdpic}"
 
 #define LINK_SPEC "\
 %{h*} %{v:-V} \
-%{b} \
 %{mfdpic:-melf32bfinfd -z text} \
 %{static:-dn -Bstatic} \
 %{shared:-G -Bdynamic} \
 %{symbolic:-Bsymbolic} \
-%{G*} \
-%{YP,*} \
-%{Qy:} %{!Qn:-Qy} \
 -init __init -fini __fini "
 
 /* Generate DSP instructions, like DSP halfword loads */
@@ -276,17 +222,6 @@ extern int target_flags;
 #define MAX_LIBRARY_ID 255
 
 extern const char *bfin_library_id_string;
-
-/* Sometimes certain combinations of command options do not make
-   sense on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
- 
-   Don't use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.  */
- 
-#define OVERRIDE_OPTIONS override_options ()
 
 #define FUNCTION_MODE    SImode
 #define Pmode            SImode
@@ -514,19 +449,6 @@ extern const char *bfin_library_id_string;
   REG_LT0, REG_LT1, REG_LC0, REG_LC1, REG_LB0, REG_LB1		  \
 }
 
-/* Macro to conditionally modify fixed_regs/call_used_regs.  */
-#define CONDITIONAL_REGISTER_USAGE			\
-  {							\
-    conditional_register_usage();                       \
-    if (TARGET_FDPIC)					\
-      call_used_regs[FDPIC_REGNO] = 1;			\
-    if (!TARGET_FDPIC && flag_pic)			\
-      {							\
-	fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	\
-	call_used_regs[PIC_OFFSET_TABLE_REGNUM] = 1;	\
-      }							\
-  }
-
 /* Define the classes of registers for register constraints in the
    machine description.  Also define ranges of constants.
 
@@ -743,32 +665,11 @@ enum reg_class
  : (REGNO) >= REG_RETS ? PROLOGUE_REGS			\
  : NO_REGS)
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES				\
-{							\
-    MOST_REGS, AREGS, CCREGS, LIM_REG_CLASSES		\
-}
-
-/* When defined, the compiler allows registers explicitly used in the
-   rtl to be used as spill registers but prevents the compiler from
-   extending the lifetime of these registers. */
-#define SMALL_REGISTER_CLASSES 1
-
-#define CLASS_LIKELY_SPILLED_P(CLASS) \
-    ((CLASS) == PREGS_CLOBBERED \
-     || (CLASS) == PROLOGUE_REGS \
-     || (CLASS) == P0REGS \
-     || (CLASS) == D0REGS \
-     || (CLASS) == D1REGS \
-     || (CLASS) == D2REGS \
-     || (CLASS) == CCREGS)
+/* When this hook returns true for MODE, the compiler allows
+   registers explicitly used in the rtl to be used as spill registers
+   but prevents the compiler from extending the lifetime of these
+   registers.  */
+#define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 /* Do not allow to store a value in REG_CC for any mode */
 /* Do not allow to store value in pregs if mode is not SI*/
@@ -839,22 +740,6 @@ typedef struct {
   int call_cookie;		/* Do special things for this call */
 } CUMULATIVE_ARGS;
 
-/* Define where to put the arguments to a function.
-   Value is zero to push the argument on the stack,
-   or a hard register in which to store the argument.
-
-   MODE is the argument's machine mode.
-   TYPE is the data type of the argument (as a tree).
-    This is null for libcalls where that information may
-    not be available.
-   CUM is a variable of type CUMULATIVE_ARGS which gives info about
-    the preceding args and about the function being called.
-   NAMED is nonzero if this argument is a named parameter
-    (otherwise it is an extra parameter matching an ellipsis).  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  (function_arg (&CUM, MODE, TYPE, NAMED))
-
 #define FUNCTION_ARG_REGNO_P(REGNO) function_arg_regno_p (REGNO)
 
 
@@ -863,14 +748,6 @@ typedef struct {
    For a library call, FNTYPE is 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,INDIRECT, N_NAMED_ARGS)	\
   (init_cumulative_args (&CUM, FNTYPE, LIBNAME))
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-  (function_arg_advance (&CUM, MODE, TYPE, NAMED))
-
-#define RETURN_POPS_ARGS(FDECL, FUNTYPE, STKSIZE) 0
 
 /* Define how to find the value returned by a function.
    VALTYPE is the data type of the value (as a tree).
@@ -910,13 +787,6 @@ typedef struct {
     gen_frame_mem (Pmode, plus_constant (frame_pointer_rtx, UNITS_PER_WORD))
 
 /* Addressing Modes */
-
-/* Nonzero if the constant value X is a legitimate general operand.
-   symbol_ref are not legitimate and will be put into constant pool.
-   See force_const_mem().
-   If -mno-pool, all constants are legitimate.
- */
-#define LEGITIMATE_CONSTANT_P(X) bfin_legitimate_constant_p (X)
 
 /*   A number, the maximum number of registers that can appear in a
      valid memory address.  Note that it is up to you to specify a
@@ -1260,18 +1130,28 @@ do { 						\
 
 #define ASM_COMMENT_START "//"
 
+#define PROFILE_BEFORE_PROLOGUE
 #define FUNCTION_PROFILER(FILE, LABELNO)	\
   do {						\
-    fprintf (FILE, "\tCALL __mcount;\n");	\
+    fprintf (FILE, "\t[--SP] = RETS;\n");	\
+    if (TARGET_LONG_CALLS)			\
+      {						\
+	fprintf (FILE, "\tP2.h = __mcount;\n");	\
+	fprintf (FILE, "\tP2.l = __mcount;\n");	\
+	fprintf (FILE, "\tCALL (P2);\n");	\
+      }						\
+    else					\
+      fprintf (FILE, "\tCALL __mcount;\n");	\
+    fprintf (FILE, "\tRETS = [SP++];\n");	\
   } while(0)
 
 #undef NO_PROFILE_COUNTERS
 #define NO_PROFILE_COUNTERS 1
 
-#define ASM_OUTPUT_REG_PUSH(FILE, REGNO) fprintf (FILE, "[SP--] = %s;\n", reg_names[REGNO])
-#define ASM_OUTPUT_REG_POP(FILE, REGNO)  fprintf (FILE, "%s = [SP++];\n", reg_names[REGNO])
+#define ASM_OUTPUT_REG_PUSH(FILE, REGNO) fprintf (FILE, "\t[--SP] = %s;\n", reg_names[REGNO])
+#define ASM_OUTPUT_REG_POP(FILE, REGNO)  fprintf (FILE, "\t%s = [SP++];\n", reg_names[REGNO])
 
-extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
+extern rtx bfin_cc_rtx, bfin_rets_rtx;
 
 /* This works for GAS and some other assemblers.  */
 #define SET_ASM_OP              ".set "
@@ -1288,5 +1168,15 @@ extern int splitting_for_sched, splitting_loops;
 #ifndef TARGET_SUPPORTS_SYNC_CALLS
 #define TARGET_SUPPORTS_SYNC_CALLS 0
 #endif
+
+struct bfin_cpu
+{
+  const char *name;
+  bfin_cpu_t type;
+  int si_revision;
+  unsigned int workarounds;
+};
+
+extern const struct bfin_cpu bfin_cpus[];
 
 #endif /*  _BFIN_CONFIG */

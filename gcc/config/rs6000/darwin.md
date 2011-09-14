@@ -1,5 +1,5 @@
 /* Machine description patterns for PowerPC running Darwin (Mac OS X).
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
 This file is part of GCC.
@@ -141,11 +141,13 @@ You should have received a copy of the GNU General Public License
 
 ;; 64-bit MachO load/store support
 (define_insn "movdi_low"
-  [(set (match_operand:DI 0 "gpc_reg_operand" "=r")
-        (mem:DI (lo_sum:DI (match_operand:DI 1 "gpc_reg_operand" "b")
+  [(set (match_operand:DI 0 "gpc_reg_operand" "=r,*!d")
+        (mem:DI (lo_sum:DI (match_operand:DI 1 "gpc_reg_operand" "b,b")
                            (match_operand 2 "" ""))))]
   "TARGET_MACHO && TARGET_64BIT"
-  "{l|ld} %0,lo16(%2)(%1)"
+  "@
+   {l|ld} %0,lo16(%2)(%1)
+   lfd %0,lo16(%2)(%1)"
   [(set_attr "type" "load")
    (set_attr "length" "4")])
 
@@ -159,11 +161,13 @@ You should have received a copy of the GNU General Public License
    (set_attr "length" "4")])
 
 (define_insn "movdi_low_st"
-  [(set (mem:DI (lo_sum:DI (match_operand:DI 1 "gpc_reg_operand" "b")
+  [(set (mem:DI (lo_sum:DI (match_operand:DI 1 "gpc_reg_operand" "b,b")
                            (match_operand 2 "" "")))
-	(match_operand:DI 0 "gpc_reg_operand" "r"))]
+	(match_operand:DI 0 "gpc_reg_operand" "r,*!d"))]
   "TARGET_MACHO && TARGET_64BIT"
-  "{st|std} %0,lo16(%2)(%1)"
+  "@
+   {st|std} %0,lo16(%2)(%1)
+   stfd %0,lo16(%2)(%1)"
   [(set_attr "type" "store")
    (set_attr "length" "4")])
 
@@ -366,73 +370,3 @@ You should have received a copy of the GNU General Public License
 }
   [(set_attr "type" "branch,branch")
    (set_attr "length" "4,8")])
-
-(define_insn "*sibcall_nonlocal_darwin64"
-  [(call (mem:SI (match_operand:DI 0 "symbol_ref_operand" "s,s"))
-	 (match_operand 1 "" ""))
-   (use (match_operand 2 "immediate_operand" "O,n"))
-   (use (reg:SI 65))
-   (return)]
-  "(DEFAULT_ABI == ABI_DARWIN)
-   && (INTVAL (operands[2]) & CALL_LONG) == 0"
-{
-  return "b %z0";
-}
-  [(set_attr "type" "branch,branch")
-   (set_attr "length" "4,8")])
-
-(define_insn "*sibcall_value_nonlocal_darwin64"
-  [(set (match_operand 0 "" "")
-	(call (mem:SI (match_operand:DI 1 "symbol_ref_operand" "s,s"))
-	      (match_operand 2 "" "")))
-   (use (match_operand:SI 3 "immediate_operand" "O,n"))
-   (use (reg:SI 65))
-   (return)]
-  "(DEFAULT_ABI == ABI_DARWIN)
-   && (INTVAL (operands[3]) & CALL_LONG) == 0"
-  "*
-{
-  return \"b %z1\";
-}"
-  [(set_attr "type" "branch,branch")
-   (set_attr "length" "4,8")])
-
-
-(define_insn "*sibcall_symbolic_64"
-  [(call (mem:SI (match_operand:DI 0 "call_operand" "s,c")) ; 64
-	 (match_operand 1 "" ""))
-   (use (match_operand 2 "" ""))
-   (use (reg:SI 65))
-   (return)]
-  "TARGET_64BIT && DEFAULT_ABI == ABI_DARWIN"
-  "*
-{
-  switch (which_alternative)
-    {
-      case 0:  return \"b %z0\";
-      case 1:  return \"b%T0\";
-      default:  gcc_unreachable ();
-    }
-}"
-  [(set_attr "type" "branch")
-   (set_attr "length" "4")])
-
-(define_insn "*sibcall_value_symbolic_64"
-  [(set (match_operand 0 "" "")
-	(call (mem:SI (match_operand:DI 1 "call_operand" "s,c"))
-	      (match_operand 2 "" "")))
-   (use (match_operand:SI 3 "" ""))
-   (use (reg:SI 65))
-   (return)]
-  "TARGET_64BIT && DEFAULT_ABI == ABI_DARWIN"
-  "*
-{
-  switch (which_alternative)
-    {
-      case 0:  return \"b %z1\";
-      case 1:  return \"b%T1\";
-      default:  gcc_unreachable ();
-    }
-}"
-  [(set_attr "type" "branch")
-   (set_attr "length" "4")])

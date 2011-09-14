@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,22 +23,25 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Unchecked_Conversion;
-
-with System.Case_Util; use System.Case_Util;
-
-with GNAT.HTable;
-
 with Alloc;
 with Debug;
-with Fmap;             use Fmap;
-with Gnatvsn;          use Gnatvsn;
+with Fmap;     use Fmap;
+with Gnatvsn;  use Gnatvsn;
 with Hostparm;
-with Opt;              use Opt;
-with Output;           use Output;
-with Sdefault;         use Sdefault;
+with Opt;      use Opt;
+with Output;   use Output;
+with Sdefault; use Sdefault;
 with Table;
-with Targparm;         use Targparm;
+with Targparm; use Targparm;
+
+with Unchecked_Conversion;
+
+pragma Warnings (Off);
+--  This package is used also by gnatcoll
+with System.Case_Util; use System.Case_Util;
+pragma Warnings (On);
+
+with GNAT.HTable;
 
 package body Osint is
 
@@ -538,7 +541,11 @@ package body Osint is
             end loop;
          end if;
 
-         if not Opt.No_Stdlib and not Opt.RTS_Switch then
+         --  Even when -nostdlib is used, we still want to have visibility on
+         --  the run-time object directory, as it is used by gnatbind to find
+         --  the run-time ALI files in "real" ZFP set up.
+
+         if not Opt.RTS_Switch then
             Search_Path :=
               Read_Default_Search_Dirs
                 (String_Access (Update_Path (Search_Dir_Prefix)),
@@ -681,22 +688,23 @@ package body Osint is
    -- Canonical_Case_File_Name --
    ------------------------------
 
-   --  For now, we only deal with the case of a-z. Eventually we should
-   --  worry about other Latin-1 letters on systems that support this ???
-
    procedure Canonical_Case_File_Name (S : in out String) is
    begin
       if not File_Names_Case_Sensitive then
-         for J in S'Range loop
-            if S (J) in 'A' .. 'Z' then
-               S (J) := Character'Val (
-                          Character'Pos (S (J)) +
-                          Character'Pos ('a')   -
-                          Character'Pos ('A'));
-            end if;
-         end loop;
+         To_Lower (S);
       end if;
    end Canonical_Case_File_Name;
+
+   ---------------------------------
+   -- Canonical_Case_Env_Var_Name --
+   ---------------------------------
+
+   procedure Canonical_Case_Env_Var_Name (S : in out String) is
+   begin
+      if not Env_Vars_Case_Sensitive then
+         To_Lower (S);
+      end if;
+   end Canonical_Case_Env_Var_Name;
 
    ---------------------------
    -- Create_File_And_Check --
@@ -1155,7 +1163,7 @@ package body Osint is
       begin
          --  If we are looking for a config file, look only in the current
          --  directory, i.e. return input argument unchanged. Also look only in
-         --  the curren directory if we are looking for a .dg file (happens in
+         --  the current directory if we are looking for a .dg file (happens in
          --  -gnatD mode).
 
          if T = Config
@@ -2500,6 +2508,13 @@ package body Osint is
 
                return null;
             end if;
+
+         elsif Current_Full_Obj_Stamp < Current_Full_Lib_Stamp then
+            Close (Lib_FD, Status);
+
+            --  No need to check the status, we return null anyway
+
+            return null;
          end if;
       end if;
 

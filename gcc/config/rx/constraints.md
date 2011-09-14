@@ -1,5 +1,5 @@
 ;; Constraint definitions for Renesas RX.
-;; Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+;; Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
 ;; Contributed by Red Hat.
 ;;
 ;; This file is part of GCC.
@@ -60,6 +60,13 @@
   "@internal An unsigned 4-bit immediate value"
   (and (match_code "const_int")
        (match_test "IN_RANGE (ival, 0, 15)")
+  )
+)
+
+(define_constraint "NEGint4"
+  "@internal An signed 4-bit negative immediate value"
+  (and (match_code "const_int")
+       (match_test "IN_RANGE (ival, -15, -1)")
   )
 )
 

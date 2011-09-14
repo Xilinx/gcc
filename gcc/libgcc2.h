@@ -1,5 +1,5 @@
 /* Header file for libgcc2.c.  */
-/* Copyright (C) 2000, 2001, 2004, 2005, 2009
+/* Copyright (C) 2000, 2001, 2004, 2005, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -35,17 +35,6 @@ extern void __clear_cache (char *, char *);
 extern void __eprintf (const char *, const char *, unsigned int, const char *)
   __attribute__ ((__noreturn__));
 
-/* Permit the tm.h file to select the endianness to use just for this
-   file.  This is used when the endianness is determined when the
-   compiler is run.  */
-
-#ifndef LIBGCC2_WORDS_BIG_ENDIAN
-#define LIBGCC2_WORDS_BIG_ENDIAN WORDS_BIG_ENDIAN
-#endif
-
-#ifndef LIBGCC2_DOUBLE_TYPE_SIZE
-#define LIBGCC2_DOUBLE_TYPE_SIZE DOUBLE_TYPE_SIZE
-#endif
 #ifndef LIBGCC2_LONG_DOUBLE_TYPE_SIZE
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE LONG_DOUBLE_TYPE_SIZE
 #endif
@@ -57,7 +46,7 @@ extern void __eprintf (const char *, const char *, unsigned int, const char *)
 #ifndef LIBGCC2_HAS_DF_MODE
 #define LIBGCC2_HAS_DF_MODE \
   (BITS_PER_UNIT == 8 \
-   && (LIBGCC2_DOUBLE_TYPE_SIZE == 64 \
+   && (__SIZEOF_DOUBLE__ * __CHAR_BIT__ == 64 \
        || LIBGCC2_LONG_DOUBLE_TYPE_SIZE == 64))
 #endif
 
@@ -81,7 +70,7 @@ extern void __eprintf (const char *, const char *, unsigned int, const char *)
 
 #ifndef DF_SIZE
 #if LIBGCC2_HAS_DF_MODE
-#if LIBGCC2_DOUBLE_TYPE_SIZE == 64
+#if __SIZEOF_DOUBLE__ * __CHAR_BIT__ == 64
 #define DF_SIZE DBL_MANT_DIG
 #elif LIBGCC2_LONG_DOUBLE_TYPE_SIZE == 64
 #define DF_SIZE LDBL_MANT_DIG
@@ -140,7 +129,7 @@ typedef unsigned int UHItype	__attribute__ ((mode (HI)));
 /* These typedefs are usually forbidden on dsp's with UNITS_PER_WORD 1.  */
 typedef 	 int SItype	__attribute__ ((mode (SI)));
 typedef unsigned int USItype	__attribute__ ((mode (SI)));
-#if LONG_LONG_TYPE_SIZE > 32
+#if __SIZEOF_LONG_LONG__ > 4
 /* These typedefs are usually forbidden on archs with UNITS_PER_WORD 2.  */
 typedef		 int DItype	__attribute__ ((mode (DI)));
 typedef unsigned int UDItype	__attribute__ ((mode (DI)));
@@ -204,8 +193,13 @@ typedef int shift_count_type __attribute__((mode (__libgcc_shift_count__)));
 #define UHWtype	UDItype
 #define DWtype	TItype
 #define UDWtype	UTItype
+#ifdef LIBGCC2_GNU_PREFIX
+#define __NW(a,b)	__gnu_ ## a ## di ## b
+#define __NDW(a,b)	__gnu_ ## a ## ti ## b
+#else
 #define __NW(a,b)	__ ## a ## di ## b
 #define __NDW(a,b)	__ ## a ## ti ## b
+#endif
 #define COMPAT_SIMODE_TRAPPING_ARITHMETIC
 #elif LIBGCC2_UNITS_PER_WORD == 4
 #define W_TYPE_SIZE (4 * BITS_PER_UNIT)
@@ -215,8 +209,13 @@ typedef int shift_count_type __attribute__((mode (__libgcc_shift_count__)));
 #define UHWtype	USItype
 #define DWtype	DItype
 #define UDWtype	UDItype
+#ifdef LIBGCC2_GNU_PREFIX
+#define __NW(a,b)	__gnu_ ## a ## si ## b
+#define __NDW(a,b)	__gnu_ ## a ## di ## b
+#else
 #define __NW(a,b)	__ ## a ## si ## b
 #define __NDW(a,b)	__ ## a ## di ## b
+#endif
 #elif LIBGCC2_UNITS_PER_WORD == 2
 #define W_TYPE_SIZE (2 * BITS_PER_UNIT)
 #define Wtype	HItype
@@ -225,8 +224,13 @@ typedef int shift_count_type __attribute__((mode (__libgcc_shift_count__)));
 #define UHWtype	UHItype
 #define DWtype	SItype
 #define UDWtype	USItype
+#ifdef LIBGCC2_GNU_PREFIX
+#define __NW(a,b)	__gnu_ ## a ## hi ## b
+#define __NDW(a,b)	__gnu_ ## a ## si ## b
+#else
 #define __NW(a,b)	__ ## a ## hi ## b
 #define __NDW(a,b)	__ ## a ## si ## b
+#endif
 #else
 #define W_TYPE_SIZE BITS_PER_UNIT
 #define Wtype	QItype
@@ -235,10 +239,20 @@ typedef int shift_count_type __attribute__((mode (__libgcc_shift_count__)));
 #define UHWtype	UQItype
 #define DWtype	HItype
 #define UDWtype	UHItype
+#ifdef LIBGCC2_GNU_PREFIX
+#define __NW(a,b)	__gnu_ ## a ## qi ## b
+#define __NDW(a,b)	__gnu_ ## a ## hi ## b
+#else
 #define __NW(a,b)	__ ## a ## qi ## b
 #define __NDW(a,b)	__ ## a ## hi ## b
 #endif
+#endif
 
+#ifdef LIBGCC2_GNU_PREFIX
+#define __N(a)	__gnu_ ## a
+#else
+#define __N(a)	__ ## a
+#endif
 #define Wtype_MAX ((Wtype)(((UWtype)1 << (W_TYPE_SIZE - 1)) - 1))
 #define Wtype_MIN (- Wtype_MAX - 1)
 
@@ -301,13 +315,59 @@ typedef int shift_count_type __attribute__((mode (__libgcc_shift_count__)));
 #define __ffsSI2	__NW(ffs,2)
 #define __clzSI2	__NW(clz,2)
 #define __ctzSI2	__NW(ctz,2)
+#define __clrsbSI2	__NW(clrsb,2)
 #define __popcountSI2	__NW(popcount,2)
 #define __paritySI2	__NW(parity,2)
 #define __ffsDI2	__NDW(ffs,2)
 #define __clzDI2	__NDW(clz,2)
 #define __ctzDI2	__NDW(ctz,2)
+#define __clrsbDI2	__NDW(clrsb,2)
 #define __popcountDI2	__NDW(popcount,2)
 #define __parityDI2	__NDW(parity,2)
+
+#define __clz_tab		__N(clz_tab)
+#define __bswapsi2		__N(bswapsi2)
+#define __bswapdi2		__N(bswapdi2)
+#define __udiv_w_sdiv		__N(udiv_w_sdiv)
+#define __clear_cache		__N(clear_cache)
+#define __enable_execute_stack	__N(enable_execute_stack)
+
+#ifndef __powisf2
+#define __powisf2		__N(powisf2)
+#endif
+#ifndef __powidf2
+#define __powidf2		__N(powidf2)
+#endif
+#ifndef __powitf2
+#define __powitf2		__N(powitf2)
+#endif
+#ifndef __powixf2
+#define __powixf2		__N(powixf2)
+#endif
+#ifndef __mulsc3
+#define __mulsc3		__N(mulsc3)
+#endif
+#ifndef __muldc3
+#define __muldc3		__N(muldc3)
+#endif
+#ifndef __mulxc3
+#define __mulxc3		__N(mulxc3)
+#endif
+#ifndef __multc3
+#define __multc3		__N(multc3)
+#endif
+#ifndef __divsc3
+#define __divsc3		__N(divsc3)
+#endif
+#ifndef __divdc3
+#define __divdc3		__N(divdc3)
+#endif
+#ifndef __divxc3
+#define __divxc3		__N(divxc3)
+#endif
+#ifndef __divtc3
+#define __divtc3		__N(divtc3)
+#endif
 
 extern DWtype __muldi3 (DWtype, DWtype);
 extern DWtype __divdi3 (DWtype, DWtype);
@@ -342,7 +402,7 @@ extern cmp_return_type __ucmpdi2 (DWtype, DWtype);
 #if MIN_UNITS_PER_WORD > 1
 extern SItype __bswapsi2 (SItype);
 #endif
-#if LONG_LONG_TYPE_SIZE > 32
+#if __SIZEOF_LONG_LONG__ > 4
 extern DItype __bswapdi2 (DItype);
 #endif
 
@@ -358,6 +418,12 @@ extern DWtype __mulvDI3 (DWtype, DWtype);
 extern DWtype __negvDI2 (DWtype);
 
 #ifdef COMPAT_SIMODE_TRAPPING_ARITHMETIC
+#define __absvsi2	__N(absvsi2)
+#define __negvsi2	__N(negvsi2)
+#define __addvsi3	__N(addvsi3)
+#define __subvsi3	__N(subvsi3)
+#define __mulvsi3	__N(mulvsi3)
+
 extern SItype __absvsi2 (SItype);
 extern SItype __addvsi3 (SItype, SItype);
 extern SItype __subvsi3 (SItype, SItype);
@@ -410,9 +476,9 @@ extern TCtype __multc3 (TFtype, TFtype, TFtype, TFtype);
 #define int bogus_type
 
 /* DWstructs are pairs of Wtype values in the order determined by
-   LIBGCC2_WORDS_BIG_ENDIAN.  */
+   __BYTE_ORDER__.  */
 
-#if LIBGCC2_WORDS_BIG_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   struct DWstruct {Wtype high, low;};
 #else
   struct DWstruct {Wtype low, high;};
@@ -444,9 +510,11 @@ extern const UQItype __clz_tab[256];
 extern int __clzDI2 (UDWtype);
 extern int __clzSI2 (UWtype);
 extern int __ctzSI2 (UWtype);
+extern int __ctzDI2 (UDWtype);
+extern int __clrsbSI2 (Wtype);
+extern int __clrsbDI2 (DWtype);
 extern int __ffsSI2 (UWtype);
 extern int __ffsDI2 (DWtype);
-extern int __ctzDI2 (UDWtype);
 extern int __popcountSI2 (UWtype);
 extern int __popcountDI2 (UDWtype);
 extern int __paritySI2 (UWtype);

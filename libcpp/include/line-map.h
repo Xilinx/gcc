@@ -1,5 +1,5 @@
 /* Map logical line numbers to (source file, line number) pairs.
-   Copyright (C) 2001, 2003, 2004, 2007, 2008, 2009
+   Copyright (C) 2001, 2003, 2004, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify it
@@ -39,8 +39,6 @@ enum lc_reason {LC_ENTER = 0, LC_LEAVE, LC_RENAME, LC_RENAME_VERBATIM};
 typedef unsigned int linenum_type;
 
 /* A logical line/column number, i.e. an "index" into a line_map.  */
-/* Long-term, we want to use this to replace struct location_s (in input.h),
-   and effectively typedef source_location location_t.  */
 typedef unsigned int source_location;
 
 /* Memory allocation function typedef.  Works like xrealloc.  */
@@ -77,11 +75,6 @@ struct GTY(()) line_maps {
   unsigned int used;
 
   unsigned int cache;
-
-  /* The most recently listed include stack, if any, starts with
-     LAST_LISTED as the topmost including file.  -1 indicates nothing
-     has been listed yet.  */
-  int last_listed;
 
   /* Depth of the include stack, including the current file.  */
   unsigned int depth;
@@ -171,23 +164,6 @@ extern const struct line_map *linemap_lookup
 
 /* Nonzero if the map is at the bottom of the include stack.  */
 #define MAIN_FILE_P(MAP) ((MAP)->included_from < 0)
-
-/* Set LOC to a source position that is the same line as the most recent
-   linemap_line_start, but with the specified TO_COLUMN column number.  */
-
-#define LINEMAP_POSITION_FOR_COLUMN(LOC, SET, TO_COLUMN) do { \
-  unsigned int to_column = (TO_COLUMN); \
-  struct line_maps *set = (SET); \
-  if (__builtin_expect (to_column >= set->max_column_hint, 0)) \
-    (LOC) = linemap_position_for_column (set, to_column); \
-  else { \
-    source_location r = set->highest_line; \
-    r = r + to_column; \
-    if (r >= set->highest_location) \
-      set->highest_location = r; \
-    (LOC) = r;			 \
-  }} while (0)
-    
 
 extern source_location
 linemap_position_for_column (struct line_maps *set, unsigned int to_column);

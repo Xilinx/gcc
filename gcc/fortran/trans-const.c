@@ -25,9 +25,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tree.h"
-#include "ggc.h"
-#include "toplev.h"
-#include "real.h"
+#include "realmpfr.h"
+#include "diagnostic-core.h"	/* For fatal_error.  */
 #include "double-int.h"
 #include "gfortran.h"
 #include "trans.h"
@@ -76,11 +75,11 @@ gfc_build_string_const (int length, const char *s)
   tree len;
 
   str = build_string (length, s);
-  len = build_int_cst (NULL_TREE, length);
+  len = size_int (length);
   TREE_TYPE (str) =
     build_array_type (gfc_character1_type_node,
 		      build_range_type (gfc_charlen_type_node,
-					integer_one_node, len));
+					size_one_node, len));
   return str;
 }
 
@@ -103,13 +102,13 @@ gfc_build_wide_string_const (int kind, int length, const gfc_char_t *string)
   gfc_encode_character (kind, length, string, (unsigned char *) s, size);
 
   str = build_string (size, s);
-  gfc_free (s);
+  free (s);
 
-  len = build_int_cst (NULL_TREE, length);
+  len = size_int (length);
   TREE_TYPE (str) =
     build_array_type (gfc_get_char_type (kind),
 		      build_range_type (gfc_charlen_type_node,
-					integer_one_node, len));
+					size_one_node, len));
   return str;
 }
 
@@ -165,7 +164,7 @@ gfc_conv_string_init (tree length, gfc_expr * expr)
   str = gfc_build_wide_string_const (expr->ts.kind, len, s);
 
   if (free_s)
-    gfc_free (s);
+    free (s);
 
   return str;
 }
@@ -236,6 +235,26 @@ gfc_conv_mpfr_to_tree (mpfr_t f, int kind, int is_snan)
   return build_real (type, real);
 }
 
+/* Returns a real constant that is +Infinity if the target
+   supports infinities for this floating-point mode, and
+   +HUGE_VAL otherwise (the largest representable number).  */
+
+tree
+gfc_build_inf_or_huge (tree type, int kind)
+{
+  if (HONOR_INFINITIES (TYPE_MODE (type)))
+    {
+      REAL_VALUE_TYPE real;
+      real_inf (&real);
+      return build_real (type, real);
+    }
+  else
+    {
+      int k = gfc_validate_kind (BT_REAL, kind, false);
+      return gfc_conv_mpfr_to_tree (gfc_real_kinds[k].huge, kind, 0);
+    }
+}
+
 /* Converts a backend tree into a real constant.  */
 
 void
@@ -267,29 +286,29 @@ gfc_conv_constant_to_tree (gfc_expr * expr)
     {
     case BT_INTEGER:
       if (expr->representation.string)
-	return fold_build1 (VIEW_CONVERT_EXPR,
-			    gfc_get_int_type (expr->ts.kind),
-			    gfc_build_string_const (expr->representation.length,
-						    expr->representation.string));
+	return fold_build1_loc (input_location, VIEW_CONVERT_EXPR,
+			 gfc_get_int_type (expr->ts.kind),
+			 gfc_build_string_const (expr->representation.length,
+						 expr->representation.string));
       else
 	return gfc_conv_mpz_to_tree (expr->value.integer, expr->ts.kind);
 
     case BT_REAL:
       if (expr->representation.string)
-	return fold_build1 (VIEW_CONVERT_EXPR,
-			    gfc_get_real_type (expr->ts.kind),
-			    gfc_build_string_const (expr->representation.length,
-						    expr->representation.string));
+	return fold_build1_loc (input_location, VIEW_CONVERT_EXPR,
+			 gfc_get_real_type (expr->ts.kind),
+			 gfc_build_string_const (expr->representation.length,
+						 expr->representation.string));
       else
 	return gfc_conv_mpfr_to_tree (expr->value.real, expr->ts.kind, expr->is_snan);
 
     case BT_LOGICAL:
       if (expr->representation.string)
 	{
-	  tree tmp = fold_build1 (VIEW_CONVERT_EXPR,
-				  gfc_get_int_type (expr->ts.kind),
-				  gfc_build_string_const (expr->representation.length,
-							  expr->representation.string));
+	  tree tmp = fold_build1_loc (input_location, VIEW_CONVERT_EXPR,
+			gfc_get_int_type (expr->ts.kind),
+			gfc_build_string_const (expr->representation.length,
+						expr->representation.string));
 	  if (!integer_zerop (tmp) && !integer_onep (tmp))
 	    gfc_warning ("Assigning value other than 0 or 1 to LOGICAL"
 			 " has undefined result at %L", &expr->where);
@@ -301,10 +320,10 @@ gfc_conv_constant_to_tree (gfc_expr * expr)
 
     case BT_COMPLEX:
       if (expr->representation.string)
-	return fold_build1 (VIEW_CONVERT_EXPR,
-			    gfc_get_complex_type (expr->ts.kind),
-			    gfc_build_string_const (expr->representation.length,
-						    expr->representation.string));
+	return fold_build1_loc (input_location, VIEW_CONVERT_EXPR,
+			 gfc_get_complex_type (expr->ts.kind),
+			 gfc_build_string_const (expr->representation.length,
+						 expr->representation.string));
       else
 	{
 	  tree real = gfc_conv_mpfr_to_tree (mpc_realref (expr->value.complex),

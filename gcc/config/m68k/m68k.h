@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for Motorola 680x0/ColdFire.
    Copyright (C) 1987, 1988, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -24,18 +24,14 @@ along with GCC; see the file COPYING3.  If not see
    for both the MOTOROLA and MIT code paths.  We do rely on the host compiler
    to optimize away all constant tests.  */
 #if MOTOROLA  /* Use the Motorola assembly syntax.  */
-# define TARGET_VERSION fprintf (stderr, " (68k, Motorola syntax)")
 #else
 # define MOTOROLA 0  /* Use the MIT assembly syntax.  */
-# define TARGET_VERSION fprintf (stderr, " (68k, MIT syntax)")
 #endif
 
 /* Handle --with-cpu default option from configure script.  */
 #define OPTION_DEFAULT_SPECS						\
-  { "cpu",   "%{!mc68000:%{!m68000:%{!m68302:%{!m68010:%{!mc68020:%{!m68020:\
-%{!m68030:%{!m68040:%{!m68020-40:%{!m68020-60:%{!m68060:%{!mcpu32:\
-%{!m68332:%{!m5200:%{!m5206e:%{!m528x:%{!m5307:%{!m5407:%{!mcfv4e:\
-%{!mcpu=*:%{!march=*:-%(VALUE)}}}}}}}}}}}}}}}}}}}}}" },
+  { "cpu",   "%{!m68020-40:%{!m68020-60:\
+%{!mcpu=*:%{!march=*:-%(VALUE)}}}}" },
 
 /* Pass flags to gas indicating which type of processor we have.  This
    can be simplified when we can rely on the assembler supporting .cpu
@@ -43,9 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #define ASM_CPU_SPEC "\
 %{m68851}%{mno-68851} %{m68881}%{mno-68881} %{msoft-float:-mno-float} \
-%{m68000}%{m68302}%{mc68000}%{m68010}%{m68020}%{mc68020}%{m68030}\
-%{m68040}%{m68020-40:-m68040}%{m68020-60:-m68040}\
-%{m68060}%{mcpu32}%{m68332}%{m5200}%{m5206e}%{m528x}%{m5307}%{m5407}%{mcfv4e}\
+%{m68020-40:-m68040}%{m68020-60:-m68040}\
 %{mcpu=*:-mcpu=%*}%{march=*:-march=%*}\
 "
 #define ASM_PCREL_SPEC "%{fPIC|fpic|mpcrel:--pcrel} \
@@ -274,8 +268,6 @@ along with GCC; see the file COPYING3.  If not see
 #define TUNE_MAC	((m68k_tune_flags & FL_CF_MAC) != 0)
 #define TUNE_EMAC	((m68k_tune_flags & FL_CF_EMAC) != 0)
 
-#define OVERRIDE_OPTIONS   override_options()
-
 /* These are meant to be redefined in the host dependent files */
 #define SUBTARGET_OVERRIDE_OPTIONS
 
@@ -400,25 +392,6 @@ along with GCC; see the file COPYING3.  If not see
 }
 
 
-/* Make sure everything's fine if we *don't* have a given processor.
-   This assumes that putting a register in fixed_regs will keep the
-   compiler's mitts completely off it.  We don't bother to zero it out
-   of register classes.  */
-#define CONDITIONAL_REGISTER_USAGE				\
-{								\
-  int i;							\
-  HARD_REG_SET x;						\
-  if (!TARGET_HARD_FLOAT)					\
-    {								\
-      COPY_HARD_REG_SET (x, reg_class_contents[(int)FP_REGS]);	\
-      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)		\
-        if (TEST_HARD_REG_BIT (x, i))				\
-	  fixed_regs[i] = call_used_regs[i] = 1;		\
-    }								\
-  if (flag_pic)							\
-    fixed_regs[PIC_REG] = call_used_regs[PIC_REG] = 1;		\
-}
-
 /* On the m68k, ordinary registers hold 32 bits worth;
    for the 68881 registers, a single register is always enough for
    anything that can be stored in them at all.  */
@@ -517,10 +490,6 @@ extern enum reg_class regno_reg_class[];
 #define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2)	\
   ((((CLASS1) == FP_REGS) != ((CLASS2) == FP_REGS)) ? 4 : 2)
 
-#define IRA_COVER_CLASSES						\
-{									\
-  ALL_REGS, LIM_REG_CLASSES						\
-}
 
 /* Stack layout; function entry, exit and calling.  */
 
@@ -533,21 +502,6 @@ extern enum reg_class regno_reg_class[];
 #define PUSH_ROUNDING(BYTES) (TARGET_COLDFIRE ? BYTES : ((BYTES) + 1) & ~1)
 
 #define FIRST_PARM_OFFSET(FNDECL) 8
-
-/* On the 68000, the RTS insn cannot pop anything.
-   On the 68010, the RTD insn may be used to pop them if the number
-     of args is fixed, but if the number is variable then the caller
-     must pop them all.  RTD can't be used for library calls now
-     because the library is compiled with the Unix compiler.
-   Use of RTD is a selectable option, since it is incompatible with
-   standard Unix calling sequences.  If the option is not selected,
-   the caller must always pop the args.  */
-#define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE)   \
-  ((TARGET_RTD && (!(FUNDECL) || TREE_CODE (FUNDECL) != IDENTIFIER_NODE)	\
-    && (TYPE_ARG_TYPES (FUNTYPE) == 0				\
-	|| (TREE_VALUE (tree_last (TYPE_ARG_TYPES (FUNTYPE)))	\
-	    == void_type_node)))				\
-   ? (SIZE) : 0)
 
 /* On the m68k the return value defaults to D0.  */
 #define FUNCTION_VALUE(VALTYPE, FUNC)  \
@@ -574,14 +528,6 @@ extern enum reg_class regno_reg_class[];
 /* On the m68k, the offset starts at 0.  */
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
  ((CUM) = 0)
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
- ((CUM) += ((MODE) != BLKmode			\
-	    ? (GET_MODE_SIZE (MODE) + 3) & ~3	\
-	    : (int_size_in_bytes (TYPE) + 3) & ~3))
-
-/* On the m68k all args are always pushed.  */
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) 0
 
 #define FUNCTION_PROFILER(FILE, LABELNO)  \
   asm_fprintf (FILE, "\tlea %LLP%d,%Ra0\n\tjsr mcount\n", (LABELNO))
@@ -718,13 +664,7 @@ __transfer_from_trampoline ()					\
   ((GET_CODE (X) == LABEL_REF || GET_CODE (X) == SYMBOL_REF		\
     || GET_CODE (X) == CONST_INT || GET_CODE (X) == CONST		\
     || GET_CODE (X) == HIGH)						\
-   && LEGITIMATE_CONSTANT_P (X))
-
-/* Nonzero if the constant value X is a legitimate general operand.
-   It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
-#define LEGITIMATE_CONSTANT_P(X)				\
-  (GET_MODE (X) != XFmode					\
-   && !m68k_illegitimate_symbolic_constant_p (X))
+   && m68k_legitimate_constant_p (Pmode, X))
 
 #ifndef REG_OK_STRICT
 #define REG_STRICT_P 0
@@ -1001,36 +941,7 @@ do {							\
     goto FAIL;						\
 } while (0);
 
-/* Values used in the MICROARCH argument to M68K_DEVICE.  */
-enum uarch_type
-{
-  u68000,
-  u68010,
-  u68020,
-  u68020_40,
-  u68020_60,
-  u68030,
-  u68040,
-  u68060,
-  ucpu32,
-  ucfv1,
-  ucfv2,
-  ucfv3,
-  ucfv4,
-  ucfv4e,
-  ucfv5,
-  unk_arch
-};
-
-/* An enumeration of all supported target devices.  */
-enum target_device
-{
-#define M68K_DEVICE(NAME,ENUM_VALUE,FAMILY,MULTILIB,MICROARCH,ISA,FLAGS) \
-  ENUM_VALUE,
-#include "m68k-devices.def"
-#undef M68K_DEVICE
-  unk_device
-};
+#include "config/m68k/m68k-opts.h"
 
 enum fpu_type
 {
@@ -1047,7 +958,6 @@ enum m68k_function_kind
 };
 
 /* Variables in m68k.c; see there for details.  */
-extern const char *m68k_library_id_string;
 extern enum target_device m68k_cpu;
 extern enum uarch_type m68k_tune;
 extern enum fpu_type m68k_fpu;

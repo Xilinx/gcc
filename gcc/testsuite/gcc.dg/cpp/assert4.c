@@ -128,24 +128,8 @@
 # error
 #endif
 
-#if defined __netware__
-# if !#system(netware)
-#  error
-# endif
-#elif #system(netware)
-# error
-#endif
-
 
 /* Check for #cpu and #machine assertions.  */
-
-#if defined __arc__
-# if !#cpu(arc) || !#machine(arc)
-#  error
-# endif
-#elif #cpu(arc) || #machine(arc)
-# error
-#endif
 
 #if defined __alpha__
 # if !#cpu(alpha) || !#machine(alpha) \

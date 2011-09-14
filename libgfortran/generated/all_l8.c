@@ -1,8 +1,8 @@
 /* Implementation of the ALL intrinsic
-   Copyright 2002, 2007, 2009 Free Software Foundation, Inc.
+   Copyright 2002, 2007, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
@@ -142,7 +142,7 @@ all_l8 (gfc_array_l8 * const restrict retarray,
       count[n] = 0;
       dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
       if (extent[n] <= 0)
-        len = 0;
+	return;
     }
 
   base = array->data;

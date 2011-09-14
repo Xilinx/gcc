@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1998-2009, AdaCore                     --
+--                     Copyright (C) 1998-2010, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -135,7 +133,7 @@ package body GNAT.Spitbol is
    -------
 
    function N (Str : VString) return Integer is
-      S : String_Access;
+      S : Big_String_Access;
       L : Natural;
    begin
       Get_String (Str, S, L);
@@ -147,7 +145,7 @@ package body GNAT.Spitbol is
    --------------------
 
    function Reverse_String (Str : VString) return VString is
-      S : String_Access;
+      S : Big_String_Access;
       L : Natural;
 
    begin
@@ -177,7 +175,7 @@ package body GNAT.Spitbol is
    end Reverse_String;
 
    procedure Reverse_String (Str : in out VString) is
-      S : String_Access;
+      S : Big_String_Access;
       L : Natural;
 
    begin
@@ -191,7 +189,7 @@ package body GNAT.Spitbol is
             Result (J) := S (L + 1 - J);
          end loop;
 
-         Set_String (Str, Result);
+         Set_Unbounded_String (Str, Result);
       end;
    end Reverse_String;
 
@@ -284,7 +282,7 @@ package body GNAT.Spitbol is
       Start : Positive;
       Len   : Natural) return VString
    is
-      S : String_Access;
+      S : Big_String_Access;
       L : Natural;
 
    begin
@@ -413,7 +411,7 @@ package body GNAT.Spitbol is
 
                if Elmt.Name /= null then
                   loop
-                     Set_String (TA (P).Name, Elmt.Name.all);
+                     Set_Unbounded_String (TA (P).Name, Elmt.Name.all);
                      TA (P).Value := Elmt.Value;
                      P := P + 1;
                      Elmt := Elmt.Next;
@@ -458,7 +456,7 @@ package body GNAT.Spitbol is
       end Delete;
 
       procedure Delete (T : in out Table; Name  : VString) is
-         S : String_Access;
+         S : Big_String_Access;
          L : Natural;
       begin
          Get_String (Name, S, L);
@@ -584,7 +582,7 @@ package body GNAT.Spitbol is
       end Get;
 
       function Get (T : Table; Name : VString) return Value_Type is
-         S : String_Access;
+         S : Big_String_Access;
          L : Natural;
       begin
          Get_String (Name, S, L);
@@ -625,7 +623,7 @@ package body GNAT.Spitbol is
       end Present;
 
       function Present (T : Table; Name : VString) return Boolean is
-         S : String_Access;
+         S : Big_String_Access;
          L : Natural;
       begin
          Get_String (Name, S, L);
@@ -661,7 +659,7 @@ package body GNAT.Spitbol is
       ---------
 
       procedure Set (T : in out Table; Name : VString; Value : Value_Type) is
-         S : String_Access;
+         S : Big_String_Access;
          L : Natural;
       begin
          Get_String (Name, S, L);

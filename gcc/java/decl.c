@@ -1,7 +1,7 @@
 /* Process declarations and variables for the GNU compiler for the
    Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007,
-   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -28,21 +28,15 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "real.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
 #include "flags.h"
 #include "java-tree.h"
 #include "jcf.h"
-#include "function.h"
-#include "expr.h"
 #include "libfuncs.h"
-#include "except.h"
 #include "java-except.h"
 #include "ggc.h"
-#include "timevar.h"
 #include "cgraph.h"
 #include "tree-inline.h"
 #include "target.h"
@@ -561,7 +555,6 @@ parse_version (void)
 void
 java_init_decl_processing (void)
 {
-  tree endlink;
   tree field = NULL_TREE;
   tree t;
 
@@ -573,13 +566,14 @@ java_init_decl_processing (void)
   pushlevel (0);	/* make the binding_level structure for global names */
   global_binding_level = current_binding_level;
 
-  /* The code here must be similar to build_common_tree_nodes{,_2} in
-     tree.c, especially as to the order of initializing common nodes.  */
-  error_mark_node = make_node (ERROR_MARK);
-  TREE_TYPE (error_mark_node) = error_mark_node;
+  /* Build common tree nodes, Java has an unsigned char.  */
+  build_common_tree_nodes (false, false);
 
-  /* Create sizetype first - needed for other types. */
-  initialize_sizetypes (false);
+  /* ???  Now we continue and override some of the built types again
+     with Java specific types.  As the above generated types are
+     supposed to match the targets C ABI this isn't really the way
+     to go and any Java specifics should _not_ use those global types
+     if the Java ABI does not match the C one.  */
 
   byte_type_node = make_signed_type (8);
   pushdecl (build_decl (BUILTINS_LOCATION,
@@ -611,64 +605,37 @@ java_init_decl_processing (void)
 			TYPE_DECL, get_identifier ("unsigned long"),
 			unsigned_long_type_node));
 
-  /* This is not a java type, however tree-dfa requires a definition for
-     size_type_node.  */
-  size_type_node = make_unsigned_type (POINTER_SIZE);
-  set_sizetype (size_type_node);
-
   /* Define these next since types below may used them.  */
   integer_type_node = java_type_for_size (INT_TYPE_SIZE, 0);
   integer_zero_node = build_int_cst (NULL_TREE, 0);
   integer_one_node = build_int_cst (NULL_TREE, 1);
   integer_two_node = build_int_cst (NULL_TREE, 2);
+  integer_three_node = build_int_cst (NULL_TREE, 3);
   integer_four_node = build_int_cst (NULL_TREE, 4);
   integer_minus_one_node = build_int_cst (NULL_TREE, -1);
 
   /* A few values used for range checking in the lexer.  */
   decimal_int_max = build_int_cstu (unsigned_int_type_node, 0x80000000);
-#if HOST_BITS_PER_WIDE_INT == 64
-  decimal_long_max = build_int_cstu (unsigned_long_type_node,
-				     0x8000000000000000LL);
-#elif HOST_BITS_PER_WIDE_INT == 32
-  decimal_long_max = build_int_cst_wide (unsigned_long_type_node,
-					 0, 0x80000000);
-#else
- #error "unsupported size"
-#endif
-
-  size_zero_node = size_int (0);
-  size_one_node = size_int (1);
-  bitsize_zero_node = bitsize_int (0);
-  bitsize_one_node = bitsize_int (1);
-  bitsize_unit_node = bitsize_int (BITS_PER_UNIT);
+  decimal_long_max
+    = double_int_to_tree (unsigned_long_type_node,
+			  double_int_setbit (double_int_zero, 64));
 
   long_zero_node = build_int_cst (long_type_node, 0);
 
-  void_type_node = make_node (VOID_TYPE);
   pushdecl (build_decl (BUILTINS_LOCATION,
 			TYPE_DECL, get_identifier ("void"), void_type_node));
-  layout_type (void_type_node);	/* Uses size_zero_node */
-
-  ptr_type_node = build_pointer_type (void_type_node);
-  const_ptr_type_node
-    = build_pointer_type (build_type_variant (void_type_node, 1, 0));
 
   t = make_node (VOID_TYPE);
   layout_type (t); /* Uses size_zero_node */
   return_address_type_node = build_pointer_type (t);
 
-  null_pointer_node = build_int_cst (ptr_type_node, 0);
-
-  char_type_node = make_node (INTEGER_TYPE);
+  char_type_node = make_unsigned_type (16);
   TYPE_STRING_FLAG (char_type_node) = 1;
-  TYPE_PRECISION (char_type_node) = 16;
-  fixup_unsigned_type (char_type_node);
   pushdecl (build_decl (BUILTINS_LOCATION,
 			TYPE_DECL, get_identifier ("char"), char_type_node));
 
-  boolean_type_node = make_node (BOOLEAN_TYPE);
-  TYPE_PRECISION (boolean_type_node) = 1;
-  fixup_unsigned_type (boolean_type_node);
+  boolean_type_node = make_unsigned_type (1);
+  TREE_SET_CODE (boolean_type_node, BOOLEAN_TYPE);
   pushdecl (build_decl (BUILTINS_LOCATION,
 			TYPE_DECL, get_identifier ("boolean"),
 			boolean_type_node));
@@ -837,7 +804,7 @@ java_init_decl_processing (void)
   if (! flag_hash_synchronization)
     PUSH_FIELD (input_location, object_type_node, field, "sync_info",
 		build_pointer_type (object_type_node));
-  for (t = TYPE_FIELDS (object_type_node); t != NULL_TREE; t = TREE_CHAIN (t))
+  for (t = TYPE_FIELDS (object_type_node); t != NULL_TREE; t = DECL_CHAIN (t))
     FIELD_PRIVATE (t) = 1;
   FINISH_RECORD (object_type_node);
 
@@ -919,7 +886,7 @@ java_init_decl_processing (void)
   PUSH_FIELD (input_location, class_type_node, field, "engine", ptr_type_node);
   PUSH_FIELD (input_location,
 	      class_type_node, field, "reflection_data", ptr_type_node);
-  for (t = TYPE_FIELDS (class_type_node);  t != NULL_TREE;  t = TREE_CHAIN (t))
+  for (t = TYPE_FIELDS (class_type_node);  t != NULL_TREE;  t = DECL_CHAIN (t))
     FIELD_PRIVATE (t) = 1;
   push_super_field (class_type_node, object_type_node);
 
@@ -999,40 +966,35 @@ java_init_decl_processing (void)
   build_decl (BUILTINS_LOCATION,
 	      TYPE_DECL, get_identifier ("Method"), method_type_node);
 
-  endlink = end_params_node = tree_cons (NULL_TREE, void_type_node, NULL_TREE);
+  end_params_node = tree_cons (NULL_TREE, void_type_node, NULL_TREE);
 
-  t = tree_cons (NULL_TREE, class_ptr_type, endlink);
-  alloc_object_node = add_builtin_function ("_Jv_AllocObject",
-					    build_function_type (ptr_type_node, t),
+  t = build_function_type_list (ptr_type_node, class_ptr_type, NULL_TREE);
+  alloc_object_node = add_builtin_function ("_Jv_AllocObject", t,
 					    0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_IS_MALLOC (alloc_object_node) = 1;
   alloc_no_finalizer_node =
-    add_builtin_function ("_Jv_AllocObjectNoFinalizer",
-			  build_function_type (ptr_type_node, t),
+    add_builtin_function ("_Jv_AllocObjectNoFinalizer", t,
 			  0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_IS_MALLOC (alloc_no_finalizer_node) = 1;
 
-  t = tree_cons (NULL_TREE, ptr_type_node, endlink);
-  soft_initclass_node = add_builtin_function ("_Jv_InitClass",
-					      build_function_type (void_type_node,
-								   t),
+  t = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
+  soft_initclass_node = add_builtin_function ("_Jv_InitClass", t,
 					      0, NOT_BUILT_IN, NULL, NULL_TREE);
-  t = tree_cons (NULL_TREE, class_ptr_type,
-		 tree_cons (NULL_TREE, int_type_node, endlink));
+  t = build_function_type_list (ptr_type_node,
+				class_ptr_type, int_type_node, NULL_TREE);
   soft_resolvepoolentry_node
-    = add_builtin_function ("_Jv_ResolvePoolEntry",
-			    build_function_type (ptr_type_node, t),
+    = add_builtin_function ("_Jv_ResolvePoolEntry", t,
 			    0,NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_PURE_P (soft_resolvepoolentry_node) = 1;
-  throw_node = add_builtin_function ("_Jv_Throw",
-				     build_function_type (void_type_node, t),
+  t = build_function_type_list (void_type_node,
+				class_ptr_type, int_type_node, NULL_TREE);
+  throw_node = add_builtin_function ("_Jv_Throw", t,
 				     0, NOT_BUILT_IN, NULL, NULL_TREE);
   /* Mark throw_nodes as `noreturn' functions with side effects.  */
   TREE_THIS_VOLATILE (throw_node) = 1;
   TREE_SIDE_EFFECTS (throw_node) = 1;
 
-  t = build_function_type (void_type_node, tree_cons (NULL_TREE, ptr_type_node,
-						      endlink));
+  t = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
   soft_monitorenter_node
     = add_builtin_function ("_Jv_MonitorEnter", t, 0, NOT_BUILT_IN,
 			    NULL, NULL_TREE);
@@ -1040,36 +1002,30 @@ java_init_decl_processing (void)
     = add_builtin_function ("_Jv_MonitorExit", t, 0, NOT_BUILT_IN,
 			    NULL, NULL_TREE);
 
-  t = tree_cons (NULL_TREE, ptr_type_node,
-		 tree_cons (NULL_TREE, int_type_node, endlink));
+  t = build_function_type_list (ptr_type_node,
+				ptr_type_node, int_type_node, NULL_TREE);
   soft_newarray_node
-      = add_builtin_function ("_Jv_NewPrimArray",
-			      build_function_type (ptr_type_node, t),
+      = add_builtin_function ("_Jv_NewPrimArray", t,
 			      0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_IS_MALLOC (soft_newarray_node) = 1;
 
-  t = tree_cons (NULL_TREE, int_type_node,
-		 tree_cons (NULL_TREE, class_ptr_type,
-			    tree_cons (NULL_TREE, object_ptr_type_node,
-				       endlink)));
+  t = build_function_type_list (ptr_type_node,
+				int_type_node, class_ptr_type,
+				object_ptr_type_node, NULL_TREE);
   soft_anewarray_node
-      = add_builtin_function ("_Jv_NewObjectArray",
-			      build_function_type (ptr_type_node, t),
+      = add_builtin_function ("_Jv_NewObjectArray", t,
 			      0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_IS_MALLOC (soft_anewarray_node) = 1;
 
-  /* There is no endlink here because _Jv_NewMultiArray is a varargs
-     function.  */
-  t = tree_cons (NULL_TREE, ptr_type_node,
-		 tree_cons (NULL_TREE, int_type_node, NULL_TREE));
+  t = build_varargs_function_type_list (ptr_type_node,
+					ptr_type_node, int_type_node,
+					NULL_TREE);
   soft_multianewarray_node
-      = add_builtin_function ("_Jv_NewMultiArray",
-			      build_function_type (ptr_type_node, t),
+      = add_builtin_function ("_Jv_NewMultiArray", t,
 			      0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_IS_MALLOC (soft_multianewarray_node) = 1;
 
-  t = build_function_type (void_type_node, 
-			   tree_cons (NULL_TREE, int_type_node, endlink));
+  t = build_function_type_list (void_type_node, int_type_node, NULL_TREE);
   soft_badarrayindex_node
       = add_builtin_function ("_Jv_ThrowBadArrayIndex", t,
 			      0, NOT_BUILT_IN, NULL, NULL_TREE);
@@ -1078,9 +1034,9 @@ java_init_decl_processing (void)
   TREE_THIS_VOLATILE (soft_badarrayindex_node) = 1;
   TREE_SIDE_EFFECTS (soft_badarrayindex_node) = 1;
 
+  t = build_function_type_list (void_type_node, NULL_TREE);
   soft_nullpointer_node
-    = add_builtin_function ("_Jv_ThrowNullPointerException",
-			    build_function_type (void_type_node, endlink),
+    = add_builtin_function ("_Jv_ThrowNullPointerException", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
   /* Mark soft_nullpointer_node as a `noreturn' function with side
      effects.  */
@@ -1088,8 +1044,7 @@ java_init_decl_processing (void)
   TREE_SIDE_EFFECTS (soft_nullpointer_node) = 1;
 
   soft_abstractmethod_node
-    = add_builtin_function ("_Jv_ThrowAbstractMethodError",
-			    build_function_type (void_type_node, endlink),
+    = add_builtin_function ("_Jv_ThrowAbstractMethodError", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
   /* Mark soft_abstractmethod_node as a `noreturn' function with side
      effects.  */
@@ -1097,95 +1052,85 @@ java_init_decl_processing (void)
   TREE_SIDE_EFFECTS (soft_abstractmethod_node) = 1;
 
   soft_nosuchfield_node
-    = add_builtin_function ("_Jv_ThrowNoSuchFieldError",
-			    build_function_type (void_type_node, endlink),
+    = add_builtin_function ("_Jv_ThrowNoSuchFieldError", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
   /* Mark soft_nosuchfield_node as a `noreturn' function with side
      effects.  */
   TREE_THIS_VOLATILE (soft_nosuchfield_node) = 1;
   TREE_SIDE_EFFECTS (soft_nosuchfield_node) = 1;
 
-  t = tree_cons (NULL_TREE, class_ptr_type,
-		 tree_cons (NULL_TREE, object_ptr_type_node, endlink));
+  t = build_function_type_list (ptr_type_node,
+				class_ptr_type, object_ptr_type_node,
+				NULL_TREE);
   soft_checkcast_node
-    = add_builtin_function ("_Jv_CheckCast",
-			    build_function_type (ptr_type_node, t),
+    = add_builtin_function ("_Jv_CheckCast", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
-  t = tree_cons (NULL_TREE, object_ptr_type_node,
-		 tree_cons (NULL_TREE, class_ptr_type, endlink));
+  t = build_function_type_list (boolean_type_node,
+				object_ptr_type_node, class_ptr_type,
+				NULL_TREE);
   soft_instanceof_node
-    = add_builtin_function ("_Jv_IsInstanceOf",
-			    build_function_type (boolean_type_node, t),
+    = add_builtin_function ("_Jv_IsInstanceOf", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_PURE_P (soft_instanceof_node) = 1;
-  t = tree_cons (NULL_TREE, object_ptr_type_node,
-		 tree_cons (NULL_TREE, object_ptr_type_node, endlink));
+  t = build_function_type_list (void_type_node,
+				object_ptr_type_node, object_ptr_type_node,
+				NULL_TREE);
   soft_checkarraystore_node
-    = add_builtin_function ("_Jv_CheckArrayStore",
-			    build_function_type (void_type_node, t),
+    = add_builtin_function ("_Jv_CheckArrayStore", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
-  t = tree_cons (NULL_TREE, ptr_type_node,
-		 tree_cons (NULL_TREE, ptr_type_node,
-			    tree_cons (NULL_TREE, int_type_node, endlink)));
+  t = build_function_type_list (ptr_type_node,
+				ptr_type_node, ptr_type_node, int_type_node,
+				NULL_TREE);
   soft_lookupinterfacemethod_node
-    = add_builtin_function ("_Jv_LookupInterfaceMethodIdx",
-			    build_function_type (ptr_type_node, t),
+    = add_builtin_function ("_Jv_LookupInterfaceMethodIdx", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
   DECL_PURE_P (soft_lookupinterfacemethod_node) = 1;
-  t = tree_cons (NULL_TREE, ptr_type_node,
-		 tree_cons (NULL_TREE, ptr_type_node,
-			    tree_cons (NULL_TREE, ptr_type_node, endlink)));
+
+  t = build_function_type_list (ptr_type_node,
+				ptr_type_node, ptr_type_node, ptr_type_node,
+				NULL_TREE);
   soft_lookupinterfacemethodbyname_node
-    = add_builtin_function ("_Jv_LookupInterfaceMethod",
-			    build_function_type (ptr_type_node, t),
+    = add_builtin_function ("_Jv_LookupInterfaceMethod", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
-  t = tree_cons (NULL_TREE, object_ptr_type_node,
-		 tree_cons (NULL_TREE, ptr_type_node,
-			    tree_cons (NULL_TREE, ptr_type_node, 
-			               tree_cons (NULL_TREE, int_type_node, 
-				                  endlink))));
+  t = build_function_type_list (ptr_type_node,
+				object_ptr_type_node, ptr_type_node,
+				ptr_type_node, int_type_node, NULL_TREE);
   soft_lookupjnimethod_node
-    = add_builtin_function ("_Jv_LookupJNIMethod",
-			    build_function_type (ptr_type_node, t),
+    = add_builtin_function ("_Jv_LookupJNIMethod", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
-  t = tree_cons (NULL_TREE, ptr_type_node, endlink);
+  t = build_function_type_list (ptr_type_node, ptr_type_node, NULL_TREE);
   soft_getjnienvnewframe_node
-    = add_builtin_function ("_Jv_GetJNIEnvNewFrame",
-			    build_function_type (ptr_type_node, t),
+    = add_builtin_function ("_Jv_GetJNIEnvNewFrame", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
+  t = build_function_type_list (void_type_node, ptr_type_node, NULL_TREE);
   soft_jnipopsystemframe_node
-    = add_builtin_function ("_Jv_JNI_PopSystemFrame",
-			    build_function_type (void_type_node, t),
+    = add_builtin_function ("_Jv_JNI_PopSystemFrame", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
-  t = tree_cons (NULL_TREE, object_ptr_type_node, endlink);
+  t = build_function_type_list (object_ptr_type_node,
+				object_ptr_type_node, NULL_TREE);
   soft_unwrapjni_node
-    = add_builtin_function ("_Jv_UnwrapJNIweakReference",
-			    build_function_type (object_ptr_type_node, t),
+    = add_builtin_function ("_Jv_UnwrapJNIweakReference", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
-  t = tree_cons (NULL_TREE, int_type_node,
-		 tree_cons (NULL_TREE, int_type_node, endlink));
+  t = build_function_type_list (int_type_node,
+				int_type_node, int_type_node, NULL_TREE);
   soft_idiv_node
-    = add_builtin_function ("_Jv_divI",
-			    build_function_type (int_type_node, t),
+    = add_builtin_function ("_Jv_divI", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
   soft_irem_node
-    = add_builtin_function ("_Jv_remI",
-			    build_function_type (int_type_node, t),
+    = add_builtin_function ("_Jv_remI", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
-  t = tree_cons (NULL_TREE, long_type_node,
-		 tree_cons (NULL_TREE, long_type_node, endlink));
+  t = build_function_type_list (long_type_node,
+				long_type_node, long_type_node, NULL_TREE);
   soft_ldiv_node
-    = add_builtin_function ("_Jv_divJ",
-			    build_function_type (long_type_node, t),
+    = add_builtin_function ("_Jv_divJ", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
   soft_lrem_node
-    = add_builtin_function ("_Jv_remJ",
-			    build_function_type (long_type_node, t),
+    = add_builtin_function ("_Jv_remJ", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
 
   initialize_builtins ();
@@ -1227,7 +1172,7 @@ lookup_name_current_level (tree name)
   if (IDENTIFIER_LOCAL_VALUE (name) == 0)
     return 0;
 
-  for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+  for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
     if (DECL_NAME (t) == name)
       break;
 
@@ -1296,7 +1241,7 @@ pushdecl (tree x)
 
   /* Put decls on list in reverse order.
      We will reverse them later if necessary.  */
-  TREE_CHAIN (x) = b->names;
+  DECL_CHAIN (x) = b->names;
   b->names = x;
 
   return x;
@@ -1336,9 +1281,9 @@ pushdecl_function_level (tree x)
   return t;
 }
 
-/* Nonzero if we are currently in the global binding level.  */
+/* Return true if we are in the global binding level.  */
 
-int
+bool
 global_bindings_p (void)
 {
   return current_binding_level == global_binding_level;
@@ -1361,7 +1306,7 @@ static struct binding_level *
 make_binding_level (void)
 {
   /* NOSTRICT */
-  return GGC_CNEW (struct binding_level);
+  return ggc_alloc_cleared_binding_level ();
 }
 
 void
@@ -1447,7 +1392,7 @@ poplevel (int keep, int reverse, int functionbody)
   else
     decls = current_binding_level->names;
 
-  for (decl = decls; decl; decl = TREE_CHAIN (decl))
+  for (decl = decls; decl; decl = DECL_CHAIN (decl))
     if (TREE_CODE (decl) == VAR_DECL
 	&& DECL_LANG_SPECIFIC (decl) != NULL
 	&& DECL_LOCAL_SLOT_NUMBER (decl))
@@ -1459,10 +1404,7 @@ poplevel (int keep, int reverse, int functionbody)
 
   block = 0;
   if (keep || functionbody)
-    {
-      block = make_node (BLOCK);
-      TREE_TYPE (block) = void_type_node;
-    }
+    block = make_node (BLOCK);
 
   if (current_binding_level->exception_range)
     expand_end_java_handler (current_binding_level->exception_range);
@@ -1480,17 +1422,17 @@ poplevel (int keep, int reverse, int functionbody)
 	  /* Copy decls from names list, ignoring labels.  */
 	  while (decl)
 	    {
-	      tree next = TREE_CHAIN (decl);
+	      tree next = DECL_CHAIN (decl);
 	      if (TREE_CODE (decl) != LABEL_DECL)
 		{
 		  *var = decl;
-		  var = &TREE_CHAIN (decl);
+		  var = &DECL_CHAIN (decl);
 		}
 	      decl = next;
 	    }
 	  *var = NULL;
 	    
-	  bind = build3 (BIND_EXPR, TREE_TYPE (block), BLOCK_VARS (block), 
+	  bind = build3 (BIND_EXPR, void_type_node, BLOCK_VARS (block), 
 			 BLOCK_EXPR_BODY (block), block);
 	  BIND_EXPR_BODY (bind) = current_binding_level->stmts;
 	  
@@ -1515,12 +1457,12 @@ poplevel (int keep, int reverse, int functionbody)
 
   /* In each subblock, record that this is its superior.  */
 
-  for (link = subblocks; link; link = TREE_CHAIN (link))
+  for (link = subblocks; link; link = BLOCK_CHAIN (link))
     BLOCK_SUPERCONTEXT (link) = block;
 
   /* Clear out the meanings of the local variables of this level.  */
 
-  for (link = decls; link; link = TREE_CHAIN (link))
+  for (link = decls; link; link = DECL_CHAIN (link))
     {
       tree name = DECL_NAME (link);
       if (name != 0 && IDENTIFIER_LOCAL_VALUE (name) == link)
@@ -1579,7 +1521,7 @@ poplevel (int keep, int reverse, int functionbody)
       if (block)
 	{
 	  current_binding_level->blocks
-	    = chainon (current_binding_level->blocks, block);
+	    = block_chainon (current_binding_level->blocks, block);
 	}
       /* If we did not make a block for the level just exited,
 	 any blocks made for inner levels
@@ -1588,7 +1530,7 @@ poplevel (int keep, int reverse, int functionbody)
 	 of something else.  */
       else if (subblocks)
 	current_binding_level->blocks
-	  = chainon (current_binding_level->blocks, subblocks);
+	  = block_chainon (current_binding_level->blocks, subblocks);
 
       if (bind)
 	java_add_stmt (bind);
@@ -1616,7 +1558,7 @@ maybe_pushlevels (int pc)
       while (*ptr != NULL_TREE
 	     && DECL_LOCAL_START_PC (*ptr) <= pc
 	     && DECL_LOCAL_END_PC (*ptr) == end_pc)
-	ptr = &TREE_CHAIN (*ptr);
+	ptr = &DECL_CHAIN (*ptr);
       pending_local_decls = *ptr;
       *ptr = NULL_TREE;
 
@@ -1626,7 +1568,7 @@ maybe_pushlevels (int pc)
 	{
 	  tree t;
 	  end_pc = current_binding_level->end_pc;
-	  for (t = decl; t != NULL_TREE; t = TREE_CHAIN (t))
+	  for (t = decl; t != NULL_TREE; t = DECL_CHAIN (t))
 	    DECL_LOCAL_END_PC (t) = end_pc;
 	}
 
@@ -1641,7 +1583,7 @@ maybe_pushlevels (int pc)
 	{
 	  int index = DECL_LOCAL_SLOT_NUMBER (decl);
 	  tree base_decl;
-	  next = TREE_CHAIN (decl);
+	  next = DECL_CHAIN (decl);
 	  push_jvm_slot (index, decl);
 	  pushdecl (decl);
 	  base_decl
@@ -1703,7 +1645,7 @@ java_dup_lang_specific_decl (tree node)
     return;
 
   lang_decl_size = sizeof (struct lang_decl);
-  x = GGC_NEW (struct lang_decl);
+  x = ggc_alloc_lang_decl (lang_decl_size);
   memcpy (x, DECL_LANG_SPECIFIC (node), lang_decl_size);
   DECL_LANG_SPECIFIC (node) = x;
 }
@@ -1769,8 +1711,8 @@ give_name_to_locals (JCF *jcf)
 		 && (DECL_LOCAL_START_PC (*ptr) > start_pc
 		     || (DECL_LOCAL_START_PC (*ptr) == start_pc
 			 && DECL_LOCAL_END_PC (*ptr) < end_pc)))
-	    ptr = &TREE_CHAIN (*ptr);
-	  TREE_CHAIN (decl) = *ptr;
+	    ptr = &DECL_CHAIN (*ptr);
+	  DECL_CHAIN (decl) = *ptr;
 	  *ptr = decl;
 	}
     }
@@ -1779,7 +1721,7 @@ give_name_to_locals (JCF *jcf)
 
   /* Fill in default names for the parameters. */ 
   for (parm = DECL_ARGUMENTS (current_function_decl), i = 0;
-       parm != NULL_TREE;  parm = TREE_CHAIN (parm), i++)
+       parm != NULL_TREE;  parm = DECL_CHAIN (parm), i++)
     {
       if (DECL_NAME (parm) == NULL_TREE)
 	{
@@ -1852,10 +1794,14 @@ start_java_method (tree fndecl)
       DECL_ARG_TYPE (parm_decl) = parm_type;
 
       *ptr = parm_decl;
-      ptr = &TREE_CHAIN (parm_decl);
+      ptr = &DECL_CHAIN (parm_decl);
 
       /* Add parm_decl to the decl_map. */
       push_jvm_slot (i, parm_decl);
+
+      /* The this parameter of methods is artificial.  */
+      if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE && i == 0)
+	DECL_ARTIFICIAL (parm_decl) = 1;
 
       type_map[i] = TREE_TYPE (parm_decl);
       if (TYPE_IS_WIDE (TREE_TYPE (parm_decl)))
@@ -1958,7 +1904,10 @@ java_mark_decl_local (tree decl)
 #ifdef ENABLE_CHECKING
   /* Double check that we didn't pass the function to the callgraph early.  */
   if (TREE_CODE (decl) == FUNCTION_DECL)
-    gcc_assert (!cgraph_node (decl)->local.finalized);
+    {
+      struct cgraph_node *node = cgraph_get_node (decl);
+      gcc_assert (!node || !node->local.finalized);
+    }
 #endif
   gcc_assert (!DECL_RTL_SET_P (decl));
 }
@@ -2001,11 +1950,15 @@ java_mark_class_local (tree klass)
 {
   tree t;
 
-  for (t = TYPE_FIELDS (klass); t ; t = TREE_CHAIN (t))
+  for (t = TYPE_FIELDS (klass); t ; t = DECL_CHAIN (t))
     if (FIELD_STATIC (t))
-      java_mark_decl_local (t);
+      {
+	if (DECL_EXTERNAL (t))
+	  VEC_safe_push (tree, gc, pending_static_fields, t);
+	java_mark_decl_local (t);
+      }
 
-  for (t = TYPE_METHODS (klass); t ; t = TREE_CHAIN (t))
+  for (t = TYPE_METHODS (klass); t ; t = DECL_CHAIN (t))
     if (!METHOD_ABSTRACT (t))
       {
 	if (METHOD_NATIVE (t) && !flag_jni)
@@ -2093,7 +2046,7 @@ java_add_local_var (tree decl)
 {
   tree *vars = &current_binding_level->names;
   tree next = *vars;
-  TREE_CHAIN (decl) = next;
+  DECL_CHAIN (decl) = next;
   *vars = decl;
   DECL_CONTEXT (decl) = current_function_decl;
   MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC (decl);

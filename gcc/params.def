@@ -1,5 +1,6 @@
 /* params.def - Run-time parameters.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>.
 
@@ -38,16 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 
    Be sure to add an entry to invoke.texi summarizing the parameter.  */
 
-/* The threshold ratio between current and hottest structure counts.
-   We say that if the ratio of the current structure count,
-   calculated by profiling, to the hottest structure count
-   in the program is less than this parameter, then structure
-   reorganization is not applied. The default is 10%.  */
-DEFPARAM (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO,
-	  "struct-reorg-cold-struct-ratio",
-	  "The threshold ratio between current and hottest structure counts",
-	  10, 0, 100)
-
 /* When branch is predicted to be taken with probability lower than this
    threshold (in percent), then it is considered well predictable. */
 DEFPARAM (PARAM_PREDICTABLE_BRANCH_OUTCOME,
@@ -78,11 +69,11 @@ DEFPARAM (PARAM_MAX_INLINE_INSNS_SINGLE,
    that is applied to functions marked inlined (or defined in the
    class declaration in C++) given by the "max-inline-insns-single"
    parameter.
-   The default value is 90.  */
+   The default value is 40.  */
 DEFPARAM (PARAM_MAX_INLINE_INSNS_AUTO,
 	  "max-inline-insns-auto",
 	  "The maximum number of instructions when automatically inlining",
-	  50, 0, 0)
+	  40, 0, 0)
 
 DEFPARAM (PARAM_MAX_INLINE_INSNS_RECURSIVE,
 	  "max-inline-insns-recursive",
@@ -116,6 +107,18 @@ DEFPARAM (PARAM_EARLY_INLINER_MAX_ITERATIONS,
 	  "max-early-inliner-iterations",
 	  "The maximum number of nested indirect inlining performed by early inliner",
 	  10, 0, 0)
+
+/* Limit on probability of entry BB.  */
+DEFPARAM (PARAM_COMDAT_SHARING_PROBABILITY,
+	  "comdat-sharing-probability",
+	  "Probability that COMDAT function will be shared with different compilatoin unit",
+	  20, 0, 0)
+
+/* Limit on probability of entry BB.  */
+DEFPARAM (PARAM_PARTIAL_INLINING_ENTRY_PROBABILITY,
+	  "partial-inlining-entry-probability",
+	  "Maximum probability of the entry BB of split region (in percent relative to entry BB of the function) to make partial inlining happen",
+	  70, 0, 0)
 
 /* Limit the number of expansions created by the variable expansion
    optimization to avoid register pressure.  */
@@ -185,7 +188,7 @@ DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
 DEFPARAM(PARAM_EARLY_INLINING_INSNS,
 	 "early-inlining-insns",
 	 "Maximal estimated growth of function body caused by early inlining of single call",
-	 8, 0, 0)
+	 11, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
 	 "The size of stack frame to be considered large",
@@ -201,6 +204,13 @@ DEFPARAM(PARAM_MAX_GCSE_MEMORY,
 	 "max-gcse-memory",
 	 "The maximum amount of memory to be allocated by GCSE",
 	 50 * 1024 * 1024, 0, 0)
+
+/* The GCSE optimization of an expression will avoided if the ratio of
+   insertions to deletions is greater than this value.  */
+DEFPARAM(PARAM_MAX_GCSE_INSERTION_RATIO,
+	 "max-gcse-insertion-ratio",
+	 "The maximum ratio of insertions to deletions of expressions in GCSE",
+	 20, 0, 0)
 
 /* This is the threshold ratio when to perform partial redundancy
    elimination after reload. We perform partial redundancy elimination
@@ -219,6 +229,29 @@ DEFPARAM(PARAM_GCSE_AFTER_RELOAD_CRITICAL_FRACTION,
 	"gcse-after-reload-critical-fraction",
 	"The threshold ratio of critical edges execution count that permit performing redundancy elimination after reload",
         10, 0, 0)
+
+/* GCSE will use GCSE_COST_DISTANCE_RATION as a scaling factor
+   to calculate maximum distance for which an expression is allowed to move
+   from its rtx_cost.  */
+DEFPARAM(PARAM_GCSE_COST_DISTANCE_RATIO,
+	 "gcse-cost-distance-ratio",
+	 "Scaling factor in calculation of maximum distance an expression can be moved by GCSE optimizations",
+	 10, 0, 0)
+/* GCSE won't restrict distance for which an expression with rtx_cost greater
+   than COSTS_N_INSN(GCSE_UNRESTRICTED_COST) is allowed to move.  */
+DEFPARAM(PARAM_GCSE_UNRESTRICTED_COST,
+	 "gcse-unrestricted-cost",
+	 "Cost at which GCSE optimizations will not constraint the distance an expression can travel",
+	 3, 0, 0)
+
+/* How deep from a given basic block the dominator tree should be searched
+   for expressions to hoist to the block.  The value of 0 will avoid limiting
+   the search.  */
+DEFPARAM(PARAM_MAX_HOIST_DEPTH,
+	 "max-hoist-depth",
+	 "Maximum depth of search in the dominator tree for expressions to hoist",
+	 30, 0, 0)
+
 /* This parameter limits the number of insns in a loop that will be unrolled,
    and by how much the loop is unrolled.
 
@@ -301,6 +334,11 @@ DEFPARAM(PARAM_SMS_MAX_II_FACTOR,
 	 "sms-max-ii-factor",
 	 "A factor for tuning the upper bound that swing modulo scheduler uses for scheduling a loop",
 	 100, 0, 0)
+/* The minimum value of stage count that swing modulo scheduler will generate.  */
+DEFPARAM(PARAM_SMS_MIN_SC,
+        "sms-min-sc",
+        "The minimum value of stage count that swing modulo scheduler will generate.",
+        2, 1, 1)
 DEFPARAM(PARAM_SMS_DFA_HISTORY,
 	 "sms-dfa-history",
 	 "The number of cycles the swing modulo scheduler considers when checking conflicts using DFA",
@@ -438,7 +476,12 @@ DEFPARAM(PARAM_IV_ALWAYS_PRUNE_CAND_SET_BOUND,
 DEFPARAM(PARAM_SCEV_MAX_EXPR_SIZE,
  	 "scev-max-expr-size",
 	 "Bound on size of expressions used in the scalar evolutions analyzer",
-	 20, 0, 0)
+	 100, 0, 0)
+
+DEFPARAM(PARAM_SCEV_MAX_EXPR_COMPLEXITY,
+	 "scev-max-expr-complexity",
+	 "Bound on the complexity of the expressions in the scalar evolutions analyzer",
+	 10, 0, 0)
 
 DEFPARAM(PARAM_OMEGA_MAX_VARS,
  	 "omega-max-vars",
@@ -650,6 +693,12 @@ DEFPARAM(PARAM_MAX_SCHED_READY_INSNS,
 	 "The maximum number of instructions ready to be issued to be considered by the scheduler during the first scheduling pass",
 	 100, 0, 0)
 
+/* This is the maximum number of active local stores RTL DSE will consider.  */
+DEFPARAM (PARAM_MAX_DSE_ACTIVE_LOCAL_STORES,
+	  "max-dse-active-local-stores",
+	  "Maximum number of active local stores in RTL dead store elimination",
+	  5000, 0, 0)
+
 /* Prefetching and cache-optimizations related parameters.  Default values are
    usually set by machine description.  */
 
@@ -776,7 +825,7 @@ DEFPARAM (PARAM_MIN_INSN_TO_PREFETCH_RATIO,
 	  "min-insn-to-prefetch-ratio",
 	  "Min. ratio of insns to prefetches to enable prefetching for "
           "a loop with an unknown trip count",
-	  10, 0, 0)
+	  9, 0, 0)
 
 DEFPARAM (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO,
 	  "prefetch-min-insn-to-mem-ratio",
@@ -789,6 +838,14 @@ DEFPARAM (PARAM_MAX_VARTRACK_SIZE,
 	  "max-vartrack-size",
 	  "Max. size of var tracking hash tables",
 	  50000000, 0, 0)
+
+/* Set maximum recursion depth for var tracking expression expansion
+   and resolution.  */
+
+DEFPARAM (PARAM_MAX_VARTRACK_EXPR_DEPTH,
+	  "max-vartrack-expr-depth",
+	  "Max. recursion depth for expanding var tracking expressions",
+	  12, 0, 0)
 
 /* Set minimum insn uid for non-debug insns.  */
 
@@ -809,6 +866,68 @@ DEFPARAM (PARAM_TM_MAX_AGGREGATE_SIZE,
 	  "instrumented with the logging functions instead of save/restore "
 	  "pairs",
 	  9, 0, 0)
+
+DEFPARAM (PARAM_IPA_CP_VALUE_LIST_SIZE,
+	  "ipa-cp-value-list-size",
+	  "Maximum size of a list of values associated with each parameter for "
+	  "interprocedural constant propagation",
+	  8, 0, 0)
+
+DEFPARAM (PARAM_IPA_CP_EVAL_THRESHOLD,
+	  "ipa-cp-eval-threshold",
+	  "Threshold ipa-cp opportunity evaluation that is still considered "
+	  "beneficial to clone.",
+	  500, 0, 0)
+
+/* WHOPR partitioning configuration.  */
+
+DEFPARAM (PARAM_LTO_PARTITIONS,
+	  "lto-partitions",
+	  "Number of partitions the program should be split to",
+	  32, 1, 0)
+
+DEFPARAM (MIN_PARTITION_SIZE,
+	  "lto-min-partition",
+	  "Minimal size of a partition for LTO (in estimated instructions)",
+	  1000, 0, 0)
+
+/* Diagnostic parameters.  */
+
+DEFPARAM (CXX_MAX_NAMESPACES_FOR_DIAGNOSTIC_HELP,
+	  "cxx-max-namespaces-for-diagnostic-help",
+	  "Maximum number of namespaces to search for alternatives when "
+	  "name lookup fails",
+	  1000, 0, 0)
+
+/* Maximum number of conditional store pairs that can be sunk.  */
+DEFPARAM (PARAM_MAX_STORES_TO_SINK,
+          "max-stores-to-sink",
+          "Maximum number of conditional store pairs that can be sunk",
+          2, 0, 0)
+
+/* Override CASE_VALUES_THRESHOLD of when to switch from doing switch
+   statements via if statements to using a table jump operation.  If the value
+   is 0, the default CASE_VALUES_THRESHOLD will be used.  */
+DEFPARAM (PARAM_CASE_VALUES_THRESHOLD,
+          "case-values-threshold",
+          "The smallest number of different values for which it is best to "
+	  "use a jump-table instead of a tree of conditional branches, "
+	  "if 0, use the default for the machine",
+          0, 0, 0)
+
+/* Data race flags for C++0x memory model compliance.  */
+DEFPARAM (PARAM_ALLOW_STORE_DATA_RACES,
+	  "allow-store-data-races",
+	  "Allow new data races on stores to be introduced",
+	  1, 0, 1)
+
+/* Reassociation width to be used by tree reassoc optimization.  */
+DEFPARAM (PARAM_TREE_REASSOC_WIDTH,
+	  "tree-reassoc-width",
+	  "Set the maximum number of instructions executed in parallel in "
+	  "reassociated tree. If 0, use the target dependent heuristic.",
+	  0, 0, 0)
+
 
 /*
 Local variables:

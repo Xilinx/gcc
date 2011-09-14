@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -38,6 +38,15 @@ package body Opt is
    SU : constant := Storage_Unit;
    --  Shorthand for System.Storage_Unit
 
+   --------------------------
+   -- Full_Expander_Active --
+   --------------------------
+
+   function Full_Expander_Active return Boolean is
+   begin
+      return Expander_Active and not Alfa_Mode;
+   end Full_Expander_Active;
+
    ----------------------------------
    -- Register_Opt_Config_Switches --
    ----------------------------------
@@ -49,18 +58,20 @@ package body Opt is
       Assertions_Enabled_Config             := Assertions_Enabled;
       Assume_No_Invalid_Values_Config       := Assume_No_Invalid_Values;
       Check_Policy_List_Config              := Check_Policy_List;
+      Debug_Pragmas_Disabled_Config         := Debug_Pragmas_Disabled;
       Debug_Pragmas_Enabled_Config          := Debug_Pragmas_Enabled;
+      Default_Pool_Config                   := Default_Pool;
       Dynamic_Elaboration_Checks_Config     := Dynamic_Elaboration_Checks;
       Exception_Locations_Suppressed_Config := Exception_Locations_Suppressed;
       Extensions_Allowed_Config             := Extensions_Allowed;
       External_Name_Exp_Casing_Config       := External_Name_Exp_Casing;
       External_Name_Imp_Casing_Config       := External_Name_Imp_Casing;
       Fast_Math_Config                      := Fast_Math;
-      Init_Or_Norm_Scalars_Config           := Init_Or_Norm_Scalars;
       Initialize_Scalars_Config             := Initialize_Scalars;
       Optimize_Alignment_Config             := Optimize_Alignment;
       Persistent_BSS_Mode_Config            := Persistent_BSS_Mode;
       Polling_Required_Config               := Polling_Required;
+      Short_Descriptors_Config              := Short_Descriptors;
       Use_VADS_Size_Config                  := Use_VADS_Size;
 
       --  Reset the indication that Optimize_Alignment was set locally, since
@@ -81,20 +92,29 @@ package body Opt is
       Assertions_Enabled             := Save.Assertions_Enabled;
       Assume_No_Invalid_Values       := Save.Assume_No_Invalid_Values;
       Check_Policy_List              := Save.Check_Policy_List;
+      Debug_Pragmas_Disabled         := Save.Debug_Pragmas_Disabled;
       Debug_Pragmas_Enabled          := Save.Debug_Pragmas_Enabled;
+      Default_Pool                   := Save.Default_Pool;
       Dynamic_Elaboration_Checks     := Save.Dynamic_Elaboration_Checks;
       Exception_Locations_Suppressed := Save.Exception_Locations_Suppressed;
       Extensions_Allowed             := Save.Extensions_Allowed;
       External_Name_Exp_Casing       := Save.External_Name_Exp_Casing;
       External_Name_Imp_Casing       := Save.External_Name_Imp_Casing;
       Fast_Math                      := Save.Fast_Math;
-      Init_Or_Norm_Scalars           := Save.Init_Or_Norm_Scalars;
       Initialize_Scalars             := Save.Initialize_Scalars;
       Optimize_Alignment             := Save.Optimize_Alignment;
       Optimize_Alignment_Local       := Save.Optimize_Alignment_Local;
       Persistent_BSS_Mode            := Save.Persistent_BSS_Mode;
       Polling_Required               := Save.Polling_Required;
+      Short_Descriptors              := Save.Short_Descriptors;
       Use_VADS_Size                  := Save.Use_VADS_Size;
+
+      --  Update consistently the value of Init_Or_Norm_Scalars. The value of
+      --  Normalize_Scalars is not saved/restored because after set to True its
+      --  value is never changed. That is, if a compilation unit has pragma
+      --  Normalize_Scalars then it forces that value for all with'ed units.
+
+      Init_Or_Norm_Scalars := Initialize_Scalars or Normalize_Scalars;
    end Restore_Opt_Config_Switches;
 
    ------------------------------
@@ -108,19 +128,21 @@ package body Opt is
       Save.Assertions_Enabled             := Assertions_Enabled;
       Save.Assume_No_Invalid_Values       := Assume_No_Invalid_Values;
       Save.Check_Policy_List              := Check_Policy_List;
+      Save.Debug_Pragmas_Disabled         := Debug_Pragmas_Disabled;
       Save.Debug_Pragmas_Enabled          := Debug_Pragmas_Enabled;
+      Save.Default_Pool                   := Default_Pool;
       Save.Dynamic_Elaboration_Checks     := Dynamic_Elaboration_Checks;
       Save.Exception_Locations_Suppressed := Exception_Locations_Suppressed;
       Save.Extensions_Allowed             := Extensions_Allowed;
       Save.External_Name_Exp_Casing       := External_Name_Exp_Casing;
       Save.External_Name_Imp_Casing       := External_Name_Imp_Casing;
       Save.Fast_Math                      := Fast_Math;
-      Save.Init_Or_Norm_Scalars           := Init_Or_Norm_Scalars;
       Save.Initialize_Scalars             := Initialize_Scalars;
       Save.Optimize_Alignment             := Optimize_Alignment;
       Save.Optimize_Alignment_Local       := Optimize_Alignment_Local;
       Save.Persistent_BSS_Mode            := Persistent_BSS_Mode;
       Save.Polling_Required               := Polling_Required;
+      Save.Short_Descriptors              := Short_Descriptors;
       Save.Use_VADS_Size                  := Use_VADS_Size;
    end Save_Opt_Config_Switches;
 
@@ -158,11 +180,13 @@ package body Opt is
          if Main_Unit then
             Assertions_Enabled       := Assertions_Enabled_Config;
             Assume_No_Invalid_Values := Assume_No_Invalid_Values_Config;
+            Debug_Pragmas_Disabled   := Debug_Pragmas_Disabled_Config;
             Debug_Pragmas_Enabled    := Debug_Pragmas_Enabled_Config;
             Check_Policy_List        := Check_Policy_List_Config;
          else
             Assertions_Enabled       := False;
             Assume_No_Invalid_Values := False;
+            Debug_Pragmas_Disabled   := False;
             Debug_Pragmas_Enabled    := False;
             Check_Policy_List        := Empty;
          end if;
@@ -175,24 +199,34 @@ package body Opt is
          Assertions_Enabled          := Assertions_Enabled_Config;
          Assume_No_Invalid_Values    := Assume_No_Invalid_Values_Config;
          Check_Policy_List           := Check_Policy_List_Config;
+         Debug_Pragmas_Disabled      := Debug_Pragmas_Disabled_Config;
          Debug_Pragmas_Enabled       := Debug_Pragmas_Enabled_Config;
          Dynamic_Elaboration_Checks  := Dynamic_Elaboration_Checks_Config;
          Extensions_Allowed          := Extensions_Allowed_Config;
          External_Name_Exp_Casing    := External_Name_Exp_Casing_Config;
          External_Name_Imp_Casing    := External_Name_Imp_Casing_Config;
          Fast_Math                   := Fast_Math_Config;
-         Init_Or_Norm_Scalars        := Init_Or_Norm_Scalars_Config;
          Initialize_Scalars          := Initialize_Scalars_Config;
          Optimize_Alignment          := Optimize_Alignment_Config;
          Optimize_Alignment_Local    := False;
          Persistent_BSS_Mode         := Persistent_BSS_Mode_Config;
          Use_VADS_Size               := Use_VADS_Size_Config;
+
+         --  Update consistently the value of Init_Or_Norm_Scalars. The value
+         --  of Normalize_Scalars is not saved/restored because once set to
+         --  True its value is never changed. That is, if a compilation unit
+         --  has pragma Normalize_Scalars then it forces that value for all
+         --  with'ed units.
+
+         Init_Or_Norm_Scalars := Initialize_Scalars or Normalize_Scalars;
       end if;
 
+      Default_Pool                   := Default_Pool_Config;
       Exception_Locations_Suppressed := Exception_Locations_Suppressed_Config;
       Fast_Math                      := Fast_Math_Config;
       Optimize_Alignment             := Optimize_Alignment_Config;
       Polling_Required               := Polling_Required_Config;
+      Short_Descriptors              := Short_Descriptors_Config;
    end Set_Opt_Config_Switches;
 
    ---------------
@@ -222,7 +256,9 @@ package body Opt is
       Tree_Read_Bool (All_Errors_Mode);
       Tree_Read_Bool (Assertions_Enabled);
       Tree_Read_Int  (Int (Check_Policy_List));
+      Tree_Read_Bool (Debug_Pragmas_Disabled);
       Tree_Read_Bool (Debug_Pragmas_Enabled);
+      Tree_Read_Int  (Int (Default_Pool));
       Tree_Read_Bool (Enable_Overflow_Checks);
       Tree_Read_Bool (Full_List);
 
@@ -287,7 +323,9 @@ package body Opt is
       Tree_Write_Bool (All_Errors_Mode);
       Tree_Write_Bool (Assertions_Enabled);
       Tree_Write_Int  (Int (Check_Policy_List));
+      Tree_Write_Bool (Debug_Pragmas_Disabled);
       Tree_Write_Bool (Debug_Pragmas_Enabled);
+      Tree_Write_Int  (Int (Default_Pool));
       Tree_Write_Bool (Enable_Overflow_Checks);
       Tree_Write_Bool (Full_List);
       Tree_Write_Int  (Int (Version_String'Length));

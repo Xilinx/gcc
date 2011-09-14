@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -31,6 +31,10 @@
 
 /* This file contains definitions to access front-end functions and
    variables used by gigi.  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* comperr:  */
 
@@ -163,6 +167,7 @@ extern Boolean In_Same_Source_Unit              (Node_Id, Node_Id);
 /* opt: */
 
 #define Global_Discard_Names           opt__global_discard_names
+#define Exception_Extra_Info           opt__exception_extra_info
 #define Exception_Locations_Suppressed opt__exception_locations_suppressed
 #define Exception_Mechanism            opt__exception_mechanism
 #define Back_Annotate_Rep_Info         opt__back_annotate_rep_info
@@ -170,6 +175,7 @@ extern Boolean In_Same_Source_Unit              (Node_Id, Node_Id);
 typedef enum {Setjmp_Longjmp, Back_End_Exceptions} Exception_Mechanism_Type;
 
 extern Boolean Global_Discard_Names;
+extern Boolean Exception_Extra_Info;
 extern Boolean Exception_Locations_Suppressed;
 extern Exception_Mechanism_Type Exception_Mechanism;
 extern Boolean Back_Annotate_Rep_Info;
@@ -249,3 +255,7 @@ extern void Set_Has_No_Elaboration_Code	(Node_Id, Boolean);
 extern Boolean Backend_Overflow_Checks_On_Target;
 extern Boolean Stack_Check_Probes_On_Target;
 extern Boolean Stack_Check_Limits_On_Target;
+
+#ifdef __cplusplus
+}
+#endif

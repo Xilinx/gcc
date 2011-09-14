@@ -1,3 +1,186 @@
+2011-08-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADS): Remove posix95.
+	* configure: Regenerate.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* configure.ac (i?86-*-solaris2.[89]): Also accept
+	x86_64-*-solaris2.1?.
+	* configure: Regenerate.
+
+2011-06-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libgcj/49451
+	* include/private/gcconfig.h [IRIX5 && _MIPS_SZPTR == 64]
+	(ELF_CLASS): Define.
+	* dyn_load.c [IRIX5]: Include <elf.h>.
+	Include <obj.h> for O32, <objlist.h> for N32, N64.
+	[SUNOS5DL && USE_PROC_FOR_LIBRARIES] (obj_offset): Define.
+	[SUNOS4 && USE_PROC_FOR_LIBRARIES] (obj_offset): Define.
+	[IRIX5 && !USE_PROC_FOR_LIBRARIES] (struct link_map): Define.
+	(__rld_obj_head): Declare.
+	(l_next, l_addr, obj_offset): Define.
+	(GC_FirstDLOpenedLinkMap): New function.
+	[SUNOS4 || SUNOS5DL] (GC_register_dynamic_libraries): Also use on
+	IRIX5.
+	Use obj_offset.
+	[IRIX5 || (USE_PROC_FOR_LIBRARIES && !LINUX]
+	(GC_register_dynamic_libraries): Don't use /proc version on IRIX5.
+
+2011-04-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADS): Remove decosf1, irix, mach, os2.
+	* configure: Regenerate
+
+2011-04-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/48480
+	* testsuite/lib/boehm-gc.exp (boehm-gc-dg-prune): Allow for path
+	to ranlib.
+
+2011-03-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR boehm-gc/11412
+	* configure.ac (THREADCFLAGS): New variable.
+	Use it instead of INCLUDES, AM_CPPFLAGS.
+	<*-*-kfreebsd*-gnu> (THREADDLLIBS): Rename to THREADLIBS.
+	Remove DG/UX support.
+	(AC_CONFIG_FILES): Add testsuite/Makefile.
+	* Makefile.am (AUTOMAKE_OPTIONS): Use foreign instead of cygnus.
+	(SUBDIRS): Add testsuite.
+	(libgcjgc_la_LIBADD): Remove $(UNWINDLIBS).
+	(AM_CXXFLAGS): Add $(THREADCFLAGS).
+	(AM_CFLAGS): Likewise.
+	Remove TESTS related variables.
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* testsuite/Makefile.am: New file.
+	* testsuite/Makefile.in: New file.
+	* testsuite/lib/boehm-gc.exp: New file.
+	* testsuite/config/default.exp: New file.
+	* testsuite/boehm-gc.c/c.exp: New file.
+	* testsuite/boehm-gc.lib/lib.exp: New file.
+	* tests/test.c: Move ...
+	* testsuite/boehm-gc.c/gctest.c: ... here.
+	* tests/leak_test.c, tests/middle.c, tests/thread_leak_test.c,
+	tests/trace_test.c: Move ...
+	* testsuite/boehm-gc.c: ... here.
+	* testsuite/boehm-gc.c/trace_test.c: Skip everywhere.
+	* tests/staticrootslib.c, tests/staticrootstest.c: Move ...
+	* testsuite/boehm-gc.lib: ... here.
+	* testsuite/boehm-gc.lib/staticrootstest.c: Use dg-add-shlib
+	staticrootslib.c.
+	* tests/test_cpp.cc: Move ...
+	* testsuite/boehm-gc.c++: ... here.
+
+2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADS): Remove solaris.
+	* configure: Regenerate.
+
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2011-02-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac: Don't use libdl on mips-sgi-irix6*.
+	* configure: Regenerate.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (*-*-solaris2*): Add -lrt to THREADLIBS.
+	* configure: Regenerate.
+
+2010-12-10  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* powerpc_darwin_mach_dep.s:  Update for m64.  Add eh frames.
+	Do not build or use the picsymbol stub for Darwin >= 9.
+	* tests/test.c (reverse_test):  Modify count for ppc64-darwin.
+	* pthread_support.c (GC_get_thread_stack_base): Correct a debug
+	statement.
+
+2010-11-29  Iain Sandoe  <iains@gcc.gnu.org>
+	    Mike Stump  <mrs@gcc.gnu.org>
+
+	PR target/26427
+	PR target/33120
+	PR testsuite/35710
+	* dyn_load.c (GC_register_dynamic_libraries/DARWIN):  Add new writable
+	data section names.
+	(GC_dyld_name_for_hdr): Adjust layout.
+	(GC_dyld_image_add): Adjust layout, add new Darwin sections, adjust
+	debug to name the sections.
+	(GC_dyld_image_remove): Adjust layout, remove new Darwin sections,
+	adjust debug to name the sections.
+	(GC_register_dynamic_libraries): Adjust layout.
+	(GC_init_dyld): Likewise.
+	(GC_register_main_static_data): Likewise.
+
+2010-10-29  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure: Regenerate.
+
+2010-10-28  Paolo Bonzini  <bonzini@gnu.org>
+
+	* configure.ac: Rewrite DGUX check to use GC_CFLAGS, and -O0 check
+	to remove the need for MY_CFLAGS.
+	* Makefile.am: Do not use @...@ substitutions.  Use AM_CXXFLAGS,
+	AM_CFLAGS and AM_LDFLAGS instead of redefining LTCOMPILE and LINK.
+	Use "override" to disable -O2 when required.
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* include/Makefile.in: Regenerate.
+
+2010-10-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* dyn_load.c: Fix typo.
+	* pthread_support.c (GC_get_thread_stack_base) [DEBUG_THREADS]:
+	Use GC_printf0.
+
+2010-06-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (*-*-solaris2.8*): Only usr alternate thread
+	library on Solaris 8.
+	(*-*-solaris2*): Use regular thread library otherwise.
+	* configure: Regenerate.
+
+2010-05-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* tests/leak_test.c (main): Declare as int.  Return 0.
+	* tests/thread_leak_test.c (main): Ditto.
+	* tests/trace_test.c (main): Ditto.
+
+2010-05-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/42811
+	* tests/staticrootstest.c: New test source file.
+	* tests/staticrootslib.c: New test library source file.
+	* Makefile.am (test_ldadd): New variable.
+	(gctest_LDADD): Use it.
+	(TESTS): Add leaktest, middletest and staticrootstest.
+	(check_PROGRAMS): Likewise.
+	(leaktest_SOURCES): New libtool variable definition.
+	(leaktest_LDADD): Likewise.
+	(leaktest_LDFLAGS): Likewise.
+	(leaktest_LINK): Likewise.
+	(middletest_SOURCES): Likewise.
+	(middletest_LDADD): Likewise.
+	(middletest_LDFLAGS): Likewise.
+	(middletest_LINK): Likewise.
+	(staticrootstest_SOURCES): Likewise.
+	(staticrootstest_LDADD): Likewise.
+	(staticrootstest_LDFLAGS): Likewise.
+	(staticrootstest_LINK): Likewise.
+	(check_LTLIBRARIES): Likewise.
+	(libstaticrootslib_la_SOURCES): Likewise.
+	(libstaticrootslib_la_LIBADD): Likewise.
+	(libstaticrootslib_la_LDFLAGS): Likewise.
+	(libstaticrootslib_la_DEPENDENCIES): Likewise.
+	* Makefile.in: Regenerate.
+
 2010-04-02  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* Makefile.in: Regenerate.

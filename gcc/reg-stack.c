@@ -1,6 +1,6 @@
 /* Register to Stack convert for GNU compiler.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -156,19 +156,17 @@
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "rtl.h"
+#include "rtl-error.h"
 #include "tm_p.h"
 #include "function.h"
 #include "insn-config.h"
 #include "regs.h"
 #include "hard-reg-set.h"
 #include "flags.h"
-#include "toplev.h"
 #include "recog.h"
 #include "output.h"
 #include "basic-block.h"
 #include "cfglayout.h"
-#include "varray.h"
 #include "reload.h"
 #include "ggc.h"
 #include "timevar.h"
@@ -176,6 +174,7 @@
 #include "target.h"
 #include "df.h"
 #include "vecprim.h"
+#include "emit-rtl.h"  /* FIXME: Can go away once crtl is moved to rtl.h.  */
 
 #ifdef STACK_REGS
 
@@ -1334,11 +1333,33 @@ subst_stack_regs_in_debug_insn (rtx *loc, void *data)
     return 0;
 
   hard_regno = get_hard_regnum (regstack, *loc);
+
+  /* If we can't find an active register, reset this debug insn.  */
+  if (hard_regno == -1)
+    return 1;
+
   gcc_assert (hard_regno >= FIRST_STACK_REG);
 
   replace_reg (loc, hard_regno);
 
   return -1;
+}
+
+/* Substitute hardware stack regs in debug insn INSN, using stack
+   layout REGSTACK.  If we can't find a hardware stack reg for any of
+   the REGs in it, reset the debug insn.  */
+
+static void
+subst_all_stack_regs_in_debug_insn (rtx insn, struct stack_def *regstack)
+{
+  int ret = for_each_rtx (&INSN_VAR_LOCATION_LOC (insn),
+			  subst_stack_regs_in_debug_insn,
+			  regstack);
+
+  if (ret == 1)
+    INSN_VAR_LOCATION_LOC (insn) = gen_rtx_UNKNOWN_VAR_LOC ();
+  else
+    gcc_checking_assert (ret == 0);
 }
 
 /* Substitute new registers in PAT, which is part of INSN.  REGSTACK
@@ -2877,9 +2898,10 @@ better_edge (edge e1, edge e2)
   return (e1->src->index < e2->src->index) ? e1 : e2;
 }
 
-/* Convert stack register references in one block.  */
+/* Convert stack register references in one block.  Return true if the CFG
+   has been modified in the process.  */
 
-static void
+static bool
 convert_regs_1 (basic_block block)
 {
   struct stack_def regstack;
@@ -2887,6 +2909,7 @@ convert_regs_1 (basic_block block)
   int reg;
   rtx insn, next;
   bool control_flow_insn_deleted = false;
+  bool cfg_altered = false;
   int debug_insns_with_starting_stack = 0;
 
   any_malformed_asm = false;
@@ -2946,8 +2969,7 @@ convert_regs_1 (basic_block block)
 	    debug_insns_with_starting_stack++;
 	  else
 	    {
-	      for_each_rtx (&PATTERN (insn), subst_stack_regs_in_debug_insn,
-			    &regstack);
+	      subst_all_stack_regs_in_debug_insn (insn, &regstack);
 
 	      /* Nothing must ever die at a debug insn.  If something
 		 is referenced in it that becomes dead, it should have
@@ -2985,8 +3007,7 @@ convert_regs_1 (basic_block block)
 	    continue;
 
 	  debug_insns_with_starting_stack--;
-	  for_each_rtx (&PATTERN (insn), subst_stack_regs_in_debug_insn,
-			&bi->stack_in);
+	  subst_all_stack_regs_in_debug_insn (insn, &bi->stack_in);
 	}
     }
 
@@ -3042,7 +3063,7 @@ convert_regs_1 (basic_block block)
      place, still, but we don't have enough information at that time.  */
 
   if (control_flow_insn_deleted)
-    purge_dead_edges (block);
+    cfg_altered |= purge_dead_edges (block);
 
   /* Something failed if the stack lives don't match.  If we had malformed
      asms, we zapped the instruction itself, but that didn't produce the
@@ -3052,14 +3073,18 @@ convert_regs_1 (basic_block block)
 	      || any_malformed_asm);
   bi->stack_out = regstack;
   bi->done = true;
+
+  return cfg_altered;
 }
 
-/* Convert registers in all blocks reachable from BLOCK.  */
+/* Convert registers in all blocks reachable from BLOCK.  Return true if the
+   CFG has been modified in the process.  */
 
-static void
+static bool
 convert_regs_2 (basic_block block)
 {
   basic_block *stack, *sp;
+  bool cfg_altered = false;
 
   /* We process the blocks in a top-down manner, in a way such that one block
      is only processed after all its predecessors.  The number of predecessors
@@ -3098,11 +3123,13 @@ convert_regs_2 (basic_block block)
 	      *sp++ = e->dest;
 	  }
 
-      convert_regs_1 (block);
+      cfg_altered |= convert_regs_1 (block);
     }
   while (sp != stack);
 
   free (stack);
+
+  return cfg_altered;
 }
 
 /* Traverse all basic blocks in a function, converting the register
@@ -3112,6 +3139,7 @@ convert_regs_2 (basic_block block)
 static void
 convert_regs (void)
 {
+  bool cfg_altered = false;
   int inserted;
   basic_block b;
   edge e;
@@ -3130,7 +3158,7 @@ convert_regs (void)
 
   /* Process all blocks reachable from all entry points.  */
   FOR_EACH_EDGE (e, ei, ENTRY_BLOCK_PTR->succs)
-    convert_regs_2 (e->dest);
+    cfg_altered |= convert_regs_2 (e->dest);
 
   /* ??? Process all unreachable blocks.  Though there's no excuse
      for keeping these even when not optimizing.  */
@@ -3139,16 +3167,22 @@ convert_regs (void)
       block_info bi = BLOCK_INFO (b);
 
       if (! bi->done)
-	convert_regs_2 (b);
+	cfg_altered |= convert_regs_2 (b);
     }
+
+  /* We must fix up abnormal edges before inserting compensation code
+     because both mechanisms insert insns on edges.  */
+  inserted |= fixup_abnormal_edges ();
 
   inserted |= compensate_edges ();
 
   clear_aux_for_blocks ();
 
-  fixup_abnormal_edges ();
   if (inserted)
     commit_edge_insertions ();
+
+  if (cfg_altered)
+    cleanup_cfg (0);
 
   if (dump_file)
     fputc ('\n', dump_file);
@@ -3318,7 +3352,6 @@ struct rtl_opt_pass pass_stack_regs_run =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect                      /* todo_flags_finish */
  }
 };

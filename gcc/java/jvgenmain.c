@@ -1,6 +1,6 @@
 /* Program to generate "main" a Java(TM) class containing a main method.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -27,12 +27,13 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "obstack.h"
 #include "jcf.h"
 #include "tree.h"
 #include "java-tree.h"
 #include "intl.h"
+#include "diagnostic.h"
+#include "tm.h"         /* FIXME: For gcc_obstack_init from defaults.h.  */
 
 static char * do_mangle_classname (const char *string);
 
@@ -59,10 +60,19 @@ main (int argc, char **argv)
   int indirect = 0;
   char *prog_name = argv[0];
 
+  p = argv[0] + strlen (argv[0]);
+  while (p != argv[0] && !IS_DIR_SEPARATOR (p[-1]))
+    --p;
+  progname = p;
+
+  xmalloc_set_program_name (progname);
+
   /* Unlock the stdio streams.  */
   unlock_std_streams ();
 
   gcc_init_libintl ();
+
+  diagnostic_initialize (global_dc, 0);
 
   if (argc > 1 && ! strcmp (argv[1], "-findirect-dispatch"))
     {
@@ -78,7 +88,9 @@ main (int argc, char **argv)
     {
       if (! strncmp (argv[i], "-D", 2))
 	{
-	  /* Handled later.  */
+	  /* Handled later.  Check "-D XXX=YYY".  */
+	  if (argv[i][2] == '\0')
+	    i++;
 	}
       else
 	break;
@@ -121,8 +133,12 @@ main (int argc, char **argv)
   for (i = 1; i < last_arg; ++i)
     {
       const char *p;
+
+      if (strcmp (argv[i], "-D") == 0)
+	continue;
+
       fprintf (stream, "  \"");
-      for (p = &argv[i][2]; *p; ++p)
+      for (p = argv[i]; *p; ++p)
 	{
 	  if (! ISPRINT (*p))
 	    fprintf (stream, "\\%o", *p);

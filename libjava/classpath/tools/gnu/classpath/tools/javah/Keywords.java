@@ -44,7 +44,7 @@ public class Keywords
 {
 /* A sorted list of all C++ keywords.  This is identical to the list
    in gcc/java/mangle.c.  */
-  private static final String[] words = 
+  private static final String[] words =
     {
       "_Complex",
       "__alignof",
@@ -152,10 +152,10 @@ public class Keywords
       "xor_eq"
     };
 
-  private static final HashSet keywords;
+  private static final HashSet<String> keywords;
   static
     {
-      keywords = new HashSet();
+      keywords = new HashSet<String>();
       for (int i = 0; i < words.length; ++i)
         keywords.add(words[i]);
     }

@@ -9,13 +9,14 @@
   end type t0
   type t
     integer :: i
-    class(t0), allocatable :: foo(3)  ! { dg-error "deferred shape" }
+! FIXME: uncomment and dejagnuify once class arrays are enabled
+!    class(t0), allocatable :: foo(3)  ! { "deferred shape" }
   end type t
 
 ! PR41608: Would ICE on missing type decl
   class(t1), pointer :: c  ! { dg-error "before it is defined" }
 
   select type (c)          ! { dg-error "shall be polymorphic" }
-    type is (t1)           ! { dg-error "Unexpected" }
-  end select               ! { dg-error "Expecting END PROGRAM" }
+    type is (t0)
+  end select
 end

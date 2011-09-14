@@ -34,7 +34,7 @@
 #include "function.h"
 #include "recog.h"
 #include "flags.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "obstack.h"
 #include "timevar.h"
 #include "tree-pass.h"
@@ -418,10 +418,9 @@ maybe_mode_change (enum machine_mode orig_mode, enum machine_mode copy_mode,
 
       offset = ((WORDS_BIG_ENDIAN ? wordoffset : 0)
 		+ (BYTES_BIG_ENDIAN ? byteoffset : 0));
-      return gen_rtx_raw_REG (new_mode,
-			      regno + subreg_regno_offset (regno, orig_mode,
-							   offset,
-							   new_mode));
+      regno += subreg_regno_offset (regno, orig_mode, offset, new_mode);
+      if (HARD_REGNO_MODE_OK (regno, new_mode))
+	return gen_rtx_raw_REG (new_mode, regno);
     }
   return NULL_RTX;
 }
@@ -457,7 +456,7 @@ find_oldest_value_reg (enum reg_class cl, rtx reg, struct value_data *vd)
       rtx new_rtx;
 
       if (!in_hard_reg_set_p (reg_class_contents[cl], mode, i))
-	return NULL_RTX;
+	continue;
 
       new_rtx = maybe_mode_change (oldmode, vd->e[regno].mode, mode, i, regno);
       if (new_rtx)
@@ -946,7 +945,14 @@ copyprop_hardreg_forward_1 (basic_block bb, struct value_data *vd)
 
     did_replacement:
       if (changed)
-	anything_changed = true;
+	{
+	  anything_changed = true;
+
+	  /* If something changed, perhaps further changes to earlier
+	     DEBUG_INSNs can be applied.  */
+	  if (vd->n_debug_insn_changes)
+	    note_uses (&PATTERN (insn), cprop_find_used_regs, vd);
+	}
 
       /* Clobber call-clobbered registers.  */
       if (CALL_P (insn))
@@ -983,7 +989,7 @@ copyprop_hardreg_forward (void)
   visited = sbitmap_alloc (last_basic_block);
   sbitmap_zero (visited);
 
-  if (MAY_HAVE_DEBUG_STMTS)
+  if (MAY_HAVE_DEBUG_INSNS)
     debug_insn_changes_pool
       = create_alloc_pool ("debug insn changes pool",
 			   sizeof (struct queued_debug_insn_change), 256);
@@ -1022,7 +1028,7 @@ copyprop_hardreg_forward (void)
       copyprop_hardreg_forward_1 (bb, all_vd + bb->index);
     }
 
-  if (MAY_HAVE_DEBUG_STMTS)
+  if (MAY_HAVE_DEBUG_INSNS)
     {
       FOR_EACH_BB (bb)
 	if (TEST_BIT (visited, bb->index)
@@ -1057,7 +1063,7 @@ copyprop_hardreg_forward (void)
 
 /* Dump the value chain data to stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_value_data (struct value_data *vd)
 {
   HARD_REG_SET set;
@@ -1181,7 +1187,7 @@ struct rtl_opt_pass pass_cprop_hardreg =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_df_finish
+  TODO_df_finish
   | TODO_verify_rtl_sharing		/* todo_flags_finish */
  }
 };

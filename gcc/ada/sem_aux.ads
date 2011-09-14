@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -97,7 +97,7 @@ package Sem_Aux is
    --  Returns the argument unchanged if it is not one of these cases.
 
    function Constant_Value (Ent : Entity_Id) return Node_Id;
-   --  Id is a variable, constant, named integer, or named real entity. This
+   --  Ent is a variable, constant, named integer, or named real entity. This
    --  call obtains the initialization expression for the entity. Will return
    --  Empty for for a deferred constant whose full view is not available or
    --  in some other cases of internal entities, which cannot be treated as
@@ -106,7 +106,7 @@ package Sem_Aux is
 
    function Enclosing_Dynamic_Scope (Ent : Entity_Id) return Entity_Id;
    --  For any entity, Ent, returns the closest dynamic scope in which the
-   --  entity is declared or Standard_Standard for library-level entities
+   --  entity is declared or Standard_Standard for library-level entities.
 
    function First_Discriminant (Typ : Entity_Id) return Entity_Id;
    --  Typ is a type with discriminants. The discriminants are the first
@@ -132,7 +132,7 @@ package Sem_Aux is
    --  the entity chain of the derived type which are a copy of the
    --  discriminants of the root type. Furthermore their Is_Completely_Hidden
    --  flag is set since although they are actually stored in the object, they
-   --  are not in the set of discriminants that is visble in the type.
+   --  are not in the set of discriminants that is visible in the type.
    --
    --  For derived untagged types, the set of stored discriminants are the real
    --  discriminants from Gigi's standpoint, i.e. those that will be stored in
@@ -159,26 +159,50 @@ package Sem_Aux is
    --  Determines if the given entity Ent is a derived type. Result is always
    --  false if argument is not a type.
 
+   function Is_Generic_Formal (E : Entity_Id) return Boolean;
+   --  Determine whether E is a generic formal parameter. In particular this is
+   --  used to set the visibility of generic formals of a generic package
+   --  declared with a box or with partial parametrization.
+
    function Is_Indefinite_Subtype (Ent : Entity_Id) return Boolean;
    --  Ent is any entity. Determines if given entity is an unconstrained array
    --  type or subtype, a discriminated record type or subtype with no initial
    --  discriminant values or a class wide type or subtype and returns True if
    --  so. False for other type entities, or any entities that are not types.
 
-   function Is_Inherently_Limited_Type (Ent : Entity_Id) return Boolean;
+   function Is_Immutably_Limited_Type (Ent : Entity_Id) return Boolean;
    --  Ent is any entity. True for a type that is "inherently" limited (i.e.
    --  cannot become nonlimited). From the Ada 2005 RM-7.5(8.1/2), "a type with
    --  a part that is of a task, protected, or explicitly limited record type".
    --  These are the types that are defined as return-by-reference types in Ada
    --  95 (see RM95-6.5(11-16)). In Ada 2005, these are the types that require
    --  build-in-place for function calls. Note that build-in-place is allowed
-   --  for other types, too.
+   --  for other types, too. This is also used for identifying pure procedures
+   --  whose calls should not be eliminated (RM 10.2.1(18/2)).
 
    function Is_Limited_Type (Ent : Entity_Id) return Boolean;
    --  Ent is any entity. Returns true if Ent is a limited type (limited
    --  private type, limited interface type, task type, protected type,
    --  composite containing a limited component, or a subtype of any of
    --  these types).
+
+   function Nearest_Ancestor (Typ : Entity_Id) return Entity_Id;
+   --  Given a subtype Typ, this function finds out the nearest ancestor from
+   --  which constraints and predicates are inherited. There is no simple link
+   --  for doing this, consider:
+   --
+   --     subtype R is Integer range 1 .. 10;
+   --     type T is new R;
+   --
+   --  In this case the nearest ancestor is R, but the Etype of T'Base will
+   --  point to R'Base, so we have to go rummaging in the declarations to get
+   --  this information. It is used for making sure we freeze this before we
+   --  freeze Typ, and also for retrieving inherited predicate information.
+   --  For the case of base types or first subtypes, there is no useful entity
+   --  to return, so Empty is returned.
+   --
+   --  Note: this is similar to Ancestor_Subtype except that it also deals
+   --  with the case of derived types.
 
    function Nearest_Dynamic_Scope (Ent : Entity_Id) return Entity_Id;
    --  This is similar to Enclosing_Dynamic_Scope except that if Ent is itself
@@ -192,5 +216,16 @@ package Sem_Aux is
 
    function Number_Discriminants (Typ : Entity_Id) return Pos;
    --  Typ is a type with discriminants, yields number of discriminants in type
+
+   function Initialization_Suppressed (Typ : Entity_Id) return Boolean;
+   pragma Inline (Initialization_Suppressed);
+   --  Returns True if initialization should be suppressed for the given type
+   --  or subtype. This is true if Suppress_Initialization is set either for
+   --  the subtype itself, or for the corresponding base type.
+
+   function Ultimate_Alias (Prim : Entity_Id) return Entity_Id;
+   pragma Inline (Ultimate_Alias);
+   --  Return the last entity in the chain of aliased entities of Prim. If Prim
+   --  has no alias return Prim.
 
 end Sem_Aux;

@@ -1,4 +1,4 @@
-/* Define control and data flow tables, and regsets.
+/* Define control flow data structures for the CFG.
    Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
    2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
@@ -21,95 +21,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_BASIC_BLOCK_H
 #define GCC_BASIC_BLOCK_H
 
-#include "bitmap.h"
-#include "sbitmap.h"
-#include "varray.h"
-#include "partition.h"
-#include "hard-reg-set.h"
 #include "predict.h"
 #include "vec.h"
 #include "function.h"
-
-/* Head of register set linked list.  */
-typedef bitmap_head regset_head;
-
-/* A pointer to a regset_head.  */
-typedef bitmap regset;
-
-/* Allocate a register set with oballoc.  */
-#define ALLOC_REG_SET(OBSTACK) BITMAP_ALLOC (OBSTACK)
-
-/* Do any cleanup needed on a regset when it is no longer used.  */
-#define FREE_REG_SET(REGSET) BITMAP_FREE (REGSET)
-
-/* Initialize a new regset.  */
-#define INIT_REG_SET(HEAD) bitmap_initialize (HEAD, &reg_obstack)
-
-/* Clear a register set by freeing up the linked list.  */
-#define CLEAR_REG_SET(HEAD) bitmap_clear (HEAD)
-
-/* Copy a register set to another register set.  */
-#define COPY_REG_SET(TO, FROM) bitmap_copy (TO, FROM)
-
-/* Compare two register sets.  */
-#define REG_SET_EQUAL_P(A, B) bitmap_equal_p (A, B)
-
-/* `and' a register set with a second register set.  */
-#define AND_REG_SET(TO, FROM) bitmap_and_into (TO, FROM)
-
-/* `and' the complement of a register set with a register set.  */
-#define AND_COMPL_REG_SET(TO, FROM) bitmap_and_compl_into (TO, FROM)
-
-/* Inclusive or a register set with a second register set.  */
-#define IOR_REG_SET(TO, FROM) bitmap_ior_into (TO, FROM)
-
-/* Exclusive or a register set with a second register set.  */
-#define XOR_REG_SET(TO, FROM) bitmap_xor_into (TO, FROM)
-
-/* Or into TO the register set FROM1 `and'ed with the complement of FROM2.  */
-#define IOR_AND_COMPL_REG_SET(TO, FROM1, FROM2) \
-  bitmap_ior_and_compl_into (TO, FROM1, FROM2)
-
-/* Clear a single register in a register set.  */
-#define CLEAR_REGNO_REG_SET(HEAD, REG) bitmap_clear_bit (HEAD, REG)
-
-/* Set a single register in a register set.  */
-#define SET_REGNO_REG_SET(HEAD, REG) bitmap_set_bit (HEAD, REG)
-
-/* Return true if a register is set in a register set.  */
-#define REGNO_REG_SET_P(TO, REG) bitmap_bit_p (TO, REG)
-
-/* Copy the hard registers in a register set to the hard register set.  */
-extern void reg_set_to_hard_reg_set (HARD_REG_SET *, const_bitmap);
-#define REG_SET_TO_HARD_REG_SET(TO, FROM)				\
-do {									\
-  CLEAR_HARD_REG_SET (TO);						\
-  reg_set_to_hard_reg_set (&TO, FROM);					\
-} while (0)
-
-typedef bitmap_iterator reg_set_iterator;
-
-/* Loop over all registers in REGSET, starting with MIN, setting REGNUM to the
-   register number and executing CODE for all registers that are set.  */
-#define EXECUTE_IF_SET_IN_REG_SET(REGSET, MIN, REGNUM, RSI)	\
-  EXECUTE_IF_SET_IN_BITMAP (REGSET, MIN, REGNUM, RSI)
-
-/* Loop over all registers in REGSET1 and REGSET2, starting with MIN, setting
-   REGNUM to the register number and executing CODE for all registers that are
-   set in the first regset and not set in the second.  */
-#define EXECUTE_IF_AND_COMPL_IN_REG_SET(REGSET1, REGSET2, MIN, REGNUM, RSI) \
-  EXECUTE_IF_AND_COMPL_IN_BITMAP (REGSET1, REGSET2, MIN, REGNUM, RSI)
-
-/* Loop over all registers in REGSET1 and REGSET2, starting with MIN, setting
-   REGNUM to the register number and executing CODE for all registers that are
-   set in both regsets.  */
-#define EXECUTE_IF_AND_IN_REG_SET(REGSET1, REGSET2, MIN, REGNUM, RSI) \
-  EXECUTE_IF_AND_IN_BITMAP (REGSET1, REGSET2, MIN, REGNUM, RSI)	\
-
-/* Same information as REGS_INVALIDATED_BY_CALL but in regset form to be used
-   in dataflow more conveniently.  */
-
-extern regset regs_invalidated_by_call_regset;
 
 /* Type we use to hold basic block counters.  Should be at least
    64bit.  Although a counter cannot be negative, we use a signed
@@ -151,31 +65,34 @@ DEF_VEC_P(edge);
 DEF_VEC_ALLOC_P(edge,gc);
 DEF_VEC_ALLOC_P(edge,heap);
 
-#define EDGE_FALLTHRU		1	/* 'Straight line' flow */
-#define EDGE_ABNORMAL		2	/* Strange flow, like computed
+/* Always update the table in cfg.c dump_edge_info.  */
+#define EDGE_FALLTHRU		0x0001	/* 'Straight line' flow */
+#define EDGE_ABNORMAL		0x0002	/* Strange flow, like computed
 					   label, or eh */
-#define EDGE_ABNORMAL_CALL	4	/* Call with abnormal exit
+#define EDGE_ABNORMAL_CALL	0x0004	/* Call with abnormal exit
 					   like an exception, or sibcall */
-#define EDGE_EH			8	/* Exception throw */
-#define EDGE_FAKE		16	/* Not a real edge (profile.c) */
-#define EDGE_DFS_BACK		32	/* A backwards edge */
-#define EDGE_CAN_FALLTHRU	64	/* Candidate for straight line
+#define EDGE_EH			0x0008	/* Exception throw */
+#define EDGE_FAKE		0x0010	/* Not a real edge (profile.c) */
+#define EDGE_DFS_BACK		0x0020	/* A backwards edge */
+#define EDGE_CAN_FALLTHRU	0x0040	/* Candidate for straight line
 					   flow.  */
-#define EDGE_IRREDUCIBLE_LOOP	128	/* Part of irreducible loop.  */
-#define EDGE_SIBCALL		256	/* Edge from sibcall to exit.  */
-#define EDGE_LOOP_EXIT		512	/* Exit of a loop.  */
-#define EDGE_TRUE_VALUE		1024	/* Edge taken when controlling
+#define EDGE_IRREDUCIBLE_LOOP	0x0080	/* Part of irreducible loop.  */
+#define EDGE_SIBCALL		0x0100	/* Edge from sibcall to exit.  */
+#define EDGE_LOOP_EXIT		0x0200	/* Exit of a loop.  */
+#define EDGE_TRUE_VALUE		0x0400	/* Edge taken when controlling
 					   predicate is nonzero.  */
-#define EDGE_FALSE_VALUE	2048	/* Edge taken when controlling
+#define EDGE_FALSE_VALUE	0x0800	/* Edge taken when controlling
 					   predicate is zero.  */
-#define EDGE_EXECUTABLE		4096	/* Edge is executable.  Only
+#define EDGE_EXECUTABLE		0x1000	/* Edge is executable.  Only
 					   valid during SSA-CCP.  */
-#define EDGE_CROSSING		8192    /* Edge crosses between hot
+#define EDGE_CROSSING		0x2000	/* Edge crosses between hot
 					   and cold sections, when we
 					   do partitioning.  */
-#define EDGE_ALL_FLAGS	       16383
+#define EDGE_PRESERVE		0x4000	/* Never merge blocks via this edge. */
+#define EDGE_ALL_FLAGS		0x7fff
 
-#define EDGE_COMPLEX	(EDGE_ABNORMAL | EDGE_ABNORMAL_CALL | EDGE_EH)
+#define EDGE_COMPLEX \
+  (EDGE_ABNORMAL | EDGE_ABNORMAL_CALL | EDGE_EH | EDGE_PRESERVE)
 
 /* Counter summary from the last set of coverage counts read by
    profile.c.  */
@@ -185,7 +102,6 @@ extern const struct gcov_ctr_summary *profile_info;
 struct loop;
 
 /* Declared in tree-flow.h.  */
-struct edge_prediction;
 struct rtl_bb_info;
 
 /* A basic block is a sequence of instructions with only entry and
@@ -290,7 +206,9 @@ DEF_VEC_ALLOC_P(basic_block,heap);
    the compilation, so they are never cleared.
 
    All other flags may be cleared by clear_bb_flags().  It is generally
-   a bad idea to rely on any flags being up-to-date.  */
+   a bad idea to rely on any flags being up-to-date.
+
+   Always update the table in cfg.c dump_bb_info.  */
 
 enum bb_flags
 {
@@ -332,7 +250,13 @@ enum bb_flags
 
   /* Set on blocks that cannot be threaded through.
      Only used in cfgcleanup.c.  */
-  BB_NONTHREADABLE_BLOCK = 1 << 11
+  BB_NONTHREADABLE_BLOCK = 1 << 11,
+
+  /* Set on blocks that were modified in some way.  This bit is set in
+     df_set_bb_dirty, but not cleared by df_analyze, so it can be used
+     to test whether a block has been modified prior to a df_analyze
+     call.  */
+  BB_MODIFIED = 1 << 12
 };
 
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
@@ -364,7 +288,8 @@ enum profile_status_d
 {
   PROFILE_ABSENT,
   PROFILE_GUESSED,
-  PROFILE_READ
+  PROFILE_READ,
+  PROFILE_LAST	/* Last value, used by profile streaming.  */
 };
 
 /* A structure to group all the per-function control flow graph data.
@@ -389,6 +314,9 @@ struct GTY(()) control_flow_graph {
   /* The first free basic block number.  */
   int x_last_basic_block;
 
+  /* UIDs for LABEL_DECLs.  */
+  int last_label_uid;
+
   /* Mapping of labels to their associated blocks.  At present
      only used for the gimple CFG.  */
   VEC(basic_block,gc) *x_label_to_block_map;
@@ -404,9 +332,6 @@ struct GTY(()) control_flow_graph {
   /* Maximal number of entities in the single jumptable.  Used to estimate
      final flowgraph size.  */
   int max_jumptable_ents;
-
-  /* UIDs for LABEL_DECLs.  */
-  int last_label_uid;
 };
 
 /* Defines for accessing the fields of the CFG structure for function FN.  */
@@ -483,8 +408,6 @@ struct GTY(()) control_flow_graph {
 #define FOR_ALL_BB_FN(BB, FN) \
   for (BB = ENTRY_BLOCK_PTR_FOR_FUNCTION (FN); BB; BB = BB->next_bb)
 
-extern bitmap_obstack reg_obstack;
-
 
 /* Stuff for recording basic block info.  */
 
@@ -531,8 +454,8 @@ extern int pre_and_rev_post_order_compute (int *, int *, bool);
 extern int dfs_enumerate_from (basic_block, int,
 			       bool (*)(const_basic_block, const void *),
 			       basic_block *, int, const void *);
-extern void compute_dominance_frontiers (bitmap *);
-extern bitmap compute_idf (bitmap, bitmap *);
+extern void compute_dominance_frontiers (struct bitmap_head_def *);
+extern bitmap compute_idf (bitmap, struct bitmap_head_def *);
 extern void dump_bb_info (basic_block, bool, bool, int, const char *, FILE *);
 extern void dump_edge_info (FILE *, edge, int);
 extern void brief_dump_cfg (FILE *);
@@ -642,7 +565,7 @@ single_pred_p (const_basic_block bb)
 static inline edge
 single_succ_edge (const_basic_block bb)
 {
-  gcc_assert (single_succ_p (bb));
+  gcc_checking_assert (single_succ_p (bb));
   return EDGE_SUCC (bb, 0);
 }
 
@@ -652,7 +575,7 @@ single_succ_edge (const_basic_block bb)
 static inline edge
 single_pred_edge (const_basic_block bb)
 {
-  gcc_assert (single_pred_p (bb));
+  gcc_checking_assert (single_pred_p (bb));
   return EDGE_PRED (bb, 0);
 }
 
@@ -684,7 +607,7 @@ typedef struct {
 static inline VEC(edge,gc) *
 ei_container (edge_iterator i)
 {
-  gcc_assert (i.container);
+  gcc_checking_assert (i.container);
   return *i.container;
 }
 
@@ -735,7 +658,7 @@ ei_one_before_end_p (edge_iterator i)
 static inline void
 ei_next (edge_iterator *i)
 {
-  gcc_assert (i->index < EDGE_COUNT (ei_container (*i)));
+  gcc_checking_assert (i->index < EDGE_COUNT (ei_container (*i)));
   i->index++;
 }
 
@@ -743,7 +666,7 @@ ei_next (edge_iterator *i)
 static inline void
 ei_prev (edge_iterator *i)
 {
-  gcc_assert (i->index > 0);
+  gcc_checking_assert (i->index > 0);
   i->index--;
 }
 
@@ -837,8 +760,6 @@ extern bool optimize_bb_for_size_p (const_basic_block);
 extern bool optimize_bb_for_speed_p (const_basic_block);
 extern bool optimize_edge_for_size_p (edge);
 extern bool optimize_edge_for_speed_p (edge);
-extern bool optimize_function_for_size_p (struct function *);
-extern bool optimize_function_for_speed_p (struct function *);
 extern bool optimize_loop_for_size_p (struct loop *);
 extern bool optimize_loop_for_speed_p (struct loop *);
 extern bool optimize_loop_nest_for_size_p (struct loop *);
@@ -858,18 +779,14 @@ extern bool predictable_edge_p (edge);
 extern void init_flow (struct function *);
 extern void debug_bb (basic_block);
 extern basic_block debug_bb_n (int);
-extern void dump_regset (regset, FILE *);
-extern void debug_regset (regset);
 extern void expunge_block (basic_block);
 extern void link_block (basic_block, basic_block);
 extern void unlink_block (basic_block);
 extern void compact_blocks (void);
 extern basic_block alloc_block (void);
-extern void alloc_aux_for_block (basic_block, int);
 extern void alloc_aux_for_blocks (int);
 extern void clear_aux_for_blocks (void);
 extern void free_aux_for_blocks (void);
-extern void alloc_aux_for_edge (edge, int);
 extern void alloc_aux_for_edges (int);
 extern void clear_aux_for_edges (void);
 extern void free_aux_for_edges (void);
@@ -883,23 +800,30 @@ extern void flow_nodes_print (const char *, const_sbitmap, FILE *);
 extern void flow_edge_list_print (const char *, const edge *, int, FILE *);
 
 /* In cfgrtl.c  */
-extern basic_block force_nonfallthru (edge);
 extern rtx block_label (basic_block);
 extern bool purge_all_dead_edges (void);
 extern bool purge_dead_edges (basic_block);
+extern bool fixup_abnormal_edges (void);
+extern basic_block force_nonfallthru_and_redirect (edge, basic_block, rtx);
 
 /* In cfgbuild.c.  */
 extern void find_many_sub_basic_blocks (sbitmap);
 extern void rtl_make_eh_edge (sbitmap, basic_block, rtx);
 
+enum replace_direction { dir_none, dir_forward, dir_backward, dir_both };
+
 /* In cfgcleanup.c.  */
 extern bool cleanup_cfg (int);
+extern int flow_find_cross_jump (basic_block, basic_block, rtx *, rtx *,
+                                 enum replace_direction*);
+extern int flow_find_head_matching_sequence (basic_block, basic_block,
+					     rtx *, rtx *, int);
+
 extern bool delete_unreachable_blocks (void);
 
 extern bool mark_dfs_back_edges (void);
 extern void set_edge_can_fallthru_flag (void);
 extern void update_br_prob_note (basic_block);
-extern void fixup_abnormal_edges (void);
 extern bool inside_basic_block_p (const_rtx);
 extern bool control_flow_insn_p (const_rtx);
 extern rtx get_last_bb_insn (basic_block);
@@ -932,6 +856,8 @@ extern VEC (basic_block, heap) *get_dominated_by (enum cdi_direction, basic_bloc
 extern VEC (basic_block, heap) *get_dominated_by_region (enum cdi_direction,
 							 basic_block *,
 							 unsigned);
+extern VEC (basic_block, heap) *get_dominated_to_depth (enum cdi_direction,
+							basic_block, int);
 extern VEC (basic_block, heap) *get_all_dominated_blocks (enum cdi_direction,
 							  basic_block);
 extern void add_to_dominance_info (enum cdi_direction, basic_block);
@@ -963,9 +889,6 @@ extern basic_block get_bb_copy (basic_block);
 void set_loop_copy (struct loop *, struct loop *);
 struct loop *get_loop_copy (struct loop *);
 
-
-extern rtx insert_insn_end_bb_new (rtx, basic_block);
-
 #include "cfghooks.h"
 
 /* Return true when one of the predecessor edges of BB is marked with EDGE_EH.  */
@@ -996,6 +919,20 @@ bb_has_abnormal_pred (basic_block bb)
 	return true;
     }
   return false;
+}
+
+/* Return the fallthru edge in EDGES if it exists, NULL otherwise.  */
+static inline edge
+find_fallthru_edge (VEC(edge,gc) *edges)
+{
+  edge e;
+  edge_iterator ei;
+
+  FOR_EACH_EDGE (e, ei, edges)
+    if (e->flags & EDGE_FALLTHRU)
+      break;
+
+  return e;
 }
 
 /* In cfgloopmanip.c.  */

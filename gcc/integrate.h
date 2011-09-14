@@ -1,6 +1,6 @@
 /* Function integration definitions for GCC
    Copyright (C) 1990, 1995, 1998, 1999, 2000, 2001, 2003, 2004, 2005,
-   2007, 2008  Free Software Foundation, Inc.
+   2007, 2008, 2010  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -18,8 +18,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#include "varray.h"
-
 extern rtx get_hard_reg_initial_val (enum machine_mode, unsigned int);
 extern rtx has_hard_reg_initial_val (enum machine_mode, unsigned int);
 /* If a pseudo represents an initial hard reg (or expression), return
@@ -27,7 +25,6 @@ extern rtx has_hard_reg_initial_val (enum machine_mode, unsigned int);
 extern rtx get_hard_reg_initial_reg (rtx);
 /* Called from rest_of_compilation.  */
 extern unsigned int emit_initial_value_sets (void);
-extern void allocate_initial_values (rtx *);
 
 /* Check whether there's any attribute in a function declaration that
    makes the function uninlinable.  Returns false if it finds any,

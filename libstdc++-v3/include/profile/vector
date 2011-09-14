@@ -1,6 +1,6 @@
 // Profiling vector implementation -*- C++ -*-
 
-// Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -39,16 +39,16 @@
 #include <profile/base.h>
 #include <profile/iterator_tracker.h>
 
-namespace std
+namespace std _GLIBCXX_VISIBILITY(default)
 {
 namespace __profile
 {
   template<typename _Tp,
 	   typename _Allocator = std::allocator<_Tp> >
     class vector
-    : public _GLIBCXX_STD_PR::vector<_Tp, _Allocator>
+    : public _GLIBCXX_STD_C::vector<_Tp, _Allocator>
     {
-      typedef _GLIBCXX_STD_PR::vector<_Tp, _Allocator> _Base;
+      typedef _GLIBCXX_STD_C::vector<_Tp, _Allocator> _Base;
 
     public:
       typedef typename _Base::reference             reference;
@@ -70,39 +70,59 @@ namespace __profile
       typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
       
       _Base&
-      _M_base()       { return *this; }
+      _M_base() _GLIBCXX_NOEXCEPT { return *this; }
 
       const _Base&
-      _M_base() const { return *this; }
+      _M_base() const _GLIBCXX_NOEXCEPT { return *this; }
 
       // 23.2.4.1 construct/copy/destroy:
-      explicit vector(const _Allocator& __a = _Allocator())
+      explicit
+      vector(const _Allocator& __a = _Allocator())
       : _Base(__a)
-      { 
+      {
         __profcxx_vector_construct(this, this->capacity());
         __profcxx_vector_construct2(this);
       }
 
-      explicit vector(size_type __n, const _Tp& __value = _Tp(),
-		      const _Allocator& __a = _Allocator())
-      :  _Base(__n, __value, __a)
-      { 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      explicit
+      vector(size_type __n)
+      : _Base(__n)
+      {
         __profcxx_vector_construct(this, this->capacity());
         __profcxx_vector_construct2(this);
       }
+
+      vector(size_type __n, const _Tp& __value,
+	     const _Allocator& __a = _Allocator())
+      :  _Base(__n, __value, __a)
+      {
+        __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
+      }
+#else
+      explicit
+      vector(size_type __n, const _Tp& __value = _Tp(),
+	     const _Allocator& __a = _Allocator())
+      : _Base(__n, __value, __a)
+      {
+        __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
+      }
+#endif
 
       template<class _InputIterator>
         vector(_InputIterator __first, _InputIterator __last,
 	       const _Allocator& __a = _Allocator())
 	: _Base(__first, __last, __a)
-      { 
-        __profcxx_vector_construct(this, this->capacity());
-        __profcxx_vector_construct2(this);
-      }
+        {
+	  __profcxx_vector_construct(this, this->capacity());
+	  __profcxx_vector_construct2(this);
+	}
 
       vector(const vector& __x)
       : _Base(__x) 
-      { 
+      {
         __profcxx_vector_construct(this, this->capacity());
         __profcxx_vector_construct2(this);
       }
@@ -116,8 +136,8 @@ namespace __profile
       }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-      vector(vector&& __x)
-      : _Base(std::forward<vector>(__x))
+      vector(vector&& __x) noexcept
+      : _Base(std::move(__x))
       {
         __profcxx_vector_construct(this, this->capacity());
         __profcxx_vector_construct2(this);
@@ -128,7 +148,8 @@ namespace __profile
       : _Base(__l, __a) { }
 #endif
 
-      ~vector() {
+      ~vector() _GLIBCXX_NOEXCEPT
+      {
         __profcxx_vector_destruct(this, this->capacity(), this->size());
         __profcxx_vector_destruct2(this);
       }
@@ -165,52 +186,52 @@ namespace __profile
 
       // iterators:
       iterator
-      begin()
+      begin() _GLIBCXX_NOEXCEPT
       { return iterator(_Base::begin(), this); }
 
       const_iterator
-      begin() const
+      begin() const _GLIBCXX_NOEXCEPT
       { return const_iterator(_Base::begin(), this); }
 
       iterator
-      end()
+      end() _GLIBCXX_NOEXCEPT
       { return iterator(_Base::end(), this); }
 
       const_iterator
-      end() const
+      end() const _GLIBCXX_NOEXCEPT
       { return const_iterator(_Base::end(), this); }
 
       reverse_iterator
-      rbegin()
+      rbegin() _GLIBCXX_NOEXCEPT
       { return reverse_iterator(end()); }
 
       const_reverse_iterator
-      rbegin() const
+      rbegin() const _GLIBCXX_NOEXCEPT
       { return const_reverse_iterator(end()); }
 
       reverse_iterator
-      rend()
+      rend() _GLIBCXX_NOEXCEPT
       { return reverse_iterator(begin()); }
 
       const_reverse_iterator
-      rend() const
+      rend() const _GLIBCXX_NOEXCEPT
       { return const_reverse_iterator(begin()); }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       const_iterator
-      cbegin() const
+      cbegin() const noexcept
       { return const_iterator(_Base::begin(), this); }
 
       const_iterator
-      cend() const
+      cend() const noexcept
       { return const_iterator(_Base::end(), this); }
 
       const_reverse_iterator
-      crbegin() const
+      crbegin() const noexcept
       { return const_reverse_iterator(end()); }
 
       const_reverse_iterator
-      crend() const
+      crend() const noexcept
       { return const_reverse_iterator(begin()); }
 #endif
 
@@ -218,6 +239,23 @@ namespace __profile
       using _Base::size;
       using _Base::max_size;
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      resize(size_type __sz)
+      {
+        __profcxx_vector_invalid_operator(this);
+        _M_profile_resize(this, this->capacity(), __sz);
+        _Base::resize(__sz);
+      }
+
+      void
+      resize(size_type __sz, const _Tp& __c)
+      {
+        __profcxx_vector_invalid_operator(this);
+        _M_profile_resize(this, this->capacity(), __sz);
+        _Base::resize(__sz, __c);
+      }
+#else
       void
       resize(size_type __sz, _Tp __c = _Tp())
       {
@@ -225,6 +263,7 @@ namespace __profile
         _M_profile_resize(this, this->capacity(), __sz);
         _Base::resize(__sz, __c);
       }
+#endif
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       using _Base::shrink_to_fit;
@@ -379,7 +418,7 @@ namespace __profile
       }
 
       void
-      clear()
+      clear() _GLIBCXX_NOEXCEPT
       {
         __profcxx_vector_destruct(this, this->capacity(), this->size());
         __profcxx_vector_destruct2(this);
@@ -467,11 +506,11 @@ namespace __profile
   /// std::hash specialization for vector<bool>.
   template<typename _Alloc>
     struct hash<__profile::vector<bool, _Alloc>>
-    : public std::unary_function<__profile::vector<bool, _Alloc>, size_t>
+    : public __hash_base<size_t, __profile::vector<bool, _Alloc>>
     {
       size_t
       operator()(const __profile::vector<bool, _Alloc>& __b) const
-      { return std::hash<_GLIBCXX_STD_D::vector<bool, _Alloc>>()
+      { return std::hash<_GLIBCXX_STD_C::vector<bool, _Alloc>>()
 	  (__b._M_base()); }
     };
 #endif

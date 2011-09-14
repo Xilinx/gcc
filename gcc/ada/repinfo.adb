@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1999-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -403,7 +403,6 @@ package body Repinfo is
                   if List_Representation_Info >= 2 then
                      List_Object_Info (E);
                   end if;
-
                end if;
 
                --  Recurse into nested package, but not if they are package
@@ -666,19 +665,36 @@ package body Repinfo is
       Write_Str ("  convention : ");
 
       case Convention (Ent) is
-         when Convention_Ada       => Write_Line ("Ada");
-         when Convention_Intrinsic => Write_Line ("InLineinsic");
-         when Convention_Entry     => Write_Line ("Entry");
-         when Convention_Protected => Write_Line ("Protected");
-         when Convention_Assembler => Write_Line ("Assembler");
-         when Convention_C         => Write_Line ("C");
-         when Convention_CIL       => Write_Line ("CIL");
-         when Convention_COBOL     => Write_Line ("COBOL");
-         when Convention_CPP       => Write_Line ("C++");
-         when Convention_Fortran   => Write_Line ("Fortran");
-         when Convention_Java      => Write_Line ("Java");
-         when Convention_Stdcall   => Write_Line ("Stdcall");
-         when Convention_Stubbed   => Write_Line ("Stubbed");
+         when Convention_Ada                   =>
+            Write_Line ("Ada");
+         when Convention_Ada_Pass_By_Copy      =>
+            Write_Line ("Ada_Pass_By_Copy");
+         when Convention_Ada_Pass_By_Reference =>
+            Write_Line ("Ada_Pass_By_Reference");
+         when Convention_Intrinsic             =>
+            Write_Line ("Intrinsic");
+         when Convention_Entry                 =>
+            Write_Line ("Entry");
+         when Convention_Protected             =>
+            Write_Line ("Protected");
+         when Convention_Assembler             =>
+            Write_Line ("Assembler");
+         when Convention_C                     =>
+            Write_Line ("C");
+         when Convention_CIL                   =>
+            Write_Line ("CIL");
+         when Convention_COBOL                 =>
+            Write_Line ("COBOL");
+         when Convention_CPP                   =>
+            Write_Line ("C++");
+         when Convention_Fortran               =>
+            Write_Line ("Fortran");
+         when Convention_Java                  =>
+            Write_Line ("Java");
+         when Convention_Stdcall               =>
+            Write_Line ("Stdcall");
+         when Convention_Stubbed               =>
+            Write_Line ("Stubbed");
       end case;
 
       --  Find max length of formal name
@@ -1055,6 +1071,39 @@ package body Repinfo is
       Write_Str ("'Alignment use ");
       Write_Val (Alignment (Ent));
       Write_Line (";");
+
+      --  Special stuff for fixed-point
+
+      if Is_Fixed_Point_Type (Ent) then
+
+         --  Write small (always a static constant)
+
+         Write_Str ("for ");
+         List_Name (Ent);
+         Write_Str ("'Small use ");
+         UR_Write (Small_Value (Ent));
+         Write_Line (";");
+
+         --  Write range if static
+
+         declare
+            R : constant Node_Id := Scalar_Range (Ent);
+
+         begin
+            if Nkind (Low_Bound (R)) = N_Real_Literal
+                 and then
+               Nkind (High_Bound (R)) = N_Real_Literal
+            then
+               Write_Str ("for ");
+               List_Name (Ent);
+               Write_Str ("'Range use ");
+               UR_Write (Realval (Low_Bound (R)));
+               Write_Str (" .. ");
+               UR_Write (Realval (High_Bound (R)));
+               Write_Line (";");
+            end if;
+         end;
+      end if;
    end List_Type_Info;
 
    ----------------------
@@ -1088,8 +1137,8 @@ package body Repinfo is
       --  Internal recursive routine to evaluate tree
 
       function W (Val : Uint) return Word;
-      --  Convert Val to Word, assuming Val is always in the Int range. This is
-      --  a helper function for the evaluation of bitwise expressions like
+      --  Convert Val to Word, assuming Val is always in the Int range. This
+      --  is a helper function for the evaluation of bitwise expressions like
       --  Bit_And_Expr, for which there is no direct support in uintp. Uint
       --  values out of the Int range are expected to be seen in such
       --  expressions only with overflowing byte sizes around, introducing

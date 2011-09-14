@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,9 +29,14 @@
 with Namet; use Namet;
 with Types; use Types;
 
-with System.Storage_Elements;
-with System.OS_Lib;           use System.OS_Lib;
 with System;                  use System;
+
+pragma Warnings (Off);
+--  This package is used also by gnatcoll
+with System.OS_Lib;           use System.OS_Lib;
+pragma Warnings (On);
+
+with System.Storage_Elements;
 
 pragma Elaborate_All (System.OS_Lib);
 --  For the call to function Get_Target_Object_Suffix in the private part
@@ -39,9 +44,8 @@ pragma Elaborate_All (System.OS_Lib);
 package Osint is
 
    Multi_Unit_Index_Character : Character := '~';
-   --  The character before the index of the unit in a multi-unit source, in
-   --  ALI and object file names. This is not a constant, because it is changed
-   --  to '$' on VMS.
+   --  The character before the index of the unit in a multi-unit source in ALI
+   --  and object file names. Changed to '$' on VMS.
 
    Ada_Include_Path          : constant String := "ADA_INCLUDE_PATH";
    Ada_Objects_Path          : constant String := "ADA_OBJECTS_PATH";
@@ -80,7 +84,7 @@ package Osint is
                                  Get_File_Names_Case_Sensitive /= 0;
    --  Set to indicate whether the operating system convention is for file
    --  names to be case sensitive (e.g., in Unix, set True), or non case
-   --  sensitive (e.g., in OS/2, set False).
+   --  sensitive (e.g., in Windows, set False).
 
    procedure Canonical_Case_File_Name (S : in out String);
    --  Given a file name, converts it to canonical case form. For systems
@@ -89,6 +93,23 @@ package Osint is
    --  the file "xyz.adb", you can refer to it as XYZ.adb or XyZ.AdB), then
    --  this call converts the given string to canonical all lower case form,
    --  so that two file names compare equal if they refer to the same file.
+
+   function Get_Env_Vars_Case_Sensitive return Int;
+   pragma Import (C, Get_Env_Vars_Case_Sensitive,
+                  "__gnat_get_env_vars_case_sensitive");
+   Env_Vars_Case_Sensitive : constant Boolean :=
+                                 Get_Env_Vars_Case_Sensitive /= 0;
+   --  Set to indicate whether the operating system convention is for
+   --  environment variable names to be case sensitive (e.g., in Unix, set
+   --  True), or non case sensitive (e.g., in Windows, set False).
+
+   procedure Canonical_Case_Env_Var_Name (S : in out String);
+   --  Given an environment variable name, converts it to canonical case form.
+   --  For systems where environment variable names are case sensitive, this
+   --  procedure has no effect. If environment variable names are not case
+   --  sensitive, then this call converts the given string to canonical all
+   --  lower case form, so that two environment variable names compare equal if
+   --  they refer to the same environment variable.
 
    function Number_Of_Files return Int;
    --  Gives the total number of filenames found on the command line

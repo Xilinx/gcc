@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -116,7 +116,7 @@ package Lib.Writ is
    --  -- M  Main Program --
    --  ---------------------
 
-   --    M type [priority] [T=time-slice] W=?
+   --    M type [priority] [T=time-slice] [AB] [C=cpu] W=?
 
    --      This line appears only if the main unit for this file is suitable
    --      for use as a main program. The parameters are:
@@ -140,6 +140,20 @@ package Lib.Writ is
    --          range 0 .. 10**9 giving the time slice value in units of
    --          milliseconds. The actual significance of this parameter is
    --          target dependent.
+
+   --        AB
+
+   --          Present if there is an allocator in the body of the procedure
+   --          after the BEGIN. This will be a violation of the restriction
+   --          No_Allocators_After_Elaboration if it is present, and this
+   --          unit is used as a main program (only the binder can find the
+   --          violation, since only the binder knows the main program).
+
+   --        C=cpu
+
+   --          Present only if there was a valid pragma CPU in the
+   --          corresponding unit to set the main task affinity. It is an
+   --          unsigned decimal integer.
 
    --        W=?
 
@@ -483,6 +497,8 @@ package Lib.Writ is
    --              units in this file. All files in the partition that specify
    --              a default must specify the same default.
    --
+   --         PF  The unit has a library-level (package) finalizer
+   --
    --         PK  Unit is package, rather than a subprogram
    --
    --         PU  Unit has pragma Pure
@@ -571,13 +587,47 @@ package Lib.Writ is
    --      source file, so that this order is preserved by the binder in
    --      constructing the set of linker arguments.
 
+   --  --------------
+   --  -- N  Notes --
+   --  --------------
+
+   --  The final section of unit-specific lines contains notes which record
+   --  annotations inserted in source code for processing by external tools
+   --  using pragmas. For each occurrence of any of these pragmas, a line is
+   --  generated with the following syntax:
+
+   --    N x<sloc> [<arg_id>:]<arg> ...
+
+   --      x is one of:
+   --        A  pragma Annotate
+   --        C  pragma Comment
+   --        I  pragma Ident
+   --        T  pragma Title
+   --        S  pragma Subtitle
+
+   --      <sloc> is the source location of the pragma in line:col format
+
+   --      Successive entries record the pragma_argument_associations.
+
+   --        If a pragma argument identifier is present, the entry is prefixed
+   --        with the pragma argument identifier <arg_id> followed by a colon.
+
+   --        <arg> represents the pragma argument, and has the following
+   --        conventions:
+
+   --          - identifiers are output verbatim
+   --          - static string expressions are output as literals encoded as
+   --            for L lines
+   --          - static integer expressions are output as decimal literals
+   --          - any other expression is replaced by the placeholder "<expr>"
+
    ---------------------
    -- Reference Lines --
    ---------------------
 
    --  The reference lines contain information about references from any of the
-   --  units in the compilation (including, body version and version
-   --  attributes, linker options pragmas and source dependencies.
+   --  units in the compilation (including body version and version attributes,
+   --  linker options pragmas and source dependencies).
 
    --  ------------------------------------
    --  -- E  External Version References --
@@ -654,40 +704,6 @@ package Lib.Writ is
    --  The cross-reference data follows the dependency lines. See the spec of
    --  Lib.Xref for details on the format of this data.
 
-   --  --------------
-   --  -- N  Notes --
-   --  --------------
-
-   --  The note lines record annotations inserted in source code for processing
-   --  by external tools using pragmas. For each occurrence of any of these
-   --  pragmas, a line is generated with the following syntax:
-
-   --    N <dep>x<sloc> [<arg_id>:]<arg> ...
-
-   --  x is one of:
-   --    A  pragma Annotate
-   --    C  pragma Comment
-   --    I  pragma Ident
-   --    T  pragma Title
-   --    S  pragma Subtitle
-
-   --  <dep>  is the source file containing the pragma by its dependency index
-   --         (first D line has index 1)
-   --  <sloc> is the source location of the pragma
-
-   --  Successive entries record the pragma_argument_associations.
-
-   --  For a named association, the entry is prefixed with the pragma argument
-   --  identifier <arg_id> followed by a colon.
-
-   --  <arg> represents the pragma argument, and has the following conventions:
-
-   --   - identifiers are output verbatim
-   --   - static string expressions are output as literals encoded as for
-   --       L lines
-   --   - static integer expressions are output as decimal literals
-   --   - any other expression is replaced by the placeholder "<expr>"
-
    ---------------------------------
    -- Source Coverage Obligations --
    ---------------------------------
@@ -696,14 +712,20 @@ package Lib.Writ is
    --  reference data. See the spec of Par_SCO for full details of the format.
 
    ----------------------
-   -- Global_Variables --
+   -- Alfa Information --
    ----------------------
 
-   --  The table structure defined here stores one entry for each
-   --  Interrupt_State pragma encountered either in the main source or
-   --  in an ancillary with'ed source. Since interrupt state values
-   --  have to be consistent across all units in a partition, we may
-   --  as well detect inconsistencies at compile time when we can.
+   --  The Alfa information follows the SCO information. See the spec of Alfa
+   --  for full details of the format.
+
+   ----------------------
+   -- Global Variables --
+   ----------------------
+
+   --  The table defined here stores one entry for each Interrupt_State pragma
+   --  encountered either in the main source or in an ancillary with'ed source.
+   --  Since interrupt state values have to be consistent across all units in a
+   --  partition, we detect inconsistencies at compile time when we can.
 
    type Interrupt_State_Entry is record
       Interrupt_Number : Pos;

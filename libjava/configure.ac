@@ -151,7 +151,7 @@ AC_PROG_CC
 AC_PROG_CXX
 CXXFLAGS="$save_CXXFLAGS"
 
-AM_INIT_AUTOMAKE([1.9.0])
+AM_INIT_AUTOMAKE([no-dist 1.9.0])
 
 AC_CHECK_TOOL(AS, as)
 AC_CHECK_TOOL(LD, ld)
@@ -166,7 +166,7 @@ AC_PATH_PROG([UNZIP], [unzip], unzip)
 # We need a jar that supports -@.  This is a GNU extension.
 if test "$JAR" != no; then
    rm -f config-test.jar
-   echo $srcdir/configure.ac | $JAR -cf@ config-test.jar
+   echo $srcdir/configure.ac | $JAR -cf@ config-test.jar >/dev/null 2>&1
    if test -f config-test.jar; then
      rm -f config-test.jar
    else
@@ -214,6 +214,16 @@ if test -z "$libgcj_ld_symbolic"; then
   libgcj_ld_symbolic=$SYMBOLIC_LDFLAGS
 fi
 
+# for windows native targets enforce export of all symbols for shared libgcj.
+libgcj_ld_export_all=
+case "$host" in
+      *mingw*)
+	libgcj_ld_export_all=-Wl,--export-all-symbols
+	;;
+      *)
+        ;;
+esac
+
 LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
@@ -221,6 +231,7 @@ LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
 LIBGCJ_SUBLIB_CORE_EXTRA_DEPS="${libgcj_sublib_core_extra_deps}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
+LIBGCJ_LD_EXPORT_ALL="${libgcj_ld_export_all}"
 AC_SUBST(LIBGCJ_CFLAGS)
 AC_SUBST(LIBGCJ_CXXFLAGS)
 AC_SUBST(LIBGCJ_JAVAFLAGS)
@@ -228,6 +239,7 @@ AC_SUBST(LIBGCJ_SUBLIB_LTFLAGS)
 AC_SUBST(LIBGCJ_SUBLIB_CORE_EXTRA_DEPS)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+AC_SUBST(LIBGCJ_LD_EXPORT_ALL)
 
 # Only use libltdl for non-newlib builds.
 if test "x${with_newlib}" = "x" || test "x${with_newlib}" = "xno"; then
@@ -394,7 +406,8 @@ NATIVE=yes
 # Which gcj and host gcj (for ecjx) do we use?
 which_gcj=default
 host_exeext=${ac_exeext}
-GCJ_FOR_ECJX=
+GCJ_FOR_ECJX='$(GCJ)'
+GCC_FOR_ECJX='$(CXX)'
 built_gcc_dir="`cd ${builddotdot}/../../${host_subdir}/gcc && ${PWDCMD-pwd}`"
 if test -n "${with_cross_host}"; then
   # We are being configured with a cross compiler. We can't
@@ -402,6 +415,7 @@ if test -n "${with_cross_host}"; then
   NATIVE=no
   cross_host_exeext=
   GCJ_FOR_ECJX="${with_cross_host}-gcj"
+  GCC_FOR_ECJX="${with_cross_host}-gcc"
   case "${with_cross_host}" in
      *mingw* | *cygwin*)
          cross_host_exeext=.exe
@@ -455,7 +469,7 @@ case "${which_gcj}" in
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
-         GCC_UNWIND_INCLUDE=
+         LIBGCC_UNWIND_INCLUDE=
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
@@ -467,6 +481,7 @@ JAVAC="$GCJ -C"
 export JAVAC
 
 AC_SUBST(GCJ_FOR_ECJX)
+AC_SUBST(GCC_FOR_ECJX)
 AC_SUBST(GCJH)
 AC_SUBST(host_exeext)
 
@@ -544,6 +559,7 @@ AC_SUBST(INCLTDL)
 AC_SUBST(LIBLTDL)
 AC_SUBST(DIRLTDL)
 AC_PROG_LIBTOOL
+ACX_LT_HOST_FLAGS
 AM_PROG_GCJ
 AM_PROG_CC_C_O
 
@@ -882,8 +898,13 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
-    *-*-darwin[[912]]*)
-      SYSTEMSPEC="-allow_stack_execute"
+    *-*-darwin9*)
+      SYSTEMSPEC="%{!Zdynamiclib:%{!Zbundle:-allow_stack_execute}}"
+    ;;
+    *-*-darwin[[12]]*)
+      # Something is incompatible with pie, would be nice to fix it and
+      # remove -no_pie.  PR49461
+      SYSTEMSPEC="-no_pie %{!Zdynamiclib:%{!Zbundle:-allow_stack_execute}}"
     ;;
     *)
       SYSTEMSPEC=
@@ -926,10 +947,47 @@ arm*linux*eabi)
 *-*-cygwin)
     extra_ldflags_libjava=-liconv
     ;;
+*-*-mingw*)
+    extra_ldflags_libjava=-lws2_32
+    ;;
 esac
+
+LIBMATHSPEC=
+# extra LD Flags which are required for targets
+case "${host}" in
+*-*-darwin*)
+     ;;
+*)
+     LIBMATHSPEC=-lm
+     ;;
+esac
+
+# Check for --no-merge-exidx-entries, an ARM-specific linker option.
+AC_CACHE_CHECK([for --no-merge-exidx-entries], [libgcj_cv_exidx],
+  [saved_ldflags="$LDFLAGS"
+   LDFLAGS="${LDFLAGS} -Wl,--no-merge-exidx-entries"
+   # The IRIX 6 ld doesn't recognize --no-merge-exidx-entries, but only
+   # warns about unknown options, which breaks the testsuite.  So enable
+   # AC_LANG_WERROR, but there's currently (autoconf 2.64) no way to turn
+   # it off again.  As a workaround, save and restore werror flag like
+   # AC_PATH_XTRA.
+   ac_xsave_[]_AC_LANG_ABBREV[]_werror_flag=$ac_[]_AC_LANG_ABBREV[]_werror_flag
+   AC_LANG_WERROR
+   AC_LINK_IFELSE([int main(void){ return 0;} ],
+		      [eval "libgcj_cv_exidx=yes"],
+		      [eval "libgcj_cv_exidx=no"])
+   ac_[]_AC_LANG_ABBREV[]_werror_flag=$ac_xsave_[]_AC_LANG_ABBREV[]_werror_flag
+   LDFLAGS="${saved_ldflags}"]
+)
+if test "${libgcj_cv_exidx}" = "yes"; then
+  SYSTEMSPEC="${SYSTEMSPEC} --no-merge-exidx-entries"
+  extra_ldflags="${extra_ldflags} -Wl,--no-merge-exidx-entries"
+fi   
+
 AC_SUBST(extra_ldflags_libjava)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
+AC_SUBST(LIBMATHSPEC)
 
 AC_SUBST(LIBGCJTESTSPEC)
 
@@ -985,7 +1043,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- aix | posix | posix95 | pthreads)
+ aix | posix | pthreads)
     THREADS=posix
     case "$host" in
      *-*-linux*)
@@ -995,7 +1053,7 @@ case "$THREADS" in
     ;;
  win32)
     ;;
- decosf1 | irix | mach | os2 | solaris | dce | vxworks)
+ dce | vxworks)
     AC_MSG_ERROR(thread package $THREADS not yet supported)
     ;;
  *)
@@ -1040,6 +1098,23 @@ case "$THREADS" in
 	# boehm-gc needs some functions from librt, so link that too.
 	THREADLIBS='-lpthread -lrt'
 	THREADSPEC='-lpthread -lrt'
+	;;
+     *-*-solaris2.8)
+	# Always use alternate thread library on Solaris 8.  Need libthread
+	# for TLS support.
+	# Need -Wl,-R to get it through libtool ...
+	THREADLIBS='-L/usr/lib/lwp$(MULTISUBDIR) -Wl,-R -Wl,/usr/lib/lwp$(MULTISUBDIR) -lpthread -lthread'
+	# ... while ld only accepts -R.
+	THREADSPEC='-L/usr/lib/lwp%{m64:/64} -R/usr/lib/lwp%{m64:/64} -lpthread -lthread'
+        ;;
+     *-*-solaris2.9)
+	# As on Solaris 8, need libthread for TLS support.
+	THREADLIBS='-lpthread -lthread'
+	THREADSPEC='-lpthread -lthread'
+	;;
+     *-*-darwin*)
+	# Don't set THREADLIBS or THREADSPEC as Darwin already
+	# provides pthread via libSystem.
 	;;
      *)
 	THREADLIBS=-lpthread
@@ -1129,8 +1204,8 @@ AC_SUBST(HASH_SYNC_SPEC)
 
 AM_CONDITIONAL(USING_GCC, test "$GCC" = yes)
 
-# We're in the tree with gcc, and need to include some of its headers.
-GCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../gcc'
+# We're in the tree with libgcc, and need to include some of its headers.
+LIBGCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../libgcc'
 
 if test "x${with_newlib}" = "xyes"; then
    # We are being configured with a cross compiler.  AC_REPLACE_FUNCS
@@ -1185,6 +1260,8 @@ else
    AM_ICONV
    AM_LC_MESSAGES
    AC_STRUCT_TIMEZONE
+   LDLIBICONV=`echo " $LIBICONV " | sed "s/${acl_cv_wl--Wl,}/ /g; s/,/ /g"`
+   AC_SUBST([LDLIBICONV])
 
    AC_CHECK_FUNCS(gethostbyname_r, [
      AC_DEFINE(HAVE_GETHOSTBYNAME_R, 1,
@@ -1405,13 +1482,14 @@ else
    if test "$GC" = boehm; then
       case "${host}" in
           mips-sgi-irix6*)
-	    # IRIX 6 lacks a N64 libdl.so, but only the N32 (default multilib)
-	    # libgcj.spec is used, so override here
-	    SYSTEMSPEC="$SYSTEMSPEC %{!mabi=64:-ldl}"
-	  ;;
+	    # While IRIX 6 has libdl for the O32 and N32 ABIs, the N64 one is
+	    # missing.  It's unnecessary anyway since dlopen lives in libc.
+	    ;;
+	  *-*-darwin*)
+	    ;;
 	  *)
             AC_CHECK_LIB(dl, main, SYSTEMSPEC="$SYSTEMSPEC -ldl")
-	  ;;
+	    ;;
       esac
    fi
 fi
@@ -1491,7 +1569,7 @@ AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
 AM_CONDITIONAL(NEEDS_DATA_START, test "$NEEDS_DATA_START" = yes && test "$NATIVE" = yes)
 AM_CONDITIONAL(INSTALL_BINARIES, test -z "${with_multisubdir}")
-AC_SUBST(GCC_UNWIND_INCLUDE)
+AC_SUBST(LIBGCC_UNWIND_INCLUDE)
 
 # Process the option "--enable-version-specific-runtime-libs"
 # Calculate toolexeclibdir
@@ -1654,11 +1732,11 @@ SYSDEP_SOURCES=
 SIGNAL_HANDLER_AUX=
 
 case "${host}" in
+ alpha*-dec-osf* | mips-sgi-irix* | *-*-solaris2*)
+    SIGNAL_HANDLER=include/posix-signal.h
+    ;;
  i?86-*-linux*)
     SIGNAL_HANDLER=include/i386-signal.h
-    ;;
- sparc*-sun-solaris*)
-    SIGNAL_HANDLER=include/sparc-signal.h
     ;;
 # ia64-*)
 #    SYSDEP_SOURCES=sysdep/ia64.c
@@ -1742,21 +1820,48 @@ GCC_CHECK_UNWIND_GETIPINFO
 # See if linker supports anonymous version scripts.
 AC_CACHE_CHECK([whether ld supports anonymous version scripts],
   [libjava_cv_anon_version_script],
-  [save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
-   libjava_cv_anon_version_script=no
-   CFLAGS="$CFLAGS -fPIC"; LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
-   echo '{ global: globalsymb*; local: *; };' > conftest.map
-   AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
-	       [libjava_cv_anon_version_script=yes], [])
-   CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
+  [AC_ARG_ENABLE(symvers,
+     AS_HELP_STRING([--disable-symvers],
+		    [disable symbol versioning for libjava]),
+       [case "$enableval" in
+         yes) libjava_cv_anon_version_script=yes ;;
+         no)  libjava_cv_anon_version_script=no ;;
+         *)   AC_MSG_ERROR([Unknown argument to enable/disable symvers]);;
+        esac],
+       [libjava_cv_anon_version_script=yes]
+   )
+   if test x$libjava_cv_anon_version_script = xyes; then
+     save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
+     CFLAGS="$CFLAGS -fPIC";
+     LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
+     echo '{ global: globalsymb*; local: *; };' > conftest.map
+     AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
+	         [libjava_cv_anon_version_script=gnu],
+		 [libjava_cv_anon_version_script=no])
+     if test x$libjava_cv_anon_version_script = xno; then
+       case "$target_os" in
+         solaris2*)
+           LDFLAGS="$save_LDFLAGS"
+           LDFLAGS="$LDFLAGS -shared -Wl,-M,conftest.map"
+           # Sun ld doesn't understand wildcards here.
+           echo '{ global: globalsymbol; local: *; };' > conftest.map
+           AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
+	 	       [libjava_cv_anon_version_script=sun], [])
+           ;;
+       esac
+     fi
+     CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
+   fi
   ])
-AM_CONDITIONAL(ANONVERSCRIPT, test "$libjava_cv_anon_version_script" = yes)
+AM_CONDITIONAL(ANONVERSCRIPT, test "$libjava_cv_anon_version_script" != no)
+AM_CONDITIONAL(ANONVERSCRIPT_GNU, test "$libjava_cv_anon_version_script" = gnu)
+AM_CONDITIONAL(ANONVERSCRIPT_SUN, test "$libjava_cv_anon_version_script" = sun)
 
 # Check if linker supports static linking on a per library basis
 LD_START_STATIC_SPEC=
 LD_FINISH_STATIC_SPEC=
-if $LD --help 2>&1 | grep -q -e -call_shared ; then
-  if $LD --help 2>&1 | grep -q -e -non_shared ; then
+if $LD --help 2>&1 | grep -- -call_shared >/dev/null 2>&1; then
+  if $LD --help 2>&1 | grep -- -non_shared >/dev/null 2>&1; then
     LD_START_STATIC_SPEC='%{static-libgcj:-non_shared}'
     LD_FINISH_STATIC_SPEC='%{static-libgcj:-call_shared}'
   fi
@@ -1770,21 +1875,18 @@ AC_SUBST(here)
 # We get this from the environment.
 AC_SUBST(GCJFLAGS)
 
+default_python_dir="/share/gcc-`cat ${srcdir}/../gcc/BASE-VER`/python/libjava"
 AC_ARG_WITH([python-dir],
             AS_HELP_STRING([--with-python-dir],
                            [the location to install Python modules. This path should NOT include the prefix.]),
-            [with_python_dir=$withval], [with_python_dir=""])
+            [with_python_dir=$withval], [with_python_dir="${default_python_dir}"])
 
-if test "x${with_python_dir}" = "x"
-then
-  # Needed for installing Python modules during make install.
-  python_mod_dir="\${prefix}/share/python"
-  # Needed for substituting into aot-compile*
-  python_mod_dir_expanded="${expanded_prefix}/share/python"
-else
-  python_mod_dir="\${prefix}${with_python_dir}"
-  python_mod_dir_expanded="${expanded_prefix}${with_python_dir}"
-fi
+# Needed for installing Python modules during make install.
+python_mod_dir="\${prefix}${with_python_dir}"
+
+# Needed for substituting into aot-compile*
+python_mod_dir_expanded="${expanded_prefix}${with_python_dir}"
+
 AC_MSG_RESULT(Python modules dir: ${python_mod_dir_expanded});
 AC_SUBST(python_mod_dir)
 AC_SUBST(python_mod_dir_expanded)

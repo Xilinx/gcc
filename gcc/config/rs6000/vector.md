@@ -3,7 +3,7 @@
 ;; expander, and the actual vector instructions will be in altivec.md and
 ;; vsx.md
 
-;; Copyright (C) 2009, 2010
+;; Copyright (C) 2009, 2010, 2011
 ;; Free Software Foundation, Inc.
 ;; Contributed by Michael Meissner <meissner@linux.vnet.ibm.com>
 
@@ -74,8 +74,19 @@
 			   (V2DF  "V2DI")])
 
 ;; constants for unspec
-(define_constants
-  [(UNSPEC_PREDICATE	400)])
+(define_c_enum "unspec" [UNSPEC_PREDICATE
+			 UNSPEC_REDUC])
+
+;; Vector reduction code iterators
+(define_code_iterator VEC_reduc [plus smin smax])
+
+(define_code_attr VEC_reduc_name [(plus "splus")
+				  (smin "smin")
+				  (smax "smax")])
+
+(define_code_attr VEC_reduc_rtx [(plus "add")
+				 (smin "smin")
+				 (smax "smax")])
 
 
 ;; Vector move instructions.
@@ -122,6 +133,43 @@
   rs6000_split_multireg_move (operands[0], operands[1]);
   DONE;
 })
+
+;; Vector floating point load/store instructions that uses the Altivec
+;; instructions even if we are compiling for VSX, since the Altivec
+;; instructions silently ignore the bottom 3 bits of the address, and VSX does
+;; not.
+(define_expand "vector_altivec_load_<mode>"
+  [(set (match_operand:VEC_M 0 "vfloat_operand" "")
+	(match_operand:VEC_M 1 "memory_operand" ""))]
+  "VECTOR_MEM_ALTIVEC_OR_VSX_P (<MODE>mode)"
+  "
+{
+  gcc_assert (VECTOR_MEM_ALTIVEC_OR_VSX_P (<MODE>mode));
+
+  if (VECTOR_MEM_VSX_P (<MODE>mode))
+    {
+      operands[1] = rs6000_address_for_altivec (operands[1]);
+      emit_insn (gen_altivec_lvx_<mode> (operands[0], operands[1]));
+      DONE;
+    }
+}")
+
+(define_expand "vector_altivec_store_<mode>"
+  [(set (match_operand:VEC_M 0 "memory_operand" "")
+	(match_operand:VEC_M 1 "vfloat_operand" ""))]
+  "VECTOR_MEM_ALTIVEC_OR_VSX_P (<MODE>mode)"
+  "
+{
+  gcc_assert (VECTOR_MEM_ALTIVEC_OR_VSX_P (<MODE>mode));
+
+  if (VECTOR_MEM_VSX_P (<MODE>mode))
+    {
+      operands[0] = rs6000_address_for_altivec (operands[0]);
+      emit_insn (gen_altivec_stvx_<mode> (operands[0], operands[1]));
+      DONE;
+    }
+}")
+
 
 
 ;; Reload patterns for vector operations.  We may need an addtional base
@@ -202,16 +250,14 @@
   [(set (match_operand:VEC_F 0 "vfloat_operand" "")
 	(mult:VEC_F (match_operand:VEC_F 1 "vfloat_operand" "")
 		    (match_operand:VEC_F 2 "vfloat_operand" "")))]
-  "(VECTOR_UNIT_VSX_P (<MODE>mode)
-    || (VECTOR_UNIT_ALTIVEC_P (<MODE>mode) && TARGET_FUSED_MADD))"
-  "
+  "VECTOR_UNIT_VSX_P (<MODE>mode) || VECTOR_UNIT_ALTIVEC_P (<MODE>mode)"
 {
   if (<MODE>mode == V4SFmode && VECTOR_UNIT_ALTIVEC_P (<MODE>mode))
     {
       emit_insn (gen_altivec_mulv4sf3 (operands[0], operands[1], operands[2]));
       DONE;
     }
-}")
+})
 
 (define_expand "div<mode>3"
   [(set (match_operand:VEC_F 0 "vfloat_operand" "")
@@ -267,6 +313,20 @@
   "VECTOR_UNIT_VSX_P (<MODE>mode)"
   "")
 
+(define_expand "rsqrte<mode>2"
+  [(set (match_operand:VEC_F 0 "vfloat_operand" "")
+        (unspec:VEC_F [(match_operand:VEC_F 1 "vfloat_operand" "")]
+		      UNSPEC_RSQRT))]
+  "VECTOR_UNIT_ALTIVEC_OR_VSX_P (<MODE>mode)"
+  "")
+
+(define_expand "re<mode>2"
+  [(set (match_operand:VEC_F 0 "vfloat_operand" "")
+	(unspec:VEC_F [(match_operand:VEC_F 1 "vfloat_operand" "f")]
+		      UNSPEC_FRES))]
+  "VECTOR_UNIT_ALTIVEC_OR_VSX_P (<MODE>mode)"
+  "")
+
 (define_expand "ftrunc<mode>2"
   [(set (match_operand:VEC_F 0 "vfloat_operand" "")
   	(fix:VEC_F (match_operand:VEC_F 1 "vfloat_operand" "")))]
@@ -295,11 +355,8 @@
 
 (define_expand "vector_copysign<mode>3"
   [(set (match_operand:VEC_F 0 "vfloat_operand" "")
-	(if_then_else:VEC_F
-	 (ge:VEC_F (match_operand:VEC_F 2 "vfloat_operand" "")
-		   (match_dup 3))
-	 (abs:VEC_F (match_operand:VEC_F 1 "vfloat_operand" ""))
-	 (neg:VEC_F (abs:VEC_F (match_dup 1)))))]
+	(unspec:VEC_F [(match_operand:VEC_F 1 "vfloat_operand" "")
+		       (match_operand:VEC_F 2 "vfloat_operand" "")] UNSPEC_COPYSIGN))]
   "VECTOR_UNIT_ALTIVEC_OR_VSX_P (<MODE>mode)"
   "
 {
@@ -309,13 +366,11 @@
 					     operands[2]));
       DONE;
     }
-
-  operands[3] = CONST0_RTX (<MODE>mode);
 }")
 
 
 ;; Vector comparisons
-(define_expand "vcond<mode>"
+(define_expand "vcond<mode><mode>"
   [(set (match_operand:VEC_F 0 "vfloat_operand" "")
 	(if_then_else:VEC_F
 	 (match_operator 3 "comparison_operator"
@@ -333,7 +388,7 @@
     FAIL;
 }")
 
-(define_expand "vcond<mode>"
+(define_expand "vcond<mode><mode>"
   [(set (match_operand:VEC_I 0 "vint_operand" "")
 	(if_then_else:VEC_I
 	 (match_operator 3 "comparison_operator"
@@ -351,7 +406,7 @@
     FAIL;
 }")
 
-(define_expand "vcondu<mode>"
+(define_expand "vcondu<mode><mode>"
   [(set (match_operand:VEC_I 0 "vint_operand" "")
 	(if_then_else:VEC_I
 	 (match_operator 3 "comparison_operator"
@@ -410,21 +465,21 @@
   [(set (match_operand:VEC_L 0 "vlogical_operand" "")
 	(if_then_else:VEC_L
 	 (ne:CC (match_operand:VEC_L 3 "vlogical_operand" "")
-		(const_int 0))
+		(match_dup 4))
 	 (match_operand:VEC_L 2 "vlogical_operand" "")
 	 (match_operand:VEC_L 1 "vlogical_operand" "")))]
   "VECTOR_UNIT_ALTIVEC_OR_VSX_P (<MODE>mode)"
-  "")
+  "operands[4] = CONST0_RTX (<MODE>mode);")
 
 (define_expand "vector_select_<mode>_uns"
   [(set (match_operand:VEC_L 0 "vlogical_operand" "")
 	(if_then_else:VEC_L
 	 (ne:CCUNS (match_operand:VEC_L 3 "vlogical_operand" "")
-		   (const_int 0))
+		   (match_dup 4))
 	 (match_operand:VEC_L 2 "vlogical_operand" "")
 	 (match_operand:VEC_L 1 "vlogical_operand" "")))]
   "VECTOR_UNIT_ALTIVEC_OR_VSX_P (<MODE>mode)"
-  "")
+  "operands[4] = CONST0_RTX (<MODE>mode);")
 
 ;; Expansions that compare vectors producing a vector result and a predicate,
 ;; setting CR6 to indicate a combined status
@@ -828,8 +883,8 @@
 ;; Under VSX, vectors of 4/8 byte alignments do not need to be aligned
 ;; since the load already handles it.
 (define_expand "movmisalign<mode>"
- [(set (match_operand:VEC_N 0 "vfloat_operand" "")
-       (match_operand:VEC_N 1 "vfloat_operand" ""))]
+ [(set (match_operand:VEC_N 0 "nonimmediate_operand" "")
+       (match_operand:VEC_N 1 "any_operand" ""))]
  "VECTOR_MEM_VSX_P (<MODE>mode) && TARGET_ALLOW_MOVMISALIGN"
  "")
 
@@ -947,6 +1002,41 @@
 			(match_operand:VEC_I 2 "vint_operand" "")))]
   "TARGET_ALTIVEC"
   "")
+
+;; Vector reduction expanders for VSX
+
+(define_expand "reduc_<VEC_reduc_name>_v2df"
+  [(parallel [(set (match_operand:V2DF 0 "vfloat_operand" "")
+		   (VEC_reduc:V2DF
+		    (vec_concat:V2DF
+		     (vec_select:DF
+		      (match_operand:V2DF 1 "vfloat_operand" "")
+		      (parallel [(const_int 1)]))
+		     (vec_select:DF
+		      (match_dup 1)
+		      (parallel [(const_int 0)])))
+		    (match_dup 1)))
+	      (clobber (match_scratch:V2DF 2 ""))])]
+  "VECTOR_UNIT_VSX_P (V2DFmode)"
+  "")
+
+; The (VEC_reduc:V4SF
+;	(op1)
+;	(unspec:V4SF [(const_int 0)] UNSPEC_REDUC))
+;
+; is to allow us to use a code iterator, but not completely list all of the
+; vector rotates, etc. to prevent canonicalization
+
+(define_expand "reduc_<VEC_reduc_name>_v4sf"
+  [(parallel [(set (match_operand:V4SF 0 "vfloat_operand" "")
+		   (VEC_reduc:V4SF
+		    (unspec:V4SF [(const_int 0)] UNSPEC_REDUC)
+		    (match_operand:V4SF 1 "vfloat_operand" "")))
+	      (clobber (match_scratch:V4SF 2 ""))
+	      (clobber (match_scratch:V4SF 3 ""))])]
+  "VECTOR_UNIT_VSX_P (V4SFmode)"
+  "")
+
 
 ;;; Expanders for vector insn patterns shared between the SPE and TARGET_PAIRED systems.
 

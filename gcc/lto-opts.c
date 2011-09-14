@@ -1,6 +1,6 @@
 /* LTO IL options.
 
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Simon Baldwin <simonb@google.com>
 
 This file is part of GCC.
@@ -30,8 +30,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "opts.h"
 #include "options.h"
-#include "target.h"
-#include "toplev.h"
+#include "common/common-target.h"
+#include "diagnostic.h"
 #include "lto-streamer.h"
 
 /* When a file is initially compiled, the options used when generating
@@ -127,7 +127,7 @@ clear_options (VEC(opt_t, heap) **opts_p)
   int i;
   opt_t *o;
 
-  for (i = 0; VEC_iterate (opt_t, *opts_p, i, o); i++)
+  FOR_EACH_VEC_ELT (opt_t, *opts_p, i, o)
     free (o->arg);
 
   VEC_free (opt_t, heap, *opts_p);
@@ -162,18 +162,6 @@ output_string_stream (struct lto_output_stream *stream, const char *string)
     output_data_stream (stream, &flag, sizeof (flag));
 }
 
-/* Read LENGTH bytes from STREAM to ADDR.  */
-
-static void
-input_data_block (struct lto_input_block *ib, void *addr, size_t length)
-{
-  size_t i;
-  unsigned char *const buffer = (unsigned char *const) addr;
-
-  for (i = 0; i < length; i++)
-    buffer[i] = lto_input_1_unsigned (ib);
-}
-
 /* Return a string from IB.  The string is allocated, and the caller is
    responsible for freeing it.  */
 
@@ -182,15 +170,15 @@ input_string_block (struct lto_input_block *ib)
 {
   bool flag;
 
-  input_data_block (ib, &flag, sizeof (flag));
+  lto_input_data_block (ib, &flag, sizeof (flag));
   if (flag)
     {
       size_t length;
       char *string;
 
-      input_data_block (ib, &length, sizeof (length));
+      lto_input_data_block (ib, &length, sizeof (length));
       string = (char *) xcalloc (1, length + 1);
-      input_data_block (ib, string, length);
+      lto_input_data_block (ib, string, length);
 
       return string;
     }
@@ -206,7 +194,7 @@ input_string_block (struct lto_input_block *ib)
    Among others, optimization options may well be appropriate here.  */
 
 static bool
-register_user_option_p (size_t code, int type)
+register_user_option_p (size_t code, unsigned int type)
 {
   if (type == CL_TARGET)
     return true;
@@ -227,7 +215,8 @@ register_user_option_p (size_t code, int type)
    If relevant to LTO, save it in the user options vector.  */
 
 void
-lto_register_user_option (size_t code, const char *arg, int value, int type)
+lto_register_user_option (size_t code, const char *arg, int value,
+			  unsigned int type)
 {
   if (register_user_option_p (code, type))
     {
@@ -277,7 +266,7 @@ output_options (struct lto_output_stream *stream)
 
   output_data_stream (stream, &length, sizeof (length));
 
-  for (i = 0; VEC_iterate (opt_t, opts, i, o); i++)
+  FOR_EACH_VEC_ELT (opt_t, opts, i, o)
     {
       output_data_stream (stream, &o->type, sizeof (o->type));
       output_data_stream (stream, &o->code, sizeof (o->code));
@@ -293,10 +282,17 @@ output_options (struct lto_output_stream *stream)
 void
 lto_write_options (void)
 {
-  char *const section_name = lto_get_section_name (LTO_section_opts, NULL);
+  char *const section_name = lto_get_section_name (LTO_section_opts, NULL, NULL);
   struct lto_output_stream stream;
   struct lto_simple_header header;
   struct lto_output_stream *header_stream;
+
+  /* Targets and languages can provide defaults for -fexceptions but
+     we only process user options from the command-line.  Until we
+     serialize out a white list of options from the new global state
+     explicitly append important options as user options here.  */
+  if (flag_exceptions)
+    lto_register_user_option (OPT_fexceptions, NULL, 1, CL_COMMON);
 
   lto_begin_section (section_name, !flag_wpa);
   free (section_name);
@@ -329,16 +325,16 @@ input_options (struct lto_input_block *ib)
 {
   size_t length, i;
 
-  input_data_block (ib, &length, sizeof (length));
+  lto_input_data_block (ib, &length, sizeof (length));
 
   for (i = 0; i < length; i++)
     {
       opt_t o;
 
-      input_data_block (ib, &o.type, sizeof (o.type));
-      input_data_block (ib, &o.code, sizeof (o.code));
+      lto_input_data_block (ib, &o.type, sizeof (o.type));
+      lto_input_data_block (ib, &o.code, sizeof (o.code));
       o.arg = input_string_block (ib);
-      input_data_block (ib, &o.value, sizeof (o.value));
+      lto_input_data_block (ib, &o.value, sizeof (o.value));
       VEC_safe_push (opt_t, heap, file_options, &o);
     }
 }
@@ -348,21 +344,39 @@ input_options (struct lto_input_block *ib)
 void
 lto_read_file_options (struct lto_file_decl_data *file_data)
 {
-  size_t len;
-  const char *data;
+  size_t len, l, skip;
+  const char *data, *p;
   const struct lto_simple_header *header;
   int32_t opts_offset;
   struct lto_input_block ib;
 
   data = lto_get_section_data (file_data, LTO_section_opts, NULL, &len);
-  header = (const struct lto_simple_header *) data;
-  opts_offset = sizeof (*header);
+  if (!data)
+	  return;
 
-  lto_check_version (header->lto_header.major_version,
-		     header->lto_header.minor_version);
+  /* Option could be multiple sections merged (through ld -r) 
+     Keep reading all options.  This is ok right now because
+     the options just get mashed together anyways.
+     This will have to be done differently once lto-opts knows
+     how to associate options with different files. */
+  l = len;
+  p = data;
+  do 
+    { 
+      header = (const struct lto_simple_header *) p;
+      opts_offset = sizeof (*header);
 
-  LTO_INIT_INPUT_BLOCK (ib, data + opts_offset, 0, header->main_size);
-  input_options (&ib);
+      lto_check_version (header->lto_header.major_version,
+			 header->lto_header.minor_version);
+      
+      LTO_INIT_INPUT_BLOCK (ib, p + opts_offset, 0, header->main_size);
+      input_options (&ib);
+      
+      skip = header->main_size + opts_offset;
+      l -= skip;
+      p += skip;
+    } 
+  while (l > 0);
 
   lto_free_section_data (file_data, LTO_section_opts, 0, data, len);
 }
@@ -378,20 +392,31 @@ lto_reissue_options (void)
   int i;
   opt_t *o;
 
-  for (i = 0; VEC_iterate (opt_t, opts, i, o); i++)
+  FOR_EACH_VEC_ELT (opt_t, opts, i, o)
     {
-      const struct cl_option *option = &cl_options[o->code];
+      void *flag_var = option_flag_var (o->code, &global_options);
 
-      if (option->flag_var)
-	set_option (option, o->value, o->arg);
+      if (flag_var)
+	set_option (&global_options, &global_options_set,
+		    o->code, o->value, o->arg,
+		    DK_UNSPECIFIED, UNKNOWN_LOCATION, global_dc);
 
       if (o->type == CL_TARGET)
-	targetm.handle_option (o->code, o->arg, o->value);
+	{
+	  struct cl_decoded_option decoded;
+	  generate_option (o->code, o->arg, o->value, CL_TARGET, &decoded);
+	  targetm_common.handle_option (&global_options, &global_options_set,
+					&decoded, UNKNOWN_LOCATION);
+	}
       else if (o->type == CL_COMMON)
-	gcc_assert (option->flag_var);
+	gcc_assert (flag_var);
       else
 	gcc_unreachable ();
     }
 
+  /* Flag_shlib is usually set by finish_options, but we are issuing flag_pic
+     too late.  */
+  if (flag_pic && !flag_pie)
+    flag_shlib = 1;
   VEC_free (opt_t, heap, opts);
 }

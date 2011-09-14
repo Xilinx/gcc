@@ -2,7 +2,6 @@
 
 #include <stdarg.h>
 #include "tree-vect.h"
-#include <stdio.h>
 
 #define N 64
 
@@ -38,6 +37,7 @@ int main (void)
     X[i] = i;
     Y[i] = 64-i;
     CX[i] = i;
+    __asm__ volatile ("");
   }
 
   foo1 (N);

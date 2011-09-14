@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,7 +35,7 @@ package Err_Vars is
    --  All of these variables are set when needed, so they do not need to be
    --  initialized. However, there is code that saves and restores existing
    --  values, which may malfunction in -gnatVa mode if the variable has never
-   --  been iniitalized, so we initialize some variables to avoid exceptions
+   --  been initialized, so we initialize some variables to avoid exceptions
    --  from invalid values in such cases.
 
    ------------------

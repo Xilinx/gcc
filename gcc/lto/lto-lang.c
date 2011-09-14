@@ -1,5 +1,5 @@
 /* Language-dependent hooks for LTO.
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by CodeSourcery, Inc.
 
 This file is part of GCC.
@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tm.h"
 #include "tree.h"
-#include "expr.h"
 #include "target.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
@@ -33,9 +32,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto.h"
 #include "tree-inline.h"
 #include "gimple.h"
+#include "diagnostic-core.h"
 #include "toplev.h"
+#include "lto-streamer.h"
 
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
+static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_const_attribute (tree *, tree, tree, int, bool *);
 static tree handle_malloc_attribute (tree *, tree, tree, int, bool *);
 static tree handle_pure_attribute (tree *, tree, tree, int, bool *);
@@ -50,27 +52,30 @@ static tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 /* Table of machine-independent attributes supported in GIMPLE.  */
 const struct attribute_spec lto_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       do_diagnostic } */
   { "noreturn",               0, 0, true,  false, false,
-			      handle_noreturn_attribute },
+			      handle_noreturn_attribute, false },
+  { "leaf",		      0, 0, true,  false, false,
+			      handle_leaf_attribute, false },
   /* The same comments as for noreturn attributes apply to const ones.  */
   { "const",                  0, 0, true,  false, false,
-			      handle_const_attribute },
+			      handle_const_attribute, false },
   { "malloc",                 0, 0, true,  false, false,
-			      handle_malloc_attribute },
+			      handle_malloc_attribute, false },
   { "pure",                   0, 0, true,  false, false,
-			      handle_pure_attribute },
+			      handle_pure_attribute, false },
   { "no vops",                0, 0, true,  false, false,
-			      handle_novops_attribute },
+			      handle_novops_attribute, false },
   { "nonnull",                0, -1, false, true, true,
-			      handle_nonnull_attribute },
+			      handle_nonnull_attribute, false },
   { "nothrow",                0, 0, true,  false, false,
-			      handle_nothrow_attribute },
+			      handle_nothrow_attribute, false },
   { "sentinel",               0, 1, false, true, true,
-			      handle_sentinel_attribute },
+			      handle_sentinel_attribute, false },
   { "type generic",           0, 0, false, true, true,
-			      handle_type_generic_attribute },
-  { NULL,                     0, 0, false, false, false, NULL }
+			      handle_type_generic_attribute, false },
+  { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
 /* Give the specifications for the format attributes, used by C and all
@@ -78,12 +83,13 @@ const struct attribute_spec lto_attribute_table[] =
 
 const struct attribute_spec lto_format_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
   { "format",                 3, 3, false, true,  true,
-			      handle_format_attribute },
+			      handle_format_attribute, false },
   { "format_arg",             1, 1, false, true,  true,
-			      handle_format_arg_attribute },
-  { NULL,                     0, 0, false, false, false, NULL }
+			      handle_format_arg_attribute, false },
+  { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
 enum built_in_attribute
@@ -155,8 +161,6 @@ static GTY(()) tree uintmax_type_node;
 static GTY(()) tree signed_size_type_node;
 
 /* Flags needed to process builtins.def.  */
-int flag_no_builtin;
-int flag_no_nonansi_builtin;
 int flag_isoc94;
 int flag_isoc99;
 
@@ -186,6 +190,27 @@ handle_noreturn_attribute (tree *node, tree ARG_UNUSED (name),
   return NULL_TREE;
 }
 
+/* Handle a "leaf" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_leaf_attribute (tree *node, tree name,
+		       tree ARG_UNUSED (args),
+		       int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  if (!TREE_PUBLIC (*node))
+    {
+      warning (OPT_Wattributes, "%qE attribute has no effect on unit local functions", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
 
 /* Handle a "const" attribute; arguments as in
    struct attribute_spec.handler.  */
@@ -291,7 +316,7 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
      will have the correct types when we actually check them later.  */
   if (!args)
     {
-      gcc_assert (TYPE_ARG_TYPES (type));
+      gcc_assert (prototype_p (type));
       return NULL_TREE;
     }
 
@@ -348,13 +373,7 @@ handle_sentinel_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 			   int ARG_UNUSED (flags),
 			   bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params = TYPE_ARG_TYPES (*node);
-  gcc_assert (params);
-
-  while (TREE_CHAIN (params))
-    params = TREE_CHAIN (params);
-
-  gcc_assert (!VOID_TYPE_P (TREE_VALUE (params)));
+  gcc_assert (stdarg_p (*node));
 
   if (args)
     {
@@ -374,17 +393,11 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params;
-  
   /* Ensure we have a function type.  */
   gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
   
-  params = TYPE_ARG_TYPES (*node);
-  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
-    params = TREE_CHAIN (params);
-
   /* Ensure we have a variadic function.  */
-  gcc_assert (!params);
+  gcc_assert (!prototype_p (*node) || stdarg_p (*node));
 
   return NULL_TREE;
 }
@@ -420,7 +433,8 @@ handle_format_arg_attribute (tree * ARG_UNUSED (node), tree ARG_UNUSED (name),
 static void
 def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 {
-  tree args = NULL, t;
+  tree t;
+  tree *args = XALLOCAVEC (tree, n);
   va_list list;
   int i;
 
@@ -431,21 +445,21 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
       t = builtin_types[a];
       if (t == error_mark_node)
 	goto egress;
-      args = tree_cons (NULL_TREE, t, args);
+      args[i] = t;
     }
   va_end (list);
-
-  args = nreverse (args);
-  if (!var)
-    args = chainon (args, void_list_node);
 
   t = builtin_types[ret];
   if (t == error_mark_node)
     goto egress;
-  t = build_function_type (t, args);
+  if (var)
+    t = build_varargs_function_type_array (t, n, args);
+  else
+    t = build_function_type_array (t, n, args);
 
  egress:
   builtin_types[def] = t;
+  va_end (list);
 }
 
 /* Used to help initialize the builtin-types.def table.  When a type of
@@ -589,24 +603,36 @@ lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
 
 static GTY(()) tree registered_builtin_types;
 
-/* A chain of builtin functions that we need to recognize.  We will
-   assume that all other function names we see will be defined by the
-   user's program.  */
-static GTY(()) tree registered_builtin_fndecls;
-
 /* Language hooks.  */
 
 static unsigned int
-lto_init_options (unsigned int argc ATTRIBUTE_UNUSED,
-		  const char **argv ATTRIBUTE_UNUSED)
+lto_option_lang_mask (void)
+{
+  return CL_LTO;
+}
+
+static bool
+lto_complain_wrong_lang_p (const struct cl_option *option ATTRIBUTE_UNUSED)
+{
+  /* The LTO front end inherits all the options from the first front
+     end that was used.  However, not all the original front end
+     options make sense in LTO.
+
+     A real solution would be to filter this in collect2, but collect2
+     does not have access to all the option attributes to know what to
+     filter.  So, in lto1 we silently accept inherited flags and do
+     nothing about it.  */
+  return false;
+}
+
+static void
+lto_init_options_struct (struct gcc_options *opts)
 {
   /* By default, C99-like requirements for complex multiply and divide.
      ???  Until the complex method is encoded in the IL this is the only
      safe choice.  This will pessimize Fortran code with LTO unless
      people specify a complex method manually or use -ffast-math.  */
-  flag_complex_method = 2;
-
-  return CL_LTO;
+  opts->x_flag_complex_method = 2;
 }
 
 /* Handle command-line option SCODE.  If the option takes an argument, it is
@@ -615,29 +641,23 @@ lto_init_options (unsigned int argc ATTRIBUTE_UNUSED,
    of the option was supplied.  */
 
 const char *resolution_file_name;
-static int
-lto_handle_option (size_t scode, const char *arg, int value ATTRIBUTE_UNUSED)
+static bool
+lto_handle_option (size_t scode, const char *arg,
+		   int value ATTRIBUTE_UNUSED, int kind ATTRIBUTE_UNUSED,
+		   location_t loc ATTRIBUTE_UNUSED,
+		   const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED)
 {
   enum opt_code code = (enum opt_code) scode;
-  int result = 1;
+  bool result = true;
 
   switch (code)
     {
-    case OPT_fresolution:
+    case OPT_fresolution_:
       resolution_file_name = arg;
-      result = 1;
       break;
 
     case OPT_Wabi:
       warn_psabi = value;
-      break;
-
-    case OPT_fsigned_char:
-      flag_signed_char = value;
-      break;
-
-    case OPT_funsigned_char:
-      flag_signed_char = !value;
       break;
 
     default:
@@ -918,8 +938,10 @@ lto_type_for_mode (enum machine_mode mode, int unsigned_p)
   return NULL_TREE;
 }
 
-static int
-lto_global_bindings_p (void) 
+/* Return true if we are in the global binding level.  */
+
+static bool
+lto_global_bindings_p (void)
 {
   return cfun == NULL;
 }
@@ -957,7 +979,10 @@ lto_pushdecl (tree t ATTRIBUTE_UNUSED)
 static tree
 lto_getdecls (void)
 {
-  return registered_builtin_fndecls;
+  /* We have our own write_globals langhook, hence the getdecls
+     langhook shouldn't be used, except by dbxout.c, so we can't
+     just abort here.  */
+  return NULL_TREE;
 }
 
 static void
@@ -973,10 +998,6 @@ lto_write_globals (void)
 static tree
 lto_builtin_function (tree decl)
 {
-  /* Record it.  */
-  TREE_CHAIN (decl) = registered_builtin_fndecls;
-  registered_builtin_fndecls = decl;
-
   return decl;
 }
 
@@ -1018,6 +1039,12 @@ lto_build_c_type_nodes (void)
       uintmax_type_node = long_unsigned_type_node;
       signed_size_type_node = long_integer_type_node;
     }
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    {
+      intmax_type_node = long_long_integer_type_node;
+      uintmax_type_node = long_long_unsigned_type_node;
+      signed_size_type_node = long_long_integer_type_node;
+    }
   else
     gcc_unreachable ();
 
@@ -1025,44 +1052,39 @@ lto_build_c_type_nodes (void)
   pid_type_node = integer_type_node;
 }
 
+/* Re-compute TYPE_CANONICAL for NODE and related types.  */
+
+static void
+lto_register_canonical_types (tree node)
+{
+  if (!node
+      || !TYPE_P (node))
+    return;
+
+  TYPE_CANONICAL (node) = NULL_TREE;
+  TYPE_CANONICAL (node) = gimple_register_canonical_type (node);
+
+  if (POINTER_TYPE_P (node)
+      || TREE_CODE (node) == COMPLEX_TYPE
+      || TREE_CODE (node) == ARRAY_TYPE)
+    lto_register_canonical_types (TREE_TYPE (node));
+}
 
 /* Perform LTO-specific initialization.  */
 
 static bool
 lto_init (void)
 {
+  unsigned i;
+
   /* We need to generate LTO if running in WPA mode.  */
   flag_generate_lto = flag_wpa;
 
   /* Initialize libcpp line maps for gcc_assert to work.  */
-  linemap_add (line_table, LC_RENAME, 0, NULL, 0);
-  linemap_add (line_table, LC_RENAME, 0, NULL, 0);
+  linemap_add (line_table, LC_ENTER, 0, NULL, 0);
 
   /* Create the basic integer types.  */
-  build_common_tree_nodes (flag_signed_char, /*signed_sizetype=*/false);
-
-  /* Share char_type_node with whatever would be the default for the target.
-     char_type_node will be used for internal types such as
-     va_list_type_node but will not be present in the lto stream.  */
-  /* ???  This breaks the more common case of consistent but non-standard
-     setting of flag_signed_char, so share according to flag_signed_char.
-     See PR42528.  */
-  char_type_node
-    = flag_signed_char ? signed_char_type_node : unsigned_char_type_node;
-
-  /* Tell the middle end what type to use for the size of objects.  */
-  if (strcmp (SIZE_TYPE, "unsigned int") == 0)
-    {
-      set_sizetype (unsigned_type_node);
-      size_type_node = unsigned_type_node;
-    }
-  else if (strcmp (SIZE_TYPE, "long unsigned int") == 0)
-    {
-      set_sizetype (long_unsigned_type_node);
-      size_type_node = long_unsigned_type_node;
-    }
-  else
-    gcc_unreachable ();
+  build_common_tree_nodes (flag_signed_char, /*short_double=*/false);
 
   /* The global tree for the main identifier is filled in by
      language-specific front-end initialization that is not run in the
@@ -1076,11 +1098,10 @@ lto_init (void)
      distinction should only be relevant to the front-end, so we
      always use the C definition here in lto1.  */
   gcc_assert (fileptr_type_node == ptr_type_node);
+  gcc_assert (TYPE_MAIN_VARIANT (fileptr_type_node) == ptr_type_node);
 
   ptrdiff_type_node = integer_type_node;
 
-  /* Create other basic types.  */
-  build_common_tree_nodes_2 (/*short_double=*/false);
   lto_build_c_type_nodes ();
   gcc_assert (va_list_type_node);
 
@@ -1098,6 +1119,45 @@ lto_init (void)
   targetm.init_builtins ();
   build_common_builtin_nodes ();
 
+  /* Assign names to the builtin types, otherwise they'll end up
+     as __unknown__ in debug info.
+     ???  We simply need to stop pre-seeding the streamer cache.
+     Below is modeled after from c-common.c:c_common_nodes_and_builtins  */
+#define NAME_TYPE(t,n) \
+  if (t) \
+    TYPE_NAME (t) = build_decl (UNKNOWN_LOCATION, TYPE_DECL, \
+			        get_identifier (n), t)
+  NAME_TYPE (integer_type_node, "int");
+  NAME_TYPE (char_type_node, "char");
+  NAME_TYPE (long_integer_type_node, "long int");
+  NAME_TYPE (unsigned_type_node, "unsigned int");
+  NAME_TYPE (long_unsigned_type_node, "long unsigned int");
+  NAME_TYPE (long_long_integer_type_node, "long long int");
+  NAME_TYPE (long_long_unsigned_type_node, "long long unsigned int");
+  NAME_TYPE (short_integer_type_node, "short int");
+  NAME_TYPE (short_unsigned_type_node, "short unsigned int");
+  if (signed_char_type_node != char_type_node)
+    NAME_TYPE (signed_char_type_node, "signed char");
+  if (unsigned_char_type_node != char_type_node)
+    NAME_TYPE (unsigned_char_type_node, "unsigned char");
+  NAME_TYPE (float_type_node, "float");
+  NAME_TYPE (double_type_node, "double");
+  NAME_TYPE (long_double_type_node, "long double");
+  NAME_TYPE (void_type_node, "void");
+  NAME_TYPE (boolean_type_node, "bool");
+#undef NAME_TYPE
+
+  /* Register the common node types with the canonical type machinery so
+     we properly share alias-sets across languages and TUs.  Do not
+     expose the common nodes as type merge target - those that should be
+     are already exposed so by pre-loading the LTO streamer caches.  */
+  for (i = 0; i < itk_none; ++i)
+    lto_register_canonical_types (integer_types[i]);
+  /* The sizetypes are not used to access data so we do not need to
+     do anything about them.  */
+  for (i = 0; i < TI_MAX; ++i)
+    lto_register_canonical_types (global_trees[i]);
+
   /* Initialize LTO-specific data structures.  */
   lto_global_var_decls = VEC_alloc (tree, gc, 256);
   in_lto_p = true;
@@ -1114,8 +1174,12 @@ static void lto_init_ts (void)
 
 #undef LANG_HOOKS_NAME
 #define LANG_HOOKS_NAME "GNU GIMPLE"
-#undef LANG_HOOKS_INIT_OPTIONS
-#define LANG_HOOKS_INIT_OPTIONS lto_init_options
+#undef LANG_HOOKS_OPTION_LANG_MASK
+#define LANG_HOOKS_OPTION_LANG_MASK lto_option_lang_mask
+#undef LANG_HOOKS_COMPLAIN_WRONG_LANG_P
+#define LANG_HOOKS_COMPLAIN_WRONG_LANG_P lto_complain_wrong_lang_p
+#undef LANG_HOOKS_INIT_OPTIONS_STRUCT
+#define LANG_HOOKS_INIT_OPTIONS_STRUCT lto_init_options_struct
 #undef LANG_HOOKS_HANDLE_OPTION
 #define LANG_HOOKS_HANDLE_OPTION lto_handle_option
 #undef LANG_HOOKS_POST_OPTIONS
@@ -1150,6 +1214,8 @@ static void lto_init_ts (void)
 #define LANG_HOOKS_REDUCE_BIT_FIELD_OPERATIONS true
 #undef LANG_HOOKS_TYPES_COMPATIBLE_P
 #define LANG_HOOKS_TYPES_COMPATIBLE_P NULL
+#undef LANG_HOOKS_EH_PERSONALITY
+#define LANG_HOOKS_EH_PERSONALITY lto_eh_personality
 
 /* Attribute hooks.  */
 #undef LANG_HOOKS_COMMON_ATTRIBUTE_TABLE
@@ -1158,11 +1224,11 @@ static void lto_init_ts (void)
 #define LANG_HOOKS_FORMAT_ATTRIBUTE_TABLE lto_format_attribute_table
 
 #undef LANG_HOOKS_BEGIN_SECTION
-#define LANG_HOOKS_BEGIN_SECTION lto_elf_begin_section
+#define LANG_HOOKS_BEGIN_SECTION lto_obj_begin_section
 #undef LANG_HOOKS_APPEND_DATA
-#define LANG_HOOKS_APPEND_DATA lto_elf_append_data
+#define LANG_HOOKS_APPEND_DATA lto_obj_append_data
 #undef LANG_HOOKS_END_SECTION
-#define LANG_HOOKS_END_SECTION lto_elf_end_section
+#define LANG_HOOKS_END_SECTION lto_obj_end_section
 
 #undef LANG_HOOKS_INIT_TS
 #define LANG_HOOKS_INIT_TS lto_init_ts

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,8 +31,58 @@ with GNAT.Dynamic_Tables;
 with Table;
 
 with Prj.Attr; use Prj.Attr;
+with Prj.Env;
+with Prj.Ext;
 
 package Prj.Tree is
+
+   -----------------
+   -- Environment --
+   -----------------
+
+   --  The following record contains the context in which projects are parsed
+   --  and processed (finding importing project, resolving external values,..).
+
+   type Environment is record
+      External : Prj.Ext.External_References;
+      --  External references are stored in this hash table (and manipulated
+      --  through subprograms in prj-ext.ads). External references are
+      --  project-tree specific so that one can load the same tree twice but
+      --  have two views of it, for instance.
+
+      Project_Path : aliased Prj.Env.Project_Search_Path;
+      --  The project path is tree specific, since we might want to load
+      --  simultaneously multiple projects, each with its own search path, in
+      --  particular when using different compilers with different default
+      --  search directories.
+
+      Flags : Prj.Processing_Flags;
+      --  Configure errors and warnings
+   end record;
+
+   procedure Initialize
+     (Self      : out Environment;
+      Flags     : Processing_Flags);
+   --  Initialize a new environment
+
+   procedure Initialize_And_Copy
+     (Self      : out Environment;
+      Copy_From : Environment);
+   --  Initialize a new environment, copying its values from Copy_From
+
+   procedure Free (Self : in out Environment);
+   --  Free the memory used by Self
+
+   procedure Override_Flags
+     (Self : in out Environment; Flags : Prj.Processing_Flags);
+   --  Override the subprogram called in case there are parsing errors. This
+   --  is needed in applications that do their own error handling, since the
+   --  error handler is likely to be a local subprogram in this case (which
+   --  can't be stored when the flags are created).
+
+   -------------------
+   -- Project nodes --
+   -------------------
 
    type Project_Node_Tree_Data;
    type Project_Node_Tree_Ref is access all Project_Node_Tree_Data;
@@ -295,7 +345,8 @@ package Prj.Tree is
    pragma Inline (Expression_Kind_Of);
    --  Only valid for N_Literal_String, N_Attribute_Declaration,
    --  N_Variable_Declaration, N_Typed_Variable_Declaration, N_Expression,
-   --  N_Term, N_Variable_Reference or N_Attribute_Reference nodes.
+   --  N_Term, N_Variable_Reference, N_Attribute_Reference nodes or
+   --  N_External_Value.
 
    function Is_Extending_All
      (Node    : Project_Node_Id;
@@ -758,7 +809,8 @@ package Prj.Tree is
    pragma Inline (Set_Expression_Kind_Of);
    --  Only valid for N_Literal_String, N_Attribute_Declaration,
    --  N_Variable_Declaration, N_Typed_Variable_Declaration, N_Expression,
-   --  N_Term, N_Variable_Reference or N_Attribute_Reference nodes.
+   --  N_Term, N_Variable_Reference, N_Attribute_Reference or N_External_Value
+   --  nodes.
 
    procedure Set_Is_Extending_All
      (Node    : Project_Node_Id;
@@ -813,7 +865,7 @@ package Prj.Tree is
       To      : Int);
    pragma Inline (Set_Source_Index_Of);
    --  Only valid for N_Literal_String and N_Attribute_Declaration nodes. For
-   --  N_Literal_String, set the source index of the litteral string. For
+   --  N_Literal_String, set the source index of the literal string. For
    --  N_Attribute_Declaration, set the source index of the index of the
    --  associative array element.
 
@@ -1450,36 +1502,14 @@ package Prj.Tree is
 
    end Tree_Private_Part;
 
-   package Name_To_Name_HTable is new GNAT.Dynamic_HTables.Simple_HTable
-     (Header_Num => Header_Num,
-      Element    => Name_Id,
-      No_Element => No_Name,
-      Key        => Name_Id,
-      Hash       => Hash,
-      Equal      => "=");
-   --  General type for htables associating name_id to name_id. This is in
-   --  particular used to store the values of external references.
-
    type Project_Node_Tree_Data is record
       Project_Nodes : Tree_Private_Part.Project_Node_Table.Instance;
       Projects_HT   : Tree_Private_Part.Projects_Htable.Instance;
 
-      External_References : Name_To_Name_HTable.Instance;
-      --  External references are stored in this hash table (and manipulated
-      --  through subprogrames in prj-ext.ads). External references are
-      --  project-tree specific so that one can load the same tree twice but
-      --  have two views of it, for instance.
-
-      Project_Path : String_Access;
-      --  The project path, manipulated through subprograms in prj-ext.ads.
-      --  As a special case, if the first character is '#:" or this variable is
-      --  unset, this means that the PATH has not been fully initialized yet
-      --  (although subprograms prj-ext.ads will properly take care of that).
-      --
-      --  The project path is tree specific, since we might want to load
-      --  simultaneously multiple projects, each with its own search path, in
-      --  particular when using different compilers with different default
-      --  search directories.
+      Incomplete_With : Boolean := False;
+      --  Set to True if the projects were loaded with the flag
+      --  Ignore_Missing_With set to True, and there were indeed some with
+      --  statements that could not be resolved
    end record;
 
    procedure Free (Proj : in out Project_Node_Tree_Ref);

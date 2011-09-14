@@ -1,5 +1,5 @@
 /* Prototypes for alpha.c functions used in the md file & elsewhere.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2009
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -21,7 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 extern int alpha_next_sequence_number;
 
 extern void literal_section (void);
-extern void override_options (void);
 extern int zap_mask (HOST_WIDE_INT);
 extern int direct_return (void);
 
@@ -32,10 +31,7 @@ extern void alpha_expand_prologue (void);
 extern void alpha_expand_epilogue (void);
 extern void alpha_output_filename (FILE *, const char *);
 
-extern rtx alpha_tablejump_addr_vec (rtx);
-extern rtx alpha_tablejump_best_label (rtx);
-
-extern bool alpha_legitimate_constant_p (rtx);
+extern bool alpha_legitimate_constant_p (enum machine_mode, rtx);
 extern rtx alpha_legitimize_reload_address (rtx, enum machine_mode,
 					    int, int, int);
 
@@ -75,7 +71,6 @@ extern void print_operand_address (FILE *, rtx);
 extern void alpha_initialize_trampoline (rtx, rtx, rtx, int, int, int);
 
 extern rtx alpha_va_arg (tree, tree);
-extern rtx function_arg (CUMULATIVE_ARGS, enum machine_mode, tree, int);
 extern rtx function_value (const_tree, const_tree, enum machine_mode);
 
 extern void alpha_start_function (FILE *, const char *, tree);
@@ -119,14 +114,6 @@ extern HOST_WIDE_INT alpha_vms_initial_elimination_offset (unsigned int,
 #endif
 
 extern rtx unicosmk_add_call_info_word (rtx);
-
-#if TARGET_ABI_UNICOSMK
-extern void unicosmk_defer_case_vector (rtx, rtx);
-extern void unicosmk_add_extern (const char *);
-extern void unicosmk_output_align (FILE *, int);
-extern void unicosmk_output_common (FILE *, const char *, int, int);
-extern int unicosmk_initial_elimination_offset (int, int);
-#endif
 
 extern int some_small_symbolic_operand_int (rtx *, void *);
 extern int tls_symbolic_operand_1 (rtx, int, int);

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -49,14 +49,6 @@ package Exp_Ch9 is
    --  E (typically a runtime routine entity obtained using RTE) with the
    --  Task_Id of the associated task as the parameter. The caller is
    --  responsible for analyzing and resolving the resulting tree.
-
-   function Build_Corresponding_Record
-     (N    : Node_Id;
-      Ctyp : Node_Id;
-      Loc  : Source_Ptr) return Node_Id;
-   --  Common to tasks and protected types. Copy discriminant specifications,
-   --  build record declaration. N is the type declaration, Ctyp is the
-   --  concurrent entity (task type or protected type).
 
    function Build_Entry_Names (Conc_Typ : Entity_Id) return Node_Id;
    --  Create the statements which populate the entry names array of a task or
@@ -270,6 +262,15 @@ package Exp_Ch9 is
    function External_Subprogram (E : Entity_Id) return Entity_Id;
    --  return the external version of a protected operation, which locks
    --  the object before invoking the internal protected subprogram body.
+
+   function Find_Master_Scope (E : Entity_Id) return Entity_Id;
+   --  When a type includes tasks, a master entity is created in the scope, to
+   --  be used by the runtime during activation. In general the master is the
+   --  immediate scope in which the type is declared, but in Ada2005, in the
+   --  presence of synchronized classwide interfaces, the immediate scope of
+   --  an anonymous access type may be a transient scope, which has no run-time
+   --  presence. In this case, the scope of the master is the innermost scope
+   --  that comes from source.
 
    function First_Protected_Operation (D : List_Id) return Node_Id;
    --  Given the declarations list for a protected body, find the

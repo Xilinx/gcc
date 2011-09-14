@@ -1,5 +1,5 @@
 /* Perform branch target register load optimizations.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -34,7 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "except.h"
 #include "tm_p.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "tree-pass.h"
 #include "recog.h"
 #include "df.h"
@@ -558,7 +558,7 @@ compute_defs_uses_and_gen (fibheap_t all_btr_defs, btr_def *def_array,
 		      /* Check for sibcall.  */
 		      if (GET_CODE (pat) == PARALLEL)
 			for (i = XVECLEN (pat, 0) - 1; i >= 0; i--)
-			  if (GET_CODE (XVECEXP (pat, 0, i)) == RETURN)
+			  if (ANY_RETURN_P (XVECEXP (pat, 0, i)))
 			    {
 			      COMPL_HARD_REG_SET (call_saved,
 						  call_used_reg_set);
@@ -1458,7 +1458,8 @@ migrate_btr_defs (enum reg_class btr_class, int allow_callee_save)
 static void
 branch_target_load_optimize (bool after_prologue_epilogue_gen)
 {
-  enum reg_class klass = targetm.branch_target_register_class ();
+  enum reg_class klass
+    = (enum reg_class) targetm.branch_target_register_class ();
   if (klass != NO_REGS)
     {
       /* Initialize issue_rate.  */
@@ -1518,7 +1519,6 @@ struct rtl_opt_pass pass_branch_target_load_optimize1 =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
   TODO_verify_rtl_sharing |
   TODO_ggc_collect,                     /* todo_flags_finish */
  }
@@ -1568,7 +1568,6 @@ struct rtl_opt_pass pass_branch_target_load_optimize2 =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
   TODO_ggc_collect,                     /* todo_flags_finish */
  }
 };

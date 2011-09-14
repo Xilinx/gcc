@@ -1,5 +1,6 @@
 /* { dg-lto-do link } */
-/* { dg-lto-options {{-O1 -fwhopr -fPIC}} } */
+/* { dg-require-effective-target fpic } */
+/* { dg-lto-options {{-O1 -flto -flto-partition=1to1 -fPIC}} } */
 /* { dg-extra-ld-options {-r -nostdlib -O0} } */
 
 int foo(void) {

@@ -5,7 +5,7 @@
 
 @interface TestClass
 {
-  id isa;
+  Class isa;
 }
 - (int)D;
 @end

@@ -1,5 +1,6 @@
 /* Reassociation for trees.
-   Copyright (C) 2005, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org>
 
 This file is part of GCC.
@@ -22,17 +23,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "ggc.h"
 #include "tree.h"
 #include "basic-block.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-inline.h"
 #include "tree-flow.h"
 #include "gimple.h"
 #include "tree-dump.h"
 #include "timevar.h"
 #include "tree-iterator.h"
-#include "real.h"
 #include "tree-pass.h"
 #include "alloc-pool.h"
 #include "vec.h"
@@ -40,6 +40,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "cfgloop.h"
 #include "flags.h"
+#include "target.h"
+#include "params.h"
 
 /*  This is a simple global reassociation pass.  It is, in part, based
     on the LLVM pass of the same name (They do some things more/less
@@ -172,11 +174,15 @@ static struct
 typedef struct operand_entry
 {
   unsigned int rank;
+  int id;
   tree op;
 } *operand_entry_t;
 
 static alloc_pool operand_entry_pool;
 
+/* This is used to assign a unique ID to each struct operand_entry
+   so that qsort results are identical on different hosts.  */
+static int next_operand_entry_id;
 
 /* Starting rank number for a given basic block, so that we can rank
    operations using unmovable instructions in that BB based on the bb
@@ -186,6 +192,114 @@ static long *bb_rank;
 /* Operand->rank hashtable.  */
 static struct pointer_map_t *operand_rank;
 
+/* Forward decls.  */
+static long get_rank (tree);
+
+
+/* Bias amount for loop-carried phis.  We want this to be larger than
+   the depth of any reassociation tree we can see, but not larger than
+   the rank difference between two blocks.  */
+#define PHI_LOOP_BIAS (1 << 15)
+
+/* Rank assigned to a phi statement.  If STMT is a loop-carried phi of
+   an innermost loop, and the phi has only a single use which is inside
+   the loop, then the rank is the block rank of the loop latch plus an
+   extra bias for the loop-carried dependence.  This causes expressions
+   calculated into an accumulator variable to be independent for each
+   iteration of the loop.  If STMT is some other phi, the rank is the
+   block rank of its containing block.  */
+static long
+phi_rank (gimple stmt)
+{
+  basic_block bb = gimple_bb (stmt);
+  struct loop *father = bb->loop_father;
+  tree res;
+  unsigned i;
+  use_operand_p use;
+  gimple use_stmt;
+
+  /* We only care about real loops (those with a latch).  */
+  if (!father->latch)
+    return bb_rank[bb->index];
+
+  /* Interesting phis must be in headers of innermost loops.  */
+  if (bb != father->header
+      || father->inner)
+    return bb_rank[bb->index];
+
+  /* Ignore virtual SSA_NAMEs.  */
+  res = gimple_phi_result (stmt);
+  if (!is_gimple_reg (SSA_NAME_VAR (res)))
+    return bb_rank[bb->index];
+
+  /* The phi definition must have a single use, and that use must be
+     within the loop.  Otherwise this isn't an accumulator pattern.  */
+  if (!single_imm_use (res, &use, &use_stmt)
+      || gimple_bb (use_stmt)->loop_father != father)
+    return bb_rank[bb->index];
+
+  /* Look for phi arguments from within the loop.  If found, bias this phi.  */
+  for (i = 0; i < gimple_phi_num_args (stmt); i++)
+    {
+      tree arg = gimple_phi_arg_def (stmt, i);
+      if (TREE_CODE (arg) == SSA_NAME
+	  && !SSA_NAME_IS_DEFAULT_DEF (arg))
+	{
+	  gimple def_stmt = SSA_NAME_DEF_STMT (arg);
+	  if (gimple_bb (def_stmt)->loop_father == father)
+	    return bb_rank[father->latch->index] + PHI_LOOP_BIAS;
+	}
+    }
+
+  /* Must be an uninteresting phi.  */
+  return bb_rank[bb->index];
+}
+
+/* If EXP is an SSA_NAME defined by a PHI statement that represents a
+   loop-carried dependence of an innermost loop, return TRUE; else
+   return FALSE.  */
+static bool
+loop_carried_phi (tree exp)
+{
+  gimple phi_stmt;
+  long block_rank;
+
+  if (TREE_CODE (exp) != SSA_NAME
+      || SSA_NAME_IS_DEFAULT_DEF (exp))
+    return false;
+
+  phi_stmt = SSA_NAME_DEF_STMT (exp);
+
+  if (gimple_code (SSA_NAME_DEF_STMT (exp)) != GIMPLE_PHI)
+    return false;
+
+  /* Non-loop-carried phis have block rank.  Loop-carried phis have
+     an additional bias added in.  If this phi doesn't have block rank,
+     it's biased and should not be propagated.  */
+  block_rank = bb_rank[gimple_bb (phi_stmt)->index];
+
+  if (phi_rank (phi_stmt) != block_rank)
+    return true;
+
+  return false;
+}
+
+/* Return the maximum of RANK and the rank that should be propagated
+   from expression OP.  For most operands, this is just the rank of OP.
+   For loop-carried phis, the value is zero to avoid undoing the bias
+   in favor of the phi.  */
+static long
+propagate_rank (long rank, tree op)
+{
+  long op_rank;
+
+  if (loop_carried_phi (op))
+    return rank;
+
+  op_rank = get_rank (op);
+
+  return MAX (rank, op_rank);
+}
 
 /* Look up the operand rank structure for expression E.  */
 
@@ -228,11 +342,38 @@ get_rank (tree e)
      I make no claims that this is optimal, however, it gives good
      results.  */
 
+  /* We make an exception to the normal ranking system to break
+     dependences of accumulator variables in loops.  Suppose we
+     have a simple one-block loop containing:
+
+       x_1 = phi(x_0, x_2)
+       b = a + x_1
+       c = b + d
+       x_2 = c + e
+
+     As shown, each iteration of the calculation into x is fully
+     dependent upon the iteration before it.  We would prefer to
+     see this in the form:
+
+       x_1 = phi(x_0, x_2)
+       b = a + d
+       c = b + e
+       x_2 = c + x_1
+
+     If the loop is unrolled, the calculations of b and c from
+     different iterations can be interleaved.
+
+     To obtain this result during reassociation, we bias the rank
+     of the phi definition x_1 upward, when it is recognized as an
+     accumulator pattern.  The artificial rank causes it to be 
+     added last, providing the desired independence.  */
+
   if (TREE_CODE (e) == SSA_NAME)
     {
       gimple stmt;
-      long rank, maxrank;
+      long rank;
       int i, n;
+      tree op;
 
       if (TREE_CODE (SSA_NAME_VAR (e)) == PARM_DECL
 	  && SSA_NAME_IS_DEFAULT_DEF (e))
@@ -241,6 +382,9 @@ get_rank (tree e)
       stmt = SSA_NAME_DEF_STMT (e);
       if (gimple_bb (stmt) == NULL)
 	return 0;
+
+      if (gimple_code (stmt) == GIMPLE_PHI)
+	return phi_rank (stmt);
 
       if (!is_gimple_assign (stmt)
 	  || gimple_vdef (stmt))
@@ -251,30 +395,35 @@ get_rank (tree e)
       if (rank != -1)
 	return rank;
 
-      /* Otherwise, find the maximum rank for the operands, or the bb
-	 rank, whichever is less.   */
+      /* Otherwise, find the maximum rank for the operands.  As an
+	 exception, remove the bias from loop-carried phis when propagating
+	 the rank so that dependent operations are not also biased.  */
       rank = 0;
-      maxrank = bb_rank[gimple_bb(stmt)->index];
       if (gimple_assign_single_p (stmt))
 	{
 	  tree rhs = gimple_assign_rhs1 (stmt);
 	  n = TREE_OPERAND_LENGTH (rhs);
 	  if (n == 0)
-	    rank = MAX (rank, get_rank (rhs));
+	    rank = propagate_rank (rank, rhs);
 	  else
 	    {
-	      for (i = 0;
-		   i < n && TREE_OPERAND (rhs, i) && rank != maxrank; i++)
-		rank = MAX(rank, get_rank (TREE_OPERAND (rhs, i)));
+	      for (i = 0; i < n; i++)
+		{
+		  op = TREE_OPERAND (rhs, i);
+
+		  if (op != NULL_TREE)
+		    rank = propagate_rank (rank, op);
+		}
 	    }
 	}
       else
 	{
 	  n = gimple_num_ops (stmt);
-	  for (i = 1; i < n && rank != maxrank; i++)
+	  for (i = 1; i < n; i++)
 	    {
-	      gcc_assert (gimple_op (stmt, i));
-	      rank = MAX(rank, get_rank (gimple_op (stmt, i)));
+	      op = gimple_op (stmt, i);
+	      gcc_assert (op);
+	      rank = propagate_rank (rank, op);
 	    }
 	}
 
@@ -328,16 +477,31 @@ sort_by_operand_rank (const void *pa, const void *pb)
      to fold when added/multiplied//whatever are put next to each
      other.  Since all constants have rank 0, order them by type.  */
   if (oeb->rank == 0 &&  oea->rank == 0)
-    return constant_type (oeb->op) - constant_type (oea->op);
+    {
+      if (constant_type (oeb->op) != constant_type (oea->op))
+	return constant_type (oeb->op) - constant_type (oea->op);
+      else
+	/* To make sorting result stable, we use unique IDs to determine
+	   order.  */
+        return oeb->id - oea->id;
+    }
 
   /* Lastly, make sure the versions that are the same go next to each
      other.  We use SSA_NAME_VERSION because it's stable.  */
   if ((oeb->rank - oea->rank == 0)
       && TREE_CODE (oea->op) == SSA_NAME
       && TREE_CODE (oeb->op) == SSA_NAME)
-    return SSA_NAME_VERSION (oeb->op) - SSA_NAME_VERSION (oea->op);
+    {
+      if (SSA_NAME_VERSION (oeb->op) != SSA_NAME_VERSION (oea->op))
+	return SSA_NAME_VERSION (oeb->op) - SSA_NAME_VERSION (oea->op);
+      else
+	return oeb->id - oea->id;
+    }
 
-  return oeb->rank - oea->rank;
+  if (oeb->rank != oea->rank)
+    return oeb->rank - oea->rank;
+  else
+    return oeb->id - oea->id;
 }
 
 /* Add an operand entry to *OPS for the tree operand OP.  */
@@ -349,6 +513,7 @@ add_to_ops_vec (VEC(operand_entry_t, heap) **ops, tree op)
 
   oe->op = op;
   oe->rank = get_rank (op);
+  oe->id = next_operand_entry_id++;
   VEC_safe_push (operand_entry_t, heap, *ops, oe);
 }
 
@@ -448,8 +613,7 @@ eliminate_duplicate_pair (enum tree_code opcode,
 	    {
 	      VEC_free (operand_entry_t, heap, *ops);
 	      *ops = NULL;
-	      add_to_ops_vec (ops, fold_convert (TREE_TYPE (last->op),
-						 integer_zero_node));
+	      add_to_ops_vec (ops, build_zero_cst (TREE_TYPE (last->op)));
 	      *all_done = true;
 	    }
 	  else
@@ -469,11 +633,11 @@ eliminate_duplicate_pair (enum tree_code opcode,
 
 static VEC(tree, heap) *plus_negates;
 
-/* If OPCODE is PLUS_EXPR, CURR->OP is really a negate expression,
-   look in OPS for a corresponding positive operation to cancel it
-   out.  If we find one, remove the other from OPS, replace
-   OPS[CURRINDEX] with 0, and return true.  Otherwise, return
-   false. */
+/* If OPCODE is PLUS_EXPR, CURR->OP is a negate expression or a bitwise not
+   expression, look in OPS for a corresponding positive operation to cancel
+   it out.  If we find one, remove the other from OPS, replace
+   OPS[CURRINDEX] with 0 or -1, respectively, and return true.  Otherwise,
+   return false. */
 
 static bool
 eliminate_plus_minus_pair (enum tree_code opcode,
@@ -482,6 +646,7 @@ eliminate_plus_minus_pair (enum tree_code opcode,
 			   operand_entry_t curr)
 {
   tree negateop;
+  tree notop;
   unsigned int i;
   operand_entry_t oe;
 
@@ -489,7 +654,8 @@ eliminate_plus_minus_pair (enum tree_code opcode,
     return false;
 
   negateop = get_unary_op (curr->op, NEGATE_EXPR);
-  if (negateop == NULL_TREE)
+  notop = get_unary_op (curr->op, BIT_NOT_EXPR);
+  if (negateop == NULL_TREE && notop == NULL_TREE)
     return false;
 
   /* Any non-negated version will have a rank that is one less than
@@ -514,8 +680,27 @@ eliminate_plus_minus_pair (enum tree_code opcode,
 	    }
 
 	  VEC_ordered_remove (operand_entry_t, *ops, i);
-	  add_to_ops_vec (ops, fold_convert(TREE_TYPE (oe->op),
-					    integer_zero_node));
+	  add_to_ops_vec (ops, build_zero_cst (TREE_TYPE (oe->op)));
+	  VEC_ordered_remove (operand_entry_t, *ops, currindex);
+	  reassociate_stats.ops_eliminated ++;
+
+	  return true;
+	}
+      else if (oe->op == notop)
+	{
+	  tree op_type = TREE_TYPE (oe->op);
+
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    {
+	      fprintf (dump_file, "Equivalence: ");
+	      print_generic_expr (dump_file, notop, 0);
+	      fprintf (dump_file, " + ~");
+	      print_generic_expr (dump_file, oe->op, 0);
+	      fprintf (dump_file, " -> -1\n");
+	    }
+
+	  VEC_ordered_remove (operand_entry_t, *ops, i);
+	  add_to_ops_vec (ops, build_int_cst_type (op_type, -1));
 	  VEC_ordered_remove (operand_entry_t, *ops, currindex);
 	  reassociate_stats.ops_eliminated ++;
 
@@ -525,7 +710,8 @@ eliminate_plus_minus_pair (enum tree_code opcode,
 
   /* CURR->OP is a negate expr in a plus expr: save it for later
      inspection in repropagate_negates().  */
-  VEC_safe_push (tree, heap, plus_negates, curr->op);
+  if (negateop != NULL_TREE)
+    VEC_safe_push (tree, heap, plus_negates, curr->op);
 
   return false;
 }
@@ -581,7 +767,7 @@ eliminate_not_pairs (enum tree_code opcode,
 	    }
 
 	  if (opcode == BIT_AND_EXPR)
-	    oe->op = fold_convert (TREE_TYPE (oe->op), integer_zero_node);
+	    oe->op = build_zero_cst (TREE_TYPE (oe->op));
 	  else if (opcode == BIT_IOR_EXPR)
 	    oe->op = build_low_bits_mask (TREE_TYPE (oe->op),
 					  TYPE_PRECISION (TREE_TYPE (oe->op)));
@@ -740,6 +926,7 @@ static void linearize_expr_tree (VEC(operand_entry_t, heap) **, gimple,
 /* Structure for tracking and counting operands.  */
 typedef struct oecount_s {
   int cnt;
+  int id;
   enum tree_code oecode;
   tree op;
 } oecount;
@@ -777,7 +964,11 @@ oecount_cmp (const void *p1, const void *p2)
 {
   const oecount *c1 = (const oecount *)p1;
   const oecount *c2 = (const oecount *)p2;
-  return c1->cnt - c2->cnt;
+  if (c1->cnt != c2->cnt)
+    return c1->cnt - c2->cnt;
+  else
+    /* If counts are identical, use unique IDs to stabilize qsort.  */
+    return c1->id - c2->id;
 }
 
 /* Walks the linear chain with result *DEF searching for an operation
@@ -959,6 +1150,7 @@ undistribute_ops_list (enum tree_code opcode,
   VEC (operand_entry_t, heap) **subops;
   htab_t ctable;
   bool changed = false;
+  int next_oecount_id = 0;
 
   if (length <= 1
       || opcode != PLUS_EXPR)
@@ -968,7 +1160,7 @@ undistribute_ops_list (enum tree_code opcode,
   candidates = sbitmap_alloc (length);
   sbitmap_zero (candidates);
   nr_candidates = 0;
-  for (i = 0; VEC_iterate (operand_entry_t, *ops, i, oe1); ++i)
+  FOR_EACH_VEC_ELT (operand_entry_t, *ops, i, oe1)
     {
       enum tree_code dcode;
       gimple oe1def;
@@ -1019,13 +1211,14 @@ undistribute_ops_list (enum tree_code opcode,
       linearize_expr_tree (&subops[i], oedef,
 			   associative_tree_code (oecode), false);
 
-      for (j = 0; VEC_iterate (operand_entry_t, subops[i], j, oe1); ++j)
+      FOR_EACH_VEC_ELT (operand_entry_t, subops[i], j, oe1)
 	{
 	  oecount c;
 	  void **slot;
 	  size_t idx;
 	  c.oecode = oecode;
 	  c.cnt = 1;
+	  c.id = next_oecount_id++;
 	  c.op = oe1->op;
 	  VEC_safe_push (oecount, heap, cvec, &c);
 	  idx = VEC_length (oecount, cvec) + 41;
@@ -1044,14 +1237,13 @@ undistribute_ops_list (enum tree_code opcode,
   htab_delete (ctable);
 
   /* Sort the counting table.  */
-  qsort (VEC_address (oecount, cvec), VEC_length (oecount, cvec),
-	 sizeof (oecount), oecount_cmp);
+  VEC_qsort (oecount, cvec, oecount_cmp);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       oecount *c;
       fprintf (dump_file, "Candidates:\n");
-      for (j = 0; VEC_iterate (oecount, cvec, j, c); ++j)
+      FOR_EACH_VEC_ELT (oecount, cvec, j, c)
 	{
 	  fprintf (dump_file, "  %u %s: ", c->cnt,
 		   c->oecode == MULT_EXPR
@@ -1090,7 +1282,7 @@ undistribute_ops_list (enum tree_code opcode,
 	  if (oecode != c->oecode)
 	    continue;
 
-	  for (j = 0; VEC_iterate (operand_entry_t, subops[i], j, oe1); ++j)
+	  FOR_EACH_VEC_ELT (operand_entry_t, subops[i], j, oe1)
 	    {
 	      if (oe1->op == c->op)
 		{
@@ -1115,7 +1307,7 @@ undistribute_ops_list (enum tree_code opcode,
 	      fprintf (dump_file, "Building (");
 	      print_generic_expr (dump_file, oe1->op, 0);
 	    }
-	  tmpvar = create_tmp_var (TREE_TYPE (oe1->op), NULL);
+	  tmpvar = create_tmp_reg (TREE_TYPE (oe1->op), NULL);
 	  add_referenced_var (tmpvar);
 	  zero_one_operation (&oe1->op, c->oecode, c->op);
 	  EXECUTE_IF_SET_IN_SBITMAP (candidates2, first+1, i, sbi0)
@@ -1129,7 +1321,7 @@ undistribute_ops_list (enum tree_code opcode,
 		}
 	      zero_one_operation (&oe2->op, c->oecode, c->op);
 	      sum = build_and_add_sum (tmpvar, oe1->op, oe2->op, opcode);
-	      oe2->op = fold_convert (TREE_TYPE (oe2->op), integer_zero_node);
+	      oe2->op = build_zero_cst (TREE_TYPE (oe2->op));
 	      oe2->rank = 0;
 	      oe1->op = gimple_get_lhs (sum);
 	    }
@@ -1165,6 +1357,136 @@ undistribute_ops_list (enum tree_code opcode,
   return changed;
 }
 
+/* If OPCODE is BIT_IOR_EXPR or BIT_AND_EXPR and CURR is a comparison
+   expression, examine the other OPS to see if any of them are comparisons
+   of the same values, which we may be able to combine or eliminate.
+   For example, we can rewrite (a < b) | (a == b) as (a <= b).  */
+
+static bool
+eliminate_redundant_comparison (enum tree_code opcode,
+				VEC (operand_entry_t, heap) **ops,
+				unsigned int currindex,
+				operand_entry_t curr)
+{
+  tree op1, op2;
+  enum tree_code lcode, rcode;
+  gimple def1, def2;
+  int i;
+  operand_entry_t oe;
+
+  if (opcode != BIT_IOR_EXPR && opcode != BIT_AND_EXPR)
+    return false;
+
+  /* Check that CURR is a comparison.  */
+  if (TREE_CODE (curr->op) != SSA_NAME)
+    return false;
+  def1 = SSA_NAME_DEF_STMT (curr->op);
+  if (!is_gimple_assign (def1))
+    return false;
+  lcode = gimple_assign_rhs_code (def1);
+  if (TREE_CODE_CLASS (lcode) != tcc_comparison)
+    return false;
+  op1 = gimple_assign_rhs1 (def1);
+  op2 = gimple_assign_rhs2 (def1);
+
+  /* Now look for a similar comparison in the remaining OPS.  */
+  for (i = currindex + 1;
+       VEC_iterate (operand_entry_t, *ops, i, oe);
+       i++)
+    {
+      tree t;
+
+      if (TREE_CODE (oe->op) != SSA_NAME)
+	continue;
+      def2 = SSA_NAME_DEF_STMT (oe->op);
+      if (!is_gimple_assign (def2))
+	continue;
+      rcode = gimple_assign_rhs_code (def2);
+      if (TREE_CODE_CLASS (rcode) != tcc_comparison)
+	continue;
+
+      /* If we got here, we have a match.  See if we can combine the
+	 two comparisons.  */
+      if (opcode == BIT_IOR_EXPR)
+	t = maybe_fold_or_comparisons (lcode, op1, op2,
+				       rcode, gimple_assign_rhs1 (def2),
+				       gimple_assign_rhs2 (def2));
+      else
+	t = maybe_fold_and_comparisons (lcode, op1, op2,
+					rcode, gimple_assign_rhs1 (def2),
+					gimple_assign_rhs2 (def2));
+      if (!t)
+	continue;
+
+      /* maybe_fold_and_comparisons and maybe_fold_or_comparisons
+	 always give us a boolean_type_node value back.  If the original
+	 BIT_AND_EXPR or BIT_IOR_EXPR was of a wider integer type,
+	 we need to convert.  */
+      if (!useless_type_conversion_p (TREE_TYPE (curr->op), TREE_TYPE (t)))
+	t = fold_convert (TREE_TYPE (curr->op), t);
+
+      if (TREE_CODE (t) != INTEGER_CST
+	  && !operand_equal_p (t, curr->op, 0))
+	{
+	  enum tree_code subcode;
+	  tree newop1, newop2;
+	  if (!COMPARISON_CLASS_P (t))
+	    continue;
+	  extract_ops_from_tree (t, &subcode, &newop1, &newop2);
+	  STRIP_USELESS_TYPE_CONVERSION (newop1);
+	  STRIP_USELESS_TYPE_CONVERSION (newop2);
+	  if (!is_gimple_val (newop1) || !is_gimple_val (newop2))
+	    continue;
+	}
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "Equivalence: ");
+	  print_generic_expr (dump_file, curr->op, 0);
+	  fprintf (dump_file, " %s ", op_symbol_code (opcode));
+	  print_generic_expr (dump_file, oe->op, 0);
+	  fprintf (dump_file, " -> ");
+	  print_generic_expr (dump_file, t, 0);
+	  fprintf (dump_file, "\n");
+	}
+
+      /* Now we can delete oe, as it has been subsumed by the new combined
+         expression t.  */
+      VEC_ordered_remove (operand_entry_t, *ops, i);
+      reassociate_stats.ops_eliminated ++;
+
+      /* If t is the same as curr->op, we're done.  Otherwise we must
+	 replace curr->op with t.  Special case is if we got a constant
+	 back, in which case we add it to the end instead of in place of
+	 the current entry.  */
+      if (TREE_CODE (t) == INTEGER_CST)
+	{
+	  VEC_ordered_remove (operand_entry_t, *ops, currindex);
+	  add_to_ops_vec (ops, t);
+	}
+      else if (!operand_equal_p (t, curr->op, 0))
+	{
+	  tree tmpvar;
+	  gimple sum;
+	  enum tree_code subcode;
+	  tree newop1;
+	  tree newop2;
+	  gcc_assert (COMPARISON_CLASS_P (t));
+	  tmpvar = create_tmp_var (TREE_TYPE (t), NULL);
+	  add_referenced_var (tmpvar);
+	  extract_ops_from_tree (t, &subcode, &newop1, &newop2);
+	  STRIP_USELESS_TYPE_CONVERSION (newop1);
+	  STRIP_USELESS_TYPE_CONVERSION (newop2);
+	  gcc_checking_assert (is_gimple_val (newop1)
+			       && is_gimple_val (newop2));
+	  sum = build_and_add_sum (tmpvar, newop1, newop2, subcode);
+	  curr->op = gimple_get_lhs (sum);
+	}
+      return true;
+    }
+
+  return false;
+}
 
 /* Perform various identities and other optimizations on the list of
    operand entries, stored in OPS.  The tree code for the binary
@@ -1226,7 +1548,8 @@ optimize_ops_list (enum tree_code opcode,
       if (eliminate_not_pairs (opcode, ops, i, oe))
 	return;
       if (eliminate_duplicate_pair (opcode, ops, &done, i, oe, oelast)
-	  || (!done && eliminate_plus_minus_pair (opcode, ops, i, oe)))
+	  || (!done && eliminate_plus_minus_pair (opcode, ops, i, oe))
+	  || (!done && eliminate_redundant_comparison (opcode, ops, i, oe)))
 	{
 	  if (done)
 	    return;
@@ -1296,6 +1619,62 @@ remove_visited_stmt_chain (tree var)
     }
 }
 
+/* This function checks three consequtive operands in
+   passed operands vector OPS starting from OPINDEX and
+   swaps two operands if it is profitable for binary operation
+   consuming OPINDEX + 1 abnd OPINDEX + 2 operands.
+
+   We pair ops with the same rank if possible.
+
+   The alternative we try is to see if STMT is a destructive
+   update style statement, which is like:
+   b = phi (a, ...)
+   a = c + b;
+   In that case, we want to use the destructive update form to
+   expose the possible vectorizer sum reduction opportunity.
+   In that case, the third operand will be the phi node. This
+   check is not performed if STMT is null.
+
+   We could, of course, try to be better as noted above, and do a
+   lot of work to try to find these opportunities in >3 operand
+   cases, but it is unlikely to be worth it.  */
+
+static void
+swap_ops_for_binary_stmt (VEC(operand_entry_t, heap) * ops,
+			  unsigned int opindex, gimple stmt)
+{
+  operand_entry_t oe1, oe2, oe3;
+
+  oe1 = VEC_index (operand_entry_t, ops, opindex);
+  oe2 = VEC_index (operand_entry_t, ops, opindex + 1);
+  oe3 = VEC_index (operand_entry_t, ops, opindex + 2);
+
+  if ((oe1->rank == oe2->rank
+       && oe2->rank != oe3->rank)
+      || (stmt && is_phi_for_stmt (stmt, oe3->op)
+	  && !is_phi_for_stmt (stmt, oe1->op)
+	  && !is_phi_for_stmt (stmt, oe2->op)))
+    {
+      struct operand_entry temp = *oe3;
+      oe3->op = oe1->op;
+      oe3->rank = oe1->rank;
+      oe1->op = temp.op;
+      oe1->rank= temp.rank;
+    }
+  else if ((oe1->rank == oe3->rank
+	    && oe2->rank != oe3->rank)
+	   || (stmt && is_phi_for_stmt (stmt, oe2->op)
+	       && !is_phi_for_stmt (stmt, oe1->op)
+	       && !is_phi_for_stmt (stmt, oe3->op)))
+    {
+      struct operand_entry temp = *oe2;
+      oe2->op = oe1->op;
+      oe2->rank = oe1->rank;
+      oe1->op = temp.op;
+      oe1->rank= temp.rank;
+    }
+}
+
 /* Recursively rewrite our linearized statements so that the operators
    match those in OPS[OPINDEX], putting the computation in rank
    order.  */
@@ -1308,53 +1687,10 @@ rewrite_expr_tree (gimple stmt, unsigned int opindex,
   tree rhs2 = gimple_assign_rhs2 (stmt);
   operand_entry_t oe;
 
-  /* If we have three operands left, then we want to make sure the one
-     that gets the double binary op are the ones with the same rank.
-
-     The alternative we try is to see if this is a destructive
-     update style statement, which is like:
-     b = phi (a, ...)
-     a = c + b;
-     In that case, we want to use the destructive update form to
-     expose the possible vectorizer sum reduction opportunity.
-     In that case, the third operand will be the phi node.
-
-     We could, of course, try to be better as noted above, and do a
-     lot of work to try to find these opportunities in >3 operand
-     cases, but it is unlikely to be worth it.  */
+  /* If we have three operands left, then we want to make sure the ones
+     that get the double binary op are chosen wisely.  */
   if (opindex + 3 == VEC_length (operand_entry_t, ops))
-    {
-      operand_entry_t oe1, oe2, oe3;
-
-      oe1 = VEC_index (operand_entry_t, ops, opindex);
-      oe2 = VEC_index (operand_entry_t, ops, opindex + 1);
-      oe3 = VEC_index (operand_entry_t, ops, opindex + 2);
-
-      if ((oe1->rank == oe2->rank
-	   && oe2->rank != oe3->rank)
-	  || (is_phi_for_stmt (stmt, oe3->op)
-	      && !is_phi_for_stmt (stmt, oe1->op)
-	      && !is_phi_for_stmt (stmt, oe2->op)))
-	{
-	  struct operand_entry temp = *oe3;
-	  oe3->op = oe1->op;
-	  oe3->rank = oe1->rank;
-	  oe1->op = temp.op;
-	  oe1->rank= temp.rank;
-	}
-      else if ((oe1->rank == oe3->rank
-		&& oe2->rank != oe3->rank)
-	       || (is_phi_for_stmt (stmt, oe2->op)
-		   && !is_phi_for_stmt (stmt, oe1->op)
-		   && !is_phi_for_stmt (stmt, oe3->op)))
-	{
-	  struct operand_entry temp = *oe2;
-	  oe2->op = oe1->op;
-	  oe2->rank = oe1->rank;
-	  oe1->op = temp.op;
-	  oe1->rank= temp.rank;
-	}
-    }
+    swap_ops_for_binary_stmt (ops, opindex, stmt);
 
   /* The final recursion case for this function is that you have
      exactly two operations left.
@@ -1437,6 +1773,178 @@ rewrite_expr_tree (gimple stmt, unsigned int opindex,
   /* Recurse on the LHS of the binary operator, which is guaranteed to
      be the non-leaf side.  */
   rewrite_expr_tree (SSA_NAME_DEF_STMT (rhs1), opindex + 1, ops, moved);
+}
+
+/* Find out how many cycles we need to compute statements chain.
+   OPS_NUM holds number os statements in a chain.  CPU_WIDTH is a
+   maximum number of independent statements we may execute per cycle.  */
+
+static int
+get_required_cycles (int ops_num, int cpu_width)
+{
+  int res;
+  int elog;
+  unsigned int rest;
+
+  /* While we have more than 2 * cpu_width operands
+     we may reduce number of operands by cpu_width
+     per cycle.  */
+  res = ops_num / (2 * cpu_width);
+
+  /* Remained operands count may be reduced twice per cycle
+     until we have only one operand.  */
+  rest = (unsigned)(ops_num - res * cpu_width);
+  elog = exact_log2 (rest);
+  if (elog >= 0)
+    res += elog;
+  else
+    res += floor_log2 (rest) + 1;
+
+  return res;
+}
+
+/* Returns an optimal number of registers to use for computation of
+   given statements.  */
+
+static int
+get_reassociation_width (int ops_num, enum tree_code opc,
+			 enum machine_mode mode)
+{
+  int param_width = PARAM_VALUE (PARAM_TREE_REASSOC_WIDTH);
+  int width;
+  int width_min;
+  int cycles_best;
+
+  if (param_width > 0)
+    width = param_width;
+  else
+    width = targetm.sched.reassociation_width (opc, mode);
+
+  if (width == 1)
+    return width;
+
+  /* Get the minimal time required for sequence computation.  */
+  cycles_best = get_required_cycles (ops_num, width);
+
+  /* Check if we may use less width and still compute sequence for
+     the same time.  It will allow us to reduce registers usage.
+     get_required_cycles is monotonically increasing with lower width
+     so we can perform a binary search for the minimal width that still
+     results in the optimal cycle count.  */
+  width_min = 1;
+  while (width > width_min)
+    {
+      int width_mid = (width + width_min) / 2;
+
+      if (get_required_cycles (ops_num, width_mid) == cycles_best)
+	width = width_mid;
+      else if (width_min < width_mid)
+	width_min = width_mid;
+      else
+	break;
+    }
+
+  return width;
+}
+
+/* Recursively rewrite our linearized statements so that the operators
+   match those in OPS[OPINDEX], putting the computation in rank
+   order and trying to allow operations to be executed in
+   parallel.  */
+
+static void
+rewrite_expr_tree_parallel (gimple stmt, int width,
+			    VEC(operand_entry_t, heap) * ops)
+{
+  enum tree_code opcode = gimple_assign_rhs_code (stmt);
+  int op_num = VEC_length (operand_entry_t, ops);
+  int stmt_num = op_num - 1;
+  gimple *stmts = XALLOCAVEC (gimple, stmt_num);
+  int op_index = op_num - 1;
+  int stmt_index = 0;
+  int ready_stmts_end = 0;
+  int i = 0;
+  tree last_rhs1 = gimple_assign_rhs1 (stmt);
+  tree lhs_var;
+
+  /* We start expression rewriting from the top statements.
+     So, in this loop we create a full list of statements
+     we will work with.  */
+  stmts[stmt_num - 1] = stmt;
+  for (i = stmt_num - 2; i >= 0; i--)
+    stmts[i] = SSA_NAME_DEF_STMT (gimple_assign_rhs1 (stmts[i+1]));
+
+  lhs_var = create_tmp_reg (TREE_TYPE (last_rhs1), NULL);
+  add_referenced_var (lhs_var);
+
+  for (i = 0; i < stmt_num; i++)
+    {
+      tree op1, op2;
+
+      /* Determine whether we should use results of
+	 already handled statements or not.  */
+      if (ready_stmts_end == 0
+	  && (i - stmt_index >= width || op_index < 1))
+	ready_stmts_end = i;
+
+      /* Now we choose operands for the next statement.  Non zero
+	 value in ready_stmts_end means here that we should use
+	 the result of already generated statements as new operand.  */
+      if (ready_stmts_end > 0)
+	{
+	  op1 = gimple_assign_lhs (stmts[stmt_index++]);
+	  if (ready_stmts_end > stmt_index)
+	    op2 = gimple_assign_lhs (stmts[stmt_index++]);
+	  else if (op_index >= 0)
+	    op2 = VEC_index (operand_entry_t, ops, op_index--)->op;
+	  else
+	    {
+	      gcc_assert (stmt_index < i);
+	      op2 = gimple_assign_lhs (stmts[stmt_index++]);
+	    }
+
+	  if (stmt_index >= ready_stmts_end)
+	    ready_stmts_end = 0;
+	}
+      else
+	{
+	  if (op_index > 1)
+	    swap_ops_for_binary_stmt (ops, op_index - 2, NULL);
+	  op2 = VEC_index (operand_entry_t, ops, op_index--)->op;
+	  op1 = VEC_index (operand_entry_t, ops, op_index--)->op;
+	}
+
+      /* If we emit the last statement then we should put
+	 operands into the last statement.  It will also
+	 break the loop.  */
+      if (op_index < 0 && stmt_index == i)
+	i = stmt_num - 1;
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "Transforming ");
+	  print_gimple_stmt (dump_file, stmts[i], 0, 0);
+	}
+
+      /* We keep original statement only for the last one.  All
+	 others are recreated.  */
+      if (i == stmt_num - 1)
+	{
+	  gimple_assign_set_rhs1 (stmts[i], op1);
+	  gimple_assign_set_rhs2 (stmts[i], op2);
+	  update_stmt (stmts[i]);
+	}
+      else
+	stmts[i] = build_and_add_sum (lhs_var, op1, op2, opcode);
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, " into ");
+	  print_gimple_stmt (dump_file, stmts[i], 0, 0);
+	}
+    }
+
+  remove_visited_stmt_chain (last_rhs1);
 }
 
 /* Transform STMT, which is really (A +B) + (C + D) into the left
@@ -1623,13 +2131,15 @@ linearize_expr_tree (VEC(operand_entry_t, heap) **ops, gimple stmt,
   if (TREE_CODE (binlhs) == SSA_NAME)
     {
       binlhsdef = SSA_NAME_DEF_STMT (binlhs);
-      binlhsisreassoc = is_reassociable_op (binlhsdef, rhscode, loop);
+      binlhsisreassoc = (is_reassociable_op (binlhsdef, rhscode, loop)
+			 && !stmt_could_throw_p (binlhsdef));
     }
 
   if (TREE_CODE (binrhs) == SSA_NAME)
     {
       binrhsdef = SSA_NAME_DEF_STMT (binrhs);
-      binrhsisreassoc = is_reassociable_op (binrhsdef, rhscode, loop);
+      binrhsisreassoc = (is_reassociable_op (binrhsdef, rhscode, loop)
+			 && !stmt_could_throw_p (binrhsdef));
     }
 
   /* If the LHS is not reassociable, but the RHS is, we need to swap
@@ -1703,18 +2213,19 @@ repropagate_negates (void)
   unsigned int i = 0;
   tree negate;
 
-  for (i = 0; VEC_iterate (tree, plus_negates, i, negate); i++)
+  FOR_EACH_VEC_ELT (tree, plus_negates, i, negate)
     {
       gimple user = get_single_immediate_use (negate);
+
+      if (!user || !is_gimple_assign (user))
+	continue;
 
       /* The negate operand can be either operand of a PLUS_EXPR
 	 (it can be the LHS if the RHS is a constant for example).
 
 	 Force the negate operand to the RHS of the PLUS_EXPR, then
 	 transform the PLUS_EXPR into a MINUS_EXPR.  */
-      if (user
-	  && is_gimple_assign (user)
-	  && gimple_assign_rhs_code (user) == PLUS_EXPR)
+      if (gimple_assign_rhs_code (user) == PLUS_EXPR)
 	{
 	  /* If the negated operand appears on the LHS of the
 	     PLUS_EXPR, exchange the operands of the PLUS_EXPR
@@ -1737,7 +2248,61 @@ repropagate_negates (void)
 	      update_stmt (user);
 	    }
 	}
+      else if (gimple_assign_rhs_code (user) == MINUS_EXPR)
+	{
+	  if (gimple_assign_rhs1 (user) == negate)
+	    {
+	      /* We have
+	           x = -a
+		   y = x - b
+		 which we transform into
+		   x = a + b
+		   y = -x .
+		 This pushes down the negate which we possibly can merge
+		 into some other operation, hence insert it into the
+		 plus_negates vector.  */
+	      gimple feed = SSA_NAME_DEF_STMT (negate);
+	      tree a = gimple_assign_rhs1 (feed);
+	      tree rhs2 = gimple_assign_rhs2 (user);
+	      gimple_stmt_iterator gsi = gsi_for_stmt (feed), gsi2;
+	      gimple_replace_lhs (feed, negate);
+	      gimple_assign_set_rhs_with_ops (&gsi, PLUS_EXPR, a, rhs2);
+	      update_stmt (gsi_stmt (gsi));
+	      gsi2 = gsi_for_stmt (user);
+	      gimple_assign_set_rhs_with_ops (&gsi2, NEGATE_EXPR, negate, NULL);
+	      update_stmt (gsi_stmt (gsi2));
+	      gsi_move_before (&gsi, &gsi2);
+	      VEC_safe_push (tree, heap, plus_negates,
+			     gimple_assign_lhs (gsi_stmt (gsi2)));
+	    }
+	  else
+	    {
+	      /* Transform "x = -a; y = b - x" into "y = b + a", getting
+	         rid of one operation.  */
+	      gimple feed = SSA_NAME_DEF_STMT (negate);
+	      tree a = gimple_assign_rhs1 (feed);
+	      tree rhs1 = gimple_assign_rhs1 (user);
+	      gimple_stmt_iterator gsi = gsi_for_stmt (user);
+	      gimple_assign_set_rhs_with_ops (&gsi, PLUS_EXPR, rhs1, a);
+	      update_stmt (gsi_stmt (gsi));
+	    }
+	}
     }
+}
+
+/* Returns true if OP is of a type for which we can do reassociation.
+   That is for integral or non-saturating fixed-point types, and for
+   floating point type when associative-math is enabled.  */
+
+static bool
+can_reassociate_p (tree op)
+{
+  tree type = TREE_TYPE (op);
+  if ((INTEGRAL_TYPE_P (type) && TYPE_OVERFLOW_WRAPS (type))
+      || NON_SAT_FIXED_POINT_TYPE_P (type)
+      || (flag_associative_math && FLOAT_TYPE_P (type)))
+    return true;
+  return false;
 }
 
 /* Break up subtract operations in block BB.
@@ -1768,27 +2333,15 @@ break_up_subtract_bb (basic_block bb)
       gimple stmt = gsi_stmt (gsi);
       gimple_set_visited (stmt, false);
 
-      /* Look for simple gimple subtract operations.  */
-      if (is_gimple_assign (stmt)
-	  && gimple_assign_rhs_code (stmt) == MINUS_EXPR)
-	{
-	  tree lhs = gimple_assign_lhs (stmt);
-	  tree rhs1 = gimple_assign_rhs1 (stmt);
-	  tree rhs2 = gimple_assign_rhs2 (stmt);
+      if (!is_gimple_assign (stmt)
+	  || !can_reassociate_p (gimple_assign_lhs (stmt)))
+	continue;
 
-	  /* If associative-math we can do reassociation for
-	     non-integral types.  Or, we can do reassociation for
-	     non-saturating fixed-point types.  */
-	  if ((!INTEGRAL_TYPE_P (TREE_TYPE (lhs))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2)))
-	      && (!SCALAR_FLOAT_TYPE_P (TREE_TYPE (lhs))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs1))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs2))
-		  || !flag_associative_math)
-	      && (!NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE (lhs))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs1))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs2))))
+      /* Look for simple gimple subtract operations.  */
+      if (gimple_assign_rhs_code (stmt) == MINUS_EXPR)
+	{
+	  if (!can_reassociate_p (gimple_assign_rhs1 (stmt))
+	      || !can_reassociate_p (gimple_assign_rhs2 (stmt)))
 	    continue;
 
 	  /* Check for a subtract used only in an addition.  If this
@@ -1798,6 +2351,9 @@ break_up_subtract_bb (basic_block bb)
 	  if (should_break_up_subtract (stmt))
 	    break_up_subtract (stmt, &gsi);
 	}
+      else if (gimple_assign_rhs_code (stmt) == NEGATE_EXPR
+	       && can_reassociate_p (gimple_assign_rhs1 (stmt)))
+	VEC_safe_push (tree, heap, plus_negates, gimple_assign_lhs (stmt));
     }
   for (son = first_dom_son (CDI_DOMINATORS, bb);
        son;
@@ -1818,7 +2374,8 @@ reassociate_bb (basic_block bb)
     {
       gimple stmt = gsi_stmt (gsi);
 
-      if (is_gimple_assign (stmt))
+      if (is_gimple_assign (stmt)
+	  && !stmt_could_throw_p (stmt))
 	{
 	  tree lhs, rhs1, rhs2;
 	  enum tree_code rhs_code = gimple_assign_rhs_code (stmt);
@@ -1858,19 +2415,16 @@ reassociate_bb (basic_block bb)
 	  rhs1 = gimple_assign_rhs1 (stmt);
 	  rhs2 = gimple_assign_rhs2 (stmt);
 
-	  /* If associative-math we can do reassociation for
-	     non-integral types.  Or, we can do reassociation for
-	     non-saturating fixed-point types.  */
-	  if ((!INTEGRAL_TYPE_P (TREE_TYPE (lhs))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1))
-	       || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2)))
-	      && (!SCALAR_FLOAT_TYPE_P (TREE_TYPE (lhs))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs1))
-		  || !SCALAR_FLOAT_TYPE_P (TREE_TYPE(rhs2))
-		  || !flag_associative_math)
-	      && (!NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE (lhs))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs1))
-		  || !NON_SAT_FIXED_POINT_TYPE_P (TREE_TYPE(rhs2))))
+	  /* For non-bit or min/max operations we can't associate
+	     all types.  Verify that here.  */
+	  if (rhs_code != BIT_IOR_EXPR
+	      && rhs_code != BIT_AND_EXPR
+	      && rhs_code != BIT_XOR_EXPR
+	      && rhs_code != MIN_EXPR
+	      && rhs_code != MAX_EXPR
+	      && (!can_reassociate_p (lhs)
+		  || !can_reassociate_p (rhs1)
+		  || !can_reassociate_p (rhs2)))
 	    continue;
 
 	  if (associative_tree_code (rhs_code))
@@ -1884,18 +2438,12 @@ reassociate_bb (basic_block bb)
 
 	      gimple_set_visited (stmt, true);
 	      linearize_expr_tree (&ops, stmt, true, true);
-	      qsort (VEC_address (operand_entry_t, ops),
-		     VEC_length (operand_entry_t, ops),
-		     sizeof (operand_entry_t),
-		     sort_by_operand_rank);
+	      VEC_qsort (operand_entry_t, ops, sort_by_operand_rank);
 	      optimize_ops_list (rhs_code, &ops);
 	      if (undistribute_ops_list (rhs_code, &ops,
 					 loop_containing_stmt (stmt)))
 		{
-		  qsort (VEC_address (operand_entry_t, ops),
-			 VEC_length (operand_entry_t, ops),
-			 sizeof (operand_entry_t),
-			 sort_by_operand_rank);
+		  VEC_qsort (operand_entry_t, ops, sort_by_operand_rank);
 		  optimize_ops_list (rhs_code, &ops);
 		}
 
@@ -1921,7 +2469,21 @@ reassociate_bb (basic_block bb)
 		    }
 		}
 	      else
-		rewrite_expr_tree (stmt, 0, ops, false);
+		{
+		  enum machine_mode mode = TYPE_MODE (TREE_TYPE (lhs));
+		  int ops_num = VEC_length (operand_entry_t, ops);
+		  int width = get_reassociation_width (ops_num, rhs_code, mode);
+
+		  if (dump_file && (dump_flags & TDF_DETAILS))
+		    fprintf (dump_file,
+			     "Width = %d was chosen for reassociation\n", width);
+
+		  if (width > 1
+		      && VEC_length (operand_entry_t, ops) > 3)
+		    rewrite_expr_tree_parallel (stmt, width, ops);
+		  else
+		    rewrite_expr_tree (stmt, 0, ops, false);
+		}
 
 	      VEC_free (operand_entry_t, heap, ops);
 	    }
@@ -1944,7 +2506,7 @@ dump_ops_vector (FILE *file, VEC (operand_entry_t, heap) *ops)
   operand_entry_t oe;
   unsigned int i;
 
-  for (i = 0; VEC_iterate (operand_entry_t, ops, i, oe); i++)
+  FOR_EACH_VEC_ELT (operand_entry_t, ops, i, oe)
     {
       fprintf (file, "Op %d -> rank: %d, tree: ", i, oe->rank);
       print_generic_expr (file, oe->op, 0);
@@ -1953,7 +2515,7 @@ dump_ops_vector (FILE *file, VEC (operand_entry_t, heap) *ops)
 
 /* Dump the operand entry vector OPS to STDERR.  */
 
-void
+DEBUG_FUNCTION void
 debug_ops_vector (VEC (operand_entry_t, heap) *ops)
 {
   dump_ops_vector (stderr, ops);
@@ -1984,6 +2546,7 @@ init_reassoc (void)
 
   operand_entry_pool = create_alloc_pool ("operand entry pool",
 					  sizeof (struct operand_entry), 30);
+  next_operand_entry_id = 0;
 
   /* Reverse RPO (Reverse Post Order) will give us something where
      deeper loops come later.  */
@@ -1994,7 +2557,7 @@ init_reassoc (void)
   /* Give each argument a distinct rank.   */
   for (param = DECL_ARGUMENTS (current_function_decl);
        param;
-       param = TREE_CHAIN (param))
+       param = DECL_CHAIN (param))
     {
       if (gimple_default_def (cfun, param) != NULL)
 	{
@@ -2078,7 +2641,8 @@ struct gimple_opt_pass pass_reassoc =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_ggc_collect | TODO_verify_ssa /* todo_flags_finish */
+  TODO_verify_ssa
+    | TODO_verify_flow
+    | TODO_ggc_collect			/* todo_flags_finish */
  }
 };
-

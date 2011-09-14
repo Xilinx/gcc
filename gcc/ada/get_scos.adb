@@ -2,11 +2,11 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---                             G E T _ S C O S                               --
+--                             G E T _ S C O S                              --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---             Copyright (C) 2009, Free Software Foundation, Inc.           --
+--          Copyright (C) 2009-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,8 +23,14 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with SCOs;  use SCOs;
-with Types; use Types;
+pragma Ada_2005;
+--  This unit is not part of the compiler proper, it is used in tools that
+--  read SCO information from ALI files (Xcov and sco_test). Ada 2005
+--  constructs may therefore be used freely (and are indeed).
+
+with SCOs;   use SCOs;
+with Snames; use Snames;
+with Types;  use Types;
 
 with Ada.IO_Exceptions; use Ada.IO_Exceptions;
 
@@ -54,7 +60,12 @@ procedure Get_SCOs is
    --  value read. Data_Error is raised for overflow (value greater than
    --  Int'Last), or if the initial character is not a digit.
 
-   procedure Get_Sloc_Range (Loc1, Loc2 : out Source_Location);
+   procedure Get_Source_Location (Loc : out Source_Location);
+   --  Reads a source location in the form line:col and places the source
+   --  location in Loc. Raises Data_Error if the format does not match this
+   --  requirement. Note that initial spaces are not skipped.
+
+   procedure Get_Source_Location_Range (Loc1, Loc2 : out Source_Location);
    --  Skips initial spaces, then reads a source location range in the form
    --  line:col-line:col and places the two source locations in Loc1 and Loc2.
    --  Raises Data_Error if format does not match this requirement.
@@ -129,30 +140,32 @@ procedure Get_SCOs is
          raise Data_Error;
    end Get_Int;
 
-   --------------------
-   -- Get_Sloc_Range --
-   --------------------
+   -------------------------
+   -- Get_Source_Location --
+   -------------------------
 
-   procedure Get_Sloc_Range (Loc1, Loc2 : out Source_Location) is
+   procedure Get_Source_Location (Loc : out Source_Location) is
       pragma Unsuppress (Range_Check);
-
    begin
-      Skip_Spaces;
-
-      Loc1.Line := Logical_Line_Number (Get_Int);
+      Loc.Line := Logical_Line_Number (Get_Int);
       Check (':');
-      Loc1.Col := Column_Number (Get_Int);
-
-      Check ('-');
-
-      Loc2.Line := Logical_Line_Number (Get_Int);
-      Check (':');
-      Loc2.Col := Column_Number (Get_Int);
-
+      Loc.Col := Column_Number (Get_Int);
    exception
       when Constraint_Error =>
          raise Data_Error;
-   end Get_Sloc_Range;
+   end Get_Source_Location;
+
+   -------------------------------
+   -- Get_Source_Location_Range --
+   -------------------------------
+
+   procedure Get_Source_Location_Range (Loc1, Loc2 : out Source_Location) is
+   begin
+      Skip_Spaces;
+      Get_Source_Location (Loc1);
+      Check ('-');
+      Get_Source_Location (Loc2);
+   end Get_Source_Location_Range;
 
    --------------
    -- Skip_EOL --
@@ -185,6 +198,10 @@ procedure Get_SCOs is
          Skipc;
       end loop;
    end Skip_Spaces;
+
+   Buf : String (1 .. 32_768);
+   N   : Natural;
+   --  Scratch buffer, and index into it
 
 --  Start of processing for Get_Scos
 
@@ -221,43 +238,53 @@ begin
 
             --  Scan out dependency number and file name
 
-            declare
-               Ptr  : String_Ptr := new String (1 .. 32768);
-               N    : Integer;
+            Skip_Spaces;
+            Dnum := Get_Int;
 
-            begin
-               Skip_Spaces;
-               Dnum := Get_Int;
+            Skip_Spaces;
 
-               Skip_Spaces;
+            N := 0;
+            while Nextc > ' ' loop
+               N := N + 1;
+               Buf (N) := Getc;
+            end loop;
 
-               N := 0;
-               while Nextc > ' ' loop
-                  N := N + 1;
-                  Ptr.all (N) := Getc;
-               end loop;
+            --  Make new unit table entry (will fill in To later)
 
-               --  Make new unit table entry (will fill in To later)
-
-               SCO_Unit_Table.Append (
-                 (File_Name => new String'(Ptr.all (1 .. N)),
-                  Dep_Num   => Dnum,
-                  From      => SCO_Table.Last + 1,
-                  To        => 0));
-
-               Free (Ptr);
-            end;
+            SCO_Unit_Table.Append (
+              (File_Name => new String'(Buf (1 .. N)),
+               Dep_Num   => Dnum,
+               From      => SCO_Table.Last + 1,
+               To        => 0));
 
          --  Statement entry
 
-         when 'S' =>
+         when 'S' | 's' =>
             declare
                Typ : Character;
                Key : Character;
+               Pid : Pragma_Id;
 
             begin
+               --  If continuation, reset Last indication in last entry
+               --  stored for previous CS or cs line, and start with key
+               --  set to s for continuations.
+
+               if C = 's' then
+                  SCO_Table.Table (SCO_Table.Last).Last := False;
+                  Key := 's';
+
+               --  CS case (first line, so start with key set to S)
+
+               else
+                  Key := 'S';
+               end if;
+
+               --  Initialize to scan items on one line
+
                Skip_Spaces;
-               Key := 'S';
+
+               --  Loop through items on one line
 
                loop
                   Typ := Nextc;
@@ -266,16 +293,42 @@ begin
                      Typ := ' ';
                   else
                      Skipc;
+                     if Typ = 'P' then
+                        Pid := Unknown_Pragma;
+
+                        if Nextc not in '1' .. '9' then
+                           N := 1;
+                           loop
+                              Buf (N) := Getc;
+                              exit when Nextc = ':';
+                              N := N + 1;
+                           end loop;
+                           Skipc;
+
+                           begin
+                              Pid :=
+                                Pragma_Id'Value ("pragma_" & Buf (1 .. N));
+                           exception
+                              when Constraint_Error =>
+
+                                 --  Pid remains set to Unknown_Pragma
+
+                                 null;
+                           end;
+                        end if;
+                     end if;
                   end if;
 
-                  Get_Sloc_Range (Loc1, Loc2);
+                  Get_Source_Location_Range (Loc1, Loc2);
 
-                  Add_SCO
-                    (C1   => Key,
-                     C2   => Typ,
-                     From => Loc1,
-                     To   => Loc2,
-                     Last => At_EOL);
+                  SCO_Table.Append
+                    ((C1          => Key,
+                      C2          => Typ,
+                      From        => Loc1,
+                      To          => Loc2,
+                      Last        => At_EOL,
+                      Pragma_Sloc => No_Location,
+                      Pragma_Name => Pid));
 
                   exit when At_EOL;
                   Key := 's';
@@ -284,63 +337,92 @@ begin
 
          --  Decision entry
 
-         when 'I' | 'E' | 'P' | 'W' | 'X' =>
+         when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' =>
             Dtyp := C;
             Skip_Spaces;
-            C := Getc;
 
-            --  Case of simple condition
+            --  Output header
 
-            if C = 'c' or else C = 't' or else C = 'f' then
-               Cond := C;
-               Get_Sloc_Range (Loc1, Loc2);
-               Add_SCO
-                 (C1   => Dtyp,
-                  C2   => Cond,
-                  From => Loc1,
-                  To   => Loc2,
-                  Last => True);
+            declare
+               Loc : Source_Location;
 
-            --  Complex expression
+            begin
+               --  Acquire location information
 
-            else
-               Add_SCO (C1 => Dtyp, Last => False);
+               if Dtyp = 'X' then
+                  Loc := No_Source_Location;
+               else
+                  Get_Source_Location (Loc);
+               end if;
 
-               --  Loop through terms in complex expression
+               SCO_Table.Append
+                 ((C1     => Dtyp,
+                   C2     => ' ',
+                   From   => Loc,
+                   To     => No_Source_Location,
+                   Last   => False,
+                   others => <>));
+            end;
 
-               while C /= CR and then C /= LF loop
-                  if C = 'c' or else C = 't' or else C = 'f' then
-                     Cond := C;
+            --  Loop through terms in complex expression
+
+            C := Nextc;
+            while C /= CR and then C /= LF loop
+               if C = 'c' or else C = 't' or else C = 'f' then
+                  Cond := C;
+                  Skipc;
+                  Get_Source_Location_Range (Loc1, Loc2);
+                  SCO_Table.Append
+                    ((C2     => Cond,
+                      From   => Loc1,
+                      To     => Loc2,
+                      Last   => False,
+                      others => <>));
+
+               elsif C = '!' or else
+                     C = '&' or else
+                     C = '|'
+               then
+                  Skipc;
+
+                  declare
+                     Loc : Source_Location;
+                  begin
+                     Get_Source_Location (Loc);
+                     SCO_Table.Append
+                       ((C1     => C,
+                         From   => Loc,
+                         Last   => False,
+                         others => <>));
+                  end;
+
+               elsif C = ' ' then
+                  Skip_Spaces;
+
+               elsif C = 'T' or else C = 'F' then
+
+                  --  Chaining indicator: skip for now???
+
+                  declare
+                     Loc1, Loc2 : Source_Location;
+                     pragma Unreferenced (Loc1, Loc2);
+                  begin
                      Skipc;
-                     Get_Sloc_Range (Loc1, Loc2);
-                     Add_SCO
-                       (C2   => Cond,
-                        From => Loc1,
-                        To   => Loc2,
-                        Last => False);
+                     Get_Source_Location_Range (Loc1, Loc2);
+                  end;
 
-                  elsif C = '!' or else
-                        C = '^' or else
-                        C = '&' or else
-                        C = '|'
-                  then
-                     Skipc;
-                     Add_SCO (C1 => C, Last => False);
+               else
+                  raise Data_Error;
+               end if;
 
-                  elsif C = ' ' then
-                     Skip_Spaces;
+               C := Nextc;
+            end loop;
 
-                  else
-                     raise Data_Error;
-                  end if;
+            --  Reset Last indication to True for last entry
 
-                  C := Nextc;
-               end loop;
+            SCO_Table.Table (SCO_Table.Last).Last := True;
 
-               --  Reset Last indication to True for last entry
-
-               SCO_Table.Table (SCO_Table.Last).Last := True;
-            end if;
+         --  No other SCO lines are possible
 
          when others =>
             raise Data_Error;

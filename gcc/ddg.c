@@ -1,5 +1,5 @@
 /* DDG - Data Dependence Graph implementation.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Ayal Zaks and Mustafa Hagog <zaks,mustafa@il.ibm.com>
 
@@ -24,7 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "hard-reg-set.h"
@@ -192,7 +192,7 @@ create_ddg_dep_from_intra_loop_link (ddg_ptr g, ddg_node_ptr src_node,
           first_def = df_bb_regno_first_def_find (g->bb, regno);
           gcc_assert (first_def);
 
-          if (bitmap_bit_p (bb_info->gen, DF_REF_ID (first_def)))
+          if (bitmap_bit_p (&bb_info->gen, DF_REF_ID (first_def)))
             return;
         }
     }
@@ -263,7 +263,8 @@ add_cross_iteration_register_deps (ddg_ptr g, df_ref last_def)
 
 #ifdef ENABLE_CHECKING
   if (DF_REF_ID (last_def) != DF_REF_ID (first_def))
-    gcc_assert (!bitmap_bit_p (bb_info->gen, DF_REF_ID (first_def)));
+    gcc_assert (!bitmap_bit_p (&bb_info->gen,
+			       DF_REF_ID (first_def)));
 #endif
 
   /* Create inter-loop true dependences and anti dependences.  */
@@ -300,8 +301,11 @@ add_cross_iteration_register_deps (ddg_ptr g, df_ref last_def)
 
 	  gcc_assert (first_def_node);
 
+         /* Always create the edge if the use node is a branch in
+            order to prevent the creation of reg-moves.  */
           if (DF_REF_ID (last_def) != DF_REF_ID (first_def)
-              || !flag_modulo_sched_allow_regmoves)
+              || !flag_modulo_sched_allow_regmoves
+	      || JUMP_P (use_node->insn))
             create_ddg_dep_no_link (g, use_node, first_def_node, ANTI_DEP,
                                     REG_DEP, 1);
 
@@ -338,7 +342,7 @@ build_inter_loop_deps (ddg_ptr g)
   rd_bb_info = DF_RD_BB_INFO (g->bb);
 
   /* Find inter-loop register output, true and anti deps.  */
-  EXECUTE_IF_SET_IN_BITMAP (rd_bb_info->gen, 0, rd_num, bi)
+  EXECUTE_IF_SET_IN_BITMAP (&rd_bb_info->gen, 0, rd_num, bi)
   {
     df_ref rd = DF_DEFS_GET (rd_num);
 
@@ -347,12 +351,76 @@ build_inter_loop_deps (ddg_ptr g)
 }
 
 
+static int
+walk_mems_2 (rtx *x, rtx mem)
+{
+  if (MEM_P (*x))
+    {
+      if (may_alias_p (*x, mem))
+        return 1;
+
+      return -1;
+    }
+  return 0;
+}
+
+static int
+walk_mems_1 (rtx *x, rtx *pat)
+{
+  if (MEM_P (*x))
+    {
+      /* Visit all MEMs in *PAT and check indepedence.  */
+      if (for_each_rtx (pat, (rtx_function) walk_mems_2, *x))
+        /* Indicate that dependence was determined and stop traversal.  */
+        return 1;
+
+      return -1;
+    }
+  return 0;
+}
+
+/* Return 1 if two specified instructions have mem expr with conflict alias sets*/
+static int
+insns_may_alias_p (rtx insn1, rtx insn2)
+{
+  /* For each pair of MEMs in INSN1 and INSN2 check their independence.  */
+  return  for_each_rtx (&PATTERN (insn1), (rtx_function) walk_mems_1,
+			 &PATTERN (insn2));
+}
+
+/* Given two nodes, analyze their RTL insns and add intra-loop mem deps
+   to ddg G.  */
+static void
+add_intra_loop_mem_dep (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to)
+{
+
+  if ((from->cuid == to->cuid)
+      || !insns_may_alias_p (from->insn, to->insn))
+    /* Do not create edge if memory references have disjoint alias sets
+       or 'to' and 'from' are the same instruction.  */
+    return;
+
+  if (mem_write_insn_p (from->insn))
+    {
+      if (mem_read_insn_p (to->insn))
+	create_ddg_dep_no_link (g, from, to,
+				DEBUG_INSN_P (to->insn)
+				? ANTI_DEP : TRUE_DEP, MEM_DEP, 0);
+      else
+	create_ddg_dep_no_link (g, from, to,
+				DEBUG_INSN_P (to->insn)
+				? ANTI_DEP : OUTPUT_DEP, MEM_DEP, 0);
+    }
+  else if (!mem_read_insn_p (to->insn))
+    create_ddg_dep_no_link (g, from, to, ANTI_DEP, MEM_DEP, 0);
+}
+
 /* Given two nodes, analyze their RTL insns and add inter-loop mem deps
    to ddg G.  */
 static void
 add_inter_loop_mem_dep (ddg_ptr g, ddg_node_ptr from, ddg_node_ptr to)
 {
-  if (!insn_alias_sets_conflict_p (from->insn, to->insn))
+  if (!insns_may_alias_p (from->insn, to->insn))
     /* Do not create edge if memory references have disjoint alias sets.  */
     return;
 
@@ -390,7 +458,7 @@ build_intra_loop_deps (ddg_ptr g)
 {
   int i;
   /* Hold the dependency analysis state during dependency calculations.  */
-  struct deps tmp_deps;
+  struct deps_desc tmp_deps;
   rtx head, tail;
 
   /* Build the dependence information, using the sched_analyze function.  */
@@ -434,10 +502,22 @@ build_intra_loop_deps (ddg_ptr g)
 	      if (DEBUG_INSN_P (j_node->insn))
 		continue;
 	      if (mem_access_insn_p (j_node->insn))
- 		/* Don't bother calculating inter-loop dep if an intra-loop dep
-		   already exists.  */
+		{
+		  /* Don't bother calculating inter-loop dep if an intra-loop dep
+		     already exists.  */
 	      	  if (! TEST_BIT (dest_node->successors, j))
 		    add_inter_loop_mem_dep (g, dest_node, j_node);
+		  /* If -fmodulo-sched-allow-regmoves
+		     is set certain anti-dep edges are not created.
+		     It might be that these anti-dep edges are on the
+		     path from one memory instruction to another such that
+		     removing these edges could cause a violation of the
+		     memory dependencies.  Thus we add intra edges between
+		     every two memory instructions in this case.  */
+		  if (flag_modulo_sched_allow_regmoves
+		      && !TEST_BIT (dest_node->predecessors, j))
+		    add_intra_loop_mem_dep (g, j_node, dest_node);
+		}
             }
         }
     }
@@ -487,7 +567,7 @@ create_ddg (basic_block bb, int closing_branch_deps)
     }
 
   /* There is nothing to do for this BB.  */
-  if (num_nodes <= 1)
+  if ((num_nodes - g->num_debug) <= 1)
     {
       free (g);
       return NULL;
@@ -973,6 +1053,7 @@ free_ddg_all_sccs (ddg_all_sccs_ptr all_sccs)
   for (i = 0; i < all_sccs->num_sccs; i++)
     free_scc (all_sccs->sccs[i]);
 
+  free (all_sccs->sccs);
   free (all_sccs);
 }
 

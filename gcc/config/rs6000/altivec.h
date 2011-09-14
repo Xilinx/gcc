@@ -1,5 +1,6 @@
 /* PowerPC AltiVec include file.
-   Copyright (C) 2002, 2003, 2004, 2005, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Aldy Hernandez (aldyh@redhat.com).
    Rewritten by Paolo Bonzini (bonzini@gnu.org).
 
@@ -163,6 +164,8 @@
 #define vec_vpkshus __builtin_vec_vpkshus
 #define vec_re __builtin_vec_re
 #define vec_round __builtin_vec_round
+#define vec_recipdiv __builtin_vec_recipdiv
+#define vec_rsqrt __builtin_vec_rsqrt
 #define vec_rsqrte __builtin_vec_rsqrte
 #define vec_vsubfp __builtin_vec_vsubfp
 #define vec_subc __builtin_vec_subc
@@ -315,6 +318,8 @@
 #define vec_nearbyint __builtin_vec_nearbyint
 #define vec_rint __builtin_vec_rint
 #define vec_sqrt __builtin_vec_sqrt
+#define vec_vsx_ld __builtin_vec_vsx_ld
+#define vec_vsx_st __builtin_vec_vsx_st
 #endif
 
 /* Predicates.

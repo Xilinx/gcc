@@ -1,7 +1,6 @@
 /* { dg-require-effective-target vect_int } */
 
 #include <stdarg.h>
-#include <stdio.h>
 #include "tree-vect.h"
 
 #define N 16 
@@ -26,6 +25,9 @@ main1 (unsigned int x, unsigned int y)
   *pout++ = a1 * y;
   *pout++ = a2 * x;
   *pout++ = a3 * y;
+
+  if (x)
+    __asm__ volatile ("" : : : "memory");
 
   /* Check results.  */
   if (out[0] != (in[0] + 23) * x

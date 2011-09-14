@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler, for DEC Alpha on
    Tru64 UNIX V5.1.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010
+   2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -80,11 +80,27 @@ along with GCC; see the file COPYING3.  If not see
 #define CPP_SPEC \
 "%{pthread|threads:-D_REENTRANT} %{threads:-D_PTHREAD_USE_D4}"
 
+/* -mcpu=native handling only makes sense with compiler running on
+   an Alpha chip.  */
+#if defined(__alpha__) || defined(__alpha)
+extern const char *host_detect_local_cpu (int argc, const char **argv);
+# define EXTRA_SPEC_FUNCTIONS						\
+  { "local_cpu_detect", host_detect_local_cpu },
+
+# define MCPU_MTUNE_NATIVE_SPECS					\
+   " %{mcpu=native:%<mcpu=native %:local_cpu_detect(cpu)}"		\
+   " %{mtune=native:%<mtune=native %:local_cpu_detect(tune)}"
+#else
+# define MCPU_MTUNE_NATIVE_SPECS ""
+#endif
+
+#define DRIVER_SELF_SPECS MCPU_MTUNE_NATIVE_SPECS
+
 /* Under DEC OSF/1 V4, -p and -pg require -lprof1, and -lprof1 requires 
    -lpdf.  */
 
 #define LIB_SPEC \
-"%{p|pg:-lprof1%{pthread|threads:_r} -lpdf} %{a:-lprof2} \
+"%{p|pg:-lprof1%{pthread|threads:_r} -lpdf} \
  %{threads: -lpthreads} %{pthread|threads: -lpthread -lmach -lexc} -lc"
 
 /* Pass "-G 8" to ld because Alpha's CC does.  Pass -O3 if we are
@@ -102,7 +118,7 @@ along with GCC; see the file COPYING3.  If not see
   "%{!shared:%{pg:gcrt0.o%s}%{!pg:%{p:mcrt0.o%s}%{!p:crt0.o%s}}}"
 
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
 
 #define MD_STARTFILE_PREFIX "/usr/lib/cmplrs/cc/"
 
@@ -127,12 +143,11 @@ along with GCC; see the file COPYING3.  If not see
    it always means that we get slightly larger than necessary object files
    if the user does not specify -g.  If we don't pass -g, then mips-tfile
    will need to be fixed to work in this case.  Pass -O0 since some
-   optimization are broken and don't help us anyway.  Pass -nocpp because
-   there's no point in running CPP on our assembler output.  */
+   optimization are broken and don't help us anyway.  */
 #if ((TARGET_DEFAULT | TARGET_CPU_DEFAULT) & MASK_GAS) != 0
-#define ASM_SPEC "%{malpha-as:-g " ASM_OLDAS_SPEC " -nocpp %{pg} -O0}"
+#define ASM_SPEC "%{malpha-as:-g " ASM_OLDAS_SPEC " %{pg} -O0}"
 #else
-#define ASM_SPEC "%{!mgas:-g " ASM_OLDAS_SPEC " -nocpp %{pg} -O0}"
+#define ASM_SPEC "%{!mgas:-g " ASM_OLDAS_SPEC " %{pg} -O0}"
 #endif
 
 /* Specify to run a post-processor, mips-tfile after the assembler
@@ -166,22 +181,7 @@ along with GCC; see the file COPYING3.  If not see
 #define HAVE_STAMP_H 1
 #endif
 
-/* Attempt to turn on access permissions for the stack.  */
-
-#define ENABLE_EXECUTE_STACK						\
-void									\
-__enable_execute_stack (void *addr)					\
-{									\
-  extern int mprotect (const void *, size_t, int);			\
-  long size = getpagesize ();						\
-  long mask = ~(size-1);						\
-  char *page = (char *) (((long) addr) & mask);				\
-  char *end  = (char *) ((((long) (addr + TRAMPOLINE_SIZE)) & mask) + size); \
-									\
-  /* 7 is PROT_READ | PROT_WRITE | PROT_EXEC */				\
-  if (mprotect (page, end - page, 7) < 0)				\
-    perror ("mprotect of trampoline code");				\
-}
+#define HAVE_ENABLE_EXECUTE_STACK
 
 /* Digital UNIX V4.0E (1091)/usr/include/sys/types.h 4.3.49.9 1997/08/14 */
 #define SIZE_TYPE	"long unsigned int"
@@ -224,6 +224,10 @@ __enable_execute_stack (void *addr)					\
 #define LD_INIT_SWITCH "-init"
 #define LD_FINI_SWITCH "-fini"
 
+/* From Tru64 UNIX Object File and Symbol Table Format Specification,
+   2.3.5 Alignment, p.19.  */
+#define MAX_OFILE_ALIGNMENT (64 * 1024 * BITS_PER_UNIT)
+
 /* Select a format to encode pointers in exception handling data.  CODE
    is 0 for data, 1 for code labels, 2 for function pointers.  GLOBAL is
    true if the symbol may be affected by dynamic relocations.
@@ -237,6 +241,14 @@ __enable_execute_stack (void *addr)					\
   (TARGET_GAS								     \
    ? (((GLOBAL) ? DW_EH_PE_indirect : 0) | DW_EH_PE_pcrel | DW_EH_PE_sdata4) \
    : DW_EH_PE_aligned)
+
+/* The Tru64 UNIX assembler warns on .lcomm with SIZE 0, so use 1 in that
+   case.  */
+#undef ASM_OUTPUT_LOCAL
+#define ASM_OUTPUT_LOCAL(FILE, NAME, SIZE,ROUNDED)	\
+( fputs ("\t.lcomm ", (FILE)),				\
+  assemble_name ((FILE), (NAME)),			\
+  fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED"\n", (SIZE) ? (SIZE) : 1))
 
 /* This is how we tell the assembler that a symbol is weak.  */
 
@@ -261,8 +273,7 @@ __enable_execute_stack (void *addr)					\
 #define TARGET_ASM_OPEN_PAREN ""
 #define TARGET_ASM_CLOSE_PAREN ""
 
-/* Handle #pragma weak and #pragma pack.  */
-#define HANDLE_SYSV_PRAGMA 1
-
 /* Handle #pragma extern_prefix.  */
 #define TARGET_HANDLE_PRAGMA_EXTERN_PREFIX 1
+
+#define TARGET_HAVE_NAMED_SECTIONS false

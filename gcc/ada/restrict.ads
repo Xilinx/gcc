@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,7 +39,7 @@ package Restrict is
    --  consistency, restrictions found in any with'ed units, parent specs
    --  etc., since we may as well check as much as we can at compile time.
    --  These variables should not be referenced directly by clients. Instead
-   --  use Check_Restrictions to record a violation of a restriction, and
+   --  use Check_Restriction to record a violation of a restriction, and
    --  Restriction_Active to test if a given restriction is active.
 
    Restrictions_Loc : array (All_Restrictions) of Source_Ptr :=
@@ -174,9 +174,42 @@ package Restrict is
      Table_Increment      => 200,
      Table_Name           => "Name_No_Dependence");
 
+   -------------------------------
+   -- SPARK Restriction Control --
+   -------------------------------
+
+   --  SPARK HIDE directives allow the effect of the SPARK restriction to be
+   --  turned off for a specified region of code, and the following tables are
+   --  the data structures used to keep track of these regions.
+
+   --  The table contains pairs of source locations, the first being the start
+   --  location for hidden region, and the second being the end location.
+
+   --  Note that the start location is included in the hidden region, while
+   --  the end location is excluded from it. (It typically corresponds to the
+   --  next token during scanning.)
+
+   type SPARK_Hide_Entry is record
+      Start : Source_Ptr;
+      Stop  : Source_Ptr;
+   end record;
+
+   package SPARK_Hides is new Table.Table (
+     Table_Component_Type => SPARK_Hide_Entry,
+     Table_Index_Type     => Natural,
+     Table_Low_Bound      => 1,
+     Table_Initial        => 100,
+     Table_Increment      => 200,
+     Table_Name           => "SPARK Hides");
+
    -----------------
    -- Subprograms --
    -----------------
+
+   --  Note: several of these subprograms can generate error messages (e.g.
+   --  Check_Restriction). These routines should be called in the analyzer
+   --  rather than the expander, so that the associated error messages are
+   --  correctly generated in semantics only (-gnatc) mode.
 
    function Abort_Allowed return Boolean;
    pragma Inline (Abort_Allowed);
@@ -195,11 +228,13 @@ package Restrict is
    --  If a restriction exists post error message at the given node.
 
    procedure Check_Restriction
-     (R : Restriction_Id;
-      N : Node_Id;
-      V : Uint := Uint_Minus_1);
+     (Msg_Issued : out Boolean;
+      R          : Restriction_Id;
+      N          : Node_Id;
+      V          : Uint := Uint_Minus_1);
    --  Checks that the given restriction is not set, and if it is set, an
-   --  appropriate message is posted on the given node. Also records the
+   --  appropriate message is posted on the given node, in which case
+   --  Msg_Issued is set to True (and False otherwise). Also records the
    --  violation in the appropriate internal arrays. Note that it is mandatory
    --  to always use this routine to check if a restriction is violated. Such
    --  checks must never be done directly by the caller, since otherwise
@@ -208,16 +243,36 @@ package Restrict is
    --  indicates the exact count for the violation. If the exact count is not
    --  known, V is left at its default of -1 which indicates an unknown count.
 
+   procedure Check_Restriction
+     (R : Restriction_Id;
+      N : Node_Id;
+      V : Uint := Uint_Minus_1);
+   --  Wrapper on Check_Restriction with Msg_Issued, with the out-parameter
+   --  being ignored here.
+
    procedure Check_Restriction_No_Dependence (U : Node_Id; Err : Node_Id);
    --  Called when a dependence on a unit is created (either implicitly, or by
-   --  an explicit WITH clause). U is a node for the unit involved, and Err
-   --  is the node to which an error will be attached if necessary.
+   --  an explicit WITH clause). U is a node for the unit involved, and Err is
+   --  the node to which an error will be attached if necessary.
 
    procedure Check_Elaboration_Code_Allowed (N : Node_Id);
    --  Tests to see if elaboration code is allowed by the current restrictions
-   --  settings. This function is called by Gigi when it needs to define
-   --  an elaboration routine. If elaboration code is not allowed, an error
+   --  settings. This function is called by Gigi when it needs to define an
+   --  elaboration routine. If elaboration code is not allowed, an error
    --  message is posted on the node given as argument.
+
+   procedure Check_SPARK_Restriction
+     (Msg   : String;
+      N     : Node_Id;
+      Force : Boolean := False);
+   --  Node N represents a construct not allowed in formal mode. If this is a
+   --  source node, or if the restriction is forced (Force = True), and the
+   --  SPARK restriction is set, then an error is issued on N. Msg is appended
+   --  to the restriction failure message.
+
+   procedure Check_SPARK_Restriction (Msg1, Msg2 : String; N : Node_Id);
+   --  Same as Check_SPARK_Restriction except there is a continuation message
+   --  Msg2 following the initial message Msg1.
 
    procedure Check_Implicit_Dynamic_Code_Allowed (N : Node_Id);
    --  Tests to see if dynamic code generation (dynamically generated
@@ -229,6 +284,21 @@ package Restrict is
    procedure Check_No_Implicit_Heap_Alloc (N : Node_Id);
    --  Equivalent to Check_Restriction (No_Implicit_Heap_Allocations, N).
    --  Provided for easy use by back end, which has to check this restriction.
+
+   procedure Check_Obsolescent_2005_Entity (E : Entity_Id; N : Node_Id);
+   --  This routine checks if the entity E is one of the obsolescent entries
+   --  in Ada.Characters.Handling in Ada 2005 and No_Obsolescent_Features
+   --  restriction is active. If so an appropriate message is given. N is
+   --  the node on which the message is to be placed. It's a bit kludgy to
+   --  have this highly specialized routine rather than some wonderful general
+   --  mechanism (e.g. a special pragma) to handle this case, but there are
+   --  only six cases, and it is not worth the effort to do something general.
+
+   procedure Check_Wide_Character_Restriction (E : Entity_Id; N : Node_Id);
+   --  This procedure checks if the No_Wide_Character restriction is active,
+   --  and if so, if N Comes_From_Source, and the root type of E is one of
+   --  [Wide_]Wide_Character or [Wide_]Wide_String, then the restriction
+   --  violation is recorded, and an appropriate message given.
 
    function Cunit_Boolean_Restrictions_Save
      return Save_Cunit_Boolean_Restrictions;
@@ -249,8 +319,12 @@ package Restrict is
    function Get_Restriction_Id
      (N : Name_Id) return Restriction_Id;
    --  Given an identifier name, determines if it is a valid restriction
-   --  identifier, and if so returns the corresponding Restriction_Id
-   --  value, otherwise returns Not_A_Restriction_Id.
+   --  identifier, and if so returns the corresponding Restriction_Id value,
+   --  otherwise returns Not_A_Restriction_Id.
+
+   function Is_In_Hidden_Part_In_SPARK (Loc : Source_Ptr) return Boolean;
+   --  Determine if given location is covered by a hidden region range in the
+   --  SPARK hides table.
 
    function No_Exception_Handlers_Set return Boolean;
    --  Test to see if current restrictions settings specify that no exception
@@ -277,13 +351,28 @@ package Restrict is
    --  used where the compiled code depends on whether the restriction is
    --  active. Always use Check_Restriction to record a violation. Note that
    --  this returns False if we only have a Restriction_Warnings set, since
-   --  restriction warnings should never affect generated code.
+   --  restriction warnings should never affect generated code. If you want
+   --  to know if a call to Check_Restriction is needed then use the function
+   --  Restriction_Check_Required instead.
+
+   function Restriction_Check_Required (R : All_Restrictions) return Boolean;
+   pragma Inline (Restriction_Check_Required);
+   --  Determines if either a Restriction_Warnings or Restrictions pragma has
+   --  been given for the specified restriction. If true, then a subsequent
+   --  call to Check_Restriction is required if the restriction is violated.
+   --  This must not be used to guard code generation that depends on whether
+   --  a restriction is active (see Restriction_Active above). Typically it
+   --  is used to avoid complex code to determine if a restriction is violated,
+   --  executing this code only if needed.
 
    function Restricted_Profile return Boolean;
    --  Tests if set of restrictions corresponding to Profile (Restricted) is
-   --  currently in effect (set by pragma Profile, or by an appropriate set
-   --  of individual Restrictions pragmas). Returns True only if all the
-   --  required restrictions are set.
+   --  currently in effect (set by pragma Profile, or by an appropriate set of
+   --  individual Restrictions pragmas). Returns True only if all the required
+   --  restrictions are set.
+
+   procedure Set_Hidden_Part_In_SPARK (Loc1, Loc2 : Source_Ptr);
+   --  Insert a new hidden region range in the SPARK hides table
 
    procedure Set_Profile_Restrictions
      (P    : Profile_Name;
@@ -314,8 +403,8 @@ package Restrict is
      (Unit    : Node_Id;
       Warn    : Boolean;
       Profile : Profile_Name := No_Profile);
-   --  Sets given No_Dependence restriction in table if not there already.
-   --  Warn is True if from Restriction_Warnings, or for Restrictions if flag
+   --  Sets given No_Dependence restriction in table if not there already. Warn
+   --  is True if from Restriction_Warnings, or for Restrictions if the flag
    --  Treat_Restrictions_As_Warnings is set. False if from Restrictions and
    --  this flag is not set. Profile is set to a non-default value if the
    --  No_Dependence restriction comes from a Profile pragma.

@@ -1,5 +1,5 @@
 ;; Atom Scheduling
-;; Copyright (C) 2009 Free Software Foundation, Inc.
+;; Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -501,9 +501,10 @@
 ;; if palignr or psrldq
 (define_insn_reservation  "atom_sseishft_2" 1
   (and (eq_attr "cpu" "atom")
-       (and (eq_attr "type" "sseishft")
-            (and (eq_attr "atom_unit" "sishuf")
-                 (match_operand 2 "immediate_operand"))))
+       (ior (eq_attr "type" "sseishft1")
+	    (and (eq_attr "type" "sseishft")
+		 (and (eq_attr "atom_unit" "sishuf")
+		      (match_operand 2 "immediate_operand")))))
   "atom-simple-0")
 
 ;; if reg/mem op

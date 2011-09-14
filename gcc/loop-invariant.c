@@ -64,7 +64,7 @@ struct loop_data
   struct loop *outermost_exit;	/* The outermost exit of the loop.  */
   bool has_call;		/* True if the loop contains a call.  */
   /* Maximal register pressure inside loop for given register class
-     (defined only for the cover classes).  */
+     (defined only for the pressure classes).  */
   int max_reg_pressure[N_REG_CLASSES];
   /* Loop regs referenced and live pseudo-registers.  */
   bitmap_head regs_ref;
@@ -536,7 +536,7 @@ merge_identical_invariants (void)
   htab_t eq = htab_create (VEC_length (invariant_p, invariants),
 			   hash_invariant_expr, eq_invariant_expr, free);
 
-  for (i = 0; VEC_iterate (invariant_p, invariants, i, inv); i++)
+  FOR_EACH_VEC_ELT (invariant_p, invariants, i, inv)
     find_identical_invariants (eq, inv);
 
   htab_delete (eq);
@@ -704,7 +704,7 @@ create_new_invariant (struct def *def, rtx insn, bitmap depends_on,
      the loop.  Otherwise we save only cost of the computation.  */
   if (def)
     {
-      inv->cost = rtx_cost (set, SET, speed);
+      inv->cost = set_rtx_cost (set, speed);
       /* ??? Try to determine cheapness of address computation.  Unfortunately
          the address cost is only a relative measure, we can't really compare
 	 it with any absolute number, but only with other address costs.
@@ -719,7 +719,7 @@ create_new_invariant (struct def *def, rtx insn, bitmap depends_on,
     }
   else
     {
-      inv->cost = rtx_cost (SET_SRC (set), SET, speed);
+      inv->cost = set_src_cost (SET_SRC (set), speed);
       inv->cheap_address = false;
     }
 
@@ -1012,13 +1012,13 @@ free_use_list (struct use *use)
     }
 }
 
-/* Return cover class and number of hard registers (through *NREGS)
+/* Return pressure class and number of hard registers (through *NREGS)
    for destination of INSN. */
 static enum reg_class
-get_cover_class_and_nregs (rtx insn, int *nregs)
+get_pressure_class_and_nregs (rtx insn, int *nregs)
 {
   rtx reg;
-  enum reg_class cover_class;
+  enum reg_class pressure_class;
   rtx set = single_set (insn);
 
   /* Considered invariant insns have only one set.  */
@@ -1029,19 +1029,23 @@ get_cover_class_and_nregs (rtx insn, int *nregs)
   if (MEM_P (reg))
     {
       *nregs = 0;
-      cover_class = NO_REGS;
+      pressure_class = NO_REGS;
     }
   else
     {
       if (! REG_P (reg))
 	reg = NULL_RTX;
       if (reg == NULL_RTX)
-	cover_class = GENERAL_REGS;
+	pressure_class = GENERAL_REGS;
       else
-	cover_class = reg_cover_class (REGNO (reg));
-      *nregs = ira_reg_class_nregs[cover_class][GET_MODE (SET_SRC (set))];
+	{
+	  pressure_class = reg_allocno_class (REGNO (reg));
+	  pressure_class = ira_pressure_class_translate[pressure_class];
+	}
+      *nregs
+	= ira_reg_class_max_nregs[pressure_class][GET_MODE (SET_SRC (set))];
     }
-  return cover_class;
+  return pressure_class;
 }
 
 /* Calculates cost and number of registers needed for moving invariant INV
@@ -1064,8 +1068,8 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
     regs_needed[0] = 0;
   else
     {
-      for (i = 0; i < ira_reg_class_cover_size; i++)
-	regs_needed[ira_reg_class_cover[i]] = 0;
+      for (i = 0; i < ira_pressure_classes_num; i++)
+	regs_needed[ira_pressure_classes[i]] = 0;
     }
 
   if (inv->move
@@ -1078,10 +1082,10 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
   else
     {
       int nregs;
-      enum reg_class cover_class;
+      enum reg_class pressure_class;
 
-      cover_class = get_cover_class_and_nregs (inv->insn, &nregs);
-      regs_needed[cover_class] += nregs;
+      pressure_class = get_pressure_class_and_nregs (inv->insn, &nregs);
+      regs_needed[pressure_class] += nregs;
     }
 
   if (!inv->cheap_address
@@ -1112,7 +1116,7 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
 	&& constant_pool_constant_p (SET_SRC (set)))
       {
 	if (flag_ira_loop_pressure)
-	  regs_needed[STACK_REG_COVER_CLASS] += 2;
+	  regs_needed[ira_stack_reg_pressure_class] += 2;
 	else
 	  regs_needed[0] += 2;
       }
@@ -1131,10 +1135,10 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
 	check_p = aregs_needed[0] != 0;
       else
 	{
-	  for (i = 0; i < ira_reg_class_cover_size; i++)
-	    if (aregs_needed[ira_reg_class_cover[i]] != 0)
+	  for (i = 0; i < ira_pressure_classes_num; i++)
+	    if (aregs_needed[ira_pressure_classes[i]] != 0)
 	      break;
-	  check_p = i < ira_reg_class_cover_size;
+	  check_p = i < ira_pressure_classes_num;
 	}
       if (check_p
 	  /* We need to check always_executed, since if the original value of
@@ -1151,10 +1155,10 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
 	  else
 	    {
 	      int nregs;
-	      enum reg_class cover_class;
+	      enum reg_class pressure_class;
 
-	      cover_class = get_cover_class_and_nregs (inv->insn, &nregs);
-	      aregs_needed[cover_class] -= nregs;
+	      pressure_class = get_pressure_class_and_nregs (inv->insn, &nregs);
+	      aregs_needed[pressure_class] -= nregs;
 	    }
 	}
 
@@ -1162,9 +1166,9 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
 	regs_needed[0] += aregs_needed[0];
       else
 	{
-	  for (i = 0; i < ira_reg_class_cover_size; i++)
-	    regs_needed[ira_reg_class_cover[i]]
-	      += aregs_needed[ira_reg_class_cover[i]];
+	  for (i = 0; i < ira_pressure_classes_num; i++)
+	    regs_needed[ira_pressure_classes[i]]
+	      += aregs_needed[ira_pressure_classes[i]];
 	}
       (*comp_cost) += acomp_cost;
     }
@@ -1173,11 +1177,13 @@ get_inv_cost (struct invariant *inv, int *comp_cost, unsigned *regs_needed)
 /* Calculates gain for eliminating invariant INV.  REGS_USED is the number
    of registers used in the loop, NEW_REGS is the number of new variables
    already added due to the invariant motion.  The number of registers needed
-   for it is stored in *REGS_NEEDED.  */
+   for it is stored in *REGS_NEEDED.  SPEED and CALL_P are flags passed
+   through to estimate_reg_pressure_cost. */
 
 static int
 gain_for_invariant (struct invariant *inv, unsigned *regs_needed,
-		    unsigned *new_regs, unsigned regs_used, bool speed)
+		    unsigned *new_regs, unsigned regs_used,
+		    bool speed, bool call_p)
 {
   int comp_cost, size_cost;
 
@@ -1188,26 +1194,26 @@ gain_for_invariant (struct invariant *inv, unsigned *regs_needed,
   if (! flag_ira_loop_pressure)
     {
       size_cost = (estimate_reg_pressure_cost (new_regs[0] + regs_needed[0],
-					       regs_used, speed)
+					       regs_used, speed, call_p)
 		   - estimate_reg_pressure_cost (new_regs[0],
-						 regs_used, speed));
+						 regs_used, speed, call_p));
     }
   else
     {
       int i;
-      enum reg_class cover_class;
+      enum reg_class pressure_class;
 
-      for (i = 0; i < ira_reg_class_cover_size; i++)
+      for (i = 0; i < ira_pressure_classes_num; i++)
 	{
-	  cover_class = ira_reg_class_cover[i];
-	  if ((int) new_regs[cover_class]
-	      + (int) regs_needed[cover_class]
-	      + LOOP_DATA (curr_loop)->max_reg_pressure[cover_class]
+	  pressure_class = ira_pressure_classes[i];
+	  if ((int) new_regs[pressure_class]
+	      + (int) regs_needed[pressure_class]
+	      + LOOP_DATA (curr_loop)->max_reg_pressure[pressure_class]
 	      + IRA_LOOP_RESERVED_REGS
-	      > ira_available_class_regs[cover_class])
+	      > ira_available_class_regs[pressure_class])
 	    break;
 	}
-      if (i < ira_reg_class_cover_size)
+      if (i < ira_pressure_classes_num)
 	/* There will be register pressure excess and we want not to
 	   make this loop invariant motion.  All loop invariants with
 	   non-positive gains will be rejected in function
@@ -1245,13 +1251,14 @@ gain_for_invariant (struct invariant *inv, unsigned *regs_needed,
 
 static int
 best_gain_for_invariant (struct invariant **best, unsigned *regs_needed,
-			 unsigned *new_regs, unsigned regs_used, bool speed)
+			 unsigned *new_regs, unsigned regs_used,
+			 bool speed, bool call_p)
 {
   struct invariant *inv;
   int i, gain = 0, again;
   unsigned aregs_needed[N_REG_CLASSES], invno;
 
-  for (invno = 0; VEC_iterate (invariant_p, invariants, invno, inv); invno++)
+  FOR_EACH_VEC_ELT (invariant_p, invariants, invno, inv)
     {
       if (inv->move)
 	continue;
@@ -1261,7 +1268,7 @@ best_gain_for_invariant (struct invariant **best, unsigned *regs_needed,
 	continue;
 
       again = gain_for_invariant (inv, aregs_needed, new_regs, regs_used,
-      				  speed);
+      				  speed, call_p);
       if (again > gain)
 	{
 	  gain = again;
@@ -1270,9 +1277,9 @@ best_gain_for_invariant (struct invariant **best, unsigned *regs_needed,
 	    regs_needed[0] = aregs_needed[0];
 	  else
 	    {
-	      for (i = 0; i < ira_reg_class_cover_size; i++)
-		regs_needed[ira_reg_class_cover[i]]
-		  = aregs_needed[ira_reg_class_cover[i]];
+	      for (i = 0; i < ira_pressure_classes_num; i++)
+		regs_needed[ira_pressure_classes[i]]
+		  = aregs_needed[ira_pressure_classes[i]];
 	    }
 	}
     }
@@ -1314,7 +1321,7 @@ set_move_mark (unsigned invno, int gain)
 /* Determines which invariants to move.  */
 
 static void
-find_invariants_to_move (bool speed)
+find_invariants_to_move (bool speed, bool call_p)
 {
   int gain;
   unsigned i, regs_used, regs_needed[N_REG_CLASSES], new_regs[N_REG_CLASSES];
@@ -1349,20 +1356,21 @@ find_invariants_to_move (bool speed)
     new_regs[0] = regs_needed[0] = 0;
   else
     {
-      for (i = 0; (int) i < ira_reg_class_cover_size; i++)
-	new_regs[ira_reg_class_cover[i]] = 0;
+      for (i = 0; (int) i < ira_pressure_classes_num; i++)
+	new_regs[ira_pressure_classes[i]] = 0;
     }
   while ((gain = best_gain_for_invariant (&inv, regs_needed,
-					  new_regs, regs_used, speed)) > 0)
+					  new_regs, regs_used,
+					  speed, call_p)) > 0)
     {
       set_move_mark (inv->invno, gain);
       if (! flag_ira_loop_pressure)
 	new_regs[0] += regs_needed[0];
       else
 	{
-	  for (i = 0; (int) i < ira_reg_class_cover_size; i++)
-	    new_regs[ira_reg_class_cover[i]]
-	      += regs_needed[ira_reg_class_cover[i]];
+	  for (i = 0; (int) i < ira_pressure_classes_num; i++)
+	    new_regs[ira_pressure_classes[i]]
+	      += regs_needed[ira_pressure_classes[i]];
 	}
     }
 }
@@ -1504,18 +1512,18 @@ move_invariants (struct loop *loop)
   struct invariant *inv;
   unsigned i;
 
-  for (i = 0; VEC_iterate (invariant_p, invariants, i, inv); i++)
+  FOR_EACH_VEC_ELT (invariant_p, invariants, i, inv)
     move_invariant_reg (loop, i);
   if (flag_ira_loop_pressure && resize_reg_info ())
     {
-      for (i = 0; VEC_iterate (invariant_p, invariants, i, inv); i++)
+      FOR_EACH_VEC_ELT (invariant_p, invariants, i, inv)
 	if (inv->reg != NULL_RTX)
 	  {
 	    if (inv->orig_regno >= 0)
 	      setup_reg_classes (REGNO (inv->reg),
 				 reg_preferred_class (inv->orig_regno),
 				 reg_alternate_class (inv->orig_regno),
-				 reg_cover_class (inv->orig_regno));
+				 reg_allocno_class (inv->orig_regno));
 	    else
 	      setup_reg_classes (REGNO (inv->reg),
 				 GENERAL_REGS, NO_REGS, GENERAL_REGS);
@@ -1557,7 +1565,7 @@ free_inv_motion_data (void)
 	}
     }
 
-  for (i = 0; VEC_iterate (invariant_p, invariants, i, inv); i++)
+  FOR_EACH_VEC_ELT (invariant_p, invariants, i, inv)
     {
       BITMAP_FREE (inv->depends_on);
       free (inv);
@@ -1573,7 +1581,8 @@ move_single_loop_invariants (struct loop *loop)
   init_inv_motion_data ();
 
   find_invariants (loop);
-  find_invariants_to_move (optimize_loop_for_speed_p (loop));
+  find_invariants_to_move (optimize_loop_for_speed_p (loop),
+			   LOOP_DATA (loop)->has_call);
   move_invariants (loop);
 
   free_inv_motion_data ();
@@ -1599,7 +1608,7 @@ free_loop_data (struct loop *loop)
 /* Registers currently living.  */
 static bitmap_head curr_regs_live;
 
-/* Current reg pressure for each cover class.  */
+/* Current reg pressure for each pressure class.  */
 static int curr_reg_pressure[N_REG_CLASSES];
 
 /* Record all regs that are set in any one insn.  Communication from
@@ -1610,23 +1619,26 @@ static rtx regs_set[(FIRST_PSEUDO_REGISTER > MAX_RECOG_OPERANDS
 /* Number of regs stored in the previous array.  */
 static int n_regs_set;
 
-/* Return cover class and number of needed hard registers (through
+/* Return pressure class and number of needed hard registers (through
    *NREGS) of register REGNO.  */
 static enum reg_class
-get_regno_cover_class (int regno, int *nregs)
+get_regno_pressure_class (int regno, int *nregs)
 {
   if (regno >= FIRST_PSEUDO_REGISTER)
     {
-      enum reg_class cover_class = reg_cover_class (regno);
+      enum reg_class pressure_class;
 
-      *nregs = ira_reg_class_nregs[cover_class][PSEUDO_REGNO_MODE (regno)];
-      return cover_class;
+      pressure_class = reg_allocno_class (regno);
+      pressure_class = ira_pressure_class_translate[pressure_class];
+      *nregs
+	= ira_reg_class_max_nregs[pressure_class][PSEUDO_REGNO_MODE (regno)];
+      return pressure_class;
     }
   else if (! TEST_HARD_REG_BIT (ira_no_alloc_regs, regno)
 	   && ! TEST_HARD_REG_BIT (eliminable_regset, regno))
     {
       *nregs = 1;
-      return ira_class_translate[REGNO_REG_CLASS (regno)];
+      return ira_pressure_class_translate[REGNO_REG_CLASS (regno)];
     }
   else
     {
@@ -1641,18 +1653,18 @@ static void
 change_pressure (int regno, bool incr_p)
 {
   int nregs;
-  enum reg_class cover_class;
+  enum reg_class pressure_class;
 
-  cover_class = get_regno_cover_class (regno, &nregs);
+  pressure_class = get_regno_pressure_class (regno, &nregs);
   if (! incr_p)
-    curr_reg_pressure[cover_class] -= nregs;
+    curr_reg_pressure[pressure_class] -= nregs;
   else
     {
-      curr_reg_pressure[cover_class] += nregs;
-      if (LOOP_DATA (curr_loop)->max_reg_pressure[cover_class]
-	  < curr_reg_pressure[cover_class])
-	LOOP_DATA (curr_loop)->max_reg_pressure[cover_class]
-	  = curr_reg_pressure[cover_class];
+      curr_reg_pressure[pressure_class] += nregs;
+      if (LOOP_DATA (curr_loop)->max_reg_pressure[pressure_class]
+	  < curr_reg_pressure[pressure_class])
+	LOOP_DATA (curr_loop)->max_reg_pressure[pressure_class]
+	  = curr_reg_pressure[pressure_class];
     }
 }
 
@@ -1666,9 +1678,8 @@ mark_regno_live (int regno)
        loop != current_loops->tree_root;
        loop = loop_outer (loop))
     bitmap_set_bit (&LOOP_DATA (loop)->regs_live, regno);
-  if (bitmap_bit_p (&curr_regs_live, regno))
+  if (!bitmap_set_bit (&curr_regs_live, regno))
     return;
-  bitmap_set_bit (&curr_regs_live, regno);
   change_pressure (regno, true);
 }
 
@@ -1676,9 +1687,8 @@ mark_regno_live (int regno)
 static void
 mark_regno_death (int regno)
 {
-  if (! bitmap_bit_p (&curr_regs_live, regno))
+  if (! bitmap_clear_bit (&curr_regs_live, regno))
     return;
-  bitmap_clear_bit (&curr_regs_live, regno);
   change_pressure (regno, false);
 }
 
@@ -1810,8 +1820,8 @@ calculate_loop_reg_pressure (void)
 	bitmap_ior_into (&LOOP_DATA (loop)->regs_live, DF_LR_IN (bb));
 
       bitmap_copy (&curr_regs_live, DF_LR_IN (bb));
-      for (i = 0; i < ira_reg_class_cover_size; i++)
-	curr_reg_pressure[ira_reg_class_cover[i]] = 0;
+      for (i = 0; i < ira_pressure_classes_num; i++)
+	curr_reg_pressure[ira_pressure_classes[i]] = 0;
       EXECUTE_IF_SET_IN_BITMAP (&curr_regs_live, 0, j, bi)
 	change_pressure (j, true);
 
@@ -1861,11 +1871,11 @@ calculate_loop_reg_pressure (void)
 	EXECUTE_IF_SET_IN_BITMAP (&LOOP_DATA (loop)->regs_live, 0, j, bi)
 	  if (! bitmap_bit_p (&LOOP_DATA (loop)->regs_ref, j))
 	    {
-	      enum reg_class cover_class;
+	      enum reg_class pressure_class;
 	      int nregs;
 
-	      cover_class = get_regno_cover_class (j, &nregs);
-	      LOOP_DATA (loop)->max_reg_pressure[cover_class] -= nregs;
+	      pressure_class = get_regno_pressure_class (j, &nregs);
+	      LOOP_DATA (loop)->max_reg_pressure[pressure_class] -= nregs;
 	    }
       }
   if (dump_file == NULL)
@@ -1883,15 +1893,15 @@ calculate_loop_reg_pressure (void)
       EXECUTE_IF_SET_IN_BITMAP (&LOOP_DATA (loop)->regs_live, 0, j, bi)
 	fprintf (dump_file, " %d", j);
       fprintf (dump_file, "\n    Pressure:");
-      for (i = 0; (int) i < ira_reg_class_cover_size; i++)
+      for (i = 0; (int) i < ira_pressure_classes_num; i++)
 	{
-	  enum reg_class cover_class;
+	  enum reg_class pressure_class;
 
-	  cover_class = ira_reg_class_cover[i];
-	  if (LOOP_DATA (loop)->max_reg_pressure[cover_class] == 0)
+	  pressure_class = ira_pressure_classes[i];
+	  if (LOOP_DATA (loop)->max_reg_pressure[pressure_class] == 0)
 	    continue;
-	  fprintf (dump_file, " %s=%d", reg_class_names[cover_class],
-		   LOOP_DATA (loop)->max_reg_pressure[cover_class]);
+	  fprintf (dump_file, " %s=%d", reg_class_names[pressure_class],
+		   LOOP_DATA (loop)->max_reg_pressure[pressure_class]);
 	}
       fprintf (dump_file, "\n");
     }
@@ -1910,8 +1920,10 @@ move_loop_invariants (void)
   if (flag_ira_loop_pressure)
     {
       df_analyze ();
+      regstat_init_n_sets_and_refs ();
       ira_set_pseudo_classes (dump_file);
       calculate_loop_reg_pressure ();
+      regstat_free_n_sets_and_refs ();
     }
   df_set_flags (DF_EQ_NOTES + DF_DEFER_INSN_RESCAN);
   /* Process the loops, innermost first.  */

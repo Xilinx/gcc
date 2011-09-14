@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *        Copyright (C) 2005-2009  Free Software Foundation, Inc.           *
+ *        Copyright (C) 2005-2011, Free Software Foundation, Inc.           *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -29,11 +29,23 @@
  *                                                                          *
  ****************************************************************************/
 
-/*  This file contains target-specific parameters describing the file       */
-/*  extension for object and executable files. It is used by the compiler,  */
-/*  binder and tools.                                                       */
+/*  This file contains target-specific parameters describing the file
+    extension for object and executable files.  It is used by the compiler,
+    binder, library and tools.
+    Note that, in order to have access to the TARGET_* macros used below,
+    the file must be compiled with IN_GCC defined, even for the library.  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef IN_RTS
+#include "tconfig.h"
+#include "tsystem.h"
+#else
+#include "config.h"
 #include "system.h"
+#endif
 #include "coretypes.h"
 #include "tm.h"
 
@@ -48,3 +60,7 @@
 const char *__gnat_target_object_extension = TARGET_OBJECT_SUFFIX;
 const char *__gnat_target_executable_extension = TARGET_EXECUTABLE_SUFFIX;
 const char *__gnat_target_debuggable_extension = TARGET_EXECUTABLE_SUFFIX;
+
+#ifdef __cplusplus
+}
+#endif

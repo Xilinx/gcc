@@ -6,7 +6,7 @@
 --                                                                          --
 --                                   B o d y                                --
 --                                                                          --
---         Copyright (C) 1997-2009, Free Software Foundation, Inc.          --
+--         Copyright (C) 1997-2010, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -229,15 +229,36 @@ package body System.OS_Interface is
          Parameter);
    end Interrupt_Connect;
 
+   -----------------------
+   -- Interrupt_Context --
+   -----------------------
+
+   function Interrupt_Context return int is
+   begin
+      return System.VxWorks.Ext.Interrupt_Context;
+   end Interrupt_Context;
+
    --------------------------------
    -- Interrupt_Number_To_Vector --
    --------------------------------
 
    function Interrupt_Number_To_Vector
-     (intNum : int) return Interrupt_Vector is
+     (intNum : int) return Interrupt_Vector
+   is
    begin
       return Interrupt_Vector
         (System.VxWorks.Ext.Interrupt_Number_To_Vector (intNum));
    end Interrupt_Number_To_Vector;
+
+   -----------------
+   -- Current_CPU --
+   -----------------
+
+   function Current_CPU return Multiprocessors.CPU is
+   begin
+      --  ??? Should use vxworks multiprocessor interface
+
+      return Multiprocessors.CPU'First;
+   end Current_CPU;
 
 end System.OS_Interface;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -62,8 +62,11 @@ package System.Rident is
       No_Abort_Statements,                     -- (RM D.7(5), H.4(3))
       No_Access_Subprograms,                   -- (RM H.4(17))
       No_Allocators,                           -- (RM H.4(7))
+      No_Allocators_After_Elaboration,         -- Ada 2012 (RM D.7(19.1/2))
+      No_Anonymous_Allocators,                 -- Ada 2012 (RM H.4(8/1))
       No_Asynchronous_Control,                 -- (RM D.7(10))
       No_Calendar,                             -- GNAT
+      No_Default_Stream_Attributes,            -- Ada 2012 (RM 13.12.1(4/2))
       No_Delay,                                -- (RM H.4(21))
       No_Direct_Boolean_Operators,             -- GNAT
       No_Dispatch,                             -- (RM H.4(19))
@@ -123,11 +126,15 @@ package System.Rident is
 
       Immediate_Reclamation,                   -- (RM H.4(10))
       No_Implementation_Attributes,            -- Ada 2005 AI-257
+      No_Implementation_Identifiers,           -- Ada 2012 AI-246
       No_Implementation_Pragmas,               -- Ada 2005 AI-257
       No_Implementation_Restrictions,          -- GNAT
+      No_Implementation_Units,                 -- Ada 2012 AI-242
+      No_Implicit_Aliasing,                    -- GNAT
       No_Elaboration_Code,                     -- GNAT
       No_Obsolescent_Features,                 -- Ada 2005 AI-368
       No_Wide_Characters,                      -- GNAT
+      SPARK,                                   -- GNAT
 
       --  The following cases require a parameter value
 
@@ -177,7 +184,7 @@ package System.Rident is
    --  All restrictions (excluding only Not_A_Restriction_Id)
 
    subtype All_Boolean_Restrictions is Restriction_Id range
-     Simple_Barriers .. No_Wide_Characters;
+     Simple_Barriers .. SPARK;
    --  All restrictions which do not take a parameter
 
    subtype Partition_Boolean_Restrictions is All_Boolean_Restrictions range
@@ -188,7 +195,7 @@ package System.Rident is
    --  case of Boolean restrictions.
 
    subtype Cunit_Boolean_Restrictions is All_Boolean_Restrictions range
-     Immediate_Reclamation .. No_Wide_Characters;
+     Immediate_Reclamation .. SPARK;
    --  Boolean restrictions that are not checked for partition consistency
    --  and that thus apply only to the current unit. Note that for these
    --  restrictions, the compiler does not apply restrictions found in
@@ -305,12 +312,21 @@ package System.Rident is
    -- Profile Definitions and Data --
    ----------------------------------
 
-   type Profile_Name is (No_Profile, Ravenscar, Restricted);
+   --  Note: to add a profile, modify the following declarations appropriately,
+   --  add Name_xxx to Snames, and add a branch to the conditions for pragmas
+   --  Profile and Profile_Warnings in the body of Sem_Prag.
+
+   type Profile_Name is
+     (No_Profile,
+      No_Implementation_Extensions,
+      Ravenscar,
+      Restricted);
    --  Names of recognized profiles. No_Profile is used to indicate that a
    --  restriction came from pragma Restrictions[_Warning], as opposed to
    --  pragma Profile[_Warning].
 
-   subtype Profile_Name_Actual is Profile_Name range Ravenscar .. Restricted;
+   subtype Profile_Name_Actual is Profile_Name
+     range No_Implementation_Extensions .. Restricted;
    --  Actual used profile names
 
    type Profile_Data is record
@@ -327,11 +343,26 @@ package System.Rident is
       --  value of the parameter permitted by the profile.
    end record;
 
-   Profile_Info : array (Profile_Name_Actual) of Profile_Data :=
+   Profile_Info : constant array (Profile_Name_Actual) of Profile_Data :=
+
+                    (No_Implementation_Extensions =>
+                        --  Restrictions for Restricted profile
+
+                       (Set   =>
+                          (No_Implementation_Attributes    => True,
+                           No_Implementation_Identifiers   => True,
+                           No_Implementation_Pragmas       => True,
+                           No_Implementation_Units         => True,
+                           others                          => False),
+
+                        --  Value settings for Restricted profile (none
+
+                        Value =>
+                          (others                          => 0)),
 
                      --  Restricted Profile
 
-                    (Restricted =>
+                     Restricted =>
 
                         --  Restrictions for Restricted profile
 

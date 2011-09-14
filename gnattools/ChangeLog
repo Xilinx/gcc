@@ -1,3 +1,18 @@
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* configure.ac (*86-*-solaris2*): Also accept
+	x86_64-*-solaris2.1[0-9]*.
+	* configure: Regenerate.
+
+2010-11-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR other/46202
+	* Makefile.in (install-strip): New phony target.
+	(check, installcheck, info, dvi, pdf, html, install)
+	(install-info, install-pdf, install-html, mostlyclean)
+	(clean, distclean, maintainer-clean): Mark phony.
+
 2010-01-09  Simon Wright  <simon@pushface.org>
 
 	PR ada/42659

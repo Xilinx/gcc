@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1999-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -64,22 +64,6 @@ package Sem_Warn is
 
    procedure Initialize;
    --  Initialize this package for new compilation
-
-   function Set_Warning_Switch (C : Character) return Boolean;
-   --  This function sets the warning switch or switches corresponding to the
-   --  given character. It is used to process a -gnatw switch on the command
-   --  line, or a character in a string literal in pragma Warnings. Returns
-   --  True for valid warning character C, False for invalid character.
-
-   function Set_Dot_Warning_Switch (C : Character) return Boolean;
-   --  This function sets the warning switch or switches corresponding to the
-   --  given character preceded by a dot. Used to process a -gnatw. switch on
-   --  the command line or .C in a string literal in pragma Warnings. Returns
-   --  True for valid warning character C, False for invalid character.
-
-   procedure Set_GNAT_Mode_Warnings;
-   --  This is called in -gnatg mode to set the warnings for gnat mode. It is
-   --  also used to set the proper warning statuses for -gnatw.g.
 
    ------------------------------------------
    -- Routines to Handle Unused References --
@@ -170,7 +154,8 @@ package Sem_Warn is
 
    procedure Check_Infinite_Loop_Warning (Loop_Statement : Node_Id);
    --  N is the node for a loop statement. This procedure checks if a warning
-   --  should be given for a possible infinite loop, and if so issues it.
+   --  for a possible infinite loop should be given for a suspicious WHILE or
+   --  EXIT WHEN condition.
 
    procedure Check_Low_Bound_Tested (Expr : Node_Id);
    --  Expr is the node for a comparison operation. This procedure checks if

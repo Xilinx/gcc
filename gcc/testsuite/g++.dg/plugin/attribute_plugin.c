@@ -8,6 +8,9 @@
 #include "tree.h"
 #include "tree-pass.h"
 #include "intl.h"
+#include "toplev.h"
+#include "plugin.h"
+#include "diagnostic.h"
 
 int plugin_is_GPL_compatible;
 
@@ -23,7 +26,7 @@ handle_user_attribute (tree *node, tree name, tree args,
 /* Attribute definition */
 
 static struct attribute_spec user_attr =
-  { "user", 1, 1, false,  false, false, handle_user_attribute };
+  { "user", 1, 1, false,  false, false, handle_user_attribute, false };
 
 /* Plugin callback called during attribute registration */
 
@@ -41,7 +44,7 @@ handle_pre_generic (void *event_data, void *data)
 {
   tree fndecl = (tree) event_data;
   tree arg;
-  for (arg = DECL_ARGUMENTS(fndecl); arg; arg = TREE_CHAIN (arg)) {
+  for (arg = DECL_ARGUMENTS(fndecl); arg; arg = DECL_CHAIN (arg)) {
       tree attr;
       for (attr = DECL_ATTRIBUTES (arg); attr; attr = TREE_CHAIN (attr)) {
           tree attrname = TREE_PURPOSE (attr);

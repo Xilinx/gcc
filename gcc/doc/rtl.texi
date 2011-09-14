@@ -1,5 +1,5 @@
 @c Copyright (C) 1988, 1989, 1992, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-@c 2003, 2004, 2005, 2006, 2007, 2008, 2010
+@c 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -38,6 +38,7 @@ form uses nested parentheses to indicate the pointers in the internal form.
 * Side Effects::      Expressions for storing in registers, etc.
 * Incdec::            Embedded side-effects for autoincrement addressing.
 * Assembler::         Representing @code{asm} with operands.
+* Debug Information:: Expressions representing debugging information.
 * Insns::             Expression types for entire insns.
 * Calls::             RTL representation of function call insns.
 * Sharing::           Some expressions are unique; others *must* be copied.
@@ -181,7 +182,8 @@ and are lvalues (so they can be used for insertion as well).
 
 @item RTX_TERNARY
 An RTX code for other three input operations.  Currently only
-@code{IF_THEN_ELSE} and @code{VEC_MERGE}.
+@code{IF_THEN_ELSE},  @code{VEC_MERGE}, @code{SIGN_EXTRACT},
+@code{ZERO_EXTRACT}, and @code{FMA}.
 
 @item RTX_INSN
 An RTX code for an entire instruction:  @code{INSN}, @code{JUMP_INSN}, and
@@ -407,15 +409,27 @@ and @code{TREE_OPERAND (@var{x}, 0)} contains the declaration,
 or another @code{COMPONENT_REF}, or null if there is no compile-time
 object associated with the reference.
 
+@findex MEM_OFFSET_KNOWN_P
+@item MEM_OFFSET_KNOWN_P (@var{x})
+True if the offset of the memory reference from @code{MEM_EXPR} is known.
+@samp{MEM_OFFSET (@var{x})} provides the offset if so.
+
 @findex MEM_OFFSET
 @item MEM_OFFSET (@var{x})
-The offset from the start of @code{MEM_EXPR} as a @code{CONST_INT} rtx.
+The offset from the start of @code{MEM_EXPR}.  The value is only valid if
+@samp{MEM_OFFSET_KNOWN_P (@var{x})} is true.
+
+@findex MEM_SIZE_KNOWN_P
+@item MEM_SIZE_KNOWN_P (@var{x})
+True if the size of the memory reference is known.
+@samp{MEM_SIZE (@var{x})} provides its size if so.
 
 @findex MEM_SIZE
 @item MEM_SIZE (@var{x})
-The size in bytes of the memory reference as a @code{CONST_INT} rtx.
+The size in bytes of the memory reference.
 This is mostly relevant for @code{BLKmode} references as otherwise
-the size is implied by the mode.
+the size is implied by the mode.  The value is only valid if
+@samp{MEM_SIZE_KNOWN_P (@var{x})} is true.
 
 @findex MEM_ALIGN
 @item MEM_ALIGN (@var{x})
@@ -1269,7 +1283,7 @@ accumulator.  The default format is ``64.64''.
 is a machine-specific set of bits used to represent the result of a
 comparison operation.  Other machine-specific modes may also be used for
 the condition code.  These modes are not used on machines that use
-@code{cc0} (see @pxref{Condition Code}).
+@code{cc0} (@pxref{Condition Code}).
 
 @findex BLKmode
 @item BLKmode
@@ -1392,7 +1406,7 @@ Algol or Pascal function variables including a static chain.
 @findex MODE_CC
 @item MODE_CC
 Modes representing condition code values.  These are @code{CCmode} plus
-any @code{CC_MODE} modes listed in the @file{@var{machine}-modes.def}.  
+any @code{CC_MODE} modes listed in the @file{@var{machine}-modes.def}.
 @xref{Jump Patterns},
 also see @ref{Condition Code}.
 
@@ -1753,7 +1767,7 @@ a multi-part @code{reg} that actually refers to several registers.
 
 Each pseudo register has a natural mode.  If it is necessary to
 operate on it in a different mode, the register must be
-enclosed in a @code{subreg}.  
+enclosed in a @code{subreg}.
 
 There are currently three supported types for the first operand of a
 @code{subreg}:
@@ -1810,7 +1824,7 @@ When used as an lvalue, the low-order bits of the source value
 are stored in @var{reg} and the high-order bits are discarded.
 When used as an rvalue, the low-order bits of the @code{subreg} are
 taken from @var{reg} while the high-order bits may or may not be
-defined.  
+defined.
 
 The high-order bits of rvalues are in the following circumstances:
 
@@ -1847,7 +1861,7 @@ would set the lower two bytes of @var{z} to @var{y} and set the upper
 two bytes to an unknown value assuming @code{SUBREG_PROMOTED_VAR_P} is
 false.
 
-@item Normal subregs 
+@item Normal subregs
 When @var{m1} is at least as narrow as @var{m2} the @code{subreg}
 expression is called @dfn{normal}.
 
@@ -1896,7 +1910,7 @@ values.  This works because they handle them solely as a collection of
 integer values, with no particular numerical value.  Only real.c and
 the runtime libraries care about @code{FLOAT_WORDS_BIG_ENDIAN}.
 
-Thus, 
+Thus,
 
 @smallexample
 (subreg:HI (reg:SI @var{x}) 2)
@@ -2233,6 +2247,12 @@ not be the same.
 For unsigned widening multiplication, use the same idiom, but with
 @code{zero_extend} instead of @code{sign_extend}.
 
+@findex fma
+@item (fma:@var{m} @var{x} @var{y} @var{z})
+Represents the @code{fma}, @code{fmaf}, and @code{fmal} builtin
+functions that do a combined multiply of @var{x} and @var{y} and then
+adding to@var{z} without doing an intermediate rounding step.
+
 @findex div
 @findex ss_div
 @cindex division
@@ -2388,9 +2408,16 @@ Most often @var{m} will be a floating point mode.
 @item (ffs:@var{m} @var{x})
 Represents one plus the index of the least significant 1-bit in
 @var{x}, represented as an integer of mode @var{m}.  (The value is
-zero if @var{x} is zero.)  The mode of @var{x} need not be @var{m};
-depending on the target machine, various mode combinations may be
-valid.
+zero if @var{x} is zero.)  The mode of @var{x} must be @var{m}
+or @code{VOIDmode}.
+
+@findex clrsb
+@item (clrsb:@var{m} @var{x})
+Represents the number of redundant leading sign bits in @var{x},
+represented as an integer of mode @var{m}, starting at the most
+significant bit position.  This is one less than the number of leading
+sign bits (either 0 or 1), with no special cases.  The mode of @var{x}
+must be @var{m} or @code{VOIDmode}.
 
 @findex clz
 @item (clz:@var{m} @var{x})
@@ -2399,7 +2426,7 @@ integer of mode @var{m}, starting at the most significant bit position.
 If @var{x} is zero, the value is determined by
 @code{CLZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}).  Note that this is one of
 the few expressions that is not invariant under widening.  The mode of
-@var{x} will usually be an integer mode.
+@var{x} must be @var{m} or @code{VOIDmode}.
 
 @findex ctz
 @item (ctz:@var{m} @var{x})
@@ -2408,23 +2435,24 @@ integer of mode @var{m}, starting at the least significant bit position.
 If @var{x} is zero, the value is determined by
 @code{CTZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}).  Except for this case,
 @code{ctz(x)} is equivalent to @code{ffs(@var{x}) - 1}.  The mode of
-@var{x} will usually be an integer mode.
+@var{x} must be @var{m} or @code{VOIDmode}.
 
 @findex popcount
 @item (popcount:@var{m} @var{x})
 Represents the number of 1-bits in @var{x}, represented as an integer of
-mode @var{m}.  The mode of @var{x} will usually be an integer mode.
+mode @var{m}.  The mode of @var{x} must be @var{m} or @code{VOIDmode}.
 
 @findex parity
 @item (parity:@var{m} @var{x})
 Represents the number of 1-bits modulo 2 in @var{x}, represented as an
-integer of mode @var{m}.  The mode of @var{x} will usually be an integer
-mode.
+integer of mode @var{m}.  The mode of @var{x} must be @var{m} or
+@code{VOIDmode}.
 
 @findex bswap
 @item (bswap:@var{m} @var{x})
 Represents the value @var{x} with the order of bytes reversed, carried out
 in mode @var{m}, which must be a fixed-point machine mode.
+The mode of @var{x} must be @var{m} or @code{VOIDmode}.
 @end table
 
 @node Comparisons
@@ -2616,9 +2644,9 @@ a set bit indicates it is taken from @var{vec1}.
 This describes an operation that selects parts of a vector.  @var{vec1} is
 the source vector, and @var{selection} is a @code{parallel} that contains a
 @code{const_int} for each of the subparts of the result vector, giving the
-number of the source subpart that should be stored into it.  
+number of the source subpart that should be stored into it.
 The result mode @var{m} is either the submode for a single element of
-@var{vec1} (if only one subpart is selected), or another vector mode 
+@var{vec1} (if only one subpart is selected), or another vector mode
 with that element submode (if multiple subparts are selected).
 
 @findex vec_concat
@@ -2887,6 +2915,13 @@ placed in @code{pc} to return to the caller.
 Note that an insn pattern of @code{(return)} is logically equivalent to
 @code{(set (pc) (return))}, but the latter form is never used.
 
+@findex simple_return
+@item (simple_return)
+Like @code{(return)}, but truly represents only a function return, while
+@code{(return)} may represent an insn that also performs other functions
+of the function epilogue.  Like @code{(return)}, this may also occur in
+conditional jumps.
+
 @findex call
 @item (call @var{function} @var{nargs})
 Represents a function call.  @var{function} is a @code{mem} expression
@@ -3016,7 +3051,7 @@ Represents several side effects performed in parallel.  The square
 brackets stand for a vector; the operand of @code{parallel} is a
 vector of expressions.  @var{x0}, @var{x1} and so on are individual
 side effect expressions---expressions of code @code{set}, @code{call},
-@code{return}, @code{clobber} or @code{use}.
+@code{return}, @code{simple_return}, @code{clobber} or @code{use}.
 
 ``In parallel'' means that first all the values used in the individual
 side-effects are computed, and second all the actual side-effects are
@@ -3285,6 +3320,38 @@ template and vectors, but each contains the constraint for the respective
 output operand.  They are also distinguished by the output-operand index
 number, which is 0, 1, @dots{} for successive output operands.
 
+@node Debug Information
+@section Variable Location Debug Information in RTL
+@cindex Variable Location Debug Information in RTL
+
+Variable tracking relies on @code{MEM_EXPR} and @code{REG_EXPR}
+annotations to determine what user variables memory and register
+references refer to.
+
+Variable tracking at assignments uses these notes only when they refer
+to variables that live at fixed locations (e.g., addressable
+variables, global non-automatic variables).  For variables whose
+location may vary, it relies on the following types of notes.
+
+@table @code
+@findex var_location
+@item (var_location:@var{mode} @var{var} @var{exp} @var{stat})
+Binds variable @code{var}, a tree, to value @var{exp}, an RTL
+expression.  It appears only in @code{NOTE_INSN_VAR_LOCATION} and
+@code{DEBUG_INSN}s, with slightly different meanings.  @var{mode}, if
+present, represents the mode of @var{exp}, which is useful if it is a
+modeless expression.  @var{stat} is only meaningful in notes,
+indicating whether the variable is known to be initialized or
+uninitialized.
+
+@findex debug_expr
+@item (debug_expr:@var{mode} @var{decl})
+Stands for the value bound to the @code{DEBUG_EXPR_DECL} @var{decl},
+that points back to it, within value expressions in
+@code{VAR_LOCATION} nodes.
+
+@end table
+
 @node Insns
 @section Insns
 @cindex insns
@@ -3360,7 +3427,7 @@ of @code{PREV_INSN (NEXT_INSN (@var{insn}))} if @var{insn} is the last
 insn in the @code{sequence} expression.  You can use these expressions
 to find the containing @code{sequence} expression.
 
-Every insn has one of the following six expression codes:
+Every insn has one of the following expression codes:
 
 @table @code
 @findex insn
@@ -3551,9 +3618,54 @@ invariants.
 Appears at the start of the function body, after the function
 prologue.
 
+@findex NOTE_INSN_VAR_LOCATION
+@findex NOTE_VAR_LOCATION
+@item NOTE_INSN_VAR_LOCATION
+This note is used to generate variable location debugging information.
+It indicates that the user variable in its @code{VAR_LOCATION} operand
+is at the location given in the RTL expression, or holds a value that
+can be computed by evaluating the RTL expression from that static
+point in the program up to the next such note for the same user
+variable.
+
 @end table
 
 These codes are printed symbolically when they appear in debugging dumps.
+
+@findex debug_insn
+@findex INSN_VAR_LOCATION
+@item debug_insn
+The expression code @code{debug_insn} is used for pseudo-instructions
+that hold debugging information for variable tracking at assignments
+(see @option{-fvar-tracking-assignments} option).  They are the RTL
+representation of @code{GIMPLE_DEBUG} statements
+(@ref{@code{GIMPLE_DEBUG}}), with a @code{VAR_LOCATION} operand that
+binds a user variable tree to an RTL representation of the
+@code{value} in the corresponding statement.  A @code{DEBUG_EXPR} in
+it stands for the value bound to the corresponding
+@code{DEBUG_EXPR_DECL}.
+
+Throughout optimization passes, binding information is kept in
+pseudo-instruction form, so that, unlike notes, it gets the same
+treatment and adjustments that regular instructions would.  It is the
+variable tracking pass that turns these pseudo-instructions into var
+location notes, analyzing control flow, value equivalences and changes
+to registers and memory referenced in value expressions, propagating
+the values of debug temporaries and determining expressions that can
+be used to compute the value of each user variable at as many points
+(ranges, actually) in the program as possible.
+
+Unlike @code{NOTE_INSN_VAR_LOCATION}, the value expression in an
+@code{INSN_VAR_LOCATION} denotes a value at that specific point in the
+program, rather than an expression that can be evaluated at any later
+point before an overriding @code{VAR_LOCATION} is encountered.  E.g.,
+if a user variable is bound to a @code{REG} and then a subsequent insn
+modifies the @code{REG}, the note location would keep mapping the user
+variable to the register across the insn, whereas the insn location
+would keep the variable bound to the value, so that the variable
+tracking pass would emit another location note for the variable at the
+point in which the register is modified.
+
 @end table
 
 @cindex @code{TImode}, in @code{insn}
@@ -3578,14 +3690,16 @@ and @code{call_insn} insns:
 @table @code
 @findex PATTERN
 @item PATTERN (@var{i})
-An expression for the side effect performed by this insn.  This must be
-one of the following codes: @code{set}, @code{call}, @code{use},
-@code{clobber}, @code{return}, @code{asm_input}, @code{asm_output},
-@code{addr_vec}, @code{addr_diff_vec}, @code{trap_if}, @code{unspec},
-@code{unspec_volatile}, @code{parallel}, @code{cond_exec}, or @code{sequence}.  If it is a @code{parallel},
-each element of the @code{parallel} must be one these codes, except that
-@code{parallel} expressions cannot be nested and @code{addr_vec} and
-@code{addr_diff_vec} are not permitted inside a @code{parallel} expression.
+An expression for the side effect performed by this insn.  This must
+be one of the following codes: @code{set}, @code{call}, @code{use},
+@code{clobber}, @code{return}, @code{simple_return}, @code{asm_input},
+@code{asm_output}, @code{addr_vec}, @code{addr_diff_vec},
+@code{trap_if}, @code{unspec}, @code{unspec_volatile},
+@code{parallel}, @code{cond_exec}, or @code{sequence}.  If it is a
+@code{parallel}, each element of the @code{parallel} must be one these
+codes, except that @code{parallel} expressions cannot be nested and
+@code{addr_vec} and @code{addr_diff_vec} are not permitted inside a
+@code{parallel} expression.
 
 @findex INSN_CODE
 @item INSN_CODE (@var{i})
@@ -3612,7 +3726,7 @@ A list (chain of @code{insn_list} expressions) giving information about
 dependencies between instructions within a basic block.  Neither a jump
 nor a label may come between the related insns.  These are only used by
 the schedulers and by combine.  This is a deprecated data structure.
-Def-use and use-def chains are now preferred. 
+Def-use and use-def chains are now preferred.
 
 @findex REG_NOTES
 @item REG_NOTES (@var{i})
@@ -3723,8 +3837,8 @@ construct.  It is used when the optimization to partition basic blocks
 into hot and cold sections is turned on.
 
 @findex REG_SETJMP
-@item REG_SETJMP 
-Appears attached to each @code{CALL_INSN} to @code{setjmp} or a 
+@item REG_SETJMP
+Appears attached to each @code{CALL_INSN} to @code{setjmp} or a
 related function.
 @end table
 

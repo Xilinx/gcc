@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,7 +47,7 @@ package Scans is
 
    --  Note: Namet.Is_Keyword_Name depends on the fact that the first entry in
    --  this type declaration is *not* for a reserved word. For details on why
-   --  there is this requirement, see Scans.Initialize_Ada_Keywords.
+   --  there is this requirement, see Initialize_Ada_Keywords below.
 
    type Token_Type is (
 
@@ -130,6 +130,7 @@ package Scans is
       Tok_Record,          -- RECORD       Eterm, Sterm
       Tok_Renames,         -- RENAMES      Eterm, Sterm
       Tok_Reverse,         -- REVERSE      Eterm, Sterm
+      Tok_Some,            -- SOME         Eterm, Sterm
       Tok_Tagged,          -- TAGGED       Eterm, Sterm
       Tok_Then,            -- THEN         Eterm, Sterm
 
@@ -192,7 +193,8 @@ package Scans is
       Tok_Project,
       Tok_Extends,
       Tok_External,
-      --  These three entries represent keywords for the project file language
+      Tok_External_As_List,
+      --  These four entries represent keywords for the project file language
       --  and can be returned only in the case of scanning project files.
 
       Tok_Comment,
@@ -210,6 +212,9 @@ package Scans is
       --  Used only in preprocessor scanning (to represent one of the
       --  characters '#', '$', '?', '@', '`', '\', '^', '~', or '_'. The
       --  character value itself is stored in Scans.Special_Character.
+
+      Tok_SPARK_Hide,
+      --  HIDE directive in SPARK
 
       No_Token);
       --  No_Token is used for initializing Token values to indicate that
@@ -336,7 +341,9 @@ package Scans is
    --  Flag array used to test for reserved word
 
    procedure Initialize_Ada_Keywords;
-   --  Set up Token_Type values in Names table entries for Ada reserved words
+   --  Set up Token_Type values in Names table entries for Ada reserved
+   --  words. This ignores Ada_Version; Ada_Version is taken into account in
+   --  Snames.Is_Keyword_Name.
 
    --------------------------
    -- Scan State Variables --
@@ -415,27 +422,34 @@ package Scans is
    --  We do things this way to minimize the impact on comment scanning.
 
    Character_Code : Char_Code;
-   --  Valid only when Token is Tok_Char_Literal
+   --  Valid only when Token is Tok_Char_Literal. Contains the value of the
+   --  scanned literal.
 
    Real_Literal_Value : Ureal;
-   --  Valid only when Token is Tok_Real_Literal
+   --  Valid only when Token is Tok_Real_Literal, contains the value of the
+   --  scanned literal.
 
    Int_Literal_Value : Uint;
-   --  Valid only when Token = Tok_Integer_Literal;
+   --  Valid only when Token = Tok_Integer_Literal, contains the value of the
+   --  scanned literal.
+
+   Based_Literal_Uses_Colon : Boolean;
+   --  Valid only when Token = Tok_Integer_Literal or Tok_Real_Literal. Set
+   --  True only for the case of a based literal using ':' instead of '#'.
 
    String_Literal_Id : String_Id;
-   --  Id for currently scanned string value.
    --  Valid only when Token = Tok_String_Literal or Tok_Operator_Symbol.
+   --  Contains the Id for currently scanned string value.
 
    Wide_Character_Found : Boolean := False;
-   --  Set True if wide character found (i.e. a character that does not fit
-   --  in Character, but fits in Wide_Wide_Character).
-   --  Valid only when Token = Tok_String_Literal.
+   --  Valid only when Token = Tok_String_Literal. Set True if wide character
+   --  found (i.e. a character that does not fit in Character, but fits in
+   --  Wide_Wide_Character).
 
    Wide_Wide_Character_Found : Boolean := False;
-   --  Set True if wide wide character found (i.e. a character that does
-   --  not fit in Character or Wide_Character).
-   --  Valid only when Token = Tok_String_Literal.
+   --  Valid only when Token = Tok_String_Literal. Set True if wide wide
+   --  character found (i.e. a character that does not fit in Character or
+   --  Wide_Character).
 
    Special_Character : Character;
    --  Valid only when Token = Tok_Special. Returns one of the characters

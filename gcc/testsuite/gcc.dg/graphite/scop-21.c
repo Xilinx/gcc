@@ -2,8 +2,8 @@
 void foo (int);
 int test ()
 {
-  int a[N];
-  unsigned i;
+  int a[N+6];
+  int i;
 
   for (i = 0; i < N; i++)
     {

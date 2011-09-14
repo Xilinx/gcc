@@ -418,7 +418,7 @@ cpp_classify_number (cpp_reader *pfile, const cpp_token *token)
 	{
 	  int u_or_i = (result & (CPP_N_UNSIGNED|CPP_N_IMAGINARY));
 	  int large = (result & CPP_N_WIDTH) == CPP_N_LARGE
-		       && CPP_OPTION (pfile, warn_long_long);
+		       && CPP_OPTION (pfile, cpp_warn_long_long);
 
 	  if (u_or_i || large)
 	    cpp_warning (pfile, large ? CPP_W_LONG_LONG : CPP_W_TRADITIONAL,
@@ -427,7 +427,7 @@ cpp_classify_number (cpp_reader *pfile, const cpp_token *token)
 	}
 
       if ((result & CPP_N_WIDTH) == CPP_N_LARGE
-	  && CPP_OPTION (pfile, warn_long_long))
+	  && CPP_OPTION (pfile, cpp_warn_long_long))
         {
           const char *message = CPP_OPTION (pfile, cplusplus) 
 		                ? N_("use of C++0x long long integer constant")
@@ -700,6 +700,9 @@ parse_defined (cpp_reader *pfile)
 	  node->flags |= NODE_USED;
 	  if (node->type == NT_MACRO)
 	    {
+	      if ((node->flags & NODE_BUILTIN)
+		  && pfile->cb.user_builtin_macro)
+		pfile->cb.user_builtin_macro (pfile, node);
 	      if (pfile->cb.used_define)
 		pfile->cb.used_define (pfile, pfile->directive_line, node);
 	    }
@@ -717,10 +720,15 @@ parse_defined (cpp_reader *pfile)
 
   pfile->state.prevent_expansion--;
 
+  /* Do not treat conditional macros as being defined.  This is due to the
+     powerpc and spu ports using conditional macros for 'vector', 'bool', and
+     'pixel' to act as conditional keywords.  This messes up tests like #ifndef
+     bool.  */
   result.unsignedp = false;
   result.high = 0;
   result.overflow = false;
-  result.low = node && node->type == NT_MACRO;
+  result.low = (node && node->type == NT_MACRO
+		&& (node->flags & NODE_CONDITIONAL) == 0);
   return result;
 }
 
@@ -811,7 +819,7 @@ eval_token (cpp_reader *pfile, const cpp_token *token)
 	  if (CPP_PEDANTIC (pfile))
 	    cpp_error (pfile, CPP_DL_PEDWARN,
 		       "assertions are a GCC extension");
-	  else if (CPP_OPTION (pfile, warn_deprecated))
+	  else if (CPP_OPTION (pfile, cpp_warn_deprecated))
 	    cpp_warning (pfile, CPP_W_DEPRECATED,
 		         "assertions are a deprecated extension");
 	}

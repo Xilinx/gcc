@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -51,6 +51,7 @@ with Prj.Env;
 with Prj.Pars;
 with Prj.Tree; use Prj.Tree;
 with Prj.Util;
+with Sdefault;
 with SFN_Scan;
 with Sinput.P;
 with Snames;   use Snames;
@@ -61,17 +62,18 @@ pragma Warnings (On);
 
 with Switch;   use Switch;
 with Switch.M; use Switch.M;
-with Targparm; use Targparm;
 with Table;
+with Targparm; use Targparm;
 with Tempdir;
 with Types;    use Types;
 
-with Ada.Exceptions;            use Ada.Exceptions;
 with Ada.Command_Line;          use Ada.Command_Line;
+with Ada.Directories;
+with Ada.Exceptions;            use Ada.Exceptions;
 
+with GNAT.Case_Util;            use GNAT.Case_Util;
 with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 with GNAT.Dynamic_HTables;      use GNAT.Dynamic_HTables;
-with GNAT.Case_Util;            use GNAT.Case_Util;
 with GNAT.OS_Lib;               use GNAT.OS_Lib;
 
 package body Make is
@@ -135,49 +137,6 @@ package body Make is
    --  complex, for example in main.1.ada, the termination in this name is
    --  ".1.ada" and in main_.ada the termination is "_.ada".
 
-   -------------------------------------
-   -- Queue (Q) Manipulation Routines --
-   -------------------------------------
-
-   --  The Q is used in Compile_Sources below. Its implementation uses the GNAT
-   --  generic package Table (basically an extensible array). Q_Front points to
-   --  the first valid element in the Q, whereas Q.First is the first element
-   --  ever enqueued, while Q.Last - 1 is the last element in the Q.
-   --
-   --        +---+--------------+---+---+---+-----------+---+--------
-   --    Q   |   |  ........    |   |   |   | .......   |   |
-   --        +---+--------------+---+---+---+-----------+---+--------
-   --          ^                  ^                       ^
-   --       Q.First             Q_Front               Q.Last-1
-   --
-   --  The elements comprised between Q.First and Q_Front-1 are the elements
-   --  that have been enqueued and then dequeued, while the elements between
-   --  Q_Front and Q.Last-1 are the elements currently in the Q. When the Q
-   --  is initialized Q_Front = Q.First = Q.Last. After Compile_Sources has
-   --  terminated its execution, Q_Front = Q.Last and the elements contained
-   --  between Q.First and Q.Last-1 are those that were explored and thus
-   --  marked by Compile_Sources. Whenever the Q is reinitialized, the elements
-   --  between Q.First and Q.Last-1 are unmarked.
-
-   procedure Init_Q;
-   --  Must be called to (re)initialize the Q
-
-   procedure Insert_Q
-     (Source_File : File_Name_Type;
-      Source_Unit : Unit_Name_Type := No_Unit_Name;
-      Index       : Int            := 0);
-   --  Inserts Source_File at the end of Q. Provide Source_Unit when possible
-   --  for external use (gnatdist). Provide index for multi-unit sources.
-
-   function Empty_Q return Boolean;
-   --  Returns True if Q is empty
-
-   procedure Extract_From_Q
-     (Source_File  : out File_Name_Type;
-      Source_Unit  : out Unit_Name_Type;
-      Source_Index : out Int);
-   --  Extracts the first element from the Q
-
    procedure Insert_Project_Sources
      (The_Project  : Project_Id;
       All_Projects : Boolean;
@@ -190,42 +149,29 @@ package body Make is
    --  including, if The_Project is an extending project, sources inherited
    --  from projects being extended.
 
-   First_Q_Initialization : Boolean := True;
-   --  Will be set to false after Init_Q has been called once
-
-   Q_Front : Natural;
-   --  Points to the first valid element in the Q
-
    Unique_Compile : Boolean := False;
    --  Set to True if -u or -U or a project file with no main is used
 
    Unique_Compile_All_Projects : Boolean := False;
    --  Set to True if -U is used
 
+   Must_Compile : Boolean := False;
+   --  True if gnatmake is invoked with -f -u and one or several mains on the
+   --  command line.
+
+   Project_Tree : constant Project_Tree_Ref :=
+                    new Project_Tree_Data (Is_Root_Tree => True);
+   --  The project tree
+
+   Main_On_Command_Line : Boolean := False;
+   --  True if gnatmake is invoked with one or several mains on the command
+   --  line.
+
    RTS_Specified : String_Access := null;
    --  Used to detect multiple --RTS= switches
 
    N_M_Switch : Natural := 0;
    --  Used to count -mxxx switches that can affect multilib
-
-   type Q_Record is record
-      File  : File_Name_Type;
-      Unit  : Unit_Name_Type;
-      Index : Int;
-   end record;
-   --  File is the name of the file to compile. Unit is for gnatdist
-   --  use in order to easily get the unit name of a file to compile
-   --  when its name is krunched or declared in gnat.adc. Index, when not 0,
-   --  is the index of the unit in a multi-unit source.
-
-   package Q is new Table.Table (
-     Table_Component_Type => Q_Record,
-     Table_Index_Type     => Natural,
-     Table_Low_Bound      => 0,
-     Table_Initial        => 4000,
-     Table_Increment      => 100,
-     Table_Name           => "Make.Q");
-   --  This is the actual Q
 
    --  The 3 following packages are used to store gcc, gnatbind and gnatlink
    --  switches found in the project files.
@@ -362,6 +308,9 @@ package body Make is
    --  calling Change_Dir if the current working directory is already this
    --  directory.
 
+   Map_File : String_Access := null;
+   --  Value of switch --create-map-file
+
    --  Packages of project files where unknown attributes are errors
 
    Naming_String   : aliased String := "naming";
@@ -440,6 +389,7 @@ package body Make is
 
    Shared_String           : aliased String := "-shared";
    Force_Elab_Flags_String : aliased String := "-F";
+   CodePeer_Mode_String    : aliased String := "-P";
 
    No_Shared_Switch : aliased Argument_List := (1 .. 0 => null);
    Shared_Switch    : aliased Argument_List := (1 => Shared_String'Access);
@@ -459,7 +409,8 @@ package body Make is
    procedure Make_Failed (S : String);
    --  Delete all temp files created by Gnatmake and call Osint.Fail, with the
    --  parameter S (see osint.ads). This is called from the Prj hierarchy and
-   --  the MLib hierarchy.
+   --  the MLib hierarchy. This subprogram also prints current error messages
+   --  on stdout (ie finalizes errout)
 
    --------------------------
    -- Obsolete Executables --
@@ -471,8 +422,8 @@ package body Make is
    --  compiled, or has already been compiled for another executable.
 
    Max_Header : constant := 200;
-   --  This needs a proper comment, it used to say "arbitrary"
-   --  that's not an adequate comment ???
+   --  This needs a proper comment, it used to say "arbitrary" that's not an
+   --  adequate comment ???
 
    type Header_Num is range 1 .. Max_Header;
    --  Header_Num for the hash table Obsoleted below
@@ -513,9 +464,6 @@ package body Make is
      Table_Name           => "Make.Dependencies");
    --  A table to keep dependencies, to be able to decide if an executable
    --  is obsolete. More explanation needed ???
-
---     procedure Add_Dependency (S : File_Name_Type; On : File_Name_Type);
---     --  Add one entry in table Dependencies
 
    ----------------------------
    -- Arguments and Switches --
@@ -628,8 +576,6 @@ package body Make is
 
    function Switches_Of
      (Source_File      : File_Name_Type;
-      Source_File_Name : String;
-      Source_Index     : Int;
       Project          : Project_Id;
       In_Package       : Package_Id;
       Allow_ALI        : Boolean) return Variable_Value;
@@ -648,17 +594,93 @@ package body Make is
    --  directory of the ultimate extending project. If it is not, we ignore
    --  the fact that this ALI file is read-only.
 
-   procedure Process_Multilib (Project_Node_Tree : Project_Node_Tree_Ref);
+   procedure Process_Multilib (Env : in out Prj.Tree.Environment);
    --  Add appropriate --RTS argument to handle multilib
+
+   procedure Resolve_Relative_Names_In_Switches (Current_Work_Dir : String);
+   --  Resolve all relative paths found in the linker and binder switches,
+   --  when using project files.
+
+   procedure Queue_Library_Project_Sources;
+   --  For all library project, if the library file does not exist, put all the
+   --  project sources in the queue, and flag the project so that the library
+   --  is generated.
+
+   procedure Compute_Switches_For_Main
+     (Main_Source_File  : in out File_Name_Type;
+      Root_Environment  : in out Prj.Tree.Environment;
+      Compute_Builder   : Boolean;
+      Current_Work_Dir  : String);
+   --  Find compiler, binder and linker switches to use for the given main
+
+   procedure Compute_Executable
+     (Main_Source_File   : File_Name_Type;
+      Executable         : out File_Name_Type;
+      Non_Std_Executable : out Boolean);
+   --  Parse the linker switches and project file to compute the name of the
+   --  executable to generate.
+   --  ??? What is the meaning of Non_Std_Executable
+
+   procedure Compilation_Phase
+     (Main_Source_File           : File_Name_Type;
+      Current_Main_Index         : Int := 0;
+      Total_Compilation_Failures : in out Natural;
+      Stand_Alone_Libraries      : in out Boolean;
+      Executable                 : File_Name_Type := No_File;
+      Is_Last_Main               : Boolean;
+      Stop_Compile               : out Boolean);
+   --  Build all source files for a given main file
+   --
+   --  Current_Main_Index, if not zero, is the index of the current main unit
+   --  in its source file.
+   --
+   --  Stand_Alone_Libraries is set to True when there are Stand-Alone
+   --  Libraries, so that gnatbind is invoked with the -F switch to force
+   --  checking of elaboration flags.
+   --
+   --  Stop_Compile is set to true if we should not try to compile any more
+   --  of the main units
+
+   procedure Binding_Phase
+     (Stand_Alone_Libraries : Boolean := False;
+      Main_ALI_File : File_Name_Type);
+   --  Stand_Alone_Libraries should be set to True when there are Stand-Alone
+   --  Libraries, so that gnatbind is invoked with the -F switch to force
+   --  checking of elaboration flags.
+
+   procedure Library_Phase
+      (Stand_Alone_Libraries : in out Boolean;
+       Library_Rebuilt : in out Boolean);
+   --  Build libraries.
+   --  Stand_Alone_Libraries is set to True when there are Stand-Alone
+   --  Libraries, so that gnatbind is invoked with the -F switch to force
+   --  checking of elaboration flags.
+
+   procedure Linking_Phase
+     (Non_Std_Executable : Boolean := False;
+      Executable         : File_Name_Type := No_File;
+      Main_ALI_File      : File_Name_Type);
+   --  Perform the link of a single executable. The ali file corresponds
+   --  to Main_ALI_File. Executable is the file name of an executable.
+   --  Non_Std_Executable is set to True when there is a possibility that
+   --  the linker will not choose the correct executable file name.
 
    ----------------------------------------------------
    -- Compiler, Binder & Linker Data and Subprograms --
    ----------------------------------------------------
 
-   Gcc      : String_Access := Program_Name ("gcc", "gnatmake");
+   Gcc          : String_Access := Program_Name ("gcc", "gnatmake");
+   Original_Gcc : constant String_Access := Gcc;
+   --  Original_Gcc is used to check if Gcc has been modified by a switch
+   --  --GCC=, so that for VM platforms, it is not modified again, as it can
+   --  result in incorrect error messages if the compiler cannot be found.
+
    Gnatbind : String_Access := Program_Name ("gnatbind", "gnatmake");
    Gnatlink : String_Access := Program_Name ("gnatlink", "gnatmake");
    --  Default compiler, binder, linker programs
+
+   Globalizer : constant String := "codepeer_globalizer";
+   --  CodePeer globalizer executable name
 
    Saved_Gcc      : String_Access := null;
    Saved_Gnatbind : String_Access := null;
@@ -666,13 +688,17 @@ package body Make is
    --  Given by the command line. Will be used, if non null
 
    Gcc_Path      : String_Access :=
-                       GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
+                     GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
    Gnatbind_Path : String_Access :=
-                       GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
+                     GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
    Gnatlink_Path : String_Access :=
-                       GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
+                     GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
    --  Path for compiler, binder, linker programs, defaulted now for gnatdist.
    --  Changed later if overridden on command line.
+
+   Globalizer_Path : constant String_Access :=
+                       GNAT.OS_Lib.Locate_Exec_On_Path (Globalizer);
+   --  Path for CodePeer globalizer
 
    Comp_Flag         : constant String_Access := new String'("-c");
    Output_Flag       : constant String_Access := new String'("-o");
@@ -716,10 +742,9 @@ package body Make is
    procedure Add_Switches
      (The_Package                      : Package_Id;
       File_Name                        : String;
-      Index                            : Int;
       Program                          : Make_Program_Type;
       Unknown_Switches_To_The_Compiler : Boolean := True;
-      Project_Node_Tree                : Project_Node_Tree_Ref);
+      Env                              : in out Prj.Tree.Environment);
    procedure Add_Switch
      (S             : String_Access;
       Program       : Make_Program_Type;
@@ -740,7 +765,6 @@ package body Make is
 
    procedure Check
      (Source_File    : File_Name_Type;
-      Source_Index   : Int;
       Is_Main_Source : Boolean;
       The_Args       : Argument_List;
       Lib_File       : File_Name_Type;
@@ -775,7 +799,6 @@ package body Make is
 
    procedure Collect_Arguments
      (Source_File    : File_Name_Type;
-      Source_Index   : Int;
       Is_Main_Source : Boolean;
       Args           : Argument_List);
    --  Collect all arguments for a source to be compiled, including those
@@ -795,8 +818,8 @@ package body Make is
    type Temp_Path_Names is array (Positive range <>) of Path_Name_Type;
    type Temp_Path_Ptr is access Temp_Path_Names;
 
-   type Free_File_Indices is array (Positive range <>) of Positive;
-   type Free_Indices_Ptr is access Free_File_Indices;
+   type Free_File_Indexes is array (Positive range <>) of Positive;
+   type Free_Indexes_Ptr is access Free_File_Indexes;
 
    type Project_Compilation_Data is record
       Mapping_File_Names : Temp_Path_Ptr;
@@ -807,11 +830,11 @@ package body Make is
       Last_Mapping_File_Names : Natural;
       --  Index of the last mapping file created for this project
 
-      Free_Mapping_File_Indices : Free_Indices_Ptr;
-      --  Indices in Mapping_File_Names of the mapping file names that can be
+      Free_Mapping_File_Indexes : Free_Indexes_Ptr;
+      --  Indexes in Mapping_File_Names of the mapping file names that can be
       --  reused for subsequent compilations.
 
-      Last_Free_Indices : Natural;
+      Last_Free_Indexes : Natural;
       --  Number of mapping files that can be reused
    end record;
    --  Information necessary when compiling a project
@@ -838,15 +861,6 @@ package body Make is
    --  Create a new temporary mapping file, and fill it with the project file
    --  mappings, when using project file(s). The out parameter File_Index is
    --  the index to the name of the file in the array The_Mapping_File_Names.
-
-   procedure Delete_Temp_Config_Files;
-   --  Delete all temporary config files. Must not be called if Debug_Flag_N
-   --  is False.
-
-   procedure Delete_All_Temp_Files;
-   --  Delete all temp files (config files, mapping files, path files), unless
-   --  Debug_Flag_N is True (in which case all temp files are left for user
-   --  examination).
 
    -------------------------------------------------
    -- Subprogram declarations moved from the spec --
@@ -1013,7 +1027,13 @@ package body Make is
    --  during a compilation are also transitively included in the W section
    --  of the originally compiled file.
 
-   procedure Initialize (Project_Node_Tree : out Project_Node_Tree_Ref);
+   procedure Globalize (Success : out Boolean);
+   --  Call the CodePeer globalizer on all the project's object directories,
+   --  or on the current directory if no projects.
+
+   procedure Initialize
+      (Project_Node_Tree : out Project_Node_Tree_Ref;
+       Env               : out Prj.Tree.Environment);
    --  Performs default and package initialization. Therefore,
    --  Compile_Sources can be called by an external unit.
 
@@ -1026,7 +1046,7 @@ package body Make is
    --  succeeded or not.
 
    procedure Scan_Make_Arg
-     (Project_Node_Tree : Project_Node_Tree_Ref;
+     (Env               : in out Prj.Tree.Environment;
       Argv              : String;
       And_Save          : Boolean);
    --  Scan make arguments. Argv is a single argument to be processed.
@@ -1251,10 +1271,9 @@ package body Make is
    procedure Add_Switches
      (The_Package                      : Package_Id;
       File_Name                        : String;
-      Index                            : Int;
       Program                          : Make_Program_Type;
       Unknown_Switches_To_The_Compiler : Boolean := True;
-      Project_Node_Tree                : Project_Node_Tree_Ref)
+      Env                              : in out Prj.Tree.Environment)
    is
       Switches    : Variable_Value;
       Switch_List : String_List_Id;
@@ -1269,19 +1288,18 @@ package body Make is
          Add_Str_To_Name_Buffer (File_Name);
          Switches :=
            Switches_Of
-             (Source_File      => Name_Find,
-              Source_File_Name => File_Name,
-              Source_Index     => Index,
-              Project          => Main_Project,
-              In_Package       => The_Package,
-              Allow_ALI        => Program = Binder or else Program = Linker);
+             (Source_File => Name_Find,
+              Project     => Main_Project,
+              In_Package  => The_Package,
+              Allow_ALI   => Program = Binder or else Program = Linker);
 
          if Switches.Kind = List then
             Program_Args := Program;
 
             Switch_List := Switches.Values;
             while Switch_List /= Nil_String loop
-               Element := Project_Tree.String_Elements.Table (Switch_List);
+               Element :=
+                 Project_Tree.Shared.String_Elements.Table (Switch_List);
                Get_Name_String (Element.Value);
 
                if Name_Len > 0 then
@@ -1295,8 +1313,7 @@ package body Make is
                         Write_Line (Argv);
                      end if;
 
-                     Scan_Make_Arg
-                       (Project_Node_Tree, Argv, And_Save => False);
+                     Scan_Make_Arg (Env, Argv, And_Save => False);
 
                      if not Gnatmake_Switch_Found
                        and then not Switch_May_Be_Passed_To_The_Compiler
@@ -1306,7 +1323,6 @@ package body Make is
                            """ is not a gnatmake switch. Consider moving " &
                            "it to Global_Compilation_Switches.",
                            Element.Location);
-                        Errutil.Finalize;
                         Make_Failed ("*** illegal switch """ & Argv & """");
                      end if;
                   end;
@@ -1331,7 +1347,9 @@ package body Make is
       pragma Assert (Args'First = 1);
 
       --  Optimize the simple case where the gnatbind command line looks like
-      --     gnatbind -aO. -I- file.ali   --into->   gnatbind file.adb
+      --     gnatbind -aO. -I- file.ali
+      --  into
+      --     gnatbind file.adb
 
       if Args'Length = 2
         and then Args (Args'First).all = "-aO" & Normalized_CWD
@@ -1387,7 +1405,7 @@ package body Make is
 
       if Project_Of_Current_Object_Directory /= Project then
          Project_Of_Current_Object_Directory := Project;
-         Object_Directory := Project.Object_Directory.Name;
+         Object_Directory := Project.Object_Directory.Display_Name;
 
          --  Set the working directory to the object directory of the actual
          --  project.
@@ -1409,7 +1427,7 @@ package body Make is
       when Directory_Error =>
          Make_Failed ("unable to change to object directory """ &
                       Path_Or_File_Name
-                        (Project.Object_Directory.Name) &
+                        (Project.Object_Directory.Display_Name) &
                       """ of project " &
                       Get_Name_String (Project.Display_Name));
    end Change_To_Object_Directory;
@@ -1420,7 +1438,6 @@ package body Make is
 
    procedure Check
      (Source_File    : File_Name_Type;
-      Source_Index   : Int;
       Is_Main_Source : Boolean;
       The_Args       : Argument_List;
       Lib_File       : File_Name_Type;
@@ -1468,7 +1485,7 @@ package body Make is
 
          begin
             --  Test whether Uname is the name of a body unit (i.e. ends
-            --  with %b)
+            --  with %b).
 
             Get_Name_String (Uname);
             pragma
@@ -1545,12 +1562,12 @@ package body Make is
       --  Time stamp of the current object file
 
       Modified_Source : File_Name_Type;
-      --  The first source in Lib_File whose current time stamp differs
-      --  from that stored in Lib_File.
+      --  The first source in Lib_File whose current time stamp differs from
+      --  that stored in Lib_File.
 
       New_Spec : File_Name_Type;
       --  If Lib_File contains in its W (with) section a body (for a
-      --  subprogram) for which there exists a spec and the spec did not
+      --  subprogram) for which there exists a spec, and the spec did not
       --  appear in the Sdep section of Lib_File, New_Spec contains the file
       --  name of this new spec.
 
@@ -1644,8 +1661,7 @@ package body Make is
             return;
          end if;
 
-         --  Don't take Ali file into account if it was generated with
-         --  errors.
+         --  Don't take ALI file into account if it was generated with errors
 
          if ALIs.Table (ALI).Compile_Errors then
             Verbose_Msg (Full_Lib_File, "had errors, must be recompiled");
@@ -1653,8 +1669,7 @@ package body Make is
             return;
          end if;
 
-         --  Don't take Ali file into account if it was generated without
-         --  object.
+         --  Don't take ALI file into account if no object was generated
 
          if Operating_Mode /= Check_Semantics
            and then ALIs.Table (ALI).No_Object
@@ -1664,19 +1679,45 @@ package body Make is
             return;
          end if;
 
+         --  When compiling with -gnatc, don't take ALI file into account if
+         --  it has not been generated for the current source, for example if
+         --  it has been generated for the spec, but we are compiling the body.
+
+         if Operating_Mode = Check_Semantics then
+            declare
+               File_Name : String  := Get_Name_String (Source_File);
+               OK        : Boolean := False;
+
+            begin
+               --  In the ALI file, the source file names are in canonical case
+
+               Canonical_Case_File_Name (File_Name);
+
+               for U in ALIs.Table (ALI).First_Unit ..
+                 ALIs.Table (ALI).Last_Unit
+               loop
+                  OK := Get_Name_String (Units.Table (U).Sfile) = File_Name;
+                  exit when OK;
+               end loop;
+
+               if not OK then
+                  Verbose_Msg
+                    (Full_Lib_File, "not generated for the same source");
+                  ALI := No_ALI_Id;
+                  return;
+               end if;
+            end;
+         end if;
+
          --  Check for matching compiler switches if needed
 
          if Check_Switches then
 
             --  First, collect all the switches
 
-            Collect_Arguments
-              (Source_File, Source_Index, Is_Main_Source, The_Args);
-
+            Collect_Arguments (Source_File, Is_Main_Source, The_Args);
             Prev_Switch := Dummy_Switch;
-
             Get_Name_String (ALIs.Table (ALI).Sfile);
-
             Switches_To_Check.Set_Last (0);
 
             for J in 1 .. Last_Argument loop
@@ -1785,6 +1826,13 @@ package body Make is
 
          Modified_Source := Time_Stamp_Mismatch (ALI, Read_Only);
 
+         --  To avoid using too much memory when switch -m is used, free the
+         --  memory allocated for the source file when computing the checksum.
+
+         if Minimal_Recompilation then
+            Sinput.P.Clear_Source_File_Table;
+         end if;
+
          if Modified_Source /= No_File then
             ALI := No_ALI_Id;
 
@@ -1815,8 +1863,7 @@ package body Make is
                end if;
 
             elsif not Read_Only and then Main_Project /= No_Project then
-
-               if not Check_Source_Info_In_ALI (ALI) then
+               if not Check_Source_Info_In_ALI (ALI, Project_Tree) then
                   ALI := No_ALI_Id;
                   return;
                end if;
@@ -1890,8 +1937,7 @@ package body Make is
                if ALI_Project = No_Project then
                   ALI := No_ALI_Id;
 
-                  Verbose_Msg
-                    (Lib_File, " wrong object directory");
+                  Verbose_Msg (Lib_File, " wrong object directory");
                   return;
                end if;
 
@@ -1932,8 +1978,8 @@ package body Make is
                         Projects (J) := Proj;
                      end loop;
 
-                     --  Now check if any of the dependant sources are in
-                     --  any of these extending projects.
+                     --  Now check if any of the dependant sources are in any
+                     --  of these extending projects.
 
                      D_Chk :
                      for D in ALIs.Table (ALI).First_Sdep ..
@@ -2174,7 +2220,6 @@ package body Make is
             Check_File (Name_Find);
          end if;
       end loop;
-
    end Check_Linker_Options;
 
    -----------------
@@ -2205,7 +2250,6 @@ package body Make is
 
    procedure Collect_Arguments
      (Source_File    : File_Name_Type;
-      Source_Index   : Int;
       Is_Main_Source : Boolean;
       Args           : Argument_List)
    is
@@ -2236,12 +2280,14 @@ package body Make is
             if Arguments_Project = No_Project then
                Add_Arguments (The_Saved_Gcc_Switches.all);
 
-            elsif not Arguments_Project.Externally_Built then
+            elsif not Arguments_Project.Externally_Built
+              or else Must_Compile
+            then
                --  We get the project directory for the relative path
                --  switches and arguments.
 
-               Arguments_Project := Ultimate_Extending_Project_Of
-                 (Arguments_Project);
+               Arguments_Project :=
+                 Ultimate_Extending_Project_Of (Arguments_Project);
 
                --  If building a dynamic or relocatable library, compile with
                --  PIC option, if it exists.
@@ -2251,7 +2297,6 @@ package body Make is
                then
                   declare
                      PIC : constant String := MLib.Tgt.PIC_Option;
-
                   begin
                      if PIC /= "" then
                         Add_Arguments ((1 => new String'(PIC)));
@@ -2266,7 +2311,7 @@ package body Make is
                  Prj.Util.Value_Of
                    (Name        => Name_Compiler,
                     In_Packages => Arguments_Project.Decl.Packages,
-                    In_Tree     => Project_Tree);
+                    Shared      => Project_Tree.Shared);
 
                if Compiler_Package /= No_Package then
 
@@ -2276,12 +2321,10 @@ package body Make is
 
                   Switches :=
                     Switches_Of
-                      (Source_File      => Source_File,
-                       Source_File_Name => Source_File_Name,
-                       Source_Index     => Source_Index,
-                       Project          => Arguments_Project,
-                       In_Package       => Compiler_Package,
-                       Allow_ALI        => False);
+                      (Source_File => Source_File,
+                       Project     => Arguments_Project,
+                       In_Package  => Compiler_Package,
+                       Allow_ALI   => False);
 
                end if;
 
@@ -2299,7 +2342,7 @@ package body Make is
 
                      begin
                         while Current /= Nil_String loop
-                           Element := Project_Tree.String_Elements.
+                           Element := Project_Tree.Shared.String_Elements.
                                         Table (Current);
                            Number  := Number + 1;
                            Current := Element.Next;
@@ -2309,13 +2352,13 @@ package body Make is
                            New_Args : Argument_List (1 .. Number);
                            Last_New : Natural := 0;
                            Dir_Path : constant String := Get_Name_String
-                             (Arguments_Project.Directory.Name);
+                             (Arguments_Project.Directory.Display_Name);
 
                         begin
                            Current := Switches.Values;
 
                            for Index in New_Args'Range loop
-                              Element := Project_Tree.String_Elements.
+                              Element := Project_Tree.Shared.String_Elements.
                                            Table (Current);
                               Get_Name_String (Element.Value);
 
@@ -2325,7 +2368,8 @@ package body Make is
                                    new String'(Name_Buffer (1 .. Name_Len));
                                  Test_If_Relative_Path
                                    (New_Args (Last_New),
-                                    Parent => Dir_Path,
+                                    Do_Fail              => Make_Failed'Access,
+                                    Parent               => Dir_Path,
                                     Including_Non_Switch => False);
                               end if;
 
@@ -2333,10 +2377,9 @@ package body Make is
                            end loop;
 
                            Add_Arguments
-                             (Configuration_Pragmas_Switch
-                                (Arguments_Project) &
-                              New_Args (1 .. Last_New) &
-                              The_Saved_Gcc_Switches.all);
+                             (Configuration_Pragmas_Switch (Arguments_Project)
+                              & New_Args (1 .. Last_New)
+                              & The_Saved_Gcc_Switches.all);
                         end;
                      end;
 
@@ -2352,11 +2395,13 @@ package body Make is
                                             (Name_Buffer (1 .. Name_Len)));
                         Dir_Path : constant String :=
                                      Get_Name_String
-                                       (Arguments_Project.Directory.Name);
+                                       (Arguments_Project.
+                                        Directory.Display_Name);
 
                      begin
                         Test_If_Relative_Path
                           (New_Args (1),
+                           Do_Fail              => Make_Failed'Access,
                            Parent               => Dir_Path,
                            Including_Non_Switch => False);
                         Add_Arguments
@@ -2432,7 +2477,7 @@ package body Make is
       --  Info on the mapping file
 
       Need_To_Check_Standard_Library : Boolean :=
-                                         Check_Readonly_Files
+                                         (Check_Readonly_Files or Must_Compile)
                                            and not Unique_Compile;
 
       procedure Add_Process
@@ -2487,8 +2532,13 @@ package body Make is
       --  library file name. Process_Id of the process spawned to execute the
       --  compilation.
 
+      type ALI_Project is record
+         ALI      : ALI_Id;
+         Project : Project_Id;
+      end record;
+
       package Good_ALI is new Table.Table (
-        Table_Component_Type => ALI_Id,
+        Table_Component_Type => ALI_Project,
         Table_Index_Type     => Natural,
         Table_Low_Bound      => 1,
         Table_Initial        => 50,
@@ -2503,7 +2553,7 @@ package body Make is
       --  Get a mapping file name. If there is one to be reused, reuse it.
       --  Otherwise, create a new mapping file.
 
-      function Get_Next_Good_ALI return ALI_Id;
+      function Get_Next_Good_ALI return ALI_Project;
       --  Returns the next good ALI_Id record
 
       procedure Record_Failure
@@ -2514,7 +2564,7 @@ package body Make is
       --  If Found is False then the compilation of File failed because we
       --  could not find it. Records also Unit when possible.
 
-      procedure Record_Good_ALI (A : ALI_Id);
+      procedure Record_Good_ALI (A : ALI_Id; Project : Project_Id);
       --  Records in the previous set the Id of an ALI file
 
       function Must_Exit_Because_Of_Error return Boolean;
@@ -2570,6 +2620,10 @@ package body Make is
             Project          => Arguments_Project);
 
          Outstanding_Compiles := OC1;
+
+         if Arguments_Project /= No_Project then
+            Queue.Set_Obj_Dir_Busy (Arguments_Project.Object_Directory.Name);
+         end if;
       end Add_Process;
 
       --------------------
@@ -2608,6 +2662,10 @@ package body Make is
                   Data    := Running_Compile (J);
                   Project := Running_Compile (J).Project;
 
+                  if Project /= No_Project then
+                     Queue.Set_Obj_Dir_Free (Project.Object_Directory.Name);
+                  end if;
+
                   --  If a mapping file was used by this compilation, get its
                   --  file name for reuse by a subsequent compilation.
 
@@ -2615,10 +2673,10 @@ package body Make is
                      Comp_Data :=
                        Project_Compilation_Htable.Get
                          (Project_Compilation, Project);
-                     Comp_Data.Last_Free_Indices :=
-                       Comp_Data.Last_Free_Indices + 1;
-                     Comp_Data.Free_Mapping_File_Indices
-                       (Comp_Data.Last_Free_Indices) :=
+                     Comp_Data.Last_Free_Indexes :=
+                       Comp_Data.Last_Free_Indexes + 1;
+                     Comp_Data.Free_Mapping_File_Indexes
+                       (Comp_Data.Last_Free_Indexes) :=
                          Running_Compile (J).Mapping_File;
                   end if;
 
@@ -2682,14 +2740,16 @@ package body Make is
                end if;
 
                if Add_It then
-                  if Is_Marked (Sfile) then
+                  if not Queue.Insert
+                           ((Format  => Format_Gnatmake,
+                             File    => Sfile,
+                             Unit    => No_Unit_Name,
+                             Project => No_Project,
+                             Index   => 0))
+                  then
                      if Is_In_Obsoleted (Sfile) then
                         Executable_Obsolete := True;
                      end if;
-
-                  else
-                     Insert_Q (Sfile, Index => 0);
-                     Mark (Sfile, Index => 0);
                   end if;
                end if;
             end;
@@ -2719,11 +2779,14 @@ package body Make is
          --  check for an eventual library project, and use the full path.
 
          if Arguments_Project /= No_Project then
-            if not Arguments_Project.Externally_Built then
+            if not Arguments_Project.Externally_Built
+              or else Must_Compile
+            then
                Prj.Env.Set_Ada_Paths
                  (Arguments_Project,
                   Project_Tree,
-                  Including_Libraries => True);
+                  Including_Libraries => True,
+                  Include_Path        => Use_Include_Path_File);
 
                if not Unique_Compile
                  and then MLib.Tgt.Support_For_Libraries /= Prj.None
@@ -2734,7 +2797,7 @@ package body Make is
 
                   begin
                      if Prj.Library
-                       and then not Prj.Externally_Built
+                       and then (not Prj.Externally_Built or else Must_Compile)
                        and then not Prj.Need_To_Build_Lib
                      then
                         --  Add to the Q all sources of the project that have
@@ -2869,12 +2932,33 @@ package body Make is
          end if;
 
          --  Make a deep copy of the arguments, because Normalize_Arguments
-         --  may deallocate some arguments.
+         --  may deallocate some arguments. Also strip target specific -mxxx
+         --  switches in CodePeer mode.
 
-         for J in Comp_Next .. Comp_Last loop
-            Comp_Args (J) := new String'(Args (Arg_Index).all);
-            Arg_Index := Arg_Index + 1;
-         end loop;
+         declare
+            Index : Natural;
+            Last  : constant Natural := Comp_Last;
+
+         begin
+            Index := Comp_Next;
+            for J in Comp_Next .. Last loop
+               declare
+                  Str : String renames Args (Arg_Index).all;
+               begin
+                  if CodePeer_Mode
+                    and then Str'Length > 2
+                    and then Str (Str'First .. Str'First + 1) = "-m"
+                  then
+                     Comp_Last := Comp_Last - 1;
+                  else
+                     Comp_Args (Index) := new String'(Str);
+                     Index := Index + 1;
+                  end if;
+               end;
+
+               Arg_Index := Arg_Index + 1;
+            end loop;
+         end;
 
          --  Set -gnatpg for predefined files (for this purpose the renamings
          --  such as Text_IO do not count as predefined). Note that we strip
@@ -2886,7 +2970,7 @@ package body Make is
 
          begin
             if Is_Predefined_File_Name (Fname, False) then
-               if Check_Readonly_Files then
+               if Check_Readonly_Files or else Must_Compile then
                   Comp_Args (Comp_Args'First + 2 .. Comp_Last + 1) :=
                     Comp_Args (Comp_Args'First + 1 .. Comp_Last);
                   Comp_Last := Comp_Last + 1;
@@ -2994,6 +3078,7 @@ package body Make is
       -------------------------------
 
       procedure Fill_Queue_From_ALI_Files is
+         ALI_P        : ALI_Project;
          ALI          : ALI_Id;
          Source_Index : Int;
          Sfile        : File_Name_Type;
@@ -3003,8 +3088,9 @@ package body Make is
 
       begin
          while Good_ALI_Present loop
-            ALI          := Get_Next_Good_ALI;
-            Source_Index := Unit_Index_Of (ALIs.Table (ALI).Afile);
+            ALI_P        := Get_Next_Good_ALI;
+            ALI          := ALI_P.ALI;
+            Source_Index := Unit_Index_Of (ALIs.Table (ALI_P.ALI).Afile);
 
             --  If we are processing the library file corresponding to the
             --  main source file check if this source can be a main unit.
@@ -3081,18 +3167,18 @@ package body Make is
                      else
                         Source_Index := Unit_Index_Of (Withs.Table (K).Afile);
 
-                        if Is_Marked (Sfile, Source_Index) then
-                           Debug_Msg ("Skipping marked file:", Sfile);
-
-                        elsif not Check_Readonly_Files
+                        if not (Check_Readonly_Files or Must_Compile)
                           and then Is_Internal_File_Name (Sfile, False)
                         then
                            Debug_Msg ("Skipping internal file:", Sfile);
 
                         else
-                           Insert_Q
-                             (Sfile, Withs.Table (K).Uname, Source_Index);
-                           Mark (Sfile, Source_Index);
+                           Queue.Insert
+                             ((Format  => Format_Gnatmake,
+                               File    => Sfile,
+                               Project => ALI_P.Project,
+                               Unit    => Withs.Table (K).Uname,
+                               Index   => Source_Index));
                         end if;
                      end if;
                   end loop;
@@ -3113,9 +3199,9 @@ package body Make is
 
          --  If there is a mapping file ready to be reused, reuse it
 
-         if Data.Last_Free_Indices > 0 then
-            Mfile := Data.Free_Mapping_File_Indices (Data.Last_Free_Indices);
-            Data.Last_Free_Indices := Data.Last_Free_Indices - 1;
+         if Data.Last_Free_Indexes > 0 then
+            Mfile := Data.Free_Mapping_File_Indexes (Data.Last_Free_Indexes);
+            Data.Last_Free_Indexes := Data.Last_Free_Indexes - 1;
 
          --  Otherwise, create and initialize a new one
 
@@ -3137,14 +3223,14 @@ package body Make is
       -- Get_Next_Good_ALI --
       -----------------------
 
-      function Get_Next_Good_ALI return ALI_Id is
-         ALI : ALI_Id;
+      function Get_Next_Good_ALI return ALI_Project is
+         ALIP : ALI_Project;
 
       begin
          pragma Assert (Good_ALI_Present);
-         ALI := Good_ALI.Table (Good_ALI.Last);
+         ALIP := Good_ALI.Table (Good_ALI.Last);
          Good_ALI.Decrement_Last;
-         return ALI;
+         return ALIP;
       end Get_Next_Good_ALI;
 
       ----------------------
@@ -3198,10 +3284,10 @@ package body Make is
       -- Record_Good_ALI --
       ---------------------
 
-      procedure Record_Good_ALI (A : ALI_Id) is
+      procedure Record_Good_ALI (A : ALI_Id; Project : Project_Id) is
       begin
          Good_ALI.Increment_Last;
-         Good_ALI.Table (Good_ALI.Last) := A;
+         Good_ALI.Table (Good_ALI.Last) := (A, Project);
       end Record_Good_ALI;
 
       -------------------------------
@@ -3216,14 +3302,10 @@ package body Make is
          Pid             : Process_Id;
          Process_Created : Boolean;
 
-         Source_File      : File_Name_Type;
+         Source           : Queue.Source_Info;
          Full_Source_File : File_Name_Type;
          Source_File_Attr : aliased File_Attributes;
          --  The full name of the source file and its attributes (size, ...)
-
-         Source_Unit  : Unit_Name_Type;
-         Source_Index : Int;
-         --  Index of the current unit in the current source file
 
          Lib_File      : File_Name_Type;
          Full_Lib_File : File_Name_Type;
@@ -3236,16 +3318,20 @@ package body Make is
          Obj_Stamp : Time_Stamp_Type;
          --  The object file
 
+         Found : Boolean;
+
       begin
-         if not Empty_Q and then Outstanding_Compiles < Max_Process then
-            Extract_From_Q (Source_File, Source_Unit, Source_Index);
+         if not Queue.Is_Virtually_Empty and then
+            Outstanding_Compiles < Max_Process
+         then
+            Queue.Extract (Found, Source);
 
             Osint.Full_Source_Name
-              (Source_File,
+              (Source.File,
                Full_File => Full_Source_File,
                Attr      => Source_File_Attr'Access);
 
-            Lib_File := Osint.Lib_File_Name (Source_File, Source_Index);
+            Lib_File := Osint.Lib_File_Name (Source.File, Source.Index);
 
             --  ??? This call could be avoided when using projects, since we
             --  know where the ALI file is supposed to be. That would avoid
@@ -3260,19 +3346,19 @@ package body Make is
 
             --  If source has already been compiled, executable is obsolete
 
-            if Is_In_Obsoleted (Source_File) then
+            if Is_In_Obsoleted (Source.File) then
                Executable_Obsolete := True;
             end if;
 
             In_Lib_Dir := Full_Lib_File /= No_File
-              and then In_Ada_Lib_Dir (Full_Lib_File);
+                          and then In_Ada_Lib_Dir (Full_Lib_File);
 
             --  Since the following requires a system call, we precompute it
             --  when needed.
 
             if not In_Lib_Dir then
                if Full_Lib_File /= No_File
-                 and then not Check_Readonly_Files
+                 and then not (Check_Readonly_Files or else Must_Compile)
                then
                   Get_Name_String (Full_Lib_File);
                   Name_Buffer (Name_Len + 1) := ASCII.NUL;
@@ -3298,7 +3384,7 @@ package body Make is
                --  directory of a project being extended must not be skipped).
 
             elsif Read_Only
-              and then Is_In_Object_Directory (Source_File, Full_Lib_File)
+              and then Is_In_Object_Directory (Source.File, Full_Lib_File)
             then
                Verbose_Msg
                  (Lib_File,
@@ -3309,19 +3395,19 @@ package body Make is
                --  The source file that we are checking cannot be located
 
             elsif Full_Source_File = No_File then
-               Record_Failure (Source_File, Source_Unit, False);
+               Record_Failure (Source.File, Source.Unit, False);
 
                --  Source and library files can be located but are internal
                --  files.
 
-            elsif not Check_Readonly_Files
+            elsif not (Check_Readonly_Files or else Must_Compile)
               and then Full_Lib_File /= No_File
-              and then Is_Internal_File_Name (Source_File, False)
+              and then Is_Internal_File_Name (Source.File, False)
             then
                if Force_Compilations then
                   Fail
                     ("not allowed to compile """ &
-                     Get_Name_String (Source_File) &
+                     Get_Name_String (Source.File) &
                      """; use -a switch, or compile file with " &
                      """-gnatg"" switch");
                end if;
@@ -3335,13 +3421,14 @@ package body Make is
                --  The source file that we are checking can be located
 
             else
-               Collect_Arguments (Source_File, Source_Index,
-                                  Source_File = Main_Source, Args);
+               Collect_Arguments
+                  (Source.File, Source.File = Main_Source, Args);
 
                --  Do nothing if project of source is externally built
 
                if Arguments_Project = No_Project
                  or else not Arguments_Project.Externally_Built
+                 or else Must_Compile
                then
                   --  Don't waste any time if we have to recompile anyway
 
@@ -3349,9 +3436,8 @@ package body Make is
                   Need_To_Compile := Force_Compilations;
 
                   if not Force_Compilations then
-                     Check (Source_File    => Source_File,
-                            Source_Index   => Source_Index,
-                            Is_Main_Source => Source_File = Main_Source,
+                     Check (Source_File    => Source.File,
+                            Is_Main_Source => Source.File = Main_Source,
                             The_Args       => Args,
                             Lib_File       => Lib_File,
                             Full_Lib_File  => Full_Lib_File,
@@ -3367,7 +3453,7 @@ package body Make is
 
                      --  The ALI file is up-to-date; record its Id
 
-                     Record_Good_ALI (ALI);
+                     Record_Good_ALI (ALI, Arguments_Project);
 
                      --  Record the time stamp of the most recent object
                      --  file as long as no (re)compilations are needed.
@@ -3389,7 +3475,7 @@ package body Make is
                        and then not External_Unit_Compilation_Allowed
                      then
                         Make_Failed ("external source ("
-                                     & Get_Name_String (Source_File)
+                                     & Get_Name_String (Source.File)
                                      & ") is not part of any project;"
                                      & " cannot be compiled without"
                                      & " gnatmake switch -x");
@@ -3421,7 +3507,7 @@ package body Make is
 
                            Lib_File :=
                              Osint.Lib_File_Name
-                               (Full_Source_File, Source_Index);
+                               (Full_Source_File, Source.Index);
                            Full_Lib_File := Lib_File;
 
                         else
@@ -3439,7 +3525,7 @@ package body Make is
                      Collect_Arguments_And_Compile
                        (Full_Source_File => Full_Source_File,
                         Lib_File         => Lib_File,
-                        Source_Index     => Source_Index,
+                        Source_Index     => Source.Index,
                         Pid              => Pid,
                         Process_Created  => Process_Created);
 
@@ -3473,7 +3559,7 @@ package body Make is
                            then
                               Get_Name_String
                                 (Project_Of_Current_Object_Directory
-                                 .Object_Directory.Name);
+                                 .Object_Directory.Display_Name);
                               Add_Str_To_Name_Buffer
                                 (Get_Name_String (Lib_File));
                               Full_Lib_File := Name_Find;
@@ -3491,13 +3577,13 @@ package body Make is
 
                      if Process_Created then
                         if Pid = Invalid_Pid then
-                           Record_Failure (Full_Source_File, Source_Unit);
+                           Record_Failure (Full_Source_File, Source.Unit);
                         else
                            Add_Process
                              (Pid           => Pid,
                               Sfile         => Full_Source_File,
                               Afile         => Lib_File,
-                              Uname         => Source_Unit,
+                              Uname         => Source.Unit,
                               Mfile         => Mfile,
                               Full_Lib_File => Full_Lib_File,
                               Lib_File_Attr => Lib_File_Attr);
@@ -3522,7 +3608,7 @@ package body Make is
 
       begin
          if Outstanding_Compiles = Max_Process
-           or else (Empty_Q
+           or else (Queue.Is_Virtually_Empty
                      and then not Good_ALI_Present
                      and then Outstanding_Compiles > 0)
          then
@@ -3583,7 +3669,7 @@ package body Make is
                      end if;
 
                   else
-                     Record_Good_ALI (ALI);
+                     Record_Good_ALI (ALI, Data.Project);
                   end if;
 
                   Free (Text);
@@ -3619,10 +3705,6 @@ package body Make is
 
       Good_ALI.Init;
 
-      if First_Q_Initialization then
-         Init_Q;
-      end if;
-
       if Initialize_ALI_Data then
          Initialize_ALI;
          Initialize_ALI_Source;
@@ -3638,13 +3720,12 @@ package body Make is
       Check_Source_Files := True;
       All_Sources        := False;
 
-      --  Only insert in the Q if it is not already done, to avoid simultaneous
-      --  compilations if -jnnn is used.
-
-      if not Is_Marked (Main_Source, Main_Index) then
-         Insert_Q (Main_Source, Index => Main_Index);
-         Mark (Main_Source, Main_Index);
-      end if;
+      Queue.Insert
+        ((Format  => Format_Gnatmake,
+          File    => Main_Source,
+          Project => Main_Project,
+          Unit    => No_Unit_Name,
+          Index   => Main_Index));
 
       First_Compiled_File   := No_File;
       Most_Recent_Obj_File  := No_File;
@@ -3654,7 +3735,8 @@ package body Make is
       --  Keep looping until there is no more work to do (the Q is empty)
       --  and all the outstanding compilations have terminated.
 
-      Make_Loop : while not Empty_Q or else Outstanding_Compiles > 0 loop
+      Make_Loop :
+      while not Queue.Is_Empty or else Outstanding_Compiles > 0 loop
          exit Make_Loop when Must_Exit_Because_Of_Error;
          exit Make_Loop when Start_Compile_If_Possible (Args);
 
@@ -3667,11 +3749,11 @@ package body Make is
 
          if Display_Compilation_Progress then
             Write_Str ("completed ");
-            Write_Int (Int (Q_Front));
+            Write_Int (Int (Queue.Processed));
             Write_Str (" out of ");
-            Write_Int (Int (Q.Last));
+            Write_Int (Int (Queue.Size));
             Write_Str (" (");
-            Write_Int (Int ((Q_Front * 100) / (Q.Last - Q.First)));
+            Write_Int (Int ((Queue.Processed * 100) / Queue.Size));
             Write_Str ("%)...");
             Write_Eol;
          end if;
@@ -3684,7 +3766,7 @@ package body Make is
       --  Delete any temporary configuration pragma file
 
       if not Debug.Debug_Flag_N then
-         Delete_Temp_Config_Files;
+         Delete_Temp_Config_Files (Project_Tree);
       end if;
    end Compile_Sources;
 
@@ -3734,17 +3816,11 @@ package body Make is
             else
                declare
                   Parent_Directory : constant String :=
-                    Get_Name_String (Project.Directory.Display_Name);
+                                       Get_Name_String
+                                         (Project.Directory.Display_Name);
 
                begin
-                  if Parent_Directory (Parent_Directory'Last) =
-                                                 Directory_Separator
-                  then
-                     return Parent_Directory & Path_Name;
-
-                  else
-                     return Parent_Directory & Directory_Separator & Path_Name;
-                  end if;
+                  return Parent_Directory & Path_Name;
                end;
             end if;
          end;
@@ -3774,14 +3850,14 @@ package body Make is
         Prj.Util.Value_Of
           (Name        => Name_Builder,
            In_Packages => The_Packages,
-           In_Tree     => Project_Tree);
+           Shared      => Project_Tree.Shared);
 
       if Gnatmake /= No_Package then
          Global_Attribute := Prj.Util.Value_Of
            (Variable_Name => Name_Global_Configuration_Pragmas,
-            In_Variables  => Project_Tree.Packages.Table
+            In_Variables  => Project_Tree.Shared.Packages.Table
                                (Gnatmake).Decl.Attributes,
-            In_Tree       => Project_Tree);
+            Shared        => Project_Tree.Shared);
          Global_Attribute_Present :=
            Global_Attribute /= Nil_Variable_Value
            and then Get_Name_String (Global_Attribute.Value) /= "";
@@ -3817,14 +3893,14 @@ package body Make is
         Prj.Util.Value_Of
           (Name        => Name_Compiler,
            In_Packages => The_Packages,
-           In_Tree     => Project_Tree);
+           Shared      => Project_Tree.Shared);
 
       if Compiler /= No_Package then
          Local_Attribute := Prj.Util.Value_Of
            (Variable_Name => Name_Local_Configuration_Pragmas,
-            In_Variables  => Project_Tree.Packages.Table
+            In_Variables  => Project_Tree.Shared.Packages.Table
                                (Compiler).Decl.Attributes,
-            In_Tree       => Project_Tree);
+            Shared        => Project_Tree.Shared);
          Local_Attribute_Present :=
            Local_Attribute /= Nil_Variable_Value
            and then Get_Name_String (Local_Attribute.Value) /= "";
@@ -3881,53 +3957,6 @@ package body Make is
    begin
       Debug_Msg (S, Name_Id (N));
    end Debug_Msg;
-
-   ---------------------------
-   -- Delete_All_Temp_Files --
-   ---------------------------
-
-   procedure Delete_All_Temp_Files is
-   begin
-      if not Debug.Debug_Flag_N then
-         Delete_Temp_Config_Files;
-         Prj.Delete_All_Temp_Files (Project_Tree);
-      end if;
-   end Delete_All_Temp_Files;
-
-   ------------------------------
-   -- Delete_Temp_Config_Files --
-   ------------------------------
-
-   procedure Delete_Temp_Config_Files is
-      Success : Boolean;
-      Proj    : Project_List;
-      pragma Warnings (Off, Success);
-
-   begin
-      --  The caller is responsible for ensuring that Debug_Flag_N is False
-
-      pragma Assert (not Debug.Debug_Flag_N);
-
-      if Main_Project /= No_Project then
-         Proj := Project_Tree.Projects;
-         while Proj /= null loop
-            if Proj.Project.Config_File_Temp then
-               Delete_Temporary_File
-                 (Project_Tree, Proj.Project.Config_File_Name);
-
-               --  Make sure that we don't have a config file for this project,
-               --  in case there are several mains. In this case, we will
-               --  recreate another config file: we cannot reuse the one that
-               --  we just deleted!
-
-               Proj.Project.Config_Checked   := False;
-               Proj.Project.Config_File_Name := No_Path;
-               Proj.Project.Config_File_Temp := False;
-            end if;
-            Proj := Proj.Next;
-         end loop;
-      end if;
-   end Delete_Temp_Config_Files;
 
    -------------
    -- Display --
@@ -4032,29 +4061,6 @@ package body Make is
       Display_Executed_Programs := Display;
    end Display_Commands;
 
-   -------------
-   -- Empty_Q --
-   -------------
-
-   function Empty_Q return Boolean is
-   begin
-      if Debug.Debug_Flag_P then
-         Write_Str ("   Q := [");
-
-         for J in Q_Front .. Q.Last - 1 loop
-            Write_Str (" ");
-            Write_Name (Q.Table (J).File);
-            Write_Eol;
-            Write_Str ("         ");
-         end loop;
-
-         Write_Str ("]");
-         Write_Eol;
-      end if;
-
-      return Q_Front >= Q.Last;
-   end Empty_Q;
-
    --------------------------
    -- Enter_Into_Obsoleted --
    --------------------------
@@ -4086,38 +4092,1334 @@ package body Make is
       Obsoleted.Set (F2, True);
    end Enter_Into_Obsoleted;
 
-   --------------------
-   -- Extract_From_Q --
-   --------------------
+   ---------------
+   -- Globalize --
+   ---------------
 
-   procedure Extract_From_Q
-     (Source_File  : out File_Name_Type;
-      Source_Unit  : out Unit_Name_Type;
-      Source_Index : out Int)
-   is
-      File  : constant File_Name_Type := Q.Table (Q_Front).File;
-      Unit  : constant Unit_Name_Type := Q.Table (Q_Front).Unit;
-      Index : constant Int            := Q.Table (Q_Front).Index;
+   procedure Globalize (Success : out Boolean) is
+      Quiet_Str       : aliased String := "-quiet";
+      Globalizer_Args : constant Argument_List :=
+                          (1 => Quiet_Str'Unchecked_Access);
+      Previous_Dir    : String_Access;
+
+      procedure Globalize_Dir (Dir : String);
+      --  Call CodePeer globalizer on Dir
+
+      -------------------
+      -- Globalize_Dir --
+      -------------------
+
+      procedure Globalize_Dir (Dir : String) is
+         Result : Boolean;
+      begin
+         if Previous_Dir = null or else Dir /= Previous_Dir.all then
+            Free (Previous_Dir);
+            Previous_Dir := new String'(Dir);
+            Change_Dir (Dir);
+            GNAT.OS_Lib.Spawn (Globalizer_Path.all, Globalizer_Args, Result);
+            Success := Success and Result;
+         end if;
+      end Globalize_Dir;
+
+      procedure Globalize_Dirs is new
+        Prj.Env.For_All_Object_Dirs (Globalize_Dir);
 
    begin
-      if Debug.Debug_Flag_Q then
-         Write_Str ("   Q := Q - [ ");
-         Write_Name (File);
+      Success := True;
+      Display (Globalizer, Globalizer_Args);
 
-         if Index /= 0 then
-            Write_Str (", ");
-            Write_Int (Index);
+      if Globalizer_Path = null then
+         Make_Failed ("error, unable to locate " & Globalizer);
+      end if;
+
+      if Main_Project = No_Project then
+         GNAT.OS_Lib.Spawn (Globalizer_Path.all, Globalizer_Args, Success);
+      else
+         Globalize_Dirs (Main_Project, Project_Tree);
+      end if;
+   end Globalize;
+
+   -------------------
+   -- Linking_Phase --
+   -------------------
+
+   procedure Linking_Phase
+     (Non_Std_Executable : Boolean := False;
+      Executable         : File_Name_Type := No_File;
+      Main_ALI_File      : File_Name_Type)
+   is
+      Linker_Switches_Last : constant Integer := Linker_Switches.Last;
+      Path_Option          : constant String_Access :=
+                               MLib.Linker_Library_Path_Option;
+      Libraries_Present    : Boolean := False;
+      Current              : Natural;
+      Proj2                : Project_Id;
+      Depth                : Natural;
+      Proj1                : Project_List;
+
+   begin
+      if not Run_Path_Option then
+         Linker_Switches.Increment_Last;
+         Linker_Switches.Table (Linker_Switches.Last) :=
+           new String'("-R");
+      end if;
+
+      if Main_Project /= No_Project then
+         Library_Paths.Set_Last (0);
+         Library_Projs.Init;
+
+         if MLib.Tgt.Support_For_Libraries /= Prj.None then
+
+            --  Check for library projects
+
+            Proj1 := Project_Tree.Projects;
+            while Proj1 /= null loop
+               if Proj1.Project /= Main_Project
+                 and then Proj1.Project.Library
+               then
+                  --  Add this project to table Library_Projs
+
+                  Libraries_Present := True;
+                  Depth := Proj1.Project.Depth;
+                  Library_Projs.Increment_Last;
+                  Current := Library_Projs.Last;
+
+                  --  Any project with a greater depth should be after this
+                  --  project in the list.
+
+                  while Current > 1 loop
+                     Proj2 := Library_Projs.Table (Current - 1);
+                     exit when Proj2.Depth <= Depth;
+                     Library_Projs.Table (Current) := Proj2;
+                     Current := Current - 1;
+                  end loop;
+
+                  Library_Projs.Table (Current) := Proj1.Project;
+
+                  --  If it is not a static library and path option is set, add
+                  --  it to the Library_Paths table.
+
+                  if Proj1.Project.Library_Kind /= Static
+                    and then Proj1.Project.Extended_By = No_Project
+                    and then Path_Option /= null
+                  then
+                     Library_Paths.Increment_Last;
+                     Library_Paths.Table (Library_Paths.Last) :=
+                       new String'
+                         (Get_Name_String
+                              (Proj1.Project.Library_Dir.Display_Name));
+                  end if;
+               end if;
+
+               Proj1 := Proj1.Next;
+            end loop;
+
+            for Index in 1 .. Library_Projs.Last loop
+               if
+                 Library_Projs.Table (Index).Extended_By = No_Project
+               then
+                  if Library_Projs.Table (Index).Library_Kind = Static
+                    and then not Targparm.OpenVMS_On_Target
+                  then
+                     Linker_Switches.Increment_Last;
+                     Linker_Switches.Table (Linker_Switches.Last) :=
+                       new String'
+                         (Get_Name_String
+                              (Library_Projs.Table
+                                   (Index).Library_Dir.Display_Name) &
+                          "lib" &
+                          Get_Name_String
+                            (Library_Projs.Table
+                               (Index).Library_Name) &
+                          "." &
+                          MLib.Tgt.Archive_Ext);
+
+                  else
+                     --  Add the -L switch
+
+                     Linker_Switches.Increment_Last;
+                     Linker_Switches.Table (Linker_Switches.Last) :=
+                       new String'("-L" &
+                         Get_Name_String
+                           (Library_Projs.Table (Index).
+                              Library_Dir.Display_Name));
+
+                     --  Add the -l switch
+
+                     Linker_Switches.Increment_Last;
+                     Linker_Switches.Table (Linker_Switches.Last) :=
+                       new String'("-l" &
+                         Get_Name_String
+                           (Library_Projs.Table (Index).
+                              Library_Name));
+                  end if;
+               end if;
+            end loop;
          end if;
 
-         Write_Str (" ]");
+         if Libraries_Present then
+
+            --  If Path_Option is not null, create the switch ("-Wl,-rpath,"
+            --  or equivalent) with all the non-static library dirs plus the
+            --  standard GNAT library dir. We do that only if Run_Path_Option
+            --  is True (not disabled by -R switch).
+
+            if Run_Path_Option and then Path_Option /= null then
+               declare
+                  Option  : String_Access;
+                  Length  : Natural := Path_Option'Length;
+                  Current : Natural;
+
+               begin
+                  if MLib.Separate_Run_Path_Options then
+
+                     --  We are going to create one switch of the form
+                     --  "-Wl,-rpath,dir_N" for each directory to
+                     --  consider.
+
+                     --  One switch for each library directory
+
+                     for Index in
+                       Library_Paths.First .. Library_Paths.Last
+                     loop
+                        Linker_Switches.Increment_Last;
+                        Linker_Switches.Table (Linker_Switches.Last) :=
+                          new String'
+                            (Path_Option.all &
+                             Library_Paths.Table (Index).all);
+                     end loop;
+
+                     --  One switch for the standard GNAT library dir
+
+                     Linker_Switches.Increment_Last;
+                     Linker_Switches.Table (Linker_Switches.Last) :=
+                       new String'(Path_Option.all & MLib.Utl.Lib_Directory);
+
+                  else
+                     --  We are going to create one switch of the form
+                     --  "-Wl,-rpath,dir_1:dir_2:dir_3"
+
+                     for Index in
+                       Library_Paths.First .. Library_Paths.Last
+                     loop
+                        --  Add the length of the library dir plus one for the
+                        --  directory separator.
+
+                        Length :=
+                          Length + Library_Paths.Table (Index)'Length + 1;
+                     end loop;
+
+                     --  Finally, add the length of the standard GNAT
+                     --  library dir.
+
+                     Length := Length + MLib.Utl.Lib_Directory'Length;
+                     Option := new String (1 .. Length);
+                     Option (1 .. Path_Option'Length) := Path_Option.all;
+                     Current := Path_Option'Length;
+
+                     --  Put each library dir followed by a dir
+                     --  separator.
+
+                     for Index in
+                       Library_Paths.First .. Library_Paths.Last
+                     loop
+                        Option
+                          (Current + 1 ..
+                             Current + Library_Paths.Table (Index)'Length) :=
+                          Library_Paths.Table (Index).all;
+                        Current :=
+                          Current + Library_Paths.Table (Index)'Length + 1;
+                        Option (Current) := Path_Separator;
+                     end loop;
+
+                     --  Finally put the standard GNAT library dir
+
+                     Option
+                       (Current + 1 ..
+                          Current + MLib.Utl.Lib_Directory'Length) :=
+                         MLib.Utl.Lib_Directory;
+
+                     --  And add the switch to the linker switches
+
+                     Linker_Switches.Increment_Last;
+                     Linker_Switches.Table (Linker_Switches.Last) := Option;
+                  end if;
+               end;
+            end if;
+         end if;
+
+         --  Put the object directories in ADA_OBJECTS_PATH
+
+         Prj.Env.Set_Ada_Paths
+           (Main_Project,
+            Project_Tree,
+            Including_Libraries => False,
+            Include_Path        => False);
+
+         --  Check for attributes Linker'Linker_Options in projects other than
+         --  the main project
+
+         declare
+            Linker_Options : constant String_List :=
+              Linker_Options_Switches
+                (Main_Project,
+                 Do_Fail => Make_Failed'Access,
+                 In_Tree => Project_Tree);
+         begin
+            for Option in Linker_Options'Range loop
+               Linker_Switches.Increment_Last;
+               Linker_Switches.Table (Linker_Switches.Last) :=
+                 Linker_Options (Option);
+            end loop;
+         end;
+      end if;
+
+      if CodePeer_Mode then
+         Linker_Switches.Increment_Last;
+         Linker_Switches.Table (Linker_Switches.Last) :=
+           new String'(CodePeer_Mode_String);
+      end if;
+
+      --  Add switch -M to gnatlink if builder switch --create-map-file
+      --  has been specified.
+
+      if Map_File /= null then
+         Linker_Switches.Increment_Last;
+         Linker_Switches.Table (Linker_Switches.Last) :=
+           new String'("-M" & Map_File.all);
+      end if;
+
+      declare
+         Args : Argument_List
+                  (Linker_Switches.First .. Linker_Switches.Last + 2);
+
+         Last_Arg : Integer := Linker_Switches.First - 1;
+         Skip     : Boolean := False;
+
+      begin
+         --  Get all the linker switches
+
+         for J in Linker_Switches.First .. Linker_Switches.Last loop
+            if Skip then
+               Skip := False;
+
+            elsif Non_Std_Executable
+              and then Linker_Switches.Table (J).all = "-o"
+            then
+               Skip := True;
+
+               --  Here we capture and duplicate the linker argument. We
+               --  need to do the duplication since the arguments will get
+               --  normalized. Not doing so will result in calling normalized
+               --  two times for the same set of arguments if gnatmake is
+               --  passed multiple mains. This can result in the wrong argument
+               --  being passed to the linker.
+
+            else
+               Last_Arg := Last_Arg + 1;
+               Args (Last_Arg) := new String'(Linker_Switches.Table (J).all);
+            end if;
+         end loop;
+
+         --  If need be, add the -o switch
+
+         if Non_Std_Executable then
+            Last_Arg := Last_Arg + 1;
+            Args (Last_Arg) := new String'("-o");
+            Last_Arg := Last_Arg + 1;
+            Args (Last_Arg) := new String'(Get_Name_String (Executable));
+         end if;
+
+         --  And invoke the linker
+
+         declare
+            Success : Boolean := False;
+         begin
+            Link (Main_ALI_File,
+                  Link_With_Shared_Libgcc.all &
+                  Args (Args'First .. Last_Arg),
+                  Success);
+
+            if Success then
+               Successful_Links.Increment_Last;
+               Successful_Links.Table (Successful_Links.Last) := Main_ALI_File;
+
+            elsif Osint.Number_Of_Files = 1
+              or else not Keep_Going
+            then
+               Make_Failed ("*** link failed.");
+
+            else
+               Set_Standard_Error;
+               Write_Line ("*** link failed");
+
+               if Commands_To_Stdout then
+                  Set_Standard_Output;
+               end if;
+
+               Failed_Links.Increment_Last;
+               Failed_Links.Table (Failed_Links.Last) := Main_ALI_File;
+            end if;
+         end;
+      end;
+
+      Linker_Switches.Set_Last (Linker_Switches_Last);
+   end Linking_Phase;
+
+   -------------------
+   -- Binding_Phase --
+   -------------------
+
+   procedure Binding_Phase
+     (Stand_Alone_Libraries : Boolean := False;
+      Main_ALI_File         : File_Name_Type)
+   is
+      Args : Argument_List (Binder_Switches.First .. Binder_Switches.Last + 2);
+      --  The arguments for the invocation of gnatbind
+
+      Last_Arg : Natural := Binder_Switches.Last;
+      --  Index of the last argument in Args
+
+      Shared_Libs : Boolean := False;
+      --  Set to True when there are shared library project files or
+      --  when gnatbind is invoked with -shared.
+
+      Proj : Project_List;
+
+      Mapping_Path : Path_Name_Type := No_Path;
+      --  The path name of the mapping file
+
+   begin
+      --  Check if there are shared libraries, so that gnatbind is called with
+      --  -shared. Check also if gnatbind is called with -shared, so that
+      --  gnatlink is called with -shared-libgcc ensuring that the shared
+      --  version of libgcc will be used.
+
+      if Main_Project /= No_Project
+        and then MLib.Tgt.Support_For_Libraries /= Prj.None
+      then
+         Proj := Project_Tree.Projects;
+         while Proj /= null loop
+            if Proj.Project.Library
+              and then Proj.Project.Library_Kind /= Static
+            then
+               Shared_Libs := True;
+               Bind_Shared := Shared_Switch'Access;
+               exit;
+            end if;
+
+            Proj := Proj.Next;
+         end loop;
+      end if;
+
+      --  Check now for switch -shared
+
+      if not Shared_Libs then
+         for J in Binder_Switches.First .. Last_Arg loop
+            if Binder_Switches.Table (J).all = "-shared" then
+               Shared_Libs := True;
+               exit;
+            end if;
+         end loop;
+      end if;
+
+      --  If shared libraries present, invoke gnatlink with
+      --  -shared-libgcc.
+
+      if Shared_Libs then
+         Link_With_Shared_Libgcc := Shared_Libgcc_Switch'Access;
+      end if;
+
+      --  Get all the binder switches
+
+      for J in Binder_Switches.First .. Last_Arg loop
+         Args (J) := Binder_Switches.Table (J);
+      end loop;
+
+      if Stand_Alone_Libraries then
+         Last_Arg := Last_Arg + 1;
+         Args (Last_Arg) := Force_Elab_Flags_String'Access;
+      end if;
+
+      if CodePeer_Mode then
+         Last_Arg := Last_Arg + 1;
+         Args (Last_Arg) := CodePeer_Mode_String'Access;
+      end if;
+
+      if Main_Project /= No_Project then
+
+         --  Put all the source directories in ADA_INCLUDE_PATH,
+         --  and all the object directories in ADA_OBJECTS_PATH,
+         --  except those of library projects.
+
+         Prj.Env.Set_Ada_Paths
+           (Project             => Main_Project,
+            In_Tree             => Project_Tree,
+            Including_Libraries => False,
+            Include_Path        => Use_Include_Path_File);
+
+         --  If switch -C was specified, create a binder mapping file
+
+         if Create_Mapping_File then
+            Mapping_Path := Create_Binder_Mapping_File (Project_Tree);
+
+            if Mapping_Path /= No_Path then
+               Last_Arg := Last_Arg + 1;
+               Args (Last_Arg) :=
+                 new String'("-F=" & Get_Name_String (Mapping_Path));
+            end if;
+         end if;
+      end if;
+
+      begin
+         Bind (Main_ALI_File,
+               Bind_Shared.all & Args (Args'First .. Last_Arg));
+
+      exception
+         when others =>
+
+            --  Delete the temporary mapping file if one was created
+
+            if Mapping_Path /= No_Path then
+               Delete_Temporary_File (Project_Tree.Shared, Mapping_Path);
+            end if;
+
+            --  And reraise the exception
+
+            raise;
+      end;
+
+      --  If -dn was not specified, delete the temporary mapping file
+      --  if one was created.
+
+      if Mapping_Path /= No_Path then
+         Delete_Temporary_File (Project_Tree.Shared, Mapping_Path);
+      end if;
+   end Binding_Phase;
+
+   -------------------
+   -- Library_Phase --
+   -------------------
+
+   procedure Library_Phase
+     (Stand_Alone_Libraries : in out Boolean;
+      Library_Rebuilt : in out Boolean)
+   is
+      Depth   : Natural;
+      Current : Natural;
+      Proj1   : Project_List;
+
+      procedure Add_To_Library_Projs (Proj : Project_Id);
+      --  Add project Project to table Library_Projs in
+      --  decreasing depth order.
+
+      --------------------------
+      -- Add_To_Library_Projs --
+      --------------------------
+
+      procedure Add_To_Library_Projs (Proj : Project_Id) is
+         Prj : Project_Id;
+
+      begin
+         Library_Projs.Increment_Last;
+         Depth := Proj.Depth;
+
+         --  Put the projects in decreasing depth order, so that
+         --  if libA depends on libB, libB is first in order.
+
+         Current := Library_Projs.Last;
+         while Current > 1 loop
+            Prj := Library_Projs.Table (Current - 1);
+            exit when Prj.Depth >= Depth;
+            Library_Projs.Table (Current) := Prj;
+            Current := Current - 1;
+         end loop;
+
+         Library_Projs.Table (Current) := Proj;
+      end Add_To_Library_Projs;
+
+   begin
+      Library_Projs.Init;
+
+      --  Put in Library_Projs table all library project file
+      --  ids when the library need to be rebuilt.
+
+      Proj1 := Project_Tree.Projects;
+      while Proj1 /= null loop
+         if Proj1.Project.Extended_By = No_Project then
+            if Proj1.Project.Standalone_Library then
+               Stand_Alone_Libraries := True;
+            end if;
+
+            if Proj1.Project.Library then
+               MLib.Prj.Check_Library
+                 (Proj1.Project, Project_Tree);
+            end if;
+
+            if Proj1.Project.Need_To_Build_Lib then
+               Add_To_Library_Projs (Proj1.Project);
+            end if;
+         end if;
+
+         Proj1 := Proj1.Next;
+      end loop;
+
+      --  Check if importing libraries should be regenerated
+      --  because at least an imported library will be
+      --  regenerated or is more recent.
+
+      Proj1 := Project_Tree.Projects;
+      while Proj1 /= null loop
+         if Proj1.Project.Library
+           and then Proj1.Project.Extended_By = No_Project
+           and then Proj1.Project.Library_Kind /= Static
+           and then not Proj1.Project.Need_To_Build_Lib
+           and then not Proj1.Project.Externally_Built
+         then
+            declare
+               List    : Project_List;
+               Proj2   : Project_Id;
+               Rebuild : Boolean := False;
+
+               Lib_Timestamp1 : constant Time_Stamp_Type :=
+                                  Proj1.Project.Library_TS;
+
+            begin
+               List := Proj1.Project.All_Imported_Projects;
+               while List /= null loop
+                  Proj2 := List.Project;
+
+                  if Proj2.Library then
+                     if Proj2.Need_To_Build_Lib
+                       or else
+                         (Lib_Timestamp1 < Proj2.Library_TS)
+                     then
+                        Rebuild := True;
+                        exit;
+                     end if;
+                  end if;
+
+                  List := List.Next;
+               end loop;
+
+               if Rebuild then
+                  Proj1.Project.Need_To_Build_Lib := True;
+                  Add_To_Library_Projs (Proj1.Project);
+               end if;
+            end;
+         end if;
+
+         Proj1 := Proj1.Next;
+      end loop;
+
+      --  Reset the flags Need_To_Build_Lib for the next main, to avoid
+      --  rebuilding libraries uselessly.
+
+      Proj1 := Project_Tree.Projects;
+      while Proj1 /= null loop
+         Proj1.Project.Need_To_Build_Lib := False;
+         Proj1 := Proj1.Next;
+      end loop;
+
+      --  Build the libraries, if any need to be built
+
+      for J in 1 .. Library_Projs.Last loop
+         Library_Rebuilt := True;
+
+         --  If a library is rebuilt, then executables are obsolete
+
+         Executable_Obsolete := True;
+
+         MLib.Prj.Build_Library
+           (For_Project   => Library_Projs.Table (J),
+            In_Tree       => Project_Tree,
+            Gnatbind      => Gnatbind.all,
+            Gnatbind_Path => Gnatbind_Path,
+            Gcc           => Gcc.all,
+            Gcc_Path      => Gcc_Path);
+      end loop;
+   end Library_Phase;
+
+   -----------------------
+   -- Compilation_Phase --
+   -----------------------
+
+   procedure Compilation_Phase
+     (Main_Source_File           : File_Name_Type;
+      Current_Main_Index         : Int := 0;
+      Total_Compilation_Failures : in out Natural;
+      Stand_Alone_Libraries      : in out Boolean;
+      Executable                 : File_Name_Type := No_File;
+      Is_Last_Main               : Boolean;
+      Stop_Compile               : out Boolean)
+   is
+      Args                : Argument_List (1 .. Gcc_Switches.Last);
+
+      First_Compiled_File : File_Name_Type;
+      Youngest_Obj_File   : File_Name_Type;
+      Youngest_Obj_Stamp  : Time_Stamp_Type;
+
+      Is_Main_Unit : Boolean;
+      --  Set True by Compile_Sources if Main_Source_File can be a main unit
+
+      Compilation_Failures : Natural;
+
+      Executable_Stamp : Time_Stamp_Type;
+
+      Library_Rebuilt : Boolean := False;
+
+   begin
+      Stop_Compile := False;
+
+      for J in 1 .. Gcc_Switches.Last loop
+         Args (J) := Gcc_Switches.Table (J);
+      end loop;
+
+      --  Now we invoke Compile_Sources for the current main
+
+      Compile_Sources
+        (Main_Source           => Main_Source_File,
+         Args                  => Args,
+         First_Compiled_File   => First_Compiled_File,
+         Most_Recent_Obj_File  => Youngest_Obj_File,
+         Most_Recent_Obj_Stamp => Youngest_Obj_Stamp,
+         Main_Unit             => Is_Main_Unit,
+         Main_Index            => Current_Main_Index,
+         Compilation_Failures  => Compilation_Failures,
+         Check_Readonly_Files  => Check_Readonly_Files,
+         Do_Not_Execute        => Do_Not_Execute,
+         Force_Compilations    => Force_Compilations,
+         In_Place_Mode         => In_Place_Mode,
+         Keep_Going            => Keep_Going,
+         Initialize_ALI_Data   => True,
+         Max_Process           => Saved_Maximum_Processes);
+
+      if Verbose_Mode then
+         Write_Str ("End of compilation");
          Write_Eol;
       end if;
 
-      Q_Front := Q_Front + 1;
-      Source_File  := File;
-      Source_Unit  := Unit;
-      Source_Index := Index;
-   end Extract_From_Q;
+      Total_Compilation_Failures :=
+        Total_Compilation_Failures + Compilation_Failures;
+
+      if Total_Compilation_Failures /= 0 then
+         Stop_Compile := True;
+         return;
+      end if;
+
+      --  Regenerate libraries, if there are any and if object files
+      --  have been regenerated.
+
+      if Main_Project /= No_Project
+        and then MLib.Tgt.Support_For_Libraries /= Prj.None
+        and then (Do_Bind_Step
+                   or Unique_Compile_All_Projects
+                   or not Compile_Only)
+        and then (Do_Link_Step or Is_Last_Main)
+      then
+         Library_Phase
+           (Stand_Alone_Libraries => Stand_Alone_Libraries,
+            Library_Rebuilt       => Library_Rebuilt);
+      end if;
+
+      if List_Dependencies then
+         if First_Compiled_File /= No_File then
+            Inform
+              (First_Compiled_File,
+               "must be recompiled. Can't generate dependence list.");
+         else
+            List_Depend;
+         end if;
+
+      elsif First_Compiled_File = No_File
+        and then not Do_Bind_Step
+        and then not Quiet_Output
+        and then not Library_Rebuilt
+        and then Osint.Number_Of_Files = 1
+      then
+         Inform (Msg => "objects up to date.");
+         Stop_Compile := True;
+         return;
+
+      elsif Do_Not_Execute and then First_Compiled_File /= No_File then
+         Write_Name (First_Compiled_File);
+         Write_Eol;
+      end if;
+
+      --  Stop after compile step if any of:
+
+      --    1) -n (Do_Not_Execute) specified
+
+      --    2) -M (List_Dependencies) specified (also sets
+      --       Do_Not_Execute above, so this is probably superfluous).
+
+      --    3) -c (Compile_Only) specified, but not -b (Bind_Only)
+
+      --    4) Made unit cannot be a main unit
+
+      if ((Do_Not_Execute
+            or List_Dependencies
+            or not Do_Bind_Step
+            or not Is_Main_Unit)
+          and not No_Main_Subprogram
+          and not Build_Bind_And_Link_Full_Project)
+        or Unique_Compile
+      then
+         Stop_Compile := True;
+         return;
+      end if;
+
+      --  If the objects were up-to-date check if the executable file is also
+      --  up-to-date. For now always bind and link on the JVM since there is
+      --  currently no simple way to check whether objects are up to date wrt
+      --  the executable. Same in CodePeer mode where there is no executable.
+
+      if Targparm.VM_Target /= JVM_Target
+        and then not CodePeer_Mode
+        and then First_Compiled_File = No_File
+      then
+         Executable_Stamp := File_Stamp (Executable);
+
+         if not Executable_Obsolete then
+            Executable_Obsolete := Youngest_Obj_Stamp > Executable_Stamp;
+         end if;
+
+         if not Executable_Obsolete then
+            for Index in reverse 1 .. Dependencies.Last loop
+               if Is_In_Obsoleted (Dependencies.Table (Index).Depends_On) then
+                  Enter_Into_Obsoleted (Dependencies.Table (Index).This);
+               end if;
+            end loop;
+
+            Executable_Obsolete := Is_In_Obsoleted (Main_Source_File);
+            Dependencies.Init;
+         end if;
+
+         if not Executable_Obsolete then
+
+            --  If no Ada object files obsolete the executable, check
+            --  for younger or missing linker files.
+
+            Check_Linker_Options
+              (Executable_Stamp,
+               Youngest_Obj_File,
+               Youngest_Obj_Stamp);
+
+            Executable_Obsolete := Youngest_Obj_File /= No_File;
+         end if;
+
+         --  Check if any library file is more recent than the
+         --  executable: there may be an externally built library
+         --  file that has been modified.
+
+         if not Executable_Obsolete and then Main_Project /= No_Project then
+            declare
+               Proj1 : Project_List;
+
+            begin
+               Proj1 := Project_Tree.Projects;
+               while Proj1 /= null loop
+                  if Proj1.Project.Library
+                    and then Proj1.Project.Library_TS > Executable_Stamp
+                  then
+                     Executable_Obsolete := True;
+                     Youngest_Obj_Stamp := Proj1.Project.Library_TS;
+                     Name_Len := 0;
+                     Add_Str_To_Name_Buffer ("library ");
+                     Add_Str_To_Name_Buffer
+                       (Get_Name_String (Proj1.Project.Library_Name));
+                     Youngest_Obj_File := Name_Find;
+                     exit;
+                  end if;
+
+                  Proj1 := Proj1.Next;
+               end loop;
+            end;
+         end if;
+
+         --  Return if the executable is up to date and otherwise
+         --  motivate the relink/rebind.
+
+         if not Executable_Obsolete then
+            if not Quiet_Output then
+               Inform (Executable, "up to date.");
+            end if;
+
+            Stop_Compile := True;
+            return;
+         end if;
+
+         if Executable_Stamp (1) = ' ' then
+            if not No_Main_Subprogram then
+               Verbose_Msg (Executable, "missing.", Prefix => "  ");
+            end if;
+
+         elsif Youngest_Obj_Stamp (1) = ' ' then
+            Verbose_Msg
+              (Youngest_Obj_File, "missing.",  Prefix => "  ");
+
+         elsif Youngest_Obj_Stamp > Executable_Stamp then
+            Verbose_Msg
+              (Youngest_Obj_File,
+               "(" & String (Youngest_Obj_Stamp) & ") newer than",
+               Executable,
+               "(" & String (Executable_Stamp) & ")");
+
+         else
+            Verbose_Msg
+              (Executable, "needs to be rebuilt", Prefix => "  ");
+
+         end if;
+      end if;
+   end Compilation_Phase;
+
+   ----------------------------------------
+   -- Resolve_Relative_Names_In_Switches --
+   ----------------------------------------
+
+   procedure Resolve_Relative_Names_In_Switches (Current_Work_Dir : String) is
+   begin
+      --  If a relative path output file has been specified, we add the
+      --  exec directory.
+
+      for J in reverse 1 .. Saved_Linker_Switches.Last - 1 loop
+         if Saved_Linker_Switches.Table (J).all = Output_Flag.all then
+            declare
+               Exec_File_Name : constant String :=
+                                  Saved_Linker_Switches.Table (J + 1).all;
+
+            begin
+               if not Is_Absolute_Path (Exec_File_Name) then
+                  Get_Name_String (Main_Project.Exec_Directory.Display_Name);
+                  Add_Str_To_Name_Buffer (Exec_File_Name);
+                  Saved_Linker_Switches.Table (J + 1) :=
+                    new String'(Name_Buffer (1 .. Name_Len));
+               end if;
+            end;
+
+            exit;
+         end if;
+      end loop;
+
+      --  If we are using a project file, for relative paths we add the
+      --  current working directory for any relative path on the command
+      --  line and the project directory, for any relative path in the
+      --  project file.
+
+      declare
+         Dir_Path : constant String :=
+                      Get_Name_String (Main_Project.Directory.Display_Name);
+      begin
+         for J in 1 .. Binder_Switches.Last loop
+            Test_If_Relative_Path
+              (Binder_Switches.Table (J),
+               Do_Fail => Make_Failed'Access,
+               Parent => Dir_Path, Including_L_Switch => False);
+         end loop;
+
+         for J in 1 .. Saved_Binder_Switches.Last loop
+            Test_If_Relative_Path
+              (Saved_Binder_Switches.Table (J),
+               Do_Fail            => Make_Failed'Access,
+               Parent             => Current_Work_Dir,
+               Including_L_Switch => False);
+         end loop;
+
+         for J in 1 .. Linker_Switches.Last loop
+            Test_If_Relative_Path
+              (Linker_Switches.Table (J),
+               Parent  => Dir_Path,
+               Do_Fail => Make_Failed'Access);
+         end loop;
+
+         for J in 1 .. Saved_Linker_Switches.Last loop
+            Test_If_Relative_Path
+              (Saved_Linker_Switches.Table (J),
+               Do_Fail => Make_Failed'Access,
+               Parent  => Current_Work_Dir);
+         end loop;
+
+         for J in 1 .. Gcc_Switches.Last loop
+            Test_If_Relative_Path
+              (Gcc_Switches.Table (J),
+               Do_Fail              => Make_Failed'Access,
+               Parent               => Dir_Path,
+               Including_Non_Switch => False);
+         end loop;
+
+         for J in 1 .. Saved_Gcc_Switches.Last loop
+            Test_If_Relative_Path
+              (Saved_Gcc_Switches.Table (J),
+               Parent               => Current_Work_Dir,
+               Do_Fail              => Make_Failed'Access,
+               Including_Non_Switch => False);
+         end loop;
+      end;
+   end Resolve_Relative_Names_In_Switches;
+
+   -----------------------------------
+   -- Queue_Library_Project_Sources --
+   -----------------------------------
+
+   procedure Queue_Library_Project_Sources is
+   begin
+      if not Unique_Compile
+        and then MLib.Tgt.Support_For_Libraries /= Prj.None
+      then
+         declare
+            Proj : Project_List;
+
+         begin
+            Proj := Project_Tree.Projects;
+            while Proj /= null loop
+               if Proj.Project.Library then
+                  Proj.Project.Need_To_Build_Lib :=
+                    not MLib.Tgt.Library_Exists_For
+                          (Proj.Project, Project_Tree)
+                    and then not Proj.Project.Externally_Built;
+
+                  if Proj.Project.Need_To_Build_Lib then
+
+                     --  If there is no object directory, then it will be
+                     --  impossible to build the library, so fail immediately.
+
+                     if Proj.Project.Object_Directory =
+                       No_Path_Information
+                     then
+                        Make_Failed
+                          ("no object files to build library for"
+                           & " project """
+                           & Get_Name_String (Proj.Project.Name)
+                           & """");
+                        Proj.Project.Need_To_Build_Lib := False;
+
+                     else
+                        if Verbose_Mode then
+                           Write_Str
+                             ("Library file does not exist for "
+                              & "project """);
+                           Write_Str
+                             (Get_Name_String (Proj.Project.Name));
+                           Write_Line ("""");
+                        end if;
+
+                        Insert_Project_Sources
+                          (The_Project  => Proj.Project,
+                           All_Projects => False,
+                           Into_Q       => True);
+                     end if;
+                  end if;
+               end if;
+
+               Proj := Proj.Next;
+            end loop;
+         end;
+      end if;
+   end Queue_Library_Project_Sources;
+
+   ------------------------
+   -- Compute_Executable --
+   ------------------------
+
+   procedure Compute_Executable
+     (Main_Source_File   : File_Name_Type;
+      Executable         : out File_Name_Type;
+      Non_Std_Executable : out Boolean)
+   is
+   begin
+      Executable          := No_File;
+      Non_Std_Executable  :=
+        Targparm.Executable_Extension_On_Target /= No_Name;
+
+      --  Look inside the linker switches to see if the name of the final
+      --  executable program was specified.
+
+      for J in reverse Linker_Switches.First .. Linker_Switches.Last loop
+         if Linker_Switches.Table (J).all = Output_Flag.all then
+            pragma Assert (J < Linker_Switches.Last);
+
+            --  We cannot specify a single executable for several main
+            --  subprograms
+
+            if Osint.Number_Of_Files > 1 then
+               Fail ("cannot specify a single executable for several mains");
+            end if;
+
+            Name_Len := 0;
+            Add_Str_To_Name_Buffer (Linker_Switches.Table (J + 1).all);
+            Executable := Name_Enter;
+
+            Verbose_Msg (Executable, "final executable");
+         end if;
+      end loop;
+
+      --  If the name of the final executable program was not specified then
+      --  construct it from the main input file.
+
+      if Executable = No_File then
+         if Main_Project = No_Project then
+            Executable := Executable_Name (Strip_Suffix (Main_Source_File));
+
+         else
+            --  If we are using a project file, we attempt to remove the body
+            --  (or spec) termination of the main subprogram. We find it the
+            --  naming scheme of the project file. This avoids generating an
+            --  executable "main.2" for a main subprogram "main.2.ada", when
+            --  the body termination is ".2.ada".
+
+            Executable :=
+              Prj.Util.Executable_Of
+                (Main_Project, Project_Tree.Shared,
+                 Main_Source_File, Main_Index);
+         end if;
+      end if;
+
+      if Main_Project /= No_Project
+        and then Main_Project.Exec_Directory /= No_Path_Information
+      then
+         declare
+            Exec_File_Name : constant String := Get_Name_String (Executable);
+         begin
+            if not Is_Absolute_Path (Exec_File_Name) then
+               Get_Name_String (Main_Project.Exec_Directory.Display_Name);
+               Add_Str_To_Name_Buffer (Exec_File_Name);
+               Executable := Name_Find;
+            end if;
+
+            Non_Std_Executable := True;
+         end;
+      end if;
+   end Compute_Executable;
+
+   -------------------------------
+   -- Compute_Switches_For_Main --
+   -------------------------------
+
+   procedure Compute_Switches_For_Main
+     (Main_Source_File  : in out File_Name_Type;
+      Root_Environment  : in out Prj.Tree.Environment;
+      Compute_Builder   : Boolean;
+      Current_Work_Dir  : String)
+   is
+      function Add_Global_Switches
+        (Switch      : String;
+         For_Lang    : Name_Id;
+         For_Builder : Boolean;
+         Has_Global_Compilation_Switches : Boolean) return Boolean;
+      --  Handles builder and global compilation switches, as read from the
+      --  project file.
+
+      function Add_Global_Switches
+        (Switch      : String;
+         For_Lang    : Name_Id;
+         For_Builder : Boolean;
+         Has_Global_Compilation_Switches : Boolean) return Boolean
+      is
+         pragma Unreferenced (For_Lang);
+      begin
+         if For_Builder then
+            Program_Args := None;
+            Switch_May_Be_Passed_To_The_Compiler :=
+              not Has_Global_Compilation_Switches;
+            Scan_Make_Arg (Root_Environment, Switch, And_Save => False);
+
+            return Gnatmake_Switch_Found
+              or else Switch_May_Be_Passed_To_The_Compiler;
+         else
+            Add_Switch (Switch, Compiler, And_Save => False);
+            return True;
+         end if;
+      end Add_Global_Switches;
+
+      procedure Do_Compute_Builder_Switches
+         is new Makeutl.Compute_Builder_Switches (Add_Global_Switches);
+   begin
+      if Main_Project /= No_Project then
+         declare
+            Main_Source_File_Name : constant String :=
+              Get_Name_String (Main_Source_File);
+
+            Main_Unit_File_Name   : constant String :=
+              Prj.Env.File_Name_Of_Library_Unit_Body
+                (Name              => Main_Source_File_Name,
+                 Project           => Main_Project,
+                 In_Tree           => Project_Tree,
+                 Main_Project_Only => not Unique_Compile);
+
+            The_Packages : constant Package_Id := Main_Project.Decl.Packages;
+
+            Binder_Package : constant Prj.Package_Id :=
+                               Prj.Util.Value_Of
+                                 (Name        => Name_Binder,
+                                  In_Packages => The_Packages,
+                                  Shared      => Project_Tree.Shared);
+
+            Linker_Package : constant Prj.Package_Id :=
+                               Prj.Util.Value_Of
+                                 (Name        => Name_Linker,
+                                  In_Packages => The_Packages,
+                                  Shared      => Project_Tree.Shared);
+
+         begin
+            --  We fail if we cannot find the main source file
+
+            if Main_Unit_File_Name = "" then
+               Make_Failed ('"' & Main_Source_File_Name
+                            & """ is not a unit of project "
+                            & Project_File_Name.all & ".");
+            end if;
+
+            --  Remove any directory information from the main source file
+            --  file name.
+
+            declare
+               Pos : Natural := Main_Unit_File_Name'Last;
+
+            begin
+               loop
+                  exit when Pos < Main_Unit_File_Name'First
+                    or else Main_Unit_File_Name (Pos) = Directory_Separator;
+                  Pos := Pos - 1;
+               end loop;
+
+               Name_Len := Main_Unit_File_Name'Last - Pos;
+
+               Name_Buffer (1 .. Name_Len) :=
+                 Main_Unit_File_Name (Pos + 1 .. Main_Unit_File_Name'Last);
+
+               Main_Source_File := Name_Find;
+
+               --  We only output the main source file if there is only one
+
+               if Verbose_Mode and then Osint.Number_Of_Files = 1 then
+                  Write_Str ("Main source file: """);
+                  Write_Str (Main_Unit_File_Name
+                             (Pos + 1 .. Main_Unit_File_Name'Last));
+                  Write_Line (""".");
+               end if;
+            end;
+
+            if Compute_Builder then
+               Do_Compute_Builder_Switches
+                 (Project_Tree     => Project_Tree,
+                  Root_Environment => Root_Environment,
+                  Main_Project     => Main_Project,
+                  Only_For_Lang    => Name_Ada);
+
+               Resolve_Relative_Names_In_Switches
+                 (Current_Work_Dir => Current_Work_Dir);
+
+               --  Record current last switch index for tables Binder_Switches
+               --  and Linker_Switches, so that these tables may be reset
+               --  before each main, before adding switches from the project
+               --  file and from the command line.
+
+               Last_Binder_Switch := Binder_Switches.Last;
+               Last_Linker_Switch := Linker_Switches.Last;
+
+            else
+               --  Reset the tables Binder_Switches and Linker_Switches
+
+               Binder_Switches.Set_Last (Last_Binder_Switch);
+               Linker_Switches.Set_Last (Last_Linker_Switch);
+            end if;
+
+            --  We now deal with the binder and linker switches. If no project
+            --  file is used, there is nothing to do because the binder and
+            --  linker switches are the same for all mains.
+
+            --  Add binder switches from the project file for the first main
+
+            if Do_Bind_Step and then Binder_Package /= No_Package then
+               if Verbose_Mode then
+                  Write_Str ("Adding binder switches for """);
+                  Write_Str (Main_Unit_File_Name);
+                  Write_Line (""".");
+               end if;
+
+               Add_Switches
+                 (Env               => Root_Environment,
+                  File_Name         => Main_Unit_File_Name,
+                  The_Package       => Binder_Package,
+                  Program           => Binder);
+            end if;
+
+            --  Add linker switches from the project file for the first main
+
+            if Do_Link_Step and then Linker_Package /= No_Package then
+               if Verbose_Mode then
+                  Write_Str ("Adding linker switches for""");
+                  Write_Str (Main_Unit_File_Name);
+                  Write_Line (""".");
+               end if;
+
+               Add_Switches
+                 (Env               => Root_Environment,
+                  File_Name         => Main_Unit_File_Name,
+                  The_Package       => Linker_Package,
+                  Program           => Linker);
+            end if;
+
+            --  As we are using a project file, for relative paths we add the
+            --  current working directory for any relative path on the command
+            --  line and the project directory, for any relative path in the
+            --  project file.
+
+            declare
+               Dir_Path : constant String :=
+                 Get_Name_String (Main_Project.Directory.Display_Name);
+            begin
+               for J in Last_Binder_Switch + 1 .. Binder_Switches.Last loop
+                  Test_If_Relative_Path
+                    (Binder_Switches.Table (J),
+                     Do_Fail => Make_Failed'Access,
+                     Parent  => Dir_Path, Including_L_Switch => False);
+               end loop;
+
+               for J in Last_Linker_Switch + 1 .. Linker_Switches.Last loop
+                  Test_If_Relative_Path
+                    (Linker_Switches.Table (J),
+                     Parent  => Dir_Path,
+                     Do_Fail => Make_Failed'Access);
+               end loop;
+            end;
+         end;
+
+      else
+         if not Compute_Builder then
+
+            --  Reset the tables Binder_Switches and Linker_Switches
+
+            Binder_Switches.Set_Last (Last_Binder_Switch);
+            Linker_Switches.Set_Last (Last_Linker_Switch);
+         end if;
+      end if;
+
+      Check_Steps;
+
+      if Compute_Builder then
+         Display_Commands (not Quiet_Output);
+      end if;
+
+      --  We now put in the Binder_Switches and Linker_Switches tables, the
+      --  binder and linker switches of the command line that have been put in
+      --  the Saved_ tables. If a project file was used, then the command line
+      --  switches will follow the project file switches.
+
+      for J in 1 .. Saved_Binder_Switches.Last loop
+         Add_Switch
+           (Saved_Binder_Switches.Table (J),
+            Binder,
+            And_Save => False);
+      end loop;
+
+      for J in 1 .. Saved_Linker_Switches.Last loop
+         Add_Switch
+           (Saved_Linker_Switches.Table (J),
+            Linker,
+            And_Save => False);
+      end loop;
+   end Compute_Switches_For_Main;
 
    --------------
    -- Gnatmake --
@@ -4127,12 +5429,7 @@ package body Make is
       Main_Source_File : File_Name_Type;
       --  The source file containing the main compilation unit
 
-      Compilation_Failures : Natural;
-
       Total_Compilation_Failures : Natural := 0;
-
-      Is_Main_Unit : Boolean;
-      --  Set True by Compile_Sources if Main_Source_File can be a main unit
 
       Main_ALI_File : File_Name_Type;
       --  The ali file corresponding to Main_Source_File
@@ -4152,14 +5449,17 @@ package body Make is
       Current_Main_Index : Int := 0;
       --  If not zero, the index of the current main unit in its source file
 
+      Is_First_Main : Boolean;
+      --  Whether we are processing the first main
+
       Stand_Alone_Libraries : Boolean := False;
       --  Set to True when there are Stand-Alone Libraries, so that gnatbind
       --  is invoked with the -F switch to force checking of elaboration flags.
 
-      Mapping_Path : Path_Name_Type := No_Path;
-      --  The path name of the mapping file
-
       Project_Node_Tree : Project_Node_Tree_Ref;
+      Root_Environment  : Prj.Tree.Environment;
+
+      Stop_Compile : Boolean;
 
       Discard : Boolean;
       pragma Warnings (Off, Discard);
@@ -4168,330 +5468,75 @@ package body Make is
       --  Check that the main subprograms do exist and that they all
       --  belong to the same project file.
 
-      procedure Create_Binder_Mapping_File
-        (Args : in out Argument_List; Last_Arg : in out Natural);
-      --  Create a binder mapping file and add the necessary switch
-
       -----------------
       -- Check_Mains --
       -----------------
 
       procedure Check_Mains is
          Real_Main_Project : Project_Id := No_Project;
-         --  The project of the first main
-
-         Proj              : Project_Id := No_Project;
-         --  The project of the current main
-
-         Real_Path         : String_Access;
-
+         Info              : Main_Info;
+         Proj              : Project_Id;
       begin
-         Mains.Reset;
+         if Mains.Number_Of_Mains (Project_Tree) = 0
+           and then not Unique_Compile
+         then
+            Mains.Fill_From_Project (Main_Project, Project_Tree);
+         end if;
 
-         --  Check each main
+         Mains.Complete_Mains
+           (Root_Environment.Flags, Main_Project, Project_Tree);
 
-         loop
-            declare
-               Main      : constant String := Mains.Next_Main;
-               --  The name specified on the command line may include directory
-               --  information.
+         --  If we have multiple mains on the command line, they need not
+         --  belong to the root project, but they must all belong to the same
+         --  project.
 
-               File_Name : constant String := Base_Name (Main);
-               --  The simple file name of the current main
+         if not Unique_Compile then
+            Mains.Reset;
+            loop
+               Info := Mains.Next_Main;
+               exit when Info = No_Main_Info;
 
-               Lang : Language_Ptr;
+               Proj := Ultimate_Extending_Project_Of (Info.Project);
 
-            begin
-               exit when Main = "";
-
-               --  Get the project of the current main
-
-               Proj := Prj.Env.Project_Of
-                         (File_Name, Main_Project, Project_Tree);
-
-               --  Fail if the current main is not a source of a project
-
-               if Proj = No_Project then
+               if Real_Main_Project = No_Project then
+                  Real_Main_Project := Proj;
+               elsif Real_Main_Project /= Proj then
                   Make_Failed
-                    ("""" & Main & """ is not a source of any project");
-
-               else
-                  --  If there is directory information, check that the source
-                  --  exists and, if it does, that the path is the actual path
-                  --  of a source of a project.
-
-                  if Main /= File_Name then
-                     Lang := Get_Language_From_Name (Main_Project, "ada");
-
-                     Real_Path :=
-                       Locate_Regular_File
-                         (Main & Get_Name_String
-                              (Lang.Config.Naming_Data.Body_Suffix),
-                          "");
-                     if Real_Path = null then
-                        Real_Path :=
-                          Locate_Regular_File
-                            (Main & Get_Name_String
-                                 (Lang.Config.Naming_Data.Spec_Suffix),
-                             "");
-                     end if;
-
-                     if Real_Path = null then
-                        Real_Path := Locate_Regular_File (Main, "");
-                     end if;
-
-                     --  Fail if the file cannot be found
-
-                     if Real_Path = null then
-                        Make_Failed ("file """ & Main & """ does not exist");
-                     end if;
-
-                     declare
-                        Project_Path : constant String :=
-                                         Prj.Env.File_Name_Of_Library_Unit_Body
-                                           (Name              => File_Name,
-                                            Project           => Main_Project,
-                                            In_Tree           => Project_Tree,
-                                            Main_Project_Only => False,
-                                            Full_Path         => True);
-                        Normed_Path  : constant String :=
-                                         Normalize_Pathname
-                                           (Real_Path.all,
-                                            Case_Sensitive => False);
-                        Proj_Path    : constant String :=
-                                         Normalize_Pathname
-                                           (Project_Path,
-                                            Case_Sensitive => False);
-
-                     begin
-                        Free (Real_Path);
-
-                        --  Fail if it is not the correct path
-
-                        if Normed_Path /= Proj_Path then
-                           if Verbose_Mode then
-                              Set_Standard_Error;
-                              Write_Str (Normed_Path);
-                              Write_Str (" /= ");
-                              Write_Line (Proj_Path);
-                           end if;
-
-                           Make_Failed
-                             ("""" & Main &
-                              """ is not a source of any project");
-                        end if;
-                     end;
-                  end if;
-
-                  if not Unique_Compile then
-
-                     --  Record the project, if it is the first main
-
-                     if Real_Main_Project = No_Project then
-                        Real_Main_Project := Proj;
-
-                     elsif Proj /= Real_Main_Project then
-
-                        --  Fail, as the current main is not a source of the
-                        --  same project as the first main.
-
-                        Make_Failed
-                          ("""" & Main &
-                           """ is not a source of project " &
-                           Get_Name_String (Real_Main_Project.Name));
-                     end if;
-                  end if;
+                    ("""" & Get_Name_String (Info.File) &
+                     """ is not a source of project " &
+                     Get_Name_String (Real_Main_Project.Name));
                end if;
-
-               --  If -u and -U are not used, we may have mains that are
-               --  sources of a project that is not the one specified with
-               --  switch -P.
-
-               if not Unique_Compile then
-                  Main_Project := Real_Main_Project;
-               end if;
-            end;
-         end loop;
-      end Check_Mains;
-
-      --------------------------------
-      -- Create_Binder_Mapping_File --
-      --------------------------------
-
-      procedure Create_Binder_Mapping_File
-        (Args : in out Argument_List; Last_Arg : in out Natural)
-      is
-         Mapping_FD : File_Descriptor := Invalid_FD;
-         --  A File Descriptor for an eventual mapping file
-
-         ALI_Unit : Unit_Name_Type := No_Unit_Name;
-         --  The unit name of an ALI file
-
-         ALI_Name : File_Name_Type := No_File;
-         --  The file name of the ALI file
-
-         ALI_Project : Project_Id := No_Project;
-         --  The project of the ALI file
-
-         Bytes : Integer;
-         OK    : Boolean := True;
-         Unit  : Unit_Index;
-
-         Status : Boolean;
-         --  For call to Close
-
-      begin
-         Tempdir.Create_Temp_File (Mapping_FD, Mapping_Path);
-         Record_Temp_File (Project_Tree, Mapping_Path);
-
-         if Mapping_FD /= Invalid_FD then
-
-            --  Traverse all units
-
-            Unit := Units_Htable.Get_First (Project_Tree.Units_HT);
-
-            while Unit /= No_Unit_Index loop
-               if Unit.Name /= No_Name then
-
-                  --  If there is a body, put it in the mapping
-
-                  if Unit.File_Names (Impl) /= No_Source
-                    and then Unit.File_Names (Impl).Project /=
-                    No_Project
-                  then
-                     Get_Name_String (Unit.Name);
-                     Add_Str_To_Name_Buffer ("%b");
-                     ALI_Unit := Name_Find;
-                     ALI_Name :=
-                       Lib_File_Name
-                         (Unit.File_Names (Impl).Display_File);
-                     ALI_Project := Unit.File_Names (Impl).Project;
-
-                     --  Otherwise, if there is a spec, put it in the mapping
-
-                  elsif Unit.File_Names (Spec) /= No_Source
-                    and then Unit.File_Names (Spec).Project /= No_Project
-                  then
-                     Get_Name_String (Unit.Name);
-                     Add_Str_To_Name_Buffer ("%s");
-                     ALI_Unit := Name_Find;
-                     ALI_Name :=
-                       Lib_File_Name
-                         (Unit.File_Names (Spec).Display_File);
-                     ALI_Project := Unit.File_Names (Spec).Project;
-
-                  else
-                     ALI_Name := No_File;
-                  end if;
-
-                  --  If we have something to put in the mapping then do it
-                  --  now. However, if the project is extended, we don't put
-                  --  anything in the mapping file, because we don't know where
-                  --  the ALI file is: it might be in the extended project
-                  --  object directory as well as in the extending project
-                  --  object directory.
-
-                  if ALI_Name /= No_File
-                    and then ALI_Project.Extended_By = No_Project
-                    and then ALI_Project.Extends = No_Project
-                  then
-                     --  First check if the ALI file exists. If it does not,
-                     --  do not put the unit in the mapping file.
-
-                     declare
-                        ALI : constant String := Get_Name_String (ALI_Name);
-
-                     begin
-                        --  For library projects, use the library directory,
-                        --  for other projects, use the object directory.
-
-                        if ALI_Project.Library then
-                           Get_Name_String (ALI_Project.Library_Dir.Name);
-                        else
-                           Get_Name_String
-                             (ALI_Project.Object_Directory.Name);
-                        end if;
-
-                        if not
-                          Is_Directory_Separator (Name_Buffer (Name_Len))
-                        then
-                           Add_Char_To_Name_Buffer (Directory_Separator);
-                        end if;
-
-                        Add_Str_To_Name_Buffer (ALI);
-                        Add_Char_To_Name_Buffer (ASCII.LF);
-
-                        declare
-                           ALI_Path_Name : constant String :=
-                                             Name_Buffer (1 .. Name_Len);
-
-                        begin
-                           if Is_Regular_File
-                                (ALI_Path_Name (1 .. ALI_Path_Name'Last - 1))
-                           then
-                              --  First line is the unit name
-
-                              Get_Name_String (ALI_Unit);
-                              Add_Char_To_Name_Buffer (ASCII.LF);
-                              Bytes :=
-                                Write
-                                  (Mapping_FD,
-                                   Name_Buffer (1)'Address,
-                                   Name_Len);
-                              OK := Bytes = Name_Len;
-
-                              exit when not OK;
-
-                              --  Second line it the ALI file name
-
-                              Get_Name_String (ALI_Name);
-                              Add_Char_To_Name_Buffer (ASCII.LF);
-                              Bytes :=
-                                Write
-                                  (Mapping_FD,
-                                   Name_Buffer (1)'Address,
-                                   Name_Len);
-                              OK := (Bytes = Name_Len);
-
-                              exit when not OK;
-
-                              --  Third line it the ALI path name
-
-                              Bytes :=
-                                Write
-                                  (Mapping_FD,
-                                   ALI_Path_Name (1)'Address,
-                                   ALI_Path_Name'Length);
-                              OK := (Bytes = ALI_Path_Name'Length);
-
-                              --  If OK is False, it means we were unable to
-                              --  write a line. No point in continuing with the
-                              --  other units.
-
-                              exit when not OK;
-                           end if;
-                        end;
-                     end;
-                  end if;
-               end if;
-
-               Unit := Units_Htable.Get_Next (Project_Tree.Units_HT);
             end loop;
 
-            Close (Mapping_FD, Status);
-
-            OK := OK and Status;
-
-            --  If the creation of the mapping file was successful, we add the
-            --  switch to the arguments of gnatbind.
-
-            if OK then
-               Last_Arg := Last_Arg + 1;
-               Args (Last_Arg) :=
-                 new String'("-F=" & Get_Name_String (Mapping_Path));
+            if Real_Main_Project /= No_Project then
+               Main_Project := Real_Main_Project;
             end if;
+
+            Debug_Output ("After checking mains, main project is",
+                          Main_Project.Name);
+
+         else
+            --  For all mains on the command line, make sure they were in
+            --  osint. In particular, if the user has specified a multi-unit
+            --  source file, the call to Complete_Mains will have expanded
+            --  the list of mains to all its units, and we must now put them
+            --  back on the command line.
+            --  ??? This will not be necessary when gnatmake shares the same
+            --  queue as gprbuild and processes the file directly on the queue.
+
+            Mains.Reset;
+            loop
+               Info := Mains.Next_Main;
+               exit when Info = No_Main_Info;
+
+               if Info.Index /= 0 then
+                  Debug_Output ("Add to command line index="
+                                & Info.Index'Img, Name_Id (Info.File));
+                  Osint.Add_File (Get_Name_String (Info.File), Info.Index);
+               end if;
+            end loop;
          end if;
-      end Create_Binder_Mapping_File;
+      end Check_Mains;
 
    --  Start of processing for Gnatmake
 
@@ -4506,7 +5551,7 @@ package body Make is
 
       Obsoleted.Reset;
 
-      Make.Initialize (Project_Node_Tree);
+      Make.Initialize (Project_Node_Tree, Root_Environment);
 
       Bind_Shared := No_Shared_Switch'Access;
       Link_With_Shared_Libgcc := No_Shared_Libgcc_Switch'Access;
@@ -4555,10 +5600,9 @@ package body Make is
 
             Add_Switch ("-n", Binder, And_Save => True);
 
-            for J in Q.First .. Q.Last - 1 loop
+            for J in 1 .. Queue.Size loop
                Add_Switch
-                 (Get_Name_String
-                    (Lib_File_Name (Q.Table (J).File)),
+                 (Get_Name_String (Lib_File_Name (Queue.Element (J))),
                   Binder, And_Save => True);
             end loop;
          end if;
@@ -4578,13 +5622,6 @@ package body Make is
             then
                Make_Failed ("cannot specify a main program " &
                             "on the command line for a library project file");
-
-            else
-               --  Check that each main on the command line is a source of a
-               --  project file and, if there are several mains, each of them
-               --  is a source of the same project file.
-
-               Check_Mains;
             end if;
 
          --  If no mains have been specified on the command line, and we are
@@ -4607,8 +5644,9 @@ package body Make is
 
                if Value = Prj.Nil_String or else Unique_Compile then
 
-                  if (not Make_Steps) or else Compile_Only
-                    or else not Main_Project.Library
+                  if not Make_Steps
+                    or Compile_Only
+                    or not Main_Project.Library
                   then
                      --  First make sure that the binder and the linker will
                      --  not be invoked.
@@ -4632,8 +5670,7 @@ package body Make is
                            Write_Line (": no sources to compile");
                         end if;
 
-                        Delete_All_Temp_Files;
-                        Exit_Program (E_Success);
+                        Finish_Program (Project_Tree, E_Success);
                      end if;
                   end if;
 
@@ -4649,7 +5686,7 @@ package body Make is
                                    Prj.Util.Value_Of
                                      (Name_Languages,
                                       Main_Project.Decl.Attributes,
-                                      Project_Tree);
+                                      Project_Tree.Shared);
 
                      Current : String_List_Id;
                      Element : String_Element;
@@ -4665,7 +5702,7 @@ package body Make is
                         Current := Languages.Values;
                         Look_For_Foreign :
                         while Current /= Nil_String loop
-                           Element := Project_Tree.String_Elements.
+                           Element := Project_Tree.Shared.String_Elements.
                                         Table (Current);
                            Get_Name_String (Element.Value);
                            To_Lower (Name_Buffer (1 .. Name_Len));
@@ -4683,31 +5720,45 @@ package body Make is
                      --  language, all the Ada mains.
 
                      while Value /= Prj.Nil_String loop
-                        Get_Name_String
-                          (Project_Tree.String_Elements.Table (Value).Value);
-
                         --  To know if a main is an Ada main, get its project.
                         --  It should be the project specified on the command
                         --  line.
 
-                        if (not Foreign_Language) or else
-                            Prj.Env.Project_Of
-                              (Name_Buffer (1 .. Name_Len),
-                               Main_Project,
-                               Project_Tree) =
-                             Main_Project
-                        then
-                           At_Least_One_Main := True;
-                           Osint.Add_File
-                             (Get_Name_String
-                                (Project_Tree.String_Elements.Table
-                                   (Value).Value),
-                              Index =>
-                                Project_Tree.String_Elements.Table
-                                  (Value).Index);
-                        end if;
+                        Get_Name_String
+                          (Project_Tree.Shared.String_Elements.Table
+                             (Value).Value);
 
-                        Value := Project_Tree.String_Elements.Table
+                        declare
+                           Main_Name : constant String :=
+                                         Get_Name_String
+                                           (Project_Tree.Shared.
+                                             String_Elements.
+                                               Table (Value).Value);
+
+                           Proj : constant Project_Id :=
+                                    Prj.Env.Project_Of
+                                     (Main_Name, Main_Project, Project_Tree);
+
+                        begin
+                           if Proj = Main_Project then
+                              At_Least_One_Main := True;
+                              Osint.Add_File
+                                (Get_Name_String
+                                   (Project_Tree.Shared.String_Elements.Table
+                                      (Value).Value),
+                                 Index =>
+                                   Project_Tree.Shared.String_Elements.Table
+                                     (Value).Index);
+
+                           elsif not Foreign_Language then
+                              Make_Failed
+                                ("""" & Main_Name &
+                                 """ is not a source of project " &
+                                 Get_Name_String (Main_Project.Display_Name));
+                           end if;
+                        end;
+
+                        Value := Project_Tree.Shared.String_Elements.Table
                                    (Value).Next;
                      end loop;
 
@@ -4724,6 +5775,12 @@ package body Make is
                end if;
             end;
          end if;
+
+         --  Check that each main on the command line is a source of a
+         --  project file and, if there are several mains, each of them
+         --  is a source of the same project file.
+
+         Check_Mains;
       end if;
 
       if Verbose_Mode then
@@ -4731,17 +5788,8 @@ package body Make is
          Display_Version ("GNATMAKE", "1995");
       end if;
 
-      if Main_Project /= No_Project
-        and then Main_Project.Externally_Built
-      then
-         Make_Failed
-           ("nothing to do for a main project that is externally built");
-      end if;
-
       if Osint.Number_Of_Files = 0 then
-         if Main_Project /= No_Project
-           and then Main_Project.Library
-         then
+         if Main_Project /= No_Project and then Main_Project.Library then
             if Do_Bind_Step
               and then not Main_Project.Standalone_Library
             then
@@ -4775,8 +5823,7 @@ package body Make is
                Bind          => Bind_Only,
                Link          => Link_Only);
 
-            Delete_All_Temp_Files;
-            Exit_Program (E_Success);
+            Finish_Program (Project_Tree, E_Success);
 
          else
             --  Call Get_Target_Parameters to ensure that VM_Target and
@@ -4787,9 +5834,16 @@ package body Make is
             --  Output usage information if no files to compile
 
             Usage;
-            Exit_Program (E_Fatal);
+            Finish_Program (Project_Tree, E_Success);
          end if;
       end if;
+
+      --  Get the first executable.
+      --  ??? This needs to be done early, because Osint.Next_Main_File also
+      --  initializes the primary search directory, used below to initialize
+      --  the "-I" parameter
+
+      Main_Source_File := Next_Main_Source;  --  No directory information
 
       --  If -M was specified, behave as if -n was specified
 
@@ -4797,20 +5851,10 @@ package body Make is
          Do_Not_Execute := True;
       end if;
 
-      --  Note that Osint.M.Next_Main_Source will always return the (possibly
-      --  abbreviated file) without any directory information.
-
-      Main_Source_File := Next_Main_Source;
-
-      if Current_File_Index /= No_Index then
-         Main_Index := Current_File_Index;
-      end if;
-
       Add_Switch ("-I-", Compiler, And_Save => True);
 
       if Main_Project = No_Project then
          if Look_In_Primary_Dir then
-
             Add_Switch
               ("-I" &
                Normalize_Directory_Name
@@ -4843,527 +5887,39 @@ package body Make is
       if Main_Project /= No_Project then
 
          if Main_Project.Object_Directory /= No_Path_Information then
+
             --  Change current directory to object directory of main project
 
             Project_Of_Current_Object_Directory := No_Project;
             Change_To_Object_Directory (Main_Project);
          end if;
 
-         --  Source file lookups should be cached for efficiency.
-         --  Source files are not supposed to change.
+         --  Source file lookups should be cached for efficiency. Source files
+         --  are not supposed to change.
 
          Osint.Source_File_Data (Cache => True);
 
-         --  Find the file name of the (first) main unit
-
-         declare
-            Main_Source_File_Name : constant String :=
-                                      Get_Name_String (Main_Source_File);
-            Main_Unit_File_Name   : constant String :=
-                                      Prj.Env.File_Name_Of_Library_Unit_Body
-                                        (Name    => Main_Source_File_Name,
-                                         Project => Main_Project,
-                                         In_Tree => Project_Tree,
-                                         Main_Project_Only =>
-                                           not Unique_Compile);
-
-            The_Packages : constant Package_Id :=
-                             Main_Project.Decl.Packages;
-
-            Builder_Package : constant Prj.Package_Id :=
-                                Prj.Util.Value_Of
-                                  (Name        => Name_Builder,
-                                   In_Packages => The_Packages,
-                                   In_Tree     => Project_Tree);
-
-            Binder_Package : constant Prj.Package_Id :=
-                               Prj.Util.Value_Of
-                                 (Name        => Name_Binder,
-                                  In_Packages => The_Packages,
-                                  In_Tree     => Project_Tree);
-
-            Linker_Package : constant Prj.Package_Id :=
-                               Prj.Util.Value_Of
-                                 (Name        => Name_Linker,
-                                  In_Packages => The_Packages,
-                                  In_Tree     => Project_Tree);
-
-            Default_Switches_Array : Array_Id;
-
-            Global_Compilation_Array    : Array_Element_Id;
-            Global_Compilation_Elem     : Array_Element;
-            Global_Compilation_Switches : Variable_Value;
-
-         begin
-            --  We fail if we cannot find the main source file
-
-            if Main_Unit_File_Name = "" then
-               Make_Failed ('"' & Main_Source_File_Name
-                            & """ is not a unit of project "
-                            & Project_File_Name.all & ".");
-            else
-               --  Remove any directory information from the main source file
-               --  file name.
-
-               declare
-                  Pos : Natural := Main_Unit_File_Name'Last;
-
-               begin
-                  loop
-                     exit when Pos < Main_Unit_File_Name'First or else
-                       Main_Unit_File_Name (Pos) = Directory_Separator;
-                     Pos := Pos - 1;
-                  end loop;
-
-                  Name_Len := Main_Unit_File_Name'Last - Pos;
-
-                  Name_Buffer (1 .. Name_Len) :=
-                    Main_Unit_File_Name
-                    (Pos + 1 .. Main_Unit_File_Name'Last);
-
-                  Main_Source_File := Name_Find;
-
-                  --  We only output the main source file if there is only one
-
-                  if Verbose_Mode and then Osint.Number_Of_Files = 1 then
-                     Write_Str ("Main source file: """);
-                     Write_Str (Main_Unit_File_Name
-                                (Pos + 1 .. Main_Unit_File_Name'Last));
-                     Write_Line (""".");
-                  end if;
-               end;
-            end if;
-
-            --  If there is a package Builder in the main project file, add
-            --  the switches from it.
-
-            if Builder_Package /= No_Package then
-
-               Global_Compilation_Array := Prj.Util.Value_Of
-                 (Name      => Name_Global_Compilation_Switches,
-                  In_Arrays => Project_Tree.Packages.Table
-                    (Builder_Package).Decl.Arrays,
-                  In_Tree   => Project_Tree);
-
-               Default_Switches_Array :=
-                 Project_Tree.Packages.Table
-                   (Builder_Package).Decl.Arrays;
-
-               while Default_Switches_Array /= No_Array and then
-               Project_Tree.Arrays.Table (Default_Switches_Array).Name /=
-                 Name_Default_Switches
-               loop
-                  Default_Switches_Array :=
-                    Project_Tree.Arrays.Table (Default_Switches_Array).Next;
-               end loop;
-
-               if Global_Compilation_Array /= No_Array_Element and then
-                  Default_Switches_Array /= No_Array
-               then
-                  Errutil.Error_Msg
-                    ("Default_Switches forbidden in presence of " &
-                     "Global_Compilation_Switches. Use Switches instead.",
-                     Project_Tree.Arrays.Table
-                       (Default_Switches_Array).Location);
-                  Errutil.Finalize;
-                  Make_Failed
-                    ("*** illegal combination of Builder attributes");
-               end if;
-
-               --  If there is only one main, we attempt to get the gnatmake
-               --  switches for this main (if any). If there are no specific
-               --  switch for this particular main, get the general gnatmake
-               --  switches (if any).
-
-               if Osint.Number_Of_Files = 1 then
-                  if Verbose_Mode then
-                     Write_Str ("Adding gnatmake switches for """);
-                     Write_Str (Main_Unit_File_Name);
-                     Write_Line (""".");
-                  end if;
-
-                  Add_Switches
-                    (Project_Node_Tree                => Project_Node_Tree,
-                     File_Name                        => Main_Unit_File_Name,
-                     Index                            => Main_Index,
-                     The_Package                      => Builder_Package,
-                     Program                          => None,
-                     Unknown_Switches_To_The_Compiler =>
-                       Global_Compilation_Array = No_Array_Element);
-
-               else
-                  --  If there are several mains, we always get the general
-                  --  gnatmake switches (if any).
-
-                  --  Warn the user, if necessary, so that he is not surprised
-                  --  that specific switches are not taken into account.
-
-                  declare
-                     Defaults : constant Variable_Value :=
-                                  Prj.Util.Value_Of
-                                    (Name                    => Name_Ada,
-                                     Index                   => 0,
-                                     Attribute_Or_Array_Name =>
-                                       Name_Default_Switches,
-                                     In_Package              =>
-                                       Builder_Package,
-                                     In_Tree                 => Project_Tree);
-
-                     Switches : constant Array_Element_Id :=
-                                  Prj.Util.Value_Of
-                                    (Name      => Name_Switches,
-                                     In_Arrays =>
-                                       Project_Tree.Packages.Table
-                                         (Builder_Package).Decl.Arrays,
-                                     In_Tree   => Project_Tree);
-
-                     Other_Switches : constant Variable_Value :=
-                                        Prj.Util.Value_Of
-                                          (Name        => All_Other_Names,
-                                           Index       => 0,
-                                           Attribute_Or_Array_Name
-                                                       => Name_Switches,
-                                           In_Package  => Builder_Package,
-                                           In_Tree     => Project_Tree);
-
-                  begin
-                     if Other_Switches /= Nil_Variable_Value then
-                        if not Quiet_Output
-                          and then Switches /= No_Array_Element
-                          and then Project_Tree.Array_Elements.Table
-                                     (Switches).Next /= No_Array_Element
-                        then
-                           Write_Line
-                             ("Warning: using Builder'Switches(others), "
-                              & "as there are several mains");
-                        end if;
-
-                        Add_Switches
-                          (Project_Node_Tree              => Project_Node_Tree,
-                           File_Name                        => " ",
-                           Index                            => 0,
-                           The_Package                      => Builder_Package,
-                           Program                          => None,
-                           Unknown_Switches_To_The_Compiler => False);
-
-                     elsif Defaults /= Nil_Variable_Value then
-                        if not Quiet_Output
-                          and then Switches /= No_Array_Element
-                        then
-                           Write_Line
-                             ("Warning: using Builder'Default_Switches"
-                              & "(""Ada""), as there are several mains");
-                        end if;
-
-                        Add_Switches
-                          (Project_Node_Tree => Project_Node_Tree,
-                           File_Name   => " ",
-                           Index       => 0,
-                           The_Package => Builder_Package,
-                           Program     => None);
-
-                     elsif not Quiet_Output
-                       and then Switches /= No_Array_Element
-                     then
-                        Write_Line
-                          ("Warning: using no switches from package "
-                           & "Builder, as there are several mains");
-                     end if;
-                  end;
-               end if;
-
-               --  Take into account attribute Global_Compilation_Switches
-               --  ("Ada").
-
-               declare
-                  Index : Name_Id;
-                  List  : String_List_Id;
-                  Elem  : String_Element;
-
-               begin
-                  while Global_Compilation_Array /= No_Array_Element loop
-                     Global_Compilation_Elem :=
-                       Project_Tree.Array_Elements.Table
-                         (Global_Compilation_Array);
-
-                     Get_Name_String (Global_Compilation_Elem.Index);
-                     To_Lower (Name_Buffer (1 .. Name_Len));
-                     Index := Name_Find;
-
-                     if Index = Name_Ada then
-                        Global_Compilation_Switches :=
-                          Global_Compilation_Elem.Value;
-
-                        if Global_Compilation_Switches /= Nil_Variable_Value
-                          and then not Global_Compilation_Switches.Default
-                        then
-                           --  We have found attribute
-                           --  Global_Compilation_Switches ("Ada"): put the
-                           --  switches in the appropriate table.
-
-                           List := Global_Compilation_Switches.Values;
-
-                           while List /= Nil_String loop
-                              Elem :=
-                                Project_Tree.String_Elements.Table (List);
-
-                              if Elem.Value /= No_Name then
-                                 Add_Switch
-                                   (Get_Name_String (Elem.Value),
-                                    Compiler,
-                                    And_Save => False);
-                              end if;
-
-                              List := Elem.Next;
-                           end loop;
-
-                           exit;
-                        end if;
-                     end if;
-
-                     Global_Compilation_Array := Global_Compilation_Elem.Next;
-                  end loop;
-               end;
-            end if;
-
-            Osint.Add_Default_Search_Dirs;
-
-            --  Record the current last switch index for table Binder_Switches
-            --  and Linker_Switches, so that these tables may be reset before
-            --  for each main, before adding switches from the project file
-            --  and from the command line.
-
-            Last_Binder_Switch := Binder_Switches.Last;
-            Last_Linker_Switch := Linker_Switches.Last;
-
-            Check_Steps;
-
-            --  Add binder switches from the project file for the first main
-
-            if Do_Bind_Step and then Binder_Package /= No_Package then
-               if Verbose_Mode then
-                  Write_Str ("Adding binder switches for """);
-                  Write_Str (Main_Unit_File_Name);
-                  Write_Line (""".");
-               end if;
-
-               Add_Switches
-                 (Project_Node_Tree => Project_Node_Tree,
-                  File_Name         => Main_Unit_File_Name,
-                  Index             => Main_Index,
-                  The_Package       => Binder_Package,
-                  Program           => Binder);
-            end if;
-
-            --  Add linker switches from the project file for the first main
-
-            if Do_Link_Step and then Linker_Package /= No_Package then
-               if Verbose_Mode then
-                  Write_Str ("Adding linker switches for""");
-                  Write_Str (Main_Unit_File_Name);
-                  Write_Line (""".");
-               end if;
-
-               Add_Switches
-                 (Project_Node_Tree => Project_Node_Tree,
-                  File_Name         => Main_Unit_File_Name,
-                  Index             => Main_Index,
-                  The_Package       => Linker_Package,
-                  Program           => Linker);
-            end if;
-         end;
+         Queue_Library_Project_Sources;
       end if;
 
-      --  Get the target parameters, which are only needed for a couple of
-      --  cases in gnatmake. Protect against an exception, such as the case of
-      --  system.ads missing from the library, and fail gracefully.
+      --  The combination of -f -u and one or several mains on the command line
+      --  implies -a.
 
-      begin
-         Targparm.Get_Target_Parameters;
-      exception
-         when Unrecoverable_Error =>
-            Make_Failed ("*** make failed.");
-      end;
-
-      --  Special processing for VM targets
-
-      if Targparm.VM_Target /= No_VM then
-
-         --  Set proper processing commands
-
-         case Targparm.VM_Target is
-            when Targparm.JVM_Target =>
-
-               --  Do not check for an object file (".o") when compiling to
-               --  JVM machine since ".class" files are generated instead.
-
-               Check_Object_Consistency := False;
-               Gcc := new String'("jvm-gnatcompile");
-
-            when Targparm.CLI_Target =>
-               Gcc := new String'("dotnet-gnatcompile");
-
-            when Targparm.No_VM =>
-               raise Program_Error;
-         end case;
+      if Force_Compilations
+        and then Unique_Compile
+        and then not Unique_Compile_All_Projects
+        and then Main_On_Command_Line
+      then
+         Must_Compile := True;
       end if;
 
-      Display_Commands (not Quiet_Output);
-
-      Check_Steps;
-
-      if Main_Project /= No_Project then
-
-         --  For all library project, if the library file does not exist, put
-         --  all the project sources in the queue, and flag the project so that
-         --  the library is generated.
-
-         if not Unique_Compile
-           and then MLib.Tgt.Support_For_Libraries /= Prj.None
-         then
-            declare
-               Proj : Project_List;
-
-            begin
-               Proj := Project_Tree.Projects;
-               while Proj /= null loop
-                  if Proj.Project.Library then
-                     Proj.Project.Need_To_Build_Lib :=
-                       not MLib.Tgt.Library_Exists_For
-                         (Proj.Project, Project_Tree)
-                       and then not Proj.Project.Externally_Built;
-
-                     if Proj.Project.Need_To_Build_Lib then
-
-                        --  If there is no object directory, then it will be
-                        --  impossible to build the library. So fail
-                        --  immediately.
-
-                        if
-                          Proj.Project.Object_Directory = No_Path_Information
-                        then
-                           Make_Failed
-                             ("no object files to build library for project """
-                              & Get_Name_String (Proj.Project.Name)
-                              & """");
-                           Proj.Project.Need_To_Build_Lib := False;
-
-                        else
-                           if Verbose_Mode then
-                              Write_Str
-                                ("Library file does not exist for project """);
-                              Write_Str (Get_Name_String (Proj.Project.Name));
-                              Write_Line ("""");
-                           end if;
-
-                           Insert_Project_Sources
-                             (The_Project  => Proj.Project,
-                              All_Projects => False,
-                              Into_Q       => True);
-                        end if;
-                     end if;
-                  end if;
-
-                  Proj := Proj.Next;
-               end loop;
-            end;
-         end if;
-
-         --  If a relative path output file has been specified, we add the
-         --  exec directory.
-
-         for J in reverse 1 .. Saved_Linker_Switches.Last - 1 loop
-            if Saved_Linker_Switches.Table (J).all = Output_Flag.all then
-               declare
-                  Exec_File_Name : constant String :=
-                                     Saved_Linker_Switches.Table (J + 1).all;
-
-               begin
-                  if not Is_Absolute_Path (Exec_File_Name) then
-                     Get_Name_String (Main_Project.Exec_Directory.Name);
-
-                     if not
-                       Is_Directory_Separator (Name_Buffer (Name_Len))
-                     then
-                        Add_Char_To_Name_Buffer (Directory_Separator);
-                     end if;
-
-                     Add_Str_To_Name_Buffer (Exec_File_Name);
-                     Saved_Linker_Switches.Table (J + 1) :=
-                       new String'(Name_Buffer (1 .. Name_Len));
-                  end if;
-               end;
-
-               exit;
-            end if;
-         end loop;
-
-         --  If we are using a project file, for relative paths we add the
-         --  current working directory for any relative path on the command
-         --  line and the project directory, for any relative path in the
-         --  project file.
-
-         declare
-            Dir_Path : constant String :=
-                         Get_Name_String (Main_Project.Directory.Name);
-         begin
-            for J in 1 .. Binder_Switches.Last loop
-               Test_If_Relative_Path
-                 (Binder_Switches.Table (J),
-                  Parent => Dir_Path, Including_L_Switch => False);
-            end loop;
-
-            for J in 1 .. Saved_Binder_Switches.Last loop
-               Test_If_Relative_Path
-                 (Saved_Binder_Switches.Table (J),
-                  Parent => Current_Work_Dir.all, Including_L_Switch => False);
-            end loop;
-
-            for J in 1 .. Linker_Switches.Last loop
-               Test_If_Relative_Path
-                 (Linker_Switches.Table (J), Parent => Dir_Path);
-            end loop;
-
-            for J in 1 .. Saved_Linker_Switches.Last loop
-               Test_If_Relative_Path
-                 (Saved_Linker_Switches.Table (J),
-                  Parent => Current_Work_Dir.all);
-            end loop;
-
-            for J in 1 .. Gcc_Switches.Last loop
-               Test_If_Relative_Path
-                 (Gcc_Switches.Table (J),
-                  Parent               => Dir_Path,
-                  Including_Non_Switch => False);
-            end loop;
-
-            for J in 1 .. Saved_Gcc_Switches.Last loop
-               Test_If_Relative_Path
-                 (Saved_Gcc_Switches.Table (J),
-                  Parent               => Current_Work_Dir.all,
-                  Including_Non_Switch => False);
-            end loop;
-         end;
+      if Main_Project /= No_Project
+        and then not Must_Compile
+        and then Main_Project.Externally_Built
+      then
+         Make_Failed
+           ("nothing to do for a main project that is externally built");
       end if;
-
-      --  We now put in the Binder_Switches and Linker_Switches tables, the
-      --  binder and linker switches of the command line that have been put in
-      --  the Saved_ tables. If a project file was used, then the command line
-      --  switches will follow the project file switches.
-
-      for J in 1 .. Saved_Binder_Switches.Last loop
-         Add_Switch
-           (Saved_Binder_Switches.Table (J),
-            Binder,
-            And_Save => False);
-      end loop;
-
-      for J in 1 .. Saved_Linker_Switches.Last loop
-         Add_Switch
-           (Saved_Linker_Switches.Table (J),
-            Linker,
-            And_Save => False);
-      end loop;
 
       --  If no project file is used, we just put the gcc switches
       --  from the command line in the Gcc_Switches table.
@@ -5407,51 +5963,6 @@ package body Make is
          Gnatlink := Saved_Gnatlink;
       end if;
 
-      Gcc_Path       := GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
-      Gnatbind_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
-      Gnatlink_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
-
-      --  If we have specified -j switch both from the project file
-      --  and on the command line, the one from the command line takes
-      --  precedence.
-
-      if Saved_Maximum_Processes = 0 then
-         Saved_Maximum_Processes := Maximum_Processes;
-      end if;
-
-      --  Allocate as many temporary mapping file names as the maximum number
-      --  of compilations processed, for each possible project.
-
-      declare
-         Data : Project_Compilation_Access;
-         Proj : Project_List := Project_Tree.Projects;
-      begin
-         while Proj /= null loop
-            Data := new Project_Compilation_Data'
-              (Mapping_File_Names        => new Temp_Path_Names
-                                              (1 .. Saved_Maximum_Processes),
-               Last_Mapping_File_Names   => 0,
-               Free_Mapping_File_Indices => new Free_File_Indices
-                                              (1 .. Saved_Maximum_Processes),
-               Last_Free_Indices         => 0);
-
-            Project_Compilation_Htable.Set
-              (Project_Compilation, Proj.Project, Data);
-            Proj := Proj.Next;
-         end loop;
-
-         Data := new Project_Compilation_Data'
-           (Mapping_File_Names        => new Temp_Path_Names
-                                           (1 .. Saved_Maximum_Processes),
-            Last_Mapping_File_Names   => 0,
-            Free_Mapping_File_Indices => new Free_File_Indices
-                                           (1 .. Saved_Maximum_Processes),
-            Last_Free_Indices         => 0);
-
-         Project_Compilation_Htable.Set
-           (Project_Compilation, No_Project, Data);
-      end;
-
       Bad_Compilation.Init;
 
       --  If project files are used, create the mapping of all the sources, so
@@ -5463,137 +5974,176 @@ package body Make is
          Prj.Env.Create_Mapping (Project_Tree);
       end if;
 
-      Current_Main_Index := Main_Index;
-
       --  Here is where the make process is started
 
-      --  We do the same process for each main
+      Queue.Initialize
+        (Main_Project /= No_Project and then One_Compilation_Per_Obj_Dir);
+
+      Is_First_Main := True;
 
       Multiple_Main_Loop : for N_File in 1 .. Osint.Number_Of_Files loop
-
-         --  First, find the executable name and path
-
-         Executable          := No_File;
-         Executable_Obsolete := False;
-         Non_Std_Executable  :=
-           Targparm.Executable_Extension_On_Target /= No_Name;
-
-         --  Look inside the linker switches to see if the name of the final
-         --  executable program was specified.
-
-         for J in reverse Linker_Switches.First .. Linker_Switches.Last loop
-            if Linker_Switches.Table (J).all = Output_Flag.all then
-               pragma Assert (J < Linker_Switches.Last);
-
-               --  We cannot specify a single executable for several main
-               --  subprograms
-
-               if Osint.Number_Of_Files > 1 then
-                  Fail
-                    ("cannot specify a single executable for several mains");
-               end if;
-
-               Name_Len := 0;
-               Add_Str_To_Name_Buffer (Linker_Switches.Table (J + 1).all);
-               Executable := Name_Enter;
-
-               Verbose_Msg (Executable, "final executable");
-            end if;
-         end loop;
-
-         --  If the name of the final executable program was not specified then
-         --  construct it from the main input file.
-
-         if Executable = No_File then
-            if Main_Project = No_Project then
-               Executable := Executable_Name (Strip_Suffix (Main_Source_File));
-
-            else
-               --  If we are using a project file, we attempt to remove the
-               --  body (or spec) termination of the main subprogram. We find
-               --  it the naming scheme of the project file. This avoids
-               --  generating an executable "main.2" for a main subprogram
-               --  "main.2.ada", when the body termination is ".2.ada".
-
-               Executable :=
-                 Prj.Util.Executable_Of
-                   (Main_Project, Project_Tree, Main_Source_File, Main_Index);
-            end if;
+         if Current_File_Index /= No_Index then
+            Main_Index := Current_File_Index;
          end if;
 
-         if Main_Project /= No_Project
-           and then Main_Project.Exec_Directory /= No_Path_Information
+         Current_Main_Index := Main_Index;
+
+         if Current_Main_Index = 0
+           and then Unique_Compile
+             and then Main_Project /= No_Project
          then
+            --  If this is a multi-unit source, do not compile it as is (ie
+            --  without specifying which unit to compile)
+            --  Insert_Project_Sources has added each of the unit separately.
+
             declare
-               Exec_File_Name : constant String :=
-                                  Get_Name_String (Executable);
-
+               Source : constant Prj.Source_Id := Find_Source
+                 (In_Tree   => Project_Tree,
+                  Project   => Main_Project,
+                  Base_Name => Main_Source_File,
+                  Index     => Current_Main_Index,
+                  In_Imported_Only => True);
             begin
-               if not Is_Absolute_Path (Exec_File_Name) then
-                  Get_Name_String (Main_Project.Exec_Directory.Display_Name);
-
-                  if Name_Buffer (Name_Len) /= Directory_Separator then
-                     Add_Char_To_Name_Buffer (Directory_Separator);
-                  end if;
-
-                  Add_Str_To_Name_Buffer (Exec_File_Name);
-                  Executable := Name_Find;
+               if Source /= No_Source
+                 and then Source.Index /= 0
+               then
+                  goto Next_Main;
                end if;
-
-               Non_Std_Executable := True;
             end;
          end if;
 
-         if Do_Compile_Step then
-            Recursive_Compilation_Step : declare
-               Args                : Argument_List (1 .. Gcc_Switches.Last);
+         Compute_Switches_For_Main
+           (Main_Source_File,
+            Root_Environment,
+            Compute_Builder  => Is_First_Main,
+            Current_Work_Dir => Current_Work_Dir.all);
 
-               First_Compiled_File : File_Name_Type;
-               Youngest_Obj_File   : File_Name_Type;
-               Youngest_Obj_Stamp  : Time_Stamp_Type;
+         if Is_First_Main then
 
-               Executable_Stamp : Time_Stamp_Type;
-               --  Executable is the final executable program
-               --  ??? comment seems unrelated to declaration
+            --  Put the default source dirs in the source path only now, so
+            --  that we take the correct ones in the case where --RTS= is
+            --  specified in the Builder switches.
 
-               Library_Rebuilt : Boolean := False;
+            Osint.Add_Default_Search_Dirs;
+
+            --  Get the target parameters, which are only needed for a couple
+            --  of cases in gnatmake. Protect against an exception, such as the
+            --  case of system.ads missing from the library, and fail
+            --  gracefully.
 
             begin
-               for J in 1 .. Gcc_Switches.Last loop
-                  Args (J) := Gcc_Switches.Table (J);
+               Targparm.Get_Target_Parameters;
+            exception
+               when Unrecoverable_Error =>
+                  Make_Failed ("*** make failed.");
+            end;
+
+            --  Special processing for VM targets
+
+            if Targparm.VM_Target /= No_VM then
+
+               --  Set proper processing commands
+
+               case Targparm.VM_Target is
+                  when Targparm.JVM_Target =>
+
+                     --  Do not check for an object file (".o") when compiling
+                     --  to JVM machine since ".class" files are generated
+                     --  instead.
+
+                     Check_Object_Consistency := False;
+
+                     --  Do not modify Gcc is --GCC= was specified
+
+                     if Gcc = Original_Gcc then
+                        Gcc := new String'("jvm-gnatcompile");
+                     end if;
+
+                  when Targparm.CLI_Target =>
+                     --  Do not modify Gcc is --GCC= was specified
+
+                     if Gcc = Original_Gcc then
+                        Gcc := new String'("dotnet-gnatcompile");
+                     end if;
+
+                  when Targparm.No_VM =>
+                     raise Program_Error;
+               end case;
+            end if;
+
+            Gcc_Path       := GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
+            Gnatbind_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
+            Gnatlink_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
+
+            --  If we have specified -j switch both from the project file
+            --  and on the command line, the one from the command line takes
+            --  precedence.
+
+            if Saved_Maximum_Processes = 0 then
+               Saved_Maximum_Processes := Maximum_Processes;
+            end if;
+
+            if Debug.Debug_Flag_M then
+               Write_Line ("Maximum number of simultaneous compilations =" &
+                           Saved_Maximum_Processes'Img);
+            end if;
+
+            --  Allocate as many temporary mapping file names as the maximum
+            --  number of compilations processed, for each possible project.
+
+            declare
+               Data : Project_Compilation_Access;
+               Proj : Project_List;
+
+            begin
+               Proj := Project_Tree.Projects;
+               while Proj /= null loop
+                  Data := new Project_Compilation_Data'
+                    (Mapping_File_Names        => new Temp_Path_Names
+                       (1 .. Saved_Maximum_Processes),
+                     Last_Mapping_File_Names   => 0,
+                     Free_Mapping_File_Indexes => new Free_File_Indexes
+                       (1 .. Saved_Maximum_Processes),
+                     Last_Free_Indexes         => 0);
+
+                  Project_Compilation_Htable.Set
+                    (Project_Compilation, Proj.Project, Data);
+                  Proj := Proj.Next;
                end loop;
 
-               --  Now we invoke Compile_Sources for the current main
+               Data := new Project_Compilation_Data'
+                 (Mapping_File_Names        => new Temp_Path_Names
+                    (1 .. Saved_Maximum_Processes),
+                  Last_Mapping_File_Names   => 0,
+                  Free_Mapping_File_Indexes => new Free_File_Indexes
+                    (1 .. Saved_Maximum_Processes),
+                  Last_Free_Indexes         => 0);
 
-               Compile_Sources
-                 (Main_Source           => Main_Source_File,
-                  Args                  => Args,
-                  First_Compiled_File   => First_Compiled_File,
-                  Most_Recent_Obj_File  => Youngest_Obj_File,
-                  Most_Recent_Obj_Stamp => Youngest_Obj_Stamp,
-                  Main_Unit             => Is_Main_Unit,
-                  Main_Index            => Current_Main_Index,
-                  Compilation_Failures  => Compilation_Failures,
-                  Check_Readonly_Files  => Check_Readonly_Files,
-                  Do_Not_Execute        => Do_Not_Execute,
-                  Force_Compilations    => Force_Compilations,
-                  In_Place_Mode         => In_Place_Mode,
-                  Keep_Going            => Keep_Going,
-                  Initialize_ALI_Data   => True,
-                  Max_Process           => Saved_Maximum_Processes);
+               Project_Compilation_Htable.Set
+                 (Project_Compilation, No_Project, Data);
+            end;
 
-               if Verbose_Mode then
-                  Write_Str ("End of compilation");
-                  Write_Eol;
-               end if;
+            Is_First_Main := False;
+         end if;
 
-               --  Make sure the queue will be reinitialized for the next round
+         Executable_Obsolete := False;
 
-               First_Q_Initialization := True;
+         Compute_Executable
+           (Main_Source_File   => Main_Source_File,
+            Executable         => Executable,
+            Non_Std_Executable => Non_Std_Executable);
 
-               Total_Compilation_Failures :=
-                 Total_Compilation_Failures + Compilation_Failures;
+         if Do_Compile_Step then
+            Compilation_Phase
+              (Main_Source_File           => Main_Source_File,
+               Current_Main_Index         => Current_Main_Index,
+               Total_Compilation_Failures => Total_Compilation_Failures,
+               Stand_Alone_Libraries      => Stand_Alone_Libraries,
+               Executable                 => Executable,
+               Is_Last_Main               => N_File = Osint.Number_Of_Files,
+               Stop_Compile               => Stop_Compile);
 
+            if Stop_Compile then
                if Total_Compilation_Failures /= 0 then
                   if Keep_Going then
                      goto Next_Main;
@@ -5602,319 +6152,13 @@ package body Make is
                      List_Bad_Compilations;
                      Report_Compilation_Failed;
                   end if;
+
+               elsif Osint.Number_Of_Files = 1 then
+                  exit Multiple_Main_Loop;
+               else
+                  goto Next_Main;
                end if;
-
-               --  Regenerate libraries, if there are any and if object files
-               --  have been regenerated.
-
-               if Main_Project /= No_Project
-                 and then MLib.Tgt.Support_For_Libraries /= Prj.None
-                 and then (Do_Bind_Step
-                             or Unique_Compile_All_Projects
-                             or not Compile_Only)
-                 and then (Do_Link_Step or else N_File = Osint.Number_Of_Files)
-               then
-                  Library_Projs.Init;
-
-                  declare
-                     Depth   : Natural;
-                     Current : Natural;
-                     Proj1   : Project_List;
-
-                     procedure Add_To_Library_Projs (Proj : Project_Id);
-                     --  Add project Project to table Library_Projs in
-                     --  decreasing depth order.
-
-                     --------------------------
-                     -- Add_To_Library_Projs --
-                     --------------------------
-
-                     procedure Add_To_Library_Projs (Proj : Project_Id) is
-                        Prj : Project_Id;
-
-                     begin
-                        Library_Projs.Increment_Last;
-                        Depth := Proj.Depth;
-
-                        --  Put the projects in decreasing depth order, so that
-                        --  if libA depends on libB, libB is first in order.
-
-                        Current := Library_Projs.Last;
-                        while Current > 1 loop
-                           Prj := Library_Projs.Table (Current - 1);
-                           exit when Prj.Depth >= Depth;
-                           Library_Projs.Table (Current) := Prj;
-                           Current := Current - 1;
-                        end loop;
-
-                        Library_Projs.Table (Current) := Proj;
-                     end Add_To_Library_Projs;
-
-                  --  Start of processing for ??? (should name declare block
-                  --  or probably better, break this out as a nested proc).
-
-                  begin
-                     --  Put in Library_Projs table all library project file
-                     --  ids when the library need to be rebuilt.
-
-                     Proj1 := Project_Tree.Projects;
-                     while Proj1 /= null loop
-                        if Proj1.Project.Standalone_Library then
-                           Stand_Alone_Libraries := True;
-                        end if;
-
-                        if Proj1.Project.Library then
-                           MLib.Prj.Check_Library
-                             (Proj1.Project, Project_Tree);
-                        end if;
-
-                        if Proj1.Project.Need_To_Build_Lib then
-                           Add_To_Library_Projs (Proj1.Project);
-                        end if;
-
-                        Proj1 := Proj1.Next;
-                     end loop;
-
-                     --  Check if importing libraries should be regenerated
-                     --  because at least an imported library will be
-                     --  regenerated or is more recent.
-
-                     Proj1 := Project_Tree.Projects;
-                     while Proj1 /= null loop
-                        if Proj1.Project.Library
-                          and then Proj1.Project.Library_Kind /= Static
-                          and then not Proj1.Project.Need_To_Build_Lib
-                          and then not Proj1.Project.Externally_Built
-                        then
-                           declare
-                              List    : Project_List;
-                              Proj2   : Project_Id;
-                              Rebuild : Boolean := False;
-
-                              Lib_Timestamp1 : constant Time_Stamp_Type :=
-                                                 Proj1.Project.Library_TS;
-
-                           begin
-                              List := Proj1.Project.All_Imported_Projects;
-                              while List /= null loop
-                                 Proj2 := List.Project;
-
-                                 if Proj2.Library then
-                                    if Proj2.Need_To_Build_Lib
-                                      or else
-                                        (Lib_Timestamp1 < Proj2.Library_TS)
-                                    then
-                                       Rebuild := True;
-                                       exit;
-                                    end if;
-                                 end if;
-
-                                 List := List.Next;
-                              end loop;
-
-                              if Rebuild then
-                                 Proj1.Project.Need_To_Build_Lib := True;
-                                 Add_To_Library_Projs (Proj1.Project);
-                              end if;
-                           end;
-                        end if;
-
-                        Proj1 := Proj1.Next;
-                     end loop;
-
-                     --  Reset the flags Need_To_Build_Lib for the next main,
-                     --  to avoid rebuilding libraries uselessly.
-
-                     Proj1 := Project_Tree.Projects;
-                     while Proj1 /= null loop
-                        Proj1.Project.Need_To_Build_Lib := False;
-                        Proj1 := Proj1.Next;
-                     end loop;
-                  end;
-
-                  --  Build the libraries, if any need to be built
-
-                  for J in 1 .. Library_Projs.Last loop
-                     Library_Rebuilt := True;
-
-                     --  If a library is rebuilt, then executables are obsolete
-
-                     Executable_Obsolete := True;
-
-                     MLib.Prj.Build_Library
-                       (For_Project   => Library_Projs.Table (J),
-                        In_Tree       => Project_Tree,
-                        Gnatbind      => Gnatbind.all,
-                        Gnatbind_Path => Gnatbind_Path,
-                        Gcc           => Gcc.all,
-                        Gcc_Path      => Gcc_Path);
-                  end loop;
-               end if;
-
-               if List_Dependencies then
-                  if First_Compiled_File /= No_File then
-                     Inform
-                       (First_Compiled_File,
-                        "must be recompiled. Can't generate dependence list.");
-                  else
-                     List_Depend;
-                  end if;
-
-               elsif First_Compiled_File = No_File
-                 and then not Do_Bind_Step
-                 and then not Quiet_Output
-                 and then not Library_Rebuilt
-                 and then Osint.Number_Of_Files = 1
-               then
-                  Inform (Msg => "objects up to date.");
-
-               elsif Do_Not_Execute
-                 and then First_Compiled_File /= No_File
-               then
-                  Write_Name (First_Compiled_File);
-                  Write_Eol;
-               end if;
-
-               --  Stop after compile step if any of:
-
-               --    1) -n (Do_Not_Execute) specified
-
-               --    2) -M (List_Dependencies) specified (also sets
-               --       Do_Not_Execute above, so this is probably superfluous).
-
-               --    3) -c (Compile_Only) specified, but not -b (Bind_Only)
-
-               --    4) Made unit cannot be a main unit
-
-               if ((Do_Not_Execute
-                    or List_Dependencies
-                    or not Do_Bind_Step
-                    or not Is_Main_Unit)
-                  and then not No_Main_Subprogram
-                  and then not Build_Bind_And_Link_Full_Project)
-                 or else Unique_Compile
-               then
-                  if Osint.Number_Of_Files = 1 then
-                     exit Multiple_Main_Loop;
-
-                  else
-                     goto Next_Main;
-                  end if;
-               end if;
-
-               --  If the objects were up-to-date check if the executable file
-               --  is also up-to-date. For now always bind and link on the JVM
-               --  since there is currently no simple way to check whether
-               --  objects are up-to-date.
-
-               if Targparm.VM_Target /= JVM_Target
-                 and then First_Compiled_File = No_File
-               then
-                  Executable_Stamp := File_Stamp (Executable);
-
-                  if not Executable_Obsolete then
-                     Executable_Obsolete :=
-                       Youngest_Obj_Stamp > Executable_Stamp;
-                  end if;
-
-                  if not Executable_Obsolete then
-                     for Index in reverse 1 .. Dependencies.Last loop
-                        if Is_In_Obsoleted
-                             (Dependencies.Table (Index).Depends_On)
-                        then
-                           Enter_Into_Obsoleted
-                             (Dependencies.Table (Index).This);
-                        end if;
-                     end loop;
-
-                     Executable_Obsolete := Is_In_Obsoleted (Main_Source_File);
-                     Dependencies.Init;
-                  end if;
-
-                  if not Executable_Obsolete then
-
-                     --  If no Ada object files obsolete the executable, check
-                     --  for younger or missing linker files.
-
-                     Check_Linker_Options
-                       (Executable_Stamp,
-                        Youngest_Obj_File,
-                        Youngest_Obj_Stamp);
-
-                     Executable_Obsolete := Youngest_Obj_File /= No_File;
-                  end if;
-
-                  --  Check if any library file is more recent than the
-                  --  executable: there may be an externally built library
-                  --  file that has been modified.
-
-                  if not Executable_Obsolete
-                    and then Main_Project /= No_Project
-                  then
-                     declare
-                        Proj1 : Project_List;
-
-                     begin
-                        Proj1 := Project_Tree.Projects;
-                        while Proj1 /= null loop
-                           if Proj1.Project.Library
-                             and then
-                               Proj1.Project.Library_TS > Executable_Stamp
-                           then
-                              Executable_Obsolete := True;
-                              Youngest_Obj_Stamp := Proj1.Project.Library_TS;
-                              Name_Len := 0;
-                              Add_Str_To_Name_Buffer ("library ");
-                              Add_Str_To_Name_Buffer
-                                (Get_Name_String (Proj1.Project.Library_Name));
-                              Youngest_Obj_File := Name_Find;
-                              exit;
-                           end if;
-
-                           Proj1 := Proj1.Next;
-                        end loop;
-                     end;
-                  end if;
-
-                  --  Return if the executable is up to date and otherwise
-                  --  motivate the relink/rebind.
-
-                  if not Executable_Obsolete then
-                     if not Quiet_Output then
-                        Inform (Executable, "up to date.");
-                     end if;
-
-                     if Osint.Number_Of_Files = 1 then
-                        exit Multiple_Main_Loop;
-
-                     else
-                        goto Next_Main;
-                     end if;
-                  end if;
-
-                  if Executable_Stamp (1) = ' ' then
-                     if not No_Main_Subprogram then
-                        Verbose_Msg (Executable, "missing.", Prefix => "  ");
-                     end if;
-
-                  elsif Youngest_Obj_Stamp (1) = ' ' then
-                     Verbose_Msg
-                       (Youngest_Obj_File, "missing.",  Prefix => "  ");
-
-                  elsif Youngest_Obj_Stamp > Executable_Stamp then
-                     Verbose_Msg
-                       (Youngest_Obj_File,
-                        "(" & String (Youngest_Obj_Stamp) & ") newer than",
-                        Executable,
-                        "(" & String (Executable_Stamp) & ")");
-
-                  else
-                     Verbose_Msg
-                       (Executable, "needs to be rebuilt", Prefix => "  ");
-
-                  end if;
-               end if;
-            end Recursive_Compilation_Step;
+            end if;
          end if;
 
          --  For binding and linking, we need to be in the object directory of
@@ -5955,583 +6199,45 @@ package body Make is
          end Main_ALI_In_Place_Mode_Step;
 
          if Do_Bind_Step then
-            Bind_Step : declare
-               Args : Argument_List
-                        (Binder_Switches.First .. Binder_Switches.Last + 2);
-               --  The arguments for the invocation of gnatbind
-
-               Last_Arg : Natural := Binder_Switches.Last;
-               --  Index of the last argument in Args
-
-               Shared_Libs : Boolean := False;
-               --  Set to True when there are shared library project files or
-               --  when gnatbind is invoked with -shared.
-
-               Proj : Project_List;
-
-            begin
-               --  Check if there are shared libraries, so that gnatbind is
-               --  called with -shared. Check also if gnatbind is called with
-               --  -shared, so that gnatlink is called with -shared-libgcc
-               --  ensuring that the shared version of libgcc will be used.
-
-               if Main_Project /= No_Project
-                 and then MLib.Tgt.Support_For_Libraries /= Prj.None
-               then
-                  Proj := Project_Tree.Projects;
-                  while Proj /= null loop
-                     if Proj.Project.Library
-                       and then Proj.Project.Library_Kind /= Static
-                     then
-                        Shared_Libs := True;
-                        Bind_Shared := Shared_Switch'Access;
-                        exit;
-                     end if;
-                     Proj := Proj.Next;
-                  end loop;
-               end if;
-
-               --  Check now for switch -shared
-
-               if not Shared_Libs then
-                  for J in Binder_Switches.First .. Last_Arg loop
-                     if Binder_Switches.Table (J).all = "-shared" then
-                        Shared_Libs := True;
-                        exit;
-                     end if;
-                  end loop;
-               end if;
-
-               --  If shared libraries present, invoke gnatlink with
-               --  -shared-libgcc.
-
-               if Shared_Libs then
-                  Link_With_Shared_Libgcc := Shared_Libgcc_Switch'Access;
-               end if;
-
-               --  Get all the binder switches
-
-               for J in Binder_Switches.First .. Last_Arg loop
-                  Args (J) := Binder_Switches.Table (J);
-               end loop;
-
-               if Stand_Alone_Libraries then
-                  Last_Arg := Last_Arg + 1;
-                  Args (Last_Arg) := Force_Elab_Flags_String'Access;
-               end if;
-
-               if Main_Project /= No_Project then
-
-                  --  Put all the source directories in ADA_INCLUDE_PATH,
-                  --  and all the object directories in ADA_OBJECTS_PATH,
-                  --  except those of library projects.
-
-                  Prj.Env.Set_Ada_Paths (Main_Project, Project_Tree, False);
-
-                  --  If switch -C was specified, create a binder mapping file
-
-                  if Create_Mapping_File then
-                     Create_Binder_Mapping_File (Args, Last_Arg);
-                  end if;
-
-               end if;
-
-               begin
-                  Bind (Main_ALI_File,
-                        Bind_Shared.all & Args (Args'First .. Last_Arg));
-
-               exception
-                  when others =>
-
-                     --  Delete the temporary mapping file, if one was created.
-
-                     if Mapping_Path /= No_Path then
-                        Delete_Temporary_File (Project_Tree, Mapping_Path);
-                     end if;
-
-                     --  And reraise the exception
-
-                     raise;
-               end;
-
-               --  If -dn was not specified, delete the temporary mapping file,
-               --  if one was created.
-
-               if Mapping_Path /= No_Path then
-                  Delete_Temporary_File (Project_Tree, Mapping_Path);
-               end if;
-            end Bind_Step;
+            Binding_Phase
+              (Stand_Alone_Libraries => Stand_Alone_Libraries,
+               Main_ALI_File         => Main_ALI_File);
          end if;
 
          if Do_Link_Step then
-            Link_Step : declare
-               Linker_Switches_Last : constant Integer := Linker_Switches.Last;
-               Path_Option          : constant String_Access :=
-                                        MLib.Linker_Library_Path_Option;
-               Libraries_Present    : Boolean := False;
-               Current              : Natural;
-               Proj2                : Project_Id;
-               Depth                : Natural;
-               Proj1                : Project_List;
-
-            begin
-               if not Run_Path_Option then
-                  Linker_Switches.Increment_Last;
-                  Linker_Switches.Table (Linker_Switches.Last) :=
-                    new String'("-R");
-               end if;
-
-               if Main_Project /= No_Project then
-                  Library_Paths.Set_Last (0);
-                  Library_Projs.Init;
-
-                  if MLib.Tgt.Support_For_Libraries /= Prj.None then
-
-                     --  Check for library projects
-
-                     Proj1 := Project_Tree.Projects;
-                     while Proj1 /= null loop
-                        if Proj1.Project /= Main_Project
-                          and then Proj1.Project.Library
-                        then
-                           --  Add this project to table Library_Projs
-
-                           Libraries_Present := True;
-                           Depth := Proj1.Project.Depth;
-                           Library_Projs.Increment_Last;
-                           Current := Library_Projs.Last;
-
-                           --  Any project with a greater depth should be
-                           --  after this project in the list.
-
-                           while Current > 1 loop
-                              Proj2 := Library_Projs.Table (Current - 1);
-                              exit when Proj2.Depth <= Depth;
-                              Library_Projs.Table (Current) := Proj2;
-                              Current := Current - 1;
-                           end loop;
-
-                           Library_Projs.Table (Current) := Proj1.Project;
-
-                           --  If it is not a static library and path option
-                           --  is set, add it to the Library_Paths table.
-
-                           if Proj1.Project.Library_Kind /= Static
-                             and then Path_Option /= null
-                           then
-                              Library_Paths.Increment_Last;
-                              Library_Paths.Table (Library_Paths.Last) :=
-                                new String'
-                                  (Get_Name_String
-                                     (Proj1.Project.Library_Dir.Display_Name));
-                           end if;
-                        end if;
-
-                        Proj1 := Proj1.Next;
-                     end loop;
-
-                     for Index in 1 .. Library_Projs.Last loop
-
-                        --  Add the -L switch
-
-                        Linker_Switches.Increment_Last;
-                        Linker_Switches.Table (Linker_Switches.Last) :=
-                          new String'("-L" &
-                                      Get_Name_String
-                                        (Library_Projs.Table (Index).
-                                            Library_Dir.Display_Name));
-
-                        --  Add the -l switch
-
-                        Linker_Switches.Increment_Last;
-                        Linker_Switches.Table (Linker_Switches.Last) :=
-                          new String'("-l" &
-                                      Get_Name_String
-                                        (Library_Projs.Table (Index).
-                                           Library_Name));
-                     end loop;
-                  end if;
-
-                  if Libraries_Present then
-
-                     --  If Path_Option is not null, create the switch
-                     --  ("-Wl,-rpath," or equivalent) with all the non static
-                     --  library dirs plus the standard GNAT library dir.
-                     --  We do that only if Run_Path_Option is True
-                     --  (not disabled by -R switch).
-
-                     if Run_Path_Option and then Path_Option /= null then
-                        declare
-                           Option  : String_Access;
-                           Length  : Natural := Path_Option'Length;
-                           Current : Natural;
-
-                        begin
-                           if MLib.Separate_Run_Path_Options then
-
-                              --  We are going to create one switch of the form
-                              --  "-Wl,-rpath,dir_N" for each directory to
-                              --  consider.
-
-                              --  One switch for each library directory
-
-                              for Index in
-                                Library_Paths.First .. Library_Paths.Last
-                              loop
-                                 Linker_Switches.Increment_Last;
-                                 Linker_Switches.Table
-                                   (Linker_Switches.Last) := new String'
-                                   (Path_Option.all &
-                                    Library_Paths.Table (Index).all);
-                              end loop;
-
-                              --  One switch for the standard GNAT library dir
-
-                              Linker_Switches.Increment_Last;
-                              Linker_Switches.Table
-                                (Linker_Switches.Last) := new String'
-                                (Path_Option.all & MLib.Utl.Lib_Directory);
-
-                           else
-                              --  We are going to create one switch of the form
-                              --  "-Wl,-rpath,dir_1:dir_2:dir_3"
-
-                              for Index in
-                                Library_Paths.First .. Library_Paths.Last
-                              loop
-                                 --  Add the length of the library dir plus one
-                                 --  for the directory separator.
-
-                                 Length :=
-                                   Length +
-                                     Library_Paths.Table (Index)'Length + 1;
-                              end loop;
-
-                              --  Finally, add the length of the standard GNAT
-                              --  library dir.
-
-                              Length := Length + MLib.Utl.Lib_Directory'Length;
-                              Option := new String (1 .. Length);
-                              Option (1 .. Path_Option'Length) :=
-                                Path_Option.all;
-                              Current := Path_Option'Length;
-
-                              --  Put each library dir followed by a dir
-                              --  separator.
-
-                              for Index in
-                                Library_Paths.First .. Library_Paths.Last
-                              loop
-                                 Option
-                                   (Current + 1 ..
-                                      Current +
-                                        Library_Paths.Table (Index)'Length) :=
-                                   Library_Paths.Table (Index).all;
-                                 Current :=
-                                   Current +
-                                     Library_Paths.Table (Index)'Length + 1;
-                                 Option (Current) := Path_Separator;
-                              end loop;
-
-                              --  Finally put the standard GNAT library dir
-
-                              Option
-                                (Current + 1 ..
-                                   Current + MLib.Utl.Lib_Directory'Length) :=
-                                  MLib.Utl.Lib_Directory;
-
-                              --  And add the switch to the linker switches
-
-                              Linker_Switches.Increment_Last;
-                              Linker_Switches.Table (Linker_Switches.Last) :=
-                                Option;
-                           end if;
-                        end;
-                     end if;
-
-                  end if;
-
-                  --  Put the object directories in ADA_OBJECTS_PATH
-
-                  Prj.Env.Set_Ada_Paths (Main_Project, Project_Tree, False);
-
-                  --  Check for attributes Linker'Linker_Options in projects
-                  --  other than the main project
-
-                  declare
-                     Linker_Options : constant String_List :=
-                                        Linker_Options_Switches
-                                          (Main_Project, Project_Tree);
-                  begin
-                     for Option in Linker_Options'Range loop
-                        Linker_Switches.Increment_Last;
-                        Linker_Switches.Table (Linker_Switches.Last) :=
-                          Linker_Options (Option);
-                     end loop;
-                  end;
-               end if;
-
-               declare
-                  Args : Argument_List
-                           (Linker_Switches.First .. Linker_Switches.Last + 2);
-
-                  Last_Arg : Integer := Linker_Switches.First - 1;
-                  Skip     : Boolean := False;
-
-               begin
-                  --  Get all the linker switches
-
-                  for J in Linker_Switches.First .. Linker_Switches.Last loop
-                     if Skip then
-                        Skip := False;
-
-                     elsif Non_Std_Executable
-                       and then Linker_Switches.Table (J).all = "-o"
-                     then
-                        Skip := True;
-
-                     --  Here we capture and duplicate the linker argument. We
-                     --  need to do the duplication since the arguments will
-                     --  get normalized. Not doing so will result in calling
-                     --  normalized two times for the same set of arguments if
-                     --  gnatmake is passed multiple mains. This can result in
-                     --  the wrong argument being passed to the linker.
-
-                     else
-                        Last_Arg := Last_Arg + 1;
-                        Args (Last_Arg) :=
-                          new String'(Linker_Switches.Table (J).all);
-                     end if;
-                  end loop;
-
-                  --  If need be, add the -o switch
-
-                  if Non_Std_Executable then
-                     Last_Arg := Last_Arg + 1;
-                     Args (Last_Arg) := new String'("-o");
-                     Last_Arg := Last_Arg + 1;
-                     Args (Last_Arg) :=
-                       new String'(Get_Name_String (Executable));
-                  end if;
-
-                  --  And invoke the linker
-
-                  declare
-                     Success : Boolean := False;
-                  begin
-                     Link (Main_ALI_File,
-                           Link_With_Shared_Libgcc.all &
-                           Args (Args'First .. Last_Arg),
-                           Success);
-
-                     if Success then
-                        Successful_Links.Increment_Last;
-                        Successful_Links.Table (Successful_Links.Last) :=
-                          Main_ALI_File;
-
-                     elsif Osint.Number_Of_Files = 1
-                       or else not Keep_Going
-                     then
-                        Make_Failed ("*** link failed.");
-
-                     else
-                        Set_Standard_Error;
-                        Write_Line ("*** link failed");
-
-                        if Commands_To_Stdout then
-                           Set_Standard_Output;
-                        end if;
-
-                        Failed_Links.Increment_Last;
-                        Failed_Links.Table (Failed_Links.Last) :=
-                          Main_ALI_File;
-                     end if;
-                  end;
-               end;
-
-               Linker_Switches.Set_Last (Linker_Switches_Last);
-            end Link_Step;
+            Linking_Phase
+              (Non_Std_Executable => Non_Std_Executable,
+               Executable         => Executable,
+               Main_ALI_File      => Main_ALI_File);
          end if;
 
          --  We go to here when we skip the bind and link steps
 
          <<Next_Main>>
 
-         --  We go to the next main, if we did not process the last one
+         Queue.Remove_Marks;
 
          if N_File < Osint.Number_Of_Files then
-            Main_Source_File := Next_Main_Source;
-
-            if Current_File_Index /= No_Index then
-               Main_Index := Current_File_Index;
-            end if;
-
-            if Main_Project /= No_Project then
-
-               --  Find the file name of the main unit
-
-               declare
-                  Main_Source_File_Name : constant String :=
-                                            Get_Name_String (Main_Source_File);
-
-                  Main_Unit_File_Name : constant String :=
-                                          Prj.Env.
-                                            File_Name_Of_Library_Unit_Body
-                                              (Name => Main_Source_File_Name,
-                                               Project => Main_Project,
-                                               In_Tree => Project_Tree,
-                                               Main_Project_Only =>
-                                                 not Unique_Compile);
-
-                  The_Packages : constant Package_Id :=
-                    Main_Project.Decl.Packages;
-
-                  Binder_Package : constant Prj.Package_Id :=
-                               Prj.Util.Value_Of
-                                 (Name        => Name_Binder,
-                                  In_Packages => The_Packages,
-                                  In_Tree     => Project_Tree);
-
-                  Linker_Package : constant Prj.Package_Id :=
-                               Prj.Util.Value_Of
-                                 (Name        => Name_Linker,
-                                  In_Packages => The_Packages,
-                                  In_Tree     => Project_Tree);
-
-               begin
-                  --  We fail if we cannot find the main source file
-                  --  as an immediate source of the main project file.
-
-                  if Main_Unit_File_Name = "" then
-                     Make_Failed ('"' & Main_Source_File_Name
-                                  & """ is not a unit of project "
-                                  & Project_File_Name.all & ".");
-
-                  else
-                     --  Remove any directory information from the main
-                     --  source file name.
-
-                     declare
-                        Pos : Natural := Main_Unit_File_Name'Last;
-
-                     begin
-                        loop
-                           exit when Pos < Main_Unit_File_Name'First
-                             or else
-                             Main_Unit_File_Name (Pos) = Directory_Separator;
-                           Pos := Pos - 1;
-                        end loop;
-
-                        Name_Len := Main_Unit_File_Name'Last - Pos;
-
-                        Name_Buffer (1 .. Name_Len) :=
-                          Main_Unit_File_Name
-                          (Pos + 1 .. Main_Unit_File_Name'Last);
-
-                        Main_Source_File := Name_Find;
-                     end;
-                  end if;
-
-                  --  We now deal with the binder and linker switches.
-                  --  If no project file is used, there is nothing to do
-                  --  because the binder and linker switches are the same
-                  --  for all mains.
-
-                  --  Reset the tables Binder_Switches and Linker_Switches
-
-                  Binder_Switches.Set_Last (Last_Binder_Switch);
-                  Linker_Switches.Set_Last (Last_Linker_Switch);
-
-                  --  Add binder switches from the project file for this main,
-                  --  if any.
-
-                  if Do_Bind_Step and then Binder_Package /= No_Package then
-                     if Verbose_Mode then
-                        Write_Str ("Adding binder switches for """);
-                        Write_Str (Main_Unit_File_Name);
-                        Write_Line (""".");
-                     end if;
-
-                     Add_Switches
-                       (Project_Node_Tree => Project_Node_Tree,
-                        File_Name         => Main_Unit_File_Name,
-                        Index             => Main_Index,
-                        The_Package       => Binder_Package,
-                        Program           => Binder);
-                  end if;
-
-                  --  Add linker switches from the project file for this main,
-                  --  if any.
-
-                  if Do_Link_Step and then Linker_Package /= No_Package then
-                     if Verbose_Mode then
-                        Write_Str ("Adding linker switches for""");
-                        Write_Str (Main_Unit_File_Name);
-                        Write_Line (""".");
-                     end if;
-
-                     Add_Switches
-                       (Project_Node_Tree => Project_Node_Tree,
-                        File_Name         => Main_Unit_File_Name,
-                        Index             => Main_Index,
-                        The_Package       => Linker_Package,
-                        Program           => Linker);
-                  end if;
-
-                  --  As we are using a project file, for relative paths we add
-                  --  the current working directory for any relative path on
-                  --  the command line and the project directory, for any
-                  --  relative path in the project file.
-
-                  declare
-                     Dir_Path : constant String :=
-                                  Get_Name_String
-                                    (Main_Project.Directory.Name);
-
-                  begin
-                     for
-                       J in Last_Binder_Switch + 1 .. Binder_Switches.Last
-                     loop
-                        Test_If_Relative_Path
-                          (Binder_Switches.Table (J),
-                           Parent => Dir_Path, Including_L_Switch => False);
-                     end loop;
-
-                     for
-                       J in Last_Linker_Switch + 1 .. Linker_Switches.Last
-                     loop
-                        Test_If_Relative_Path
-                          (Linker_Switches.Table (J), Parent => Dir_Path);
-                     end loop;
-                  end;
-
-                  --  We now put in the Binder_Switches and Linker_Switches
-                  --  tables, the binder and linker switches of the command
-                  --  line that have been put in the Saved_ tables.
-                  --  These switches will follow the project file switches.
-
-                  for J in 1 .. Saved_Binder_Switches.Last loop
-                     Add_Switch
-                       (Saved_Binder_Switches.Table (J),
-                        Binder,
-                        And_Save => False);
-                  end loop;
-
-                  for J in 1 .. Saved_Linker_Switches.Last loop
-                     Add_Switch
-                       (Saved_Linker_Switches.Table (J),
-                        Linker,
-                        And_Save => False);
-                  end loop;
-               end;
-            end if;
+            Main_Source_File := Next_Main_Source;  --  No directory information
          end if;
-
-         --  Remove all marks to be sure to check sources for all executables,
-         --  as the switches may be different and -s may be in use.
-
-         Delete_All_Marks;
       end loop Multiple_Main_Loop;
+
+      if CodePeer_Mode then
+         declare
+            Success : Boolean := False;
+         begin
+            Globalize (Success);
+
+            if not Success then
+               Set_Standard_Error;
+               Write_Str ("*** globalize failed.");
+
+               if Commands_To_Stdout then
+                  Set_Standard_Output;
+               end if;
+            end if;
+         end;
+      end if;
 
       if Failed_Links.Last > 0 then
          for Index in 1 .. Successful_Links.Last loop
@@ -6562,10 +6268,7 @@ package body Make is
          Report_Compilation_Failed;
       end if;
 
-      --  Delete the temporary mapping file that was created if we are
-      --  using project files.
-
-      Delete_All_Temp_Files;
+      Finish_Program (Project_Tree, E_Success);
 
    exception
       when X : others =>
@@ -6635,7 +6338,7 @@ package body Make is
 
          else
             Record_Temp_File
-              (Project_Tree,
+              (Project_Tree.Shared,
                Data.Mapping_File_Names (Data.Last_Mapping_File_Names));
          end if;
 
@@ -6651,25 +6354,16 @@ package body Make is
       File_Index := Data.Last_Mapping_File_Names;
    end Init_Mapping_File;
 
-   ------------
-   -- Init_Q --
-   ------------
-
-   procedure Init_Q is
-   begin
-      First_Q_Initialization := False;
-      Q_Front := Q.First;
-      Q.Set_Last (Q.First);
-   end Init_Q;
-
    ----------------
    -- Initialize --
    ----------------
 
-   procedure Initialize (Project_Node_Tree : out Project_Node_Tree_Ref) is
-
+   procedure Initialize
+      (Project_Node_Tree : out Project_Node_Tree_Ref;
+       Env               : out Prj.Tree.Environment)
+   is
       procedure Check_Version_And_Help is
-         new Check_Version_And_Help_G (Makeusg);
+        new Check_Version_And_Help_G (Makeusg);
 
       --  Start of processing for Initialize
 
@@ -6677,6 +6371,10 @@ package body Make is
       --  Prepare the project's tree, since this is used to hold external
       --  references, project path and other attributes that can be impacted by
       --  the command line switches
+
+      Prj.Tree.Initialize (Env, Gnatmake_Flags);
+      Prj.Env.Initialize_Default_Project_Path
+        (Env.Project_Path, Target_Name => Sdefault.Target_Name.all);
 
       Project_Node_Tree := new Project_Node_Tree_Data;
       Prj.Tree.Initialize (Project_Node_Tree);
@@ -6688,7 +6386,7 @@ package body Make is
 
       Check_Object_Consistency := True;
 
-      --  Package initializations. The order of calls is important here
+      --  Package initializations (the order of calls is important here)
 
       Output.Set_Standard_Error;
 
@@ -6697,8 +6395,6 @@ package body Make is
       Linker_Switches.Init;
 
       Csets.Initialize;
-      Namet.Initialize;
-
       Snames.Initialize;
 
       Prj.Initialize (Project_Tree);
@@ -6763,12 +6459,11 @@ package body Make is
       --  do not include --version or --help.
 
       Scan_Args : for Next_Arg in 1 .. Argument_Count loop
-         Scan_Make_Arg
-           (Project_Node_Tree, Argument (Next_Arg), And_Save => True);
+         Scan_Make_Arg (Env, Argument (Next_Arg), And_Save => True);
       end loop Scan_Args;
 
       if N_M_Switch > 0 and RTS_Specified = null then
-         Process_Multilib (Project_Node_Tree);
+         Process_Multilib (Env);
       end if;
 
       if Commands_To_Stdout then
@@ -6794,7 +6489,8 @@ package body Make is
       --  Test for trailing -D switch
 
       elsif Object_Directory_Present
-        and then not Object_Directory_Seen then
+        and then not Object_Directory_Seen
+      then
          Make_Failed ("object directory missing after -D");
       end if;
 
@@ -6802,6 +6498,38 @@ package body Make is
 
       if Object_Directory_Path /= null and then In_Place_Mode then
          Make_Failed ("-i and -D cannot be used simultaneously");
+      end if;
+
+      --  If --subdirs= is specified, but not -P, this is equivalent to -D,
+      --  except that the directory is created if it does not exist.
+
+      if Prj.Subdirs /= null and then Project_File_Name = null then
+         if Object_Directory_Path /= null then
+            Make_Failed ("--subdirs and -D cannot be used simultaneously");
+
+         elsif In_Place_Mode then
+            Make_Failed ("--subdirs and -i cannot be used simultaneously");
+
+         else
+            if not Is_Directory (Prj.Subdirs.all) then
+               begin
+                  Ada.Directories.Create_Path (Prj.Subdirs.all);
+               exception
+                  when others =>
+                     Make_Failed ("unable to create object directory " &
+                                  Prj.Subdirs.all);
+               end;
+            end if;
+
+            Object_Directory_Present := True;
+
+            declare
+               Argv : constant String (1 .. Prj.Subdirs'Length) :=
+                        Prj.Subdirs.all;
+            begin
+               Scan_Make_Arg (Env, Argv, And_Save => False);
+            end;
+         end if;
       end if;
 
       --  Deal with -C= switch
@@ -6853,7 +6581,7 @@ package body Make is
             In_Tree           => Project_Tree,
             Project_File_Name => Project_File_Name.all,
             Packages_To_Check => Packages_To_Check_By_Gnatmake,
-            Flags             => Gnatmake_Flags,
+            Env               => Env,
             In_Node_Tree      => Project_Node_Tree);
 
          --  The parsing of project files may have changed the current output
@@ -6881,15 +6609,16 @@ package body Make is
 
          --  We add the source directories and the object directories to the
          --  search paths.
+
          --  ??? Why do we need these search directories, we already know the
          --  locations from parsing the project, except for the runtime which
          --  has its own directories anyway
 
          Add_Source_Directories (Main_Project, Project_Tree);
-         Add_Object_Directories (Main_Project);
+         Add_Object_Directories (Main_Project, Project_Tree);
 
          Recursive_Compute_Depth (Main_Project);
-         Compute_All_Imported_Projects (Project_Tree);
+         Compute_All_Imported_Projects (Main_Project, Project_Tree);
 
       else
 
@@ -6934,49 +6663,16 @@ package body Make is
       Unit     : Unit_Index;
       Sfile    : File_Name_Type;
       Index    : Int;
-
-      Extending : constant Boolean := The_Project.Extends /= No_Project;
-
-      function Check_Project (P : Project_Id) return Boolean;
-      --  Returns True if P is The_Project or a project extended by The_Project
-
-      -------------------
-      -- Check_Project --
-      -------------------
-
-      function Check_Project (P : Project_Id) return Boolean is
-      begin
-         if All_Projects or else P = The_Project then
-            return True;
-
-         elsif Extending then
-            declare
-               Proj : Project_Id;
-
-            begin
-               Proj := The_Project;
-               while Proj /= null loop
-                  if P = Proj.Extends then
-                     return True;
-                  end if;
-
-                  Proj := Proj.Extends;
-               end loop;
-            end;
-         end if;
-
-         return False;
-      end Check_Project;
-
-   --  Start of processing for Insert_Project_Sources
+      Project  : Project_Id;
 
    begin
-      --  For all the sources in the project files,
+      --  Loop through all the sources in the project files
 
       Unit := Units_Htable.Get_First (Project_Tree.Units_HT);
       while Unit /= null loop
-         Sfile := No_File;
-         Index := 0;
+         Sfile   := No_File;
+         Index   := 0;
+         Project := No_Project;
 
          --  If there is a source for the body, and the body has not been
          --  locally removed.
@@ -6986,7 +6682,11 @@ package body Make is
          then
             --  And it is a source for the specified project
 
-            if Check_Project (Unit.File_Names (Impl).Project) then
+            if All_Projects
+              or else
+                Is_Extending (The_Project, Unit.File_Names (Impl).Project)
+            then
+               Project := Unit.File_Names (Impl).Project;
 
                --  If we don't have a spec, we cannot consider the source
                --  if it is a subunit.
@@ -7009,7 +6709,7 @@ package body Make is
                   begin
                      Src_Ind := Sinput.P.Load_Project_File
                                   (Get_Name_String
-                                     (Unit.File_Names (Impl).Path.Name));
+                                   (Unit.File_Names (Impl).Path.Display_Name));
 
                      --  If it is a subunit, discard it
 
@@ -7030,45 +6730,42 @@ package body Make is
 
          elsif Unit.File_Names (Spec) /= null
            and then not Unit.File_Names (Spec).Locally_Removed
-           and then Check_Project (Unit.File_Names (Spec).Project)
+           and then
+             (All_Projects
+              or else
+                Is_Extending (The_Project, Unit.File_Names (Spec).Project))
          then
             --  If there is no source for the body, but there is one for the
             --  spec which has not been locally removed, then we take this one.
 
             Sfile := Unit.File_Names (Spec).Display_File;
             Index := Unit.File_Names (Spec).Index;
+            Project := Unit.File_Names (Spec).Project;
          end if;
 
-         --  If Put_In_Q is True, we insert into the Q
+         --  For the first source inserted into the Q, we need to initialize
+         --  the Q, but not for the subsequent sources.
 
-         if Put_In_Q then
+         Queue.Initialize
+                 (Main_Project /= No_Project and then
+                  One_Compilation_Per_Obj_Dir);
 
-            --  For the first source inserted into the Q, we need to initialize
-            --  the Q, but not for the subsequent sources.
+         if Sfile /= No_File then
+            Queue.Insert
+              ((Format   => Format_Gnatmake,
+                File     => Sfile,
+                Project  => Project,
+                Unit     => No_Unit_Name,
+                Index    => Index));
+         end if;
 
-            if First_Q_Initialization then
-               Init_Q;
-            end if;
-
-            --  And of course, only insert in the Q if the source is not marked
-
-            if Sfile /= No_File and then not Is_Marked (Sfile, Index) then
-               if Verbose_Mode then
-                  Write_Str ("Adding """);
-                  Write_Str (Get_Name_String (Sfile));
-                  Write_Line (""" to the queue");
-               end if;
-
-               Insert_Q (Sfile, Index => Index);
-               Mark (Sfile, Index);
-            end if;
-
-         elsif Sfile /= No_File then
+         if not Put_In_Q and then Sfile /= No_File then
 
             --  If Put_In_Q is False, we add the source as if it were specified
             --  on the command line, and we set Put_In_Q to True, so that the
-            --  following sources will be put directly in the queue. This will
-            --  allow parallel compilation processes if -jx switch is used.
+            --  following sources will only be put in the queue. The source is
+            --  already in the Q, but we need at least one fake main to call
+            --  Compile_Sources.
 
             if Verbose_Mode then
                Write_Str ("Adding """);
@@ -7078,48 +6775,11 @@ package body Make is
 
             Osint.Add_File (Get_Name_String (Sfile), Index);
             Put_In_Q := True;
-
-            --  As we may look into the Q later, ensure the Q has been
-            --  initialized to avoid errors.
-
-            if First_Q_Initialization then
-               Init_Q;
-            end if;
          end if;
 
          Unit := Units_Htable.Get_Next (Project_Tree.Units_HT);
       end loop;
    end Insert_Project_Sources;
-
-   --------------
-   -- Insert_Q --
-   --------------
-
-   procedure Insert_Q
-     (Source_File : File_Name_Type;
-      Source_Unit : Unit_Name_Type := No_Unit_Name;
-      Index       : Int            := 0)
-   is
-   begin
-      if Debug.Debug_Flag_Q then
-         Write_Str ("   Q := Q + [ ");
-         Write_Name (Source_File);
-
-         if Index /= 0 then
-            Write_Str (", ");
-            Write_Int (Index);
-         end if;
-
-         Write_Str (" ] ");
-         Write_Eol;
-      end if;
-
-      Q.Table (Q.Last) :=
-        (File  => Source_File,
-         Unit  => Source_Unit,
-         Index => Index);
-      Q.Increment_Last;
-   end Insert_Q;
 
    ---------------------
    -- Is_In_Obsoleted --
@@ -7360,8 +7020,7 @@ package body Make is
 
    procedure Make_Failed (S : String) is
    begin
-      Delete_All_Temp_Files;
-      Osint.Fail (S);
+      Fail_Program (Project_Tree, S);
    end Make_Failed;
 
    --------------------
@@ -7425,9 +7084,7 @@ package body Make is
    -- Process_Multilib --
    ----------------------
 
-   procedure Process_Multilib
-     (Project_Node_Tree : Project_Node_Tree_Ref)
-   is
+   procedure Process_Multilib (Env : in out Prj.Tree.Environment) is
       Output_FD         : File_Descriptor;
       Output_Name       : String_Access;
       Arg_Index         : Natural := 0;
@@ -7454,6 +7111,7 @@ package body Make is
       for Next_Arg in 1 .. Argument_Count loop
          declare
             Argv : constant String := Argument (Next_Arg);
+
          begin
             if Argv'Length > 2
               and then Argv (1) = '-'
@@ -7528,9 +7186,8 @@ package body Make is
 
       --  Otherwise add -margs --RTS=output
 
-      Scan_Make_Arg (Project_Node_Tree, "-margs", And_Save => True);
-      Scan_Make_Arg
-        (Project_Node_Tree, "--RTS=" & Line (1 .. N_Read), And_Save => True);
+      Scan_Make_Arg (Env, "-margs", And_Save => True);
+      Scan_Make_Arg (Env, "--RTS=" & Line (1 .. N_Read), And_Save => True);
    end Process_Multilib;
 
    -----------------------------
@@ -7601,8 +7258,7 @@ package body Make is
 
    procedure Report_Compilation_Failed is
    begin
-      Delete_All_Temp_Files;
-      Exit_Program (E_Fatal);
+      Fail_Program (Project_Tree, "");
    end Report_Compilation_Failed;
 
    ------------------------
@@ -7622,10 +7278,7 @@ package body Make is
          Kill (Running_Compile (J).Pid, SIGINT, 1);
       end loop;
 
-      Delete_All_Temp_Files;
-      OS_Exit (1);
-      --  ??? OS_Exit (1) is equivalent to Exit_Program (E_No_Compile),
-      --  shouldn't that be Exit_Program (E_Abort) instead?
+      Finish_Program (Project_Tree, E_No_Compile);
    end Sigint_Intercepted;
 
    -------------------
@@ -7633,7 +7286,7 @@ package body Make is
    -------------------
 
    procedure Scan_Make_Arg
-     (Project_Node_Tree : Project_Node_Tree_Ref;
+     (Env               : in out Prj.Tree.Environment;
       Argv              : String;
       And_Save          : Boolean)
    is
@@ -7717,15 +7370,15 @@ package body Make is
 
          end if;
 
-      --  Then check if we are dealing with -cargs/-bargs/-largs/-margs
+      --  Then check if we are dealing with -cargs/-bargs/-largs/-margs. These
+      --  options are taken as is when found in package Compiler, Binder or
+      --  Linker of the main project file.
 
-      elsif Argv = "-bargs"
-              or else
-            Argv = "-cargs"
-              or else
-            Argv = "-largs"
-              or else
-            Argv = "-margs"
+      elsif (And_Save or else Program_Args = None)
+        and then (Argv = "-bargs" or else
+                  Argv = "-cargs" or else
+                  Argv = "-largs" or else
+                  Argv = "-margs")
       then
          case Argv (2) is
             when 'c' => Program_Args := Compiler;
@@ -7751,8 +7404,8 @@ package body Make is
 
       elsif Program_Args /= None then
 
-         --  Check to see if we are reading -I switches in order
-         --  to take into account in the src & lib search directories.
+         --  Check to see if we are reading -I switches in order to take into
+         --  account in the src & lib search directories.
 
          if Argv'Length > 2 and then Argv (1 .. 2) = "-I" then
             if Argv (3 .. Argv'Last) = "-" then
@@ -7897,14 +7550,33 @@ package body Make is
                end;
             end if;
 
+         elsif Argv'Length > Source_Info_Option'Length and then
+           Argv (1 .. Source_Info_Option'Length) = Source_Info_Option
+         then
+            Project_Tree.Source_Info_File_Name :=
+              new String'(Argv (Source_Info_Option'Length + 1 .. Argv'Last));
+
          elsif Argv'Length >= 8 and then
            Argv (1 .. 8) = "--param="
          then
             Add_Switch (Argv, Compiler, And_Save => And_Save);
             Add_Switch (Argv, Linker,   And_Save => And_Save);
 
+         elsif Argv = Create_Map_File_Switch then
+            Map_File := new String'("");
+
+         elsif Argv'Length > Create_Map_File_Switch'Length + 1
+           and then
+             Argv (1 .. Create_Map_File_Switch'Length) = Create_Map_File_Switch
+           and then
+             Argv (Create_Map_File_Switch'Length + 1) = '='
+         then
+            Map_File :=
+              new String'
+                (Argv (Create_Map_File_Switch'Length + 2 .. Argv'Last));
+
          else
-            Scan_Make_Switches (Project_Node_Tree, Argv, Success);
+            Scan_Make_Switches (Env, Argv, Success);
          end if;
 
       --  If we have seen a regular switch process it
@@ -7994,12 +7666,12 @@ package body Make is
          elsif Argv (2) = 'L' then
             Add_Switch (Argv, Linker, And_Save => And_Save);
 
-         --  For -gxxxxx, -pg, -mxxx, -fxxx: give the switch to both the
+         --  For -gxxx, -pg, -mxxx, -fxxx, -Oxxx, pass the switch to both the
          --  compiler and the linker (except for -gnatxxx which is only for the
          --  compiler). Some of the -mxxx (for example -m64) and -fxxx (for
          --  example -ftest-coverage for gcov) need to be used when compiling
          --  the binder generated files, and using all these gcc switches for
-         --  the binder generated files should not be a problem.
+         --  them should not be a problem. Pass -Oxxx to the linker for LTO.
 
          elsif
            (Argv (2) = 'g' and then (Argv'Last < 5
@@ -8007,6 +7679,7 @@ package body Make is
              or else Argv (2 .. Argv'Last) = "pg"
              or else (Argv (2) = 'm' and then Argv'Last > 2)
              or else (Argv (2) = 'f' and then Argv'Last > 2)
+             or else Argv (2) = 'O'
          then
             Add_Switch (Argv, Compiler, And_Save => And_Save);
             Add_Switch (Argv, Linker,   And_Save => And_Save);
@@ -8039,7 +7712,7 @@ package body Make is
                  ("-D cannot be used in conjunction with a project file");
 
             else
-               Scan_Make_Switches (Project_Node_Tree, Argv, Success);
+               Scan_Make_Switches (Env, Argv, Success);
             end if;
 
          --  -d
@@ -8054,13 +7727,13 @@ package body Make is
                Make_Failed
                  ("-i cannot be used in conjunction with a project file");
             else
-               Scan_Make_Switches (Project_Node_Tree, Argv, Success);
+               Scan_Make_Switches (Env, Argv, Success);
             end if;
 
          --  -j (need to save the result)
 
          elsif Argv (2) = 'j' then
-            Scan_Make_Switches (Project_Node_Tree, Argv, Success);
+            Scan_Make_Switches (Env, Argv, Success);
 
             if And_Save then
                Saved_Maximum_Processes := Maximum_Processes;
@@ -8145,7 +7818,7 @@ package body Make is
          --  -Xext=val  (External assignment)
 
          elsif Argv (2) = 'X'
-           and then Is_External_Assignment (Project_Node_Tree, Argv)
+           and then Is_External_Assignment (Env, Argv)
          then
             --  Is_External_Assignment has side effects when it returns True
 
@@ -8168,19 +7841,24 @@ package body Make is
             Add_Switch (Argv, Compiler, And_Save => And_Save);
             Operating_Mode           := Check_Semantics;
             Check_Object_Consistency := False;
-            Compile_Only             := True;
-            Do_Bind_Step             := False;
-            Do_Link_Step             := False;
+
+            --  Comment needed here, what is going on???
+
+            if Argv'Last >= 7 and then Argv (7) = 'C' then
+               CodePeer_Mode := True;
+            else
+               Compile_Only := True;
+               Do_Bind_Step := False;
+               Do_Link_Step := False;
+            end if;
 
          elsif Argv (2 .. Argv'Last) = "nostdlib" then
 
-            --  Don't pass -nostdlib to gnatlink, it will disable
-            --  linking with all standard library files.
+            --  Pass -nstdlib to gnatbind and gnatlink
 
             No_Stdlib := True;
-
-            Add_Switch (Argv, Compiler, And_Save => And_Save);
             Add_Switch (Argv, Binder, And_Save => And_Save);
+            Add_Switch (Argv, Linker, And_Save => And_Save);
 
          elsif Argv (2 .. Argv'Last) = "nostdinc" then
 
@@ -8195,8 +7873,7 @@ package body Make is
          --  is passed to the compiler.
 
          else
-            Scan_Make_Switches
-              (Project_Node_Tree, Argv, Gnatmake_Switch_Found);
+            Scan_Make_Switches (Env, Argv, Gnatmake_Switch_Found);
 
             if not Gnatmake_Switch_Found then
                Add_Switch (Argv, Compiler, And_Save => And_Save);
@@ -8206,6 +7883,10 @@ package body Make is
       --  If not a switch it must be a file name
 
       else
+         if And_Save then
+            Main_On_Command_Line := True;
+         end if;
+
          Add_File (Argv);
          Mains.Add_Main (Argv);
       end if;
@@ -8217,151 +7898,24 @@ package body Make is
 
    function Switches_Of
      (Source_File      : File_Name_Type;
-      Source_File_Name : String;
-      Source_Index     : Int;
       Project          : Project_Id;
       In_Package       : Package_Id;
       Allow_ALI        : Boolean) return Variable_Value
    is
-      Lang : constant Language_Ptr := Get_Language_From_Name (Project, "ada");
-
       Switches : Variable_Value;
-
-      Defaults : constant Array_Element_Id :=
-                   Prj.Util.Value_Of
-                     (Name      => Name_Default_Switches,
-                      In_Arrays =>
-                        Project_Tree.Packages.Table
-                          (In_Package).Decl.Arrays,
-                      In_Tree   => Project_Tree);
-
-      Switches_Array : constant Array_Element_Id :=
-                         Prj.Util.Value_Of
-                           (Name      => Name_Switches,
-                            In_Arrays =>
-                              Project_Tree.Packages.Table
-                                (In_Package).Decl.Arrays,
-                            In_Tree   => Project_Tree);
+      Is_Default : Boolean;
 
    begin
-      --  First, try Switches (<file name>)
-
-      Switches :=
-        Prj.Util.Value_Of
-          (Index     => Name_Id (Source_File),
-           Src_Index => Source_Index,
-           In_Array  => Switches_Array,
-           In_Tree   => Project_Tree);
-
-      --  Check also without the suffix
-
-      if Switches = Nil_Variable_Value
-        and then Lang /= null
-      then
-         declare
-            Naming      : Lang_Naming_Data renames Lang.Config.Naming_Data;
-            Name        : String (1 .. Source_File_Name'Length + 3);
-            Last        : Positive := Source_File_Name'Length;
-            Spec_Suffix : constant String :=
-                            Get_Name_String (Naming.Spec_Suffix);
-            Body_Suffix : constant String :=
-                            Get_Name_String (Naming.Body_Suffix);
-            Truncated   : Boolean := False;
-
-         begin
-            Name (1 .. Last) := Source_File_Name;
-
-            if Last > Body_Suffix'Length
-               and then Name (Last - Body_Suffix'Length + 1 .. Last) =
-                                                                  Body_Suffix
-            then
-               Truncated := True;
-               Last := Last - Body_Suffix'Length;
-            end if;
-
-            if not Truncated
-              and then Last > Spec_Suffix'Length
-              and then Name (Last - Spec_Suffix'Length + 1 .. Last) =
-                                                                 Spec_Suffix
-            then
-               Truncated := True;
-               Last := Last - Spec_Suffix'Length;
-            end if;
-
-            if Truncated then
-               Name_Len := 0;
-               Add_Str_To_Name_Buffer (Name (1 .. Last));
-               Switches :=
-                 Prj.Util.Value_Of
-                   (Index     => Name_Find,
-                    Src_Index => 0,
-                    In_Array  => Switches_Array,
-                    In_Tree   => Project_Tree);
-
-               if Switches = Nil_Variable_Value and then Allow_ALI then
-                  Last := Source_File_Name'Length;
-
-                  while Name (Last) /= '.' loop
-                     Last := Last - 1;
-                  end loop;
-
-                  Name_Len := 0;
-                  Add_Str_To_Name_Buffer (Name (1 .. Last));
-                  Add_Str_To_Name_Buffer ("ali");
-
-                  Switches :=
-                    Prj.Util.Value_Of
-                      (Index     => Name_Find,
-                       Src_Index => 0,
-                       In_Array  => Switches_Array,
-                       In_Tree   => Project_Tree);
-               end if;
-            end if;
-         end;
-      end if;
-
-      --  Next, try Switches ("Ada")
-
-      if Switches = Nil_Variable_Value then
-         Switches :=
-           Prj.Util.Value_Of
-             (Index                  => Name_Ada,
-              Src_Index              => 0,
-              In_Array               => Switches_Array,
-              In_Tree                => Project_Tree,
-              Force_Lower_Case_Index => True);
-
-         if Switches /= Nil_Variable_Value then
-            Switch_May_Be_Passed_To_The_Compiler := False;
-         end if;
-      end if;
-
-      --  Next, try Switches (others)
-
-      if Switches = Nil_Variable_Value then
-         Switches :=
-           Prj.Util.Value_Of
-             (Index     => All_Other_Names,
-              Src_Index => 0,
-              In_Array  => Switches_Array,
-              In_Tree   => Project_Tree);
-
-         if Switches /= Nil_Variable_Value then
-            Switch_May_Be_Passed_To_The_Compiler := False;
-         end if;
-      end if;
-
-      --  And finally, Default_Switches ("Ada")
-
-      if Switches = Nil_Variable_Value then
-         Switches :=
-           Prj.Util.Value_Of
-             (Index     => Name_Ada,
-              Src_Index => 0,
-              In_Array  => Defaults,
-              In_Tree   => Project_Tree);
-      end if;
-
+      Makeutl.Get_Switches
+        (Source_File  => Source_File,
+         Source_Lang  => Name_Ada,
+         Source_Prj   => Project,
+         Pkg_Name     => Project_Tree.Shared.Packages.Table (In_Package).Name,
+         Project_Tree => Project_Tree,
+         Value        => Switches,
+         Is_Default   => Is_Default,
+         Test_Without_Suffix => True,
+         Check_ALI_Suffix => Allow_ALI);
       return Switches;
    end Switches_Of;
 
@@ -8382,5 +7936,4 @@ begin
 
    Prj.Com.Fail    := Make_Failed'Access;
    MLib.Fail       := Make_Failed'Access;
-   Makeutl.Do_Fail := Make_Failed'Access;
 end Make;

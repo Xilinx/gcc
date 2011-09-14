@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---           Copyright (C) 2009, Free Software Foundation, Inc.             --
+--        Copyright (C) 2009-2011, Free Software Foundation, Inc.           --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -29,7 +29,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package implaments the SHA-256 secure hash function as decsribed in
+--  This package implements the SHA-256 secure hash function as described in
 --  FIPS PUB 180-3. The complete text of FIPS PUB 180-3 can be found at:
 --    http://csrc.nist.gov/publications/fips/fips180-3/fips180-3_final.pdf
 

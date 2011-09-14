@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1999-2009, Free Software Foundation, Inc.          --
+--         Copyright (C) 1999-2011, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -184,7 +184,7 @@ package body System.Tasking.Restricted.Stages is
 
       Secondary_Stack : aliased SSE.Storage_Array
         (1 .. Self_ID.Common.Compiler_Data.Pri_Stack_Info.Size *
-                SSE.Storage_Offset (Parameters.Sec_Stack_Ratio) / 100);
+                SSE.Storage_Offset (Parameters.Sec_Stack_Percentage) / 100);
 
       pragma Warnings (Off);
       Secondary_Stack_Address : System.Address := Secondary_Stack'Address;
@@ -458,6 +458,7 @@ package body System.Tasking.Restricted.Stages is
       Stack_Address : System.Address;
       Size          : System.Parameters.Size_Type;
       Task_Info     : System.Task_Info.Task_Info_Type;
+      CPU           : Integer;
       State         : Task_Procedure_Access;
       Discriminants : System.Address;
       Elaborated    : Access_Boolean;
@@ -467,6 +468,7 @@ package body System.Tasking.Restricted.Stages is
    is
       Self_ID       : constant Task_Id := STPO.Self;
       Base_Priority : System.Any_Priority;
+      Base_CPU      : System.Multiprocessors.CPU_Range;
       Success       : Boolean;
       Len           : Integer;
 
@@ -481,6 +483,21 @@ package body System.Tasking.Restricted.Stages is
          then Self_ID.Common.Base_Priority
          else System.Any_Priority (Priority));
 
+      if CPU /= Unspecified_CPU
+        and then (CPU < Integer (System.Multiprocessors.CPU_Range'First)
+          or else CPU > Integer (System.Multiprocessors.CPU_Range'Last)
+          or else CPU > Integer (System.Multiprocessors.Number_Of_CPUs))
+      then
+         raise Tasking_Error with "CPU not in range";
+
+      --  Normal CPU affinity
+      else
+         Base_CPU :=
+           (if CPU = Unspecified_CPU
+            then Self_ID.Common.Base_CPU
+            else System.Multiprocessors.CPU_Range (CPU));
+      end if;
+
       if Single_Lock then
          Lock_RTS;
       end if;
@@ -488,11 +505,13 @@ package body System.Tasking.Restricted.Stages is
       Write_Lock (Self_ID);
 
       --  With no task hierarchy, the parent of all non-Environment tasks that
-      --  are created must be the Environment task
+      --  are created must be the Environment task. Dispatching domains are
+      --  not allowed in Ravenscar, so the dispatching domain parameter will
+      --  always be null.
 
       Initialize_ATCB
         (Self_ID, State, Discriminants, Self_ID, Elaborated, Base_Priority,
-         Task_Info, Size, Created_Task, Success);
+         Base_CPU, null, Task_Info, Size, Created_Task, Success);
 
       --  If we do our job right then there should never be any failures, which
       --  was probably said about the Titanic; so just to be safe, let's retain

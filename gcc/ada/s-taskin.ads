@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,6 +42,7 @@ with System.Task_Info;
 with System.Soft_Links;
 with System.Task_Primitives;
 with System.Stack_Usage;
+with System.Multiprocessors;
 
 package System.Tasking is
    pragma Preelaborate;
@@ -282,32 +283,31 @@ package System.Tasking is
       Cancelled
       --  the call was asynchronous, and was cancelled
      );
+   pragma Ordered (Entry_Call_State);
 
-   --  Never_Abortable is used for calls that are made in a abort
-   --  deferred region (see ARM 9.8(5-11), 9.8 (20)).
-   --  Such a call is never abortable.
+   --  Never_Abortable is used for calls that are made in a abort deferred
+   --  region (see ARM 9.8(5-11), 9.8 (20)). Such a call is never abortable.
 
-   --  The Was_ vs. Not_Yet_ distinction is needed to decide whether it
-   --  is OK to advance into the abortable part of an async. select stmt.
-   --  That is allowed iff the mode is Now_ or Was_.
+   --  The Was_ vs. Not_Yet_ distinction is needed to decide whether it is OK
+   --  to advance into the abortable part of an async. select stmt. That is
+   --  allowed iff the mode is Now_ or Was_.
 
-   --  Done indicates the call has been completed, without cancellation,
-   --  or no call has been made yet at this ATC nesting level,
-   --  and so aborting the call is no longer an issue.
-   --  Completion of the call does not necessarily indicate "success";
-   --  the call may be returning an exception if Exception_To_Raise is
-   --  non-null.
+   --  Done indicates the call has been completed, without cancellation, or no
+   --  call has been made yet at this ATC nesting level, and so aborting the
+   --  call is no longer an issue. Completion of the call does not necessarily
+   --  indicate "success"; the call may be returning an exception if
+   --  Exception_To_Raise is non-null.
 
-   --  Cancelled indicates the call was cancelled,
-   --  and so aborting the call is no longer an issue.
+   --  Cancelled indicates the call was cancelled, and so aborting the call is
+   --  no longer an issue.
 
-   --  The call is on an entry queue unless
-   --  State >= Done, in which case it may or may not be still Onqueue.
+   --  The call is on an entry queue unless State >= Done, in which case it may
+   --  or may not be still Onqueue.
 
-   --  Please do not modify the order of the values, without checking
-   --  all uses of this type. We rely on partial "monotonicity" of
-   --  Entry_Call_Record.State to avoid locking when we access this
-   --  value for certain tests. In particular:
+   --  Please do not modify the order of the values, without checking all uses
+   --  of this type. We rely on partial "monotonicity" of
+   --  Entry_Call_Record.State to avoid locking when we access this value for
+   --  certain tests. In particular:
 
    --  1)  Once State >= Done, we can rely that the call has been
    --      completed. If State >= Done, it will not
@@ -375,6 +375,66 @@ package System.Tasking is
    --  terminates.
 
    ------------------------------------
+   -- Dispatching domain definitions --
+   ------------------------------------
+
+   --  We need to redefine here these types (already defined in
+   --  System.Multiprocessor.Dispatching_Domains) for avoiding circular
+   --  dependencies.
+
+   type Dispatching_Domain is
+     array (System.Multiprocessors.CPU range <>) of Boolean;
+   --  A dispatching domain needs to contain the set of processors belonging
+   --  to it. This is a processor mask where a True indicates that the
+   --  processor belongs to the dispatching domain.
+   --  Do not use the full range of CPU_Range because it would create a very
+   --  long array. This way we can use the exact range of processors available
+   --  in the system.
+
+   type Dispatching_Domain_Access is access Dispatching_Domain;
+
+   System_Domain : Dispatching_Domain_Access;
+   --  All processors belong to default system dispatching domain at start up.
+   --  We use a pointer which creates the actual variable for the reasons
+   --  explained bellow in Dispatching_Domain_Tasks.
+
+   Dispatching_Domains_Frozen : Boolean := False;
+   --  True when the main procedure has been called. Hence, no new dispatching
+   --  domains can be created when this flag is True.
+
+   type Array_Allocated_Tasks is
+     array (System.Multiprocessors.CPU range <>) of Natural;
+   --  At start-up time, we need to store the number of tasks attached to
+   --  concrete processors within the system domain (we can only create
+   --  dispatching domains with processors belonging to the system domain and
+   --  without tasks allocated).
+
+   type Array_Allocated_Tasks_Access is access Array_Allocated_Tasks;
+
+   Dispatching_Domain_Tasks : Array_Allocated_Tasks_Access;
+   --  We need to store whether there are tasks allocated to concrete
+   --  processors in the default system dispatching domain because we need to
+   --  check it before creating a new dispatching domain. Two comments about
+   --  why we use a pointer here and not in package Dispatching_Domains:
+   --
+   --    1) We use an array created dynamically in procedure Initialize which
+   --    is called at the beginning of the initialization of the run-time
+   --    library. Declaring a static array here in the spec would not work
+   --    across different installations because it would get the value of
+   --    Number_Of_CPUs from the machine where the run-time library is built,
+   --    and not from the machine where the application is executed. That is
+   --    the reason why we create the array (CPU'First .. Number_Of_CPUs) at
+   --    execution time in the procedure body, ensuring that the function
+   --    Number_Of_CPUs is executed at execution time (the same trick as we
+   --    use for System_Domain).
+   --
+   --    2) We have moved this declaration from package Dispatching_Domains
+   --    because when we use a pragma CPU, the affinity is passed through the
+   --    call to Create_Task. Hence, at this point, we may need to update the
+   --    number of tasks associated to the processor, but we do not want to
+   --    force a dependency from this package on Dispatching_Domains.
+
+   ------------------------------------
    -- Task related other definitions --
    ------------------------------------
 
@@ -396,9 +456,8 @@ package System.Tasking is
 
    function Storage_Size (T : Task_Id) return System.Parameters.Size_Type;
    --  Retrieve from the TCB of the task the allocated size of its stack,
-   --  either the system default or the size specified by a pragma. This
-   --  is in general a non-static value that can depend on discriminants
-   --  of the task.
+   --  either the system default or the size specified by a pragma. This is in
+   --  general a non-static value that can depend on discriminants of the task.
 
    type Bit_Array is array (Integer range <>) of Boolean;
    pragma Pack (Bit_Array);
@@ -406,8 +465,8 @@ package System.Tasking is
    subtype Debug_Event_Array is Bit_Array (1 .. 16);
 
    Global_Task_Debug_Event_Set : Boolean := False;
-   --  Set True when running under debugger control and a task debug
-   --  event signal has been requested.
+   --  Set True when running under debugger control and a task debug event
+   --  signal has been requested.
 
    ----------------------------------------------
    -- Ada_Task_Control_Block (ATCB) definition --
@@ -464,6 +523,11 @@ package System.Tasking is
       --  via dynamic priorities package.
       --
       --  Protection: Only written by Self, accessed by anyone
+
+      Base_CPU : System.Multiprocessors.CPU_Range;
+      --  Base CPU, only changed via dispatching domains package.
+      --
+      --  Protection: Self.L
 
       Current_Priority : System.Any_Priority;
       --  Active priority, except that the effects of protected object
@@ -561,7 +625,7 @@ package System.Tasking is
       --  Protection: Set by Activator before Self is activated, and only read
       --  and modified by Self after that.
 
-      Wait_Count : Integer;
+      Wait_Count : Natural;
       --  This count is used by a task that is waiting for other tasks. At all
       --  other times, the value should be zero. It is used differently in
       --  several different states. Since a task cannot be in more than one of
@@ -580,8 +644,8 @@ package System.Tasking is
       --  Master_Completion_Sleep (phase 1)
 
       --  This is the number dependent tasks of a master being completed by
-      --  Self that are not activated, not terminated, and not waiting on a
-      --  terminate alternative.
+      --  Self that are activated, but have not yet terminated, and are not
+      --  waiting on a terminate alternative.
 
       --  Master_Completion_2_Sleep (phase 2)
 
@@ -632,6 +696,16 @@ package System.Tasking is
       Debug_Events : Debug_Event_Array;
       --  Word length array of per task debug events, of which 11 kinds are
       --  currently defined in System.Tasking.Debugging package.
+
+      Domain : Dispatching_Domain_Access;
+      --  Domain is the dispatching domain to which the task belongs. It is
+      --  only changed via dispatching domains package. This field is made
+      --  part of the Common_ATCB, even when restricted run-times (namely
+      --  Ravenscar) do not use it, because this way the field is always
+      --  available to the underlying layers to set the affinity and we do not
+      --  need to do different things depending on the situation.
+      --
+      --  Protection: Self.L
    end record;
 
    ---------------------------------------
@@ -695,9 +769,9 @@ package System.Tasking is
    Independent_Task_Level : constant Master_Level := 2;
    Library_Task_Level     : constant Master_Level := 3;
 
-   ------------------------------
-   -- Task size, priority info --
-   ------------------------------
+   -------------------
+   -- Priority info --
+   -------------------
 
    Unspecified_Priority : constant Integer := System.Priority'First - 1;
 
@@ -706,6 +780,13 @@ package System.Tasking is
 
    subtype Rendezvous_Priority is Integer
      range Priority_Not_Boosted .. System.Any_Priority'Last;
+
+   -------------------
+   -- Affinity info --
+   -------------------
+
+   Unspecified_CPU : constant := -1;
+   --  No affinity specified
 
    ------------------------------------
    -- Rendezvous related definitions --
@@ -858,7 +939,7 @@ package System.Tasking is
 
    type Direct_Index is range 0 .. Parameters.Default_Attribute_Count;
    subtype Direct_Index_Range is Direct_Index range 1 .. Direct_Index'Last;
-   --  Attributes with indices in this range are stored directly in the task
+   --  Attributes with indexes in this range are stored directly in the task
    --  control block. Such attributes must be Address-sized. Other attributes
    --  will be held in dynamically allocated records chained off of the task
    --  control block.
@@ -930,13 +1011,13 @@ package System.Tasking is
       --  not write this field until the master is complete, the
       --  synchronization should be adequate to prevent races.
 
-      Alive_Count : Integer := 0;
+      Alive_Count : Natural := 0;
       --  Number of tasks directly dependent on this task (including itself)
       --  that are still "alive", i.e. not terminated.
       --
       --  Protection: Self.L
 
-      Awake_Count : Integer := 0;
+      Awake_Count : Natural := 0;
       --  Number of tasks directly dependent on this task (including itself)
       --  still "awake", i.e., are not terminated and not waiting on a
       --  terminate alternative.
@@ -1045,7 +1126,7 @@ package System.Tasking is
       --  Protection: Self.L
 
       Serial_Number : Task_Serial_Number;
-      --  A growing number to provide some way to check locking  rules/ordering
+      --  Monotonic counter to provide some way to check locking rules/ordering
 
       Known_Tasks_Index : Integer := -1;
       --  Index in the System.Tasking.Debug.Known_Tasks array
@@ -1069,6 +1150,12 @@ package System.Tasking is
       --
       --  Protection: Self.L. Once a task has set Self.Stage to Completing, it
       --  has exclusive access to this field.
+
+      Free_On_Termination : Boolean := False;
+      --  Deallocate the ATCB when the task terminates. This flag is normally
+      --  False, and is set True when Unchecked_Deallocation is called on a
+      --  non-terminated task so that the associated storage is automatically
+      --  reclaimed when the task terminates.
    end record;
 
    --------------------
@@ -1092,6 +1179,8 @@ package System.Tasking is
       Parent           : Task_Id;
       Elaborated       : Access_Boolean;
       Base_Priority    : System.Any_Priority;
+      Base_CPU         : System.Multiprocessors.CPU_Range;
+      Domain           : Dispatching_Domain_Access;
       Task_Info        : System.Task_Info.Task_Info_Type;
       Stack_Size       : System.Parameters.Size_Type;
       T                : Task_Id;

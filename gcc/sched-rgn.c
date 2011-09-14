@@ -1,6 +1,6 @@
 /* Instruction scheduling pass.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -49,7 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "hard-reg-set.h"
@@ -59,7 +59,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "insn-attr.h"
 #include "except.h"
-#include "toplev.h"
 #include "recog.h"
 #include "cfglayout.h"
 #include "params.h"
@@ -237,7 +236,7 @@ static void compute_block_dependences (int);
 static void schedule_region (int);
 static rtx concat_INSN_LIST (rtx, rtx);
 static void concat_insn_mem_list (rtx, rtx, rtx *, rtx *);
-static void propagate_deps (int, struct deps *);
+static void propagate_deps (int, struct deps_desc *);
 static void free_pending_lists (void);
 
 /* Functions for construction of the control flow graph.  */
@@ -354,7 +353,7 @@ extract_edgelst (sbitmap set, edgelst *el)
 
 /* Print the regions, for debugging purposes.  Callable from debugger.  */
 
-void
+DEBUG_FUNCTION void
 debug_regions (void)
 {
   int rgn, bb;
@@ -379,7 +378,7 @@ debug_regions (void)
 
 /* Print the region's basic blocks.  */
 
-void
+DEBUG_FUNCTION void
 debug_region (int rgn)
 {
   int bb;
@@ -486,7 +485,6 @@ find_single_block_region (bool ebbs_p)
         for (bb = ebb_start; ; bb = bb->next_bb)
           {
             edge e;
-            edge_iterator ei;
 
             rgn_bb_table[i] = bb->index;
             RGN_NR_BLOCKS (nr_regions)++;
@@ -498,9 +496,7 @@ find_single_block_region (bool ebbs_p)
                 || LABEL_P (BB_HEAD (bb->next_bb)))
               break;
 
-            FOR_EACH_EDGE (e, ei, bb->succs)
-             if ((e->flags & EDGE_FALLTHRU) != 0)
-               break;
+	    e = find_fallthru_edge (bb->succs);
             if (! e)
               break;
             if (e->probability <= probability_cutoff)
@@ -1594,7 +1590,7 @@ free_trg_info (void)
 
 /* Print candidates info, for debugging purposes.  Callable from debugger.  */
 
-void
+DEBUG_FUNCTION void
 debug_candidate (int i)
 {
   if (!candidate_table[i].is_valid)
@@ -1631,7 +1627,7 @@ debug_candidate (int i)
 
 /* Print candidates info, for debugging purposes.  Callable from debugger.  */
 
-void
+DEBUG_FUNCTION void
 debug_candidates (int trg)
 {
   int i;
@@ -1766,29 +1762,18 @@ update_live_1 (int src, rtx x)
 
   regno = REGNO (reg);
 
-  if (regno >= FIRST_PSEUDO_REGISTER || !global_regs[regno])
+  if (! HARD_REGISTER_NUM_P (regno)
+      || !global_regs[regno])
     {
-      if (regno < FIRST_PSEUDO_REGISTER)
+      for (i = 0; i < candidate_table[src].update_bbs.nr_members; i++)
 	{
-	  int j = hard_regno_nregs[regno][GET_MODE (reg)];
-	  while (--j >= 0)
-	    {
-	      for (i = 0; i < candidate_table[src].update_bbs.nr_members; i++)
-		{
-		  basic_block b = candidate_table[src].update_bbs.first_member[i];
+	  basic_block b = candidate_table[src].update_bbs.first_member[i];
 
-		  SET_REGNO_REG_SET (df_get_live_in (b), regno + j);
-		}
-	    }
-	}
-      else
-	{
-	  for (i = 0; i < candidate_table[src].update_bbs.nr_members; i++)
-	    {
-	      basic_block b = candidate_table[src].update_bbs.first_member[i];
-
-	      SET_REGNO_REG_SET (df_get_live_in (b), regno);
-	    }
+	  if (HARD_REGISTER_NUM_P (regno))
+	    bitmap_set_range (df_get_live_in (b), regno,
+			      hard_regno_nregs[regno][GET_MODE (reg)]);
+	  else
+	    bitmap_set_bit (df_get_live_in (b), regno);
 	}
     }
 }
@@ -2072,12 +2057,12 @@ static int sched_n_insns;
 /* Implementations of the sched_info functions for region scheduling.  */
 static void init_ready_list (void);
 static int can_schedule_ready_p (rtx);
-static void begin_schedule_ready (rtx, rtx);
+static void begin_schedule_ready (rtx);
 static ds_t new_ready (rtx, ds_t);
 static int schedule_more_p (void);
 static const char *rgn_print_insn (const_rtx, int);
 static int rgn_rank (rtx, rtx);
-static void compute_jump_reg_dependencies (rtx, regset, regset, regset);
+static void compute_jump_reg_dependencies (rtx, regset);
 
 /* Functions for speculative scheduling.  */
 static void rgn_add_remove_insn (rtx, int);
@@ -2142,7 +2127,7 @@ init_ready_list (void)
 	src_head = head;
 
 	for (insn = src_head; insn != src_next_tail; insn = NEXT_INSN (insn))
-	  if (INSN_P (insn) && !BOUNDARY_DEBUG_INSN_P (insn))
+	  if (INSN_P (insn))
 	    try_ready (insn);
       }
 }
@@ -2167,7 +2152,7 @@ can_schedule_ready_p (rtx insn)
    can_schedule_ready_p () differs from the one passed to
    begin_schedule_ready ().  */
 static void
-begin_schedule_ready (rtx insn, rtx last ATTRIBUTE_UNUSED)
+begin_schedule_ready (rtx insn)
 {
   /* An interblock motion?  */
   if (INSN_BB (insn) != target_bb)
@@ -2310,16 +2295,12 @@ contributes_to_priority (rtx next, rtx insn)
   return BLOCK_TO_BB (BLOCK_NUM (next)) == BLOCK_TO_BB (BLOCK_NUM (insn));
 }
 
-/* INSN is a JUMP_INSN, COND_SET is the set of registers that are
-   conditionally set before INSN.  Store the set of registers that
-   must be considered as used by this jump in USED and that of
-   registers that must be considered as set in SET.  */
+/* INSN is a JUMP_INSN.  Store the set of registers that must be
+   considered as used by this jump in USED.  */
 
 static void
 compute_jump_reg_dependencies (rtx insn ATTRIBUTE_UNUSED,
-			       regset cond_exec ATTRIBUTE_UNUSED,
-			       regset used ATTRIBUTE_UNUSED,
-			       regset set ATTRIBUTE_UNUSED)
+			       regset used ATTRIBUTE_UNUSED)
 {
   /* Nothing to do here, since we postprocess jumps in
      add_branch_dependences.  */
@@ -2384,7 +2365,9 @@ static const struct haifa_sched_info rgn_const_sched_info =
 
   rgn_add_remove_insn,
   begin_schedule_ready,
+  NULL,
   advance_target_bb,
+  NULL, NULL,
   SCHED_RGN
 };
 
@@ -2400,7 +2383,7 @@ get_rgn_sched_max_insns_priority (void)
   return rgn_sched_info.sched_max_insns_priority;
 }
 
-/* Determine if PAT sets a CLASS_LIKELY_SPILLED_P register.  */
+/* Determine if PAT sets a TARGET_CLASS_LIKELY_SPILLED_P register.  */
 
 static bool
 sets_likely_spilled (rtx pat)
@@ -2417,8 +2400,8 @@ sets_likely_spilled_1 (rtx x, const_rtx pat, void *data)
 
   if (GET_CODE (pat) == SET
       && REG_P (x)
-      && REGNO (x) < FIRST_PSEUDO_REGISTER
-      && CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (REGNO (x))))
+      && HARD_REGISTER_P (x)
+      && targetm.class_likely_spilled_p (REGNO_REG_CLASS (REGNO (x))))
     *ret = true;
 }
 
@@ -2447,8 +2430,8 @@ add_branch_dependences (rtx head, rtx tail)
 
      COND_EXEC insns cannot be moved past a branch (see e.g. PR17808).
 
-     Insns setting CLASS_LIKELY_SPILLED_P registers (usually return values)
-     are not moved before reload because we can wind up with register
+     Insns setting TARGET_CLASS_LIKELY_SPILLED_P registers (usually return
+     values) are not moved before reload because we can wind up with register
      allocation failures.  */
 
   while (tail != head && DEBUG_INSN_P (tail))
@@ -2567,7 +2550,7 @@ add_branch_dependences (rtx head, rtx tail)
    the variables of its predecessors.  When the analysis for a bb completes,
    we save the contents to the corresponding bb_deps[bb] variable.  */
 
-static struct deps *bb_deps;
+static struct deps_desc *bb_deps;
 
 /* Duplicate the INSN_LIST elements of COPY and prepend them to OLD.  */
 
@@ -2576,7 +2559,10 @@ concat_INSN_LIST (rtx copy, rtx old)
 {
   rtx new_rtx = old;
   for (; copy ; copy = XEXP (copy, 1))
-    new_rtx = alloc_INSN_LIST (XEXP (copy, 0), new_rtx);
+    {
+      new_rtx = alloc_INSN_LIST (XEXP (copy, 0), new_rtx);
+      PUT_REG_NOTE_KIND (new_rtx, REG_NOTE_KIND (copy));
+    }
   return new_rtx;
 }
 
@@ -2601,7 +2587,7 @@ concat_insn_mem_list (rtx copy_insns, rtx copy_mems, rtx *old_insns_p,
 
 /* Join PRED_DEPS to the SUCC_DEPS.  */
 void
-deps_join (struct deps *succ_deps, struct deps *pred_deps)
+deps_join (struct deps_desc *succ_deps, struct deps_desc *pred_deps)
 {
   unsigned reg;
   reg_set_iterator rsi;
@@ -2660,7 +2646,7 @@ deps_join (struct deps *succ_deps, struct deps *pred_deps)
 /* After computing the dependencies for block BB, propagate the dependencies
    found in TMP_DEPS to the successors of the block.  */
 static void
-propagate_deps (int bb, struct deps *pred_deps)
+propagate_deps (int bb, struct deps_desc *pred_deps)
 {
   basic_block block = BASIC_BLOCK (BB_TO_BLOCK (bb));
   edge_iterator ei;
@@ -2715,7 +2701,7 @@ static void
 compute_block_dependences (int bb)
 {
   rtx head, tail;
-  struct deps tmp_deps;
+  struct deps_desc tmp_deps;
 
   tmp_deps = bb_deps[bb];
 
@@ -2775,7 +2761,7 @@ free_pending_lists (void)
    Callable from debugger.  */
 /* Print dependences for debugging starting from FROM_BB.
    Callable from debugger.  */
-void
+DEBUG_FUNCTION void
 debug_rgn_dependencies (int from_bb)
 {
   int bb;
@@ -3150,7 +3136,7 @@ sched_rgn_compute_dependencies (int rgn)
       init_deps_global ();
 
       /* Initializations for region data dependence analysis.  */
-      bb_deps = XNEWVEC (struct deps, current_nr_blocks);
+      bb_deps = XNEWVEC (struct deps_desc, current_nr_blocks);
       for (bb = 0; bb < current_nr_blocks; bb++)
 	init_deps (bb_deps + bb, false);
 
@@ -3407,7 +3393,8 @@ rgn_add_block (basic_block bb, basic_block after)
       /* Now POS is the index of the last block in the region.  */
 
       /* Find index of basic block AFTER.  */
-      for (; rgn_bb_table[pos] != after->index; pos--);
+      for (; rgn_bb_table[pos] != after->index; pos--)
+	;
 
       pos++;
       gcc_assert (pos > ebb_head[i - 1]);
@@ -3454,12 +3441,14 @@ rgn_fix_recovery_cfg (int bbi, int check_bbi, int check_bb_nexti)
 
   for (old_pos = ebb_head[BLOCK_TO_BB (check_bbi) + 1] - 1;
        rgn_bb_table[old_pos] != check_bb_nexti;
-       old_pos--);
+       old_pos--)
+    ;
   gcc_assert (old_pos > ebb_head[BLOCK_TO_BB (check_bbi)]);
 
   for (new_pos = ebb_head[BLOCK_TO_BB (bbi) + 1] - 1;
        rgn_bb_table[new_pos] != bbi;
-       new_pos--);
+       new_pos--)
+    ;
   new_pos++;
   gcc_assert (new_pos > ebb_head[BLOCK_TO_BB (bbi)]);
 
@@ -3519,7 +3508,7 @@ gate_handle_sched2 (void)
 {
 #ifdef INSN_SCHEDULING
   return optimize > 0 && flag_schedule_insns_after_reload
-    && dbg_cnt (sched2_func);
+    && !targetm.delay_sched2 && dbg_cnt (sched2_func);
 #else
   return 0;
 #endif
@@ -3562,7 +3551,6 @@ struct rtl_opt_pass pass_sched =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_verify_flow |
   TODO_ggc_collect                      /* todo_flags_finish */
  }
@@ -3584,7 +3572,6 @@ struct rtl_opt_pass pass_sched2 =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_verify_flow |
   TODO_ggc_collect                      /* todo_flags_finish */
  }

@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
---                                                                          --
--- You should have received a copy of the GNU General Public License along  --
--- with this program; see file COPYING3.  If not see                        --
--- <http://www.gnu.org/licenses/>.                                          --
+-- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
+-- for  more details.  You should have  received  a copy of the GNU General --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -59,13 +58,6 @@ package Errout is
    --  have fully expanded some items, due to high integrity violations (i.e.
    --  the use of constructs not permitted by the library in use, or improper
    --  constructs in No_Run_Time mode).
-
-   type Compiler_State_Type is (Parsing, Analyzing);
-   Compiler_State : Compiler_State_Type;
-   --  Indicates current state of compilation. This is put in the Errout spec
-   --  because it affects the action of the error message handling. In
-   --  particular, an attempt is made by Errout to suppress cascaded error
-   --  messages in Parsing mode, but not in the other modes.
 
    Current_Error_Source_File : Source_File_Index
      renames Err_Vars.Current_Error_Source_File;
@@ -209,10 +201,14 @@ package Errout is
    --      are that an RM reference may follow in the form (RM .....) and a
    --      right parenthesis may immediately follow the #. In the case of
    --      continued messages, # can only appear at the end of a group of
-   --      continuation messsages, except that \\ messages which always start
+   --      continuation messages, except that \\ messages which always start
    --      a new line end the sequence from the point of view of this rule.
    --      The idea is that for any use of -gnatj, it will still be the case
    --      that a location reference appears only at the end of a line.
+
+   --      Note: the output of the string "at " is suppressed if the string
+   --      " from" or " from " immediately precedes the insertion character #.
+   --      Certain messages read better with from than at.
 
    --    Insertion character } (Right brace: insert type reference)
    --      The character } is replaced by a string describing the type
@@ -323,8 +319,8 @@ package Errout is
    --      Precedes a character which is placed literally into the message.
    --      Used to insert characters into messages that are one of the
    --      insertion characters defined here. Also useful in inserting
-   --      sequences of upper case letters (e.g. RM) which are not to be
-   --      treated as keywords.
+   --      sequences of upper case letters which are not to be treated as
+   --      keywords.
 
    --    Insertion character \ (Backslash: continuation message)
    --      Indicates that the message is a continuation of a message
@@ -376,6 +372,15 @@ package Errout is
    Gname5 : aliased constant String := "gnat05";
    Vname5 : aliased constant String := "05";
 
+   Gname6 : aliased constant String := "gnat2005";
+   Vname6 : aliased constant String := "2005";
+
+   Gname7 : aliased constant String := "gnat12";
+   Vname7 : aliased constant String := "12";
+
+   Gname8 : aliased constant String := "gnat2012";
+   Vname8 : aliased constant String := "2012";
+
    type Cstring_Ptr is access constant String;
 
    Gnames : array (Nat range <>) of Cstring_Ptr :=
@@ -383,14 +388,20 @@ package Errout is
                Gname2'Access,
                Gname3'Access,
                Gname4'Access,
-               Gname5'Access);
+               Gname5'Access,
+               Gname6'Access,
+               Gname7'Access,
+               Gname8'Access);
 
    Vnames : array (Nat range <>) of Cstring_Ptr :=
               (Vname1'Access,
                Vname2'Access,
                Vname3'Access,
                Vname4'Access,
-               Vname5'Access);
+               Vname5'Access,
+               Vname6'Access,
+               Vname7'Access,
+               Vname8'Access);
 
    -----------------------------------------------------
    -- Global Values Used for Error Message Insertions --
@@ -483,7 +494,9 @@ package Errout is
 
    --  Note: a special exception is that RM is never treated as a keyword
    --  but instead is copied literally into the message, this avoids the
-   --  need for writing 'R'M for all reference manual quotes.
+   --  need for writing 'R'M for all reference manual quotes. A similar
+   --  exception is applied to the occurrence of the string Alfa used in
+   --  error messages about the Alfa subset of Ada.
 
    --  In the case of names, the default mode for the error text processor
    --  is to surround the name by quotation marks automatically. The case
@@ -598,15 +611,7 @@ package Errout is
    --       (parameters ....)
 
    --  Any message marked with this -- CODEFIX comment should not be modified
-   --  without appropriate coordination. If new messages are added which may
-   --  be susceptible to automatic codefix action, they are marked using:
-
-   --     Error_Msg -- CODEFIX???
-   --       (parameters)
-
-   --  And subsequently either the appropriate code is added to codefix and the
-   --  ??? are removed, or it is determined that this is not an appropriate
-   --  case for codefix action, and the comment is removed.
+   --  without appropriate coordination.
 
    ------------------------------
    -- Error Output Subprograms --
@@ -674,8 +679,7 @@ package Errout is
    --  error messages from the analyzer). The message text may contain a
    --  single & insertion, which will reference the given node. The message is
    --  suppressed if the node N already has a message posted, or if it is a
-   --  warning and warnings and N is an entity node for which warnings are
-   --  suppressed.
+   --  warning and N is an entity node for which warnings are suppressed.
 
    procedure Error_Msg_F (Msg : String; N : Node_Id);
    --  Similar to Error_Msg_N except that the message is placed on the first
@@ -796,6 +800,10 @@ package Errout is
    --  by the Feature argument is not supported in either configurable
    --  run-time mode or no run-time mode (as appropriate). In the former case,
    --  the name of the library is output if available.
+
+   procedure Error_Msg_PT (Typ : Node_Id; Subp : Node_Id);
+   --  Posts an error on the protected type declaration Typ indicating wrong
+   --  mode of the first formal of protected type primitive Subp.
 
    procedure dmsg (Id : Error_Msg_Id) renames Erroutc.dmsg;
    --  Debugging routine to dump an error message

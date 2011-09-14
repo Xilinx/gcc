@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -82,8 +82,10 @@ package Exp_Tss is
    TSS_Deep_Finalize      : constant TNT := "DF";  -- Deep Finalize
    TSS_Deep_Initialize    : constant TNT := "DI";  -- Deep Initialize
    TSS_Composite_Equality : constant TNT := "EQ";  -- Composite Equality
+   TSS_Finalize_Address   : constant TNT := "FD";  -- Finalize Address
    TSS_From_Any           : constant TNT := "FA";  -- PolyORB/DSA From_Any
    TSS_Init_Proc          : constant TNT := "IP";  -- Initialization Procedure
+   TSS_CPP_Init_Proc      : constant TNT := "IC";  -- Init C++ dispatch tables
    TSS_RAS_Access         : constant TNT := "RA";  -- RAS type access
    TSS_RAS_Dereference    : constant TNT := "RD";  -- RAS type dereference
    TSS_Rep_To_Pos         : constant TNT := "RP";  -- Rep to Pos conversion
@@ -102,8 +104,10 @@ package Exp_Tss is
       TSS_Deep_Finalize,
       TSS_Deep_Initialize,
       TSS_Composite_Equality,
+      TSS_Finalize_Address,
       TSS_From_Any,
       TSS_Init_Proc,
+      TSS_CPP_Init_Proc,
       TSS_RAS_Access,
       TSS_RAS_Dereference,
       TSS_Rep_To_Pos,
@@ -140,14 +144,17 @@ package Exp_Tss is
    function Make_Init_Proc_Name (Typ : Entity_Id) return Name_Id;
    --  Version for init procs, same as Make_TSS_Name (Typ, TSS_Init_Proc)
 
+   function Is_CPP_Init_Proc (E : Entity_Id) return Boolean;
+   --  Version for CPP init procs, same as Is_TSS (E, TSS_CPP_Init_Proc);
+
+   function Is_Init_Proc (E : Entity_Id) return Boolean;
+   --  Version for init procs, same as Is_TSS (E, TSS_Init_Proc);
+
    function Is_TSS (E : Entity_Id; Nam : TSS_Name_Type) return Boolean;
    --  Determines if given entity (E) is the name of a TSS identified by Nam
 
    function Is_TSS (N : Name_Id; Nam : TSS_Name_Type) return Boolean;
    --  Same test applied directly to a Name_Id value
-
-   function Is_Init_Proc (E : Entity_Id) return Boolean;
-   --  Version for init procs, same as Is_TSS (E, TSS_Init_Proc);
 
    -----------------------------------------
    -- TSS Data structures and Subprograms --
@@ -187,6 +194,11 @@ package Exp_Tss is
    --  Note that this just copies a reference, not the tree. This can also be
    --  used to initially install a TSS in the case where the subprogram for the
    --  TSS has already been created and its declaration processed.
+
+   function CPP_Init_Proc (Typ : Entity_Id) return Entity_Id;
+   --  Obtains the CPP_Init TSS entity the given type. The CPP_Init TSS is a
+   --  procedure used to initialize the C++ part of the primary and secondary
+   --  dispatch tables of a tagged type derived from CPP types.
 
    function Init_Proc
      (Typ : Entity_Id;

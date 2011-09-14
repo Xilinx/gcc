@@ -1,8 +1,8 @@
-/* Implementation of the STOP statement.
-   Copyright 2002, 2005, 2007, 2009 Free Software Foundation, Inc.
+/* Implementation of the PAUSE statement.
+   Copyright 2002, 2005, 2007, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
@@ -25,36 +25,34 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include "libgfortran.h"
 #include <string.h>
-
+#include <unistd.h>
 
 static void
 do_pause (void)
 {
   char buff[4];
-  st_printf ("To resume execution, type go.  "
-	     "Other input will terminate the job.\n");
+  estr_write ("To resume execution, type go.  "
+	      "Other input will terminate the job.\n");
 
   fgets(buff, 4, stdin);
   if (strncmp(buff, "go\n", 3) != 0)
-    stop_numeric (-1);
-  st_printf ("RESUMED\n");
+    stop_string ('\0', 0);
+  estr_write ("RESUMED\n");
 }
 
-/* A numeric or blank STOP statement.  */
+/* A numeric PAUSE statement.  */
 
-extern void pause_numeric (GFC_INTEGER_4 code);
+extern void pause_numeric (GFC_INTEGER_4);
 export_proto(pause_numeric);
 
 void
 pause_numeric (GFC_INTEGER_4 code)
 {
-  if (code == -1)
-    st_printf ("PAUSE\n");
-  else
-    st_printf ("PAUSE %d\n", (int)code);
-
+  st_printf ("PAUSE %d\n", (int) code);
   do_pause ();
 }
+
+/* A character string or blank PAUSE statement.  */
 
 extern void pause_string (char *string, GFC_INTEGER_4 len);
 export_proto(pause_string);
@@ -62,10 +60,11 @@ export_proto(pause_string);
 void
 pause_string (char *string, GFC_INTEGER_4 len)
 {
-  st_printf ("PAUSE ");
-  while (len--)
-    st_printf ("%c", *(string++));
-  st_printf ("\n");
+  estr_write ("PAUSE ");
+  ssize_t w = write (STDERR_FILENO, string, len);
+  (void) sizeof (w); /* Avoid compiler warning about not using write
+			return val.  */
+  estr_write ("\n");
 
   do_pause ();
 }

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -78,11 +78,11 @@ package body Style is
    begin
       if Style_Check_Array_Attribute_Index then
          if D = 1 and then Present (E1) then
-            Error_Msg_N
+            Error_Msg_N -- CODEFIX
               ("(style) index number not allowed for one dimensional array",
                E1);
          elsif D > 1 and then No (E1) then
-            Error_Msg_N
+            Error_Msg_N -- CODEFIX
               ("(style) index number required for multi-dimensional array",
                N);
          end if;
@@ -161,7 +161,7 @@ package body Style is
                then
                   Error_Msg_Node_1 := Def;
                   Error_Msg_Sloc := Sloc (Def);
-                  Error_Msg
+                  Error_Msg -- CODEFIX
                     ("(style) bad casing of & declared#", Sref);
                   return;
 
@@ -222,7 +222,7 @@ package body Style is
                     String (Tref (Sref .. Sref + Source_Ptr (Nlen) - 1));
                   Set_Casing (Cas);
                   Error_Msg_Name_1 := Name_Enter;
-                  Error_Msg_N
+                  Error_Msg_N -- CODEFIX
                     ("(style) bad casing of %% declared in Standard", Ref);
                end if;
             end if;
@@ -236,18 +236,14 @@ package body Style is
 
    procedure Missing_Overriding (N : Node_Id; E : Entity_Id) is
    begin
-      --  Note that Error_Msg_NE, which would be more natural to use here,
-      --  is not visible from this generic unit ???
-
-      Error_Msg_Name_1 := Chars (E);
-
       if Style_Check_Missing_Overriding and then Comes_From_Source (N) then
          if Nkind (N) = N_Subprogram_Body then
-            Error_Msg_N
-              ("(style) missing OVERRIDING indicator in body of%", N);
+            Error_Msg_NE -- CODEFIX
+              ("(style) missing OVERRIDING indicator in body of&", N, E);
          else
-            Error_Msg_N
-              ("(style) missing OVERRIDING indicator in declaration of%", N);
+            Error_Msg_NE -- CODEFIX
+              ("(style) missing OVERRIDING indicator in declaration of&",
+               N, E);
          end if;
       end if;
    end Missing_Overriding;
@@ -259,7 +255,7 @@ package body Style is
    procedure Subprogram_Not_In_Alpha_Order (Name : Node_Id) is
    begin
       if Style_Check_Order_Subprograms then
-         Error_Msg_N
+         Error_Msg_N -- CODEFIX
            ("(style) subprogram body& not in alphabetical order", Name);
       end if;
    end Subprogram_Not_In_Alpha_Order;

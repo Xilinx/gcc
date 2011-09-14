@@ -1,6 +1,6 @@
 // Allocator that wraps operator new -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -30,11 +30,14 @@
 #ifndef _NEW_ALLOCATOR_H
 #define _NEW_ALLOCATOR_H 1
 
+#include <bits/c++config.h>
 #include <new>
 #include <bits/functexcept.h>
 #include <bits/move.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+namespace __gnu_cxx _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   using std::size_t;
   using std::ptrdiff_t;
@@ -63,20 +66,22 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
         struct rebind
         { typedef new_allocator<_Tp1> other; };
 
-      new_allocator() throw() { }
+      new_allocator() _GLIBCXX_USE_NOEXCEPT { }
 
-      new_allocator(const new_allocator&) throw() { }
+      new_allocator(const new_allocator&) _GLIBCXX_USE_NOEXCEPT { }
 
       template<typename _Tp1>
-        new_allocator(const new_allocator<_Tp1>&) throw() { }
+        new_allocator(const new_allocator<_Tp1>&) _GLIBCXX_USE_NOEXCEPT { }
 
-      ~new_allocator() throw() { }
+      ~new_allocator() _GLIBCXX_USE_NOEXCEPT { }
 
       pointer
-      address(reference __x) const { return &__x; }
+      address(reference __x) const _GLIBCXX_NOEXCEPT
+      { return std::__addressof(__x); }
 
       const_pointer
-      address(const_reference __x) const { return &__x; }
+      address(const_reference __x) const _GLIBCXX_NOEXCEPT
+      { return std::__addressof(__x); }
 
       // NB: __n is permitted to be 0.  The C++ standard says nothing
       // about what the return value is when __n == 0.
@@ -95,24 +100,28 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       { ::operator delete(__p); }
 
       size_type
-      max_size() const throw() 
+      max_size() const _GLIBCXX_USE_NOEXCEPT
       { return size_t(-1) / sizeof(_Tp); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _Up, typename... _Args>
+        void
+        construct(_Up* __p, _Args&&... __args)
+	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+
+      template<typename _Up>
+        void 
+        destroy(_Up* __p) { __p->~_Up(); }
+#else
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 402. wrong new expression in [some_] allocator::construct
       void 
       construct(pointer __p, const _Tp& __val) 
       { ::new((void *)__p) _Tp(__val); }
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      template<typename... _Args>
-        void
-        construct(pointer __p, _Args&&... __args)
-	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
-#endif
-
       void 
       destroy(pointer __p) { __p->~_Tp(); }
+#endif
     };
 
   template<typename _Tp>
@@ -125,6 +134,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     operator!=(const new_allocator<_Tp>&, const new_allocator<_Tp>&)
     { return false; }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif

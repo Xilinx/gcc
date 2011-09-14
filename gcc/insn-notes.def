@@ -1,5 +1,5 @@
 /* Insn note definitions.
-   Copyright (C) 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -61,6 +61,9 @@ INSN_NOTE (EH_REGION_END)
 /* The location of a variable.  */
 INSN_NOTE (VAR_LOCATION)
 
+/* The values passed to callee.  */
+INSN_NOTE (CALL_ARG_LOCATION)
+
 /* Record the struct for the following basic block.  Uses
    NOTE_BASIC_BLOCK.  FIXME: Redundant with the basic block pointer
    now included in every insn.  */
@@ -70,8 +73,12 @@ INSN_NOTE (BASIC_BLOCK)
    between hot and cold text sections.  */
 INSN_NOTE (SWITCH_TEXT_SECTIONS)
 
-/* Mark the restore point after an epilogue changed CFI data.  Used only
-   when an epilogue appears in the middle of a function.  */
-INSN_NOTE (CFA_RESTORE_STATE)
+/* When emitting dwarf2 frame information, contains a directive that
+   should be emitted.  */
+INSN_NOTE (CFI)
+
+/* When emitting dwarf2 frame information, contains the number of a debug
+   label that should be emitted.  */
+INSN_NOTE (CFI_LABEL)
 
 #undef INSN_NOTE

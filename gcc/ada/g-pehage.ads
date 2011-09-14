@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2002-2008, AdaCore                     --
+--                     Copyright (C) 2002-2010, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -86,8 +84,9 @@ package GNAT.Perfect_Hash_Generators is
    --  number of tries.
 
    type Optimization is (Memory_Space, CPU_Time);
-   Default_Optimization : constant Optimization := CPU_Time;
-   --  Optimize either the memory space or the execution time
+   --  Optimize either the memory space or the execution time. Note: in
+   --  practice, the optimization mode has little effect on speed. The tables
+   --  are somewhat smaller with Memory_Space.
 
    Verbose : Boolean := False;
    --  Output the status of the algorithm. For instance, the tables, the random
@@ -97,7 +96,7 @@ package GNAT.Perfect_Hash_Generators is
    procedure Initialize
      (Seed   : Natural;
       K_To_V : Float        := Default_K_To_V;
-      Optim  : Optimization := CPU_Time;
+      Optim  : Optimization := Memory_Space;
       Tries  : Positive     := Default_Tries);
    --  Initialize the generator and its internal structures. Set the ratio of
    --  vertices over keys in the random graphs. This value has to be greater
@@ -116,7 +115,7 @@ package GNAT.Perfect_Hash_Generators is
    --  Deallocate the internal structures and the words table
 
    procedure Insert (Value : String);
-   --  Insert a new word in the table
+   --  Insert a new word into the table. ASCII.NUL characters are not allowed.
 
    Too_Many_Tries : exception;
    --  Raised after Tries unsuccessful runs
@@ -124,15 +123,22 @@ package GNAT.Perfect_Hash_Generators is
    procedure Compute (Position : String := Default_Position);
    --  Compute the hash function. Position allows to define selection of
    --  character positions used in the word hash function. Positions can be
-   --  separated by commas and range like x-y may be used. Character '$'
+   --  separated by commas and ranges like x-y may be used. Character '$'
    --  represents the final character of a word. With an empty position, the
    --  generator automatically produces positions to reduce the memory usage.
-   --  Raise Too_Many_Tries in case that the algorithm does not succeed in less
-   --  than Tries attempts (see Initialize).
+   --  Raise Too_Many_Tries if the algorithm does not succeed within Tries
+   --  attempts (see Initialize).
 
-   procedure Produce (Pkg_Name  : String := Default_Pkg_Name);
+   procedure Produce
+     (Pkg_Name   : String  := Default_Pkg_Name;
+      Use_Stdout : Boolean := False);
    --  Generate the hash function package Pkg_Name. This package includes the
-   --  minimal perfect Hash function.
+   --  minimal perfect Hash function. The output is normally placed in the
+   --  current directory, in files X.ads and X.adb, where X is the standard
+   --  GNAT file name for a package named Pkg_Name. If Use_Stdout is True, the
+   --  output goes to standard output, and no files are written.
+
+   ----------------------------------------------------------------
 
    --  The routines and structures defined below allow producing the hash
    --  function using a different way from the procedure above. The procedure

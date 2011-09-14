@@ -1,6 +1,6 @@
 ## Makefile for the doc subdirectory of the GNU C++ Standard library.
 ##
-## Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+## Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
 ## Process this file with automake to produce Makefile.in.
@@ -24,86 +24,265 @@ include $(top_srcdir)/fragment.am
 
 # Documentation Overview
 #
-# There are two main source materials for libstdc++ documentation.
-# The first is the doxygen markup in libstdc++ sources. And the second
-# is the docbook markup in doc/xml/. A third and more obscure option
-# deals with charting performance tests.
+# There are two main input materials for libstdc++ documentation.
+# The first is the doxygen markup in libstdc++ sources, which is a
+# reference to the API. And the second is the manual, via docbook markup in
+# doc/xml/.
+#
+# A third and more obscure option deals with charting performance
+# tests, and should be considered experimental.
 
-# Default, points to current best sub-rule that is the best conversion.
-# MAN
-doc-man: doc-man-doxygen
+# Documentation conditionals for output.
+if BUILD_XML
+STAMP_XML = doc-xml
+STAMP_INSTALL_XML = doc-install-xml
+else
+STAMP_XML =
+STAMP_INSTALL_XML =
+endif
 
-# PDF
-doc-pdf: doc-pdf-docbook
+if BUILD_HTML
+STAMP_HTML = doc-html
+STAMP_INSTALL_HTML = doc-install-html
+else
+STAMP_HTML =
+STAMP_INSTALL_HTML =
+endif
+
+if BUILD_MAN
+STAMP_MAN = doc-man
+STAMP_INSTALL_MAN = doc-install-man
+else
+STAMP_MAN =
+STAMP_INSTALL_MAN =
+endif
+
+if BUILD_PDF
+STAMP_PDF = doc-pdf
+STAMP_INSTALL_PDF = doc-install-pdf
+else
+STAMP_PDF =
+STAMP_INSTALL_PDF =
+endif
+
+if BUILD_EPUB
+STAMP_EPUB = doc-epub
+STAMP_INSTALL_EPUB = doc-install-epub
+else
+STAMP_EPUB = doc-epub
+STAMP_INSTALL_EPUB = doc-install-epub
+endif
+
+# Documentation primary rules.
+#
+# xml:
+# html:
+# pdf:
+# man:
+# info:
+# ps:
+# dvi:
+# epub:
+# install-xml:
+# install-html:
+# install-pdf:
+# install-man:
+# install-info:
+# install-ps:
+# install-dvi:
+# install-epub:
+
+xml: $(STAMP_XML)
+install-xml: $(STAMP_INSTALL_XML)
+
+html: $(STAMP_HTML)
+install-html: $(STAMP_INSTALL_HTML)
+
+man: $(STAMP_MAN)
+install-man: $(STAMP_INSTALL_MAN)
+
+pdf: $(STAMP_PDF)
+install-pdf: $(STAMP_INSTALL_PDF)
+
+epub: $(STAMP_EPUB)
+install-epub: $(STAMP_INSTALL_EPUB)
+
+info:
+install-info:
+
+ps:
+install-ps:
+
+dvi:
+install-dvi:
+
+
+# Default creation and installation rules.
+# Point to best sub-rule for the requested documentation target and
+# create, and then install toplevel directory with standardized names
+# and layouts.
+
+# XML
+xmldir="$(DESTDIR)@docdir@"
+stamp-xml: stamp-xml-single-docbook stamp-xml-single-doxygen
+	$(STAMP) stamp-xml
+
+doc-xml: stamp-xml
+
+doc-install-xml: doc-xml
+	test -z ${xmldir} || $(mkinstalldirs) ${xmldir}
+	$(INSTALL_DATA) ${manual_xml} ${xmldir}
+	$(INSTALL_DATA)	${api_xml} ${xmldir}
 
 # HTML
-doc-html: doc-html-docbook
+htmldir="$(DESTDIR)@docdir@"
+stamp-html: stamp-html-docbook-data stamp-html-doxygen
+	$(STAMP) stamp-html
+
+doc-html: stamp-html
+
+doc-install-html: doc-html
+	test -z ${htmldir} || $(mkinstalldirs) ${htmldir}
+	cp -r ${docbook_outdir}/html ${htmldir}/libstdc++-manual.html;
+	cp -r ${doxygen_outdir}/html ${htmldir}/libstdc++-api.html;
+
+# PDF
+pdfdir="$(DESTDIR)@docdir@"
+stamp-pdf: stamp-pdf-docbook stamp-pdf-doxygen
+	$(STAMP) stamp-pdf
+
+doc-pdf: stamp-pdf
+
+doc-install-pdf: doc-pdf
+	test -z ${pdfdir} || $(mkinstalldirs) ${pdfdir}
+	$(INSTALL_DATA) ${docbook_outdir}/pdf/libstdc++-manual.pdf ${pdfdir}
+	$(INSTALL_DATA) ${doxygen_outdir}/pdf/libstdc++-api.pdf ${pdfdir}
+
+# MAN
+mandir="$(DESTDIR)@mandir@"
+stamp-man: stamp-man-doxygen
+	$(STAMP) stamp-man
+
+doc-man: stamp-man
+
+doc-install-man: doc-man
+	test -z ${mandir} || $(mkinstalldirs) ${mandir}
+	cp -r ${doxygen_outdir}/man/man3 ${mandir}
+
+# TEXINFO,INFO
+infodir="$(DESTDIR)@infodir@"
+stamp-texinfo: stamp-texinfo-docbook
+	$(STAMP) stamp-texinfo
+
+stamp-info: stamp-info-docbook
+	$(STAMP) stamp-info
+
+doc-texinfo: stamp-texinfo
+
+doc-info: stamp-info
+
+doc-install-texinfo: doc-texinfo
+	test -z ${infodir} || $(mkinstalldirs) ${infodir}
+	$(INSTALL_DATA) ${manual_texi} ${infodir}
+
+doc-install-info: doc-info
+	test -z ${infodir} || $(mkinstalldirs) ${infodir}
+	$(INSTALL_DATA) ${manual_info} ${infodir}
+
+# EPUB
+# Assumes ruby installed
+epubdir="$(DESTDIR)@docdir@"
+stamp-epub: stamp-epub-docbook
+	$(STAMP) stamp-epub
+
+doc-epub: stamp-epub
+
+doc-install-epub: doc-epub
+	test -z ${epubdir} || $(mkinstalldirs) ${epubdir}
+	$(INSTALL_DATA) ${manual_epub} ${epubdir}
 
 
 # Doxygen configuration
 # Assumes doxygen, graphviz (with dot), pdflatex installed
 doxygen_script=${top_srcdir}/scripts/run_doxygen
 doxygen_outdir = ${glibcxx_builddir}/doc/doxygen
+api_xml = ${doxygen_outdir}/xml/libstdc++-api-single.xml
 doxygen_pdf = ${doxygen_outdir}/latex/refman.pdf
+api_pdf = ${doxygen_outdir}/pdf/libstdc++-api.pdf
 
-doc-html-doxygen:
-	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
-	  builddir=`cd ..; ${PWD_COMMAND}`; \
-	  ${SHELL} ${doxygen_script} \
-	  --host_alias=${host_alias} --mode=html $${srcdir} $${builddir} YES)
+${doxygen_outdir}/xml:
+	mkdir -p ${doxygen_outdir}/xml
 
-doc-man-doxygen:
-	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
-	  builddir=`cd ..; ${PWD_COMMAND}`; \
-	  ${SHELL} ${doxygen_script} \
-	  --host_alias=${host_alias} --mode=man $${srcdir} $${builddir} YES)
+${doxygen_outdir}/html:
+	mkdir -p ${doxygen_outdir}/html
 
-doc-xml-doxygen:
+${doxygen_outdir}/latex:
+	mkdir -p ${doxygen_outdir}/latex
+
+${doxygen_outdir}/pdf:
+	mkdir -p ${doxygen_outdir}/pdf
+
+${doxygen_outdir}/man:
+	mkdir -p ${doxygen_outdir}/man
+
+stamp-xml-doxygen: ${doxygen_outdir}/xml
 	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
 	  builddir=`cd ..; ${PWD_COMMAND}`; \
 	  ${SHELL} ${doxygen_script} \
 	  --host_alias=${host_alias} --mode=xml $${srcdir} $${builddir} NO)
+	$(STAMP) stamp-xml-doxygen
 
-doc-xml-single-doxygen:
+stamp-xml-single-doxygen: stamp-xml-doxygen
 	@echo "Generating doxygen xml single file..."
 	$(XSLTPROC) ${doxygen_outdir}/xml/combine.xslt \
-	${doxygen_outdir}/xml/index.xml > ${doxygen_outdir}/xml/api-spine.xml;
+	${doxygen_outdir}/xml/index.xml > ${api_xml};
+	$(STAMP) stamp-xml-single-doxygen
 
-doc-latex-doxygen:
+stamp-html-doxygen: ${doxygen_outdir}/html
+	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
+	  builddir=`cd ..; ${PWD_COMMAND}`; \
+	  ${SHELL} ${doxygen_script} \
+	  --host_alias=${host_alias} --mode=html $${srcdir} $${builddir} YES)
+	$(STAMP) stamp-html-doxygen
+
+stamp-latex-doxygen: ${doxygen_outdir}/latex
 	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
 	  builddir=`cd ..; ${PWD_COMMAND}`; \
 	  ${SHELL} ${doxygen_script} \
 	  --host_alias=${host_alias} --mode=latex $${srcdir} $${builddir} NO)
+	$(STAMP) stamp-latex-doxygen
 
-# Chance of loooooonnggg creation time on this rule.
-doc-pdf-doxygen: stamp-latex-doxygen
+# Chance of loooooonnggg creation time on this rule.  Iff this fails,
+# look at refman.log and see if TeX's memory is exhausted. Symptoms
+# include asking a wizard to enlarge capacity. If this is the case,
+# find texmf.cnf and add a zero for pool_size, string_vacancies,
+# max_strings, and pool_free values.
+stamp-pdf-doxygen: stamp-latex-doxygen ${doxygen_outdir}/pdf
 	-(cd ${doxygen_outdir}/latex && $(MAKE) -i pdf;)
 	echo "Generating doxygen pdf file...";
 	if [ -f ${doxygen_pdf} ]; then \
-	  echo "... ${doxygen_pdf}"; \
+	  mv ${doxygen_pdf} ${api_pdf} ; \
+	  echo ":: PDF file is ${api_pdf}"; \
 	else \
 	  echo "... error"; \
 	  exit 12; \
 	fi
-
-stamp-pdf-doxygen:
-	@if [ ! -f stamp-pdf-doxygen ]; then \
-	  $(MAKE) doc-pdf-doxygen; \
-	fi
 	$(STAMP) stamp-pdf-doxygen
 
-stamp-xml-doxygen:
-	@if [ ! -f stamp-xml-doxygen ]; then \
-	  $(MAKE) doc-xml-doxygen; \
-	  $(MAKE) doc-xml-single-doxygen; \
-	fi
-	$(STAMP) stamp-xml-doxygen
+stamp-man-doxygen: ${doxygen_outdir}/man
+	-(srcdir=`cd ${top_srcdir}; ${PWD_COMMAND}`; \
+	  builddir=`cd ..; ${PWD_COMMAND}`; \
+	  ${SHELL} ${doxygen_script} \
+	  --host_alias=${host_alias} --mode=man $${srcdir} $${builddir} YES)
+	$(STAMP) stamp-man-doxygen
 
-stamp-latex-doxygen:
-	@if [ ! -f stamp-latex-doxygen ]; then \
-	  $(MAKE) doc-latex-doxygen; \
-	fi
-	$(STAMP) stamp-latex-doxygen
+doc-xml-doxygen: stamp-xml-doxygen
+doc-xml-single-doxygen: stamp-xml-single-doxygen
+doc-html-doxygen: stamp-html-doxygen
+doc-latex-doxygen: stamp-latex-doxygen
+doc-pdf-doxygen: stamp-pdf-doxygen
+doc-man-doxygen: stamp-man-doxygen
+
 
 # Docbook configuration.
 # Assumes
@@ -112,7 +291,6 @@ stamp-latex-doxygen:
 # pdflatex
 # docbook-style-xsl
 # emacs-nxml-mode
-# xmlto passivetex
 docbook_outdir = ${glibcxx_builddir}/doc/docbook
 xml_dir = ${glibcxx_srcdir}/doc/xml
 
@@ -140,6 +318,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/debug_mode.xml \
 	${xml_dir}/manual/debug.xml \
 	${xml_dir}/manual/diagnostics.xml \
+	${xml_dir}/manual/documentation_hacking.xml \
 	${xml_dir}/manual/evolution.xml \
 	${xml_dir}/manual/extensions.xml \
 	${xml_dir}/manual/internals.xml \
@@ -152,6 +331,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/mt_allocator.xml \
 	${xml_dir}/manual/numerics.xml \
 	${xml_dir}/manual/parallel_mode.xml \
+	${xml_dir}/manual/policy_data_structures.xml \
 	${xml_dir}/manual/prerequisites.xml \
 	${xml_dir}/manual/profile_mode.xml \
 	${xml_dir}/manual/shared_ptr.xml \
@@ -163,6 +343,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/strings.xml \
 	${xml_dir}/manual/support.xml \
 	${xml_dir}/manual/test.xml \
+	${xml_dir}/manual/test_policy_data_structures.xml \
 	${xml_dir}/manual/using.xml \
 	${xml_dir}/manual/using_exceptions.xml \
 	${xml_dir}/manual/utilities.xml \
@@ -171,8 +352,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/appendix_porting.xml
 
 xml_sources_extra = \
-	${xml_dir}/gnu/fdl-1.2.xml \
-	${xml_dir}/gnu/gpl-2.0.xml \
+	${xml_dir}/gnu/fdl-1.3.xml \
 	${xml_dir}/gnu/gpl-3.0.xml
 
 xml_sources = \
@@ -180,131 +360,267 @@ xml_sources = \
 	${xml_sources_manual} \
 	${xml_sources_extra}
 
+xml_image_dir = ${xml_dir}/images
+xml_image_basic = \
+	${xml_image_dir}/confdeps.png \
+	${xml_image_dir}/pbds_balls_and_bins.png \
+	${xml_image_dir}/pbds_container_tag_hierarchy.png \
+	${xml_image_dir}/pbds_different_underlying_dss_1.png \
+	${xml_image_dir}/pbds_different_underlying_dss_2.png \
+	${xml_image_dir}/pbds_embedded_lists_1.png \
+	${xml_image_dir}/pbds_embedded_lists_2.png \
+	${xml_image_dir}/pbds_embedded_lists_3.png \
+	${xml_image_dir}/pbds_exception_hierarchy.png \
+	${xml_image_dir}/pbds_hash_policy_cd.png \
+	${xml_image_dir}/pbds_hash_ranged_hash_range_hashing_fns.png \
+	${xml_image_dir}/pbds_hash_range_hashing_seq_diagram2.png \
+	${xml_image_dir}/pbds_hash_range_hashing_seq_diagram.png \
+	${xml_image_dir}/pbds_insert_resize_sequence_diagram1.png \
+	${xml_image_dir}/pbds_insert_resize_sequence_diagram2.png \
+	${xml_image_dir}/pbds_insert_resize_sequence_diagram3.png \
+	${xml_image_dir}/pbds_invalidation_guarantee_erase.png \
+	${xml_image_dir}/pbds_invalidation_tag_hierarchy.png \
+	${xml_image_dir}/pbds_list_update.png \
+	${xml_image_dir}/pbds_node_invariants.png \
+	${xml_image_dir}/pbds_pat_trie.png \
+	${xml_image_dir}/pbds_point_iterator_hierarchy.png \
+	${xml_image_dir}/pbds_point_iterators_range_ops_1.png \
+	${xml_image_dir}/pbds_point_iterators_range_ops_2.png \
+	${xml_image_dir}/pbds_priority_queue_different_underlying_dss.png \
+	${xml_image_dir}/pbds_priority_queue_tag_hierarchy.png \
+	${xml_image_dir}/pbds_rationale_null_node_updator.png \
+	${xml_image_dir}/pbds_resize_policy_cd.png \
+	${xml_image_dir}/pbds_restoring_node_invariants.png \
+	${xml_image_dir}/pbds_simple_list.png \
+	${xml_image_dir}/pbds_tree_node_invalidations.png \
+	${xml_image_dir}/pbds_tree_node_invariants.png \
+	${xml_image_dir}/pbds_tree_node_updator_policy_cd.png \
+	${xml_image_dir}/pbds_trie_node_updator_policy_cd.png \
+	${xml_image_dir}/pbds_update_seq_diagram.png 
+
+xml_image_generated = \
+	${xml_image_dir}/pbds_binary_priority_queue_int_push_pop.png \
+	${xml_image_dir}/pbds_binary_priority_queue_int_push.png \
+	${xml_image_dir}/pbds_ccgp_hash_int_subscript_insert.png \
+	${xml_image_dir}/pbds_cc_hash_int_find.png \
+	${xml_image_dir}/pbds_cc_hash_int_subscript_find.png \
+	${xml_image_dir}/pbds_cc_hash_int_subscript_insert.png \
+	${xml_image_dir}/pbds_gp_hash_int_find.png \
+	${xml_image_dir}/pbds_gp_hash_int_subscript_find.png \
+	${xml_image_dir}/pbds_gp_hash_int_subscript_insert.png \
+	${xml_image_dir}/pbds_hash_int_erase_mem.png \
+	${xml_image_dir}/pbds_hash_text_find.png \
+	${xml_image_dir}/pbds_hash_zlob_int_find.png \
+	${xml_image_dir}/pbds_multimap_text_find_large_s2p_hash.png \
+	${xml_image_dir}/pbds_multimap_text_find_large_s2p_tree.png \
+	${xml_image_dir}/pbds_multimap_text_find_small_s2p_hash.png \
+	${xml_image_dir}/pbds_multimap_text_find_small_s2p_tree.png \
+	${xml_image_dir}/pbds_multimap_text_insert_large_s2p_hash.png \
+	${xml_image_dir}/pbds_multimap_text_insert_large_s2p_tree.png \
+	${xml_image_dir}/pbds_multimap_text_insert_mem_large_s2p_hash.png \
+	${xml_image_dir}/pbds_multimap_text_insert_mem_large_s2p_tree.png \
+	${xml_image_dir}/pbds_multimap_text_insert_mem_small_s2p_hash.png \
+	${xml_image_dir}/pbds_multimap_text_insert_mem_small_s2p_tree.png \
+	${xml_image_dir}/pbds_multimap_text_insert_small_s2p_hash.png \
+	${xml_image_dir}/pbds_multimap_text_insert_small_s2p_tree.png \
+	${xml_image_dir}/pbds_pairing_priority_queue_text_modify_down_thin.png \
+	${xml_image_dir}/pbds_pairing_priority_queue_text_modify_up_thin.png \
+	${xml_image_dir}/pbds_pairing_priority_queue_text_push_pop.png \
+	${xml_image_dir}/pbds_pairing_priority_queue_text_push.png \
+	${xml_image_dir}/pbds_priority_queue_int_push_pop.png \
+	${xml_image_dir}/pbds_priority_queue_int_push.png \
+	${xml_image_dir}/pbds_priority_queue_text_join.png \
+	${xml_image_dir}/pbds_priority_queue_text_modify_down.png \
+	${xml_image_dir}/pbds_priority_queue_text_modify_up.png \
+	${xml_image_dir}/pbds_priority_queue_text_pop_mem.png \
+	${xml_image_dir}/pbds_priority_queue_text_push_pop.png \
+	${xml_image_dir}/pbds_priority_queue_text_push.png \
+	${xml_image_dir}/pbds_tree_int_find.png \
+	${xml_image_dir}/pbds_tree_order_statistics.png \
+	${xml_image_dir}/pbds_tree_split_join.png \
+	${xml_image_dir}/pbds_tree_text_find.png \
+	${xml_image_dir}/pbds_tree_text_insert_node.png \
+	${xml_image_dir}/pbds_tree_text_insert_trie.png \
+	${xml_image_dir}/pbds_tree_text_insert_vector.png \
+	${xml_image_dir}/pbds_tree_text_lor_find.png
+
+xml_images = ${xml_image_basic} ${xml_image_generated}
+
+xml_extradir = ${glibcxx_srcdir}/doc/html/ext
+xml_extra = \
+	${xml_extradir}/lwg-active.html \
+	${xml_extradir}/lwg-closed.html \
+	${xml_extradir}/lwg-defects.html
+
 xml_noinst = \
 	${xml_dir}/book.txml \
 	${xml_dir}/chapter.txml \
-	${xml_dir}/class.txml
+	${xml_dir}/class.txml \
+	${xml_image_dir}/confdeps.dot \
+	${xml_image_dir}/confdeps.pdf
 
 XSLTPROC       = xsltproc
-XSLTPROC_FLAGS = --nonet --xinclude
-XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-stylesheets
+XSLT_FLAGS = --nonet --xinclude
+XSLT_PARAM = --param toc.section.depth 4
+#XSL_STYLE_DIR = /usr/share/xml/docbook/stylesheet/docbook-xsl-ns
+#XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-ns-stylesheets
 XSL_FO_STYLE = $(XSL_STYLE_DIR)/fo/docbook.xsl
-XSL_HTML_STYLE = $(XSL_STYLE_DIR)/xhtml/chunk.xsl
-#XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml/onechunk.xsl
-XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml/docbook.xsl
+XSL_HTML_STYLE = $(XSL_STYLE_DIR)/xhtml-1_1/chunk.xsl
+XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml-1_1/docbook.xsl
+XSL_EPUB_STYLE = $(XSL_STYLE_DIR)/epub/docbook.xsl
 
-${docbook_outdir}/html:
-	mkdir -p ${docbook_outdir}/html
-
-${docbook_outdir}/pdf:
-	mkdir -p ${docbook_outdir}/pdf
+${docbook_outdir}/epub:
+	mkdir -p ${docbook_outdir}/epub
 
 ${docbook_outdir}/fo:
 	mkdir -p ${docbook_outdir}/fo
 
+${docbook_outdir}/html:
+	mkdir -p ${docbook_outdir}/html
+	mkdir -p ${docbook_outdir}/html/images
+	mkdir -p ${docbook_outdir}/html/manual/ext
+
+${docbook_outdir}/pdf:
+	mkdir -p ${docbook_outdir}/pdf
+
+${docbook_outdir}/texinfo:
+	mkdir -p ${docbook_outdir}/texinfo
+
 ${docbook_outdir}/xml:
 	mkdir -p ${docbook_outdir}/xml
+	mkdir -p ${docbook_outdir}/xml/images
 
 # Validate existing XML structure.
 XMLLINT = xmllint
-#LINT_FLAGS = --debug --nonet --xinclude --nsclean --postvalid --nowarning
-#LINT_FLAGS = --noblanks --noout --xinclude --postvalid --noent
-LINT_FLAGS = --postvalid --debug --xinclude --noent --noblanks  --nonet --noout
-DTD_FLAGS = --dtdvalid http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd
-XMLLINT_FLAGS = $(LINT_FLAGS) $(DTD_FLAGS)
-doc-xml-validate-docbook: $(xml_sources)
+LINT_FLAGS = --debug --xinclude --noent --noblanks --noout
+SCHEMA_FLAGS = http://www.docbook.org/xml/5.0/dtd/docbook.dtd
+#SCHEMA_FLAGS = --nonet /usr/share/xml/docbook5/schema/dtd/5.0/docbook.dtd
+XMLLINT_VALID_FLAGS = $(LINT_FLAGS) --dtdvalid $(SCHEMA_FLAGS)
+XMLLINT_FLAGS = --xinclude --nsclean --c14n --noent --noblanks --nocdata
+doc-xml-validate-docbook: $(xml_sources) $(xml_images)
 	@echo "Generating XML validation log..."
-	$(XMLLINT) $(XMLLINT_FLAGS) ${top_srcdir}/doc/xml/spine.xml
+	$(XMLLINT) $(XMLLINT_VALID_FLAGS) ${top_srcdir}/doc/xml/spine.xml
 
-doc-xml-single-docbook: $(xml_sources) ${docbook_outdir}/xml
+# XML, all one page
+# Some info on canonicalization
+# http://www.mail-archive.com/help-texinfo@gnu.org/msg00864.html
+manual_xml = ${docbook_outdir}/xml/libstdc++-manual-single.xml
+set_xml = ${docbook_outdir}/xml/libstdc++-set-single.xml
+stamp-xml-single-docbook: $(xml_sources) ${docbook_outdir}/xml
 	@echo "Generating XML single..."
-	$(XMLLINT) --xinclude --noent --noblanks \
-	-o ${docbook_outdir}/xml/spine-single.xml \
-	${top_srcdir}/doc/xml/spine.xml
+	$(XMLLINT) $(XMLLINT_FLAGS) \
+	${top_srcdir}/doc/xml/manual/spine.xml > ${manual_xml};
+	$(XMLLINT) $(XMLLINT_FLAGS) \
+	${top_srcdir}/doc/xml/spine.xml > ${set_xml};
+	if [ ! -d "${docbook_outdir}/xml/images" ]; then \
+	  $(LN_S) ${top_srcdir}/doc/xml/images ${docbook_outdir}/xml/; \
+	fi
+	$(STAMP) stamp-xml-single-docbook
+
+doc-xml-single-docbook: stamp-xml-single-docbook
+
+# HTML support files
+stamp-html-docbook-images: stamp-html-docbook $(xml_images)
+	$(INSTALL_DATA)	$(xml_images) ${docbook_outdir}/html/images
+	$(STAMP) stamp-html-docbook-images
+
+stamp-html-docbook-lwg: stamp-html-docbook $(xml_extra)
+	$(INSTALL_DATA)	$(xml_extra) ${docbook_outdir}/html/manual/ext
+	$(STAMP) stamp-html-docbook-lwg
+
+stamp-html-docbook-data: stamp-html-docbook-images stamp-html-docbook-lwg
+	$(STAMP) stamp-html-docbook-data
 
 # HTML, index plus chapters
-doc-html-docbook: $(xml_sources) ${docbook_outdir}/html
+stamp-html-docbook: $(xml_sources) ${docbook_outdir}/html
 	@echo "Generating html files..."
-	$(XSLTPROC) $(XSLTPROC_FLAGS) -o ${docbook_outdir}/html/ \
+	$(XSLTPROC) $(XSLT_PARAM) $(XSLT_FLAGS) -o ${docbook_outdir}/html/ \
 	$(XSL_HTML_STYLE) ${top_srcdir}/doc/xml/spine.xml
+	$(STAMP) stamp-html-docbook
+
+doc-html-docbook: stamp-html-docbook-data
 
 # HTML, all one page
-doc-html-single-docbook: $(xml_sources) ${docbook_outdir}/html
+manual_html = ${docbook_outdir}/html/libstdc++-manual-single.html
+stamp-html-single-docbook: $(xml_sources) ${docbook_outdir}/html
 	@echo "Generating html single file..."
-	$(XSLTPROC) $(XSLTPROC_FLAGS) -o ${docbook_outdir}/html/ \
+	$(XSLTPROC) $(XSLT_PARAM) $(XSLT_FLAGS) -o ${manual_html} \
 	$(XSL_HTML_SINGLE_STYLE) ${top_srcdir}/doc/xml/spine.xml
+	$(STAMP) stamp-html-single-docbook
+
+doc-html-single-docbook: stamp-html-single-docbook
 
 # FO
-doc-fo-docbook: $(xml_sources) ${docbook_outdir}/fo
+stamp-fo-docbook: $(xml_sources) ${docbook_outdir}/fo
 	@echo "Generating FO files..."
-	$(XSLTPROC) $(XSLTPROC_FLAGS) -o ${docbook_outdir}/fo/spine.fo \
+	$(XSLTPROC) $(XSLT_FLAGS) -o ${docbook_outdir}/fo/spine.fo \
 	$(XSL_FO_STYLE) ${top_srcdir}/doc/xml/spine.xml
+	$(STAMP) stamp-fo-docbook
 
-# PDF 1
-# fop
-FOP = fop
-FOP_FLAGS = -d -r
-doc-pdf-fop-xml-docbook: $(xml_sources) ${glibcxx_builddir}/doc/pdf
-	@echo "Generating pdf fop files from xml..."
-	$(FOP) $(FOP_FLAGS) -xml ${top_srcdir}/doc/xml/spine.xml \
-	-xsl $(XSL_FO_STYLE) -pdf ${docbook_outdir}/pdf/spine.pdf
+doc-fo-docbook: stamp-fo-docbook
 
-doc-pdf-fop-fo-docbook: $(xml_sources) ${glibcxx_builddir}/doc/pdf doc-fo
-	@echo "Generating pdf fop files from fo..."
-	$(FOP) $(FOP_FLAGS) -fo ${docbook_outdir}/fo/spine.fo \
-	-pdf ${docbook_outdir}/pdf/spine.pdf
-
-# PDF 2
-# xmlto
-XML2PDF = xmlto
-XML2PDF_FLAGS = -v pdf --skip-validation -o pdf
-doc-pdf-xmlto-docbook: $(xml_sources) ${docbook_outdir}/pdf
-	@echo "Generating pdf xmlto files..."
-	$(XML2PDF) $(XML2PDF_FLAGS) ${top_srcdir}/doc/xml/spine.xml
-
-# PDF 3
-# xmlroff
-XMLROFF = xmlroff
-XMLROFF_FLAGS = --format=pdf --backend=cairo --warn=1 --debug=1 --continue
-doc-pdf-xmlroff-docbook: $(xml_sources) doc-fo
-	@echo "Generating pdf xmlroff files..."
-	$(XMLROFF) $(XMLROFF_FLAGS) ${docbook_outdir}/fo/spine.fo
-
-# PDF 4
-# prince
-PRINCE = prince
-PRINCE_FLAGS = --log prince.log -o pdf/spine.pdf
-doc-pdf-prince-docbook: $(xml_sources) ${docbook_outdir}/pdf
-	@echo "Generating pdf prince files..."
-	$(PRINCE) $(PRINCE_FLAGS) ${top_srcdir}/xml/spine.xml
-
-# PDF 5
-# dblatex
-DBLATEX_FLAGS = --dump --verbose --pdf -o ${docbook_outdir}/pdf/manual.pdf
-doc-pdf-dblatex-docbook: $(xml_sources) ${docbook_outdir}/pdf
+# PDF, via dblatex
+manual_pdf = ${docbook_outdir}/pdf/libstdc++-manual.pdf
+DBLATEX_FLAGS = --dump --verbose --pdf
+stamp-pdf-docbook: $(xml_sources) ${docbook_outdir}/pdf
 	@echo "Generating pdf dblatex files..."
-	dblatex $(DBLATEX_FLAGS) ${top_srcdir}/doc/xml/spine.xml
+	dblatex $(DBLATEX_FLAGS) \
+	-o ${manual_pdf} ${top_srcdir}/doc/xml/spine.xml
+	$(STAMP) stamp-pdf-docbook
 
-doc-pdf-docbook: doc-pdf-dblatex-docbook
+doc-pdf-docbook: stamp-pdf-docbook
+
+# TEXINFO, via docbook2X
+# NB: Both experimental and tempermental
+manual_texi = ${docbook_outdir}/texinfo/libstdc++-manual.texi
+manual_info = ${docbook_outdir}/texinfo/libstdc++-manual.info
+DB2TEXI_FLAGS = \
+	--encoding=utf-8//TRANSLIT \
+	--string-param output-file="libstdc++-manual" \
+	--string-param directory-category="GNU C++ Library" \
+	--string-param explicit-node-names=true
+
+stamp-texinfo-docbook: stamp-xml-single-docbook ${docbook_outdir}/texinfo
+	@echo "Generating texinfo files..."
+	db2x_docbook2texi $(DB2TEXI_FLAGS) ${set_xml}
+	mv libstdc++-manual.texi ${manual_texi}
+	$(STAMP) stamp-texinfo-docbook
+
+stamp-info-docbook: stamp-texinfo-docbook
+	@echo "Generating info files..."
+	$(MAKEINFO) $(MAKEINFOFLAGS) ${manual_texi}
+	$(STAMP) stamp-info-docbook
+
+doc-texinfo-docbook: stamp-texinfo-docbook
+
+doc-info-docbook: stamp-info-docbook
+
+# EPUB, via dbtoepub + ruby
+manual_epub = ${docbook_outdir}/epub/libstdc++-manual.epub
+stamp-epub-docbook: stamp-xml-single-docbook ${docbook_outdir}/epub
+	@echo "Generating epub files..."
+	${XSL_STYLE_DIR}/epub/bin/dbtoepub -v -d -o ${manual_epub} ${set_xml}
+	$(STAMP) stamp-epub-docbook
+
+doc-epub-docbook: stamp-epub-docbook
 
 
 # Performance doc and graph configuration.
 # Assumes pychart, beautiful soup installed.
-# Generates the plots and graphs for performance testing.
-doc_performance_script=${top_srcdir}/scripts/make_graphs.py
-doc-html-performance:
+# Generates the plots/graph imagery for performance testing.
+doc_performance_script=${top_srcdir}/scripts/make_graph.py
+doc-svg-performance: ${docbook_outdir}/xml
 	-@(chmod + ${doc_performance_script}; \
-	${doc_performance_script} ${top_srcdir} \
+	${doc_performance_script} \
+	${top_srcdir}/testsuite/data/make_graph_test_infos.xml \
 	${glibcxx_builddir}/testsuite \
-	${top_srcdir}/testsuite/data/make_graph_htmls.xml \
-	${top_srcdir}/testsuite/data/make_graph_test_infos.xml local g++)
-
+	${glibcxx_builddir}/doc/docbook/xml/images)
 
 .PHONY: doc-doxygen-html doc-doxygen-man doc-performance
 
 # By adding these files here, automake will remove them for 'make clean'
-CLEANFILES = *.log
+CLEANFILES = *.log stamp*
 
 # To remove directories.
 clean-local:
-	rm -rf man html pdf fo xml doxygen docbook stamp*
+	rm -rf man html pdf fo xml doxygen docbook ./libstdc++-* db2t*

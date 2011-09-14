@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,5 +47,29 @@ package Ada.Containers.Red_Black_Trees is
          Lock   : Natural := 0;
       end record;
    end Generic_Tree_Types;
+
+   generic
+      type Node_Type is private;
+   package Generic_Bounded_Tree_Types is
+      type Nodes_Type is array (Count_Type range <>) of Node_Type;
+
+      --  Note that objects of type Tree_Type are logically initialized (in the
+      --  sense that representation invariants of type are satisfied by dint of
+      --  default initialization), even without the Nodes component also having
+      --  its own initialization expression. We only initializae the Nodes
+      --  component here in order to prevent spurious compiler warnings about
+      --  the container object not being fully initialized.
+
+      type Tree_Type (Capacity : Count_Type) is tagged record
+         First  : Count_Type := 0;
+         Last   : Count_Type := 0;
+         Root   : Count_Type := 0;
+         Length : Count_Type := 0;
+         Busy   : Natural := 0;
+         Lock   : Natural := 0;
+         Free   : Count_Type'Base := -1;
+         Nodes  : Nodes_Type (1 .. Capacity) := (others => <>);
+      end record;
+   end Generic_Bounded_Tree_Types;
 
 end Ada.Containers.Red_Black_Trees;

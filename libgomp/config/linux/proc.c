@@ -1,4 +1,5 @@
-/* Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>.
 
    This file is part of the GNU OpenMP Library (libgomp).
@@ -29,7 +30,7 @@
 #define _GNU_SOURCE 1
 #endif
 #include "libgomp.h"
-#include <sched.h>
+#include "proc.h"
 #include <stdlib.h>
 #include <unistd.h>
 #ifdef HAVE_GETLOADAVG
@@ -39,8 +40,8 @@
 #endif
 
 #ifdef HAVE_PTHREAD_AFFINITY_NP
-static unsigned long
-cpuset_popcount (cpu_set_t *cpusetp)
+unsigned long
+gomp_cpuset_popcount (cpu_set_t *cpusetp)
 {
 #ifdef CPU_COUNT
   /* glibc 2.6 and above provide a macro for this.  */
@@ -75,7 +76,7 @@ gomp_init_num_threads (void)
   if (pthread_getaffinity_np (pthread_self (), sizeof (cpuset), &cpuset) == 0)
     {
       /* Count only the CPUs this process can use.  */
-      gomp_global_icv.nthreads_var = cpuset_popcount (&cpuset);
+      gomp_global_icv.nthreads_var = gomp_cpuset_popcount (&cpuset);
       if (gomp_global_icv.nthreads_var == 0)
 	gomp_global_icv.nthreads_var = 1;
       return;
@@ -98,32 +99,19 @@ get_num_procs (void)
       if (pthread_getaffinity_np (pthread_self (), sizeof (cpuset),
 				  &cpuset) == 0)
 	{
-	  int ret = cpuset_popcount (&cpuset);
+	  int ret = gomp_cpuset_popcount (&cpuset);
 	  return ret != 0 ? ret : 1;
 	}
     }
   else
     {
-      size_t idx;
-      static int affinity_cpus;
-
       /* We can't use pthread_getaffinity_np in this case
 	 (we have changed it ourselves, it binds to just one CPU).
 	 Count instead the number of different CPUs we are
-	 using.  */
-      CPU_ZERO (&cpuset);
-      if (affinity_cpus == 0)
-	{
-	  int cpus = 0;
-	  for (idx = 0; idx < gomp_cpu_affinity_len; idx++)
-	    if (! CPU_ISSET (gomp_cpu_affinity[idx], &cpuset))
-	      {
-		cpus++;
-		CPU_SET (gomp_cpu_affinity[idx], &cpuset);
-	      }
-	  affinity_cpus = cpus;
-	}
-      return affinity_cpus;
+	 using.  gomp_init_affinity updated gomp_available_cpus to
+	 the number of CPUs in the GOMP_AFFINITY mask that we are
+	 allowed to use though.  */
+      return gomp_available_cpus;
     }
 #endif
 #ifdef _SC_NPROCESSORS_ONLN

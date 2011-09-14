@@ -43,7 +43,7 @@ TARGETDIR="unknown"
 case "$host" in
   alpha*-*-*)
 	TARGET=ALPHA; TARGETDIR=alpha;
-	# Support 128-bit long double, changable via command-line switch.
+	# Support 128-bit long double, changeable via command-line switch.
 	HAVE_LONG_DOUBLE='defined(__LONG_DOUBLE_128__)'
 	;;
 
@@ -80,10 +80,17 @@ case "$host" in
   i?86-*-freebsd* | i?86-*-openbsd*)
 	TARGET=X86_FREEBSD; TARGETDIR=x86
 	;;
-  i?86-win32* | i?86-*-cygwin* | i?86-*-mingw*)
+  i?86-win32* | i?86-*-cygwin* | i?86-*-mingw* | i?86-*-os2*)
 	TARGET=X86_WIN32; TARGETDIR=x86
-	# All mingw/cygwin/win32 builds require this for sharedlib
-	AM_LTLDFLAGS="-no-undefined"
+	# All mingw/cygwin/win32 builds require -no-undefined for sharedlib.
+	# We must also check with_cross_host to decide if this is a native
+	# or cross-build and select where to install dlls appropriately.
+	if test -n "$with_cross_host" &&
+	   test x"$with_cross_host" != x"no"; then
+	  AM_LTLDFLAGS='-no-undefined -bindir "$(toolexeclibdir)"';
+	else
+	  AM_LTLDFLAGS='-no-undefined -bindir "$(bindir)"';
+	fi
 	;;
   i?86-*-darwin*)
 	TARGET=X86_DARWIN; TARGETDIR=x86
@@ -107,7 +114,7 @@ case "$host" in
 	TARGET=M68K; TARGETDIR=m68k
 	;;
 
-  mips-sgi-irix5.* | mips-sgi-irix6.*)
+  mips-sgi-irix5.* | mips-sgi-irix6.* | mips*-*-rtems*)
 	TARGET=MIPS; TARGETDIR=mips
 	;;
   mips*-*-linux*)
@@ -130,6 +137,9 @@ case "$host" in
 	;;
   powerpc-*-freebsd*)
 	TARGET=POWERPC_FREEBSD; TARGETDIR=powerpc
+	;;
+ powerpc64-*-freebsd*)
+	TARGET=POWERPC; TARGETDIR=powerpc
 	;;
   powerpc*-*-rtems*)
 	TARGET=POWERPC; TARGETDIR=powerpc
@@ -266,13 +276,39 @@ if test x$TARGET = xX86 || test x$TARGET = xX86_WIN32 || test x$TARGET = xX86_64
 	libffi_cv_as_x86_pcrel, [
 	libffi_cv_as_x86_pcrel=yes
 	echo '.text; foo: nop; .data; .long foo-.; .text' > conftest.s
-	if $CC $CFLAGS -c conftest.s 2>&1 | grep -i warning > /dev/null; then
+	if $CC $CFLAGS -c conftest.s 2>&1 | $EGREP -i 'illegal|warning' > /dev/null; then
 	    libffi_cv_as_x86_pcrel=no
 	fi
 	])
     if test "x$libffi_cv_as_x86_pcrel" = xyes; then
 	AC_DEFINE(HAVE_AS_X86_PCREL, 1,
 		  [Define if your assembler supports PC relative relocs.])
+    fi
+
+    AC_CACHE_CHECK([assembler .ascii pseudo-op support],
+       libffi_cv_as_ascii_pseudo_op, [
+       libffi_cv_as_ascii_pseudo_op=unknown
+       # Check if we have .ascii
+       AC_TRY_COMPILE([asm (".ascii \\"string\\"");],,
+		       [libffi_cv_as_ascii_pseudo_op=yes],
+		       [libffi_cv_as_ascii_pseudo_op=no])
+    ])
+    if test "x$libffi_cv_as_ascii_pseudo_op" = xyes; then
+       AC_DEFINE(HAVE_AS_ASCII_PSEUDO_OP, 1,
+	       [Define if your assembler supports .ascii.])
+    fi
+
+    AC_CACHE_CHECK([assembler .string pseudo-op support],
+       libffi_cv_as_string_pseudo_op, [
+       libffi_cv_as_string_pseudo_op=unknown
+       # Check if we have .string
+       AC_TRY_COMPILE([asm (".string \\"string\\"");],,
+		       [libffi_cv_as_string_pseudo_op=yes],
+		       [libffi_cv_as_string_pseudo_op=no])
+    ])
+    if test "x$libffi_cv_as_string_pseudo_op" = xyes; then
+       AC_DEFINE(HAVE_AS_STRING_PSEUDO_OP, 1,
+	       [Define if your assembler supports .string.])
     fi
 fi
 

@@ -1,7 +1,7 @@
 // Core algorithmic facilities -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-// Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+// 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -49,16 +49,15 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_algobase.h
+/** @file bits/stl_algobase.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{algorithm}
  */
 
 #ifndef _STL_ALGOBASE_H
 #define _STL_ALGOBASE_H 1
 
 #include <bits/c++config.h>
-#include <cstddef>
 #include <bits/functexcept.h>
 #include <bits/cpp_type_traits.h>
 #include <ext/type_traits.h>
@@ -71,7 +70,9 @@
 #include <debug/debug.h>
 #include <bits/move.h> // For std::swap and _GLIBCXX_MOVE
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // See http://gcc.gnu.org/ml/libstdc++/2004-08/msg00167.html: in a
   // nutshell, we are partially implementing the resolution of DR 187,
@@ -105,8 +106,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Swaps the contents of two iterators.
    *  @ingroup mutating_algorithms
-   *  @param  a  An iterator.
-   *  @param  b  Another iterator.
+   *  @param  __a  An iterator.
+   *  @param  __b  Another iterator.
    *  @return   Nothing.
    *
    *  This function swaps the values pointed to by two iterators, not the
@@ -144,9 +145,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Swap the elements of two sequences.
    *  @ingroup mutating_algorithms
-   *  @param  first1  A forward iterator.
-   *  @param  last1   A forward iterator.
-   *  @param  first2  A forward iterator.
+   *  @param  __first1  A forward iterator.
+   *  @param  __last1   A forward iterator.
+   *  @param  __first2  A forward iterator.
    *  @return   An iterator equal to @p first2+(last1-first1).
    *
    *  Swaps each element in the range @p [first1,last1) with the
@@ -173,8 +174,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
    *  @return   The lesser of the parameters.
    *
    *  This is the simple classic generic implementation.  It will work on
@@ -196,8 +197,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
    *  @return   The greater of the parameters.
    *
    *  This is the simple classic generic implementation.  It will work on
@@ -219,9 +220,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
-   *  @param  comp  A @link comparison_functors comparison functor@endlink.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
+   *  @param  __comp  A @link comparison_functors comparison functor@endlink.
    *  @return   The lesser of the parameters.
    *
    *  This will work on temporary expressions, since they are only evaluated
@@ -240,9 +241,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
-   *  @param  comp  A @link comparison_functors comparison functor@endlink.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
+   *  @param  __comp  A @link comparison_functors comparison functor@endlink.
    *  @return   The greater of the parameters.
    *
    *  This will work on temporary expressions, since they are only evaluated
@@ -257,27 +258,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return __b;
       return __a;
     }
-
-
-  // If _Iterator has a base returns it otherwise _Iterator is returned
-  // untouched
-  template<typename _Iterator, bool _HasBase>
-    struct _Iter_base
-    {
-      typedef _Iterator iterator_type;
-      static iterator_type
-      _S_base(_Iterator __it)
-      { return __it; }
-    };
-
-  template<typename _Iterator>
-    struct _Iter_base<_Iterator, true>
-    {
-      typedef typename _Iterator::iterator_type iterator_type;
-      static iterator_type
-      _S_base(_Iterator __it)
-      { return __it.base(); }
-    };
 
   // If _Iterator is a __normal_iterator return its base (a plain pointer,
   // normally) otherwise return it untouched.  See copy, fill, ... 
@@ -395,7 +375,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef typename iterator_traits<_II>::value_type _ValueTypeI;
       typedef typename iterator_traits<_OI>::value_type _ValueTypeO;
       typedef typename iterator_traits<_II>::iterator_category _Category;
-      const bool __simple = (__is_pod(_ValueTypeI)
+      const bool __simple = (__is_trivial(_ValueTypeI)
 	                     && __is_pointer<_II>::__value
 	                     && __is_pointer<_OI>::__value
 			     && __are_same<_ValueTypeI, _ValueTypeO>::__value);
@@ -445,9 +425,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Copies the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  An input iterator.
-   *  @param  last   An input iterator.
-   *  @param  result An output iterator.
+   *  @param  __first  An input iterator.
+   *  @param  __last   An input iterator.
+   *  @param  __result An output iterator.
    *  @return   result + (first - last)
    *
    *  This inline function will boil down to a call to @c memmove whenever
@@ -478,9 +458,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Moves the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  An input iterator.
-   *  @param  last   An input iterator.
-   *  @param  result An output iterator.
+   *  @param  __first  An input iterator.
+   *  @param  __last   An input iterator.
+   *  @param  __result An output iterator.
    *  @return   result + (first - last)
    *
    *  This inline function will boil down to a call to @c memmove whenever
@@ -590,7 +570,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef typename iterator_traits<_BI1>::value_type _ValueType1;
       typedef typename iterator_traits<_BI2>::value_type _ValueType2;
       typedef typename iterator_traits<_BI1>::iterator_category _Category;
-      const bool __simple = (__is_pod(_ValueType1)
+      const bool __simple = (__is_trivial(_ValueType1)
 	                     && __is_pointer<_BI1>::__value
 	                     && __is_pointer<_BI2>::__value
 			     && __are_same<_ValueType1, _ValueType2>::__value);
@@ -613,9 +593,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Copies the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  A bidirectional iterator.
-   *  @param  last   A bidirectional iterator.
-   *  @param  result A bidirectional iterator.
+   *  @param  __first  A bidirectional iterator.
+   *  @param  __last   A bidirectional iterator.
+   *  @param  __result A bidirectional iterator.
    *  @return   result - (first - last)
    *
    *  The function has the same effect as copy, but starts at the end of the
@@ -649,9 +629,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Moves the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  A bidirectional iterator.
-   *  @param  last   A bidirectional iterator.
-   *  @param  result A bidirectional iterator.
+   *  @param  __first  A bidirectional iterator.
+   *  @param  __last   A bidirectional iterator.
+   *  @param  __result A bidirectional iterator.
    *  @return   result - (first - last)
    *
    *  The function has the same effect as move, but starts at the end of the
@@ -661,7 +641,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  loop count will be known (and therefore a candidate for compiler
    *  optimizations such as unrolling).
    *
-   *  Result may not be in the range [first,last).  Use move instead.  Note
+   *  Result may not be in the range (first,last].  Use move instead.  Note
    *  that the start of the output range may overlap [first,last).
   */
   template<typename _BI1, typename _BI2>
@@ -721,9 +701,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Fills the range [first,last) with copies of value.
    *  @ingroup mutating_algorithms
-   *  @param  first  A forward iterator.
-   *  @param  last   A forward iterator.
-   *  @param  value  A reference-to-const of arbitrary type.
+   *  @param  __first  A forward iterator.
+   *  @param  __last   A forward iterator.
+   *  @param  __value  A reference-to-const of arbitrary type.
    *  @return   Nothing.
    *
    *  This function fills a range with copies of the same value.  For char
@@ -748,7 +728,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __gnu_cxx::__enable_if<!__is_scalar<_Tp>::__value, _OutputIterator>::__type
     __fill_n_a(_OutputIterator __first, _Size __n, const _Tp& __value)
     {
-      for (; __n > 0; --__n, ++__first)
+      for (__decltype(__n + 0) __niter = __n;
+	   __niter > 0; --__niter, ++__first)
 	*__first = __value;
       return __first;
     }
@@ -759,7 +740,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __fill_n_a(_OutputIterator __first, _Size __n, const _Tp& __value)
     {
       const _Tp __tmp = __value;
-      for (; __n > 0; --__n, ++__first)
+      for (__decltype(__n + 0) __niter = __n;
+	   __niter > 0; --__niter, ++__first)
 	*__first = __tmp;
       return __first;
     }
@@ -776,9 +758,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Fills the range [first,first+n) with copies of value.
    *  @ingroup mutating_algorithms
-   *  @param  first  An output iterator.
-   *  @param  n      The count of copies to perform.
-   *  @param  value  A reference-to-const of arbitrary type.
+   *  @param  __first  An output iterator.
+   *  @param  __n      The count of copies to perform.
+   *  @param  __value  A reference-to-const of arbitrary type.
    *  @return   The iterator at first+n.
    *
    *  This function fills a range with copies of the same value.  For char
@@ -941,9 +923,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief Finds the first position in which @a val could be inserted
    *         without changing the ordering.
-   *  @param  first   An iterator.
-   *  @param  last    Another iterator.
-   *  @param  val     The search term.
+   *  @param  __first   An iterator.
+   *  @param  __last    Another iterator.
+   *  @param  __val     The search term.
    *  @return         An iterator pointing to the first element <em>not less
    *                  than</em> @a val, or end() if every element is less than 
    *                  @a val.
@@ -965,13 +947,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       __glibcxx_requires_partitioned_lower(__first, __last, __val);
 
       _DistanceType __len = std::distance(__first, __last);
-      _DistanceType __half;
-      _ForwardIterator __middle;
 
       while (__len > 0)
 	{
-	  __half = __len >> 1;
-	  __middle = __first;
+	  _DistanceType __half = __len >> 1;
+	  _ForwardIterator __middle = __first;
 	  std::advance(__middle, __half);
 	  if (*__middle < __val)
 	    {
@@ -1009,16 +989,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   __lg(long long __n)
   { return sizeof(long long) * __CHAR_BIT__ - 1 - __builtin_clzll(__n); }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
+_GLIBCXX_BEGIN_NAMESPACE_ALGO
 
   /**
    *  @brief Tests a range for element-wise equality.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
    *  @return   A boolean true or false.
    *
    *  This compares the elements of two ranges using @c == and returns true or
@@ -1045,10 +1025,10 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Tests a range for element-wise equality.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param binary_pred A binary predicate @link functors
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param __binary_pred A binary predicate @link functors
    *                  functor@endlink.
    *  @return         A boolean true or false.
    *
@@ -1076,10 +1056,10 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Performs @b dictionary comparison on ranges.
    *  @ingroup sorting_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param  last2   An input iterator.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param  __last2   An input iterator.
    *  @return   A boolean true or false.
    *
    *  <em>Returns true if the sequence of elements defined by the range
@@ -1112,11 +1092,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Performs @b dictionary comparison on ranges.
    *  @ingroup sorting_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param  last2   An input iterator.
-   *  @param  comp  A @link comparison_functors comparison functor@endlink.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param  __last2   An input iterator.
+   *  @param  __comp  A @link comparison_functors comparison functor@endlink.
    *  @return   A boolean true or false.
    *
    *  The same as the four-parameter @c lexicographical_compare, but uses the
@@ -1152,9 +1132,9 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Finds the places in ranges which don't match.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
    *  @return   A pair of iterators pointing to the first mismatch.
    *
    *  This compares the elements of two ranges using @c == and returns a pair
@@ -1186,10 +1166,10 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
   /**
    *  @brief Finds the places in ranges which don't match.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param binary_pred A binary predicate @link functors
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param __binary_pred A binary predicate @link functors
    *         functor@endlink.
    *  @return   A pair of iterators pointing to the first mismatch.
    *
@@ -1218,7 +1198,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
       return pair<_InputIterator1, _InputIterator2>(__first1, __first2);
     }
 
-_GLIBCXX_END_NESTED_NAMESPACE
+_GLIBCXX_END_NAMESPACE_ALGO
+} // namespace std
 
 // NB: This file is included within many other C++ includes, as a way
 // of getting the base algorithms. So, make sure that parallel bits

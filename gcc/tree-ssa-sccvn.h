@@ -1,5 +1,5 @@
 /* Tree SCC value numbering
-   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>
 
    This file is part of GCC.
@@ -42,9 +42,17 @@ typedef struct vn_nary_op_s
   hashval_t hashcode;
   tree result;
   tree type;
-  tree op[4];
+  tree op[1];
 } *vn_nary_op_t;
 typedef const struct vn_nary_op_s *const_vn_nary_op_t;
+
+/* Return the size of a vn_nary_op_t with LENGTH operands.  */
+
+static inline size_t
+sizeof_vn_nary_op (unsigned int length)
+{
+  return sizeof (struct vn_nary_op_s) + sizeof (tree) * (length - 1);
+}
 
 /* Phi nodes in the hashtable consist of their non-VN_TOP phi
    arguments, and the basic block the phi is in. Result is the value
@@ -72,6 +80,8 @@ typedef const struct vn_phi_s *const_vn_phi_t;
 typedef struct vn_reference_op_struct
 {
   enum tree_code opcode;
+  /* Constant offset this op adds or -1 if it is variable.  */
+  HOST_WIDE_INT off;
   tree type;
   tree op0;
   tree op1;
@@ -163,22 +173,22 @@ typedef struct vn_ssa_aux
   unsigned needs_insertion : 1;
 } *vn_ssa_aux_t;
 
+typedef enum { VN_NOWALK, VN_WALK, VN_WALKREWRITE } vn_lookup_kind;
+
 /* Return the value numbering info for an SSA_NAME.  */
 extern vn_ssa_aux_t VN_INFO (tree);
 extern vn_ssa_aux_t VN_INFO_GET (tree);
 tree vn_get_expr_for (tree);
-bool run_scc_vn (bool);
+bool run_scc_vn (vn_lookup_kind);
 void free_scc_vn (void);
 tree vn_nary_op_lookup (tree, vn_nary_op_t *);
 tree vn_nary_op_lookup_stmt (gimple, vn_nary_op_t *);
 tree vn_nary_op_lookup_pieces (unsigned int, enum tree_code,
-			       tree, tree, tree, tree, tree,
-			       vn_nary_op_t *);
+			       tree, tree *, vn_nary_op_t *);
 vn_nary_op_t vn_nary_op_insert (tree, tree);
 vn_nary_op_t vn_nary_op_insert_stmt (gimple, tree);
 vn_nary_op_t vn_nary_op_insert_pieces (unsigned int, enum tree_code,
-				       tree, tree, tree, tree,
-				       tree, tree, unsigned int);
+				       tree, tree *, tree, unsigned int);
 void vn_reference_fold_indirect (VEC (vn_reference_op_s, heap) **,
 				 unsigned int *);
 void copy_reference_ops_from_ref (tree, VEC(vn_reference_op_s, heap) **);
@@ -187,8 +197,8 @@ bool ao_ref_init_from_vn_reference (ao_ref *, alias_set_type, tree,
 				    VEC (vn_reference_op_s, heap) *);
 tree vn_reference_lookup_pieces (tree, alias_set_type, tree,
 				 VEC (vn_reference_op_s, heap) *,
-				 vn_reference_t *, bool);
-tree vn_reference_lookup (tree, tree, bool, vn_reference_t *);
+				 vn_reference_t *, vn_lookup_kind);
+tree vn_reference_lookup (tree, tree, vn_lookup_kind, vn_reference_t *);
 vn_reference_t vn_reference_insert (tree, tree, tree);
 vn_reference_t vn_reference_insert_pieces (tree, alias_set_type, tree,
 					   VEC (vn_reference_op_s, heap) *,

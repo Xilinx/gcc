@@ -1,5 +1,5 @@
 /* Supporting functions for resolving DATA statement.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Lifang Zeng <zlf605@hotmail.com>
 
@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
    trans-array.c.  */
 
 #include "config.h"
+#include "system.h"
 #include "gfortran.h"
 #include "data.h"
 #include "constructor.h"
@@ -99,8 +100,8 @@ find_con_by_component (gfc_component *com, gfc_constructor_base base)
    according to normal assignment rules.  */
 
 static gfc_expr *
-create_character_intializer (gfc_expr *init, gfc_typespec *ts,
-			     gfc_ref *ref, gfc_expr *rvalue)
+create_character_initializer (gfc_expr *init, gfc_typespec *ts,
+			      gfc_ref *ref, gfc_expr *rvalue)
 {
   int len, start, end;
   gfc_char_t *dest;
@@ -148,15 +149,16 @@ create_character_intializer (gfc_expr *init, gfc_typespec *ts,
 
   /* Copy the initial value.  */
   if (rvalue->ts.type == BT_HOLLERITH)
-    len = rvalue->representation.length;
+    len = rvalue->representation.length - rvalue->ts.u.pad;
   else
     len = rvalue->value.character.length;
 
   if (len > end - start)
     {
+      gfc_warning_now ("Initialization string starting at %L was "
+		       "truncated to fit the variable (%d/%d)",
+		       &rvalue->where, end - start, len);
       len = end - start;
-      gfc_warning_now ("initialization string truncated to match variable "
-		       "at %L", &rvalue->where);
     }
 
   if (rvalue->ts.type == BT_HOLLERITH)
@@ -187,10 +189,13 @@ create_character_intializer (gfc_expr *init, gfc_typespec *ts,
 
 /* Assign the initial value RVALUE to  LVALUE's symbol->value. If the
    LVALUE already has an initialization, we extend this, otherwise we
-   create a new one.  */
+   create a new one.  If REPEAT is non-NULL, initialize *REPEAT
+   consecutive values in LVALUE the same value in RVALUE.  In that case,
+   LVALUE must refer to a full array, not an array section.  */
 
 gfc_try
-gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
+gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index,
+		       mpz_t *repeat)
 {
   gfc_ref *ref;
   gfc_expr *init;
@@ -233,7 +238,7 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	    {
 	      gcc_assert (ref->u.ar.as->corank > 0);
 	      if (init == NULL)
-		gfc_free (expr);
+		free (expr);
 	      continue;
 	    }
 
@@ -242,7 +247,7 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	      gfc_error ("'%s' at %L already is initialized at %L",
 			 lvalue->symtree->n.sym->name, &lvalue->where,
 			 &init->where);
-	      return FAILURE;
+	      goto abort;
 	    }
 
 	  if (init == NULL)
@@ -265,7 +270,101 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	    {
 	      gfc_error ("Data element below array lower bound at %L",
 			 &lvalue->where);
-	      return FAILURE;
+	      goto abort;
+	    }
+	  else if (repeat != NULL
+		   && ref->u.ar.type != AR_ELEMENT)
+	    {
+	      mpz_t size, end;
+	      gcc_assert (ref->u.ar.type == AR_FULL
+			  && ref->next == NULL);
+	      mpz_init_set (end, offset);
+	      mpz_add (end, end, *repeat);
+	      if (spec_size (ref->u.ar.as, &size) == SUCCESS)
+		{
+		  if (mpz_cmp (end, size) > 0)
+		    {
+		      mpz_clear (size);
+		      gfc_error ("Data element above array upper bound at %L",
+				 &lvalue->where);
+		      goto abort;
+		    }
+		  mpz_clear (size);
+		}
+
+	      con = gfc_constructor_lookup (expr->value.constructor,
+					    mpz_get_si (offset));
+	      if (!con)
+		{
+		  con = gfc_constructor_lookup_next (expr->value.constructor,
+						     mpz_get_si (offset));
+		  if (con != NULL && mpz_cmp (con->offset, end) >= 0)
+		    con = NULL;
+		}
+
+	      /* Overwriting an existing initializer is non-standard but
+		 usually only provokes a warning from other compilers.  */
+	      if (con != NULL && con->expr != NULL)
+		{
+		  /* Order in which the expressions arrive here depends on
+		     whether they are from data statements or F95 style
+		     declarations.  Therefore, check which is the most
+		     recent.  */
+		  gfc_expr *exprd;
+		  exprd = (LOCATION_LINE (con->expr->where.lb->location)
+			   > LOCATION_LINE (rvalue->where.lb->location))
+			  ? con->expr : rvalue;
+		  if (gfc_notify_std (GFC_STD_GNU,"Extension: "
+				      "re-initialization of '%s' at %L",
+				      symbol->name, &exprd->where) == FAILURE)
+		    return FAILURE;
+		}
+
+	      while (con != NULL)
+		{
+		  gfc_constructor *next_con = gfc_constructor_next (con);
+
+		  if (mpz_cmp (con->offset, end) >= 0)
+		    break;
+		  if (mpz_cmp (con->offset, offset) < 0)
+		    {
+		      gcc_assert (mpz_cmp_si (con->repeat, 1) > 0);
+		      mpz_sub (con->repeat, offset, con->offset);
+		    }
+		  else if (mpz_cmp_si (con->repeat, 1) > 0
+			   && mpz_get_si (con->offset)
+			      + mpz_get_si (con->repeat) > mpz_get_si (end))
+		    {
+		      int endi;
+		      splay_tree_node node
+			= splay_tree_lookup (con->base,
+					     mpz_get_si (con->offset));
+		      gcc_assert (node
+				  && con == (gfc_constructor *) node->value
+				  && node->key == (splay_tree_key)
+						  mpz_get_si (con->offset));
+		      endi = mpz_get_si (con->offset)
+			     + mpz_get_si (con->repeat);
+		      if (endi > mpz_get_si (end) + 1)
+			mpz_set_si (con->repeat, endi - mpz_get_si (end));
+		      else
+			mpz_set_si (con->repeat, 1);
+		      mpz_set (con->offset, end);
+		      node->key = (splay_tree_key) mpz_get_si (end);
+		      break;
+		    }
+		  else
+		    gfc_constructor_remove (con);
+		  con = next_con;
+		}
+
+	      con = gfc_constructor_insert_expr (&expr->value.constructor,
+						 NULL, &rvalue->where,
+						 mpz_get_si (offset));
+	      mpz_set (con->repeat, *repeat);
+	      repeat = NULL;
+	      mpz_clear (end);
+	      break;
 	    }
 	  else
 	    {
@@ -273,12 +372,12 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	      if (spec_size (ref->u.ar.as, &size) == SUCCESS)
 		{
 		  if (mpz_cmp (offset, size) >= 0)
-		  {
-		    mpz_clear (size);
-		    gfc_error ("Data element above array upper bound at %L",
-			       &lvalue->where);
-		    return FAILURE;
-		  }
+		    {
+		      mpz_clear (size);
+		      gfc_error ("Data element above array upper bound at %L",
+		                 &lvalue->where);
+		      goto abort;
+		    }
 		  mpz_clear (size);
 		}
 	    }
@@ -288,8 +387,34 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	  if (!con)
 	    {
 	      con = gfc_constructor_insert_expr (&expr->value.constructor,
-						 NULL, NULL,
+						 NULL, &rvalue->where,
 						 mpz_get_si (offset));
+	    }
+	  else if (mpz_cmp_si (con->repeat, 1) > 0)
+	    {
+	      /* Need to split a range.  */
+	      if (mpz_cmp (con->offset, offset) < 0)
+		{
+		  gfc_constructor *pred_con = con;
+		  con = gfc_constructor_insert_expr (&expr->value.constructor,
+						     NULL, &con->where,
+						     mpz_get_si (offset));
+		  con->expr = gfc_copy_expr (pred_con->expr);
+		  mpz_add (con->repeat, pred_con->offset, pred_con->repeat);
+		  mpz_sub (con->repeat, con->repeat, offset);
+		  mpz_sub (pred_con->repeat, offset, pred_con->offset);
+		}
+	      if (mpz_cmp_si (con->repeat, 1) > 0)
+		{
+		  gfc_constructor *succ_con;
+		  succ_con
+		    = gfc_constructor_insert_expr (&expr->value.constructor,
+						   NULL, &con->where,
+						   mpz_get_si (offset) + 1);
+		  succ_con->expr = gfc_copy_expr (con->expr);
+		  mpz_sub_ui (succ_con->repeat, con->repeat, 1);
+		  mpz_set_si (con->repeat, 1);
+		}
 	    }
 	  break;
 
@@ -334,11 +459,14 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
       last_con = con;
     }
 
+  mpz_clear (offset);
+  gcc_assert (repeat == NULL);
+
   if (ref || last_ts->type == BT_CHARACTER)
     {
       if (lvalue->ts.u.cl->length == NULL && !(ref && ref->u.ss.length != NULL))
 	return FAILURE;
-      expr = create_character_intializer (init, last_ts, ref, rvalue);
+      expr = create_character_initializer (init, last_ts, ref, rvalue);
     }
   else
     {
@@ -352,8 +480,10 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
 	  expr = (LOCATION_LINE (init->where.lb->location)
 		  > LOCATION_LINE (rvalue->where.lb->location))
 	       ? init : rvalue;
-	  gfc_notify_std (GFC_STD_GNU, "Extension: re-initialization "
-			  "of '%s' at %L", symbol->name, &expr->where);
+	  if (gfc_notify_std (GFC_STD_GNU,"Extension: "
+			      "re-initialization of '%s' at %L",
+			      symbol->name, &expr->where) == FAILURE)
+	    return FAILURE;
 	}
 
       expr = gfc_copy_expr (rvalue);
@@ -367,152 +497,12 @@ gfc_assign_data_value (gfc_expr *lvalue, gfc_expr *rvalue, mpz_t index)
     last_con->expr = expr;
 
   return SUCCESS;
+
+abort:
+  mpz_clear (offset);
+  return FAILURE;
 }
 
-
-/* Similarly, but initialize REPEAT consecutive values in LVALUE the same
-   value in RVALUE.  For the nonce, LVALUE must refer to a full array, not
-   an array section.  */
-
-void
-gfc_assign_data_value_range (gfc_expr *lvalue, gfc_expr *rvalue,
-			     mpz_t index, mpz_t repeat)
-{
-  gfc_ref *ref;
-  gfc_expr *init, *expr;
-  gfc_constructor *con, *last_con;
-  gfc_symbol *symbol;
-  gfc_typespec *last_ts;
-  mpz_t offset;
-
-  symbol = lvalue->symtree->n.sym;
-  init = symbol->value;
-  last_ts = &symbol->ts;
-  last_con = NULL;
-  mpz_init_set_si (offset, 0);
-
-  /* Find/create the parent expressions for subobject references.  */
-  for (ref = lvalue->ref; ref; ref = ref->next)
-    {
-      /* Use the existing initializer expression if it exists.
-	 Otherwise create a new one.  */
-      if (init == NULL)
-	expr = gfc_get_expr ();
-      else
-	expr = init;
-
-      /* Find or create this element.  */
-      switch (ref->type)
-	{
-	case REF_ARRAY:
-	  if (init == NULL)
-	    {
-	      /* The element typespec will be the same as the array
-		 typespec.  */
-	      expr->ts = *last_ts;
-	      /* Setup the expression to hold the constructor.  */
-	      expr->expr_type = EXPR_ARRAY;
-	      expr->rank = ref->u.ar.as->rank;
-	    }
-	  else
-	    gcc_assert (expr->expr_type == EXPR_ARRAY);
-
-	  if (ref->u.ar.type == AR_ELEMENT)
-	    {
-	      get_array_index (&ref->u.ar, &offset);
-
-	      /* This had better not be the bottom of the reference.
-		 We can still get to a full array via a component.  */
-	      gcc_assert (ref->next != NULL);
-	    }
-	  else
-	    {
-	      mpz_set (offset, index);
-
-	      /* We're at a full array or an array section.  This means
-		 that we've better have found a full array, and that we're
-		 at the bottom of the reference.  */
-	      gcc_assert (ref->u.ar.type == AR_FULL);
-	      gcc_assert (ref->next == NULL);
-	    }
-
-	  con = gfc_constructor_lookup (expr->value.constructor,
-					mpz_get_si (offset));
-	  if (con == NULL)
-	    {
-	      con = gfc_constructor_insert_expr (&expr->value.constructor,
-						 NULL, NULL,
-						 mpz_get_si (offset));
-	      if (ref->next == NULL)
-		mpz_set (con->repeat, repeat);
-	    }
-	  else
-	    gcc_assert (ref->next != NULL);
-	  break;
-
-	case REF_COMPONENT:
-	  if (init == NULL)
-	    {
-	      /* Setup the expression to hold the constructor.  */
-	      expr->expr_type = EXPR_STRUCTURE;
-	      expr->ts.type = BT_DERIVED;
-	      expr->ts.u.derived = ref->u.c.sym;
-	    }
-	  else
-	    gcc_assert (expr->expr_type == EXPR_STRUCTURE);
-	  last_ts = &ref->u.c.component->ts;
-
-  	  /* Find the same element in the existing constructor.  */
-	  con = find_con_by_component (ref->u.c.component,
-				       expr->value.constructor);
-
-	  if (con == NULL)
-	    {
-	      /* Create a new constructor.  */
-	      con = gfc_constructor_append_expr (&expr->value.constructor,
-						 NULL, NULL);
-	      con->n.component = ref->u.c.component;
-	    }
-
-	  /* Since we're only intending to initialize arrays here,
-	     there better be an inner reference.  */
-	  gcc_assert (ref->next != NULL);
-	  break;
-
-	case REF_SUBSTRING:
-	default:
-	  gcc_unreachable ();
-	}
-
-      if (init == NULL)
-	{
-	  /* Point the container at the new expression.  */
-	  if (last_con == NULL)
-	    symbol->value = expr;
-	  else
-	    last_con->expr = expr;
-	}
-      init = con->expr;
-      last_con = con;
-    }
-
-  if (last_ts->type == BT_CHARACTER)
-    expr = create_character_intializer (init, last_ts, NULL, rvalue);
-  else
-    {
-      /* We should never be overwriting an existing initializer.  */
-      gcc_assert (!init);
-
-      expr = gfc_copy_expr (rvalue);
-      if (!gfc_compare_types (&lvalue->ts, &expr->ts))
-	gfc_convert_type (expr, &lvalue->ts, 0);
-    }
-
-  if (last_con == NULL)
-    symbol->value = expr;
-  else
-    last_con->expr = expr;
-}
 
 /* Modify the index of array section and re-calculate the array offset.  */
 

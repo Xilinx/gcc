@@ -1,6 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009  Free Software Foundation, Inc.
+   2008, 2009, 2010, 2011  Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "regs.h"
 #include "hard-reg-set.h"
-#include "real.h"
 #include "insn-config.h"
 #include "conditions.h"
 #include "insn-attr.h"
@@ -35,7 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "except.h"
 #include "function.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "recog.h"
 #include "reload.h"
 #include "tm_p.h"
@@ -46,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "optabs.h"
 #include "df.h"
+#include "opts.h"
 
 /* Usable when we have an amount to add or subtract, and want the
    optimal size of the insn.  */
@@ -98,16 +98,22 @@ static struct machine_function * cris_init_machine_status (void);
 
 static rtx cris_struct_value_rtx (tree, int);
 
-static void cris_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
+static void cris_setup_incoming_varargs (cumulative_args_t, enum machine_mode,
 					 tree type, int *, int);
 
 static int cris_initial_frame_pointer_offset (void);
 
-static int saved_regs_mentioned (rtx);
-
 static void cris_operand_lossage (const char *, rtx);
 
 static int cris_reg_saved_in_regsave_area  (unsigned int, bool);
+
+static void cris_print_operand (FILE *, rtx, int);
+
+static void cris_print_operand_address (FILE *, rtx);
+
+static bool cris_print_operand_punct_valid_p (unsigned char code);
+
+static void cris_conditional_register_usage (void);
 
 static void cris_asm_output_mi_thunk
   (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT, tree);
@@ -115,15 +121,23 @@ static void cris_asm_output_mi_thunk
 static void cris_file_start (void);
 static void cris_init_libfuncs (void);
 
-static bool cris_rtx_costs (rtx, int, int, int *, bool);
+static int cris_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
+static int cris_memory_move_cost (enum machine_mode, reg_class_t, bool);
+static bool cris_rtx_costs (rtx, int, int, int, int *, bool);
 static int cris_address_cost (rtx, bool);
-static bool cris_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
+static bool cris_pass_by_reference (cumulative_args_t, enum machine_mode,
 				    const_tree, bool);
-static int cris_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
+static int cris_arg_partial_bytes (cumulative_args_t, enum machine_mode,
 				   tree, bool);
+static rtx cris_function_arg (cumulative_args_t, enum machine_mode,
+			      const_tree, bool);
+static rtx cris_function_incoming_arg (cumulative_args_t,
+				       enum machine_mode, const_tree, bool);
+static void cris_function_arg_advance (cumulative_args_t, enum machine_mode,
+				       const_tree, bool);
 static tree cris_md_asm_clobbers (tree, tree, tree);
 
-static bool cris_handle_option (size_t, const char *, int);
+static void cris_option_override (void);
 
 static bool cris_frame_pointer_required (void);
 
@@ -159,6 +173,16 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #undef TARGET_ASM_UNALIGNED_DI_OP
 #define TARGET_ASM_UNALIGNED_DI_OP TARGET_ASM_ALIGNED_DI_OP
 
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND cris_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS cris_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P cris_print_operand_punct_valid_p
+
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE cris_conditional_register_usage
+
 #undef TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK cris_asm_output_mi_thunk
 #undef TARGET_ASM_CAN_OUTPUT_MI_THUNK
@@ -170,6 +194,10 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS cris_init_libfuncs
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST cris_register_move_cost
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST cris_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS cris_rtx_costs
 #undef TARGET_ADDRESS_COST
@@ -186,14 +214,19 @@ int cris_cpu_version = CRIS_DEFAULT_CPU_VERSION;
 #define TARGET_PASS_BY_REFERENCE cris_pass_by_reference
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES cris_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG cris_function_arg
+#undef TARGET_FUNCTION_INCOMING_ARG
+#define TARGET_FUNCTION_INCOMING_ARG cris_function_incoming_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE cris_function_arg_advance
 #undef TARGET_MD_ASM_CLOBBERS
 #define TARGET_MD_ASM_CLOBBERS cris_md_asm_clobbers
-#undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | CRIS_SUBTARGET_DEFAULT)
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION cris_handle_option
 #undef TARGET_FRAME_POINTER_REQUIRED
 #define TARGET_FRAME_POINTER_REQUIRED cris_frame_pointer_required
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE cris_option_override
 
 #undef TARGET_ASM_TRAMPOLINE_TEMPLATE
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE cris_asm_trampoline_template
@@ -402,9 +435,9 @@ cris_store_multiple_op_p (rtx op)
   return true;
 }
 
-/* The CONDITIONAL_REGISTER_USAGE worker.  */
+/* The TARGET_CONDITIONAL_REGISTER_USAGE worker.  */
 
-void
+static void
 cris_conditional_register_usage (void)
 {
   /* FIXME: This isn't nice.  We should be able to use that register for
@@ -635,60 +668,9 @@ cris_reg_saved_in_regsave_area (unsigned int regno, bool got_really_used)
 	    || regno == EH_RETURN_DATA_REGNO (3)));
 }
 
-/* Return nonzero if there are regs mentioned in the insn that are not all
-   in the call_used regs.  This is part of the decision whether an insn
-   can be put in the epilogue.  */
-
-static int
-saved_regs_mentioned (rtx x)
-{
-  int i;
-  const char *fmt;
-  RTX_CODE code;
-
-  /* Mainly stolen from refers_to_regno_p in rtlanal.c.  */
-
-  code = GET_CODE (x);
-
-  switch (code)
-    {
-    case REG:
-      i = REGNO (x);
-      return !call_used_regs[i];
-
-    case SUBREG:
-      /* If this is a SUBREG of a hard reg, we can see exactly which
-	 registers are being modified.  Otherwise, handle normally.  */
-      i = REGNO (SUBREG_REG (x));
-      return !call_used_regs[i];
-
-    default:
-      ;
-    }
-
-  fmt = GET_RTX_FORMAT (code);
-  for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
-    {
-      if (fmt[i] == 'e')
-	{
-	  if (saved_regs_mentioned (XEXP (x, i)))
-	    return 1;
-	}
-      else if (fmt[i] == 'E')
-	{
-	  int j;
-	  for (j = XVECLEN (x, i) - 1; j >=0; j--)
-	    if (saved_regs_mentioned (XEXP (x, i)))
-	      return 1;
-	}
-    }
-
-  return 0;
-}
-
 /* The PRINT_OPERAND worker.  */
 
-void
+static void
 cris_print_operand (FILE *file, rtx x, int code)
 {
   rtx operand = x;
@@ -1115,9 +1097,15 @@ cris_print_operand (FILE *file, rtx x, int code)
     }
 }
 
+static bool
+cris_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '#' || code == '!' || code == ':');
+}
+
 /* The PRINT_OPERAND_ADDRESS worker.  */
 
-void
+static void
 cris_print_operand_address (FILE *file, rtx x)
 {
   /* All these were inside MEM:s so output indirection characters.  */
@@ -1284,9 +1272,8 @@ cris_reload_address_legitimized (rtx x,
 				 int itype,
 				 int ind_levels ATTRIBUTE_UNUSED)
 {
-  enum reload_type type = itype;
+  enum reload_type type = (enum reload_type) itype;
   rtx op0, op1;
-  rtx *op0p;
   rtx *op1p;
 
   if (GET_CODE (x) != PLUS)
@@ -1296,7 +1283,6 @@ cris_reload_address_legitimized (rtx x,
     return false;
 
   op0 = XEXP (x, 0);
-  op0p = &XEXP (x, 0);
   op1 = XEXP (x, 1);
   op1p = &XEXP (x, 1);
 
@@ -1352,30 +1338,17 @@ cris_reload_address_legitimized (rtx x,
   return false;
 }
 
-/* Worker function for REGISTER_MOVE_COST.  */
+/* Worker function for TARGET_REGISTER_MOVE_COST.  */
 
-int
+static int
 cris_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-			 enum reg_class from, enum reg_class to) 
+			 reg_class_t from, reg_class_t to)
 {
-  if (!TARGET_V32)
-    {
-      /* Pretend that classes that we don't support are ALL_REGS, so
-	 we give them the highest cost.  */
-      if (from != SPECIAL_REGS && from != MOF_REGS
-	  && from != GENERAL_REGS && from != GENNONACR_REGS)
-	from = ALL_REGS;
-
-      if (to != SPECIAL_REGS && to != MOF_REGS
-	  && to != GENERAL_REGS && to != GENNONACR_REGS)
-	to = ALL_REGS;
-    }
-
   /* Can't move to and from a SPECIAL_REGS register, so we have to say
      their move cost within that class is higher.  How about 7?  That's 3
      for a move to a GENERAL_REGS register, 3 for the move from the
      GENERAL_REGS register, and 1 for the increased register pressure.
-     Also, it's higher than the memory move cost, which is in order.  
+     Also, it's higher than the memory move cost, as it should.
      We also do this for ALL_REGS, since we don't want that class to be
      preferred (even to memory) at all where GENERAL_REGS doesn't fit.
      Whenever it's about to be used, it's for SPECIAL_REGS.  If we don't
@@ -1384,18 +1357,37 @@ cris_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
      GENERAL_REGS left to allocate.  This is because the fall-back when
      the most preferred register class isn't available, isn't the next
      (or next good) wider register class, but the *most widest* register
-     class.  */
+     class.  FIXME: pre-IRA comment, perhaps obsolete now.  */
 
   if ((reg_classes_intersect_p (from, SPECIAL_REGS)
        && reg_classes_intersect_p (to, SPECIAL_REGS))
       || from == ALL_REGS || to == ALL_REGS)
     return 7;
 
+  /* Make moves to/from SPECIAL_REGS slightly more expensive, as we
+     generally prefer GENERAL_REGS.  */
   if (reg_classes_intersect_p (from, SPECIAL_REGS)
       || reg_classes_intersect_p (to, SPECIAL_REGS))
     return 3;
 
   return 2;
+}
+
+/* Worker function for TARGET_MEMORY_MOVE_COST.
+
+   This isn't strictly correct for v0..3 in buswidth-8bit mode, but should
+   suffice.  */
+
+static int
+cris_memory_move_cost (enum machine_mode mode,
+                       reg_class_t rclass ATTRIBUTE_UNUSED,
+                       bool in ATTRIBUTE_UNUSED)
+{
+  if (mode == QImode
+      || mode == HImode)
+    return 4;
+  else
+    return 6;
 }
 
 /* Worker for cris_notice_update_cc; handles the "normal" cases.
@@ -1771,7 +1763,7 @@ cris_expand_return (bool on_stack)
      we do that until they're fixed.  Currently, all return insns in a
      function must be the same (not really a limiting factor) so we need
      to check that it doesn't change half-way through.  */
-  emit_jump_insn (gen_rtx_RETURN (VOIDmode));
+  emit_jump_insn (ret_rtx);
 
   CRIS_ASSERT (cfun->machine->return_type != CRIS_RETINSN_RET || !on_stack);
   CRIS_ASSERT (cfun->machine->return_type != CRIS_RETINSN_JUMP || on_stack);
@@ -1785,7 +1777,7 @@ cris_expand_return (bool on_stack)
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-cris_rtx_costs (rtx x, int code, int outer_code, int *total,
+cris_rtx_costs (rtx x, int code, int outer_code, int opno, int *total,
 		bool speed)
 {
   switch (code)
@@ -1878,8 +1870,10 @@ cris_rtx_costs (rtx x, int code, int outer_code, int *total,
           && !CONST_INT_P (XEXP (x, 0))
           && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (XEXP (x, 1)), 'I'))
 	{
-	  *total = (rtx_cost (XEXP (x, 0), outer_code, speed) + 2
-		    + 2 * GET_MODE_NUNITS (GET_MODE (XEXP (x, 0))));
+	  *total
+	    = (rtx_cost (XEXP (x, 0), (enum rtx_code) outer_code,
+			 opno, speed) + 2
+	       + 2 * GET_MODE_NUNITS (GET_MODE (XEXP (x, 0))));
 	  return true;
 	}
       return false;
@@ -1890,7 +1884,7 @@ cris_rtx_costs (rtx x, int code, int outer_code, int *total,
       /* fall through */
 
     case ZERO_EXTEND: case SIGN_EXTEND:
-      *total = rtx_cost (XEXP (x, 0), outer_code, speed);
+      *total = rtx_cost (XEXP (x, 0), (enum rtx_code) outer_code, opno, speed);
       return true;
 
     default:
@@ -2282,12 +2276,22 @@ cris_legitimate_pic_operand (rtx x)
 void
 cris_asm_output_case_end (FILE *stream, int num, rtx table)
 {
+  /* Step back, over the label for the table, to the actual casejump and
+     assert that we find only what's expected.  */
+  rtx whole_jump_insn = prev_nonnote_nondebug_insn (table);
+  gcc_assert (whole_jump_insn != NULL_RTX && LABEL_P (whole_jump_insn));
+  whole_jump_insn = prev_nonnote_nondebug_insn (whole_jump_insn);
+  gcc_assert (whole_jump_insn != NULL_RTX
+	      && (JUMP_P (whole_jump_insn)
+		  || (TARGET_V32 && INSN_P (whole_jump_insn)
+		      && GET_CODE (PATTERN (whole_jump_insn)) == SEQUENCE)));
+  /* Get the pattern of the casejump, so we can extract the default label.  */
+  whole_jump_insn = PATTERN (whole_jump_insn);
+
   if (TARGET_V32)
     {
-      rtx whole_jump_insn = PATTERN (PREV_INSN (PREV_INSN (table)));
-
       /* This can be a SEQUENCE, meaning the delay-slot of the jump is
-	 filled.  */
+	 filled.  We also output the offset word a little differently.  */
       rtx parallel_jump
 	= (GET_CODE (whole_jump_insn) == SEQUENCE
 	   ? PATTERN (XVECEXP (whole_jump_insn, 0, 0)) : whole_jump_insn);
@@ -2305,79 +2309,17 @@ cris_asm_output_case_end (FILE *stream, int num, rtx table)
 	       "\t.word %LL%d-%LL%d%s\n",
 	       CODE_LABEL_NUMBER (XEXP
 				  (XEXP
-				   (XEXP
-				    (XVECEXP
-				     (PATTERN
-				      (PREV_INSN
-				       (PREV_INSN (table))), 0, 0), 1),
+				   (XEXP (XVECEXP (whole_jump_insn, 0, 0), 1), 
 				    2), 0)),
 	       num,
 	       (TARGET_PDEBUG ? "; default" : ""));
 }
 
-/* TARGET_HANDLE_OPTION worker.  We just store the values into local
-   variables here.  Checks for correct semantics are in
-   cris_override_options.  */
-
-static bool
-cris_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
-		    int value ATTRIBUTE_UNUSED)
-{
-  switch (code)
-    {
-    case OPT_metrax100:
-      target_flags
-	|= (MASK_SVINTO
-	    + MASK_ETRAX4_ADD
-	    + MASK_ALIGN_BY_32);
-      break;
-
-    case OPT_mno_etrax100:
-      target_flags
-	&= ~(MASK_SVINTO
-	     + MASK_ETRAX4_ADD
-	     + MASK_ALIGN_BY_32);
-      break;
-
-    case OPT_m32_bit:
-    case OPT_m32bit:
-      target_flags
-	|= (MASK_STACK_ALIGN
-	    + MASK_CONST_ALIGN
-	    + MASK_DATA_ALIGN
-	    + MASK_ALIGN_BY_32);
-      break;
-
-    case OPT_m16_bit:
-    case OPT_m16bit:
-      target_flags
-	|= (MASK_STACK_ALIGN
-	    + MASK_CONST_ALIGN
-	    + MASK_DATA_ALIGN);
-      break;
-
-    case OPT_m8_bit:
-    case OPT_m8bit:
-      target_flags
-	&= ~(MASK_STACK_ALIGN
-	     + MASK_CONST_ALIGN
-	     + MASK_DATA_ALIGN);
-      break;
-
-    default:
-      break;
-    }
-
-  CRIS_SUBTARGET_HANDLE_OPTION(code, arg, value);
-
-  return true;
-}
-
-/* The OVERRIDE_OPTIONS worker.
+/* The TARGET_OPTION_OVERRIDE worker.
    As is the norm, this also parses -mfoo=bar type parameters.  */
 
-void
-cris_override_options (void)
+static void
+cris_option_override (void)
 {
   if (cris_max_stackframe_str)
     {
@@ -2553,8 +2495,8 @@ cris_file_start (void)
 {
   /* These expressions can vary at run time, so we cannot put
      them into TARGET_INITIALIZER.  */
-  targetm.file_start_app_off = !(TARGET_PDEBUG || flag_print_asm_name);
-  targetm.file_start_file_directive = TARGET_ELF;
+  targetm.asm_file_start_app_off = !(TARGET_PDEBUG || flag_print_asm_name);
+  targetm.asm_file_start_file_directive = TARGET_ELF;
 
   default_file_start ();
 }
@@ -2584,7 +2526,7 @@ cris_init_expanders (void)
 static struct machine_function *
 cris_init_machine_status (void)
 {
-  return GGC_CNEW (struct machine_function);
+  return ggc_alloc_cleared_machine_function ();
 }
 
 /* Split a 2 word move (DI or presumably DF) into component parts.
@@ -2711,7 +2653,7 @@ cris_split_movdx (rtx *operands)
 	    }
 	}
       else
-	internal_error ("Unknown src");
+	internal_error ("unknown src");
     }
   /* Reg-to-mem copy or clear mem.  */
   else if (MEM_P (dest)
@@ -2772,7 +2714,7 @@ cris_split_movdx (rtx *operands)
     }
 
   else
-    internal_error ("Unknown dest");
+    internal_error ("unknown dest");
 
   val = get_insns ();
   end_sequence ();
@@ -3471,9 +3413,7 @@ cris_emit_movem_store (rtx dest, rtx nregs_rtx, int increment,
 	    XVECEXP (seq, 0, i)
 	      = copy_rtx (XVECEXP (PATTERN (insn), 0, i + 1));
 	  XVECEXP (seq, 0, nregs) = copy_rtx (XVECEXP (PATTERN (insn), 0, 1));
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, seq,
-				 REG_NOTES (insn));
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR, seq);
 	}
 
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -3592,7 +3532,7 @@ cris_expand_pic_call_address (rtx *opp)
       else
 	/* Can't possibly get a GOT-needing-fixup for a function-call,
 	   right?  */
-	fatal_insn ("Unidentifiable call op", op);
+	fatal_insn ("unidentifiable call op", op);
 
       *opp = replace_equiv_address (*opp, op);
     }
@@ -3661,7 +3601,8 @@ cris_asm_output_label_ref (FILE *file, char *buf)
 
       /* Sanity check.  */
       if (!TARGET_V32 && !crtl->uses_pic_offset_table)
-	internal_error ("emitting PIC operand, but PIC register isn't set up");
+	internal_error ("emitting PIC operand, but PIC register "
+			"isn%'t set up");
     }
   else
     assemble_name (file, buf);
@@ -3742,12 +3683,14 @@ cris_struct_value_rtx (tree fntype ATTRIBUTE_UNUSED,
 /* Worker function for TARGET_SETUP_INCOMING_VARARGS.  */
 
 static void
-cris_setup_incoming_varargs (CUMULATIVE_ARGS *ca,
+cris_setup_incoming_varargs (cumulative_args_t ca_v,
 			     enum machine_mode mode ATTRIBUTE_UNUSED,
 			     tree type ATTRIBUTE_UNUSED,
 			     int *pretend_arg_size,
 			     int second_time)
 {
+  CUMULATIVE_ARGS *ca = get_cumulative_args (ca_v);
+
   if (ca->regs < CRIS_MAX_ARGS_IN_REGS)
     {
       int stdarg_regs = CRIS_MAX_ARGS_IN_REGS - ca->regs;
@@ -3765,7 +3708,7 @@ cris_setup_incoming_varargs (CUMULATIVE_ARGS *ca,
    For cris, we pass <= 8 bytes by value, others by reference.  */
 
 static bool
-cris_pass_by_reference (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
+cris_pass_by_reference (cumulative_args_t ca ATTRIBUTE_UNUSED,
 			enum machine_mode mode, const_tree type,
 			bool named ATTRIBUTE_UNUSED)
 {
@@ -3823,16 +3766,65 @@ cris_function_value_regno_p (const unsigned int regno)
 }
 
 static int
-cris_arg_partial_bytes (CUMULATIVE_ARGS *ca, enum machine_mode mode,
+cris_arg_partial_bytes (cumulative_args_t ca, enum machine_mode mode,
 			tree type, bool named ATTRIBUTE_UNUSED)
 {
-  if (ca->regs == CRIS_MAX_ARGS_IN_REGS - 1
+  if (get_cumulative_args (ca)->regs == CRIS_MAX_ARGS_IN_REGS - 1
       && !targetm.calls.must_pass_in_stack (mode, type)
       && CRIS_FUNCTION_ARG_SIZE (mode, type) > 4
       && CRIS_FUNCTION_ARG_SIZE (mode, type) <= 8)
     return UNITS_PER_WORD;
   else
     return 0;
+}
+
+static rtx
+cris_function_arg_1 (cumulative_args_t ca_v,
+		     enum machine_mode mode ATTRIBUTE_UNUSED,
+		     const_tree type ATTRIBUTE_UNUSED,
+		     bool named, bool incoming)
+{
+  const CUMULATIVE_ARGS *ca = get_cumulative_args (ca_v);
+
+  if ((!incoming || named) && ca->regs < CRIS_MAX_ARGS_IN_REGS)
+    return gen_rtx_REG (mode, CRIS_FIRST_ARG_REG + ca->regs);
+  else
+    return NULL_RTX;
+}
+
+/* Worker function for TARGET_FUNCTION_ARG.
+   The void_type_node is sent as a "closing" call.  */
+
+static rtx
+cris_function_arg (cumulative_args_t ca, enum machine_mode mode,
+		   const_tree type, bool named)
+{
+  return cris_function_arg_1 (ca, mode, type, named, false);
+}
+
+/* Worker function for TARGET_FUNCTION_INCOMING_ARG.
+
+   The differences between this and the previous, is that this one checks
+   that an argument is named, since incoming stdarg/varargs arguments are
+   pushed onto the stack, and we don't have to check against the "closing"
+   void_type_node TYPE parameter.  */
+
+static rtx
+cris_function_incoming_arg (cumulative_args_t ca, enum machine_mode mode,
+			    const_tree type, bool named)
+{
+  return cris_function_arg_1 (ca, mode, type, named, true);
+}
+
+/* Worker function for TARGET_FUNCTION_ARG_ADVANCE.  */
+
+static void
+cris_function_arg_advance (cumulative_args_t ca_v, enum machine_mode mode,
+			   const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  CUMULATIVE_ARGS *ca = get_cumulative_args (ca_v);
+
+  ca->regs += (3 + CRIS_FUNCTION_ARG_SIZE (mode, type)) / 4;
 }
 
 /* Worker function for TARGET_MD_ASM_CLOBBERS.  */

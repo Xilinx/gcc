@@ -251,7 +251,11 @@ proc gcj_jni_invocation_compile_c_to_binary {file {options {}}} {
 }
 
 proc gcj_jni_get_cxxflags_invocation {} {
+  global libiconv
   global LIBJAVA
+  if {$libiconv == ""} {
+      set libiconv "-liconv"
+  }
   if [info exists LIBJAVA] {
       set libjava $LIBJAVA;
   } else {
@@ -267,11 +271,18 @@ proc gcj_jni_get_cxxflags_invocation {} {
   # to just make the linker find libgcc using -L options.
   # Similar logic applies to libgcj.
   if { [istarget "*-*-darwin*"] } {
-    lappend cxxflags -shared-libgcc -lgcj -liconv
+    eval lappend cxxflags "-shared-libgcc -lgcj $libiconv"
   }
 
+  # Make sure libgcc unwinder is used on 64-bit Solaris 10+/x86 rather than
+  # the libc one.
   if { [istarget "*-*-solaris*"] } {
-    lappend cxxflags "-lsocket"
+    lappend cxxflags "-shared-libgcc"
+  }
+
+  # Tru64 UNIX needs -liconv linked explicitly since gcc does the linking.
+  if { [istarget "alpha*-dec-osf*"] } {
+    lappend cxxflags $libiconv
   }
 
   return $cxxflags

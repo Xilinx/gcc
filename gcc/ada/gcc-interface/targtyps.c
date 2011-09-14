@@ -6,7 +6,7 @@
  *                                                                          *
  *                                  Body                                    *
  *                                                                          *
- *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -149,7 +149,7 @@ get_target_maximum_default_alignment (void)
   return BIGGEST_ALIGNMENT / BITS_PER_UNIT;
 }
 
-/* Standard'Default_Allocator_Alignment.  Alignment guaranteed to be honored
+/* Standard'System_Allocator_Alignment.  Alignment guaranteed to be honored
    by the default allocator (System.Memory.Alloc or malloc if we have no
    run-time library at hand).
 
@@ -172,7 +172,7 @@ get_target_maximum_default_alignment (void)
 #endif
 
 Pos
-get_target_default_allocator_alignment (void)
+get_target_system_allocator_alignment (void)
 {
   return MALLOC_ALIGNMENT / BITS_PER_UNIT;
 }
@@ -249,8 +249,12 @@ Nat
 get_target_double_scalar_alignment (void)
 {
 #ifdef TARGET_ALIGN_DOUBLE
-  /* This macro is only defined by the i386 port.  */
-  if (!TARGET_ALIGN_DOUBLE && !TARGET_64BIT)
+  /* This macro is only defined by the i386 and sh ports.  */
+  if (!TARGET_ALIGN_DOUBLE
+#ifdef TARGET_64BIT
+      && !TARGET_64BIT
+#endif
+     )
     return 32 / BITS_PER_UNIT;
 #endif
   return 0;

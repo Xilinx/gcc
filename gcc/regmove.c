@@ -1,6 +1,6 @@
 /* Move registers around to reduce number of move instructions needed.
-   Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -27,10 +27,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "rtl.h" /* stdio.h must precede rtl.h for FFS.  */
+#include "rtl.h"
 #include "tm_p.h"
 #include "insn-config.h"
 #include "recog.h"
+#include "target.h"
 #include "output.h"
 #include "regs.h"
 #include "hard-reg-set.h"
@@ -39,7 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "basic-block.h"
 #include "except.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "reload.h"
 #include "timevar.h"
 #include "tree-pass.h"
@@ -71,13 +72,13 @@ static int fixup_match_2 (rtx, rtx, rtx, rtx);
 /* Return nonzero if registers with CLASS1 and CLASS2 can be merged without
    causing too much register allocation problems.  */
 static int
-regclass_compatible_p (enum reg_class class0, enum reg_class class1)
+regclass_compatible_p (reg_class_t class0, reg_class_t class1)
 {
   return (class0 == class1
 	  || (reg_class_subset_p (class0, class1)
-	      && ! CLASS_LIKELY_SPILLED_P (class0))
+	      && ! targetm.class_likely_spilled_p (class0))
 	  || (reg_class_subset_p (class1, class0)
-	      && ! CLASS_LIKELY_SPILLED_P (class1)));
+	      && ! targetm.class_likely_spilled_p (class1)));
 }
 
 
@@ -239,7 +240,7 @@ optimize_reg_copy_1 (rtx insn, rtx dest, rtx src)
 
   /* We don't want to mess with hard regs if register classes are small.  */
   if (sregno == dregno
-      || (SMALL_REGISTER_CLASSES
+      || (targetm.small_register_classes_for_mode_p (GET_MODE (src))
 	  && (sregno < FIRST_PSEUDO_REGISTER
 	      || dregno < FIRST_PSEUDO_REGISTER))
       /* We don't see all updates to SP if they are in an auto-inc memory
@@ -513,7 +514,7 @@ optimize_reg_copy_3 (rtx insn, rtx dest, rtx src)
   rtx src_reg = XEXP (src, 0);
   int src_no = REGNO (src_reg);
   int dst_no = REGNO (dest);
-  rtx p, set;
+  rtx p, set, set_insn;
   enum machine_mode old_mode;
   basic_block bb = BLOCK_FOR_INSN (insn);
 
@@ -547,10 +548,10 @@ optimize_reg_copy_3 (rtx insn, rtx dest, rtx src)
   /* Do not use a SUBREG to truncate from one mode to another if truncation
      is not a nop.  */
   if (GET_MODE_BITSIZE (GET_MODE (src_reg)) <= GET_MODE_BITSIZE (GET_MODE (src))
-      && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (src)),
-				 GET_MODE_BITSIZE (GET_MODE (src_reg))))
+      && !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (src), GET_MODE (src_reg)))
     return;
 
+  set_insn = p;
   old_mode = GET_MODE (src_reg);
   PUT_MODE (src_reg, GET_MODE (src));
   XEXP (src, 0) = SET_SRC (set);
@@ -583,9 +584,19 @@ optimize_reg_copy_3 (rtx insn, rtx dest, rtx src)
     }
   else
     {
-      rtx note = find_reg_note (p, REG_EQUAL, NULL_RTX);
+      rtx note = find_reg_note (set_insn, REG_EQUAL, NULL_RTX);
       if (note)
-	remove_note (p, note);
+	{
+	  if (rtx_equal_p (XEXP (note, 0), XEXP (src, 0)))
+	    {
+	      XEXP (note, 0)
+		= gen_rtx_fmt_e (GET_CODE (src), GET_MODE (src),
+				 XEXP (note, 0));
+	      df_notes_rescan (set_insn);
+	    }
+	  else
+	    remove_note (set_insn, note);
+	}
     }
 }
 
@@ -1224,11 +1235,11 @@ regmove_optimize (void)
   df_note_add_problem ();
   df_analyze ();
 
-  if (flag_ira_loop_pressure)
-    ira_set_pseudo_classes (dump_file);
-
   regstat_init_n_sets_and_refs ();
   regstat_compute_ri ();
+
+  if (flag_ira_loop_pressure)
+    ira_set_pseudo_classes (dump_file);
 
   regno_src_regno = XNEWVEC (int, nregs);
   for (i = nregs; --i >= 0; )
@@ -1335,7 +1346,7 @@ find_matches (rtx insn, struct match *matchp)
 	  case 'j': case 'k': case 'l': case 'p': case 'q': case 't': case 'u':
 	  case 'v': case 'w': case 'x': case 'y': case 'z': case 'A': case 'B':
 	  case 'C': case 'D': case 'W': case 'Y': case 'Z':
-	    if (CLASS_LIKELY_SPILLED_P (REG_CLASS_FROM_CONSTRAINT ((unsigned char) c, p) ))
+	    if (targetm.class_likely_spilled_p (REG_CLASS_FROM_CONSTRAINT ((unsigned char) c, p)))
 	      likely_spilled[op_no] = 1;
 	    break;
 	  }
@@ -1370,7 +1381,6 @@ struct rtl_opt_pass pass_regmove =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect                      /* todo_flags_finish */
  }
 };

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2003,
-   2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
@@ -51,7 +51,7 @@ extern const char *output_movedouble (rtx, rtx[], enum machine_mode);
 extern const char *output_movepcrel (rtx, rtx[], enum machine_mode);
 extern const char *output_far_jump (rtx, rtx);
 
-extern struct rtx_def *sfunc_uses_reg (rtx);
+extern rtx sfunc_uses_reg (rtx);
 extern int barrier_align (rtx);
 extern int sh_loop_align (rtx);
 extern int fp_zero_operand (rtx);
@@ -64,8 +64,6 @@ extern rtx legitimize_pic_address (rtx, enum machine_mode, rtx);
 extern int nonpic_symbol_mentioned_p (rtx);
 extern void emit_sf_insn (rtx);
 extern void emit_df_insn (rtx);
-extern void print_operand_address (FILE *, rtx);
-extern void print_operand (FILE *, rtx, int);
 extern void output_pic_addr_const (FILE *, rtx);
 extern int expand_block_move (rtx *);
 extern int prepare_move_operands (rtx[], enum machine_mode mode);
@@ -126,11 +124,9 @@ extern rtx sh_gen_truncate (enum machine_mode, rtx, int);
 extern bool sh_vector_mode_supported_p (enum machine_mode);
 #endif /* RTX_CODE */
 
-extern void sh_optimization_options (int, int);
-extern void sh_override_options (void);
 extern const char *output_jump_label_table (void);
 extern int sh_handle_pragma (int (*)(void), void (*)(int), const char *);
-extern struct rtx_def *get_fpscr_rtx (void);
+extern rtx get_fpscr_rtx (void);
 extern int sh_media_register_for_return (void);
 extern void sh_expand_prologue (void);
 extern void sh_expand_epilogue (bool);
@@ -145,9 +141,8 @@ extern int sh_attr_renesas_p (const_tree);
 extern int sh_cfun_attr_renesas_p (void);
 extern bool sh_cannot_change_mode_class
 	      (enum machine_mode, enum machine_mode, enum reg_class);
+extern bool sh_small_register_classes_for_mode_p (enum machine_mode);
 extern void sh_mark_label (rtx, int);
-extern int sh_register_move_cost
-  (enum machine_mode mode, enum reg_class, enum reg_class);
 extern int check_use_sfunc_addr (rtx, rtx);
 
 #ifdef HARD_CONST
@@ -160,11 +155,8 @@ extern void sh_pr_nosave_low_regs (struct cpp_reader *);
 extern rtx function_symbol (rtx, const char *, enum sh_function_kind);
 extern rtx sh_get_pr_initial_val (void);
 
-extern rtx sh_function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern void sh_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
 extern int sh_pass_in_reg_p (CUMULATIVE_ARGS *, enum machine_mode, tree);
 extern void sh_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree, signed int, enum machine_mode);
-extern bool sh_function_value_regno_p (const unsigned int);
 extern rtx sh_dwarf_register_span (rtx);
 
 extern rtx replace_n_hard_rtx (rtx, rtx *, int , int);
@@ -173,26 +165,8 @@ extern int shmedia_cleanup_truncate (rtx *, void *);
 extern int sh_contains_memref_p (rtx);
 extern int sh_loads_bankedreg_p (rtx);
 extern rtx shmedia_prepare_call_address (rtx fnaddr, int is_sibcall);
-struct secondary_reload_info;
-extern enum reg_class sh_secondary_reload (bool, rtx, enum reg_class,
-					   enum machine_mode,
-					   struct secondary_reload_info *);
 extern int sh2a_get_function_vector_number (rtx);
 extern int sh2a_is_function_vector_call (rtx);
 extern void sh_fix_range (const char *);
 extern bool sh_hard_regno_mode_ok (unsigned int, enum machine_mode);
 #endif /* ! GCC_SH_PROTOS_H */
-
-#ifdef SYMBIAN
-extern const char * sh_symbian_strip_name_encoding    (const char *);
-extern bool         sh_symbian_is_dllexported_name    (const char *);
-#ifdef TREE_CODE
-extern bool         sh_symbian_is_dllexported         (tree);
-extern int          sh_symbian_import_export_class    (tree, int);
-extern tree         sh_symbian_handle_dll_attribute   (tree *, tree, tree, int, bool *);
-#ifdef RTX_CODE
-extern void         sh_symbian_encode_section_info    (tree, rtx, int);
-#endif
-#endif
-#endif /* SYMBIAN */
-

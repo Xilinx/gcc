@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "function.h"
 #include "except.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "recog.h"
 #include "expr.h"
 #include "timevar.h"
@@ -483,9 +483,9 @@ attempt_change (rtx new_addr, rtx inc_reg)
   PUT_MODE (mem_tmp, mode);
   XEXP (mem_tmp, 0) = new_addr;
 
-  old_cost = (rtx_cost (mem, SET, speed)
-	      + rtx_cost (PATTERN (inc_insn.insn), SET, speed));
-  new_cost = rtx_cost (mem_tmp, SET, speed);
+  old_cost = (set_src_cost (mem, speed)
+	      + set_rtx_cost (PATTERN (inc_insn.insn), speed));
+  new_cost = set_src_cost (mem_tmp, speed);
 
   /* The first item of business is to see if this is profitable.  */
   if (old_cost < new_cost)
@@ -1068,7 +1068,7 @@ find_inc (bool first_try)
       /* For the post_add to work, the result_reg of the inc must not be
 	 used in the mem insn since this will become the new index
 	 register.  */
-      if (count_occurrences (PATTERN (mem_insn.insn), inc_insn.reg_res, 1) != 0)
+      if (reg_overlap_mentioned_p (inc_insn.reg_res, PATTERN (mem_insn.insn)))
 	{
 	  if (dump_file)
 	    fprintf (dump_file, "base reg replacement failure.\n");
@@ -1523,7 +1523,6 @@ struct rtl_opt_pass pass_inc_dec =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
   TODO_df_finish,                       /* todo_flags_finish */
  }
 };

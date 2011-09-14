@@ -96,11 +96,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "target.h"
-#include "tree.h"
-#include "toplev.h"
 #include "tm.h"
-#include "rtl.h"
+#include "tree.h"
+#include "output.h"	/* For decl_default_tls_model.  */
 #include "gfortran.h"
 #include "trans.h"
 #include "trans-types.h"
@@ -135,7 +133,7 @@ get_segment_info (gfc_symbol * sym, HOST_WIDE_INT offset)
     gfc_conv_const_charlen (sym->ts.u.cl);
 
   /* Create the segment_info and fill it in.  */
-  s = (segment_info *) gfc_getmem (sizeof (segment_info));
+  s = XCNEW (segment_info);
   s->sym = sym;
   /* We will use this type when building the segment aggregate type.  */
   s->field = gfc_sym_type (sym);
@@ -157,14 +155,14 @@ copy_equiv_list_to_ns (segment_info *c)
   gfc_equiv_info *s;
   gfc_equiv_list *l;
 
-  l = (gfc_equiv_list *) gfc_getmem (sizeof (gfc_equiv_list));
+  l = XCNEW (gfc_equiv_list);
 
   l->next = c->sym->ns->equiv_lists;
   c->sym->ns->equiv_lists = l;
 
   for (f = c; f; f = f->next)
     {
-      s = (gfc_equiv_info *) gfc_getmem (sizeof (gfc_equiv_info));
+      s = XCNEW (gfc_equiv_info);
       s->next = l->equiv;
       l->equiv = s;
       s->sym = f->sym;
@@ -311,7 +309,7 @@ build_field (segment_info *h, tree union_type, record_layout_info rli)
       addr = gfc_create_var_np (pvoid_type_node, h->sym->name);
       TREE_STATIC (len) = 1;
       TREE_STATIC (addr) = 1;
-      DECL_INITIAL (len) = build_int_cst (NULL_TREE, -2);
+      DECL_INITIAL (len) = build_int_cst (gfc_charlen_type_node, -2);
       gfc_set_decl_location (len, &h->sym->declared_at);
       gfc_set_decl_location (addr, &h->sym->declared_at);
       GFC_DECL_STRING_LEN (field) = pushdecl_top_level (len);
@@ -323,6 +321,7 @@ build_field (segment_info *h, tree union_type, record_layout_info rli)
     {
       tree new_type;
       TREE_THIS_VOLATILE (field) = 1;
+      TREE_SIDE_EFFECTS (field) = 1;
       new_type = build_qualified_type (TREE_TYPE (field), TYPE_QUAL_VOLATILE);
       TREE_TYPE (field) = new_type;
     }
@@ -391,14 +390,20 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
   if (decl != NULL_TREE)
     {
       tree size = TYPE_SIZE_UNIT (union_type);
+
+      /* Named common blocks of the same name shall be of the same size
+	 in all scoping units of a program in which they appear, but
+	 blank common blocks may be of different sizes.  */
+      if (!tree_int_cst_equal (DECL_SIZE_UNIT (decl), size)
+	  && strcmp (com->name, BLANK_COMMON_NAME))
+	gfc_warning ("Named COMMON block '%s' at %L shall be of the "
+		     "same size as elsewhere (%lu vs %lu bytes)", com->name,
+		     &com->where,
+		     (unsigned long) TREE_INT_CST_LOW (size),
+		     (unsigned long) TREE_INT_CST_LOW (DECL_SIZE_UNIT (decl)));
+
       if (tree_int_cst_lt (DECL_SIZE_UNIT (decl), size))
-        {
-	  /* Named common blocks of the same name shall be of the same size
-	     in all scoping units of a program in which they appear, but
-	     blank common blocks may be of different sizes.  */
-	  if (strcmp (com->name, BLANK_COMMON_NAME))
-	    gfc_warning ("Named COMMON block '%s' at %L shall be of the "
-			 "same size", com->name, &com->where);
+	{
 	  DECL_SIZE (decl) = TYPE_SIZE (union_type);
 	  DECL_SIZE_UNIT (decl) = size;
 	  DECL_MODE (decl) = TYPE_MODE (union_type);
@@ -433,7 +438,7 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
 	     what C will do.  */
 	  tree field = NULL_TREE;
 	  field = TYPE_FIELDS (TREE_TYPE (decl));
-	  if (TREE_CHAIN (field) == NULL_TREE)
+	  if (DECL_CHAIN (field) == NULL_TREE)
 	    DECL_ALIGN (decl) = TYPE_ALIGN (TREE_TYPE (field));
 	}
       DECL_USER_ALIGN (decl) = 0;
@@ -506,8 +511,8 @@ get_init_field (segment_info *head, tree union_type, tree *field_init,
 
   /* Now absorb all the initializer data into a single vector,
      whilst checking for overlapping, unequal values.  */
-  data = (unsigned char*)gfc_getmem ((size_t)length);
-  chk = (unsigned char*)gfc_getmem ((size_t)length);
+  data = XCNEWVEC (unsigned char, (size_t)length);
+  chk = XCNEWVEC (unsigned char, (size_t)length);
 
   /* TODO - change this when default initialization is implemented.  */
   memset (data, '\0', (size_t)length);
@@ -522,8 +527,8 @@ get_init_field (segment_info *head, tree union_type, tree *field_init,
   for (i = 0; i < length; i++)
     CONSTRUCTOR_APPEND_ELT (v, NULL, build_int_cst (type, data[i]));
 
-  gfc_free (data);
-  gfc_free (chk);
+  free (data);
+  free (chk);
 
   /* Build a char[length] array to hold the initializers.  Much of what
      follows is borrowed from build_field, above.  */
@@ -609,7 +614,7 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
     {
       is_init = true;
       *field_link = field;
-      field_link = &TREE_CHAIN (field);
+      field_link = &DECL_CHAIN (field);
     }
 
   for (s = head; s; s = s->next)
@@ -618,7 +623,7 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
 
       /* Link the field into the type.  */
       *field_link = s->field;
-      field_link = &TREE_CHAIN (s->field);
+      field_link = &DECL_CHAIN (s->field);
 
       /* Has initial value.  */
       if (s->sym->value)
@@ -650,8 +655,10 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
 	      {
 		/* Add the initializer for this field.  */
 		tmp = gfc_conv_initializer (s->sym->value, &s->sym->ts,
-		    TREE_TYPE (s->field), s->sym->attr.dimension,
-		    s->sym->attr.pointer || s->sym->attr.allocatable);
+					    TREE_TYPE (s->field),
+					    s->sym->attr.dimension,
+					    s->sym->attr.pointer
+					    || s->sym->attr.allocatable, false);
 
 		CONSTRUCTOR_APPEND_ELT (v, s->field, tmp);
 	      }
@@ -702,8 +709,9 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
 	gfc_add_decl_to_function (var_decl);
 
       SET_DECL_VALUE_EXPR (var_decl,
-			   fold_build3 (COMPONENT_REF, TREE_TYPE (s->field),
-					decl, s->field, NULL_TREE));
+			   fold_build3_loc (input_location, COMPONENT_REF,
+					    TREE_TYPE (s->field),
+					    decl, s->field, NULL_TREE));
       DECL_HAS_VALUE_EXPR_P (var_decl) = 1;
       GFC_DECL_COMMON_OR_EQUIV (var_decl) = 1;
 
@@ -718,7 +726,7 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
       s->sym->backend_decl = var_decl;
 
       next_s = s->next;
-      gfc_free (s);
+      free (s);
     }
 }
 

@@ -1,9 +1,9 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+/* Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 
 static const st_option access_opt[] = {
@@ -466,12 +467,8 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 	break;
 
       opp->file = tmpname;
-#ifdef HAVE_SNPRINTF
       opp->file_len = snprintf(opp->file, sizeof (tmpname), "fort.%d", 
 			       (int) opp->common.unit);
-#else
-      opp->file_len = sprintf(opp->file, "fort.%d", (int) opp->common.unit);
-#endif
       break;
 
     default:
@@ -503,26 +500,29 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   if (s == NULL)
     {
       char *path, *msg;
+      size_t msglen;
       path = (char *) gfc_alloca (opp->file_len + 1);
-      msg = (char *) gfc_alloca (opp->file_len + 51);
+      msglen = opp->file_len + 51;
+      msg = (char *) gfc_alloca (msglen);
       unpack_filename (path, opp->file, opp->file_len);
 
       switch (errno)
 	{
 	case ENOENT: 
-	  sprintf (msg, "File '%s' does not exist", path);
+	  snprintf (msg, msglen, "File '%s' does not exist", path);
 	  break;
 
 	case EEXIST:
-	  sprintf (msg, "File '%s' already exists", path);
+	  snprintf (msg, msglen, "File '%s' already exists", path);
 	  break;
 
 	case EACCES:
-	  sprintf (msg, "Permission denied trying to open file '%s'", path);
+	  snprintf (msg, msglen, 
+		    "Permission denied trying to open file '%s'", path);
 	  break;
 
 	case EISDIR:
-	  sprintf (msg, "'%s' is a directory", path);
+	  snprintf (msg, msglen, "'%s' is a directory", path);
 	  break;
 
 	default:
@@ -554,7 +554,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
 
   if (flags->position == POSITION_APPEND)
     {
-      if (sseek (u->s, 0, SEEK_END) < 0)
+      if (file_size (opp->file, opp->file_len) > 0 && sseek (u->s, 0, SEEK_END) < 0)
 	generate_error (&opp->common, LIBERROR_OS, NULL);
       u->endfile = AT_ENDFILE;
     }
@@ -623,7 +623,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   test_endfile (u);
 
   if (flags->status == STATUS_SCRATCH && opp->file != NULL)
-    free_mem (opp->file);
+    free (opp->file);
     
   if (flags->form == FORM_FORMATTED)
     {
@@ -644,7 +644,7 @@ new_unit (st_parameter_open *opp, gfc_unit *u, unit_flags * flags)
   /* Free memory associated with a temporary filename.  */
 
   if (flags->status == STATUS_SCRATCH && opp->file != NULL)
-    free_mem (opp->file);
+    free (opp->file);
 
  fail:
 
@@ -688,8 +688,7 @@ already_open (st_parameter_open *opp, gfc_unit * u, unit_flags * flags)
 	}
 
       u->s = NULL;
-      if (u->file)
-	free_mem (u->file);
+      free (u->file);
       u->file = NULL;
       u->file_len = 0;
 

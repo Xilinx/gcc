@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -45,7 +45,7 @@ container_rand_regression_test(unsigned long seed, size_t n, size_t m,
 			       double mp, bool disp) 
 : m_seed((seed == 0) ? twister_rand_gen::get_time_determined_seed() : seed),
   m_n(n), m_m(m), m_tp(tp), m_ip(ip), m_ep(ep), m_cp(cp), m_mp(mp),
-  m_disp(disp), m_p_c(NULL)
+  m_disp(disp), m_p_c(0)
 { }
 
 PB_DS_CLASS_T_DEC
@@ -71,7 +71,7 @@ default_constructor()
       done = false;
     }
 
-  if (m_p_c != NULL)
+  if (m_p_c)
     PB_DS_COND_COMPARE(*m_p_c, m_native_c);
   return done;
 }
@@ -98,7 +98,7 @@ copy_constructor()
 {
   PB_DS_TRACE("copy_constructor");
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
@@ -124,14 +124,14 @@ assignment_operator()
 {
   PB_DS_TRACE("assignment operator");
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
   try
     {
       p_c = new Cntnr();
-      * p_c =* m_p_c;
+      *p_c = *m_p_c;
       std::swap(p_c, m_p_c);
     }
   catch(__gnu_cxx::forced_error&)
@@ -159,7 +159,7 @@ PB_DS_CLASS_C_DEC::
 it_constructor_imp(__gnu_pbds::cc_hash_tag)
 {
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
@@ -226,7 +226,7 @@ PB_DS_CLASS_C_DEC::
 it_constructor_imp(__gnu_pbds::gp_hash_tag)
 {
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
@@ -309,7 +309,7 @@ PB_DS_CLASS_C_DEC::
 it_constructor_imp(__gnu_pbds::tree_tag)
 {
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
@@ -345,7 +345,7 @@ PB_DS_CLASS_C_DEC::
 it_constructor_imp(__gnu_pbds::list_update_tag)
 {
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
@@ -370,7 +370,7 @@ PB_DS_CLASS_C_DEC::
 it_constructor_imp(__gnu_pbds::pat_trie_tag)
 {
   bool done = true;
-  Cntnr* p_c = NULL;
+  Cntnr* p_c = 0;
   m_alloc.set_probability(m_tp);
   typename alloc_t::group_adjustor adjust(m_p_c->size());
 
@@ -379,12 +379,12 @@ it_constructor_imp(__gnu_pbds::pat_trie_tag)
       switch(get_next_sub_op(2))
         {
         case 0:
-	  p_c = new Cntnr(m_p_c->get_e_access_traits());
+	  p_c = new Cntnr(m_p_c->get_access_traits());
 	  m_native_c.clear();
 	  break;
         case 1:
 	  p_c = new Cntnr(m_p_c->begin(), m_p_c->end(), 
-			  m_p_c->get_e_access_traits());
+			  m_p_c->get_access_traits());
 	  break;
         default:
 	  PB_DS_THROW_IF_FAILED(false, "", m_p_c, &m_native_c);
@@ -450,7 +450,7 @@ basic_cmp_(const Cntnr& r_c, const native_type& r_native_c)
       m_alloc.set_probability(0);
       const key_type k = native_key;
       m_alloc.set_probability(1);
-      typename cntnr::const_point_iterator found_it = r_c.find(k);
+      typename cntnr::point_const_iterator found_it = r_c.find(k);
       PB_DS_THROW_IF_FAILED(found_it != r_c.end(),
 			    test_traits::native_val_to_string(*it),
 			    &r_c, &r_native_c);
@@ -482,7 +482,7 @@ cmp_(const Cntnr& r_c, const native_type& r_native_c)
       prefix_search = test_traits::prefix_search,
       has_mapped = !__gnu_pbds::detail::is_same<
       typename Cntnr::mapped_type,
-      __gnu_pbds::null_mapped_type>::value
+      __gnu_pbds::null_type>::value
     };
 
   order_preserving_cmp_imp(r_c, r_native_c,
@@ -869,7 +869,7 @@ PB_DS_CLASS_C_DEC::
 operator()()
 {
   typedef xml_result_set_regression_formatter formatter_type;
-  formatter_type* p_fmt = NULL;
+  formatter_type* p_fmt = 0;
 
   if (m_disp)
     p_fmt = new formatter_type(string_form<Cntnr>::name(),
@@ -960,16 +960,16 @@ operator()()
 		      break;
                     case 1:
 		      PB_DS_RUN_MTHD(copy_constructor)
-                        break;
+                      break;
                     case 2:
 		      PB_DS_RUN_MTHD(it_constructor)
-                        break;
+                      break;
                     case 3:
 		      PB_DS_RUN_MTHD(assignment_operator)
-                        break;
+                      break;
                     case 4:
 		      PB_DS_RUN_MTHD(split_join)
-                        break;
+                      break;
                     case 5:
 		      resize();
 		      break;
@@ -1072,8 +1072,8 @@ insert()
       m_alloc.set_probability(0);
       value_type v = test_traits::generate_value(m_g, m_m);
       m_alloc.set_probability(m_tp);
-      const_key_reference r_k = test_traits::extract_key(v);
-      typename cntnr::const_point_iterator found_it = m_p_c->find(r_k);
+      key_const_reference r_k = test_traits::extract_key(v);
+      typename cntnr::point_const_iterator found_it = m_p_c->find(r_k);
       const bool existed = (found_it != m_p_c->end());
       const std::pair<typename cntnr::point_iterator, bool> ins_ret = m_p_c->insert(v);
       
@@ -1113,7 +1113,7 @@ subscript()
   enum
     {
       no_data = __gnu_pbds::detail::is_same<
-      typename Cntnr::const_key_reference,
+      typename Cntnr::key_const_reference,
       typename Cntnr::const_reference>::value
     };
 
@@ -1161,7 +1161,7 @@ subscript_imp(__gnu_pbds::detail::true_type)
       m_alloc.set_probability(0);
       value_type v = test_traits::generate_value(m_g, m_m);
       m_alloc.set_probability(m_tp);
-      (*m_p_c)[v] = __gnu_pbds::null_mapped_type();
+      (*m_p_c)[v] = __gnu_pbds::null_type();
       m_native_c.insert(test_traits::native_value(v));
     }
   catch(__gnu_cxx::forced_error&)
@@ -1431,9 +1431,9 @@ key_defs()
 {
   typedef typename Cntnr::key_type test_key_type;
   typedef typename Cntnr::key_reference test_key_reference;
-  typedef typename Cntnr::const_key_reference test_const_key_reference;
+  typedef typename Cntnr::key_const_reference test_key_const_reference;
   typedef typename Cntnr::key_pointer test_key_pointer;
-  typedef typename Cntnr::const_key_pointer test_const_key_pointer;
+  typedef typename Cntnr::key_const_pointer test_key_const_pointer;
 }
 
 PB_DS_CLASS_T_DEC
@@ -1443,9 +1443,9 @@ mapped_defs()
 {
   typedef typename Cntnr::mapped_type test_mapped_type;
   typedef typename Cntnr::mapped_reference test_mapped_reference;
-  typedef typename Cntnr::const_mapped_reference test_const_mapped_reference;
+  typedef typename Cntnr::mapped_const_reference test_mapped_const_reference;
   typedef typename Cntnr::mapped_pointer test_mapped_pointer;
-  typedef typename Cntnr::const_mapped_pointer test_const_mapped_pointer;
+  typedef typename Cntnr::mapped_const_pointer test_mapped_const_pointer;
 }
 
 PB_DS_CLASS_T_DEC
@@ -1490,7 +1490,7 @@ PB_DS_CLASS_C_DEC::
 iterator_defs()
 {
   typedef typename Cntnr::point_iterator test_point_iterator;
-  typedef typename Cntnr::const_point_iterator const_test_point_iterator;
+  typedef typename Cntnr::point_const_iterator const_test_point_iterator;
   typedef typename Cntnr::iterator test_iterator;
   typedef typename Cntnr::const_iterator const_test_iterator;
 }
@@ -1507,7 +1507,7 @@ PB_DS_CLASS_C_DEC::
 node_iterator_defs(__gnu_pbds::detail::true_type)
 {
   typedef typename Cntnr::node_iterator test_node_iterator;
-  typedef typename Cntnr::const_node_iterator test_const_node_iterator;
+  typedef typename Cntnr::node_const_iterator test_node_const_iterator;
 }
 
 PB_DS_CLASS_T_DEC
@@ -1571,7 +1571,7 @@ void
 PB_DS_CLASS_C_DEC::
 policy_defs(__gnu_pbds::pat_trie_tag)
 {
-  typedef typename Cntnr::e_access_traits e_access_traits;
+  typedef typename Cntnr::access_traits access_traits;
 }
 
 
@@ -1591,30 +1591,30 @@ policy_access(__gnu_pbds::basic_hash_tag)
 {
   {
     typename Cntnr::hash_fn& r_t = m_p_c->get_hash_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
   {
     const typename Cntnr::hash_fn& r_t =((const Cntnr& )*m_p_c).get_hash_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 
   {
     typename Cntnr::eq_fn& r_t = m_p_c->get_eq_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
   {
     const typename Cntnr::eq_fn& r_t =((const Cntnr& )*m_p_c).get_eq_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 
   {
     typename Cntnr::resize_policy& r_t = m_p_c->get_resize_policy();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
   {
     const typename Cntnr::resize_policy& r_t =((const Cntnr& )*m_p_c).get_resize_policy();
 
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 }
 
@@ -1627,12 +1627,12 @@ policy_access(__gnu_pbds::cc_hash_tag)
 
   {
     typename Cntnr::comb_hash_fn& r_t = m_p_c->get_comb_hash_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
   {
     const typename Cntnr::comb_hash_fn& r_t =((const Cntnr& )*m_p_c).get_comb_hash_fn();
 
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 }
 
@@ -1645,21 +1645,21 @@ policy_access(__gnu_pbds::gp_hash_tag)
 
   {
     typename Cntnr::comb_probe_fn& r_t = m_p_c->get_comb_probe_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
   {
     const typename Cntnr::comb_probe_fn& r_t =((const Cntnr& )*m_p_c).get_comb_probe_fn();
 
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 
   {
     typename Cntnr::probe_fn& r_t = m_p_c->get_probe_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
   {
     const typename Cntnr::probe_fn& r_t =((const Cntnr& )*m_p_c).get_probe_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 }
 
@@ -1670,12 +1670,12 @@ policy_access(__gnu_pbds::tree_tag)
 {
   {
     typename Cntnr::cmp_fn& r_t = m_p_c->get_cmp_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 
   {
     const typename Cntnr::cmp_fn& r_t =((const Cntnr& )*m_p_c).get_cmp_fn();
-    assert(&r_t != NULL);
+    assert(&r_t);
   }
 }
 
@@ -1690,8 +1690,8 @@ void
 PB_DS_CLASS_C_DEC::
 policy_access(__gnu_pbds::pat_trie_tag)
 {
-  typename Cntnr::e_access_traits& r_t = m_p_c->get_e_access_traits();
-  assert(&r_t != NULL);
+  typename Cntnr::access_traits& r_t = m_p_c->get_access_traits();
+  assert(&r_t);
 }
 
 
@@ -1706,7 +1706,8 @@ split_join()
       split_join = container_traits::order_preserving
     };
 
-  return (split_join_imp(__gnu_pbds::detail::integral_constant<int,split_join>()));
+  typedef __gnu_pbds::detail::integral_constant<int, split_join> __true_type;
+  return split_join_imp(__true_type());
 }
 
 PB_DS_CLASS_T_DEC
@@ -1788,7 +1789,7 @@ it_copy()
     PB_DS_THROW_IF_FAILED(const_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_it != it), "", m_p_c, &m_native_c);
 
-    typename cntnr::const_point_iterator const_find_it(it);
+    typename cntnr::point_const_iterator const_find_it(it);
     PB_DS_THROW_IF_FAILED(const_find_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_find_it != it), "", m_p_c, &m_native_c);
 
@@ -1799,14 +1800,14 @@ it_copy()
 
   {
     typename cntnr::const_iterator const_it = m_p_c->end();
-    typename cntnr::const_point_iterator const_find_it(const_it);
+    typename cntnr::point_const_iterator const_find_it(const_it);
     PB_DS_THROW_IF_FAILED(const_find_it == const_it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_find_it != const_it), "", m_p_c, &m_native_c);
   }
 
   {
     typename cntnr::point_iterator find_it = m_p_c->end();
-    typename cntnr::const_point_iterator const_find_it(find_it);
+    typename cntnr::point_const_iterator const_find_it(find_it);
     PB_DS_THROW_IF_FAILED(find_it == const_find_it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(find_it != const_find_it), "", m_p_c, &m_native_c);
   }
@@ -1824,7 +1825,7 @@ it_assign()
     PB_DS_THROW_IF_FAILED(const_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_it != it), "", m_p_c, &m_native_c);
 
-    typename cntnr::const_point_iterator const_find_it;
+    typename cntnr::point_const_iterator const_find_it;
     const_find_it = it;
     PB_DS_THROW_IF_FAILED(const_find_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_find_it != it), "", m_p_c, &m_native_c);
@@ -1837,7 +1838,7 @@ it_assign()
 
   {
     typename cntnr::const_iterator const_it = m_p_c->end();
-    typename cntnr::const_point_iterator const_find_it;
+    typename cntnr::point_const_iterator const_find_it;
     const_find_it = const_it;
     PB_DS_THROW_IF_FAILED(const_find_it == const_it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_find_it != const_it), "", m_p_c, &m_native_c);
@@ -1845,7 +1846,7 @@ it_assign()
 
   {
     typename cntnr::point_iterator find_it = m_p_c->end();
-    typename cntnr::const_point_iterator const_find_it;
+    typename cntnr::point_const_iterator const_find_it;
     const_find_it = find_it;
     PB_DS_THROW_IF_FAILED(find_it == const_find_it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(find_it != const_find_it), "", m_p_c, &m_native_c);
@@ -1895,7 +1896,7 @@ rev_it_copy_imp(__gnu_pbds::detail::true_type)
     PB_DS_THROW_IF_FAILED(const_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_it != it), "", m_p_c, &m_native_c);
 
-    typename cntnr::const_point_iterator const_find_it(it);
+    typename cntnr::point_const_iterator const_find_it(it);
     PB_DS_THROW_IF_FAILED(const_find_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_find_it != it), "", m_p_c, &m_native_c);
 
@@ -1923,7 +1924,7 @@ rev_it_assign_imp(__gnu_pbds::detail::true_type)
     PB_DS_THROW_IF_FAILED(const_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_it != it), "", m_p_c, &m_native_c);
 
-    typename cntnr::const_point_iterator const_find_it;
+    typename cntnr::point_const_iterator const_find_it;
     const_find_it = it;
     PB_DS_THROW_IF_FAILED(const_find_it == it, "", m_p_c, &m_native_c);
     PB_DS_THROW_IF_FAILED(!(const_find_it != it), "", m_p_c, &m_native_c);

@@ -1,5 +1,5 @@
 /* Definitions for code generation pass of GNU compiler.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -29,10 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 
    For example, add_optab applies to addition.
 
-   The insn_code slot is the enum insn_code that says how to
-   generate an insn for this operation on a particular machine mode.
-   It is CODE_FOR_nothing if there is no such insn on the target machine.
-
    The `lib_call' slot is the name of the library function that
    can be used to perform the operation.
 
@@ -40,17 +36,26 @@ along with GCC; see the file COPYING3.  If not see
 
 struct optab_handlers
 {
-  enum insn_code insn_code;
+  /* I - CODE_FOR_nothing, where I is either the insn code of the
+     associated insn generator or CODE_FOR_nothing if there is no such
+     insn on the target machine.  */
+  int insn_code;
+};
+
+struct widening_optab_handlers
+{
+  struct optab_handlers handlers[NUM_MACHINE_MODES][NUM_MACHINE_MODES];
 };
 
 struct optab_d
 {
   enum rtx_code code;
-  const char *libcall_basename;
   char libcall_suffix;
+  const char *libcall_basename;
   void (*libcall_gen)(struct optab_d *, const char *name, char suffix,
 		      enum machine_mode);
   struct optab_handlers handlers[NUM_MACHINE_MODES];
+  struct widening_optab_handlers *widening;
 };
 typedef struct optab_d * optab;
 
@@ -191,6 +196,11 @@ enum optab_index
   OTI_pow,
   /* Arc tangent of y/x */
   OTI_atan2,
+  /* Floating multiply/add */
+  OTI_fma,
+  OTI_fms,
+  OTI_fnma,
+  OTI_fnms,
 
   /* Move instruction.  */
   OTI_mov,
@@ -216,6 +226,7 @@ enum optab_index
   OTI_ffs,
   OTI_clz,
   OTI_ctz,
+  OTI_clrsb,
   OTI_popcount,
   OTI_parity,
   /* Square root */
@@ -372,8 +383,6 @@ enum optab_index
   OTI_MAX
 };
 
-extern struct optab_d optab_table[OTI_MAX];
-
 #define ssadd_optab (&optab_table[OTI_ssadd])
 #define usadd_optab (&optab_table[OTI_usadd])
 #define sssub_optab (&optab_table[OTI_sssub])
@@ -435,6 +444,10 @@ extern struct optab_d optab_table[OTI_MAX];
 #define umax_optab (&optab_table[OTI_umax])
 #define pow_optab (&optab_table[OTI_pow])
 #define atan2_optab (&optab_table[OTI_atan2])
+#define fma_optab (&optab_table[OTI_fma])
+#define fms_optab (&optab_table[OTI_fms])
+#define fnma_optab (&optab_table[OTI_fnma])
+#define fnms_optab (&optab_table[OTI_fnms])
 
 #define mov_optab (&optab_table[OTI_mov])
 #define movstrict_optab (&optab_table[OTI_movstrict])
@@ -450,6 +463,7 @@ extern struct optab_d optab_table[OTI_MAX];
 #define ffs_optab (&optab_table[OTI_ffs])
 #define clz_optab (&optab_table[OTI_clz])
 #define ctz_optab (&optab_table[OTI_ctz])
+#define clrsb_optab (&optab_table[OTI_clrsb])
 #define popcount_optab (&optab_table[OTI_popcount])
 #define parity_optab (&optab_table[OTI_parity])
 #define sqrt_optab (&optab_table[OTI_sqrt])
@@ -572,10 +586,15 @@ enum convert_optab_index
   COI_satfract,
   COI_satfractuns,
 
+  COI_vec_load_lanes,
+  COI_vec_store_lanes,
+
+  /* Vector conditional operations.  */
+  COI_vcond,
+  COI_vcondu,
+
   COI_MAX
 };
-
-extern struct convert_optab_d convert_optab_table[COI_MAX];
 
 #define sext_optab (&convert_optab_table[COI_sext])
 #define zext_optab (&convert_optab_table[COI_zext])
@@ -594,12 +613,10 @@ extern struct convert_optab_d convert_optab_table[COI_MAX];
 #define fractuns_optab (&convert_optab_table[COI_fractuns])
 #define satfract_optab (&convert_optab_table[COI_satfract])
 #define satfractuns_optab (&convert_optab_table[COI_satfractuns])
-
-/* These arrays record the insn_code of insns that may be needed to
-   perform input and output reloads of special objects.  They provide a
-   place to pass a scratch register.  */
-extern enum insn_code reload_in_optab[NUM_MACHINE_MODES];
-extern enum insn_code reload_out_optab[NUM_MACHINE_MODES];
+#define vec_load_lanes_optab (&convert_optab_table[COI_vec_load_lanes])
+#define vec_store_lanes_optab (&convert_optab_table[COI_vec_store_lanes])
+#define vcond_optab (&convert_optab_table[(int) COI_vcond])
+#define vcondu_optab (&convert_optab_table[(int) COI_vcondu])
 
 /* Contains the optab used for each rtx code.  */
 extern optab code_to_optab[NUM_RTX_CODE + 1];
@@ -607,67 +624,140 @@ extern optab code_to_optab[NUM_RTX_CODE + 1];
 
 typedef rtx (*rtxfun) (rtx);
 
+/* Enumerates operations that have a named .md pattern associated
+   with them, but which are not implemented as library functions.  */
+enum direct_optab_index
+{
 #ifdef HAVE_conditional_move
-/* Indexed by the machine mode, gives the insn code to make a conditional
-   move insn.  */
-
-extern enum insn_code movcc_gen_code[NUM_MACHINE_MODES];
+  /* Conditional move operations.  */
+  DOI_movcc,
 #endif
 
-/* Indexed by the machine mode, gives the insn code for vector conditional
-   operation.  */
+  /* Operations that use a scratch register to perform input and output
+     reloads of special objects.  */
+  DOI_reload_in,
+  DOI_reload_out,
 
-extern enum insn_code vcond_gen_code[NUM_MACHINE_MODES];
-extern enum insn_code vcondu_gen_code[NUM_MACHINE_MODES];
+  /* Block move operation.  */
+  DOI_movmem,
 
-/* This array records the insn_code of insns to perform block moves.  */
-extern enum insn_code movmem_optab[NUM_MACHINE_MODES];
+  /* Block set operation.  */
+  DOI_setmem,
 
-/* This array records the insn_code of insns to perform block sets.  */
-extern enum insn_code setmem_optab[NUM_MACHINE_MODES];
+  /* Various types of block compare operation.  */
+  DOI_cmpstr,
+  DOI_cmpstrn,
+  DOI_cmpmem,
 
-/* These arrays record the insn_code of two different kinds of insns
-   to perform block compares.  */
-extern enum insn_code cmpstr_optab[NUM_MACHINE_MODES];
-extern enum insn_code cmpstrn_optab[NUM_MACHINE_MODES];
-extern enum insn_code cmpmem_optab[NUM_MACHINE_MODES];
+  /* Synchronization primitives.  This first set is atomic operation for
+     which we don't care about the resulting value.  */
+  DOI_sync_add,
+  DOI_sync_sub,
+  DOI_sync_ior,
+  DOI_sync_and,
+  DOI_sync_xor,
+  DOI_sync_nand,
 
-/* Synchronization primitives.  This first set is atomic operation for
-   which we don't care about the resulting value.  */
-extern enum insn_code sync_add_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_sub_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_ior_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_and_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_xor_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_nand_optab[NUM_MACHINE_MODES];
+  /* This second set is atomic operations in which we return the value
+     that existed in memory before the operation.  */
+  DOI_sync_old_add,
+  DOI_sync_old_sub,
+  DOI_sync_old_ior,
+  DOI_sync_old_and,
+  DOI_sync_old_xor,
+  DOI_sync_old_nand,
 
-/* This second set is atomic operations in which we return the value
-   that existed in memory before the operation.  */
-extern enum insn_code sync_old_add_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_old_sub_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_old_ior_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_old_and_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_old_xor_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_old_nand_optab[NUM_MACHINE_MODES];
+  /* This third set is atomic operations in which we return the value
+     that resulted after performing the operation.  */
+  DOI_sync_new_add,
+  DOI_sync_new_sub,
+  DOI_sync_new_ior,
+  DOI_sync_new_and,
+  DOI_sync_new_xor,
+  DOI_sync_new_nand,
 
-/* This third set is atomic operations in which we return the value
-   that resulted after performing the operation.  */
-extern enum insn_code sync_new_add_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_new_sub_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_new_ior_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_new_and_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_new_xor_optab[NUM_MACHINE_MODES];
-extern enum insn_code sync_new_nand_optab[NUM_MACHINE_MODES];
+  /* Atomic compare and swap.  */
+  DOI_sync_compare_and_swap,
 
-/* Atomic compare and swap.  */
-extern enum insn_code sync_compare_and_swap[NUM_MACHINE_MODES];
+  /* Atomic exchange with acquire semantics.  */
+  DOI_sync_lock_test_and_set,
 
-/* Atomic exchange with acquire semantics.  */
-extern enum insn_code sync_lock_test_and_set[NUM_MACHINE_MODES];
+  /* Atomic clear with release semantics.  */
+  DOI_sync_lock_release,
 
-/* Atomic clear with release semantics.  */
-extern enum insn_code sync_lock_release[NUM_MACHINE_MODES];
+  DOI_MAX
+};
 
+/* A structure that says which insn should be used to perform an operation
+   in a particular mode.  */
+struct direct_optab_d
+{
+  struct optab_handlers handlers[NUM_MACHINE_MODES];
+};
+typedef struct direct_optab_d *direct_optab;
+
+#ifdef HAVE_conditional_move
+#define movcc_optab (&direct_optab_table[(int) DOI_movcc])
+#endif
+#define reload_in_optab (&direct_optab_table[(int) DOI_reload_in])
+#define reload_out_optab (&direct_optab_table[(int) DOI_reload_out])
+#define movmem_optab (&direct_optab_table[(int) DOI_movmem])
+#define setmem_optab (&direct_optab_table[(int) DOI_setmem])
+#define cmpstr_optab (&direct_optab_table[(int) DOI_cmpstr])
+#define cmpstrn_optab (&direct_optab_table[(int) DOI_cmpstrn])
+#define cmpmem_optab (&direct_optab_table[(int) DOI_cmpmem])
+#define sync_add_optab (&direct_optab_table[(int) DOI_sync_add])
+#define sync_sub_optab (&direct_optab_table[(int) DOI_sync_sub])
+#define sync_ior_optab (&direct_optab_table[(int) DOI_sync_ior])
+#define sync_and_optab (&direct_optab_table[(int) DOI_sync_and])
+#define sync_xor_optab (&direct_optab_table[(int) DOI_sync_xor])
+#define sync_nand_optab (&direct_optab_table[(int) DOI_sync_nand])
+#define sync_old_add_optab (&direct_optab_table[(int) DOI_sync_old_add])
+#define sync_old_sub_optab (&direct_optab_table[(int) DOI_sync_old_sub])
+#define sync_old_ior_optab (&direct_optab_table[(int) DOI_sync_old_ior])
+#define sync_old_and_optab (&direct_optab_table[(int) DOI_sync_old_and])
+#define sync_old_xor_optab (&direct_optab_table[(int) DOI_sync_old_xor])
+#define sync_old_nand_optab (&direct_optab_table[(int) DOI_sync_old_nand])
+#define sync_new_add_optab (&direct_optab_table[(int) DOI_sync_new_add])
+#define sync_new_sub_optab (&direct_optab_table[(int) DOI_sync_new_sub])
+#define sync_new_ior_optab (&direct_optab_table[(int) DOI_sync_new_ior])
+#define sync_new_and_optab (&direct_optab_table[(int) DOI_sync_new_and])
+#define sync_new_xor_optab (&direct_optab_table[(int) DOI_sync_new_xor])
+#define sync_new_nand_optab (&direct_optab_table[(int) DOI_sync_new_nand])
+#define sync_compare_and_swap_optab \
+  (&direct_optab_table[(int) DOI_sync_compare_and_swap])
+#define sync_lock_test_and_set_optab \
+  (&direct_optab_table[(int) DOI_sync_lock_test_and_set])
+#define sync_lock_release_optab \
+  (&direct_optab_table[(int) DOI_sync_lock_release])
+
+/* Target-dependent globals.  */
+struct target_optabs {
+  /* Tables of patterns that may have an associated libcall.  */
+  struct optab_d x_optab_table[(int) OTI_MAX];
+
+  /* Tables of patterns for converting one mode to another.  */
+  struct convert_optab_d x_convert_optab_table[(int) COI_MAX];
+
+  /* Tables of patterns for direct optabs (i.e. those which cannot be
+     implemented using a libcall).  */
+  struct direct_optab_d x_direct_optab_table[(int) DOI_MAX];
+};
+
+extern struct target_optabs default_target_optabs;
+#if SWITCHABLE_TARGET
+extern struct target_optabs *this_target_optabs;
+#else
+#define this_target_optabs (&default_target_optabs)
+#endif
+
+#define optab_table \
+  (this_target_optabs->x_optab_table)
+#define convert_optab_table \
+  (this_target_optabs->x_convert_optab_table)
+#define direct_optab_table \
+  (this_target_optabs->x_direct_optab_table)
+
 /* Define functions given in optabs.c.  */
 
 extern rtx expand_widen_pattern_expr (sepops ops, rtx op0, rtx op1, rtx wide_op,
@@ -714,8 +804,17 @@ extern rtx expand_copysign (rtx, rtx, rtx);
 
 /* Generate an instruction with a given INSN_CODE with an output and
    an input.  */
-extern void emit_unop_insn (int, rtx, rtx, enum rtx_code);
-extern bool maybe_emit_unop_insn (int, rtx, rtx, enum rtx_code);
+extern void emit_unop_insn (enum insn_code, rtx, rtx, enum rtx_code);
+extern bool maybe_emit_unop_insn (enum insn_code, rtx, rtx, enum rtx_code);
+
+/* Find a widening optab even if it doesn't widen as much as we want.  */
+#define find_widening_optab_handler(A,B,C,D) \
+  find_widening_optab_handler_and_mode (A, B, C, D, NULL)
+extern enum insn_code find_widening_optab_handler_and_mode (optab,
+							    enum machine_mode,
+							    enum machine_mode,
+							    int,
+							    enum machine_mode *);
 
 /* An extra flag to control optab_for_tree_code's behavior.  This is needed to
    distinguish between machines with a vector shift that takes a scalar for the
@@ -765,25 +864,275 @@ extern void expand_fixed_convert (rtx, rtx, int, int);
 /* Generate code for a FLOAT_EXPR.  */
 extern void expand_float (rtx, rtx, int);
 
+/* Return the insn_code for a FLOAT_EXPR.  */
+enum insn_code can_float_p (enum machine_mode, enum machine_mode, int);
+
 /* Generate code for a FIX_EXPR.  */
 extern void expand_fix (rtx, rtx, int);
 
 /* Generate code for float to integral conversion.  */
 extern bool expand_sfix_optab (rtx, rtx, convert_optab);
 
+/* Generate code for a widening multiply.  */
+extern rtx expand_widening_mult (enum machine_mode, rtx, rtx, rtx, int, optab);
+
 /* Return tree if target supports vector operations for COND_EXPR.  */
-bool expand_vec_cond_expr_p (tree, enum machine_mode);
+bool expand_vec_cond_expr_p (tree, tree);
 
 /* Generate code for VEC_COND_EXPR.  */
 extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 /* Generate code for VEC_LSHIFT_EXPR and VEC_RSHIFT_EXPR.  */
 extern rtx expand_vec_shift_expr (sepops, rtx);
 
-#define optab_handler(optab,mode) (&(optab)->handlers[(int) (mode)])
-#define convert_optab_handler(optab,mode,mode2) \
-	(&(optab)->handlers[(int) (mode)][(int) (mode2)])
+/* Return the insn used to implement mode MODE of OP, or CODE_FOR_nothing
+   if the target does not have such an insn.  */
+
+static inline enum insn_code
+optab_handler (optab op, enum machine_mode mode)
+{
+  return (enum insn_code) (op->handlers[(int) mode].insn_code
+			   + (int) CODE_FOR_nothing);
+}
+
+/* Like optab_handler, but for widening_operations that have a TO_MODE and
+  a FROM_MODE.  */
+
+static inline enum insn_code
+widening_optab_handler (optab op, enum machine_mode to_mode,
+			enum machine_mode from_mode)
+{
+  if (to_mode == from_mode || from_mode == VOIDmode)
+    return optab_handler (op, to_mode);
+
+  if (op->widening)
+    return (enum insn_code) (op->widening->handlers[(int) to_mode][(int) from_mode].insn_code
+			     + (int) CODE_FOR_nothing);
+
+  return CODE_FOR_nothing;
+}
+
+/* Record that insn CODE should be used to implement mode MODE of OP.  */
+
+static inline void
+set_optab_handler (optab op, enum machine_mode mode, enum insn_code code)
+{
+  op->handlers[(int) mode].insn_code = (int) code - (int) CODE_FOR_nothing;
+}
+
+/* Like set_optab_handler, but for widening operations that have a TO_MODE
+   and a FROM_MODE.  */
+
+static inline void
+set_widening_optab_handler (optab op, enum machine_mode to_mode,
+			    enum machine_mode from_mode, enum insn_code code)
+{
+  if (to_mode == from_mode)
+    set_optab_handler (op, to_mode, code);
+  else
+    {
+      if (op->widening == NULL)
+	op->widening = (struct widening_optab_handlers *)
+	      xcalloc (1, sizeof (struct widening_optab_handlers));
+
+      op->widening->handlers[(int) to_mode][(int) from_mode].insn_code
+	  = (int) code - (int) CODE_FOR_nothing;
+    }
+}
+
+/* Return the insn used to perform conversion OP from mode FROM_MODE
+   to mode TO_MODE; return CODE_FOR_nothing if the target does not have
+   such an insn.  */
+
+static inline enum insn_code
+convert_optab_handler (convert_optab op, enum machine_mode to_mode,
+		       enum machine_mode from_mode)
+{
+  return ((enum insn_code)
+	  (op->handlers[(int) to_mode][(int) from_mode].insn_code
+	   + (int) CODE_FOR_nothing));
+}
+
+/* Record that insn CODE should be used to perform conversion OP
+   from mode FROM_MODE to mode TO_MODE.  */
+
+static inline void
+set_convert_optab_handler (convert_optab op, enum machine_mode to_mode,
+			   enum machine_mode from_mode, enum insn_code code)
+{
+  op->handlers[(int) to_mode][(int) from_mode].insn_code
+    = (int) code - (int) CODE_FOR_nothing;
+}
+
+/* Return the insn used to implement mode MODE of OP, or CODE_FOR_nothing
+   if the target does not have such an insn.  */
+
+static inline enum insn_code
+direct_optab_handler (direct_optab op, enum machine_mode mode)
+{
+  return (enum insn_code) (op->handlers[(int) mode].insn_code
+			   + (int) CODE_FOR_nothing);
+}
+
+/* Record that insn CODE should be used to implement mode MODE of OP.  */
+
+static inline void
+set_direct_optab_handler (direct_optab op, enum machine_mode mode,
+			  enum insn_code code)
+{
+  op->handlers[(int) mode].insn_code = (int) code - (int) CODE_FOR_nothing;
+}
 
 extern rtx optab_libfunc (optab optab, enum machine_mode mode);
 extern rtx convert_optab_libfunc (convert_optab optab, enum machine_mode mode1,
 			          enum machine_mode mode2);
+
+extern bool insn_operand_matches (enum insn_code icode, unsigned int opno,
+				  rtx operand);
+
+/* Describes the type of an expand_operand.  Each value is associated
+   with a create_*_operand function; see the comments above those
+   functions for details.  */
+enum expand_operand_type {
+  EXPAND_FIXED,
+  EXPAND_OUTPUT,
+  EXPAND_INPUT,
+  EXPAND_CONVERT_TO,
+  EXPAND_CONVERT_FROM,
+  EXPAND_ADDRESS,
+  EXPAND_INTEGER
+};
+
+/* Information about an operand for instruction expansion.  */
+struct expand_operand {
+  /* The type of operand.  */
+  ENUM_BITFIELD (expand_operand_type) type : 8;
+
+  /* True if any conversion should treat VALUE as being unsigned
+     rather than signed.  Only meaningful for certain types.  */
+  unsigned int unsigned_p : 1;
+
+  /* Unused; available for future use.  */
+  unsigned int unused : 7;
+
+  /* The mode passed to the convert_*_operand function.  It has a
+     type-dependent meaning.  */
+  ENUM_BITFIELD (machine_mode) mode : 16;
+
+  /* The value of the operand.  */
+  rtx value;
+};
+
+/* Initialize OP with the given fields.  Initialise the other fields
+   to their default values.  */
+
+static inline void
+create_expand_operand (struct expand_operand *op,
+		       enum expand_operand_type type,
+		       rtx value, enum machine_mode mode,
+		       bool unsigned_p)
+{
+  op->type = type;
+  op->unsigned_p = unsigned_p;
+  op->unused = 0;
+  op->mode = mode;
+  op->value = value;
+}
+
+/* Make OP describe an operand that must use rtx X, even if X is volatile.  */
+
+static inline void
+create_fixed_operand (struct expand_operand *op, rtx x)
+{
+  create_expand_operand (op, EXPAND_FIXED, x, VOIDmode, false);
+}
+
+/* Make OP describe an output operand that must have mode MODE.
+   X, if nonnull, is a suggestion for where the output should be stored.
+   It is OK for VALUE to be inconsistent with MODE, although it will just
+   be ignored in that case.  */
+
+static inline void
+create_output_operand (struct expand_operand *op, rtx x,
+		       enum machine_mode mode)
+{
+  create_expand_operand (op, EXPAND_OUTPUT, x, mode, false);
+}
+
+/* Make OP describe an input operand that must have mode MODE and
+   value VALUE; MODE cannot be VOIDmode.  The backend may request that
+   VALUE be copied into a different kind of rtx before being passed
+   as an operand.  */
+
+static inline void
+create_input_operand (struct expand_operand *op, rtx value,
+		      enum machine_mode mode)
+{
+  create_expand_operand (op, EXPAND_INPUT, value, mode, false);
+}
+
+/* Like create_input_operand, except that VALUE must first be converted
+   to mode MODE.  UNSIGNED_P says whether VALUE is unsigned.  */
+
+static inline void
+create_convert_operand_to (struct expand_operand *op, rtx value,
+			   enum machine_mode mode, bool unsigned_p)
+{
+  create_expand_operand (op, EXPAND_CONVERT_TO, value, mode, unsigned_p);
+}
+
+/* Make OP describe an input operand that should have the same value
+   as VALUE, after any mode conversion that the backend might request.
+   If VALUE is a CONST_INT, it should be treated as having mode MODE.
+   UNSIGNED_P says whether VALUE is unsigned.  */
+
+static inline void
+create_convert_operand_from (struct expand_operand *op, rtx value,
+			     enum machine_mode mode, bool unsigned_p)
+{
+  create_expand_operand (op, EXPAND_CONVERT_FROM, value, mode, unsigned_p);
+}
+
+extern void create_convert_operand_from_type (struct expand_operand *op,
+					      rtx value, tree type);
+
+/* Make OP describe an input Pmode address operand.  VALUE is the value
+   of the address, but it may need to be converted to Pmode first.  */
+
+static inline void
+create_address_operand (struct expand_operand *op, rtx value)
+{
+  create_expand_operand (op, EXPAND_ADDRESS, value, Pmode, false);
+}
+
+/* Make OP describe an input operand that has value INTVAL and that has
+   no inherent mode.  This function should only be used for operands that
+   are always expand-time constants.  The backend may request that INTVAL
+   be copied into a different kind of rtx, but it must specify the mode
+   of that rtx if so.  */
+
+static inline void
+create_integer_operand (struct expand_operand *op, HOST_WIDE_INT intval)
+{
+  create_expand_operand (op, EXPAND_INTEGER, GEN_INT (intval), VOIDmode, false);
+}
+
+extern bool valid_multiword_target_p (rtx);
+
+extern bool maybe_legitimize_operands (enum insn_code icode,
+				       unsigned int opno, unsigned int nops,
+				       struct expand_operand *ops);
+extern rtx maybe_gen_insn (enum insn_code icode, unsigned int nops,
+			   struct expand_operand *ops);
+extern bool maybe_expand_insn (enum insn_code icode, unsigned int nops,
+			       struct expand_operand *ops);
+extern bool maybe_expand_jump_insn (enum insn_code icode, unsigned int nops,
+				    struct expand_operand *ops);
+extern void expand_insn (enum insn_code icode, unsigned int nops,
+			 struct expand_operand *ops);
+extern void expand_jump_insn (enum insn_code icode, unsigned int nops,
+			      struct expand_operand *ops);
+
+extern rtx prepare_operand (enum insn_code, rtx, int, enum machine_mode,
+			    enum machine_mode, int);
+
 #endif /* GCC_OPTABS_H */

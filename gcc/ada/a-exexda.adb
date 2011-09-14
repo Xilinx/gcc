@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -433,7 +433,8 @@ package body Exception_Data is
    ------------------------------
 
    function Exception_Info_Maxlength
-     (X : Exception_Occurrence) return Natural is
+     (X : Exception_Occurrence) return Natural
+   is
    begin
       return
         Basic_Exception_Info_Maxlength (X)
@@ -447,14 +448,15 @@ package body Exception_Data is
    procedure Append_Info_Exception_Message
      (X    : Exception_Occurrence;
       Info : in out String;
-      Ptr  : in out Natural) is
+      Ptr  : in out Natural)
+   is
    begin
       if X.Id = Null_Id then
          raise Constraint_Error;
       end if;
 
       declare
-         Len : constant Natural := Exception_Message_Length (X);
+         Len : constant Natural           := Exception_Message_Length (X);
          Msg : constant String (1 .. Len) := X.Msg (1 .. Len);
       begin
          Append_Info_String (Msg, Info, Ptr);
@@ -476,7 +478,7 @@ package body Exception_Data is
       end if;
 
       declare
-         Len  : constant Natural := Exception_Name_Length (Id);
+         Len  : constant Natural           := Exception_Name_Length (Id);
          Name : constant String (1 .. Len) := To_Ptr (Id.Full_Name) (1 .. Len);
       begin
          Append_Info_String (Name, Info, Ptr);
@@ -497,7 +499,8 @@ package body Exception_Data is
    ---------------------------
 
    function Exception_Name_Length
-     (Id : Exception_Id) return Natural is
+     (Id : Exception_Id) return Natural
+   is
    begin
       --  What is stored in the internal Name buffer includes a terminating
       --  null character that we never care about.
@@ -516,7 +519,8 @@ package body Exception_Data is
    ------------------------------
 
    function Exception_Message_Length
-     (X : Exception_Occurrence) return Natural is
+     (X : Exception_Occurrence) return Natural
+   is
    begin
       return X.Msg_Length;
    end Exception_Message_Length;
@@ -530,7 +534,6 @@ package body Exception_Data is
    is
       Info : aliased String (1 .. Basic_Exception_Tback_Maxlength (X));
       Ptr  : Natural := Info'First - 1;
-
    begin
       Append_Info_Basic_Exception_Traceback (X, Info, Ptr);
       return Info (Info'First .. Ptr);
@@ -545,7 +548,6 @@ package body Exception_Data is
    is
       Info : String (1 .. Exception_Info_Maxlength (X));
       Ptr  : Natural := Info'First - 1;
-
    begin
       Append_Info_Exception_Information (X, Info, Ptr);
       return Info (Info'First .. Ptr);
@@ -556,39 +558,36 @@ package body Exception_Data is
    -------------------------
 
    procedure Set_Exception_C_Msg
-     (Id   : Exception_Id;
-      Msg1 : System.Address;
-      Line : Integer        := 0;
-      Msg2 : System.Address := System.Null_Address)
+     (Id     : Exception_Id;
+      Msg1   : System.Address;
+      Line   : Integer        := 0;
+      Column : Integer        := 0;
+      Msg2   : System.Address := System.Null_Address)
    is
       Excep  : constant EOA := Get_Current_Excep.all;
-      Val    : Integer := Line;
       Remind : Integer;
-      Size   : Integer := 1;
       Ptr    : Natural;
 
-   begin
-      Exception_Propagation.Setup_Exception (Excep, Excep);
-      Excep.Exception_Raised := False;
-      Excep.Id               := Id;
-      Excep.Num_Tracebacks   := 0;
-      Excep.Pid              := Local_Partition_ID;
-      Excep.Msg_Length       := 0;
-      Excep.Cleanup_Flag     := False;
+      procedure Append_Number (Number : Integer);
+      --  Append given number to Excep.Msg
 
-      while To_Ptr (Msg1) (Excep.Msg_Length + 1) /= ASCII.NUL
-        and then Excep.Msg_Length < Exception_Msg_Max_Length
-      loop
-         Excep.Msg_Length := Excep.Msg_Length + 1;
-         Excep.Msg (Excep.Msg_Length) := To_Ptr (Msg1) (Excep.Msg_Length);
-      end loop;
+      -------------------
+      -- Append_Number --
+      -------------------
 
-      --  Append line number if present
+      procedure Append_Number (Number : Integer) is
+         Val  : Integer;
+         Size : Integer;
 
-      if Line > 0 then
+      begin
+         if Number <= 0 then
+            return;
+         end if;
 
          --  Compute the number of needed characters
 
+         Size := 1;
+         Val := Number;
          while Val > 0 loop
             Val := Val / 10;
             Size := Size + 1;
@@ -599,9 +598,9 @@ package body Exception_Data is
          if Excep.Msg_Length <= Exception_Msg_Max_Length - Size then
             Excep.Msg (Excep.Msg_Length + 1) := ':';
             Excep.Msg_Length := Excep.Msg_Length + Size;
-            Val := Line;
-            Size := 0;
 
+            Val := Number;
+            Size := 0;
             while Val > 0 loop
                Remind := Val rem 10;
                Val := Val / 10;
@@ -610,7 +609,26 @@ package body Exception_Data is
                Size := Size + 1;
             end loop;
          end if;
-      end if;
+      end Append_Number;
+
+   --  Start of processing for Set_Exception_C_Msg
+
+   begin
+      Excep.Exception_Raised := False;
+      Excep.Id               := Id;
+      Excep.Num_Tracebacks   := 0;
+      Excep.Pid              := Local_Partition_ID;
+      Excep.Msg_Length       := 0;
+
+      while To_Ptr (Msg1) (Excep.Msg_Length + 1) /= ASCII.NUL
+        and then Excep.Msg_Length < Exception_Msg_Max_Length
+      loop
+         Excep.Msg_Length := Excep.Msg_Length + 1;
+         Excep.Msg (Excep.Msg_Length) := To_Ptr (Msg1) (Excep.Msg_Length);
+      end loop;
+
+      Append_Number (Line);
+      Append_Number (Column);
 
       --  Append second message if present
 
@@ -642,18 +660,14 @@ package body Exception_Data is
       Len   : constant Natural :=
                 Natural'Min (Message'Length, Exception_Msg_Max_Length);
       First : constant Integer := Message'First;
-      Excep  : constant EOA := Get_Current_Excep.all;
-
+      Excep : constant EOA     := Get_Current_Excep.all;
    begin
-      Exception_Propagation.Setup_Exception (Excep, Excep);
       Excep.Exception_Raised := False;
       Excep.Msg_Length       := Len;
       Excep.Msg (1 .. Len)   := Message (First .. First + Len - 1);
       Excep.Id               := Id;
       Excep.Num_Tracebacks   := 0;
       Excep.Pid              := Local_Partition_ID;
-      Excep.Cleanup_Flag     := False;
-
    end Set_Exception_Msg;
 
    ----------------------------------

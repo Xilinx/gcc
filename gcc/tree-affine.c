@@ -1,5 +1,5 @@
 /* Operations with affine combinations of trees.
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -20,13 +20,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
 #include "tree.h"
-#include "rtl.h"
-#include "tm_p.h"
-#include "hard-reg-set.h"
 #include "output.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
 #include "tree-dump.h"
 #include "pointer-set.h"
 #include "tree-affine.h"
@@ -313,6 +309,15 @@ tree_to_aff_combination (tree expr, tree type, aff_tree *comb)
       return;
 
     case ADDR_EXPR:
+      /* Handle &MEM[ptr + CST] which is equivalent to POINTER_PLUS_EXPR.  */
+      if (TREE_CODE (TREE_OPERAND (expr, 0)) == MEM_REF)
+	{
+	  expr = TREE_OPERAND (expr, 0);
+	  tree_to_aff_combination (TREE_OPERAND (expr, 0), type, comb);
+	  tree_to_aff_combination (TREE_OPERAND (expr, 1), sizetype, &tmp);
+	  aff_combination_add (comb, &tmp);
+	  return;
+	}
       core = get_inner_reference (TREE_OPERAND (expr, 0), &bitsize, &bitpos,
 				  &toffset, &mode, &unsignedp, &volatilep,
 				  false);
@@ -333,6 +338,25 @@ tree_to_aff_combination (tree expr, tree type, aff_tree *comb)
 	  tree_to_aff_combination (toffset, type, &tmp);
 	  aff_combination_add (comb, &tmp);
 	}
+      return;
+
+    case MEM_REF:
+      if (TREE_CODE (TREE_OPERAND (expr, 0)) == ADDR_EXPR)
+	tree_to_aff_combination (TREE_OPERAND (TREE_OPERAND (expr, 0), 0),
+				 type, comb);
+      else if (integer_zerop (TREE_OPERAND (expr, 1)))
+	{
+	  aff_combination_elt (comb, type, expr);
+	  return;
+	}
+      else
+	aff_combination_elt (comb, type,
+			     build2 (MEM_REF, TREE_TYPE (expr),
+				     TREE_OPERAND (expr, 0),
+				     build_int_cst
+				      (TREE_TYPE (TREE_OPERAND (expr, 1)), 0)));
+      tree_to_aff_combination (TREE_OPERAND (expr, 1), sizetype, &tmp);
+      aff_combination_add (comb, &tmp);
       return;
 
     default:
@@ -363,7 +387,7 @@ add_elt_to_tree (tree expr, tree type, tree elt, double_int scale,
 	return fold_convert (type, elt);
 
       if (POINTER_TYPE_P (type))
-        return fold_build2 (POINTER_PLUS_EXPR, type, expr, elt);
+        return fold_build_pointer_plus (expr, elt);
       return fold_build2 (PLUS_EXPR, type, expr, elt);
     }
 
@@ -375,7 +399,7 @@ add_elt_to_tree (tree expr, tree type, tree elt, double_int scale,
       if (POINTER_TYPE_P (type))
 	{
 	  elt = fold_build1 (NEGATE_EXPR, type1, elt);
-	  return fold_build2 (POINTER_PLUS_EXPR, type, expr, elt);
+	  return fold_build_pointer_plus (expr, elt);
 	}
       return fold_build2 (MINUS_EXPR, type, expr, elt);
     }
@@ -399,7 +423,7 @@ add_elt_to_tree (tree expr, tree type, tree elt, double_int scale,
     {
       if (code == MINUS_EXPR)
         elt = fold_build1 (NEGATE_EXPR, type1, elt);
-      return fold_build2 (POINTER_PLUS_EXPR, type, expr, elt);
+      return fold_build_pointer_plus (expr, elt);
     }
   return fold_build2 (code, type, expr, elt);
 }
@@ -410,7 +434,7 @@ tree
 aff_combination_to_tree (aff_tree *comb)
 {
   tree type = comb->type;
-  tree expr = comb->rest;
+  tree expr = NULL_TREE;
   unsigned i;
   double_int off, sgn;
   tree type1 = type;
@@ -422,6 +446,9 @@ aff_combination_to_tree (aff_tree *comb)
   for (i = 0; i < comb->n; i++)
     expr = add_elt_to_tree (expr, type, comb->elts[i].val, comb->elts[i].coef,
 			    comb);
+
+  if (comb->rest)
+    expr = add_elt_to_tree (expr, type, comb->rest, double_int_one, comb);
 
   /* Ensure that we get x - 1, not x + (-1) or x + 0xff..f if x is
      unsigned.  */
@@ -821,7 +848,7 @@ print_aff (FILE *file, aff_tree *val)
 
 /* Prints the affine VAL to the standard error, used for debugging.  */
 
-void
+DEBUG_FUNCTION void
 debug_aff (aff_tree *val)
 {
   print_aff (stderr, val);
@@ -858,5 +885,32 @@ get_inner_reference_aff (tree ref, aff_tree *addr, double_int *size)
   aff_combination_add (addr, &tmp);
 
   *size = shwi_to_double_int ((bitsize + BITS_PER_UNIT - 1) / BITS_PER_UNIT);
+}
+
+/* Returns true if a region of size SIZE1 at position 0 and a region of
+   size SIZE2 at position DIFF cannot overlap.  */
+
+bool
+aff_comb_cannot_overlap_p (aff_tree *diff, double_int size1, double_int size2)
+{
+  double_int d, bound;
+
+  /* Unless the difference is a constant, we fail.  */
+  if (diff->n != 0)
+    return false;
+
+  d = diff->offset;
+  if (double_int_negative_p (d))
+    {
+      /* The second object is before the first one, we succeed if the last
+	 element of the second object is before the start of the first one.  */
+      bound = double_int_add (d, double_int_add (size2, double_int_minus_one));
+      return double_int_negative_p (bound);
+    }
+  else
+    {
+      /* We succeed if the second object starts after the first one ends.  */
+      return double_int_scmp (size1, d) <= 0;
+    }
 }
 

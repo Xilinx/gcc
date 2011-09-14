@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2009, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2011, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,12 +39,13 @@ pragma Polling (Off);
 --  operations. It causes infinite loops and other problems.
 
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces.C;
 
+with System.Multiprocessors;
 with System.Tasking.Debug;
 with System.Interrupt_Management;
+with System.Float_Control;
 
 with System.Soft_Links;
 --  We use System.Soft_Links instead of System.Tasking.Initialization
@@ -65,8 +66,10 @@ package body System.Task_Primitives.Operations is
    use System.Parameters;
    use type System.VxWorks.Ext.t_id;
    use type Interfaces.C.int;
+   use type System.OS_Interface.unsigned;
 
    subtype int is System.OS_Interface.int;
+   subtype unsigned is System.OS_Interface.unsigned;
 
    Relative : constant := 0;
 
@@ -77,44 +80,33 @@ package body System.Task_Primitives.Operations is
    --  The followings are logically constants, but need to be initialized at
    --  run time.
 
+   Environment_Task_Id : Task_Id;
+   --  A variable to hold Task_Id for the environment task
+
+   --  The followings are internal configuration constants needed
+
+   Dispatching_Policy : Character;
+   pragma Import (C, Dispatching_Policy, "__gl_task_dispatching_policy");
+
+   Foreign_Task_Elaborated : aliased Boolean := True;
+   --  Used to identified fake tasks (i.e., non-Ada Threads)
+
+   Locking_Policy : Character;
+   pragma Import (C, Locking_Policy, "__gl_locking_policy");
+
+   Mutex_Protocol : Priority_Type;
+
    Single_RTS_Lock : aliased RTS_Lock;
    --  This is a lock to allow only one thread of control in the RTS at a
    --  time; it is used to execute in mutual exclusion from all other tasks.
    --  Used mainly in Single_Lock mode, but also to protect All_Tasks_List
 
-   Environment_Task_Id : Task_Id;
-   --  A variable to hold Task_Id for the environment task
-
-   Unblocked_Signal_Mask : aliased sigset_t;
-   --  The set of signals that should unblocked in all tasks
-
-   --  The followings are internal configuration constants needed
-
    Time_Slice_Val : Integer;
    pragma Import (C, Time_Slice_Val, "__gl_time_slice_val");
 
-   Locking_Policy : Character;
-   pragma Import (C, Locking_Policy, "__gl_locking_policy");
-
-   Dispatching_Policy : Character;
-   pragma Import (C, Dispatching_Policy, "__gl_task_dispatching_policy");
-
-   function Get_Policy (Prio : System.Any_Priority) return Character;
-   pragma Import (C, Get_Policy, "__gnat_get_specific_dispatching");
-   --  Get priority specific dispatching policy
-
-   Mutex_Protocol : Priority_Type;
-
-   Foreign_Task_Elaborated : aliased Boolean := True;
-   --  Used to identified fake tasks (i.e., non-Ada Threads)
-
-   type Set_Stack_Limit_Proc_Acc is access procedure;
-   pragma Convention (C, Set_Stack_Limit_Proc_Acc);
-
-   Set_Stack_Limit_Hook : Set_Stack_Limit_Proc_Acc;
-   pragma Import (C, Set_Stack_Limit_Hook, "__gnat_set_stack_limit_hook");
-   --  Procedure to be called when a task is created to set stack
-   --  limit.
+   Null_Thread_Id : constant Thread_Id := 0;
+   --  Constant to indicate that the thread identifier has not yet been
+   --  initialized.
 
    --------------------
    -- Local Packages --
@@ -132,11 +124,8 @@ package body System.Task_Primitives.Operations is
 
       procedure Set (Self_Id : Task_Id);
       pragma Inline (Set);
-      --  Set the self id for the current task
-
-      procedure Delete;
-      pragma Inline (Delete);
-      --  Delete the task specific data associated with the current task
+      --  Set the self id for the current task, unless Self_Id is null, in
+      --  which case the task specific data is deleted.
 
       function Self return Task_Id;
       pragma Inline (Self);
@@ -146,6 +135,13 @@ package body System.Task_Primitives.Operations is
 
    package body Specific is separate;
    --  The body of this package is target specific
+
+   ----------------------------------
+   -- ATCB allocation/deallocation --
+   ----------------------------------
+
+   package body ATCB_Allocation is separate;
+   --  The body of this package is shared across several targets
 
    ---------------------------------
    -- Support for foreign threads --
@@ -167,6 +163,18 @@ package body System.Task_Primitives.Operations is
    procedure Install_Signal_Handlers;
    --  Install the default signal handlers for the current task
 
+   function Is_Task_Context return Boolean;
+   --  This function returns True if the current execution is in the context
+   --  of a task, and False if it is an interrupt context.
+
+   type Set_Stack_Limit_Proc_Acc is access procedure;
+   pragma Convention (C, Set_Stack_Limit_Proc_Acc);
+
+   Set_Stack_Limit_Hook : Set_Stack_Limit_Proc_Acc;
+   pragma Import (C, Set_Stack_Limit_Hook, "__gnat_set_stack_limit_hook");
+   --  Procedure to be called when a task is created to set stack
+   --  limit. Used only for VxWorks 5 and VxWorks MILS guest OS.
+
    function To_Address is
      new Ada.Unchecked_Conversion (Task_Id, System.Address);
 
@@ -177,17 +185,19 @@ package body System.Task_Primitives.Operations is
    procedure Abort_Handler (signo : Signal) is
       pragma Unreferenced (signo);
 
-      Self_ID : constant Task_Id := Self;
-      Old_Set : aliased sigset_t;
-
-      Result : int;
+      Self_ID        : constant Task_Id := Self;
+      Old_Set        : aliased sigset_t;
+      Unblocked_Mask : aliased sigset_t;
+      Result         : int;
       pragma Warnings (Off, Result);
+
+      use System.Interrupt_Management;
 
    begin
       --  It is not safe to raise an exception when using ZCX and the GCC
       --  exception handling mechanism.
 
-      if ZCX_By_Default and then GCC_ZCX_Support then
+      if ZCX_By_Default then
          return;
       end if;
 
@@ -197,12 +207,28 @@ package body System.Task_Primitives.Operations is
       then
          Self_ID.Aborting := True;
 
-         --  Make sure signals used for RTS internal purpose are unmasked
+         --  Make sure signals used for RTS internal purposes are unmasked
+
+         Result := sigemptyset (Unblocked_Mask'Access);
+         pragma Assert (Result = 0);
+         Result :=
+           sigaddset
+           (Unblocked_Mask'Access,
+            Signal (Abort_Task_Interrupt));
+         pragma Assert (Result = 0);
+         Result := sigaddset (Unblocked_Mask'Access, SIGBUS);
+         pragma Assert (Result = 0);
+         Result := sigaddset (Unblocked_Mask'Access, SIGFPE);
+         pragma Assert (Result = 0);
+         Result := sigaddset (Unblocked_Mask'Access, SIGILL);
+         pragma Assert (Result = 0);
+         Result := sigaddset (Unblocked_Mask'Access, SIGSEGV);
+         pragma Assert (Result = 0);
 
          Result :=
            pthread_sigmask
              (SIG_UNBLOCK,
-              Unblocked_Signal_Mask'Access,
+              Unblocked_Mask'Access,
               Old_Set'Access);
          pragma Assert (Result = 0);
 
@@ -734,20 +760,13 @@ package body System.Task_Primitives.Operations is
    -- Set_Priority --
    ------------------
 
-   type Prio_Array_Type is array (System.Any_Priority) of Integer;
-   pragma Atomic_Components (Prio_Array_Type);
-
-   Prio_Array : Prio_Array_Type;
-   --  Global array containing the id of the currently running task for each
-   --  priority. Note that we assume that we are on a single processor with
-   --  run-till-blocked scheduling.
-
    procedure Set_Priority
      (T                   : Task_Id;
       Prio                : System.Any_Priority;
       Loss_Of_Inheritance : Boolean := False)
    is
-      Array_Item : Integer;
+      pragma Unreferenced (Loss_Of_Inheritance);
+
       Result     : int;
 
    begin
@@ -756,33 +775,16 @@ package body System.Task_Primitives.Operations is
           (T.Common.LL.Thread, To_VxWorks_Priority (int (Prio)));
       pragma Assert (Result = 0);
 
-      if (Dispatching_Policy = 'F' or else Get_Policy (Prio) = 'F')
-        and then Loss_Of_Inheritance
-        and then Prio < T.Common.Current_Priority
-      then
-         --  Annex D requirement (RM D.2.2(9)):
+      --  Note: in VxWorks 6.6 (or earlier), the task is placed at the end of
+      --  the priority queue instead of the head. This is not the behavior
+      --  required by Annex D (RM D.2.3(5/2)), but we consider it an acceptable
+      --  variation (RM 1.1.3(6)), given this is the built-in behavior of the
+      --  operating system. VxWorks versions starting from 6.7 implement the
+      --  required Annex D semantics.
 
-         --    If the task drops its priority due to the loss of inherited
-         --    priority, it is added at the head of the ready queue for its
-         --    new active priority.
-
-         Array_Item := Prio_Array (T.Common.Base_Priority) + 1;
-         Prio_Array (T.Common.Base_Priority) := Array_Item;
-
-         loop
-            --  Give some processes a chance to arrive
-
-            taskDelay (0);
-
-            --  Then wait for our turn to proceed
-
-            exit when Array_Item = Prio_Array (T.Common.Base_Priority)
-              or else Prio_Array (T.Common.Base_Priority) = 1;
-         end loop;
-
-         Prio_Array (T.Common.Base_Priority) :=
-           Prio_Array (T.Common.Base_Priority) - 1;
-      end if;
+      --  In older versions we attempted to better approximate the Annex D
+      --  required behavior, but this simulation was not entirely accurate,
+      --  and it seems better to live with the standard VxWorks semantics.
 
       T.Common.Current_Priority := Prio;
    end Set_Priority;
@@ -801,10 +803,6 @@ package body System.Task_Primitives.Operations is
    ----------------
 
    procedure Enter_Task (Self_ID : Task_Id) is
-      procedure Init_Float;
-      pragma Import (C, Init_Float, "__gnat_init_float");
-      --  Properly initializes the FPU for PPC/MIPS systems
-
    begin
       --  Store the user-level task id in the Thread field (to be used
       --  internally by the run-time system) and the kernel-level task id in
@@ -815,7 +813,9 @@ package body System.Task_Primitives.Operations is
 
       Specific.Set (Self_ID);
 
-      Init_Float;
+      --  Properly initializes the FPU for PPC/MIPS systems
+
+      System.Float_Control.Reset;
 
       --  Install the signal handlers
 
@@ -830,15 +830,6 @@ package body System.Task_Primitives.Operations is
          Set_Stack_Limit_Hook.all;
       end if;
    end Enter_Task;
-
-   --------------
-   -- New_ATCB --
-   --------------
-
-   function New_ATCB (Entry_Num : Task_Entry_Index) return Task_Id is
-   begin
-      return new Ada_Task_Control_Block (Entry_Num);
-   end New_ATCB;
 
    -------------------
    -- Is_Valid_Task --
@@ -866,7 +857,7 @@ package body System.Task_Primitives.Operations is
    procedure Initialize_TCB (Self_ID : Task_Id; Succeeded : out Boolean) is
    begin
       Self_ID.Common.LL.CV := semBCreate (SEM_Q_PRIORITY, SEM_EMPTY);
-      Self_ID.Common.LL.Thread := 0;
+      Self_ID.Common.LL.Thread := Null_Thread_Id;
 
       if Self_ID.Common.LL.CV = 0 then
          Succeeded := False;
@@ -892,11 +883,24 @@ package body System.Task_Primitives.Operations is
       Succeeded  : out Boolean)
    is
       Adjusted_Stack_Size : size_t;
-      Result : int;
 
-      use System.Task_Info;
+      use type System.Multiprocessors.CPU_Range;
 
    begin
+      --  Check whether both Dispatching_Domain and CPU are specified for the
+      --  task, and the CPU value is not contained within the range of
+      --  processors for the domain.
+
+      if T.Common.Domain /= null
+        and then T.Common.Base_CPU /= System.Multiprocessors.Not_A_Specific_CPU
+        and then
+          (T.Common.Base_CPU not in T.Common.Domain'Range
+            or else not T.Common.Domain (T.Common.Base_CPU))
+      then
+         Succeeded := False;
+         return;
+      end if;
+
       --  Ask for four extra bytes of stack space so that the ATCB pointer can
       --  be stored below the stack limit, plus extra space for the frame of
       --  Task_Wrapper. This is so the user gets the amount of stack requested
@@ -960,17 +964,9 @@ package body System.Task_Primitives.Operations is
 
       --  Set processor affinity
 
-      if T.Common.Task_Info /= Unspecified_Task_Info then
-         Result :=
-           taskCpuAffinitySet (T.Common.LL.Thread, T.Common.Task_Info);
+      Set_Task_Affinity (T);
 
-         if Result = -1 then
-            taskDelete (T.Common.LL.Thread);
-            T.Common.LL.Thread := -1;
-         end if;
-      end if;
-
-      if T.Common.LL.Thread = -1 then
+      if T.Common.LL.Thread <= Null_Thread_Id then
          Succeeded := False;
       else
          Succeeded := True;
@@ -984,12 +980,7 @@ package body System.Task_Primitives.Operations is
    ------------------
 
    procedure Finalize_TCB (T : Task_Id) is
-      Result  : int;
-      Tmp     : Task_Id          := T;
-      Is_Self : constant Boolean := (T = Self);
-
-      procedure Free is new
-        Ada.Unchecked_Deallocation (Ada_Task_Control_Block, Task_Id);
+      Result : int;
 
    begin
       if not Single_Lock then
@@ -997,7 +988,7 @@ package body System.Task_Primitives.Operations is
          pragma Assert (Result = 0);
       end if;
 
-      T.Common.LL.Thread := 0;
+      T.Common.LL.Thread := Null_Thread_Id;
 
       Result := semDelete (T.Common.LL.CV);
       pragma Assert (Result = 0);
@@ -1006,11 +997,7 @@ package body System.Task_Primitives.Operations is
          Known_Tasks (T.Known_Tasks_Index) := null;
       end if;
 
-      Free (Tmp);
-
-      if Is_Self then
-         Specific.Delete;
-      end if;
+      ATCB_Allocation.Free_ATCB (T);
    end Finalize_TCB;
 
    ---------------
@@ -1123,7 +1110,12 @@ package body System.Task_Primitives.Operations is
       Result : STATUS;
 
    begin
-      SSL.Abort_Defer.all;
+      --  Set_True can be called from an interrupt context, in which case
+      --  Abort_Defer is undefined.
+
+      if Is_Task_Context then
+         SSL.Abort_Defer.all;
+      end if;
 
       Result := semTake (S.L, WAIT_FOREVER);
       pragma Assert (Result = OK);
@@ -1146,7 +1138,13 @@ package body System.Task_Primitives.Operations is
       Result := semGive (S.L);
       pragma Assert (Result = OK);
 
-      SSL.Abort_Undefer.all;
+      --  Set_True can be called from an interrupt context, in which case
+      --  Abort_Undefer is undefined.
+
+      if Is_Task_Context then
+         SSL.Abort_Undefer.all;
+      end if;
+
    end Set_True;
 
    ------------------------
@@ -1261,7 +1259,7 @@ package body System.Task_Primitives.Operations is
       Thread_Self : Thread_Id) return Boolean
    is
    begin
-      if T.Common.LL.Thread /= 0
+      if T.Common.LL.Thread /= Null_Thread_Id
         and then T.Common.LL.Thread /= Thread_Self
       then
          return taskSuspend (T.Common.LL.Thread) = 0;
@@ -1279,7 +1277,7 @@ package body System.Task_Primitives.Operations is
       Thread_Self : Thread_Id) return Boolean
    is
    begin
-      if T.Common.LL.Thread /= 0
+      if T.Common.LL.Thread /= Null_Thread_Id
         and then T.Common.LL.Thread /= Thread_Self
       then
          return taskResume (T.Common.LL.Thread) = 0;
@@ -1305,7 +1303,7 @@ package body System.Task_Primitives.Operations is
 
       C := All_Tasks_List;
       while C /= null loop
-         if C.Common.LL.Thread /= 0
+         if C.Common.LL.Thread /= Null_Thread_Id
            and then C.Common.LL.Thread /= Thread_Self
          then
             Dummy := Task_Stop (C.Common.LL.Thread);
@@ -1323,7 +1321,7 @@ package body System.Task_Primitives.Operations is
 
    function Stop_Task (T : ST.Task_Id) return Boolean is
    begin
-      if T.Common.LL.Thread /= 0 then
+      if T.Common.LL.Thread /= Null_Thread_Id then
          return Task_Stop (T.Common.LL.Thread) = 0;
       else
          return True;
@@ -1337,12 +1335,21 @@ package body System.Task_Primitives.Operations is
    function Continue_Task (T : ST.Task_Id) return Boolean
    is
    begin
-      if T.Common.LL.Thread /= 0 then
+      if T.Common.LL.Thread /= Null_Thread_Id then
          return Task_Cont (T.Common.LL.Thread) = 0;
       else
          return True;
       end if;
    end Continue_Task;
+
+   ---------------------
+   -- Is_Task_Context --
+   ---------------------
+
+   function Is_Task_Context return Boolean is
+   begin
+      return System.OS_Interface.Interrupt_Context /= 1;
+   end Is_Task_Context;
 
    ----------------
    -- Initialize --
@@ -1350,6 +1357,7 @@ package body System.Task_Primitives.Operations is
 
    procedure Initialize (Environment_Task : Task_Id) is
       Result : int;
+      pragma Unreferenced (Result);
 
    begin
       Environment_Task_Id := Environment_Task;
@@ -1376,16 +1384,6 @@ package body System.Task_Primitives.Operations is
 
       end if;
 
-      Result := sigemptyset (Unblocked_Signal_Mask'Access);
-      pragma Assert (Result = 0);
-
-      for J in Interrupt_Management.Signal_ID loop
-         if System.Interrupt_Management.Keep_Unmasked (J) then
-            Result := sigaddset (Unblocked_Signal_Mask'Access, Signal (J));
-            pragma Assert (Result = 0);
-         end if;
-      end loop;
-
       --  Initialize the lock used to synchronize chain of all ATCBs
 
       Initialize_Lock (Single_RTS_Lock'Access, RTS_Lock_Level);
@@ -1397,6 +1395,75 @@ package body System.Task_Primitives.Operations is
       Environment_Task.Known_Tasks_Index := Known_Tasks'First;
 
       Enter_Task (Environment_Task);
+
+      --  Set processor affinity
+
+      Set_Task_Affinity (Environment_Task);
    end Initialize;
+
+   -----------------------
+   -- Set_Task_Affinity --
+   -----------------------
+
+   procedure Set_Task_Affinity (T : ST.Task_Id) is
+      Result : int := 0;
+      pragma Unreferenced (Result);
+
+      use System.Task_Info;
+      use type System.Multiprocessors.CPU_Range;
+
+   begin
+      --  Do nothing if the underlying thread has not yet been created. If the
+      --  thread has not yet been created then the proper affinity will be set
+      --  during its creation.
+
+      if T.Common.LL.Thread = Null_Thread_Id then
+         null;
+
+      --  pragma CPU
+
+      elsif T.Common.Base_CPU /= Multiprocessors.Not_A_Specific_CPU then
+
+         --  Ada 2012 pragma CPU uses CPU numbers starting from 1, while on
+         --  VxWorks the first CPU is identified by a 0, so we need to adjust.
+
+         Result :=
+           taskCpuAffinitySet
+             (T.Common.LL.Thread, int (T.Common.Base_CPU) - 1);
+
+      --  Task_Info
+
+      elsif T.Common.Task_Info /= Unspecified_Task_Info then
+         Result := taskCpuAffinitySet (T.Common.LL.Thread, T.Common.Task_Info);
+
+      --  Handle dispatching domains
+
+      elsif T.Common.Domain /= null
+        and then (T.Common.Domain /= ST.System_Domain
+                   or else T.Common.Domain.all /=
+                             (Multiprocessors.CPU'First ..
+                              Multiprocessors.Number_Of_CPUs => True))
+      then
+         declare
+            CPU_Set : unsigned := 0;
+
+         begin
+            --  Set the affinity to all the processors belonging to the
+            --  dispatching domain.
+
+            for Proc in T.Common.Domain'Range loop
+               if T.Common.Domain (Proc) then
+
+                  --  The thread affinity mask is a bit vector in which each
+                  --  bit represents a logical processor.
+
+                  CPU_Set := CPU_Set + 2 ** (Integer (Proc) - 1);
+               end if;
+            end loop;
+
+            Result := taskMaskAffinitySet (T.Common.LL.Thread, CPU_Set);
+         end;
+      end if;
+   end Set_Task_Affinity;
 
 end System.Task_Primitives.Operations;

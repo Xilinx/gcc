@@ -1,7 +1,7 @@
 /* Gcov.c: prepend line execution counts and branch probabilities to a
    source file.
    Copyright (C) 1990, 1991, 1992, 1993, 1994, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by James E. Wilson of Cygnus Support.
    Mangled by Bob Manson of Cygnus Support.
@@ -37,6 +37,7 @@ along with Gcov; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "intl.h"
+#include "diagnostic.h"
 #include "version.h"
 
 #include <getopt.h>
@@ -53,6 +54,13 @@ along with Gcov; see the file COPYING3.  If not see
    are very similar to functions in the gcc source file profile.c.  In
    some places we make use of the knowledge of how profile.c works to
    select particular algorithms here.  */
+
+/* The code validates that the profile information read in corresponds
+   to the code currently being compiled.  Rather than checking for
+   identical files, the code below computes a checksum on the CFG
+   (based on the order of basic blocks and the arcs in the CFG).  If
+   the CFG checksum in the gcda file match the CFG checksum for the
+   code currently being compiled, the profile data will be used.  */
 
 /* This is the size of the buffer used to read in source file lines.  */
 
@@ -161,7 +169,8 @@ typedef struct function_info
   /* Name of function.  */
   char *name;
   unsigned ident;
-  unsigned checksum;
+  unsigned lineno_checksum;
+  unsigned cfg_checksum;
 
   /* Array of basic blocks.  */
   block_t *blocks;
@@ -297,6 +306,11 @@ static int flag_unconditional = 0;
 
 static int flag_gcov_file = 1;
 
+/* Output progress indication if this is true.  This is off by default
+   and can be turned on by the -d option.  */
+
+static int flag_display_progress = 0;
+
 /* For included files, make the gcov output file name include the name
    of the input source file.  For example, if x.h is included in a.c,
    then the output file name is a.c##x.h.gcov instead of x.h.gcov.  */
@@ -329,7 +343,6 @@ static int flag_preserve_paths = 0;
 static int flag_counts = 0;
 
 /* Forward declarations.  */
-static void fnotice (FILE *, const char *, ...) ATTRIBUTE_PRINTF_2;
 static int process_args (int, char **);
 static void print_usage (int) ATTRIBUTE_NORETURN;
 static void print_version (void) ATTRIBUTE_NORETURN;
@@ -355,11 +368,22 @@ int
 main (int argc, char **argv)
 {
   int argno;
+  int first_arg;
+  const char *p;
+
+  p = argv[0] + strlen (argv[0]);
+  while (p != argv[0] && !IS_DIR_SEPARATOR (p[-1]))
+    --p;
+  progname = p;
+
+  xmalloc_set_program_name (progname);
 
   /* Unlock the stdio streams.  */
   unlock_std_streams ();
 
   gcc_init_libintl ();
+
+  diagnostic_initialize (global_dc, 0);
 
   /* Handle response files.  */
   expandargv (&argc, &argv);
@@ -371,24 +395,21 @@ main (int argc, char **argv)
   if (argc - argno > 1)
     multiple_files = 1;
 
+  first_arg = argno;
+  
   for (; argno != argc; argno++)
-    process_file (argv[argno]);
+    {
+      if (flag_display_progress)
+        printf("Processing file %d out of %d\n",  
+               argno - first_arg + 1, argc - first_arg);
+      process_file (argv[argno]);
+    }
 
   generate_results (multiple_files ? NULL : argv[argc - 1]);
 
   release_structures ();
 
   return 0;
-}
-
-static void
-fnotice (FILE *file, const char *cmsgid, ...)
-{
-  va_list ap;
-
-  va_start (ap, cmsgid);
-  vfprintf (file, _(cmsgid), ap);
-  va_end (ap);
 }
 
 /* Print a usage message and exit.  If ERROR_P is nonzero, this is an error,
@@ -415,6 +436,7 @@ print_usage (int error_p)
   fnotice (file, "  -o, --object-directory DIR|FILE Search for object files in DIR or called FILE\n");
   fnotice (file, "  -p, --preserve-paths            Preserve all pathname components\n");
   fnotice (file, "  -u, --unconditional-branches    Show unconditional branch counts too\n");
+  fnotice (file, "  -d, --display-progress          Display progress information\n");
   fnotice (file, "\nFor bug reporting instructions, please see:\n%s.\n",
 	   bug_report_url);
   exit (status);
@@ -426,7 +448,7 @@ static void
 print_version (void)
 {
   fnotice (stdout, "gcov %s%s\n", pkgversion_string, version_string);
-  fprintf (stdout, "Copyright %s 2010 Free Software Foundation, Inc.\n",
+  fprintf (stdout, "Copyright %s 2011 Free Software Foundation, Inc.\n",
 	   _("(C)"));
   fnotice (stdout,
 	   _("This is free software; see the source for copying conditions.\n"
@@ -449,6 +471,7 @@ static const struct option options[] =
   { "object-directory",     required_argument, NULL, 'o' },
   { "object-file",          required_argument, NULL, 'o' },
   { "unconditional-branches", no_argument,     NULL, 'u' },
+  { "display-progress",     no_argument,       NULL, 'd' },
   { 0, 0, 0, 0 }
 };
 
@@ -459,7 +482,7 @@ process_args (int argc, char **argv)
 {
   int opt;
 
-  while ((opt = getopt_long (argc, argv, "abcfhlno:puv", options, NULL)) != -1)
+  while ((opt = getopt_long (argc, argv, "abcdfhlno:puv", options, NULL)) != -1)
     {
       switch (opt)
 	{
@@ -493,6 +516,9 @@ process_args (int argc, char **argv)
 	case 'u':
 	  flag_unconditional = 1;
 	  break;
+        case 'd':
+          flag_display_progress = 1;
+          break;
 	case 'v':
 	  print_version ();
 	  /* print_version will exit.  */
@@ -626,13 +652,12 @@ release_structures (void)
     }
 }
 
-/* Generate the names of the graph and data files. If OBJECT_DIRECTORY
-   is not specified, these are looked for in the current directory,
-   and named from the basename of the FILE_NAME sans extension. If
-   OBJECT_DIRECTORY is specified and is a directory, the files are in
-   that directory, but named from the basename of the FILE_NAME, sans
-   extension. Otherwise OBJECT_DIRECTORY is taken to be the name of
-   the object *file*, and the data files are named from that.  */
+/* Generate the names of the graph and data files.  If OBJECT_DIRECTORY
+   is not specified, these are named from FILE_NAME sans extension.  If
+   OBJECT_DIRECTORY is specified and is a directory, the files are in that
+   directory, but named from the basename of the FILE_NAME, sans extension.
+   Otherwise OBJECT_DIRECTORY is taken to be the name of the object *file*
+   and the data files are named from that.  */
 
 static void
 create_file_names (const char *file_name)
@@ -643,10 +668,8 @@ create_file_names (const char *file_name)
   int base;
 
   /* Free previous file names.  */
-  if (bbg_file_name)
-    free (bbg_file_name);
-  if (da_file_name)
-    free (da_file_name);
+  free (bbg_file_name);
+  free (da_file_name);
   da_file_name = bbg_file_name = NULL;
   bbg_file_time = 0;
   bbg_stamp = 0;
@@ -667,8 +690,8 @@ create_file_names (const char *file_name)
   else
     {
       name = XNEWVEC (char, length + 1);
-      name[0] = 0;
-      base = 1;
+      strcpy (name, file_name);
+      base = 0;
     }
 
   if (base)
@@ -710,7 +733,7 @@ find_source (const char *file_name)
     file_name = "<unknown>";
 
   for (src = sources; src; src = src->next)
-    if (!strcmp (file_name, src->name))
+    if (!filename_cmp (file_name, src->name))
       break;
 
   if (!src)
@@ -791,12 +814,14 @@ read_graph_file (void)
       if (tag == GCOV_TAG_FUNCTION)
 	{
 	  char *function_name;
-	  unsigned ident, checksum, lineno;
+	  unsigned ident, lineno;
+	  unsigned lineno_checksum, cfg_checksum;
 	  source_t *src;
 	  function_t *probe, *prev;
 
 	  ident = gcov_read_unsigned ();
-	  checksum = gcov_read_unsigned ();
+	  lineno_checksum = gcov_read_unsigned ();
+	  cfg_checksum = gcov_read_unsigned ();
 	  function_name = xstrdup (gcov_read_string ());
 	  src = find_source (gcov_read_string ());
 	  lineno = gcov_read_unsigned ();
@@ -804,7 +829,8 @@ read_graph_file (void)
 	  fn = XCNEW (function_t);
 	  fn->name = function_name;
 	  fn->ident = ident;
-	  fn->checksum = checksum;
+	  fn->lineno_checksum = lineno_checksum;
+	  fn->cfg_checksum = cfg_checksum;
 	  fn->src = src;
 	  fn->line = lineno;
 
@@ -1091,7 +1117,8 @@ read_count_file (void)
 
 	  if (!fn)
 	    ;
-	  else if (gcov_read_unsigned () != fn->checksum)
+	  else if (gcov_read_unsigned () != fn->lineno_checksum
+		   || gcov_read_unsigned () != fn->cfg_checksum)
 	    {
 	    mismatch:;
 	      fnotice (stderr, "%s:profile mismatch for '%s'\n",
@@ -1509,7 +1536,7 @@ make_gcov_file_name (const char *input_name, const char *src_name)
 
   if (flag_preserve_paths)
     {
-      /* Convert '/' and '\' to '#', remove '/./', convert '/../' to '/^/',
+      /* Convert '/' and '\' to '#', remove '/./', convert '/../' to '#^#',
 	 convert ':' to '~' on DOS based file system.  */
       char *pnew = name, *pold = name;
 
@@ -1517,32 +1544,41 @@ make_gcov_file_name (const char *input_name, const char *src_name)
 
       while (*pold != '\0')
 	{
-	  if (*pold == '/' || *pold == '\\')
-	    {
-	      *pnew++ = '#';
-	      pold++;
-	    }
 #if defined (HAVE_DOS_BASED_FILE_SYSTEM)
-	  else if (*pold == ':')
+	  if (*pold == ':')
 	    {
 	      *pnew++ = '~';
 	      pold++;
 	    }
+	  else
 #endif
-	  else if ((*pold == '/' && strstr (pold, "/./") == pold)
-		   || (*pold == '\\' && strstr (pold, "\\.\\") == pold))
+	  if ((*pold == '/'
+		    && (strstr (pold, "/./") == pold
+		        || strstr (pold, "/.\\") == pold))
+		   || (*pold == '\\'
+		       && (strstr (pold, "\\.\\") == pold
+		           || strstr (pold, "\\./") == pold)))
 	      pold += 3;
-	  else if (*pold == '/' && strstr (pold, "/../") == pold)
+	  else if (*pold == '/'
+		   && (strstr (pold, "/../") == pold
+		       || strstr (pold, "/..\\") == pold))
 	    {
-	      strcpy (pnew, "/^/");
+	      strcpy (pnew, "#^#");
 	      pnew += 3;
 	      pold += 4;
 	    }
-	  else if (*pold == '\\' && strstr (pold, "\\..\\") == pold)
+	  else if (*pold == '\\'
+		   && (strstr (pold, "\\..\\") == pold
+		       || strstr (pold, "\\../") == pold))
 	    {
-	      strcpy (pnew, "\\^\\");
+	      strcpy (pnew, "#^#");
 	      pnew += 3;
 	      pold += 4;
+	    }
+	  else if (*pold == '/' || *pold == '\\')
+	    {
+	      *pnew++ = '#';
+	      pold++;
 	    }
 	  else
 	    *pnew++ = *pold++;

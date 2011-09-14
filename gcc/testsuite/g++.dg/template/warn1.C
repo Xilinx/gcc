@@ -9,15 +9,15 @@
 template <class T>  void Foo(T i) 
 { 
   i++, i++;
-  i, i++; // { dg-warning "left-hand operand" "" }
-  i++, i; // { dg-warning "right-hand operand" "" }
+  i, i++; // { dg-warning "left operand" "" }
+  i++, i; // { dg-warning "right operand" "" }
   for (;; --i, ++i)
     ;
 } 
  
 void Bar ()
 { 
-  Foo (1);  // { dg-message "instantiated" }
+  Foo (1);  // { dg-message "required" }
 }
 
 struct M {};

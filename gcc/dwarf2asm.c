@@ -1,5 +1,5 @@
 /* Dwarf2 assembler output helper routines.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -33,12 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "splay-tree.h"
 #include "ggc.h"
 #include "tm_p.h"
-
-
-/* How to start an assembler comment.  */
-#ifndef ASM_COMMENT_START
-#define ASM_COMMENT_START ";#"
-#endif
 
 
 /* Output an unaligned integer with the given value and size.  Prefer not
@@ -80,14 +74,14 @@ dw2_asm_output_data_raw (int size, unsigned HOST_WIDE_INT value)
   if (BYTES_BIG_ENDIAN)
     {
       for (i = size - 1; i > 0; --i)
-	fprintf (asm_out_file, "0x%x,", bytes[i]);
-      fprintf (asm_out_file, "0x%x", bytes[0]);
+	fprintf (asm_out_file, "%#x,", bytes[i]);
+      fprintf (asm_out_file, "%#x", bytes[0]);
     }
   else
     {
       for (i = 0; i < size - 1; ++i)
-	fprintf (asm_out_file, "0x%x,", bytes[i]);
-      fprintf (asm_out_file, "0x%x", bytes[i]);
+	fprintf (asm_out_file, "%#x,", bytes[i]);
+      fprintf (asm_out_file, "%#x", bytes[i]);
     }
 }
 
@@ -148,6 +142,35 @@ dw2_asm_output_delta (int size, const char *lab1, const char *lab2,
       vfprintf (asm_out_file, comment, ap);
     }
   fputc ('\n', asm_out_file);
+
+  va_end (ap);
+}
+
+/* Output the difference between two symbols in instruction units
+   in a given size.  */
+
+void
+dw2_asm_output_vms_delta (int size ATTRIBUTE_UNUSED,
+			  const char *lab1, const char *lab2,
+			  const char *comment, ...)
+{
+  va_list ap;
+
+  va_start (ap, comment);
+
+#ifndef ASM_OUTPUT_DWARF_VMS_DELTA
+  /* VMS Delta is only special on ia64-vms, but this funtion also gets
+     called on alpha-vms so it has to do something sane.  */
+  dw2_asm_output_delta (size, lab1, lab2, comment);
+#else
+  ASM_OUTPUT_DWARF_VMS_DELTA (asm_out_file, size, lab1, lab2);
+  if (flag_debug_asm && comment)
+    {
+      fprintf (asm_out_file, "\t%s ", ASM_COMMENT_START);
+      vfprintf (asm_out_file, comment, ap);
+    }
+  fputc ('\n', asm_out_file);
+#endif
 
   va_end (ap);
 }
@@ -549,7 +572,7 @@ dw2_asm_output_data_uleb128_raw (unsigned HOST_WIDE_INT value)
 	/* More bytes to follow.  */
 	byte |= 0x80;
 
-      fprintf (asm_out_file, "0x%x", byte);
+      fprintf (asm_out_file, "%#x", byte);
       if (value == 0)
 	break;
       fputc (',', asm_out_file);
@@ -591,7 +614,7 @@ dw2_asm_output_data_uleb128 (unsigned HOST_WIDE_INT value,
 
 	if (byte_op)
 	  {
-	    fprintf (asm_out_file, "0x%x", byte);
+	    fprintf (asm_out_file, "%#x", byte);
 	    if (work != 0)
 	      fputc (',', asm_out_file);
 	  }
@@ -633,7 +656,7 @@ dw2_asm_output_data_sleb128_raw (HOST_WIDE_INT value)
       if (more)
 	byte |= 0x80;
 
-      fprintf (asm_out_file, "0x%x", byte);
+      fprintf (asm_out_file, "%#x", byte);
       if (!more)
 	break;
       fputc (',', asm_out_file);
@@ -678,7 +701,7 @@ dw2_asm_output_data_sleb128 (HOST_WIDE_INT value,
 
 	if (byte_op)
 	  {
-	    fprintf (asm_out_file, "0x%x", byte);
+	    fprintf (asm_out_file, "%#x", byte);
 	    if (more)
 	      fputc (',', asm_out_file);
 	  }
@@ -769,8 +792,8 @@ static GTY((param1_is (char *), param2_is (tree))) splay_tree indirect_pool;
 
 static GTY(()) int dw2_const_labelno;
 
-#if defined(HAVE_GAS_HIDDEN) && defined(SUPPORTS_ONE_ONLY)
-# define USE_LINKONCE_INDIRECT 1
+#if defined(HAVE_GAS_HIDDEN)
+# define USE_LINKONCE_INDIRECT (SUPPORTS_ONE_ONLY)
 #else
 # define USE_LINKONCE_INDIRECT 0
 #endif
@@ -816,7 +839,9 @@ dw2_force_const_mem (rtx x, bool is_public)
   if (! indirect_pool)
     /* We use strcmp, rather than just comparing pointers, so that the
        sort order will not depend on the host system.  */
-    indirect_pool = splay_tree_new_ggc (splay_tree_compare_strings);
+    indirect_pool = splay_tree_new_ggc (splay_tree_compare_strings,
+					ggc_alloc_splay_tree_str_tree_node_splay_tree_s,
+					ggc_alloc_splay_tree_str_tree_node_splay_tree_node_s);
 
   gcc_assert (GET_CODE (x) == SYMBOL_REF);
 
@@ -874,22 +899,23 @@ dw2_output_indirect_constant_1 (splay_tree_node node,
   id = (tree) node->value;
 
   decl = build_decl (UNKNOWN_LOCATION, VAR_DECL, id, ptr_type_node);
+  SET_DECL_ASSEMBLER_NAME (decl, id);
   DECL_ARTIFICIAL (decl) = 1;
   DECL_IGNORED_P (decl) = 1;
   DECL_INITIAL (decl) = decl;
+  TREE_READONLY (decl) = 1;
 
   if (TREE_PUBLIC (id))
     {
       TREE_PUBLIC (decl) = 1;
       make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
+      if (USE_LINKONCE_INDIRECT)
+	DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
     }
   else
     TREE_STATIC (decl) = 1;
 
   sym_ref = gen_rtx_SYMBOL_REF (Pmode, sym);
-  sym = targetm.strip_name_encoding (sym);
-  if (TREE_PUBLIC (decl) && USE_LINKONCE_INDIRECT)
-    fprintf (asm_out_file, "\t.hidden %sDW.ref.%s\n", user_label_prefix, sym);
   assemble_variable (decl, 1, 1, 1);
   assemble_integer (sym_ref, POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
 
@@ -924,6 +950,7 @@ dw2_asm_output_encoded_addr_rtx (int encoding, rtx addr, bool is_public,
     {
       assemble_align (POINTER_SIZE);
       assemble_integer (addr, size, POINTER_SIZE, 1);
+      va_end (ap);
       return;
     }
 

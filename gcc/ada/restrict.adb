@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,6 +25,7 @@
 
 with Atree;    use Atree;
 with Casing;   use Casing;
+with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Debug;    use Debug;
 with Fname;    use Fname;
@@ -34,6 +35,7 @@ with Opt;      use Opt;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
+with Stand;    use Stand;
 with Uname;    use Uname;
 
 package body Restrict is
@@ -103,6 +105,69 @@ package body Restrict is
       Check_Restriction (No_Elaboration_Code, N);
    end Check_Elaboration_Code_Allowed;
 
+   -----------------------------
+   -- Check_SPARK_Restriction --
+   -----------------------------
+
+   procedure Check_SPARK_Restriction
+     (Msg   : String;
+      N     : Node_Id;
+      Force : Boolean := False)
+   is
+      Msg_Issued          : Boolean;
+      Save_Error_Msg_Sloc : Source_Ptr;
+   begin
+      if Force or else Comes_From_Source (Original_Node (N)) then
+
+         if Restriction_Check_Required (SPARK)
+           and then Is_In_Hidden_Part_In_SPARK (Sloc (N))
+         then
+            return;
+         end if;
+
+         --  Since the call to Restriction_Msg from Check_Restriction may set
+         --  Error_Msg_Sloc to the location of the pragma restriction, save and
+         --  restore the previous value of the global variable around the call.
+
+         Save_Error_Msg_Sloc := Error_Msg_Sloc;
+         Check_Restriction (Msg_Issued, SPARK, First_Node (N));
+         Error_Msg_Sloc := Save_Error_Msg_Sloc;
+
+         if Msg_Issued then
+            Error_Msg_F ("\\| " & Msg, N);
+         end if;
+      end if;
+   end Check_SPARK_Restriction;
+
+   procedure Check_SPARK_Restriction (Msg1, Msg2 : String; N : Node_Id) is
+      Msg_Issued          : Boolean;
+      Save_Error_Msg_Sloc : Source_Ptr;
+   begin
+      pragma Assert (Msg2'Length /= 0 and then Msg2 (Msg2'First) = '\');
+
+      if Comes_From_Source (Original_Node (N)) then
+
+         if Restriction_Check_Required (SPARK)
+           and then Is_In_Hidden_Part_In_SPARK (Sloc (N))
+         then
+            return;
+         end if;
+
+         --  Since the call to Restriction_Msg from Check_Restriction may set
+         --  Error_Msg_Sloc to the location of the pragma restriction, save and
+         --  restore the previous value of the global variable around the call.
+
+         Save_Error_Msg_Sloc := Error_Msg_Sloc;
+         Check_Restriction (Msg_Issued, SPARK, First_Node (N));
+         Error_Msg_Sloc := Save_Error_Msg_Sloc;
+
+         if Msg_Issued then
+            Error_Msg_F ("\\| " & Msg1, N);
+            Error_Msg_F (Msg2, N);
+         end if;
+      end if;
+   end Check_SPARK_Restriction;
+
    -----------------------------------------
    -- Check_Implicit_Dynamic_Code_Allowed --
    -----------------------------------------
@@ -120,6 +185,46 @@ package body Restrict is
    begin
       Check_Restriction (No_Implicit_Heap_Allocations, N);
    end Check_No_Implicit_Heap_Alloc;
+
+   -----------------------------------
+   -- Check_Obsolescent_2005_Entity --
+   -----------------------------------
+
+   procedure Check_Obsolescent_2005_Entity (E : Entity_Id; N : Node_Id) is
+      function Chars_Is (E : Entity_Id; S : String) return Boolean;
+      --  Return True iff Chars (E) matches S (given in lower case)
+
+      function Chars_Is (E : Entity_Id; S : String) return Boolean is
+         Nam : constant Name_Id := Chars (E);
+      begin
+         if Length_Of_Name (Nam) /= S'Length then
+            return False;
+         else
+            return Get_Name_String (Nam) = S;
+         end if;
+      end Chars_Is;
+
+   --  Start of processing for Check_Obsolescent_2005_Entity
+
+   begin
+      if Restriction_Check_Required (No_Obsolescent_Features)
+        and then Ada_Version >= Ada_2005
+        and then Chars_Is (Scope (E),                 "handling")
+        and then Chars_Is (Scope (Scope (E)),         "characters")
+        and then Chars_Is (Scope (Scope (Scope (E))), "ada")
+        and then Scope (Scope (Scope (Scope (E)))) = Standard_Standard
+      then
+         if Chars_Is (E, "is_character")      or else
+            Chars_Is (E, "is_string")         or else
+            Chars_Is (E, "to_character")      or else
+            Chars_Is (E, "to_string")         or else
+            Chars_Is (E, "to_wide_character") or else
+            Chars_Is (E, "to_wide_string")
+         then
+            Check_Restriction (No_Obsolescent_Features, N);
+         end if;
+      end if;
+   end Check_Obsolescent_2005_Entity;
 
    ---------------------------
    -- Check_Restricted_Unit --
@@ -189,6 +294,18 @@ package body Restrict is
       N : Node_Id;
       V : Uint := Uint_Minus_1)
    is
+      Msg_Issued : Boolean;
+      pragma Unreferenced (Msg_Issued);
+   begin
+      Check_Restriction (Msg_Issued, R, N, V);
+   end Check_Restriction;
+
+   procedure Check_Restriction
+     (Msg_Issued : out Boolean;
+      R          : Restriction_Id;
+      N          : Node_Id;
+      V          : Uint := Uint_Minus_1)
+   is
       VV : Integer;
       --  V converted to integer form. If V is greater than Integer'Last,
       --  it is reset to minus 1 (unknown value).
@@ -256,6 +373,24 @@ package body Restrict is
    --  Start of processing for Check_Restriction
 
    begin
+      Msg_Issued := False;
+
+      --  In CodePeer and Alfa mode, we do not want to check for any
+      --  restriction, or set additional restrictions other than those already
+      --  set in gnat1drv.adb so that we have consistency between each
+      --  compilation.
+
+      if CodePeer_Mode or Alfa_Mode then
+         return;
+      end if;
+
+      --  In SPARK mode, issue an error for any use of class-wide, even if the
+      --  No_Dispatch restriction is not set.
+
+      if R = No_Dispatch then
+         Check_SPARK_Restriction ("class-wide is not allowed", N);
+      end if;
+
       if UI_Is_In_Int_Range (V) then
          VV := Integer (UI_To_Int (V));
       else
@@ -304,6 +439,7 @@ package body Restrict is
                    and then Restrictions.Value (R) = 0)
         or else Restrictions.Count (R) > Restrictions.Value (R)
       then
+         Msg_Issued := True;
          Restriction_Msg (R, N);
       end if;
    end Check_Restriction;
@@ -346,6 +482,29 @@ package body Restrict is
          end if;
       end loop;
    end Check_Restriction_No_Dependence;
+
+   --------------------------------------
+   -- Check_Wide_Character_Restriction --
+   --------------------------------------
+
+   procedure Check_Wide_Character_Restriction (E : Entity_Id; N : Node_Id) is
+   begin
+      if Restriction_Check_Required (No_Wide_Characters)
+        and then Comes_From_Source (N)
+      then
+         declare
+            T : constant Entity_Id := Root_Type (E);
+         begin
+            if T = Standard_Wide_Character      or else
+               T = Standard_Wide_String         or else
+               T = Standard_Wide_Wide_Character or else
+               T = Standard_Wide_Wide_String
+            then
+               Check_Restriction (No_Wide_Characters, N);
+            end if;
+         end;
+      end if;
+   end Check_Wide_Character_Restriction;
 
    ----------------------------------------
    -- Cunit_Boolean_Restrictions_Restore --
@@ -401,6 +560,25 @@ package body Restrict is
 
       return Not_A_Restriction_Id;
    end Get_Restriction_Id;
+
+   --------------------------------
+   -- Is_In_Hidden_Part_In_SPARK --
+   --------------------------------
+
+   function Is_In_Hidden_Part_In_SPARK (Loc : Source_Ptr) return Boolean is
+   begin
+      --  Loop through table of hidden ranges
+
+      for J in SPARK_Hides.First .. SPARK_Hides.Last loop
+         if SPARK_Hides.Table (J).Start <= Loc
+           and then Loc < SPARK_Hides.Table (J).Stop
+         then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Is_In_Hidden_Part_In_SPARK;
 
    -------------------------------
    -- No_Exception_Handlers_Set --
@@ -513,6 +691,15 @@ package body Restrict is
       return Restrictions.Set (R) and then not Restriction_Warnings (R);
    end Restriction_Active;
 
+   --------------------------------
+   -- Restriction_Check_Required --
+   --------------------------------
+
+   function Restriction_Check_Required (R : All_Restrictions) return Boolean is
+   begin
+      return Restrictions.Set (R);
+   end Restriction_Check_Required;
+
    ---------------------
    -- Restriction_Msg --
    ---------------------
@@ -529,9 +716,10 @@ package body Restrict is
 
       procedure Id_Case (S : String; Quotes : Boolean := True);
       --  Given a string S, case it according to current identifier casing,
-      --  and store in Error_Msg_String. Then append `~` to the message buffer
-      --  to output the string unchanged surrounded in quotes. The quotes are
-      --  suppressed if Quotes = False.
+      --  except for SPARK (an acronym) which is set all upper case, and store
+      --  in Error_Msg_String. Then append `~` to the message buffer to output
+      --  the string unchanged surrounded in quotes. The quotes are suppressed
+      --  if Quotes = False.
 
       --------------
       -- Add_Char --
@@ -561,7 +749,13 @@ package body Restrict is
       begin
          Name_Buffer (1 .. S'Last) := S;
          Name_Len := S'Length;
-         Set_Casing (Identifier_Casing (Get_Source_File_Index (Sloc (N))));
+
+         if R = SPARK then
+            Set_All_Upper_Case;
+         else
+            Set_Casing (Identifier_Casing (Get_Source_File_Index (Sloc (N))));
+         end if;
+
          Error_Msg_Strlen := Name_Len;
          Error_Msg_String (1 .. Name_Len) := Name_Buffer (1 .. Name_Len);
 
@@ -603,7 +797,7 @@ package body Restrict is
          Error_Msg_Sloc := No_Location;
       end if;
 
-      --  Case of parametrized restriction
+      --  Case of parameterized restriction
 
       if R in All_Parameter_Restrictions then
          Add_Char ('`');
@@ -684,6 +878,17 @@ package body Restrict is
          return False;
       end if;
    end Same_Unit;
+
+   ------------------------------
+   -- Set_Hidden_Part_In_SPARK --
+   ------------------------------
+
+   procedure Set_Hidden_Part_In_SPARK (Loc1, Loc2 : Source_Ptr) is
+   begin
+      SPARK_Hides.Increment_Last;
+      SPARK_Hides.Table (SPARK_Hides.Last).Start := Loc1;
+      SPARK_Hides.Table (SPARK_Hides.Last).Stop  := Loc2;
+   end Set_Hidden_Part_In_SPARK;
 
    ------------------------------
    -- Set_Profile_Restrictions --

@@ -1,6 +1,6 @@
 /* Functions for writing LTO sections.
 
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -23,12 +23,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
 #include "tree.h"
 #include "expr.h"
 #include "params.h"
 #include "input.h"
-#include "varray.h"
 #include "hashtab.h"
 #include "basic-block.h"
 #include "tree-flow.h"
@@ -41,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "bitmap.h"
 #include "langhooks.h"
+#include "data-streamer.h"
 #include "lto-streamer.h"
 #include "lto-compress.h"
 
@@ -50,48 +49,6 @@ static VEC(lto_out_decl_state_ptr, heap) *decl_state_stack;
    generate the decl directory later. */
 
 VEC(lto_out_decl_state_ptr, heap) *lto_function_decl_states;
-
-/* Bitmap indexed by DECL_UID to indicate if a function needs to be
-   forced extern inline. */
-static bitmap forced_extern_inline;
-
-/* Initialize states for determining which function decls to be ouput
-   as extern inline, regardless of the decls' own attributes.  */
-
-void
-lto_new_extern_inline_states (void)
-{
-  forced_extern_inline = lto_bitmap_alloc ();
-}
-
-/* Releasing resources use for states to determine which function decls
-   to be ouput as extern inline */
-
-void
-lto_delete_extern_inline_states (void)
-{
-  lto_bitmap_free (forced_extern_inline);
-  forced_extern_inline = NULL;
-}
-
-/* Force all the functions in DECLS to be output as extern inline.
-   DECLS is a bitmap indexed by DECL_UID. */
-
-void
-lto_force_functions_extern_inline (bitmap decls)
-{
-  bitmap_ior_into (forced_extern_inline, decls);
-}
-
-/* Return true if FN_DECL is a function which should be emitted as
-   extern inline.  */
-
-bool
-lto_forced_extern_inline_p (tree fn_decl)
-{
-  return bitmap_bit_p (forced_extern_inline, DECL_UID (fn_decl));
-}
-
 /* Returns a hash code for P.  */
 
 hashval_t
@@ -238,8 +195,8 @@ lto_write_stream (struct lto_output_stream *obs)
 
 /* Adds a new block to output stream OBS.  */
 
-static void
-append_block (struct lto_output_stream *obs)
+void
+lto_append_block (struct lto_output_stream *obs)
 {
   struct lto_char_ptr_base *new_block;
 
@@ -278,23 +235,6 @@ append_block (struct lto_output_stream *obs)
 }
 
 
-/* Write a character to the output block.  */
-
-void
-lto_output_1_stream (struct lto_output_stream *obs, char c)
-{
-  /* No space left.  */
-  if (obs->left_in_block == 0)
-    append_block (obs);
-
-  /* Write the actual character.  */
-  *obs->current_pointer = c;
-  obs->current_pointer++;
-  obs->total_size++;
-  obs->left_in_block--;
-}
-
-
 /* Write raw DATA of length LEN to the output block OB.  */
 
 void
@@ -307,7 +247,7 @@ lto_output_data_stream (struct lto_output_stream *obs, const void *data,
 
       /* No space left.  */
       if (obs->left_in_block == 0)
-	append_block (obs);
+	lto_append_block (obs);
 
       /* Determine how many bytes to copy in this loop.  */
       if (len <= obs->left_in_block)
@@ -323,71 +263,6 @@ lto_output_data_stream (struct lto_output_stream *obs, const void *data,
       data = (const char *) data + copy;
       len -= copy;
     }
-}
-
-
-/* Output an unsigned LEB128 quantity to OBS.  */
-
-void
-lto_output_uleb128_stream (struct lto_output_stream *obs,
-			   unsigned HOST_WIDE_INT work)
-{
-  do
-    {
-      unsigned int byte = (work & 0x7f);
-      work >>= 7;
-      if (work != 0)
-	/* More bytes to follow.  */
-	byte |= 0x80;
-
-      lto_output_1_stream (obs, byte);
-    }
-  while (work != 0);
-}
-
-/* Identical to output_uleb128_stream above except using unsigned
-   HOST_WIDEST_INT type.  For efficiency on host where unsigned HOST_WIDEST_INT
-   is not native, we only use this if we know that HOST_WIDE_INT is not wide
-   enough.  */
-
-void
-lto_output_widest_uint_uleb128_stream (struct lto_output_stream *obs,
-				       unsigned HOST_WIDEST_INT work)
-{
-  do
-    {
-      unsigned int byte = (work & 0x7f);
-      work >>= 7;
-      if (work != 0)
-	/* More bytes to follow.  */
-	byte |= 0x80;
-
-      lto_output_1_stream (obs, byte);
-    }
-  while (work != 0);
-}
-
-
-/* Output a signed LEB128 quantity.  */
-
-void
-lto_output_sleb128_stream (struct lto_output_stream *obs, HOST_WIDE_INT work)
-{
-  int more, byte;
-
-  do
-    {
-      byte = (work & 0x7f);
-      /* arithmetic shift */
-      work >>= 7;
-      more = !((work == 0 && (byte & 0x40) == 0)
-	       || (work == -1 && (byte & 0x40) != 0));
-      if (more)
-	byte |= 0x80;
-
-      lto_output_1_stream (obs, byte);
-    }
-  while (more);
 }
 
 
@@ -429,7 +304,7 @@ lto_output_decl_index (struct lto_output_stream *obs,
     }
 
   if (obs)
-    lto_output_uleb128_stream (obs, index);
+    streamer_write_uhwi_stream (obs, index);
   *this_index = index;
   return new_entry_p;
 }
@@ -529,7 +404,7 @@ lto_destroy_simple_output_block (struct lto_simple_output_block *ob)
   struct lto_simple_header header;
   struct lto_output_stream *header_stream;
 
-  section_name = lto_get_section_name (ob->section_type, NULL);
+  section_name = lto_get_section_name (ob->section_type, NULL, NULL);
   lto_begin_section (section_name, !flag_wpa);
   free (section_name);
 
@@ -584,8 +459,6 @@ lto_new_out_decl_state (void)
 	}
       lto_init_tree_ref_encoder (&state->streams[i], hash_fn, eq_fn);
     }
-
-  state->cgraph_node_encoder = lto_cgraph_encoder_new ();
 
   return state;
 }

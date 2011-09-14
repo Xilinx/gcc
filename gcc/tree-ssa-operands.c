@@ -25,13 +25,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "flags.h"
 #include "function.h"
-#include "diagnostic.h"
+#include "tree-pretty-print.h"
+#include "gimple-pretty-print.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
 #include "tree-pass.h"
 #include "ggc.h"
 #include "timevar.h"
-#include "toplev.h"
 #include "langhooks.h"
 #include "ipa-reference.h"
 
@@ -125,6 +125,12 @@ static struct
    explicit assignments in the form of MODIFY_EXPR from
    clobbering sites like function calls or ASM_EXPRs.  */
 #define opf_implicit	(1 << 2)
+
+/* Operand is in a place where address-taken does not imply addressable.  */
+#define opf_non_addressable (1 << 3)
+
+/* Operand is in a place where opf_non_addressable does not apply.  */
+#define opf_not_non_addressable (1 << 4)
 
 /* Array for building all the def operands.  */
 static VEC(tree,heap) *build_defs;
@@ -319,9 +325,10 @@ ssa_operand_alloc (unsigned size)
 	  gcc_unreachable ();
 	}
 
-      ptr = (struct ssa_operand_memory_d *)
-	      ggc_alloc (sizeof (void *)
-			 + gimple_ssa_operands (cfun)->ssa_operand_mem_size);
+
+      ptr = ggc_alloc_ssa_operand_memory_d (sizeof (void *)
+                        + gimple_ssa_operands (cfun)->ssa_operand_mem_size);
+
       ptr->next = gimple_ssa_operands (cfun)->operand_memory;
       gimple_ssa_operands (cfun)->operand_memory = ptr;
       gimple_ssa_operands (cfun)->operand_memory_index = 0;
@@ -691,15 +698,21 @@ mark_address_taken (tree ref)
      be referenced using pointer arithmetic.  See PR 21407 and the
      ensuing mailing list discussion.  */
   var = get_base_address (ref);
-  if (var && DECL_P (var))
-    TREE_ADDRESSABLE (var) = 1;
+  if (var)
+    {
+      if (DECL_P (var))
+	TREE_ADDRESSABLE (var) = 1;
+      else if (TREE_CODE (var) == MEM_REF
+	       && TREE_CODE (TREE_OPERAND (var, 0)) == ADDR_EXPR
+	       && DECL_P (TREE_OPERAND (TREE_OPERAND (var, 0), 0)))
+	TREE_ADDRESSABLE (TREE_OPERAND (TREE_OPERAND (var, 0), 0)) = 1;
+    }
 }
 
 
-/* A subroutine of get_expr_operands to handle INDIRECT_REF,
-   ALIGN_INDIRECT_REF and MISALIGNED_INDIRECT_REF.
+/* A subroutine of get_expr_operands to handle MEM_REF.
 
-   STMT is the statement being processed, EXPR is the INDIRECT_REF
+   STMT is the statement being processed, EXPR is the MEM_REF
       that got us here.
 
    FLAGS is as in get_expr_operands.
@@ -723,7 +736,8 @@ get_indirect_ref_operands (gimple stmt, tree expr, int flags,
   /* If requested, add a USE operand for the base pointer.  */
   if (recurse_on_base)
     get_expr_operands (stmt, pptr,
-		       opf_use | (flags & opf_no_vops));
+		       opf_non_addressable | opf_use
+		       | (flags & (opf_no_vops|opf_not_non_addressable)));
 }
 
 
@@ -738,9 +752,7 @@ get_tmr_operands (gimple stmt, tree expr, int flags)
   /* First record the real operands.  */
   get_expr_operands (stmt, &TMR_BASE (expr), opf_use | (flags & opf_no_vops));
   get_expr_operands (stmt, &TMR_INDEX (expr), opf_use | (flags & opf_no_vops));
-
-  if (TMR_SYMBOL (expr))
-    mark_address_taken (TMR_SYMBOL (expr));
+  get_expr_operands (stmt, &TMR_INDEX2 (expr), opf_use | (flags & opf_no_vops));
 
   add_virtual_operand (stmt, flags);
 }
@@ -800,7 +812,7 @@ get_asm_expr_operands (gimple stmt)
       if (!allows_reg && allows_mem)
 	mark_address_taken (TREE_VALUE (link));
 
-      get_expr_operands (stmt, &TREE_VALUE (link), opf_def);
+      get_expr_operands (stmt, &TREE_VALUE (link), opf_def | opf_not_non_addressable);
     }
 
   /* Gather all input operands.  */
@@ -816,19 +828,12 @@ get_asm_expr_operands (gimple stmt)
       if (!allows_reg && allows_mem)
 	mark_address_taken (TREE_VALUE (link));
 
-      get_expr_operands (stmt, &TREE_VALUE (link), 0);
+      get_expr_operands (stmt, &TREE_VALUE (link), opf_not_non_addressable);
     }
 
   /* Clobber all memory and addressable symbols for asm ("" : : : "memory");  */
-  for (i = 0; i < gimple_asm_nclobbers (stmt); i++)
-    {
-      tree link = gimple_asm_clobber_op (stmt, i);
-      if (strcmp (TREE_STRING_POINTER (TREE_VALUE (link)), "memory") == 0)
-	{
-	  add_virtual_operand (stmt, opf_def);
-	  break;
-	}
-    }
+  if (gimple_asm_clobbers_memory_p (stmt))
+    add_virtual_operand (stmt, opf_def);
 }
 
 
@@ -860,7 +865,9 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
 	 reference to it, but the fact that the statement takes its
 	 address will be of interest to some passes (e.g. alias
 	 resolution).  */
-      if (!is_gimple_debug (stmt))
+      if ((!(flags & opf_non_addressable)
+	   || (flags & opf_not_non_addressable))
+	  && !is_gimple_debug (stmt))
 	mark_address_taken (TREE_OPERAND (expr, 0));
 
       /* If the address is invariant, there may be no interesting
@@ -874,7 +881,8 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
 	 here are ARRAY_REF indices which will always be real operands
 	 (GIMPLE does not allow non-registers as array indices).  */
       flags |= opf_no_vops;
-      get_expr_operands (stmt, &TREE_OPERAND (expr, 0), flags);
+      get_expr_operands (stmt, &TREE_OPERAND (expr, 0),
+			 flags | opf_not_non_addressable);
       return;
 
     case SSA_NAME:
@@ -891,12 +899,7 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
       gcc_assert (gimple_debug_bind_p (stmt));
       return;
 
-    case MISALIGNED_INDIRECT_REF:
-      get_expr_operands (stmt, &TREE_OPERAND (expr, 1), flags);
-      /* fall through */
-
-    case ALIGN_INDIRECT_REF:
-    case INDIRECT_REF:
+    case MEM_REF:
       get_indirect_ref_operands (stmt, expr, flags, true);
       return;
 
@@ -965,15 +968,11 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
 	gimple_set_has_volatile_ops (stmt, true);
       /* FALLTHRU */
 
-    case TRUTH_NOT_EXPR:
     case VIEW_CONVERT_EXPR:
     do_unary:
       get_expr_operands (stmt, &TREE_OPERAND (expr, 0), flags);
       return;
 
-    case TRUTH_AND_EXPR:
-    case TRUTH_OR_EXPR:
-    case TRUTH_XOR_EXPR:
     case COMPOUND_EXPR:
     case OBJ_TYPE_REF:
     case ASSERT_EXPR:
@@ -986,11 +985,14 @@ get_expr_operands (gimple stmt, tree *expr_p, int flags)
 
     case DOT_PROD_EXPR:
     case REALIGN_LOAD_EXPR:
+    case WIDEN_MULT_PLUS_EXPR:
+    case WIDEN_MULT_MINUS_EXPR:
+    case FMA_EXPR:
       {
 	get_expr_operands (stmt, &TREE_OPERAND (expr, 0), flags);
-        get_expr_operands (stmt, &TREE_OPERAND (expr, 1), flags);
-        get_expr_operands (stmt, &TREE_OPERAND (expr, 2), flags);
-        return;
+	get_expr_operands (stmt, &TREE_OPERAND (expr, 1), flags);
+	get_expr_operands (stmt, &TREE_OPERAND (expr, 2), flags);
+	return;
       }
 
     case FUNCTION_DECL:
@@ -1052,6 +1054,9 @@ parse_ssa_operands (gimple stmt)
       /* Add call-clobbered operands, if needed.  */
       if (code == GIMPLE_CALL)
 	maybe_add_call_vops (stmt);
+
+      if (code == GIMPLE_RETURN)
+	append_vuse (gimple_vop (cfun));
     }
 }
 
@@ -1118,6 +1123,12 @@ update_stmt_operands (gimple stmt)
 
   timevar_push (TV_TREE_OPS);
 
+  /* If the stmt is a noreturn call queue it to be processed by
+     split_bbs_on_noreturn_calls during cfg cleanup.  */
+  if (is_gimple_call (stmt)
+      && gimple_call_noreturn_p (stmt))
+    VEC_safe_push (gimple, gc, MODIFIED_NORETURN_CALLS (cfun), stmt);
+
   gcc_assert (gimple_modified_p (stmt));
   build_ssa_operands (stmt);
   gimple_set_modified (stmt, false);
@@ -1178,7 +1189,7 @@ swap_tree_operands (gimple stmt, tree *exp0, tree *exp1)
 /* Scan the immediate_use list for VAR making sure its linked properly.
    Return TRUE if there is a problem and emit an error message to F.  */
 
-bool
+DEBUG_FUNCTION bool
 verify_imm_links (FILE *f, tree var)
 {
   use_operand_p ptr, prev, list;
@@ -1302,7 +1313,7 @@ dump_immediate_uses (FILE *file)
 
 /* Dump def-use edges on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_immediate_uses (void)
 {
   dump_immediate_uses (stderr);
@@ -1311,7 +1322,7 @@ debug_immediate_uses (void)
 
 /* Dump def-use edges on stderr.  */
 
-void
+DEBUG_FUNCTION void
 debug_immediate_uses_for (tree var)
 {
   dump_immediate_uses_for (stderr, var);

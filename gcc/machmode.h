@@ -1,6 +1,6 @@
 /* Machine mode definitions for GCC; included by rtl.h and tree.h.
    Copyright (C) 1991, 1993, 1994, 1996, 1998, 1999, 2000, 2001, 2003,
-   2007, 2008, 2009 Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -241,9 +241,17 @@ extern enum machine_mode smallest_mode_for_size (unsigned int,
 
 extern enum machine_mode int_mode_for_mode (enum machine_mode);
 
+/* Return a mode that is suitable for representing a vector,
+   or BLKmode on failure.  */
+
+extern enum machine_mode mode_for_vector (enum machine_mode, unsigned);
+
 /* Find the best mode to use to access a bit field.  */
 
-extern enum machine_mode get_best_mode (int, int, unsigned int,
+extern enum machine_mode get_best_mode (int, int,
+					unsigned HOST_WIDE_INT,
+					unsigned HOST_WIDE_INT,
+					unsigned int,
 					enum machine_mode, int);
 
 /* Determine alignment, 1<=result<=BIGGEST_ALIGNMENT.  */
@@ -269,5 +277,13 @@ extern enum machine_mode ptr_mode;
 
 /* Target-dependent machine mode initialization - in insn-modes.c.  */
 extern void init_adjust_machine_modes (void);
+
+#define TRULY_NOOP_TRUNCATION_MODES_P(MODE1, MODE2) \
+  TRULY_NOOP_TRUNCATION (GET_MODE_PRECISION (MODE1), \
+			 GET_MODE_PRECISION (MODE2))
+
+#define HWI_COMPUTABLE_MODE_P(MODE) \
+  (SCALAR_INT_MODE_P (MODE) \
+   && GET_MODE_PRECISION (MODE) <= HOST_BITS_PER_WIDE_INT)
 
 #endif /* not HAVE_MACHINE_MODES */

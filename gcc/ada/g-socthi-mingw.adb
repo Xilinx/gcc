@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2009, AdaCore                     --
+--                    Copyright (C) 2001-2010, AdaCore                      --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -37,8 +35,11 @@
 
 --  This version is for NT
 
-with Interfaces.C.Strings; use Interfaces.C.Strings;
-with System;               use System;
+with Ada.Streams;             use Ada.Streams;
+with Ada.Unchecked_Conversion;
+with Interfaces.C.Strings;    use Interfaces.C.Strings;
+with System;                  use System;
+with System.Storage_Elements; use System.Storage_Elements;
 
 package body GNAT.Sockets.Thin is
 
@@ -269,8 +270,15 @@ package body GNAT.Sockets.Thin is
    function C_Recvmsg
      (S     : C.int;
       Msg   : System.Address;
-      Flags : C.int) return ssize_t
+      Flags : C.int) return System.CRTL.ssize_t
    is
+      use type C.size_t;
+
+      Fill  : constant Boolean :=
+        SOSC.MSG_WAITALL /= -1
+          and then (C.unsigned (Flags) and SOSC.MSG_WAITALL) /= 0;
+      --  Is the MSG_WAITALL flag set? If so we need to fully fill all vectors
+
       Res   : C.int;
       Count : C.int := 0;
 
@@ -281,25 +289,81 @@ package body GNAT.Sockets.Thin is
       for Iovec'Address use MH.Msg_Iov;
       pragma Import (Ada, Iovec);
 
+      Iov_Index     : Integer;
+      Current_Iovec : Vector_Element;
+
+      function To_Access is new Ada.Unchecked_Conversion
+                                  (System.Address, Stream_Element_Reference);
+      pragma Warnings (Off, Stream_Element_Reference);
+
+      Req : Request_Type (Name => N_Bytes_To_Read);
+
    begin
       --  Windows does not provide an implementation of recvmsg(). The spec for
       --  WSARecvMsg() is incompatible with the data types we define, and is
-      --  not available in all versions of Windows. So, we use C_Recv instead.
+      --  available starting with Windows Vista and Server 2008 only. So,
+      --  we use C_Recv instead.
 
-      for J in Iovec'Range loop
-         Res := C_Recv
-           (S,
-            Iovec (J).Base.all'Address,
-            C.int (Iovec (J).Length),
-            Flags);
+      --  Check how much data are available
+
+      Control_Socket (Socket_Type (S), Req);
+
+      --  Fill the vectors
+
+      Iov_Index := -1;
+      Current_Iovec := (Base => null, Length => 0);
+
+      loop
+         if Current_Iovec.Length = 0 then
+            Iov_Index := Iov_Index + 1;
+            exit when Iov_Index > Integer (Iovec'Last);
+            Current_Iovec := Iovec (SOSC.Msg_Iovlen_T (Iov_Index));
+         end if;
+
+         Res :=
+           C_Recv
+            (S,
+             Current_Iovec.Base.all'Address,
+             C.int (Current_Iovec.Length),
+             Flags);
 
          if Res < 0 then
-            return ssize_t (Res);
+            return System.CRTL.ssize_t (Res);
+
+         elsif Res = 0 and then not Fill then
+            exit;
+
          else
+            pragma Assert (Stream_Element_Count (Res) <= Current_Iovec.Length);
+
             Count := Count + Res;
+            Current_Iovec.Length :=
+              Current_Iovec.Length - Stream_Element_Count (Res);
+            Current_Iovec.Base :=
+              To_Access (Current_Iovec.Base.all'Address
+                + Storage_Offset (Res));
+
+            --  If all the data that was initially available read, do not
+            --  attempt to receive more, since this might block, or merge data
+            --  from successive datagrams for a datagram-oriented socket. We
+            --  still try to receive more if we need to fill all vectors
+            --  (MSG_WAITALL flag is set).
+
+            exit when Natural (Count) >= Req.Size
+              and then
+
+                --  Either we are not in fill mode
+
+                (not Fill
+
+                  --  Or else last vector filled
+
+                  or else (Interfaces.C.size_t (Iov_Index) = Iovec'Last
+                            and then Current_Iovec.Length = 0));
          end if;
       end loop;
-      return ssize_t (Count);
+
+      return System.CRTL.ssize_t (Count);
    end C_Recvmsg;
 
    --------------
@@ -322,8 +386,8 @@ package body GNAT.Sockets.Thin is
       Last : aliased C.int;
 
    begin
-      --  Asynchronous connection failures are notified in the exception fd set
-      --  instead of the write fd set. To ensure POSIX compatibility, copy
+      --  Asynchronous connection failures are notified in the exception fd
+      --  set instead of the write fd set. To ensure POSIX compatibility, copy
       --  write fd set into exception fd set. Once select() returns, check any
       --  socket present in the exception fd set and peek at incoming
       --  out-of-band data. If the test is not successful, and the socket is
@@ -369,10 +433,11 @@ package body GNAT.Sockets.Thin is
 
                --  Check out-of-band data
 
-               Length := C_Recvfrom
-                 (S, Buffer'Address, 1, Flag,
-                  From    => System.Null_Address,
-                  Fromlen => Fromlen'Unchecked_Access);
+               Length :=
+                 C_Recvfrom
+                  (S, Buffer'Address, 1, Flag,
+                   From    => System.Null_Address,
+                   Fromlen => Fromlen'Unchecked_Access);
                --  Is Fromlen necessary if From is Null_Address???
 
                --  If the signal is not an out-of-band data, then it
@@ -404,8 +469,10 @@ package body GNAT.Sockets.Thin is
    function C_Sendmsg
      (S     : C.int;
       Msg   : System.Address;
-      Flags : C.int) return ssize_t
+      Flags : C.int) return System.CRTL.ssize_t
    is
+      use type C.size_t;
+
       Res   : C.int;
       Count : C.int := 0;
 
@@ -419,25 +486,31 @@ package body GNAT.Sockets.Thin is
    begin
       --  Windows does not provide an implementation of sendmsg(). The spec for
       --  WSASendMsg() is incompatible with the data types we define, and is
-      --  not available in all versions of Windows. So, we'll use C_Sendto
-      --  instead.
+      --  available starting with Windows Vista and Server 2008 only. So
+      --  use C_Sendto instead.
 
       for J in Iovec'Range loop
-         Res := C_Sendto
-           (S,
-            Iovec (J).Base.all'Address,
-            C.int (Iovec (J).Length),
-            Flags => Flags,
-            To    => MH.Msg_Name,
-            Tolen => C.int (MH.Msg_Namelen));
+         Res :=
+           C_Sendto
+            (S,
+             Iovec (J).Base.all'Address,
+             C.int (Iovec (J).Length),
+             Flags => Flags,
+             To    => MH.Msg_Name,
+             Tolen => C.int (MH.Msg_Namelen));
 
          if Res < 0 then
-            return ssize_t (Res);
+            return System.CRTL.ssize_t (Res);
          else
             Count := Count + Res;
          end if;
+
+         --  Exit now if the buffer is not fully transmitted
+
+         exit when Stream_Element_Count (Res) < Iovec (J).Length;
       end loop;
-      return ssize_t (Count);
+
+      return System.CRTL.ssize_t (Count);
    end C_Sendmsg;
 
    --------------
@@ -459,13 +532,12 @@ package body GNAT.Sockets.Thin is
    package body Host_Error_Messages is
 
       --  On Windows, socket and host errors share the same code space, and
-      --  error messages are provided by Socket_Error_Message. The default
-      --  separate body for Host_Error_Messages is therefore not used in
-      --  this case.
+      --  error messages are provided by Socket_Error_Message, so the default
+      --  separate body for Host_Error_Messages is not used in this case.
 
       function Host_Error_Message
         (H_Errno : Integer) return C.Strings.chars_ptr
-        renames Socket_Error_Message;
+         renames Socket_Error_Message;
 
    end Host_Error_Messages;
 

@@ -599,6 +599,7 @@ ac_includes_default="\
 #endif"
 
 enable_option_checking=no
+ac_c_werror_flag=
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
@@ -631,6 +632,10 @@ python_mod_dir
 here
 LD_FINISH_STATIC_SPEC
 LD_START_STATIC_SPEC
+ANONVERSCRIPT_SUN_FALSE
+ANONVERSCRIPT_SUN_TRUE
+ANONVERSCRIPT_GNU_FALSE
+ANONVERSCRIPT_GNU_TRUE
 ANONVERSCRIPT_FALSE
 ANONVERSCRIPT_TRUE
 SYSDEP_SOURCES
@@ -643,7 +648,7 @@ GCJVERSION
 toolexeclibdir
 toolexecmainlibdir
 toolexecdir
-GCC_UNWIND_INCLUDE
+LIBGCC_UNWIND_INCLUDE
 INSTALL_BINARIES_FALSE
 INSTALL_BINARIES_TRUE
 NEEDS_DATA_START_FALSE
@@ -669,6 +674,7 @@ GLIB_CFLAGS
 GTK_LIBS
 GTK_CFLAGS
 PKG_CONFIG
+LDLIBICONV
 LTLIBICONV
 LIBICONV
 USING_GCC_FALSE
@@ -702,6 +708,7 @@ GCDEPS
 GCINCS
 GCLIBS
 LIBGCJTESTSPEC
+LIBMATHSPEC
 LIBSTDCXXSPEC
 extra_ldflags
 extra_ldflags_libjava
@@ -747,6 +754,7 @@ GCJDEPMODE
 GCJFLAGS
 ac_ct_GCJ
 GCJ
+lt_host_flags
 CXXCPP
 CPP
 OTOOL64
@@ -768,6 +776,7 @@ LIBLTDL
 INCLTDL
 host_exeext
 GCJH
+GCC_FOR_ECJX
 GCJ_FOR_ECJX
 X_AWT_FALSE
 X_AWT_TRUE
@@ -777,6 +786,7 @@ TOOLKIT
 LIBGCJDEBUG
 BUILD_SUBLIBS_FALSE
 BUILD_SUBLIBS_TRUE
+LIBGCJ_LD_EXPORT_ALL
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS
 LIBGCJ_LD_SYMBOLIC
 LIBGCJ_SUBLIB_CORE_EXTRA_DEPS
@@ -950,6 +960,7 @@ enable_rpath
 with_libiconv_prefix
 enable_tls
 with_system_libunwind
+enable_symvers
 with_python_dir
 enable_aot_compile_rpm
 enable_java_home
@@ -1639,6 +1650,7 @@ Optional Features:
   --enable-java-gc=TYPE   choose garbage collector (default is boehm)
   --disable-rpath         do not hardcode runtime library paths
   --enable-tls            Use thread-local storage [default=yes]
+  --disable-symvers       disable symbol versioning for libjava
   --enable-aot-compile-rpm
                           enable installation of aot-compile-rpm [default=no]
   --enable-java-home      create a standard JDK-style directory layout in the
@@ -2314,8 +2326,10 @@ $as_echo "$ac_res" >&6; }
 ac_fn_c_check_decl ()
 {
   as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $2 is declared" >&5
-$as_echo_n "checking whether $2 is declared... " >&6; }
+  as_decl_name=`echo $2|sed 's/ *(.*//'`
+  as_decl_use=`echo $2|sed -e 's/(/((/' -e 's/)/) 0&/' -e 's/,/) 0& (/g'`
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $as_decl_name is declared" >&5
+$as_echo_n "checking whether $as_decl_name is declared... " >&6; }
 if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
   $as_echo_n "(cached) " >&6
 else
@@ -2325,8 +2339,12 @@ $4
 int
 main ()
 {
-#ifndef $2
-  (void) $2;
+#ifndef $as_decl_name
+#ifdef __cplusplus
+  (void) $as_decl_use;
+#else
+  (void) $as_decl_name;
+#endif
 #endif
 
   ;
@@ -5833,7 +5851,7 @@ fi
 # We need a jar that supports -@.  This is a GNU extension.
 if test "$JAR" != no; then
    rm -f config-test.jar
-   echo $srcdir/configure.ac | $JAR -cf@ config-test.jar
+   echo $srcdir/configure.ac | $JAR -cf@ config-test.jar >/dev/null 2>&1
    if test -f config-test.jar; then
      rm -f config-test.jar
    else
@@ -5940,6 +5958,16 @@ if test -z "$libgcj_ld_symbolic"; then
   libgcj_ld_symbolic=$SYMBOLIC_LDFLAGS
 fi
 
+# for windows native targets enforce export of all symbols for shared libgcj.
+libgcj_ld_export_all=
+case "$host" in
+      *mingw*)
+	libgcj_ld_export_all=-Wl,--export-all-symbols
+	;;
+      *)
+        ;;
+esac
+
 LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
@@ -5947,6 +5975,8 @@ LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
 LIBGCJ_SUBLIB_CORE_EXTRA_DEPS="${libgcj_sublib_core_extra_deps}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
+LIBGCJ_LD_EXPORT_ALL="${libgcj_ld_export_all}"
+
 
 
 
@@ -6158,10 +6188,6 @@ dgux*)
   library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major $libname$shared_ext'
   soname_spec='${libname}${release}${shared_ext}$major'
   shlibpath_var=LD_LIBRARY_PATH
-  ;;
-
-freebsd1*)
-  dynamic_linker=no
   ;;
 
 freebsd*)
@@ -6692,7 +6718,8 @@ NATIVE=yes
 # Which gcj and host gcj (for ecjx) do we use?
 which_gcj=default
 host_exeext=${ac_exeext}
-GCJ_FOR_ECJX=
+GCJ_FOR_ECJX='$(GCJ)'
+GCC_FOR_ECJX='$(CXX)'
 built_gcc_dir="`cd ${builddotdot}/../../${host_subdir}/gcc && ${PWDCMD-pwd}`"
 if test -n "${with_cross_host}"; then
   # We are being configured with a cross compiler. We can't
@@ -6700,6 +6727,7 @@ if test -n "${with_cross_host}"; then
   NATIVE=no
   cross_host_exeext=
   GCJ_FOR_ECJX="${with_cross_host}-gcj"
+  GCC_FOR_ECJX="${with_cross_host}-gcc"
   case "${with_cross_host}" in
      *mingw* | *cygwin*)
          cross_host_exeext=.exe
@@ -6753,7 +6781,7 @@ case "${which_gcj}" in
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
-         GCC_UNWIND_INCLUDE=
+         LIBGCC_UNWIND_INCLUDE=
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
@@ -6763,6 +6791,7 @@ case "${which_gcj}" in
 esac
 JAVAC="$GCJ -C"
 export JAVAC
+
 
 
 
@@ -11532,10 +11561,6 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       hardcode_shlibpath_var=no
       ;;
 
-    freebsd1*)
-      ld_shlibs=no
-      ;;
-
     # FreeBSD 2.2.[012] allows us to include c++rt0.o to get C++ constructor
     # support.  Future versions do this automatically, but an explicit c++rt0.o
     # does not break anything, and helps significantly (at the cost of a little
@@ -12457,10 +12482,6 @@ dgux*)
   shlibpath_var=LD_LIBRARY_PATH
   ;;
 
-freebsd1*)
-  dynamic_linker=no
-  ;;
-
 freebsd* | dragonfly*)
   # DragonFly does not have aout.  When/if they implement a new
   # versioning mechanism, adjust this.
@@ -13338,7 +13359,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 13341 "configure"
+#line 13362 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13444,7 +13465,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 13447 "configure"
+#line 13468 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -16144,10 +16165,6 @@ dgux*)
   shlibpath_var=LD_LIBRARY_PATH
   ;;
 
-freebsd1*)
-  dynamic_linker=no
-  ;;
-
 freebsd* | dragonfly*)
   # DragonFly does not have aout.  When/if they implement a new
   # versioning mechanism, adjust this.
@@ -16707,6 +16724,28 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 # Only expand once:
+
+
+
+
+
+case $host in
+  *-cygwin* | *-mingw*)
+    # 'host' will be top-level target in the case of a target lib,
+    # we must compare to with_cross_host to decide if this is a native
+    # or cross-compiler and select where to install dlls appropriately.
+    if test -n "$with_cross_host" &&
+	test x"$with_cross_host" != x"no"; then
+      lt_host_flags='-no-undefined -bindir "$(toolexeclibdir)"';
+    else
+      lt_host_flags='-no-undefined -bindir "$(bindir)"';
+    fi
+    ;;
+  *)
+    lt_host_flags=
+    ;;
+esac
+
 
 
 
@@ -18482,10 +18521,6 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       hardcode_shlibpath_var_GCJ=no
       ;;
 
-    freebsd1*)
-      ld_shlibs_GCJ=no
-      ;;
-
     # FreeBSD 2.2.[012] allows us to include c++rt0.o to get C++ constructor
     # support.  Future versions do this automatically, but an explicit c++rt0.o
     # does not break anything, and helps significantly (at the cost of a little
@@ -19423,7 +19458,7 @@ if test "${enable_sjlj_exceptions+set}" = set; then :
   enableval=$enable_sjlj_exceptions; :
 else
   cat > conftest.$ac_ext << EOF
-#line 19426 "configure"
+#line 19461 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -19753,8 +19788,13 @@ case "${host}" in
         SYSTEMSPEC="-lunicows $SYSTEMSPEC"
       fi
     ;;
-    *-*-darwin[912]*)
-      SYSTEMSPEC="-allow_stack_execute"
+    *-*-darwin9*)
+      SYSTEMSPEC="%{!Zdynamiclib:%{!Zbundle:-allow_stack_execute}}"
+    ;;
+    *-*-darwin[12]*)
+      # Something is incompatible with pie, would be nice to fix it and
+      # remove -no_pie.  PR49461
+      SYSTEMSPEC="-no_pie %{!Zdynamiclib:%{!Zbundle:-allow_stack_execute}}"
     ;;
     *)
       SYSTEMSPEC=
@@ -20518,7 +20558,63 @@ arm*linux*eabi)
 *-*-cygwin)
     extra_ldflags_libjava=-liconv
     ;;
+*-*-mingw*)
+    extra_ldflags_libjava=-lws2_32
+    ;;
 esac
+
+LIBMATHSPEC=
+# extra LD Flags which are required for targets
+case "${host}" in
+*-*-darwin*)
+     ;;
+*)
+     LIBMATHSPEC=-lm
+     ;;
+esac
+
+# Check for --no-merge-exidx-entries, an ARM-specific linker option.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --no-merge-exidx-entries" >&5
+$as_echo_n "checking for --no-merge-exidx-entries... " >&6; }
+if test "${libgcj_cv_exidx+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  saved_ldflags="$LDFLAGS"
+   LDFLAGS="${LDFLAGS} -Wl,--no-merge-exidx-entries"
+   # The IRIX 6 ld doesn't recognize --no-merge-exidx-entries, but only
+   # warns about unknown options, which breaks the testsuite.  So enable
+   # AC_LANG_WERROR, but there's currently (autoconf 2.64) no way to turn
+   # it off again.  As a workaround, save and restore werror flag like
+   # AC_PATH_XTRA.
+   ac_xsave_c_werror_flag=$ac_c_werror_flag
+
+ac_c_werror_flag=yes
+   if test x$gcc_no_link = xyes; then
+  as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
+fi
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main(void){ return 0;}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  eval "libgcj_cv_exidx=yes"
+else
+  eval "libgcj_cv_exidx=no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+   ac_c_werror_flag=$ac_xsave_c_werror_flag
+   LDFLAGS="${saved_ldflags}"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgcj_cv_exidx" >&5
+$as_echo "$libgcj_cv_exidx" >&6; }
+if test "${libgcj_cv_exidx}" = "yes"; then
+  SYSTEMSPEC="${SYSTEMSPEC} --no-merge-exidx-entries"
+  extra_ldflags="${extra_ldflags} -Wl,--no-merge-exidx-entries"
+fi
+
+
 
 
 
@@ -20601,7 +20697,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- aix | posix | posix95 | pthreads)
+ aix | posix | pthreads)
     THREADS=posix
     case "$host" in
      *-*-linux*)
@@ -20613,7 +20709,7 @@ $as_echo "#define LINUX_THREADS 1" >>confdefs.h
     ;;
  win32)
     ;;
- decosf1 | irix | mach | os2 | solaris | dce | vxworks)
+ dce | vxworks)
     as_fn_error "thread package $THREADS not yet supported" "$LINENO" 5
     ;;
  *)
@@ -20658,6 +20754,23 @@ case "$THREADS" in
 	# boehm-gc needs some functions from librt, so link that too.
 	THREADLIBS='-lpthread -lrt'
 	THREADSPEC='-lpthread -lrt'
+	;;
+     *-*-solaris2.8)
+	# Always use alternate thread library on Solaris 8.  Need libthread
+	# for TLS support.
+	# Need -Wl,-R to get it through libtool ...
+	THREADLIBS='-L/usr/lib/lwp$(MULTISUBDIR) -Wl,-R -Wl,/usr/lib/lwp$(MULTISUBDIR) -lpthread -lthread'
+	# ... while ld only accepts -R.
+	THREADSPEC='-L/usr/lib/lwp%{m64:/64} -R/usr/lib/lwp%{m64:/64} -lpthread -lthread'
+        ;;
+     *-*-solaris2.9)
+	# As on Solaris 8, need libthread for TLS support.
+	THREADLIBS='-lpthread -lthread'
+	THREADSPEC='-lpthread -lthread'
+	;;
+     *-*-darwin*)
+	# Don't set THREADLIBS or THREADSPEC as Darwin already
+	# provides pthread via libSystem.
 	;;
      *)
 	THREADLIBS=-lpthread
@@ -20794,8 +20907,8 @@ else
 fi
 
 
-# We're in the tree with gcc, and need to include some of its headers.
-GCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../gcc'
+# We're in the tree with libgcc, and need to include some of its headers.
+LIBGCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../libgcc'
 
 if test "x${with_newlib}" = "xyes"; then
    # We are being configured with a cross compiler.  AC_REPLACE_FUNCS
@@ -21883,6 +21996,8 @@ $as_echo "#define HAVE_TZNAME 1" >>confdefs.h
 
   fi
 fi
+
+   LDLIBICONV=`echo " $LIBICONV " | sed "s/${acl_cv_wl--Wl,}/ /g; s/,/ /g"`
 
 
    for ac_func in gethostbyname_r
@@ -23032,10 +23147,11 @@ fi
    if test "$GC" = boehm; then
       case "${host}" in
           mips-sgi-irix6*)
-	    # IRIX 6 lacks a N64 libdl.so, but only the N32 (default multilib)
-	    # libgcj.spec is used, so override here
-	    SYSTEMSPEC="$SYSTEMSPEC %{!mabi=64:-ldl}"
-	  ;;
+	    # While IRIX 6 has libdl for the O32 and N32 ABIs, the N64 one is
+	    # missing.  It's unnecessary anyway since dlopen lives in libc.
+	    ;;
+	  *-*-darwin*)
+	    ;;
 	  *)
             { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -ldl" >&5
 $as_echo_n "checking for main in -ldl... " >&6; }
@@ -23074,7 +23190,7 @@ if test "x$ac_cv_lib_dl_main" = x""yes; then :
   SYSTEMSPEC="$SYSTEMSPEC -ldl"
 fi
 
-	  ;;
+	    ;;
       esac
    fi
 fi
@@ -24104,11 +24220,11 @@ SYSDEP_SOURCES=
 SIGNAL_HANDLER_AUX=
 
 case "${host}" in
+ alpha*-dec-osf* | mips-sgi-irix* | *-*-solaris2*)
+    SIGNAL_HANDLER=include/posix-signal.h
+    ;;
  i?86-*-linux*)
     SIGNAL_HANDLER=include/i386-signal.h
-    ;;
- sparc*-sun-solaris*)
-    SIGNAL_HANDLER=include/sparc-signal.h
     ;;
 # ia64-*)
 #    SYSDEP_SOURCES=sysdep/ia64.c
@@ -24331,7 +24447,7 @@ rm -f core conftest.err conftest.$ac_objext \
 	CFLAGS="$chktls_save_CFLAGS"
 	if test "X$thread_CFLAGS" != Xfailed; then
 	  CFLAGS="$thread_CFLAGS $chktls_save_CFLAGS"
-	  if test "$cross_compiling" = yes; then :
+ 	  	  	  	  	  	  if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error "cannot run test program while cross compiling
@@ -24341,7 +24457,7 @@ else
 /* end confdefs.h.  */
 #include <pthread.h>
 		__thread int a;
-		static int *a_in_other_thread;
+		static int *volatile a_in_other_thread;
 		static void *
 		thread_func (void *arg)
 		{
@@ -24353,11 +24469,11 @@ main ()
 {
 pthread_t thread;
 		void *thread_retval;
-		int *a_in_main_thread;
+		int *volatile a_in_main_thread;
+		a_in_main_thread = &a;
 		if (pthread_create (&thread, (pthread_attr_t *)0,
 				    thread_func, (void *)0))
 		  return 0;
-		a_in_main_thread = &a;
 		if (pthread_join (thread, &thread_retval))
 		  return 0;
 		return (a_in_other_thread == a_in_main_thread);
@@ -24437,11 +24553,24 @@ $as_echo_n "checking whether ld supports anonymous version scripts... " >&6; }
 if test "${libjava_cv_anon_version_script+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
-  save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
-   libjava_cv_anon_version_script=no
-   CFLAGS="$CFLAGS -fPIC"; LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
-   echo '{ global: globalsymb*; local: *; };' > conftest.map
-   if test x$gcc_no_link = xyes; then
+  # Check whether --enable-symvers was given.
+if test "${enable_symvers+set}" = set; then :
+  enableval=$enable_symvers; case "$enableval" in
+         yes) libjava_cv_anon_version_script=yes ;;
+         no)  libjava_cv_anon_version_script=no ;;
+         *)   as_fn_error "Unknown argument to enable/disable symvers" "$LINENO" 5;;
+        esac
+else
+  libjava_cv_anon_version_script=yes
+
+fi
+
+   if test x$libjava_cv_anon_version_script = xyes; then
+     save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
+     CFLAGS="$CFLAGS -fPIC";
+     LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
+     echo '{ global: globalsymb*; local: *; };' > conftest.map
+     if test x$gcc_no_link = xyes; then
   as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
 fi
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -24456,16 +24585,48 @@ main ()
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  libjava_cv_anon_version_script=yes
+  libjava_cv_anon_version_script=gnu
+else
+  libjava_cv_anon_version_script=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-   CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
+     if test x$libjava_cv_anon_version_script = xno; then
+       case "$target_os" in
+         solaris2*)
+           LDFLAGS="$save_LDFLAGS"
+           LDFLAGS="$LDFLAGS -shared -Wl,-M,conftest.map"
+           # Sun ld doesn't understand wildcards here.
+           echo '{ global: globalsymbol; local: *; };' > conftest.map
+           if test x$gcc_no_link = xyes; then
+  as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
+fi
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+void globalsymbol (void) {} void localsymbol (void) {}
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  libjava_cv_anon_version_script=sun
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+           ;;
+       esac
+     fi
+     CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
+   fi
 
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $libjava_cv_anon_version_script" >&5
 $as_echo "$libjava_cv_anon_version_script" >&6; }
- if test "$libjava_cv_anon_version_script" = yes; then
+ if test "$libjava_cv_anon_version_script" != no; then
   ANONVERSCRIPT_TRUE=
   ANONVERSCRIPT_FALSE='#'
 else
@@ -24473,12 +24634,28 @@ else
   ANONVERSCRIPT_FALSE=
 fi
 
+ if test "$libjava_cv_anon_version_script" = gnu; then
+  ANONVERSCRIPT_GNU_TRUE=
+  ANONVERSCRIPT_GNU_FALSE='#'
+else
+  ANONVERSCRIPT_GNU_TRUE='#'
+  ANONVERSCRIPT_GNU_FALSE=
+fi
+
+ if test "$libjava_cv_anon_version_script" = sun; then
+  ANONVERSCRIPT_SUN_TRUE=
+  ANONVERSCRIPT_SUN_FALSE='#'
+else
+  ANONVERSCRIPT_SUN_TRUE='#'
+  ANONVERSCRIPT_SUN_FALSE=
+fi
+
 
 # Check if linker supports static linking on a per library basis
 LD_START_STATIC_SPEC=
 LD_FINISH_STATIC_SPEC=
-if $LD --help 2>&1 | grep -q -e -call_shared ; then
-  if $LD --help 2>&1 | grep -q -e -non_shared ; then
+if $LD --help 2>&1 | grep -- -call_shared >/dev/null 2>&1; then
+  if $LD --help 2>&1 | grep -- -non_shared >/dev/null 2>&1; then
     LD_START_STATIC_SPEC='%{static-libgcj:-non_shared}'
     LD_FINISH_STATIC_SPEC='%{static-libgcj:-call_shared}'
   fi
@@ -24492,25 +24669,22 @@ here=`${PWDCMD-pwd}`
 # We get this from the environment.
 
 
+default_python_dir="/share/gcc-`cat ${srcdir}/../gcc/BASE-VER`/python/libjava"
 
 # Check whether --with-python-dir was given.
 if test "${with_python_dir+set}" = set; then :
   withval=$with_python_dir; with_python_dir=$withval
 else
-  with_python_dir=""
+  with_python_dir="${default_python_dir}"
 fi
 
 
-if test "x${with_python_dir}" = "x"
-then
-  # Needed for installing Python modules during make install.
-  python_mod_dir="\${prefix}/share/python"
-  # Needed for substituting into aot-compile*
-  python_mod_dir_expanded="${expanded_prefix}/share/python"
-else
-  python_mod_dir="\${prefix}${with_python_dir}"
-  python_mod_dir_expanded="${expanded_prefix}${with_python_dir}"
-fi
+# Needed for installing Python modules during make install.
+python_mod_dir="\${prefix}${with_python_dir}"
+
+# Needed for substituting into aot-compile*
+python_mod_dir_expanded="${expanded_prefix}${with_python_dir}"
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: Python modules dir: ${python_mod_dir_expanded}" >&5
 $as_echo "Python modules dir: ${python_mod_dir_expanded}" >&6; };
 
@@ -25010,6 +25184,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ANONVERSCRIPT_TRUE}" && test -z "${ANONVERSCRIPT_FALSE}"; then
   as_fn_error "conditional \"ANONVERSCRIPT\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ANONVERSCRIPT_GNU_TRUE}" && test -z "${ANONVERSCRIPT_GNU_FALSE}"; then
+  as_fn_error "conditional \"ANONVERSCRIPT_GNU\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${ANONVERSCRIPT_SUN_TRUE}" && test -z "${ANONVERSCRIPT_SUN_FALSE}"; then
+  as_fn_error "conditional \"ANONVERSCRIPT_SUN\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${INSTALL_AOT_RPM_TRUE}" && test -z "${INSTALL_AOT_RPM_FALSE}"; then

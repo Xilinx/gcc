@@ -1,5 +1,6 @@
 ;; Predicate definitions for POWER and PowerPC.
-;; Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
+;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -69,10 +70,10 @@
 		     || VLOGICAL_REGNO_P (REGNO (op))
 		     || REGNO (op) > LAST_VIRTUAL_REGISTER")))
 
-;; Return 1 if op is XER register.
-(define_predicate "xer_operand"
+;; Return 1 if op is the carry register.
+(define_predicate "ca_operand"
   (and (match_code "reg")
-       (match_test "XER_REGNO_P (REGNO (op))")))
+       (match_test "CA_REGNO_P (REGNO (op))")))
 
 ;; Return 1 if op is a signed 5-bit constant integer.
 (define_predicate "s5bit_cint_operand"
@@ -116,7 +117,7 @@
    (and (match_operand 0 "register_operand")
 	(match_test "(GET_CODE (op) != REG
 		      || (REGNO (op) >= ARG_POINTER_REGNUM
-			  && !XER_REGNO_P (REGNO (op)))
+			  && !CA_REGNO_P (REGNO (op)))
 		      || REGNO (op) < MQ_REGNO)
 		     && !((TARGET_E500_DOUBLE || TARGET_SPE)
 			  && invalid_e500_subreg (op, mode))")))
@@ -327,13 +328,11 @@
   if (TARGET_PAIRED_FLOAT)
     return false;
 
-  if ((VSX_VECTOR_MODE (mode) || mode == TImode) && zero_constant (op, mode))
-    return true;
-
-  if (ALTIVEC_VECTOR_MODE (mode))
+  if (VECTOR_MEM_ALTIVEC_OR_VSX_P (mode))
     {
       if (zero_constant (op, mode))
-        return true;
+	return true;
+
       return easy_altivec_constant (op, mode);
     }
 
@@ -372,7 +371,10 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  HOST_WIDE_INT val;
+  if (mode == V2DImode || mode == V2DFmode)
+    return 0;
+  val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
   val = ((val & 0xff) ^ 0x80) - 0x80;
   return EASY_VECTOR_15_ADD_SELF (val);
 })
@@ -383,7 +385,10 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  HOST_WIDE_INT val;
+  if (mode == V2DImode || mode == V2DFmode)
+    return 0;
+  val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
   return EASY_VECTOR_MSB (val, GET_MODE_INNER (mode));
 })
 
@@ -430,9 +435,12 @@
     op = XEXP (op, 0);
   else if (GET_CODE (op) == PRE_MODIFY)
     op = XEXP (op, 1);
+  else if (GET_CODE (op) == LO_SUM
+	   && GET_CODE (XEXP (op, 0)) == REG
+	   && GET_CODE (XEXP (op, 1)) == CONST)
+    op = XEXP (XEXP (op, 1), 0);
 
   return (GET_CODE (op) != PLUS
-	  || ! REG_P (XEXP (op, 0))
 	  || GET_CODE (XEXP (op, 1)) != CONST_INT
 	  || INTVAL (XEXP (op, 1)) % 4 == 0);
 })
@@ -735,20 +743,32 @@
 (define_predicate "lwa_operand"
   (match_code "reg,subreg,mem")
 {
-  rtx inner = op;
+  rtx inner, addr, offset;
 
+  inner = op;
   if (reload_completed && GET_CODE (inner) == SUBREG)
     inner = SUBREG_REG (inner);
 
-  return gpc_reg_operand (inner, mode)
-    || (memory_operand (inner, mode)
-	&& GET_CODE (XEXP (inner, 0)) != PRE_INC
-	&& GET_CODE (XEXP (inner, 0)) != PRE_DEC
-	&& (GET_CODE (XEXP (inner, 0)) != PRE_MODIFY
-	    || legitimate_indexed_address_p (XEXP (XEXP (inner, 0), 1), 0))
-	&& (GET_CODE (XEXP (inner, 0)) != PLUS
-	    || GET_CODE (XEXP (XEXP (inner, 0), 1)) != CONST_INT
-	    || INTVAL (XEXP (XEXP (inner, 0), 1)) % 4 == 0));
+  if (gpc_reg_operand (inner, mode))
+    return true;
+  if (!memory_operand (inner, mode))
+    return false;
+  addr = XEXP (inner, 0);
+  if (GET_CODE (addr) == PRE_INC
+      || GET_CODE (addr) == PRE_DEC
+      || (GET_CODE (addr) == PRE_MODIFY
+	  && !legitimate_indexed_address_p (XEXP (addr, 1), 0)))
+    return false;
+  if (GET_CODE (addr) == LO_SUM
+      && GET_CODE (XEXP (addr, 0)) == REG
+      && GET_CODE (XEXP (addr, 1)) == CONST)
+    addr = XEXP (XEXP (addr, 1), 0);
+  if (GET_CODE (addr) != PLUS)
+    return true;
+  offset = XEXP (addr, 1);
+  if (GET_CODE (offset) != CONST_INT)
+    return true;
+  return INTVAL (offset) % 4 == 0;
 })
 
 ;; Return 1 if the operand, used inside a MEM, is a SYMBOL_REF.
@@ -837,7 +857,7 @@
     return 1;
 
   /* A SYMBOL_REF referring to the TOC is valid.  */
-  if (legitimate_constant_pool_address_p (op))
+  if (legitimate_constant_pool_address_p (op, mode, false))
     return 1;
 
   /* A constant pool expression (relative to the TOC) is valid */
@@ -852,6 +872,23 @@
     return 1;
 
   return 0;
+})
+
+;; Return 1 if this operand is a valid input for a vsx_splat insn.
+(define_predicate "splat_input_operand"
+  (match_code "label_ref,symbol_ref,const,high,reg,subreg,mem,
+	       const_double,const_vector,const_int,plus")
+{
+  if (MEM_P (op))
+    {
+      if (mode == DFmode)
+	mode = V2DFmode;
+      else if (mode == DImode)
+	mode = V2DImode;
+      else
+	gcc_unreachable ();        
+    }
+  return input_operand (op, mode);
 })
 
 ;; Return true if OP is an invalid SUBREG operation on the e500.
@@ -902,6 +939,12 @@
 (define_predicate "scc_comparison_operator"
   (and (match_operand 0 "branch_comparison_operator")
        (match_code "eq,lt,gt,ltu,gtu,unordered")))
+
+;; Return 1 if OP is a comparison operation whose inverse would be valid for
+;; an SCC insn.
+(define_predicate "scc_rev_comparison_operator"
+  (and (match_operand 0 "branch_comparison_operator")
+       (match_code "ne,le,ge,leu,geu,ordered")))
 
 ;; Return 1 if OP is a comparison operation that is valid for a branch
 ;; insn, which is true if the corresponding bit in the CC register is set.

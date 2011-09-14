@@ -1,6 +1,7 @@
 // Queue implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+// 2010, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -49,9 +50,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_queue.h
+/** @file bits/stl_queue.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{queue}
  */
 
 #ifndef _STL_QUEUE_H
@@ -60,7 +61,9 @@
 #include <bits/concept_check.h>
 #include <debug/debug.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @brief  A standard container giving FIFO behavior.
@@ -137,16 +140,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       explicit
       queue(_Sequence&& __c = _Sequence())
       : c(std::move(__c)) { }
-
-      queue(queue&& __q)
-      : c(std::move(__q.c)) { }
-
-      queue&
-      operator=(queue&& __q)
-      {
-	c = std::move(__q.c);
-	return *this;
-      }
 #endif
 
       /**
@@ -207,7 +200,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Add data to the end of the %queue.
-       *  @param  x  Data to be added.
+       *  @param  __x  Data to be added.
        *
        *  This is a typical %queue operation.  The function creates an
        *  element at the end of the %queue and assigns the given data
@@ -250,14 +243,18 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       void
       swap(queue& __q)
-      { c.swap(__q.c); }
+      noexcept(noexcept(swap(c, __q.c)))
+      {
+	using std::swap;
+	swap(c, __q.c);
+      }
 #endif
     };
 
   /**
    *  @brief  Queue equality comparison.
-   *  @param  x  A %queue.
-   *  @param  y  A %queue of the same type as @a x.
+   *  @param  __x  A %queue.
+   *  @param  __y  A %queue of the same type as @a __x.
    *  @return  True iff the size and elements of the queues are equal.
    *
    *  This is an equivalence relation.  Complexity and semantics depend on the
@@ -272,9 +269,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief  Queue ordering relation.
-   *  @param  x  A %queue.
-   *  @param  y  A %queue of the same type as @a x.
-   *  @return  True iff @a x is lexicographically less than @a y.
+   *  @param  __x  A %queue.
+   *  @param  __y  A %queue of the same type as @a x.
+   *  @return  True iff @a __x is lexicographically less than @a __y.
    *
    *  This is an total ordering relation.  Complexity and semantics
    *  depend on the underlying sequence type, but the expected rules
@@ -316,7 +313,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp, typename _Seq>
     inline void
     swap(queue<_Tp, _Seq>& __x, queue<_Tp, _Seq>& __y)
+    noexcept(noexcept(__x.swap(__y)))
     { __x.swap(__y); }
+
+  template<typename _Tp, typename _Seq, typename _Alloc>
+    struct uses_allocator<queue<_Tp, _Seq>, _Alloc>
+    : public uses_allocator<_Seq, _Alloc>::type { };
 #endif
 
   /**
@@ -405,14 +407,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Builds a %queue from a range.
-       *  @param  first  An input iterator.
-       *  @param  last  An input iterator.
-       *  @param  x  A comparison functor describing a strict weak ordering.
-       *  @param  s  An initial sequence with which to start.
+       *  @param  __first  An input iterator.
+       *  @param  __last  An input iterator.
+       *  @param  __x  A comparison functor describing a strict weak ordering.
+       *  @param  __s  An initial sequence with which to start.
        *
-       *  Begins by copying @a s, inserting a copy of the elements
-       *  from @a [first,last) into the copy of @a s, then ordering
-       *  the copy according to @a x.
+       *  Begins by copying @a __s, inserting a copy of the elements
+       *  from @a [first,last) into the copy of @a __s, then ordering
+       *  the copy according to @a __x.
        *
        *  For more information on function objects, see the
        *  documentation on @link functors functor base
@@ -451,17 +453,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  c.insert(c.end(), __first, __last);
 	  std::make_heap(c.begin(), c.end(), comp);
 	}
-
-      priority_queue(priority_queue&& __pq)
-      : c(std::move(__pq.c)), comp(std::move(__pq.comp)) { }
-
-      priority_queue&
-      operator=(priority_queue&& __pq)
-      {
-	c = std::move(__pq.c);
-	comp = std::move(__pq.comp);
-	return *this;
-      }
 #endif
 
       /**
@@ -489,7 +480,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       /**
        *  @brief  Add data to the %queue.
-       *  @param  x  Data to be added.
+       *  @param  __x  Data to be added.
        *
        *  This is a typical %queue operation.
        *  The time complexity of the operation depends on the underlying
@@ -541,9 +532,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       void
       swap(priority_queue& __pq)
+      noexcept(noexcept(swap(c, __pq.c)) && noexcept(swap(comp, __pq.comp)))
       {
 	using std::swap;
-	c.swap(__pq.c);
+	swap(c, __pq.c);
 	swap(comp, __pq.comp);
       }
 #endif
@@ -556,9 +548,16 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     inline void
     swap(priority_queue<_Tp, _Sequence, _Compare>& __x,
 	 priority_queue<_Tp, _Sequence, _Compare>& __y)
+    noexcept(noexcept(__x.swap(__y)))
     { __x.swap(__y); }
+
+  template<typename _Tp, typename _Sequence, typename _Compare,
+	   typename _Alloc>
+    struct uses_allocator<priority_queue<_Tp, _Sequence, _Compare>, _Alloc>
+    : public uses_allocator<_Sequence, _Alloc>::type { };
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _STL_QUEUE_H */

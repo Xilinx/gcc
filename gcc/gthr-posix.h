@@ -1,7 +1,7 @@
 /* Threads compatibility routines for libgcc2 and libobjc.  */
 /* Compile this one with gcc.  */
 /* Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009 Free Software Foundation, Inc.
+   2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -39,7 +39,16 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 #include <pthread.h>
-#include <unistd.h>
+
+#if ((defined(_LIBOBJC) || defined(_LIBOBJC_WEAK)) \
+     || !defined(_GTHREAD_USE_MUTEX_TIMEDLOCK))
+# include <unistd.h>
+# if defined(_POSIX_TIMEOUTS) && _POSIX_TIMEOUTS >= 0
+#  define _GTHREAD_USE_MUTEX_TIMEDLOCK 1
+# else
+#  define _GTHREAD_USE_MUTEX_TIMEDLOCK 0
+# endif
+#endif
 
 typedef pthread_t __gthread_t;
 typedef pthread_key_t __gthread_key_t;
@@ -100,11 +109,9 @@ __gthrw3(sched_yield)
 
 __gthrw3(pthread_mutex_lock)
 __gthrw3(pthread_mutex_trylock)
-#ifdef _POSIX_TIMEOUTS
-#if _POSIX_TIMEOUTS >= 0
+#if _GTHREAD_USE_MUTEX_TIMEDLOCK
 __gthrw3(pthread_mutex_timedlock)
 #endif
-#endif /* _POSIX_TIMEOUTS */
 __gthrw3(pthread_mutex_unlock)
 __gthrw3(pthread_mutex_init)
 __gthrw3(pthread_mutex_destroy)
@@ -124,16 +131,16 @@ __gthrw(pthread_join)
 __gthrw(pthread_equal)
 __gthrw(pthread_self)
 __gthrw(pthread_detach)
+#ifndef __BIONIC__
 __gthrw(pthread_cancel)
+#endif
 __gthrw(sched_yield)
 
 __gthrw(pthread_mutex_lock)
 __gthrw(pthread_mutex_trylock)
-#ifdef _POSIX_TIMEOUTS
-#if _POSIX_TIMEOUTS >= 0
+#if _GTHREAD_USE_MUTEX_TIMEDLOCK
 __gthrw(pthread_mutex_timedlock)
 #endif
-#endif /* _POSIX_TIMEOUTS */
 __gthrw(pthread_mutex_unlock)
 __gthrw(pthread_mutex_init)
 __gthrw(pthread_mutex_destroy)
@@ -237,8 +244,15 @@ __gthread_active_p (void)
 static inline int
 __gthread_active_p (void)
 {
+/* Android's C library does not provide pthread_cancel, check for
+   `pthread_create' instead.  */
+#ifndef __BIONIC__
   static void *const __gthread_active_ptr
     = __extension__ (void *) &__gthrw_(pthread_cancel);
+#else
+  static void *const __gthread_active_ptr
+    = __extension__ (void *) &__gthrw_(pthread_create);
+#endif
   return __gthread_active_ptr != 0;
 }
 
@@ -250,61 +264,34 @@ __gthread_active_p (void)
    calls in shared flavors of the HP-UX C library.  Most of the stubs
    have no functionality.  The details are described in the "libc cumulative
    patch" for each subversion of HP-UX 11.  There are two special interfaces
-   provided for checking whether an application is linked to a pthread
+   provided for checking whether an application is linked to a shared pthread
    library or not.  However, these interfaces aren't available in early
-   libc versions.  We also can't use pthread_once as some libc versions
-   call the init function.  So, we use pthread_create to check whether it
-   is possible to create a thread or not.  The stub implementation returns
-   the error number ENOSYS.  */
+   libpthread libraries.  We also need a test that works for archive
+   libraries.  We can't use pthread_once as some libc versions call the
+   init function.  We also can't use pthread_create or pthread_attr_init
+   as these create a thread and thereby prevent changing the default stack
+   size.  The function pthread_default_stacksize_np is available in both
+   the archive and shared versions of libpthread.   It can be used to
+   determine the default pthread stack size.  There is a stub in some
+   shared libc versions which returns a zero size if pthreads are not
+   active.  We provide an equivalent stub to handle cases where libc
+   doesn't provide one.  */
 
 #if defined(__hppa__) && defined(__hpux__)
 
-#include <errno.h>
-
 static volatile int __gthread_active = -1;
-
-static void *
-__gthread_start (void *__arg __attribute__((unused)))
-{
-  return NULL;
-}
-
-static void __gthread_active_init (void) __attribute__((noinline));
-static void
-__gthread_active_init (void)
-{
-  static pthread_mutex_t __gthread_active_mutex = PTHREAD_MUTEX_INITIALIZER;
-  pthread_t __t;
-  pthread_attr_t __a;
-  int __result;
-
-  __gthrw_(pthread_mutex_lock) (&__gthread_active_mutex);
-  if (__gthread_active < 0)
-    {
-      __gthrw_(pthread_attr_init) (&__a);
-      __gthrw_(pthread_attr_setdetachstate) (&__a, PTHREAD_CREATE_DETACHED);
-      __result = __gthrw_(pthread_create) (&__t, &__a, __gthread_start, NULL);
-      if (__result != ENOSYS)
-	__gthread_active = 1;
-      else
-	__gthread_active = 0;
-      __gthrw_(pthread_attr_destroy) (&__a);
-    }
-  __gthrw_(pthread_mutex_unlock) (&__gthread_active_mutex);
-}
 
 static inline int
 __gthread_active_p (void)
 {
   /* Avoid reading __gthread_active twice on the main code path.  */
   int __gthread_active_latest_value = __gthread_active;
+  size_t __s;
 
-  /* This test is not protected to avoid taking a lock on the main code
-     path so every update of __gthread_active in a threaded program must
-     be atomic with regard to the result of the test.  */
   if (__builtin_expect (__gthread_active_latest_value < 0, 0))
     {
-      __gthread_active_init ();
+      pthread_default_stacksize_np (0, &__s);
+      __gthread_active = __s ? 1 : 0;
       __gthread_active_latest_value = __gthread_active;
     }
 
@@ -387,7 +374,8 @@ __gthread_objc_thread_detach (void (*func)(void *), void *arg)
   if (!__gthread_active_p ())
     return NULL;
 
-  if (!(__gthrw_(pthread_create) (&new_thread_handle, NULL, (void *) func, arg)))
+  if (!(__gthrw_(pthread_create) (&new_thread_handle, &_objc_thread_attribs,
+				  (void *) func, arg)))
     thread_id = (objc_thread_t) new_thread_handle;
   else
     thread_id = NULL;
@@ -769,8 +757,7 @@ __gthread_mutex_trylock (__gthread_mutex_t *__mutex)
     return 0;
 }
 
-#ifdef _POSIX_TIMEOUTS
-#if _POSIX_TIMEOUTS >= 0
+#if _GTHREAD_USE_MUTEX_TIMEDLOCK
 static inline int
 __gthread_mutex_timedlock (__gthread_mutex_t *__mutex,
 			   const __gthread_time_t *__abs_timeout)
@@ -780,7 +767,6 @@ __gthread_mutex_timedlock (__gthread_mutex_t *__mutex,
   else
     return 0;
 }
-#endif
 #endif
 
 static inline int
@@ -827,15 +813,13 @@ __gthread_recursive_mutex_trylock (__gthread_recursive_mutex_t *__mutex)
   return __gthread_mutex_trylock (__mutex);
 }
 
-#ifdef _POSIX_TIMEOUTS
-#if _POSIX_TIMEOUTS >= 0
+#if _GTHREAD_USE_MUTEX_TIMEDLOCK
 static inline int
 __gthread_recursive_mutex_timedlock (__gthread_recursive_mutex_t *__mutex,
 				     const __gthread_time_t *__abs_timeout)
 {
   return __gthread_mutex_timedlock (__mutex, __abs_timeout);
 }
-#endif
 #endif
 
 static inline int
