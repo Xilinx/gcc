@@ -1096,6 +1096,8 @@ source location.}#
 
 ;;; normalize local fixed binding
 (defun normbind_fixbind (bind env ncx procs psloc)
+  (if (is_not_a bind class_fixed_binding)
+      (debug_msg bind "normbind_fixbind bad bind"))
   (assert_msg "check bind" (is_a bind class_fixed_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -1103,16 +1105,18 @@ source location.}#
 	 (symb (unsafe_get_field :binder bind))
 	 (fixdat (unsafe_get_field :fixbind_data bind))
 	 )
-	  (if (null fixdat)
-	      (error_strv psloc "unresolved forward fixed reference to"
-			  (unsafe_get_field :named_name symb)
-			  )
-	    )
-	  (debug_msg fixdat "normexp_symbol fixdat")
-	  (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_data))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap symb fixdat)
-	  fixdat))
+    (debug_msg fixdat "normexp_symbol fixdat")
+    (if (null fixdat)
+	(progn 
+	  (debug_msg bind "normbind_fixbind strange bind")
+	  (error_strv psloc "unresolved forward fixed reference to"
+		      (unsafe_get_field :named_name symb)
+		      )
+	  ))
+    (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_data))
+    ;; cache the result & return it
+    (mapobject_put sycmap symb fixdat)
+    fixdat))
 (install_method class_fixed_binding  normalize_binding normbind_fixbind)
 
 ;; normalize local constructed binding
@@ -5610,10 +5614,17 @@ source location.}#
 	)
     (debug_msg namdata "normexp_define namdata")
     (debug_msg bindsel "normexp_define bindsel")
-    (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
-		(get_field :named_name sname))	
-    (assert_msg "$@$unimplemented normexp_define")
-    ))
+    (assert_msg "check body tuple" (is_multiple sbody))
+    (debug_msg sbody "normexp_define sbody")
+    (multicall
+     (nbody nbindings)
+     (normalize_tuple sbody env ncx sloc)
+     (debug_msg nbody "normexp_define nbody")
+     (debug_msg nbindings "normexp_define nbindings")
+     (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
+		 (get_field :named_name sname))	
+     (assert_msg "$@$unimplemented normexp_define")
+     )))
 (install_method class_source_define normal_exp normexp_define)
 
 

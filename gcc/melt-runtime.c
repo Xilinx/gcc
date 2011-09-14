@@ -11737,6 +11737,8 @@ void
 melt_fatal_info (const char*filename, int lineno)
 {
   int ix = 0;
+  char* workdir = NULL;
+  int workdirlen = 0;
   melt_module_info_t* mi=0;
   if (filename != NULL && lineno>0)
     error ("MELT fatal failure from %s:%d [MELT built %s]", filename, lineno, melt_runtime_build_date);
@@ -11744,6 +11746,12 @@ melt_fatal_info (const char*filename, int lineno)
     error ("MELT fatal failure without location [MELT built %s]", 
 	   melt_runtime_build_date);
   error ("MELT failed at %s:%d in directory %s", filename, lineno, getpwd());
+  workdir = melt_argument("workdir");
+  if (workdir && workdir[0]) 
+    {
+      workdirlen = (int) strlen(workdir);
+      error ("MELT failed with work directory %s", workdir);
+    }
   fflush (NULL);
 #if MELT_HAVE_DEBUG
   melt_dbgshortbacktrace ("MELT fatal failure", 100);
@@ -11752,14 +11760,21 @@ melt_fatal_info (const char*filename, int lineno)
     /* Index 0 is unused in melt_modinfvec!  */
     for (ix = 1; VEC_iterate (melt_module_info_t, melt_modinfvec, ix, mi); ix++)
       {
-	if (!mi || !mi->mmi_dlh || !mi->mmi_modpath || mi->mmi_magic != MELT_MODULE_MAGIC)
+	char*curmodpath = NULL;
+	if (!mi || !mi->mmi_dlh || !(curmodpath = mi->mmi_modpath) 
+	    || mi->mmi_magic != MELT_MODULE_MAGIC)
 	  continue;
-	error ("MELT failure with loaded module #%d: %s", ix, mi->mmi_modpath);
+	if (workdirlen>0 && !strncmp (workdir, curmodpath, workdirlen))
+	  error ("MELT failure with loaded work module #%d: %s", 
+		 ix, curmodpath+workdirlen);
+	else
+	  error ("MELT failure with loaded module #%d: %s", 
+		 ix, lbasename (curmodpath));
       };
   if (filename != NULL && lineno>0)
     error ("MELT got fatal failure from %s:%d", filename, lineno);
   if (cfun && cfun->decl)
-    error ("MELT got fatal failure with cfun %p for %q+D", 
+    error ("MELT got fatal failure with current function (cfun %p) as %q+D", 
 	   (void*) cfun, cfun->decl);
   if (current_pass) 
     error ("MELT got fatal failure from current_pass %p #%d named %s",
