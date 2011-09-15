@@ -608,8 +608,6 @@ package body Make is
 
    procedure Compute_Switches_For_Main
      (Main_Source_File  : in out File_Name_Type;
-      Main_Index        : Int;
-      Project_Node_Tree : Project_Node_Tree_Ref;
       Root_Environment  : in out Prj.Tree.Environment;
       Compute_Builder   : Boolean;
       Current_Work_Dir  : String);
@@ -671,7 +669,12 @@ package body Make is
    -- Compiler, Binder & Linker Data and Subprograms --
    ----------------------------------------------------
 
-   Gcc      : String_Access := Program_Name ("gcc", "gnatmake");
+   Gcc          : String_Access := Program_Name ("gcc", "gnatmake");
+   Original_Gcc : constant String_Access := Gcc;
+   --  Original_Gcc is used to check if Gcc has been modified by a switch
+   --  --GCC=, so that for VM platforms, it is not modified again, as it can
+   --  result in incorrect error messages if the compiler cannot be found.
+
    Gnatbind : String_Access := Program_Name ("gnatbind", "gnatmake");
    Gnatlink : String_Access := Program_Name ("gnatlink", "gnatmake");
    --  Default compiler, binder, linker programs
@@ -739,10 +742,8 @@ package body Make is
    procedure Add_Switches
      (The_Package                      : Package_Id;
       File_Name                        : String;
-      Index                            : Int;
       Program                          : Make_Program_Type;
       Unknown_Switches_To_The_Compiler : Boolean := True;
-      Project_Node_Tree                : Project_Node_Tree_Ref;
       Env                              : in out Prj.Tree.Environment);
    procedure Add_Switch
      (S             : String_Access;
@@ -764,7 +765,6 @@ package body Make is
 
    procedure Check
      (Source_File    : File_Name_Type;
-      Source_Index   : Int;
       Is_Main_Source : Boolean;
       The_Args       : Argument_List;
       Lib_File       : File_Name_Type;
@@ -1271,10 +1271,8 @@ package body Make is
    procedure Add_Switches
      (The_Package                      : Package_Id;
       File_Name                        : String;
-      Index                            : Int;
       Program                          : Make_Program_Type;
       Unknown_Switches_To_The_Compiler : Boolean := True;
-      Project_Node_Tree                : Project_Node_Tree_Ref;
       Env                              : in out Prj.Tree.Environment)
    is
       Switches    : Variable_Value;
@@ -1440,7 +1438,6 @@ package body Make is
 
    procedure Check
      (Source_File    : File_Name_Type;
-      Source_Index   : Int;
       Is_Main_Source : Boolean;
       The_Args       : Argument_List;
       Lib_File       : File_Name_Type;
@@ -3440,7 +3437,6 @@ package body Make is
 
                   if not Force_Compilations then
                      Check (Source_File    => Source.File,
-                            Source_Index   => Source.Index,
                             Is_Main_Source => Source.File = Main_Source,
                             The_Args       => Args,
                             Lib_File       => Lib_File,
@@ -5201,8 +5197,6 @@ package body Make is
 
    procedure Compute_Switches_For_Main
      (Main_Source_File  : in out File_Name_Type;
-      Main_Index        : Int;
-      Project_Node_Tree : Project_Node_Tree_Ref;
       Root_Environment  : in out Prj.Tree.Environment;
       Compute_Builder   : Boolean;
       Current_Work_Dir  : String)
@@ -5344,10 +5338,8 @@ package body Make is
                end if;
 
                Add_Switches
-                 (Project_Node_Tree => Project_Node_Tree,
-                  Env               => Root_Environment,
+                 (Env               => Root_Environment,
                   File_Name         => Main_Unit_File_Name,
-                  Index             => Main_Index,
                   The_Package       => Binder_Package,
                   Program           => Binder);
             end if;
@@ -5362,10 +5354,8 @@ package body Make is
                end if;
 
                Add_Switches
-                 (Project_Node_Tree => Project_Node_Tree,
-                  Env               => Root_Environment,
+                 (Env               => Root_Environment,
                   File_Name         => Main_Unit_File_Name,
-                  Index             => Main_Index,
                   The_Package       => Linker_Package,
                   Program           => Linker);
             end if;
@@ -5973,10 +5963,6 @@ package body Make is
          Gnatlink := Saved_Gnatlink;
       end if;
 
-      Gcc_Path       := GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
-      Gnatbind_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
-      Gnatlink_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
-
       Bad_Compilation.Init;
 
       --  If project files are used, create the mapping of all the sources, so
@@ -6028,8 +6014,6 @@ package body Make is
 
          Compute_Switches_For_Main
            (Main_Source_File,
-            Main_Index,
-            Project_Node_Tree,
             Root_Environment,
             Compute_Builder  => Is_First_Main,
             Current_Work_Dir => Current_Work_Dir.all);
@@ -6068,15 +6052,28 @@ package body Make is
                      --  instead.
 
                      Check_Object_Consistency := False;
-                     Gcc := new String'("jvm-gnatcompile");
+
+                     --  Do not modify Gcc is --GCC= was specified
+
+                     if Gcc = Original_Gcc then
+                        Gcc := new String'("jvm-gnatcompile");
+                     end if;
 
                   when Targparm.CLI_Target =>
-                     Gcc := new String'("dotnet-gnatcompile");
+                     --  Do not modify Gcc is --GCC= was specified
+
+                     if Gcc = Original_Gcc then
+                        Gcc := new String'("dotnet-gnatcompile");
+                     end if;
 
                   when Targparm.No_VM =>
                      raise Program_Error;
                end case;
             end if;
+
+            Gcc_Path       := GNAT.OS_Lib.Locate_Exec_On_Path (Gcc.all);
+            Gnatbind_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatbind.all);
+            Gnatlink_Path  := GNAT.OS_Lib.Locate_Exec_On_Path (Gnatlink.all);
 
             --  If we have specified -j switch both from the project file
             --  and on the command line, the one from the command line takes
@@ -7373,15 +7370,15 @@ package body Make is
 
          end if;
 
-      --  Then check if we are dealing with -cargs/-bargs/-largs/-margs
+      --  Then check if we are dealing with -cargs/-bargs/-largs/-margs. These
+      --  options are taken as is when found in package Compiler, Binder or
+      --  Linker of the main project file.
 
-      elsif Argv = "-bargs"
-              or else
-            Argv = "-cargs"
-              or else
-            Argv = "-largs"
-              or else
-            Argv = "-margs"
+      elsif (And_Save or else Program_Args = None)
+        and then (Argv = "-bargs" or else
+                  Argv = "-cargs" or else
+                  Argv = "-largs" or else
+                  Argv = "-margs")
       then
          case Argv (2) is
             when 'c' => Program_Args := Compiler;

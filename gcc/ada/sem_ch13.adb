@@ -710,7 +710,7 @@ package body Sem_Ch13 is
       --  or attribute definition node in either case to activate special
       --  processing (e.g. not traversing the list of homonyms for inline).
 
-      Delay_Required : Boolean;
+      Delay_Required : Boolean := False;
       --  Set True if delay is required
 
    begin
@@ -904,7 +904,7 @@ package body Sem_Ch13 is
 
                   --  Never need to delay for boolean aspects
 
-                  Delay_Required := False;
+                  pragma Assert (not Delay_Required);
 
                --  Library unit aspects. These are boolean aspects, but we
                --  have to do special things with the insertion, since the
@@ -944,7 +944,7 @@ package body Sem_Ch13 is
 
                   --  If not package declaration, no delay is required
 
-                  Delay_Required := False;
+                  pragma Assert (not Delay_Required);
 
                --  Aspects related to container iterators. These aspects denote
                --  subprograms, and thus must be delayed.
@@ -1046,7 +1046,8 @@ package body Sem_Ch13 is
                   --  to take care of it right away.
 
                   if Nkind_In (Expr, N_Integer_Literal, N_String_Literal) then
-                     Delay_Required := False;
+                     pragma Assert (not Delay_Required);
+                     null;
                   else
                      Delay_Required := True;
                      Set_Is_Delayed_Aspect (Aspect);
@@ -1073,7 +1074,7 @@ package body Sem_Ch13 is
                   --  We don't have to play the delay game here, since the only
                   --  values are check names which don't get analyzed anyway.
 
-                  Delay_Required := False;
+                  pragma Assert (not Delay_Required);
 
                --  Aspects corresponding to pragmas with two arguments, where
                --  the second argument is a local name referring to the entity,
@@ -1095,7 +1096,7 @@ package body Sem_Ch13 is
                   --  We don't have to play the delay game here, since the only
                   --  values are ON/OFF which don't get analyzed anyway.
 
-                  Delay_Required := False;
+                  pragma Assert (not Delay_Required);
 
                --  Default_Value and Default_Component_Value aspects. These
                --  are specially handled because they have no corresponding
@@ -1145,26 +1146,46 @@ package body Sem_Ch13 is
                         New_List (Ent, Relocate_Node (Expr)));
 
                   Set_From_Aspect_Specification (Aitem, True);
+                  Set_Corresponding_Aspect (Aitem, Aspect);
 
-               when Aspect_Priority | Aspect_Interrupt_Priority => declare
-                  Pname : Name_Id;
+                  pragma Assert (not Delay_Required);
 
-               begin
-                  if A_Id = Aspect_Priority then
-                     Pname := Name_Priority;
-                  else
-                     Pname := Name_Interrupt_Priority;
-                  end if;
+               when Aspect_Priority           |
+                    Aspect_Interrupt_Priority |
+                    Aspect_Dispatching_Domain |
+                    Aspect_CPU                =>
+                  declare
+                     Pname : Name_Id;
 
-                  Aitem :=
-                    Make_Pragma (Loc,
-                      Pragma_Identifier            =>
-                        Make_Identifier (Sloc (Id), Pname),
-                      Pragma_Argument_Associations =>
-                        New_List (Relocate_Node (Expr)));
+                  begin
+                     if A_Id = Aspect_Priority then
+                        Pname := Name_Priority;
 
-                  Set_From_Aspect_Specification (Aitem, True);
-               end;
+                     elsif A_Id = Aspect_Interrupt_Priority then
+                        Pname := Name_Interrupt_Priority;
+
+                     elsif A_Id = Aspect_CPU then
+                        Pname := Name_CPU;
+
+                     else
+                        Pname := Name_Dispatching_Domain;
+                     end if;
+
+                     Aitem :=
+                       Make_Pragma (Loc,
+                           Pragma_Identifier            =>
+                             Make_Identifier (Sloc (Id), Pname),
+                           Pragma_Argument_Associations =>
+                             New_List
+                               (Make_Pragma_Argument_Association
+                                  (Sloc       => Sloc (Id),
+                                   Expression => Relocate_Node (Expr))));
+
+                     Set_From_Aspect_Specification (Aitem, True);
+                     Set_Corresponding_Aspect (Aitem, Aspect);
+
+                     pragma Assert (not Delay_Required);
+                  end;
 
                --  Aspects Pre/Post generate Precondition/Postcondition pragmas
                --  with a first argument that is the expression, and a second
@@ -1240,6 +1261,7 @@ package body Sem_Ch13 is
                   end if;
 
                   Set_From_Aspect_Specification (Aitem, True);
+                  Set_Corresponding_Aspect (Aitem, Aspect);
                   Set_Is_Delayed_Aspect (Aspect);
 
                   --  For Pre/Post cases, insert immediately after the entity
@@ -1270,14 +1292,9 @@ package body Sem_Ch13 is
                when Aspect_Invariant      |
                     Aspect_Type_Invariant =>
 
-                  --  Check placement legality
-
-                  if not Nkind_In (N, N_Private_Type_Declaration,
-                                      N_Private_Extension_Declaration)
-                  then
-                     Error_Msg_N
-                       ("invariant aspect must apply to a private type", N);
-                  end if;
+                  --  Analysis of the pragma will verify placement legality:
+                  --  an invariant must apply to a private type, or appear in
+                  --  the private part of a spec and apply to a completion.
 
                   --  Construct the pragma
 
@@ -1302,6 +1319,7 @@ package body Sem_Ch13 is
                   end if;
 
                   Set_From_Aspect_Specification (Aitem, True);
+                  Set_Corresponding_Aspect (Aitem, Aspect);
                   Set_Is_Delayed_Aspect (Aspect);
 
                   --  For Invariant case, insert immediately after the entity
@@ -1331,14 +1349,7 @@ package body Sem_Ch13 is
                         Make_Identifier (Sloc (Id), Name_Predicate));
 
                   Set_From_Aspect_Specification (Aitem, True);
-
-                  --  Set special flags for dynamic/static cases
-
-                  if A_Id = Aspect_Dynamic_Predicate then
-                     Set_From_Dynamic_Predicate (Aitem);
-                  elsif A_Id = Aspect_Static_Predicate then
-                     Set_From_Static_Predicate (Aitem);
-                  end if;
+                  Set_Corresponding_Aspect (Aitem, Aspect);
 
                   --  Make sure we have a freeze node (it might otherwise be
                   --  missing in cases like subtype X is Y, and we would not
@@ -1412,6 +1423,7 @@ package body Sem_Ch13 is
                         Args);
 
                   Set_From_Aspect_Specification (Aitem, True);
+                  Set_Corresponding_Aspect (Aitem, Aspect);
                   Set_Is_Delayed_Aspect (Aspect);
 
                   --  Insert immediately after the entity declaration
@@ -1430,6 +1442,11 @@ package body Sem_Ch13 is
             if Delay_Required then
                if Present (Aitem) then
                   Set_From_Aspect_Specification (Aitem, True);
+
+                  if Nkind (Aitem) = N_Pragma then
+                     Set_Corresponding_Aspect (Aitem, Aspect);
+                  end if;
+
                   Set_Is_Delayed_Aspect (Aitem);
                   Set_Aspect_Rep_Item (Aspect, Aitem);
                end if;
@@ -1442,6 +1459,10 @@ package body Sem_Ch13 is
 
             else
                Set_From_Aspect_Specification (Aitem, True);
+
+               if Nkind (Aitem) = N_Pragma then
+                  Set_Corresponding_Aspect (Aitem, Aspect);
+               end if;
 
                --  If this is a compilation unit, we will put the pragma in
                --  the Pragmas_After list of the N_Compilation_Unit_Aux node.
@@ -1481,9 +1502,13 @@ package body Sem_Ch13 is
 
                      --  For Priority aspects, insert into the task or
                      --  protected definition, which we need to create if it's
-                     --  not there.
+                     --  not there. The same applies to CPU and
+                     --  Dispatching_Domain but only to tasks.
 
-                     when Aspect_Priority | Aspect_Interrupt_Priority =>
+                     when Aspect_Priority           |
+                          Aspect_Interrupt_Priority |
+                          Aspect_Dispatching_Domain |
+                          Aspect_CPU                =>
                         declare
                            T : Node_Id; -- the type declaration
                            L : List_Id; -- list of decls of task/protected
@@ -1491,12 +1516,14 @@ package body Sem_Ch13 is
                         begin
                            if Nkind (N) = N_Object_Declaration then
                               T := Parent (Etype (Defining_Identifier (N)));
-
                            else
                               T := N;
                            end if;
 
-                           if Nkind (T) = N_Protected_Type_Declaration then
+                           if Nkind (T) = N_Protected_Type_Declaration
+                             and then A_Id /= Aspect_Dispatching_Domain
+                             and then A_Id /= Aspect_CPU
+                           then
                               pragma Assert
                                 (Present (Protected_Definition (T)));
 
@@ -1513,17 +1540,22 @@ package body Sem_Ch13 is
                                        End_Label => Empty));
                               end if;
 
-                              L := Visible_Declarations
-                                     (Task_Definition (T));
+                              L := Visible_Declarations (Task_Definition (T));
 
                            else
                               raise Program_Error;
                            end if;
 
                            Prepend (Aitem, To => L);
+
+                           --  Analyze rewritten pragma. Otherwise, its
+                           --  analysis is done too late, after the task or
+                           --  protected object has been created.
+
+                           Analyze (Aitem);
                         end;
 
-                  --  For all other cases, insert in sequence
+                     --  For all other cases, insert in sequence
 
                      when others =>
                         Insert_After (Ins_Node, Aitem);
@@ -1899,7 +1931,7 @@ package body Sem_Ch13 is
                Get_First_Interp (Expr, I, It);
                while Present (It.Nam) loop
                   if not Check_Primitive_Function (It.Nam)
-                    or else Valid_Default_Iterator (It.Nam)
+                    or else not Valid_Default_Iterator (It.Nam)
                   then
                      Remove_Interp (I);
 
@@ -2004,10 +2036,10 @@ package body Sem_Ch13 is
       end if;
 
       --  Process Ignore_Rep_Clauses option (we also ignore rep clauses in
-      --  CodePeer mode or ALFA mode, since they are not relevant in these
+      --  CodePeer mode or Alfa mode, since they are not relevant in these
       --  contexts).
 
-      if Ignore_Rep_Clauses or CodePeer_Mode or ALFA_Mode then
+      if Ignore_Rep_Clauses or CodePeer_Mode or Alfa_Mode then
          case Id is
 
             --  The following should be ignored. They do not affect legality
@@ -2027,7 +2059,7 @@ package body Sem_Ch13 is
                Rewrite (N, Make_Null_Statement (Sloc (N)));
                return;
 
-            --  We do not want too ignore 'Small in CodePeer_Mode or ALFA_Mode,
+            --  We do not want too ignore 'Small in CodePeer_Mode or Alfa_Mode,
             --  since it has an impact on the exact computations performed.
 
             --  Perhaps 'Small should also not be ignored by
@@ -3899,9 +3931,7 @@ package body Sem_Ch13 is
             --  This seems dubious, this destroys the source tree in a manner
             --  not detectable by ASIS ???
 
-            if Operating_Mode = Check_Semantics
-              and then ASIS_Mode
-            then
+            if Operating_Mode = Check_Semantics and then ASIS_Mode then
                AtM_Nod :=
                  Make_Attribute_Definition_Clause (Loc,
                    Name       => New_Reference_To (Base_Type (Rectype), Loc),
@@ -4711,10 +4741,15 @@ package body Sem_Ch13 is
             if Nkind (Ritem) = N_Pragma
               and then Pragma_Name (Ritem) = Name_Predicate
             then
-               if From_Dynamic_Predicate (Ritem) then
-                  Dynamic_Predicate_Present := True;
-               elsif From_Static_Predicate (Ritem) then
-                  Static_Predicate_Present := Ritem;
+               if Present (Corresponding_Aspect (Ritem)) then
+                  case Chars (Identifier (Corresponding_Aspect (Ritem))) is
+                     when Name_Dynamic_Predicate =>
+                        Dynamic_Predicate_Present := True;
+                     when Name_Static_Predicate =>
+                        Static_Predicate_Present := Ritem;
+                     when others =>
+                        null;
+                  end case;
                end if;
 
                --  Acquire arguments
@@ -5762,8 +5797,13 @@ package body Sem_Ch13 is
             A_Id = Aspect_Default_Iterator  or else
             A_Id = Aspect_Iterator_Element
       then
+         --  Make type unfrozen before analysis, to prevent spurious errors
+         --  about late attributes.
+
+         Set_Is_Frozen (Ent, False);
          Analyze (End_Decl_Expr);
          Analyze (Aspect_Rep_Item (ASN));
+         Set_Is_Frozen (Ent, True);
 
          --  If the end of declarations comes before any other freeze
          --  point, the Freeze_Expr is not analyzed: no check needed.
@@ -5863,6 +5903,12 @@ package body Sem_Ch13 is
 
          when Aspect_Bit_Order =>
             T := RTE (RE_Bit_Order);
+
+         when Aspect_CPU =>
+            T := RTE (RE_CPU_Range);
+
+         when Aspect_Dispatching_Domain =>
+            T := RTE (RE_Dispatching_Domain);
 
          when Aspect_External_Tag =>
             T := Standard_String;

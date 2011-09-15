@@ -422,7 +422,6 @@ package body Ada.Exceptions is
    procedure Rcheck_19 (File : System.Address; Line : Integer);
    procedure Rcheck_20 (File : System.Address; Line : Integer);
    procedure Rcheck_21 (File : System.Address; Line : Integer);
-   procedure Rcheck_22 (File : System.Address; Line : Integer);
    procedure Rcheck_23 (File : System.Address; Line : Integer);
    procedure Rcheck_24 (File : System.Address; Line : Integer);
    procedure Rcheck_25 (File : System.Address; Line : Integer);
@@ -444,6 +443,14 @@ package body Ada.Exceptions is
      (File : System.Address; Line, Column, Index, First, Last : Integer);
    procedure Rcheck_12_Ext
      (File : System.Address; Line, Column, Index, First, Last : Integer);
+
+   procedure Rcheck_22 (File : System.Address; Line : Integer);
+   --  This routine is separated out because it has quite different behavior
+   --  from the others. This is the "finalize/adjust raised exception". This
+   --  subprogram is always called with abort deferred, unlike all other
+   --  Rcheck_* routines, it needs to call Raise_Exception_No_Defer.
+   --
+   --  It should probably have a distinguished name ???
 
    pragma Export (C, Rcheck_00, "__gnat_rcheck_00");
    pragma Export (C, Rcheck_01, "__gnat_rcheck_01");
@@ -762,6 +769,20 @@ package body Ada.Exceptions is
    --  in case we do not want any exception tracing support. This is
    --  why this package is separated.
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Index : Integer) return String is
+      Result : constant String := Integer'Image (Index);
+   begin
+      if Result (1) = ' ' then
+         return Result (2 .. Result'Last);
+      else
+         return Result;
+      end if;
+   end Image;
+
    -----------------------
    -- Stream Attributes --
    -----------------------
@@ -847,6 +868,22 @@ package body Ada.Exceptions is
       end if;
       Raise_Current_Excep (E);
    end Raise_Exception_Always;
+
+   ------------------------------
+   -- Raise_Exception_No_Defer --
+   ------------------------------
+
+   procedure Raise_Exception_No_Defer
+     (E       : Exception_Id;
+      Message : String := "")
+   is
+   begin
+      Exception_Data.Set_Exception_Msg (E, Message);
+
+      --  Do not call Abort_Defer.all, as specified by the spec
+
+      Raise_Current_Excep (E);
+   end Raise_Exception_No_Defer;
 
    -------------------------------------
    -- Raise_From_Controlled_Operation --
@@ -1007,20 +1044,6 @@ package body Ada.Exceptions is
       Raise_Current_Excep (E);
    end Raise_With_Msg;
 
-   -----------
-   -- Image --
-   -----------
-
-   function Image (Index : Integer) return String is
-      Result : constant String := Integer'Image (Index);
-   begin
-      if Result (1) = ' ' then
-         return Result (2 .. Result'Last);
-      else
-         return Result;
-      end if;
-   end Image;
-
    --------------------------------------
    -- Calls to Run-Time Check Routines --
    --------------------------------------
@@ -1135,11 +1158,6 @@ package body Ada.Exceptions is
       Raise_Program_Error_Msg (File, Line, Rmsg_21'Address);
    end Rcheck_21;
 
-   procedure Rcheck_22 (File : System.Address; Line : Integer) is
-   begin
-      Raise_Program_Error_Msg (File, Line, Rmsg_22'Address);
-   end Rcheck_22;
-
    procedure Rcheck_23 (File : System.Address; Line : Integer) is
    begin
       Raise_Program_Error_Msg (File, Line, Rmsg_23'Address);
@@ -1238,6 +1256,24 @@ package body Ada.Exceptions is
       Raise_Constraint_Error_Msg (File, Line, Column, Msg'Address);
    end Rcheck_12_Ext;
 
+   ---------------
+   -- Rcheck_22 --
+   ---------------
+
+   procedure Rcheck_22 (File : System.Address; Line : Integer) is
+      E : constant Exception_Id := Program_Error_Def'Access;
+
+   begin
+      --  This is "finalize/adjust raised exception". This subprogram is always
+      --  called with abort deferred, unlike all other Rcheck_* routines, it
+      --  needs to call Raise_Exception_No_Defer.
+
+      --  This is consistent with Raise_From_Controlled_Operation
+
+      Exception_Data.Set_Exception_C_Msg (E, File, Line, 0, Rmsg_22'Address);
+      Raise_Current_Excep (E);
+   end Rcheck_22;
+
    -------------
    -- Reraise --
    -------------
@@ -1319,18 +1355,6 @@ package body Ada.Exceptions is
       return Target;
    end Save_Occurrence;
 
-   -------------------------
-   -- Transfer_Occurrence --
-   -------------------------
-
-   procedure Transfer_Occurrence
-     (Target : Exception_Occurrence_Access;
-      Source : Exception_Occurrence)
-   is
-   begin
-      Save_Occurrence (Target.all, Source);
-   end Transfer_Occurrence;
-
    -------------------
    -- String_To_EId --
    -------------------
@@ -1344,22 +1368,6 @@ package body Ada.Exceptions is
 
    function String_To_EO (S : String) return Exception_Occurrence
      renames Stream_Attributes.String_To_EO;
-
-   ------------------------------
-   -- Raise_Exception_No_Defer --
-   ------------------------------
-
-   procedure Raise_Exception_No_Defer
-     (E       : Exception_Id;
-      Message : String := "")
-   is
-   begin
-      Exception_Data.Set_Exception_Msg (E, Message);
-
-      --  Do not call Abort_Defer.all, as specified by the spec
-
-      Raise_Current_Excep (E);
-   end Raise_Exception_No_Defer;
 
    ---------------
    -- To_Stderr --
@@ -1383,6 +1391,30 @@ package body Ada.Exceptions is
          end if;
       end loop;
    end To_Stderr;
+
+   -------------------------
+   -- Transfer_Occurrence --
+   -------------------------
+
+   procedure Transfer_Occurrence
+     (Target : Exception_Occurrence_Access;
+      Source : Exception_Occurrence)
+   is
+   begin
+      Save_Occurrence (Target.all, Source);
+   end Transfer_Occurrence;
+
+   ------------------------
+   -- Triggered_By_Abort --
+   ------------------------
+
+   function Triggered_By_Abort return Boolean is
+      Ex : constant Exception_Occurrence_Access := Get_Current_Excep.all;
+
+   begin
+      return Ex /= null
+        and then Exception_Identity (Ex.all) = Standard'Abort_Signal'Identity;
+   end Triggered_By_Abort;
 
    -------------------------
    -- Wide_Exception_Name --

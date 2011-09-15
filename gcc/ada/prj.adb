@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with Debug;
+with Opt;
 with Osint;    use Osint;
 with Output;   use Output;
 with Prj.Attr;
@@ -357,7 +358,6 @@ package body Prj is
 
       Name_Len := Name_Len - 1;
       return Name_Find;
-
    end Extend_Name;
 
    ---------------------
@@ -366,8 +366,10 @@ package body Prj is
 
    procedure Project_Changed (Iter : in out Source_Iterator) is
    begin
-      Iter.Language := Iter.Project.Project.Languages;
-      Language_Changed (Iter);
+      if Iter.Project /= null then
+         Iter.Language := Iter.Project.Project.Languages;
+         Language_Changed (Iter);
+      end if;
    end Project_Changed;
 
    ----------------------
@@ -376,7 +378,7 @@ package body Prj is
 
    procedure Language_Changed (Iter : in out Source_Iterator) is
    begin
-      Iter.Current  := No_Source;
+      Iter.Current := No_Source;
 
       if Iter.Language_Name /= No_Name then
          while Iter.Language /= null
@@ -391,11 +393,7 @@ package body Prj is
       if Iter.Language = No_Language_Index then
          if Iter.All_Projects then
             Iter.Project := Iter.Project.Next;
-
-            if Iter.Project /= null then
-               Project_Changed (Iter);
-            end if;
-
+            Project_Changed (Iter);
          else
             Iter.Project := null;
          end if;
@@ -493,7 +491,6 @@ package body Prj is
          Tree    : Project_Tree_Ref)
       is
          List : Project_List;
-         Agg  : Aggregated_Project_List;
 
       begin
          if not Get (Seen, Project) then
@@ -523,14 +520,18 @@ package body Prj is
             --  Visit all aggregated projects
 
             if Include_Aggregated
-              and then Project.Qualifier = Aggregate
+              and then Project.Qualifier in Aggregate_Project
             then
-               Agg := Project.Aggregated_Projects;
-               while Agg /= null loop
-                  pragma Assert (Agg.Project /= No_Project);
-                  Recursive_Check (Agg.Project, Agg.Tree);
-                  Agg := Agg.Next;
-               end loop;
+               declare
+                  Agg : Aggregated_Project_List;
+               begin
+                  Agg := Project.Aggregated_Projects;
+                  while Agg /= null loop
+                     pragma Assert (Agg.Project /= No_Project);
+                     Recursive_Check (Agg.Project, Agg.Tree);
+                     Agg := Agg.Next;
+                  end loop;
+               end;
             end if;
 
             if Imported_First then
@@ -625,6 +626,7 @@ package body Prj is
                Include_Aggregated => False,
                With_State         => Result);
          end if;
+
       else
          Look_For_Sources (No_Project, In_Tree, Result);
       end if;
@@ -697,6 +699,11 @@ package body Prj is
          The_Empty_String := Name_Find;
 
          Prj.Attr.Initialize;
+
+         --  Make sure that new reserved words after Ada 95 may be used as
+         --  identifiers.
+
+         Opt.Ada_Version := Opt.Ada_95;
 
          Set_Name_Table_Byte (Name_Project,  Token_Type'Pos (Tok_Project));
          Set_Name_Table_Byte (Name_Extends,  Token_Type'Pos (Tok_Extends));
@@ -847,7 +854,7 @@ package body Prj is
          Free_List (Project.Languages);
 
          case Project.Qualifier is
-            when Aggregate =>
+            when Aggregate | Aggregate_Library =>
                Free (Project.Aggregated_Projects);
 
             when others =>
@@ -1357,8 +1364,8 @@ package body Prj is
          procedure For_All_Projects is
            new For_Every_Project_Imported (Boolean, Recursive_Add);
 
-         Dummy   : Boolean := False;
-         List    : Project_List;
+         Dummy : Boolean := False;
+         List  : Project_List;
 
       begin
          List := Local_Tree.Projects;
@@ -1652,10 +1659,11 @@ package body Prj is
       Root_Tree    : Project_Tree_Ref)
    is
       Agg : Aggregated_Project_List;
+
    begin
       Action (Root_Project, Root_Tree);
 
-      if Root_Project.Qualifier = Aggregate then
+      if Root_Project.Qualifier in Aggregate_Project then
          Agg := Root_Project.Aggregated_Projects;
          while Agg /= null loop
             For_Project_And_Aggregated (Agg.Project, Agg.Tree);
@@ -1663,6 +1671,8 @@ package body Prj is
          end loop;
       end if;
    end For_Project_And_Aggregated;
+
+--  Package initialization for Prj
 
 begin
    --  Make sure that the standard config and user project file extensions are

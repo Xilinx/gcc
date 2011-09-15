@@ -203,6 +203,7 @@ static void append_type_to_template_for_access_check_1 (tree, tree, tree,
 static tree listify (tree);
 static tree listify_autos (tree, tree);
 static tree template_parm_to_arg (tree t);
+static bool arg_from_parm_pack_p (tree, tree);
 static tree current_template_args (void);
 static tree fixup_template_type_parm_type (tree, int);
 static tree fixup_template_parm_index (tree, tree, int);
@@ -2741,12 +2742,15 @@ template_parameter_pack_p (const_tree parm)
   if (TREE_CODE (parm) == PARM_DECL)
     return (DECL_TEMPLATE_PARM_P (parm) 
             && TEMPLATE_PARM_PARAMETER_PACK (DECL_INITIAL (parm)));
+  if (TREE_CODE (parm) == TEMPLATE_PARM_INDEX)
+    return TEMPLATE_PARM_PARAMETER_PACK (parm);
 
   /* If this is a list of template parameters, we could get a
      TYPE_DECL or a TEMPLATE_DECL.  */ 
   if (TREE_CODE (parm) == TYPE_DECL || TREE_CODE (parm) == TEMPLATE_DECL)
     parm = TREE_TYPE (parm);
 
+  /* Otherwise it must be a type template parameter.  */
   return ((TREE_CODE (parm) == TEMPLATE_TYPE_PARM
 	   || TREE_CODE (parm) == TEMPLATE_TEMPLATE_PARM)
 	  && TEMPLATE_TYPE_PARAMETER_PACK (parm));
@@ -4003,6 +4007,63 @@ template_parm_to_arg (tree t)
 	}
     }
   return t;
+}
+
+/* This function returns TRUE if PARM_PACK is a template parameter
+   pack and if ARG_PACK is what template_parm_to_arg returned when
+   passed PARM_PACK.  */
+
+static bool
+arg_from_parm_pack_p (tree arg_pack, tree parm_pack)
+{
+  /* For clarity in the comments below let's use the representation
+     argument_pack<elements>' to denote an argument pack and its
+     elements.
+
+     In the 'if' block below, we want to detect cases where
+     ARG_PACK is argument_pack<PARM_PACK...>.  I.e, we want to
+     check if ARG_PACK is an argument pack which sole element is
+     the expansion of PARM_PACK.  That argument pack is typically
+     created by template_parm_to_arg when passed a parameter
+     pack.  */
+
+  if (arg_pack
+      && TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg_pack)) == 1
+      && PACK_EXPANSION_P (TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0)))
+    {
+      tree expansion = TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0);
+      tree pattern = PACK_EXPANSION_PATTERN (expansion);
+      /* So we have an argument_pack<P...>.  We want to test if P
+	 is actually PARM_PACK.  We will not use cp_tree_equal to
+	 test P and PARM_PACK because during type fixup (by
+	 fixup_template_parm) P can be a pre-fixup version of a
+	 type and PARM_PACK be its post-fixup version.
+	 cp_tree_equal would consider them as different even
+	 though we would want to consider them compatible for our
+	 precise purpose here.
+
+	 Thus we are going to consider that P and PARM_PACK are
+	 compatible if they have the same DECL.  */
+      if ((/* If ARG_PACK is a type parameter pack named by the
+	      same DECL as parm_pack ...  */
+	   (TYPE_P (pattern)
+	    && TYPE_P (parm_pack)
+	    && TYPE_NAME (pattern) == TYPE_NAME (parm_pack))
+	   /* ... or if PARM_PACK is a non-type parameter named by the
+	      same DECL as ARG_PACK.  Note that PARM_PACK being a
+	      non-type parameter means it's either a PARM_DECL or a
+	      TEMPLATE_PARM_INDEX.  */
+	   || (TREE_CODE (pattern) == TEMPLATE_PARM_INDEX
+	       && ((TREE_CODE (parm_pack) == PARM_DECL
+		    && (TEMPLATE_PARM_DECL (pattern)
+			== TEMPLATE_PARM_DECL (DECL_INITIAL (parm_pack))))
+		   || (TREE_CODE (parm_pack) == TEMPLATE_PARM_INDEX
+		       && (TEMPLATE_PARM_DECL (pattern)
+			   == TEMPLATE_PARM_DECL (parm_pack))))))
+	  && template_parameter_pack_p (pattern))
+	return true;
+    }
+  return false;
 }
 
 /* Within the declaration of a template, return all levels of template
@@ -9105,53 +9166,13 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 	  return result;
 	}
 
-      /* For clarity in the comments below let's use the
-	 representation 'argument_pack<elements>' to denote an
-	 argument pack and its elements.
-
-	 In the 'if' block below, we want to detect cases where
-	 ARG_PACK is argument_pack<PARM_PACK...>.  I.e, we want to
-	 check if ARG_PACK is an argument pack which sole element is
-	 the expansion of PARM_PACK.  That argument pack is typically
-	 created by template_parm_to_arg when passed a parameter
-	 pack.  */
-      if (arg_pack
-          && TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg_pack)) == 1
-          && PACK_EXPANSION_P (TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0)))
-        {
-          tree expansion = TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0);
-          tree pattern = PACK_EXPANSION_PATTERN (expansion);
-	  /* So we have an argument_pack<P...>.  We want to test if P
-	     is actually PARM_PACK.  We will not use cp_tree_equal to
-	     test P and PARM_PACK because during type fixup (by
-	     fixup_template_parm) P can be a pre-fixup version of a
-	     type and PARM_PACK be its post-fixup version.
-	     cp_tree_equal would consider them as different even
-	     though we would want to consider them compatible for our
-	     precise purpose here.
-
-	     Thus we are going to consider that P and PARM_PACK are
-	     compatible if they have the same DECL.  */
-	  if ((/* If ARG_PACK is a type parameter pack named by the
-		  same DECL as parm_pack ...  */
-	       (TYPE_P (pattern)
-		&& TYPE_P (parm_pack)
-		&& TYPE_NAME (pattern) == TYPE_NAME (parm_pack))
-	       /* ... or if ARG_PACK is a non-type parameter
-		  named by the same DECL as parm_pack ...  */
-	       || (TREE_CODE (pattern) == TEMPLATE_PARM_INDEX
-		   && TREE_CODE (parm_pack) == PARM_DECL
-		   && TEMPLATE_PARM_DECL (pattern)
-		   == TEMPLATE_PARM_DECL (DECL_INITIAL (parm_pack))))
-	      && template_parameter_pack_p (pattern))
-            /* ... then the argument pack that the parameter maps to
-               is just an expansion of the parameter itself, such as
-               one would find in the implicit typedef of a class
-               inside the class itself.  Consider this parameter
-               "unsubstituted", so that we will maintain the outer
-               pack expansion.  */
-            arg_pack = NULL_TREE;
-        }
+      if (arg_from_parm_pack_p (arg_pack, parm_pack))
+	/* The argument pack that the parameter maps to is just an
+	   expansion of the parameter itself, such as one would find
+	   in the implicit typedef of a class inside the class itself.
+	   Consider this parameter "unsubstituted", so that we will
+	   maintain the outer pack expansion.  */
+	arg_pack = NULL_TREE;
           
       if (arg_pack)
         {
@@ -9590,14 +9611,13 @@ tsubst_aggr_type (tree t,
 	  /* First, determine the context for the type we are looking
 	     up.  */
 	  context = TYPE_CONTEXT (t);
-	  if (context)
+	  if (context && TYPE_P (context))
 	    {
 	      context = tsubst_aggr_type (context, args, complain,
 					  in_decl, /*entering_scope=*/1);
 	      /* If context is a nested class inside a class template,
 	         it may still need to be instantiated (c++/33959).  */
-	      if (TYPE_P (context))
-		context = complete_type (context);
+	      context = complete_type (context);
 	    }
 
 	  /* Then, figure out what arguments are appropriate for the
@@ -14710,10 +14730,18 @@ type_unification_real (tree tparms,
 
 	  if (same_type_p (parm, type))
 	    continue;
-	  if (strict != DEDUCE_EXACT
-	      && can_convert_arg (parm, type, TYPE_P (arg) ? NULL_TREE : arg,
-				  flags))
-	    continue;
+	  if (strict == DEDUCE_CONV)
+	    {
+	      if (can_convert_arg (type, parm, NULL_TREE, flags))
+		continue;
+	    }
+	  else if (strict != DEDUCE_EXACT)
+	    {
+	      if (can_convert_arg (parm, type,
+				   TYPE_P (arg) ? NULL_TREE : arg,
+				   flags))
+		continue;
+	    }
 
 	  if (strict == DEDUCE_EXACT)
 	    return unify_type_mismatch (explain_p, parm, arg);
@@ -14805,6 +14833,10 @@ type_unification_real (tree tparms,
 
   if (!subr)
     {
+      tsubst_flags_t complain = (explain_p
+				 ? tf_warning_or_error
+				 : tf_none);
+
       /* Check to see if we need another pass before we start clearing
 	 ARGUMENT_PACK_INCOMPLETE_P.  */
       for (i = 0; i < ntparms; i++)
@@ -14855,11 +14887,8 @@ type_unification_real (tree tparms,
 	    {
 	      tree parm = TREE_VALUE (TREE_VEC_ELT (tparms, i));
 	      tree arg = TREE_PURPOSE (TREE_VEC_ELT (tparms, i));
-	      arg = tsubst_template_arg (arg, targs, tf_none, NULL_TREE);
-	      arg = convert_template_argument (parm, arg, targs,
-					       (explain_p
-						? tf_warning_or_error
-						: tf_none),
+	      arg = tsubst_template_arg (arg, targs, complain, NULL_TREE);
+	      arg = convert_template_argument (parm, arg, targs, complain,
 					       i, NULL_TREE);
 	      if (arg == error_mark_node)
 		return 1;

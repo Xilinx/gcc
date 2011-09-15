@@ -1198,8 +1198,9 @@ class Call_expression : public Expression
 		  source_location location)
     : Expression(EXPRESSION_CALL, location),
       fn_(fn), args_(args), type_(NULL), results_(NULL), tree_(NULL),
-      is_varargs_(is_varargs), varargs_are_lowered_(false),
-      types_are_determined_(false), is_deferred_(false), issued_error_(false)
+      is_varargs_(is_varargs), are_hidden_fields_ok_(false),
+      varargs_are_lowered_(false), types_are_determined_(false),
+      is_deferred_(false), issued_error_(false)
   { }
 
   // The function to call.
@@ -1243,6 +1244,17 @@ class Call_expression : public Expression
   bool
   is_varargs() const
   { return this->is_varargs_; }
+
+  // Note that varargs have already been lowered.
+  void
+  set_varargs_are_lowered()
+  { this->varargs_are_lowered_ = true; }
+
+  // Note that it is OK for this call to set hidden fields when
+  // passing arguments.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
 
   // Whether this call is being deferred.
   bool
@@ -1307,7 +1319,7 @@ class Call_expression : public Expression
   { this->args_ = args; }
 
   // Let a builtin expression lower varargs.
-  Expression*
+  void
   lower_varargs(Gogo*, Named_object* function, Statement_inserter* inserter,
 		Type* varargs_type, size_t param_count);
 
@@ -1322,9 +1334,6 @@ class Call_expression : public Expression
  private:
   bool
   check_argument_type(int, const Type*, const Type*, source_location, bool);
-
-  tree
-  bound_method_function(Translate_context*, Bound_method_expression*, tree*);
 
   tree
   interface_method_function(Translate_context*,
@@ -1348,6 +1357,9 @@ class Call_expression : public Expression
   tree tree_;
   // True if the last argument is a varargs argument (f(a...)).
   bool is_varargs_;
+  // True if this statement may pass hidden fields in the arguments.
+  // This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
   // True if varargs have already been lowered.
   bool varargs_are_lowered_;
   // True if types have been determined.

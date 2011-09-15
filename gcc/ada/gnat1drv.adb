@@ -390,7 +390,7 @@ procedure Gnat1drv is
 
       if Debug_Flag_Dot_FF then
 
-         ALFA_Mode := True;
+         Alfa_Mode := True;
 
          --  Turn off inlining, which would confuse formal verification output
          --  and gain nothing.
@@ -406,7 +406,7 @@ procedure Gnat1drv is
 
          --  Enable some restrictions systematically to simplify the generated
          --  code (and ease analysis). Note that restriction checks are also
-         --  disabled in ALFA mode, see Restrict.Check_Restriction, and user
+         --  disabled in Alfa mode, see Restrict.Check_Restriction, and user
          --  specified Restrictions pragmas are ignored, see
          --  Sem_Prag.Process_Restrictions_Or_Restriction_Warnings.
 
@@ -435,8 +435,9 @@ procedure Gnat1drv is
 
          Polling_Required := False;
 
-         --  Set operating mode to Generate_Code to benefit from full front-end
-         --  expansion (e.g. default arguments).
+         --  Set operating mode to Generate_Code, but full front-end expansion
+         --  is not desirable in Alfa mode, so a light expansion is performed
+         --  instead.
 
          Operating_Mode := Generate_Code;
 
@@ -463,7 +464,7 @@ procedure Gnat1drv is
          Debug_Pragmas_Enabled := True;
 
          --  Turn off style check options since we are not interested in any
-         --  front-end warnings when we are getting ALFA output.
+         --  front-end warnings when we are getting Alfa output.
 
          Reset_Style_Check_Options;
 
@@ -476,9 +477,12 @@ procedure Gnat1drv is
 
          Global_Discard_Names := True;
 
-         --  Suppress the expansion of tagged types and dispatching calls
+         --  We would prefer to suppress the expansion of tagged types and
+         --  dispatching calls, so that one day GNATprove can handle them
+         --  directly. Unfortunately, this is causing problems in some cases,
+         --  so keep this expansion for the time being. To be investigated ???
 
-         Tagged_Type_Expansion := False;
+         Tagged_Type_Expansion := True;
       end if;
    end Adjust_Global_Switches;
 
@@ -836,6 +840,12 @@ begin
          if Opt.Force_ALI_Tree_File then
             Write_ALI (Object => False);
             Tree_Gen;
+         end if;
+
+         --  In CodePeer mode we delete SCIL files if there is an error
+
+         if CodePeer_Mode then
+            Comperr.Delete_SCIL_Files;
          end if;
 
          Errout.Finalize (Last_Call => True);

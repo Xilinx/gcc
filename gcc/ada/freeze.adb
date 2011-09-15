@@ -1840,10 +1840,16 @@ package body Freeze is
                   --  if it is variable length. We omit this test in a generic
                   --  context, it will be applied at instantiation time.
 
+                  --  We also omit this test in CodePeer mode, since we do not
+                  --  have sufficient info on size and representation clauses.
+
                   if Present (CC) then
                      Placed_Component := True;
 
                      if Inside_A_Generic then
+                        null;
+
+                     elsif CodePeer_Mode then
                         null;
 
                      elsif not
@@ -2246,13 +2252,13 @@ package body Freeze is
 
            and then RM_Size (Rec) >= Scalar_Component_Total_RM_Size
 
-           --  Never do implicit packing in CodePeer or ALFA modes since
+           --  Never do implicit packing in CodePeer or Alfa modes since
            --  we don't do any packing in these modes, since this generates
            --  over-complex code that confuses static analysis, and in
            --  general, neither CodePeer not GNATprove care about the
            --  internal representation of objects.
 
-           and then not (CodePeer_Mode or ALFA_Mode)
+           and then not (CodePeer_Mode or Alfa_Mode)
          then
             --  If implicit packing enabled, do it
 
@@ -3066,7 +3072,7 @@ package body Freeze is
                     and then not Is_Limited_Composite (E)
                     and then not Is_Packed (Root_Type (E))
                     and then not Has_Component_Size_Clause (Root_Type (E))
-                    and then not (CodePeer_Mode or ALFA_Mode)
+                    and then not (CodePeer_Mode or Alfa_Mode)
                   then
                      Get_Index_Bounds (First_Index (E), Lo, Hi);
 

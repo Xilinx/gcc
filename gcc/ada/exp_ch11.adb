@@ -1667,11 +1667,12 @@ package body Exp_Ch11 is
       else
          --  Bypass expansion to a run-time call when back-end exception
          --  handling is active, unless the target is a VM, CodePeer or
-         --  GNATprove.
+         --  GNATprove. In CodePeer, raising an exception is treated as an
+         --  error, while in GNATprove all code with exceptions falls outside
+         --  the subset of code which can be formally analyzed.
 
          if VM_Target = No_VM
            and then not CodePeer_Mode
-           and then not ALFA_Mode
            and then Exception_Mechanism = Back_End_Exceptions
          then
             return;

@@ -7401,6 +7401,7 @@ Type::build_one_stub_method(Gogo* gogo, Method* method,
   go_assert(func != NULL);
   Call_expression* call = Expression::make_call(func, arguments, is_varargs,
 						location);
+  call->set_hidden_fields_are_ok();
   size_t count = call->result_count();
   if (count == 0)
     gogo->add_statement(Statement::make_statement(call));
@@ -7414,7 +7415,13 @@ Type::build_one_stub_method(Gogo* gogo, Method* method,
 	  for (size_t i = 0; i < count; ++i)
 	    retvals->push_back(Expression::make_call_result(call, i));
 	}
-      Statement* retstat = Statement::make_return_statement(retvals, location);
+      Return_statement* retstat = Statement::make_return_statement(retvals,
+								   location);
+
+      // We can return values with hidden fields from a stub.  This is
+      // necessary if the method is itself hidden.
+      retstat->set_hidden_fields_are_ok();
+
       gogo->add_statement(retstat);
     }
 }

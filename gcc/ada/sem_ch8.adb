@@ -721,6 +721,12 @@ package body Sem_Ch8 is
             then
                null;
 
+            --  A renaming of an unchecked union does not have an
+            --  actual subtype.
+
+            elsif Is_Unchecked_Union (Etype (Nam)) then
+               null;
+
             else
                Subt := Make_Temporary (Loc, 'T');
                Remove_Side_Effects (Nam);
@@ -796,8 +802,13 @@ package body Sem_Ch8 is
          T := Entity (Subtype_Mark (N));
          Analyze (Nam);
 
+         --  Reject renamings of conversions unless the type is tagged, or
+         --  the conversion is implicit (which can occur for cases of anonymous
+         --  access types in Ada 2012).
+
          if Nkind (Nam) = N_Type_Conversion
-            and then not Is_Tagged_Type (T)
+           and then Comes_From_Source (Nam)
+           and then not Is_Tagged_Type (T)
          then
             Error_Msg_N
               ("renaming of conversion only allowed for tagged types", Nam);
@@ -826,6 +837,22 @@ package body Sem_Ch8 is
                 Object_Definition   => New_Occurrence_Of (Etype (Nam), Loc),
                 Expression          => Relocate_Node (Nam)));
             return;
+         end if;
+
+         --  Ada 2012 (AI05-149): Reject renaming of an anonymous access object
+         --  when renaming declaration has a named access type. The Ada 2012
+         --  coverage rules allow an anonymous access type in the context of
+         --  an expected named general access type, but the renaming rules
+         --  require the types to be the same. (An exception is when the type
+         --  of the renaming is also an anonymous access type, which can only
+         --  happen due to a renaming created by the expander.)
+
+         if Nkind (Nam) = N_Type_Conversion
+           and then not Comes_From_Source (Nam)
+           and then Ekind (Etype (Expression (Nam))) = E_Anonymous_Access_Type
+           and then Ekind (T) /= E_Anonymous_Access_Type
+         then
+            Wrong_Type (Expression (Nam), T); -- Should we give better error???
          end if;
 
          --  Check that a class-wide object is not being renamed as an object
@@ -1110,7 +1137,12 @@ package body Sem_Ch8 is
       end if;
 
       Set_Ekind (Id, E_Variable);
-      Init_Size_Align (Id);
+
+      --  Initialize the object size and alignment. Note that we used to call
+      --  Init_Size_Align here, but that's wrong for objects which have only
+      --  an Esize, not an RM_Size field!
+
+      Init_Object_Size_Align (Id);
 
       if T = Any_Type or else Etype (Nam) = Any_Type then
          return;
@@ -1628,11 +1660,6 @@ package body Sem_Ch8 is
    procedure Analyze_Subprogram_Renaming (N : Node_Id) is
       Formal_Spec : constant Node_Id := Corresponding_Formal_Spec (N);
       Is_Actual   : constant Boolean := Present (Formal_Spec);
-
-      CW_Actual : Boolean := False;
-      --  True if the renaming is for a defaulted formal subprogram when the
-      --  actual for a related formal type is class-wide. For AI05-0071.
-
       Inst_Node   : Node_Id                   := Empty;
       Nam         : constant Node_Id          := Name (N);
       New_S       : Entity_Id;
@@ -1685,6 +1712,11 @@ package body Sem_Ch8 is
       --  This rule only applies if there is no explicit visible class-wide
       --  operation at the point of the instantiation.
 
+      function Has_Class_Wide_Actual return Boolean;
+      --  Ada 2012 (AI05-071, AI05-0131): True if N is the renaming for a
+      --  defaulted formal subprogram when the actual for the controlling
+      --  formal type is class-wide.
+
       -----------------------------
       -- Check_Class_Wide_Actual --
       -----------------------------
@@ -1723,7 +1755,7 @@ package body Sem_Ch8 is
                Next (F);
             end loop;
 
-            if Ekind (Prim_Op) = E_Function then
+            if Ekind_In (Prim_Op, E_Function, E_Operator) then
                return Make_Simple_Return_Statement (Loc,
                   Expression =>
                     Make_Function_Call (Loc,
@@ -1774,6 +1806,7 @@ package body Sem_Ch8 is
          F := First_Formal (Formal_Spec);
          while Present (F) loop
             if Has_Unknown_Discriminants (Etype (F))
+              and then not Is_Class_Wide_Type (Etype (F))
               and then Is_Class_Wide_Type (Get_Instance_Of (Etype (F)))
             then
                Formal_Type := Etype (F);
@@ -1785,7 +1818,6 @@ package body Sem_Ch8 is
          end loop;
 
          if Present (Formal_Type) then
-            CW_Actual := True;
 
             --  Create declaration and body for class-wide operation
 
@@ -1827,9 +1859,12 @@ package body Sem_Ch8 is
               Statements (Handled_Statement_Sequence (New_Body)));
 
             --  The generated body does not freeze. It is analyzed when the
-            --  generated operation is frozen.
+            --  generated operation is frozen. This body is only needed if
+            --  expansion is enabled.
 
-            Append_Freeze_Action (Defining_Entity (New_Decl), New_Body);
+            if Expander_Active then
+               Append_Freeze_Action (Defining_Entity (New_Decl), New_Body);
+            end if;
 
             Result := Defining_Entity (New_Decl);
          end if;
@@ -1887,6 +1922,41 @@ package body Sem_Ch8 is
          end if;
       end Check_Null_Exclusion;
 
+      ---------------------------
+      -- Has_Class_Wide_Actual --
+      ---------------------------
+
+      function Has_Class_Wide_Actual return Boolean is
+         F_Nam  : Entity_Id;
+         F_Spec : Entity_Id;
+
+      begin
+         if Is_Actual
+           and then Nkind (Nam) in N_Has_Entity
+           and then Present (Entity (Nam))
+           and then Is_Dispatching_Operation (Entity (Nam))
+         then
+            F_Nam  := First_Entity (Entity (Nam));
+            F_Spec := First_Formal (Formal_Spec);
+            while Present (F_Nam)
+              and then Present (F_Spec)
+            loop
+               if Is_Controlling_Formal (F_Nam)
+                 and then Has_Unknown_Discriminants (Etype (F_Spec))
+                 and then not Is_Class_Wide_Type (Etype (F_Spec))
+                 and then Is_Class_Wide_Type (Get_Instance_Of (Etype (F_Spec)))
+               then
+                  return True;
+               end if;
+
+               Next_Entity (F_Nam);
+               Next_Formal (F_Spec);
+            end loop;
+         end if;
+
+         return False;
+      end Has_Class_Wide_Actual;
+
       -------------------------
       -- Original_Subprogram --
       -------------------------
@@ -1932,6 +2002,11 @@ package body Sem_Ch8 is
          end if;
       end Original_Subprogram;
 
+      CW_Actual : constant Boolean := Has_Class_Wide_Actual;
+      --  Ada 2012 (AI05-071, AI05-0131): True if the renaming is for a
+      --  defaulted formal subprogram when the actual for a related formal
+      --  type is class-wide.
+
    --  Start of processing for Analyze_Subprogram_Renaming
 
    begin
@@ -1950,7 +2025,7 @@ package body Sem_Ch8 is
          --  expanded in subsequent instantiations.
 
          if Is_Actual and then Is_Abstract_Subprogram (Formal_Spec)
-           and then Expander_Active
+           and then Full_Expander_Active
          then
             declare
                Stream_Prim : Entity_Id;
@@ -2052,7 +2127,14 @@ package body Sem_Ch8 is
       if Is_Actual then
          Inst_Node := Unit_Declaration_Node (Formal_Spec);
 
-         if Is_Entity_Name (Nam)
+         --  Check whether the renaming is for a defaulted actual subprogram
+         --  with a class-wide actual.
+
+         if CW_Actual then
+            New_S := Analyze_Subprogram_Specification (Spec);
+            Old_S := Check_Class_Wide_Actual;
+
+         elsif Is_Entity_Name (Nam)
            and then Present (Entity (Nam))
            and then not Comes_From_Source (Nam)
            and then not Is_Overloaded (Nam)
@@ -2411,16 +2493,6 @@ package body Sem_Ch8 is
               ("renamed entity cannot be "
                & "subprogram that requires overriding (RM 8.5.4 (5.1))", N);
          end if;
-      end if;
-
-      --  If no renamed entity was found, check whether the renaming is for
-      --  a defaulted actual subprogram with a class-wide actual.
-
-      if Old_S = Any_Id
-        and then Is_Actual
-        and then From_Default (N)
-      then
-         Old_S := Check_Class_Wide_Actual;
       end if;
 
       if Old_S /= Any_Id then
@@ -3221,10 +3293,15 @@ package body Sem_Ch8 is
       --  type is still not frozen). We exclude from this processing generic
       --  formal subprograms found in instantiations and AST_Entry renamings.
 
-      --  We must exclude VM targets because entity AST_Handler is defined in
-      --  package System.Aux_Dec which is not available in those platforms.
+      --  We must exclude VM targets and restricted run-time libraries because
+      --  entity AST_Handler is defined in package System.Aux_Dec which is not
+      --  available in those platforms. Note that we cannot use the function
+      --  Restricted_Profile (instead of Configurable_Run_Time_Mode) because
+      --  the ZFP run-time library is not defined as a profile, and we do not
+      --  want to deal with AST_Handler in ZFP mode.
 
       if VM_Target = No_VM
+        and then not Configurable_Run_Time_Mode
         and then not Present (Corresponding_Formal_Spec (N))
         and then Etype (Nam) /= RTE (RE_AST_Handler)
       then

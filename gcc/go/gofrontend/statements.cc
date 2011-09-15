@@ -402,7 +402,13 @@ Temporary_statement::do_check_types(Gogo*)
   if (this->type_ != NULL && this->init_ != NULL)
     {
       std::string reason;
-      if (!Type::are_assignable(this->type_, this->init_->type(), &reason))
+      bool ok;
+      if (this->are_hidden_fields_ok_)
+	ok = Type::are_assignable_hidden_ok(this->type_, this->init_->type(),
+					    &reason);
+      else
+	ok = Type::are_assignable(this->type_, this->init_->type(), &reason);
+      if (!ok)
 	{
 	  if (reason.empty())
 	    error_at(this->location(), "incompatible types in assignment");
@@ -504,8 +510,14 @@ class Assignment_statement : public Statement
   Assignment_statement(Expression* lhs, Expression* rhs,
 		       source_location location)
     : Statement(STATEMENT_ASSIGNMENT, location),
-      lhs_(lhs), rhs_(rhs)
+      lhs_(lhs), rhs_(rhs), are_hidden_fields_ok_(false)
   { }
+
+  // Note that it is OK for this assignment statement to set hidden
+  // fields.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
 
  protected:
   int
@@ -531,6 +543,9 @@ class Assignment_statement : public Statement
   Expression* lhs_;
   // Right hand side--the rvalue.
   Expression* rhs_;
+  // True if this statement may set hidden fields in the assignment
+  // statement.  This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
 };
 
 // Traversal.
@@ -579,7 +594,12 @@ Assignment_statement::do_check_types(Gogo*)
   Type* lhs_type = this->lhs_->type();
   Type* rhs_type = this->rhs_->type();
   std::string reason;
-  if (!Type::are_assignable(lhs_type, rhs_type, &reason))
+  bool ok;
+  if (this->are_hidden_fields_ok_)
+    ok = Type::are_assignable_hidden_ok(lhs_type, rhs_type, &reason);
+  else
+    ok = Type::are_assignable(lhs_type, rhs_type, &reason);
+  if (!ok)
     {
       if (reason.empty())
 	error_at(this->location(), "incompatible types in assignment");
@@ -820,8 +840,14 @@ class Tuple_assignment_statement : public Statement
   Tuple_assignment_statement(Expression_list* lhs, Expression_list* rhs,
 			     source_location location)
     : Statement(STATEMENT_TUPLE_ASSIGNMENT, location),
-      lhs_(lhs), rhs_(rhs)
+      lhs_(lhs), rhs_(rhs), are_hidden_fields_ok_(false)
   { }
+
+  // Note that it is OK for this assignment statement to set hidden
+  // fields.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
 
  protected:
   int
@@ -846,6 +872,9 @@ class Tuple_assignment_statement : public Statement
   Expression_list* lhs_;
   // Right hand side--a list of rvalues.
   Expression_list* rhs_;
+  // True if this statement may set hidden fields in the assignment
+  // statement.  This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
 };
 
 // Traversal.
@@ -901,6 +930,8 @@ Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
 
       Temporary_statement* temp = Statement::make_temporary((*plhs)->type(),
 							    *prhs, loc);
+      if (this->are_hidden_fields_ok_)
+	temp->set_hidden_fields_are_ok();
       b->add_statement(temp);
       temps.push_back(temp);
 
@@ -924,6 +955,11 @@ Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
 
       Expression* ref = Expression::make_temporary_reference(*ptemp, loc);
       Statement* s = Statement::make_assignment(*plhs, ref, loc);
+      if (this->are_hidden_fields_ok_)
+	{
+	  Assignment_statement* as = static_cast<Assignment_statement*>(s);
+	  as->set_hidden_fields_are_ok();
+	}
       b->add_statement(s);
       ++ptemp;
     }
@@ -1858,8 +1894,7 @@ Thunk_statement::is_simple(Function_type* fntype) const
   // If this calls something which is not a simple function, then we
   // need a thunk.
   Expression* fn = this->call_->call_expression()->fn();
-  if (fn->bound_method_expression() != NULL
-      || fn->interface_field_reference_expression() != NULL)
+  if (fn->interface_field_reference_expression() != NULL)
     return false;
 
   return true;
@@ -1913,14 +1948,6 @@ Thunk_statement::do_check_types(Gogo*)
       if (!this->call_->is_error_expression())
 	this->report_error("expected call expression");
       return;
-    }
-  Function_type* fntype = ce->get_function_type();
-  if (fntype != NULL && fntype->is_method())
-    {
-      Expression* fn = ce->fn();
-      if (fn->bound_method_expression() == NULL
-	  && fn->interface_field_reference_expression() == NULL)
-	this->report_error(_("no object for method call"));
     }
 }
 
@@ -2005,8 +2032,7 @@ Thunk_statement::is_constant_function() const
   Expression* fn = ce->fn();
   if (fn->func_expression() != NULL)
     return fn->func_expression()->closure() == NULL;
-  if (fn->bound_method_expression() != NULL
-      || fn->interface_field_reference_expression() != NULL)
+  if (fn->interface_field_reference_expression() != NULL)
     return true;
   return false;
 }
@@ -2048,7 +2074,6 @@ Thunk_statement::simplify_statement(Gogo* gogo, Named_object* function,
     return false;
 
   Expression* fn = ce->fn();
-  Bound_method_expression* bound_method = fn->bound_method_expression();
   Interface_field_reference_expression* interface_method =
     fn->interface_field_reference_expression();
 
@@ -2070,30 +2095,6 @@ Thunk_statement::simplify_statement(Gogo* gogo, Named_object* function,
 
   if (interface_method != NULL)
     vals->push_back(interface_method->expr());
-
-  if (bound_method != NULL)
-    {
-      Expression* first_arg = bound_method->first_argument();
-
-      // We always pass a pointer when calling a method.
-      if (first_arg->type()->points_to() == NULL)
-	first_arg = Expression::make_unary(OPERATOR_AND, first_arg, location);
-
-      // If we are calling a method which was inherited from an
-      // embedded struct, and the method did not get a stub, then the
-      // first type may be wrong.
-      Type* fatype = bound_method->first_argument_type();
-      if (fatype != NULL)
-	{
-	  if (fatype->points_to() == NULL)
-	    fatype = Type::make_pointer_type(fatype);
-	  Type* unsafe = Type::make_pointer_type(Type::make_void_type());
-	  first_arg = Expression::make_cast(unsafe, first_arg, location);
-	  first_arg = Expression::make_cast(fatype, first_arg, location);
-	}
-
-      vals->push_back(first_arg);
-    }
 
   if (ce->args() != NULL)
     {
@@ -2183,19 +2184,6 @@ Thunk_statement::build_struct(Function_type* fntype)
     {
       Typed_identifier tid("object", interface_method->expr()->type(),
 			   location);
-      fields->push_back(Struct_field(tid));
-    }
-
-  // If this is a method call, pass down the expression we are
-  // calling.
-  if (fn->bound_method_expression() != NULL)
-    {
-      go_assert(fntype->is_method());
-      Type* rtype = fntype->receiver()->type();
-      // We always pass the receiver as a pointer.
-      if (rtype->points_to() == NULL)
-	rtype = Type::make_pointer_type(rtype);
-      Typed_identifier tid("receiver", rtype, location);
       fields->push_back(Struct_field(tid));
     }
 
@@ -2317,7 +2305,6 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name)
   thunk_parameter = Expression::make_unary(OPERATOR_MULT, thunk_parameter,
 					   location);
 
-  Bound_method_expression* bound_method = ce->fn()->bound_method_expression();
   Interface_field_reference_expression* interface_method =
     ce->fn()->interface_field_reference_expression();
 
@@ -2335,16 +2322,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name)
       next_index = 1;
     }
 
-  if (bound_method != NULL)
-    {
-      go_assert(next_index == 0);
-      Expression* r = Expression::make_field_reference(thunk_parameter, 0,
-						       location);
-      func_to_call = Expression::make_bound_method(r, bound_method->method(),
-						   location);
-      next_index = 1;
-    }
-  else if (interface_method != NULL)
+  if (interface_method != NULL)
     {
       // The main program passes the interface object.
       go_assert(next_index == 0);
@@ -2389,6 +2367,13 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name)
 
   Call_expression* call = Expression::make_call(func_to_call, call_params,
 						false, location);
+
+  // This call expression was already lowered before entering the
+  // thunk statement.  Don't try to lower varargs again, as that will
+  // cause confusion for, e.g., method calls which already have a
+  // receiver parameter.
+  call->set_varargs_are_lowered();
+
   Statement* call_statement = Statement::make_statement(call);
 
   gogo->add_statement(call_statement);
@@ -2643,7 +2628,12 @@ Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing,
       e->determine_type(&type_context);
 
       std::string reason;
-      if (Type::are_assignable(rvtype, e->type(), &reason))
+      bool ok;
+      if (this->are_hidden_fields_ok_)
+	ok = Type::are_assignable_hidden_ok(rvtype, e->type(), &reason);
+      else
+	ok = Type::are_assignable(rvtype, e->type(), &reason);
+      if (ok)
 	{
 	  Expression* ve = Expression::make_var_reference(rv, e->location());
 	  lhs->push_back(ve);
@@ -2665,13 +2655,28 @@ Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing,
     ;
   else if (lhs->size() == 1)
     {
-      b->add_statement(Statement::make_assignment(lhs->front(), rhs->front(),
-						  loc));
+      Statement* s = Statement::make_assignment(lhs->front(), rhs->front(),
+						loc);
+      if (this->are_hidden_fields_ok_)
+	{
+	  Assignment_statement* as = static_cast<Assignment_statement*>(s);
+	  as->set_hidden_fields_are_ok();
+	}
+      b->add_statement(s);
       delete lhs;
       delete rhs;
     }
   else
-    b->add_statement(Statement::make_tuple_assignment(lhs, rhs, loc));
+    {
+      Statement* s = Statement::make_tuple_assignment(lhs, rhs, loc);
+      if (this->are_hidden_fields_ok_)
+	{
+	  Tuple_assignment_statement* tas =
+	    static_cast<Tuple_assignment_statement*>(s);
+	  tas->set_hidden_fields_are_ok();
+	}
+      b->add_statement(s);
+    }
 
   b->add_statement(this);
 
@@ -2721,7 +2726,7 @@ Return_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
 
 // Make a return statement.
 
-Statement*
+Return_statement*
 Statement::make_return_statement(Expression_list* vals,
 				 source_location location)
 {

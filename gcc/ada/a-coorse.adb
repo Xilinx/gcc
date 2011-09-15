@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -532,8 +532,14 @@ package body Ada.Containers.Ordered_Sets is
 
    function First (Object : Iterator) return Cursor is
    begin
-      return Cursor'(
-       Object.Container.all'Unrestricted_Access, Object.Container.Tree.First);
+      if Object.Container = null then
+         return No_Element;
+      else
+         return
+           Cursor'(
+             Object.Container.all'Unrestricted_Access,
+             Object.Container.Tree.First);
+      end if;
    end First;
 
    -------------------
@@ -1142,10 +1148,12 @@ package body Ada.Containers.Ordered_Sets is
    function Iterate (Container : Set)
      return Ordered_Set_Iterator_Interfaces.Reversible_Iterator'class
    is
-      It : constant Iterator :=
-             (Container'Unchecked_Access, Container.Tree.First);
    begin
-      return It;
+      if Container.Length = 0 then
+         return Iterator'(null, null);
+      else
+         return Iterator'(Container'Unchecked_Access, Container.Tree.First);
+      end if;
    end Iterate;
 
    function Iterate (Container : Set; Start : Cursor)
@@ -1164,19 +1172,20 @@ package body Ada.Containers.Ordered_Sets is
    begin
       if Container.Tree.Last = null then
          return No_Element;
+      else
+         return Cursor'(Container'Unrestricted_Access, Container.Tree.Last);
       end if;
-
-      return Cursor'(Container'Unrestricted_Access, Container.Tree.Last);
    end Last;
 
    function Last (Object : Iterator) return Cursor is
    begin
-      if Object.Container.Tree.Last = null then
+      if Object.Container = null then
          return No_Element;
+      else
+         return Cursor'(
+           Object.Container.all'Unrestricted_Access,
+                        Object.Container.Tree.Last);
       end if;
-
-      return Cursor'(
-        Object.Container.all'Unrestricted_Access, Object.Container.Tree.Last);
    end Last;
 
    ------------------
@@ -1187,9 +1196,9 @@ package body Ada.Containers.Ordered_Sets is
    begin
       if Container.Tree.Last = null then
          raise Constraint_Error with "set is empty";
+      else
+         return Container.Tree.Last.Element;
       end if;
-
-      return Container.Tree.Last.Element;
    end Last_Element;
 
    ----------
@@ -1293,13 +1302,12 @@ package body Ada.Containers.Ordered_Sets is
       declare
          Node : constant Node_Access :=
                   Tree_Operations.Previous (Position.Node);
-
       begin
          if Node = null then
             return No_Element;
+         else
+            return Cursor'(Position.Container, Node);
          end if;
-
-         return Cursor'(Position.Container, Node);
       end;
    end Previous;
 

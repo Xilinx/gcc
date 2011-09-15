@@ -54,6 +54,8 @@
 /* Return true if STR starts with PREFIX and false, otherwise.  */
 #define STR_PREFIX_P(STR,PREFIX) (0 == strncmp (STR, PREFIX, strlen (PREFIX)))
 
+#define AVR_SECTION_PROGMEM (SECTION_MACH_DEP << 0)
+
 static void avr_option_override (void);
 static int avr_naked_function_p (tree);
 static int interrupt_function_p (tree);
@@ -113,6 +115,8 @@ static void avr_function_arg_advance (cumulative_args_t, enum machine_mode,
 static bool avr_function_ok_for_sibcall (tree, tree);
 static void avr_asm_named_section (const char *name, unsigned int flags, tree decl);
 static void avr_encode_section_info (tree, rtx, int);
+static section* avr_asm_function_rodata_section (tree);
+static section* avr_asm_select_section (tree, int, unsigned HOST_WIDE_INT);
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -135,7 +139,11 @@ const struct base_arch_s *avr_current_arch;
 /* Current device.  */
 const struct mcu_type_s *avr_current_device;
 
-section *progmem_section;
+/* Section to put switch tables in.  */
+static GTY(()) section *progmem_swtable_section;
+
+/* Unnamed section associated to __attribute__((progmem)) aka. PROGMEM.  */
+static GTY(()) section *progmem_section;
 
 /* To track if code will use .bss and/or .data.  */
 bool avr_need_clear_bss_p = false;
@@ -204,6 +212,8 @@ static const struct attribute_spec avr_attribute_table[] =
 #define TARGET_ASM_INIT_SECTIONS avr_asm_init_sections
 #undef TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO avr_encode_section_info
+#undef TARGET_ASM_SELECT_SECTION
+#define TARGET_ASM_SELECT_SECTION avr_asm_select_section
 
 #undef TARGET_REGISTER_MOVE_COST
 #define TARGET_REGISTER_MOVE_COST avr_register_move_cost
@@ -263,9 +273,36 @@ static const struct attribute_spec avr_attribute_table[] =
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN avr_expand_builtin
 
+#undef TARGET_ASM_FUNCTION_RODATA_SECTION
+#define TARGET_ASM_FUNCTION_RODATA_SECTION avr_asm_function_rodata_section
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
+
+/* Custom function to replace string prefix.
+
+   Return a ggc-allocated string with strlen (OLD_PREFIX) characters removed
+   from the start of OLD_STR and then prepended with NEW_PREFIX.  */
+
+static inline const char*
+avr_replace_prefix (const char *old_str,
+                    const char *old_prefix, const char *new_prefix)
+{
+  char *new_str;
+  size_t len = strlen (old_str) + strlen (new_prefix) - strlen (old_prefix);
+
+  gcc_assert (strlen (old_prefix) <= strlen (old_str));
+
+  /* Unfortunately, ggc_alloc_string returns a const char* and thus cannot be
+     used here.  */
+     
+  new_str = (char*) ggc_alloc_atomic (1 + len);
+
+  strcat (stpcpy (new_str, new_prefix), old_str + strlen (old_prefix));
+  
+  return (const char*) new_str;
+}
+
 static void
 avr_option_override (void)
 {
@@ -518,6 +555,17 @@ sequent_regs_live (void)
 
   for (reg = 0; reg < 18; ++reg)
     {
+      if (fixed_regs[reg])
+        {
+          /* Don't recognize sequences that contain global register
+             variables.  */
+      
+          if (live_seq != 0)
+            return 0;
+          else
+            continue;
+        }
+      
       if (!call_used_regs[reg])
 	{
 	  if (df_regs_ever_live_p (reg))
@@ -5019,33 +5067,13 @@ avr_insert_attributes (tree node, tree *attributes)
       if (error_mark_node == node0)
         return;
       
-      if (TYPE_READONLY (node0))
-        {
-          static const char dsec[] = ".progmem.data";
-
-          *attributes = tree_cons (get_identifier ("section"),
-                                   build_tree_list (NULL, build_string (strlen (dsec), dsec)),
-                                   *attributes);
-        }
-      else
+      if (!TYPE_READONLY (node0))
         {
           error ("variable %q+D must be const in order to be put into"
                  " read-only section by means of %<__attribute__((progmem))%>",
                  node);
         }
     }
-}
-
-/* A get_unnamed_section callback for switching to progmem_section.  */
-
-static void
-avr_output_progmem_section_asm_op (const void *arg ATTRIBUTE_UNUSED)
-{
-  fprintf (asm_out_file,
-	   "\t.section .progmem.gcc_sw_table, \"%s\", @progbits\n",
-	   AVR_HAVE_JMP_CALL ? "a" : "ax");
-  /* Should already be aligned, this is just to be safe if it isn't.  */
-  fprintf (asm_out_file, "\t.p2align 1\n");
 }
 
 
@@ -5098,10 +5126,28 @@ avr_output_bss_section_asm_op (const void *data)
 static void
 avr_asm_init_sections (void)
 {
-  progmem_section = get_unnamed_section (AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE,
-					 avr_output_progmem_section_asm_op,
-					 NULL);
+  /* Set up a section for jump tables.  Alignment is handled by
+     ASM_OUTPUT_BEFORE_CASE_LABEL.  */
+  
+  if (AVR_HAVE_JMP_CALL)
+    {
+      progmem_swtable_section
+        = get_unnamed_section (0, output_section_asm_op,
+                               "\t.section\t.progmem.gcc_sw_table"
+                               ",\"a\",@progbits");
+    }
+  else
+    {
+      progmem_swtable_section
+        = get_unnamed_section (SECTION_CODE, output_section_asm_op,
+                               "\t.section\t.progmem.gcc_sw_table"
+                               ",\"ax\",@progbits");
+    }
 
+  progmem_section
+    = get_unnamed_section (0, output_section_asm_op,
+                           "\t.section\t.progmem.data,\"a\",@progbits");
+  
   /* Override section callbacks to keep track of `avr_need_clear_bss_p'
      resp. `avr_need_copy_data_p'.  */
   
@@ -5111,12 +5157,87 @@ avr_asm_init_sections (void)
 }
 
 
+/* Implement `TARGET_ASM_FUNCTION_RODATA_SECTION'.  */
+
+static section*
+avr_asm_function_rodata_section (tree decl)
+{
+  /* If a function is unused and optimized out by -ffunction-sections
+     and --gc-sections, ensure that the same will happen for its jump
+     tables by putting them into individual sections.  */
+
+  unsigned int flags;
+  section * frodata;
+
+  /* Get the frodata section from the default function in varasm.c
+     but treat function-associated data-like jump tables as code
+     rather than as user defined data.  AVR has no constant pools.  */
+  {
+    int fdata = flag_data_sections;
+
+    flag_data_sections = flag_function_sections;
+    frodata = default_function_rodata_section (decl);
+    flag_data_sections = fdata;
+    flags = frodata->common.flags;
+  }
+
+  if (frodata != readonly_data_section
+      && flags & SECTION_NAMED)
+    {
+      /* Adjust section flags and replace section name prefix.  */
+
+      unsigned int i;
+
+      static const char* const prefix[] =
+        {
+          ".rodata",          ".progmem.gcc_sw_table",
+          ".gnu.linkonce.r.", ".gnu.linkonce.t."
+        };
+
+      for (i = 0; i < sizeof (prefix) / sizeof (*prefix); i += 2)
+        {
+          const char * old_prefix = prefix[i];
+          const char * new_prefix = prefix[i+1];
+          const char * name = frodata->named.name;
+
+          if (STR_PREFIX_P (name, old_prefix))
+            {
+              const char *rname = avr_replace_prefix (name, old_prefix, new_prefix);
+
+              flags &= ~SECTION_CODE;
+              flags |= AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE;
+              
+              return get_section (rname, flags, frodata->named.decl);
+            }
+        }
+    }
+        
+  return progmem_swtable_section;
+}
+
+
 /* Implement `TARGET_ASM_NAMED_SECTION'.  */
 /* Track need of __do_clear_bss, __do_copy_data for named sections.  */
 
 static void
 avr_asm_named_section (const char *name, unsigned int flags, tree decl)
 {
+  if (flags & AVR_SECTION_PROGMEM)
+    {
+      const char *old_prefix = ".rodata";
+      const char *new_prefix = ".progmem.data";
+      const char *sname = new_prefix;
+      
+      if (STR_PREFIX_P (name, old_prefix))
+        {
+          sname = avr_replace_prefix (name, old_prefix, new_prefix);
+        }
+
+      default_elf_asm_named_section (sname, flags, decl);
+
+      return;
+    }
+  
   if (!avr_need_copy_data_p)
     avr_need_copy_data_p = (STR_PREFIX_P (name, ".data")
                             || STR_PREFIX_P (name, ".rodata")
@@ -5143,8 +5264,12 @@ avr_section_type_flags (tree decl, const char *name, int reloc)
 		 ".noinit section");
     }
 
-  if (STR_PREFIX_P (name, ".progmem.data"))
-    flags &= ~SECTION_WRITE;
+  if (decl && DECL_P (decl)
+      && avr_progmem_p (decl, DECL_ATTRIBUTES (decl)))
+    {
+      flags &= ~SECTION_WRITE;
+      flags |= AVR_SECTION_PROGMEM;
+    }
   
   return flags;
 }
@@ -5173,6 +5298,36 @@ avr_encode_section_info (tree decl, rtx rtl,
   default_encode_section_info (decl, rtl, new_decl_p);
 }
 
+
+/* Implement `TARGET_ASM_SELECT_SECTION' */
+
+static section *
+avr_asm_select_section (tree decl, int reloc, unsigned HOST_WIDE_INT align)
+{
+  section * sect = default_elf_select_section (decl, reloc, align);
+  
+  if (decl && DECL_P (decl)
+      && avr_progmem_p (decl, DECL_ATTRIBUTES (decl)))
+    {
+      if (sect->common.flags & SECTION_NAMED)
+        {
+          const char * name = sect->named.name;
+          const char * old_prefix = ".rodata";
+          const char * new_prefix = ".progmem.data";
+
+          if (STR_PREFIX_P (name, old_prefix))
+            {
+              const char *sname = avr_replace_prefix (name, old_prefix, new_prefix);
+
+              return get_section (sname, sect->common.flags, sect->named.decl);
+            }
+        }
+          
+      return progmem_section;
+    }
+
+  return sect;
+}
 
 /* Implement `TARGET_ASM_FILE_START'.  */
 /* Outputs some appropriate text to go at the start of an assembler
@@ -5421,6 +5576,16 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED,
 	  break;
 
 	case HImode:
+          if (AVR_HAVE_MUL
+              && (MULT == GET_CODE (XEXP (x, 0))
+                  || ASHIFT == GET_CODE (XEXP (x, 0)))
+              && register_operand (XEXP (x, 1), HImode)
+              && (ZERO_EXTEND == GET_CODE (XEXP (XEXP (x, 0), 0))
+                  || SIGN_EXTEND == GET_CODE (XEXP (XEXP (x, 0), 0))))
+            {
+              *total = COSTS_N_INSNS (speed ? 5 : 4);
+              return true;
+            }
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
 	      *total = COSTS_N_INSNS (2);
@@ -5453,6 +5618,17 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED,
       return true;
 
     case MINUS:
+      if (AVR_HAVE_MUL
+          && HImode == mode
+          && register_operand (XEXP (x, 0), HImode)
+          && (MULT == GET_CODE (XEXP (x, 1))
+              || ASHIFT == GET_CODE (XEXP (x, 1)))
+          && (ZERO_EXTEND == GET_CODE (XEXP (XEXP (x, 1), 0))
+              || SIGN_EXTEND == GET_CODE (XEXP (XEXP (x, 1), 0))))
+        {
+          *total = COSTS_N_INSNS (speed ? 5 : 4);
+          return true;
+        }
     case AND:
     case IOR:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
@@ -6693,7 +6869,6 @@ avr_output_bld (rtx operands[], int bit_nr)
 void
 avr_output_addr_vec_elt (FILE *stream, int value)
 {
-  switch_to_section (progmem_section);
   if (AVR_HAVE_JMP_CALL)
     fprintf (stream, "\t.word gs(.L%d)\n", value);
   else

@@ -292,6 +292,14 @@ package Sem_Util is
    --  Current_Scope is returned. The returned value is Empty if this is called
    --  from a library package which is not within any subprogram.
 
+   function Deepest_Type_Access_Level (Typ : Entity_Id) return Uint;
+   --  Same as Type_Access_Level, except that if the type is the type of an Ada
+   --  2012 stand-alone object of an anonymous access type, then return the
+   --  static accesssibility level of the object. In that case, the dynamic
+   --  accessibility level of the object may take on values in a range. The low
+   --  bound of of that range is returned by Type_Access_Level; this function
+   --  yields the high bound of that range.
+
    function Defining_Entity (N : Node_Id) return Entity_Id;
    --  Given a declaration N, returns the associated defining entity. If the
    --  declaration has a specification, the entity is obtained from the
@@ -331,6 +339,16 @@ package Sem_Util is
    --  Return true if Name1 and Name2 designate the same unit name; each of
    --  these names is supposed to be a selected component name, an expanded
    --  name, a defining program unit name or an identifier.
+
+   function Dynamic_Accessibility_Level (Expr : Node_Id) return Node_Id;
+   --  Expr should be an expression of an access type. Builds an integer
+   --  literal except in cases involving anonymous access types where
+   --  accessibility levels are tracked at runtime (access parameters and Ada
+   --  2012 stand-alone objects).
+
+   function Effective_Extra_Accessibility (Id : Entity_Id) return Entity_Id;
+   --  Same as Einfo.Extra_Accessibility except thtat object renames
+   --  are looked through.
 
    function Enclosing_CPP_Parent (Typ : Entity_Id) return Entity_Id;
    --  Returns the closest ancestor of Typ that is a CPP type.
@@ -735,7 +753,8 @@ package Sem_Util is
 
    function Is_Aliased_View (Obj : Node_Id) return Boolean;
    --  Determine if Obj is an aliased view, i.e. the name of an object to which
-   --  'Access or 'Unchecked_Access can apply.
+   --  'Access or 'Unchecked_Access can apply. Note that the implementation
+   --  takes the No_Implicit_Aiasing restriction into account.
 
    function Is_Ancestor_Package
      (E1 : Entity_Id;
@@ -968,6 +987,11 @@ package Sem_Util is
    --  the legality checks described in RM C.6(12). Note that the test here is
    --  for something actually declared as volatile, not for an object that gets
    --  treated as volatile (see Einfo.Treat_As_Volatile).
+
+   function Itype_Has_Declaration (Id : Entity_Id) return Boolean;
+   --  Applies to Itypes. True if the Itype is attached to a declaration for
+   --  the type through its Parent field, which may or not be present in the
+   --  tree.
 
    procedure Kill_Current_Values (Last_Assignment_Only : Boolean := False);
    --  This procedure is called to clear all constant indications from all
@@ -1421,8 +1445,17 @@ package Sem_Util is
    --  specified we check only for the given stream operation.
 
    function Unique_Defining_Entity (N : Node_Id) return Entity_Id;
-   --  Return the entity which represents declaration N, so that matching
-   --  declaration and body have the same entity.
+   --  Return the entity which represents declaration N, so that different
+   --  views of the same entity have the same unique defining entity:
+   --  * package spec and body;
+   --  * subprogram declaration, subprogram stub and subprogram body;
+   --  * private view and full view of a type;
+   --  * private view and full view of a deferred constant.
+   --  In other cases, return the defining entity for N.
+
+   function Unique_Entity (E : Entity_Id) return Entity_Id;
+   --  Return the unique entity for entity E, which would be returned by
+   --  Unique_Defining_Entity if applied to the enclosing declaration of E.
 
    function Unique_Name (E : Entity_Id) return String;
    --  Return a unique name for entity E, which could be used to identify E

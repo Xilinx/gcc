@@ -272,15 +272,15 @@ package body Prj.Env is
    begin
       --  Check if the directory is already in the table
 
-      for Index in Object_Path_Table.First ..
-                   Object_Path_Table.Last (Object_Paths)
+      for Index in
+        Object_Path_Table.First .. Object_Path_Table.Last (Object_Paths)
       loop
 
          --  If it is, remove it, and add it as the last one
 
          if Object_Paths.Table (Index) = Object_Dir then
-            for Index2 in Index + 1 ..
-                          Object_Path_Table.Last (Object_Paths)
+            for Index2 in
+              Index + 1 .. Object_Path_Table.Last (Object_Paths)
             loop
                Object_Paths.Table (Index2 - 1) := Object_Paths.Table (Index2);
             end loop;
@@ -422,8 +422,8 @@ package body Prj.Env is
 
          --  Check if the source directory is already in the table
 
-         for Index in Source_Path_Table.First ..
-                      Source_Path_Table.Last (Source_Paths)
+         for Index in
+           Source_Path_Table.First .. Source_Path_Table.Last (Source_Paths)
          loop
             --  If it is already, no need to add it
 
@@ -458,6 +458,7 @@ package body Prj.Env is
          Table_Low_Bound      => 1,
          Table_Initial        => 5,
          Table_Increment      => 100);
+
       Default_Naming : constant Naming_Id := Naming_Table.First;
       Namings        : Naming_Table.Instance;
       --  Table storing the naming data for gnatmake/gprmake
@@ -526,9 +527,10 @@ package body Prj.Env is
          while Element (Iter) /= No_Source loop
             Source := Element (Iter);
 
-            if Source.Index >= 1
-              and then not Source.Locally_Removed
+            if not Source.Locally_Removed
               and then Source.Unit /= null
+              and then
+                (Source.Index >= 1 or else Source.Naming_Exception /= No)
             then
                Put (Source);
             end if;
@@ -776,10 +778,9 @@ package body Prj.Env is
       In_Tree  : Project_Tree_Ref;
       Name     : out Path_Name_Type)
    is
-      File   : File_Descriptor := Invalid_FD;
-
-      Buffer : String_Access := new String (1 .. Buffer_Initial);
-      Buffer_Last : Natural := 0;
+      File        : File_Descriptor := Invalid_FD;
+      Buffer      : String_Access   := new String (1 .. Buffer_Initial);
+      Buffer_Last : Natural         := 0;
 
       procedure Put_Name_Buffer;
       --  Put the line contained in the Name_Buffer in the global buffer
@@ -830,12 +831,27 @@ package body Prj.Env is
 
             if Source.Replaced_By = No_Source
               and then Source.Path.Name /= No_Path
-              and then
-                (Source.Language.Config.Kind = File_Based
-                  or else Source.Unit /= No_Unit_Index)
+              and then (Source.Language.Config.Kind = File_Based
+                         or else Source.Unit /= No_Unit_Index)
             then
                if Source.Unit /= No_Unit_Index then
-                  Get_Name_String (Source.Unit.Name);
+
+                  --  Put the encoded unit name in the name buffer
+
+                  declare
+                     Uname : constant String :=
+                               Get_Name_String (Source.Unit.Name);
+
+                  begin
+                     Name_Len := 0;
+                     for J in Uname'Range loop
+                        if Uname (J) in Upper_Half_Character then
+                           Store_Encoded_Character (Get_Char_Code (Uname (J)));
+                        else
+                           Add_Char_To_Name_Buffer (Uname (J));
+                        end if;
+                     end loop;
+                  end;
 
                   if Source.Language.Config.Kind = Unit_Based then
 
@@ -861,8 +877,7 @@ package body Prj.Env is
                      end case;
 
                      if Suffix /= No_File then
-                        Add_Str_To_Name_Buffer
-                          (Get_Name_String (Suffix));
+                        Add_Str_To_Name_Buffer (Get_Name_String (Suffix));
                      end if;
                   end if;
 
@@ -888,6 +903,8 @@ package body Prj.Env is
 
       procedure For_Every_Imported_Project is new
         For_Every_Project_Imported (State => Integer, Action => Process);
+
+      --  Local variables
 
       Dummy : Integer := 0;
 
@@ -981,11 +998,11 @@ package body Prj.Env is
       Main_Project_Only : Boolean := True;
       Full_Path         : Boolean := False) return String
    is
+
+      Lang          : constant Language_Ptr :=
+                        Get_Language_From_Name (Project, "ada");
       The_Project   : Project_Id := Project;
       Original_Name : String := Name;
-
-      Lang   : constant Language_Ptr :=
-        Get_Language_From_Name (Project, "ada");
 
       Unit              : Unit_Index;
       The_Original_Name : Name_Id;
@@ -1122,10 +1139,8 @@ package body Prj.Env is
             --  Check for spec
 
             if not Main_Project_Only
-              or else
-                (Unit.File_Names (Spec) /= null
-                 and then Unit.File_Names (Spec).Project =
-                   The_Project)
+              or else (Unit.File_Names (Spec) /= null
+                        and then Unit.File_Names (Spec).Project = The_Project)
             then
                declare
                   Current_Name : File_Name_Type;
@@ -1326,19 +1341,20 @@ package body Prj.Env is
 
          while Unit /= null loop
             if Unit.File_Names (Spec) /= null
+              and then not Unit.File_Names (Spec).Locally_Removed
               and then Unit.File_Names (Spec).File /= No_File
               and then
                 (Namet.Get_Name_String
-                     (Unit.File_Names (Spec).File) = Original_Name
-                 or else (Unit.File_Names (Spec).Path /=
-                            No_Path_Information
+                   (Unit.File_Names (Spec).File) = Original_Name
+                 or else (Unit.File_Names (Spec).Path /= No_Path_Information
                           and then
                             Namet.Get_Name_String
-                              (Unit.File_Names (Spec).Path.Name) =
-                            Original_Name))
+                               (Unit.File_Names (Spec).Path.Name) =
+                                                           Original_Name))
             then
-               Project := Ultimate_Extending_Project_Of
-                          (Unit.File_Names (Spec).Project);
+               Project :=
+                 Ultimate_Extending_Project_Of
+                   (Unit.File_Names (Spec).Project);
                Path := Unit.File_Names (Spec).Path.Display_Name;
 
                if Current_Verbosity > Default then
@@ -1350,17 +1366,18 @@ package body Prj.Env is
 
             elsif Unit.File_Names (Impl) /= null
               and then Unit.File_Names (Impl).File /= No_File
+              and then not Unit.File_Names (Impl).Locally_Removed
               and then
                 (Namet.Get_Name_String
                    (Unit.File_Names (Impl).File) = Original_Name
-                 or else (Unit.File_Names (Impl).Path /=
-                            No_Path_Information
-                          and then Namet.Get_Name_String
-                            (Unit.File_Names (Impl).Path.Name) =
-                            Original_Name))
+                  or else (Unit.File_Names (Impl).Path /= No_Path_Information
+                            and then Namet.Get_Name_String
+                                       (Unit.File_Names (Impl).Path.Name) =
+                                                              Original_Name))
             then
-               Project := Ultimate_Extending_Project_Of
-                            (Unit.File_Names (Impl).Project);
+               Project :=
+                 Ultimate_Extending_Project_Of
+                   (Unit.File_Names (Impl).Project);
                Path := Unit.File_Names (Impl).Path.Display_Name;
 
                if Current_Verbosity > Default then
@@ -1681,8 +1698,8 @@ package body Prj.Env is
       if Source_FD /= Invalid_FD then
          Buffer_Last := 0;
 
-         for Index in Source_Path_Table.First ..
-                      Source_Path_Table.Last (Source_Paths)
+         for Index in
+           Source_Path_Table.First .. Source_Path_Table.Last (Source_Paths)
          loop
             Get_Name_String (Source_Paths.Table (Index));
             Name_Len := Name_Len + 1;
@@ -1707,8 +1724,8 @@ package body Prj.Env is
       if Object_FD /= Invalid_FD then
          Buffer_Last := 0;
 
-         for Index in Object_Path_Table.First ..
-                      Object_Path_Table.Last (Object_Paths)
+         for Index in
+           Object_Path_Table.First .. Object_Path_Table.Last (Object_Paths)
          loop
             Get_Name_String (Object_Paths.Table (Index));
             Name_Len := Name_Len + 1;
@@ -1732,9 +1749,10 @@ package body Prj.Env is
       --  Set the env vars, if they need to be changed, and set the
       --  corresponding flags.
 
-      if Include_Path and then
-        Shared.Private_Part.Current_Source_Path_File /=
-          Project.Include_Path_File
+      if Include_Path
+        and then
+          Shared.Private_Part.Current_Source_Path_File /=
+            Project.Include_Path_File
       then
          Shared.Private_Part.Current_Source_Path_File :=
            Project.Include_Path_File;
@@ -2248,7 +2266,6 @@ package body Prj.Env is
       end if;
 
       --  No need to copy the Cache, it will be recomputed as needed
-
    end Copy;
 
 end Prj.Env;
