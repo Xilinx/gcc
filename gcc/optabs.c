@@ -6868,303 +6868,6 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
   return true;
 }
 
-/* This function generates the atomic operation MEM CODE= VAL.  In this
-   case, we do not care about any resulting value.  Returns NULL if we
-   cannot generate the operation.  */
-
-rtx
-expand_sync_operation (rtx mem, rtx val, enum rtx_code code)
-{
-  enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode;
-  rtx insn;
-
-  /* Look to see if the target supports the operation directly.  */
-  switch (code)
-    {
-    case PLUS:
-      icode = direct_optab_handler (sync_add_optab, mode);
-      break;
-    case IOR:
-      icode = direct_optab_handler (sync_ior_optab, mode);
-      break;
-    case XOR:
-      icode = direct_optab_handler (sync_xor_optab, mode);
-      break;
-    case AND:
-      icode = direct_optab_handler (sync_and_optab, mode);
-      break;
-    case NOT:
-      icode = direct_optab_handler (sync_nand_optab, mode);
-      break;
-
-    case MINUS:
-      icode = direct_optab_handler (sync_sub_optab, mode);
-      if (icode == CODE_FOR_nothing || CONST_INT_P (val))
-	{
-	  icode = direct_optab_handler (sync_add_optab, mode);
-	  if (icode != CODE_FOR_nothing)
-	    {
-	      val = expand_simple_unop (mode, NEG, val, NULL_RTX, 1);
-	      code = PLUS;
-	    }
-	}
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  /* Generate the direct operation, if present.  */
-  if (icode != CODE_FOR_nothing)
-    {
-      struct expand_operand ops[2];
-
-      create_fixed_operand (&ops[0], mem);
-      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
-      create_convert_operand_to (&ops[1], val, mode, true);
-      if (maybe_expand_insn (icode, 2, ops))
-	return const0_rtx;
-    }
-
-  /* Failing that, generate a compare-and-swap loop in which we perform the
-     operation with normal arithmetic instructions.  */
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing)
-    {
-      rtx t0 = gen_reg_rtx (mode), t1;
-
-      start_sequence ();
-
-      t1 = t0;
-      if (code == NOT)
-	{
-	  t1 = expand_simple_binop (mode, AND, t1, val, NULL_RTX,
-				    true, OPTAB_LIB_WIDEN);
-	  t1 = expand_simple_unop (mode, code, t1, NULL_RTX, true);
-	}
-      else
-	t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX,
-				  true, OPTAB_LIB_WIDEN);
-      insn = get_insns ();
-      end_sequence ();
-
-      if (t1 != NULL && expand_compare_and_swap_loop (mem, t0, t1, insn))
-	return const0_rtx;
-    }
-
-  return NULL_RTX;
-}
-
-/* This function generates the atomic operation MEM CODE= VAL.  In this
-   case, we do care about the resulting value: if AFTER is true then
-   return the value MEM holds after the operation, if AFTER is false
-   then return the value MEM holds before the operation.  TARGET is an
-   optional place for the result value to be stored.  */
-
-rtx
-expand_sync_fetch_operation (rtx mem, rtx val, enum rtx_code code,
-			     bool after, rtx target)
-{
-  enum machine_mode mode = GET_MODE (mem);
-  enum insn_code old_code, new_code, icode;
-  bool compensate;
-  rtx insn;
-
-  /* Look to see if the target supports the operation directly.  */
-  switch (code)
-    {
-    case PLUS:
-      old_code = direct_optab_handler (sync_old_add_optab, mode);
-      new_code = direct_optab_handler (sync_new_add_optab, mode);
-      break;
-    case IOR:
-      old_code = direct_optab_handler (sync_old_ior_optab, mode);
-      new_code = direct_optab_handler (sync_new_ior_optab, mode);
-      break;
-    case XOR:
-      old_code = direct_optab_handler (sync_old_xor_optab, mode);
-      new_code = direct_optab_handler (sync_new_xor_optab, mode);
-      break;
-    case AND:
-      old_code = direct_optab_handler (sync_old_and_optab, mode);
-      new_code = direct_optab_handler (sync_new_and_optab, mode);
-      break;
-    case NOT:
-      old_code = direct_optab_handler (sync_old_nand_optab, mode);
-      new_code = direct_optab_handler (sync_new_nand_optab, mode);
-      break;
-
-    case MINUS:
-      old_code = direct_optab_handler (sync_old_sub_optab, mode);
-      new_code = direct_optab_handler (sync_new_sub_optab, mode);
-      if ((old_code == CODE_FOR_nothing && new_code == CODE_FOR_nothing)
-          || CONST_INT_P (val))
-	{
-	  old_code = direct_optab_handler (sync_old_add_optab, mode);
-	  new_code = direct_optab_handler (sync_new_add_optab, mode);
-	  if (old_code != CODE_FOR_nothing || new_code != CODE_FOR_nothing)
-	    {
-	      val = expand_simple_unop (mode, NEG, val, NULL_RTX, 1);
-	      code = PLUS;
-	    }
-	}
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  /* If the target does supports the proper new/old operation, great.  But
-     if we only support the opposite old/new operation, check to see if we
-     can compensate.  In the case in which the old value is supported, then
-     we can always perform the operation again with normal arithmetic.  In
-     the case in which the new value is supported, then we can only handle
-     this in the case the operation is reversible.  */
-  compensate = false;
-  if (after)
-    {
-      icode = new_code;
-      if (icode == CODE_FOR_nothing)
-	{
-	  icode = old_code;
-	  if (icode != CODE_FOR_nothing)
-	    compensate = true;
-	}
-    }
-  else
-    {
-      icode = old_code;
-      if (icode == CODE_FOR_nothing
-	  && (code == PLUS || code == MINUS || code == XOR))
-	{
-	  icode = new_code;
-	  if (icode != CODE_FOR_nothing)
-	    compensate = true;
-	}
-    }
-
-  /* If we found something supported, great.  */
-  if (icode != CODE_FOR_nothing)
-    {
-      struct expand_operand ops[3];
-
-      create_output_operand (&ops[0], target, mode);
-      create_fixed_operand (&ops[1], mem);
-      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
-      create_convert_operand_to (&ops[2], val, mode, true);
-      if (maybe_expand_insn (icode, 3, ops))
-	{
-	  target = ops[0].value;
-	  val = ops[2].value;
-	  /* If we need to compensate for using an operation with the
-	     wrong return value, do so now.  */
-	  if (compensate)
-	    {
-	      if (!after)
-		{
-		  if (code == PLUS)
-		    code = MINUS;
-		  else if (code == MINUS)
-		    code = PLUS;
-		}
-
-	      if (code == NOT)
-		{
-		  target = expand_simple_binop (mode, AND, target, val,
-						NULL_RTX, true,
-						OPTAB_LIB_WIDEN);
-		  target = expand_simple_unop (mode, code, target,
-					       NULL_RTX, true);
-		}
-	      else
-		target = expand_simple_binop (mode, code, target, val,
-					      NULL_RTX, true,
-					      OPTAB_LIB_WIDEN);
-	    }
-
-	  return target;
-	}
-    }
-
-  /* Failing that, generate a compare-and-swap loop in which we perform the
-     operation with normal arithmetic instructions.  */
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing)
-    {
-      rtx t0 = gen_reg_rtx (mode), t1;
-
-      if (!target || !register_operand (target, mode))
-	target = gen_reg_rtx (mode);
-
-      start_sequence ();
-
-      if (!after)
-	emit_move_insn (target, t0);
-      t1 = t0;
-      if (code == NOT)
-	{
-	  t1 = expand_simple_binop (mode, AND, t1, val, NULL_RTX,
-				    true, OPTAB_LIB_WIDEN);
-	  t1 = expand_simple_unop (mode, code, t1, NULL_RTX, true);
-	}
-      else
-	t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX,
-				  true, OPTAB_LIB_WIDEN);
-      if (after)
-	emit_move_insn (target, t1);
-
-      insn = get_insns ();
-      end_sequence ();
-
-      if (t1 != NULL && expand_compare_and_swap_loop (mem, t0, t1, insn))
-	return target;
-    }
-
-  return NULL_RTX;
-}
-
-/* This function expands a test-and-set operation.  Ideally we atomically
-   store VAL in MEM and return the previous value in MEM.  Some targets
-   may not support this operation and only support VAL with the constant 1;
-   in this case while the return value will be 0/1, but the exact value
-   stored in MEM is target defined.  TARGET is an option place to stick
-   the return value.  */
-
-rtx
-expand_sync_lock_test_and_set (rtx mem, rtx val, rtx target)
-{
-  enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode;
-
-  /* If the target supports the test-and-set directly, great.  */
-  icode = direct_optab_handler (sync_lock_test_and_set_optab, mode);
-  if (icode != CODE_FOR_nothing)
-    {
-      struct expand_operand ops[3];
-
-      create_output_operand (&ops[0], target, mode);
-      create_fixed_operand (&ops[1], mem);
-      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
-      create_convert_operand_to (&ops[2], val, mode, true);
-      if (maybe_expand_insn (icode, 3, ops))
-	return ops[0].value;
-    }
-
-  /* Otherwise, use a compare-and-swap loop for the exchange.  */
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing)
-    {
-      if (!target || !register_operand (target, mode))
-	target = gen_reg_rtx (mode);
-      if (GET_MODE (val) != VOIDmode && GET_MODE (val) != mode)
-	val = convert_modes (mode, GET_MODE (val), val, 1);
-      if (expand_compare_and_swap_loop (mem, target, val, NULL_RTX))
-	return target;
-    }
-
-  return NULL_RTX;
-}
 
 /* This function expands the atomic exchange operation:
    atomically store VAL in MEM and return the previous value in MEM.
@@ -7177,6 +6880,7 @@ expand_sync_mem_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
+  rtx last_insn;
 
   /* If the target supports the exchange directly, great.  */
   icode = direct_optab_handler (sync_mem_exchange_optab, mode);
@@ -7198,12 +6902,44 @@ expand_sync_mem_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
      than acquire, add a release barrier before the instruction.
      The barrier is not needed if sync_lock_test_and_set doesn't exist since
      it will expand into a compare-and-swap loop.  */
+
   icode = direct_optab_handler (sync_lock_test_and_set_optab, mode);
+  last_insn = get_last_insn ();
   if ((icode != CODE_FOR_nothing) && (model == MEMMODEL_SEQ_CST || 
-				     model == MEMMODEL_ACQ_REL))
+				      model == MEMMODEL_RELEASE ||
+				      model == MEMMODEL_ACQ_REL))
     expand_builtin_mem_thread_fence (model);
 
-  return expand_sync_lock_test_and_set (mem, val, target);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand ops[3];
+
+      create_output_operand (&ops[0], target, mode);
+      create_fixed_operand (&ops[1], mem);
+      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
+      create_convert_operand_to (&ops[2], val, mode, true);
+      if (maybe_expand_insn (icode, 3, ops))
+	return ops[0].value;
+    }
+
+  /* Remove any fence we may have inserted since a compare and swap loop is a
+     full memory barrier.  */
+  if (last_insn != get_last_insn ())
+    delete_insns_since (last_insn);
+
+  /* Otherwise, use a compare-and-swap loop for the exchange.  */
+  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
+      != CODE_FOR_nothing)
+    {
+      if (!target || !register_operand (target, mode))
+	target = gen_reg_rtx (mode);
+      if (GET_MODE (val) != VOIDmode && GET_MODE (val) != mode)
+	val = convert_modes (mode, GET_MODE (val), val, 1);
+      if (expand_compare_and_swap_loop (mem, target, val, NULL_RTX))
+	return target;
+    }
+
+  return NULL_RTX;
 }
 
 /* This function expands the atomic compare exchange operation:
@@ -7323,99 +7059,320 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
+  struct expand_operand ops[3];
 
   /* If the target supports the store directly, great.  */
   icode = direct_optab_handler (sync_mem_store_optab, mode);
   if (icode != CODE_FOR_nothing)
     {
-      struct expand_operand ops[3];
 
       create_output_operand (&ops[0], mem, mode);
-      create_fixed_operand (&ops[1], val);
+      create_input_operand (&ops[1], val, mode);
       create_integer_operand (&ops[2], model);
       if (maybe_expand_insn (icode, 3, ops))
 	return;
     }
 
+  /* A store of 0 is the same as __sync_lock_release, try that.  */
+  if (CONST_INT_P (val) && INTVAL (val) == 0)
+    {
+      icode = direct_optab_handler (sync_lock_release_optab, mode);
+      if (icode != CODE_FOR_nothing)
+	{
+	  create_fixed_operand (&ops[0], mem);
+	  create_input_operand (&ops[1], const0_rtx, mode);
+	  if (maybe_expand_insn (icode, 2, ops))
+	    {
+	      /* lock_release is only a release barrier.  */
+	      if (model == MEMMODEL_SEQ_CST)
+		expand_builtin_mem_thread_fence (model);
+	      return;
+	    }
+	}
+    }
   /* If there is no mem_store, default to a move with barriers */
-
-  if (model == MEMMODEL_SEQ_CST)
+  if (model == MEMMODEL_SEQ_CST || model == MEMMODEL_RELEASE)
     expand_builtin_mem_thread_fence (model);
 
   emit_move_insn (mem, val);
 
   /* For SEQ_CST, also emit a barrier after the load.  */
-  expand_builtin_mem_thread_fence (model);
+  if (model == MEMMODEL_SEQ_CST)
+    expand_builtin_mem_thread_fence (model);
 }
 
-/* This function expands an atomic fetch_OP operation:
-   CODE is the operation to be performed.
-   atomically fetch MEM, perform the operation with VAL and return it to MEM.
-   return the previous value of MEM.
-   FETCH_AFTER is true if the return value is the result of the operation.
-   FETCH_AFTER is false if it is the value before the operation.
 
-   MEMMODEL is the memory model variant to use.
-   TARGET is an option place to stick the return value.  */
+/* Structure containing the pointers and values required to process the
+   various forms of the sync_mem_fetch_op and sync_mem_op_fetch builtins.  */
+struct op_functions {
+  struct direct_optab_d *mem_fetch_before;
+  struct direct_optab_d *mem_fetch_after;
+  struct direct_optab_d *mem_no_result;
+  struct direct_optab_d *fetch_before;
+  struct direct_optab_d *fetch_after;
+  struct direct_optab_d *no_result;
+  enum rtx_code reverse_code;
+};
 
-rtx
-expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
-			  enum memmodel model, bool fetch_after)
+/* Initialize the fields for each supported opcode.  */
+static const struct op_functions add_op = { sync_mem_fetch_add_optab,
+				      sync_mem_add_fetch_optab,
+				      sync_mem_add_optab,
+				      sync_old_add_optab,
+				      sync_new_add_optab,
+				      sync_add_optab,
+				      MINUS
+				    };
+
+static const struct op_functions sub_op = { sync_mem_fetch_sub_optab,
+					    sync_mem_sub_fetch_optab,
+					    sync_mem_sub_optab,
+					    sync_old_sub_optab,
+					    sync_new_sub_optab,
+					    sync_sub_optab,
+					    PLUS
+					  };
+
+static const struct op_functions xor_op = { sync_mem_fetch_xor_optab,
+					    sync_mem_xor_fetch_optab,
+					    sync_mem_xor_optab,
+					    sync_old_xor_optab,
+					    sync_new_xor_optab,
+					    sync_xor_optab,
+					    UNKNOWN
+					  };
+
+static const struct op_functions and_op = { sync_mem_fetch_and_optab,
+					    sync_mem_and_fetch_optab,
+					    sync_mem_and_optab,
+					    sync_old_and_optab,
+					    sync_new_and_optab,
+					    sync_and_optab,
+					    UNKNOWN
+					  };
+
+static const struct op_functions nand_op = { sync_mem_fetch_nand_optab,
+					     sync_mem_nand_fetch_optab,
+					     sync_mem_nand_optab,
+					     sync_old_nand_optab,
+					     sync_new_nand_optab,
+					     sync_nand_optab,
+					     UNKNOWN
+					   };
+
+static const struct op_functions or_op = { sync_mem_fetch_or_optab,
+					   sync_mem_or_fetch_optab,
+					   sync_mem_or_optab,
+					   sync_old_ior_optab,
+					   sync_new_ior_optab,
+					   sync_ior_optab,
+					   UNKNOWN
+					 };
+
+/* Try to emit an instruction for a specific operation varaition. 
+   OPTAB contains the OP functions.
+   TARGET is an optional place to return the result. const0_rtx means unused.
+   MEM is the memory location to operate on.
+   VAL is the value to use in the operation.
+   USE_MEMMODEL is TRUE if the variation with a memory model should be tried.
+   MODEL is the memory model, if used.
+   AFTER is true if the returned result is the value after the operation.  */
+
+static rtx 
+maybe_emit_op (const struct op_functions *optab, rtx target, rtx mem, rtx val,
+	    bool use_memmodel, enum memmodel model, bool after)
 {
   enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode = CODE_FOR_nothing;
-  struct direct_optab_d *optab;
+  struct direct_optab_d *this_optab;
+  struct expand_operand ops[4];
+  enum insn_code icode;
+  int op_counter = 0;
+  int num_ops;
+
+  /* Check to see if there is a result returned.  */
+  if (target == const0_rtx)
+    {
+      if (use_memmodel)
+        {
+	  this_optab = optab->mem_no_result;
+	  create_integer_operand (&ops[2], model);
+	  num_ops = 3;
+	}
+      else
+        {
+	  this_optab = optab->no_result;
+	  num_ops = 2;
+	}
+    }
+  /* Otherwise, we need to generate a result.  */
+  else
+    {
+      if (use_memmodel)
+        {
+	  this_optab = after ? optab->mem_fetch_after : optab->mem_fetch_before;
+	  create_integer_operand (&ops[3], model);
+	  num_ops= 4;
+	}
+      else
+	{
+	  this_optab = after ? optab->fetch_after : optab->fetch_before;
+	  num_ops = 3;
+	}
+      create_output_operand (&ops[op_counter++], target, mode);
+    }
+
+  icode = direct_optab_handler (this_optab, mode);
+  if (icode == CODE_FOR_nothing)
+    return NULL_RTX;
+
+  create_fixed_operand (&ops[op_counter++], mem);
+  /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
+  create_convert_operand_to (&ops[op_counter++], val, mode, true);
+
+  if (maybe_expand_insn (icode, num_ops, ops))
+    return ((target == const0_rtx) ? const0_rtx : ops[0].value);
+
+  return NULL_RTX;
+} 
+
+
+/* This function expands an atomic fetch_OP or OP_fetch operation:
+   TARGET is an option place to stick the return value.  const0_rtx indicates
+   the result is unused. 
+   atomically fetch MEM, perform the operation with VAL and return it to MEM.
+   CODE is the operation being performed (OP)
+   MEMMODEL is the memory model variant to use.
+   AFTER is true to return the result of the operation (OP_fetch).
+   AFTER is false to return the value before the operation (fetch_OP).  */
+rtx
+expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
+			  enum memmodel model, bool after)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  const struct op_functions *optab;
+  rtx result;
+  bool unused_result = (target == const0_rtx);
 
   switch (code)
     {
       case PLUS:
-        optab = fetch_after ? sync_mem_add_fetch_optab 
-			    : sync_mem_fetch_add_optab;
+        optab = &add_op;
         break;
       case MINUS:
-        optab = fetch_after ? sync_mem_sub_fetch_optab 
-			    : sync_mem_fetch_sub_optab;
+        optab = &sub_op;
         break;
       case AND:
-        optab = fetch_after ? sync_mem_and_fetch_optab 
-			    : sync_mem_fetch_and_optab;
+        optab = &and_op;
         break;
       case XOR:
-        optab = fetch_after ? sync_mem_xor_fetch_optab 
-			    : sync_mem_fetch_xor_optab;
+        optab = &xor_op;
         break;
       case IOR:
-        optab = fetch_after ? sync_mem_or_fetch_optab 
-			    : sync_mem_fetch_or_optab;
+        optab = &or_op;
+        break;
+      case NOT:
+        optab = &nand_op;
         break;
       default:
-        optab = NULL;
+        gcc_unreachable();
     }
 
-  if (optab)
-    icode = direct_optab_handler (optab, mode);
-
-  /* If the target supports the operation directly, great.  */
-  if (icode != CODE_FOR_nothing)
+  /* Check for the case where the result isn't used and try those patterns.  */
+  if (unused_result)
     {
-      struct expand_operand ops[4];
+      /* Try the memory model variant first.  */
+      result = maybe_emit_op (optab, target, mem, val, true, model, true);
+      if (result)
+        return result;
 
-      create_output_operand (&ops[0], target, mode);
-      create_fixed_operand (&ops[1], mem);
-      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
-      create_convert_operand_to (&ops[2], val, mode, true);
-      create_integer_operand (&ops[3], model);
-      if (maybe_expand_insn (icode, 4, ops))
-	return ops[0].value;
+      /* Next try the old style withuot a memory model.  */
+      result = maybe_emit_op (optab, target, mem, val, false, model, true);
+      if (result)
+        return result;
+
+      /* There is no no-result pattern, so try patterns with a result.  */
+      target = NULL_RTX;
     }
 
-   /* fetch_* operations are full barriers, so need nothing else.  */
-   target = expand_sync_fetch_operation (mem, val, code, fetch_after, target);
+  /* Try the __sync_mem version.  */
+  result = maybe_emit_op (optab, target, mem, val, true, model, after);
+  if (result)
+    return result;
 
-  return target;
+  /* Try the older __sync version.  */
+  result = maybe_emit_op (optab, target, mem, val, false, model, after);
+  if (result)
+    return result;
+
+  /* If the fetch value can be calculated from the other variation of fetch,
+     try that operation.  */
+  if (after || optab->reverse_code != UNKNOWN || target == const0_rtx) 
+    {
+      /* Try the __sync_mem version, then the older __sync version.  */
+      result = maybe_emit_op (optab, target, mem, val, true, model, !after);
+      if (!result)
+	result = maybe_emit_op (optab, target, mem, val, false, model, !after);
+
+      if (result)
+	{
+	  /* If the result isn't used, no need to do compensation code.  */
+	  if (unused_result)
+	    return target;
+
+	  /* Issue compensation code.  Fetch_after  == fetch_before OP val.
+	     Fetch_before == after REVERSE_OP val.  */
+	  if (!after)
+	    code = optab->reverse_code;
+	  result = expand_simple_binop (mode, code, result, val, NULL_RTX, true,
+					OPTAB_LIB_WIDEN);
+	  return result;
+	}
+    }
+
+  /* If nothing else has succeeded, default to a compare and swap loop.  */
+  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
+        != CODE_FOR_nothing)
+    {
+      rtx insn;
+      rtx t0 = gen_reg_rtx (mode), t1;
+
+      start_sequence ();
+
+      /* If the result is used, get a register for it.  */
+      if (!unused_result) 
+        {
+	  if (!target || !register_operand (target, mode))
+	    target = gen_reg_rtx (mode);
+	  /* If fetch_before, copy the value now.  */
+	  if (!after)
+	    emit_move_insn (target, t0);
+	}
+      else
+        target = const0_rtx;
+
+      t1 = t0;
+      if (code == NOT)
+        {
+	  t1 = expand_simple_binop (mode, AND, t1, val, NULL_RTX,
+				    true, OPTAB_LIB_WIDEN);
+	  t1 = expand_simple_unop (mode, code, t1, NULL_RTX, true);
+	}
+      else
+	t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX, true, 
+				  OPTAB_LIB_WIDEN);
+
+      /* For after, copy the value now.  */
+      if (!unused_result && after)
+        emit_move_insn (target, t1);
+      insn = get_insns ();
+      end_sequence ();
+
+      if (t1 != NULL && expand_compare_and_swap_loop (mem, t0, t1, insn))
+        return target;
+    }
+
+  return NULL_RTX;
 }
-
-
 
 /* Return true if OPERAND is suitable for operand number OPNO of
    instruction ICODE.  */

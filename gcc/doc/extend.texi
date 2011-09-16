@@ -6809,9 +6809,10 @@ __SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, __SYNC_MEM_ACQUIRE, and
 __SYNC_MEM_CONSUME.
 
 @item void __sync_mem_store (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __sync_mem_load
+@findex __sync_mem_store
 This builtin implements an atomic store operation.  It writes @code{@var{val}}
-into @code{*@var{ptr}}.
+into @code{*@var{ptr}}.  On targets which are limited, 0 may be the only valid
+value. This mimics the behaviour of __sync_lock_release on such hardware.
 
 The valid memory model variants are
 __SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, and __SYNC_MEM_RELEASE.
@@ -6820,6 +6821,9 @@ __SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, and __SYNC_MEM_RELEASE.
 @findex __sync_mem_exchange
 This builtin implements an atomic exchange operation.  It writes @var{val}
 into @code{*@var{ptr}}, and returns the previous contents of @code{*@var{ptr}}.
+
+On targets which are limited, a value of 1 may be the only valid value written.
+This mimics the behaviour of __sync_lock_test_and_set on such hardware.
 
 The valid memory model variants are
 __SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, __SYNC_MEM_ACQUIRE,
@@ -6879,22 +6883,6 @@ that had previously been in *ptr .  That is,
 @end smallexample
 
 All memory models are valid.
-
-@item bool __sync_mem_flag_test_and_set (char *ptr, int memmodel)
-@findex __sync_mem_flag_test_and_set
-
-This builtin performs a test and set operation. The contents of
-@code{*@var{ptr}} will be set to true, and the previous value returned.
-
-All memory orders are valid.
-
-@item void __sync_mem_flag_clear (char *ptr, int memmodel)
-@findex __sync_mem_flag_clear
-
-This builtin performs a clear operation. The contents of @code{*@var{ptr}}
-will be set to false.
-
-The memory order cannot be __SYNC_MEM_ACQUIRE or __SYNC_MEM_ACQ_REL.
 
 @item void __sync_mem_thread_fence (int memmodel)
 @findex __sync_mem_thread_fence

@@ -216,7 +216,6 @@ rtx expand_val_compare_and_swap (rtx, rtx, rtx, rtx);
 rtx expand_bool_compare_and_swap (rtx, rtx, rtx, rtx);
 rtx expand_sync_operation (rtx, rtx, enum rtx_code);
 rtx expand_sync_fetch_operation (rtx, rtx, enum rtx_code, bool, rtx);
-rtx expand_sync_lock_test_and_set (rtx, rtx, rtx);
 
 rtx expand_sync_mem_exchange (rtx, rtx, rtx, enum memmodel);
 rtx expand_sync_mem_compare_exchange (rtx, rtx, rtx, rtx, enum memmodel, 
@@ -225,8 +224,6 @@ rtx expand_sync_mem_load (rtx, rtx, enum memmodel);
 void expand_sync_mem_store (rtx, rtx, enum memmodel);
 rtx expand_sync_mem_fetch_op (rtx, rtx, rtx, enum rtx_code, enum memmodel, 
 			      bool);
-rtx expand_sync_mem_flag_test_and_set (rtx, rtx, enum memmodel);
-void expand_sync_mem_flag_clear (rtx, enum memmodel);
 void expand_sync_mem_thread_fence (enum memmodel);
 void expand_sync_mem_signal_fence (enum memmodel);
 

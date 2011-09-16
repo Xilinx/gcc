@@ -685,7 +685,7 @@ enum direct_optab_index
   /* Atomic clear with release semantics.  */
   DOI_sync_lock_release,
 
-  /* Atomic operations with C++0x memory model parameters. */
+  /* Atomic operations with memory model parameters. */
   DOI_sync_mem_exchange,
   DOI_sync_mem_compare_exchange,
   DOI_sync_mem_load,
@@ -693,15 +693,21 @@ enum direct_optab_index
   DOI_sync_mem_add_fetch,
   DOI_sync_mem_sub_fetch,
   DOI_sync_mem_and_fetch,
+  DOI_sync_mem_nand_fetch,
   DOI_sync_mem_xor_fetch,
   DOI_sync_mem_or_fetch,
   DOI_sync_mem_fetch_add,
   DOI_sync_mem_fetch_sub,
   DOI_sync_mem_fetch_and,
+  DOI_sync_mem_fetch_nand,
   DOI_sync_mem_fetch_xor,
   DOI_sync_mem_fetch_or,
-  DOI_sync_mem_flag_test_and_set,
-  DOI_sync_mem_flag_clear,
+  DOI_sync_mem_add,
+  DOI_sync_mem_sub,
+  DOI_sync_mem_and,
+  DOI_sync_mem_nand,
+  DOI_sync_mem_xor,
+  DOI_sync_mem_or,
   DOI_sync_mem_thread_fence,
   DOI_sync_mem_signal_fence,
 
@@ -765,6 +771,8 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_sync_mem_sub_fetch])
 #define sync_mem_and_fetch_optab \
   (&direct_optab_table[(int) DOI_sync_mem_and_fetch])
+#define sync_mem_nand_fetch_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_nand_fetch])
 #define sync_mem_xor_fetch_optab \
   (&direct_optab_table[(int) DOI_sync_mem_xor_fetch])
 #define sync_mem_or_fetch_optab \
@@ -775,14 +783,24 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_sync_mem_fetch_sub])
 #define sync_mem_fetch_and_optab \
   (&direct_optab_table[(int) DOI_sync_mem_fetch_and])
+#define sync_mem_fetch_nand_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_fetch_nand])
 #define sync_mem_fetch_xor_optab \
   (&direct_optab_table[(int) DOI_sync_mem_fetch_xor])
 #define sync_mem_fetch_or_optab \
   (&direct_optab_table[(int) DOI_sync_mem_fetch_or])
-#define sync_mem_flag_test_and_set_optab \
-  (&direct_optab_table[(int) DOI_sync_mem_flag_test_and_set])
-#define sync_mem_flag_clear_optab \
-  (&direct_optab_table[(int) DOI_sync_mem_flag_clear])
+#define sync_mem_add_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_add])
+#define sync_mem_sub_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_sub])
+#define sync_mem_and_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_and])
+#define sync_mem_nand_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_nand])
+#define sync_mem_xor_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_xor])
+#define sync_mem_or_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_or])
 #define sync_mem_thread_fence_optab \
   (&direct_optab_table[(int) DOI_sync_mem_thread_fence])
 #define sync_mem_signal_fence_optab \

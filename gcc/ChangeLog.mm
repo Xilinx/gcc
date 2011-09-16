@@ -1,3 +1,37 @@
+2011-09-16  Andrew MacLeod  <amacleod@redhat.com>
+
+	* expr.h: Remove prototypes.
+	* sync-builtins.def (BUILT_IN_SYNC_MEM_FLAG_TEST_AND_SET,
+	BUILT_IN_SYNC_MEM_FLAG_CLEAR): Remove.
+	(BUILT_IN_SYNC_MEM_NAND_FETCH): New builtin.
+	(BUILT_IN_SYNC_MEM_FETCH_NAND): New builtin.
+	* optabs.h (enum direct_optab_index): Remove DOI_sync_mem_flag_*.
+	Add nand patterns as well as _sync_mem patterns with no result.
+	(direct_op): Add new patterns to table.
+	* genopinit (optabs[]): Add nand handlers.
+	* optabs.c (expand_sync_lock_test_and_set): Remove.
+	(expand_sync_mem_exchange): Incorporate sync_lock_test_and_set here.
+	(expand_sync_mem_store): If storing const0_rtx, try using
+	sync_lock_release.
+	(expand_sync_operation, expand_sync_fetch_operation): Remove.
+	(struct op_functions): New.  Table of different opcode expanders.
+	(add_op, sub_op, xor_op, and_op, nand_op, or_op): New.  Objects
+	initialized to expander data for each operation.
+	(maybe_emit_op): New. Try to emit a specific op variation.
+	(expand_sync_mem_fetch_op): Use maybe_emit_op to try to find a valid
+	expansion using expanders in the op_function table.
+	* builtins.c (expand_builtin_sync_lock_test_and_set): Expand into
+	sync_mem_exchange instead.
+	(expand_builtin_sync_lock_release): Expand into sync_mem_store of 0.
+	(expand_builtin_sync_mem_flag_test_and_set): Remove.
+	(expand_builtin_sync_mem_flag_clear): Remove.
+	(expand_builtin_sync_operation): Remove ignore param.
+	(expand_builtin_sync_operation): Always call expand_sync_mem_fetch_op
+	instead of the old expanders.
+	(expand_builtin): Remove cases for __SYNC_MEM_FLAG_*. Remove param 
+	'ignore'.  Expand the new NAND builtins.
+	* doc/extend.texi: Update documentation to match.
+
 2011-09-08  Andrew MacLeod  <amacleod@redhat.com>
 
 	* builtins.c (get_memmodel): If the memory model is not a compile time

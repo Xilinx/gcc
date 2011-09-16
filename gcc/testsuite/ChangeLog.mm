@@ -1,3 +1,14 @@
+2011-09-16  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/sync-mem-invalid.c: Remove __sync_mem_flag_clear
+	tests.
+	* gcc.dg/sync-mem-flag.c: Remove.
+	* gcc.dg/sync-mem-param.c: New testcase to check correct number of 
+	parameters on a sample __sync_mem builtin.
+	* gcc.dg/sync-mem-op-[1-5].c: Add NAND tests and a set of tests which 
+	test the op builtins when the result isnt used.  Add a few constants 
+	as parameters for better coverage.
+
 2011-09-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gcc.dg/memmodel/memmodel.exp: Call torture-finish.

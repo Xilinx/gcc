@@ -16,6 +16,4 @@ main ()
   __sync_mem_store (&i, 1, __SYNC_MEM_CONSUME); /* { dg-error "invalid memory model" } */
   __sync_mem_store (&i, 1, __SYNC_MEM_ACQ_REL); /* { dg-error "invalid memory model" } */
 
-  __sync_mem_flag_clear (&i, __SYNC_MEM_ACQUIRE); /* { dg-error "invalid memory model" } */
-  __sync_mem_flag_clear (&i, __SYNC_MEM_ACQ_REL); /* { dg-error "invalid memory model" } */
 }

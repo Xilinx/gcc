@@ -9015,7 +9015,8 @@ sync_resolve_size (tree function, VEC(tree,gc) *params)
    was encountered; true on success.  */
 
 static bool
-sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
+sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params,
+		     bool orig_format)
 {
   function_args_iterator iter;
   tree ptype;
@@ -9047,15 +9048,28 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
 	  return false;
 	}
 
-      /* ??? Ideally for the first conversion we'd use convert_for_assignment
-	 so that we get warnings for anything that doesn't match the pointer
-	 type.  This isn't portable across the C and C++ front ends atm.  */
-      val = VEC_index (tree, params, parmnum);
-      val = convert (ptype, val);
-      val = convert (arg_type, val);
-      VEC_replace (tree, params, parmnum, val);
+      /* Only convert parameters if the size is appropriate with new format
+	 sync routines.  */
+      if (orig_format ||
+	    tree_int_cst_equal (TYPE_SIZE (ptype), TYPE_SIZE (arg_type)))
+	{
+	  /* Ideally for the first conversion we'd use convert_for_assignment
+	     so that we get warnings for anything that doesn't match the pointer
+	     type.  This isn't portable across the C and C++ front ends atm.  */
+	  val = VEC_index (tree, params, parmnum);
+	  val = convert (ptype, val);
+	  val = convert (arg_type, val);
+	  VEC_replace (tree, params, parmnum, val);
+	}
 
       function_args_iter_next (&iter);
+    }
+
+  /* __sync_mem routines are not variadic.  */
+  if (!orig_format && VEC_length (tree, params) != parmnum + 1)
+    {
+      error ("too many arguments to function %qE", orig_function);
+      return false;
     }
 
   /* The definition of these primitives is variadic, with the remaining
@@ -9072,11 +9086,17 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
    PARAMS.  */
 
 static tree
-sync_resolve_return (tree first_param, tree result)
+sync_resolve_return (tree first_param, tree result, bool orig_format)
 {
   tree ptype = TREE_TYPE (TREE_TYPE (first_param));
+  tree rtype = TREE_TYPE (result);
   ptype = TYPE_MAIN_VARIANT (ptype);
-  return convert (ptype, result);
+
+  /* New format doesn't require casting unless the types are the same size.  */
+  if (orig_format || tree_int_cst_equal (TYPE_SIZE (ptype), TYPE_SIZE (rtype)))
+    return convert (ptype, result);
+  else
+    return result;
 }
 
 /* Some builtin functions are placeholders for other expressions.  This
@@ -9094,6 +9114,8 @@ tree
 resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 {
   enum built_in_function orig_code = DECL_FUNCTION_CODE (function);
+  bool orig_format = true;
+
   switch (DECL_BUILT_IN_CLASS (function))
     {
     case BUILT_IN_NORMAL:
@@ -9110,6 +9132,26 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
   /* Handle BUILT_IN_NORMAL here.  */
   switch (orig_code)
     {
+    case BUILT_IN_SYNC_MEM_EXCHANGE_N:
+    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_N:
+    case BUILT_IN_SYNC_MEM_LOAD_N:
+    case BUILT_IN_SYNC_MEM_STORE_N:
+    case BUILT_IN_SYNC_MEM_ADD_FETCH_N:
+    case BUILT_IN_SYNC_MEM_SUB_FETCH_N:
+    case BUILT_IN_SYNC_MEM_AND_FETCH_N:
+    case BUILT_IN_SYNC_MEM_NAND_FETCH_N:
+    case BUILT_IN_SYNC_MEM_XOR_FETCH_N:
+    case BUILT_IN_SYNC_MEM_OR_FETCH_N:
+    case BUILT_IN_SYNC_MEM_FETCH_ADD_N:
+    case BUILT_IN_SYNC_MEM_FETCH_SUB_N:
+    case BUILT_IN_SYNC_MEM_FETCH_AND_N:
+    case BUILT_IN_SYNC_MEM_FETCH_NAND_N:
+    case BUILT_IN_SYNC_MEM_FETCH_XOR_N:
+    case BUILT_IN_SYNC_MEM_FETCH_OR_N:
+      {
+        orig_format = false;
+	/* Fallthru for parameter processing.  */
+      }
     case BUILT_IN_SYNC_FETCH_AND_ADD_N:
     case BUILT_IN_SYNC_FETCH_AND_SUB_N:
     case BUILT_IN_SYNC_FETCH_AND_OR_N:
@@ -9126,20 +9168,6 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
     case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_N:
     case BUILT_IN_SYNC_LOCK_TEST_AND_SET_N:
     case BUILT_IN_SYNC_LOCK_RELEASE_N:
-    case BUILT_IN_SYNC_MEM_EXCHANGE_N:
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_N:
-    case BUILT_IN_SYNC_MEM_LOAD_N:
-    case BUILT_IN_SYNC_MEM_STORE_N:
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_N:
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_N:
-    case BUILT_IN_SYNC_MEM_AND_FETCH_N:
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_N:
-    case BUILT_IN_SYNC_MEM_OR_FETCH_N:
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_N:
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_N:
-    case BUILT_IN_SYNC_MEM_FETCH_AND_N:
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_N:
-    case BUILT_IN_SYNC_MEM_FETCH_OR_N:
       {
 	int n = sync_resolve_size (function, params);
 	tree new_function, first_param, result;
@@ -9148,7 +9176,7 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 	  return error_mark_node;
 
 	new_function = built_in_decls[orig_code + exact_log2 (n) + 1];
-	if (!sync_resolve_params (function, new_function, params))
+	if (!sync_resolve_params (function, new_function, params, orig_format))
 	  return error_mark_node;
 
 	first_param = VEC_index (tree, params, 0);
@@ -9156,7 +9184,7 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 	if (orig_code != BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_N
 	    && orig_code != BUILT_IN_SYNC_LOCK_RELEASE_N
 	    && orig_code != BUILT_IN_SYNC_MEM_STORE_N)
-	  result = sync_resolve_return (first_param, result);
+	  result = sync_resolve_return (first_param, result, orig_format);
 
 	return result;
       }
