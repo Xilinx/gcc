@@ -19,8 +19,8 @@ XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
 
-# The following tests are failing with gold.  The LTO plugin is not resolving
-# names properly.  Only builds configured to use gold will show these.
+# The following tests are failing with gold in -m32 mode (due to
+# PR 50251).
 UNRESOLVED: gcc.c-torture/execute/20010209-1.c execution,  -O2 -flto -flto-partition=none
 UNRESOLVED: gcc.c-torture/execute/20010209-1.c execution,  -O2 -flto
 FAIL: gcc.c-torture/execute/20010209-1.c compilation,  -O2 -flto  (internal compiler error)
