@@ -1,3 +1,362 @@
+2011-09-18  Eric Botcazou  <ebotcazou@adacore.com>
+	    Iain Sandoe  <developer@sandoe-acoustics.co.uk>
+
+	PR target/50091
+	* config/rs6000/rs6000.md (probe_stack): Use explicit operand.
+	* config/rs6000/rs6000.c (output_probe_stack_range): Likewise.
+
+2011-09-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/bmiintrin.h: Remove tmp.
+	* config/i386/tbmintrin.h: Likewise.
+
+2011-09-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50414
+	* tree-vect-slp.c (vect_get_constant_vectors): Handle MAX_EXPR and
+	MIN_EXPR.
+
+2011-09-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50412
+	* tree-vect-data-refs.c (vect_analyze_group_access): Fail for
+	acceses that require epilogue loop if vectorizing outer loop.
+
+2011-09-17  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (UNSPEC_EDGE8, UNSPEC_EDGE8L,
+	UNSPEC_EDGE16, UNSPEC_EDGE16L, UNSPEC_EDGE32, UNSPEC_EDGE32L):
+	New unspecs.
+	(define_attr type): New type 'edge'.
+	(edge8_vis, edge8l_vis, edge16_vis, edge16l_vis, edge32_vis,
+	edge32l_vis): New patterns.
+	* config/sparc/ultra1_2.md: Add insn reservation for 'edge'.
+	* config/sparc/ultra3.md: Likewise.
+	* config/sparc/niagara.md: Likewise.
+	* config/sparc/niagara2.md: Likewise.
+	* config/sparc/sparc.d (sparc_vis_init_builtins): Generate
+	builtins for VIS edge instructions.
+	* config/sparc/visintrin.h (__vis_edge8, __vis_edge8l)
+	(__vis_edge16, __vis_edge16l, __vis_edge32, __vis_edge32l): New
+	intrinsics.
+	(__v8qi, __v4qi): Make unsigned.
+	(__vis_faligndatadi, ___vis_faligndatav2si, __vis_faligndatav4hi,
+	__vis_faligndatav8qi, __vis_fmul8x16au, __vis_fmul8x16al,
+	__vis_fpack32): Fix types.
+	* doc/extend.texi: Document new 'edge' VIS intrinsics.
+
+	* gcc/config/sparc/sparc.c (niagara2_costs): Adjust integer
+	divide costs.
+	(niagara3_costs): New.
+	(sparc_option_override): Use it.
+	* gcc/config/sparc/niagara2.md: Adjust with more accurate
+	Niagara-3 reservations.
+
+2011-09-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/sse.md (VIMAX_AVX2): Change V4DI to V2TI.
+	(sse2_avx, sseinsnmode): Add V2TI.
+	(REDUC_SMINMAX_MODE): New mode iterator.
+	(reduc_smax_v4sf, reduc_smin_v4sf, reduc_smax_v8sf,
+	reduc_smin_v8sf, reduc_smax_v4df, reduc_smin_v4df): Remove.
+	(reduc_<code>_<mode>): New smaxmin and umaxmin expanders.
+	(sse2_lshrv1ti3): Rename to...
+	(<sse2_avx2>_lshr<mode>3): ... this.  Use VIMAX_AVX2 mode
+	iterator.  Move before umaxmin expanders.
+	* config/i386/i386.h (VALID_AVX256_REG_MODE,
+	SSE_REG_MODE_P): Accept V2TImode.
+	* config/i386/i386.c (ix86_expand_reduc): Handle V32QImode,
+	V16HImode, V8SImode and V4DImode.
+
+	* config/i386/i386.c (ix86_build_const_vector): Handle V8SImode
+	and V4DImode.
+	(ix86_build_signbit_mask): Likewise.
+	(ix86_expand_int_vcond): Likewise.  Handle V16HImode and
+	V32QImode.
+	(bdesc_args): Use CODE_FOR_{s,u}m{ax,in}v{32q,16h,8s}i3
+	instead of CODE_FOR_avx2_{s,u}m{ax,in}v{32q,16h,8s}i3.
+	* config/i386/sse.md (avx2_<code><mode>3 umaxmin expand): Rename
+	to...
+	(<code><mode>3) ... this.
+	(avx2_<code><mode>3 smaxmin expand): Rename to...
+	(<code><mode>3) ... this.
+	(smax<mode>3, smin<mode>3): Macroize using smaxmin code iterator.
+	(smaxv2di3, sminv2di3): Macroize using smaxmin code iterator and
+	VI8_AVX2 mode iterator.
+	(umaxv2di3, uminv2di3): Macroize using umaxmin code iterator and
+	VI8_AVX2 mode iterator.
+	(vcond<V_256:mode><VI_256:mode>, vcondu<V_256:mode><VI_256:mode>):
+	New expanders.
+
+2011-09-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/ia64/itanium2.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-16  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/visintrin.h: New file.
+	* config.gcc: Add it to extra_headers on sparc.
+
+2011-09-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_expand_reduc_v4sf): Rename to ...
+	(ix86_expand_reduc): ... this.  Handle also V8SFmode and V4DFmode.
+	* config/i386/sse.md (reduc_splus_v4sf, reduc_smax_v4sf,
+	reduc_smin_v4sf): Adjust callers.
+	(reduc_smax_v8sf, reduc_smin_v8sf, reduc_smax_v4df, reduc_smin_v4df):
+	New expanders.
+
+	* config/i386/sse.md (vec_extract_hi_<mode>,
+	vec_extract_hi_v16hi, vec_extract_hi_v32qi): Use
+	vextracti128 instead of vextractf128 for -mavx2 and
+	integer vectors.  For V4DFmode fix up mode attribute.
+	(VEC_EXTRACT_MODE): For TARGET_AVX add 32-byte vectors.
+	(vec_set_lo_<mode>, vec_set_hi_<mode>): For VI8F_256 modes use V4DF
+	instead of V8SF mode attribute.
+	(avx2_extracti128): Change into define_expand.
+	* config/i386/i386.c (ix86_expand_vector_extract): Handle
+	32-byte vector modes if TARGET_AVX.
+
+2011-09-16  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: (umulqihi3, mulqihi3): Write as one pattern.
+	(umulqi3_highpart, smulqi3_highpart): Ditto.
+	(*maddqihi4.const, *umaddqihi4.uconst): Ditto.
+	(*msubqihi4.const, *umsubqihi4.uconst): Ditto.
+	(*muluqihi3.uconst, *mulsqihi3.sconst): Ditto.
+
+2011-09-16  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50358
+	* config/avr/avr.md (*ashiftqihi2.signx.1): New insn.
+	(*maddqi4, *maddqi4.const): New insns.
+	(*msubqi4, *msubqi4.const): New insns.
+	* config/avr/avr.c (avr_rtx_costs): Record costs of above in cases
+	PLUS:QI and MINUS:QI.  Increase costs of multiply-add/-sub for
+	HImode by 1 in the case of multiplying with a CONST_INT.
+	Record cost of *ashiftqihi2.signx.1 in case ASHIFT:QI.
+
+2011-09-15   Jan Hubicka  <jh@suse.cz>
+
+	PR lto/50430
+	* gimple-fold.c (gimple_get_virt_method_for_binfo): Do not ICE on
+	error_mark_node in the DECL_INITIAL of vtable.
+
+2011-09-15   Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in (SYSROOT_CFLAGS_FOR_TARGET): Define from
+	@SYSROOT_CFLAGS_FOR_TARGET@.
+	* configure.ac (SYSROOT_CFLAGS_FOR_TARGET): Set from
+	build-sysroot.
+	* configure: Regenerate.
+	(site.exp): Add definition of TEST_ALWAYS_FLAGS.
+	Remove setting of GCC_UNDER_TEST.
+
+2011-09-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (output_fp_compare): Return %v prefixed
+	instruction mnemonics for TARGET_AVX.
+
+	* config/i386/i386.md (*movdf_internal_rex64): use cond RTX in
+	"type" attribute calculation.
+	(*movdf_internal): Ditto.
+	(*movsf_internal): Ditto.
+
+2011-09-15  James Greenhalgh  <james.greenhalgh@arm.com>
+
+	* config/arm/arm.h (TARGET_CPU_CPP_BUILTINS): New builtin macro.
+
+2011-09-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50361
+	* expr.c (count_type_elements): Handle NULLPTR_TYPE.
+
+2011-09-15  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c (add_condition): Add conditions parameter;
+	simplify obviously true clauses.
+	(and_predicates, or_predicates): Add conditions parameter.
+	(inline_duplication_hoook): Update.
+	(mark_modified): New function.
+	(unmodified_parm): New function.
+	(eliminated_by_inlining_prob, (set_cond_stmt_execution_predicate,
+	set_switch_stmt_execution_predicate, will_be_nonconstant_predicate):
+	Use unmodified_parm.
+	(estimate_function_body_sizes): Update.
+	(remap_predicate): Update.
+
+2011-09-15  Ira Rosen  <ira.rosen@linaro.org>
+
+	* tree-vect-data-refs.c (vect_analyze_data_ref_dependence): Allow
+	read-after-read dependencies in basic block SLP.
+
+2011-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/sparc/sparc.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/sh/sh.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/s390/s390.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/rs6000/rs6000.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+	* config/rs6000/constraints.md: Likewise.
+
+2011-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/microblaze/microblaze.md: Use match_test rather than
+	eq/ne symbol_ref throughout file.
+
+2011-09-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/bfin/bfin.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-14  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/50251
+	* explow.c (emit_stack_restore): Set crtl->need_drap if
+	stack_restore is emitted.
+
+2011-09-14  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/arm.c (arm_override_options): Add unaligned_access
+	support.
+	(arm_file_start): Emit attribute for unaligned access as appropriate.
+	* config/arm/arm.md (UNSPEC_UNALIGNED_LOAD)
+	(UNSPEC_UNALIGNED_STORE): Add constants for unspecs.
+	(insv, extzv): Add unaligned-access support.
+	(extv): Change to expander. Likewise.
+	(extzv_t1, extv_regsi): Add helpers.
+	(unaligned_loadsi, unaligned_loadhis, unaligned_loadhiu)
+	(unaligned_storesi, unaligned_storehi): New.
+	(*extv_reg): New (previous extv implementation).
+	* config/arm/arm.opt (munaligned_access): Add option.
+	* config/arm/constraints.md (Uw): New constraint.
+	* expmed.c (store_bit_field_1): Adjust bitfield numbering according
+	to size of access, not size of unit, when BITS_BIG_ENDIAN !=
+	BYTES_BIG_ENDIAN. Don't use bitfield accesses for
+	volatile accesses when -fstrict-volatile-bitfields is in effect.
+	(extract_bit_field_1): Likewise.
+
+2011-09-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* simplify-rtx.c (simplify_subreg): Check that the inner mode is
+	a scalar integer before applying integer-only optimisations to
+	inner arithmetic.
+
+2011-09-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/mips/mips.c (mips_expand_epilogue): Generate a
+	simple_return only if the return address is in r31.
+
+2011-09-13  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* cfgcleanup.c (try_head_merge_bb): If get_condition returns
+	NULL for a jump that is a cc0 insn, pick the previous insn for
+	move_before.
+
+2011-09-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/v850/v850.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/pa/pa.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mn10300/mn10300.md: Use match_test rather than eq/ne
+	symbol_ref throughout file.
+
+2011-09-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/m68k/m68k.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/h8300/h8300.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/arm/arm.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+	* config/arm/neon.md: Likewise.
+	* config/arm/vfp.md: Likewise.
+	* config/arm/thumb2.md: Likewise.
+	* config/arm/cortex-m4.md: Likewise.
+
+2011-09-13  Sevak Sargsyan <sevak.sargsyan@ispras.ru>
+
+	* config/arm/neon.md (neon_vabd<mode>_2, neon_vabd<mode>_3): New
+	define_insn patterns for combine.
+
+2011-09-13  Giuseppe Scrivano  <gscrivano@gnu.org>
+
+	* reorg.c: Always define make_return_insns.
+
+2011-09-13  Jan Hubicka  <jh@suse.cz>
+
+	PR other/49533
+	* cgraphunit.c (assemble_thunks_and_aliases): Force alias to be output.
+
+2011-09-13  Jan Hubicka  <jh@suse.cz>
+
+	PR other/49533
+	* ipa-inline-transform.c (can_remove_node_now_p): Fix thunkos.
+
+2011-09-13  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.h (ASM_PREFERRED_EH_DATA_FORMAT): Define.
+	(ARM_TARGET2_DWARF_FORMAT): Provide default definition.
+	* config/arm/linux-eabi.h (ARM_TARGET2_DWARF_FORMAT): Define.
+	* config/arm/symbian.h (ARM_TARGET2_DWARF_FORMAT): Define.
+	* config/arm/uclinux-eabi.h(ARM_TARGET2_DWARF_FORMAT): Define.
+	* config/arm/t-bpabi (EXTRA_HEADERS): Add unwind-arm-common.h.
+	* config/arm/t-symbian (EXTRA_HEADERS): Add unwind-arm-common.h.
+	* config/c6x/c6x.c (c6x_output_file_unwind): Don't rely on dwarf2 code
+	enabling unwind tables.
+	(c6x_debug_unwind_info): New function.
+	(TARGET_ARM_EABI_UNWINDER): Define.
+	(TARGET_DEBUG_UNWIND_INFO): Define.
+	* config/c6x/c6x.h (DWARF_FRAME_RETURN_COLUMN): Define.
+	(TARGET_EXTRA_CFI_SECTION): Remove.
+	* config/c6x/t-c6x-elf (EXTRA_HEADERS): Set.
+	* ginclude/unwind-arm-common.h: New file.
+
+2011-09-13  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50358
+	* config/avr/predicates.md (const_1_to_6_operand): New predicate.
+	* config/avr/avr.md: (extend_s): New code attribute.
+	(mul_r_d): New code attribute.
+	(*maddqihi4, *umaddqihi4): New insns.
+	(*msubqihi4, *umsubqihi4): New insns.
+	(*usmaddqihi4, *sumaddqihi4): New insns.
+	(*usmsubqihi4, *susubdqihi4): New insns.
+	(*umaddqihi4.uconst, *maddqihi4.sconst): New insn-and-splits.
+	(*umsubqihi4.uconst, *msubqihi4.sconst): New insn-and-splits.
+	(*umsubqihi4.uconst.ashift): New insn-and-split.
+	(*msubqihi4.sconst.ashift): New insn-and-split.
+	(*sumaddqihi4.uconst): New insn-and-split.
+	(*sumsubqihi4.uconst): New insn-and-split.
+	* config/avr/avr.c (avr_rtx_costs): Report costs of above in case
+	PLUS:HI and MINUS:HI.
+
 2011-09-13  Revital Eres  <revital.eres@linaro.org>
 
 	modulo-sched.c (remove_node_from_ps): Return void instead of bool.
@@ -84,8 +443,7 @@
 
 	PR tree-optimization/50343
 	* tree-vect-patterns.c (vect_recog_dot_prod_pattern): Check
-	that the reduction is over an SSA name before checking its
-	definition.
+	that the reduction is over an SSA name before checking its definition.
 
 2011-09-11  Richard Sandiford  <rdsandiford@googlemail.com>
 
