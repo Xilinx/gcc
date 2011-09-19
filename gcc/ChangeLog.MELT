@@ -1,3 +1,8 @@
+2011-09-19  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.c (meltgc_string_hex_md5sum_file_sequence): Catenated
+	files stream call md5_process_block, we only call md5_process_bytes
+	for the last data of the last file.
 
 2011-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normbind_definedvalbind): New method.

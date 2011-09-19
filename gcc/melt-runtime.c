@@ -5374,7 +5374,11 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  }
 
  /* compute the hexadecimal encoded md5sum string of a tuple of file
-    paths, or NULL on failure */
+    paths, or NULL on failure.
+    When we finish to proceed a file, we immediatly add the beginning of the
+    following file to bufblock to keep a size of a multiple of 64.  This permit
+    to call md5_process_block.  We only call md5_process_bytes for the last
+    data.  */
  melt_ptr_t 
  meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p)
  {
@@ -5385,6 +5389,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    FILE *fil = NULL;
    int nbtup = 0;
    int cnt = 0;
+   int new_file_cnt = 0;
    struct md5_ctx ctx;
    MELT_ENTERFRAME(3, NULL);
  #define resv       meltfram__.mcfr_varptr[0]
@@ -5394,12 +5399,12 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    memset (&ctx, 0, sizeof(ctx));
    memset (md5srctab, 0, sizeof (md5srctab));
    memset (md5hex, 0, sizeof (md5hex));
-   memset (bufblock, 0, sizeof (bufblock));
    if (melt_magic_discr ((melt_ptr_t)pathtupv) != MELTOBMAG_MULTIPLE)
      goto end;
    md5_init_ctx (&ctx);
    nbtup = melt_multiple_length ((melt_ptr_t)pathtupv);
    /* this loop does not garbage collect! */
+   memset (bufblock, 0, sizeof (bufblock));
    for (ix=0; ix < nbtup; ix++) 
      {
        const char *curpath = NULL;
@@ -5414,21 +5419,32 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	 goto end;
        while (!feof (fil))
 	 {
-	   memset (bufblock, 0, sizeof (bufblock));
-	   cnt = fread (bufblock, 1, sizeof(bufblock), fil);
+	   if (cnt != 0) /*means that we havent process bufblock from previous
+			   file.*/
+	     {
+		new_file_cnt =fread (bufblock+cnt, sizeof(char),sizeof(bufblock)-cnt, fil);
+		cnt = cnt + new_file_cnt;
+
+	     }
+	   else 
+	     {
+	       cnt = fread (bufblock, sizeof(char), sizeof(bufblock), fil);
+	     }
 	   if (cnt ==sizeof(bufblock))
 	     {
 	       /* an entire block has been read. */
-	       md5_process_bytes (bufblock, sizeof(bufblock), &ctx);
-	     }
-	   else
-	     {
-	       md5_process_bytes (bufblock, (size_t) cnt, &ctx);
+	       md5_process_block (bufblock, sizeof(bufblock), &ctx);
+	       memset (bufblock, '\0', sizeof (bufblock));
+	       cnt = 0;
 	     }
 	 }
        fclose (fil);
        fil = NULL;
        curpath = NULL;
+     }
+   if (cnt !=0) /*We still have some data in the buffer*/
+     {
+       md5_process_bytes (bufblock, (size_t) cnt, &ctx);
      }
    md5_finish_ctx (&ctx, md5srctab);
    memset (md5hex, 0, sizeof(md5hex));
