@@ -1119,6 +1119,35 @@ source location.}#
     fixdat))
 (install_method class_fixed_binding  normalize_binding normbind_fixbind)
 
+
+;; normalize local define-d binding
+(defun normbind_definedvalbind (bind env ncx procs psloc)
+  (debug_msg bind "normbind_definedbalbind bind")
+  (assert_msg "check bind" (is_a bind class_defined_value_binding))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
+	 (symb (unsafe_get_field :binder bind))
+	 (syocc
+		(instance class_nrep_locsymocc
+			  :nrep_loc psloc
+			  :nocc_ctyp ctype_value 
+			  :nocc_symb symb
+			  :nocc_bind bind) ) 
+	 )
+    (debug_msg ncx "normbind_definedbalbind ncx")
+    (debug_msg env "normbind_definedbalbind env")
+    (debug_msg procs "normbind_definedbalbind procs")
+	  ;; cache the result & return it
+    (mapobject_put sycmap symb syocc)
+    (debug_msg sycmap "normbind_definedbalbind sycmap")
+    (debug_msg syocc "normbind_definedbalbind syocc")
+    (if (is_non_empty_list procs)
+	(assert_msg "normbind_definedbalbind check no procs"))
+    (return syocc)
+))
+(install_method class_defined_value_binding normalize_binding normbind_definedvalbind)
+
 ;; normalize local constructed binding
 (defun normbind_constructbind (bind env ncx procs psloc)
   (assert_msg "check bind" (is_a bind class_normal_constructor_binding))
@@ -5622,20 +5651,18 @@ source location.}#
 	  (error_plain sloc "(DEFINE ...) can appear only at top-level")
 	  (return)))
     (debug_msg sbody "normexp_define sbody")
-    (let ( 
-	  ;; perhaps this is not right?
-	  (nconst (instance class_nrep_constant
-			    :nrep_loc sloc
-			    :nconst_sval sbody
-			    :nconst_data ()
-			    :nconst_proc curproc
-			    )) )
-      (debug_msg nconst "normexp_define nconst")
-      (multicall
-       (nbody nbindings)
-       (normalize_tuple sbody env ncx sloc)
-       (debug_msg nbody "normexp_define nbody")
-       (debug_msg nbindings "normexp_define nbindings")
+    (multicall
+     (nbody nbindings)
+     (normalize_tuple sbody env ncx sloc)
+     (debug_msg nbody "normexp_define nbody")
+     (debug_msg nbindings "normexp_define nbindings")
+     (debug_msg sname "normexp_define sname")
+     (let (
+	   (ndefname (normexp_symbol sname env ncx sloc))
+	   (wbody (wrap_normal_letseq nbody nbindings sloc))
+	   )
+       (debug_msg ndefname "normexp_define ndefname")
+       (debug_msg wbody "normexp_define wbody")
        (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
 		   (get_field :named_name sname))	
        (assert_msg "$@$unimplemented normexp_define")
