@@ -65,6 +65,8 @@ extern FILE *pph_logfile;
 /* In pph.c  */
 extern void pph_init (void);
 extern void pph_finish (void);
+extern const char *pph_tree_code_text (enum tree_code code);
+extern void pph_dump_min_decl (FILE *file, tree decl);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
 extern void pph_dump_namespace (FILE *, tree ns);
 

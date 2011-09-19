@@ -1,3 +1,18 @@
+2011-09-17   Lawrence Crowl  <crowl@google.com>
+
+	* pph.h (pph_tree_code_text): New.
+	(pph_dump_min_decl): New.
+	* pph.c (pph_tree_code_text): New.  Update users of tree_code_name
+	to call this function instead, here and in other files.
+	(pph_dump_min_decl): New.
+	(pph_init): Adjust debug value to preprocessor's value.
+	* pph-streamer-in.c (pph_read_tree_header): Move work unrelated to
+	tree headers out of this function.
+	* (pph_read_tree): Move that work here.
+	* pt.c (pph_in_spec_entry_htab): Use pph_logfile instead of stderr.
+	(pph_out_spec_entry_tables): Likewise.
+	(pph_in_spec_entry_tables): Likewise.
+
 2011-09-13   Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (cp/parser.o): Add dependency on CXX_PPH_STREAMER_H.

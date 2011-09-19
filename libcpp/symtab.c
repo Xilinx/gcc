@@ -420,7 +420,7 @@ cpp_lt_create (unsigned int order, unsigned int debug)
 		  (void (*) (void *)) free);
   obstack_alignment_mask (table->strings) = 0;
 
-  table->pth_debug_level = debug;
+  table->debug_level = debug;
   lt_clear_stats (table);
 
   return table;
@@ -452,7 +452,7 @@ lt_statistics (struct cpp_lookaside *table)
 void 
 cpp_lt_destroy (cpp_lookaside *table)
 {
-  if (table->pth_debug_level >= 2)
+  if (table->debug_level >= 1)
     lt_statistics (table);
   if (table->strings)
     {
@@ -541,8 +541,8 @@ lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
         }
     }
 
-  if (reader->lookaside_table->pth_debug_level >= 3)
-    fprintf (stderr, "PTH: macro %s is %s\n",
+  if (reader->lookaside_table->debug_level >= 2)
+    fprintf (stderr, "PPH: macro %s is %s\n",
                      (const char *)cpp_node->ident.str,
                      definition);
 
@@ -626,7 +626,7 @@ cpp_lt_capture (cpp_reader *reader)
     {
       /* Allocate a new table.  */
       reader->lookaside_table = cpp_lt_create (aside->sticky_order,
-                                              aside->pth_debug_level);
+					       aside->debug_level);
       cpp_lt_destroy (aside);  /* May also dump statistics.  */
     }
   else
@@ -634,7 +634,7 @@ cpp_lt_capture (cpp_reader *reader)
       /* Reuse the old table.  */
 
       /* Dump out the statistics.  */
-      if (aside->pth_debug_level >= 2)
+      if (aside->debug_level >= 2)
         {
           lt_statistics (aside);
           lt_clear_stats (aside);

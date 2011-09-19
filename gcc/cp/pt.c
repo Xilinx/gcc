@@ -20304,7 +20304,7 @@ pph_in_spec_entry_htab (pph_stream *stream, htab_t *table)
 {
   unsigned count = pph_in_uint (stream);
   if (flag_pph_debug >= 2)
-    fprintf (stderr, "loading %d spec_entries\n", count );
+    fprintf (pph_logfile, "PPH: loading %d spec_entries\n", count );
   for (; count > 0; --count)
     {
       hashval_t hash;
@@ -20327,10 +20327,10 @@ pph_out_spec_entry_tables (pph_stream *stream)
 {
   pph_out_spec_entry_htab (stream, &decl_specializations);
   if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (stderr, "decl", &decl_specializations);
+    pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
   pph_out_spec_entry_htab (stream, &type_specializations);
   if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (stderr, "type", &type_specializations);
+    pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
 }
 
 /* Load and merge all spec_entry tables from STREAM.  */
@@ -20340,10 +20340,10 @@ pph_in_spec_entry_tables (pph_stream *stream)
 {
   pph_in_spec_entry_htab (stream, &decl_specializations);
   if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (stderr, "decl", &decl_specializations);
+    pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
   pph_in_spec_entry_htab (stream, &type_specializations);
   if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (stderr, "type", &type_specializations);
+    pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
 }
 
 

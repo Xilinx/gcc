@@ -358,7 +358,7 @@ struct cpp_lookaside {
   unsigned long long empties;		/* Number of table empty/capture.  */
 
   /* Table debugging.  */
-  unsigned int pth_debug_level;
+  unsigned int debug_level;
 };
 
 /* Lookup an identifer in the lookaside table,

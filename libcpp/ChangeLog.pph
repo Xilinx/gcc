@@ -1,3 +1,13 @@
+2011-09-17  Lawrence Crowl  <crowl@google.com>
+
+	* internal.h (struct cpp_lookaside): Rename pth_debug_level to
+	debug_level.
+	* symtab.c (cpp_lt_create): Likewise.
+	(cpp_lt_capture): Likewise.
+	(lt_statistics): Likewise, and change values to 0 == none,
+	1 == statistics, 2 == verbose.
+	(lt_query_macro): Likewise.
+
 2011-08-16  Gabriel Charette  <gchare@google.com>
 
 	* include/symtab.h (line-map.h): Add dependency.

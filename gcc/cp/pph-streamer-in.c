@@ -1957,13 +1957,13 @@ pph_read_tree_body (pph_stream *stream, tree expr)
     case OPTIMIZATION_NODE:
     case TARGET_OPTION_NODE:
       fatal_error ("PPH: unimplemented tree node '%s'",
-		   tree_code_name[TREE_CODE (expr)]);
+		   pph_tree_code_text (TREE_CODE (expr)));
       break;
 
     /* TREES UNRECOGNIZED */
     default:
       fatal_error ("PPH: unrecognized tree node '%s'",
-                   tree_code_name[TREE_CODE (expr)]);
+                   pph_tree_code_text (TREE_CODE (expr)));
     }
 }
 
@@ -2007,61 +2007,29 @@ pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
 
 
 /* Read a tree header from STREAM and allocate a memory instance for it.
-   Store the new tree in *EXPR_P and write it into the pickle cache at
-   slot IX.
+   Return the new tree.  */
 
-   The return code will indicate whether the caller needs to keep
-   reading the body for *EXPR_P.  Some trees are simple enough that
-   they are completely contained in the header.  In these cases, no
-   more reading is necessary, so we return true.  Otherwise, return
-   false to indicate that the caller should read the body of the tree.  */
-
-static bool
-pph_read_tree_header (pph_stream *stream, tree *expr_p, unsigned ix)
+static tree
+pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
 {
-  enum LTO_tags tag;
-  bool fully_read_p;
+  /* Find data.  */
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
 
-  tag = streamer_read_record_start (ib);
-  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
-
-  if (tag == LTO_builtin_decl)
-    {
-      /* If we are going to read a built-in function, all we need is
-	 the code and class.  */
-      *expr_p = streamer_get_builtin_tree (ib, data_in);
-      fully_read_p = true;
-    }
-  else if (tag == lto_tree_code_to_tag (INTEGER_CST))
-    {
-      /* For integer constants we only need the type and its hi/low
-	 words.  */
-      *expr_p = streamer_read_integer_cst (ib, data_in);
-      fully_read_p = true;
-    }
-  else
-    {
       struct bitpack_d bp;
 
-      /* Otherwise, materialize a new node from IB.  This will also read
-	 all the language-independent bitfields for the new tree.  */
-      *expr_p = streamer_alloc_tree (ib, data_in, tag);
+  /* Allocate the tree.  */
+  tree expr = streamer_alloc_tree (ib, data_in, tag);
 
-      /* Read the language-independent bitfields for *EXPR_P.  */
-      bp = streamer_read_tree_bitfields (ib, *expr_p);
+  /* Read the language-independent bitfields for expr.  */
+  bp = streamer_read_tree_bitfields (ib, expr);
 
       /* Unpack all language-dependent bitfields.  */
-      pph_unpack_value_fields (&bp, *expr_p);
+  pph_unpack_value_fields (&bp, expr);
 
-      fully_read_p = false;
-    }
 
-  /* Add *EXPR_P to the pickle cache at slot IX.  */
-  pph_cache_insert_at (&stream->cache, *expr_p, ix);
 
-  return fully_read_p;
+  return expr;
 }
 
 
@@ -2069,15 +2037,20 @@ pph_read_tree_header (pph_stream *stream, tree *expr_p, unsigned ix)
    new tree from the PPH stream in DATA_IN.  */
 
 tree
-pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
-	       struct data_in *data_in)
+pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
+	       struct data_in *root_data_in)
 {
-  pph_stream *stream = (pph_stream *) data_in->sdata;
+  /* Find data.  */
+  pph_stream *stream = (pph_stream *) root_data_in->sdata;
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  struct data_in *data_in = stream->encoder.r.data_in;
+
   tree expr;
-  bool fully_read_p;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
+  enum LTO_tags tag;
 
+  /* Read record start and test cache.  */
   marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
@@ -2087,10 +2060,30 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
   /* We did not find the tree in the pickle cache, allocate the tree by
      reading the header fields (different tree nodes need to be
      allocated in different ways).  */
-  fully_read_p = pph_read_tree_header (stream, &expr, ix);
-  if (!fully_read_p)
-    pph_read_tree_body (stream, expr);
-
+  tag = streamer_read_record_start (ib);
+  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
+  if (tag == LTO_builtin_decl)
+    {
+      /* If we are going to read a built-in function, all we need is
+	 the code and class.  */
+      expr = streamer_get_builtin_tree (ib, data_in);
+      pph_cache_insert_at (&stream->cache, expr, ix);
+    }
+  else if (tag == lto_tree_code_to_tag (INTEGER_CST))
+    {
+      /* For integer constants we only need the type and its hi/low
+	 words.  */
+      expr = streamer_read_integer_cst (ib, data_in);
+      pph_cache_insert_at (&stream->cache, expr, ix);
+    }
+  else
+    {
+      /* Otherwise, materialize a new node from IB.  This will also read
+         all the language-independent bitfields for the new tree.  */
+      expr = pph_read_tree_header (stream, tag);
+      pph_cache_insert_at (&stream->cache, expr, ix);
+      pph_read_tree_body (stream, expr);
+    }
   return expr;
 }
 

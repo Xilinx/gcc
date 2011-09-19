@@ -42,6 +42,25 @@ along with GCC; see the file COPYING3.  If not see
    -fpph_logfile.  If this flag is not given, stdout is used.  */
 FILE *pph_logfile = NULL;
 
+/* Convert a checked tree_code CODE to a string.  */
+
+const char*
+pph_tree_code_text (enum tree_code code)
+{
+  gcc_assert (code <= TEMPLATE_INFO);
+  return tree_code_name[code];
+}
+
+/* Dump identifying information for a minimal DECL to FILE.  */
+
+void
+pph_dump_min_decl (FILE *file, tree decl)
+{
+  expanded_location xloc = expand_location (DECL_SOURCE_LOCATION (decl));
+  print_generic_expr (file, DECL_NAME (decl), 0);
+  print_generic_expr (file, DECL_CONTEXT (decl), 0);
+  fprintf (file, "%s:%d", xloc.file, xloc.line);
+}
 
 /* Dump a complicated name for tree T to FILE using FLAGS.
    See TDF_* in tree-pass.h for flags.  */
@@ -50,7 +69,7 @@ void
 pph_dump_tree_name (FILE *file, tree t, int flags)
 {
   enum tree_code code = TREE_CODE (t);
-  fprintf (file, "%s\t", tree_code_name[code]);
+  fprintf (file, "%s\t", pph_tree_code_text (code));
   if (code == FUNCTION_TYPE || code == METHOD_TYPE)
     {
       dump_function_to_file (t, file, flags);
@@ -182,7 +201,7 @@ pph_init (void)
   cb->include = pph_include_handler;
 
   table = cpp_lt_exchange (parse_in,
-                           cpp_lt_create (cpp_lt_order, flag_pph_debug));
+                           cpp_lt_create (cpp_lt_order, flag_pph_debug/2));
   gcc_assert (table == NULL);
 
   /* If we are generating a PPH file, initialize the writer.  */

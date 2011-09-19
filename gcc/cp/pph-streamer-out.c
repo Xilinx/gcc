@@ -1709,13 +1709,13 @@ pph_write_tree_body (pph_stream *stream, tree expr)
     case OPTIMIZATION_NODE:
     case TARGET_OPTION_NODE:
       fatal_error ("PPH: unimplemented tree node '%s'",
-		   tree_code_name[TREE_CODE (expr)]);
+		   pph_tree_code_text (TREE_CODE (expr)));
       break;
 
     /* TREES UNRECOGNIZED */
     default:
       fatal_error ("PPH: unrecognized tree node '%s'",
-                   tree_code_name[TREE_CODE (expr)]);
+                   pph_tree_code_text (TREE_CODE (expr)));
     }
 }
 

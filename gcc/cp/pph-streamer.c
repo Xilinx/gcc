@@ -236,7 +236,8 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 	const_tree t = (const_tree) data;
 	if (t)
           {
-            fprintf (pph_logfile, ", code=%s", tree_code_name[TREE_CODE (t)]);
+            enum tree_code code = TREE_CODE (t);
+            fprintf (pph_logfile, ", code=%s", pph_tree_code_text (code));
             if (DECL_P (t))
               {
                 fprintf (pph_logfile, ", value=");
