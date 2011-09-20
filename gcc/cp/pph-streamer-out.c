@@ -400,6 +400,26 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 }
 
 
+/* Write all the trees (from ENCLOSING_NAMESPACE) in VEC V to STREAM.  */
+
+static void
+pph_out_namespace_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
+                            tree enclosing_namespace)
+{
+  unsigned i;
+  tree t;
+
+  /* Note that we use the same format used by streamer_write_chain.
+     This is to support pph_out_chain_filtered, which writes the
+     filtered chain as a VEC.  Since the reader always reads chains
+     using streamer_read_chain, we have to write VECs in exactly the
+     same way as tree chains.  */
+  pph_out_hwi (stream, VEC_length (tree, v));
+  FOR_EACH_VEC_ELT (tree, v, i, t)
+    pph_out_namespace_tree (stream, t, enclosing_namespace);
+}
+
+
 /* Write all the trees matching FILTER in VEC V to STREAM.  */
 
 static void
@@ -424,6 +444,37 @@ pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 
   /* Write them.  */
   pph_out_tree_vec (stream, (VEC(tree,gc) *)to_write);
+  VEC_free (tree, heap, to_write);
+}
+
+
+/* Write all the trees in ENCLOSING_NAMESPACE matching FILTER
+   in VEC V to STREAM.  */
+
+static void
+pph_out_namespace_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v,
+                                     tree enclosing_namespace, unsigned filter)
+{
+  unsigned i;
+  tree t;
+  VEC(tree, heap) *to_write = NULL;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_out_tree_vec.  */
+  if (filter == PPHF_NONE)
+    {
+      pph_out_namespace_tree_vec (stream, v, enclosing_namespace);
+      return;
+    }
+
+  /* Collect all the nodes that match the filter.  */
+  FOR_EACH_VEC_ELT (tree, v, i, t)
+    if (pph_tree_matches (t, filter))
+      VEC_safe_push (tree, heap, to_write, t);
+
+  /* Write them.  */
+  pph_out_namespace_tree_vec (stream, (VEC(tree,gc) *)to_write,
+                                      enclosing_namespace);
   VEC_free (tree, heap, to_write);
 }
 
@@ -517,6 +568,36 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 }
 
 
+/* Emit the chain of tree nodes from ENCLOSING_NAMESPACE starting at T
+   to STREAM.
+   OB is the output block
+   to write to.  REF_P is true if chain elements should be emitted
+   as references.  */
+
+void
+pph_write_namespace_chain (pph_stream *stream, tree t, tree enclosing_namespace)
+{
+  int i, count;
+
+  count = list_length (t);
+  streamer_write_hwi (stream->encoder.w.ob, count);
+  for (i = 0; i < count; i++)
+    {
+      tree saved_chain;
+
+      /* Clear TREE_CHAIN to avoid blindly recursing into the rest
+         of the list.  */
+      saved_chain = TREE_CHAIN (t);
+      TREE_CHAIN (t) = NULL_TREE;
+
+      pph_write_namespace_tree (stream, t, enclosing_namespace);
+
+      TREE_CHAIN (t) = saved_chain;
+      t = TREE_CHAIN (t);
+    }
+}
+
+
 /* Output a chain of nodes to STREAM starting with FIRST.  Skip any
    nodes that do not match FILTER.  */
 
@@ -545,6 +626,36 @@ pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 }
 
 
+/* Output a chain of nodes in ENCLOSING_NAMESPACE to STREAM
+   starting with FIRST.  Skip any nodes that do not match FILTER.  */
+
+static void
+pph_out_namespace_chain_filtered (pph_stream *stream, tree first,
+                                  tree enclosing_namespace, unsigned filter)
+{
+  tree t;
+  VEC(tree, heap) *to_write = NULL;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_out_chain directly.  */
+  if (filter == PPHF_NONE)
+    {
+      pph_out_namespace_chain (stream, first, enclosing_namespace);
+      return;
+    }
+
+  /* Collect all the nodes that match the filter.  */
+  for (t = first; t; t = TREE_CHAIN (t))
+    if (pph_tree_matches (t, filter))
+      VEC_safe_push (tree, heap, to_write, t);
+
+  /* Write them.  */
+  pph_out_namespace_tree_vec (stream, (VEC(tree,gc) *)to_write,
+                                      enclosing_namespace);
+  VEC_free (tree, heap, to_write);
+}
+
+
 /* Helper for pph_out_binding_level.  Write all the fields of BL to
    STREAM, without checking whether BL was in the streamer cache or not.
    Do not emit any nodes in BL that do not match FILTER.  */
@@ -557,15 +668,30 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
   cp_class_binding *cs;
   cp_label_binding *sl;
   struct bitpack_d bp;
-
-  pph_out_chain_filtered (stream, bl->names, PPHF_NO_BUILTINS | filter);
-  pph_out_chain_filtered (stream, bl->namespaces, PPHF_NO_BUILTINS | filter);
-
-  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
-
-  pph_out_chain_filtered (stream, bl->usings, PPHF_NO_BUILTINS | filter);
-  pph_out_chain_filtered (stream, bl->using_directives,
-			  PPHF_NO_BUILTINS | filter);
+  unsigned aux_filter = PPHF_NO_BUILTINS | filter;
+  tree entity = bl->this_entity;
+  pph_out_tree (stream, entity);
+  if (NAMESPACE_SCOPE_P (entity))
+    {
+      pph_out_namespace_chain_filtered (stream, bl->names,
+                                                entity, aux_filter);
+      pph_out_namespace_chain_filtered (stream, bl->namespaces,
+                                                entity, aux_filter);
+      pph_out_namespace_tree_vec_filtered (stream, bl->static_decls,
+                                                   entity, filter);
+      pph_out_namespace_chain_filtered (stream, bl->usings,
+                                                entity, aux_filter);
+      pph_out_namespace_chain_filtered (stream, bl->using_directives,
+                                                entity, aux_filter);
+    }
+  else
+    {
+      pph_out_chain_filtered (stream, bl->names, aux_filter);
+      pph_out_chain_filtered (stream, bl->namespaces, aux_filter);
+      pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
+      pph_out_chain_filtered (stream, bl->usings, aux_filter);
+      pph_out_chain_filtered (stream, bl->using_directives, aux_filter);
+    }
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
@@ -578,7 +704,6 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
     pph_out_label_binding (stream, sl);
 
   pph_out_tree (stream, bl->blocks);
-  pph_out_tree (stream, bl->this_entity);
   pph_out_binding_level (stream, bl->level_chain, filter);
   pph_out_tree_vec (stream, bl->dead_vars_from_for);
   pph_out_chain (stream, bl->statement_list);
@@ -1791,7 +1916,13 @@ void
 pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
 {
   pph_stream *stream = (pph_stream *) ob->sdata;
+  pph_write_namespace_tree (stream, expr, NULL);
+}
 
+void
+pph_write_namespace_tree (pph_stream *stream, tree expr,
+                          tree enclosing_namespace )
+{
   /* If EXPR is NULL or it already existed in the pickle cache,
      nothing else needs to be done.  */
   if (!pph_out_start_record (stream, expr))
@@ -1804,19 +1935,30 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
 	 compiler on startup.  The only builtins that need to
 	 be written out are BUILT_IN_FRONTEND.  For all other
 	 builtins, we simply write the class and code.  */
-      streamer_write_builtin (ob, expr);
+      streamer_write_builtin (stream->encoder.w.ob, expr);
     }
   else if (TREE_CODE (expr) == INTEGER_CST)
     {
       /* INTEGER_CST nodes are special because they need their
 	 original type to be materialized by the reader (to implement
 	 TYPE_CACHED_VALUES).  */
-      streamer_write_integer_cst (ob, expr, ref_p);
+      streamer_write_integer_cst (stream->encoder.w.ob, expr, false);
     }
   else
     {
       /* This is the first time we see EXPR, write it out.  */
       pph_write_tree_header (stream, expr);
+      if (enclosing_namespace && DECL_P (expr))
+        {
+          /* We may need to unify two declarations.  */
+          /* FIXME crowl: pph_out_location (stream, DECL_SOURCE_LOCATION (expr)); */
+          tree name = DECL_NAME (expr);
+          if (name)
+            pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
+                                        IDENTIFIER_LENGTH (name));
+          else
+            pph_out_string (stream, NULL);
+        }
       pph_write_tree_body (stream, expr);
     }
 }

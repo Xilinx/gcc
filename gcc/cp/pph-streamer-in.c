@@ -376,6 +376,26 @@ pph_in_tree_vec (pph_stream *stream)
 }
 
 
+/* Read and return a gc VEC of trees in ENCLOSING_NAMESPACE from STREAM.  */
+
+static VEC(tree,gc) *
+pph_in_namespace_tree_vec (pph_stream *stream, tree enclosing_namespace)
+{
+  HOST_WIDE_INT i, num;
+  VEC(tree,gc) *v;
+
+  num = pph_in_hwi (stream);
+  v = NULL;
+  for (i = 0; i < num; i++)
+    {
+      tree t = pph_in_namespace_tree (stream, enclosing_namespace);
+      VEC_safe_push (tree, gc, v, t);
+    }
+
+  return v;
+}
+
+
 /* Read and return a gc VEC of qualified_typedef_usage_t from STREAM.  */
 
 static VEC(qualified_typedef_usage_t,gc) *
@@ -529,6 +549,7 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
   cp_binding_level *bl;
   struct bitpack_d bp;
   enum pph_record_marker marker;
+  tree entity;
 
   marker = pph_in_start_record (stream, &image_ix, &ix);
   if (marker == PPH_RECORD_END)
@@ -547,13 +568,23 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
 				  ggc_alloc_cleared_cp_binding_level (),
 				  to_register);
 
-  bl->names = pph_in_chain (stream);
-  bl->namespaces = pph_in_chain (stream);
-
-  bl->static_decls = pph_in_tree_vec (stream);
-
-  bl->usings = pph_in_chain (stream);
-  bl->using_directives = pph_in_chain (stream);
+  entity = bl->this_entity = pph_in_tree (stream);
+  if (NAMESPACE_SCOPE_P (entity))
+    {
+      bl->names = pph_in_namespace_chain (stream, entity);
+      bl->namespaces = pph_in_namespace_chain (stream, entity);
+      bl->static_decls = pph_in_namespace_tree_vec (stream, entity);
+      bl->usings = pph_in_namespace_chain (stream, entity);
+      bl->using_directives = pph_in_namespace_chain (stream, entity);
+    }
+  else
+    {
+      bl->names = pph_in_chain (stream);
+      bl->namespaces = pph_in_chain (stream);
+      bl->static_decls = pph_in_tree_vec (stream);
+      bl->usings = pph_in_chain (stream);
+      bl->using_directives = pph_in_chain (stream);
+    }
 
   num = pph_in_uint (stream);
   bl->class_shadowed = NULL;
@@ -574,7 +605,6 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
     }
 
   bl->blocks = pph_in_tree (stream);
-  bl->this_entity = pph_in_tree (stream);
   bl->level_chain = pph_in_binding_level (stream, NULL);
   bl->dead_vars_from_for = pph_in_tree_vec (stream);
   bl->statement_list = pph_in_chain (stream);
@@ -2042,6 +2072,15 @@ pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
 {
   /* Find data.  */
   pph_stream *stream = (pph_stream *) root_data_in->sdata;
+  return pph_read_namespace_tree (stream, NULL);
+}
+
+/* Read a tree from the STREAM.  It ENCLOSING_NAMESPACE is not null,
+   the tree may be unified with an existing tree in that namespace.  */
+
+tree
+pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
+{
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
 
@@ -2081,10 +2120,49 @@ pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
       /* Otherwise, materialize a new node from IB.  This will also read
          all the language-independent bitfields for the new tree.  */
       expr = pph_read_tree_header (stream, tag);
+      if (enclosing_namespace && DECL_P (expr))
+        {
+          /* We may need to unify two declarations.  */
+          /* FIXME crowl: location_t where = pph_in_location (stream); */
+          const char *idstr = pph_in_string (stream);
+          /* But we only search if we have a name.  */
+          if (!idstr)
+            {
+              /* FIXME crowl search for idstr in namespace.  */
+              expr = expr;
+            }
+        }
       pph_cache_insert_at (&stream->cache, expr, ix);
       pph_read_tree_body (stream, expr);
     }
   return expr;
+}
+
+
+/* Read a chain of tree nodes from input block IB. DATA_IN contains
+   tables and descriptors for the file being read.  */
+
+tree
+pph_read_namespace_chain (pph_stream *stream, tree enclosing_namespace)
+{
+  int i, count;
+  tree first, prev, curr;
+
+  first = prev = NULL_TREE;
+  count = streamer_read_hwi (stream->encoder.r.ib);
+  for (i = 0; i < count; i++)
+    {
+      curr = pph_in_namespace_tree (stream, enclosing_namespace);
+      if (prev)
+        TREE_CHAIN (prev) = curr;
+      else
+        first = curr;
+
+      TREE_CHAIN (curr) = NULL_TREE;
+      prev = curr;
+    }
+
+  return first;
 }
 
 

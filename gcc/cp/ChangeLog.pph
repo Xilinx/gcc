@@ -1,3 +1,33 @@
+2011-09-19   Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer-out.c (pph_out_binding_level_1): Read this_entity first.
+	Call different routines when it is a namespace.
+	(pph_write_tree): Move most of body to pph_write_namespace_tree.
+	(pph_write_namespace_tree): As above.  If there is an enclosing
+	namespace, write additional information needed for merging.
+	(pph_out_namespace_tree_vec) New.
+	(pph_out_namespace_tree_vec_filtered) New.
+	(pph_write_namespace_chain) New.
+	(pph_out_namespace_chain_filtered) New.
+	* pph-streamer-in.c (pph_in_binding_level): Read this_entity first.
+	Call different routines when it is a namespace.
+	(pph_read_tree): Move most of body to pph_read_namespace_tree.
+	(pph_read_namespace_tree): As above.  If there is an enclosing
+	namespace, read additional information needed for merging.
+	Merging is currently not done.
+	(pph_read_namespace_chain): New.
+	(pph_in_namespace_tree_vec): New.
+	* pph-streamer.h (pph_write_namespace_tree): New.
+	(pph_write_namespace_chain): New.
+	(pph_read_namespace_tree): New.
+	(pph_read_namespace_chain): New.
+	(pph_out_namespace_tree_1): New.
+	(pph_out_namespace_tree): New.
+	(pph_out_tree_VEC): Deleted, redundant with pph-streamer-out.c.
+	(pph_out_namespace_chain): New.
+	(pph_in_namespace_tree): New.
+	(pph_in_namespace_chain): New.
+
 2011-09-17   Lawrence Crowl  <crowl@google.com>
 
 	* pph.h (pph_tree_code_text): New.

@@ -254,6 +254,8 @@ void *pph_cache_get (pph_pickle_cache *, unsigned, unsigned,
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
+void pph_write_namespace_tree (pph_stream *, tree, tree);
+void pph_write_namespace_chain (pph_stream *, tree, tree);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 void pph_add_include (pph_stream *);
 void pph_writer_init (void);
@@ -268,6 +270,8 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
+tree pph_read_namespace_tree (pph_stream *, tree);
+tree pph_read_namespace_chain (pph_stream *, tree);
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
 void pph_read_file (const char *);
 void pph_reader_finish (void);
@@ -327,6 +331,25 @@ static inline void
 pph_out_tree (pph_stream *stream, tree t)
 {
   pph_out_tree_1 (stream, t, 2);
+}
+
+/* Output AST T from ENCLOSING_NAMESPACE to STREAM.
+   If -fpph-tracer is set to TLEVEL or higher, T is sent to pph_trace_tree.  */
+static inline void
+pph_out_namespace_tree_1 (pph_stream *stream, tree t, int tlevel,
+                          tree enclosing_namespace)
+{
+  if (flag_pph_tracer >= tlevel)
+    pph_trace_tree (stream, t);
+  pph_write_namespace_tree (stream, t, enclosing_namespace);
+}
+
+/* Output AST T from ENCLOSING_NAMESPACE to STREAM.
+   Trigger tracing at -fpph-tracer=2.  */
+static inline void
+pph_out_namespace_tree (pph_stream *stream, tree t, tree enclosing_namespace)
+{
+  pph_out_namespace_tree_1 (stream, t, 2, enclosing_namespace);
 }
 
 /* Write an unsigned int VALUE to STREAM.  */
@@ -392,25 +415,6 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
 				     str, len + 1, false);
 }
 
-/* Output VEC V of ASTs to STREAM.  */
-/* FIXME pph: hold for alternate routine. */
-#if 0
-static inline void
-pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
-{
-  tree t;
-  size_t i;
-  size_t c = VEC_length (tree, v);
-  pph_out_uint (stream, c);
-  FOR_EACH_VEC_ELT (tree, v, i, t)
-    {
-      if (flag_pph_tracer >= 1)
-        pph_trace_tree (stream, t);
-      pph_write_tree (stream->encoder.w.ob, t);
-    }
-}
-#endif
-
 /* Write location LOC of length to STREAM.  */
 static inline void
 pph_out_location (pph_stream *stream, location_t loc)
@@ -427,6 +431,16 @@ pph_out_chain (pph_stream *stream, tree first)
   if (flag_pph_tracer >= 2)
     pph_trace_chain (stream, first);
   streamer_write_chain (stream->encoder.w.ob, first, false);
+}
+
+/* Write a chain of ASTs to STREAM starting with FIRST.  */
+static inline void
+pph_out_namespace_chain (pph_stream *stream, tree first,
+                         tree enclosing_namespace)
+{
+  if (flag_pph_tracer >= 2)
+    pph_trace_chain (stream, first);
+  pph_write_namespace_chain (stream, first, enclosing_namespace);
 }
 
 /* Write a bitpack BP to STREAM.  */
@@ -521,6 +535,17 @@ pph_in_tree (pph_stream *stream)
   return t;
 }
 
+/* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
+   Return the corresponding tree.  */
+static inline tree
+pph_in_namespace_tree (pph_stream *stream, tree enclosing_namespace)
+{
+  tree t = pph_read_namespace_tree (stream, enclosing_namespace);
+  if (flag_pph_tracer >= 4)
+    pph_trace_tree (stream, t);
+  return t;
+}
+
 /* Load into an array A of cardinality C of AST from STREAM.  */
 /* FIXME pph: Hold for later use. */
 #if 0
@@ -562,6 +587,16 @@ pph_in_chain (pph_stream *stream)
 {
   tree t = streamer_read_chain (stream->encoder.r.ib,
                                 stream->encoder.r.data_in);
+  if (flag_pph_tracer >= 2)
+    pph_trace_chain (stream, t);
+  return t;
+}
+
+/* Read a chain of ASTs in ENCLOSING_NAMESPACE from STREAM.  */
+static inline tree
+pph_in_namespace_chain (pph_stream *stream, tree enclosing_namespace)
+{
+  tree t = pph_read_namespace_chain (stream, enclosing_namespace);
   if (flag_pph_tracer >= 2)
     pph_trace_chain (stream, t);
   return t;
