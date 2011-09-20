@@ -602,8 +602,8 @@ definition.}#
   :fields (defvalbind_define ; the source definition
 	    )
   :doc #{The internal $CLASS_DEFINED_VALUE_BINDING is for defined
-values thrue the $DEFINE macro. $DEFVALBIND_DEFINE provides the
-definition.}# )
+values thru the $DEFINE macro. $DEFVALBIND_DEFINE provides the
+definition. $FIXBIND_DATA gives a symbol occurrence in that case.}# )
 
 ;; class binding
 (defclass class_class_binding

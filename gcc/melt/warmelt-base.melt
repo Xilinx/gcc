@@ -799,8 +799,6 @@ removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; obsolete compilation primitives
-(compile_warning "load_quickly_melt_module, load_debug_melt_module, generate_melt_module are obsolete")
-
 
 
 ;; generate a loadable module from a MELT generated C source file; the

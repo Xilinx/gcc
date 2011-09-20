@@ -1001,9 +1001,24 @@ $SBUF.}#
 		     preve))
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
 	(ovalueimporter (get_free_objlocptr gcx '_valimport_))
+	(inidefbinds (get_field :ninit_defbinds ipro))
 	)
     (append_commentconst oinibody "start of oinibody")
-    (debug_msg boxloc "boxloc is")
+    (debug_msg boxloc "compile2obj_initproc boxloc")
+    ;;; reserve location for defined values
+    (debug_msg inidefbinds "compile2obj_initproc inidefbinds")
+    (foreach_in_list
+     (inidefbinds)
+     (curpair curdefbind)
+     (debug_msg curdefbind "compile2obj_initproc curdefbind")
+     (let ( (inidefsymb (get_field :binder curdefbind))
+	    (oinisym (get_field :fixbind_data curdefbind))
+	    (oinidefloc (get_free_objlocptr gcx inidefsymb))
+	   )
+       (debug_msg oinidefloc "compile2obj_initproc oinidefloc")
+       (assert_msg "check oinisym" (is_a oinisym class_nrep_locsymocc))
+       (mapobject_put locmap curdefbind oinidefloc)
+     ))
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 
     (let (
 	  ;; block to compute boxloc

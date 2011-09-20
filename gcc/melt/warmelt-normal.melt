@@ -377,10 +377,11 @@ procedures. Field $NPROC_BODY is the normalized body.}#
 ;; the class of the initial procedure
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
-  :doc #{The $CLASS_NREP_ANYPROC is the class for the initial
+  :doc #{The $CLASS_NREP_INITPROC is the class for the initial
 procedure in a module. Field $NINIT_TOPL is the list of top-level
-normalized expressions.}#
+normalized expressions. Field $NINIT_DEFBINDS is the list of $DEFINE-d bindings.}#
   :fields (ninit_topl			;list of toplevel nrep
+	   ninit_defbinds		;list of define-d bindings
 	   ))
 
 ;; normal routine procedure
@@ -744,6 +745,7 @@ routine procedures.}#
     (fill_initial_predefmap predefmap)
     (let ( (inipro  (instance class_nrep_initproc
 			      :ninit_topl (make_list discr_list)
+			      :ninit_defbinds (make_list discr_list)
 			      :nrep_loc ()
 			      )) 
 	   (ncx (instance 
@@ -1105,7 +1107,7 @@ source location.}#
 	 (symb (unsafe_get_field :binder bind))
 	 (fixdat (unsafe_get_field :fixbind_data bind))
 	 )
-    (debug_msg fixdat "normexp_symbol fixdat")
+    (debug_msg fixdat "normbind_fixbind fixdat")
     (if (null fixdat)
 	(progn 
 	  (debug_msg bind "normbind_fixbind strange bind")
@@ -1122,7 +1124,7 @@ source location.}#
 
 ;; normalize local define-d binding
 (defun normbind_definedvalbind (bind env ncx procs psloc)
-  (debug_msg bind "normbind_definedbalbind bind")
+  (debug_msg bind "normbind_definedvalbind bind")
   (assert_msg "check bind" (is_a bind class_defined_value_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -1135,15 +1137,16 @@ source location.}#
 			  :nocc_symb symb
 			  :nocc_bind bind) ) 
 	 )
-    (debug_msg ncx "normbind_definedbalbind ncx")
-    (debug_msg env "normbind_definedbalbind env")
-    (debug_msg procs "normbind_definedbalbind procs")
+    (debug_msg ncx "normbind_definedvalbind ncx")
+    (debug_msg env "normbind_definedvalbind env")
+    (debug_msg procs "normbind_definedvalbind procs")
 	  ;; cache the result & return it
     (mapobject_put sycmap symb syocc)
-    (debug_msg sycmap "normbind_definedbalbind sycmap")
-    (debug_msg syocc "normbind_definedbalbind syocc")
+    (put_fields bind :fixbind_data syocc)
+    (debug_msg sycmap "normbind_definedvalbind sycmap")
+    (debug_msg syocc "normbind_definedvalbind syocc")
     (if (is_non_empty_list procs)
-	(assert_msg "normbind_definedbalbind check no procs"))
+	(assert_msg "normbind_definedvalbind check no procs"))
     (return syocc)
 ))
 (install_method class_defined_value_binding normalize_binding normbind_definedvalbind)
@@ -5638,12 +5641,12 @@ source location.}#
 	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
 	(sbody (unsafe_get_field :sdefine_body recv))
-	(bindsel (find_env env sname))
+	(binddef (find_env env sname))
 	(namdata (normal_symbol_data sname ncx sloc))
 	(curproc (unsafe_get_field :nctx_curproc ncx)) 
 	)
     (debug_msg namdata "normexp_define namdata")
-    (debug_msg bindsel "normexp_define bindsel")
+    (debug_msg binddef "normexp_define binddef")
     (assert_msg "check body tuple" (is_multiple sbody))
     (debug_msg curproc "normexp_define curproc")
     (if (is_not_a curproc class_nrep_initproc)
@@ -5658,14 +5661,36 @@ source location.}#
      (debug_msg nbindings "normexp_define nbindings")
      (debug_msg sname "normexp_define sname")
      (let (
+	   (procdefbinds (get_field :ninit_defbinds curproc))
 	   (ndefname (normexp_symbol sname env ncx sloc))
-	   (wbody (wrap_normal_letseq nbody nbindings sloc))
+	   (:long nbodylen (multiple_length nbody))
+	   (nlastbody (multiple_nth nbody -1))
+	   (newenv (fresh_env env))
+	   (newbody (make_multiple discr_multiple (+i nbodylen 1)))
+	   (snamestr (get_field :named_name sname))
+	   (nlastassign (instance class_nrep_setq
+				  :nrep_loc sloc
+				  :nstq_var ndefname
+				  :nstq_exp nlastbody))
 	   )
+       (list_every nbindings (lambda (nb) (put_env newenv nb)))
+       (foreach_in_multiple
+	(nbody)
+	(curnbody :long bodix)
+	(multiple_put_nth newbody bodix curnbody))
+       (multiple_put_nth newbody nbodylen nlastassign)
+       (list_append procdefbinds binddef)
+       (debug_msg procdefbinds "normexp_define updated procdefbinds")
        (debug_msg ndefname "normexp_define ndefname")
-       (debug_msg wbody "normexp_define wbody")
-       (error_strv sloc "(DEFINE name ...) not fully implemented, normalization missing"
-		   (get_field :named_name sname))	
-       (assert_msg "$@$unimplemented normexp_define")
+       (debug_msg newbody "normexp_define newbody")
+       (if (!= (get_ctype ndefname env) ctype_value)
+	   (error_strv sloc "DEFINE-d name is not a value" snamestr))
+       (if (!= (get_ctype nlastbody newenv) ctype_value)
+	   (error_strv sloc "DEFINE-d body don't end with a value" snamestr))
+
+       (warning_strv sloc "(DEFINE name ...) not fully implemented, normalization could be incomplete"
+		   snamestr)	
+       (return newbody nbindings)
        ))))
 (install_method class_source_define normal_exp normexp_define)
 

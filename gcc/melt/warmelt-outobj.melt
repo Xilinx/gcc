@@ -4726,7 +4726,7 @@ has basic debug support thru debug_msg, assert_msg..."
       (debug_msg dbgmodulnam "before generate_debug_melt_module dbgmodulnam")
       (generate_debug_melt_module modsrcname dbgmodulnam)
       ;; the new environment is silently discarded
-      (debug_msg dbgmodulnam "before load_debug_melt_module rundebug_mode dbgmodulnam")
+      (debug_msg dbgmodulnam "before starting quicklybuilt module rundebug_mode dbgmodulnam")
       (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
       )))
 ;;;;

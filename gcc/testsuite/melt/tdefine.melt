@@ -9,5 +9,6 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
-(define one (debug_msg one "one inside definition") '1)
+(define one (debug_msg one "one inside definition") (+ivi '0 1))
 (debug_msg one "one after definition")
+(export_values one)

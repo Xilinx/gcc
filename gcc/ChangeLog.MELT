@@ -1,3 +1,22 @@
+
+2011-09-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (class_defined_value_binding): Improved
+	documentation.
+
+	* melt/warmelt-base.melt: Remove warning on
+	load_quickly_melt_module, load_debug_melt_module...
+
+	* melt/warmelt-normal.melt (class_nrep_initproc): Add
+	ninit_defbinds field.
+	(create_normcontext): Fill it.
+	(normexp_define): More stuff. Update the ninit_defbinds field.
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc): Hande the
+	ninit_defbinds field.
+
+	* melt/warmelt-outobj.melt (rundebug_docmd): Better debugging.
+
 2011-09-19  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c (meltgc_string_hex_md5sum_file_sequence): Catenated
