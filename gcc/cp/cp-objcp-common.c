@@ -218,9 +218,9 @@ cp_clear_global_name_bindings (tree id)
 bool
 cp_is_non_sharable_global_decl (tree decl, void *scope)
 {
-  cxx_scope *global_scope, *cur_scope;
+  cp_binding_level *global_scope, *cur_scope;
 
-  cur_scope = (cxx_scope *) scope;
+  cur_scope = (cp_binding_level *) scope;
   global_scope = NAMESPACE_LEVEL (global_namespace);
   if (cur_scope->kind != sk_namespace && cur_scope != global_scope)
     return false;

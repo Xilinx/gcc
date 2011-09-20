@@ -19,13 +19,10 @@ void f2()
 void f1() EXCLUSIVE_LOCKS_REQUIRED(mu2) EXCLUSIVE_LOCKS_REQUIRED(mu1)
 {
   x = 5;
-  f2(); // { dg-warning "Cannot call function 'f2' with lock 'mu1' held" }
+  f2(); // { dg-warning "Cannot call function 'f2' with lock 'mu1' held" "annotalysis disabled in google/main" { xfail *-*-* } }
 }
 
 void func()
 {
-  f1(); // { dg-warning "Calling function 'f1' requires lock 'mu2'" }
+  f1(); // { dg-warning "Calling function 'f1' requires lock 'mu2'" "annotalysis disabled in google/main" { xfail *-*-* } }
 }
-
-// { dg-warning "Cannot call function 'f2' with lock 'mu2' held" "" { target *-*-* } 22 }
-// { dg-warning "Calling function 'f1' requires lock 'mu1'" "" { target *-*-* } 27 }

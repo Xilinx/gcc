@@ -37,10 +37,10 @@ int bar()
 
 main()
 {
-  foo(2, 3, mu3); /* { dg-warning "Calling function 'foo' requires lock 'mu3'" } */
+  foo(2, 3, mu3); /* { dg-warning "Calling function 'foo' requires lock 'mu3'" "annotalysis disabled in google/main" { xfail *-*-* } } */
   my_lock();
   foo(2, 3, mu3);
   bar();
   my_unlock();
-  bar(); /* { dg-warning "Calling function 'bar' requires a lock" } */
+  bar(); /* { dg-warning "Calling function 'bar' requires a lock" "annotalysis disabled in google/main" { xfail *-*-* } } */
 }

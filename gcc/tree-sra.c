@@ -1077,13 +1077,17 @@ tree_non_mode_aligned_mem_p (tree exp)
   enum machine_mode mode = TYPE_MODE (TREE_TYPE (exp));
   unsigned int align;
 
+  if (TREE_CODE (exp) == VIEW_CONVERT_EXPR)
+    exp = TREE_OPERAND (exp, 0);
+
   if (TREE_CODE (exp) == SSA_NAME
       || TREE_CODE (exp) == MEM_REF
       || mode == BLKmode
+      || is_gimple_min_invariant (exp)
       || !STRICT_ALIGNMENT)
     return false;
 
-  align = get_object_alignment (exp, BIGGEST_ALIGNMENT);
+  align = get_object_alignment (exp);
   if (GET_MODE_ALIGNMENT (mode) > align)
     return true;
 
@@ -1823,7 +1827,6 @@ create_access_replacement (struct access *access, bool rename)
   tree repl;
 
   repl = create_tmp_var (access->type, "SR");
-  get_var_ann (repl);
   add_referenced_var (repl);
   if (rename)
     mark_sym_for_renaming (repl);
@@ -2074,13 +2077,25 @@ analyze_access_subtree (struct access *root, struct access *parent,
 	  || ((root->grp_scalar_read || root->grp_assignment_read)
 	      && (root->grp_scalar_write || root->grp_assignment_write))))
     {
+      bool new_integer_type;
+      if (TREE_CODE (root->type) == ENUMERAL_TYPE)
+	{
+	  tree rt = root->type;
+	  root->type = build_nonstandard_integer_type (TYPE_PRECISION (rt),
+						       TYPE_UNSIGNED (rt));
+	  new_integer_type = true;
+	}
+      else
+	new_integer_type = false;
+
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
 	  fprintf (dump_file, "Marking ");
 	  print_generic_expr (dump_file, root->base, 0);
-	  fprintf (dump_file, " offset: %u, size: %u: ",
+	  fprintf (dump_file, " offset: %u, size: %u ",
 		   (unsigned) root->offset, (unsigned) root->size);
-	  fprintf (dump_file, " to be replaced.\n");
+	  fprintf (dump_file, " to be replaced%s.\n",
+		   new_integer_type ? " with an integer": "");
 	}
 
       root->grp_to_be_replaced = 1;
@@ -2314,16 +2329,24 @@ analyze_all_variable_accesses (void)
 	tree var = referenced_var (i);
 
 	if (TREE_CODE (var) == VAR_DECL
-	    && ((unsigned) tree_low_cst (TYPE_SIZE (TREE_TYPE (var)), 1)
-		<= max_total_scalarization_size)
 	    && type_consists_of_records_p (TREE_TYPE (var)))
 	  {
-	    completely_scalarize_var (var);
-	    if (dump_file && (dump_flags & TDF_DETAILS))
+	    if ((unsigned) tree_low_cst (TYPE_SIZE (TREE_TYPE (var)), 1)
+		<= max_total_scalarization_size)
 	      {
-		fprintf (dump_file, "Will attempt to totally scalarize ");
+		completely_scalarize_var (var);
+		if (dump_file && (dump_flags & TDF_DETAILS))
+		  {
+		    fprintf (dump_file, "Will attempt to totally scalarize ");
+		    print_generic_expr (dump_file, var, 0);
+		    fprintf (dump_file, " (UID: %u): \n", DECL_UID (var));
+		  }
+	      }
+	    else if (dump_file && (dump_flags & TDF_DETAILS))
+	      {
+		fprintf (dump_file, "Too big to totally scalarize: ");
 		print_generic_expr (dump_file, var, 0);
-		fprintf (dump_file, " (UID: %u): \n", DECL_UID (var));
+		fprintf (dump_file, " (UID: %u)\n", DECL_UID (var));
 	      }
 	  }
       }
@@ -3296,7 +3319,8 @@ ptr_parm_has_direct_uses (tree parm)
 	      && TREE_OPERAND (lhs, 0) == name
 	      && integer_zerop (TREE_OPERAND (lhs, 1))
 	      && types_compatible_p (TREE_TYPE (lhs),
-				     TREE_TYPE (TREE_TYPE (name))))
+				     TREE_TYPE (TREE_TYPE (name)))
+	      && !TREE_THIS_VOLATILE (lhs))
 	    uses_ok++;
 	}
       if (gimple_assign_single_p (stmt))
@@ -3308,7 +3332,8 @@ ptr_parm_has_direct_uses (tree parm)
 	      && TREE_OPERAND (rhs, 0) == name
 	      && integer_zerop (TREE_OPERAND (rhs, 1))
 	      && types_compatible_p (TREE_TYPE (rhs),
-				     TREE_TYPE (TREE_TYPE (name))))
+				     TREE_TYPE (TREE_TYPE (name)))
+	      && !TREE_THIS_VOLATILE (rhs))
 	    uses_ok++;
 	}
       else if (is_gimple_call (stmt))
@@ -3323,7 +3348,8 @@ ptr_parm_has_direct_uses (tree parm)
 		  && TREE_OPERAND (arg, 0) == name
 		  && integer_zerop (TREE_OPERAND (arg, 1))
 		  && types_compatible_p (TREE_TYPE (arg),
-					 TREE_TYPE (TREE_TYPE (name))))
+					 TREE_TYPE (TREE_TYPE (name)))
+		  && !TREE_THIS_VOLATILE (arg))
 		uses_ok++;
 	    }
 	}
@@ -3673,6 +3699,9 @@ access_precludes_ipa_sra_p (struct access *access)
   if (access->write
       && (is_gimple_call (access->stmt)
 	  || gimple_code (access->stmt) == GIMPLE_ASM))
+    return true;
+
+  if (tree_non_mode_aligned_mem_p (access->expr))
     return true;
 
   return false;
@@ -4090,7 +4119,6 @@ get_replaced_param_substitute (struct ipa_parm_adjustment *adj)
       DECL_NAME (repl) = get_identifier (pretty_name);
       obstack_free (&name_obstack, pretty_name);
 
-      get_var_ann (repl);
       add_referenced_var (repl);
       adj->new_ssa_base = repl;
     }

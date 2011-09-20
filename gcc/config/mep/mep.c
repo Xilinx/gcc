@@ -211,7 +211,7 @@ static void mep_move_ready_insn (rtx *, int, rtx);
 static int mep_sched_reorder (FILE *, int, rtx *, int *, int);
 static rtx mep_make_bundle (rtx, rtx);
 static void mep_bundle_insns (rtx);
-static bool mep_rtx_cost (rtx, int, int, int *, bool);
+static bool mep_rtx_cost (rtx, int, int, int, int *, bool);
 static int mep_address_cost (rtx, bool);
 static void mep_setup_incoming_varargs (cumulative_args_t, enum machine_mode,
 					tree, int *, int);
@@ -3620,14 +3620,12 @@ mep_expand_va_start (tree valist, rtx nextarg)
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
   /* va_list.next_gp_limit = va_list.next_gp + 4 * ns; */
-  u = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, u,
-		   size_int (4 * ns));
+  u = fold_build_pointer_plus_hwi (u, 4 * ns);
   t = build2 (MODIFY_EXPR, ptr_type_node, next_gp_limit, u);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
 
-  u = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, u,
-		   size_int (8 * ((ns+1)/2)));
+  u = fold_build_pointer_plus_hwi (u, 8 * ((ns+1)/2));
   /* va_list.next_cop = ROUND_UP(va_list.next_gp_limit,8); */
   t = build2 (MODIFY_EXPR, ptr_type_node, next_cop, u);
   TREE_SIDE_EFFECTS (t) = 1;
@@ -3715,12 +3713,10 @@ mep_gimplify_va_arg_expr (tree valist, tree type,
       gimplify_and_add (tmp, pre_p);
     }
 
-  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node,
-		unshare_expr (next_gp), size_int (4));
+  tmp = fold_build_pointer_plus_hwi (unshare_expr (next_gp), 4);
   gimplify_assign (unshare_expr (next_gp), tmp, pre_p);
 
-  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node,
-		unshare_expr (next_cop), size_int (8));
+  tmp = fold_build_pointer_plus_hwi (unshare_expr (next_cop), 8);
   gimplify_assign (unshare_expr (next_cop), tmp, pre_p);
 
   tmp = build1 (GOTO_EXPR, void_type_node, unshare_expr (label_sover));
@@ -3734,8 +3730,7 @@ mep_gimplify_va_arg_expr (tree valist, tree type,
   tmp = build2 (MODIFY_EXPR, void_type_node, res_addr, unshare_expr (next_stack));
   gimplify_and_add (tmp, pre_p);
 
-  tmp = build2 (POINTER_PLUS_EXPR, ptr_type_node,
-		unshare_expr (next_stack), size_int (rsize));
+  tmp = fold_build_pointer_plus_hwi (unshare_expr (next_stack), rsize);
   gimplify_assign (unshare_expr (next_stack), tmp, pre_p);
 
   /* - - */
@@ -7266,7 +7261,9 @@ mep_expand_binary_intrinsic (int ATTRIBUTE_UNUSED immediate,
 }
 
 static bool
-mep_rtx_cost (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total, bool ATTRIBUTE_UNUSED speed_t)
+mep_rtx_cost (rtx x, int code, int outer_code ATTRIBUTE_UNUSED,
+	      int opno ATTRIBUTE_UNUSED, int *total,
+	      bool ATTRIBUTE_UNUSED speed_t)
 {
   switch (code)
     {

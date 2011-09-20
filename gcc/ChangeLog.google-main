@@ -1,3 +1,11 @@
+2011-09-20   Diego Novillo  <dnovillo@google.com>
+
+	Merge from google/integration rev 178863.
+
+2011-09-15  Easwaran Raman  <eraman@google.com>
+
+	* Makefile.in (PLUGIN_HEADERS): Add l-ipo.h.
+
 2011-09-07  Sriraman Tallam  <tmsriram@google.com>
 
 	* mversn-dispatch.c (specialize_call): Rebuild cgraph edges after

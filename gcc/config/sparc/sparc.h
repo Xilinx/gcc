@@ -208,8 +208,8 @@ extern enum cmodel sparc_cmodel;
    which requires the following macro to be true if enabled.  Prior to V9,
    there are no instructions to even talk about memory synchronization.
    Note that the UltraSPARC III processors don't implement RMO, unlike the
-   UltraSPARC II processors.  Niagara and Niagara-2 do not implement RMO
-   either.
+   UltraSPARC II processors.  Niagara, Niagara-2, and Niagara-3 do not
+   implement RMO either.
 
    Default to false; for example, Solaris never enables RMO, only ever uses
    total memory ordering (TMO).  */
@@ -247,12 +247,16 @@ extern enum cmodel sparc_cmodel;
 #define TARGET_CPU_ultrasparc3	10
 #define TARGET_CPU_niagara	11
 #define TARGET_CPU_niagara2	12
+#define TARGET_CPU_niagara3	13
+#define TARGET_CPU_niagara4	14
 
 #if TARGET_CPU_DEFAULT == TARGET_CPU_v9 \
  || TARGET_CPU_DEFAULT == TARGET_CPU_ultrasparc \
  || TARGET_CPU_DEFAULT == TARGET_CPU_ultrasparc3 \
  || TARGET_CPU_DEFAULT == TARGET_CPU_niagara \
- || TARGET_CPU_DEFAULT == TARGET_CPU_niagara2
+ || TARGET_CPU_DEFAULT == TARGET_CPU_niagara2 \
+ || TARGET_CPU_DEFAULT == TARGET_CPU_niagara3 \
+ || TARGET_CPU_DEFAULT == TARGET_CPU_niagara4
 
 #define CPP_CPU32_DEFAULT_SPEC ""
 #define ASM_CPU32_DEFAULT_SPEC ""
@@ -278,6 +282,14 @@ extern enum cmodel sparc_cmodel;
 #define ASM_CPU64_DEFAULT_SPEC "-Av9b"
 #endif
 #if TARGET_CPU_DEFAULT == TARGET_CPU_niagara2
+#define CPP_CPU64_DEFAULT_SPEC "-D__sparc_v9__"
+#define ASM_CPU64_DEFAULT_SPEC "-Av9b"
+#endif
+#if TARGET_CPU_DEFAULT == TARGET_CPU_niagara3
+#define CPP_CPU64_DEFAULT_SPEC "-D__sparc_v9__"
+#define ASM_CPU64_DEFAULT_SPEC "-Av9b"
+#endif
+#if TARGET_CPU_DEFAULT == TARGET_CPU_niagara4
 #define CPP_CPU64_DEFAULT_SPEC "-D__sparc_v9__"
 #define ASM_CPU64_DEFAULT_SPEC "-Av9b"
 #endif
@@ -373,6 +385,8 @@ extern enum cmodel sparc_cmodel;
 %{mcpu=ultrasparc3:-D__sparc_v9__} \
 %{mcpu=niagara:-D__sparc_v9__} \
 %{mcpu=niagara2:-D__sparc_v9__} \
+%{mcpu=niagara3:-D__sparc_v9__} \
+%{mcpu=niagara4:-D__sparc_v9__} \
 %{!mcpu*:%(cpp_cpu_default)} \
 "
 #define CPP_ARCH32_SPEC ""
@@ -417,6 +431,8 @@ extern enum cmodel sparc_cmodel;
 %{mcpu=ultrasparc3:%{!mv8plus:-Av9b}} \
 %{mcpu=niagara:%{!mv8plus:-Av9b}} \
 %{mcpu=niagara2:%{!mv8plus:-Av9b}} \
+%{mcpu=niagara3:%{!mv8plus:-Av9b}} \
+%{mcpu=niagara4:%{!mv8plus:-Av9b}} \
 %{!mcpu*:%(asm_cpu_default)} \
 "
 
@@ -629,6 +645,11 @@ extern enum cmodel sparc_cmodel;
      ? MAX (MAX ((COMPUTED), (SPECIFIED)), BIGGEST_ALIGNMENT) \
      : MAX ((COMPUTED), (SPECIFIED)))			\
    :  MAX ((COMPUTED), (SPECIFIED)))
+
+/* We need 2 words, so we can save the stack pointer and the return register
+   of the function containing a non-local goto target.  */
+#define STACK_SAVEAREA_MODE(LEVEL) \
+  ((LEVEL) == SAVE_NONLOCAL ? (TARGET_ARCH64 ? TImode : DImode) : Pmode)
 
 /* Make strings word-aligned so strcpy from constants will be faster.  */
 #define CONSTANT_ALIGNMENT(EXP, ALIGN)  \
@@ -1377,11 +1398,6 @@ do {									\
    functions that have frame pointers.  */
 #define EXIT_IGNORE_STACK 1
 
-/* We need 2 words, so we can save the stack pointer and the return register
-   of the function containing a non-local goto target.  */
-#define STACK_SAVEAREA_MODE(LEVEL) \
-  ((LEVEL) == SAVE_NONLOCAL ? (TARGET_ARCH64 ? TImode : DImode) : Pmode)
-
 /* Length in units of the trampoline for entering a nested function.  */
 #define TRAMPOLINE_SIZE (TARGET_ARCH64 ? 32 : 16)
 
@@ -1517,24 +1533,11 @@ do {									\
 #define REGNO_OK_FOR_FP_P(REGNO) \
   (((unsigned) (REGNO) - 32 < (TARGET_V9 ? (unsigned)64 : (unsigned)32)) \
    || ((unsigned) reg_renumber[REGNO] - 32 < (TARGET_V9 ? (unsigned)64 : (unsigned)32)))
+
 #define REGNO_OK_FOR_CCFP_P(REGNO) \
  (TARGET_V9 \
   && (((unsigned) (REGNO) - 96 < (unsigned)4) \
       || ((unsigned) reg_renumber[REGNO] - 96 < (unsigned)4)))
-
-/* Now macros that check whether X is a register and also,
-   strictly, whether it is in a specified class.
-
-   These macros are specific to the SPARC, and may be used only
-   in code for printing assembler insns and in conditions for
-   define_optimization.  */
-
-/* 1 if X is an fp register.  */
-
-#define FP_REG_P(X) (REG_P (X) && REGNO_OK_FOR_FP_P (REGNO (X)))
-
-/* Is X, a REG, an in or global register?  i.e. is regno 0..7 or 24..31 */
-#define IN_OR_GLOBAL_P(X) (REGNO (X) < 8 || (REGNO (X) >= 24 && REGNO (X) <= 31))
 
 /* Maximum number of registers that can appear in a valid memory address.  */
 
@@ -1671,8 +1674,8 @@ do {									   \
    On Niagara, normal branches insert 3 bubbles into the pipe
    and annulled branches insert 4 bubbles.
 
-   On Niagara-2, a not-taken branch costs 1 cycle whereas a taken
-   branch costs 6 cycles.  */
+   On Niagara-2 and Niagara-3, a not-taken branch costs 1 cycle whereas
+   a taken branch costs 6 cycles.  */
 
 #define BRANCH_COST(speed_p, predictable_p) \
 	((sparc_cpu == PROCESSOR_V9 \
@@ -1682,7 +1685,8 @@ do {									   \
             ? 9 \
 	 : (sparc_cpu == PROCESSOR_NIAGARA \
 	    ? 4 \
-	 : (sparc_cpu == PROCESSOR_NIAGARA2 \
+	 : ((sparc_cpu == PROCESSOR_NIAGARA2 \
+	     || sparc_cpu == PROCESSOR_NIAGARA3) \
 	    ? 5 \
 	 : 3))))
 

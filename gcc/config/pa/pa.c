@@ -92,7 +92,7 @@ static void fix_range (const char *);
 static int hppa_register_move_cost (enum machine_mode mode, reg_class_t,
 				    reg_class_t);
 static int hppa_address_cost (rtx, bool);
-static bool hppa_rtx_costs (rtx, int, int, int *, bool);
+static bool hppa_rtx_costs (rtx, int, int, int, int *, bool);
 static inline rtx force_mode (enum machine_mode, rtx);
 static void pa_reorg (void);
 static void pa_combine_instructions (void);
@@ -1411,8 +1411,8 @@ hppa_address_cost (rtx X,
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-hppa_rtx_costs (rtx x, int code, int outer_code, int *total,
-		bool speed ATTRIBUTE_UNUSED)
+hppa_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		int *total, bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -4329,6 +4329,24 @@ hppa_expand_epilogue (void)
     }
 }
 
+bool
+pa_can_use_return_insn (void)
+{
+  if (!reload_completed)
+    return false;
+
+  if (frame_pointer_needed)
+    return false;
+
+  if (df_regs_ever_live_p (2))
+    return false;
+
+  if (crtl->profile)
+    return false;
+
+  return compute_frame_size (get_frame_size (), 0) == 0;
+}
+
 rtx
 hppa_pic_save_rtx (void)
 {
@@ -6112,7 +6130,7 @@ hppa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 
       u = fold_convert (sizetype, size_in_bytes (type));
       u = fold_build1 (NEGATE_EXPR, sizetype, u);
-      t = build2 (POINTER_PLUS_EXPR, valist_type, valist, u);
+      t = fold_build_pointer_plus (valist, u);
 
       /* Align to 4 or 8 byte boundary depending on argument size.  */
 
@@ -6124,10 +6142,7 @@ hppa_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 
       ofs = (8 - size) % 4;
       if (ofs != 0)
-	{
-	  u = size_int (ofs);
-	  t = build2 (POINTER_PLUS_EXPR, valist_type, t, u);
-	}
+	t = fold_build_pointer_plus_hwi (t, ofs);
 
       t = fold_convert (ptr, t);
       t = build_va_arg_indirect_ref (t);

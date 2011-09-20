@@ -40,7 +40,7 @@ f3 (int k)
   asm ("" : "+r" (a.i));
   a.j++;
   bar (a.i);		/* { dg-final { gdb-test 43 "a.i" "4" } } */
-  bar (a.j);		/* { dg-final { gdb-test 43 "a.j" "14" { xfail *-*-* } } } */
+  bar (a.j);		/* { dg-final { gdb-test 43 "a.j" "14" } } */
   return a.i + a.j;
 }
 

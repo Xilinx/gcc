@@ -1926,7 +1926,7 @@ coverage_init (const char *filename, const char* source_name)
       strcat (main_input_file_name, source_name);
     }
 
-  if (flag_profile_use)
+  if (flag_branch_probabilities)
     read_counts_file (da_file_name, 0);
 
   /* Rebuild counts_hash and read the auxiliary GCDA files.  */

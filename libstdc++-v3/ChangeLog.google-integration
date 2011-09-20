@@ -1,3 +1,37 @@
+2011-09-14   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Revert to mainline variant.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc: Likewise.
+
+2011-09-06  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* include/bits/stl_vector.h (_M_is_valid): New function.
+	(begin, end, size, capacity, swap, clear): Call it.
+	* include/bits/vector.tcc (operator=): Likewise.
+
+2011-08-17  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Specify line 0 for "no matching" expected error.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+
+2011-07-21  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Remove dg-excess-errors.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+
 2011-07-15  Diego Novillo  <dnovillo@google.com>
 
 	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:

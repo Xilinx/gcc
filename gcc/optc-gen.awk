@@ -37,6 +37,7 @@ for (i = 1; i <= n_headers; i++)
 	print "#include " quote headers[i] quote
 print "#include " quote "opts.h" quote
 print "#include " quote "intl.h" quote
+print "#include " quote "insn-attr-common.h" quote
 print ""
 
 if (n_extra_c_includes > 0) {
@@ -168,6 +169,9 @@ for (i = 0; i < n_langs; i++) {
 
 print "  0\n};\n"
 print "const unsigned int cl_options_count = N_OPTS;\n"
+print "#if (1U << " n_langs ") > CL_MIN_OPTION_CLASS"
+print "  #error the number of languages exceeds the implementation limit"
+print "#endif"
 print "const unsigned int cl_lang_count = " n_langs ";\n"
 
 print "const struct cl_option cl_options[] =\n{"

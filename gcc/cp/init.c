@@ -330,7 +330,7 @@ build_value_init (tree type, tsubst_flags_t complain)
      constructor.  */
 
   /* The AGGR_INIT_EXPR tweaking below breaks in templates.  */
-  gcc_assert (!processing_template_decl);
+  gcc_assert (!processing_template_decl || SCALAR_TYPE_P (type));
 
   if (CLASS_TYPE_P (type))
     {
@@ -547,14 +547,17 @@ perform_member_init (tree member, tree init)
 	  finish_expr_stmt (init);
 	}
     }
-  else if (type_build_ctor_call (type))
+  else if (type_build_ctor_call (type)
+	   || (init && CLASS_TYPE_P (strip_array_types (type))))
     {
       if (TREE_CODE (type) == ARRAY_TYPE)
 	{
 	  if (init)
 	    {
-	      gcc_assert (TREE_CHAIN (init) == NULL_TREE);
-	      init = TREE_VALUE (init);
+	      if (TREE_CHAIN (init))
+		init = error_mark_node;
+	      else
+		init = TREE_VALUE (init);
 	      if (BRACE_ENCLOSED_INITIALIZER_P (init))
 		init = digest_init (type, init, tf_warning_or_error);
 	    }
@@ -603,15 +606,6 @@ perform_member_init (tree member, tree init)
 
 	  core_type = strip_array_types (type);
 
-	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
-	      && !type_has_constexpr_default_constructor (core_type))
-	    {
-	      if (!DECL_TEMPLATE_INSTANTIATION (current_function_decl))
-		error ("uninitialized member %qD in %<constexpr%> constructor",
-		       member);
-	      DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;
-	    }
-
 	  if (CLASS_TYPE_P (core_type)
 	      && (CLASSTYPE_READONLY_FIELDS_NEED_INIT (core_type)
 		  || CLASSTYPE_REF_FIELDS_NEED_INIT (core_type)))
@@ -626,14 +620,8 @@ perform_member_init (tree member, tree init)
 						tf_warning_or_error);
 
       if (init)
-        {
           finish_expr_stmt (cp_build_modify_expr (decl, INIT_EXPR, init,
                                                   tf_warning_or_error));
-          /* Check for and warn about self-initialization if -Wself-assign is
-             enabled.  */
-          if (warn_self_assign)
-            check_for_self_assign (input_location, decl, init);
-        }
     }
 
   if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
@@ -651,6 +639,11 @@ perform_member_init (tree member, tree init)
       if (expr != error_mark_node)
 	finish_eh_cleanup (expr);
     }
+
+  /* Check for and warn about self-initialization if -Wself-assign is
+     enabled.  */
+  if (warn_self_assign)
+    check_for_self_assign (input_location, decl, init);
 }
 
 /* Returns a TREE_LIST containing (as the TREE_PURPOSE of each node) all
@@ -660,8 +653,6 @@ static tree
 build_field_list (tree t, tree list, int *uses_unions_p)
 {
   tree fields;
-
-  *uses_unions_p = 0;
 
   /* Note whether or not T is a union.  */
   if (TREE_CODE (t) == UNION_TYPE)
@@ -716,7 +707,7 @@ sort_mem_initializers (tree t, tree mem_inits)
   tree next_subobject;
   VEC(tree,gc) *vbases;
   int i;
-  int uses_unions_p;
+  int uses_unions_p = 0;
 
   /* Build up a list of initializations.  The TREE_PURPOSE of entry
      will be the subobject (a FIELD_DECL or BINFO) to initialize.  The
@@ -967,16 +958,6 @@ emit_mem_initializers (tree mem_inits)
 			OPT_Wextra, "base class %q#T should be explicitly "
 			"initialized in the copy constructor",
 			BINFO_TYPE (subobject));
-
-	  if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
-	      && !(type_has_constexpr_default_constructor
-		   (BINFO_TYPE (subobject))))
-	    {
-	      if (!DECL_TEMPLATE_INSTANTIATION (current_function_decl))
-		error ("uninitialized base %qT in %<constexpr%> constructor",
-		       BINFO_TYPE (subobject));
-	      DECL_DECLARED_CONSTEXPR_P (current_function_decl) = false;
-	    }
 	}
 
       /* Initialize the base.  */
@@ -1069,10 +1050,7 @@ expand_virtual_init (tree binfo, tree decl)
 
       /* Compute the value to use, when there's a VTT.  */
       vtt_parm = current_vtt_parm;
-      vtbl2 = build2 (POINTER_PLUS_EXPR,
-		      TREE_TYPE (vtt_parm),
-		      vtt_parm,
-		      vtt_index);
+      vtbl2 = fold_build_pointer_plus (vtt_parm, vtt_index);
       vtbl2 = cp_build_indirect_ref (vtbl2, RO_NULL, tf_warning_or_error);
       vtbl2 = convert (TREE_TYPE (vtbl), vtbl2);
 
@@ -2316,16 +2294,14 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
       tree size_ptr_type;
 
       /* Adjust so we're pointing to the start of the object.  */
-      data_addr = build2 (POINTER_PLUS_EXPR, TREE_TYPE (alloc_node),
-			  alloc_node, cookie_size);
+      data_addr = fold_build_pointer_plus (alloc_node, cookie_size);
 
       /* Store the number of bytes allocated so that we can know how
 	 many elements to destroy later.  We use the last sizeof
 	 (size_t) bytes to store the number of elements.  */
       cookie_ptr = size_binop (MINUS_EXPR, cookie_size, size_in_bytes (sizetype));
-      cookie_ptr = fold_build2_loc (input_location,
-				POINTER_PLUS_EXPR, TREE_TYPE (alloc_node),
-				alloc_node, cookie_ptr);
+      cookie_ptr = fold_build_pointer_plus_loc (input_location,
+						alloc_node, cookie_ptr);
       size_ptr_type = build_pointer_type (sizetype);
       cookie_ptr = fold_convert (size_ptr_type, cookie_ptr);
       cookie = cp_build_indirect_ref (cookie_ptr, RO_NULL, complain);
@@ -2335,10 +2311,10 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
       if (targetm.cxx.cookie_has_size ())
 	{
 	  /* Also store the element size.  */
-	  cookie_ptr = build2 (POINTER_PLUS_EXPR, size_ptr_type, cookie_ptr,
+	  cookie_ptr = fold_build_pointer_plus (cookie_ptr,
 			       fold_build1_loc (input_location,
-					    NEGATE_EXPR, sizetype,
-					    size_in_bytes (sizetype)));
+						NEGATE_EXPR, sizetype,
+						size_in_bytes (sizetype)));
 
 	  cookie = cp_build_indirect_ref (cookie_ptr, RO_NULL, complain);
 	  cookie = build2 (MODIFY_EXPR, sizetype, cookie,
@@ -2807,12 +2783,13 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
 			     convert (sizetype, maxindex));
 
   tbase = create_temporary_var (ptype);
-  tbase_init = cp_build_modify_expr (tbase, NOP_EXPR,
-				     fold_build2_loc (input_location,
-						  POINTER_PLUS_EXPR, ptype,
-						  fold_convert (ptype, base),
-						  virtual_size),
-				     complain);
+  tbase_init
+    = cp_build_modify_expr (tbase, NOP_EXPR,
+			    fold_build_pointer_plus_loc (input_location,
+							 fold_convert (ptype,
+								       base),
+							 virtual_size),
+			    complain);
   if (tbase_init == error_mark_node)
     return error_mark_node;
   controller = build3 (BIND_EXPR, void_type_node, tbase,
@@ -2823,7 +2800,7 @@ build_vec_delete_1 (tree base, tree maxindex, tree type,
 		 build2 (EQ_EXPR, boolean_type_node, tbase,
 			 fold_convert (ptype, base)));
   tmp = fold_build1_loc (input_location, NEGATE_EXPR, sizetype, size_exp);
-  tmp = build2 (POINTER_PLUS_EXPR, ptype, tbase, tmp);
+  tmp = fold_build_pointer_plus (tbase, tmp);
   tmp = cp_build_modify_expr (tbase, NOP_EXPR, tmp, complain);
   if (tmp == error_mark_node)
     return error_mark_node;
@@ -3757,10 +3734,8 @@ build_vec_delete (tree base, tree maxindex,
       type = strip_array_types (TREE_TYPE (type));
       cookie_addr = fold_build1_loc (input_location, NEGATE_EXPR,
 				 sizetype, TYPE_SIZE_UNIT (sizetype));
-      cookie_addr = build2 (POINTER_PLUS_EXPR,
-			    size_ptr_type,
-			    fold_convert (size_ptr_type, base),
-			    cookie_addr);
+      cookie_addr = fold_build_pointer_plus (fold_convert (size_ptr_type, base),
+					     cookie_addr);
       maxindex = cp_build_indirect_ref (cookie_addr, RO_NULL, complain);
     }
   else if (TREE_CODE (type) == ARRAY_TYPE)

@@ -811,7 +811,7 @@
 			 (match_operand:DI 3 "arith11_operand" "rI"))
 		 (match_operand:DI 1 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub%I3,* %3,%2,%%r0\;add,dc %%r0,%1,%0"
+  "sub%I3 %3,%2,%%r0\;add,dc %%r0,%1,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -833,7 +833,7 @@
 			 (match_operand:DI 3 "register_operand" "r"))
 		 (match_operand:DI 1 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub,* %2,%3,%%r0\;add,dc %%r0,%1,%0"
+  "sub %2,%3,%%r0\;add,dc %%r0,%1,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -856,7 +856,7 @@
 			 (match_operand:DI 3 "int11_operand" "I"))
 		 (match_operand:DI 1 "register_operand" "r")))]
   "TARGET_64BIT"
-  "addi,* %k3,%2,%%r0\;add,dc %%r0,%1,%0"
+  "addi %k3,%2,%%r0\;add,dc %%r0,%1,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -902,7 +902,7 @@
 		  (gtu:DI (match_operand:DI 2 "register_operand" "r")
 			  (match_operand:DI 3 "arith11_operand" "rI"))))]
   "TARGET_64BIT"
-  "sub%I3,* %3,%2,%%r0\;sub,db %1,%%r0,%0"
+  "sub%I3 %3,%2,%%r0\;sub,db %1,%%r0,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -924,7 +924,7 @@
 				    (match_operand:DI 3 "arith11_operand" "rI")))
 		  (match_operand:DI 4 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub%I3,* %3,%2,%%r0\;sub,db %1,%4,%0"
+  "sub%I3 %3,%2,%%r0\;sub,db %1,%4,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -946,7 +946,7 @@
 		  (ltu:DI (match_operand:DI 2 "register_operand" "r")
 			  (match_operand:DI 3 "register_operand" "r"))))]
   "TARGET_64BIT"
-  "sub,* %2,%3,%%r0\;sub,db %1,%%r0,%0"
+  "sub %2,%3,%%r0\;sub,db %1,%%r0,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -968,7 +968,7 @@
 				    (match_operand:DI 3 "register_operand" "r")))
 		  (match_operand:DI 4 "register_operand" "r")))]
   "TARGET_64BIT"
-  "sub,* %2,%3,%%r0\;sub,db %1,%4,%0"
+  "sub %2,%3,%%r0\;sub,db %1,%4,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -991,7 +991,7 @@
 		  (leu:DI (match_operand:DI 2 "register_operand" "r")
 			  (match_operand:DI 3 "int11_operand" "I"))))]
   "TARGET_64BIT"
-  "addi,* %k3,%2,%%r0\;sub,db %1,%%r0,%0"
+  "addi %k3,%2,%%r0\;sub,db %1,%%r0,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -1013,7 +1013,7 @@
 				    (match_operand:DI 3 "int11_operand" "I")))
 		  (match_operand:DI 4 "register_operand" "r")))]
   "TARGET_64BIT"
-  "addi,* %k3,%2,%%r0\;sub,db %1,%4,%0"
+  "addi %k3,%2,%%r0\;sub,db %1,%4,%0"
   [(set_attr "type" "binary")
    (set_attr "length" "8")])
 
@@ -6671,6 +6671,20 @@
 
 ;; Unconditional and other jump instructions.
 
+;; Trivial return used when no epilogue is needed.
+(define_insn "return"
+  [(return)
+   (use (reg:SI 2))]
+  "pa_can_use_return_insn ()"
+  "*
+{
+  if (TARGET_PA_20)
+    return \"bve%* (%%r2)\";
+  return \"bv%* %%r0(%%r2)\";
+}"
+  [(set_attr "type" "branch")
+   (set_attr "length" "4")])
+
 ;; This is used for most returns.
 (define_insn "return_internal"
   [(return)
@@ -6719,11 +6733,8 @@
   rtx x;
 
   /* Try to use the trivial return first.  Else use the full epilogue.  */
-  if (reload_completed
-      && !frame_pointer_needed
-      && !df_regs_ever_live_p (2)
-      && (compute_frame_size (get_frame_size (), 0) ? 0 : 1))
-    x = gen_return_internal ();
+  if (pa_can_use_return_insn ())
+    x = gen_return ();
   else
     {
       hppa_expand_epilogue ();
@@ -6913,7 +6924,7 @@
     {
       rtx index = gen_reg_rtx (SImode);
 
-      operands[1] = GEN_INT (-INTVAL (operands[1]));
+      operands[1] = gen_int_mode (-INTVAL (operands[1]), SImode);
       if (!INT_14_BITS (operands[1]))
 	operands[1] = force_reg (SImode, operands[1]);
       emit_insn (gen_addsi3 (index, operands[0], operands[1]));

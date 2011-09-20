@@ -1642,8 +1642,8 @@ interpret_loop_phi (struct loop *loop, gimple loop_phi_node)
       else if (TREE_CODE (res) == POLYNOMIAL_CHREC)
 	new_init = CHREC_LEFT (res);
       STRIP_USELESS_TYPE_CONVERSION (new_init);
-      gcc_assert (TREE_CODE (new_init) != POLYNOMIAL_CHREC);
-      if (!operand_equal_p (init_cond, new_init, 0))
+      if (TREE_CODE (new_init) == POLYNOMIAL_CHREC
+	  || !operand_equal_p (init_cond, new_init, 0))
 	return chrec_dont_know;
     }
 
@@ -1727,7 +1727,7 @@ interpret_rhs_expr (struct loop *loop, gimple at_stmt,
       chrec1 = analyze_scalar_evolution (loop, rhs1);
       chrec2 = analyze_scalar_evolution (loop, rhs2);
       chrec1 = chrec_convert (type, chrec1, at_stmt);
-      chrec2 = chrec_convert (sizetype, chrec2, at_stmt);
+      chrec2 = chrec_convert (TREE_TYPE (rhs2), chrec2, at_stmt);
       res = chrec_fold_plus (type, chrec1, chrec2);
       break;
 
@@ -1796,7 +1796,8 @@ interpret_expr (struct loop *loop, gimple at_stmt, tree expr)
   if (automatically_generated_chrec_p (expr))
     return expr;
 
-  if (TREE_CODE (expr) == POLYNOMIAL_CHREC)
+  if (TREE_CODE (expr) == POLYNOMIAL_CHREC
+      || get_gimple_rhs_class (TREE_CODE (expr)) == GIMPLE_TERNARY_RHS)
     return chrec_dont_know;
 
   extract_ops_from_tree (expr, &code, &op0, &op1);
@@ -2645,6 +2646,7 @@ instantiate_scev_r (basic_block instantiate_below,
 				   TREE_OPERAND (chrec, 0),
 				   fold_conversions, cache, size_expr);
 
+    case ADDR_EXPR:
     case SCEV_NOT_KNOWN:
       return chrec_dont_know;
 

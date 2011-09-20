@@ -977,6 +977,113 @@ generic_correspondence (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
 }
 
 
+/* Check if the characteristics of two dummy arguments match,
+   cf. F08:12.3.2.  */
+
+static gfc_try
+check_dummy_characteristics (gfc_symbol *s1, gfc_symbol *s2,
+			     bool type_must_agree, char *errmsg, int err_len)
+{
+  /* Check type and rank.  */
+  if (type_must_agree && !compare_type_rank (s2, s1))
+    {
+      if (errmsg != NULL)
+	snprintf (errmsg, err_len, "Type/rank mismatch in argument '%s'",
+		  s1->name);
+      return FAILURE;
+    }
+
+  /* Check INTENT.  */
+  if (s1->attr.intent != s2->attr.intent)
+    {
+      snprintf (errmsg, err_len, "INTENT mismatch in argument '%s'",
+		s1->name);
+      return FAILURE;
+    }
+
+  /* Check OPTIONAL attribute.  */
+  if (s1->attr.optional != s2->attr.optional)
+    {
+      snprintf (errmsg, err_len, "OPTIONAL mismatch in argument '%s'",
+		s1->name);
+      return FAILURE;
+    }
+
+  /* Check ALLOCATABLE attribute.  */
+  if (s1->attr.allocatable != s2->attr.allocatable)
+    {
+      snprintf (errmsg, err_len, "ALLOCATABLE mismatch in argument '%s'",
+		s1->name);
+      return FAILURE;
+    }
+
+  /* Check POINTER attribute.  */
+  if (s1->attr.pointer != s2->attr.pointer)
+    {
+      snprintf (errmsg, err_len, "POINTER mismatch in argument '%s'",
+		s1->name);
+      return FAILURE;
+    }
+
+  /* Check TARGET attribute.  */
+  if (s1->attr.target != s2->attr.target)
+    {
+      snprintf (errmsg, err_len, "TARGET mismatch in argument '%s'",
+		s1->name);
+      return FAILURE;
+    }
+
+  /* FIXME: Do more comprehensive testing of attributes, like e.g.
+	    ASYNCHRONOUS, CONTIGUOUS, VALUE, VOLATILE, etc.  */
+
+  /* Check string length.  */
+  if (s1->ts.type == BT_CHARACTER
+      && s1->ts.u.cl && s1->ts.u.cl->length
+      && s2->ts.u.cl && s2->ts.u.cl->length)
+    {
+      int compval = gfc_dep_compare_expr (s1->ts.u.cl->length,
+					  s2->ts.u.cl->length);
+      switch (compval)
+      {
+	case -1:
+	case  1:
+	case -3:
+	  snprintf (errmsg, err_len, "Character length mismatch "
+		    "in argument '%s'", s1->name);
+	  return FAILURE;
+
+	case -2:
+	  /* FIXME: Implement a warning for this case.
+	  gfc_warning ("Possible character length mismatch in argument '%s'",
+		       s1->name);*/
+	  break;
+
+	case 0:
+	  break;
+
+	default:
+	  gfc_internal_error ("check_dummy_characteristics: Unexpected result "
+			      "%i of gfc_dep_compare_expr", compval);
+	  break;
+      }
+    }
+
+  /* Check array shape.  */
+  if (s1->as && s2->as)
+    {
+      if (s1->as->type != s2->as->type)
+	{
+	  snprintf (errmsg, err_len, "Shape mismatch in argument '%s'",
+		    s1->name);
+	  return FAILURE;
+	}
+      /* FIXME: Check exact shape.  */
+    }
+    
+  return SUCCESS;
+}
+
+
 /* 'Compare' two formal interfaces associated with a pair of symbols.
    We return nonzero if there exists an actual argument list that
    would be ambiguous between the two interfaces, zero otherwise.
@@ -1059,28 +1166,19 @@ gfc_compare_interfaces (gfc_symbol *s1, gfc_symbol *s2, const char *name2,
 	    return 0;
 	  }
 
-	/* Check type and rank.  */
-	if (!compare_type_rank (f2->sym, f1->sym))
+	if (intent_flag)
 	  {
+	    /* Check all characteristics.  */
+	    if (check_dummy_characteristics (f1->sym, f2->sym,
+					     true, errmsg, err_len) == FAILURE)
+	      return 0;
+	  }
+	else if (!compare_type_rank (f2->sym, f1->sym))
+	  {
+	    /* Only check type and rank.  */
 	    if (errmsg != NULL)
 	      snprintf (errmsg, err_len, "Type/rank mismatch in argument '%s'",
 			f1->sym->name);
-	    return 0;
-	  }
-
-	/* Check INTENT.  */
-	if (intent_flag && (f1->sym->attr.intent != f2->sym->attr.intent))
-	  {
-	    snprintf (errmsg, err_len, "INTENT mismatch in argument '%s'",
-		      f1->sym->name);
-	    return 0;
-	  }
-
-	/* Check OPTIONAL.  */
-	if (intent_flag && (f1->sym->attr.optional != f2->sym->attr.optional))
-	  {
-	    snprintf (errmsg, err_len, "OPTIONAL mismatch in argument '%s'",
-		      f1->sym->name);
 	    return 0;
 	  }
 
@@ -1557,47 +1655,26 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	}
     }
 
-  if (formal->attr.codimension)
+  if (formal->attr.codimension && !gfc_is_coarray (actual))
+    {
+      if (where)
+	gfc_error ("Actual argument to '%s' at %L must be a coarray",
+		       formal->name, &actual->where);
+      return 0;
+    }
+
+  if (formal->attr.codimension && formal->attr.allocatable)
     {
       gfc_ref *last = NULL;
 
-      if (actual->expr_type != EXPR_VARIABLE
-	  || !gfc_expr_attr (actual).codimension)
-	{
-	  if (where)
-	    gfc_error ("Actual argument to '%s' at %L must be a coarray",
-		       formal->name, &actual->where);
-	  return 0;
-	}
-
-      if (gfc_is_coindexed (actual))
-	{
-	  if (where)
-	    gfc_error ("Actual argument to '%s' at %L must be a coarray "
-		       "and not coindexed", formal->name, &actual->where);
-	  return 0;
-	}
-
       for (ref = actual->ref; ref; ref = ref->next)
-	{
-	  if (ref->type == REF_ARRAY && ref->u.ar.as->corank
-	      && ref->u.ar.type != AR_FULL && ref->u.ar.dimen != 0)
-	    {
-	      if (where)
-		gfc_error ("Actual argument to '%s' at %L must be a coarray "
-			   "and thus shall not have an array designator",
-			   formal->name, &ref->u.ar.where);
-	      return 0;
-	    }
-	  if (ref->type == REF_COMPONENT)
-	    last = ref;
-	}
+	if (ref->type == REF_COMPONENT)
+	  last = ref;
 
       /* F2008, 12.5.2.6.  */
-      if (formal->attr.allocatable &&
-	  ((last && last->u.c.component->as->corank != formal->as->corank)
-	   || (!last
-	       && actual->symtree->n.sym->as->corank != formal->as->corank)))
+      if ((last && last->u.c.component->as->corank != formal->as->corank)
+	  || (!last
+	      && actual->symtree->n.sym->as->corank != formal->as->corank))
 	{
 	  if (where)
 	    gfc_error ("Corank mismatch in argument '%s' at %L (%d and %d)",
@@ -1606,7 +1683,10 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 			: actual->symtree->n.sym->as->corank);
 	  return 0;
 	}
+    }
 
+  if (formal->attr.codimension)
+    {
       /* F2008, 12.5.2.8.  */
       if (formal->attr.dimension
 	  && (formal->attr.contiguous || formal->as->type != AS_ASSUMED_SHAPE)
@@ -1633,7 +1713,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 		       formal->name, &actual->where);
 	  return 0;
 	}
-      }
+    }
 
   /* F2008, C1239/C1240.  */
   if (actual->expr_type == EXPR_VARIABLE
@@ -3483,4 +3563,224 @@ gfc_free_formal_arglist (gfc_formal_arglist *p)
       q = p->next;
       free (p);
     }
+}
+
+
+/* Check that it is ok for the type-bound procedure 'proc' to override the
+   procedure 'old', cf. F08:4.5.7.3.  */
+
+gfc_try
+gfc_check_typebound_override (gfc_symtree* proc, gfc_symtree* old)
+{
+  locus where;
+  const gfc_symbol *proc_target, *old_target;
+  unsigned proc_pass_arg, old_pass_arg, argpos;
+  gfc_formal_arglist *proc_formal, *old_formal;
+  bool check_type;
+  char err[200];
+
+  /* This procedure should only be called for non-GENERIC proc.  */
+  gcc_assert (!proc->n.tb->is_generic);
+
+  /* If the overwritten procedure is GENERIC, this is an error.  */
+  if (old->n.tb->is_generic)
+    {
+      gfc_error ("Can't overwrite GENERIC '%s' at %L",
+		 old->name, &proc->n.tb->where);
+      return FAILURE;
+    }
+
+  where = proc->n.tb->where;
+  proc_target = proc->n.tb->u.specific->n.sym;
+  old_target = old->n.tb->u.specific->n.sym;
+
+  /* Check that overridden binding is not NON_OVERRIDABLE.  */
+  if (old->n.tb->non_overridable)
+    {
+      gfc_error ("'%s' at %L overrides a procedure binding declared"
+		 " NON_OVERRIDABLE", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* It's an error to override a non-DEFERRED procedure with a DEFERRED one.  */
+  if (!old->n.tb->deferred && proc->n.tb->deferred)
+    {
+      gfc_error ("'%s' at %L must not be DEFERRED as it overrides a"
+		 " non-DEFERRED binding", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is PURE, the overriding must be, too.  */
+  if (old_target->attr.pure && !proc_target->attr.pure)
+    {
+      gfc_error ("'%s' at %L overrides a PURE procedure and must also be PURE",
+		 proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is ELEMENTAL, the overriding must be, too.  If it
+     is not, the overriding must not be either.  */
+  if (old_target->attr.elemental && !proc_target->attr.elemental)
+    {
+      gfc_error ("'%s' at %L overrides an ELEMENTAL procedure and must also be"
+		 " ELEMENTAL", proc->name, &where);
+      return FAILURE;
+    }
+  if (!old_target->attr.elemental && proc_target->attr.elemental)
+    {
+      gfc_error ("'%s' at %L overrides a non-ELEMENTAL procedure and must not"
+		 " be ELEMENTAL, either", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is a SUBROUTINE, the overriding must also be a
+     SUBROUTINE.  */
+  if (old_target->attr.subroutine && !proc_target->attr.subroutine)
+    {
+      gfc_error ("'%s' at %L overrides a SUBROUTINE and must also be a"
+		 " SUBROUTINE", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is a FUNCTION, the overriding must also be a
+     FUNCTION and have the same characteristics.  */
+  if (old_target->attr.function)
+    {
+      if (!proc_target->attr.function)
+	{
+	  gfc_error ("'%s' at %L overrides a FUNCTION and must also be a"
+		     " FUNCTION", proc->name, &where);
+	  return FAILURE;
+	}
+
+      /* FIXME:  Do more comprehensive checking (including, for instance, the
+	 array-shape).  */
+      gcc_assert (proc_target->result && old_target->result);
+      if (!compare_type_rank (proc_target->result, old_target->result))
+	{
+	  gfc_error ("'%s' at %L and the overridden FUNCTION should have"
+		     " matching result types and ranks", proc->name, &where);
+	  return FAILURE;
+	}
+	
+      /* Check string length.  */
+      if (proc_target->result->ts.type == BT_CHARACTER
+	  && proc_target->result->ts.u.cl && old_target->result->ts.u.cl)
+	{
+	  int compval = gfc_dep_compare_expr (proc_target->result->ts.u.cl->length,
+					      old_target->result->ts.u.cl->length);
+	  switch (compval)
+	  {
+	    case -1:
+	    case  1:
+	    case -3:
+	      gfc_error ("Character length mismatch between '%s' at '%L' and "
+			 "overridden FUNCTION", proc->name, &where);
+	      return FAILURE;
+
+	    case -2:
+	      gfc_warning ("Possible character length mismatch between '%s' at"
+			   " '%L' and overridden FUNCTION", proc->name, &where);
+	      break;
+
+	    case 0:
+	      break;
+
+	    default:
+	      gfc_internal_error ("gfc_check_typebound_override: Unexpected "
+				  "result %i of gfc_dep_compare_expr", compval);
+	      break;
+	  }
+	}
+    }
+
+  /* If the overridden binding is PUBLIC, the overriding one must not be
+     PRIVATE.  */
+  if (old->n.tb->access == ACCESS_PUBLIC
+      && proc->n.tb->access == ACCESS_PRIVATE)
+    {
+      gfc_error ("'%s' at %L overrides a PUBLIC procedure and must not be"
+		 " PRIVATE", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* Compare the formal argument lists of both procedures.  This is also abused
+     to find the position of the passed-object dummy arguments of both
+     bindings as at least the overridden one might not yet be resolved and we
+     need those positions in the check below.  */
+  proc_pass_arg = old_pass_arg = 0;
+  if (!proc->n.tb->nopass && !proc->n.tb->pass_arg)
+    proc_pass_arg = 1;
+  if (!old->n.tb->nopass && !old->n.tb->pass_arg)
+    old_pass_arg = 1;
+  argpos = 1;
+  for (proc_formal = proc_target->formal, old_formal = old_target->formal;
+       proc_formal && old_formal;
+       proc_formal = proc_formal->next, old_formal = old_formal->next)
+    {
+      if (proc->n.tb->pass_arg
+	  && !strcmp (proc->n.tb->pass_arg, proc_formal->sym->name))
+	proc_pass_arg = argpos;
+      if (old->n.tb->pass_arg
+	  && !strcmp (old->n.tb->pass_arg, old_formal->sym->name))
+	old_pass_arg = argpos;
+
+      /* Check that the names correspond.  */
+      if (strcmp (proc_formal->sym->name, old_formal->sym->name))
+	{
+	  gfc_error ("Dummy argument '%s' of '%s' at %L should be named '%s' as"
+		     " to match the corresponding argument of the overridden"
+		     " procedure", proc_formal->sym->name, proc->name, &where,
+		     old_formal->sym->name);
+	  return FAILURE;
+	}
+
+      check_type = proc_pass_arg != argpos && old_pass_arg != argpos;
+      if (check_dummy_characteristics (proc_formal->sym, old_formal->sym,
+				       check_type, err, sizeof(err)) == FAILURE)
+	{
+	  gfc_error ("Argument mismatch for the overriding procedure "
+		     "'%s' at %L: %s", proc->name, &where, err);
+	  return FAILURE;
+	}
+
+      ++argpos;
+    }
+  if (proc_formal || old_formal)
+    {
+      gfc_error ("'%s' at %L must have the same number of formal arguments as"
+		 " the overridden procedure", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is NOPASS, the overriding one must also be
+     NOPASS.  */
+  if (old->n.tb->nopass && !proc->n.tb->nopass)
+    {
+      gfc_error ("'%s' at %L overrides a NOPASS binding and must also be"
+		 " NOPASS", proc->name, &where);
+      return FAILURE;
+    }
+
+  /* If the overridden binding is PASS(x), the overriding one must also be
+     PASS and the passed-object dummy arguments must correspond.  */
+  if (!old->n.tb->nopass)
+    {
+      if (proc->n.tb->nopass)
+	{
+	  gfc_error ("'%s' at %L overrides a binding with PASS and must also be"
+		     " PASS", proc->name, &where);
+	  return FAILURE;
+	}
+
+      if (proc_pass_arg != old_pass_arg)
+	{
+	  gfc_error ("Passed-object dummy argument of '%s' at %L must be at"
+		     " the same position as the passed-object dummy argument of"
+		     " the overridden procedure", proc->name, &where);
+	  return FAILURE;
+	}
+    }
+
+  return SUCCESS;
 }

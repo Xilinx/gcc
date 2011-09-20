@@ -2556,8 +2556,10 @@ build_vms_descriptor32 (tree type, Mechanism_Type mech, Entity_Id gnat_entity)
   tem = build_unary_op (ADDR_EXPR, pointer64_type,
 			build0 (PLACEHOLDER_EXPR, type));
   tem = build3 (COND_EXPR, pointer32_type,
-		build_binary_op (GE_EXPR, boolean_type_node, tem,
-				 build_int_cstu (pointer64_type, 0x80000000)),
+		Pmode != SImode
+		? build_binary_op (GE_EXPR, boolean_type_node, tem,
+				   build_int_cstu (pointer64_type, 0x80000000))
+		: boolean_false_node,
 		build0 (PLACEHOLDER_EXPR, void_type_node),
 		convert (pointer32_type, tem));
 
@@ -3293,7 +3295,7 @@ convert_vms_descriptor32 (tree gnu_type, tree gnu_expr, Entity_Id gnat_subprog)
    reference.  GNAT_SUBPROG is the subprogram to which the VMS descriptor is
    passed.  */
 
-static tree
+tree
 convert_vms_descriptor (tree gnu_type, tree gnu_expr, tree gnu_expr_alt_type,
 			bool by_ref, Entity_Id gnat_subprog)
 {
@@ -3341,69 +3343,6 @@ convert_vms_descriptor (tree gnu_type, tree gnu_expr, tree gnu_expr_alt_type,
     gnu_expr32 =  build_unary_op (ADDR_EXPR, gnu_type, gnu_expr32);
 
   return build3 (COND_EXPR, gnu_type, is64bit, gnu_expr64, gnu_expr32);
-}
-
-/* Build a stub for the subprogram specified by the GCC tree GNU_SUBPROG
-   and the GNAT node GNAT_SUBPROG.  */
-
-void
-build_function_stub (tree gnu_subprog, Entity_Id gnat_subprog)
-{
-  tree gnu_subprog_type, gnu_subprog_addr, gnu_subprog_call;
-  tree gnu_subprog_param, gnu_stub_param, gnu_param;
-  tree gnu_stub_decl = DECL_FUNCTION_STUB (gnu_subprog);
-  VEC(tree,gc) *gnu_param_vec = NULL;
-
-  gnu_subprog_type = TREE_TYPE (gnu_subprog);
-
-  /* Initialize the information structure for the function.  */
-  allocate_struct_function (gnu_stub_decl, false);
-  set_cfun (NULL);
-
-  begin_subprog_body (gnu_stub_decl);
-
-  start_stmt_group ();
-  gnat_pushlevel ();
-
-  /* Loop over the parameters of the stub and translate any of them
-     passed by descriptor into a by reference one.  */
-  for (gnu_stub_param = DECL_ARGUMENTS (gnu_stub_decl),
-       gnu_subprog_param = DECL_ARGUMENTS (gnu_subprog);
-       gnu_stub_param;
-       gnu_stub_param = TREE_CHAIN (gnu_stub_param),
-       gnu_subprog_param = TREE_CHAIN (gnu_subprog_param))
-    {
-      if (DECL_BY_DESCRIPTOR_P (gnu_stub_param))
-	{
-	  gcc_assert (DECL_BY_REF_P (gnu_subprog_param));
-	  gnu_param
-	    = convert_vms_descriptor (TREE_TYPE (gnu_subprog_param),
-				      gnu_stub_param,
-				      DECL_PARM_ALT_TYPE (gnu_stub_param),
-				      DECL_BY_DOUBLE_REF_P (gnu_subprog_param),
-				      gnat_subprog);
-	}
-      else
-	gnu_param = gnu_stub_param;
-
-      VEC_safe_push (tree, gc, gnu_param_vec, gnu_param);
-    }
-
-  /* Invoke the internal subprogram.  */
-  gnu_subprog_addr = build1 (ADDR_EXPR, build_pointer_type (gnu_subprog_type),
-			     gnu_subprog);
-  gnu_subprog_call = build_call_vec (TREE_TYPE (gnu_subprog_type),
-                                     gnu_subprog_addr, gnu_param_vec);
-
-  /* Propagate the return value, if any.  */
-  if (VOID_TYPE_P (TREE_TYPE (gnu_subprog_type)))
-    add_stmt (gnu_subprog_call);
-  else
-    add_stmt (build_return_expr (DECL_RESULT (gnu_stub_decl),
-				 gnu_subprog_call));
-
-  gnat_poplevel ();
-  end_subprog_body (end_stmt_group ());
 }
 
 /* Build a type to be used to represent an aliased object whose nominal type
@@ -4302,22 +4241,44 @@ tree
 maybe_unconstrained_array (tree exp)
 {
   enum tree_code code = TREE_CODE (exp);
-  tree new_exp;
 
   switch (TREE_CODE (TREE_TYPE (exp)))
     {
     case UNCONSTRAINED_ARRAY_TYPE:
       if (code == UNCONSTRAINED_ARRAY_REF)
 	{
-	  new_exp = TREE_OPERAND (exp, 0);
-	  new_exp
-	    = build_unary_op (INDIRECT_REF, NULL_TREE,
-			      build_component_ref (new_exp, NULL_TREE,
-						   TYPE_FIELDS
-						   (TREE_TYPE (new_exp)),
-						   false));
-	  TREE_READONLY (new_exp) = TREE_READONLY (exp);
-	  return new_exp;
+	  const bool read_only = TREE_READONLY (exp);
+	  exp = TREE_OPERAND (exp, 0);
+	  if (TREE_CODE (exp) == COND_EXPR)
+	    {
+	      tree op1
+		= build_unary_op (INDIRECT_REF, NULL_TREE,
+				  build_component_ref (TREE_OPERAND (exp, 1),
+						       NULL_TREE,
+						       TYPE_FIELDS
+						       (TREE_TYPE (exp)),
+						       false));
+	      tree op2
+		= build_unary_op (INDIRECT_REF, NULL_TREE,
+				  build_component_ref (TREE_OPERAND (exp, 2),
+						       NULL_TREE,
+						       TYPE_FIELDS
+						       (TREE_TYPE (exp)),
+						       false));
+
+	      exp = build3 (COND_EXPR,
+			    TREE_TYPE (TREE_TYPE (TYPE_FIELDS
+					          (TREE_TYPE (exp)))),
+			    TREE_OPERAND (exp, 0), op1, op2);
+	    }
+	  else
+	    exp = build_unary_op (INDIRECT_REF, NULL_TREE,
+				  build_component_ref (exp, NULL_TREE,
+						       TYPE_FIELDS
+						       (TREE_TYPE (exp)),
+						       false));
+	  TREE_READONLY (exp) = read_only;
+	  return exp;
 	}
 
       else if (code == NULL_EXPR)
@@ -4331,7 +4292,8 @@ maybe_unconstrained_array (tree exp)
 	 it contains a template.  */
       if (TYPE_PADDING_P (TREE_TYPE (exp)))
 	{
-	  new_exp = convert (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (exp))), exp);
+	  tree new_exp
+	    = convert (TREE_TYPE (TYPE_FIELDS (TREE_TYPE (exp))), exp);
 	  if (TREE_CODE (TREE_TYPE (new_exp)) == RECORD_TYPE
 	      && TYPE_CONTAINS_TEMPLATE_P (TREE_TYPE (new_exp)))
 	    return
@@ -4464,39 +4426,60 @@ unchecked_convert (tree type, tree expr, bool notrunc_p)
     }
 
   /* If we are converting to an integral type whose precision is not equal
-     to its size, first unchecked convert to a record that contains an
-     object of the output type.  Then extract the field. */
+     to its size, first unchecked convert to a record type that contains an
+     field of the given precision.  Then extract the field.  */
   else if (INTEGRAL_TYPE_P (type)
 	   && TYPE_RM_SIZE (type)
 	   && 0 != compare_tree_int (TYPE_RM_SIZE (type),
 				     GET_MODE_BITSIZE (TYPE_MODE (type))))
     {
       tree rec_type = make_node (RECORD_TYPE);
-      tree field = create_field_decl (get_identifier ("OBJ"), type, rec_type,
-				      NULL_TREE, NULL_TREE, 1, 0);
+      unsigned HOST_WIDE_INT prec = TREE_INT_CST_LOW (TYPE_RM_SIZE (type));
+      tree field_type, field;
+
+      if (TYPE_UNSIGNED (type))
+	field_type = make_unsigned_type (prec);
+      else
+	field_type = make_signed_type (prec);
+      SET_TYPE_RM_SIZE (field_type, TYPE_RM_SIZE (type));
+
+      field = create_field_decl (get_identifier ("OBJ"), field_type, rec_type,
+				 NULL_TREE, NULL_TREE, 1, 0);
 
       TYPE_FIELDS (rec_type) = field;
       layout_type (rec_type);
 
       expr = unchecked_convert (rec_type, expr, notrunc_p);
       expr = build_component_ref (expr, NULL_TREE, field, false);
+      expr = fold_build1 (NOP_EXPR, type, expr);
     }
 
-  /* Similarly if we are converting from an integral type whose precision
-     is not equal to its size.  */
+  /* Similarly if we are converting from an integral type whose precision is
+     not equal to its size, first copy into a field of the given precision
+     and unchecked convert the record type.  */
   else if (INTEGRAL_TYPE_P (etype)
 	   && TYPE_RM_SIZE (etype)
 	   && 0 != compare_tree_int (TYPE_RM_SIZE (etype),
 				     GET_MODE_BITSIZE (TYPE_MODE (etype))))
     {
       tree rec_type = make_node (RECORD_TYPE);
-      tree field = create_field_decl (get_identifier ("OBJ"), etype, rec_type,
-				      NULL_TREE, NULL_TREE, 1, 0);
+      unsigned HOST_WIDE_INT prec = TREE_INT_CST_LOW (TYPE_RM_SIZE (etype));
       VEC(constructor_elt,gc) *v = VEC_alloc (constructor_elt, gc, 1);
+      tree field_type, field;
+
+      if (TYPE_UNSIGNED (etype))
+	field_type = make_unsigned_type (prec);
+      else
+	field_type = make_signed_type (prec);
+      SET_TYPE_RM_SIZE (field_type, TYPE_RM_SIZE (etype));
+
+      field = create_field_decl (get_identifier ("OBJ"), field_type, rec_type,
+				 NULL_TREE, NULL_TREE, 1, 0);
 
       TYPE_FIELDS (rec_type) = field;
       layout_type (rec_type);
 
+      expr = fold_build1 (NOP_EXPR, field_type, expr);
       CONSTRUCTOR_APPEND_ELT (v, field, expr);
       expr = gnat_build_constructor (rec_type, v);
       expr = unchecked_convert (type, expr, notrunc_p);

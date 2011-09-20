@@ -133,6 +133,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "dbgcnt.h"
 #include "gimple-fold.h"
+#include "params.h"
 
 
 /* Possible lattice values.  */
@@ -505,74 +506,25 @@ value_to_double_int (prop_value_t val)
 static prop_value_t
 get_value_from_alignment (tree expr)
 {
+  tree type = TREE_TYPE (expr);
   prop_value_t val;
-  HOST_WIDE_INT bitsize, bitpos;
-  tree base, offset;
-  enum machine_mode mode;
-  int align;
+  unsigned HOST_WIDE_INT bitpos;
+  unsigned int align;
 
   gcc_assert (TREE_CODE (expr) == ADDR_EXPR);
 
-  base = get_inner_reference (TREE_OPERAND (expr, 0),
-			      &bitsize, &bitpos, &offset,
-			      &mode, &align, &align, false);
-  if (TREE_CODE (base) == MEM_REF)
-    val = bit_value_binop (PLUS_EXPR, TREE_TYPE (expr),
-			   TREE_OPERAND (base, 0), TREE_OPERAND (base, 1));
-  else if (base
-	   && ((align = get_object_alignment (base, BIGGEST_ALIGNMENT))
-		> BITS_PER_UNIT))
-    {
-      val.lattice_val = CONSTANT;
-      /* We assume pointers are zero-extended.  */
-      val.mask = double_int_and_not
-	           (double_int_mask (TYPE_PRECISION (TREE_TYPE (expr))),
-		    uhwi_to_double_int (align / BITS_PER_UNIT - 1));
-      val.value = build_int_cst (TREE_TYPE (expr), 0);
-    }
+  align = get_object_alignment_1 (TREE_OPERAND (expr, 0), &bitpos);
+  val.mask
+    = double_int_and_not (POINTER_TYPE_P (type) || TYPE_UNSIGNED (type)
+			  ? double_int_mask (TYPE_PRECISION (type))
+			  : double_int_minus_one,
+			  uhwi_to_double_int (align / BITS_PER_UNIT - 1));
+  val.lattice_val = double_int_minus_one_p (val.mask) ? VARYING : CONSTANT;
+  if (val.lattice_val == CONSTANT)
+    val.value
+      = double_int_to_tree (type, uhwi_to_double_int (bitpos / BITS_PER_UNIT));
   else
-    {
-      val.lattice_val = VARYING;
-      val.mask = double_int_minus_one;
-      val.value = NULL_TREE;
-    }
-  if (bitpos != 0)
-    {
-      double_int value, mask;
-      bit_value_binop_1 (PLUS_EXPR, TREE_TYPE (expr), &value, &mask,
-			 TREE_TYPE (expr), value_to_double_int (val), val.mask,
-			 TREE_TYPE (expr),
-			 shwi_to_double_int (bitpos / BITS_PER_UNIT),
-			 double_int_zero);
-      val.lattice_val = double_int_minus_one_p (mask) ? VARYING : CONSTANT;
-      val.mask = mask;
-      if (val.lattice_val == CONSTANT)
-	val.value = double_int_to_tree (TREE_TYPE (expr), value);
-      else
-	val.value = NULL_TREE;
-    }
-  /* ???  We should handle i * 4 and more complex expressions from
-     the offset, possibly by just expanding get_value_for_expr.  */
-  if (offset != NULL_TREE)
-    {
-      double_int value, mask;
-      prop_value_t oval = get_value_for_expr (offset, true);
-      bit_value_binop_1 (PLUS_EXPR, TREE_TYPE (expr), &value, &mask,
-			 TREE_TYPE (expr), value_to_double_int (val), val.mask,
-			 TREE_TYPE (expr), value_to_double_int (oval),
-			 oval.mask);
-      val.mask = mask;
-      if (double_int_minus_one_p (mask))
-	{
-	  val.lattice_val = VARYING;
-	  val.value = NULL_TREE;
-	}
-      else
-	{
-	  val.lattice_val = CONSTANT;
-	  val.value = double_int_to_tree (TREE_TYPE (expr), value);
-	}
-    }
+    val.value = NULL_TREE;
 
   return val;
 }
@@ -1733,6 +1685,55 @@ evaluate_stmt (gimple stmt)
   return val;
 }
 
+/* Detects a vla-related alloca with a constant argument.  Declares fixed-size
+   array and return the address, if found, otherwise returns NULL_TREE.  */
+
+static tree
+fold_builtin_alloca_for_var (gimple stmt)
+{
+  unsigned HOST_WIDE_INT size, threshold, n_elem;
+  tree lhs, arg, block, var, elem_type, array_type;
+  unsigned int align;
+
+  /* Get lhs.  */
+  lhs = gimple_call_lhs (stmt);
+  if (lhs == NULL_TREE)
+    return NULL_TREE;
+
+  /* Detect constant argument.  */
+  arg = get_constant_value (gimple_call_arg (stmt, 0));
+  if (arg == NULL_TREE
+      || TREE_CODE (arg) != INTEGER_CST
+      || !host_integerp (arg, 1))
+    return NULL_TREE;
+
+  size = TREE_INT_CST_LOW (arg);
+
+  /* Heuristic: don't fold large vlas.  */
+  threshold = (unsigned HOST_WIDE_INT)PARAM_VALUE (PARAM_LARGE_STACK_FRAME);
+  /* In case a vla is declared at function scope, it has the same lifetime as a
+     declared array, so we allow a larger size.  */
+  block = gimple_block (stmt);
+  if (!(cfun->after_inlining
+        && TREE_CODE (BLOCK_SUPERCONTEXT (block)) == FUNCTION_DECL))
+    threshold /= 10;
+  if (size > threshold)
+    return NULL_TREE;
+
+  /* Declare array.  */
+  elem_type = build_nonstandard_integer_type (BITS_PER_UNIT, 1);
+  n_elem = size * 8 / BITS_PER_UNIT;
+  align = MIN (size * 8, BIGGEST_ALIGNMENT);
+  if (align < BITS_PER_UNIT)
+    align = BITS_PER_UNIT;
+  array_type = build_array_type_nelts (elem_type, n_elem);
+  var = create_tmp_var (array_type, NULL);
+  DECL_ALIGN (var) = align;
+
+  /* Fold alloca to the address of the array.  */
+  return fold_convert (TREE_TYPE (lhs), build_fold_addr_expr (var));
+}
+
 /* Fold the stmt at *GSI with CCP specific information that propagating
    and regular folding does not catch.  */
 
@@ -1800,6 +1801,20 @@ ccp_fold_stmt (gimple_stmt_iterator *gsi)
 	   for normal calls does not apply.  */
 	if (gimple_call_internal_p (stmt))
 	  return false;
+
+        /* The heuristic of fold_builtin_alloca_for_var differs before and after
+           inlining, so we don't require the arg to be changed into a constant
+           for folding, but just to be constant.  */
+        if (gimple_call_alloca_for_var_p (stmt))
+          {
+            tree new_rhs = fold_builtin_alloca_for_var (stmt);
+            if (new_rhs)
+	      {
+		bool res = update_call_from_tree (gsi, new_rhs);
+		gcc_assert (res);
+		return true;
+	      }
+          }
 
 	/* Propagate into the call arguments.  Compared to replace_uses_in
 	   this can use the argument slot types for type verification

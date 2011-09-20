@@ -2577,16 +2577,13 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
       if (data->promoted_mode != BLKmode
 	  && data->promoted_mode != DECL_MODE (parm))
 	{
-	  set_mem_size (stack_parm,
-			GEN_INT (GET_MODE_SIZE (data->promoted_mode)));
-	  if (MEM_EXPR (stack_parm) && MEM_OFFSET (stack_parm))
+	  set_mem_size (stack_parm, GET_MODE_SIZE (data->promoted_mode));
+	  if (MEM_EXPR (stack_parm) && MEM_OFFSET_KNOWN_P (stack_parm))
 	    {
 	      int offset = subreg_lowpart_offset (DECL_MODE (parm),
 						  data->promoted_mode);
 	      if (offset)
-		set_mem_offset (stack_parm,
-				plus_constant (MEM_OFFSET (stack_parm),
-					       -offset));
+		set_mem_offset (stack_parm, MEM_OFFSET (stack_parm) - offset);
 	    }
 	}
     }
@@ -3200,10 +3197,9 @@ assign_parm_setup_stack (struct assign_parm_data_all *all, tree parm,
 	  /* ??? This may need a big-endian conversion on sparc64.  */
 	  data->stack_parm
 	    = adjust_address (data->stack_parm, data->nominal_mode, 0);
-	  if (offset && MEM_OFFSET (data->stack_parm))
+	  if (offset && MEM_OFFSET_KNOWN_P (data->stack_parm))
 	    set_mem_offset (data->stack_parm,
-			    plus_constant (MEM_OFFSET (data->stack_parm),
-					   offset));
+			    MEM_OFFSET (data->stack_parm) + offset);
 	}
     }
 
@@ -3706,7 +3702,7 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
 {
   tree sizetree;
   enum direction where_pad;
-  unsigned int boundary;
+  unsigned int boundary, round_boundary;
   int reg_parm_stack_space = 0;
   int part_size_in_regs;
 
@@ -3738,6 +3734,8 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
     = type ? size_in_bytes (type) : size_int (GET_MODE_SIZE (passed_mode));
   where_pad = FUNCTION_ARG_PADDING (passed_mode, type);
   boundary = targetm.calls.function_arg_boundary (passed_mode, type);
+  round_boundary = targetm.calls.function_arg_round_boundary (passed_mode,
+							      type);
   locate->where_pad = where_pad;
 
   /* Alignment can't exceed MAX_SUPPORTED_STACK_ALIGNMENT.  */
@@ -3784,8 +3782,8 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
     tree s2 = sizetree;
     if (where_pad != none
 	&& (!host_integerp (sizetree, 1)
-	    || (tree_low_cst (sizetree, 1) * BITS_PER_UNIT) % PARM_BOUNDARY))
-      s2 = round_up (s2, PARM_BOUNDARY / BITS_PER_UNIT);
+	    || (tree_low_cst (sizetree, 1) * BITS_PER_UNIT) % round_boundary))
+      s2 = round_up (s2, round_boundary / BITS_PER_UNIT);
     SUB_PARM_SIZE (locate->slot_offset, s2);
   }
 
@@ -3837,8 +3835,8 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
 
   if (where_pad != none
       && (!host_integerp (sizetree, 1)
-	  || (tree_low_cst (sizetree, 1) * BITS_PER_UNIT) % PARM_BOUNDARY))
-    sizetree = round_up (sizetree, PARM_BOUNDARY / BITS_PER_UNIT);
+	  || (tree_low_cst (sizetree, 1) * BITS_PER_UNIT) % round_boundary))
+    sizetree = round_up (sizetree, round_boundary / BITS_PER_UNIT);
 
   ADD_PARM_SIZE (locate->size, sizetree);
 
@@ -5326,7 +5324,12 @@ emit_use_return_register_into_block (basic_block bb)
 static void
 emit_return_into_block (basic_block bb)
 {
-  emit_jump_insn_after (gen_return (), BB_END (bb));
+  rtx jump = emit_jump_insn_after (gen_return (), BB_END (bb));
+  rtx pat = PATTERN (jump);
+  if (GET_CODE (pat) == PARALLEL)
+    pat = XVECEXP (pat, 0, 0);
+  gcc_assert (ANY_RETURN_P (pat));
+  JUMP_LABEL (jump) = pat;
 }
 #endif /* HAVE_return */
 
@@ -5485,7 +5488,7 @@ thread_prologue_and_epilogue_insns (void)
 		 that with a conditional return instruction.  */
 	      else if (condjump_p (jump))
 		{
-		  if (! redirect_jump (jump, 0, 0))
+		  if (! redirect_jump (jump, ret_rtx, 0))
 		    {
 		      ei_next (&ei2);
 		      continue;
@@ -5568,6 +5571,8 @@ thread_prologue_and_epilogue_insns (void)
 #ifdef HAVE_epilogue
   if (HAVE_epilogue)
     {
+      rtx returnjump;
+
       start_sequence ();
       epilogue_end = emit_note (NOTE_INSN_EPILOGUE_BEG);
       seq = gen_epilogue ();
@@ -5578,11 +5583,25 @@ thread_prologue_and_epilogue_insns (void)
       record_insns (seq, NULL, &epilogue_insn_hash);
       set_insn_locators (seq, epilogue_locator);
 
+      returnjump = get_last_insn ();
       seq = get_insns ();
       end_sequence ();
 
       insert_insn_on_edge (seq, e);
       inserted = true;
+
+      if (JUMP_P (returnjump))
+	{
+	  rtx pat = PATTERN (returnjump);
+	  if (GET_CODE (pat) == PARALLEL)
+	    pat = XVECEXP (pat, 0, 0);
+	  if (ANY_RETURN_P (pat))
+	    JUMP_LABEL (returnjump) = pat;
+	  else
+	    JUMP_LABEL (returnjump) = ret_rtx;
+	}
+      else
+	returnjump = NULL_RTX;
     }
   else
 #endif

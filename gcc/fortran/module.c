@@ -4278,6 +4278,13 @@ check_for_ambiguous (gfc_symbol *st_sym, pointer_info *info)
   module_locus locus;
   symbol_attribute attr;
 
+  if (st_sym->ns->proc_name && st_sym->name == st_sym->ns->proc_name->name)
+    {
+      gfc_error ("'%s' of module '%s', imported at %C, is also the name of the "
+		 "current program unit", st_sym->name, module_name);
+      return true;
+    }
+
   rsym = info->u.rsym.sym;
   if (st_sym == rsym)
     return false;
@@ -5564,7 +5571,7 @@ use_iso_fortran_env_module (void)
 	      u->found = 1;
 
 	      if (gfc_notify_std (symbol[i].standard, "The symbol '%s', "
-				  "referrenced at %C, is not in the selected "
+				  "referenced at %C, is not in the selected "
 				  "standard", symbol[i].name) == FAILURE)
 	        continue;
 
@@ -5714,6 +5721,9 @@ gfc_use_module (void)
   int c, line, start;
   gfc_symtree *mod_symtree;
   gfc_use_list *use_stmt;
+  locus old_locus = gfc_current_locus;
+
+  gfc_current_locus = use_locus;
 
   filename = (char *) alloca (strlen (module_name) + strlen (MODULE_EXTENSION)
 			      + 1);
@@ -5735,6 +5745,7 @@ gfc_use_module (void)
 			     "intrinsic module at %C") != FAILURE)
        {
 	 use_iso_fortran_env_module ();
+	 gfc_current_locus = old_locus;
 	 return;
        }
 
@@ -5743,6 +5754,7 @@ gfc_use_module (void)
 			     "ISO_C_BINDING module at %C") != FAILURE)
 	{
 	  import_iso_c_binding_module();
+	  gfc_current_locus = old_locus;
 	  return;
 	}
 
@@ -5832,6 +5844,8 @@ gfc_use_module (void)
   gfc_rename_list = NULL;
   use_stmt->next = gfc_current_ns->use_stmts;
   gfc_current_ns->use_stmts = use_stmt;
+
+  gfc_current_locus = old_locus;
 }
 
 

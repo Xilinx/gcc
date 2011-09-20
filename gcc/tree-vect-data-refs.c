@@ -860,8 +860,7 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
 	  && tree_int_cst_compare (ssize_int (TYPE_ALIGN_UNIT (TREE_TYPE (
 						      TREE_TYPE (base_addr)))),
 				   alignment) >= 0)
-      || (get_pointer_alignment (base_addr, TYPE_ALIGN (vectype))
-	  >= TYPE_ALIGN (vectype)))
+      || (get_pointer_alignment (base_addr) >= TYPE_ALIGN (vectype)))
     base_aligned = true;
   else
     base_aligned = false;
@@ -2645,9 +2644,7 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
 	     inner-loop: *(BASE+INIT).  (The first location is actually
 	     BASE+INIT+OFFSET, but we add OFFSET separately later).  */
           tree inner_base = build_fold_indirect_ref
-                                (fold_build2 (POINTER_PLUS_EXPR,
-                                              TREE_TYPE (base), base,
-                                              fold_convert (sizetype, init)));
+                                (fold_build_pointer_plus (base, init));
 
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    {
@@ -2928,8 +2925,7 @@ vect_create_addr_base_for_vector_ref (gimple stmt,
 
   /* base + base_offset */
   if (loop_vinfo)
-    addr_base = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (data_ref_base),
-                             data_ref_base, base_offset);
+    addr_base = fold_build_pointer_plus (data_ref_base, base_offset);
   else
     {
       addr_base = build1 (ADDR_EXPR,

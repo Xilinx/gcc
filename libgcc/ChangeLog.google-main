@@ -1,3 +1,10 @@
+2011-09-16   Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in: Re-apply google/main revisions 172952 and 173605.
+	* libgcov.c: Re-apply google/main revisions 168794, 171635, 172736,
+	172952, 173353, 173395, 173605, 173806, 174089, 175334, 175354, and
+	177231.
+
 2011-06-24  Sharad Singhai  <singhai@google.com>
 
 	* Makefile.in: Add pmu-profile.o to libgcov.

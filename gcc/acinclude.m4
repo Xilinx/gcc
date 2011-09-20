@@ -1,4 +1,4 @@
-dnl Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+dnl Copyright (C) 2005, 2006, 2007, 2008, 2011 Free Software Foundation, Inc.
 dnl
 dnl This file is part of GCC.
 dnl
@@ -377,6 +377,9 @@ AC_CACHE_CHECK(for .preinit_array/.init_array/.fini_array support,
 		 gcc_cv_initfini_array, [dnl
   if test "x${build}" = "x${target}" && test "x${build}" = "x${host}"; then
     AC_RUN_IFELSE([AC_LANG_SOURCE([
+#ifndef __ELF__
+#error Not an ELF OS
+#endif
 #ifdef __ia64__
 /* We turn on .preinit_array/.init_array/.fini_array support for ia64
    if it can be used.  */
@@ -474,6 +477,8 @@ void (*const dtors65535[]) ()
 int
 main ()
 {
+  if (count != 65535)
+    abort ();
   return 0;
 }
 #endif
@@ -583,7 +588,7 @@ AC_CACHE_CHECK([assembler for $1], [$2],
   if test $in_tree_gas = yes; then
     gcc_GAS_VERSION_GTE_IFELSE($3, [[$2]=yes])
   el])if test x$gcc_cv_as != x; then
-    echo ifelse(m4_substr([$5],0,1),[$], "[$5]", '[$5]') > conftest.s
+    AS_ECHO([ifelse(m4_substr([$5],0,1),[$], "[$5]", '[$5]')]) > conftest.s
     if AC_TRY_COMMAND([$gcc_cv_as $gcc_cv_as_flags $4 -o conftest.o conftest.s >&AS_MESSAGE_LOG_FD])
     then
 	ifelse([$6],, [$2]=yes, [$6])

@@ -84,9 +84,12 @@ struct GTY(()) cgraph_local_info {
 
   /* Set when function is visible by other units.  */
   unsigned externally_visible : 1;
-  
+
   /* Set once it has been finalized so we consider it to be output.  */
   unsigned finalized : 1;
+
+  /* False when there is something makes versioning impossible.  */
+  unsigned versionable : 1;
 
   /* False when function calling convention and signature can not be changed.
      This is the case when __builtin_apply_args is used.  */
@@ -321,9 +324,6 @@ struct GTY(()) cgraph_indirect_call_info
   HOST_WIDE_INT anc_offset;
   /* OBJ_TYPE_REF_TOKEN of a polymorphic call (if polymorphic is set).  */
   HOST_WIDE_INT otr_token;
-  /* Delta by which must be added to this parameter to compensate for a skipped
-     this adjusting thunk.  */
-  HOST_WIDE_INT thunk_delta;
   /* Type of the object from OBJ_TYPE_REF_OBJECT. */
   tree otr_type;
   /* Index of the parameter that is called.  */
@@ -483,6 +483,7 @@ void cgraph_remove_assembler_hash_node (struct cgraph_node *);
 void cgraph_remove_fake_indirect_call_in_edges (struct cgraph_node *);
 extern bool cgraph_pre_profiling_inlining_done;
 extern bool cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e);
+void cgraph_add_to_same_comdat_group (struct cgraph_node *, struct cgraph_node *);
 void cgraph_remove_node_and_inline_clones (struct cgraph_node *);
 void cgraph_release_function_body (struct cgraph_node *);
 void cgraph_node_remove_callees (struct cgraph_node *node);
@@ -493,7 +494,6 @@ struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple,
 						 int, gcov_type, int);
 struct cgraph_indirect_call_info *cgraph_allocate_init_indirect_info (void);
 struct cgraph_node * cgraph_get_node (const_tree);
-struct cgraph_node * cgraph_get_node_or_alias (const_tree);
 struct cgraph_node * cgraph_create_node (tree);
 struct cgraph_node * cgraph_get_create_node (tree);
 struct cgraph_node * cgraph_same_body_alias (struct cgraph_node *, tree, tree);
@@ -521,8 +521,7 @@ struct cgraph_node * cgraph_clone_node (struct cgraph_node *, tree, gcov_type,
 struct cgraph_node *cgraph_create_function_alias (tree, tree);
 
 void cgraph_redirect_edge_callee (struct cgraph_edge *, struct cgraph_node *);
-void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *,
-			      HOST_WIDE_INT);
+void cgraph_make_edge_direct (struct cgraph_edge *, struct cgraph_node *);
 bool cgraph_only_called_directly_p (struct cgraph_node *);
 
 struct cgraph_asm_node *cgraph_add_asm_node (tree);

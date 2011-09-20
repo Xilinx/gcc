@@ -362,7 +362,7 @@ new_var_info (tree t, const char *name)
 			  || (TREE_CODE (t) == VAR_DECL
 			      && DECL_HARD_REGISTER (t)));
   ret->solution = BITMAP_ALLOC (&pta_obstack);
-  ret->oldsolution = BITMAP_ALLOC (&oldpta_obstack);
+  ret->oldsolution = NULL;
   ret->next = NULL;
 
   stats.total_vars++;
@@ -1504,13 +1504,12 @@ unify_nodes (constraint_graph_t graph, unsigned int to, unsigned int from,
 	}
 
       BITMAP_FREE (get_varinfo (from)->solution);
-      BITMAP_FREE (get_varinfo (from)->oldsolution);
+      if (get_varinfo (from)->oldsolution)
+	BITMAP_FREE (get_varinfo (from)->oldsolution);
 
-      if (stats.iterations > 0)
-	{
-	  BITMAP_FREE (get_varinfo (to)->oldsolution);
-	  get_varinfo (to)->oldsolution = BITMAP_ALLOC (&oldpta_obstack);
-	}
+      if (stats.iterations > 0
+	  && get_varinfo (to)->oldsolution)
+	BITMAP_FREE (get_varinfo (to)->oldsolution);
     }
   if (valid_graph_edge (graph, to, to))
     {
@@ -2544,18 +2543,27 @@ solve_graph (constraint_graph_t graph)
 	      constraint_t c;
 	      bitmap solution;
 	      VEC(constraint_t,heap) *complex = graph->complex[i];
+	      varinfo_t vi = get_varinfo (i);
 	      bool solution_empty;
 
 	      /* Compute the changed set of solution bits.  */
-	      bitmap_and_compl (pts, get_varinfo (i)->solution,
-				get_varinfo (i)->oldsolution);
+	      if (vi->oldsolution)
+		bitmap_and_compl (pts, vi->solution, vi->oldsolution);
+	      else
+		bitmap_copy (pts, vi->solution);
 
 	      if (bitmap_empty_p (pts))
 		continue;
 
-	      bitmap_ior_into (get_varinfo (i)->oldsolution, pts);
+	      if (vi->oldsolution)
+		bitmap_ior_into (vi->oldsolution, pts);
+	      else
+		{
+		  vi->oldsolution = BITMAP_ALLOC (&oldpta_obstack);
+		  bitmap_copy (vi->oldsolution, pts);
+		}
 
-	      solution = get_varinfo (i)->solution;
+	      solution = vi->solution;
 	      solution_empty = bitmap_empty_p (solution);
 
 	      /* Process the complex constraints */
@@ -2868,7 +2876,7 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
 {
   struct constraint_expr c;
   unsigned int j, n;
-  HOST_WIDE_INT rhsunitoffset, rhsoffset;
+  HOST_WIDE_INT rhsoffset;
 
   /* If we do not do field-sensitive PTA adding offsets to pointers
      does not change the points-to solution.  */
@@ -2883,15 +2891,24 @@ get_constraint_for_ptr_offset (tree ptr, tree offset,
      solution which includes all sub-fields of all pointed-to
      variables of ptr.  */
   if (offset == NULL_TREE
-      || !host_integerp (offset, 0))
+      || TREE_CODE (offset) != INTEGER_CST)
     rhsoffset = UNKNOWN_OFFSET;
   else
     {
-      /* Make sure the bit-offset also fits.  */
-      rhsunitoffset = TREE_INT_CST_LOW (offset);
-      rhsoffset = rhsunitoffset * BITS_PER_UNIT;
-      if (rhsunitoffset != rhsoffset / BITS_PER_UNIT)
+      /* Sign-extend the offset.  */
+      double_int soffset
+	= double_int_sext (tree_to_double_int (offset),
+			   TYPE_PRECISION (TREE_TYPE (offset)));
+      if (!double_int_fits_in_shwi_p (soffset))
 	rhsoffset = UNKNOWN_OFFSET;
+      else
+	{
+	  /* Make sure the bit-offset also fits.  */
+	  HOST_WIDE_INT rhsunitoffset = soffset.low;
+	  rhsoffset = rhsunitoffset * BITS_PER_UNIT;
+	  if (rhsunitoffset != rhsoffset / BITS_PER_UNIT)
+	    rhsoffset = UNKNOWN_OFFSET;
+	}
     }
 
   get_constraint_for_rhs (ptr, results);
@@ -3252,15 +3269,24 @@ get_constraint_for_1 (tree t, VEC (ce_s, heap) **results, bool address_p,
 	    {
 	      struct constraint_expr cs;
 	      varinfo_t vi, curr;
-	      tree off = double_int_to_tree (sizetype, mem_ref_offset (t));
-	      get_constraint_for_ptr_offset (TREE_OPERAND (t, 0), off, results);
+	      get_constraint_for_ptr_offset (TREE_OPERAND (t, 0),
+					     TREE_OPERAND (t, 1), results);
 	      do_deref (results);
 
 	      /* If we are not taking the address then make sure to process
 		 all subvariables we might access.  */
+	      if (address_p)
+		return;
+
 	      cs = *VEC_last (ce_s, *results);
-	      if (address_p
-		  || cs.type != SCALAR)
+	      if (cs.type == DEREF)
+		{
+		  /* For dereferences this means we have to defer it
+		     to solving time.  */
+		  VEC_last (ce_s, *results)->offset = UNKNOWN_OFFSET;
+		  return;
+		}
+	      if (cs.type != SCALAR)
 		return;
 
 	      vi = get_varinfo (cs.var);
@@ -4161,27 +4187,32 @@ find_func_aliases_for_builtin_call (gimple t)
 	 mode as well.  */
       case BUILT_IN_VA_START:
 	{
+	  tree valist = gimple_call_arg (t, 0);
+	  struct constraint_expr rhs, *lhsp;
+	  unsigned i;
+	  get_constraint_for (valist, &lhsc);
+	  do_deref (&lhsc);
+	  /* The va_list gets access to pointers in variadic
+	     arguments.  Which we know in the case of IPA analysis
+	     and otherwise are just all nonlocal variables.  */
 	  if (in_ipa_mode)
 	    {
-	      tree valist = gimple_call_arg (t, 0);
-	      struct constraint_expr rhs, *lhsp;
-	      unsigned i;
-	      /* The va_list gets access to pointers in variadic
-		 arguments.  */
 	      fi = lookup_vi_for_tree (cfun->decl);
-	      gcc_assert (fi != NULL);
-	      get_constraint_for (valist, &lhsc);
-	      do_deref (&lhsc);
 	      rhs = get_function_part_constraint (fi, ~0);
 	      rhs.type = ADDRESSOF;
-	      FOR_EACH_VEC_ELT (ce_s, lhsc, i, lhsp)
-		  process_constraint (new_constraint (*lhsp, rhs));
-	      VEC_free (ce_s, heap, lhsc);
-	      /* va_list is clobbered.  */
-	      make_constraint_to (get_call_clobber_vi (t)->id, valist);
-	      return true;
 	    }
-	  break;
+	  else
+	    {
+	      rhs.var = nonlocal_id;
+	      rhs.type = ADDRESSOF;
+	      rhs.offset = 0;
+	    }
+	  FOR_EACH_VEC_ELT (ce_s, lhsc, i, lhsp)
+	    process_constraint (new_constraint (*lhsp, rhs));
+	  VEC_free (ce_s, heap, lhsc);
+	  /* va_list is clobbered.  */
+	  make_constraint_to (get_call_clobber_vi (t)->id, valist);
+	  return true;
 	}
       /* va_end doesn't have any effect that matters.  */
       case BUILT_IN_VA_END:

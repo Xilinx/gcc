@@ -1,3 +1,8 @@
+2011-09-15   Diego Novillo  <dnovillo@google.com>
+
+	* init.c (perform_member_init): Move check for self-assignment
+	to the end of the function.
+
 2011-07-21  David Li  <davidxl@google.com>
 
 	* decl2.c (cp_write_global_declarations): Call

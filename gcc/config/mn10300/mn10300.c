@@ -2182,7 +2182,7 @@ mn10300_address_cost (rtx x, bool speed)
       return speed ? 2 : 6;
 
     default:
-      return rtx_cost (x, MEM, speed);
+      return rtx_cost (x, MEM, 0, speed);
     }
 }
 
@@ -2296,7 +2296,8 @@ mn10300_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
    to represent cycles.  Size-relative costs are in bytes.  */
 
 static bool
-mn10300_rtx_costs (rtx x, int code, int outer_code, int *ptotal, bool speed)
+mn10300_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		   int *ptotal, bool speed)
 {
   /* This value is used for SYMBOL_REF etc where we want to pretend
      we have a full 32-bit constant.  */
@@ -2387,7 +2388,7 @@ mn10300_rtx_costs (rtx x, int code, int outer_code, int *ptotal, bool speed)
 	  i = INTVAL (XEXP (x, 1));
 	  if (i == 1 || i == 4)
 	    {
-	      total = 1 + rtx_cost (XEXP (x, 0), PLUS, speed);
+	      total = 1 + rtx_cost (XEXP (x, 0), PLUS, 0, speed);
 	      goto alldone;
 	    }
 	}
@@ -2877,6 +2878,23 @@ mn10300_match_ccmode (rtx insn, enum machine_mode cc_mode)
   return true;
 }
 
+/* This function is used to help split:
+   
+     (set (reg) (and (reg) (int)))
+     
+   into:
+   
+     (set (reg) (shift (reg) (int))
+     (set (reg) (shift (reg) (int))
+     
+   where the shitfs will be shorter than the "and" insn.
+
+   It returns the number of bits that should be shifted.  A positive
+   values means that the low bits are to be cleared (and hence the
+   shifts should be right followed by left) whereas a negative value
+   means that the high bits are to be cleared (left followed by right).
+   Zero is returned when it would not be economical to split the AND.  */
+
 int
 mn10300_split_and_operand_count (rtx op)
 {
@@ -2893,7 +2911,7 @@ mn10300_split_and_operand_count (rtx op)
 	 would be replacing 1 6-byte insn with 2 3-byte insns.  */
       if (count > (optimize_insn_for_speed_p () ? 2 : 4))
 	return 0;
-      return -count;
+      return count;
     }
   else
     {
@@ -3149,6 +3167,7 @@ mn10300_insert_setlb_lcc (rtx label, rtx branch)
 
   lcc = emit_jump_insn_before (lcc, branch);
   mark_jump_label (XVECEXP (PATTERN (lcc), 0, 0), lcc, 0);
+  JUMP_LABEL (lcc) = label;
   DUMP ("Replacing branch insn...", branch);
   DUMP ("... with Lcc insn:", lcc);  
   delete_insn (branch);

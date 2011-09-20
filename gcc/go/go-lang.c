@@ -86,9 +86,7 @@ struct GTY(()) language_function
 static bool
 go_langhook_init (void)
 {
-  build_common_tree_nodes (false);
-
-  build_common_tree_nodes_2 (0);
+  build_common_tree_nodes (false, false);
 
   /* We must create the gogo IR after calling build_common_tree_nodes
      (because Gogo::define_builtin_function_trees refers indirectly
@@ -223,6 +221,10 @@ go_langhook_handle_option (
 
     case OPT_fgo_dump_:
       ret = go_enable_dump (arg) ? true : false;
+      break;
+
+    case OPT_fgo_optimize_:
+      ret = go_enable_optimize (arg) ? true : false;
       break;
 
     case OPT_fgo_prefix_:

@@ -1,6 +1,22 @@
+2011-09-20   Diego Novillo  <dnovillo@google.com>
+
+	* c-cppbuiltin.c (c_cpp_builtins): Do not define
+	__SUPPORT_TS_ANNOTATION__ nor __SUPPORT_DYN_ANNOTATION__.
+
+2011-09-18   Diego Novillo  <dnovillo@google.com>
+
+	* c-common.c (conversion_warning): When -Wreal-conversion is
+	enabled, and either type is floating point, use OPT_Wreal_conversion
+	when calling warning_at.
+
+2011-09-15   Diego Novillo  <dnovillo@google.com>
+
+	* c-common.c (check_for_self_assign): Handle NULL
+	values for LHS and RHS.  Handle TREE_LIST initializers.
+
 2011-05-04  Sriraman Tallam  <tmsriram@google.com>
 
-	* c-family/c-common.c (handle_version_selector_attribute): New function.
+	* c-common.c (handle_version_selector_attribute): New function.
 	(c_common_attribute_table): New attribute "version_selector".
 
 2011-04-29  Diego Novillo  <dnovillo@google.com>

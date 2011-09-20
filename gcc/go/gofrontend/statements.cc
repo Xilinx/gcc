@@ -15,6 +15,7 @@
 #include "runtime.h"
 #include "backend.h"
 #include "statements.h"
+#include "ast-dump.h"
 
 // Class Statement.
 
@@ -142,6 +143,14 @@ Statement::get_backend(Translate_context* context)
   return this->do_get_backend(context);
 }
 
+// Dump AST representation for a statement to a dump context.
+
+void
+Statement::dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  this->do_dump_statement(ast_dump_context);
+}
+
 // Note that this statement is erroneous.  This is called by children
 // when they discover an error.
 
@@ -178,7 +187,19 @@ class Error_statement : public Statement
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 };
+
+// Dump the AST representation for an error statement.
+
+void
+Error_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "Error statement" << std::endl;
+}
 
 // Make an error statement.
 
@@ -217,6 +238,16 @@ Variable_declaration_statement::do_traverse_assignments(
   return true;
 }
 
+// Lower the variable's initialization expression.
+
+Statement*
+Variable_declaration_statement::do_lower(Gogo* gogo, Named_object* function,
+					 Block*, Statement_inserter* inserter)
+{
+  this->var_->var_value()->lower_init_expression(gogo, function, inserter);
+  return this;
+}
+
 // Convert a variable declaration to the backend representation.
 
 Bstatement*
@@ -244,7 +275,7 @@ Variable_declaration_statement::do_get_backend(Translate_context* context)
   Expression_list* params = new Expression_list();
   params->push_back(Expression::make_type(var->type(), loc));
   Expression* call = Expression::make_call(func, params, false, loc);
-  context->gogo()->lower_expression(context->function(), &call);
+  context->gogo()->lower_expression(context->function(), NULL, &call);
   Temporary_statement* temp = Statement::make_temporary(NULL, call, loc);
   Bstatement* btemp = temp->get_backend(context);
 
@@ -268,6 +299,30 @@ Variable_declaration_statement::do_get_backend(Translate_context* context)
     stats.push_back(set);
   stats.push_back(sinit);
   return context->backend()->statement_list(stats);
+}
+
+// Dump the AST representation for a variable declaration.
+
+void
+Variable_declaration_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+
+  go_assert(var_->is_variable());
+  ast_dump_context->ostream() << "var " << this->var_->name() <<  " ";
+  Variable* var = this->var_->var_value();
+  if (var->has_type())
+    {
+      ast_dump_context->dump_type(var->type());
+      ast_dump_context->ostream() << " ";
+    }
+  if (var->init() != NULL)
+    {
+      ast_dump_context->ostream() <<  "= ";
+      ast_dump_context->dump_expression(var->init());
+    }
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a variable declaration.
@@ -386,7 +441,7 @@ Temporary_statement::do_get_backend(Translate_context* context)
     {
       Expression* init = Expression::make_cast(this->type_, this->init_,
 					       this->location());
-      context->gogo()->lower_expression(context->function(), &init);
+      context->gogo()->lower_expression(context->function(), NULL, &init);
       binit = tree_to_expr(init->get_tree(context));
     }
 
@@ -410,6 +465,26 @@ Temporary_statement::get_backend_variable(Translate_context* context) const
       return context->backend()->error_variable();
     }
   return this->bvariable_;
+}
+
+// Dump the AST represemtation for a temporary statement
+
+void
+Temporary_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_temp_variable_name(this);
+  if (this->type_ != NULL)
+    {
+      ast_dump_context->ostream() << " ";
+      ast_dump_context->dump_type(this->type_);
+    }
+  if (this->init_ != NULL)
+    {
+      ast_dump_context->ostream() << " = ";
+      ast_dump_context->dump_expression(this->init_);
+    }
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make and initialize a temporary variable in BLOCK.
@@ -447,6 +522,9 @@ class Assignment_statement : public Statement
 
   Bstatement*
   do_get_backend(Translate_context*);
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // Left hand side--the lvalue.
@@ -532,6 +610,19 @@ Assignment_statement::do_get_backend(Translate_context* context)
 						  this->location());
 }
 
+// Dump the AST representation for an assignment statement.
+
+void
+Assignment_statement::do_dump_statement(Ast_dump_context* ast_dump_context)
+    const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->lhs_);
+  ast_dump_context->ostream() << " = " ;
+  ast_dump_context->dump_expression(this->rhs_);
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make an assignment statement.
 
 Statement*
@@ -598,11 +689,14 @@ class Assignment_operation_statement : public Statement
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // The operator (OPERATOR_PLUSEQ, etc.).
@@ -628,7 +722,7 @@ Assignment_operation_statement::do_traverse(Traverse* traverse)
 
 Statement*
 Assignment_operation_statement::do_lower(Gogo*, Named_object*,
-					 Block* enclosing)
+					 Block* enclosing, Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -694,6 +788,19 @@ Assignment_operation_statement::do_lower(Gogo*, Named_object*,
     }
 }
 
+// Dump the AST representation for an assignment operation statement
+
+void
+Assignment_operation_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->lhs_);
+  ast_dump_context->dump_operator(this->op_);
+  ast_dump_context->dump_expression(this->rhs_);
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make an assignment operation statement.
 
 Statement*
@@ -725,11 +832,14 @@ class Tuple_assignment_statement : public Statement
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // Left hand side--a list of lvalues.
@@ -752,12 +862,13 @@ Tuple_assignment_statement::do_traverse(Traverse* traverse)
 // up into a set of single assignments.
 
 Statement*
-Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
+Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
+				     Statement_inserter*)
 {
   source_location loc = this->location();
 
   Block* b = new Block(enclosing, loc);
-  
+
   // First move out any subexpressions on the left hand side.  The
   // right hand side will be evaluated in the required order anyhow.
   Move_ordered_evals moe(b);
@@ -821,6 +932,19 @@ Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
   return Statement::make_block_statement(b, loc);
 }
 
+// Dump the AST representation for a tuple assignment statement.
+
+void
+Tuple_assignment_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression_list(this->lhs_);
+  ast_dump_context->ostream() << " = ";
+  ast_dump_context->dump_expression_list(this->rhs_);
+  ast_dump_context->ostream()  << std::endl;
+}
+
 // Make a tuple assignment statement.
 
 Statement*
@@ -852,11 +976,14 @@ public:
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // Lvalue which receives the value from the map.
@@ -882,7 +1009,7 @@ Tuple_map_assignment_statement::do_traverse(Traverse* traverse)
 
 Statement*
 Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
-					 Block* enclosing)
+					 Block* enclosing, Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -923,7 +1050,8 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
   b->add_statement(present_temp);
 
   // present_temp = mapaccess2(MAP, &key_temp, &val_temp)
-  Expression* ref = Expression::make_temporary_reference(key_temp, loc);
+  Temporary_reference_expression* ref =
+    Expression::make_temporary_reference(key_temp, loc);
   Expression* a1 = Expression::make_unary(OPERATOR_AND, ref, loc);
   ref = Expression::make_temporary_reference(val_temp, loc);
   Expression* a2 = Expression::make_unary(OPERATOR_AND, ref, loc);
@@ -931,6 +1059,7 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
 					map_index->map(), a1, a2);
 
   ref = Expression::make_temporary_reference(present_temp, loc);
+  ref->set_is_lvalue();
   Statement* s = Statement::make_assignment(ref, call, loc);
   b->add_statement(s);
 
@@ -945,6 +1074,21 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
   b->add_statement(s);
 
   return Statement::make_block_statement(b, loc);
+}
+
+// Dump the AST representation for a tuple map assignment statement.
+
+void
+Tuple_map_assignment_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->val_);
+  ast_dump_context->ostream() << ", ";
+  ast_dump_context->dump_expression(this->present_);
+  ast_dump_context->ostream() << " = ";
+  ast_dump_context->dump_expression(this->map_index_);
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a map assignment statement which returns a pair of values.
@@ -979,11 +1123,14 @@ class Map_assignment_statement : public Statement
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // A reference to the map index which should be set or deleted.
@@ -1008,7 +1155,8 @@ Map_assignment_statement::do_traverse(Traverse* traverse)
 // Lower a map assignment to a function call.
 
 Statement*
-Map_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
+Map_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
+				   Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -1062,6 +1210,21 @@ Map_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
   return Statement::make_block_statement(b, loc);
 }
 
+// Dump the AST representation for a map assignment statement.
+
+void
+Map_assignment_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->map_index_);
+  ast_dump_context->ostream() << " = ";
+  ast_dump_context->dump_expression(this->val_);
+  ast_dump_context->ostream() << ", ";
+  ast_dump_context->dump_expression(this->should_set_);
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make a statement which assigns a pair of entries to a map.
 
 Statement*
@@ -1093,11 +1256,14 @@ class Tuple_receive_assignment_statement : public Statement
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // Lvalue which receives the value from the channel.
@@ -1125,7 +1291,8 @@ Tuple_receive_assignment_statement::do_traverse(Traverse* traverse)
 
 Statement*
 Tuple_receive_assignment_statement::do_lower(Gogo*, Named_object*,
-					     Block* enclosing)
+					     Block* enclosing,
+					     Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -1160,13 +1327,15 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Named_object*,
   b->add_statement(closed_temp);
 
   // closed_temp = chanrecv[23](channel, &val_temp)
-  Expression* ref = Expression::make_temporary_reference(val_temp, loc);
+  Temporary_reference_expression* ref =
+    Expression::make_temporary_reference(val_temp, loc);
   Expression* p2 = Expression::make_unary(OPERATOR_AND, ref, loc);
   Expression* call = Runtime::make_call((this->for_select_
 					 ? Runtime::CHANRECV3
 					 : Runtime::CHANRECV2),
 					loc, 2, this->channel_, p2);
   ref = Expression::make_temporary_reference(closed_temp, loc);
+  ref->set_is_lvalue();
   Statement* s = Statement::make_assignment(ref, call, loc);
   b->add_statement(s);
 
@@ -1181,6 +1350,21 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Named_object*,
   b->add_statement(s);
 
   return Statement::make_block_statement(b, loc);
+}
+
+// Dump the AST representation for a tuple receive statement.
+
+void
+Tuple_receive_assignment_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->val_);
+  ast_dump_context->ostream() << ", ";
+  ast_dump_context->dump_expression(this->closed_);
+  ast_dump_context->ostream() << " <- ";
+  ast_dump_context->dump_expression(this->channel_);
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a nonblocking receive statement.
@@ -1217,11 +1401,14 @@ class Tuple_type_guard_assignment_statement : public Statement
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   Call_expression*
@@ -1256,7 +1443,8 @@ Tuple_type_guard_assignment_statement::do_traverse(Traverse* traverse)
 
 Statement*
 Tuple_type_guard_assignment_statement::do_lower(Gogo*, Named_object*,
-						Block* enclosing)
+						Block* enclosing,
+						Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -1357,6 +1545,23 @@ Tuple_type_guard_assignment_statement::lower_to_object_type(
   b->add_statement(s);
 }
 
+// Dump the AST representation for a tuple type guard statement.
+
+void
+Tuple_type_guard_assignment_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->val_);
+  ast_dump_context->ostream() << ", ";
+  ast_dump_context->dump_expression(this->ok_);
+  ast_dump_context->ostream() << " = ";
+  ast_dump_context->dump_expression(this->expr_);
+  ast_dump_context->ostream() << " . ";
+  ast_dump_context->dump_type(this->type_);
+  ast_dump_context->ostream()  << std::endl;
+}
+
 // Make an assignment from a type guard to a pair of variables.
 
 Statement*
@@ -1378,6 +1583,10 @@ class Expression_statement : public Statement
       expr_(expr)
   { }
 
+  Expression*
+  expr()
+  { return this->expr_; }
+
  protected:
   int
   do_traverse(Traverse* traverse)
@@ -1392,6 +1601,9 @@ class Expression_statement : public Statement
 
   Bstatement*
   do_get_backend(Translate_context* context);
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   Expression* expr_;
@@ -1437,6 +1649,17 @@ Expression_statement::do_get_backend(Translate_context* context)
   return context->backend()->expression_statement(tree_to_expr(expr_tree));
 }
 
+// Dump the AST representation for an expression statement
+
+void
+Expression_statement::do_dump_statement(Ast_dump_context* ast_dump_context)
+    const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(expr_);
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make an expression statement from an Expression.
 
 Statement*
@@ -1472,6 +1695,9 @@ class Block_statement : public Statement
   Bstatement*
   do_get_backend(Translate_context* context);
 
+  void
+  do_dump_statement(Ast_dump_context*) const;
+
  private:
   Block* block_;
 };
@@ -1483,6 +1709,14 @@ Block_statement::do_get_backend(Translate_context* context)
 {
   Bblock* bblock = this->block_->get_backend(context);
   return context->backend()->block_statement(bblock);
+}
+
+// Dump the AST for a block statement
+
+void
+Block_statement::do_dump_statement(Ast_dump_context*) const
+{
+  // block statement braces are dumped when traversing.
 }
 
 // Make a block statement.
@@ -1513,11 +1747,14 @@ class Inc_dec_statement : public Statement
   { go_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Named_object*, Block*);
+  do_lower(Gogo*, Named_object*, Block*, Statement_inserter*);
 
   Bstatement*
   do_get_backend(Translate_context*)
   { go_unreachable(); }
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // The l-value to increment or decrement.
@@ -1529,7 +1766,7 @@ class Inc_dec_statement : public Statement
 // Lower to += or -=.
 
 Statement*
-Inc_dec_statement::do_lower(Gogo*, Named_object*, Block*)
+Inc_dec_statement::do_lower(Gogo*, Named_object*, Block*, Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -1540,6 +1777,16 @@ Inc_dec_statement::do_lower(Gogo*, Named_object*, Block*)
 
   Operator op = this->is_inc_ ? OPERATOR_PLUSEQ : OPERATOR_MINUSEQ;
   return Statement::make_assignment_operation(op, this->expr_, oexpr, loc);
+}
+
+// Dump the AST representation for a inc/dec statement.
+
+void
+Inc_dec_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(expr_);
+  ast_dump_context->ostream() << (is_inc_? "++": "--") << std::endl;
 }
 
 // Make an increment statement.
@@ -1560,10 +1807,6 @@ Statement::make_dec_statement(Expression* expr)
 
 // Class Thunk_statement.  This is the base class for go and defer
 // statements.
-
-const char* const Thunk_statement::thunk_field_fn = "fn";
-
-const char* const Thunk_statement::thunk_field_receiver = "receiver";
 
 // Constructor.
 
@@ -1615,8 +1858,7 @@ Thunk_statement::is_simple(Function_type* fntype) const
   // If this calls something which is not a simple function, then we
   // need a thunk.
   Expression* fn = this->call_->call_expression()->fn();
-  if (fn->bound_method_expression() != NULL
-      || fn->interface_field_reference_expression() != NULL)
+  if (fn->interface_field_reference_expression() != NULL)
     return false;
 
   return true;
@@ -1670,14 +1912,6 @@ Thunk_statement::do_check_types(Gogo*)
       if (!this->call_->is_error_expression())
 	this->report_error("expected call expression");
       return;
-    }
-  Function_type* fntype = ce->get_function_type();
-  if (fntype != NULL && fntype->is_method())
-    {
-      Expression* fn = ce->fn();
-      if (fn->bound_method_expression() == NULL
-	  && fn->interface_field_reference_expression() == NULL)
-	this->report_error(_("no object for method call"));
     }
 }
 
@@ -1744,6 +1978,29 @@ Gogo::simplify_thunk_statements()
   this->traverse(&thunk_traverse);
 }
 
+// Return true if the thunk function is a constant, which means that
+// it does not need to be passed to the thunk routine.
+
+bool
+Thunk_statement::is_constant_function() const
+{
+  Call_expression* ce = this->call_->call_expression();
+  Function_type* fntype = ce->get_function_type();
+  if (fntype == NULL)
+    {
+      go_assert(saw_errors());
+      return false;
+    }
+  if (fntype->is_builtin())
+    return true;
+  Expression* fn = ce->fn();
+  if (fn->func_expression() != NULL)
+    return fn->func_expression()->closure() == NULL;
+  if (fn->interface_field_reference_expression() != NULL)
+    return true;
+  return false;
+}
+
 // Simplify complex thunk statements into simple ones.  A complicated
 // thunk statement is one which takes anything other than zero
 // parameters or a single pointer parameter.  We rewrite it into code
@@ -1781,17 +2038,15 @@ Thunk_statement::simplify_statement(Gogo* gogo, Named_object* function,
     return false;
 
   Expression* fn = ce->fn();
-  Bound_method_expression* bound_method = fn->bound_method_expression();
   Interface_field_reference_expression* interface_method =
     fn->interface_field_reference_expression();
-  const bool is_method = bound_method != NULL || interface_method != NULL;
 
   source_location location = this->location();
 
   std::string thunk_name = Gogo::thunk_name();
 
   // Build the thunk.
-  this->build_thunk(gogo, thunk_name, fntype);
+  this->build_thunk(gogo, thunk_name);
 
   // Generate code to call the thunk.
 
@@ -1799,38 +2054,11 @@ Thunk_statement::simplify_statement(Gogo* gogo, Named_object* function,
   // argument to the thunk.
 
   Expression_list* vals = new Expression_list();
-  if (fntype->is_builtin())
-    ;
-  else if (!is_method)
+  if (!this->is_constant_function())
     vals->push_back(fn);
-  else if (interface_method != NULL)
+
+  if (interface_method != NULL)
     vals->push_back(interface_method->expr());
-  else if (bound_method != NULL)
-    {
-      vals->push_back(bound_method->method());
-      Expression* first_arg = bound_method->first_argument();
-
-      // We always pass a pointer when calling a method.
-      if (first_arg->type()->points_to() == NULL)
-	first_arg = Expression::make_unary(OPERATOR_AND, first_arg, location);
-
-      // If we are calling a method which was inherited from an
-      // embedded struct, and the method did not get a stub, then the
-      // first type may be wrong.
-      Type* fatype = bound_method->first_argument_type();
-      if (fatype != NULL)
-	{
-	  if (fatype->points_to() == NULL)
-	    fatype = Type::make_pointer_type(fatype);
-	  Type* unsafe = Type::make_pointer_type(Type::make_void_type());
-	  first_arg = Expression::make_cast(unsafe, first_arg, location);
-	  first_arg = Expression::make_cast(fatype, first_arg, location);
-	}
-
-      vals->push_back(first_arg);
-    }
-  else
-    go_unreachable();
 
   if (ce->args() != NULL)
     {
@@ -1905,43 +2133,31 @@ Thunk_statement::build_struct(Function_type* fntype)
   Call_expression* ce = this->call_->call_expression();
   Expression* fn = ce->fn();
 
+  if (!this->is_constant_function())
+    {
+      // The function to call.
+      fields->push_back(Struct_field(Typed_identifier("fn", fntype,
+						      location)));
+    }
+
+  // If this thunk statement calls a method on an interface, we pass
+  // the interface object to the thunk.
   Interface_field_reference_expression* interface_method =
     fn->interface_field_reference_expression();
   if (interface_method != NULL)
     {
-      // If this thunk statement calls a method on an interface, we
-      // pass the interface object to the thunk.
-      Typed_identifier tid(Thunk_statement::thunk_field_fn,
-			   interface_method->expr()->type(),
+      Typed_identifier tid("object", interface_method->expr()->type(),
 			   location);
       fields->push_back(Struct_field(tid));
     }
-  else if (!fntype->is_builtin())
+
+  // The predeclared recover function has no argument.  However, we
+  // add an argument when building recover thunks.  Handle that here.
+  if (ce->is_recover_call())
     {
-      // The function to call.
-      Typed_identifier tid(Go_statement::thunk_field_fn, fntype, location);
-      fields->push_back(Struct_field(tid));
-    }
-  else if (ce->is_recover_call())
-    {
-      // The predeclared recover function has no argument.  However,
-      // we add an argument when building recover thunks.  Handle that
-      // here.
       fields->push_back(Struct_field(Typed_identifier("can_recover",
 						      Type::lookup_bool_type(),
 						      location)));
-    }
-
-  if (fn->bound_method_expression() != NULL)
-    {
-      go_assert(fntype->is_method());
-      Type* rtype = fntype->receiver()->type();
-      // We always pass the receiver as a pointer.
-      if (rtype->points_to() == NULL)
-	rtype = Type::make_pointer_type(rtype);
-      Typed_identifier tid(Thunk_statement::thunk_field_receiver, rtype,
-			   location);
-      fields->push_back(Struct_field(tid));
     }
 
   const Expression_list* args = ce->args();
@@ -1966,8 +2182,7 @@ Thunk_statement::build_struct(Function_type* fntype)
 // artificial, function.
 
 void
-Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
-			     Function_type* fntype)
+Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name)
 {
   source_location location = this->location();
 
@@ -2017,9 +2232,11 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
   Named_object* function = gogo->start_function(thunk_name, thunk_type, true,
 						location);
 
+  gogo->start_block(location);
+
   // For a defer statement, start with a call to
   // __go_set_defer_retaddr.  */
-  Label* retaddr_label = NULL; 
+  Label* retaddr_label = NULL;
   if (may_call_recover)
     {
       retaddr_label = gogo->add_label_reference("retaddr");
@@ -2052,43 +2269,33 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
   thunk_parameter = Expression::make_unary(OPERATOR_MULT, thunk_parameter,
 					   location);
 
-  Bound_method_expression* bound_method = ce->fn()->bound_method_expression();
   Interface_field_reference_expression* interface_method =
     ce->fn()->interface_field_reference_expression();
 
   Expression* func_to_call;
   unsigned int next_index;
-  if (!fntype->is_builtin())
+  if (this->is_constant_function())
+    {
+      func_to_call = ce->fn();
+      next_index = 0;
+    }
+  else
     {
       func_to_call = Expression::make_field_reference(thunk_parameter,
 						      0, location);
       next_index = 1;
     }
-  else
-    {
-      go_assert(bound_method == NULL && interface_method == NULL);
-      func_to_call = ce->fn();
-      next_index = 0;
-    }
 
-  if (bound_method != NULL)
-    {
-      Expression* r = Expression::make_field_reference(thunk_parameter, 1,
-						       location);
-      // The main program passes in a function pointer from the
-      // interface expression, so here we can make a bound method in
-      // all cases.
-      func_to_call = Expression::make_bound_method(r, func_to_call,
-						   location);
-      next_index = 2;
-    }
-  else if (interface_method != NULL)
+  if (interface_method != NULL)
     {
       // The main program passes the interface object.
+      go_assert(next_index == 0);
+      Expression* r = Expression::make_field_reference(thunk_parameter, 0,
+						       location);
       const std::string& name(interface_method->name());
-      func_to_call = Expression::make_interface_field_reference(func_to_call,
-								name,
+      func_to_call = Expression::make_interface_field_reference(r, name,
 								location);
+      next_index = 1;
     }
 
   Expression_list* call_params = new Expression_list();
@@ -2122,25 +2329,16 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
       call_params = NULL;
     }
 
-  Expression* call = Expression::make_call(func_to_call, call_params, false,
-					   location);
-  // We need to lower in case this is a builtin function.
-  call = call->lower(gogo, function, -1);
-  Call_expression* call_ce = call->call_expression();
-  if (call_ce != NULL && may_call_recover)
-    call_ce->set_is_deferred();
+  Call_expression* call = Expression::make_call(func_to_call, call_params,
+						false, location);
+
+  // This call expression was already lowered before entering the
+  // thunk statement.  Don't try to lower varargs again, as that will
+  // cause confusion for, e.g., method calls which already have a
+  // receiver parameter.
+  call->set_varargs_are_lowered();
 
   Statement* call_statement = Statement::make_statement(call);
-
-  // We already ran the determine_types pass, so we need to run it
-  // just for this statement now.
-  call_statement->determine_types();
-
-  // Sanity check.
-  call->check_types(gogo);
-
-  if (call_ce != NULL && recover_arg != NULL)
-    call_ce->set_recover_arg(recover_arg);
 
   gogo->add_statement(call_statement);
 
@@ -2153,6 +2351,31 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
       Expression_list* vals = new Expression_list();
       vals->push_back(Expression::make_boolean(false, location));
       gogo->add_statement(Statement::make_return_statement(vals, location));
+    }
+
+  Block* b = gogo->finish_block(location);
+
+  gogo->add_block(b, location);
+
+  gogo->lower_block(function, b);
+
+  // We already ran the determine_types pass, so we need to run it
+  // just for the call statement now.  The other types are known.
+  call_statement->determine_types();
+
+  if (may_call_recover || recover_arg != NULL)
+    {
+      // Dig up the call expression, which may have been changed
+      // during lowering.
+      go_assert(call_statement->classification() == STATEMENT_EXPRESSION);
+      Expression_statement* es =
+	static_cast<Expression_statement*>(call_statement);
+      Call_expression* ce = es->expr()->call_expression();
+      go_assert(ce != NULL);
+      if (may_call_recover)
+	ce->set_is_deferred();
+      if (recover_arg != NULL)
+	ce->set_recover_arg(recover_arg);
     }
 
   // That is all the thunk has to do.
@@ -2200,6 +2423,17 @@ Go_statement::do_get_backend(Translate_context* context)
   return context->backend()->expression_statement(call_bexpr);
 }
 
+// Dump the AST representation for go statement.
+
+void
+Go_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "go ";
+  ast_dump_context->dump_expression(this->call());
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make a go statement.
 
 Statement*
@@ -2226,6 +2460,17 @@ Defer_statement::do_get_backend(Translate_context* context)
   tree call_tree = call->get_tree(context);
   Bexpression* call_bexpr = tree_to_expr(call_tree);
   return context->backend()->expression_statement(call_bexpr);
+}
+
+// Dump the AST representation for defer statement.
+
+void
+Defer_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "defer ";
+  ast_dump_context->dump_expression(this->call());
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a defer statement.
@@ -2265,7 +2510,8 @@ Return_statement::do_traverse_assignments(Traverse_assignments* tassign)
 // panic/recover work correctly.
 
 Statement*
-Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing)
+Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing,
+			   Statement_inserter*)
 {
   if (this->is_lowered_)
     return this;
@@ -2411,6 +2657,17 @@ Return_statement::do_get_backend(Translate_context* context)
 					      retvals, loc);
 }
 
+// Dump the AST representation for a return statement.
+
+void
+Return_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "return " ;
+  ast_dump_context->dump_expression_list(this->vals_);
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make a return statement.
 
 Statement*
@@ -2447,12 +2704,30 @@ class Bc_statement : public Statement
   do_get_backend(Translate_context* context)
   { return this->label_->get_goto(context, this->location()); }
 
+  void
+  do_dump_statement(Ast_dump_context*) const;
+
  private:
   // The label that this branches to.
   Unnamed_label* label_;
   // True if this is "break", false if it is "continue".
   bool is_break_;
 };
+
+// Dump the AST representation for a break/continue statement
+
+void
+Bc_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << (this->is_break_ ? "break" : "continue");
+  if (this->label_ != NULL)
+    {
+      ast_dump_context->ostream() << " ";
+      ast_dump_context->dump_label_name(this->label_);
+    }
+  ast_dump_context->ostream() << std::endl;
+}
 
 // Make a break statement.
 
@@ -2496,6 +2771,9 @@ class Goto_statement : public Statement
   Bstatement*
   do_get_backend(Translate_context*);
 
+  void
+  do_dump_statement(Ast_dump_context*) const;
+
  private:
   Label* label_;
 };
@@ -2521,6 +2799,15 @@ Goto_statement::do_get_backend(Translate_context* context)
 {
   Blabel* blabel = this->label_->get_backend_label(context);
   return context->backend()->goto_statement(blabel, this->location());
+}
+
+// Dump the AST representation for a goto statement.
+
+void
+Goto_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "goto " << this->label_->name() << std::endl;
 }
 
 // Make a goto statement.
@@ -2554,9 +2841,24 @@ class Goto_unnamed_statement : public Statement
   do_get_backend(Translate_context* context)
   { return this->label_->get_goto(context, this->location()); }
 
+  void
+  do_dump_statement(Ast_dump_context*) const;
+
  private:
   Unnamed_label* label_;
 };
+
+// Dump the AST representation for an unnamed goto statement
+
+void
+Goto_unnamed_statement::do_dump_statement(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "goto ";
+  ast_dump_context->dump_label_name(this->label_);
+  ast_dump_context->ostream() << std::endl;
+}
 
 // Make a goto statement to an unnamed label.
 
@@ -2587,6 +2889,15 @@ Label_statement::do_get_backend(Translate_context* context)
   return context->backend()->label_definition_statement(blabel);
 }
 
+// Dump the AST for a label definition statement.
+
+void
+Label_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << this->label_->name() << ":" << std::endl;
+}
+
 // Make a label statement.
 
 Statement*
@@ -2614,10 +2925,24 @@ class Unnamed_label_statement : public Statement
   do_get_backend(Translate_context* context)
   { return this->label_->get_definition(context); }
 
+  void
+  do_dump_statement(Ast_dump_context*) const;
+
  private:
   // The label.
   Unnamed_label* label_;
 };
+
+// Dump the AST representation for an unnamed label definition statement.
+
+void
+Unnamed_label_statement::do_dump_statement(Ast_dump_context* ast_dump_context)
+    const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_label_name(this->label_);
+  ast_dump_context->ostream() << ":" << std::endl;
+}
 
 // Make an unnamed label statement.
 
@@ -2653,6 +2978,9 @@ class If_statement : public Statement
 
   Bstatement*
   do_get_backend(Translate_context*);
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   Expression* cond_;
@@ -2723,6 +3051,27 @@ If_statement::do_get_backend(Translate_context* context)
 			: this->else_block_->get_backend(context));
   return context->backend()->if_statement(cond_expr, then_block,
 					  else_block, this->location());
+}
+
+// Dump the AST representation for an if statement
+
+void
+If_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "if ";
+  ast_dump_context->dump_expression(this->cond_);
+  ast_dump_context->ostream() << std::endl;
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->dump_block(this->then_block_);
+      if (this->else_block_ != NULL)
+	{
+	  ast_dump_context->print_indent();
+	  ast_dump_context->ostream() << "else" << std::endl;
+	  ast_dump_context->dump_block(this->else_block_);
+	}
+    }
 }
 
 // Make an if statement.
@@ -3016,6 +3365,31 @@ Case_clauses::Case_clause::get_backend(Translate_context* context,
     return context->backend()->compound_statement(statements, break_stat);
 }
 
+// Dump the AST representation for a case clause
+
+void
+Case_clauses::Case_clause::dump_clause(Ast_dump_context* ast_dump_context)
+    const
+{
+  ast_dump_context->print_indent();
+  if (this->is_default_)
+    {
+      ast_dump_context->ostream() << "default:";
+    }
+  else
+    {
+      ast_dump_context->ostream() << "case ";
+      ast_dump_context->dump_expression_list(this->cases_);
+      ast_dump_context->ostream() << ":" ;
+    }
+  ast_dump_context->dump_block(this->statements_);
+  if (this->is_fallthrough_)
+    {
+      ast_dump_context->print_indent();
+      ast_dump_context->ostream() <<  " (fallthrough)" << std::endl;
+    }
+}
+
 // Class Case_clauses.
 
 // Traversal.
@@ -3101,7 +3475,6 @@ Case_clauses::lower(Block* b, Temporary_statement* val_temp,
   if (default_case != NULL)
     default_case->lower(b, val_temp, default_start_label,
 			default_finish_label);
-      
 }
 
 // Determine types.
@@ -3178,6 +3551,17 @@ Case_clauses::get_backend(Translate_context* context,
     }
 }
 
+// Dump the AST representation for case clauses (from a switch statement)
+
+void
+Case_clauses::dump_clauses(Ast_dump_context* ast_dump_context) const
+{
+  for (Clauses::const_iterator p = this->clauses_.begin();
+       p != this->clauses_.end();
+       ++p)
+    p->dump_clause(ast_dump_context);
+}
+
 // A constant switch statement.  A Switch_statement is lowered to this
 // when all the cases are constants.
 
@@ -3206,6 +3590,9 @@ class Constant_switch_statement : public Statement
 
   Bstatement*
   do_get_backend(Translate_context*);
+
+  void
+  do_dump_statement(Ast_dump_context*) const;
 
  private:
   // The value to switch on.
@@ -3286,6 +3673,26 @@ Constant_switch_statement::do_get_backend(Translate_context* context)
   return context->backend()->compound_statement(switch_statement, ldef);
 }
 
+// Dump the AST representation for a constant switch statement.
+
+void
+Constant_switch_statement::do_dump_statement(Ast_dump_context* ast_dump_context)
+    const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "switch ";
+  ast_dump_context->dump_expression(this->val_);
+
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->ostream() << " {" << std::endl;
+      this->clauses_->dump_clauses(ast_dump_context);
+      ast_dump_context->ostream() << "}";
+    }
+
+   ast_dump_context->ostream() << std::endl;
+}
+
 // Class Switch_statement.
 
 // Traversal.
@@ -3305,7 +3712,8 @@ Switch_statement::do_traverse(Traverse* traverse)
 // of if statements.
 
 Statement*
-Switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
+Switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
+			   Statement_inserter*)
 {
   source_location loc = this->location();
 
@@ -3358,6 +3766,27 @@ Switch_statement::break_label()
   if (this->break_label_ == NULL)
     this->break_label_ = new Unnamed_label(this->location());
   return this->break_label_;
+}
+
+// Dump the AST representation for a switch statement.
+
+void
+Switch_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "switch ";
+  if (this->val_ != NULL)
+    {
+      ast_dump_context->dump_expression(this->val_);
+    }
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->ostream() << " {" << std::endl;
+      this->clauses_->dump_clauses(ast_dump_context);
+      ast_dump_context->print_indent();
+      ast_dump_context->ostream() << "}";
+    }
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a switch statement.
@@ -3484,6 +3913,31 @@ Type_case_clauses::Type_case_clause::lower(Block* b,
     }
 }
 
+// Dump the AST representation for a type case clause
+
+void
+Type_case_clauses::Type_case_clause::dump_clause(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  if (this->is_default_)
+    {
+      ast_dump_context->ostream() << "default:";
+    }
+  else
+    {
+      ast_dump_context->ostream() << "case ";
+      ast_dump_context->dump_type(this->type_);
+      ast_dump_context->ostream() << ":" ;
+    }
+  ast_dump_context->dump_block(this->statements_);
+  if (this->is_fallthrough_)
+    {
+      ast_dump_context->print_indent();
+      ast_dump_context->ostream() <<  " (fallthrough)" << std::endl;
+    }
+}
+
 // Class Type_case_clauses.
 
 // Traversal.
@@ -3554,6 +4008,17 @@ Type_case_clauses::lower(Block* b, Temporary_statement* descriptor_temp,
     default_case->lower(b, descriptor_temp, break_label, NULL);
 }
 
+// Dump the AST representation for case clauses (from a switch statement)
+
+void
+Type_case_clauses::dump_clauses(Ast_dump_context* ast_dump_context) const
+{
+  for (Type_clauses::const_iterator p = this->clauses_.begin();
+       p != this->clauses_.end();
+       ++p)
+    p->dump_clause(ast_dump_context);
+}
+
 // Class Type_switch_statement.
 
 // Traversal.
@@ -3578,7 +4043,8 @@ Type_switch_statement::do_traverse(Traverse* traverse)
 // equality testing.
 
 Statement*
-Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
+Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
+				Statement_inserter*)
 {
   const source_location loc = this->location();
 
@@ -3629,8 +4095,9 @@ Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 					     ? Runtime::EFACETYPE
 					     : Runtime::IFACETYPE),
 					    loc, 1, ref);
-      Expression* lhs = Expression::make_temporary_reference(descriptor_temp,
-							     loc);
+      Temporary_reference_expression* lhs =
+	Expression::make_temporary_reference(descriptor_temp, loc);
+      lhs->set_is_lvalue();
       Statement* s = Statement::make_assignment(lhs, call, loc);
       b->add_statement(s);
     }
@@ -3653,6 +4120,25 @@ Type_switch_statement::break_label()
   if (this->break_label_ == NULL)
     this->break_label_ = new Unnamed_label(this->location());
   return this->break_label_;
+}
+
+// Dump the AST representation for a type switch statement
+
+void
+Type_switch_statement::do_dump_statement(Ast_dump_context* ast_dump_context)
+    const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "switch " << this->var_->name() << " = ";
+  ast_dump_context->dump_expression(this->expr_);
+  ast_dump_context->ostream() << " .(type)";
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->ostream() << " {" << std::endl;
+      this->clauses_->dump_clauses(ast_dump_context);
+      ast_dump_context->ostream() << "}";
+    }
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a type switch statement.
@@ -3815,7 +4301,7 @@ Send_statement::do_get_backend(Translate_context* context)
   call = Runtime::make_call(code, loc, 3, this->channel_, val,
 			    Expression::make_boolean(this->for_select_, loc));
 
-  context->gogo()->lower_expression(context->function(), &call);
+  context->gogo()->lower_expression(context->function(), NULL, &call);
   Bexpression* bcall = tree_to_expr(call->get_tree(context));
   Bstatement* s = context->backend()->expression_statement(bcall);
 
@@ -3823,6 +4309,18 @@ Send_statement::do_get_backend(Translate_context* context)
     return s;
   else
     return context->backend()->compound_statement(btemp, s);
+}
+
+// Dump the AST representation for a send statement
+
+void
+Send_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->dump_expression(this->channel_);
+  ast_dump_context->ostream() << " <- ";
+  ast_dump_context->dump_expression(this->val_);
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a send statement.
@@ -4016,6 +4514,48 @@ Select_clauses::Select_clause::get_statements_backend(
   return context->backend()->block_statement(bblock);
 }
 
+// Dump the AST representation for a select case clause
+
+void
+Select_clauses::Select_clause::dump_clause(
+    Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  if (this->is_default_)
+    {
+      ast_dump_context->ostream() << "default:";
+    }
+  else
+    {
+      ast_dump_context->ostream() << "case "  ;
+      if (this->is_send_)
+        {
+          ast_dump_context->dump_expression(this->channel_);
+          ast_dump_context->ostream() << " <- " ;
+          ast_dump_context->dump_expression(this->val_);
+        }
+      else
+        {
+	  if (this->val_ != NULL)
+	    ast_dump_context->dump_expression(this->val_);
+          if (this->closed_ != NULL)
+            {
+	      // FIXME: can val_ == NULL and closed_ ! = NULL?
+              ast_dump_context->ostream() << " , " ;
+              ast_dump_context->dump_expression(this->closed_);
+            }
+          if (this->closedvar_ != NULL ||
+              this->var_ != NULL)
+            ast_dump_context->ostream() << " := " ;
+
+          ast_dump_context->ostream() << " <- " ;
+          ast_dump_context->dump_expression(this->channel_);
+        }
+      ast_dump_context->ostream() << ":" ;
+    }
+  ast_dump_context->dump_block(this->statements_);
+}
+
 // Class Select_clauses.
 
 // Traversal.
@@ -4154,7 +4694,7 @@ Select_clauses::get_backend(Translate_context* context,
 	  Expression* nil2 = nil1->copy();
 	  Expression* call = Runtime::make_call(Runtime::SELECT, location, 4,
 						zero, default_arg, nil1, nil2);
-	  context->gogo()->lower_expression(context->function(), &call);
+	  context->gogo()->lower_expression(context->function(), NULL, &call);
 	  Bexpression* bcall = tree_to_expr(call->get_tree(context));
 	  s = context->backend()->expression_statement(bcall);
 	}
@@ -4175,7 +4715,7 @@ Select_clauses::get_backend(Translate_context* context,
   Expression* chans = Expression::make_composite_literal(chan_array_type, 0,
 							 false, chan_init,
 							 location);
-  context->gogo()->lower_expression(context->function(), &chans);
+  context->gogo()->lower_expression(context->function(), NULL, &chans);
   Temporary_statement* chan_temp = Statement::make_temporary(chan_array_type,
 							     chans,
 							     location);
@@ -4187,7 +4727,7 @@ Select_clauses::get_backend(Translate_context* context,
 							    0, false,
 							    is_send_init,
 							    location);
-  context->gogo()->lower_expression(context->function(), &is_sends);
+  context->gogo()->lower_expression(context->function(), NULL, &is_sends);
   Temporary_statement* is_send_temp =
     Statement::make_temporary(is_send_array_type, is_sends, location);
   statements.push_back(is_send_temp->get_backend(context));
@@ -4213,7 +4753,7 @@ Select_clauses::get_backend(Translate_context* context,
   Expression* call = Runtime::make_call(Runtime::SELECT, location, 4,
 					ecount->copy(), default_arg,
 					chan_arg, is_send_arg);
-  context->gogo()->lower_expression(context->function(), &call);
+  context->gogo()->lower_expression(context->function(), NULL, &call);
   Bexpression* bcall = tree_to_expr(call->get_tree(context));
 
   std::vector<std::vector<Bexpression*> > cases;
@@ -4282,11 +4822,22 @@ Select_clauses::add_clause_backend(
 			  ? clause->location()
 			  : clause->statements()->end_location());
   Bstatement* g = bottom_label->get_goto(context, gloc);
-				
+
   if (s == NULL)
     (*clauses)[index] = g;
   else
     (*clauses)[index] = context->backend()->compound_statement(s, g);
+}
+
+// Dump the AST representation for select clauses.
+
+void
+Select_clauses::dump_clauses(Ast_dump_context* ast_dump_context) const
+{
+  for (Clauses::const_iterator p = this->clauses_.begin();
+       p != this->clauses_.end();
+       ++p)
+    p->dump_clause(ast_dump_context);
 }
 
 // Class Select_statement.
@@ -4309,7 +4860,7 @@ Select_statement::break_label()
 
 Statement*
 Select_statement::do_lower(Gogo* gogo, Named_object* function,
-			   Block* enclosing)
+			   Block* enclosing, Statement_inserter*)
 {
   if (this->is_lowered_)
     return this;
@@ -4327,6 +4878,22 @@ Select_statement::do_get_backend(Translate_context* context)
 {
   return this->clauses_->get_backend(context, this->break_label(),
 				     this->location());
+}
+
+// Dump the AST representation for a select statement.
+
+void
+Select_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "select";
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->ostream() << " {" << std::endl;
+      this->clauses_->dump_clauses(ast_dump_context);
+      ast_dump_context->ostream() << "}";
+    }
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a select statement.
@@ -4366,7 +4933,8 @@ For_statement::do_traverse(Traverse* traverse)
 // complex statements make it easier to handle garbage collection.
 
 Statement*
-For_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
+For_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
+			Statement_inserter*)
 {
   Statement* s;
   source_location loc = this->location();
@@ -4463,6 +5031,43 @@ For_statement::set_break_continue_labels(Unnamed_label* break_label,
   this->continue_label_ = continue_label;
 }
 
+// Dump the AST representation for a for statement.
+
+void
+For_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+  if (this->init_ != NULL && ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->print_indent();
+      ast_dump_context->indent();
+      ast_dump_context->ostream() << "// INIT  " << std::endl;
+      ast_dump_context->dump_block(this->init_);
+      ast_dump_context->unindent();
+    }
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "for ";
+  if (this->cond_ != NULL)
+    ast_dump_context->dump_expression(this->cond_);
+
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->ostream() << " {" << std::endl;
+      ast_dump_context->dump_block(this->statements_);
+      if (this->init_ != NULL)
+	{
+	  ast_dump_context->print_indent();
+	  ast_dump_context->ostream() << "// POST " << std::endl;
+	  ast_dump_context->dump_block(this->post_);
+	}
+      ast_dump_context->unindent();
+
+      ast_dump_context->print_indent();
+      ast_dump_context->ostream() << "}";
+    }
+
+  ast_dump_context->ostream() << std::endl;
+}
+
 // Make a for statement.
 
 For_statement*
@@ -4497,7 +5102,8 @@ For_range_statement::do_traverse(Traverse* traverse)
 // statements.
 
 Statement*
-For_range_statement::do_lower(Gogo* gogo, Named_object*, Block* enclosing)
+For_range_statement::do_lower(Gogo* gogo, Named_object*, Block* enclosing,
+			      Statement_inserter*)
 {
   Type* range_type = this->range_->type();
   if (range_type->points_to() != NULL
@@ -4711,8 +5317,10 @@ For_range_statement::lower_range_array(Gogo* gogo,
   Expression* zexpr = Expression::make_integer(&zval, NULL, loc);
   mpz_clear(zval);
 
-  ref = Expression::make_temporary_reference(index_temp, loc);
-  Statement* s = Statement::make_assignment(ref, zexpr, loc);
+  Temporary_reference_expression* tref =
+    Expression::make_temporary_reference(index_temp, loc);
+  tref->set_is_lvalue();
+  Statement* s = Statement::make_assignment(tref, zexpr, loc);
   init->add_statement(s);
 
   *pinit = init;
@@ -4738,8 +5346,9 @@ For_range_statement::lower_range_array(Gogo* gogo,
       Expression* ref2 = Expression::make_temporary_reference(index_temp, loc);
       Expression* index = Expression::make_index(ref, ref2, NULL, loc);
 
-      ref = Expression::make_temporary_reference(value_temp, loc);
-      s = Statement::make_assignment(ref, index, loc);
+      tref = Expression::make_temporary_reference(value_temp, loc);
+      tref->set_is_lvalue();
+      s = Statement::make_assignment(tref, index, loc);
 
       iter_init->add_statement(s);
     }
@@ -4749,8 +5358,9 @@ For_range_statement::lower_range_array(Gogo* gogo,
   //   index_temp++
 
   Block* post = new Block(enclosing, loc);
-  ref = Expression::make_temporary_reference(index_temp, loc);
-  s = Statement::make_inc_statement(ref);
+  tref = Expression::make_temporary_reference(index_temp, loc);
+  tref->set_is_lvalue();
+  s = Statement::make_inc_statement(tref);
   post->add_statement(s);
   *ppost = post;
 }
@@ -4798,7 +5408,9 @@ For_range_statement::lower_range_string(Gogo*,
   mpz_init_set_ui(zval, 0UL);
   Expression* zexpr = Expression::make_integer(&zval, NULL, loc);
 
-  Expression* ref = Expression::make_temporary_reference(index_temp, loc);
+  Temporary_reference_expression* ref =
+    Expression::make_temporary_reference(index_temp, loc);
+  ref->set_is_lvalue();
   Statement* s = Statement::make_assignment(ref, zexpr, loc);
 
   init->add_statement(s);
@@ -4829,14 +5441,20 @@ For_range_statement::lower_range_string(Gogo*,
   if (value_temp == NULL)
     {
       ref = Expression::make_temporary_reference(next_index_temp, loc);
+      ref->set_is_lvalue();
       s = Statement::make_assignment(ref, call, loc);
     }
   else
     {
       Expression_list* lhs = new Expression_list();
-      lhs->push_back(Expression::make_temporary_reference(next_index_temp,
-							  loc));
-      lhs->push_back(Expression::make_temporary_reference(value_temp, loc));
+
+      ref = Expression::make_temporary_reference(next_index_temp, loc);
+      ref->set_is_lvalue();
+      lhs->push_back(ref);
+
+      ref = Expression::make_temporary_reference(value_temp, loc);
+      ref->set_is_lvalue();
+      lhs->push_back(ref);
 
       Expression_list* rhs = new Expression_list();
       rhs->push_back(Expression::make_call_result(call, 0));
@@ -4865,7 +5483,9 @@ For_range_statement::lower_range_string(Gogo*,
 
   Block* post = new Block(enclosing, loc);
 
-  Expression* lhs = Expression::make_temporary_reference(index_temp, loc);
+  Temporary_reference_expression* lhs =
+    Expression::make_temporary_reference(index_temp, loc);
+  lhs->set_is_lvalue();
   Expression* rhs = Expression::make_temporary_reference(next_index_temp, loc);
   s = Statement::make_assignment(lhs, rhs, loc);
 
@@ -5024,8 +5644,12 @@ For_range_statement::lower_range_channel(Gogo*,
   iter_init->add_statement(ok_temp);
 
   Expression* cref = this->make_range_ref(range_object, range_temp, loc);
-  Expression* iref = Expression::make_temporary_reference(index_temp, loc);
-  Expression* oref = Expression::make_temporary_reference(ok_temp, loc);
+  Temporary_reference_expression* iref =
+    Expression::make_temporary_reference(index_temp, loc);
+  iref->set_is_lvalue();
+  Temporary_reference_expression* oref =
+    Expression::make_temporary_reference(ok_temp, loc);
+  oref->set_is_lvalue();
   Statement* s = Statement::make_tuple_receive_assignment(iref, oref, cref,
 							  false, loc);
   iter_init->add_statement(s);
@@ -5060,6 +5684,38 @@ For_range_statement::continue_label()
   if (this->continue_label_ == NULL)
     this->continue_label_ = new Unnamed_label(this->location());
   return this->continue_label_;
+}
+
+// Dump the AST representation for a for range statement.
+
+void
+For_range_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
+{
+
+  ast_dump_context->print_indent();
+  ast_dump_context->ostream() << "for ";
+  ast_dump_context->dump_expression(this->index_var_);
+  if (this->value_var_ != NULL)
+    {
+      ast_dump_context->ostream() << ", ";
+      ast_dump_context->dump_expression(this->value_var_);
+    }
+
+  ast_dump_context->ostream() << " = range ";
+  ast_dump_context->dump_expression(this->range_);
+  if (ast_dump_context->dump_subblocks())
+    {
+      ast_dump_context->ostream() << " {" << std::endl;
+
+      ast_dump_context->indent();
+
+      ast_dump_context->dump_block(this->statements_);
+
+      ast_dump_context->unindent();
+      ast_dump_context->print_indent();
+      ast_dump_context->ostream() << "}";
+    }
+  ast_dump_context->ostream() << std::endl;
 }
 
 // Make a for statement with a range clause.
