@@ -1,0 +1,4 @@
+2011-09-20   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail:
+	Add expected failures for LIPO.
