@@ -677,6 +677,32 @@ Parse::channel_type()
   return Type::make_channel_type(send, receive, element_type);
 }
 
+// Give an error for a duplicate parameter or receiver name.
+
+void
+Parse::check_signature_names(const Typed_identifier_list* params,
+			     Parse::Names* names)
+{
+  for (Typed_identifier_list::const_iterator p = params->begin();
+       p != params->end();
+       ++p)
+    {
+      if (p->name().empty() || Gogo::is_sink_name(p->name()))
+	continue;
+      std::pair<std::string, const Typed_identifier*> val =
+	std::make_pair(p->name(), &*p);
+      std::pair<Parse::Names::iterator, bool> ins = names->insert(val);
+      if (!ins.second)
+	{
+	  error_at(p->location(), "redefinition of %qs",
+		   Gogo::message_name(p->name()).c_str());
+	  inform(ins.first->second->location(),
+		 "previous definition of %qs was here",
+		 Gogo::message_name(p->name()).c_str());
+	}
+    }
+}
+
 // Signature      = Parameters [ Result ] .
 
 // RECEIVER is the receiver if there is one, or NULL.  LOCATION is the
@@ -691,18 +717,24 @@ Parse::signature(Typed_identifier* receiver, source_location location)
   Typed_identifier_list* params;
   bool params_ok = this->parameters(&params, &is_varargs);
 
-  Typed_identifier_list* result = NULL;
+  Typed_identifier_list* results = NULL;
   if (this->peek_token()->is_op(OPERATOR_LPAREN)
       || this->type_may_start_here())
     {
-      if (!this->result(&result))
+      if (!this->result(&results))
 	return NULL;
     }
 
   if (!params_ok)
     return NULL;
 
-  Function_type* ret = Type::make_function_type(receiver, params, result,
+  Parse::Names names;
+  if (params != NULL)
+    this->check_signature_names(params, &names);
+  if (results != NULL)
+    this->check_signature_names(results, &names);
+
+  Function_type* ret = Type::make_function_type(receiver, params, results,
 						location);
   if (is_varargs)
     ret->set_is_varargs();
@@ -1839,7 +1871,7 @@ Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
       if (!type_from_init && init != NULL)
 	{
 	  if (!this->gogo_->in_global_scope())
-	    this->gogo_->add_statement(Statement::make_statement(init));
+	    this->gogo_->add_statement(Statement::make_statement(init, true));
 	  else
 	    return this->create_dummy_global(type, init, location);
 	}
@@ -2761,8 +2793,21 @@ Parse::primary_expr(bool may_be_sink, bool may_be_composite_lit,
 	  else
 	    this->advance_token();
 	  if (expr->is_error_expression())
-	    return expr;
-	  ret = Expression::make_cast(ret->type(), expr, loc);
+	    ret = expr;
+	  else
+	    {
+	      Type* t = ret->type();
+	      if (t->classification() == Type::TYPE_ARRAY
+		  && t->array_type()->length() != NULL
+		  && t->array_type()->length()->is_nil_expression())
+		{
+		  error_at(ret->location(),
+			   "invalid use of %<...%> in type conversion");
+		  ret = Expression::make_error(loc);
+		}
+	      else
+		ret = Expression::make_cast(t, expr, loc);
+	    }
 	}
     }
 
@@ -3493,8 +3538,7 @@ Parse::statement_list_may_start_here()
 void
 Parse::expression_stat(Expression* exp)
 {
-  exp->discarding_value();
-  this->gogo_->add_statement(Statement::make_statement(exp));
+  this->gogo_->add_statement(Statement::make_statement(exp, false));
 }
 
 // SendStmt = Channel "&lt;-" Expression .

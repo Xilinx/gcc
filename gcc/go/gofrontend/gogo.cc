@@ -2017,7 +2017,7 @@ Order_eval::statement(Block* block, size_t* pindex, Statement* s)
 	  // be handled specially.  We can't create a temporary
 	  // because there is no type to give it.  Any actual uses of
 	  // the values will be done via Call_result_expressions.
-	  s = Statement::make_statement(*pexpr);
+	  s = Statement::make_statement(*pexpr, true);
 	}
 
       block->insert_statement_before(*pindex, s);
@@ -2072,7 +2072,7 @@ Order_eval::variable(Named_object* no)
 	{
 	  // A call expression which returns multiple results needs to
 	  // be handled specially.
-	  s = Statement::make_statement(*pexpr);
+	  s = Statement::make_statement(*pexpr, true);
 	}
       var->add_preinit_statement(this->gogo_, s);
     }
@@ -2266,7 +2266,7 @@ Build_recover_thunks::function(Named_object* orig_no)
 
   Statement* s;
   if (orig_fntype->results() == NULL || orig_fntype->results()->empty())
-    s = Statement::make_statement(call);
+    s = Statement::make_statement(call, true);
   else
     {
       Expression_list* vals = new Expression_list();
@@ -2976,27 +2976,27 @@ Function::determine_types()
     this->block_->determine_types();
 }
 
-// Get a pointer to the variable holding the defer stack for this
-// function, making it if necessary.  At least at present, the value
-// of this variable is not used.  However, a pointer to this variable
-// is used as a marker for the functions on the defer stack associated
-// with this function.  Doing things this way permits inlining a
+// Get a pointer to the variable representing the defer stack for this
+// function, making it if necessary.  The value of the variable is set
+// by the runtime routines to true if the function is returning,
+// rather than panicing through.  A pointer to this variable is used
+// as a marker for the functions on the defer stack associated with
+// this function.  A function-specific variable permits inlining a
 // function which uses defer.
 
 Expression*
 Function::defer_stack(source_location location)
 {
-  Type* t = Type::make_pointer_type(Type::make_void_type());
   if (this->defer_stack_ == NULL)
     {
-      Expression* n = Expression::make_nil(location);
+      Type* t = Type::lookup_bool_type();
+      Expression* n = Expression::make_boolean(false, location);
       this->defer_stack_ = Statement::make_temporary(t, n, location);
       this->defer_stack_->set_is_address_taken();
     }
   Expression* ref = Expression::make_temporary_reference(this->defer_stack_,
 							 location);
-  Expression* addr = Expression::make_unary(OPERATOR_AND, ref, location);
-  return Expression::make_unsafe_cast(t, addr, location);
+  return Expression::make_unary(OPERATOR_AND, ref, location);
 }
 
 // Export the function.
@@ -4482,6 +4482,12 @@ Bindings::new_definition(Named_object* old_object, Named_object* new_object)
 
     case Named_object::NAMED_OBJECT_VAR:
     case Named_object::NAMED_OBJECT_RESULT_VAR:
+      // We have already given an error in the parser for cases where
+      // one parameter or result variable redeclares another one.
+      if ((new_object->is_variable()
+	   && new_object->var_value()->is_parameter())
+	  || new_object->is_result_variable())
+	return old_object;
       break;
 
     case Named_object::NAMED_OBJECT_SINK:

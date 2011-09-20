@@ -1,3 +1,35 @@
+2011-09-20  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* check.c (gfc_check_c_sizeof): Remove redundant word.
+
+2011-09-20  Simon Baldwin  <simonb@google.com>
+
+	* module.c (gfc_dump_module): Omit timestamp from output.
+
+2011-09-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50403
+	* symbol.c (gfc_use_derived): Fix coding style.
+
+2011-09-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50401
+	* resolve.c (resolve_transfer): Check if component 'ref' is defined.
+
+	PR fortran/50403
+	* symbol.c (gfc_use_derived): Check if argument 'sym' is defined.
+
+2011-09-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34547
+	PR fortran/50375
+	* check.c (gfc_check_null): Allow allocatables as MOLD to NULL.
+	* resolve.c (resolve_transfer): Reject NULL without MOLD.
+	* interface.c (gfc_procedure_use): Reject NULL without MOLD
+	if no explicit interface is known.
+	(gfc_search_interface): Reject NULL without MOLD if it would
+	lead to ambiguity.
+
 2011-09-13  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/50379

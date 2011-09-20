@@ -4769,6 +4769,7 @@ extern tree build_call_a			(tree, enum call_context,
 						 int, tree*);
 extern tree build_call_n			(tree, enum call_context,
 						 int, ...);
+extern void set_flags_from_callee		(tree);
 extern bool null_ptr_cst_p			(tree);
 extern bool null_member_pointer_value_p		(tree);
 extern bool sufficient_parms_p			(const_tree);
