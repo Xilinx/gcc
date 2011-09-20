@@ -22,7 +22,7 @@ int f()
   return p[5];
 }
 
-/* { dg-final { scan-tree-dump-times "ITM_LU" 1 "tmmark" } } */
+/* { dg-final { scan-tree-dump-times "ITM_LU" 0 "tmmark" } } */
 /* { dg-final { scan-tree-dump-times "ITM_WU" 0 "tmmark" } } */
-/* { dg-final { scan-tree-dump-times "tm_save" 0 "tmmark" } } */
+/* { dg-final { scan-tree-dump-times "tm_save" 1 "tmmark" } } */
 /* { dg-final { cleanup-tree-dump "tmmark" } } */

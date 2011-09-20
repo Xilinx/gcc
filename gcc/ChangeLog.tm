@@ -1,3 +1,11 @@
+2011-09-20  Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (transaction_invariant_address_p): Handle MEM_REF.
+	(requires_barrier): Likewise.
+
+	* testsuite/gcc.dg/tm/memopt-10.c: Accept tm_save, not ITM_LU.
+	* testsuite/gcc.dg/tm/memopt-14.c: Remove test.
+
 2011-03-13  Richard Henderson  <rth@redhat.com>
 
 	PR 48074

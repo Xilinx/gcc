@@ -949,7 +949,7 @@ tm_log_delete (void)
 static bool
 transaction_invariant_address_p (const_tree mem, basic_block region_entry_block)
 {
-  if (TREE_CODE (mem) == INDIRECT_REF
+  if ((TREE_CODE (mem) == INDIRECT_REF || TREE_CODE (mem) == MEM_REF)
       && TREE_CODE (TREE_OPERAND (mem, 0)) == SSA_NAME)
     {
       basic_block def_bb;
@@ -1433,7 +1433,7 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
   switch (TREE_CODE (x))
     {
     case INDIRECT_REF:
-      /* case MISALIGNED_INDIRECT_REF: */
+    case MEM_REF:
       {
 	enum thread_memory_type ret;
 
