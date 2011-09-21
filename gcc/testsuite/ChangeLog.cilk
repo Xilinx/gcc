@@ -1,3 +1,10 @@
+2011-09-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/spawner_inline.c: New.
+	* gcc.dg/cilk-plus/spawnee_inline.c: New.
+	* g++.dg/cilk-plus/spawner_inline.cpp: New.
+	* g++.dg/cilk-plus/spawnee_inline.cpp: New.
+
 2011-09-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/template_cilk_for_plus_equal.cpp: New.
