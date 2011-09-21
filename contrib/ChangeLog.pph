@@ -1,3 +1,7 @@
+2011-09-21   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: New.
+
 2011-06-10   Diego Novillo  <dnovillo@google.com>
 
 	* repro_fail: Add support for patterns matching multiple spawns.
