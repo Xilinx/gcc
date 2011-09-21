@@ -150,6 +150,15 @@
   [(sign_extend "")
    (zero_extend "u")])
 
+(define_code_attr extend_s
+  [(sign_extend "s")
+   (zero_extend "")])
+
+;; Constrain input operand of widening multiply, i.e. MUL resp. MULS.
+(define_code_attr mul_r_d
+  [(zero_extend "r")
+   (sign_extend "d")])
+
 
 ;;========================================================================
 ;; The following is used by nonlocal_goto and setjmp.
@@ -1018,31 +1027,21 @@
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
-(define_insn "smulqi3_highpart"
-  [(set (match_operand:QI 0 "register_operand" "=r")
-	(truncate:QI
-         (lshiftrt:HI (mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
-                               (sign_extend:HI (match_operand:QI 2 "register_operand" "d")))
+;; "umulqi3_highpart"
+;; "smulqi3_highpart"
+(define_insn "<extend_su>mulqi3_highpart"
+  [(set (match_operand:QI 0 "register_operand"                                       "=r")
+        (truncate:QI
+         (lshiftrt:HI (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                               (any_extend:HI (match_operand:QI 2 "register_operand" "<mul_r_d>")))
                       (const_int 8))))]
   "AVR_HAVE_MUL"
-  "muls %1,%2
+  "mul<extend_s> %1,%2
 	mov %0,r1
 	clr __zero_reg__"
   [(set_attr "length" "3")
    (set_attr "cc" "clobber")])
   
-(define_insn "umulqi3_highpart"
-  [(set (match_operand:QI 0 "register_operand" "=r")
-	(truncate:QI
-         (lshiftrt:HI (mult:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
-                               (zero_extend:HI (match_operand:QI 2 "register_operand" "r")))
-                      (const_int 8))))]
-  "AVR_HAVE_MUL"
-  "mul %1,%2
-	mov %0,r1
-	clr __zero_reg__"
-  [(set_attr "length" "3")
-   (set_attr "cc" "clobber")])
 
 ;; Used when expanding div or mod inline for some special values
 (define_insn "*subqi3.ashiftrt7"
@@ -1055,25 +1054,16 @@
   [(set_attr "length" "2")
    (set_attr "cc" "clobber")])
 
-(define_insn "mulqihi3"
-  [(set (match_operand:HI 0 "register_operand" "=r")
-	(mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
-		 (sign_extend:HI (match_operand:QI 2 "register_operand" "d"))))]
+;; "umulqihi3"
+;; "mulqihi3"
+(define_insn "<extend_u>mulqihi3"
+  [(set (match_operand:HI 0 "register_operand"                         "=r")
+        (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                 (any_extend:HI (match_operand:QI 2 "register_operand" "<mul_r_d>"))))]
   "AVR_HAVE_MUL"
-  "muls %1,%2
+  "mul<extend_s> %1,%2
 	movw %0,r0
-	clr r1"
-  [(set_attr "length" "3")
-   (set_attr "cc" "clobber")])
-
-(define_insn "umulqihi3"
-  [(set (match_operand:HI 0 "register_operand" "=r")
-	(mult:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
-		 (zero_extend:HI (match_operand:QI 2 "register_operand" "r"))))]
-  "AVR_HAVE_MUL"
-  "mul %1,%2
-	movw %0,r0
-	clr r1"
+	clr __zero_reg__"
   [(set_attr "length" "3")
    (set_attr "cc" "clobber")])
 
@@ -1128,25 +1118,318 @@
   [(set_attr "length" "4")
    (set_attr "cc" "clobber")])
 
+;******************************************************************************
+; multiply-add/sub QI: $0 = $3 +/- $1*$2
+;******************************************************************************
+
+(define_insn "*maddqi4"
+  [(set (match_operand:QI 0 "register_operand"                  "=r")
+        (plus:QI (mult:QI (match_operand:QI 1 "register_operand" "r")
+                          (match_operand:QI 2 "register_operand" "r"))
+                 (match_operand:QI 3 "register_operand"          "0")))]
+  
+  "AVR_HAVE_MUL"
+  "mul %1,%2
+	add %A0,r0
+	clr __zero_reg__"
+  [(set_attr "length" "4")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*msubqi4"
+  [(set (match_operand:QI 0 "register_operand"                   "=r")
+        (minus:QI (match_operand:QI 3 "register_operand"          "0")
+                  (mult:QI (match_operand:QI 1 "register_operand" "r")
+                           (match_operand:QI 2 "register_operand" "r"))))]
+  "AVR_HAVE_MUL"
+  "mul %1,%2
+	sub %A0,r0
+	clr __zero_reg__"
+  [(set_attr "length" "4")
+   (set_attr "cc" "clobber")])
+
+(define_insn_and_split "*maddqi4.const"
+  [(set (match_operand:QI 0 "register_operand"                   "=r")
+        (plus:QI (mult:QI (match_operand:QI 1 "register_operand"  "r")
+                          (match_operand:QI 2 "const_int_operand" "n"))
+                 (match_operand:QI 3 "register_operand"           "0")))
+   (clobber (match_scratch:QI 4                                 "=&d"))]
+  "AVR_HAVE_MUL"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *maddqi4
+   (set (match_dup 0)
+        (plus:QI (mult:QI (match_dup 1)
+                          (match_dup 4))
+                 (match_dup 3)))]
+  "")
+
+(define_insn_and_split "*msubqi4.const"
+  [(set (match_operand:QI 0 "register_operand"                    "=r")
+        (minus:QI (match_operand:QI 3 "register_operand"           "0")
+                  (mult:QI (match_operand:QI 1 "register_operand"  "r")
+                           (match_operand:QI 2 "const_int_operand" "n"))))
+   (clobber (match_scratch:QI 4                                  "=&d"))]
+  "AVR_HAVE_MUL"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *msubqi4
+   (set (match_dup 0)
+        (minus:QI (match_dup 3)
+                  (mult:QI (match_dup 1)
+                           (match_dup 4))))]
+  "")
+
+
+;******************************************************************************
+; multiply-add/sub HI: $0 = $3 +/- $1*$2  with 8-bit values $1, $2
+;******************************************************************************
+
+;; We don't use standard insns/expanders as they lead to cumbersome code for,
+;; e.g,
+;;
+;;     int foo (unsigned char z)
+;;     {
+;;       extern int aInt[];
+;;       return aInt[3*z+2];
+;;     }
+;;
+;; because the constant +4 then is added explicitely instead of consuming it
+;; with the aInt symbol.  Therefore, we rely on insn combine which takes costs
+;; into account more accurately and doesn't do burte-force multiply-add/sub.
+;; The implementational effort is the same so we are fine with that approach.
+
+
+;; "*maddqihi4"
+;; "*umaddqihi4"
+(define_insn "*<extend_u>maddqihi4"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (plus:HI (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                          (any_extend:HI (match_operand:QI 2 "register_operand" "<mul_r_d>")))
+                 (match_operand:HI 3 "register_operand"                         "0")))]
+  
+  "AVR_HAVE_MUL"
+  "mul<extend_s> %1,%2
+	add %A0,r0
+	adc %B0,r1
+	clr __zero_reg__"
+  [(set_attr "length" "4")
+   (set_attr "cc" "clobber")])
+
+;; "*msubqihi4"
+;; "*umsubqihi4"
+(define_insn "*<extend_u>msubqihi4"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (minus:HI (match_operand:HI 3 "register_operand"                         "0")
+                  (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                           (any_extend:HI (match_operand:QI 2 "register_operand" "<mul_r_d>")))))]
+  "AVR_HAVE_MUL"
+  "mul<extend_s> %1,%2
+	sub %A0,r0
+	sbc %B0,r1
+	clr __zero_reg__"
+  [(set_attr "length" "4")
+   (set_attr "cc" "clobber")])
+
+;; "*usmaddqihi4"
+;; "*sumaddqihi4"
+(define_insn "*<any_extend:extend_su><any_extend2:extend_su>msubqihi4"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (plus:HI (mult:HI (any_extend:HI  (match_operand:QI 1 "register_operand" "a"))
+                          (any_extend2:HI (match_operand:QI 2 "register_operand" "a")))
+                 (match_operand:HI 3 "register_operand"                          "0")))]
+  "AVR_HAVE_MUL
+   && reload_completed
+   && <any_extend:CODE> != <any_extend2:CODE>"
+  {
+    output_asm_insn (<any_extend:CODE> == SIGN_EXTEND
+                     ? "mulsu %1,%2" : "mulsu %2,%1", operands);
+
+    return "add %A0,r0\;adc %B0,r1\;clr __zero_reg__";
+  }
+  [(set_attr "length" "4")
+   (set_attr "cc" "clobber")])
+
+;; "*usmsubqihi4"
+;; "*sumsubqihi4"
+(define_insn "*<any_extend:extend_su><any_extend2:extend_su>msubqihi4"
+  [(set (match_operand:HI 0 "register_operand"                                   "=r")
+        (minus:HI (match_operand:HI 3 "register_operand"                          "0")
+                  (mult:HI (any_extend:HI  (match_operand:QI 1 "register_operand" "a"))
+                           (any_extend2:HI (match_operand:QI 2 "register_operand" "a")))))]
+  "AVR_HAVE_MUL
+   && reload_completed
+   && <any_extend:CODE> != <any_extend2:CODE>"
+  {
+    output_asm_insn (<any_extend:CODE> == SIGN_EXTEND
+                     ? "mulsu %1,%2" : "mulsu %2,%1", operands);
+
+    return "sub %A0,r0\;sbc %B0,r1\;clr __zero_reg__";
+  }
+  [(set_attr "length" "4")
+   (set_attr "cc" "clobber")])
+
+;; Handle small constants
+
+;; "umaddqihi4.uconst"
+;; "maddqihi4.sconst"
+(define_insn_and_split "*<extend_u>maddqihi4.<extend_su>const"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (plus:HI (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                          (match_operand:HI 2 "<extend_su>8_operand"             "n"))
+                 (match_operand:HI 3 "register_operand"                          "0")))
+   (clobber (match_scratch:QI 4                                                 "=&d"))]
+  "AVR_HAVE_MUL"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *umaddqihi4 resp. *maddqihi4
+   (set (match_dup 0)
+        (plus:HI (mult:HI (any_extend:HI (match_dup 1))
+                          (any_extend:HI (match_dup 4)))
+                 (match_dup 3)))]
+  {
+    operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
+  })
+
+;; "*umsubqihi4.uconst"
+;; "*msubqihi4.sconst"
+(define_insn_and_split "*<extend_u>msubqihi4.<extend_su>const"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (minus:HI (match_operand:HI 3 "register_operand"                         "0")
+                  (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                           (match_operand:HI 2 "<extend_su>8_operand"            "n"))))
+   (clobber (match_scratch:QI 4                                                 "=&d"))]
+  "AVR_HAVE_MUL"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *umsubqihi4 resp. *msubqihi4
+   (set (match_dup 0)
+        (minus:HI (match_dup 3)
+                  (mult:HI (any_extend:HI (match_dup 1))
+                           (any_extend:HI (match_dup 4)))))]
+  {
+    operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
+  })
+
+;; Same as the insn above, but combiner tries versions canonicalized to ASHIFT
+;; for MULT with power of 2 and skips trying MULT insn above.
+
+(define_insn_and_split "*umsubqihi4.uconst.ashift"
+  [(set (match_operand:HI 0 "register_operand"                                     "=r")
+        (minus:HI (match_operand:HI 3 "register_operand"                            "0")
+                  (ashift:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
+                             (match_operand:HI 2 "const_2_to_7_operand"             "n"))))
+   (clobber (match_scratch:QI 4                                                   "=&d"))]
+  "AVR_HAVE_MUL"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *umsubqihi4
+   (set (match_dup 0)
+        (minus:HI (match_dup 3)
+                  (mult:HI (zero_extend:HI (match_dup 1))
+                           (zero_extend:HI (match_dup 4)))))]
+  {
+    operands[2] = gen_int_mode (1 << INTVAL (operands[2]), QImode);
+  })
+
+;; Same as the insn above, but combiner tries versions canonicalized to ASHIFT
+;; for MULT with power of 2 and skips trying MULT insn above.  We omit 128
+;; because this would require an extra pattern for just one value.
+
+(define_insn_and_split "*msubqihi4.sconst.ashift"
+  [(set (match_operand:HI 0 "register_operand"                                     "=r")
+        (minus:HI (match_operand:HI 3 "register_operand"                            "0")
+                  (ashift:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
+                             (match_operand:HI 2 "const_1_to_6_operand"             "M"))))
+   (clobber (match_scratch:QI 4                                                   "=&d"))]
+  "AVR_HAVE_MUL"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *smsubqihi4
+   (set (match_dup 0)
+        (minus:HI (match_dup 3)
+                  (mult:HI (sign_extend:HI (match_dup 1))
+                           (sign_extend:HI (match_dup 4)))))]
+  {
+    operands[2] = gen_int_mode (1 << INTVAL (operands[2]), QImode);
+  })
+
+;; For signed/unsigned combinations that require narrow constraint "a"
+;; just provide a pattern if signed/unsigned combination is actually needed.
+
+(define_insn_and_split "*sumaddqihi4.uconst"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (plus:HI (mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "a"))
+                          (match_operand:HI 2 "u8_operand"                       "M"))
+                 (match_operand:HI 3 "register_operand"                          "0")))
+   (clobber (match_scratch:QI 4                                                "=&a"))]
+  "AVR_HAVE_MUL
+   && !s8_operand (operands[2], VOIDmode)"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *sumaddqihi4
+   (set (match_dup 0)
+        (plus:HI (mult:HI (sign_extend:HI (match_dup 1))
+                          (zero_extend:HI (match_dup 4)))
+                 (match_dup 3)))]
+  {
+    operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
+  })
+
+(define_insn_and_split "*sumsubqihi4.uconst"
+  [(set (match_operand:HI 0 "register_operand"                                   "=r")
+        (minus:HI (match_operand:HI 3 "register_operand"                          "0")
+                  (mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "a"))
+                           (match_operand:HI 2 "u8_operand"                       "M"))))
+   (clobber (match_scratch:QI 4                                                 "=&a"))]
+  "AVR_HAVE_MUL
+   && !s8_operand (operands[2], VOIDmode)"
+  "#"
+  "&& reload_completed"
+  [(set (match_dup 4)
+        (match_dup 2))
+   ; *sumsubqihi4
+   (set (match_dup 0)
+        (minus:HI (match_dup 3)
+                  (mult:HI (sign_extend:HI (match_dup 1))
+                           (zero_extend:HI (match_dup 4)))))]
+  {
+    operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
+  })
 
 ;******************************************************************************
 ; mul HI: $1 = sign/zero-extend, $2 = small constant
 ;******************************************************************************
 
-(define_insn_and_split "*muluqihi3.uconst"
+;; "*muluqihi3.uconst"
+;; "*mulsqihi3.sconst"
+(define_insn_and_split "*mul<extend_su>qihi3.<extend_su>const"
   [(set (match_operand:HI 0 "register_operand"                         "=r")
-        (mult:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
-                 (match_operand:HI 2 "u8_operand"                       "M")))
+        (mult:HI (any_extend:HI (match_operand:QI 1 "register_operand" "<mul_r_d>"))
+                 (match_operand:HI 2 "<extend_su>8_operand"            "n")))
    (clobber (match_scratch:QI 3                                       "=&d"))]
   "AVR_HAVE_MUL"
   "#"
   "&& reload_completed"
   [(set (match_dup 3)
         (match_dup 2))
-   ; umulqihi3
+   ; umulqihi3 resp. mulqihi3
    (set (match_dup 0)
-        (mult:HI (zero_extend:HI (match_dup 1))
-                 (zero_extend:HI (match_dup 3))))]
+        (mult:HI (any_extend:HI (match_dup 1))
+                 (any_extend:HI (match_dup 3))))]
   {
     operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
   })
@@ -1164,24 +1447,6 @@
    ; usmulqihi3
    (set (match_dup 0)
         (mult:HI (zero_extend:HI (match_dup 1))
-                 (sign_extend:HI (match_dup 3))))]
-  {
-    operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
-  })
-
-(define_insn_and_split "*mulsqihi3.sconst"
-  [(set (match_operand:HI 0 "register_operand"                         "=r")
-        (mult:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "d"))
-                 (match_operand:HI 2 "s8_operand"                       "n")))
-   (clobber (match_scratch:QI 3                                       "=&d"))]
-  "AVR_HAVE_MUL"
-  "#"
-  "&& reload_completed"
-  [(set (match_dup 3)
-        (match_dup 2))
-   ; mulqihi3
-   (set (match_dup 0)
-        (mult:HI (sign_extend:HI (match_dup 1))
                  (sign_extend:HI (match_dup 3))))]
   {
     operands[2] = gen_int_mode (INTVAL (operands[2]), QImode);
@@ -1226,6 +1491,17 @@
 ;; The EXTEND of $1 only appears in combine, we don't see it in expand so that
 ;; expand decides to use ASHIFT instead of MUL because ASHIFT costs are cheaper
 ;; at that time.  Fix that.
+
+(define_insn "*ashiftqihi2.signx.1"
+  [(set (match_operand:HI 0 "register_operand"                           "=r,*r")
+        (ashift:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "0,r"))
+                   (const_int 1)))]
+  ""
+  "@
+	lsl %A0\;sbc %B0,%B0
+	mov %A0,%1\;lsl %A0\;sbc %B0,%B0"
+  [(set_attr "length" "2,3")
+   (set_attr "cc" "clobber")])
 
 (define_insn_and_split "*ashifthi3.signx.const"
   [(set (match_operand:HI 0 "register_operand"                           "=r")
