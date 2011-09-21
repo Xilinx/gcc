@@ -33,5 +33,7 @@
     %{!static: \
       %{rdynamic:-export-dynamic} \
       -dynamic-linker %(dynamic_linker)} \
-    %{static:-static}}"
+    %{static:-static}} \
+  %{mbig-endian:-EB} \
+  %{mlittle-endian:-EL}"
 
