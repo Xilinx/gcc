@@ -9239,7 +9239,13 @@ Call_expression::check_argument_type(int i, const Type* parameter_type,
 				     bool issued_error)
 {
   std::string reason;
-  if (!Type::are_assignable(parameter_type, argument_type, &reason))
+  bool ok;
+  if (this->are_hidden_fields_ok_)
+    ok = Type::are_assignable_hidden_ok(parameter_type, argument_type,
+					&reason);
+  else
+    ok = Type::are_assignable(parameter_type, argument_type, &reason);
+  if (!ok)
     {
       if (!issued_error)
 	{
@@ -11783,7 +11789,7 @@ Array_construction_expression::do_check_types(Gogo*)
     }
 
   Expression* length = at->length();
-  if (length != NULL)
+  if (length != NULL && !length->is_error_expression())
     {
       mpz_t val;
       mpz_init(val);
@@ -12634,6 +12640,16 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
 		      {
 			const Struct_field* sf = st->field(fre->field_index());
 			name = sf->field_name();
+
+			// See below.  FIXME.
+			if (!Gogo::is_hidden_name(name)
+			    && name[0] >= 'a'
+			    && name[0] <= 'z')
+			  {
+			    if (gogo->lookup_global(name.c_str()) != NULL)
+			      name = gogo->pack_hidden_name(name, false);
+			  }
+
 			char buf[20];
 			snprintf(buf, sizeof buf, "%u", fre->field_index());
 			size_t buflen = strlen(buf);
@@ -12665,7 +12681,7 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
 
 	  // A predefined name won't be packed.  If it starts with a
 	  // lower case letter we need to check for that case, because
-	  // the field name will be packed.
+	  // the field name will be packed.  FIXME.
 	  if (!Gogo::is_hidden_name(name)
 	      && name[0] >= 'a'
 	      && name[0] <= 'z')
@@ -13499,7 +13515,10 @@ Struct_field_offset_expression::do_dump_expression(
     Ast_dump_context* ast_dump_context) const
 {
   ast_dump_context->ostream() <<  "unsafe.Offsetof(";
-  ast_dump_context->ostream() << this->field_->field_name();
+  ast_dump_context->dump_type(this->type_);
+  ast_dump_context->ostream() << '.';
+  ast_dump_context->ostream() <<
+    Gogo::message_name(this->field_->field_name());
   ast_dump_context->ostream() << ")";
 }
 

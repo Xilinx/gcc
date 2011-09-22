@@ -18,6 +18,7 @@ XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
+FAIL: g++.dg/vect/slp-pr50413.cc scan-tree-dump-times slp "basic block vectorized using SLP" 0
 
 # The following tests are failing with gold.  The LTO plugin is not resolving
 # names properly.  Only builds configured to use gold will show these.
@@ -26,35 +27,11 @@ FAIL: gcc.c-torture/execute/builtins/strstr-asm.c compilation,  -O2 -flto
 FAIL: gcc.c-torture/execute/builtins/strstr-asm.c compilation,  -O2 -flto -flto-partition=none
 UNRESOLVED: gcc.c-torture/execute/builtins/strstr-asm.c execution,  -O2 -flto -flto-partition=none
 
-# The following tests are failing with gold in -m32 mode (due to
-# PR 50251).
-UNRESOLVED: gcc.c-torture/execute/20010209-1.c execution,  -O2 -flto -flto-partition=none
-UNRESOLVED: gcc.c-torture/execute/20010209-1.c execution,  -O2 -flto
-FAIL: gcc.c-torture/execute/20010209-1.c compilation,  -O2 -flto  (internal compiler error)
-FAIL: gcc.c-torture/execute/20010209-1.c compilation,  -O2 -flto -flto-partition=none  (internal compiler error)
-
-# These tests fail in trunk when compiled with -m32.
+# These tests only fail when boehm-gc.c is enabled.
 FAIL: boehm-gc.c/thread_leak_test.c -O2 (test for excess errors)
+
+# This test fails in trunk with -m32 when compiled with -mtune=pentium4
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
-FAIL: gcc.target/i386/sse4_1-blendps.c execution test
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O1  (internal compiler error)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O1  (test for excess errors)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O2  (internal compiler error)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O2  (test for excess errors)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer  (internal compiler error)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer  (test for excess errors)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-loops  (internal compiler error)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-loops  (test for excess errors)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (internal compiler error)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (test for excess errors)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -g  (internal compiler error)
-FAIL: gfortran.dg/actual_array_constructor_1.f90  -O3 -g  (test for excess errors)
-UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -g  compilation failed to produce executable
-UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O1  compilation failed to produce executable
-UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  compilation failed to produce executable
-UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O2  compilation failed to produce executable
-UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -fomit-frame-pointer  compilation failed to produce executable
-UNRESOLVED: gfortran.dg/actual_array_constructor_1.f90 -O3 -fomit-frame-pointer -funroll-loops  compilation failed to produce executable
 
 # These are flaky when tested in loaded machines (they exceed the timeout)
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) output pattern test
@@ -65,6 +42,23 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c (-O3) output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c execution test
 flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
+flaky | FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
+
+# Failures due to missing annotalysis support.
+FAIL: gcc.dg/thread_annot_lock-23.c (test for warnings, line 15)
+FAIL: gcc.dg/thread_annot_lock-23.c (test for warnings, line 13)
+FAIL: gcc.dg/thread_annot_lock-23.c (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-23.c (test for warnings, line 18)
+FAIL: gcc.dg/thread_annot_lock-23.c (test for warnings, line 19)
+FAIL: gcc.dg/thread_annot_lock-24.c (test for warnings, line 9)
+FAIL: gcc.dg/thread_annot_lock-24.c (test for warnings, line 8)
+FAIL: gcc.dg/thread_annot_lock-24.c (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-25.c (test for warnings, line 8)
+FAIL: gcc.dg/thread_annot_lock-25.c (test for warnings, line 9)
+FAIL: gcc.dg/thread_annot_lock-25.c (test for warnings, line 10)
+FAIL: gcc.dg/thread_annot_lock-25.c (test for warnings, line 30)
+FAIL: gcc.dg/thread_annot_lock-25.c (test for warnings, line 22)
+FAIL: gcc.dg/thread_annot_lock-42.c (test for warnings, line 9)
 
 # Failures due to FDO.
 UNRESOLVED: gcc.dg/lto/20100430-1 c_lto_20100430-1_0.o-c_lto_20100430-1_0.o execute -O2 -fprofile-arcs -flto -r -nostdlib
