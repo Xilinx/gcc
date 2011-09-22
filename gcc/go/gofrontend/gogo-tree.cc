@@ -1159,8 +1159,11 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 
 	  // If a function calls the predeclared recover function, we
 	  // can't inline it, because recover behaves differently in a
-	  // function passed directly to defer.
-	  if (this->calls_recover_ && !this->is_recover_thunk_)
+	  // function passed directly to defer.  If this is a recover
+	  // thunk that we built to test whether a function can be
+	  // recovered, we can't inline it, because that will mess up
+	  // our return address comparison.
+	  if (this->calls_recover_ || this->is_recover_thunk_)
 	    DECL_UNINLINABLE(decl) = 1;
 
 	  // If this is a thunk created to call a function which calls
@@ -1589,15 +1592,25 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
       && !this->type_->results()->empty()
       && !this->type_->results()->front().name().empty())
     {
-      // If the result variables are named, we need to return them
-      // again, because they might have been changed by a defer
-      // function.
+      // If the result variables are named, and we are returning from
+      // this function rather than panicing through it, we need to
+      // return them again, because they might have been changed by a
+      // defer function.  The runtime routines set the defer_stack
+      // variable to true if we are returning from this function.
       retval = this->return_value(gogo, named_function, end_loc,
 				  &stmt_list);
       set = fold_build2_loc(end_loc, MODIFY_EXPR, void_type_node,
 			    DECL_RESULT(this->fndecl_), retval);
       ret_stmt = fold_build1_loc(end_loc, RETURN_EXPR, void_type_node, set);
-      append_to_statement_list(ret_stmt, &stmt_list);
+
+      Expression* ref =
+	Expression::make_temporary_reference(this->defer_stack_, end_loc);
+      tree tref = ref->get_tree(&context);
+      tree s = build3_loc(end_loc, COND_EXPR, void_type_node, tref,
+			  ret_stmt, NULL_TREE);
+
+      append_to_statement_list(s, &stmt_list);
+
     }
   
   go_assert(*fini == NULL_TREE);

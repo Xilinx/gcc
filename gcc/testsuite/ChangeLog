@@ -1,3 +1,110 @@
+2011-09-19  Ian Bolton  <ian.bolton@arm.com>
+
+	* gcc.dg/20100906-1.c: Use -fno-short-enums option for
+	"target arm_eabi".
+
+2011-09-19  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50413
+	* g++.dg/vect/vect.exp: Run slp-pr* tests with
+	-fdump-tree-slp-details.  Run other tests with
+	-fdump-tree-vect-details.
+	* g++.dg/vect/slp-pr50413.cc: New.
+
+2011-09-18  Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Ira Rosen  <ira.rosen@linaro.org>
+
+	PR testsuite/50435
+	* gcc.dg/vect/bb-slp-25.c: Add an if to avoid loop vectorization.
+	Fix underscores around restrict.
+
+2011-09-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50414
+	* gfortran.dg/vect/Ofast-pr50414.f90: New.
+	* gfortran.dg/vect/vect.exp: Run Ofast-* tests with -Ofast.
+	* gcc.dg/vect/no-scevccp-noreassoc-slp-reduc-7.c: New.
+
+2011-09-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50412
+	* gfortran.dg/vect/pr50412.f90: New.
+
+2011-09-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50424
+	* g++.dg/eh/defarg1.C: New.
+
+2011-09-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/vect/vect-reduc-10.c: New test.
+	* gcc.target/i386/avx-reduc-1.c: New test.
+
+	* gcc.target/i386/sse2-extract-1.c: New test.
+	* gcc.target/i386/avx-extract-1.c: New test.
+
+2011-09-16  Terry Guo  <terry.guo@arm.com>
+
+	* gcc.dg/tree-ssa/foldconst-3.c: Don't use short enums.
+
+2011-09-15   Diego Novillo  <dnovillo@google.com>
+
+	* lib/g++.exp (g++_init): Add $TEST_ALWAYS_FLAGS to
+	ALWAYS_CXXFLAGS, if defined.
+	* lib/gfortran.exp (gfortran_init): Add $TEST_ALWAYS_FLAGS to
+	ALWAYS_GFORTRANFLAGS, if defined.
+	* lib/go.exp (go_target_compile): Add $TEST_ALWAYS_FLAGS to
+	ALWAYS_GOCFLAGS, if defined.
+	* lib/obj-c++.exp (obj-c++_init): Add $TEST_ALWAYS_FLAGS to
+	ALWAYS_OBJCXXFLAGS, if defined.
+	* lib/gcc.exp (gcc_target_compile): Add $TEST_ALWAYS_FLAGS to
+	additional_flags, if defined.
+	* lib/gnat.exp (gnat_target_compile): Likewise.
+	* lib/objc.exp (objc_target_compile): Likewise.
+	* lib/target-supports-dg.exp (dg-add-options): Handle
+	TEST_ALWAYS_FLAGS.
+
+2011-09-15  Tom de Vries  <tom@codesourcery.com>
+
+	PR testsuite/50322
+	* gcc.dg/tree-ssa/ivopts-lt.c: require stdint_types. include stdint.h.
+	Use uintptr_t in f1.  Undo avr xfails.
+
+2011-09-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50401
+	PR fortran/50403
+	* gfortran.dg/function_types_3.f90: New.
+
+2011-09-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50365
+	* g++.dg/cpp0x/trailing7.C: New.
+
+	PR c++/50361
+	* g++.dg/cpp0x/nullptr23.C: New.
+
+2011-09-15  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/bb-slp-25.c: New.
+
+2011-09-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50391
+	* g++.dg/cpp0x/noexcept15.C: New.
+
+2011-09-14  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/50251
+	* gcc.dg/pr50251.c: New test.
+
+2011-09-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34547
+	PR fortran/50375
+	* gfortran.dg/null_5.f90: New.
+	* gfortran.dg/null_6.f90: New.
+
 2011-09-13  Bernd Schmidt  <bernds@codesourcery.com>
 
 	* gcc.c-torture/compile/20110913-1.c: New test.
@@ -43,7 +150,7 @@
 2011-09-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/50327
-	* gfortran.dg/do_while_1.f90:  New test.
+	* gfortran.dg/do_while_1.f90: New test.
 
 2011-09-11  Janus Weil  <janus@gcc.gnu.org>
 

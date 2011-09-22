@@ -269,8 +269,32 @@ struct processor_costs niagara2_costs = {
   COSTS_N_INSNS (5), /* imul */
   COSTS_N_INSNS (5), /* imulX */
   0, /* imul bit factor */
-  COSTS_N_INSNS (31), /* idiv, average of 12 - 41 cycle range */
-  COSTS_N_INSNS (31), /* idivX, average of 12 - 41 cycle range */
+  COSTS_N_INSNS (26), /* idiv, average of 12 - 41 cycle range */
+  COSTS_N_INSNS (26), /* idivX, average of 12 - 41 cycle range */
+  COSTS_N_INSNS (1), /* movcc/movr */
+  0, /* shift penalty */
+};
+
+static const
+struct processor_costs niagara3_costs = {
+  COSTS_N_INSNS (3), /* int load */
+  COSTS_N_INSNS (3), /* int signed load */
+  COSTS_N_INSNS (3), /* int zeroed load */
+  COSTS_N_INSNS (3), /* float load */
+  COSTS_N_INSNS (9), /* fmov, fneg, fabs */
+  COSTS_N_INSNS (9), /* fadd, fsub */
+  COSTS_N_INSNS (9), /* fcmp */
+  COSTS_N_INSNS (9), /* fmov, fmovr */
+  COSTS_N_INSNS (9), /* fmul */
+  COSTS_N_INSNS (23), /* fdivs */
+  COSTS_N_INSNS (37), /* fdivd */
+  COSTS_N_INSNS (23), /* fsqrts */
+  COSTS_N_INSNS (37), /* fsqrtd */
+  COSTS_N_INSNS (9), /* imul */
+  COSTS_N_INSNS (9), /* imulX */
+  0, /* imul bit factor */
+  COSTS_N_INSNS (31), /* idiv, average of 17 - 45 cycle range */
+  COSTS_N_INSNS (30), /* idivX, average of 16 - 44 cycle range */
   COSTS_N_INSNS (1), /* movcc/movr */
   0, /* shift penalty */
 };
@@ -917,9 +941,11 @@ sparc_option_override (void)
       sparc_costs = &niagara_costs;
       break;
     case PROCESSOR_NIAGARA2:
+      sparc_costs = &niagara2_costs;
+      break;
     case PROCESSOR_NIAGARA3:
     case PROCESSOR_NIAGARA4:
-      sparc_costs = &niagara2_costs;
+      sparc_costs = &niagara3_costs;
       break;
     case PROCESSOR_NATIVE:
       gcc_unreachable ();
@@ -9169,6 +9195,20 @@ sparc_vis_init_builtins (void)
   /* Pixel distance.  */
   def_builtin ("__builtin_vis_pdist", CODE_FOR_pdist_vis,
 	       di_ftype_v8qi_v8qi_di);
+
+  /* Edge handling.  */
+  def_builtin ("__builtin_vis_edge8", CODE_FOR_edge8_vis,
+               di_ftype_di_di);
+  def_builtin ("__builtin_vis_edge8l", CODE_FOR_edge8l_vis,
+               di_ftype_di_di);
+  def_builtin ("__builtin_vis_edge16", CODE_FOR_edge16_vis,
+               di_ftype_di_di);
+  def_builtin ("__builtin_vis_edge16l", CODE_FOR_edge16l_vis,
+               di_ftype_di_di);
+  def_builtin ("__builtin_vis_edge32", CODE_FOR_edge32_vis,
+               di_ftype_di_di);
+  def_builtin ("__builtin_vis_edge32l", CODE_FOR_edge32l_vis,
+               di_ftype_di_di);
 }
 
 /* Handle TARGET_EXPAND_BUILTIN target hook.
