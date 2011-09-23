@@ -1,3 +1,39 @@
+2011-09-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/Clock.cpp: Changed extension from .cpp to .cc.
+	* g++.dg/cilk-plus/c++-cilk-for.cpp: Likewise.
+	* g++.dg/cilk-plus/c++-fib.cpp: Likewise.
+	* g++.dg/cilk-plus/c++-n-fib.cpp: Likewise.
+	* g++.dg/cilk-plus/cast.cpp: Likewise.
+	* g++.dg/cilk-plus/cilk-for.cpp: Likewise.
+	* g++.dg/cilk-plus/explicit_ctor.cpp: Likewise.
+	* g++.dg/cilk-plus/fib.cpp: Likewise.
+	* g++.dg/cilk-plus/label_test.cpp: Likewise.
+	* g++.dg/cilk-plus/nested-cilk-for.cpp: Likewise.
+	* g++.dg/cilk-plus/plus-equal-one.cpp: Likewise.
+	* g++.dg/cilk-plus/pragma-simd-for.cpp: Likewise.
+	* g++.dg/cilk-plus/spawnee_inline.cpp: Likewise.
+	* g++.dg/cilk-plus/spawner_inline.cpp: Likewise.
+	* g++.dg/cilk-plus/stl_test.cpp: Likewise.
+	* g++.dg/cilk-plus/test__cilk.cpp: Likewise.
+	* g++.dg/cilk-plus/test_goto.cpp: Likewise.
+	* g++.dg/cilk-plus/test_rts_foo.cpp: Likewise.
+	* g++.dg/cilk-plus/varargs_test.cpp: Likewise.
+	* g++.dg/cilk-plus/cilk-for-incr-decr_not_one.cpp: Renamed to
+	cilk-for-not-1.cc.
+	* g++.dg/cilk-plus/fib-with-struct-parms-and-overloading.cpp: Renamed
+	to fib-struct.cc.
+	* g++.dg/cilk-plus/fib-with-templates.cpp: Renamed to fib-tplt.cc.
+	* g++.dg/cilk-plus/spawn_inside_ctor_dtor.cpp: Renamed to
+	spawn_ctor_dtor.cc.
+	* g++.dg/cilk-plus/stl_test-iterators.cpp: Renamed to stl_iter.cc.
+	* g++.dg/cilk-plus/stl_test-rev-iterators.cpp: Renamed to
+	stl_rev_iter.cc.
+	* g++.dg/cilk-plus/template_cilk_for_plus_equal.cpp: Renamed to
+	tplt_plus_equal.cc.
+	* g++.dg/cilk-plus/cilk_plus.exp: Modified to accept .cc extensions
+	instead of .cpp.
+
 2011-09-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/spawner_inline.c: New.
