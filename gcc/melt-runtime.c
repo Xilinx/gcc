@@ -11753,7 +11753,7 @@ void
 melt_fatal_info (const char*filename, int lineno)
 {
   int ix = 0;
-  char* workdir = NULL;
+  const char* workdir = NULL;
   int workdirlen = 0;
   melt_module_info_t* mi=0;
   if (filename != NULL && lineno>0)
