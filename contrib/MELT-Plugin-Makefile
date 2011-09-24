@@ -215,12 +215,11 @@ melt-run-md5.h:  gfmeltgcc_run_md5
 MELTGCC_VERSION_NUMBER = $(shell cat gfmeltgcc_version_number)
 
 
-melt.so: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
+melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
    gt-melt-runtime.h $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) \
    melt-predef.h melt-run.h melt-run-md5.h GCCMELT-REVISION \
 	gfmeltgcc_version_number gfmeltgcc_revision
-	$(CC) $(MELTGCC_INCLUDEFLAGS) -I $(realpath melt/generated) -I $(realpath .) \
-           -fPIC -DMELT_IS_PLUGIN -shared \
+	@echo $(MELTGCC_INCLUDEFLAGS) -I $(realpath melt/generated) -I $(realpath .) -DMELT_IS_PLUGIN \
 	   $(MELTGCC_OPTIMFLAGS) \
 	   -DMELT_GCC_VERSION=$(MELTGCC_VERSION_NUMBER) \
 	   -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
@@ -229,8 +228,10 @@ melt.so: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
            '-DMELT_REVISION="$(shell cat gfmeltgcc_revision)"' \
 	   '-DMELT_MODULE_CFLAGS="$(melt_installed_cflags)"' \
 	   -DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\" \
-	   -DMELT_DEFAULT_MODLIS=\"melt-default-modules\" \
-	-o $@ $< $(MELTGCC_LIBES)
+	   -DMELT_DEFAULT_MODLIS=\"melt-default-modules\" > melt-runtime.args-tmp
+	@mv melt-runtime.args-tmp melt-runtime.args
+	$(CC) -fPIC  -shared  `cat melt-runtime.args` \
+	-o $@ melt-runtime.c $(MELTGCC_LIBES)
 
 clean:
 	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp

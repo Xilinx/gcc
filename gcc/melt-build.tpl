@@ -580,7 +580,10 @@ melt-sayhello.melt: $(melt_default_modules_list).modlis
 	@date +'(code_chunk say%YM%mhello #{printf("hello_from_MELT on %c pid %%d\n", (int) getpid());}#)' > $@
 #@ [+ (. (tpl-file-line))+]
 
-melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules melt-all-sources melt-default-modules-quicklybuilt.modlis
+melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
+  melt-all-modules melt-all-sources \
+  melt-default-modules-quicklybuilt.modlis melt-runtime.args \
+  $(MELT_RUNTIME_C)
 # test that a helloworld can be translated [+ (. (tpl-file-line))+]
 	@echo	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
@@ -601,6 +604,23 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources melt-all-modules m
 	@mv $(basename $<)-run.args-tmp $(basename $<)-run.args
 	@echo; echo; echo; echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run
 	$(melt_make_cc1) @$(basename $<)-run.args
+# test that the melt-runtime follows MELT coding rules; this also tests
+# a real MELT pass on real code, like our melt-runtime.c
+# test melt-runtime [+ (. (tpl-file-line))+]
+	@echo  $(melt_make_cc1flags) -O -Wno-shadow $(meltarg_mode)=meltframe  \
+	      $(meltarg_makefile)=$(melt_make_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
+              "$(meltarg_modulecflags)='$(melt_cflags)'" \
+	      $(meltarg_tempdir)=. $(MELT_DEBUG) $(meltarg_init)=@melt-default-modules-quicklybuilt \
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	     $(meltarg_module_path)=$(realpath melt-modules) \
+	     $(meltarg_source_path)=$(realpath melt-sources) \
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) > meltframe.args-tmp
+	@cat melt-runtime.args >> meltframe.args-tmp
+	echo $(MELT_RUNTIME_C) >> meltframe.args-tmp
+	@mv meltframe.args-tmp meltframe.args
+	@echo; echo; echo; echo -n meltframe.args: ; cat meltframe.args ; echo "***** doing " meltframe
+	$(melt_make_cc1) @meltframe.args
 
 
 #@ [+ (. (tpl-file-line))+]

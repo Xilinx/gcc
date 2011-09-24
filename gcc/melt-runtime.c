@@ -9274,16 +9274,12 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
   char *dupmodstr = NULL;
   char *curmodstr = NULL;
   char *comma = NULL;
-  MELT_ENTERFRAME (9, NULL);
+  MELT_ENTERFRAME (5, NULL);
 #define dictv     meltfram__.mcfr_varptr[0]
 #define closv     meltfram__.mcfr_varptr[1]
-#define cstrv     meltfram__.mcfr_varptr[2]
-#define arglv     meltfram__.mcfr_varptr[3]
-#define csecstrv  meltfram__.mcfr_varptr[4]
-#define modatav   meltfram__.mcfr_varptr[5]
-#define curargv   meltfram__.mcfr_varptr[6]
-#define resv      meltfram__.mcfr_varptr[7]
-#define cmdv      meltfram__.mcfr_varptr[8]
+#define modatav   meltfram__.mcfr_varptr[2]
+#define resv      meltfram__.mcfr_varptr[3]
+#define cmdv      meltfram__.mcfr_varptr[4]
   modatav = modata_p;
   modstr = melt_argument ("mode");
   debugeprintf ("meltgc_do_initial_mode mode_string %s modatav %p",
@@ -9370,12 +9366,9 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
   MELT_EXITFRAME ();
 #undef dictv
 #undef closv
-#undef cstrv
-#undef csecstrv
 #undef modatav
-#undef arglv
-#undef curargv
 #undef resv
+#undef cmdv
 }
 
 
@@ -9393,12 +9386,11 @@ meltgc_load_modules_and_do_mode (void)
 #if MELT_HAVE_DEBUG
   char locbuf[200];
 #endif
-  MELT_ENTERFRAME(5, NULL);
+  MELT_ENTERFRAME(4, NULL);
 #define modatv     meltfram__.mcfr_varptr[0]
-#define dumpv      meltfram__.mcfr_varptr[1]
-#define optsetv    meltfram__.mcfr_varptr[2]
-#define optsymbv   meltfram__.mcfr_varptr[3]
-#define optresv    meltfram__.mcfr_varptr[4]
+#define optsetv    meltfram__.mcfr_varptr[1]
+#define optsymbv   meltfram__.mcfr_varptr[2]
+#define optresv    meltfram__.mcfr_varptr[3]
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   debugeprintf ("meltgc_load_modules_and_do_mode start modstr %s inistr %s", 
@@ -9504,6 +9496,7 @@ meltgc_load_modules_and_do_mode (void)
      **/
     MELT_LOCATION_HERE ("before setting options");
     optstr = melt_argument ("option");
+    optsetv = NULL;
     debugeprintf ("meltgc_load_modules_and_do_mode optstr %s", optstr);
     if (optstr && optstr[0]
 	&& (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL

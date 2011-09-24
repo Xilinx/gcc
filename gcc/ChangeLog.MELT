@@ -1,8 +1,19 @@
 
-2011-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-tiny-tests): Run the meltframe test on
+	melt-runtime.c
+	* melt-build.mk: Regenerate.
+
+	* melt-runtime.c (meltgc_do_initial_mode)
+	(meltgc_load_modules_and_do_mode): Remove unused MELT frame slots.
+
+	* Makefile.in (MELT_RUNTIME_CPPDEFS): Quote more.
+	(melt-runtime.o): Also build melt-runtime.args.
+
+2011-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: Updated.
 
-2011-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_fatal_info): Variable workdir declared as
 	const.
 
