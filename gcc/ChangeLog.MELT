@@ -1,5 +1,8 @@
 
 2011-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: Updated.
+
+2011-09-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_fatal_info): Variable workdir declared as
 	const.
 
