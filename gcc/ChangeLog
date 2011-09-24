@@ -1,3 +1,428 @@
+2011-09-23  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-transform.c (inline_call): Add comment.
+	* ipa-inline.h (inline_param_summary): New structure and vector.
+	(struct inline_edge_summary): Add param field.
+	* ipa-inline-analysis.c (CHANGED): New constant.
+	(add_clause): Handle CHANGED and NOT_CONSTANT.
+	(predicate_probability): New function.
+	(dump_condition): Dump CHANGED predicate.
+	(evaluate_conditions_for_known_args): Handle ERROR_MARK as marker
+	of unknown function wide invariant.
+	(evaluate_conditions_for_edge): Handle change probabilities.
+	(inline_edge_duplication_hook): Copy param summaries.
+	(inline_edge_removal_hook): Free param summaries.
+	(dump_inline_edge_summary): Fix dumping of indirect edges and callee sizes;
+	dump param summaries.
+	(will_be_nonconstant_predicate): Use CHANGED predicate.
+	(record_modified_bb_info): New structure.
+	(record_modified): New function.
+	(param_change_prob): New function.
+	(estimate_function_body_sizes): Compute param summaries.
+	(estimate_edge_size_and_time): Add probability argument.
+	(estimate_node_size_and_time): Add inline_param_summary argument;
+	handle predicate probabilities.
+	(remap_predicate): Fix formating.
+	(remap_edge_change_prob): New function.
+	(remap_edge_summaries): Rename from ...; use remap_edge_change_prob.
+	(remap_edge_predicates): ... this one.
+	(inline_merge_summary): Remap edge summaries; handle predicate probabilities;
+	remove param summaries after we are done.
+	(do_estimate_edge_time): Update.
+	(do_estimate_edge_growth): Update.
+	(read_inline_edge_summary): Read param info.
+	(inline_read_summary): Fix formating.
+	(write_inline_edge_summary): Write param summaries.
+
+2011-09-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_print_operand): Handle %~.
+	(ix86_print_operand_punct_valid_p): Return true also for '~'.
+	* config/i386/sse.md (i128): New mode_attr.
+	(vec_extract_hi_<mode>, vec_extract_hi_<mode>,
+	avx_vbroadcastf128_<mode>, *avx_vperm2f128<mode>_full,
+	*avx_vperm2f128<mode>_nozero, vec_set_lo_<mode>, 
+	vec_set_hi_<mode>, *vec_concat<mode>_avx): Use <i128> in the
+	patterns, use "<sseinsnmode>" for "mode" attribute.
+	(vec_extract_hi_v16hi, vec_extract_hi_v32qi, vec_set_lo_v16hi,
+	vec_set_hi_v16hi, vec_set_lo_v32qi, vec_set_hi_v32qi): Use
+	%~128 in the patterns, use "OI" for "mode" attribute.
+
+2011-09-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50447
+	* config/avr/avr.md (adjust_len): Add alternatives "tsthi",
+	"tstsi", "compare".
+	(*cmpqi_sign_extend): Use s8_operand.
+	(*cmphi, *cmpsi): Rewrite using avr_out_compare.
+	* config/avr/avr-protos.h (compare_diff_p, compare_eq_p): Remove
+	prototypes.
+	(out_tsthi, out_tstsi): Remove prototypes.
+	(avr_out_tsthi, avr_out_tstsi): New prototypes.
+	* config/avr/avr.c (out_tsthi, out_tstsi): Remove functions.
+	(avr_asm_len): Negative length now sets *plen to -length.
+	(compare_sign_p): Return bool instead of int.
+	(compare_diff_p, compare_eq_p): Ditto and make static.
+	(avr_out_tsthi): New function.
+	(avr_out_tstsi): New function.
+	(avr_out_compare): New function.
+	(adjust_insn_length): Handle ADJUST_LEN_TSTHI, ADJUST_LEN_TSTSI,
+	ADJUST_LEN_COMPARE.
+
+2011-09-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50447
+	* config/avr/avr.md: (adjust_len): Add alternative "out_plus".
+	(addsi3): Rewrite using QI scratch register.  Adjust text
+	peepholes using plus:SI.
+	(*addsi3_zero_extend.hi): New insn.
+	(*subsi3_zero_extend.hi): New insn.
+	(*subhi3_zero_extend1): Set attribute "cc" to "set_czn".
+	(*subsi3_zero_extend): Ditto.
+	(subsi3): Change predicate #2 to register_operand.
+	* config/avr/avr-protos.h (avr_out_plus): New prototype.
+	(avr_out_plus_1): New static function.
+	(avr_out_plus): New function.
+	(adjust_insn_length): Handle ADJUST_LEN_OUT_PLUS.
+
+2011-09-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_prepare_sse_fp_compare_args): For
+	GE/GT/UNLE/UNLT swap arguments and condition even for TARGET_AVX.
+
+2011-09-23  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_define): Treat a single character in single quotes,
+	or a string, as an operand.
+
+2011-09-23  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.h (jump_func_type): Updated comments.
+	(ipa_known_type_data): New type.
+	(ipa_jump_func): Use it to describe known type jump functions.
+	* ipa-prop.c (ipa_print_node_jump_functions_for_edge): Updated to
+	reflect the new known type jump function contents.
+	(compute_known_type_jump_func): Likewise.
+	(combine_known_type_and_ancestor_jfs): Likewise.
+	(try_make_edge_direct_virtual_call): Likewise.
+	(ipa_write_jump_function): Likewise.
+	(ipa_read_jump_function): Likewise.
+	* ipa-cp.c (ipa_value_from_known_type_jfunc): New function.
+	(ipa_value_from_jfunc): Use ipa_value_from_known_type_jfunc.
+	(propagate_accross_jump_function): Likewise.
+
+2011-09-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50446
+	* config/avr/avr.md (rotlqi3): Support all offsets 0..7.
+	(rotlqi3_4): Turn insn into expander.
+	(*rotlqi3): New insn.
+	(rotlhi3, rotlsi3): Support rotate left/right by 1.
+	(*rotlhi2.1, *rotlhi2.15): New insns.
+	(*rotlsi2.1, *rotlsi2.31): New insns.
+	* config/avr/constraints.md (C03, C05, C06, C07): New constraints.
+
+2011-09-23  Bin Cheng  <bin.cheng@arm.com>
+
+	* config/arm/bpabi.h (BE8_LINK_SPEC): Add cortex-m arch 
+	and processors.
+
+2011-09-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* ipa-prop.c (ipa_print_node_jump_functions): Fix typos.
+
+2011-09-22  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* reload.c (find_reloads): Set operand_mode to Pmode for address
+	operands consisting of just a CONST_INT.
+
+2011-09-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/50482
+	* config/i386/i386.c (ix86_expand_sse_movcc): When generating
+	blendv, force op_true to register if it doesn't satisfy
+	nonimmediate_operand predicate.
+
+2011-09-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/50113
+	PR middle-end/50061
+	* calls.c (emit_library_call_value_1): Use BLOCK_REG_PADDING to
+	get the locate.where_pad value for register-only arguments.
+	* config/arm/arm.c (arm_pad_arg_upward): Remove HFmode handling.
+	(arm_pad_reg_upward): Handle null types.
+
+2011-09-22  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c: Fix overly long lines.
+
+2011-09-22  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-transform.c (inline_call): Always update jump functions
+	after inlining.
+	* ipa-inline.c (ipa_inline): Likewise; do not call
+	ipa_create_all_structures_for_iinln.
+	(ipa_inline): Always free jump functions.
+	* ipa-inline-analysis.c (evaluate_conditions_for_edge): Remove hack.
+	(remap_edge_predicates): Fix pasto.
+	(inline_merge_summary): Remove nlined edge predicate; remove hack.
+	(inline_analyze_function): Always initialize jump functions.
+	(inline_generate_summary): Likewise.
+	(inline_write_summary): Always write jump functions when ipa-cp
+	is not doing that.
+	(inline_read_summary): Always read jump functions when ipa-cp
+	is not doing that.
+	* ipa-prop.c (iinlining_processed_edges): Remove.
+	(update_indirect_edges_after_inlining): Do not use
+	iinlining_processed_edges; instead set param_index to -1.
+	(propagate_info_to_inlined_callees): Only try to indirect inlining
+	when asked to do so; update jump functions of indirect calls, too;
+	remove jump functions of the inlined edge.
+	(ipa_edge_duplication_hook): Do not copy iinlining_processed_edges.
+	(ipa_create_all_structures_for_iinln): Remove.
+	(ipa_free_all_structures_after_iinln): Do not free
+	iinlining_processed_edges.
+	* ipa-prop.h (ipa_create_all_structures_for_iinln): Remove.
+
+2011-09-22  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* config/arm/predicates.md (expandable_comparison_operator): New
+	predicate, extracted from...
+	(arm_comparison_operator): ...here.
+	* config/arm/arm.md (cbranchsi4, cbranchsf4, cbranchdf4, cbranchdi4)
+	(cstoresi4, cstoresf4, cstoredf4, cstoredi4, movsicc, movsfcc)
+	(movdfcc): Use expandable_comparison_operator.
+
+2011-09-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50447
+	PR target/50465
+	* config/avr/avr-protos.h (avr_out_bitop): New prototype.
+	(avr_popcount_each_byte): New prototype.
+	* config/avr/avr.c (avr_popcount): New static function.
+	(avr_popcount_each_byte): New function.
+	(avr_out_bitop): New function.
+	(adjust_insn_length): ADJUST_LEN_OUT_BITOP dispatches to
+	avr_out_bitop.  Cleanup code.
+	* config/avr/constraints.md (Ca2, Co2, Cx2): New constraints.
+	(Ca4, Co4, Cx4): New constraints.
+	* config/avr/avr.md (adjust_len): Add "out_bitop" insn attribute
+	alternative.
+	(andhi3, iorhi3, xorhi3): Rewrite insns using avr_out_bitop.
+	(andsi3, iorsi3, xorsi3): Ditto.
+	(*iorhi3_clobber, *iorsi3_clobber): Remove insns.
+
+2011-09-22  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50451
+	* tree-vect-slp.c (vect_get_constant_vectors): Don't fail for
+	constant operands in reduction.
+	(vect_get_slp_defs): Don't create vector operand for NULL scalar
+	operand.
+
+2011-09-22  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.c (sparc_vis_init_builtins): Do not mark
+	fpack16, fpack32, fpackfix as const.
+
+	* config/sparc/sparc.md (G[0-7]_REG, O[0-7]_REG, L[0-7]_REG,
+	I[0-7]_REG, F[0-62]_REG, FCC[0-3]_REG, CC_REG, SFP_REG): New
+	constants.  Use them everywhere.
+
+2011-09-22  Oleg Endo  <oleg.endo@t-online.de>
+
+	* config/sh/sh.c (andcosts): Renamed to and_xor_ior_costs.
+	Added AND special case.  Adapted comments.
+	(sh_rtx_costs): Added XOR and IOR case.
+
+2011-09-21  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analsis.c (compute_inline_parameters): Set
+	cfun and current_function_decl.
+
+2011-09-21  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c (set_cond_stmt_execution_predicate): Allow
+	handled components in parameter of builtin_constant_p.
+	(will_be_nonconstant_predicate): Allow loads of non-SSA parameters.
+
+2011-09-21  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (relative_time_benefit): Fix wrong bracketting.
+	* ipa-inline.h (estimate_edge_time): Fix pasto.
+	* ipa-inline-analysis.c (do_estiamte_edge_time): Remove capping.
+
+2011-09-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_expand_sse_movcc): Use
+	blendvps, blendvpd and pblendvb if possible.
+
+2011-09-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/50464
+	* config/i386/sse.md (xop_pcmov_<mode><avxsizesuffix>): Change
+	operand 1 predicate to register_operand and operand 2 predicate
+	to nonimmediate_operand.
+	* config/i386/i386.c (ix86_expand_sse_movcc): When generating
+	xop_pcmov, force op_true to register.  Also, force op_false to
+	register if it doesn't satisfy nonimmediate_operand predicate.
+
+2011-09-21  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/bmi2intrin.h (_mulx_u64): New.
+	(_mulx_u32): Ditto.
+
+2011-09-21  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/50433
+	* ipa-inline-analysis.c (eliminated_by_inlining_prob):
+	Use get_base_address.
+
+2011-09-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/sse.md (<code><mode>3 smaxmin:VI124_128 expander): Use
+	nonimmediate_operand instead of register_operand predicate for operands
+	1 and 2, force them into registers if expanding them as comparison.
+	(<code><mode>3 umaxmin:VI124_128 expander): Similarly.  For UMAX
+	V8HImode force into register just operand 1.
+
+2011-09-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/45099
+	* config/avr/avr.c (avr_function_arg_advance): Change error to
+	warning if a fixed register is needed as function argument.
+
+2011-09-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50449
+	PR target/50465
+	* config/avr/avr.md (adjust_len): New insn attribute.
+	(*reload_insi, *reload_insf): Use it.
+	(*movsi, *movsf): Use new interface of output_movsisf.
+	* config/avr/avr-protos.h (output_movsisf): Change prototype.
+	* config/avr/avr.c (output_movsisf): Ditto.
+	(adjust_insn_length): Use insn attribute "adjust_len" to adjust
+	lengths of insns *reload_insi, *reload_insf.
+	(output_reload_insisf_1): New static function.
+	(output_reload_insisf): Use it.
+
+2011-09-21  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.c (def_builtin): Change from macro into function.
+	(def_builtin_const): New.
+	(sparc_vis_init_builtins): Use def_builtin_const for all VIS builtins
+	other than alignaddr and falignaddr.
+
+	* config/sparc/sparc.md (UNSPEC_FCMPLE, UNSPEC_FCMPNE, UNSPEC_FCMPGT,
+	UNSPEC_FCMPEQ): New unspec codes.
+	(fcmple16_vis, fcmple32_vis, fcmpne16_vis, fcmpne32_vis, fcmpgt16_vis,
+	fcmpgt32_vis, fcmpeq16_vis, fcmpeq32_vis): New patterns.
+	* config/sparc/sparc.c (sparc_vis_init_builtins): Create builtins for
+	new pixel compare VIS patterns.
+	* config/sparc/visintrin.h (__vis_fcmple16, __vis_fcmple32,
+	__vis_fcmpne16, __vis_fcmpne32, __vis_fcmpgt16, __vis_fcmpgt32,
+	__vis_fcmpeq16, __vis_fcmpeq32): New.
+	* doc/extend.texi: Document new pixel compare VIS intrinsics.
+
+2011-09-21  Tom de Vries  <tom@codesourcery.com>
+
+	* final.c (final): Handle if JUMP_LABEL is not LABEL_P.
+
+2011-09-20  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (UNSPEC_ALIGNADDRL): New unspec.
+	(aligneddrl<P:mode>_vis): New pattern.
+	(edge8_vis, edge8l_vis, edge16_vis, edge16l_vis, edge32_vis,
+	edge32l_vis): Adjust to take Pmode arguments, and return SImode.
+	* config/sparc/sparc.c (sparc_vis_init_builtins): Handle new
+	alignaddrl insn, and adjust edge operations for updated types.
+	* config/sparc/visintrin.h: Likewise.
+	* doc/extend.texi: Make typing in VIS documentation match reality.
+
+2011-09-20  Terry Guo  <terry.guo@arm.com>
+
+	* config/arm/arm-arches.def: Add armv6s-m.
+	* config/arm/arm-tables.opt: Regenerate.
+
+2011-09-20  Wei Guozhi  <carrot@google.com>
+
+	PR rtl-optimization/49452
+	* postreload.c (reload_combine): Invalidate use information when across
+	volatile insn.
+
+2011-09-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* haifa-sched.c (has_edge_p, prev_non_location_insn, check_cfg):
+	Remove maintenance overhead.
+	(haifa_sched_init, sched_finish): Update.
+
+2011-09-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/mmx.md (*mov<mode>_internal_rex64): Use if_then_else RTX
+	to calculate unit, prefix_rep and prefix_data16 attributes.
+	(*mov<mode>_internal): Ditto for unit attribute.
+	(*movv2sf_internal_rex64): Ditto for unit and prefix_rep attributes.
+	(*movv2sf_internal): Ditto.
+	* config/i386/sse.md (VI1248_256): Remove mode iterator.
+	(avx2_eq<mode>3): Use VI_256 instead of VI1248_256.
+	(*avx2_eq<mode>3): Ditto.
+	(avx2_gt<mode>3): Ditto.
+
+2011-09-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (maxmin): New code iterator.
+	* config/i386/sse.md (<maxmin:code><mode>3): Macroize expander
+	from <umaxmin:code><mode>3 and <smaxmin:code><mode>3 using maxmin
+	code iterator.
+	(*avx2_<maxmin:code><mode>3): Macroize isn from
+	*avx2_<umaxmin:code><mode>3 and *avx2_<smaxmin:code><mode>3 using
+	maxmin code iterator.
+	(<smaxmin:code><VI124_128:mode>3): Merge with <smaxmin:code>v8hi3.
+	(<umaxmin:code><VI124_128:mode>3): Merge with umaxv4si3 and
+	<umaxmin:code>v16qi3.
+
+2011-09-19  Alan Modra  <amodra@gmail.com>
+	    Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/50341
+	* config/rs6000/rs6000.md (call_indirect_aix<ptrsize>): Do not
+	split the load of the indirect function's TOC from the call to
+	prevent the compiler from moving the load of the new TOC above
+	code that references the current function's TOC.
+	(call_indirect_aix<ptrsize>_internal): Ditto.
+	(call_indirect_aix<ptrsize>_nor11): Ditto.
+	(call_indirect_aix<ptrsize>_internal2): Ditto.
+	(call_value_indirect_aix<ptrsize>): Ditto.
+	(call_value_indirect_aix<ptrsize>_internal): Ditto.
+	(call_value_indirect_aix<ptrsize>_nor11): Ditto.
+	(call_value_indirect_aix<ptrsize>_internal2): Ditto.
+
+2011-09-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/sse.md (*sse4_1_extractps): Change into
+	define_insn_and_split, add =x 0 n and =x x n alternatives
+	and split them after reload.
+
+2011-09-19  Alexandre Oliva  <aoliva@redhat.com>
+
+	* tree.h (TREE_NOT_CHECK4): Rename from bogus NON_TREE_CHECK4.
+
+2011-09-19  Alexandre Oliva  <aoliva@redhat.com>
+
+	* emit-rtl.c (copy_insn_1): Do not copy DEBUG_EXPRs.
+
+2011-09-19  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50413
+	* tree-vect-data-refs.c (vect_analyze_data_refs): Fail to vectorize
+	a basic block if one of its data-refs can't be analyzed.
+
+2011-09-19  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/predicates.md (shift_amount_operand): Check constant
+	shift count is in range.
+	(const_shift_operand): Remove.
+
 2011-09-18  Eric Botcazou  <ebotcazou@adacore.com>
 	    Iain Sandoe  <developer@sandoe-acoustics.co.uk>
 
@@ -71,12 +496,10 @@
 	* config/i386/i386.c (ix86_build_const_vector): Handle V8SImode
 	and V4DImode.
 	(ix86_build_signbit_mask): Likewise.
-	(ix86_expand_int_vcond): Likewise.  Handle V16HImode and
-	V32QImode.
+	(ix86_expand_int_vcond): Likewise.  Handle V16HImode and V32QImode.
 	(bdesc_args): Use CODE_FOR_{s,u}m{ax,in}v{32q,16h,8s}i3
 	instead of CODE_FOR_avx2_{s,u}m{ax,in}v{32q,16h,8s}i3.
-	* config/i386/sse.md (avx2_<code><mode>3 umaxmin expand): Rename
-	to...
+	* config/i386/sse.md (avx2_<code><mode>3 umaxmin expand): Rename to...
 	(<code><mode>3) ... this.
 	(avx2_<code><mode>3 smaxmin expand): Rename to...
 	(<code><mode>3) ... this.
@@ -147,8 +570,7 @@
 
 	* Makefile.in (SYSROOT_CFLAGS_FOR_TARGET): Define from
 	@SYSROOT_CFLAGS_FOR_TARGET@.
-	* configure.ac (SYSROOT_CFLAGS_FOR_TARGET): Set from
-	build-sysroot.
+	* configure.ac (SYSROOT_CFLAGS_FOR_TARGET): Set from build-sysroot.
 	* configure: Regenerate.
 	(site.exp): Add definition of TEST_ALWAYS_FLAGS.
 	Remove setting of GCC_UNDER_TEST.

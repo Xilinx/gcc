@@ -3559,7 +3559,7 @@ emit_associated_thunks (tree fn)
 static inline bool
 is_instantiation_of_constexpr (tree fun)
 {
-  return (DECL_TEMPLATE_INFO (fun)
+  return (DECL_TEMPLOID_INSTANTIATION (fun)
 	  && DECL_DECLARED_CONSTEXPR_P (DECL_TEMPLATE_RESULT
 					(DECL_TI_TEMPLATE (fun))));
 }
@@ -5820,7 +5820,7 @@ register_constexpr_fundef (tree fun, tree body)
   constexpr_fundef entry;
   constexpr_fundef **slot;
 
-  if (!is_valid_constexpr_fn (fun, !DECL_TEMPLATE_INFO (fun)))
+  if (!is_valid_constexpr_fn (fun, !DECL_GENERATED_P (fun)))
     return NULL;
 
   body = massage_constexpr_body (fun, body);
@@ -5833,13 +5833,13 @@ register_constexpr_fundef (tree fun, tree body)
 
   if (!potential_rvalue_constant_expression (body))
     {
-      if (!DECL_TEMPLATE_INFO (fun))
+      if (!DECL_GENERATED_P (fun))
 	require_potential_rvalue_constant_expression (body);
       return NULL;
     }
 
   if (DECL_CONSTRUCTOR_P (fun)
-      && cx_check_missing_mem_inits (fun, body, !DECL_TEMPLATE_INFO (fun)))
+      && cx_check_missing_mem_inits (fun, body, !DECL_GENERATED_P (fun)))
     return NULL;
 
   /* Create the constexpr function table if necessary.  */
@@ -7751,6 +7751,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       /* We can see a FIELD_DECL in a pointer-to-member expression.  */
     case FIELD_DECL:
     case PARM_DECL:
+    case USING_DECL:
       return true;
 
     case AGGR_INIT_EXPR:

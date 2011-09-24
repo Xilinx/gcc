@@ -13513,6 +13513,7 @@ get_some_local_dynamic_name (void)
    Y -- print condition for XOP pcom* instruction.
    + -- print a branch hint as 'cs' or 'ds' prefix
    ; -- print a semicolon (after prefixes due to bug in older gas).
+   ~ -- print "i" if TARGET_AVX2, "f" otherwise.
    @ -- print a segment register of thread base pointer load
  */
 
@@ -14006,6 +14007,10 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    fputs ("gs", file);
 	  return;
 
+	case '~':
+	  putc (TARGET_AVX2 ? 'i' : 'f', file);
+	  return;
+
 	default:
 	    output_operand_lossage ("invalid operand code '%c'", code);
 	}
@@ -14141,7 +14146,7 @@ static bool
 ix86_print_operand_punct_valid_p (unsigned char code)
 {
   return (code == '@' || code == '*' || code == '+'
-	  || code == '&' || code == ';');
+	  || code == '&' || code == ';' || code == '~');
 }
 
 /* Print a memory operand whose address is ADDR.  */
@@ -18735,15 +18740,13 @@ ix86_prepare_sse_fp_compare_args (rtx dest, enum rtx_code code,
 {
   rtx tmp;
 
-  /* AVX supports all the needed comparisons, no need to swap arguments
-     nor help reload.  */
-  if (TARGET_AVX)
-    return code;
-
   switch (code)
     {
     case LTGT:
     case UNEQ:
+      /* AVX supports all the needed comparisons.  */
+      if (TARGET_AVX)
+	break;
       /* We have no LTGT as an operator.  We could implement it with
 	 NE & ORDERED, but this requires an extra temporary.  It's
 	 not clear that it's worth it.  */
@@ -18760,6 +18763,9 @@ ix86_prepare_sse_fp_compare_args (rtx dest, enum rtx_code code,
     case NE:
     case UNORDERED:
     case ORDERED:
+      /* AVX has 3 operand comparisons, no need to swap anything.  */
+      if (TARGET_AVX)
+	break;
       /* For commutative operators, try to canonicalize the destination
 	 operand to be first in the comparison - this helps reload to
 	 avoid extra moves.  */
@@ -18771,8 +18777,10 @@ ix86_prepare_sse_fp_compare_args (rtx dest, enum rtx_code code,
     case GT:
     case UNLE:
     case UNLT:
-      /* These are not supported directly.  Swap the comparison operands
-	 to transform into something that is supported.  */
+      /* These are not supported directly before AVX, and furthermore
+	 ix86_expand_sse_fp_minmax only optimizes LT/UNGE.  Swap the
+	 comparison operands to transform into something that is
+	 supported.  */
       tmp = *pop0;
       *pop0 = *pop1;
       *pop1 = tmp;
@@ -18897,32 +18905,95 @@ ix86_expand_sse_movcc (rtx dest, rtx cmp, rtx op_true, rtx op_false)
     }
   else if (TARGET_XOP)
     {
-      rtx pcmov = gen_rtx_SET (mode, dest,
-			       gen_rtx_IF_THEN_ELSE (mode, cmp,
-						     op_true,
-						     op_false));
-      emit_insn (pcmov);
+      op_true = force_reg (mode, op_true);
+
+      if (!nonimmediate_operand (op_false, mode))
+	op_false = force_reg (mode, op_false);
+
+      emit_insn (gen_rtx_SET (mode, dest,
+			      gen_rtx_IF_THEN_ELSE (mode, cmp,
+						    op_true,
+						    op_false)));
     }
   else
     {
-      op_true = force_reg (mode, op_true);
+      rtx (*gen) (rtx, rtx, rtx, rtx) = NULL;
+
+      if (!nonimmediate_operand (op_true, mode))
+	op_true = force_reg (mode, op_true);
+
       op_false = force_reg (mode, op_false);
 
-      t2 = gen_reg_rtx (mode);
-      if (optimize)
-	t3 = gen_reg_rtx (mode);
+      switch (mode)
+	{
+	case V4SFmode:
+	  if (TARGET_SSE4_1)
+	    gen = gen_sse4_1_blendvps;
+	  break;
+	case V2DFmode:
+	  if (TARGET_SSE4_1)
+	    gen = gen_sse4_1_blendvpd;
+	  break;
+	case V16QImode:
+	case V8HImode:
+	case V4SImode:
+	case V2DImode:
+	  if (TARGET_SSE4_1)
+	    {
+	      gen = gen_sse4_1_pblendvb;
+	      dest = gen_lowpart (V16QImode, dest);
+	      op_false = gen_lowpart (V16QImode, op_false);
+	      op_true = gen_lowpart (V16QImode, op_true);
+	      cmp = gen_lowpart (V16QImode, cmp);
+	    }
+	  break;
+	case V8SFmode:
+	  if (TARGET_AVX)
+	    gen = gen_avx_blendvps256;
+	  break;
+	case V4DFmode:
+	  if (TARGET_AVX)
+	    gen = gen_avx_blendvpd256;
+	  break;
+	case V32QImode:
+	case V16HImode:
+	case V8SImode:
+	case V4DImode:
+	  if (TARGET_AVX2)
+	    {
+	      gen = gen_avx2_pblendvb;
+	      dest = gen_lowpart (V32QImode, dest);
+	      op_false = gen_lowpart (V32QImode, op_false);
+	      op_true = gen_lowpart (V32QImode, op_true);
+	      cmp = gen_lowpart (V32QImode, cmp);
+	    }
+	  break;
+	default:
+	  break;
+	}
+
+      if (gen != NULL)
+	emit_insn (gen (dest, op_false, op_true, cmp));
       else
-	t3 = dest;
+	{
+	  op_true = force_reg (mode, op_true);
 
-      x = gen_rtx_AND (mode, op_true, cmp);
-      emit_insn (gen_rtx_SET (VOIDmode, t2, x));
+	  t2 = gen_reg_rtx (mode);
+	  if (optimize)
+	    t3 = gen_reg_rtx (mode);
+	  else
+	    t3 = dest;
 
-      x = gen_rtx_NOT (mode, cmp);
-      x = gen_rtx_AND (mode, x, op_false);
-      emit_insn (gen_rtx_SET (VOIDmode, t3, x));
+	  x = gen_rtx_AND (mode, op_true, cmp);
+	  emit_insn (gen_rtx_SET (VOIDmode, t2, x));
 
-      x = gen_rtx_IOR (mode, t3, t2);
-      emit_insn (gen_rtx_SET (VOIDmode, dest, x));
+	  x = gen_rtx_NOT (mode, cmp);
+	  x = gen_rtx_AND (mode, x, op_false);
+	  emit_insn (gen_rtx_SET (VOIDmode, t3, x));
+
+	  x = gen_rtx_IOR (mode, t3, t2);
+	  emit_insn (gen_rtx_SET (VOIDmode, dest, x));
+	}
     }
 }
 
