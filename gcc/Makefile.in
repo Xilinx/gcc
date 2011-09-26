@@ -1543,9 +1543,9 @@ BACKEND = main.o @TREEBROWSER@ libbackend.a libcommon-target.a libcommon.a \
 ## now we always have MELT enabled
 MELT_H= $(srcdir)/melt/generated/meltrunsup.h \
     $(srcdir)/melt-runtime.h \
-    melt-predef.h
+    melt-predef.h 
 
-MELT_RUNTIME_C= $(srcdir)/melt-runtime.c
+MELT_RUNTIME_C= $(srcdir)/melt-runtime.c 
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  insn-output.c insn-recog.c insn-emit.c insn-extract.c insn-peep.c \
@@ -2839,18 +2839,23 @@ common/common-targhooks.o : common/common-targhooks.c $(CONFIG_H) $(SYSTEM_H) \
 ## FIXME: melt_installed_cflags may vary from stage1 to stage2 so
 ## melt-runtime.o fails in the compare step.
 
-## the multiple level of quotes is needed, because that goes into melt-runtime.args
-MELT_RUNTIME_CPPDEFS= \
-	  -DMELT_GCC_VERSION=$(shell cat $(BASEVER) | $(AWK) '{split($$0,vertab,"."); printf "%d", vertab[1]*1000+vertab[2]}') \
-	  \'-DMELT_SOURCE_DIR=\"$(melt_source_dir)\"\' \
-	  \'-DMELT_MODULE_DIR=\"$(melt_module_dir)\"\' \
-	  \'-DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\"\' \
-	  \'-DMELT_REVISION=\"$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)\"\' \
-	  \'-DMELT_MODULE_CFLAGS=\"$(melt_installed_cflags)\"\' \
-	  \'-DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\"\' \
-	  \'-DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\"\' 
+## file melt-runtime-params-inc.c is generated and #include-d in melt-runtime.c
+melt-runtime-params-inc.c: build/melt-make-string$(build_exeext) Makefile
+	./build/melt-make-string$(build_exeext) \
+	     melt_source_dir '$(melt_source_dir)' \
+	     melt_module_dir '$(melt_module_dir)' \
+	     melt_module_make_command '$(MAKE)' \
+	     melt_module_makefile '$(melt_installed_module_makefile)' \
+	     melt_module_cflags '$(melt_installed_cflags)' \
+	     melt_revision '$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)' \
+	     melt_default_modlis '$(melt_default_modules_list)' > $@-tmp
+	mv $@-tmp $@
 
-melt-runtime.o melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
+MELT_RUNTIME_CPPDEFS= \
+	  -DMELT_REVISION='\"$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)\"' \
+	  -DMELT_GCC_VERSION=$(shell cat $(BASEVER) | $(AWK) '{split($$0,vertab,"."); printf "%d", vertab[1]*1000+vertab[2]}')
+
+melt-runtime.o melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h melt-runtime-params-inc.c $(C_COMMON_H) \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
 	tree-pass.h $(MELT_H) \
 	$(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt/generated/meltrunsup-inc.c  \
@@ -2858,7 +2863,7 @@ melt-runtime.o melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(
 	@echo $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
 	  $(MELT_RUNTIME_CPPDEFS) > melt-runtime.args-tmp
 	mv melt-runtime.args-tmp melt-runtime.args
-	$(CC) $(shell cat melt-runtime.args) -c $(MELT_RUNTIME_C) $(OUTPUT_OPTION)
+	$(CC)  $(shell cat melt-runtime.args) -c $(MELT_RUNTIME_C) $(OUTPUT_OPTION)
 
 ## to debug the macros, we may need this.
 melt-runtime.i:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
@@ -4123,6 +4128,10 @@ gengtype$(exeext) : gengtype.o gengtype-lex.o gengtype-parse.o \
               gengtype-state.o version.o errors.o $(LIBDEPS)
 	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
 	    $(filter-out ($LIBDEPS), $^) $(LIBS)
+
+build/melt-make-string$(build_exeext): build/melt-make-string.o
+	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ $^
+build/melt-make-string.o: melt-make-string.c
 
 # Rule for the generator programs:
 $(genprog:%=build/gen%$(build_exeext)): build/gen%$(build_exeext): build/gen%.o $(BUILD_LIBDEPS)

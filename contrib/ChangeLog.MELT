@@ -1,4 +1,8 @@
 
+2011-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile: Build melt-make-string to generate
+	melt-runtime-params-inc.c.
+
 2011-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt.so): Also build melt-runtime.args
 

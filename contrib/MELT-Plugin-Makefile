@@ -215,7 +215,22 @@ melt-run-md5.h:  gfmeltgcc_run_md5
 MELTGCC_VERSION_NUMBER = $(shell cat gfmeltgcc_version_number)
 
 
+melt-runtime-params-inc.c: melt-make-string
+	./melt-make-string \
+	     melt_source_dir '$(melt_source_dir)' \
+	     melt_module_dir '$(melt_module_dir)' \
+	     melt_module_make_command '$(MAKE)' \
+	     melt_module_makefile '$(melt_installed_module_makefile)' \
+	     melt_module_cflags '$(melt_installed_cflags)' \
+	     melt_revision '$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)' \
+	     melt_default_modlis '$(melt_default_modules_list)' > $@-tmp
+	mv $@-tmp $@
+
+melt-make-string: melt-make-string.c
+	$(CC) $^ -o $@
+
 melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
+   melt-runtime-params-inc.c \
    gt-melt-runtime.h $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) \
    melt-predef.h melt-run.h melt-run-md5.h GCCMELT-REVISION \
 	gfmeltgcc_version_number gfmeltgcc_revision

@@ -1,4 +1,18 @@
 
+2011-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-make-string.c: New file, used as generator.
+
+	* melt-runtime.c: Add #include of generated melt-runtime-params-inc.c
+	(MELT_SOURCE_DIR, MELT_MODULE_DIR, MELT_MODULE_MAKE_COMMAND)
+	(MELT_DEFAULT_MODLIS): Don't require these cpp definitions.
+	(melt_source_dir, melt_module_dir, melt_module_make_command)
+	(melt_module_makefile, melt_module_cflags, melt_default_modlis):
+	Definition moved into generated melt-runtime-params-inc.c.
+	(melt_version_str): Use MELT_STRINGIFY.
+	(meltgc_load_modules_and_do_mode): Use melt_default_modlis.
+
+	* Makefile.in: Generate melt-runtime-params-inc.c.
+
 2011-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl (melt-tiny-tests): Run the meltframe test on
 	melt-runtime.c

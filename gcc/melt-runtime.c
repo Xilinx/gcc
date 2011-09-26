@@ -136,6 +136,9 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 #define melt_break_alptr_2(Msg) melt_break_alptr_2_at((Msg),__FILE__,__LINE__)
 #endif	/* ENABLE_CHECKING */
 
+/* include a generated files of strings constants */
+#include "melt-runtime-params-inc.c"
+
 #include "melt-runtime.h"
 
 #define MELT_DESC_FILESUFFIX "+meltdesc.c"
@@ -182,31 +185,6 @@ xstrndup (const char *s, size_t n)
 
 
 
-#ifndef MELT_SOURCE_DIR
-#error MELT_SOURCE_DIR is not defined thru compile flags
-#endif
-
-#ifndef MELT_MODULE_DIR
-#error MELT_MODULE_DIR is not defined thru compile flags
-#endif
-
-#ifndef MELT_MODULE_MAKE_COMMAND
-#error MELT_MODULE_MAKE_COMMAND is not defined thru compile flags
-#endif
-
-#ifndef MELT_MODULE_MAKEFILE
-#error MELT_MODULE_MAKEFILE is not defined thru compile flags
-#endif
-
-#ifndef MELT_DEFAULT_MODLIS
-#error MELT_DEFAULT_MODLIS is not defined thru compile flags
-#endif
-
-#ifndef MELT_MODULE_CFLAGS
-#error MELT_MODULE_CFLAGS is not defined thru compile flags
-#endif
-
-
 /* *INDENT-OFF* */
 
 /* we use the plugin registration facilities, so this is the plugin
@@ -214,13 +192,6 @@ xstrndup (const char *s, size_t n)
 const char* melt_plugin_name;
 
 int melt_nb_modules;
-
-const char melt_source_dir[] = MELT_SOURCE_DIR;
-const char melt_module_dir[] = MELT_MODULE_DIR;
-const char melt_module_make_command[] = MELT_MODULE_MAKE_COMMAND;
-const char melt_module_makefile[] = MELT_MODULE_MAKEFILE;
-const char melt_module_cflags[] = MELT_MODULE_CFLAGS;
-const char melt_default_modlis[] = MELT_DEFAULT_MODLIS;
 
 
 melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={0};
@@ -325,7 +296,8 @@ const char* melt_version_str (void)
 #ifndef MELT_REVISION
 #error MELT_REVISION not defined at command line compilation
 #endif
-  return MELT_VERSION_STRING " " MELT_REVISION;
+#define MELT_STRINGIFY(X) #X
+  return MELT_VERSION_STRING " " MELT_STRINGIFY(MELT_REVISION);
 }
 
 
@@ -9438,7 +9410,7 @@ meltgc_load_modules_and_do_mode (void)
 	    || lastixmodule > 1)
 	  melt_fatal_error ("MELT default module list should be loaded at first (melt_nb_modules=%d, lastixmodule=%d)!", 
 			    melt_nb_modules, lastixmodule);
-	meltgc_load_module_list (0, MELT_DEFAULT_MODLIS);
+	meltgc_load_module_list (0, melt_default_modlis);
       }
       else if (curmod[0] == '@')
 	meltgc_load_module_list (0, curmod+1);
