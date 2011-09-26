@@ -1,5 +1,8 @@
 
 2011-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt.so): Use @melt-runtime.args to compile.
+
+2011-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile: Build melt-make-string to generate
 	melt-runtime-params-inc.c.
 

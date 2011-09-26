@@ -1,5 +1,9 @@
 
 2011-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-built.tpl: For meltframe.args output cc1 to /dev/null
+	* melt-build.mk: Regenerate.
+
+2011-09-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make-string.c: New file, used as generator.
 
 	* melt-runtime.c: Add #include of generated melt-runtime-params-inc.c

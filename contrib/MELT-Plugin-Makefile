@@ -188,7 +188,7 @@ gfmeltgcc_version_number:
 
 # intermediate file for the revision string
 gfmeltgcc_revision: GCCMELT-REVISION MELT-Plugin-Makefile 
-	$(SED) 's/^ *//' < $< | $(SED) 's/ *$$//'  > $@-tmp
+	$(SED) 's/^ *//' < $< | $(SED) 's/ *$$//'| $(SED) 's/ /_/g'  > $@-tmp
 	mv $@-tmp $@
 
 # intermediate file for the md5sum
@@ -237,15 +237,10 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 	@echo $(MELTGCC_INCLUDEFLAGS) -I $(realpath melt/generated) -I $(realpath .) -DMELT_IS_PLUGIN \
 	   $(MELTGCC_OPTIMFLAGS) \
 	   -DMELT_GCC_VERSION=$(MELTGCC_VERSION_NUMBER) \
-	   -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
-	   -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
-	   -DMELT_MODULE_MAKE_COMMAND=\"$(MELTGCC_MAKE)\" \
-           '-DMELT_REVISION="$(shell cat gfmeltgcc_revision)"' \
-	   '-DMELT_MODULE_CFLAGS="$(melt_installed_cflags)"' \
-	   -DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\" \
-	   -DMELT_DEFAULT_MODLIS=\"melt-default-modules\" > melt-runtime.args-tmp
+           '-DMELT_REVISION=\"$(shell cat gfmeltgcc_revision)\"' \
+	      > melt-runtime.args-tmp
 	@mv melt-runtime.args-tmp melt-runtime.args
-	$(CC) -fPIC  -shared  `cat melt-runtime.args` \
+	$(CC) -fPIC  -shared  @melt-runtime.args \
 	-o $@ melt-runtime.c $(MELTGCC_LIBES)
 
 clean:

@@ -615,7 +615,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) > meltframe.args-tmp
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) -o /dev/null > meltframe.args-tmp
 	@cat melt-runtime.args >> meltframe.args-tmp
 	echo $(MELT_RUNTIME_C) >> meltframe.args-tmp
 	@mv meltframe.args-tmp meltframe.args
