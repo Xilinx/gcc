@@ -5648,6 +5648,9 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	/* When converting from an init list we consider explicit
 	   constructors, but actually trying to call one is an error.  */
 	if (DECL_NONCONVERTING_P (convfn) && DECL_CONSTRUCTOR_P (convfn)
+	    /* Unless this is for direct-list-initialization.  */
+	    && !(BRACE_ENCLOSED_INITIALIZER_P (expr)
+		 && CONSTRUCTOR_IS_DIRECT_INIT (expr))
 	    /* Unless we're calling it for value-initialization from an
 	       empty list, since that is handled separately in 8.5.4.  */
 	    && cand->num_convs > 0)
@@ -6130,6 +6133,8 @@ convert_default_arg (tree type, tree arg, tree fn, int parmnum)
 
      we must not perform access checks here.  */
   push_deferring_access_checks (dk_no_check);
+  /* We must make a copy of ARG, in case subsequent processing
+     alters any part of it.  */
   arg = break_out_target_exprs (arg);
   if (TREE_CODE (arg) == CONSTRUCTOR)
     {
@@ -6140,14 +6145,6 @@ convert_default_arg (tree type, tree arg, tree fn, int parmnum)
     }
   else
     {
-      /* We must make a copy of ARG, in case subsequent processing
-	 alters any part of it.  For example, during gimplification a
-	 cast of the form (T) &X::f (where "f" is a member function)
-	 will lead to replacing the PTRMEM_CST for &X::f with a
-	 VAR_DECL.  We can avoid the copy for constants, since they
-	 are never modified in place.  */
-      if (!CONSTANT_CLASS_P (arg))
-	arg = unshare_expr (arg);
       arg = convert_for_initialization (0, type, arg, LOOKUP_IMPLICIT,
 					ICR_DEFAULT_ARGUMENT, fn, parmnum,
                                         tf_warning_or_error);
@@ -6455,7 +6452,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       converted_arg = build_base_path (PLUS_EXPR,
 				       arg,
 				       cand->conversion_path,
-				       1);
+				       1, complain);
       /* Check that the base class is accessible.  */
       if (!accessible_base_p (TREE_TYPE (argtype),
 			      BINFO_TYPE (cand->conversion_path), true))
@@ -6468,7 +6465,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       base_binfo = lookup_base (TREE_TYPE (TREE_TYPE (converted_arg)),
 				TREE_TYPE (parmtype), ba_unique, NULL);
       converted_arg = build_base_path (PLUS_EXPR, converted_arg,
-				       base_binfo, 1);
+				       base_binfo, 1, complain);
 
       argarray[j++] = converted_arg;
       parm = TREE_CHAIN (parm);
@@ -6712,7 +6709,8 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       if (TREE_DEPRECATED (fn))
 	warn_deprecated_use (fn, NULL_TREE);
 
-      argarray[0] = build_base_path (PLUS_EXPR, argarray[0], binfo, 1);
+      argarray[0] = build_base_path (PLUS_EXPR, argarray[0], binfo, 1,
+				     complain);
       if (TREE_SIDE_EFFECTS (argarray[0]))
 	argarray[0] = save_expr (argarray[0]);
       t = build_pointer_type (TREE_TYPE (fn));
@@ -6922,7 +6920,7 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
 	    /* However, for assignment operators, we must convert
 	       dynamically if the base is virtual.  */
 	    instance = build_base_path (PLUS_EXPR, instance,
-					binfo, /*nonnull=*/1);
+					binfo, /*nonnull=*/1, complain);
 	}
     }
 
@@ -7282,8 +7280,11 @@ build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 	    }
 	  else
 	    {
+	      /* Optimize away vtable lookup if we know that this function
+		 can't be overridden.  */
 	      if (DECL_VINDEX (fn) && ! (flags & LOOKUP_NONVIRTUAL)
-		  && resolves_to_fixed_type_p (instance, 0))
+		  && (resolves_to_fixed_type_p (instance, 0)
+		      || DECL_FINAL_P (fn) || CLASSTYPE_FINAL (basetype)))
 		flags |= LOOKUP_NONVIRTUAL;
               if (explicit_targs)
                 flags |= LOOKUP_EXPLICIT_TMPL_ARGS;

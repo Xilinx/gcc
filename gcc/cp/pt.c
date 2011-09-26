@@ -5951,6 +5951,16 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
       if (expr == error_mark_node)
 	return expr;
     }
+  else if (NULLPTR_TYPE_P (type))
+    {
+      if (expr != nullptr_node)
+	{
+	  error ("%qE is not a valid template argument for type %qT "
+		 "because it is of type %qT", expr, type, TREE_TYPE (expr));
+	  return NULL_TREE;
+	}
+      return expr;
+    }
   /* A template non-type parameter must be one of the above.  */
   else
     gcc_unreachable ();
@@ -10264,11 +10274,14 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	TREE_TYPE (r) = type;
 	cp_apply_type_quals_to_decl (cp_type_quals (type), r);
 
-	/* DECL_INITIAL gives the number of bits in a bit-field.  */
-	DECL_INITIAL (r)
-	  = tsubst_expr (DECL_INITIAL (t), args,
-			 complain, in_decl,
-			 /*integral_constant_expression_p=*/true);
+	if (DECL_C_BIT_FIELD (r))
+	  /* For bit-fields, DECL_INITIAL gives the number of bits.  For
+	     non-bit-fields DECL_INITIAL is a non-static data member
+	     initializer, which gets deferred instantiation.  */
+	  DECL_INITIAL (r)
+	    = tsubst_expr (DECL_INITIAL (t), args,
+			   complain, in_decl,
+			   /*integral_constant_expression_p=*/true);
 	/* We don't have to set DECL_CONTEXT here; it is set by
 	   finish_member_declaration.  */
 	DECL_CHAIN (r) = NULL_TREE;
@@ -11737,6 +11750,13 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       if (r == NULL)
 	{
 	  tree c;
+
+	  /* We get here for a use of 'this' in an NSDMI.  */
+	  if (DECL_NAME (t) == this_identifier
+	      && at_function_scope_p ()
+	      && DECL_CONSTRUCTOR_P (current_function_decl))
+	    return current_class_ptr;
+
 	  /* This can happen for a parameter name used later in a function
 	     declaration (such as in a late-specified return type).  Just
 	     make a dummy decl, since it's only used for its type.  */
@@ -18716,6 +18736,8 @@ invalid_nontype_parm_type_p (tree type, tsubst_flags_t complain)
   else if (TREE_CODE (type) == TYPENAME_TYPE)
     return 0;
   else if (TREE_CODE (type) == DECLTYPE_TYPE)
+    return 0;
+  else if (TREE_CODE (type) == NULLPTR_TYPE)
     return 0;
 
   if (complain & tf_error)
