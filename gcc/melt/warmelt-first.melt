@@ -531,7 +531,16 @@ pattern-macro bindings. See the $EXPORT_PATMACRO macro.}# )
 See The $EXPORT_VALUES macro.}#
 )
 
-					; formal binding (used in generated defprimitive)
+;;; formal binding for rest of variadic functions
+(defclass class_rest_formal_binding
+  :super class_any_binding
+  :predef CLASS_REST_FORMAL_BINDING
+  :fields ()
+  ;; the obj_num is the argument rank of the rest
+  :doc #{The $CLASS_REST_FORMAL_BINDING is the class to bind the last :rest formal argument, in variadic functions. The object's number is the argument rank.}#
+)
+
+;;; formal binding (used in generated defprimitive)
 (defclass class_formal_binding
   :super class_any_binding
   :fields (fbind_type)
@@ -539,7 +548,8 @@ See The $EXPORT_VALUES macro.}#
   :predef CLASS_FORMAL_BINDING
   :doc #{The $CLASS_FORMAL_BINDING is the class of formal argument
 bindings [like in @code{defun lambda defprimitive defciterator}
-etc..]. The $FBIND_TYPE gives the formal's c-type.}# )
+etc..]. The $FBIND_TYPE gives the formal's c-type. The object's number
+is the argument rank.}# )
 
 
 ;;; fixed bindings are defined in a compilation unit and can be
@@ -3993,6 +4003,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_primitive_binding
  class_proped 
  class_root
+ class_rest_formal_binding
  class_selector
  class_selector_binding 
  class_sexpr

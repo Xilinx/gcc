@@ -35,8 +35,11 @@ along with GCC; see the file COPYING3.   If not see
    and so on.
 **/
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
+
+void output_cstr (const char *s);
 
 /* output a C string with escapes when needed. */
 void
@@ -113,7 +116,7 @@ main (int argc, char **argv)
 	  badname = 1;
       if (badname)
 	{
-	  printf("#error bad name %s\n", name);
+	  printf ("#error bad name %s\n", name);
 	  fprintf (stderr, "bad name #%d: %s\n", ix, name);
 	  exit (1);
 	}
