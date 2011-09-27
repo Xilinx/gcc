@@ -108,6 +108,9 @@ pph_cache_init (pph_cache *cache)
 }
 
 
+/* Initialize the pre-loaded cache.  This contains all the common
+   tree nodes built by the compiler on startup.  */
+
 void
 pph_init_preloaded_cache (void)
 {
@@ -137,6 +140,7 @@ pph_stream_open (const char *name, const char *mode)
   stream->name = xstrdup (name);
   stream->write_p = (strchr (mode, 'w') != NULL);
   pph_cache_init (&stream->cache);
+  stream->preloaded_cache = pph_preloaded_cache;
   if (stream->write_p)
     pph_init_write (stream);
   else
@@ -411,18 +415,16 @@ pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix)
   pph_cache_entry e = { data, 0, 0 };
 
   map_slot = pointer_map_insert (cache->m, data);
-  if (*map_slot == NULL)
-    {
-      *map_slot = (void *) (intptr_t) ix;
-      if (ix + 1 > VEC_length (pph_cache_entry, cache->v))
-	VEC_safe_grow_cleared (pph_cache_entry, heap, cache->v, ix + 1);
-      VEC_replace (pph_cache_entry, cache->v, ix, &e);
-    }
+
 #if 0
-  /* FIXME pph.  Re-add after mutated references are implemented.  */
-  else
-    gcc_assert (ix == (intptr_t) *((intptr_t **) map_slot));
+  /* We should not be trying to insert the same data more than once.  */
+  gcc_assert (*map_slot == NULL);
 #endif
+
+  *map_slot = (void *) (intptr_t) ix;
+  if (ix + 1 > VEC_length (pph_cache_entry, cache->v))
+    VEC_safe_grow_cleared (pph_cache_entry, heap, cache->v, ix + 1);
+  VEC_replace (pph_cache_entry, cache->v, ix, &e);
 }
 
 
@@ -533,36 +535,20 @@ pph_cache_add (pph_cache *cache, void *data, unsigned *ix_p)
 }
 
 
-/* Return the pointer at slot IX in STREAM_CACHE if MARKER is an IREF.
-   If MARKER is a XREF then instead of looking up in STREAM_CACHE, the
-   pointer is looked up in the CACHE of pph_read_images[INCLUDE_IX].
-   Finally if MARKER is a PREF return the pointer at slot IX in the
-   preloaded cache.  */
+/* Generate a CRC32 signature for the first NBYTES of the area memory
+   pointed to by slot IX of CACHE.  The signature is stored in
+   CACHE[IX] and returned.  */
 
-void *
-pph_cache_get (pph_cache *stream_cache, unsigned include_ix, unsigned ix,
-               enum pph_record_marker marker)
+unsigned
+pph_cache_sign (pph_cache *cache, unsigned ix, size_t nbytes)
 {
   pph_cache_entry *e;
-  pph_cache *cache;
 
-  /* Determine which cache to use.  */
-  switch (marker)
-    {
-    case PPH_RECORD_IREF:
-      cache = stream_cache;
-      break;
-    case PPH_RECORD_XREF:
-      cache = &VEC_index (pph_stream_ptr, pph_read_images, include_ix)->cache;
-      break;
-    case PPH_RECORD_PREF:
-      cache = pph_preloaded_cache;
-      break;
-    default:
-      gcc_unreachable ();
-    }
+  gcc_assert (nbytes == (size_t) (int) nbytes);
 
-  e = VEC_index (pph_cache_entry, cache->v, ix);
-  gcc_assert (e);
-  return e->data;
+  e = pph_cache_get_entry (cache, ix);
+  e->crc = xcrc32 ((const unsigned char *) e->data, nbytes, -1);
+  e->crc_nbytes = nbytes;
+
+  return e->crc;
 }

@@ -1,3 +1,25 @@
+2011-09-27   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_read_namespace_tree): Do not insert
+        builtins into the cache.
+        Call pph_cache_sign for decls and types.
+	* pph-streamer-out.c (pph_write_builtin): New.
+	(pph_write_namespace_tree): Call it.
+        Handle builtins before calling pph_out_start_record.
+	* pph-streamer.c (pph_init_preloaded_cache): Add comment.
+	(pph_stream_open): Initialize preloaded_cache field.
+	(pph_cache_insert_at): Assert that *MAP_SLOT is NULL.  Disable
+        for now.
+	(pph_cache_sign): New.
+        (pph_cache_get): Move to pph-streamer.h.
+	* pph-streamer.h (pph_cache_entry): Change type of field crc_nbytes
+        to size_t.
+        (pph_stream): Add field preloaded_cache.
+	(pph_cache_select): Factor out of ... 
+	(pph_cache_get): ... here.
+        Change all callers to call pph_cache_select first.
+	(pph_cache_get_entry): New.
+
 2011-09-26   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (enum pph_record_marker): Add PPH_RECORD_MREF

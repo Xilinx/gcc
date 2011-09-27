@@ -129,10 +129,10 @@ typedef struct pph_cache_entry {
   /* Checksum information for DATA.  */
   unsigned int crc;
 
-  /* Length of the checksummed area pointed by DATA.  Note that this
-     is *not* the size of the memory area pointed by DATA, just the
-     number of bytes in DATA that we have checksummed.  */
-  unsigned int crc_nbytes;
+  /* Length in bytes of the checksummed area pointed by DATA.  Note
+     that this is *not* the size of the memory area pointed by DATA,
+     just the number of bytes in DATA that we have checksummed.  */
+  size_t crc_nbytes;
 } pph_cache_entry;
 
 DEF_VEC_O(pph_cache_entry);
@@ -246,6 +246,12 @@ typedef struct pph_stream {
   /* Cache of pickled data structures.  */
   pph_cache cache;
 
+  /* Pointer to the pre-loaded cache.  This cache contains all the
+     trees that are always built by the compiler on startup (and
+     thus need not be pickled).  This cache is shared by all the
+     pph_stream objects.  */
+  pph_cache *preloaded_cache;
+
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
 
@@ -279,7 +285,7 @@ void pph_cache_insert_at (pph_cache *, void *, unsigned);
 bool pph_cache_lookup (pph_cache *, void *, unsigned *);
 bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
 bool pph_cache_add (pph_cache *, void *, unsigned *);
-void *pph_cache_get (pph_cache *, unsigned, unsigned, enum pph_record_marker);
+unsigned pph_cache_sign (pph_cache *, unsigned, size_t);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
@@ -330,6 +336,46 @@ pph_enabled_p (void)
   return pph_writer_enabled_p () || pph_reader_enabled_p ();
 }
 
+/* Return the pickle cache in STREAM corresponding to MARKER.
+   if MARKER is PPH_RECORD_IREF, it returns the cache in STREAM itself.
+   If MARKER is PPH_RECORD_XREF, it returns the cache in
+   pph_read_images[INCLUDE_IX].
+   If MARKER is a PREF, it returns the preloaded cache.  */
+static inline pph_cache *
+pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
+                  unsigned include_ix)
+{
+  switch (marker)
+    {
+    case PPH_RECORD_IREF:
+      return &stream->cache;
+      break;
+    case PPH_RECORD_XREF:
+      return &VEC_index (pph_stream_ptr, pph_read_images, include_ix)->cache;
+      break;
+    case PPH_RECORD_PREF:
+      return stream->preloaded_cache;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Return the data pointer at slot IX in CACHE  */
+static inline void *
+pph_cache_get (pph_cache *cache, unsigned ix)
+{
+  pph_cache_entry *e = VEC_index (pph_cache_entry, cache->v, ix);
+  gcc_assert (e);
+  return e->data;
+}
+
+/* Return entry IX in CACHE.  */
+static inline pph_cache_entry *
+pph_cache_get_entry (pph_cache *cache, unsigned ix)
+{
+  return VEC_index (pph_cache_entry, cache->v, ix);
+}
 
 /* Output array A of cardinality C of ASTs to STREAM.  */
 /* FIXME pph: hold for alternate routine. */

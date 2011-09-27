@@ -1909,6 +1909,21 @@ pph_write_tree_header (pph_stream *stream, tree expr)
 }
 
 
+/* Write builtin EXPR to STREAM.  MD and NORMAL builtins do not need
+   to be written out completely as they are always instantiated by the
+   compiler on startup.  The only builtins that need to be written out
+   are BUILT_IN_FRONTEND.  For all other builtins, we simply write the
+   class and code.  */
+
+static void
+pph_write_builtin (pph_stream *stream, tree expr)
+{
+  pph_out_record_marker (stream, PPH_RECORD_START);
+  pph_out_uint (stream, -1);
+  streamer_write_builtin (stream->encoder.w.ob, expr);
+}
+
+
 /* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
    in OB.  */
 
@@ -1923,21 +1938,35 @@ void
 pph_write_namespace_tree (pph_stream *stream, tree expr,
                           tree enclosing_namespace )
 {
+  /* Handle builtins first.  We do not want builtins in the cache for
+     two reasons:
+
+     - They never need pickling.  Much like pre-loaded tree nodes,
+       builtins are pre-built by the compiler and accessible with
+       their class and code.
+
+     - They can trick the cache.  When possible, user-provided
+       functions are generally replaced by their builtin counterparts
+       (e.g., strcmp, malloc, etc).  When this happens, the writer
+       cache will store in its cache two different expressions, one
+       for the user provided function and another for the builtin
+       itself.  However, when written out to the PPH image, they both
+       get emitted as a reference to the builtin.  Therefore, when the
+       reader tries to instantiate the second copy, it tries to store
+       the same tree in two different cache slots (and proceeds to ICE
+       in pph_cache_insert_at).  */
+  if (expr && streamer_handle_as_builtin_p (expr))
+    {
+      pph_write_builtin (stream, expr);
+      return;
+    }
+
   /* If EXPR is NULL or it already existed in the pickle cache,
      nothing else needs to be done.  */
   if (!pph_out_start_record (stream, expr))
     return;
 
-  if (streamer_handle_as_builtin_p (expr))
-    {
-      /* MD and NORMAL builtins do not need to be written out
-	 completely as they are always instantiated by the
-	 compiler on startup.  The only builtins that need to
-	 be written out are BUILT_IN_FRONTEND.  For all other
-	 builtins, we simply write the class and code.  */
-      streamer_write_builtin (stream->encoder.w.ob, expr);
-    }
-  else if (TREE_CODE (expr) == INTEGER_CST)
+  if (TREE_CODE (expr) == INTEGER_CST)
     {
       /* INTEGER_CST nodes are special because they need their
 	 original type to be materialized by the reader (to implement
