@@ -114,16 +114,6 @@ GCCMELT_SECONDARIES_OBJ := $(join $(basename $(notdir $(GCCMELT_SECONDARIES))),$
 vpath %.optimized.pic.o $(GCCMELT_MODULE_WORKSPACE)
 $(GCCMELT_MODULE_WORKSPACE)/%.optimized.pic.o: 
 	[ -d $(GCCMELT_MODULE_WORKSPACE) ] || mkdir -p $(GCCMELT_MODULE_WORKSPACE)
-	echo optimized pic at $@  \
-	   GCCMELT_MODULE_SOURCEBASE=$(GCCMELT_MODULE_SOURCEBASE) \
-	   GCCMELT_MODULE_BINARYBASE=$(GCCMELT_MODULE_BINARYBASE) \
-	   GCCMELT_MODULE_WORKSPACE=$(GCCMELT_MODULE_WORKSPACE) \
-	   GCCMELT_MODULE_FLAVOR=$(GCCMELT_MODULE_FLAVOR) \
-	   GCCMELT_CUMULATED_MD5=$(GCCMELT_CUMULATED_MD5)
-#	echo optimized base1name at  $(basename $@)
-#	echo optimized base2name at  $(basename $(basename $@))
-#	echo optimized base3name at  $(basename $(basename $(basename $@)))
-#	echo optimized base4name at  $(basename $(basename $(basename $(basename $@))))
 	$(GCCMELT_CC) -DMELTGCC_MODULE_OPTIMIZED  -DMELT_HAVE_DEBUG=0  $(GCCMELT_OPTIMIZED_FLAGS) $(GCCMELT_CFLAGS) \
 	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
@@ -136,7 +126,7 @@ $(GCCMELT_MODULE_WORKSPACE)/%.quicklybuilt.pic.o:
 vpath %.debugnoline.pic.o $(GCCMELT_MODULE_WORKSPACE)
 $(GCCMELT_MODULE_WORKSPACE)/%.debugnoline.pic.o: 
 	[ -d $(GCCMELT_MODULE_WORKSPACE) ] || mkdir -p $(GCCMELT_MODULE_WORKSPACE)
-	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  $(GCCMELT_QUICKLYBUILT_FLAGS) $(GCCMELT_CFLAGS) \
+	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  $(GCCMELT_DEBUGNOLINE_FLAGS) $(GCCMELT_CFLAGS) \
 	   -fPIC -c -o $@  $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
@@ -146,7 +136,6 @@ vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
 	   -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
 $(GCCMELT_MODULE_WORKSPACE)/$(basename $(notdir $(GCCMELT_DESC))).$(GCCMELT_CUMULATED_MD5).pic.o: $(GCCMELT_DESC)
-	echo descfile at $@ caret $^ GCCMELT_DESC=$(GCCMELT_DESC)
 	[ -d $(GCCMELT_MODULE_WORKSPACE) ] || mkdir -p $(GCCMELT_MODULE_WORKSPACE)
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DESCRFILE $(GCCMELT_CFLAGS) -fPIC -c -o $@ $<
 
