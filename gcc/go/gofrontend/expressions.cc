@@ -5671,6 +5671,50 @@ Binary_expression::do_lower(Gogo*, Named_object*, Statement_inserter*, int)
 	return Expression::make_string(left_string + right_string, location);
     }
 
+  // Special case for shift of a floating point constant.
+  if (op == OPERATOR_LSHIFT || op == OPERATOR_RSHIFT)
+    {
+      mpfr_t left_val;
+      mpfr_init(left_val);
+      Type* left_type;
+      mpz_t right_val;
+      mpz_init(right_val);
+      Type* right_type;
+      if (left->float_constant_value(left_val, &left_type)
+	  && right->integer_constant_value(false, right_val, &right_type)
+	  && mpfr_integer_p(left_val)
+	  && (left_type == NULL
+	      || left_type->is_abstract()
+	      || left_type->integer_type() != NULL))
+	{
+	  mpz_t left_int;
+	  mpz_init(left_int);
+	  mpfr_get_z(left_int, left_val, GMP_RNDN);
+
+	  mpz_t val;
+	  mpz_init(val);
+
+	  Expression* ret = NULL;
+	  if (Binary_expression::eval_integer(op, left_type, left_int,
+					      right_type, right_val,
+					      location, val))
+	    ret = Expression::make_integer(&val, left_type, location);
+
+	  mpz_clear(left_int);
+	  mpz_clear(val);
+
+	  if (ret != NULL)
+	    {
+	      mpfr_clear(left_val);
+	      mpz_clear(right_val);
+	      return ret;
+	    }
+	}
+
+      mpfr_clear(left_val);
+      mpz_clear(right_val);
+    }
+
   return this;
 }
 
@@ -5939,14 +5983,8 @@ Binary_expression::do_determine_type(const Type_context* context)
   // Set the context for the left hand operand.
   if (is_shift_op)
     {
-      // The right hand operand plays no role in determining the type
-      // of the left hand operand.  A shift of an abstract integer in
-      // a string context gets special treatment, which may be a
-      // language bug.
-      if (subcontext.type != NULL
-	  && subcontext.type->is_string_type()
-	  && tleft->is_abstract())
-	error_at(this->location(), "shift of non-integer operand");
+      // The right hand operand of a shift plays no role in
+      // determining the type of the left hand operand.
     }
   else if (!tleft->is_abstract())
     subcontext.type = tleft;
@@ -5979,10 +6017,21 @@ Binary_expression::do_determine_type(const Type_context* context)
 
   this->left_->determine_type(&subcontext);
 
-  // The context for the right hand operand is the same as for the
-  // left hand operand, except for a shift operator.
   if (is_shift_op)
     {
+      // We may have inherited an unusable type for the shift operand.
+      // Give a useful error if that happened.
+      if (tleft->is_abstract()
+	  && subcontext.type != NULL
+	  && (this->left_->type()->integer_type() == NULL
+	      || (subcontext.type->integer_type() == NULL
+		  && subcontext.type->float_type() == NULL
+		  && subcontext.type->complex_type() == NULL)))
+	this->report_error(("invalid context-determined non-integer type "
+			    "for shift operand"));
+
+      // The context for the right hand operand is the same as for the
+      // left hand operand, except for a shift operator.
       subcontext.type = Type::lookup_integer_type("uint");
       subcontext.may_be_abstract = false;
     }
@@ -9730,7 +9779,10 @@ Call_result_expression::do_type()
   if (fntype == NULL)
     {
       if (ce->issue_error())
-	this->report_error(_("expected function"));    
+	{
+	  if (!ce->fn()->type()->is_error())
+	    this->report_error(_("expected function"));
+	}
       this->set_is_error();
       return Type::make_error_type();
     }
@@ -10043,7 +10095,9 @@ Array_index_expression::do_check_types(Gogo*)
     this->report_error(_("index must be integer"));
   if (this->end_ != NULL
       && this->end_->type()->integer_type() == NULL
-      && !this->end_->is_nil_expression())
+      && !this->end_->type()->is_error()
+      && !this->end_->is_nil_expression()
+      && !this->end_->is_error_expression())
     this->report_error(_("slice end must be integer"));
 
   Array_type* array_type = this->array_->type()->array_type();

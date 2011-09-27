@@ -10272,11 +10272,14 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	TREE_TYPE (r) = type;
 	cp_apply_type_quals_to_decl (cp_type_quals (type), r);
 
-	/* DECL_INITIAL gives the number of bits in a bit-field.  */
-	DECL_INITIAL (r)
-	  = tsubst_expr (DECL_INITIAL (t), args,
-			 complain, in_decl,
-			 /*integral_constant_expression_p=*/true);
+	if (DECL_C_BIT_FIELD (r))
+	  /* For bit-fields, DECL_INITIAL gives the number of bits.  For
+	     non-bit-fields DECL_INITIAL is a non-static data member
+	     initializer, which gets deferred instantiation.  */
+	  DECL_INITIAL (r)
+	    = tsubst_expr (DECL_INITIAL (t), args,
+			   complain, in_decl,
+			   /*integral_constant_expression_p=*/true);
 	/* We don't have to set DECL_CONTEXT here; it is set by
 	   finish_member_declaration.  */
 	DECL_CHAIN (r) = NULL_TREE;
@@ -18803,6 +18806,8 @@ invalid_nontype_parm_type_p (tree type, tsubst_flags_t complain)
   else if (TREE_CODE (type) == TYPENAME_TYPE)
     return 0;
   else if (TREE_CODE (type) == DECLTYPE_TYPE)
+    return 0;
+  else if (TREE_CODE (type) == NULLPTR_TYPE)
     return 0;
 
   if (complain & tf_error)

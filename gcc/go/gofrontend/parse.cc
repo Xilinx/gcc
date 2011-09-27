@@ -335,10 +335,17 @@ Parse::type_name(bool issue_error)
   bool ok = true;
   if (named_object == NULL)
     {
-      if (package != NULL)
-	ok = false;
-      else
+      if (package == NULL)
 	named_object = this->gogo_->add_unknown_name(name, location);
+      else
+	{
+	  const std::string& packname(package->package_value()->name());
+	  error_at(location, "reference to undefined identifier %<%s.%s%>",
+		   Gogo::message_name(packname).c_str(),
+		   Gogo::message_name(name).c_str());
+	  issue_error = false;
+	  ok = false;
+	}
     }
   else if (named_object->is_type())
     {
@@ -1292,6 +1299,13 @@ Parse::declaration_may_start_here()
 void
 Parse::decl(void (Parse::*pfn)(void*), void* varg)
 {
+  if (this->peek_token()->is_eof())
+    {
+      if (!saw_errors())
+	error_at(this->location(), "unexpected end of file");
+      return;
+    }
+
   if (!this->peek_token()->is_op(OPERATOR_LPAREN))
     (this->*pfn)(varg);
   else
@@ -3492,7 +3506,21 @@ Parse::simple_stat(bool may_be_composite_lit, bool* return_exp,
   else if (return_exp != NULL)
     return this->verify_not_sink(exp);
   else
-    this->expression_stat(this->verify_not_sink(exp));
+    {
+      exp = this->verify_not_sink(exp);
+
+      if (token->is_op(OPERATOR_COLONEQ))
+	{
+	  if (!exp->is_error_expression())
+	    error_at(token->location(), "non-name on left side of %<:=%>");
+	  while (!token->is_op(OPERATOR_SEMICOLON)
+		 && !token->is_eof())
+	    token = this->advance_token();
+	  return NULL;
+	}
+
+      this->expression_stat(exp);
+    }
 
   return NULL;
 }
@@ -3813,7 +3841,8 @@ Parse::return_stat()
   this->gogo_->add_statement(Statement::make_return_statement(vals, location));
 }
 
-// IfStmt    = "if" [ SimpleStmt ";" ] Expression Block [ "else" Statement ] .
+// IfStmt = "if" [ SimpleStmt ";" ] Expression Block
+//          [ "else" ( IfStmt | Block ) ] .
 
 void
 Parse::if_stat()
@@ -3883,10 +3912,17 @@ Parse::if_stat()
   Block* else_block = NULL;
   if (this->peek_token()->is_keyword(KEYWORD_ELSE))
     {
-      this->advance_token();
-      // We create a block to gather the statement.
       this->gogo_->start_block(this->location());
-      this->statement(NULL);
+      const Token* token = this->advance_token();
+      if (token->is_keyword(KEYWORD_IF))
+	this->if_stat();
+      else if (token->is_op(OPERATOR_LCURLY))
+	this->block();
+      else
+	{
+	  error_at(this->location(), "expected %<if%> or %<{%>");
+	  this->statement(NULL);
+	}
       else_block = this->gogo_->finish_block(this->location());
     }
 
@@ -4265,8 +4301,19 @@ Parse::type_switch_case(std::vector<Type*>* types, bool* is_default)
       while (true)
 	{
 	  Type* t = this->type();
+
 	  if (!t->is_error_type())
 	    types->push_back(t);
+	  else
+	    {
+	      token = this->peek_token();
+	      while (!token->is_op(OPERATOR_COLON)
+		     && !token->is_op(OPERATOR_COMMA)
+		     && !token->is_op(OPERATOR_RCURLY)
+		     && !token->is_eof())
+		token = this->advance_token();
+	    }
+
 	  if (!this->peek_token()->is_op(OPERATOR_COMMA))
 	    break;
 	  this->advance_token();
@@ -4914,7 +4961,7 @@ Parse::break_stat()
 	{
 	  // If there is a label with this name, mark it as used to
 	  // avoid a useless error about an unused label.
-	  this->gogo_->add_label_reference(token->identifier());
+	  this->gogo_->add_label_reference(token->identifier(), 0, false);
 
 	  error_at(token->location(), "invalid break label %qs",
 		   Gogo::message_name(token->identifier()).c_str());
@@ -4969,7 +5016,7 @@ Parse::continue_stat()
 	{
 	  // If there is a label with this name, mark it as used to
 	  // avoid a useless error about an unused label.
-	  this->gogo_->add_label_reference(token->identifier());
+	  this->gogo_->add_label_reference(token->identifier(), 0, false);
 
 	  error_at(token->location(), "invalid continue label %qs",
 		   Gogo::message_name(token->identifier()).c_str());
@@ -5003,7 +5050,8 @@ Parse::goto_stat()
     error_at(this->location(), "expected label for goto");
   else
     {
-      Label* label = this->gogo_->add_label_reference(token->identifier());
+      Label* label = this->gogo_->add_label_reference(token->identifier(),
+						      location, true);
       Statement* s = Statement::make_goto_statement(label, location);
       this->gogo_->add_statement(s);
       this->advance_token();

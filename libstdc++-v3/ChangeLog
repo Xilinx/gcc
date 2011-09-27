@@ -1,3 +1,56 @@
+2011-09-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert (no longer necessary post r179130):
+
+	2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	* testsuite/util/testsuite_error.h: Add empty default constructor
+	to __gnu_test::test_category and
+	__gnu_test::test_derived_category.
+	* src/future.cc: Add empty default constructor to
+	future_error_category.
+	* src/system_error.cc: Add default ctor to generic_error_category
+	and system_error_category.
+
+2011-09-24  John Salmon  <john.salmon@deshaw.com>
+
+	PR libstdc++/50510
+	* include/bits/random.tcc (seed_seq::generate): Fix computation.
+
+2011-09-24  John Salmon  <john.salmon@deshaw.com>
+
+	PR libstdc++/50509
+	* include/bits/random.tcc (seed_seq::generate): Fix computation.
+
+2011-09-21  Benjamin Kosnik  <bkoz@redhat.com
+
+	* doc/Makefile.am (stamp-epub-docbook): Fix image directory location.
+	* doc/Makefile.in: Regenerate.
+
+2011-09-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* src/limits.cc: Replace everywhere __int128_t -> __int128, and
+	__uint128_t -> unsigned __int128.
+	* include/std/type_traits: Likewise.
+	* include/std/limits: Likewise.
+	* testsuite/18_support/numeric_limits/dr559.cc: Likewise.
+	* testsuite/18_support/numeric_limits/lowest.cc: Likewise.
+	* testsuite/18_support/numeric_limits/40856.cc: Likewise.
+	* testsuite/18_support/numeric_limits/max_digits10.cc: Likewise.
+	* testsuite/util/testsuite_common_types.h: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs-1.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs-2.cc: Likewise.
+	* testsuite/20_util/is_floating_point/value.cc: Likewise.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-1.cc: Likewise.
+	* testsuite/20_util/make_unsigned/requirements/typedefs-2.cc: Likewise.
+	* testsuite/20_util/is_signed/value.cc: Likewise.
+	* testsuite/20_util/is_unsigned/value.cc: Likewise.
+	* testsuite/20_util/is_integral/value.cc: Likewise.
+	* config/abi/pre/gnu.ver: Likewise.
+	* acinclude.m4: Likewise.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
 2011-09-19  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/40856
