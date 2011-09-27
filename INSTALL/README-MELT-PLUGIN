@@ -144,7 +144,7 @@ the subject line]
 #######################################################################
 NEWS for 0.9 MELT plugin for gcc-4.6
 
-September XXth, 2011: Release of MELT plugin 0.9 for gcc-4.6
+September 27th, 2011: Release of MELT plugin 0.9 for gcc-4.6
 
 New features:
 
@@ -204,6 +204,7 @@ New features:
 
    Experimental: ability to (define ...) values like in Scheme.
 
+   Ability to create gimple-s and to modify gimple_seq.
 
    Slow boxed arithmetic operations are available (e.g. +iv gets two
    boxed integer and gives the boxed integer of their sum).
