@@ -1,5 +1,8 @@
 
 2011-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* INSTALL/README-MELT-PLUGIN: Mention (define ...)
+
+2011-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT plugin 0.9 release
 
 2011-09-24  Basile Starynkevitch  <basile@starynkevitch.net>

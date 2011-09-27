@@ -202,6 +202,9 @@ New features:
    written ##{...}# is expanded as several components, not a single
    list.
 
+   Experimental: ability to (define ...) values like in Scheme.
+
+
    Slow boxed arithmetic operations are available (e.g. +iv gets two
    boxed integer and gives the boxed integer of their sum).
 
