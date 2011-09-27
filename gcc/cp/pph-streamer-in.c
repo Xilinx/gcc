@@ -2137,7 +2137,6 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
       /* For integer constants we only need the type and its hi/low
 	 words.  */
       expr = streamer_read_integer_cst (ib, data_in);
-      pph_cache_insert_at (&stream->cache, expr, ix);
     }
   else
     {

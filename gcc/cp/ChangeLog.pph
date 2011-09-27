@@ -1,6 +1,24 @@
 2011-09-27   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_namespace_tree): Do not insert
+        constants in the cache.
+	* pph-streamer-out.c (pph_cache_should_handle): New.
+	(pph_out_start_ref_record): Factor out of ...
+	(pph_out_start_record): ... here.
+        Change return value meaning; true means 'all done'; false
+        means 'caller should write data out'.  Update all callers.
+	(pph_out_start_tree_record):  New.
+	(pph_write_builtin): Remove.  Update all users.
+	(pph_write_namespace_tree): Call pph_out_start_tree_record.
+	* pph-streamer.c (pph_cache_insert_at): Assert that we are
+        not trying to insert the same data more than once.
+	* pph-streamer.h (enum pph_record_marker): Add new value
+        PPH_RECORD_START_NO_CACHE.
+	(pph_in_record_marker): Handle it.
+
+2011-09-27   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_read_namespace_tree): Do not insert
         builtins into the cache.
         Call pph_cache_sign for decls and types.
 	* pph-streamer-out.c (pph_write_builtin): New.

@@ -416,10 +416,8 @@ pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix)
 
   map_slot = pointer_map_insert (cache->m, data);
 
-#if 0
   /* We should not be trying to insert the same data more than once.  */
   gcc_assert (*map_slot == NULL);
-#endif
 
   *map_slot = (void *) (intptr_t) ix;
   if (ix + 1 > VEC_length (pph_cache_entry, cache->v))

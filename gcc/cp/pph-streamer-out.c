@@ -182,14 +182,56 @@ pph_flush_buffers (pph_stream *stream)
 }
 
 
-/* Start a new record in STREAM for data in DATA.  If DATA is NULL
-   write an end-of-record marker and return false.  If DATA is not NULL
-   and did not exist in the pickle cache, add it, write a
-   start-of-record marker and return true.  If DATA existed in the
-   cache, write a shared-record marker and return false.  */
+/* Return true if tree node T should be added to the pickle cache.  */
 
 static inline bool
-pph_out_start_record (pph_stream *stream, void *data)
+pph_cache_should_handle (tree t)
+{
+  if (t)
+    {
+      if (TREE_CODE (t) == INTEGER_CST)
+        {
+          /* With the exception of some special constants that are
+            pointer-compared everywhere (e.g., integer_zero_node), we
+            do not want constants in the cache.  Their physical
+            representation is smaller than a cache reference record
+            and they can also trick the cache in similar ways to
+            builtins (read below).  */
+          return false;
+        }
+      else if (streamer_handle_as_builtin_p (t))
+        {
+          /* We do not want builtins in the cache for two reasons:
+
+            - They never need pickling.  Much like pre-loaded tree
+              nodes, builtins are pre-built by the compiler and
+              accessible with their class and code.
+
+            - They can trick the cache.  When possible, user-provided
+              functions are generally replaced by their builtin
+              counterparts (e.g., strcmp, malloc, etc).  When this
+              happens, the writer cache will store in its cache two
+              different expressions, one for the user provided
+              function and another for the builtin itself.  However,
+              when written out to the PPH image, they both get
+              emitted as a reference to the builtin.  Therefore, when
+              the reader tries to instantiate the second copy, it
+              tries to store the same tree in two different cache
+              slots (and proceeds to ICE in pph_cache_insert_at).  */
+          return false;
+        }
+    }
+
+  return true;
+}
+
+
+/* If DATA is NULL or it existed in one of the pickle caches associated
+   with STREAM, write a reference marker and return true.  Otherwise,
+   do nothing and return false.  */
+
+static bool
+pph_out_start_ref_record (pph_stream *stream, void *data)
 {
   unsigned ix, include_ix;
 
@@ -197,7 +239,7 @@ pph_out_start_record (pph_stream *stream, void *data)
   if (data == NULL)
     {
       pph_out_record_marker (stream, PPH_RECORD_END);
-      return false;
+      return true;
     }
 
   /* See if we have data in STREAM's cache.  If so, write an internal
@@ -207,7 +249,7 @@ pph_out_start_record (pph_stream *stream, void *data)
     {
       pph_out_record_marker (stream, PPH_RECORD_IREF);
       pph_out_uint (stream, ix);
-      return false;
+      return true;
     }
 
   /* DATA is not in STREAM's cache.  See if it is in any of the
@@ -219,7 +261,7 @@ pph_out_start_record (pph_stream *stream, void *data)
       pph_out_record_marker (stream, PPH_RECORD_XREF);
       pph_out_uint (stream, include_ix);
       pph_out_uint (stream, ix);
-      return false;
+      return true;
     }
 
   /* DATA is not in any stream's cache. See if it is a preloaded node.  */
@@ -227,15 +269,79 @@ pph_out_start_record (pph_stream *stream, void *data)
     {
       pph_out_record_marker (stream, PPH_RECORD_PREF);
       pph_out_uint (stream, ix);
-      return false;
+      return true;
     }
 
-  /* DATA is in none of the pickle caches, add it to STREAM's pickle
-     cache and tell the caller that it should pickle DATA out.  */
+  /* Could not write a reference record.  DATA must be pickled.  */
+  return false;
+}
+
+
+/* Start a new record in STREAM for DATA.  If DATA is NULL
+   write an end-of-record marker and return false.
+
+   If DATA is not NULL and did not exist in the pickle cache, add it,
+   write a start-of-record marker and return true.  This means that we
+   could not write a reference marker to DATA and the caller should
+   pickle out DATA's physical representation.
+
+   If DATA existed in the cache, write a reference-record marker and
+   return true.  This means that we could write a reference marker to
+   DATA.  */
+
+static inline bool
+pph_out_start_record (pph_stream *stream, void *data)
+{
+  unsigned ix;
+
+  /* Try to write a reference record first.  */
+  if (pph_out_start_ref_record (stream, data))
+    return true;
+
+  /* DATA is in none of the pickle caches.  Add DATA to STREAM's
+     pickle cache and return false to tell the caller that it should
+     pickle DATA out.  */
   pph_cache_add (&stream->cache, data, &ix);
   pph_out_record_marker (stream, PPH_RECORD_START);
   pph_out_uint (stream, ix);
-  return true;
+
+  /* The caller will have to write a physical representation for DATA.  */
+  return false;
+}
+
+
+/* Start a record for tree node T in STREAM.  This is like
+   pph_out_start_record, but it filters certain special trees that
+   should never be added to the cache.  */
+
+static inline bool
+pph_out_start_tree_record (pph_stream *stream, tree t)
+{
+  /* Try to write a reference record first.  */
+  if (pph_out_start_ref_record (stream, t))
+    return true;
+
+  /* We want to prevent some trees from hitting the cache.  Note that
+     this does not prevent us from ever putting these nodes in the
+     cache.
+
+     For example, we do not want to cache regular constants (as their
+     representation is actually smaller than a cache reference), but
+     some constants are special and need to always be shared (e.g.,
+     integer_zero_node).  Those special constants are pre-loaded in
+     STREAM->PRELOADED_CACHE.  */
+  if (pph_cache_should_handle (t))
+    {
+      unsigned ix;
+      pph_cache_add (&stream->cache, t, &ix);
+      pph_out_record_marker (stream, PPH_RECORD_START);
+      pph_out_uint (stream, ix);
+    }
+  else
+    pph_out_record_marker (stream, PPH_RECORD_START_NO_CACHE);
+
+  /* The caller will have to write a physical representation for T.  */
+  return false;
 }
 
 
@@ -509,7 +615,7 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
 {
   struct bitpack_d bp;
 
-  if (!pph_out_start_record (stream, cb))
+  if (pph_out_start_record (stream, cb))
     return;
 
   pph_out_tree (stream, cb->value);
@@ -547,7 +653,7 @@ pph_out_cxx_binding (pph_stream *stream, cxx_binding *cb)
 static void
 pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
 {
-  if (!pph_out_start_record (stream, cb))
+  if (pph_out_start_record (stream, cb))
     return;
 
   pph_out_cxx_binding (stream, cb->base);
@@ -560,7 +666,7 @@ pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
 static void
 pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 {
-  if (!pph_out_start_record (stream, lb))
+  if (pph_out_start_record (stream, lb))
     return;
 
   pph_out_tree (stream, lb->label);
@@ -725,7 +831,7 @@ static void
 pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 		       unsigned filter)
 {
-  if (!pph_out_start_record (stream, bl))
+  if (pph_out_start_record (stream, bl))
     return;
 
   pph_out_binding_level_1 (stream, bl, filter);
@@ -748,7 +854,7 @@ static void
 pph_out_c_language_function (pph_stream *stream,
 			     struct c_language_function *clf)
 {
-  if (!pph_out_start_record (stream, clf))
+  if (pph_out_start_record (stream, clf))
     return;
 
   pph_out_tree_vec (stream, clf->x_stmt_tree.x_cur_stmt_list);
@@ -763,7 +869,7 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
 {
   struct bitpack_d bp;
 
-  if (!pph_out_start_record (stream, lf))
+  if (pph_out_start_record (stream, lf))
     return;
 
   pph_out_c_language_function (stream, &lf->base);
@@ -861,7 +967,7 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
 {
   struct pph_tree_info pti;
 
-  if (!pph_out_start_record (stream, fn))
+  if (pph_out_start_record (stream, fn))
     return;
 
   pph_out_tree (stream, fn->decl);
@@ -947,7 +1053,7 @@ pph_out_lang_specific (pph_stream *stream, tree decl)
   struct lang_decl_base *ldb;
 
   ld = DECL_LANG_SPECIFIC (decl);
-  if (!pph_out_start_record (stream, ld))
+  if (pph_out_start_record (stream, ld))
     return;
 
   /* Write all the fields in lang_decl_base.  */
@@ -1022,7 +1128,7 @@ pph_out_sorted_fields_type (pph_stream *stream, struct sorted_fields_type *sft)
 {
   int i;
 
-  if (!pph_out_start_record (stream, sft))
+  if (pph_out_start_record (stream, sft))
     return;
 
   pph_out_uint (stream, sft->len);
@@ -1091,7 +1197,7 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   pph_out_tree (stream, ltc->vtables);
   pph_out_tree (stream, ltc->typeinfo_var);
   pph_out_tree_vec (stream, ltc->vbases);
-  if (pph_out_start_record (stream, ltc->nested_udts))
+  if (!pph_out_start_record (stream, ltc->nested_udts))
     pph_out_binding_table (stream, ltc->nested_udts);
   pph_out_tree (stream, ltc->as_base);
   pph_out_tree_vec (stream, ltc->pure_virtuals);
@@ -1124,7 +1230,7 @@ pph_out_lang_type (pph_stream *stream, tree type)
   struct lang_type *lt;
 
   lt = TYPE_LANG_SPECIFIC (type);
-  if (!pph_out_start_record (stream, lt))
+  if (pph_out_start_record (stream, lt))
     return;
 
   pph_out_lang_type_header (stream, &lt->u.h);
@@ -1245,7 +1351,7 @@ pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
 {
   struct bitpack_d bp;
 
-  if (!pph_out_start_record (stream, node))
+  if (pph_out_start_record (stream, node))
     return;
 
   pph_out_tree (stream, node->decl);
@@ -1909,21 +2015,6 @@ pph_write_tree_header (pph_stream *stream, tree expr)
 }
 
 
-/* Write builtin EXPR to STREAM.  MD and NORMAL builtins do not need
-   to be written out completely as they are always instantiated by the
-   compiler on startup.  The only builtins that need to be written out
-   are BUILT_IN_FRONTEND.  For all other builtins, we simply write the
-   class and code.  */
-
-static void
-pph_write_builtin (pph_stream *stream, tree expr)
-{
-  pph_out_record_marker (stream, PPH_RECORD_START);
-  pph_out_uint (stream, -1);
-  streamer_write_builtin (stream->encoder.w.ob, expr);
-}
-
-
 /* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
    in OB.  */
 
@@ -1938,35 +2029,21 @@ void
 pph_write_namespace_tree (pph_stream *stream, tree expr,
                           tree enclosing_namespace )
 {
-  /* Handle builtins first.  We do not want builtins in the cache for
-     two reasons:
-
-     - They never need pickling.  Much like pre-loaded tree nodes,
-       builtins are pre-built by the compiler and accessible with
-       their class and code.
-
-     - They can trick the cache.  When possible, user-provided
-       functions are generally replaced by their builtin counterparts
-       (e.g., strcmp, malloc, etc).  When this happens, the writer
-       cache will store in its cache two different expressions, one
-       for the user provided function and another for the builtin
-       itself.  However, when written out to the PPH image, they both
-       get emitted as a reference to the builtin.  Therefore, when the
-       reader tries to instantiate the second copy, it tries to store
-       the same tree in two different cache slots (and proceeds to ICE
-       in pph_cache_insert_at).  */
-  if (expr && streamer_handle_as_builtin_p (expr))
-    {
-      pph_write_builtin (stream, expr);
-      return;
-    }
-
   /* If EXPR is NULL or it already existed in the pickle cache,
      nothing else needs to be done.  */
-  if (!pph_out_start_record (stream, expr))
+  if (pph_out_start_tree_record (stream, expr))
     return;
 
-  if (TREE_CODE (expr) == INTEGER_CST)
+  if (streamer_handle_as_builtin_p (expr))
+    {
+      /* MD and NORMAL builtins do not need to be written out
+         completely as they are always instantiated by the compiler on
+         startup.  The only builtins that need to be written out are
+         BUILT_IN_FRONTEND.  For all other builtins, we simply write
+         the class and code.  */
+      streamer_write_builtin (stream->encoder.w.ob, expr);
+    }
+  else if (TREE_CODE (expr) == INTEGER_CST)
     {
       /* INTEGER_CST nodes are special because they need their
 	 original type to be materialized by the reader (to implement

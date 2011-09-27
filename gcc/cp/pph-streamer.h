@@ -31,6 +31,10 @@ enum pph_record_marker {
   /* This record contains the physical representation of the memory data.  */
   PPH_RECORD_START = 0x23,
 
+  /* Like PPH_RECORD_START, but the reconstructed data should not be
+     added to the pickle cache (see pph_cache_should_handle).  */
+  PPH_RECORD_START_NO_CACHE,
+
   /* End of record marker.  If a record starts with PPH_RECORD_END, the
      reader should return a NULL pointer.  */
   PPH_RECORD_END,
@@ -703,6 +707,7 @@ pph_in_record_marker (pph_stream *stream)
 {
   enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
   gcc_assert (m == PPH_RECORD_START
+              || m == PPH_RECORD_START_NO_CACHE
 	      || m == PPH_RECORD_END
 	      || m == PPH_RECORD_IREF
 	      || m == PPH_RECORD_XREF
