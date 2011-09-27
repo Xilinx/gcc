@@ -5826,8 +5826,8 @@ register_constexpr_fundef (tree fun, tree body)
   body = massage_constexpr_body (fun, body);
   if (body == NULL_TREE || body == error_mark_node)
     {
-      error ("body of constexpr function %qD not a return-statement", fun);
-      DECL_DECLARED_CONSTEXPR_P (fun) = false;
+      if (!DECL_CONSTRUCTOR_P (fun))
+	error ("body of constexpr function %qD not a return-statement", fun);
       return NULL;
     }
 
@@ -6245,7 +6245,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
         {
 	  if (!allow_non_constant)
 	    {
-	      if (DECL_SAVED_TREE (fun))
+	      if (DECL_INITIAL (fun))
 		{
 		  /* The definition of fun was somehow unsuitable.  */
 		  error_at (loc, "%qD called in a constant expression", fun);
@@ -6680,9 +6680,9 @@ cxx_eval_logical_expression (const constexpr_call *call, tree t,
 					   allow_non_constant, addr,
 					   non_constant_p);
   VERIFY_CONSTANT (lhs);
-  if (lhs == bailout_value)
+  if (tree_int_cst_equal (lhs, bailout_value))
     return lhs;
-  gcc_assert (lhs == continue_value);
+  gcc_assert (tree_int_cst_equal (lhs, continue_value));
   r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 				    allow_non_constant, addr, non_constant_p);
   VERIFY_CONSTANT (r);

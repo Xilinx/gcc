@@ -1,3 +1,60 @@
+2011-09-27  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* libsupc++/tinfo.cc (type_info::operator==): Test __name instead
+	of name().
+
+2011-09-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/50529
+	* include/bits/vector.tcc (vector<>::erase(iterator, iterator)):
+	Fix to do nothing if the range is empty.
+	* include/bits/stl_bvector.h: Likewise.
+	* include/bits/deque.tcc: Likewise.
+	* include/debug/vector: Adjust.
+	* include/debug/deque: Likewise.
+	* testsuite/23_containers/vector/modifiers/erase/50529.cc: New.
+	* testsuite/23_containers/deque/modifiers/erase/50529.cc: Likewise.
+	* testsuite/23_containers/deque/modifiers/erase/3.cc: Adjust.
+
+2011-09-25  Benjamin Kosnik  <bkoz@redhat.com
+            Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/48698
+	* acinclude.m4 (GLIBCXX_ENABLE_SYMVERS): Set libtool_VERSION here.
+	* configure.ac: Move AC_SUBST of libtool_VERSION past call to
+	GLIBCXX_ENABLE_SYMVERS.
+	* configure: Regenerate.
+	* include/bits/c++config: Use __7 as versioned namespace name.
+	* config/abi/pre/gnu-versioned-namespace.ver: Change mangling as
+	per above.
+	* include/c_global/cwchar: Adjust nested namespaces.
+	* testsuite/20_util/bind/48698.cc: Add test case.
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Change line number.
+
+2011-09-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert (no longer necessary post r179130):
+
+	2010-04-27  Fabien Chêne  <fabien.chene@gmail.com>
+
+	* testsuite/util/testsuite_error.h: Add empty default constructor
+	to __gnu_test::test_category and
+	__gnu_test::test_derived_category.
+	* src/future.cc: Add empty default constructor to
+	future_error_category.
+	* src/system_error.cc: Add default ctor to generic_error_category
+	and system_error_category.
+
+2011-09-24  John Salmon  <john.salmon@deshaw.com>
+
+	PR libstdc++/50510
+	* include/bits/random.tcc (seed_seq::generate): Fix computation.
+
+2011-09-24  John Salmon  <john.salmon@deshaw.com>
+
+	PR libstdc++/50509
+	* include/bits/random.tcc (seed_seq::generate): Fix computation.
+
 2011-09-21  Benjamin Kosnik  <bkoz@redhat.com
 
 	* doc/Makefile.am (stamp-epub-docbook): Fix image directory location.

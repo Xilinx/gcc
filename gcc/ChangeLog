@@ -1,3 +1,232 @@
+2011-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* rtl.h (const_tiny_rtx): Change into array of 4 x MAX_MACHINE_MODE
+	from 3 x MAX_MACHINE_MODE.
+	(CONSTM1_RTX): Define.
+	* emit-rtl.c (const_tiny_rtx): Change into array of 4 x MAX_MACHINE_MODE
+        from 3 x MAX_MACHINE_MODE.
+	(gen_rtx_CONST_VECTOR): Use CONSTM1_RTX if all inner constants are
+	CONSTM1_RTX.
+	(init_emit_once): Initialize CONSTM1_RTX for MODE_INT and
+	MODE_VECTOR_INT modes.
+	* simplify-rtx.c (simplify_binary_operation_1) <case IOR, XOR, AND>:
+	Optimize if one operand is CONSTM1_RTX.
+	* config/i386/i386.c (ix86_expand_sse_movcc): Optimize mask ? -1 : x
+	into mask | x.
+
+2011-09-26  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (edge{8,16,32}{,l}): Return Pmode.
+	(fcmp{le,ne,gt,eq}{16,32}): Likewise.
+	* config/sparc/visintrin.h: Update edge and pixel-compare
+	intrinsics to return 'long' instead of 'int'.
+	* doc/extend.texi: Update documentation to match.
+	* config/sparc/sparc.c (eligible_for_return_delay): When leaf or
+	flat, allow any instruction.  Otherwise, when V9 allow parallels
+	which consist only of sets to registers outside of %o0 to %o5.
+	(sparc_vis_init_builtins): Update VIS builtin types for edge
+	and pixel-compare.
+
+	* config/sparc/sparc.c (sparc_conditional_register_usage): When VIS
+	is enabled, mark %gsr as global.
+	* config/sparc/sparc.md (UNSPEC_WRGSR): Delete.
+	(wrgsr_vis, *wrgsr_sp64, wrgsr_v8plus): Don't wrap in an unspec.
+
+	* config/sparc/sparc-c.c: New file implementing sparc_target_macros,
+	which will now define __VIS and __VIS__ when -mvis is enabled.
+	* config/sparc/t-sparc: Likewise.
+	* config.gcc: Add sparc-c.o to c_target_objs and cxx_target_objs,
+	and add t-sparc to tmake_file for all sparc targets.
+	* config/sparc/sparc-protos.h (sparc_target_macros): Declare.
+	* config/sparc/sparc.h (TARGE_CPU_CPP_BUILTINS): Call it.
+
+	* config/sparc/sparc.c (sparc_vis_init_builtins): Add explicit
+	builtins for VIS vector addition and subtraction.
+	* config/sparc/visintrin.h (__vis_fpadd16, __vis_fpadd16s,
+	__vis_fpadd32, __vis_fpadd32s, __vis_fpsub16, __vis_fpsub16s,
+	__vis_fpsub32, __vis_fpsub32s): New.
+	* doc/extend.texi: Document new VIS intrinsics.
+
+2011-09-26  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (peephole casesi+2): Use -1 instead of 65536.
+	* config/avr/avr.c (avr_out_compare): Print shorter sequence for
+	EQ/NE comparisons against +/-1 in the case of unused-after,
+	non-ld-regs target.
+
+2011-09-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* gimple-fold.c (gimplify_and_update_call_from_tree): Set
+	gctx.into_ssa after push_gimplify_context.
+
+	* gimple.c (gimple_build_call_valist): New function.
+	* gimple.h (gimple_build_call_valist): New prototype.
+	* tree-ssa-propagate.c (finish_update_gimple_call): New function.
+	(update_gimple_call): Likewise.
+	(update_call_from_tree): Use finish_update_gimple_call.
+	* tree-ssa-propagate.h (update_gimple_call): New prototype.
+
+2011-09-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50472
+	* gimple-fold.c (fold_const_aggregate_ref_1): Do not fold
+	volatile references.
+
+2011-09-26  Bingfeng Mei <bmei@broadcom.com>
+
+	* doc/tm.texi: Correct documentation for TARGET_ADDR_SPACE_SUBSET_P.
+	* target.def: (addr_space_subset_p): Likewise.
+
+2011-09-26  Tom de Vries  <tom@codesourcery.com>
+
+	* tree-ssa-alias.h (pt_solution_singleton_p): Declare.
+	* tree-ssa-structalias.c (pt_solution_singleton_p): New function.
+	* tree-ssa-ccp.c (fold_builtin_alloca_for_var): Set points-to solution
+	of new var.
+
+2011-09-26  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50465
+	* config/avr/avr-protos.h (output_reload_insisf): Don't pass insn.
+	* config/avr/avr.md (*reload_insi, *reload_insf): Change call to
+	output_reload_insisf.
+	(adjust_len): Set default to "no".
+	Remove alternative "yes".  Add alternatives: "mov8", "mov16",
+	"mov32", "ashlqi", "ashrqi", "lshrqi", "ashlhi", "ashrhi",
+	"lshrhi", "ashlsi, "ashrsi", "lshrsi".
+	(*movqi, *movhi, *movsi, *ashlqi3, ashlhi3, ashlsi3,
+	*ashlhi3_const, *ashlsi3_const, ashrqi3, ashrhi3, ashrsi3,
+	*ashrhi3_const, *ashrsi3_const, *lshrqi3, lshrhi3, *lshrhi3_const,
+	*lshrsi3_const): Set attribute "adjust_len".
+	* config/avr/avr.c (output_reload_insisf): Remove parameter "insn".
+	(output_movsisf): Don't pass insn to output_reload_insisf.
+	(adjust_insn_length): Handle new alternatives to adjust_len.
+	Remove handling of ADJUST_LEN_YES.  Clean-up code.
+
+2011-09-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* ifcvt.c (noce_try_cmove_arith): Use may_trap_or_fault_p in lieu of
+	may_trap_p to detect loads that may trap of fault.
+
+2011-09-26  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr-protos.h (output_reload_inhi): Change prototype.
+	* config/avr/avr.md (adjust_len): Add "reload_in16" alternative.
+	(*reload_inhi): Use it.  Adapt call to output_reload_inhi to new
+	prototype.
+	(*movhi): Split constraint alternative "r,rL" into "r,r" and "r,L".
+	* config/avr/avr.c: Rename output_reload_insisf_1 to
+	output_reload_in_const.
+	(avr_popcount_each_byte): Handle SFmode, too.
+	(output_reload_in_const): Change so it can handle HI loads, too.
+	Use avr_popcount_each_byte to work out if scratch register must be
+	created on the fly.
+	(output_reload_inhi): Rewrite using output_reload_in_const and...
+	(output_movhi): ...use it to print constants' loads.
+	(adjust_insn_length): New case ADJUST_LEN_RELOAD_IN16. Cleanup code.
+
+2011-09-25  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/constraints.md (C, P, Z): New constraints for
+	const_doube, const_int, and const_vector "all ones" values.
+	Make unused constraint letters comment match reality.
+	* config/sparc/predicates.md (const_all_ones_operand,
+	register_or_zero_or_all_ones_operand): New predicates.
+	* config/sparc/sparc.c (sparc_expand_move): Allow all ones
+	as well as zero constants when VIS.
+	(sparc_legitimate_constant_p): Likewise.
+	* config/sparc/sparc.md (movsi_insn): Add fones alternative.
+	(movsf_insn): Likewise
+	(movdi_insn_sp64): Add fone alternative.
+	(movdf_insn_sp32_v9): Likewise.
+	(movdf_insn_sp64): Likewise.
+
+	* configure.ac: Add feature check to make sure the assembler
+	supports the FMAF, HPC, and VIS 3.0 instructions found on
+	Niagara-3 and later cpus.
+	* configure: Rebuild.
+	* config.in: Likewise.
+	* config/sparc/sparc.opt: New option '-mfmaf'.
+	* config/sparc/sparc.md: Add float fused multiply-add patterns.
+	* config/sparc/sparc.h (AS_NIAGARA3_FLAG): New macro.
+	(ASM_CPU64_DEFAULT_SPEC, ASM_CPU_SPEC): Use it, as needed.
+	* config/sparc/sol2.h (ASM_CPU32_DEFAULT_SPEC,
+	ASM_CPU64_DEFAULT_SPEC, ASM_CPU_SPEC): Likewise.
+	* config/sparc/sparc.c (sparc_option_override): Turn MASK_FMAF on
+	by default for Niagara-3 and later.  Turn it off if TARGET_FPU is
+	disabled.
+	(sparc_rtx_costs): Handle 'FMA'.
+	* doc/invoke.texi: Document -mfmaf.
+
+2011-09-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-ssa-structalias.c (intra_create_variable_infos): Treat
+	TYPE_RESTRICT REFERENCE_TYPE parameters like restricted
+	DECL_BY_REFERENCE parameters.
+
+2011-09-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-eh.c (cleanup_empty_eh): Allow a call to __builtin_stack_restore
+	if there is no outgoing edge.
+
+	* tree-scalar-evolution.c (simple_iv): Accept all kinds of pointer and
+	integral types.
+
+2011-09-25  Ira Rosen  <ira.rosen@linaro.org>
+
+	* tree-vect-slp.c (vect_slp_analyze_bb_1): Split out core part
+	of vect_analyze_bb here.
+	(vect_analyze_bb): Loop over vector sizes calling vect_analyze_bb_1.
+
+2011-09-25  Ira Rosen  <ira.rosen@linaro.org>
+
+	* tree-data-ref.c (dr_analyze_innermost): Add new argument.
+	Allow not simple iv if analyzing basic block.
+	(create_data_ref): Update call to dr_analyze_innermost.
+	(stmt_with_adjacent_zero_store_dr_p, ref_base_address): Likewise.
+	* tree-loop-distribution.c (generate_memset_zero): Likewise.
+	* tree-predcom.c (find_looparound_phi): Likewise.
+	* tree-data-ref.h (dr_analyze_innermost): Add new argument.
+
+2011-09-24  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.h (FIRST_PSEUDO_REGISTER): Bump to 103.
+	(SPARC_GSR_REG): Define.
+	(FIXED_REGISTERS): Mark GSR as fixed.
+	(CALL_USED_REGISTERS): Mark GSR as call used.
+	(HARD_REGNO_NREGS): GSR is always 1 register.
+	(REG_CLASS_CONTENTS): Add GSR to ALL_REGS.
+	(REG_ALLOC_ORDER, REG_LEAF_ALLOC_ORDER): Add GSR to the end.
+	(REGISTER_NAMES): Add "%gsr".
+	* config/sparc/sparc.md (UNSPEC_ALIGNADDR, UNSPEC_ALIGNADDRL):
+	Delete.
+	(UNSPEC_WRGSR): New unspec.
+	(GSR_REG): New constant.
+	(type): Add new insn type 'gsr'.
+	(fpack16_vis, fpackfix_vis, fpack32_vis,
+	faligndata<V64I:MODE>_vis)): Add use of GSR_REG.
+	(wrgsr_vis, *wrgsr_sp64, wrgsr_v8plus, rdgsr_vis, *rdgsr_sp64,
+	rdgsr_v8plus): New expanders and insns.
+	(alignaddr<P:mode>_vis, alignaddrl<P:mode>_vis): Reimplement
+	using patterns which show that this is a plus in addition to a
+	modification of GSR_REG, instead of an unspec.
+	* config/sparc/ultra1_2.md: Handle 'gsr'.
+	* config/sparc/ultra3.md: Likewise.
+	* config/sparc/niagara.md: Likewise.
+	* config/sparc/niagara2.md: Likewise.
+	* config/sparc/sparc.c (leaf_reg_remap, sparc_leaf_regs): Fill out
+	end of table.
+	(sparc_option_override): Make -mvis imply -mv8plus.
+	(hard_32bit_mode_classes, hard_64bit_mode_classes): Add entries
+	for %gsr.
+	(sparc_vis_init_builtins): Build __builtin_vis_write_gsr and
+	__builtin_vis_read_gsr.
+	(sparc_expand_buildin): Handle builtins that take one argument and
+	return void.
+	(sparc_fold_builtin): Never fold writes to %gsr.
+	* config/sparc/visintrin.h (__vis_write_gsr, __vis_read_gsr): New.
+	* doc/extend.texi: Document new VIS intrinsics.
+
 2011-09-23  Jan Hubicka  <jh@suse.cz>
 
 	* ipa-inline-transform.c (inline_call): Add comment.

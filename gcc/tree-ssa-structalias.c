@@ -5589,10 +5589,11 @@ intra_create_variable_infos (void)
       varinfo_t p;
 
       /* For restrict qualified pointers to objects passed by
-         reference build a real representative for the pointed-to object.  */
-      if (DECL_BY_REFERENCE (t)
-	  && POINTER_TYPE_P (TREE_TYPE (t))
-	  && TYPE_RESTRICT (TREE_TYPE (t)))
+         reference build a real representative for the pointed-to object.
+	 Treat restrict qualified references the same.  */
+      if (TYPE_RESTRICT (TREE_TYPE (t))
+	  && ((DECL_BY_REFERENCE (t) && POINTER_TYPE_P (TREE_TYPE (t)))
+	      || TREE_CODE (TREE_TYPE (t)) == REFERENCE_TYPE))
 	{
 	  struct constraint_expr lhsc, rhsc;
 	  varinfo_t vi;
@@ -5975,6 +5976,21 @@ pt_solution_empty_p (struct pt_solution *pt)
       && !pt_solution_empty_p (&ipa_escaped_pt))
     return false;
 
+  return true;
+}
+
+/* Return true if the points-to solution *PT only point to a single var, and
+   return the var uid in *UID.  */
+
+bool
+pt_solution_singleton_p (struct pt_solution *pt, unsigned *uid)
+{
+  if (pt->anything || pt->nonlocal || pt->escaped || pt->ipa_escaped
+      || pt->null || pt->vars == NULL
+      || !bitmap_single_bit_set_p (pt->vars))
+    return false;
+
+  *uid = bitmap_first_set_bit (pt->vars);
   return true;
 }
 
