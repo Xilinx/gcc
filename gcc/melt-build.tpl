@@ -294,7 +294,7 @@ $(MELT_STAGE_ZERO):
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> $(notdir $(basename $@)[+melt_stage+].args-tmp)
 	@mv $(notdir $(basename $@))[+melt_stage+].args-tmp $(notdir $(basename $@))[+melt_stage+].args
-	@echo; echo; echo -n $(notdir $(basename $@)[+melt_stage+].args): ; cat $(notdir $(basename $@))[+melt_stage+].args ; echo "***** doing " $@
+	@echo; echo; echo -n $(notdir $(basename $@)[+melt_stage+].args): ; cat $(notdir $(basename $@))[+melt_stage+].args ; echo "***** doing " $@  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @$(notdir $(basename $@)[+melt_stage+].args)
 
 #@ [+ (. (tpl-file-line))+]
@@ -444,7 +444,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))sources.args-tmp
 	@mv $(notdir $(basename $@))sources.args-tmp $(notdir $(basename $@))sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@))sources.args: ; cat $(notdir $(basename $@))sources.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @$(notdir $(basename $@))sources.args
 
 
@@ -529,7 +529,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt melt-sources/warmelt-optimiz
 	     $(meltarg_init)=@warmelt-optimized:[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
 	@mv $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
+	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
 
 #@ [+ (. (tpl-file-line))+]
@@ -592,7 +592,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
        $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<).args-tmp
 	@mv $(basename $<).args-tmp $(basename $<).args
-	@echo; echo; echo; echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)
+	@echo; echo; echo; echo -n $(basename $<).args: ; cat $(basename $<).args ; echo "***** doing " $(basename $<)  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @$(basename $<).args
 # test that a helloworld can be run [+ (. (tpl-file-line))+]
 	@echo	$(MELTCCRUNFILE1ARGS) $(meltarg_init)=@melt-default-modules-quicklybuilt \
@@ -602,7 +602,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
        $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
        $(meltarg_output)=$(basename $<) empty-file-for-melt.c > $(basename $<)-run.args-tmp
 	@mv $(basename $<)-run.args-tmp $(basename $<)-run.args
-	@echo; echo; echo; echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run
+	@echo; echo; echo; echo -n $(basename $<)-run.args: ; cat $(basename $<)-run.args ; echo "***** doing " $(basename $<)-run  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @$(basename $<)-run.args
 # test that the melt-runtime follows MELT coding rules; this also tests
 # a real MELT pass on real code, like our melt-runtime.c
@@ -619,7 +619,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	@cat melt-runtime.args >> meltframe.args-tmp
 	echo $(MELT_RUNTIME_C) >> meltframe.args-tmp
 	@mv meltframe.args-tmp meltframe.args
-	@echo; echo; echo; echo -n meltframe.args: ; cat meltframe.args ; echo "***** doing " meltframe
+	@echo; echo; echo; echo -n meltframe.args: ; cat meltframe.args ; echo "***** doing " meltframe  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @meltframe.args
 
 

@@ -96,6 +96,9 @@ MELTGCC_DOC_HTML_DIR ?=  /usr/share/doc/html/gcc/
 ## the directory where *.pdf doc files are installed
 MELTGCC_DOC_PDF_DIR ?=  /usr/share/doc/pdf/gcc/
 
+## the main source of the runtime
+MELT_RUNTIME_C= melt-runtime.c
+
 ifeq ($(wildcard $(MELTGCC_PLUGIN_DIR)/include/gimple*),)
 $(error incorrect MELT GCC plugin directory $(MELTGCC_PLUGIN_DIR))
 endif
