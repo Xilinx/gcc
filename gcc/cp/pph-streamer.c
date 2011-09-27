@@ -41,13 +41,13 @@ along with GCC; see the file COPYING3.  If not see
 VEC(pph_stream_ptr, heap) *pph_read_images;
 
 /* A cache of pre-loaded common tree nodes.  */
-static pph_pickle_cache *pph_preloaded_cache;
+static pph_cache *pph_preloaded_cache;
 
 /* Pre-load common tree nodes into CACHE.  These nodes are always built by the
    front end, so there is no need to pickle them.  */
 
 static void
-pph_cache_preload (pph_pickle_cache *cache)
+pph_cache_preload (pph_cache *cache)
 {
   unsigned i;
 
@@ -101,7 +101,7 @@ pph_hooks_init (void)
 /* Initialize an empty pickle CACHE.  */
 
 static void
-pph_cache_init (pph_pickle_cache *cache)
+pph_cache_init (pph_cache *cache)
 {
   cache->v = NULL;
   cache->m = pointer_map_create ();
@@ -111,7 +111,7 @@ pph_cache_init (pph_pickle_cache *cache)
 void
 pph_init_preloaded_cache (void)
 {
-  pph_preloaded_cache = XCNEW (pph_pickle_cache);
+  pph_preloaded_cache = XCNEW (pph_cache);
   pph_cache_init (pph_preloaded_cache);
   pph_cache_preload (pph_preloaded_cache);
 }
@@ -169,7 +169,7 @@ pph_stream_close (pph_stream *stream)
 
   /* Deallocate all memory used.  */
   stream->file = NULL;
-  VEC_free (void_p, heap, stream->cache.v);
+  VEC_free (pph_cache_entry, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
   VEC_free (pph_symtab_entry, heap, stream->symtab.v);
 
@@ -398,22 +398,31 @@ pph_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
 }
 
 
-/* Insert DATA in CACHE at slot IX.  If DATA already existed in the CACHE, IX
-   must be the same as the previous entry.  */
+/* Insert DATA in CACHE at slot IX.  We support inserting the same
+   DATA at different locations of the array (FIXME pph, this happens
+   when reading builtins, which may have been converted into builtins
+   after they were read originally.  This should be detected and
+   converted into mutated references).  */
 
 void
-pph_cache_insert_at (pph_pickle_cache *cache, void *data, unsigned ix)
+pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix)
 {
   void **map_slot;
+  pph_cache_entry e = { data, 0, 0 };
 
   map_slot = pointer_map_insert (cache->m, data);
   if (*map_slot == NULL)
     {
-      *map_slot = (void *) (unsigned HOST_WIDE_INT) ix;
-      if (ix + 1 > VEC_length (void_p, cache->v))
-	VEC_safe_grow_cleared (void_p, heap, cache->v, ix + 1);
-      VEC_replace (void_p, cache->v, ix, data);
+      *map_slot = (void *) (intptr_t) ix;
+      if (ix + 1 > VEC_length (pph_cache_entry, cache->v))
+	VEC_safe_grow_cleared (pph_cache_entry, heap, cache->v, ix + 1);
+      VEC_replace (pph_cache_entry, cache->v, ix, &e);
     }
+#if 0
+  /* FIXME pph.  Re-add after mutated references are implemented.  */
+  else
+    gcc_assert (ix == (intptr_t) *((intptr_t **) map_slot));
+#endif
 }
 
 
@@ -422,7 +431,7 @@ pph_cache_insert_at (pph_pickle_cache *cache, void *data, unsigned ix)
    If CACHE is NULL use pph_preloaded_cache by default.  */
 
 bool
-pph_cache_lookup (pph_pickle_cache *cache, void *data, unsigned *ix_p)
+pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p)
 {
   void **map_slot;
   unsigned ix;
@@ -503,7 +512,7 @@ pph_cache_lookup_in_includes (void *data, unsigned *include_ix_p,
    in the CACHE, false otherwise.  */
 
 bool
-pph_cache_add (pph_pickle_cache *cache, void *data, unsigned *ix_p)
+pph_cache_add (pph_cache *cache, void *data, unsigned *ix_p)
 {
   unsigned ix;
   bool existed_p;
@@ -513,7 +522,7 @@ pph_cache_add (pph_pickle_cache *cache, void *data, unsigned *ix_p)
   else
     {
       existed_p = false;
-      ix = VEC_length (void_p, cache->v);
+      ix = VEC_length (pph_cache_entry, cache->v);
       pph_cache_insert_at (cache, data, ix);
     }
 
@@ -524,17 +533,18 @@ pph_cache_add (pph_pickle_cache *cache, void *data, unsigned *ix_p)
 }
 
 
-/* Return the pointer at slot IX in STREAM_CACHE if MARKER is an IREF.  IF
-   MARKER is a XREF then instead of looking up in STREAM_CACHE, the pointer is
-   looked up in the CACHE of pph_read_images[INCLUDE_IX].  Finally if MARKER is
-   a PREF return the pointer at slot IX in the preloaded cache.  */
+/* Return the pointer at slot IX in STREAM_CACHE if MARKER is an IREF.
+   If MARKER is a XREF then instead of looking up in STREAM_CACHE, the
+   pointer is looked up in the CACHE of pph_read_images[INCLUDE_IX].
+   Finally if MARKER is a PREF return the pointer at slot IX in the
+   preloaded cache.  */
 
 void *
-pph_cache_get (pph_pickle_cache *stream_cache, unsigned include_ix, unsigned ix,
+pph_cache_get (pph_cache *stream_cache, unsigned include_ix, unsigned ix,
                enum pph_record_marker marker)
 {
-  void *data;
-  pph_pickle_cache *cache;
+  pph_cache_entry *e;
+  pph_cache *cache;
 
   /* Determine which cache to use.  */
   switch (marker)
@@ -552,7 +562,7 @@ pph_cache_get (pph_pickle_cache *stream_cache, unsigned include_ix, unsigned ix,
       gcc_unreachable ();
     }
 
-  data = VEC_index (void_p, cache->v, ix);
-  gcc_assert (data);
-  return data;
+  e = VEC_index (pph_cache_entry, cache->v, ix);
+  gcc_assert (e);
+  return e->data;
 }

@@ -52,14 +52,25 @@ enum pph_record_marker {
   /* Preloaded reference. This marker indicates that this data is a preloaded
      node created by the front-end at the beginning of compilation, which we
      do not need to stream out as it will already exist on the way in.  */
-  PPH_RECORD_PREF
+  PPH_RECORD_PREF,
+
+  /* Mutated reference.  This marker indicates that this data already
+     existed in the cache for another PPH image, but it has mutated
+     since it was inserted into the cache:
+
+     - The writer will pickle the object again as if it had not
+       been pickled before.
+
+     - The reader uses this as an indication that it should not
+       allocate a new object, it should simply unpickle the object on
+       top of the already allocated object.  */
+  PPH_RECORD_MREF
 };
 
 /* Line table markers. We only stream line table entries from the parent header
    file, other entries are referred to by the name of the file which is then
    loaded as an include at the correct point in time.  */
 enum pph_linetable_marker {
-
   /* A regular line_map entry in the line_table.  */
   PPH_LINETABLE_ENTRY = 0x01,
 
@@ -102,9 +113,30 @@ typedef struct pph_file_header {
 } pph_file_header;
 
 
-typedef void *void_p;
-DEF_VEC_P(void_p);
-DEF_VEC_ALLOC_P(void_p,heap);
+/* An entry in the pickle cache.  Each entry contains a pointer to
+   the cached data and checksum information.  This checksum is used to
+   detect mutated states.  This is common, for instance, in decl trees
+   that are first parsed as declarations and later on they are
+   converted into their definition.
+
+   When the cache notices a cache hit on a mutated data, it writes a
+   PPH_RECORD_MUTATED_REF to indicate to the reader that it is about
+   to read an already instantiated tree.  */
+typedef struct pph_cache_entry {
+  /* Pointer to cached data.  */
+  void *data;
+
+  /* Checksum information for DATA.  */
+  unsigned int crc;
+
+  /* Length of the checksummed area pointed by DATA.  Note that this
+     is *not* the size of the memory area pointed by DATA, just the
+     number of bytes in DATA that we have checksummed.  */
+  unsigned int crc_nbytes;
+} pph_cache_entry;
+
+DEF_VEC_O(pph_cache_entry);
+DEF_VEC_ALLOC_O(pph_cache_entry,heap);
 
 /* A cache for storing pickled data structures.  This is used to implement
    pointer sharing.
@@ -118,13 +150,13 @@ DEF_VEC_ALLOC_P(void_p,heap);
    first materialized, its address is saved into the same cache slot
    used when writing.  Subsequent reads will simply get the
    materialized pointer from that slot.  */
-typedef struct pph_pickle_cache {
+typedef struct pph_cache {
   /* Array of entries.  */
-  VEC(void_p,heap) *v;
+  VEC(pph_cache_entry,heap) *v;
 
   /* Map between slots in the array and pointers.  */
   struct pointer_map_t *m;
-} pph_pickle_cache;
+} pph_cache;
 
 
 /* Actions associated with each symbol table entry.  These indicate
@@ -212,7 +244,7 @@ typedef struct pph_stream {
   } encoder;
 
   /* Cache of pickled data structures.  */
-  pph_pickle_cache cache;
+  pph_cache cache;
 
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
@@ -243,12 +275,11 @@ void pph_trace_string_with_length (pph_stream *, const char *, unsigned);
 void pph_trace_location (pph_stream *, location_t);
 void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
-void pph_cache_insert_at (pph_pickle_cache *, void *, unsigned);
-bool pph_cache_lookup (pph_pickle_cache *, void *, unsigned *);
+void pph_cache_insert_at (pph_cache *, void *, unsigned);
+bool pph_cache_lookup (pph_cache *, void *, unsigned *);
 bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
-bool pph_cache_add (pph_pickle_cache *, void *, unsigned *);
-void *pph_cache_get (pph_pickle_cache *, unsigned, unsigned,
-                     enum pph_record_marker);
+bool pph_cache_add (pph_cache *, void *, unsigned *);
+void *pph_cache_get (pph_cache *, unsigned, unsigned, enum pph_record_marker);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
