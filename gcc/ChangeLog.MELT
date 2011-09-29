@@ -1,5 +1,14 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (as_null): New cmatcher.
+
+	* melt/warmelt-genobj.melt (class_procroutineobj): Add oprout_restnam field.
+	(compile2obj_procedure): Fill it.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Handle it.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (class_nrep_routproc): Add
 	nrpro_variadic field.
 	(normexp_defun, normexp_lambda): Fill it.
@@ -25,6 +34,7 @@
 
 	* melt-runtime.h (melt_is_instance_of): Handles non-object values
 	with a hierarchy of discriminants.
+	(melt_argdescr_length): New inline function.
 
 	* melt/warmelt-first.melt (discr_any_receiver): Becomes predefined.
 	(class_rest_formal_binding): Is no more predefined.

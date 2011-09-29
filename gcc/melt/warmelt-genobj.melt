@@ -514,6 +514,7 @@
   :fields (oprout_getargs		;the get arguments tuple of instructions
 	   oprout_loc			;the source location
 	   oprout_funam			;function name
+	   oprout_restnam		;the name used for variadic arguments, or else null
 	   oprout_filenum		;boxed C file number
 	   ))
 
@@ -787,6 +788,7 @@ $SBUF.}#
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( (namsbuf (make_strbuf discr_strbuf)) 
 	 (routfunam ())
+	 (restnam ())
 	 (mofuncount  (get_field :mocx_funcount modctx))
 	 (mofiles (get_field :mocx_filetuple modctx))
 	 (:long funum (+i 1 (get_int mofuncount)))
@@ -799,6 +801,7 @@ $SBUF.}#
     (add2sbuf_cident namsbuf (get_field :mocx_modulename modctx))
     (if (is_a pro class_nrep_routproc)
 	(let ( (pronam (unsafe_get_field :nrpro_name pro)) 
+	       (nvariadic (unsafe_get_field :nrpro_variadic pro))
 	       )
 	  (if (is_a pronam class_named)
 	      (progn
@@ -811,8 +814,36 @@ $SBUF.}#
 		      (add2sbuf_longdec namsbuf (get_int (get_field :csym_urank pronam)))
 		      (add2sbuf_strconst namsbuf "__")
 		      ))
-		)
-	    )))
+		))
+	  (match 
+	   nvariadic
+	   ( ?(as_null)
+	     (void) 
+	     )
+	   ( ?(instance class_cloned_symbol
+			:named_name ?nvarnam
+			:csym_urank ?(integerbox_of ?nvarurank))
+	      (let ( (restbuf (make_strbuf discr_strbuf))
+		     )
+		(add2sbuf_strconst restbuf "restc_")
+		(add2sbuf_cident restbuf nvarnam)
+		(add2sbuf_strconst restbuf "__")
+		(add2sbuf_longdec restbuf nvarurank)
+		(setq restnam (strbuf2string discr_string restbuf))
+		))
+	   ( ?(instance class_symbol
+			:named_name ?nvarnam)
+	      (let ( (restbuf (make_strbuf discr_strbuf))
+		     )
+		(add2sbuf_strconst restbuf "rests_")
+		(add2sbuf_cident restbuf nvarnam)
+		(setq restnam (strbuf2string discr_string restbuf))
+		))
+	   ( ?_
+	     (debug_msg nvariadic "compile2obj_procedure bad nvariadic")
+	     (assert_msg "compile2obj_procedure bad nvariadic")
+	     )
+	   )))
     (let ( 
 	  (nbody (unsafe_get_field :nproc_body pro))
 	  (nloc (unsafe_get_field :nrep_loc pro))
@@ -836,6 +867,7 @@ $SBUF.}#
 			    :oprout_loc nloc
 			    :oprout_funam routfunam
 			    :oprout_filenum (make_integerbox discr_constant_integer filenum)
+			    :oprout_restnam restnam
 			    )) 
 	  (locmap (make_mapobject discr_map_objects (+i 20 (*i 3 (multiple_length nargb)))))
 	  (gcx (instance class_c_generation_context

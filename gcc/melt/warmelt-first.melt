@@ -1091,6 +1091,18 @@ an integer $I if $I is greater than $N.}#
 ;;; nullity test (for values)
 (defprimitive null (v) :long :doc #{Test that $V is the null value.}#
   #{(($v) == NULL)}#)
+
+;; pattern to match null value
+(defcmatcher as_null
+  (:value nv)
+  ()
+  asnull
+  :doc #{The $AS_NULL matcher marches null values.}#
+  ;; test
+  #{ /*$ASNULL ?*/ ($NV == NULL) }#
+  ;; no fill expansion
+)
+
 ;; primitive for testing if debug
 (defprimitive need_dbg (:long depth) :long :doc #{Test if debug messages are needed for the given $DEPTH.}#
   #{/*NEED_DBG*/
@@ -4198,6 +4210,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 
 ;; export the functions & matchers defined above
 (export_values
+ as_null
  at_exit_first
  at_exit_last
  at_end_melt_pass_first
