@@ -1,5 +1,10 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (class_source_again, class_source_variadic): New.
+	(mexpand_again, mexpand_variadic): New methods.
+	(again, variadic): New macros.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tvariadic.melt: Add more fixed arguments.
 
 	* melt/warmelt-genobj.melt (class_objgetargrest): New class, with
