@@ -8,7 +8,7 @@
     -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
     -fmelt-debug empty-file-for-melt.c
 |#
-(defun varifun (x :rest)
+(defun varifun (x :long l :rest)
   x
 )
 

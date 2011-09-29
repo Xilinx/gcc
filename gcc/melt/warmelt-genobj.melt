@@ -197,6 +197,12 @@
 	   obarg_bind			;formal binding
 	   ))
 
+;; get argument & update rest index in variadic instruction
+(defclass class_objgetargrest
+  :super class_objgetarg
+  :fields (obarg_rest ;name prefix of rest index, as a string
+	   ))
+
 
 ;; put extra result instruction
 (defclass class_objputxtraresult
@@ -549,6 +555,7 @@
  class_objexpv
  class_objfinalreturn
  class_objgetarg
+ class_objgetargrest
  class_objgetnamedcommon
  class_objgetnamedkeyword
  class_objgetnamedsymbol
@@ -889,7 +896,7 @@ $SBUF.}#
 	    nargb
 	    (lambda (bnd :long ix)
 	      (assert_msg "check bnd" (is_a bnd class_formal_binding))
-					;	      (debug_msg bnd "compilproc bnd")
+	      ;;	      (debug_msg bnd "compilproc bnd")
 	      (let ( (bctyp (unsafe_get_field :fbind_type bnd)) 
 		     (bnam (unsafe_get_field :binder bnd))
 		     (oloc 
@@ -901,10 +908,16 @@ $SBUF.}#
 			     (get_free_objloctyped gcx bnam bctyp)))
 		      ) 
 		     (ogarg
-		      (instance class_objgetarg
+		      (if restnam
+			  (instance class_objgetargrest
 				:obi_loc nloc
 				:obarg_obloc oloc
-				:obarg_bind bnd))
+				:obarg_bind bnd
+				:obarg_rest restnam)
+			(instance class_objgetarg
+				  :obi_loc nloc
+				  :obarg_obloc oloc
+				  :obarg_bind bnd)))
 		     )
 		(if (and (<=i ix 0) (!= bctyp ctype_value))
 		    (error_plain nloc "first argument of function should be a value"))

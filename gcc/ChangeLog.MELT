@@ -1,5 +1,18 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tvariadic.melt: Add more fixed arguments.
+
+	* melt/warmelt-genobj.melt (class_objgetargrest): New class, with
+	obarg_rest field.
+	(compile2obj_procedure): Use it for variadic functions.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Handle variadic
+	procedures by emitting melt_variadic_len & melt_variadic_ix and
+	their referenced symbols.
+	(outpucod_getargrest): New method for output_c_code of
+	class_objgetargrest.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/tvariadic.melt: New file.
 
