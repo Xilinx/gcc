@@ -1,5 +1,10 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_routproc): Add
+	nrpro_variadic field.
+	(normexp_defun, normexp_lambda): Fill it.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (class_rest_formal_binding): Remove.
 	(discr_formals_sequence, discr_variadic_formal_sequence): Add.

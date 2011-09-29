@@ -388,13 +388,13 @@ normalized expressions. Field $NINIT_DEFBINDS is the list of $DEFINE-d bindings.
 (defclass class_nrep_routproc
   :super class_nrep_anyproc
   :doc #{The $CLASS_NREP_ROUTPROC is the class for normal routine
-procedures, representing $DEFUN or $LAMBDA code. Field $NRPRO_NAME
-is the name, field $NRPRO_ARGB is the formal arguments
-binding. Field $NRPRO_CLOSEDB is the list of closed bindings. Field
-$NRPRO_CONST is the list of constants. Field $NRPRO_DATAROUT is the
-routine data object. Field $NRPRO_DATACLOS is the closure data
-object. Field $NRPRO_THUNKLIST is the list of thunks to be called
-when compiling it.}#
+procedures, representing $DEFUN or $LAMBDA code. Field $NRPRO_NAME is
+the name, field $NRPRO_ARGB is the formal arguments binding. Field
+$NRPRO_CLOSEDB is the list of closed bindings. Field $NRPRO_CONST is
+the list of constants. Field $NRPRO_DATAROUT is the routine data
+object. Field $NRPRO_DATACLOS is the closure data object. Field
+$NRPRO_THUNKLIST is the list of thunks to be called when compiling
+it. Field $NRPRO_VARIADIC is non-null if the routine is variadic.}#
   :fields (
 	   nrpro_name			;name (if any)
 	   nrpro_argb			;argument bindings
@@ -403,6 +403,7 @@ when compiling it.}#
 	   nrpro_datarout		;routine data object
 	   nrpro_dataclos		;closure data object
 	   nrpro_thunklist		;list of thunks to be called when compiling it
+	   nrpro_variadic		;non null iff variadic
 	   ))
 
 (defclass class_nrep_lambdaroutproc
@@ -3263,6 +3264,7 @@ source location.}#
 			  :nrpro_thunklist (make_list discr_list)
 			  :nrpro_datarout () ; filled below
 			  :nrpro_dataclos () ; filled below
+			  :nrpro_variadic () ; filled below
 			  ))
 	 (ndatarout (instance class_nrep_dataroutine
 			      :ndata_name snam
@@ -3288,11 +3290,13 @@ source location.}#
 		    (get_field :named_name snam))
 	(return)))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout :nrpro_dataclos ndataclos)
-    (multiple_every 
-     sformals
-     (lambda (fbi :long ix)
-       (assert_msg "check fbi" (is_a fbi class_formal_binding))
-       (put_env newenv fbi)))
+    (foreach_in_multiple 
+     (sformals)
+     (fbi :long ix)
+     (assert_msg "check fbi" (is_a fbi class_formal_binding))
+     (put_env newenv fbi))
+    (if (is_a sformals discr_variadic_formal_sequence)
+	(put_fields nproc :nrpro_variadic snam))
     (unsafe_put_fields newenv :env_proc nproc)
     (debug_msg newenv "normexp_defun updated :env_proc of of newenv")
     ;; add nproc into ncx
@@ -3352,7 +3356,7 @@ source location.}#
   (debug_msg env "normalize_lambda env")
   (debug_msg newenv "normalize_lambda newenv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
-	 (sargs (unsafe_get_field :slam_argbind recv))
+	 (sformalargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
 	 (csym (clone_symbol 'lambda_))
 	 (clocc (instance class_nrep_locsymocc
@@ -3366,12 +3370,13 @@ source location.}#
 			  :nrep_loc sloc
 			  :nproc_body () ;filled later
 			  :nrpro_name csym
-			  :nrpro_argb sargs
+			  :nrpro_argb sformalargs
 			  :nrpro_closedb closedblist
 			  :nrpro_const (make_list discr_list)
 			  :nrpro_datarout () ; filled below
 			  :nrpro_dataclos () ; not filled
 			  :nrpro_thunklist (make_list discr_list)
+			  :nrpro_variadic () ; filled below
 			  ))
 	 (ndatarout (instance class_nrep_dataroutine
 			      :ndata_name csym
@@ -3385,11 +3390,13 @@ source location.}#
 		       :nctx_curproc nproc
 		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout)
-    (multiple_every
-     sargs
-     (lambda (fbi :long ix)
-       (assert_msg "check fbi" (is_a fbi class_formal_binding))
-       (put_env newenv fbi)))
+    (foreach_in_multiple
+     (sformalargs)
+     (fbi :long ix)
+     (assert_msg "check fbi" (is_a fbi class_formal_binding))
+     (put_env newenv fbi))
+    (if (is_a sformalargs discr_variadic_formal_sequence)
+	(put_fields nproc :nrpro_variadic csym))
     (unsafe_put_fields newenv :env_proc nproc)
     (debug_msg newenv "normalize_lambda updated :env_proc of newenv")
     (shortbacktrace_dbg "normalize_lambda" 15)
