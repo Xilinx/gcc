@@ -1,10 +1,342 @@
+2011-09-29  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	* graphite-scop-detection.c (make_close_phi_nodes_unique):  New
+	forward declaration.
+	(remove_duplicate_close_phi): Detect and repair creation of
+	duplicate close-phis for a containing loop.
+	
+2011-09-27   Andi Kleen <ak@linux.intel.com>
+
+	* gcc.c (get_local_tick). Rename to get_random_number.
+        Read from /dev/urandom.
+	Add getpid call.
+	(compare_debug_dump_opt_spec_function): Drop getpid call.
+
+2011-09-26   Andi Kleen <ak@linux.intel.com>
+
+	* toplev.c (init_local_tick): Try reading random seed from /dev/urandom
+
+2011-09-26   Andi Kleen <ak@linux.intel.com>
+
+	* hwint.h (HOST_WIDE_INT_PRINT_HEX_PURE): Add.
+	* lto-streamer.c (lto_get_section_name): Remove crc32_string.
+ 	Handle numerical random seed.
+	* lto-streamer.h (lto_file_decl_data): Change id to unsigned HOST_WIDE_INT.
+	* toplev.c (random_seed): Add.
+	(init_random_seed): Change for numerical random seed.
+	(get_random_seed): Return as HOST_WIDE_INT.
+	(set_random_seed): Crc32 existing string.
+	* toplev.h (get_random_seed): Change to numercal return.
+	* tree.c (get_file_function_name): Remove CRC. Handle numerical random seed.
+
+2011-09-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50566
+	* config.gcc (extra_objs): Add avr-log.o for $target in:
+	avr-*-rtems*, avr-*-*.
+	* config/avr/t-avr (avr-log.o): New rule to compile...
+	* config/avr/avr-log.c: ...this new file.
+	* config/avr/avr.opt (mlog=): New option.
+	* config/avr/avr-protos.h (avr_edump, avr_fdump): New macros.
+	(avr_log_set_caller_e, avr_log_set_caller_f): New prototypes.
+	(avr_log_set_avr_log): New prototype.
+	(avr_log_t): New typedef.
+	(avr_log): New declaration.
+	* config/avr/avr.c (avr_option_override): Call avr_log_set_avr_log.
+
+2011-09-29  Artjoms Sinkarovs <artyom.shinkaroff@gmail.com>
+
+	* expr.c (do_store_flag): Expand vector comparison by
+	building an appropriate VEC_COND_EXPR.
+	* c-typeck.c (build_binary_op): Typecheck vector comparisons.
+	(c_objc_common_truthvalue_conversion): Adjust.
+	* tree-vect-generic.c (do_compare): Helper function.
+	(expand_vector_comparison): Check if hardware supports
+	vector comparison of the given type or expand vector
+	piecewise.
+	(expand_vector_operation): Treat comparison as binary
+	operation of vector type.
+	(expand_vector_operations_1): Adjust.
+
+2011-09-29  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (build_opaque_vector_type): Make opaque vectors
+	variant types of the corresponding non-opaque type.  Make
+	sure to share opaque vector types properly.
+
+2011-09-29  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (UNSPEC_ARRAY8, UNSPEC_ARRAY16,
+	UNSPEC_ARRAY32): New unspec.
+	(define_attr type): New type 'array'.
+	(array{8,16,32}<P:mode>_vis): New patterns.
+	* config/sparc/ultra1_2.md: Add reservations for 'array'.
+	* config/sparc/ultra3.md: Likewise.
+	* config/sparc/niagara.md: Likewise.
+	* config/sparc/niagara2.md: Likewise.
+	* config/sparc/sparc.c (sparc_vis_init_builtins): Build new
+	array builtins.
+	* config/sparc/visintrin.h (__vis_array8, __vis_array16,
+	__vis_array32): New.
+	* doc/extend.texi: Document new VIS builtins.
+
+	* config/sparc/sparc.md (gcond_name): Delete unnecessary code attr.
+	(VIS pixel-compare insn): Just use <gcond:name>.
+
+2011-09-29  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin9.h (STACK_CHECK_STATIC_BUILTIN): Enable for
+	Darwin >= 9.
+
+2011-09-28  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (UNSPEC_FCMPLE, UNSPEC_FCMPNE,
+	UNSPEC_FCMPGT, UNSPEC_FCMPEQ): Delete and reduce to...
+	(UNSPEC_FCMP): New unspec.
+	(gcond): New code iterator.
+	(gcond_name): New code attr.
+	(GCM): New mode iterator.
+	(gcm_name): New mode attr.
+	(fcmp{le,ne,gt,eq}{16,32}_vis): Reimplement using iterators.
+
+2011-09-28  Oleg Endo  <oleg.endo@t-online.de>
+
+	PR target/49486
+	* config/sh/sh.md (negdi2): Move expansion into split to
+	allow more combination options.  Add T_REG clobber.
+	(abssi2): New expander.
+	(*negdi2, *abssi2, *negabssi2): New insns.
+	(cneg): Change from insn to insn_and_split.  Rename to
+	negsi_cond.  Add alternative for non-SH4.
+
+2011-09-28  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* config/arm/neon.md (neon_move_lo_quad_<mode>): Delete.
+	(neon_move_hi_quad_<mode>): Likewise.
+	(move_hi_quad_<mode>, move_lo_quad_<mode>): Use subreg moves.
+
+2011-09-28  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/predicates.md (rx_minmax_operand): New predicate.
+	Accepts immediates and a restricted subset of MEMs.
+	* config/rx/rx.md (int_modes): New iterator.
+	(smaxsi3, sminsi3): Delete and replace with...
+	(smax<int_mode>3, smin<int_mode>3): New patterns.
+	(umax<>3_u, umax<>3_ur, umax<>3, umin<>3): New patterns.
+
+2011-09-28  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/50460
+	* fold-const.c (try_move_mult_to_index): Handle &a.array the
+	same as &a.array[0].
+
+2011-09-28  Kai Tietz  <ktietz@redhat.com>
+
+	* configure.ac: Add test for new section attribute
+	specifier "e" via define HAVE_GAS_SECTION_EXCLUDE.
+	* config.in: Regenerated.
+	* configure: Regenerated.
+	* config/i386/winnt.c (i386_pe_asm_named_section): Emit
+	new section flag "e" for excluded sections, if supported.
+	Otherwise we mark section withc SECTION_EXCLUDE flag as never-load.
+
+2011-09-28  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/m32r/m32r.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-28  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/iq2000/iq2000.md: Use match_test rather than eq/ne symbol_ref
+	throughout file.
+
+2011-09-27  Sriraman Tallam  <tmsriram@google.com>
+
+	* output.h (SECTION_EXCLUDE): New macro.
+	* varasm.c (default_elf_asm_named_section): Check for SECTION_EXCLUDE.
+
+2011-09-27  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* fwprop.c (forward_propagate_and_simplify): After checking
+	reg/subreg combinations, check whether the modes are the same.
+
+2011-09-27  Bernd Schmidt  <bernds@codesourcery.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_add_cfa_restore): New function.
+	(mips16e_save_restore_reg): Use it.
+	(mips_restore_reg): Likewise.  Split double FPRs for
+	REG_CFA_RESTORE notes.
+
+2011-09-27  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/50386
+	PR middle-end/50326
+	* tree-sra.c (build_ref_for_model): Use the type of the field as
+	the type of the COMPONENT_REF.
+
+2011-09-27  Jeff Law  <law@redhat.com>
+
+	* ifcvt.c (cheap_bb_rtx_cost_p): Add SCALE argument.  Scale
+	non-jumping insns by REG_BR_PROB_BASE and the maximum cost by SCALE.
+	(find_if_case_1): Use the probability of the THEN clause when
+	determining if speculation is profitable.
+	(find_if_case_2): Similarly for the ELSE clause.
+
+2011-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* common.opt: Add -foptimize-strlen option.
+	* Makefile.in (OBJS): Add tree-ssa-strlen.o.
+	(tree-sssa-strlen.o): Add dependencies.
+	* opts.c (default_options_table): Enable -foptimize-strlen
+	by default at -O2 if not -Os.
+	* passes.c (init_optimization_passes): Add pass_strlen
+	after pass_object_sizes.
+	* timevar.def (TV_TREE_STRLEN): New timevar.
+	* params.def (PARAM_MAX_TRACKED_STRLENS): New parameter.
+	* tree-pass.h (pass_strlen): Declare.
+	* tree-ssa-strlen.c: New file.
+	* c-decl.c (merge_decls): If compatible stpcpy prototype
+	is seen, set implicit_built_in_decls[BUILT_IN_STPCPY].
+
+2011-09-27  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/43864
+	* tree-ssa-tail-merge.c: New file.
+	(struct same_succ_def): Define.
+	(same_succ, const_same_succ): New typedef.
+	(struct bb_cluster_def): Define.
+	(bb_cluster, const_bb_cluster): New typedef.
+	(struct aux_bb_info): Define.
+	(BB_SIZE, BB_SAME_SUCC, BB_CLUSTER, BB_VOP_AT_EXIT): Define.
+	(gvn_uses_equal): New function.
+	(same_succ_print, same_succ_print_traverse, update_dep_bb)
+	(stmt_update_dep_bb, local_def, same_succ_hash)
+	(inverse_flags, same_succ_equal, same_succ_alloc, same_succ_delete)
+	(same_succ_reset): New function.
+	(same_succ_htab, same_succ_edge_flags)
+	(deleted_bbs, deleted_bb_preds): New var.
+	(debug_same_succ): New function.
+	(worklist): New var.
+	(print_worklist, add_to_worklist, find_same_succ_bb, find_same_succ)
+	(init_worklist, delete_worklist, delete_basic_block_same_succ)
+	(same_succ_flush_bbs, purge_bbs, update_worklist): New function.
+	(print_cluster, debug_cluster, update_rep_bb)
+	(add_bb_to_cluster, new_cluster, delete_cluster): New function.
+	(all_clusters): New var.
+	(alloc_cluster_vectors, reset_cluster_vectors, delete_cluster_vectors)
+	(merge_clusters, set_cluster): New function.
+	(gimple_equal_p, gsi_advance_bw_nondebug_nonlocal, find_duplicate)
+	(same_phi_alternatives_1, same_phi_alternatives, bb_has_non_vop_phi)
+	(deps_ok_for_redirect_from_bb_to_bb, deps_ok_for_redirect)
+	(find_clusters_1, find_clusters): New function.
+	(update_vuses, vop_phi, vop_at_entry, replace_block_by): New function.
+	(update_bbs): New var.
+	(apply_clusters): New function.
+	(update_debug_stmt, update_debug_stmts): New function.
+	(tail_merge_optimize): New function.
+	tree-pass.h (tail_merge_optimize): Declare.
+	* tree-ssa-pre.c (execute_pre): Use tail_merge_optimize.
+	* Makefile.in (OBJS-common): Add tree-ssa-tail-merge.o.
+	(tree-ssa-tail-merge.o): New rule.
+	* opts.c (default_options_table): Set OPT_ftree_tail_merge by
+	default at OPT_LEVELS_2_PLUS.
+	* tree-ssa-sccvn.c (vn_valueize): Move to ...
+	* tree-ssa-sccvn.h (vn_valueize): Here.
+	* timevar.def (TV_TREE_TAIL_MERGE): New timevar.
+	* common.opt (ftree-tail-merge): New switch.
+	* params.def (PARAM_MAX_TAIL_MERGE_COMPARISONS)
+	(PARAM_MAX_TAIL_MERGE_ITERATIONS): New parameter.
+	* doc/invoke.texi (Optimization Options, -O2): Add -ftree-tail-merge.
+	(-ftree-tail-merge, max-tail-merge-comparisons)
+	(max-tail-merge-iterations): New item.
+
+2011-09-27  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c (MAX_TIME): Reduce to avoid overflows.
+
+2011-09-27  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-analysis.c (eliminated_by_inlining_prob): Handle
+	parameters passed by reference; handle loads from non-SSA scalars
+	and update comments.
+
+2011-09-27  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/50249
+	* reload1.c (reload_reg_reaches_end_p): Accept a reloadnum argument
+	instead of opnum and type.  All callers changed.  Remove useless
+	declaration.
+	Search forward for other reloads of the same type for the same operand
+	using the same register; if any are found, return false.
+	(reload_regs_reach_end_p): Same argument changes; all callers changed.
+
+2011-09-27  Andi Kleen  <ak@linux.intel.com>
+	    Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi (ffat-lto-objects): Document.
+	* toplev.c (compile_file): Do not output assembly when doing slim lto;
+	Output __gnu_slim_lto when doing slim lto.
+	* cgraphunit.c (ipa_passes): Do only analysis when producing slim lto.
+	(cgraph_optimize): Return early when doing slim lto.
+	* opts.c (finish_options): Complain about lack of linker plugin
+	when doing slim lto.
+	* common.opt (ffat-lto-objects): New.
+
+2011-09-27  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* ipa-inline-analysis.c (predicate_probability): Avoid comparison
+	between signed and unsigned.
+
+2011-09-27  Ira Rosen  <ira.rosen@linaro.org>
+
+	* tree-vect-stmts.c (vectorizable_type_demotion): Handle basic block
+	vectorization.
+	(vectorizable_type_promotion): Likewise.
+	(vect_analyze_stmt): Call vectorizable_type_demotion and
+	vectorizable_type_promotion for basic blocks.
+	(supportable_widening_operation): Don't assume loop vectorization.
+	* tree-vect-slp.c (vect_build_slp_tree): Allow multiple types for
+	basic blocks.  Update vectorization factor for basic block
+	vectorization.
+	(vect_analyze_slp_instance): Allow multiple types for basic block
+	vectorization.  Recheck unrolling factor after construction of SLP
+	instance.
+
+2011-09-27  Richard Guenther  <rguenther@suse.de>
+
+	* tree-object-size.c (compute_object_sizes): Fix dumping of
+	folded statement.
+
+2011-09-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50363
+	* tree-ssa-pre.c (create_expression_by_pieces): Handle
+	pointer conversions in POINTER_PLUS_EXPRs properly.
+
+2011-09-27  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* config/arm/neon.md (neon_vget_highv16qi, neon_vget_highv8hi)
+	(neon_vget_highv4si, neon_vget_highv4sf, neon_vget_highv2di)
+	(neon_vget_lowv16qi, neon_vget_lowv8hi, neon_vget_lowv4si)
+	(neon_vget_lowv4sf, neon_vget_lowv2di): Turn into define_expands
+	that produce subreg moves.  Define using VQX iterators.
+
+2011-09-27  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (ashrqi3): Split alternative "n"
+	into its remaining parts C03, C04, C05, C06, C07 and describe
+	impact in CC by attribute "cc" appropriately.
+	* config/avr/avr.c (notice_update_cc): Clean-up: Don't patch CC0
+	by digging RTX.
+
 2011-09-27  Jakub Jelinek  <jakub@redhat.com>
 
 	* rtl.h (const_tiny_rtx): Change into array of 4 x MAX_MACHINE_MODE
 	from 3 x MAX_MACHINE_MODE.
 	(CONSTM1_RTX): Define.
-	* emit-rtl.c (const_tiny_rtx): Change into array of 4 x MAX_MACHINE_MODE
-        from 3 x MAX_MACHINE_MODE.
+	* emit-rtl.c (const_tiny_rtx): Change into array of
+	4 x MAX_MACHINE_MODE from 3 x MAX_MACHINE_MODE.
 	(gen_rtx_CONST_VECTOR): Use CONSTM1_RTX if all inner constants are
 	CONSTM1_RTX.
 	(init_emit_once): Initialize CONSTM1_RTX for MODE_INT and
@@ -198,8 +530,7 @@
 	(REG_CLASS_CONTENTS): Add GSR to ALL_REGS.
 	(REG_ALLOC_ORDER, REG_LEAF_ALLOC_ORDER): Add GSR to the end.
 	(REGISTER_NAMES): Add "%gsr".
-	* config/sparc/sparc.md (UNSPEC_ALIGNADDR, UNSPEC_ALIGNADDRL):
-	Delete.
+	* config/sparc/sparc.md (UNSPEC_ALIGNADDR, UNSPEC_ALIGNADDRL): Delete.
 	(UNSPEC_WRGSR): New unspec.
 	(GSR_REG): New constant.
 	(type): Add new insn type 'gsr'.
@@ -241,8 +572,8 @@
 	(evaluate_conditions_for_edge): Handle change probabilities.
 	(inline_edge_duplication_hook): Copy param summaries.
 	(inline_edge_removal_hook): Free param summaries.
-	(dump_inline_edge_summary): Fix dumping of indirect edges and callee sizes;
-	dump param summaries.
+	(dump_inline_edge_summary): Fix dumping of indirect edges and callee
+	sizes; dump param summaries.
 	(will_be_nonconstant_predicate): Use CHANGED predicate.
 	(record_modified_bb_info): New structure.
 	(record_modified): New function.
@@ -255,8 +586,8 @@
 	(remap_edge_change_prob): New function.
 	(remap_edge_summaries): Rename from ...; use remap_edge_change_prob.
 	(remap_edge_predicates): ... this one.
-	(inline_merge_summary): Remap edge summaries; handle predicate probabilities;
-	remove param summaries after we are done.
+	(inline_merge_summary): Remap edge summaries; handle predicate
+	probabilities; remove param summaries after we are done.
 	(do_estimate_edge_time): Update.
 	(do_estimate_edge_growth): Update.
 	(read_inline_edge_summary): Read param info.
@@ -270,7 +601,7 @@
 	* config/i386/sse.md (i128): New mode_attr.
 	(vec_extract_hi_<mode>, vec_extract_hi_<mode>,
 	avx_vbroadcastf128_<mode>, *avx_vperm2f128<mode>_full,
-	*avx_vperm2f128<mode>_nozero, vec_set_lo_<mode>, 
+	*avx_vperm2f128<mode>_nozero, vec_set_lo_<mode>,
 	vec_set_hi_<mode>, *vec_concat<mode>_avx): Use <i128> in the
 	patterns, use "<sseinsnmode>" for "mode" attribute.
 	(vec_extract_hi_v16hi, vec_extract_hi_v32qi, vec_set_lo_v16hi,
@@ -353,8 +684,7 @@
 
 2011-09-23  Bin Cheng  <bin.cheng@arm.com>
 
-	* config/arm/bpabi.h (BE8_LINK_SPEC): Add cortex-m arch 
-	and processors.
+	* config/arm/bpabi.h (BE8_LINK_SPEC): Add cortex-m arch and processors.
 
 2011-09-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
 

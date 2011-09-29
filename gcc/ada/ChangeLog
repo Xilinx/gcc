@@ -1,3 +1,200 @@
+2011-09-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* a-cbhase.adb, a-cbhase.ads, a-cborse.adb, a-cborse.ads,
+	a-cihase.adb, a-cihase.ads, a-ciorse.adb, a-ciorse.ads,
+	a-coorse.adb, a-coorse.ads: Add iterator machinery to bounded sets and
+	indefinite sets.
+	* a-coorma.ads: Minor reformmating.
+	* einfo.ads: Improve the comment describing the
+	Directly_Designated_Type function.
+	* a-ciorma.adb, a-ciorma.ads: Add iterator machinery to indefinite
+	ordered maps.
+	* gcc-interface/Makefile.in, gcc-interface/Make-lang.in: Update
+	dependencies.
+
+2011-09-27  Robert Dewar  <dewar@adacore.com>
+
+	* a-comutr.ads: Minor reformatting.
+
+2011-09-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* a-cimutr.adb, a-cimutr.ads, a-cbmutr.adb, a-cbmutr.ads: Add children
+	iterators to multiway trees.
+
+2011-09-27  Yannick Moy  <moy@adacore.com>
+
+	* debug.adb (d.D): New option for strict Alfa mode.
+	* opt.ads (Strict_Alfa_Mode): New flag to interpret compiler
+	permissions as strictly as possible.
+	* sem_ch3.adb (Signed_Integer_Type_Declaration): In non-strict
+	Alfa mode, now, interpret ranges of base types like GNAT does; in
+	strict mode, simply change the range of the implicit base Itype.
+	* gnat1drv.adb: Update comments. Set Strict_Alfa_Mode.
+
+2011-09-27  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch9.adb: Minor comment fixes.
+
+2011-09-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* a-comutr.adb, a-comutr.ads: Add children iterators on multiway
+	trees.
+
+2011-09-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* checks.adb (Apply_Scalar_Range_Check): Use Designated_Type
+	instead of Directly_Designated_Type in the indirect array case.
+
+2011-09-27  Robert Dewar  <dewar@adacore.com>
+
+	* exp_util.adb, exp_aggr.adb: Minor reformatting.
+
+2011-09-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* sinfo.ads, par-ch3.adb: Minor comment update: aspect specification
+	on subtype declarations.
+	* exp_aggr.adb: Minor comment update.
+
+2011-09-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_util.adb (Safe_Prefixed_Reference): Remove always-false
+	test in the N_Explicit_Dereference case.  Fold double logical
+	negation in the special loop case and conditionalize it on
+	Variable_Ref being true.
+
+2011-09-27  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch4.adb (Analyze_Selected_Component): If the prefix is a
+	single protected object and the selector is a discriminant or an
+	entry family, this is a non-overloaded candidate interpretation,
+	and possible primitive operations of the type must not be
+	examined.
+
+2011-09-27  Arnaud Charlet  <charlet@adacore.com>
+
+	* s-taspri-posix-noaltstack.ads (Lock): Mark fields aliased.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* s-osinte-hpux.ads, s-osinte-aix.ads, s-osinte-solaris-posix.ads,
+	s-osinte-irix.ads, s-osinte-darwin.ads, s-osinte-freebsd.ads:
+	Add dummy definitions for pthread_rwlock_t
+	and pthread_rwlockattr_t on all POSIX platforms.
+	* s-taprop-irix.adb, s-taprop-posix.adb (Initialize_Lock): Fix lock
+	reference.
+	(Finalize_Lock): Likewise.
+	(Write_Lock): Likewise.
+	(Unlock): Likewise.
+
+2011-09-27  Tristan Gingold  <gingold@adacore.com>
+
+	* s-tassta.adb (Task_Wrapper): Increase Guard_Page_Size value for
+	windows 64.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* s-osinte-hpux.ads, s-taprop-vxworks.adb, s-taspri-vxworks.ads,
+	s-taprop-tru64.adb, s-osinte-aix.ads, s-taspri-posix-noaltstack.ads,
+	s-taspri-mingw.ads, s-taprop-vms.adb, s-tpoben.adb, s-tpoben.ads,
+	s-taprop-mingw.adb, s-taprob.adb, s-taprob.ads,
+	s-osinte-solaris-posix.ads, s-taprop-solaris.adb, s-taspri-solaris.ads,
+	s-osinte-irix.ads, s-taprop-irix.adb, s-osinte-darwin.ads,
+	s-taspri-dummy.ads, s-taspri-posix.ads, s-taprop.ads,
+	s-taspri-vms.ads, s-osinte-freebsd.ads, s-taprop-hpux-dce.adb,
+	s-taspri-hpux-dce.ads, s-taspri-tru64.ads, s-taprop-dummy.adb,
+	s-taprop-posix.adb: Revert previous changes.
+	(Lock): Now a record containing the two possible lock
+	(mutex and read/write) defined in OS_Interface.
+	* s-taprop-linux.adb (Finalize_Protection): Use r/w lock for
+	'R' locking policy.
+	(Initialize_Protection): Likewise.
+	(Lock): Likewise.
+	(Lock_Read_Only): Likewise.
+	(Unlock): Likewise.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* s-taspri-posix-noaltstack.ads (RW_Lock): This type is now defined as
+	OS_Interface.pthread_rwlock_t.
+
+2011-09-27  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch9.adb, a-cimutr.adb, a-cimutr.ads, gnat1drv.adb, a-comutr.adb,
+	a-comutr.ads, exp_dist.adb, a-cbmutr.adb, a-cbmutr.ads,
+	sem_ch5.adb, sem_util.adb: Minor reformatting.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* s-taprop.ads (Initialize_Lock)[RW_Lock]: New spec for r/w lock.
+	(Finalize_Lock)[RW_Lock]: Likewise.
+	(Write_Lock)[RW_Lock]: Likewise.
+	(Unlock)[RW_Lock]: Likewise.
+	(Read_Lock): Define L as RW_Lock (instead of Lock).
+	* s-taprop-linux.adb (Initialize_Lock)[RW_Lock]: New
+	routine for r/w lock.
+	(Finalize_Lock)[RW_Lock]: Likewise.
+	(Write_Lock)[RW_Lock]: Likewise.
+	(Unlock)[RW_Lock]: Likewise.
+	(Read_Lock): Define L as RW_Lock (instead of Lock).
+
+	* s-taprop-vxworks.adb, s-taprop-tru64.adb, s-taprop-vms.adb,
+	s-taprop-mingw.adb, s-taprop-solaris.adb, s-taprop-irix.adb,
+	s-taprop-hpux-dce.adb, s-taprop-dummy.adb, s-taprop-posix.adb
+	(Initialize_Lock)[RW_Lock]: Same implementation as corresponding
+	routine for standard lock.
+	(Finalize_Lock)[RW_Lock]: Likewise.
+	(Write_Lock)[RW_Lock]: Likewise.
+	(Unlock)[RW_Lock]: Likewise.
+	(Read_Lock): Define L as RW_Lock (instead of Lock).
+	* s-taprob.ads, s-tpoben.ads (Protection): Add RWL (RW_Lock)
+	in the record definition.
+	* s-taprob.adb, s-taproben.adb (Finalize_Protection): Use r/w
+	lock for 'R' locking policy.
+	(Initialize_Protection): Likewise.
+	(Lock): Likewise.
+	(Lock_Read_Only): Likewise.
+	(Unlock): Likewise.
+	* s-taspri-posix.ads (RW_Lock): New type defined as
+	OS_Interface.pthread_rwlock_t.
+
+	* s-taspri-vxworks.ads, s-taspri-posix-noaltstack.ads,
+	s-taspri-mingw.ads, s-taspri-solaris.ads, s-taspri-dummy.ads,
+	s-taspri-posix.ads, s-taspri-vms.ads, s-taspri-hpux-dce.ads,
+	s-taspri-tru64.ads (RW_Lock): New type defined as alias to Lock.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* exp_ch9.adb, s-taspri-posix.ads: Minor reformatting.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* s-osinte-aix.ads, s-osinte-darwin.ads, s-osinte-freebsd.ads,
+	s-osinte-hpux.ads, s-osinte-irix.ads,
+	s-osinte-solaris-posix.ads (pthread_rwlock_t): New definition alias of
+	pthread_mutex_t.
+	(pthread_rwlockattr_t): New definition alias of pthread_mutexattr_t.
+	* s-osinte-linux.ads (pthread_rwlock_t, pthread_rwlockattr_t,
+	pthread_rwlockattr_init, pthread_rwlockattr_destroy,
+	pthread_rwlockattr_setkind_np, pthread_rwlock_init,
+	pthread_rwlock_destroy, pthread_rwlock_rdlock,
+	pthread_rwlock_wrlock, pthread_rwlock_unlock): New.
+
+2011-09-27  Pascal Obry  <obry@adacore.com>
+
+	* rtsfind.ads: Add RE_Lock_Read_Only into rtsfind circuitry.
+	(RE_Id): Add RE_Lock_Read_Only.
+	(RE_Unit_Table): Likewise.
+	* sem_prag.adb (Process_Convention): Change Pragma_Locking_Policy
+	to lift restriction on first character. Handle now the
+	Name_Concurrent_Readers_Locking where policy character is set to
+	'R'.
+	* snames.ads-tmpl (Name_Concurrent_Readers_Locking): New
+	constant.
+	* exp_ch9.adb (Build_Protected_Subprogram_Body): Generate a
+	read only lock for function in protected object.
+	* s-taprob.ads (Lock_Read_Only): Remove obsolete comment as
+	this routine is now used.
+
 2011-09-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* s-atocou-x86.adb (Decrement): Use %;.

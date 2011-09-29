@@ -359,6 +359,8 @@ avr_option_override (void)
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
 
   init_machine_status = avr_init_machine_status;
+
+  avr_log_set_avr_log();
 }
 
 /* Function to set up the backend function structure.  */
@@ -1574,26 +1576,6 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
     case CC_CLOBBER:
       /* Insn doesn't leave CC in a usable state.  */
       CC_STATUS_INIT;
-
-      /* Correct CC for the ashrqi3 with the shift count as CONST_INT < 6 */
-      set = single_set (insn);
-      if (set)
-	{
-	  rtx src = SET_SRC (set);
-	  
-	  if (GET_CODE (src) == ASHIFTRT
-	      && GET_MODE (src) == QImode)
-	    {
-	      rtx x = XEXP (src, 1);
-
-	      if (CONST_INT_P (x)
-		  && IN_RANGE (INTVAL (x), 1, 5))
-		{
-		  cc_status.value1 = SET_DEST (set);
-		  cc_status.flags |= CC_OVERFLOW_UNUSABLE;
-		}
-	    }
-	}
       break;
     }
 }

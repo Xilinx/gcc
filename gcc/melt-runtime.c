@@ -9564,8 +9564,14 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 {
   static int inited;
   long seed = 0;
+#if MELT_GCC_VERSION<=4006
+  /* In GCC 4.6 the random seed is a string.  */
   const char *pc = NULL;
-  const char *randomseed = NULL;
+  const char *randomseedstr = NULL;
+#else
+  /* In GCC 4.7, the random seed is a number.  */
+  long randomseednum = 0;
+#endif
   const char *modstr = NULL;
   const char *inistr = NULL;
   const char *countdbgstr = NULL;
@@ -9755,8 +9761,14 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   if (countdbgstr != (char *) 0)
     melt_debugskipcount = atol (countdbgstr);
   seed = 0;
-  randomseed = get_random_seed (false);
-  gcc_assert (randomseed != (char *) 0);
+  /* In GCC 4.6, get_random_seed gives a string, but in 4.7 it gives a
+     number.  */
+#if MELT_GCC_VERSION<=4006
+  randomseedstr = get_random_seed (false);
+  gcc_assert (randomseedstr != (char *) 0);
+#else
+  randomseednum = get_random_seed (false);
+#endif
   gcc_assert (MELT_ALIGN == sizeof (void *)
 	      || MELT_ALIGN == 2 * sizeof (void *)
 	      || MELT_ALIGN == 4 * sizeof (void *));
@@ -9764,8 +9776,12 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   ggc_collect ();
   obstack_init (&melt_bstring_obstack);
   obstack_init (&melt_bname_obstack);
-  for (pc = randomseed; *pc; pc++)
+#if MELT_GCC_VERSION<=4006
+  for (pc = randomseedstr; *pc; pc++)
     seed ^= (seed << 6) + (*pc);
+#else
+  seed = ((seed * 35851) ^ (randomseednum * 65867));
+#endif /*MELT_GCC_VERSION*/
   srand48 (seed);
   gcc_assert (!melt_curalz);
   {

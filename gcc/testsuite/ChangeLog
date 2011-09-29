@@ -1,3 +1,140 @@
+2011-09-29  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50547
+	* gfortran.dg/pure_formal_proc_3.f90: New.
+
+	PR fortran/50553
+	* gfortran.dg/stfunc_7.f90: New.
+
+2011-09-29  Artjoms Sinkarovs <artyom.shinkaroff@gmail.com>
+
+	* gcc.c-torture/execute/vector-compare-1.c: New testcase.
+	* gcc.c-torture/execute/vector-compare-2.c: Likewise.
+	* gcc.dg/vector-compare-1.c: Likewise.
+	* gcc.dg/vector-compare-2.c: Likewise.
+
+2011-09-29  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/array.c: New test.
+
+2011-09-29  Jiangning Liu  <jiangning.liu@arm.com>
+
+	* gcc/testsuite/gcc.dg/tree-ssa/predcom-1.c: Explicitly turn on
+	loop unroll and set max unroll times to 8.
+	* gcc/testsuite/gcc.dg/tree-ssa/predcom-2.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/predcom-3.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/predcom-4.c: Likewise.
+	* gcc/testsuite/gcc.dg/tree-ssa/predcom-5.c: Likewise.
+
+2011-09-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/40145
+	* g++.dg/ext/visibility/warn5.C: New.
+
+2011-09-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45278
+	* g++.dg/warn/Wextra-3.C: New.
+
+2011-09-28  Oleg Endo  <oleg.endo@t-online.de>
+
+	PR target/49486
+	* gcc.target/sh/pr49468-si.c: New.
+
+2011-09-28  Tom de Vries  <tom@codesourcery.com>
+
+	PR testsuite/50485
+	* gcc.target/i386/sse4_1-blendps.c: Include <stdlib.h>.
+	(TEST): Initialize src3 with random floats.
+	* gcc.target/i386/sse4_1-blendps-2.c (sse4_1_test): Remove field i from
+	union src3.  Initialize src3 with random floats.
+
+2011-09-27  Oleg Endo  <oleg.endo@t-online.de>
+
+	* gcc.target/sh/mfmovd.c: Extend list of supported targets.
+	* gcc.target/sh/struct-arg-dw2.c: Fix typo.
+	* gcc.target/sh/sh4a-sincos.c: Make test SH4A only.
+	* gcc.target/sh/sh4a-sincosf.c: Ditto.
+	* gcc.target/sh/sh4a-cos.c: Ditto.
+	* gcc.target/sh/sh4a-cosf.c: Ditto.
+	* gcc.target/sh/sh4a-sin.c: Ditto.
+	* gcc.target/sh/sh4a-sinf.c: Ditto.
+	* gcc.target/sh/sh4a-fsrra.c: Ditto.
+	* gcc.target/sh/sh4a-memmovua.c: Ditto.
+	* gcc.target/sh/sh4a-bitmovua.c: Ditto.
+
+2011-09-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/31489
+	* g++.dg/parse/error40.C: New.
+	* g++.dg/warn/incomplete1.C: Adjust.
+
+2011-09-27  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/49463
+	* gcc.c-torture/execute/builtins/strstr-asm-lib.c (my_strstr):
+	Mark used.
+
+2011-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/strlenopt-1.c: New test.
+	* gcc.dg/strlenopt-1f.c: New test.
+	* gcc.dg/strlenopt-2.c: New test.
+	* gcc.dg/strlenopt-2f.c: New test.
+	* gcc.dg/strlenopt-3.c: New test.
+	* gcc.dg/strlenopt-4.c: New test.
+	* gcc.dg/strlenopt-4g.c: New test.
+	* gcc.dg/strlenopt-4gf.c: New test.
+	* gcc.dg/strlenopt-5.c: New test.
+	* gcc.dg/strlenopt-6.c: New test.
+	* gcc.dg/strlenopt-7.c: New test.
+	* gcc.dg/strlenopt-8.c: New test.
+	* gcc.dg/strlenopt-9.c: New test.
+	* gcc.dg/strlenopt-10.c: New test.
+	* gcc.dg/strlenopt-11.c: New test.
+	* gcc.dg/strlenopt-12.c: New test.
+	* gcc.dg/strlenopt-12g.c: New test.
+	* gcc.dg/strlenopt-13.c: New test.
+	* gcc.dg/strlenopt-14g.c: New test.
+	* gcc.dg/strlenopt-14gf.c: New test.
+	* gcc.dg/strlenopt-15.c: New test.
+	* gcc.dg/strlenopt-16g.c: New test.
+	* gcc.dg/strlenopt-17g.c: New test.
+	* gcc.dg/strlenopt-18g.c: New test.
+	* gcc.dg/strlenopt.h: New file.
+
+2011-09-27  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/43864
+	* gcc.dg/fold-compare-2.c (dg-options): Add -fno-tree-tail-merge.
+	* gcc/testsuite/gcc.dg/uninit-pred-2_c.c: Same.
+	* gcc.dg/pr43864.c: New test.
+	* gcc.dg/pr43864-2.c: Same.
+	* gcc.dg/pr43864-3.c: Same.
+	* gcc.dg/pr43864-4.c: Same.
+
+2011-09-27  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/ipa/inline-5.c: New testcase.
+
+2011-09-27  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/bb-slp-11.c: Expect to get vectorized with 64-bit
+	vectors.
+	* gcc.dg/vect/bb-slp-27.c: New.
+	* gcc.dg/vect/bb-slp-28.c: New.
+
+2011-09-27  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* testsuite/lib/target-supports.exp (check_profiling_available):
+	Don't rely solely on TLS tests for -fprofile-generate, fall
+	through to the other code.
+
+2011-09-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50363
+	* gcc.dg/torture/pr50363.c: New testcase.
+
 2011-09-26  Jason Merrill  <jason@redhat.com>
 
 	PR c++/45012
