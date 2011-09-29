@@ -1,5 +1,11 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (class_objagain): New class.
+	(compilobj_nrep_again): New method.
+
+	* melt/warmelt-outobj.melt (outpucod_objagain): New method.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Change, because
 	get_random_seed gives a string in GCC 4.6 and a number in GCC 4.7.
 

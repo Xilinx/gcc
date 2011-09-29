@@ -294,6 +294,13 @@
   :fields (obexit_label			;cloned symbol for goto destination
 	   ))
 
+;; start again a loop
+(defclass class_objagain
+  :super class_objinstr
+  :fields (obagain_label			;cloned symbol for goto destination
+	   ))
+
+
 ;; citeration block
 (defclass class_objciterblock
   :super class_objanyblock
@@ -538,6 +545,7 @@
 ;;;; export the above classes
 (export_class				;alphabetical order
  class_initialroutineobj
+ class_objagain
  class_objapply
  class_objanyblock
  class_objplainblock
@@ -1925,6 +1933,29 @@ $SBUF.}#
       (return obloc)
       )))
 (install_method class_nrep_exit compile_obj compilobj_nrep_exit)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compile an again
+(defun compilobj_nrep_again (nag gcx)
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (assert_msg "check nag" (is_a nag class_nrep_again))
+  (debug_msg nag "compilobj_nrep_again nag")
+  ;;(debug_msg gcx "compilobj_nrep_again gcx")
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc nag))
+	(nlabind (unsafe_get_field :nagain_bind nag))
+	(oagain (instance class_objagain
+			  :obi_loc nloc 
+			  :obagain_label (get_field :labind_clonsy nlabind)
+			  ))
+	)
+    (assert_msg "check nlabind" (is_a nlabind class_label_binding))
+    (debug_msg oagain "compilobj_nrep_again return oagain")
+    (return oagain)
+))
+(install_method class_nrep_again compile_obj compilobj_nrep_again)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_discrany (anyv gcx)

@@ -2374,6 +2374,25 @@
     ))
 (install_method class_objexit output_c_code outpucod_objexit)
 
+
+;;; output code for objagain
+(defun outpucod_objagain (obag declbuf implbuf :long depth)
+  (assert_msg "check obag" (is_a obag class_objagain))
+  (debug_msg obag "outpucod_objagain obag")
+  (let ( (olab (unsafe_get_field :obagain_label obag))
+	 (loc (unsafe_get_field :obi_loc obag))
+	 )
+    (assert_msg "check olab" (is_a olab class_cloned_symbol))
+    (output_location loc implbuf depth "again")
+    (add2sbuf_strconst implbuf "/*again*/{")
+    (add2sbuf_indentnl implbuf depth)
+    (add2sbuf_strconst implbuf " goto labloop_")
+    (add2sbuf_clonsym implbuf olab)	
+    (add2sbuf_strconst implbuf ";}")
+    (add2sbuf_indentnl implbuf depth)    
+    ))
+(install_method class_objagain output_c_code outpucod_objagain)
+
 ;;; output code for objcompute
 (defun outpucod_objcompute (obcomp declbuf implbuf :long depth)
   (assert_msg "check obcomp" (is_a obcomp class_objcompute))
