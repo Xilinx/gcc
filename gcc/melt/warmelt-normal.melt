@@ -274,6 +274,12 @@ part, $NIFP_ELSE the else part, $NIFP_CTYP the ctype.}#
 	   nexit_val			;the exited value
 	   ))
 
+;; normalized again
+(defclass class_nrep_again
+  :super class_nrep_expression
+  :fields (nagain_bind			;the label binding
+	   ))
+
 ;; normalized field assign (in make instance)
 (defclass class_nrep_fieldassign
   :super class_nrep
@@ -626,6 +632,7 @@ routine procedures.}#
  class_normal_constructed_tuple_binding
  class_normal_constructor_binding
  class_nrep
+ class_nrep_again
  class_nrep_anyproc
  class_nrep_apply
  class_nrep_chunk
@@ -3121,6 +3128,69 @@ source location.}#
        (return clocc nbodbindings)
        ))))
 (install_method class_source_exit normal_exp normexp_exit)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize again
+(defun normexp_again (recv env ncx psloc)
+  (assert_msg "check again recv" (is_a recv class_source_again))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_again recv")
+  (let ( (sloc   (unsafe_get_field :loca_location recv))
+	 (slbind (unsafe_get_field :slabel_bind recv))
+	 (csym (clone_symbol 'again_))
+	 (nagain (instance class_nrep_again
+			   :nrep_loc sloc
+			   :nagain_bind slbind))
+	 (cbind (instance class_normal_let_binding
+			  :binder csym
+			  :letbind_loc sloc
+			  :letbind_type ctype_void
+			  :letbind_expr nagain))
+	 (clocc (instance class_nrep_locsymocc
+			  :nrep_loc sloc
+			  :nocc_ctyp ctype_void
+			  :nocc_symb csym
+			  :nocc_bind cbind))	 
+	 (nbindings (list cbind))
+	 )
+    (assert_msg "check slbind" (is_a slbind class_label_binding))
+    (debug_msg nagain "normexp_again nagain")
+    (debug_msg nbindings "normexp_again nbindings")
+    (return clocc nbindings)    
+    ))
+(install_method class_source_again normal_exp normexp_again)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; normalize variadic
+(defun normexp_variadic (recv env ncx psloc)
+  (assert_msg "check variadic recv" (is_a recv class_source_variadic))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_variadic recv")
+  (let ( (loc (unsafe_get_field :loca_location recv))
+	 (sargs (unsafe_get_field :svariadic_argbind recv))
+	 (sbody (unsafe_get_field :svariadic_body recv))
+	 (newenv (fresh_env env))
+	 )
+    (foreach_in_multiple
+     (sargs)
+     (fbi :long fix)
+     (assert_msg "check fbi" (is_a fbi class_formal_binding))
+     (put_env newenv fbi)
+     )
+    (debug_msg sbody "normexp_variadic sbody before normalization")
+    (multicall
+     (nbody nbodbindings)
+     (normalize_tuple sbody newenv ncx loc)
+     (debug_msg nbody "normexp_variadic nbody")
+     (debug_msg nbodbindings "normexp_variadic nbodbindings")
+     (error_plain loc "normalization of VARIADIC is not implemented")
+     (assert_msg "$@$unimplemented normexp_variadic")
+     )))
+(install_method class_source_variadic normal_exp normexp_variadic)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize the compile_warning

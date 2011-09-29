@@ -1,5 +1,12 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_variadic): Warn for redefinition.
+
+	* melt/warmelt-normal.melt (class_nrep_again): New.
+	(normexp_again): New method.
+	(normexp_variadic): New stub, incomplete.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (class_source_again, class_source_variadic): New.
 	(mexpand_again, mexpand_variadic): New methods.
 	(again, variadic): New macros.
