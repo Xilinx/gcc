@@ -425,6 +425,24 @@ melt_ptr_t melt_apply (meltclosure_ptr_t clos_p,
 extern long melt_application_count (void);
 extern long melt_application_depth (void);
 
+/* The number of arguments given in an argument description "string";
+   useful to implement variadic functions. */
+static inline int 
+melt_argdescr_length (const melt_argdescr_cell_t* argdesc)
+{
+  if (!argdesc) 
+    return 0;
+#if MELT_ARGDESCR_MAX == CHAR_MAX
+  return strlen ((const char*)argdesc);
+#else
+  {
+    int ln = 0;
+    while (*argdesc != (melt_argdescr_cell_t)0) 
+      ln++, argdesc++;
+    return ln;
+  }
+#endif /* MELT_ARGDESCR_MAX == CHAR_MAX */
+}
 
 /* gnu indent has some trouble with GTY hence */
 /* *INDENT-OFF* */
@@ -2478,27 +2496,42 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
 {
   unsigned mag_class = 0;
   unsigned mag_inst = 0;
-  if (!inst_p)
-    return FALSE;
+  meltobject_ptr_t curdiscr_p = NULL;
   if (!class_p)
     return FALSE;
-  gcc_assert(class_p->u_discr != NULL);
-  gcc_assert(inst_p->u_discr != NULL);
-  mag_class = class_p->u_discr->obj_num;
-  mag_inst = inst_p->u_discr->obj_num;
-  if (mag_class != MELTOBMAG_OBJECT || !mag_inst)
-    return FALSE;
-  if (((meltobject_ptr_t) inst_p)->meltobj_class ==
-      (meltobject_ptr_t) class_p)
+  if (class_p == MELT_PREDEF (DISCR_ANY_RECEIVER))
     return TRUE;
-  if (mag_inst != ((meltobject_ptr_t) class_p)->meltobj_magic)
+  gcc_assert (class_p->u_discr != NULL);
+  if (!inst_p) {
+    /* The null value is conceptually an instance of DISCR_NULL_RECEIVER, which is a subtype of DISCR_ANY_RECEIVER. */
+    if (class_p == MELT_PREDEF (DISCR_NULL_RECEIVER))
+      return TRUE;
     return FALSE;
-  if (mag_inst == MELTOBMAG_OBJECT)
-    return melt_is_subclass_of (((meltobject_ptr_t) inst_p)->meltobj_class,
-				   ((meltobject_ptr_t) class_p));
-  /* the instance is not an object but something else and it has the
-     good magic */
-  return TRUE;
+  }
+  mag_class = class_p->u_discr->obj_num;
+  if (mag_class != MELTOBMAG_OBJECT || ((meltobject_ptr_t) class_p)->obj_len < FDISC__LAST)
+    return FALSE;
+  curdiscr_p = inst_p->u_discr;
+  /* We need to loop to handle the case of non-object discriminant
+     type hierarchies; for instance DISCR_FIELD_SEQUENCE is a sub-type
+     of DISCR_MULTIPLE.  This while loop is often run once.  */
+  while (curdiscr_p) {
+    if (curdiscr_p == (meltobject_ptr_t) class_p)
+      return TRUE;
+    mag_inst = curdiscr_p->obj_num;
+    if (mag_class != MELTOBMAG_OBJECT || !mag_inst)
+      return FALSE;
+    if (mag_inst != ((meltobject_ptr_t) class_p)->meltobj_magic)
+      return FALSE;
+    if (mag_inst == MELTOBMAG_OBJECT)
+      return melt_is_subclass_of (((meltobject_ptr_t) curdiscr_p),
+				  ((meltobject_ptr_t) class_p));
+    /* the instance is not an object, but the current discriminant
+       might have a super discriminant. */
+    gcc_assert (curdiscr_p->obj_len >= FDISC__LAST);
+    curdiscr_p = (meltobject_ptr_t) (curdiscr_p->obj_vartab[FDISC_SUPER]);
+  }
+  return FALSE;
 }
 
 

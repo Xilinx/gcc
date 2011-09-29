@@ -1,4 +1,14 @@
 
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list (CLASS_REST_FORMAL_BINDING): Remove.
+	(DISCR_ANY_RECEIVER): Add.
+
+	* melt-runtime.h (melt_is_instance_of): Handles non-object values
+	with a hierarchy of discriminants.
+
+	* melt/warmelt-first.melt (discr_any_receiver): Becomes predefined.
+	(class_rest_formal_binding): Is no more predefined.
+
 2011-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make-string.c: Include <stdlib.h>.
 	(output_cstr): Declare before definition. Better indented.

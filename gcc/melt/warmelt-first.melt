@@ -534,7 +534,6 @@ See The $EXPORT_VALUES macro.}#
 ;;; formal binding for rest of variadic functions
 (defclass class_rest_formal_binding
   :super class_any_binding
-  :predef CLASS_REST_FORMAL_BINDING
   :fields ()
   ;; the obj_num is the argument rank of the rest
   :doc #{The $CLASS_REST_FORMAL_BINDING is the class to bind the last :rest formal argument, in variadic functions. The object's number is the argument rank.}#
@@ -1559,7 +1558,9 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
 
 ;;; the discriminant for any receiver (used for sending to everything)
 (definstance discr_any_receiver class_discriminant
-  :doc #{The $DISCR_ANY_RECEIVER is the topmost discriminant of any value. See also $CTYPE_VALUE.}#
+  :doc #{The $DISCR_ANY_RECEIVER is the topmost discriminant of any value. 
+See also $CTYPE_VALUE.}#
+  :predef DISCR_ANY_RECEIVER
   :named_name '"DISCR_ANY_RECEIVER"
   )
 
