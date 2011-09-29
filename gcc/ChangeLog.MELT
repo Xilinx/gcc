@@ -1,5 +1,20 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (class_rest_formal_binding): Remove.
+	(discr_formals_sequence, discr_variadic_formal_sequence): Add.
+
+	* melt/warmelt-macro.melt (lambda_arg_bindings): Variadic formals
+	should end with just :rest. Their tuple is of
+	discr_variadic_formal_sequence.
+	(mexpand_defprimitive): Check for non-variadic using
+	discr_variadic_formal_sequence.
+	(mexpand_defciterator): Ditto.
+	(mexpand_defcmatcher): Ditto.
+	(mexpand_defunmatcher): Ditto.
+	(mexpand_multicall): Ditto.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list (CLASS_REST_FORMAL_BINDING): Remove.
 	(DISCR_ANY_RECEIVER): Add.
 

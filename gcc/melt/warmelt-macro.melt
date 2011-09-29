@@ -1735,6 +1735,7 @@ the object-map for pattern variables.}#
 	 (argmap (make_mapobject discr_map_objects (+i 4 (list_length arglist))))
 	 (bndlist (make_list discr_list)) 
 	 (curpair (list_first arglist))
+	 (tupdis discr_formal_sequence)
 	 )
 ;;; first loop on arg
     (forever argloop
@@ -1744,24 +1745,12 @@ the object-map for pattern variables.}#
 	       (cond
 		( (== curarg :rest)
 		  (setq curpair (pair_tail curpair))
-		  (let ( (restsymb (pair_head curpair))
-			 )
-		    (if (is_not_a restsymb class_symbol)
-			(progn
-			  (error_plain argloc ":rest should be followed by name for variadic bindings")
-			  (return)))
-		    (setq curpair (pair_tail curpair))
-		    (if curpair
-			(progn
-			  (error_strv argloc ":rest should be followed by the last name of variadic bindings"
-				      (get_field :named_name restsymb))
-			  (return)))
-		    (let ( (restarg (instance class_rest_formal_binding
-					      :binder restsymb))
-			   )
-		      (list_append bndlist restarg)
-		      (setq argrk (+i argrk 1))
-		  )))
+		  (if curpair
+		      (progn
+			(error_plain argloc ":REST should be last in variadic formals")
+			(return)))
+		  (setq tupdis discr_variadic_formal_sequence)
+		  )
 		( (is_a curarg class_keyword)
 		  (let ( (cty (unsafe_get_field :symb_data curarg)) 
 			 (curargname (unsafe_get_field :named_name curarg))
@@ -1815,7 +1804,7 @@ the object-map for pattern variables.}#
 		 ))
 	       (setq curpair (pair_tail curpair))))
 ;;; second loop to fill the bindings tuple
-    (let ( (bndtup (make_multiple discr_multiple argrk)) 
+    (let ( (bndtup (make_multiple tupdis argrk)) 
 	   (:long ix 0)
 	   (bndpair (list_first bndlist))
 	   )
@@ -1829,6 +1818,7 @@ the object-map for pattern variables.}#
 	       (setq ix (+i ix 1))
 	       (setq bndpair (pair_tail bndpair))
 	       )
+      (debug_msg bndtup "lambda_arg_bindings result bndtup")
       (return bndtup)
       )))
 
@@ -2013,13 +2003,14 @@ the object-map for pattern variables.}#
 	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation] expansion...)"_))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments and check that they are not variadic
-    (let ( (btup (lambda_arg_bindings (pair_head curpair) ())) 
-	   (lastformal (multiple_nth btup -1))
+    (let ( (btup (lambda_arg_bindings (pair_head curpair) ()))
 	   )
-      (if (is_a lastformal class_rest_formal_binding)
+      (if (is_a btup discr_variadic_formal_sequence)
 	  (progn
-	    (error_strv loc "(DEFPRIMITIVE <symb> ...) cannot be variadic with last :rest formal"
-			(get_field :named_name symb))
+	    (error_strv 
+	     loc
+	     "(DEFPRIMITIVE <symb> ...) cannot have variadic formals, ending with :REST"
+	     (get_field :named_name symb))
 	    (return)
 	    ))
       (setq curpair (pair_tail curpair))
@@ -2147,23 +2138,19 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 	  (error_plain loc 
 		       "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	  (return)))
-    (let ( (laststartformal (multiple_nth bstartup -1)) 
-	   )
-      (if (is_a laststartformal class_rest_formal_binding)
-	  (progn
-	    (error_plain loc
-			 "(DEFCITERATOR symb startformals...) cannot have variadic start formals")
-	    (return))))
+    (if (is_a bstartup discr_variadic_formal_sequence)
+	(progn
+	  (error_plain loc
+		       "(DEFCITERATOR symb startformals...) cannot have variadic start formals")
+	  (return)))
     ;; parse the formal local arguments
     (setq curpair (pair_tail curpair))
     (setq blocvtup  (lambda_arg_bindings (pair_head curpair)))
-    (let ( (lastlocformal (multiple_nth blocvtup -1)) 
-	   )
-      (if (is_a lastlocformal class_rest_formal_binding)
+      (if (is_a blocvtup  discr_variadic_formal_sequence)
 	  (progn
 	    (error_plain loc
 			 "(DEFCITERATOR symb startformals state localformals...) cannot have variadic local formals")
-	    (return))))
+	    (return)))
     (setq curpair (pair_tail curpair))
     ;; parse the documentation, if any
     (if (== (pair_head curpair) ':doc)
@@ -2292,13 +2279,12 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     ;; parse the match & in formals 
     (let ( (matinformals (lambda_arg_bindings (pair_head curpair)))
 	   (:long nbmatinformals (multiple_length matinformals)) 
-	   (lastinformal (multiple_nth matinformals -1))
 	   )
       (if (<i nbmatinformals 1)
 	  (progn 
 	    (error_plain loc "empty ins for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	    (return)))
-      (if (is_a lastinformal class_rest_formal_binding)
+      (if (is_a matinformals discr_variadic_formal_sequence)
 	  (progn
 	    (error_plain loc "(DEFCMATCHER <symb> <ins> ...) cannot have variadic input formals")
 	    (return)
@@ -2321,13 +2307,10 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 	(progn
 	  (error_plain loc "bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	  (return)))
-    (let ( (lastoutformals (multiple_nth outformals -1))
-	   )
-      (if (is_a lastoutformals class_rest_formal_binding)
+    (if (is_a outformals discr_variadic_formal_sequence)
 	  (progn
 	    (error_plain loc "out formals for  (DEFCMATCHER <symb> <ins> <outs> ...) cannot be variadic")
 	    (return)))
-      )
     ;; parse the state symbol
     (setq curpair (pair_tail curpair))
     (setq statesym (pair_head curpair))
@@ -2480,13 +2463,12 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     ;; parse the match & in formals 
     (let ( (matinformals (lambda_arg_bindings (pair_head curpair)))
 	   (:long nbmatinformals (multiple_length matinformals)) 
-	   (lastinformal (multiple_nth matinformals -1))
 	   )
       (if (<i nbmatinformals 1)
 	  (progn 
 	    (error_plain loc "empty ins for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"_)
 	    (return)))
-      (if (is_a lastinformal class_rest_formal_binding)
+      (if (is_a matinformals discr_variadic_formal_sequence)
 	  (progn
 	    (error_strv loc "(DEFUNMATCHER <symb>  <ins> ...) inputs cannot be variadic with last :rest formal"
 			(get_field :named_name symb))
@@ -2508,12 +2490,12 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 	(progn
 	  (error_plain loc "bad outs for (DEFUNMATCHER <symb> <ins> <outs>[:doc docum]  <matchfun> <applyfun> [<data>])"_)
 	  (return)))
-      (if (is_a (multiple_nth outformals -1) class_rest_formal_binding)
-	  (progn
-	    (error_strv loc "(DEFUNMATCHER <symb>  <ins> <outs> ...) outputs cannot be variadic with last :rest formal"
-			(get_field :named_name symb))
-	    (return)
-	    ))
+    (if (is_a outformals discr_variadic_formal_sequence)
+	(progn
+	  (error_strv loc "(DEFUNMATCHER <symb>  <ins> <outs> ...) outputs cannot be variadic with last :rest formal"
+		      (get_field :named_name symb))
+	  (return)
+	  ))
     (setq curpair (pair_tail curpair))
     ;; parse the documentation if any
     (if (== (pair_head curpair) ':doc)
@@ -5210,9 +5192,8 @@ condition is a string such as "4.5." or a list of strings.}#)
 	 )
     ;; parse the formal results
     (let ( (restup (lambda_arg_bindings (pair_head curpair) sexpr)) 
-	   (lastresb (multiple_nth restup -1))
 	   )
-      (if (is_a lastresb class_rest_formal_binding)
+      (if (is_a restup discr_variadic_formal_sequence)
 	  (progn
 	    (error_plain loc "MULTICALL cannot have variadic result")
 	    (return)))

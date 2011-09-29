@@ -531,14 +531,6 @@ pattern-macro bindings. See the $EXPORT_PATMACRO macro.}# )
 See The $EXPORT_VALUES macro.}#
 )
 
-;;; formal binding for rest of variadic functions
-(defclass class_rest_formal_binding
-  :super class_any_binding
-  :fields ()
-  ;; the obj_num is the argument rank of the rest
-  :doc #{The $CLASS_REST_FORMAL_BINDING is the class to bind the last :rest formal argument, in variadic functions. The object's number is the argument rank.}#
-)
-
 ;;; formal binding (used in generated defprimitive)
 (defclass class_formal_binding
   :super class_any_binding
@@ -1627,8 +1619,9 @@ $PUT_INT. See also $DISCR_INTEGER.}# )
 
 ;;; the discriminant for multiples
 (definstance discr_multiple class_discriminant
-  :doc #{The $DISCR_MULTIPLE is the discriminant of multiple values, i.e. tuples. 
-See also $DISCR_FIELD_SEQUENCE and $DISCR_CLASS_SEQUENCE.}#
+  :doc #{The $DISCR_MULTIPLE is the discriminant of multiple values,
+i.e. tuples.  See also $DISCR_FIELD_SEQUENCE, $DISCR_CLASS_SEQUENCE,
+$DISCR_FORMAL_SEQUENCE, $DISCR_VARIADIC_FORMAL_SEQUENCE.}#
   :predef DISCR_MULTIPLE
   :obj_num MELTOBMAG_MULTIPLE
   :disc_super discr_any_receiver
@@ -1643,6 +1636,27 @@ and $CLASS_CLASS.}#
   :obj_num MELTOBMAG_MULTIPLE
   :named_name '"DISCR_FIELD_SEQUENCE"
   :disc_super discr_multiple
+  )
+
+;;; the discriminant for sequence of formals binding
+(definstance discr_formal_sequence class_discriminant
+  :doc #{The $DISCR_FORMAL_SEQUENCE is the discriminant of formal bindings
+sequence tuples. See also $DISCR_MULTIPLE
+and $DISCR_VARIADIC_FORMAL_SEQUENCE.}#
+  :obj_num MELTOBMAG_MULTIPLE
+  :named_name '"DISCR_FORMAL_SEQUENCE"
+  :disc_super discr_multiple
+  )
+
+
+;;; the discriminant for sequence of variadic formals binding
+(definstance discr_variadic_formal_sequence class_discriminant
+  :doc #{The $DISCR_VARIADIC_FORMAL_SEQUENCE is the discriminant of formal bindings
+sequence tuples. See also $DISCR_MULTIPLE
+and $DISCR_FORMALS_SEQUENCE.}#
+  :obj_num MELTOBMAG_MULTIPLE
+  :named_name '"DISCR_VARIADIC_FORMAL_SEQUENCE"
+  :disc_super discr_formal_sequence
   )
 
 
@@ -4004,7 +4018,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_primitive_binding
  class_proped 
  class_root
- class_rest_formal_binding
  class_selector
  class_selector_binding 
  class_sexpr
@@ -4142,6 +4155,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_edge
  discr_field_sequence                       
  discr_file
+ discr_formal_sequence
  discr_gimple
  discr_gimple_seq
  discr_integer                        
@@ -4175,6 +4189,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discr_strbuf                         
  discr_string                         
  discr_tree
+ discr_variadic_formal_sequence
  discr_verbatim_string  
  initial_environment                  
  initial_system_data
