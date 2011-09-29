@@ -1,6 +1,10 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* testsuite/melt/tvariadic.melt: New file.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt (as_null): New cmatcher.
 
 	* melt/warmelt-genobj.melt (class_procroutineobj): Add oprout_restnam field.
