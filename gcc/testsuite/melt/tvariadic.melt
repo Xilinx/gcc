@@ -8,8 +8,30 @@
     -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
     -fmelt-debug empty-file-for-melt.c
 |#
-(defun varifun (x :long l :rest)
-  x
+(defun varifun (f x :rest)
+  (let ( (:long sum 0) )
+    (forever 
+     parseargsloop
+     (variadic (:value nv)
+	       (setq sum (+i sum (get_int nv)))
+	       (again parseargsloop))
+     (variadic (:long n)
+	       (setq sum (+i n))
+	       (again parseargsloop))
+     (variadic ()
+	       (exit parseargsloop))
+     (assert_msg "INVALID argument"))
+    (debuglong "varifun sum" sum)
+    (f x sum))
 )
+
+(varifun 
+ (lambda (y :long s)
+   (let ( (t (tuple y (make_boxedint discr_integer s))) 
+	  )
+     (debug_msg t "varifun gave t")
+     t))
+ 'a
+ '1 () 2 3)
 
 ;; eof tvariadic.melt

@@ -1,5 +1,11 @@
 
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_ifvariadic): New.
+	(normexp_variadic): Use it. Still incomplete.
+
+	* testsuite/melt/tvariadic.melt: More.
+
+2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (class_objagain): New class.
 	(compilobj_nrep_again): New method.
 
