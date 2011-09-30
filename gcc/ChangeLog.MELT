@@ -1,4 +1,17 @@
 
+2011-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (foreach_pair): New.
+
+	* melt/warmelt-macro.melt (class_source_variadic): Remove, because renamed as
+	(class_source_ifvariadic).
+	(mexpand_variadic): Recode, using class_source_ifvariadic.
+
+	* melt/warmelt-normal.melt (normexp_variadic): Remove, since renamed as
+	(normexp_ifvariadic): Still incomplete.
+
+	* testsuite/melt/tvariadic.melt: Updated for new variadic syntax.
+
 2011-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (class_nrep_ifvariadic): New.
 	(normexp_variadic): Use it. Still incomplete.

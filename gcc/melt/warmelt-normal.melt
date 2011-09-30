@@ -3173,29 +3173,30 @@ source location.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;; normalize variadic
-(defun normexp_variadic (recv env ncx psloc)
-  (assert_msg "check variadic recv" (is_a recv class_source_variadic))
+;;;;;; normalize ifvariadic
+(defun normexp_ifvariadic (recv env ncx psloc)
+  (assert_msg "check ifvariadic recv" (is_a recv class_source_ifvariadic))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_variadic recv")
+  (debug_msg recv "normexp_ifvariadic recv")
   (let ( (loc (unsafe_get_field :loca_location recv))
-	 (sargs (unsafe_get_field :svariadic_argbind recv))
+	 (sargs (unsafe_get_field :sifvariadic_argbind recv))
 	 (:long nbargs (multiple_length sargs))
-	 (sbody (unsafe_get_field :svariadic_body recv))
+	 (sthen (unsafe_get_field :sifvariadic_then recv))
+	 (selse (unsafe_get_field :sifvariadic_else recv))
 	 (curpro (unsafe_get_field :nctx_curproc ncx))
 	 (curprocargs (get_field :nrpro_argb curpro))
 	 (nprovariadic (get_field :nrpro_variadic curpro))
 	 (newenv (fresh_env env))
 	 )
-    (debug_msg curpro "normexp_variadic curpro")
+    (debug_msg curpro "normexp_ifvariadic curpro")
     (if (is_not_a curprocargs discr_variadic_formal_sequence)
 	(progn
-	  (debug_msg curprocargs "normexp_variadic bad curprocargs")
+	  (debug_msg curprocargs "normexp_ifvariadic bad curprocargs")
 	  (error_plain loc "(VARIADIC ...) used in non-variadic function")
 	  (return)))
-    (debug_msg nprovariadic "normexp_variadic nprovariadic")
-    (assert_msg "normexp_variadic has nprovariadic" nprovariadic)
+    (debug_msg nprovariadic "normexp_ifvariadic nprovariadic")
+    (assert_msg "normexp_ifvariadic has nprovariadic" nprovariadic)
     ;; we transform the sequence of formal bindings into a sequence of
     ;; normal let bindings...
     (let ( (letbindtup (make_multiple discr_multiple nbargs))
@@ -3220,23 +3221,23 @@ source location.}#
 				 :nocc_bind curletbind))
 	      )
 	 (multiple_put_nth letbindtup fbix curletbind)
-	 (debug_msg curletbind "normexp_variadic curletbind")
+	 (debug_msg curletbind "normexp_ifvariadic curletbind")
 	 (multiple_put_nth locsymtup fbix curlocc)
-	 (debug_msg curlocc "normexp_variadic curlocc")
+	 (debug_msg curlocc "normexp_ifvariadic curlocc")
 	 (multiple_put_nth ctyptup fbix curctype)
-	 (debug_msg curctype "normexp_variadic curctype")
+	 (debug_msg curctype "normexp_ifvariadic curctype")
 	 (assert_msg "check curctype" (is_a curctype class_ctype))
 	 (put_env newenv curletbind)		 
 	 ))
-      (debug_msg letbindtup "normexp_variadic letbindtup")
-      (debug_msg locsymtup "normexp_variadic locsymtup")
-      (debug_msg ctyptup "normexp_variadic ctyptup")
-      (debug_msg sbody "normexp_variadic sbody before normalization")
+      (debug_msg letbindtup "normexp_ifvariadic letbindtup")
+      (debug_msg locsymtup "normexp_ifvariadic locsymtup")
+      (debug_msg ctyptup "normexp_ifvariadic ctyptup")
+      (debug_msg sthen "normexp_ifvariadic sthen before normalization")
       (multicall
-       (nbody nbodbindings)
-       (normalize_tuple sbody newenv ncx loc)
-       (debug_msg nbody "normexp_variadic nbody")
-       (debug_msg nbodbindings "normexp_variadic nbodbindings")
+       (nthen nthenbindings)
+       (normalize_tuple sthen newenv ncx loc)
+       (debug_msg nthen "normexp_ifvariadic nthen")
+       (debug_msg nthenbindings "normexp_ifvariadic nthenbindings")
        ;; should generate something like 
 ;;;; if_variadic $CTYPTUP $NPROVARIADIC then 
 ;;;; LET NREP ...
@@ -3246,11 +3247,11 @@ source location.}#
 			      :nifv_variadic nprovariadic
 			      :nifv_ctypes ctyptup))
 	      )
-	 (debug_msg nifv "normexp_variadic nifv")
+	 (debug_msg nifv "normexp_ifvariadic nifv")
 	 (error_plain loc "normalization of VARIADIC is not implemented")
-	 (assert_msg "$@$unimplemented normexp_variadic")
+	 (assert_msg "$@$unimplemented normexp_ifvariadic")
 	 )))))
-(install_method class_source_variadic normal_exp normexp_variadic)
+(install_method class_source_ifvariadic normal_exp normexp_ifvariadic)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

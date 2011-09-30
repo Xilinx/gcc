@@ -542,14 +542,15 @@ body.}#
 	   slam_body			;tuple for body
 	   ))
 
-(defclass class_source_variadic
-  :doc #{The internal $CLASS_SOURCE_VARIADIC is for abstract syntax of
-  $VARIADIC. The $SVARIADIC_ARGBIND is the tuple of formals of
-  $CLASS_FORMAL_BINDING, and the $SVARIADIC_BODY is the tuple of body
-  expressions.}#
+(defclass class_source_ifvariadic
+  :doc #{The internal $CLASS_SOURCE_IFVARIADIC is for abstract syntax of
+  $VARIADIC. The $SIFVARIADIC_ARGBIND is the tuple of formals of
+  $CLASS_FORMAL_BINDING, and the $SIFVARIADIC_THEN is the tuple of body
+  expressions evaluated with the variadics bound, otherwise $SIFVARIADIC_ELSE.}#
   :super class_source
-  :fields (svariadic_argbind		;tuple for variadic formals
-	   svariadic_body		;tuple for body
+  :fields (sifvariadic_argbind		;tuple for variadic formals
+	   sifvariadic_then		;tuple for body
+	   sifvariadic_else
 	   ))
 
 ;; multicall
@@ -4293,9 +4294,10 @@ condition is a string such as "4.5." or a list of strings.}#)
 (install_initial_macro 'cond mexpand_cond)
 (export_macro 
  cond mexpand_cond
- :doc #{The usual lisp $COND conditional. Syntax is (COND
- <conditions>...). Each condition is a list of the form (<test>
- <expr>...). The last catch-all condition can be (:else <epxr>...).}#) 
+ :doc #{The usual lisp $COND conditional. Syntax is @code{(COND
+ @var{<conditions>...})}. Each condition is a list of the form
+ @code{(@var{<test>} @var{<expr>...})}. The last catch-all condition
+ can be @code{(:else @var{<epxr>...})}.}#)
 
 
 ;;;;;;;;;;;;;;;;
@@ -5191,14 +5193,14 @@ condition is a string such as "4.5." or a list of strings.}#)
  :doc #{The $LAMBDA syntax is for anonymous functions e.g. closures,
  with closed values (however closing things like :gimple or :long is
  not permitted, you have to box them explicitly as :value-s.). Syntax
- is (LAMBDA ( <formals> ... ) <body>...). The formal argument list should
- have its first formal be a :value. Other arguments can bec(-typed
- with keywords like :value :gimple :long etc. which applies to all
- succeeding arguments up to the next ctype keyword. The body is a
- non-empty sequence of expressions. $LAMBDA functions can $RETURN a
- value with possible secondary results. See also $MULTICALL. $LAMBDA
- expressions are @b{constructive} so can appear in $LETREC
- bindings.}# )
+ is @code{(LAMBDA ( @var{<formals> ...} ) @var{<body>...})}. The
+ formal argument list should have its first formal be a :value. Other
+ arguments can be c-typed with keywords like :value :gimple :long
+ etc. which applies to all succeeding arguments up to the next ctype
+ keyword. The body is a non-empty sequence of expressions. $LAMBDA
+ functions can $RETURN a value with possible secondary results. See
+ also $MULTICALL. $LAMBDA expressions are @b{constructive} so can
+ appear in $LETREC bindings.}# )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5209,50 +5211,89 @@ condition is a string such as "4.5." or a list of strings.}#)
   (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont))) 
-	 (newenv (fresh_env env))
-	 (formals (pair_head curpair))
-	 (argtup (lambda_arg_bindings formals sexpr)) 
-	 (body ())
+	 (firstpair (pair_tail (list_first cont))) 
+	 (rescont (container ()))
+	 (hookfun (lambda (x) (set_content rescont x)))
 	 )
-    (debug_msg argtup "mexpand_variadic argtup")
-    (if (is_a argtup discr_variadic_formal_sequence)
-	(progn
-	  (error_plain loc 
-		       "(VARIADIC (<formals> ...) ...) cannot have variadic formals ending with :REST")
-	  (return)))
-    (foreach_in_multiple
-     (argtup)
-     (fbi :long ix)
-     (assert_msg "check fbi" (is_a fbi class_formal_binding))
-     (warn_if_redefined (get_field :binder fbi) env loc)
-     (put_env newenv fbi)
-     )
-    (setq curpair (pair_tail curpair))
-    (if (null curpair)
-	(progn
-	  (error_plain loc "(VARIADIC (<formals> ...) <body>...) needs an non-empty body")
-	  (return)))
-    (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-					  (lambda (e) (macroexpand_1 e newenv mexpander))))
-	   (svariadic (instance class_source_variadic
-				:loca_location loc
-				:svariadic_argbind argtup
-				:svariadic_body bodytup))
+    (foreach_pair
+     (firstpair)
+     (curpaircase curcase)
+     (if (not (is_a curcase class_sexpr))
+	 (progn
+	   (error_plain loc "(VARIADIC variadic-case...) expects a list, so cannot have non-list components.")
+	   (return)))
+     (let (
+	   (curcaseloc (unsafe_get_field :loca_location curcase))
+	   (curcasecont (unsafe_get_field :sexp_contents curcase))
+	   (curcasepair (list_first curcasecont))
+	   (casefirst (pair_head curcasepair))
+	   (caserest (pair_tail curcasepair))
 	   )
-      (debug_msg svariadic "mexpand_variadic returns svariadic")
-      (return svariadic)
+       (cond
+	((== casefirst :else)
+	 (if (pair_tail curpaircase)
+	     (progn
+	       (error_plain curcaseloc "case (:ELSE ...) should be last in (VARIADIC ...)")
+	       (warning_plain loc "This (VARIADIC ...) should have (:ELSE ...) case at last")
+	       (return)))
+	 (let (  (bodytup (pairlist_to_multiple 
+			   caserest 
+			   discr_multiple
+			   (lambda (e) (macroexpand_1 e env mexpander)))) 
+		 )
+	   (debug_msg bodytup "mexpand_variadic else bodytup")
+	   (hookfun bodytup)
+	   )
+	 )
+	((or (null casefirst)
+	     (is_a casefirst class_sexpr))
+	 (let ( (args (lambda_arg_bindings casefirst :true))
+		(newenv (fresh_env env))
+		)
+	   (foreach_in_multiple 
+	    (args)
+	    (fbi :long fix)
+	    (assert_msg "check fbi" (is_a fbi class_formal_binding))
+	    (warn_if_redefined (unsafe_get_field :binder fbi) newenv loc)
+	    (put_env newenv fbi)
+	    )
+	   (let ( (bodytup (pairlist_to_multiple caserest discr_multiple 
+						 (lambda (e) (macroexpand_1 e newenv mexpander))))
+		  (sifvariadic (instance class_source_ifvariadic
+					 :loca_location loc
+					 :sifvariadic_argbind args
+					 :sifvariadic_then bodytup
+					 :sifvariadic_else ()))
+		  )
+	     (hookfun bodytup)
+	     (setq hookfun (lambda (x) (put_fields sifvariadic :sifvariadic_else x)))
+	     )))
+	(:else
+	 (error_plain curcaseloc "invalid case in (VARIADIC ...), should start with formals")
+	 (return)
+	 )
+	)
+       ))
+    (let ( (res (content rescont)) 
+	   )
+      (debug_msg res "mexpand_variadic result")
+      (return res)
       )))
 (install_initial_macro 'variadic mexpand_variadic)
-(export_macro
- variadic mexpand_variadic
+(export_macro variadic mexpand_variadic
  :doc #{The $VARIADIC syntax is for getting variable arguments inside
-variadic functions -using :REST-.  Syntax is @code{(VARIADIC (
-@var{<formals> ...}) @var{<body> ...})}. When the actual variable
-arguments match the given formals, they are bound, and the body is
-evaluated. As an expression, @code{(VARIADIC @var{...})} gives no
-result, so is @code{:void}. If no @var{<formals>} are given, the body
-is executed when no more actual variable arguments remain.}#)
+variadic functions -using :REST-.  Syntax is 
+@code{(VARIADIC @var{variadic-case ...})} where each @var{variadic-case} is
+@code{( (@var{formal ...}) @var{body ...})} and the last
+@var{variadic-case} can also be @code{(:ELSE @var{body ...})}. When
+the actual variable arguments's signature match the given formals in a
+@var{variadic-case}, they are bound, and the body of that case is
+evaluated. If no @var{formals} match in type and number and if the last
+@var{variadic-case} starts with @code{:ELSE} it is exacuted. As an
+expression, @code{(VARIADIC @var{...})} gives no result, so is
+@code{:void}. In a @var{variadic-case}, if no @var{<formals} are
+given, the body is executed when no more actual variable arguments
+remain.}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;; for MULTICALL
@@ -6129,6 +6170,7 @@ is executed when no more actual variable arguments remain.}#)
  class_source_get_field
  class_source_if
  class_source_ifelse
+ class_source_ifvariadic
  class_source_instance
  class_source_labelled
  class_source_lambda
@@ -6169,7 +6211,6 @@ is executed when no more actual variable arguments remain.}#)
  class_source_unsafe_get_field
  class_source_unsafe_put_fields
  class_source_update_current_module_environment_container
- class_source_variadic
  )			       ;end classes for source representations
 
 (export_values			 ;values for source representations

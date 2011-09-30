@@ -3255,22 +3255,40 @@ nil.}#
 ;;; citerator on pairs
 (defciterator foreach_pair_between
   (start_pair end_pair) ;start formals 
-  eachpair ;state
+  eachpairb ;state
   (curpair curcomp) ;local formals
   :doc #{The $FOREACH_PAIR_BETWEEN iterator goes between two (linked) pairs,
   given by the start formal $START_PAIR and $END_PAIR. Local formals are $CURPAIR,
   bound to the current pair, and $CURCOMP, bound to the current component within
   the pair.}#
-   #{/* start $eachpair */
-   for ($curpair = $start_pair;
-	melt_magic_discr($curpair) == MELTOBMAG_PAIR;
-        $curpair = melt_pair_tail($curpair)) {
-	$curcomp = melt_pair_head($curpair); }#
+   #{/* start $EACHPAIRB */
+   for ($curpair = $START_PAIR;
+	melt_magic_discr($CURPAIR) == MELTOBMAG_PAIR;
+        $curpair = melt_pair_tail($CURPAIR)) {
+	$curcomp = melt_pair_head($CURPAIR); }#
    #{
-      if ($curpair == $end_pair) {
+      if ($CURPAIR == $END_PAIR) {
          break;
       }
-   } /* end $eachpair */}#
+   } /* end $EACHPAIRB */}#
+)
+
+
+;;; citerator on pairs
+(defciterator foreach_pair
+  (start_pair) ;start formals 
+  eachpair ;state
+  (curpair curcomp) ;local formals
+  :doc #{The $FOREACH_PAIR iterator scan pairs starting from $START_PAIR. Local formals are $CURPAIR,
+  bound to the current pair, and $CURCOMP, bound to the current component within
+  the pair.}#
+   #{/* start $EACHPAIR */
+   for ($CURPAIR = $START_PAIR;
+	melt_magic_discr($CURPAIR) == MELTOBMAG_PAIR;
+        $CURPAIR = melt_pair_tail($CURPAIR)) {
+	$CURCOMP = melt_pair_head($CURPAIR); }#
+   #{
+   } /* end $EACHPAIR */}#
 )
 
 ;;; citerator on lists
@@ -4254,6 +4272,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 
 ;; export the citerators & cmatchers defined above
 (export_values
+ foreach_pair
  foreach_pair_between
  foreach_in_list
  foreach_in_mapobject
