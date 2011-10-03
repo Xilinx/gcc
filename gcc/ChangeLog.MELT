@@ -1,5 +1,11 @@
 
 2011-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_variadic_argument): New class.
+	(normexp_ifvariadic): Complete, by using it.
+
+	* testsuite/melt/tvariadic.melt: Correct.
+
+2011-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-debug.melt (dbgout_multiple_method): Always display
 	tuple's content at toplevel.

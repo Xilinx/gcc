@@ -16,7 +16,7 @@
                 (setq sum (+i sum (get_int nv)))
                 (again parseargsloop))
                ( (:long n)
-                (setq sum (+i n))
+                (setq sum (+i sum n))
                 (again parseargsloop))
                ( ()
                (exit parseargsloop))

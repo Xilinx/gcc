@@ -304,6 +304,14 @@ part, $NIFP_ELSE the else part, $NIFP_CTYP the ctype.}#
 	   nmins_fields			;the tuple of field assignments
 	   ))
 
+;; normalized variadic argument retrieval
+(defclass class_nrep_variadic_argument
+  :super class_nrep_expression
+  :fields (nvarg_variadic ;variadic symbol for index
+	   nvarg_ctyp     ;ctype of argument
+	   nvarg_offset   ;boxed integer offset
+	   ))
+
 ;; normalized lambda
 (defclass class_nrep_lambda 
   :super class_nrep_expression
@@ -703,6 +711,7 @@ routine procedures.}#
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
  class_nrep_update_current_module_environment_container
+ class_nrep_variadic_argument
 
  )					;end of export normal classes
 
@@ -3200,20 +3209,28 @@ source location.}#
     ;; we transform the sequence of formal bindings into a sequence of
     ;; normal let bindings...
     (let ( (letbindtup (make_multiple discr_multiple nbargs))
+	   (letbindthenlist (make_list discr_list))
 	   (locsymtup (make_multiple discr_multiple nbargs))
 	   (ctyptup (make_multiple discr_multiple nbargs))
 	   )
       (foreach_in_multiple
        (sargs)
        (fbi :long fbix)
+       (debug_msg fbi "normexp_ifvariadic fbi")
        (assert_msg "check fbi" (is_a fbi class_formal_binding))
        (let ( (curbinder (unsafe_get_field :binder fbi))
 	      (curctype (unsafe_get_field :fbind_type fbi))
+	      (curvararg (instance class_nrep_variadic_argument
+				   :nrep_loc loc
+				   :nvarg_ctyp curctype
+				   :nvarg_variadic nprovariadic
+				   :nvarg_offset (make_integerbox discr_constant_integer fbix) 
+				   ))
 	      (curletbind (instance class_normal_let_binding
 				    :binder curbinder
 				    :letbind_loc loc
 				    :letbind_type curctype
-				    :letbind_expr ()))
+				    :letbind_expr curvararg))
 	      (curlocc (instance class_nrep_locsymocc
 				 :nrep_loc loc
 				 :nocc_ctyp curctype
@@ -3221,6 +3238,7 @@ source location.}#
 				 :nocc_bind curletbind))
 	      )
 	 (multiple_put_nth letbindtup fbix curletbind)
+	 (list_append letbindthenlist curletbind)
 	 (debug_msg curletbind "normexp_ifvariadic curletbind")
 	 (multiple_put_nth locsymtup fbix curlocc)
 	 (debug_msg curlocc "normexp_ifvariadic curlocc")
@@ -3238,24 +3256,42 @@ source location.}#
        (normalize_tuple sthen newenv ncx loc)
        (debug_msg nthen "normexp_ifvariadic nthen")
        (debug_msg nthenbindings "normexp_ifvariadic nthenbindings")
+       (list_append2list letbindthenlist nthenbindings)
+       (debug_msg letbindthenlist "normexp_ifvariadic updated letbindthenlist")
        (debug_msg selse "normexp_ifvariadic selse before normalization")
        (multicall
 	(nelse nelsebindings)
 	(normalize_tuple selse newenv ncx loc)
 	(debug_msg nelse "normexp_ifvariadic nelse")
 	(debug_msg nelsebindings "normexp_ifvariadic nelsebindings")
-	;; should generate something like 
-;;;; if_variadic $CTYPTUP $NPROVARIADIC then 
-;;;; LET NREP ...
-	(let ( (nifv (instance class_nrep_ifvariadic
+	(let ( 
+	      (csym (clone_symbol 'ifvariadic_))
+	      (cbind (instance class_normal_let_binding
+			       :binder csym
+			       :letbind_loc loc
+			       :letbind_type ctype_void
+			       :letbind_expr () ;filled later
+			       ))
+	      (clocc (instance class_nrep_locsymocc
 			       :nrep_loc loc
-			       :nif_then () ;to be filled later
-			       :nifv_variadic nprovariadic
-			       :nifv_ctypes ctyptup))
-	       )
+			       :nocc_ctyp ctype_void
+			       :nocc_symb csym
+			       :nocc_bind cbind))
+	      (nthenlet (wrap_normal_letseq nthen letbindthenlist loc))
+	      (nelselet (wrap_normal_letseq nelse nelsebindings loc))
+	      (nbindlist (list cbind))
+	      (nifv (instance class_nrep_ifvariadic
+			      :nrep_loc loc
+			      :nif_then nthenlet
+			      :nif_else nelselet
+			      :nifv_variadic nprovariadic
+			      :nifv_ctypes ctyptup))
+	      )
 	  (debug_msg nifv "normexp_ifvariadic nifv")
-	  (error_plain loc "normalization of VARIADIC is not implemented")
-	  (assert_msg "$@$unimplemented normexp_ifvariadic")
+	  (put_fields cbind :letbind_expr nifv)
+	  (debug_msg clocc "normexp_ifvariadic result clocc")
+	  (debug_msg nbindlist "normexp_ifvariadic result nbindlist")
+	  (return clocc nbindlist)
 	  ))))))
 (install_method class_source_ifvariadic normal_exp normexp_ifvariadic)
 
