@@ -402,11 +402,9 @@ pph_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
 }
 
 
-/* Insert DATA in CACHE at slot IX.  We support inserting the same
-   DATA at different locations of the array (FIXME pph, this happens
-   when reading builtins, which may have been converted into builtins
-   after they were read originally.  This should be detected and
-   converted into mutated references).  */
+/* Insert DATA in CACHE at slot IX.  As a restriction to prevent
+   stomping on cache entries, this will not allow inserting
+   into the same slot more than once.  */
 
 void
 pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix)
