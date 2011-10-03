@@ -1,3 +1,9 @@
+2011-10-01   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_read_namespace_tree): Initialize EXPR.
+	* pph-streamer-out.c (pph_get_marker_for): Handle NULL values
+        for INCLUDE_IX_P and IX_P.
+
 2011-09-30   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.c (pph_cache_insert_at): Fix documentation.

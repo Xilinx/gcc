@@ -2098,7 +2098,7 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
-  tree expr;
+  tree expr = NULL_TREE;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
   enum LTO_tags tag;

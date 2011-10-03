@@ -239,8 +239,11 @@ static enum pph_record_marker
 pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
                     unsigned *ix_p)
 {
-  *ix_p = -1u;
-  *include_ix_p = -1u;
+  if (ix_p)
+    *ix_p = -1u;
+
+  if (include_ix_p)
+    *include_ix_p = -1u;
 
   /* We represent NULL pointers with PPH_RECORD_END.  */
   if (data == NULL)
