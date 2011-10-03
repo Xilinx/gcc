@@ -56,10 +56,10 @@ static int pph_reading_includes = 0;
    registered in the PPH streamer cache.  DATA is the pointer returned
    by the memory allocation call in ALLOC_EXPR.  IX is the cache slot 
    in CACHE where the newly allocated DATA should be registered at.  */
-#define ALLOC_AND_REGISTER(CACHE, IX, DATA, ALLOC_EXPR)	\
+#define ALLOC_AND_REGISTER(CACHE, IX, TAG, DATA, ALLOC_EXPR)	\
     do {							\
       (DATA) = (ALLOC_EXPR);					\
-      pph_cache_insert_at (CACHE, DATA, IX);			\
+      pph_cache_insert_at (CACHE, DATA, IX, TAG);		\
     } while (0)
 
 /* Same as ALLOC_AND_REGISTER, but instead of registering DATA into the
@@ -68,10 +68,11 @@ static int pph_reading_includes = 0;
    to a different instance when aggregating individual PPH files into
    the current translation unit (see pph_in_binding_level for an
    example).  */
-#define ALLOC_AND_REGISTER_ALTERNATE(CACHE, IX, DATA, ALLOC_EXPR, ALT_DATA)\
+#define ALLOC_AND_REGISTER_ALTERNATE(CACHE, IX, TAG, DATA, ALLOC_EXPR,  \
+                                     ALT_DATA)                  \
     do {							\
       (DATA) = (ALLOC_EXPR);					\
-      pph_cache_insert_at (CACHE, ALT_DATA, IX);		\
+      pph_cache_insert_at (CACHE, ALT_DATA, IX, TAG);		\
     } while (0)
 
 /* Set in pph_in_and_merge_line_table. Represents the source_location offset
@@ -145,11 +146,13 @@ pph_init_read (pph_stream *stream)
 }
 
 
-/* Read and return a record header from STREAM.  When a PPH_RECORD_START
-   marker is read, the next word read is an index into the streamer
-   cache where the rematerialized data structure should be stored.
-   When the writer stored this data structure for the first time, it
-   added it to its own streamer cache at slot number *CACHE_IX_P.
+/* Read and return a record header from STREAM.  EXPECTED_TAG indicates
+   the data type that should be stored in this record.  When a
+   PPH_RECORD_START marker is read, the next word read is an index
+   into the streamer cache where the rematerialized data structure
+   should be stored. When the writer stored this data structure for
+   the first time, it added it to its own streamer cache at slot
+   number *CACHE_IX_P.
 
    This way, if the same data structure was written a second time to
    the stream, instead of writing the whole structure again, only the
@@ -171,9 +174,16 @@ pph_init_read (pph_stream *stream)
 
 static inline enum pph_record_marker
 pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
-		     unsigned *cache_ix_p)
+		     unsigned *cache_ix_p, enum pph_tag expected_tag)
 {
-  enum pph_record_marker marker = pph_in_record_marker (stream);
+  enum pph_tag read_tag;
+  enum pph_record_marker marker = pph_in_record_marker (stream, &read_tag);
+
+  /* If the caller expects any tree, make sure we get a valid tree code.  */
+  if (expected_tag == PPH_any_tree)
+    gcc_assert (read_tag < PPH_any_tree);
+  else
+    gcc_assert (read_tag == expected_tag);
 
   *include_ix_p = (unsigned) -1;
   *cache_ix_p = (unsigned) -1;
@@ -428,7 +438,7 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix, image_ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cxx_binding);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -439,7 +449,8 @@ pph_in_cxx_binding_1 (pph_stream *stream)
 
   value = pph_in_tree (stream);
   type = pph_in_tree (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, cb, cxx_binding_make (value, type));
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cxx_binding, cb,
+                      cxx_binding_make (value, type));
   cb->scope = pph_in_binding_level (stream, NULL);
   bp = pph_in_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
@@ -479,7 +490,7 @@ pph_in_class_binding (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_class_binding);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -488,7 +499,7 @@ pph_in_class_binding (pph_stream *stream)
       return (cp_class_binding *) pph_cache_get (cache, ix);
     }
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, cb,
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_class_binding, cb,
                       ggc_alloc_cleared_cp_class_binding ());
   cb->base = pph_in_cxx_binding (stream);
   cb->identifier = pph_in_tree (stream);
@@ -506,7 +517,7 @@ pph_in_label_binding (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_label_binding);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -515,7 +526,7 @@ pph_in_label_binding (pph_stream *stream)
       return (cp_label_binding *) pph_cache_get (cache, ix);
     }
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, lb,
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_label_binding, lb,
                       ggc_alloc_cleared_cp_label_binding ());
   lb->label = pph_in_tree (stream);
   lb->prev_value = pph_in_tree (stream);
@@ -551,7 +562,7 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
   enum pph_record_marker marker;
   tree entity;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -563,10 +574,10 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
   /* If TO_REGISTER is set, register that binding level instead of the newly
      allocated binding level into slot IX.  */
   if (to_register == NULL)
-    ALLOC_AND_REGISTER (&stream->cache, ix, bl,
+    ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_binding_level, bl,
 			ggc_alloc_cleared_cp_binding_level ());
   else
-    ALLOC_AND_REGISTER_ALTERNATE (&stream->cache, ix, bl,
+    ALLOC_AND_REGISTER_ALTERNATE (&stream->cache, ix, PPH_cp_binding_level, bl,
 				  ggc_alloc_cleared_cp_binding_level (),
 				  to_register);
 
@@ -631,33 +642,6 @@ pph_in_tree_common (pph_stream *stream, tree t)
   TREE_CHAIN (t) = pph_in_tree (stream);
 }
 
-/* Read and return an instance of struct c_language_function from STREAM.  */
-
-static struct c_language_function *
-pph_in_c_language_function (pph_stream *stream)
-{
-  struct c_language_function *clf;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    {
-      pph_cache *cache = pph_cache_select (stream, marker, image_ix);
-      return (struct c_language_function *) pph_cache_get (cache, ix);
-    }
-
-  ALLOC_AND_REGISTER (&stream->cache, ix, clf,
-		      ggc_alloc_cleared_c_language_function ());
-  clf->x_stmt_tree.x_cur_stmt_list = pph_in_tree_vec (stream);
-  clf->x_stmt_tree.stmts_are_full_exprs_p = pph_in_uint (stream);
-
-  return clf;
-}
-
-
 /* Read and return an instance of struct language_function from STREAM.  */
 
 static struct language_function *
@@ -668,7 +652,7 @@ pph_in_language_function (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_language_function);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -677,10 +661,10 @@ pph_in_language_function (pph_stream *stream)
       return (struct language_function *) pph_cache_get (cache, ix);
     }
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, lf,
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_language_function, lf,
                       ggc_alloc_cleared_language_function ());
-  memcpy (&lf->base, pph_in_c_language_function (stream),
-	  sizeof (struct c_language_function));
+  lf->base.x_stmt_tree.x_cur_stmt_list = pph_in_tree_vec (stream);
+  lf->base.x_stmt_tree.stmts_are_full_exprs_p = pph_in_uint (stream);
   lf->x_cdtor_label = pph_in_tree (stream);
   lf->x_current_class_ptr = pph_in_tree (stream);
   lf->x_current_class_ref = pph_in_tree (stream);
@@ -764,7 +748,7 @@ pph_in_struct_function (pph_stream *stream, tree decl)
   struct function *fn;
   tree t;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_function);
   if (marker == PPH_RECORD_END)
     return;
   else if (pph_is_reference_marker (marker))
@@ -783,7 +767,7 @@ pph_in_struct_function (pph_stream *stream, tree decl)
 
   /* Now register it.  We would normally use ALLOC_AND_REGISTER,
      but allocate_struct_function does not return a pointer.  */
-  pph_cache_insert_at (&stream->cache, fn, ix);
+  pph_cache_insert_at (&stream->cache, fn, ix, PPH_function);
 
   input_struct_function_base (fn, stream->encoder.r.data_in,
 			      stream->encoder.r.ib);
@@ -874,7 +858,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
   if (marker == PPH_RECORD_END)
     return;
   else if (pph_is_reference_marker (marker))
@@ -891,7 +875,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
 
   /* Now register it.  We would normally use ALLOC_AND_REGISTER,
      but retrofit_lang_decl does not return a pointer.  */
-  pph_cache_insert_at (&stream->cache, ld, ix);
+  pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
 
   /* Read all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
@@ -971,7 +955,7 @@ pph_in_sorted_fields_type (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_sorted_fields_type);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -981,7 +965,7 @@ pph_in_sorted_fields_type (pph_stream *stream)
     }
 
   num_fields = pph_in_uint (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, v,
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_sorted_fields_type, v,
                       sorted_fields_type_new (num_fields));
   for (i = 0; i < num_fields; i++)
     v->elts[i] = pph_in_tree (stream);
@@ -1052,11 +1036,12 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   ltc->typeinfo_var = pph_in_tree (stream);
   ltc->vbases = pph_in_tree_vec (stream);
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_binding_table);
   if (marker == PPH_RECORD_START)
     {
       ltc->nested_udts = pph_in_binding_table (stream);
-      pph_cache_insert_at (&stream->cache, ltc->nested_udts, ix);
+      pph_cache_insert_at (&stream->cache, ltc->nested_udts, ix,
+                           PPH_binding_table);
     }
   else if (pph_is_reference_marker (marker))
     {
@@ -1097,7 +1082,7 @@ pph_in_lang_type (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_type);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -1106,7 +1091,7 @@ pph_in_lang_type (pph_stream *stream)
       return (struct lang_type *) pph_cache_get (cache, ix);
     }
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, lt,
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_lang_type, lt,
                       ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
 
   pph_in_lang_type_header (stream, &lt->u.h);
@@ -1314,7 +1299,7 @@ pph_in_cgraph_node (pph_stream *stream)
   tree fndecl;
   struct bitpack_d bp;
 
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cgraph_node);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -1324,7 +1309,8 @@ pph_in_cgraph_node (pph_stream *stream)
     }
 
   fndecl = pph_in_tree (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, node, cgraph_create_node (fndecl));
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cgraph_node, node,
+                      cgraph_create_node (fndecl));
 
   node->origin = pph_in_cgraph_node (stream);
   node->nested = pph_in_cgraph_node (stream);
@@ -2104,7 +2090,7 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
   enum LTO_tags tag;
 
   /* Read record start and test cache.  */
-  marker = pph_in_start_record (stream, &image_ix, &ix);
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (pph_is_reference_marker (marker))
@@ -2174,7 +2160,7 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
   /* Add the new tree to the cache and read its body.  The tree
      is added to the cache before we read its body to handle
      circular references and references from children nodes.  */
-  pph_cache_insert_at (&stream->cache, expr, ix);
+  pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
   pph_read_tree_body (stream, expr);
 
   /* If needed, sign the recently materialized tree to detect

@@ -1,5 +1,4 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
 #include "x6dynarray5.h"
 
 #include <algorithm>

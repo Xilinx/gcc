@@ -1,3 +1,8 @@
+2011-10-03   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x6dynarray4.cc: Mark partially fixed.
+	* g++.dg/pph/x7dynarray5.cc: Mark partially fixed.
+
 2011-10-01   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/p4mean.cc: Remove XFAILs.  Add -w -fpermissive flags.

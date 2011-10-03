@@ -227,17 +227,19 @@ pph_cache_should_handle (tree t)
 
 
 /* Return a PPH record marker according to whether DATA is NULL or
-   it can be found in one of the caches associated with STREAM.
+   it can be found in one of the caches associated with STREAM.  TAG
+   is the data type for DATA.
 
    If DATA is in any of the caches, return the corresponding slot in
    *IX_P.  If DATA is in the cache of an image included by STREAM,
    return the image's index in *INCLUDE_IX_P.
 
-   In all other cases, *IX_P and *INCLUDE_IX_P will be set to -1.  */
+   In all other cases, *IX_P and *INCLUDE_IX_P will be set to -1 (if
+   given).  */
 
 static enum pph_record_marker
 pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
-                    unsigned *ix_p)
+                    unsigned *ix_p, enum pph_tag tag)
 {
   if (ix_p)
     *ix_p = -1u;
@@ -250,17 +252,17 @@ pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
     return PPH_RECORD_END;
 
   /* If DATA is in STREAM's cache, return an internal reference marker.  */
-  if (pph_cache_lookup (&stream->cache, data, ix_p))
+  if (pph_cache_lookup (&stream->cache, data, ix_p, tag))
     return PPH_RECORD_IREF;
 
   /* If DATA is in the cache of an included image, return an external
      reference marker.  */
-  if (pph_cache_lookup_in_includes (data, include_ix_p, ix_p))
+  if (pph_cache_lookup_in_includes (data, include_ix_p, ix_p, tag))
     return PPH_RECORD_XREF;
 
   /* If DATA is a pre-loaded tree node, return a pre-loaded reference
      marker.  */
-  if (pph_cache_lookup (NULL, data, ix_p))
+  if (pph_cache_lookup (NULL, data, ix_p, tag))
     return PPH_RECORD_PREF;
 
   /* DATA is in none of the caches.  It should be pickled out.  */
@@ -268,17 +270,18 @@ pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
 }
 
 
-/* Write a reference record on STREAM.  MARKER is the tag indicating what
-   kind of reference to write.  IX is the cache slot index to write.
+/* Write a reference record on STREAM.  MARKER is the tag indicating
+   what kind of reference to write.  TAG indicates the data type to be
+   stored in this record.  IX is the cache slot index to write.
    INCLUDE_IX is used for PPH_RECORD_XREF records.  */
 
 static inline void
 pph_out_reference_record (pph_stream *stream, enum pph_record_marker marker,
-                          unsigned include_ix, unsigned ix)
+                          unsigned include_ix, unsigned ix, enum pph_tag tag)
 {
   gcc_assert (marker == PPH_RECORD_END || pph_is_reference_marker (marker));
 
-  pph_out_record_marker (stream, marker);
+  pph_out_record_marker (stream, marker, tag);
 
   if (pph_is_reference_marker (marker))
     {
@@ -296,8 +299,8 @@ pph_out_reference_record (pph_stream *stream, enum pph_record_marker marker,
 }
 
 
-/* Start a new record in STREAM for DATA.  If DATA is NULL
-   write an end-of-record marker and return true.
+/* Start a new record in STREAM for DATA with data type TAG.  If DATA
+   is NULL write an end-of-record marker and return true.
 
    If DATA is not NULL and did not exist in the pickle cache, add it,
    write a start-of-record marker and return true.  This means that we
@@ -309,23 +312,23 @@ pph_out_reference_record (pph_stream *stream, enum pph_record_marker marker,
    DATA.  */
 
 static inline bool
-pph_out_start_record (pph_stream *stream, void *data)
+pph_out_start_record (pph_stream *stream, void *data, enum pph_tag tag)
 {
   unsigned include_ix, ix;
   enum pph_record_marker marker;
 
   /* Try to write a reference record first.  */
-  marker = pph_get_marker_for (stream, data, &include_ix, &ix);
+  marker = pph_get_marker_for (stream, data, &include_ix, &ix, tag);
   if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
     {
-      pph_out_reference_record (stream, marker, include_ix, ix);
+      pph_out_reference_record (stream, marker, include_ix, ix, tag);
       return true;
     }
 
   /* DATA is in none of the pickle caches.  Add DATA to STREAM's
      pickle cache and write the slot where we stored it in.  */
-  pph_cache_add (&stream->cache, data, &ix);
-  pph_out_record_marker (stream, PPH_RECORD_START);
+  pph_cache_add (&stream->cache, data, &ix, tag);
+  pph_out_record_marker (stream, PPH_RECORD_START, tag);
   pph_out_uint (stream, ix);
 
   /* The caller will have to write a physical representation for DATA.  */
@@ -344,11 +347,13 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 {
   unsigned include_ix, ix;
   enum pph_record_marker marker;
+  enum pph_tag tag;
 
   /* Determine what kind of record we will be writing.  */
-  marker = pph_get_marker_for (stream, t, &include_ix, &ix);
+  tag = pph_tree_code_to_tag (t);
+  marker = pph_get_marker_for (stream, t, &include_ix, &ix, tag);
 
-  /* DECLs and TYPEs that have been read from an external PPH image
+  /* Signed tree nodes that have been read from an external PPH image
      may have mutated while parsing this header.  In that case,
      we need to write a mutated reference record and re-pickle the
      tree.  */
@@ -357,13 +362,13 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
       pph_cache *cache = pph_cache_select (stream, marker, include_ix);
       pph_cache_entry *e = pph_cache_get_entry (cache, ix);
       unsigned crc = pph_get_signature (t, NULL);
-      if (0 && crc != e->crc)
+      if (crc != e->crc)
         marker = PPH_RECORD_START_MUTATED;
     }
 
   /* Write a record header according to the value of MARKER.  */
   if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
-    pph_out_reference_record (stream, marker, include_ix, ix);
+    pph_out_reference_record (stream, marker, include_ix, ix, tag);
   else if (marker == PPH_RECORD_START)
     {
       /* We want to prevent some trees from hitting the cache.
@@ -375,11 +380,11 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
       if (!pph_cache_should_handle (t))
         marker = PPH_RECORD_START_NO_CACHE;
 
-      pph_out_record_marker (stream, marker);
+      pph_out_record_marker (stream, marker, tag);
       if (marker == PPH_RECORD_START)
         {
           unsigned ix;
-          pph_cache_add (&stream->cache, t, &ix);
+          pph_cache_add (&stream->cache, t, &ix, tag);
           pph_out_uint (stream, ix);
         }
     }
@@ -399,8 +404,8 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
          external version of T.  This way the reader will get the
          location of T from the external reference and overwrite it
          with the contents that we are going to write here.  */
-      pph_cache_add (&stream->cache, t, &internal_ix);
-      pph_out_record_marker (stream, marker);
+      pph_cache_add (&stream->cache, t, &internal_ix, tag);
+      pph_out_record_marker (stream, marker, tag);
 
       /* Write the location of T in the external cache.  */
       gcc_assert (include_ix != -1u);
@@ -549,11 +554,11 @@ pph_tree_matches (tree t, unsigned filter)
     return false;
 
   if ((filter & PPHF_NO_PREFS)
-      && pph_cache_lookup (NULL, t, NULL))
+      && pph_cache_lookup (NULL, t, NULL, pph_tree_code_to_tag (t)))
     return false;
 
   if ((filter & PPHF_NO_XREFS)
-      && pph_cache_lookup_in_includes (t, NULL, NULL))
+      && pph_cache_lookup_in_includes (t, NULL, NULL, pph_tree_code_to_tag (t)))
     return false;
 
   return true;
@@ -688,7 +693,7 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
 {
   struct bitpack_d bp;
 
-  if (pph_out_start_record (stream, cb))
+  if (pph_out_start_record (stream, cb, PPH_cxx_binding))
     return;
 
   pph_out_tree (stream, cb->value);
@@ -726,7 +731,7 @@ pph_out_cxx_binding (pph_stream *stream, cxx_binding *cb)
 static void
 pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
 {
-  if (pph_out_start_record (stream, cb))
+  if (pph_out_start_record (stream, cb, PPH_cp_class_binding))
     return;
 
   pph_out_cxx_binding (stream, cb->base);
@@ -739,7 +744,7 @@ pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
 static void
 pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 {
-  if (pph_out_start_record (stream, lb))
+  if (pph_out_start_record (stream, lb, PPH_cp_label_binding))
     return;
 
   pph_out_tree (stream, lb->label);
@@ -904,7 +909,7 @@ static void
 pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 		       unsigned filter)
 {
-  if (pph_out_start_record (stream, bl))
+  if (pph_out_start_record (stream, bl, PPH_cp_binding_level))
     return;
 
   pph_out_binding_level_1 (stream, bl, filter);
@@ -921,20 +926,6 @@ pph_out_tree_common (pph_stream *stream, tree t)
 }
 
 
-/* Write all the fields of c_language_function instance CLF to STREAM.  */
-
-static void
-pph_out_c_language_function (pph_stream *stream,
-			     struct c_language_function *clf)
-{
-  if (pph_out_start_record (stream, clf))
-    return;
-
-  pph_out_tree_vec (stream, clf->x_stmt_tree.x_cur_stmt_list);
-  pph_out_uint (stream, clf->x_stmt_tree.stmts_are_full_exprs_p);
-}
-
-
 /* Write all the fields of language_function instance LF to STREAM.  */
 
 static void
@@ -942,10 +933,11 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
 {
   struct bitpack_d bp;
 
-  if (pph_out_start_record (stream, lf))
+  if (pph_out_start_record (stream, lf, PPH_language_function))
     return;
 
-  pph_out_c_language_function (stream, &lf->base);
+  pph_out_tree_vec (stream, lf->base.x_stmt_tree.x_cur_stmt_list);
+  pph_out_uint (stream, lf->base.x_stmt_tree.stmts_are_full_exprs_p);
   pph_out_tree (stream, lf->x_cdtor_label);
   pph_out_tree (stream, lf->x_current_class_ptr);
   pph_out_tree (stream, lf->x_current_class_ref);
@@ -1040,7 +1032,7 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
 {
   struct pph_tree_info pti;
 
-  if (pph_out_start_record (stream, fn))
+  if (pph_out_start_record (stream, fn, PPH_function))
     return;
 
   pph_out_tree (stream, fn->decl);
@@ -1126,7 +1118,7 @@ pph_out_lang_specific (pph_stream *stream, tree decl)
   struct lang_decl_base *ldb;
 
   ld = DECL_LANG_SPECIFIC (decl);
-  if (pph_out_start_record (stream, ld))
+  if (pph_out_start_record (stream, ld, PPH_lang_decl))
     return;
 
   /* Write all the fields in lang_decl_base.  */
@@ -1201,7 +1193,7 @@ pph_out_sorted_fields_type (pph_stream *stream, struct sorted_fields_type *sft)
 {
   int i;
 
-  if (pph_out_start_record (stream, sft))
+  if (pph_out_start_record (stream, sft, PPH_sorted_fields_type))
     return;
 
   pph_out_uint (stream, sft->len);
@@ -1270,7 +1262,7 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   pph_out_tree (stream, ltc->vtables);
   pph_out_tree (stream, ltc->typeinfo_var);
   pph_out_tree_vec (stream, ltc->vbases);
-  if (!pph_out_start_record (stream, ltc->nested_udts))
+  if (!pph_out_start_record (stream, ltc->nested_udts, PPH_binding_table))
     pph_out_binding_table (stream, ltc->nested_udts);
   pph_out_tree (stream, ltc->as_base);
   pph_out_tree_vec (stream, ltc->pure_virtuals);
@@ -1303,7 +1295,7 @@ pph_out_lang_type (pph_stream *stream, tree type)
   struct lang_type *lt;
 
   lt = TYPE_LANG_SPECIFIC (type);
-  if (pph_out_start_record (stream, lt))
+  if (pph_out_start_record (stream, lt, PPH_lang_type))
     return;
 
   pph_out_lang_type_header (stream, &lt->u.h);
@@ -1349,8 +1341,9 @@ pph_out_scope_chain (pph_stream *stream)
      reference to it, instead of writing its fields.  */
   {
     unsigned ix;
-    pph_cache_add (&stream->cache, scope_chain->bindings, &ix);
-    pph_out_record_marker (stream, PPH_RECORD_START);
+    pph_cache_add (&stream->cache, scope_chain->bindings, &ix,
+                   PPH_cp_binding_level);
+    pph_out_record_marker (stream, PPH_RECORD_START, PPH_cp_binding_level);
     pph_out_uint (stream, ix);
     pph_out_binding_level_1 (stream, scope_chain->bindings,
 			     PPHF_NO_XREFS | PPHF_NO_PREFS);
@@ -1424,7 +1417,7 @@ pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
 {
   struct bitpack_d bp;
 
-  if (pph_out_start_record (stream, node))
+  if (pph_out_start_record (stream, node, PPH_cgraph_node))
     return;
 
   pph_out_tree (stream, node->decl);

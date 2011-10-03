@@ -1,3 +1,35 @@
+2011-10-03   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.h (enum pph_tag): Define.
+	(struct pph_cache_entry): Add field TAG.
+        (pph_cache_insert_at): Add new argument TAG.
+        Update all users.
+        (pph_cache_lookup): Likewise.
+        (pph_cache_lookup_in_includes): Likewise.
+        (pph_cache_add): Likewise.
+        (pph_out_record_marker): Likewise.
+        (pph_in_record_marker): Add new argument *TAG_P.
+        Read *TAG_P.  Assert that it is a valid tag.
+        (pph_cache_get): Call pph_cache_get_entry.
+	(pph_tag_is_tree_code): New.
+        (pph_tree_code_to_tag): New.
+        (pph_tag_to_tree_code): New.
+	* pph-streamer-in.c (ALLOC_AND_REGISTER): Add new argument
+        TAG.  Update all users.
+        (ALLOC_AND_REGISTER_ALTERNATE): Likewise.
+	(pph_in_start_record): Add new argument EXPECTED_TAG.  Update
+        all users.
+	(pph_in_c_language_function): Inline into ...
+	(pph_in_language_function): ... here.
+	* pph-streamer-out.c (pph_get_marker_for): Add argument TAG.
+        Update all users.
+	(pph_out_reference_record): Likewise.
+	(pph_out_start_record): Likewise.
+	(pph_out_start_tree_record): Re-enable state mutation
+        detection.
+	(pph_out_c_language_function): Inline into ...
+	(pph_out_language_function): ... here.
+
 2011-10-01   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_namespace_tree): Initialize EXPR.

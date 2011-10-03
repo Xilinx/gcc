@@ -71,6 +71,42 @@ enum pph_record_marker {
   PPH_RECORD_PREF
 };
 
+/* Record type tags.  Every record saved on a PPH image contains a data
+   tag to identify the data structure saved in that record.  */
+enum pph_tag {
+  PPH_null = 0,
+
+  /* The tags below are named after the data types they represent.
+
+     Note that to simplify tag management, we reserve enough
+     values to fit all the tree codes.  This guarantees that for
+     every tree code C and PPH tag T, (unsigned) C == (unsigned) T.
+
+     The value PPH_any_tree is used when reading tree records.  Since
+     the reader does not have enough context, it will generally not
+     know what kind of tree is about to read, all it knows is that it
+     should be a valid tree code.  */
+  PPH_any_tree = MAX_TREE_CODES,
+
+  /* Maintain the tags below in alphabetical order.  */
+  PPH_binding_entry,
+  PPH_binding_table,
+  PPH_cgraph_node,
+  PPH_cp_binding_level,
+  PPH_cp_class_binding,
+  PPH_cp_label_binding,
+  PPH_cxx_binding,
+  PPH_function,
+  PPH_lang_decl,
+  PPH_lang_type,
+  PPH_language_function,
+  PPH_sorted_fields_type,
+
+  /* This tag must always be last.  */
+  PPH_NUM_TAGS
+};
+
+
 /* Line table markers. We only stream line table entries from the parent header
    file, other entries are referred to by the name of the file which is then
    loaded as an include at the correct point in time.  */
@@ -129,6 +165,9 @@ typedef struct pph_file_header {
 typedef struct pph_cache_entry {
   /* Pointer to cached data.  */
   void *data;
+
+  /* Tag describing the type of the cached data.  */
+  enum pph_tag tag;
 
   /* Checksum information for DATA.  */
   unsigned int crc;
@@ -285,10 +324,11 @@ void pph_trace_string_with_length (pph_stream *, const char *, unsigned);
 void pph_trace_location (pph_stream *, location_t);
 void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
-void pph_cache_insert_at (pph_cache *, void *, unsigned);
-bool pph_cache_lookup (pph_cache *, void *, unsigned *);
-bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
-bool pph_cache_add (pph_cache *, void *, unsigned *);
+void pph_cache_insert_at (pph_cache *, void *, unsigned, enum pph_tag);
+bool pph_cache_lookup (pph_cache *, void *, unsigned *, enum pph_tag);
+bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *,
+                                   enum pph_tag);
+bool pph_cache_add (pph_cache *, void *, unsigned *, enum pph_tag);
 void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
 unsigned pph_get_signature (tree, size_t *);
 
@@ -366,20 +406,19 @@ pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
     }
 }
 
-/* Return the data pointer at slot IX in CACHE  */
-static inline void *
-pph_cache_get (pph_cache *cache, unsigned ix)
-{
-  pph_cache_entry *e = VEC_index (pph_cache_entry, cache->v, ix);
-  gcc_assert (e);
-  return e->data;
-}
-
 /* Return entry IX in CACHE.  */
 static inline pph_cache_entry *
 pph_cache_get_entry (pph_cache *cache, unsigned ix)
 {
   return VEC_index (pph_cache_entry, cache->v, ix);
+}
+
+/* Return the data pointer at slot IX in CACHE  */
+static inline void *
+pph_cache_get (pph_cache *cache, unsigned ix)
+{
+  pph_cache_entry *e = pph_cache_get_entry (cache, ix);
+  return e->data;
 }
 
 /* Output array A of cardinality C of ASTs to STREAM.  */
@@ -694,17 +733,22 @@ pph_in_bitpack (pph_stream *stream)
   return bp;
 }
 
-/* Write record MARKER to STREAM.  */
+/* Write record MARKER for data type TAG to STREAM.  */
 static inline void
-pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker)
+pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker,
+                       enum pph_tag tag)
 {
   gcc_assert (marker == (enum pph_record_marker)(unsigned char) marker);
   pph_out_uchar (stream, marker);
+
+  gcc_assert (tag == (enum pph_tag)(unsigned) tag);
+  pph_out_uint (stream, tag);
 }
 
-/* Read and return a record marker from STREAM.  */
+/* Read and return a record marker from STREAM.  On return, *TAG_P will
+   contain the tag for the data type stored in this record.  */
 static inline enum pph_record_marker
-pph_in_record_marker (pph_stream *stream)
+pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
 {
   enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
   gcc_assert (m == PPH_RECORD_START
@@ -714,6 +758,10 @@ pph_in_record_marker (pph_stream *stream)
 	      || m == PPH_RECORD_IREF
 	      || m == PPH_RECORD_XREF
 	      || m == PPH_RECORD_PREF);
+
+  *tag_p = (enum pph_tag) pph_in_uint (stream);
+  gcc_assert ((unsigned) *tag_p < (unsigned) PPH_NUM_TAGS);
+
   return m;
 }
 
@@ -753,6 +801,28 @@ static inline bool
 tree_needs_signature (tree t)
 {
   return DECL_P (t) || TYPE_P (t);
+}
+
+/* Return true if PPH tag TAG corresponds to a valid tree code.  */
+static inline bool
+pph_tag_is_tree_code (enum pph_tag tag)
+{
+  return (unsigned) tag < (unsigned) MAX_TREE_CODES;
+}
+
+/* Return the PPH tag associated with tree node T.  */
+static inline enum pph_tag
+pph_tree_code_to_tag (tree t)
+{
+  return t ? (enum pph_tag) TREE_CODE (t) : PPH_null;
+}
+
+/* Return the tree code associated with PPH tag TAG.  */
+static inline enum tree_code
+pph_tag_to_tree_code (enum pph_tag tag)
+{
+  gcc_assert (pph_tag_is_tree_code (tag));
+  return (enum tree_code) tag;
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

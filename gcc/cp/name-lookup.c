@@ -6019,12 +6019,12 @@ pph_out_binding_table (pph_stream *stream, binding_table bt)
     {
       if (bt->chain[i])
 	{
-	  pph_out_record_marker (stream, PPH_RECORD_START);
+	  pph_out_record_marker (stream, PPH_RECORD_START, PPH_binding_entry);
 	  pph_out_tree (stream, bt->chain[i]->name);
 	  pph_out_tree (stream, bt->chain[i]->type);
 	}
       else
-	pph_out_record_marker (stream, PPH_RECORD_END);
+	pph_out_record_marker (stream, PPH_RECORD_END, PPH_binding_entry);
     }
   pph_out_uint (stream, bt->entry_count);
 }
@@ -6042,7 +6042,9 @@ pph_in_binding_table (pph_stream *stream)
   bt = binding_table_new (chain_count);
   for (i = 0; i < chain_count; i++)
     {
-      enum pph_record_marker marker = pph_in_record_marker (stream);
+      enum pph_tag tag;
+      enum pph_record_marker marker = pph_in_record_marker (stream, &tag);
+      gcc_assert (tag == PPH_binding_entry);
       if (marker == PPH_RECORD_START)
 	{
 	  tree name = pph_in_tree (stream);
