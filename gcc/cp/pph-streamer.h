@@ -124,7 +124,7 @@ typedef struct pph_file_header {
    converted into their definition.
 
    When the cache notices a cache hit on a mutated data, it writes a
-   PPH_RECORD_MUTATED_REF to indicate to the reader that it is about
+   PPH_RECORD_MREF to indicate to the reader that it is about
    to read an already instantiated tree.  */
 typedef struct pph_cache_entry {
   /* Pointer to cached data.  */
@@ -289,7 +289,8 @@ void pph_cache_insert_at (pph_cache *, void *, unsigned);
 bool pph_cache_lookup (pph_cache *, void *, unsigned *);
 bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *);
 bool pph_cache_add (pph_cache *, void *, unsigned *);
-unsigned pph_cache_sign (pph_cache *, unsigned, size_t);
+void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
+unsigned pph_get_signature (tree, size_t *);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
@@ -713,6 +714,44 @@ pph_in_record_marker (pph_stream *stream)
 	      || m == PPH_RECORD_XREF
 	      || m == PPH_RECORD_PREF);
   return m;
+}
+
+
+/* Return true if MARKER is PPH_RECORD_IREF, PPH_RECORD_XREF,
+   or PPH_RECORD_PREF.  */
+
+static inline bool
+pph_is_reference_marker (enum pph_record_marker marker)
+{
+  return marker == PPH_RECORD_IREF
+         || marker == PPH_RECORD_XREF
+         || marker == PPH_RECORD_PREF;
+}
+
+
+/* Return true if tree T needs to be signed to detect state mutations.
+   This is used when multiple PPH images contain different versions of
+   the same tree node (e.g., decl.pph contains the declaration of
+   function F while impl.pph contains its definition).
+
+   When generating the image for impl.pph, we will read F's
+   declaration from decl.pph.  This becomes an external reference.
+   When we go to write F in impl.pph, the cache will find the external
+   reference to F in decl.pph and write it.
+
+   This causes us to lose all the information added to F's node in
+   impl.h (its body, return value, etc).  So, a translation unit
+   reading impl.pph will never get that data and compilation will
+   fail.
+
+   We notice state mutations by computing CRC signatures on the body
+   of trees.  The first signature is computed when the tree is read
+   from an image.  The second signature is computed when we go to write
+   the tree again (pph_out_start_tree_record).  */
+static inline bool
+tree_needs_signature (tree t)
+{
+  return DECL_P (t) || TYPE_P (t);
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

@@ -1,3 +1,18 @@
+2011-09-28   Diego Novillo  <dnovillo@google.com>
+
+        * pph-streamer-in.c (pph_is_reference_marker): Move to
+        pph-streamer.h.
+	(pph_read_namespace_tree): Call tree_needs_signature to
+        determine if EXPR should be signed.
+        Call pph_get_signature.
+	* pph-streamer.c (pph_cache_sign): Add argument CRC.
+        Change return value to void.  Update all users.
+	(pph_get_signature): New.
+	* pph-streamer.h (pph_cache_sign): Declare.
+        (pph_get_signature): Declare.
+        (pph_is_reference_marker): Move from pph-streamer-in.c.
+	(tree_needs_signature): New.
+
 2011-09-27   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_namespace_tree): Do not insert

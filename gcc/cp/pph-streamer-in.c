@@ -145,18 +145,6 @@ pph_init_read (pph_stream *stream)
 }
 
 
-/* Return true if MARKER is PPH_RECORD_IREF, PPH_RECORD_XREF,
-   or PPH_RECORD_PREF.  */
-
-static inline bool
-pph_is_reference_marker (enum pph_record_marker marker)
-{
-  return marker == PPH_RECORD_IREF
-         || marker == PPH_RECORD_XREF
-         || marker == PPH_RECORD_PREF;
-}
-
-
 /* Read and return a record header from STREAM.  When a PPH_RECORD_START
    marker is read, the next word read is an index into the streamer
    cache where the rematerialized data structure should be stored.
@@ -2128,8 +2116,7 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
   if (tag == LTO_builtin_decl)
     {
       /* If we are going to read a built-in function, all we need is
-	 the code and class.  Note that builtins are never stored in
-         the pickle cache.  */
+	 the code and class.  */
       expr = streamer_get_builtin_tree (ib, data_in);
     }
   else if (tag == lto_tree_code_to_tag (INTEGER_CST))
@@ -2155,12 +2142,26 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
               expr = expr;
             }
         }
+
+      /* Add the new tree to the cache and read its body.  The tree
+         is added to the cache before we read its body to handle
+         circular references and references from children nodes.  */
       pph_cache_insert_at (&stream->cache, expr, ix);
       pph_read_tree_body (stream, expr);
 
-      /* If needed, sign the recently materialized tree to detect mutations.  */
-      if (DECL_P (expr) || TYPE_P (expr))
-        pph_cache_sign (&stream->cache, ix, tree_size (expr));
+      /* If needed, sign the recently materialized tree to detect
+         mutations.  Note that we only need to compute signatures
+         if we are generating a PPH image.  That is the only time
+         where we need to determine whether a tree read from PPH
+         was updated while parsing the header file that we are
+         currently generating.  */
+      if (pph_writer_enabled_p () && tree_needs_signature (expr))
+        {
+          unsigned crc;
+          size_t nbytes;
+          crc = pph_get_signature (expr, &nbytes);
+          pph_cache_sign (&stream->cache, ix, crc, nbytes);
+        }
     }
 
   return expr;

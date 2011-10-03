@@ -533,20 +533,58 @@ pph_cache_add (pph_cache *cache, void *data, unsigned *ix_p)
 }
 
 
-/* Generate a CRC32 signature for the first NBYTES of the area memory
-   pointed to by slot IX of CACHE.  The signature is stored in
-   CACHE[IX] and returned.  */
+/* Associate signature CRC with the first NBYTES of the area memory
+   pointed to by slot IX of CACHE.  */
 
-unsigned
-pph_cache_sign (pph_cache *cache, unsigned ix, size_t nbytes)
+void
+pph_cache_sign (pph_cache *cache, unsigned ix, unsigned crc, size_t nbytes)
 {
   pph_cache_entry *e;
 
   gcc_assert (nbytes == (size_t) (int) nbytes);
 
   e = pph_cache_get_entry (cache, ix);
-  e->crc = xcrc32 ((const unsigned char *) e->data, nbytes, -1);
+  e->crc = crc;
   e->crc_nbytes = nbytes;
+}
 
-  return e->crc;
+
+/* Return a signature for tree T.  Store the length of the signed area
+   in *NBYTES_P.  */
+
+unsigned
+pph_get_signature (tree t, size_t *nbytes_p)
+{
+  tree prev_chain = NULL;
+  rtx prev_rtl = NULL;
+  int prev_used;
+  size_t nbytes;
+  unsigned crc;
+
+  nbytes = tree_size (t);
+  if (nbytes_p)
+    *nbytes_p = nbytes;
+
+  /* Preserve the value of the fields not included in the signature.  */
+  prev_chain = (DECL_P (t)) ? DECL_CHAIN (t) : NULL;
+  prev_rtl = (HAS_RTL_P (t)) ? DECL_RTL_IF_SET (t) : NULL;
+  prev_used = TREE_USED (t);
+
+  /* Clear the fields not included in the signature.  */
+  if (DECL_P (t))
+    DECL_CHAIN (t) = NULL;
+  if (HAS_RTL_P (t))
+    SET_DECL_RTL (t, NULL);
+  TREE_USED (t) = 0;
+
+  crc = xcrc32 ((const unsigned char *) t, nbytes, -1);
+
+  /* Restore fields we did not include in the signature.  */
+  if (DECL_P (t))
+    DECL_CHAIN (t) = prev_chain;
+  if (HAS_RTL_P (t))
+    SET_DECL_RTL (t, prev_rtl);
+  TREE_USED (t) = prev_used;
+
+  return crc;
 }
