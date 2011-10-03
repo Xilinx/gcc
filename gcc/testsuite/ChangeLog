@@ -1,3 +1,92 @@
+2011-10-02  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/range-for22.C: New.
+
+	* g++.dg/cpp0x/variadic65.C: Remove xfails.
+	* g++.dg/cpp0x/variadic82.C: Remove xfails.
+	* g++.dg/cpp0x/variadic83.C: Remove xfails.
+	* g++.dg/cpp0x/variadic105.C: Remove xfails.
+
+	* g++.dg/cpp0x/nsdmi5.C: New.
+
+2011-10-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/50579
+	* gcc.target/mips/mips.exp (mips_long32_abi_p, mips_long64_abi_p):
+	New procedures.
+	(mips-dg-options): Force an ABI option if the current ABI is
+	incompatible with the required -mlong setting.  Likewise force
+	a long setting if the current one is incompatible with the
+	chosen ABI.  Keep abi_test_option_p, abi and eabi_p updated
+	throughout procedure.
+	* gcc.target/mips/abi-o64-long64.c: Require -mno-abicalls
+	instead of addressing=absolute.
+
+2011-10-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/stack-1.c: New test.
+
+2011-10-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/pr49696.c: New test.
+
+2011-10-02  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/ipa/ctor-empty-1.c: Update dump file.
+
+2011-10-01  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/cmask.c: New test.
+	* gcc.target/sparc/fpadds.c: New test.
+	* gcc.target/sparc/fshift.c: New test.
+	* gcc.target/sparc/fucmp.c: New test.
+	* gcc.target/sparc/vis3misc.c: New test.
+
+2011-10-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50585
+	* gfortran.dg/assumed_charlen_arg_2.f90: New.
+
+2011-09-30  Janis Johnson  <janisjo@codesourcery.com>
+
+	PR c++/44473
+	* g++.dg/dfp/44473-1.C: New test.
+	* g++.dg/dfp/44473-2.C: New test.
+	* g++.dg/dfp/mangle-1.C: New test.
+	* g++.dg/dfp/mangle-2.C: New test.
+	* g++.dg/dfp/mangle-3.C: New test.
+	* g++.dg/dfp/mangle-4.C: New test.
+	* g++.dg/dfp/mangle-5.C: New test.
+
+2011-09-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR inline-asm/50571
+	* gcc.dg/pr50571.c: New test.
+
+	PR tree-optimization/46309
+	* gcc.dg/pr46309.c: New test.
+
+2011-09-30  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/strlenopt-21.c: New test.
+
+2011-09-30  Revital Eres  <revital.eres@linaro.org>
+
+	* gcc.dg/sms-10.c: New file.
+
+2011-09-30  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* gcc.target/arm/pr50099.c: New test.
+
+2011-09-30  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+       * gcc.target/arm/pr42835.c: Add -fno-tree-tail-merge.
+
+2011-09-30  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/bmaskbshuf.c: New test.
+	* gcc.target/sparc/edgen.c: New test.
+
 2011-09-29  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/50547

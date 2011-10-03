@@ -6722,8 +6722,8 @@ return the new value.  That is,
 builtin as @code{*ptr = ~(*ptr & value)} instead of
 @code{*ptr = ~*ptr & value}.
 
-@item bool __sync_bool_compare_and_swap (@var{type} *ptr, @var{type} oldval @var{type} newval, ...)
-@itemx @var{type} __sync_val_compare_and_swap (@var{type} *ptr, @var{type} oldval @var{type} newval, ...)
+@item bool __sync_bool_compare_and_swap (@var{type} *ptr, @var{type} oldval, @var{type} newval, ...)
+@itemx @var{type} __sync_val_compare_and_swap (@var{type} *ptr, @var{type} oldval, @var{type} newval, ...)
 @findex __sync_bool_compare_and_swap
 @findex __sync_val_compare_and_swap
 These builtins perform an atomic compare and swap.  That is, if the current
@@ -13014,6 +13014,65 @@ v1si __builtin_vis_fpsub32s (v1si, v1si);
 long __builtin_vis_array8 (long, long);
 long __builtin_vis_array16 (long, long);
 long __builtin_vis_array32 (long, long);
+@end smallexample
+
+When you use the @option{-mvis2} switch, the VIS version 2.0 built-in
+functions also become available:
+
+@smallexample
+long __builtin_vis_bmask (long, long);
+int64_t __builtin_vis_bshuffledi (int64_t, int64_t);
+v2si __builtin_vis_bshufflev2si (v2si, v2si);
+v4hi __builtin_vis_bshufflev2si (v4hi, v4hi);
+v8qi __builtin_vis_bshufflev2si (v8qi, v8qi);
+
+long __builtin_vis_edge8n (void *, void *);
+long __builtin_vis_edge8ln (void *, void *);
+long __builtin_vis_edge16n (void *, void *);
+long __builtin_vis_edge16ln (void *, void *);
+long __builtin_vis_edge32n (void *, void *);
+long __builtin_vis_edge32ln (void *, void *);
+@end smallexample
+
+When you use the @option{-mvis3} switch, the VIS version 3.0 built-in
+functions also become available:
+
+@smallexample
+void __builtin_vis_cmask8 (long);
+void __builtin_vis_cmask16 (long);
+void __builtin_vis_cmask32 (long);
+
+v4hi __builtin_vis_fchksm16 (v4hi, v4hi);
+
+v4hi __builtin_vis_fsll16 (v4hi, v4hi);
+v4hi __builtin_vis_fslas16 (v4hi, v4hi);
+v4hi __builtin_vis_fsrl16 (v4hi, v4hi);
+v4hi __builtin_vis_fsra16 (v4hi, v4hi);
+v2si __builtin_vis_fsll16 (v2si, v2si);
+v2si __builtin_vis_fslas16 (v2si, v2si);
+v2si __builtin_vis_fsrl16 (v2si, v2si);
+v2si __builtin_vis_fsra16 (v2si, v2si);
+
+long __builtin_vis_pdistn (v8qi, v8qi);
+
+v4hi __builtin_vis_fmean16 (v4hi, v4hi);
+
+int64_t __builtin_vis_fpadd64 (int64_t, int64_t);
+int64_t __builtin_vis_fpsub64 (int64_t, int64_t);
+
+v4hi __builtin_vis_fpadds16 (v4hi, v4hi);
+v2hi __builtin_vis_fpadds16s (v2hi, v2hi);
+v4hi __builtin_vis_fpsubs16 (v4hi, v4hi);
+v2hi __builtin_vis_fpsubs16s (v2hi, v2hi);
+v2si __builtin_vis_fpadds32 (v2si, v2si);
+v1si __builtin_vis_fpadds32s (v1si, v1si);
+v2si __builtin_vis_fpsubs32 (v2si, v2si);
+v1si __builtin_vis_fpsubs32s (v1si, v1si);
+
+long __builtin_vis_fucmple8 (v8qi, v8qi);
+long __builtin_vis_fucmpne8 (v8qi, v8qi);
+long __builtin_vis_fucmpgt8 (v8qi, v8qi);
+long __builtin_vis_fucmpeq8 (v8qi, v8qi);
 @end smallexample
 
 @node SPU Built-in Functions
