@@ -35,6 +35,18 @@ enum pph_record_marker {
      added to the pickle cache (see pph_cache_should_handle).  */
   PPH_RECORD_START_NO_CACHE,
 
+  /* Start a mutated reference.  This marker indicates that this data
+     already existed in the cache for another PPH image, but it has
+     mutated since it was inserted into the cache:
+
+     - The writer will pickle the object again as if it had not
+       been pickled before.
+
+     - The reader uses this as an indication that it should not
+       allocate a new object, it should simply unpickle the object on
+       top of the already allocated object.  */
+  PPH_RECORD_START_MUTATED,
+
   /* End of record marker.  If a record starts with PPH_RECORD_END, the
      reader should return a NULL pointer.  */
   PPH_RECORD_END,
@@ -56,19 +68,7 @@ enum pph_record_marker {
   /* Preloaded reference. This marker indicates that this data is a preloaded
      node created by the front-end at the beginning of compilation, which we
      do not need to stream out as it will already exist on the way in.  */
-  PPH_RECORD_PREF,
-
-  /* Mutated reference.  This marker indicates that this data already
-     existed in the cache for another PPH image, but it has mutated
-     since it was inserted into the cache:
-
-     - The writer will pickle the object again as if it had not
-       been pickled before.
-
-     - The reader uses this as an indication that it should not
-       allocate a new object, it should simply unpickle the object on
-       top of the already allocated object.  */
-  PPH_RECORD_MREF
+  PPH_RECORD_PREF
 };
 
 /* Line table markers. We only stream line table entries from the parent header
@@ -124,7 +124,7 @@ typedef struct pph_file_header {
    converted into their definition.
 
    When the cache notices a cache hit on a mutated data, it writes a
-   PPH_RECORD_MREF to indicate to the reader that it is about
+   PPH_RECORD_START_MUTATED to indicate to the reader that it is about
    to read an already instantiated tree.  */
 typedef struct pph_cache_entry {
   /* Pointer to cached data.  */
@@ -709,6 +709,7 @@ pph_in_record_marker (pph_stream *stream)
   enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
   gcc_assert (m == PPH_RECORD_START
               || m == PPH_RECORD_START_NO_CACHE
+              || m == PPH_RECORD_START_MUTATED
 	      || m == PPH_RECORD_END
 	      || m == PPH_RECORD_IREF
 	      || m == PPH_RECORD_XREF

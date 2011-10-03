@@ -1,3 +1,21 @@
+2011-09-29   Diego Novillo  <dnovillo@google.com>
+
+        * pph-streamer-in.c (pph_in_start_record): Handle
+        PPH_RECORD_START_MUTATED.
+	(pph_read_namespace_tree): Re-organize to handle
+        PPH_RECORD_START_MUTATED.
+	* pph-streamer-out.c (pph_out_start_tree_record): Change
+        return value to enum pph_record_marker.  Update all users.
+        If the signature of the tree node changed, change the marker
+        to be PPH_RECORD_START_MUTATED (disabled for now).
+        Handle PPH_RECORD_START_MUTATED.
+	(pph_write_namespace_tree): Re-organize to handle
+        PPH_RECORD_START_MUTATED.
+	* gcc/cp/pph-streamer.h (enum pph_record_marker): Rename
+        PPH_RECORD_MREF to PPH_RECORD_START_MUTATED.  Update all
+        users.
+	(pph_in_record_marker): Handle PPH_RECORD_START_MUTATED.
+
 2011-09-28   Diego Novillo  <dnovillo@google.com>
 
         * pph-streamer-out.c (pph_get_marker_for): Factor out of

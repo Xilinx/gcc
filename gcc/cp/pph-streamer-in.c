@@ -186,11 +186,16 @@ pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
       || marker == PPH_RECORD_IREF
       || marker == PPH_RECORD_PREF)
     *cache_ix_p = pph_in_uint (stream);
-  else if (marker == PPH_RECORD_XREF)
+  else if (marker == PPH_RECORD_XREF
+           || marker == PPH_RECORD_START_MUTATED)
     {
       *include_ix_p = pph_in_uint (stream);
       *cache_ix_p = pph_in_uint (stream);
     }
+  else if (marker == PPH_RECORD_END || marker == PPH_RECORD_START_NO_CACHE)
+    ; /* Nothing to do.  This record will not need cache updates.  */
+  else
+    gcc_unreachable ();
 
   return marker;
 }
@@ -2084,6 +2089,7 @@ pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
   return pph_read_namespace_tree (stream, NULL);
 }
 
+
 /* Read a tree from the STREAM.  It ENCLOSING_NAMESPACE is not null,
    the tree may be unified with an existing tree in that namespace.  */
 
@@ -2092,7 +2098,6 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
-
   tree expr;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
@@ -2107,28 +2112,32 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
       pph_cache *cache = pph_cache_select (stream, marker, image_ix);
       return (tree) pph_cache_get (cache, ix);
     }
+  else if (marker == PPH_RECORD_START
+           || marker == PPH_RECORD_START_NO_CACHE)
+    {
+      /* This is a new tree that we need to allocate.  Start by
+         reading the header fields, so we know how to allocate it
+         (different tree nodes need to be allocated in different
+         ways).  */
+      tag = streamer_read_record_start (ib);
+      gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
+      if (tag == LTO_builtin_decl)
+        {
+          /* If we are going to read a built-in function, all we need is
+             the code and class.  */
+          gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
+          return streamer_get_builtin_tree (ib, data_in);
+        }
+      else if (tag == lto_tree_code_to_tag (INTEGER_CST))
+        {
+          /* For integer constants we only need the type and its hi/low
+             words.  */
+          gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
+          return streamer_read_integer_cst (ib, data_in);
+        }
 
-  /* We did not find the tree in the pickle cache, allocate the tree by
-     reading the header fields (different tree nodes need to be
-     allocated in different ways).  */
-  tag = streamer_read_record_start (ib);
-  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
-  if (tag == LTO_builtin_decl)
-    {
-      /* If we are going to read a built-in function, all we need is
-	 the code and class.  */
-      expr = streamer_get_builtin_tree (ib, data_in);
-    }
-  else if (tag == lto_tree_code_to_tag (INTEGER_CST))
-    {
-      /* For integer constants we only need the type and its hi/low
-	 words.  */
-      expr = streamer_read_integer_cst (ib, data_in);
-    }
-  else
-    {
-      /* Otherwise, materialize a new node from IB.  This will also read
-         all the language-independent bitfields for the new tree.  */
+      /* Materialize a new node from IB.  This will also read all the
+         language-independent bitfields for the new tree.  */
       expr = pph_read_tree_header (stream, tag);
       if (enclosing_namespace && DECL_P (expr))
         {
@@ -2142,26 +2151,44 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
               expr = expr;
             }
         }
+    }
 
-      /* Add the new tree to the cache and read its body.  The tree
-         is added to the cache before we read its body to handle
-         circular references and references from children nodes.  */
-      pph_cache_insert_at (&stream->cache, expr, ix);
-      pph_read_tree_body (stream, expr);
+  gcc_assert (marker == PPH_RECORD_START
+              || marker == PPH_RECORD_START_MUTATED);
 
-      /* If needed, sign the recently materialized tree to detect
-         mutations.  Note that we only need to compute signatures
-         if we are generating a PPH image.  That is the only time
-         where we need to determine whether a tree read from PPH
-         was updated while parsing the header file that we are
-         currently generating.  */
-      if (pph_writer_enabled_p () && tree_needs_signature (expr))
-        {
-          unsigned crc;
-          size_t nbytes;
-          crc = pph_get_signature (expr, &nbytes);
-          pph_cache_sign (&stream->cache, ix, crc, nbytes);
-        }
+  if (marker == PPH_RECORD_START_MUTATED)
+    {
+      pph_cache *cache;
+
+      /* When reading a mutated tree, we only need to re-read its
+         body, the tree itself is already in the cache for another
+         PPH image.  */
+      gcc_assert (marker == PPH_RECORD_START_MUTATED);
+      cache = pph_cache_select (stream, PPH_RECORD_XREF, image_ix);
+      expr = (tree) pph_cache_get (cache, ix);
+
+      /* Read the internal cache slot where EXPR should be stored at.  */
+      ix = pph_in_uint (stream);
+    }
+
+  /* Add the new tree to the cache and read its body.  The tree
+     is added to the cache before we read its body to handle
+     circular references and references from children nodes.  */
+  pph_cache_insert_at (&stream->cache, expr, ix);
+  pph_read_tree_body (stream, expr);
+
+  /* If needed, sign the recently materialized tree to detect
+     mutations.  Note that we only need to compute signatures
+     if we are generating a PPH image.  That is the only time
+     where we need to determine whether a tree read from PPH
+     was updated while parsing the header file that we are
+     currently generating.  */
+  if (pph_writer_enabled_p () && tree_needs_signature (expr))
+    {
+      unsigned crc;
+      size_t nbytes;
+      crc = pph_get_signature (expr, &nbytes);
+      pph_cache_sign (&stream->cache, ix, crc, nbytes);
     }
 
   return expr;

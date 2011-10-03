@@ -332,9 +332,11 @@ pph_out_start_record (pph_stream *stream, void *data)
 
 /* Start a record for tree node T in STREAM.  This is like
    pph_out_start_record, but it filters certain special trees that
-   should never be added to the cache.  */
+   should never be added to the cache.  Additionally, instead of
+   returning a boolean value indicating whether pickling should be
+   done, it returns the actual marker used to start the record.  */
 
-static inline bool
+static inline enum pph_record_marker
 pph_out_start_tree_record (pph_stream *stream, tree t)
 {
   unsigned include_ix, ix;
@@ -352,42 +354,64 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
       pph_cache *cache = pph_cache_select (stream, marker, include_ix);
       pph_cache_entry *e = pph_cache_get_entry (cache, ix);
       unsigned crc = pph_get_signature (t, NULL);
-      if (crc != e->crc)
-        if (flag_pph_debug > 1)
-          {
-            fprintf (pph_logfile, "Tree signature changed: %x to %x\n",
-                     e->crc, crc);
-            print_node (pph_logfile, "", t, 4);
-          }
+      if (0 && crc != e->crc)
+        marker = PPH_RECORD_START_MUTATED;
     }
 
+  /* Write a record header according to the value of MARKER.  */
   if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
+    pph_out_reference_record (stream, marker, include_ix, ix);
+  else if (marker == PPH_RECORD_START)
     {
-      pph_out_reference_record (stream, marker, include_ix, ix);
-      return true;
+      /* We want to prevent some trees from hitting the cache.
+         For example, we do not want to cache regular constants (as
+         their representation is actually smaller than a cache
+         reference), but some constants are special and need to
+         always be shared (e.g., integer_zero_node).  Those special
+         constants are pre-loaded in STREAM->PRELOADED_CACHE.  */
+      if (!pph_cache_should_handle (t))
+        marker = PPH_RECORD_START_NO_CACHE;
+
+      pph_out_record_marker (stream, marker);
+      if (marker == PPH_RECORD_START)
+        {
+          unsigned ix;
+          pph_cache_add (&stream->cache, t, &ix);
+          pph_out_uint (stream, ix);
+        }
     }
-
-  /* We want to prevent some trees from hitting the cache.  Note that
-     this does not prevent us from ever putting these nodes in the
-     cache.
-
-     For example, we do not want to cache regular constants (as their
-     representation is actually smaller than a cache reference), but
-     some constants are special and need to always be shared (e.g.,
-     integer_zero_node).  Those special constants are pre-loaded in
-     STREAM->PRELOADED_CACHE.  */
-  if (pph_cache_should_handle (t))
+  else if (marker == PPH_RECORD_START_MUTATED)
     {
-      unsigned ix;
-      pph_cache_add (&stream->cache, t, &ix);
-      pph_out_record_marker (stream, PPH_RECORD_START);
+      unsigned int internal_ix;
+
+      /* We found T in an external PPH file, but it has mutated since
+         we originally read it.  We are going to write out T again,
+         but the reader should not re-allocate T, rather it should
+         read the contents of T on top of the existing address.
+
+         We also add T to STREAM's internal cache so further
+         references go to it rather than the external version.
+         Note that although we add an entry for T in STREAM's internal
+         cache, the reference we write to the stream is to the
+         external version of T.  This way the reader will get the
+         location of T from the external reference and overwrite it
+         with the contents that we are going to write here.  */
+      pph_cache_add (&stream->cache, t, &internal_ix);
+      pph_out_record_marker (stream, marker);
+
+      /* Write the location of T in the external cache.  */
+      gcc_assert (include_ix != -1u);
+      pph_out_uint (stream, include_ix);
+
+      gcc_assert (ix != -1u);
       pph_out_uint (stream, ix);
-    }
-  else
-    pph_out_record_marker (stream, PPH_RECORD_START_NO_CACHE);
 
-  /* The caller will have to write a physical representation for T.  */
-  return false;
+      /* Now write the location of the new version of T in the
+         internal cache.  */
+      pph_out_uint (stream, internal_ix);
+    }
+
+  return marker;
 }
 
 
@@ -2075,9 +2099,13 @@ void
 pph_write_namespace_tree (pph_stream *stream, tree expr,
                           tree enclosing_namespace )
 {
+  enum pph_record_marker marker;
+
+  marker = pph_out_start_tree_record (stream, expr);
+
   /* If EXPR is NULL or it already existed in the pickle cache,
      nothing else needs to be done.  */
-  if (pph_out_start_tree_record (stream, expr))
+  if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
     return;
 
   if (streamer_handle_as_builtin_p (expr))
@@ -2087,6 +2115,7 @@ pph_write_namespace_tree (pph_stream *stream, tree expr,
          startup.  The only builtins that need to be written out are
          BUILT_IN_FRONTEND.  For all other builtins, we simply write
          the class and code.  */
+      gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
       streamer_write_builtin (stream->encoder.w.ob, expr);
     }
   else if (TREE_CODE (expr) == INTEGER_CST)
@@ -2094,25 +2123,36 @@ pph_write_namespace_tree (pph_stream *stream, tree expr,
       /* INTEGER_CST nodes are special because they need their
 	 original type to be materialized by the reader (to implement
 	 TYPE_CACHED_VALUES).  */
+      gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
       streamer_write_integer_cst (stream->encoder.w.ob, expr, false);
     }
-  else
+  else if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
       /* This is the first time we see EXPR, write it out.  */
-      pph_write_tree_header (stream, expr);
-      if (enclosing_namespace && DECL_P (expr))
+      if (marker == PPH_RECORD_START)
         {
-          /* We may need to unify two declarations.  */
-          /* FIXME crowl: pph_out_location (stream, DECL_SOURCE_LOCATION (expr)); */
-          tree name = DECL_NAME (expr);
-          if (name)
-            pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
-                                        IDENTIFIER_LENGTH (name));
-          else
-            pph_out_string (stream, NULL);
+          /* We only need to write EXPR's header if it needs to be
+             re-allocated when reading.  If we are writing the mutated
+             state of an existing tree, then we only need to write its
+             body.  */
+          pph_write_tree_header (stream, expr);
+          if (enclosing_namespace && DECL_P (expr))
+            {
+              /* We may need to unify two declarations.  */
+              /* FIXME crowl: pph_out_location (stream, DECL_SOURCE_LOCATION (expr)); */
+              tree name = DECL_NAME (expr);
+              if (name)
+                pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
+                    IDENTIFIER_LENGTH (name));
+              else
+                pph_out_string (stream, NULL);
+            }
         }
+
       pph_write_tree_body (stream, expr);
     }
+  else
+    gcc_unreachable ();
 }
 
 
