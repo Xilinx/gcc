@@ -13,25 +13,25 @@
     (forever 
      parseargsloop
      (variadic ( (:value nv)
-		(setq sum (+i sum (get_int nv)))
-		(again parseargsloop))
-	       ( (:long n)
-		(setq sum (+i n))
-		(again parseargsloop))
-	       ( ()
-	       (exit parseargsloop))
-	       ( :else
-		(assert_msg "INVALID argument")
-		(return))
-	       ))
+                (setq sum (+i sum (get_int nv)))
+                (again parseargsloop))
+               ( (:long n)
+                (setq sum (+i n))
+                (again parseargsloop))
+               ( ()
+               (exit parseargsloop))
+               ( :else
+                (assert_msg "INVALID argument")
+                (return))
+               ))
     (debuglong "varifun sum" sum)
     (f x sum))
 )
 
 (varifun 
  (lambda (y :long s)
-   (let ( (t (tuple y (make_boxedint discr_integer s))) 
-	  )
+   (let ( (t (tuple y (make_integerbox discr_integer s))) 
+          )
      (debug_msg t "varifun gave t")
      t))
  'a

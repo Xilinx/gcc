@@ -918,11 +918,11 @@ routine procedures.}#
 
 ;;; normalize a tuple - returning a tuple & a bindinglist
 (defun normalize_tuple (tup env ncx psloc)
+  (debug_msg tup "normalize_tuple tup" )
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (if (null tup) (return () ()))
   (assert_msg "check tup" (is_multiple tup))
-  (debug_msg tup "normalize_tuple tup" )
   (let ( (bindlist (make_list discr_list)) 
 	 (res (multiple_map
 	       tup 
@@ -3238,19 +3238,25 @@ source location.}#
        (normalize_tuple sthen newenv ncx loc)
        (debug_msg nthen "normexp_ifvariadic nthen")
        (debug_msg nthenbindings "normexp_ifvariadic nthenbindings")
-       ;; should generate something like 
+       (debug_msg selse "normexp_ifvariadic selse before normalization")
+       (multicall
+	(nelse nelsebindings)
+	(normalize_tuple selse newenv ncx loc)
+	(debug_msg nelse "normexp_ifvariadic nelse")
+	(debug_msg nelsebindings "normexp_ifvariadic nelsebindings")
+	;; should generate something like 
 ;;;; if_variadic $CTYPTUP $NPROVARIADIC then 
 ;;;; LET NREP ...
-       (let ( (nifv (instance class_nrep_ifvariadic
-			      :nrep_loc loc
-			      :nif_then () ;to be filled later
-			      :nifv_variadic nprovariadic
-			      :nifv_ctypes ctyptup))
-	      )
-	 (debug_msg nifv "normexp_ifvariadic nifv")
-	 (error_plain loc "normalization of VARIADIC is not implemented")
-	 (assert_msg "$@$unimplemented normexp_ifvariadic")
-	 )))))
+	(let ( (nifv (instance class_nrep_ifvariadic
+			       :nrep_loc loc
+			       :nif_then () ;to be filled later
+			       :nifv_variadic nprovariadic
+			       :nifv_ctypes ctyptup))
+	       )
+	  (debug_msg nifv "normexp_ifvariadic nifv")
+	  (error_plain loc "normalization of VARIADIC is not implemented")
+	  (assert_msg "$@$unimplemented normexp_ifvariadic")
+	  ))))))
 (install_method class_source_ifvariadic normal_exp normexp_ifvariadic)
 
 

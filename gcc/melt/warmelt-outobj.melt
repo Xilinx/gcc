@@ -887,10 +887,12 @@
 ;;;;;;;;;;;;;;;;
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
-  ;(debug_msg any "outpucod_anydiscr any")
+  (debug_msg any "outpucod_anydiscr any")
   (outcstring_err "* output_c_code unimplemented receiver discriminator ")
-  (let ( (discr (discrim any)) ) (outstr_err (unsafe_get_field :named_name discr)))
-  (outnewline_err)
+  (let ( (discr (discrim any)) ) 
+    (outstr_err (unsafe_get_field :named_name discr))
+       (outnewline_err)
+       (debug_msg discr "outpucod_anydiscr discr"))
   (assert_msg "@@ outpucod_anydiscr not able to output" ())
   )
 (install_method discr_any_receiver output_c_code outpucod_anydiscr)

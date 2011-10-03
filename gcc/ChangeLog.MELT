@@ -1,4 +1,21 @@
 
+2011-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-debug.melt (dbgout_multiple_method): Always display
+	tuple's content at toplevel.
+
+	* melt/warmelt-macro.melt (mexpand_variadic): Seems to work.
+
+	* melt/warmelt-normal.melt (normalize_tuple): Always debug print
+	the tuple to normalize.
+	(normexp_ifvariadic): Also normalize the else part.  Still
+	incomplete.
+
+	* melt/warmelt-outobj.melt (outpucod_anydiscr): Debug print the
+	reciever.
+
+	* testsuite/melt/tvariadic.melt: Correct.
+
 2011-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (foreach_pair): New.
