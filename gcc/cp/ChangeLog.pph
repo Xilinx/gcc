@@ -1,5 +1,13 @@
 2011-09-28   Diego Novillo  <dnovillo@google.com>
 
+        * pph-streamer-out.c (pph_get_marker_for): Factor out of
+        pph_start_record.
+	(pph_out_reference_record): Rename from pph_out_start_ref_record.
+	(pph_out_start_tree_record): Detect when a tree's signature
+        should be re-checked.
+
+2011-09-28   Diego Novillo  <dnovillo@google.com>
+
         * pph-streamer-in.c (pph_is_reference_marker): Move to
         pph-streamer.h.
 	(pph_read_namespace_tree): Call tree_needs_signature to

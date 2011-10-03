@@ -226,59 +226,75 @@ pph_cache_should_handle (tree t)
 }
 
 
-/* If DATA is NULL or it existed in one of the pickle caches associated
-   with STREAM, write a reference marker and return true.  Otherwise,
-   do nothing and return false.  */
+/* Return a PPH record marker according to whether DATA is NULL or
+   it can be found in one of the caches associated with STREAM.
 
-static bool
-pph_out_start_ref_record (pph_stream *stream, void *data)
+   If DATA is in any of the caches, return the corresponding slot in
+   *IX_P.  If DATA is in the cache of an image included by STREAM,
+   return the image's index in *INCLUDE_IX_P.
+
+   In all other cases, *IX_P and *INCLUDE_IX_P will be set to -1.  */
+
+static enum pph_record_marker
+pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
+                    unsigned *ix_p)
 {
-  unsigned ix, include_ix;
+  *ix_p = -1u;
+  *include_ix_p = -1u;
 
-  /* Represent NULL pointers with a single PPH_RECORD_END.  */
+  /* We represent NULL pointers with PPH_RECORD_END.  */
   if (data == NULL)
-    {
-      pph_out_record_marker (stream, PPH_RECORD_END);
-      return true;
-    }
+    return PPH_RECORD_END;
 
-  /* See if we have data in STREAM's cache.  If so, write an internal
-     reference to it and inform the caller that it should not write a
-     physical representation for DATA.  */
-  if (pph_cache_lookup (&stream->cache, data, &ix))
+  /* If DATA is in STREAM's cache, return an internal reference marker.  */
+  if (pph_cache_lookup (&stream->cache, data, ix_p))
+    return PPH_RECORD_IREF;
+
+  /* If DATA is in the cache of an included image, return an external
+     reference marker.  */
+  if (pph_cache_lookup_in_includes (data, include_ix_p, ix_p))
+    return PPH_RECORD_XREF;
+
+  /* If DATA is a pre-loaded tree node, return a pre-loaded reference
+     marker.  */
+  if (pph_cache_lookup (NULL, data, ix_p))
+    return PPH_RECORD_PREF;
+
+  /* DATA is in none of the caches.  It should be pickled out.  */
+  return PPH_RECORD_START;
+}
+
+
+/* Write a reference record on STREAM.  MARKER is the tag indicating what
+   kind of reference to write.  IX is the cache slot index to write.
+   INCLUDE_IX is used for PPH_RECORD_XREF records.  */
+
+static inline void
+pph_out_reference_record (pph_stream *stream, enum pph_record_marker marker,
+                          unsigned include_ix, unsigned ix)
+{
+  gcc_assert (marker == PPH_RECORD_END || pph_is_reference_marker (marker));
+
+  pph_out_record_marker (stream, marker);
+
+  if (pph_is_reference_marker (marker))
     {
-      pph_out_record_marker (stream, PPH_RECORD_IREF);
+      if (marker == PPH_RECORD_XREF)
+        {
+          gcc_assert (include_ix != -1u);
+          pph_out_uint (stream, include_ix);
+        }
+
+      gcc_assert (ix != -1u);
       pph_out_uint (stream, ix);
-      return true;
     }
-
-  /* DATA is not in STREAM's cache.  See if it is in any of the
-     included images.  If it is, write an external reference to it
-     and inform the caller that it should not write a physical
-     representation for DATA.  */
-  if (pph_cache_lookup_in_includes (data, &include_ix, &ix))
-    {
-      pph_out_record_marker (stream, PPH_RECORD_XREF);
-      pph_out_uint (stream, include_ix);
-      pph_out_uint (stream, ix);
-      return true;
-    }
-
-  /* DATA is not in any stream's cache. See if it is a preloaded node.  */
-  if (pph_cache_lookup (NULL, data, &ix))
-    {
-      pph_out_record_marker (stream, PPH_RECORD_PREF);
-      pph_out_uint (stream, ix);
-      return true;
-    }
-
-  /* Could not write a reference record.  DATA must be pickled.  */
-  return false;
+  else
+    gcc_assert (marker == PPH_RECORD_END);
 }
 
 
 /* Start a new record in STREAM for DATA.  If DATA is NULL
-   write an end-of-record marker and return false.
+   write an end-of-record marker and return true.
 
    If DATA is not NULL and did not exist in the pickle cache, add it,
    write a start-of-record marker and return true.  This means that we
@@ -292,15 +308,19 @@ pph_out_start_ref_record (pph_stream *stream, void *data)
 static inline bool
 pph_out_start_record (pph_stream *stream, void *data)
 {
-  unsigned ix;
+  unsigned include_ix, ix;
+  enum pph_record_marker marker;
 
   /* Try to write a reference record first.  */
-  if (pph_out_start_ref_record (stream, data))
-    return true;
+  marker = pph_get_marker_for (stream, data, &include_ix, &ix);
+  if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
+    {
+      pph_out_reference_record (stream, marker, include_ix, ix);
+      return true;
+    }
 
   /* DATA is in none of the pickle caches.  Add DATA to STREAM's
-     pickle cache and return false to tell the caller that it should
-     pickle DATA out.  */
+     pickle cache and write the slot where we stored it in.  */
   pph_cache_add (&stream->cache, data, &ix);
   pph_out_record_marker (stream, PPH_RECORD_START);
   pph_out_uint (stream, ix);
@@ -317,9 +337,35 @@ pph_out_start_record (pph_stream *stream, void *data)
 static inline bool
 pph_out_start_tree_record (pph_stream *stream, tree t)
 {
-  /* Try to write a reference record first.  */
-  if (pph_out_start_ref_record (stream, t))
-    return true;
+  unsigned include_ix, ix;
+  enum pph_record_marker marker;
+
+  /* Determine what kind of record we will be writing.  */
+  marker = pph_get_marker_for (stream, t, &include_ix, &ix);
+
+  /* DECLs and TYPEs that have been read from an external PPH image
+     may have mutated while parsing this header.  In that case,
+     we need to write a mutated reference record and re-pickle the
+     tree.  */
+  if (marker == PPH_RECORD_XREF && tree_needs_signature (t))
+    {
+      pph_cache *cache = pph_cache_select (stream, marker, include_ix);
+      pph_cache_entry *e = pph_cache_get_entry (cache, ix);
+      unsigned crc = pph_get_signature (t, NULL);
+      if (crc != e->crc)
+        if (flag_pph_debug > 1)
+          {
+            fprintf (pph_logfile, "Tree signature changed: %x to %x\n",
+                     e->crc, crc);
+            print_node (pph_logfile, "", t, 4);
+          }
+    }
+
+  if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
+    {
+      pph_out_reference_record (stream, marker, include_ix, ix);
+      return true;
+    }
 
   /* We want to prevent some trees from hitting the cache.  Note that
      this does not prevent us from ever putting these nodes in the
