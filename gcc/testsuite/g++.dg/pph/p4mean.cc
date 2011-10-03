@@ -1,6 +1,4 @@
-// { dg-timeout 2 { target *-*-* } }
-// { dg-xfail-if "INFINITE" { "*-*-*" } { "-fpph-map=pph.map" } }
-
+/* { dg-options "-w -fpermissive" }  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
