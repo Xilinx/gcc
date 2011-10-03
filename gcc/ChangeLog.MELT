@@ -1,5 +1,16 @@
 
 2011-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_consume_variadic): New class.
+	(normexp_ifvariadic): Complete, by using it.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifisa): Re-indent.
+	(compilobj_nrep_ifvariadic): New method.
+	(compilobj_nrep_variadic_argument): New method.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Comment
+	mentions compilobj_nrep_ifvariadic.
+
+2011-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (class_nrep_variadic_argument): New class.
 	(normexp_ifvariadic): Complete, by using it.
 

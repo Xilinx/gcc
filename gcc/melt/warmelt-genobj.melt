@@ -3750,14 +3750,14 @@ $SBUF.}#
 	   (otest (instance class_objexpv
 			    :obx_cont
 			    (tuple
-					 (make_stringconst discr_verbatim_string
-							   "/*ifisa*/ melt_is_instance_of((melt_ptr_t)(")
-					 oval
-					 (make_stringconst discr_verbatim_string
-							   "), (melt_ptr_t)(")
-					 ocla
-					 (make_stringconst discr_verbatim_string
-							   "))"))
+			     (make_stringconst discr_verbatim_string
+					       "/*ifisa*/ melt_is_instance_of((melt_ptr_t)(")
+			     oval
+			     (make_stringconst discr_verbatim_string
+					       "), (melt_ptr_t)(")
+			     ocla
+			     (make_stringconst discr_verbatim_string
+					       "))"))
 			    ))
 	   (obif (instance class_objcond
 			   :obi_loc loc
@@ -3769,6 +3769,102 @@ $SBUF.}#
       obif
       )))
 (install_method class_nrep_ifisa compile_obj compilobj_nrep_ifisa)
+
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_ifvariadic (rif gcx)
+  (assert_msg "check rif" (is_a rif class_nrep_ifvariadic))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug_msg rif "compilobj_nrep_ifvariadic rif")
+  (let ( (loc (unsafe_get_field :nrep_loc rif))
+	 (nthen (unsafe_get_field :nif_then rif))
+	 (nelse (unsafe_get_field :nif_else rif))
+	 (nvariadic (unsafe_get_field :nifv_variadic rif))
+	 (nvctypes (unsafe_get_field :nifv_ctypes rif))
+	 (:long nbvararg (multiple_length nvctypes))
+	 )
+    (assert_msg "check nvctypes" (is_multiple_or_null nvctypes))
+    (assert_msg "check nvariadic" (is_a nvariadic class_symbol))
+    (let ( 
+	  ;; suffixes for variadic as defined in outpucod_procroutine
+	  ;; of file warmelr-outobj.melt
+	  (varixsuffix (make_stringconst discr_verbatim_string "_ix"))
+	  (varlensuffix (make_stringconst discr_verbatim_string "_len"))
+	  (otestchklist 
+	   (if (<=i nbvararg 0) 
+	       (list
+		(make_stringconst discr_verbatim_string "/*ifvariadic nomore*/ ")
+		nvariadic varixsuffix
+		(make_stringconst discr_verbatim_string " == ")
+		nvariadic varlensuffix
+		)
+	     (let ( (ovlist
+		     (list
+		      (make_stringconst discr_verbatim_string "/*ifvariadic arg#")
+		      (make_integerbox discr_constant_integer nbvararg)
+		      (make_stringconst discr_verbatim_string "*/ ")
+		      nvariadic varixsuffix 
+		      (make_stringconst discr_verbatim_string ">=0 && ")
+		      nvariadic varixsuffix
+		      (make_stringconst discr_verbatim_string " + ")
+		      (make_integerbox discr_constant_integer nbvararg)
+		      (make_stringconst discr_verbatim_string " <= ")
+		      nvariadic varlensuffix
+		      ))
+		    )
+	       (foreach_in_multiple
+		(nvctypes)
+		(curctyp :long ix)
+		(debug_msg curctyp "compilobj_nrep_ifvariadic curctyp")
+		(assert_msg "check curctyp" (is_a curctyp class_ctype))
+		(list_append ovlist (make_stringconst discr_verbatim_string " && xargdescr["))
+		(list_append ovlist nvariadic)
+		(list_append ovlist varixsuffix)
+		(list_append ovlist (make_stringconst discr_verbatim_string "]== "))
+		(list_append ovlist 
+			     (make_string discr_verbatim_string 
+					  (get_field :ctype_parchar curctyp)))
+		)
+	       (debug_msg ovlist "compilobj_nrep_ifvariadic ovlist")
+	       ovlist))
+	   )
+	  (otest (instance  class_objexpv
+			    :obx_cont (list_to_multiple otestchklist discr_multiple)))
+	  (othen (compile_obj nthen gcx))
+	  (oelse (compile_obj nelse gcx))
+	  (ocond (instance class_objcond
+			   :obi_loc loc
+			   :obcond_test otest
+			   :obcond_then othen
+			   :obcond_else oelse))
+	  )
+      (debug_msg ocond "compilobj_nrep_ifvariadic ocond")
+      (return ocond))))
+(install_method class_nrep_ifvariadic compile_obj compilobj_nrep_ifvariadic)
+
+(defun getctype_ifvariadic (rif env)
+  (assert_msg "check ifvariadic" (is_a rif class_nrep_ifvariadic))
+  ctype_void)
+(install_method class_nrep_ifvariadic get_ctype getctype_ifvariadic)
+
+
+;;;;;;;;;;;;;;;;
+
+(defun compilobj_nrep_variadic_argument (nvarg gcx)
+  (debug_msg  nvarg "compilobj_nrep_variadic_argument nvarg")
+  (assert_msg "check nvarg" (is_a nvarg class_nrep_variadic_argument))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (nloc (unsafe_get_field :nrep_loc nvarg))
+	 (nvariadic (unsafe_get_field :nvarg_variadic nvarg))
+	 (nctyp (unsafe_get_field :nvarg_ctyp nvarg))
+	 (noffset (unsafe_get_field :nvarg_offset nvarg))
+	)
+    (assert_msg "check nvariadic" (is_a nvariadic class_symbol))
+    (assert_msg "check nctyp" (is_a nctyp class_ctype))
+    (assert_msg "check noffset" (is_integerbox noffset))
+  (assert_msg "@$@unimplemented compilobj_nrep_variadic_argument")
+))
+(install_method class_nrep_variadic_argument compile_obj compilobj_nrep_variadic_argument)
 
 
 ;;;;;;;;;;;;;

@@ -1320,6 +1320,7 @@
     (add2sbuf_strconst implbuf "{")
     (if orestnam
 	(progn
+	  ;; the _ix & _len suffixes are also known by compilobj_nrep_ifvariadic
 	  (debug_msg orestnam "outpucod_procroutine orestnam")
 	  (add2sbuf_indentnl implbuf 1)
 	  (add2sbuf_strconst implbuf "/*variadic*/ int ")

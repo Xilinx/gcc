@@ -208,6 +208,17 @@ $NIF_ELSE gives the else branch.}#
   :fields (nifv_variadic
 	   nifv_ctypes))
 
+;; normal consume_variadic 
+(defclass class_nrep_consume_variadic
+  :super class_nrep_expression
+  :doc #{The $CLASS_NREP_CONSUME_VARIADIC is for $VARIADIC argument
+consumption.  Field $NCONSVA_VARIADIC gives the variadic, and
+$NCONSVA_CTYPES the consumed types of arguments.  }#
+  :fields (
+	   nconsva_variadic
+	   nconsva_ctypes
+))
+
 ;; normal if same (t1,t2) then else
 (defclass class_nrep_ifsame
   :doc #{The $CLASS_NREP_IFSAME is for normalized identity tests for matching. $NIFS_LEFT and $NIFS_RIGHT are the simple stuff to compare for identity.}#
@@ -658,6 +669,7 @@ routine procedures.}#
  class_nrep_comment 
  class_nrep_constant
  class_nrep_constocc
+ class_nrep_consume_variadic
  class_nrep_cppif
  class_nrep_data
  class_nrep_databoxedinteger
@@ -3247,6 +3259,21 @@ source location.}#
 	 (assert_msg "check curctype" (is_a curctype class_ctype))
 	 (put_env newenv curletbind)		 
 	 ))
+      (let ( (cvarsym (clone_symbol 'consumvariadic_))
+	     (nconsume (instance class_nrep_consume_variadic
+				 :nrep_loc loc
+				 :nconsva_variadic nprovariadic
+				 :nconsva_ctypes 
+				 ))
+	     (cvarbind (instance class_normal_let_binding
+				 :binder cvarsym
+				 :letbind_loc loc
+				 :letbind_type ctype_void
+				 :letbind_expr nconsume))
+	     )
+	(list_append letbindthenlist cvarbind)
+	)
+      (debug_msg letbindthenlist "normexp_ifvariadic letbindthenlist")
       (debug_msg letbindtup "normexp_ifvariadic letbindtup")
       (debug_msg locsymtup "normexp_ifvariadic locsymtup")
       (debug_msg ctyptup "normexp_ifvariadic ctyptup")
