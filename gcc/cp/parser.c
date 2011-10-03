@@ -466,6 +466,8 @@ void
 cp_debug_parser (FILE *file, cp_parser *parser)
 {
   const size_t window_size = 20;
+  cp_token *token;
+  expanded_location eloc;
 
   if (file == NULL)
     file = stderr;
@@ -531,6 +533,15 @@ cp_debug_parser (FILE *file, cp_parser *parser)
   fprintf (file, "Number of template parameter lists for the current "
 	   "declaration: %u\n", parser->num_template_parameter_lists);
   cp_debug_parser_tokens (file, parser, window_size);
+  token = parser->lexer->next_token;
+  fprintf (file, "Next token to parse:\n");
+  fprintf (file, "\tToken:  ");
+  cp_lexer_print_token (file, token);
+  eloc = expand_location (token->location);
+  fprintf (file, "\n\tFile:   %s\n", eloc.file);
+  fprintf (file, "\tLine:   %d\n", eloc.line);
+  fprintf (file, "\tColumn: %d\n", eloc.column);
+
 }
 
 
