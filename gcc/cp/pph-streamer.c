@@ -573,6 +573,8 @@ pph_cache_sign (pph_cache *cache, unsigned ix, unsigned crc, size_t nbytes)
 {
   pph_cache_entry *e;
 
+  /* Needed because xcrc32 requires an int to specify the length but
+     tree_size returns size_t values.  */
   gcc_assert (nbytes == (size_t) (int) nbytes);
 
   e = pph_cache_get_entry (cache, ix);

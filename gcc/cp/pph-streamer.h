@@ -421,6 +421,24 @@ pph_cache_get (pph_cache *cache, unsigned ix)
   return e->data;
 }
 
+/* Return the data pointer in one of STREAM's caches (determined by
+   MARKER, IMAGE_IX and IX.  Expect data to have type tag TAG.  */
+static inline void *
+pph_cache_find (pph_stream *stream, enum pph_record_marker marker,
+		unsigned image_ix, unsigned ix, enum pph_tag tag)
+{
+  pph_cache *cache = pph_cache_select (stream, marker, image_ix);
+  pph_cache_entry *e = pph_cache_get_entry (cache, ix);
+
+  /* If the caller expects any tree, make sure we get a valid tree code.  */
+  if (tag == PPH_any_tree)
+    gcc_assert (e->tag < PPH_any_tree);
+  else
+    gcc_assert (e->tag == tag);
+
+  return e->data;
+}
+
 /* Output array A of cardinality C of ASTs to STREAM.  */
 /* FIXME pph: hold for alternate routine. */
 #if 0

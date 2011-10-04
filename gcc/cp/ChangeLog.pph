@@ -1,3 +1,8 @@
+2011-10-04   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.h (pph_cache_find): New.
+	Replace pph_cache_select/pph_cache_get combinations with it.
+
 2011-10-03   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (enum pph_tag): Define.
