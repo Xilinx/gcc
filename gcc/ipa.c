@@ -208,13 +208,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	    || (before_inlining_p
 		&& DECL_VIRTUAL_P (node->decl)
 		&& (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl)
-		    || cgraph_is_aux_decl_external (node)))
-	    /* Also external functions with address taken are better to stay
-	       for indirect inlining.  */
-	    || (before_inlining_p
-		&& (DECL_EXTERNAL (node->decl)
-		    || cgraph_is_aux_decl_external (node))
-		&& node->address_taken)))
+		    || cgraph_is_aux_decl_external (node)))))
       {
         gcc_assert (!node->global.inlined_to);
 	enqueue_cgraph_node (node, &first);
@@ -723,6 +717,8 @@ varpool_externally_visible_p (struct varpool_node *vnode, bool aliased)
      This is needed for i.e. references from asm statements.   */
   if (varpool_used_from_object_file_p (vnode))
     return true;
+  if (vnode->resolution == LDPR_PREVAILING_DEF_IRONLY)
+    return false;
 
   /* As a special case, the COMDAT virutal tables can be unshared.
      In LTO mode turn vtables into static variables.  The variable is readonly,

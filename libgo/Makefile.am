@@ -636,7 +636,8 @@ go_json_files = \
 	go/json/encode.go \
 	go/json/indent.go \
 	go/json/scanner.go \
-	go/json/stream.go
+	go/json/stream.go \
+	go/json/tags.go
 
 go_log_files = \
 	go/log/log.go
@@ -1760,6 +1761,8 @@ GOTESTFLAGS =
 CHECK = \
 	GC="$(GOC) $(GOCFLAGS) -L `${PWD_COMMAND}` -L `${PWD_COMMAND}`/.libs"; \
 	export GC; \
+	GOLIBS="$(MATH_LIBS) $(NET_LIBS)"; \
+	export GOLIBS; \
 	RUNTESTFLAGS="$(RUNTESTFLAGS)"; \
 	export RUNTESTFLAGS; \
 	MAKE="$(MAKE)"; \

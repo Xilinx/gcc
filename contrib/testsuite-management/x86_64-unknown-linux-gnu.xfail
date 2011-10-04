@@ -18,17 +18,17 @@ XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
-FAIL: g++.dg/vect/slp-pr50413.cc scan-tree-dump-times slp "basic block vectorized using SLP" 0
 
 # The following tests are failing with gold.  The LTO plugin is not resolving
 # names properly.  Only builds configured to use gold will show these.
-UNRESOLVED: gcc.c-torture/execute/builtins/strstr-asm.c execution,  -O2 -flto
-FAIL: gcc.c-torture/execute/builtins/strstr-asm.c compilation,  -O2 -flto
-FAIL: gcc.c-torture/execute/builtins/strstr-asm.c compilation,  -O2 -flto -flto-partition=none
-UNRESOLVED: gcc.c-torture/execute/builtins/strstr-asm.c execution,  -O2 -flto -flto-partition=none
+UNRESOLVED: g++.dg/lto/20100302 cp_lto_20100302_0.o-cp_lto_20100302_1.o execute -flto -fabi-version=2
+FAIL: g++.dg/lto/20100302 cp_lto_20100302_0.o-cp_lto_20100302_1.o link, -flto -fabi-version=2 (internal compiler error)
+UNRESOLVED: gcc.dg/lto/pr47259 c_lto_pr47259_0.o-c_lto_pr47259_1.o execute  -O2 -flto -w
+FAIL: gcc.dg/lto/pr47259 c_lto_pr47259_0.o-c_lto_pr47259_1.o link,  -O2 -flto -w
 
 # These tests only fail when boehm-gc.c is enabled.
 FAIL: boehm-gc.c/thread_leak_test.c -O2 (test for excess errors)
+FAIL: boehm-gc.c/gctest.c -O2 execution test
 
 # This test fails in trunk with -m32 when compiled with -mtune=pentium4
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
@@ -42,7 +42,7 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c (-O3) output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c execution test
 flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
-flaky | FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
+FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
 
 # Failures due to missing annotalysis support.
 FAIL: gcc.dg/thread_annot_lock-23.c (test for warnings, line 15)
