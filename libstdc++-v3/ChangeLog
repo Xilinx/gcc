@@ -1,3 +1,64 @@
+2011-09-29  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/util/testsuite_tr1.h (test_property): Avoid
+	ambguity.
+
+2011-10-01  François Dumont  <fdumont@gcc.gnu.org>
+
+	* include/debug/vector (vector<>::erase(iterator, iterator): Check
+	iterators equality using normal iterators.
+	* include/debug/deque (deque<>::erase(iterator, iterator): Likewise.
+
+2011-09-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h (_Hashtable<>::_Hashtable(_Hashtable&&)):
+	Remove noexcept from declaration too.
+
+2011-09-27  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/html/*: Regenerate.
+
+	* doc/Makefile.am: Un-nest the ext output directory.
+	* doc/Makefile.in: Regenerate.
+	* spine.xml: Remove authors, add abstract for short
+	contents. Rename to index.html for html output.
+	* manual/spine.xml: Authors here, manual starts with index.html.
+	* api.xml: Update.
+	* faq.xml: Same.
+
+2011-09-27  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* libsupc++/tinfo.cc (type_info::operator==): Test __name instead
+	of name().
+
+2011-09-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/50529
+	* include/bits/vector.tcc (vector<>::erase(iterator, iterator)):
+	Fix to do nothing if the range is empty.
+	* include/bits/stl_bvector.h: Likewise.
+	* include/bits/deque.tcc: Likewise.
+	* include/debug/vector: Adjust.
+	* include/debug/deque: Likewise.
+	* testsuite/23_containers/vector/modifiers/erase/50529.cc: New.
+	* testsuite/23_containers/deque/modifiers/erase/50529.cc: Likewise.
+	* testsuite/23_containers/deque/modifiers/erase/3.cc: Adjust.
+
+2011-09-25  Benjamin Kosnik  <bkoz@redhat.com>
+            Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/48698
+	* acinclude.m4 (GLIBCXX_ENABLE_SYMVERS): Set libtool_VERSION here.
+	* configure.ac: Move AC_SUBST of libtool_VERSION past call to
+	GLIBCXX_ENABLE_SYMVERS.
+	* configure: Regenerate.
+	* include/bits/c++config: Use __7 as versioned namespace name.
+	* config/abi/pre/gnu-versioned-namespace.ver: Change mangling as
+	per above.
+	* include/c_global/cwchar: Adjust nested namespaces.
+	* testsuite/20_util/bind/48698.cc: Add test case.
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Change line number.
+
 2011-09-25  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	Revert (no longer necessary post r179130):

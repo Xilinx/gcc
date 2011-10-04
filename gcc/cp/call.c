@@ -1660,6 +1660,12 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
       || expr == error_mark_node)
     return NULL;
 
+  /* Other flags only apply to the primary function in overload
+     resolution, or after we've chosen one.  */
+  flags &= (LOOKUP_ONLYCONVERTING|LOOKUP_NO_CONVERSION|LOOKUP_COPY_PARM
+	    |LOOKUP_NO_TEMP_BIND|LOOKUP_NO_RVAL_BIND|LOOKUP_PREFER_RVALUE
+	    |LOOKUP_NO_NARROWING|LOOKUP_PROTECT);
+
   if (TREE_CODE (to) == REFERENCE_TYPE)
     conv = reference_binding (to, from, expr, c_cast_p, flags);
   else
@@ -1716,15 +1722,13 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
       && (flags & LOOKUP_NO_CONVERSION) == 0)
     {
       struct z_candidate *cand;
-      int convflags = (flags & (LOOKUP_NO_TEMP_BIND|LOOKUP_ONLYCONVERTING
-				|LOOKUP_NO_NARROWING));
 
       if (CLASS_TYPE_P (to)
 	  && BRACE_ENCLOSED_INITIALIZER_P (expr)
 	  && !CLASSTYPE_NON_AGGREGATE (complete_type (to)))
 	return build_aggr_conv (to, expr, flags);
 
-      cand = build_user_type_conversion_1 (to, expr, convflags);
+      cand = build_user_type_conversion_1 (to, expr, flags);
       if (cand)
 	conv = cand->second_conv;
 
@@ -7860,18 +7864,25 @@ compare_ics (conversion *ics1, conversion *ics2)
      types to which the references refer are the same type except for
      top-level cv-qualifiers, and the type to which the reference
      initialized by S2 refers is more cv-qualified than the type to
-     which the reference initialized by S1 refers */
+     which the reference initialized by S1 refers.
+
+     DR 1328 [over.match.best]: the context is an initialization by
+     conversion function for direct reference binding (13.3.1.6) of a
+     reference to function type, the return type of F1 is the same kind of
+     reference (i.e. lvalue or rvalue) as the reference being initialized,
+     and the return type of F2 is not.  */
 
   if (ref_conv1 && ref_conv2)
     {
-      if (!ref_conv1->this_p && !ref_conv2->this_p)
+      if (!ref_conv1->this_p && !ref_conv2->this_p
+	  && (ref_conv1->rvaluedness_matches_p
+	      != ref_conv2->rvaluedness_matches_p)
+	  && (same_type_p (ref_conv1->type, ref_conv2->type)
+	      || (TYPE_REF_IS_RVALUE (ref_conv1->type)
+		  != TYPE_REF_IS_RVALUE (ref_conv2->type))))
 	{
-	  if (ref_conv1->rvaluedness_matches_p
-	      > ref_conv2->rvaluedness_matches_p)
-	    return 1;
-	  if (ref_conv2->rvaluedness_matches_p
-	      > ref_conv1->rvaluedness_matches_p)
-	    return -1;
+	  return (ref_conv1->rvaluedness_matches_p
+		  - ref_conv2->rvaluedness_matches_p);
 	}
 
       if (same_type_ignoring_top_level_qualifiers_p (to_type1, to_type2))

@@ -8688,7 +8688,9 @@ cp_parser_range_for (cp_parser *parser, tree scope, tree init, tree range_decl)
     {
       stmt = begin_range_for_stmt (scope, init);
       finish_range_for_decl (stmt, range_decl, range_expr);
-      if (!type_dependent_expression_p (range_expr))
+      if (!type_dependent_expression_p (range_expr)
+	  /* do_auto_deduction doesn't mess with template init-lists.  */
+	  && !BRACE_ENCLOSED_INITIALIZER_P (range_expr))
 	do_range_for_auto_deduction (range_decl, range_expr);
     }
   else
@@ -13423,7 +13425,13 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
     }
 
   if (tag_type != enum_type)
-    cp_parser_check_class_key (tag_type, type);
+    {
+      /* Indicate whether this class was declared as a `class' or as a
+	 `struct'.  */
+      if (TREE_CODE (type) == RECORD_TYPE)
+	CLASSTYPE_DECLARED_CLASS (type) = (tag_type == class_type);
+      cp_parser_check_class_key (tag_type, type);
+    }
 
   /* A "<" cannot follow an elaborated type specifier.  If that
      happens, the user was probably trying to form a template-id.  */
