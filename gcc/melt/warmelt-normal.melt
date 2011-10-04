@@ -3211,6 +3211,8 @@ source location.}#
 	 (newenv (fresh_env env))
 	 )
     (debug_msg curpro "normexp_ifvariadic curpro")
+    (assert_msg "normexp_ifvariadic check sthen" (is_multiple_or_null sthen))
+    (assert_msg "normexp_ifvariadic check selse" (is_multiple_or_null selse))
     (if (is_not_a curprocargs discr_variadic_formal_sequence)
 	(progn
 	  (debug_msg curprocargs "normexp_ifvariadic bad curprocargs")

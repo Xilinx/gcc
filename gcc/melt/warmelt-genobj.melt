@@ -790,6 +790,48 @@ $SBUF.}#
   )
 (install_method class_objfinalreturn put_objdest putobjdest_objfinalreturn)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; produce the verbatim string for of a variadic symbol with a given suffix
+(defun variadic_idstr (variadsym :cstring suffix)
+  (match variadsym
+	 (?(as_null)
+	   (return ()))
+	 (?(instance class_cloned_symbol
+		     :named_name ?nvarnam
+		     :csym_urank ?(integerbox_of ?nvarurank))
+	   (assert_msg "check nvarnam" (is_string nvarnam))
+	   (let ( (sbuf (make_strbuf discr_strbuf))
+		  )
+	     (add2sbuf_strconst sbuf "variad_")
+	     (add2sbuf_cident sbuf nvarnam)
+	     (add2sbuf_strconst sbuf "_c")
+	     (add2sbuf_longdec sbuf nvarurank)
+	     (add2sbuf_strconst sbuf suffix)
+	     (strbuf2string discr_verbatim_string sbuf)
+	     ))
+	 (?(instance class_symbol
+		     :named_name ?nvarnam)
+	   (assert_msg "check nvarnam" (is_string nvarnam))
+	   (let ( (sbuf (make_strbuf discr_strbuf))
+		  )
+	     (add2sbuf_strconst sbuf "variad_")
+	     (add2sbuf_cident sbuf nvarnam)
+	     (add2sbuf_strconst sbuf suffix)
+	     (strbuf2string discr_verbatim_string sbuf)
+	     ))
+	 (?_
+	  (debug_msg variadsym "variadic_idstr bad variadsym")
+	  (assert_msg "variadic_idstr bad variadsym")
+	  ())))
+
+(defun variadic_index_idstr (variadsym)
+  :doc #{Gives the verbatim string representing the index for variadic $VARIADSYM or else null.}# 
+  (variadic_idstr variadsym "_ix"))
+
+(defun variadic_length_idstr (variadsym)
+  :doc #{Gives the verbatim string representing the length for variadic $VARIADSYM or else null.}# 
+  (variadic_idstr variadsym "_len"))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -830,35 +872,9 @@ $SBUF.}#
 		      (add2sbuf_strconst namsbuf "__")
 		      ))
 		))
-	  (match 
-	   nvariadic
-	   ( ?(as_null)
-	     (void) 
-	     )
-	   ( ?(instance class_cloned_symbol
-			:named_name ?nvarnam
-			:csym_urank ?(integerbox_of ?nvarurank))
-	      (let ( (restbuf (make_strbuf discr_strbuf))
-		     )
-		(add2sbuf_strconst restbuf "restc_")
-		(add2sbuf_cident restbuf nvarnam)
-		(add2sbuf_strconst restbuf "__")
-		(add2sbuf_longdec restbuf nvarurank)
-		(setq restnam (strbuf2string discr_string restbuf))
-		))
-	   ( ?(instance class_symbol
-			:named_name ?nvarnam)
-	      (let ( (restbuf (make_strbuf discr_strbuf))
-		     )
-		(add2sbuf_strconst restbuf "rests_")
-		(add2sbuf_cident restbuf nvarnam)
-		(setq restnam (strbuf2string discr_string restbuf))
-		))
-	   ( ?_
-	     (debug_msg nvariadic "compile2obj_procedure bad nvariadic")
-	     (assert_msg "compile2obj_procedure bad nvariadic")
-	     )
-	   )))
+	  (if nvariadic 
+	      (setq restnam nvariadic))
+	  ))
     (let ( 
 	  (nbody (unsafe_get_field :nproc_body pro))
 	  (nloc (unsafe_get_field :nrep_loc pro))
@@ -918,10 +934,10 @@ $SBUF.}#
 		     (ogarg
 		      (if restnam
 			  (instance class_objgetargrest
-				:obi_loc nloc
-				:obarg_obloc oloc
-				:obarg_bind bnd
-				:obarg_rest restnam)
+				    :obi_loc nloc
+				    :obarg_obloc oloc
+				    :obarg_bind bnd
+				    :obarg_rest restnam)
 			(instance class_objgetarg
 				  :obi_loc nloc
 				  :obarg_obloc oloc
@@ -1309,6 +1325,8 @@ $SBUF.}#
 (export_values 
  compile2obj_initproc
  compile2obj_procedure
+ variadic_index_idstr
+ variadic_length_idstr
  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3786,30 +3804,28 @@ $SBUF.}#
     (assert_msg "check nvctypes" (is_multiple_or_null nvctypes))
     (assert_msg "check nvariadic" (is_a nvariadic class_symbol))
     (let ( 
-	  ;; suffixes for variadic as defined in outpucod_procroutine
-	  ;; of file warmelr-outobj.melt
-	  (varixsuffix (make_stringconst discr_verbatim_string "_ix"))
-	  (varlensuffix (make_stringconst discr_verbatim_string "_len"))
+	  (ovariadicindex (variadic_index_idstr nvariadic))
+	  (ovariadiclength (variadic_length_idstr nvariadic))
 	  (otestchklist 
 	   (if (<=i nbvararg 0) 
 	       (list
 		(make_stringconst discr_verbatim_string "/*ifvariadic nomore*/ ")
-		nvariadic varixsuffix
+		ovariadicindex
 		(make_stringconst discr_verbatim_string " == ")
-		nvariadic varlensuffix
+		ovariadiclength
 		)
 	     (let ( (ovlist
 		     (list
 		      (make_stringconst discr_verbatim_string "/*ifvariadic arg#")
 		      (make_integerbox discr_constant_integer nbvararg)
 		      (make_stringconst discr_verbatim_string "*/ ")
-		      nvariadic varixsuffix 
+		       ovariadicindex
 		      (make_stringconst discr_verbatim_string ">=0 && ")
-		      nvariadic varixsuffix
+		      ovariadicindex
 		      (make_stringconst discr_verbatim_string " + ")
 		      (make_integerbox discr_constant_integer nbvararg)
 		      (make_stringconst discr_verbatim_string " <= ")
-		      nvariadic varlensuffix
+		      ovariadiclength
 		      ))
 		    )
 	       (foreach_in_multiple
@@ -3818,8 +3834,11 @@ $SBUF.}#
 		(debug_msg curctyp "compilobj_nrep_ifvariadic curctyp")
 		(assert_msg "check curctyp" (is_a curctyp class_ctype))
 		(list_append ovlist (make_stringconst discr_verbatim_string " && xargdescr["))
-		(list_append ovlist nvariadic)
-		(list_append ovlist varixsuffix)
+		(list_append ovlist ovariadicindex)
+		(if ix
+		    (progn
+		      (list_append ovlist (make_stringconst discr_verbatim_string " + "))
+		      (list_append ovlist (make_integerbox discr_constant_integer ix))))
 		(list_append ovlist (make_stringconst discr_verbatim_string "]== "))
 		(list_append ovlist 
 			     (make_string discr_verbatim_string 
@@ -3858,23 +3877,8 @@ $SBUF.}#
 	 (nvariadic (unsafe_get_field :nvarg_variadic nvarg))
 	 (nctyp (unsafe_get_field :nvarg_ctyp nvarg))
 	 (noffset (unsafe_get_field :nvarg_offset nvarg))
-	 (ovariadic
-	  (match nvariadic
-		 (?(instance class_cloned_symbol 
-			     :named_name ?namvariadic 
-			     :csym_urank ?(integerbox_of ?urank))
-		   (let ( (nbuf (make_strbuf discr_strbuf)) )
-		     (add2sbuf_string nbuf namvariadic)
-		     (add2sbuf_strconst nbuf "__r")
-		     (add2sbuf_longdec nbuf urank)
-		     (strbuf2string discr_verbatim_string nbuf)))
-		 (?(instance class_symbol
-			     :named_name ?namsymvariadic)
-		   (make_string discr_verbatim_string namsymvariadic))
-		 (?_
-		  (debug_msg nvariadic "compilobj_nrep_variadic_argument bad nvariadic")
-		  (assert_msg "compilobj_nrep_variadic_argument bad nvariadic")
-		  ())))
+	 (ovariadicindex (variadic_index_idstr nvariadic))
+	 (ovariadiclength (variadic_length_idstr nvariadic))
 	 )
     (assert_msg "check nctyp" (is_a nctyp class_ctype))
     (assert_msg "check noffset" (is_integerbox noffset))
@@ -3883,19 +3887,19 @@ $SBUF.}#
 	   (if (== nctyp ctype_value)
 	       (tuple
 		(make_stringconst discr_verbatim_string "/*variadic argument value*/ ((xargtab_[")
-		ovariadic
-		(make_stringconst discr_verbatim_string "_ix + ")
+		ovariadicindex
+		(make_stringconst discr_verbatim_string " + ")
 		noffset
 		(make_stringconst discr_verbatim_string "].meltbp_aptr) ? (*(xargtab_[")
-		ovariadic
-		(make_stringconst discr_verbatim_string "_ix + ")
+		ovariadicindex
+		(make_stringconst discr_verbatim_string " + ")
 		noffset
 		(make_stringconst discr_verbatim_string "].meltbp_aptr)) : NULL)")
 		)
 	     (tuple
 	      (make_stringconst discr_verbatim_string "/*variadic argument stuff*/ xargtab_[")
-	      ovariadic
-	      (make_stringconst discr_verbatim_string "_ix + ")
+	      ovariadicindex
+	      (make_stringconst discr_verbatim_string " + ")
 	      noffset
 	      (make_stringconst discr_verbatim_string "].")
 	      (get_field :ctype_argfield nctyp)
@@ -3920,23 +3924,8 @@ $SBUF.}#
 	 (nvariadic (unsafe_get_field :nconsva_variadic rcv))
 	 (nctypes (unsafe_get_field :nconsva_ctypes rcv))
 	 (olist (make_list discr_list))
-	 (ovariadic
-	  (match nvariadic
-		 (?(instance class_cloned_symbol 
-			     :named_name ?namvariadic 
-			     :csym_urank ?(integerbox_of ?urank))
-		   (let ( (nbuf (make_strbuf discr_strbuf)) )
-		     (add2sbuf_string nbuf namvariadic)
-		     (add2sbuf_strconst nbuf "__r")
-		     (add2sbuf_longdec nbuf urank)
-		     (strbuf2string discr_verbatim_string nbuf)))
-		 (?(instance class_symbol
-			     :named_name ?namsymvariadic)
-		   (make_string discr_verbatim_string namsymvariadic))
-		 (?_
-		  (debug_msg nvariadic "compilobj_nrep_consumevariadic bad nvariadic")
-		  (assert_msg "compilobj_nrep_consumevariadic bad nvariadic")
-		  ())))
+	 (ovariadicindex (variadic_index_idstr nvariadic))
+	 (ovariadiclength (variadic_length_idstr nvariadic))
 	 )
     (assert_msg "check nctypes" (is_multiple_or_null nctypes))
     (list_append olist (make_stringconst discr_verbatim_string "/*consume variadic "))
@@ -3944,10 +3933,12 @@ $SBUF.}#
      (nctypes)
      (curctyp :long typix)
      (assert_msg "check curctyp" (is_a curctyp class_ctype))
-     (list_append olist (make_string discr_verbatim_string (get_field :ctype_keyword curctyp))))
+     (if (== curctyp ctype_value)
+	 (list_append olist (make_stringconst discr_verbatim_string "Value"))
+       (list_append olist (make_string discr_verbatim_string (get_field :ctype_keyword curctyp)))))
     (list_append olist (make_stringconst discr_verbatim_string "*/ "))
-    (list_append olist ovariadic)
-    (list_append olist (make_stringconst discr_verbatim_string "_ix += "))
+    (list_append olist ovariadicindex)
+    (list_append olist (make_stringconst discr_verbatim_string " += "))
     (list_append olist (make_integerbox discr_integer (multiple_length nctypes)))
     (let (
 	  (otuple (list_to_multiple olist))

@@ -5276,11 +5276,14 @@ condition is a string such as "4.5." or a list of strings.}#)
 	     (shortbacktrace_dbg "mexpand_variadic before calling hookfun for casefirst" 15)
 	     (hookfun sifvariadic)
 	     (setq hookfun
-		   (lambda (x) 
-		     (debug_msg x "mexpand_variadic/hookfun x")
-		     (put_fields sifvariadic :sifvariadic_else (tuple x))
+		   (lambda (xtup) 
+		     (debug_msg xtup "mexpand_variadic/hookfun xtup")
+		     (put_fields sifvariadic :sifvariadic_else 
+				 (if (is_multiple_or_null xtup) 
+				     xtup
+				   (tuple xtup)))
 		     (debug_msg sifvariadic "mexpand_variadic/hookfun updated sifvariadic")
-			     ))
+		     ))
 	     )))
 	(:else
 	 (debug_msg casefirst "mexpand_variadic invalid casefirst")

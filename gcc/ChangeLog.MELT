@@ -1,5 +1,18 @@
 
 2011-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_variadic): More robust.
+
+	* melt/warmelt-normal.melt (normexp_ifvariadic): Check then & else branches.
+
+	* melt/warmelt-genobj.melt (variadic_idstr): New internal function.
+	(variadic_index_idstr, variadic_length_idstr): New exported functions.
+	(compile2obj_procedure): Use them.
+	(compilobj_nrep_ifvariadic, compilobj_nrep_variadic_argument)
+	(compilobj_nrep_consumevariadic): Ditto.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Ditto.
+
+2011-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_ifvariadic): Thinko.
 
 	* melt/warmelt-genobj.melt (compilobj_nrep_variadic_argument): More.
