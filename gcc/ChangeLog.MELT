@@ -1,5 +1,10 @@
 
 2011-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifvariadic): Typo in emitted code.
+	* melt/warmelt-outobj.melt (outpucod_getargrest): Better.
+	(runfile_docmd): Still messy.
+
+2011-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_variadic): More robust.
 
 	* melt/warmelt-normal.melt (normexp_ifvariadic): Check then & else branches.

@@ -3833,7 +3833,7 @@ $SBUF.}#
 		(curctyp :long ix)
 		(debug_msg curctyp "compilobj_nrep_ifvariadic curctyp")
 		(assert_msg "check curctyp" (is_a curctyp class_ctype))
-		(list_append ovlist (make_stringconst discr_verbatim_string " && xargdescr["))
+		(list_append ovlist (make_stringconst discr_verbatim_string " && xargdescr_["))
 		(list_append ovlist ovariadicindex)
 		(if ix
 		    (progn
@@ -3902,7 +3902,7 @@ $SBUF.}#
 	      (make_stringconst discr_verbatim_string " + ")
 	      noffset
 	      (make_stringconst discr_verbatim_string "].")
-	      (get_field :ctype_argfield nctyp)
+	      (make_string discr_verbatim_string (get_field :ctype_argfield nctyp))
 	      )))
 	  (ocomp (instance 
 		  class_objcompute
@@ -3935,8 +3935,8 @@ $SBUF.}#
      (assert_msg "check curctyp" (is_a curctyp class_ctype))
      (if (== curctyp ctype_value)
 	 (list_append olist (make_stringconst discr_verbatim_string "Value"))
-       (list_append olist (make_string discr_verbatim_string (get_field :ctype_keyword curctyp)))))
-    (list_append olist (make_stringconst discr_verbatim_string "*/ "))
+       (list_append olist (make_string discr_verbatim_string (get_field :named_name (get_field :ctype_keyword curctyp))))))
+    (list_append olist (make_stringconst discr_verbatim_string " !*/ "))
     (list_append olist ovariadicindex)
     (list_append olist (make_stringconst discr_verbatim_string " += "))
     (list_append olist (make_integerbox discr_integer (multiple_length nctypes)))
