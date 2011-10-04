@@ -2446,17 +2446,15 @@ template<typename T>
 
 int main()
 {
-  typename same<long, __int128_t>::type                i1;
-  typename same<unsigned long, __uint128_t>::type      u1;
-  typename same<long long, __int128_t>::type           i2;
-  typename same<unsigned long long, __uint128_t>::type u2;
+  typename same<long, __int128>::type                i1;
+  typename same<long long, __int128>::type           i2;
 }
 EOF
 
-    AC_MSG_CHECKING([for __int128_t and __uint128_t])
+    AC_MSG_CHECKING([for __int128])
     if AC_TRY_EVAL(ac_compile); then
       AC_DEFINE(_GLIBCXX_USE_INT128, 1,
-      [Define if __int128_t and __uint128_t types are supported on this host.])
+      [Define if __int128 is supported on this host.])
       enable_int128=yes
     else
       enable_int128=no
@@ -3056,10 +3054,15 @@ dnl
 dnl Add version tags to symbols in shared library (or not), additionally
 dnl marking other symbols as private/local (or not).
 dnl
+dnl Sets libtool_VERSION, and determines shared library SONAME.
+dnl
+dnl  This depends on GLIBCXX CHECK_LINKER_FEATURES, but without it assumes no.
+dnl
 dnl --enable-symvers=style adds a version script to the linker call when
 dnl       creating the shared library.  The choice of version script is
 dnl       controlled by 'style'.
 dnl --disable-symvers does not.
+dnl
 dnl  +  Usage:  GLIBCXX_ENABLE_SYMVERS[(DEFAULT)]
 dnl       Where DEFAULT is either 'yes' or 'no'.  Passing `yes' tries to
 dnl       choose a default style based on linker characteristics.  Passing
@@ -3196,7 +3199,10 @@ changequote([,])dnl
   fi
 fi
 
-# Everything parsed; figure out what file to use.
+# For libtool versioning info, format is CURRENT:REVISION:AGE
+libtool_VERSION=6:17:0
+
+# Everything parsed; figure out what files and settings to use.
 case $enable_symvers in
   no)
     SYMVER_FILE=config/abi/pre/none.ver
@@ -3207,6 +3213,7 @@ case $enable_symvers in
 	      [Define to use GNU versioning in the shared library.])
     ;;
   gnu-versioned-namespace)
+    libtool_VERSION=7:0:0
     SYMVER_FILE=config/abi/pre/gnu-versioned-namespace.ver
     AC_DEFINE(_GLIBCXX_SYMVER_GNU_NAMESPACE, 1,
 	      [Define to use GNU namespace versioning in the shared library.])
