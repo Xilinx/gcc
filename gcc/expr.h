@@ -221,7 +221,7 @@ rtx expand_sync_mem_exchange (rtx, rtx, rtx, enum memmodel);
 rtx expand_sync_mem_compare_exchange (rtx, rtx, rtx, rtx, enum memmodel, 
 				      enum memmodel);
 rtx expand_sync_mem_load (rtx, rtx, enum memmodel);
-void expand_sync_mem_store (rtx, rtx, enum memmodel);
+rtx expand_sync_mem_store (rtx, rtx, enum memmodel);
 rtx expand_sync_mem_fetch_op (rtx, rtx, rtx, enum rtx_code, enum memmodel, 
 			      bool);
 void expand_sync_mem_thread_fence (enum memmodel);

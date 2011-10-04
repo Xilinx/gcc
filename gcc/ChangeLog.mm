@@ -1,3 +1,13 @@
+2011-10-04  Andrew MacLeod  <amacleod@redhat.com>
+
+	* optabs.c (expand_sync_mem_load): Don't expand into a default load if
+	the type is larger than a word. Try a compare_and_swap with 0.
+	(expand_sync_mem_store): Return const0_rtx if a store is generated. If
+	type is larger than a word try an exchange, then fail.
+	* builtins.c (expand_builtin_sync_mem_store): Return a value.
+	(expand_builtin): If no store generated, leave a function call.
+	* expr.h (expand_sync_mem_store): Prototype returns value.
+
 2011-09-16  Andrew MacLeod  <amacleod@redhat.com>
 
 	* expr.h: Remove prototypes.

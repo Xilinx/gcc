@@ -1,8 +1,7 @@
 /* { dg-do link } */
 /* { dg-require-effective-target sync_int_128 } */
 /* { dg-options "-mcx16" { target { x86_64-*-* } } } */
-/* { dg-final { memmodel-gdb-test { xfail *-*-* } } } */
-
+/* { dg-final { memmodel-gdb-test } } */
 
 #include <stdio.h>
 #include "memmodel.h"

@@ -7032,7 +7032,19 @@ expand_sync_mem_load (rtx target, rtx mem, enum memmodel model)
 	return ops[0].value;
     }
 
-  /* If there is no load, default to a move with barriers. */
+  /* If there is no load pattern, default to a move with barriers. If the size
+     of the object is greater than word size on this target, a default load 
+     will not be atomic.  */
+  if (GET_MODE_PRECISION(mode) > BITS_PER_WORD)
+    {
+      /* Issue val = compare_and_swap (mem, 0 , 0).
+	 This may cause the occasional harmless store of 0 when the value is
+	 already 0, but do it anyway until its determined to be invalid.  */
+      target = expand_val_compare_and_swap (mem, const0_rtx, const0_rtx, 
+					    target);
+      return target;
+    }
+
   if (target == const0_rtx)
     target = gen_reg_rtx (mode);
 
@@ -7048,13 +7060,12 @@ expand_sync_mem_load (rtx target, rtx mem, enum memmodel model)
   return target;
 }
 
-/* This function expands the atomic load operation:
-   return the atomically loaded value in MEM.
-
+/* This function expands the atomic store operation:
+   Atomically store VAL in MEM.
    MEMMODEL is the memory model variant to use.
-   TARGET is an option place to stick the return value.  */
+   function returns const0_rtx if a pattern was emitted.  */
 
-void
+rtx
 expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
@@ -7070,7 +7081,7 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
       create_input_operand (&ops[1], val, mode);
       create_integer_operand (&ops[2], model);
       if (maybe_expand_insn (icode, 3, ops))
-	return;
+	return const0_rtx;
     }
 
   /* A store of 0 is the same as __sync_lock_release, try that.  */
@@ -7086,10 +7097,23 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
 	      /* lock_release is only a release barrier.  */
 	      if (model == MEMMODEL_SEQ_CST)
 		expand_builtin_mem_thread_fence (model);
-	      return;
+	      return const0_rtx;
 	    }
 	}
     }
+
+  /* If the size of the object is greater than word size on this target,
+     a default store will not be atomic, Try a mem_exchange and throw away
+     the result.  If that doesn't work, don't do anything.  */
+  if (GET_MODE_PRECISION(mode) > BITS_PER_WORD)
+    {
+      rtx target = expand_sync_mem_exchange (NULL_RTX, mem, val, model);
+      if (target)
+        return const0_rtx;
+      else
+        return NULL_RTX;
+    }
+
   /* If there is no mem_store, default to a move with barriers */
   if (model == MEMMODEL_SEQ_CST || model == MEMMODEL_RELEASE)
     expand_builtin_mem_thread_fence (model);
@@ -7099,6 +7123,8 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
   /* For SEQ_CST, also emit a barrier after the load.  */
   if (model == MEMMODEL_SEQ_CST)
     expand_builtin_mem_thread_fence (model);
+
+  return const0_rtx;
 }
 
 

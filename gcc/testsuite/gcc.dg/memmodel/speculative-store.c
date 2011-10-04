@@ -12,7 +12,7 @@ int global = 100;
 
 /* Other thread makes sure global is 100 before the next instruction is
  * exceuted.  */
-int memmodel_other_threads() 
+void memmodel_other_threads() 
 {
   global = 100;
 }

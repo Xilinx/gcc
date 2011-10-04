@@ -1,3 +1,18 @@
+2011-10-04  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/memmodel/memmodel.h (__gdb_memmodel_fini): Rename from 
+	memmodel_fini.
+	(HOSTILE_THREAD_THRESHOLD, HOSTILE_THREAD_PAUSE): New.
+	(__gdb_hostile_pause): New. Indicates a pause was triggered.
+	(__gdb_wrapper_other_threads): New.  Wrapper for memmodel_other_threads.
+	Avoid infinite loops.
+	(__gdb_wrapper_final_verify): New. Wrapper for memmodel_final_verify.
+	* gcc.dg/memmodel/memmodel.gdb: Use renamed __gdb_ routines instead.
+	* gcc.dg/memmodel/speculative-store.c (memmodel_other_threads): Correct
+	return type.
+	* gcc.dg/memmodel/sync-load-int128.c: Don't xfail any more.
+	* gcc.dg/memmodel/sync-other-int128.c: Don't xfail any more.
+
 2011-09-16  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/sync-mem-invalid.c: Remove __sync_mem_flag_clear

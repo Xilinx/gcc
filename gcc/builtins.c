@@ -5340,7 +5340,7 @@ expand_builtin_sync_mem_load (enum machine_mode mode, tree exp, rtx target)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.  */
 
-static void
+static rtx
 expand_builtin_sync_mem_store (enum machine_mode mode, tree exp)
 {
   rtx mem, val;
@@ -5352,14 +5352,14 @@ expand_builtin_sync_mem_store (enum machine_mode mode, tree exp)
       && model != MEMMODEL_RELEASE)
     {
       error ("invalid memory model for %<__sync_mem_store%>");
-      return;
+      return NULL_RTX;
     }
 
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  expand_sync_mem_store (mem, val, model);
+  return expand_sync_mem_store (mem, val, model);
 }
 
 /* Expand the __sync_mem_fetch_XXX intrinsic:
@@ -6289,8 +6289,10 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_SYNC_MEM_STORE_8:
     case BUILT_IN_SYNC_MEM_STORE_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_STORE_1);
-      expand_builtin_sync_mem_store (mode, exp);
-      return const0_rtx;
+      target = expand_builtin_sync_mem_store (mode, exp);
+      if (target)
+	return const0_rtx;
+      break;
 
     case BUILT_IN_SYNC_MEM_ADD_FETCH_1:
     case BUILT_IN_SYNC_MEM_ADD_FETCH_2:
