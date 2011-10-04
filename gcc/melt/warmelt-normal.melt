@@ -3263,7 +3263,7 @@ source location.}#
 	     (nconsume (instance class_nrep_consume_variadic
 				 :nrep_loc loc
 				 :nconsva_variadic nprovariadic
-				 :nconsva_ctypes 
+				 :nconsva_ctypes ctyptup
 				 ))
 	     (cvarbind (instance class_normal_let_binding
 				 :binder cvarsym

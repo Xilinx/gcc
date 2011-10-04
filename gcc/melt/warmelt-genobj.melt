@@ -3858,14 +3858,108 @@ $SBUF.}#
 	 (nvariadic (unsafe_get_field :nvarg_variadic nvarg))
 	 (nctyp (unsafe_get_field :nvarg_ctyp nvarg))
 	 (noffset (unsafe_get_field :nvarg_offset nvarg))
-	)
-    (assert_msg "check nvariadic" (is_a nvariadic class_symbol))
+	 (ovariadic
+	  (match nvariadic
+		 (?(instance class_cloned_symbol 
+			     :named_name ?namvariadic 
+			     :csym_urank ?(integerbox_of ?urank))
+		   (let ( (nbuf (make_strbuf discr_strbuf)) )
+		     (add2sbuf_string nbuf namvariadic)
+		     (add2sbuf_strconst nbuf "__r")
+		     (add2sbuf_longdec nbuf urank)
+		     (strbuf2string discr_verbatim_string nbuf)))
+		 (?(instance class_symbol
+			     :named_name ?namsymvariadic)
+		   (make_string discr_verbatim_string namsymvariadic))
+		 (?_
+		  (debug_msg nvariadic "compilobj_nrep_variadic_argument bad nvariadic")
+		  (assert_msg "compilobj_nrep_variadic_argument bad nvariadic")
+		  ())))
+	 )
     (assert_msg "check nctyp" (is_a nctyp class_ctype))
     (assert_msg "check noffset" (is_integerbox noffset))
-  (assert_msg "@$@unimplemented compilobj_nrep_variadic_argument")
-))
+    (let (
+	  (otuple 
+	   (if (== nctyp ctype_value)
+	       (tuple
+		(make_stringconst discr_verbatim_string "/*variadic argument value*/ ((xargtab_[")
+		ovariadic
+		(make_stringconst discr_verbatim_string "_ix + ")
+		noffset
+		(make_stringconst discr_verbatim_string "].meltbp_aptr) ? (*(xargtab_[")
+		ovariadic
+		(make_stringconst discr_verbatim_string "_ix + ")
+		noffset
+		(make_stringconst discr_verbatim_string "].meltbp_aptr)) : NULL)")
+		)
+	     (tuple
+	      (make_stringconst discr_verbatim_string "/*variadic argument stuff*/ xargtab_[")
+	      ovariadic
+	      (make_stringconst discr_verbatim_string "_ix + ")
+	      noffset
+	      (make_stringconst discr_verbatim_string "].")
+	      (get_field :ctype_argfield nctyp)
+	      )))
+	  (ocomp (instance 
+		  class_objcompute
+		  :obi_loc nloc
+		  :obcpt_expr otuple))
+	  )
+      (debug_msg ocomp "compilobj_nrep_variadic_argument ocomp")
+      (return ocomp)
+      )))
 (install_method class_nrep_variadic_argument compile_obj compilobj_nrep_variadic_argument)
 
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_consumevariadic (rcv gcx)
+  (assert_msg "check rcv" (is_a rcv class_nrep_consume_variadic))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug_msg rcv "compilobj_nrep_consumevariadic rcv")
+  (let ( (nloc (unsafe_get_field :nrep_loc rcv))
+	 (nvariadic (unsafe_get_field :nconsva_variadic rcv))
+	 (nctypes (unsafe_get_field :nconsva_ctypes rcv))
+	 (olist (make_list discr_list))
+	 (ovariadic
+	  (match nvariadic
+		 (?(instance class_cloned_symbol 
+			     :named_name ?namvariadic 
+			     :csym_urank ?(integerbox_of ?urank))
+		   (let ( (nbuf (make_strbuf discr_strbuf)) )
+		     (add2sbuf_string nbuf namvariadic)
+		     (add2sbuf_strconst nbuf "__r")
+		     (add2sbuf_longdec nbuf urank)
+		     (strbuf2string discr_verbatim_string nbuf)))
+		 (?(instance class_symbol
+			     :named_name ?namsymvariadic)
+		   (make_string discr_verbatim_string namsymvariadic))
+		 (?_
+		  (debug_msg nvariadic "compilobj_nrep_consumevariadic bad nvariadic")
+		  (assert_msg "compilobj_nrep_consumevariadic bad nvariadic")
+		  ())))
+	 )
+    (assert_msg "check nctypes" (is_multiple_or_null nctypes))
+    (list_append olist (make_stringconst discr_verbatim_string "/*consume variadic "))
+    (foreach_in_multiple 
+     (nctypes)
+     (curctyp :long typix)
+     (assert_msg "check curctyp" (is_a curctyp class_ctype))
+     (list_append olist (make_string discr_verbatim_string (get_field :ctype_keyword curctyp))))
+    (list_append olist (make_stringconst discr_verbatim_string "*/ "))
+    (list_append olist ovariadic)
+    (list_append olist (make_stringconst discr_verbatim_string "_ix += "))
+    (list_append olist (make_integerbox discr_integer (multiple_length nctypes)))
+    (let (
+	  (otuple (list_to_multiple olist))
+	  (ocomp (instance 
+		  class_objcompute
+		  :obi_loc nloc
+		  :obcpt_expr otuple))
+	  )
+      (debug_msg ocomp "compilobj_nrep_consumevariadic ocomp")
+      (return ocomp)
+      )))
+(install_method class_nrep_consume_variadic compile_obj compilobj_nrep_consumevariadic)
 
 ;;;;;;;;;;;;;
 (defun putobjdest_objcond (recv desto)

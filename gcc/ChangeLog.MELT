@@ -1,4 +1,10 @@
 
+2011-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_ifvariadic): Thinko.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_variadic_argument): More.
+	(compilobj_nrep_consumevariadic): New method.
+
 2011-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (class_nrep_consume_variadic): New class.
 	(normexp_ifvariadic): Complete, by using it.
