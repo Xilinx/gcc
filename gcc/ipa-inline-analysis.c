@@ -90,9 +90,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 
 /* Estimate runtime of function can easilly run into huge numbers with many
-   nested loops.  Be sure we can compute time * INLINE_SIZE_SCALE in integer.
-   For anything larger we use gcov_type.  */
-#define MAX_TIME 1000000
+   nested loops.  Be sure we can compute time * INLINE_SIZE_SCALE * 2 in an
+   integer.  For anything larger we use gcov_type.  */
+#define MAX_TIME 500000
 
 /* Number of bits in integer, but we really want to be stable across different
    hosts.  */
@@ -482,8 +482,8 @@ predicate_probability (conditions conds,
 				     i2 - predicate_first_dynamic_condition);
 		    if (c->code == CHANGED
 			&& (c->operand_num
-			    < VEC_length (inline_param_summary_t,
-					  inline_param_summary)))
+			    < (int) VEC_length (inline_param_summary_t,
+						inline_param_summary)))
 		      {
 			int iprob = VEC_index (inline_param_summary_t,
 					       inline_param_summary,
@@ -789,6 +789,48 @@ inline_summary_alloc (void)
 					     10);
 }
 
+/* We are called multiple time for given function; clear
+   data from previous run so they are not cumulated.  */
+
+static void
+reset_inline_edge_summary (struct cgraph_edge *e)
+{
+  if (e->uid
+      < (int)VEC_length (inline_edge_summary_t, inline_edge_summary_vec))
+    {
+      struct inline_edge_summary *es = inline_edge_summary (e);
+
+      es->call_stmt_size = es->call_stmt_time =0;
+      if (es->predicate)
+	pool_free (edge_predicate_pool, es->predicate);
+      es->predicate = NULL;
+      VEC_free (inline_param_summary_t, heap, es->param);
+    }
+}
+
+/* We are called multiple time for given function; clear
+   data from previous run so they are not cumulated.  */
+
+static void
+reset_inline_summary (struct cgraph_node *node)
+{
+  struct inline_summary *info = inline_summary (node);
+  struct cgraph_edge *e;
+
+  info->self_size = info->self_time = 0;
+  info->estimated_stack_size = 0;
+  info->estimated_self_stack_size = 0;
+  info->stack_frame_offset = 0;
+  info->size = 0;
+  info->time = 0;
+  VEC_free (condition, gc, info->conds);
+  VEC_free (size_time_entry,gc, info->entry);
+  for (e = node->callees; e; e = e->next_callee)
+    reset_inline_edge_summary (e);
+  for (e = node->indirect_calls; e; e = e->next_callee)
+    reset_inline_edge_summary (e);
+}
+
 /* Hook that is called by cgraph.c when a node is removed.  */
 
 static void
@@ -799,11 +841,7 @@ inline_node_removal_hook (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
       <= (unsigned)node->uid)
     return;
   info = inline_summary (node);
-  reset_node_growth_cache (node);
-  VEC_free (condition, gc, info->conds);
-  VEC_free (size_time_entry, gc, info->entry);
-  info->conds = NULL;
-  info->entry = NULL;
+  reset_inline_summary (node);
   memset (info, 0, sizeof (inline_summary_t));
 }
 
@@ -1010,15 +1048,7 @@ inline_edge_removal_hook (struct cgraph_edge *edge, void *data ATTRIBUTE_UNUSED)
 {
   if (edge_growth_cache)
     reset_edge_growth_cache (edge);
-  if (edge->uid
-      < (int)VEC_length (inline_edge_summary_t, inline_edge_summary_vec))
-    {
-      edge_set_predicate (edge, NULL);
-      VEC_free (inline_param_summary_t, heap,
-	        inline_edge_summary (edge)->param);
-      memset (inline_edge_summary (edge), 0,
-	      sizeof (struct inline_edge_summary));
-    }
+  reset_inline_edge_summary (edge);
 }
 
 
@@ -1293,18 +1323,65 @@ eliminated_by_inlining_prob (gimple stmt)
 	    if (!inner_lhs)
 	      inner_lhs = lhs;
 
+	    /* Reads of parameter are expected to be free.  */
 	    if (unmodified_parm (stmt, inner_rhs))
 	      rhs_free = true;
+
+	    /* When parameter is not SSA register because its address is taken
+	       and it is just copied into one, the statement will be completely
+	       free after inlining (we will copy propagate backward).   */
+	    if (rhs_free && is_gimple_reg (lhs))
+	      return 2;
+
+	    /* Reads of parameters passed by reference
+	       expected to be free (i.e. optimized out after inlining).  */
+	    if (TREE_CODE(inner_rhs) == MEM_REF
+	        && unmodified_parm (stmt, TREE_OPERAND (inner_rhs, 0)))
+	      rhs_free = true;
+
+	    /* Copying parameter passed by reference into gimple register is
+	       probably also going to copy propagate, but we can't be quite
+	       sure.  */
 	    if (rhs_free && is_gimple_reg (lhs))
 	      lhs_free = true;
-	    if (((TREE_CODE (inner_lhs) == PARM_DECL
-	          || (TREE_CODE (inner_lhs) == SSA_NAME
-		      && SSA_NAME_IS_DEFAULT_DEF (inner_lhs)
-		      && TREE_CODE (SSA_NAME_VAR (inner_lhs)) == PARM_DECL))
-		 && inner_lhs != lhs)
-	        || TREE_CODE (inner_lhs) == RESULT_DECL
-	        || (TREE_CODE (inner_lhs) == SSA_NAME
-		    && TREE_CODE (SSA_NAME_VAR (inner_lhs)) == RESULT_DECL))
+	   
+	    /* Writes to parameters, parameters passed by value and return value
+	       (either dirrectly or passed via invisible reference) are free.  
+
+	       TODO: We ought to handle testcase like
+	       struct a {int a,b;};
+	       struct a
+	       retrurnsturct (void)
+		 {
+		   struct a a ={1,2};
+		   return a;
+		 }
+
+	       This translate into:
+
+	       retrurnsturct ()
+		 {
+		   int a$b;
+		   int a$a;
+		   struct a a;
+		   struct a D.2739;
+
+		 <bb 2>:
+		   D.2739.a = 1;
+		   D.2739.b = 2;
+		   return D.2739;
+
+		 }
+	       For that we either need to copy ipa-split logic detecting writes
+	       to return value.  */
+	    if (TREE_CODE (inner_lhs) == PARM_DECL
+		|| TREE_CODE (inner_lhs) == RESULT_DECL
+	        || (TREE_CODE(inner_lhs) == MEM_REF
+		     && (unmodified_parm (stmt, TREE_OPERAND (inner_lhs, 0))
+			 || (TREE_CODE (TREE_OPERAND (inner_lhs, 0)) == SSA_NAME
+			     && TREE_CODE (SSA_NAME_VAR
+					    (TREE_OPERAND (inner_lhs, 0)))
+			     == RESULT_DECL))))
 	      lhs_free = true;
 	    if (lhs_free
 		&& (is_gimple_reg (rhs) || is_gimple_min_invariant (rhs)))
@@ -1922,7 +1999,7 @@ estimate_function_body_sizes (struct cgraph_node *node, bool early)
 	      if (prob == 1 && dump_file && (dump_flags & TDF_DETAILS))
 		fprintf (dump_file, "\t\t50%% will be eliminated by inlining\n");
 	      if (prob == 2 && dump_file && (dump_flags & TDF_DETAILS))
-		fprintf (dump_file, "\t\twill eliminated by inlining\n");
+		fprintf (dump_file, "\t\tWill be eliminated by inlining\n");
 
 	      if (parms_info)
 		p = and_predicates (info->conds, &bb_predicate,
@@ -1997,6 +2074,7 @@ compute_inline_parameters (struct cgraph_node *node, bool early)
   inline_summary_alloc ();
 
   info = inline_summary (node);
+  reset_inline_summary (node);
 
   /* FIXME: Thunks are inlinable, but tree-inline don't know how to do that.
      Once this happen, we will need to more curefully predict call
@@ -2356,8 +2434,8 @@ remap_edge_change_prob (struct cgraph_edge *inlined_edge,
 	  struct ipa_jump_func *jfunc = ipa_get_ith_jump_func (args, i);
 	  if (jfunc->type == IPA_JF_PASS_THROUGH
 	      && (jfunc->value.pass_through.formal_id
-		  < VEC_length (inline_param_summary_t,
-				inlined_es->param)))
+		  < (int) VEC_length (inline_param_summary_t,
+				      inlined_es->param)))
 	    {
 	      int prob1 = VEC_index (inline_param_summary_t,
 				     es->param, i)->change_prob;
@@ -2783,6 +2861,7 @@ inline_generate_summary (void)
       cgraph_add_function_insertion_hook (&add_new_function, NULL);
 
   ipa_register_cgraph_hooks ();
+  inline_free_summary ();
 
   FOR_EACH_DEFINED_FUNCTION (node)
     if (!node->alias)
@@ -3065,19 +3144,24 @@ inline_write_summary (cgraph_node_set set,
 void
 inline_free_summary (void)
 {
+  struct cgraph_node *node;
+  FOR_EACH_DEFINED_FUNCTION (node)
+    reset_inline_summary (node);
   if (function_insertion_hook_holder)
     cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
   function_insertion_hook_holder = NULL;
   if (node_removal_hook_holder)
     cgraph_remove_node_removal_hook (node_removal_hook_holder);
+  node_removal_hook_holder = NULL;
   if (edge_removal_hook_holder)
     cgraph_remove_edge_removal_hook (edge_removal_hook_holder);
-  node_removal_hook_holder = NULL;
+  edge_removal_hook_holder = NULL;
   if (node_duplication_hook_holder)
     cgraph_remove_node_duplication_hook (node_duplication_hook_holder);
+  node_duplication_hook_holder = NULL;
   if (edge_duplication_hook_holder)
     cgraph_remove_edge_duplication_hook (edge_duplication_hook_holder);
-  node_duplication_hook_holder = NULL;
+  edge_duplication_hook_holder = NULL;
   VEC_free (inline_summary_t, gc, inline_summary_vec);
   inline_summary_vec = NULL;
   VEC_free (inline_edge_summary_t, heap, inline_edge_summary_vec);

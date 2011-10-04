@@ -1300,7 +1300,9 @@ structural_comptypes (tree t1, tree t2, int strict)
       if (!cp_tree_equal (TYPENAME_TYPE_FULLNAME (t1),
 			  TYPENAME_TYPE_FULLNAME (t2)))
 	return false;
-      if (!same_type_p (TYPE_CONTEXT (t1), TYPE_CONTEXT (t2)))
+      /* Qualifiers don't matter on scopes.  */
+      if (!same_type_ignoring_top_level_qualifiers_p (TYPE_CONTEXT (t1),
+						      TYPE_CONTEXT (t2)))
 	return false;
       break;
 
@@ -4191,9 +4193,19 @@ cp_build_binary_op (location_t location,
 	result_type = composite_pointer_type (type0, type1, op0, op1,
 					      CPO_COMPARISON, complain);
       else if (code0 == POINTER_TYPE && null_ptr_cst_p (op1))
-	result_type = type0;
+	{
+	  result_type = type0;
+	  if (extra_warnings && (complain & tf_warning))
+	    warning (OPT_Wextra,
+		     "ordered comparison of pointer with integer zero");
+	}
       else if (code1 == POINTER_TYPE && null_ptr_cst_p (op0))
-	result_type = type1;
+	{
+	  result_type = type1;
+	  if (extra_warnings && (complain & tf_warning))
+	    warning (OPT_Wextra,
+		     "ordered comparison of pointer with integer zero");
+	}
       else if (null_ptr_cst_p (op0) && null_ptr_cst_p (op1))
 	/* One of the operands must be of nullptr_t type.  */
         result_type = TREE_TYPE (nullptr_node);

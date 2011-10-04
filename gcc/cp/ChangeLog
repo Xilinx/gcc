@@ -1,3 +1,103 @@
+2011-10-02  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (tsubst_pack_expansion): Re-use ARGUMENT_PACK_SELECTs.
+	Change unsubstituted_packs to bool.
+
+	* parser.c (cp_parser_range_for): Don't try to deduce from {}
+	in a template.
+
+	PR c++/35722
+	Implement N2555 (expanding pack expansion to fixed parm list)
+	* pt.c (coerce_template_parms): Allow expanding a pack expansion
+	to a fixed-length argument list.
+	(unify_pack_expansion): Handle explicit args properly.
+	(unify) [TREE_VEC]: Handle pack expansions here.
+	[TYPE_ARGUMENT_PACK]: Not here.
+	(tsubst_pack_expansion): Don't try to do partial substitution.
+	(pack_deducible_p): New.
+	(fn_type_unification): Use it.
+	(find_parameter_packs_r): Take the TYPE_MAIN_VARIANT
+	of a type parameter.
+	(check_non_deducible_conversion): Split from type_unification_real.
+	(unify_one_argument): Split from type_unification_real...
+	(unify_pack_expansion): ...and here.  Drop call_args_p parm.
+	(type_unification_real, unify, more_specialized_fn): Adjust.
+
+	* class.c (fixed_type_or_null): Handle NSDMI.
+	* method.c (walk_field_subobs): Disable NSDMI noexcept checking
+	for now.
+
+2011-09-30  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (TREE_NEGATED_INT): Remove.
+	* semantics.c (finish_unary_op_expr): Don't set it.
+
+2011-09-30  Janis Johnson  <janisjo@codesourcery.com>
+
+	PR c++/44473
+	* mangle.c (write_type): Handle CV qualifiers for decimal classes.
+
+2011-09-26   Andi Kleen <ak@linux.intel.com>
+
+	* repo.c (finish_repo): Use HOST_WIDE_INT_PRINT_HEX_PURE.
+
+2011-09-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45278
+	* typeck.c (cp_build_binary_op): With -Wextra, warn for ordered
+	comparison of pointer with zero.
+
+2011-09-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/31489
+	* parser.c (cp_parser_elaborated_type_specifier): For RECORD_TYPE,
+	set CLASSTYPE_DECLARED_CLASS.
+
+2011-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* decl.c (duplicate_decls): If compatible stpcpy prototype
+	is seen, set implicit_built_in_decls[BUILT_IN_STPCPY].
+
+2011-09-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45012
+	* pt.c (tsubst_copy_and_build) [CONST_DECL]: Don't pull out
+	constant value if we're still in a template.
+
+	PR c++/46105
+	* typeck.c (structural_comptypes): Ignore cv-quals on typename scope.
+
+	PR c++/50508
+	* semantics.c (cxx_eval_logical_expression): Use tree_int_cst_equal
+	rather than ==.
+
+2011-09-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45487
+	* error.c (dump_template_bindings): Separate bindings with semicolons
+	instead of commas.
+
+2011-09-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50512
+	* call.c (compare_ics): Only consider rvaluedness_matches_p
+	if the target type is the same or it too differs in rvalueness.
+
+	PR c++/50523
+	* call.c (implicit_conversion): Mask out inappropriate LOOKUP
+	flags at the top of the function.
+
+	* pt.c (tsubst_copy) [PARM_DECL]: Handle 'this' in NSDMI.
+
+2011-09-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (convert_nontype_argument): Handle NULLPTR_TYPE.
+
+2011-09-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/26747
+	* cp-gimplify.c (get_bc_label): Remove obsolete diagnostics.
+
 2011-09-25  Jason Merrill  <jason@redhat.com>
 
 	* parser.c (inject_this_parameter): Split out from
