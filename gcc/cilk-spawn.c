@@ -2477,7 +2477,7 @@ gimplify_cilk_for_2 (struct cilk_for_desc *cfd,
   tree grain = NULL_TREE;
  
 
-  if (POINTER_TYPE_P(TREE_TYPE(var)))
+  if (POINTER_TYPE_P (TREE_TYPE (var)))
     {
       extract_free_variables (cfd->lower_bound, &cfd->wd, ADD_WRITE);
     }
@@ -2695,10 +2695,10 @@ gimplify_cilk_for_1 (struct cilk_for_desc *cfd,
 
   if (cfd->grain == NULL_TREE)
     {
-      grain = get_formal_tmp_var (build_int_cst(cfd->count_type, 0), pre_p);
+      grain = get_formal_tmp_var (build_int_cst (cfd->count_type, 0), pre_p);
     }
-  else if (TYPE_MAIN_VARIANT(TREE_TYPE(cfd->grain)) !=
-	   TYPE_MAIN_VARIANT(cfd->count_type))
+  else if (TYPE_MAIN_VARIANT (TREE_TYPE (cfd->grain)) !=
+	   TYPE_MAIN_VARIANT (cfd->count_type))
     {
       grain = convert (cfd->count_type, cfd->grain);
     }

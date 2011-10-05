@@ -191,9 +191,9 @@ vectorize_loops (void)
      than all previously defined loops.  This fact allows us to run
      only over initial loops skipping newly generated ones.  */
   FOR_EACH_LOOP (li, loop, 0)
-       if (((!flag_enable_cilk) && (optimize_loop_nest_for_speed_p (loop))) ||
-	   (flag_enable_cilk &&
-	    (pragma_simd_vectorize_loop_p (loop->pragma_simd_index))))
+       if (((!flag_enable_cilk) && (optimize_loop_nest_for_speed_p (loop))) 
+	   || (flag_enable_cilk 
+	       && (pragma_simd_vectorize_loop_p (loop->pragma_simd_index))))
       {
 	loop_vec_info loop_vinfo;
 

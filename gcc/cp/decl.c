@@ -1243,8 +1243,7 @@ is_cilk_function_decl (tree olddecl, tree newdecl)
   
   /* char *cc = NULL;  */
   /* int ii = 0; */
-  if ((DECL_NAME (olddecl) == NULL_TREE) ||
-      (DECL_NAME (newdecl) == NULL_TREE))
+  if ((DECL_NAME (olddecl) == NULL_TREE) || (DECL_NAME (newdecl) == NULL_TREE))
     return false;
   
   if (TREE_CODE (DECL_NAME (olddecl)) != IDENTIFIER_NODE)

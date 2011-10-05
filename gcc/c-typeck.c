@@ -10937,8 +10937,8 @@ c_finish_cilk_loop (location_t start_locus ATTRIBUTE_UNUSED, tree cvar,
   tree init;
   tree c_tree;
 
-  if ((cvar == error_mark_node) || (cond == error_mark_node) ||
-      (incr == error_mark_node) || (body == error_mark_node))
+  if (cvar == error_mark_node || cond == error_mark_node 
+      || incr == error_mark_node || body == error_mark_node)
     return;
 
   if (!cond)

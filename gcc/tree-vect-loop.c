@@ -224,8 +224,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		               "not vectorized: unsupported data-type ");
 		      print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 		    }
-		  if (flag_enable_cilk &&
-		      pragma_simd_assert_requested_p(loop->pragma_simd_index))
+		  if (flag_enable_cilk && pragma_simd_assert_requested_p
+		      (loop->pragma_simd_index))
 		    {
 		      error ("Loop not vectorized. " 
 			     "Exiting as requested by Pragma SIMD");
@@ -375,8 +375,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	          fprintf (vect_dump, "not vectorized: irregular stmt.");
 		  print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
 		}
-	      if (flag_enable_cilk &&
-		  pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		  (loop->pragma_simd_index))
 		{
 		  error ("Loop not vectorized. "
 			 "Exiting as requested by PRAGMA SIMD");
@@ -391,8 +391,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 	          fprintf (vect_dump, "not vectorized: vector stmt in loop:");
 	          print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
 	        }
-	      if (flag_enable_cilk &&
-		  pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		  (loop->pragma_simd_index))
 		{
 		  error ("Loop not vectorized. "
 			 "Exiting as requested by PRAGMA SIMD");
@@ -427,8 +427,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 			       "not vectorized: unsupported data-type ");
 		      print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 		    }
-		  if (flag_enable_cilk &&
-		      pragma_simd_assert_requested_p (loop->pragma_simd_index))
+		  if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		      (loop->pragma_simd_index))
 		    {
 		      error ("Loop not vectorized. "
 			     "Exiting as requested by PRAGMA SIMD");
@@ -473,8 +473,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 			   "not vectorized: unsupported data-type ");
 		  print_generic_expr (vect_dump, scalar_type, TDF_SLIM);
 		}
-	      if (flag_enable_cilk &&
-		  pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		  (loop->pragma_simd_index))
 		{
 		  error ("Loop not vectorized. "
 			 "Exiting as requested by PRAGMA SIMD");
@@ -494,8 +494,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
 		  fprintf (vect_dump, " and ");
 		  print_generic_expr (vect_dump, vf_vectype, TDF_SLIM);
 		}
-	      if (flag_enable_cilk &&
-		  pragma_simd_assert_requested_p (loop->pragma_simd_index))
+	      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+		  (loop->pragma_simd_index))
 		{
 		  error ("Loop not vectorized. "
 			 "Exiting as requested by PRAGMA SIMD");
@@ -556,8 +556,8 @@ vect_determine_vectorization_factor (loop_vec_info loop_vinfo)
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
         fprintf (vect_dump, "not vectorized: unsupported data-type");
 
-      if (flag_enable_cilk &&
-	  pragma_simd_assert_requested_p (loop->pragma_simd_index))
+      if (flag_enable_cilk && pragma_simd_assert_requested_p 
+	  (loop->pragma_simd_index))
 	{
 	  error ("Loop not vectorized. "
 		 "Exiting as requested by Pragma SIMD");

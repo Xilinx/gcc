@@ -3535,8 +3535,7 @@ handle_cilk_linkage_attribute (tree *node, tree name,
 {
   tree target = *node;
 
-  if ((TREE_CODE (target) != FUNCTION_TYPE) &&
-      (TREE_CODE (target) != METHOD_TYPE))
+  if (TREE_CODE (target) != FUNCTION_TYPE && TREE_CODE (target) != METHOD_TYPE)
     {
       warning(0, "%qs attribute only applies to functions",
 	      IDENTIFIER_POINTER (name));
@@ -3545,7 +3544,7 @@ handle_cilk_linkage_attribute (tree *node, tree name,
     {
       if (FUNCTION_TYPE_LINKAGE (target) != linkage_cilk)
 	{
-	  *node = build_function_linkage_variant(target, linkage_cilk);
+	  *node = build_function_linkage_variant (target, linkage_cilk);
 	}
       else
 	*node = target;

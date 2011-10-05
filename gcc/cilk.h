@@ -163,7 +163,6 @@ extern void cilk_init_frame (tree frame);
    the current frame. */
 extern rtx allocate_cilk_dynamic (rtx target, rtx size);
 
-
 /* Like build_stack_save_restore, but handles Cilk dynamic frame
    extensions instead of updating the stack pointer. */
 extern void build_stack_save_restore_cilk (tree *save, tree *restore);

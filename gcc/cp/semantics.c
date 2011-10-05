@@ -7834,8 +7834,8 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
 		    tree x = get_nth_callarg (t, 0);
 		    if (is_this_parameter (x))
 		      {
-			if (!flag_enable_cilk && 
-			    DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)))
+			if (!flag_enable_cilk 
+			    && DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)))
 			  {
 			    if (flags & tf_error)
 			      sorry ("calling a member function of the "
@@ -9163,7 +9163,7 @@ finish_sync_stmt (bool implicit)
 }
 
 tree
-begin_cilk_for_stmt(void)
+begin_cilk_for_stmt (void)
 {
   tree c_tree = NULL_TREE;
 

@@ -60,8 +60,7 @@ clause_resolved_p (enum pragma_simd_kind clause_type, int pragma_simd_index)
 
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->pragma_encountered == true) &&
-	  (ps_iter->index == pragma_simd_index))
+      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
 	{
 	  switch (clause_type)
 	    {
@@ -101,8 +100,7 @@ set_OK_for_certain_clause (enum pragma_simd_kind clause_type, bool set_value,
 
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->pragma_encountered == true) &&
-	  (ps_iter->index == pragma_simd_index))
+      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
 	break;
     }
   if (ps_iter == NULL)
@@ -168,8 +166,7 @@ psv_find_node(int psv_index)
   
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->index == psv_index) &&
-	  (ps_iter->pragma_encountered == true))
+      if ((ps_iter->index == psv_index) && ps_iter->pragma_encountered)
 	{
 	  return ps_iter;
 	}
@@ -289,8 +286,7 @@ pragma_simd_assert_requested_p(int ps_index)
 
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->pragma_encountered == true) &&
-	  (ps_iter->index == ps_index))
+      if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
 	{
 	  if ((ps_iter->types & P_SIMD_NOASSERT))
 	    return false;
@@ -338,8 +334,7 @@ pragma_simd_acceptable_vlength_p(int ps_index,
   
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->pragma_encountered == true) &&
-	  (ps_iter->index == ps_index))
+      if ((ps_iter->pragma_encountered == true) && (ps_iter->index == ps_index))
 	{
 	  break;
 	}
@@ -356,11 +351,11 @@ pragma_simd_acceptable_vlength_p(int ps_index,
     }
 
   for (ii_tree = ps_iter->vectorlength; ii_tree != NULL_TREE;
-       ii_tree = TREE_CHAIN(ii_tree))
+       ii_tree = TREE_CHAIN (ii_tree))
     {
-      ii_value = TREE_VALUE(ii_tree);
-      if ((TREE_CODE(ii_value) == INTEGER_CST)  &&
-	  (tree_int_cst_equal ((const_tree)ii_value, (const_tree)vl_tree)))
+      ii_value = TREE_VALUE (ii_tree);
+      if ((TREE_CODE (ii_value) == INTEGER_CST)
+	  && tree_int_cst_equal ((const_tree)ii_value, (const_tree)vl_tree))
 	{
 	  /* we found a match, so we give the YES! */
 	  return true;
@@ -645,7 +640,7 @@ find_var_decl (tree t, const char *var_name, tree *var)
 
     case TARGET_EXPR:
       {
-	find_var_decl (TREE_OPERAND (t, 0),var_name, var);
+	find_var_decl (TREE_OPERAND (t, 0), var_name, var);
 	find_var_decl (TREE_OPERAND (t, 1), var_name, var);
 	find_var_decl (TREE_OPERAND (t, 2), var_name, var);
 	if (TREE_OPERAND (t, 3) != TREE_OPERAND (t, 1))
@@ -688,9 +683,9 @@ find_var_decl (tree t, const char *var_name, tree *var)
       {
 	int len = 0;
 	int ii = 0;
-	if (TREE_CODE(TREE_OPERAND (t,0)) == INTEGER_CST)
+	if (TREE_CODE(TREE_OPERAND (t, 0)) == INTEGER_CST)
 	  {
-	    len = TREE_INT_CST_LOW(TREE_OPERAND(t,0));
+	    len = TREE_INT_CST_LOW(TREE_OPERAND(t, 0));
 
 	    for (ii = 0; ii < len; ii++)
 	      {
@@ -1103,8 +1098,8 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
 	  vl_tree = ps_values->vectorlength;
 	  pr_tree = ps_values->private_vars;
 	
-	  while ((vl_tree != NULL_TREE) || (rd_tree != NULL_TREE) ||
-		 (pr_tree != NULL_TREE))
+	  while ((vl_tree != NULL_TREE) || (rd_tree != NULL_TREE)
+		 || (pr_tree != NULL_TREE))
 	    {
 	      if (vl_tree != NULL_TREE)
 		vl_value = TREE_VALUE (vl_tree);
@@ -1121,12 +1116,12 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
 	      else
 		rd_value = NULL_TREE;
 
-	      if (((vl_value != NULL_TREE || pr_value != NULL_TREE) &&
-		   (simple_cst_equal (vl_value, pr_value) == 1)) ||
-		  ((vl_value != NULL_TREE || rd_value != NULL_TREE) &&
-		   (simple_cst_equal (vl_value, rd_value) == 1)) ||
-		  ((pr_value != NULL_TREE || rd_value != NULL_TREE) &&
-		   (simple_cst_equal (pr_value, rd_value) == 1)))
+	      if (((vl_value != NULL_TREE || pr_value != NULL_TREE)
+		   && (simple_cst_equal (vl_value, pr_value) == 1))
+		  || ((vl_value != NULL_TREE || rd_value != NULL_TREE)
+		      && (simple_cst_equal (vl_value, rd_value) == 1))
+		  || ((pr_value != NULL_TREE || rd_value != NULL_TREE)
+		      && (simple_cst_equal (pr_value, rd_value) == 1)))
 		{
 		  return true;
 		}
@@ -1144,9 +1139,8 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
     }
   else
     {    
-      while ((vl_tree != NULL_TREE) ||
-	     (rd_tree != NULL_TREE) ||
-	     (pr_tree != NULL_TREE))
+      while ((vl_tree != NULL_TREE) || (rd_tree != NULL_TREE)
+	     || (pr_tree != NULL_TREE))
 	{
 	  if (vl_tree != NULL_TREE)
 	    vl_value = TREE_VALUE (vl_tree);
@@ -1165,12 +1159,12 @@ same_var_in_multiple_lists_p(struct pragma_simd_values *ps_values)
 
 	  /* IF either one is not NULL and the trees are equal, then we
 	   * say we have found a duplicate */
-	  if (((vl_value != NULL_TREE || pr_value != NULL_TREE) &&
-	       (simple_cst_equal (vl_value, pr_value) == 1)) ||
-	      ((vl_value != NULL_TREE || rd_value != NULL_TREE) &&
-	       (simple_cst_equal (vl_value, rd_value) == 1)) ||
-	      ((pr_value != NULL_TREE || rd_value != NULL_TREE) &&
-	       (simple_cst_equal (pr_value, rd_value) == 1)))
+	  if (((vl_value != NULL_TREE || pr_value != NULL_TREE)
+	       && (simple_cst_equal (vl_value, pr_value) == 1))
+	      || ((vl_value != NULL_TREE || rd_value != NULL_TREE)
+	       && (simple_cst_equal (vl_value, rd_value) == 1))
+	      || ((pr_value != NULL_TREE || rd_value != NULL_TREE)
+	       && (simple_cst_equal (pr_value, rd_value) == 1)))
 	    {
 	      return true;
 	    }
@@ -1229,8 +1223,7 @@ check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
 
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->pragma_encountered == true) &&
-	  (ps_iter->index == pragma_simd_index))
+      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
 	{
 	  break;
 	}
@@ -1243,8 +1236,7 @@ check_off_reduction_var (gimple reduc_stmt, int pragma_simd_index)
     {
       if (rv_iter->reduction_operator == op_code)
 	{
-	  for (ii_iter = rv_iter->tree_reduction_var_list;
-	       ii_iter != NULL_TREE;
+	  for (ii_iter = rv_iter->tree_reduction_var_list; ii_iter != NULL_TREE;
 	       ii_iter = TREE_CHAIN (ii_iter))
 	    {
 	      ii_value = TREE_VALUE (ii_iter);
@@ -1280,14 +1272,12 @@ find_linear_step_size (int pragma_simd_index, tree var)
 
   for (ps_iter = psv_head; ps_iter != NULL; ps_iter = ps_iter->ptr_next)
     {
-      if ((ps_iter->pragma_encountered == true) &&
-	  (ps_iter->index == pragma_simd_index))
+      if (ps_iter->pragma_encountered && (ps_iter->index == pragma_simd_index))
 	{
 	  ii_var_iter  = ps_iter->linear_vars;
 	  ii_step_iter = ps_iter->linear_steps;
 
-	  while ((ii_var_iter  != NULL_TREE) &&
-		 (ii_step_iter != NULL_TREE))
+	  while ((ii_var_iter  != NULL_TREE) && (ii_step_iter != NULL_TREE))
 	    {
 	      ii_var_value  = TREE_VALUE (ii_var_iter);
 	      ii_step_value = TREE_VALUE (ii_step_iter);

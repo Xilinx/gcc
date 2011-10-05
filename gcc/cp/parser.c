@@ -26733,10 +26733,10 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
       decl = error_mark_node;
       valid = false;
     }
-  else if ((processing_template_decl == 0) &&
-	   (DECL_NONTRIVIALLY_INITIALIZED_P (decl) == 0) &&
-	   (DECL_INITIAL (decl) = NULL_TREE) &&
-	   (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)) == 0))
+  else if ((processing_template_decl == 0)
+	   && (DECL_NONTRIVIALLY_INITIALIZED_P (decl) == 0)
+	   && (DECL_INITIAL (decl) = NULL_TREE)
+	   && (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)) == 0))
     {
       /* If we are here, then the type has has no initializer and/or a default
        * constructor. This is a problem because then the loop has no
@@ -26772,7 +26772,6 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
     }
   else
     {
-     
       condition = cp_parser_cilk_for_condition (parser); 
     }
 
@@ -26815,12 +26814,11 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
   cp_parser_already_scoped_statement (parser);
   parser->in_statement = in_statement;
 
-
   finish_cilk_for_stmt (statement);
   
-  if ((valid == false) ||
-      ((processing_template_decl == 0)  &&
-       (cilk_validate_for (statement) == false)  ))
+  if ((valid == false)
+      || (processing_template_decl == 0
+	  && cilk_validate_for (statement) == false))
     {
       cilk_erase_for (statement); 
       gcc_assert (errorcount || sorrycount);
@@ -26873,8 +26871,8 @@ cp_parser_cilk_for_condition (cp_parser *parser)
   cp_lexer_consume_token (parser->lexer);
 
  
-  rhs=cp_parser_binary_expression (parser, false, false, PREC_SHIFT_EXPRESSION,
-				   NULL);
+  rhs = cp_parser_binary_expression
+    (parser, false, false, PREC_SHIFT_EXPRESSION, NULL);
   
  
   /* initializing vars */
@@ -26882,8 +26880,8 @@ cp_parser_cilk_for_condition (cp_parser *parser)
   parser->qualifying_scope = NULL_TREE;
   parser->object_scope = NULL_TREE;
 
-  if ((code == ERROR_MARK) || (lhs == error_mark_node) ||
-      (rhs == error_mark_node))
+  if ((code == ERROR_MARK) || (lhs == error_mark_node)
+      || (rhs == error_mark_node))
     {
       return error_mark_node;
     }
@@ -26907,7 +26905,6 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
       error ("missing loop expression.\n");
       return error_mark_node;
     }
-
   if (token->type == CPP_PLUS_PLUS)
     {
       cp_lexer_consume_token (parser->lexer);
@@ -26928,7 +26925,7 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
       return error_mark_node;
     }
 
-  name=cp_parser_lookup_name (parser, token->u.value, none_type, false, false,
+  name = cp_parser_lookup_name (parser, token->u.value, none_type, false, false,
 			      false, NULL, token->location);
   if (name == error_mark_node)
     {
@@ -26936,14 +26933,14 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
     }
 
   /* now we see if it is a decl, if not, then the loop is not valid */
-  if (DECL_P (name) == 0)
+  if (!DECL_P (name))
     {
       error ("invalid loop increment expression.\n");
       return error_mark_node;
     }
 
   cp_lexer_consume_token (parser->lexer);
-  token=cp_lexer_peek_token (parser->lexer);
+  token = cp_lexer_peek_token (parser->lexer);
 
   if (t_code != NOP_EXPR)
     {
@@ -26992,10 +26989,10 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
     {
       t_code = MINUS_EXPR;
     }
-  else if ((token->type == CPP_MOD_EQ)    || (token->type == CPP_XOR_EQ)    ||
-	   (token->type == CPP_DIV_EQ)    || (token->type == CPP_AND_EQ)    ||
-	   (token->type == CPP_OR_EQ)     || (token->type == CPP_MULT_EQ)   ||
-	   (token->type == CPP_LSHIFT_EQ) || (token->type == CPP_RSHIFT_EQ))
+  else if ((token->type == CPP_MOD_EQ)    || (token->type == CPP_XOR_EQ)
+	   || (token->type == CPP_DIV_EQ) || (token->type == CPP_AND_EQ)
+	   || (token->type == CPP_OR_EQ)  || (token->type == CPP_MULT_EQ)
+	   || (token->type == CPP_LSHIFT_EQ) || (token->type == CPP_RSHIFT_EQ))
     {
       error ("Invalid loop increment operation.");
       return error_mark_node;
@@ -27007,15 +27004,15 @@ cp_parser_cilk_for_expression_iterator (cp_parser *parser)
     }
 
   /* now we read a logical or expression */
-  expr = cp_parser_binary_expression(parser, false, false, PREC_NOT_OPERATOR,
-				     NULL);
+  expr = cp_parser_binary_expression (parser, false, false, PREC_NOT_OPERATOR,
+				      NULL);
   if (expr == error_mark_node)
     {
       return expr;
     }
 
   return build2 (MODIFY_EXPR, void_type_node, name,
-		 build2 (t_code, TREE_TYPE(name), name, expr));
+		 build2 (t_code, TREE_TYPE (name), name, expr));
 }
 
 /* this function will parse the pragma simd vector length */
@@ -27070,8 +27067,8 @@ cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token)
   local_simd_values.pragma_encountered = true;
       
 	
-  if ((cp_lexer_next_token_is (parser->lexer, CPP_NAME)) ||
-      (cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD)))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
+      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
     {
       token = cp_lexer_peek_token (parser->lexer);
       cp_lexer_consume_token (parser->lexer);
@@ -27100,7 +27097,8 @@ cp_parser_simd_vectorlength (cp_parser *parser, cp_token *pragma_token)
 	  if (same_var_in_multiple_lists_p (&local_simd_values))
 	    {
 	      cp_parser_error (parser,
-			       "ill-formed pragma: Same variable in multiple clause");
+			       "ill-formed pragma: Same variable in multiple "
+			       "clause");
 	    }
 	  cp_lexer_consume_token (parser->lexer);
 	  cp_parser_for (parser, &local_simd_values);
@@ -27142,7 +27140,7 @@ cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
 		{
 		  cp_parser_error (parser, "expected variable");
 		  cp_parser_skip_to_pragma_eol (parser, pragma_token);
-		  exit(-1);
+		  exit (-1);
 		  /* you exit here because this shouldn't happen. If it does
 		   * something VERY BAD! is going on */
 		}
@@ -27170,8 +27168,8 @@ cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
   local_simd_values.types |= P_SIMD_PRIVATE;
   local_simd_values.private_vars = private_var_list;
 	    
-  if ((cp_lexer_next_token_is (parser->lexer, CPP_NAME)) ||
-      (cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD)))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
+      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
     {
       token = cp_lexer_peek_token (parser->lexer);
       cp_lexer_consume_token (parser->lexer);
@@ -27200,7 +27198,8 @@ cp_parser_simd_private (cp_parser *parser, cp_token *pragma_token)
 	  if (same_var_in_multiple_lists_p (&local_simd_values))
 	    {
 	      cp_parser_error (parser,
-			       "ill-formed pragma: Same variable in multiple clause");
+			       "ill-formed pragma: Same variable in multiple "
+			       "clause");
 	    }
 	  cp_lexer_consume_token (parser->lexer);
 	  cp_parser_for (parser, &local_simd_values);
@@ -27316,8 +27315,8 @@ cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token)
       
       
 
-  if ((cp_lexer_next_token_is (parser->lexer, CPP_NAME)) ||
-      (cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD)))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
+      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
     {
       token = cp_lexer_peek_token (parser->lexer);
       cp_lexer_consume_token (parser->lexer);
@@ -27346,7 +27345,8 @@ cp_parser_simd_reduction (cp_parser *parser, cp_token *pragma_token)
 	  if (same_var_in_multiple_lists_p (&local_simd_values) == true)
 	    {
 	      cp_parser_error (parser,
-			       "ill-formed pragma: Same variable in multiple clause");
+			       "ill-formed pragma: Same variable in multiple "
+			       "clause");
 	    }
 	  cp_lexer_consume_token (parser->lexer);
 	  cp_parser_for (parser, &local_simd_values);
@@ -27408,8 +27408,8 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
 		  cp_lexer_consume_token (parser->lexer);
 		}
 	    }
-	  else if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA) ||
-		   cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
+	  else if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA)
+		   || cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
 	    {
 	      linear_step = integer_one_node;
 	    }
@@ -27419,7 +27419,6 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
 	      cp_parser_skip_to_pragma_eol (parser, pragma_token);
 	      return;
 	    }
-
 	  if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_PAREN))
 	    {
 	      cp_lexer_consume_token (parser->lexer);
@@ -27427,7 +27426,6 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
 					     linear_steps_list);
 	      break;
 	    }
-
 	  if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
 	    {
 	      cp_lexer_consume_token (parser->lexer);
@@ -27445,8 +27443,8 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
   gcc_assert (list_length (linear_steps_list) ==
 	      list_length (linear_var_list));
 
-  if ((cp_lexer_next_token_is (parser->lexer, CPP_NAME)) ||
-      (cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD)))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
+      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
     {
       token = cp_lexer_peek_token (parser->lexer);
       cp_lexer_consume_token (parser->lexer);
@@ -27474,8 +27472,8 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
 	{ 
 	  if (same_var_in_multiple_lists_p (&local_simd_values) == true)
 	    {
-	      cp_parser_error (parser,
-			       "ill-formed pragma: Same variable in multiple clause");
+	      cp_parser_error (parser, "ill-formed pragma: Same variable in "
+			       "multiple clause");
 	    }
 	  cp_lexer_consume_token (parser->lexer);
 	  cp_parser_for (parser, &local_simd_values);
@@ -27485,7 +27483,6 @@ cp_parser_simd_linear (cp_parser *parser, cp_token *pragma_token)
 	  cp_parser_error (parser, "for statement expected");
 	}
     }	    
-     
   return;
 }
 
@@ -27511,8 +27508,8 @@ cp_parser_simd_assert(cp_parser *parser, cp_token *pragma_token,
     
   local_simd_values.pragma_encountered = true;
 
-  if ((cp_lexer_next_token_is (parser->lexer, CPP_NAME)) ||
-      (cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD)))
+  if (cp_lexer_next_token_is (parser->lexer, CPP_NAME)
+      || cp_lexer_next_token_is (parser->lexer, CPP_KEYWORD))
     {
       token = cp_lexer_peek_token (parser->lexer);
       cp_lexer_consume_token (parser->lexer);
@@ -27573,7 +27570,7 @@ cp_parser_cilk_grainsize (cp_parser *parser, cp_token *pragma_token)
       return;
     }
   
-  if (cp_parser_require (parser, CPP_EQ, RT_EQ) != 0)
+  if (cp_parser_require (parser, CPP_EQ, RT_EQ))
     {
       exp = cp_parser_binary_expression (parser, false, false,
 					 PREC_NOT_OPERATOR, NULL);
@@ -27584,23 +27581,21 @@ cp_parser_cilk_grainsize (cp_parser *parser, cp_token *pragma_token)
 	  next_token = cp_lexer_peek_token (parser->lexer);
 
 	  /* mke sure the pragma is right before a cilk_for */
-	  if ((next_token != NULL) &&
-	      (next_token->type == CPP_KEYWORD) &&
-	      (next_token->keyword == RID_CILK_FOR))
+	  if ((next_token != NULL) && (next_token->type == CPP_KEYWORD)
+	      && (next_token->keyword == RID_CILK_FOR))
 	    {
 	      cp_lexer_consume_token (parser->lexer);
 
 	      loop = cp_parser_cilk_for (parser, exp, parser->in_statement);
-	      if ((loop != NULL_TREE) &&
-		  (STATEMENT_CODE_P (TREE_CODE (loop)) != 0))
+	      if ((loop != NULL_TREE) && STATEMENT_CODE_P (TREE_CODE (loop)))
 		{
 		  SET_EXPR_LOCATION (loop, next_token->location);
 		}
 	    }
 	  else
 	    {
-	      warning (0,
-		       "%<#pragma cilk grainsize is not followed by %<cilk_for%>");
+	      warning (0, "%<#pragma cilk grainsize is not followed by "
+		       "%<cilk_for%>");
 	    }
 	  return;
 	}
@@ -27616,7 +27611,7 @@ cp_parser_cilk_for_init_statement (cp_parser *parser, tree *init)
 {
   cp_decl_specifier_seq specs;
   cp_token *token;
-  tree decl = NULL_TREE,type = NULL_TREE;
+  tree decl = NULL_TREE, type = NULL_TREE;
   int flags = 0;
 
   token = cp_lexer_peek_token (parser->lexer);
@@ -27629,8 +27624,7 @@ cp_parser_cilk_for_init_statement (cp_parser *parser, tree *init)
     {
       type = cp_parser_lookup_name_simple (parser, token->u.value,
 					   token->location);
-      if ((TREE_CODE (type) == VAR_DECL) ||
-	  (TREE_CODE (type) == PARM_DECL))
+      if ((TREE_CODE (type) == VAR_DECL) || (TREE_CODE (type) == PARM_DECL))
 	{
 	  error ("Cilk for loop initializer must declare variable.\n");
 	  cp_parser_skip_to_end_of_statement (parser);
@@ -27639,7 +27633,7 @@ cp_parser_cilk_for_init_statement (cp_parser *parser, tree *init)
     }
   cp_parser_decl_specifier_seq (parser, CP_PARSER_FLAGS_NONE, &specs, &flags);
 
-  if (flags != 0)
+  if (flags)
     {
       warning (0, "Cilk for init declaration defines type.\n");
     }
@@ -27661,16 +27655,16 @@ cp_parser_cilk_for_init_statement (cp_parser *parser, tree *init)
       return error_mark_node;
     }
 
-  decl = cp_parser_cilk_init_declarator (parser, &specs, NULL, init, false,
-					 false, flags, NULL);
+  decl = cp_parser_cilk_init_declarator
+    (parser, &specs, NULL, init, false, false, flags, NULL);
 
   /* initializing some vars */
   parser->scope = NULL_TREE;
   parser->qualifying_scope = NULL_TREE;
   parser->object_scope = NULL_TREE; 
 
-  if ((decl == error_mark_node) || (DECL_INITIAL (decl) == error_mark_node) ||
-      (TREE_TYPE (decl) == error_mark_node))
+  if ((decl == error_mark_node) || (DECL_INITIAL (decl) == error_mark_node)
+      || (TREE_TYPE (decl) == error_mark_node))
     {
       cp_parser_skip_to_end_of_statement (parser);
       gcc_assert (errorcount || sorrycount);

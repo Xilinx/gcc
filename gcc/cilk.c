@@ -485,11 +485,11 @@ expand_builtin_cilk_enter (tree exp)
 	 w->current <- self
       */
       x = arrow (fptr, CILK_TI_FRAME_FLAGS, false);
-      mem = expand_expr (x, NULL_RTX,
-			 TYPE_MODE (TREE_TYPE (cilk_trees[CILK_TI_FRAME_FLAGS])),
+      mem = expand_expr
+	(x, NULL_RTX, TYPE_MODE (TREE_TYPE (cilk_trees[CILK_TI_FRAME_FLAGS])),
 			 EXPAND_WRITE);
-      emit_move_insn (mem,
-		      GEN_INT (cfun->always_detaches ? CILK_FRAME_DETACHED : 0));
+      emit_move_insn
+	(mem, GEN_INT (cfun->always_detaches ? CILK_FRAME_DETACHED : 0));
       return const0_rtx;
     }
   return NULL_RTX;

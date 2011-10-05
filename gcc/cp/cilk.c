@@ -160,14 +160,14 @@ enum tls_model cilk_tls_model (tree decl ATTRIBUTE_UNUSED);
  * returns true
  */
 bool
-is_cilk_function_type(tree fntype ATTRIBUTE_UNUSED)
+is_cilk_function_type (tree fntype ATTRIBUTE_UNUSED)
 {
   return true;
 }
 
 /* This function will check if we are inside a cilk function */
 bool
-in_cilk_function(void)
+in_cilk_function (void)
 {
   if (!current_function_decl)
     return false;
@@ -212,7 +212,8 @@ initialize_cilk_for_desc (struct cilk_for_desc *cfd)
 /* this function will destroy the function that we allocated in the function
  * above
  */
-static void release_cilk_for_desc (struct cilk_for_desc *cfd)
+static void
+release_cilk_for_desc (struct cilk_for_desc *cfd)
 {
   pointer_map_destroy (cfd->decl_map);
   cfd->decl_map = NULL;
@@ -511,23 +512,21 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   if (IDENTIFIER_POINTER (DECL_NAME (outer)))
     {
       int str_length = strlen (IDENTIFIER_POINTER (DECL_NAME (outer)));
-      function_name = (char *)xmalloc(sizeof(char) * (str_length + 1));
-      strcpy(function_name, IDENTIFIER_POINTER (DECL_NAME (outer)));
+      function_name = (char *)xmalloc (sizeof (char) * (str_length + 1));
+      strcpy (function_name, IDENTIFIER_POINTER (DECL_NAME (outer)));
     }
   else
     {
-      function_name =(char *)xmalloc(sizeof(char) * (strlen("no_name")+1));
-      strcpy(function_name, "no_name");
+      function_name =(char *)xmalloc (sizeof (char) * (strlen ("no_name") + 1));
+      strcpy (function_name, "no_name");
     }
 
   file_location = expand_location (DECL_SOURCE_LOCATION (outer));
   
 
-  name = (char *)xcalloc(72, sizeof (char));
+  name = (char *)xcalloc (72, sizeof (char));
 
-  sprintf (name, "cilk_loop_line_%d_%d",
-	   file_location.line,
-	   ++counter);
+  sprintf (name, "cilk_loop_line_%d_%d", file_location.line, ++counter);
 
   /* we do this because sometimes there are spaces at the end of the function
    * name,This loop will get rid of it
@@ -592,7 +591,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
       lower_bound = cfd->var;
 
       hack = build_decl (UNKNOWN_LOCATION, VAR_DECL,
-			 get_identifier("cilk_lower_bound_local_copy"),
+			 get_identifier ("cilk_lower_bound_local_copy"),
 			 TREE_TYPE (lower_bound));
       DECL_CONTEXT (hack) = DECL_CONTEXT (lower_bound);
 
@@ -602,7 +601,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
     }
   
   loop_var = build_decl (UNKNOWN_LOCATION,VAR_DECL, NULL_TREE,
-			 TREE_TYPE(cfd->min_parm));
+			 TREE_TYPE (cfd->min_parm));
 
   
   DECL_CONTEXT(loop_var) = fndecl;
@@ -615,8 +614,8 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   count_type = cfd->count_type;
   
   
-  gcc_assert (TYPE_MAIN_VARIANT(TREE_TYPE (loop_var)) ==
-	      TYPE_MAIN_VARIANT(count_type)); 
+  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (loop_var)) ==
+	      TYPE_MAIN_VARIANT (count_type)); 
 
   /* The new loop body is
 
@@ -682,7 +681,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
     expand_or_defer_fn (fndecl);
 
 
-  pop_function_context(); 
+  pop_function_context (); 
 
   
   return fndecl;
@@ -700,8 +699,8 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
   int incr_sign = cfd->incr_sign;
   enum tree_code add_op = (incr_sign >= 0) ? PLUS_EXPR : MINUS_EXPR;
 
-  gcc_assert (TYPE_MAIN_VARIANT(TREE_TYPE (loop_var)) ==
-	      TYPE_MAIN_VARIANT(count_type)); 
+  gcc_assert (TYPE_MAIN_VARIANT (TREE_TYPE (loop_var)) ==
+	      TYPE_MAIN_VARIANT (count_type)); 
 
   /* Compute an expression to be added or subtracted.
 
@@ -885,10 +884,10 @@ callable(enum tree_code code, tree op0, tree op1, const char *what, bool cry)
   if (code == INIT_EXPR)
     {
 
-      VEC(tree,gc) *op1_vec = make_tree_vector_single(op1);
+      VEC(tree,gc) *op1_vec = make_tree_vector_single (op1);
       return build_special_member_call(NULL_TREE, complete_ctor_identifier,
 				       &op1_vec,
-				       TYPE_MAIN_VARIANT(TREE_TYPE(op1)), 0,
+				       TYPE_MAIN_VARIANT (TREE_TYPE (op1)), 0,
 				       CALL_NORMAL, tf_warning_or_error);
     }
 
@@ -899,7 +898,7 @@ callable(enum tree_code code, tree op0, tree op1, const char *what, bool cry)
       return build_special_member_call(NULL_TREE,
 				       complete_dtor_identifier,
 				       &op1_vec,
-				       TYPE_MAIN_VARIANT(TREE_TYPE(op1)),
+				       TYPE_MAIN_VARIANT (TREE_TYPE (op1)),
 				       0, CALL_NORMAL,
 				       tf_warning_or_error);
     }
@@ -910,10 +909,9 @@ callable(enum tree_code code, tree op0, tree op1, const char *what, bool cry)
       flags |= LOOKUP_COMPLAIN;
     }
 
-  exp = build_new_op(code, flags, op0, op1, NULL_TREE, NULL, 0); 
+  exp = build_new_op (code, flags, op0, op1, NULL_TREE, NULL, 0); 
   
-  if ((exp != NULL_TREE) &&
-      (exp != error_mark_node))
+  if ((exp != NULL_TREE) && (exp != error_mark_node))
     {
       return exp;
     }
@@ -941,18 +939,15 @@ check_limit_record (tree cond, tree var, int *direction)
 {
   int dir = 0;
 
-  if ((TREE_CODE (cond) == LT_EXPR) ||
-      (TREE_CODE (cond) == LE_EXPR))
+  if ((TREE_CODE (cond) == LT_EXPR) || (TREE_CODE (cond) == LE_EXPR))
     {
       dir = 1;
     }
-  else if ((TREE_CODE (cond) == ERROR_MARK) ||
-	   (TREE_CODE (cond) == NE_EXPR))
+  else if ((TREE_CODE (cond) == ERROR_MARK) || (TREE_CODE (cond) == NE_EXPR))
     {
       dir = 0;
     }
-  else if ((TREE_CODE (cond) == GE_EXPR) ||
-	   (TREE_CODE (cond) == GT_EXPR))
+  else if ((TREE_CODE (cond) == GE_EXPR) || (TREE_CODE (cond) == GT_EXPR))
     {
       dir = -1;
     }
@@ -1079,8 +1074,8 @@ check_incr(tree var, tree arith_type, tree incr)
       gcc_assert(arith_type != error_mark_node);
     }
 
-  if ((incr) && (TYPE_UNSIGNED (arith_type)) &&
-      (!TYPE_UNSIGNED (TREE_TYPE (incr))) && (tree_int_cst_sgn (incr) >= 0))
+  if (incr && (TYPE_UNSIGNED (arith_type))
+      && (!TYPE_UNSIGNED (TREE_TYPE (incr))) && (tree_int_cst_sgn (incr) >= 0))
     {
       warning(OPT_Wcilk_for,
 	      "signed increment implicitly converted to unsigned");
@@ -1100,7 +1095,8 @@ check_incr(tree var, tree arith_type, tree incr)
 			    TYPE_MAIN_VARIANT (TREE_TYPE (exp_incr)),
 			    TREE_TYPE (exp_incr), 0)))
 	{
-	  error("loop increment expression is not convertable to type loop var.\n");
+	  error("loop increment expression is not convertable to type "
+		"loop var");
 	  return false;
 	}
     }
@@ -1122,7 +1118,8 @@ check_incr(tree var, tree arith_type, tree incr)
 }
 
 
-static bool check_limit_scalar(tree var, tree cond)
+static bool
+check_limit_scalar(tree var, tree cond)
 {
   tree limit = NULL_TREE;
   tree op0 = NULL_TREE;
@@ -1179,10 +1176,11 @@ static bool check_limit_scalar(tree var, tree cond)
 	  error("Loop condition applies type conversion to loop variable.\n");
 	}
 
-      if (((DECL_P(op0)) && (TREE_CONSTANT(op1))) ||
-	  ((DECL_P(op1)) && (TREE_CONSTANT(op0))))
+      if ((DECL_P(op0) && TREE_CONSTANT(op1))
+	  || (DECL_P(op1) && TREE_CONSTANT(op0)))
 	{
-	  error("loop condition is not a simple comparison of the loop variables.");
+	  error("loop condition is not a simple comparison of the "
+		"loop variables.");
 	}
 
       return false;
@@ -1197,20 +1195,20 @@ static bool check_limit_scalar(tree var, tree cond)
       limit = op0;
     }
 
-  if ((TREE_CODE (TREE_TYPE (limit)) != INTEGER_TYPE)  &&
-      (TREE_CODE (TREE_TYPE (limit)) != POINTER_TYPE)  &&
-      (TREE_CODE (TREE_TYPE (limit)) != BOOLEAN_TYPE)  &&
-      (TREE_CODE (TREE_TYPE (limit)) != ENUMERAL_TYPE) &&
-      (TREE_CODE (TREE_TYPE (limit)) != FUNCTION_TYPE) &&
-      (TREE_CODE (TREE_TYPE (limit)) != ARRAY_TYPE))
+  if ((TREE_CODE (TREE_TYPE (limit)) != INTEGER_TYPE)
+      && (TREE_CODE (TREE_TYPE (limit)) != POINTER_TYPE)
+      && (TREE_CODE (TREE_TYPE (limit)) != BOOLEAN_TYPE)
+      && (TREE_CODE (TREE_TYPE (limit)) != ENUMERAL_TYPE)
+      && (TREE_CODE (TREE_TYPE (limit)) != FUNCTION_TYPE)
+      && (TREE_CODE (TREE_TYPE (limit)) != ARRAY_TYPE))
     {
       error("loop limit has invalid type %qT", TREE_TYPE(limit));
       return false;
     }
 
-  if ((TYPE_PRECISION (TREE_TYPE (limit)) > TYPE_PRECISION (TREE_TYPE (var))) &&
-      ((TREE_CODE (limit) != INTEGER_CST) ||
-       (!int_fits_type_p (limit, TREE_TYPE (var)))))
+  if ((TYPE_PRECISION (TREE_TYPE (limit)) > TYPE_PRECISION (TREE_TYPE (var)))
+      && (TREE_CODE (limit) != INTEGER_CST
+	  || !int_fits_type_p (limit, TREE_TYPE (var))))
     {
       warning(OPT_Wcilk_for,"loop condition compares loop var. to wider type.");
     }
@@ -1232,9 +1230,9 @@ check_loop_difference_type (tree type)
       error("loop variable difference type is bigger than long long ");
       return NULL_TREE;
     }
-  else if ((TYPE_PRECISION (type) > TYPE_PRECISION(long_unsigned_type_node)) ||
-	   (same_type_p (type, long_long_integer_type_node)) ||
-	   (same_type_p (type, long_long_unsigned_type_node)))
+  else if ((TYPE_PRECISION (type) > TYPE_PRECISION(long_unsigned_type_node))
+	   || same_type_p (type, long_long_integer_type_node)
+	   || same_type_p (type, long_long_unsigned_type_node))
     {
       return long_long_unsigned_type_node;
     }
@@ -1295,11 +1293,11 @@ validate_for_record(tree c_for_stmt, tree var)
   l_type = TREE_TYPE (limit);
 
   hack = build_decl(UNKNOWN_LOCATION, VAR_DECL, get_identifier("loop_bound"),
-		    build_qualified_type(l_type,TYPE_QUAL_CONST));
+		    build_qualified_type(l_type, TYPE_QUAL_CONST));
 
   if (direction >= 0)
     {
-      exp_up = callable (MINUS_EXPR, hack, var," control variable", true);
+      exp_up = callable (MINUS_EXPR, hack, var, " control variable", true);
       if (!exp_up)
 	{
 	  return false;
@@ -1338,17 +1336,17 @@ validate_for_record(tree c_for_stmt, tree var)
       return false;
     }
 
-  if ((TYPE_MAIN_VARIANT (TREE_TYPE (exp_plus)) != var_type) &&
-      (!can_convert_arg (var_type, TREE_TYPE (exp_plus), exp_plus, 0)))
+  if (TYPE_MAIN_VARIANT (TREE_TYPE (exp_plus)) != var_type
+      && !can_convert_arg (var_type, TREE_TYPE (exp_plus), exp_plus, 0))
     {
       error("result of operation%c(%T,%T) not convertable to type of loop var.",
 	    (direction >= 0) ? '+' : '-', var_type, d_type);
     }
 
-  if ((cp_tree_uses_cilk (exp_plus)) ||
-      (cp_tree_uses_cilk (callable (INIT_EXPR, NULL_TREE, var, 0, false))) ||
-      (cp_tree_uses_cilk (callable (PSEUDO_DTOR_EXPR, NULL_TREE, var, 0,
-				    false))))
+  if (cp_tree_uses_cilk (exp_plus)
+      || cp_tree_uses_cilk (callable (INIT_EXPR, NULL_TREE, var, 0, false))
+      || cp_tree_uses_cilk (callable (PSEUDO_DTOR_EXPR, NULL_TREE, var, 0,
+				      false)))
     {
       CILK_FOR_NO_DEMOTE (c_for_stmt) = 1;
     }
@@ -1395,22 +1393,22 @@ cilk_validate_for(tree c_for_stmt)
       return false;
     }
 
-  if ((grain != NULL_TREE)  && (grain != error_mark_node) )
+  if (grain  && (grain != error_mark_node) )
     {
       grain_type = TREE_TYPE (grain);
       gcc_assert (grain_type != NULL);
 
-      if ((TREE_CODE (grain_type) != INTEGER_TYPE) &&
-	  (TREE_CODE (grain_type) != ENUMERAL_TYPE))
+      if ((TREE_CODE (grain_type) != INTEGER_TYPE)
+	  && (TREE_CODE (grain_type) != ENUMERAL_TYPE))
 	{
 	  error ("Pragma grainsize argument must be an integer.\n");
 	  CILK_FOR_GRAIN (c_for_stmt) = NULL_TREE;
 	  grain = NULL_TREE;
 	  return false;
 	}
-      else if ((!TYPE_UNSIGNED (grain_type)) &&
-	       (TREE_CODE (grain_type) == INTEGER_TYPE) &&
-	       (TREE_INT_CST_HIGH (grain) < 0))
+      else if (!TYPE_UNSIGNED (grain_type)
+	       && (TREE_CODE (grain_type) == INTEGER_TYPE)
+	       && (TREE_INT_CST_HIGH (grain) < 0))
 	{
 	  warning(OPT_Wcilk_for,
 		  "Pragma grainsize should be positive.\nIgnoring this value.");
@@ -1420,8 +1418,8 @@ cilk_validate_for(tree c_for_stmt)
 	}
       else if (TREE_SIDE_EFFECTS (grain))
 	{
-	  while ((TREE_CODE (grain) == CONVERT_EXPR) ||
-		 (TREE_CODE (grain) == NOP_EXPR))
+	  while ((TREE_CODE (grain) == CONVERT_EXPR)
+		 || (TREE_CODE (grain) == NOP_EXPR))
 	    {
 	      grain = TREE_OPERAND (grain, 0);
 	      if (TREE_CODE (grain) != CALL_EXPR)
@@ -1491,7 +1489,7 @@ add_variable (struct pointer_map_t *decl_map, tree var,
 {
   void **valp;
 
-  valp = pointer_map_contains(decl_map, (void*)var);
+  valp = pointer_map_contains (decl_map, (void*)var);
  
   if (valp)
     {
@@ -1533,9 +1531,8 @@ add_variable (struct pointer_map_t *decl_map, tree var,
 	 work anyway.  Warn here.  This misses one case: if the
 	 register variable is used as the loop bound or increment it
 	 has already been added to the map. */
-      if ((how != ADD_BIND) && (TREE_CODE (var) == VAR_DECL) &&
-	  !DECL_EXTERNAL (var)
-	  && DECL_HARD_REGISTER (var))
+      if ((how != ADD_BIND) && (TREE_CODE (var) == VAR_DECL)
+	  && !DECL_EXTERNAL (var) && DECL_HARD_REGISTER (var))
 	warning (0,
 		 "register assignment ignored for %qD used in Cilk block",
 		 var);
@@ -1954,8 +1951,6 @@ gimplify_cilk_for_stmt_1 (struct cilk_for_desc *cfd, gimple_seq *pre_p)
      evaluated, in the context containing the for loop. */
 
   fn = cp_build_cilk_for_body (cfd);
-
-
   
   if (cfd->nested_ok)
     {
@@ -1966,11 +1961,8 @@ gimplify_cilk_for_stmt_1 (struct cilk_for_desc *cfd, gimple_seq *pre_p)
   DECL_STATIC_CHAIN(fn) = 1;
   cg_hacks(fn, false);
   
-  
   return fn;
 }
-
-
 
 /* This is mostly a subset of cp_build_cilk_for_body */
 static tree
@@ -2182,8 +2174,6 @@ mangle_count (tree count, enum tree_code op, tree incr, bool negate, tree type)
   return count;
 }
 
-
-
 /* this function will count the number of iterations that Cilk_for loop will
  * run (this number could definitely be a polynomial) */
 static tree
@@ -2298,12 +2288,12 @@ compute_loop_count (struct cilk_for_desc *cfd)
 	}
       else if (direction <= 0)
 	{
-	  if (TREE_CODE(high) == TARGET_EXPR)
+	  if (TREE_CODE (high) == TARGET_EXPR)
 	    {
 	      high = TARGET_EXPR_INITIAL (high);
 	    }
 
-	  if (TREE_CODE(low) == TARGET_EXPR)
+	  if (TREE_CODE (low) == TARGET_EXPR)
 	    {
 	      low = TARGET_EXPR_INITIAL (low);
 	    }
@@ -2459,8 +2449,6 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
   tree body, grain;
 
   gcc_assert (var != NULL_TREE);
-
-
   
   /* The parser requires an explicit comparison operation,
      not something like (bool)x. */
@@ -2527,11 +2515,8 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
     case UNION_TYPE:
       {
 	tree exp = NULL_TREE, hack = NULL_TREE;
- 
-	{
-	  hack = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-			     TREE_TYPE (limit));
-	}
+	hack = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
+			   TREE_TYPE (limit));
 	if (cond_direction >= 0)
 	  exp = callable (MINUS_EXPR, hack, var, NULL, false);
 	else
@@ -2759,7 +2744,7 @@ gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p)
 
   gcc_assert (cfd.var != error_mark_node);
 
-  cfd.nested_ok = !DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P(current_function_decl);
+  cfd.nested_ok = !DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (current_function_decl);
   
   if (cfd.grain != NULL_TREE)
     {
@@ -2871,11 +2856,11 @@ gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p)
       ctx = cfd.ctx_arg;
       if (TREE_TYPE (ctx) != ptr_type_node)
 	{
-	  ctx = build1(NOP_EXPR, ptr_type_node, ctx);
+	  ctx = build1 (NOP_EXPR, ptr_type_node, ctx);
 	}
       if (!DECL_P (ctx))
 	{
-	  ctx = get_formal_tmp_var(ctx, &inner_seq);
+	  ctx = get_formal_tmp_var (ctx, &inner_seq);
 	}
       fn = build1 (ADDR_EXPR, build_pointer_type (TREE_TYPE (fn)), fn);
     }
@@ -2904,9 +2889,9 @@ gimplify_cilk_for_stmt (tree *for_p, gimple_seq *pre_p)
 
   
   new_for = fold_build_cleanup_point_expr 
-    (void_type_node, build3 (COND_EXPR,void_type_node, cond,
-			     build_call_expr(libfun, 4, fn, ctx, count, grain),
-			     build_empty_stmt(UNKNOWN_LOCATION)));
+    (void_type_node, build3 (COND_EXPR, void_type_node, cond,
+			     build_call_expr (libfun, 4, fn, ctx, count, grain),
+			     build_empty_stmt (UNKNOWN_LOCATION)));
 
   
   gimplify_and_add(new_for, &inner_seq);
@@ -3021,7 +3006,8 @@ cilk_init_common (void)
 	{
 	  tree off1 = DECL_FIELD_OFFSET (field); /* bytes */
 	  tree off2 = DECL_FIELD_BIT_OFFSET (field); /* bits */
-	  cilk_field_offsets[i] = tree_low_cst (off1, 0) + tree_low_cst (off2, 0) / BITS_PER_UNIT;
+	  cilk_field_offsets[i] = tree_low_cst (off1, 0)
+	    + tree_low_cst (off2, 0) / BITS_PER_UNIT;
 	}
     }
 
@@ -3030,7 +3016,8 @@ cilk_init_common (void)
      cilk_save_ra = GET_CODE (INCOMING_RETURN_ADDR_RTX) == MEM;*/
 
   if (flag_cilkscreen)
-    cilk_metadata_default_section = get_section (".clkmtdt", SECTION_DEBUG|SECTION_NOTYPE, 0);
+    cilk_metadata_default_section =
+      get_section (".clkmtdt", SECTION_DEBUG | SECTION_NOTYPE, 0);
 }
 
 static tree
@@ -3049,9 +3036,6 @@ cilk_find_parent_frame (void)
   gcc_assert (TREE_CODE (TREE_TYPE (parm)) == POINTER_TYPE);
   return parm;
 }
-
-
-
 
 tree
 cilk_detach (tree worker_ptr)
@@ -3078,8 +3062,6 @@ cilk_detach (tree worker_ptr)
 
   return pre;
 }
-
-
 
 /* A Cilk function needs a frame descriptor if it or its
    children invoke spawn.
@@ -3157,9 +3139,6 @@ cilk_init_frame_descriptor (struct function *fdesc,
      store it into the frame. */
 }
 
-
-
-
 /* FNDECL has been promoted.  Fix up its struct function. */
 void
 cilk_promote_struct_function (tree fndecl)
@@ -3183,7 +3162,6 @@ cilk_promote_struct_function (tree fndecl)
   f->cilk_frame_decl = cilk_make_frame_descriptor (f);
   f->linkage = linkage_cilk;
 }
-
 
 void
 cilk_promote (tree fndecl)
@@ -3230,7 +3208,6 @@ is_cp_cilk_tree (tree t)
 	}
     }
 }
-
 
 /* If the body of FNDECL contains calls to Cilk functions,
    promote the entire function to Cilk and return true. */
@@ -3291,7 +3268,6 @@ declare_cilk_void_wrapper (tree fn, int style)
 
   return fndecl;
 }
-
 
 tree
 push_cilk_void_wrapper (tree fn, int style)
