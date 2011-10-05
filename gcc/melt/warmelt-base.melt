@@ -1101,13 +1101,15 @@ Returns a boxed integer.}#
 ;; primitive to add an indentation or space into a outbuf
 (defprimitive add2out_indent (out :long depth) :void
   :doc #{Add to output $OUT the indentation $DEPTH or a space.}#
-  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 64);}#)
+  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 64);}#
+)
 
 
 ;; primitive to add an indented newline into a outbuf
 (defprimitive add2out_indentnl (out :long depth) :void
   :doc #{Add to output $OUT the indented newline of given $DEPTH.}#
-  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 0);}#)
+  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 0);}#
+)
 
 
 ;; primitive to add a strbuf into a outbuf
@@ -1179,6 +1181,93 @@ limited by a small length $PREFLEN.}#
   :doc #{Add to $OUT the routine desscriptor $ROUT.}#
   #{meltgc_add_out((melt_ptr_t)($out), 
 		   melt_routine_descrstr((melt_ptr_t)($rout)))}#)
+
+
+(defselector add_to_out class_selector
+  :doc #{The selector $ADD_TO_OUT add the reciever $RECV into the
+output $OUT. It is called by the $ADD2OUT variadic function.}#
+  :formals (recv out)
+)
+
+(defun add2out (out :rest)
+  (if (not (is_out out))
+      (return))
+  (forever 
+   argloop
+   (variadic 
+    ( ()
+      (return))
+    ( (:value v)
+      (if (is_closure v)
+	  (variadic
+	   ((:value vv)
+	    (v out vv))
+	   ((:long ll)
+	    (v out ll))
+	   ((:cstring ss)
+	    (v out ss))
+	   (:else
+	    (assert_msg "invalid variadic argument after closure to ADD2OUT")
+	    (return)
+	    ))
+	(add_to_out v out)))
+    ( (:long n)
+      (add2out_longdec out n))
+    ( (:cstring s)
+      (add2out_strconst out s))
+    ( :else
+      (assert_msg "invalid variadic argument to ADD2OUT")
+      (return)
+      ))))
+
+;; read add2out4null as "add to out for null"
+(defun add2out4null (out v)
+  (assert_msg "check null v" (null v))
+  (add2out_strconst out "*nil*"))
+(install_method discr_null_receiver add_to_out add2out4null)
+
+(defun add2out4integer (out vn)
+  (assert_msg "check boxed number vn" (is_integerbox vn))
+  (add2out_longdec out (get_int vn)))
+(install_method discr_integer add_to_out add2out4integer)
+
+(defun add2out4string (out vs)
+  (assert_msg "check boxed string vs" (is_string vs))
+  (add2out_string out vs))
+(install_method discr_string add_to_out add2out4string)
+
+(defun add2out4clonedsymb (out vc)
+  (match vc
+	 (?(instance class_cloned_symbol
+		     :named_name ?nvarnam
+		     :csym_urank ?(integerbox_of ?nvarurank))
+	   (assert_msg "check nvarnam" (is_string nvarnam))
+	   (add2out_cident out nvarnam)
+	   (add2out_strconst out "__")
+	   (add2out_longdec out nvarurank))
+	 (?_
+	  ;(debug_msg vc "add2out4clonedsymb bad cloned symbol")
+	  (assert_msg "bad cloned symbol"))))
+(install_method class_cloned_symbol add_to_out add2out4clonedsymb)
+
+(defun add2out4named (out vn)
+  (add2out_cident out (get_field :named_name vn)))
+(install_method class_named add_to_out add2out4named)
+
+(defun add2out4rootobject (out vo)
+  (add2out_strconst out "*")
+  (add2out_string out (get_field :named_name (discrim vo)))
+  (add2out_strconst out "/")
+  (add2out_longhex out (obj_hash vo))
+  (add2out_strconst out "."))
+(install_method class_root add_to_out add2out4rootobject)
+
+(defun add2out4any (out va)
+  (add2out_strconst out "*")
+  (add2out_string out (get_field :named_name (discrim va))))
+(install_method discr_any_receiver add_to_out add2out4any)
+  
+	 
 
 
 ;;; cmatcher for a cstring of a given content
@@ -2705,6 +2794,7 @@ polyhedron values.}#
  /ivi
  %ivi
 
+ add2out
  add2out_ccomconst
  add2out_ccomstrbuf
  add2out_ccomstring 
@@ -2740,6 +2830,7 @@ polyhedron values.}#
  add2sbuf_strconst
  add2sbuf_string
  add2sbuf_texi_mixloc
+ add_to_out
  andi
  c_clock
  c_time
