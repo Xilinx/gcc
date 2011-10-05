@@ -1,6 +1,6 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.c (melt_readseqlist): Read correct ##{...}# chunks.
+	* melt-runtime.c (melt_readseqlist): Read correctly ##{...}# chunks.
 
 	* melt/warmelt-outobj.melt (generate_runtypesupport_cod2ctype): New function.
 	(runtypesupport_docmd): Call it.
