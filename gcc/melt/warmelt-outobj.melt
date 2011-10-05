@@ -1330,12 +1330,17 @@
 	  (add2sbuf_string implbuf ovariadiclength)
 	  (add2sbuf_strconst implbuf " = melt_argdescr_length (xargdescr_);")
 	  (add2sbuf_indentnl implbuf 0)
-	  ;; we generate (0+$ORESTNAM_len) to ensure that it cannot be set
-	  (add2sbuf_strconst implbuf "#define melt_variadic_len  (0+")
+	  ;; we generate (0+$ORESTNAM_len) to ensure that it cannot be
+	  ;; set. 
+	  ;;
+	  ;; The melt_variadic_length & melt_variadic_index are used
+	  ;; by primitives from warmelt-base.melt like variadic_index,
+	  ;; variadic_length, ...
+	  (add2sbuf_strconst implbuf "#define melt_variadic_length  (0+")
 	  (add2sbuf_string implbuf ovariadiclength)
 	  (add2sbuf_strconst implbuf ")")
 	  (add2sbuf_indentnl implbuf 0)
-	  (add2sbuf_strconst implbuf "#define melt_variadic_ix ")
+	  (add2sbuf_strconst implbuf "#define melt_variadic_index ")
 	  (add2sbuf_string implbuf ovariadicindex)
 	  (add2sbuf_indentnl implbuf 0)
 	  ))

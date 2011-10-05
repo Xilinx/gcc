@@ -1,5 +1,13 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (variadic_index, variadic_length)
+	(variadic_skip): New primitives.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Comment that
+	melt_variadic_length & melt_variadic_index are macros needed by
+	above primitives.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_tempdir_path): Comment that no directory is
 	create when the BASNAM is null.
 	* melt-runtime.c (melt_tempdir_path): Don't mkdir when BASNAM is

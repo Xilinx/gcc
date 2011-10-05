@@ -2603,6 +2603,56 @@ polyhedron values.}#
 (install_value_descriptor valdesc_special_ppl_polyhedron)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; variadic related utilities
+
+;; the index of variadic argument
+(defprimitive variadic_index () :long
+  :doc #{Returns the current index of variadic argument, or -1 outside
+  of variadic functions.}#
+;; the melt_variadic_index macro is defined by code emitted in function
+;; outpucod_procroutine of file warmelt-outobj.melt
+  #{ /*variadic_index*/
+#ifdef melt_variadic_index
+  (melt_variadic_index)
+#else
+  -1
+#endif /*melt_variadic_index*/
+}#)
+
+;; the length or count of variadic arguments
+(defprimitive variadic_length () :long
+  :doc #{Returns the length of variadic arguments, or -1 outside
+  of variadic functions.}#
+;; the melt_variadic_length macro is defined by code emitted in function
+;; outpucod_procroutine of file warmelt-outobj.melt
+  #{ /*variadic_length*/
+#ifdef melt_variadic_length
+  (melt_variadic_length)
+#else
+  -1
+#endif /*melt_variadic_length*/
+}#)
+
+
+;; skip some variadic arguments
+(defprimitive variadic_skip (:long delta) :void
+  :doc #{Skip some variadic arguments, by incrementing appropriately the variadic index.}#
+;; the melt_variadic_index & melt_variadic_length macros are defined
+;; by code emitted in function outpucod_procroutine of file
+;; warmelt-outobj.melt
+  #{ /*variadic_skip*/
+#ifdef melt_variadic_index
+  melt_variadic_index += (int) ($DELTA);
+  if (melt_variadic_index < 0) 
+     melt_variadic_index = 0;
+  else if (melt_variadic_index > melt_variadic_length) 
+     melt_variadic_index = melt_variadic_length;
+#else
+  /* no variadic_skip outside of variadic functions */
+#endif /*melt_variadic_index*/
+}#)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ;; keep the alphanumerical order
 		
@@ -2839,6 +2889,9 @@ polyhedron values.}#
  valdesc_special_raw_file
  valdesc_strbuf
  valdesc_string
+ variadic_index
+ variadic_length
+ variadic_skip
  void
  warning_plain
  warning_strv
