@@ -1,5 +1,10 @@
 2011-10-05   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/y9overlaad.cc: Add comment on expected
+	diagnostic.
+
+2011-10-05   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/x1tmplclass2.cc: Mark partially fixed.
 	* g++.dg/pph/x4tmplclass2.cc: Likewise.
 	* g++.dg/pph/z4tmplclass2.cc: Likewise.
