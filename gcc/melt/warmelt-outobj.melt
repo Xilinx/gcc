@@ -7820,9 +7820,12 @@ melt_scanning (melt_ptr_t p)
       ;; GTY-ed ones!
       (generate_runtypesupport_param sortedctytuple sortedvaldesctuple
 				     outarg outdeclbuf) 
-      ;; generate the melt_code2ctype support function
+      ;; generate the melt_code_to_ctype support function
       (generate_runtypesupport_cod2ctype sortedctytuple sortedvaldesctuple
-					 outarg outdeclbuf) 
+					 outarg outcodebuf) 
+      (add2sbuf_indentnl outdeclbuf 0)
+      (add2sbuf_strconst outdeclbuf "melt_ptr_t melt_code_to_ctype (int);")
+      (add2sbuf_indentnl outdeclbuf 0)
       ;; generate the magic to string function
       (generate_runtypesupport_mag2str sortedctytuple sortedvaldesctuple
 				       outarg outdeclbuf outcodebuf) 

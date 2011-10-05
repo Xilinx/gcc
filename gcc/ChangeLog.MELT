@@ -1,5 +1,12 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (enum melt_globalix_en, #include "melt-predef.h")
+	(MELT_PREDEF, MELT_STORE_PREDEF): Moved before meltrunsup.h
+
+	* melt/warmelt-outobj.melt (runtypesupport_docmd): Emit
+	declaration of melt_code_to_ctype.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (generate_runtypesupport_cod2ctype):
 	Don't wrap emitted routine with #ifdef.
 

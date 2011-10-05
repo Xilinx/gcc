@@ -407,6 +407,37 @@ typedef char melt_argdescr_cell_t;
 /* The maximal value of above scalar types */
 #define MELT_ARGDESCR_MAX CHAR_MAX
 
+
+
+/* enumeration of predefined global object indexes inside
+   melt_globvec; Most are wired predefined, in the sense that
+   they are automagically allocated and partly filled before loading
+   the melt file. Others are named, and are expected to be
+   created by loading the melt files.  */
+enum melt_globalix_en
+{
+  MELTGLOB__NONE,
+  /************************* wired predefined */
+#include "melt-predef.h"
+  /**************************** placeholder for last wired */
+  MELTGLOB__LASTWIRED,
+  MELTGLOB___SPARE1,
+  MELTGLOB___SPARE2,
+  MELTGLOB___SPARE3,
+  MELTGLOB___SPARE4,
+  MELTGLOB___SPARE5,
+  /*****/
+  MELTGLOB__LASTGLOB
+};
+#define BGLOB__LASTGLOB MELTGLOB__LASTGLOB
+
+
+/* access or set a predefined */
+static inline melt_ptr_t melt_fetch_predefined(int);
+static inline void melt_store_predefined(int, melt_ptr_t);
+#define MELT_PREDEF(Glob)  melt_fetch_predefined(MELTGLOB_##Glob)
+#define MELT_STORE_PREDEF(Glob,P) melt_store_predefined(MELTGLOB_##Glob, (P))
+
 /* File meltrunsup.h is inside melt/generated/ */
 #include "meltrunsup.h"
 
@@ -2274,28 +2305,6 @@ melt_ptr_t meltgc_send (melt_ptr_t recv,
 
 /**************************** globals **************************/
 
-/* enumeration of predefined global object indexes inside
-   melt_globvec; Most are wired predefined, in the sense that
-   they are automagically allocated and partly filled before loading
-   the melt file. Others are named, and are expected to be
-   created by loading the melt files.  */
-enum melt_globalix_en
-{
-  MELTGLOB__NONE,
-  /************************* wired predefined */
-#include "melt-predef.h"
-  /**************************** placeholder for last wired */
-  MELTGLOB__LASTWIRED,
-  MELTGLOB___SPARE1,
-  MELTGLOB___SPARE2,
-  MELTGLOB___SPARE3,
-  MELTGLOB___SPARE4,
-  MELTGLOB___SPARE5,
-  /*****/
-  MELTGLOB__LASTGLOB
-};
-#define BGLOB__LASTGLOB MELTGLOB__LASTGLOB
-
 /* *INDENT-OFF* */
 
 /* the array of global values */
@@ -2453,6 +2462,7 @@ enum {
    might change that, e.g. by grouping the predefined set by 16 and
    scanning in minor GC only groups which have been changed */
 
+
 static inline melt_ptr_t
 melt_fetch_predefined(int ix)
 {
@@ -2472,10 +2482,6 @@ static inline void melt_store_predefined(int ix, melt_ptr_t p)
 
 #define melt_globpredef(Ix) ((void*)melt_fetch_predefined((Ix)))
 
-
-/* access or set a predefined */
-#define MELT_PREDEF(Glob)  melt_fetch_predefined(MELTGLOB_##Glob)
-#define MELT_STORE_PREDEF(Glob,P) melt_store_predefined(MELTGLOB_##Glob, (P))
 
 /* this is useful in generated MELT code */
 #define MELTPREDEFIX(Tab,Glob) Tab[MELTGLOB_##Glob]
