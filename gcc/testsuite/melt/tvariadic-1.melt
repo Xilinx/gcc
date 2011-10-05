@@ -1,10 +1,10 @@
 ; -*- lisp -*-
-;; file tvariadic.melt
+;; file tvariadic-1.melt
 
 #| run in buildir/gcc
  ./cc1 -fmelt-mode=translatefile -fmelt-module-path=melt-stage3:.    -fmelt-source-path=melt-stage3:. \
     -fmelt-tempdir=/tmp -fmelt-workdir=melt-workdir -fmelt-init=@warmelt \
-    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tvariadic.melt \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tvariadic-1.melt \
     -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
     -fmelt-debug empty-file-for-melt.c
 |#

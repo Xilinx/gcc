@@ -1,0 +1,23 @@
+; -*- lisp -*-
+;; file tvariadic-2.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt-mode=runfile -fmelt-module-path=melt-stage3:.    -fmelt-source-path=melt-stage3:. \
+    -fmelt-tempdir=/tmp -fmelt-workdir=melt-workdir -fmelt-init=@warmelt \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tvariadic-2.melt \
+    -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
+    -fmelt-debug empty-file-for-melt.c
+|#
+(defun varidbg (x  :rest)
+   (debug_msg x "start varidbg")
+   (forever argloop
+     (variadic
+      ( ()
+        (return))
+      ( (:value v)
+         (debug_msg v "varidbg v"))
+      ( :else
+         (assert_msg "varidbg bad variadic")))))
+
+(varidbg 'a  '1 '2 '3)
+;; eof tvariadic-2.melt

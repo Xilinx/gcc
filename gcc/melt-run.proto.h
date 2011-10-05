@@ -59,7 +59,7 @@ along with GCC; see the file COPYING3.   If not see
 /* Headers from c-family/ should be included directly with GCC4.6, but
    not with GCC 4.7 or when compiling with a C++ compiler. And they
    need to be include before diagnostics.h.  */
-#if defined(GCCPLUGIN_VERSION) || MELT_GCC_VERSION>4006 || defined(__cplusplus)
+#if defined(GCCPLUGIN_VERSION) || MELT_GCC_VERSION>4006 || GCC_VERSION>4006 || defined(__cplusplus)
 #include "c-family/c-pragma.h"
 #include "c-family/c-pretty-print.h"
 #else

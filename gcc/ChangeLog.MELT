@@ -1,5 +1,13 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-run.proto.h: Use c-family/ for includes of c-pragma.h
+	etc... also when GCC_VERSION is for 4.7.
+
+	* testsuite/melt/tvariadic.melt: Renamed as
+	* testsuite/melt/tvariadic-1.melt: New.
+	* testsuite/melt/tvariadic-2.melt: New.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_readseqlist): Read correctly ##{...}# chunks.
 
 	* melt/warmelt-outobj.melt (generate_runtypesupport_cod2ctype): New function.
