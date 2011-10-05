@@ -3833,7 +3833,7 @@ $SBUF.}#
 		(curctyp :long ix)
 		(debug_msg curctyp "compilobj_nrep_ifvariadic curctyp")
 		(assert_msg "check curctyp" (is_a curctyp class_ctype))
-		(list_append ovlist (make_stringconst discr_verbatim_string " && xargdescr_["))
+		(list_append ovlist (make_stringconst discr_verbatim_string " && meltxargdescr_["))
 		(list_append ovlist ovariadicindex)
 		(if ix
 		    (progn
@@ -3886,18 +3886,18 @@ $SBUF.}#
 	  (otuple 
 	   (if (== nctyp ctype_value)
 	       (tuple
-		(make_stringconst discr_verbatim_string "/*variadic argument value*/ ((xargtab_[")
+		(make_stringconst discr_verbatim_string "/*variadic argument value*/ ((meltxargtab_[")
 		ovariadicindex
 		(make_stringconst discr_verbatim_string " + ")
 		noffset
-		(make_stringconst discr_verbatim_string "].meltbp_aptr) ? (*(xargtab_[")
+		(make_stringconst discr_verbatim_string "].meltbp_aptr) ? (*(meltxargtab_[")
 		ovariadicindex
 		(make_stringconst discr_verbatim_string " + ")
 		noffset
 		(make_stringconst discr_verbatim_string "].meltbp_aptr)) : NULL)")
 		)
 	     (tuple
-	      (make_stringconst discr_verbatim_string "/*variadic argument stuff*/ xargtab_[")
+	      (make_stringconst discr_verbatim_string "/*variadic argument stuff*/ meltxargtab_[")
 	      ovariadicindex
 	      (make_stringconst discr_verbatim_string " + ")
 	      noffset

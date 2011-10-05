@@ -1,5 +1,15 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifvariadic): Use
+	meltxargtab_ & meltxargdescr_ in emitted chunk...
+
+	* melt/warmelt-outobj.melt (output_curframe_declstruct_init)
+	(outpucod_procroutine, outpucod_getarg, outpucod_objputxtraresult)
+	(generate_runtypesupport_gty): Output meltclosp_, meltfirstargp_,
+	meltxargtab_, meltxargdescr_, meltxresdescr_, meltxrestab_ instead
+	of the simpler name without melt.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (variadic_index, variadic_length)
 	(variadic_skip): New primitives.
 

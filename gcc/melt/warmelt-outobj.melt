@@ -1237,11 +1237,11 @@
     (if (not isinitial)
 	(progn
 	  (add2sbuf_indentnl implbuf 2)
-	  (add2sbuf_strconst implbuf "if (MELT_UNLIKELY(xargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/")
+	  (add2sbuf_strconst implbuf "if (MELT_UNLIKELY(meltxargdescr_ == MELTPAR_MARKGGC)) { /*mark for ggc*/")
 	  (add2sbuf_indentnl implbuf 3)
 	  (add2sbuf_strconst implbuf "int ix=0;")
 	  (add2sbuf_indentnl implbuf 3)
-	  (add2sbuf_strconst implbuf "framptr_ = (void*)firstargp_;")
+	  (add2sbuf_strconst implbuf "framptr_ = (void*)meltfirstargp_;")
 	  (add2sbuf_indentnl implbuf 3)
 	  (outpucod_marker rou implbuf)
 	  (add2sbuf_strconst implbuf "return NULL;")
@@ -1258,7 +1258,7 @@
     (add2sbuf_indentnl implbuf 0)
     (if (not isinitial)
 	(progn
-	  (add2sbuf_strconst implbuf "  meltfram__.mcfr_clos = closp_;")
+	  (add2sbuf_strconst implbuf "  meltfram__.mcfr_clos = meltclosp_;")
 	  (add2sbuf_indentnl implbuf 0)))
     (add2sbuf_strconst implbuf " meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;")
     (add2sbuf_indentnl implbuf 0)
@@ -1295,12 +1295,12 @@
       )
     (add2sbuf_strconst declbuf "melt_ptr_t MELT_MODULE_VISIBILITY ")
     (add2sbuf_string declbuf onam)
-    (add2sbuf_strconst declbuf "(meltclosure_ptr_t closp_,")
-    (add2sbuf_strconst declbuf " melt_ptr_t firstargp_,")
-    (add2sbuf_strconst declbuf " const melt_argdescr_cell_t xargdescr_[],")
-    (add2sbuf_strconst declbuf " union meltparam_un *xargtab_,")
-    (add2sbuf_strconst declbuf " const melt_argdescr_cell_t xresdescr_[],")
-    (add2sbuf_strconst declbuf " union meltparam_un *xrestab_);")
+    (add2sbuf_strconst declbuf "(meltclosure_ptr_t meltclosp_,")
+    (add2sbuf_strconst declbuf " melt_ptr_t meltfirstargp_,")
+    (add2sbuf_strconst declbuf " const melt_argdescr_cell_t meltxargdescr_[],")
+    (add2sbuf_strconst declbuf " union meltparam_un *meltxargtab_,")
+    (add2sbuf_strconst declbuf " const melt_argdescr_cell_t meltxresdescr_[],")
+    (add2sbuf_strconst declbuf " union meltparam_un *meltxrestab_);")
     (add2sbuf_indentnl declbuf 0)
     ;; output the implementation
     (add2sbuf_indentnl implbuf 0)
@@ -1309,13 +1309,13 @@
     (add2sbuf_strconst implbuf "melt_ptr_t MELT_MODULE_VISIBILITY ")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_string implbuf onam)
-    (add2sbuf_strconst implbuf "(meltclosure_ptr_t closp_,")
-    (add2sbuf_strconst implbuf " melt_ptr_t firstargp_,")
-    (add2sbuf_strconst implbuf " const melt_argdescr_cell_t xargdescr_[],")
-    (add2sbuf_strconst implbuf " union meltparam_un *xargtab_,")
+    (add2sbuf_strconst implbuf "(meltclosure_ptr_t meltclosp_,")
+    (add2sbuf_strconst implbuf " melt_ptr_t meltfirstargp_,")
+    (add2sbuf_strconst implbuf " const melt_argdescr_cell_t meltxargdescr_[],")
+    (add2sbuf_strconst implbuf " union meltparam_un *meltxargtab_,")
     (add2sbuf_indentnl implbuf 5)
-    (add2sbuf_strconst implbuf " const melt_argdescr_cell_t xresdescr_[],")
-    (add2sbuf_strconst implbuf " union meltparam_un *xrestab_)")
+    (add2sbuf_strconst implbuf " const melt_argdescr_cell_t meltxresdescr_[],")
+    (add2sbuf_strconst implbuf " union meltparam_un *meltxrestab_)")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "{")
     (if orestnam
@@ -1328,7 +1328,7 @@
 	  (add2sbuf_string implbuf ovariadicindex)
 	  (add2sbuf_strconst implbuf " = 0, ")
 	  (add2sbuf_string implbuf ovariadiclength)
-	  (add2sbuf_strconst implbuf " = melt_argdescr_length (xargdescr_);")
+	  (add2sbuf_strconst implbuf " = melt_argdescr_length (meltxargdescr_);")
 	  (add2sbuf_indentnl implbuf 0)
 	  ;; we generate (0+$ORESTNAM_len) to ensure that it cannot be
 	  ;; set. 
@@ -1836,7 +1836,7 @@
 	(progn
 	  (assert_msg "check ctybind first" (== ctybind ctype_value))
 	  (output_c_code oloc declbuf implbuf depth)
-	  (add2sbuf_strconst implbuf " = (melt_ptr_t) firstargp_;")
+	  (add2sbuf_strconst implbuf " = (melt_ptr_t) meltfirstargp_;")
 	  (add2sbuf_indentnl implbuf depth)
 	  )
       (let (
@@ -1847,7 +1847,7 @@
 	(if (not (is_string parc)) 
 	    (error_strv oloc "impossible argument ctype" 
 			(unsafe_get_field :named_name ctybind)))
-	(add2sbuf_strconst implbuf "if (xargdescr_[")
+	(add2sbuf_strconst implbuf "if (meltxargdescr_[")
 	(add2sbuf_longdec implbuf (-i rkbind 1))
 	(add2sbuf_strconst implbuf "] != ")
 	(add2sbuf_string implbuf parc)
@@ -1856,9 +1856,9 @@
 	(if (== ctybind ctype_value)
 	    (progn
 	      (output_c_code oloc declbuf implbuf depth)
-	      (add2sbuf_strconst implbuf " = (xargtab_[")
+	      (add2sbuf_strconst implbuf " = (meltxargtab_[")
 	      (add2sbuf_longdec implbuf (-i rkbind 1))
-	      (add2sbuf_strconst implbuf "].meltbp_aptr) ? (*(xargtab_[")
+	      (add2sbuf_strconst implbuf "].meltbp_aptr) ? (*(meltxargtab_[")
 	      (add2sbuf_longdec implbuf (-i rkbind 1))
 	      (add2sbuf_strconst implbuf "].meltbp_aptr)) : NULL;")		
 	      (add2sbuf_indentnl implbuf depth)
@@ -1869,7 +1869,7 @@
 	      )
 	  (progn
 	    (output_c_code oloc declbuf implbuf depth)
-	    (add2sbuf_strconst implbuf " = xargtab_[")
+	    (add2sbuf_strconst implbuf " = meltxargtab_[")
 	    (add2sbuf_longdec implbuf (-i rkbind 1))
 	    (add2sbuf_strconst implbuf "].")
 	    (add2sbuf_string implbuf argf)
@@ -1907,7 +1907,7 @@
 	(progn
 	  (assert_msg "check ctybind first" (== ctybind ctype_value))
 	  (output_c_code oloc declbuf implbuf depth)
-	  (add2sbuf_strconst implbuf " = (melt_ptr_t) firstargp_;")
+	  (add2sbuf_strconst implbuf " = (melt_ptr_t) meltfirstargp_;")
 	  (add2sbuf_indentnl implbuf depth)
 	  )
       (let (
@@ -1918,7 +1918,7 @@
 	(if (not (is_string parc)) 
 	    (error_strv oloc "impossible argument ctype" 
 			(unsafe_get_field :named_name ctybind)))
-	(add2sbuf_strconst implbuf "if (xargdescr_[")
+	(add2sbuf_strconst implbuf "if (meltxargdescr_[")
 	(add2sbuf_longdec implbuf (-i rkbind 1))
 	(add2sbuf_strconst implbuf "] != ")
 	(add2sbuf_string implbuf parc)
@@ -1941,9 +1941,9 @@
 	(if (== ctybind ctype_value)
 	    (progn
 	      (output_c_code oloc declbuf implbuf depth)
-	      (add2sbuf_strconst implbuf " = (xargtab_[")
+	      (add2sbuf_strconst implbuf " = (meltxargtab_[")
 	      (add2sbuf_longdec implbuf (-i rkbind 1))
-	      (add2sbuf_strconst implbuf "].meltbp_aptr) ? (*(xargtab_[")
+	      (add2sbuf_strconst implbuf "].meltbp_aptr) ? (*(meltxargtab_[")
 	      (add2sbuf_longdec implbuf (-i rkbind 1))
 	      (add2sbuf_strconst implbuf "].meltbp_aptr)) : NULL;")		
 	      (add2sbuf_indentnl implbuf depth)
@@ -1954,7 +1954,7 @@
 	      )
 	  (progn
 	    (output_c_code oloc declbuf implbuf depth)
-	    (add2sbuf_strconst implbuf " = xargtab_[")
+	    (add2sbuf_strconst implbuf " = meltxargtab_[")
 	    (add2sbuf_longdec implbuf (-i rkbind 1))
 	    (add2sbuf_strconst implbuf "].")
 	    (add2sbuf_string implbuf argf)
@@ -3708,19 +3708,19 @@
     (output_location oloc implbuf depth "putxtraresult")
     (assert_msg "check octyp" (is_a octyp class_ctype))
     (assert_msg "check orank" (is_integerbox orank))
-    (add2sbuf_strconst implbuf "if (!xrestab_ || !xresdescr_) goto labend_rout;")
+    (add2sbuf_strconst implbuf "if (!meltxrestab_ || !meltxresdescr_) goto labend_rout;")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "if (xresdescr_[")
+    (add2sbuf_strconst implbuf "if (meltxresdescr_[")
     (add2sbuf_longdec implbuf (get_int orank))
     (add2sbuf_strconst implbuf "] != ")
     (add2sbuf_string implbuf (unsafe_get_field :ctype_parchar octyp))
     (add2sbuf_strconst implbuf ") goto labend_rout;")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "if (xrestab_[")
+    (add2sbuf_strconst implbuf "if (meltxrestab_[")
     (add2sbuf_longdec implbuf (get_int orank))
     (add2sbuf_strconst implbuf "].")
     (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield octyp))
-    (add2sbuf_strconst implbuf ") *(xrestab_[")
+    (add2sbuf_strconst implbuf ") *(meltxrestab_[")
     (add2sbuf_longdec implbuf (get_int orank))
     (add2sbuf_strconst implbuf "].")
     (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield octyp))
@@ -6276,12 +6276,12 @@ typedef struct meltclosure_st *meltclosure_ptr_t ;
   (add2sbuf_string outbuf 
 #{$'
 #ifndef meltroutfun_t_TYPEDEFINED
-typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
-                                  melt_ptr_t firstargp_,
-                                  const melt_argdescr_cell_t xargdescr_[],
-                                  union meltparam_un *xargtab_,
-                                  const melt_argdescr_cell_t xresdescr_[],
-                                  union meltparam_un *xrestab_) ;
+typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
+                                  melt_ptr_t meltfirstargp_,
+                                  const melt_argdescr_cell_t meltxargdescr_[],
+                                  union meltparam_un *meltxargtab_,
+                                  const melt_argdescr_cell_t meltxresdescr_[],
+                                  union meltparam_un *meltxrestab_) ;
 #define meltroutfun_t_TYPEDEFINED
 #endif /*meltroutfun_t_TYPEDEFINED*/
 }#)
