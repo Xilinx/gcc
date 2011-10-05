@@ -1648,8 +1648,8 @@ reregister_specialization (tree spec, tree tinfo, tree new_spec)
   elt.args = TI_ARGS (tinfo);
   elt.spec = NULL_TREE;
 
-  slot = (spec_entry **) htab_find_slot (decl_specializations, &elt, INSERT);
-  if (*slot)
+  slot = (spec_entry **) htab_find_slot (decl_specializations, &elt, NO_INSERT);
+  if (slot && *slot)
     {
       gcc_assert ((*slot)->spec == spec || (*slot)->spec == new_spec);
       gcc_assert (new_spec != NULL_TREE);

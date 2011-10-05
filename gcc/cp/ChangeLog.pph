@@ -1,3 +1,8 @@
+2011-10-05   Diego Novillo  <dnovillo@google.com>
+
+	* pt.c (reregister_specialization): Call htab_find_slot with
+	NO_INSERT.
+
 2011-10-04   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (pph_cache_find): New.

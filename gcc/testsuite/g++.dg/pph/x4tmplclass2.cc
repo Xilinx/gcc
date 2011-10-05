@@ -1,6 +1,4 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x4tmplclass2.cc:1:0: internal compiler error: in pph_in_record_marker, at cp/pph-streamer.h" "" { xfail *-*-* } 0 }
-
+// pph asm xdiff 49533
 #include "x0tmplclass21.h"
 #include "x0tmplclass22.h"
 #include "a0tmplclass2_u.h"
