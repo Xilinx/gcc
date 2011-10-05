@@ -1,3 +1,212 @@
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_emit_binop): New static function.
+	(ix86_split_lea_for_addr): Use ix86_emit_binop to emit add and shl
+	instructions.
+	(x86_output_mi_thunk): Use ix86_emit_binop to emit add instructions.
+
+2011-10-04  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (UNSPEC_FHADD, UNSPEC_FHSUB,
+	UNSPEC_XMUL): New unspecs.
+	(muldi3_v8plus): Use output_v8plus_mult.
+	(*naddsf3, *nadddf3, *nmulsf3, *nmuldf3, *nmuldf3_extend):
+	New VIS 3.0 combiner patterns.
+	(fhaddsf_vis, fhadddf_vis, fhsubsf_vis, fhsubdf_vis,
+	fnhaddsf_vis, fnhaddf_vis, umulxhi_vis, *umulxhi_sp64,
+	umulxhi_v8plus, xmulx_vis, *xmulx_sp64, xmulx_v8plus,
+	xmulxhi_vis, *xmulxhi_sp64, xmulxhi_v8plus): New VIS 3.0
+	builtins patterns.
+	* config/sparc/sparc.c (sparc_vis_init_builtins): Emit new builtins.
+	(output_v8plus_mult): New function.
+	* config/sparc/sparc-protos.h: Declare it.
+	* config/sparc/visintrin.h (__vis_fhadds, __vis_fhaddd,
+	__vis_fhsubs, __vis_fhsubd, __vis_fnhadds, __vis_fnhaddd,
+	__vis_umulxhi, __vis_xmulx, __vis_xmulxhi): New intrinsics.
+	* doc/extend.texi: Document new builtins.
+
+2011-10-04  Richard Henderson  <rth@redhat.com>
+
+	* c-typeck.c (c_build_vec_shuffle_expr): Fix uninitialized variable.
+	Avoid save_expr unless two_arguments.
+
+2011-10-04  Ozkan Sezer  <sezeroz@gmail.com>
+
+	* config/i386/mingw-w64.h (CPP_SPEC): Rename _REENTRANCE to _REENTRANT.
+	* config/i386/mingw32.h (CPP_SPEC): Likewise.
+
+2011-10-04  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/driver-sparc.c (cpu_names): Fix string for supersparc
+	under Linux.
+
+2011-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50604
+	* builtins.c (fold_builtin_strcpy, fold_builtin_stpcpy,
+	fold_builtin_strncpy, fold_builtin_stxcpy_chk): Ensure
+	last argument to memcpy has size_type_node type instead of ssizetype.
+	* tree-ssa-strlen.c (handle_builtin_memcpy): Use size_type_node
+	instead of TREE_TYPE (len) as type for newlen.
+
+	PR tree-optimization/50522
+	* tree-ssa-alias.c (ptr_deref_may_alias_decl_p): Don't test
+	TYPE_RESTRICT.
+	(ptr_derefs_may_alias_p): Call pt_solutions_same_restrict_base
+	unconditionally.
+
+	* fold-const.c (fold_unary_loc): Don't optimize
+	POINTER_PLUS_EXPR casted to TYPE_RESTRICT pointer by
+	casting the inner pointer if it isn't TYPE_RESTRICT.
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Don't through
+	casts from non-TYPE_RESTRICT pointer to TYPE_RESTRICT pointer.
+
+2011-10-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (i[34567]86-*-elf*, x86_64-*-elf*): Use i386/t-crtstuff.
+
+2011-10-04  Jan Hubicka  <jh@suse.cz>
+
+	* lto-streamer.h (lto_input_toplevel_asms): Add order_base parameter.
+	* lto-streamer-in.c (lto_input_toplevel_asms): Stream in order.
+	* lto-streamer-out.c (lto_output_toplevel_asms): Stream out order.
+	* lto-cgraph.c (order_base): New static var.
+	(lto_output_node): Stream in order.
+	(lto_output_varpool_node): Stream out order.
+	(input_node): Stream in order.
+	(input_varpool_node): Stream out order.
+	(input_cgraph_1): Initialize order base; update call of
+	lto_input_toplevel_asms.
+
+2011-10-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50566
+	* config/avr/avr-protos.h (avr_legitimize_reload_address): New
+	prototype.
+	* config/avr/avr.h (LEGITIMIZE_RELOAD_ADDRESS): Copy worker code
+	from here...
+	* config/avr/avr.c (avr_legitimize_reload_address) ...to this new
+	function.  Log if avr_log.legitimize_reload_address.
+
+2011-10-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (sparc_fold_builtin): Use a sequence of tests.
+
+2011-10-04  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* longlong.h (smul_ppmm, sdiv_qrnnd): Add underscores to the local
+	variables.  Fix second operand of DR.  Swap inputs for sdiv_qrnnd.
+
+2011-10-03  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (fpack16_vis, fpackfix_vis, fpack32_vis): Make
+	GSR_REG an input operand to UNSPEC instead of a parallel USE.
+	(faligndata<V64I:mode>_vis): Likewise and use DI mode.
+	(alignaddrsi_vis, alignaddrdi_vis, alignaddrlsi_vis, alignaddrldi_vis):
+	Reference GSR_REG in DI mode, simplify convoluted expressions by using
+	zero_extract.
+	(bshuffle<V64I:mode>_vis): Reference GSR_REG in DI mode.
+
+2011-10-03  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* tree-eh.c (remove_unreachable_handlers): Obvious cleanup.
+
+2011-10-03  Jakub Jelinek  <jakub@redhat.com>
+	    Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_output_typedef): Support printing enum values that
+	don't fit in a signed HOST_WIDE_INT.
+
+2011-10-03  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/cris/cris.c (cris_output_addr_const_extra): Make static.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+	* config/cris/cris.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/cris/cris-protos.h (cris_output_addr_const_extra): Remove.
+
+2011-10-03  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/m68k/m68k.c (m68k_output_addr_const_extra): Make static.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+	* config/m68k/m68k.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/m68k/m68k-protos.h (m68k_output_addr_const_extra): Remove.
+
+2011-10-03  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/49967
+	* configure.ac (gcc_cv_ld_static_dynamic): Define for *-*-hpux*.
+	(gcc_cv_ld_static_option): Ditto.
+	(gcc_cv_ld_dynamic_option): Ditto.
+	* configure: Regenerate.
+
+2011-10-03  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (bmask<P:mode>_vis): Split into explicit 'di'
+	and 'si' patterns which describe the GSR changes explicitly in the
+	RTL using zero_extract.
+	(bshuffle<V64I:mode>_vis): Put the GSR use inside of the unspec.
+
+	* config/sparc/sparc.md (bshuffle<V64I:mode>_vis): Don't wrap
+	GSR_REG in a USE, since it's now a true arg to the UNSPEC.
+
+2011-10-03  Artjoms Sinkarovs  <artyom.shinkaroff@gmail.com>
+
+	* optabs.c (expand_vec_shuffle_expr_p): New function. Checks
+	if given expression can be expanded by the target.
+	(expand_vec_shuffle_expr): New function. Expand VEC_SHUFFLE_EXPR
+	using target vector instructions.
+	* optabs.h: New optab vshuffle.
+	(expand_vec_shuffle_expr_p): New prototype.
+	(expand_vec_shuffle_expr): New prototype.
+	(vshuffle_optab): New optab.
+	* genopinit.c: Adjust to support vecshuffle.
+	* c-tree.h (c_build_vec_shuffle_expr): New prototype.
+	* expr.c (expand_expr_real_2): Adjust.
+	* c-typeck.c: (c_build_vec_shuffle_expr): Build a VEC_SHUFFLE_EXPR
+	recognizing the cases of two and three arguments.
+	(convert_arguments) (build_binary_op)
+	(scalar_to_vector) (build_array_ref): Spurious whitespace.
+	* gimplify.c (gimplify_exp): Adjusted to support VEC_SHUFFLE_EXPR.
+	* tree.def: New tree code VEC_SHUFFLE_EXPR.
+	* tree-inline.c (estimate_operator_cost): Recognize VEC_SHUFFLE_EXPR.
+	* tree-vect-generic.c (vector_element): New function. Returns an
+	element of the vector at the given position.
+	(lower_vec_shuffle): Checks if VEC_SHUFLLE_EXPR is supported
+	by the backend or expand an expression piecewise.
+	(expand_vector_operations_1): Adjusted.
+	(gate_expand_vector_operations_noop): New gate function.
+	* Makefile.in (tree-vect-generic.o): New include.
+	* gimple.c (get_gimple_rhs_num_ops): Adjust.
+	* tree-cfg.c (verify_gimple_assign_trenary): Verify VEC_SHUFFLE_EXPR.
+	* passes.c: Move veclower down.
+	* tree-pretty-print.c (dump_generic_node): Recognize
+	VEC_SHUFFLE_EXPR as valid expression.
+	* c-parser.c (c_parser_get_builtin_args): Helper function for the
+	builtins with variable number of arguments.
+	(c_parser_postfix_expression): Use a new helper function for
+	RID_CHOOSE_EXPR, RID_BUILTIN_COMPLEX and RID_BUILTIN_SHUFFLE.
+	* tree-ssa-operands: Adjust.
+	* c-family/c-common.c: New __builtin_shuffle keyword.
+	* c-family/c-common.h: New __builtin_shuffle keyword.
+	* gcc/doc/extend.texi: Adjust.
+
+	* gcc/config/i386/sse.md: (sseshuffint) New mode_attr.  Correspondence
+	between the vector and the type of the mask when shuffling.
+	(vecshuffle<mode>): New expansion.
+	* gcc/config/i386/i386-protos.h (ix86_expand_vshuffle): New prototype.
+	* gcc/config/i386/i386.c (ix86_expand_vshuffle): New function.
+	(ix86_vectorize_builtin_vec_perm_ok): Adjust.
+
+2011-10-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50587
+	* tree-ssa-reassoc.c (init_range_entry): Stop iterating when
+	arg0 is not a SSA_NAME.
+
+2011-10-03  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* ipa-inline-analysis.c (MAX_TIME): Update comment.
+
 2011-10-02  Richard Henderson  <rth@redhat.com>
 	    David S. Miller  <davem@davemloft.net>
 
@@ -59,7 +268,8 @@
 	* lto-symtab.c (lto_symtab_resolve_symbols): Do not resolve
 	when resolution is already availbale from plugin.
 	(lto_symtab_merge_decls_1): Handle LDPR_PREVAILING_DEF_IRONLY_EXP.
-	* cgraph.c (ld_plugin_symbol_resolution): Add prevailing_def_ironly_exp.
+	* cgraph.c (ld_plugin_symbol_resolution): Add
+	prevailing_def_ironly_exp.
 	* lto-cgraph.c (LDPR_NUM_KNOWN): Update.
 	* ipa.c (varpool_externally_visible_p): IRONLY variables are never
 	externally visible.
@@ -84,12 +294,12 @@
 	(vis3_shift_insn, vis3_addsub_ss_insn): New code attributes.
 	(cmask8<P:mode>_vis, cmask16<P:mode>_vis, cmask32<P:mode>_vis,
 	fchksm16_vis, <vis3_shift_insn><vbits>_vis, pdistn<mode>_vis,
-	fmean16_vis, fpadd64_vis, fpsub64_vis, <vis3_addsub_ss_insn><vbits>_vis,
-	fucmp<code>8<P:mode>_vis): New VIS 3.0 instruction patterns.
+	fmean16_vis, fpadd64_vis, fpsub64_vis,
+	<vis3_addsub_ss_insn><vbits>_vis, fucmp<code>8<P:mode>_vis): New
+	VIS 3.0 instruction patterns.
 	* config/sparc/sparc.c (sparc_option_override): Set MASK_VIS3 by
 	default when targetting capable cpus.  TARGET_VIS3 implies
-	TARGET_VIS2 and TARGET_VIS, and clear them when TARGET_FPU is
-	disabled.
+	TARGET_VIS2 and TARGET_VIS, and clear them when TARGET_FPU is disabled.
 	(sparc_vis_init_builtins): Emit new VIS 3.0 builtins.
 	(sparc_fold_builtin): Do not eliminate cmask{8,16,32} when result
 	is ignored.
@@ -257,7 +467,7 @@
 
 2011-09-30  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
 
-        PR target/50099
+	PR target/50099
 	* config/arm/iterators.md (qhs_zextenddi_cstr): New.
 	(qhs_zextenddi_op): New.
 	* config/arm/arm.md ("zero_extend<mode>di2"): Use them.
@@ -298,8 +508,7 @@
 2011-09-29  Nick Clifton  <nickc@redhat.com>
 	    Bernd Schmidt  <bernds@codesourcery.com>
 
-	* config/frv/frvbegin.c: Fix location of unwind-dw2-fde.h header
-	file.
+	* config/frv/frvbegin.c: Fix location of unwind-dw2-fde.h header file.
 	* config/frv/frvend.c: Likewise.
 	* config/frv/frv.c (frv_function_prologue): Move misplaced
 	CALL_ARG_LOCATION notes back to their proper locations.
@@ -333,27 +542,29 @@
 
 2011-09-27   Andi Kleen <ak@linux.intel.com>
 
-	* gcc.c (get_local_tick). Rename to get_random_number.
-        Read from /dev/urandom.
-	Add getpid call.
+	* gcc.c (get_local_tick). Rename to get_random_number.  Read from
+	/dev/urandom.  Add getpid call.
 	(compare_debug_dump_opt_spec_function): Drop getpid call.
 
 2011-09-26   Andi Kleen <ak@linux.intel.com>
 
-	* toplev.c (init_local_tick): Try reading random seed from /dev/urandom
+	* toplev.c (init_local_tick): Try reading random seed
+	from /dev/urandom.
 
 2011-09-26   Andi Kleen <ak@linux.intel.com>
 
 	* hwint.h (HOST_WIDE_INT_PRINT_HEX_PURE): Add.
 	* lto-streamer.c (lto_get_section_name): Remove crc32_string.
  	Handle numerical random seed.
-	* lto-streamer.h (lto_file_decl_data): Change id to unsigned HOST_WIDE_INT.
+	* lto-streamer.h (lto_file_decl_data): Change id to
+	unsigned HOST_WIDE_INT.
 	* toplev.c (random_seed): Add.
 	(init_random_seed): Change for numerical random seed.
 	(get_random_seed): Return as HOST_WIDE_INT.
 	(set_random_seed): Crc32 existing string.
 	* toplev.h (get_random_seed): Change to numercal return.
-	* tree.c (get_file_function_name): Remove CRC. Handle numerical random seed.
+	* tree.c (get_file_function_name): Remove CRC. Handle
+	numerical random seed.
 
 2011-09-29  Georg-Johann Lay  <avr@gjlay.de>
 
@@ -378,8 +589,7 @@
 	(c_objc_common_truthvalue_conversion): Adjust.
 	* tree-vect-generic.c (do_compare): Helper function.
 	(expand_vector_comparison): Check if hardware supports
-	vector comparison of the given type or expand vector
-	piecewise.
+	vector comparison of the given type or expand vector piecewise.
 	(expand_vector_operation): Treat comparison as binary
 	operation of vector type.
 	(expand_vector_operations_1): Adjust.
