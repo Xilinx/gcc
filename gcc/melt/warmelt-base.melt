@@ -2652,6 +2652,23 @@ polyhedron values.}#
 #endif /*melt_variadic_index*/
 }#)
 
+
+
+(defprimitive variadic_type_code (:long delta) :long
+  :doc #{Return the type code, i.e. an integer from the MELTBPAR_*
+  enumeration, of the variadic argument at offset $DELTA, or else
+  [outside of variadic functions, or index out of bounds] 0, that is
+  MELTBPAR__NONE.}#
+#{ /*variadic_type_code*/
+#ifdef melt_variadic_index
+  (((melt_variadic_index + $DELTA) >= 0
+    && (melt_variadic_index + $DELTA) < melt_variadic_length) 
+  ? (long) (meltxargdescr_[melt_variadic_index + $DELTA] & MELT_ARGDESCR_MAX)
+  : 0)
+#else
+  0 /* no variadic_type_code outside of variadic functions */
+#endif /*melt_variadic_index*/
+}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ;; keep the alphanumerical order
@@ -2892,6 +2909,7 @@ polyhedron values.}#
  variadic_index
  variadic_length
  variadic_skip
+ variadic_type_code
  void
  warning_plain
  warning_strv

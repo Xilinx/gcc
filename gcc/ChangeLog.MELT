@@ -1,5 +1,8 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (variadic_type_code): New primitive.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (outpucod_marker)
 	(output_curframe_declstruct_init, outpucod_initialroutine): Output
 	meltframptr_ instead of framptr_.
