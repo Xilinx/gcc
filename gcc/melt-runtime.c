@@ -4789,6 +4789,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
   const char *basnam = 0;
   static const char* tmpdirstr = 0;
   time_t nowt = 0;
+  int maymkdir = srcnam != NULL;
   basnam = srcnam?lbasename (CONST_CAST (char*,srcnam)):0;
   debugeprintf ("melt_tempdir_path srcnam '%s' basnam '%s' suffix '%s'", srcnam, basnam, suffix);
   if (!tmpdirstr)
@@ -4796,7 +4797,7 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
   gcc_assert (!basnam || (ISALNUM (basnam[0]) || basnam[0] == '_'));
   if (tmpdirstr && tmpdirstr[0])
     {
-      if (access (tmpdirstr, F_OK))
+      if (maymkdir && access (tmpdirstr, F_OK))
 	{
 	  if (mkdir (tmpdirstr, 0700))
 	    melt_fatal_error ("failed to mkdir melt_tempdir %s - %m",
@@ -4807,6 +4808,8 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
     }
   if (!tempdir_melt[0])
     {
+      if (!maymkdir)
+	return NULL;
       time (&nowt);
       /* Usually this loop runs only once!  */
       for (loopcnt = 0; loopcnt < 1000; loopcnt++)
@@ -8898,6 +8901,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
   char* dupmodul = NULL;
   char* descrpath = NULL;
   char* descrfull = NULL;
+  char* tempdirpath = melt_tempdir_path(NULL, NULL);
   int modix = 0;
 #if MELT_HAVE_DEBUG
   /* The location buffer is local, since this function may recurse!  */
@@ -8907,7 +8911,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 #if MELT_HAVE_DEBUG
   memset (curlocbuf, 0, sizeof (curlocbuf));
 #endif
-  debugeprintf("meltgc_load_flavored_module start %s", modulbase);
+  debugeprintf("meltgc_load_flavored_module start %s tempdirpath %s", modulbase, tempdirpath);
   if (!modulbase || !modulbase[0]) 
     goto end;
   dupmodul = xstrdup(modulbase);
@@ -8925,8 +8929,11 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 			modulbase);
   }
   descrfull = concat (dupmodul, MELT_DESC_FILESUFFIX, NULL);
+  debugeprintf ("meltgc_load_flavored_module descrfull %s flavor %s", 
+		descrfull, flavor);
   descrpath = 
     MELT_FIND_FILE (descrfull,
+		    MELT_FILE_IN_DIRECTORY, tempdirpath,
 		    MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:".",
 		    MELT_FILE_IN_PATH, srcpathstr,
 		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
@@ -8978,6 +8985,8 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
     free (dupmodul), dupmodul = NULL;
   if (descrpath)
     free (descrpath), descrpath = NULL;
+  if (tempdirpath)
+    free (tempdirpath), tempdirpath = NULL;
   debugeprintf ("meltgc_load_flavored_module modul %s return modix %d", 
 		dupmodul, modix);
   return modix;

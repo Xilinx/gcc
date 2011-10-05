@@ -1,4 +1,11 @@
 
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_tempdir_path): Comment that no directory is
+	create when the BASNAM is null.
+	* melt-runtime.c (melt_tempdir_path): Don't mkdir when BASNAM is
+	null.
+	(meltgc_load_flavored_module): Use melt_tempdir_path.
+
 2011-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	 * melt/generated/meltrunsup-inc.c: Regenerate.

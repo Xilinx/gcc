@@ -2136,7 +2136,9 @@ void melt_finalize (void);
 /* find a symbol in all the loaded modules */
 void* melt_dlsym_all (const char*nam);
 
-/* returns malloc-ed path inside a temporary directory, with a given basename & suffix  */
+/* Returns malloc-ed path inside a temporary directory, with a given
+   basename & suffix; may create using mkdir the temporary directory,
+   unless basnam is NULL.  */
 char* melt_tempdir_path (const char* basnam, const char* suffix);
 
 
