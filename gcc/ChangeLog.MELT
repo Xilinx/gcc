@@ -1,5 +1,9 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (generate_runtypesupport_cod2ctype):
+	Don't wrap emitted routine with #ifdef.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (add2out4null, add2out4integer)
 	(add2out4string, add2out4clonedsymb, add2out4named)
 	(add2out4rootobject, add2out4any): Correct formal argument order.
