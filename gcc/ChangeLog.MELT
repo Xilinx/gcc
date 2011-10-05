@@ -15,7 +15,7 @@
 	(outpucod_procroutine, outpucod_getarg, outpucod_objputxtraresult)
 	(generate_runtypesupport_gty): Output meltclosp_, meltfirstargp_,
 	meltxargtab_, meltxargdescr_, meltxresdescr_, meltxrestab_ instead
-	of the simpler name without melt.
+	of the shorter name without melt, as formal arguments.
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (variadic_index, variadic_length)
