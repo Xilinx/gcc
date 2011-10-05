@@ -1,5 +1,14 @@
 2011-10-05   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/x1tmplclass1.cc: Document likely cause of asm difference.
+	* g++.dg/pph/x1tmplclass2.cc: Likewise.
+	* g++.dg/pph/x4tmplclass1.cc: Likewise.
+	* g++.dg/pph/x4tmplclass2.cc: Likewise.
+	* g++.dg/pph/z4tmplclass1.cc: Likewise.
+	* g++.dg/pph/z4tmplclass2.cc: Likewise.
+
+2011-10-05   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/y9overlaad.cc: Add comment on expected
 	diagnostic.
 
