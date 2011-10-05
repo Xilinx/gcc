@@ -1221,22 +1221,22 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
       ))))
 
 ;; read add2out4null as "add to out for null"
-(defun add2out4null (out v)
+(defun add2out4null (v out)
   (assert_msg "check null v" (null v))
   (add2out_strconst out "*nil*"))
 (install_method discr_null_receiver add_to_out add2out4null)
 
-(defun add2out4integer (out vn)
+(defun add2out4integer (vn out)
   (assert_msg "check boxed number vn" (is_integerbox vn))
   (add2out_longdec out (get_int vn)))
 (install_method discr_integer add_to_out add2out4integer)
 
-(defun add2out4string (out vs)
+(defun add2out4string (vs out)
   (assert_msg "check boxed string vs" (is_string vs))
   (add2out_string out vs))
 (install_method discr_string add_to_out add2out4string)
 
-(defun add2out4clonedsymb (out vc)
+(defun add2out4clonedsymb (vc out)
   (match vc
 	 (?(instance class_cloned_symbol
 		     :named_name ?nvarnam
@@ -1250,11 +1250,11 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 	  (assert_msg "bad cloned symbol"))))
 (install_method class_cloned_symbol add_to_out add2out4clonedsymb)
 
-(defun add2out4named (out vn)
+(defun add2out4named (vn out)
   (add2out_cident out (get_field :named_name vn)))
 (install_method class_named add_to_out add2out4named)
 
-(defun add2out4rootobject (out vo)
+(defun add2out4rootobject (vo out)
   (add2out_strconst out "*")
   (add2out_string out (get_field :named_name (discrim vo)))
   (add2out_strconst out "/")
@@ -1262,12 +1262,11 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
   (add2out_strconst out "."))
 (install_method class_root add_to_out add2out4rootobject)
 
-(defun add2out4any (out va)
+(defun add2out4any (va out)
   (add2out_strconst out "*")
   (add2out_string out (get_field :named_name (discrim va))))
 (install_method discr_any_receiver add_to_out add2out4any)
-  
-	 
+
 
 
 ;;; cmatcher for a cstring of a given content
