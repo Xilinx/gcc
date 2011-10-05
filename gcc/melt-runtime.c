@@ -5947,12 +5947,12 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    int startlin = rd->rlineno;
    bool got = FALSE;
    MELT_ENTERFRAME (4, NULL);
- #define seqv  meltfram__.mcfr_varptr[0]
- #define compv meltfram__.mcfr_varptr[1]
- #define listv meltfram__.mcfr_varptr[2]
- #define pairv meltfram__.mcfr_varptr[3]
+#define seqv  meltfram__.mcfr_varptr[0]
+#define compv meltfram__.mcfr_varptr[1]
+#define listv meltfram__.mcfr_varptr[2]
+#define pairv meltfram__.mcfr_varptr[3]
    seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
-  readagain:
+ readagain:
    compv = NULL;
    c = skipspace_getc (rd, COMMENT_SKIP);
    if (c == endc)
@@ -5968,24 +5968,26 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        rdnext ();
        got = FALSE;
-       listv = meltgc_readmacrostringsequence (rd);
-       if (melt_magic_discr ((melt_ptr_t)listv) == MELTOBMAG_LIST) 
+       compv = meltgc_readmacrostringsequence (rd);
+       if (melt_is_instance_of ((melt_ptr_t) compv, MELT_PREDEF (CLASS_SEXPR)))
 	 {
 	   got = TRUE;
-	   for (pairv = ((struct meltlist_st*)(listv))->first;
-		pairv && melt_magic_discr((melt_ptr_t)pairv) == MELTOBMAG_PAIR;
-		pairv = ((struct meltpair_st*)(pairv))->tl)
-	     {
-	       compv = ((struct meltpair_st*)(pairv))->hd;
-	       if (compv)
-		 {
-		   meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-		   nbcomp++;
-		 }
-	     }
+	   listv = melt_field_object ((melt_ptr_t)compv, FSEXPR_CONTENTS);
+	   if (melt_magic_discr ((melt_ptr_t)listv) == MELTOBMAG_LIST) {
+	     compv = NULL;
+	     for (pairv = ((struct meltlist_st*)(listv))->first;
+		  pairv && melt_magic_discr((melt_ptr_t)pairv) == MELTOBMAG_PAIR;
+		  pairv = ((struct meltpair_st*)(pairv))->tl)
+	       {
+		 compv = ((struct meltpair_st*)(pairv))->hd;
+		 if (compv)
+		   {
+		     meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+		     nbcomp++;
+		   }
+	       }
+	   }
 	 }
-       else if (!listv)
-	 got = TRUE;
        if (!got)
 	 READ_ERROR ("MELT: unexpected stuff in macrostring seq %.20s ... started line %d",
 		     &rdcurc (), startlin);
@@ -5999,13 +6001,13 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
    nbcomp++;
    goto readagain;
-  end:
+ end:
    MELT_EXITFRAME ();
    return (melt_ptr_t) seqv;
- #undef compv
- #undef seqv
- #undef listv
- #undef pairv
+#undef compv
+#undef seqv
+#undef listv
+#undef pairv
  }
 
 

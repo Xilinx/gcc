@@ -1,5 +1,11 @@
 
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_readseqlist): Read correct ##{...}# chunks.
+
+	* melt/warmelt-outobj.melt (generate_runtypesupport_cod2ctype): New function.
+	(runtypesupport_docmd): Call it.
+
+2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (add_to_out): New selector.
 	(add2out): New variadic function.
 	(add2out4null, add2out4integer, add2out4string)
