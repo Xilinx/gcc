@@ -39,2512 +39,2639 @@ struct melt_callframe_st;	/*defined in melt-runtime.h */
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un
-						       *xargtab_,
+						       *meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un
-						       *xrestab_);
+						       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR (meltclosure_ptr_t
-							closp_,
-							melt_ptr_t firstargp_,
+							meltclosp_,
+							melt_ptr_t
+							meltfirstargp_,
 							const
 							melt_argdescr_cell_t
-							xargdescr_[],
+							meltxargdescr_[],
 							union meltparam_un
-							*xargtab_,
+							*meltxargtab_,
 							const
 							melt_argdescr_cell_t
-							xresdescr_[],
+							meltxresdescr_[],
 							union meltparam_un
-							*xrestab_);
+							*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_5_warmelt_genobj_GECTYP_OBJNIL (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
+meltrout_5_warmelt_genobj_GECTYP_OBJNIL (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
 					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
 					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_6_warmelt_genobj_GECTYP_OBJINITSTRING (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_6_warmelt_genobj_GECTYP_OBJINITSTRING (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_7_warmelt_genobj_DBGOUT_ROUTINEOBJ (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_7_warmelt_genobj_DBGOUT_ROUTINEOBJ (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_8_warmelt_genobj_PUTOBJDEST_OBJDESTINSTR (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_8_warmelt_genobj_PUTOBJDEST_OBJDESTINSTR (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_9_warmelt_genobj_PUTOBJDEST_OBJFINALRETURN (meltclosure_ptr_t closp_,
-						     melt_ptr_t firstargp_,
+meltrout_9_warmelt_genobj_PUTOBJDEST_OBJFINALRETURN (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
 						     const
 						     melt_argdescr_cell_t
-						     xargdescr_[],
+						     meltxargdescr_[],
 						     union meltparam_un
-						     *xargtab_,
+						     *meltxargtab_,
 						     const
 						     melt_argdescr_cell_t
-						     xresdescr_[],
+						     meltxresdescr_[],
 						     union meltparam_un
-						     *xrestab_);
+						     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_10_warmelt_genobj_VARIADIC_IDSTR (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_10_warmelt_genobj_VARIADIC_IDSTR (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_11_warmelt_genobj_VARIADIC_INDEX_IDSTR (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_11_warmelt_genobj_VARIADIC_INDEX_IDSTR (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_12_warmelt_genobj_VARIADIC_LENGTH_IDSTR (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
-						  const melt_argdescr_cell_t
-						  xargdescr_[],
-						  union meltparam_un
-						  *xargtab_,
-						  const melt_argdescr_cell_t
-						  xresdescr_[],
-						  union meltparam_un
-						  *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_13_warmelt_genobj_COMPILE2OBJ_PROCEDURE (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
-						  const melt_argdescr_cell_t
-						  xargdescr_[],
-						  union meltparam_un
-						  *xargtab_,
-						  const melt_argdescr_cell_t
-						  xresdescr_[],
-						  union meltparam_un
-						  *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_14_warmelt_genobj_LAMBDA___1__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_15_warmelt_genobj_LAMBDA___2__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_16_warmelt_genobj_APPEND_COMMENT (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
-					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
-					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_17_warmelt_genobj_APPEND_COMMENTCONST (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
-						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
-						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_18_warmelt_genobj_COMPILE2OBJ_INITPROC (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+						 *meltxargtab_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxresdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_19_warmelt_genobj_LAMBDA___3__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+meltrout_12_warmelt_genobj_VARIADIC_LENGTH_IDSTR (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
+						  const melt_argdescr_cell_t
+						  meltxargdescr_[],
+						  union meltparam_un
+						  *meltxargtab_,
+						  const melt_argdescr_cell_t
+						  meltxresdescr_[],
+						  union meltparam_un
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_20_warmelt_genobj_LAMBDA___4__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+meltrout_13_warmelt_genobj_COMPILE2OBJ_PROCEDURE (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
+						  const melt_argdescr_cell_t
+						  meltxargdescr_[],
+						  union meltparam_un
+						  *meltxargtab_,
+						  const melt_argdescr_cell_t
+						  meltxresdescr_[],
+						  union meltparam_un
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_21_warmelt_genobj_LAMBDA___5__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
+meltrout_14_warmelt_genobj_LAMBDA___1__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
 					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
 					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_22_warmelt_genobj_LAMBDA___6__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
+meltrout_15_warmelt_genobj_LAMBDA___2__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
 					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
 					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_23_warmelt_genobj_LAMBDA___7__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+meltrout_16_warmelt_genobj_APPEND_COMMENT (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
+					   const melt_argdescr_cell_t
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
+					   const melt_argdescr_cell_t
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_24_warmelt_genobj_LAMBDA___8__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+meltrout_17_warmelt_genobj_APPEND_COMMENTCONST (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
+						const melt_argdescr_cell_t
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
+						const melt_argdescr_cell_t
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_25_warmelt_genobj_LAMBDA___9__ (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+meltrout_18_warmelt_genobj_COMPILE2OBJ_INITPROC (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
+						 const melt_argdescr_cell_t
+						 meltxargdescr_[],
+						 union meltparam_un
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_26_warmelt_genobj_LAMBDA___10__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_19_warmelt_genobj_LAMBDA___3__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_20_warmelt_genobj_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_21_warmelt_genobj_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_22_warmelt_genobj_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_23_warmelt_genobj_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_24_warmelt_genobj_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_25_warmelt_genobj_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_26_warmelt_genobj_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_27_warmelt_genobj_GET_FREE_OBJLOCPTR (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
+meltrout_27_warmelt_genobj_GET_FREE_OBJLOCPTR (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
 					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
 					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_28_warmelt_genobj_GET_FREE_OBJLOCLONG (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_28_warmelt_genobj_GET_FREE_OBJLOCLONG (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_29_warmelt_genobj_GET_FREE_OBJLOCTYPED (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_29_warmelt_genobj_GET_FREE_OBJLOCTYPED (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_30_warmelt_genobj_DISPOSE_OBJLOC (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_30_warmelt_genobj_DISPOSE_OBJLOC (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_31_warmelt_genobj_DISPOSE_BND_OBJ (meltclosure_ptr_t closp_,
-					    melt_ptr_t firstargp_,
+meltrout_31_warmelt_genobj_DISPOSE_BND_OBJ (meltclosure_ptr_t meltclosp_,
+					    melt_ptr_t meltfirstargp_,
 					    const melt_argdescr_cell_t
-					    xargdescr_[],
-					    union meltparam_un *xargtab_,
+					    meltxargdescr_[],
+					    union meltparam_un *meltxargtab_,
 					    const melt_argdescr_cell_t
-					    xresdescr_[],
-					    union meltparam_un *xrestab_);
+					    meltxresdescr_[],
+					    union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_32_warmelt_genobj_COMPILOBJ_NREP_CHUNK (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_32_warmelt_genobj_COMPILOBJ_NREP_CHUNK (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_33_warmelt_genobj_LAMBDA___11__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_33_warmelt_genobj_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_34_warmelt_genobj_GETCTYPE_TYPEXPR (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_34_warmelt_genobj_GETCTYPE_TYPEXPR (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_35_warmelt_genobj_COMPILOBJ_NREP_NIL (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
+meltrout_35_warmelt_genobj_COMPILOBJ_NREP_NIL (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
 					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
 					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_36_warmelt_genobj_COMPILOBJ_NREP_COMMENT (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_36_warmelt_genobj_COMPILOBJ_NREP_COMMENT (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_37_warmelt_genobj_COMPILOBJ_NREP_LOCSYMOCC (meltclosure_ptr_t closp_,
-						     melt_ptr_t firstargp_,
+meltrout_37_warmelt_genobj_COMPILOBJ_NREP_LOCSYMOCC (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
 						     const
 						     melt_argdescr_cell_t
-						     xargdescr_[],
+						     meltxargdescr_[],
 						     union meltparam_un
-						     *xargtab_,
+						     *meltxargtab_,
 						     const
 						     melt_argdescr_cell_t
-						     xresdescr_[],
+						     meltxresdescr_[],
 						     union meltparam_un
-						     *xrestab_);
+						     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_38_warmelt_genobj_COMPILOBJ_NREP_CLOSEDOCC (meltclosure_ptr_t closp_,
-						     melt_ptr_t firstargp_,
+meltrout_38_warmelt_genobj_COMPILOBJ_NREP_CLOSEDOCC (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
 						     const
 						     melt_argdescr_cell_t
-						     xargdescr_[],
+						     meltxargdescr_[],
 						     union meltparam_un
-						     *xargtab_,
+						     *meltxargtab_,
 						     const
 						     melt_argdescr_cell_t
-						     xresdescr_[],
+						     meltxresdescr_[],
 						     union meltparam_un
-						     *xrestab_);
+						     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_39_warmelt_genobj_COMPILOBJ_NREP_CONSTOCC (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_39_warmelt_genobj_COMPILOBJ_NREP_CONSTOCC (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_40_warmelt_genobj_COMPILOBJ_NREP_IMPORTEDVAL (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un
-						       *xargtab_,
+						       *meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un
-						       *xrestab_);
+						       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_41_warmelt_genobj_COMPILOBJ_NREP_QUASICONSTANT (meltclosure_ptr_t
-							 closp_,
+							 meltclosp_,
 							 melt_ptr_t
-							 firstargp_,
+							 meltfirstargp_,
 							 const
 							 melt_argdescr_cell_t
-							 xargdescr_[],
+							 meltxargdescr_[],
 							 union meltparam_un
-							 *xargtab_,
+							 *meltxargtab_,
 							 const
 							 melt_argdescr_cell_t
-							 xresdescr_[],
+							 meltxresdescr_[],
 							 union meltparam_un
-							 *xrestab_);
+							 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_42_warmelt_genobj_COMPILOBJ_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_43_warmelt_genobj_COMPILOBJ_NREP_FOREVER (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_43_warmelt_genobj_COMPILOBJ_NREP_FOREVER (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_44_warmelt_genobj_LAMBDA___12__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_44_warmelt_genobj_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_45_warmelt_genobj_COMPILOBJ_NREP_EXIT (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_45_warmelt_genobj_COMPILOBJ_NREP_EXIT (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_46_warmelt_genobj_COMPILOBJ_NREP_AGAIN (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_46_warmelt_genobj_COMPILOBJ_NREP_AGAIN (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_47_warmelt_genobj_COMPILOBJ_DISCRANY (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
-					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
-					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_48_warmelt_genobj_COMPILOBJ_NREP_LET (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
-					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
-					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_49_warmelt_genobj_LAMBDA___13__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
-					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
-					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_50_warmelt_genobj_LAMBDA___14__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
-					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
-					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_51_warmelt_genobj_LAMBDA___15__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
-					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
-					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_52_warmelt_genobj_FAIL_COMPILETRECFILL (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+						 *meltxargtab_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxresdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_53_warmelt_genobj_COMPILETREC_LAMBDA (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
+meltrout_47_warmelt_genobj_COMPILOBJ_DISCRANY (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
 					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
 					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_54_warmelt_genobj_COMPILETREC_TUPLE (meltclosure_ptr_t closp_,
-					      melt_ptr_t firstargp_,
+meltrout_48_warmelt_genobj_COMPILOBJ_NREP_LET (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
+					       const melt_argdescr_cell_t
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
+					       const melt_argdescr_cell_t
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_49_warmelt_genobj_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
+					  const melt_argdescr_cell_t
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
+					  const melt_argdescr_cell_t
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_50_warmelt_genobj_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
+					  const melt_argdescr_cell_t
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
+					  const melt_argdescr_cell_t
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_51_warmelt_genobj_LAMBDA___15__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
+					  const melt_argdescr_cell_t
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
+					  const melt_argdescr_cell_t
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_52_warmelt_genobj_FAIL_COMPILETRECFILL (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
+						 const melt_argdescr_cell_t
+						 meltxargdescr_[],
+						 union meltparam_un
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_53_warmelt_genobj_COMPILETREC_LAMBDA (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
+					       const melt_argdescr_cell_t
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
+					       const melt_argdescr_cell_t
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_54_warmelt_genobj_COMPILETREC_TUPLE (meltclosure_ptr_t meltclosp_,
+					      melt_ptr_t meltfirstargp_,
 					      const melt_argdescr_cell_t
-					      xargdescr_[],
-					      union meltparam_un *xargtab_,
+					      meltxargdescr_[],
+					      union meltparam_un
+					      *meltxargtab_,
 					      const melt_argdescr_cell_t
-					      xresdescr_[],
-					      union meltparam_un *xrestab_);
+					      meltxresdescr_[],
+					      union meltparam_un
+					      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_55_warmelt_genobj_COMPILETREC_PAIR (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_55_warmelt_genobj_COMPILETREC_PAIR (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_56_warmelt_genobj_COMPILETREC_LIST (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_56_warmelt_genobj_COMPILETREC_LIST (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_57_warmelt_genobj_COMPILETREC_INSTANCE (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_57_warmelt_genobj_COMPILETREC_INSTANCE (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_58_warmelt_genobj_COMPILOBJ_NREP_LETREC (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_58_warmelt_genobj_COMPILOBJ_NREP_LETREC (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_59_warmelt_genobj_COMPILOBJ_NREP_CITERATION (meltclosure_ptr_t
-						      closp_,
-						      melt_ptr_t firstargp_,
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
 						      const
 						      melt_argdescr_cell_t
-						      xargdescr_[],
+						      meltxargdescr_[],
 						      union meltparam_un
-						      *xargtab_,
+						      *meltxargtab_,
 						      const
 						      melt_argdescr_cell_t
-						      xresdescr_[],
+						      meltxresdescr_[],
 						      union meltparam_un
-						      *xrestab_);
+						      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_60_warmelt_genobj_LAMBDA___16__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_60_warmelt_genobj_LAMBDA___16__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_61_warmelt_genobj_LAMBDA___17__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_61_warmelt_genobj_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_62_warmelt_genobj_LAMBDA___18__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_62_warmelt_genobj_LAMBDA___18__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_63_warmelt_genobj_LAMBDA___19__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_63_warmelt_genobj_LAMBDA___19__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_64_warmelt_genobj_LAMBDA___20__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_64_warmelt_genobj_LAMBDA___20__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_65_warmelt_genobj_COMPILOBJ_NREP_SETQ (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_65_warmelt_genobj_COMPILOBJ_NREP_SETQ (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_66_warmelt_genobj_COMPILOBJ_NREP_PROGN (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_66_warmelt_genobj_COMPILOBJ_NREP_PROGN (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_67_warmelt_genobj_LAMBDA___21__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_67_warmelt_genobj_LAMBDA___21__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_68_warmelt_genobj_COMPILOBJ_NREP_MULTACC (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_68_warmelt_genobj_COMPILOBJ_NREP_MULTACC (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_69_warmelt_genobj_LAMBDA___22__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_69_warmelt_genobj_LAMBDA___22__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_70_warmelt_genobj_COMPILOBJ_NREP_FIELDACC (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_70_warmelt_genobj_COMPILOBJ_NREP_FIELDACC (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_71_warmelt_genobj_LAMBDA___23__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_71_warmelt_genobj_LAMBDA___23__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_72_warmelt_genobj_COMPILOBJ_NREP_UNSAFE_GET_FIELD (meltclosure_ptr_t
-							    closp_,
+							    meltclosp_,
 							    melt_ptr_t
-							    firstargp_,
+							    meltfirstargp_,
 							    const
 							    melt_argdescr_cell_t
-							    xargdescr_[],
+							    meltxargdescr_[],
 							    union meltparam_un
-							    *xargtab_,
+							    *meltxargtab_,
 							    const
 							    melt_argdescr_cell_t
-							    xresdescr_[],
+							    meltxresdescr_[],
 							    union meltparam_un
-							    *xrestab_);
+							    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_73_warmelt_genobj_COMPILOBJ_NREP_UNSAFE_PUT_FIELDS (meltclosure_ptr_t
-							     closp_,
+							     meltclosp_,
 							     melt_ptr_t
-							     firstargp_,
+							     meltfirstargp_,
 							     const
 							     melt_argdescr_cell_t
-							     xargdescr_[],
+							     meltxargdescr_[],
 							     union
 							     meltparam_un
-							     *xargtab_,
+							     *meltxargtab_,
 							     const
 							     melt_argdescr_cell_t
-							     xresdescr_[],
+							     meltxresdescr_[],
 							     union
 							     meltparam_un
-							     *xrestab_);
+							     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_74_warmelt_genobj_LAMBDA___24__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_74_warmelt_genobj_LAMBDA___24__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_75_warmelt_genobj_COMPILOBJ_NREP_APPLY (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_75_warmelt_genobj_COMPILOBJ_NREP_APPLY (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_76_warmelt_genobj_LAMBDA___25__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_76_warmelt_genobj_LAMBDA___25__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_77_warmelt_genobj_COMPILOBJ_NREP_MULTIAPPLY (meltclosure_ptr_t
-						      closp_,
-						      melt_ptr_t firstargp_,
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
 						      const
 						      melt_argdescr_cell_t
-						      xargdescr_[],
+						      meltxargdescr_[],
 						      union meltparam_un
-						      *xargtab_,
+						      *meltxargtab_,
 						      const
 						      melt_argdescr_cell_t
-						      xresdescr_[],
+						      meltxresdescr_[],
 						      union meltparam_un
-						      *xrestab_);
+						      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_78_warmelt_genobj_LAMBDA___26__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_78_warmelt_genobj_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_79_warmelt_genobj_LAMBDA___27__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_79_warmelt_genobj_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_80_warmelt_genobj_LAMBDA___28__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_80_warmelt_genobj_LAMBDA___28__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_81_warmelt_genobj_LAMBDA___29__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_81_warmelt_genobj_LAMBDA___29__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_82_warmelt_genobj_LAMBDA___30__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_82_warmelt_genobj_LAMBDA___30__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_83_warmelt_genobj_COMPILOBJ_NREP_MSEND (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_83_warmelt_genobj_COMPILOBJ_NREP_MSEND (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_84_warmelt_genobj_LAMBDA___31__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_84_warmelt_genobj_LAMBDA___31__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_85_warmelt_genobj_COMPILOBJ_NREP_MULTIMSEND (meltclosure_ptr_t
-						      closp_,
-						      melt_ptr_t firstargp_,
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
 						      const
 						      melt_argdescr_cell_t
-						      xargdescr_[],
+						      meltxargdescr_[],
 						      union meltparam_un
-						      *xargtab_,
+						      *meltxargtab_,
 						      const
 						      melt_argdescr_cell_t
-						      xresdescr_[],
+						      meltxresdescr_[],
 						      union meltparam_un
-						      *xrestab_);
+						      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_86_warmelt_genobj_LAMBDA___32__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_86_warmelt_genobj_LAMBDA___32__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_87_warmelt_genobj_LAMBDA___33__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_87_warmelt_genobj_LAMBDA___33__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_88_warmelt_genobj_LAMBDA___34__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_88_warmelt_genobj_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_89_warmelt_genobj_LAMBDA___35__ (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
+meltrout_89_warmelt_genobj_LAMBDA___35__ (meltclosure_ptr_t meltclosp_,
+					  melt_ptr_t meltfirstargp_,
 					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
+					  meltxargdescr_[],
+					  union meltparam_un *meltxargtab_,
 					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
+					  meltxresdescr_[],
+					  union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_90_warmelt_genobj_COMPILOBJ_ANY_BINDING (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_90_warmelt_genobj_COMPILOBJ_ANY_BINDING (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_91_warmelt_genobj_COMPILOBJ_VALUE_BINDING (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_91_warmelt_genobj_COMPILOBJ_VALUE_BINDING (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_92_warmelt_genobj_COMPILOBJ_FIXED_BINDING (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_92_warmelt_genobj_COMPILOBJ_FIXED_BINDING (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_93_warmelt_genobj_COMPILOBJ_NORMAL_LET_BINDING (meltclosure_ptr_t
-							 closp_,
+							 meltclosp_,
 							 melt_ptr_t
-							 firstargp_,
+							 meltfirstargp_,
 							 const
 							 melt_argdescr_cell_t
-							 xargdescr_[],
+							 meltxargdescr_[],
 							 union meltparam_un
-							 *xargtab_,
+							 *meltxargtab_,
 							 const
 							 melt_argdescr_cell_t
-							 xresdescr_[],
+							 meltxresdescr_[],
 							 union meltparam_un
-							 *xrestab_);
+							 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_94_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND (meltclosure_ptr_t closp_,
-						     melt_ptr_t firstargp_,
+meltrout_94_warmelt_genobj_COMPILOBJ_CONSLAMBDABIND (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
 						     const
 						     melt_argdescr_cell_t
-						     xargdescr_[],
+						     meltxargdescr_[],
 						     union meltparam_un
-						     *xargtab_,
+						     *meltxargtab_,
 						     const
 						     melt_argdescr_cell_t
-						     xresdescr_[],
+						     meltxresdescr_[],
 						     union meltparam_un
-						     *xrestab_);
+						     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_95_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_95_warmelt_genobj_COMPILOBJ_CONSTUPLEBIND (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_96_warmelt_genobj_COMPILOBJ_CONSPAIRBIND (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_96_warmelt_genobj_COMPILOBJ_CONSPAIRBIND (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_97_warmelt_genobj_COMPILOBJ_CONSLISTBIND (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_97_warmelt_genobj_COMPILOBJ_CONSLISTBIND (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_98_warmelt_genobj_COMPILOBJ_CONSINSTANCEBIND (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un
-						       *xargtab_,
+						       *meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un
-						       *xrestab_);
+						       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_99_warmelt_genobj_PUTOBJDEST_OBJVALUE (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_99_warmelt_genobj_PUTOBJDEST_OBJVALUE (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_100_warmelt_genobj_PUTOBJDEST_INTEGER (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_100_warmelt_genobj_PUTOBJDEST_INTEGER (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_101_warmelt_genobj_PUTOBJDEST_STRING (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
+meltrout_101_warmelt_genobj_PUTOBJDEST_STRING (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
 					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
 					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_102_warmelt_genobj_PUTOBJDEST_NULL (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_102_warmelt_genobj_PUTOBJDEST_NULL (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_103_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_103_warmelt_genobj_PUTOBJDEST_OBJANYBLOCK (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_104_warmelt_genobj_PUTOBJDEST_OBJMULTIBLOCK (meltclosure_ptr_t
-						      closp_,
-						      melt_ptr_t firstargp_,
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
 						      const
 						      melt_argdescr_cell_t
-						      xargdescr_[],
+						      meltxargdescr_[],
 						      union meltparam_un
-						      *xargtab_,
+						      *meltxargtab_,
 						      const
 						      melt_argdescr_cell_t
-						      xresdescr_[],
+						      meltxresdescr_[],
 						      union meltparam_un
-						      *xrestab_);
+						      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_105_warmelt_genobj_PUTOBJDEST_OBJLOOP (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_105_warmelt_genobj_PUTOBJDEST_OBJLOOP (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_106_warmelt_genobj_PUTOBJDEST_OBJEXIT (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_106_warmelt_genobj_PUTOBJDEST_OBJEXIT (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_107_warmelt_genobj_COMPILOBJ_NREP_IF (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
+meltrout_107_warmelt_genobj_COMPILOBJ_NREP_IF (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
 					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
 					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_108_warmelt_genobj_COMPILOBJ_NREP_IFISA (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_108_warmelt_genobj_COMPILOBJ_NREP_IFISA (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_109_warmelt_genobj_COMPILOBJ_NREP_IFVARIADIC (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un
-						       *xargtab_,
+						       *meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un
-						       *xrestab_);
+						       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_110_warmelt_genobj_GETCTYPE_IFVARIADIC (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_110_warmelt_genobj_GETCTYPE_IFVARIADIC (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_111_warmelt_genobj_COMPILOBJ_NREP_VARIADIC_ARGUMENT
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_112_warmelt_genobj_COMPILOBJ_NREP_CONSUMEVARIADIC (meltclosure_ptr_t
-							    closp_,
+							    meltclosp_,
 							    melt_ptr_t
-							    firstargp_,
+							    meltfirstargp_,
 							    const
 							    melt_argdescr_cell_t
-							    xargdescr_[],
+							    meltxargdescr_[],
 							    union meltparam_un
-							    *xargtab_,
+							    *meltxargtab_,
 							    const
 							    melt_argdescr_cell_t
-							    xresdescr_[],
+							    meltxresdescr_[],
 							    union meltparam_un
-							    *xrestab_);
+							    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_113_warmelt_genobj_PUTOBJDEST_OBJCOND (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_113_warmelt_genobj_PUTOBJDEST_OBJCOND (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_114_warmelt_genobj_COMPILOBJ_NREP_CPPIF (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_114_warmelt_genobj_COMPILOBJ_NREP_CPPIF (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_115_warmelt_genobj_PUTOBJDEST_OBJCPPIF (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_115_warmelt_genobj_PUTOBJDEST_OBJCPPIF (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_116_warmelt_genobj_COMPILOBJ_NREP_RETURN (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_116_warmelt_genobj_COMPILOBJ_NREP_RETURN (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_117_warmelt_genobj_LAMBDA___36__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_117_warmelt_genobj_LAMBDA___36__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_118_warmelt_genobj_LAMBDA___37__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_118_warmelt_genobj_LAMBDA___37__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_119_warmelt_genobj_COMPILOBJ_NREP_LAMBDA (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_119_warmelt_genobj_COMPILOBJ_NREP_LAMBDA (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_120_warmelt_genobj_LAMBDA___38__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_120_warmelt_genobj_LAMBDA___38__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_121_warmelt_genobj_COMPILOBJ_NREP_MAKEINST (meltclosure_ptr_t closp_,
-						     melt_ptr_t firstargp_,
+meltrout_121_warmelt_genobj_COMPILOBJ_NREP_MAKEINST (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
 						     const
 						     melt_argdescr_cell_t
-						     xargdescr_[],
+						     meltxargdescr_[],
 						     union meltparam_un
-						     *xargtab_,
+						     *meltxargtab_,
 						     const
 						     melt_argdescr_cell_t
-						     xresdescr_[],
+						     meltxresdescr_[],
 						     union meltparam_un
-						     *xrestab_);
+						     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_122_warmelt_genobj_LAMBDA___39__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_122_warmelt_genobj_LAMBDA___39__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_123_warmelt_genobj_COMPILOBJ_ROUTPROC (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_123_warmelt_genobj_COMPILOBJ_ROUTPROC (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_124_warmelt_genobj_COMPILOBJ_PREDEF (meltclosure_ptr_t closp_,
-					      melt_ptr_t firstargp_,
+meltrout_124_warmelt_genobj_COMPILOBJ_PREDEF (meltclosure_ptr_t meltclosp_,
+					      melt_ptr_t meltfirstargp_,
 					      const melt_argdescr_cell_t
-					      xargdescr_[],
-					      union meltparam_un *xargtab_,
+					      meltxargdescr_[],
+					      union meltparam_un
+					      *meltxargtab_,
 					      const melt_argdescr_cell_t
-					      xresdescr_[],
-					      union meltparam_un *xrestab_);
+					      meltxresdescr_[],
+					      union meltparam_un
+					      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_125_warmelt_genobj_COMPIL_DATA_AND_SLOTS_FILL (meltclosure_ptr_t
-							closp_,
-							melt_ptr_t firstargp_,
+							meltclosp_,
+							melt_ptr_t
+							meltfirstargp_,
 							const
 							melt_argdescr_cell_t
-							xargdescr_[],
+							meltxargdescr_[],
 							union meltparam_un
-							*xargtab_,
+							*meltxargtab_,
 							const
 							melt_argdescr_cell_t
-							xresdescr_[],
+							meltxresdescr_[],
 							union meltparam_un
-							*xrestab_);
+							*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_126_warmelt_genobj_LAMBDA___40__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_126_warmelt_genobj_LAMBDA___40__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_127_warmelt_genobj_LAMBDA___41__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_127_warmelt_genobj_LAMBDA___41__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_128_warmelt_genobj_LAMBDA___42__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_128_warmelt_genobj_LAMBDA___42__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_129_warmelt_genobj_DISPOSE_DLOCBIND_AFTER_DATA_AND_SLOTS_FILL
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_130_warmelt_genobj_LAMBDA___43__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_130_warmelt_genobj_LAMBDA___43__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_131_warmelt_genobj_COMPILOBJ_DATASYMBOL (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_131_warmelt_genobj_COMPILOBJ_DATASYMBOL (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_132_warmelt_genobj_COMPILOBJ_DATAINSTANCE (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_132_warmelt_genobj_COMPILOBJ_DATAINSTANCE (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_133_warmelt_genobj_COMPILOBJ_DATATUPLE (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_133_warmelt_genobj_COMPILOBJ_DATATUPLE (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_134_warmelt_genobj_LAMBDA___44__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_134_warmelt_genobj_LAMBDA___44__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_135_warmelt_genobj_LAMBDA___45__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_135_warmelt_genobj_LAMBDA___45__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_136_warmelt_genobj_COMPILOBJ_DATASTRING (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_136_warmelt_genobj_COMPILOBJ_DATASTRING (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_137_warmelt_genobj_COMPILOBJ_DATABOXEDINTEGER (meltclosure_ptr_t
-							closp_,
-							melt_ptr_t firstargp_,
+							meltclosp_,
+							melt_ptr_t
+							meltfirstargp_,
 							const
 							melt_argdescr_cell_t
-							xargdescr_[],
+							meltxargdescr_[],
 							union meltparam_un
-							*xargtab_,
+							*meltxargtab_,
 							const
 							melt_argdescr_cell_t
-							xresdescr_[],
+							meltxresdescr_[],
 							union meltparam_un
-							*xrestab_);
+							*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_138_warmelt_genobj_COMPILOBJ_DATACLOSURE (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_138_warmelt_genobj_COMPILOBJ_DATACLOSURE (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_139_warmelt_genobj_LAMBDA___46__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_139_warmelt_genobj_LAMBDA___46__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_140_warmelt_genobj_COMPILOBJ_DATAROUTINE (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_140_warmelt_genobj_COMPILOBJ_DATAROUTINE (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_141_warmelt_genobj_LAMBDA___47__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_141_warmelt_genobj_LAMBDA___47__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_142_warmelt_genobj_COMPILOBJ_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_143_warmelt_genobj_COMPILOBJ_QUASIDATA_PARENT_MODULE_ENVIRONMENT
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_144_warmelt_genobj_COMPILOBJ_NREP_STORE_PREDEFINED (meltclosure_ptr_t
-							     closp_,
+							     meltclosp_,
 							     melt_ptr_t
-							     firstargp_,
+							     meltfirstargp_,
 							     const
 							     melt_argdescr_cell_t
-							     xargdescr_[],
+							     meltxargdescr_[],
 							     union
 							     meltparam_un
-							     *xargtab_,
+							     *meltxargtab_,
 							     const
 							     melt_argdescr_cell_t
-							     xresdescr_[],
+							     meltxresdescr_[],
 							     union
 							     meltparam_un
-							     *xrestab_);
+							     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_145_warmelt_genobj_COMPILOBJ_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_146_warmelt_genobj_LAMBDA___48__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_146_warmelt_genobj_LAMBDA___48__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_147_warmelt_genobj_LAMBDA___49__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_147_warmelt_genobj_LAMBDA___49__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_148_warmelt_genobj_COMPILTST_ANYTESTER (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_148_warmelt_genobj_COMPILTST_ANYTESTER (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_149_warmelt_genobj_COMPILOBJ_NREP_MATCH (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_149_warmelt_genobj_COMPILOBJ_NREP_MATCH (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_150_warmelt_genobj_LAMBDA___50__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_150_warmelt_genobj_LAMBDA___50__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_151_warmelt_genobj_COMPILOBJ_NREP_ALTMATCH (meltclosure_ptr_t closp_,
-						     melt_ptr_t firstargp_,
+meltrout_151_warmelt_genobj_COMPILOBJ_NREP_ALTMATCH (meltclosure_ptr_t
+						     meltclosp_,
+						     melt_ptr_t
+						     meltfirstargp_,
 						     const
 						     melt_argdescr_cell_t
-						     xargdescr_[],
+						     meltxargdescr_[],
 						     union meltparam_un
-						     *xargtab_,
+						     *meltxargtab_,
 						     const
 						     melt_argdescr_cell_t
-						     xresdescr_[],
+						     meltxresdescr_[],
 						     union meltparam_un
-						     *xrestab_);
+						     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_152_warmelt_genobj_LAMBDA___51__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_152_warmelt_genobj_LAMBDA___51__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_153_warmelt_genobj_COMPILOBJ_NREP_MATCHLABEL (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un
-						       *xargtab_,
+						       *meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un
-						       *xrestab_);
+						       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_154_warmelt_genobj_COMPILOBJ_NREP_MATCHDATAINIT (meltclosure_ptr_t
-							  closp_,
+							  meltclosp_,
 							  melt_ptr_t
-							  firstargp_,
+							  meltfirstargp_,
 							  const
 							  melt_argdescr_cell_t
-							  xargdescr_[],
+							  meltxargdescr_[],
 							  union meltparam_un
-							  *xargtab_,
+							  *meltxargtab_,
 							  const
 							  melt_argdescr_cell_t
-							  xresdescr_[],
+							  meltxresdescr_[],
 							  union meltparam_un
-							  *xrestab_);
+							  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_155_warmelt_genobj_NORMTESTER_LABELINSTR (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_155_warmelt_genobj_NORMTESTER_LABELINSTR (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_);
+						   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_156_warmelt_genobj_NORMTESTER_GOTOINSTR (meltclosure_ptr_t closp_,
-						  melt_ptr_t firstargp_,
+meltrout_156_warmelt_genobj_NORMTESTER_GOTOINSTR (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
 						  const melt_argdescr_cell_t
-						  xargdescr_[],
+						  meltxargdescr_[],
 						  union meltparam_un
-						  *xargtab_,
+						  *meltxargtab_,
 						  const melt_argdescr_cell_t
-						  xresdescr_[],
+						  meltxresdescr_[],
 						  union meltparam_un
-						  *xrestab_);
+						  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_157_warmelt_genobj_ENDMATCH_GOTOINSTR (meltclosure_ptr_t closp_,
-						melt_ptr_t firstargp_,
+meltrout_157_warmelt_genobj_ENDMATCH_GOTOINSTR (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
-						xargdescr_[],
-						union meltparam_un *xargtab_,
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
 						const melt_argdescr_cell_t
-						xresdescr_[],
-						union meltparam_un *xrestab_);
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_158_warmelt_genobj_TESTMATCH_GOTOINSTR (meltclosure_ptr_t closp_,
-						 melt_ptr_t firstargp_,
+meltrout_158_warmelt_genobj_TESTMATCH_GOTOINSTR (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
 						 const melt_argdescr_cell_t
-						 xargdescr_[],
-						 union meltparam_un *xargtab_,
-						 const melt_argdescr_cell_t
-						 xresdescr_[],
+						 meltxargdescr_[],
 						 union meltparam_un
-						 *xrestab_);
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_159_warmelt_genobj_NORMTESTER_FREE_OBJLOC_LIST (meltclosure_ptr_t
-							 closp_,
+							 meltclosp_,
 							 melt_ptr_t
-							 firstargp_,
+							 meltfirstargp_,
 							 const
 							 melt_argdescr_cell_t
-							 xargdescr_[],
+							 meltxargdescr_[],
 							 union meltparam_un
-							 *xargtab_,
+							 *meltxargtab_,
 							 const
 							 melt_argdescr_cell_t
-							 xresdescr_[],
+							 meltxresdescr_[],
 							 union meltparam_un
-							 *xrestab_);
+							 *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_160_warmelt_genobj_LAMBDA___52__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_160_warmelt_genobj_LAMBDA___52__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_161_warmelt_genobj_COMPILTST_NORMTESTER_ANY (meltclosure_ptr_t
-						      closp_,
-						      melt_ptr_t firstargp_,
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
 						      const
 						      melt_argdescr_cell_t
-						      xargdescr_[],
+						      meltxargdescr_[],
 						      union meltparam_un
-						      *xargtab_,
+						      *meltxargtab_,
 						      const
 						      melt_argdescr_cell_t
-						      xresdescr_[],
+						      meltxresdescr_[],
 						      union meltparam_un
-						      *xrestab_);
+						      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_162_warmelt_genobj_COMPILTST_NORMTESTER_MATCHER (meltclosure_ptr_t
-							  closp_,
+							  meltclosp_,
 							  melt_ptr_t
-							  firstargp_,
+							  meltfirstargp_,
 							  const
 							  melt_argdescr_cell_t
-							  xargdescr_[],
+							  meltxargdescr_[],
 							  union meltparam_un
-							  *xargtab_,
+							  *meltxargtab_,
 							  const
 							  melt_argdescr_cell_t
-							  xresdescr_[],
+							  meltxresdescr_[],
 							  union meltparam_un
-							  *xrestab_);
+							  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_163_warmelt_genobj_COMPILTST_NORMTESTER_INSTANCE (meltclosure_ptr_t
-							   closp_,
+							   meltclosp_,
 							   melt_ptr_t
-							   firstargp_,
+							   meltfirstargp_,
 							   const
 							   melt_argdescr_cell_t
-							   xargdescr_[],
+							   meltxargdescr_[],
 							   union meltparam_un
-							   *xargtab_,
+							   *meltxargtab_,
 							   const
 							   melt_argdescr_cell_t
-							   xresdescr_[],
+							   meltxresdescr_[],
 							   union meltparam_un
-							   *xrestab_);
+							   *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_164_warmelt_genobj_COMPILTST_NORMTESTER_SAME (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un
-						       *xargtab_,
+						       *meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un
-						       *xrestab_);
+						       *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_165_warmelt_genobj_COMPILTST_NORMTESTER_SUCCESS (meltclosure_ptr_t
-							  closp_,
+							  meltclosp_,
 							  melt_ptr_t
-							  firstargp_,
+							  meltfirstargp_,
 							  const
 							  melt_argdescr_cell_t
-							  xargdescr_[],
+							  meltxargdescr_[],
 							  union meltparam_un
-							  *xargtab_,
+							  *meltxargtab_,
 							  const
 							  melt_argdescr_cell_t
-							  xresdescr_[],
+							  meltxresdescr_[],
 							  union meltparam_un
-							  *xrestab_);
+							  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_166_warmelt_genobj_COMPILTST_NORMTESTER_ORCLEAR (meltclosure_ptr_t
-							  closp_,
+							  meltclosp_,
 							  melt_ptr_t
-							  firstargp_,
+							  meltfirstargp_,
 							  const
 							  melt_argdescr_cell_t
-							  xargdescr_[],
+							  meltxargdescr_[],
 							  union meltparam_un
-							  *xargtab_,
+							  *meltxargtab_,
 							  const
 							  melt_argdescr_cell_t
-							  xresdescr_[],
+							  meltxresdescr_[],
 							  union meltparam_un
-							  *xrestab_);
+							  *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_167_warmelt_genobj_COMPILTST_NORMTESTER_ORTRANSMIT (meltclosure_ptr_t
-							     closp_,
+							     meltclosp_,
 							     melt_ptr_t
-							     firstargp_,
+							     meltfirstargp_,
 							     const
 							     melt_argdescr_cell_t
-							     xargdescr_[],
+							     meltxargdescr_[],
 							     union
 							     meltparam_un
-							     *xargtab_,
+							     *meltxargtab_,
 							     const
 							     melt_argdescr_cell_t
-							     xresdescr_[],
+							     meltxresdescr_[],
 							     union
 							     meltparam_un
-							     *xrestab_);
+							     *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_168_warmelt_genobj_COMPILTST_NORMTESTER_DISJUNCTION
-(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
-union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+(meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
+union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
+union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_169_warmelt_genobj_COMPILMATCHER_CMATCHER (meltclosure_ptr_t closp_,
-						    melt_ptr_t firstargp_,
+meltrout_169_warmelt_genobj_COMPILMATCHER_CMATCHER (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
 						    const melt_argdescr_cell_t
-						    xargdescr_[],
+						    meltxargdescr_[],
 						    union meltparam_un
-						    *xargtab_,
+						    *meltxargtab_,
 						    const melt_argdescr_cell_t
-						    xresdescr_[],
+						    meltxresdescr_[],
 						    union meltparam_un
-						    *xrestab_);
+						    *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_170_warmelt_genobj_LAMBDA___53__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_170_warmelt_genobj_LAMBDA___53__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_171_warmelt_genobj_LAMBDA___54__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_171_warmelt_genobj_LAMBDA___54__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_172_warmelt_genobj_LAMBDA___55__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_172_warmelt_genobj_LAMBDA___55__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_173_warmelt_genobj_LAMBDA___56__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_173_warmelt_genobj_LAMBDA___56__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_174_warmelt_genobj_COMPILMATCHER_FUNMATCHER (meltclosure_ptr_t
-						      closp_,
-						      melt_ptr_t firstargp_,
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
 						      const
 						      melt_argdescr_cell_t
-						      xargdescr_[],
+						      meltxargdescr_[],
 						      union meltparam_un
-						      *xargtab_,
+						      *meltxargtab_,
 						      const
 						      melt_argdescr_cell_t
-						      xresdescr_[],
+						      meltxresdescr_[],
 						      union meltparam_un
-						      *xrestab_);
+						      *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_175_warmelt_genobj_LAMBDA___57__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_175_warmelt_genobj_LAMBDA___57__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_176_warmelt_genobj_LAMBDA___58__ (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
+meltrout_176_warmelt_genobj_LAMBDA___58__ (meltclosure_ptr_t meltclosp_,
+					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
+					   meltxargdescr_[],
+					   union meltparam_un *meltxargtab_,
 					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
+					   meltxresdescr_[],
+					   union meltparam_un *meltxrestab_);
 
 
 void *start_module_melt (void *);
@@ -2680,16 +2807,17 @@ static void forward_or_mark_module_start_frame_warmelt_genobj (struct
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP (meltclosure_ptr_t closp_,
-						   melt_ptr_t firstargp_,
+meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP (meltclosure_ptr_t
+						   meltclosp_,
+						   melt_ptr_t meltfirstargp_,
 						   const melt_argdescr_cell_t
-						   xargdescr_[],
+						   meltxargdescr_[],
 						   union meltparam_un
-						   *xargtab_,
+						   *meltxargtab_,
 						   const melt_argdescr_cell_t
-						   xresdescr_[],
+						   meltxresdescr_[],
 						   union meltparam_un
-						   *xrestab_)
+						   *meltxrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -2719,21 +2847,21 @@ meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP (meltclosure_ptr_t closp_,
 /*others*/
     long _spare_;
   }
-   *framptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;
 #define meltframe meltfram__
-  if (MELT_UNLIKELY (xargdescr_ == MELTPAR_MARKGGC))
+  if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      framptr_ = (void *) firstargp_;
-      gt_ggc_mx_melt_un (framptr_->mcfr_clos);
+      meltframptr_ = (void *) meltfirstargp_;
+      gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 12; ix++)
-	if (framptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
+	if (meltframptr_->mcfr_varptr[ix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
   meltfram__.mcfr_nbvar = 12;
-  meltfram__.mcfr_clos = closp_;
+  meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
   melt_trace_start ("COMPILOBJ_CATCHALL_NREP", meltcallcount);
@@ -2741,14 +2869,14 @@ meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP (meltclosure_ptr_t closp_,
 
   /*getarg#0 */
   MELT_LOCATION ("warmelt-genobj.melt:683:/ getarg");
- /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) firstargp_;
+ /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
   /*^getarg */
-  if (xargdescr_[0] != MELTBPAR_PTR)
+  if (meltxargdescr_[0] != MELTBPAR_PTR)
     goto lab_endgetargs;
  /*_.GCX__V3*/ meltfptr[2] =
-    (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
+    (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.GCX__V3*/ meltfptr[2])) != NULL);
 
   ;
@@ -2966,18 +3094,19 @@ labend_rout:
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE (meltclosure_ptr_t
-						       closp_,
-						       melt_ptr_t firstargp_,
+						       meltclosp_,
+						       melt_ptr_t
+						       meltfirstargp_,
 						       const
 						       melt_argdescr_cell_t
-						       xargdescr_[],
+						       meltxargdescr_[],
 						       union meltparam_un *
-						       xargtab_,
+						       meltxargtab_,
 						       const
 						       melt_argdescr_cell_t
-						       xresdescr_[],
+						       meltxresdescr_[],
 						       union meltparam_un *
-						       xrestab_)
+						       meltxrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -3007,21 +3136,21 @@ meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *framptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;
 #define meltframe meltfram__
-  if (MELT_UNLIKELY (xargdescr_ == MELTPAR_MARKGGC))
+  if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      framptr_ = (void *) firstargp_;
-      gt_ggc_mx_melt_un (framptr_->mcfr_clos);
+      meltframptr_ = (void *) meltfirstargp_;
+      gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 12; ix++)
-	if (framptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
+	if (meltframptr_->mcfr_varptr[ix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
   meltfram__.mcfr_nbvar = 12;
-  meltfram__.mcfr_clos = closp_;
+  meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
   melt_trace_start ("PUTOBJDEST_CATCHALL_OBJCODE", meltcallcount);
@@ -3029,14 +3158,14 @@ meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE (meltclosure_ptr_t
 
   /*getarg#0 */
   MELT_LOCATION ("warmelt-genobj.melt:694:/ getarg");
- /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) firstargp_;
+ /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
   /*^getarg */
-  if (xargdescr_[0] != MELTBPAR_PTR)
+  if (meltxargdescr_[0] != MELTBPAR_PTR)
     goto lab_endgetargs;
  /*_.DESTO__V3*/ meltfptr[2] =
-    (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
+    (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.DESTO__V3*/ meltfptr[2])) !=
 	      NULL);
 
@@ -3255,18 +3384,19 @@ labend_rout:
 
 melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR (meltclosure_ptr_t
-							closp_,
-							melt_ptr_t firstargp_,
+							meltclosp_,
+							melt_ptr_t
+							meltfirstargp_,
 							const
 							melt_argdescr_cell_t
-							xargdescr_[],
+							meltxargdescr_[],
 							union meltparam_un *
-							xargtab_,
+							meltxargtab_,
 							const
 							melt_argdescr_cell_t
-							xresdescr_[],
+							meltxresdescr_[],
 							union meltparam_un *
-							xrestab_)
+							meltxrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -3296,21 +3426,21 @@ meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR (meltclosure_ptr_t
 /*others*/
     long _spare_;
   }
-   *framptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;
 #define meltframe meltfram__
-  if (MELT_UNLIKELY (xargdescr_ == MELTPAR_MARKGGC))
+  if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      framptr_ = (void *) firstargp_;
-      gt_ggc_mx_melt_un (framptr_->mcfr_clos);
+      meltframptr_ = (void *) meltfirstargp_;
+      gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 12; ix++)
-	if (framptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
+	if (meltframptr_->mcfr_varptr[ix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
   meltfram__.mcfr_nbvar = 12;
-  meltfram__.mcfr_clos = closp_;
+  meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
   melt_trace_start ("PUTOBJDEST_CATCHALL_ANYDISCR", meltcallcount);
@@ -3318,14 +3448,14 @@ meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR (meltclosure_ptr_t
 
   /*getarg#0 */
   MELT_LOCATION ("warmelt-genobj.melt:706:/ getarg");
- /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) firstargp_;
+ /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
   /*^getarg */
-  if (xargdescr_[0] != MELTBPAR_PTR)
+  if (meltxargdescr_[0] != MELTBPAR_PTR)
     goto lab_endgetargs;
  /*_.DESTO__V3*/ meltfptr[2] =
-    (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
+    (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.DESTO__V3*/ meltfptr[2])) !=
 	      NULL);
 
@@ -3550,14 +3680,16 @@ labend_rout:
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
+meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
 					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un * xargtab_,
+					     meltxargdescr_[],
+					     union meltparam_un *
+					     meltxargtab_,
 					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un * xrestab_)
+					     meltxresdescr_[],
+					     union meltparam_un *
+					     meltxrestab_)
 {
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -3587,21 +3719,21 @@ meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE (meltclosure_ptr_t closp_,
 /*others*/
     long _spare_;
   }
-   *framptr_ = 0, meltfram__;
+   *meltframptr_ = 0, meltfram__;
 #define meltframe meltfram__
-  if (MELT_UNLIKELY (xargdescr_ == MELTPAR_MARKGGC))
+  if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      framptr_ = (void *) firstargp_;
-      gt_ggc_mx_melt_un (framptr_->mcfr_clos);
+      meltframptr_ = (void *) meltfirstargp_;
+      gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 6; ix++)
-	if (framptr_->mcfr_varptr[ix])
-	  gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
+	if (meltframptr_->mcfr_varptr[ix])
+	  gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
   meltfram__.mcfr_nbvar = 6;
-  meltfram__.mcfr_clos = closp_;
+  meltfram__.mcfr_clos = meltclosp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
   melt_trace_start ("GETCTYPE_OBJVALUE", meltcallcount);
@@ -3609,14 +3741,14 @@ meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE (meltclosure_ptr_t closp_,
 
   /*getarg#0 */
   MELT_LOCATION ("warmelt-genobj.melt:718:/ getarg");
- /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) firstargp_;
+ /*_.RECV__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
   /*^getarg */
-  if (xargdescr_[0] != MELTBPAR_PTR)
+  if (meltxargdescr_[0] != MELTBPAR_PTR)
     goto lab_endgetargs;
  /*_.ENV__V3*/ meltfptr[2] =
-    (xargtab_[0].meltbp_aptr) ? (*(xargtab_[0].meltbp_aptr)) : NULL;
+    (meltxargtab_[0].meltbp_aptr) ? (*(meltxargtab_[0].meltbp_aptr)) : NULL;
   gcc_assert (melt_discr ((melt_ptr_t) ( /*_.ENV__V3*/ meltfptr[2])) != NULL);
 
   ;
@@ -3752,7 +3884,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   dbgprintf ("start initialize_module_meltdata_warmelt_genobj iniframp__=%p",
 	     (void *) iniframp__);
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -2129);
+		  iniframp__->mcfr_nbvar == /*minihash */ -3770);
 
   struct cdata_st
   {
@@ -5515,7 +5647,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_5__CLASS_OBJVALUE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_5__CLASS_OBJVALUE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_5__CLASS_OBJVALUE.obj_hash = 203943869;
+  cdat->dobj_5__CLASS_OBJVALUE.obj_hash = 589134544;
   cdat->dobj_5__CLASS_OBJVALUE.obj_len = 8;
 
 
@@ -5579,7 +5711,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_11__OBV_TYPE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_11__OBV_TYPE.obj_num = 0;
-  cdat->dobj_11__OBV_TYPE.obj_hash = 268111995;
+  cdat->dobj_11__OBV_TYPE.obj_hash = 788875106;
   cdat->dobj_11__OBV_TYPE.obj_len = 4;
 
 
@@ -5635,7 +5767,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_15__CLASS_OBJPUREVALUE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_15__CLASS_OBJPUREVALUE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_15__CLASS_OBJPUREVALUE.obj_hash = 110947319;
+  cdat->dobj_15__CLASS_OBJPUREVALUE.obj_hash = 501569761;
   cdat->dobj_15__CLASS_OBJPUREVALUE.obj_len = 8;
 
 
@@ -5704,7 +5836,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_21__CLASS_OBJLOCV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_21__CLASS_OBJLOCV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_21__CLASS_OBJLOCV.obj_hash = 483138384;
+  cdat->dobj_21__CLASS_OBJLOCV.obj_hash = 1021549486;
   cdat->dobj_21__CLASS_OBJLOCV.obj_len = 8;
 
 
@@ -5768,7 +5900,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_27__OBL_OFF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_27__OBL_OFF.obj_num = 1;
-  cdat->dobj_27__OBL_OFF.obj_hash = 696359606;
+  cdat->dobj_27__OBL_OFF.obj_hash = 772221282;
   cdat->dobj_27__OBL_OFF.obj_len = 4;
 
 
@@ -5820,7 +5952,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_31__OBL_PROC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_31__OBL_PROC.obj_num = 2;
-  cdat->dobj_31__OBL_PROC.obj_hash = 1021549486;
+  cdat->dobj_31__OBL_PROC.obj_hash = 672629479;
   cdat->dobj_31__OBL_PROC.obj_len = 4;
 
 
@@ -5872,7 +6004,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_35__OBL_CNAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_35__OBL_CNAME.obj_num = 3;
-  cdat->dobj_35__OBL_CNAME.obj_hash = 772221282;
+  cdat->dobj_35__OBL_CNAME.obj_hash = 664734378;
   cdat->dobj_35__OBL_CNAME.obj_len = 4;
 
 
@@ -5928,7 +6060,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_39__CLASS_OBJCLOCCV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_39__CLASS_OBJCLOCCV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_39__CLASS_OBJCLOCCV.obj_hash = 345098903;
+  cdat->dobj_39__CLASS_OBJCLOCCV.obj_hash = 797066673;
   cdat->dobj_39__CLASS_OBJCLOCCV.obj_len = 8;
 
 
@@ -5995,7 +6127,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_45__OBC_OFF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_45__OBC_OFF.obj_num = 1;
-  cdat->dobj_45__OBC_OFF.obj_hash = 703607725;
+  cdat->dobj_45__OBC_OFF.obj_hash = 626289868;
   cdat->dobj_45__OBC_OFF.obj_len = 4;
 
 
@@ -6047,7 +6179,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_49__OBC_PROC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_49__OBC_PROC.obj_num = 2;
-  cdat->dobj_49__OBC_PROC.obj_hash = 797066673;
+  cdat->dobj_49__OBC_PROC.obj_hash = 768752361;
   cdat->dobj_49__OBC_PROC.obj_len = 4;
 
 
@@ -6099,7 +6231,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_53__OBC_NAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_53__OBC_NAME.obj_num = 3;
-  cdat->dobj_53__OBC_NAME.obj_hash = 626289868;
+  cdat->dobj_53__OBC_NAME.obj_hash = 775752978;
   cdat->dobj_53__OBC_NAME.obj_len = 4;
 
 
@@ -6155,7 +6287,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_57__CLASS_OBJCONSTV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_57__CLASS_OBJCONSTV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_57__CLASS_OBJCONSTV.obj_hash = 417911111;
+  cdat->dobj_57__CLASS_OBJCONSTV.obj_hash = 930359515;
   cdat->dobj_57__CLASS_OBJCONSTV.obj_len = 8;
 
 
@@ -6226,7 +6358,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_63__CLASS_OBJPREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_63__CLASS_OBJPREDEF.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_63__CLASS_OBJPREDEF.obj_hash = 237078128;
+  cdat->dobj_63__CLASS_OBJPREDEF.obj_hash = 792235324;
   cdat->dobj_63__CLASS_OBJPREDEF.obj_len = 8;
 
 
@@ -6293,7 +6425,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_69__OBPREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_69__OBPREDEF.obj_num = 1;
-  cdat->dobj_69__OBPREDEF.obj_hash = 10159089;
+  cdat->dobj_69__OBPREDEF.obj_hash = 485691946;
   cdat->dobj_69__OBPREDEF.obj_len = 4;
 
 
@@ -6346,7 +6478,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_73__CLASS_OBJNIL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_73__CLASS_OBJNIL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_73__CLASS_OBJNIL.obj_hash = 999261840;
+  cdat->dobj_73__CLASS_OBJNIL.obj_hash = 1026422379;
   cdat->dobj_73__CLASS_OBJNIL.obj_len = 8;
 
 
@@ -6413,7 +6545,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_79__CLASS_OBJINITELEM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_79__CLASS_OBJINITELEM.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_79__CLASS_OBJINITELEM.obj_hash = 480878529;
+  cdat->dobj_79__CLASS_OBJINITELEM.obj_hash = 925077070;
   cdat->dobj_79__CLASS_OBJINITELEM.obj_len = 8;
 
 
@@ -6480,7 +6612,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_85__OIE_CNAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_85__OIE_CNAME.obj_num = 1;
-  cdat->dobj_85__OIE_CNAME.obj_hash = 304778261;
+  cdat->dobj_85__OIE_CNAME.obj_hash = 720483980;
   cdat->dobj_85__OIE_CNAME.obj_len = 4;
 
 
@@ -6532,7 +6664,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_89__OIE_DATA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_89__OIE_DATA.obj_num = 2;
-  cdat->dobj_89__OIE_DATA.obj_hash = 925077070;
+  cdat->dobj_89__OIE_DATA.obj_hash = 477292807;
   cdat->dobj_89__OIE_DATA.obj_len = 4;
 
 
@@ -6584,7 +6716,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_93__OIE_DISCR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_93__OIE_DISCR.obj_num = 3;
-  cdat->dobj_93__OIE_DISCR.obj_hash = 720483980;
+  cdat->dobj_93__OIE_DISCR.obj_hash = 679921786;
   cdat->dobj_93__OIE_DISCR.obj_len = 4;
 
 
@@ -6636,7 +6768,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_97__OIE_LOCVAR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_97__OIE_LOCVAR.obj_num = 4;
-  cdat->dobj_97__OIE_LOCVAR.obj_hash = 477292807;
+  cdat->dobj_97__OIE_LOCVAR.obj_hash = 994903419;
   cdat->dobj_97__OIE_LOCVAR.obj_len = 4;
 
 
@@ -6692,7 +6824,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_101__CLASS_OBJINITOBJECT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_101__CLASS_OBJINITOBJECT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_101__CLASS_OBJINITOBJECT.obj_hash = 861993913;
+  cdat->dobj_101__CLASS_OBJINITOBJECT.obj_hash = 572043374;
   cdat->dobj_101__CLASS_OBJINITOBJECT.obj_len = 8;
 
 
@@ -6759,7 +6891,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_107__OIO_PREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_107__OIO_PREDEF.obj_num = 5;
-  cdat->dobj_107__OIO_PREDEF.obj_hash = 503974415;
+  cdat->dobj_107__OIO_PREDEF.obj_hash = 295286112;
   cdat->dobj_107__OIO_PREDEF.obj_len = 4;
 
 
@@ -6811,7 +6943,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_111__OIO_CLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_111__OIO_CLASS.obj_num = 6;
-  cdat->dobj_111__OIO_CLASS.obj_hash = 572043374;
+  cdat->dobj_111__OIO_CLASS.obj_hash = 751356166;
   cdat->dobj_111__OIO_CLASS.obj_len = 4;
 
 
@@ -6869,7 +7001,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_115__CLASS_OBJINITUNIQUEOBJECT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_115__CLASS_OBJINITUNIQUEOBJECT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_115__CLASS_OBJINITUNIQUEOBJECT.obj_hash = 789951024;
+  cdat->dobj_115__CLASS_OBJINITUNIQUEOBJECT.obj_hash = 157640867;
   cdat->dobj_115__CLASS_OBJINITUNIQUEOBJECT.obj_len = 8;
 
 
@@ -6942,7 +7074,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_121__CLASS_OBJINITMULTIPLE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_121__CLASS_OBJINITMULTIPLE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_121__CLASS_OBJINITMULTIPLE.obj_hash = 481576420;
+  cdat->dobj_121__CLASS_OBJINITMULTIPLE.obj_hash = 94165574;
   cdat->dobj_121__CLASS_OBJINITMULTIPLE.obj_len = 8;
 
 
@@ -7009,7 +7141,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_127__OIM_TUPVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_127__OIM_TUPVAL.obj_num = 5;
-  cdat->dobj_127__OIM_TUPVAL.obj_hash = 886887030;
+  cdat->dobj_127__OIM_TUPVAL.obj_hash = 52545819;
   cdat->dobj_127__OIM_TUPVAL.obj_len = 4;
 
 
@@ -7065,7 +7197,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_131__CLASS_OBJINITCLOSURE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_131__CLASS_OBJINITCLOSURE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_131__CLASS_OBJINITCLOSURE.obj_hash = 100706129;
+  cdat->dobj_131__CLASS_OBJINITCLOSURE.obj_hash = 367424600;
   cdat->dobj_131__CLASS_OBJINITCLOSURE.obj_len = 8;
 
 
@@ -7132,7 +7264,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_137__OICLO_ROUT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_137__OICLO_ROUT.obj_num = 5;
-  cdat->dobj_137__OICLO_ROUT.obj_hash = 195106823;
+  cdat->dobj_137__OICLO_ROUT.obj_hash = 461922157;
   cdat->dobj_137__OICLO_ROUT.obj_len = 4;
 
 
@@ -7188,7 +7320,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_141__CLASS_OBJINITROUTINE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_141__CLASS_OBJINITROUTINE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_141__CLASS_OBJINITROUTINE.obj_hash = 318386971;
+  cdat->dobj_141__CLASS_OBJINITROUTINE.obj_hash = 1031159530;
   cdat->dobj_141__CLASS_OBJINITROUTINE.obj_len = 8;
 
 
@@ -7259,7 +7391,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_147__OIR_PROCROUTINE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_147__OIR_PROCROUTINE.obj_num = 5;
-  cdat->dobj_147__OIR_PROCROUTINE.obj_hash = 911933002;
+  cdat->dobj_147__OIR_PROCROUTINE.obj_hash = 173024242;
   cdat->dobj_147__OIR_PROCROUTINE.obj_len = 4;
 
 
@@ -7318,7 +7450,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_151__CLASS_OBJINITSTRING.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_151__CLASS_OBJINITSTRING.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_151__CLASS_OBJINITSTRING.obj_hash = 973042268;
+  cdat->dobj_151__CLASS_OBJINITSTRING.obj_hash = 646747581;
   cdat->dobj_151__CLASS_OBJINITSTRING.obj_len = 8;
 
 
@@ -7389,7 +7521,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_157__CLASS_OBJINITPAIR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_157__CLASS_OBJINITPAIR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_157__CLASS_OBJINITPAIR.obj_hash = 899155945;
+  cdat->dobj_157__CLASS_OBJINITPAIR.obj_hash = 942424873;
   cdat->dobj_157__CLASS_OBJINITPAIR.obj_len = 8;
 
 
@@ -7460,7 +7592,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_163__CLASS_OBJINITLIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_163__CLASS_OBJINITLIST.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_163__CLASS_OBJINITLIST.obj_hash = 776421;
+  cdat->dobj_163__CLASS_OBJINITLIST.obj_hash = 628260630;
   cdat->dobj_163__CLASS_OBJINITLIST.obj_len = 8;
 
 
@@ -7533,7 +7665,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_169__CLASS_OBJINITBOXINTEGER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_169__CLASS_OBJINITBOXINTEGER.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_169__CLASS_OBJINITBOXINTEGER.obj_hash = 119006455;
+  cdat->dobj_169__CLASS_OBJINITBOXINTEGER.obj_hash = 438854355;
   cdat->dobj_169__CLASS_OBJINITBOXINTEGER.obj_len = 8;
 
 
@@ -7603,7 +7735,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_175__CLASS_OBJEXPV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_175__CLASS_OBJEXPV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_175__CLASS_OBJEXPV.obj_hash = 976268126;
+  cdat->dobj_175__CLASS_OBJEXPV.obj_hash = 245291434;
   cdat->dobj_175__CLASS_OBJEXPV.obj_len = 8;
 
 
@@ -7667,7 +7799,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_181__OBX_CONT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_181__OBX_CONT.obj_num = 1;
-  cdat->dobj_181__OBX_CONT.obj_hash = 710255612;
+  cdat->dobj_181__OBX_CONT.obj_hash = 28192605;
   cdat->dobj_181__OBX_CONT.obj_len = 4;
 
 
@@ -7723,7 +7855,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_185__CLASS_OBJLOCATEDEXPV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_185__CLASS_OBJLOCATEDEXPV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_185__CLASS_OBJLOCATEDEXPV.obj_hash = 555272118;
+  cdat->dobj_185__CLASS_OBJLOCATEDEXPV.obj_hash = 266363499;
   cdat->dobj_185__CLASS_OBJLOCATEDEXPV.obj_len = 8;
 
 
@@ -7790,7 +7922,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_191__OBCX_LOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_191__OBCX_LOC.obj_num = 2;
-  cdat->dobj_191__OBCX_LOC.obj_hash = 1051995606;
+  cdat->dobj_191__OBCX_LOC.obj_hash = 382358542;
   cdat->dobj_191__OBCX_LOC.obj_len = 4;
 
 
@@ -7846,7 +7978,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_195__CLASS_OBJINSTR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_195__CLASS_OBJINSTR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_195__CLASS_OBJINSTR.obj_hash = 117214788;
+  cdat->dobj_195__CLASS_OBJINSTR.obj_hash = 1063321260;
   cdat->dobj_195__CLASS_OBJINSTR.obj_len = 8;
 
 
@@ -7913,7 +8045,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_201__OBI_LOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_201__OBI_LOC.obj_num = 0;
-  cdat->dobj_201__OBI_LOC.obj_hash = 550379251;
+  cdat->dobj_201__OBI_LOC.obj_hash = 735515728;
   cdat->dobj_201__OBI_LOC.obj_len = 4;
 
 
@@ -7971,7 +8103,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_205__CLASS_OBJCOMMENTINSTR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_205__CLASS_OBJCOMMENTINSTR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_205__CLASS_OBJCOMMENTINSTR.obj_hash = 285493878;
+  cdat->dobj_205__CLASS_OBJCOMMENTINSTR.obj_hash = 506941225;
   cdat->dobj_205__CLASS_OBJCOMMENTINSTR.obj_len = 8;
 
 
@@ -8040,7 +8172,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_211__OBCI_COMMENT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_211__OBCI_COMMENT.obj_num = 1;
-  cdat->dobj_211__OBCI_COMMENT.obj_hash = 920268740;
+  cdat->dobj_211__OBCI_COMMENT.obj_hash = 585085440;
   cdat->dobj_211__OBCI_COMMENT.obj_len = 4;
 
 
@@ -8098,7 +8230,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_215__CLASS_OBJDESTINSTR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_215__CLASS_OBJDESTINSTR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_215__CLASS_OBJDESTINSTR.obj_hash = 419147679;
+  cdat->dobj_215__CLASS_OBJDESTINSTR.obj_hash = 886485262;
   cdat->dobj_215__CLASS_OBJDESTINSTR.obj_len = 8;
 
 
@@ -8168,7 +8300,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_221__OBDI_DESTLIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_221__OBDI_DESTLIST.obj_num = 1;
-  cdat->dobj_221__OBDI_DESTLIST.obj_hash = 72090861;
+  cdat->dobj_221__OBDI_DESTLIST.obj_hash = 858216733;
   cdat->dobj_221__OBDI_DESTLIST.obj_len = 4;
 
 
@@ -8226,7 +8358,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_225__CLASS_OBJCOMPUTE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_225__CLASS_OBJCOMPUTE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_225__CLASS_OBJCOMPUTE.obj_hash = 713510148;
+  cdat->dobj_225__CLASS_OBJCOMPUTE.obj_hash = 304926952;
   cdat->dobj_225__CLASS_OBJCOMPUTE.obj_len = 8;
 
 
@@ -8293,7 +8425,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_231__OBCPT_EXPR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_231__OBCPT_EXPR.obj_num = 2;
-  cdat->dobj_231__OBCPT_EXPR.obj_hash = 364825112;
+  cdat->dobj_231__OBCPT_EXPR.obj_hash = 910558764;
   cdat->dobj_231__OBCPT_EXPR.obj_len = 4;
 
 
@@ -8349,7 +8481,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_235__CLASS_OBJGETARG.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_235__CLASS_OBJGETARG.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_235__CLASS_OBJGETARG.obj_hash = 182280497;
+  cdat->dobj_235__CLASS_OBJGETARG.obj_hash = 125567650;
   cdat->dobj_235__CLASS_OBJGETARG.obj_len = 8;
 
 
@@ -8417,7 +8549,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_241__OBARG_OBLOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_241__OBARG_OBLOC.obj_num = 1;
-  cdat->dobj_241__OBARG_OBLOC.obj_hash = 235446908;
+  cdat->dobj_241__OBARG_OBLOC.obj_hash = 17773983;
   cdat->dobj_241__OBARG_OBLOC.obj_len = 4;
 
 
@@ -8470,7 +8602,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_245__OBARG_BIND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_245__OBARG_BIND.obj_num = 2;
-  cdat->dobj_245__OBARG_BIND.obj_hash = 125567650;
+  cdat->dobj_245__OBARG_BIND.obj_hash = 240530676;
   cdat->dobj_245__OBARG_BIND.obj_len = 4;
 
 
@@ -8526,7 +8658,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_249__CLASS_OBJGETARGREST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_249__CLASS_OBJGETARGREST.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_249__CLASS_OBJGETARGREST.obj_hash = 928135361;
+  cdat->dobj_249__CLASS_OBJGETARGREST.obj_hash = 684212109;
   cdat->dobj_249__CLASS_OBJGETARGREST.obj_len = 8;
 
 
@@ -8593,7 +8725,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_255__OBARG_REST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_255__OBARG_REST.obj_num = 3;
-  cdat->dobj_255__OBARG_REST.obj_hash = 203743055;
+  cdat->dobj_255__OBARG_REST.obj_hash = 214343604;
   cdat->dobj_255__OBARG_REST.obj_len = 4;
 
 
@@ -8651,7 +8783,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_259__CLASS_OBJPUTXTRARESULT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_259__CLASS_OBJPUTXTRARESULT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_259__CLASS_OBJPUTXTRARESULT.obj_hash = 238719935;
+  cdat->dobj_259__CLASS_OBJPUTXTRARESULT.obj_hash = 586991451;
   cdat->dobj_259__CLASS_OBJPUTXTRARESULT.obj_len = 8;
 
 
@@ -8719,7 +8851,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_265__OBXRES_RANK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_265__OBXRES_RANK.obj_num = 1;
-  cdat->dobj_265__OBXRES_RANK.obj_hash = 826931219;
+  cdat->dobj_265__OBXRES_RANK.obj_hash = 640082365;
   cdat->dobj_265__OBXRES_RANK.obj_len = 4;
 
 
@@ -8774,7 +8906,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_269__OBXRES_OBLOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_269__OBXRES_OBLOC.obj_num = 2;
-  cdat->dobj_269__OBXRES_OBLOC.obj_hash = 586991451;
+  cdat->dobj_269__OBXRES_OBLOC.obj_hash = 849645095;
   cdat->dobj_269__OBXRES_OBLOC.obj_len = 4;
 
 
@@ -8832,7 +8964,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_273__CLASS_OBJFINALRETURN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_273__CLASS_OBJFINALRETURN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_273__CLASS_OBJFINALRETURN.obj_hash = 61148572;
+  cdat->dobj_273__CLASS_OBJFINALRETURN.obj_hash = 756616969;
   cdat->dobj_273__CLASS_OBJFINALRETURN.obj_len = 8;
 
 
@@ -8903,7 +9035,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_279__CLASS_OBJCLEAR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_279__CLASS_OBJCLEAR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_279__CLASS_OBJCLEAR.obj_hash = 810011307;
+  cdat->dobj_279__CLASS_OBJCLEAR.obj_hash = 505148623;
   cdat->dobj_279__CLASS_OBJCLEAR.obj_len = 8;
 
 
@@ -8970,7 +9102,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_285__OCLR_VLOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_285__OCLR_VLOC.obj_num = 1;
-  cdat->dobj_285__OCLR_VLOC.obj_hash = 280481910;
+  cdat->dobj_285__OCLR_VLOC.obj_hash = 96586007;
   cdat->dobj_285__OCLR_VLOC.obj_len = 4;
 
 
@@ -9026,7 +9158,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_289__CLASS_OBJANYBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_289__CLASS_OBJANYBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_289__CLASS_OBJANYBLOCK.obj_hash = 278936990;
+  cdat->dobj_289__CLASS_OBJANYBLOCK.obj_hash = 673846628;
   cdat->dobj_289__CLASS_OBJANYBLOCK.obj_len = 8;
 
 
@@ -9093,7 +9225,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_295__OBLO_BODYL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_295__OBLO_BODYL.obj_num = 1;
-  cdat->dobj_295__OBLO_BODYL.obj_hash = 637289325;
+  cdat->dobj_295__OBLO_BODYL.obj_hash = 901193008;
   cdat->dobj_295__OBLO_BODYL.obj_len = 4;
 
 
@@ -9145,7 +9277,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_299__OBLO_EPIL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_299__OBLO_EPIL.obj_num = 2;
-  cdat->dobj_299__OBLO_EPIL.obj_hash = 673846628;
+  cdat->dobj_299__OBLO_EPIL.obj_hash = 834578356;
   cdat->dobj_299__OBLO_EPIL.obj_len = 4;
 
 
@@ -9201,7 +9333,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_303__CLASS_OBJPLAINBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_303__CLASS_OBJPLAINBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_303__CLASS_OBJPLAINBLOCK.obj_hash = 605030797;
+  cdat->dobj_303__CLASS_OBJPLAINBLOCK.obj_hash = 93033318;
   cdat->dobj_303__CLASS_OBJPLAINBLOCK.obj_len = 8;
 
 
@@ -9274,7 +9406,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_309__CLASS_OBJMULTIALLOCBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_309__CLASS_OBJMULTIALLOCBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_309__CLASS_OBJMULTIALLOCBLOCK.obj_hash = 876940569;
+  cdat->dobj_309__CLASS_OBJMULTIALLOCBLOCK.obj_hash = 352150662;
   cdat->dobj_309__CLASS_OBJMULTIALLOCBLOCK.obj_len = 8;
 
 
@@ -9345,7 +9477,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_315__OMALBLO_ALLSTRUCT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_315__OMALBLO_ALLSTRUCT.obj_num = 3;
-  cdat->dobj_315__OMALBLO_ALLSTRUCT.obj_hash = 568970505;
+  cdat->dobj_315__OMALBLO_ALLSTRUCT.obj_hash = 846094832;
   cdat->dobj_315__OMALBLO_ALLSTRUCT.obj_len = 4;
 
 
@@ -9402,7 +9534,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_319__OMALBLO_NAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_319__OMALBLO_NAME.obj_num = 4;
-  cdat->dobj_319__OMALBLO_NAME.obj_hash = 352150662;
+  cdat->dobj_319__OMALBLO_NAME.obj_hash = 245161968;
   cdat->dobj_319__OMALBLO_NAME.obj_len = 4;
 
 
@@ -9462,7 +9594,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_323__CLASS_OBJCOMMENTEDBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_323__CLASS_OBJCOMMENTEDBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_323__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 626203829;
+  cdat->dobj_323__CLASS_OBJCOMMENTEDBLOCK.obj_hash = 926879383;
   cdat->dobj_323__CLASS_OBJCOMMENTEDBLOCK.obj_len = 8;
 
 
@@ -9533,7 +9665,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_329__OCOMBLO_COMMENT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_329__OCOMBLO_COMMENT.obj_num = 3;
-  cdat->dobj_329__OCOMBLO_COMMENT.obj_hash = 201823098;
+  cdat->dobj_329__OCOMBLO_COMMENT.obj_hash = 1059136776;
   cdat->dobj_329__OCOMBLO_COMMENT.obj_len = 4;
 
 
@@ -9592,7 +9724,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_333__CLASS_OBJMULTIBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_333__CLASS_OBJMULTIBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_333__CLASS_OBJMULTIBLOCK.obj_hash = 861916232;
+  cdat->dobj_333__CLASS_OBJMULTIBLOCK.obj_hash = 964026492;
   cdat->dobj_333__CLASS_OBJMULTIBLOCK.obj_len = 8;
 
 
@@ -9663,7 +9795,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_339__OMULBLO_SUBCOMP.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_339__OMULBLO_SUBCOMP.obj_num = 3;
-  cdat->dobj_339__OMULBLO_SUBCOMP.obj_hash = 337759382;
+  cdat->dobj_339__OMULBLO_SUBCOMP.obj_hash = 839546897;
   cdat->dobj_339__OMULBLO_SUBCOMP.obj_len = 4;
 
 
@@ -9722,7 +9854,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_343__CLASS_OBJFLAGBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_343__CLASS_OBJFLAGBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_343__CLASS_OBJFLAGBLOCK.obj_hash = 792011284;
+  cdat->dobj_343__CLASS_OBJFLAGBLOCK.obj_hash = 105682131;
   cdat->dobj_343__CLASS_OBJFLAGBLOCK.obj_len = 8;
 
 
@@ -9792,7 +9924,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_349__OFLABLO_FLAGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_349__OFLABLO_FLAGS.obj_num = 3;
-  cdat->dobj_349__OFLABLO_FLAGS.obj_hash = 546832170;
+  cdat->dobj_349__OFLABLO_FLAGS.obj_hash = 384217799;
   cdat->dobj_349__OFLABLO_FLAGS.obj_len = 4;
 
 
@@ -9850,7 +9982,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_353__CLASS_OBJLABELINSTR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_353__CLASS_OBJLABELINSTR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_353__CLASS_OBJLABELINSTR.obj_hash = 2614875;
+  cdat->dobj_353__CLASS_OBJLABELINSTR.obj_hash = 425659376;
   cdat->dobj_353__CLASS_OBJLABELINSTR.obj_len = 8;
 
 
@@ -9919,7 +10051,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_359__OBLAB_PREFIX.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_359__OBLAB_PREFIX.obj_num = 1;
-  cdat->dobj_359__OBLAB_PREFIX.obj_hash = 61842441;
+  cdat->dobj_359__OBLAB_PREFIX.obj_hash = 713022078;
   cdat->dobj_359__OBLAB_PREFIX.obj_len = 4;
 
 
@@ -9973,7 +10105,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_363__OBLAB_RANK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_363__OBLAB_RANK.obj_num = 2;
-  cdat->dobj_363__OBLAB_RANK.obj_hash = 425659376;
+  cdat->dobj_363__OBLAB_RANK.obj_hash = 1042475177;
   cdat->dobj_363__OBLAB_RANK.obj_len = 4;
 
 
@@ -10029,7 +10161,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_367__CLASS_OBJGOTOINSTR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_367__CLASS_OBJGOTOINSTR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_367__CLASS_OBJGOTOINSTR.obj_hash = 940718823;
+  cdat->dobj_367__CLASS_OBJGOTOINSTR.obj_hash = 495591061;
   cdat->dobj_367__CLASS_OBJGOTOINSTR.obj_len = 8;
 
 
@@ -10099,7 +10231,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_373__OBGOTO_PREFIX.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_373__OBGOTO_PREFIX.obj_num = 1;
-  cdat->dobj_373__OBGOTO_PREFIX.obj_hash = 654998094;
+  cdat->dobj_373__OBGOTO_PREFIX.obj_hash = 301194633;
   cdat->dobj_373__OBGOTO_PREFIX.obj_len = 4;
 
 
@@ -10154,7 +10286,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_377__OBGOTO_RANK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_377__OBGOTO_RANK.obj_num = 2;
-  cdat->dobj_377__OBGOTO_RANK.obj_hash = 495591061;
+  cdat->dobj_377__OBGOTO_RANK.obj_hash = 756371965;
   cdat->dobj_377__OBGOTO_RANK.obj_len = 4;
 
 
@@ -10210,7 +10342,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_381__CLASS_OBJLOOP.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_381__CLASS_OBJLOOP.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_381__CLASS_OBJLOOP.obj_hash = 317709599;
+  cdat->dobj_381__CLASS_OBJLOOP.obj_hash = 923732646;
   cdat->dobj_381__CLASS_OBJLOOP.obj_len = 8;
 
 
@@ -10276,7 +10408,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_387__OBLOOP_LABEL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_387__OBLOOP_LABEL.obj_num = 3;
-  cdat->dobj_387__OBLOOP_LABEL.obj_hash = 966667224;
+  cdat->dobj_387__OBLOOP_LABEL.obj_hash = 204963297;
   cdat->dobj_387__OBLOOP_LABEL.obj_len = 4;
 
 
@@ -10331,7 +10463,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_391__OBLOOP_RESV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_391__OBLOOP_RESV.obj_num = 4;
-  cdat->dobj_391__OBLOOP_RESV.obj_hash = 923732646;
+  cdat->dobj_391__OBLOOP_RESV.obj_hash = 240989447;
   cdat->dobj_391__OBLOOP_RESV.obj_len = 4;
 
 
@@ -10387,7 +10519,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_395__CLASS_OBJEXIT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_395__CLASS_OBJEXIT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_395__CLASS_OBJEXIT.obj_hash = 376782486;
+  cdat->dobj_395__CLASS_OBJEXIT.obj_hash = 42321203;
   cdat->dobj_395__CLASS_OBJEXIT.obj_len = 8;
 
 
@@ -10453,7 +10585,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_401__OBEXIT_LABEL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_401__OBEXIT_LABEL.obj_num = 1;
-  cdat->dobj_401__OBEXIT_LABEL.obj_hash = 707556742;
+  cdat->dobj_401__OBEXIT_LABEL.obj_hash = 539749997;
   cdat->dobj_401__OBEXIT_LABEL.obj_len = 4;
 
 
@@ -10511,7 +10643,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_405__CLASS_OBJAGAIN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_405__CLASS_OBJAGAIN.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_405__CLASS_OBJAGAIN.obj_hash = 354155609;
+  cdat->dobj_405__CLASS_OBJAGAIN.obj_hash = 837936096;
   cdat->dobj_405__CLASS_OBJAGAIN.obj_len = 8;
 
 
@@ -10581,7 +10713,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_411__OBAGAIN_LABEL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_411__OBAGAIN_LABEL.obj_num = 1;
-  cdat->dobj_411__OBAGAIN_LABEL.obj_hash = 56163355;
+  cdat->dobj_411__OBAGAIN_LABEL.obj_hash = 374784640;
   cdat->dobj_411__OBAGAIN_LABEL.obj_len = 4;
 
 
@@ -10639,7 +10771,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_415__CLASS_OBJCITERBLOCK.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_415__CLASS_OBJCITERBLOCK.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_415__CLASS_OBJCITERBLOCK.obj_hash = 281231087;
+  cdat->dobj_415__CLASS_OBJCITERBLOCK.obj_hash = 264870404;
   cdat->dobj_415__CLASS_OBJCITERBLOCK.obj_len = 8;
 
 
@@ -10709,7 +10841,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_421__OBCITER_CITER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_421__OBCITER_CITER.obj_num = 3;
-  cdat->dobj_421__OBCITER_CITER.obj_hash = 823241248;
+  cdat->dobj_421__OBCITER_CITER.obj_hash = 763985290;
   cdat->dobj_421__OBCITER_CITER.obj_len = 4;
 
 
@@ -10767,7 +10899,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_425__OBCITER_BEFORE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_425__OBCITER_BEFORE.obj_num = 4;
-  cdat->dobj_425__OBCITER_BEFORE.obj_hash = 264870404;
+  cdat->dobj_425__OBCITER_BEFORE.obj_hash = 911887070;
   cdat->dobj_425__OBCITER_BEFORE.obj_len = 4;
 
 
@@ -10825,7 +10957,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_429__OBCITER_AFTER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_429__OBCITER_AFTER.obj_num = 5;
-  cdat->dobj_429__OBCITER_AFTER.obj_hash = 763985290;
+  cdat->dobj_429__OBCITER_AFTER.obj_hash = 435717692;
   cdat->dobj_429__OBCITER_AFTER.obj_len = 4;
 
 
@@ -10882,7 +11014,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_433__CLASS_OBJCOND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_433__CLASS_OBJCOND.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_433__CLASS_OBJCOND.obj_hash = 849827750;
+  cdat->dobj_433__CLASS_OBJCOND.obj_hash = 868272479;
   cdat->dobj_433__CLASS_OBJCOND.obj_len = 8;
 
 
@@ -10947,7 +11079,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_439__OBCOND_TEST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_439__OBCOND_TEST.obj_num = 1;
-  cdat->dobj_439__OBCOND_TEST.obj_hash = 119846124;
+  cdat->dobj_439__OBCOND_TEST.obj_hash = 906693311;
   cdat->dobj_439__OBCOND_TEST.obj_len = 4;
 
 
@@ -11001,7 +11133,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_443__OBCOND_THEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_443__OBCOND_THEN.obj_num = 2;
-  cdat->dobj_443__OBCOND_THEN.obj_hash = 868272479;
+  cdat->dobj_443__OBCOND_THEN.obj_hash = 896889226;
   cdat->dobj_443__OBCOND_THEN.obj_len = 4;
 
 
@@ -11055,7 +11187,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_447__OBCOND_ELSE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_447__OBCOND_ELSE.obj_num = 3;
-  cdat->dobj_447__OBCOND_ELSE.obj_hash = 906693311;
+  cdat->dobj_447__OBCOND_ELSE.obj_hash = 891541435;
   cdat->dobj_447__OBCOND_ELSE.obj_len = 4;
 
 
@@ -11112,7 +11244,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_451__CLASS_OBJCPPIF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_451__CLASS_OBJCPPIF.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_451__CLASS_OBJCPPIF.obj_hash = 551681765;
+  cdat->dobj_451__CLASS_OBJCPPIF.obj_hash = 672263051;
   cdat->dobj_451__CLASS_OBJCPPIF.obj_len = 8;
 
 
@@ -11179,7 +11311,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_457__OBIFP_COND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_457__OBIFP_COND.obj_num = 1;
-  cdat->dobj_457__OBIFP_COND.obj_hash = 379376497;
+  cdat->dobj_457__OBIFP_COND.obj_hash = 848405642;
   cdat->dobj_457__OBIFP_COND.obj_len = 4;
 
 
@@ -11231,7 +11363,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_461__OBIFP_THEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_461__OBIFP_THEN.obj_num = 2;
-  cdat->dobj_461__OBIFP_THEN.obj_hash = 672263051;
+  cdat->dobj_461__OBIFP_THEN.obj_hash = 105879239;
   cdat->dobj_461__OBIFP_THEN.obj_len = 4;
 
 
@@ -11283,7 +11415,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_465__OBIFP_ELSE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_465__OBIFP_ELSE.obj_num = 3;
-  cdat->dobj_465__OBIFP_ELSE.obj_hash = 848405642;
+  cdat->dobj_465__OBIFP_ELSE.obj_hash = 253772364;
   cdat->dobj_465__OBIFP_ELSE.obj_len = 4;
 
 
@@ -11341,7 +11473,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_469__CLASS_OBJINTERNCOMMON.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_469__CLASS_OBJINTERNCOMMON.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_469__CLASS_OBJINTERNCOMMON.obj_hash = 733177053;
+  cdat->dobj_469__CLASS_OBJINTERNCOMMON.obj_hash = 631012672;
   cdat->dobj_469__CLASS_OBJINTERNCOMMON.obj_len = 8;
 
 
@@ -11411,7 +11543,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_475__OBINTERN_IOBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_475__OBINTERN_IOBJ.obj_num = 1;
-  cdat->dobj_475__OBINTERN_IOBJ.obj_hash = 957447213;
+  cdat->dobj_475__OBINTERN_IOBJ.obj_hash = 1010319184;
   cdat->dobj_475__OBINTERN_IOBJ.obj_len = 4;
 
 
@@ -11471,7 +11603,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_479__CLASS_OBJINTERNSYMBOL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_479__CLASS_OBJINTERNSYMBOL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_479__CLASS_OBJINTERNSYMBOL.obj_hash = 420092662;
+  cdat->dobj_479__CLASS_OBJINTERNSYMBOL.obj_hash = 987522583;
   cdat->dobj_479__CLASS_OBJINTERNSYMBOL.obj_len = 8;
 
 
@@ -11544,7 +11676,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_485__CLASS_OBJINTERNKEYWORD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_485__CLASS_OBJINTERNKEYWORD.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_485__CLASS_OBJINTERNKEYWORD.obj_hash = 677263533;
+  cdat->dobj_485__CLASS_OBJINTERNKEYWORD.obj_hash = 756592260;
   cdat->dobj_485__CLASS_OBJINTERNKEYWORD.obj_len = 8;
 
 
@@ -11617,7 +11749,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_491__CLASS_OBJGETNAMEDCOMMON.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_491__CLASS_OBJGETNAMEDCOMMON.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_491__CLASS_OBJGETNAMEDCOMMON.obj_hash = 883747758;
+  cdat->dobj_491__CLASS_OBJGETNAMEDCOMMON.obj_hash = 607315156;
   cdat->dobj_491__CLASS_OBJGETNAMEDCOMMON.obj_len = 8;
 
 
@@ -11687,7 +11819,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_497__OBGNAMED_IOBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_497__OBGNAMED_IOBJ.obj_num = 1;
-  cdat->dobj_497__OBGNAMED_IOBJ.obj_hash = 672663493;
+  cdat->dobj_497__OBGNAMED_IOBJ.obj_hash = 740437367;
   cdat->dobj_497__OBGNAMED_IOBJ.obj_len = 4;
 
 
@@ -11747,7 +11879,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_501__CLASS_OBJGETNAMEDSYMBOL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_501__CLASS_OBJGETNAMEDSYMBOL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_501__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 800655497;
+  cdat->dobj_501__CLASS_OBJGETNAMEDSYMBOL.obj_hash = 162746632;
   cdat->dobj_501__CLASS_OBJGETNAMEDSYMBOL.obj_len = 8;
 
 
@@ -11820,7 +11952,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_507__CLASS_OBJGETNAMEDKEYWORD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_507__CLASS_OBJGETNAMEDKEYWORD.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_507__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 735922179;
+  cdat->dobj_507__CLASS_OBJGETNAMEDKEYWORD.obj_hash = 320656390;
   cdat->dobj_507__CLASS_OBJGETNAMEDKEYWORD.obj_len = 8;
 
 
@@ -11891,7 +12023,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_513__CLASS_OBJAPPLY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_513__CLASS_OBJAPPLY.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_513__CLASS_OBJAPPLY.obj_hash = 730167625;
+  cdat->dobj_513__CLASS_OBJAPPLY.obj_hash = 749141041;
   cdat->dobj_513__CLASS_OBJAPPLY.obj_len = 8;
 
 
@@ -11958,7 +12090,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_519__OBAPP_CLOS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_519__OBAPP_CLOS.obj_num = 2;
-  cdat->dobj_519__OBAPP_CLOS.obj_hash = 665829651;
+  cdat->dobj_519__OBAPP_CLOS.obj_hash = 191852775;
   cdat->dobj_519__OBAPP_CLOS.obj_len = 4;
 
 
@@ -12010,7 +12142,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_523__OBAPP_ARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_523__OBAPP_ARGS.obj_num = 3;
-  cdat->dobj_523__OBAPP_ARGS.obj_hash = 749141041;
+  cdat->dobj_523__OBAPP_ARGS.obj_hash = 83152378;
   cdat->dobj_523__OBAPP_ARGS.obj_len = 4;
 
 
@@ -12066,7 +12198,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_527__CLASS_OBJMULTIAPPLY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_527__CLASS_OBJMULTIAPPLY.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_527__CLASS_OBJMULTIAPPLY.obj_hash = 186695017;
+  cdat->dobj_527__CLASS_OBJMULTIAPPLY.obj_hash = 243731011;
   cdat->dobj_527__CLASS_OBJMULTIAPPLY.obj_len = 8;
 
 
@@ -12137,7 +12269,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_533__OBMULTAPP_XRES.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_533__OBMULTAPP_XRES.obj_num = 4;
-  cdat->dobj_533__OBMULTAPP_XRES.obj_hash = 292805377;
+  cdat->dobj_533__OBMULTAPP_XRES.obj_hash = 744738642;
   cdat->dobj_533__OBMULTAPP_XRES.obj_len = 4;
 
 
@@ -12196,7 +12328,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_537__CLASS_OBJMSEND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_537__CLASS_OBJMSEND.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_537__CLASS_OBJMSEND.obj_hash = 737782601;
+  cdat->dobj_537__CLASS_OBJMSEND.obj_hash = 353090575;
   cdat->dobj_537__CLASS_OBJMSEND.obj_len = 8;
 
 
@@ -12263,7 +12395,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_543__OBMSND_SEL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_543__OBMSND_SEL.obj_num = 2;
-  cdat->dobj_543__OBMSND_SEL.obj_hash = 123162076;
+  cdat->dobj_543__OBMSND_SEL.obj_hash = 956604539;
   cdat->dobj_543__OBMSND_SEL.obj_len = 4;
 
 
@@ -12316,7 +12448,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_547__OBMSND_RECV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_547__OBMSND_RECV.obj_num = 3;
-  cdat->dobj_547__OBMSND_RECV.obj_hash = 353090575;
+  cdat->dobj_547__OBMSND_RECV.obj_hash = 631089435;
   cdat->dobj_547__OBMSND_RECV.obj_len = 4;
 
 
@@ -12370,7 +12502,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_551__OBMSND_ARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_551__OBMSND_ARGS.obj_num = 4;
-  cdat->dobj_551__OBMSND_ARGS.obj_hash = 956604539;
+  cdat->dobj_551__OBMSND_ARGS.obj_hash = 98463108;
   cdat->dobj_551__OBMSND_ARGS.obj_len = 4;
 
 
@@ -12427,7 +12559,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_555__CLASS_OBJMULTIMSEND.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_555__CLASS_OBJMULTIMSEND.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_555__CLASS_OBJMULTIMSEND.obj_hash = 436917205;
+  cdat->dobj_555__CLASS_OBJMULTIMSEND.obj_hash = 48613516;
   cdat->dobj_555__CLASS_OBJMULTIMSEND.obj_len = 8;
 
 
@@ -12498,7 +12630,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_561__OBMULTSND_XRES.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_561__OBMULTSND_XRES.obj_num = 5;
-  cdat->dobj_561__OBMULTSND_XRES.obj_hash = 910490096;
+  cdat->dobj_561__OBMULTSND_XRES.obj_hash = 193120850;
   cdat->dobj_561__OBMULTSND_XRES.obj_len = 4;
 
 
@@ -12557,7 +12689,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_565__CLASS_OBJRAWALLOCOBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_565__CLASS_OBJRAWALLOCOBJ.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_565__CLASS_OBJRAWALLOCOBJ.obj_hash = 757757220;
+  cdat->dobj_565__CLASS_OBJRAWALLOCOBJ.obj_hash = 169588128;
   cdat->dobj_565__CLASS_OBJRAWALLOCOBJ.obj_len = 8;
 
 
@@ -12628,7 +12760,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_571__OBRALLOBJ_CLASS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_571__OBRALLOBJ_CLASS.obj_num = 2;
-  cdat->dobj_571__OBRALLOBJ_CLASS.obj_hash = 301450456;
+  cdat->dobj_571__OBRALLOBJ_CLASS.obj_hash = 947125081;
   cdat->dobj_571__OBRALLOBJ_CLASS.obj_len = 4;
 
 
@@ -12686,7 +12818,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_575__OBRALLOBJ_LEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_575__OBRALLOBJ_LEN.obj_num = 3;
-  cdat->dobj_575__OBRALLOBJ_LEN.obj_hash = 169588128;
+  cdat->dobj_575__OBRALLOBJ_LEN.obj_hash = 828244625;
   cdat->dobj_575__OBRALLOBJ_LEN.obj_len = 4;
 
 
@@ -12744,7 +12876,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_579__OBRALLOBJ_CLASSNAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_579__OBRALLOBJ_CLASSNAME.obj_num = 4;
-  cdat->dobj_579__OBRALLOBJ_CLASSNAME.obj_hash = 947125081;
+  cdat->dobj_579__OBRALLOBJ_CLASSNAME.obj_hash = 1035828420;
   cdat->dobj_579__OBRALLOBJ_CLASSNAME.obj_len = 4;
 
 
@@ -12803,7 +12935,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_583__CLASS_OBJNEWCLOSURE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_583__CLASS_OBJNEWCLOSURE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_583__CLASS_OBJNEWCLOSURE.obj_hash = 326068088;
+  cdat->dobj_583__CLASS_OBJNEWCLOSURE.obj_hash = 341181814;
   cdat->dobj_583__CLASS_OBJNEWCLOSURE.obj_len = 8;
 
 
@@ -12872,7 +13004,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_589__OBNCLO_DISCR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_589__OBNCLO_DISCR.obj_num = 2;
-  cdat->dobj_589__OBNCLO_DISCR.obj_hash = 464576295;
+  cdat->dobj_589__OBNCLO_DISCR.obj_hash = 555764051;
   cdat->dobj_589__OBNCLO_DISCR.obj_len = 4;
 
 
@@ -12927,7 +13059,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_593__OBNCLO_ROUT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_593__OBNCLO_ROUT.obj_num = 3;
-  cdat->dobj_593__OBNCLO_ROUT.obj_hash = 341181814;
+  cdat->dobj_593__OBNCLO_ROUT.obj_hash = 449514727;
   cdat->dobj_593__OBNCLO_ROUT.obj_len = 4;
 
 
@@ -12980,7 +13112,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_597__OBNCLO_LEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_597__OBNCLO_LEN.obj_num = 4;
-  cdat->dobj_597__OBNCLO_LEN.obj_hash = 555764051;
+  cdat->dobj_597__OBNCLO_LEN.obj_hash = 979144123;
   cdat->dobj_597__OBNCLO_LEN.obj_len = 4;
 
 
@@ -13036,7 +13168,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_601__CLASS_OBJPUTUPLE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_601__CLASS_OBJPUTUPLE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_601__CLASS_OBJPUTUPLE.obj_hash = 744558195;
+  cdat->dobj_601__CLASS_OBJPUTUPLE.obj_hash = 824543745;
   cdat->dobj_601__CLASS_OBJPUTUPLE.obj_len = 8;
 
 
@@ -13105,7 +13237,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_607__OPUTU_TUPLED.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_607__OPUTU_TUPLED.obj_num = 1;
-  cdat->dobj_607__OPUTU_TUPLED.obj_hash = 343018584;
+  cdat->dobj_607__OPUTU_TUPLED.obj_hash = 579426082;
   cdat->dobj_607__OPUTU_TUPLED.obj_len = 4;
 
 
@@ -13161,7 +13293,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_611__OPUTU_OFFSET.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_611__OPUTU_OFFSET.obj_num = 2;
-  cdat->dobj_611__OPUTU_OFFSET.obj_hash = 824543745;
+  cdat->dobj_611__OPUTU_OFFSET.obj_hash = 1062686478;
   cdat->dobj_611__OPUTU_OFFSET.obj_len = 4;
 
 
@@ -13216,7 +13348,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_615__OPUTU_VALUE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_615__OPUTU_VALUE.obj_num = 3;
-  cdat->dobj_615__OPUTU_VALUE.obj_hash = 579426082;
+  cdat->dobj_615__OPUTU_VALUE.obj_hash = 286860126;
   cdat->dobj_615__OPUTU_VALUE.obj_len = 4;
 
 
@@ -13273,7 +13405,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_619__CLASS_OBJPUTPAIR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_619__CLASS_OBJPUTPAIR.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_619__CLASS_OBJPUTPAIR.obj_hash = 970036021;
+  cdat->dobj_619__CLASS_OBJPUTPAIR.obj_hash = 984329685;
   cdat->dobj_619__CLASS_OBJPUTPAIR.obj_len = 8;
 
 
@@ -13340,7 +13472,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_625__OPUTP_PAIR.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_625__OPUTP_PAIR.obj_num = 1;
-  cdat->dobj_625__OPUTP_PAIR.obj_hash = 50946996;
+  cdat->dobj_625__OPUTP_PAIR.obj_hash = 652068581;
   cdat->dobj_625__OPUTP_PAIR.obj_len = 4;
 
 
@@ -13396,7 +13528,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_629__CLASS_OBJPUTPAIRHEAD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_629__CLASS_OBJPUTPAIRHEAD.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_629__CLASS_OBJPUTPAIRHEAD.obj_hash = 335556641;
+  cdat->dobj_629__CLASS_OBJPUTPAIRHEAD.obj_hash = 708763689;
   cdat->dobj_629__CLASS_OBJPUTPAIRHEAD.obj_len = 8;
 
 
@@ -13463,7 +13595,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_635__OPUTP_HEAD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_635__OPUTP_HEAD.obj_num = 2;
-  cdat->dobj_635__OPUTP_HEAD.obj_hash = 682118028;
+  cdat->dobj_635__OPUTP_HEAD.obj_hash = 1025253887;
   cdat->dobj_635__OPUTP_HEAD.obj_len = 4;
 
 
@@ -13519,7 +13651,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_639__CLASS_OBJPUTPAIRTAIL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_639__CLASS_OBJPUTPAIRTAIL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_639__CLASS_OBJPUTPAIRTAIL.obj_hash = 82276009;
+  cdat->dobj_639__CLASS_OBJPUTPAIRTAIL.obj_hash = 591195507;
   cdat->dobj_639__CLASS_OBJPUTPAIRTAIL.obj_len = 8;
 
 
@@ -13586,7 +13718,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_645__OPUTP_TAIL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_645__OPUTP_TAIL.obj_num = 2;
-  cdat->dobj_645__OPUTP_TAIL.obj_hash = 495257376;
+  cdat->dobj_645__OPUTP_TAIL.obj_hash = 93790262;
   cdat->dobj_645__OPUTP_TAIL.obj_len = 4;
 
 
@@ -13642,7 +13774,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_649__CLASS_OBJPUTLIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_649__CLASS_OBJPUTLIST.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_649__CLASS_OBJPUTLIST.obj_hash = 744206584;
+  cdat->dobj_649__CLASS_OBJPUTLIST.obj_hash = 414030662;
   cdat->dobj_649__CLASS_OBJPUTLIST.obj_len = 8;
 
 
@@ -13709,7 +13841,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_655__OPUTL_LIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_655__OPUTL_LIST.obj_num = 1;
-  cdat->dobj_655__OPUTL_LIST.obj_hash = 1060219619;
+  cdat->dobj_655__OPUTL_LIST.obj_hash = 203861055;
   cdat->dobj_655__OPUTL_LIST.obj_len = 4;
 
 
@@ -13762,7 +13894,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_659__OPUTL_FIRST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_659__OPUTL_FIRST.obj_num = 2;
-  cdat->dobj_659__OPUTL_FIRST.obj_hash = 414030662;
+  cdat->dobj_659__OPUTL_FIRST.obj_hash = 896662705;
   cdat->dobj_659__OPUTL_FIRST.obj_len = 4;
 
 
@@ -13815,7 +13947,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_663__OPUTL_LAST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_663__OPUTL_LAST.obj_num = 3;
-  cdat->dobj_663__OPUTL_LAST.obj_hash = 203861055;
+  cdat->dobj_663__OPUTL_LAST.obj_hash = 707826008;
   cdat->dobj_663__OPUTL_LAST.obj_len = 4;
 
 
@@ -13871,7 +14003,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_667__CLASS_OBJPUTSLOT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_667__CLASS_OBJPUTSLOT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_667__CLASS_OBJPUTSLOT.obj_hash = 842580691;
+  cdat->dobj_667__CLASS_OBJPUTSLOT.obj_hash = 952827191;
   cdat->dobj_667__CLASS_OBJPUTSLOT.obj_len = 8;
 
 
@@ -13939,7 +14071,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_673__OSLOT_ODATA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_673__OSLOT_ODATA.obj_num = 1;
-  cdat->dobj_673__OSLOT_ODATA.obj_hash = 555126487;
+  cdat->dobj_673__OSLOT_ODATA.obj_hash = 705348723;
   cdat->dobj_673__OSLOT_ODATA.obj_len = 4;
 
 
@@ -13994,7 +14126,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_677__OSLOT_OFFSET.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_677__OSLOT_OFFSET.obj_num = 2;
-  cdat->dobj_677__OSLOT_OFFSET.obj_hash = 952827191;
+  cdat->dobj_677__OSLOT_OFFSET.obj_hash = 935997697;
   cdat->dobj_677__OSLOT_OFFSET.obj_len = 4;
 
 
@@ -14049,7 +14181,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_681__OSLOT_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_681__OSLOT_FIELD.obj_num = 3;
-  cdat->dobj_681__OSLOT_FIELD.obj_hash = 705348723;
+  cdat->dobj_681__OSLOT_FIELD.obj_hash = 429998436;
   cdat->dobj_681__OSLOT_FIELD.obj_len = 4;
 
 
@@ -14103,7 +14235,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_685__OSLOT_VALUE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_685__OSLOT_VALUE.obj_num = 4;
-  cdat->dobj_685__OSLOT_VALUE.obj_hash = 935997697;
+  cdat->dobj_685__OSLOT_VALUE.obj_hash = 779770662;
   cdat->dobj_685__OSLOT_VALUE.obj_len = 4;
 
 
@@ -14160,7 +14292,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_689__CLASS_OBJGETSLOT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_689__CLASS_OBJGETSLOT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_689__CLASS_OBJGETSLOT.obj_hash = 735195453;
+  cdat->dobj_689__CLASS_OBJGETSLOT.obj_hash = 620619668;
   cdat->dobj_689__CLASS_OBJGETSLOT.obj_len = 8;
 
 
@@ -14227,7 +14359,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_695__OGETSL_OBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_695__OGETSL_OBJ.obj_num = 2;
-  cdat->dobj_695__OGETSL_OBJ.obj_hash = 572256483;
+  cdat->dobj_695__OGETSL_OBJ.obj_hash = 173546056;
   cdat->dobj_695__OGETSL_OBJ.obj_len = 4;
 
 
@@ -14281,7 +14413,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_699__OGETSL_FIELD.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_699__OGETSL_FIELD.obj_num = 3;
-  cdat->dobj_699__OGETSL_FIELD.obj_hash = 620619668;
+  cdat->dobj_699__OGETSL_FIELD.obj_hash = 808421758;
   cdat->dobj_699__OGETSL_FIELD.obj_len = 4;
 
 
@@ -14341,7 +14473,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_703__CLASS_OBJPUTCLOSUROUT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_703__CLASS_OBJPUTCLOSUROUT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_703__CLASS_OBJPUTCLOSUROUT.obj_hash = 44085869;
+  cdat->dobj_703__CLASS_OBJPUTCLOSUROUT.obj_hash = 355104814;
   cdat->dobj_703__CLASS_OBJPUTCLOSUROUT.obj_len = 8;
 
 
@@ -14409,7 +14541,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_709__OPCLOR_CLOS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_709__OPCLOR_CLOS.obj_num = 1;
-  cdat->dobj_709__OPCLOR_CLOS.obj_hash = 744561921;
+  cdat->dobj_709__OPCLOR_CLOS.obj_hash = 635818764;
   cdat->dobj_709__OPCLOR_CLOS.obj_len = 4;
 
 
@@ -14463,7 +14595,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_713__OPCLOR_ROUT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_713__OPCLOR_ROUT.obj_num = 2;
-  cdat->dobj_713__OPCLOR_ROUT.obj_hash = 355104814;
+  cdat->dobj_713__OPCLOR_ROUT.obj_hash = 23026283;
   cdat->dobj_713__OPCLOR_ROUT.obj_len = 4;
 
 
@@ -14520,7 +14652,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_717__CLASS_OBJPUTCLOSEDV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_717__CLASS_OBJPUTCLOSEDV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_717__CLASS_OBJPUTCLOSEDV.obj_hash = 513548486;
+  cdat->dobj_717__CLASS_OBJPUTCLOSEDV.obj_hash = 1015911242;
   cdat->dobj_717__CLASS_OBJPUTCLOSEDV.obj_len = 8;
 
 
@@ -14588,7 +14720,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_723__OPCLOV_CLOS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_723__OPCLOV_CLOS.obj_num = 1;
-  cdat->dobj_723__OPCLOV_CLOS.obj_hash = 226288930;
+  cdat->dobj_723__OPCLOV_CLOS.obj_hash = 486711045;
   cdat->dobj_723__OPCLOV_CLOS.obj_len = 4;
 
 
@@ -14641,7 +14773,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_727__OPCLOV_OFF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_727__OPCLOV_OFF.obj_num = 2;
-  cdat->dobj_727__OPCLOV_OFF.obj_hash = 1015911242;
+  cdat->dobj_727__OPCLOV_OFF.obj_hash = 209966976;
   cdat->dobj_727__OPCLOV_OFF.obj_len = 4;
 
 
@@ -14694,7 +14826,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_731__OPCLOV_CVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_731__OPCLOV_CVAL.obj_num = 3;
-  cdat->dobj_731__OPCLOV_CVAL.obj_hash = 486711045;
+  cdat->dobj_731__OPCLOV_CVAL.obj_hash = 648812688;
   cdat->dobj_731__OPCLOV_CVAL.obj_len = 4;
 
 
@@ -14753,7 +14885,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_735__CLASS_OBJPUTCLOSEDNOTNULLV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_735__CLASS_OBJPUTCLOSEDNOTNULLV.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_735__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 111691988;
+  cdat->dobj_735__CLASS_OBJPUTCLOSEDNOTNULLV.obj_hash = 51115062;
   cdat->dobj_735__CLASS_OBJPUTCLOSEDNOTNULLV.obj_len = 8;
 
 
@@ -14826,7 +14958,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_741__CLASS_OBJPUTROUTCONST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_741__CLASS_OBJPUTROUTCONST.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_741__CLASS_OBJPUTROUTCONST.obj_hash = 94629514;
+  cdat->dobj_741__CLASS_OBJPUTROUTCONST.obj_hash = 23067180;
   cdat->dobj_741__CLASS_OBJPUTROUTCONST.obj_len = 8;
 
 
@@ -14896,7 +15028,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_747__OPRCONST_ROUT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_747__OPRCONST_ROUT.obj_num = 1;
-  cdat->dobj_747__OPRCONST_ROUT.obj_hash = 1039327075;
+  cdat->dobj_747__OPRCONST_ROUT.obj_hash = 109394143;
   cdat->dobj_747__OPRCONST_ROUT.obj_len = 4;
 
 
@@ -14952,7 +15084,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_751__OPRCONST_OFF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_751__OPRCONST_OFF.obj_num = 2;
-  cdat->dobj_751__OPRCONST_OFF.obj_hash = 23067180;
+  cdat->dobj_751__OPRCONST_OFF.obj_hash = 404943055;
   cdat->dobj_751__OPRCONST_OFF.obj_len = 4;
 
 
@@ -15009,7 +15141,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_755__OPRCONST_CVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_755__OPRCONST_CVAL.obj_num = 3;
-  cdat->dobj_755__OPRCONST_CVAL.obj_hash = 109394143;
+  cdat->dobj_755__OPRCONST_CVAL.obj_hash = 343608053;
   cdat->dobj_755__OPRCONST_CVAL.obj_len = 4;
 
 
@@ -15069,7 +15201,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_759__CLASS_OBJPUTROUTCONSTNOTNULL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_759__CLASS_OBJPUTROUTCONSTNOTNULL.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_759__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 768143230;
+  cdat->dobj_759__CLASS_OBJPUTROUTCONSTNOTNULL.obj_hash = 67924247;
   cdat->dobj_759__CLASS_OBJPUTROUTCONSTNOTNULL.obj_len = 8;
 
 
@@ -15140,7 +15272,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_765__CLASS_OBJTOUCH.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_765__CLASS_OBJTOUCH.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_765__CLASS_OBJTOUCH.obj_hash = 517754786;
+  cdat->dobj_765__CLASS_OBJTOUCH.obj_hash = 3771611;
   cdat->dobj_765__CLASS_OBJTOUCH.obj_len = 8;
 
 
@@ -15207,7 +15339,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_771__OTOUCH_VAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_771__OTOUCH_VAL.obj_num = 1;
-  cdat->dobj_771__OTOUCH_VAL.obj_hash = 341262362;
+  cdat->dobj_771__OTOUCH_VAL.obj_hash = 583940183;
   cdat->dobj_771__OTOUCH_VAL.obj_len = 4;
 
 
@@ -15263,7 +15395,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_775__OTOUCH_COMMENT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_775__OTOUCH_COMMENT.obj_num = 2;
-  cdat->dobj_775__OTOUCH_COMMENT.obj_hash = 3771611;
+  cdat->dobj_775__OTOUCH_COMMENT.obj_hash = 204811291;
   cdat->dobj_775__OTOUCH_COMMENT.obj_len = 4;
 
 
@@ -15322,7 +15454,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_779__CLASS_OBJSETPREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_779__CLASS_OBJSETPREDEF.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_779__CLASS_OBJSETPREDEF.obj_hash = 968646107;
+  cdat->dobj_779__CLASS_OBJSETPREDEF.obj_hash = 610636133;
   cdat->dobj_779__CLASS_OBJSETPREDEF.obj_len = 8;
 
 
@@ -15390,7 +15522,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_785__OSPR_OBJECT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_785__OSPR_OBJECT.obj_num = 1;
-  cdat->dobj_785__OSPR_OBJECT.obj_hash = 1020662780;
+  cdat->dobj_785__OSPR_OBJECT.obj_hash = 485686442;
   cdat->dobj_785__OSPR_OBJECT.obj_len = 4;
 
 
@@ -15444,7 +15576,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_789__OSPR_PREDEF.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_789__OSPR_PREDEF.obj_num = 2;
-  cdat->dobj_789__OSPR_PREDEF.obj_hash = 610636133;
+  cdat->dobj_789__OSPR_PREDEF.obj_hash = 147928544;
   cdat->dobj_789__OSPR_PREDEF.obj_len = 4;
 
 
@@ -15528,7 +15660,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_795__CLASS_ROUTINEOBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_795__CLASS_ROUTINEOBJ.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_795__CLASS_ROUTINEOBJ.obj_hash = 1072033908;
+  cdat->dobj_795__CLASS_ROUTINEOBJ.obj_hash = 185808308;
   cdat->dobj_795__CLASS_ROUTINEOBJ.obj_len = 8;
 
 
@@ -15596,7 +15728,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_801__OBROUT_PROC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_801__OBROUT_PROC.obj_num = 2;
-  cdat->dobj_801__OBROUT_PROC.obj_hash = 1027799924;
+  cdat->dobj_801__OBROUT_PROC.obj_hash = 445059858;
   cdat->dobj_801__OBROUT_PROC.obj_len = 4;
 
 
@@ -15650,7 +15782,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_805__OBROUT_BODY.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_805__OBROUT_BODY.obj_num = 3;
-  cdat->dobj_805__OBROUT_BODY.obj_hash = 185808308;
+  cdat->dobj_805__OBROUT_BODY.obj_hash = 623601358;
   cdat->dobj_805__OBROUT_BODY.obj_len = 4;
 
 
@@ -15705,7 +15837,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_809__OBROUT_NBVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_809__OBROUT_NBVAL.obj_num = 4;
-  cdat->dobj_809__OBROUT_NBVAL.obj_hash = 445059858;
+  cdat->dobj_809__OBROUT_NBVAL.obj_hash = 18142056;
   cdat->dobj_809__OBROUT_NBVAL.obj_len = 4;
 
 
@@ -15762,7 +15894,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_813__OBROUT_NBLONG.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_813__OBROUT_NBLONG.obj_num = 5;
-  cdat->dobj_813__OBROUT_NBLONG.obj_hash = 623601358;
+  cdat->dobj_813__OBROUT_NBLONG.obj_hash = 871188258;
   cdat->dobj_813__OBROUT_NBLONG.obj_len = 4;
 
 
@@ -15819,7 +15951,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_817__OBROUT_OTHERS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_817__OBROUT_OTHERS.obj_num = 6;
-  cdat->dobj_817__OBROUT_OTHERS.obj_hash = 18142056;
+  cdat->dobj_817__OBROUT_OTHERS.obj_hash = 996600648;
   cdat->dobj_817__OBROUT_OTHERS.obj_len = 4;
 
 
@@ -15876,7 +16008,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_821__OBROUT_RETVAL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_821__OBROUT_RETVAL.obj_num = 7;
-  cdat->dobj_821__OBROUT_RETVAL.obj_hash = 871188258;
+  cdat->dobj_821__OBROUT_RETVAL.obj_hash = 746027443;
   cdat->dobj_821__OBROUT_RETVAL.obj_len = 4;
 
 
@@ -15934,7 +16066,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_825__OBROUT_CNTCITER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_825__OBROUT_CNTCITER.obj_num = 8;
-  cdat->dobj_825__OBROUT_CNTCITER.obj_hash = 996600648;
+  cdat->dobj_825__OBROUT_CNTCITER.obj_hash = 133369305;
   cdat->dobj_825__OBROUT_CNTCITER.obj_len = 4;
 
 
@@ -15993,7 +16125,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_829__OBROUT_CNTLETREC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_829__OBROUT_CNTLETREC.obj_num = 9;
-  cdat->dobj_829__OBROUT_CNTLETREC.obj_hash = 746027443;
+  cdat->dobj_829__OBROUT_CNTLETREC.obj_hash = 315934231;
   cdat->dobj_829__OBROUT_CNTLETREC.obj_len = 4;
 
 
@@ -16052,7 +16184,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_833__CLASS_PROCROUTINEOBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_833__CLASS_PROCROUTINEOBJ.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_833__CLASS_PROCROUTINEOBJ.obj_hash = 242438522;
+  cdat->dobj_833__CLASS_PROCROUTINEOBJ.obj_hash = 551734836;
   cdat->dobj_833__CLASS_PROCROUTINEOBJ.obj_len = 8;
 
 
@@ -16123,7 +16255,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_839__OPROUT_GETARGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_839__OPROUT_GETARGS.obj_num = 10;
-  cdat->dobj_839__OPROUT_GETARGS.obj_hash = 191043628;
+  cdat->dobj_839__OPROUT_GETARGS.obj_hash = 671961305;
   cdat->dobj_839__OPROUT_GETARGS.obj_len = 4;
 
 
@@ -16178,7 +16310,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_843__OPROUT_LOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_843__OPROUT_LOC.obj_num = 11;
-  cdat->dobj_843__OPROUT_LOC.obj_hash = 551734836;
+  cdat->dobj_843__OPROUT_LOC.obj_hash = 570578442;
   cdat->dobj_843__OPROUT_LOC.obj_len = 4;
 
 
@@ -16232,7 +16364,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_847__OPROUT_FUNAM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_847__OPROUT_FUNAM.obj_num = 12;
-  cdat->dobj_847__OPROUT_FUNAM.obj_hash = 671961305;
+  cdat->dobj_847__OPROUT_FUNAM.obj_hash = 926849698;
   cdat->dobj_847__OPROUT_FUNAM.obj_len = 4;
 
 
@@ -16290,7 +16422,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_851__OPROUT_RESTNAM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_851__OPROUT_RESTNAM.obj_num = 13;
-  cdat->dobj_851__OPROUT_RESTNAM.obj_hash = 570578442;
+  cdat->dobj_851__OPROUT_RESTNAM.obj_hash = 84653002;
   cdat->dobj_851__OPROUT_RESTNAM.obj_len = 4;
 
 
@@ -16349,7 +16481,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_855__OPROUT_FILENUM.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_855__OPROUT_FILENUM.obj_num = 14;
-  cdat->dobj_855__OPROUT_FILENUM.obj_hash = 926849698;
+  cdat->dobj_855__OPROUT_FILENUM.obj_hash = 720424766;
   cdat->dobj_855__OPROUT_FILENUM.obj_len = 4;
 
 
@@ -16410,7 +16542,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_859__CLASS_INITIALROUTINEOBJ.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_859__CLASS_INITIALROUTINEOBJ.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_859__CLASS_INITIALROUTINEOBJ.obj_hash = 717012482;
+  cdat->dobj_859__CLASS_INITIALROUTINEOBJ.obj_hash = 234315036;
   cdat->dobj_859__CLASS_INITIALROUTINEOBJ.obj_len = 8;
 
 
@@ -16479,7 +16611,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_865__OIROUT_DATA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_865__OIROUT_DATA.obj_num = 10;
-  cdat->dobj_865__OIROUT_DATA.obj_hash = 602160088;
+  cdat->dobj_865__OIROUT_DATA.obj_hash = 989138435;
   cdat->dobj_865__OIROUT_DATA.obj_len = 4;
 
 
@@ -16536,7 +16668,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_869__OIROUT_PROLOG.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_869__OIROUT_PROLOG.obj_num = 11;
-  cdat->dobj_869__OIROUT_PROLOG.obj_hash = 234315036;
+  cdat->dobj_869__OIROUT_PROLOG.obj_hash = 461960296;
   cdat->dobj_869__OIROUT_PROLOG.obj_len = 4;
 
 
@@ -16593,7 +16725,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_873__OIROUT_FILL.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_873__OIROUT_FILL.obj_num = 12;
-  cdat->dobj_873__OIROUT_FILL.obj_hash = 989138435;
+  cdat->dobj_873__OIROUT_FILL.obj_hash = 331486222;
   cdat->dobj_873__OIROUT_FILL.obj_len = 4;
 
 
@@ -16650,7 +16782,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_877__OIROUT_MODULENAME.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_877__OIROUT_MODULENAME.obj_num = 13;
-  cdat->dobj_877__OIROUT_MODULENAME.obj_hash = 461960296;
+  cdat->dobj_877__OIROUT_MODULENAME.obj_hash = 1044699593;
   cdat->dobj_877__OIROUT_MODULENAME.obj_len = 4;
 
 
@@ -16794,7 +16926,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_887.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_887.obj_num = 0;
-  cdat->dobj_887.obj_hash = 298003783;
+  cdat->dobj_887.obj_hash = 850820871;
   cdat->dobj_887.obj_len = 2;
 
 
@@ -16841,7 +16973,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_890.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_890.obj_num = 1;
-  cdat->dobj_890.obj_hash = 421047716;
+  cdat->dobj_890.obj_hash = 341405619;
   cdat->dobj_890.obj_len = 2;
 
   /*inimult dtup_891__OUTPUT_C_DECLINIT */
@@ -16866,7 +16998,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_892__OUTPUT_C_DECLINIT.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_892__OUTPUT_C_DECLINIT.obj_hash = 340426020;
+  cdat->dobj_892__OUTPUT_C_DECLINIT.obj_hash = 1055255809;
   cdat->dobj_892__OUTPUT_C_DECLINIT.obj_len = 4;
 
 
@@ -16922,7 +17054,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_896__PUT_OBJDEST.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_896__PUT_OBJDEST.obj_hash = 371833080;
+  cdat->dobj_896__PUT_OBJDEST.obj_hash = 41353086;
   cdat->dobj_896__PUT_OBJDEST.obj_len = 4;
 
 
@@ -16980,7 +17112,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_900.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_900.obj_num = 0;
-  cdat->dobj_900.obj_hash = 492151987;
+  cdat->dobj_900.obj_hash = 394200657;
   cdat->dobj_900.obj_len = 2;
 
 
@@ -17027,7 +17159,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_903.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_903.obj_num = 1;
-  cdat->dobj_903.obj_hash = 394200657;
+  cdat->dobj_903.obj_hash = 232989622;
   cdat->dobj_903.obj_len = 2;
 
 
@@ -17074,7 +17206,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_906.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_906.obj_num = 2;
-  cdat->dobj_906.obj_hash = 398716729;
+  cdat->dobj_906.obj_hash = 359489621;
   cdat->dobj_906.obj_len = 2;
 
 
@@ -17121,7 +17253,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_909.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_909.obj_num = 3;
-  cdat->dobj_909.obj_hash = 949369956;
+  cdat->dobj_909.obj_hash = 859992317;
   cdat->dobj_909.obj_len = 2;
 
   /*inimult dtup_910__OUTPUT_C_CODE */
@@ -17146,7 +17278,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_911__OUTPUT_C_CODE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_911__OUTPUT_C_CODE.obj_hash = 193876424;
+  cdat->dobj_911__OUTPUT_C_CODE.obj_hash = 87465746;
   cdat->dobj_911__OUTPUT_C_CODE.obj_len = 4;
 
 
@@ -17207,7 +17339,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_915.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_915.obj_num = 0;
-  cdat->dobj_915.obj_hash = 924070906;
+  cdat->dobj_915.obj_hash = 84381723;
   cdat->dobj_915.obj_len = 2;
 
   /*^iniobj */
@@ -17228,7 +17360,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_916.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_916.obj_num = 1;
-  cdat->dobj_916.obj_hash = 84381723;
+  cdat->dobj_916.obj_hash = 954501707;
   cdat->dobj_916.obj_len = 2;
 
 
@@ -17275,7 +17407,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_919.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_919.obj_num = 2;
-  cdat->dobj_919.obj_hash = 954501707;
+  cdat->dobj_919.obj_hash = 533467247;
   cdat->dobj_919.obj_len = 2;
 
   /*^iniobj */
@@ -17296,7 +17428,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_920.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_920.obj_num = 3;
-  cdat->dobj_920.obj_hash = 261797527;
+  cdat->dobj_920.obj_hash = 130218402;
   cdat->dobj_920.obj_len = 2;
 
   /*inimult dtup_921__OUTPUT_C_INITIAL_FILL */
@@ -17322,7 +17454,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_922__OUTPUT_C_INITIAL_FILL.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_922__OUTPUT_C_INITIAL_FILL.obj_hash = 690133294;
+  cdat->dobj_922__OUTPUT_C_INITIAL_FILL.obj_hash = 516508100;
   cdat->dobj_922__OUTPUT_C_INITIAL_FILL.obj_len = 4;
 
 
@@ -17383,7 +17515,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_926.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_926.obj_num = 0;
-  cdat->dobj_926.obj_hash = 262797564;
+  cdat->dobj_926.obj_hash = 520714064;
   cdat->dobj_926.obj_len = 2;
 
   /*^iniobj */
@@ -17404,7 +17536,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_927.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_927.obj_num = 1;
-  cdat->dobj_927.obj_hash = 520714064;
+  cdat->dobj_927.obj_hash = 242462961;
   cdat->dobj_927.obj_len = 2;
 
 
@@ -17451,7 +17583,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_930.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_930.obj_num = 2;
-  cdat->dobj_930.obj_hash = 242462961;
+  cdat->dobj_930.obj_hash = 1004936910;
   cdat->dobj_930.obj_len = 2;
 
   /*^iniobj */
@@ -17472,7 +17604,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_931.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_931.obj_num = 3;
-  cdat->dobj_931.obj_hash = 803479663;
+  cdat->dobj_931.obj_hash = 721651938;
   cdat->dobj_931.obj_len = 2;
 
   /*inimult dtup_932__OUTPUT_C_INITIAL_PREDEF */
@@ -17498,7 +17630,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_933__OUTPUT_C_INITIAL_PREDEF.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_933__OUTPUT_C_INITIAL_PREDEF.obj_hash = 867818128;
+  cdat->dobj_933__OUTPUT_C_INITIAL_PREDEF.obj_hash = 402117700;
   cdat->dobj_933__OUTPUT_C_INITIAL_PREDEF.obj_len = 4;
 
 
@@ -18671,7 +18803,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1025__INITIALSYSTEMDATA_OBJPREDEF.meltobj_class =
     (meltobject_ptr_t) ( /*_.VALDATA___V206*/ meltfptr[205]);
-  cdat->dobj_1025__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 517422087;
+  cdat->dobj_1025__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 164501198;
   cdat->dobj_1025__INITIALSYSTEMDATA_OBJPREDEF.obj_len = 2;
 
 
@@ -20556,7 +20688,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1174.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1174.obj_num = 0;
-  cdat->dobj_1174.obj_hash = 808776565;
+  cdat->dobj_1174.obj_hash = 276955499;
   cdat->dobj_1174.obj_len = 2;
 
 
@@ -20603,7 +20735,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1177.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1177.obj_num = 1;
-  cdat->dobj_1177.obj_hash = 276955499;
+  cdat->dobj_1177.obj_hash = 371990122;
   cdat->dobj_1177.obj_len = 2;
 
 
@@ -20650,7 +20782,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1180.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1180.obj_num = 2;
-  cdat->dobj_1180.obj_hash = 911009809;
+  cdat->dobj_1180.obj_hash = 422301851;
   cdat->dobj_1180.obj_len = 2;
 
 
@@ -20697,7 +20829,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1183.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1183.obj_num = 3;
-  cdat->dobj_1183.obj_hash = 990877349;
+  cdat->dobj_1183.obj_hash = 418395917;
   cdat->dobj_1183.obj_len = 2;
 
 
@@ -20744,7 +20876,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1186.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1186.obj_num = 4;
-  cdat->dobj_1186.obj_hash = 300079862;
+  cdat->dobj_1186.obj_hash = 49243111;
   cdat->dobj_1186.obj_len = 2;
 
   /*inimult dtup_1187__COMPILE_LETREC_FILL */
@@ -20769,7 +20901,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1188__COMPILE_LETREC_FILL.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_1188__COMPILE_LETREC_FILL.obj_hash = 1024543603;
+  cdat->dobj_1188__COMPILE_LETREC_FILL.obj_hash = 227530579;
   cdat->dobj_1188__COMPILE_LETREC_FILL.obj_len = 4;
 
 
@@ -22948,7 +23080,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1374__DISCRCLOSURE_OBJPREDEF.meltobj_class =
     (meltobject_ptr_t) ( /*_.VALDATA___V206*/ meltfptr[205]);
-  cdat->dobj_1374__DISCRCLOSURE_OBJPREDEF.obj_hash = 317691168;
+  cdat->dobj_1374__DISCRCLOSURE_OBJPREDEF.obj_hash = 477140875;
   cdat->dobj_1374__DISCRCLOSURE_OBJPREDEF.obj_len = 2;
 
 
@@ -24200,7 +24332,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1475__COMPILE_MATCHER.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_1475__COMPILE_MATCHER.obj_hash = 213195827;
+  cdat->dobj_1475__COMPILE_MATCHER.obj_hash = 965556525;
   cdat->dobj_1475__COMPILE_MATCHER.obj_len = 4;
 
 
@@ -24290,7 +24422,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1481__CLASS_MATCHCOMPILCONTEXT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_1481__CLASS_MATCHCOMPILCONTEXT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_1481__CLASS_MATCHCOMPILCONTEXT.obj_hash = 872201799;
+  cdat->dobj_1481__CLASS_MATCHCOMPILCONTEXT.obj_hash = 819492537;
   cdat->dobj_1481__CLASS_MATCHCOMPILCONTEXT.obj_len = 8;
 
 
@@ -24357,7 +24489,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1487__MCX_LOC.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1487__MCX_LOC.obj_num = 1;
-  cdat->dobj_1487__MCX_LOC.obj_hash = 600671128;
+  cdat->dobj_1487__MCX_LOC.obj_hash = 1049283296;
   cdat->dobj_1487__MCX_LOC.obj_len = 4;
 
 
@@ -24413,7 +24545,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1491__MCX_NORMTESTER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1491__MCX_NORMTESTER.obj_num = 2;
-  cdat->dobj_1491__MCX_NORMTESTER.obj_hash = 819492537;
+  cdat->dobj_1491__MCX_NORMTESTER.obj_hash = 763688725;
   cdat->dobj_1491__MCX_NORMTESTER.obj_len = 4;
 
 
@@ -24472,7 +24604,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1495__MCX_GOTOTHEN.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1495__MCX_GOTOTHEN.obj_num = 3;
-  cdat->dobj_1495__MCX_GOTOTHEN.obj_hash = 1049283296;
+  cdat->dobj_1495__MCX_GOTOTHEN.obj_hash = 261632026;
   cdat->dobj_1495__MCX_GOTOTHEN.obj_len = 4;
 
 
@@ -24531,7 +24663,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1499__MCX_GOTOELSE.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1499__MCX_GOTOELSE.obj_num = 4;
-  cdat->dobj_1499__MCX_GOTOELSE.obj_hash = 763688725;
+  cdat->dobj_1499__MCX_GOTOELSE.obj_hash = 747015694;
   cdat->dobj_1499__MCX_GOTOELSE.obj_len = 4;
 
 
@@ -24586,7 +24718,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1503__MCX_OLIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1503__MCX_OLIST.obj_num = 5;
-  cdat->dobj_1503__MCX_OLIST.obj_hash = 261632026;
+  cdat->dobj_1503__MCX_OLIST.obj_hash = 935379176;
   cdat->dobj_1503__MCX_OLIST.obj_len = 4;
 
 
@@ -24639,7 +24771,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1507__MCX_SUFFIX.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1507__MCX_SUFFIX.obj_num = 6;
-  cdat->dobj_1507__MCX_SUFFIX.obj_hash = 747015694;
+  cdat->dobj_1507__MCX_SUFFIX.obj_hash = 967304588;
   cdat->dobj_1507__MCX_SUFFIX.obj_len = 4;
 
 
@@ -24695,7 +24827,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1511__MCX_STATECOUNTER.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1511__MCX_STATECOUNTER.obj_num = 7;
-  cdat->dobj_1511__MCX_STATECOUNTER.obj_hash = 935379176;
+  cdat->dobj_1511__MCX_STATECOUNTER.obj_hash = 817294574;
   cdat->dobj_1511__MCX_STATECOUNTER.obj_len = 4;
 
 
@@ -24753,7 +24885,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1515__COMPILE_TESTER.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V9*/ meltfptr[8]);
-  cdat->dobj_1515__COMPILE_TESTER.obj_hash = 541304433;
+  cdat->dobj_1515__COMPILE_TESTER.obj_hash = 297943151;
   cdat->dobj_1515__COMPILE_TESTER.obj_len = 4;
 
 
@@ -24814,7 +24946,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1519__CLASS_TESTERCOMPILCONTEXT.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_1519__CLASS_TESTERCOMPILCONTEXT.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_1519__CLASS_TESTERCOMPILCONTEXT.obj_hash = 859123151;
+  cdat->dobj_1519__CLASS_TESTERCOMPILCONTEXT.obj_hash = 563673213;
   cdat->dobj_1519__CLASS_TESTERCOMPILCONTEXT.obj_len = 8;
 
 
@@ -24885,7 +25017,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1525__TCX_NRMATCH.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1525__TCX_NRMATCH.obj_num = 1;
-  cdat->dobj_1525__TCX_NRMATCH.obj_hash = 1033481355;
+  cdat->dobj_1525__TCX_NRMATCH.obj_hash = 1011068362;
   cdat->dobj_1525__TCX_NRMATCH.obj_len = 4;
 
 
@@ -24944,7 +25076,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1529__TCX_FREELIST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1529__TCX_FREELIST.obj_num = 2;
-  cdat->dobj_1529__TCX_FREELIST.obj_hash = 563673213;
+  cdat->dobj_1529__TCX_FREELIST.obj_hash = 994328547;
   cdat->dobj_1529__TCX_FREELIST.obj_len = 4;
 
 
@@ -25003,7 +25135,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1533__TCX_NEXTEST.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1533__TCX_NEXTEST.obj_num = 3;
-  cdat->dobj_1533__TCX_NEXTEST.obj_hash = 1011068362;
+  cdat->dobj_1533__TCX_NEXTEST.obj_hash = 769400668;
   cdat->dobj_1533__TCX_NEXTEST.obj_len = 4;
 
 
@@ -25342,7 +25474,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1558__CLASS_ALTERNATE_MATCH_NREP_DATA.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_1558__CLASS_ALTERNATE_MATCH_NREP_DATA.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_1558__CLASS_ALTERNATE_MATCH_NREP_DATA.obj_hash = 543964625;
+  cdat->dobj_1558__CLASS_ALTERNATE_MATCH_NREP_DATA.obj_hash = 348842545;
   cdat->dobj_1558__CLASS_ALTERNATE_MATCH_NREP_DATA.obj_len = 8;
 
 
@@ -25413,7 +25545,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1564__ALTMATCHN_PREV.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1564__ALTMATCHN_PREV.obj_num = 0;
-  cdat->dobj_1564__ALTMATCHN_PREV.obj_hash = 412760748;
+  cdat->dobj_1564__ALTMATCHN_PREV.obj_hash = 774982064;
   cdat->dobj_1564__ALTMATCHN_PREV.obj_len = 4;
 
 
@@ -25472,7 +25604,7 @@ initialize_module_meltdata_warmelt_genobj (initial_frame_st * iniframp__,
   cdat->dobj_1568__ALTMATCHN_NREP.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_1568__ALTMATCHN_NREP.obj_num = 1;
-  cdat->dobj_1568__ALTMATCHN_NREP.obj_hash = 348842545;
+  cdat->dobj_1568__ALTMATCHN_NREP.obj_hash = 726351167;
   cdat->dobj_1568__ALTMATCHN_NREP.obj_len = 4;
 
 
@@ -26455,7 +26587,7 @@ start_module_melt (void *modargp_)
 /**initial routine prologue**/
   /* set initial frame marking */
   ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
-    /*minihash */ -2129;
+    /*minihash */ -3770;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     forward_or_mark_module_start_frame_warmelt_genobj;
  /**COMMENT: get previous environment **/ ;
@@ -33510,9 +33642,9 @@ labend_rout:;
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_0 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /**COMMENT: start of oinibody **/ ;
@@ -35123,9 +35255,9 @@ warmelt_genobj_initialmeltchunk_0 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_1 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putupl#112*/
@@ -36761,9 +36893,9 @@ warmelt_genobj_initialmeltchunk_1 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_2 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putupl#160*/
@@ -38421,9 +38553,9 @@ warmelt_genobj_initialmeltchunk_2 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_3 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putupl#222*/
@@ -40038,9 +40170,9 @@ warmelt_genobj_initialmeltchunk_3 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_4 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putupl#259*/
@@ -41642,9 +41774,9 @@ warmelt_genobj_initialmeltchunk_4 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_5 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putupl#293*/
@@ -43282,9 +43414,9 @@ warmelt_genobj_initialmeltchunk_5 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_6 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:VALUEDATA_*/
@@ -44880,9 +45012,9 @@ warmelt_genobj_initialmeltchunk_6 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_7 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putslot*/
@@ -46498,9 +46630,9 @@ warmelt_genobj_initialmeltchunk_7 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_8 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putslot*/
@@ -48138,9 +48270,9 @@ warmelt_genobj_initialmeltchunk_8 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_9 (struct frame_start_module_melt_st
-				   *meltframptr__, char predefinited[])
+				   *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:385:/ initchunk");
@@ -49746,9 +49878,9 @@ warmelt_genobj_initialmeltchunk_9 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_10 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:VALUEDATA_*/
@@ -51367,9 +51499,9 @@ warmelt_genobj_initialmeltchunk_10 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_11 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putupl#524*/
@@ -52977,9 +53109,9 @@ warmelt_genobj_initialmeltchunk_11 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_12 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:INITUP_*/
@@ -54593,9 +54725,9 @@ warmelt_genobj_initialmeltchunk_12 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_13 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:525:/ initchunk");
@@ -56188,9 +56320,9 @@ warmelt_genobj_initialmeltchunk_13 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_14 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:646:/ initchunk");
@@ -57564,9 +57696,9 @@ warmelt_genobj_initialmeltchunk_14 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_15 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:DATACLOSURE_*/
@@ -59021,9 +59153,9 @@ warmelt_genobj_initialmeltchunk_15 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_16 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:VALUEDATA_*/
@@ -60537,9 +60669,9 @@ warmelt_genobj_initialmeltchunk_16 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_17 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:1007:/ initchunk");
@@ -61897,9 +62029,9 @@ warmelt_genobj_initialmeltchunk_17 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_18 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:1626:/ initchunk");
@@ -63356,9 +63488,9 @@ warmelt_genobj_initialmeltchunk_18 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_19 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:1987:/ initchunk");
@@ -64816,9 +64948,9 @@ warmelt_genobj_initialmeltchunk_19 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_20 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putclosurout#41*/
@@ -66349,9 +66481,9 @@ warmelt_genobj_initialmeltchunk_20 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_21 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:2749:/ initchunk");
@@ -67824,9 +67956,9 @@ warmelt_genobj_initialmeltchunk_21 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_22 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*putslot*/
@@ -69310,9 +69442,9 @@ warmelt_genobj_initialmeltchunk_22 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_23 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:3267:/ initchunk");
@@ -70777,9 +70909,9 @@ warmelt_genobj_initialmeltchunk_23 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_24 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:3688:/ initchunk");
@@ -72222,9 +72354,9 @@ warmelt_genobj_initialmeltchunk_24 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_25 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:4056:/ initchunk");
@@ -73725,9 +73857,9 @@ warmelt_genobj_initialmeltchunk_25 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_26 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:4321:/ initchunk");
@@ -75202,9 +75334,9 @@ warmelt_genobj_initialmeltchunk_26 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_27 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:VALUEDATA_*/
@@ -76740,9 +76872,9 @@ warmelt_genobj_initialmeltchunk_27 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_28 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:5019:/ initchunk");
@@ -78278,9 +78410,9 @@ warmelt_genobj_initialmeltchunk_28 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_29 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*touch:VALUEDATA_*/
@@ -79753,9 +79885,9 @@ warmelt_genobj_initialmeltchunk_29 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_30 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:5499:/ initchunk");
@@ -81231,9 +81363,9 @@ warmelt_genobj_initialmeltchunk_30 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_31 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:5915:/ initchunk");
@@ -82770,9 +82902,9 @@ warmelt_genobj_initialmeltchunk_31 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_32 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
   MELT_LOCATION ("warmelt-genobj.melt:6228:/ initchunk");
@@ -90187,9 +90319,9 @@ warmelt_genobj_initialmeltchunk_32 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_33 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*internsym:OBL_OFF*/
@@ -90710,9 +90842,9 @@ warmelt_genobj_initialmeltchunk_33 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_34 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*internsym:CLASS_OBJPUTLIST*/
@@ -91314,9 +91446,9 @@ warmelt_genobj_initialmeltchunk_34 (struct frame_start_module_melt_st
 
 void MELT_MODULE_VISIBILITY
 warmelt_genobj_initialmeltchunk_35 (struct frame_start_module_melt_st
-				    *meltframptr__, char predefinited[])
+				    *meltmeltframptr__, char predefinited[])
 {
-#define meltfram__ (*meltframptr__)
+#define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
 #define meltcallcount 0L
 /*internsym:CLASS_NREP_COMMENT*/
@@ -91940,24 +92072,24 @@ forward_or_mark_module_start_frame_warmelt_genobj (struct melt_callframe_st
 						   *fp, int marking)
 {
   int ix = 0;
-  initial_frame_st *framptr_ = (initial_frame_st *) fp;
+  initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  framptr_->mcfr_nbvar == /*minihash */ -2129);
+		  meltframptr_->mcfr_nbvar == /*minihash */ -3770);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf
 	("forward_or_mark_module_start_frame_warmelt_genobj forwarding %d pointers in frame %p",
-	 1905, (void *) framptr_);
+	 1905, (void *) meltframptr_);
       for (ix = 0; ix < 1905; ix++)
-	MELT_FORWARDED (framptr_->mcfr_varptr[ix]);
+	MELT_FORWARDED (meltframptr_->mcfr_varptr[ix]);
       return;
     }				/*end forwarding */
   dbgprintf
     ("forward_or_mark_module_start_frame_warmelt_genobj marking in frame %p",
-     (void *) framptr_);
+     (void *) meltframptr_);
   for (ix = 0; ix < 1905; ix++)
-    if (framptr_->mcfr_varptr[ix])
-      gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
+    if (meltframptr_->mcfr_varptr[ix])
+      gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
 
 }				/* end forward_or_mark_module_start_frame_warmelt_genobj */
 
