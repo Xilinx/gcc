@@ -1,5 +1,9 @@
 
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (debug_fun): New stub, to be implemented.
+	* melt/warmelt-macro.melt (debug, mexpand_debug): New macro & expander.
+
+2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (variadic_ctype): New primitive.
 
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
