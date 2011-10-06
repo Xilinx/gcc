@@ -1115,7 +1115,7 @@ Returns a boxed integer.}#
 ;; primitive to add a strbuf into a outbuf
 (defprimitive add2out_sbuf (out asbuf) :void 
   :doc #{Add to output $OUT the stringbuffer $ASBUF.}#
-  #{meltgc_add_out((melt_ptr_t)($out), melt_out_str($asbuf))}#)
+  #{meltgc_add_out ((melt_ptr_t)($OUT), melt_strbuf_str ($ASBUF))}#)
 
 ;; primitive to add a string value, C encoded, into a outbuf
 (defprimitive add2out_cencstring (out str) :void 
@@ -1190,13 +1190,16 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 )
 
 (defun add2out (out :rest)
+  :doc #{Variadic function to add to an output $OUT (a file, a string
+  buffer) various things. Return the given $OUT. Use $ADD_TO_OUT selector
+  for values.}#
   (if (not (is_out out))
       (return))
   (forever 
    argloop
    (variadic 
     ( ()
-      (return))
+      (return out))
     ( (:value v)
       (if (is_closure v)
 	  (variadic
@@ -1217,7 +1220,7 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
       (add2out_strconst out s))
     ( :else
       (assert_msg "invalid variadic argument to ADD2OUT")
-      (return)
+      (return out)
       ))))
 
 ;; read add2out4null as "add to out for null"
@@ -1235,6 +1238,11 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
   (assert_msg "check boxed string vs" (is_string vs))
   (add2out_string out vs))
 (install_method discr_string add_to_out add2out4string)
+
+(defun add2out4strbuf (vsbuf out)
+  (assert_msg "check strbuf vsbuf" (is_strbuf vsbuf))
+  (add2out_sbuf out vsbuf))
+(install_method discr_strbuf add_to_out add2out4strbuf)
 
 (defun add2out4clonedsymb (vc out)
   (match vc

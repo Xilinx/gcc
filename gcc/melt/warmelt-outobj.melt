@@ -4337,6 +4337,36 @@
 	    ;;
 	    ;; output the descriptive C file 
 	    (output_melt_descriptor modnamstr secfiles)
+	    ;; remove the old extra files
+	    (foreach_long_upto 
+	     (nbsecfiles (+i nbsecfiles 15))
+	     (:long delfilix)
+	     (if (>i delfilix 0)
+		 (let ( (delfilnam (generated_c_filename discr_string modnamstr () delfilix))
+			(baksbuf (make_strbuf discr_strbuf))
+			)
+		   (debug_msg delfilnam "translate_macroexpanded_list delfilnam")
+		   (add2out baksbuf delfilnam "~")
+		   (let ( (bakfilnam (strbuf2string discr_string baksbuf))
+			  )
+		     (debug_msg bakfilnam "translate_macroexpanded_list bakfilnam")
+		     (code_chunk 
+		      backupchk
+		      #{ /*$BACKUPCHK*/
+		      const char* $BACKUPCHK#_delfilnamstr =
+		          melt_string_str ((melt_ptr_t) $DELFILNAM) ;
+		      const char* $BACKUPCHK#_bakfilnamstr = 
+		          melt_string_str ((melt_ptr_t) $BAKFILNAM) ;
+		      if ($BACKUPCHK#_delfilnamstr && $BACKUPCHK#_bakfilnamstr
+						   && !access ($BACKUPCHK#_delfilnamstr, F_OK)) {
+		        if (!rename ($BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr)) 
+		        inform (UNKNOWN_LOCATION, "MELT backup old generated file %s as %s", 
+		  				  $BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr) ;
+		      }
+		      $BACKUPCHK#_delfilnamstr = NULL ;
+		      $BACKUPCHK#_bakfilnamstr = NULL ;
+		      /*end $BACKUPCHK*/ }#)
+		     ))))
 	    ;;
 	    (code_chunk 
 	     endmodnam

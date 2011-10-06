@@ -1,5 +1,14 @@
 
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (add2out_sbuf): Typo in macrostring.
+	(add2out): Return its output.
+	(add2out4strbuf): New method.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): When
+	the number of secondary generated files decrease, back-up the old
+	useless files.
+
+2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (install_melt_mode)
 	(translatefile_docmd, translatefile_mode, translateinit_docmd)
 	(translateinit_mode): Moved ...
