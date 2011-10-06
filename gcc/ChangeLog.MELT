@@ -1,5 +1,13 @@
 
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translatetomodule_docmd)
+	(translatetomodule_mode, translatedebug_docmd)
+	(translatedebug_mode, translatequickly_docmd)
+	(translatequickly_mode): Move ...
+
+	* melt/warmelt-modes.melt: ... To here.
+
+2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (help_docmd, help_mode, nop_docmd)
 	(mop_mode, runfile_docmd, runfile_mode, rundebug_docmd)
 	(rundebug_mode, class_makedoc_info, makedoc_scaninput)
