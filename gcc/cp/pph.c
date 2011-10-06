@@ -47,7 +47,7 @@ FILE *pph_logfile = NULL;
 const char*
 pph_tree_code_text (enum tree_code code)
 {
-  gcc_assert (code <= TEMPLATE_INFO);
+  gcc_assert (code < MAX_TREE_CODES);
   return tree_code_name[code];
 }
 

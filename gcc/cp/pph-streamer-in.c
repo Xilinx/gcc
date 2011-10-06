@@ -379,26 +379,6 @@ pph_in_tree_vec (pph_stream *stream)
 }
 
 
-/* Read and return a gc VEC of trees in ENCLOSING_NAMESPACE from STREAM.  */
-
-static VEC(tree,gc) *
-pph_in_namespace_tree_vec (pph_stream *stream, tree enclosing_namespace)
-{
-  HOST_WIDE_INT i, num;
-  VEC(tree,gc) *v;
-
-  num = pph_in_hwi (stream);
-  v = NULL;
-  for (i = 0; i < num; i++)
-    {
-      tree t = pph_in_namespace_tree (stream, enclosing_namespace);
-      VEC_safe_push (tree, gc, v, t);
-    }
-
-  return v;
-}
-
-
 /* Read and return a gc VEC of qualified_typedef_usage_t from STREAM.  */
 
 static VEC(qualified_typedef_usage_t,gc) *
@@ -423,8 +403,8 @@ pph_in_qual_use_vec (pph_stream *stream)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static cp_binding_level *pph_in_binding_level (pph_stream *,
-					       cp_binding_level *);
+static void pph_in_binding_level (cp_binding_level **,
+				  pph_stream *, cp_binding_level *);
 
 /* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
@@ -449,7 +429,7 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   type = pph_in_tree (stream);
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cxx_binding, cb,
                       cxx_binding_make (value, type));
-  cb->scope = pph_in_binding_level (stream, NULL);
+  pph_in_binding_level (&cb->scope, stream, NULL);
   bp = pph_in_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
   cb->is_local = bp_unpack_value (&bp, 1);
@@ -547,8 +527,9 @@ pph_in_label_binding (pph_stream *stream)
    level given in TO_REGISTER.  This way, subsequent references to the
    global binding level will be done to the one set in TO_REGISTER.  */
 
-static cp_binding_level *
-pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
+static void
+pph_in_binding_level (cp_binding_level **out_field,
+                      pph_stream *stream, cp_binding_level *to_register)
 {
   unsigned i, num, image_ix, ix;
   cp_binding_level *bl;
@@ -558,10 +539,16 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
   if (marker == PPH_RECORD_END)
-    return NULL;
+    {
+      *out_field = NULL;
+      return;
+    }
   else if (pph_is_reference_marker (marker))
-    return (cp_binding_level *) pph_cache_find (stream, marker, image_ix, ix,
-						PPH_cp_binding_level);
+    {
+      *out_field = (cp_binding_level *)
+          pph_cache_find (stream, marker, image_ix, ix, PPH_cp_binding_level);
+      return;
+    }
 
   /* If TO_REGISTER is set, register that binding level instead of the newly
      allocated binding level into slot IX.  */
@@ -573,23 +560,28 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
 				  ggc_alloc_cleared_cp_binding_level (),
 				  to_register);
 
+  /* Now activate the encompasing field in case we need to insert into a
+     namespace that we just read.  */
+  *out_field = bl;
+
   entity = bl->this_entity = pph_in_tree (stream);
   if (NAMESPACE_SCOPE_P (entity))
     {
-      bl->names = pph_in_namespace_chain (stream, entity);
-      bl->namespaces = pph_in_namespace_chain (stream, entity);
-      bl->static_decls = pph_in_namespace_tree_vec (stream, entity);
-      bl->usings = pph_in_namespace_chain (stream, entity);
-      bl->using_directives = pph_in_namespace_chain (stream, entity);
+      if (flag_pph_debug >= 3)
+        debug_tree_chain (bl->names);
+      pph_in_mergeable_chain (stream, &bl->names);
+      pph_in_mergeable_chain (stream, &bl->namespaces);
+      pph_in_mergeable_chain (stream, &bl->usings);
+      pph_in_mergeable_chain (stream, &bl->using_directives);
     }
   else
     {
       bl->names = pph_in_chain (stream);
       bl->namespaces = pph_in_chain (stream);
-      bl->static_decls = pph_in_tree_vec (stream);
       bl->usings = pph_in_chain (stream);
       bl->using_directives = pph_in_chain (stream);
     }
+  bl->static_decls = pph_in_tree_vec (stream);
 
   num = pph_in_uint (stream);
   bl->class_shadowed = NULL;
@@ -610,7 +602,7 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
     }
 
   bl->blocks = pph_in_tree (stream);
-  bl->level_chain = pph_in_binding_level (stream, NULL);
+  pph_in_binding_level (&bl->level_chain, stream, NULL);
   bl->dead_vars_from_for = pph_in_tree_vec (stream);
   bl->statement_list = pph_in_chain (stream);
   bl->binding_depth = pph_in_uint (stream);
@@ -620,8 +612,6 @@ pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
   bl->keep = bp_unpack_value (&bp, 1);
   bl->more_cleanups_ok = bp_unpack_value (&bp, 1);
   bl->have_cleanups = bp_unpack_value (&bp, 1);
-
-  return bl;
 }
 
 
@@ -673,7 +663,7 @@ pph_in_language_function (pph_stream *stream)
 
   /* FIXME pph.  We are not reading lf->x_named_labels.  */
 
-  lf->bindings = pph_in_binding_level (stream, NULL);
+  pph_in_binding_level (&lf->bindings, stream, NULL);
   lf->x_local_names = pph_in_tree_vec (stream);
 
   /* FIXME pph.  We are not reading lf->extern_decl_map.  */
@@ -825,7 +815,7 @@ pph_in_struct_function (pph_stream *stream, tree decl)
 static void
 pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  ldns->level = pph_in_binding_level (stream, NULL);
+  pph_in_binding_level (&ldns->level, stream, NULL);
 }
 
 
@@ -1109,11 +1099,13 @@ pph_in_scope_chain (pph_stream *stream)
      scope_chain->bindings.  Otherwise, identifiers read from STREAM
      will have the wrong bindings and will fail name lookups.  */
   cur_bindings = scope_chain->bindings;
-  new_bindings = pph_in_binding_level (stream, scope_chain->bindings);
+  pph_in_binding_level (&new_bindings, stream, scope_chain->bindings);
 
   /* Merge the bindings from STREAM into saved_scope->bindings.  */
+  /* FMIXME crowl: The following should already have been done.
   chainon (cur_bindings->names, new_bindings->names);
   chainon (cur_bindings->namespaces, new_bindings->namespaces);
+  */
 
   FOR_EACH_VEC_ELT (tree, new_bindings->static_decls, i, decl)
     VEC_safe_push (tree, gc, cur_bindings->static_decls, decl);
@@ -1723,6 +1715,7 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
   DECL_INITIAL (decl) = pph_in_tree (stream);
 
   /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.  */
+  /* FIXME pph: almost redundant.  */
   if (TREE_CODE (decl) == VAR_DECL
       || TREE_CODE (decl) == FUNCTION_DECL)
     DECL_CHAIN (decl) = pph_in_tree (stream);
@@ -1774,6 +1767,7 @@ pph_in_tcc_type (pph_stream *stream, tree type)
   TYPE_NEXT_VARIANT (type) = pph_in_tree (stream);
   /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
      failures.  Why?  */
+  /* FIXME pph: apparently redundant.  */
   TREE_CHAIN (type) = pph_in_tree (stream);
 
   /* The type values cache is built as constants are instantiated,
@@ -2035,7 +2029,7 @@ pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
   /* Allocate the tree.  */
   tree expr = streamer_alloc_tree (ib, data_in, tag);
 
-  /* Read the language-independent bitfields for expr.  */
+  /* Read the language-independent bitfields for EXPR.  */
   bp = streamer_read_tree_bitfields (ib, expr);
 
       /* Unpack all language-dependent bitfields.  */
@@ -2047,24 +2041,149 @@ pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
-/* Callback for reading ASTs from a stream.  Instantiate and return a
-   new tree from the PPH stream in DATA_IN.  */
+/* Match a new decl EXPR at location WHERE with identifier string IDSTR
+   against an overload set at the LINK of a chain.
+   The EXPR may be added to that set.  */
 
-tree
-pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
-	       struct data_in *root_data_in)
+static tree
+pph_match_to_overload (tree expr ATTRIBUTE_UNUSED,
+			location_t where ATTRIBUTE_UNUSED,
+			const char *idstr, tree *link ATTRIBUTE_UNUSED)
 {
-  /* Find data.  */
-  pph_stream *stream = (pph_stream *) root_data_in->sdata;
-  return pph_read_namespace_tree (stream, NULL);
+  /* FIXME crowl: Assume functions are distinct for now.  */
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
+  return NULL;
 }
 
+
+/* Match a new decl EXPR at location WHERE with identifier string IDSTR
+   against a function at the LINK of a chain.
+   We may need to create an overload set if EXPR is not the same overload.  */
+
+static tree
+pph_match_to_function (tree expr ATTRIBUTE_UNUSED,
+			location_t where ATTRIBUTE_UNUSED,
+			const char *idstr, tree *link ATTRIBUTE_UNUSED)
+{
+  /* FIXME crowl: Assume functions are distinct for now.  */
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
+  return NULL;
+}
+
+
+/* Match a new decl EXPR at location WHERE with identifier string IDSTR
+   against an LINK of a chain. */
+
+static tree
+pph_match_to_link (tree expr, location_t where, const char *idstr, tree* link)
+{
+  enum tree_code link_code, expr_code;
+  tree idtree;
+  const char *idptr;
+
+  link_code = TREE_CODE (*link);
+  if (link_code == TREE_LIST)
+    return pph_match_to_overload (expr, where, idstr, link);
+
+  expr_code = TREE_CODE (expr);
+  if (link_code != expr_code)
+    return NULL;
+
+  idtree = DECL_NAME (*link);
+  if (!idtree)
+    return NULL;
+
+  idptr = IDENTIFIER_POINTER (idtree);
+  if (!idptr)
+    return NULL;
+
+  if (strcmp (idptr, idstr) != 0)
+    {
+      if (flag_pph_debug >= 4)
+        fprintf (pph_logfile, "PPH: link \"%s\" "
+			      "does not match mergeable \"%s\"\n",
+			      idptr, idstr);
+      return NULL;
+    }
+
+  /* A name match!  */
+
+  if (expr_code == FUNCTION_DECL)
+    return pph_match_to_function (expr, where, idstr, link);
+
+  /* A non-function match.  */
+  return *link;
+}
+
+
+/* Possibly merge a new decl EXPR at location WHERE with identifier
+   string IDSTR into an the decl in the CHAIN. */
+
+static tree
+pph_search_in_chain (tree expr, location_t where, const char *idstr,
+			tree *chain)
+{
+  /* FIXME pph: This could resultin O(POW(n,2)) compilation.  */
+  tree *link = chain;
+  while (*link != NULL)
+    {
+      tree found = pph_match_to_link (expr, where, idstr, link);
+      if (found)
+        return found;
+      link = &DECL_CHAIN (*link);
+    }
+  return NULL;
+}
+
+
+/* Prepend an tree EXPR to a CHAIN.  */
+
+static tree
+pph_prepend_to_chain (tree expr, tree *chain)
+{
+  DECL_CHAIN (expr) = *chain;
+  *chain = expr;
+  return expr;
+}
+
+/* Merge the just-read header for tree EXPR onto the CHAIN,
+   which may require reading more from the STREAM.  */
+
+static tree
+pph_merge_into_chain (pph_stream *stream, tree expr, tree *chain)
+{
+  location_t where;
+  const char *idstr;
+  tree found;
+
+  if (!DECL_P (expr))
+    return pph_prepend_to_chain (expr, chain);
+
+  where = pph_in_location (stream);
+  idstr = pph_in_string (stream);
+  if (!idstr)
+    return pph_prepend_to_chain (expr, chain);
+
+  found = pph_search_in_chain (expr, where, idstr, chain);
+  if (!found)
+    {
+      if (flag_pph_debug >= 3)
+        fprintf (pph_logfile, "PPH: %s NOT found on chain\n", idstr);
+      return pph_prepend_to_chain (expr, chain);
+    }
+
+  if (flag_pph_debug >= 3)
+    fprintf (pph_logfile, "PPH: %s FOUND on chain\n", idstr);
+  return found;
+}
 
 /* Read a tree from the STREAM.  It ENCLOSING_NAMESPACE is not null,
    the tree may be unified with an existing tree in that namespace.  */
 
 tree
-pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
+pph_read_any_tree (pph_stream *stream, tree *chain)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
@@ -2105,18 +2224,8 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
       /* Materialize a new node from IB.  This will also read all the
          language-independent bitfields for the new tree.  */
       expr = pph_read_tree_header (stream, tag);
-      if (enclosing_namespace && DECL_P (expr))
-        {
-          /* We may need to unify two declarations.  */
-          /* FIXME crowl: location_t where = pph_in_location (stream); */
-          const char *idstr = pph_in_string (stream);
-          /* But we only search if we have a name.  */
-          if (!idstr)
-            {
-              /* FIXME crowl search for idstr in namespace.  */
-              expr = expr;
-            }
-        }
+      if (chain)
+        expr = pph_merge_into_chain (stream, expr, chain);
     }
 
   gcc_assert (marker == PPH_RECORD_START
@@ -2158,30 +2267,38 @@ pph_read_namespace_tree (pph_stream *stream, tree enclosing_namespace)
 }
 
 
-/* Read a chain of tree nodes from input block IB. DATA_IN contains
-   tables and descriptors for the file being read.  */
+/* Callback for reading ASTs from a stream.  Instantiate and return a
+   new tree from the PPH stream in DATA_IN.  */
 
 tree
-pph_read_namespace_chain (pph_stream *stream, tree enclosing_namespace)
+pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
+	       struct data_in *root_data_in)
+{
+  /* Find data.  */
+  pph_stream *stream = (pph_stream *) root_data_in->sdata;
+  return pph_read_any_tree (stream, NULL);
+}
+
+
+/* Read a mergeable tree from STREAM into CHAIN.  */
+
+tree
+pph_read_mergeable_tree (pph_stream *stream, tree *chain)
+{
+  return pph_read_any_tree (stream, chain);
+}
+
+
+/* Read a chain of tree nodes from STREAM.  */
+
+void
+pph_read_mergeable_chain (pph_stream *stream, tree *chain)
 {
   int i, count;
-  tree first, prev, curr;
 
-  first = prev = NULL_TREE;
   count = streamer_read_hwi (stream->encoder.r.ib);
   for (i = 0; i < count; i++)
-    {
-      curr = pph_in_namespace_tree (stream, enclosing_namespace);
-      if (prev)
-        TREE_CHAIN (prev) = curr;
-      else
-        first = curr;
-
-      TREE_CHAIN (curr) = NULL_TREE;
-      prev = curr;
-    }
-
-  return first;
+    pph_in_mergeable_tree (stream, chain);
 }
 
 

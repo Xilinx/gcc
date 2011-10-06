@@ -1,4 +1,5 @@
 // pph asm xdiff 32642
+// xfail BOGUS LABELS
 //
 // This test case fails to compare because LFB/LFE labels are different.
 //

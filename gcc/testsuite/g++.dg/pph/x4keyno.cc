@@ -1,4 +1,4 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-xfail-if "BOGUS MERGE AUXVAR" { "*-*-*" } { "-fpph-map=pph.map" } }
 // { dg-bogus "x4keyno.cc:11:1: error: redefinition of 'const char _ZTS5keyno" "" { xfail *-*-* } 0 }
 
 #include "x0keyno1.h"

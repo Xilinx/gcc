@@ -336,8 +336,8 @@ unsigned pph_get_signature (tree, size_t *);
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
-void pph_write_namespace_tree (pph_stream *, tree, tree);
-void pph_write_namespace_chain (pph_stream *, tree, tree);
+void pph_write_mergeable_tree (pph_stream *, tree);
+void pph_write_mergeable_chain (pph_stream *, tree);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 void pph_add_include (pph_stream *);
 void pph_writer_init (void);
@@ -352,8 +352,8 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
-tree pph_read_namespace_tree (pph_stream *, tree);
-tree pph_read_namespace_chain (pph_stream *, tree);
+tree pph_read_mergeable_tree (pph_stream *, tree *);
+void pph_read_mergeable_chain (pph_stream *, tree *);
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
 void pph_read_file (const char *);
 void pph_reader_finish (void);
@@ -473,22 +473,13 @@ pph_out_tree (pph_stream *stream, tree t)
 }
 
 /* Output AST T from ENCLOSING_NAMESPACE to STREAM.
-   If -fpph-tracer is set to TLEVEL or higher, T is sent to pph_trace_tree.  */
-static inline void
-pph_out_namespace_tree_1 (pph_stream *stream, tree t, int tlevel,
-                          tree enclosing_namespace)
-{
-  if (flag_pph_tracer >= tlevel)
-    pph_trace_tree (stream, t);
-  pph_write_namespace_tree (stream, t, enclosing_namespace);
-}
-
-/* Output AST T from ENCLOSING_NAMESPACE to STREAM.
    Trigger tracing at -fpph-tracer=2.  */
 static inline void
-pph_out_namespace_tree (pph_stream *stream, tree t, tree enclosing_namespace)
+pph_out_mergeable_tree (pph_stream *stream, tree t)
 {
-  pph_out_namespace_tree_1 (stream, t, 2, enclosing_namespace);
+  if (flag_pph_tracer >= 2)
+    pph_trace_tree (stream, t);
+  pph_write_mergeable_tree (stream, t);
 }
 
 /* Write an unsigned int VALUE to STREAM.  */
@@ -574,12 +565,11 @@ pph_out_chain (pph_stream *stream, tree first)
 
 /* Write a chain of ASTs to STREAM starting with FIRST.  */
 static inline void
-pph_out_namespace_chain (pph_stream *stream, tree first,
-                         tree enclosing_namespace)
+pph_out_mergeable_chain (pph_stream *stream, tree first)
 {
   if (flag_pph_tracer >= 2)
     pph_trace_chain (stream, first);
-  pph_write_namespace_chain (stream, first, enclosing_namespace);
+  pph_write_mergeable_chain (stream, first);
 }
 
 /* Write a bitpack BP to STREAM.  */
@@ -676,13 +666,12 @@ pph_in_tree (pph_stream *stream)
 
 /* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
    Return the corresponding tree.  */
-static inline tree
-pph_in_namespace_tree (pph_stream *stream, tree enclosing_namespace)
+static inline void
+pph_in_mergeable_tree (pph_stream *stream, tree *chain)
 {
-  tree t = pph_read_namespace_tree (stream, enclosing_namespace);
-  if (flag_pph_tracer >= 4)
+  tree t = pph_read_mergeable_tree (stream, chain);
+  if (flag_pph_tracer >= 3)
     pph_trace_tree (stream, t);
-  return t;
 }
 
 /* Load into an array A of cardinality C of AST from STREAM.  */
@@ -731,14 +720,11 @@ pph_in_chain (pph_stream *stream)
   return t;
 }
 
-/* Read a chain of ASTs in ENCLOSING_NAMESPACE from STREAM.  */
-static inline tree
-pph_in_namespace_chain (pph_stream *stream, tree enclosing_namespace)
+/* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
+static inline void
+pph_in_mergeable_chain (pph_stream *stream, tree* chain)
 {
-  tree t = pph_read_namespace_chain (stream, enclosing_namespace);
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, t);
-  return t;
+  pph_read_mergeable_chain (stream, chain);
 }
 
 /* Read a bitpack from STREAM.  */

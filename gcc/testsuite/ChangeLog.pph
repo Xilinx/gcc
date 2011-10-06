@@ -1,3 +1,11 @@
+2011-10-06   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/c4inline.cc: Clarify failure.
+	* g++.dg/pph/x4keyno.cc: Clarify failure.
+	* g++.dg/pph/x4keyex.cc: Clarify failure.
+	* g++.dg/pph/x4keyed.cc: Clarify failure.
+	* g++.dg/pph/x0tmplclass23.h: Fix header guard variables.
+
 2011-10-05   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1tmplclass1.cc: Document likely cause of asm difference.

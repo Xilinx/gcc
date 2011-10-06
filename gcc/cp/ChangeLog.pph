@@ -1,3 +1,50 @@
+2011-10-06   Lawrence Crowl  <crowl@google.com>
+
+        * pt.c (pph_in_pending_templates_list): Send pph logging to
+	the pph log file.
+	* pph.c (pph_tree_code_text): Correct specification of enum bound.
+	* pph-streamer-in.c (pph_in_namespace_tree_vec):  Remove.
+	(pph_in_binding_level): Change to mutator.  Mutate early so that
+	the result is usable while reading sub-trees.
+	(pph_in_tcc_declaration): Comment on redundancy.
+	(pph_match_to_overload): New.
+	(pph_match_to_function): New.
+	(pph_match_to_link): New.
+	(pph_search_in_chain): New.
+	(pph_prepend_to_chain): New.
+	(pph_merge_into_chain): New.
+	(pph_read_namespace_tree): Rename to pph_read_any_tree.  Mutate
+	a specific chain rather than mutate a namespace.
+	(pph_read_tree): Move within source.
+	(pph_read_mergeable_tree): New.
+        (pph_read_mergeable_chain): Chaining is now done by
+	pph_in_mergeable_tree.
+	* pph-streamer-out.c (pph_out_namespace_tree_vec):  Rename to
+	pph_out_mergeable_tree_vec.  Remove unneeded namespace parameter.
+	(pph_out_namespace_tree_vec_filtered): Remove unneeded.
+	(pph_write_namespace_chain): Replace with pph_write_mergeable_chain.	
+	(pph_write_mergeable_links): New.
+	(pph_out_namespace_chain_filtered):  Rename to
+	pph_out_mergeable_chain_filtered.  Remove unneeded namespace parameter.
+	(pph_out_binding_level_1): Adjust code to track the above changes.
+	->static_decls are already in declaration order, factor them out of
+	mergable tests.
+	(pph_out_tcc_declaration): Comment on redundancy.
+	(pph_out_tcc_type): Comment on redundancy.
+	(pph_write_namespace_tree): Rename to pph_write_any_tree.
+	Change namespace parameter to boolean.  Emit location info for merging.
+	(pph_write_mergeable_tree): New.
+	* pph-streamer.h: Modify function declarations to reflect the above.
+	(pph_out_namespace_tree): Rename to pph_out_mergeable_tree.  Remove
+	unneeded namespace argument.
+	(pph_out_namespace_tree_1): Fold into pph_out_mergeable_tree.
+	(pph_out_namespace_chain): Rname to pph_out_mergeable_chain.  Remove
+	unneeded namespace argument.
+	(pph_in_namespace_tree): Rname to pph_in_mergeable_tree.  Change
+	argument to chain instead of namespace.
+	(pph_in_namespace_chain): Rname to pph_in_mergeable_chain.  Change
+	argument to chain instead of namespace.
+
 2011-10-05   Diego Novillo  <dnovillo@google.com>
 
 	* pt.c (reregister_specialization): Call htab_find_slot with

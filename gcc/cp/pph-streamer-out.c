@@ -584,11 +584,10 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 }
 
 
-/* Write all the trees (from ENCLOSING_NAMESPACE) in VEC V to STREAM.  */
+/* Write all the trees in VEC V to STREAM.  */
 
 static void
-pph_out_namespace_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
-                            tree enclosing_namespace)
+pph_out_mergeable_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 {
   unsigned i;
   tree t;
@@ -600,7 +599,7 @@ pph_out_namespace_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
      same way as tree chains.  */
   pph_out_hwi (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT (tree, v, i, t)
-    pph_out_namespace_tree (stream, t, enclosing_namespace);
+    pph_out_mergeable_tree (stream, t);
 }
 
 
@@ -628,37 +627,6 @@ pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 
   /* Write them.  */
   pph_out_tree_vec (stream, (VEC(tree,gc) *)to_write);
-  VEC_free (tree, heap, to_write);
-}
-
-
-/* Write all the trees in ENCLOSING_NAMESPACE matching FILTER
-   in VEC V to STREAM.  */
-
-static void
-pph_out_namespace_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v,
-                                     tree enclosing_namespace, unsigned filter)
-{
-  unsigned i;
-  tree t;
-  VEC(tree, heap) *to_write = NULL;
-
-  /* Special case.  If the caller wants no filtering, it is much
-     faster to just call pph_out_tree_vec.  */
-  if (filter == PPHF_NONE)
-    {
-      pph_out_namespace_tree_vec (stream, v, enclosing_namespace);
-      return;
-    }
-
-  /* Collect all the nodes that match the filter.  */
-  FOR_EACH_VEC_ELT (tree, v, i, t)
-    if (pph_tree_matches (t, filter))
-      VEC_safe_push (tree, heap, to_write, t);
-
-  /* Write them.  */
-  pph_out_namespace_tree_vec (stream, (VEC(tree,gc) *)to_write,
-                                      enclosing_namespace);
   VEC_free (tree, heap, to_write);
 }
 
@@ -752,33 +720,37 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 }
 
 
+/* Emit the links of a chain to the STREAM in reverse order
+   from the ENCLOSING_NAMESPACE starting at T.  */
+
+static void
+pph_write_mergeable_links (pph_stream *stream, tree t)
+{
+  tree next_link;
+  if (!t)
+    return;
+
+  next_link = TREE_CHAIN (t);
+  pph_write_mergeable_links (stream, next_link);
+
+  /*FIXME pph: Is this circumlocution still needed? */
+  TREE_CHAIN (t) = NULL_TREE;
+
+  pph_out_mergeable_tree (stream, t);
+
+  TREE_CHAIN (t) = next_link;
+}
+
+
 /* Emit the chain of tree nodes from ENCLOSING_NAMESPACE starting at T
-   to STREAM.
-   OB is the output block
-   to write to.  REF_P is true if chain elements should be emitted
-   as references.  */
+   to STREAM.  */
 
 void
-pph_write_namespace_chain (pph_stream *stream, tree t, tree enclosing_namespace)
+pph_write_mergeable_chain (pph_stream *stream, tree t)
 {
-  int i, count;
-
-  count = list_length (t);
+  int count = list_length (t);
   streamer_write_hwi (stream->encoder.w.ob, count);
-  for (i = 0; i < count; i++)
-    {
-      tree saved_chain;
-
-      /* Clear TREE_CHAIN to avoid blindly recursing into the rest
-         of the list.  */
-      saved_chain = TREE_CHAIN (t);
-      TREE_CHAIN (t) = NULL_TREE;
-
-      pph_write_namespace_tree (stream, t, enclosing_namespace);
-
-      TREE_CHAIN (t) = saved_chain;
-      t = TREE_CHAIN (t);
-    }
+  pph_write_mergeable_links (stream, t);
 }
 
 
@@ -814,8 +786,8 @@ pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
    starting with FIRST.  Skip any nodes that do not match FILTER.  */
 
 static void
-pph_out_namespace_chain_filtered (pph_stream *stream, tree first,
-                                  tree enclosing_namespace, unsigned filter)
+pph_out_mergeable_chain_filtered (pph_stream *stream, tree first,
+					unsigned filter)
 {
   tree t;
   VEC(tree, heap) *to_write = NULL;
@@ -824,7 +796,7 @@ pph_out_namespace_chain_filtered (pph_stream *stream, tree first,
      faster to just call pph_out_chain directly.  */
   if (filter == PPHF_NONE)
     {
-      pph_out_namespace_chain (stream, first, enclosing_namespace);
+      pph_out_mergeable_chain (stream, first);
       return;
     }
 
@@ -834,8 +806,7 @@ pph_out_namespace_chain_filtered (pph_stream *stream, tree first,
       VEC_safe_push (tree, heap, to_write, t);
 
   /* Write them.  */
-  pph_out_namespace_tree_vec (stream, (VEC(tree,gc) *)to_write,
-                                      enclosing_namespace);
+  pph_out_mergeable_tree_vec (stream, (VEC(tree,gc) *)to_write);
   VEC_free (tree, heap, to_write);
 }
 
@@ -857,25 +828,20 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
   pph_out_tree (stream, entity);
   if (NAMESPACE_SCOPE_P (entity))
     {
-      pph_out_namespace_chain_filtered (stream, bl->names,
-                                                entity, aux_filter);
-      pph_out_namespace_chain_filtered (stream, bl->namespaces,
-                                                entity, aux_filter);
-      pph_out_namespace_tree_vec_filtered (stream, bl->static_decls,
-                                                   entity, filter);
-      pph_out_namespace_chain_filtered (stream, bl->usings,
-                                                entity, aux_filter);
-      pph_out_namespace_chain_filtered (stream, bl->using_directives,
-                                                entity, aux_filter);
+      pph_out_mergeable_chain_filtered (stream, bl->names, aux_filter);
+      pph_out_mergeable_chain_filtered (stream, bl->namespaces, aux_filter);
+      pph_out_mergeable_chain_filtered (stream, bl->usings, aux_filter);
+      pph_out_mergeable_chain_filtered (stream, bl->using_directives,
+                                                aux_filter);
     }
   else
     {
       pph_out_chain_filtered (stream, bl->names, aux_filter);
       pph_out_chain_filtered (stream, bl->namespaces, aux_filter);
-      pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
       pph_out_chain_filtered (stream, bl->usings, aux_filter);
       pph_out_chain_filtered (stream, bl->using_directives, aux_filter);
     }
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
@@ -1770,6 +1736,7 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
   pph_out_tree (stream, DECL_INITIAL (decl));
 
   /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.  */
+  /* FIXME pph: almost redundant.  */
   if (TREE_CODE (decl) == VAR_DECL
       || TREE_CODE (decl) == FUNCTION_DECL)
     pph_out_tree (stream, DECL_CHAIN (decl));
@@ -1814,6 +1781,7 @@ pph_out_tcc_type (pph_stream *stream, tree type)
   pph_out_tree (stream, TYPE_NEXT_VARIANT (type));
   /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
      failures.  Why?  */
+  /* FIXME pph: apparently redundant.  */
   pph_out_tree (stream, TREE_CHAIN (type));
 
   /* The type values cache is built as constants are instantiated,
@@ -2081,19 +2049,10 @@ pph_write_tree_header (pph_stream *stream, tree expr)
 }
 
 
-/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
-   in OB.  */
+/* Write a tree EXPR (MERGEABLE or not) to STREAM.  */
 
 void
-pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
-{
-  pph_stream *stream = (pph_stream *) ob->sdata;
-  pph_write_namespace_tree (stream, expr, NULL);
-}
-
-void
-pph_write_namespace_tree (pph_stream *stream, tree expr,
-                          tree enclosing_namespace )
+pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
 {
   enum pph_record_marker marker;
 
@@ -2132,14 +2091,14 @@ pph_write_namespace_tree (pph_stream *stream, tree expr,
              state of an existing tree, then we only need to write its
              body.  */
           pph_write_tree_header (stream, expr);
-          if (enclosing_namespace && DECL_P (expr))
+          if (mergeable && DECL_P (expr))
             {
               /* We may need to unify two declarations.  */
-              /* FIXME crowl: pph_out_location (stream, DECL_SOURCE_LOCATION (expr)); */
+              pph_out_location (stream, DECL_SOURCE_LOCATION (expr));
               tree name = DECL_NAME (expr);
               if (name)
                 pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
-                    IDENTIFIER_LENGTH (name));
+                                            IDENTIFIER_LENGTH (name));
               else
                 pph_out_string (stream, NULL);
             }
@@ -2149,6 +2108,23 @@ pph_write_namespace_tree (pph_stream *stream, tree expr,
     }
   else
     gcc_unreachable ();
+}
+
+
+/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
+   in OB.  */
+
+void
+pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+{
+  pph_stream *stream = (pph_stream *) ob->sdata;
+  pph_write_any_tree (stream, expr, false);
+}
+
+void
+pph_write_mergeable_tree (pph_stream *stream, tree expr)
+{
+  pph_write_any_tree (stream, expr, true);
 }
 
 

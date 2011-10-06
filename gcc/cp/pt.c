@@ -20243,7 +20243,7 @@ pph_in_pending_templates_list (pph_stream *stream)
     {
       struct pending_template *pt;
       if (flag_pph_debug >= 2)
-        fprintf (stderr, "loading %d pending templates\n", count );
+        fprintf (pph_logfile, "PPH: loading %d pending templates\n", count );
       pt = ggc_alloc_pending_template ();
       pt->next = NULL;
       pt->tinst = pph_in_tinst_level (stream);
