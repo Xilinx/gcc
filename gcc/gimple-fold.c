@@ -2569,6 +2569,19 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
               tree op1 = (*valueize) (gimple_assign_rhs2 (stmt));
               tree op2 = (*valueize) (gimple_assign_rhs3 (stmt));
 
+	      /* Fold embedded expressions in ternary codes.  */
+	      if ((subcode == COND_EXPR
+		   || subcode == VEC_COND_EXPR)
+		  && COMPARISON_CLASS_P (op0))
+		{
+		  tree op00 = (*valueize) (TREE_OPERAND (op0, 0));
+		  tree op01 = (*valueize) (TREE_OPERAND (op0, 1));
+		  tree tem = fold_binary_loc (loc, TREE_CODE (op0),
+					      TREE_TYPE (op0), op00, op01);
+		  if (tem)
+		    op0 = tem;
+		}
+
               return fold_ternary_loc (loc, subcode,
 				       gimple_expr_type (stmt), op0, op1, op2);
             }
@@ -2747,10 +2760,12 @@ fold_array_ctor_reference (tree type, tree ctor,
   double_int low_bound, elt_size;
   double_int index, max_index;
   double_int access_index;
-  tree domain_type = TYPE_DOMAIN (TREE_TYPE (ctor));
+  tree domain_type = NULL_TREE;
   HOST_WIDE_INT inner_offset;
 
   /* Compute low bound and elt size.  */
+  if (TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE)
+    domain_type = TYPE_DOMAIN (TREE_TYPE (ctor));
   if (domain_type && TYPE_MIN_VALUE (domain_type))
     {
       /* Static constructors for variably sized objects makes no sense.  */
@@ -2917,7 +2932,8 @@ fold_ctor_reference (tree type, tree ctor, unsigned HOST_WIDE_INT offset,
   if (TREE_CODE (ctor) == CONSTRUCTOR)
     {
 
-      if (TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE)
+      if (TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE
+	  || TREE_CODE (TREE_TYPE (ctor)) == VECTOR_TYPE)
 	return fold_array_ctor_reference (type, ctor, offset, size);
       else
 	return fold_nonarray_ctor_reference (type, ctor, offset, size);

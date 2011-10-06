@@ -1,3 +1,53 @@
+2011-10-05  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/lzd.c: New test.
+	* gcc.target/sparc/popc.c: New test.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/strlenopt-21.c (dg-options): Remove -fdump-tree-optimized.
+	* gcc.dg/ipa/inline-5.c: Cleanup inline ipa dump.
+	* g++.dg/other/final1.C: Cleanup original tree dump.
+
+2011-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50613
+	* gcc.dg/pr50613.c: New test.
+
+2011-10-05  Richard Henderson  <rth@redhat.com>
+
+	* gcc.c-torture/execute/vect-shuffle-1.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-2.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-3.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-4.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-5.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-6.c: New test.
+	* gcc.c-torture/execute/vect-shuffle-7.c: New test.
+	* gcc.c-torture/execute/vect-shuffle-8.c: New test.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/vect/vect.exp (VEC_CFLAGS): Move initialization after
+	DEFAULT_VECTFLAGS initialization.  Append "-fdump-tree-veclower2".
+	* gcc.dg/vect/vec-scal-opt.c: Scan and cleanup veclower2 tree dump.
+	* gcc.dg/vect/vec-scal-opt1.c: Ditto.
+	* gcc.dg/vect/vec-scal-opt2.c: Ditto.
+
+2011-10-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38885
+	* gcc.dg/tree-ssa/ssa-fre-33.c: New testcase.
+
+2011-10-05  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.target/i386/sw-1.c: New test.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-3.c (dg-options): Add
+	-mtune=generic.
+	* gcc.target/i386/avx256-unaligned-store-3.c (dg-options): Ditto.
+
 2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.dg/torture/builtin-complex-1.c: Use dg-add-options ieee.
