@@ -1,5 +1,26 @@
 
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (help_docmd, help_mode, nop_docmd)
+	(mop_mode, runfile_docmd, runfile_mode, rundebug_docmd)
+	(rundebug_mode, class_makedoc_info, makedoc_scaninput)
+	(makedoc_outformals, makedoc_outdoc, makedoc_outclassdef)
+	(makedoc_genpatmacro, makedoc_genclass, makedoc_genfunction)
+	(makedoc_genciterator, makedoc_genoutput, makedoc_docmd)
+	(makedoc_mode, generate_runtypesupport_enum_objmagic)
+	(generate_runtypesupport_gty)
+	(generate_runtypesupport_forwcopy_fun)
+	(generate_runtypesupport_scanning, generate_runtypesupport_param)
+	(generate_runtypesupport_cod2ctype)
+	(generate_runtypesupport_mag2str)
+	(generate_runtypesupport_boxingfun)
+	(generate_runtypesupport_mapfun, runtypesupport_docmd)
+	(runtypesupport_mode): Move into warmelt-mode.melt file ...
+	(translate_to_c_one_or_more_melt_files): Export.
+
+	* melt/warmelt-modes.melt: Move many functions from
+	warmelt-outobj.melt to here.
+
+2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt: New file.
 	* melt/generated/warmelrt-modes+meltdesc.c: New file.
 	* melt/generated/warmelrt-modes.c: New file.
