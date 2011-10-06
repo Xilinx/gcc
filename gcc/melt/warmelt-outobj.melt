@@ -4408,16 +4408,6 @@
   :doc #{Retrieve a MELT program argument as a string}#
   #{melt_argument($nam)}#)
 
-(defun install_melt_mode (mode)
-  :doc #{$INSTALL_MELT_MODE installs a new MELT mode, ie an instance of $CLASS_MELT_MODE.}#
-  (assert_msg "check mode" (is_a mode class_melt_mode))
-  (let ( (cmdict (get_field :sysdata_mode_dict initial_system_data))
-	 (cnam (get_field :named_name mode))
-	 )
-    (debug_msg mode "install_melt_mode mode")
-    (mapstring_putstr cmdict cnam mode)
-))
-
 
 
 ;;;;;;;;;;;;;;;;
@@ -4479,123 +4469,6 @@
     (compile_list_sexpr rlist curenv modsrcname)
     (debug_msg modsrcname "translate_to_c_one_or_more_melt_files done modsrcname")
     ))
-
-;;;;;;;;;;;;;;;;
-;;;;;
-(defun translatefile_docmd (cmd moduldata)
-  (message_dbg "starting translatefile_docmd")
-  (debug_msg cmd "start translatefile_docmd cmd")
-  (debug_msg moduldata "start translatefile_docmd moduldata")
-  (let ( 
-	(parmodenv (parent_module_environment))
-	(curenv (if moduldata moduldata initial_environment))
-	(inarg (make_stringconst discr_string (melt_argument "arg")))
-	(outarg (make_stringconst discr_string (melt_argument "output")))
-	)
-    (debug_msg inarg "translatefile_docmd inarg")
-    (debug_msg outarg "translatefile_docmd outarg")
-    (debug_msg parmodenv "before read translatefile_docmd parmodenv")
-    (debug_msg initial_environment "before read translatefile_docmd initial_environment")
-    (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (basnam (cond
-		    ( (is_string outarg) 
-		      (make_string_without_suffix discr_string outarg ".c")
-		      )
-		    ( (is_string inarg) 
-		      (make_string_nakedbasename discr_string inarg))
-		    (:else
-		     (errormsg_plain "invalid translatefile mode")
-		     (return)
-		     )))
-	   )
-    (debug_msg basnam "translatefile_mode basnam")
-    (if (or (string_suffixed basnam ".so")
-	    (string_suffixed basnam ".melt")
-	    (string_suffixed basnam ".o")
-	    (string_suffixed basnam ".c"))
-	(progn 	  
-	  (errormsg_strv "tranlatefile mode needs a base name without suffix" 
-		       basnam)
-	  (return)
-	  ))
-      (translate_to_c_one_or_more_melt_files inarg basnam curenv)
-      )))
-
-(definstance translatefile_mode
-  class_melt_mode
-  :named_name '"translatefile"
-  :meltmode_help '"translate a .melt file to .c;\n
-\t ARGUMENT= input file; OUTPUT= generated C file"
-  :meltmode_fun translatefile_docmd
-)
-(install_melt_mode translatefile_mode)
-
-;;;;;;;;;;;;;;;;
-(defun translateinit_docmd (cmd moduldata)
-  (debug_msg cmd "start translateinit_mode arg")
-  (debug_msg moduldata "start translateinit_mode moduldata")
-  (debug_msg initial_environment "before read translateinit_mode initial_environment")
-  (let ( (rlist (make_list discr_list))
-	 (:cstring progarg (melt_argument "arg"))
-	 (:cstring progarglist (melt_argument "arglist"))
-	 (inarg (cond ( progarg 
-			(make_stringconst discr_string progarg))
-		      ( progarglist
-			 (split_string_comma discr_string (make_stringconst discr_string progarglist))
-			)
-		      (:else
-		       (errormsg_plain "invalid arg or arglist to translateinit mode")
-		       (return))))
-	 (outarg (make_stringconst discr_string (melt_argument "output")))
-	 (basnam (cond
-		  ( (is_string outarg) outarg)
-		  ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
-		  (:else
-		   (errormsg_plain "invalid translateinit mode")
-		   (return)
-		   )))
-	 )
-    (debug_msg basnam "translateinit_mode basnam")
-    (if (or (string_suffixed basnam ".so")
-	    (string_suffixed basnam ".melt")
-	    (string_suffixed basnam ".c"))
-	(progn 
-	  (errormsg_strv "tranlateinit mode needs a base name without suffix" 
-		       basnam)
-	  (return)
-	  ))
-    (cond 
-     ((is_string inarg) 
-      (list_append2list rlist (read_file inarg)))
-     ((is_list inarg)
-      (list_every inarg 
-		  (lambda (curarg)
-		    (informsg_strv "reading from file" curarg)
-		    (let ( (curead (read_file curarg))
-			   )
-		      (assert_msg "check rlist" (is_list rlist))
-		      (assert_msg "check curead" (is_list_or_null curead))
-		      (debug_msg curead "translateinit_mode curead")
-		      (list_append2list rlist curead)))))
-     )
-    (debug_msg rlist "after read translateinit_mode rlist")
-    (compile_list_sexpr rlist initial_environment basnam)
-    ;; we trigger explicitly a full GC to stress the runtime. The
-    ;; translateinit mode is not useful to the casual user.
-    (full_garbcoll 10000)
-    (return)
-    ))
-
-;;;
-(definstance translateinit_mode
-  class_melt_mode
-  :named_name '"translateinit"
-  :meltmode_help '"translate the very first *.melt file;\n
-\t useful only at MELT installation! ARGUMENT= input file; OUTPUT= generated file."
-  :meltmode_fun translateinit_docmd
-)
-(install_melt_mode translateinit_mode)
-
 
 
 
@@ -4661,7 +4534,6 @@ notice for file named $NAME.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  compile_list_sexpr
- install_melt_mode
  melt_argument
  generate_gplv3plus_copyright_notice_c_comment 
  translate_to_c_one_or_more_melt_files

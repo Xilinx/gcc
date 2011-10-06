@@ -11,12 +11,12 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Thu Oct  6 13:58:00 2011 CEST";
-const long long melt_gen_timenum=1317902280;
+const char melt_gen_timestamp[]="Thu Oct  6 14:50:04 2011 CEST";
+const long long melt_gen_timenum=1317905404;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="fcb9e8c3f0c4ecc3b2032f09e67e8258";
+const char melt_prepromd5meltrun[]="de75dfcd5c599750cc28a18be8449776";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="bfce548da6499b014d822ecd0631a388";
 
