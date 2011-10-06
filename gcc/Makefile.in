@@ -5524,9 +5524,9 @@ install-melt-mk: melt-module.mk
 
 ## install the default modules list
 install-melt-default-modules-list: $(melt_default_modules_list).modlis $(wildcard $(melt_default_modules_list)-*.modlis)
-	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)/$(melt_module_dir) 
+	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(DESTDIR)/$(melt_source_dir) 
 	for f in $(wildcard $(melt_default_modules_list)-*.modlis) ; do \
-	  $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_module_dir); \
+	  $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir); \
 	done
 
 #### this phony target is given manually to copy the generated

@@ -1,4 +1,8 @@
 
+2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-default-modules-list): Install
+	the *.modlis files in the source directory.
+
 2011-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
