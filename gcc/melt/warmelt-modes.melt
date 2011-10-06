@@ -1,0 +1,57 @@
+;; file warmelt-modes.melt -*- Lisp -*-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "***
+    Copyright (C) 2011 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+
+    This file is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+***")
+
+;; the copyright notice above apply both to warmelt-modes.melt and 
+;; to the generated files  warmelt-modes*.c
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;    This file is part of a bootstrapping compiler for the MELT lisp
+;;    dialect, compiler which should be able to compile itself (into
+;;    generated C file[s])
+;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun showvar_docmd (cmd moduldata)
+  (debug_msg cmd "start showvar_docmd cmd")
+  (debug_msg moduldata "start showvar_docmd moduldata")
+  (let (
+	(parmodenv (parent_module_environment))
+	(env (if moduldata moduldata parmodenv))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(insymb (get_symbolstr inarg))
+	)
+    (assert_msg "check moduldata" (is_a moduldata class_environment))
+    (if (is_a insymb class_symbol)
+	(let ( (symbind (find_env env insymb))
+	       (symname (unsafe_get_field :named_name insymb))
+	       )
+	  (if symbind
+	      (progn
+		(debug_msg symbind "showvar_docmd symbind")
+		(informsg_strv "found binding for " symname)
+		(return))
+	    (errormsg_strv "no binding found for " symname)
+	    )
+	  (errormsg_strv "unknown symbol to show" inarg)
+	  ))))
+
+;; eof warmelt-modes.melt

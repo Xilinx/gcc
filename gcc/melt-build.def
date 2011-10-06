@@ -72,6 +72,11 @@ melt_translator_file = {
   mkvarsuf = OUTOBJ;
 };
 
+melt_translator_file = {
+  base = "warmelt-modes";
+  mkvarsuf = MODES;
+};
+
 
 ////////////////
 // the additional MELT application files

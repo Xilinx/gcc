@@ -1,5 +1,12 @@
 
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt: New file.
+	* melt/generated/warmelrt-modes+meltdesc.c: New file.
+	* melt/generated/warmelrt-modes.c: New file.
+	* melt-build.def (warmelt-modes): New translator entry.
+	* melt-build.mk: Regenerate.
+
+2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-default-modules-list): Install
 	the *.modlis files in the source directory.
 
