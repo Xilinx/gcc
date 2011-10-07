@@ -10570,18 +10570,19 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
    which would be very slow if it happens to not be cached in
    memory */
 
-static char* meltppbuffer;
-static size_t meltppbufsiz;
-static FILE* meltppfile;
+char* meltppbuffer;
+size_t meltppbufsiz;
+FILE* meltppfile;
 
 #if !HAVE_OPEN_MEMSTREAM
 static char* meltppfilename;
 #endif
 
-/* open the melttppfile for pretty printing */
-static void 
-open_meltpp_file(void)
+/* open the melttppfile for pretty printing, return the old one */
+FILE*
+melt_open_ppfile (void)
 {
+  FILE* oldfile = meltppfile;
 #if HAVE_OPEN_MEMSTREAM
   meltppbufsiz = 1024;
   meltppbuffer = xcalloc (1, meltppbufsiz);
@@ -10615,12 +10616,13 @@ open_meltpp_file(void)
     }
   meltppfile = fopen (meltppfilename, "w+");
 #endif
+  return oldfile;
 }
 
 /* close the meltppfile for pretty printing; after than, the
    meltppbuffer & meltppbufsize contains the FILE* content */
-static void
-close_meltpp_file(void)
+void
+melt_close_ppfile (FILE *oldfile)
 {
   gcc_assert (meltppfile != (FILE*)0);
 #if HAVE_OPEN_MEMSTREAM
@@ -10629,6 +10631,7 @@ close_meltpp_file(void)
 #else
   /* we don't have an in-memory FILE*; so we read the file; you'll
      better have it in a fast file system, like a memory one. */
+  fflush (meltppfile);
   meltppbufsiz = (size_t) ftell (meltppfile);
   rewind (meltppfile);
   meltppbuffer = (char*) xcalloc(1, meltppbufsiz);
@@ -10637,7 +10640,7 @@ close_meltpp_file(void)
 		      xstrerror (errno));
   fclose (meltppfile);
 #endif
-  meltppfile = NULL;
+  meltppfile = oldfile;
 }
 
 
@@ -10663,10 +10666,10 @@ meltgc_ppout_gimple (melt_ptr_t out_p, int indentsp, gimple gstmt)
     {
     case MELTOBMAG_STRBUF:
       {
-	open_meltpp_file ();
+	FILE* oldfil = melt_open_ppfile ();
 	print_gimple_stmt (meltppfile, gstmt, indentsp,
 			   TDF_LINENO | TDF_SLIM | TDF_VOPS);
-	close_meltpp_file ();
+	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
 	meltppbuffer = 0;
@@ -10714,10 +10717,10 @@ meltgc_ppout_gimple_seq (melt_ptr_t out_p, int indentsp,
     {
     case MELTOBMAG_STRBUF:
       {
-	open_meltpp_file ();
+	FILE* oldfil = melt_open_ppfile ();
 	print_gimple_seq (meltppfile, gseq, indentsp,
 			   TDF_LINENO | TDF_SLIM | TDF_VOPS);
-	close_meltpp_file ();
+	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
 	meltppbuffer = 0;
@@ -10763,9 +10766,9 @@ meltgc_ppout_tree (melt_ptr_t out_p, int indentsp, tree tr)
     {
     case MELTOBMAG_STRBUF:
       {
-	open_meltpp_file ();
+	FILE* oldfil = melt_open_ppfile ();
 	print_node_brief (meltppfile, "", tr, indentsp);
-	close_meltpp_file ();
+	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
 	meltppbuffer = 0;
@@ -10846,9 +10849,9 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     {
     case MELTOBMAG_STRBUF:
       {
-	open_meltpp_file ();
+	FILE* oldfil= melt_open_ppfile ();
 	dump_edge_info (meltppfile, edg, 0);
-	close_meltpp_file ();
+	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
 	meltppbuffer = 0;
@@ -10895,10 +10898,10 @@ meltgc_out_loop (melt_ptr_t out_p, loop_p loo)
     {
     case MELTOBMAG_STRBUF:
       {
-	open_meltpp_file ();
+	FILE* oldfil= melt_open_ppfile ();
 	fprintf (meltppfile, "loop@%p: ", (void*) loo);
 	flow_loop_dump (loo, meltppfile, NULL, 1);
-	close_meltpp_file ();
+	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
 	meltppbuffer = 0;

@@ -1,5 +1,24 @@
 
 2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltppfile, meltppbuffer, meltppbufsiz): New
+	variables [previously static in melt-runtime.c].
+	(melt_open_ppfile, melt_close_ppfile, melt_release_ppbuf): New
+	declarations or functions.
+	* melt-runtime.c (meltppfile, meltppbuffer, meltppbufsiz):
+	Variables made public.
+	(open_meltpp): renamed as...
+	(melt_open_ppfile): new.
+	(close_meltpp_file): renamed as...
+	(melt_close_ppfile): new.
+	(meltgc_ppout_gimple, meltgc_ppout_gimple_seq, meltgc_ppout_tree)
+	(meltgc_out_edge, meltgc_out_loop): Revamped accordingly.
+	* melt/warmelt-base.melt (is_file): New primitive.
+
+	* melt/xtramelt-ana-base.melt (debugfun_tree, debugfun_gimple)
+	(debugfun_gimpleseq, debugfun_basicblock, debugfun_edge): New
+	registered debug functions.
+
+2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (register_tree_debug_fun)
 	(register_gimple_debug_fun, register_gimpleseq_debug_fun)
 	(register_edge_debug_fun, register_basicblock_debug_fun): New

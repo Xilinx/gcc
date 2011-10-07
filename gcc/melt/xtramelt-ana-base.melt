@@ -2776,7 +2776,8 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 (defprimitive ppl_Constraint_System_insert_Constraint
  (:ppl_constraint_system consys :ppl_constraint cons) :void
 #{ if (ppl_Constraint_System_insert_Constraint ($consys, $cons)) 
-     melt_fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#)
+     melt_fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#
+)
 
 (defprimitive ppl_Polyhedron_add_constraint 
 (:ppl_polyhedron poly :ppl_constraint cons) :void
@@ -3664,6 +3665,85 @@ Don't scan operands of the added $G.}#
 (defprimitive cfun_cfg_exit_block () :basic_block
   #{ ((cfun && cfun->cfg)? EXIT_BLOCK_PTR_FOR_FUNCTION(cfun):NULL) }#)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;; debug support
+(defun debugfun_tree (dbgi :tree tr)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if tr
+	(code_chunk 
+	 treeoutch
+	 #{ /* $TREEOUTCH */ meltgc_ppout_tree ((melt_ptr_t)$OUT, 0, $TR); }#
+	 )
+      (add2out_strconst out "*nulltree*")
+      )))
+(register_tree_debug_fun debugfun_tree)
+
+
+
+;;;;;;;;;;;;;;;;
+(defun debugfun_gimple (dbgi :gimple g)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if g
+	(code_chunk 
+	 outgimplechk
+	 #{/*$OUTGIMPLECHK*/ meltgc_ppout_gimple ((melt_ptr_t)$OUT, 0, $G);}#
+	 )
+      (add2out_strconst out "*nullgimple*")
+      )))
+(register_gimple_debug_fun debugfun_gimple)
+
+
+
+
+;;;;;;;;;;;;;;;;
+(defun debugfun_gimpleseq (dbgi :gimple_seq gs)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if gs
+	(code_chunk
+	 outgimpleseqchk
+	 #{ /*$OUTGIMPLESEQCHK*/ meltgc_ppout_gimple_seq ((melt_ptr_t)$OUT, 0, $GS);}#
+	 )
+      (add2out_strconst out "*nullgimpleseq*")
+      )))
+(register_gimpleseq_debug_fun debugfun_gimpleseq)
+
+;;;;;;;;;;;;;;;;
+(defun debugfun_basicblock (dbgi :basic_block bb)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if bb
+	(code_chunk
+	 outbbchk
+	 #{ /*$OUTBBCHK*/ meltgc_ppout_basicblock ((melt_ptr_t)$OUT, 0, $BB);}#
+	 )
+      (add2out_strconst out "*nullbasicblock*")
+      )))
+(register_basicblock_debug_fun debugfun_basicblock)
+
+;;;;;;;;;;;;;;;;
+(defun debugfun_edge (dbgi :edge ed)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if ed
+	(code_chunk
+	 outedgechk
+	 #{ /*$OUTEDGECHK*/ meltgc_out_edge ((melt_ptr_t)$OUT, $ED);}#
+	 )
+      (add2out_strconst out "*nulledge*")
+      )))
+(register_edge_debug_fun debugfun_edge)
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ==e
@@ -3983,4 +4063,4 @@ Don't scan operands of the added $G.}#
 (export_class
  class_analysis_state
 )
-;; eof ana-base.melt
+;; eof xtramelt-ana-base.melt

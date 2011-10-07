@@ -326,6 +326,25 @@ void melt_debug_out (struct debugprint_melt_st *dp, melt_ptr_t ptr,
 void melt_dbgeprint (void *p);
 void melt_dbgbacktrace (int depth);
 
+/* A pretty printing FILE, possibly in memory, or sort-of!  */
+extern FILE* meltppfile;
+char* meltppbuffer;
+size_t meltppbufsiz;
+
+/* Open a new pretty printing file into meltppfile, return the old one.  */
+FILE* melt_open_ppfile (void);
+
+/* Close the meltppfile and restore the previous one.  After than, the
+   meltppbuffer & meltppbufsize contains the FILE* content. */
+void melt_close_ppfile (FILE* oldfile);
+
+static inline void 
+melt_release_ppbuf (void)
+{
+  free (meltppbuffer), meltppbuffer = NULL;
+  meltppbufsiz = 0;
+}
+
 #ifdef ENABLE_GC_CHECKING
 extern int melt_debug_garbcoll;
 #define melt_debuggc_eprintf(Fmt,...) do {if (melt_debug_garbcoll > 0) \

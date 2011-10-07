@@ -945,6 +945,11 @@ Returns a boxed integer.}#
 (defprimitive is_out (v) :long
   :doc #{Test if value $V is a output value (a stringbuffer or a file).}# 
   #{ (melt_is_out ((melt_ptr_t) $v)) }#)
+
+(defprimitive is_file (v) :long
+  :doc #{Test if value $V is a file.}#
+  #{ (melt_is_file ((melt_ptr_t) $V)) }#)
+
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
   :doc #{Add into stringbuffer $SBUF the constant string $STR.}#
@@ -2881,6 +2886,7 @@ polyhedron values.}#
  inform_strv
  informsg_plain
  informsg_strv
+ is_file
  is_mixbigint
  is_mixint
  is_mixloc
