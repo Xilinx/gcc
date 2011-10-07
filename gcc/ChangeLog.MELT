@@ -1,4 +1,11 @@
 
+2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (register_tree_debug_fun)
+	(register_gimple_debug_fun, register_gimpleseq_debug_fun)
+	(register_edge_debug_fun, register_basicblock_debug_fun): New
+	functions.
+	(debug_fun): Coded, by calling appropriate registered hooks.
+
 2011-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (debug_fun): New stub, to be implemented.
 	* melt/warmelt-macro.melt (debug, mexpand_debug): New macro & expander.

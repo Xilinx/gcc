@@ -155,6 +155,189 @@ $FILENAM and $LINENO}#
   $DBGINFO (of $CLASS_DEBUG_INFORMATION) at given $DEPTH.}# )
 
 
+;;;;
+
+
+;; hook to support debug of :tree-s
+(definstance tree_debug_funcont class_container)
+(defun register_tree_debug_fun (f)
+  :doc #{Register a function for $DEBUG output of :tree-s. The first
+  argument to the registered function is an instance of
+  $CLASS_DEBUG_INFORMATION. The second argument is the raw :tree
+  stuff. Returns the previously registered function.}#
+  (let ( (oldcont !tree_debug_funcont)
+	 )
+    (if (or (null f) (is_closure f))
+	(set_content tree_debug_funcont f))
+    oldcont))
+
+;; hook to support debug of :gimple-s
+(definstance gimple_debug_funcont class_container)
+(defun register_gimple_debug_fun (f)
+  :doc #{Register a function for $DEBUG output of :gimple-s. The first
+  argument to the registered function is an instance of
+  $CLASS_DEBUG_INFORMATION. The second argument is the raw :gimple
+  stuff. Returns the previously registered function.}#
+  (let ( (oldcont !gimple_debug_funcont)
+	 )
+    (if (or (null f) (is_closure f))
+	(set_content gimple_debug_funcont f))
+    oldcont))
+
+;; hook to support debug of :gimple_seq-s
+(definstance gimpleseq_debug_funcont class_container)
+(defun register_gimpleseq_debug_fun (f)
+  :doc #{Register a function for $DEBUG output of :gimple_seq-s. The first
+  argument to the registered function is an instance of
+  $CLASS_DEBUG_INFORMATION. The second argument is the raw :gimple_seq
+  stuff. Returns the previously registered function.}#
+  (let ( (oldcont !gimpleseq_debug_funcont)
+	 )
+    (if (or (null f) (is_closure f))
+	(set_content gimpleseq_debug_funcont f))
+    oldcont))
+
+;; hook to support debug of :edge-s
+(definstance edge_debug_funcont class_container)
+(defun register_edge_debug_fun (f)
+  :doc #{Register a function for $DEBUG output of :edge-s. The first
+  argument to the registered function is an instance of
+  $CLASS_DEBUG_INFORMATION. The second argument is the raw :edge
+  stuff. Returns the previously registered function.}#
+  (let ( (oldcont !edge_debug_funcont)
+	 )
+    (if (or (null f) (is_closure f))
+	(set_content edge_debug_funcont f))
+    oldcont))
+
+;; hook to support debug of :basic_block-s
+(definstance basicblock_debug_funcont class_container)
+(defun register_basicblock_debug_fun (f)
+  :doc #{Register a function for $DEBUG output of :basic_block-s. The first
+  argument to the registered function is an instance of
+  $CLASS_DEBUG_INFORMATION. The second argument is the raw :basic_block
+  stuff. Returns the previously registered function.}#
+  (let ( (oldcont !basicblock_debug_funcont)
+	 )
+    (if (or (null f) (is_closure f))
+	(set_content basicblock_debug_funcont f))
+    oldcont))
+
+;;; the debug_fun is usually called thru the debug macro.
+(defun debug_fun (nothing :long count :cstring filename :long lineno :rest)
+  (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
+  (if (need_dbg 0) 
+      (let ( (:long dbgcounter 0)
+	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
+	     (stderrf (get_field :sysdata_stderr initial_system_data)) 
+	     (out dumpf)
+	     (occmap (make_mapobject discr_map_objects 50))
+	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
+	     )
+	(code_chunk getdbgcounter 
+		    #{/*$GETDBGCOUNTER*/ $dbgcounter = melt_dbgcounter ;
+		    }#)
+	;; if we don't have a dumpfile, use stderr; this may also
+	;; happens when the dumpf exists, but its dump_file is null.
+	(code_chunk ensuregoodout #{/*$ENSUREGOODOUT*/
+		    static int nbwarn	;
+		    if (melt_get_file ($OUT) == NULL) {
+		    gcc_assert (melt_get_file ($STDERRF) == stderr) ;
+		    $OUT = $STDERRF				    ;
+		    if (nbwarn++ <= 0) {
+		    inform (UNKNOWN_LOCATION, 
+			    "MELT debug output goes to stderr because we have no dump_file.") ;
+		    }
+		    }
+		    }#)
+	(if (null out)
+	    (setq out (get_field :sysdata_stderr initial_system_data)))
+	;; it may happen that OUT is null, e.g. because the dumpfile &
+	;; the stderr are not yet initialized in
+	;; initial_system_data...
+	(if (null out)
+	    (setq out (make_strbuf discr_strbuf)))
+	(assert_msg "check good out" (is_out out))
+	(let ( 
+	      (dbgi (instance class_debug_information
+			      :dbgi_out out
+			      :dbgi_occmap occmap
+			      :dbgi_maxdepth boxedmaxdepth))
+	      (:long framdepth (the_framedepth)) 
+	      )
+	  (add2out out "!!!!****####" dbgcounter "#^"  (-i framdepth 1) ":")
+	  (if filename
+	      (add2out out filename ":" lineno ":"))
+	  (if (>i count 0) 
+	      (progn
+		(add2out out " !" count ": ")))
+	  (forever 
+	   argloop
+	   (variadic 
+	    ( ()
+	      (exit argloop))
+	    ( (:long l)
+	      (add2out_longdec out l))
+	    ( (:cstring s)
+	      (add2out_strconst out s))
+	    ( (:value val)
+	      (add2out_strconst out " ")
+	      (if val (dbg_out val dbgi 0)
+		(add2out_strconst out "(**nil**)")))
+	    ( (:tree tr)
+	      (let ( (tdf !tree_debug_funcont)
+		     )
+		(if (is_closure tdf)
+		    (tdf dbgi tr)
+		  (if tr
+		      (add2out_strconst out " ?*tree*?")
+		      (add2out_strconst out " ?*nulltree*?")))))
+	    ( (:gimple gi)
+	      (let ( (gdf !gimple_debug_funcont)
+		     )
+		(if (is_closure gdf)
+		    (gdf dbgi gi)
+		  (if gi 
+		      (add2out_strconst out " ?*gimple*?") 
+		    (add2out_strconst out " ?*nullgimple*?")))))
+	    ( (:gimple_seq gs)
+	      (let ( (gsdf !gimpleseq_debug_funcont)
+		     )
+		(if (is_closure gsdf)
+		    (gsdf dbgi gs)
+		  (if gs
+		      (add2out_strconst out " ?*gimpleseq*?") 
+		    (add2out_strconst out " ?*nullgimpleseq*?")))))
+	    ( (:edge ed)
+	      (let ( (edf !edge_debug_funcont)
+		     )
+		(if (is_closure edf)
+		    (edf dbgi ed)
+		  (if ed
+		      (add2out_strconst out " ?*edge*?") 
+		    (add2out_strconst out " ?*nulledge*?")))))
+	    ( (:basic_block bb)
+	      (let ( (bdf !basicblock_debug_funcont)
+		     )
+		(if (is_closure bdf)
+		    (bdf dbgi bb)
+		  (if bb
+		      (add2out_strconst out " ?*basicblock*?") 
+		    (add2out_strconst out " ?*nullbasicblock*?")))))
+	    (:else
+	     (let ( (vctyp (variadic_ctype 0))
+		    (vctypname (get_field :named_name vctyp))
+		    )
+	       (code_chunk warnbadctype
+			   #{/* $WARNBADCTYPE */ warning(0,
+				        "MELT invalid ctype %s in (DEBUG ...) file %s line %d",
+					melt_string_str ((melt_ptr_t) $VCTYPNAME),
+					$FILENAME, $LINENO);
+			   }#)
+	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
+	       ))))
+	  ))))
+
 
 (defun dbg_outobject (obj dbgi :long depth)
   :doc #{Output for debugging object $OBJ using debug information
@@ -1012,13 +1195,6 @@ $TORANK}#
 
 
 
-;;;;
-
-;;; the debug_fun is usually called thru the debug macro.
-(defun debug_fun (nothing :long count :cstring filename :long lineno :rest)
-  (assert_msg "@$@unimplemented debug_fun")
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
 
 ;; this is a rarely used function
@@ -1055,8 +1231,12 @@ $TORANK}#
  debug_depth
  debug_fun
  debug_msg_fun			
- display_debug_message  		
-
+ display_debug_message  
+ register_basicblock_debug_fun
+ register_edge_debug_fun 
+ register_gimple_debug_fun 
+ register_gimpleseq_debug_fun 
+ register_tree_debug_fun
 )
 
 (put_fields initial_system_data
