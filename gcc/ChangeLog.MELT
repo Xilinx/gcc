@@ -1,5 +1,8 @@
 
 2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_debug): Add (if (need_dbg 0)
+	...) in expansion.
+2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltppfile, meltppbuffer, meltppbufsiz): New
 	variables [previously static in melt-runtime.c].
 	(melt_open_ppfile, melt_close_ppfile, melt_release_ppbuf): New

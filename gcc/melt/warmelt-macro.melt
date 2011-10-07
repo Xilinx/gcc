@@ -5838,7 +5838,7 @@ remain.}#)
 
 ;;;;;; (debug ...) 
 ;;; becomes
-;;;;;; (cppif MELT_HAVE_DEBUG (debug_fun () count filename lineno ...)))
+;;;;;; (cppif MELT_HAVE_DEBUG (if (need_dbg 0) (debug_fun () count filename lineno ...)))
 ;;; where count is (the_meltcallcount) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun mexpand_debug  (sexpr env mexpander)
@@ -5854,6 +5854,7 @@ remain.}#)
 	(:long dline (get_int loc))
 	(debugfunbind (find_env env 'debug_fun))
 	(thecountbind (find_env env 'the_meltcallcount))
+	(theneeddbgbind (find_env env 'need_dbg))
 	(curpair (pair_tail (list_first cont)))
 	(xarglist (expand_pairlist_as_list curpair env mexpander))
 	(dbgarglist (list ()))
@@ -5888,16 +5889,33 @@ remain.}#)
     (list_append dbgarglist (make_integerbox discr_constant_integer dline))
     (list_append2list dbgarglist xarglist)
     (let (
+	  (theneeddbg
+	   (cond 
+	    ( (is_a theneeddbgbind class_primitive_binding)
+	      (get_field :pbind_primitive thecountbind))
+	    ( (is_a theneeddbgbind class_value_binding)
+	      (get_field :vbind_value thecountbind))
+	    (:else
+	     (error_plain loc "(DEBUG ...) used in context with bad NEED_DBG")
+	     (return))))
+	  (dneedbg (instance class_source_primitive
+			     :loca_location  loc
+			     :sprim_oper theneeddbg
+			     :sargop_args (tuple 0)))
 	  (dcall (instance 
 		  class_source_apply
 		  :loca_location loc
 		  :sapp_fun 'debug_fun
 		  :sargop_args (list_to_multiple dbgarglist discr_multiple)))
-	  
+	  (difdbg (instance
+		   class_source_if
+		   :loca_location loc
+		   :sif_test dneedbg
+		   :sif_then dcall))
 	  (dcppif (instance class_source_cppif
 			    :loca_location loc
 			    :sifp_cond 'MELT_HAVE_DEBUG
-			    :sifp_then dcall
+			    :sifp_then difdbg
 			    :sifp_else ()
 			    )) 
 	  )
