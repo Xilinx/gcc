@@ -86,6 +86,87 @@ pph_end_section (void)
 }
 
 
+/* Write an unsigned char VALUE to STREAM.  */
+static void
+pph_out_uchar (pph_stream *stream, unsigned char value)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_uint (stream, value);
+  streamer_write_char_stream (stream->encoder.w.ob->main_stream, value);
+}
+
+
+/* Write a HOST_WIDE_INT VALUE to stream.  */
+static inline void
+pph_out_hwi (pph_stream *stream, HOST_WIDE_INT value)
+{
+  streamer_write_hwi (stream->encoder.w.ob, value);
+}
+
+
+/* Write an unsigned HOST_WIDE_INT VALUE to STREAM.  */
+static inline void
+pph_out_uhwi (pph_stream *stream, unsigned HOST_WIDE_INT value)
+{
+  streamer_write_uhwi (stream->encoder.w.ob, value);
+}
+
+
+/* Write an unsigned int VALUE to STREAM.  */
+void
+pph_out_uint (pph_stream *stream, unsigned int value)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_uint (stream, value);
+  streamer_write_uhwi (stream->encoder.w.ob, value);
+}
+
+
+/* Write N bytes from P to STREAM.  */
+static void
+pph_out_bytes (pph_stream *stream, const void *p, size_t n)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_bytes (stream, p, n);
+  lto_output_data_stream (stream->encoder.w.ob->main_stream, p, n);
+}
+
+
+/* Write string STR to STREAM.  */
+static inline void
+pph_out_string (pph_stream *stream, const char *str)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_string (stream, str);
+  streamer_write_string (stream->encoder.w.ob,
+                         stream->encoder.w.ob->main_stream, str, false);
+}
+
+
+/* Write string STR of length LEN to STREAM.  */
+static inline void
+pph_out_string_with_length (pph_stream *stream, const char *str,
+                            unsigned int len)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_string_with_length (stream, str, len);
+  streamer_write_string_with_length (stream->encoder.w.ob,
+                                     stream->encoder.w.ob->main_stream,
+                                     str, len + 1, false);
+}
+
+
+/* Write a bitpack BP to STREAM.  */
+static inline void
+pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
+{
+  gcc_assert (stream->encoder.w.ob->main_stream == bp->stream);
+  if (flag_pph_tracer >= 4)
+    pph_trace_bitpack (stream, bp);
+  streamer_write_bitpack (bp);
+}
+
+
 /* Callback for streamer_hooks.output_location.  Output the LOC directly,
    an offset will be applied on input after rebuilding the line_table.
    OB and LOC are as in lto_output_location.  */
@@ -97,6 +178,7 @@ pph_write_location (struct output_block *ob, location_t loc)
      streaming some builtins, we probably want to figure out what those are and
      simply add them to the cache in the preload.  */
   struct bitpack_d bp;
+
   location_t first_non_builtin_loc =
     line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location;
 
@@ -119,6 +201,16 @@ pph_write_location (struct output_block *ob, location_t loc)
 
   streamer_write_bitpack (&bp);
   streamer_write_hwi (ob, loc);
+}
+
+
+/* Write a chain of ASTs to STREAM starting with FIRST.  */
+static void
+pph_out_chain (pph_stream *stream, tree first)
+{
+  if (flag_pph_tracer >= 2)
+    pph_trace_chain (stream, first);
+  streamer_write_chain (stream->encoder.w.ob, first, false);
 }
 
 
@@ -267,6 +359,19 @@ pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
 
   /* DATA is in none of the caches.  It should be pickled out.  */
   return PPH_RECORD_START;
+}
+
+
+/* Write record MARKER for data type TAG to STREAM.  */
+void
+pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker,
+                       enum pph_tag tag)
+{
+  gcc_assert (marker == (enum pph_record_marker)(unsigned char) marker);
+  pph_out_uchar (stream, marker);
+
+  gcc_assert (tag == (enum pph_tag)(unsigned) tag);
+  pph_out_uint (stream, tag);
 }
 
 
@@ -746,9 +851,14 @@ pph_write_mergeable_links (pph_stream *stream, tree t)
    to STREAM.  */
 
 void
-pph_write_mergeable_chain (pph_stream *stream, tree t)
+pph_out_mergeable_chain (pph_stream *stream, tree t)
 {
-  int count = list_length (t);
+  int count;
+
+  if (flag_pph_tracer >= 2)
+    pph_trace_chain (stream, t);
+
+  count = list_length (t);
   streamer_write_hwi (stream->encoder.w.ob, count);
   pph_write_mergeable_links (stream, t);
 }

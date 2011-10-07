@@ -146,6 +146,89 @@ pph_init_read (pph_stream *stream)
 }
 
 
+/* Read an unsigned char VALUE to STREAM.  */
+static unsigned char
+pph_in_uchar (pph_stream *stream)
+{
+  unsigned char n = streamer_read_uchar (stream->encoder.r.ib);
+  if (flag_pph_tracer >= 4)
+    pph_trace_uint (stream, n);
+  return n;
+}
+
+/* Read a HOST_WIDE_INT from STREAM.  */
+static inline HOST_WIDE_INT
+pph_in_hwi (pph_stream *stream)
+{
+  return streamer_read_hwi (stream->encoder.r.ib);
+}
+
+
+/* Read an unsigned HOST_WIDE_INT from STREAM.  */
+static inline unsigned HOST_WIDE_INT
+pph_in_uhwi (pph_stream *stream)
+{
+  return streamer_read_uhwi (stream->encoder.r.ib);
+}
+
+
+/* Read an unsigned integer from STREAM.  */
+unsigned int
+pph_in_uint (pph_stream *stream)
+{
+  HOST_WIDE_INT unsigned n = streamer_read_uhwi (stream->encoder.r.ib);
+  gcc_assert (n == (unsigned) n);
+  if (flag_pph_tracer >= 4)
+    pph_trace_uint (stream, n);
+  return (unsigned) n;
+}
+
+
+/* Read N bytes from STREAM into P.  The caller is responsible for
+   allocating a sufficiently large buffer.  */
+static void
+pph_in_bytes (pph_stream *stream, void *p, size_t n)
+{
+  lto_input_data_block (stream->encoder.r.ib, p, n);
+  if (flag_pph_tracer >= 4)
+    pph_trace_bytes (stream, p, n);
+}
+
+
+/* Read and return a string from STREAM.  */
+
+static const char *
+pph_in_string (pph_stream *stream)
+{
+  const char *s = streamer_read_string (stream->encoder.r.data_in,
+                                        stream->encoder.r.ib);
+  if (flag_pph_tracer >= 4)
+    pph_trace_string (stream, s);
+  return s;
+}
+
+
+/* Read and return a record marker from STREAM.  On return, *TAG_P will
+   contain the tag for the data type stored in this record.  */
+enum pph_record_marker
+pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
+{
+  enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
+  gcc_assert (m == PPH_RECORD_START
+              || m == PPH_RECORD_START_NO_CACHE
+              || m == PPH_RECORD_START_MUTATED
+              || m == PPH_RECORD_END
+              || m == PPH_RECORD_IREF
+              || m == PPH_RECORD_XREF
+              || m == PPH_RECORD_PREF);
+
+  *tag_p = (enum pph_tag) pph_in_uint (stream);
+  gcc_assert ((unsigned) *tag_p < (unsigned) PPH_NUM_TAGS);
+
+  return m;
+}
+
+
 /* Read and return a record header from STREAM.  EXPECTED_TAG indicates
    the data type that should be stored in this record.  When a
    PPH_RECORD_START marker is read, the next word read is an index
@@ -234,6 +317,22 @@ pph_read_location (struct lto_input_block *ib,
   gcc_assert (old_loc == n);
 
   return is_builtin ? old_loc : old_loc + pph_loc_offset;
+}
+
+
+/* Read and return a location_t from STREAM.
+   FIXME pph: If pph_trace didn't depend on STREAM, we could avoid having to
+   call this function, only for it to call lto_input_location, which calls the
+   streamer hook back to pph_read_location.  */
+
+location_t
+pph_in_location (pph_stream *stream)
+{
+  location_t loc = pph_read_location (stream->encoder.r.ib,
+                                       stream->encoder.r.data_in);
+  if (flag_pph_tracer >= 4)
+    pph_trace_location (stream, loc);
+  return loc;
 }
 
 
@@ -2279,6 +2378,16 @@ pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
   return pph_read_any_tree (stream, NULL);
 }
 
+
+/* Load an AST from STREAM.  Return the corresponding tree.  */
+tree
+pph_in_tree (pph_stream *stream)
+{
+  tree t = pph_read_any_tree (stream, NULL);
+  if (flag_pph_tracer >= 4)
+    pph_trace_tree (stream, t);
+  return t;
+}
 
 /* Read a mergeable tree from STREAM into CHAIN.  */
 

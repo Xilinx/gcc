@@ -439,21 +439,6 @@ pph_cache_find (pph_stream *stream, enum pph_record_marker marker,
   return e->data;
 }
 
-/* Output array A of cardinality C of ASTs to STREAM.  */
-/* FIXME pph: hold for alternate routine. */
-#if 0
-static inline void
-pph_out_tree_array (pph_stream *stream, tree *a, size_t c)
-{
-  size_t i;
-  for (i = 0; i < c; ++i)
-    {
-      if (flag_pph_tracer >= 1)
-        pph_trace_tree (stream, a[i]);
-      pph_write_tree (stream->encoder.w.ob, a[i]);
-    }
-}
-#endif
 
 /* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
    higher, T is sent to pph_trace_tree.  */
@@ -482,6 +467,7 @@ pph_out_mergeable_tree (pph_stream *stream, tree t)
   pph_write_mergeable_tree (stream, t);
 }
 
+#if 0
 /* Write an unsigned int VALUE to STREAM.  */
 static inline void
 pph_out_uint (pph_stream *stream, unsigned int value)
@@ -544,6 +530,9 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
 				     stream->encoder.w.ob->main_stream,
 				     str, len + 1, false);
 }
+#else
+extern void pph_out_uint (pph_stream *stream, unsigned int value);
+#endif
 
 /* Write location LOC of length to STREAM.  */
 static inline void
@@ -554,6 +543,7 @@ pph_out_location (pph_stream *stream, location_t loc)
   pph_write_location (stream->encoder.w.ob, loc);
 }
 
+#if 0
 /* Write a chain of ASTs to STREAM starting with FIRST.  */
 static inline void
 pph_out_chain (pph_stream *stream, tree first)
@@ -581,7 +571,9 @@ pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
     pph_trace_bitpack (stream, bp);
   streamer_write_bitpack (bp);
 }
+#endif
 
+#if 0
 /* Read an unsigned integer from STREAM.  */
 static inline unsigned int
 pph_in_uint (pph_stream *stream)
@@ -663,6 +655,11 @@ pph_in_tree (pph_stream *stream)
     pph_trace_tree (stream, t);
   return t;
 }
+#else
+extern unsigned int pph_in_uint (pph_stream *stream);
+extern location_t pph_in_location (pph_stream *stream);
+extern tree pph_in_tree (pph_stream *stream);
+#endif
 
 /* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
    Return the corresponding tree.  */
@@ -673,41 +670,6 @@ pph_in_mergeable_tree (pph_stream *stream, tree *chain)
   if (flag_pph_tracer >= 3)
     pph_trace_tree (stream, t);
 }
-
-/* Load into an array A of cardinality C of AST from STREAM.  */
-/* FIXME pph: Hold for later use. */
-#if 0
-static inline void
-pph_in_tree_array (pph_stream *stream, tree *a, size_t c)
-{
-  size_t i;
-  for (i = 0; i < c; ++i)
-    {
-      tree t = pph_read_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
-      if (flag_pph_tracer >= 4)
-        pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
-      a[i] = t;
-    }
-}
-#endif
-
-/* Load into a VEC V of AST from STREAM.  */
-/* FIXME pph: Hold for later use. */
-#if 0
-static inline void
-pph_in_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
-{
-  size_t i;
-  unsigned int c = pph_in_uint (stream);
-  for (i = 0; i < c; ++i)
-    {
-      tree t = pph_read_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
-      if (flag_pph_tracer >= 4)
-        pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
-      VEC_safe_push (tree, gc, v, t);
-    }
-}
-#endif
 
 /* Read a chain of ASTs from STREAM.  */
 static inline tree
@@ -737,6 +699,7 @@ pph_in_bitpack (pph_stream *stream)
   return bp;
 }
 
+#if 0
 /* Write record MARKER for data type TAG to STREAM.  */
 static inline void
 pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker,
@@ -748,6 +711,7 @@ pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker,
   gcc_assert (tag == (enum pph_tag)(unsigned) tag);
   pph_out_uint (stream, tag);
 }
+
 
 /* Read and return a record marker from STREAM.  On return, *TAG_P will
    contain the tag for the data type stored in this record.  */
@@ -768,6 +732,12 @@ pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
 
   return m;
 }
+#else
+extern void pph_out_record_marker (pph_stream *stream,
+		enum pph_record_marker marker, enum pph_tag tag);
+extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
+		enum pph_tag *tag_p);
+#endif
 
 
 /* Return true if MARKER is PPH_RECORD_IREF, PPH_RECORD_XREF,
