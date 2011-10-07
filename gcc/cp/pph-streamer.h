@@ -336,9 +336,6 @@ unsigned pph_get_signature (tree, size_t *);
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
-#if 0
-void pph_write_mergeable_tree (pph_stream *, tree);
-#endif
 void pph_write_mergeable_chain (pph_stream *, tree);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 void pph_add_include (pph_stream *);
@@ -354,10 +351,6 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
-#if 0
-tree pph_read_mergeable_tree (pph_stream *, tree *);
-void pph_read_mergeable_chain (pph_stream *, tree *);
-#endif
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
 void pph_read_file (const char *);
 void pph_reader_finish (void);
@@ -444,314 +437,21 @@ pph_cache_find (pph_stream *stream, enum pph_record_marker marker,
 }
 
 
-#if 0
-/* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
-   higher, T is sent to pph_trace_tree.  */
-static inline void
-pph_out_tree_1 (pph_stream *stream, tree t, int tlevel)
-{
-  if (flag_pph_tracer >= tlevel)
-    pph_trace_tree (stream, t);
-  pph_write_tree (stream->encoder.w.ob, t, false);
-}
-
-/* Output AST T to STREAM.  Trigger tracing at -fpph-tracer=2.  */
-static inline void
-pph_out_tree (pph_stream *stream, tree t)
-{
-  pph_out_tree_1 (stream, t, 2);
-}
-
-/* Output AST T from ENCLOSING_NAMESPACE to STREAM.
-   Trigger tracing at -fpph-tracer=2.  */
-static inline void
-pph_out_mergeable_tree (pph_stream *stream, tree t)
-{
-  if (flag_pph_tracer >= 2)
-    pph_trace_tree (stream, t);
-  pph_write_mergeable_tree (stream, t);
-}
-#else
 extern void pph_out_tree (pph_stream *stream, tree t);
-#endif
 
-#if 0
-/* Write an unsigned int VALUE to STREAM.  */
-static inline void
-pph_out_uint (pph_stream *stream, unsigned int value)
-{
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, value);
-  streamer_write_uhwi (stream->encoder.w.ob, value);
-}
-
-/* Write an unsigned HOST_WIDE_INT VALUE to STREAM.  */
-static inline void
-pph_out_uhwi (pph_stream *stream, unsigned HOST_WIDE_INT value)
-{
-  streamer_write_uhwi (stream->encoder.w.ob, value);
-}
-
-/* Write a HOST_WIDE_INT VALUE to stream.  */
-static inline void
-pph_out_hwi (pph_stream *stream, HOST_WIDE_INT value)
-{
-  streamer_write_hwi (stream->encoder.w.ob, value);
-}
-
-/* Write an unsigned char VALUE to STREAM.  */
-static inline void
-pph_out_uchar (pph_stream *stream, unsigned char value)
-{
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, value);
-  streamer_write_char_stream (stream->encoder.w.ob->main_stream, value);
-}
-
-/* Write N bytes from P to STREAM.  */
-static inline void
-pph_out_bytes (pph_stream *stream, const void *p, size_t n)
-{
-  if (flag_pph_tracer >= 4)
-    pph_trace_bytes (stream, p, n);
-  lto_output_data_stream (stream->encoder.w.ob->main_stream, p, n);
-}
-
-/* Write string STR to STREAM.  */
-static inline void
-pph_out_string (pph_stream *stream, const char *str)
-{
-  if (flag_pph_tracer >= 4)
-    pph_trace_string (stream, str);
-  streamer_write_string (stream->encoder.w.ob,
-			 stream->encoder.w.ob->main_stream, str, false);
-}
-
-/* Write string STR of length LEN to STREAM.  */
-static inline void
-pph_out_string_with_length (pph_stream *stream, const char *str,
-			    unsigned int len)
-{
-  if (flag_pph_tracer >= 4)
-    pph_trace_string_with_length (stream, str, len);
-  streamer_write_string_with_length (stream->encoder.w.ob,
-				     stream->encoder.w.ob->main_stream,
-				     str, len + 1, false);
-}
-#else
 extern void pph_out_uint (pph_stream *stream, unsigned int value);
-#endif
 
-#if 0
-/* Write location LOC of length to STREAM.  */
-static inline void
-pph_out_location (pph_stream *stream, location_t loc)
-{
-  if (flag_pph_tracer >= 4)
-    pph_trace_location (stream, loc);
-  pph_write_location (stream->encoder.w.ob, loc);
-}
-#else
 extern void pph_out_location (pph_stream *stream, location_t loc);
-#endif
 
-#if 0
-/* Write a chain of ASTs to STREAM starting with FIRST.  */
-static inline void
-pph_out_chain (pph_stream *stream, tree first)
-{
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, first);
-  streamer_write_chain (stream->encoder.w.ob, first, false);
-}
-
-/* Write a chain of ASTs to STREAM starting with FIRST.  */
-static inline void
-pph_out_mergeable_chain (pph_stream *stream, tree first)
-{
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, first);
-  pph_write_mergeable_chain (stream, first);
-}
-
-/* Write a bitpack BP to STREAM.  */
-static inline void
-pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
-{
-  gcc_assert (stream->encoder.w.ob->main_stream == bp->stream);
-  if (flag_pph_tracer >= 4)
-    pph_trace_bitpack (stream, bp);
-  streamer_write_bitpack (bp);
-}
-#endif
-
-#if 0
-/* Read an unsigned integer from STREAM.  */
-static inline unsigned int
-pph_in_uint (pph_stream *stream)
-{
-  HOST_WIDE_INT unsigned n = streamer_read_uhwi (stream->encoder.r.ib);
-  gcc_assert (n == (unsigned) n);
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, n);
-  return (unsigned) n;
-}
-
-/* Read an unsigned HOST_WIDE_INT from STREAM.  */
-static inline unsigned HOST_WIDE_INT
-pph_in_uhwi (pph_stream *stream)
-{
-  return streamer_read_uhwi (stream->encoder.r.ib);
-}
-
-/* Read a HOST_WIDE_INT from STREAM.  */
-static inline HOST_WIDE_INT
-pph_in_hwi (pph_stream *stream)
-{
-  return streamer_read_hwi (stream->encoder.r.ib);
-}
-
-/* Read an unsigned char VALUE to STREAM.  */
-static inline unsigned char
-pph_in_uchar (pph_stream *stream)
-{
-  unsigned char n = streamer_read_uchar (stream->encoder.r.ib);
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, n);
-  return n;
-}
-
-/* Read N bytes from STREAM into P.  The caller is responsible for 
-   allocating a sufficiently large buffer.  */
-static inline void
-pph_in_bytes (pph_stream *stream, void *p, size_t n)
-{
-  lto_input_data_block (stream->encoder.r.ib, p, n);
-  if (flag_pph_tracer >= 4)
-    pph_trace_bytes (stream, p, n);
-}
-
-/* Read and return a string from STREAM.  */
-
-static inline const char *
-pph_in_string (pph_stream *stream)
-{
-  const char *s = streamer_read_string (stream->encoder.r.data_in,
-				        stream->encoder.r.ib);
-  if (flag_pph_tracer >= 4)
-    pph_trace_string (stream, s);
-  return s;
-}
-
-/* Read and return a location_t from STREAM.
-   FIXME pph: If pph_trace didn't depend on STREAM, we could avoid having to
-   call this function, only for it to call lto_input_location, which calls the
-   streamer hook back to pph_read_location.  */
-
-static inline location_t
-pph_in_location (pph_stream *stream)
-{
-  location_t loc = pph_read_location (stream->encoder.r.ib,
-				       stream->encoder.r.data_in);
-  if (flag_pph_tracer >= 4)
-    pph_trace_location (stream, loc);
-  return loc;
-}
-
-/* Load an AST from STREAM.  Return the corresponding tree.  */
-static inline tree
-pph_in_tree (pph_stream *stream)
-{
-  tree t = pph_read_tree (stream->encoder.r.ib, stream->encoder.r.data_in);
-  if (flag_pph_tracer >= 4)
-    pph_trace_tree (stream, t);
-  return t;
-}
-#else
 extern unsigned int pph_in_uint (pph_stream *stream);
 extern location_t pph_in_location (pph_stream *stream);
 extern tree pph_in_tree (pph_stream *stream);
-#endif
-
-#if 0
-/* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
-   Return the corresponding tree.  */
-static inline void
-pph_in_mergeable_tree (pph_stream *stream, tree *chain)
-{
-  tree t = pph_read_mergeable_tree (stream, chain);
-  if (flag_pph_tracer >= 3)
-    pph_trace_tree (stream, t);
-}
-
-/* Read a chain of ASTs from STREAM.  */
-static inline tree
-pph_in_chain (pph_stream *stream)
-{
-  tree t = streamer_read_chain (stream->encoder.r.ib,
-                                stream->encoder.r.data_in);
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, t);
-  return t;
-}
-
-/* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
-static inline void
-pph_in_mergeable_chain (pph_stream *stream, tree* chain)
-{
-  pph_read_mergeable_chain (stream, chain);
-}
-
-/* Read a bitpack from STREAM.  */
-static inline struct bitpack_d
-pph_in_bitpack (pph_stream *stream)
-{
-  struct bitpack_d bp = streamer_read_bitpack (stream->encoder.r.ib);
-  if (flag_pph_tracer >= 4)
-    pph_trace_bitpack (stream, &bp);
-  return bp;
-}
-#endif
-
-#if 0
-/* Write record MARKER for data type TAG to STREAM.  */
-static inline void
-pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker,
-                       enum pph_tag tag)
-{
-  gcc_assert (marker == (enum pph_record_marker)(unsigned char) marker);
-  pph_out_uchar (stream, marker);
-
-  gcc_assert (tag == (enum pph_tag)(unsigned) tag);
-  pph_out_uint (stream, tag);
-}
 
 
-/* Read and return a record marker from STREAM.  On return, *TAG_P will
-   contain the tag for the data type stored in this record.  */
-static inline enum pph_record_marker
-pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
-{
-  enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
-  gcc_assert (m == PPH_RECORD_START
-              || m == PPH_RECORD_START_NO_CACHE
-              || m == PPH_RECORD_START_MUTATED
-	      || m == PPH_RECORD_END
-	      || m == PPH_RECORD_IREF
-	      || m == PPH_RECORD_XREF
-	      || m == PPH_RECORD_PREF);
-
-  *tag_p = (enum pph_tag) pph_in_uint (stream);
-  gcc_assert ((unsigned) *tag_p < (unsigned) PPH_NUM_TAGS);
-
-  return m;
-}
-#else
 extern void pph_out_record_marker (pph_stream *stream,
 		enum pph_record_marker marker, enum pph_tag tag);
 extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
 		enum pph_tag *tag_p);
-#endif
 
 
 /* Return true if MARKER is PPH_RECORD_IREF, PPH_RECORD_XREF,

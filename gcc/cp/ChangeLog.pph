@@ -1,5 +1,9 @@
 2011-10-07   Lawrence Crowl  <crowl@google.com>
 
+	* pph-streamer.h: Remove #if 0 scaffolding.
+
+2011-10-07   Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer.h (pph_in_chain): Moved to pph-streamer-in.c as extern.
 	(pph_read_mergeable_tree): Make static in pph-streamer-in.c.
 	(pph_read_mergeable_chain): Likewise
