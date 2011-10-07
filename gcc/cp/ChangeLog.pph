@@ -1,4 +1,21 @@
 2011-10-07   Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer.h (pph_in_chain): Moved to pph-streamer-in.c as extern.
+	(pph_read_mergeable_tree): Make static in pph-streamer-in.c.
+	(pph_read_mergeable_chain): Likewise
+	(pph_in_mergeable_tree): Moved to pph-streamer-in.c as static.
+	(pph_in_mergeable_chain): Likewise.
+	(pph_in_bitpack): Likewise.
+	(pph_in_chain): Likewise.
+	(pph_out_location): Moved to pph-streamer-out.c extern.
+	(pph_out_tree): Likewise.
+	(pph_out_tree_1): Moved to pph-streamer-out.c as static.
+	(pph_out_mergeable_tree): Likewise.
+	(pph_tree_code_to_tag): Comment unused.
+	(pph_tag_to_tree_code): Likewise.
+
+2011-10-07   Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer.h (pph_out_tree_array): Remove unused.
 	(pph_in_tree_array): Remove unused.
 	(pph_in_tree_VEC): Remove unused.

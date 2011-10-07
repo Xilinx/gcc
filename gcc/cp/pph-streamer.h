@@ -336,7 +336,9 @@ unsigned pph_get_signature (tree, size_t *);
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
+#if 0
 void pph_write_mergeable_tree (pph_stream *, tree);
+#endif
 void pph_write_mergeable_chain (pph_stream *, tree);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 void pph_add_include (pph_stream *);
@@ -352,8 +354,10 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
+#if 0
 tree pph_read_mergeable_tree (pph_stream *, tree *);
 void pph_read_mergeable_chain (pph_stream *, tree *);
+#endif
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
 void pph_read_file (const char *);
 void pph_reader_finish (void);
@@ -440,6 +444,7 @@ pph_cache_find (pph_stream *stream, enum pph_record_marker marker,
 }
 
 
+#if 0
 /* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
    higher, T is sent to pph_trace_tree.  */
 static inline void
@@ -466,6 +471,9 @@ pph_out_mergeable_tree (pph_stream *stream, tree t)
     pph_trace_tree (stream, t);
   pph_write_mergeable_tree (stream, t);
 }
+#else
+extern void pph_out_tree (pph_stream *stream, tree t);
+#endif
 
 #if 0
 /* Write an unsigned int VALUE to STREAM.  */
@@ -534,6 +542,7 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
 extern void pph_out_uint (pph_stream *stream, unsigned int value);
 #endif
 
+#if 0
 /* Write location LOC of length to STREAM.  */
 static inline void
 pph_out_location (pph_stream *stream, location_t loc)
@@ -542,6 +551,9 @@ pph_out_location (pph_stream *stream, location_t loc)
     pph_trace_location (stream, loc);
   pph_write_location (stream->encoder.w.ob, loc);
 }
+#else
+extern void pph_out_location (pph_stream *stream, location_t loc);
+#endif
 
 #if 0
 /* Write a chain of ASTs to STREAM starting with FIRST.  */
@@ -661,6 +673,7 @@ extern location_t pph_in_location (pph_stream *stream);
 extern tree pph_in_tree (pph_stream *stream);
 #endif
 
+#if 0
 /* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
    Return the corresponding tree.  */
 static inline void
@@ -698,6 +711,7 @@ pph_in_bitpack (pph_stream *stream)
     pph_trace_bitpack (stream, &bp);
   return bp;
 }
+#endif
 
 #if 0
 /* Write record MARKER for data type TAG to STREAM.  */
@@ -785,6 +799,7 @@ pph_tag_is_tree_code (enum pph_tag tag)
 }
 
 /* Return the PPH tag associated with tree node T.  */
+/* FIXME pph: apparently unused, except just below.  */
 static inline enum pph_tag
 pph_tree_code_to_tag (tree t)
 {
@@ -792,6 +807,7 @@ pph_tree_code_to_tag (tree t)
 }
 
 /* Return the tree code associated with PPH tag TAG.  */
+/* FIXME pph: apparently unused.  */
 static inline enum tree_code
 pph_tag_to_tree_code (enum pph_tag tag)
 {

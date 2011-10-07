@@ -208,6 +208,17 @@ pph_in_string (pph_stream *stream)
 }
 
 
+/* Read a bitpack from STREAM.  */
+static struct bitpack_d
+pph_in_bitpack (pph_stream *stream)
+{
+  struct bitpack_d bp = streamer_read_bitpack (stream->encoder.r.ib);
+  if (flag_pph_tracer >= 4)
+    pph_trace_bitpack (stream, &bp);
+  return bp;
+}
+
+
 /* Read and return a record marker from STREAM.  On return, *TAG_P will
    contain the tag for the data type stored in this record.  */
 enum pph_record_marker
@@ -605,6 +616,29 @@ pph_in_label_binding (pph_stream *stream)
   lb->prev_value = pph_in_tree (stream);
 
   return lb;
+}
+
+
+/* Read a chain of ASTs from STREAM.  */
+static tree
+pph_in_chain (pph_stream *stream)
+{
+  tree t = streamer_read_chain (stream->encoder.r.ib,
+                                stream->encoder.r.data_in);
+  if (flag_pph_tracer >= 2)
+    pph_trace_chain (stream, t);
+  return t;
+}
+
+
+static void pph_read_mergeable_chain (pph_stream *stream, tree* chain);
+
+
+/* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
+static inline void
+pph_in_mergeable_chain (pph_stream *stream, tree* chain)
+{
+  pph_read_mergeable_chain (stream, chain);
 }
 
 
@@ -2389,12 +2423,24 @@ pph_in_tree (pph_stream *stream)
   return t;
 }
 
+
 /* Read a mergeable tree from STREAM into CHAIN.  */
 
-tree
+static tree
 pph_read_mergeable_tree (pph_stream *stream, tree *chain)
 {
   return pph_read_any_tree (stream, chain);
+}
+
+
+/* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
+   Return the corresponding tree.  */
+static void
+pph_in_mergeable_tree (pph_stream *stream, tree *chain)
+{
+  tree t = pph_read_mergeable_tree (stream, chain);
+  if (flag_pph_tracer >= 3)
+    pph_trace_tree (stream, t);
 }
 
 

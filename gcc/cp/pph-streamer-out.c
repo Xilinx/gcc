@@ -204,6 +204,17 @@ pph_write_location (struct output_block *ob, location_t loc)
 }
 
 
+/* Write location LOC of length to STREAM.  */
+
+void
+pph_out_location (pph_stream *stream, location_t loc)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_location (stream, loc);
+  pph_write_location (stream->encoder.w.ob, loc);
+}
+
+
 /* Write a chain of ASTs to STREAM starting with FIRST.  */
 static void
 pph_out_chain (pph_stream *stream, tree first)
@@ -608,6 +619,37 @@ pph_out_token_cache (pph_stream *f, cp_token_cache *cache)
   for (i = 0, tok = cache->first; i < num; tok++, i++)
     pph_out_token (f, tok);
 }
+
+
+/* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
+   higher, T is sent to pph_trace_tree.  */
+static void
+pph_out_tree_1 (pph_stream *stream, tree t, int tlevel)
+{
+  if (flag_pph_tracer >= tlevel)
+    pph_trace_tree (stream, t);
+  pph_write_tree (stream->encoder.w.ob, t, false);
+}
+
+/* Output AST T to STREAM.  Trigger tracing at -fpph-tracer=2.  */
+void
+pph_out_tree (pph_stream *stream, tree t)
+{
+  pph_out_tree_1 (stream, t, 2);
+}
+
+static void pph_write_mergeable_tree (pph_stream *stream, tree expr);
+
+/* Output AST T from ENCLOSING_NAMESPACE to STREAM.
+   Trigger tracing at -fpph-tracer=2.  */
+static void
+pph_out_mergeable_tree (pph_stream *stream, tree t)
+{
+  if (flag_pph_tracer >= 2)
+    pph_trace_tree (stream, t);
+  pph_write_mergeable_tree (stream, t);
+}
+
 
 /* Write all the fields in lang_decl_base instance LDB to OB.  */
 
