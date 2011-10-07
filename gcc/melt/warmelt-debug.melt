@@ -223,9 +223,21 @@ $FILENAM and $LINENO}#
 	(set_content basicblock_debug_funcont f))
     oldcont))
 
+;; hook to support debug of :loop-s
+(definstance loop_debug_funcont class_container)
+(defun register_loop_debug_fun (f)
+  :doc #{Register a function for $DEBUG output of :loop-s. The first
+  argument to the registered function is an instance of
+  $CLASS_DEBUG_INFORMATION. The second argument is the raw :loop
+  stuff. Returns the previously registered function.}#
+  (let ( (oldcont !loop_debug_funcont)
+	 )
+    (if (or (null f) (is_closure f))
+	(set_content loop_debug_funcont f))
+    oldcont))
+
 ;;; the debug_fun is usually called thru the debug macro.
 (defun debug_fun (nothing :long count :cstring filename :long lineno :rest)
-  (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
   (if (need_dbg 0) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
@@ -291,7 +303,7 @@ $FILENAM and $LINENO}#
 		    (tdf dbgi tr)
 		  (if tr
 		      (add2out_strconst out " ?*tree*?")
-		      (add2out_strconst out " ?*nulltree*?")))))
+		    (add2out_strconst out " ?*nulltree*?")))))
 	    ( (:gimple gi)
 	      (let ( (gdf !gimple_debug_funcont)
 		     )
@@ -324,15 +336,24 @@ $FILENAM and $LINENO}#
 		  (if bb
 		      (add2out_strconst out " ?*basicblock*?") 
 		    (add2out_strconst out " ?*nullbasicblock*?")))))
+	    ( (:loop lo)
+	      (let ( (ldf !loop_debug_funcont)
+		     )
+		(if (is_closure ldf)
+		    (ldf dbgi lo)
+		  (if lo
+		      (add2out_strconst out " ?*loop*?") 
+		    (add2out_strconst out " ?*loop*?")))))
 	    (:else
 	     (let ( (vctyp (variadic_ctype 0))
 		    (vctypname (get_field :named_name vctyp))
 		    )
 	       (code_chunk warnbadctype
-			   #{/* $WARNBADCTYPE */ warning(0,
-				        "MELT invalid ctype %s in (DEBUG ...) file %s line %d",
-					melt_string_str ((melt_ptr_t) $VCTYPNAME),
-					$FILENAME, $LINENO);
+			   #{/* $WARNBADCTYPE */ 
+			   warning (0,
+				    "MELT invalid ctype %s in (DEBUG ...) file %s line %d",
+				    melt_string_str ((melt_ptr_t) $VCTYPNAME),
+				    $FILENAME, $LINENO) ;
 			   }#)
 	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
 	       ))))
@@ -1236,6 +1257,7 @@ $TORANK}#
  register_edge_debug_fun 
  register_gimple_debug_fun 
  register_gimpleseq_debug_fun 
+ register_loop_debug_fun
  register_tree_debug_fun
 )
 

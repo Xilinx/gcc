@@ -3743,6 +3743,21 @@ Don't scan operands of the added $G.}#
 (register_edge_debug_fun debugfun_edge)
 
 
+;;;;;;;;;;;;;;;;
+(defun debugfun_loop (dbgi :loop lo)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if lo
+	(code_chunk
+	 outloopchk
+	 #{ /*$OUTLOOPCHK*/ meltgc_out_loop ((melt_ptr_t)$OUT, $LO);}#
+	 )
+      (add2out_strconst out "*nullloop*")
+      )))
+(register_loop_debug_fun debugfun_loop)
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values

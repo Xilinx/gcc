@@ -98,6 +98,14 @@ help hunt memory or GC bugs. Displays the given $MSG if the check went
 wrong. Use it when desperate.}#
   #{melt_check_call_frames(MELT_ANYWHERE, $msg);}#)
 
+;; internal primitive useful to increment the debug counter, used to
+;; expand (DEBUG ...) macro
+(defprimitive melt_increment_dbgcounter () :void
+  #{/*melt_increment_dbgcounter*/ 
+#if MELT_HAVE_DEBUG
+melt_dbgcounter++;
+#endif
+}#)
 
 ;; for breakpoint
 (defprimitive cbreak_msg (:cstring msg) :void
@@ -2917,6 +2925,7 @@ polyhedron values.}#
  melt_application_count
  melt_application_depth
  melt_application_shallower
+ melt_increment_dbgcounter
  melt_is_bootstrapping
  melt_mode_container
  melt_version_str

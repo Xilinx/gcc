@@ -5855,6 +5855,7 @@ remain.}#)
 	(debugfunbind (find_env env 'debug_fun))
 	(thecountbind (find_env env 'the_meltcallcount))
 	(theneeddbgbind (find_env env 'need_dbg))
+	(theincrdbgbind (find_env env 'melt_increment_dbgcounter))
 	(curpair (pair_tail (list_first cont)))
 	(xarglist (expand_pairlist_as_list curpair env mexpander))
 	(dbgarglist (list ()))
@@ -5892,9 +5893,9 @@ remain.}#)
 	  (theneeddbg
 	   (cond 
 	    ( (is_a theneeddbgbind class_primitive_binding)
-	      (get_field :pbind_primitive thecountbind))
+	      (get_field :pbind_primitive theneeddbgbind))
 	    ( (is_a theneeddbgbind class_value_binding)
-	      (get_field :vbind_value thecountbind))
+	      (get_field :vbind_value theneeddbgbind))
 	    (:else
 	     (error_plain loc "(DEBUG ...) used in context with bad NEED_DBG")
 	     (return))))
@@ -5907,15 +5908,36 @@ remain.}#)
 		  :loca_location loc
 		  :sapp_fun 'debug_fun
 		  :sargop_args (list_to_multiple dbgarglist discr_multiple)))
+	  (theincrdbg
+	   (cond 
+	    ( (is_a theincrdbgbind class_primitive_binding)
+	      (get_field :pbind_primitive theincrdbgbind))
+	    ( (is_a theincrdbgbind class_value_binding)
+	      (get_field :vbind_value theincrdbgbind))
+	    (:else
+	     (error_plain 
+	      loc 
+	      "(DEBUG ...) used in context with bad MELT_INCREMENT_DBGCOUNTER")
+	     (return))))
+	  (dincrdbg (instance
+		     class_source_primitive
+		     :loca_location loc
+		     :sprim_oper theincrdbg
+		     :sargop_args (tuple)))
 	  (difdbg (instance
 		   class_source_if
 		   :loca_location loc
 		   :sif_test dneedbg
 		   :sif_then dcall))
+	  (dprogn (instance 
+		   class_source_progn
+		   :loca_location loc
+		   :sprogn_body (tuple dincrdbg difdbg)
+		   ))
 	  (dcppif (instance class_source_cppif
 			    :loca_location loc
 			    :sifp_cond 'MELT_HAVE_DEBUG
-			    :sifp_then difdbg
+			    :sifp_then dprogn
 			    :sifp_else ()
 			    )) 
 	  )

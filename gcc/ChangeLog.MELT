@@ -1,7 +1,15 @@
 
 2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (melt_increment_dbgcounter): New primitive.
+	* melt/warmelt-macro.melt (mexpand_debug): Use it.
+	* melt/warmelt-debug.melt (register_loop_debug_fun): New.
+	(debug_fun): Handle :loop-s.
+	* melt/warmelt-loop.melt (debugfun_loop): New registered function.
+
+2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_debug): Add (if (need_dbg 0)
 	...) in expansion.
+
 2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltppfile, meltppbuffer, meltppbufsiz): New
 	variables [previously static in melt-runtime.c].
