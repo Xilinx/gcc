@@ -15415,7 +15415,7 @@ lab_endgetargs:;
 
 	    MELT_LOCATION ("warmelt-genobj.melt:3812:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /32ed6886 checkpair",
+	    melt_assertmsg ("putpairhead /8f4fa9e checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V27*/
 					       meltfptr[26])) ==
@@ -15425,7 +15425,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /297035ce checkpair",
+	    melt_assertmsg ("putpairtail /14f74864 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V27*/
 					       meltfptr[26])) ==
@@ -15438,7 +15438,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3811:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /10d7283d checkpair",
+	    melt_assertmsg ("putpairhead /34b5d9ab checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V28*/
 					       meltfptr[27])) ==
@@ -15448,7 +15448,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /1e881e83 checkpair",
+	    melt_assertmsg ("putpairtail /2d8f3d20 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V28*/
 					       meltfptr[27])) ==
@@ -15461,7 +15461,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3814:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /38fb1426 checkpair",
+	    melt_assertmsg ("putpairhead /2562d629 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V29*/
 					       meltfptr[28])) ==
@@ -15471,7 +15471,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /39c52b35 checkpair",
+	    melt_assertmsg ("putpairtail /2a3d2be1 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V29*/
 					       meltfptr[28])) ==
@@ -15484,7 +15484,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3811:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /22a9a07a checkpair",
+	    melt_assertmsg ("putpairhead /36371802 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICLENGTH__V30*/
 					       meltfptr[29])) ==
@@ -15697,7 +15697,7 @@ lab_endgetargs:;
 
 	    MELT_LOCATION ("warmelt-genobj.melt:3819:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /1ce2af13 checkpair",
+	    melt_assertmsg ("putpairhead /2b341bd checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V41*/
 					       meltfptr[40])) ==
@@ -15707,7 +15707,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /2760a48f checkpair",
+	    melt_assertmsg ("putpairtail /a3cd0ac checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V41*/
 					       meltfptr[40])) ==
@@ -15720,7 +15720,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3820:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /1cd674c5 checkpair",
+	    melt_assertmsg ("putpairhead /284574a8 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V42*/
 					       meltfptr[41])) ==
@@ -15730,7 +15730,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /20a65cce checkpair",
+	    melt_assertmsg ("putpairtail /356e0016 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V42*/
 					       meltfptr[41])) ==
@@ -15743,7 +15743,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3821:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /368fad13 checkpair",
+	    melt_assertmsg ("putpairhead /2219aa40 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V43*/
 					       meltfptr[42])) ==
@@ -15753,7 +15753,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /bfc070f checkpair",
+	    melt_assertmsg ("putpairtail /308c5c32 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V43*/
 					       meltfptr[42])) ==
@@ -15766,7 +15766,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3818:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /1637c354 checkpair",
+	    melt_assertmsg ("putpairhead /11a9d38d checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V44*/
 					       meltfptr[43])) ==
@@ -15776,7 +15776,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /d7c549a checkpair",
+	    melt_assertmsg ("putpairtail /2aca14fb checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V44*/
 					       meltfptr[43])) ==
@@ -15789,7 +15789,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3823:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /2b341bd checkpair",
+	    melt_assertmsg ("putpairhead /27526856 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V45*/
 					       meltfptr[44])) ==
@@ -15799,7 +15799,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /a3cd0ac checkpair",
+	    melt_assertmsg ("putpairtail /abf2a93 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V45*/
 					       meltfptr[44])) ==
@@ -15812,7 +15812,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3818:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /284574a8 checkpair",
+	    melt_assertmsg ("putpairhead /3f7ef6af checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V46*/
 					       meltfptr[45])) ==
@@ -15822,7 +15822,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /356e0016 checkpair",
+	    melt_assertmsg ("putpairtail /26fde392 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICINDEX__V46*/
 					       meltfptr[45])) ==
@@ -15835,7 +15835,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3825:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /2219aa40 checkpair",
+	    melt_assertmsg ("putpairhead /17569dc5 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V47*/
 					       meltfptr[46])) ==
@@ -15845,7 +15845,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /308c5c32 checkpair",
+	    melt_assertmsg ("putpairtail /2546fd54 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V47*/
 					       meltfptr[46])) ==
@@ -15858,7 +15858,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3826:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /11a9d38d checkpair",
+	    melt_assertmsg ("putpairhead /37e5ffaf checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V48*/
 					       meltfptr[47])) ==
@@ -15868,7 +15868,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /2aca14fb checkpair",
+	    melt_assertmsg ("putpairtail /23972f1c checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V48*/
 					       meltfptr[47])) ==
@@ -15881,7 +15881,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3827:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /27526856 checkpair",
+	    melt_assertmsg ("putpairhead /25290d40 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V49*/
 					       meltfptr[48])) ==
@@ -15891,7 +15891,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /abf2a93 checkpair",
+	    melt_assertmsg ("putpairtail /282040fc checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.PAIROFLIST__V49*/
 					       meltfptr[48])) ==
@@ -15904,7 +15904,7 @@ lab_endgetargs:;
 	    ;
 	    MELT_LOCATION ("warmelt-genobj.melt:3818:/ putpairhead");
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /3f7ef6af checkpair",
+	    melt_assertmsg ("putpairhead /3181f0fd checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OVARIADICLENGTH__V50*/
 					       meltfptr[49])) ==

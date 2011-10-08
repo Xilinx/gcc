@@ -1,4 +1,46 @@
 
+2011-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerated}}
+	* melt/generated/meltrunsup-inc.c: Regenenate.
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/warmelt-base+01.c: Regenenate.
+	* melt/generated/warmelt-base+02.c: New generated file.
+	* melt/generated/warmelt-base+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-base.c: Regenenate.
+	* melt/generated/warmelt-debug+01.c: Regenenate.
+	* melt/generated/warmelt-debug+02.c: Regenenate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-debug.c: Regenenate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-first.c: Regenenate.
+	* melt/generated/warmelt-genobj+01.c: Regenenate.
+	* melt/generated/warmelt-genobj+03.c: Regenenate.
+	* melt/generated/warmelt-genobj+04.c: Regenenate.
+	* melt/generated/warmelt-genobj+05.c: Regenenate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-genobj.c: Regenenate.
+	* melt/generated/warmelt-macro+01.c: Regenenate.
+	* melt/generated/warmelt-macro+02.c: Regenenate.
+	* melt/generated/warmelt-macro+03.c: Regenenate.
+	* melt/generated/warmelt-macro+04.c: Regenenate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-macro.c: Regenenate.
+	* melt/generated/warmelt-modes+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-modes.c: Regenenate.
+	* melt/generated/warmelt-normal+01.c: Regenenate.
+	* melt/generated/warmelt-normal+02.c: Regenenate.
+	* melt/generated/warmelt-normal+03.c: Regenenate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-normal.c: Regenenate.
+	* melt/generated/warmelt-normatch+02.c: Regenenate.
+	* melt/generated/warmelt-normatch+03.c: Regenenate.
+	* melt/generated/warmelt-normatch+04.c: Regenenate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-normatch.c: Regenenate.
+	* melt/generated/warmelt-outobj+04.c: Regenenate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenenate.
+	* melt/generated/warmelt-outobj.c: Regenenate.
+
 2011-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (melt_increment_dbgcounter): New primitive.
 	* melt/warmelt-macro.melt (mexpand_debug): Use it.

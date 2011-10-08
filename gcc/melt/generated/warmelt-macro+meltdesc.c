@@ -1,7 +1,7 @@
 /** GENERATED MELT DESCRIPTOR FILE MELT-STAGE-ZERO/warmelt-macro+meltdesc.c - ** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/
 /* These identifiers are generated in warmelt-outobj.melt & handled in melt-runtime.c carefully. */
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.7.0 20111006 (experimental) [melt-branch revision 179599] MELT_0.9";
+const char melt_genversionstr[]="4.7.0 20111006 (experimental) [melt-branch revision 179710] MELT_0.9";
 const char melt_versionmeltstr[]="0.9 MELT_REVISION";
 
 /* source name & real path of the module */
@@ -11,22 +11,22 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Thu Oct  6 14:50:00 2011 CEST";
-const long long melt_gen_timenum=1317905400;
+const char melt_gen_timestamp[]="Sat Oct  8 18:57:33 2011 MEST";
+const long long melt_gen_timenum=1318093053;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="de75dfcd5c599750cc28a18be8449776";
+const char melt_prepromd5meltrun[]="7e2067fc225c15deb4c2e295f64d403a";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="b50a174b13556ca4a26010e4c6e9a0c0";
+const char melt_primaryhexmd5[]="fe1977a94d1285cc7165f97f1ecd3ae7";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+01.c #1 */ "d803412bb00b6f2848064200d9da8ef7",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+02.c #2 */ "b60131368b2fdd5d7b03d05130f11566",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+03.c #3 */ "ae27d1fb07f0fa6b37afdf3dbfd788b4",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+04.c #4 */ "9bd21706e1883c326ebc7d2767e64120",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+01.c #1 */ "84a049c20b82652e3ba0a82dc3599a30",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+02.c #2 */ "6b5ea4f070f8858b912dd438d3e5eef0",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+03.c #3 */ "6bd0fc3b941a4e75a5a24b1f0b9bc4d1",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+04.c #4 */ "2cd7d6e10a4016acd387db39f976b759",
  /*nosecfile*/ (const char*)0,
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
@@ -35,5 +35,5 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=4;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="17b60ec6a9c96e2a6d05b2495cd7b5c0";
+const char melt_cumulated_hexmd5[]="790d12d7ae61eb88077f37a84014bfe9";
 /* end of melt descriptor file */
