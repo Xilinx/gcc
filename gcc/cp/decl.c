@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
+#include "pph.h"
 #include "flags.h"
 #include "cp-tree.h"
 #include "tree-iterator.h"
@@ -54,7 +55,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "plugin.h"
-#include "pph-streamer.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
 enum bad_spec_place {

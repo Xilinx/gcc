@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "version.h"
 #include "cppbuiltin.h"
 #include "toplev.h"
+#include "parser.h"
 
 typedef char *char_p;
 DEF_VEC_P(char_p);

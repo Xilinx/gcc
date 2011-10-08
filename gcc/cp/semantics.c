@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
+#include "pph.h"
 #include "cp-tree.h"
 #include "c-family/c-common.h"
 #include "c-family/c-objc.h"
@@ -45,7 +46,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "gimple.h"
 #include "bitmap.h"
-#include "pph-streamer.h"
 
 /* There routines provide a modular interface to perform many parsing
    operations.  They may therefore be used during actual parsing, or

@@ -1,5 +1,50 @@
 2011-10-07   Lawrence Crowl  <crowl@google.com>
 
+	* pph-streamer.h (typedef pph_stream): Move to pph.h.
+	(enum pph_symtab_action): Likewise.
+	(enum pph_record_marker): Likewise.
+	(enum pph_tag): Likewise.
+	(extern pph_out_uint): Liekwise.
+	(extern pph_out_location): Likewise.
+	(extern pph_out_tree): Likewise.
+	(extern pph_out_record_marker): Likewise.
+	(extern pph_add_decl_to_symtab): Likewise.
+	(extern pph_in_uint): Likewise.
+	(extern pph_in_location): Likewise.
+	(extern pph_in_tree): Likewise.
+	(extern pph_record_marker): Likewise.
+	(extern struct binding_table_s): Likewise.
+	(extern pph_out_binding_table): Likewise.
+	(extern pph_in_binding_table): Likewise.
+	(extern pph_out_pending_templates_list): Likewise.
+	(extern pph_out_spec_entry_tables): Likewise.
+	(extern pph_in_pending_templates_list): Likewise.
+	(extern pph_in_spec_entry_tables): Likewise.
+	(pph_writer_enabled_p): Likewise.
+	(pph_enabled_p): Likewise.
+
+	* pph.h (cp_token_hunk): Remove unused.
+	(cp_token_hunk_ptr): Likewise.
+	(DEF_VEC_P (cp_token_hunk_ptr)): Likewise.
+	(DEF_VEC_ALLOC_P (cp_token_hunk_ptr,gc)): Likewise.
+	(#error diagnostic): Likewise.
+	(extern pph_tree_code_text): Move to pph-streamer.h.
+	(extern pph_dump_min_decl): Likewise.
+	(extern pph_dump_namespace): Likewise.
+
+	* pph.h: Remove includes for hashtab.h, line-map.h, parser.h, and
+	timevar.h.
+	* pph-streamer.h: Add include pph.h.
+	* pph-streamer-in.c: Add include parser.h.
+	* pph-streamer-out.c: Likewise.
+	* decl.c: Include pph.h instead of pph-streamer.h.
+	* semantics.c: Likewise.
+	* parser.c: Remove include of pph-streamer.h.
+	* name-lookup.c: Likewise.
+	* Make-lang.in: Adjust dependences to reflect the above.
+
+2011-10-07   Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer.h: Remove #if 0 scaffolding.
 
 2011-10-07   Lawrence Crowl  <crowl@google.com>

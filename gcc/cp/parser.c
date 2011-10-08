@@ -26,7 +26,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "cpplib.h"
 #include "pph.h"
-#include "pph-streamer.h"
 #include "tree.h"
 #include "cp-tree.h"
 #include "intl.h"

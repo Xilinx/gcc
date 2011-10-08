@@ -265,10 +265,9 @@ CXX_TREE_H = $(TREE_H) cp/name-lookup.h cp/cp-tree.h $(C_COMMON_H) \
 	$(srcdir)/../include/hashtab.h
 CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
-CXX_PPH_H = $(srcdir)/../libcpp/include/line-map.h $(HASHTAB_H) \
-	$(CXX_PARSER_H) $(TIMEVAR_H) $(CXX_TREE_H) cp/pph.h
-CXX_PPH_STREAMER_H = $(LTO_STREAMER_H) cp/pph-streamer.h $(TREE_H) \
-	$(DATA_STREAMER_H) $(TREE_STREAMER_H)
+CXX_PPH_H = $(CXX_TREE_H) cp/pph.h
+CXX_PPH_STREAMER_H = $(LTO_STREAMER_H) $(DATA_STREAMER_H) $(TREE_STREAMER_H) \
+	$(TREE_H) $(CXX_PPH_H) cp/pph-streamer.h
 
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) output.h input.h cp/operators.def $(TM_P_H) \
@@ -281,7 +280,7 @@ cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
   debug.h gt-cp-decl.h $(TIMEVAR_H) $(TARGET_H) $(PLUGIN_H) \
   intl.h tree-iterator.h pointer-set.h $(SPLAY_TREE_H) \
-  c-family/c-objc.h $(CXX_PPH_STREAMER_H)
+  c-family/c-objc.h $(CXX_PPH_H)
 cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(C_COMMON_H) gt-cp-decl2.h $(CGRAPH_H) \
   $(C_PRAGMA_H) $(TREE_DUMP_H) intl.h $(TARGET_H) $(GIMPLE_H) pointer-set.h \
@@ -301,7 +300,7 @@ cp/class.o: cp/class.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(SPLAY_TREE_H) pointer-set.h
 cp/call.o: cp/call.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(DIAGNOSTIC_CORE_H) intl.h gt-cp-call.h convert.h $(TARGET_H) langhooks.h \
-  $(TIMEVAR_H) $(CXX_PPH_H) c-family/c-objc.h
+  $(TIMEVAR_H) c-family/c-objc.h
 cp/friend.o: cp/friend.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H)
 cp/init.o: cp/init.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(EXCEPT_H) $(TARGET_H)
@@ -332,7 +331,7 @@ cp/repo.o: cp/repo.c $(CXX_TREE_H) $(TM_H) toplev.h $(DIAGNOSTIC_CORE_H) \
 cp/semantics.o: cp/semantics.c $(CXX_TREE_H) $(TM_H) toplev.h \
   $(FLAGS_H) output.h $(RTL_H) $(TIMEVAR_H) \
   $(TREE_INLINE_H) $(CGRAPH_H) $(TARGET_H) $(C_COMMON_H) $(GIMPLE_H) \
-  bitmap.h gt-cp-semantics.h c-family/c-objc.h $(CXX_PPH_STREAMER_H)
+  bitmap.h gt-cp-semantics.h c-family/c-objc.h $(CXX_PPH_H)
 cp/dump.o: cp/dump.c $(CXX_TREE_H) $(TM_H) $(TREE_DUMP_H)
 cp/optimize.o: cp/optimize.c $(CXX_TREE_H) $(TM_H) \
   input.h $(PARAMS_H) debug.h $(TREE_INLINE_H) $(GIMPLE_H) \
@@ -342,13 +341,13 @@ cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) $(REAL_H) \
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_CORE_H) \
   gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h \
   c-family/c-objc.h tree-pretty-print.h $(CXX_PARSER_H) $(TIMEVAR.H) \
-  $(CXX_PPH_H) $(CXX_PPH_STREAMER_H)
+  $(CXX_PPH_H)
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h $(SPLAY_TREE_H)
 cp/name-lookup.o: cp/name-lookup.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TM_H) $(CXX_TREE_H) $(TIMEVAR_H) gt-cp-name-lookup.h \
 	$(DIAGNOSTIC_CORE_H) $(FLAGS_H) debug.h tree-pretty-print.h \
-	$(CXX_PPH_H) $(CXX_PPH_STREAMER_H) pointer-set.h
+	$(CXX_PPH_H) pointer-set.h
 cp/cxx-pretty-print.o: cp/cxx-pretty-print.c $(CXX_PRETTY_PRINT_H) \
   $(CONFIG_H) $(SYSTEM_H) $(TM_H) coretypes.h $(CXX_TREE_H) tree-pretty-print.h
 cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
@@ -362,8 +361,8 @@ cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 cp/pph-streamer-out.o: cp/pph-streamer-out.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
 	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \
-	cppbuiltin.h tree-iterator.h $(CGRAPH_H)
+	$(CXX_PARSER_H) cppbuiltin.h tree-iterator.h $(CGRAPH_H)
 cp/pph-streamer-in.o: cp/pph-streamer-in.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
 	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \
-	cppbuiltin.h tree-iterator.h toplev.h
+	$(CXX_PARSER_H) cppbuiltin.h tree-iterator.h toplev.h

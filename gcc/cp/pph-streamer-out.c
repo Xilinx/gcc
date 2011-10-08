@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "version.h"
 #include "cppbuiltin.h"
 #include "cgraph.h"
+#include "parser.h"
 
 /* PPH stream that we are currently generating.  FIXME pph, this
    global is needed because we call back from various parts of the
