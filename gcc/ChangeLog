@@ -1,3 +1,141 @@
+2011-10-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/50195
+	* fold-const.c (fold_binary_loc): Canonicalize x*x to pow (x, 2)
+	only when optimizing.
+
+2011-10-10  Nick Clifton  <nickc@redhat.com>
+
+	PR middle-end/49801
+	* compare-elim.c (find_comparisons_in_bb): Use df_get_live_in and
+	df_get_live_out instead of accessing the bitmaps directly.
+	(execute_compare_elim_after_reload): Remove calls to df_set_flags,
+	df_live_add_problem and df_analyze.
+
+2011-10-10  Michael Matz  <matz@suse.de>
+
+	PR middle-end/50638
+	* tree-emutls.c (gen_emutls_addr): Call add_referenced_var.
+
+2011-10-10  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* modulo-sched.c (ps_reg_move_info): Add num_consecutive_stages.
+	(SCHED_FIRST_REG_MOVE, SCHED_NREG_MOVES): Delete.
+	(node_sched_params): Remove first_reg_move and nreg_moves.
+	(ps_num_consecutive_stages, extend_node_sched_params): New functions.
+	(update_node_sched_params): Move up file.
+	(print_node_sched_params): Print the stage.  Don't dump info related
+	to first_reg_move and nreg_moves.
+	(set_columns_for_row): New function.
+	(set_columns_for_ps): Move up file and use set_columns_for_row.
+	(schedule_reg_move): New function.
+	(schedule_reg_moves): Call extend_node_sched_params and
+	schedule_reg_move.  Extend size of uses bitmap.  Initialize
+	num_consecutive_stages.  Return false if a move could not be
+	scheduled.
+	(apply_reg_moves): Don't emit moves here.
+	(permute_partial_schedule): Handle register moves.
+	(duplicate_insns_of_cycles): Remove for_prolog.  Emit moves according
+	to the same stage-count test as ddg nodes.
+	(generate_prolog_epilog): Update calls accordingly.
+	(sms_schedule): Allow move-scheduling to add a new first stage.
+
+2011-10-10  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* modulo-sched.c (ps_insn): Adjust comment.
+	(ps_reg_move_info): New structure.
+	(partial_schedule): Add reg_moves field.
+	(SCHED_PARAMS): Use node_sched_param_vec instead of node_sched_params.
+	(node_sched_params): Turn first_reg_move into an identifier.
+	(ps_reg_move): New function.
+	(ps_rtl_insn): Cope with register moves.
+	(ps_first_note): Adjust comment and assert that the instruction
+	isn't a register move.
+	(node_sched_params): Replace with...
+	(node_sched_param_vec): ...this vector.
+	(set_node_sched_params): Adjust accordingly.
+	(print_node_sched_params): Take a partial schedule instead of a ddg.
+	Use ps_rtl_insn and ps_reg_move.
+	(generate_reg_moves): Rename to...
+	(schedule_reg_moves): ...this.  Remove rescan parameter.  Record each
+	move in the partial schedule, but don't emit it here.  Don't perform
+	register substitutions here either.
+	(apply_reg_moves): New function.
+	(duplicate_insns_of_cycles): Use register indices directly,
+	rather than finding instructions using PREV_INSN.  Use ps_reg_move.
+	(sms_schedule): Call schedule_reg_moves before committing to
+	a partial schedule.   Try the next ii if the schedule fails.
+	Use apply_reg_moves instead of generate_reg_moves.  Adjust
+	call to print_node_sched_params.  Free node_sched_param_vec
+	instead of node_sched_params.
+	(create_partial_schedule): Initialize reg_moves.
+	(free_partial_schedule): Free reg_moves.
+
+2011-10-10  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* modulo-sched.c (ps_insn): Replace node field with an identifier.
+	(SCHED_ASAP): Replace with..
+	(NODE_ASAP): ...this macro.
+	(SCHED_PARAMS): New macro.
+	(SCHED_TIME, SCHED_FIRST_REG_MOVE, SCHED_NREG_MOVES, SCHED_ROW)
+	(SCHED_STAGE, SCHED_COLUMN): Redefine using SCHED_PARAMS.
+	(node_sched_params): Remove asap.
+	(ps_rtl_insn, ps_first_note): New functions.
+	(set_node_sched_params): Use XCNEWVEC.  Don't copy across the
+	asap values.
+	(print_node_sched_params): Use SCHED_PARAMS and NODE_ASAP.
+	(generate_reg_moves): Pass ids to the SCHED_* macros.
+	(update_node_sched_params): Take a ps insn identifier rather than
+	a node as parameter.  Use ps_rtl_insn.
+	(set_columns_for_ps): Update for above field and SCHED_* macro changes.
+	(permute_partial_schedule): Use ps_rtl_insn and ps_first_note.
+	(optimize_sc): Update for above field and SCHED_* macro changes.
+	Update calls to try_scheduling_node_in_cycle and
+	update_node_sched_params.
+	(duplicate_insns_of_cycles): Adjust for above field and SCHED_*
+	macro changes.  Use ps_rtl_insn and ps_first_note.
+	(sms_schedule): Pass ids to the SCHED_* macros.
+	(get_sched_window): Adjust for above field and SCHED_* macro changes.
+	Use NODE_ASAP instead of SCHED_ASAP.
+	(try_scheduling_node_in_cycle): Remove node parameter.  Update
+	call to ps_add_node_check_conflicts.  Pass ids to the SCHED_*
+	macros.
+	(sms_schedule_by_order): Update call to try_scheduling_node_in_cycle.
+	(ps_insert_empty_row): Adjust for above field changes.
+	(compute_split_row): Use ids rather than nodes.
+	(verify_partial_schedule): Adjust for above field changes.
+	(print_partial_schedule): Use ps_rtl_insn.
+	(create_ps_insn): Take an id rather than a node.
+	(ps_insn_find_column): Adjust for above field changes.
+	Use ps_rtl_insn.
+	(ps_insn_advance_column): Adjust for above field changes.
+	(add_node_to_ps): Remove node parameter.  Update call to
+	create_ps_insn.
+	(ps_has_conflicts): Use ps_rtl_insn.
+	(ps_add_node_check_conflicts): Replace node parameter than an id.
+
+2011-10-10  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* modulo-sched.c (undo_replace_buff_elem): Delete.
+	(generate_reg_moves): Don't build and return an undo list.
+	(free_undo_replace_buff): Delete.
+	(sms_schedule): Adjust call to generate_reg_moves.
+	Don't call free_undo_replace_buff.
+
+2011-10-10  Matthias Klose <doko@ubuntu.com>
+
+	* common/config/m32c: Remove empty directory.
+
+2011-10-10  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (*mulhi3_enh): Treat squaring smarter.
+
+2011-10-10  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50652
+	* config/avr/avr-mcus.def (AVR_MCU): Set .data_section_start of
+	atmega164a to 0x100.
+
 2011-10-09  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* tree-ssa-forwprop.c (forward_propagate_into_comparison): Do not make
