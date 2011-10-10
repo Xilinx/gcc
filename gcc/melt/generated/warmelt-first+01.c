@@ -2628,17 +2628,17 @@ lab_endgetargs:;
 /*anyblock*/
   {
 
- /*_#NEED_DBG__L1*/ meltfnum[0] =
-      /*NEED_DBG */
+ /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
+      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
       (flag_melt_debug && melt_dbgcounter >= melt_debugskipcount && (0) >= 0
        && (0) <= MELTDBG_MAXDEPTH)
 #else
-      0				/* no need_dbg */
+      0				/* no melt_need_dbg */
 #endif /*MELT_HAVE_DEBUG */
       ;;
     MELT_LOCATION ("warmelt-first.melt:2590:/ cond");
-    /*cond */ if ( /*_#NEED_DBG__L1*/ meltfnum[0])	/*then */
+    /*cond */ if ( /*_#MELT_NEED_DBG__L1*/ meltfnum[0])	/*then */
       {
 	/*^cond.then */
 	/*^block */
@@ -2760,7 +2760,7 @@ lab_endgetargs:;
     /*epilog */
 
     /*^clear */
-	   /*clear *//*_#NEED_DBG__L1*/ meltfnum[0] = 0;
+	   /*clear *//*_#MELT_NEED_DBG__L1*/ meltfnum[0] = 0;
     /*^clear */
 	   /*clear *//*_.LET___V3*/ meltfptr[2] = 0;
   }

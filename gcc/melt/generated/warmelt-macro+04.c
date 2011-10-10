@@ -8849,7 +8849,7 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_aptr =
-	(melt_ptr_t *) & ( /*!konst_4_DEBUG_FUN */ meltfrout->tabval[4]);
+	(melt_ptr_t *) & ( /*!konst_4_MELT_DEBUG_FUN */ meltfrout->tabval[4]);
       /*_.DEBUGFUNBIND__V18*/ meltfptr[16] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!FIND_ENV */ meltfrout->tabval[3])),
@@ -8882,7 +8882,7 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_aptr =
-	(melt_ptr_t *) & ( /*!konst_6_NEED_DBG */ meltfrout->tabval[6]);
+	(melt_ptr_t *) & ( /*!konst_6_MELT_NEED_DBG */ meltfrout->tabval[6]);
       /*_.THENEEDDBGBIND__V20*/ meltfptr[19] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!FIND_ENV */ meltfrout->tabval[3])),
@@ -8961,7 +8961,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /1b8b89fa checkpair",
+      melt_assertmsg ("putpairhead /3702acae checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.PAIROFLIST__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
@@ -9101,7 +9101,7 @@ lab_endgetargs:;
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:5870:/ locexp");
 	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V13*/ meltfptr[12]),
-			    ("(DEBUG ...) used in context with bad DEBUG_FUN"),
+			    ("(DEBUG ...) used in context with bad MELT_DEBUG_FUN"),
 			    (melt_ptr_t) 0);
 	  }
 	  ;
@@ -9518,7 +9518,7 @@ lab_endgetargs:;
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:5900:/ locexp");
 		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V13*/ meltfptr[12]),
-				  ("(DEBUG ...) used in context with bad NEED_DBG"),
+				  ("(DEBUG ...) used in context with bad MELT_NEED_DBG"),
 				  (melt_ptr_t) 0);
 		}
 		;
@@ -9580,10 +9580,6 @@ lab_endgetargs:;
       meltletrec_3_ptr->rtup_0__TUPLREC__x11.nbval = 1;
 
 
-      /*^touch */
-      meltgc_touch ( /*_.TUPLREC___V54*/ meltfptr[51]);
-      ;
-      0;
       /*^putuple */
       /*putupl#19 */
       melt_assertmsg ("putupl [:5905] #19 checktup",
@@ -9597,7 +9593,7 @@ lab_endgetargs:;
 					     ( /*_.TUPLREC___V54*/
 					      meltfptr[51]))));
       ((meltmultiple_ptr_t) ( /*_.TUPLREC___V54*/ meltfptr[51]))->tabval[0] =
-	(melt_ptr_t) (0);
+	(melt_ptr_t) (( /*!konst_15 */ meltfrout->tabval[15]));
       ;
       /*^touch */
       meltgc_touch ( /*_.TUPLREC___V54*/ meltfptr[51]);
@@ -9662,10 +9658,10 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_aptr =
-	(melt_ptr_t *) & ( /*!DISCR_MULTIPLE */ meltfrout->tabval[18]);
+	(melt_ptr_t *) & ( /*!DISCR_MULTIPLE */ meltfrout->tabval[19]);
       /*_.LIST_TO_MULTIPLE__V57*/ meltfptr[56] =
 	melt_apply ((meltclosure_ptr_t)
-		    (( /*!LIST_TO_MULTIPLE */ meltfrout->tabval[17])),
+		    (( /*!LIST_TO_MULTIPLE */ meltfrout->tabval[18])),
 		    (melt_ptr_t) ( /*_.DBGARGLIST__V25*/ meltfptr[24]),
 		    (MELTBPARSTR_PTR ""), argtab, "",
 		    (union meltparam_un *) 0);
@@ -9680,7 +9676,7 @@ lab_endgetargs:;
       melt_ptr_t newobj = 0;
       melt_raw_object_create (newobj,
 			      (melt_ptr_t) (( /*!CLASS_SOURCE_APPLY */
-					     meltfrout->tabval[15])), (4),
+					     meltfrout->tabval[16])), (4),
 			      "CLASS_SOURCE_APPLY");
   /*_.INST__V59*/ meltfptr[58] =
 	newobj;
@@ -9702,8 +9698,8 @@ lab_endgetargs:;
 				      ( /*_.INST__V59*/ meltfptr[58])) ==
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V59*/ meltfptr[58]), (3),
-			  (( /*!konst_4_DEBUG_FUN */ meltfrout->tabval[4])),
-			  "SAPP_FUN");
+			  (( /*!konst_4_MELT_DEBUG_FUN */ meltfrout->
+			    tabval[4])), "SAPP_FUN");
     ;
     /*^putslot */
     /*putslot */
@@ -9949,7 +9945,7 @@ lab_endgetargs:;
       melt_ptr_t newobj = 0;
       melt_raw_object_create (newobj,
 			      (melt_ptr_t) (( /*!CLASS_SOURCE_IF */
-					     meltfrout->tabval[19])), (4),
+					     meltfrout->tabval[20])), (4),
 			      "CLASS_SOURCE_IF");
   /*_.INST__V71*/ meltfptr[70] =
 	newobj;
@@ -10054,7 +10050,7 @@ lab_endgetargs:;
       melt_ptr_t newobj = 0;
       melt_raw_object_create (newobj,
 			      (melt_ptr_t) (( /*!CLASS_SOURCE_PROGN */
-					     meltfrout->tabval[20])), (3),
+					     meltfrout->tabval[21])), (3),
 			      "CLASS_SOURCE_PROGN");
   /*_.INST__V75*/ meltfptr[74] =
 	newobj;
@@ -10088,7 +10084,7 @@ lab_endgetargs:;
       melt_ptr_t newobj = 0;
       melt_raw_object_create (newobj,
 			      (melt_ptr_t) (( /*!CLASS_SOURCE_CPPIF */
-					     meltfrout->tabval[21])), (5),
+					     meltfrout->tabval[22])), (5),
 			      "CLASS_SOURCE_CPPIF");
   /*_.INST__V77*/ meltfptr[76] =
 	newobj;
@@ -10110,8 +10106,8 @@ lab_endgetargs:;
 				      ( /*_.INST__V77*/ meltfptr[76])) ==
 		    MELTOBMAG_OBJECT);
     melt_putfield_object (( /*_.INST__V77*/ meltfptr[76]), (2),
-			  (( /*!konst_22_MELT_HAVE_DEBUG */ meltfrout->
-			    tabval[22])), "SIFP_COND");
+			  (( /*!konst_23_MELT_HAVE_DEBUG */ meltfrout->
+			    tabval[23])), "SIFP_COND");
     ;
     /*^putslot */
     /*putslot */

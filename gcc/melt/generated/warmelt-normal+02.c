@@ -29648,7 +29648,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /2cdd0f2f checkpair",
+      melt_assertmsg ("putpairhead /bc0b2f8 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CBIND__V25*/ meltfptr[24])) ==
 		      MELTOBMAG_PAIR);
@@ -32211,7 +32211,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /2dfc42c8 checkpair",
+      melt_assertmsg ("putpairhead /393e005b checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CBIND__V110*/ meltfptr[109])) ==
 		      MELTOBMAG_PAIR);
