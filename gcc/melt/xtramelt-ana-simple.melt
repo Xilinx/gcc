@@ -272,7 +272,7 @@
 	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
 	   )
       (if (<i newmaxdepth 0) (setq newmaxdepth 0))
-      (if (need_dbglim depth oldmaxdepth)
+      (if (melt_need_dbglim depth oldmaxdepth)
 	  (progn
 	    (and (>i depth 0) (>i oldmaxdepth 3)
 		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
@@ -289,7 +289,7 @@
 		    (add2sbuf_strconst out "]@"))
 		(add2sbuf_strconst out "@ppl.poly*nil*")))
 	    (add2sbuf_indentnl out depth)
-	    (if (need_dbglim (+i depth 2) newmaxdepth)
+	    (if (melt_need_dbglim (+i depth 2) newmaxdepth)
 		(dbgout_fields self dbgi (+i depth 2) offvnam -1)
 	      (add2sbuf_strconst out ".._.."))
 	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)

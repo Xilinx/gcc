@@ -3622,7 +3622,7 @@ $SBUF.}#
   (assert_msg "check desto" (is_a desto class_objlocv))
   (debug_msg recv "putobjdest_null recv")
   (debug_msg desto "putobjdest_null desto")
-  (if (need_dbg 0) (shortbacktrace_dbg "putobjdest_null" 15))
+  (if (melt_need_dbg 0) (shortbacktrace_dbg "putobjdest_null" 15))
   (let ( (destlis (make_list discr_list))
 	 (explis (make_list discr_list))
 	 (typdesto (unsafe_get_field :obv_type desto))

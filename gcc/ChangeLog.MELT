@@ -1,5 +1,25 @@
 
 2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (need_dbg, need_dbglim): Rename as ...
+	(melt_need_dbg, melt_need_dbglim): Rename primitives.
+
+	* melt/warmelt-macro.melt (mexpand_debug): Expand using
+	melt_need_dbg primitive.
+
+	* melt/warmelt-debug.melt (debug_msg_fun): Use melt_need_dbg.
+	(dbgout_multiple_method): Likewise.
+	(debug_fun): Rename as...
+	(melt_debug_fun): Was debug_fun, for debug macro expansion.
+
+	* melt/warmelt-macro.melt (mexpand_debug): Use melt_debug_fun.
+
+	* melt/warmelt-normatch.melt (normexp_altmatch): Use melt_need_dbg.
+
+	* melt/warmelt-genobj.melt (putobjdest_null): Use melt_need_dbg.
+
+	* melt/xtramelt-ana-simple.melt (dbgout_smallabstractenv): Likewise.
+
+2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tdebug.melt: New file.
 
 	* melt-runtime.c (flag_melt_debug, flag_melt_bootstrapping):

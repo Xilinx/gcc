@@ -1104,22 +1104,22 @@ an integer $I if $I is greater than $N.}#
 )
 
 ;; primitive for testing if debug
-(defprimitive need_dbg (:long depth) :long :doc #{Test if debug messages are needed for the given $DEPTH.}#
-  #{/*NEED_DBG*/
+(defprimitive melt_need_dbg (:long depth) :long :doc #{Test if debug messages are needed for the given $DEPTH.}#
+  #{/*MELT_NEED_DBG*/
 #if MELT_HAVE_DEBUG
  (flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && ($depth)>=0 && ($depth) <= MELTDBG_MAXDEPTH)
 #else
- 0 /* no need_dbg */
+ 0 /* no melt_need_dbg */
 #endif /*MELT_HAVE_DEBUG*/
 }#)
 
-(defprimitive need_dbglim (:long depth limit) :long :doc #{Test if debug messages are needed for the given $DEPTH and $LIMIT.}#
-  #{ /*need_dbglim*/
+(defprimitive melt_need_dbglim (:long depth limit) :long :doc #{Test if debug messages are needed for the given $DEPTH and $LIMIT.}#
+  #{ /*melt_need_dbglim*/
 #if MELT_HAVE_DEBUG
 (flag_melt_debug && melt_dbgcounter>=melt_debugskipcount
 		     && ($depth)>=0 && ($depth) < ($limit))
 #else
- 0 /* no need_dbglim */
+ 0 /* no melt_need_dbglim */
 #endif /*MELT_HAVE_DEBUG*/
 }#)
 
@@ -2587,7 +2587,7 @@ Keyword is :cstring.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; initial fresh environment container maker - inside INITIAL_SYSTEM_DATA
 (defun initfresh_contenvmaker (prevenv :cstring modnam)
-  (if (need_dbg 0) 
+  (if (melt_need_dbg 0) 
       (shortbacktrace_dbg "initfresh_contenvmaker" 15))
   (let (
 	(descr (if modnam (make_stringconst discr_string modnam)))
@@ -2604,7 +2604,7 @@ Keyword is :cstring.}#
   ;;(debug_msg sym "initvalue_exporter sym")
   ;;(debug_msg val "initvalue_exporter val")
   ;;(debug_msg contenv "initvalue_exporter contenv")
-  ;;(if (need_dbg 0) 
+  ;;(if (melt_need_dbg 0) 
   ;;    (shortbacktrace_dbg "initvalue_exporter" 15))
   (let ( (parenv (parent_module_environment)) )
     (if (null contenv)
@@ -4129,12 +4129,12 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  mapstring_nth_val
  mapstring_putstr
  mapstring_removestr
+ melt_need_dbg
+ melt_need_dbglim
  multiple_length
  multiple_nth
  multiple_put_nth
  multiple_sort
- need_dbg
- need_dbglim
  not
  null
  pair_head
@@ -4154,7 +4154,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  the_null_cstring
  )
 
-
+(export_synonym need_dbg melt_need_dbg)
+(export_synonym need_dbglim melt_need_dbglim)
 
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order

@@ -62,7 +62,7 @@ or -fplugin-arg-melt-debug-depth program argument.}#
 debugging the value $VAL with message $MSGSTR, given $COUNT, at
 $FILENAM and $LINENO}#
   (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
-  (if (need_dbg 0) 
+  (if (melt_need_dbg 0) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
 	     (stderrf (get_field :sysdata_stderr initial_system_data)) 
@@ -237,9 +237,9 @@ $FILENAM and $LINENO}#
     oldcont))
 
 ;;; the debug_fun is usually called thru the debug macro.
-(defun debug_fun (nothing :long count :cstring filename :long lineno :rest)
+(defun melt_debug_fun (nothing :long count :cstring filename :long lineno :rest)
   (debug_msg nothing "debug_fun start")
-  (if (need_dbg 0) 
+  (if (melt_need_dbg 0) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
 	     (stderrf (get_field :sysdata_stderr initial_system_data)) 
@@ -390,7 +390,7 @@ $DBGI at given $DEPTH}#
   (let ( (out (unsafe_get_field :dbgi_out dbgi))
 	 (discr (discrim obj))
 	 )
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(if (is_object obj)
 	    (progn
 	      ;; (checkcallstack_msg "start dbg_out outobject")
@@ -424,7 +424,7 @@ $DBGI at given $DEPTH}#
     (assert_msg "check out" (is_out out))
     ;; outoff may be -1 when out is a non-seekable file like stdout
     (if (<i ix 0) (setq ix 0))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(forever fldloop
 		 (if (>=i ix nbf)
 		     (exit fldloop))
@@ -473,7 +473,7 @@ $TORANK}#
 	 )
     (assert_msg "check out" (is_out out))
     (if (<i ix 0) (setq ix 0))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(forever fldloop
 		 (if (>=i ix nbf)
 		     (exit fldloop))
@@ -564,7 +564,7 @@ $TORANK}#
 	(add2sbuf_strconst sbuf "#[")
 	(add2sbuf_longdec sbuf (get_int self)))
       )
-    (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if  (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf ",")
 	  (dbg_out (mixint_val self) dbgi (+i depth 1))
@@ -592,7 +592,7 @@ $TORANK}#
 	(add2sbuf_strconst sbuf "#![")
 	(add2sbuf_longdec sbuf (get_int self)))
       )
-    (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if  (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf ",")
 	  (add2sbuf_mixloc sbuf self)
@@ -614,7 +614,7 @@ $TORANK}#
     (add2sbuf_strconst sbuf " |")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "#![")
-  (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+  (if  (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
       (progn
 	(dbg_out (mixbigint_val self) dbgi (+i depth 1))
 	(add2sbuf_strconst sbuf ",")
@@ -641,7 +641,7 @@ $TORANK}#
     (let ( (:long ln (multiple_length self)) )
       (add2sbuf_longdec sbuf ln)
       (add2sbuf_strconst sbuf "[")
-      (if (or (<=i depth 0) (need_dbg depth))
+      (if (or (<=i depth 0) (melt_need_dbg depth))
 	  (foreach_in_multiple
 	   (self)
 	   (curcomp :long ix)
@@ -701,7 +701,7 @@ $TORANK}#
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 3)
     (dbg_out (closure_routine self) dbgi depth)
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let ((:long ix 0))
 	  (add2sbuf_strconst sbuf "/")
 	  (add2sbuf_longdec sbuf (closure_size self))
@@ -738,7 +738,7 @@ $TORANK}#
 	  (:long ix 0) 
 	  )
       ;(checkcallstack_msg "before loop dbgout_list_method")
-      (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+      (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	  (forever listloop
 		   ;(checkcallstack_msg "start loop dbgout_list_method")
 		   (if (>i ix 300)
@@ -773,7 +773,7 @@ $TORANK}#
 	(add2sbuf_strconst sbuf " |")
 	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
 	(add2sbuf_strconst sbuf "(.")))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (dbg_out (pair_head self) dbgi (+i depth 1))
 	  (add2sbuf_indent sbuf depth)
@@ -800,7 +800,7 @@ $TORANK}#
 	(add2out_strconst out "{")))
     (add2out_strconst out "/")
     (add2out_longdec out (mapobject_count self))
-    (if (need_dbglim (+i depth 2) (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim (+i depth 2) (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let (
 	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	      (countbox (make_integerbox discr_integer 0))
@@ -879,7 +879,7 @@ $TORANK}#
 	(add2sbuf_strconst sbuf "<(")))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longdec sbuf mapcount)
-    (if (need_dbg (+i depth 2))
+    (if (melt_need_dbg (+i depth 2))
 	(progn
 	  ;; fill the tuple with string, value, rank triples
 	  (mapstring_every 
@@ -946,7 +946,7 @@ $TORANK}#
 	    (add2sbuf_strconst sbuf "#")
 	    (add2sbuf_longdec sbuf onum)))
       )
-    (if (need_dbglim (+i depth 1) 
+    (if (melt_need_dbglim (+i depth 1) 
 		     (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf "{")
@@ -1000,7 +1000,7 @@ $TORANK}#
     (add2out_string out (unsafe_get_field :named_name dis))
     (add2out_strconst out "/")
     (add2out_longhex out (obj_hash self))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(let ( (:long onum (obj_num self)) 
 	       )
 	  (if onum
@@ -1149,12 +1149,12 @@ $TORANK}#
 	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
 	   )
       (if (<i newmaxdepth 0) (setq newmaxdepth 0))
-      (if (need_dbglim depth oldmaxdepth)
+      (if (melt_need_dbglim depth oldmaxdepth)
 	  (progn
 	    (and (>i depth 0) (>i oldmaxdepth 3)
 		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
 	    (dbgout_fields self dbgi (+i depth 1) 0 offprev)
-	    (if (need_dbglim (+i depth 2) newmaxdepth)
+	    (if (melt_need_dbglim (+i depth 2) newmaxdepth)
 		(dbgoutagain_fields self dbgi (+i depth 2) offprev 0)
 	      (add2out_strconst out ".._.."))
 	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
@@ -1206,7 +1206,7 @@ $TORANK}#
 	  (add2out_longdec out bindnum)))
     (add2out_strconst out ":")
     (dbg_outputagain binderv dbgi (+i depth 2))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+    (if (melt_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2out_strconst out "; ")
 	  (dbgout_fields self dbgi (+i depth 1) 1 0)
@@ -1252,9 +1252,9 @@ $TORANK}#
  dbgout_fields
  dbgoutagain_fields
  debug_depth
- debug_fun
  debug_msg_fun			
  display_debug_message  
+ melt_debug_fun
  register_basicblock_debug_fun
  register_edge_debug_fun 
  register_gimple_debug_fun 
@@ -1262,6 +1262,8 @@ $TORANK}#
  register_loop_debug_fun
  register_tree_debug_fun
 )
+
+(export_synonym debug_fun melt_debug_fun)
 
 (put_fields initial_system_data
 	    :sysdata_debugmsg debug_msg_fun)

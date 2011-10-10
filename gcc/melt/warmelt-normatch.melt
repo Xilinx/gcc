@@ -2363,7 +2363,7 @@ scanning variables.}#
 	  (put_fields curtest :ntest_normatch nmatch)
 	  (debug_msg curtest "normexp_match indexed curtest")
 	  )
-	 (if (need_dbg 1)
+	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
 	       (debug_msg match_graphic_dot_prefix "normexp_match match_graphic_dot_prefix")
 	       (debug_msg dotprefix "normexp_match dotprefix")
@@ -5937,7 +5937,7 @@ normalized expression.}#
 	 (debug_msg matresctyp "normexp_altmatch matresctyp")
 	 ;;
 	 (debug_msg mdata "normexp_altmatch updated mdata")
-	 (if (need_dbg 1)
+	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
 	       (debug_msg match_graphic_dot_prefix "normexp_altmatch match_graphic_dot_prefix")
 	       (debug_msg dotprefix "normexp_altmatch dotprefix")
