@@ -164,6 +164,7 @@ extern int flag_melt_bootstrapping;
 #endif
 
 #if MELT_HAVE_DEBUG
+
 #define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 /* Sometimes we need to pass an explicit line number.  */
@@ -191,8 +192,30 @@ extern int flag_melt_bootstrapping;
       melt_dbgbacktrace((Depth)); }} while(0)
 /* the maximal debug depth - should be a parameter */
 #define MELTDBG_MAXDEPTH 7
+static inline int 
+melt_need_debug (int depth) {
+  return 
+    flag_melt_debug && melt_dbgcounter>=melt_debugskipcount 
+    && depth >= 0 && depth < MELTDBG_MAXDEPTH;
+}
+
+static inline int 
+melt_need_debug_limit (int depth, int lim) {
+  return 
+    flag_melt_debug && melt_dbgcounter>=melt_debugskipcount 
+    && depth >= 0 && depth < lim;
+}
+
 #else /* !MELT_HAVE_DEBUG*/
 #define MELTDBG_MAXDEPTH 0
+static inline int
+melt_need_debug (int depth) 
+{ return depth != depth && 0; }
+
+static inline int
+melt_need_debug_limit (int depth, int lim) 
+{ return depth != depth && 0 && lim != lim; }
+
 #define debugeprintf_raw(Fmt,...) do{if (0) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 /* The usual debugging macro.  */

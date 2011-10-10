@@ -1,10 +1,17 @@
 
 2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_need_debug, melt_need_debug_limit): New functions.
+
+	* melt/warmelt-first.melt (need_dbg, need_dbglim): Use them.
+
+2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (need_dbg, need_dbglim): No more
 	exported synonym, should use melt_need_dbg...
 
 	* melt/warmelt-debug.melt (debug_fun): No more exported, the debug
 	macro is generating calls to melt_debug_fun.
+
+	* testsuite/melt/tdebug.melt: Update.
 
 2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}

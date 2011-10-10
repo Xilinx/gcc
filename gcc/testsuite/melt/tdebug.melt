@@ -10,12 +10,15 @@
 |#
 
 (defun testdebug (x y :long l :tree t)
-  (debug_msg debug_fun "TESTdebug%1 debug_fun is")
-  (code_chunk showdebugchk #{/*$SHOWDEBUGCHK*/ printf ("$SHOWDEBUGCHK flag_melt_debug=%d\n",
-						       flag_melt_debug);}#
+  (debug_msg melt_debug_fun "TESTdebug%1 melt_debug_fun is")
+  (code_chunk showdebugchk #{/*$SHOWDEBUGCHK*/ printf ("$SHOWDEBUGCHK flag_melt_debug=%d at %p\n",
+						       flag_melt_debug, &flag_melt_debug);
+	      flag_melt_debug=1;
+	       printf ("$SHOWDEBUGCHK flag_melt_debug becomes %i\n", flag_melt_debug);
+   }#
 	      )
   (debug_msg x "TESTdebug%2 x before")
-  (debug "TESTdebug%3")	;; "x=" x " y=" y " l=" l " t=" t
+  (debug "TESTdebug%3 x=" x " y=" y " l=" l " t=" t)
   (debug_msg y "TESTdebug%4 y after"))
 
 (testdebug 'xx 'yy 123)

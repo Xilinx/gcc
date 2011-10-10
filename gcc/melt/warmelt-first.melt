@@ -1107,7 +1107,7 @@ an integer $I if $I is greater than $N.}#
 (defprimitive melt_need_dbg (:long depth) :long :doc #{Test if debug messages are needed for the given $DEPTH.}#
   #{/*MELT_NEED_DBG*/
 #if MELT_HAVE_DEBUG
- (flag_melt_debug && melt_dbgcounter>=melt_debugskipcount && ($depth)>=0 && ($depth) <= MELTDBG_MAXDEPTH)
+ (/*melt_need_dbg*/ melt_need_debug ((int) $DEPTH))
 #else
  0 /* no melt_need_dbg */
 #endif /*MELT_HAVE_DEBUG*/
@@ -1116,8 +1116,7 @@ an integer $I if $I is greater than $N.}#
 (defprimitive melt_need_dbglim (:long depth limit) :long :doc #{Test if debug messages are needed for the given $DEPTH and $LIMIT.}#
   #{ /*melt_need_dbglim*/
 #if MELT_HAVE_DEBUG
-(flag_melt_debug && melt_dbgcounter>=melt_debugskipcount
-		     && ($depth)>=0 && ($depth) < ($limit))
+( /*melt_need_dbglim*/ melt_need_debug_limit ((int) $DEPTH, (int) $LIMIT))
 #else
  0 /* no melt_need_dbglim */
 #endif /*MELT_HAVE_DEBUG*/
