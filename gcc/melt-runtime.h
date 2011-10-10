@@ -153,8 +153,14 @@ extern long melt_error_counter;
 int melt_debug_depth(void);
 
 #ifdef MELT_IS_PLUGIN
+/* It may happen that options flags are macros defined in generated
+   file options.h as fields of global_options variable. */
+#ifndef flag_melt_debug
 extern int flag_melt_debug;
+#endif
+#ifndef flag_melt_bootstrapping
 extern int flag_melt_bootstrapping;
+#endif
 #endif
 
 #if MELT_HAVE_DEBUG

@@ -32,12 +32,14 @@
 	(:basic_block bbloophead (loop_header curloop))
 	(:basic_block bblooplatch (loop_latch curloop))
 	)
-    (debugbasicblock "opengpudetect_handle_parallel_loop bbloophead" bbloophead)
-    (debugbasicblock "opengpudetect_handle_parallel_loop bblooplatch" bblooplatch)
+    (debug "opengpudetect_handle_parallel_loop curloop=" curloop 
+	   " bbloophead=" bbloophead " with nbsucc=" (basicblock_nb_succ bbloophead)
+	   " bblooplatch=" bblooplatch
+	   " curloopbodytuple=" curloopbodytuple
+	   " curloopedgetuple=" curloopedgetuple)
     ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
     ;; tree-ssa-loop-niter.c function try_get_loop_niter &
     ;; canonicalize_loop_ivs & number_of_iterations_exit
-    (debuglong  "opengpudetect_handle_parallel_loop nbsucc bbloophead" (basicblock_nb_succ bbloophead))
     (foreach_edge_bb_succs 
      (bbloophead)
      (:edge edgheadsuc)

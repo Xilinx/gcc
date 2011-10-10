@@ -238,6 +238,7 @@ $FILENAM and $LINENO}#
 
 ;;; the debug_fun is usually called thru the debug macro.
 (defun debug_fun (nothing :long count :cstring filename :long lineno :rest)
+  (debug_msg nothing "debug_fun start")
   (if (need_dbg 0) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
@@ -357,6 +358,7 @@ $FILENAM and $LINENO}#
 			   }#)
 	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
 	       ))))
+	  (add2out_indentnl out 0)
 	  ))))
 
 

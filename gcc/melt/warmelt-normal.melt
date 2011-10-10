@@ -3815,6 +3815,7 @@ source location.}#
 	 (csymrec (clone_symbol 'tuplrec_))
 	 (csymtup (clone_symbol 'tuple_))
 	 (normdiscrmult (normal_predef discr_multiple ncx sloc "discr_multiple"))
+	 (newenv (fresh_env env))
 	 )
     (debug_msg csymrec "normexp_tuple csymrec")
     (multicall
@@ -3867,6 +3868,20 @@ source location.}#
 	       (list_append nbindings ctupbind)
 	       )
 	     (debug_msg ctupbind "normexp_tuple ctupbind")
+	     (foreach_in_list
+	      (nbindings)
+	      (curpair curbind)
+	      (put_env newenv curbind)
+	      )
+	     (foreach_in_multiple
+	      (nargs)
+	      (curnarg :long nix)
+	      (if (!= (get_ctype curnarg newenv) ctype_value)
+		  (progn
+		    (debug_msg curnarg "normexp_tuple bad curnarg")
+		    (error_plain sloc "(TUPLE ...) arguments should be values")
+		    (return)))
+	      )
 	     (debug_msg clocc "normexp_tuple clocc")
 	     (debug_msg nbdy "normexp_tuple nbdy")
 	     (debug_msg ctuplocc "normexp_tuple return ctuplocc")
@@ -3891,6 +3906,7 @@ source location.}#
 	 (csymlist (clone_symbol 'list_))
 	 (normdiscrpair (normal_predef discr_pair ncx sloc "discr_pair"))
 	 (normdiscrlist (normal_predef discr_pair ncx sloc "discr_list"))
+	 (newenv (fresh_env env))
 	 (:long nbargs (multiple_length sargs))
 	 (consbindtup (list_to_multiple (prepare_constructor_binding recv csymlist ncx sloc)))
 	 (resbindings (make_list discr_list))
@@ -3920,6 +3936,19 @@ source location.}#
      (debug_msg nbindings "normexp_list nbindings")
      (assert_msg "check nbindings" (is_list_or_null nbindings))
      (list_append2list resbindings nbindings)
+     (foreach_in_list
+      (resbindings)
+      (curpairbind curbind)
+      (put_env newenv curbind)
+      )
+     (foreach_in_multiple
+      (nargs)
+      (curnarg :long nix)
+      (if (!= (get_ctype curnarg newenv) ctype_value)
+	  (progn
+	    (debug_msg curnarg "normexp_list bad curnarg")
+	    (error_plain sloc "(LIST ...) arguments should be values")
+	    (return))))
      (letrec (
 	      (creclocc (instance class_nrep_locsymocc
 				  :nrep_loc sloc

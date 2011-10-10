@@ -1,0 +1,23 @@
+; -*- lisp -*-
+;; file tdebug.melt
+
+#| run in buildir/gcc
+ ./cc1 -fmelt-mode=runfile -fmelt-module-path=melt-stage3:.    -fmelt-source-path=melt-stage3:. \
+    -fmelt-tempdir=/tmp -fmelt-workdir=melt-workdir -fmelt-init=@warmelt \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tdebug.melt \
+    -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun testdebug (x y :long l :tree t)
+  (debug_msg debug_fun "TESTdebug%1 debug_fun is")
+  (code_chunk showdebugchk #{/*$SHOWDEBUGCHK*/ printf ("$SHOWDEBUGCHK flag_melt_debug=%d\n",
+						       flag_melt_debug);}#
+	      )
+  (debug_msg x "TESTdebug%2 x before")
+  (debug "TESTdebug%3")	;; "x=" x " y=" y " l=" l " t=" t
+  (debug_msg y "TESTdebug%4 y after"))
+
+(testdebug 'xx 'yy 123)
+
+;; eof tdebug.melt

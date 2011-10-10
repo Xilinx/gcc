@@ -1,5 +1,21 @@
 
 2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tdebug.melt: New file.
+
+	* melt-runtime.c (flag_melt_debug, flag_melt_bootstrapping):
+	Define these variables only if they are not macros.
+	* melt-runtime.h: Likewise.
+
+	* melt/warmelt-macro.melt (mexpand_debug): Thingo.
+
+	* melt/warmelt-debug.melt (debug_fun): Add newline at end.
+
+	* melt/warmelt-normal.melt (normexp_list, normexp_tuple): Check
+	arguments types.
+
+	* melt/xtramelt-opengpu.melt: Use debug macro.
+
+2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltppbuffer, meltppbufsiz): Declare as extern
 	variables.
 

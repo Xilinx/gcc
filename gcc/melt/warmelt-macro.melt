@@ -5902,7 +5902,7 @@ remain.}#)
 	  (dneedbg (instance class_source_primitive
 			     :loca_location  loc
 			     :sprim_oper theneeddbg
-			     :sargop_args (tuple 0)))
+			     :sargop_args (tuple '0)))
 	  (dcall (instance 
 		  class_source_apply
 		  :loca_location loc
