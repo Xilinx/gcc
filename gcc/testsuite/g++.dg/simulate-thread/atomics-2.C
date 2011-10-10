@@ -1,13 +1,13 @@
 /* { dg-do link } */
 /* { dg-options "-std=c++0x" } */
-/* { dg-final { memmodel-gdb-test } } */
+/* { dg-final { simulate-thread } } */
 
 using namespace std;
 
 #include <atomic>
 #include <limits.h>
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
 atomic_int atomi;
 
@@ -21,20 +21,27 @@ long double j;
    In this case, test that the store to <j> happens-before the atomic
    store to <atomi>.  Make sure the compiler does not reorder the
    stores.  */
-main()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   j = 13.0;
   atomi.store(1);
-  memmodel_done();
 }
 
-void memmodel_other_threads()
+int main ()
+{
+  simulate_thread_main();
+  simulate_thread_done();
+  return 0;
+}
+
+void simulate_thread_other_threads()
 {
 }
 
 /* Verify that side-effects before an atomic store are correctly
    synchronized with the an atomic load to the same location.  */
-int memmodel_step_verify()
+int simulate_thread_step_verify()
 {
   if (atomi.load() == 1 && j != 13.0)
     {
@@ -45,7 +52,7 @@ int memmodel_step_verify()
 }
 
 
-int memmodel_final_verify()
+int simulate_thread_final_verify()
 {
-  return memmodel_step_verify();
+  return simulate_thread_step_verify();
 }

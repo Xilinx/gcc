@@ -14,14 +14,14 @@
 # along with GCC; see the file COPYING3.  If not see
 # <http://www.gnu.org/licenses/>.
 
-# Utility for running a given test through the memmodel harness using gdb.
-# This is invoked via dg-final.
+# Utility for running a given test through the simulate-thread harness
+# using gdb.  This is invoked via dg-final.
 #
 # Adapted from the guality harness.
 #
 # Call 'fail' if a given test printed "FAIL:", otherwise call 'pass'.
 
-proc memmodel-gdb-test { args } {
+proc simulate-thread { args } {
     if { ![isnative] || [is_remote target] } { return }
 
     if { [llength $args] == 1 } {
@@ -37,9 +37,9 @@ proc memmodel-gdb-test { args } {
     upvar 2 prog prog
     upvar 2 srcdir testsuite_dir
 
-    set gdb_name $::env(GUALITY_GDB_NAME)
+    set gdb_name $::env(GDB_FOR_GCC_TESTING)
     set exec_file "[file rootname [file tail $prog]].exe"
-    set cmd_file "$testsuite_dir/gcc.dg/memmodel/memmodel.gdb"
+    set cmd_file "$testsuite_dir/gcc.dg/simulate-thread/simulate-thread.gdb"
 
     if ![file exists $exec_file] {
 	return
@@ -52,17 +52,25 @@ proc memmodel-gdb-test { args } {
 	return
     }
 
+    set gdb_worked 0
     remote_expect target [timeout_value] {
-	-re "FAIL:" {
-	    fail "$testcase"
-	    remote_close target
-	    return
-	}
 	# Too old GDB
 	-re "Unhandled dwarf expression|Error in sourced command file" {
 	    unsupported "$testcase"
 	    remote_close target
 	    return
+	}
+	-re "FAIL:" {
+	    fail "$testcase"
+	    remote_close target
+	    return
+	}
+	# If the gdb output contained simulate_thread_main, assume
+	# that at the very least, we had a working gdb that was able
+	# to break in simulate_thread_main.
+	-re "simulate_thread_main" {
+	    set gdb_worked 1
+	    exp_continue
 	}
 	timeout {
 	    unsupported "$testcase"
@@ -72,6 +80,11 @@ proc memmodel-gdb-test { args } {
     }
 
     remote_close target
-    pass "$testcase"
+    if {$gdb_worked} {
+	pass "$testcase"
+    } else {
+	# Fail in the absence of a sane GDB.
+	fail "$testcase"
+    }
     return
 }

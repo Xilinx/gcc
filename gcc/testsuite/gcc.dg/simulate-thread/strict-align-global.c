@@ -1,9 +1,9 @@
 /* { dg-do link } */
 /* { dg-options "--param allow-packed-store-data-races=0" } */
-/* { dg-final { memmodel-gdb-test } } */
+/* { dg-final { simulate-thread } } */
 
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
 /* This test verifies writes to globals do not write to adjacent
    globals.  This mostly happens on strict-align targets that are not
@@ -12,11 +12,11 @@
 char a = 0;
 char b = 77;
 
-void memmodel_other_threads() 
+void simulate_thread_other_threads() 
 {
 }
 
-int memmodel_step_verify()
+int simulate_thread_step_verify()
 {
   if (b != 77)
     {
@@ -27,9 +27,9 @@ int memmodel_step_verify()
 }
 
 /* Verify that every variable has the correct value.  */
-int memmodel_final_verify()
+int simulate_thread_final_verify()
 {
-  int ret = memmodel_step_verify ();
+  int ret = simulate_thread_step_verify ();
   if (a != 66)
     {
       printf("FAIL: Unexpected value.  <a> is %d, should be 66\n", a);
@@ -38,9 +38,15 @@ int memmodel_final_verify()
   return ret;
 }
 
-int main ()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   a = 66;
-  memmodel_done();
+}
+
+int main ()
+{
+  simulate_thread_main();
+  simulate_thread_done();
   return 0;
 }

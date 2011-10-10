@@ -1,19 +1,18 @@
 /* { dg-do link } */
-/* { dg-require-effective-target sync_int_long } */
-/* { dg-final { memmodel-gdb-test } } */
-
+/* { dg-require-effective-target sync_int_128 } */
+/* { dg-options "-mcx16" { target { x86_64-*-* } } } */
+/* { dg-final { simulate-thread } } */
 
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
-/* Test all the __sync routines for proper atomicity on 4 byte values.  */
+/* Test all the __sync routines for proper atomicity on 16 byte values.  */
 
-unsigned int zero = 0;
-unsigned int max = ~0;
-
-unsigned int changing_value = 0;
-unsigned int value = 0;
-unsigned int ret;
+__int128_t zero = 0;
+__int128_t max = ~0;
+__int128_t changing_value = 0;
+__int128_t value = 0;
+__int128_t ret;
 
 void test_abort()
 {
@@ -25,11 +24,11 @@ void test_abort()
     }
 }
 
-void memmodel_other_threads ()
+void simulate_thread_other_threads ()
 {
 }
 
-int memmodel_step_verify ()
+int simulate_thread_step_verify ()
 {
   if (value != zero && value != max)
     {
@@ -39,7 +38,7 @@ int memmodel_step_verify ()
   return 0;
 }
 
-int memmodel_final_verify ()
+int simulate_thread_final_verify ()
 {
   if (value != 0)
     {
@@ -50,13 +49,14 @@ int memmodel_final_verify ()
 }
 
 /* All values written to 'value' alternate between 'zero' and 'max'. Any other
-   value detected by memmodel_step_verify() between instructions would indicate
+   value detected by simulate_thread_step_verify() between instructions would indicate
    that the value was only partially written, and would thus fail this 
    atomicity test.  
 
    This function tests each different __sync_mem routine once, with the
    exception of the load instruction which requires special testing.  */
-main()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   
   ret = __sync_mem_exchange (&value, max, __SYNC_MEM_SEQ_CST);
@@ -106,7 +106,11 @@ main()
   ret = __sync_mem_xor_fetch (&value, max, __SYNC_MEM_SEQ_CST);
   if (value != zero || ret != zero)
     test_abort ();
+}
 
-  memmodel_done ();
+int main()
+{
+  simulate_thread_main ();
+  simulate_thread_done ();
   return 0;
 }

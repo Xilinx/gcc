@@ -1,10 +1,10 @@
 /* { dg-do link } */
 /* { dg-require-effective-target sync_int_long } */
-/* { dg-final { memmodel-gdb-test } } */
+/* { dg-final { simulate-thread } } */
 
 
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
 
 /* Testing load for atomicity is a little trickier.  
@@ -69,7 +69,7 @@ int verify_result ()
 }
 
 /* Iterate VALUE through the different valid values. */
-void memmodel_other_threads ()
+void simulate_thread_other_threads ()
 {
   static int current = 0;
 
@@ -78,17 +78,18 @@ void memmodel_other_threads ()
   value = table[current];
 }
 
-int memmodel_step_verify ()
+int simulate_thread_step_verify ()
 {
   return verify_result ();
 }
 
-int memmodel_final_verify ()
+int simulate_thread_final_verify ()
 {
   return verify_result ();
 }
 
-main()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   int x;
 
@@ -105,7 +106,11 @@ main()
       ret = __sync_mem_load (&value, __SYNC_MEM_SEQ_CST);
       __sync_mem_store (&result, ret, __SYNC_MEM_SEQ_CST);
     }
-  
-  memmodel_done ();
+}
+
+main()
+{
+  simulate_thread_main ();
+  simulate_thread_done ();
   return 0;
 }

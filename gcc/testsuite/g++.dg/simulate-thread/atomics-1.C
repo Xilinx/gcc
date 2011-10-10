@@ -1,6 +1,6 @@
 /* { dg-do link } */
 /* { dg-options "-std=c++0x" } */
-/* { dg-final { memmodel-gdb-test } } */
+/* { dg-final { simulate-thread } } */
 
 /* Test that atomic int and atomic char work properly.  */
 
@@ -9,19 +9,19 @@ using namespace std;
 #include <atomic>
 #include <limits.h>
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
 atomic<int> atomi;
 atomic<char> atomc;
 
 /* No need for parallel threads to do anything */
-void memmodel_other_threads()
+void simulate_thread_other_threads()
 {
 }
 
 /* Verify after every instruction is executed, that the atmoic int and
    char have one of the 2 legitimate values. */
-int memmodel_step_verify()
+int simulate_thread_step_verify()
 {
   if (atomi != 0 && atomi != INT_MAX)
     {
@@ -40,7 +40,7 @@ int memmodel_step_verify()
 
 
 /* Verify that both atmoics have the corerct value.  */
-int memmodel_final_verify()
+int simulate_thread_final_verify()
 {
   if (atomi != INT_MAX)
     {
@@ -58,9 +58,16 @@ int memmodel_final_verify()
 }
 
 /* Test a store to an atomic int and an atomic char. */
-main()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   atomi = INT_MAX;
   atomc = CHAR_MAX;
-  memmodel_done();
+}
+
+int main ()
+{
+  simulate_thread_main();
+  simulate_thread_done();
+  return 0;
 }

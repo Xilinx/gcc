@@ -1,9 +1,9 @@
 /* { dg-do link } */
 /* { dg-options "--param allow-packed-store-data-races=0" } */
-/* { dg-final { memmodel-gdb-test } } */
+/* { dg-final { simulate-thread } } */
 
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
 /* This test verifies that data races aren't introduced by structure subfield 
    stores. */
@@ -33,7 +33,7 @@ static int global = 0;
    an incorrect full or partial word load, mask and store, it will
    write back an incorrect value to one or more of the other
    fields.  */
-void memmodel_other_threads() 
+void simulate_thread_other_threads() 
 {
   global++;
   var.b = global;
@@ -43,7 +43,7 @@ void memmodel_other_threads()
 
 
 /* Make sure that none of the other fields have been changed.  */
-int memmodel_step_verify()
+int simulate_thread_step_verify()
 {
   int ret = 0;
   if (var.b != global)
@@ -68,9 +68,9 @@ int memmodel_step_verify()
 }
 
 /* Verify that every variable has the correct value.  */
-int memmodel_final_verify()
+int simulate_thread_final_verify()
 {
-  int ret = memmodel_step_verify();
+  int ret = simulate_thread_step_verify();
   if (var.a != 1)
     {
       printf("FAIL: Unexpected value. var.a is %d, should be %d\n", var.a, 1);
@@ -79,9 +79,15 @@ int memmodel_final_verify()
   return ret;
 }
 
-int main ()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   set_a(1);
-  memmodel_done();
+}
+
+int main ()
+{
+  simulate_thread_main();
+  simulate_thread_done();
   return 0;
 }

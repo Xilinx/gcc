@@ -1,9 +1,9 @@
 /* { dg-do link } */
 /* { dg-options "--param allow-store-data-races=0" } */
-/* { dg-final { memmodel-gdb-test } } */
+/* { dg-final { simulate-thread } } */
 
 #include <stdio.h>
-#include "memmodel.h"
+#include "simulate-thread.h"
 
 /* This file tests that speculative store movement out of a loop doesn't 
    happen.  This is disallowed when --param allow-store-data-races is 0.  */
@@ -12,12 +12,12 @@ int global = 100;
 
 /* Other thread makes sure global is 100 before the next instruction is
  * exceuted.  */
-void memmodel_other_threads() 
+void simulate_thread_other_threads() 
 {
   global = 100;
 }
 
-int memmodel_step_verify()
+int simulate_thread_step_verify()
 {
   if (global != 100)
     {
@@ -26,7 +26,7 @@ int memmodel_step_verify()
     }
 }
 
-int memmodel_final_verify()
+int simulate_thread_final_verify()
 {
   return 0;
 }
@@ -42,8 +42,16 @@ void test (int y)
     }
 }
 
-int main()
+__attribute__((noinline))
+void simulate_thread_main()
 {
   test(0);
-  memmodel_done();
+  simulate_thread_done();
+}
+
+__attribute__((noinline))
+int main()
+{
+  simulate_thread_main();
+  return 0;
 }
