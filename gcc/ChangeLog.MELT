@@ -1,5 +1,12 @@
 
 2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (need_dbg, need_dbglim): No more
+	exported synonym, should use melt_need_dbg...
+
+	* melt/warmelt-debug.melt (debug_fun): No more exported, the debug
+	macro is generating calls to melt_debug_fun.
+
+2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

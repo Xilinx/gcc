@@ -4154,8 +4154,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  the_null_cstring
  )
 
-(export_synonym need_dbg melt_need_dbg)
-(export_synonym need_dbglim melt_need_dbglim)
 
 ;; export the discriminants and instances and selectors defined above
 (export_values				;alphabetical order
