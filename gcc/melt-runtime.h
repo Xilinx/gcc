@@ -328,8 +328,8 @@ void melt_dbgbacktrace (int depth);
 
 /* A pretty printing FILE, possibly in memory, or sort-of!  */
 extern FILE* meltppfile;
-char* meltppbuffer;
-size_t meltppbufsiz;
+extern char* meltppbuffer;
+extern size_t meltppbufsiz;
 
 /* Open a new pretty printing file into meltppfile, return the old one.  */
 FILE* melt_open_ppfile (void);

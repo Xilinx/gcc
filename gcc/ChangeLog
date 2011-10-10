@@ -1,3 +1,340 @@
+2011-10-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-forwprop.c (forward_propagate_into_comparison): Do not make
+	the replacement if the conversion to the LHS type is not useless.
+
+2011-10-09  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50635
+	* tree-vect-patterns.c (vect_handle_widen_mult_by_const): Add
+	DEF_STMT to the list of statements to be replaced by the
+	pattern statements.
+	(vect_handle_widen_mult_by_const): Don't check TYPE_OUT.
+
+2011-10-09  Anatoly Sokolov  <aesok@post.ru>
+
+	* system.h: Commit forgotten hunk in previous patch.
+	(OUTPUT_ADDR_CONST_EXTRA): Poison.
+
+2011-10-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/50428
+	* doc/objc.texi (Garbage Collection): Updated example to protect
+	+initialize against execution in subclasses.
+
+2011-10-07  Richard Henderson  <rth@redhat.com>
+
+	* doc/extend.texi (__builtin_shuffle): Improve the description to
+	include the modulus of the selector.  Mention OpenCL.
+	* doc/md.texi (vec_perm, vec_perm_const): Document named patterns.
+
+	* tree.def (VEC_PERM_EXPR): Rename from VEC_SHUFFLE_EXPR.
+	* genopinit.c (optabs): Rename vshuffle to vec_perm.
+	* c-typeck.c (c_build_vec_perm_expr): Rename from
+	c_build_vec_shuffle_expr.  Update for name changes.
+	* optabs.c (expand_vec_perm_expr_p): Rename from
+	expand_vec_shuffle_expr_p.
+	(expand_vec_perm_expr): Rename from expand_vec_shuffle_expr.
+	* optabs.h (OTI_vec_perm): Rename from DOI_vshuffle.
+	(vec_perm_optab): Rename from vshuffle_optab.
+	* expr.c, gimple-pretty-print.c, gimple.c, gimplify.c,
+	c-tree.h, c-parser.c, tree-cfg.c, tree-inline.c, tree-pretty-print.c,
+	tree-ssa-operands.c, tree-vect-generic.c: Update for name changes.
+
+	* config/i386/i386.c (ix86_expand_vec_perm): Rename from
+	ix86_expand_vshuffle.
+	* config/i386/i386-protos.h: Update.
+	* config/i386/sse.md (VEC_PERM_AVX2): Rename from VSHUFFLE_AVX2.
+	(vec_perm<VEC_PERM_AVX2>): Rename from vshuffle<VSHUFFLE_AVX2>.
+
+2011-10-07  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/predicates.md (avx2_pblendw_operand): New.
+	* config/i386/sse.md (sse4_1_pblendw): Un-macroize.
+	(avx2_pblendw, *avx2_pblendw): New expander and insn.
+
+2011-10-07  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (bdesc_args): Update code for
+	__builtin_ia32_palignr256.  Change type of __builtin_ia32_pslldqi256,
+	and __builtin_ia32_psrldqi256 to V4DI_FTYPE_V4DI_INT_CONVERT.
+	(ix86_expand_args_builtin): Handle V4DI_FTYPE_V4DI_INT_CONVERT.
+	* config/i386/sse.md (mode iterator V16): Add V2TI.
+	(mode iterator SSESCALARMODE): Use V2TI not V4DI.
+	(mode attr ssse3_avx2): Add V2TI.
+	(avx2_lshrqv4di3, avx2_lshlqv4di3): Remove.
+
+2011-10-07  David S. Miller  <davem@davemloft.net>
+
+	PR 50655
+	* configure.ac: Add .register directives to VIS3 test.
+	* configure: Regenerate.
+
+2011-10-07  Richard Henderson  <rth@redhat.com>
+
+	* config.gcc (x86_64-*): Add core-avx-i, core-avx2 for with_cpu.
+
+2011-10-07  Richard Henderson  <rth@redhat.com>
+
+	PR 49752
+	* fold-const.c (fold_checksum_tree): Remove out-of-date assert.
+
+2011-10-07  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/predicates.md (shift_amount_operand): Remove constant
+	range check.
+	(shift_operator): Check range of constants for all shift operators.
+
+2011-10-07  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_emit_tls_call_insn): Remove assertion.
+	Load GOT pointer for non-pic builds.
+	(s390_load_got): Replace pic_offset_table_rtx with hardcoded r12.
+	(s390_emit_call): Likewise.
+
+2011-10-07  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/50527
+	* tree.c (build_common_builtin_nodes): Add local_define_builtin for
+	* builtins.c (expand_builtin_alloca): Handle BUILT_IN_ALLOCA_WITH_ALIGN
+	* tree-ssa-ccp.c (evaluate_stmt): Set align for
+	* builtins.def (BUILT_IN_ALLOCA_WITH_ALIGN): Declare using
+	* ipa-pure-const.c (special_builtin_state): Handle
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1)
+	* function.c (gimplify_parameters): Lower vla to
+	* gimplify.c (gimplify_vla_decl): Same.
+	* cfgexpand.c (expand_call_stmt): Handle BUILT_IN_ALLOCA_WITH_ALIGN.
+	* tree-mudflap.c (mf_xform_statements): Same.
+	* tree-ssa-dce.c (mark_stmt_if_obviously_necessary)
+	* varasm.c (incorporeal_function_p): Same.
+	* tree-object-size.c (alloc_object_size): Same.
+	* gimple.c (gimple_build_call_from_tree): Same.
+
+2011-10-07  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* function.c (frame_required_for_rtx): Remove function.
+	(requires_stack_frame_p): New arg set_up_by_prologue.  All callers
+	changed.  Compute a set of mentioned registers and compare against
+	the new arg rather than calling frame_required_for_rtx.
+	(thread_prologue_and_epilogue_insns): Compute the set_up_by_prologue
+	reg set.  Convert the unconverted_simple_returns mechanism to store
+	jump insns rather than their basic blocks.  Also check the
+	orig_entry_edge destination for new blocks.
+
+2011-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50650
+	* tree-vect-patterns.c (vect_recog_mixed_size_cond_pattern): Don't
+	call vect_is_simple_cond here, instead fail if cond_expr isn't
+	COMPARISON_CLASS_P or if get_vectype_for_scalar_type returns NULL
+	for cond_expr's first operand.
+	* tree-vect-stmts.c (vect_is_simple_cond): Static again.
+	* tree-vectorizer.h (vect_is_simple_cond): Remove prototype.
+
+2011-10-07  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md (DWH, dwh): New mode macros.
+	("umulsidi3"): Extend to support "umulditi3" as well.
+
+2011-10-07  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/50603
+	* config/i386/i386.c (ix86_fixup_binary_operands): Force src2 of
+	integer PLUS RTX to a register to improve address combine.
+
+2011-10-06  Richard Henderson  <rth@redhat.com>
+
+	* combine-stack-adjust.c (maybe_move_args_size_note): Add after
+	parameter; use it to decide whether to merge two notes.
+	(combine_stack_adjustments_for_block): Use maybe_move_args_size_note
+	for the deallocation case as well.
+
+2011-10-06  Anatoly Sokolov  <aesok@post.ru>
+
+	* system.h (OUTPUT_ADDR_CONST_EXTRA): Poison.
+	* doc/tm.texi.in (OUTPUT_ADDR_CONST_EXTRA): Remove documentation.
+	* doc/tm.texi: Regenerate.
+	* target.def (output_addr_const_extra): Use
+	hook_bool_FILEptr_rtx_false.
+	* targhooks.c (default_asm_output_addr_const_extra): Remove.
+	* targhooks.h (default_asm_output_addr_const_extra): Remove.
+	* hooks.c (hook_bool_FILEptr_rtx_false): New functions.
+	* hooks.h (hook_bool_FILEptr_rtx_false): Declare.
+
+2011-10-06  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (popcount<mode>2, clz<mode>2): Split up into...
+	(popcountdi2, popcountsi2, clzdi2, clzsi2): Explicit expanders, in the
+	SI mode 64-bit code gen case explicitly zero-extend and truncate.
+	(*popcount<mode>_sp64): Split up into...
+	(*popcountdi_sp64, *popcountsi_64): Explicit instantiations, and in the
+	SImode case use truncate.
+	(*clzsi_sp64): Rewrite to use truncate, and let the expander emit the
+	subtract so the compiler can optimize it.
+	(SIDI): Remove unused mode iterator.
+
+2011-10-06  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* function.c (thread_prologue_and_epilogue_insns): Emit split prologue
+	on the orig_entry_edge. Don't account for it in prologue_clobbered.
+
+2011-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50596
+	* tree-vectorizer.h (vect_is_simple_cond): New prototype.
+	(NUM_PATTERNS): Change to 6.
+	* tree-vect-patterns.c (vect_recog_mixed_size_cond_pattern): New
+	function.
+	(vect_vect_recog_func_ptrs): Add vect_recog_mixed_size_cond_pattern.
+	(vect_mark_pattern_stmts): Don't create stmt_vinfo for def_stmt
+	if it already has one, and don't set STMT_VINFO_VECTYPE in it
+	if it is already set.
+	* tree-vect-stmts.c (vect_mark_stmts_to_be_vectorized): Handle
+	COND_EXPR in pattern stmts.
+	(vect_is_simple_cond): No longer static.
+
+2001-10-06  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.c (ix86_expand_vshuffle): Add AVX2 support.
+	* config/i386/sse.md (sseshuffint): Remove.
+	(sseintvecmode): Support V16HI, V8HI, V32QI, V16QI.
+	(VSHUFFLE_AVX2): New mode iterator.
+	(vshuffle<mode>): Use it.
+	(avx_vec_concat<V_256>): Rename from *vec_concat<V_256>_avx.
+
+	* config/i386/i386.c (ix86_expand_sse_movcc): Use correct mode
+	for vector_all_ones_operand.
+	(ix86_expand_int_vcond): Distinguish between comparison mode
+	and data mode.  Allow them to differ.
+	(ix86_expand_vshuffle): Don't force data mode to match maskmode.
+
+2001-10-06  Richard Henderson  <rth@redhat.com>
+
+	* optabs.c (expand_vec_shuffle_expr): Use the proper mode for the
+	mask operand.  Tidy the code.
+
+2011-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vect-patterns.c (vect_pattern_recog_1): Use
+	vect_recog_func_ptr typedef for the first argument.
+	(vect_pattern_recog): Rename vect_recog_func_ptr variable
+	to vect_recog_func, use vect_recog_func_ptr typedef for it.
+
+	PR tree-optimization/49279
+	* tree-ssa-structalias.c (find_func_aliases): Don't handle
+	CAST_RESTRICT.
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Allow
+	restrict propagation.
+	* tree-ssa.c (useless_type_conversion_p): Don't return false
+	if TYPE_RESTRICT differs.
+
+2011-10-06  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* function.c (thread_prologue_and_epilogue_insns): Build a vector
+	of unconverted simple return blocks rather than trying to
+	recompute them later based on bb_flags bitmap tests.
+
+2011-10-06  Michael Matz  <matz@suse.de>
+
+	* tree-flow.h (get_var_ann): Don't declare.
+	* tree-flow-inline.h (get_var_ann): Remove.
+	(set_is_used): Use var_ann, not get_var_ann.
+	* tree-dfa.c (add_referenced_var): Inline body of get_var_ann.
+	* tree-profile.c (gimple_gen_edge_profiler): Call
+	find_referenced_var_in.
+	(gimple_gen_interval_profiler): Ditto.
+	(gimple_gen_pow2_profiler): Ditto.
+	(gimple_gen_one_value_profiler): Ditto.
+	(gimple_gen_average_profiler): Ditto.
+	(gimple_gen_ior_profiler): Ditto.
+	(gimple_gen_ic_profiler): Ditto plus call add_referenced_var.
+	(gimple_gen_ic_func_profiler): Call add_referenced_var.
+	* tree-mudflap.c (execute_mudflap_function_ops): Call
+	add_referenced_var.
+
+2011-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vect-patterns.c (vect_handle_widen_mult_by_const): For lhs
+	don't set SSA_NAME_DEF_STMT that has been already set by
+	gimple_build_assign_with_ops.
+	(vect_recog_pow_pattern, vect_recog_widen_sum_pattern,
+	vect_operation_fits_smaller_type, vect_recog_over_widening_pattern):
+	Likewise.
+
+	* tree.h (avoid_folding_inline_builtin): New prototype.
+	* builtins.c (avoid_folding_inline_builtin): No longer static.
+	* gimple-fold.c (gimple_fold_builtin): Give up if
+	avoid_folding_inline_builtin returns true.
+
+2011-10-06  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-generic.c (vector_element): Look at previous
+	generated results.
+
+2011-10-06  David Edelsohn  <dje.gcc@gmail.com>
+
+	PR target/39950
+	* config/rs6000/aix.h (TARGET_OS_AIX_CPP_BUILTINS): Define
+	__powerpc__, __PPC__, __unix__.
+
+2011-10-06  Michael Matz  <matz@suse.de>
+
+	* i386/i386.opt (recip_mask, recip_mask_explicit,
+	x_recip_mask_explicit): New variables and cl_target member.
+	(mrecip=): New option.
+	* i386/i386.h (RECIP_MASK_DIV, RECIP_MASK_SQRT, RECIP_MASK_VEC_DIV,
+	RECIP_MASK_VEC_SQRT, RECIP_MASK_ALL, RECIP_MASK_NONE): New bitmasks.
+	(TARGET_RECIP_DIV, TARGET_RECIP_SQRT, TARGET_RECIP_VEC_DIV,
+	TARGET_RECIP_VEC_SQRT): New tests.
+	* i386/i386.md (divsf3): Check TARGET_RECIP_DIV.
+	(sqrt<mode>2): Check TARGET_RECIP_SQRT.
+	* i386/sse.md (div<mode>3): Check TARGET_RECIP_VEC_DIV.
+	(sqrt<mode>2): Check TARGET_RECIP_VEC_SQRT.
+	* i386/i386.c (ix86_option_override_internal): Set recip_mask
+	for -mrecip and -mrecip=options.
+	(ix86_function_specific_save): Save recip_mask_explicit.
+	(ix86_function_specific_restore): Restore recip_mask_explicit.
+
+	* doc/invoke.texi (ix86 Options): Document the new option.
+
+2011-10-06  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/49049
+	* config/arm/arm.md (arm_subsi3_insn): Lose the last alternative.
+
+2011-10-06  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR target/50305
+	* config/arm/arm.c (arm_legitimize_reload_address): Recognize
+	output of a previous pass through legitimize_reload_address.
+	Do not attempt to optimize addresses if the base register is
+	equivalent to a constant.
+
+2011-10-06  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* function.c (thread_prologue_and_epilogue_insns): Mark
+	last_bb_active as possibly unused.  It is unused for targets which
+	do neither have "return" nor "simple_return" expanders.
+
+2011-10-06  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (fold_ternary_loc): Also fold non-constant
+	vector CONSTRUCTORs.  Make more efficient.
+	* tree-ssa-dom.c (cprop_operand): Don't handle virtual operands.
+	(cprop_into_stmt): Don't propagate into virtual operands.
+	(optimize_stmt): Really dump original statement.
+
+2011-10-06  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md (smin3): Revert previous delta.
+
+2011-10-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38884
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Handle partial
+	reads from aggregate SSA names.
+
 2011-10-05  Jakub Jelinek  <jakub@redhat.com>
 
 	* tree-vect-patterns.c (vect_pattern_recog_1): Add stmts_to_replace

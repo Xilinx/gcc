@@ -465,16 +465,15 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
   tree tmp;
   bool cfg_changed = false;
+  tree type = TREE_TYPE (gimple_assign_lhs (stmt));
   tree rhs1 = gimple_assign_rhs1 (stmt);
   tree rhs2 = gimple_assign_rhs2 (stmt);
 
   /* Combine the comparison with defining statements.  */
   tmp = forward_propagate_into_comparison_1 (stmt,
 					     gimple_assign_rhs_code (stmt),
-					     TREE_TYPE
-					       (gimple_assign_lhs (stmt)),
-					     rhs1, rhs2);
-  if (tmp)
+					     type, rhs1, rhs2);
+  if (tmp && useless_type_conversion_p (type, TREE_TYPE (tmp)))
     {
       gimple_assign_set_rhs_from_tree (gsi, tmp);
       fold_stmt (gsi);
@@ -804,11 +803,6 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
       && ((rhs_code == SSA_NAME && rhs == name)
 	  || CONVERT_EXPR_CODE_P (rhs_code)))
     {
-      /* Don't propagate restrict pointer's RHS.  */
-      if (TYPE_RESTRICT (TREE_TYPE (lhs))
-	  && !TYPE_RESTRICT (TREE_TYPE (name))
-	  && !is_gimple_min_invariant (def_rhs))
-	return false;
       /* Only recurse if we don't deal with a single use or we cannot
 	 do the propagation to the current statement.  In particular
 	 we can end up with a conversion needed for a non-invariant

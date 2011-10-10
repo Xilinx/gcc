@@ -3635,8 +3635,10 @@ gimplify_parameters (void)
 		  DECL_IGNORED_P (addr) = 0;
 		  local = build_fold_indirect_ref (addr);
 
-		  t = built_in_decls[BUILT_IN_ALLOCA];
-		  t = build_call_expr (t, 1, DECL_SIZE_UNIT (parm));
+		  t = built_in_decls[BUILT_IN_ALLOCA_WITH_ALIGN];
+		  t = build_call_expr (t, 1, DECL_SIZE_UNIT (parm),
+				       size_int (DECL_ALIGN (parm)));
+
 		  /* The call has been built for a variable-sized object.  */
 		  CALL_ALLOCA_FOR_VAR_P (t) = 1;
 		  t = fold_convert (ptr_type, t);
@@ -5303,25 +5305,15 @@ record_hard_reg_uses (rtx *px, void *data)
   for_each_rtx (px, record_hard_reg_uses_1, data);
 }
 
-/* A subroutine of requires_stack_frame_p, called via for_each_rtx.
-   Return 1 if we found an rtx that forces a prologue, zero otherwise.  */
-static int
-frame_required_for_rtx (rtx *loc, void *data ATTRIBUTE_UNUSED)
-{
-  rtx x = *loc;
-  if (x == stack_pointer_rtx || x == hard_frame_pointer_rtx
-      || x == arg_pointer_rtx || x == pic_offset_table_rtx)
-    return 1;
-  return 0;
-}
-
 /* Return true if INSN requires the stack frame to be set up.
    PROLOGUE_USED contains the hard registers used in the function
-   prologue.  */
+   prologue.  SET_UP_BY_PROLOGUE is the set of registers we expect the
+   prologue to set up for the function.  */
 static bool
-requires_stack_frame_p (rtx insn, HARD_REG_SET prologue_used)
+requires_stack_frame_p (rtx insn, HARD_REG_SET prologue_used,
+			HARD_REG_SET set_up_by_prologue)
 {
-  df_ref *def_rec;
+  df_ref *df_rec;
   HARD_REG_SET hardregs;
   unsigned regno;
 
@@ -5329,13 +5321,11 @@ requires_stack_frame_p (rtx insn, HARD_REG_SET prologue_used)
     return false;
   if (CALL_P (insn))
     return !SIBLING_CALL_P (insn);
-  if (for_each_rtx (&PATTERN (insn), frame_required_for_rtx, NULL))
-    return true;
 
   CLEAR_HARD_REG_SET (hardregs);
-  for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+  for (df_rec = DF_INSN_DEFS (insn); *df_rec; df_rec++)
     {
-      rtx dreg = DF_REF_REG (*def_rec);
+      rtx dreg = DF_REF_REG (*df_rec);
 
       if (!REG_P (dreg))
 	continue;
@@ -5350,6 +5340,20 @@ requires_stack_frame_p (rtx insn, HARD_REG_SET prologue_used)
     if (TEST_HARD_REG_BIT (hardregs, regno)
 	&& df_regs_ever_live_p (regno))
       return true;
+
+  for (df_rec = DF_INSN_USES (insn); *df_rec; df_rec++)
+    {
+      rtx reg = DF_REF_REG (*df_rec);
+
+      if (!REG_P (reg))
+	continue;
+
+      add_to_hard_reg_set (&hardregs, GET_MODE (reg),
+			   REGNO (reg));
+    }
+  if (hard_reg_set_intersect_p (hardregs, set_up_by_prologue))
+    return true;
+
   return false;
 }
 #endif
@@ -5453,9 +5457,9 @@ thread_prologue_and_epilogue_insns (void)
 {
   bool inserted;
   basic_block last_bb;
-  bool last_bb_active;
+  bool last_bb_active ATTRIBUTE_UNUSED;
 #ifdef HAVE_simple_return
-  bool unconverted_simple_returns = false;
+  VEC (rtx, heap) *unconverted_simple_returns = NULL;
   basic_block simple_return_block_hot = NULL;
   basic_block simple_return_block_cold = NULL;
   bool nonempty_prologue;
@@ -5575,6 +5579,7 @@ thread_prologue_and_epilogue_insns (void)
       && nonempty_prologue && !crtl->calls_eh_return)
     {
       HARD_REG_SET prologue_clobbered, prologue_used, live_on_edge;
+      HARD_REG_SET set_up_by_prologue;
       rtx p_insn;
 
       VEC(basic_block, heap) *vec;
@@ -5602,10 +5607,6 @@ thread_prologue_and_epilogue_insns (void)
 	  note_stores (PATTERN (p_insn), record_hard_reg_sets,
 		       &prologue_clobbered);
 	}
-      for (p_insn = split_prologue_seq; p_insn; p_insn = NEXT_INSN (p_insn))
-	if (NONDEBUG_INSN_P (p_insn))
-	  note_stores (PATTERN (p_insn), record_hard_reg_sets,
-		       &prologue_clobbered);
 
       bitmap_initialize (&bb_antic_flags, &bitmap_default_obstack);
       bitmap_initialize (&bb_on_list, &bitmap_default_obstack);
@@ -5613,6 +5614,16 @@ thread_prologue_and_epilogue_insns (void)
       /* Find the set of basic blocks that require a stack frame.  */
 
       vec = VEC_alloc (basic_block, heap, n_basic_blocks);
+
+      CLEAR_HARD_REG_SET (set_up_by_prologue);
+      add_to_hard_reg_set (&set_up_by_prologue, Pmode, STACK_POINTER_REGNUM);
+      add_to_hard_reg_set (&set_up_by_prologue, Pmode, ARG_POINTER_REGNUM);
+      if (frame_pointer_needed)
+	add_to_hard_reg_set (&set_up_by_prologue, Pmode,
+			     HARD_FRAME_POINTER_REGNUM);
+      if (pic_offset_table_rtx)
+	add_to_hard_reg_set (&set_up_by_prologue, Pmode,
+			     PIC_OFFSET_TABLE_REGNUM);
 
       FOR_EACH_BB (bb)
 	{
@@ -5632,7 +5643,8 @@ thread_prologue_and_epilogue_insns (void)
 	    }
 	  else
 	    FOR_BB_INSNS (bb, insn)
-	      if (requires_stack_frame_p (insn, prologue_used))
+	      if (requires_stack_frame_p (insn, prologue_used,
+					  set_up_by_prologue))
 		{
 		  bitmap_set_bit (&bb_flags, bb->index);
 		  VEC_quick_push (basic_block, vec, bb);
@@ -5758,7 +5770,7 @@ thread_prologue_and_epilogue_insns (void)
 
   if (split_prologue_seq != NULL_RTX)
     {
-      insert_insn_on_edge (split_prologue_seq, entry_edge);
+      insert_insn_on_edge (split_prologue_seq, orig_entry_edge);
       inserted = true;
     }
   if (prologue_seq != NULL_RTX)
@@ -5876,7 +5888,8 @@ thread_prologue_and_epilogue_insns (void)
 		{
 #ifdef HAVE_simple_return
 		  if (simple_p)
-		    unconverted_simple_returns = true;
+		    VEC_safe_push (rtx, heap,
+				   unconverted_simple_returns, jump);
 #endif
 		  continue;
 		}
@@ -5894,7 +5907,8 @@ thread_prologue_and_epilogue_insns (void)
 	    {
 #ifdef HAVE_simple_return
 	      if (simple_p)
-		unconverted_simple_returns = true;
+		VEC_safe_push (rtx, heap,
+			       unconverted_simple_returns, jump);
 #endif
 	      continue;
 	    }
@@ -6024,6 +6038,7 @@ epilogue_done:
       blocks = sbitmap_alloc (last_basic_block);
       sbitmap_zero (blocks);
       SET_BIT (blocks, entry_edge->dest->index);
+      SET_BIT (blocks, orig_entry_edge->dest->index);
       find_many_sub_basic_blocks (blocks);
       sbitmap_free (blocks);
 
@@ -6042,10 +6057,11 @@ epilogue_done:
      convert to conditional simple_returns, but couldn't for some
      reason, create a block to hold a simple_return insn and redirect
      those remaining edges.  */
-  if (unconverted_simple_returns)
+  if (!VEC_empty (rtx, unconverted_simple_returns))
     {
-      edge_iterator ei2;
       basic_block exit_pred = EXIT_BLOCK_PTR->prev_bb;
+      rtx jump;
+      int i;
 
       gcc_assert (entry_edge != orig_entry_edge);
 
@@ -6062,19 +6078,13 @@ epilogue_done:
 	    simple_return_block_cold = e->dest;
 	}
 
-    restart_scan:
-      for (ei2 = ei_start (last_bb->preds); (e = ei_safe_edge (ei2)); )
+      FOR_EACH_VEC_ELT (rtx, unconverted_simple_returns, i, jump)
 	{
-	  basic_block bb = e->src;
+	  basic_block src_bb = BLOCK_FOR_INSN (jump);
+	  edge e = find_edge (src_bb, last_bb);
 	  basic_block *pdest_bb;
 
-	  if (bb == ENTRY_BLOCK_PTR
-	      || bitmap_bit_p (&bb_flags, bb->index))
-	    {
-	      ei_next (&ei2);
-	      continue;
-	    }
-	  if (BB_PARTITION (e->src) == BB_HOT_PARTITION)
+	  if (BB_PARTITION (src_bb) == BB_HOT_PARTITION)
 	    pdest_bb = &simple_return_block_hot;
 	  else
 	    pdest_bb = &simple_return_block_cold;
@@ -6094,8 +6104,8 @@ epilogue_done:
 	      make_edge (bb, EXIT_BLOCK_PTR, 0);
 	    }
 	  redirect_edge_and_branch_force (e, *pdest_bb);
-	  goto restart_scan;
 	}
+      VEC_free (rtx, heap, unconverted_simple_returns);
     }
 #endif
 
