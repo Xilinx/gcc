@@ -33,12 +33,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "cppbuiltin.h"
 #include "streamer-hooks.h"
 
-/* List of PPH images read during parsing.  Images opened during #include
+/* List of PPH images opened for reading.  Images opened during #include
    processing and opened from pph_in_includes cannot be closed
    immediately after reading, because the pickle cache contained in
    them may be referenced from other images.  We delay closing all of
-   them until the end of parsing (when pph_reader_finish is called).  */
-VEC(pph_stream_ptr, heap) *pph_read_images;
+   them until the end of parsing (when pph_streamer_finish is called).  */
+static VEC(pph_stream_ptr, heap) *pph_read_images = NULL;
 
 /* A cache of pre-loaded common tree nodes.  */
 static pph_cache *pph_preloaded_cache;
@@ -118,12 +118,68 @@ pph_cache_init (pph_cache *cache)
 /* Initialize the pre-loaded cache.  This contains all the common
    tree nodes built by the compiler on startup.  */
 
-void
+static void
 pph_init_preloaded_cache (void)
 {
   pph_preloaded_cache = XCNEW (pph_cache);
   pph_cache_init (pph_preloaded_cache);
   pph_cache_preload (pph_preloaded_cache);
+}
+
+
+/* Initialize the streamer.  */
+
+void
+pph_streamer_init (void)
+{
+  pph_hooks_init ();
+  pph_init_preloaded_cache ();
+}
+
+
+/* Finalize the streamer.  */
+
+void
+pph_streamer_finish (void)
+{
+  unsigned i;
+  pph_stream *image;
+
+  /* Finalize the writer.  */
+  pph_writer_finish ();
+
+  /* Close any images read during parsing.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
+    pph_stream_close (image);
+
+  VEC_free (pph_stream_ptr, heap, pph_read_images);
+}
+
+
+/* If FILENAME has already been read, return the stream associated with it.  */
+
+static pph_stream *
+pph_find_stream_for (const char *filename)
+{
+  pph_stream *include;
+  unsigned i;
+
+  /* FIXME pph, implement a hash map to avoid this linear search.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
+    if (strcmp (include->name, filename) == 0)
+      return include;
+
+  return NULL;
+}
+
+
+/* Add STREAM to the list of read images.  */
+
+void
+pph_mark_stream_read (pph_stream *stream)
+{
+  stream->in_memory_p = true;
+  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
 }
 
 
@@ -136,12 +192,19 @@ pph_stream_open (const char *name, const char *mode)
   pph_stream *stream;
   FILE *f;
 
-  stream = NULL;
+  /* If we have already opened a PPH stream named NAME, just return
+     its associated stream.  */
+  stream = pph_find_stream_for (name);
+  if (stream)
+    {
+      gcc_assert (stream->in_memory_p);
+      return stream;
+    }
+
   f = fopen (name, mode);
   if (!f)
     return NULL;
 
-  pph_hooks_init ();
   stream = XCNEW (pph_stream);
   stream->file = f;
   stream->name = xstrdup (name);
@@ -183,13 +246,13 @@ pph_stream_close (pph_stream *stream)
   VEC_free (pph_cache_entry, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
   VEC_free (pph_symtab_entry, heap, stream->symtab.v);
+  VEC_free (pph_stream_ptr, heap, stream->includes);
 
   if (stream->write_p)
     {
       destroy_output_block (stream->encoder.w.ob);
       free (stream->encoder.w.decl_state_stream);
       lto_delete_out_decl_state (stream->encoder.w.out_state);
-      VEC_free (pph_stream_ptr, heap, stream->encoder.w.includes);
     }
   else
     {
@@ -204,6 +267,21 @@ pph_stream_close (pph_stream *stream)
     }
 
   free (stream);
+}
+
+
+/* Add INCLUDE, and the images included by it, to the list of files
+   included by STREAM.  */
+
+void
+pph_add_include (pph_stream *stream, pph_stream *include)
+{
+  pph_stream *include_child;
+  unsigned i;
+
+  VEC_safe_push (pph_stream_ptr, heap, stream->includes, include);
+  FOR_EACH_VEC_ELT (pph_stream_ptr, include->includes, i, include_child)
+    VEC_safe_push (pph_stream_ptr, heap, stream->includes, include_child);
 }
 
 
@@ -506,8 +584,8 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
 }
 
 
-/* Return true if DATA is in the pickle cache of one of the included
-   images.  TAG is the expected data type TAG for data.
+/* Return true if DATA is in the pickle cache of one of STREAM's
+   included images.  TAG is the expected data type TAG for data.
 
    If DATA is found:
       - the index for INCLUDE_P into IMAGE->INCLUDES is returned in
@@ -522,8 +600,9 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
       - the function returns false.  */
 
 bool
-pph_cache_lookup_in_includes (void *data, unsigned *include_ix_p,
-                              unsigned *ix_p, enum pph_tag tag)
+pph_cache_lookup_in_includes (pph_stream *stream, void *data,
+			      unsigned *include_ix_p, unsigned *ix_p,
+			      enum pph_tag tag)
 {
   unsigned include_ix, ix;
   pph_stream *include;
@@ -536,7 +615,7 @@ pph_cache_lookup_in_includes (void *data, unsigned *include_ix_p,
      in the cache, so instead of ICEing, we ignore the match so the
      caller is forced to pickle DATA.  */
   found_it = false;
-  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, include_ix, include)
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, include_ix, include)
     if (pph_cache_lookup (&include->cache, data, &ix, PPH_null))
       {
         pph_cache_entry *e = pph_cache_get_entry (&include->cache, ix);

@@ -1,3 +1,48 @@
+2011-10-11   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_reading_includes): Remove.  Update all users.
+	(pph_in_include): Call pph_add_include with the newly
+	materialized stream.
+	(pph_in_line_table_and_includes): Document differences between
+	non-PPH compiles and PPH compiles wrt line table behaviour.
+	Modify assertions accordingly.
+	(pph_read_tree_header): Tidy.
+	(report_validation_error): Change error() call to warning().
+	(pph_image_already_read): Remove.  Update all users.
+	(pph_read_file_1): If STREAM->IN_MEMORY_P is set, return.
+	Call pph_mark_strea_read.
+	(pph_add_read_image): Remove.
+	(pph_read_file): Change return type to pph_stream *.  Update all
+	users.
+	(pph_reader_finish): Remove.
+	* pph-streamer-out.c (pph_writer_init): Tidy.
+	(pph_add_include): Remove.
+	(pph_get_marker_for): Always consult the pre-loaded cache first.
+	(pph_writer_add_include): New.
+	* pph-streamer.c (pph_read_images): Make static.
+	(pph_init_preloaded_cache): Make static.
+	(pph_streamer_init): New.
+	(pph_streamer_finish): New.
+	(pph_find_stream_for): New.
+	(pph_mark_stream_read): New.
+	(pph_stream_open): Call pph_find_stream_for.  If the stream
+	already exists, return it.
+	(pph_add_include): Move from pph-streamer-in.c.  Add new
+	argument STREAM.
+	(pph_cache_lookup_in_includes): Add new argument STREAM.
+	Update all users.
+	* pph-streamer.h (pph_read_images): Remove extern declaration.
+	Move field INCLUDES out of union W.  Update all users.
+	Add field IN_MEMORY_P.
+	(pph_streamer_init): Declare.
+	(pph_streamer_finish): Declare.
+	(pph_mark_stream_read): Declare.
+	(pph_add_include): Declare.
+	(pph_writer_add_include): Declare.
+	* pph.c (pph_include_handler): Call pph_writer_add_include.
+	(pph_init): Call pph_streamer_init.
+	(pph_finish): Call pph_streamer_finish.
+
 2011-10-10   Lawrence Crowl  <crowl@google.com>
 
 	* pph.h (pph_dump_location): New.

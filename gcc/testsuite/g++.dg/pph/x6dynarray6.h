@@ -1,6 +1,3 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "wchar.h:1:0: error: PPH file stdio.pph fails macro validation, _WCHAR_H" "" { xfail *-*-* } 0 }
-
 #ifndef X6DYNARRAY6_H
 #define X6DYNARRAY6_H
 

@@ -47,12 +47,6 @@ DEF_VEC_ALLOC_P(char_p,heap);
   memory will remain allocated until the end of compilation.  */
 static VEC(char_p,heap) *string_tables = NULL;
 
-/* Increment when we are in the process of reading includes as we do not want
-   to add those to the parent pph stream's list of includes to be written out.
-   Decrement when done. We cannot use a simple true/false flag as read includes
-   will call pph_in_includes as well.  */
-static int pph_reading_includes = 0;
-
 /* Wrapper for memory allocation calls that should have their results
    registered in the PPH streamer cache.  DATA is the pointer returned
    by the memory allocation call in ALLOC_EXPR.  IX is the cache slot 
@@ -289,6 +283,7 @@ pph_in_include (pph_stream *stream)
 {
   int old_loc_offset;
   const char *include_name;
+  pph_stream *include_stream;
   source_location prev_start_loc = pph_in_source_location (stream);
 
   /* Simulate highest_location to be as it would be at this point in a non-pph
@@ -301,7 +296,11 @@ pph_in_include (pph_stream *stream)
   old_loc_offset = pph_loc_offset;
 
   include_name = pph_in_string (stream);
-  pph_read_file (include_name);
+  include_stream = pph_read_file (include_name);
+
+  /* Add INCLUDE_STREAM, and the images included by it, to the list
+     of included images for STREAM.  */
+  pph_add_include (stream, include_stream);
 
   pph_loc_offset = old_loc_offset;
 }
@@ -327,8 +326,6 @@ pph_in_line_table_and_includes (pph_stream *stream)
   unsigned int used_before = line_table->used;
   int entries_offset = line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
   enum pph_linetable_marker next_lt_marker = pph_in_linetable_marker (stream);
-
-  pph_reading_includes++;
 
   for (first = true; next_lt_marker != PPH_LINETABLE_END;
        next_lt_marker = pph_in_linetable_marker (stream))
@@ -373,19 +370,33 @@ pph_in_line_table_and_includes (pph_stream *stream)
 	  else
 	    lm->included_from += entries_offset;
 
-	  gcc_assert (lm->included_from < (int) line_table->used);
-
 	  lm->start_location += pph_loc_offset;
 
 	  line_table->used++;
 	}
     }
 
-  pph_reading_includes--;
+  /* We used to expect exactly the same number of entries, but files
+     included from this PPH file may sometimes not be needed.  For
+     example,
 
+	#include "2.pph"
+	#include "foo.pph"
+	  +-->	#include "1.pph"
+		#include "2.pph"
+		#include "3.pph"
+
+     When foo.pph was originally created, the line table was built
+     with inclusions of 1.pph, 2.pph and 3.pph.  But when compiling
+     the main translation unit, we include 2.pph before foo.pph, so
+     the inclusion of 2.pph from foo.pph does nothing.  Leaving the
+     line table in a different shape than the original compilation.
+
+     Instead of insisting on getting EXPECTED_IN entries, we expect at
+     most EXPECTED_IN entries.  */
   {
     unsigned int expected_in = pph_in_uint (stream);
-    gcc_assert (line_table->used - used_before == expected_in);
+    gcc_assert (line_table->used - used_before <= expected_in);
   }
 
   line_table->highest_location = pph_loc_offset + pph_in_uint (stream);
@@ -1638,7 +1649,7 @@ pph_in_tcc_type (pph_stream *stream, tree type)
      order than the original compile, the pointer values will be
      different.  This will cause name lookups to fail, unless we
      resort the vector.  */
-  if (TYPE_LANG_SPECIFIC (type) && CLASSTYPE_METHOD_VEC (type))
+  if (CLASS_TYPE_P (type) && CLASSTYPE_METHOD_VEC (type))
     finish_struct_methods (type);
 }
 
@@ -1917,25 +1928,23 @@ pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
 static tree
 pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
 {
-  /* Find data.  */
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
-
-      struct bitpack_d bp;
+  struct bitpack_d bp;
+  tree expr;
 
   /* Allocate the tree.  */
-  tree expr = streamer_alloc_tree (ib, data_in, tag);
+  expr = streamer_alloc_tree (ib, data_in, tag);
 
   /* Read the language-independent bitfields for EXPR.  */
   bp = streamer_read_tree_bitfields (ib, expr);
 
-      /* Unpack all language-dependent bitfields.  */
+  /* Unpack all language-dependent bitfields.  */
   pph_unpack_value_fields (&bp, expr);
-
-
 
   return expr;
 }
+
 
 /* Read a tree from the STREAM.  It ENCLOSING_NAMESPACE is not null,
    the tree may be unified with an existing tree in that namespace.  */
@@ -2214,8 +2223,8 @@ report_validation_error (const char *filename,
   char* quote_found = wrap_macro_def (found);
   char* quote_before = wrap_macro_def (before);
   char* quote_after = wrap_macro_def (after);
-  error ("PPH file %s fails macro validation, "
-         "%s is %s and should be %s or %s\n",
+  warning (0, "PPH file %s fails macro validation, "
+           "%s is %s and should be %s or %s\n",
          filename, ident, quote_found, quote_before, quote_after);
   free (quote_found);
   free (quote_before);
@@ -2355,23 +2364,6 @@ pph_in_scope_chain (pph_stream *stream)
 }
 
 
-/* If FILENAME has already been read, return the stream associated with it.  */
-
-static pph_stream *
-pph_image_already_read (const char *filename)
-{
-  pph_stream *include;
-  unsigned i;
-
-  /* FIXME pph, implement a hash map to avoid this linear search.  */
-  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
-    if (strcmp (include->name, filename) == 0)
-      return include;
-
-  return NULL;
-}
-
-
 /* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
 
 static void
@@ -2386,6 +2378,11 @@ pph_read_file_1 (pph_stream *stream)
   VEC(tree,gc) *file_unemitted_tinfo_decls;
   source_location cpp_token_replay_loc;
 
+  /* If we have read STREAM before, we do not need to re-read the rest
+     of its body.  We only needed to read its line table.  */
+  if (stream->in_memory_p)
+    return;
+
   if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
 
@@ -2393,11 +2390,6 @@ pph_read_file_1 (pph_stream *stream)
      At the same time, read in includes in the order they were originally
      read.  */
   cpp_token_replay_loc = pph_in_line_table_and_includes (stream);
-
-  /* If we have read STREAM before, we do not need to re-read the rest
-     of its body.  We only needed to read its line table.  */
-  if (pph_image_already_read (stream->name))
-    return;
 
   /* Read all the identifiers and pre-processor symbols in the global
      namespace.  */
@@ -2440,54 +2432,22 @@ pph_read_file_1 (pph_stream *stream)
   /* Read and process the symbol table.  */
   pph_in_symtab (stream);
 
-  /* If we are generating an image, the PPH contents we just read from
-     STREAM will need to be read again the next time we want to read
-     the image we are now generating.  */
-  if (pph_writer_enabled_p () && !pph_reading_includes)
-    pph_add_include (stream);
-}
-
-
-/* Add STREAM to the list of read images.  */
-
-static void
-pph_add_read_image (pph_stream *stream)
-{
-  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
+  /* Mark this file as read.  If other images need to access its contents,
+     we will not need to actually read it again.  */
+  pph_mark_stream_read (stream);
 }
 
 
 /* Read PPH file FILENAME.  Return the in-memory pph_stream instance.  */
 
-void
+pph_stream *
 pph_read_file (const char *filename)
 {
-  pph_stream *stream;
+  pph_stream *stream = pph_stream_open (filename, "rb");
+  if (stream == NULL)
+    fatal_error ("cannot open PPH file %s for reading: %m", filename);
 
-  stream = pph_stream_open (filename, "rb");
-  if (stream)
-    pph_read_file_1 (stream);
-  else
-    error ("Cannot open PPH file for reading: %s: %m", filename);
+  pph_read_file_1 (stream);
 
-  pph_add_read_image (stream);
-}
-
-
-/******************************************************* stream finalization */
-
-
-/* Finalize the PPH reader.  */
-
-void
-pph_reader_finish (void)
-{
-  unsigned i;
-  pph_stream *image;
-
-  /* Close any images read during parsing.  */
-  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
-    pph_stream_close (image);
-
-  VEC_free (pph_stream_ptr, heap, pph_read_images);
+  return stream;
 }

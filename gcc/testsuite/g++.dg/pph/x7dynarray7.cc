@@ -1,6 +1,5 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "wchar.h:1:0: error: PPH file stdio.pph fails macro validation, _WCHAR_H" "" { xfail *-*-* } 0 }
-
+// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-excess-errors "Embedded text merging problems" }
 #include <algorithm>
 #include <iostream>
 

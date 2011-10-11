@@ -151,13 +151,6 @@ typedef struct pph_stream *pph_stream_ptr;
 DEF_VEC_P(pph_stream_ptr);
 DEF_VEC_ALLOC_P(pph_stream_ptr,heap);
 
-/* List of PPH images read during parsing.  Images opened during #include
-   processing and opened from pph_in_includes cannot be closed
-   immediately after reading, because the pickle cache contained in
-   them may be referenced from other images.  We delay closing all of
-   them until the end of parsing (when pph_reader_finish is called).  */
-extern VEC(pph_stream_ptr, heap) *pph_read_images;
-
 /* Data structures used to encode and decode trees.  */
 
 /* A PPH stream contains all the data and attributes needed to
@@ -176,11 +169,6 @@ struct pph_stream {
       struct output_block *ob;
       struct lto_out_decl_state *out_state;
       struct lto_output_stream *decl_state_stream;
-
-      /* List of PPH files included by the PPH file that we are currently
-        generating.  Note that this list only contains PPH files, not
-        regular text headers.  Those are embedded in this stream.  */
-      VEC(pph_stream_ptr,heap) *includes;
     } w;
 
     /* Decoding tables and buffers used to read trees from a file.  */
@@ -205,12 +193,22 @@ struct pph_stream {
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
 
+  /* Nonzero if the stream has been read and it is available for
+     resolving external references.  */
+  unsigned int in_memory_p : 1;
+
   /* Symbol table.  This is collected as the compiler instantiates
     symbols and functions.  Once we finish parsing the header file,
     this array is written out to the PPH image.  This way, the reader
     will be able to instantiate these symbols in the same order that
     they were instantiated originally.  */
   pph_symtab symtab;
+
+  /* Transitive closure list of all the images included directly and
+     indirectly by this image.  Note that this list only contains PPH
+     files, not regular text headers.  Regular text headers are embedded
+     in this stream.  */
+  VEC(pph_stream_ptr,heap) *includes;
 };
 
 /* Filter values to avoid emitting certain objects to a PPH file.  */
@@ -225,9 +223,12 @@ extern void pph_dump_min_decl (FILE *file, tree decl);
 extern void pph_dump_namespace (FILE *, tree ns);
 
 /* In pph-streamer.c.  */
-void pph_init_preloaded_cache (void);
+void pph_streamer_init (void);
+void pph_streamer_finish (void);
 pph_stream *pph_stream_open (const char *, const char *);
+void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
+void pph_add_include (pph_stream *, pph_stream *);
 void pph_trace_tree (pph_stream *, tree);
 void pph_new_trace_tree (pph_stream *, tree, bool);
 void pph_trace_uint (pph_stream *, unsigned int);
@@ -239,11 +240,12 @@ void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
 void pph_cache_insert_at (pph_cache *, void *, unsigned, enum pph_tag);
 bool pph_cache_lookup (pph_cache *, void *, unsigned *, enum pph_tag);
-bool pph_cache_lookup_in_includes (void *, unsigned *, unsigned *,
+bool pph_cache_lookup_in_includes (pph_stream *, void *, unsigned *, unsigned *,
                                    enum pph_tag);
 bool pph_cache_add (pph_cache *, void *, unsigned *, enum pph_tag);
 void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
 unsigned pph_get_signature (tree, size_t *);
+void pph_writer_add_include (pph_stream *);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
@@ -259,8 +261,7 @@ void pph_write_location (struct output_block *, location_t);
 void pph_init_read (pph_stream *);
 tree pph_read_tree (struct lto_input_block *, struct data_in *);
 location_t pph_read_location (struct lto_input_block *, struct data_in *);
-void pph_read_file (const char *);
-void pph_reader_finish (void);
+pph_stream *pph_read_file (const char *);
 
 
 /* Inline functions.  */
@@ -269,7 +270,7 @@ void pph_reader_finish (void);
 /* Return the pickle cache in STREAM corresponding to MARKER.
    if MARKER is PPH_RECORD_IREF, it returns the cache in STREAM itself.
    If MARKER is PPH_RECORD_XREF, it returns the cache in
-   pph_read_images[INCLUDE_IX].
+   STREAM->INCLUDES[INCLUDE_IX].
    If MARKER is a PREF, it returns the preloaded cache.  */
 static inline pph_cache *
 pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
@@ -281,7 +282,7 @@ pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
       return &stream->cache;
       break;
     case PPH_RECORD_XREF:
-      return &VEC_index (pph_stream_ptr, pph_read_images, include_ix)->cache;
+      return &VEC_index (pph_stream_ptr, stream->includes, include_ix)->cache;
       break;
     case PPH_RECORD_PREF:
       return stream->preloaded_cache;

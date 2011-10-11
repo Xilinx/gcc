@@ -180,11 +180,21 @@ pph_include_handler (cpp_reader *reader,
       && pph_is_valid_here (name, loc)
       && !cpp_included_before (reader, name, input_location))
     {
+      pph_stream *include;
+
       /* Hack. We do this to mimic what the non-pph compiler does in
 	_cpp_stack_include as our goal is to have identical line_tables.  */
       line_table->highest_location--;
 
-      pph_read_file (pph_file);
+      include = pph_read_file (pph_file);
+
+      /* If we are generating a new PPH image, add the stream we just
+	 read to the list of includes.   This way, the parser will be
+	 able to resolve references to symbols in INCLUDE and its
+	 children.  */
+      if (pph_writer_enabled_p ())
+	pph_writer_add_include (include);
+
       read_text_file_p = false;
     }
 
@@ -225,13 +235,11 @@ pph_init (void)
                            cpp_lt_create (cpp_lt_order, flag_pph_debug/2));
   gcc_assert (table == NULL);
 
+  pph_streamer_init ();
+
   /* If we are generating a PPH file, initialize the writer.  */
   if (pph_writer_enabled_p ())
     pph_writer_init ();
-
-  pph_init_preloaded_cache ();
-
-  pph_read_images = NULL;
 }
 
 
@@ -240,11 +248,8 @@ pph_init (void)
 void
 pph_finish (void)
 {
-  /* Finalize the writer.  */
-  pph_writer_finish ();
-
-  /* Finalize the reader.  */
-  pph_reader_finish ();
+  /* Finalize the streamer.  */
+  pph_streamer_finish ();
 
   /* Close log files.  */
   if (flag_pph_tracer >= 1)

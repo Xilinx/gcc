@@ -1,3 +1,11 @@
+2011-10-11   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/d1symnotinc.cc: Change expected error.
+	* g++.dg/pph/x7dynarray6.cc: Likewise.
+	* g++.dg/pph/x7dynarray7.cc: Likewise.
+	* g++.dg/pph/x5dynarray7.h: Mark fixed.
+	* g++.dg/pph/x6dynarray6.h: Mark fixed.
+
 2011-10-06   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/c4inline.cc: Clarify failure.

@@ -66,10 +66,9 @@ void
 pph_writer_init (void)
 {
   gcc_assert (pph_out_stream == NULL);
-
   pph_out_stream = pph_stream_open (pph_out_file, "wb");
   if (pph_out_stream == NULL)
-    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
+    fatal_error ("Cannot open PPH file %s for writing: %m", pph_out_file);
 }
 
 
@@ -254,16 +253,6 @@ pph_filename_eq_ignoring_path (const char *header_path, const char *pph_path)
 }
 
 
-/* Add INCLUDE to the list of files included by pph_out_stream.  */
-
-void
-pph_add_include (pph_stream *include)
-{
-  VEC_safe_push (pph_stream_ptr, heap, pph_out_stream->encoder.w.includes,
-		 include);
-}
-
-
 /* Return the *NEXT_INCLUDE_IX'th pph_stream in STREAM's list of includes.
    Returns NULL if we have read all includes.  Increments *NEXT_INCLUDE_IX
    when sucessful.  */
@@ -271,9 +260,8 @@ pph_add_include (pph_stream *include)
 static inline pph_stream *
 pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
 {
-  if (*next_incl_ix < VEC_length (pph_stream_ptr, stream->encoder.w.includes))
-    return VEC_index (pph_stream_ptr, stream->encoder.w.includes,
-	              (*next_incl_ix)++);
+  if (*next_incl_ix < VEC_length (pph_stream_ptr, stream->includes))
+    return VEC_index (pph_stream_ptr, stream->includes, (*next_incl_ix)++);
   else
     return NULL;
 }
@@ -356,10 +344,9 @@ pph_out_line_table_and_includes (pph_stream *stream)
   /* Output the number of entries written to validate on input.  */
   pph_out_uint (stream, line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
 
-  /* Every pph header included should have been seen and skipped in the
+  /* Every PPH header included should have been seen and skipped in the
      line_table streaming above.  */
-  gcc_assert (next_incl_ix == VEC_length (pph_stream_ptr,
-					  stream->encoder.w.includes));
+  gcc_assert (next_incl_ix == VEC_length (pph_stream_ptr, stream->includes));
 
   pph_out_source_location (stream, line_table->highest_location);
   pph_out_source_location (stream, line_table->highest_line);
@@ -379,8 +366,11 @@ pph_out_line_table_and_includes (pph_stream *stream)
    *IX_P.  If DATA is in the cache of an image included by STREAM,
    return the image's index in *INCLUDE_IX_P.
 
-   In all other cases, *IX_P and *INCLUDE_IX_P will be set to -1 (if
-   given).  */
+   Caches are consulted in order of preference: preloaded, internal
+   and external.
+
+   If DATA is not found anywhere, return PPH_RECORD_START and, if
+   given, set *IX_P and *INCLUDE_IX_P to -1.  */
 
 static enum pph_record_marker
 pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
@@ -396,19 +386,19 @@ pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
   if (data == NULL)
     return PPH_RECORD_END;
 
+  /* If DATA is a pre-loaded tree node, return a pre-loaded reference
+     marker.  */
+  if (pph_cache_lookup (NULL, data, ix_p, tag))
+    return PPH_RECORD_PREF;
+
   /* If DATA is in STREAM's cache, return an internal reference marker.  */
   if (pph_cache_lookup (&stream->cache, data, ix_p, tag))
     return PPH_RECORD_IREF;
 
   /* If DATA is in the cache of an included image, return an external
      reference marker.  */
-  if (pph_cache_lookup_in_includes (data, include_ix_p, ix_p, tag))
+  if (pph_cache_lookup_in_includes (stream, data, include_ix_p, ix_p, tag))
     return PPH_RECORD_XREF;
-
-  /* If DATA is a pre-loaded tree node, return a pre-loaded reference
-     marker.  */
-  if (pph_cache_lookup (NULL, data, ix_p, tag))
-    return PPH_RECORD_PREF;
 
   /* DATA is in none of the caches.  It should be pickled out.  */
   return PPH_RECORD_START;
@@ -837,7 +827,7 @@ pph_out_mergeable_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 /* Return true if T matches FILTER for STREAM.  */
 
 static inline bool
-pph_tree_matches (tree t, unsigned filter)
+pph_tree_matches (pph_stream *stream, tree t, unsigned filter)
 {
   if ((filter & PPHF_NO_BUILTINS)
       && DECL_P (t)
@@ -849,7 +839,8 @@ pph_tree_matches (tree t, unsigned filter)
     return false;
 
   if ((filter & PPHF_NO_XREFS)
-      && pph_cache_lookup_in_includes (t, NULL, NULL, pph_tree_code_to_tag (t)))
+      && pph_cache_lookup_in_includes (stream, t, NULL, NULL,
+	                               pph_tree_code_to_tag (t)))
     return false;
 
   return true;
@@ -875,7 +866,7 @@ pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 
   /* Collect all the nodes that match the filter.  */
   FOR_EACH_VEC_ELT (tree, v, i, t)
-    if (pph_tree_matches (t, filter))
+    if (pph_tree_matches (stream, t, filter))
       VEC_safe_push (tree, heap, to_write, t);
 
   /* Write them.  */
@@ -984,7 +975,7 @@ pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 
   /* Collect all the nodes that match the filter.  */
   for (t = first; t; t = TREE_CHAIN (t))
-    if (pph_tree_matches (t, filter))
+    if (pph_tree_matches (stream, t, filter))
       VEC_safe_push (tree, heap, to_write, t);
 
   /* Write them.  */
@@ -998,7 +989,7 @@ pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 
 static void
 pph_out_mergeable_chain_filtered (pph_stream *stream, tree first,
-					unsigned filter)
+				  unsigned filter)
 {
   tree t;
   VEC(tree, heap) *to_write = NULL;
@@ -1013,7 +1004,7 @@ pph_out_mergeable_chain_filtered (pph_stream *stream, tree first,
 
   /* Collect all the nodes that match the filter.  */
   for (t = first; t; t = TREE_CHAIN (t))
-    if (pph_tree_matches (t, filter))
+    if (pph_tree_matches (stream, t, filter))
       VEC_safe_push (tree, heap, to_write, t);
 
   /* Write them.  */
@@ -2364,4 +2355,13 @@ pph_writer_finish (void)
 
   pph_stream_close (pph_out_stream);
   pph_out_stream = NULL;
+}
+
+
+/* Add INCLUDE to the list of images included by pph_out_stream.  */
+
+void
+pph_writer_add_include (pph_stream *include)
+{
+  pph_add_include (pph_out_stream, include);
 }
