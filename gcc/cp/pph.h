@@ -134,6 +134,7 @@ extern FILE *pph_logfile;
 /* In pph.c  */
 extern void pph_init (void);
 extern void pph_finish (void);
+extern void pph_dump_location (FILE *file, location_t loc);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
 
 /* In pph-streamer-out.c.  */

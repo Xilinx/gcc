@@ -1,3 +1,118 @@
+2011-10-10   Lawrence Crowl  <crowl@google.com>
+
+	* pph.h (pph_dump_location): New.
+	* pph.c (pph_dump_location): New.
+	(pph_dump_min_decl): Use new pph_dump_location.
+        (pph_dump_tree_name): Use decl_as_* from cxx-pretty-print.h for decls,
+	types, and exprs.
+	(pph_include_handler): Use flag_pph_tracer instead of flag_pph_debug.
+	(pph_init): Likewise.
+	* pt.c (pph_dump_tinst_level): Add call to pph_dump_location.
+	(pph_dump_spec_entry_slot): Add dump labels.
+	* pph-streamer.h (pph_new_trace_tree): New.
+	* pph-streamer.c (pph_new_trace_tree): New.
+	(pph_stream_close): Use flag_pph_tracer instead of flag_pph_debug.
+	* pph-streamer-in.c (pph_in_uchar): Remove tracing.
+	(pph_in_uint): Likewise.
+	(pph_in_bytes): Likewise.
+	(pph_in_string): Likewise.
+	(pph_in_bitpack): Likewise.
+	(pph_in_location): Likewise.
+	(pph_in_bitpack): Likewise.
+	(pph_in_linenum_type): Move in source file.
+	(pph_in_source_location): Likewise.
+	(pph_in_linetable_marker): Likewise.
+	(pph_in_line_map): Likewise.
+	(pph_in_include): Likewise.
+	(pph_in_line_table_and_includes): Likewise.
+	(pph_in_ld_base): Likewise.
+	(pph_in_ld_min): Likewise.
+	(pph_in_tree_pair_vec): Likewise.
+	(pph_in_mergeable_chain): Likewise.
+	(pph_match_to_overload): Likewise.
+	(pph_match_to_function): Likewise.
+	(pph_match_to_link): Likewise.
+	(pph_search_in_chain): Likewise.
+	(pph_prepend_to_chain): Likewise.
+	(pph_in_tree_common): Likewise.
+	(pph_in_ld_fn): Likewise.
+	(pph_in_scope_chain): Likewise.
+	(wrap_macro_def): Likewise.
+	(report_validation_error): Likewise.
+	(pph_in_identifiers): Likewise.
+	(pph_in_symtab_action): Likewise.
+	(pph_in_cgraph_node): Likewise.
+	(pph_in_symtab): Likewise.
+	(pph_in_linenum_type): Likewise.
+	(pph_in_source_location): Likewise.
+	(pph_in_line_map): Likewise.
+	(pph_in_include): Likewise.
+	(pph_in_line_table_and_includes): Likewise.
+	(pph_in_tcc_type): Likewise.
+	(pph_image_already_read): Likewise.
+	(pph_read_file_1): Likewise.
+	(pph_add_read_image): Likewise.
+	(pph_read_file): Likewise.
+	(pph_in_chain): Move in source file.  Remove tracing.
+	(pph_in_tree): Reimplement in terms of pph_read_any_tree.
+	Move in source file.  Remove tracing.
+	(pph_in_mergeable_tree): Likewise.
+	(pph_read_tree): Reimplement in terms of pph_read_any_tree.
+	Move in source file.
+	(pph_read_any_tree): Add call to pph_new_trace_tree.
+	* pph-streamer-in.c (pph_out_uchar): Remove tracing.
+	(pph_out_uint): Likewise.
+	(pph_out_bytes): Likewise.
+	(pph_out_string): Likewise.
+	(pph_out_string_with_length): Likewise.
+	(pph_out_bitpack): Likewise.
+	(pph_begin_section): Move in source file.
+	(pph_out): Move in source file.  Rename pph_out_block.
+	(pph_end_section): Move in source file.
+	(pph_write_location) Likewise.
+	(pph_out_location) Likewise.
+	(pph_out_chain) Likewise.
+	(pph_out_header) Likewise.
+	(pph_out_body) Likewise.
+	(pph_flush_buffers) Likewise.
+	(pph_cache_should_handle) Likewise.
+	(pph_out_ld_base) Likewise.
+	(pph_out_ld_min) Likewise.
+	(pph_tree_matches) Likewise.
+	(pph_out_cxx_binding_1) Likewise.
+	(pph_out_cxx_binding) Likewise.
+	(pph_out_label_binding) Likewise.
+	(pph_out_tree_common) Likewise.
+	(pph_out_ld_fn) Likewise.
+	(pph_out_tree_pair_vec) Likewise.
+	(pph_out_scope_chain) Likewise.
+	(pph_out_identifiers) Likewise.
+	(pph_out_symtab_action) Likewise.
+	(pph_out_cgraph_node) Likewise.
+	(pph_out_symtab) Likewise.
+	(pph_out_linenum_type) Likewise.
+	(pph_out_source_location) Likewise.
+	(pph_out_linetable_marker) Likewise.
+	(pph_out_line_map) Likewise.
+	(pph_out_include) Likewise.
+	(pph_filename_eq_ignoring_path) Likewise.
+	(pph_get_next_include) Likewise.
+	(pph_out_line_table_and_includes) Likewise.
+	(pph_write_file) Likewise.
+	(pph_out_tcc_type) Likewise.
+	(pph_write_tree) Likewise.
+	(pph_write_mergeable_tree) Likewise.
+	(pph_add_include) Likewise.
+	(pph_writer_init) Likewise.
+	(pph_out_chain): Move in source file.  Remove tracing.
+	(pph_out_mergeable_chain): Likewise.
+	(pph_out_tree_1) Remove.  Replace all calls with pph_out_tree.
+	(pph_out_tree) Reimplement in terms of pph_write_any_tree.
+        Move in source file.  Remove tracing.
+	(pph_out_mergeable_tree) Likewise.
+	(pph_write_tree) Reimplement in terms of pph_write_any_tree.
+        Move in source file.
+
 2011-10-07   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer.h (typedef pph_stream): Move to pph.h.

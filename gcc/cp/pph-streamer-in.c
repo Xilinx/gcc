@@ -85,6 +85,9 @@ static int pph_reading_includes = 0;
 static int pph_loc_offset;
 
 
+/***************************************************** stream initialization */
+
+
 /* Read into memory the contents of the file in STREAM.  Initialize
    internal tables and data structures needed to re-construct the
    ASTs in the file.  */
@@ -147,17 +150,21 @@ pph_init_read (pph_stream *stream)
 }
 
 
+/********************************************************** primitive values */
+
+
 /* Read an unsigned char VALUE to STREAM.  */
+
 static unsigned char
 pph_in_uchar (pph_stream *stream)
 {
   unsigned char n = streamer_read_uchar (stream->encoder.r.ib);
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, n);
   return n;
 }
 
+
 /* Read a HOST_WIDE_INT from STREAM.  */
+
 static inline HOST_WIDE_INT
 pph_in_hwi (pph_stream *stream)
 {
@@ -166,6 +173,7 @@ pph_in_hwi (pph_stream *stream)
 
 
 /* Read an unsigned HOST_WIDE_INT from STREAM.  */
+
 static inline unsigned HOST_WIDE_INT
 pph_in_uhwi (pph_stream *stream)
 {
@@ -174,25 +182,23 @@ pph_in_uhwi (pph_stream *stream)
 
 
 /* Read an unsigned integer from STREAM.  */
+
 unsigned int
 pph_in_uint (pph_stream *stream)
 {
   HOST_WIDE_INT unsigned n = streamer_read_uhwi (stream->encoder.r.ib);
   gcc_assert (n == (unsigned) n);
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, n);
   return (unsigned) n;
 }
 
 
 /* Read N bytes from STREAM into P.  The caller is responsible for
    allocating a sufficiently large buffer.  */
+
 static void
 pph_in_bytes (pph_stream *stream, void *p, size_t n)
 {
   lto_input_data_block (stream->encoder.r.ib, p, n);
-  if (flag_pph_tracer >= 4)
-    pph_trace_bytes (stream, p, n);
 }
 
 
@@ -203,1340 +209,21 @@ pph_in_string (pph_stream *stream)
 {
   const char *s = streamer_read_string (stream->encoder.r.data_in,
                                         stream->encoder.r.ib);
-  if (flag_pph_tracer >= 4)
-    pph_trace_string (stream, s);
   return s;
 }
 
 
 /* Read a bitpack from STREAM.  */
+
 static struct bitpack_d
 pph_in_bitpack (pph_stream *stream)
 {
   struct bitpack_d bp = streamer_read_bitpack (stream->encoder.r.ib);
-  if (flag_pph_tracer >= 4)
-    pph_trace_bitpack (stream, &bp);
   return bp;
 }
 
 
-/* Read and return a record marker from STREAM.  On return, *TAG_P will
-   contain the tag for the data type stored in this record.  */
-enum pph_record_marker
-pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
-{
-  enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
-  gcc_assert (m == PPH_RECORD_START
-              || m == PPH_RECORD_START_NO_CACHE
-              || m == PPH_RECORD_START_MUTATED
-              || m == PPH_RECORD_END
-              || m == PPH_RECORD_IREF
-              || m == PPH_RECORD_XREF
-              || m == PPH_RECORD_PREF);
-
-  *tag_p = (enum pph_tag) pph_in_uint (stream);
-  gcc_assert ((unsigned) *tag_p < (unsigned) PPH_NUM_TAGS);
-
-  return m;
-}
-
-
-/* Read and return a record header from STREAM.  EXPECTED_TAG indicates
-   the data type that should be stored in this record.  When a
-   PPH_RECORD_START marker is read, the next word read is an index
-   into the streamer cache where the rematerialized data structure
-   should be stored. When the writer stored this data structure for
-   the first time, it added it to its own streamer cache at slot
-   number *CACHE_IX_P.
-
-   This way, if the same data structure was written a second time to
-   the stream, instead of writing the whole structure again, only the
-   index *CACHE_IX_P is written as a PPH_RECORD_IREF record.
-
-   Therefore, when reading a PPH_RECORD_START marker, *CACHE_IX_P will
-   contain the slot number where the materialized data should be
-   cached at.  When reading a PPH_RECORD_IREF marker, *CACHE_IX_P will
-   contain the slot number the reader can find the previously
-   materialized structure.
-
-   If the record starts with PPH_RECORD_XREF, this means that the data
-   we are about to read is located in the pickle cache of one of
-   STREAM's included images.  In this case, the record consists of two
-   indices: the first one (*INCLUDE_IX_P) indicates which included
-   image contains the data (it is an index into STREAM->INCLUDES), the
-   second one indicates which slot in that image's pickle cache we can
-   find the data.  */
-
-static inline enum pph_record_marker
-pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
-		     unsigned *cache_ix_p, enum pph_tag expected_tag)
-{
-  enum pph_tag read_tag;
-  enum pph_record_marker marker = pph_in_record_marker (stream, &read_tag);
-
-  /* If the caller expects any tree, make sure we get a valid tree code.  */
-  if (expected_tag == PPH_any_tree)
-    gcc_assert (read_tag < PPH_any_tree);
-  else
-    gcc_assert (read_tag == expected_tag);
-
-  *include_ix_p = (unsigned) -1;
-  *cache_ix_p = (unsigned) -1;
-
-  /* For PPH_RECORD_START and PPH_RECORD_IREF markers, read the
-     streamer cache slot where we should store or find the
-     rematerialized data structure (see description above).
-     Also read the preloaded cache slot in IX for PPH_RECORD_PREF.  */
-  if (marker == PPH_RECORD_START
-      || marker == PPH_RECORD_IREF
-      || marker == PPH_RECORD_PREF)
-    *cache_ix_p = pph_in_uint (stream);
-  else if (marker == PPH_RECORD_XREF
-           || marker == PPH_RECORD_START_MUTATED)
-    {
-      *include_ix_p = pph_in_uint (stream);
-      *cache_ix_p = pph_in_uint (stream);
-    }
-  else if (marker == PPH_RECORD_END || marker == PPH_RECORD_START_NO_CACHE)
-    ; /* Nothing to do.  This record will not need cache updates.  */
-  else
-    gcc_unreachable ();
-
-  return marker;
-}
-
-
-/* Callback for streamer_hooks.input_location.  An offset is applied to
-   the location_t read in according to the properties of the merged
-   line_table.  IB and DATA_IN are as in lto_input_location.  This function
-   should only be called after pph_in_and_merge_line_table was called as
-   we expect pph_loc_offset to be set.  */
-
-location_t
-pph_read_location (struct lto_input_block *ib,
-                   struct data_in *data_in ATTRIBUTE_UNUSED)
-{
-  struct bitpack_d bp;
-  bool is_builtin;
-  unsigned HOST_WIDE_INT n;
-  location_t old_loc;
-
-  bp = streamer_read_bitpack (ib);
-  is_builtin = bp_unpack_value (&bp, 1);
-
-  n = streamer_read_uhwi (ib);
-  old_loc = (location_t) n;
-  gcc_assert (old_loc == n);
-
-  return is_builtin ? old_loc : old_loc + pph_loc_offset;
-}
-
-
-/* Read and return a location_t from STREAM.
-   FIXME pph: If pph_trace didn't depend on STREAM, we could avoid having to
-   call this function, only for it to call lto_input_location, which calls the
-   streamer hook back to pph_read_location.  */
-
-location_t
-pph_in_location (pph_stream *stream)
-{
-  location_t loc = pph_read_location (stream->encoder.r.ib,
-                                       stream->encoder.r.data_in);
-  if (flag_pph_tracer >= 4)
-    pph_trace_location (stream, loc);
-  return loc;
-}
-
-
-/* Load the tree value associated with TOKEN from STREAM.  */
-
-static void
-pph_in_token_value (pph_stream *stream, cp_token *token)
-{
-  switch (token->type)
-    {
-      case CPP_TEMPLATE_ID:
-      case CPP_NESTED_NAME_SPECIFIER:
-	/* FIXME pph - Need to handle struct tree_check.  */
-	break;
-
-      case CPP_KEYWORD:
-	token->u.value = ridpointers[token->keyword];
-	break;
-
-      case CPP_NAME:
-      case CPP_CHAR:
-      case CPP_WCHAR:
-      case CPP_CHAR16:
-      case CPP_CHAR32:
-      case CPP_NUMBER:
-      case CPP_STRING:
-      case CPP_WSTRING:
-      case CPP_STRING16:
-      case CPP_STRING32:
-	token->u.value = pph_in_tree (stream);
-	break;
-
-      case CPP_PRAGMA:
-	/* Nothing to do.  Field pragma_kind has already been loaded.  */
-	break;
-
-      default:
-	pph_in_bytes (stream, &token->u.value, sizeof (token->u.value));
-	gcc_assert (token->u.value == NULL);
-    }
-}
-
-
-/* Read and return a token from STREAM.  */
-
-static cp_token *
-pph_in_token (pph_stream *stream)
-{
-  cp_token *token = ggc_alloc_cleared_cp_token ();
-
-  /* Do not read the whole structure, the token value has
-     dynamic size as it contains swizzled pointers.
-     FIXME pph, restructure to allow bulk reads of the whole
-     section.  */
-  pph_in_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
-
-  /* FIXME pph.  Use an arbitrary (but valid) location to avoid
-     confusing the rest of the compiler for now.  */
-  token->location = input_location;
-
-  /* FIXME pph: verify that pph_in_token_value works with no tokens.  */
-  pph_in_token_value (stream, token);
-
-  return token;
-}
-
-
-/* Read and return a cp_token_cache instance from STREAM.  */
-
-static cp_token_cache *
-pph_in_token_cache (pph_stream *stream)
-{
-  unsigned i, num;
-  cp_token *first, *last;
-
-  num = pph_in_uint (stream);
-  for (last = first = NULL, i = 0; i < num; i++)
-    {
-      last = pph_in_token (stream);
-      if (first == NULL)
-	first = last;
-    }
-
-  return cp_token_cache_new (first, last);
-}
-
-
-/* Read all fields in lang_decl_base instance LDB from STREAM.  */
-
-static void
-pph_in_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
-{
-  struct bitpack_d bp;
-
-  bp = pph_in_bitpack (stream);
-  ldb->selector = bp_unpack_value (&bp, 16);
-  ldb->language = (enum languages) bp_unpack_value (&bp, 4);
-  ldb->use_template = bp_unpack_value (&bp, 2);
-  ldb->not_really_extern = bp_unpack_value (&bp, 1);
-  ldb->initialized_in_class = bp_unpack_value (&bp, 1);
-  ldb->repo_available_p = bp_unpack_value (&bp, 1);
-  ldb->threadprivate_or_deleted_p = bp_unpack_value (&bp, 1);
-  ldb->anticipated_p = bp_unpack_value (&bp, 1);
-  ldb->friend_attr = bp_unpack_value (&bp, 1);
-  ldb->template_conv_p = bp_unpack_value (&bp, 1);
-  ldb->odr_used = bp_unpack_value (&bp, 1);
-  ldb->u2sel = bp_unpack_value (&bp, 1);
-}
-
-
-/* Read all the fields in lang_decl_min instance LDM from STREAM.  */
-
-static void
-pph_in_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
-{
-  ldm->template_info = pph_in_tree (stream);
-  if (ldm->base.u2sel == 0)
-    ldm->u2.access = pph_in_tree (stream);
-  else if (ldm->base.u2sel == 1)
-    ldm->u2.discriminator = pph_in_uint (stream);
-  else
-    gcc_unreachable ();
-}
-
-
-/* Read and return a gc VEC of trees from STREAM.  */
-
-static VEC(tree,gc) *
-pph_in_tree_vec (pph_stream *stream)
-{
-  HOST_WIDE_INT i, num;
-  VEC(tree,gc) *v;
-
-  num = pph_in_hwi (stream);
-  v = NULL;
-  for (i = 0; i < num; i++)
-    {
-      tree t = pph_in_tree (stream);
-      VEC_safe_push (tree, gc, v, t);
-    }
-
-  return v;
-}
-
-
-/* Read and return a gc VEC of qualified_typedef_usage_t from STREAM.  */
-
-static VEC(qualified_typedef_usage_t,gc) *
-pph_in_qual_use_vec (pph_stream *stream)
-{
-  unsigned i, num;
-  VEC(qualified_typedef_usage_t,gc) *v;
-
-  num = pph_in_uint (stream);
-  v = NULL;
-  for (i = 0; i < num; i++)
-    {
-      qualified_typedef_usage_t q;
-      q.typedef_decl = pph_in_tree (stream);
-      q.context = pph_in_tree (stream);
-      q.locus = pph_in_location (stream);
-      VEC_safe_push (qualified_typedef_usage_t, gc, v, &q);
-    }
-
-  return v;
-}
-
-
-/* Forward declaration to break cyclic dependencies.  */
-static void pph_in_binding_level (cp_binding_level **,
-				  pph_stream *, cp_binding_level *);
-
-/* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
-   instance from STREAM.  */
-
-static cxx_binding *
-pph_in_cxx_binding_1 (pph_stream *stream)
-{
-  struct bitpack_d bp;
-  cxx_binding *cb;
-  tree value, type;
-  enum pph_record_marker marker;
-  unsigned ix, image_ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cxx_binding);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (cxx_binding *) pph_cache_find (stream, marker, image_ix, ix,
-					   PPH_cxx_binding);
-
-  value = pph_in_tree (stream);
-  type = pph_in_tree (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cxx_binding, cb,
-                      cxx_binding_make (value, type));
-  pph_in_binding_level (&cb->scope, stream, NULL);
-  bp = pph_in_bitpack (stream);
-  cb->value_is_inherited = bp_unpack_value (&bp, 1);
-  cb->is_local = bp_unpack_value (&bp, 1);
-
-  return cb;
-}
-
-
-/* Read and return an instance of cxx_binding from STREAM.  */
-
-static cxx_binding *
-pph_in_cxx_binding (pph_stream *stream)
-{
-  cxx_binding *curr, *prev, *cb;
-
-  /* Read the current binding first.  */
-  cb = pph_in_cxx_binding_1 (stream);
-
-  /* Read the list of previous bindings.  */
-  for (curr = cb; curr; curr = prev)
-    {
-      prev = pph_in_cxx_binding_1 (stream);
-      curr->previous = prev;
-    }
-
-  return cb;
-}
-
-
-/* Read all the fields of cp_class_binding instance CB to OB.  */
-
-static cp_class_binding *
-pph_in_class_binding (pph_stream *stream)
-{
-  cp_class_binding *cb;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_class_binding);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (cp_class_binding *) pph_cache_find (stream, marker, image_ix, ix,
-						PPH_cp_class_binding);
-
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_class_binding, cb,
-                      ggc_alloc_cleared_cp_class_binding ());
-  cb->base = pph_in_cxx_binding (stream);
-  cb->identifier = pph_in_tree (stream);
-
-  return cb;
-}
-
-
-/* Read and return an instance of cp_label_binding from STREAM.  */
-
-static cp_label_binding *
-pph_in_label_binding (pph_stream *stream)
-{
-  cp_label_binding *lb;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_label_binding);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (cp_label_binding *) pph_cache_find (stream, marker, image_ix, ix,
-						PPH_cp_label_binding);
-
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_label_binding, lb,
-                      ggc_alloc_cleared_cp_label_binding ());
-  lb->label = pph_in_tree (stream);
-  lb->prev_value = pph_in_tree (stream);
-
-  return lb;
-}
-
-
-/* Read a chain of ASTs from STREAM.  */
-static tree
-pph_in_chain (pph_stream *stream)
-{
-  tree t = streamer_read_chain (stream->encoder.r.ib,
-                                stream->encoder.r.data_in);
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, t);
-  return t;
-}
-
-
-static void pph_read_mergeable_chain (pph_stream *stream, tree* chain);
-
-
-/* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
-static inline void
-pph_in_mergeable_chain (pph_stream *stream, tree* chain)
-{
-  pph_read_mergeable_chain (stream, chain);
-}
-
-
-/* Read and return an instance of cp_binding_level from STREAM.
-   TO_REGISTER is used when the caller wants to read a binding level,
-   but register a different binding level in the streaming cache.
-   This is needed when reading the binding for global_namespace.
-
-   When the file was created global_namespace was localized to that
-   particular file.  However, when instantiating a PPH file into
-   memory, we are now using the global_namespace for the current
-   translation unit.  Therefore, every reference to the
-   global_namespace and its bindings should be pointing to the
-   CURRENT global namespace, not the one in STREAM.
-
-   Therefore, if TO_REGISTER is set, and we read a binding level from
-   STREAM for the first time, instead of registering the newly
-   instantiated binding level into the cache, we register the binding
-   level given in TO_REGISTER.  This way, subsequent references to the
-   global binding level will be done to the one set in TO_REGISTER.  */
-
-static void
-pph_in_binding_level (cp_binding_level **out_field,
-                      pph_stream *stream, cp_binding_level *to_register)
-{
-  unsigned i, num, image_ix, ix;
-  cp_binding_level *bl;
-  struct bitpack_d bp;
-  enum pph_record_marker marker;
-  tree entity;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
-  if (marker == PPH_RECORD_END)
-    {
-      *out_field = NULL;
-      return;
-    }
-  else if (pph_is_reference_marker (marker))
-    {
-      *out_field = (cp_binding_level *)
-          pph_cache_find (stream, marker, image_ix, ix, PPH_cp_binding_level);
-      return;
-    }
-
-  /* If TO_REGISTER is set, register that binding level instead of the newly
-     allocated binding level into slot IX.  */
-  if (to_register == NULL)
-    ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_binding_level, bl,
-			ggc_alloc_cleared_cp_binding_level ());
-  else
-    ALLOC_AND_REGISTER_ALTERNATE (&stream->cache, ix, PPH_cp_binding_level, bl,
-				  ggc_alloc_cleared_cp_binding_level (),
-				  to_register);
-
-  /* Now activate the encompasing field in case we need to insert into a
-     namespace that we just read.  */
-  *out_field = bl;
-
-  entity = bl->this_entity = pph_in_tree (stream);
-  if (NAMESPACE_SCOPE_P (entity))
-    {
-      if (flag_pph_debug >= 3)
-        debug_tree_chain (bl->names);
-      pph_in_mergeable_chain (stream, &bl->names);
-      pph_in_mergeable_chain (stream, &bl->namespaces);
-      pph_in_mergeable_chain (stream, &bl->usings);
-      pph_in_mergeable_chain (stream, &bl->using_directives);
-    }
-  else
-    {
-      bl->names = pph_in_chain (stream);
-      bl->namespaces = pph_in_chain (stream);
-      bl->usings = pph_in_chain (stream);
-      bl->using_directives = pph_in_chain (stream);
-    }
-  bl->static_decls = pph_in_tree_vec (stream);
-
-  num = pph_in_uint (stream);
-  bl->class_shadowed = NULL;
-  for (i = 0; i < num; i++)
-    {
-      cp_class_binding *cb = pph_in_class_binding (stream);
-      VEC_safe_push (cp_class_binding, gc, bl->class_shadowed, cb);
-    }
-
-  bl->type_shadowed = pph_in_tree (stream);
-
-  num = pph_in_uint (stream);
-  bl->shadowed_labels = NULL;
-  for (i = 0; i < num; i++)
-    {
-      cp_label_binding *sl = pph_in_label_binding (stream);
-      VEC_safe_push (cp_label_binding, gc, bl->shadowed_labels, sl);
-    }
-
-  bl->blocks = pph_in_tree (stream);
-  pph_in_binding_level (&bl->level_chain, stream, NULL);
-  bl->dead_vars_from_for = pph_in_tree_vec (stream);
-  bl->statement_list = pph_in_chain (stream);
-  bl->binding_depth = pph_in_uint (stream);
-
-  bp = pph_in_bitpack (stream);
-  bl->kind = (enum scope_kind) bp_unpack_value (&bp, 4);
-  bl->keep = bp_unpack_value (&bp, 1);
-  bl->more_cleanups_ok = bp_unpack_value (&bp, 1);
-  bl->have_cleanups = bp_unpack_value (&bp, 1);
-}
-
-
-/* Read in the tree_common fields.  */
-
-static void
-pph_in_tree_common (pph_stream *stream, tree t)
-{
-  /* The 'struct tree_typed typed' base class is handled in LTO.  */
-  TREE_CHAIN (t) = pph_in_tree (stream);
-}
-
-/* Read and return an instance of struct language_function from STREAM.  */
-
-static struct language_function *
-pph_in_language_function (pph_stream *stream)
-{
-  struct bitpack_d bp;
-  struct language_function *lf;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_language_function);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct language_function *) pph_cache_find (stream, marker,
-							image_ix, ix,
-							PPH_language_function);
-
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_language_function, lf,
-                      ggc_alloc_cleared_language_function ());
-  lf->base.x_stmt_tree.x_cur_stmt_list = pph_in_tree_vec (stream);
-  lf->base.x_stmt_tree.stmts_are_full_exprs_p = pph_in_uint (stream);
-  lf->x_cdtor_label = pph_in_tree (stream);
-  lf->x_current_class_ptr = pph_in_tree (stream);
-  lf->x_current_class_ref = pph_in_tree (stream);
-  lf->x_eh_spec_block = pph_in_tree (stream);
-  lf->x_in_charge_parm = pph_in_tree (stream);
-  lf->x_vtt_parm = pph_in_tree (stream);
-  lf->x_return_value = pph_in_tree (stream);
-  bp = pph_in_bitpack (stream);
-  lf->x_returns_value = bp_unpack_value (&bp, 1);
-  lf->x_returns_null = bp_unpack_value (&bp, 1);
-  lf->x_returns_abnormally = bp_unpack_value (&bp, 1);
-  lf->x_in_function_try_handler = bp_unpack_value (&bp, 1);
-  lf->x_in_base_initializer = bp_unpack_value (&bp, 1);
-  lf->can_throw = bp_unpack_value (&bp, 1);
-
-  /* FIXME pph.  We are not reading lf->x_named_labels.  */
-
-  pph_in_binding_level (&lf->bindings, stream, NULL);
-  lf->x_local_names = pph_in_tree_vec (stream);
-
-  /* FIXME pph.  We are not reading lf->extern_decl_map.  */
-
-  return lf;
-}
-
-
-/* Read all the fields of lang_decl_fn instance LDF from STREAM.  */
-
-static void
-pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
-{
-  struct bitpack_d bp;
-
-  /* Read all the fields in lang_decl_min.  */
-  pph_in_ld_min (stream, &ldf->min);
-
-  bp = pph_in_bitpack (stream);
-  ldf->operator_code = (enum tree_code) bp_unpack_value (&bp, 16);
-  ldf->global_ctor_p = bp_unpack_value (&bp, 1);
-  ldf->global_dtor_p = bp_unpack_value (&bp, 1);
-  ldf->constructor_attr = bp_unpack_value (&bp, 1);
-  ldf->destructor_attr = bp_unpack_value (&bp, 1);
-  ldf->assignment_operator_p = bp_unpack_value (&bp, 1);
-  ldf->static_function = bp_unpack_value (&bp, 1);
-  ldf->pure_virtual = bp_unpack_value (&bp, 1);
-  ldf->defaulted_p = bp_unpack_value (&bp, 1);
-  ldf->has_in_charge_parm_p = bp_unpack_value (&bp, 1);
-  ldf->has_vtt_parm_p = bp_unpack_value (&bp, 1);
-  ldf->pending_inline_p = bp_unpack_value (&bp, 1);
-  ldf->nonconverting = bp_unpack_value (&bp, 1);
-  ldf->thunk_p = bp_unpack_value (&bp, 1);
-  ldf->this_thunk_p = bp_unpack_value (&bp, 1);
-  ldf->hidden_friend_p = bp_unpack_value (&bp, 1);
-
-  ldf->befriending_classes = pph_in_tree (stream);
-  ldf->context = pph_in_tree (stream);
-
-  if (ldf->thunk_p == 0)
-    ldf->u5.cloned_function = pph_in_tree (stream);
-  else if (ldf->thunk_p == 1)
-    ldf->u5.fixed_offset = pph_in_uint (stream);
-  else
-    gcc_unreachable ();
-
-  if (ldf->pending_inline_p == 1)
-    ldf->u.pending_inline_info = pph_in_token_cache (stream);
-  else if (ldf->pending_inline_p == 0)
-    ldf->u.saved_language_function = pph_in_language_function (stream);
-}
-
-
-/* Read applicable fields of struct function from STREAM.  Associate
-   the read structure to DECL.  */
-
-static void
-pph_in_struct_function (pph_stream *stream, tree decl)
-{
-  size_t count, i;
-  unsigned image_ix, ix;
-  enum pph_record_marker marker;
-  struct function *fn;
-  tree t;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_function);
-  if (marker == PPH_RECORD_END)
-    return;
-  else if (pph_is_reference_marker (marker))
-    {
-      fn = (struct function *) pph_cache_find (stream, marker, image_ix, ix,
-					       PPH_function);
-      gcc_assert (DECL_STRUCT_FUNCTION (decl) == fn);
-      return;
-    }
-
-  /* Allocate a new DECL_STRUCT_FUNCTION for DECL.  */
-  t = pph_in_tree (stream);
-  gcc_assert (t == decl);
-  allocate_struct_function (decl, false);
-  fn = DECL_STRUCT_FUNCTION (decl);
-
-  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
-     but allocate_struct_function does not return a pointer.  */
-  pph_cache_insert_at (&stream->cache, fn, ix, PPH_function);
-
-  input_struct_function_base (fn, stream->encoder.r.data_in,
-			      stream->encoder.r.ib);
-
-  /* struct eh_status *eh;					-- zero init */
-  /* struct control_flow_graph *cfg;				-- zero init */
-  /* struct gimple_seq_d *gimple_body;				-- zero init */
-  /* struct gimple_df *gimple_df;				-- zero init */
-  /* struct loops *x_current_loops;				-- zero init */
-  /* struct stack_usage *su;					-- zero init */
-  /* htab_t value_histograms;					-- zero init */
-  /* tree decl;							-- zero init */
-  /* tree static_chain_decl;					-- in base */
-  /* tree nonlocal_goto_save_area;				-- in base */
-  /* tree local_decls;						-- in base */
-  /* struct machine_function * machine;				-- zero init */
-
-  fn->language = pph_in_language_function (stream);
-
-  count = pph_in_uint (stream);
-  if ( count > 0 )
-    {
-      fn->used_types_hash = htab_create_ggc (37, htab_hash_pointer,
-					     htab_eq_pointer, NULL);
-      for (i = 0; i < count;  i++)
-	{
-	  void **slot;
-	  tree type = pph_in_tree (stream);
-	  slot = htab_find_slot (fn->used_types_hash, type, INSERT);
-	  if (*slot == NULL)
-	    *slot = type;
-	}
-    }
-  /* else zero initialized */
-
-  /* int last_stmt_uid;						-- zero init */
-  /* int funcdef_no;						-- zero init */
-  /* location_t function_start_locus;				-- in base */
-  /* location_t function_end_locus;				-- in base */
-  /* unsigned int curr_properties;				-- in base */
-  /* unsigned int last_verified;				-- zero init */
-  /* const char *cannot_be_copied_reason;			-- zero init */
-
-  /* unsigned int va_list_gpr_size : 8;				-- in base */
-  /* unsigned int va_list_fpr_size : 8;				-- in base */
-  /* unsigned int calls_setjmp : 1;				-- in base */
-  /* unsigned int calls_alloca : 1;				-- in base */
-  /* unsigned int has_nonlocal_label : 1;			-- in base */
-  /* unsigned int cannot_be_copied_set : 1;			-- zero init */
-  /* unsigned int stdarg : 1;					-- in base */
-  /* unsigned int after_inlining : 1;				-- in base */
-  /* unsigned int always_inline_functions_inlined : 1;		-- in base */
-  /* unsigned int can_throw_non_call_exceptions : 1;		-- in base */
-  /* unsigned int returns_struct : 1;				-- in base */
-  /* unsigned int returns_pcc_struct : 1;			-- in base */
-  /* unsigned int after_tree_profile : 1;			-- in base */
-  /* unsigned int has_local_explicit_reg_vars : 1;		-- in base */
-  /* unsigned int is_thunk : 1;					-- in base */
-}
-
-
-/* Read all the fields of lang_decl_ns instance LDNS from STREAM.  */
-
-static void
-pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
-{
-  pph_in_binding_level (&ldns->level, stream, NULL);
-}
-
-
-/* Read all the fields of lang_decl_parm instance LDP from STREAM.  */
-
-static void
-pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
-{
-  ldp->level = pph_in_uint (stream);
-  ldp->index = pph_in_uint (stream);
-}
-
-
-/* Read language specific data in DECL from STREAM.  */
-
-static void
-pph_in_lang_specific (pph_stream *stream, tree decl)
-{
-  struct lang_decl *ld;
-  struct lang_decl_base *ldb;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
-  if (marker == PPH_RECORD_END)
-    return;
-  else if (pph_is_reference_marker (marker))
-    {
-      DECL_LANG_SPECIFIC (decl) =
-	(struct lang_decl *) pph_cache_find (stream, marker, image_ix, ix,
-					     PPH_lang_decl);
-      return;
-    }
-
-  /* Allocate a lang_decl structure for DECL.  */
-  retrofit_lang_decl (decl);
-  ld = DECL_LANG_SPECIFIC (decl);
-
-  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
-     but retrofit_lang_decl does not return a pointer.  */
-  pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
-
-  /* Read all the fields in lang_decl_base.  */
-  ldb = &ld->u.base;
-  pph_in_ld_base (stream, ldb);
-
-  if (ldb->selector == 0)
-    {
-      /* Read all the fields in lang_decl_min.  */
-      pph_in_ld_min (stream, &ld->u.min);
-    }
-  else if (ldb->selector == 1)
-    {
-      /* Read all the fields in lang_decl_fn.  */
-      pph_in_ld_fn (stream, &ld->u.fn);
-    }
-  else if (ldb->selector == 2)
-    {
-      /* Read all the fields in lang_decl_ns.  */
-      pph_in_ld_ns (stream, &ld->u.ns);
-    }
-  else if (ldb->selector == 3)
-    {
-      /* Read all the fields in lang_decl_parm.  */
-      pph_in_ld_parm (stream, &ld->u.parm);
-    }
-  else
-    gcc_unreachable ();
-}
-
-
-/* Read all the fields in lang_type_header instance LTH from STREAM.  */
-
-static void
-pph_in_lang_type_header (pph_stream *stream, struct lang_type_header *lth)
-{
-  struct bitpack_d bp;
-
-  bp = pph_in_bitpack (stream);
-  lth->is_lang_type_class = bp_unpack_value (&bp, 1);
-  lth->has_type_conversion = bp_unpack_value (&bp, 1);
-  lth->has_copy_ctor = bp_unpack_value (&bp, 1);
-  lth->has_default_ctor = bp_unpack_value (&bp, 1);
-  lth->const_needs_init = bp_unpack_value (&bp, 1);
-  lth->ref_needs_init = bp_unpack_value (&bp, 1);
-  lth->has_const_copy_assign = bp_unpack_value (&bp, 1);
-}
-
-
-/* Read the vector V of tree_pair_s instances from STREAM.  */
-
-static VEC(tree_pair_s,gc) *
-pph_in_tree_pair_vec (pph_stream *stream)
-{
-  unsigned i, num;
-  VEC(tree_pair_s,gc) *v;
-
-  num = pph_in_uint (stream);
-  for (i = 0, v = NULL; i < num; i++)
-    {
-      tree_pair_s p;
-      p.purpose = pph_in_tree (stream);
-      p.value = pph_in_tree (stream);
-      VEC_safe_push (tree_pair_s, gc, v, &p);
-    }
-
-  return v;
-}
-
-
-/* Read a struct sorted_fields_type instance SFT to STREAM.  */
-
-static struct sorted_fields_type *
-pph_in_sorted_fields_type (pph_stream *stream)
-{
-  unsigned i, num_fields;
-  struct sorted_fields_type *v;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_sorted_fields_type);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct sorted_fields_type *)
-	  pph_cache_find (stream, marker, image_ix, ix, PPH_sorted_fields_type);
-
-  num_fields = pph_in_uint (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_sorted_fields_type, v,
-                      sorted_fields_type_new (num_fields));
-  for (i = 0; i < num_fields; i++)
-    v->elts[i] = pph_in_tree (stream);
-
-  return v;
-}
-
-
-/* Read all the fields in lang_type_class instance LTC to STREAM.  */
-
-static void
-pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
-{
-  struct bitpack_d bp;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  ltc->align = pph_in_uchar (stream);
-
-  bp = pph_in_bitpack (stream);
-  ltc->has_mutable = bp_unpack_value (&bp, 1);
-  ltc->com_interface = bp_unpack_value (&bp, 1);
-  ltc->non_pod_class = bp_unpack_value (&bp, 1);
-  ltc->nearly_empty_p = bp_unpack_value (&bp, 1);
-  ltc->user_align = bp_unpack_value (&bp, 1);
-  ltc->has_copy_assign = bp_unpack_value (&bp, 1);
-  ltc->has_new = bp_unpack_value (&bp, 1);
-  ltc->has_array_new = bp_unpack_value (&bp, 1);
-  ltc->gets_delete = bp_unpack_value (&bp, 2);
-  ltc->interface_only = bp_unpack_value (&bp, 1);
-  ltc->interface_unknown = bp_unpack_value (&bp, 1);
-  ltc->contains_empty_class_p = bp_unpack_value (&bp, 1);
-  ltc->anon_aggr = bp_unpack_value (&bp, 1);
-  ltc->non_zero_init = bp_unpack_value (&bp, 1);
-  ltc->empty_p = bp_unpack_value (&bp, 1);
-  ltc->vec_new_uses_cookie = bp_unpack_value (&bp, 1);
-  ltc->declared_class = bp_unpack_value (&bp, 1);
-  ltc->diamond_shaped = bp_unpack_value (&bp, 1);
-  ltc->repeated_base = bp_unpack_value (&bp, 1);
-  ltc->being_defined = bp_unpack_value (&bp, 1);
-  ltc->java_interface = bp_unpack_value (&bp, 1);
-  ltc->debug_requested = bp_unpack_value (&bp, 1);
-  ltc->fields_readonly = bp_unpack_value (&bp, 1);
-  ltc->use_template = bp_unpack_value (&bp, 2);
-  ltc->ptrmemfunc_flag = bp_unpack_value (&bp, 1);
-  ltc->was_anonymous = bp_unpack_value (&bp, 1);
-  ltc->lazy_default_ctor = bp_unpack_value (&bp, 1);
-  ltc->lazy_copy_ctor = bp_unpack_value (&bp, 1);
-  ltc->lazy_copy_assign = bp_unpack_value (&bp, 1);
-  ltc->lazy_destructor = bp_unpack_value (&bp, 1);
-  ltc->has_const_copy_ctor = bp_unpack_value (&bp, 1);
-  ltc->has_complex_copy_ctor = bp_unpack_value (&bp, 1);
-  ltc->has_complex_copy_assign = bp_unpack_value (&bp, 1);
-  ltc->non_aggregate = bp_unpack_value (&bp, 1);
-  ltc->has_complex_dflt = bp_unpack_value (&bp, 1);
-  ltc->has_list_ctor = bp_unpack_value (&bp, 1);
-  ltc->non_std_layout = bp_unpack_value (&bp, 1);
-  ltc->is_literal = bp_unpack_value (&bp, 1);
-  ltc->lazy_move_ctor = bp_unpack_value (&bp, 1);
-  ltc->lazy_move_assign = bp_unpack_value (&bp, 1);
-  ltc->has_complex_move_ctor = bp_unpack_value (&bp, 1);
-  ltc->has_complex_move_assign = bp_unpack_value (&bp, 1);
-  ltc->has_constexpr_ctor = bp_unpack_value (&bp, 1);
-
-  ltc->primary_base = pph_in_tree (stream);
-  ltc->vcall_indices = pph_in_tree_pair_vec (stream);
-  ltc->vtables = pph_in_tree (stream);
-  ltc->typeinfo_var = pph_in_tree (stream);
-  ltc->vbases = pph_in_tree_vec (stream);
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_binding_table);
-  if (marker == PPH_RECORD_START)
-    {
-      ltc->nested_udts = pph_in_binding_table (stream);
-      pph_cache_insert_at (&stream->cache, ltc->nested_udts, ix,
-                           PPH_binding_table);
-    }
-  else if (pph_is_reference_marker (marker))
-    ltc->nested_udts = (binding_table) pph_cache_find (stream, marker,
-						       image_ix, ix,
-						       PPH_binding_table);
-
-  ltc->as_base = pph_in_tree (stream);
-  ltc->pure_virtuals = pph_in_tree_vec (stream);
-  ltc->friend_classes = pph_in_tree (stream);
-  ltc->methods = pph_in_tree_vec (stream);
-  ltc->key_method = pph_in_tree (stream);
-  ltc->decl_list = pph_in_tree (stream);
-  ltc->template_info = pph_in_tree (stream);
-  ltc->befriending_classes = pph_in_tree (stream);
-  ltc->objc_info = pph_in_tree (stream);
-  ltc->sorted_fields = pph_in_sorted_fields_type (stream);
-  ltc->lambda_expr = pph_in_tree (stream);
-}
-
-
-/* Read all fields of struct lang_type_ptrmem instance LTP from STREAM.  */
-
-static void
-pph_in_lang_type_ptrmem (pph_stream *stream,
-				  struct lang_type_ptrmem *ltp)
-{
-  ltp->record = pph_in_tree (stream);
-}
-
-
-/* Read all the fields in struct lang_type from STREAM.  */
-
-static struct lang_type *
-pph_in_lang_type (pph_stream *stream)
-{
-  struct lang_type *lt;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_type);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct lang_type *) pph_cache_find (stream, marker, image_ix, ix,
-						PPH_lang_type);
-
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_lang_type, lt,
-                      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
-
-  pph_in_lang_type_header (stream, &lt->u.h);
-  if (lt->u.h.is_lang_type_class)
-    pph_in_lang_type_class (stream, &lt->u.c);
-  else
-    pph_in_lang_type_ptrmem (stream, &lt->u.ptrmem);
-
-  return lt;
-}
-
-
-/* Merge scope_chain bindings from STREAM into the scope_chain
-   bindings of the current translation unit.  This incorporates all
-   the symbols and types from the PPH image into the current TU so
-   name lookup can find identifiers brought from the image.  */
-
-static void
-pph_in_scope_chain (pph_stream *stream)
-{
-  unsigned i;
-  tree decl;
-  cp_class_binding *cb;
-  cp_label_binding *lb;
-  cp_binding_level *cur_bindings, *new_bindings;
-
-  /* When reading the symbols in STREAM's global binding level, make
-     sure that references to the global binding level point to
-     scope_chain->bindings.  Otherwise, identifiers read from STREAM
-     will have the wrong bindings and will fail name lookups.  */
-  cur_bindings = scope_chain->bindings;
-  pph_in_binding_level (&new_bindings, stream, scope_chain->bindings);
-
-  /* Merge the bindings from STREAM into saved_scope->bindings.  */
-  /* FMIXME crowl: The following should already have been done.
-  chainon (cur_bindings->names, new_bindings->names);
-  chainon (cur_bindings->namespaces, new_bindings->namespaces);
-  */
-
-  FOR_EACH_VEC_ELT (tree, new_bindings->static_decls, i, decl)
-    VEC_safe_push (tree, gc, cur_bindings->static_decls, decl);
-
-  chainon (cur_bindings->usings, new_bindings->usings);
-  chainon (cur_bindings->using_directives, new_bindings->using_directives);
-
-  FOR_EACH_VEC_ELT (cp_class_binding, new_bindings->class_shadowed, i, cb)
-    VEC_safe_push (cp_class_binding, gc, cur_bindings->class_shadowed, cb);
-
-  chainon (cur_bindings->type_shadowed, new_bindings->type_shadowed);
-
-  FOR_EACH_VEC_ELT (cp_label_binding, new_bindings->shadowed_labels, i, lb)
-    VEC_safe_push (cp_label_binding, gc, cur_bindings->shadowed_labels, lb);
-
-  chainon (cur_bindings->blocks, new_bindings->blocks);
-
-  gcc_assert (cur_bindings->this_entity == new_bindings->this_entity);
-  gcc_assert (cur_bindings->level_chain == new_bindings->level_chain);
-  gcc_assert (cur_bindings->dead_vars_from_for
-	      == new_bindings->dead_vars_from_for);
-
-  chainon (cur_bindings->statement_list, new_bindings->statement_list);
-
-  gcc_assert (cur_bindings->binding_depth == new_bindings->binding_depth);
-  gcc_assert (cur_bindings->kind == new_bindings->kind);
-  gcc_assert (cur_bindings->explicit_spec_p == new_bindings->explicit_spec_p);
-  gcc_assert (cur_bindings->keep == new_bindings->keep);
-  gcc_assert (cur_bindings->more_cleanups_ok == new_bindings->more_cleanups_ok);
-  gcc_assert (cur_bindings->have_cleanups == new_bindings->have_cleanups);
-}
-
-
-/* Wrap a macro DEFINITION for printing in an error.  */
-
-static char *
-wrap_macro_def (const char *definition)
-{
-  char *string;
-  if (definition)
-    {
-      size_t length;
-      length = strlen (definition);
-      string = (char *) xmalloc (length+3);
-      string[0] = '"';
-      strcpy (string + 1, definition);
-      string[length + 1] = '"';
-      string[length + 2] = '\0';
-    }
-  else
-    string = xstrdup ("undefined");
-  return string;
-}
-
-
-/* Report a macro validation error in FILENAME for macro IDENT,
-   which should have the value EXPECTED but actually had the value FOUND. */
-
-static void
-report_validation_error (const char *filename,
-			 const char *ident, const char *found,
-			 const char *before, const char *after)
-{
-  char* quote_found = wrap_macro_def (found);
-  char* quote_before = wrap_macro_def (before);
-  char* quote_after = wrap_macro_def (after);
-  error ("PPH file %s fails macro validation, "
-         "%s is %s and should be %s or %s\n",
-         filename, ident, quote_found, quote_before, quote_after);
-  free (quote_found);
-  free (quote_before);
-  free (quote_after);
-}
-
-
-/* Load the IDENTIFERS for a hunk from a STREAM.  */
-
-static void
-pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
-{
-  unsigned int j;
-  unsigned int max_ident_len, max_value_len, num_entries;
-  unsigned int ident_len, before_len, after_len;
-
-  max_ident_len = pph_in_uint (stream);
-  identifiers->max_ident_len = max_ident_len;
-  max_value_len = pph_in_uint (stream);
-  identifiers->max_value_len = max_value_len;
-  num_entries = pph_in_uint (stream);
-  identifiers->num_entries = num_entries;
-  identifiers->entries = XCNEWVEC (cpp_ident_use, num_entries);
-  identifiers->strings = XCNEW (struct obstack);
-
-  /* Strings need no alignment.  */
-  _obstack_begin (identifiers->strings, 0, 0,
-                  (void *(*) (long)) xmalloc,
-                  (void (*) (void *)) free);
-  obstack_alignment_mask (identifiers->strings) = 0;
-  /* FIXME pph: We probably need to free all these things somewhere.  */
-
-  /* Read the identifiers in HUNK. */
-  for (j = 0; j < num_entries; ++j)
-    {
-      const char *s;
-      identifiers->entries[j].used_by_directive = pph_in_uint (stream);
-      identifiers->entries[j].expanded_to_text = pph_in_uint (stream);
-      s = pph_in_string (stream);
-      gcc_assert (s);
-      ident_len = strlen (s);
-      identifiers->entries[j].ident_len = ident_len;
-      identifiers->entries[j].ident_str =
-        (const char *) obstack_copy0 (identifiers->strings, s, ident_len);
-
-      s = pph_in_string (stream);
-      if (s)
-	{
-	  before_len = strlen (s);
-	  identifiers->entries[j].before_len = before_len;
-	  identifiers->entries[j].before_str = (const char *)
-	      obstack_copy0 (identifiers->strings, s, before_len);
-	}
-      else
-	{
-	  /* The identifier table expects NULL entries to have
-	     a length of -1U.  */
-	  identifiers->entries[j].before_len = -1U;
-	  identifiers->entries[j].before_str = NULL;
-	}
-
-      s = pph_in_string (stream);
-      if (s)
-	{
-	  after_len = strlen (s);
-	  identifiers->entries[j].after_len = after_len;
-	  identifiers->entries[j].after_str = (const char *)
-	      obstack_copy0 (identifiers->strings, s, after_len);
-	}
-      else
-	{
-	  /* The identifier table expects NULL entries to have
-	     a length of -1U.  */
-	  identifiers->entries[j].after_len = -1U;
-	  identifiers->entries[j].after_str = NULL;
-	}
-    }
-}
-
-
-/* Read a symbol table marker from STREAM.  */
-
-static inline enum pph_symtab_action
-pph_in_symtab_action (pph_stream *stream)
-{
-  enum pph_symtab_action m = (enum pph_symtab_action) pph_in_uchar (stream);
-  gcc_assert (m == PPH_SYMTAB_DECLARE || m == PPH_SYMTAB_EXPAND);
-  return m;
-}
-
-
-/* Read and return a callgraph node from STREAM.  If this is the first
-   time we read this node, add it to the callgraph.  */
-
-static struct cgraph_node *
-pph_in_cgraph_node (pph_stream *stream)
-{
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-  struct cgraph_node *node;
-  tree fndecl;
-  struct bitpack_d bp;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cgraph_node);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct cgraph_node *) pph_cache_find (stream, marker, image_ix,
-						  ix, PPH_cgraph_node);
-
-  fndecl = pph_in_tree (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cgraph_node, node,
-                      cgraph_create_node (fndecl));
-
-  node->origin = pph_in_cgraph_node (stream);
-  node->nested = pph_in_cgraph_node (stream);
-  node->next_nested = pph_in_cgraph_node (stream);
-  node->next_needed = pph_in_cgraph_node (stream);
-  node->next_sibling_clone = pph_in_cgraph_node (stream);
-  node->prev_sibling_clone = pph_in_cgraph_node (stream);
-  node->clones = pph_in_cgraph_node (stream);
-  node->clone_of = pph_in_cgraph_node (stream);
-  node->same_comdat_group = pph_in_cgraph_node (stream);
-  gcc_assert (node->call_site_hash == NULL);
-  node->former_clone_of = pph_in_tree (stream);
-  gcc_assert (node->aux == NULL);
-  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
-
-  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
-  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
-
-  gcc_assert (node->local.lto_file_data == NULL);
-  bp = pph_in_bitpack (stream);
-  node->local.local = bp_unpack_value (&bp, 1);
-  node->local.externally_visible = bp_unpack_value (&bp, 1);
-  node->local.finalized = bp_unpack_value (&bp, 1);
-  node->local.can_change_signature = bp_unpack_value (&bp, 1);
-  node->local.redefined_extern_inline = bp_unpack_value (&bp, 1);
-
-  node->global.inlined_to = pph_in_cgraph_node (stream);
-
-  node->rtl.preferred_incoming_stack_boundary = pph_in_uint (stream);
-
-  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
-  node->thunk.fixed_offset = pph_in_uhwi (stream);
-  node->thunk.virtual_value = pph_in_uhwi (stream);
-  node->thunk.alias = pph_in_tree (stream);
-  bp = pph_in_bitpack (stream);
-  node->thunk.this_adjusting = bp_unpack_value (&bp, 1);
-  node->thunk.virtual_offset_p = bp_unpack_value (&bp, 1);
-  node->thunk.thunk_p = bp_unpack_value (&bp, 1);
-
-  node->count = pph_in_uhwi (stream);
-  node->count_materialization_scale = pph_in_uint (stream);
-
-  bp = pph_in_bitpack (stream);
-  node->needed = bp_unpack_value (&bp, 1);
-  node->address_taken = bp_unpack_value (&bp, 1);
-  node->abstract_and_needed = bp_unpack_value (&bp, 1);
-  node->reachable = bp_unpack_value (&bp, 1);
-  node->reachable_from_other_partition = bp_unpack_value (&bp, 1);
-  node->lowered = bp_unpack_value (&bp, 1);
-  node->analyzed = bp_unpack_value (&bp, 1);
-  node->in_other_partition = bp_unpack_value (&bp, 1);
-  node->process = bp_unpack_value (&bp, 1);
-  node->alias = bp_unpack_value (&bp, 1);
-  node->same_body_alias = bp_unpack_value (&bp, 1);
-  node->frequency = (enum node_frequency) bp_unpack_value (&bp, 2);
-  node->only_called_at_startup = bp_unpack_value (&bp, 1);
-  node->only_called_at_exit = bp_unpack_value (&bp, 1);
-
-  return node;
-}
-
-
-/* Read the symbol table from STREAM.  When this image is read into
-   another translation unit, we want to guarantee that the IL
-   instances taken from this image are instantiated in the same order
-   that they were instantiated when we generated this image.
-
-   With this, we can generate code in the same order out of the
-   original header files and out of PPH images.  */
-
-static void
-pph_in_symtab (pph_stream *stream)
-{
-  unsigned i, num;
-
-  /* Register all the symbols in STREAM in the same order of the
-     original compilation for this header file.  */
-  num = pph_in_uint (stream);
-  for (i = 0; i < num; i++)
-    {
-      enum pph_symtab_action action;
-      tree decl;
-      bool top_level, at_end;
-
-      action = pph_in_symtab_action (stream);
-      decl = pph_in_tree (stream);
-      if (action == PPH_SYMTAB_DECLARE)
-	{
-	  struct bitpack_d bp;
-	  bp = pph_in_bitpack (stream);
-	  top_level = bp_unpack_value (&bp, 1);
-	  at_end = bp_unpack_value (&bp, 1);
-	  cp_rest_of_decl_compilation (decl, top_level, at_end);
-	}
-      else if (action == PPH_SYMTAB_EXPAND)
-	{
-	  struct cgraph_node *node;
-
-	  pph_in_struct_function (stream, decl);
-	  node = pph_in_cgraph_node (stream);
-	  if (node && node->local.finalized)
-	    {
-	      /* Since the writer had finalized this cgraph node,
-		 we have to re-play its actions.  To do that, we need
-		 to clear the finalized and reachable bits in the
-		 node, otherwise cgraph_finalize_function will toss
-		 out this node.  */
-	      node->local.finalized = false;
-	      node->reachable = false;
-	      cgraph_finalize_function (node->decl, true);
-	    }
-	}
-      else
-	gcc_unreachable ();
-    }
-}
+/******************************************************** source information */
 
 
 /* Read a linenum_type from STREAM.  */
@@ -1721,122 +408,1238 @@ pph_in_line_table_and_includes (pph_stream *stream)
 }
 
 
-/* If FILENAME has already been read, return the stream associated with it.  */
+/*********************************************************** record handling */
 
-static pph_stream *
-pph_image_already_read (const char *filename)
+
+/* Read and return a record marker from STREAM.  On return, *TAG_P will
+   contain the tag for the data type stored in this record.  */
+enum pph_record_marker
+pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
 {
-  pph_stream *include;
-  unsigned i;
+  enum pph_record_marker m = (enum pph_record_marker) pph_in_uchar (stream);
+  gcc_assert (m == PPH_RECORD_START
+              || m == PPH_RECORD_START_NO_CACHE
+              || m == PPH_RECORD_START_MUTATED
+              || m == PPH_RECORD_END
+              || m == PPH_RECORD_IREF
+              || m == PPH_RECORD_XREF
+              || m == PPH_RECORD_PREF);
 
-  /* FIXME pph, implement a hash map to avoid this linear search.  */
-  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
-    if (strcmp (include->name, filename) == 0)
-      return include;
+  *tag_p = (enum pph_tag) pph_in_uint (stream);
+  gcc_assert ((unsigned) *tag_p < (unsigned) PPH_NUM_TAGS);
 
+  return m;
+}
+
+
+/* Read and return a record header from STREAM.  EXPECTED_TAG indicates
+   the data type that should be stored in this record.  When a
+   PPH_RECORD_START marker is read, the next word read is an index
+   into the streamer cache where the rematerialized data structure
+   should be stored. When the writer stored this data structure for
+   the first time, it added it to its own streamer cache at slot
+   number *CACHE_IX_P.
+
+   This way, if the same data structure was written a second time to
+   the stream, instead of writing the whole structure again, only the
+   index *CACHE_IX_P is written as a PPH_RECORD_IREF record.
+
+   Therefore, when reading a PPH_RECORD_START marker, *CACHE_IX_P will
+   contain the slot number where the materialized data should be
+   cached at.  When reading a PPH_RECORD_IREF marker, *CACHE_IX_P will
+   contain the slot number the reader can find the previously
+   materialized structure.
+
+   If the record starts with PPH_RECORD_XREF, this means that the data
+   we are about to read is located in the pickle cache of one of
+   STREAM's included images.  In this case, the record consists of two
+   indices: the first one (*INCLUDE_IX_P) indicates which included
+   image contains the data (it is an index into STREAM->INCLUDES), the
+   second one indicates which slot in that image's pickle cache we can
+   find the data.  */
+
+static inline enum pph_record_marker
+pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
+		     unsigned *cache_ix_p, enum pph_tag expected_tag)
+{
+  enum pph_tag read_tag;
+  enum pph_record_marker marker = pph_in_record_marker (stream, &read_tag);
+
+  /* If the caller expects any tree, make sure we get a valid tree code.  */
+  if (expected_tag == PPH_any_tree)
+    gcc_assert (read_tag < PPH_any_tree);
+  else
+    gcc_assert (read_tag == expected_tag);
+
+  *include_ix_p = (unsigned) -1;
+  *cache_ix_p = (unsigned) -1;
+
+  /* For PPH_RECORD_START and PPH_RECORD_IREF markers, read the
+     streamer cache slot where we should store or find the
+     rematerialized data structure (see description above).
+     Also read the preloaded cache slot in IX for PPH_RECORD_PREF.  */
+  if (marker == PPH_RECORD_START
+      || marker == PPH_RECORD_IREF
+      || marker == PPH_RECORD_PREF)
+    *cache_ix_p = pph_in_uint (stream);
+  else if (marker == PPH_RECORD_XREF
+           || marker == PPH_RECORD_START_MUTATED)
+    {
+      *include_ix_p = pph_in_uint (stream);
+      *cache_ix_p = pph_in_uint (stream);
+    }
+  else if (marker == PPH_RECORD_END || marker == PPH_RECORD_START_NO_CACHE)
+    ; /* Nothing to do.  This record will not need cache updates.  */
+  else
+    gcc_unreachable ();
+
+  return marker;
+}
+
+
+/*************************************************************** tree shells */
+
+
+/* The core tree reader is defined much later.  */
+
+static tree pph_read_any_tree (pph_stream *stream, tree *chain);
+
+
+/* Load an AST from STREAM.  Return the corresponding tree.  */
+tree
+pph_in_tree (pph_stream *stream)
+{
+  tree t = pph_read_any_tree (stream, NULL);
+  return t;
+}
+
+
+/* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
+   Return the corresponding tree.  */
+static void
+pph_in_mergeable_tree (pph_stream *stream, tree *chain)
+{
+  pph_read_any_tree (stream, chain);
+}
+
+
+/* Callback for reading ASTs from a stream.  Instantiate and return a
+   new tree from the PPH stream in DATA_IN.  */
+
+tree
+pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
+	       struct data_in *root_data_in)
+{
+  /* Find data.  */
+  pph_stream *stream = (pph_stream *) root_data_in->sdata;
+  return pph_read_any_tree (stream, NULL);
+}
+
+
+/********************************************************** lexical elements */
+
+
+/* Callback for streamer_hooks.input_location.  An offset is applied to
+   the location_t read in according to the properties of the merged
+   line_table.  IB and DATA_IN are as in lto_input_location.  This function
+   should only be called after pph_in_and_merge_line_table was called as
+   we expect pph_loc_offset to be set.  */
+
+location_t
+pph_read_location (struct lto_input_block *ib,
+                   struct data_in *data_in ATTRIBUTE_UNUSED)
+{
+  struct bitpack_d bp;
+  bool is_builtin;
+  unsigned HOST_WIDE_INT n;
+  location_t old_loc;
+
+  bp = streamer_read_bitpack (ib);
+  is_builtin = bp_unpack_value (&bp, 1);
+
+  n = streamer_read_uhwi (ib);
+  old_loc = (location_t) n;
+  gcc_assert (old_loc == n);
+
+  return is_builtin ? old_loc : old_loc + pph_loc_offset;
+}
+
+
+/* Read and return a location_t from STREAM.
+   FIXME pph: If pph_trace didn't depend on STREAM, we could avoid having to
+   call this function, only for it to call lto_input_location, which calls the
+   streamer hook back to pph_read_location.  */
+
+location_t
+pph_in_location (pph_stream *stream)
+{
+  location_t loc = pph_read_location (stream->encoder.r.ib,
+                                       stream->encoder.r.data_in);
+  return loc;
+}
+
+
+/* Load the tree value associated with TOKEN from STREAM.  */
+
+static void
+pph_in_token_value (pph_stream *stream, cp_token *token)
+{
+  switch (token->type)
+    {
+      case CPP_TEMPLATE_ID:
+      case CPP_NESTED_NAME_SPECIFIER:
+	/* FIXME pph - Need to handle struct tree_check.  */
+	break;
+
+      case CPP_KEYWORD:
+	token->u.value = ridpointers[token->keyword];
+	break;
+
+      case CPP_NAME:
+      case CPP_CHAR:
+      case CPP_WCHAR:
+      case CPP_CHAR16:
+      case CPP_CHAR32:
+      case CPP_NUMBER:
+      case CPP_STRING:
+      case CPP_WSTRING:
+      case CPP_STRING16:
+      case CPP_STRING32:
+	token->u.value = pph_in_tree (stream);
+	break;
+
+      case CPP_PRAGMA:
+	/* Nothing to do.  Field pragma_kind has already been loaded.  */
+	break;
+
+      default:
+	pph_in_bytes (stream, &token->u.value, sizeof (token->u.value));
+	gcc_assert (token->u.value == NULL);
+    }
+}
+
+
+/* Read and return a token from STREAM.  */
+
+static cp_token *
+pph_in_token (pph_stream *stream)
+{
+  cp_token *token = ggc_alloc_cleared_cp_token ();
+
+  /* Do not read the whole structure, the token value has
+     dynamic size as it contains swizzled pointers.
+     FIXME pph, restructure to allow bulk reads of the whole
+     section.  */
+  pph_in_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
+
+  /* FIXME pph.  Use an arbitrary (but valid) location to avoid
+     confusing the rest of the compiler for now.  */
+  token->location = input_location;
+
+  /* FIXME pph: verify that pph_in_token_value works with no tokens.  */
+  pph_in_token_value (stream, token);
+
+  return token;
+}
+
+
+/* Read and return a cp_token_cache instance from STREAM.  */
+
+static cp_token_cache *
+pph_in_token_cache (pph_stream *stream)
+{
+  unsigned i, num;
+  cp_token *first, *last;
+
+  num = pph_in_uint (stream);
+  for (last = first = NULL, i = 0; i < num; i++)
+    {
+      last = pph_in_token (stream);
+      if (first == NULL)
+	first = last;
+    }
+
+  return cp_token_cache_new (first, last);
+}
+
+
+/******************************************************************* vectors */
+
+
+/* Read and return a gc VEC of trees from STREAM.  */
+
+static VEC(tree,gc) *
+pph_in_tree_vec (pph_stream *stream)
+{
+  HOST_WIDE_INT i, num;
+  VEC(tree,gc) *v;
+
+  num = pph_in_hwi (stream);
+  v = NULL;
+  for (i = 0; i < num; i++)
+    {
+      tree t = pph_in_tree (stream);
+      VEC_safe_push (tree, gc, v, t);
+    }
+
+  return v;
+}
+
+
+/* Read and return a gc VEC of qualified_typedef_usage_t from STREAM.  */
+
+static VEC(qualified_typedef_usage_t,gc) *
+pph_in_qual_use_vec (pph_stream *stream)
+{
+  unsigned i, num;
+  VEC(qualified_typedef_usage_t,gc) *v;
+
+  num = pph_in_uint (stream);
+  v = NULL;
+  for (i = 0; i < num; i++)
+    {
+      qualified_typedef_usage_t q;
+      q.typedef_decl = pph_in_tree (stream);
+      q.context = pph_in_tree (stream);
+      q.locus = pph_in_location (stream);
+      VEC_safe_push (qualified_typedef_usage_t, gc, v, &q);
+    }
+
+  return v;
+}
+
+
+/* Read the vector V of tree_pair_s instances from STREAM.  */
+
+static VEC(tree_pair_s,gc) *
+pph_in_tree_pair_vec (pph_stream *stream)
+{
+  unsigned i, num;
+  VEC(tree_pair_s,gc) *v;
+
+  num = pph_in_uint (stream);
+  for (i = 0, v = NULL; i < num; i++)
+    {
+      tree_pair_s p;
+      p.purpose = pph_in_tree (stream);
+      p.value = pph_in_tree (stream);
+      VEC_safe_push (tree_pair_s, gc, v, &p);
+    }
+
+  return v;
+}
+
+
+/******************************************************************** chains */
+
+
+/* Read a chain of ASTs from STREAM.  */
+static tree
+pph_in_chain (pph_stream *stream)
+{
+  tree t = streamer_read_chain (stream->encoder.r.ib,
+                                stream->encoder.r.data_in);
+  return t;
+}
+
+
+/* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
+
+void
+pph_in_mergeable_chain (pph_stream *stream, tree *chain)
+{
+  int i, count;
+
+  count = streamer_read_hwi (stream->encoder.r.ib);
+  for (i = 0; i < count; i++)
+    pph_in_mergeable_tree (stream, chain);
+}
+
+
+/* Match a new decl EXPR at location WHERE with identifier string IDSTR
+   against an overload set at the LINK of a chain.
+   The EXPR may be added to that set.  */
+
+static tree
+pph_match_to_overload (tree expr ATTRIBUTE_UNUSED,
+			location_t where ATTRIBUTE_UNUSED,
+			const char *idstr, tree *link ATTRIBUTE_UNUSED)
+{
+  /* FIXME crowl: Assume functions are distinct for now.  */
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
   return NULL;
 }
 
 
-/* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
+/* Match a new decl EXPR at location WHERE with identifier string IDSTR
+   against a function at the LINK of a chain.
+   We may need to create an overload set if EXPR is not the same overload.  */
 
-static void
-pph_read_file_1 (pph_stream *stream)
+static tree
+pph_match_to_function (tree expr ATTRIBUTE_UNUSED,
+			location_t where ATTRIBUTE_UNUSED,
+			const char *idstr, tree *link ATTRIBUTE_UNUSED)
 {
-  bool verified;
-  cpp_ident_use *bad_use;
-  const char *cur_def;
-  cpp_idents_used idents_used;
-  tree t, file_keyed_classes, file_static_aggregates;
-  unsigned i;
-  VEC(tree,gc) *file_unemitted_tinfo_decls;
-  source_location cpp_token_replay_loc;
-
-  if (flag_pph_debug >= 1)
-    fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
-
-  /* Read in STREAM's line table and merge it in the current line table.
-     At the same time, read in includes in the order they were originally
-     read.  */
-  cpp_token_replay_loc = pph_in_line_table_and_includes (stream);
-
-  /* If we have read STREAM before, we do not need to re-read the rest
-     of its body.  We only needed to read its line table.  */
-  if (pph_image_already_read (stream->name))
-    return;
-
-  /* Read all the identifiers and pre-processor symbols in the global
-     namespace.  */
-  pph_in_identifiers (stream, &idents_used);
-
-  /* FIXME pph: This validation is weak.  */
-  verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
-  if (!verified)
-    report_validation_error (stream->name, bad_use->ident_str, cur_def,
-                             bad_use->before_str, bad_use->after_str);
-
-  /* Re-instantiate all the pre-processor symbols defined by STREAM.  Force
-     their source_location to line 1 / column 0 of the file they were included
-     in.  This avoids shifting all of the line_table's locations as we would by
-     adding locations which wouldn't be there in the non-pph compile; thus
-     working towards an identical line_table in pph and non-pph.  */
-  cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
-
-  /* Read the bindings from STREAM and merge them with the current bindings.  */
-  pph_in_scope_chain (stream);
-
-  if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
-
-  /* Read and merge the other global state collected during parsing of
-     the original header.  */
-  file_keyed_classes = pph_in_tree (stream);
-  keyed_classes = chainon (file_keyed_classes, keyed_classes);
-
-  file_unemitted_tinfo_decls = pph_in_tree_vec (stream);
-  FOR_EACH_VEC_ELT (tree, file_unemitted_tinfo_decls, i, t)
-    VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
-
-  pph_in_pending_templates_list (stream);
-  pph_in_spec_entry_tables (stream);
-
-  file_static_aggregates = pph_in_tree (stream);
-  static_aggregates = chainon (file_static_aggregates, static_aggregates);
-
-  /* Read and process the symbol table.  */
-  pph_in_symtab (stream);
-
-  /* If we are generating an image, the PPH contents we just read from
-     STREAM will need to be read again the next time we want to read
-     the image we are now generating.  */
-  if (pph_writer_enabled_p () && !pph_reading_includes)
-    pph_add_include (stream);
+  /* FIXME crowl: Assume functions are distinct for now.  */
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
+  return NULL;
 }
 
 
-/* Add STREAM to the list of read images.  */
+/* Match a new decl EXPR at location WHERE with identifier string IDSTR
+   against an LINK of a chain. */
 
-static void
-pph_add_read_image (pph_stream *stream)
+static tree
+pph_match_to_link (tree expr, location_t where, const char *idstr, tree* link)
 {
-  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
+  enum tree_code link_code, expr_code;
+  tree idtree;
+  const char *idptr;
+
+  link_code = TREE_CODE (*link);
+  if (link_code == TREE_LIST)
+    return pph_match_to_overload (expr, where, idstr, link);
+
+  expr_code = TREE_CODE (expr);
+  if (link_code != expr_code)
+    return NULL;
+
+  idtree = DECL_NAME (*link);
+  if (!idtree)
+    return NULL;
+
+  idptr = IDENTIFIER_POINTER (idtree);
+  if (!idptr)
+    return NULL;
+
+  if (strcmp (idptr, idstr) != 0)
+    {
+      if (flag_pph_debug >= 4)
+        fprintf (pph_logfile, "PPH: link \"%s\" "
+			      "does not match mergeable \"%s\"\n",
+			      idptr, idstr);
+      return NULL;
+    }
+
+  /* A name match!  */
+
+  if (expr_code == FUNCTION_DECL)
+    return pph_match_to_function (expr, where, idstr, link);
+
+  /* A non-function match.  */
+  return *link;
 }
 
 
-/* Read PPH file FILENAME.  Return the in-memory pph_stream instance.  */
+/* Possibly merge a new decl EXPR at location WHERE with identifier
+   string IDSTR into an the decl in the CHAIN. */
 
-void
-pph_read_file (const char *filename)
+static tree
+pph_search_in_chain (tree expr, location_t where, const char *idstr,
+			tree *chain)
 {
-  pph_stream *stream;
+  /* FIXME pph: This could resultin O(POW(n,2)) compilation.  */
+  tree *link = chain;
+  while (*link != NULL)
+    {
+      tree found = pph_match_to_link (expr, where, idstr, link);
+      if (found)
+        return found;
+      link = &DECL_CHAIN (*link);
+    }
+  return NULL;
+}
 
-  stream = pph_stream_open (filename, "rb");
-  if (stream)
-    pph_read_file_1 (stream);
+
+/* Prepend an tree EXPR to a CHAIN.  */
+
+static tree
+pph_prepend_to_chain (tree expr, tree *chain)
+{
+  DECL_CHAIN (expr) = *chain;
+  *chain = expr;
+  return expr;
+}
+
+/* Merge the just-read header for tree EXPR onto the CHAIN,
+   which may require reading more from the STREAM.  */
+
+static tree
+pph_merge_into_chain (pph_stream *stream, tree expr, tree *chain)
+{
+  location_t where;
+  const char *idstr;
+  tree found;
+
+  if (!DECL_P (expr))
+    return pph_prepend_to_chain (expr, chain);
+
+  where = pph_in_location (stream);
+  idstr = pph_in_string (stream);
+  if (!idstr)
+    return pph_prepend_to_chain (expr, chain);
+
+  found = pph_search_in_chain (expr, where, idstr, chain);
+  if (!found)
+    {
+      if (flag_pph_debug >= 3)
+        fprintf (pph_logfile, "PPH: %s NOT found on chain\n", idstr);
+      return pph_prepend_to_chain (expr, chain);
+    }
+
+  if (flag_pph_debug >= 3)
+    fprintf (pph_logfile, "PPH: %s FOUND on chain\n", idstr);
+  return found;
+}
+
+
+/****************************************************************** bindings */
+
+
+/* Forward declaration to break cyclic dependencies.  */
+static void pph_in_binding_level (cp_binding_level **,
+				  pph_stream *, cp_binding_level *);
+
+/* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
+   instance from STREAM.  */
+
+static cxx_binding *
+pph_in_cxx_binding_1 (pph_stream *stream)
+{
+  struct bitpack_d bp;
+  cxx_binding *cb;
+  tree value, type;
+  enum pph_record_marker marker;
+  unsigned ix, image_ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cxx_binding);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (cxx_binding *) pph_cache_find (stream, marker, image_ix, ix,
+					   PPH_cxx_binding);
+
+  value = pph_in_tree (stream);
+  type = pph_in_tree (stream);
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cxx_binding, cb,
+                      cxx_binding_make (value, type));
+  pph_in_binding_level (&cb->scope, stream, NULL);
+  bp = pph_in_bitpack (stream);
+  cb->value_is_inherited = bp_unpack_value (&bp, 1);
+  cb->is_local = bp_unpack_value (&bp, 1);
+
+  return cb;
+}
+
+
+/* Read and return an instance of cxx_binding from STREAM.  */
+
+static cxx_binding *
+pph_in_cxx_binding (pph_stream *stream)
+{
+  cxx_binding *curr, *prev, *cb;
+
+  /* Read the current binding first.  */
+  cb = pph_in_cxx_binding_1 (stream);
+
+  /* Read the list of previous bindings.  */
+  for (curr = cb; curr; curr = prev)
+    {
+      prev = pph_in_cxx_binding_1 (stream);
+      curr->previous = prev;
+    }
+
+  return cb;
+}
+
+
+/* Read all the fields of cp_class_binding instance CB to OB.  */
+
+static cp_class_binding *
+pph_in_class_binding (pph_stream *stream)
+{
+  cp_class_binding *cb;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_class_binding);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (cp_class_binding *) pph_cache_find (stream, marker, image_ix, ix,
+						PPH_cp_class_binding);
+
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_class_binding, cb,
+                      ggc_alloc_cleared_cp_class_binding ());
+  cb->base = pph_in_cxx_binding (stream);
+  cb->identifier = pph_in_tree (stream);
+
+  return cb;
+}
+
+
+/* Read and return an instance of cp_label_binding from STREAM.  */
+
+static cp_label_binding *
+pph_in_label_binding (pph_stream *stream)
+{
+  cp_label_binding *lb;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_label_binding);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (cp_label_binding *) pph_cache_find (stream, marker, image_ix, ix,
+						PPH_cp_label_binding);
+
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_label_binding, lb,
+                      ggc_alloc_cleared_cp_label_binding ());
+  lb->label = pph_in_tree (stream);
+  lb->prev_value = pph_in_tree (stream);
+
+  return lb;
+}
+
+
+/* Read and return an instance of cp_binding_level from STREAM.
+   TO_REGISTER is used when the caller wants to read a binding level,
+   but register a different binding level in the streaming cache.
+   This is needed when reading the binding for global_namespace.
+
+   When the file was created global_namespace was localized to that
+   particular file.  However, when instantiating a PPH file into
+   memory, we are now using the global_namespace for the current
+   translation unit.  Therefore, every reference to the
+   global_namespace and its bindings should be pointing to the
+   CURRENT global namespace, not the one in STREAM.
+
+   Therefore, if TO_REGISTER is set, and we read a binding level from
+   STREAM for the first time, instead of registering the newly
+   instantiated binding level into the cache, we register the binding
+   level given in TO_REGISTER.  This way, subsequent references to the
+   global binding level will be done to the one set in TO_REGISTER.  */
+
+static void
+pph_in_binding_level (cp_binding_level **out_field,
+                      pph_stream *stream, cp_binding_level *to_register)
+{
+  unsigned i, num, image_ix, ix;
+  cp_binding_level *bl;
+  struct bitpack_d bp;
+  enum pph_record_marker marker;
+  tree entity;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
+  if (marker == PPH_RECORD_END)
+    {
+      *out_field = NULL;
+      return;
+    }
+  else if (pph_is_reference_marker (marker))
+    {
+      *out_field = (cp_binding_level *)
+          pph_cache_find (stream, marker, image_ix, ix, PPH_cp_binding_level);
+      return;
+    }
+
+  /* If TO_REGISTER is set, register that binding level instead of the newly
+     allocated binding level into slot IX.  */
+  if (to_register == NULL)
+    ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_binding_level, bl,
+			ggc_alloc_cleared_cp_binding_level ());
   else
-    error ("Cannot open PPH file for reading: %s: %m", filename);
+    ALLOC_AND_REGISTER_ALTERNATE (&stream->cache, ix, PPH_cp_binding_level, bl,
+				  ggc_alloc_cleared_cp_binding_level (),
+				  to_register);
 
-  pph_add_read_image (stream);
+  /* Now activate the encompasing field in case we need to insert into a
+     namespace that we just read.  */
+  *out_field = bl;
+
+  entity = bl->this_entity = pph_in_tree (stream);
+  if (NAMESPACE_SCOPE_P (entity))
+    {
+      if (flag_pph_debug >= 3)
+        debug_tree_chain (bl->names);
+      pph_in_mergeable_chain (stream, &bl->names);
+      pph_in_mergeable_chain (stream, &bl->namespaces);
+      pph_in_mergeable_chain (stream, &bl->usings);
+      pph_in_mergeable_chain (stream, &bl->using_directives);
+    }
+  else
+    {
+      bl->names = pph_in_chain (stream);
+      bl->namespaces = pph_in_chain (stream);
+      bl->usings = pph_in_chain (stream);
+      bl->using_directives = pph_in_chain (stream);
+    }
+  bl->static_decls = pph_in_tree_vec (stream);
+
+  num = pph_in_uint (stream);
+  bl->class_shadowed = NULL;
+  for (i = 0; i < num; i++)
+    {
+      cp_class_binding *cb = pph_in_class_binding (stream);
+      VEC_safe_push (cp_class_binding, gc, bl->class_shadowed, cb);
+    }
+
+  bl->type_shadowed = pph_in_tree (stream);
+
+  num = pph_in_uint (stream);
+  bl->shadowed_labels = NULL;
+  for (i = 0; i < num; i++)
+    {
+      cp_label_binding *sl = pph_in_label_binding (stream);
+      VEC_safe_push (cp_label_binding, gc, bl->shadowed_labels, sl);
+    }
+
+  bl->blocks = pph_in_tree (stream);
+  pph_in_binding_level (&bl->level_chain, stream, NULL);
+  bl->dead_vars_from_for = pph_in_tree_vec (stream);
+  bl->statement_list = pph_in_chain (stream);
+  bl->binding_depth = pph_in_uint (stream);
+
+  bp = pph_in_bitpack (stream);
+  bl->kind = (enum scope_kind) bp_unpack_value (&bp, 4);
+  bl->keep = bp_unpack_value (&bp, 1);
+  bl->more_cleanups_ok = bp_unpack_value (&bp, 1);
+  bl->have_cleanups = bp_unpack_value (&bp, 1);
+}
+
+
+/********************************************************** tree aux classes */
+
+
+/* Read and return an instance of struct language_function from STREAM.  */
+
+static struct language_function *
+pph_in_language_function (pph_stream *stream)
+{
+  struct bitpack_d bp;
+  struct language_function *lf;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_language_function);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (struct language_function *) pph_cache_find (stream, marker,
+							image_ix, ix,
+							PPH_language_function);
+
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_language_function, lf,
+                      ggc_alloc_cleared_language_function ());
+  lf->base.x_stmt_tree.x_cur_stmt_list = pph_in_tree_vec (stream);
+  lf->base.x_stmt_tree.stmts_are_full_exprs_p = pph_in_uint (stream);
+  lf->x_cdtor_label = pph_in_tree (stream);
+  lf->x_current_class_ptr = pph_in_tree (stream);
+  lf->x_current_class_ref = pph_in_tree (stream);
+  lf->x_eh_spec_block = pph_in_tree (stream);
+  lf->x_in_charge_parm = pph_in_tree (stream);
+  lf->x_vtt_parm = pph_in_tree (stream);
+  lf->x_return_value = pph_in_tree (stream);
+  bp = pph_in_bitpack (stream);
+  lf->x_returns_value = bp_unpack_value (&bp, 1);
+  lf->x_returns_null = bp_unpack_value (&bp, 1);
+  lf->x_returns_abnormally = bp_unpack_value (&bp, 1);
+  lf->x_in_function_try_handler = bp_unpack_value (&bp, 1);
+  lf->x_in_base_initializer = bp_unpack_value (&bp, 1);
+  lf->can_throw = bp_unpack_value (&bp, 1);
+
+  /* FIXME pph.  We are not reading lf->x_named_labels.  */
+
+  pph_in_binding_level (&lf->bindings, stream, NULL);
+  lf->x_local_names = pph_in_tree_vec (stream);
+
+  /* FIXME pph.  We are not reading lf->extern_decl_map.  */
+
+  return lf;
+}
+
+
+/* Read applicable fields of struct function from STREAM.  Associate
+   the read structure to DECL.  */
+
+static void
+pph_in_struct_function (pph_stream *stream, tree decl)
+{
+  size_t count, i;
+  unsigned image_ix, ix;
+  enum pph_record_marker marker;
+  struct function *fn;
+  tree t;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_function);
+  if (marker == PPH_RECORD_END)
+    return;
+  else if (pph_is_reference_marker (marker))
+    {
+      fn = (struct function *) pph_cache_find (stream, marker, image_ix, ix,
+					       PPH_function);
+      gcc_assert (DECL_STRUCT_FUNCTION (decl) == fn);
+      return;
+    }
+
+  /* Allocate a new DECL_STRUCT_FUNCTION for DECL.  */
+  t = pph_in_tree (stream);
+  gcc_assert (t == decl);
+  allocate_struct_function (decl, false);
+  fn = DECL_STRUCT_FUNCTION (decl);
+
+  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
+     but allocate_struct_function does not return a pointer.  */
+  pph_cache_insert_at (&stream->cache, fn, ix, PPH_function);
+
+  input_struct_function_base (fn, stream->encoder.r.data_in,
+			      stream->encoder.r.ib);
+
+  /* struct eh_status *eh;					-- zero init */
+  /* struct control_flow_graph *cfg;				-- zero init */
+  /* struct gimple_seq_d *gimple_body;				-- zero init */
+  /* struct gimple_df *gimple_df;				-- zero init */
+  /* struct loops *x_current_loops;				-- zero init */
+  /* struct stack_usage *su;					-- zero init */
+  /* htab_t value_histograms;					-- zero init */
+  /* tree decl;							-- zero init */
+  /* tree static_chain_decl;					-- in base */
+  /* tree nonlocal_goto_save_area;				-- in base */
+  /* tree local_decls;						-- in base */
+  /* struct machine_function * machine;				-- zero init */
+
+  fn->language = pph_in_language_function (stream);
+
+  count = pph_in_uint (stream);
+  if ( count > 0 )
+    {
+      fn->used_types_hash = htab_create_ggc (37, htab_hash_pointer,
+					     htab_eq_pointer, NULL);
+      for (i = 0; i < count;  i++)
+	{
+	  void **slot;
+	  tree type = pph_in_tree (stream);
+	  slot = htab_find_slot (fn->used_types_hash, type, INSERT);
+	  if (*slot == NULL)
+	    *slot = type;
+	}
+    }
+  /* else zero initialized */
+
+  /* int last_stmt_uid;						-- zero init */
+  /* int funcdef_no;						-- zero init */
+  /* location_t function_start_locus;				-- in base */
+  /* location_t function_end_locus;				-- in base */
+  /* unsigned int curr_properties;				-- in base */
+  /* unsigned int last_verified;				-- zero init */
+  /* const char *cannot_be_copied_reason;			-- zero init */
+
+  /* unsigned int va_list_gpr_size : 8;				-- in base */
+  /* unsigned int va_list_fpr_size : 8;				-- in base */
+  /* unsigned int calls_setjmp : 1;				-- in base */
+  /* unsigned int calls_alloca : 1;				-- in base */
+  /* unsigned int has_nonlocal_label : 1;			-- in base */
+  /* unsigned int cannot_be_copied_set : 1;			-- zero init */
+  /* unsigned int stdarg : 1;					-- in base */
+  /* unsigned int after_inlining : 1;				-- in base */
+  /* unsigned int always_inline_functions_inlined : 1;		-- in base */
+  /* unsigned int can_throw_non_call_exceptions : 1;		-- in base */
+  /* unsigned int returns_struct : 1;				-- in base */
+  /* unsigned int returns_pcc_struct : 1;			-- in base */
+  /* unsigned int after_tree_profile : 1;			-- in base */
+  /* unsigned int has_local_explicit_reg_vars : 1;		-- in base */
+  /* unsigned int is_thunk : 1;					-- in base */
+}
+
+
+/* Read all fields in lang_decl_base instance LDB from STREAM.  */
+
+static void
+pph_in_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
+{
+  struct bitpack_d bp;
+
+  bp = pph_in_bitpack (stream);
+  ldb->selector = bp_unpack_value (&bp, 16);
+  ldb->language = (enum languages) bp_unpack_value (&bp, 4);
+  ldb->use_template = bp_unpack_value (&bp, 2);
+  ldb->not_really_extern = bp_unpack_value (&bp, 1);
+  ldb->initialized_in_class = bp_unpack_value (&bp, 1);
+  ldb->repo_available_p = bp_unpack_value (&bp, 1);
+  ldb->threadprivate_or_deleted_p = bp_unpack_value (&bp, 1);
+  ldb->anticipated_p = bp_unpack_value (&bp, 1);
+  ldb->friend_attr = bp_unpack_value (&bp, 1);
+  ldb->template_conv_p = bp_unpack_value (&bp, 1);
+  ldb->odr_used = bp_unpack_value (&bp, 1);
+  ldb->u2sel = bp_unpack_value (&bp, 1);
+}
+
+
+/* Read all the fields in lang_decl_min instance LDM from STREAM.  */
+
+static void
+pph_in_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
+{
+  ldm->template_info = pph_in_tree (stream);
+  if (ldm->base.u2sel == 0)
+    ldm->u2.access = pph_in_tree (stream);
+  else if (ldm->base.u2sel == 1)
+    ldm->u2.discriminator = pph_in_uint (stream);
+  else
+    gcc_unreachable ();
+}
+
+
+/* Read all the fields of lang_decl_fn instance LDF from STREAM.  */
+
+static void
+pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
+{
+  struct bitpack_d bp;
+
+  /* Read all the fields in lang_decl_min.  */
+  pph_in_ld_min (stream, &ldf->min);
+
+  bp = pph_in_bitpack (stream);
+  ldf->operator_code = (enum tree_code) bp_unpack_value (&bp, 16);
+  ldf->global_ctor_p = bp_unpack_value (&bp, 1);
+  ldf->global_dtor_p = bp_unpack_value (&bp, 1);
+  ldf->constructor_attr = bp_unpack_value (&bp, 1);
+  ldf->destructor_attr = bp_unpack_value (&bp, 1);
+  ldf->assignment_operator_p = bp_unpack_value (&bp, 1);
+  ldf->static_function = bp_unpack_value (&bp, 1);
+  ldf->pure_virtual = bp_unpack_value (&bp, 1);
+  ldf->defaulted_p = bp_unpack_value (&bp, 1);
+  ldf->has_in_charge_parm_p = bp_unpack_value (&bp, 1);
+  ldf->has_vtt_parm_p = bp_unpack_value (&bp, 1);
+  ldf->pending_inline_p = bp_unpack_value (&bp, 1);
+  ldf->nonconverting = bp_unpack_value (&bp, 1);
+  ldf->thunk_p = bp_unpack_value (&bp, 1);
+  ldf->this_thunk_p = bp_unpack_value (&bp, 1);
+  ldf->hidden_friend_p = bp_unpack_value (&bp, 1);
+
+  ldf->befriending_classes = pph_in_tree (stream);
+  ldf->context = pph_in_tree (stream);
+
+  if (ldf->thunk_p == 0)
+    ldf->u5.cloned_function = pph_in_tree (stream);
+  else if (ldf->thunk_p == 1)
+    ldf->u5.fixed_offset = pph_in_uint (stream);
+  else
+    gcc_unreachable ();
+
+  if (ldf->pending_inline_p == 1)
+    ldf->u.pending_inline_info = pph_in_token_cache (stream);
+  else if (ldf->pending_inline_p == 0)
+    ldf->u.saved_language_function = pph_in_language_function (stream);
+}
+
+
+/* Read all the fields of lang_decl_ns instance LDNS from STREAM.  */
+
+static void
+pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
+{
+  pph_in_binding_level (&ldns->level, stream, NULL);
+}
+
+
+/* Read all the fields of lang_decl_parm instance LDP from STREAM.  */
+
+static void
+pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
+{
+  ldp->level = pph_in_uint (stream);
+  ldp->index = pph_in_uint (stream);
+}
+
+
+/* Read language specific data in DECL from STREAM.  */
+
+static void
+pph_in_lang_specific (pph_stream *stream, tree decl)
+{
+  struct lang_decl *ld;
+  struct lang_decl_base *ldb;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
+  if (marker == PPH_RECORD_END)
+    return;
+  else if (pph_is_reference_marker (marker))
+    {
+      DECL_LANG_SPECIFIC (decl) =
+	(struct lang_decl *) pph_cache_find (stream, marker, image_ix, ix,
+					     PPH_lang_decl);
+      return;
+    }
+
+  /* Allocate a lang_decl structure for DECL.  */
+  retrofit_lang_decl (decl);
+  ld = DECL_LANG_SPECIFIC (decl);
+
+  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
+     but retrofit_lang_decl does not return a pointer.  */
+  pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
+
+  /* Read all the fields in lang_decl_base.  */
+  ldb = &ld->u.base;
+  pph_in_ld_base (stream, ldb);
+
+  if (ldb->selector == 0)
+    {
+      /* Read all the fields in lang_decl_min.  */
+      pph_in_ld_min (stream, &ld->u.min);
+    }
+  else if (ldb->selector == 1)
+    {
+      /* Read all the fields in lang_decl_fn.  */
+      pph_in_ld_fn (stream, &ld->u.fn);
+    }
+  else if (ldb->selector == 2)
+    {
+      /* Read all the fields in lang_decl_ns.  */
+      pph_in_ld_ns (stream, &ld->u.ns);
+    }
+  else if (ldb->selector == 3)
+    {
+      /* Read all the fields in lang_decl_parm.  */
+      pph_in_ld_parm (stream, &ld->u.parm);
+    }
+  else
+    gcc_unreachable ();
+}
+
+
+/********************************************************* tree base classes */
+
+
+/* Read in the tree_common fields.  */
+
+static void
+pph_in_tree_common (pph_stream *stream, tree t)
+{
+  /* The 'struct tree_typed typed' base class is handled in LTO.  */
+  TREE_CHAIN (t) = pph_in_tree (stream);
+}
+
+
+/* Read all the fields in lang_type_header instance LTH from STREAM.  */
+
+static void
+pph_in_lang_type_header (pph_stream *stream, struct lang_type_header *lth)
+{
+  struct bitpack_d bp;
+
+  bp = pph_in_bitpack (stream);
+  lth->is_lang_type_class = bp_unpack_value (&bp, 1);
+  lth->has_type_conversion = bp_unpack_value (&bp, 1);
+  lth->has_copy_ctor = bp_unpack_value (&bp, 1);
+  lth->has_default_ctor = bp_unpack_value (&bp, 1);
+  lth->const_needs_init = bp_unpack_value (&bp, 1);
+  lth->ref_needs_init = bp_unpack_value (&bp, 1);
+  lth->has_const_copy_assign = bp_unpack_value (&bp, 1);
+}
+
+
+/* Read a struct sorted_fields_type instance SFT to STREAM.  */
+
+static struct sorted_fields_type *
+pph_in_sorted_fields_type (pph_stream *stream)
+{
+  unsigned i, num_fields;
+  struct sorted_fields_type *v;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_sorted_fields_type);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (struct sorted_fields_type *)
+	  pph_cache_find (stream, marker, image_ix, ix, PPH_sorted_fields_type);
+
+  num_fields = pph_in_uint (stream);
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_sorted_fields_type, v,
+                      sorted_fields_type_new (num_fields));
+  for (i = 0; i < num_fields; i++)
+    v->elts[i] = pph_in_tree (stream);
+
+  return v;
+}
+
+
+/* Read all the fields in lang_type_class instance LTC to STREAM.  */
+
+static void
+pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
+{
+  struct bitpack_d bp;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  ltc->align = pph_in_uchar (stream);
+
+  bp = pph_in_bitpack (stream);
+  ltc->has_mutable = bp_unpack_value (&bp, 1);
+  ltc->com_interface = bp_unpack_value (&bp, 1);
+  ltc->non_pod_class = bp_unpack_value (&bp, 1);
+  ltc->nearly_empty_p = bp_unpack_value (&bp, 1);
+  ltc->user_align = bp_unpack_value (&bp, 1);
+  ltc->has_copy_assign = bp_unpack_value (&bp, 1);
+  ltc->has_new = bp_unpack_value (&bp, 1);
+  ltc->has_array_new = bp_unpack_value (&bp, 1);
+  ltc->gets_delete = bp_unpack_value (&bp, 2);
+  ltc->interface_only = bp_unpack_value (&bp, 1);
+  ltc->interface_unknown = bp_unpack_value (&bp, 1);
+  ltc->contains_empty_class_p = bp_unpack_value (&bp, 1);
+  ltc->anon_aggr = bp_unpack_value (&bp, 1);
+  ltc->non_zero_init = bp_unpack_value (&bp, 1);
+  ltc->empty_p = bp_unpack_value (&bp, 1);
+  ltc->vec_new_uses_cookie = bp_unpack_value (&bp, 1);
+  ltc->declared_class = bp_unpack_value (&bp, 1);
+  ltc->diamond_shaped = bp_unpack_value (&bp, 1);
+  ltc->repeated_base = bp_unpack_value (&bp, 1);
+  ltc->being_defined = bp_unpack_value (&bp, 1);
+  ltc->java_interface = bp_unpack_value (&bp, 1);
+  ltc->debug_requested = bp_unpack_value (&bp, 1);
+  ltc->fields_readonly = bp_unpack_value (&bp, 1);
+  ltc->use_template = bp_unpack_value (&bp, 2);
+  ltc->ptrmemfunc_flag = bp_unpack_value (&bp, 1);
+  ltc->was_anonymous = bp_unpack_value (&bp, 1);
+  ltc->lazy_default_ctor = bp_unpack_value (&bp, 1);
+  ltc->lazy_copy_ctor = bp_unpack_value (&bp, 1);
+  ltc->lazy_copy_assign = bp_unpack_value (&bp, 1);
+  ltc->lazy_destructor = bp_unpack_value (&bp, 1);
+  ltc->has_const_copy_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_complex_copy_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_complex_copy_assign = bp_unpack_value (&bp, 1);
+  ltc->non_aggregate = bp_unpack_value (&bp, 1);
+  ltc->has_complex_dflt = bp_unpack_value (&bp, 1);
+  ltc->has_list_ctor = bp_unpack_value (&bp, 1);
+  ltc->non_std_layout = bp_unpack_value (&bp, 1);
+  ltc->is_literal = bp_unpack_value (&bp, 1);
+  ltc->lazy_move_ctor = bp_unpack_value (&bp, 1);
+  ltc->lazy_move_assign = bp_unpack_value (&bp, 1);
+  ltc->has_complex_move_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_complex_move_assign = bp_unpack_value (&bp, 1);
+  ltc->has_constexpr_ctor = bp_unpack_value (&bp, 1);
+
+  ltc->primary_base = pph_in_tree (stream);
+  ltc->vcall_indices = pph_in_tree_pair_vec (stream);
+  ltc->vtables = pph_in_tree (stream);
+  ltc->typeinfo_var = pph_in_tree (stream);
+  ltc->vbases = pph_in_tree_vec (stream);
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_binding_table);
+  if (marker == PPH_RECORD_START)
+    {
+      ltc->nested_udts = pph_in_binding_table (stream);
+      pph_cache_insert_at (&stream->cache, ltc->nested_udts, ix,
+                           PPH_binding_table);
+    }
+  else if (pph_is_reference_marker (marker))
+    ltc->nested_udts = (binding_table) pph_cache_find (stream, marker,
+						       image_ix, ix,
+						       PPH_binding_table);
+
+  ltc->as_base = pph_in_tree (stream);
+  ltc->pure_virtuals = pph_in_tree_vec (stream);
+  ltc->friend_classes = pph_in_tree (stream);
+  ltc->methods = pph_in_tree_vec (stream);
+  ltc->key_method = pph_in_tree (stream);
+  ltc->decl_list = pph_in_tree (stream);
+  ltc->template_info = pph_in_tree (stream);
+  ltc->befriending_classes = pph_in_tree (stream);
+  ltc->objc_info = pph_in_tree (stream);
+  ltc->sorted_fields = pph_in_sorted_fields_type (stream);
+  ltc->lambda_expr = pph_in_tree (stream);
+}
+
+
+/* Read all fields of struct lang_type_ptrmem instance LTP from STREAM.  */
+
+static void
+pph_in_lang_type_ptrmem (pph_stream *stream,
+				  struct lang_type_ptrmem *ltp)
+{
+  ltp->record = pph_in_tree (stream);
+}
+
+
+/* Read all the fields in struct lang_type from STREAM.  */
+
+static struct lang_type *
+pph_in_lang_type (pph_stream *stream)
+{
+  struct lang_type *lt;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_type);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (struct lang_type *) pph_cache_find (stream, marker, image_ix, ix,
+						PPH_lang_type);
+
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_lang_type, lt,
+                      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
+
+  pph_in_lang_type_header (stream, &lt->u.h);
+  if (lt->u.h.is_lang_type_class)
+    pph_in_lang_type_class (stream, &lt->u.c);
+  else
+    pph_in_lang_type_ptrmem (stream, &lt->u.ptrmem);
+
+  return lt;
+}
+
+
+/* Read from STREAM the body of tcc_type node TYPE.  */
+
+static void
+pph_in_tcc_type (pph_stream *stream, tree type)
+{
+  TYPE_LANG_SPECIFIC (type) = pph_in_lang_type (stream);
+  TYPE_POINTER_TO (type) = pph_in_tree (stream);
+  TYPE_REFERENCE_TO (type) = pph_in_tree (stream);
+  TYPE_NEXT_VARIANT (type) = pph_in_tree (stream);
+  /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
+     failures.  Why?  */
+  /* FIXME pph: apparently redundant.  */
+  TREE_CHAIN (type) = pph_in_tree (stream);
+
+  /* The type values cache is built as constants are instantiated,
+     so we only stream it on the nodes that use it for
+     other purposes.  */
+  switch (TREE_CODE (type))
+    {
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+    case DECLTYPE_TYPE:
+    case TEMPLATE_TEMPLATE_PARM:
+    case TEMPLATE_TYPE_PARM:
+    case TYPENAME_TYPE:
+    case TYPEOF_TYPE:
+      TYPE_VALUES_RAW (type) = pph_in_tree (stream);
+      break;
+
+    default:
+      break;
+    }
+
+  /* If TYPE has a METHOD_VEC, we need to resort it.  Name lookup in
+     classes relies on the specific ordering of the class method
+     pointers.  Since we generally instantiate them in a different
+     order than the original compile, the pointer values will be
+     different.  This will cause name lookups to fail, unless we
+     resort the vector.  */
+  if (TYPE_LANG_SPECIFIC (type) && CLASSTYPE_METHOD_VEC (type))
+    finish_struct_methods (type);
 }
 
 
@@ -1890,47 +1693,7 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
 }
 
 
-/* Read from STREAM the body of tcc_type node TYPE.  */
-
-static void
-pph_in_tcc_type (pph_stream *stream, tree type)
-{
-  TYPE_LANG_SPECIFIC (type) = pph_in_lang_type (stream);
-  TYPE_POINTER_TO (type) = pph_in_tree (stream);
-  TYPE_REFERENCE_TO (type) = pph_in_tree (stream);
-  TYPE_NEXT_VARIANT (type) = pph_in_tree (stream);
-  /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
-     failures.  Why?  */
-  /* FIXME pph: apparently redundant.  */
-  TREE_CHAIN (type) = pph_in_tree (stream);
-
-  /* The type values cache is built as constants are instantiated,
-     so we only stream it on the nodes that use it for
-     other purposes.  */
-  switch (TREE_CODE (type))
-    {
-    case BOUND_TEMPLATE_TEMPLATE_PARM:
-    case DECLTYPE_TYPE:
-    case TEMPLATE_TEMPLATE_PARM:
-    case TEMPLATE_TYPE_PARM:
-    case TYPENAME_TYPE:
-    case TYPEOF_TYPE:
-      TYPE_VALUES_RAW (type) = pph_in_tree (stream);
-      break;
-
-    default:
-      break;
-    }
-
-  /* If TYPE has a METHOD_VEC, we need to resort it.  Name lookup in
-     classes relies on the specific ordering of the class method
-     pointers.  Since we generally instantiate them in a different
-     order than the original compile, the pointer values will be
-     different.  This will cause name lookups to fail, unless we
-     resort the vector.  */
-  if (TYPE_LANG_SPECIFIC (type) && CLASSTYPE_METHOD_VEC (type))
-    finish_struct_methods (type);
-}
+/******************************************************** tree head and body */
 
 
 /* Read the body fields of EXPR from STREAM.  */
@@ -2174,149 +1937,10 @@ pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
   return expr;
 }
 
-
-/* Match a new decl EXPR at location WHERE with identifier string IDSTR
-   against an overload set at the LINK of a chain.
-   The EXPR may be added to that set.  */
-
-static tree
-pph_match_to_overload (tree expr ATTRIBUTE_UNUSED,
-			location_t where ATTRIBUTE_UNUSED,
-			const char *idstr, tree *link ATTRIBUTE_UNUSED)
-{
-  /* FIXME crowl: Assume functions are distinct for now.  */
-  if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
-  return NULL;
-}
-
-
-/* Match a new decl EXPR at location WHERE with identifier string IDSTR
-   against a function at the LINK of a chain.
-   We may need to create an overload set if EXPR is not the same overload.  */
-
-static tree
-pph_match_to_function (tree expr ATTRIBUTE_UNUSED,
-			location_t where ATTRIBUTE_UNUSED,
-			const char *idstr, tree *link ATTRIBUTE_UNUSED)
-{
-  /* FIXME crowl: Assume functions are distinct for now.  */
-  if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
-  return NULL;
-}
-
-
-/* Match a new decl EXPR at location WHERE with identifier string IDSTR
-   against an LINK of a chain. */
-
-static tree
-pph_match_to_link (tree expr, location_t where, const char *idstr, tree* link)
-{
-  enum tree_code link_code, expr_code;
-  tree idtree;
-  const char *idptr;
-
-  link_code = TREE_CODE (*link);
-  if (link_code == TREE_LIST)
-    return pph_match_to_overload (expr, where, idstr, link);
-
-  expr_code = TREE_CODE (expr);
-  if (link_code != expr_code)
-    return NULL;
-
-  idtree = DECL_NAME (*link);
-  if (!idtree)
-    return NULL;
-
-  idptr = IDENTIFIER_POINTER (idtree);
-  if (!idptr)
-    return NULL;
-
-  if (strcmp (idptr, idstr) != 0)
-    {
-      if (flag_pph_debug >= 4)
-        fprintf (pph_logfile, "PPH: link \"%s\" "
-			      "does not match mergeable \"%s\"\n",
-			      idptr, idstr);
-      return NULL;
-    }
-
-  /* A name match!  */
-
-  if (expr_code == FUNCTION_DECL)
-    return pph_match_to_function (expr, where, idstr, link);
-
-  /* A non-function match.  */
-  return *link;
-}
-
-
-/* Possibly merge a new decl EXPR at location WHERE with identifier
-   string IDSTR into an the decl in the CHAIN. */
-
-static tree
-pph_search_in_chain (tree expr, location_t where, const char *idstr,
-			tree *chain)
-{
-  /* FIXME pph: This could resultin O(POW(n,2)) compilation.  */
-  tree *link = chain;
-  while (*link != NULL)
-    {
-      tree found = pph_match_to_link (expr, where, idstr, link);
-      if (found)
-        return found;
-      link = &DECL_CHAIN (*link);
-    }
-  return NULL;
-}
-
-
-/* Prepend an tree EXPR to a CHAIN.  */
-
-static tree
-pph_prepend_to_chain (tree expr, tree *chain)
-{
-  DECL_CHAIN (expr) = *chain;
-  *chain = expr;
-  return expr;
-}
-
-/* Merge the just-read header for tree EXPR onto the CHAIN,
-   which may require reading more from the STREAM.  */
-
-static tree
-pph_merge_into_chain (pph_stream *stream, tree expr, tree *chain)
-{
-  location_t where;
-  const char *idstr;
-  tree found;
-
-  if (!DECL_P (expr))
-    return pph_prepend_to_chain (expr, chain);
-
-  where = pph_in_location (stream);
-  idstr = pph_in_string (stream);
-  if (!idstr)
-    return pph_prepend_to_chain (expr, chain);
-
-  found = pph_search_in_chain (expr, where, idstr, chain);
-  if (!found)
-    {
-      if (flag_pph_debug >= 3)
-        fprintf (pph_logfile, "PPH: %s NOT found on chain\n", idstr);
-      return pph_prepend_to_chain (expr, chain);
-    }
-
-  if (flag_pph_debug >= 3)
-    fprintf (pph_logfile, "PPH: %s FOUND on chain\n", idstr);
-  return found;
-}
-
 /* Read a tree from the STREAM.  It ENCLOSING_NAMESPACE is not null,
    the tree may be unified with an existing tree in that namespace.  */
 
-tree
+static tree
 pph_read_any_tree (pph_stream *stream, tree *chain)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
@@ -2383,6 +2007,8 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
   pph_read_tree_body (stream, expr);
 
+  pph_new_trace_tree (stream, expr, chain != NULL);
+
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
      if we are generating a PPH image.  That is the only time
@@ -2401,61 +2027,454 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
 }
 
 
-/* Callback for reading ASTs from a stream.  Instantiate and return a
-   new tree from the PPH stream in DATA_IN.  */
+/************************************************************* file contents */
 
-tree
-pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
-	       struct data_in *root_data_in)
+
+/* Read a symbol table marker from STREAM.  */
+
+static inline enum pph_symtab_action
+pph_in_symtab_action (pph_stream *stream)
 {
-  /* Find data.  */
-  pph_stream *stream = (pph_stream *) root_data_in->sdata;
-  return pph_read_any_tree (stream, NULL);
+  enum pph_symtab_action m = (enum pph_symtab_action) pph_in_uchar (stream);
+  gcc_assert (m == PPH_SYMTAB_DECLARE || m == PPH_SYMTAB_EXPAND);
+  return m;
 }
 
 
-/* Load an AST from STREAM.  Return the corresponding tree.  */
-tree
-pph_in_tree (pph_stream *stream)
+/* Read and return a callgraph node from STREAM.  If this is the first
+   time we read this node, add it to the callgraph.  */
+
+static struct cgraph_node *
+pph_in_cgraph_node (pph_stream *stream)
 {
-  tree t = pph_read_any_tree (stream, NULL);
-  if (flag_pph_tracer >= 4)
-    pph_trace_tree (stream, t);
-  return t;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+  struct cgraph_node *node;
+  tree fndecl;
+  struct bitpack_d bp;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cgraph_node);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (struct cgraph_node *) pph_cache_find (stream, marker, image_ix,
+						  ix, PPH_cgraph_node);
+
+  fndecl = pph_in_tree (stream);
+  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cgraph_node, node,
+                      cgraph_create_node (fndecl));
+
+  node->origin = pph_in_cgraph_node (stream);
+  node->nested = pph_in_cgraph_node (stream);
+  node->next_nested = pph_in_cgraph_node (stream);
+  node->next_needed = pph_in_cgraph_node (stream);
+  node->next_sibling_clone = pph_in_cgraph_node (stream);
+  node->prev_sibling_clone = pph_in_cgraph_node (stream);
+  node->clones = pph_in_cgraph_node (stream);
+  node->clone_of = pph_in_cgraph_node (stream);
+  node->same_comdat_group = pph_in_cgraph_node (stream);
+  gcc_assert (node->call_site_hash == NULL);
+  node->former_clone_of = pph_in_tree (stream);
+  gcc_assert (node->aux == NULL);
+  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
+
+  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
+  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
+
+  gcc_assert (node->local.lto_file_data == NULL);
+  bp = pph_in_bitpack (stream);
+  node->local.local = bp_unpack_value (&bp, 1);
+  node->local.externally_visible = bp_unpack_value (&bp, 1);
+  node->local.finalized = bp_unpack_value (&bp, 1);
+  node->local.can_change_signature = bp_unpack_value (&bp, 1);
+  node->local.redefined_extern_inline = bp_unpack_value (&bp, 1);
+
+  node->global.inlined_to = pph_in_cgraph_node (stream);
+
+  node->rtl.preferred_incoming_stack_boundary = pph_in_uint (stream);
+
+  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
+  node->thunk.fixed_offset = pph_in_uhwi (stream);
+  node->thunk.virtual_value = pph_in_uhwi (stream);
+  node->thunk.alias = pph_in_tree (stream);
+  bp = pph_in_bitpack (stream);
+  node->thunk.this_adjusting = bp_unpack_value (&bp, 1);
+  node->thunk.virtual_offset_p = bp_unpack_value (&bp, 1);
+  node->thunk.thunk_p = bp_unpack_value (&bp, 1);
+
+  node->count = pph_in_uhwi (stream);
+  node->count_materialization_scale = pph_in_uint (stream);
+
+  bp = pph_in_bitpack (stream);
+  node->needed = bp_unpack_value (&bp, 1);
+  node->address_taken = bp_unpack_value (&bp, 1);
+  node->abstract_and_needed = bp_unpack_value (&bp, 1);
+  node->reachable = bp_unpack_value (&bp, 1);
+  node->reachable_from_other_partition = bp_unpack_value (&bp, 1);
+  node->lowered = bp_unpack_value (&bp, 1);
+  node->analyzed = bp_unpack_value (&bp, 1);
+  node->in_other_partition = bp_unpack_value (&bp, 1);
+  node->process = bp_unpack_value (&bp, 1);
+  node->alias = bp_unpack_value (&bp, 1);
+  node->same_body_alias = bp_unpack_value (&bp, 1);
+  node->frequency = (enum node_frequency) bp_unpack_value (&bp, 2);
+  node->only_called_at_startup = bp_unpack_value (&bp, 1);
+  node->only_called_at_exit = bp_unpack_value (&bp, 1);
+
+  return node;
 }
 
 
-/* Read a mergeable tree from STREAM into CHAIN.  */
+/* Read the symbol table from STREAM.  When this image is read into
+   another translation unit, we want to guarantee that the IL
+   instances taken from this image are instantiated in the same order
+   that they were instantiated when we generated this image.
 
-static tree
-pph_read_mergeable_tree (pph_stream *stream, tree *chain)
-{
-  return pph_read_any_tree (stream, chain);
-}
+   With this, we can generate code in the same order out of the
+   original header files and out of PPH images.  */
 
-
-/* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
-   Return the corresponding tree.  */
 static void
-pph_in_mergeable_tree (pph_stream *stream, tree *chain)
+pph_in_symtab (pph_stream *stream)
 {
-  tree t = pph_read_mergeable_tree (stream, chain);
-  if (flag_pph_tracer >= 3)
-    pph_trace_tree (stream, t);
+  unsigned i, num;
+
+  /* Register all the symbols in STREAM in the same order of the
+     original compilation for this header file.  */
+  num = pph_in_uint (stream);
+  for (i = 0; i < num; i++)
+    {
+      enum pph_symtab_action action;
+      tree decl;
+      bool top_level, at_end;
+
+      action = pph_in_symtab_action (stream);
+      decl = pph_in_tree (stream);
+      if (action == PPH_SYMTAB_DECLARE)
+	{
+	  struct bitpack_d bp;
+	  bp = pph_in_bitpack (stream);
+	  top_level = bp_unpack_value (&bp, 1);
+	  at_end = bp_unpack_value (&bp, 1);
+	  cp_rest_of_decl_compilation (decl, top_level, at_end);
+	}
+      else if (action == PPH_SYMTAB_EXPAND)
+	{
+	  struct cgraph_node *node;
+
+	  pph_in_struct_function (stream, decl);
+	  node = pph_in_cgraph_node (stream);
+	  if (node && node->local.finalized)
+	    {
+	      /* Since the writer had finalized this cgraph node,
+		 we have to re-play its actions.  To do that, we need
+		 to clear the finalized and reachable bits in the
+		 node, otherwise cgraph_finalize_function will toss
+		 out this node.  */
+	      node->local.finalized = false;
+	      node->reachable = false;
+	      cgraph_finalize_function (node->decl, true);
+	    }
+	}
+      else
+	gcc_unreachable ();
+    }
 }
 
 
-/* Read a chain of tree nodes from STREAM.  */
+/* Wrap a macro DEFINITION for printing in an error.  */
+
+static char *
+wrap_macro_def (const char *definition)
+{
+  char *string;
+  if (definition)
+    {
+      size_t length;
+      length = strlen (definition);
+      string = (char *) xmalloc (length+3);
+      string[0] = '"';
+      strcpy (string + 1, definition);
+      string[length + 1] = '"';
+      string[length + 2] = '\0';
+    }
+  else
+    string = xstrdup ("undefined");
+  return string;
+}
+
+
+/* Report a macro validation error in FILENAME for macro IDENT,
+   which should have the value EXPECTED but actually had the value FOUND. */
+
+static void
+report_validation_error (const char *filename,
+			 const char *ident, const char *found,
+			 const char *before, const char *after)
+{
+  char* quote_found = wrap_macro_def (found);
+  char* quote_before = wrap_macro_def (before);
+  char* quote_after = wrap_macro_def (after);
+  error ("PPH file %s fails macro validation, "
+         "%s is %s and should be %s or %s\n",
+         filename, ident, quote_found, quote_before, quote_after);
+  free (quote_found);
+  free (quote_before);
+  free (quote_after);
+}
+
+
+/* Load the IDENTIFERS for a hunk from a STREAM.  */
+
+static void
+pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
+{
+  unsigned int j;
+  unsigned int max_ident_len, max_value_len, num_entries;
+  unsigned int ident_len, before_len, after_len;
+
+  max_ident_len = pph_in_uint (stream);
+  identifiers->max_ident_len = max_ident_len;
+  max_value_len = pph_in_uint (stream);
+  identifiers->max_value_len = max_value_len;
+  num_entries = pph_in_uint (stream);
+  identifiers->num_entries = num_entries;
+  identifiers->entries = XCNEWVEC (cpp_ident_use, num_entries);
+  identifiers->strings = XCNEW (struct obstack);
+
+  /* Strings need no alignment.  */
+  _obstack_begin (identifiers->strings, 0, 0,
+                  (void *(*) (long)) xmalloc,
+                  (void (*) (void *)) free);
+  obstack_alignment_mask (identifiers->strings) = 0;
+  /* FIXME pph: We probably need to free all these things somewhere.  */
+
+  /* Read the identifiers in HUNK. */
+  for (j = 0; j < num_entries; ++j)
+    {
+      const char *s;
+      identifiers->entries[j].used_by_directive = pph_in_uint (stream);
+      identifiers->entries[j].expanded_to_text = pph_in_uint (stream);
+      s = pph_in_string (stream);
+      gcc_assert (s);
+      ident_len = strlen (s);
+      identifiers->entries[j].ident_len = ident_len;
+      identifiers->entries[j].ident_str =
+        (const char *) obstack_copy0 (identifiers->strings, s, ident_len);
+
+      s = pph_in_string (stream);
+      if (s)
+	{
+	  before_len = strlen (s);
+	  identifiers->entries[j].before_len = before_len;
+	  identifiers->entries[j].before_str = (const char *)
+	      obstack_copy0 (identifiers->strings, s, before_len);
+	}
+      else
+	{
+	  /* The identifier table expects NULL entries to have
+	     a length of -1U.  */
+	  identifiers->entries[j].before_len = -1U;
+	  identifiers->entries[j].before_str = NULL;
+	}
+
+      s = pph_in_string (stream);
+      if (s)
+	{
+	  after_len = strlen (s);
+	  identifiers->entries[j].after_len = after_len;
+	  identifiers->entries[j].after_str = (const char *)
+	      obstack_copy0 (identifiers->strings, s, after_len);
+	}
+      else
+	{
+	  /* The identifier table expects NULL entries to have
+	     a length of -1U.  */
+	  identifiers->entries[j].after_len = -1U;
+	  identifiers->entries[j].after_str = NULL;
+	}
+    }
+}
+
+
+/* Merge scope_chain bindings from STREAM into the scope_chain
+   bindings of the current translation unit.  This incorporates all
+   the symbols and types from the PPH image into the current TU so
+   name lookup can find identifiers brought from the image.  */
+
+static void
+pph_in_scope_chain (pph_stream *stream)
+{
+  unsigned i;
+  tree decl;
+  cp_class_binding *cb;
+  cp_label_binding *lb;
+  cp_binding_level *cur_bindings, *new_bindings;
+
+  /* When reading the symbols in STREAM's global binding level, make
+     sure that references to the global binding level point to
+     scope_chain->bindings.  Otherwise, identifiers read from STREAM
+     will have the wrong bindings and will fail name lookups.  */
+  cur_bindings = scope_chain->bindings;
+  pph_in_binding_level (&new_bindings, stream, scope_chain->bindings);
+
+  /* Merge the bindings from STREAM into saved_scope->bindings.  */
+  /* FMIXME crowl: The following should already have been done.
+  chainon (cur_bindings->names, new_bindings->names);
+  chainon (cur_bindings->namespaces, new_bindings->namespaces);
+  */
+
+  FOR_EACH_VEC_ELT (tree, new_bindings->static_decls, i, decl)
+    VEC_safe_push (tree, gc, cur_bindings->static_decls, decl);
+
+  chainon (cur_bindings->usings, new_bindings->usings);
+  chainon (cur_bindings->using_directives, new_bindings->using_directives);
+
+  FOR_EACH_VEC_ELT (cp_class_binding, new_bindings->class_shadowed, i, cb)
+    VEC_safe_push (cp_class_binding, gc, cur_bindings->class_shadowed, cb);
+
+  chainon (cur_bindings->type_shadowed, new_bindings->type_shadowed);
+
+  FOR_EACH_VEC_ELT (cp_label_binding, new_bindings->shadowed_labels, i, lb)
+    VEC_safe_push (cp_label_binding, gc, cur_bindings->shadowed_labels, lb);
+
+  chainon (cur_bindings->blocks, new_bindings->blocks);
+
+  gcc_assert (cur_bindings->this_entity == new_bindings->this_entity);
+  gcc_assert (cur_bindings->level_chain == new_bindings->level_chain);
+  gcc_assert (cur_bindings->dead_vars_from_for
+	      == new_bindings->dead_vars_from_for);
+
+  chainon (cur_bindings->statement_list, new_bindings->statement_list);
+
+  gcc_assert (cur_bindings->binding_depth == new_bindings->binding_depth);
+  gcc_assert (cur_bindings->kind == new_bindings->kind);
+  gcc_assert (cur_bindings->explicit_spec_p == new_bindings->explicit_spec_p);
+  gcc_assert (cur_bindings->keep == new_bindings->keep);
+  gcc_assert (cur_bindings->more_cleanups_ok == new_bindings->more_cleanups_ok);
+  gcc_assert (cur_bindings->have_cleanups == new_bindings->have_cleanups);
+}
+
+
+/* If FILENAME has already been read, return the stream associated with it.  */
+
+static pph_stream *
+pph_image_already_read (const char *filename)
+{
+  pph_stream *include;
+  unsigned i;
+
+  /* FIXME pph, implement a hash map to avoid this linear search.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
+    if (strcmp (include->name, filename) == 0)
+      return include;
+
+  return NULL;
+}
+
+
+/* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
+
+static void
+pph_read_file_1 (pph_stream *stream)
+{
+  bool verified;
+  cpp_ident_use *bad_use;
+  const char *cur_def;
+  cpp_idents_used idents_used;
+  tree t, file_keyed_classes, file_static_aggregates;
+  unsigned i;
+  VEC(tree,gc) *file_unemitted_tinfo_decls;
+  source_location cpp_token_replay_loc;
+
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
+
+  /* Read in STREAM's line table and merge it in the current line table.
+     At the same time, read in includes in the order they were originally
+     read.  */
+  cpp_token_replay_loc = pph_in_line_table_and_includes (stream);
+
+  /* If we have read STREAM before, we do not need to re-read the rest
+     of its body.  We only needed to read its line table.  */
+  if (pph_image_already_read (stream->name))
+    return;
+
+  /* Read all the identifiers and pre-processor symbols in the global
+     namespace.  */
+  pph_in_identifiers (stream, &idents_used);
+
+  /* FIXME pph: This validation is weak.  */
+  verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
+  if (!verified)
+    report_validation_error (stream->name, bad_use->ident_str, cur_def,
+                             bad_use->before_str, bad_use->after_str);
+
+  /* Re-instantiate all the pre-processor symbols defined by STREAM.  Force
+     their source_location to line 1 / column 0 of the file they were included
+     in.  This avoids shifting all of the line_table's locations as we would by
+     adding locations which wouldn't be there in the non-pph compile; thus
+     working towards an identical line_table in pph and non-pph.  */
+  cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
+
+  /* Read the bindings from STREAM and merge them with the current bindings.  */
+  pph_in_scope_chain (stream);
+
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
+
+  /* Read and merge the other global state collected during parsing of
+     the original header.  */
+  file_keyed_classes = pph_in_tree (stream);
+  keyed_classes = chainon (file_keyed_classes, keyed_classes);
+
+  file_unemitted_tinfo_decls = pph_in_tree_vec (stream);
+  FOR_EACH_VEC_ELT (tree, file_unemitted_tinfo_decls, i, t)
+    VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
+
+  pph_in_pending_templates_list (stream);
+  pph_in_spec_entry_tables (stream);
+
+  file_static_aggregates = pph_in_tree (stream);
+  static_aggregates = chainon (file_static_aggregates, static_aggregates);
+
+  /* Read and process the symbol table.  */
+  pph_in_symtab (stream);
+
+  /* If we are generating an image, the PPH contents we just read from
+     STREAM will need to be read again the next time we want to read
+     the image we are now generating.  */
+  if (pph_writer_enabled_p () && !pph_reading_includes)
+    pph_add_include (stream);
+}
+
+
+/* Add STREAM to the list of read images.  */
+
+static void
+pph_add_read_image (pph_stream *stream)
+{
+  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
+}
+
+
+/* Read PPH file FILENAME.  Return the in-memory pph_stream instance.  */
 
 void
-pph_read_mergeable_chain (pph_stream *stream, tree *chain)
+pph_read_file (const char *filename)
 {
-  int i, count;
+  pph_stream *stream;
 
-  count = streamer_read_hwi (stream->encoder.r.ib);
-  for (i = 0; i < count; i++)
-    pph_in_mergeable_tree (stream, chain);
+  stream = pph_stream_open (filename, "rb");
+  if (stream)
+    pph_read_file_1 (stream);
+  else
+    error ("Cannot open PPH file for reading: %s: %m", filename);
+
+  pph_add_read_image (stream);
 }
+
+
+/******************************************************* stream finalization */
 
 
 /* Finalize the PPH reader.  */

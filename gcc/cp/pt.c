@@ -20154,17 +20154,18 @@ pph_dump_tinst_level (FILE *stream, struct tinst_level *tinst)
   struct tinst_level *cur;
 
   /* Count the number of items.  */
-  for (cur = tinst; cur != NULL;  cur = cur->next )
+  for (cur = tinst; cur != NULL;  cur = cur->next)
     ++count;
 
   /* Now dump them.  */
-  fprintf (stream, "%d tinst_levels\n", count );
-  for (cur = tinst; cur != NULL;  cur = cur->next )
+  fprintf (stream, "%d tinst_levels\n", count);
+  for (cur = tinst; cur != NULL;  cur = cur->next)
     {
+      pph_dump_location (stream, cur->locus);
+      fprintf (stream, "\n");
       pph_dump_tree_name (stream, cur->decl, 0);
-      /* pph_dump_location (stream, cur->locus); */
-      fprintf (stream, "%d errors, ", cur->errors );
-      fprintf (stream, "%d in system header\n", cur->in_system_header_p );
+      fprintf (stream, "%d errors, ", cur->errors);
+      fprintf (stream, "%d in system header\n", cur->in_system_header_p);
     }
 }
 
@@ -20298,9 +20299,11 @@ pph_dump_spec_entry_slot (void **slot, void *aux)
 {
   FILE *stream = (FILE *)aux;
   struct spec_entry *entry = (struct spec_entry *) *slot;
-  fprintf (stream, "dumping a spec_entry\n" );
+  fprintf (stream, "spec_entry.tmpl: " );
   pph_dump_tree_name (stream, entry->tmpl, 0);
+  fprintf (stream, "spec_entry.args: " );
   pph_dump_tree_name (stream, entry->args, 0);
+  fprintf (stream, "\nspec_entry.spec: " );
   pph_dump_tree_name (stream, entry->spec, 0);
   return 1;
 }

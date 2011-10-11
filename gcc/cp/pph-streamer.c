@@ -168,7 +168,7 @@ pph_stream_close (pph_stream *stream)
   if (stream == NULL)
     return;
 
-  if (flag_pph_debug >= 1)
+  if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Closing %s\n", stream->name);
 
   /* If we were writing to STREAM, flush all the memory buffers.  This
@@ -252,8 +252,12 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
             if (DECL_P (t))
               {
                 fprintf (pph_logfile, ", value=");
+#if 1
                 print_generic_decl (pph_logfile,
                                     CONST_CAST (union tree_node *, t), 0);
+#else
+                pph_dump_tree_name (pph_logfile, t, 0);
+#endif
               }
           }
 	else
@@ -330,6 +334,28 @@ void
 pph_trace_tree (pph_stream *stream, tree t)
 {
   pph_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0, PPH_TRACE_TREE);
+}
+
+void
+pph_new_trace_tree (pph_stream *stream ATTRIBUTE_UNUSED, tree t, bool mergeable)
+{
+  bool emit = false;
+  char merging = mergeable ? '*' : '.';
+  bool is_decl = DECL_P (t);
+  char userdef =  is_decl ? '*' : '.';
+
+  if (mergeable && is_decl && flag_pph_tracer >= 2)
+    emit = true;
+  else if ((mergeable || is_decl) && flag_pph_tracer >= 3)
+    emit = true;
+  else if (flag_pph_tracer >= 4)
+    emit = true;
+
+  if (emit)
+    {
+      fprintf (pph_logfile, "PPH: %c%c ", merging, userdef);
+      pph_dump_tree_name (pph_logfile, t, 0);
+    }
 }
 
 

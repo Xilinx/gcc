@@ -229,6 +229,7 @@ void pph_init_preloaded_cache (void);
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
 void pph_trace_tree (pph_stream *, tree);
+void pph_new_trace_tree (pph_stream *, tree, bool);
 void pph_trace_uint (pph_stream *, unsigned int);
 void pph_trace_bytes (pph_stream *, const void *, size_t);
 void pph_trace_string (pph_stream *, const char *);

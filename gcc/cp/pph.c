@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "tree-inline.h"
 #include "tree-pretty-print.h"
+#include "cxx-pretty-print.h"
 #include "parser.h"
 #include "pph-streamer.h"
 
@@ -51,15 +52,24 @@ pph_tree_code_text (enum tree_code code)
   return tree_code_name[code];
 }
 
+
+/* Dump a location LOC to FILE.  */
+
+void
+pph_dump_location (FILE *file, location_t loc)
+{
+  expanded_location xloc = expand_location (loc);
+  fprintf (file, "%s:%d", xloc.file, xloc.line);
+}
+
 /* Dump identifying information for a minimal DECL to FILE.  */
 
 void
 pph_dump_min_decl (FILE *file, tree decl)
 {
-  expanded_location xloc = expand_location (DECL_SOURCE_LOCATION (decl));
   print_generic_expr (file, DECL_NAME (decl), 0);
   print_generic_expr (file, DECL_CONTEXT (decl), 0);
-  fprintf (file, "%s:%d", xloc.file, xloc.line);
+  pph_dump_location (file, DECL_SOURCE_LOCATION (decl));
 }
 
 /* Dump a complicated name for tree T to FILE using FLAGS.
@@ -68,6 +78,7 @@ pph_dump_min_decl (FILE *file, tree decl)
 void
 pph_dump_tree_name (FILE *file, tree t, int flags)
 {
+#if 0
   enum tree_code code = TREE_CODE (t);
   fprintf (file, "%s\t", pph_tree_code_text (code));
   if (code == FUNCTION_TYPE || code == METHOD_TYPE)
@@ -82,6 +93,16 @@ pph_dump_tree_name (FILE *file, tree t, int flags)
       print_generic_expr (file, t, flags);
     }
   fprintf (file, "\n");
+#else
+  if (DECL_P (t))
+    fprintf (file, "%s\n", decl_as_string (t, flags));
+  else if (TYPE_P (t))
+    fprintf (file, "%s\n", type_as_string (t, flags));
+  else if (EXPR_P (t))
+    fprintf (file, "%s\n", expr_as_string (t, flags));
+  else
+    print_generic_expr (file, t, flags);
+#endif
 }
 
 
@@ -145,7 +166,7 @@ pph_include_handler (cpp_reader *reader,
   const char *pph_file;
   bool read_text_file_p;
 
-  if (flag_pph_debug >= 1)
+  if (flag_pph_tracer >= 1)
     {
       fprintf (pph_logfile, "PPH: #%s", dname);
       fprintf (pph_logfile, " %c", angle_brackets ? '<' : '"');
@@ -193,7 +214,7 @@ pph_init (void)
   else
     pph_logfile = stdout;
 
-  if (flag_pph_debug >= 1)
+  if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Initializing.\n");
 
   /* Set up the libcpp handler for #include.  */
@@ -226,7 +247,7 @@ pph_finish (void)
   pph_reader_finish ();
 
   /* Close log files.  */
-  if (flag_pph_debug >= 1)
+  if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Finishing.\n");
 
   if (flag_pph_logfile)

@@ -41,6 +41,9 @@ along with GCC; see the file COPYING3.  If not see
 static pph_stream *pph_out_stream = NULL;
 
 
+/***************************************************** stream initialization */
+
+
 /* Initialize buffers and tables in STREAM for writing.  */
 
 void
@@ -57,47 +60,33 @@ pph_init_write (pph_stream *stream)
 }
 
 
-/* Callback for lang_hooks.lto.begin_section.  Open file NAME.  */
+/* Initialize the PPH writer.  */
 
-static void
-pph_begin_section (const char *name ATTRIBUTE_UNUSED)
+void
+pph_writer_init (void)
 {
+  gcc_assert (pph_out_stream == NULL);
+
+  pph_out_stream = pph_stream_open (pph_out_file, "wb");
+  if (pph_out_stream == NULL)
+    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
 }
 
 
-/* Callback for lang_hooks.lto.append_data.  Write LEN bytes from DATA
-   into pph_out_stream.  BLOCK is currently unused.  */
-
-static void
-pph_out (const void *data, size_t len, void *block ATTRIBUTE_UNUSED)
-{
-  if (data)
-    {
-      size_t written = fwrite (data, 1, len, pph_out_stream->file);
-      gcc_assert (written == len);
-    }
-}
-
-
-/* Callback for lang_hooks.lto.end_section.  */
-
-static void
-pph_end_section (void)
-{
-}
+/********************************************************** primitive values */
 
 
 /* Write an unsigned char VALUE to STREAM.  */
+
 static void
 pph_out_uchar (pph_stream *stream, unsigned char value)
 {
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, value);
   streamer_write_char_stream (stream->encoder.w.ob->main_stream, value);
 }
 
 
 /* Write a HOST_WIDE_INT VALUE to stream.  */
+
 static inline void
 pph_out_hwi (pph_stream *stream, HOST_WIDE_INT value)
 {
@@ -106,6 +95,7 @@ pph_out_hwi (pph_stream *stream, HOST_WIDE_INT value)
 
 
 /* Write an unsigned HOST_WIDE_INT VALUE to STREAM.  */
+
 static inline void
 pph_out_uhwi (pph_stream *stream, unsigned HOST_WIDE_INT value)
 {
@@ -114,31 +104,28 @@ pph_out_uhwi (pph_stream *stream, unsigned HOST_WIDE_INT value)
 
 
 /* Write an unsigned int VALUE to STREAM.  */
+
 void
 pph_out_uint (pph_stream *stream, unsigned int value)
 {
-  if (flag_pph_tracer >= 4)
-    pph_trace_uint (stream, value);
   streamer_write_uhwi (stream->encoder.w.ob, value);
 }
 
 
 /* Write N bytes from P to STREAM.  */
+
 static void
 pph_out_bytes (pph_stream *stream, const void *p, size_t n)
 {
-  if (flag_pph_tracer >= 4)
-    pph_trace_bytes (stream, p, n);
   lto_output_data_stream (stream->encoder.w.ob->main_stream, p, n);
 }
 
 
 /* Write string STR to STREAM.  */
+
 static inline void
 pph_out_string (pph_stream *stream, const char *str)
 {
-  if (flag_pph_tracer >= 4)
-    pph_trace_string (stream, str);
   streamer_write_string (stream->encoder.w.ob,
                          stream->encoder.w.ob->main_stream, str, false);
 }
@@ -149,8 +136,6 @@ static inline void
 pph_out_string_with_length (pph_stream *stream, const char *str,
                             unsigned int len)
 {
-  if (flag_pph_tracer >= 4)
-    pph_trace_string_with_length (stream, str, len);
   streamer_write_string_with_length (stream->encoder.w.ob,
                                      stream->encoder.w.ob->main_stream,
                                      str, len + 1, false);
@@ -158,176 +143,232 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
 
 
 /* Write a bitpack BP to STREAM.  */
+
 static inline void
 pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
 {
   gcc_assert (stream->encoder.w.ob->main_stream == bp->stream);
-  if (flag_pph_tracer >= 4)
-    pph_trace_bitpack (stream, bp);
   streamer_write_bitpack (bp);
 }
 
 
-/* Callback for streamer_hooks.output_location.  Output the LOC directly,
-   an offset will be applied on input after rebuilding the line_table.
-   OB and LOC are as in lto_output_location.  */
+/******************************************************** source information */
 
-void
-pph_write_location (struct output_block *ob, location_t loc)
+
+/* Emit linenum_type LN to STREAM.  */
+
+static inline void
+pph_out_linenum_type (pph_stream *stream, linenum_type ln)
 {
-  /* FIXME pph: we are streaming builtin locations, which implies that we are
-     streaming some builtins, we probably want to figure out what those are and
-     simply add them to the cache in the preload.  */
+  pph_out_uint (stream, ln);
+}
+
+
+/* Emit source_location SL to STREAM.  */
+
+static inline void
+pph_out_source_location (pph_stream *stream, source_location sl)
+{
+  pph_out_uint (stream, sl);
+}
+
+
+/* Emit line table MARKER to STREAM.  */
+
+static inline void
+pph_out_linetable_marker (pph_stream *stream, enum pph_linetable_marker marker)
+{
+  gcc_assert (marker == (enum pph_linetable_marker)(unsigned char) marker);
+  pph_out_uchar (stream, marker);
+}
+
+
+/* Emit all information contained in LM to STREAM.  */
+
+static void
+pph_out_line_map (pph_stream *stream, struct line_map *lm)
+{
   struct bitpack_d bp;
 
-  location_t first_non_builtin_loc =
-    line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location;
+  pph_out_string (stream, lm->to_file);
+  pph_out_linenum_type (stream, lm->to_line);
+  pph_out_source_location (stream, lm->start_location);
+  pph_out_uint (stream, (unsigned int) lm->included_from);
 
-  bp = bitpack_create (ob->main_stream);
-  if (loc < first_non_builtin_loc)
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, lm->reason, CHAR_BIT);
+  bp_pack_value (&bp, lm->sysp, CHAR_BIT);
+  bp_pack_value (&bp, lm->column_bits, COLUMN_BITS_BIT);
+  pph_out_bitpack (stream, &bp);
+}
+
+
+/* Write a reference of INCLUDE to STREAM.  Also write the START_LOCATION of
+   this include in the current line_table.  */
+
+static void
+pph_out_include (pph_stream *stream, pph_stream *include,
+                 source_location start_location)
+{
+  pph_out_source_location (stream, start_location);
+  pph_out_string (stream, include->name);
+}
+
+
+/* Compare filenames of a header and it's potentially corresponding pph file,
+   stripping the path passed in and the extension. Returns true if HEADER_PATH
+   and PPH_PATH end with the same filename. We expect HEADER_PATH to end in .h
+   and PPH_PATH to end in .pph.
+
+   FIXME pph: We should not need to do this if we handled include paths
+   correctly, but for now the linemap holds full paths and the stream's includes
+   list only holds the include name.  Also, the stream's includes hold pph
+   filenames where as the line_table as header filenames.  */
+
+static bool
+pph_filename_eq_ignoring_path (const char *header_path, const char *pph_path)
+{
+  const char *header_name = lbasename (header_path);
+  const char *pph_name = lbasename (pph_path);
+
+  const char *header_ext = strchr (header_name, '.');
+  const char *pph_ext = strchr (pph_name, '.');
+
+  unsigned int name_length;
+
+  if (header_ext != NULL)
     {
-      /* We should never stream out trees with locations between builtins
-	 and user locations (e.g. <command-line>).  */
-      if (loc > BUILTINS_LOCATION)
-        gcc_unreachable ();
-
-      bp_pack_value (&bp, true, 1);
+      name_length = header_ext - header_name;
+      gcc_assert (strcmp (header_ext, ".h") == 0);
     }
   else
-    {
-      gcc_assert (loc >=
-        line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location);
-      bp_pack_value (&bp, false, 1);
-    }
+    /* Some headers do not have a .h suffix, but will still
+       have a .pph suffix after being pph'ed.  */
+    name_length = strlen (header_name);
 
-  streamer_write_bitpack (&bp);
-  streamer_write_hwi (ob, loc);
+  gcc_assert (strcmp (pph_ext, ".pph") == 0);
+
+  /* Compare the filenames without their extension.  */
+  return pph_ext - pph_name == name_length
+         && strncmp (header_name, pph_name, name_length) == 0;
 }
 
 
-/* Write location LOC of length to STREAM.  */
+/* Add INCLUDE to the list of files included by pph_out_stream.  */
 
 void
-pph_out_location (pph_stream *stream, location_t loc)
+pph_add_include (pph_stream *include)
 {
-  if (flag_pph_tracer >= 4)
-    pph_trace_location (stream, loc);
-  pph_write_location (stream->encoder.w.ob, loc);
+  VEC_safe_push (pph_stream_ptr, heap, pph_out_stream->encoder.w.includes,
+		 include);
 }
 
 
-/* Write a chain of ASTs to STREAM starting with FIRST.  */
-static void
-pph_out_chain (pph_stream *stream, tree first)
+/* Return the *NEXT_INCLUDE_IX'th pph_stream in STREAM's list of includes.
+   Returns NULL if we have read all includes.  Increments *NEXT_INCLUDE_IX
+   when sucessful.  */
+
+static inline pph_stream *
+pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
 {
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, first);
-  streamer_write_chain (stream->encoder.w.ob, first, false);
+  if (*next_incl_ix < VEC_length (pph_stream_ptr, stream->encoder.w.includes))
+    return VEC_index (pph_stream_ptr, stream->encoder.w.includes,
+	              (*next_incl_ix)++);
+  else
+    return NULL;
 }
 
 
-/* Write the header for the PPH file represented by STREAM.  */
-
-static void
-pph_out_header (pph_stream *stream)
-{
-  pph_file_header header;
-  struct lto_output_stream header_stream;
-  int major, minor, patchlevel;
-
-  /* Collect version information.  */
-  parse_basever (&major, &minor, &patchlevel);
-  gcc_assert (major == (char) major);
-  gcc_assert (minor == (char) minor);
-  gcc_assert (patchlevel == (char) patchlevel);
-
-  /* Write the header for the PPH file.  */
-  memset (&header, 0, sizeof (header));
-  strcpy (header.id_str, pph_id_str);
-  header.major_version = (char) major;
-  header.minor_version = (char) minor;
-  header.patchlevel = (char) patchlevel;
-  header.strtab_size = stream->encoder.w.ob->string_stream->total_size;
-
-  memset (&header_stream, 0, sizeof (header_stream));
-  lto_output_data_stream (&header_stream, &header, sizeof (header));
-  lto_write_stream (&header_stream);
-}
-
-
-/* Write the body of the PPH file represented by STREAM.  */
+/* Emit the required line_map entry (those directly related to this include)
+   and some properties in the line_table to STREAM, ignoring builtin and
+   command-line entries.  We will write references to our direct includes
+   children and skip their actual line_map entries (unless they are non-pph
+   children in which case we have to write out their line_map entries as well).
+   We assume stream->encoder.w.includes contains the pph headers included in the
+   same order they are seen in the line_table.  */
 
 static void
-pph_out_body (pph_stream *stream)
+pph_out_line_table_and_includes (pph_stream *stream)
 {
-  /* Write the string table.  */
-  lto_write_stream (stream->encoder.w.ob->string_stream);
+  unsigned int ix, next_incl_ix = 0;
+  pph_stream *current_include;
 
-  /* Write the main stream where we have been pickling the parse trees.  */
-  lto_write_stream (stream->encoder.w.ob->main_stream);
-}
+  /* Any #include should have been fully parsed and exited at this point.  */
+  gcc_assert (line_table->depth == 0);
 
+  current_include = pph_get_next_include (stream, &next_incl_ix);
 
-/* Flush all the in-memory buffers for STREAM to disk.  */
-
-void
-pph_flush_buffers (pph_stream *stream)
-{
-  /* Redirect the LTO basic I/O langhooks.  */
-  lang_hooks.lto.begin_section = pph_begin_section;
-  lang_hooks.lto.append_data = pph_out;
-  lang_hooks.lto.end_section = pph_end_section;
-
-  /* Write the state buffers built by pph_out_*() calls.  */
-  lto_begin_section (stream->name, false);
-  pph_out_header (stream);
-  pph_out_body (stream);
-  lto_end_section ();
-}
-
-
-/* Return true if tree node T should be added to the pickle cache.  */
-
-static inline bool
-pph_cache_should_handle (tree t)
-{
-  if (t)
+  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES; ix < line_table->used; ix++)
     {
-      if (TREE_CODE (t) == INTEGER_CST)
-        {
-          /* With the exception of some special constants that are
-            pointer-compared everywhere (e.g., integer_zero_node), we
-            do not want constants in the cache.  Their physical
-            representation is smaller than a cache reference record
-            and they can also trick the cache in similar ways to
-            builtins (read below).  */
-          return false;
-        }
-      else if (streamer_handle_as_builtin_p (t))
-        {
-          /* We do not want builtins in the cache for two reasons:
+      struct line_map *lm = &line_table->maps[ix];
 
-            - They never need pickling.  Much like pre-loaded tree
-              nodes, builtins are pre-built by the compiler and
-              accessible with their class and code.
-
-            - They can trick the cache.  When possible, user-provided
-              functions are generally replaced by their builtin
-              counterparts (e.g., strcmp, malloc, etc).  When this
-              happens, the writer cache will store in its cache two
-              different expressions, one for the user provided
-              function and another for the builtin itself.  However,
-              when written out to the PPH image, they both get
-              emitted as a reference to the builtin.  Therefore, when
-              the reader tries to instantiate the second copy, it
-              tries to store the same tree in two different cache
-              slots (and proceeds to ICE in pph_cache_insert_at).  */
-          return false;
+      if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
+        {
+          /* The first non-ignored entry should be an LC_RENAME back in the
+            header after inserting the builtin and command-line entries.  When
+            reading the pph we want this to be a simple LC_ENTER as the builtin
+            and command_line entries will already exist and we are now entering
+	    a #include.  */
+          gcc_assert (lm->reason == LC_RENAME);
+          lm->reason = LC_ENTER;
         }
+
+      /* If this is an entry from a pph header, only output reference.  */
+      if (current_include != NULL
+	  && pph_filename_eq_ignoring_path (lm->to_file, current_include->name))
+	{
+	  int includer_level;
+
+	  gcc_assert (lm->reason == LC_ENTER);
+	  gcc_assert (lm->included_from != -1);
+
+	  pph_out_linetable_marker (stream, PPH_LINETABLE_REFERENCE);
+
+	  pph_out_include (stream, current_include, lm->start_location);
+
+	  /* Potentially lm could be included from a header other then the main
+	      one if a textual include includes a pph header (i.e. we can't
+	      simply rely on going back to included_from == -1).  */
+	  includer_level = INCLUDED_FROM (line_table, lm)->included_from;
+
+	  /* Skip all other linemap entries up to and including the LC_LEAVE
+	      from the referenced header back to the one including it.  */
+	  while (line_table->maps[++ix].included_from != includer_level)
+	    /* We should always leave this loop before the end of the
+		current line_table entries.  */
+	    gcc_assert (ix < line_table->used);
+
+	  current_include = pph_get_next_include (stream, &next_incl_ix);
+	}
+      else
+	{
+	  pph_out_linetable_marker (stream, PPH_LINETABLE_ENTRY);
+	  pph_out_line_map (stream, lm);
+	}
+
+      /* Restore changes made to first entry above if needed.  */
+      if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
+	lm->reason = LC_RENAME;
     }
 
-  return true;
+  pph_out_linetable_marker (stream, PPH_LINETABLE_END);
+
+  /* Output the number of entries written to validate on input.  */
+  pph_out_uint (stream, line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
+
+  /* Every pph header included should have been seen and skipped in the
+     line_table streaming above.  */
+  gcc_assert (next_incl_ix == VEC_length (pph_stream_ptr,
+					  stream->encoder.w.includes));
+
+  pph_out_source_location (stream, line_table->highest_location);
+  pph_out_source_location (stream, line_table->highest_line);
+
+  pph_out_uint (stream, line_table->max_column_hint);
 }
+
+
+/*********************************************************** record handling */
 
 
 /* Return a PPH record marker according to whether DATA is NULL or
@@ -453,6 +494,50 @@ pph_out_start_record (pph_stream *stream, void *data, enum pph_tag tag)
 }
 
 
+/* Return true if tree node T should be added to the pickle cache.  */
+
+static inline bool
+pph_cache_should_handle (tree t)
+{
+  if (t)
+    {
+      if (TREE_CODE (t) == INTEGER_CST)
+        {
+          /* With the exception of some special constants that are
+            pointer-compared everywhere (e.g., integer_zero_node), we
+            do not want constants in the cache.  Their physical
+            representation is smaller than a cache reference record
+            and they can also trick the cache in similar ways to
+            builtins (read below).  */
+          return false;
+        }
+      else if (streamer_handle_as_builtin_p (t))
+        {
+          /* We do not want builtins in the cache for two reasons:
+
+            - They never need pickling.  Much like pre-loaded tree
+              nodes, builtins are pre-built by the compiler and
+              accessible with their class and code.
+
+            - They can trick the cache.  When possible, user-provided
+              functions are generally replaced by their builtin
+              counterparts (e.g., strcmp, malloc, etc).  When this
+              happens, the writer cache will store in its cache two
+              different expressions, one for the user provided
+              function and another for the builtin itself.  However,
+              when written out to the PPH image, they both get
+              emitted as a reference to the builtin.  Therefore, when
+              the reader tries to instantiate the second copy, it
+              tries to store the same tree in two different cache
+              slots (and proceeds to ICE in pph_cache_insert_at).  */
+          return false;
+        }
+    }
+
+  return true;
+}
+
+
 /* Start a record for tree node T in STREAM.  This is like
    pph_out_start_record, but it filters certain special trees that
    should never be added to the cache.  Additionally, instead of
@@ -540,6 +625,92 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 }
 
 
+/*************************************************************** tree shells */
+
+
+/* The core tree writer is defined much later.  */
+
+static void pph_write_any_tree (pph_stream *stream, tree t, bool mergeable);
+
+
+/* Output non-mergeable AST T to STREAM  */
+
+void
+pph_out_tree (pph_stream *stream, tree t)
+{
+  pph_write_any_tree (stream, t, false);
+}
+
+
+/* Output mergable AST T to STREAM.  */
+
+static void
+pph_out_mergeable_tree (pph_stream *stream, tree t)
+{
+  pph_write_any_tree (stream, t, true);
+}
+
+
+/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
+   in OB.  */
+
+void
+pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+{
+  pph_stream *stream = (pph_stream *) ob->sdata;
+  pph_write_any_tree (stream, expr, false);
+}
+
+
+/********************************************************** lexical elements */
+
+
+/* Callback for streamer_hooks.output_location.  Output the LOC directly,
+   an offset will be applied on input after rebuilding the line_table.
+   OB and LOC are as in lto_output_location.  */
+
+void
+pph_write_location (struct output_block *ob, location_t loc)
+{
+  /* FIXME pph: we are streaming builtin locations, which implies that we are
+     streaming some builtins, we probably want to figure out what those are and
+     simply add them to the cache in the preload.  */
+  struct bitpack_d bp;
+
+  location_t first_non_builtin_loc =
+    line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location;
+
+  bp = bitpack_create (ob->main_stream);
+  if (loc < first_non_builtin_loc)
+    {
+      /* We should never stream out trees with locations between builtins
+	 and user locations (e.g. <command-line>).  */
+      if (loc > BUILTINS_LOCATION)
+        gcc_unreachable ();
+
+      bp_pack_value (&bp, true, 1);
+    }
+  else
+    {
+      gcc_assert (loc >=
+        line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location);
+      bp_pack_value (&bp, false, 1);
+    }
+
+  streamer_write_bitpack (&bp);
+  streamer_write_hwi (ob, loc);
+}
+
+
+/* Write location LOC of length to STREAM.  */
+
+void
+pph_out_location (pph_stream *stream, location_t loc)
+{
+  pph_write_location (stream->encoder.w.ob, loc);
+}
+
+
 /* Save the tree associated with TOKEN to STREAM.  */
 
 static void
@@ -622,95 +793,7 @@ pph_out_token_cache (pph_stream *f, cp_token_cache *cache)
 }
 
 
-/* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
-   higher, T is sent to pph_trace_tree.  */
-static void
-pph_out_tree_1 (pph_stream *stream, tree t, int tlevel)
-{
-  if (flag_pph_tracer >= tlevel)
-    pph_trace_tree (stream, t);
-  pph_write_tree (stream->encoder.w.ob, t, false);
-}
-
-/* Output AST T to STREAM.  Trigger tracing at -fpph-tracer=2.  */
-void
-pph_out_tree (pph_stream *stream, tree t)
-{
-  pph_out_tree_1 (stream, t, 2);
-}
-
-static void pph_write_mergeable_tree (pph_stream *stream, tree expr);
-
-/* Output AST T from ENCLOSING_NAMESPACE to STREAM.
-   Trigger tracing at -fpph-tracer=2.  */
-static void
-pph_out_mergeable_tree (pph_stream *stream, tree t)
-{
-  if (flag_pph_tracer >= 2)
-    pph_trace_tree (stream, t);
-  pph_write_mergeable_tree (stream, t);
-}
-
-
-/* Write all the fields in lang_decl_base instance LDB to OB.  */
-
-static void
-pph_out_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
-{
-  struct bitpack_d bp;
-
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, ldb->selector, 16);
-  bp_pack_value (&bp, ldb->language, 4);
-  bp_pack_value (&bp, ldb->use_template, 2);
-  bp_pack_value (&bp, ldb->not_really_extern, 1);
-  bp_pack_value (&bp, ldb->initialized_in_class, 1);
-  bp_pack_value (&bp, ldb->repo_available_p, 1);
-  bp_pack_value (&bp, ldb->threadprivate_or_deleted_p, 1);
-  bp_pack_value (&bp, ldb->anticipated_p, 1);
-  bp_pack_value (&bp, ldb->friend_attr, 1);
-  bp_pack_value (&bp, ldb->template_conv_p, 1);
-  bp_pack_value (&bp, ldb->odr_used, 1);
-  bp_pack_value (&bp, ldb->u2sel, 1);
-  pph_out_bitpack (stream, &bp);
-}
-
-
-/* Write all the fields in lang_decl_min instance LDM to STREAM.  */
-
-static void
-pph_out_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
-{
-  pph_out_tree_1 (stream, ldm->template_info, 1);
-  if (ldm->base.u2sel == 0)
-    pph_out_tree_1 (stream, ldm->u2.access, 1);
-  else if (ldm->base.u2sel == 1)
-    pph_out_uint (stream, ldm->u2.discriminator);
-  else
-    gcc_unreachable ();
-}
-
-
-/* Return true if T matches FILTER for STREAM.  */
-
-static inline bool
-pph_tree_matches (tree t, unsigned filter)
-{
-  if ((filter & PPHF_NO_BUILTINS)
-      && DECL_P (t)
-      && DECL_IS_BUILTIN (t))
-    return false;
-
-  if ((filter & PPHF_NO_PREFS)
-      && pph_cache_lookup (NULL, t, NULL, pph_tree_code_to_tag (t)))
-    return false;
-
-  if ((filter & PPHF_NO_XREFS)
-      && pph_cache_lookup_in_includes (t, NULL, NULL, pph_tree_code_to_tag (t)))
-    return false;
-
-  return true;
-}
+/******************************************************************* vectors */
 
 
 /* Write all the trees in VEC V to STREAM.  */
@@ -748,6 +831,28 @@ pph_out_mergeable_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
   pph_out_hwi (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT (tree, v, i, t)
     pph_out_mergeable_tree (stream, t);
+}
+
+
+/* Return true if T matches FILTER for STREAM.  */
+
+static inline bool
+pph_tree_matches (tree t, unsigned filter)
+{
+  if ((filter & PPHF_NO_BUILTINS)
+      && DECL_P (t)
+      && DECL_IS_BUILTIN (t))
+    return false;
+
+  if ((filter & PPHF_NO_PREFS)
+      && pph_cache_lookup (NULL, t, NULL, pph_tree_code_to_tag (t)))
+    return false;
+
+  if ((filter & PPHF_NO_XREFS)
+      && pph_cache_lookup_in_includes (t, NULL, NULL, pph_tree_code_to_tag (t)))
+    return false;
+
+  return true;
 }
 
 
@@ -795,6 +900,129 @@ pph_out_qual_use_vec (pph_stream *stream, VEC(qualified_typedef_usage_t,gc) *v)
       pph_out_location (stream, q->locus);
     }
 }
+
+
+/* Write the vector V of tree_pair_s instances to STREAM.  */
+
+static void
+pph_out_tree_pair_vec (pph_stream *stream, VEC(tree_pair_s,gc) *v)
+{
+  unsigned i;
+  tree_pair_s *p;
+
+  pph_out_uint (stream, VEC_length (tree_pair_s, v));
+  FOR_EACH_VEC_ELT (tree_pair_s, v, i, p)
+    {
+      pph_out_tree (stream, p->purpose);
+      pph_out_tree (stream, p->value);
+    }
+}
+
+
+/******************************************************************** chains */
+
+
+/* Write a chain of ASTs to STREAM starting with FIRST.  */
+
+static void
+pph_out_chain (pph_stream *stream, tree first)
+{
+  streamer_write_chain (stream->encoder.w.ob, first, false);
+}
+
+
+/* Emit the links of a chain to the STREAM in reverse order
+   from the ENCLOSING_NAMESPACE starting at T.  */
+
+static void
+pph_write_mergeable_links (pph_stream *stream, tree t)
+{
+  tree next_link;
+  if (!t)
+    return;
+
+  next_link = TREE_CHAIN (t);
+  pph_write_mergeable_links (stream, next_link);
+
+  /*FIXME pph: Is this circumlocution still needed? */
+  TREE_CHAIN (t) = NULL_TREE;
+
+  pph_out_mergeable_tree (stream, t);
+
+  TREE_CHAIN (t) = next_link;
+}
+
+
+/* Emit the chain of tree nodes from ENCLOSING_NAMESPACE starting at T
+   to STREAM.  */
+
+void
+pph_out_mergeable_chain (pph_stream *stream, tree t)
+{
+  int count = list_length (t);
+  streamer_write_hwi (stream->encoder.w.ob, count);
+  pph_write_mergeable_links (stream, t);
+}
+
+
+/* Output a chain of nodes to STREAM starting with FIRST.  Skip any
+   nodes that do not match FILTER.  */
+
+static void
+pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
+{
+  tree t;
+  VEC(tree, heap) *to_write = NULL;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_out_chain directly.  */
+  if (filter == PPHF_NONE)
+    {
+      pph_out_chain (stream, first);
+      return;
+    }
+
+  /* Collect all the nodes that match the filter.  */
+  for (t = first; t; t = TREE_CHAIN (t))
+    if (pph_tree_matches (t, filter))
+      VEC_safe_push (tree, heap, to_write, t);
+
+  /* Write them.  */
+  pph_out_tree_vec (stream, (VEC(tree,gc) *)to_write);
+  VEC_free (tree, heap, to_write);
+}
+
+
+/* Output a chain of nodes in ENCLOSING_NAMESPACE to STREAM
+   starting with FIRST.  Skip any nodes that do not match FILTER.  */
+
+static void
+pph_out_mergeable_chain_filtered (pph_stream *stream, tree first,
+					unsigned filter)
+{
+  tree t;
+  VEC(tree, heap) *to_write = NULL;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_out_chain directly.  */
+  if (filter == PPHF_NONE)
+    {
+      pph_out_mergeable_chain (stream, first);
+      return;
+    }
+
+  /* Collect all the nodes that match the filter.  */
+  for (t = first; t; t = TREE_CHAIN (t))
+    if (pph_tree_matches (t, filter))
+      VEC_safe_push (tree, heap, to_write, t);
+
+  /* Write them.  */
+  pph_out_mergeable_tree_vec (stream, (VEC(tree,gc) *)to_write);
+  VEC_free (tree, heap, to_write);
+}
+
+
+/****************************************************************** bindings */
 
 
 /* Forward declaration to break cyclic dependencies.  */
@@ -865,102 +1093,6 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 
   pph_out_tree (stream, lb->label);
   pph_out_tree (stream, lb->prev_value);
-}
-
-
-/* Emit the links of a chain to the STREAM in reverse order
-   from the ENCLOSING_NAMESPACE starting at T.  */
-
-static void
-pph_write_mergeable_links (pph_stream *stream, tree t)
-{
-  tree next_link;
-  if (!t)
-    return;
-
-  next_link = TREE_CHAIN (t);
-  pph_write_mergeable_links (stream, next_link);
-
-  /*FIXME pph: Is this circumlocution still needed? */
-  TREE_CHAIN (t) = NULL_TREE;
-
-  pph_out_mergeable_tree (stream, t);
-
-  TREE_CHAIN (t) = next_link;
-}
-
-
-/* Emit the chain of tree nodes from ENCLOSING_NAMESPACE starting at T
-   to STREAM.  */
-
-void
-pph_out_mergeable_chain (pph_stream *stream, tree t)
-{
-  int count;
-
-  if (flag_pph_tracer >= 2)
-    pph_trace_chain (stream, t);
-
-  count = list_length (t);
-  streamer_write_hwi (stream->encoder.w.ob, count);
-  pph_write_mergeable_links (stream, t);
-}
-
-
-/* Output a chain of nodes to STREAM starting with FIRST.  Skip any
-   nodes that do not match FILTER.  */
-
-static void
-pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
-{
-  tree t;
-  VEC(tree, heap) *to_write = NULL;
-
-  /* Special case.  If the caller wants no filtering, it is much
-     faster to just call pph_out_chain directly.  */
-  if (filter == PPHF_NONE)
-    {
-      pph_out_chain (stream, first);
-      return;
-    }
-
-  /* Collect all the nodes that match the filter.  */
-  for (t = first; t; t = TREE_CHAIN (t))
-    if (pph_tree_matches (t, filter))
-      VEC_safe_push (tree, heap, to_write, t);
-
-  /* Write them.  */
-  pph_out_tree_vec (stream, (VEC(tree,gc) *)to_write);
-  VEC_free (tree, heap, to_write);
-}
-
-
-/* Output a chain of nodes in ENCLOSING_NAMESPACE to STREAM
-   starting with FIRST.  Skip any nodes that do not match FILTER.  */
-
-static void
-pph_out_mergeable_chain_filtered (pph_stream *stream, tree first,
-					unsigned filter)
-{
-  tree t;
-  VEC(tree, heap) *to_write = NULL;
-
-  /* Special case.  If the caller wants no filtering, it is much
-     faster to just call pph_out_chain directly.  */
-  if (filter == PPHF_NONE)
-    {
-      pph_out_mergeable_chain (stream, first);
-      return;
-    }
-
-  /* Collect all the nodes that match the filter.  */
-  for (t = first; t; t = TREE_CHAIN (t))
-    if (pph_tree_matches (t, filter))
-      VEC_safe_push (tree, heap, to_write, t);
-
-  /* Write them.  */
-  pph_out_mergeable_tree_vec (stream, (VEC(tree,gc) *)to_write);
-  VEC_free (tree, heap, to_write);
 }
 
 
@@ -1035,14 +1167,7 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 }
 
 
-/* Write out the tree_common fields from T to STREAM.  */
-
-static void
-pph_out_tree_common (pph_stream *stream, tree t)
-{
-  /* The 'struct tree_typed typed' base class is handled in LTO.  */
-  pph_out_tree (stream, TREE_CHAIN (t));
-}
+/********************************************************** tree aux classes */
 
 
 /* Write all the fields of language_function instance LF to STREAM.  */
@@ -1079,52 +1204,6 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
   pph_out_tree_vec (stream, lf->x_local_names);
 
   /* FIXME pph.  We are not writing lf->extern_decl_map.  */
-}
-
-
-/* Write all the fields of lang_decl_fn instance LDF to STREAM.  */
-
-static void
-pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
-{
-  struct bitpack_d bp;
-
-  /* Write all the fields in lang_decl_min.  */
-  pph_out_ld_min (stream, &ldf->min);
-
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, ldf->operator_code, 16);
-  bp_pack_value (&bp, ldf->global_ctor_p, 1);
-  bp_pack_value (&bp, ldf->global_dtor_p, 1);
-  bp_pack_value (&bp, ldf->constructor_attr, 1);
-  bp_pack_value (&bp, ldf->destructor_attr, 1);
-  bp_pack_value (&bp, ldf->assignment_operator_p, 1);
-  bp_pack_value (&bp, ldf->static_function, 1);
-  bp_pack_value (&bp, ldf->pure_virtual, 1);
-  bp_pack_value (&bp, ldf->defaulted_p, 1);
-  bp_pack_value (&bp, ldf->has_in_charge_parm_p, 1);
-  bp_pack_value (&bp, ldf->has_vtt_parm_p, 1);
-  bp_pack_value (&bp, ldf->pending_inline_p, 1);
-  bp_pack_value (&bp, ldf->nonconverting, 1);
-  bp_pack_value (&bp, ldf->thunk_p, 1);
-  bp_pack_value (&bp, ldf->this_thunk_p, 1);
-  bp_pack_value (&bp, ldf->hidden_friend_p, 1);
-  pph_out_bitpack (stream, &bp);
-
-  pph_out_tree (stream, ldf->befriending_classes);
-  pph_out_tree (stream, ldf->context);
-
-  if (ldf->thunk_p == 0)
-    pph_out_tree (stream, ldf->u5.cloned_function);
-  else if (ldf->thunk_p == 1)
-    pph_out_uint (stream, ldf->u5.fixed_offset);
-  else
-    gcc_unreachable ();
-
-  if (ldf->pending_inline_p == 1)
-    pph_out_token_cache (stream, ldf->u.pending_inline_info);
-  else if (ldf->pending_inline_p == 0)
-    pph_out_language_function (stream, ldf->u.saved_language_function);
 }
 
 
@@ -1209,6 +1288,91 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
 }
 
 
+/* Write all the fields in lang_decl_base instance LDB to OB.  */
+
+static void
+pph_out_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
+{
+  struct bitpack_d bp;
+
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, ldb->selector, 16);
+  bp_pack_value (&bp, ldb->language, 4);
+  bp_pack_value (&bp, ldb->use_template, 2);
+  bp_pack_value (&bp, ldb->not_really_extern, 1);
+  bp_pack_value (&bp, ldb->initialized_in_class, 1);
+  bp_pack_value (&bp, ldb->repo_available_p, 1);
+  bp_pack_value (&bp, ldb->threadprivate_or_deleted_p, 1);
+  bp_pack_value (&bp, ldb->anticipated_p, 1);
+  bp_pack_value (&bp, ldb->friend_attr, 1);
+  bp_pack_value (&bp, ldb->template_conv_p, 1);
+  bp_pack_value (&bp, ldb->odr_used, 1);
+  bp_pack_value (&bp, ldb->u2sel, 1);
+  pph_out_bitpack (stream, &bp);
+}
+
+
+/* Write all the fields in lang_decl_min instance LDM to STREAM.  */
+
+static void
+pph_out_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
+{
+  pph_out_tree (stream, ldm->template_info);
+  if (ldm->base.u2sel == 0)
+    pph_out_tree (stream, ldm->u2.access);
+  else if (ldm->base.u2sel == 1)
+    pph_out_uint (stream, ldm->u2.discriminator);
+  else
+    gcc_unreachable ();
+}
+
+
+/* Write all the fields of lang_decl_fn instance LDF to STREAM.  */
+
+static void
+pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
+{
+  struct bitpack_d bp;
+
+  /* Write all the fields in lang_decl_min.  */
+  pph_out_ld_min (stream, &ldf->min);
+
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, ldf->operator_code, 16);
+  bp_pack_value (&bp, ldf->global_ctor_p, 1);
+  bp_pack_value (&bp, ldf->global_dtor_p, 1);
+  bp_pack_value (&bp, ldf->constructor_attr, 1);
+  bp_pack_value (&bp, ldf->destructor_attr, 1);
+  bp_pack_value (&bp, ldf->assignment_operator_p, 1);
+  bp_pack_value (&bp, ldf->static_function, 1);
+  bp_pack_value (&bp, ldf->pure_virtual, 1);
+  bp_pack_value (&bp, ldf->defaulted_p, 1);
+  bp_pack_value (&bp, ldf->has_in_charge_parm_p, 1);
+  bp_pack_value (&bp, ldf->has_vtt_parm_p, 1);
+  bp_pack_value (&bp, ldf->pending_inline_p, 1);
+  bp_pack_value (&bp, ldf->nonconverting, 1);
+  bp_pack_value (&bp, ldf->thunk_p, 1);
+  bp_pack_value (&bp, ldf->this_thunk_p, 1);
+  bp_pack_value (&bp, ldf->hidden_friend_p, 1);
+  pph_out_bitpack (stream, &bp);
+
+  pph_out_tree (stream, ldf->befriending_classes);
+  pph_out_tree (stream, ldf->context);
+
+  if (ldf->thunk_p == 0)
+    pph_out_tree (stream, ldf->u5.cloned_function);
+  else if (ldf->thunk_p == 1)
+    pph_out_uint (stream, ldf->u5.fixed_offset);
+  else
+    gcc_unreachable ();
+
+  if (ldf->pending_inline_p == 1)
+    pph_out_token_cache (stream, ldf->u.pending_inline_info);
+  else if (ldf->pending_inline_p == 0)
+    pph_out_language_function (stream, ldf->u.saved_language_function);
+}
+
+
 /* Write all the fields of lang_decl_ns instance LDNS to STREAM.  */
 
 static void
@@ -1269,6 +1433,19 @@ pph_out_lang_specific (pph_stream *stream, tree decl)
 }
 
 
+/********************************************************* tree base classes */
+
+
+/* Write out the tree_common fields from T to STREAM.  */
+
+static void
+pph_out_tree_common (pph_stream *stream, tree t)
+{
+  /* The 'struct tree_typed typed' base class is handled in LTO.  */
+  pph_out_tree (stream, TREE_CHAIN (t));
+}
+
+
 /* Write all the fields in lang_type_header instance LTH to STREAM.  */
 
 static void
@@ -1285,23 +1462,6 @@ pph_out_lang_type_header (pph_stream *stream, struct lang_type_header *lth)
   bp_pack_value (&bp, lth->ref_needs_init, 1);
   bp_pack_value (&bp, lth->has_const_copy_assign, 1);
   pph_out_bitpack (stream, &bp);
-}
-
-
-/* Write the vector V of tree_pair_s instances to STREAM.  */
-
-static void
-pph_out_tree_pair_vec (pph_stream *stream, VEC(tree_pair_s,gc) *v)
-{
-  unsigned i;
-  tree_pair_s *p;
-
-  pph_out_uint (stream, VEC_length (tree_pair_s, v));
-  FOR_EACH_VEC_ELT (tree_pair_s, v, i, p)
-    {
-      pph_out_tree (stream, p->purpose);
-      pph_out_tree (stream, p->value);
-    }
 }
 
 
@@ -1425,458 +1585,37 @@ pph_out_lang_type (pph_stream *stream, tree type)
 }
 
 
-/* Write the global bindings in scope_chain to STREAM.  */
+/* Write to STREAM the body of tcc_type node TYPE.  */
 
 static void
-pph_out_scope_chain (pph_stream *stream)
+pph_out_tcc_type (pph_stream *stream, tree type)
 {
-  /* old_namespace should be global_namespace and all entries listed below
-     should be NULL or 0; otherwise the header parsed was incomplete.  */
-  gcc_assert (scope_chain->old_namespace == global_namespace
-	      && !(scope_chain->class_name
-		   || scope_chain->class_type
-		   || scope_chain->access_specifier
-		   || scope_chain->function_decl
-		   || scope_chain->template_parms
-		   || scope_chain->x_saved_tree
-		   || scope_chain->class_bindings
-		   || scope_chain->prev
-		   || scope_chain->unevaluated_operand
-		   || scope_chain->inhibit_evaluation_warnings
-		   || scope_chain->x_processing_template_decl
-		   || scope_chain->x_processing_specialization
-		   || scope_chain->x_processing_explicit_instantiation
-		   || scope_chain->need_pop_function_context
-		   || scope_chain->x_stmt_tree.x_cur_stmt_list
-		   || scope_chain->x_stmt_tree.stmts_are_full_exprs_p));
+  pph_out_lang_type (stream, type);
+  pph_out_tree (stream, TYPE_POINTER_TO (type));
+  pph_out_tree (stream, TYPE_REFERENCE_TO (type));
+  pph_out_tree (stream, TYPE_NEXT_VARIANT (type));
+  /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
+     failures.  Why?  */
+  /* FIXME pph: apparently redundant.  */
+  pph_out_tree (stream, TREE_CHAIN (type));
 
-  /* We only need to write out the bindings, everything else should
-     be NULL or be some temporary disposable state.
-
-     Note that we explicitly force the pickling of
-     scope_chain->bindings.  If we had previously read another PPH
-     image, scope_chain->bindings will be in the other image's pickle
-     cache.  This would cause pph_out_binding_level to emit a cache
-     reference to it, instead of writing its fields.  */
-  {
-    unsigned ix;
-    pph_cache_add (&stream->cache, scope_chain->bindings, &ix,
-                   PPH_cp_binding_level);
-    pph_out_record_marker (stream, PPH_RECORD_START, PPH_cp_binding_level);
-    pph_out_uint (stream, ix);
-    pph_out_binding_level_1 (stream, scope_chain->bindings,
-			     PPHF_NO_XREFS | PPHF_NO_PREFS);
-  }
-}
-
-
-/* Save the IDENTIFIERS to the STREAM.  */
-
-static void
-pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
-{
-  unsigned int num_entries, active_entries, id;
-
-  num_entries = identifiers->num_entries;
-  pph_out_uint (stream, identifiers->max_ident_len);
-  pph_out_uint (stream, identifiers->max_value_len);
-
-  active_entries = 0;
-  for ( id = 0; id < num_entries; ++id )
+  /* The type values cache is built as constants are instantiated,
+     so we only stream it on the nodes that use it for
+     other purposes.  */
+  switch (TREE_CODE (type))
     {
-      cpp_ident_use *entry = identifiers->entries + id;
-      if (!(entry->used_by_directive || entry->expanded_to_text))
-        continue;
-      ++active_entries;
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+    case DECLTYPE_TYPE:
+    case TEMPLATE_TEMPLATE_PARM:
+    case TEMPLATE_TYPE_PARM:
+    case TYPENAME_TYPE:
+    case TYPEOF_TYPE:
+      pph_out_tree (stream, TYPE_VALUES_RAW (type));
+      break;
+
+    default:
+      break;
     }
-
-  pph_out_uint (stream, active_entries);
-
-  for ( id = 0; id < num_entries; ++id )
-    {
-      cpp_ident_use *entry = identifiers->entries + id;
-
-      if (!(entry->used_by_directive || entry->expanded_to_text))
-        continue;
-
-      /* FIXME pph: We are wasting space; ident_len, used_by_directive
-      and expanded_to_text together could fit into a single uint. */
-
-      pph_out_uint (stream, entry->used_by_directive);
-      pph_out_uint (stream, entry->expanded_to_text);
-
-      gcc_assert (entry->ident_len <= identifiers->max_ident_len);
-      pph_out_string_with_length (stream, entry->ident_str,
-				     entry->ident_len);
-
-      gcc_assert (entry->before_len <= identifiers->max_value_len);
-      pph_out_string_with_length (stream, entry->before_str,
-				     entry->before_len);
-
-      gcc_assert (entry->after_len <= identifiers->max_value_len);
-      pph_out_string_with_length (stream, entry->after_str,
-				     entry->after_len);
-    }
-}
-
-
-/* Emit symbol table ACTION to STREAM.  */
-
-static inline void
-pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
-{
-  gcc_assert (action == (enum pph_symtab_action)(unsigned char) action);
-  pph_out_uchar (stream, action);
-}
-
-/* Emit callgraph NODE to STREAM.  */
-
-static void
-pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
-{
-  struct bitpack_d bp;
-
-  if (pph_out_start_record (stream, node, PPH_cgraph_node))
-    return;
-
-  pph_out_tree (stream, node->decl);
-  pph_out_cgraph_node (stream, node->origin);
-  pph_out_cgraph_node (stream, node->nested);
-  pph_out_cgraph_node (stream, node->next_nested);
-  pph_out_cgraph_node (stream, node->next_needed);
-  pph_out_cgraph_node (stream, node->next_sibling_clone);
-  pph_out_cgraph_node (stream, node->prev_sibling_clone);
-  pph_out_cgraph_node (stream, node->clones);
-  pph_out_cgraph_node (stream, node->clone_of);
-  pph_out_cgraph_node (stream, node->same_comdat_group);
-  gcc_assert (node->call_site_hash == NULL);
-  pph_out_tree (stream, node->former_clone_of);
-  gcc_assert (node->aux == NULL);
-  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
-
-  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
-  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
-
-  gcc_assert (node->local.lto_file_data == NULL);
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, node->local.local, 1);
-  bp_pack_value (&bp, node->local.externally_visible, 1);
-  bp_pack_value (&bp, node->local.finalized, 1);
-  bp_pack_value (&bp, node->local.can_change_signature, 1);
-  bp_pack_value (&bp, node->local.redefined_extern_inline, 1);
-  pph_out_bitpack (stream, &bp);
-
-  pph_out_cgraph_node (stream, node->global.inlined_to);
-
-  pph_out_uint (stream, node->rtl.preferred_incoming_stack_boundary);
-
-  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
-  pph_out_uhwi (stream, node->thunk.fixed_offset);
-  pph_out_uhwi (stream, node->thunk.virtual_value);
-  pph_out_tree (stream, node->thunk.alias);
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, node->thunk.this_adjusting, 1);
-  bp_pack_value (&bp, node->thunk.virtual_offset_p, 1);
-  bp_pack_value (&bp, node->thunk.thunk_p, 1);
-  pph_out_bitpack (stream, &bp);
-
-  pph_out_uhwi (stream, node->count);
-  pph_out_uint (stream, node->count_materialization_scale);
-
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, node->needed, 1);
-  bp_pack_value (&bp, node->address_taken, 1);
-  bp_pack_value (&bp, node->abstract_and_needed, 1);
-  bp_pack_value (&bp, node->reachable, 1);
-  bp_pack_value (&bp, node->reachable_from_other_partition, 1);
-  bp_pack_value (&bp, node->lowered, 1);
-  bp_pack_value (&bp, node->analyzed, 1);
-  bp_pack_value (&bp, node->in_other_partition, 1);
-  bp_pack_value (&bp, node->process, 1);
-  bp_pack_value (&bp, node->alias, 1);
-  bp_pack_value (&bp, node->same_body_alias, 1);
-  bp_pack_value (&bp, node->frequency, 2);
-  bp_pack_value (&bp, node->only_called_at_startup, 1);
-  bp_pack_value (&bp, node->only_called_at_exit, 1);
-  pph_out_bitpack (stream, &bp);
-}
-
-
-/* Emit the symbol table for STREAM.  When this image is read into
-   another translation unit, we want to guarantee that the IL
-   instances taken from this image are instantiated in the same order
-   that they were instantiated when we generated this image.
-
-   With this, we can generate code in the same order out of the
-   original header files and out of PPH images.  */
-
-static void
-pph_out_symtab (pph_stream *stream)
-{
-  pph_symtab_entry *entry;
-  unsigned i;
-
-  pph_out_uint (stream, VEC_length (pph_symtab_entry, stream->symtab.v));
-  FOR_EACH_VEC_ELT (pph_symtab_entry, stream->symtab.v, i, entry)
-    {
-      pph_out_symtab_action (stream, entry->action);
-      pph_out_tree (stream, entry->decl);
-      if (entry->action == PPH_SYMTAB_DECLARE)
-	{
-	  struct bitpack_d bp;
-	  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-	  bp_pack_value (&bp, entry->top_level, 1);
-	  bp_pack_value (&bp, entry->at_end, 1);
-	  pph_out_bitpack (stream, &bp);
-	}
-      else if (entry->action == PPH_SYMTAB_EXPAND)
-	{
-	  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (entry->decl));
-	  pph_out_cgraph_node (stream, cgraph_get_node (entry->decl));
-	}
-      else
-	gcc_unreachable ();
-    }
-}
-
-
-/* Emit linenum_type LN to STREAM.  */
-
-static inline void
-pph_out_linenum_type (pph_stream *stream, linenum_type ln)
-{
-  pph_out_uint (stream, ln);
-}
-
-
-/* Emit source_location SL to STREAM.  */
-
-static inline void
-pph_out_source_location (pph_stream *stream, source_location sl)
-{
-  pph_out_uint (stream, sl);
-}
-
-
-/* Emit line table MARKER to STREAM.  */
-
-static inline void
-pph_out_linetable_marker (pph_stream *stream, enum pph_linetable_marker marker)
-{
-  gcc_assert (marker == (enum pph_linetable_marker)(unsigned char) marker);
-  pph_out_uchar (stream, marker);
-}
-
-
-/* Emit all information contained in LM to STREAM.  */
-
-static void
-pph_out_line_map (pph_stream *stream, struct line_map *lm)
-{
-  struct bitpack_d bp;
-
-  pph_out_string (stream, lm->to_file);
-  pph_out_linenum_type (stream, lm->to_line);
-  pph_out_source_location (stream, lm->start_location);
-  pph_out_uint (stream, (unsigned int) lm->included_from);
-
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, lm->reason, CHAR_BIT);
-  bp_pack_value (&bp, lm->sysp, CHAR_BIT);
-  bp_pack_value (&bp, lm->column_bits, COLUMN_BITS_BIT);
-  pph_out_bitpack (stream, &bp);
-}
-
-
-/* Write a reference of INCLUDE to STREAM.  Also write the START_LOCATION of
-   this include in the current line_table.  */
-
-static void
-pph_out_include (pph_stream *stream, pph_stream *include,
-                 source_location start_location)
-{
-  pph_out_source_location (stream, start_location);
-  pph_out_string (stream, include->name);
-}
-
-
-/* Compare filenames of a header and it's potentially corresponding pph file,
-   stripping the path passed in and the extension. Returns true if HEADER_PATH
-   and PPH_PATH end with the same filename. We expect HEADER_PATH to end in .h
-   and PPH_PATH to end in .pph.
-
-   FIXME pph: We should not need to do this if we handled include paths
-   correctly, but for now the linemap holds full paths and the stream's includes
-   list only holds the include name.  Also, the stream's includes hold pph
-   filenames where as the line_table as header filenames.  */
-
-static bool
-pph_filename_eq_ignoring_path (const char *header_path, const char *pph_path)
-{
-  const char *header_name = lbasename (header_path);
-  const char *pph_name = lbasename (pph_path);
-
-  const char *header_ext = strchr (header_name, '.');
-  const char *pph_ext = strchr (pph_name, '.');
-
-  unsigned int name_length;
-
-  if (header_ext != NULL)
-    {
-      name_length = header_ext - header_name;
-      gcc_assert (strcmp (header_ext, ".h") == 0);
-    }
-  else
-    /* Some headers do not have a .h suffix, but will still
-       have a .pph suffix after being pph'ed.  */
-    name_length = strlen (header_name);
-
-  gcc_assert (strcmp (pph_ext, ".pph") == 0);
-
-  /* Compare the filenames without their extension.  */
-  return pph_ext - pph_name == name_length
-         && strncmp (header_name, pph_name, name_length) == 0;
-}
-
-
-/* Return the *NEXT_INCLUDE_IX'th pph_stream in STREAM's list of includes.
-   Returns NULL if we have read all includes.  Increments *NEXT_INCLUDE_IX
-   when sucessful.  */
-
-static inline pph_stream *
-pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
-{
-  if (*next_incl_ix < VEC_length (pph_stream_ptr, stream->encoder.w.includes))
-    return VEC_index (pph_stream_ptr, stream->encoder.w.includes,
-	              (*next_incl_ix)++);
-  else
-    return NULL;
-}
-
-
-/* Emit the required line_map entry (those directly related to this include)
-   and some properties in the line_table to STREAM, ignoring builtin and
-   command-line entries.  We will write references to our direct includes
-   children and skip their actual line_map entries (unless they are non-pph
-   children in which case we have to write out their line_map entries as well).
-   We assume stream->encoder.w.includes contains the pph headers included in the
-   same order they are seen in the line_table.  */
-
-static void
-pph_out_line_table_and_includes (pph_stream *stream)
-{
-  unsigned int ix, next_incl_ix = 0;
-  pph_stream *current_include;
-
-  /* Any #include should have been fully parsed and exited at this point.  */
-  gcc_assert (line_table->depth == 0);
-
-  current_include = pph_get_next_include (stream, &next_incl_ix);
-
-  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES; ix < line_table->used; ix++)
-    {
-      struct line_map *lm = &line_table->maps[ix];
-
-      if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
-        {
-          /* The first non-ignored entry should be an LC_RENAME back in the
-            header after inserting the builtin and command-line entries.  When
-            reading the pph we want this to be a simple LC_ENTER as the builtin
-            and command_line entries will already exist and we are now entering
-	    a #include.  */
-          gcc_assert (lm->reason == LC_RENAME);
-          lm->reason = LC_ENTER;
-        }
-
-      /* If this is an entry from a pph header, only output reference.  */
-      if (current_include != NULL
-	  && pph_filename_eq_ignoring_path (lm->to_file, current_include->name))
-	{
-	  int includer_level;
-
-	  gcc_assert (lm->reason == LC_ENTER);
-	  gcc_assert (lm->included_from != -1);
-
-	  pph_out_linetable_marker (stream, PPH_LINETABLE_REFERENCE);
-
-	  pph_out_include (stream, current_include, lm->start_location);
-
-	  /* Potentially lm could be included from a header other then the main
-	      one if a textual include includes a pph header (i.e. we can't
-	      simply rely on going back to included_from == -1).  */
-	  includer_level = INCLUDED_FROM (line_table, lm)->included_from;
-
-	  /* Skip all other linemap entries up to and including the LC_LEAVE
-	      from the referenced header back to the one including it.  */
-	  while (line_table->maps[++ix].included_from != includer_level)
-	    /* We should always leave this loop before the end of the
-		current line_table entries.  */
-	    gcc_assert (ix < line_table->used);
-
-	  current_include = pph_get_next_include (stream, &next_incl_ix);
-	}
-      else
-	{
-	  pph_out_linetable_marker (stream, PPH_LINETABLE_ENTRY);
-	  pph_out_line_map (stream, lm);
-	}
-
-      /* Restore changes made to first entry above if needed.  */
-      if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
-	lm->reason = LC_RENAME;
-    }
-
-  pph_out_linetable_marker (stream, PPH_LINETABLE_END);
-
-  /* Output the number of entries written to validate on input.  */
-  pph_out_uint (stream, line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
-
-  /* Every pph header included should have been seen and skipped in the
-     line_table streaming above.  */
-  gcc_assert (next_incl_ix == VEC_length (pph_stream_ptr,
-					  stream->encoder.w.includes));
-
-  pph_out_source_location (stream, line_table->highest_location);
-  pph_out_source_location (stream, line_table->highest_line);
-
-  pph_out_uint (stream, line_table->max_column_hint);
-}
-
-/* Write all the contents of STREAM.  */
-
-static void
-pph_write_file (pph_stream *stream)
-{
-  cpp_idents_used idents_used;
-
-  if (flag_pph_debug >= 1)
-    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
-
-  /* Emit the line table entries and references to our direct includes.   */
-  pph_out_line_table_and_includes (stream);
-
-  /* Emit all the identifiers and pre-processor symbols in the global
-     namespace.  */
-  idents_used = cpp_lt_capture (parse_in);
-  pph_out_identifiers (stream, &idents_used);
-
-  /* Emit the bindings for the global namespace.  */
-  pph_out_scope_chain (stream);
-  if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
-
-  /* Emit other global state kept by the parser.  FIXME pph, these
-     globals should be fields in struct cp_parser.  */
-  pph_out_tree (stream, keyed_classes);
-  pph_out_tree_vec (stream, unemitted_tinfo_decls);
-
-  pph_out_pending_templates_list (stream);
-  pph_out_spec_entry_tables (stream);
-
-  pph_out_tree (stream, static_aggregates);
-
-  /* Emit the symbol table.  */
-  pph_out_symtab (stream);
 }
 
 
@@ -1923,38 +1662,7 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
 }
 
 
-/* Write to STREAM the body of tcc_type node TYPE.  */
-
-static void
-pph_out_tcc_type (pph_stream *stream, tree type)
-{
-  pph_out_lang_type (stream, type);
-  pph_out_tree (stream, TYPE_POINTER_TO (type));
-  pph_out_tree (stream, TYPE_REFERENCE_TO (type));
-  pph_out_tree (stream, TYPE_NEXT_VARIANT (type));
-  /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
-     failures.  Why?  */
-  /* FIXME pph: apparently redundant.  */
-  pph_out_tree (stream, TREE_CHAIN (type));
-
-  /* The type values cache is built as constants are instantiated,
-     so we only stream it on the nodes that use it for
-     other purposes.  */
-  switch (TREE_CODE (type))
-    {
-    case BOUND_TEMPLATE_TEMPLATE_PARM:
-    case DECLTYPE_TYPE:
-    case TEMPLATE_TEMPLATE_PARM:
-    case TEMPLATE_TYPE_PARM:
-    case TYPENAME_TYPE:
-    case TYPEOF_TYPE:
-      pph_out_tree (stream, TYPE_VALUES_RAW (type));
-      break;
-
-    default:
-      break;
-    }
-}
+/******************************************************** tree head and body */
 
 
 /* Write the body of EXPR to STREAM.  This writes out all fields not
@@ -1984,7 +1692,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 	if (TREE_CODE (expr) == PTRMEM_CST)
 	  {
 	    pph_out_tree_common (stream, expr);
-	    pph_out_tree_1 (stream, PTRMEM_CST_MEMBER (expr), 3);
+	    pph_out_tree (stream, PTRMEM_CST_MEMBER (expr));
 	  }
 	break;
 
@@ -2025,28 +1733,28 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 
         /* Write the statements.  */
         for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	  pph_out_tree_1 (stream, tsi_stmt (i), 3);
+	  pph_out_tree (stream, tsi_stmt (i));
       }
       break;
 
     case OVERLOAD:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_1 (stream, OVL_CURRENT (expr), 3);
+      pph_out_tree (stream, OVL_CURRENT (expr));
       break;
 
     case IDENTIFIER_NODE:
       pph_out_cxx_binding (stream, IDENTIFIER_NAMESPACE_BINDINGS (expr));
       pph_out_cxx_binding (stream, IDENTIFIER_BINDING (expr));
-      pph_out_tree_1 (stream, IDENTIFIER_TEMPLATE (expr), 3);
-      pph_out_tree_1 (stream, IDENTIFIER_LABEL_VALUE (expr), 3);
-      pph_out_tree_1 (stream, REAL_IDENTIFIER_TYPE_VALUE (expr), 3);
+      pph_out_tree (stream, IDENTIFIER_TEMPLATE (expr));
+      pph_out_tree (stream, IDENTIFIER_LABEL_VALUE (expr));
+      pph_out_tree (stream, REAL_IDENTIFIER_TYPE_VALUE (expr));
       break;
 
     case BASELINK:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_1 (stream, BASELINK_BINFO (expr), 3);
-      pph_out_tree_1 (stream, BASELINK_FUNCTIONS (expr), 3);
-      pph_out_tree_1 (stream, BASELINK_ACCESS_BINFO (expr), 3);
+      pph_out_tree (stream, BASELINK_BINFO (expr));
+      pph_out_tree (stream, BASELINK_FUNCTIONS (expr));
+      pph_out_tree (stream, BASELINK_ACCESS_BINFO (expr));
       break;
 
     case TEMPLATE_INFO:
@@ -2062,31 +1770,31 @@ pph_write_tree_body (pph_stream *stream, tree expr)
 
     case STATIC_ASSERT:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_1 (stream, STATIC_ASSERT_CONDITION (expr), 3);
-      pph_out_tree_1 (stream, STATIC_ASSERT_MESSAGE (expr), 3);
+      pph_out_tree (stream, STATIC_ASSERT_CONDITION (expr));
+      pph_out_tree (stream, STATIC_ASSERT_MESSAGE (expr));
       pph_out_location (stream, STATIC_ASSERT_SOURCE_LOCATION (expr));
       break;
 
     case ARGUMENT_PACK_SELECT:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_1 (stream, ARGUMENT_PACK_SELECT_FROM_PACK (expr), 3);
+      pph_out_tree (stream, ARGUMENT_PACK_SELECT_FROM_PACK (expr));
       pph_out_uint (stream, ARGUMENT_PACK_SELECT_INDEX (expr));
       break;
 
     case TRAIT_EXPR:
       pph_out_tree_common (stream, expr);
-      pph_out_tree_1 (stream, TRAIT_EXPR_TYPE1 (expr), 3);
-      pph_out_tree_1 (stream, TRAIT_EXPR_TYPE2 (expr), 3);
+      pph_out_tree (stream, TRAIT_EXPR_TYPE1 (expr));
+      pph_out_tree (stream, TRAIT_EXPR_TYPE2 (expr));
       pph_out_uint (stream, TRAIT_EXPR_KIND (expr));
       break;
 
     case LAMBDA_EXPR:
       pph_out_tree_common (stream, expr);
       pph_out_location (stream, LAMBDA_EXPR_LOCATION (expr));
-      pph_out_tree_1 (stream, LAMBDA_EXPR_CAPTURE_LIST (expr), 3);
-      pph_out_tree_1 (stream, LAMBDA_EXPR_THIS_CAPTURE (expr), 3);
-      pph_out_tree_1 (stream, LAMBDA_EXPR_RETURN_TYPE (expr), 3);
-      pph_out_tree_1 (stream, LAMBDA_EXPR_EXTRA_SCOPE (expr), 3);
+      pph_out_tree (stream, LAMBDA_EXPR_CAPTURE_LIST (expr));
+      pph_out_tree (stream, LAMBDA_EXPR_THIS_CAPTURE (expr));
+      pph_out_tree (stream, LAMBDA_EXPR_RETURN_TYPE (expr));
+      pph_out_tree (stream, LAMBDA_EXPR_EXTRA_SCOPE (expr));
       pph_out_uint (stream, LAMBDA_EXPR_DISCRIMINATOR (expr));
       break;
 
@@ -2105,7 +1813,7 @@ pph_write_tree_body (pph_stream *stream, tree expr)
       pph_out_uint (stream, TEMPLATE_PARM_LEVEL (expr));
       pph_out_uint (stream, TEMPLATE_PARM_ORIG_LEVEL (expr));
       pph_out_uint (stream, TEMPLATE_PARM_NUM_SIBLINGS (expr));
-      pph_out_tree_1 (stream, TEMPLATE_PARM_DECL (expr), 3);
+      pph_out_tree (stream, TEMPLATE_PARM_DECL (expr));
       break;
 
     case DEFERRED_NOEXCEPT:
@@ -2236,6 +1944,8 @@ pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
     }
   else if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
+      pph_new_trace_tree (stream, expr, mergeable);
+
       /* This is the first time we see EXPR, write it out.  */
       if (marker == PPH_RECORD_START)
         {
@@ -2264,20 +1974,89 @@ pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
 }
 
 
-/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
-   in OB.  */
+/************************************************************* file contents */
 
-void
-pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+
+/* Emit symbol table ACTION to STREAM.  */
+
+static inline void
+pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
 {
-  pph_stream *stream = (pph_stream *) ob->sdata;
-  pph_write_any_tree (stream, expr, false);
+  gcc_assert (action == (enum pph_symtab_action)(unsigned char) action);
+  pph_out_uchar (stream, action);
 }
 
-void
-pph_write_mergeable_tree (pph_stream *stream, tree expr)
+
+/* Emit callgraph NODE to STREAM.  */
+
+static void
+pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
 {
-  pph_write_any_tree (stream, expr, true);
+  struct bitpack_d bp;
+
+  if (pph_out_start_record (stream, node, PPH_cgraph_node))
+    return;
+
+  pph_out_tree (stream, node->decl);
+  pph_out_cgraph_node (stream, node->origin);
+  pph_out_cgraph_node (stream, node->nested);
+  pph_out_cgraph_node (stream, node->next_nested);
+  pph_out_cgraph_node (stream, node->next_needed);
+  pph_out_cgraph_node (stream, node->next_sibling_clone);
+  pph_out_cgraph_node (stream, node->prev_sibling_clone);
+  pph_out_cgraph_node (stream, node->clones);
+  pph_out_cgraph_node (stream, node->clone_of);
+  pph_out_cgraph_node (stream, node->same_comdat_group);
+  gcc_assert (node->call_site_hash == NULL);
+  pph_out_tree (stream, node->former_clone_of);
+  gcc_assert (node->aux == NULL);
+  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
+
+  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
+  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
+
+  gcc_assert (node->local.lto_file_data == NULL);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, node->local.local, 1);
+  bp_pack_value (&bp, node->local.externally_visible, 1);
+  bp_pack_value (&bp, node->local.finalized, 1);
+  bp_pack_value (&bp, node->local.can_change_signature, 1);
+  bp_pack_value (&bp, node->local.redefined_extern_inline, 1);
+  pph_out_bitpack (stream, &bp);
+
+  pph_out_cgraph_node (stream, node->global.inlined_to);
+
+  pph_out_uint (stream, node->rtl.preferred_incoming_stack_boundary);
+
+  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
+  pph_out_uhwi (stream, node->thunk.fixed_offset);
+  pph_out_uhwi (stream, node->thunk.virtual_value);
+  pph_out_tree (stream, node->thunk.alias);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, node->thunk.this_adjusting, 1);
+  bp_pack_value (&bp, node->thunk.virtual_offset_p, 1);
+  bp_pack_value (&bp, node->thunk.thunk_p, 1);
+  pph_out_bitpack (stream, &bp);
+
+  pph_out_uhwi (stream, node->count);
+  pph_out_uint (stream, node->count_materialization_scale);
+
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, node->needed, 1);
+  bp_pack_value (&bp, node->address_taken, 1);
+  bp_pack_value (&bp, node->abstract_and_needed, 1);
+  bp_pack_value (&bp, node->reachable, 1);
+  bp_pack_value (&bp, node->reachable_from_other_partition, 1);
+  bp_pack_value (&bp, node->lowered, 1);
+  bp_pack_value (&bp, node->analyzed, 1);
+  bp_pack_value (&bp, node->in_other_partition, 1);
+  bp_pack_value (&bp, node->process, 1);
+  bp_pack_value (&bp, node->alias, 1);
+  bp_pack_value (&bp, node->same_body_alias, 1);
+  bp_pack_value (&bp, node->frequency, 2);
+  bp_pack_value (&bp, node->only_called_at_startup, 1);
+  bp_pack_value (&bp, node->only_called_at_exit, 1);
+  pph_out_bitpack (stream, &bp);
 }
 
 
@@ -2304,26 +2083,266 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
 }
 
 
-/* Add INCLUDE to the list of files included by pph_out_stream.  */
+/* Emit the symbol table for STREAM.  When this image is read into
+   another translation unit, we want to guarantee that the IL
+   instances taken from this image are instantiated in the same order
+   that they were instantiated when we generated this image.
 
-void
-pph_add_include (pph_stream *include)
+   With this, we can generate code in the same order out of the
+   original header files and out of PPH images.  */
+
+static void
+pph_out_symtab (pph_stream *stream)
 {
-  VEC_safe_push (pph_stream_ptr, heap, pph_out_stream->encoder.w.includes,
-		 include);
+  pph_symtab_entry *entry;
+  unsigned i;
+
+  pph_out_uint (stream, VEC_length (pph_symtab_entry, stream->symtab.v));
+  FOR_EACH_VEC_ELT (pph_symtab_entry, stream->symtab.v, i, entry)
+    {
+      pph_out_symtab_action (stream, entry->action);
+      pph_out_tree (stream, entry->decl);
+      if (entry->action == PPH_SYMTAB_DECLARE)
+	{
+	  struct bitpack_d bp;
+	  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+	  bp_pack_value (&bp, entry->top_level, 1);
+	  bp_pack_value (&bp, entry->at_end, 1);
+	  pph_out_bitpack (stream, &bp);
+	}
+      else if (entry->action == PPH_SYMTAB_EXPAND)
+	{
+	  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (entry->decl));
+	  pph_out_cgraph_node (stream, cgraph_get_node (entry->decl));
+	}
+      else
+	gcc_unreachable ();
+    }
 }
 
 
-/* Initialize the PPH writer.  */
+/* Save the IDENTIFIERS to the STREAM.  */
+
+static void
+pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
+{
+  unsigned int num_entries, active_entries, id;
+
+  num_entries = identifiers->num_entries;
+  pph_out_uint (stream, identifiers->max_ident_len);
+  pph_out_uint (stream, identifiers->max_value_len);
+
+  active_entries = 0;
+  for ( id = 0; id < num_entries; ++id )
+    {
+      cpp_ident_use *entry = identifiers->entries + id;
+      if (!(entry->used_by_directive || entry->expanded_to_text))
+        continue;
+      ++active_entries;
+    }
+
+  pph_out_uint (stream, active_entries);
+
+  for ( id = 0; id < num_entries; ++id )
+    {
+      cpp_ident_use *entry = identifiers->entries + id;
+
+      if (!(entry->used_by_directive || entry->expanded_to_text))
+        continue;
+
+      /* FIXME pph: We are wasting space; ident_len, used_by_directive
+      and expanded_to_text together could fit into a single uint. */
+
+      pph_out_uint (stream, entry->used_by_directive);
+      pph_out_uint (stream, entry->expanded_to_text);
+
+      gcc_assert (entry->ident_len <= identifiers->max_ident_len);
+      pph_out_string_with_length (stream, entry->ident_str,
+				     entry->ident_len);
+
+      gcc_assert (entry->before_len <= identifiers->max_value_len);
+      pph_out_string_with_length (stream, entry->before_str,
+				     entry->before_len);
+
+      gcc_assert (entry->after_len <= identifiers->max_value_len);
+      pph_out_string_with_length (stream, entry->after_str,
+				     entry->after_len);
+    }
+}
+
+
+/* Write the global bindings in scope_chain to STREAM.  */
+
+static void
+pph_out_scope_chain (pph_stream *stream)
+{
+  /* old_namespace should be global_namespace and all entries listed below
+     should be NULL or 0; otherwise the header parsed was incomplete.  */
+  gcc_assert (scope_chain->old_namespace == global_namespace
+	      && !(scope_chain->class_name
+		   || scope_chain->class_type
+		   || scope_chain->access_specifier
+		   || scope_chain->function_decl
+		   || scope_chain->template_parms
+		   || scope_chain->x_saved_tree
+		   || scope_chain->class_bindings
+		   || scope_chain->prev
+		   || scope_chain->unevaluated_operand
+		   || scope_chain->inhibit_evaluation_warnings
+		   || scope_chain->x_processing_template_decl
+		   || scope_chain->x_processing_specialization
+		   || scope_chain->x_processing_explicit_instantiation
+		   || scope_chain->need_pop_function_context
+		   || scope_chain->x_stmt_tree.x_cur_stmt_list
+		   || scope_chain->x_stmt_tree.stmts_are_full_exprs_p));
+
+  /* We only need to write out the bindings, everything else should
+     be NULL or be some temporary disposable state.
+
+     Note that we explicitly force the pickling of
+     scope_chain->bindings.  If we had previously read another PPH
+     image, scope_chain->bindings will be in the other image's pickle
+     cache.  This would cause pph_out_binding_level to emit a cache
+     reference to it, instead of writing its fields.  */
+  {
+    unsigned ix;
+    pph_cache_add (&stream->cache, scope_chain->bindings, &ix,
+                   PPH_cp_binding_level);
+    pph_out_record_marker (stream, PPH_RECORD_START, PPH_cp_binding_level);
+    pph_out_uint (stream, ix);
+    pph_out_binding_level_1 (stream, scope_chain->bindings,
+			     PPHF_NO_XREFS | PPHF_NO_PREFS);
+  }
+}
+
+
+/* Write all the contents of STREAM.  */
+
+static void
+pph_write_file (pph_stream *stream)
+{
+  cpp_idents_used idents_used;
+
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
+
+  /* Emit the line table entries and references to our direct includes.   */
+  pph_out_line_table_and_includes (stream);
+
+  /* Emit all the identifiers and pre-processor symbols in the global
+     namespace.  */
+  idents_used = cpp_lt_capture (parse_in);
+  pph_out_identifiers (stream, &idents_used);
+
+  /* Emit the bindings for the global namespace.  */
+  pph_out_scope_chain (stream);
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
+
+  /* Emit other global state kept by the parser.  FIXME pph, these
+     globals should be fields in struct cp_parser.  */
+  pph_out_tree (stream, keyed_classes);
+  pph_out_tree_vec (stream, unemitted_tinfo_decls);
+
+  pph_out_pending_templates_list (stream);
+  pph_out_spec_entry_tables (stream);
+
+  pph_out_tree (stream, static_aggregates);
+
+  /* Emit the symbol table.  */
+  pph_out_symtab (stream);
+}
+
+
+/******************************************************* stream finalization */
+
+
+/* Callback for lang_hooks.lto.begin_section.  Open file NAME.  */
+
+static void
+pph_begin_section (const char *name ATTRIBUTE_UNUSED)
+{
+}
+
+
+/* Callback for lang_hooks.lto.append_data.  Write LEN bytes from DATA
+   into pph_out_stream.  BLOCK is currently unused.  */
+
+static void
+pph_out_data (const void *data, size_t len, void *block ATTRIBUTE_UNUSED)
+{
+  if (data)
+    {
+      size_t written = fwrite (data, 1, len, pph_out_stream->file);
+      gcc_assert (written == len);
+    }
+}
+
+
+/* Callback for lang_hooks.lto.end_section.  */
+
+static void
+pph_end_section (void)
+{
+}
+
+/* Write the header for the PPH file represented by STREAM.  */
+
+static void
+pph_out_header (pph_stream *stream)
+{
+  pph_file_header header;
+  struct lto_output_stream header_stream;
+  int major, minor, patchlevel;
+
+  /* Collect version information.  */
+  parse_basever (&major, &minor, &patchlevel);
+  gcc_assert (major == (char) major);
+  gcc_assert (minor == (char) minor);
+  gcc_assert (patchlevel == (char) patchlevel);
+
+  /* Write the header for the PPH file.  */
+  memset (&header, 0, sizeof (header));
+  strcpy (header.id_str, pph_id_str);
+  header.major_version = (char) major;
+  header.minor_version = (char) minor;
+  header.patchlevel = (char) patchlevel;
+  header.strtab_size = stream->encoder.w.ob->string_stream->total_size;
+
+  memset (&header_stream, 0, sizeof (header_stream));
+  lto_output_data_stream (&header_stream, &header, sizeof (header));
+  lto_write_stream (&header_stream);
+}
+
+
+/* Write the body of the PPH file represented by STREAM.  */
+
+static void
+pph_out_body (pph_stream *stream)
+{
+  /* Write the string table.  */
+  lto_write_stream (stream->encoder.w.ob->string_stream);
+
+  /* Write the main stream where we have been pickling the parse trees.  */
+  lto_write_stream (stream->encoder.w.ob->main_stream);
+}
+
+
+/* Flush all the in-memory buffers for STREAM to disk.  */
 
 void
-pph_writer_init (void)
+pph_flush_buffers (pph_stream *stream)
 {
-  gcc_assert (pph_out_stream == NULL);
+  /* Redirect the LTO basic I/O langhooks.  */
+  lang_hooks.lto.begin_section = pph_begin_section;
+  lang_hooks.lto.append_data = pph_out_data;
+  lang_hooks.lto.end_section = pph_end_section;
 
-  pph_out_stream = pph_stream_open (pph_out_file, "wb");
-  if (pph_out_stream == NULL)
-    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
+  /* Write the state buffers built by pph_out_*() calls.  */
+  lto_begin_section (stream->name, false);
+  pph_out_header (stream);
+  pph_out_body (stream);
+  lto_end_section ();
 }
 
 
