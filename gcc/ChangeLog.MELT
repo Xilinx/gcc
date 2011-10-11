@@ -1,5 +1,9 @@
 
 2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: Don't use DEBUG_MSG, but DEBUG.
+	Replaced some function interations with citerators.
+
+2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: Don't use DEBUG_MSG, but DEBUG.
 
 2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
