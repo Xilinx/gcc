@@ -32,7 +32,7 @@
 
 
 (defun outdeclinit_root (recv sbuf)
-  (debug_msg recv "outdeclinit_root recv")
+  (debug "outdeclinit_root recv=" recv)
   (assert_msg "outdeclinit_root unimplemented catchall" ())
   )
 (install_method class_root output_c_declinit outdeclinit_root)
@@ -50,7 +50,7 @@
 (install_method class_objinitelem output_c_code outpucod_objinielem)
 
 (defun outcinitfill_root (recv implbuf ptrstr :long depth)
-  (debug_msg recv "outcinitfill_root recv")
+  (debug "outcinitfill_root recv=" recv)
   (assert_msg "outcinitfill_root unimplemented catchall" ())
   )
 (install_method class_root output_c_initial_fill outcinitfill_root)
@@ -58,7 +58,7 @@
 
 
 (defun outcinitpredef_root (recv sbuf ptrstr :long depth)
-  (debug_msg recv "outcinitfill_root recv")
+  (debug "outcinitfill_root recv=" recv)
   (return)
   )
 (install_method class_root output_c_initial_predef outcinitpredef_root)
@@ -77,7 +77,7 @@
      (add2sbuf_strconst implbuf ")))")
      )
    ( :else
-     (debug_msg obpredef "bad obpredef")
+     (debug "bad obpredef=" obpredef)
      (assert_msg "invalid obpredef" ())
      )
    ))
@@ -109,9 +109,9 @@
 
 ;; initial fill for both objinitobject & its objinituniqueobject subclass
 (defun outcinitfill_objinitobject (recv sbuf ptrstr :long depth)
+  (debug "outcinitfill_objinitobject recv=" recv " ptrstr=" ptrstr 
+	 " depth=" depth)
   (assert_msg "outcinitfill_objinitobject check recv" (is_a recv class_objinitobject))
-  (debug_msg recv "outcinitfill_objinitobject recv")
-  (debug_msg ptrstr "outcinitfill_objinitobject ptrstr")
   (assert_msg "outcinitfill_objinitobject check ptrstr" (is_string ptrstr))
   (let ( (odata (unsafe_get_field :oie_data recv)) 
 	 (odiscr (unsafe_get_field :oie_discr recv))
@@ -121,7 +121,7 @@
 	 (oclass (get_field :oio_class recv))
 	 (:long depthp1 (+i depth 1))
 	 )
-    (debug_msg odata "outcinitfill_objinitobject odata")
+    (debug "outcinitfill_objinitobject odata=" odata)
     (if odata (assert_msg "check odata" (is_a odata class_nrep_datainstance)))
     (let ( (odloc (if odata (unsafe_get_field :nrep_loc odata)))
 	   (odhash (if odata (unsafe_get_field :ninst_hash odata)))
@@ -223,7 +223,7 @@
 		  ( (is_a odobnum class_symbol)
 		    (add2sbuf_string sbuf (unsafe_get_field :named_name odobnum)))
 		  (:else 
-		   (debug_msg odobnum "outcinitfill_objinitobject unexpected odobnum")
+		   (debug "outcinitfill_objinitobject unexpected odobnum=" odobnum)
 		   (assert_msg "outcinitfill_objinitobject unexpected odobnum" ())
 		   ))
 	    (add2sbuf_strconst sbuf ";")
@@ -258,8 +258,7 @@
 
 (defun outcinitpredef_objinitobject (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitpredef_objinitobject check recv" (is_a recv class_objinitobject))
-  (debug_msg recv "outcinitpredef_objinitobject recv")
-  (debug_msg ptrstr "outcinitpredef_objinitobject ptrstr")
+  (debug "outcinitpredef_objinitobject recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitpredef_objinitobject check sbuf" (is_strbuf sbuf))
   (assert_msg "outcinitpredef_objinitobject check ptrstr" (is_string ptrstr))
   (let ( (odata (unsafe_get_field :oie_data recv)) 
@@ -269,7 +268,7 @@
 	 (oiopredef (unsafe_get_field :oio_predef recv))
 	 )
     (assert_msg "check odata" (is_a odata class_nrep_datainstance))
-    (debug_msg oiopredef "outcinitpredef_objinitobject oiopredef")
+    (debug "outcinitpredef_objinitobject oiopredef=" oiopredef)
     (if (null oiopredef) (return ()))
     (if (is_a oiopredef class_nrep_nil) (return ()))
     (let ( (odloc (unsafe_get_field :nrep_loc odata))
@@ -332,7 +331,7 @@
        ( (null oiopredef)
 	 (return ()))
        ( :else
-	 (debug_msg oiopredef "outcinitpredef_objinitobject unexpected oiopredef")
+	 (debug "outcinitpredef_objinitobject unexpected oiopredef=" oiopredef)
 	 (assert_msg "outcinitpredef_objinitobject unexpected oiopredef" ())
 	 )))
     )
@@ -354,8 +353,7 @@
 
 (defun outcinitfill_objinitmultiple (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitmultiple check recv" (is_a recv class_objinitmultiple))
-  (debug_msg recv "outcinitfill_objinitmultiple recv")
-  (debug_msg ptrstr "outcinitfill_objinitmultiple ptrstr")
+  (debug "outcinitfill_objinitmultiple recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitmultiple check ptrstr" (is_string ptrstr))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -403,8 +401,7 @@
 
 (defun outcinitfill_objinitclosure (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitclosure check recv" (is_a recv class_objinitclosure))
-  (debug_msg recv "outcinitfill_objinitclosure recv")
-  (debug_msg ptrstr "outcinitfill_objinitclosure ptrstr")
+  (debug "outcinitfill_objinitclosure recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitclosure check ptrstr" (is_string ptrstr))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -469,8 +466,7 @@
 
 (defun outcinitfill_objinitroutine (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitroutine check recv" (is_a recv class_objinitroutine))
-  (debug_msg recv "outcinitfill_objinitroutine recv")
-  (debug_msg ptrstr "outcinitfill_objinitroutine ptrstr")
+  (debug "outcinitfill_objinitroutine recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitroutine check ptrstr" (is_string ptrstr))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (ipro (unsafe_get_field :oir_procroutine recv))
@@ -509,8 +505,8 @@
 	(let ( (dnam (unsafe_get_field :ndata_name ndatr))
 	       (dpro (unsafe_get_field :ndrou_proc ndatr))
 	       )
-	  (debug_msg ndatr "outcinitfill_objinitroutine ndatr")
-	  (debug_msg dpro "outcinitfill_objinitroutine dpro")
+	  (debug "outcinitfill_objinitroutine ndatr=" ndatr
+		 " dnam=" dnam " dpro=" dpro)
 	  (if (is_a dnam class_named)
 	      (add2sbuf_cencstring sbuf (unsafe_get_field :named_name dnam)))
 	  (if (is_a dpro class_nrep_routproc)
@@ -537,7 +533,7 @@
     (add2sbuf_indentnl sbuf 1)
     (if ipro
 	(progn
-	  (debug_msg ipro "outcinitfill_objinitroutine ipro")
+	  (debug "outcinitfill_objinitroutine ipro=" ipro)
 	  (assert_msg "check ipro" (is_a ipro class_named))
 	  (add2sbuf_strconst sbuf "MELT_ROUTINE_SET_ROUTCODE(&")
 	  (add2sbuf_string sbuf ptrstr)
@@ -549,7 +545,7 @@
 	  (add2sbuf_indentnl sbuf 1)
 	  )
       (progn
-	(debug_msg recv "outcinitfill_objinitroutine (noipro) recv" )
+	(debug "outcinitfill_objinitroutine (noipro) recv=" recv)
 	(add2sbuf_strconst sbuf "#warning no procedure in objinitroutine ")
 	(add2sbuf_string sbuf cnam)
 	(add2sbuf_indentnl sbuf 1)
@@ -572,8 +568,7 @@
 
 (defun outcinitfill_objinitstring (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitstring check recv" (is_a recv class_objinitstring))
-  (debug_msg recv "outcinitfill_objinitstring recv")
-  (debug_msg ptrstr "outcinitfill_objinitstring ptrstr")
+  (debug "outcinitfill_objinitstring recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitstring check ptrstr" (is_string ptrstr))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -753,8 +748,7 @@
 
 (defun outcinitfill_objinitboxedinteger (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitboxedinteger check recv" (is_a recv class_objinitboxinteger))
-  (debug_msg recv "outcinitfill_objinitboxedinteger recv")
-  (debug_msg ptrstr "outcinitfill_objinitboxedinteger ptrstr")
+  (debug "outcinitfill_objinitboxedinteger recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitboxedinteger check ptrstr" (is_string ptrstr))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -807,8 +801,7 @@
 
 (defun outcinitfill_objinitpair (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitpair check recv" (is_a recv class_objinitpair))
-  (debug_msg recv "outcinitfill_objinitpair recv")
-  (debug_msg ptrstr "outcinitfill_objinitpair ptrstr")
+  (debug "outcinitfill_objinitpair recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitpair check ptrstr" (is_string ptrstr))
   (let  ( (cnam (unsafe_get_field :oie_cname recv)) 
 	  (olocvar (unsafe_get_field :oie_locvar recv))
@@ -851,8 +844,7 @@
 
 (defun outcinitfill_objinitlist (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitlist check recv" (is_a recv class_objinitlist))
-  (debug_msg recv "outcinitfill_objinitlist recv")
-  (debug_msg ptrstr "outcinitfill_objinitlist ptrstr")
+  (debug "outcinitfill_objinitlist recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitlist check ptrstr" (is_string ptrstr)) 
   (let  ( (cnam (unsafe_get_field :oie_cname recv)) 
 	  (olocvar (unsafe_get_field :oie_locvar recv))
@@ -887,12 +879,12 @@
 ;;;;;;;;;;;;;;;;
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
-  (debug_msg any "outpucod_anydiscr any")
+  (debug "outpucod_anydiscr any=" any)
   (outcstring_err "* output_c_code unimplemented receiver discriminator ")
   (let ( (discr (discrim any)) ) 
     (outstr_err (unsafe_get_field :named_name discr))
        (outnewline_err)
-       (debug_msg discr "outpucod_anydiscr discr"))
+       (debug "outpucod_anydiscr discr=" discr))
   (assert_msg "@@ outpucod_anydiscr not able to output" ())
   )
 (install_method discr_any_receiver output_c_code outpucod_anydiscr)
@@ -904,8 +896,7 @@
 
 ;;; catchall for outputting any stuff
 (defun outpucod_catchall_root (anyr declbuf implbuf :long depth)
-  (debug_msg anyr "outpucod_catchall_root anyr")
-  (display_debug_message anyr "outpucod_catchall_root anyr")
+  (debug "outpucod_catchall_root anyr=" anyr)
   (outcstring_err "* output_c_code unimplemented receiver class ")
   (let ( (discr (discrim anyr)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
@@ -1114,7 +1105,6 @@
 	(add2sbuf_indentnl dsbuf 0)))
     (if others 
 	(progn
-	  ;(debug_msg others "output_curframe_init others")
 	  (add2sbuf_strconst dsbuf "/*others*/")
 	  (add2sbuf_indentnl dsbuf 0)
 	  (list_every 
@@ -1198,7 +1188,7 @@
 
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_declstruct_init (declstruct rou implbuf)
-					;(debug_msg rou "output_curframe_init rou")
+
   (let (
 	(obody (unsafe_get_field :obrout_body rou))
 	(onbval (unsafe_get_field :obrout_nbval rou))
@@ -1282,7 +1272,6 @@
 	 (ofunam (unsafe_get_field :oprout_funam prou))
 	 (orestnam (unsafe_get_field :oprout_restnam prou))
 	 )
-    ;(debug_msg prou "outpucod_procroutine prou")
     (if (not (is_string ofunam)) 
 	(setq ofunam '"**"))
     ;; output the declaration
@@ -1322,7 +1311,7 @@
 	(let ( (ovariadicindex  (variadic_index_idstr orestnam))
 	       (ovariadiclength (variadic_length_idstr orestnam))
 	       )
-	  (debug_msg orestnam "outpucod_procroutine orestnam")
+	  (debug "outpucod_procroutine orestnam=" orestnam)
 	  (add2sbuf_indentnl implbuf 1)
 	  (add2sbuf_strconst implbuf "/*variadic*/ int ")
 	  (add2sbuf_string implbuf ovariadicindex)
@@ -1352,7 +1341,7 @@
     ;; output the argument getting
     (add2sbuf_strconst implbuf "/*getargs*/")
     (add2sbuf_indentnl implbuf 0)
-    (debug_msg ogargs "outpucod_procroutine output ogargs")
+    (debug "outpucod_procroutine output ogargs=" ogargs)
     (assert_msg "check ogargs" (is_multiple_or_null ogargs))
     (multiple_every
      ogargs
@@ -1371,7 +1360,6 @@
     (add2sbuf_strconst implbuf "lab_endgetargs:;")
     (add2sbuf_indentnl implbuf 0)
     ;; output the body
-    ;(debug_msg obody "outpucod_procroutine output obody")
     (assert_msg "check obody" (is_list obody))
     (add2sbuf_strconst implbuf "/*body*/")
     (add2sbuf_indentnl implbuf 0)
@@ -1433,7 +1421,6 @@
   (multiple_every
    idatup
    (lambda (curdat :long curk) 
-     ;(debug_msg curdat "output_curframe_cdat_struct curdat")
      (add2sbuf_indentnl implbuf 1)
      (output_c_declinit curdat implbuf)))
   (add2sbuf_indentnl implbuf 0)
@@ -1456,7 +1443,7 @@
   (foreach_in_multiple
    (idatup)
    (curpdat :long curk) 
-   (debug_msg curpdat "outpucod_initialroutine curpdat inipredef")
+   (debug "outpucod_initialroutine inipredef curpdat=" curpdat)
    (output_c_initial_predef curpdat implbuf '"cdat" 1))
 ;;;
 ;;; generate the initial filling of cdat
@@ -1465,7 +1452,6 @@
   (foreach_in_multiple
    (idatup)
    (curfil :long curk) 
-   ;;(debug_msg curfil "outpucod_initialroutine curfil")
    (add2sbuf_indentnl implbuf 1)
    (output_c_initial_fill curfil implbuf '"cdat" 0))
 ;;;;;;;
@@ -1590,10 +1576,7 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "void* start_module_melt(void* modargp_) {")
     (add2sbuf_indentnl implbuf 0)
-    ;;(debug_msg pini "outpucod_initialroutine pini")
     ;; generate the initial data structure
-    ;;(debug_msg idatup "outpucod_initialroutine start idatup")
-    ;;(debug_msg irfill "outpucod_initialroutine start irfill")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf "char predefinited[MELTGLOB__LASTGLOB+8];")
     (add2sbuf_indentnl implbuf 1)
@@ -1621,7 +1604,6 @@
     (list_every
      iprolog
      (lambda (curprol)
-       ;;(debug_msg curprol "outpucod_initialroutine curprol")
        (if (and curprol (not (is_a curprol class_objpurevalue)))
 	   (progn
 	     (output_c_code curprol declbuf implbuf 1)
@@ -1821,7 +1803,6 @@
 ;; output code for argument getter
 (defun outpucod_getarg (garg declbuf implbuf :long depth)
   (assert_msg "check garg" (is_a garg class_objgetarg))
-  ;(debug_msg garg "outpucod_getarg garg")
   (let ( (oloc (unsafe_get_field :obarg_obloc garg)) 
 	 (nloc (unsafe_get_field :obi_loc garg))
 	 (obind (unsafe_get_field :obarg_bind garg))
@@ -1878,7 +1859,6 @@
 	  )
 	(add2sbuf_indentnl implbuf depth)
 	))
-    ;(debug_msg garg "outpucod_getarg done garg")
     ))
 (install_method class_objgetarg output_c_code outpucod_getarg)
 
@@ -1886,7 +1866,7 @@
 ;; output code for argument getter
 (defun outpucod_getargrest (garg declbuf implbuf :long depth)
   (assert_msg "check garg" (is_a garg class_objgetargrest))
-  (debug_msg garg "outpucod_getargrest garg")
+  (debug "outpucod_getargrest garg=" garg)
   (let ( (oloc (unsafe_get_field :obarg_obloc garg)) 
 	 (nloc (unsafe_get_field :obi_loc garg))
 	 (obind (unsafe_get_field :obarg_bind garg))
@@ -1900,9 +1880,9 @@
     (output_location nloc implbuf depth "getarg")
     (assert_msg "check oloc" (is_a oloc class_objlocv))
     (assert_msg "check ctybind" (is_a ctybind class_ctype))
-    (debug_msg orest "outpucod_getargrest orest")
-    (debug_msg ovariadiclength "outpucod_getargrest ovariadiclength")
-    (debug_msg ovariadicindex "outpucod_getargrest ovariadicindex")
+    (debug "outpucod_getargrest orest=" orest
+	   " ovariadiclength=" ovariadiclength
+	   " ovariadicindex=" ovariadicindex)
     (if (==i rkbind 0)
 	(progn
 	  (assert_msg "check ctybind first" (== ctybind ctype_value))
@@ -1963,7 +1943,6 @@
 	  )
 	(add2sbuf_indentnl implbuf depth)
 	))
-    ;(debug_msg garg "outpucod_getarg done garg")
     ))
 (install_method class_objgetargrest output_c_code outpucod_getargrest)
 
@@ -1972,7 +1951,6 @@
 ;; output code for objlocv
 (defun outpucod_objlocv (locv declbuf implbuf :long depth)
   (assert_msg "check locv" (is_a locv class_objlocv))
-  ;; (debug_msg locv "outpucod_objlocv locv")
   (let ( 
 	(ltyp (unsafe_get_field :obv_type locv))
 	(loff (unsafe_get_field :obl_off locv))
@@ -2019,7 +1997,7 @@
 ;; output code for object const [closed] occurrence
 (defun outpucod_objconstv (ocnstv  declbuf implbuf :long depth)
   (assert_msg "check ocnstv" (is_a ocnstv class_objconstv))
-  (debug_msg ocnstv "outpucod_objconstv ocnstv")
+  (debug "outpucod_objconstv ocnstv=" ocnstv)
   (let ( (ooff (unsafe_get_field :obc_off ocnstv))
 	 (onam (unsafe_get_field :obc_name ocnstv)) )
     (assert_msg "check valueness of const occurrence" 
@@ -2068,7 +2046,7 @@
 ;; output code for objanyblock
 (defun outpucod_objanyblock (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objanyblock))
-  (debug_msg oblo "outpucod_objblock oblo")
+  (debug "outpucod_objblock oblo=" oblo)
   (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "block")
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
@@ -2085,13 +2063,13 @@
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
     )
-  (debug_msg oblo "outpucod_objblock done oblo")
+  (debug "outpucod_objblock done oblo=" oblo)
   )
 (install_method class_objanyblock output_c_code outpucod_objanyblock)
 
 ;; output code for objmultiallocblock
 (defun outpucod_objmultiallocblock (oblo declbuf implbuf :long depth)
-  (debug_msg oblo "outpucod_objmultiallocblock oblo")
+  (debug "outpucod_objmultiallocblock oblo=" oblo)
   (assert_msg "check oblo" (is_a oblo class_objmultiallocblock))
   (let ( (oloc (unsafe_get_field :obi_loc oblo))
 	 (oallstruct (unsafe_get_field :omalblo_allstruct oblo))
@@ -2106,7 +2084,7 @@
 		     (strbuf2string discr_verbatim_string ptrbuf)))
 	 )
     (output_location oloc implbuf depth "blockmultialloc")
-    (debug_msg oallstruct "outpucod_objmultiallocblock oallstruct")
+    (debug "outpucod_objmultiallocblock oallstruct=" oallstruct)
     (assert_msg "check oallstruct" (is_multiple_or_null oallstruct))
     (add2sbuf_strconst implbuf "/*multiallocblock*/{")
     (add2sbuf_indentnl implbuf depthp1)
@@ -2116,7 +2094,7 @@
     (foreach_in_multiple
      (oallstruct)
      (curstru :long strix)
-     (debug_msg curstru "outpucod_objmultiallocblock curstru declare")
+     (debug "outpucod_objmultiallocblock declare curstru=" curstru)
      (assert_msg "check curstru" (is_a curstru class_objinitelem))
      (add2sbuf_indentnl implbuf depthp1)
      (output_c_declinit curstru implbuf)
@@ -2139,7 +2117,7 @@
     (foreach_in_multiple
      (oallstruct)
      (curstru :long strix)
-     (debug_msg curstru "outpucod_objmultiallocblock curstru initfill")
+     (debug "outpucod_objmultiallocblock initfill curstru=" curstru)
      (output_c_initial_fill curstru implbuf onameptr depthp1)
      (add2sbuf_indentnl implbuf depthp1)   
      )
@@ -2163,7 +2141,7 @@
 ;; output code for objciterblock
 (defun outpucod_objciterblock (obcit  declbuf implbuf :long depth)
   (assert_msg "check obcit" (is_a obcit class_objciterblock))
-  (debug_msg obcit "outpucod_objciterblock obcit")
+  (debug "outpucod_objciterblock obcit=" obcit)
   (let ( (oloc (unsafe_get_field :obi_loc obcit))
 	 (bodyl (unsafe_get_field :oblo_bodyl obcit))
 	 (epil (unsafe_get_field :oblo_epil obcit)) 
@@ -2232,7 +2210,7 @@
 ;; output code for objcommentedblock
 (defun outpucod_objcommentedblock (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objcommentedblock))
-  (debug_msg oblo "outpucod_objblock oblo")
+  (debug "outpucod_objblock oblo=" oblo)
   (output_location (unsafe_get_field :obi_loc oblo) implbuf depth "block")
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
@@ -2261,7 +2239,7 @@
     (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf depth)
     )
-  (debug_msg oblo "outpucod_objcommentedblock done oblo")
+  (debug "outpucod_objcommentedblock done oblo=" oblo)
   )
 (install_method class_objcommentedblock output_c_code outpucod_objcommentedblock)
 
@@ -2270,7 +2248,7 @@
 
 (defun outpucod_objlabelinstr (oblab declbuf implbuf :long depth)
   (assert_msg "check oblab" (is_a oblab class_objlabelinstr))
-  (debug_msg oblab "outpucod_objlabelinstr oblab")
+  (debug "outpucod_objlabelinstr oblab=oblab")
   (add2sbuf_indentnl implbuf depth)
   (add2sbuf_strconst implbuf "/*objlabel*/ ")
   (add2sbuf_string implbuf (unsafe_get_field :oblab_prefix oblab))
@@ -2288,7 +2266,7 @@
 
 (defun outpucod_objgotoinstr (obgoto declbuf implbuf :long depth)
   (assert_msg "check obgoto" (is_a obgoto class_objgotoinstr))
-  (debug_msg obgoto "outpucod_objgotoinstr")
+  (debug "outpucod_objgotoinstr obgoto=" obgoto)
   (output_location (unsafe_get_field :obi_loc obgoto) implbuf depth "objgoto")
   (add2sbuf_strconst implbuf "/*objgoto*/ goto ")
   (add2sbuf_string implbuf (unsafe_get_field :obgoto_prefix obgoto))
@@ -2315,7 +2293,7 @@
 ;;; output code for objloop
 (defun outpucod_objloop (oblo declbuf implbuf :long depth)
   (assert_msg "check oblo" (is_a oblo class_objloop))
-  (debug_msg oblo "outpucod_objloop oblo")
+  (debug "outpucod_objloop oblo=" oblo)
   (let ( (bodyl (unsafe_get_field :oblo_bodyl oblo))
 	 (epil (unsafe_get_field :oblo_epil oblo)) 
 	 (lab (unsafe_get_field :obloop_label oblo))
@@ -2364,7 +2342,7 @@
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
     )
-  (debug_msg oblo "outpucod_objloop done oblo")
+  (debug "outpucod_objloop done oblo=" oblo)
   )
 (install_method class_objloop output_c_code outpucod_objloop)
 
@@ -2372,7 +2350,7 @@
 ;;; output code for objexit
 (defun outpucod_objexit (obxi declbuf implbuf :long depth)
   (assert_msg "check obxi" (is_a obxi class_objexit))
-  (debug_msg obxi "outpucod_objexit obxi")
+  (debug "outpucod_objexit obxi=" obxi)
   (let ( (olab (unsafe_get_field :obexit_label obxi))
 	 (loc (unsafe_get_field :obi_loc obxi))
 	 )
@@ -2391,7 +2369,7 @@
 ;;; output code for objagain
 (defun outpucod_objagain (obag declbuf implbuf :long depth)
   (assert_msg "check obag" (is_a obag class_objagain))
-  (debug_msg obag "outpucod_objagain obag")
+  (debug "outpucod_objagain obag=" obag)
   (let ( (olab (unsafe_get_field :obagain_label obag))
 	 (loc (unsafe_get_field :obi_loc obag))
 	 )
@@ -2414,7 +2392,7 @@
 	 (cexp (unsafe_get_field :obcpt_expr obcomp)) 
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
-    (debug_msg obcomp "outpucod_objcompute obcomp")
+    (debug "outpucod_objcompute obcomp=" obcomp)
     (output_location cloc implbuf depth "compute")
     (if (is_list cdest)
 	(list_every
@@ -2448,7 +2426,7 @@
 ;; output a conditional
 (defun outpucod_objcond (ocond declbuf implbuf :long depth)
   (assert_msg "check ocond" (is_a ocond class_objcond))
-  (debug_msg ocond "outpucod_objcond ocond")
+  (debug "outpucod_objcond ocond=" ocond)
   (let ( (cloc (unsafe_get_field :obi_loc ocond))
 	 (ctest (unsafe_get_field :obcond_test ocond))
 	 (cthen (unsafe_get_field :obcond_then ocond))
@@ -2482,7 +2460,7 @@
       )
     (add2sbuf_indentnl implbuf depth)
     ) 
-  (debug_msg ocond "outpucod_objcond end ocond")
+  (debug "outpucod_objcond end ocond=" ocond)
   )
 (install_method class_objcond output_c_code outpucod_objcond)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2490,7 +2468,7 @@
 ;; output a cppif
 (defun outpucod_objcppif (opif declbuf implbuf :long depth)
   (assert_msg "check opif" (is_a opif class_objcppif))
-  (debug_msg opif "outpucod_objcppif opif")
+  (debug "outpucod_objcppif opif=" opif)
   (let ( (cloc (unsafe_get_field :obi_loc opif))
 	 (ccond (unsafe_get_field :obifp_cond opif))
 	 (cthen (unsafe_get_field :obifp_then opif))
@@ -2522,7 +2500,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun outpucod_objinternsymbol (oisy declbuf implbuf :long depth)
   (assert_msg "check oisy" (is_a oisy class_objinternsymbol))
-  (debug_msg oisy "outpucod_objinternsymbol oisy")
+  (debug "outpucod_objinternsymbol oisy=" oisy)
   (let ( (cloc (unsafe_get_field :obi_loc oisy))
 	 (oiobj (unsafe_get_field :obintern_iobj oisy))
 	 (oidat (unsafe_get_field :oie_data oiobj)) 
@@ -2546,7 +2524,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun outpucod_objinternkeyword (oikw declbuf implbuf :long depth)
   (assert_msg "check oikw" (is_a oikw class_objinternkeyword))
-  (debug_msg oikw "outpucod_objinternkeyword oikw")
+  (debug "outpucod_objinternkeyword oikw=" oikw)
   (let ( (cloc (unsafe_get_field :obi_loc oikw))
 	 (oiobj (unsafe_get_field :obintern_iobj oikw))
 	 (oidat (unsafe_get_field :oie_data oiobj)) 
@@ -2569,7 +2547,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun outpucod_objgetnamedsymbol (ogsy declbuf implbuf :long depth)
   (assert_msg "check ogsy" (is_a ogsy class_objgetnamedsymbol))
-  (debug_msg ogsy "outpucod_objgetnamedsymbol ogsy")
+  (debug "outpucod_objgetnamedsymbol ogsy=" ogsy)
   (let ( (cloc (unsafe_get_field :obi_loc ogsy))
 	 (oiobj (unsafe_get_field :obgnamed_iobj ogsy)) 
 	 (ogdat (unsafe_get_field :oie_data oiobj))
@@ -2607,7 +2585,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun outpucod_objgetnamedkeyword (ogkw declbuf implbuf :long depth)
   (assert_msg "check ogkw" (is_a ogkw class_objgetnamedkeyword))
-  (debug_msg ogkw "outpucod_objgetnamedkeyword ogkw")
+  (debug "outpucod_objgetnamedkeyword ogkw=" ogkw)
   (let ( (cloc (unsafe_get_field :obi_loc ogkw))
 	 (oiobj (unsafe_get_field :obgnamed_iobj ogkw)) 
 	 (ogdat (unsafe_get_field :oie_data oiobj))
@@ -2642,7 +2620,7 @@
 ;; output an application
 (defun outpucod_objapply (oapp declbuf implbuf :long depth)
   (assert_msg "check oapp" (is_a oapp class_objapply))
-  (debug_msg oapp "outpucod_objapply oapp")
+  (debug "outpucod_objapply oapp=" oapp)
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
 	(adest (unsafe_get_field :obdi_destlist oapp))
@@ -2667,11 +2645,11 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg curarg "outputcod_objapply curarg")
+	     (debug "outputcod_objapply curarg=" curarg " curank=" curank)
 	     (assert_msg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg ())) )
-		   (debug_msg curctyp "outputcod_objapply curctyp")
+		   (debug "outputcod_objapply curctyp=" curctyp)
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1) "apply.arg")
 		   (add2sbuf_strconst implbuf "argtab[")
@@ -2734,7 +2712,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a message send
 (defun outpucod_objmsend (omsend declbuf implbuf :long depth)
-  (debug_msg omsend "outpucod_objmsend omsend")
+  (debug "outpucod_objmsend omsend=" omsend)
   (assert_msg "check omsend" (is_a omsend class_objmsend))
   (let ( (oloc (unsafe_get_field :obi_loc omsend))
 	 (odest (unsafe_get_field :obdi_destlist omsend))
@@ -2763,9 +2741,9 @@
 	  (foreach_in_multiple
 	   (oargs)
 	   (curarg :long curank)
-	   (debug_msg curarg "outputcod_objmsend curarg")
+	   (debug "outputcod_objmsend curarg=" curarg)
 	   (let ( (curctyp (get_ctype curarg ())) )
-	     (debug_msg curctyp "outputcod_objmsend curctyp")
+	     (debug "outputcod_objmsend curctyp=" curctyp)
 	     (assert_msg "check curctyp" (is_a curctyp class_ctype))
 	     (output_location oloc implbuf (get_int boxdepthp1) "ojbmsend.arg")
 	     (add2sbuf_strconst implbuf "argtab[")
@@ -2799,8 +2777,7 @@
      (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
      (add2sbuf_strconst implbuf " = "))
     ;;
-    (debug_msg orecv "outpucod_objmsend orecv")
-    (debug_msg oloc "outpucod_objmsend oloc")
+    (debug "outpucod_objmsend orecv=" orecv " oloc=" oloc)
     (assert_msg "check orecv object" (is_object orecv))
     ;;
     (add2sbuf_strconst implbuf "meltgc_send((melt_ptr_t)(")
@@ -2832,7 +2809,7 @@
 
 (defun outpucod_objmultiapply (oapp declbuf implbuf :long depth)
   (assert_msg "check oapp" (is_a oapp class_objmultiapply))
-  (debug_msg oapp "outpucod_objmultiapply oapp")
+  (debug "outpucod_objmultiapply oapp=" oapp)
   (let (
 	(aloc (unsafe_get_field :obi_loc oapp))
 	(adest (unsafe_get_field :obdi_destlist oapp))
@@ -2888,10 +2865,10 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg curarg "outpucod_objmultiapply curarg")
+	     (debug "outpucod_objmultiapply curarg=" curarg)
 	     (if (>i curank 0)
 		 (let ( (curctyp (get_ctype curarg ())) )
-		   (debug_msg curctyp "outpucod_objmultiapply curctyp")
+		   (debug "outpucod_objmultiapply curctyp=" curctyp)
 		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
 		   (output_location aloc implbuf (get_int boxdepthp1) "multiapply.arg")
 		   (add2sbuf_strconst implbuf "argtab[")
@@ -2921,7 +2898,7 @@
 	   oxres
 	   (lambda (cures :long curank)
 	     (let ( (curestyp (get_ctype cures ())) )
-	       (debug_msg curestyp "outpucod_objmultiapply curestyp")
+	       (debug "outpucod_objmultiapply curestyp=" curestyp)
 	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
 	       (output_location aloc implbuf (get_int boxdepthp1) "multiapply.xres")
 	       (add2sbuf_strconst implbuf "restab[")
@@ -2995,8 +2972,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output a multiresult message send
 (defun outpucod_objmultimsend (omsnd  declbuf implbuf :long depth)
+  (debug "outpucod_objmultimsend omsnd=" omsnd)
   (assert_msg "check omsnd" (is_a omsnd class_objmultimsend))
-  (debug_msg omsnd "outpucod_objmultimsend omsnd")
   (let ( (oloc (unsafe_get_field :obi_loc omsnd))
 	 (odest (unsafe_get_field :obdi_destlist omsnd))
 	 (osel (unsafe_get_field :obmsnd_sel omsnd))
@@ -3047,9 +3024,9 @@
 	  (multiple_every
 	   oargs
 	   (lambda (curarg :long curank)
-	     (debug_msg curarg "outpucod_objmultimsend curarg")
+	     (debug "outpucod_objmultimsend curarg=" curarg " curank=" curank)
 	     (let ( (curctyp (get_ctype curarg ())) )
-	       (debug_msg curctyp "outpucod_objmultimsend curctyp")
+	       (debug "outpucod_objmultimsend curctyp=" curctyp)
 	       (assert_msg "check curctyp" (is_a curctyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.arg")
 	       (add2sbuf_strconst implbuf "argtab[")
@@ -3079,7 +3056,7 @@
 	   oxres
 	   (lambda (cures :long curank)
 	     (let ( (curestyp (get_ctype cures ())) )
-	       (debug_msg curestyp "outpucod_objmultimsend curestyp")
+	       (debug "outpucod_objmultimsend curestyp=" curestyp)
 	       (assert_msg "check curestyp" (is_a curestyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.xres")
 	       (add2sbuf_strconst implbuf "restab[")
@@ -3150,7 +3127,7 @@
 ;; output a clear
 (defun outpucod_objclear (oclear declbuf implbuf :long depth)
   (assert_msg "check oclear" (is_a oclear class_objclear))
-  (debug_msg oclear "outpucod_objclear oclear")
+  (debug "outpucod_objclear oclear=" oclear)
   (let ( (cloc (unsafe_get_field :obi_loc oclear))
 	 (cvl (unsafe_get_field :oclr_vloc oclear))
 	 )
@@ -3165,7 +3142,7 @@
 ;; output a raw object allocation
 (defun outpucod_objrawallocobj (oralob declbuf implbuf :long depth)
   (assert_msg "check oralob" (is_a oralob class_objrawallocobj))
-  (debug_msg oralob "outpucod_objrawallocobj oralob")
+  (debug "outpucod_objrawallocobj oralob=" oralob)
   (let ( (iloc (unsafe_get_field :obi_loc oralob))
 	 (iclass (unsafe_get_field :obrallobj_class oralob))
 	 (iclaname (unsafe_get_field :obrallobj_classname oralob))
@@ -3200,7 +3177,7 @@
 ;; output a closure allocation
 (defun outpucod_objnewclosure (obnclo declbuf implbuf :long depth)
   (assert_msg "check oralob" (is_a obnclo class_objnewclosure))
-  (debug_msg obnclo "outpucod_objnewclosure obnclo") 
+  (debug "outpucod_objnewclosure obnclo=" obnclo) 
   (let ( (iloc (unsafe_get_field :obi_loc obnclo))
 	 (odiscr (unsafe_get_field :obnclo_discr obnclo))
 	 (orout (unsafe_get_field :obnclo_rout obnclo))
@@ -3255,7 +3232,7 @@
 ;;; output a put tuple (mostly used in initial data content filling)
 (defun outpucod_objputuple (optup declbuf implbuf :long depth)
   (assert_msg "check optyp" (is_a optup class_objputuple))
-  (debug_msg optup "outpucod_objputuple optup")
+  (debug "outpucod_objputuple optup=" optup)
   (let ( (iloc (unsafe_get_field :obi_loc optup))
 	 (otup (unsafe_get_field :oputu_tupled optup))
 	 (ooff (unsafe_get_field :oputu_offset optup))
@@ -3325,7 +3302,7 @@
 
 ;;;;
 (defun outpucod_objputpairhead (oput declbuf implbuf :long depth)
-  (debug_msg oput "outpucod_objputpairhead oput")
+  (debug "outpucod_objputpairhead oput=" oput)
   (let ( (oloc (unsafe_get_field :obi_loc oput))
 	 (opair (get_field :oputp_pair oput))
 	 (ohead (get_field :oputp_head oput))
@@ -3350,7 +3327,7 @@
 
 ;;;;
 (defun outpucod_objputpairtail (oput declbuf implbuf :long depth)
-  (debug_msg oput "outpucod_objputpairtail oput")
+  (debug "outpucod_objputpairtail oput=" oput)
   (let ( (oloc (unsafe_get_field :obi_loc oput))
 	 (opair (get_field :oputp_pair oput))
 	 (otail (get_field :oputp_tail oput))
@@ -3375,7 +3352,7 @@
 
 ;;;;
 (defun outpucod_objputlist (oput declbuf implbuf :long depth)
-  (debug_msg oput "outpucod_objputlist oput")
+  (debug "outpucod_objputlist oput=" oput)
   (let ( (oloc (unsafe_get_field :obi_loc oput))
 	 (olist (get_field :oputl_list oput))
 	 (ofirst (get_field :oputl_first oput))
@@ -3413,7 +3390,7 @@
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
 	 )
     (assert_msg "check ofield" (is_a ofield class_field))
-    (debug_msg ogsl "outpucod_objgetslot ogsl")
+    (debug "outpucod_objgetslot ogsl=" ogsl)
     (output_location oloc implbuf depth "getslot")
     (add2sbuf_strconst implbuf "{ melt_ptr_t slot=0;")
     (add2sbuf_indentnl implbuf (+i 1 depth))
@@ -3439,7 +3416,7 @@
 ;;; output a put slot (mostly used in initial data content filling)
 (defun outpucod_objputslot (opslo declbuf implbuf :long depth)
   (assert_msg "check opslo" (is_a opslo class_objputslot))
-  (debug_msg opslo "outpucod_objputslot opslo")
+  (debug "outpucod_objputslot opslo=" opslo)
   (let ( (iloc (unsafe_get_field :obi_loc opslo))
 	 (odata (unsafe_get_field :oslot_odata opslo))
 	 (ooff (unsafe_get_field :oslot_offset opslo))
@@ -3513,7 +3490,7 @@
 ;;; output the putting of the routine in a closure
 (defun outpucod_objputclosurout (opclor  declbuf implbuf :long depth)
   (assert_msg "check opclor" (is_a opclor class_objputclosurout))
-  (debug_msg opclor "outpucod_objputclosurout opclor")
+  (debug "outpucod_objputclosurout opclor=" opclor)
   (let ( (oloc (unsafe_get_field :obi_loc opclor))
 	 (oclos (unsafe_get_field :opclor_clos opclor))
 	 (orout (unsafe_get_field :opclor_rout opclor)) 
@@ -3555,8 +3532,8 @@
 
 ;;; output the putting of a closed value
 (defun outpucod_objputclosedv (opclov declbuf implbuf :long depth)
+  (debug "outpucod_objputclosedv opclov=" opclov)
   (assert_msg "check opclor" (is_a opclov class_objputclosedv))
-  (debug_msg opclov "outpucod_objputclosedv")
   (let ( (oloc (unsafe_get_field :obi_loc opclov))
 	 (oclos (unsafe_get_field :opclov_clos opclov))
 	 (ooff (unsafe_get_field :opclov_off opclov))
@@ -3589,9 +3566,9 @@
 
 
 ;;; output the putting of a nonull closed value
-(defun outpucod_objputclosednotnullv (opclov declbuf implbuf :long depth)
+(defun outpucod_objputclosednotnullv (opclov declbuf implbuf :long depth) 
+  (debug "outpucod_objputclosednotnullv opclov=" opclov)
   (assert_msg "check opclor" (is_a opclov class_objputclosednotnullv))
-  (debug_msg opclov "outpucod_objputclosednotnullv")
   (let ( (oloc (unsafe_get_field :obi_loc opclov))
 	 (oclos (unsafe_get_field :opclov_clos opclov))
 	 (ooff (unsafe_get_field :opclov_off opclov))
@@ -3799,7 +3776,7 @@
   )
 (install_method discr_string output_c_code outpucod_string)
 
-;(debug_msg discr_string "discr_string @@toplev warmmelt")
+
 
 
 ;;; output an integer
@@ -3839,7 +3816,7 @@
     ))
 
 (defun output_exported_offsets (modctx declbuf implbuf)
-  (debug_msg modctx "output_exported_offsets modctx")
+  (debug "output_exported_offsets modctx=" modctx)
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( 
 	(rawdictfields (unsafe_get_field :mocx_expfieldict modctx))
@@ -3847,10 +3824,10 @@
 	(rawdictclasses (unsafe_get_field :mocx_expclassdict modctx))
 	(sortedclasses (sorted_named_dict_tuple rawdictclasses))
 	)
-    (debug_msg rawdictfields "output_exported_offsets rawdictfields")
-    (debug_msg sortedfields "output_exported_offsets sortedfields")
-    (debug_msg rawdictclasses "output_exported_offsets rawdictclasses")
-    (debug_msg sortedclasses "output_exported_offsets sortedclasses")
+    (debug "output_exported_offsets rawdictfields=" rawdictfields 
+	   " sortedfields=" sortedfields
+	   " rawdictclasses=" rawdictclasses
+	   " sortedclasses=" sortedclasses)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "/* exported ")
     (add2sbuf_longdec implbuf (mapstring_count rawdictfields))
@@ -3858,7 +3835,7 @@
     (multiple_every 
      sortedfields
      (lambda (fld :long ix)
-       (debug_msg fld "output_exported_offsets fld")
+       (debug "output_exported_offsets fld=" fld " ix=" ix)
        (assert_msg "check fld" (is_a fld class_field))
        (add2sbuf_indentnl implbuf 0)
        (add2sbuf_strconst implbuf "const int meltfieldoff__")
@@ -3942,8 +3919,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility to output the melt descriptor file
 (defun output_melt_descriptor (modnamstr secfiles)
-  (debug_msg modnamstr "output_melt_descriptor modnamstr")
-  (debug_msg secfiles "output_melt_descriptor secfiles")
+  (debug "output_melt_descriptor modnamstr=" modnamstr
+	     " secfiles=" secfiles)
   (let ( 
 	(:long nbsecfiles (multiple_length secfiles))
 	(:long lastsecfileix 0)
@@ -4061,7 +4038,7 @@
       (add2sbuf_strconst primpathbuf ".c")
       (let ( (primpath (strbuf2string discr_string primpathbuf)) 
 	     )
-	(debug_msg primpath "output_melt_descriptor primpath")
+	(debug "output_melt_descriptor primpath=" primpath)
 	(list_append pathlist primpath)
 	(add2sbuf_cencstring debuf (string_hex_md5sum_pathstrv primpath))
 	))
@@ -4075,7 +4052,7 @@
     (foreach_in_multiple
      (secfiles)
      (curfil :long filix)
-     (debug_msg curfil " curfil")
+     (debug "output_melt_descriptor curfil=" curfil " filix=" filix)
      (add2sbuf_indentnl debuf 1)
      (if curfil
 	 (progn
@@ -4147,7 +4124,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
-  (debug_msg modnamstr "translate_macroexpanded_list modnamstr")
+  (debug modnamstr "translate_macroexpanded_list modnamstr=" modnamstr)
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -4192,15 +4169,15 @@
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (list_prepend xlist ucmeb1)
-    (debug_msg xlist "after macroexpansion compile_list_sexpr seq")
-    (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")
+    (debug "after macroexpansion compile_list_sexpr xlist=" xlist
+	   " inienv=" inienv)
     (assert_msg "check iniproc" (is_a iniproc class_nrep_initproc))
     (assert_msg "check xlist" (is_list xlist))
     ;;
     (list_every
      xlist
-     (lambda (sexp :long ix)
-       (debug_msg sexp "compile_list_sexpr sexp")
+     (lambda (sexp)
+       (debug "compile_list_sexpr sexp=" sexp)
        (let (
 	     (psloc (if (is_a sexp class_located) (unsafe_get_field :loca_location sexp)))
 	     )
@@ -4220,12 +4197,11 @@
 	   (multicall 
 	    (nexp nbind)
 	    (normal_exp sexp inienv ncx psloc)	    
-	    (debug_msg nexp "compile_list_sexpr nexp")    
-	    (debug_msg nbind "compile_list_sexpr nbind")
+	    (debug "compile_list_sexpr nexp=" nexp " nbind=" nbind)    
 	    (if (and (is_a nexp class_nrep)
 		     (not (is_a nexp class_nrep_anyproc)))
 		(let ( (wnexp (wrap_normal_let1 nexp nbind psloc)) )
-		  (debug_msg wnexp "compile_list_sexpr wnexp")
+		  (debug "compile_list_sexpr wnexp=" wnexp)
 		  (list_append (unsafe_get_field :ninit_topl iniproc) 
 			       wnexp)
 		  )))))))
@@ -4242,19 +4218,17 @@
 	   (compicache (make_mapobject discr_map_objects (+i 10 (*i 20 (list_length xlist)))))
 	   (countbox (make_integerbox discr_integer 0))
 	   ) 
-      (debug_msg prolist "compile_list_sexpr prolist")  
+      (debug "compile_list_sexpr prolist=" prolist)  
       (assert_msg "check prolist" (is_list prolist))
       (list_every
        prolist
        (lambda (pro)
 	 (assert_msg "check pro" (is_a pro class_nrep_anyproc))
-	 (debug_msg pro "compile_list_sexpr pro")
+	 (debug "compile_list_sexpr pro=" pro)
 	 (put_int countbox (+i (get_int countbox) 1))
 	 (let ( (objpro (compile2obj_procedure pro modctx compicache (get_int countbox))) )
-	   (debug_msg objpro "compile_list_sexpr objpro")
-	   (debug_msg pro "compile_list_sexpr done pro")
+	   (debug "compile_list_sexpr objpro=" objpro " pro=" pro)
 	   (list_append objlist objpro)
-	   ;;(debug_msg compicache "compile_list_sexpr compicache")
 	   )))
       ;;
       (code_chunk 
@@ -4265,7 +4239,7 @@
 			 melt_string_str($modnamstr), melt_error_counter) ;
        }#)
       ;;
-      (debug_msg objlist "compile_list_sexpr objlist")  
+      (debug "compile_list_sexpr objlist=" objlist)  
       (assert_msg "check objlist" (is_list objlist))
       (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	     (inidata (unsafe_get_field :nctx_datalist ncx))
@@ -4273,14 +4247,14 @@
 	     (procurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	     )
 	(assert_msg "check inipro" (is_a inipro class_nrep_initproc))
-	(debug_msg procurmodenvlist "compile_list_sexpr procurmodenvlist")
+	(debug "compile_list_sexpr procurmodenvlist=" procurmodenvlist)
 	(let ( (iniobj (compile2obj_initproc inipro modctx inidata compicache procurmodenvlist importvalues)) )
-	  (debug_msg iniobj "compile_list_sexpr iniobj")
+	  (debug "compile_list_sexpr iniobj=" iniobj)
 ;;;
 	  (foreach_in_list
 	   (objlist)
 	   (pairel obel)
-	   (debug_msg obel "compile_list_sexpr obel")
+	   (debug "compile_list_sexpr obel=" obel)
 	   ;; we do want to generate several C files...
 	   (let ( (:long filnum
 			 (if (is_a obel class_procroutineobj)
@@ -4292,8 +4266,7 @@
 		  )
 	     (output_c_code obel declbuf outimplbuf 0)))
 ;;;
-	  (debug_msg modnamstr "compile_list_sexpr final modnamstr") 
-	  (debug_msg iniobj "compile_list_sexpr outputting iniobj")
+	  (debug "compile_list_sexpr final modnamstr=" modnamstr " iniobj=" iniobj) 
 	  (output_c_code iniobj declbuf implbuf 0)
 	  (output_exported_offsets modctx declbuf implbuf)
 	  (code_chunk outputcfile
@@ -4307,11 +4280,11 @@
 	  (let ( (secfiles (get_field :mocx_filetuple modctx)) 
 		 (:long nbsecfiles (multiple_length secfiles))
 		 )
-	    (debug_msg secfiles "compile_list_sexpr secfiles")
+	    (debug "compile_list_sexpr secfiles=" secfiles)
 	    (foreach_in_multiple
 	     (secfiles)
 	     (curfil :long filix)
-	     (debug_msg curfil "compile_list_sexpr curfil")
+	     (debug "compile_list_sexpr curfil=" curfil " filix=" filix)
 	     (if curfil
 		 (progn
 		   (assert_msg "check curfil" 
@@ -4345,11 +4318,11 @@
 		 (let ( (delfilnam (generated_c_filename discr_string modnamstr () delfilix))
 			(baksbuf (make_strbuf discr_strbuf))
 			)
-		   (debug_msg delfilnam "translate_macroexpanded_list delfilnam")
+		   (debug "translate_macroexpanded_list delfilnam=" delfilnam)
 		   (add2out baksbuf delfilnam "~")
 		   (let ( (bakfilnam (strbuf2string discr_string baksbuf))
 			  )
-		     (debug_msg bakfilnam "translate_macroexpanded_list bakfilnam")
+		     (debug "translate_macroexpanded_list bakfilnam=" bakfilnam)
 		     (code_chunk 
 		      backupchk
 		      #{ /*$BACKUPCHK*/
@@ -4391,9 +4364,8 @@
 ;; compile a list of sexpressions as a module starting from a given environment
 (defun compile_list_sexpr (lsexp inienv modnamstr)
   (message_dbg "starting  compile_list_sexpr")
-  (debug_msg lsexp "\n\n\n*%*%* compile_list_sexpr lsexp" ) ;list of sexpr
-  (debug_msg inienv "compile_list_sexpr inienv") ;initial environment
-  (debug_msg modnamstr "compile_list_sexpr modnamstr") ;module name
+  (debug "compile_list_sexpr lsexp=" lsexp " inienv=" inienv
+	 " modnamstr=" modnamstr) 
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
@@ -4416,7 +4388,7 @@
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
-    (debug_msg ncx "compile_list_sexpr initial ncx")
+    (debug "compile_list_sexpr initial ncx=" ncx)
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
 	   )
@@ -4446,9 +4418,9 @@
 ;;; modsrcname is the string for the module source file path; its
 ;;; basename should not contains any dots
 (defun translate_to_c_one_or_more_melt_files (files modsrcname curenv)
-  (debug_msg files "translate_to_c_one_or_more_melt_files files")
   (assert_msg "check curenv" (is_a curenv class_environment))
-  (debug_msg modsrcname "translate_to_c_one_or_more_melt_files modsrcname")
+  (debug "translate_to_c_one_or_more_melt_files files=" files
+	 " modsrcname=" modsrcname)
   (assert_msg "check modsrcname" (is_string modsrcname))
   (assert_msg "translate_to_c_one_or_more_melt_files modsrcname not ended with .so"
 	      (not (string_suffixed modsrcname ".so")))
@@ -4470,7 +4442,7 @@
      }#)
     (if (not isvalidmodsrc)
 	(progn
-	  (debug_msg modsrcname "translate_to_c_one_or_more_melt_files bad generated modsrcname")
+	  (debug "translate_to_c_one_or_more_melt_files bad generated modsrcname=" modsrcname)
 	  (errormsg_strv 
 	   "invalid generated source name [basename should have no dot or plus]" 
 	   modsrcname)
@@ -4483,21 +4455,21 @@
       (foreach_in_list
        (files)
        (curpair curfile)
-       (debug_msg curfile "translate_to_c_one_or_more_melt_files curfile")
+       (debug "translate_to_c_one_or_more_melt_files curfile=" curfile)
        (assert_msg "check curfile" (is_string curfile))
        (informsg_strv "reading from file" curfile)
        (let ( (curead (read_file curfile))
 	      )
-	 (debug_msg curead "compilefile_mode curead")
+	 (debug "compilefile_mode curead=" curead)
 	 (assert_msg "check curead" (is_list_or_null curead))
 	 (list_append2list rlist curead))))
      (:else
       (assert_msg "bad files - should be a list of filenames or a filename" ())
       ))
-    (debug_msg rlist "after read translate_to_c_one_or_more_melt_files rlist")
+    (debug "after read translate_to_c_one_or_more_melt_files rlist=" rlist)
     (assert_msg "check non empty rlist" (>i (list_length rlist) 0))
     (compile_list_sexpr rlist curenv modsrcname)
-    (debug_msg modsrcname "translate_to_c_one_or_more_melt_files done modsrcname")
+    (debug "translate_to_c_one_or_more_melt_files done modsrcname=" modsrcname)
     ))
 
 
