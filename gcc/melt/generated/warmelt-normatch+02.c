@@ -3462,7 +3462,7 @@ lab_endgetargs:;
 
 	    /*^putpairhead */
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /aeeb2e6 checkpair",
+	    melt_assertmsg ("putpairhead /3c3f6db2 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.CBIND__V49*/
 					       meltfptr[48])) ==
@@ -8680,8 +8680,7 @@ lab_endgetargs:;
  /*_#MELT_NEED_DBG__L95*/ meltfnum[77] =
       /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
-      (flag_melt_debug && melt_dbgcounter >= melt_debugskipcount && (1) >= 0
-       && (1) <= MELTDBG_MAXDEPTH)
+      ( /*melt_need_dbg */ melt_need_debug ((int) 1))
 #else
       0				/* no melt_need_dbg */
 #endif /*MELT_HAVE_DEBUG */
