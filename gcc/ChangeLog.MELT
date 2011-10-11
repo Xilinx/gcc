@@ -1,5 +1,8 @@
 
 2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt: Don't use DEBUG_MSG, but DEBUG.
+
+2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

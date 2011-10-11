@@ -40,7 +40,7 @@
 	 )
     (if (mapstring_getstr cmdict cnam)
 	(warningmsg_strv "installing an existing mode" cnam))
-    (debug_msg mode "install_melt_mode mode")
+    (debug "install_melt_mode mode=" mode)
     (mapstring_putstr cmdict cnam mode)
 ))
 
@@ -49,18 +49,17 @@
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun runfile_docmd (cmd moduldata)
-  (debug_msg cmd "start runfile_docmd cmd")
-  (debug_msg moduldata "start runfile_docmd moduldata")
+  (debug "start runfile_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug_msg parmodenv "before read runfile_mode parmodenv")
-    (debug_msg initial_environment "before read runfile_mode initial_environment")
-    (debug_msg inarg "before read runfile_mode inarg")
-    (debug_msg outarg "before read runfile_mode outarg")
+    (debug "before read runfile_mode parmodenv=" parmodenv 
+	   " initial_environment=" initial_environment
+	   " inarg=" inarg
+	   " outarg=" outarg)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (modulnam ()) 
 	   (modsrcname
@@ -71,11 +70,11 @@
 		     (make_string_without_suffix discr_string modulnam ".c"))
 	       (setq modulnam
 		     (make_string_without_suffix discr_string modulnam ".so"))
-	       (debug_msg modulnam "runfile_mode sets modulnam with outarg")
+	       (debug "runfile_mode sets modulnam=" modulnam " with outarg")
 	       outarg)
 	     ( (is_string inarg) 
 	       (setq modulnam (make_string_nakedbasename discr_string inarg))
-	       (debug_msg modulnam "runfile_mode sets modulnam with inarg")
+	       (debug "runfile_mode sets modulnam=" modulnam " with inarg")
 	       (make_string_tempname_suffixed discr_string inarg ".c"))
 	     (:else
 	      (errormsg_plain "invalid runfile mode")
@@ -84,14 +83,14 @@
 	   )
       (let ( (modsrcbase (make_string_without_suffix discr_string modsrcname ".c")) 
 	     )
-      (debug_msg modulnam "before compilation runfile_mode modulnam")
-      (debug_msg modsrcname "before compilation runfile_mode modsrcname")
-      (debug_msg modsrcbase "before compilation runfile_mode modsrcbase")
+      (debug "before compilation runfile_mode modulnam=" modulnam
+	     " modsrcname=" modsrcname
+	     " modsrcbase=" modsrcbase)
       (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
-      (debug_msg modsrcname "after compilation runfile_mode modsrcname")
-      (debug_msg modulnam "after compilation runfile_mode modulnam")
+      (debug "after compilation runfile_mode modsrcname=" modsrcname
+	     " modulnam=" modulnam)
       (generate_quickly_melt_module modsrcbase modulnam)
-      (debug_msg modulnam "after generation of module runfile_mode modulnam")
+      (debug "after generation of module runfile_mode modulnam=" modulnam)
       ;; the new environment is silently discarded
       (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
       ))))
@@ -101,7 +100,7 @@
   :named_name '"runfile"
   :meltmode_help '"translate and run a .melt file.\n \t ARGUMENT=
 input file; [OUTPUT=generated C]. The module is quickly compiled and
-has basic debug support thru debug_msg, assert_msg..."
+has basic debug support thru DEBUG, ASSERT_MSG..."
   :meltmode_fun runfile_docmd
 )
 (install_melt_mode runfile_mode)
@@ -109,16 +108,15 @@ has basic debug support thru debug_msg, assert_msg..."
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun rundebug_docmd (cmd moduldata)
-  (debug_msg cmd "start rundebug_docmd cmd")
-  (debug_msg moduldata "start rundebug_docmd moduldata")
+  (debug "start rundebug_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug_msg parmodenv "before read rundebug_mode parmodenv")
-    (debug_msg initial_environment "before read rundebug_mode initial_environment")
+    (debug "before read rundebug_mode parmodenv=" parmodenv
+	       " initial_environment=" initial_environment)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (modulnam ()) 
 	   (modsrcname
@@ -145,15 +143,15 @@ has basic debug support thru debug_msg, assert_msg..."
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
 		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".n.so")
+		  (add2sbuf_strconst dbgnambuf ".debugnoline.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
       (translate_to_c_one_or_more_melt_files inarg modsrcname curenv)
-      (debug_msg modsrcname "after compilation rundebug_mode modsrcname")
-      (debug_msg dbgmodulnam "before generate_debug_melt_module dbgmodulnam")
+      (debug "after compilation rundebug_mode modsrcname=" modsrcname 
+	     " dbgmodulnam=" dbgmodulnam)
       (generate_debug_melt_module modsrcname dbgmodulnam)
       ;; the new environment is silently discarded
-      (debug_msg dbgmodulnam "before starting quicklybuilt module rundebug_mode dbgmodulnam")
+      (debug "before starting quicklybuilt module rundebug_mode dbgmodulnam=" dbgmodulnam)
       (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
       )))
 ;;;;
@@ -247,7 +245,7 @@ has basic debug support thru debug_msg, assert_msg..."
     (list_every
      xlist
      (lambda (curexp)
-       (debug_msg curexp "makedoc_docmd curexp")
+       (debug "makedoc_docmd curexp=" curexp)
        (match 
 	curexp 
 ;;;;;;;;;;;
@@ -262,7 +260,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	   :sobj_predef ?predef
 	   :sclass_clabind ?(instance class_class_binding :cbind_class ?clas)
 	   )
-	  (debug_msg clas "makedoc_docmd defclass clas")
+	  (debug "makedoc_docmd defclass clas=" clas)
 	  (assert_msg "check clas" (is_a clas class_class))
 	  (if predef 
 	      (mapobject_put (get_field :mkdoc_predefmap mdinfo) predef curexp))
@@ -433,13 +431,12 @@ has basic debug support thru debug_msg, assert_msg..."
 		    :sdef_doc 
 		    ?(and ?doc 
 			  ?(instance class_sexpr :loca_location ?loc :sexp_contents ?docl)))
-	  (debug_msg dnam "makedoc_docmd dnam")
-	  (debug_msg doc "makedoc_docmd doc")
+	  (debug "makedoc_docmd dnam=" dnam " doc=" doc)
 	  (inform_strv loc "makedoc: got documented " (get_field :named_name dnam))
 	  (warning_strv loc "makedoc: unimplemented for class " (get_field :named_name (discrim curexp)))
 	  )
 	(?_
-	 (debug_msg curexp "ignored curexp")
+	 (debug "ignored curexp=" curexp)
 	 )
 	)))
     ))
@@ -569,7 +566,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	  (foreach_in_multiple
 	   (clancs)
 	   (curanc :long ancix)
-	   (debug_msg curanc "makedoc_outclassdef curanc")
+	   (debug "makedoc_outclassdef curanc=" curanc " ancix#" ancix)
 	   (assert_msg "check curanc" (is_a curanc class_class))
 	   (add2sbuf_strconst outb " @code{")
 	   (add2sbuf_string outb (get_field :named_name curanc))
@@ -593,7 +590,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	  (foreach_in_multiple
 	   (clflds)
 	   (curfld :long fldix)
-	   (debug_msg curfld "makedoc_outclassdef curfld")
+	   (debug  "makedoc_outclassdef curfld=" curfld " fldix=" fldix)
 	   (assert_msg "check curfld" (is_a curfld class_field))
 	   (add2sbuf_indentnl outb 0)
 	   (add2sbuf_strconst outb "@item ")
@@ -636,7 +633,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	       (:long nbsubcla (multiple_length sortedsubclatup))
 	       )
 	  (add2sbuf_indentnl outb 0)
-	  (debug_msg sortedsubclatup "makedoc_outclassdef sortedsubclatup")
+	  (debug "makedoc_outclassdef sortedsubclatup=" sortedsubclatup)
 	  (add2sbuf_strconst outb "@strong{")
 	  (add2sbuf_longdec outb nbsubcla)
 	  (add2sbuf_strconst outb " sub-classes:}")
@@ -684,7 +681,7 @@ has basic debug support thru debug_msg, assert_msg..."
     (foreach_in_multiple
      (sortedmactuple)
      (curmac :long macix)
-     (debug_msg curmac "makedoc_genmacro curmac")
+     (debug "makedoc_genmacro curmac=" curmac " macix=" macix)
      (assert_msg "check curmac" (is_a curmac class_source_export_macro))
      (let ( (mnam (get_field :named_name (get_field :sexpmac_mname curmac)))
 	    (mloc (get_field :loca_location curmac))
@@ -744,12 +741,12 @@ has basic debug support thru debug_msg, assert_msg..."
     (add2sbuf_longdec outb (multiple_length sortedpatmactuple))
     (add2sbuf_strconst outb " documented pattern-macros.")
     (add2sbuf_indentnl outb 0)
-    (debug_msg rawpatmactuple "makedoc_genpatmacro rawpatmactuple")
-    (debug_msg sortedpatmactuple "makedoc_genpatmacro sortedpatmactuple")
+    (debug "makedoc_genpatmacro rawpatmactuple=" rawpatmactuple
+	   " sortedpatmactuple=" sortedpatmactuple)
     (foreach_in_multiple
      (sortedpatmactuple)
      (patmac :long pmacix)
-     (debug_msg patmac "makedoc_genpatmacro patmac")
+     (debug "makedoc_genpatmacro patmac=" patmac " pmacix=" pmacix)
      (assert_msg "check patmac" (is_a patmac class_source_export_patmacro))
      (add2sbuf_indentnl outb 0)
      (let ( (mnam (get_field :named_name (get_field :sexpmac_mname patmac)))
@@ -965,8 +962,8 @@ has basic debug support thru debug_msg, assert_msg..."
 		(get_field :sdef_name sdpri2)))
 	     discr_multiple)))
 	 )
-    (debug_msg rawprimtup "makedoc_genprimitive rawprimtup")
-    (debug_msg sortedprimtup "makedoc_genprimitive sortedprimtup")
+    (debug "makedoc_genprimitive rawprimtup=" rawprimtup
+	   " sortedprimtup=" sortedprimtup)
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedprimtup))
     (add2sbuf_strconst outb " primitives.")
@@ -1050,8 +1047,8 @@ has basic debug support thru debug_msg, assert_msg..."
 	 (rawcitertup (list_to_multiple rawciterlist discr_multiple))
 	 (sortedcitertup (multiple_sort rawcitertup compare_named_alpha discr_multiple))
 	 )
-    (debug_msg rawciterlist "makedoc_genciterator rawciterlist")
-    (debug_msg sortedcitertup "makedoc_genciterator sortedcitertup")
+    (debug rawciterlist "makedoc_genciterator rawciterlist=" rawciterlist
+	   " sortedcitertup=" sortedcitertup)
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedcitertup))
     (add2sbuf_strconst outb " c-iterators.")
@@ -1059,7 +1056,7 @@ has basic debug support thru debug_msg, assert_msg..."
     (foreach_in_multiple
      (sortedcitertup)
      (curciterdef :long citix)
-     (debug_msg curciterdef "makedoc_genciterator curciter")
+     (debug "makedoc_genciterator curciterdef=" curciterdef " citix=" citix)
      (assert_msg "check curciterdef" (is_a curciterdef class_source_defciterator))
      (let ( (sloc (get_field :loca_location curciterdef) )
 	    (snam (get_field :sdef_name curciterdef))
@@ -1111,7 +1108,7 @@ has basic debug support thru debug_msg, assert_msg..."
     (foreach_in_multiple
      (sortedcmatchtup)
      (curcmatchdef :long citix)
-     (debug_msg curcmatchdef "makedoc_gencmatcher curcmatch")
+     (debug "makedoc_gencmatcher curcmatchdef=" curcmatchdef " citix=" citix)
      (assert_msg "check curcmatchdef" (is_a curcmatchdef class_source_defcmatcher))
      (let (
 	   (snam (get_field :sdef_name curcmatchdef))
@@ -1161,7 +1158,7 @@ has basic debug support thru debug_msg, assert_msg..."
 ;;;;; makedoc - generate the output file
 (compile_warning "should list selectors and document their formals if given")
 (defun makedoc_genoutput (mdinfo outarg)
-  (debug_msg mdinfo "makedoc_genoutput mdinfo")
+  (debug "makedoc_genoutput mdinfo=" mdinfo)
   (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
   (assert_msg "check outarg" (is_string outarg))
   (let ( (outb (make_strbuf discr_strbuf)) 
@@ -1234,8 +1231,7 @@ has basic debug support thru debug_msg, assert_msg..."
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun makedoc_docmd (cmd moduldata)
-  (debug_msg cmd "start makedoc_docmd cmd")
-  (debug_msg moduldata "start makedoc_docmd moduldata")
+  (debug "start makedoc_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata 
@@ -1263,18 +1259,17 @@ has basic debug support thru debug_msg, assert_msg..."
 		   ))
 	)
     (put_fields melt_mode_container :container_value mdinfo)
-    (debug_msg arglist "makedoc_docmd arglist")
-    (debug_msg outarg "makedoc_docmd outarg")
+    (debug "makedoc_docmd arglist=" arglist " outarg=" outarg)
     ;; read into rlist all the stuff
+    (assert_msg "check rlist" (is_list rlist))
     (list_every 
      arglist 
      (lambda (curarg)
        (informsg_strv "reading from file" curarg)
        (let ( (curead (read_file curarg))
 	      )
-	 (assert_msg "check rlist" (is_list rlist))
+	 (debug "makedoc_docmd curead=" curead)
 	 (assert_msg "check curead" (is_list_or_null curead))
-	 (debug_msg curead "makedoc_docmd curead")
 	 (list_append2list rlist curead))))
     ;; macro expand it
     (let ( (xlist (macroexpand_toplevel_list rlist curenv)) 
@@ -1301,8 +1296,7 @@ has basic debug support thru debug_msg, assert_msg..."
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun showvar_docmd (cmd moduldata)
-  (debug_msg cmd "start showvar_docmd cmd")
-  (debug_msg moduldata "start showvar_docmd moduldata")
+  (debug "start showvar_docmd cmd=" cmd " moduldata=" moduldata)
   (let (
 	(parmodenv (parent_module_environment))
 	(env (if moduldata moduldata parmodenv))
@@ -1316,7 +1310,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	       )
 	  (if symbind
 	      (progn
-		(debug_msg symbind "showvar_docmd symbind")
+		(debug "showvar_docmd symbind=" symbind)
 		(informsg_strv "found binding for " symname)
 		(return))
 	    (errormsg_strv "no binding found for " symname)
@@ -1342,7 +1336,7 @@ has basic debug support thru debug_msg, assert_msg..."
 	   (:long nbcmd (multiple_length sortedcmdtup))
 	   (:cstring versionstr (melt_version_str))
 	   )
-      (debug_msg sortedcmdtup "help_docmd sortedcmdtup")
+      (debug "help_docmd sortedcmdtup=" sortedcmdtup)
       (code_chunk saynbmode_chk 
 		  #{ /* $SAYNBMODE_CHK */ 
 		  inform (UNKNOWN_LOCATION, 
@@ -1387,7 +1381,7 @@ has basic debug support thru debug_msg, assert_msg..."
 
 
 (defun nop_docmd  (cmd moduldata)
-  (debug_msg cmd "in nop_docmd"))
+  (debug "in nop_docmd cmd=" cmd))
 
 (definstance nop_mode
   class_melt_mode
@@ -1402,7 +1396,7 @@ has basic debug support thru debug_msg, assert_msg..."
 
 ;; internal function to generate the magic enum
 (defun generate_runtypesupport_enum_objmagic (ctygtytup valdesctup outarg outbuf)
-  (debug_msg outarg "generate_runtypesupport_enum_objmagic outarg start")
+  (debug "generate_runtypesupport_enum_objmagic start outarg=" outarg)
   (let 
       ( 
        (:long curobjmagic 20000)
@@ -1428,7 +1422,8 @@ has basic debug support thru debug_msg, assert_msg..."
     (foreach_in_multiple
      (valdesctup)
      (curvaldesc :long vix)
-     (debug_msg curvaldesc "generate_runtypesupport_enum_objmagic curvaldesc")
+     (debug "generate_runtypesupport_enum_objmagic curvaldesc=" curvaldesc 
+	    " vix=" vix)
      (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
      (add2sbuf_indentnl outbuf 1)
      (add2sbuf_strconst outbuf "/*valdesc #")
@@ -1451,7 +1446,8 @@ has basic debug support thru debug_msg, assert_msg..."
     (foreach_in_multiple
      (ctygtytup)
      (curctyp :long tix)
-     (debug_msg curctyp "generate_runtypesupport_enum_objmagic curctyp")
+     (debug "generate_runtypesupport_enum_objmagic curctyp=" curctyp
+	    " tix=" tix)
      (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
      (add2sbuf_indentnl outbuf 1)
      (add2sbuf_strconst outbuf "/*gtyctype #")
@@ -1472,7 +1468,7 @@ has basic debug support thru debug_msg, assert_msg..."
      (setq curobjmagic (+i curobjmagic 2))
      (setq countobjmagic (+i countobjmagic 1))
      )
-    (debug_msg outarg "generate_runtypesupport_objmagic outarg end")
+    (debug "generate_runtypesupport_objmagic end outarg=" outarg)
     (add2sbuf_indentnl outbuf 0)
     (add2sbuf_strconst outbuf " MELTOBMAG__LAST }; /* end generated enum meltobmag_en */")
     (add2sbuf_indentnl outbuf 0)
@@ -1488,7 +1484,7 @@ has basic debug support thru debug_msg, assert_msg..."
 
 ;; internal function to generate the gty struct-s and union-s
 (defun generate_runtypesupport_gty  (ctygtytup valdesctup outarg outbuf)
-  (debug_msg outarg "generate_runtypesupport_gty outarg start")
+  (debug "generate_runtypesupport_gty start outarg=" outarg)
   (assert_msg "check ctygtytup" (is_multiple ctygtytup))
   (assert_msg "check valdesctup" (is_multiple valdesctup))
   (assert_msg "check outbuf" (is_strbuf outbuf))
@@ -1549,7 +1545,7 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
   (foreach_in_multiple
    (ctygtytup)
    (curctyp :long ix)
-   (debug_msg curctyp "generate_runtypesupport_gty curctyp")
+   (debug "generate_runtypesupport_gty curctyp=" curctyp " ix=" ix)
    (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
    (add2sbuf_indentnl outbuf 0)
    (add2sbuf_indentnl outbuf 0)
@@ -1612,7 +1608,7 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
   (foreach_in_multiple
    (valdesctup)
    (curvaldesc :long ix)
-   (debug_msg curvaldesc "runtypesupport_gtyvaldesc curvaldesc")
+   (debug "runtypesupport_gtyvaldesc curvaldesc=" curvaldesc " ix=" ix)
    (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
    (add2sbuf_indentnl outbuf 0)
    (add2sbuf_indentnl outbuf 0)
@@ -1685,7 +1681,7 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
   (foreach_in_multiple
    (ctygtytup)
    (curctyp :long ix)
-   (debug_msg curctyp "generate_runtypesupport_gty curctyp")
+   (debug "generate_runtypesupport_gty curctyp=" curctyp " ix=" ix)
    (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
    (add2sbuf_indentnl outbuf 1)
    (add2sbuf_strconst outbuf "/*union gtyctype #")
@@ -1716,7 +1712,7 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
   (foreach_in_multiple
    (valdesctup)
    (curvaldesc :long vix)
-   (debug_msg curvaldesc "generate_runtypesupport_gty curvaldesc")
+   (debug "generate_runtypesupport_gty curvaldesc=" curvaldesc " vix=" vix)
    (add2sbuf_indentnl outbuf 1)
    (add2sbuf_strconst outbuf "/*union.valdesc #")
    (add2sbuf_longdec outbuf (+i 1 vix))
@@ -1741,7 +1737,7 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
 ;;;;
   (add2sbuf_indentnl outbuf 0)
   (add2sbuf_indentnl outbuf 0)
-  (debug_msg outarg "generate_runtypesupport_gty outname end")
+  (debug "generate_runtypesupport_gty end outarg=" outarg)
   )
   
 ;;;;;;;;;;;;;;;;
@@ -1754,7 +1750,7 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
 					     valdesctup
 					     outname
 					     outbuf)
-  (debug_msg outname "generate_runtypesupport_forwcopy_fun outname start")
+  (debug "generate_runtypesupport_forwcopy_fun start outname=" outname)
   (assert_msg "check valdesctup" (is_multiple valdesctup))
   (assert_msg "check ctygtytup" (is_multiple ctygtytup))
   (assert_msg "check outbuf" (is_strbuf outbuf))
@@ -1789,7 +1785,7 @@ melt_forwarded_copy (melt_ptr_t p)
   (foreach_in_multiple
    (valdesctup)
    (curvaldesc :long vix)
-   (debug_msg curvaldesc "runtypesupport_forwcopy curvaldesc")
+   (debug "runtypesupport_forwcopy curvaldesc=" curvaldesc)
    (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
    (add2sbuf_indentnl outbuf 1)
    (add2sbuf_strconst outbuf "/*valdesc #")
@@ -1827,7 +1823,7 @@ melt_forwarded_copy (melt_ptr_t p)
   (foreach_in_multiple
    (ctygtytup)
    (curctyp :long tix)
-   (debug_msg curctyp "runtypesupport_forwcopy curctyp")
+   (debug "runtypesupport_forwcopy curctyp=" curctyp)
    (assert_msg "check curctygty" (is_a curctyp class_ctype_gty))
    (add2sbuf_strconst outbuf "/*forwcopy gtyctype #")
    (add2sbuf_longdec outbuf (+i 1 tix))
@@ -1999,7 +1995,7 @@ melt_forwarded_copy (melt_ptr_t p)
 
 ;; internal function to generate melt_scanning function
 (defun generate_runtypesupport_scanning (ctygtytup valdesctup outname outbuf)
-  (debug_msg outname "generate_runtypesupport_scanning outname start")
+  (debug "generate_runtypesupport_scanning start outname=" outname)
 ;;;;;;;;;;;;;;;;
   (assert_msg "check ctygtytup" (is_multiple ctygtytup))
   (assert_msg "check valdesctup" (is_multiple valdesctup))
@@ -2035,7 +2031,7 @@ melt_scanning (melt_ptr_t p)
   (foreach_in_multiple
    (valdesctup)
    (curvaldesc :long vix)
-   (debug_msg curvaldesc "generate_runtypesupport_scanning curvaldesc")
+   (debug "generate_runtypesupport_scanning curvaldesc=" curvaldesc)
    (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
    (add2sbuf_indentnl outbuf 1)
    (add2sbuf_strconst outbuf "/*valdesc #")
@@ -2074,7 +2070,7 @@ melt_scanning (melt_ptr_t p)
   (foreach_in_multiple
    (ctygtytup)
    (curctyp :long tix)
-   (debug_msg curctyp "generate_runtypesupport_scanning curctyp")
+   (debug "generate_runtypesupport_scanning curctyp=" curctyp)
    (add2sbuf_strconst outbuf "/*gtyctype #")
    (add2sbuf_longdec outbuf (+i 1 tix))
    (add2sbuf_strconst outbuf " ")
@@ -2168,7 +2164,7 @@ melt_scanning (melt_ptr_t p)
 
 ;; internal function to generate parameter passing support
 (defun generate_runtypesupport_param (ctytup valdesctup outname outbuf)
-  (debug_msg outname "generate_runtypesupport_param outname start")
+  (debug "generate_runtypesupport_param start outname=" outname)
   (assert_msg "check ctytup" (is_multiple ctytup))
   (assert_msg "check valdesctup" (is_multiple valdesctup))
   (assert_msg "check outbuf" (is_strbuf outbuf))
@@ -2195,7 +2191,7 @@ melt_scanning (melt_ptr_t p)
     (foreach_in_multiple
      (ctytup)
      (curctyp :long tix)
-     (debug_msg curctyp "runtypesupport_param curctyp")
+     (debug "runtypesupport_param curctyp=" curctyp)
      (add2sbuf_strconst outbuf "/*gtyctype #")
      (add2sbuf_longdec outbuf (+i 1 tix))
      (add2sbuf_strconst outbuf " ")
@@ -2261,7 +2257,7 @@ melt_scanning (melt_ptr_t p)
     (foreach_in_multiple
      (ctytup)
      (curctyp :long tix)
-     (debug_msg curctyp "runtypesupport_param curctyp")
+     (debug "runtypesupport_param curctyp=" curctyp)
      (add2sbuf_indentnl outbuf 1)
      (add2sbuf_strconst outbuf "/*ctype #")
      (add2sbuf_longdec outbuf (+i 1 tix))
@@ -2309,7 +2305,7 @@ melt_scanning (melt_ptr_t p)
 
 ;; internal function to generate the melt_code2ctype function
 (defun generate_runtypesupport_cod2ctype  (ctytup valdesctup outname outbuf)
-  (debug_msg outname "generate_runtypesupport_param outname start")
+  (debug "generate_runtypesupport_param start outname=" outname)
   (assert_msg "check ctytup" (is_multiple ctytup))
   (assert_msg "check valdesctup" (is_multiple valdesctup))
   (assert_msg "check outbuf" (is_strbuf outbuf))
@@ -2331,7 +2327,7 @@ melt_scanning (melt_ptr_t p)
     (foreach_in_multiple
      (ctytup)
      (curctyp :long tix)
-     (debug_msg curctyp "runtypesupport_cod2ctype curctyp")
+     (debug "runtypesupport_cod2ctype curctyp=" curctyp)
      (let ( (:long tixnext (+i tix 1)) 
 	     (ctypchar  (get_field :ctype_parchar curctyp))
 	     (ctypname  (get_field :named_name curctyp))
@@ -2358,7 +2354,7 @@ melt_scanning (melt_ptr_t p)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; internal function to generate parameter passing support
 (defun generate_runtypesupport_mag2str (ctytup valdesctup outname outdeclbuf outcodebuf)
-  (debug_msg outname "generate_runtypesupport_mag2str outname start")
+  (debug "generate_runtypesupport_mag2str start outname=" outname)
   (assert_msg "check ctytup" (is_multiple ctytup))
   (assert_msg "check valdesctup" (is_multiple valdesctup))
   (assert_msg "check outdeclbuf" (is_strbuf outdeclbuf))
@@ -2395,7 +2391,7 @@ melt_scanning (melt_ptr_t p)
     (foreach_in_multiple
      (ctytup)
      (curctyp :long tix)
-     (debug_msg curctyp "runtypesupport_mag2str curctyp")
+     (debug "runtypesupport_mag2str curctyp=" curctyp)
      (add2sbuf_indentnl outcodebuf 1)
      (add2sbuf_strconst outcodebuf "/*gtyctype #")
      (add2sbuf_longdec outcodebuf (+i 1 tix))
@@ -2437,7 +2433,7 @@ melt_scanning (melt_ptr_t p)
     (foreach_in_multiple
      (valdesctup)
      (curvaldesc :long vix)
-     (debug_msg curvaldesc "generate_runtypesupport_mag2str curvaldesc")
+     (debug "generate_runtypesupport_mag2str curvaldesc=" curvaldesc)
      (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
      (add2sbuf_indentnl outcodebuf 1)
      (add2sbuf_strconst outcodebuf "/*valdesc #")
@@ -2481,7 +2477,7 @@ melt_scanning (melt_ptr_t p)
 ;;; generate the boxing related functions for GTY-ed types.
 (defun generate_runtypesupport_boxingfun (ctytup outarg
 						 declbuf codebuf)
-  (debug_msg outarg "generate_runtypesupport_boxingfun start")
+  (debug "generate_runtypesupport_boxingfun start outarg=" outarg)
   (assert_msg "check ctytup is tuple" (is_multiple ctytup))
   (assert_msg "check declbuf is buffer" (is_strbuf declbuf))
   (assert_msg "check codebuf is buffer" (is_strbuf codebuf))
@@ -2499,7 +2495,7 @@ melt_scanning (melt_ptr_t p)
   (foreach_in_multiple
    (ctytup)
    (curctyp :long tix)
-   (debug_msg curctyp "generate runtypesupport_mapfun curctyp")
+   (debug "generate runtypesupport_mapfun curctyp=" curctyp)
    (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
    (match curctyp
 	  (?(instance class_ctype_gty
@@ -2671,14 +2667,14 @@ melt_scanning (melt_ptr_t p)
 		     "/** end of code generated by generate_runtypesupport_boxingfun **/")
   (add2sbuf_indentnl codebuf 0)
   (add2sbuf_indentnl codebuf 0)
-  (debug_msg outarg "generate_runtypesupport_boxingfun end")
+  (debug "generate_runtypesupport_boxingfun end outarg=" outarg)
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; generate the inlined map functions for map of GTY-ed types.
 
 (defun generate_runtypesupport_mapfun (ctytup outarg outbuf)
-  (debug_msg outarg "generate_runtypesupport_mapfun start")
+  (debug "generate_runtypesupport_mapfun start outarg=" outarg)
   (assert_msg "check ctytup is tuple" (is_multiple ctytup))
   (assert_msg "check outbuf is buffer" (is_strbuf outbuf))
   (add2sbuf_indentnl outbuf 0)
@@ -2691,7 +2687,7 @@ melt_scanning (melt_ptr_t p)
   (foreach_in_multiple
    (ctytup)
    (curctyp :long tix)
-   (debug_msg curctyp "generate runtypesupport_mapfun curctyp")
+   (debug "generate runtypesupport_mapfun curctyp=" curctyp)
    (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
    (add2sbuf_strconst outbuf "/*gtyctype #")
    (add2sbuf_longdec outbuf (+i 1 tix))
@@ -3001,7 +2997,7 @@ melt_scanning (melt_ptr_t p)
 		     "/** end of code generated by generate_runtypesupport_mapfun **/")
   (add2sbuf_indentnl outbuf 0)
   (add2sbuf_indentnl outbuf 0)
-  (debug_msg outarg "generate_runtypesupport_mapfun end")
+  (debug "generate_runtypesupport_mapfun end outarg=" outarg)
   )
 
 
@@ -3009,8 +3005,7 @@ melt_scanning (melt_ptr_t p)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun runtypesupport_docmd (cmd moduldata)
-  (debug_msg cmd "start runtypesupport_docmd cmd")
-  (debug_msg moduldata "start runtypesupport_docmd moduldata")
+  (debug "start runtypesupport_docmd cmd=" cmd " moduldata=" moduldata)
   (let (
 	(outarg (or (make_stringconst discr_string (melt_argument "output"))
 		    '"meltrunsup"
@@ -3034,8 +3029,8 @@ melt_scanning (melt_ptr_t p)
 	(outdeclbuf (make_strbuf discr_strbuf))
 	(outcodebuf (make_strbuf discr_strbuf))
 	)
-    (debug_msg dictypgty "runtypesupport_docmd dictypgty")
-    (debug_msg outarg "runtypesupport_docmd outarg")
+    (debug "runtypesupport_docmd dictypgty=" dictypgty
+	   " outarg=" outarg)
     (generate_gplv3plus_copyright_notice_c_comment outdeclbuf outdeclname)
     (generate_gplv3plus_copyright_notice_c_comment outcodebuf outcodename)
     (foreach_in_mapstring
@@ -3043,13 +3038,13 @@ melt_scanning (melt_ptr_t p)
      (curstr curcty)
      (list_append rawctypgtylist curcty)
      )
-    (debug_msg rawctypgtylist "runtypesupport_docmd rawctypgtylist")
+    (debug "runtypesupport_docmd rawctypgtylist=" rawctypgtylist)
     (foreach_in_mapstring
      (dictyp)
      (curstr curcty)
      (list_append rawctyplist curcty)
      )
-    (debug_msg rawctyplist "runtypesupport_docmd rawctyplist")
+    (debug "runtypesupport_docmd rawctyplist=" rawctyplist)
     (let ( (sortedctygtytuple 
 	    (multiple_sort (list_to_multiple rawctypgtylist discr_multiple)
 			   compare_named_alpha discr_multiple)) 
@@ -3062,8 +3057,8 @@ melt_scanning (melt_ptr_t p)
 	    (multiple_sort rawvaldesctuple
 			   compare_named_alpha discr_multiple))
 	   )
-      (debug_msg sortedctygtytuple "runtypesupport_docmd sortedctygtytuple") 
-      (debug_msg sortedvaldesctuple "runtypesupport_docmd sortedvaldesctuple")
+      (debug "runtypesupport_docmd sortedctygtytuple=" sortedctygtytuple 
+	     " sortedvaldesctuple=" sortedvaldesctuple) 
       ;;
       ;; generate the enummagic ie the MELTOBMAG_* enumeration
       (generate_runtypesupport_enum_objmagic sortedctygtytuple 
@@ -3137,7 +3132,7 @@ melt_scanning (melt_ptr_t p)
       (output_sbuf_strval outcodebuf outcodename)
       (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
-      (debug_msg outarg "runtypesupport_docmd done outarg")
+      (debug "runtypesupport_docmd done outarg=" outarg)
 
       )))
 
@@ -3156,8 +3151,7 @@ melt_scanning (melt_ptr_t p)
 
 (defun translatetomodule_docmd (cmd moduldata)
   (message_dbg "starting translatetomodule_docmd")
-  (debug_msg cmd "start translatetomodule_docmd cmd")
-  (debug_msg moduldata "start translatetomodule_docmd moduldata")
+  (debug "start translatetomodule_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
@@ -3165,10 +3159,8 @@ melt_scanning (melt_ptr_t p)
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
-    (debug_msg inarg "translatetomodule_docmd inarg")
-    (debug_msg outarg "translatetomodule_docmd outarg")
-    (debug_msg parmodenv "before read translatetomodule_docmd parmodenv")
-    (debug_msg initial_environment "before read translatetomodule_docmd initial_environment")
+    (debug "translatetomodule_docmd inarg=" inarg " outarg=" outarg
+	   " parmodenv=" parmodenv " initial_environment=" initial_environment)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
 		    ( (is_string outarg)
@@ -3183,8 +3175,7 @@ melt_scanning (melt_ptr_t p)
 	   (rawsrcnam (or coutarg
 			  (make_string_nakedbasename discr_string outnam)))
 	   )
-      (debug_msg basnam "translatetomodule_docmd basnam")
-      (debug_msg rawsrcnam "translatetomodule_docmd rawsrcnam")
+      (debug "translatetomodule_docmd basnam=" basnam " rawsrcnam=" rawsrcnam)
       (translate_to_c_one_or_more_melt_files inarg rawsrcnam curenv)
       (generate_melt_module rawsrcnam outnam)
       )))
@@ -3195,7 +3186,7 @@ melt_scanning (melt_ptr_t p)
   :named_name '"translatetomodule"
   :meltmode_help '"translate a .melt file to .so module;\n
 \t ARGUMENT= input file; OUTPUT= generated module *.so; OUTPUTC= generated *.c file;\n
-\t no debugging is enabled (no gdb, no\n debug_msg...)"
+\t no debugging is enabled (no gdb, no\n DEBUG...)"
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
@@ -3203,9 +3194,7 @@ melt_scanning (melt_ptr_t p)
 ;;;;;;;;;;;;;;;;
 
 (defun translatedebug_docmd (cmd moduldata)
-  (message_dbg "starting translatedebug_docmd")
-  (debug_msg cmd "start translatedebug_docmd cmd")
-  (debug_msg moduldata "start translatedebug_docmd moduldata")
+  (debug "start translatedebug_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
@@ -3213,10 +3202,9 @@ melt_scanning (melt_ptr_t p)
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
-    (debug_msg inarg "translatedebug_docmd inarg")
-    (debug_msg outarg "translatedebug_docmd outarg")
-    (debug_msg parmodenv "before read translatedebug_docmd parmodenv")
-    (debug_msg initial_environment "before read translatedebug_docmd initial_environment")
+    (debug "translatedebug_docmd inarg=" inarg " outarg=" outarg
+	   " parmodenv=" parmodenv 
+	   " initial_environment=" initial_environment)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
 		    ( (is_string outarg) 
@@ -3239,10 +3227,9 @@ melt_scanning (melt_ptr_t p)
 		  (add2sbuf_strconst dbgnambuf ".n.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
-      (debug_msg basnam "translatedebug_docmd basnam")
-      (debug_msg srcnam "translatedebug_docmd srcnam")
+      (debug "translatedebug_docmd basnam=" basnam " srcnam=" srcnam)
       (translate_to_c_one_or_more_melt_files inarg srcnam curenv)
-      (debug_msg dbgmodulnam "translatedebug_docmd dbgmodulnam")
+      (debug "translatedebug_docmd dbgmodulnam=" dbgmodulnam)
       (generate_melt_module srcnam dbgmodulnam)
       )))
 
@@ -3254,8 +3241,8 @@ melt_scanning (melt_ptr_t p)
 debug, including gdb;\n
 \t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
 \t generates also *.c and no MELT line number;\n
-\t Useful for running gdb on the module. MELT debugging (debug_msg,
-assert_msg) is enabled"
+\t Useful for running gdb on the module. MELT debugging (DEBUG,
+ASSERT_MSG) is enabled"
   :meltmode_fun translatedebug_docmd
 )
 (install_melt_mode translatedebug_mode)
@@ -3263,8 +3250,7 @@ assert_msg) is enabled"
 ;;;;;;;;;;;;;;;;
 (defun translatequickly_docmd (cmd moduldata)
   (message_dbg "starting translatequickly_docmd")
-  (debug_msg cmd "start translatequickly_docmd cmd")
-  (debug_msg moduldata "start translatequickly_docmd moduldata")
+  (debug "start translatequickly_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
@@ -3272,10 +3258,8 @@ assert_msg) is enabled"
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
-    (debug_msg inarg "translatequickly_docmd inarg")
-    (debug_msg outarg "translatequickly_docmd outarg")
-    (debug_msg parmodenv "before read translatequickly_docmd parmodenv")
-    (debug_msg initial_environment "before read translatequickly_docmd initial_environment")
+    (debug "translatequickly_docmd inarg=" inarg " outarg=" outarg
+	   " parmodenv=" parmodenv " initial_environment=" initial_environment)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
 		    ( (is_string outarg)
@@ -3297,10 +3281,9 @@ assert_msg) is enabled"
 		  (add2sbuf_strconst dbgnambuf ".q.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
-      (debug_msg basnam "translatequickly_docmd basnam")
-      (debug_msg srcnam "translatequickly_docmd srcnam")
+      (debug "translatequickly_docmd basnam=" basnam " srcnam=" srcnam)
       (translate_to_c_one_or_more_melt_files inarg srcnam curenv)
-      (debug_msg dbgmodulnam "translatequickly_docmd dbgmodulnam")
+      (debug "translatequickly_docmd dbgmodulnam=" dbgmodulnam)
       (generate_quickly_melt_module srcnam dbgmodulnam)
       )))
 
@@ -3308,7 +3291,7 @@ assert_msg) is enabled"
 (definstance translatequickly_mode
   class_melt_mode
   :named_name '"translatequickly"
-  :meltmode_help '"translate quickly a .melt file to .so module with MELT debuging enabld (debug_msg, assert_msg...);\n
+  :meltmode_help '"translate quickly a .melt file to .so module with MELT debuging enabld (DEBUG, ASSERT_MSG...);\n
 \t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
 \t generates also *.c and no MELT line number;\n
 \t Useful for running gdb on the module."
@@ -3321,18 +3304,16 @@ assert_msg) is enabled"
 ;;;;;
 (defun translatefile_docmd (cmd moduldata)
   (message_dbg "starting translatefile_docmd")
-  (debug_msg cmd "start translatefile_docmd cmd")
-  (debug_msg moduldata "start translatefile_docmd moduldata")
+  (debug "start translatefile_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug_msg inarg "translatefile_docmd inarg")
-    (debug_msg outarg "translatefile_docmd outarg")
-    (debug_msg parmodenv "before read translatefile_docmd parmodenv")
-    (debug_msg initial_environment "before read translatefile_docmd initial_environment")
+    (debug "translatefile_docmd inarg=" inarg " outarg=" outarg 
+	   " parmodenv=" parmodenv 
+	   " initial_environment=" initial_environment)
     (assert_msg "check curenv" (is_a curenv class_environment))
     (let ( (basnam (cond
 		    ( (is_string outarg) 
@@ -3345,7 +3326,7 @@ assert_msg) is enabled"
 		     (return)
 		     )))
 	   )
-    (debug_msg basnam "translatefile_mode basnam")
+    (debug "translatefile_mode basnam" basnam)
     (if (or (string_suffixed basnam ".so")
 	    (string_suffixed basnam ".melt")
 	    (string_suffixed basnam ".o")
@@ -3369,9 +3350,8 @@ assert_msg) is enabled"
 
 ;;;;;;;;;;;;;;;;
 (defun translateinit_docmd (cmd moduldata)
-  (debug_msg cmd "start translateinit_mode arg")
-  (debug_msg moduldata "start translateinit_mode moduldata")
-  (debug_msg initial_environment "before read translateinit_mode initial_environment")
+  (debug "start translateinit_mode cmd=" cmd " moduldata=" moduldata
+	 " initial_environment=" initial_environment)
   (let ( (rlist (make_list discr_list))
 	 (:cstring progarg (melt_argument "arg"))
 	 (:cstring progarglist (melt_argument "arglist"))
@@ -3392,7 +3372,7 @@ assert_msg) is enabled"
 		   (return)
 		   )))
 	 )
-    (debug_msg basnam "translateinit_mode basnam")
+    (debug "translateinit_mode basnam=" basnam)
     (if (or (string_suffixed basnam ".so")
 	    (string_suffixed basnam ".melt")
 	    (string_suffixed basnam ".c"))
@@ -3412,10 +3392,10 @@ assert_msg) is enabled"
 			   )
 		      (assert_msg "check rlist" (is_list rlist))
 		      (assert_msg "check curead" (is_list_or_null curead))
-		      (debug_msg curead "translateinit_mode curead")
+		      (debug "translateinit_mode curead=" curead)
 		      (list_append2list rlist curead)))))
      )
-    (debug_msg rlist "after read translateinit_mode rlist")
+    (debug "after read translateinit_mode rlist=" rlist)
     (compile_list_sexpr rlist initial_environment basnam)
     ;; we trigger explicitly a full GC to stress the runtime. The
     ;; translateinit mode is not useful to the casual user.
