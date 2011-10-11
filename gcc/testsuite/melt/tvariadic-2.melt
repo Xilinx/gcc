@@ -8,8 +8,9 @@
     -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
     -fmelt-debug empty-file-for-melt.c
 |#
-(defun varidbg (x  :rest)
-   (debug_msg x "start varidbg")
+(defun varidbg (x y :rest)
+   (debug_msg x "start varidbg x")
+   (debug_msg y "start varidbg y")
    (forever argloop
      (variadic
       ( ()
@@ -19,5 +20,5 @@
       ( :else
          (assert_msg "varidbg bad variadic")))))
 
-(varidbg 'a  '1 '2 '3)
+(varidbg 'a 'b '1 '2 '3)
 ;; eof tvariadic-2.melt

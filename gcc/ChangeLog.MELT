@@ -1,6 +1,15 @@
 
+2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_debug): Add debug messages.
+
+	* melt/warmelt-outobj.melt (outpucod_getargrest): Correct rank of
+	variadic index update.
+
+	* testsuite/melt/tvariadic-2.melt: Update.
+
 2011-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.h (melt_need_debug, melt_need_debug_limit): New functions.
+	* melt-runtime.h (melt_need_debug, melt_need_debug_limit): New
+	functions.
 
 	* melt/warmelt-first.melt (need_dbg, need_dbglim): Use them.
 

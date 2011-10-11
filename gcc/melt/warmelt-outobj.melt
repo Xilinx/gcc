@@ -1935,7 +1935,7 @@
 	(add2sbuf_indentnl implbuf depth)
 	(add2sbuf_string implbuf ovariadicindex)
 	(add2sbuf_strconst implbuf " = ")
-	(add2sbuf_longdec implbuf (-i rkbind 1))
+	(add2sbuf_longdec implbuf rkbind)
 	(add2sbuf_strconst implbuf ";")	
 	(add2sbuf_indentnl implbuf depth)
 	(if (== ctybind ctype_value)

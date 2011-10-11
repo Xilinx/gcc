@@ -5889,6 +5889,7 @@ remain.}#)
     (list_append dbgarglist dfilnam)
     (list_append dbgarglist (make_integerbox discr_constant_integer dline))
     (list_append2list dbgarglist xarglist)
+    (debug_msg dbgarglist "mexpand_debug dbgarglist")
     (let (
 	  (theneeddbg
 	   (cond 
@@ -5941,6 +5942,7 @@ remain.}#)
 			    :sifp_else ()
 			    )) 
 	  )
+      (debug_msg dcall  "mexpand_debug dcall")
       (debug_msg dcppif "mexpand_debug return dcppif")
       (return dcppif)
       )))
