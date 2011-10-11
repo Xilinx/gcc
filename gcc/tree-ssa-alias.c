@@ -223,7 +223,6 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
      pointer and that pointers points-to set doesn't contain this decl
      then they can't alias.  */
   if (DECL_RESTRICTED_P (decl)
-      && TYPE_RESTRICT (TREE_TYPE (ptr))
       && pi->pt.vars_contains_restrict)
     return bitmap_bit_p (pi->pt.vars, DECL_PT_UID (decl));
 
@@ -319,9 +318,7 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
 
   /* If both pointers are restrict-qualified try to disambiguate
      with restrict information.  */
-  if (TYPE_RESTRICT (TREE_TYPE (ptr1))
-      && TYPE_RESTRICT (TREE_TYPE (ptr2))
-      && !pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
+  if (!pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
     return false;
 
   /* ???  This does not use TBAA to prune decls from the intersection
@@ -1263,6 +1260,7 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_MALLOC:
 	case BUILT_IN_CALLOC:
 	case BUILT_IN_ALLOCA:
+	case BUILT_IN_ALLOCA_WITH_ALIGN:
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_STACK_RESTORE:
 	case BUILT_IN_MEMSET:
@@ -1557,6 +1555,7 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	  return false;
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_ALLOCA:
+	case BUILT_IN_ALLOCA_WITH_ALIGN:
 	case BUILT_IN_ASSUME_ALIGNED:
 	  return false;
 	/* Freeing memory kills the pointed-to memory.  More importantly

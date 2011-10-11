@@ -86,6 +86,9 @@
    (UNSPEC_FCHKSM16		80)
    (UNSPEC_PDISTN		81)
    (UNSPEC_FUCMP		82)
+   (UNSPEC_FHADD		83)
+   (UNSPEC_FHSUB		84)
+   (UNSPEC_XMUL			85)
   ])
 
 (define_constants
@@ -4012,32 +4015,7 @@
    (clobber (match_scratch:SI 3 "=&h,X"))
    (clobber (match_scratch:SI 4 "=&h,X"))]
   "TARGET_V8PLUS"
-{
-  if (sparc_check_64 (operands[1], insn) <= 0)
-    output_asm_insn ("srl\t%L1, 0, %L1", operands);
-  if (which_alternative == 1)
-    output_asm_insn ("sllx\t%H1, 32, %H1", operands);
-  if (GET_CODE (operands[2]) == CONST_INT)
-    {
-      if (which_alternative == 1)
-	return "or\t%L1, %H1, %H1\n\tmulx\t%H1, %2, %L0\;srlx\t%L0, 32, %H0";
-      else
-	return "sllx\t%H1, 32, %3\n\tor\t%L1, %3, %3\n\tmulx\t%3, %2, %3\n\tsrlx\t%3, 32, %H0\n\tmov\t%3, %L0";
-    }
-  else if (rtx_equal_p (operands[1], operands[2]))
-    {
-      if (which_alternative == 1)
-	return "or\t%L1, %H1, %H1\n\tmulx\t%H1, %H1, %L0\;srlx\t%L0, 32, %H0";
-      else
-	return "sllx\t%H1, 32, %3\n\tor\t%L1, %3, %3\n\tmulx\t%3, %3, %3\n\tsrlx\t%3, 32, %H0\n\tmov\t%3, %L0";
-    }
-  if (sparc_check_64 (operands[2], insn) <= 0)
-    output_asm_insn ("srl\t%L2, 0, %L2", operands);
-  if (which_alternative == 1)
-    return "or\t%L1, %H1, %H1\n\tsllx\t%H2, 32, %L1\n\tor\t%L2, %L1, %L1\n\tmulx\t%H1, %L1, %L0\;srlx\t%L0, 32, %H0";
-  else
-    return "sllx\t%H1, 32, %3\n\tsllx\t%H2, 32, %4\n\tor\t%L1, %3, %3\n\tor\t%L2, %4, %4\n\tmulx\t%3, %4, %3\n\tsrlx\t%3, 32, %H0\n\tmov\t%3, %L0";
-}
+  "* return output_v8plus_mult (insn, operands, \"mulx\");"
   [(set_attr "type" "multi")
    (set_attr "length" "9,8")])
 
@@ -6826,21 +6804,142 @@
   [(set_attr "type" "multi")
    (set_attr "length" "8")])
 
-;; ??? This should be a define expand, so that the extra instruction have
-;; a chance of being optimized away.
+(define_expand "popcountdi2"
+  [(set (match_operand:DI 0 "register_operand" "")
+        (popcount:DI (match_operand:DI 1 "register_operand" "")))]
+  "TARGET_POPC"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_popcountdi_v8plus (operands[0], operands[1]));
+      DONE;
+    }
+})
 
-;; Disabled because none of the UltraSPARCs implement popc.  The HAL R1
-;; does, but no one uses that and we don't have a switch for it.
-;
-;(define_insn "ffsdi2"
-;  [(set (match_operand:DI 0 "register_operand" "=&r")
-;	(ffs:DI (match_operand:DI 1 "register_operand" "r")))
-;   (clobber (match_scratch:DI 2 "=&r"))]
-;  "TARGET_ARCH64"
-;  "neg\t%1, %2\;xnor\t%1, %2, %2\;popc\t%2, %0\;movzr\t%1, 0, %0"
-;  [(set_attr "type" "multi")
-;   (set_attr "length" "4")])
+(define_insn "*popcountdi_sp64"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (popcount:DI (match_operand:DI 1 "register_operand" "r")))]
+  "TARGET_POPC && TARGET_ARCH64"
+  "popc\t%1, %0")
 
+(define_insn "popcountdi_v8plus"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (popcount:DI (match_operand:DI 1 "register_operand" "r")))
+   (clobber (match_scratch:SI 2 "=&h"))]
+  "TARGET_POPC && ! TARGET_ARCH64"
+{
+  if (sparc_check_64 (operands[1], insn) <= 0)
+    output_asm_insn ("srl\t%L1, 0, %L1", operands);
+  return "sllx\t%H1, 32, %2\n\tor\t%L1, %2, %2\n\tpopc\t%2, %L0\n\tclr\t%H0";
+}
+  [(set_attr "type" "multi")
+   (set_attr "length" "5")])
+
+(define_expand "popcountsi2"
+  [(set (match_dup 2)
+        (zero_extend:DI (match_operand:SI 1 "register_operand" "")))
+   (set (match_operand:SI 0 "register_operand" "")
+        (truncate:SI (popcount:DI (match_dup 2))))]
+  "TARGET_POPC"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_popcountsi_v8plus (operands[0], operands[1]));
+      DONE;
+    }
+  else
+    operands[2] = gen_reg_rtx (DImode);
+})
+
+(define_insn "*popcountsi_sp64"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (truncate:SI
+          (popcount:DI (match_operand:DI 1 "register_operand" "r"))))]
+  "TARGET_POPC && TARGET_ARCH64"
+  "popc\t%1, %0")
+
+(define_insn "popcountsi_v8plus"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (popcount:SI (match_operand:SI 1 "register_operand" "r")))]
+  "TARGET_POPC && ! TARGET_ARCH64"
+{
+  if (sparc_check_64 (operands[1], insn) <= 0)
+    output_asm_insn ("srl\t%1, 0, %1", operands);
+  return "popc\t%1, %0";
+}
+  [(set_attr "type" "multi")
+   (set_attr "length" "2")])
+
+(define_expand "clzdi2"
+  [(set (match_operand:DI 0 "register_operand" "")
+        (clz:DI (match_operand:DI 1 "register_operand" "")))]
+  "TARGET_VIS3"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_clzdi_v8plus (operands[0], operands[1]));
+      DONE;
+    }
+})
+
+(define_insn "*clzdi_sp64"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (clz:DI (match_operand:DI 1 "register_operand" "r")))]
+  "TARGET_VIS3 && TARGET_ARCH64"
+  "lzd\t%1, %0")
+
+(define_insn "clzdi_v8plus"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (clz:DI (match_operand:DI 1 "register_operand" "r")))
+   (clobber (match_scratch:SI 2 "=&h"))]
+  "TARGET_VIS3 && ! TARGET_ARCH64"
+{
+  if (sparc_check_64 (operands[1], insn) <= 0)
+    output_asm_insn ("srl\t%L1, 0, %L1", operands);
+  return "sllx\t%H1, 32, %2\n\tor\t%L1, %2, %2\n\tlzd\t%2, %L0\n\tclr\t%H0";
+}
+  [(set_attr "type" "multi")
+   (set_attr "length" "5")])
+
+(define_expand "clzsi2"
+  [(set (match_dup 2)
+        (zero_extend:DI (match_operand:SI 1 "register_operand" "")))
+   (set (match_dup 3)
+        (truncate:SI (clz:DI (match_dup 2))))
+   (set (match_operand:SI 0 "register_operand" "")
+        (minus:SI (match_dup 3) (const_int 32)))]
+  "TARGET_VIS3"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_clzsi_v8plus (operands[0], operands[1]));
+      DONE;
+    }
+  else
+    {
+      operands[2] = gen_reg_rtx (DImode);
+      operands[3] = gen_reg_rtx (SImode);
+    }
+})
+
+(define_insn "*clzsi_sp64"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (truncate:SI
+          (clz:DI (match_operand:DI 1 "register_operand" "r"))))]
+  "TARGET_VIS3 && TARGET_ARCH64"
+  "lzd\t%1, %0")
+
+(define_insn "clzsi_v8plus"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (clz:SI (match_operand:SI 1 "register_operand" "r")))]
+  "TARGET_VIS3 && ! TARGET_ARCH64"
+{
+  if (sparc_check_64 (operands[1], insn) <= 0)
+    output_asm_insn ("srl\t%1, 0, %1", operands);
+  return "lzd\t%1, %0\n\tsub\t%0, 32, %0";
+}
+  [(set_attr "type" "multi")
+   (set_attr "length" "3")])
 
 
 ;; Peepholes go at the end.
@@ -7867,9 +7966,9 @@
 
 (define_insn "fpack16_vis"
   [(set (match_operand:V4QI 0 "register_operand" "=f")
-        (unspec:V4QI [(match_operand:V4HI 1 "register_operand" "e")]
-		      UNSPEC_FPACK16))
-   (use (reg:DI GSR_REG))]
+        (unspec:V4QI [(match_operand:V4HI 1 "register_operand" "e")
+                      (reg:DI GSR_REG)]
+		      UNSPEC_FPACK16))]
   "TARGET_VIS"
   "fpack16\t%1, %0"
   [(set_attr "type" "fga")
@@ -7877,9 +7976,9 @@
 
 (define_insn "fpackfix_vis"
   [(set (match_operand:V2HI 0 "register_operand" "=f")
-        (unspec:V2HI [(match_operand:V2SI 1 "register_operand" "e")]
-		      UNSPEC_FPACKFIX))
-   (use (reg:DI GSR_REG))]
+        (unspec:V2HI [(match_operand:V2SI 1 "register_operand" "e")
+                      (reg:DI GSR_REG)]
+		      UNSPEC_FPACKFIX))]
   "TARGET_VIS"
   "fpackfix\t%1, %0"
   [(set_attr "type" "fga")
@@ -7888,9 +7987,9 @@
 (define_insn "fpack32_vis"
   [(set (match_operand:V8QI 0 "register_operand" "=e")
         (unspec:V8QI [(match_operand:V2SI 1 "register_operand" "e")
-        	      (match_operand:V8QI 2 "register_operand" "e")]
-                     UNSPEC_FPACK32))
-   (use (reg:DI GSR_REG))]
+        	      (match_operand:V8QI 2 "register_operand" "e")
+                      (reg:DI GSR_REG)]
+                     UNSPEC_FPACK32))]
   "TARGET_VIS"
   "fpack32\t%1, %2, %0"
   [(set_attr "type" "fga")
@@ -8053,9 +8152,9 @@
 (define_insn "faligndata<V64I:mode>_vis"
   [(set (match_operand:V64I 0 "register_operand" "=e")
         (unspec:V64I [(match_operand:V64I 1 "register_operand" "e")
-                      (match_operand:V64I 2 "register_operand" "e")]
-         UNSPEC_ALIGNDATA))
-   (use (reg:SI GSR_REG))]
+                      (match_operand:V64I 2 "register_operand" "e")
+                      (reg:DI GSR_REG)]
+         UNSPEC_ALIGNDATA))]
   "TARGET_VIS"
   "faligndata\t%1, %2, %0"
   [(set_attr "type" "fga")
@@ -8065,10 +8164,8 @@
   [(set (match_operand:SI 0 "register_operand" "=r")
         (plus:SI (match_operand:SI 1 "register_or_zero_operand" "rJ")
                  (match_operand:SI 2 "register_or_zero_operand" "rJ")))
-   (set (reg:SI GSR_REG)
-        (ior:SI (and:SI (reg:SI GSR_REG) (const_int -8))
-                (and:SI (plus:SI (match_dup 1) (match_dup 2))
-                        (const_int 7))))]
+   (set (zero_extract:DI (reg:DI GSR_REG) (const_int 3) (const_int 0))
+        (zero_extend:DI (plus:SI (match_dup 1) (match_dup 2))))]
   "TARGET_VIS"
   "alignaddr\t%r1, %r2, %0")
 
@@ -8076,10 +8173,8 @@
   [(set (match_operand:DI 0 "register_operand" "=r")
         (plus:DI (match_operand:DI 1 "register_or_zero_operand" "rJ")
                  (match_operand:DI 2 "register_or_zero_operand" "rJ")))
-   (set (reg:SI GSR_REG)
-        (ior:SI (and:SI (reg:SI GSR_REG) (const_int -8))
-                (and:SI (truncate:SI (plus:DI (match_dup 1) (match_dup 2)))
-                        (const_int 7))))]
+   (set (zero_extract:DI (reg:DI GSR_REG) (const_int 3) (const_int 0))
+        (plus:DI (match_dup 1) (match_dup 2)))]
   "TARGET_VIS"
   "alignaddr\t%r1, %r2, %0")
 
@@ -8087,11 +8182,9 @@
   [(set (match_operand:SI 0 "register_operand" "=r")
         (plus:SI (match_operand:SI 1 "register_or_zero_operand" "rJ")
                  (match_operand:SI 2 "register_or_zero_operand" "rJ")))
-   (set (reg:SI GSR_REG)
-        (ior:SI (and:SI (reg:SI GSR_REG) (const_int -8))
-                (xor:SI (and:SI (plus:SI (match_dup 1) (match_dup 2))
-                                (const_int 7))
-                        (const_int 7))))]
+   (set (zero_extract:DI (reg:DI GSR_REG) (const_int 3) (const_int 0))
+        (xor:DI (zero_extend:DI (plus:SI (match_dup 1) (match_dup 2)))
+                (const_int 7)))]
   "TARGET_VIS"
   "alignaddrl\t%r1, %r2, %0")
 
@@ -8099,12 +8192,9 @@
   [(set (match_operand:DI 0 "register_operand" "=r")
         (plus:DI (match_operand:DI 1 "register_or_zero_operand" "rJ")
                  (match_operand:DI 2 "register_or_zero_operand" "rJ")))
-   (set (reg:SI GSR_REG)
-        (ior:SI (and:SI (reg:SI GSR_REG) (const_int -8))
-                (xor:SI (and:SI (truncate:SI (plus:DI (match_dup 1)
-                                                      (match_dup 2)))
-                                (const_int 7))
-                        (const_int 7))))]
+   (set (zero_extract:DI (reg:DI GSR_REG) (const_int 3) (const_int 0))
+        (xor:DI (plus:DI (match_dup 1) (match_dup 2))
+                (const_int 7)))]
   "TARGET_VIS"
   "alignaddrl\t%r1, %r2, %0")
 
@@ -8228,11 +8318,22 @@
   "array32\t%r1, %r2, %0"
   [(set_attr "type" "array")])
 
-(define_insn "bmask<P:mode>_vis"
-  [(set (match_operand:P 0 "register_operand" "=r")
-        (plus:P (match_operand:P 1 "register_operand" "rJ")
-                (match_operand:P 2 "register_operand" "rJ")))
-   (clobber (reg:SI GSR_REG))]
+(define_insn "bmaskdi_vis"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (plus:DI (match_operand:DI 1 "register_operand" "rJ")
+                 (match_operand:DI 2 "register_operand" "rJ")))
+   (set (zero_extract:DI (reg:DI GSR_REG) (const_int 32) (const_int 32))
+        (plus:DI (match_dup 1) (match_dup 2)))]
+  "TARGET_VIS2"
+  "bmask\t%r1, %r2, %0"
+  [(set_attr "type" "array")])
+
+(define_insn "bmasksi_vis"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (plus:SI (match_operand:SI 1 "register_operand" "rJ")
+                 (match_operand:SI 2 "register_operand" "rJ")))
+   (set (zero_extract:DI (reg:DI GSR_REG) (const_int 32) (const_int 32))
+        (zero_extend:DI (plus:SI (match_dup 1) (match_dup 2))))]
   "TARGET_VIS2"
   "bmask\t%r1, %r2, %0"
   [(set_attr "type" "array")])
@@ -8240,9 +8341,9 @@
 (define_insn "bshuffle<V64I:mode>_vis"
   [(set (match_operand:V64I 0 "register_operand" "=e")
         (unspec:V64I [(match_operand:V64I 1 "register_operand" "e")
-	              (match_operand:V64I 2 "register_operand" "e")]
-                     UNSPEC_BSHUFFLE))
-   (use (reg:SI GSR_REG))]
+	              (match_operand:V64I 2 "register_operand" "e")
+		      (reg:DI GSR_REG)]
+                     UNSPEC_BSHUFFLE))]
   "TARGET_VIS2"
   "bshuffle\t%1, %2, %0"
   [(set_attr "type" "fga")
@@ -8404,5 +8505,248 @@
 	 UNSPEC_FUCMP))]
   "TARGET_VIS3"
   "fucmp<code>8\t%1, %2, %0")
+
+(define_insn "*naddsf3"
+  [(set (match_operand:SF 0 "register_operand" "=f")
+        (neg:SF (plus:SF (match_operand:SF 1 "register_operand" "f")
+                         (match_operand:SF 2 "register_operand" "f"))))]
+  "TARGET_VIS3"
+  "fnadds\t%1, %2, %0"
+  [(set_attr "type" "fp")])
+
+(define_insn "*nadddf3"
+  [(set (match_operand:DF 0 "register_operand" "=e")
+        (neg:DF (plus:DF (match_operand:DF 1 "register_operand" "e")
+                         (match_operand:DF 2 "register_operand" "e"))))]
+  "TARGET_VIS3"
+  "fnaddd\t%1, %2, %0"
+  [(set_attr "type" "fp")
+   (set_attr "fptype" "double")])
+
+(define_insn "*nmulsf3"
+  [(set (match_operand:SF 0 "register_operand" "=f")
+        (mult:SF (neg:SF (match_operand:SF 1 "register_operand" "f"))
+                 (match_operand:SF 2 "register_operand" "f")))]
+  "TARGET_VIS3"
+  "fnmuls\t%1, %2, %0"
+  [(set_attr "type" "fpmul")])
+
+(define_insn "*nmuldf3"
+  [(set (match_operand:DF 0 "register_operand" "=e")
+        (mult:DF (neg:DF (match_operand:DF 1 "register_operand" "e"))
+                 (match_operand:DF 2 "register_operand" "e")))]
+  "TARGET_VIS3"
+  "fnmuld\t%1, %2, %0"
+  [(set_attr "type" "fpmul")
+   (set_attr "fptype" "double")])
+
+(define_insn "*nmuldf3_extend"
+  [(set (match_operand:DF 0 "register_operand" "=e")
+        (mult:DF (neg:DF (float_extend:DF
+                           (match_operand:SF 1 "register_operand" "f")))
+                 (float_extend:DF
+                   (match_operand:SF 2 "register_operand" "f"))))]
+  "TARGET_VIS3"
+  "fnsmuld\t%1, %2, %0"
+  [(set_attr "type" "fpmul")
+   (set_attr "fptype" "double")])
+
+(define_insn "fhaddsf_vis"
+  [(set (match_operand:SF 0 "register_operand" "=f")
+        (unspec:SF [(match_operand:SF 1 "register_operand" "f")
+                    (match_operand:SF 2 "register_operand" "f")]
+                   UNSPEC_FHADD))]
+  "TARGET_VIS3"
+  "fhadds\t%1, %2, %0"
+  [(set_attr "type" "fp")])
+
+(define_insn "fhadddf_vis"
+  [(set (match_operand:DF 0 "register_operand" "=f")
+        (unspec:DF [(match_operand:DF 1 "register_operand" "f")
+                    (match_operand:DF 2 "register_operand" "f")]
+                   UNSPEC_FHADD))]
+  "TARGET_VIS3"
+  "fhaddd\t%1, %2, %0"
+  [(set_attr "type" "fp")
+   (set_attr "fptype" "double")])
+
+(define_insn "fhsubsf_vis"
+  [(set (match_operand:SF 0 "register_operand" "=f")
+        (unspec:SF [(match_operand:SF 1 "register_operand" "f")
+                    (match_operand:SF 2 "register_operand" "f")]
+                   UNSPEC_FHSUB))]
+  "TARGET_VIS3"
+  "fhsubs\t%1, %2, %0"
+  [(set_attr "type" "fp")])
+
+(define_insn "fhsubdf_vis"
+  [(set (match_operand:DF 0 "register_operand" "=f")
+        (unspec:DF [(match_operand:DF 1 "register_operand" "f")
+                    (match_operand:DF 2 "register_operand" "f")]
+                   UNSPEC_FHSUB))]
+  "TARGET_VIS3"
+  "fhsubd\t%1, %2, %0"
+  [(set_attr "type" "fp")
+   (set_attr "fptype" "double")])
+
+(define_insn "fnhaddsf_vis"
+  [(set (match_operand:SF 0 "register_operand" "=f")
+        (neg:SF (unspec:SF [(match_operand:SF 1 "register_operand" "f")
+                            (match_operand:SF 2 "register_operand" "f")]
+                           UNSPEC_FHADD)))]
+  "TARGET_VIS3"
+  "fnhadds\t%1, %2, %0"
+  [(set_attr "type" "fp")])
+
+(define_insn "fnhadddf_vis"
+  [(set (match_operand:DF 0 "register_operand" "=f")
+        (neg:DF (unspec:DF [(match_operand:DF 1 "register_operand" "f")
+                            (match_operand:DF 2 "register_operand" "f")]
+                           UNSPEC_FHADD)))]
+  "TARGET_VIS3"
+  "fnhaddd\t%1, %2, %0"
+  [(set_attr "type" "fp")
+   (set_attr "fptype" "double")])
+
+(define_expand "umulxhi_vis"
+  [(set (match_operand:DI 0 "register_operand" "")
+        (truncate:DI
+          (lshiftrt:TI
+            (mult:TI (zero_extend:TI
+                       (match_operand:DI 1 "arith_operand" ""))
+                     (zero_extend:TI
+                       (match_operand:DI 2 "arith_operand" "")))
+           (const_int 64))))]
+ "TARGET_VIS3"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_umulxhi_v8plus (operands[0], operands[1], operands[2]));
+      DONE;
+    }
+})
+
+(define_insn "*umulxhi_sp64"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (truncate:DI
+          (lshiftrt:TI
+            (mult:TI (zero_extend:TI
+                       (match_operand:DI 1 "arith_operand" "%r"))
+                     (zero_extend:TI
+                       (match_operand:DI 2 "arith_operand" "rI")))
+           (const_int 64))))]
+  "TARGET_VIS3 && TARGET_ARCH64"
+  "umulxhi\t%1, %2, %0"
+  [(set_attr "type" "imul")])
+
+(define_insn "umulxhi_v8plus"
+  [(set (match_operand:DI 0 "register_operand" "=r,h")
+        (truncate:DI
+          (lshiftrt:TI
+            (mult:TI (zero_extend:TI
+                       (match_operand:DI 1 "arith_operand" "%r,0"))
+                     (zero_extend:TI
+                       (match_operand:DI 2 "arith_operand" "rI,rI")))
+           (const_int 64))))
+   (clobber (match_scratch:SI 3 "=&h,X"))
+   (clobber (match_scratch:SI 4 "=&h,X"))]
+  "TARGET_VIS3 && ! TARGET_ARCH64"
+  "* return output_v8plus_mult (insn, operands, \"umulxhi\");"
+  [(set_attr "type" "imul")
+   (set_attr "length" "9,8")])
+
+(define_expand "xmulx_vis"
+  [(set (match_operand:DI 0 "register_operand" "")
+        (truncate:DI
+          (unspec:TI [(zero_extend:TI
+                        (match_operand:DI 1 "arith_operand" ""))
+                      (zero_extend:TI
+                        (match_operand:DI 2 "arith_operand" ""))]
+           UNSPEC_XMUL)))]
+  "TARGET_VIS3"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_xmulx_v8plus (operands[0], operands[1], operands[2]));
+      DONE;
+    }
+})
+
+(define_insn "*xmulx_sp64"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (truncate:DI
+          (unspec:TI [(zero_extend:TI
+                        (match_operand:DI 1 "arith_operand" "%r"))
+                      (zero_extend:TI
+                        (match_operand:DI 2 "arith_operand" "rI"))]
+           UNSPEC_XMUL)))]
+  "TARGET_VIS3 && TARGET_ARCH64"
+  "xmulx\t%1, %2, %0"
+  [(set_attr "type" "imul")])
+
+(define_insn "xmulx_v8plus"
+  [(set (match_operand:DI 0 "register_operand" "=r,h")
+        (truncate:DI
+          (unspec:TI [(zero_extend:TI
+                        (match_operand:DI 1 "arith_operand" "%r,0"))
+                      (zero_extend:TI
+                        (match_operand:DI 2 "arith_operand" "rI,rI"))]
+           UNSPEC_XMUL)))
+   (clobber (match_scratch:SI 3 "=&h,X"))
+   (clobber (match_scratch:SI 4 "=&h,X"))]
+  "TARGET_VIS3 && ! TARGET_ARCH64"
+  "* return output_v8plus_mult (insn, operands, \"xmulx\");"
+  [(set_attr "type" "imul")
+   (set_attr "length" "9,8")])
+
+(define_expand "xmulxhi_vis"
+  [(set (match_operand:DI 0 "register_operand" "")
+        (truncate:DI
+          (lshiftrt:TI
+            (unspec:TI [(zero_extend:TI
+                          (match_operand:DI 1 "arith_operand" ""))
+                        (zero_extend:TI
+                          (match_operand:DI 2 "arith_operand" ""))]
+             UNSPEC_XMUL)
+           (const_int 64))))]
+  "TARGET_VIS3"
+{
+  if (! TARGET_ARCH64)
+    {
+      emit_insn (gen_xmulxhi_v8plus (operands[0], operands[1], operands[2]));
+      DONE;
+    }
+})
+
+(define_insn "*xmulxhi_sp64"
+  [(set (match_operand:DI 0 "register_operand" "=r")
+        (truncate:DI
+          (lshiftrt:TI
+            (unspec:TI [(zero_extend:TI
+                          (match_operand:DI 1 "arith_operand" "%r"))
+                        (zero_extend:TI
+                          (match_operand:DI 2 "arith_operand" "rI"))]
+             UNSPEC_XMUL)
+           (const_int 64))))]
+  "TARGET_VIS3 && TARGET_ARCH64"
+  "xmulxhi\t%1, %2, %0"
+  [(set_attr "type" "imul")])
+
+(define_insn "xmulxhi_v8plus"
+  [(set (match_operand:DI 0 "register_operand" "=r,h")
+        (truncate:DI
+          (lshiftrt:TI
+            (unspec:TI [(zero_extend:TI
+                          (match_operand:DI 1 "arith_operand" "%r,0"))
+                        (zero_extend:TI
+                          (match_operand:DI 2 "arith_operand" "rI,rI"))]
+             UNSPEC_XMUL)
+           (const_int 64))))
+   (clobber (match_scratch:SI 3 "=&h,X"))
+   (clobber (match_scratch:SI 4 "=&h,X"))]
+  "TARGET_VIS3 && !TARGET_ARCH64"
+  "* return output_v8plus_mult (insn, operands, \"xmulxhi\");"
+  [(set_attr "type" "imul")
+   (set_attr "length" "9,8")])
 
 (include "sync.md")
