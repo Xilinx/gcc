@@ -1,5 +1,12 @@
 
 2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Removed all debug_msg.
+	* melt/xtramelt-ana-base.melt: Don't use DEBUG_MSG, but DEBUG.
+	* melt/xtramelt-ana-simple.melt: Don't use DEBUG_MSG, but DEBUG.
+
+2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt
+2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

@@ -22,156 +22,6 @@
     <http://www.gnu.org/licenses/>.
 ***")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; green transformation
-;;; a pass which converts fprintf(stdout, ..) to printf (..)
-
-(defun makegreenpass_gate (pass)
-  (debug_msg pass "makegreenpass_gate pass at start")
-  ;; retrieve the data associated to the cfun in the pass. If it
-  ;; exists (i.e. is not null) we avoid running the pass again
-  (let ( (grdata (maptree_get (get_field :gccpass_data pass) (cfun_decl))) )
-    (debugtree "makegreenpass_gate cfundecl" (cfun_decl))
-    (debug_msg grdata "makegreenpass_gate grdata")
-    (if grdata 
-	() ;; return null, so avoid executing the pass
-      pass)
-    ))
-
-(defclass class_makegreen_data 
-  :super class_proped
-  :fields (mkgreen_pass 
-	   mkgreen_data
-	   mkgreen_stdout_ssa		;map of SSA tree assigned to stdout
-	   mkgreen_fprintf
-	   ))
-
-
-;; this inspired gcc/testsuite/melt/tmatch-4.melt 
-(defun makegreen_transform (grdata :tree decl :basic_block bb)
-  (debug_msg grdata "makegreen_transform start grdata")
-  (assert_msg "check grdata" (is_a grdata class_makegreen_data))
-  (debugtree "makegreen_transform decl" decl)
-  (debugbasicblock "makegreen_transform bb" bb)
-  (eachgimple_in_basicblock 
-   (bb)
-   (:gimple g)
-   (debuggimple "makegreen_transform before matching g" g)
-   (match g
-	  (?(gimple_assign_cast 
-	     ?lhs
-	     ?rhs)
-	    (debugtree "makegreen_transform assign cast lhs" lhs)
-	    (debugtree "makegreen_transform assign cast rhs" rhs)
-	    (compile_warning "some casts should be caught" ())
-	    ;; we need to catch a cast like 
-	    ;;; stdout.5_3 = (struct FILE * restrict) stdout.4_2;
-	    ;; where stdout.4_2 has been set to stdout!
-	    )
-	  (?(gimple_assign_single  ?lhs 
-				   ?(and ?rhs
-					 ?(tree_var_decl 
-					   ?_ ?(cstring_same "stdout") ?_)))
-	    (debugtree "makegreen_transform assign single stdout lhs" lhs)
-	    (debugtree "makegreen_transform assign single stdout rhs" rhs)
-	    (maptree_put (get_field :mkgreen_stdout_ssa	grdata) 
-			 lhs
-			 (make_gimple discr_gimple g))
-	    )
-	  (?(gimple_assign_single  ?lhs ?rhs)
-	    (debugtree "makegreen_transform assign single plain lhs" lhs)
-	    (debugtree "makegreen_transform assign single plain rhs" rhs)
-	    )
-	  (?(gimple_call_2_more ?lhs 
-				?(and ?callfndcl 
-				      ?(tree_function_decl 
-					?(cstring_same "fprintf")
-					?_)
-				     )
-				?arg0 ?arg1 ?nbargs)
-	    (debugtree "makegreen_transform call2morefprintf lhs" lhs)
-	    (debugtree "makegreen_transform call2morefprintf fndecl" callfndcl)
-	    (debugtree "makegreen_transform call2morefprintf arg0" arg0)
-	    (debugtree "makegreen_transform call2morefprintf arg1" arg1)
-	    (let ( (gx (maptree_get (get_field :mkgreen_stdout_ssa grdata) arg0)) )
-	      (cond ( gx
-		      (debug_msg gx "makegreen_transform found gx")
-		      (warning_at_gimple g "fprintf to stdout")
-		      (inform_at_gimple (gimple_content gx) "stdout was from here")
-		      )
-		    ))
-	    )
-	  (?(gimple_call ?lhs ?callfndcl ?nbargs)
-	    (debugtree "makegreen_transform call lhs" lhs)
-	    (debugtree "makegreen_transform call fndecl" callfndcl)
-	    )
-	  (?_
-	   (debuggimple "makegreen_transform unmatched g" g)
-	   )
-	  )
-   )
-  (debug_msg grdata "makegreen_transform end grdata")
-  )
-
-(defun makegreenpass_exec (pass)
-  (debug_msg pass "makegreenpass_exec pass at start")
-  (code_chunk dbgcfun #{ /* $dbgcfun :: */
-	      debugeprintf("makegreenpass_exec start cfun=%p cfg=%p", 
-			   (void*)cfun, cfun?cfun->cfg:NULL) ; 
-	      }#) 
-  (assert_msg "makegreenpass_exec check cfun has cfg" (cfun_has_cfg))
-  (debugtree "makegreenpass_exec start cfundecl" (cfun_decl))
-  (let ( (grdata (instance class_makegreen_data 
-			   :mkgreen_pass pass
-			   :mkgreen_stdout_ssa (make_maptree discr_map_trees 10)
-			   )) )
-    ;; add our grdata associated to the cfun_decl in the pass data,
-    ;; hence the gate will avoid running the pass twice
-    (maptree_put (get_field :gccpass_data pass) (cfun_decl) grdata)
-    ;; it is useless to do a each_cgraph_decl here...
-    (debug_msg grdata "makegreenpass_exec grdata before eachbbcfun")
-    ;; gimple ssa passes have a cfg..
-    (each_bb_cfun 
-     ()
-     (:basic_block bb :tree fundecl)
-     (debug_msg grdata "makegreenpass_exec grdata before makegreen_transform")
-     (makegreen_transform grdata fundecl bb)
-     )
-    (debug_msg pass "makegreenpass_exec pass at end")
-    (code_chunk dbgcfun #{ debugeprintf("makegreenpass_exec end cfun=%p", 
-					(void*)cfun) ; 
-		}#) 
-    ))
-
-(defun makegreen_docmd (cmd moduldata)
-  (let ( (greenpass
-	  (instance class_gcc_gimple_pass
-		    :named_name '"melt_greenpass"
-		    :gccpass_gate makegreenpass_gate
-		    :gccpass_exec makegreenpass_exec
-		    :gccpass_data (make_maptree discr_map_trees 100)
-		    :gccpass_properties_required ()
-	      )
-        ) )
- ;;; register our pass after the "phiopt" pass [reassoc is too early,
- ;;; and phiopt keep the SSA form.]
-  (install_melt_gcc_pass greenpass "after" "phiopt" 0)
-  ;;; note, register it after "ccp" or "pta" does not work...
-  (debug_msg greenpass "makegreen_mode installed greenpass")
-;; return the greenpass to accept the mode
-  (return greenpass)
-))
-;;;
-
-(definstance makegreen_mode
-  class_melt_mode
-  :named_name '"makegreen"
-  :meltmode_help '"enable a pass finding fprintf to stdout..."
-  :meltmode_fun makegreen_docmd
-)
-(install_melt_mode makegreen_mode)
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -226,8 +76,7 @@
 ;;; find a tree inside a small abstract env - return primarily the
 ;;; boxed tree and secondly its index
 (defun find_tree_smallabstractenv (abenv :tree tr)
-  (debug_msg abenv "find_tree_smallabstractenv abenv")
-  (debugtree "find_tree_smallabstractenv tr" tr)
+  (debug "find_tree_smallabstractenv abenv=" abenv " tr=" tr)
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (let ( (:long ix -1)
 	 (btree ()) 
@@ -241,12 +90,12 @@
      (let ( (curcomp (multiple_nth varvect curix)) )
        (if (==t (tree_content curcomp) tr)
 	   (progn
-	     (debug_msg curcomp "find_tree_smallabstractenv return curcomp")
+	     (debug "find_tree_smallabstractenv return curcomp=" curcomp " curix=" curix)
 	     (return curcomp curix))
 	 )
        (setq curix (+i curix 1))
        )))
-  (debug_msg () "find_tree_smallabstractenv return NIL")
+  (debug "find_tree_smallabstractenv return NIL")
   (return)
   )
 
@@ -306,42 +155,34 @@
 
 
 (defun smallana_cfun_entbb (sman :tree decltree :basic_block bbent)
-  (debug_msg sman "smallana_cfun_entbb sman")
-  (debugtree "smallana_cfun_entbb start decltree" decltree)
+  (debug "smallana_cfun_entbb sman=" sman " decltree=" decltree " bbent=" bbent)
   (match 
    decltree
    ;; the joker below is acutally nil
    ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
-      (debugtree "smallana_cfun_entbb treevars of function" treevars)
+      (debug "smallana_cfun_entbb treevars of function" treevars)
       (push_cfun_decl decltree)
       ;;;;;
       (each_param_in_fundecl
        (decltree)
        (:tree argdtree)
-       (debugtree "smallana_cfun_entbb argdtree" argdtree)
+       (debug "smallana_cfun_entbb argdtree" argdtree)
        (match 
 	argdtree
 	( ?(tree_parm_decl
 	    ?(and ?argdtype 
 ;		  ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
                   ?_) ?_ ?_)
-	   ;; (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
-	   ;; (debugcstring "smallana_cfun_entbb integer argname" argname)
-	   ;; (debugcstring "smallana_cfun_entbb integer typname" typname)
-	   ;; (debug_msg bigmin "smallana_cfun_entbb integer bigmin")
-	   ;; (debug_msg bigmax "smallana_cfun_entbb integer bigmax")
 	   )
 	( ?(tree_parm_decl ?argdtype ?argdcl ?argname)
-	   (debugtree "smallana_cfun_entbb argdtype" argdtype)
-	   (debugtree "smallana_cfun_entbb argdcl" argdcl)
-	   (debugcstring "smallana_cfun_entbb argname" argname)
+	   (debug "smallana_cfun_entbb argdtype=" argdtype " argdcl=" argdcl " argname=" argname)
 	   )
 	( ?_ 
 	  ;; (assert_msg "unexpected argdtree" ())	  
 	  (shortbacktrace_dbg "unexpected tree in smallana_cfun_entbb" 12)
 	  )
 	)
-       (debugtree "smallana_cfun_entbb argdecltree" argdtree)
+       (debug "smallana_cfun_entbb argdecltree" argdtree)
        )
       ;;;;
       (let ( (fname (make_stringconst discr_string funam)) 
@@ -350,7 +191,7 @@
 			    :scfun_decl (make_tree discr_tree decltree)
 			    :scfun_entbb (make_basicblock discr_basic_block bbent)))
 	     )
-	(debug_msg fname "smallana_cfun_entbb fname")
+	(debug "smallana_cfun_entbb fname=" fname)
 	(list_append (get_field :sman_cfuns sman) scf)
 	(mapstring_putstr (get_field :sman_cfundict sman) fname scf)
 	(maptree_put (get_field :sman_cfuntreemap sman) decltree scf)
@@ -358,96 +199,83 @@
       (pop_cfun)
       )
    ( ?(tree_var_decl ?_ ?_ ?_)
-      (debugtree  "smallana_cfun_entbb decl of variable" decltree)
+      (debug  "smallana_cfun_entbb decl of variable" decltree)
       (inform_at_tree decltree "smallana: global variable not analyzed")
       )
    ( ?_
-     (debugtree "smallana_cfun_entbb other decl" decltree)
+     (debug "smallana_cfun_entbb other decl" decltree)
      (inform_at_tree decltree "smallana: other declaration not analyzed")
      ;; (assert_msg "smallana_cfun_entbb @$@UNIMPLEMENTED DECL" ())
      (shortbacktrace_dbg "smallana_cfun_entbb unexepcted declree" 14)
      () )
    )
-  (debug_msg sman "smallana_cfun_entbb sman")
+  (debug "smallana_cfun_entbb sman=" sman)
   )
 
 
 (defun smallana_gimple (sman :gimple g)
-  (debuggimple "smallana_gimple gimple" g)
+  (debug "smallana_gimple sman=" sman " g=" g)
   (match 
    g
    ( ?(gimple_assign_single ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_single lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_single rhs" rhs)
+      (debug "smallana_gimple gimple_assign_single lhs=" lhs " rhs=" rhs)
       )
    ( ?(gimple_assign_cast ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_cast lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_cast rhs" rhs)
+      (debug "smallana_gimple gimple_assign_cast lhs=" lhs " rhs=" rhs)
       )
    ( ?(gimple_assign_copy ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_copy lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_copy rhs" rhs)
+      (debug "smallana_gimple gimple_assign_copy lhs=" lhs " rhs=" rhs)
       )
    ( ?(gimple_assign_ssa_name_copy ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_ssa_name_copy lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_ssa_name_copy rhs" rhs)
+      (debug "smallana_gimple gimple_assign_ssa_name_copy lhs=" lhs " rhs=" rhs)
       )
    ( ?(gimple_assign_unary_nop ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_unary_nop lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_unary_nop rhs" rhs)
+      (debug "smallana_gimple gimple_assign_unary_nop lhs=" lhs " rhs=" rhs)
       )
    ( ?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
-      (debugtree "smallana_gimple gimple_assign_plus lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_plus rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_plus rhs2" rhs2)
+      (debug "smallana_gimple gimple_assign_plus lhs=" lhs 
+	     " rhs1=" rhs1 " rhs2=" rhs2)
       )
    ( ?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
-      (debugtree "smallana_gimple gimple_assign_pointerplus lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_pointerplus rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_pointerplus rhs2" rhs2)
+      (debug "smallana_gimple gimple_assign_pointerplus lhs=" lhs 
+	     " rhs1=" rhs1 " rhs2=" rhs2)
       )
    ( ?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
-      (debugtree "smallana_gimple gimple_assign_mult lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_mult rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_mult rhs2" rhs2)
+      (debug "smallana_gimple gimple_assign_mult lhs=" lhs
+	     " rhs1=" rhs1 " rhs2=" rhs2)
       )
    ( ?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
-      (debugtree "smallana_gimple gimple_assign_binaryop lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_binaryop rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_binaryop rhs2" rhs2)
+      (debug "smallana_gimple gimple_assign_binaryop lhs=" lhs
+	     " rhs1=" rhs1 " rhs2=" rhs2)
       (debugtreecodenum  "smallana_gimple gimple_assign_binaryop opcod" opcod)
       ;;(shortbacktrace_dbg "smallana_gimple gimple_assign_binaryop unexpected" 15)
       (assert_msg "smallana_gimple gimple_assign_binaryop unhandled" ())
       )
    ( ?(gimple_cond_lessequal ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_cond_lessequal lhs" lhs)
-      (debugtree "smallana_gimple gimple_cond_lessequal rhs" rhs)
+      (debug "smallana_gimple gimple_cond_lessequal lhs=" lhs " rhs=" rhs)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_lessequal" 15)
       )
    ( ?(gimple_cond_notequal ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_cond_notequal lhs" lhs)
-      (debugtree "smallana_gimple gimple_cond_notequal rhs" rhs)
+      (debug "smallana_gimple gimple_cond_notequal lhs=" lhs " rhs=" rhs)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_notequal" 15)
       )
    ( ?(gimple_cond_greater ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_cond_greater lhs" lhs)
-      (debugtree "smallana_gimple gimple_cond_greater rhs" rhs)
+      (debug "smallana_gimple gimple_cond_greater lhs=" lhs " rhs" rhs)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_greater" 15)
       )
    ( ?(gimple_cond_true)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_true" 15)
       )
    ( ?(gimple_call ?lhs ?fndecl ?_)
-      (debugtree "smallana_gimple gimple_call lhs" lhs)
-      (debugtree "smallana_gimple gimple_call fndecl" fndecl)
+      (debug "smallana_gimple gimple_call lhs=" lhs " fndecl=" fndecl)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_call" 15)
       )
    ( ?(gimple_return ?retval)
-      (debugtree "smallana_gimple gimple_return retval" retval)
+      (debug "smallana_gimple gimple_return retval" retval)
       (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_return" 15)
       )
    ( ?_
-     (debuggimple "smallana_gimple other!gimple" g)
+     (debug "smallana_gimple other!gimple" g)
      ;;(shortbacktrace_dbg "smallana_gimple unexpected gimple" 15)
      (assert_msg "smallana_gimple @$@ UNIMPLEMENTED GIMPLE" ())
      )
@@ -455,9 +283,8 @@
   )
 
 (defun smallana_bb (sman :basic_block bb)
-  (debug_msg sman "smallana_bb start sman")
+  (debug "smallana_bb start sman=" sman "bb=" bb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (debugbasicblock "smallana_bb bb" bb)
   (let ( (bbtab (get_field :sman_bbtable sman)) 
 	 )
     (assert_msg "check bbtab" (is_mapbasicblock bbtab))
@@ -471,33 +298,29 @@
        (:gimple g)
        (smallana_gimple sman g)
        )
-      (debug_msg sman "smallana_bb end sman")
+      (debug "smallana_bb end sman=" sman)
       )))
 
 
 (defun smallana_cfun_bb (sman :tree cfdecl :basic_block fbb)
-  (debug_msg sman "smallana_bb_cfun start sman")
-  (debugtree "smallana_bb_cfun cfdecl" cfdecl)
+  (debug "smallana_bb_cfun start sman=" sman " cfdecl=" cfdecl " fbb=" fbb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (match cfdecl
 	 ( ?(and ?decltree ?(tree_function_decl ?funam ?(tree_block ?treevars ?_)))
-	    (debugtree "smallana_bb_cfun decltree" decltree)
-	    (debugtree "smallana_bb_cfun treevars of function" treevars)
-	    (debugcstring "smallana_cfun_entrybb funam" funam)
+	    (debug "smallana_bb_cfun decltree=" decltree " treevars=" treevars
+		   " funam=" funam)
 	    )
 	 ( ?_ 
 	   (void)
 	 )
 	 )
   (smallana_bb sman fbb)
-  (debug_msg sman "smallana_bb_cfun end sman")
+  (debug "smallana_bb_cfun end sman=" sman)
   )
 
 
 (defun smaninterp_cfun (sman abenv cfun)
-  (debug_msg sman "smaninterp_fun sman")
-  (debug_msg cfun "smaninterp_fun cfun")
-  (debug_msg abenv "smaninterp_fun abenv")
+  (debug "smaninterp_fun sman=" sman " abenv=" abenv " cfun=" cfun)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (assert_msg "check cfun" (is_a cfun class_smallcfun))
@@ -514,24 +337,24 @@
 
 
 (defun smaninterp_basicblock (sman abenv :basic_block bb)
-  (debug_msg abenv "smaninterp_basicblock abenv")
+  (debug "smaninterp_basicblock sman=" sman " abenv=" abenv " bb=" bb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (forever 
    bbloop
-   (debugbasicblock "smaninterp_basicblock bb" bb)
+   (debug "smaninterp_basicblock bb" bb)
    (if (isnull_basicblock bb)
        (exit bbloop))
    (eachgimple_in_basicblock 
     (bb)
     (:gimple g)
-    (debuggimple "smaninterp_basicblock g" g)
+    (debug "smaninterp_basicblock g" g)
     (smaninterp_gimple sman abenv g bb)
     )
    (setq bb (basicblock_single_succ bb))
-   (debugbasicblock "smaninterp_basicblock succ bb" bb)
+   (debug "smaninterp_basicblock succ bb" bb)
    )
-  (debug_msg () "smaninterp_basicblock done")
+  (debug  "smaninterp_basicblock done")
   ;(assert_msg "@$@unimplemented smaninterp_basicblock" ())
   (shortbacktrace_dbg "@$@unimplemented smaninterp_basicblock" 15)
   )
@@ -539,7 +362,8 @@
 
 ;;;;;;;;;;;;;;;;
 (defun sman_propagate_constraints_call (abenv newabenv tupvarbind)
-  (debug_msg tupvarbind "sman_propagate_constraints_call tupvarbind")
+  (debug "sman_propagate_constraints_call abenv=" abenv " newabenv=" newabenv 
+	 " tupvarbind=" tupvarbind)
   (assert_msg "check newabenv" (is_a newabenv class_smallabstractenv))
   (let ( (pplvarslist (make_list discr_list)) 
 	 (:ppl_constraint_system consys (raw_new_ppl_empty_constraint_system))
@@ -548,15 +372,15 @@
     (foreach_in_multiple
      (tupvarbind)
      (curvarbind :long bindix)
-     (debug_msg curvarbind "sman_propagate_constraints_call curvarbind")
+     (debug "sman_propagate_constraints_call curvarbind=" curvarbind
+	    " bindix=" bindix)
      (let ( (:tree parmtype (tree_content (multiple_nth curvarbind 0)))
 	    (parmdeclval (multiple_nth curvarbind 1))
 	    (:tree parmdecl (tree_content parmdeclval))
 	    (:tree curarg (tree_content (multiple_nth curvarbind 2)))
 	    )
-       (debugtree "sman_propagate_constraints_call parmtype" parmtype)
-       (debugtree "sman_propagate_constraints_call parmdecl" parmdecl)
-       (debugtree "sman_propagate_constraints_call curarg" curarg)
+       (debug "sman_propagate_constraints_call parmtype=" parmtype 
+	      " parmdecl=" parmdecl " curarg=" curarg)
        (messagenum_dbg  "sman_propagate_constraints_call nbpplvars" nbpplvars)
        (match 
 	curarg
@@ -591,24 +415,22 @@
     (let ( (:ppl_polyhedron poly (ppl_NNC_Polyhedron_from_Constraint_System consys)) 
 	   (polyv (make_ppl_polyhedron_same discr_ppl_polyhedron poly))
 	   )
-      (debug_msg polyv "sman_propagate_constraints_call polyv")
+      (debug "sman_propagate_constraints_call polyv=" polyv)
       (assert_msg "check polyv" polyv)
       (put_fields newabenv 
 		  :abenv_pplpoly polyv
 		  :abenv_vectrees (list_to_multiple pplvarslist))
       ))
-  (debug_msg newabenv "sman_propagate_constraints_call final newabenv")
+  (debug "sman_propagate_constraints_call final newabenv=" newabenv)
   )
 
 ;;;;;;;;;;;;;;;;
 ;; pass both the relation and the opposite relation when changing signs
 (defun sman_add_cmp_constraint (sman abenv polyv :tree lhs rhs :cstring rel opprel)
-  (debug_msg abenv "sman_add_cmp_constraint abenv")
+  (debug "sman_add_cmp_constraint abenv=" abenv "polyv=" polyv 
+	 "lhs=" lhs "rhs=" rhs)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debugtree "sman_add_cmp_constraint lhs" lhs)
-  (debugtree "sman_add_cmp_constraint rhs" rhs)
-  (debug_msg polyv "sman_add_cmp_constraint polyv")
   (assert_msg "check polyv" (== (discrim polyv) discr_ppl_polyhedron))
   (let ( (:long lvix -1) 		;left var index
 	 (:long rvix -1)		;right var index
@@ -619,15 +441,14 @@
      (?(tree_ssa_name 
 	?(and ?ldeclvar ?(tree_decl ?lvar ?lname ?luid)) 
 	?lvalu ?lversion ?ldefg)
-       (debugtree "sman_add_cmp_constraint ssa_name ldeclvar" ldeclvar)
-       (debugtree "sman_add_cmp_constraint ssa_name lvar" lvar)
-       (debugtree "sman_add_cmp_constraint ssa_name lvalu" lvalu)
+       (debug "sman_add_cmp_constraint ssa_name ldeclvar=" ldeclvar
+        " lvar=" lvar " lvalu=" lvalu)
        (messagenum_dbg "sman_add_cmp_constraint lversion" lversion)
-       (debuggimple "sman_add_cmp_constraint ssa_name ldefg" ldefg)
+       (debug "sman_add_cmp_constraint ssa_name ldefg=" ldefg)
        (multicall
 	(boxtr :long trix)
 	(find_tree_smallabstractenv abenv lvar)
-	(debug_msg boxtr "sman_add_cmp_constraint ssa_name boxtr")
+	(debug "sman_add_cmp_constraint ssa_name boxtr=" boxtr "trix=" trix)
 	(if boxtr 
 	    (progn (setq lvix trix) ())
 	  (progn 
@@ -647,14 +468,12 @@
     (match 
      rhs
      (?(tree_ssa_name ?rvar ?rvalu ?rversion ?rdefg)
-       (debugtree "sman_add_cmp_constraint ssa_name rvar" rvar)
-       (debugtree "sman_add_cmp_constraint ssa_name rvalu" rvalu)
-       (messagenum_dbg "sman_add_cmp_constraint rversion" rversion)
-       (debuggimple "sman_add_cmp_constraint ssa_name rdefg" rdefg)
+       (debug "sman_add_cmp_constraint ssa_name rvar=" rvar
+	      " rvalu=" rvalu " rversion=" rversion " rdefg=" rdefg)
        (multicall
 	(boxtr :long trix)
 	(find_tree_smallabstractenv abenv rvar)
-	(debug_msg boxtr "sman_add_cmp_constraint ssa_name boxtr")
+	(debug "sman_add_cmp_constraint ssa_name boxtr=" boxtr)
 	(if 
 	    boxtr 
 	    (progn (setq rvix trix) ())
@@ -732,7 +551,7 @@
       (assert_msg "unexpected left & right in sman_add_cmp_constraint" ())
       ))
     )
-  (debug_msg polyv "sman_add_cmp_constraint final polyv")
+  (debug "sman_add_cmp_constraint final polyv=" polyv)
   )
 
 ;;;;;;;;;;;;;;;;
@@ -749,25 +568,23 @@
   ;; check arguments
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debuggimple "sman_arithm_compare gimple" g)
-  (debugbasicblock "sman_arithm_compare bb" bb)
-  (debug_msg abenv "sman_arithm_compare start abenv")
+  (debug "sman_arithm_compare gimple g=" g " bb=" bb " abenv=" abenv)
   ;; extract the polyhedron value and clone it for the other branch
   (let ( (polyv (get_field :abenv_pplpoly abenv)) 
 	 (:ppl_polyhedron poly (ppl_polyhedron_content polyv))
 	 (clonpolyv (make_ppl_polyhedron_cloned discr_ppl_polyhedron poly))
 	 (:ppl_polyhedron clonpoly (ppl_polyhedron_content clonpolyv))
 	 )
-    (debug_msg polyv "sman_arithm_compare polyv before sman_add_cmp_constraint")
+    (debug "sman_arithm_compare before sman_add_cmp_constraint polyv=" polyv)
     ;; handle the true branch by adding the constraint from the test
     (sman_add_cmp_constraint sman abenv polyv lhs rhs rel opprel)
-    (debug_msg polyv "sman_arithm_compare polyv after sman_add_cmp_constraint")
+    (debug "sman_arithm_compare after sman_add_cmp_constraint polyv=" polyv)
     (if (ppl_Polyhedron_is_empty poly)
 	(progn
-	  (debuggimple "sman_arithm_compare true branch impossible" g)
+	  (debug "sman_arithm_compare true branch impossible" g)
 	  )
       (progn
-	(debuggimple "sman_arithm_compare true branch possible g" g)
+	(debug "sman_arithm_compare true branch possible g" g)
 	(debugbasicblock "sman_arithm_compare true branch possible bb" bb)
 	(foreach_basicblock_succ_edge 
 	 (bb)
@@ -779,23 +596,22 @@
 		    )
 	       ;; in the true case, the oldpolyv should be polyv
 	       (assert_msg "check polyv==oldpolyv" (== oldpolyv polyv))
-	       (debugbasicblock "sman_arithm_compare truesucc tbb" tbb)
-	       (debug_msg abenv "sman_arithm_compare true before tbb abenv")
+	       (debug "sman_arithm_compare truesucc tbb=" tbb " abenv=" abenv)
 	       (smaninterp_basicblock sman abenv tbb)
-	       (debug_msg abenv "sman_arithm_compare true after tbb abenv")
+	       (debug "sman_arithm_compare true after tbb abenv=" abenv)
 	       ))
 	 )
 	))
     ;; handle the false branch by adding the constraint incompatible with the test
-    (debug_msg clonpolyv "sman_arithm_compare clonpolyv before sman_add_cmp_constraint")
+    (debug "sman_arithm_compare before sman_add_cmp_constraintclonpolyv=" clonpolyv)
     (sman_add_cmp_constraint sman abenv clonpolyv lhs rhs notrel notopprel)
-    (debug_msg clonpolyv "sman_arithm_compare clonpolyv after sman_add_cmp_constraint")
+    (debug "sman_arithm_compare after sman_add_cmp_constraint clonpolyv=" clonpolyv)
     (if (ppl_Polyhedron_is_empty clonpoly)
 	(progn
-	  (debuggimple "sman_arithm_compare false branch impossible" g)
+	  (debug "sman_arithm_compare false branch impossible" g)
 	  )
       (progn
-	(debuggimple "sman_arithm_compare false branch possible" g)
+	(debug "sman_arithm_compare false branch possible" g)
 	(debugbasicblock "sman_arithm_compare false branch possible bb" bb)
 	(foreach_basicblock_succ_edge 
 	 (bb)
@@ -807,24 +623,22 @@
 		    )
 	       (debugbasicblock "sman_arithm_compare falsesucc fbb" fbb)
 	       (put_fields abenv :abenv_pplpoly clonpolyv)
-	       (debug_msg abenv "sman_arithm_compare false updated abenv")
+	       (debug "sman_arithm_compare false updated abenv=" abenv)
 	       (smaninterp_basicblock sman abenv fbb)
 	       (put_fields abenv :abenv_pplpoly oldpolyv)
-	       (debug_msg abenv "sman_arithm_compare false restored abenv")
+	       (debug "sman_arithm_compare false restored abenv=" abenv)
 	       ))
 	 )
 	))
     )
-  (debug_msg sman "sman_arithm_compare ended sman")
+  (debug "sman_arithm_compare ended sman=" sman)
 )
 
 ;;;;;;;;;;;;;;;;
 (defun smaninterp_gimple (sman abenv :gimple g :basic_block bb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debug_msg abenv "smaninterp_gimple abenv")
-  (debuggimple "smaninterp_gimple g" g)
-  (debugbasicblock "smaninterp_gimple bb" bb)
+  (debug "smaninterp_gimple abenv=" abenv " g=" g " bb=" bb)
   ;; we really should count the number of times we are calling
   ;; smaninterp_gimple and returns immediately with a warning if calling
   ;; too often/too deeply. The point is that an small analysis of a
@@ -834,8 +648,7 @@
    g
    ;; handle calls
    (?(gimple_call ?lhs ?fndecl ?nargs)
-     (debugtree "smaninterp_gimple call lhs" lhs)
-     (debugtree "smaninterp_gimple call fndecl" fndecl)
+     (debug "smaninterp_gimple call lhs=" lhs " fndecl=" fndecl)
      (let ( (:long argix 0) 
 	    (newabenv (fresh_abstrenv abenv))
 	    (tupvarbind (make_multiple discr_multiple nargs))
@@ -844,15 +657,14 @@
 	(fndecl)
 	(:tree curparamdcl)
 	(messagenum_dbg  "smaninterp_gimple curparamdecl argix" argix)
-	(debugtree "smaninterp_gimple curparamdecl" curparamdcl)
+	(debug "smaninterp_gimple curparamdecl" curparamdcl)
 	(let ( (:tree curarg (gimple_call_nth_arg g argix)) )
-	  (debugtree "smaninterp_gimple curarg" curarg)
+	  (debug "smaninterp_gimple curarg" curarg)
 	  (match 
 	   curparamdcl
 	   (?(tree_parm_decl ?parmtype ?parmdecl ?parmname)
-	     (debugtree "smaninterp_gimple parmtype" parmtype)
-	     (debugtree "smaninterp_gimple parmdecl" parmdecl)
-	     (debugcstring "smaninterp_gimple parmname" parmname)
+	     (debug "smaninterp_gimple parmtype=" parmtype " parmdecl=" parmdecl
+		    " parmname=" parmname)
 	     (multiple_put_nth tupvarbind argix
 			       (tuple 
 				(make_tree discr_tree parmtype)
@@ -865,14 +677,13 @@
 	   )
 	  (setq argix (+i argix 1))
 	  ))
-       (debug_msg tupvarbind "smaninterp_gimple tupvarbind")
+       (debug "smaninterp_gimple tupvarbind=" tupvarbind)
        (sman_propagate_constraints_call abenv newabenv tupvarbind)
-       (debug_msg newabenv "smaninterp_gimple newabenv propagated")
-       (debugtree "smaninterp_gimple call should go into fndecl" fndecl)
-       (debug_msg sman "smaninterp_gimple sman")
+       (debug "smaninterp_gimple propagated newabenv="  newabenv 
+	      " fndecl=" fndecl " sman=" sman)
        (let (
 	     (calledcfun (maptree_get (get_field :sman_cfuntreemap sman) fndecl)) )
-	 (debug_msg calledcfun "smaninterp_gimple calledcfun")
+	 (debug "smaninterp_gimple calledcfun=" calledcfun)
 	 (if calledcfun
 	     (smaninterp_cfun sman newabenv calledcfun)
 	   )
@@ -883,27 +694,24 @@
      )
    ;; handle conditional <=
    ( ?(gimple_cond_lessequal ?lhs ?rhs)
-      (debugtree "smaninterp_gimple cond<= lhs" lhs)
-      (debugtree "smaninterp_gimple cond<= rhs" rhs)
-      (debug_msg abenv "smaninterp_gimple cond<= abenv before sman_arithm_compare")
+      (debug "smaninterp_gimple cond<= lhs=" lhs " rhs=" rhs 
+	     " before sman_arithm_compare abenv=" abenv)
       (sman_arithm_compare sman abenv
 			   g bb
 			   lhs rhs
 			   "<=" ">=" ">" "<")
-      (debug_msg abenv "smaninterp_gimple cond<= abenv after sman_arithm_compare")
+      (debug "smaninterp_gimple cond<= after sman_arithm_compare abenv=" abenv)
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
       )
    ;; handle conditional <
    ( ?(gimple_cond_less ?lhs ?rhs)
-      (debugtree "smaninterp_gimple cond< lhs" lhs)
-      (debugtree "smaninterp_gimple cond< rhs" rhs)
+      (debug "smaninterp_gimple cond< lhs=" lhs " rhs=" rhs)
       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<" 15)
       (assert_msg "@$@unimplemented smaninterp_gimple cond<" ())
       )
    ;; handle conditional >
    ( ?(gimple_cond_greater ?lhs ?rhs)
-      (debugtree "smaninterp_gimple cond> lhs" lhs)
-      (debugtree "smaninterp_gimple cond> rhs" rhs)
+      (debug "smaninterp_gimple cond> lhs=" lhs " rhs=" rhs)
       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond>" 15)
       (assert_msg "@$@unimplemented smaninterp_gimple cond>" ())
       )
@@ -919,21 +727,18 @@
       )
    ;; handle single assign
    ( ?(gimple_assign_single ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_single lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_single rhs" rhs)
-      (debuggimple "unimplemented smaninterp_gimple assign_single g" g)
+      (debug "smallana_gimple gimple_assign_single lhs=" lhs " rhs=" rhs " g=" g)
       (assert_msg "@$@unimplemented smaninterp_gimple singleassign" ())
       )
    ;; handle cast assign
    ( ?(gimple_assign_cast ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_cast lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_cast rhs" rhs)
+      (debug "smallana_gimple gimple_assign_cast lhs=" lhs " rhs=" rhs)
       (let ( (:tree lhstype (tree_type lhs))
 	     (:tree rhstype (tree_type rhs))
 	     (:long widenningcast 0)
 	     )
-	(debugtree "smallana_gimple gimple_assign_cast lhstype" lhstype)
-	(debugtree "smallana_gimple gimple_assign_cast rhstype" rhstype)
+	(debug "smallana_gimple gimple_assign_cast lhstype=" lhstype
+	       " rhstype=" rhstype)
 	(match 
 	 rhstype
 	 ( ?(tree_integer_type ?rname ?rbigmin ?rbigmax ?rsize)
@@ -976,12 +781,12 @@
 	  (progn
 	    (assert_msg "@$@unimplemented smaninterp_gimple non widenningcast" ())
 	    ))
-	(debuggimple "unimplemented smaninterp_gimple assign_cast g" g)
+	(debug "unimplemented smaninterp_gimple assign_cast g" g)
 	(assert_msg "@$@unimplemented smaninterp_gimple castassign" ())
 	))
    ;; default 
    (?_ 
-    (debuggimple "unimplemented smaninterp_gimple g" g)
+    (debug "unimplemented smaninterp_gimple g" g)
     (assert_msg "@$@unimplemented smaninterp_gimple" ()))
    )
   )
@@ -990,14 +795,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun smallana_interpret (sman)
-  (debug_msg sman "smallana_interpret sman")
+  (debug "smallana_interpret sman=" sman)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (let ( (mainf (mapstring_rawget (get_field :sman_cfundict sman) "main")) 
 	 )
-    (debug_msg mainf "smallana_interpret mainf")
+    (debug "smallana_interpret mainf=" mainf)
     (assert_msg "check mainf" (is_a mainf class_smallcfun))
     (smaninterp_cfun sman initial_smallabstractenv mainf)
-    (debug_msg sman "smallana_interpret end sman")
+    (debug "smallana_interpret end sman=" sman)
     )
 )
 
@@ -1005,12 +810,12 @@
 ;; for some reason, the smallana is triggered twice, and the first run
 ;; is enough...
 (defun smallanapass_gate (latessapass)
-  (debug_msg smallana_cont "smallanapass_gate smallana_cont at start")
-  (let ( (oldsman (get_field  :container_value smallana_cont)) )
+  (debug "smallanapass_gate  at start smallana_cont=" smallana_cont)
+  (let ( (oldsman !smallana_cont) )
     (if oldsman
 	(progn
 	  (shortbacktrace_dbg "smallanapass_gate already got oldsman" 20)
-	  (debug_msg oldsman "smallanapass_gate already got oldsman")
+	  (debug "smallanapass_gate already got oldsman=" oldsman)
 	  (return ()))
       (return smallana_cont)
       )))
@@ -1018,7 +823,7 @@
 
 ;;; apparently only the entrybb loop matter in the latessa pass...
 (defun smallanapass_exec (latessapass)
-  (debug_msg latessapass "smallanapass_exec start")
+  (debug  "smallanapass_exec start latessapass=" latessapass)
   (let ( (cfuns (make_list discr_list))
 	 (cfundict (make_mapstring discr_map_strings 20))
 	 (cfuntreemap (make_maptree discr_map_trees 20))
@@ -1029,16 +834,16 @@
 			 :sman_bbtable (make_mapbasicblock discr_map_basic_blocks 20)
 			 )) 
 	 )
-    (debug_msg sman "smallanapass_exec sman at start")
+    (debug "smallanapass_exec at start sman=" sman)
     ;; don't bother do_each_cfun_body here.. it is not done...
     (each_cgraph_fun_entryblock
      ()
      (:tree decl :basic_block bbent bbexit)
-     (debugtree "smallana exec eachcgraph decl" decl)
+     (debug "smallana exec eachcgraph decl=" decl)
      (smallana_cfun_entbb sman decl bbent bbexit)
      )
     ;;
-    (debug_msg sman "smallanapass_exec sman after eachentrybb")
+    (debug "smallanapass_exec after eachentrybb sman=" sman)
     ;;
     (each_bb_cfun
      ()
@@ -1046,12 +851,12 @@
      (smallana_cfun_bb sman cfdecl cfbb)
      )
     ;;
-    (debug_msg sman "smallanapass_exec sman after eachbbcfun")
+    (debug "smallanapass_exec after eachbbcfun sman" sman)
     ;;
     (smallana_interpret sman)
     ;;
     (put_fields  smallana_cont :container_value sman)
-    (debug_msg smallana_cont "smallanapass_exec final smallana_cont")
+    (debug "smallanapass_exec final smallana_cont=" smallana_cont)
     ))
 
 ;;; our small analysis mode -fmelt=smallana
@@ -1062,7 +867,7 @@
   (put_fields smallana_ipa_gccpass
   :gccpass_gate smallanapass_gate
   :gccpass_exec smallanapass_exec)
-  (debug_msg smallana_ipa_gccpass "smallana_ipa_gccpass")
+  (debug  "smallana_ipa_gccpass=" smallana_ipa_gccpass)
   (assert_msg "$@$incomplete smallana_mode" ())
   (return cmd)			;return non-nil to continue compilation
   ))
@@ -1089,19 +894,18 @@
 	   ))
 
 (defun justscanpass_gate  (pass)
-  (debug_msg pass "justscanpass_gate pass at start")
+  (debug "justscanpass_gate at start pass=" pass)
   ;; retrieve the data associated to the cfun in the pass. If it
   ;; exists (i.e. is not null) we avoid running the pass again
   (let ( (grdata (maptree_get (get_field :gccpass_data pass) (cfun_decl))) )
-    (debugtree "justscanpass_gate cfundecl" (cfun_decl))
-    (debug_msg grdata "justscanpass_gate grdata")
+    (debug "justscanpass_gate cfundecl=" (cfun_decl) " grdata=" grdata)
     (if grdata 
 	() ;; return null, so avoid executing the pass
       pass)
     ))
 
 (defun justscanpass_exec (pass)
-  (debug_msg pass "justscanpass_exec pass at start")
+  (debug "justscanpass_exec at start pass=" pass)
   (code_chunk dbgcfun #{ /* $dbgcfun :: */
 	      debugeprintf("justscanpass_exec start cfun=%p cfg=%p", 
 			   (void*)cfun, cfun?cfun->cfg:NULL) ; 
@@ -1121,7 +925,7 @@
      (put_fields jsdata :juscan_fundecl (make_tree discr_tree fundecl))
      (if bb (justscan_bb jsdata bb))
      )
-    (debug_msg jsdata "justscanpass_exec final jsdata")
+    (debug "justscanpass_exec final jsdata=" jsdata)
     )
   )
 
@@ -1155,7 +959,7 @@
 	 (if defg (justscan_gimple jsdata defg))
 	 )
        (?_
-	(debugtree "unhandled tree" t)
+	(debug "unhandled tree" t)
 	(warning_at_tree t "unhandled tree by justscan")
 	(warning_at_tree (tree_content (get_field :juscan_fundecl jsdata)) "justscan function decl")
 	(assert_msg "unhandled tree justscan" ())
@@ -1232,7 +1036,7 @@
 	 (justscan_tree jsdata rhs2)
 	 )
        (?_
-	(debuggimple "unhandled gimple" g)
+	(debug "unhandled gimple" g)
 	(warning_at_gimple g "unhandled gimple by justscan")
 	(warning_at_tree (tree_content (get_field :juscan_fundecl jsdata)) "justscan function decl")
 	(assert_msg "unhandled gimple justscan" ())
@@ -1241,10 +1045,9 @@
     ))
 
 (defun justscan_bb (jsdata :basic_block bb)
-  (debug_msg jsdata "justscan_bbdcl jsdata start")
+  (debug "justscan_bbdcl  start jsdata=" jsdata " bb=" bb)
   (if bb
       (let ( (oldbb (get_field :juscan_curbb jsdata)) )
-	(debugbasicblock "justscan_bb bb" bb)
 	(put_fields jsdata :juscan_curbb (make_basicblock discr_basic_block bb))
 	(eachgimple_in_basicblock 
 	 (bb)
@@ -1268,7 +1071,7 @@
 	      ))
         )
   (install_melt_gcc_pass justscanpass "after" "phiopt" 0)
-  (debug_msg justscanpass "justscan_mode installed pass")
+  (debug  "justscan_mode installed pass=" justscanpass)
   (return cmd)			;return non-nil to continue compilation
   ))
 
@@ -1292,7 +1095,7 @@
 	   ))
 
 (defun meltframe_gate (pass)
-  (debug_msg pass "meltframe_gate pass at start")
+  (debug "meltframe_gate at start pass=" pass)
   (with_cfun_decl
    ()
    (:tree cfundecl)
@@ -1332,7 +1135,7 @@
 	))))
 
 (defun meltframe_exec (pass)
-  (debug_msg pass "meltframe_exec pass at start")
+  (debug "meltframe_exec at start pass=" pass)
   (let ( (:long declcnt 0)
 	 (:long bbcnt 0)
 	 (:long gimplecnt 0)
@@ -1345,7 +1148,7 @@
     (each_local_decl_cfun
      ()
      (:tree tlocdecl :long ix)
-     (debugtree "meltframe_exec tlocdecl" tlocdecl)
+     (debug "meltframe_exec tlocdecl" tlocdecl)
      (match tlocdecl 
 	    (?(tree_var_decl
 	       ?(and ?tvtyp 
@@ -1354,14 +1157,14 @@
 	       ?(cstring_same "meltfram__") ?_)
 	      (setq tmeltframdecl tlocdecl)
 	      (setq tmeltframtype tvtyp)
-	      (debugtree "meltframe_exec tmeltframdecl" tmeltframdecl)
-	      (debugtree "meltframe_exec tmeltframtype" tmeltframtype)
-	      (debugtree "meltframe_exec tmeltframrecnam" tmeltframrecnam)
-	      (debugtree "meltframe_exec tmeltframfields" tmeltframfields)
+	      (debug "meltframe_exec tmeltframdecl=" tmeltframdecl
+		     " tmeltframtype=" tmeltframtype
+		     " tmeltframrecnam=" tmeltframrecnam 
+		     " tmeltframfields" tmeltframfields)
 	      (foreach_field_in_record_type
 	       (tmeltframfields)
 	       (:tree tcurfield)
-	       (debugtree "meltframe_exec tcurfield" tcurfield)
+	       (debug "meltframe_exec tcurfield" tcurfield)
 	       (match tcurfield
 		      ( ?(tree_field_decl
 			  ?(tree_identifier 
@@ -1371,10 +1174,10 @@
 									?(tree_integer_cst 0)
 									?(tree_integer_cst ?lmax) 
 									?tsize)))
-			 (debugtree "meltframe_exec telemtype" telemtype)
-			 (debugtree "meltframe_exec tindextype" tindextype)
-			 (debugtree "meltframe_exec tsize" tsize)
-			 (debuglong "meltframe_exec lmax" lmax)
+			 (debug "meltframe_exec telemtype=" telemtype
+				" tindextype=" tindextype 
+				" tsize=" tsize
+				" lmax=" lmax)
 			 (setq tmeltframvarptr tcurfield)
 			 (setq nbvarptr lmax)
 			 )
@@ -1385,9 +1188,9 @@
 	    (?_ (void)))
      (setq declcnt (+i declcnt 1))
      )
-    (debuglong "meltframe_exec declcnt" declcnt)
-    (debugtree "meltframe_exec found tmeltframdecl" tmeltframdecl)
-    (debugtree "meltframe_exec found tmeltframvarptr" tmeltframvarptr)
+    (debug "meltframe_exec declcnt=" declcnt
+	   " found tmeltframdecl=" tmeltframdecl 
+	   " tmeltframvarptr=" tmeltframvarptr)
     (if tmeltframdecl
 	(void)
       (warning_at_tree tfundecl "MELT routine without meltfram__"))
@@ -1397,24 +1200,23 @@
       (each_bb_cfun 
        ()
        (:basic_block bb :tree fundecl)
-       (debugtree "meltframe_exec fundecl" fundecl)
+       (debug "meltframe_exec fundecl" fundecl)
        (setq bbcnt (+i bbcnt 1))
        (eachgimple_in_basicblock 
 	(bb)
 	(:gimple g)
-	(debuggimple "meltframe_exec g" g)
+	(debug "meltframe_exec g" g)
 	(setq gimplecnt (+i gimplecnt 1))
 	(match g
 	       ( ?(gimple_call_3
 		   ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
 		   ?(tree_addr_expr tmeltframtype tmeltframdecl) ?arg2 ?arg3)
-		  (debugtree "meltframe_exec call3 memset arg2" arg2)
-		  (debugtree "meltframe_exec call3 memset arg3" arg3)
+		  (debug "meltframe_exec call3 memset arg2=" arg2 " arg3=" arg3)
 		  )
 	       ( ?(gimple_assign_single
 		   tmeltframdecl
 		   ?rhs)
-		  (debugtree "meltframe_exec gimple_assign_single meltfram rhs" rhs)
+		  (debug "meltframe_exec gimple_assign_single meltfram rhs" rhs)
 		  )
 	       ( ?(gimple_assign_single
 		   ?(tree_array_ref 
@@ -1458,8 +1260,8 @@
 		       tmeltframvarptr)
 		     ?(tree_integer_cst ?ixkdst))
 		   ?rhs)
-		  (debuglong "meltframe_exec gimple_assign_single varptrdest ixkdst" ixkdst)
-		  (debugtree "meltframe_exec gimple_assign_single varptrdest rhs" rhs)
+		  (debug "meltframe_exec gimple_assign_single varptrdest ixkdst=" ixkdst
+			 " rhs=" rhs)
 		  (cond
 		   ( (<i ixkdst 0)
 		     (warning_at_gimple g "negative meltvarptr destination pointer index")
@@ -1478,8 +1280,8 @@
 		       tmeltframdecl
 		       tmeltframvarptr)
 		     ?(tree_integer_cst ?ixksrc)))
-		  (debugtree "meltframe_exec gimple_assign_single varptrsrc lhs" lhs)
-		  (debuglong "meltframe_exec gimple_assign_single varptrsrc ixksrc" ixksrc)
+		  (debug "meltframe_exec gimple_assign_single varptrsrc lhs=" lhs
+			 " ixksrc=" ixksrc)
 		  (cond
 		   ( (<i ixksrc 0)
 		     (warning_at_gimple g "negative meltvarptr source pointer index")
@@ -1492,8 +1294,7 @@
 		    ))
 		  )
 	       ( ?(gimple_assign_single ?lhs ?rhs)
-		  (debugtree "meltframe_exec gimple_assign_single lhs" lhs)
-		  (debugtree "meltframe_exec gimple_assign_single rhs" rhs)
+		  (debug "meltframe_exec gimple_assign_single lhs=" lhs " rhs=" rhs)
 		  )
 	       ( ?_ 
 		 ())
@@ -1544,7 +1345,7 @@
     (install_melt_gcc_pass meltframepass "after" "ssa" 0)
     (at_exit_first 
      (lambda (x)
-       (debug_msg meltframedata "meltframedata at exit")
+       (debug " at exit meltframedata=" meltframedata)
        (let ( (:long nbmeltrout
 		     (get_int (get_field :meltfram_funcount meltframedata)))
 	      )
@@ -1553,7 +1354,7 @@
 	  #{/* $INFORMNBMELT */ 
 	    inform(UNKNOWN_LOCATION, "melt_frame_pass found %ld MELT routines", $NBMELTROUT);
 	  }#))))
-    (debug_msg meltframepass "meltframe_docmd installed pass")
+    (debug "meltframe_docmd installed pass meltframepass=" meltframepass)
     (return cmd)	       ;return non-nil to continue compilation
     ))
 
