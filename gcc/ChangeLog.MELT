@@ -1,5 +1,8 @@
 
 2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt: Can't use DEBUG or DEBUG_MSG.
+
+2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: Don't use DEBUG_MSG, but DEBUG.
 	(mexpand_debug_msg): Give warning, because DEBUG_MSG is obsolete.
 
