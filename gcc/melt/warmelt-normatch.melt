@@ -5011,10 +5011,10 @@ normalized expression.}#
 
 
 (defun normstep_mgroup (step nmctxt sloc)
-  (debug "normstep_mgroup step" step)
+  (debug "normstep_mgroup step=" step 
+	 " class_match_step_test_group=" class_match_step_test_group 
+	 " nmctxt=" nmctxt)
   (assert_msg "check step" (is_a step class_match_step_test_group))
-  (debug_msg class_match_step_test_group "normstep_mgroup class_match_step_test_group")
-  (debug "normstep_mgroup nmctxt" nmctxt)
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (matsloc (unsafe_get_field :loca_location step))
 	 (matthen (unsafe_get_field :mstep_then step))
@@ -5890,8 +5890,8 @@ normalized expression.}#
 	 (debug "normexp_altmatch updated mdata" mdata)
 	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
-	       (debug_msg match_graphic_dot_prefix "normexp_altmatch match_graphic_dot_prefix")
-	       (debug "normexp_altmatch dotprefix" dotprefix)
+	       (debug "normexp_altmatch dotprefix=" dotprefix
+		      " match_graphic_dot_prefix=" match_graphic_dot_prefix)
 	       (if (is_string dotprefix) 
 		   (mg_altdraw_graphviz mdata dotprefix))))
 	 (let ( (nmctxt (altmatch_make_match_normalization_context matctx matresctyp sloc))
