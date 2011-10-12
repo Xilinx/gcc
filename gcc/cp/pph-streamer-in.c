@@ -1932,9 +1932,17 @@ pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
   struct data_in *data_in = stream->encoder.r.data_in;
   struct bitpack_d bp;
   tree expr;
+  enum tree_code code;
 
-  /* Allocate the tree.  */
-  expr = streamer_alloc_tree (ib, data_in, tag);
+  /* Allocate the tree.  Handle C++-specific codes first.  */
+  code = lto_tag_to_tree_code (tag);
+  if (code == AGGR_INIT_EXPR)
+    {
+      unsigned nargs = pph_in_uint (stream);
+      expr = build_vl_exp (AGGR_INIT_EXPR, nargs + 3);
+    }
+  else
+    expr = streamer_alloc_tree (ib, data_in, tag);
 
   /* Read the language-independent bitfields for EXPR.  */
   bp = streamer_read_tree_bitfields (ib, expr);

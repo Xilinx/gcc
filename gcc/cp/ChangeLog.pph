@@ -1,5 +1,10 @@
 2011-10-11   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_read_tree_header): Handle AGGR_INIT_EXPR.
+	* pph-streamer-out.c (pph_write_tree_header): Likewise.
+
+2011-10-11   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_reading_includes): Remove.  Update all users.
 	(pph_in_include): Call pph_add_include with the newly
 	materialized stream.

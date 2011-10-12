@@ -1893,6 +1893,11 @@ pph_write_tree_header (pph_stream *stream, tree expr)
      on the reading side.  */
   streamer_write_tree_header (ob, expr);
 
+  /* Process C++ specific codes that need more data in the header
+     for the reader to allocate them.  */
+  if (TREE_CODE (expr) == AGGR_INIT_EXPR)
+    pph_out_uint (stream, aggr_init_expr_nargs (expr));
+
   /* Pack all the non-pointer fields in EXPR into a bitpack and write
      the resulting bitpack.  */
   bp = bitpack_create (ob->main_stream);
