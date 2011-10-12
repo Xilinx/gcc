@@ -1,5 +1,8 @@
 
 2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt: Don't use DEBUG_MSG, but DEBUG.
+
+2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: Don't use DEBUG_MSG, but DEBUG.
 
 2011-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
