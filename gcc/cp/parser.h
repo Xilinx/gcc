@@ -352,13 +352,6 @@ typedef struct GTY(()) cp_parser {
 } cp_parser;
 
 /* In parser.c  */
-extern cp_token eof_token;
-extern GTY(()) cp_parser *the_parser;
-
-extern void cp_lexer_dump_tokens (FILE *, VEC(cp_token,gc) *, cp_token *,
-				  unsigned, cp_token *);
-extern void cp_lexer_get_tokens (cp_lexer *);
-extern cp_token_position cp_lexer_token_position (cp_lexer *, bool);
 extern void cp_lexer_debug_tokens (VEC(cp_token,gc) *);
 extern cp_token_cache *cp_token_cache_new (cp_token *, cp_token *);
 extern void cp_debug_parser (FILE *, cp_parser *);

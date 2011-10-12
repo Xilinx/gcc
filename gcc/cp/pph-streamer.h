@@ -252,7 +252,6 @@ void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool);
 void pph_write_mergeable_chain (pph_stream *, tree);
-void pph_add_include (pph_stream *);
 void pph_writer_init (void);
 void pph_writer_finish (void);
 void pph_write_location (struct output_block *, location_t);

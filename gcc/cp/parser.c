@@ -42,12 +42,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "parser.h"
 
+
 /* The lexer.  */
 
 /* The cp_lexer_* routines mediate between the lexer proper (in libcpp
    and c-lex.c) and the C++ parser.  */
 
-cp_token eof_token =
+static cp_token eof_token =
 {
   CPP_EOF, RID_MAX, 0, PRAGMA_NONE, false, false, false, 0, { NULL }
 };
@@ -210,7 +211,6 @@ static void cp_lexer_commit_tokens
   (cp_lexer *);
 static void cp_lexer_rollback_tokens
   (cp_lexer *);
-#ifdef ENABLE_CHECKING
 static void cp_lexer_print_token
   (FILE *, cp_token *);
 static inline bool cp_lexer_debugging_p
@@ -219,16 +219,6 @@ static void cp_lexer_start_debugging
   (cp_lexer *) ATTRIBUTE_UNUSED;
 static void cp_lexer_stop_debugging
   (cp_lexer *) ATTRIBUTE_UNUSED;
-#else
-/* If we define cp_lexer_debug_stream to NULL it will provoke warnings
-   about passing NULL to functions that require non-NULL arguments
-   (fputs, fprintf).  It will never be used, so all we need is a value
-   of the right type that's guaranteed not to be NULL.  */
-#define cp_lexer_debug_stream stdout
-#define cp_lexer_debugging_p(lexer) 0
-static void cp_lexer_print_token
-  (FILE *, cp_token *);
-#endif /* ENABLE_CHECKING */
 
 static void cp_parser_initial_pragma
   (cp_token *);
@@ -239,10 +229,8 @@ static void cp_parser_initial_pragma
 
 /* Variables.  */
 
-#ifdef ENABLE_CHECKING
 /* The stream to which debugging output should be written.  */
 static FILE *cp_lexer_debug_stream;
-#endif /* ENABLE_CHECKING */
 
 /* Nonzero if we are parsing an unevaluated operand: an operand to
    sizeof, typeof, or alignof.  */
@@ -254,7 +242,7 @@ int cp_unevaluated_operand;
    CURR_TOKEN is set and it is one of the tokens in BUFFER, it will be
    highlighted by surrounding it in [[ ]].  */
 
-void
+static void
 cp_lexer_dump_tokens (FILE *file, VEC(cp_token,gc) *buffer,
 		      cp_token *start_token, unsigned num,
 		      cp_token *curr_token)
@@ -342,7 +330,7 @@ cp_debug_print_tree_if_set (FILE *file, const char *desc, tree t)
   if (t)
     {
       fprintf (file, "%s: ", desc);
-      debug_generic_expr (t);
+      print_node_brief (file, "", t, 0);
     }
 }
 
@@ -354,7 +342,7 @@ cp_debug_print_context (FILE *file, cp_parser_context *c)
 {
   const char *status_s[] = { "OK", "ERROR", "COMMITTED" };
   fprintf (file, "{ status = %s, scope = ", status_s[c->status]);
-  print_generic_expr (file, c->object_type, 0);
+  print_node_brief (file, "", c->object_type, 0);
   fprintf (file, "}\n");
 }
 
@@ -402,9 +390,9 @@ cp_debug_print_unparsed_function (FILE *file, cp_unparsed_functions_entry *uf)
        i++)
     {
       fprintf (file, "\t\tClass type: ");
-      print_generic_expr (file, default_arg_fn->class_type, 0);
+      print_node_brief (file, "", default_arg_fn->class_type, 0);
       fprintf (file, "\t\tDeclaration: ");
-      print_generic_expr (file, default_arg_fn->decl, 0);
+      print_node_brief (file, "", default_arg_fn->decl, 0);
       fprintf (file, "\n");
     }
 
@@ -412,7 +400,7 @@ cp_debug_print_unparsed_function (FILE *file, cp_unparsed_functions_entry *uf)
 	   "post-processing\n\t\t");
   for (i = 0; VEC_iterate (tree, uf->funs_with_definitions, i, fn); i++)
     {
-      print_generic_expr (file, fn, 0);
+      print_node_brief (file, "", fn, 0);
       fprintf (file, " ");
     }
   fprintf (file, "\n");
@@ -540,45 +528,6 @@ cp_debug_parser (FILE *file, cp_parser *parser)
   fprintf (file, "\n\tFile:   %s\n", eloc.file);
   fprintf (file, "\tLine:   %d\n", eloc.line);
   fprintf (file, "\tColumn: %d\n", eloc.column);
-
-}
-
-
-/* Return true if LEXER has a CPP_EOF at the end of the buffer.  */
-
-static inline bool
-cp_lexer_finished_p (cp_lexer *lexer)
-{
-  return !VEC_empty (cp_token, lexer->buffer)
-         && VEC_last (cp_token, lexer->buffer)->type == CPP_EOF;
-}
-
-
-/* Get tokens from the pre-processor character stream into LEXER.  */
-
-void
-cp_lexer_get_tokens (cp_lexer *lexer)
-{
-  cp_token token;
-  bool done;
-
-  /* If we are using pretokenized headers, it's possible that by
-     the time we get called to read tokens, the token stream has
-     already been instantiated from images.
-
-     In that case, we need to check whether we have already
-     instantiated the whole translation unit.  If that's the case,
-     we will find a CPP_EOF token in the last position of
-     LEXER->BUFFER.  */
-  done = cp_lexer_finished_p (lexer);
-
-  /* Get the remaining tokens from the preprocessor.  */
-  while (!done)
-    {
-      cp_lexer_get_preprocessor_token (lexer, &token);
-      VEC_safe_push (cp_token, gc, lexer->buffer, &token);
-      done = (token.type == CPP_EOF);
-    }
 }
 
 
@@ -594,10 +543,8 @@ cp_lexer_alloc (void)
   /* Allocate the memory.  */
   lexer = ggc_alloc_cleared_cp_lexer ();
 
-#ifdef ENABLE_CHECKING
   /* Initially we are not debugging.  */
   lexer->debugging_p = false;
-#endif /* ENABLE_CHECKING */
   lexer->saved_tokens = VEC_alloc (cp_token_position, heap,
 				   CP_SAVED_TOKEN_STACK);
 
@@ -617,38 +564,21 @@ cp_lexer_new_main (void)
   cp_lexer *lexer;
   cp_token token;
 
-  if (pph_enabled_p ())
+  /* It's possible that parsing the first pragma will load a PCH file,
+     which is a GC collection point.  So we have to do that before
+     allocating any memory.  */
+  cp_parser_initial_pragma (&token);
+
+  lexer = cp_lexer_alloc ();
+
+  /* Put the first token in the buffer.  */
+  VEC_quick_push (cp_token, lexer->buffer, &token);
+
+  /* Get the remaining tokens from the preprocessor.  */
+  while (token.type != CPP_EOF)
     {
-      /* FIXME pph.  PPH is incompatible with PCH, so do not read ahead to
-	 the first token looking for a PCH pragma.  This convoluted
-	 initialization could be simplified if PCH was implemented in
-	 terms of PPH.  */
-      lexer = cp_lexer_alloc ();
-      cp_lexer_get_tokens (lexer);
-    }
-  else
-    {
-      /* FIXME pph.  Get rid of this duplicate and call cp_lexer_get_tokens
-	 all the time.  This is needed only because, for PCH support, we
-	 are forced to read one token in advance before starting the
-	 main lexer loop.  */
-
-      /* It's possible that parsing the first pragma will load a PCH file,
-	 which is a GC collection point.  So we have to do that before
-	 allocating any memory.  */
-      cp_parser_initial_pragma (&token);
-
-      lexer = cp_lexer_alloc ();
-
-      /* Put the first token in the buffer.  */
-      VEC_quick_push (cp_token, lexer->buffer, &token);
-
-      /* Get the remaining tokens from the preprocessor.  */
-      while (token.type != CPP_EOF)
-	{
-	  cp_lexer_get_preprocessor_token (lexer, &token);
-	  VEC_safe_push (cp_token, gc, lexer->buffer, &token);
-	}
+      cp_lexer_get_preprocessor_token (lexer, &token);
+      VEC_safe_push (cp_token, gc, lexer->buffer, &token);
     }
 
   lexer->last_token = VEC_address (cp_token, lexer->buffer)
@@ -663,7 +593,6 @@ cp_lexer_new_main (void)
   done_lexing = true;
 
   gcc_assert (!lexer->next_token->purged_p);
-
   return lexer;
 }
 
@@ -685,10 +614,8 @@ cp_lexer_new_from_tokens (cp_token_cache *cache)
   lexer->saved_tokens = VEC_alloc (cp_token_position, heap,
 				   CP_SAVED_TOKEN_STACK);
 
-#ifdef ENABLE_CHECKING
   /* Initially we are not debugging.  */
   lexer->debugging_p = false;
-#endif
 
   gcc_assert (!lexer->next_token->purged_p);
   return lexer;
@@ -706,17 +633,14 @@ cp_lexer_destroy (cp_lexer *lexer)
 
 /* Returns nonzero if debugging information should be output.  */
 
-#ifdef ENABLE_CHECKING
-
 static inline bool
 cp_lexer_debugging_p (cp_lexer *lexer)
 {
   return lexer->debugging_p;
 }
 
-#endif /* ENABLE_CHECKING */
 
-cp_token_position
+static inline cp_token_position
 cp_lexer_token_position (cp_lexer *lexer, bool previous_p)
 {
   gcc_assert (!previous_p || lexer->next_token != &eof_token);
@@ -1098,6 +1022,9 @@ cp_lexer_purge_token (cp_lexer *lexer)
 
   gcc_assert (tok != &eof_token);
   tok->purged_p = true;
+  tok->location = UNKNOWN_LOCATION;
+  tok->u.value = NULL_TREE;
+  tok->keyword = RID_MAX;
 
   do
     {
@@ -1127,7 +1054,12 @@ cp_lexer_purge_tokens_after (cp_lexer *lexer, cp_token *tok)
   gcc_assert (tok < peek);
 
   for ( tok += 1; tok != peek; tok += 1)
-    tok->purged_p = true;
+    {
+      tok->purged_p = true;
+      tok->location = UNKNOWN_LOCATION;
+      tok->u.value = NULL_TREE;
+      tok->keyword = RID_MAX;
+    }
 }
 
 /* Begin saving tokens.  All tokens consumed after this point will be
@@ -1225,14 +1157,13 @@ cp_lexer_print_token (FILE * stream, cp_token *token)
     }
 }
 
-#ifdef ENABLE_CHECKING
-
 /* Start emitting debugging information.  */
 
 static void
 cp_lexer_start_debugging (cp_lexer* lexer)
 {
   lexer->debugging_p = true;
+  cp_lexer_debug_stream = stderr;
 }
 
 /* Stop emitting debugging information.  */
@@ -1241,9 +1172,8 @@ static void
 cp_lexer_stop_debugging (cp_lexer* lexer)
 {
   lexer->debugging_p = false;
+  cp_lexer_debug_stream = NULL;
 }
-
-#endif /* ENABLE_CHECKING */
 
 /* Create a new cp_token_cache, representing a range of tokens.  */
 
@@ -9800,26 +9730,18 @@ cp_parser_declaration (cp_parser* parser)
       /* `template <>' indicates a template specialization.  */
       if (token2.type == CPP_LESS
 	  && cp_lexer_peek_nth_token (parser->lexer, 3)->type == CPP_GREATER)
-        {
-	  cp_parser_explicit_specialization (parser);
-        }
+	cp_parser_explicit_specialization (parser);
       /* `template <' indicates a template declaration.  */
       else if (token2.type == CPP_LESS)
-        {
-	  cp_parser_template_declaration (parser, /*member_p=*/false);
-        }
+	cp_parser_template_declaration (parser, /*member_p=*/false);
       /* Anything else must be an explicit instantiation.  */
       else
-        {
-	  cp_parser_explicit_instantiation (parser);
-        }
+	cp_parser_explicit_instantiation (parser);
     }
   /* If the next token is `export', then we have a template
      declaration.  */
   else if (token1.keyword == RID_EXPORT)
-    {
-      cp_parser_template_declaration (parser, /*member_p=*/false);
-    }
+    cp_parser_template_declaration (parser, /*member_p=*/false);
   /* If the next token is `extern', 'static' or 'inline' and the one
      after that is `template', we have a GNU extended explicit
      instantiation directive.  */
@@ -9828,9 +9750,7 @@ cp_parser_declaration (cp_parser* parser)
 	       || token1.keyword == RID_STATIC
 	       || token1.keyword == RID_INLINE)
 	   && token2.keyword == RID_TEMPLATE)
-    {
-      cp_parser_explicit_instantiation (parser);
-    }
+    cp_parser_explicit_instantiation (parser);
   /* If the next token is `namespace', check for a named or unnamed
      namespace definition.  */
   else if (token1.keyword == RID_NAMESPACE
@@ -9856,10 +9776,8 @@ cp_parser_declaration (cp_parser* parser)
   /* We must have either a block declaration or a function
      definition.  */
   else
-    {
-      /* Try to parse a block-declaration, or a function-definition.  */
-      cp_parser_block_declaration (parser, /*statement_p=*/false);
-    }
+    /* Try to parse a block-declaration, or a function-definition.  */
+    cp_parser_block_declaration (parser, /*statement_p=*/false);
 
   /* Free any declarators allocated.  */
   obstack_free (&declarator_obstack, p);
@@ -17429,7 +17347,6 @@ cp_parser_class_specifier_1 (cp_parser* parser)
   tree bases;
   cp_token *closing_brace;
 
-  timevar_push (TV_PARSE_STRUCT);
   push_deferring_access_checks (dk_no_deferred);
 
   /* Parse the class-head.  */
@@ -17443,7 +17360,6 @@ cp_parser_class_specifier_1 (cp_parser* parser)
     {
       cp_parser_skip_to_end_of_block_or_statement (parser);
       pop_deferring_access_checks ();
-      timevar_pop (TV_PARSE_STRUCT);
       return error_mark_node;
     }
 
@@ -17451,11 +17367,8 @@ cp_parser_class_specifier_1 (cp_parser* parser)
   if (!cp_parser_require (parser, CPP_OPEN_BRACE, RT_OPEN_BRACE))
     {
       pop_deferring_access_checks ();
-      timevar_pop (TV_PARSE_STRUCT);
       return error_mark_node;
     }
-
-  /* FIXME pph: Associate this struct definition with a token hunk.  */
 
   /* Process the base classes. If they're invalid, skip the 
      entire class body.  */
@@ -17466,7 +17379,6 @@ cp_parser_class_specifier_1 (cp_parser* parser)
       if (cp_parser_skip_to_closing_brace (parser))
 	cp_lexer_consume_token (parser->lexer);
       pop_deferring_access_checks ();
-      timevar_pop (TV_PARSE_STRUCT);
       return error_mark_node;
     }
 
@@ -17709,8 +17621,6 @@ cp_parser_class_specifier_1 (cp_parser* parser)
   parser->in_unbraced_linkage_specification_p
     = saved_in_unbraced_linkage_specification_p;
 
-  /* FIXME pph: check to see if still in same token hunk.  */
-  timevar_pop (TV_PARSE_STRUCT);
   return type;
 }
 
@@ -20001,7 +19911,6 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
   return decl;
 }
 
-
 /* Like cp_parser_lookup_name, but for use in the typical case where
    CHECK_ACCESS is TRUE, IS_TYPE is FALSE, IS_TEMPLATE is FALSE,
    IS_NAMESPACE is FALSE, and CHECK_DEPENDENCY is TRUE.  */
@@ -20398,7 +20307,6 @@ cp_parser_function_definition_from_specifiers_and_declarator
 {
   tree fn;
   bool success_p;
-  timevar_push (TV_PARSE_FUNC);
 
   /* Begin the function-definition.  */
   success_p = start_function (decl_specifiers, declarator, attributes);
@@ -20442,7 +20350,6 @@ cp_parser_function_definition_from_specifiers_and_declarator
       timevar_pop (tv);
     }
 
-  timevar_pop (TV_PARSE_FUNC);
   return fn;
 }
 
@@ -26179,7 +26086,7 @@ cp_parser_omp_construct (cp_parser *parser, cp_token *pragma_tok)
 
 /* The parser.  */
 
-GTY(()) cp_parser *the_parser;
+static GTY (()) cp_parser *the_parser;
 
 
 /* Special handling for the first token or line in the file.  The first

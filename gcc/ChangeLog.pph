@@ -1,3 +1,7 @@
+2011-10-12   Diego Novillo  <dnovillo@google.com>
+
+	* passes.c (rest_of_decl_compilation): Remove stale comment.
+
 2011-10-03   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 179442.

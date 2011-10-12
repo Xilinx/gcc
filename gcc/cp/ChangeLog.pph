@@ -1,3 +1,35 @@
+2011-10-12   Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (pushdecl_into_namespace): Remove.
+	(print_namespace): Remove.
+	* name-lookup.c (add_decl_to_level): Remove unnecessary braces.
+	(pushdecl_into_namespace): Remove.
+	(print_namespace): Remove.
+	* parser.c: Remove ENABLE_CHECKING checks around debugging
+	functions.
+	(eof_token): Make static.
+	(cp_lexer_dump_tokens): Make static.
+	(cp_debug_print_tree_if_set): Call print_node_brief.
+	(cp_debug_print_context): Likewise.
+	(cp_debug_print_unparsed_function): Likewise.
+	(cp_lexer_finished_p): Remove.  Update all callers.
+	(cp_lexer_get_tokens): Remove.  Update all callers.
+	(cp_lexer_token_position): Make static.
+	(cp_lexer_purge_token): Merge from mainline.
+	(cp_lexer_start_debugging): Set cp_lexer_debug_stream to stderr.
+	(cp_lexer_stop_debugging): Set cp_lexer_debug_stream to NULL.
+	(cp_parser_declaration): Merge from mainline.
+	(cp_parser_class_specifier_1): Likewise.
+	(cp_parser_function_definition_from_specifiers_and_declarator):
+	Likewise.
+	(the_parser): Make static.
+	* parser.h (eof_token): Remove.
+	(the_parser): Remove.
+	(cp_lexer_dump_tokens): Remove.
+	(cp_lexer_get_tokens): Remove.
+	(cp_lexer_token_position): Remove.
+	* pph-streamer.h (pph_add_include): Remove duplicate declaration.
+
 2011-10-11   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_tree_header): Handle AGGR_INIT_EXPR.

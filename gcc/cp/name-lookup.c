@@ -554,9 +554,7 @@ add_decl_to_level (tree decl, cp_binding_level *b)
 	     && (TREE_STATIC (decl) || DECL_EXTERNAL (decl)))
 	    || (TREE_CODE (decl) == FUNCTION_DECL
 		&& (!TREE_PUBLIC (decl) || DECL_DECLARED_INLINE_P (decl))))
-          {
-	    VEC_safe_push (tree, gc, b->static_decls, decl);
-          }
+	  VEC_safe_push (tree, gc, b->static_decls, decl);
     }
 }
 
@@ -1178,30 +1176,6 @@ pushdecl_maybe_friend (tree x, bool is_friend)
   return ret;
 }
 
-/* Record a decl-node DCL as belonging to the namespace NSP.
-
-   Returns either DCL or an old decl for the same name.
-   If an old decl is returned, it may have been smashed
-   to agree with what DCL says.  */
-
-tree
-pushdecl_into_namespace (tree dcl, tree nsp)
-{
-  tree ret;
-  /* FIXME pph: There might be a better way to do this...  */
-  cp_binding_level *level = NAMESPACE_LEVEL (nsp);
-  tree saved = current_namespace;
-  current_namespace = nsp;
-#if 0
-  ret = pushdecl_maybe_friend (dcl, /*is_friend=*/false);
-#else
-  ret = pushdecl_with_scope (dcl, level, /*is_friend=*/false);
-#endif
-  current_namespace = saved;
-  return ret;
-}
-
-
 /* Record a decl-node X as belonging to the current lexical scope.  */
 
 tree
@@ -1782,21 +1756,6 @@ print_binding_level (cp_binding_level* lvl)
       fprintf (stderr, "\n");
     }
 }
-
-
-/* Print the given namespace decl NS to stderr.  */
-
-void
-print_namespace (tree ns)
-{
-  cp_binding_level *level = NAMESPACE_LEVEL (ns);
-
-  fprintf (stderr, "Namespace name: ");
-  print_generic_expr (stderr, ns, 0);
-  fprintf (stderr, "\nBinding contour\n");
-  print_binding_level (level);
-}
-
 
 void
 print_other_binding_stack (cp_binding_level *stack)
