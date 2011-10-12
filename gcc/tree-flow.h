@@ -278,7 +278,6 @@ typedef struct immediate_use_iterator_d
 typedef struct var_ann_d *var_ann_t;
 
 static inline var_ann_t var_ann (const_tree);
-static inline var_ann_t get_var_ann (tree);
 static inline void update_stmt (gimple);
 static inline int get_lineno (const_gimple);
 
@@ -597,6 +596,7 @@ extern void dump_dominator_optimization_stats (FILE *);
 extern void debug_dominator_optimization_stats (void);
 int loop_depth_of_name (tree);
 tree degenerate_phi_result (gimple);
+bool simple_iv_increment_p (gimple);
 
 /* In tree-ssa-copy.c  */
 extern void propagate_value (use_operand_p, tree);

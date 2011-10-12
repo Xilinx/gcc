@@ -450,8 +450,8 @@ extern void set_block_jmpbuf_decl (tree decl);
 /* Get the setjmp_decl, if any, for the current binding level.  */
 extern tree get_block_jmpbuf_decl (void);
 
-/* Records a ..._DECL node DECL as belonging to the current lexical scope
-   and uses GNAT_NODE for location information.  */
+/* Record DECL as belonging to the current lexical scope and use GNAT_NODE
+   for location information and flag propagation.  */
 extern void gnat_pushdecl (tree decl, Node_Id gnat_node);
 
 extern void gnat_init_gcc_eh (void);
@@ -478,6 +478,9 @@ extern tree gnat_signed_type (tree type_node);
 /* Return 1 if the types T1 and T2 are compatible, i.e. if they can be
    transparently converted to each other.  */
 extern int gnat_types_compatible_p (tree t1, tree t2);
+
+/* Return true if EXPR is a useless type conversion.  */
+extern bool gnat_useless_type_conversion (tree expr);
 
 /* Return true if T, a FUNCTION_TYPE, has the specified list of flags.  */
 extern bool fntype_same_flags_p (const_tree, tree, bool, bool, bool);
@@ -671,7 +674,7 @@ extern tree create_label_decl (tree label_name);
 /* Return a FUNCTION_DECL node.  SUBPROG_NAME is the name of the subprogram,
    ASM_NAME is its assembler name, SUBPROG_TYPE is its type (a FUNCTION_TYPE
    node), PARAM_DECL_LIST is the list of the subprogram arguments (a list of
-   PARM_DECL nodes chained through the TREE_CHAIN field).
+   PARM_DECL nodes chained through the DECL_CHAIN field).
 
    INLINE_FLAG, PUBLIC_FLAG, EXTERN_FLAG, ARTIFICIAL_FLAG and ATTR_LIST are
    used to set the appropriate fields in the FUNCTION_DECL.  GNAT_NODE is
@@ -687,8 +690,11 @@ extern tree create_subprog_decl (tree subprog_name, tree asm_name,
    appearing in the subprogram.  */
 extern void begin_subprog_body (tree subprog_decl);
 
-/* Finish the definition of the current subprogram BODY and finalize it.  */
+/* Finish translating the current subprogram and set its BODY.  */
 extern void end_subprog_body (tree body);
+
+/* Wrap up compilation of SUBPROG_DECL, a subprogram body.  */
+extern void rest_of_subprog_body_compilation (tree subprog_decl);
 
 /* Build a template of type TEMPLATE_TYPE from the array bounds of ARRAY_TYPE.
    EXPR is an expression that we can use to locate any PLACEHOLDER_EXPRs.
@@ -813,16 +819,11 @@ extern tree build_cond_expr (tree result_type, tree condition_operand,
 extern tree build_compound_expr (tree result_type, tree stmt_operand,
 				 tree expr_operand);
 
-/* Build a CALL_EXPR to call FUNDECL with one argument, ARG.  Return
-   the CALL_EXPR.  */
-extern tree build_call_1_expr (tree fundecl, tree arg);
-
-/* Build a CALL_EXPR to call FUNDECL with two argument, ARG1 & ARG2.  Return
-   the CALL_EXPR.  */
-extern tree build_call_2_expr (tree fundecl, tree arg1, tree arg2);
-
-/* Likewise to call FUNDECL with no arguments.  */
-extern tree build_call_0_expr (tree fundecl);
+/* Conveniently construct a function call expression.  FNDECL names the
+   function to be called, N is the number of arguments, and the "..."
+   parameters are the argument expressions.  Unlike build_call_expr
+   this doesn't fold the call, hence it will always return a CALL_EXPR.  */
+extern tree build_call_n_expr (tree fndecl, int n, ...);
 
 /* Call a function that raises an exception and pass the line number and file
    name, if requested.  MSG says which exception function to call.

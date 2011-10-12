@@ -1638,11 +1638,11 @@ package Opt is
    --  GNAT
    --  This is the value of the configuration switch for the Ada 83 mode, as
    --  set by the command line switches -gnat83/95/05, and possibly modified by
-   --  the use of configuration pragmas Ada_83/Ada95/Ada05. This switch is used
-   --  to set the initial value for Ada_Version mode at the start of analysis
-   --  of a unit. Note however, that the setting of this flag is ignored for
-   --  internal and predefined units (which are always compiled in the most up
-   --  to date version of Ada).
+   --  the use of configuration pragmas Ada_*. This switch is used to set the
+   --  initial value for Ada_Version mode at the start of analysis of a unit.
+   --  Note however that the setting of this flag is ignored for internal and
+   --  predefined units (which are always compiled in the most up to date
+   --  version of Ada).
 
    Ada_Version_Explicit_Config : Ada_Version_Type;
    --  GNAT
@@ -1882,6 +1882,11 @@ package Opt is
    --  Specific compiling mode targeting formal verification through the
    --  generation of Why code for those parts of the input code that belong to
    --  the Alfa subset of Ada. Set by debug flag -gnatd.F.
+
+   Strict_Alfa_Mode : Boolean := False;
+   --  Interpret compiler permissions as strictly as possible. E.g. base ranges
+   --  for integers are limited to the strict minimum with this option. Set by
+   --  debug flag -gnatd.D.
 
    function Full_Expander_Active return Boolean;
    pragma Inline (Full_Expander_Active);

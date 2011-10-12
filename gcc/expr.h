@@ -332,8 +332,18 @@ extern void emit_group_store (rtx, rtx, tree, int);
 /* Copy BLKmode object from a set of registers.  */
 extern rtx copy_blkmode_from_reg (rtx, rtx, tree);
 
+/* Mark REG as holding a parameter for the next CALL_INSN.
+   Mode is TYPE_MODE of the non-promoted parameter, or VOIDmode.  */
+extern void use_reg_mode (rtx *, rtx, enum machine_mode);
+
+extern rtx copy_blkmode_to_reg (enum machine_mode, tree);
+
 /* Mark REG as holding a parameter for the next CALL_INSN.  */
-extern void use_reg (rtx *, rtx);
+static inline void
+use_reg (rtx *fusage, rtx reg)
+{
+  use_reg_mode (fusage, reg, VOIDmode);
+}
 
 /* Mark NREGS consecutive regs, starting at REGNO, as holding parameters
    for the next CALL_INSN.  */

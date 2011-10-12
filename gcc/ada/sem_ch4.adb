@@ -3434,7 +3434,7 @@ package body Sem_Ch4 is
       --  of the high bound.
 
       procedure Check_Universal_Expression (N : Node_Id);
-      --  In Ada83, reject bounds of a universal range that are not
+      --  In Ada 83, reject bounds of a universal range that are not
       --  literals or entity names.
 
       -----------------------
@@ -4124,6 +4124,11 @@ package body Sem_Ch4 is
                then
                   Set_Entity_With_Style_Check (Sel, Comp);
                   Generate_Reference (Comp, Sel);
+
+                  --  The selector is not overloadable, so we have a candidate
+                  --  interpretation.
+
+                  Has_Candidate := True;
 
                else
                   goto Next_Comp;

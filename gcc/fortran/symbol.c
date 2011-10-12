@@ -373,7 +373,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
     *volatile_ = "VOLATILE", *is_protected = "PROTECTED",
     *is_bind_c = "BIND(C)", *procedure = "PROCEDURE",
     *asynchronous = "ASYNCHRONOUS", *codimension = "CODIMENSION",
-    *contiguous = "CONTIGUOUS";
+    *contiguous = "CONTIGUOUS", *generic = "GENERIC";
   static const char *threadprivate = "THREADPRIVATE";
 
   const char *a1, *a2;
@@ -490,8 +490,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (in_common, codimension);
   conf (in_common, result);
 
-  conf (dummy, result);
-
   conf (in_equivalence, use_assoc);
   conf (in_equivalence, codimension);
   conf (in_equivalence, dummy);
@@ -503,7 +501,9 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
   conf (in_equivalence, allocatable);
   conf (in_equivalence, threadprivate);
 
+  conf (dummy, result);
   conf (entry, result);
+  conf (generic, result);
 
   conf (function, subroutine);
 
@@ -684,6 +684,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 	{
 	case PROC_ST_FUNCTION:
 	  conf2 (dummy);
+	  conf2 (target);
 	  break;
 
 	case PROC_MODULE:
@@ -1944,6 +1945,9 @@ gfc_use_derived (gfc_symbol *sym)
   gfc_typespec *t;
   gfc_symtree *st;
   int i;
+
+  if (!sym)
+    return NULL;
 
   if (sym->components != NULL || sym->attr.zero_comp)
     return sym;               /* Already defined.  */
@@ -4332,8 +4336,8 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
     {
 
 #define NAMED_INTCST(a,b,c,d) case a : 
-#define NAMED_REALCST(a,b,c) case a :
-#define NAMED_CMPXCST(a,b,c) case a :
+#define NAMED_REALCST(a,b,c,d) case a :
+#define NAMED_CMPXCST(a,b,c,d) case a :
 #define NAMED_LOGCST(a,b,c) case a :
 #define NAMED_CHARKNDCST(a,b,c) case a :
 #include "iso-c-binding.def"

@@ -140,7 +140,7 @@ build_eh_type_type (tree type)
 tree
 build_exc_ptr (void)
 {
-  return build_call_n (built_in_decls [BUILT_IN_EH_POINTER],
+  return build_call_n (builtin_decl_explicit (BUILT_IN_EH_POINTER),
 		       1, integer_zero_node);
 }
 
@@ -333,7 +333,7 @@ choose_personality_routine (enum languages lang)
 
     case lang_java:
       state = chose_java;
-      terminate_node = built_in_decls [BUILT_IN_ABORT];
+      terminate_node = builtin_decl_explicit (BUILT_IN_ABORT);
       pragma_java_exceptions = true;
       break;
 
@@ -1125,13 +1125,26 @@ perform_deferred_noexcept_checks (void)
 tree
 finish_noexcept_expr (tree expr, tsubst_flags_t complain)
 {
-  tree fn;
-
   if (expr == error_mark_node)
     return error_mark_node;
 
   if (processing_template_decl)
     return build_min (NOEXCEPT_EXPR, boolean_type_node, expr);
+
+  return (expr_noexcept_p (expr, complain)
+	  ? boolean_true_node : boolean_false_node);
+}
+
+/* Returns whether EXPR is noexcept, possibly warning if allowed by
+   COMPLAIN.  */
+
+bool
+expr_noexcept_p (tree expr, tsubst_flags_t complain)
+{
+  tree fn;
+
+  if (expr == error_mark_node)
+    return false;
 
   fn = cp_walk_tree_without_duplicates (&expr, check_noexcept_r, 0);
   if (fn)
@@ -1151,10 +1164,10 @@ finish_noexcept_expr (tree expr, tsubst_flags_t complain)
 	  else
 	    maybe_noexcept_warning (fn);
 	}
-      return boolean_false_node;
+      return false;
     }
   else
-    return boolean_true_node;
+    return true;
 }
 
 /* Return true iff SPEC is throw() or noexcept(true).  */

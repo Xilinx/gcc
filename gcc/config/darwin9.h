@@ -51,3 +51,9 @@ along with GCC; see the file COPYING3.  If not see
     fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED",%u\n",		\
 	     _new_size, floor_log2 ((ALIGN) / BITS_PER_UNIT));		\
   } while (0)
+
+#undef DEF_MIN_OSX_VERSION
+#define DEF_MIN_OSX_VERSION "10.5"
+
+#undef STACK_CHECK_STATIC_BUILTIN
+#define STACK_CHECK_STATIC_BUILTIN 1

@@ -995,7 +995,8 @@ enum target_cpu_default
 
 #define VALID_AVX256_REG_MODE(MODE)					\
   ((MODE) == V32QImode || (MODE) == V16HImode || (MODE) == V8SImode	\
-   || (MODE) == V4DImode || (MODE) == V8SFmode || (MODE) == V4DFmode)
+   || (MODE) == V4DImode || (MODE) == V2TImode || (MODE) == V8SFmode	\
+   || (MODE) == V4DFmode)
 
 #define VALID_SSE2_REG_MODE(MODE)					\
   ((MODE) == V16QImode || (MODE) == V8HImode || (MODE) == V2DFmode	\
@@ -1035,7 +1036,8 @@ enum target_cpu_default
    || (MODE) == TFmode || (MODE) == V8HImode || (MODE) == V2DFmode	\
    || (MODE) == V2DImode || (MODE) == V4SFmode || (MODE) == V4SImode	\
    || (MODE) == V32QImode || (MODE) == V16HImode || (MODE) == V8SImode	\
-   || (MODE) == V4DImode || (MODE) == V8SFmode || (MODE) == V4DFmode)
+   || (MODE) == V4DImode || (MODE) == V8SFmode || (MODE) == V4DFmode	\
+   || (MODE) == V2TImode)
 
 /* Value is 1 if hard register REGNO can hold a value of machine-mode MODE.  */
 
@@ -2312,6 +2314,19 @@ extern void debug_dispatch_window (int);
 #define IX86_BASE_CALLCVT(FLAGS) \
 	((FLAGS) & (IX86_CALLCVT_CDECL | IX86_CALLCVT_STDCALL \
 		    | IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL))
+
+#define RECIP_MASK_NONE		0x00
+#define RECIP_MASK_DIV		0x01
+#define RECIP_MASK_SQRT		0x02
+#define RECIP_MASK_VEC_DIV	0x04
+#define RECIP_MASK_VEC_SQRT	0x08
+#define RECIP_MASK_ALL	(RECIP_MASK_DIV | RECIP_MASK_SQRT \
+			 | RECIP_MASK_VEC_DIV | RECIP_MASK_VEC_SQRT)
+
+#define TARGET_RECIP_DIV	((recip_mask & RECIP_MASK_DIV) != 0)
+#define TARGET_RECIP_SQRT	((recip_mask & RECIP_MASK_SQRT) != 0)
+#define TARGET_RECIP_VEC_DIV	((recip_mask & RECIP_MASK_VEC_DIV) != 0)
+#define TARGET_RECIP_VEC_SQRT	((recip_mask & RECIP_MASK_VEC_SQRT) != 0)
 
 /*
 Local variables:

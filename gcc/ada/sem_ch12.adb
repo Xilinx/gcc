@@ -258,7 +258,7 @@ package body Sem_Ch12 is
    --  are not accessible outside of the instance.
 
    --  In a generic, a formal package is treated like a special instantiation.
-   --  Our Ada95 compiler handled formals with and without box in different
+   --  Our Ada 95 compiler handled formals with and without box in different
    --  ways. With partial parametrization, we use a single model for both.
    --  We create a package declaration that consists of the specification of
    --  the generic package, and a set of declarations that map the actuals
@@ -4454,8 +4454,19 @@ package body Sem_Ch12 is
          Set_Contract (Anon_Id, Make_Contract (Sloc (Anon_Id))); -- ??? needed?
          Set_Contract (Act_Decl_Id, Make_Contract (Sloc (Act_Decl_Id)));
 
+         --  Inherit all inlining-related flags which apply to the generic in
+         --  the subprogram and its declaration.
+
          Set_Is_Inlined (Act_Decl_Id, Is_Inlined (Gen_Unit));
          Set_Is_Inlined (Anon_Id,     Is_Inlined (Gen_Unit));
+
+         Set_Has_Pragma_Inline (Act_Decl_Id, Has_Pragma_Inline (Gen_Unit));
+         Set_Has_Pragma_Inline (Anon_Id,     Has_Pragma_Inline (Gen_Unit));
+
+         Set_Has_Pragma_Inline_Always
+           (Act_Decl_Id, Has_Pragma_Inline_Always (Gen_Unit));
+         Set_Has_Pragma_Inline_Always
+           (Anon_Id,     Has_Pragma_Inline_Always (Gen_Unit));
 
          if not Is_Intrinsic_Subprogram (Gen_Unit) then
             Check_Elab_Instantiation (N);

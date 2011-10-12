@@ -425,6 +425,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__attribute__",	RID_ATTRIBUTE,	0 },
   { "__builtin_choose_expr", RID_CHOOSE_EXPR, D_CONLY },
   { "__builtin_complex", RID_BUILTIN_COMPLEX, D_CONLY },
+  { "__builtin_shuffle", RID_BUILTIN_SHUFFLE, D_CONLY },
   { "__builtin_offsetof", RID_OFFSETOF, 0 },
   { "__builtin_types_compatible_p", RID_TYPES_COMPATIBLE_P, D_CONLY },
   { "__builtin_va_arg",	RID_VA_ARG,	0 },
@@ -1264,7 +1265,20 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
       STRIP_TYPE_NOPS (op0);
       if (code != ADDR_EXPR && code != REALPART_EXPR && code != IMAGPART_EXPR)
 	op0 = decl_constant_value_for_optimization (op0);
-      if (op0 != orig_op0 || in_init)
+      /* ??? Cope with user tricks that amount to offsetof.  The middle-end is
+	 not prepared to deal with them if they occur in initializers.  */
+      if (op0 != orig_op0
+	  && code == ADDR_EXPR
+	  && (op1 = get_base_address (op0)) != NULL_TREE
+	  && TREE_CODE (op1) == INDIRECT_REF
+	  && TREE_CONSTANT (TREE_OPERAND (op1, 0)))
+	{
+	  tree offset = fold_offsetof (op0, op1);
+	  op1
+	    = fold_convert_loc (loc, TREE_TYPE (expr), TREE_OPERAND (op1, 0));
+	  ret = fold_build_pointer_plus_loc (loc, op1, offset);
+	}
+      else if (op0 != orig_op0 || in_init)
 	ret = in_init
 	  ? fold_build1_initializer_loc (loc, code, TREE_TYPE (expr), op0)
 	  : fold_build1_loc (loc, code, TREE_TYPE (expr), op0);
@@ -5154,15 +5168,14 @@ def_builtin_1 (enum built_in_function fncode,
   decl = add_builtin_function (name, fntype, fncode, fnclass,
 			       (fallback_p ? libname : NULL),
 			       fnattrs);
+
+  set_builtin_decl (fncode, decl, implicit_p);
+
   if (both_p
       && !flag_no_builtin && !builtin_function_disabled_p (libname)
       && !(nonansi_p && flag_no_nonansi_builtin))
     add_builtin_function (libname, libtype, fncode, fnclass,
 			  NULL, fnattrs);
-
-  built_in_decls[(int) fncode] = decl;
-  if (implicit_p)
-    implicit_built_in_decls[(int) fncode] = decl;
 }
 
 /* Nonzero if the type T promotes to int.  This is (nearly) the
@@ -6120,7 +6133,8 @@ handle_used_attribute (tree *pnode, tree name, tree ARG_UNUSED (args),
   tree node = *pnode;
 
   if (TREE_CODE (node) == FUNCTION_DECL
-      || (TREE_CODE (node) == VAR_DECL && TREE_STATIC (node)))
+      || (TREE_CODE (node) == VAR_DECL && TREE_STATIC (node))
+      || (TREE_CODE (node) == TYPE_DECL))
     {
       TREE_USED (node) = 1;
       DECL_PRESERVE_P (node) = 1;
@@ -9171,11 +9185,13 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
       {
 	int n = sync_resolve_size (function, params);
 	tree new_function, first_param, result;
+	enum built_in_function fncode;
 
 	if (n == 0)
 	  return error_mark_node;
 
-	new_function = built_in_decls[orig_code + exact_log2 (n) + 1];
+	fncode = (enum built_in_function)((int)orig_code + exact_log2 (n) + 1);
+	new_function = builtin_decl_explicit (fncode);
 	if (!sync_resolve_params (function, new_function, params, orig_format))
 	  return error_mark_node;
 
@@ -9673,6 +9689,76 @@ record_types_used_by_current_var_decl (tree decl)
     {
       tree type = VEC_pop (tree, types_used_by_cur_var_decl);
       types_used_by_var_decl_insert (type, decl);
+    }
+}
+
+/* If DECL is a typedef that is declared in the current function,
+   record it for the purpose of -Wunused-local-typedefs.  */
+
+void
+record_locally_defined_typedef (tree decl)
+{
+  struct c_language_function *l;
+
+  if (!warn_unused_local_typedefs
+      || cfun == NULL
+      /* if this is not a locally defined typedef then we are not
+	 interested.  */
+      || !is_typedef_decl (decl)
+      || !decl_function_context (decl))
+    return;
+
+  l = (struct c_language_function *) cfun->language;
+  VEC_safe_push (tree, gc, l->local_typedefs, decl);
+}
+
+/* If T is a TYPE_DECL declared locally, mark it as used.  */
+
+void
+maybe_record_typedef_use (tree t)
+{
+  if (!is_typedef_decl (t))
+    return;
+
+  TREE_USED (t) = true;
+}
+
+/* Warn if there are some unused locally defined typedefs in the
+   current function. */
+
+void
+maybe_warn_unused_local_typedefs (void)
+{
+  int i;
+  tree decl;
+  /* The number of times we have emitted -Wunused-local-typedefs
+     warnings.  If this is different from errorcount, that means some
+     unrelated errors have been issued.  In which case, we'll avoid
+     emitting "unused-local-typedefs" warnings.  */
+  static int unused_local_typedefs_warn_count;
+  struct c_language_function *l;
+
+  if (cfun == NULL)
+    return;
+
+  if ((l = (struct c_language_function *) cfun->language) == NULL)
+    return;
+
+  if (warn_unused_local_typedefs
+      && errorcount == unused_local_typedefs_warn_count)
+    {
+      FOR_EACH_VEC_ELT (tree, l->local_typedefs, i, decl)
+	if (!TREE_USED (decl))
+	  warning_at (DECL_SOURCE_LOCATION (decl),
+		      OPT_Wunused_local_typedefs,
+		      "typedef %qD locally defined but not used", decl);
+      unused_local_typedefs_warn_count = errorcount;
+    }
+
+  if (l->local_typedefs)
+    {
+      VEC_free (tree, gc, l->local_typedefs);
+      l->local_typedefs = NULL;
     }
 }
 

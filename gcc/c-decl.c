@@ -2369,7 +2369,25 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	  DECL_FUNCTION_CODE (newdecl) = DECL_FUNCTION_CODE (olddecl);
 	  C_DECL_DECLARED_BUILTIN (newdecl) = 1;
 	  if (new_is_prototype)
-	    C_DECL_BUILTIN_PROTOTYPE (newdecl) = 0;
+	    {
+	      C_DECL_BUILTIN_PROTOTYPE (newdecl) = 0;
+	      if (DECL_BUILT_IN_CLASS (newdecl) == BUILT_IN_NORMAL)
+		{
+		  enum built_in_function fncode = DECL_FUNCTION_CODE (newdecl);
+		  switch (fncode)
+		    {
+		      /* If a compatible prototype of these builtin functions
+			 is seen, assume the runtime implements it with the
+			 expected semantics.  */
+		    case BUILT_IN_STPCPY:
+		      if (builtin_decl_explicit_p (fncode))
+			set_builtin_decl_implicit_p (fncode, true);
+		      break;
+		    default:
+		      break;
+		    }
+		}
+	    }
 	  else
 	    C_DECL_BUILTIN_PROTOTYPE (newdecl)
 	      = C_DECL_BUILTIN_PROTOTYPE (olddecl);
@@ -2769,7 +2787,15 @@ pushdecl (tree x)
 
  skip_external_and_shadow_checks:
   if (TREE_CODE (x) == TYPE_DECL)
-    set_underlying_type (x);
+    {
+      /* So this is a typedef, set its underlying type.  */
+      set_underlying_type (x);
+
+      /* If X is a typedef defined in the current function, record it
+	 for the purpose of implementing the -Wunused-local-typedefs
+	 warning.  */
+      record_locally_defined_typedef (x);
+    }
 
   bind (name, x, scope, /*invisible=*/false, nested, locus);
 
@@ -3435,7 +3461,10 @@ lookup_name (tree name)
 {
   struct c_binding *b = I_SYMBOL_BINDING (name);
   if (b && !b->invisible)
-    return b->decl;
+    {
+      maybe_record_typedef_use (b->decl);
+      return b->decl;
+    }
   return 0;
 }
 
@@ -4313,7 +4342,7 @@ finish_decl (tree decl, location_t init_loc, tree init,
     }
 
   /* If this is a function and an assembler name is specified, reset DECL_RTL
-     so we can give it its new name.  Also, update built_in_decls if it
+     so we can give it its new name.  Also, update builtin_decl if it
      was a normal built-in.  */
   if (TREE_CODE (decl) == FUNCTION_DECL && asmspec)
     {
@@ -8192,6 +8221,9 @@ store_parm_decls (void)
   /* Initialize the RTL code for the function.  */
   allocate_struct_function (fndecl, false);
 
+  if (warn_unused_local_typedefs)
+    cfun->language = ggc_alloc_cleared_language_function ();
+
   /* Begin the statement tree for this function.  */
   DECL_SAVED_TREE (fndecl) = push_stmt_list ();
 
@@ -8299,6 +8331,10 @@ finish_function (void)
 		      "parameter %qD set but not used", decl);
     }
 
+  /* Complain about locally defined typedefs that are not used in this
+     function.  */
+  maybe_warn_unused_local_typedefs ();
+
   /* Store the end of the function, so that we get good line number
      info for the epilogue.  */
   cfun->function_end_locus = input_location;
@@ -8343,6 +8379,12 @@ finish_function (void)
 
   if (!decl_function_context (fndecl))
     undef_nested_function = false;
+
+  if (cfun->language != NULL)
+    {
+      ggc_free (cfun->language);
+      cfun->language = NULL;
+    }
 
   /* We're leaving the context of this function, so zap cfun.
      It's still in DECL_STRUCT_FUNCTION, and we'll restore it in
@@ -8455,9 +8497,11 @@ check_for_loop_decls (location_t loc, bool turn_off_iso_c99_error)
 void
 c_push_function_context (void)
 {
-  struct language_function *p;
-  p = ggc_alloc_language_function ();
-  cfun->language = p;
+  struct language_function *p = cfun->language;
+  /* cfun->language might have been already allocated by the use of
+     -Wunused-local-typedefs.  In that case, just re-use it.  */
+  if (p == NULL)
+    cfun->language = p = ggc_alloc_cleared_language_function ();
 
   p->base.x_stmt_tree = c_stmt_tree;
   c_stmt_tree.x_cur_stmt_list
@@ -8483,7 +8527,11 @@ c_pop_function_context (void)
 
   pop_function_context ();
   p = cfun->language;
-  cfun->language = NULL;
+  /* When -Wunused-local-typedefs is in effect, cfun->languages is
+     used to store data throughout the life time of the current cfun,
+     So don't deallocate it.  */
+  if (!warn_unused_local_typedefs)
+    cfun->language = NULL;
 
   if (DECL_STRUCT_FUNCTION (current_function_decl) == 0
       && DECL_SAVED_TREE (current_function_decl) == NULL_TREE)

@@ -745,8 +745,8 @@ package body Sem_Aggr is
 
    begin
       --  All the components of List are matched against Component and a count
-      --  is maintained of possible misspellings. When at the end of the
-      --  the analysis there are one or two (not more!) possible misspellings,
+      --  is maintained of possible misspellings. When at the end of the the
+      --  analysis there are one or two (not more!) possible misspellings,
       --  these misspellings will be suggested as possible correction.
 
       Component_Elmt := First_Elmt (Elements);
@@ -3414,7 +3414,7 @@ package body Sem_Aggr is
                         Selector_Name);
                      return;
 
-                  --  (Ada2005): If this is an association with a box,
+                  --  (Ada 2005): If this is an association with a box,
                   --  indicate that the association need not represent
                   --  any component.
 

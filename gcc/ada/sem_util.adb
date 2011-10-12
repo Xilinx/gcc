@@ -2265,6 +2265,40 @@ package body Sem_Util is
    end Conditional_Delay;
 
    -------------------------
+   -- Copy_Component_List --
+   -------------------------
+
+   function Copy_Component_List
+     (R_Typ : Entity_Id;
+      Loc   : Source_Ptr) return List_Id
+   is
+      Comp  : Node_Id;
+      Comps : constant List_Id := New_List;
+
+   begin
+      Comp := First_Component (Underlying_Type (R_Typ));
+      while Present (Comp) loop
+         if Comes_From_Source (Comp) then
+            declare
+               Comp_Decl : constant Node_Id := Declaration_Node (Comp);
+            begin
+               Append_To (Comps,
+                 Make_Component_Declaration (Loc,
+                   Defining_Identifier =>
+                     Make_Defining_Identifier (Loc, Chars (Comp)),
+                   Component_Definition =>
+                     New_Copy_Tree
+                       (Component_Definition (Comp_Decl), New_Sloc => Loc)));
+            end;
+         end if;
+
+         Next_Component (Comp);
+      end loop;
+
+      return Comps;
+   end Copy_Component_List;
+
+   -------------------------
    -- Copy_Parameter_List --
    -------------------------
 
@@ -2959,7 +2993,7 @@ package body Sem_Util is
             if not Is_Local_Anonymous_Access (Etype (Expr)) then
 
                --  Handle type conversions introduced for a rename of an
-               --  Ada2012 stand-alone object of an anonymous access type.
+               --  Ada 2012 stand-alone object of an anonymous access type.
 
                return Dynamic_Accessibility_Level (Expression (Expr));
             end if;
@@ -7467,7 +7501,7 @@ package body Sem_Util is
                  Is_Object_Reference (Prefix (N))
                    or else Is_Access_Type (Etype (Prefix (N)));
 
-            --  In Ada95, a function call is a constant object; a procedure
+            --  In Ada 95, a function call is a constant object; a procedure
             --  call is not.
 
             when N_Function_Call =>
@@ -7583,7 +7617,7 @@ package body Sem_Util is
 
       elsif Original_Node (AV) /= AV then
 
-         --  In Ada2012, the explicit dereference may be a rewritten call to a
+         --  In Ada 2012, the explicit dereference may be a rewritten call to a
          --  Reference function.
 
          if Ada_Version >= Ada_2012

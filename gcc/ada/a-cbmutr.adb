@@ -28,8 +28,40 @@
 ------------------------------------------------------------------------------
 
 with System;  use type System.Address;
-
 package body Ada.Containers.Bounded_Multiway_Trees is
+
+   No_Node : constant Count_Type'Base := -1;
+
+   type Iterator is new Tree_Iterator_Interfaces.Forward_Iterator with
+   record
+      Container : Tree_Access;
+      Position  : Cursor;
+      From_Root : Boolean;
+   end record;
+
+   overriding function First (Object : Iterator) return Cursor;
+
+   overriding function Next
+     (Object : Iterator;
+      Position : Cursor) return Cursor;
+
+   type Child_Iterator is new Tree_Iterator_Interfaces.Reversible_Iterator with
+   record
+      Container : Tree_Access;
+      Position  : Cursor;
+   end record;
+
+   overriding function First (Object : Child_Iterator) return Cursor;
+
+   overriding function Next
+     (Object   : Child_Iterator;
+      Position : Cursor) return Cursor;
+
+   overriding function Previous
+     (Object   : Child_Iterator;
+      Position : Cursor) return Cursor;
+
+   overriding function Last (Object : Child_Iterator) return Cursor;
 
    -----------------------
    -- Local Subprograms --
@@ -381,7 +413,7 @@ package body Ada.Containers.Bounded_Multiway_Trees is
          First     => First,
          Last      => Last,
          Parent    => Parent.Node,
-         Before    => -1);  -- means "insert at end of list"
+         Before    => No_Node);  -- means "insert at end of list"
 
       Container.Count := Container.Count + Count;
    end Append_Child;
@@ -567,10 +599,8 @@ package body Ada.Containers.Bounded_Multiway_Trees is
    begin
       if Capacity = 0 then
          C := Source.Count;
-
       elsif Capacity >= Source.Count then
          C := Capacity;
-
       else
          raise Capacity_Error with "Capacity value too small";
       end if;
@@ -809,12 +839,12 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       --  nodes that contain elements that have been inserted onto the tree,
       --  and another for the "inactive" nodes of the free store, from which
       --  nodes are allocated when a new child is inserted in the tree.
-      --
+
       --  We desire that merely declaring a tree object should have only
       --  minimal cost; specially, we want to avoid having to initialize the
       --  free store (to fill in the links), especially if the capacity of the
       --  tree object is large.
-      --
+
       --  The head of the free list is indicated by Container.Free. If its
       --  value is non-negative, then the free store has been initialized in
       --  the "normal" way: Container.Free points to the head of the list of
@@ -822,20 +852,20 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       --  empty. Each node on the free list has been initialized to point to
       --  the next free node (via its Next component), and the value 0 means
       --  that this is the last node of the free list.
-      --
+
       --  If Container.Free is negative, then the links on the free store have
       --  not been initialized. In this case the link values are implied: the
       --  free store comprises the components of the node array started with
       --  the absolute value of Container.Free, and continuing until the end of
       --  the array (Nodes'Last).
-      --
+
       --  We prefer to lazy-init the free store (in fact, we would prefer to
       --  not initialize it at all, because such initialization is an O(n)
       --  operation). The time when we need to actually initialize the nodes in
       --  the free store is when the node that becomes inactive is not at the
       --  end of the active list. The free store would then be discontigous and
       --  so its nodes would need to be linked in the traditional way.
-      --
+
       --  It might be possible to perform an optimization here. Suppose that
       --  the free store can be represented as having two parts: one comprising
       --  the non-contiguous inactive nodes linked together in the normal way,
@@ -1186,8 +1216,8 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       Right_Subtree : Count_Type) return Boolean
    is
    begin
-      if Left_Tree.Elements (Left_Subtree)
-        /= Right_Tree.Elements (Right_Subtree)
+      if Left_Tree.Elements  (Left_Subtree) /=
+         Right_Tree.Elements (Right_Subtree)
       then
          return False;
       end if;
@@ -1222,6 +1252,18 @@ package body Ada.Containers.Bounded_Multiway_Trees is
 
       return Cursor'(Container'Unrestricted_Access, Node);
    end Find;
+
+   function First (Object : Iterator) return Cursor is
+   begin
+      return Object.Position;
+   end First;
+
+   function First (Object : Child_Iterator) return Cursor is
+      Node : Count_Type'Base;
+   begin
+      Node := Object.Container.Nodes (Object.Position.Node).Children.First;
+      return (Object.Container, Node);
+   end First;
 
    -----------------
    -- First_Child --
@@ -1367,7 +1409,7 @@ package body Ada.Containers.Bounded_Multiway_Trees is
    is
    begin
       Container.Nodes (Index) :=
-        (Parent   => -1,
+        (Parent   => No_Node,
          Prev     => 0,
          Next     => 0,
          Children => (others => 0));
@@ -1677,11 +1719,9 @@ package body Ada.Containers.Bounded_Multiway_Trees is
 
    function Is_Root (Position : Cursor) return Boolean is
    begin
-      if Position.Container = null then
-         return False;
-      end if;
-
-      return Position.Node = Root_Node (Position.Container.all);
+      return
+        (if Position.Container = null then False
+         else Position.Node = Root_Node (Position.Container.all));
    end Is_Root;
 
    -------------
@@ -1713,6 +1753,18 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       when others =>
          B := B - 1;
          raise;
+   end Iterate;
+
+   function Iterate (Container : Tree)
+     return Tree_Iterator_Interfaces.Forward_Iterator'Class
+   is
+      Root_Cursor : constant Cursor :=
+                      (Container'Unrestricted_Access, Root_Node (Container));
+   begin
+      return
+        Iterator'(Container'Unrestricted_Access,
+                  First_Child (Root_Cursor),
+                  From_Root => True);
    end Iterate;
 
    ----------------------
@@ -1779,9 +1831,27 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       end loop;
    end Iterate_Children;
 
+   function Iterate_Children
+     (Container : Tree;
+      Parent    : Cursor)
+      return Tree_Iterator_Interfaces.Reversible_Iterator'Class
+   is
+      pragma Unreferenced (Container);
+   begin
+      return Child_Iterator'(Parent.Container, Parent);
+   end Iterate_Children;
+
    ---------------------
    -- Iterate_Subtree --
    ---------------------
+
+   function Iterate_Subtree
+     (Position : Cursor)
+      return Tree_Iterator_Interfaces.Forward_Iterator'Class
+   is
+   begin
+      return Iterator'(Position.Container, Position, From_Root => False);
+   end Iterate_Subtree;
 
    procedure Iterate_Subtree
      (Position  : Cursor;
@@ -1806,7 +1876,6 @@ package body Ada.Containers.Bounded_Multiway_Trees is
 
          if Is_Root (Position) then
             Iterate_Children (T, Position.Node, Process);
-
          else
             Iterate_Subtree (T, Position.Node, Process);
          end if;
@@ -1833,6 +1902,15 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       Process (Cursor'(Container'Unrestricted_Access, Subtree));
       Iterate_Children (Container, Subtree, Process);
    end Iterate_Subtree;
+
+   ----------
+   -- Last --
+   ----------
+
+   overriding function Last (Object : Child_Iterator) return Cursor is
+   begin
+      return Last_Child (Object.Position);
+   end Last;
 
    ----------------
    -- Last_Child --
@@ -1887,6 +1965,85 @@ package body Ada.Containers.Bounded_Multiway_Trees is
       Target.Assign (Source);
       Source.Clear;
    end Move;
+
+   ----------
+   -- Next --
+   ----------
+
+   function Next
+     (Object : Iterator;
+      Position : Cursor) return Cursor
+   is
+      T  : Tree renames Position.Container.all;
+      NN : Tree_Node_Array renames T.Nodes;
+      N  : Tree_Node_Type renames NN (Position.Node);
+
+   begin
+      if Is_Leaf (Position) then
+
+         --  If sibling is present, return it
+
+         if N.Next /= 0 then
+            return (Object.Container, N.Next);
+
+         --  If this is the last sibling, go to sibling of first ancestor that
+         --  has a sibling, or terminate.
+
+         else
+            declare
+               Pos : Count_Type := N.Parent;
+               Par : Tree_Node_Type := NN (Pos);
+
+            begin
+               while Par.Next = 0 loop
+                  Pos := Par.Parent;
+
+                  --  If we are back at the root the iteration is complete
+
+                  if Pos = No_Node then
+                     return No_Element;
+
+                  --  If this is a subtree iterator and we are back at the
+                  --  starting node, iteration is complete.
+
+                  elsif Pos = Object.Position.Node
+                    and then not Object.From_Root
+                  then
+                     return No_Element;
+
+                  else
+                     Par := NN (Pos);
+                  end if;
+               end loop;
+
+               if Pos = Object.Position.Node
+                 and then not Object.From_Root
+               then
+                  return No_Element;
+               end if;
+
+               return (Object.Container, Par.Next);
+            end;
+         end if;
+
+      --  If an internal node, return its first child
+
+      else
+         return (Object.Container, N.Children.First);
+      end if;
+   end Next;
+
+   function Next
+     (Object   : Child_Iterator;
+      Position : Cursor) return Cursor
+   is
+   begin
+      if Object.Container /= Position.Container then
+         raise Program_Error;
+      end if;
+
+      return Next_Sibling (Position);
+   end Next;
 
    ------------------
    -- Next_Sibling --
@@ -2032,6 +2189,22 @@ package body Ada.Containers.Bounded_Multiway_Trees is
 
       Container.Count := Container.Count + Count;
    end Prepend_Child;
+
+   --------------
+   -- Previous --
+   --------------
+
+   overriding function Previous
+     (Object   : Child_Iterator;
+      Position : Cursor) return Cursor
+   is
+   begin
+      if Object.Container /= Position.Container then
+         raise Program_Error;
+      end if;
+
+      return Previous_Sibling (Position);
+   end Previous;
 
    ----------------------
    -- Previous_Sibling --
@@ -2223,6 +2396,48 @@ package body Ada.Containers.Bounded_Multiway_Trees is
    begin
       raise Program_Error with "attempt to read tree cursor from stream";
    end Read;
+
+   procedure Read
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : out Reference_Type)
+   is
+   begin
+      raise Program_Error with "attempt to stream reference";
+   end Read;
+
+   procedure Read
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : out Constant_Reference_Type)
+   is
+   begin
+      raise Program_Error with "attempt to stream reference";
+   end Read;
+
+   ---------------
+   -- Reference --
+   ---------------
+
+   function Constant_Reference
+     (Container : aliased Tree;
+      Position  : Cursor) return Constant_Reference_Type
+   is
+      pragma Unreferenced (Container);
+   begin
+      return
+        (Element =>
+           Position.Container.Elements (Position.Node)'Unchecked_Access);
+   end Constant_Reference;
+
+   function Reference
+     (Container : aliased Tree;
+      Position  : Cursor) return Reference_Type
+   is
+      pragma Unreferenced (Container);
+   begin
+      return
+        (Element =>
+           Position.Container.Elements (Position.Node)'Unchecked_Access);
+   end Reference;
 
    --------------------
    -- Remove_Subtree --
@@ -3071,6 +3286,22 @@ package body Ada.Containers.Bounded_Multiway_Trees is
    is
    begin
       raise Program_Error with "attempt to write tree cursor to stream";
+   end Write;
+
+   procedure Write
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : Reference_Type)
+   is
+   begin
+      raise Program_Error with "attempt to stream reference";
+   end Write;
+
+   procedure Write
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : Constant_Reference_Type)
+   is
+   begin
+      raise Program_Error with "attempt to stream reference";
    end Write;
 
 end Ada.Containers.Bounded_Multiway_Trees;

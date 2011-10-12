@@ -1409,9 +1409,10 @@ record_equality (tree x, tree y)
    i_1 = phi (..., i_2)
    i_2 = i_1 +/- ...  */
 
-static bool
+bool
 simple_iv_increment_p (gimple stmt)
 {
+  enum tree_code code;
   tree lhs, preinc;
   gimple phi;
   size_t i;
@@ -1423,12 +1424,13 @@ simple_iv_increment_p (gimple stmt)
   if (TREE_CODE (lhs) != SSA_NAME)
     return false;
 
-  if (gimple_assign_rhs_code (stmt) != PLUS_EXPR
-      && gimple_assign_rhs_code (stmt) != MINUS_EXPR)
+  code = gimple_assign_rhs_code (stmt);
+  if (code != PLUS_EXPR
+      && code != MINUS_EXPR
+      && code != POINTER_PLUS_EXPR)
     return false;
 
   preinc = gimple_assign_rhs1 (stmt);
-
   if (TREE_CODE (preinc) != SSA_NAME)
     return false;
 
@@ -1993,17 +1995,6 @@ cprop_operand (gimple stmt, use_operand_p op_p)
   val = SSA_NAME_VALUE (op);
   if (val && val != op)
     {
-      /* Do not change the base variable in the virtual operand
-	 tables.  That would make it impossible to reconstruct
-	 the renamed virtual operand if we later modify this
-	 statement.  Also only allow the new value to be an SSA_NAME
-	 for propagation into virtual operands.  */
-      if (!is_gimple_reg (op)
-	  && (TREE_CODE (val) != SSA_NAME
-	      || is_gimple_reg (val)
-	      || get_virtual_var (val) != get_virtual_var (op)))
-	return;
-
       /* Do not replace hard register operands in asm statements.  */
       if (gimple_code (stmt) == GIMPLE_ASM
 	  && !may_propagate_copy_into_asm (op))
@@ -2074,11 +2065,8 @@ cprop_into_stmt (gimple stmt)
   use_operand_p op_p;
   ssa_op_iter iter;
 
-  FOR_EACH_SSA_USE_OPERAND (op_p, stmt, iter, SSA_OP_ALL_USES)
-    {
-      if (TREE_CODE (USE_FROM_PTR (op_p)) == SSA_NAME)
-	cprop_operand (stmt, op_p);
-    }
+  FOR_EACH_SSA_USE_OPERAND (op_p, stmt, iter, SSA_OP_USE)
+    cprop_operand (stmt, op_p);
 }
 
 /* Optimize the statement pointed to by iterator SI.
@@ -2105,17 +2093,17 @@ optimize_stmt (basic_block bb, gimple_stmt_iterator si)
 
   old_stmt = stmt = gsi_stmt (si);
 
-  if (gimple_code (stmt) == GIMPLE_COND)
-    canonicalize_comparison (stmt);
-
-  update_stmt_if_modified (stmt);
-  opt_stats.num_stmts++;
-
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "Optimizing statement ");
       print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
     }
+
+  if (gimple_code (stmt) == GIMPLE_COND)
+    canonicalize_comparison (stmt);
+
+  update_stmt_if_modified (stmt);
+  opt_stats.num_stmts++;
 
   /* Const/copy propagate into USES, VUSES and the RHS of VDEFs.  */
   cprop_into_stmt (stmt);
@@ -2654,7 +2642,10 @@ propagate_rhs_into_lhs (gimple stmt, tree lhs, tree rhs, bitmap interesting_name
              GIMPLE_ASSIGN, and there is no way to effect such a
              transformation in-place.  We might want to consider
              using the more general fold_stmt here.  */
-	  fold_stmt_inplace (use_stmt);
+	    {
+	      gimple_stmt_iterator gsi = gsi_for_stmt (use_stmt);
+	      fold_stmt_inplace (&gsi);
+	    }
 
 	  /* Sometimes propagation can expose new operands to the
 	     renamer.  */

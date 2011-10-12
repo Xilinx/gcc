@@ -223,7 +223,6 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
      pointer and that pointers points-to set doesn't contain this decl
      then they can't alias.  */
   if (DECL_RESTRICTED_P (decl)
-      && TYPE_RESTRICT (TREE_TYPE (ptr))
       && pi->pt.vars_contains_restrict)
     return bitmap_bit_p (pi->pt.vars, DECL_PT_UID (decl));
 
@@ -319,9 +318,7 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
 
   /* If both pointers are restrict-qualified try to disambiguate
      with restrict information.  */
-  if (TYPE_RESTRICT (TREE_TYPE (ptr1))
-      && TYPE_RESTRICT (TREE_TYPE (ptr2))
-      && !pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
+  if (!pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
     return false;
 
   /* ???  This does not use TBAA to prune decls from the intersection
@@ -1178,8 +1175,20 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
       && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
     switch (DECL_FUNCTION_CODE (callee))
       {
-	/* All the following functions clobber memory pointed to by
-	   their first argument.  */
+	/* All the following functions read memory pointed to by
+	   their second argument.  strcat/strncat additionally
+	   reads memory pointed to by the first argument.  */
+	case BUILT_IN_STRCAT:
+	case BUILT_IN_STRNCAT:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   NULL_TREE);
+	    if (refs_may_alias_p_1 (&dref, ref, false))
+	      return true;
+	  }
+	  /* FALLTHRU */
 	case BUILT_IN_STRCPY:
 	case BUILT_IN_STRNCPY:
 	case BUILT_IN_MEMCPY:
@@ -1187,8 +1196,6 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_MEMPCPY:
 	case BUILT_IN_STPCPY:
 	case BUILT_IN_STPNCPY:
-	case BUILT_IN_STRCAT:
-	case BUILT_IN_STRNCAT:
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
@@ -1199,14 +1206,23 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+	case BUILT_IN_STRCAT_CHK:
+	case BUILT_IN_STRNCAT_CHK:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   NULL_TREE);
+	    if (refs_may_alias_p_1 (&dref, ref, false))
+	      return true;
+	  }
+	  /* FALLTHRU */
 	case BUILT_IN_STRCPY_CHK:
 	case BUILT_IN_STRNCPY_CHK:
 	case BUILT_IN_MEMCPY_CHK:
 	case BUILT_IN_MEMMOVE_CHK:
 	case BUILT_IN_MEMPCPY_CHK:
 	case BUILT_IN_STPCPY_CHK:
-	case BUILT_IN_STRCAT_CHK:
-	case BUILT_IN_STRNCAT_CHK:
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
@@ -1226,11 +1242,25 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+	/* These read memory pointed to by the first argument.  */
+	case BUILT_IN_STRDUP:
+	case BUILT_IN_STRNDUP:
+	  {
+	    ao_ref dref;
+	    tree size = NULL_TREE;
+	    if (gimple_call_num_args (call) == 2)
+	      size = gimple_call_arg (call, 1);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
 	case BUILT_IN_MALLOC:
 	case BUILT_IN_CALLOC:
 	case BUILT_IN_ALLOCA:
+	case BUILT_IN_ALLOCA_WITH_ALIGN:
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_STACK_RESTORE:
 	case BUILT_IN_MEMSET:
@@ -1467,7 +1497,12 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
-	    if (gimple_call_num_args (call) == 3)
+	    /* Don't pass in size for strncat, as the maximum size
+	       is strlen (dest) + n + 1 instead of n, resp.
+	       n + 1 at dest + strlen (dest), but strlen (dest) isn't
+	       known.  */
+	    if (gimple_call_num_args (call) == 3
+		&& DECL_FUNCTION_CODE (callee) != BUILT_IN_STRNCAT)
 	      size = gimple_call_arg (call, 2);
 	    ao_ref_init_from_ptr_and_size (&dref,
 					   gimple_call_arg (call, 0),
@@ -1486,7 +1521,12 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
-	    if (gimple_call_num_args (call) == 4)
+	    /* Don't pass in size for __strncat_chk, as the maximum size
+	       is strlen (dest) + n + 1 instead of n, resp.
+	       n + 1 at dest + strlen (dest), but strlen (dest) isn't
+	       known.  */
+	    if (gimple_call_num_args (call) == 4
+		&& DECL_FUNCTION_CODE (callee) != BUILT_IN_STRNCAT_CHK)
 	      size = gimple_call_arg (call, 2);
 	    ao_ref_init_from_ptr_and_size (&dref,
 					   gimple_call_arg (call, 0),
@@ -1506,6 +1546,8 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	   being the definition point for the pointer.  */
 	case BUILT_IN_MALLOC:
 	case BUILT_IN_CALLOC:
+	case BUILT_IN_STRDUP:
+	case BUILT_IN_STRNDUP:
 	  /* Unix98 specifies that errno is set on allocation failure.  */
 	  if (flag_errno_math
 	      && targetm.ref_may_alias_errno (ref))
@@ -1513,6 +1555,7 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	  return false;
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_ALLOCA:
+	case BUILT_IN_ALLOCA_WITH_ALIGN:
 	case BUILT_IN_ASSUME_ALIGNED:
 	  return false;
 	/* Freeing memory kills the pointed-to memory.  More importantly
@@ -1832,6 +1875,60 @@ maybe_skip_until (gimple phi, tree target, ao_ref *ref,
   return true;
 }
 
+/* For two PHI arguments ARG0 and ARG1 try to skip non-aliasing code
+   until we hit the phi argument definition that dominates the other one.
+   Return that, or NULL_TREE if there is no such definition.  */
+
+static tree
+get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
+			    ao_ref *ref, bitmap *visited)
+{
+  gimple def0 = SSA_NAME_DEF_STMT (arg0);
+  gimple def1 = SSA_NAME_DEF_STMT (arg1);
+  tree common_vuse;
+
+  if (arg0 == arg1)
+    return arg0;
+  else if (gimple_nop_p (def0)
+	   || (!gimple_nop_p (def1)
+	       && dominated_by_p (CDI_DOMINATORS,
+				  gimple_bb (def1), gimple_bb (def0))))
+    {
+      if (maybe_skip_until (phi, arg0, ref, arg1, visited))
+	return arg0;
+    }
+  else if (gimple_nop_p (def1)
+	   || dominated_by_p (CDI_DOMINATORS,
+			      gimple_bb (def0), gimple_bb (def1)))
+    {
+      if (maybe_skip_until (phi, arg1, ref, arg0, visited))
+	return arg1;
+    }
+  /* Special case of a diamond:
+       MEM_1 = ...
+       goto (cond) ? L1 : L2
+       L1: store1 = ...    #MEM_2 = vuse(MEM_1)
+	   goto L3
+       L2: store2 = ...    #MEM_3 = vuse(MEM_1)
+       L3: MEM_4 = PHI<MEM_2, MEM_3>
+     We were called with the PHI at L3, MEM_2 and MEM_3 don't
+     dominate each other, but still we can easily skip this PHI node
+     if we recognize that the vuse MEM operand is the same for both,
+     and that we can skip both statements (they don't clobber us).
+     This is still linear.  Don't use maybe_skip_until, that might
+     potentially be slow.  */
+  else if ((common_vuse = gimple_vuse (def0))
+	   && common_vuse == gimple_vuse (def1))
+    {
+      if (!stmt_may_clobber_ref_p_1 (def0, ref)
+	  && !stmt_may_clobber_ref_p_1 (def1, ref))
+	return common_vuse;
+    }
+
+  return NULL_TREE;
+}
+
+
 /* Starting from a PHI node for the virtual operand of the memory reference
    REF find a continuation virtual operand that allows to continue walking
    statements dominating PHI skipping only statements that cannot possibly
@@ -1847,53 +1944,24 @@ get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
   if (nargs == 1)
     return PHI_ARG_DEF (phi, 0);
 
-  /* For two arguments try to skip non-aliasing code until we hit
-     the phi argument definition that dominates the other one.  */
-  if (nargs == 2)
+  /* For two or more arguments try to pairwise skip non-aliasing code
+     until we hit the phi argument definition that dominates the other one.  */
+  else if (nargs >= 2)
     {
       tree arg0 = PHI_ARG_DEF (phi, 0);
-      tree arg1 = PHI_ARG_DEF (phi, 1);
-      gimple def0 = SSA_NAME_DEF_STMT (arg0);
-      gimple def1 = SSA_NAME_DEF_STMT (arg1);
-      tree common_vuse;
+      tree arg1;
+      unsigned i = 1;
+      do
+	{
+	  arg1 = PHI_ARG_DEF (phi, i);
+	  arg0 = get_continuation_for_phi_1 (phi, arg0, arg1, ref, visited);
+	  if (!arg0)
+	    return NULL_TREE;
 
-      if (arg0 == arg1)
-	return arg0;
-      else if (gimple_nop_p (def0)
-	       || (!gimple_nop_p (def1)
-		   && dominated_by_p (CDI_DOMINATORS,
-				      gimple_bb (def1), gimple_bb (def0))))
-	{
-	  if (maybe_skip_until (phi, arg0, ref, arg1, visited))
-	    return arg0;
 	}
-      else if (gimple_nop_p (def1)
-	       || dominated_by_p (CDI_DOMINATORS,
-				  gimple_bb (def0), gimple_bb (def1)))
-	{
-	  if (maybe_skip_until (phi, arg1, ref, arg0, visited))
-	    return arg1;
-	}
-      /* Special case of a diamond:
-	   MEM_1 = ...
-	   goto (cond) ? L1 : L2
-	   L1: store1 = ...    #MEM_2 = vuse(MEM_1)
-	       goto L3
-	   L2: store2 = ...    #MEM_3 = vuse(MEM_1)
-	   L3: MEM_4 = PHI<MEM_2, MEM_3>
-	 We were called with the PHI at L3, MEM_2 and MEM_3 don't
-	 dominate each other, but still we can easily skip this PHI node
-	 if we recognize that the vuse MEM operand is the same for both,
-	 and that we can skip both statements (they don't clobber us).
-	 This is still linear.  Don't use maybe_skip_until, that might
-	 potentially be slow.  */
-      else if ((common_vuse = gimple_vuse (def0))
-	       && common_vuse == gimple_vuse (def1))
-	{
-	  if (!stmt_may_clobber_ref_p_1 (def0, ref)
-	      && !stmt_may_clobber_ref_p_1 (def1, ref))
-	    return common_vuse;
-	}
+      while (++i < nargs);
+
+      return arg0;
     }
 
   return NULL_TREE;

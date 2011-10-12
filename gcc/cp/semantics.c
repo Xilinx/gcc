@@ -2312,19 +2312,6 @@ tree
 finish_unary_op_expr (enum tree_code code, tree expr)
 {
   tree result = build_x_unary_op (code, expr, tf_warning_or_error);
-  /* Inside a template, build_x_unary_op does not fold the
-     expression. So check whether the result is folded before
-     setting TREE_NEGATED_INT.  */
-  if (code == NEGATE_EXPR && TREE_CODE (expr) == INTEGER_CST
-      && TREE_CODE (result) == INTEGER_CST
-      && !TYPE_UNSIGNED (TREE_TYPE (result))
-      && INT_CST_LT (result, integer_zero_node))
-    {
-      /* RESULT may be a cached INTEGER_CST, so we must copy it before
-	 setting TREE_NEGATED_INT.  */
-      result = copy_node (result);
-      TREE_NEGATED_INT (result) = 1;
-    }
   if (TREE_OVERFLOW_P (result) && !TREE_OVERFLOW_P (expr))
     overflow_warning (input_location, result);
 
@@ -3559,7 +3546,7 @@ emit_associated_thunks (tree fn)
 static inline bool
 is_instantiation_of_constexpr (tree fun)
 {
-  return (DECL_TEMPLATE_INFO (fun)
+  return (DECL_TEMPLOID_INSTANTIATION (fun)
 	  && DECL_DECLARED_CONSTEXPR_P (DECL_TEMPLATE_RESULT
 					(DECL_TI_TEMPLATE (fun))));
 }
@@ -4797,7 +4784,7 @@ finish_omp_atomic (enum tree_code code, enum tree_code opcode, tree lhs,
 void
 finish_omp_barrier (void)
 {
-  tree fn = built_in_decls[BUILT_IN_GOMP_BARRIER];
+  tree fn = builtin_decl_explicit (BUILT_IN_GOMP_BARRIER);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4807,7 +4794,7 @@ finish_omp_barrier (void)
 void
 finish_omp_flush (void)
 {
-  tree fn = built_in_decls[BUILT_IN_SYNC_SYNCHRONIZE];
+  tree fn = builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4817,7 +4804,7 @@ finish_omp_flush (void)
 void
 finish_omp_taskwait (void)
 {
-  tree fn = built_in_decls[BUILT_IN_GOMP_TASKWAIT];
+  tree fn = builtin_decl_explicit (BUILT_IN_GOMP_TASKWAIT);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4827,7 +4814,7 @@ finish_omp_taskwait (void)
 void
 finish_omp_taskyield (void)
 {
-  tree fn = built_in_decls[BUILT_IN_GOMP_TASKYIELD];
+  tree fn = builtin_decl_explicit (BUILT_IN_GOMP_TASKYIELD);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -5820,26 +5807,26 @@ register_constexpr_fundef (tree fun, tree body)
   constexpr_fundef entry;
   constexpr_fundef **slot;
 
-  if (!is_valid_constexpr_fn (fun, !DECL_TEMPLATE_INFO (fun)))
+  if (!is_valid_constexpr_fn (fun, !DECL_GENERATED_P (fun)))
     return NULL;
 
   body = massage_constexpr_body (fun, body);
   if (body == NULL_TREE || body == error_mark_node)
     {
-      error ("body of constexpr function %qD not a return-statement", fun);
-      DECL_DECLARED_CONSTEXPR_P (fun) = false;
+      if (!DECL_CONSTRUCTOR_P (fun))
+	error ("body of constexpr function %qD not a return-statement", fun);
       return NULL;
     }
 
   if (!potential_rvalue_constant_expression (body))
     {
-      if (!DECL_TEMPLATE_INFO (fun))
+      if (!DECL_GENERATED_P (fun))
 	require_potential_rvalue_constant_expression (body);
       return NULL;
     }
 
   if (DECL_CONSTRUCTOR_P (fun)
-      && cx_check_missing_mem_inits (fun, body, !DECL_TEMPLATE_INFO (fun)))
+      && cx_check_missing_mem_inits (fun, body, !DECL_GENERATED_P (fun)))
     return NULL;
 
   /* Create the constexpr function table if necessary.  */
@@ -6245,7 +6232,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
         {
 	  if (!allow_non_constant)
 	    {
-	      if (DECL_SAVED_TREE (fun))
+	      if (DECL_INITIAL (fun))
 		{
 		  /* The definition of fun was somehow unsuitable.  */
 		  error_at (loc, "%qD called in a constant expression", fun);
@@ -6680,9 +6667,9 @@ cxx_eval_logical_expression (const constexpr_call *call, tree t,
 					   allow_non_constant, addr,
 					   non_constant_p);
   VERIFY_CONSTANT (lhs);
-  if (lhs == bailout_value)
+  if (tree_int_cst_equal (lhs, bailout_value))
     return lhs;
-  gcc_assert (lhs == continue_value);
+  gcc_assert (tree_int_cst_equal (lhs, continue_value));
   r = cxx_eval_constant_expression (call, TREE_OPERAND (t, 1),
 				    allow_non_constant, addr, non_constant_p);
   VERIFY_CONSTANT (r);
@@ -7494,8 +7481,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       return t;
 
     case LAMBDA_EXPR:
-    case DYNAMIC_CAST_EXPR:
-    case PSEUDO_DTOR_EXPR:
     case PREINCREMENT_EXPR:
     case POSTINCREMENT_EXPR:
     case PREDECREMENT_EXPR:
@@ -7751,6 +7736,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       /* We can see a FIELD_DECL in a pointer-to-member expression.  */
     case FIELD_DECL:
     case PARM_DECL:
+    case USING_DECL:
       return true;
 
     case AGGR_INIT_EXPR:
@@ -8035,6 +8021,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case CONST_CAST_EXPR:
     case STATIC_CAST_EXPR:
     case REINTERPRET_CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
       return (potential_constant_expression_1
 	      (TREE_OPERAND (t, 0),
 	       TREE_CODE (TREE_TYPE (t)) != REFERENCE_TYPE, flags));

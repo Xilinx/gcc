@@ -71,7 +71,7 @@ static void require_complete_types_for_parms (tree);
 static int ambi_op_p (enum tree_code);
 static int unary_op_p (enum tree_code);
 static void push_local_name (tree);
-static tree grok_reference_init (tree, tree, tree, tree *);
+static tree grok_reference_init (tree, tree, tree, tree *, int);
 static tree grokvardecl (tree, tree, const cp_decl_specifier_seq *,
 			 int, int, tree);
 static int check_static_variable_definition (tree, tree);
@@ -1357,11 +1357,13 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       if (DECL_BUILT_IN_CLASS (olddecl) == BUILT_IN_NORMAL
 	  && DECL_ANTICIPATED (olddecl)
 	  && TREE_NOTHROW (newdecl)
-	  && !TREE_NOTHROW (olddecl)
-	  && built_in_decls [DECL_FUNCTION_CODE (olddecl)] != NULL_TREE
-	  && built_in_decls [DECL_FUNCTION_CODE (olddecl)] != olddecl
-	  && types_match)
-	TREE_NOTHROW (built_in_decls [DECL_FUNCTION_CODE (olddecl)]) = 1;
+	  && !TREE_NOTHROW (olddecl))
+	{
+	  enum built_in_function fncode = DECL_FUNCTION_CODE (olddecl);
+	  tree tmpdecl = builtin_decl_explicit (fncode);
+	  if (tmpdecl && tmpdecl != olddecl && types_match)
+	    TREE_NOTHROW (tmpdecl)  = 1;
+	}
 
       /* Whether or not the builtin can throw exceptions has no
 	 bearing on this declarator.  */
@@ -2135,6 +2137,22 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	      /* If we're keeping the built-in definition, keep the rtl,
 		 regardless of declaration matches.  */
 	      COPY_DECL_RTL (olddecl, newdecl);
+	      if (DECL_BUILT_IN_CLASS (newdecl) == BUILT_IN_NORMAL)
+		{
+		  enum built_in_function fncode = DECL_FUNCTION_CODE (newdecl);
+		  switch (fncode)
+		    {
+		      /* If a compatible prototype of these builtin functions
+			 is seen, assume the runtime implements it with the
+			 expected semantics.  */
+		    case BUILT_IN_STPCPY:
+		      if (builtin_decl_explicit_p (fncode))
+			set_builtin_decl_implicit_p (fncode, true);
+		      break;
+		    default:
+		      break;
+		    }
+		}
 	    }
 
 	  DECL_RESULT (newdecl) = DECL_RESULT (olddecl);
@@ -4574,7 +4592,8 @@ start_decl_1 (tree decl, bool initialized)
    Quotes on semantics can be found in ARM 8.4.3.  */
 
 static tree
-grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
+grok_reference_init (tree decl, tree type, tree init, tree *cleanup,
+		     int flags)
 {
   tree tmp;
 
@@ -4603,7 +4622,8 @@ grok_reference_init (tree decl, tree type, tree init, tree *cleanup)
      DECL_INITIAL for local references (instead assigning to them
      explicitly); we need to allow the temporary to be initialized
      first.  */
-  tmp = initialize_reference (type, init, decl, cleanup, tf_warning_or_error);
+  tmp = initialize_reference (type, init, decl, cleanup, flags,
+			      tf_warning_or_error);
   if (DECL_DECLARED_CONSTEXPR_P (decl))
     {
       tmp = cxx_constant_value (tmp);
@@ -4897,15 +4917,16 @@ check_for_uninitialized_const_var (tree decl)
   if (TREE_CODE (decl) == VAR_DECL
       && TREE_CODE (type) != REFERENCE_TYPE
       && CP_TYPE_CONST_P (type)
-      && (!TYPE_NEEDS_CONSTRUCTING (type)
-	  || !type_has_user_provided_default_constructor (type))
       && !DECL_INITIAL (decl))
     {
+      tree field = default_init_uninitialized_part (type);
+      if (!field)
+	return;
+
       permerror (DECL_SOURCE_LOCATION (decl),
 		 "uninitialized const %qD", decl);
 
-      if (CLASS_TYPE_P (type)
-	  && !type_has_user_provided_default_constructor (type))
+      if (CLASS_TYPE_P (type))
 	{
 	  tree defaulted_ctor;
 
@@ -4916,6 +4937,8 @@ check_for_uninitialized_const_var (tree decl)
 	    inform (DECL_SOURCE_LOCATION (defaulted_ctor),
 		    "constructor is not user-provided because it is "
 		    "explicitly defaulted in the class body");
+	  inform (0, "and the implicitly-defined constructor does not "
+		  "initialize %q+#D", field);
 	}
     }
 }
@@ -5468,7 +5491,7 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
   else if (!init && DECL_REALLY_EXTERN (decl))
     ;
   else if (TREE_CODE (type) == REFERENCE_TYPE)
-    init = grok_reference_init (decl, type, init, cleanup);
+    init = grok_reference_init (decl, type, init, cleanup, flags);
   else if (init || type_build_ctor_call (type))
     {
       if (!init)
@@ -6069,6 +6092,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	DECL_INITIAL (decl) = init;
       return;
     }
+
+  /* Just store non-static data member initializers for later.  */
+  if (init && TREE_CODE (decl) == FIELD_DECL)
+    DECL_INITIAL (decl) = init;
 
   /* Take care of TYPE_DECLs up front.  */
   if (TREE_CODE (decl) == TYPE_DECL)
@@ -7397,6 +7424,12 @@ grokfndecl (tree ctype,
 	      error ("definition of implicitly-declared %qD", old_decl);
 	      return NULL_TREE;
 	    }
+	  else if (DECL_DEFAULTED_FN (old_decl))
+	    {
+	      error ("definition of explicitly-defaulted %q+D", decl);
+	      error ("%q+#D explicitly defaulted here", old_decl);
+	      return NULL_TREE;
+	    }
 
 	  /* Since we've smashed OLD_DECL to its
 	     DECL_TEMPLATE_RESULT, we must do the same to DECL.  */
@@ -7714,8 +7747,9 @@ check_static_variable_definition (tree decl, tree type)
   else if (cxx_dialect >= cxx0x && !INTEGRAL_OR_ENUMERATION_TYPE_P (type))
     {
       if (literal_type_p (type))
-	error ("%<constexpr%> needed for in-class initialization of static "
-	       "data member %q#D of non-integral type", decl);
+	permerror (input_location,
+		   "%<constexpr%> needed for in-class initialization of "
+		   "static data member %q#D of non-integral type", decl);
       else
 	error ("in-class initialization of static data member %q#D of "
 	       "non-literal type", decl);
@@ -8638,6 +8672,18 @@ grokdeclarator (const cp_declarator *declarator,
 
   ctype = NULL_TREE;
 
+  if (explicit_int128)
+    {
+      if (int128_integer_type_node == NULL_TREE)
+	{
+	  error ("%<__int128%> is not supported by this target");
+	  explicit_int128 = false;
+	}
+      else if (pedantic && ! in_system_header)
+	pedwarn (input_location, OPT_pedantic,
+		 "ISO C++ does not support %<__int128%> for %qs", name);
+    }
+
   /* Now process the modifiers that were specified
      and check for invalid combinations.  */
 
@@ -8661,8 +8707,6 @@ grokdeclarator (const cp_declarator *declarator,
 	error ("%<signed%> and %<unsigned%> specified together for %qs", name);
       else if (longlong && TREE_CODE (type) != INTEGER_TYPE)
 	error ("%<long long%> invalid for %qs", name);
-      else if (explicit_int128 && TREE_CODE (type) != INTEGER_TYPE)
-	error ("%<__int128%> invalid for %qs", name);
       else if (long_p && TREE_CODE (type) == REAL_TYPE)
 	error ("%<long%> invalid for %qs", name);
       else if (short_p && TREE_CODE (type) == REAL_TYPE)
@@ -8693,22 +8737,6 @@ grokdeclarator (const cp_declarator *declarator,
 	      if (flag_pedantic_errors)
 		ok = 0;
 	    }
-	  if (explicit_int128)
-	    {
-	      if (int128_integer_type_node == NULL_TREE)
-	        {
-		  error ("%<__int128%> is not supported by this target");
-		  ok = 0;
-	        }
-	      else if (pedantic)
-		{
-		  pedwarn (input_location, OPT_pedantic,
-			   "ISO C++ does not support %<__int128%> for %qs",
-			   name);
-		  if (flag_pedantic_errors)
-		    ok = 0;
-		}
-	    }
 	}
 
       /* Discard the type modifiers if they are invalid.  */
@@ -8719,7 +8747,6 @@ grokdeclarator (const cp_declarator *declarator,
 	  long_p = false;
 	  short_p = false;
 	  longlong = 0;
-	  explicit_int128 = false;
 	}
     }
 
@@ -9049,6 +9076,10 @@ grokdeclarator (const cp_declarator *declarator,
             virt_specifiers = declarator->u.function.virt_specifiers;
 	    /* Pick up the exception specifications.  */
 	    raises = declarator->u.function.exception_specification;
+	    /* If the exception-specification is ill-formed, let's pretend
+	       there wasn't one.  */
+	    if (raises == error_mark_node)
+	      raises = NULL_TREE;
 
 	    /* Say it's a definition only for the CALL_EXPR
 	       closest to the identifier.  */
@@ -10084,36 +10115,6 @@ grokdeclarator (const cp_declarator *declarator,
 
 	if (decl == NULL_TREE)
 	  {
-	    if (initialized)
-	      {
-		if (!staticp)
-		  {
-		    /* An attempt is being made to initialize a non-static
-		       member.  But, from [class.mem]:
-
-		       4 A member-declarator can contain a
-		       constant-initializer only if it declares a static
-		       member (_class.static_) of integral or enumeration
-		       type, see _class.static.data_.
-
-		       This used to be relatively common practice, but
-		       the rest of the compiler does not correctly
-		       handle the initialization unless the member is
-		       static so we make it static below.  */
-		    if (cxx_dialect >= cxx0x)
-		      {
-			sorry ("non-static data member initializers");
-		      }
-		    else
-		      {
-			permerror (input_location, "ISO C++ forbids initialization of member %qD",
-				   unqualified_id);
-			permerror (input_location, "making %qD static", unqualified_id);
-			staticp = 1;
-		      }
-		  }
-	      }
-
 	    if (staticp)
 	      {
 		/* C++ allows static class members.  All other work
@@ -10154,6 +10155,11 @@ grokdeclarator (const cp_declarator *declarator,
 		    DECL_MUTABLE_P (decl) = 1;
 		    storage_class = sc_none;
 		  }
+
+		if (initialized)
+		  /* An attempt is being made to initialize a non-static
+		     member.  This is new in C++11.  */
+		  maybe_warn_cpp0x (CPP0X_NSDMI);
 	      }
 
 	    bad_specifiers (decl, BSP_FIELD, virtualp,
@@ -11593,9 +11599,10 @@ xref_tag (enum tag_types tag_code, tree name,
           tag_scope scope, bool template_header_p)
 {
   tree ret;
-  timevar_start (TV_NAME_LOOKUP);
+  bool subtime;
+  subtime = timevar_cond_start (TV_NAME_LOOKUP);
   ret = xref_tag_1 (tag_code, name, scope, template_header_p);
-  timevar_stop (TV_NAME_LOOKUP);
+  timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return ret;
 }
 
@@ -13387,6 +13394,10 @@ finish_function (int flags)
 		   "parameter %q+D set but not used", decl);
       unused_but_set_errorcount = errorcount;
     }
+
+  /* Complain about locally defined typedefs that are not used in this
+     function.  */
+  maybe_warn_unused_local_typedefs ();
 
   /* Genericize before inlining.  */
   if (!processing_template_decl)

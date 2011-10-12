@@ -1,3 +1,7 @@
+2011-10-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Merge from trunk at revision 179855.
+
 2011-10-04  Andrew MacLeod  <amacleod@redhat.com>
 
 	* optabs.c (expand_sync_mem_load): Don't expand into a default load if

@@ -652,9 +652,25 @@ vect_mark_stmts_to_be_vectorized (loop_vec_info loop_vinfo)
              have to scan the RHS or function arguments instead.  */
           if (is_gimple_assign (stmt))
             {
-              for (i = 1; i < gimple_num_ops (stmt); i++)
+	      enum tree_code rhs_code = gimple_assign_rhs_code (stmt);
+	      tree op = gimple_assign_rhs1 (stmt);
+
+	      i = 1;
+	      if (rhs_code == COND_EXPR && COMPARISON_CLASS_P (op))
+		{
+		  if (!process_use (stmt, TREE_OPERAND (op, 0), loop_vinfo,
+				    live_p, relevant, &worklist)
+		      || !process_use (stmt, TREE_OPERAND (op, 1), loop_vinfo,
+				       live_p, relevant, &worklist))
+		    {
+		      VEC_free (gimple, heap, worklist);
+		      return false;
+		    }
+		  i = 2;
+		}
+	      for (; i < gimple_num_ops (stmt); i++)
                 {
-                  tree op = gimple_op (stmt, i);
+		  op = gimple_op (stmt, i);
                   if (!process_use (stmt, op, loop_vinfo, live_p, relevant,
                                     &worklist))
                     {
@@ -3039,11 +3055,9 @@ vectorizable_type_demotion (gimple stmt, gimple_stmt_iterator *gsi,
   VEC (tree, heap) *vec_oprnds0 = NULL;
   VEC (tree, heap) *vec_dsts = NULL, *interm_types = NULL, *tmp_vec_dsts = NULL;
   tree last_oprnd, intermediate_type;
+  bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
 
-  /* FORNOW: not supported by basic block SLP vectorization.  */
-  gcc_assert (loop_vinfo);
-
-  if (!STMT_VINFO_RELEVANT_P (stmt_info))
+  if (!STMT_VINFO_RELEVANT_P (stmt_info) && !bb_vinfo)
     return false;
 
   if (STMT_VINFO_DEF_TYPE (stmt_info) != vect_internal_def)
@@ -3071,7 +3085,7 @@ vectorizable_type_demotion (gimple stmt, gimple_stmt_iterator *gsi,
 	     && SCALAR_FLOAT_TYPE_P (TREE_TYPE (op0))
 	     && CONVERT_EXPR_CODE_P (code))))
     return false;
-  if (!vect_is_simple_use_1 (op0, loop_vinfo, NULL,
+  if (!vect_is_simple_use_1 (op0, loop_vinfo, bb_vinfo,
 			     &def_stmt, &def, &dt[0], &vectype_in))
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -3318,11 +3332,9 @@ vectorizable_type_promotion (gimple stmt, gimple_stmt_iterator *gsi,
   int multi_step_cvt = 0;
   VEC (tree, heap) *vec_oprnds0 = NULL, *vec_oprnds1 = NULL;
   VEC (tree, heap) *vec_dsts = NULL, *interm_types = NULL, *tmp_vec_dsts = NULL;
+  bb_vec_info bb_vinfo = STMT_VINFO_BB_VINFO (stmt_info);
 
-  /* FORNOW: not supported by basic block SLP vectorization.  */
-  gcc_assert (loop_vinfo);
-
-  if (!STMT_VINFO_RELEVANT_P (stmt_info))
+  if (!STMT_VINFO_RELEVANT_P (stmt_info) && !bb_vinfo)
     return false;
 
   if (STMT_VINFO_DEF_TYPE (stmt_info) != vect_internal_def)
@@ -3351,7 +3363,7 @@ vectorizable_type_promotion (gimple stmt, gimple_stmt_iterator *gsi,
 	     && SCALAR_FLOAT_TYPE_P (TREE_TYPE (op0))
 	     && CONVERT_EXPR_CODE_P (code))))
     return false;
-  if (!vect_is_simple_use_1 (op0, loop_vinfo, NULL,
+  if (!vect_is_simple_use_1 (op0, loop_vinfo, bb_vinfo,
 			     &def_stmt, &def, &dt[0], &vectype_in))
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -5083,7 +5095,9 @@ vect_analyze_stmt (gimple stmt, bool *need_to_vectorize, slp_tree node)
     else
       {
         if (bb_vinfo)
-          ok = (vectorizable_shift (stmt, NULL, NULL, node)
+          ok = (vectorizable_type_promotion (stmt, NULL, NULL, node)
+                || vectorizable_type_demotion (stmt, NULL, NULL, node)
+               || vectorizable_shift (stmt, NULL, NULL, node)
                 || vectorizable_operation (stmt, NULL, NULL, node)
                 || vectorizable_assignment (stmt, NULL, NULL, node)
                 || vectorizable_load (stmt, NULL, NULL, node, NULL)
@@ -5719,7 +5733,7 @@ supportable_widening_operation (enum tree_code code, gimple stmt,
 {
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   loop_vec_info loop_info = STMT_VINFO_LOOP_VINFO (stmt_info);
-  struct loop *vect_loop = LOOP_VINFO_LOOP (loop_info);
+  struct loop *vect_loop = NULL;
   bool ordered_p;
   enum machine_mode vec_mode;
   enum insn_code icode1, icode2;
@@ -5727,6 +5741,9 @@ supportable_widening_operation (enum tree_code code, gimple stmt,
   tree vectype = vectype_in;
   tree wide_vectype = vectype_out;
   enum tree_code c1, c2;
+
+  if (loop_info)
+    vect_loop = LOOP_VINFO_LOOP (loop_info);
 
   /* The result of a vectorized widening operation usually requires two vectors
      (because the widened results do not fit int one vector). The generated
@@ -5748,7 +5765,8 @@ supportable_widening_operation (enum tree_code code, gimple stmt,
      iterations in parallel).  We therefore don't allow to change the order
      of the computation in the inner-loop during outer-loop vectorization.  */
 
-   if (STMT_VINFO_RELEVANT (stmt_info) == vect_used_by_reduction
+   if (vect_loop
+       && STMT_VINFO_RELEVANT (stmt_info) == vect_used_by_reduction
        && !nested_in_vect_loop_p (vect_loop, stmt))
      ordered_p = false;
    else

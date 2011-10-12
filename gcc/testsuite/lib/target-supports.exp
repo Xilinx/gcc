@@ -459,12 +459,9 @@ proc check_profiling_available { test_what } {
 
     # Tree profiling requires TLS runtime support.
     if { $test_what == "-fprofile-generate" } {
-	# AVR does not support profile generation because
-	# it does not implement needed support functions.
-	if { [istarget avr-*-*] } {
+	if { ![check_effective_target_tls_runtime] } {
 	    return 0
 	}
-	return [check_effective_target_tls_runtime]
     }
 
     # Support for -p on solaris2 relies on mcrt1.o which comes with the
@@ -3237,6 +3234,26 @@ proc check_effective_target_vect_condition { } {
     return $et_vect_cond_saved
 }
 
+# Return 1 if the target supports vector conditional operations where
+# the comparison has different type from the lhs, 0 otherwise.
+
+proc check_effective_target_vect_cond_mixed { } {
+    global et_vect_cond_mixed_saved
+
+    if [info exists et_vect_cond_mixed_saved] {
+	verbose "check_effective_target_vect_cond_mixed: using cached result" 2
+    } else {
+	set et_vect_cond_mixed_saved 0
+	if { [istarget i?86-*-*]
+	     || [istarget x86_64-*-*] } {
+	   set et_vect_cond_mixed_saved 1
+	}
+    }
+
+    verbose "check_effective_target_vect_cond_mixed: returning $et_vect_cond_mixed_saved" 2
+    return $et_vect_cond_mixed_saved
+}
+
 # Return 1 if the target supports vector char multiplication, 0 otherwise.
 
 proc check_effective_target_vect_char_mult { } {
@@ -3378,7 +3395,7 @@ foreach N {2 3 4 8} {
 # Return 1 if the target supports multiple vector sizes
 
 proc check_effective_target_vect_multiple_sizes { } {
-    global et_vect_multiple_sizes
+    global et_vect_multiple_sizes_saved
 
     if [info exists et_vect_multiple_sizes_saved] {
         verbose "check_effective_target_vect_multiple_sizes: using cached result" 2
@@ -3391,6 +3408,24 @@ proc check_effective_target_vect_multiple_sizes { } {
 
     verbose "check_effective_target_vect_multiple_sizes: returning $et_vect_multiple_sizes_saved" 2
     return $et_vect_multiple_sizes_saved
+}
+
+# Return 1 if the target supports vectors of 64 bits.
+
+proc check_effective_target_vect64 { } {
+    global et_vect64_saved
+
+    if [info exists et_vect64_saved] {
+        verbose "check_effective_target_vect64: using cached result" 2
+    } else {
+        set et_vect64_saved 0
+        if { ([istarget arm*-*-*] && [check_effective_target_arm_neon_ok]) } {
+           set et_vect64_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect64: returning $et_vect64_saved" 2
+    return $et_vect64_saved
 }
 
 # Return 1 if the target supports section-anchors
@@ -3740,16 +3775,25 @@ proc check_effective_target_fd_truncate { } {
 	  int fd;
 	  const char t[] = "test writing more than ten characters";
 	  char s[11];
-	  fd =  fileno (f);
+	  int status = 0;
+	  fd = fileno (f);
 	  write (fd, t, sizeof (t) - 1);
 	  lseek (fd, 0, 0);
 	  if (ftruncate (fd, 10) != 0)
-	    exit (1);
+	    status = 1;
 	  close (fd);
+	  fclose (f);
+	  if (status)
+	    {
+	      unlink ("tst.tmp");
+	      exit (status);
+	    }
 	  f = fopen ("tst.tmp", "rb");
 	  if (fread (s, 1, sizeof (s), f) != 10 || strncmp (s, t, 10) != 0)
-	    exit (1);
-	  exit (0);
+	    status = 1;
+	  fclose (f);
+	  unlink ("tst.tmp");
+	  exit (status);
 	}
     }
 

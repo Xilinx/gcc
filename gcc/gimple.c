@@ -215,9 +215,10 @@ gimple_call_reset_alias_info (gimple s)
     pt_solution_reset (gimple_call_clobber_set (s));
 }
 
-/* Helper for gimple_build_call, gimple_build_call_vec and
-   gimple_build_call_from_tree.  Build the basic components of a
-   GIMPLE_CALL statement to function FN with NARGS arguments.  */
+/* Helper for gimple_build_call, gimple_build_call_valist,
+   gimple_build_call_vec and gimple_build_call_from_tree.  Build the basic
+   components of a GIMPLE_CALL statement to function FN with NARGS
+   arguments.  */
 
 static inline gimple
 gimple_build_call_1 (tree fn, unsigned nargs)
@@ -267,6 +268,26 @@ gimple_build_call (tree fn, unsigned nargs, ...)
   for (i = 0; i < nargs; i++)
     gimple_call_set_arg (call, i, va_arg (ap, tree));
   va_end (ap);
+
+  return call;
+}
+
+
+/* Build a GIMPLE_CALL statement to function FN.  NARGS is the number of
+   arguments.  AP contains the arguments.  */
+
+gimple
+gimple_build_call_valist (tree fn, unsigned nargs, va_list ap)
+{
+  gimple call;
+  unsigned i;
+
+  gcc_assert (TREE_CODE (fn) == FUNCTION_DECL || is_gimple_call_addr (fn));
+
+  call = gimple_build_call_1 (fn, nargs);
+
+  for (i = 0; i < nargs; i++)
+    gimple_call_set_arg (call, i, va_arg (ap, tree));
 
   return call;
 }
@@ -353,7 +374,8 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   if (fndecl
       && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
-      && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_ALLOCA)
+      && (DECL_FUNCTION_CODE (fndecl) == BUILT_IN_ALLOCA
+	  || DECL_FUNCTION_CODE (fndecl) == BUILT_IN_ALLOCA_WITH_ALIGN))
     gimple_call_set_alloca_for_var (call, CALL_ALLOCA_FOR_VAR_P (t));
   else
     gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
@@ -2617,6 +2639,7 @@ get_gimple_rhs_num_ops (enum tree_code code)
       || (SYM) == DOT_PROD_EXPR						    \
       || (SYM) == REALIGN_LOAD_EXPR					    \
       || (SYM) == VEC_COND_EXPR						    \
+      || (SYM) == VEC_PERM_EXPR                                             \
       || (SYM) == FMA_EXPR) ? GIMPLE_TERNARY_RHS			    \
    : ((SYM) == CONSTRUCTOR						    \
       || (SYM) == OBJ_TYPE_REF						    \

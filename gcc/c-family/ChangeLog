@@ -1,3 +1,36 @@
+2011-10-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* c-common.c (def_builtin_1): Delete old interface with two
+	parallel arrays to hold standard builtin declarations, and replace
+	it with a function based interface that can support creating
+	builtins on the fly in the future.  Change all uses, and poison
+	the old	names.  Make sure 0 is not a legitimate builtin index.
+	* c-omp.c (c_finish_omp_barrier): Ditto.
+	(c_finish_omp_taskwait): Ditto.
+	(c_finish_omp_flush): Ditto.
+
+2011-10-11  Tristan Gingold  <gingold@adacore.com>
+
+	* c.opt: (fallow-parameterless-variadic-functions): New.
+
+2011-09-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/33255 - Support -Wunused-local-typedefs warning
+	* c-common.h (struct c_language_function::local_typedefs): New
+	field.
+    	(record_locally_defined_typedef, maybe_record_typedef_use)
+    	(maybe_warn_unused_local_typedefs): Declare new functions.
+	* c-common.c (record_locally_defined_typedef)
+    	(maybe_record_typedef_use)
+    	(maybe_warn_unused_local_typedefs): Define new functions.
+	* c.opt: Declare new -Wunused-local-typedefs flag.
+
+2011-09-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/50266
+	* c-common.c (c_fully_fold_internal) <ADDR_EXPR>: Fold offsetof-like
+	computations.
+
 2011-09-05  Richard Guenther  <rguenther@suse.de>
 
 	* c-common.c (complete_array_type): Use ssize_int (-1) instead

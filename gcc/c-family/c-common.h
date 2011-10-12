@@ -43,8 +43,7 @@ never after.
 #include "diagnostic-core.h"
 
 /* Usage of TREE_LANG_FLAG_?:
-   0: TREE_NEGATED_INT (in INTEGER_CST).
-      IDENTIFIER_MARKED (used by search routines).
+   0: IDENTIFIER_MARKED (used by search routines).
       DECL_PRETTY_FUNCTION_P (in VAR_DECL)
       C_MAYBE_CONST_EXPR_INT_OPERANDS (in C_MAYBE_CONST_EXPR, for C)
    1: C_DECLARED_LABEL_FLAG (in LABEL_DECL)
@@ -103,7 +102,7 @@ enum rid
   /* C extensions */
   RID_ASM,       RID_TYPEOF,   RID_ALIGNOF,  RID_ATTRIBUTE,  RID_VA_ARG,
   RID_EXTENSION, RID_IMAGPART, RID_REALPART, RID_LABEL,      RID_CHOOSE_EXPR,
-  RID_TYPES_COMPATIBLE_P,      RID_BUILTIN_COMPLEX,
+  RID_TYPES_COMPATIBLE_P,      RID_BUILTIN_COMPLEX,	     RID_BUILTIN_SHUFFLE,
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
   RID_FRACT, RID_ACCUM,
 
@@ -506,6 +505,10 @@ struct GTY(()) c_language_function {
   /* While we are parsing the function, this contains information
      about the statement-tree that we are building.  */
   struct stmt_tree_s x_stmt_tree;
+
+  /* Vector of locally defined typedefs, for
+     -Wunused-local-typedefs.  */
+  VEC(tree,gc) *local_typedefs;
 };
 
 #define stmt_list_stack (current_stmt_tree ()->x_cur_stmt_list)
@@ -988,6 +991,9 @@ extern void warn_for_sign_compare (location_t,
 extern void do_warn_double_promotion (tree, tree, tree, const char *, 
 				      location_t);
 extern void set_underlying_type (tree);
+extern void record_locally_defined_typedef (tree);
+extern void maybe_record_typedef_use (tree);
+extern void maybe_warn_unused_local_typedefs (void);
 extern VEC(tree,gc) *make_tree_vector (void);
 extern void release_tree_vector (VEC(tree,gc) *);
 extern VEC(tree,gc) *make_tree_vector_single (tree);

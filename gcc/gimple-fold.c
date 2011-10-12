@@ -551,6 +551,7 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
   reaching_vuse = gimple_vuse (stmt);
 
   push_gimplify_context (&gctx);
+  gctx.into_ssa = gimple_in_ssa_p (cfun);
 
   if (lhs == NULL_TREE)
     {
@@ -587,13 +588,10 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	}
       new_stmt = gsi_stmt (i);
       if (gimple_in_ssa_p (cfun))
-	{
-	  find_new_referenced_vars (new_stmt);
-	  mark_symbols_for_renaming (new_stmt);
-	}
-      /* If the new statement has a VUSE, update it with exact SSA name we
-         know will reach this one.  */
-      if (gimple_vuse (new_stmt))
+	find_new_referenced_vars (new_stmt);
+      /* If the new statement possibly has a VUSE, update it with exact SSA
+	 name we know will reach this one.  */
+      if (gimple_has_mem_ops (new_stmt))
 	{
 	  /* If we've also seen a previous store create a new VDEF for
 	     the latter one, and make that the new reaching VUSE.  */
@@ -825,6 +823,11 @@ gimple_fold_builtin (gimple stmt)
   /* Ignore MD builtins.  */
   callee = gimple_call_fndecl (stmt);
   if (DECL_BUILT_IN_CLASS (callee) == BUILT_IN_MD)
+    return NULL_TREE;
+
+  /* Give up for always_inline inline builtins until they are
+     inlined.  */
+  if (avoid_folding_inline_builtin (callee))
     return NULL_TREE;
 
   /* If the builtin could not be folded, and it has no argument list,
@@ -1200,28 +1203,45 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
 
     case GIMPLE_ASM:
       /* Fold *& in asm operands.  */
-      for (i = 0; i < gimple_asm_noutputs (stmt); ++i)
-	{
-	  tree link = gimple_asm_output_op (stmt, i);
-	  tree op = TREE_VALUE (link);
-	  if (REFERENCE_CLASS_P (op)
-	      && (op = maybe_fold_reference (op, true)) != NULL_TREE)
-	    {
-	      TREE_VALUE (link) = op;
-	      changed = true;
-	    }
-	}
-      for (i = 0; i < gimple_asm_ninputs (stmt); ++i)
-	{
-	  tree link = gimple_asm_input_op (stmt, i);
-	  tree op = TREE_VALUE (link);
-	  if (REFERENCE_CLASS_P (op)
-	      && (op = maybe_fold_reference (op, false)) != NULL_TREE)
-	    {
-	      TREE_VALUE (link) = op;
-	      changed = true;
-	    }
-	}
+      {
+	size_t noutputs;
+	const char **oconstraints;
+	const char *constraint;
+	bool allows_mem, allows_reg;
+
+	noutputs = gimple_asm_noutputs (stmt);
+	oconstraints = XALLOCAVEC (const char *, noutputs);
+
+	for (i = 0; i < gimple_asm_noutputs (stmt); ++i)
+	  {
+	    tree link = gimple_asm_output_op (stmt, i);
+	    tree op = TREE_VALUE (link);
+	    oconstraints[i]
+	      = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (link)));
+	    if (REFERENCE_CLASS_P (op)
+		&& (op = maybe_fold_reference (op, true)) != NULL_TREE)
+	      {
+		TREE_VALUE (link) = op;
+		changed = true;
+	      }
+	  }
+	for (i = 0; i < gimple_asm_ninputs (stmt); ++i)
+	  {
+	    tree link = gimple_asm_input_op (stmt, i);
+	    tree op = TREE_VALUE (link);
+	    constraint
+	      = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (link)));
+	    parse_input_constraint (&constraint, 0, 0, noutputs, 0,
+				    oconstraints, &allows_mem, &allows_reg);
+	    if (REFERENCE_CLASS_P (op)
+		&& (op = maybe_fold_reference (op, !allows_reg && allows_mem))
+		   != NULL_TREE)
+	      {
+		TREE_VALUE (link) = op;
+		changed = true;
+	      }
+	  }
+      }
       break;
 
     case GIMPLE_DEBUG:
@@ -1286,20 +1306,20 @@ fold_stmt (gimple_stmt_iterator *gsi)
   return fold_stmt_1 (gsi, false);
 }
 
-/* Perform the minimal folding on statement STMT.  Only operations like
+/* Perform the minimal folding on statement *GSI.  Only operations like
    *&x created by constant propagation are handled.  The statement cannot
    be replaced with a new one.  Return true if the statement was
    changed, false otherwise.
-   The statement STMT should be in valid gimple form but may
+   The statement *GSI should be in valid gimple form but may
    be in unfolded state as resulting from for example constant propagation
    which can produce *&x = 0.  */
 
 bool
-fold_stmt_inplace (gimple stmt)
+fold_stmt_inplace (gimple_stmt_iterator *gsi)
 {
-  gimple_stmt_iterator gsi = gsi_for_stmt (stmt);
-  bool changed = fold_stmt_1 (&gsi, true);
-  gcc_assert (gsi_stmt (gsi) == stmt);
+  gimple stmt = gsi_stmt (*gsi);
+  bool changed = fold_stmt_1 (gsi, true);
+  gcc_assert (gsi_stmt (*gsi) == stmt);
   return changed;
 }
 
@@ -2551,6 +2571,19 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
               tree op1 = (*valueize) (gimple_assign_rhs2 (stmt));
               tree op2 = (*valueize) (gimple_assign_rhs3 (stmt));
 
+	      /* Fold embedded expressions in ternary codes.  */
+	      if ((subcode == COND_EXPR
+		   || subcode == VEC_COND_EXPR)
+		  && COMPARISON_CLASS_P (op0))
+		{
+		  tree op00 = (*valueize) (TREE_OPERAND (op0, 0));
+		  tree op01 = (*valueize) (TREE_OPERAND (op0, 1));
+		  tree tem = fold_binary_loc (loc, TREE_CODE (op0),
+					      TREE_TYPE (op0), op00, op01);
+		  if (tem)
+		    op0 = tem;
+		}
+
               return fold_ternary_loc (loc, subcode,
 				       gimple_expr_type (stmt), op0, op1, op2);
             }
@@ -2729,10 +2762,12 @@ fold_array_ctor_reference (tree type, tree ctor,
   double_int low_bound, elt_size;
   double_int index, max_index;
   double_int access_index;
-  tree domain_type = TYPE_DOMAIN (TREE_TYPE (ctor));
+  tree domain_type = NULL_TREE;
   HOST_WIDE_INT inner_offset;
 
   /* Compute low bound and elt size.  */
+  if (TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE)
+    domain_type = TYPE_DOMAIN (TREE_TYPE (ctor));
   if (domain_type && TYPE_MIN_VALUE (domain_type))
     {
       /* Static constructors for variably sized objects makes no sense.  */
@@ -2899,7 +2934,8 @@ fold_ctor_reference (tree type, tree ctor, unsigned HOST_WIDE_INT offset,
   if (TREE_CODE (ctor) == CONSTRUCTOR)
     {
 
-      if (TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE)
+      if (TREE_CODE (TREE_TYPE (ctor)) == ARRAY_TYPE
+	  || TREE_CODE (TREE_TYPE (ctor)) == VECTOR_TYPE)
 	return fold_array_ctor_reference (type, ctor, offset, size);
       else
 	return fold_nonarray_ctor_reference (type, ctor, offset, size);
@@ -2918,6 +2954,9 @@ fold_const_aggregate_ref_1 (tree t, tree (*valueize) (tree))
   tree ctor, idx, base;
   HOST_WIDE_INT offset, size, max_size;
   tree tem;
+
+  if (TREE_THIS_VOLATILE (t))
+    return NULL_TREE;
 
   if (TREE_CODE_CLASS (TREE_CODE (t)) == tcc_declaration)
     return get_symbol_constant_value (t);
@@ -3048,7 +3087,8 @@ gimple_get_virt_method_for_binfo (HOST_WIDE_INT token, tree known_binfo)
 
   if (TREE_CODE (v) != VAR_DECL
       || !DECL_VIRTUAL_P (v)
-      || !DECL_INITIAL (v))
+      || !DECL_INITIAL (v)
+      || DECL_INITIAL (v) == error_mark_node)
     return NULL_TREE;
   gcc_checking_assert (TREE_CODE (TREE_TYPE (v)) == ARRAY_TYPE);
   size = tree_low_cst (TYPE_SIZE (TREE_TYPE (TREE_TYPE (v))), 1);
