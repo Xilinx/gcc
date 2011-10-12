@@ -4784,7 +4784,7 @@ finish_omp_atomic (enum tree_code code, enum tree_code opcode, tree lhs,
 void
 finish_omp_barrier (void)
 {
-  tree fn = built_in_decls[BUILT_IN_GOMP_BARRIER];
+  tree fn = builtin_decl_explicit (BUILT_IN_GOMP_BARRIER);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4794,7 +4794,7 @@ finish_omp_barrier (void)
 void
 finish_omp_flush (void)
 {
-  tree fn = built_in_decls[BUILT_IN_SYNC_SYNCHRONIZE];
+  tree fn = builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4804,7 +4804,7 @@ finish_omp_flush (void)
 void
 finish_omp_taskwait (void)
 {
-  tree fn = built_in_decls[BUILT_IN_GOMP_TASKWAIT];
+  tree fn = builtin_decl_explicit (BUILT_IN_GOMP_TASKWAIT);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -4814,7 +4814,7 @@ finish_omp_taskwait (void)
 void
 finish_omp_taskyield (void)
 {
-  tree fn = built_in_decls[BUILT_IN_GOMP_TASKYIELD];
+  tree fn = builtin_decl_explicit (BUILT_IN_GOMP_TASKYIELD);
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -7481,8 +7481,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       return t;
 
     case LAMBDA_EXPR:
-    case DYNAMIC_CAST_EXPR:
-    case PSEUDO_DTOR_EXPR:
     case PREINCREMENT_EXPR:
     case POSTINCREMENT_EXPR:
     case PREDECREMENT_EXPR:
@@ -8023,6 +8021,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case CONST_CAST_EXPR:
     case STATIC_CAST_EXPR:
     case REINTERPRET_CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
       return (potential_constant_expression_1
 	      (TREE_OPERAND (t, 0),
 	       TREE_CODE (TREE_TYPE (t)) != REFERENCE_TYPE, flags));

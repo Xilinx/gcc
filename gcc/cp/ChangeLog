@@ -1,3 +1,56 @@
+2011-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50594
+	* decl.c (cxx_init_decl_processing): Add
+	__attribute__((externally_visible)) to operator new and
+	operator delete library fn.
+
+2011-10-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* decl.c (duplicate_decls): Delete old interface with two parallel
+	arrays to hold standard builtin declarations, and replace it with
+	a function based interface that can support creating builtins on
+	the fly in the future.  Change all uses, and poison the old
+	names.  Make sure 0 is not a legitimate builtin index.
+	* except.c (build_eh_type_type): Ditto.
+	(choose_personality_routine): Ditto.
+	* semantics.c (finish_omp_atomic): Ditto.
+	(finish_omp_barrier): Ditto.
+	(finish_omp_flush): Ditto.
+	(finish_omp_taskwait): Ditto.
+
+2011-10-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49855
+	PR c++/49896
+	* cp-tree.def (IMPLICIT_CONV_EXPR): New.
+	* call.c (perform_implicit_conversion_flags): Build it
+	instead of NOP_EXPR.
+	* cp-objcp-common.c (cp_common_init_ts): It's typed.
+	* cxx-pretty-print.c (pp_cxx_cast_expression): Handle it.
+	(pp_cxx_expression): Likewise.
+	* error.c (dump_expr): Likewise.
+	* semantics.c (potential_constant_expression_1): Likewise.
+	* tree.c (cp_tree_equal): Likewise.
+	(cp_walk_subtrees): Likewise.
+	* pt.c (iterative_hash_template_arg): Likewise.
+	(for_each_template_parm_r): Likewise.
+	(type_dependent_expression_p): Likewise.
+	(tsubst_copy, tsubst_copy_and_build): Handle IMPLICIT_CONV_EXPR
+	and CONVERT_EXPR.
+	* cp-tree.h (IMPLICIT_CONV_EXPR_DIRECT_INIT): New.
+
+2011-10-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50611
+	* pt.c (tsubst_copy_and_build): If (complain & tf_error) is false
+	do not call unqualified_name_lookup_error.
+
+2011-10-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50660
+	* call.c (conversion_null_warnings): Don't look through references.
+
 2011-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/38980

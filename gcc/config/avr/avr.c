@@ -351,6 +351,21 @@ avr_option_override (void)
 {
   flag_delete_null_pointer_checks = 0;
 
+  /* Unwind tables currently require a frame pointer for correctness,
+     see toplev.c:process_options().  */
+
+  if ((flag_unwind_tables
+       || flag_non_call_exceptions
+       || flag_asynchronous_unwind_tables)
+      && !ACCUMULATE_OUTGOING_ARGS)
+    {
+      flag_omit_frame_pointer = 0;
+    }
+  else
+    {
+      flag_omit_frame_pointer = (optimize >= 1);
+    }
+
   avr_current_device = &avr_mcu_types[avr_mcu_index];
   avr_current_arch = &avr_arch_types[avr_current_device->arch];
   avr_extra_arch_macro = avr_current_device->macro;
@@ -1187,43 +1202,68 @@ avr_cannot_modify_jumps_p (void)
 }
 
 
+/* Helper function for `avr_legitimate_address_p'.  */
+
+static inline bool
+avr_reg_ok_for_addr_p (rtx reg, addr_space_t as ATTRIBUTE_UNUSED, int strict)
+{
+  return (REG_P (reg)
+          && (avr_regno_mode_code_ok_for_base_p (REGNO (reg),
+                                                 QImode, MEM, UNKNOWN)
+              || (!strict
+                  && REGNO (reg) >= FIRST_PSEUDO_REGISTER)));
+}
+
+
 /* Return nonzero if X (an RTX) is a legitimate memory address on the target
    machine for a memory operand of mode MODE.  */
 
-bool
+static bool
 avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
   reg_class_t r = NO_REGS;
   
-  if (REG_P (x) && (strict ? REG_OK_FOR_BASE_STRICT_P (x)
-                    : REG_OK_FOR_BASE_NOSTRICT_P (x)))
-    r = POINTER_REGS;
+  if (REG_P (x)
+      && avr_reg_ok_for_addr_p (x, ADDR_SPACE_GENERIC, strict))
+    {
+      r = POINTER_REGS;
+    }
   else if (CONSTANT_ADDRESS_P (x))
-    r = ALL_REGS;
+    {
+      r = ALL_REGS;
+    }
   else if (GET_CODE (x) == PLUS
            && REG_P (XEXP (x, 0))
-	   && GET_CODE (XEXP (x, 1)) == CONST_INT
-	   && INTVAL (XEXP (x, 1)) >= 0)
+           && CONST_INT_P (XEXP (x, 1))
+           && INTVAL (XEXP (x, 1)) >= 0)
     {
-      int fit = INTVAL (XEXP (x, 1)) <= MAX_LD_OFFSET (mode);
+      rtx reg = XEXP (x, 0);
+      bool fit = INTVAL (XEXP (x, 1)) <= MAX_LD_OFFSET (mode);
+      
       if (fit)
-	{
-	  if (! strict
-	      || REGNO (XEXP (x,0)) == REG_X
-	      || REGNO (XEXP (x,0)) == REG_Y
-	      || REGNO (XEXP (x,0)) == REG_Z)
-	    r = BASE_POINTER_REGS;
-	  if (XEXP (x,0) == frame_pointer_rtx
-	      || XEXP (x,0) == arg_pointer_rtx)
-	    r = BASE_POINTER_REGS;
-	}
-      else if (frame_pointer_needed && XEXP (x,0) == frame_pointer_rtx)
-	r = POINTER_Y_REGS;
+        {
+          if (! strict
+              || REGNO (reg) == REG_X
+              || REGNO (reg) == REG_Y
+              || REGNO (reg) == REG_Z)
+            {
+              r = BASE_POINTER_REGS;
+            }
+          
+          if (reg == frame_pointer_rtx
+              || reg == arg_pointer_rtx)
+            {
+              r = BASE_POINTER_REGS;
+            }
+        }
+      else if (frame_pointer_needed && reg == frame_pointer_rtx)
+        {
+          r = POINTER_Y_REGS;
+        }
     }
   else if ((GET_CODE (x) == PRE_DEC || GET_CODE (x) == POST_INC)
            && REG_P (XEXP (x, 0))
-           && (strict ? REG_OK_FOR_BASE_STRICT_P (XEXP (x, 0))
-               : REG_OK_FOR_BASE_NOSTRICT_P (XEXP (x, 0))))
+           && avr_reg_ok_for_addr_p (XEXP (x, 0), ADDR_SPACE_GENERIC, strict))
     {
       r = POINTER_REGS;
     }
@@ -1254,7 +1294,7 @@ avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 /* Attempts to replace X with a valid
    memory address for an operand of mode MODE  */
 
-rtx
+static rtx
 avr_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
 {
   bool big_offset_p = false;
@@ -1615,9 +1655,37 @@ void
 notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
 {
   rtx set;
+  enum attr_cc cc = get_attr_cc (insn);
   
-  switch (get_attr_cc (insn))
+  switch (cc)
     {
+    default:
+      break;
+
+    case CC_OUT_PLUS:
+      {
+        rtx *op = recog_data.operand;
+        int len_dummy, icc;
+        
+        /* Extract insn's operands.  */
+        extract_constrain_insn_cached (insn);
+        
+        avr_out_plus (op, &len_dummy, &icc);
+        cc = (enum attr_cc) icc;
+        
+        break;
+      }
+    }
+
+  switch (cc)
+    {
+    default:
+      /* Special values like CC_OUT_PLUS from above have been
+         mapped to "standard" CC_* values so we never come here.  */
+      
+      gcc_unreachable();
+      break;
+      
     case CC_NONE:
       /* Insn does not affect CC at all.  */
       break;
@@ -4658,10 +4726,11 @@ lshrsi3_out (rtx insn, rtx operands[], int *len)
    addition; otherwise, set *PLEN to the length of the instruction sequence (in
    words) printed with PLEN == NULL.  XOP[3] is an 8-bit scratch register.
    CODE == PLUS:  perform addition by using ADD instructions.
-   CODE == MINUS: perform addition by using SUB instructions.  */
+   CODE == MINUS: perform addition by using SUB instructions.
+   Set *PCC to effect on cc0 according to respective CC_* insn attribute.  */
 
 static void
-avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code)
+avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
 {
   /* MODE of the operation.  */
   enum machine_mode mode = GET_MODE (xop[0]);
@@ -4685,6 +4754,10 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code)
   /* Value to add.  There are two ways to add VAL: R += VAL and R -= -VAL.  */
   rtx xval = xop[2];
 
+  /* Addition does not set cc0 in a usable way.  */
+  
+  *pcc = (MINUS == code) ? CC_SET_CZN : CC_CLOBBER;
+
   if (MINUS == code)
     xval = gen_int_mode (-UINTVAL (xval), mode);
 
@@ -4707,6 +4780,11 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code)
 
       op[0] = reg8;
       op[1] = GEN_INT (val8);
+
+      /* To get usable cc0 no low-bytes must have been skipped.  */
+      
+      if (i && !started)
+        *pcc = CC_CLOBBER;
       
       if (!started && i % 2 == 0
           && test_hard_reg_class (ADDW_REGS, reg8))
@@ -4779,6 +4857,11 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code)
       started = true;
 
     } /* for all sub-bytes */
+
+  /* No output doesn't change cc0.  */
+  
+  if (plen && *plen == 0)
+    *pcc = CC_NONE;
 }
 
 
@@ -4788,24 +4871,35 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code)
 
    and return "".  If PLEN == NULL, print assembler instructions to perform the
    addition; otherwise, set *PLEN to the length of the instruction sequence (in
-   words) printed with PLEN == NULL.  */
+   words) printed with PLEN == NULL.
+   If PCC != 0 then set *PCC to the the instruction sequence's effect on the
+   condition code (with respect to XOP[0]).  */
 
 const char*
-avr_out_plus (rtx *xop, int *plen)
+avr_out_plus (rtx *xop, int *plen, int *pcc)
 {
   int len_plus, len_minus;
+  int cc_plus, cc_minus, cc_dummy;
 
+  if (!pcc)
+    pcc = &cc_dummy;
+                                   
   /* Work out if  XOP[0] += XOP[2]  is better or  XOP[0] -= -XOP[2].  */
   
-  avr_out_plus_1 (xop, &len_plus, PLUS);
-  avr_out_plus_1 (xop, &len_minus, MINUS);
+  avr_out_plus_1 (xop, &len_plus, PLUS, &cc_plus);
+  avr_out_plus_1 (xop, &len_minus, MINUS, &cc_minus);
 
+  /* Prefer MINUS over PLUS if size is equal because it sets cc0.  */
+  
   if (plen)
-    *plen = (len_minus <= len_plus) ? len_minus : len_plus;
+    {
+      *plen = (len_minus <= len_plus) ? len_minus : len_plus;
+      *pcc  = (len_minus <= len_plus) ? cc_minus : cc_plus;
+    }
   else if (len_minus <= len_plus)
-    avr_out_plus_1 (xop, NULL, MINUS);
+    avr_out_plus_1 (xop, NULL, MINUS, pcc);
   else
-    avr_out_plus_1 (xop, NULL, PLUS);
+    avr_out_plus_1 (xop, NULL, PLUS, pcc);
 
   return "";
 }
@@ -5194,7 +5288,7 @@ adjust_insn_length (rtx insn, int len)
       
     case ADJUST_LEN_OUT_BITOP: avr_out_bitop (insn, op, &len); break;
       
-    case ADJUST_LEN_OUT_PLUS: avr_out_plus (op, &len); break;
+    case ADJUST_LEN_OUT_PLUS: avr_out_plus (op, &len, NULL); break;
 
     case ADJUST_LEN_ADDTO_SP: avr_out_addto_sp (op, &len); break;
       
@@ -7108,6 +7202,53 @@ test_hard_reg_class (enum reg_class rclass, rtx x)
 }
 
 
+/* Helper for jump_over_one_insn_p:  Test if INSN is a 2-word instruction
+   and thus is suitable to be skipped by CPSE, SBRC, etc.  */
+
+static bool
+avr_2word_insn_p (rtx insn)
+{
+  if (avr_current_device->errata_skip
+      || !insn
+      || 2 != get_attr_length (insn))
+    {
+      return false;
+    }
+
+  switch (INSN_CODE (insn))
+    {
+    default:
+      return false;
+      
+    case CODE_FOR_movqi_insn:
+      {
+        rtx set  = single_set (insn);
+        rtx src  = SET_SRC (set);
+        rtx dest = SET_DEST (set);
+        
+        /* Factor out LDS and STS from movqi_insn.  */
+        
+        if (MEM_P (dest)
+            && (REG_P (src) || src == const0_rtx))
+          {
+            return CONSTANT_ADDRESS_P (XEXP (dest, 0));
+          }
+        else if (REG_P (dest)
+                 && MEM_P (src))
+          {
+            return CONSTANT_ADDRESS_P (XEXP (src, 0));
+          }
+        
+        return false;
+      }
+
+    case CODE_FOR_call_insn:
+    case CODE_FOR_call_value_insn:
+      return true;
+    }
+}
+
+
 int
 jump_over_one_insn_p (rtx insn, rtx dest)
 {
@@ -7116,7 +7257,11 @@ jump_over_one_insn_p (rtx insn, rtx dest)
 		      : dest);
   int jump_addr = INSN_ADDRESSES (INSN_UID (insn));
   int dest_addr = INSN_ADDRESSES (uid);
-  return dest_addr - jump_addr == get_attr_length (insn) + 1;
+  int jump_offset = dest_addr - jump_addr - get_attr_length (insn);
+  
+  return (jump_offset == 1
+          || (jump_offset == 2
+              && avr_2word_insn_p (next_active_insn (insn))));
 }
 
 /* Returns 1 if a value of mode MODE can be stored starting with hard
@@ -7152,6 +7297,51 @@ avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
   /* All modes larger than 8 bits should start in an even register.  */
   
   return !(regno & 1);
+}
+
+
+/* Implement `MODE_CODE_BASE_REG_CLASS'.  */
+
+reg_class_t
+avr_mode_code_base_reg_class (enum machine_mode mode ATTRIBUTE_UNUSED,
+                              RTX_CODE outer_code ATTRIBUTE_UNUSED,
+                              RTX_CODE index_code ATTRIBUTE_UNUSED)
+{
+  return reload_completed ? BASE_POINTER_REGS : POINTER_REGS;
+}
+
+
+/* Implement `REGNO_MODE_CODE_OK_FOR_BASE_P'.  */
+
+bool
+avr_regno_mode_code_ok_for_base_p (int regno,
+                                   enum machine_mode mode ATTRIBUTE_UNUSED,
+                                   RTX_CODE outer_code ATTRIBUTE_UNUSED,
+                                   RTX_CODE index_code ATTRIBUTE_UNUSED)
+{
+  if (regno < FIRST_PSEUDO_REGISTER
+      && (regno == REG_X
+          || regno == REG_Y
+          || regno == REG_Z
+          || regno == ARG_POINTER_REGNUM))
+    {
+      return true;
+    }
+
+  if (reg_renumber)
+    {
+      regno = reg_renumber[regno];
+
+      if (regno == REG_X
+          || regno == REG_Y
+          || regno == REG_Z
+          || regno == ARG_POINTER_REGNUM)
+        {
+          return true;
+        }
+    }
+  
+  return false;
 }
 
 
