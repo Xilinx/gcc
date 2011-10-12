@@ -756,7 +756,7 @@ pph_in_chain (pph_stream *stream)
 
 /* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
 
-void
+static void
 pph_in_mergeable_chain (pph_stream *stream, tree *chain)
 {
   int i, count;
@@ -1155,9 +1155,9 @@ pph_in_language_function (pph_stream *stream)
   lf->x_vtt_parm = pph_in_tree (stream);
   lf->x_return_value = pph_in_tree (stream);
   bp = pph_in_bitpack (stream);
-  lf->x_returns_value = bp_unpack_value (&bp, 1);
-  lf->x_returns_null = bp_unpack_value (&bp, 1);
-  lf->x_returns_abnormally = bp_unpack_value (&bp, 1);
+  lf->returns_value = bp_unpack_value (&bp, 1);
+  lf->returns_null = bp_unpack_value (&bp, 1);
+  lf->returns_abnormally = bp_unpack_value (&bp, 1);
   lf->x_in_function_try_handler = bp_unpack_value (&bp, 1);
   lf->x_in_base_initializer = bp_unpack_value (&bp, 1);
   lf->can_throw = bp_unpack_value (&bp, 1);

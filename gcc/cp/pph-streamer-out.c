@@ -947,7 +947,7 @@ pph_write_mergeable_links (pph_stream *stream, tree t)
 /* Emit the chain of tree nodes from ENCLOSING_NAMESPACE starting at T
    to STREAM.  */
 
-void
+static void
 pph_out_mergeable_chain (pph_stream *stream, tree t)
 {
   int count = list_length (t);
@@ -1181,9 +1181,9 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
   pph_out_tree (stream, lf->x_vtt_parm);
   pph_out_tree (stream, lf->x_return_value);
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, lf->x_returns_value, 1);
-  bp_pack_value (&bp, lf->x_returns_null, 1);
-  bp_pack_value (&bp, lf->x_returns_abnormally, 1);
+  bp_pack_value (&bp, lf->returns_value, 1);
+  bp_pack_value (&bp, lf->returns_null, 1);
+  bp_pack_value (&bp, lf->returns_abnormally, 1);
   bp_pack_value (&bp, lf->x_in_function_try_handler, 1);
   bp_pack_value (&bp, lf->x_in_base_initializer, 1);
   bp_pack_value (&bp, lf->can_throw, 1);
@@ -1952,9 +1952,11 @@ pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
           pph_write_tree_header (stream, expr);
           if (mergeable && DECL_P (expr))
             {
+              tree name;
+
               /* We may need to unify two declarations.  */
               pph_out_location (stream, DECL_SOURCE_LOCATION (expr));
-              tree name = DECL_NAME (expr);
+              name = DECL_NAME (expr);
               if (name)
                 pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
                                             IDENTIFIER_LENGTH (name));

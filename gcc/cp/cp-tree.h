@@ -1053,9 +1053,9 @@ struct GTY(()) language_function {
   tree x_vtt_parm;
   tree x_return_value;
 
-  BOOL_BITFIELD x_returns_value : 1;
-  BOOL_BITFIELD x_returns_null : 1;
-  BOOL_BITFIELD x_returns_abnormally : 1;
+  BOOL_BITFIELD returns_value : 1;
+  BOOL_BITFIELD returns_null : 1;
+  BOOL_BITFIELD returns_abnormally : 1;
   BOOL_BITFIELD x_in_function_try_handler : 1;
   BOOL_BITFIELD x_in_base_initializer : 1;
 
@@ -1110,18 +1110,18 @@ struct GTY(()) language_function {
 /* Set to 0 at beginning of a function definition, set to 1 if
    a return statement that specifies a return value is seen.  */
 
-#define current_function_returns_value cp_function_chain->x_returns_value
+#define current_function_returns_value cp_function_chain->returns_value
 
 /* Set to 0 at beginning of a function definition, set to 1 if
    a return statement with no argument is seen.  */
 
-#define current_function_returns_null cp_function_chain->x_returns_null
+#define current_function_returns_null cp_function_chain->returns_null
 
 /* Set to 0 at beginning of a function definition, set to 1 if
    a call to a noreturn function is seen.  */
 
 #define current_function_returns_abnormally \
-  cp_function_chain->x_returns_abnormally
+  cp_function_chain->returns_abnormally
 
 /* Nonzero if we are processing a base initializer.  Zero elsewhere.  */
 #define in_base_initializer cp_function_chain->x_in_base_initializer

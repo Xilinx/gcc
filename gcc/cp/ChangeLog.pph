@@ -1,5 +1,16 @@
 2011-10-12   Diego Novillo  <dnovillo@google.com>
 
+	* cp-tree.h (struct language_function): Rename x_returns_value
+	to returns_value.
+	Rename x_returns_null to returns_null.
+	Rename x_returns_abnormally to returns_abnormally.
+	Change all users.
+	* pph-streamer-in.c (pph_in_mergeable_chain): Make static.
+	* pph-streamer-out.c (pph_out_mergeable_chain): Make static.
+	(pph_write_any_tree): Fix C90 warning.
+
+2011-10-12   Diego Novillo  <dnovillo@google.com>
+
 	* cp-tree.h (pushdecl_into_namespace): Remove.
 	(print_namespace): Remove.
 	* name-lookup.c (add_decl_to_level): Remove unnecessary braces.
