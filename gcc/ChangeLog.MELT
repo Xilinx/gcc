@@ -1,5 +1,8 @@
 
 2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.1
+
+2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-runtime.args): Use rm -f to remove it before.
 
 2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
