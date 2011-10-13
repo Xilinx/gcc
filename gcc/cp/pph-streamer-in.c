@@ -517,6 +517,7 @@ static tree pph_in_any_tree (pph_stream *stream, tree *chain);
 
 
 /* Load an AST from STREAM.  Return the corresponding tree.  */
+
 tree
 pph_in_tree (pph_stream *stream)
 {
@@ -525,8 +526,7 @@ pph_in_tree (pph_stream *stream)
 }
 
 
-/* Load an AST in an ENCLOSING_NAMESPACE from STREAM.
-   Return the corresponding tree.  */
+/* Load an AST into CHAIN from STREAM.  */
 static void
 pph_in_mergeable_tree (pph_stream *stream, tree *chain)
 {
@@ -534,59 +534,27 @@ pph_in_mergeable_tree (pph_stream *stream, tree *chain)
 }
 
 
-/* Callback for reading ASTs from a stream.  Instantiate and return a
-   new tree from the PPH stream in DATA_IN.  */
-
-tree
-pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
-	       struct data_in *root_data_in)
-{
-  /* Find data.  */
-  pph_stream *stream = (pph_stream *) root_data_in->sdata;
-  return pph_in_any_tree (stream, NULL);
-}
-
-
 /********************************************************** lexical elements */
 
 
-/* Callback for streamer_hooks.input_location.  An offset is applied to
-   the location_t read in according to the properties of the merged
-   line_table.  IB and DATA_IN are as in lto_input_location.  This function
-   should only be called after pph_in_and_merge_line_table was called as
-   we expect pph_loc_offset to be set.  */
+/* Read and return a location_t from STREAM.  */
 
 location_t
-pph_read_location (struct lto_input_block *ib,
-                   struct data_in *data_in ATTRIBUTE_UNUSED)
+pph_in_location (pph_stream *stream)
 {
   struct bitpack_d bp;
   bool is_builtin;
   unsigned HOST_WIDE_INT n;
   location_t old_loc;
 
-  bp = streamer_read_bitpack (ib);
+  bp = pph_in_bitpack (stream);
   is_builtin = bp_unpack_value (&bp, 1);
 
-  n = streamer_read_uhwi (ib);
+  n = pph_in_uhwi (stream);
   old_loc = (location_t) n;
   gcc_assert (old_loc == n);
 
   return is_builtin ? old_loc : old_loc + pph_loc_offset;
-}
-
-
-/* Read and return a location_t from STREAM.
-   FIXME pph: Tracing doesn't depend on STREAM any more.  We could avoid having
-   to call this function, only for it to call lto_input_location, which calls
-   the streamer hook back to pph_read_location.  Say what?  */
-
-location_t
-pph_in_location (pph_stream *stream)
-{
-  location_t loc = pph_read_location (stream->encoder.r.ib,
-                                       stream->encoder.r.data_in);
-  return loc;
 }
 
 
@@ -761,7 +729,7 @@ pph_in_mergeable_chain (pph_stream *stream, tree *chain)
 {
   int i, count;
 
-  count = streamer_read_hwi (stream->encoder.r.ib);
+  count = pph_in_hwi (stream);
   for (i = 0; i < count; i++)
     pph_in_mergeable_tree (stream, chain);
 }
@@ -1954,8 +1922,8 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
-/* Read a tree from the STREAM.  It ENCLOSING_NAMESPACE is not null,
-   the tree may be unified with an existing tree in that namespace.  */
+/* Read a tree from the STREAM.  If CHAIN is not null, the tree may be
+   unified with an existing tree in that chain.  */
 
 static tree
 pph_in_any_tree (pph_stream *stream, tree *chain)

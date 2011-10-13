@@ -243,17 +243,17 @@ tree pph_merge_name (tree expr);
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
-void pph_write_tree (struct output_block *, tree, bool);
 void pph_write_mergeable_chain (pph_stream *, tree);
 void pph_writer_init (void);
 void pph_writer_finish (void);
-void pph_write_location (struct output_block *, location_t);
+void pph_out_location (pph_stream *, location_t);
+void pph_out_tree (pph_stream *, tree);
 
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
-tree pph_read_tree (struct lto_input_block *, struct data_in *);
-location_t pph_read_location (struct lto_input_block *, struct data_in *);
+location_t pph_in_location (pph_stream *);
 pph_stream *pph_read_file (const char *);
+tree pph_in_tree (pph_stream *stream);
 
 
 /* Inline functions.  */

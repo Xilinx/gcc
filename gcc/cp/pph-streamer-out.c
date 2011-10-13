@@ -641,26 +641,13 @@ pph_out_mergeable_tree (pph_stream *stream, tree t)
 }
 
 
-/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
-   in OB.  */
-
-void
-pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
-{
-  pph_stream *stream = (pph_stream *) ob->sdata;
-  pph_out_any_tree (stream, expr, false);
-}
-
-
 /********************************************************** lexical elements */
 
 
-/* Callback for streamer_hooks.output_location.  Output the LOC directly,
-   an offset will be applied on input after rebuilding the line_table.
-   OB and LOC are as in lto_output_location.  */
+/* Write location LOC of length to STREAM.  */
 
 void
-pph_write_location (struct output_block *ob, location_t loc)
+pph_out_location (pph_stream *stream, location_t loc)
 {
   /* FIXME pph: we are streaming builtin locations, which implies that we are
      streaming some builtins, we probably want to figure out what those are and
@@ -670,7 +657,7 @@ pph_write_location (struct output_block *ob, location_t loc)
   location_t first_non_builtin_loc =
     line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location;
 
-  bp = bitpack_create (ob->main_stream);
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
   if (loc < first_non_builtin_loc)
     {
       /* We should never stream out trees with locations between builtins
@@ -687,17 +674,8 @@ pph_write_location (struct output_block *ob, location_t loc)
       bp_pack_value (&bp, false, 1);
     }
 
-  streamer_write_bitpack (&bp);
-  streamer_write_hwi (ob, loc);
-}
-
-
-/* Write location LOC of length to STREAM.  */
-
-void
-pph_out_location (pph_stream *stream, location_t loc)
-{
-  pph_write_location (stream->encoder.w.ob, loc);
+  pph_out_bitpack (stream, &bp);
+  pph_out_uhwi (stream, loc);
 }
 
 

@@ -1,3 +1,30 @@
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_mergeable_tree): Fix comment.
+	(pph_read_tree): Move to pph-streamer.c.
+	(pph_in_location): Rename from pph_read_location.
+	(pph_read_location): Move to pph-streamer.c.
+	(pph_in_mergeable_chain): Call pph_in_hwi.
+	(pph_in_any_tree): Fix comment.
+	* pph-streamer-out.c (pph_write_tree): Move to pph-streamer.c.
+	(pph_out_location): Rename from pph_write_location.
+	(pph_write_location): Move to pph-streamer.c.
+	* pph-streamer.c (pph_write_tree): Move from pph-streamer-out.c.
+	Make static.
+	(pph_read_tree): Move from pph-streamer-in.c.  Make static.
+	(pph_input_location): Move from pph-streamer-in.c.  Rename
+	from pph_read_location.
+	(pph_output_location): Move from pph-streamer-out.c. Rename
+	from pph_out_location.
+	* pph-streamer.h (pph_write_tree): Remove.
+	(pph_write_location): Remove.
+	(pph_read_tree): Remove.
+	(pph_read_location): Remove.
+	(pph_out_location): Declare.
+	(pph_out_tree): Declare.
+	(pph_in_location): Declare.
+	(pph_in_tree): Declare.
+
 2011-10-12   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer.h (enum pph_trace_type): Remove.

@@ -92,6 +92,52 @@ pph_cache_preload (pph_cache *cache)
 }
 
 
+/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
+   in OB.  */
+
+static void
+pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+{
+  pph_out_tree ((pph_stream *) ob->sdata, expr);
+}
+
+
+/* Callback for reading ASTs from a stream.  Instantiate and return a
+   new tree from the PPH stream in DATA_IN.  */
+
+static tree
+pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
+	       struct data_in *data_in)
+{
+  return pph_in_tree ((pph_stream *) data_in->sdata);
+}
+
+
+/* Callback for streamer_hooks.input_location.  An offset is applied to
+   the location_t read in according to the properties of the merged
+   line_table.  IB and DATA_IN are as in lto_input_location.  This function
+   should only be called after pph_in_and_merge_line_table was called as
+   we expect pph_loc_offset to be set.  */
+
+static location_t
+pph_input_location (struct lto_input_block *ib ATTRIBUTE_UNUSED,
+                    struct data_in *data_in)
+{
+  return pph_in_location ((pph_stream *) data_in->sdata);
+}
+
+
+/* Callback for streamer_hooks.output_location.  Output the LOC directly,
+   an offset will be applied on input after rebuilding the line_table.
+   OB and LOC are as in lto_output_location.  */
+
+static void
+pph_output_location (struct output_block *ob, location_t loc)
+{
+  pph_out_location ((pph_stream *) ob->sdata, loc);
+}
+
+
 /* Initialize all the streamer hooks used for streaming ASTs.  */
 
 static void
@@ -100,8 +146,8 @@ pph_hooks_init (void)
   streamer_hooks_init ();
   streamer_hooks.write_tree = pph_write_tree;
   streamer_hooks.read_tree = pph_read_tree;
-  streamer_hooks.input_location = pph_read_location;
-  streamer_hooks.output_location = pph_write_location;
+  streamer_hooks.input_location = pph_input_location;
+  streamer_hooks.output_location = pph_output_location;
 }
 
 
