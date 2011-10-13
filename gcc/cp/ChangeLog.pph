@@ -1,5 +1,37 @@
 2011-10-12   Lawrence Crowl  <crowl@google.com>
 
+	* pph-streamer.h (enum pph_trace_type): Remove.
+	(pph_trace): Likewise.
+	(pph_trace_tree): Likewise.
+	(pph_trace_uint): Likewise.
+	(pph_trace_bytes): Likewise.
+	(pph_trace_string): Likewise.
+	(pph_trace_string_with_length): Likewise.
+	(pph_trace_location): Likewise.
+	(pph_trace_chain): Likewise.
+	(pph_trace_bitpack): Likewise.
+	(pph_new_trace_tree): Rename pph_trace_tree.
+	Remove unused stream parameter.
+	* pph-streamer.c (enum pph_trace_type): Remove.
+	(pph_trace): Likewise.
+	(pph_trace_tree): Likewise.
+	(pph_trace_uint): Likewise.
+	(pph_trace_bytes): Likewise.
+	(pph_trace_string): Likewise.
+	(pph_trace_string_with_length): Likewise.
+	(pph_trace_location): Likewise.
+	(pph_trace_chain): Likewise.
+	(pph_trace_bitpack): Likewise.
+	(pph_new_trace_tree): Rename pph_trace_tree.
+	Remove unused stream parameter.
+	* pph-streamer-out.c (pph_out_any_tree):  Call new pph_trace_tree
+	instead of old pph_new_trace_tree.
+	* pph-streamer-in.c (pph_in_any_tree): Call new pph_trace_tree
+	instead of old pph_new_trace_tree.
+	(pph_in_location): Change lead comment.
+
+2011-10-12   Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer-out.c (pph_write_any_tree):  Rename to pph_out_any_tree.
 	(pph_write_mergeable_links):  Rename to pph_out_mergeable_links.
 	(pph_write_tree_body):  Rename to pph_out_tree_body.

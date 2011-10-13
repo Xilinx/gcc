@@ -229,15 +229,7 @@ pph_stream *pph_stream_open (const char *, const char *);
 void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);
-void pph_trace_tree (pph_stream *, tree);
-void pph_new_trace_tree (pph_stream *, tree, bool);
-void pph_trace_uint (pph_stream *, unsigned int);
-void pph_trace_bytes (pph_stream *, const void *, size_t);
-void pph_trace_string (pph_stream *, const char *);
-void pph_trace_string_with_length (pph_stream *, const char *, unsigned);
-void pph_trace_location (pph_stream *, location_t);
-void pph_trace_chain (pph_stream *, tree);
-void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
+void pph_trace_tree (tree, bool);
 void pph_cache_insert_at (pph_cache *, void *, unsigned, enum pph_tag);
 bool pph_cache_lookup (pph_cache *, void *, unsigned *, enum pph_tag);
 bool pph_cache_lookup_in_includes (pph_stream *, void *, unsigned *, unsigned *,

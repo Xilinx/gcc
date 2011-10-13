@@ -577,9 +577,9 @@ pph_read_location (struct lto_input_block *ib,
 
 
 /* Read and return a location_t from STREAM.
-   FIXME pph: If pph_trace didn't depend on STREAM, we could avoid having to
-   call this function, only for it to call lto_input_location, which calls the
-   streamer hook back to pph_read_location.  */
+   FIXME pph: Tracing doesn't depend on STREAM any more.  We could avoid having
+   to call this function, only for it to call lto_input_location, which calls
+   the streamer hook back to pph_read_location.  Say what?  */
 
 location_t
 pph_in_location (pph_stream *stream)
@@ -2028,7 +2028,7 @@ pph_in_any_tree (pph_stream *stream, tree *chain)
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
   pph_in_tree_body (stream, expr);
 
-  pph_new_trace_tree (stream, expr, chain != NULL);
+  pph_trace_tree (expr, chain != NULL);
 
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
