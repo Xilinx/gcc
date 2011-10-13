@@ -581,9 +581,9 @@ melt-sayhello.melt: $(melt_default_modules_list).modlis
 #@ [+ (. (tpl-file-line))+]
 
 melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
-  melt-all-modules melt-all-sources \
-  melt-default-modules-quicklybuilt.modlis melt-runtime.args \
-  $(MELT_RUNTIME_C)
+		melt-all-modules melt-all-sources \
+		melt-default-modules-quicklybuilt.modlis melt-runtime.args \
+		$(MELT_RUNTIME_C)
 # test that a helloworld can be translated [+ (. (tpl-file-line))+]
 	@echo	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \

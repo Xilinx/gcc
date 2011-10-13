@@ -1,5 +1,10 @@
 
 2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-tiny-tests): Replace tab by spaces.
+	* melt-build.mk: Regenerate.
+	* Makefile.in (melt-runtime.args): Add echo.
+
+2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-runtime.args): Always rebuilt.
 
 2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
