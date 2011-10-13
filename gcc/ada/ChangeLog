@@ -1,3 +1,93 @@
+2011-10-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/50492
+	* gcc-interface/gigi.h (gnat_pushdecl): Adjust comment.
+	* gcc-interface/utils.c (global_context): New variable.
+	(gnat_pushdecl): Initialize it and set it as the DECL_CONTEXT of DECLs
+	that are either public external or at top level.  Use "No" macro.
+	(end_subprog_body): Call decl_function_context.
+	(rest_of_subprog_body_compilation): Likewise.
+
+2011-10-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (gnat_useless_type_conversion): Declare.
+	(rest_of_subprog_body_compilation): Likewise.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Variable>: For renaming,
+	test for useless conversions by means of gnat_useless_type_conversion.
+	* gcc-interface/trans.c: Include bitmap.h and cgraph.h.
+	(language_function): Add named_ret_val and other_ret_val.
+	(f_named_ret_val): New macro.
+	(f_other_ret_val): Likewise.
+	(gigi): Call rest_of_subprog_body_compilation.
+	(struct nrv_data): New structure.
+	(is_nrv_p): New predicate.
+	(prune_nrv_r): New helper function.
+	(prune_nrv_in_block): New function.
+	(finalize_nrv_r): New helper function.
+	(finalize_nrv): New function.
+	(return_value_ok_for_nrv_p): New predicate.
+	(build_return_expr): If optimization is enabled, record candidates for
+	the Named Return Value optimization.
+	(build_function_stub): Call rest_of_subprog_body_compilation.
+	(Subprogram_Body_to_gnu): If optimization is enabled and there are
+	candidates, finalize the Named Return Value optimization.
+	Call rest_of_subprog_body_compilation.
+	(call_to_gnu): At the end, if a return value is needed, simplify the
+	result before wrapping it up in a COMPOUND_EXPR.
+	* gcc-interface/utils.c (end_subprog_body): Split into...
+	(rest_of_subprog_body_compilation): ...this.  New function.
+	(gnat_useless_type_conversion): Likewise.
+
+2011-10-06  Thomas Quinot  <quinot@adacore.com>
+
+	* einfo.ads, exp_attr.adb, exp_ch3.adb, exp_ch4.adb, exp_ch7.adb,
+	exp_ch9.adb, exp_ch9.ads, exp_strm.adb, exp_util.adb, freeze.adb,
+	g-debpoo.ads, opt.ads, par-ch12.adb, par-ch2.adb, par-ch3.adb,
+	par-ch5.adb, par-ch6.adb, sem_aggr.adb, sem_attr.adb, sem_cat.adb,
+	sem_ch10.adb, sem_ch12.adb, sem_ch3.adb, sem_ch4.adb, sem_ch5.adb,
+	sem_ch6.adb, sem_intr.adb, sem_res.ads, sem_type.adb, sem_util.adb,
+	s-regpat.adb, s-tpopde-vms.ads: Minor reformatting.
+	* s-osinte-freebsd.ads: Fix for tasking failures on FreeBSD.
+
+2011-10-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* a-cihase.adb, a-ciorma.adb: Avoid accessibility checks in container
+	references.
+
+2011-10-06  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cuprqu.ads, a-cuprqu.adb, a-cbprqu.ads, a-cbprqu.adb
+	(Dequeue_Only_High_Priority): Protected procedure now implemented.
+
+2011-10-06  Vincent Celier  <celier@adacore.com>
+
+	* g-trasym.adb: Replace old implementation with the default
+	implementation that returns list of addresses as "0x...".
+	* g-trasym.ads: Update the list of platforms with the full
+	capability.  Indicate that there is a default implementation
+	for other platforms.
+	* g-trasym-unimplemented.ads, g-trasym-unimplemented.adb: Remove.
+	* gcc-interface/Makefile.in: Remove g-trasym-unimplemented, as there
+	is now a default implementation for all platforms without the full
+	capability.
+
+2011-10-06  Robert Dewar  <dewar@adacore.com>
+
+	* a-ciorse.adb, a-cihase.adb, a-cihase.ads, a-coorse.adb,
+	a-cborse.adb, a-comutr.adb, a-ciorma.adb, a-cbmutr.adb,
+	a-cbmutr.ads, a-cbhase.adb, a-cbhase.ads: Minor reformatting and code
+	reorganization (use conditional expressions).
+
+2011-10-06  Robert Dewar  <dewar@adacore.com>
+
+	* sem_res.adb (Resolve_Arithmetic_Op): Fix bad warning for
+	floating divide by zero.
+
+2011-10-06  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb: Limited interfaces that are not immutably limited
+	are OK in return statements.
+
 2011-09-30  Iain Sandoe  <iains@gcc.gnu.org>
 
 	* gcc-interface/Makefile.in (Darwin): Partial reversion of previous
@@ -8621,15 +8711,16 @@
 
 2011-08-03  Matthew Heaney  <heaney@adacore.com>
 
-	* a-cobove.adb (Merge): Move source onto target, instead of using Assign
+	* a-cobove.adb (Merge): Move source onto target, instead of using
+	Assign.
 
 2011-08-03  Matthew Heaney  <heaney@adacore.com>
 
-	* a-cbdlli.adb (Splice): move source items from first to last
+	* a-cbdlli.adb (Splice): Move source items from first to last.
 
 2011-08-03  Yannick Moy  <moy@adacore.com>
 
-	* sem_util.ads: comment added.
+	* sem_util.ads: Add comment.
 
 2011-08-03  Javier Miranda  <miranda@adacore.com>
 

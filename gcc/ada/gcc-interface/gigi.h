@@ -450,8 +450,8 @@ extern void set_block_jmpbuf_decl (tree decl);
 /* Get the setjmp_decl, if any, for the current binding level.  */
 extern tree get_block_jmpbuf_decl (void);
 
-/* Records a ..._DECL node DECL as belonging to the current lexical scope
-   and uses GNAT_NODE for location information.  */
+/* Record DECL as belonging to the current lexical scope and use GNAT_NODE
+   for location information and flag propagation.  */
 extern void gnat_pushdecl (tree decl, Node_Id gnat_node);
 
 extern void gnat_init_gcc_eh (void);
@@ -478,6 +478,9 @@ extern tree gnat_signed_type (tree type_node);
 /* Return 1 if the types T1 and T2 are compatible, i.e. if they can be
    transparently converted to each other.  */
 extern int gnat_types_compatible_p (tree t1, tree t2);
+
+/* Return true if EXPR is a useless type conversion.  */
+extern bool gnat_useless_type_conversion (tree expr);
 
 /* Return true if T, a FUNCTION_TYPE, has the specified list of flags.  */
 extern bool fntype_same_flags_p (const_tree, tree, bool, bool, bool);
@@ -687,8 +690,11 @@ extern tree create_subprog_decl (tree subprog_name, tree asm_name,
    appearing in the subprogram.  */
 extern void begin_subprog_body (tree subprog_decl);
 
-/* Finish the definition of the current subprogram BODY and finalize it.  */
+/* Finish translating the current subprogram and set its BODY.  */
 extern void end_subprog_body (tree body);
+
+/* Wrap up compilation of SUBPROG_DECL, a subprogram body.  */
+extern void rest_of_subprog_body_compilation (tree subprog_decl);
 
 /* Build a template of type TEMPLATE_TYPE from the array bounds of ARRAY_TYPE.
    EXPR is an expression that we can use to locate any PLACEHOLDER_EXPRs.

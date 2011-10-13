@@ -692,6 +692,14 @@ find_equal_ptrs (tree ptr, int idx)
 	{
 	case SSA_NAME:
 	  break;
+	CASE_CONVERT:
+	  if (!POINTER_TYPE_P (TREE_TYPE (ptr)))
+	    return;
+	  if (TREE_CODE (ptr) == SSA_NAME)
+	    break;
+	  if (TREE_CODE (ptr) != ADDR_EXPR)
+	    return;
+	  /* FALLTHRU */
 	case ADDR_EXPR:
 	  {
 	    int *pidx = addr_stridxptr (TREE_OPERAND (ptr, 0));
@@ -699,10 +707,6 @@ find_equal_ptrs (tree ptr, int idx)
 	      *pidx = idx;
 	    return;
 	  }
-	CASE_CONVERT:
-	  if (POINTER_TYPE_P (TREE_TYPE (ptr)))
-	    break;
-	  return;
 	default:
 	  return;
 	}
@@ -1297,7 +1301,7 @@ handle_builtin_memcpy (enum built_in_function bcode, gimple_stmt_iterator *gsi)
   if (si != NULL)
     newlen = si->length;
   else
-    newlen = build_int_cst (TREE_TYPE (len), ~idx);
+    newlen = build_int_cst (size_type_node, ~idx);
   oldlen = NULL_TREE;
   if (olddsi != NULL)
     {

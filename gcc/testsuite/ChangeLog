@@ -1,3 +1,277 @@
+2011-10-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38980
+	* g++.dg/warn/format5.C: New.
+
+2011-10-09  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45044
+	* gfortran.dg/common_14.f90: Compile with -Wno-align-commons.
+	* gfortran.dg/common_16.f90: New.
+
+2011-10-09  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/iso_c_binding_param_1.f90: New.
+	* gfortran.dg/iso_c_binding_param_2.f90: New.
+	* gfortran.dg/c_sizeof_2.f90: Update dg-error.
+
+2011-10-09  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50635
+	* gcc.dg/vect/pr50635.c: New test.
+
+2011-10-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50659
+	* gfortran.dg/proc_decl_27.f90: New.
+
+2011-10-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/50428
+	* objc/execute/initialize-1.m: New test.
+
+2011-10-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47844
+	* gfortran.dg/pointer_function_result_1.f90 : New test.
+
+2011-10-07  David S. Miller  <davem@davemloft.net>
+
+	PR 50655
+	* gcc.target/sparc/sparc.exp: Add vis3 target test.
+	* gcc.target/sparc/cmask.c: Use it.
+	* gcc.target/sparc/fhalve.c: Likewise.
+	* gcc.target/sparc/fnegop.c: Likewise.
+	* gcc.target/sparc/fpadds.c: Likewise.
+	* gcc.target/sparc/fshift.c: Likewise.
+	* gcc.target/sparc/fucmp.c: Likewise.
+	* gcc.target/sparc/lzd.c: Likewise.
+	* gcc.target/sparc/vis3misc.c: Likewise.
+	* gcc.target/sparc/xmul.c: Likewise.
+
+2011-10-07  Richard Henderson  <rth@redhat.com>
+
+	* gcc.target/i386/avx256-unaligned-load-2.c: Tweek vinsert pattern
+	match for avx2.
+	* gcc.target/i386/avx256-unaligned-store-2.c: Similarly.
+
+2011-10-07  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.dg/pr50193-1.c: New file.
+	* gcc.target/arm/shiftable.c: New file.
+
+2011-10-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50625
+	* gfortran.dg/class_46.f03: New.
+
+2011-10-06  Joern Rennecke <joern.rennecke@embecosm.com>
+
+	* gcc.dg/pr47276.c (ASMNAME, ASMNAME2, STRING): Define.
+	(__EI___vsyslog_chk, __EI_syslog, __EI_vsyslog): Use ASMNAME.
+	(syslog, vsyslog, __vsyslog_chk): Likewise.
+
+	* gcc.dg/lto/20081222_1.c (ASMNAME, ASMNAME2, STRING): Define.
+	(x, EXT_x): Use ASMNAME.
+
+	* gcc.dg/torture/pr48044.c (ASMNAME, ASMNAME2, STRING): Define.
+	(a, c): Use ASMNAME.
+
+2011-10-07  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/50527
+	* gcc.dg/pr50527.c: New test.
+
+2011-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50650
+	* gcc.c-torture/compile/pr50650.c: New test.
+
+2011-10-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/50575
+	* gcc.c-torture/execute/vector-compare-2.x: New file.
+
+2011-10-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR middle-end/50125
+	* gcc.dg/uninit-B.c (baz): Remove xfail *-*-*.
+	* gcc.dg/uninit-pr19430.c (main): Remove xfail *-*-*.
+	(bar3): Likewise.
+
+2011-10-07  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/50637
+	* gcc.dg/vect/vect-align-2.c: Increase array size.
+
+2011-10-07  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/50603
+	* gcc.target/i386/pr50603.c: New test.
+
+2011-10-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39164
+	* g++.dg/cpp0x/default31.C: New.
+
+2011-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50596
+	* lib/target-supports.exp (check_effective_target_vect_cond_mixed):
+	New.
+	* gcc.dg/vect/vect-cond-8.c: New test.
+
+2011-10-06  Richard Henderson  <rth@redhat.com>
+
+	* gcc.c-torture/execute/vect-shuffle-1.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-2.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-3.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-4.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-5.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-6.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-7.c: Remove.
+	* gcc.c-torture/execute/vect-shuffle-8.c: Remove.
+	* gcc.c-torture/execute/vshuf-16.inc: New file.
+	* gcc.c-torture/execute/vshuf-2.inc: New file.
+	* gcc.c-torture/execute/vshuf-4.inc: New file.
+	* gcc.c-torture/execute/vshuf-8.inc: New file.
+	* gcc.c-torture/execute/vshuf-main.inc: New file.
+	* gcc.c-torture/execute/vshuf-v16qi.c: New test.
+	* gcc.c-torture/execute/vshuf-v2df.c: New test.
+	* gcc.c-torture/execute/vshuf-v2di.c: New test.
+	* gcc.c-torture/execute/vshuf-v2sf.c: New test.
+	* gcc.c-torture/execute/vshuf-v2si.c: New test.
+	* gcc.c-torture/execute/vshuf-v4df.c: New test.
+	* gcc.c-torture/execute/vshuf-v4di.c: New test.
+	* gcc.c-torture/execute/vshuf-v4hi.c: New test.
+	* gcc.c-torture/execute/vshuf-v4sf.c: New test.
+	* gcc.c-torture/execute/vshuf-v4si.c: New test.
+	* gcc.c-torture/execute/vshuf-v8hi.c: New test.
+	* gcc.c-torture/execute/vshuf-v8qi.c: New test.
+	* gcc.c-torture/execute/vshuf-v8si.c: New test.
+
+2011-10-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49279
+	* gcc.dg/tree-ssa/restrict-4.c: XFAIL.
+	* gcc.c-torture/execute/pr49279.c: New test.
+
+2011-10-06  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/49049
+	* gcc.c-torture/compile/pr49049.c: New test.
+
+2011-10-06  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR target/50305
+	* gcc.target/arm/pr50305.c: New test.
+
+2011-10-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38884
+	* gcc.dg/tree-ssa/ssa-fre-34.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-fre-35.c: Likewise.
+
+2011-10-05  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/lzd.c: New test.
+	* gcc.target/sparc/popc.c: New test.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/strlenopt-21.c (dg-options): Remove -fdump-tree-optimized.
+	* gcc.dg/ipa/inline-5.c: Cleanup inline ipa dump.
+	* g++.dg/other/final1.C: Cleanup original tree dump.
+
+2011-10-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50613
+	* gcc.dg/pr50613.c: New test.
+
+2011-10-05  Richard Henderson  <rth@redhat.com>
+
+	* gcc.c-torture/execute/vect-shuffle-1.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-2.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-3.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-4.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-5.c: Rewrite.
+	* gcc.c-torture/execute/vect-shuffle-6.c: New test.
+	* gcc.c-torture/execute/vect-shuffle-7.c: New test.
+	* gcc.c-torture/execute/vect-shuffle-8.c: New test.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/vect/vect.exp (VEC_CFLAGS): Move initialization after
+	DEFAULT_VECTFLAGS initialization.  Append "-fdump-tree-veclower2".
+	* gcc.dg/vect/vec-scal-opt.c: Scan and cleanup veclower2 tree dump.
+	* gcc.dg/vect/vec-scal-opt1.c: Ditto.
+	* gcc.dg/vect/vec-scal-opt2.c: Ditto.
+
+2011-10-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38885
+	* gcc.dg/tree-ssa/ssa-fre-33.c: New testcase.
+
+2011-10-05  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.target/i386/sw-1.c: New test.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-3.c (dg-options): Add
+	-mtune=generic.
+	* gcc.target/i386/avx256-unaligned-store-3.c (dg-options): Ditto.
+
+2011-10-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/torture/builtin-complex-1.c: Use dg-add-options ieee.
+
+2011-10-04  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/fhalve.c: New test.
+	* gcc.target/sparc/fnegop.c: New test.
+	* gcc.target/sparc/xmul.c: New test.
+
+2011-10-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/35831
+	* gfortran.dg/dummy_procedure_6.f90: New.
+
+2011-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50604
+	* gcc.dg/pr50604.c: New test.
+
+2011-10-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/49662
+	* gcc.dg/graphite/interchange-14.c: Remove xfail *-*-*.
+	* gcc.dg/graphite/interchange-15.c: Likewise.
+	* gcc.dg/graphite/interchange-mvt.c: Likewise.
+
+2011-10-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/tree-ssa/restrict-4.c: New test.
+
+2011-10-04  Artem Shinkarov  <artyom.shinkaroff@gmail.com>
+
+	* gcc.c-torture/execute/vector-compare-1.c: Fix trailing white spaces.
+	(main): Use __typeof to get result type of comparison.
+
+2011-10-04  Ira Rosen  <ira.rosen@linaro.org>
+
+	* lib/target-supports.exp (check_effective_target_vect_multiple_sizes):
+	Make et_vect_multiple_sizes_saved global.
+	(check_effective_target_vect64): Make et_vect64_saved global.
+
+2011-10-03  Artjoms Sinkarovs  <artyom.shinkaroff@gmail.com>
+
+	* gcc.c-torture/execute/vect-shuffle-2.c: New test.
+	* gcc.c-torture/execute/vect-shuffle-4.c: New test.
+	* gcc.c-torture/execute/vect-shuffle-1.c: New test.
+	* gcc.dg/builtin-complex-err-1.c: Adjust.
+
 2011-10-02  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/range-for22.C: New.
@@ -80,7 +354,7 @@
 
 2011-09-30  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
 
-       * gcc.target/arm/pr42835.c: Add -fno-tree-tail-merge.
+	* gcc.target/arm/pr42835.c: Add -fno-tree-tail-merge.
 
 2011-09-30  David S. Miller  <davem@davemloft.net>
 
@@ -135,8 +409,8 @@
 	PR testsuite/50485
 	* gcc.target/i386/sse4_1-blendps.c: Include <stdlib.h>.
 	(TEST): Initialize src3 with random floats.
-	* gcc.target/i386/sse4_1-blendps-2.c (sse4_1_test): Remove field i from
-	union src3.  Initialize src3 with random floats.
+	* gcc.target/i386/sse4_1-blendps-2.c (sse4_1_test): Remove field i
+	from union src3.  Initialize src3 with random floats.
 
 2011-09-27  Oleg Endo  <oleg.endo@t-online.de>
 
@@ -496,8 +770,7 @@
 2011-09-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR testsuite/50469
-	* gfortran.dg/storage_size_2.f08: Replace "must be be" with
-	"must be".
+	* gfortran.dg/storage_size_2.f08: Replace "must be be" with "must be".
 
 2011-09-20  Jason Merrill  <jason@redhat.com>
 
@@ -883,8 +1156,7 @@
 	gcc.dg/vect/vect-54.c, gcc.dg/vect/vect-46.c, gcc.dg/vect/vect-48.c,
 	gcc.dg/vect/vect-96.c, gcc.dg/vect/vect-multitypes-3.c,
 	gcc.dg/vect/vect-40.c: Likewise.
-	* gcc.dg/vect/vect-outer-5.c: Remove quad-vectors option as
-	redundant.
+	* gcc.dg/vect/vect-outer-5.c: Remove quad-vectors option as redundant.
 	* gcc.dg/vect/vect-109.c, gcc.dg/vect/vect-peel-1.c,
 	gcc.dg/vect/vect-peel-2.c, gcc.dg/vect/slp-25.c,
 	gcc.dg/vect/vect-multitypes-1.c, gcc.dg/vect/slp-3.c,
@@ -941,8 +1213,8 @@
 
 2011-09-05  Georg-Johann Lay  <avr@gjlay.de>
 
-	* gcc.dg/ipa/ipcp-3.c (mark_cell): Use mask 1 << 14 instead of 1
-	<< 18 to avoid warning on int=16 platforms..
+	* gcc.dg/ipa/ipcp-3.c (mark_cell): Use mask 1 << 14 instead of 1 << 18
+	to avoid warning on int=16 platforms..
 
 2011-09-05  Jakub Jelinek  <jakub@redhat.com>
 

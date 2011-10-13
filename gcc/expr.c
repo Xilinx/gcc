@@ -8606,6 +8606,11 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
       mode = TYPE_MODE (TREE_TYPE (treeop0));
       goto binop;
 
+    case VEC_PERM_EXPR:
+      target = expand_vec_perm_expr (type, treeop0, treeop1, treeop2, target);
+      gcc_assert (target);
+      return target;
+
     case DOT_PROD_EXPR:
       {
 	tree oprnd0 = treeop0;
@@ -10340,6 +10345,17 @@ do_store_flag (sepops ops, rtx target, enum machine_mode mode)
 
   STRIP_NOPS (arg0);
   STRIP_NOPS (arg1);
+  
+  /* For vector typed comparisons emit code to generate the desired
+     all-ones or all-zeros mask.  Conveniently use the VEC_COND_EXPR
+     expander for this.  */
+  if (TREE_CODE (ops->type) == VECTOR_TYPE)
+    {
+      tree ifexp = build2 (ops->code, ops->type, arg0, arg1);
+      tree if_true = constant_boolean_node (true, ops->type);
+      tree if_false = constant_boolean_node (false, ops->type);
+      return expand_vec_cond_expr (ops->type, ifexp, if_true, if_false, target);
+    }
 
   /* For vector typed comparisons emit code to generate the desired
      all-ones or all-zeros mask.  Conveniently use the VEC_COND_EXPR

@@ -18,13 +18,13 @@
 ;; along with GCC; see the file COPYING3.  If not see
 ;; <http://www.gnu.org/licenses/>.
 
-;; All vector modes including V1TImode, used in move patterns.
+;; All vector modes including V?TImode, used in move patterns.
 (define_mode_iterator V16
   [(V32QI "TARGET_AVX") V16QI
    (V16HI "TARGET_AVX") V8HI
    (V8SI "TARGET_AVX") V4SI
    (V4DI "TARGET_AVX") V2DI
-   V1TI
+   (V2TI "TARGET_AVX") V1TI
    (V8SF "TARGET_AVX") V4SF
    (V4DF "TARGET_AVX") V2DF])
 
@@ -99,11 +99,13 @@
 (define_mode_iterator VI8_AVX2
   [(V4DI "TARGET_AVX2") V2DI])
 
+;; ??? We should probably use TImode instead.
 (define_mode_iterator VIMAX_AVX2
   [(V2TI "TARGET_AVX2") V1TI])
 
+;; ??? This should probably be dropped in favor of VIMAX_AVX2.
 (define_mode_iterator SSESCALARMODE
-  [(V4DI "TARGET_AVX2") TI])
+  [(V2TI "TARGET_AVX2") TI])
 
 (define_mode_iterator VI12_AVX2
   [(V32QI "TARGET_AVX2") V16QI
@@ -147,7 +149,7 @@
     (V8HI "ssse3") (V16HI "avx2")
     (V4SI "ssse3") (V8SI "avx2")
     (V2DI "ssse3") (V4DI "avx2")
-    (TI "ssse3")])
+    (TI "ssse3") (V2TI "avx2")])
 
 (define_mode_attr sse4_1_avx2
    [(V16QI "sse4_1") (V32QI "avx2")
@@ -236,7 +238,10 @@
    (V4SF "V4SI") (V2DF "V2DI")
    (V4DF "V4DI") (V8SF "V8SI")
    (V8SI "V8SI") (V4DI "V4DI")
-   (V4SI "V4SI") (V2DI "V2DI")])
+   (V4SI "V4SI") (V2DI "V2DI")
+   (V16HI "V16HI") (V8HI "V8HI")
+   (V32QI "V32QI") (V16QI "V16QI")
+  ])
 
 ;; Mapping of vector modes to a vector mode of double size
 (define_mode_attr ssedoublevecmode
@@ -773,7 +778,9 @@
 {
   ix86_fixup_binary_operands_no_copy (DIV, <MODE>mode, operands);
 
-  if (TARGET_SSE_MATH && TARGET_RECIP && !optimize_insn_for_size_p ()
+  if (TARGET_SSE_MATH
+      && TARGET_RECIP_VEC_DIV
+      && !optimize_insn_for_size_p ()
       && flag_finite_math_only && !flag_trapping_math
       && flag_unsafe_math_optimizations)
     {
@@ -851,7 +858,9 @@
 	(sqrt:VF1 (match_operand:VF1 1 "nonimmediate_operand" "")))]
   "TARGET_SSE"
 {
-  if (TARGET_SSE_MATH && TARGET_RECIP && !optimize_insn_for_size_p ()
+  if (TARGET_SSE_MATH
+      && TARGET_RECIP_VEC_SQRT
+      && !optimize_insn_for_size_p ()
       && flag_finite_math_only && !flag_trapping_math
       && flag_unsafe_math_optimizations)
     {
@@ -5642,21 +5651,6 @@
    (set_attr "prefix" "orig,vex")
    (set_attr "mode" "<sseinsnmode>")])
 
-(define_insn "avx2_lshrqv4di3"
-  [(set (match_operand:V4DI 0 "register_operand" "=x")
-	(lshiftrt:V4DI
-	 (match_operand:V4DI 1 "register_operand" "x")
-	 (match_operand:SI 2 "const_0_to_255_mul_8_operand" "n")))]
-  "TARGET_AVX2"
-{
-  operands[2] = GEN_INT (INTVAL (operands[2]) / 8);
-  return "vpsrldq\t{%2, %1, %0|%0, %1, %2}";
-}
-  [(set_attr "type" "sseishft")
-   (set_attr "prefix" "vex")
-   (set_attr "length_immediate" "1")
-   (set_attr "mode" "OI")])
-
 (define_insn "lshr<mode>3"
   [(set (match_operand:VI248_AVX2 0 "register_operand" "=x,x")
 	(lshiftrt:VI248_AVX2
@@ -5675,20 +5669,6 @@
    (set_attr "prefix_data16" "1,*")
    (set_attr "prefix" "orig,vex")
    (set_attr "mode" "<sseinsnmode>")])
-
-(define_insn "avx2_lshlqv4di3"
-  [(set (match_operand:V4DI 0 "register_operand" "=x")
-	(ashift:V4DI (match_operand:V4DI 1 "register_operand" "x")
-		     (match_operand:SI 2 "const_0_to_255_mul_8_operand" "n")))]
-  "TARGET_AVX2"
-{
-  operands[2] = GEN_INT (INTVAL (operands[2]) / 8);
-  return "vpslldq\t{%2, %1, %0|%0, %1, %2}";
-}
-  [(set_attr "type" "sseishft")
-   (set_attr "prefix" "vex")
-   (set_attr "length_immediate" "1")
-   (set_attr "mode" "OI")])
 
 (define_insn "avx2_lshl<mode>3"
   [(set (match_operand:VI248_256 0 "register_operand" "=x")
@@ -6213,6 +6193,25 @@
 {
   bool ok = ix86_expand_int_vcond (operands);
   gcc_assert (ok);
+  DONE;
+})
+
+;; ??? Irritatingly, the 256-bit VPSHUFB only shuffles within the 128-bit
+;; lanes.  For now, we don't try to support V32QI or V16HImode.  So we
+;; don't want to use VI_AVX2.
+(define_mode_iterator VEC_PERM_AVX2
+  [V16QI V8HI V4SI V2DI V4SF V2DF
+   (V8SI "TARGET_AVX2") (V4DI "TARGET_AVX2")
+   (V8SF "TARGET_AVX2") (V4DF "TARGET_AVX2")])
+
+(define_expand "vec_perm<mode>"
+  [(match_operand:VEC_PERM_AVX2 0 "register_operand" "")
+   (match_operand:VEC_PERM_AVX2 1 "register_operand" "")
+   (match_operand:VEC_PERM_AVX2 2 "register_operand" "")
+   (match_operand:<sseintvecmode> 3 "register_operand" "")]
+  "TARGET_SSSE3 || TARGET_AVX || TARGET_XOP"
+{
+  ix86_expand_vec_perm (operands);
   DONE;
 })
 
@@ -9418,11 +9417,11 @@
    (set_attr "prefix" "orig,vex")
    (set_attr "mode" "<sseinsnmode>")])
 
-(define_insn "<sse4_1_avx2>_pblendw"
-  [(set (match_operand:VI2_AVX2 0 "register_operand" "=x,x")
-	(vec_merge:VI2_AVX2
-	  (match_operand:VI2_AVX2 2 "nonimmediate_operand" "xm,xm")
-	  (match_operand:VI2_AVX2 1 "register_operand" "0,x")
+(define_insn "sse4_1_pblendw"
+  [(set (match_operand:V8HI 0 "register_operand" "=x,x")
+	(vec_merge:V8HI
+	  (match_operand:V8HI 2 "nonimmediate_operand" "xm,xm")
+	  (match_operand:V8HI 1 "register_operand" "0,x")
 	  (match_operand:SI 3 "const_0_to_255_operand" "n,n")))]
   "TARGET_SSE4_1"
   "@
@@ -9433,7 +9432,37 @@
    (set_attr "prefix_extra" "1")
    (set_attr "length_immediate" "1")
    (set_attr "prefix" "orig,vex")
-   (set_attr "mode" "<sseinsnmode>")])
+   (set_attr "mode" "TI")])
+
+;; The builtin uses an 8-bit immediate.  Expand that.
+(define_expand "avx2_pblendw"
+  [(set (match_operand:V16HI 0 "register_operand" "")
+	(vec_merge:V16HI
+	  (match_operand:V16HI 2 "nonimmediate_operand" "")
+	  (match_operand:V16HI 1 "register_operand" "")
+	  (match_operand:SI 3 "const_0_to_255_operand" "")))]
+  "TARGET_AVX2"
+{
+  HOST_WIDE_INT val = INTVAL (operands[3]) & 0xff;
+  operands[3] = GEN_INT (val << 8 | val);
+})
+
+(define_insn "*avx2_pblendw"
+  [(set (match_operand:V16HI 0 "register_operand" "=x")
+	(vec_merge:V16HI
+	  (match_operand:V16HI 2 "nonimmediate_operand" "xm")
+	  (match_operand:V16HI 1 "register_operand" "x")
+	  (match_operand:SI 3 "avx2_pblendw_operand" "n")))]
+  "TARGET_AVX2"
+{
+  operands[3] = GEN_INT (INTVAL (operands[3]) & 0xff);
+  return "vpblendw\t{%3, %2, %1, %0|%0, %1, %2, %3}";
+}
+  [(set_attr "type" "ssemov")
+   (set_attr "prefix_extra" "1")
+   (set_attr "length_immediate" "1")
+   (set_attr "prefix" "vex")
+   (set_attr "mode" "OI")])
 
 (define_insn "avx2_pblendd<mode>"
   [(set (match_operand:VI4_AVX2 0 "register_operand" "=x")
@@ -12376,7 +12405,7 @@
    (set_attr "prefix" "vex")
    (set_attr "mode" "TI")])
 
-(define_insn "*vec_concat<mode>_avx"
+(define_insn "avx_vec_concat<mode>"
   [(set (match_operand:V_256 0 "register_operand" "=x,x")
 	(vec_concat:V_256
 	  (match_operand:<ssehalfvecmode> 1 "register_operand" "x,x")

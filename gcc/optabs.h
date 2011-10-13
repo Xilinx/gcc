@@ -377,6 +377,9 @@ enum optab_index
   OTI_vec_pack_sfix_trunc,
   OTI_vec_pack_ufix_trunc,
 
+  /* Vector shuffling.  */
+  OTI_vec_perm,
+
   /* Perform a raise to the power of integer.  */
   OTI_powi,
 
@@ -557,6 +560,7 @@ enum optab_index
 #define vec_pack_usat_optab (&optab_table[OTI_vec_pack_usat])
 #define vec_pack_sfix_trunc_optab (&optab_table[OTI_vec_pack_sfix_trunc])
 #define vec_pack_ufix_trunc_optab (&optab_table[OTI_vec_pack_ufix_trunc])
+#define vec_perm_optab (&direct_optab_table[(int) OTI_vec_perm])
 
 #define powi_optab (&optab_table[OTI_powi])
 
@@ -883,6 +887,12 @@ bool expand_vec_cond_expr_p (tree, tree);
 extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 /* Generate code for VEC_LSHIFT_EXPR and VEC_RSHIFT_EXPR.  */
 extern rtx expand_vec_shift_expr (sepops, rtx);
+
+/* Return tree if target supports vector operations for VEC_PERM_EXPR.  */
+bool expand_vec_perm_expr_p (enum machine_mode, tree, tree, tree);
+
+/* Generate code for VEC_PERM_EXPR.  */
+extern rtx expand_vec_perm_expr (tree, tree, tree, tree, rtx);
 
 /* Return the insn used to implement mode MODE of OP, or CODE_FOR_nothing
    if the target does not have such an insn.  */
