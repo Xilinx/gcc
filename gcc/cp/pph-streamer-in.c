@@ -513,14 +513,14 @@ pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
 
 /* The core tree reader is defined much later.  */
 
-static tree pph_read_any_tree (pph_stream *stream, tree *chain);
+static tree pph_in_any_tree (pph_stream *stream, tree *chain);
 
 
 /* Load an AST from STREAM.  Return the corresponding tree.  */
 tree
 pph_in_tree (pph_stream *stream)
 {
-  tree t = pph_read_any_tree (stream, NULL);
+  tree t = pph_in_any_tree (stream, NULL);
   return t;
 }
 
@@ -530,7 +530,7 @@ pph_in_tree (pph_stream *stream)
 static void
 pph_in_mergeable_tree (pph_stream *stream, tree *chain)
 {
-  pph_read_any_tree (stream, chain);
+  pph_in_any_tree (stream, chain);
 }
 
 
@@ -543,7 +543,7 @@ pph_read_tree (struct lto_input_block *ib_unused ATTRIBUTE_UNUSED,
 {
   /* Find data.  */
   pph_stream *stream = (pph_stream *) root_data_in->sdata;
-  return pph_read_any_tree (stream, NULL);
+  return pph_in_any_tree (stream, NULL);
 }
 
 
@@ -1710,7 +1710,7 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
 /* Read the body fields of EXPR from STREAM.  */
 
 static void
-pph_read_tree_body (pph_stream *stream, tree expr)
+pph_in_tree_body (pph_stream *stream, tree expr)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
@@ -1926,7 +1926,7 @@ pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
    Return the new tree.  */
 
 static tree
-pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
+pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
@@ -1958,7 +1958,7 @@ pph_read_tree_header (pph_stream *stream, enum LTO_tags tag)
    the tree may be unified with an existing tree in that namespace.  */
 
 static tree
-pph_read_any_tree (pph_stream *stream, tree *chain)
+pph_in_any_tree (pph_stream *stream, tree *chain)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
@@ -1999,7 +1999,7 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
 
       /* Materialize a new node from IB.  This will also read all the
          language-independent bitfields for the new tree.  */
-      expr = read = pph_read_tree_header (stream, tag);
+      expr = read = pph_in_tree_header (stream, tag);
       gcc_assert (read != NULL);
       if (chain)
         expr = pph_merge_into_chain (stream, expr, chain);
@@ -2026,7 +2026,7 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
      circular references and references from children nodes.  */
   /* FIXME pph: We should not insert when read == expr, but it fails.  */
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
-  pph_read_tree_body (stream, expr);
+  pph_in_tree_body (stream, expr);
 
   pph_new_trace_tree (stream, expr, chain != NULL);
 

@@ -620,7 +620,7 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 
 /* The core tree writer is defined much later.  */
 
-static void pph_write_any_tree (pph_stream *stream, tree t, bool mergeable);
+static void pph_out_any_tree (pph_stream *stream, tree t, bool mergeable);
 
 
 /* Output non-mergeable AST T to STREAM  */
@@ -628,7 +628,7 @@ static void pph_write_any_tree (pph_stream *stream, tree t, bool mergeable);
 void
 pph_out_tree (pph_stream *stream, tree t)
 {
-  pph_write_any_tree (stream, t, false);
+  pph_out_any_tree (stream, t, false);
 }
 
 
@@ -637,7 +637,7 @@ pph_out_tree (pph_stream *stream, tree t)
 static void
 pph_out_mergeable_tree (pph_stream *stream, tree t)
 {
-  pph_write_any_tree (stream, t, true);
+  pph_out_any_tree (stream, t, true);
 }
 
 
@@ -648,7 +648,7 @@ void
 pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
 {
   pph_stream *stream = (pph_stream *) ob->sdata;
-  pph_write_any_tree (stream, expr, false);
+  pph_out_any_tree (stream, expr, false);
 }
 
 
@@ -926,14 +926,14 @@ pph_out_chain (pph_stream *stream, tree first)
    from the ENCLOSING_NAMESPACE starting at T.  */
 
 static void
-pph_write_mergeable_links (pph_stream *stream, tree t)
+pph_out_mergeable_links (pph_stream *stream, tree t)
 {
   tree next_link;
   if (!t)
     return;
 
   next_link = TREE_CHAIN (t);
-  pph_write_mergeable_links (stream, next_link);
+  pph_out_mergeable_links (stream, next_link);
 
   /*FIXME pph: Is this circumlocution still needed? */
   TREE_CHAIN (t) = NULL_TREE;
@@ -952,7 +952,7 @@ pph_out_mergeable_chain (pph_stream *stream, tree t)
 {
   int count = list_length (t);
   streamer_write_hwi (stream->encoder.w.ob, count);
-  pph_write_mergeable_links (stream, t);
+  pph_out_mergeable_links (stream, t);
 }
 
 
@@ -1660,7 +1660,7 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
    written by the generic tree streaming routines.  */
 
 static void
-pph_write_tree_body (pph_stream *stream, tree expr)
+pph_out_tree_body (pph_stream *stream, tree expr)
 {
   bool handled_p;
 
@@ -1884,7 +1884,7 @@ pph_pack_value_fields (struct bitpack_d *bp, tree expr)
    a bitpack with all the bitfield values in EXPR.  */
 
 static void
-pph_write_tree_header (pph_stream *stream, tree expr)
+pph_out_tree_header (pph_stream *stream, tree expr)
 {
   struct bitpack_d bp;
   struct output_block *ob = stream->encoder.w.ob;
@@ -1923,7 +1923,7 @@ pph_out_merge_name (pph_stream *stream, tree expr)
 /* Write a tree EXPR (MERGEABLE or not) to STREAM.  */
 
 static void
-pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
+pph_out_any_tree (pph_stream *stream, tree expr, bool mergeable)
 {
   enum pph_record_marker marker;
 
@@ -1963,7 +1963,7 @@ pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
              re-allocated when reading.  If we are writing the mutated
              state of an existing tree, then we only need to write its
              body.  */
-          pph_write_tree_header (stream, expr);
+          pph_out_tree_header (stream, expr);
           if (mergeable && DECL_P (expr))
             {
               /* We may need to unify two declarations.  */
@@ -1972,7 +1972,7 @@ pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
             }
         }
 
-      pph_write_tree_body (stream, expr);
+      pph_out_tree_body (stream, expr);
     }
   else
     gcc_unreachable ();
