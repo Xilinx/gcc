@@ -2871,7 +2871,7 @@ melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h melt-runtime-param
 	          $(srcdir)/melt/generated/meltrunsup.h \
                   $(srcdir)/melt/generated/meltrunsup-inc.c \
                   gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	@rm melt-runtime.args
+	@rm -f melt-runtime.args
 	@echo '@@**@@' building melt-runtime.args
 	@echo $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
 	  $(MELT_RUNTIME_CPPDEFS) > melt-runtime.args-tmp

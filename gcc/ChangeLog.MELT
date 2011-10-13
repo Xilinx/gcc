@@ -1,5 +1,8 @@
 
 2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-runtime.args): Use rm -f to remove it before.
+
+2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt-runtime.args): Separate from ...
 	(melt-runtime.o, melt-runtime.i): ... which depends upon
 	melt-runtime.args
