@@ -1,3 +1,11 @@
+2011-10-12   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/p2pr36533.cc: Mark expected fail on unexpanded intrinsic.
+	* g++.dg/pph/p4pr36533.cc: Likewise.
+	* g++.dg/pph/p4mean.cc: Likewise.
+	* g++.dg/pph/c3variables.cc: Comment on reason for fail.
+	* g++.dg/pph/c4vardef.cc: Likewise.
+
 2011-10-11   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/d1symnotinc.cc: Change expected error.

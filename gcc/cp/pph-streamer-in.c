@@ -803,7 +803,7 @@ pph_match_to_function (tree expr ATTRIBUTE_UNUSED,
    against an LINK of a chain. */
 
 static tree
-pph_match_to_link (tree expr, location_t where, const char *idstr, tree* link)
+pph_match_to_link (tree expr, location_t where, const char *idstr, tree *link)
 {
   enum tree_code link_code, expr_code;
   tree idtree;
@@ -817,7 +817,7 @@ pph_match_to_link (tree expr, location_t where, const char *idstr, tree* link)
   if (link_code != expr_code)
     return NULL;
 
-  idtree = DECL_NAME (*link);
+  idtree = pph_merge_name (*link);
   if (!idtree)
     return NULL;
 
@@ -1072,7 +1072,7 @@ pph_in_binding_level (cp_binding_level **out_field,
   *out_field = bl;
 
   entity = bl->this_entity = pph_in_tree (stream);
-  if (NAMESPACE_SCOPE_P (entity))
+  if (NAMESPACE_SCOPE_P (entity) || DECL_CLASS_SCOPE_P (entity))
     {
       if (flag_pph_debug >= 3)
         debug_tree_chain (bl->names);
@@ -1962,7 +1962,8 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
-  tree expr = NULL_TREE;
+  tree read = NULL;
+  tree expr = NULL;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
   enum LTO_tags tag;
@@ -1998,9 +1999,11 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
 
       /* Materialize a new node from IB.  This will also read all the
          language-independent bitfields for the new tree.  */
-      expr = pph_read_tree_header (stream, tag);
+      expr = read = pph_read_tree_header (stream, tag);
+      gcc_assert (read != NULL);
       if (chain)
         expr = pph_merge_into_chain (stream, expr, chain);
+      gcc_assert (expr != NULL);
     }
 
   gcc_assert (marker == PPH_RECORD_START
@@ -2021,6 +2024,7 @@ pph_read_any_tree (pph_stream *stream, tree *chain)
   /* Add the new tree to the cache and read its body.  The tree
      is added to the cache before we read its body to handle
      circular references and references from children nodes.  */
+  /* FIXME pph: We should not insert when read == expr, but it fails.  */
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
   pph_read_tree_body (stream, expr);
 

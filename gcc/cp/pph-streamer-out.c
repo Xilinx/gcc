@@ -819,7 +819,7 @@ pph_out_mergeable_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
      using streamer_read_chain, we have to write VECs in exactly the
      same way as tree chains.  */
   pph_out_hwi (stream, VEC_length (tree, v));
-  FOR_EACH_VEC_ELT (tree, v, i, t)
+  FOR_EACH_VEC_ELT_REVERSE (tree, v, i, t)
     pph_out_mergeable_tree (stream, t);
 }
 
@@ -1906,9 +1906,23 @@ pph_write_tree_header (pph_stream *stream, tree expr)
 }
 
 
+/* Write the merge name string for a decl EXPR.  */
+
+static void
+pph_out_merge_name (pph_stream *stream, tree expr)
+{
+  tree name = pph_merge_name (expr);
+  if (name)
+    pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
+                                        IDENTIFIER_LENGTH (name));
+  else
+    pph_out_string (stream, NULL);
+}
+
+
 /* Write a tree EXPR (MERGEABLE or not) to STREAM.  */
 
-void
+static void
 pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
 {
   enum pph_record_marker marker;
@@ -1952,16 +1966,9 @@ pph_write_any_tree (pph_stream *stream, tree expr, bool mergeable)
           pph_write_tree_header (stream, expr);
           if (mergeable && DECL_P (expr))
             {
-              tree name;
-
               /* We may need to unify two declarations.  */
               pph_out_location (stream, DECL_SOURCE_LOCATION (expr));
-              name = DECL_NAME (expr);
-              if (name)
-                pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
-                                            IDENTIFIER_LENGTH (name));
-              else
-                pph_out_string (stream, NULL);
+              pph_out_merge_name (stream, expr);
             }
         }
 

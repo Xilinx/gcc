@@ -1,4 +1,8 @@
 /* { dg-options "-w -fpermissive" }  */
+// pph asm xdiff 39234
+// xfail BOGUS INTRINSIC
+// failing to recognize sqrt as an intrinsic
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>

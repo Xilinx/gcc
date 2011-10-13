@@ -246,6 +246,7 @@ bool pph_cache_add (pph_cache *, void *, unsigned *, enum pph_tag);
 void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
 unsigned pph_get_signature (tree, size_t *);
 void pph_writer_add_include (pph_stream *);
+tree pph_merge_name (tree expr);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);

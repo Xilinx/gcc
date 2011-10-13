@@ -727,3 +727,15 @@ pph_get_signature (tree t, size_t *nbytes_p)
 
   return crc;
 }
+
+
+/* Return the merge name string identifier tree for a decl EXPR.  */
+
+tree
+pph_merge_name (tree expr)
+{
+  if (TREE_CODE (expr) == FUNCTION_DECL)
+    return DECL_ASSEMBLER_NAME (expr);
+  else
+    return DECL_NAME (expr);
+}

@@ -1,4 +1,5 @@
 // pph asm xdiff 34997
+// xfail BOGUS DUPVAR
 // tentative definition emitted twice
 
 #include "c0variables1.h"
