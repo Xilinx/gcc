@@ -6940,6 +6940,26 @@ handlers based in the same thread.
 
 All memory orders are valid.
 
+@item bool __sync_mem_always_lock_free (size_t size)
+@findex __sync_mem_always_lock_free
+
+This builtin returns true if objects of size bytes will always generate lock
+free atomic instructions for the target architecture.  Otherwise false is
+returned.
+
+size must resolve to a compile time constant.
+
+@smallexample
+if (_sync_mem_always_lock_free (sizeof (long long)))
+@end smallexample
+
+@item bool __sync_mem_is_lock_free (size_t size)
+@findex __sync_mem_is_lock_free
+
+This builtin returns true if objects of size bytes will always generate lock
+free atomic instructions for the target architecture.  If it is not known to
+be lock free a call is made to a runtime routine named __sync_mem_is_lock_free.
+
 @end table
 
 @node Object Size Checking

@@ -1,3 +1,8 @@
+2011-10-13  Andrew MacLeod  <amacleod@redhat.com>
+
+	* testsuite/gcc.dg/sync-mem-invalid.c: Test for invalid param.
+	* testsuite/gcc.dg/sync-mem-lockfree[-aux].c: New tests.
+
 2011-10-10  Aldy Hernandez  <aldyh@redhat.com>
 
 	Merge from mainline:

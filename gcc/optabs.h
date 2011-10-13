@@ -711,6 +711,8 @@ enum direct_optab_index
   DOI_sync_mem_nand,
   DOI_sync_mem_xor,
   DOI_sync_mem_or,
+  DOI_sync_mem_always_lock_free,
+  DOI_sync_mem_is_lock_free,
   DOI_sync_mem_thread_fence,
   DOI_sync_mem_signal_fence,
 
@@ -805,6 +807,10 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_sync_mem_xor])
 #define sync_mem_or_optab \
   (&direct_optab_table[(int) DOI_sync_mem_or])
+#define sync_mem_always_lock_free_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_always_lock_free])
+#define sync_mem_is_lock_free_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_is_lock_free])
 #define sync_mem_thread_fence_optab \
   (&direct_optab_table[(int) DOI_sync_mem_thread_fence])
 #define sync_mem_signal_fence_optab \

@@ -5398,6 +5398,87 @@ expand_builtin_sync_mem_fetch_op (enum machine_mode mode, tree exp, rtx target,
   return expand_sync_mem_fetch_op (target, mem, val, code, model, fetch_after);
 }
 
+/* Return true if size ARG is always lock free on this architecture.  */
+static tree
+fold_builtin_sync_mem_always_lock_free (tree arg)
+{
+  int size;
+  enum machine_mode mode;
+  enum insn_code icode;
+
+  if (TREE_CODE (arg) != INTEGER_CST)
+    return NULL_TREE;
+
+  /* Check if a compare_and_swap pattern exists for the mode which represents
+     the required size.  The pattern is not allowed to fail, so the existence
+     of the pattern indicates support is present.  */
+  size = INTVAL (expand_normal (arg)) * BITS_PER_UNIT;
+  mode = mode_for_size (size, MODE_INT, 0);
+  icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
+
+  if (icode == CODE_FOR_nothing)
+    return integer_zero_node;
+
+  return integer_one_node;
+}
+
+/* Return true if the first argument to call EXP represents a size of
+   object than will always generate lock-free instructions on this target.
+   Otherwise return false.  */
+static rtx
+expand_builtin_sync_mem_always_lock_free (tree exp)
+{
+  tree size;
+  tree arg = CALL_EXPR_ARG (exp, 0);
+
+  if (TREE_CODE (arg) != INTEGER_CST)
+    {
+      error ("non-constant argument to __sync_mem_always_lock_free");
+      return const0_rtx;
+    }
+
+  size = fold_builtin_sync_mem_always_lock_free (arg);
+  if (size == integer_one_node)
+    return const1_rtx;
+  return const0_rtx;
+}
+
+/* Return a one or zero if it can be determined that size ARG is lock free on
+   this architecture.  */
+static tree
+fold_builtin_sync_mem_is_lock_free (tree arg)
+{
+  tree always = fold_builtin_sync_mem_always_lock_free (arg);
+
+  /* If it isnt always lock free, don't generate a result.  */
+  if (always == integer_one_node)
+    return always;
+
+  return NULL_TREE;
+}
+
+/* Return one or zero if the first argument to call EXP represents a size of
+   object than can generate lock-free instructions on this target.  */
+static rtx
+expand_builtin_sync_mem_is_lock_free (tree exp)
+{
+  tree size;
+  tree arg = CALL_EXPR_ARG (exp, 0);
+
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (arg)))
+    {
+      error ("non-integer argument to __sync_mem_is_lock_free");
+      return NULL_RTX;
+    }
+
+  /* If the value is known at compile time, return the RTX for it.  */
+  size = fold_builtin_sync_mem_is_lock_free (arg);
+  if (size == integer_one_node)
+    return const1_rtx;
+
+  return NULL_RTX;
+}
+
 /* This routine will either emit the mem_thread_fence pattern or issue a 
    sync_synchronize to generate a fence for memory model MEMMODEL.  */
 
@@ -6444,6 +6525,15 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	return target;
       break;
  
+    case BUILT_IN_SYNC_MEM_ALWAYS_LOCK_FREE:
+      return expand_builtin_sync_mem_always_lock_free (exp);
+
+    case BUILT_IN_SYNC_MEM_IS_LOCK_FREE:
+      target = expand_builtin_sync_mem_is_lock_free (exp);
+      if (target)
+        return target;
+      break;
+
     case BUILT_IN_SYNC_MEM_THREAD_FENCE:
       expand_builtin_sync_mem_thread_fence (exp);
       return const0_rtx;
@@ -10287,6 +10377,12 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
       if (integer_zerop (arg0))
 	return build_empty_stmt (loc);
       break;
+
+    case BUILT_IN_SYNC_MEM_ALWAYS_LOCK_FREE:
+      return fold_builtin_sync_mem_always_lock_free (arg0);
+
+    case BUILT_IN_SYNC_MEM_IS_LOCK_FREE:
+      return fold_builtin_sync_mem_is_lock_free (arg0);
 
     default:
       break;

@@ -105,7 +105,6 @@ void simulate_thread_main()
 {
   int x;
 
-  fill_table ();
   /* Make sure value starts with an atomic value now.  */
   __sync_mem_store (&value, ret, __SYNC_MEM_SEQ_CST);
 
@@ -126,6 +125,7 @@ void simulate_thread_main()
 
 main()
 {
+  fill_table ();
   simulate_thread_main ();
   simulate_thread_done ();
   return 0;

@@ -1,3 +1,18 @@
+2011-10-13  Andrew MacLeod  <amacleod@redhat.com>
+
+	* optabs.h (DOI_sync_mem_always_lock_free): New.
+	(DOI_sync_mem_is_lock_free): New.
+	(sync_mem_always_lock_free_optab, sync_mem_is_lock_free_optab): New.
+	* builtins.c (fold_builtin_sync_mem_always_lock_free): New.
+	(expand_builtin_sync_mem_always_lock_free): New.
+	(fold_builtin_sync_mem_is_lock_free): New.
+	(expand_builtin_sync_mem_is_lock_free): New.
+	(expand_builtin): Handle BUILT_IN_SYNC_MEM_{is,always}_LOCK_FREE.
+	(fold_builtin_1): Handle BUILT_IN_SYNC_MEM_{is,always}_LOCK_FREE.
+	* sync-builtins.def: Add BUILT_IN_SYNC_MEM_{is,always}_LOCK_FREE.
+	* builtin-types.def: Add BT_FN_BOOL_SIZE type.
+	* doc/extend.texi: Add documentation.
+
 2011-10-12  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from trunk at revision 179855.

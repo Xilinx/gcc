@@ -3,7 +3,10 @@
 /* { dg-do compile } */
 /* { dg-require-effective-target sync_int_long } */
 
+#include <stddef.h>
+
 int i;
+size_t s;
 
 main ()
 {
@@ -15,5 +18,7 @@ main ()
   __sync_mem_store (&i, 1, __SYNC_MEM_ACQUIRE); /* { dg-error "invalid memory model" } */
   __sync_mem_store (&i, 1, __SYNC_MEM_CONSUME); /* { dg-error "invalid memory model" } */
   __sync_mem_store (&i, 1, __SYNC_MEM_ACQ_REL); /* { dg-error "invalid memory model" } */
+
+  i = __sync_mem_always_lock_free (s); /* { dg-error "non-constant argument" } */
 
 }

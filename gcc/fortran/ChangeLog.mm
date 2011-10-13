@@ -1,3 +1,7 @@
+2011-10-13  Andrew MacLeod  <amacleod@redhat.com>
+
+	* types.def: Add BT_SIZE and BT_FN_BOOL_SIZE.
+
 2011-08-23  Andrew MacLeod  <amacleod@redhat.com>
 
 	* types.def (BUILT_IN_SYNC_MEM_LOAD_*): Change to be const.
