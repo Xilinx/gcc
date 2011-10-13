@@ -2869,9 +2869,11 @@ melt-runtime.o melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h mel
 	tree-pass.h $(MELT_H) \
 	$(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt/generated/meltrunsup-inc.c  \
    gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
+	@rm melt-runtime.args
 	@echo $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
 	  $(MELT_RUNTIME_CPPDEFS) > melt-runtime.args-tmp
 	mv melt-runtime.args-tmp melt-runtime.args
+	@echo -n '@@**@@' melt-runtime.args: ; cat melt-runtime.args ; echo
 	$(CC)  $(shell cat melt-runtime.args) -c $(MELT_RUNTIME_C) $(OUTPUT_OPTION)
 
 ## to debug the macros, we may need this.

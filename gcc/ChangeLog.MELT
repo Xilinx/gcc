@@ -1,4 +1,7 @@
 
+2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt-runtime.args): Always rebuilt.
+
 2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: Removed all debug_msg.
 	* melt/xtramelt-ana-base.melt: Don't use DEBUG_MSG, but DEBUG.
