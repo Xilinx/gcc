@@ -1,4 +1,9 @@
 
+2011-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* INSTALL/README-MELT-PLUGIN: Mention variadic facilities & debug
+	for 0.9.1 plugin prerelease
+
 2011-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 179863 using svnmerge.

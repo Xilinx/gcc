@@ -142,6 +142,44 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
+NEWS for 0.9.1 MELT plugin for gcc-4.6
+
+October XX, 2011: Release of MELT plugin 0.9.1 for gcc-4.6
+
+New features:
+
+    variadic MELT functions. 
+    =======================
+A formal arguments list (i.e. formals for LAMBDA or DEFUN) ending with
+:REST is for variadic functions with a variable number and type of
+arguments (so :REST in MELT is similar to the ellipsis ... notation in
+C prototypes).  At least one first formal argument should be provided
+and should be a value.
+
+The (VARIADIC ....) macro is used to fetch actual variadic
+arguments. A variadic cursor is internally maintained to parse the
+variadic actual arguments. The VARIADIC macro has a sequence of
+variadic cases. Each variadic case starts with an ordinary
+[non-variadic] formal arguments list, and has a body which is
+evaluated for side effects if the current arguments at the cursor
+position fits into the formal. The last variadic case can also starts
+with an :ELSE.  See also
+http://groups.google.com/group/gcc-melt/browse_thread/thread/c124ea6af940c08e
+
+    variadic (DEBUG ....) macro.
+    ============================
+
+Debugging messages should go thru the variadic (DEBUG ...) macro which
+accepts an arbitrary kind and number of arguments. The DEBUG_MSG macro
+is obsolete.
+
+   variadic ADD2OUT function
+   =========================
+
+The ADD2OUT variadic function add to an output (either a file value;
+or a string buffer values) arbitrary things.
+
+#######################################################################
 NEWS for 0.9 MELT plugin for gcc-4.6
 
 September 27th, 2011: Release of MELT plugin 0.9 for gcc-4.6
