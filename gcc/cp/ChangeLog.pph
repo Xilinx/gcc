@@ -1,5 +1,10 @@
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer.c (pph_merge_name): Do not mangle names for
+	builtin functions.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_in_mergeable_tree): Fix comment.
 	(pph_read_tree): Move to pph-streamer.c.
 	(pph_in_location): Rename from pph_read_location.

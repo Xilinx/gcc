@@ -1,5 +1,11 @@
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/p2pr36533.cc: Mark fixed.
+	* g++.dg/pph/p4mean.cc: Likewise.
+	* g++.dg/pph/p4pr36533.cc: Likewise.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/c1limits-externalid.cc: Add shorter timeout.
 	Document failure mode.
 
