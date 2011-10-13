@@ -2864,30 +2864,26 @@ MELT_RUNTIME_CPPDEFS= \
 	  -DMELT_REVISION='\"$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)\"' \
 	  -DMELT_GCC_VERSION=$(shell cat $(BASEVER) | $(AWK) '{split($$0,vertab,"."); printf "%d", vertab[1]*1000+vertab[2]}')
 
-melt-runtime.o melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h melt-runtime-params-inc.c $(C_COMMON_H) \
+melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h melt-runtime-params-inc.c $(C_COMMON_H) \
                   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) $(TREE_H) \
                    $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H) \
 	          tree-pass.h $(MELT_H) \
 	          $(srcdir)/melt/generated/meltrunsup.h \
                   $(srcdir)/melt/generated/meltrunsup-inc.c \
                   gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	@rm melt-runtime.args melt-runtime.o
-	@echo '@@**@@' building melt-runtime.args then melt-runtime.o
+	@rm melt-runtime.args
+	@echo '@@**@@' building melt-runtime.args
 	@echo $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
 	  $(MELT_RUNTIME_CPPDEFS) > melt-runtime.args-tmp
 	mv melt-runtime.args-tmp melt-runtime.args
 	@echo -n '@@**@@' melt-runtime.args: ; cat melt-runtime.args ; echo
+
+melt-runtime.o: melt-runtime.args
 	$(CC)  $(shell cat melt-runtime.args) -c $(MELT_RUNTIME_C) $(OUTPUT_OPTION)
 
 ## to debug the macros, we may need this.
-melt-runtime.i:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
-   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
-	tree-pass.h $(MELT_H) \
-	$(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt/generated/meltrunsup-inc.c  \
-   gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
-	  $(MELT_RUNTIME_CPPDEFS) \
-	  -C -E $(MELT_RUNTIME_C) | grep -v '^#' > $@-tmp
+melt-runtime.i: melt-runtime.args
+	$(CC) -C -E  $(shell cat melt-runtime.args) $(MELT_RUNTIME_C) | grep -v '^#' > $@-tmp
 	mv $@-tmp $@
 
 
