@@ -1,5 +1,7 @@
 // pph asm xdiff 30893
-// .Lnn labels emitted with different values of 'nn'.
+// xfail BOGUS UNKNOWN
+// Some branches seem to be missing.
+
 #include "x5dynarray3.h"
 
 #include "a0integer.h"

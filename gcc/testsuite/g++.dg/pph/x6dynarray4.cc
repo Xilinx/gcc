@@ -1,4 +1,6 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-xfail-if "BOGUS MERGING" { "*-*-*" } { "-fpph-map=pph.map" } }
+// Too many failures to diagnose.
+
 #include "x6dynarray5.h"
 
 #include <algorithm>

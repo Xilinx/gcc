@@ -1,7 +1,7 @@
 The test names have the following convention on the prefix of their
 names.
 
-    [acdpxy][0-9]*
+    [acdpxyz][0-9]*
 
     a - auxillary headers
     c - positive tests for C-level headers and sources

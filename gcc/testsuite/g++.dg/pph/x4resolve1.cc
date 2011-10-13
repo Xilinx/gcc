@@ -1,4 +1,6 @@
 // pph asm xwant 03374
+// This test produces overload differences because the declaration and
+// call orders are different between pph and textual parsing.
 
 #include "x0resolve1.h"
 #include "x0resolve2.h"

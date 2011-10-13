@@ -1,6 +1,6 @@
 // pph asm xdiff 59292
-// Assembly differences seem to be due to the order in which the
-// symbols in the template hash tables are emitted.
+// xfail BOGUS DUPVAR DUPFUNC
+
 #include "x0tmplclass23.h"
 #include "x0tmplclass24.h"
 #include "a0tmplclass2_u.h"

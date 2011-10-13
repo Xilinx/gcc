@@ -1,5 +1,6 @@
-//pph asm xdiff 28345
-//Ordering of globals is different
+// pph asm xwant 28345
+// The test will inherently have a different assembly order
+// because the PPH file is read before any parsing.
 
 #include "x3hardorder2.h"
 

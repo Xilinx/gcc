@@ -1,3 +1,31 @@
+2011-10-13   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/README: Put z files in regular expression.
+	* g++.dg/pph/x3hardorder.cc: Mark passing.
+	* g++.dg/pph/c1limits-externalid.cc: Add triage comment.
+	* g++.dg/pph/e4variables.cc: Likewise.
+	* g++.dg/pph/x1tmplclass1.cc: Likewise.
+	* g++.dg/pph/x1tmplclass2.cc: Likewise.
+	* g++.dg/pph/x4keyed.cc: Likewise.
+	* g++.dg/pph/x4keyex.cc: Likewise.
+	* g++.dg/pph/x4keyno.cc: Likewise.
+	* g++.dg/pph/x4resolve1.cc: Likewise.
+	* g++.dg/pph/x4resolve2.cc: Likewise.
+	* g++.dg/pph/x4structover1.cc: Likewise.
+	* g++.dg/pph/x4tmplclass2.cc: Likewise.
+	* g++.dg/pph/x4tmplfuncinln.cc: Likewise.
+	* g++.dg/pph/x4tmplfuncninl.cc: Likewise.
+	* g++.dg/pph/x6dynarray3.cc: Likewise.
+	* g++.dg/pph/x6dynarray4.cc: Likewise.
+	* g++.dg/pph/x6rtti.cc: Likewise.
+	* g++.dg/pph/x7dynarray5.cc: Likewise.
+	* g++.dg/pph/x7rtti.cc: Likewise.
+	* g++.dg/pph/z4nontrivinit.cc: Likewise.
+	* g++.dg/pph/z4tmplclass1.cc: Likewise.
+	* g++.dg/pph/z4tmplclass2.cc: Likewise.
+	* g++.dg/pph/z4tmplfuncinln.cc: Likewise.
+	* g++.dg/pph/z4tmplfuncninl.cc: Likewise.
+
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/p2pr36533.cc: Mark fixed.

@@ -1,4 +1,5 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-xfail-if "BOGUS POSSIBLY DROPPING SYMBOLS " { "*-*-*" } { "-fpph-map=pph.map" } }
+
 #include "x0dynarray4.h"
 #include "x6dynarray5.h"
 
