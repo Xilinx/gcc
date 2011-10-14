@@ -1,3 +1,7 @@
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1limits-externalid.cc: Mark fixed.
+
 2011-10-13   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/README: Put z files in regular expression.

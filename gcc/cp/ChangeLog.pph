@@ -1,5 +1,25 @@
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-out.c (pph_out_mergeable_tree): Remove.  Update
+	all users.
+	(pph_tree_matches): Handle PPHF_NONE.
+	(vec2vec_filter): New.
+	(pph_out_tree_vec_1): Rename from pph_out_tree_vec.
+	Add arguments FILTER, MERGEABLE and REVERSE.
+	Call vec2vec_filter.
+	(pph_out_tree_vec): Call pph_out_tree_vec_1.
+	(pph_out_tree_vec_filtered): Likewise.
+	(chain2vec_filter): New.
+	(pph_out_mergeable_links): Remove.
+	(pph_out_chain_1): Rename from pph_out_chain_1.
+	(pph_out_chain): Call pph_out_chain_1.
+	(pph_out_chain_filtered): Likewise.
+	(pph_out_mergeable_chain_filtered): Likewise.
+	(pph_out_tree_common): Asser that T is not a DECL.
+	(pph_out_tcc_type): Remove FIXME comment.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer.c (pph_merge_name): Do not mangle names for
 	builtin functions.
 
