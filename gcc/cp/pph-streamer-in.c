@@ -524,15 +524,6 @@ pph_in_tree (pph_stream *stream)
 }
 
 
-/* Load an AST into CHAIN from STREAM.  */
-
-static void
-pph_in_mergeable_tree (pph_stream *stream, tree *chain)
-{
-  pph_in_tree_1 (stream, chain);
-}
-
-
 /********************************************************** lexical elements */
 
 
@@ -711,13 +702,29 @@ pph_in_tree_pair_vec (pph_stream *stream)
 /******************************************************************** chains */
 
 
-/* Read a chain of ASTs from STREAM.  */
+/* Read a chain of ASTs from STREAM.  If CHAIN is set, the ASTs are
+   incorporated at the head of *CHAIN as they are read.  */
+
+static tree
+pph_in_chain_1 (pph_stream *stream, tree *chain)
+{
+  HOST_WIDE_INT i, count;
+
+  if (chain == NULL)
+    return streamer_read_chain (stream->encoder.r.ib,
+                                stream->encoder.r.data_in);
+
+  count = pph_in_hwi (stream);
+  for (i = 0; i < count; i++)
+    pph_in_tree_1 (stream, chain);
+
+  return *chain;
+}
+
 static tree
 pph_in_chain (pph_stream *stream)
 {
-  tree t = streamer_read_chain (stream->encoder.r.ib,
-                                stream->encoder.r.data_in);
-  return t;
+  return pph_in_chain_1 (stream, NULL);
 }
 
 
@@ -726,11 +733,7 @@ pph_in_chain (pph_stream *stream)
 static void
 pph_in_mergeable_chain (pph_stream *stream, tree *chain)
 {
-  int i, count;
-
-  count = pph_in_hwi (stream);
-  for (i = 0; i < count; i++)
-    pph_in_mergeable_tree (stream, chain);
+  pph_in_chain_1 (stream, chain);
 }
 
 
@@ -816,7 +819,7 @@ pph_match_to_link (tree expr, location_t where, const char *idstr, tree *link)
 
 static tree
 pph_search_in_chain (tree expr, location_t where, const char *idstr,
-			tree *chain)
+		     tree *chain)
 {
   /* FIXME pph: This could resultin O(POW(n,2)) compilation.  */
   tree *link = chain;
@@ -869,6 +872,7 @@ pph_merge_into_chain (pph_stream *stream, tree expr, tree *chain)
 
   if (flag_pph_debug >= 3)
     fprintf (pph_logfile, "PPH: %s FOUND on chain\n", idstr);
+
   return found;
 }
 
@@ -1629,8 +1633,11 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
   pph_in_lang_specific (stream, decl);
   DECL_INITIAL (decl) = pph_in_tree (stream);
 
-  /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.  */
-  /* FIXME pph: almost redundant.  */
+  /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
+     We need to read DECL_CHAIN for variables and functions because
+     they are sometimes chained together in places other than regular
+     tree chains.  For example in BINFO_VTABLEs, the decls are chained
+     together).  */
   if (TREE_CODE (decl) == VAR_DECL
       || TREE_CODE (decl) == FUNCTION_DECL)
     DECL_CHAIN (decl) = pph_in_tree (stream);
@@ -1934,6 +1941,7 @@ pph_in_tree_1 (pph_stream *stream, tree *chain)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
   enum LTO_tags tag;
+  tree saved_expr_chain = NULL;
 
   /* Read record start and test cache.  */
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
@@ -1967,9 +1975,20 @@ pph_in_tree_1 (pph_stream *stream, tree *chain)
       /* Materialize a new node from STREAM.  This will also read all the
          language-independent bitfields for the new tree.  */
       expr = read = pph_in_tree_header (stream, tag);
-      gcc_assert (read != NULL);
+
+      /* If we were told to insert the tree into a CHAIN, look for a
+	 match in CHAIN to EXPR's header.  If we find a match, EXPR
+	 will be the tree that we want to return.  */
       if (chain)
-        expr = pph_merge_into_chain (stream, expr, chain);
+	{
+	  expr = pph_merge_into_chain (stream, expr, chain);
+
+	  /* Save TREE_CHAIN for EXPR because it will be clobbered by
+	     the call to pph_in_tree_body below.  Given that EXPR may
+	     now be in a different location in the chain, we need to
+	     make sure we do not lose it.  */
+	  saved_expr_chain = TREE_CHAIN (expr);
+	}
       gcc_assert (expr != NULL);
     }
 
@@ -1993,6 +2012,12 @@ pph_in_tree_1 (pph_stream *stream, tree *chain)
      circular references and references from children nodes.  */
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
   pph_in_tree_body (stream, expr);
+
+  /* If EXPR had been recovered from an existing chain, the TREE_CHAIN
+     that we read from STREAM will be different than the chain
+     location we inserted it when we merged it in.  Recover it.  */
+  if (chain && saved_expr_chain != TREE_CHAIN (expr))
+    TREE_CHAIN (expr) = saved_expr_chain;
 
   if (flag_pph_tracer)
     pph_trace_tree (expr, chain != NULL);

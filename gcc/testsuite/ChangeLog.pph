@@ -1,3 +1,7 @@
+2011-10-14   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite/g++.dg/pph/c1limits-externalid.cc: Restore timeout.
+
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1limits-externalid.cc: Mark fixed.

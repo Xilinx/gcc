@@ -807,11 +807,14 @@ vec2vec_filter (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 /* Write all the trees in VEC V to STREAM.  REVERSE is true if V should
    be written in reverse.  MERGEABLE is true if the tree nodes in V
    are mergeable trees (see pph_out_tree_1).  If FILTER is set,
-   only emit the elements in V that match it.  */
+   only emit the elements in V that match it.  If UNCHAIN is true,
+   clear TREE_CHAIN on every element written out (this is to support
+   writing chains, as they are supposed to be re-chained by the
+   reader).  */
 
 static void
 pph_out_tree_vec_1 (pph_stream *stream, VEC(tree,gc) *v, unsigned filter,
-		    bool mergeable, bool reverse)
+		    bool mergeable, bool reverse, bool unchain)
 {
   unsigned i;
   tree t;
@@ -831,10 +834,30 @@ pph_out_tree_vec_1 (pph_stream *stream, VEC(tree,gc) *v, unsigned filter,
 
   if (!reverse)
     FOR_EACH_VEC_ELT (tree, to_write, i, t)
-      pph_out_tree_1 (stream, t, mergeable);
+      {
+	tree prev = NULL;
+	if (unchain)
+	  {
+	    prev = TREE_CHAIN (t);
+	    TREE_CHAIN (t) = NULL;
+	  }
+	pph_out_tree_1 (stream, t, mergeable);
+	if (unchain)
+	  TREE_CHAIN (t) = prev;
+      }
   else
     FOR_EACH_VEC_ELT_REVERSE (tree, to_write, i, t)
-      pph_out_tree_1 (stream, t, mergeable);
+      {
+	tree prev = NULL;
+	if (unchain)
+	  {
+	    prev = TREE_CHAIN (t);
+	    TREE_CHAIN (t) = NULL;
+	  }
+	pph_out_tree_1 (stream, t, mergeable);
+	if (unchain)
+	  TREE_CHAIN (t) = prev;
+      }
 
   /* If we did not have to filter, TO_WRITE == V.  Do not free it!  */
   if (filter != PPHF_NONE)
@@ -847,7 +870,7 @@ pph_out_tree_vec_1 (pph_stream *stream, VEC(tree,gc) *v, unsigned filter,
 static void
 pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 {
-  pph_out_tree_vec_1 (stream, v, PPHF_NONE, false, false);
+  pph_out_tree_vec_1 (stream, v, PPHF_NONE, false, false, false);
 }
 
 
@@ -856,7 +879,7 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 static void
 pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 {
-  pph_out_tree_vec_1 (stream, v, filter, false, false);
+  pph_out_tree_vec_1 (stream, v, filter, false, false, false);
 }
 
 
@@ -937,7 +960,7 @@ pph_out_chain_1 (pph_stream *stream, tree first, unsigned filter,
      apply it again.  */
   vec = chain2vec_filter (stream, first, filter);
   pph_out_tree_vec_1 (stream, (VEC(tree,gc) *)vec, reverse, mergeable,
-		      PPHF_NONE);
+		      PPHF_NONE, true);
 }
 
 
@@ -1580,8 +1603,11 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
   pph_out_lang_specific (stream, decl);
   pph_out_tree (stream, DECL_INITIAL (decl));
 
-  /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.  */
-  /* FIXME pph: almost redundant.  */
+  /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
+     We need to write DECL_CHAIN for variables and functions because
+     they are sometimes chained together in places other than regular
+     tree chains.  For example in BINFO_VTABLEs, the decls are chained
+     together).  */
   if (TREE_CODE (decl) == VAR_DECL
       || TREE_CODE (decl) == FUNCTION_DECL)
     pph_out_tree (stream, DECL_CHAIN (decl));

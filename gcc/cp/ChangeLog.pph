@@ -1,3 +1,19 @@
+2011-10-14   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_mergeable_tree): Remove.  Update all users.
+	(pph_in_chain_1): Rename from pph_in_chain.
+	Add argument CHAIN.
+	(pph_in_chain): Call pph_in_chain_1.
+	(pph_in_mergeable_chain): Likewise.
+	(pph_in_tcc_declaration): Add documentation on why reading
+	DECL_CHAIN is necessary.
+	(pph_in_tree_1): Prevent getting DECL_CHAIN clobbered after
+	merging into CHAIN.
+	* pph-streamer-out.c (pph_out_tree_vec_1): Add argument UNCHAIN.
+	Update all users.
+	(pph_out_tcc_declaration): Add documentation on why writing
+	DECL_CHAIN is necessary
+
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-out.c (pph_out_tree_1): Do not call pph_trace_tree
