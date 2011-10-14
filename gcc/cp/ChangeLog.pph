@@ -1,5 +1,10 @@
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-out.c (pph_out_tree_1): Rename from pph_out_any_tree.
+	Update all users.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-out.c (pph_out_mergeable_tree): Remove.  Update
 	all users.
 	(pph_tree_matches): Handle PPHF_NONE.

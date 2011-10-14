@@ -619,16 +619,15 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 
 
 /* The core tree writer is defined much later.  */
+static void pph_out_tree_1 (pph_stream *stream, tree t, bool mergeable);
 
-static void pph_out_any_tree (pph_stream *stream, tree t, bool mergeable);
 
-
-/* Output non-mergeable AST T to STREAM  */
+/* Output non-mergeable tree T to STREAM.  */
 
 void
 pph_out_tree (pph_stream *stream, tree t)
 {
-  pph_out_any_tree (stream, t, false);
+  pph_out_tree_1 (stream, t, false);
 }
 
 
@@ -807,7 +806,7 @@ vec2vec_filter (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 
 /* Write all the trees in VEC V to STREAM.  REVERSE is true if V should
    be written in reverse.  MERGEABLE is true if the tree nodes in V
-   are mergeable trees (see pph_out_any_tree).  If FILTER is set,
+   are mergeable trees (see pph_out_tree_1).  If FILTER is set,
    only emit the elements in V that match it.  */
 
 static void
@@ -832,10 +831,10 @@ pph_out_tree_vec_1 (pph_stream *stream, VEC(tree,gc) *v, unsigned filter,
 
   if (!reverse)
     FOR_EACH_VEC_ELT (tree, to_write, i, t)
-      pph_out_any_tree (stream, t, mergeable);
+      pph_out_tree_1 (stream, t, mergeable);
   else
     FOR_EACH_VEC_ELT_REVERSE (tree, to_write, i, t)
-      pph_out_any_tree (stream, t, mergeable);
+      pph_out_tree_1 (stream, t, mergeable);
 
   /* If we did not have to filter, TO_WRITE == V.  Do not free it!  */
   if (filter != PPHF_NONE)
@@ -918,7 +917,7 @@ chain2vec_filter (pph_stream *stream, tree chain, unsigned filter)
 /* Write a chain of trees to STREAM starting with FIRST (if REVERSE is
    false) or the last element reachable from FIRST (if REVERSE is
    true).  If FILTER is given, use it to decide what nodes should be
-   emitted.  MERGEABLE is as in pph_out_any_tree.  */
+   emitted.  MERGEABLE is as in pph_out_tree_1.  */
 
 static void
 pph_out_chain_1 (pph_stream *stream, tree first, unsigned filter,
@@ -1068,7 +1067,7 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
       pph_out_mergeable_chain_filtered (stream, bl->namespaces, aux_filter);
       pph_out_mergeable_chain_filtered (stream, bl->usings, aux_filter);
       pph_out_mergeable_chain_filtered (stream, bl->using_directives,
-                                                aux_filter);
+                                        aux_filter);
     }
   else
     {
@@ -1886,7 +1885,7 @@ pph_out_merge_name (pph_stream *stream, tree expr)
 /* Write a tree EXPR (MERGEABLE or not) to STREAM.  */
 
 static void
-pph_out_any_tree (pph_stream *stream, tree expr, bool mergeable)
+pph_out_tree_1 (pph_stream *stream, tree expr, bool mergeable)
 {
   enum pph_record_marker marker;
 
