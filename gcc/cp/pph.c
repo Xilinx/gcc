@@ -111,13 +111,21 @@ pph_dump_tree_name (FILE *file, tree t, int flags)
 void
 pph_dump_namespace (FILE *file, tree ns)
 {
-  cp_binding_level *level;
-  tree t, chain;
-  level = NAMESPACE_LEVEL (ns);
-
   fprintf (file, "namespace ");
-  print_generic_expr (file, ns, 0);
+  pph_dump_tree_name (file, ns, 0);
   fprintf (file, " {\n");
+  pph_dump_binding (file, NAMESPACE_LEVEL (ns));
+  fprintf (file, "}\n");
+}
+
+
+/* Dump cp_binding_level LEVEL for PPH.  */
+
+void
+pph_dump_binding (FILE *file, cp_binding_level *level)
+{
+  tree t, chain;
+
   for (t = level->names; t; t = chain)
     {
       chain = DECL_CHAIN (t);
@@ -130,7 +138,6 @@ pph_dump_namespace (FILE *file, tree ns)
       if (!DECL_IS_BUILTIN (t))
         pph_dump_namespace (file, t);
     }
-  fprintf (file, "}\n");
 }
 
 

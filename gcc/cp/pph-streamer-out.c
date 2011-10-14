@@ -1069,8 +1069,8 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 }
 
 
-/* Helper for pph_out_binding_level.  Write all the fields of BL to
-   STREAM, without checking whether BL was in the streamer cache or not.
+/* Helper for pph_out_binding_level and pph_out_mergeable_binding_level.
+   Write the fields of BL to STREAM that do not differ depending on mering.
    Do not emit any nodes in BL that do not match FILTER.  */
 
 static void
@@ -1081,25 +1081,6 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
   cp_class_binding *cs;
   cp_label_binding *sl;
   struct bitpack_d bp;
-  unsigned aux_filter = PPHF_NO_BUILTINS | filter;
-  tree entity = bl->this_entity;
-  pph_out_tree (stream, entity);
-  if (NAMESPACE_SCOPE_P (entity))
-    {
-      pph_out_mergeable_chain_filtered (stream, bl->names, aux_filter);
-      pph_out_mergeable_chain_filtered (stream, bl->namespaces, aux_filter);
-      pph_out_mergeable_chain_filtered (stream, bl->usings, aux_filter);
-      pph_out_mergeable_chain_filtered (stream, bl->using_directives,
-                                        aux_filter);
-    }
-  else
-    {
-      pph_out_chain_filtered (stream, bl->names, aux_filter);
-      pph_out_chain_filtered (stream, bl->namespaces, aux_filter);
-      pph_out_chain_filtered (stream, bl->usings, aux_filter);
-      pph_out_chain_filtered (stream, bl->using_directives, aux_filter);
-    }
-  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
@@ -1126,16 +1107,57 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
 }
 
 
-/* Write all the fields of cp_binding_level instance BL to STREAM.  Do not
-   emit any nodes in BL that do not match FILTER.  */
+/* Write all the fields of cp_binding_level instance BL to STREAM for the
+   non-merging case.  Do not emit any nodes in BL that do not match FILTER.  */
 
 static void
 pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 		       unsigned filter)
 {
+  unsigned aux_filter;
+  tree entity;
+
   if (pph_out_start_record (stream, bl, PPH_cp_binding_level))
     return;
 
+  aux_filter = PPHF_NO_BUILTINS | filter;
+  entity = bl->this_entity;
+  pph_out_tree (stream, entity);
+
+  pph_out_chain_filtered (stream, bl->names, aux_filter);
+  pph_out_chain_filtered (stream, bl->namespaces, aux_filter);
+  pph_out_chain_filtered (stream, bl->usings, aux_filter);
+  pph_out_chain_filtered (stream, bl->using_directives, aux_filter);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
+  pph_out_binding_level_1 (stream, bl, filter);
+}
+
+
+/* Helper for pph_out_binding_level.  Write the fields of BL to STREAM
+   for the non-merging case.
+   Do not emit any nodes in BL that do not match FILTER.  */
+
+static void
+pph_out_mergeable_binding_level (pph_stream *stream, cp_binding_level *bl,
+		         unsigned filter)
+{
+  unsigned aux_filter, ix;
+  tree entity;
+
+  pph_cache_add (&stream->cache, scope_chain->bindings, &ix,
+                 PPH_cp_binding_level);
+  pph_out_record_marker (stream, PPH_RECORD_START, PPH_cp_binding_level);
+  pph_out_uint (stream, ix);
+
+  aux_filter = PPHF_NO_BUILTINS | filter;
+  entity = bl->this_entity;
+  pph_out_tree (stream, entity);
+
+  pph_out_mergeable_chain_filtered (stream, bl->names, aux_filter);
+  pph_out_mergeable_chain_filtered (stream, bl->namespaces, aux_filter);
+  pph_out_mergeable_chain_filtered (stream, bl->usings, aux_filter);
+  pph_out_mergeable_chain_filtered (stream, bl->using_directives, aux_filter);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
   pph_out_binding_level_1 (stream, bl, filter);
 }
 
@@ -2168,7 +2190,7 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 /* Write the global bindings in scope_chain to STREAM.  */
 
 static void
-pph_out_scope_chain (pph_stream *stream)
+pph_out_global_binding (pph_stream *stream)
 {
   /* old_namespace should be global_namespace and all entries listed below
      should be NULL or 0; otherwise the header parsed was incomplete.  */
@@ -2199,13 +2221,8 @@ pph_out_scope_chain (pph_stream *stream)
      cache.  This would cause pph_out_binding_level to emit a cache
      reference to it, instead of writing its fields.  */
   {
-    unsigned ix;
-    pph_cache_add (&stream->cache, scope_chain->bindings, &ix,
-                   PPH_cp_binding_level);
-    pph_out_record_marker (stream, PPH_RECORD_START, PPH_cp_binding_level);
-    pph_out_uint (stream, ix);
-    pph_out_binding_level_1 (stream, scope_chain->bindings,
-			     PPHF_NO_XREFS | PPHF_NO_PREFS);
+    pph_out_mergeable_binding_level (stream, scope_chain->bindings,
+				     PPHF_NO_XREFS | PPHF_NO_PREFS);
   }
 }
 
@@ -2229,7 +2246,7 @@ pph_write_file (pph_stream *stream)
   pph_out_identifiers (stream, &idents_used);
 
   /* Emit the bindings for the global namespace.  */
-  pph_out_scope_chain (stream);
+  pph_out_global_binding (stream);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
 
