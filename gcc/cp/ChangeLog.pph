@@ -1,5 +1,11 @@
 2011-10-13   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_in_tree_1): Rename from pph_in_any_tree.
+	Update all users.
+	Do not call pph_trace_tree unless flag_pph_tracer is set.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-out.c (pph_out_tree_1): Rename from pph_out_any_tree.
 	Update all users.
 

@@ -512,25 +512,24 @@ pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
 
 
 /* The core tree reader is defined much later.  */
+static tree pph_in_tree_1 (pph_stream *stream, tree *chain);
 
-static tree pph_in_any_tree (pph_stream *stream, tree *chain);
 
-
-/* Load an AST from STREAM.  Return the corresponding tree.  */
+/* Load a non-mergeable AST from STREAM.  Return the corresponding tree.  */
 
 tree
 pph_in_tree (pph_stream *stream)
 {
-  tree t = pph_in_any_tree (stream, NULL);
-  return t;
+  return pph_in_tree_1 (stream, NULL);
 }
 
 
 /* Load an AST into CHAIN from STREAM.  */
+
 static void
 pph_in_mergeable_tree (pph_stream *stream, tree *chain)
 {
-  pph_in_any_tree (stream, chain);
+  pph_in_tree_1 (stream, chain);
 }
 
 
@@ -1922,11 +1921,11 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
-/* Read a tree from the STREAM.  If CHAIN is not null, the tree may be
+/* Read a tree from the STREAM.  If CHAIN is not NULL, the tree may be
    unified with an existing tree in that chain.  */
 
 static tree
-pph_in_any_tree (pph_stream *stream, tree *chain)
+pph_in_tree_1 (pph_stream *stream, tree *chain)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
@@ -1965,7 +1964,7 @@ pph_in_any_tree (pph_stream *stream, tree *chain)
           return streamer_read_integer_cst (ib, data_in);
         }
 
-      /* Materialize a new node from IB.  This will also read all the
+      /* Materialize a new node from STREAM.  This will also read all the
          language-independent bitfields for the new tree.  */
       expr = read = pph_in_tree_header (stream, tag);
       gcc_assert (read != NULL);
@@ -1992,11 +1991,11 @@ pph_in_any_tree (pph_stream *stream, tree *chain)
   /* Add the new tree to the cache and read its body.  The tree
      is added to the cache before we read its body to handle
      circular references and references from children nodes.  */
-  /* FIXME pph: We should not insert when read == expr, but it fails.  */
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
   pph_in_tree_body (stream, expr);
 
-  pph_trace_tree (expr, chain != NULL);
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, chain != NULL);
 
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
