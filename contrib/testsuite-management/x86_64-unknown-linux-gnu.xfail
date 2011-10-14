@@ -1,0 +1,126 @@
+# Failures inherited from mainline.
+XPASS: gcc.dg/guality/example.c -O2  execution test
+XPASS: gcc.dg/guality/example.c -O2 -flto  execution test
+XPASS: gcc.dg/guality/example.c -O1  execution test
+XPASS: gcc.dg/guality/example.c -O2 -flto -flto-partition=none  execution test
+XPASS: gcc.dg/guality/example.c -Os  execution test
+XPASS: gcc.dg/guality/example.c -O0  execution test
+XPASS: gcc.dg/guality/guality.c -O2 -flto -flto-partition=none  execution test
+XPASS: gcc.dg/guality/guality.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/guality.c -O1  execution test
+XPASS: gcc.dg/guality/guality.c -O0  execution test
+XPASS: gcc.dg/guality/guality.c -Os  execution test
+XPASS: gcc.dg/guality/guality.c -O2  execution test
+XPASS: gcc.dg/guality/guality.c -O3 -g  execution test
+XPASS: gcc.dg/guality/guality.c -O2 -flto  execution test
+XPASS: gcc.dg/guality/inline-params.c -O2 -flto -flto-partition=none  execution test
+XPASS: gcc.dg/guality/inline-params.c -O2  execution test
+XPASS: gcc.dg/guality/inline-params.c -O3 -g  execution test
+XPASS: gcc.dg/guality/inline-params.c -O2 -flto  execution test
+XPASS: gcc.dg/guality/inline-params.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/inline-params.c -Os  execution test
+XPASS: gcc.dg/guality/pr41353-1.c -O3 -g  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O3 -fomit-frame-pointer  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2 -flto -flto-partition=none  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O1  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -Os  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O0  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2 -flto  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41447-1.c -O2 -flto -flto-partition=none  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O1  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O0  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -Os  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O2  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O3 -g  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O2 -flto  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O1  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto -flto-partition=none  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O0  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -Os  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O2  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O3 -g  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto  execution test
+XPASS: gcc.dg/guality/sra-1.c -O2 -flto -flto-partition=none  line 43 a.j == 14
+XPASS: gcc.dg/guality/sra-1.c -O3 -fomit-frame-pointer  line 43 a.j == 14
+XPASS: gcc.dg/guality/sra-1.c -O3 -g  line 43 a.j == 14
+XPASS: gcc.dg/guality/sra-1.c -O2  line 43 a.j == 14
+XPASS: gcc.dg/guality/sra-1.c -O2 -flto  line 43 a.j == 14
+XPASS: gcc.dg/guality/sra-1.c -O0  line 43 a.j == 14
+XPASS: gcc.dg/guality/sra-1.c -Os  line 43 a.j == 14
+XPASS: gcc.dg/inline_3.c (test for excess errors)
+XPASS: gcc.dg/inline_4.c (test for excess errors)
+FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom1 "x[^ ]* & y" 1
+XPASS: gcc.dg/uninit-B.c uninit i warning (test for warnings, line 12)
+XPASS: gcc.dg/uninit-pr19430.c uninitialized (test for warnings, line 41)
+XPASS: gcc.dg/uninit-pr19430.c (test for warnings, line 32)
+XPASS: gcc.dg/unroll_2.c (test for excess errors)
+XPASS: gcc.dg/unroll_3.c (test for excess errors)
+XPASS: gcc.dg/unroll_4.c (test for excess errors)
+FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
+FAIL: libmudflap.c/pass49-frag.c (-O3) crash test
+XPASS: libmudflap.c/pass49-frag.c (-O3) output pattern test
+XPASS: libmudflap.c/pass49-frag.c output pattern test
+FAIL: libmudflap.c/pass49-frag.c (-O2) crash test
+FAIL: libmudflap.c/pass49-frag.c crash test
+XPASS: libmudflap.c/pass49-frag.c (-O2) output pattern test
+
+
+# Failures in 32-bit mode.
+UNRESOLVED: g++.dg/lto/20100302 cp_lto_20100302_0.o-cp_lto_20100302_1.o execute -flto -fabi-version=2
+FAIL: g++.dg/lto/20100302 cp_lto_20100302_0.o-cp_lto_20100302_1.o link, -flto -fabi-version=2 (internal compiler error)
+FAIL: g++.dg/pph/c4inline.cc (assembly equality, sums 36250=>30896)
+FAIL: g++.dg/pph/p2pr36533.cc (assembly equality, sums 25347=>44151)
+FAIL: g++.dg/pph/p4mean.cc (assembly equality, sums 39234=>08341)
+FAIL: g++.dg/pph/p4pr36533.cc (assembly equality, sums 25347=>44151)
+FAIL: g++.dg/pph/x4resolve1.cc (assembly equality, sums 03374=>32904)
+FAIL: g++.dg/pph/x4resolve2.cc (assembly equality, sums 37643=>56140)
+FAIL: g++.dg/pph/x4tmplclass1.cc (assembly equality, sums 36067=>59946)
+FAIL: g++.dg/pph/x4tmplclass2.cc (assembly equality, sums 49533=>63227)
+FAIL: g++.dg/pph/x4tmplfuncinln.cc (assembly equality, sums 16845=>27447)
+FAIL: g++.dg/pph/x4tmplfuncninl.cc (assembly equality, sums 37887=>56344)
+FAIL: g++.dg/pph/x6dynarray3.cc (assembly equality, sums 30893=>27301)
+FAIL: g++.dg/pph/x6dynarray4.cc -fpph-map=pph.map -fno-dwarf2-cfi-asm (test for excess errors)
+FAIL: g++.dg/pph/x7dynarray5.cc -fpph-map=pph.map -fno-dwarf2-cfi-asm (test for excess errors)
+FAIL: g++.dg/pph/z4nontrivinit.cc (assembly equality, sums 65039=>50069)
+FAIL: g++.dg/pph/z4tmplclass1.cc (assembly equality, sums 10444=>59325)
+FAIL: g++.dg/pph/z4tmplclass2.cc (assembly equality, sums 59292=>32717)
+FAIL: g++.dg/pph/z4tmplfuncinln.cc (assembly equality, sums 65129=>62142)
+FAIL: g++.dg/pph/z4tmplfuncninl.cc (assembly equality, sums 05125=>11360)
+XPASS: gcc.dg/guality/sra-1.c -O1  line 43 a.j == 14
+FAIL: gcc.dg/lto/pr47259 c_lto_pr47259_0.o-c_lto_pr47259_1.o link,  -O2 -flto -w
+UNRESOLVED: gcc.dg/lto/pr47259 c_lto_pr47259_0.o-c_lto_pr47259_1.o execute  -O2 -flto -w
+FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
+FAIL: libmudflap.c++/fail24-frag.cxx (-static) (test for excess errors)
+FAIL: libmudflap.c++/pass31-frag.cxx (-static) (test for excess errors)
+FAIL: libmudflap.c/fail17-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail23-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail25-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail4-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail5-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail6-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail7-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail8-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/fail9-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/heap-scalestress.c (-static) (test for excess errors)
+FAIL: libmudflap.c/hook-allocstuff.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass-stratcliff.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass30-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass4-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass45-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass46-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass47-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass49-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass5-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass51-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass52-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass6-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass7-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass8-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.c/pass9-frag.c (-static) (test for excess errors)
+FAIL: libmudflap.cth/pass37-frag.c (-static -DSTATIC) (test for excess errors)
+FAIL: libmudflap.cth/pass39-frag.c (-static -DSTATIC) (test for excess errors)
+FAIL: libmudflap.cth/pass40-frag.c (-static -DSTATIC) (test for excess errors)
+FAIL: libmudflap.cth/pass59-frag.c (-static -DSTATIC) (test for excess errors)
