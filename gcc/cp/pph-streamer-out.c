@@ -1916,7 +1916,8 @@ pph_out_tree_1 (pph_stream *stream, tree expr, bool mergeable)
     }
   else if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
-      pph_trace_tree (expr, mergeable);
+      if (flag_pph_tracer)
+	pph_trace_tree (expr, mergeable);
 
       /* This is the first time we see EXPR, write it out.  */
       if (marker == PPH_RECORD_START)
