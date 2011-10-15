@@ -1,5 +1,9 @@
 
 2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: Replace DEBUG_MSG with DEBUG.
+	Don't use version in rev. 180026.
+
+2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Work in progress. Regenerated with some pain.}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
