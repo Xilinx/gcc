@@ -1547,7 +1547,7 @@ meltrout_8_warmelt_debug_MELT_DEBUG_FUN (meltclosure_ptr_t meltclosp_,
       variad_MELT_DEBUG_FUN_ix = variad_MELT_DEBUG_FUN_len;
       goto lab_endgetargs;
     }
-  variad_MELT_DEBUG_FUN_ix = 0;
+  variad_MELT_DEBUG_FUN_ix = 1;
  /*_#COUNT__L1*/ meltfnum[0] = meltxargtab_[0].meltbp_long;
 
   /*getarg#2 */
@@ -1557,7 +1557,7 @@ meltrout_8_warmelt_debug_MELT_DEBUG_FUN (meltclosure_ptr_t meltclosp_,
       variad_MELT_DEBUG_FUN_ix = variad_MELT_DEBUG_FUN_len;
       goto lab_endgetargs;
     }
-  variad_MELT_DEBUG_FUN_ix = 1;
+  variad_MELT_DEBUG_FUN_ix = 2;
  /*_?*/ meltfram__.loc_CSTRING__o0 = meltxargtab_[1].meltbp_cstring;
 
   /*getarg#3 */
@@ -1567,7 +1567,7 @@ meltrout_8_warmelt_debug_MELT_DEBUG_FUN (meltclosure_ptr_t meltclosp_,
       variad_MELT_DEBUG_FUN_ix = variad_MELT_DEBUG_FUN_len;
       goto lab_endgetargs;
     }
-  variad_MELT_DEBUG_FUN_ix = 2;
+  variad_MELT_DEBUG_FUN_ix = 3;
  /*_#LINENO__L2*/ meltfnum[1] = meltxargtab_[2].meltbp_long;
   ;
   goto lab_endgetargs;

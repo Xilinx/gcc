@@ -760,7 +760,7 @@ melt-stage1/warmelt-first.c melt-stage1/warmelt-first+meltdesc.c:  $(melt_make_s
  | $(MELT_STAGE_ZERO).stamp $(MELT_STAGE_ZERO)/warmelt.modlis \
                                                         empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCINIT1ARGS) $(meltarg_init)=\
@@ -772,15 +772,15 @@ $(MELT_STAGE_ZERO)/warmelt-normal.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-normatch.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-first+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-first+melt-stage1.args-tmp
+	@mv  warmelt-first+melt-stage1.args-tmp  warmelt-first+melt-stage1.args
+	@echo; echo; echo -n  warmelt-first+melt-stage1.args: ; cat warmelt-first+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-first+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-first for melt-stage1
@@ -819,7 +819,7 @@ melt-stage1/warmelt-base.c melt-stage1/warmelt-base+meltdesc.c:  $(melt_make_sou
       $(realpath melt-stage1/warmelt-first.quicklybuilt.so) \
                                                   empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -831,15 +831,15 @@ $(MELT_STAGE_ZERO)/warmelt-normal.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-normatch.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-base+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-base+melt-stage1.args-tmp
+	@mv  warmelt-base+melt-stage1.args-tmp  warmelt-base+melt-stage1.args
+	@echo; echo; echo -n  warmelt-base+melt-stage1.args: ; cat warmelt-base+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-base+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-base for melt-stage1
@@ -879,7 +879,7 @@ melt-stage1/warmelt-debug.c melt-stage1/warmelt-debug+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage1/warmelt-base.quicklybuilt.so) \
                                             empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -891,15 +891,15 @@ $(MELT_STAGE_ZERO)/warmelt-normal.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-normatch.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-debug+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-debug+melt-stage1.args-tmp
+	@mv  warmelt-debug+melt-stage1.args-tmp  warmelt-debug+melt-stage1.args
+	@echo; echo; echo -n  warmelt-debug+melt-stage1.args: ; cat warmelt-debug+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-debug+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-debug for melt-stage1
@@ -940,7 +940,7 @@ melt-stage1/warmelt-macro.c melt-stage1/warmelt-macro+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage1/warmelt-debug.quicklybuilt.so) \
                                       empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -952,15 +952,15 @@ $(MELT_STAGE_ZERO)/warmelt-normal.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-normatch.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-macro+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-macro+melt-stage1.args-tmp
+	@mv  warmelt-macro+melt-stage1.args-tmp  warmelt-macro+melt-stage1.args
+	@echo; echo; echo -n  warmelt-macro+melt-stage1.args: ; cat warmelt-macro+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-macro+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-macro for melt-stage1
@@ -1003,7 +1003,7 @@ melt-stage1/warmelt-normal.c melt-stage1/warmelt-normal+meltdesc.c:  $(melt_make
       $(realpath melt-stage1/warmelt-macro.quicklybuilt.so) \
                                 empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1015,15 +1015,15 @@ $(MELT_STAGE_ZERO)/warmelt-normal.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-normatch.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-normal+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-normal+melt-stage1.args-tmp
+	@mv  warmelt-normal+melt-stage1.args-tmp  warmelt-normal+melt-stage1.args
+	@echo; echo; echo -n  warmelt-normal+melt-stage1.args: ; cat warmelt-normal+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-normal+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-normal for melt-stage1
@@ -1066,7 +1066,7 @@ melt-stage1/warmelt-normatch.c melt-stage1/warmelt-normatch+meltdesc.c:  $(melt_
       $(realpath melt-stage1/warmelt-normal.quicklybuilt.so) \
                           empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1078,15 +1078,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 $(MELT_STAGE_ZERO)/warmelt-normatch.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-normatch+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-normatch+melt-stage1.args-tmp
+	@mv  warmelt-normatch+melt-stage1.args-tmp  warmelt-normatch+melt-stage1.args
+	@echo; echo; echo -n  warmelt-normatch+melt-stage1.args: ; cat warmelt-normatch+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-normatch+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-normatch for melt-stage1
@@ -1130,7 +1130,7 @@ melt-stage1/warmelt-genobj.c melt-stage1/warmelt-genobj+meltdesc.c:  $(melt_make
       $(realpath melt-stage1/warmelt-normatch.quicklybuilt.so) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1142,15 +1142,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 $(MELT_STAGE_ZERO)/warmelt-genobj.$(MELT_ZERO_FLAVOR):\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-genobj+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-genobj+melt-stage1.args-tmp
+	@mv  warmelt-genobj+melt-stage1.args-tmp  warmelt-genobj+melt-stage1.args
+	@echo; echo; echo -n  warmelt-genobj+melt-stage1.args: ; cat warmelt-genobj+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-genobj+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-genobj for melt-stage1
@@ -1195,7 +1195,7 @@ melt-stage1/warmelt-outobj.c melt-stage1/warmelt-outobj+meltdesc.c:  $(melt_make
       $(realpath melt-stage1/warmelt-genobj.quicklybuilt.so) \
               empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1207,15 +1207,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 $(MELT_STAGE_ZERO)/warmelt-outobj.$(MELT_ZERO_FLAVOR):\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-outobj+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-outobj+melt-stage1.args-tmp
+	@mv  warmelt-outobj+melt-stage1.args-tmp  warmelt-outobj+melt-stage1.args
+	@echo; echo; echo -n  warmelt-outobj+melt-stage1.args: ; cat warmelt-outobj+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-outobj+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-outobj for melt-stage1
@@ -1261,7 +1261,7 @@ melt-stage1/warmelt-modes.c melt-stage1/warmelt-modes+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage1/warmelt-outobj.quicklybuilt.so) \
         empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage1
 	@rm -f $(notdir $(basename $@)+melt-stage1.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1273,15 +1273,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > $(notdir $(basename $@)+melt-stage1.args-tmp)
+$(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-modes+melt-stage1.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage1.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage1.args-tmp $(notdir $(basename $@))+melt-stage1.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage1.args): ; cat $(notdir $(basename $@))+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage1.args)
+	      empty-file-for-melt.c >> warmelt-modes+melt-stage1.args-tmp
+	@mv  warmelt-modes+melt-stage1.args-tmp  warmelt-modes+melt-stage1.args
+	@echo; echo; echo -n  warmelt-modes+melt-stage1.args: ; cat warmelt-modes+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-modes+melt-stage1.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-modes for melt-stage1
@@ -1405,7 +1405,7 @@ melt-stage2/warmelt-first.c melt-stage2/warmelt-first+meltdesc.c:  $(melt_make_s
  | melt-stage1.stamp melt-stage1/warmelt.modlis \
                                                         empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCINIT1ARGS) $(meltarg_init)=\
@@ -1417,15 +1417,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-first+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-first+melt-stage2.args-tmp
+	@mv  warmelt-first+melt-stage2.args-tmp  warmelt-first+melt-stage2.args
+	@echo; echo; echo -n  warmelt-first+melt-stage2.args: ; cat warmelt-first+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-first+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-first for melt-stage2
@@ -1464,7 +1464,7 @@ melt-stage2/warmelt-base.c melt-stage2/warmelt-base+meltdesc.c:  $(melt_make_sou
       $(realpath melt-stage2/warmelt-first.quicklybuilt.so) \
                                                   empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1476,15 +1476,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-base+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-base+melt-stage2.args-tmp
+	@mv  warmelt-base+melt-stage2.args-tmp  warmelt-base+melt-stage2.args
+	@echo; echo; echo -n  warmelt-base+melt-stage2.args: ; cat warmelt-base+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-base+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-base for melt-stage2
@@ -1524,7 +1524,7 @@ melt-stage2/warmelt-debug.c melt-stage2/warmelt-debug+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage2/warmelt-base.quicklybuilt.so) \
                                             empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1536,15 +1536,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-debug+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-debug+melt-stage2.args-tmp
+	@mv  warmelt-debug+melt-stage2.args-tmp  warmelt-debug+melt-stage2.args
+	@echo; echo; echo -n  warmelt-debug+melt-stage2.args: ; cat warmelt-debug+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-debug+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-debug for melt-stage2
@@ -1585,7 +1585,7 @@ melt-stage2/warmelt-macro.c melt-stage2/warmelt-macro+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage2/warmelt-debug.quicklybuilt.so) \
                                       empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1597,15 +1597,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-macro+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-macro+melt-stage2.args-tmp
+	@mv  warmelt-macro+melt-stage2.args-tmp  warmelt-macro+melt-stage2.args
+	@echo; echo; echo -n  warmelt-macro+melt-stage2.args: ; cat warmelt-macro+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-macro+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-macro for melt-stage2
@@ -1648,7 +1648,7 @@ melt-stage2/warmelt-normal.c melt-stage2/warmelt-normal+meltdesc.c:  $(melt_make
       $(realpath melt-stage2/warmelt-macro.quicklybuilt.so) \
                                 empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1660,15 +1660,15 @@ melt-stage1/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-normal+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-normal+melt-stage2.args-tmp
+	@mv  warmelt-normal+melt-stage2.args-tmp  warmelt-normal+melt-stage2.args
+	@echo; echo; echo -n  warmelt-normal+melt-stage2.args: ; cat warmelt-normal+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-normal+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-normal for melt-stage2
@@ -1711,7 +1711,7 @@ melt-stage2/warmelt-normatch.c melt-stage2/warmelt-normatch+meltdesc.c:  $(melt_
       $(realpath melt-stage2/warmelt-normal.quicklybuilt.so) \
                           empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1723,15 +1723,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage1/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-normatch+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-normatch+melt-stage2.args-tmp
+	@mv  warmelt-normatch+melt-stage2.args-tmp  warmelt-normatch+melt-stage2.args
+	@echo; echo; echo -n  warmelt-normatch+melt-stage2.args: ; cat warmelt-normatch+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-normatch+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-normatch for melt-stage2
@@ -1775,7 +1775,7 @@ melt-stage2/warmelt-genobj.c melt-stage2/warmelt-genobj+meltdesc.c:  $(melt_make
       $(realpath melt-stage2/warmelt-normatch.quicklybuilt.so) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1787,15 +1787,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage1/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-genobj+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-genobj+melt-stage2.args-tmp
+	@mv  warmelt-genobj+melt-stage2.args-tmp  warmelt-genobj+melt-stage2.args
+	@echo; echo; echo -n  warmelt-genobj+melt-stage2.args: ; cat warmelt-genobj+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-genobj+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-genobj for melt-stage2
@@ -1840,7 +1840,7 @@ melt-stage2/warmelt-outobj.c melt-stage2/warmelt-outobj+meltdesc.c:  $(melt_make
       $(realpath melt-stage2/warmelt-genobj.quicklybuilt.so) \
               empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1852,15 +1852,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage1/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-outobj+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-outobj+melt-stage2.args-tmp
+	@mv  warmelt-outobj+melt-stage2.args-tmp  warmelt-outobj+melt-stage2.args
+	@echo; echo; echo -n  warmelt-outobj+melt-stage2.args: ; cat warmelt-outobj+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-outobj+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-outobj for melt-stage2
@@ -1906,7 +1906,7 @@ melt-stage2/warmelt-modes.c melt-stage2/warmelt-modes+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage2/warmelt-outobj.quicklybuilt.so) \
         empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage2
 	@rm -f $(notdir $(basename $@)+melt-stage2.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -1918,15 +1918,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage1/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage2.args-tmp)
+melt-stage1/warmelt-modes.quicklybuilt > warmelt-modes+melt-stage2.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage2.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage2.args-tmp $(notdir $(basename $@))+melt-stage2.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage2.args): ; cat $(notdir $(basename $@))+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage2.args)
+	      empty-file-for-melt.c >> warmelt-modes+melt-stage2.args-tmp
+	@mv  warmelt-modes+melt-stage2.args-tmp  warmelt-modes+melt-stage2.args
+	@echo; echo; echo -n  warmelt-modes+melt-stage2.args: ; cat warmelt-modes+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-modes+melt-stage2.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-modes for melt-stage2
@@ -2050,7 +2050,7 @@ melt-stage3/warmelt-first.c melt-stage3/warmelt-first+meltdesc.c:  $(melt_make_s
  | melt-stage2.stamp melt-stage2/warmelt.modlis \
                                                         empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCINIT1ARGS) $(meltarg_init)=\
@@ -2062,15 +2062,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-first+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-first+melt-stage3.args-tmp
+	@mv  warmelt-first+melt-stage3.args-tmp  warmelt-first+melt-stage3.args
+	@echo; echo; echo -n  warmelt-first+melt-stage3.args: ; cat warmelt-first+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-first+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-first for melt-stage3
@@ -2109,7 +2109,7 @@ melt-stage3/warmelt-base.c melt-stage3/warmelt-base+meltdesc.c:  $(melt_make_sou
       $(realpath melt-stage3/warmelt-first.quicklybuilt.so) \
                                                   empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2121,15 +2121,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-base+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-base+melt-stage3.args-tmp
+	@mv  warmelt-base+melt-stage3.args-tmp  warmelt-base+melt-stage3.args
+	@echo; echo; echo -n  warmelt-base+melt-stage3.args: ; cat warmelt-base+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-base+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-base for melt-stage3
@@ -2169,7 +2169,7 @@ melt-stage3/warmelt-debug.c melt-stage3/warmelt-debug+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage3/warmelt-base.quicklybuilt.so) \
                                             empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2181,15 +2181,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-debug+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-debug+melt-stage3.args-tmp
+	@mv  warmelt-debug+melt-stage3.args-tmp  warmelt-debug+melt-stage3.args
+	@echo; echo; echo -n  warmelt-debug+melt-stage3.args: ; cat warmelt-debug+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-debug+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-debug for melt-stage3
@@ -2230,7 +2230,7 @@ melt-stage3/warmelt-macro.c melt-stage3/warmelt-macro+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage3/warmelt-debug.quicklybuilt.so) \
                                       empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2242,15 +2242,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-macro+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-macro+melt-stage3.args-tmp
+	@mv  warmelt-macro+melt-stage3.args-tmp  warmelt-macro+melt-stage3.args
+	@echo; echo; echo -n  warmelt-macro+melt-stage3.args: ; cat warmelt-macro+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-macro+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-macro for melt-stage3
@@ -2293,7 +2293,7 @@ melt-stage3/warmelt-normal.c melt-stage3/warmelt-normal+meltdesc.c:  $(melt_make
       $(realpath melt-stage3/warmelt-macro.quicklybuilt.so) \
                                 empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2305,15 +2305,15 @@ melt-stage2/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-normal+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-normal+melt-stage3.args-tmp
+	@mv  warmelt-normal+melt-stage3.args-tmp  warmelt-normal+melt-stage3.args
+	@echo; echo; echo -n  warmelt-normal+melt-stage3.args: ; cat warmelt-normal+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-normal+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-normal for melt-stage3
@@ -2356,7 +2356,7 @@ melt-stage3/warmelt-normatch.c melt-stage3/warmelt-normatch+meltdesc.c:  $(melt_
       $(realpath melt-stage3/warmelt-normal.quicklybuilt.so) \
                           empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2368,15 +2368,15 @@ melt-stage3/warmelt-normal.quicklybuilt:\
 melt-stage2/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-normatch+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-normatch+melt-stage3.args-tmp
+	@mv  warmelt-normatch+melt-stage3.args-tmp  warmelt-normatch+melt-stage3.args
+	@echo; echo; echo -n  warmelt-normatch+melt-stage3.args: ; cat warmelt-normatch+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-normatch+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-normatch for melt-stage3
@@ -2420,7 +2420,7 @@ melt-stage3/warmelt-genobj.c melt-stage3/warmelt-genobj+meltdesc.c:  $(melt_make
       $(realpath melt-stage3/warmelt-normatch.quicklybuilt.so) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2432,15 +2432,15 @@ melt-stage3/warmelt-normal.quicklybuilt:\
 melt-stage3/warmelt-normatch.quicklybuilt:\
 melt-stage2/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-genobj+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-genobj+melt-stage3.args-tmp
+	@mv  warmelt-genobj+melt-stage3.args-tmp  warmelt-genobj+melt-stage3.args
+	@echo; echo; echo -n  warmelt-genobj+melt-stage3.args: ; cat warmelt-genobj+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-genobj+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-genobj for melt-stage3
@@ -2485,7 +2485,7 @@ melt-stage3/warmelt-outobj.c melt-stage3/warmelt-outobj+meltdesc.c:  $(melt_make
       $(realpath melt-stage3/warmelt-genobj.quicklybuilt.so) \
               empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2497,15 +2497,15 @@ melt-stage3/warmelt-normal.quicklybuilt:\
 melt-stage3/warmelt-normatch.quicklybuilt:\
 melt-stage3/warmelt-genobj.quicklybuilt:\
 melt-stage2/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-outobj+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-outobj+melt-stage3.args-tmp
+	@mv  warmelt-outobj+melt-stage3.args-tmp  warmelt-outobj+melt-stage3.args
+	@echo; echo; echo -n  warmelt-outobj+melt-stage3.args: ; cat warmelt-outobj+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-outobj+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-outobj for melt-stage3
@@ -2551,7 +2551,7 @@ melt-stage3/warmelt-modes.c melt-stage3/warmelt-modes+meltdesc.c:  $(melt_make_s
       $(realpath melt-stage3/warmelt-outobj.quicklybuilt.so) \
         empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-## 
+##  from melt-build.tpl line 281
 	@echo generating $< for melt-stage3
 	@rm -f $(notdir $(basename $@)+melt-stage3.args)
 	@echo  $(MELTCCFILE1ARGS) $(meltarg_init)=\
@@ -2563,15 +2563,15 @@ melt-stage3/warmelt-normal.quicklybuilt:\
 melt-stage3/warmelt-normatch.quicklybuilt:\
 melt-stage3/warmelt-genobj.quicklybuilt:\
 melt-stage3/warmelt-outobj.quicklybuilt:\
-melt-stage2/warmelt-modes.quicklybuilt > $(notdir $(basename $@)+melt-stage3.args-tmp)
+melt-stage2/warmelt-modes.quicklybuilt > warmelt-modes+melt-stage3.args-tmp
 	@echo $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
-	      empty-file-for-melt.c >> $(notdir $(basename $@)+melt-stage3.args-tmp)
-	@mv $(notdir $(basename $@))+melt-stage3.args-tmp $(notdir $(basename $@))+melt-stage3.args
-	@echo; echo; echo -n $(notdir $(basename $@)+melt-stage3.args): ; cat $(notdir $(basename $@))+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
-	$(melt_make_cc1) @$(notdir $(basename $@)+melt-stage3.args)
+	      empty-file-for-melt.c >> warmelt-modes+melt-stage3.args-tmp
+	@mv  warmelt-modes+melt-stage3.args-tmp  warmelt-modes+melt-stage3.args
+	@echo; echo; echo -n  warmelt-modes+melt-stage3.args: ; cat warmelt-modes+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	$(melt_make_cc1) @warmelt-modes+melt-stage3.args
 
 #@ from melt-build.tpl line 300
 ################## quicklybuilt module warmelt-modes for melt-stage3
@@ -2768,10 +2768,10 @@ melt-sources/warmelt-first.c melt-sources/warmelt-first+meltdesc.c: melt-sources
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-first empty-file-for-melt.c > warmelt-first+sources.args-tmp
+	@mv warmelt-first+sources.args-tmp warmelt-first+sources.args
+	@echo; echo; echo; echo -n warmelt-first+sources.args: ; cat warmelt-first+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-first+sources.args
 
 
 
@@ -2834,10 +2834,10 @@ melt-sources/warmelt-base.c melt-sources/warmelt-base+meltdesc.c: melt-sources/w
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-base empty-file-for-melt.c > warmelt-base+sources.args-tmp
+	@mv warmelt-base+sources.args-tmp warmelt-base+sources.args
+	@echo; echo; echo; echo -n warmelt-base+sources.args: ; cat warmelt-base+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-base+sources.args
 
 
 
@@ -2900,10 +2900,10 @@ melt-sources/warmelt-debug.c melt-sources/warmelt-debug+meltdesc.c: melt-sources
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-debug empty-file-for-melt.c > warmelt-debug+sources.args-tmp
+	@mv warmelt-debug+sources.args-tmp warmelt-debug+sources.args
+	@echo; echo; echo; echo -n warmelt-debug+sources.args: ; cat warmelt-debug+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-debug+sources.args
 
 
 
@@ -2966,10 +2966,10 @@ melt-sources/warmelt-macro.c melt-sources/warmelt-macro+meltdesc.c: melt-sources
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-macro empty-file-for-melt.c > warmelt-macro+sources.args-tmp
+	@mv warmelt-macro+sources.args-tmp warmelt-macro+sources.args
+	@echo; echo; echo; echo -n warmelt-macro+sources.args: ; cat warmelt-macro+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-macro+sources.args
 
 
 
@@ -3038,10 +3038,10 @@ melt-sources/warmelt-normal.c melt-sources/warmelt-normal+meltdesc.c: melt-sourc
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-normal empty-file-for-melt.c > warmelt-normal+sources.args-tmp
+	@mv warmelt-normal+sources.args-tmp warmelt-normal+sources.args
+	@echo; echo; echo; echo -n warmelt-normal+sources.args: ; cat warmelt-normal+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-normal+sources.args
 
 
 
@@ -3104,10 +3104,10 @@ melt-sources/warmelt-normatch.c melt-sources/warmelt-normatch+meltdesc.c: melt-s
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-normatch empty-file-for-melt.c > warmelt-normatch+sources.args-tmp
+	@mv warmelt-normatch+sources.args-tmp warmelt-normatch+sources.args
+	@echo; echo; echo; echo -n warmelt-normatch+sources.args: ; cat warmelt-normatch+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-normatch+sources.args
 
 
 
@@ -3170,10 +3170,10 @@ melt-sources/warmelt-genobj.c melt-sources/warmelt-genobj+meltdesc.c: melt-sourc
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-genobj empty-file-for-melt.c > warmelt-genobj+sources.args-tmp
+	@mv warmelt-genobj+sources.args-tmp warmelt-genobj+sources.args
+	@echo; echo; echo; echo -n warmelt-genobj+sources.args: ; cat warmelt-genobj+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-genobj+sources.args
 
 
 
@@ -3236,10 +3236,10 @@ melt-sources/warmelt-outobj.c melt-sources/warmelt-outobj+meltdesc.c: melt-sourc
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-outobj empty-file-for-melt.c > warmelt-outobj+sources.args-tmp
+	@mv warmelt-outobj+sources.args-tmp warmelt-outobj+sources.args
+	@echo; echo; echo; echo -n warmelt-outobj+sources.args: ; cat warmelt-outobj+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-outobj+sources.args
 
 
 
@@ -3302,10 +3302,10 @@ melt-sources/warmelt-modes.c melt-sources/warmelt-modes+meltdesc.c: melt-sources
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	     $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))+sources.args-tmp
-	@mv $(notdir $(basename $@))+sources.args-tmp $(notdir $(basename $@))+sources.args
-	@echo; echo; echo; echo -n $(notdir $(basename $@))+sources.args: ; cat $(notdir $(basename $@))+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
-	$(melt_make_cc1) @$(notdir $(basename $@))+sources.args
+	     $(meltarg_output)=melt-sources/warmelt-modes empty-file-for-melt.c > warmelt-modes+sources.args-tmp
+	@mv warmelt-modes+sources.args-tmp warmelt-modes+sources.args
+	@echo; echo; echo; echo -n warmelt-modes+sources.args: ; cat warmelt-modes+sources.args ; echo "***** doing " $@ from melt-build.tpl line 447
+	$(melt_make_cc1) @warmelt-modes+sources.args
 
 
 

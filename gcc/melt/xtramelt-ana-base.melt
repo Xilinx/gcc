@@ -284,8 +284,7 @@
 
 ;; debugloop is ok even for nil
 (defprimitive debugloop (:loop lo :cstring msg) :void
-  #{#warning DEBUGLOOP primitive is obsolete; use DEBUG in your MELT code
-do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
+  #{ do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
   if (flag_melt_debug) { if ($LO) flow_loop_dump($LO, stderr, NULL, 1); }
   fputc('\n',stderr); 
  }while(0)  }#
@@ -2504,7 +2503,8 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;;
 (defun bb_post_dominator_iterator (bb f data)
   :doc #{apply function $F on each dominator of $BB.}#
-  (debug "entering bb_post_dominator_iterator bb=" bb " data=" data)
+  (debugbasicblock "entering bb_post_dominator_iterator" (basicblock_content
+                                                          bb))
   (calculate_post_dominance_info)
   (let ( (dom (get_immediate_post_dominator bb)) )
   (if (basicblock_content dom)
@@ -3266,8 +3266,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 
 ;; debug_tree is ok even for nil trees
 (defprimitive debugtree (:cstring msg :tree tr) :void
-  #{#warning debugtree primitive is obsolete; use DEBUG in your MELT code
-do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
+  #{ do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
 		       ($tr)?tree_code_name[TREE_CODE($tr)]:" *niltree*");
   if (flag_melt_debug) debug_tree($tr);}while(0)
   }#
@@ -3276,8 +3275,7 @@ do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr,
 
 ;; debug_edge is ok even for nil
 (defprimitive debugedge (:cstring msg :edge eg) :void
-  #{#warning debugedge primitive is obsolete; use DEBUG in your MELT code
- do {debugeprintfnonl("debugedge %s @%p ", $msg, (void*)$eg);
+  #{ do {debugeprintfnonl("debugedge %s @%p ", $msg, (void*)$eg);
   if (flag_melt_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
   fputc('\n',stderr); }
  }while(0)  }#
@@ -3313,8 +3311,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 
 ;; debug_gimple_stmt is ok even for nil gimples
 (defprimitive debuggimple(:cstring msg :gimple g) :void
-  #{#warning debuggimple primitive is obsolete; use DEBUG in your MELT code
-do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g, 
+  #{ do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g, 
 			 ($g)?gimple_code_name[gimple_code($g)]: "*nil*");
   if ($g && gimple_location($g))
     debugeprintf_raw("{%s:%d} ", LOCATION_FILE(gimple_location($g)), 
@@ -3323,14 +3320,12 @@ do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g,
 }# )
 
 (defprimitive debuggimpleseq(:cstring msg :gimple_seq gs) :void
-  #{#warning debuggimpleseq is obsolete; use DEBUG in your MELT code
- do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
+  #{ do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
   if (flag_melt_debug && $gs) debug_gimple_seq($gs);}while(0) 
   }#)
 
 (defprimitive debugbasicblock(:cstring msg :basic_block bb) :void
-  #{#warning debugbasicblock is obsolete; use DEBUG in your MELT code
-do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
+  #{ do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
   if (flag_melt_debug && $bb) debug_bb($bb);}while(0) 
 }#
 )
@@ -3540,7 +3535,7 @@ Don't scan operands of the added $G.}#
 
 ;; retrieve the loop body as a tuple of boxed basic_block-s
 (defun loop_body_tuple (discr :loop lo) 
-  (debug "loop_body_tuple lo=" lo)
+  (debugloop lo "loop_body_tuple lo")
   (if (null discr) (setq discr discr_multiple))
   (if lo
       (let ( (:long loopnbnodes 0) 
@@ -3584,7 +3579,7 @@ Don't scan operands of the added $G.}#
 	   /*end $FILLBBBOXESCHUNK*/
 	   }#)
 	  )
-	  (debug "loop_body_tuple return tupbody=" tupbody)
+	  (debug_msg tupbody "loop_body_tuple return tupbody")
 	  (return tupbody)
 	  ))))
 
@@ -3619,7 +3614,7 @@ Don't scan operands of the added $G.}#
  
 ;; retrieve the loop exit edges as a tuple of boxed edge-s
 (defun loop_exit_edges_tuple (discr :loop lo) 
-  (debug "loop_exit_edges_tuple lo=" lo)
+  (debugloop lo "loop_exit_edges_tuple lo")
   (if (null discr) (setq discr discr_multiple))
   (let ( (:long maxix 0)
 	 (edglis (make_list discr_list))
@@ -3640,7 +3635,7 @@ Don't scan operands of the added $G.}#
        (curpair edgebox)
        (multiple_put_nth edgevec ix edgebox)
        (setq ix (+i ix 1)))
-      (debug "loop_exit_edges_tuple return edgevec=" edgevec)
+      (debug_msg edgevec "loop_exit_edges_tuple return edgevec")
       (return edgevec)))
   )
 

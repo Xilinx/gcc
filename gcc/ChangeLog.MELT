@@ -1,4 +1,19 @@
 
+2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Work in progress. the MELT branch is hurt to the point of being
+	unusable. See
+	http://groups.google.com/group/gcc-melt/msg/07c1d0dbee494e00}}
+
+	* melt-module.mk: Compile the *+meltdesc.c into each *.so without
+	going thru a *.pic.o file.
+
+	* melt-build.tpl: The *.args files are generated explicitly,
+	without using $@ or $^ based tricks.
+
+	* melt-build.mk: Regenerate.
+
+	* melt/ : Revert to svn rev 179793
+
 2011-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.1
 

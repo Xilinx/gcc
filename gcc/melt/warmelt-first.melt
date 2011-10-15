@@ -33,8 +33,6 @@
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;; Avoid using debug_msg or debug here.  See comments around
-;;; debug_msg_fun private function near end of this file.
 
 ;;****************************************************************
 ;;       C L A S S E S 
@@ -2550,6 +2548,7 @@ Keyword is :cstring.}#
 	      (warningmsg_strv "clone_symbol got invalid argument of discriminant" 
 			       discrinam)
 	      (shortbacktrace_dbg "clone_symbol error.." 15)
+	      (debug_msg symb "clone_symbol bad symb")
 	      (let ( (:cstring namcstr (the_null_cstring)
 			       ) )
 		(code_chunk clonamstr
@@ -2595,11 +2594,17 @@ Keyword is :cstring.}#
 	(newcont (instance class_container 
 			   :container_value newenv))
 	)
+					;(debug_msg newcont "initfresh_contenvmaker result newcont")
     (return newcont)
     ))
 
 ;; initial value exporter - inside INITIAL_SYSTEM_DATA
 (defun initvalue_exporter (sym val contenv)
+  ;;(debug_msg sym "initvalue_exporter sym")
+  ;;(debug_msg val "initvalue_exporter val")
+  ;;(debug_msg contenv "initvalue_exporter contenv")
+  ;;(if (melt_need_dbg 0) 
+  ;;    (shortbacktrace_dbg "initvalue_exporter" 15))
   (let ( (parenv (parent_module_environment)) )
     (if (null contenv)
 	(progn
@@ -2689,6 +2694,7 @@ Keyword is :cstring.}#
 	      }#)
   (if (is_not_a sym class_symbol)
       (progn
+	(debug_msg sym "initvalue_importer bad symb")
 	(code_chunk errfailimport 
 		    #{ /* $errfailimport */ 
 		    if ($strnam)
@@ -2749,11 +2755,13 @@ Keyword is :cstring.}#
 		     :mbind_expanser val))
 	   )
       (put_env env macbind)
+      (debug_msg macbind "initmacro_exporter macbind")
       (return)
       )))
 
 ;; initial patmacro exporter - inside INITIAL_SYSTEM_DATA
 (defun initpatmacro_exporter (sym macval patval contenv)
+  (debug_msg sym "initpatmacro_exporter sym")
   (assert_msg "check sym" (is_a sym class_symbol))
   (if (null contenv)
       (progn
@@ -2780,6 +2788,7 @@ Keyword is :cstring.}#
 		     :patbind_expanser patval))
 	   )
       (put_env env macbind)
+      (debug_msg macbind "initpatmacro_exporter macbind")
       (return)
       )))
 
@@ -2804,6 +2813,7 @@ Keyword is :cstring.}#
 
 ;;;;;; the queue for full exit
 (defun init_exitfinalizer ()
+  (debug_msg final_delayed_queue "init_exitfinalizer final_delayed_queue at start")
   (let ( (firstlist (unsafe_get_field :delqu_first final_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last final_delayed_queue))
 	 (revlastlist (make_list discr_list))
@@ -2832,6 +2842,7 @@ Keyword is :cstring.}#
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
+    (debug_msg rescont "init_exitfinalizer ending rescont")
     ))
 
 
@@ -2949,6 +2960,7 @@ exit, in last place.}#
 
 
 (defun init_unitstarter ()
+  (debug_msg start_unit_delayed_queue "init_unitstarter start_unit_delayed_queue at start")
   (let ( (firstlist (unsafe_get_field :delqu_first start_unit_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last start_unit_delayed_queue))
 	 (revlastlist (make_list discr_list))
@@ -2977,6 +2989,7 @@ exit, in last place.}#
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
+    (debug_msg rescont "init_unitstarter ending rescont")
     ))
 
 
@@ -3003,6 +3016,7 @@ exit, in last place.}#
   )
 
 (defun init_unitfinisher ()
+  (debug_msg finish_unit_delayed_queue "init_unitfinisher finish_unit_delayed_queue at start")
   (let ( (firstlist (unsafe_get_field :delqu_first finish_unit_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last finish_unit_delayed_queue))
 	 (revlastlist (make_list discr_list))
@@ -3031,6 +3045,7 @@ exit, in last place.}#
 	      )
 	 (unsafe_put_fields rescont :container_value nextres)
 	 )))
+    (debug_msg rescont "init_unitfinisher ending rescont")
     ))
 
 
@@ -3065,6 +3080,7 @@ function, and $OPTDESC_HELP is the help string.}#
 )
 
 (defun init_optionsetter (optsymb :cstring optval)
+  (debug_msg optsymb "init_optionsetter optsymb")
   (let ( (optmap (unsafe_get_field :container_value option_map_container)) 
 	 (optdec (mapobject_get optmap optsymb))
 	 (optname (get_field :named_name optsymb))
@@ -3074,8 +3090,10 @@ function, and $OPTDESC_HELP is the help string.}#
 	(let ( (optfun (get_field :optdesc_fun optdec)) 
 	       )
 	  (assert_msg "check optdec" (is_a optdec class_option_descriptor))
+	  (debug_msg optdec "init_optionsetter optdec")
 	  (let ( (optres (optfun optsymb optval)) 
 		 )
+	    (debug_msg optres "init_optionsetter optres")
 	    (return optres)))
       (progn
 	(code_chunk badoption 
@@ -3803,10 +3821,13 @@ $CLASS_DESCRIBED_ENVIRONMENT.}#
 (defun find_env_debug (env binder)
   (assert_msg "check arg env" (is_a env class_environment))
   (assert_msg "check arg binder" (is_object binder))
+  (debug_msg env "find_env_debug initial env")
+  (debug_msg binder "find_env_debug binder")
   (forever
    findloop
    (if (null env)
        (exit findloop ()))
+   (debug_msg env "find_env_debug current env")
    (assert_msg "check env obj" (is_object env))
    (assert_msg "check good env" (is_a env class_environment))
    (let ( (bindmap 
@@ -3814,9 +3835,11 @@ $CLASS_DESCRIBED_ENVIRONMENT.}#
      (assert_msg "check bindmap" (is_mapobject bindmap))
      (let ( (bnd 
 	     (mapobject_get bindmap binder)) )
+       (debug_msg bnd "find_env_debug current bnd")
        (if bnd 
 	   (exit findloop bnd))
        ))
+   (debug_msg binder "find_env_debug at end of loop binder")
    (setq env (unsafe_get_field :env_prev env))
    )
   )
@@ -3849,6 +3872,7 @@ See also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
   (assert_msg "check env" (is_a env class_environment))
   (if (not (is_a binding class_any_binding))
       (progn
+	(debug_msg binding "put_env invalid binding")
 	(shortbacktrace_dbg "put_env invalid binding" 15)))
   (assert_msg "check binding" (is_a binding class_any_binding))
   (let ( (bindmap (unsafe_get_field :env_bind env)) 
@@ -3856,6 +3880,8 @@ See also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 	 )
     (if (not (is_object binder))
 	(progn
+	  (debug_msg binding "put_env bad binder in binding")
+	  (debug_msg binderv "put_env bad binderv")
 	  (shortbacktrace_dbg "put_env  bad binder in binding" 5)))
     (assert_msg "check bindmap" (is_mapobject bindmap))
     (assert_msg "check binderv" (is_object binderv))
@@ -3904,6 +3930,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 			   (unsafe_get_field :named_name (discrim curmodenvcont)))
 	  (return)
 	  ))
+    (debug_msg curmodenvcont "post_initialization curmodenvcont at start")
+					;(shortbacktrace_dbg "post_initialization" 10)
     (assert_msg "check curmodenvcont" (is_a curmodenvcont class_container))
     (let ( (curmodenv (unsafe_get_field :container_value curmodenvcont)) )
       (if (is_a curmodenv class_environment)

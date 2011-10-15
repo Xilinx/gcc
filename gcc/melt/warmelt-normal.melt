@@ -809,7 +809,7 @@ routine procedures.}#
 		 :nctx_procurmodenvlist (make_list discr_list)
 		 ))
 	   )
-      (debug "create_normcontext return ncx" ncx)
+      (debug_msg ncx "create_normcontext return ncx")
       (return ncx)
       )))
 
@@ -835,7 +835,7 @@ routine procedures.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   ;; is a no-op
-  (debug "normexp_identical recv" recv)
+  (debug_msg recv "normexp_identical recv")
   recv)
 
 (install_method discr_any_receiver normal_exp  normexp_identical)
@@ -847,16 +847,16 @@ routine procedures.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (normnull (instance class_nrep_nil :nrep_loc psloc)) )
-    (debug "normexp_null normnull" normnull)
+    (debug_msg normnull "normexp_null normnull")
     normnull
     ))
 (install_method discr_null_receiver normal_exp normexp_null)
 
 ;;; catchall for src
 (defun normexp_src_catchall (recv env ncx psloc)
-  (debug "normexp_src_catchall recv=" recv)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (debug_msg recv "normexp_src_catchall recv" )
   (let ( (myclass (discrim recv))
 	 (myclassname (unsafe_get_field :named_name myclass)) )
     (error_strv (unsafe_get_field :loca_location recv) 
@@ -878,7 +878,7 @@ routine procedures.}#
     (multicall 
      (mexp mresexp)
      (lazymacfun)
-     (debug "normexp_lazymacroexp mexp" mexp)
+     (debug_msg mexp "normexp_lazymacroexp mexp")
      (if mresexp
 	 ;;; this happens in the pathological case when the lazy macro
 	 ;;; macro-expands to more than one result
@@ -896,7 +896,8 @@ routine procedures.}#
      (multicall
       (nrep nbind)
       (normal_exp mexp env ncx psloc)
-      (debug "normexp_lazymacroexp nrep=" nrep " nbind=" nbind)
+      (debug_msg nrep "normexp_lazymacroexp nrep")
+      (debug_msg nbind "normexp_lazymacroexp nbind")
       (return nrep nbind)
       )
      )))
@@ -927,7 +928,7 @@ routine procedures.}#
 
 ;; integers are ctype_long
 (defun gectyp_integer (recv env) 
-  (debug "gectyp_integer recv" recv)
+  (debug_msg recv "gectyp_integer recv")
   ctype_long)
 (install_method discr_integer get_ctype gectyp_integer)
 
@@ -938,7 +939,7 @@ routine procedures.}#
 
 ;;; normalize a tuple - returning a tuple & a bindinglist
 (defun normalize_tuple (tup env ncx psloc)
-  (debug tup "normalize_tuple tup=" tup)
+  (debug_msg tup "normalize_tuple tup" )
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (if (null tup) (return () ()))
@@ -947,11 +948,12 @@ routine procedures.}#
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
-		 (debug "normalize_tuple comp" comp)
+		 (debug_msg comp "normalize_tuple comp")
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
-		  (debug "normalize_tuple norcomp=" norcomp " nbinds=" nbinds)
+		  (debug_msg norcomp "normalize_tuple norcomp")
+		  (debug_msg nbinds "normalize_tuple nbinds")
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
 		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expression))
 		  (if (is_list nbinds)
@@ -968,7 +970,8 @@ routine procedures.}#
 	 )
     (if (not (is_pair (list_first bindlist)))
 	(setq bindlist ()))
-    (debug "normalize_tuple res=" res " bindlist=" bindlist)
+    (debug_msg res "normalize_tuple res")
+    (debug_msg bindlist "normalize_tuple bindlist" )
     (return res bindlist)
     ))
 
@@ -981,11 +984,11 @@ routine procedures.}#
    bindlist 
    (lambda (cbind) 
      (if (not (is_a cbind class_normal_let_binding))
-	 (debug "wrap_normal_letseq tuplexp=" tupnexp
-		" bindlist=" bindlist
-		" cbind=" cbind))
-     (assert_msg "check cbind wrapnormletseq" 
-		 (is_a cbind class_normal_let_binding))))
+	 (progn
+	   (debug_msg tupnexp "wrap_normal_letseq tuplexp")
+	   (debug_msg bindlist "wrap_normal_letseq bindlist")
+	   (debug_msg cbind "wrap_normal_letseq cbind")))
+     (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normal_let_binding))))
   (let ( (wnlet
 	  (instance class_nrep_let
 		    :nrep_loc loc
@@ -1001,9 +1004,10 @@ routine procedures.}#
    bindlist 
    (lambda (cbind) 
      (if (not (is_a cbind class_normal_let_binding))
-	   (debug "wrap_normal_let1 nexp=" nexp
-		  " bindlist=" bindlist
-		  " cbind" cbind))
+	 (progn
+	   (debug_msg nexp "wrap_normal_let1 nexp")
+	   (debug_msg bindlist "wrap_normal_let1 bindlist")
+	   (debug_msg cbind "wrap_normal_let1 cbind")))
      (assert_msg "check cbind wrapnormlet1" (is_a cbind class_normal_let_binding))))
   (if 
       (and (is_list bindlist)
@@ -1039,24 +1043,24 @@ source location.}#
   :formals (recv env ncx procs psloc))
 
 (defun normbind_failany (recv env ncx procs psloc)
-  (debug "normbind_failany recv" recv)
+  (debug_msg recv "normbind_failany recv")
   (let ( (dis (discrim recv))
 	 )
-    (debug "normbind_failany dis" dis)
+    (debug_msg dis "normbind_failany dis")
     (error_strv psloc "unexpected binding normalization of class" (get_field :named_name dis))
     (assert_msg "@$@unexpected normalize binding" ())
 ))
 (install_method discr_any_receiver normalize_binding normbind_failany)
 
 (defun normbind_anybind (bind env ncx procs psloc)
-  (debug "normbind_anybind bind½" bind)
+  (debug_msg bind "normbind_anybind bind½")
   (let ( (dis (discrim bind))
 	 (symb (unsafe_get_field :binder bind)) 
 	 (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	 )
     (warning_strv psloc "bizarre?? constant reference to"
 		  (unsafe_get_field :named_name symb))
-    (debug "normbind_anybind dis" dis)
+    (debug_msg dis "normbind_anybind dis")
     (warning_strv psloc "bizarre binding normalization of binding of " (get_field :named_name dis))
     (let ( (kocc
 	    (instance class_nrep_constocc
@@ -1064,14 +1068,14 @@ source location.}#
 		      :nocc_ctyp ctype_value
 		      :nocc_symb symb
 		      :nocc_bind bind) ) )
-      (debug "normbind_anybind kocc=" kocc)
+      (debug_msg kocc "normbind_anybind kocc" )
       ;; cache the result & return it
       (mapobject_put sycmap symb kocc)
       ;; put the const occurrence if needed in the const list of each proc
       (foreach_in_list
        (procs)
        (curpair curproc)
-       (debug "normbind_anybind const curproc" curproc)
+       (debug_msg curproc "normbind_anybind const curproc")
        (assert_msg "check curproc" (is_a curproc class_nrep_anyproc))
        (let ( (clcont (instance class_container :container_value kocc))
 	      (constproc (unsafe_get_field :nrpro_const curproc)) )
@@ -1134,7 +1138,7 @@ source location.}#
 ;;; normalize local fixed binding
 (defun normbind_fixbind (bind env ncx procs psloc)
   (if (is_not_a bind class_fixed_binding)
-      (debug "normbind_fixbind bad bind" bind))
+      (debug_msg bind "normbind_fixbind bad bind"))
   (assert_msg "check bind" (is_a bind class_fixed_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -1142,10 +1146,10 @@ source location.}#
 	 (symb (unsafe_get_field :binder bind))
 	 (fixdat (unsafe_get_field :fixbind_data bind))
 	 )
-    (debug "normbind_fixbind fixdat" fixdat)
+    (debug_msg fixdat "normbind_fixbind fixdat")
     (if (null fixdat)
 	(progn 
-	  (debug "normbind_fixbind strange bind" bind)
+	  (debug_msg bind "normbind_fixbind strange bind")
 	  (error_strv psloc "unresolved forward fixed reference to"
 		      (unsafe_get_field :named_name symb)
 		      )
@@ -1159,7 +1163,7 @@ source location.}#
 
 ;; normalize local define-d binding
 (defun normbind_definedvalbind (bind env ncx procs psloc)
-  (debug "normbind_definedvalbind bind" bind)
+  (debug_msg bind "normbind_definedvalbind bind")
   (assert_msg "check bind" (is_a bind class_defined_value_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
@@ -1172,12 +1176,14 @@ source location.}#
 			  :nocc_symb symb
 			  :nocc_bind bind) ) 
 	 )
-    (debug "normbind_definedvalbind ncx=" ncx
-	   " env=" env " procs=" procs)
+    (debug_msg ncx "normbind_definedvalbind ncx")
+    (debug_msg env "normbind_definedvalbind env")
+    (debug_msg procs "normbind_definedvalbind procs")
 	  ;; cache the result & return it
     (mapobject_put sycmap symb syocc)
     (put_fields bind :fixbind_data syocc)
-    (debug "normbind_definedvalbind sycmap=" sycmap " syocc=" syocc)
+    (debug_msg sycmap "normbind_definedvalbind sycmap")
+    (debug_msg syocc "normbind_definedvalbind syocc")
     (if (is_non_empty_list procs)
 	(assert_msg "normbind_definedvalbind check no procs"))
     (return syocc)
@@ -1193,12 +1199,12 @@ source location.}#
 	 (symb (unsafe_get_field :binder bind))
 	 (nletrec (get_field :nconsb_nletrec bind))
 	 )
-	  (debug "normbind_constructbind nletrec" nletrec)
+	  (debug_msg nletrec "normbind_constructbind nletrec")
 	  (assert_msg "normexp_symbol check nletrec" (is_a nletrec class_nrep_letrec))
 	  (let ( (nlocsyms (get_field :nletrec_locsyms nletrec))
 		 (ourlocsym ())
 		 )
-	    (debug "normbind_constructbind nlocsyms" nlocsyms)
+	    (debug_msg nlocsyms "normbind_constructbind nlocsyms")
 	    ;; find the right locsym in nlocsyms and cache it
 	    (foreach_in_multiple
 	     (nlocsyms)
@@ -1208,7 +1214,7 @@ source location.}#
 		   (setq syix -99)	;to exit the loop [-1 don't work!]
 		   (setq ourlocsym curlocsym)))
 	     )
-	    (debug "normbind_constructbind ourlocsym" ourlocsym)
+	    (debug_msg ourlocsym "normbind_constructbind ourlocsym")
 	    (assert_msg "normbind_constructbind should have ourlocsym"
 			(is_a ourlocsym class_nrep_locsymocc))
 	    ;; cache the result & return it
@@ -1226,11 +1232,12 @@ source location.}#
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
-  (debug "normexp_symbol recv" recv)
+  (debug_msg recv "normexp_symbol recv")
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
-   (debug "normexp_symbol after find_enclosing_env bind=" bind " procs=" procs)
+   (debug_msg bind "normexp_symbol after find_enclosing_env bind")
+   (debug_msg procs "normexp_symbol after find_enclosing_env procs")
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (if (null psloc)
        (shortbacktrace_dbg "normex_symbol null psloc" 10)
@@ -1250,7 +1257,8 @@ source location.}#
       ;; value binding, get/put it into the map
       ( (is_a bind class_value_binding)
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
-	  (debug "normexp_symbol value bind=" bind " procs=" procs)
+	  (debug_msg bind "normexp_symbol value bind")
+	  (debug_msg procs "normexp_symbol value procs")
 	  (if (null bvar)
 	      (let ( (newbvar 
 		      (instance class_nrep_importedval
@@ -1274,7 +1282,7 @@ source location.}#
 		     )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
-		(debug "normexp_symbol const value fxocc" fxocc)
+		(debug_msg fxocc "normexp_symbol const value fxocc")
 		;; put the const occurrence if needed in the const list of each proc
 		(list_every
 		 procs
@@ -1296,14 +1304,15 @@ source location.}#
 	    (progn
 	      ;; cache the result
 	      (mapobject_put sycmap recv bvar)
-	      (debug "normexp_symbol local value bvar" bvar)
+	      (debug_msg bvar "normexp_symbol local value bvar")
 	      bvar
 	      )
 	    )))
       ;; the procs is a non-empty list, so the symbol is closed
       ( (and (is_list procs)
 	     (is_pair (list_first procs)))
-	(debug "normexp_symbol closed procs=" procs " bind=" bind)
+	(debug_msg procs "normexp_symbol closed procs")
+	(debug_msg bind "normexp_symbol closed bind")
 	;; check that a closed symbol is always a value
 	(let ( (bty
 		(cond ( (is_a bind class_formal_binding)
@@ -1329,7 +1338,7 @@ source location.}#
 				:ncloc_procs procs)) )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
-		(debug "normexp_symbol fxocc" fxocc)
+		(debug_msg fxocc "normexp_symbol fxocc")
 		;; put the const occurrence if needed in the const list of each proc
 		(list_every
 		 procs
@@ -1376,11 +1385,11 @@ source location.}#
 	      ) ) ) ) 
       ;; dispatch the binding
       (:else 
-       (debug "normexp_symbol dispatching bind" bind)
+       (debug_msg bind "normexp_symbol dispatching bind")
        (let ( (resnormbind 
 	       (normalize_binding bind env ncx procs psloc))
 	      )
-	 (debug "normalize_binding return resnormbind" resnormbind)
+	 (debug_msg resnormbind "normalize_binding return resnormbind")
 	 (return resnormbind)
 	 ))))))
 
@@ -1399,17 +1408,17 @@ source location.}#
 ;; this does not work well when the class's name is locally rebound,
 ;; which rarely happens in practice
 (defun normexp_class (recv env ncx psloc)
-  (debug "normexp_class recv" recv)
+  (debug_msg recv "normexp_class recv")
   (assert_msg "check recv" (is_a recv class_class))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (clasymb (get_symbolstr (unsafe_get_field :named_name recv))) 
 	 (clabind (find_env env clasymb))
 	 )
-    (debug "normexp_class clabind" clabind)
+    (debug_msg clabind "normexp_class clabind")
     (cond ( (is_a clabind class_class_binding)
 	    (let ( (normcla (normexp_symbol clasymb env ncx psloc)) )
-	      (debug "normexp_class normcla class data inst" normcla)
+	      (debug_msg normcla "normexp_class normcla class data inst")
 	      (assert_msg "check normcla" 
 			  (or 
 			   (is_a normcla class_nrep_datainstance)
@@ -1420,7 +1429,7 @@ source location.}#
 	  ( (is_a clabind class_value_binding)
 	    (assert_msg "check clabind value" (== recv (unsafe_get_field :vbind_value clabind)))
 	    (let ( (normcla (normexp_symbol clasymb env ncx psloc)) )
-	      (debug "normexp_class normcla class value" normcla)
+	      (debug_msg normcla "normexp_class normcla class value")
 	      ;; normcla can be a class_nrep_constocc or a class_nrep_importedval ...
 	      (assert_msg "check normcla" (is_a normcla class_nrep))
 	      (return normcla)
@@ -1432,7 +1441,7 @@ source location.}#
 	   ;; normalize accordingly, but this won't happen often...
 	   (error_strv psloc "class incorrectly bound, perhaps locally rebound"
 		       (unsafe_get_field :named_name recv))
-	   (debug "normexp_class failed")
+	   (debug_msg () "normexp_class failed")
 	   (return)
 	   ))
     ))
@@ -1443,7 +1452,7 @@ source location.}#
 
 ;;; normalize a primitive invocation
 (defun normexp_primitive (recv env ncx psloc)
-  (debug "normexp_primitive recv" recv)
+  (debug_msg recv "normexp_primitive recv")
   (assert_msg "check prim recv" (is_a recv class_source_primitive))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -1476,13 +1485,14 @@ source location.}#
 	  sopformals
 	  (lambda (forb :long ix)
 	    (assert_msg "check forb" (is_a forb class_formal_binding))
-	    (debug "normexp_primitive forb" forb)
+	    (debug_msg forb "normexp_primitive forb")
 	    (let ( (forarg (unsafe_get_field :binder forb))
 		   (actarg (multiple_nth nargs ix)) 
 		   (fortype (unsafe_get_field :fbind_type forb))
 		   (actype (get_ctype actarg env))
 		   )
-	      (debug "normexp_primitive actarg=" actarg " actype=" actype)
+	      (debug_msg actarg "normexp_primitive actarg")
+	      (debug_msg actype "normexp_primitive actype")
 	      (if (and (is_a fortype class_ctype)
 		       (is_a actype class_ctype)
 		       (!= fortype actype))
@@ -1498,10 +1508,11 @@ source location.}#
 		    ))
 	      (mapobject_put bmap forarg actarg)
 	      )))
-	 (debug "normexp_primitive bmap in sopexp" bmap)
+	 (debug_msg bmap "normexp_primitive bmap in sopexp")
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
+	    ;;(debug_msg excu "normexp_primitive excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
@@ -1512,7 +1523,8 @@ source location.}#
 ;; requires a lot of work: the excu should then be the constant
 ;; itself, and code should be generated to fill the primitive with
 ;; non-symbol values.
-				(debug "normexp_primitive recv unexpected symbol in expansion recv=" recv "excu=" excu)
+				(debug_msg recv "normexp_primitive recv unexpected symbol in expansion")
+				(debug_msg excu "normexp_primitive excu")
 				(error_strv sloc "unexpected symbol in primitive expansion" 
 					    (unsafe_get_field  :named_name excu))
 				(error_strv sloc "bad primitive name" sopnamstr)
@@ -1527,9 +1539,10 @@ source location.}#
 			(warning_strv sloc "null primitive original piece is"
 				      (unsafe_get_field :named_name excu)))
 		    ))
+					;(debug_msg exval "normexp_primitive exval in sopexp")
 	      (multiple_put_nth expargs jx exval))
 	    ))
-	 (debug "normexp_primitive soper" soper)
+	 (debug_msg soper "normexp_primitive soper")
 	 (assert_msg "check soper is named" (is_a soper class_named))
 	 (let ( (csym (clone_symbol soper)) 
 		(cbind (instance class_normal_let_binding
@@ -1555,7 +1568,7 @@ source location.}#
 	       (setq nbind (make_list discr_list))
 	       (list_append nbind cbind)
 	       ))
-	   (debug "normexp_primitive result clocc" clocc)
+	   (debug_msg clocc "normexp_primitive result clocc")
 	   (return
 	    clocc
 	    nbind
@@ -1568,7 +1581,7 @@ source location.}#
 
 ;;; normalize a code_chunk
 (defun normexp_code_chunk (recv env ncx psloc)
-  (debug "normexp_code_chunk recv" recv)
+  (debug_msg recv "normexp_code_chunk recv")
   (assert_msg "check code_chunk recv" (is_a recv class_source_codechunk))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -1610,7 +1623,7 @@ source location.}#
 			  :nocc_symb csym
 			  :nocc_bind cbind)) 
 	 )
-    (debug "normexp_code_chunk clocc" clocc)
+    (debug_msg clocc "normexp_code_chunk clocc")
     (assert_msg "check nchk" (is_multiple nchk))
     (return clocc (list cbind))
     ))
@@ -1619,7 +1632,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a cmatchexpr
 (defun normexp_cmatchexpr (recv env ncx psloc)
-  (debug "normexp_cmatchexpr recv" recv)
+  (debug_msg recv "normexp_cmatchexpr recv")
   (assert_msg "check recv" (is_a recv class_source_cmatchexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -1658,13 +1671,14 @@ source location.}#
 	  oformals
 	  (lambda (forb :long ix)
 	    (assert_msg "check forb" (is_a forb class_formal_binding))
-	    (debug "normexp_cmatchexpr forb" forb)
+	    (debug_msg forb "normexp_cmatchexpr forb")
 	    (let ( (forarg (unsafe_get_field :binder forb))
 		   (actarg (multiple_nth nargs ix)) 
 		   (fortype (unsafe_get_field :fbind_type forb))
 		   (actype (get_ctype actarg env))
 		   )
-	      (debug "normexp_cmatchexpr actarg=" actarg " actype=" actype)
+	      (debug_msg actarg "normexp_cmatchexpr actarg")
+	      (debug_msg actype "normexp_cmatchexpr actype")
 	      (if (and (is_a fortype class_ctype)
 		       (is_a actype class_ctype)
 		       (!= fortype actype))
@@ -1680,11 +1694,11 @@ source location.}#
 		    ))
 	      (mapobject_put bmap forarg actarg)
 	      )))
-	 (debug "normexp_cmatchexpr bmap in sopexp" bmap)
+	 (debug_msg bmap "normexp_cmatchexpr bmap in sopexp")
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
-	    ;;(debug "normexp_cmatchexpr excu in sopexp" excu)
+	    ;;(debug_msg excu "normexp_cmatchexpr excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
@@ -1695,7 +1709,8 @@ source location.}#
 ;; requires a lot of work: the excu should then be the constant
 ;; itself, and code should be generated to fill the primitive with
 ;; non-symbol values.
-				(debug "normexp_cmatchexpr unexpected symbol in expansion recv=" recv " excu=" excu)
+				(debug_msg recv "normexp_cmatchexpr recv unexpected symbol in expansion")
+				(debug_msg excu "normexp_cmatchexpr excu")
 				(error_strv sloc "unexpected symbol in cmatch expression expansion" 
 					    (unsafe_get_field  :named_name excu))
 				(error_strv sloc "bad primitive name" cmanamstr)
@@ -1710,7 +1725,7 @@ source location.}#
 			(warning_strv sloc "null cmatch expression original piece is"
 				      (unsafe_get_field :named_name excu)))
 		    ))
-					;(debug "normexp_cmatchexpr exval in sopexp" exval)
+					;(debug_msg exval "normexp_cmatchexpr exval in sopexp")
 	      (multiple_put_nth expargs jx exval))
 	    ))
 	 (let ( (csym (clone_symbol cmanamstr)) 
@@ -1737,7 +1752,7 @@ source location.}#
 	       (setq nbind (make_list discr_list))
 	       (list_append nbind cbind)
 	       ))
-	   (debug "normexp_cmatchexpr result clocc" clocc)
+	   (debug_msg clocc "normexp_cmatchexpr result clocc")
 	   (return
 	    clocc
 	    nbind
@@ -1749,7 +1764,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a funmatchexpr
 (defun normexp_funmatchexpr (recv env ncx psloc)
-  (debug "normexp_funmatchexpr recv" recv)
+  (debug_msg recv "normexp_funmatchexpr recv")
   (assert_msg "check recv" (is_a recv class_source_funmatchexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -1761,12 +1776,12 @@ source location.}#
 	 )
     (assert_msg "check sfmat" (is_a sfmat class_funmatcher))
     (assert_msg "check sfbind" (is_a sfbind class_any_binding))
-    (debug "normexp_funmatchexpr sfbind" sfbind)
+    (debug_msg sfbind "normexp_funmatchexpr sfbind")
     (let ( (fmatsym (unsafe_get_field :binder sfbind)) )
       (assert_msg "check fmatsym" (is_a fmatsym class_symbol))
       (assert_msg "check good sfbind" (== sfbind (find_env env fmatsym)))
       (let ( (nfmat (normal_exp fmatsym env ncx psloc)) )
-	(debug "normexp_funmatchexpr nfmat" nfmat)
+	(debug_msg nfmat "normexp_funmatchexpr nfmat")
 	;; should create a normlet binding to hold the nfmat's
 	;; fmatch_applyf field
 	(let ( (csym (clone_symbol fmatsym))
@@ -1790,7 +1805,8 @@ source location.}#
 	  (multicall 
 	   (nargs nargbind)
 	   (normalize_tuple sargs env ncx sloc)
-	   (debug "normexp_funmatchexpr nargs=" nargs " nargbind=" nargbind)
+	   (debug_msg nargs "normexp_funmatchexpr nargs")
+	   (debug_msg nargbind "normexp_funmatchexpr nargbind")
 	   (list_append2list nbind nargbind)
 	   (let (
 		 (asym (clone_symbol fmatsym))
@@ -1813,7 +1829,8 @@ source location.}#
 				     )) 
 		 )
 	     (list_append nbind abind)
-	     (debug "normexp_funmatchexpr final calocc=" calocc " nbind=" nbind)
+	     (debug_msg calocc "normexp_funmatchexpr final calocc")
+	     (debug_msg nbind "normexp_funmatchexpr finale nbind")
 	     (return calocc nbind)
 	     )))))))
 (install_method class_source_funmatchexpr normal_exp normexp_funmatchexpr)
@@ -1833,10 +1850,10 @@ source location.}#
      (nfun nbindfun)
      (normal_exp sfun env ncx sloc)
      (assert_msg "check nbindfun" (is_list_or_null nbindfun))
-     (debug "normexp_apply nfun" nfun)
+     (debug_msg nfun "normexp_apply nfun")
      (let ( (nfunctyp (get_ctype nfun env)) 
 	    )
-       (debug "normexp_apply nfunctyp" nfunctyp)
+       (debug_msg nfunctyp "normexp_apply nfunctyp")
        (if (!= nfunctyp ctype_value)
 	   (error_plain sloc "applied function should be a value")))
      (multicall
@@ -1846,11 +1863,11 @@ source location.}#
       ;; if given the first argument should be a value
       (let ( (nargfirst (multiple_nth nargs 0)) 
 	     )
-	(debug "normexp_apply nargfirst" nargfirst)
+	(debug_msg nargfirst "normexp_apply nargfirst")
 	(if nargfirst 
 	    (let ( (nargfirstctype (get_ctype nargfirst env)) 
 		   )
-	      (debug "normexp_apply nargfirstctype" nargfirstctype)
+	      (debug_msg nargfirstctype "normexp_apply nargfirstctype")
 	      (if (!= nargfirstctype ctype_value)
 		  (error_plain sloc "first argument to function should be a value")
 	      ))
@@ -1890,7 +1907,7 @@ source location.}#
   (assert_msg "check msnd" (is_a msnd class_source_msend))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_msend msnd" msnd)
+  (debug_msg msnd "normexp_msend msnd")
   (let ( (msrecv (unsafe_get_field :msend_recv msnd))
 	 (msargs (unsafe_get_field :sargop_args msnd))
 	 (selnam (unsafe_get_field :msend_selsymb msnd))
@@ -1899,7 +1916,8 @@ source location.}#
 	 (nsel (normexp_symbol selnam env ncx sloc))
 	 (selbind (find_env env selnam))
 	 )
-    (debug "normexp_msend curproc=" curproc " selbind=" selbind)
+    (debug_msg curproc "normexp_msend curproc")
+    (debug_msg selbind "normexp_msend selbind")
 ;;;; we should add the constant selector into the current routine's constant pool
     (multicall
      (nrecv nbindrecv)
@@ -1950,13 +1968,13 @@ source location.}#
 				:nocc_symb csym
 				:nocc_bind cbind)) 
 	     )
-	(debug "normexp_msend nsend middle" nsend)
+	(debug_msg nsend "normexp_msend nsend middle")
 	(assert_msg "check nrecv" (is_object nrecv))
 	(if (is_multiple selformals)
 	    (let ( (recvformal (multiple_nth selformals 0))
 		   (:long nbformals (multiple_length selformals))
 		   )
-	      (debug "normexp_msend" selformals)
+	      (debug_msg selformals "normexp_msend")
 	      (assert_msg "check recvformal" (== (get_field :fbind_type recvformal) ctype_value))
 	      (if (!=i nbformals (+i 1 (multiple_length nargs)))
 		  (error_strv sloc "unexpected number of arguments for method"
@@ -1989,7 +2007,8 @@ source location.}#
 	(if (not (is_list nbindrecv))
 	    (setq nbindrecv (make_list discr_list)))
 	(list_append nbindrecv cbind)
-	(debug "normexp_msend final nbindrecv=" nbindrecv " clocc=" clocc)
+	(debug_msg nbindrecv "normexp_msend final nbindrecv")
+	(debug_msg clocc "normexp_msend clocc")
 	(return clocc nbindrecv)
 	)))))
 (install_method class_source_msend normal_exp normexp_msend)
@@ -1997,7 +2016,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a return
 (defun normexp_return (recv env ncx psloc)
-  (debug "normexp_return recv" recv)
+  (debug_msg recv "normexp_return recv")
   (assert_msg "check return recv" (is_a recv class_source_return))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -2032,7 +2051,8 @@ source location.}#
 	      )
 	  (unsafe_put_fields cbind :letbind_expr nemptret)
 	  (list_append nbindemp cbind)
-	  (debug "normexp_return empty; return clocc=" clocc " nbindemp=" nbindemp)
+	  (debug_msg clocc "normexp_return empty; return clocc")
+	  (debug_msg nbindemp "normexp_return empty; return nbindemp")
 	  (return clocc nbindemp))
       (multicall
        (nrets nbindrets)
@@ -2058,7 +2078,8 @@ source location.}#
 		)
 	   (unsafe_put_fields cbind :letbind_expr nret)
 	   (list_append nbindrets cbind)
-	   (debug "normexp_return result clocc=" clocc " nbindrets=" nbindrets)
+	   (debug_msg clocc "normexp_return result nret")
+	   (debug_msg nbindrets "normexp_return result nbindrets")
 	   (return clocc nbindrets)
 	   ))))))
 (install_method class_source_return normal_exp normexp_return)
@@ -2069,7 +2090,7 @@ source location.}#
   (assert_msg "check if recv" (is_a recv class_source_if))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_if recv" recv)
+  (debug_msg recv "normexp_if recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
@@ -2079,7 +2100,7 @@ source location.}#
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
-     (debug "normexp_if ntest" ntest)
+     (debug_msg ntest "normexp_if ntest")
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
      ;; generated, with unique cloned symbols, and these bindings 
@@ -2087,7 +2108,7 @@ source location.}#
      (multicall 
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
-      (debug "normexp_if nthen" nthen)
+      (debug_msg nthen "normexp_if nthen")
       (assert_msg "check nbindthen" (is_list_or_null nbindthen))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
@@ -2119,7 +2140,8 @@ source location.}#
 	  (if (not (is_list nbindif))
 	      (setq nbindif (make_list discr_list)))
 	  (list_append nbindif cbind)
-	  (debug "normexp_if result clocc=" clocc " nbindif=" nbindif)
+	  (debug_msg clocc "normexp_if result clocc")
+	  (debug_msg nbindif "normexp_if result nbindif")
 	  (return clocc nbindif)
 	  ))
       ))))
@@ -2132,7 +2154,7 @@ source location.}#
   (assert_msg "check if recv" (is_a recv class_source_ifelse))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_ifelse recv" recv)
+  (debug_msg recv "normexp_ifelse recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
@@ -2142,7 +2164,7 @@ source location.}#
     (multicall 
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
-     (debug "normexp_ifelse ntest" ntest)
+     (debug_msg ntest "normexp_ifelse ntest")
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
@@ -2151,7 +2173,7 @@ source location.}#
      (multicall 
       (nthen nbindthen)
       (normal_exp sthen env ncx sloc)
-      (debug "normexp_ifelse nthen" nthen)
+      (debug_msg nthen "normexp_ifelse nthen")
       (assert_msg "check nbindthen" (is_list_or_null nbindthen))
       (let ( (newthenenv (fresh_env env)) )
 	(list_every 
@@ -2162,7 +2184,7 @@ source location.}#
 	(multicall 
 	 (nelse nbindelse)
 	 (normal_exp selse env ncx sloc)
-	 (debug "normexp_ifelse nelse" nelse)
+	 (debug_msg nelse "normexp_ifelse nelse")
 	 (assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	 ;; if we have both then & else branches,
 	 ;; ensure their compatibility of types
@@ -2220,7 +2242,8 @@ source location.}#
 	   (if (not (is_list nbindif))
 	       (setq nbindif (make_list discr_list)))
 	   (list_append nbindif cbind)
-	   (debug "normexp_ifelse result clocc=" clocc " nbindif=" nbindif)
+	   (debug_msg clocc "normexp_ifelse result clocc")
+	   (debug_msg nbindif "normexp_ifelse result nbindif")
 	   (return clocc nbindif)
 	   )))))))
 (install_method class_source_ifelse normal_exp normexp_ifelse)
@@ -2231,7 +2254,7 @@ source location.}#
   (assert_msg "check cppif recv" (is_a recv class_source_cppif))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_cppif recv" recv)
+  (debug_msg recv "normexp_cppif recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (scond (unsafe_get_field :sifp_cond recv))
 	 (ctypif ctype_void)
@@ -2242,7 +2265,7 @@ source location.}#
     (multicall 
      (nthen nbindthen)
      (normal_exp sthen env ncx sloc)
-     (debug "normexp_cppif nthen" nthen)
+     (debug_msg nthen "normexp_cppif nthen")
      (assert_msg "check nbindthen" (is_list_or_null nbindthen))
      (let ( (newthenenv (fresh_env env)) )
        (list_every 
@@ -2255,7 +2278,7 @@ source location.}#
        (multicall 
 	(nelse nbindelse)
 	(normal_exp selse env ncx sloc)
-	(debug "normexp_cppif nelse" nelse)
+	(debug_msg nelse "normexp_cppif nelse")
 	(assert_msg "check nbindelse" (is_list_or_null nbindelse))
 	(let ( (newelseenv (fresh_env env)) )
 	  (list_every 
@@ -2293,7 +2316,8 @@ source location.}#
 		   )
 	      (unsafe_put_fields clocc :nocc_bind cbind)
 	      (list_append nbindres cbind)
-	      (debug "normexp_cppif result clocc=" clocc " nbindres=" nbindres)
+	      (debug_msg clocc "normexp_cppif result clocc")
+	      (debug_msg nbindres "normexp_cppif result nbindres")
 	      (return clocc nbindres)
 	      ))))))))
 (install_method class_source_cppif normal_exp normexp_cppif)
@@ -2305,7 +2329,7 @@ source location.}#
   (assert_msg "check or recv" (is_a recv class_source_or))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_or recv" recv)
+  (debug_msg recv "normexp_or recv")
   (let ( 
 	(boxorcount (make_integerbox discr_integer (the_meltcallcount)))
 	(sloc (unsafe_get_field :loca_location recv))
@@ -2320,11 +2344,11 @@ source location.}#
     (multiple_backward_every 
      sdisj
      (lambda (scur :long six)
-       (debug "normexp scur=" scur "call#" (get_int boxorcount))
+       (debug_msg scur "normexp scur" (get_int boxorcount))
        (multicall
 	(ncur nbind)
 	(normal_exp scur env ncx sloc)
-	(debug "normexp ncur=" ncur " nbind=" nbind " call#" (get_int boxorcount))
+	(debug_msg ncur "normexp ncur" (get_int boxorcount))
 	(list_every ncur
 		    (lambda (bnd) (put_env newenv bnd)))
 	(if (null (content norcont))
@@ -2375,8 +2399,9 @@ source location.}#
 	)
        )
      )
-    (debug "normexp_or result nor=" !norcont " nbindor=" !nbindorcont)
-    (return !norcont !nbindorcont)
+    (debug_msg (content norcont) "normexp_or result nor")
+    (debug_msg (content nbindorcont) "normexp_or result nbindor")
+    (return (content norcont) (content nbindorcont))
     )
   )
 (install_method class_source_or normal_exp normexp_or)
@@ -2388,7 +2413,7 @@ source location.}#
   (assert_msg "check progn recv" (is_a recv class_source_progn))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_progn recv" recv)
+  (debug_msg recv "normexp_progn recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sbody (unsafe_get_field :sprogn_body recv))
 	 (:long lnbody (multiple_length sbody)) 
@@ -2397,12 +2422,13 @@ source location.}#
     (if (<=i lnbody 0)
 	(let ( (onull (instance class_nrep_nil :nrep_loc sloc)) )
 	  (error_plain sloc "empty PROGN")
-	  (debug "normexp_progn return empty onull" onull)
+	  (debug_msg onull "normexp_progn return empty onull")
 	  (return onull)))
     (multicall
      (nbody nbind)
      (normalize_tuple sbody env ncx sloc)
-     (debug "normexp_progn nbody=" nbody " nbind=" nbind)
+     (debug_msg nbody "normexp_progn nbody")
+     (debug_msg nbind "normexp_progn nbind")
      (let ( (nlast (multiple_nth nbody -1)) 
 	    (:long lenbody (multiple_length nbody))
 	    (nallbutlast (if (>i lenbody 0) (make_multiple discr_multiple (-i lenbody 1))))
@@ -2413,7 +2439,7 @@ source location.}#
 		  (if (<i ix 0) (exit bodyloop))
 		  (multiple_put_nth nallbutlast ix (multiple_nth nbody ix))
 		  (setq ix (-i ix 1))))
-       (debug "normexp_progn nallbutlast" nallbutlast)
+       (debug_msg nallbutlast "normexp_progn nallbutlast")
        (if (null nbind) (setq nbind (make_list discr_list)))
        (let (
 	     (csym (clone_symbol 'progn_))
@@ -2433,7 +2459,8 @@ source location.}#
 			      :nocc_bind cbind))
 	     )
 	 (list_append nbind cbind)
-	 (debug "normexp_progn return clocc=" clocc " nbind=" nbind)
+	 (debug_msg clocc "normexp_progn return clocc")
+	 (debug_msg nbind "normexp_progn return nbind")
 	 (return clocc nbind)
 	 )))))
 (install_method class_source_progn normal_exp normexp_progn)
@@ -2447,7 +2474,7 @@ source location.}#
   (assert_msg "check let recv" (is_a recv class_source_let))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_let recv" recv)
+  (debug_msg recv "normexp_let recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sbindings (unsafe_get_field :slet_bindings recv))
 	 (sbody (unsafe_get_field :slet_body recv)) 
@@ -2575,7 +2602,8 @@ source location.}#
 	   (resbinds (make_list discr_list))
 	   )
        (list_append resbinds cbind)
-       (debug "normexp_let result clocc=" clocc " resbinds=" resbinds)
+       (debug_msg clocc "normexp_let result clocc")
+       (debug_msg resbinds "normexp_let result resbinds")
        (return clocc resbinds)
        )
      )))
@@ -2594,7 +2622,7 @@ source location.}#
   (assert_msg "check unsafegetfield recv" (is_a recv class_source_unsafe_get_field))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp unsafeget recv" recv)
+  (debug_msg recv "normexp unsafeget recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) 
@@ -2621,8 +2649,10 @@ source location.}#
 			      :nocc_bind cbind))
 	    )
        (list_append nbind cbind)
-       (debug "normexp unsafeget result clocc=" clocc " nbind=" nbind)
-       (return 	clocc nbind)))))
+       (debug_msg clocc "normexp unsafeget result clocc")
+       (debug_msg nbind "normexp unsafeget result nbind")
+       (return 	clocc nbind
+		)))))
 (install_method class_source_unsafe_get_field normal_exp normexp_unsafe_get_field)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2631,7 +2661,7 @@ source location.}#
   (assert_msg "check getfield recv" (is_a recv class_source_get_field))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_get_field recv" recv)
+  (debug_msg recv "normexp_get_field recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suget_obj recv))
 	 (sfld   (unsafe_get_field :suget_field recv)) 
@@ -2641,11 +2671,11 @@ source location.}#
      (nobj nbind)
      (normal_exp sobj env ncx sloc)
      (if (null nbind) (setq nbind (make_list discr_list)))
-     (debug "normexp_get_field nobj" nobj)
+     (debug_msg nobj "normexp_get_field nobj")
      (let ( (csym (clone_symbol (unsafe_get_field :named_name sfld)))
 	    (fcla (unsafe_get_field :fld_ownclass sfld))
 	    (ncla (let ( (nc (normal_exp fcla env ncx psloc)) )
-		    (debug "normexp_get_field ncla" nc)
+		    (debug_msg nc "normexp_get_field ncla")
 		    nc))
 	    (nuget (instance class_nrep_unsafe_get_field
 			     :nrep_loc sloc
@@ -2670,8 +2700,10 @@ source location.}#
 			      :nocc_bind cbind))
 	    )
        (list_append nbind cbind)
-       (debug "normexp_get_field clocc=" clocc " nbind=" nbind)
-       (return 	clocc nbind)))))
+       (debug_msg clocc "normexp_get_field clocc")
+       (debug_msg nbind "normexp_get_field nbind")
+       (return 	clocc nbind
+		)))))
 (install_method class_source_get_field normal_exp normexp_get_field)
 
 
@@ -2681,7 +2713,7 @@ source location.}#
   (assert_msg "check unsafeputfields recv" (is_a recv class_source_unsafe_put_fields))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_unsafe_put_fields recv" recv)
+  (debug_msg recv "normexp_unsafe_put_fields recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suput_obj recv))
 	 (sfields (unsafe_get_field :suput_fields recv))
@@ -2724,7 +2756,7 @@ source location.}#
 				  :nfla_val nexp)) )
 	     (multiple_put_nth nfields ix nfla)
 	     (let ( (fctyp (get_ctype nexp env)) )
-	       (debug "normexp_instance fctyp" fctyp)
+	       (debug_msg fctyp "normexp_instance fctyp")
 	       (if (!= fctyp ctype_value)
 		   (error_strv 
 		    fsloc 
@@ -2737,8 +2769,8 @@ source location.}#
 			    :nuput_fields nfields)) )
        (unsafe_put_fields cbind :letbind_expr npuf)
        (list_append nbindlist cbind)
-       (debug "normexp_unsafe_put_fields result clocc=" clocc
-	      " nbindlist=" nbindlist)
+       (debug_msg clocc "normexp_unsafe_put_fields result clocc")
+       (debug_msg nbindlist "normexp_unsafe_put_fields result nbindlist")
        (return clocc nbindlist)
        ))))
 (install_method class_source_unsafe_put_fields normal_exp normexp_unsafe_put_fields)
@@ -2750,7 +2782,7 @@ source location.}#
   (assert_msg "check putfields recv" (is_a recv class_source_put_fields))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_put_fields recv" recv)
+  (debug_msg recv "normexp_put_fields recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sobj   (unsafe_get_field :suput_obj recv))
 	 (sfields (unsafe_get_field :suput_fields recv))
@@ -2778,7 +2810,8 @@ source location.}#
      (foreach_in_multiple 
       (sfields)
       (fla :long ix) 
-      (debug "normexp_put_fields fla=" fla " clacont=" clacont)
+      (debug_msg fla "normexp_put_fields fla")
+      (debug_msg clacont "normexp_put_fields clacont")
       (assert_msg "check fla" (is_a fla class_source_fieldassign))
       (let ( (fld (unsafe_get_field :sfla_field fla))
 	     (exp (unsafe_get_field :sfla_expr fla)) 
@@ -2801,8 +2834,9 @@ source location.}#
 		  (set_content clacont fcla)
 		  )
 		(:else
-		 (debug "normexp_put_fields bad fld=" fld " fcla=" fcla
-			" precla=" precla)
+		 (debug_msg fld "normexp_put_fields bad fld")
+		 (debug_msg fcla "normexp_put_fields bad fcla")
+		 (debug_msg precla "normexp_put_fields bad precla")
 		 (error_strv sloc "bad field name in PUT_FIELD" (unsafe_get_field :named_name fld))
 		 (inform_strv sloc "PUT_FIELD expecting field of class" (unsafe_get_field :named_name precla))
 		 (inform_strv sloc "PUT_FIELD got field of class" (get_field :named_name fcla))
@@ -2844,7 +2878,8 @@ source location.}#
 		))
        (unsafe_put_fields cbind :letbind_expr nif)
        (list_append nbindlist cbind)
-       (debug "normexp_put_fields result clocc=" clocc " nbindlist=" nbindlist)
+       (debug_msg clocc "normexp_put_fields result clocc")
+       (debug_msg nbindlist "normexp_put_fields result nbindlist")
        (return clocc nbindlist)
        ))))
 (install_method class_source_put_fields normal_exp normexp_put_fields)
@@ -2854,7 +2889,7 @@ source location.}#
   (assert_msg "check setq recv" (is_a recv class_source_setq))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp setq recv" recv)
+  (debug_msg recv "normexp setq recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (svar   (unsafe_get_field :sstq_var recv))
 	 (sexp   (unsafe_get_field :sstq_expr recv)) ) 
@@ -2862,7 +2897,7 @@ source location.}#
     (let ( (nvar (normexp_symbol svar env ncx sloc)) 
 	   (varctyp (get_ctype nvar env))
 	   )
-      (debug "normexp_setq varctyp" varctyp)
+      (debug_msg varctyp "normexp_setq varctyp")
       (assert_msg "check varctyp" (is_a varctyp class_ctype))
       (multicall
        (nexp nbind)
@@ -2870,7 +2905,7 @@ source location.}#
        (if (null nbind) (setq nbind (make_list discr_list)))
        (let ( (expctyp (get_ctype nexp env))
 	      )
-	 (debug "normexp_setq expctyp" expctyp)
+	 (debug_msg expctyp "normexp_setq expctyp")
 	 (assert_msg "check expctyp" (is_a expctyp class_ctype))
 	 (if (!= varctyp expctyp)
 	     (progn
@@ -2913,7 +2948,7 @@ source location.}#
   (assert_msg "check instance recv" (is_a recv class_source_instance))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_instance recv=" recv)
+  (debug_msg recv "normexp_instance recv" )
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sclass (unsafe_get_field :smins_class recv))
 	 (sclabind (unsafe_get_field :smins_clabind recv))
@@ -2926,12 +2961,12 @@ source location.}#
     ;; initial checks about class
     (cond 
      ( (is_not_a sclass class_class)
-       (debug "normexp_instance bad sclass" sclass)
+       (debug_msg sclass "normexp_instance bad sclass")
        (error_plain sloc "bad class in (INSTANCE <class> [:field1 <expr1> ...]) expression")
        (return ())
        )
      ( (is_not_a cladata class_nrep)
-       (debug "normexp_instance bad cladata" cladata)
+       (debug_msg cladata "normexp_instance bad cladata")
        (error_strv sloc "invalid class in (INSTANCE <class> [:field1 <expr1> ...]) expression" 
 		   (get_field :named_name sclass))
        (return ()))
@@ -2941,7 +2976,7 @@ source location.}#
 	    (multiple_map 
 	     sfields 
 	     (lambda (curflda :long curk)
-	       (debug "normexp_instance.lambda curflda" curflda)
+	       (debug_msg curflda "normexp_instance.lambda curflda")
 	       (assert_msg "check curflda" (is_a curflda class_source_fieldassign))
 	       (let ( (curfloc (unsafe_get_field :loca_location curflda))
 		      (curfield (unsafe_get_field :sfla_field curflda))
@@ -2950,15 +2985,15 @@ source location.}#
 		 ;; check the curfield
 		 (cond
 		  ( (is_not_a curfield class_field)
-		    (debug "normexp_instance corrupted curflda=" curflda
-			   " curfield=" curfield)
+		    (debug_msg curflda "normexp_instance corrupted curflda")
+		    (debug_msg curfield "normexp_instance bad curfield")
 		    (error_strv sloc 
 				"invalid field in  (INSTANCE <class> [:field1 <expr1> ...]) expression"
 				(get_field :named_name sclass))
 		    (return))
 		  ( (not (subclass_or_eq sclass (unsafe_get_field :fld_ownclass curfield)))
-		    (debug "normexp_instance corrupted curflda=" curflda
-			   " curfield=" curfield)
+		    (debug_msg curflda "normexp_instance corrupted curflda")
+		    (debug_msg curfield "normexp_instance bad curfield")
 		    (error_strv sloc
 				"unexpected field in (INSTANCE <class> [:field1 <expr1> ...]) expression"
 				(get_field :named_name curfield))
@@ -2976,7 +3011,7 @@ source location.}#
 		  (normal_exp curexp env ncx curfloc)
 		  (assert_msg "check nbind" (is_list_or_null nbind))
 		  (let ( (fctyp (get_ctype nexp env)) )
-		    (debug "normexp_instance fctyp" fctyp)
+		    (debug_msg fctyp "normexp_instance fctyp")
 		    (if (!= fctyp ctype_value)
 			(error_strv 
 			 curfloc 
@@ -3007,7 +3042,8 @@ source location.}#
 			    :nocc_bind cbind))
 	   )
       (list_append bindlist cbind)
-      (debug "normexp_instance result clocc=" clocc " bindlist=" bindlist)
+      (debug_msg clocc "normexp_instance result clocc")
+      (debug_msg bindlist "normexp_instance result bindlist")
       (return clocc bindlist)
       )
     )
@@ -3023,7 +3059,7 @@ source location.}#
   (assert_msg "check forever recv" (is_a recv class_source_forever))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_forever recv=" recv)
+  (debug_msg recv "normexp_forever recv" )
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sfrv_body recv))
@@ -3032,19 +3068,22 @@ source location.}#
     (assert_msg "check slbind" (is_a slbind class_label_binding))
     (put_env newenv slbind)
     (let ( (resy (clone_symbol (unsafe_get_field :binder slbind))) )
-      (debug "normexp_forever putting resy=" resy " in slbind=" slbind)
+      (debug_msg resy "normexp_forever putting resy..")
+      (debug_msg slbind "..normexp_forever in slbind")
       (assert_msg "check resy obj1" (is_object resy))
       (unsafe_put_fields slbind :labind_clonsy resy)
-      (debug "normexp_forever updated slbind" slbind)
+      (debug_msg slbind "normexp_forever updated slbind")
+      (debug_msg resy "normexp_forever clonsy put resy")
       (assert_msg "check resy" (is_a resy class_cloned_symbol))
-      (debug "normexp_forever got1 clonsy "(unsafe_get_field :labind_clonsy slbind) )
+      (debug_msg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got1 clonsy")
       (assert_msg "check did1 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
       (assert_msg "check resy obj2" (is_object resy))
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
-       (debug "normexp_forever again slbind" slbind)
+       (debug_msg slbind "normexp_forever again slbind")
        (assert_msg "check did2 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
+       (debug_msg (unsafe_get_field :labind_clonsy slbind) "normexp_forever got2 clonsy")
        (assert_msg "check size slbind" (<i (get_int labind_clonsy) (object_length slbind)))
        (let (
 	     (resbody (tuple 
@@ -3068,8 +3107,8 @@ source location.}#
 	     (nforbindings (make_list discr_list))
 	     )
 	 (list_append nforbindings cbind)
-	 (debug "normexp_forever return clocc=" clocc 
-		" nforbindings=" nforbindings)
+	 (debug_msg clocc "normexp_forever return nforever")
+	 (debug_msg clocc "normexp_forever return nforever")
 	 (return clocc nforbindings)
 	 )
        ))))
@@ -3084,7 +3123,7 @@ source location.}#
   (assert_msg "check exit recv" (is_a recv class_source_exit))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_exit recv" recv)
+  (debug_msg recv "normexp_exit recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (sbody (unsafe_get_field :sexi_body recv))
@@ -3115,7 +3154,8 @@ source location.}#
 			     :nocc_bind cbind))
 	    )
        (list_append nbodbindings cbind)
-       (debug "normexp_exit clocc=" clocc " nbodbindings=" nbodbindings)
+       (debug_msg nexit "normexp_exit nexit")
+       (debug_msg nbodbindings "normexp_exit nbodbindings")
        (return clocc nbodbindings)
        ))))
 (install_method class_source_exit normal_exp normexp_exit)
@@ -3126,7 +3166,7 @@ source location.}#
   (assert_msg "check again recv" (is_a recv class_source_again))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_again recv" recv)
+  (debug_msg recv "normexp_again recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (slbind (unsafe_get_field :slabel_bind recv))
 	 (csym (clone_symbol 'again_))
@@ -3146,7 +3186,8 @@ source location.}#
 	 (nbindings (list cbind))
 	 )
     (assert_msg "check slbind" (is_a slbind class_label_binding))
-    (debug "normexp_again clocc=" clocc " nbindings=" nbindings)
+    (debug_msg nagain "normexp_again nagain")
+    (debug_msg nbindings "normexp_again nbindings")
     (return clocc nbindings)    
     ))
 (install_method class_source_again normal_exp normexp_again)
@@ -3158,7 +3199,7 @@ source location.}#
   (assert_msg "check ifvariadic recv" (is_a recv class_source_ifvariadic))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_ifvariadic recv" recv)
+  (debug_msg recv "normexp_ifvariadic recv")
   (let ( (loc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sifvariadic_argbind recv))
 	 (:long nbargs (multiple_length sargs))
@@ -3169,15 +3210,15 @@ source location.}#
 	 (nprovariadic (get_field :nrpro_variadic curpro))
 	 (newenv (fresh_env env))
 	 )
-    (debug "normexp_ifvariadic curpro" curpro)
+    (debug_msg curpro "normexp_ifvariadic curpro")
     (assert_msg "normexp_ifvariadic check sthen" (is_multiple_or_null sthen))
     (assert_msg "normexp_ifvariadic check selse" (is_multiple_or_null selse))
     (if (is_not_a curprocargs discr_variadic_formal_sequence)
 	(progn
-	  (debug "normexp_ifvariadic bad curprocargs" curprocargs)
+	  (debug_msg curprocargs "normexp_ifvariadic bad curprocargs")
 	  (error_plain loc "(VARIADIC ...) used in non-variadic function")
 	  (return)))
-    (debug "normexp_ifvariadic nprovariadic" nprovariadic)
+    (debug_msg nprovariadic "normexp_ifvariadic nprovariadic")
     (assert_msg "normexp_ifvariadic has nprovariadic" nprovariadic)
     ;; we transform the sequence of formal bindings into a sequence of
     ;; normal let bindings...
@@ -3189,7 +3230,7 @@ source location.}#
       (foreach_in_multiple
        (sargs)
        (fbi :long fbix)
-       (debug "normexp_ifvariadic fbi" fbi)
+       (debug_msg fbi "normexp_ifvariadic fbi")
        (assert_msg "check fbi" (is_a fbi class_formal_binding))
        (let ( (curbinder (unsafe_get_field :binder fbi))
 	      (curctype (unsafe_get_field :fbind_type fbi))
@@ -3212,11 +3253,11 @@ source location.}#
 	      )
 	 (multiple_put_nth letbindtup fbix curletbind)
 	 (list_append letbindthenlist curletbind)
-	 (debug "normexp_ifvariadic curletbind" curletbind)
+	 (debug_msg curletbind "normexp_ifvariadic curletbind")
 	 (multiple_put_nth locsymtup fbix curlocc)
-	 (debug "normexp_ifvariadic curlocc" curlocc)
+	 (debug_msg curlocc "normexp_ifvariadic curlocc")
 	 (multiple_put_nth ctyptup fbix curctype)
-	 (debug "normexp_ifvariadic curctype" curctype)
+	 (debug_msg curctype "normexp_ifvariadic curctype")
 	 (assert_msg "check curctype" (is_a curctype class_ctype))
 	 (put_env newenv curletbind)		 
 	 ))
@@ -3234,22 +3275,24 @@ source location.}#
 	     )
 	(list_append letbindthenlist cvarbind)
 	)
-      (debug "normexp_ifvariadic letbindthenlist=" letbindthenlist
-	     " letbindtup=" letbindtup
-	     " locsymtup=" locsymtup
-	     " ctyptup=" ctyptup
-	     " sthen=" sthen)
+      (debug_msg letbindthenlist "normexp_ifvariadic letbindthenlist")
+      (debug_msg letbindtup "normexp_ifvariadic letbindtup")
+      (debug_msg locsymtup "normexp_ifvariadic locsymtup")
+      (debug_msg ctyptup "normexp_ifvariadic ctyptup")
+      (debug_msg sthen "normexp_ifvariadic sthen before normalization")
       (multicall
        (nthen nthenbindings)
        (normalize_tuple sthen newenv ncx loc)
-       (debug "normexp_ifvariadic nthen=" nthen " nthenbindings=" nthenbindings)
+       (debug_msg nthen "normexp_ifvariadic nthen")
+       (debug_msg nthenbindings "normexp_ifvariadic nthenbindings")
        (list_append2list letbindthenlist nthenbindings)
-       (debug "normexp_ifvariadic updated letbindthenlist=" letbindthenlist
-	      " selse=" selse)
+       (debug_msg letbindthenlist "normexp_ifvariadic updated letbindthenlist")
+       (debug_msg selse "normexp_ifvariadic selse before normalization")
        (multicall
 	(nelse nelsebindings)
 	(normalize_tuple selse newenv ncx loc)
-	(debug "normexp_ifvariadic nelse=" nelse " nelsebindings=" nelsebindings)
+	(debug_msg nelse "normexp_ifvariadic nelse")
+	(debug_msg nelsebindings "normexp_ifvariadic nelsebindings")
 	(let ( 
 	      (csym (clone_symbol 'ifvariadic_))
 	      (cbind (instance class_normal_let_binding
@@ -3273,9 +3316,10 @@ source location.}#
 			      :nifv_variadic nprovariadic
 			      :nifv_ctypes ctyptup))
 	      )
-	  (debug "normexp_ifvariadic nifv" nifv)
+	  (debug_msg nifv "normexp_ifvariadic nifv")
 	  (put_fields cbind :letbind_expr nifv)
-	  (debug "normexp_ifvariadic result clocc=" clocc " nbindlist=" nbindlist)
+	  (debug_msg clocc "normexp_ifvariadic result clocc")
+	  (debug_msg nbindlist "normexp_ifvariadic result nbindlist")
 	  (return clocc nbindlist)
 	  ))))))
 (install_method class_source_ifvariadic normal_exp normexp_ifvariadic)
@@ -3287,7 +3331,7 @@ source location.}#
   (assert_msg "check compilewarn recv" (is_a recv class_source_compilewarning))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_compile_warning recv" recv)
+  (debug_msg recv "normexp_compile_warning recv")
   (let ((sloc   (unsafe_get_field :loca_location recv)) 
 	(swmsg (unsafe_get_field :scwarn_msg recv))
 	(swexp (unsafe_get_field :scwarn_expr recv))
@@ -3296,7 +3340,8 @@ source location.}#
     (multicall 
      (nexp nbind)
      (normal_exp swexp env ncx sloc)
-     (debug "normexp_compile_warning nesult nexp=" nexp " nbind=" nbind)
+     (debug_msg nexp "normexp_compile_warning nesult nexp")
+     (debug_msg nbind "normexp_compile_warning result nbind")
      (return nexp nbind)
      )))
 
@@ -3401,7 +3446,7 @@ source location.}#
   (assert_msg "check defun recv" (is_a recv class_source_defun))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_defun recv" recv)
+  (debug_msg recv "normexp_defun recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (snam (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
@@ -3456,13 +3501,13 @@ source location.}#
     (if (is_a sformals discr_variadic_formal_sequence)
 	(put_fields nproc :nrpro_variadic snam))
     (unsafe_put_fields newenv :env_proc nproc)
-    (debug "normexp_defun updated :env_proc of of newenv" newenv)
+    (debug_msg newenv "normexp_defun updated :env_proc of of newenv")
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
-     (debug "normexp_defun nbody before replace_last_by_return" nbody)
+     (debug_msg nbody "normexp_defun nbody before replace_last_by_return")
      (multiple_every
       nbindings
       (lambda (nbi :long ix)
@@ -3471,7 +3516,7 @@ source location.}#
 	    (npbody (wrap_normal_letseq nrbody nbindings sloc))
 	    )
        (unsafe_put_fields nproc  :nproc_body npbody)
-       (debug "normexp_defun npbody after replace_last_by_return" npbody)
+       (debug_msg npbody "normexp_defun npbody after replace_last_by_return")
        )
      (unsafe_put_fields ncx :nctx_curproc oldproc :nctx_symbcachemap oldsymbcache)
      (let ( (clovtup 
@@ -3492,7 +3537,7 @@ source location.}#
      (unsafe_put_fields sfubind 
 			:fixbind_data ndataclos
 			)
-     (debug "normexp_defun return nproc" nproc)
+     (debug_msg nproc "normexp_defun return nproc")
      (return nproc ())
      )
     ))
@@ -3510,7 +3555,9 @@ source location.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check newenv" (is_a newenv class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normalize_lambda recv=" recv " env=" env " newenv=" newenv)
+  (debug_msg recv "normalize_lambda recv")
+  (debug_msg env "normalize_lambda env")
+  (debug_msg newenv "normalize_lambda newenv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sformalargs (unsafe_get_field :slam_argbind recv))
 	 (sbody (unsafe_get_field :slam_body recv))
@@ -3554,7 +3601,7 @@ source location.}#
     (if (is_a sformalargs discr_variadic_formal_sequence)
 	(put_fields nproc :nrpro_variadic csym))
     (unsafe_put_fields newenv :env_proc nproc)
-    (debug "normalize_lambda updated :env_proc of newenv" newenv)
+    (debug_msg newenv "normalize_lambda updated :env_proc of newenv")
     (shortbacktrace_dbg "normalize_lambda" 15)
     ;; add nproc into ncx
     (list_append (unsafe_get_field :nctx_proclist ncx) nproc)
@@ -3604,14 +3651,14 @@ source location.}#
   (assert_msg "check lambda recv" (is_a recv class_source_lambda))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_lambda recv" recv)
+  (debug_msg recv "normexp_lambda recv")
   (let (
 	(newenv (fresh_env env))
 	)
     (multicall 
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
      (normalize_lambda recv env newenv ncx psloc)
-     (debug "normexp_lambda after normalize_lambda nproc" nproc)
+     (debug_msg nproc "normexp_lambda after normalize_lambda nproc")
      (let (
 	   (nlambda (instance class_nrep_lambda 
 			      :nrep_loc sloc
@@ -3630,7 +3677,8 @@ source location.}#
        (list_append nbindlist cbind)
        (if insideflag
 	   (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
-       (debug "normexp_lambda return clocc=" clocc " nbindlist=" nbindlist)
+       (debug_msg clocc "normexp_lambda return clocc")
+       (debug_msg nbindlist "normexp_lambda return nbindlist")
        (return clocc nbindlist)
        ))))
 (install_method class_source_lambda normal_exp normexp_lambda)
@@ -3640,18 +3688,19 @@ source location.}#
   (assert_msg "check multicall recv" (is_a recv class_source_multicall))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_multicall recv" recv)
+  (debug_msg recv "normexp_multicall recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sresbind (unsafe_get_field :smulc_resbind recv))
 	 (scall (unsafe_get_field :smulc_call recv))
 	 (sbody (unsafe_get_field :smulc_body recv))
 	 (newenv (fresh_env env))
 	 )
-    (debug "normexp_multicall scall" scall)
+    (debug_msg scall "normexp_multicall scall")
     (multicall
      (ncall ncallbindings)
      (normal_exp scall env ncx sloc)
-     (debug "normexp_multicall ncall=" ncall " ncallbindings=" ncallbindings)
+     (debug_msg ncall "normexp_multicall ncall")
+     (debug_msg ncallbindings "normexp_multicall ncallbindings")
 ;;; since ncall is normalized, it is a class_nrep_locsymocc and
 ;;; the last binding in ncallbindings is a class_normal_let_binding
 ;;; whose binder is the nocc_symb of the ncall
@@ -3671,7 +3720,7 @@ source location.}#
 		())
 	    (progn (list_append nincallbindings cbnd) cbnd))))
        (setq nrealcall (content ncontcall))
-       (debug "normexp_multicall got nrealcall" nrealcall)
+       (debug_msg nrealcall "normexp_multicall got nrealcall")
        (multiple_every
 	sresbind
 	(lambda (bnd :long ix)
@@ -3679,7 +3728,8 @@ source location.}#
        (multicall
 	(nbody nbodybindings)
 	(normalize_tuple sbody newenv ncx sloc)
-	(debug "normexp_multicall nbody=" nbody " nbodybindings=" nbodybindings)
+	(debug_msg nbody "normexp_multicall nbody")
+	(debug_msg nbodybindings "normexp_multicall nbodybindings")
 	(let ( (wnbodylet (wrap_normal_letseq nbody nbodybindings sloc)) )
 ;;; remove every locally bound symbol from the symbol cache map
 	  (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
@@ -3716,13 +3766,13 @@ source location.}#
 				      :nmulapp_body wnbodylet)) )
 		 (unsafe_put_fields cbind :letbind_expr nres)
 		 (list_append nincallbindings cbind)
-		 (debug "normexp_multicall multiapply result clocc=" clocc
-			" nincallbindings=" nincallbindings)
+		 (debug_msg clocc "normexp_multicall multiapply result clocc")
+		 (debug_msg nincallbindings "normexp_multicall multiapply result nincallbindings")
 		 (return clocc nincallbindings)
 		 )
 	       )
 	     ( (is_a scall class_source_msend)
-	       (debug "normexp_multicall multicall nrealcall" nrealcall)
+	       (debug_msg nrealcall "normexp_multicall multicall nrealcall")
 	       (compile_warning "in normexp_multicall we should check against the formals of the selector if available")
 	       (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
 	       (let ( (nrecv (get_field :nsend_recv nrealcall)) 
@@ -3735,12 +3785,12 @@ source location.}#
 				      :nmulsend_bindings sresbind
 				      :nmulsend_body wnbodylet)) 
 		      )
-		 (debug "normexp_multicall nrecv from multicall" nrecv)
+		 (debug_msg nrecv "normexp_multicall nrecv from multicall")
 		 (assert_msg "check nrecv" (is_object nrecv))
 		 (unsafe_put_fields cbind :letbind_expr nres)
 		 (list_append nincallbindings cbind)
-		 (debug "normexp_multicall multisend result clocc=" clocc
-			" nincallbindings=" nincallbindings)
+		 (debug_msg clocc "normexp_multicall multisend result clocc")
+		 (debug_msg nincallbindings "normexp_multicall multisend result nincallbindings")
 		 (return clocc nincallbindings)
 		 )
 	       )
@@ -3759,7 +3809,7 @@ source location.}#
   (assert_msg "check tuple recv" (is_a recv class_source_tuple))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_tuple recv" recv)
+  (debug_msg recv "normexp_tuple recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sargs (unsafe_get_field :sargop_args recv))
 	 (csymrec (clone_symbol 'tuplrec_))
@@ -3767,11 +3817,12 @@ source location.}#
 	 (normdiscrmult (normal_predef discr_multiple ncx sloc "discr_multiple"))
 	 (newenv (fresh_env env))
 	 )
-    (debug "normexp_tuple csymrec" csymrec)
+    (debug_msg csymrec "normexp_tuple csymrec")
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
-     (debug "normexp_tuple nargs=" nargs " nbindings=" nbindings)
+     (debug_msg nargs "normexp_tuple nargs")
+     (debug_msg nbindings "normexp_tuple nbindings")
      ;; insight: normalize (tuple x1 x2) exactly as 
      ;; as an anonymous letrec
      (letrec (
@@ -3816,7 +3867,7 @@ source location.}#
 		 (setq nbindings ctupbindlist)
 	       (list_append nbindings ctupbind)
 	       )
-	     (debug "normexp_tuple ctupbind" ctupbind)
+	     (debug_msg ctupbind "normexp_tuple ctupbind")
 	     (foreach_in_list
 	      (nbindings)
 	      (curpair curbind)
@@ -3827,11 +3878,14 @@ source location.}#
 	      (curnarg :long nix)
 	      (if (!= (get_ctype curnarg newenv) ctype_value)
 		  (progn
-		    (debug "normexp_tuple bad curnarg" curnarg)
+		    (debug_msg curnarg "normexp_tuple bad curnarg")
 		    (error_plain sloc "(TUPLE ...) arguments should be values")
 		    (return)))
 	      )
-	     (debug "normexp_tuple return ctuplocc=" ctuplocc " nbindings=" nbindings)
+	     (debug_msg clocc "normexp_tuple clocc")
+	     (debug_msg nbdy "normexp_tuple nbdy")
+	     (debug_msg ctuplocc "normexp_tuple return ctuplocc")
+	     (debug_msg nbindings "normexp_tuple return final nbindings")
 	     (return ctuplocc nbindings)
 	     )
      ;;
@@ -3845,7 +3899,7 @@ source location.}#
   (assert_msg "check list recv" (is_a recv class_source_list))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_list recv" recv)
+  (debug_msg recv "normexp_list recv")
   (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (sargs (unsafe_get_field :sargop_args recv))
 	 (csymrec (clone_symbol 'listrec_))
@@ -3860,7 +3914,7 @@ source location.}#
 	 (tuprecloc (multiple_map
 		     consbindtup
 		     (lambda (curbind :long bindix)
-		       (debug "normexp_list curbind" curbind)
+		       (debug_msg curbind "normexp_list curbind")
 		       (assert_msg "check curbind" (is_a curbind class_normal_constructor_binding))
 		       (instance class_nrep_locsymocc
 				 :nrep_loc (or  (get_field :nconsb_loc curbind) sloc)
@@ -3870,14 +3924,16 @@ source location.}#
 		       )
 		     ))
 	 )
-    (debug "normexp_list csymrec=" csymrec
-	   " consbindtup=" consbindtup " conslistbind=" conslistbind
-	   " tuprecloc=" tuprecloc)
+    (debug_msg csymrec "normexp_list csymrec")
+    (debug_msg consbindtup "normexp_list consbindtup")
+    (debug_msg conslistbind "normexp_list conslistbind")
+    (debug_msg tuprecloc "normexp_list tuprecloc")
     (assert_msg "check conslistbind" (is_a conslistbind class_normal_constructed_list_binding))
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
-     (debug "normexp_list nargs=" nargs " nbindings=" nbindings)
+     (debug_msg nargs "normexp_list nargs")
+     (debug_msg nbindings "normexp_list nbindings")
      (assert_msg "check nbindings" (is_list_or_null nbindings))
      (list_append2list resbindings nbindings)
      (foreach_in_list
@@ -3890,7 +3946,7 @@ source location.}#
       (curnarg :long nix)
       (if (!= (get_ctype curnarg newenv) ctype_value)
 	  (progn
-	    (debug "normexp_list bad curnarg" curnarg)
+	    (debug_msg curnarg "normexp_list bad curnarg")
 	    (error_plain sloc "(LIST ...) arguments should be values")
 	    (return))))
      (letrec (
@@ -3927,10 +3983,11 @@ source location.}#
 		     (nextb (multiple_nth consbindtup (+i nix 1)))
 		     )
 		(put_int curpairb nix)
-		(debug "normexp_list curpairb" curpairb)
+		(debug_msg curpairb "normexp_list curpairb")
 		(assert_msg "check curpairb" (is_a curpairb class_normal_constructed_pair_binding))
 		(assert_msg "check curpairb objnum" (==i (get_int curpairb) nix))
-		(debug "normexp_list curnarg=" curnarg " nextb=" nextb)
+		(debug_msg curnarg "normexp_list curnarg")
+		(debug_msg nextb "normexp_list nextb")
 		(assert_msg "check nextb" (is_a nextb class_normal_constructor_binding))
 		(let ( (nextsym (get_field :binder nextb))
 		       (nextloc (if (is_a nextb class_normal_constructed_pair_binding)
@@ -3939,7 +3996,7 @@ source location.}#
 		  (put_fields curpairb 
 			      :npairb_head curnarg :npairb_tail nextloc
 			      :nconsb_nletrec nletrec)
-		  (debug "normexp_list updated curpairb" curpairb)
+		  (debug_msg curpairb "normexp_list updated curpairb")
 		  )
 		))
 	     ;;
@@ -3966,15 +4023,17 @@ source location.}#
 		:nlistb_first firstpairloc :nlistb_last lastpairloc
 		:nconsb_nletrec nletrec)
 	       (put_int conslistbind nbargs)
-	       (debug "normexp_list updated conslistbind" conslistbind)
+	       (debug_msg conslistbind "normexp_list updated conslistbind")
 	       )
 	     ;;
 	     (if (null nbindings)
 		 (setq nbindings clistbindlist)
 	       (list_append nbindings clistbind)
 	       )
-	     (debug "normexp_list final nletrec=" nletrec
-		    " clistlocc=" clistlocc " nbindings=" nbindings)
+	     (debug_msg nletrec "normexp_list final nletrec")
+	     (debug_msg clistlocc "normexp_list final clistlocc")
+	     (debug_msg nbindings "normexp_list final nbindings")
+	     (compile_warning "normexp_list is probably still buggy!!")
 	     (return clistlocc nbindings)
 	     ))))
 (install_method class_source_list normal_exp normexp_list)
@@ -3989,7 +4048,8 @@ source location.}#
 )
 
 (defun badmeth_prepare_constructor_binding (recv symb ncx sloc)
-  (debug "bad_prepare_constructor_binding recv=" recv " symb=" symb)
+  (debug_msg recv "bad_prepare_constructor_binding recv")
+  (debug_msg symb "bad_prepare_constructor_binding symb")
   (error_strv sloc "invalid constructor binding" (get_field :named_name symb))
   (error_strv sloc "receiver unprepared to constructor binding" 
 	      (get_field :named_name (discrim recv)))
@@ -4007,8 +4067,9 @@ source location.}#
   :formals (cexpr symb cbind env ncx sloc))
 
 (defun badmeth_normal_letrec_constructive (cexpr symb cbind env ncx sloc)
-  (debug "badmeth_normal_letrec_constructive cexpr=" cexpr " symb=" symb
-	 " cbind=" cbind)
+  (debug_msg cexpr "badmeth_normal_letrec_constructive cexpr")
+  (debug_msg symb "badmeth_normal_letrec_constructive symb")
+  (debug_msg cbind "badmeth_normal_letrec_constructive cbind")
   (error_strv sloc "invalid letrec constructive symbol" (get_field :named_name symb))
   (error_strv sloc "receiver unprepared to normal_letrec_constructive" 
 	      (get_field :named_name (discrim cexpr)))
@@ -4018,7 +4079,8 @@ source location.}#
 
 ;;;;;;;;;;;;;;;;
 (defun prepcons_lambda (recv symb ncx sloc)
-  (debug "prepcons_lambda recv=" recv " symb=" symb)
+  (debug_msg recv "prepcons_lambda recv")
+  (debug_msg symb "prepcons_lambda symb")
   (assert_msg "check recv" (is_a recv class_source_lambda))
   (let  ( (conslam (instance class_normal_constructed_lambda_binding
 			     :binder symb
@@ -4026,7 +4088,7 @@ source location.}#
 			     :nconsb_discr (normal_predef discr_closure ncx sloc "discr_closure")
 			     ))
 	  )
-    (debug "prepcons_lambda gives conslam" conslam)
+    (debug_msg conslam "prepcons_lambda gives conslam")
     (return conslam)
 ))
 (install_method class_source_lambda prepare_constructor_binding prepcons_lambda)
@@ -4035,30 +4097,32 @@ source location.}#
 
 
 (defun normletrec_lambda  (cexpr symb cbind env ncx psloc)
-  (debug "normletrec_lambda cexpr=" cexpr " symb=" symb
-	 " cbind=" cbind " env=" env)
+  (debug_msg cexpr "normletrec_lambda cexpr")
+  (debug_msg symb "normletrec_lambda symb")
+  (debug_msg cbind "normletrec_lambda cbind")
+  (debug_msg env "normletrec_lambda env")
   (assert_msg "check cbind" (is_a cbind class_normal_constructed_lambda_binding))
   (let ( (newenv (fresh_env env))
 	 )
-    (debug "normletrec_lambda newenv" newenv)
+    (debug_msg newenv "normletrec_lambda newenv")
     (assert_msg "check newenv" (is_a newenv class_environment))
     (multicall
      (nproc csym clocc constrout clovtup sloc oldproc ndatarout :long insideflag)
      ;;bad (normalize_lambda cexpr newenv newenv ncx psloc)
      (normalize_lambda cexpr env newenv ncx psloc)
-     (debug "normletrec_lambda after normalize_lambda csym=" csym
-	    " clocc=" clocc
-	    " constrout=" constrout
-	    " clovtup=" clovtup
-	    " oldproc=" oldproc
-	    " ndatarout=" ndatarout)
+     (debug_msg csym "normletrec_lambda after normalize_lambda csym")
+     (debug_msg clocc "normletrec_lambda after normalize_lambda clocc")
+     (debug_msg constrout "normletrec_lambda after normalize_lambda constrout")
+     (debug_msg clovtup  "normletrec_lambda after normalize_lambda clovtup")
+     (debug_msg oldproc  "normletrec_lambda after normalize_lambda oldproc")
+     (debug_msg ndatarout  "normletrec_lambda after normalize_lambda ndatarout")
      (if insideflag
 	 (list_append (unsafe_get_field :nrpro_const oldproc) ndatarout))
      (put_fields cbind 
 		 :nlambdab_nclosed clovtup
 		 :nlambdab_constrout constrout
 		 :nlambdab_datarout ndatarout)
-     (debug "normletrec_lambda updated cbind" cbind)
+     (debug_msg cbind "normletrec_lambda updated cbind")
      (compile_warning "unimplemented normletrec_lambda, maybe store the newenv in the cbind")
      (shortbacktrace_dbg "normletrec_lambda ended" 15)
      )))
@@ -4067,7 +4131,8 @@ source location.}#
 ;;;;;;;;;;;;;;;;
 
 (defun prepcons_tuple (recv symb ncx sloc)
-  (debug "prepcons_tuple recv=" recv " symb=" symb)
+  (debug_msg recv "prepcons_tuple recv")
+  (debug_msg symb "prepcons_tuple symb")
   (assert_msg "check recv" (is_a recv class_source_tuple))
   (let  ( 
 	 (loc (get_field :loca_location recv))
@@ -4081,14 +4146,16 @@ source location.}#
 			     :ntupb_comp ntup
 			     ))
 	  )
-    (debug "prepcons_tuple gives constup" constup)
+    (debug_msg constup "prepcons_tuple gives constup")
     (return constup)
 ))
 (install_method class_source_tuple prepare_constructor_binding prepcons_tuple)
 ;;;;
 
 (defun normletrec_tuple  (cexpr symb cbind env ncx sloc)
-  (debug "normletrec_tuple cexpr=" cexpr " symb=" symb " cbind=" cbind)
+  (debug_msg cexpr "normletrec_tuple cexpr")
+  (debug_msg symb "normletrec_tuple symb")
+  (debug_msg cbind "normletrec_tuple cbind")
   (assert_msg "check cexpr" (is_a cexpr class_source_tuple))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check cbind" (is_a cbind class_normal_constructed_tuple_binding))
@@ -4099,23 +4166,26 @@ source location.}#
 	(nletrec (get_field :nconsb_nletrec cbind))
 	(nrecbinds (get_field :nletrec_fill_bindings nletrec))
 	)
-    (debug "normletrec_tuple sargs=" sargs " bcomp=" bcomp
-	   " nletrec=" nletrec " nrecbinds=" nrecbinds)
+    (debug_msg sargs "normletrec_tuple sargs")
+    (debug_msg bcomp "normletrec_tuple bcomp")
+    (debug_msg nletrec "normletrec_tuple nletrec")
+    (debug_msg nrecbinds "normletrec_tuple nrecbinds")
     (assert_msg "check nletrec" (is_a nletrec class_nrep_letrec))
     (assert_msg "check nrecbinds" (is_list nrecbinds))
     (multicall
      (nargs nbinds)
      (normalize_tuple sargs env ncx loc)
-     (debug "normletrec_tuple nargs=" nargs " nbinds=" nbinds)
+     (debug_msg nargs "normletrec_tuple nargs")
+     (debug_msg nbinds "normletrec_tuple nbinds")
      (assert_msg "check nargs & bcomp samelength" (==i (multiple_length bcomp) (multiple_length nargs)))
      (assert_msg "check nbinds" (is_list_or_null nbinds))
      (foreach_in_multiple 
       (nargs)
       (curnarg :long nix)
       (multiple_put_nth bcomp nix curnarg))
-     (debug "normletrec_tuple updated bcomp" bcomp)
+     (debug_msg bcomp "normletrec_tuple updated bcomp")
      (list_append2list nrecbinds nbinds)
-     (debug "normletrec_tuple updated nrecbinds" nrecbinds)
+     (debug_msg nrecbinds "normletrec_tuple updated nrecbinds")
      (shortbacktrace_dbg "normletrec_tuple ended" 15)
      )))
 (install_method class_source_tuple normal_letrec_constructive normletrec_tuple)
@@ -4123,7 +4193,8 @@ source location.}#
 ;;;;;;;;;;;;;;;;
 
 (defun prepcons_list (recv symb ncx sloc)
-  (debug "prepcons_list recv=" recv " symb=" symb)
+  (debug_msg recv "prepcons_list recv")
+  (debug_msg symb "prepcons_list symb")
   (assert_msg "check recv" (is_a recv class_source_list))
   (let  ( 
 	 (reslist (make_list discr_list))
@@ -4143,7 +4214,7 @@ source location.}#
     (foreach_in_multiple 
      (listarg)
      (curarg :long curix)
-     (debug "prepcons_list curarg" curarg)
+     (debug_msg curarg "prepcons_list curarg")
      (let ( (pairsymb (clone_symbol (if (is_a curarg class_named) curarg '_pairoflist)))
 	    (conspair (instance class_normal_constructed_pair_binding
 				:binder pairsymb
@@ -4157,7 +4228,7 @@ source location.}#
        (list_append reslist conspair)
      ))
     (list_append reslist conslist)
-    (debug "prepcons_list gives reslist" reslist)
+    (debug_msg reslist "prepcons_list gives reslist")
     (return reslist)
 ))
 (install_method class_source_list prepare_constructor_binding prepcons_list)
@@ -4166,7 +4237,7 @@ source location.}#
 
 ;; auxiliary function to find a symbol in the locsym of a nletrec
 (defun nreclist_find_locsym (symb nletrec)
-  (debug "nreclist_find_locsym symb" symb)
+  (debug_msg symb "nreclist_find_locsym symb")
   (assert_msg "check symb" (is_a symb class_symbol))
   (assert_msg "check nletrec" (is_a nletrec class_nrep_letrec))
   (let ( (nlocsyms (get_field :nletrec_locsyms nletrec)) 
@@ -4176,15 +4247,17 @@ source location.}#
      (curlocsym :long locsymix)
      (if (== (get_field :nocc_symb curlocsym) symb)
 	 (progn
-	   (debug "nreclist_find_locsym found curlocsym" curlocsym)
+	   (debug_msg curlocsym "nreclist_find_locsym found curlocsym")
 	   (return curlocsym))))
-    (debug "nreclist_find_locsym not found")
+    (debug_msg () "nreclist_find_locsym not found")
     (return)
     ))
 
 
 (defun normletrec_list (cexpr symb cbind env ncx sloc)
-  (debug "normletrec_list cexpr=" cexpr " symb=" symb " cbind=" cbind)
+  (debug_msg cexpr "normletrec_list cexpr")
+  (debug_msg symb "normletrec_list symb")
+  (debug_msg cbind "normletrec_list cbind")
   (assert_msg "check cexpr" (is_a cexpr class_source_list))
   ;; here cbind is a tuple of constructor bindings -for all the pairs
   ;; & the list
@@ -4198,43 +4271,46 @@ source location.}#
 	 (firstpairbind (multiple_nth cbind 0))
 	 (lastpairbind (multiple_nth cbind -2))
 	 )
-    (debug "normletrec_list conslibind" conslibind)
+    (debug_msg conslibind "normletrec_list conslibind")
     (assert_msg "check conslibind"
 		(is_a conslibind class_normal_constructed_list_binding))
-    (debug "normletrec_list sargs=" sargs
-	   " nletrec=" nletrec " nrecbinds=" nrecbinds)
+    (debug_msg sargs "normletrec_list sargs")
+    (debug_msg nletrec "normletrec_list nletrec")
+    (debug_msg nrecbinds "normletrec_list nrecbinds")
     (assert_msg "check nletrec" (is_a nletrec class_nrep_letrec))
     (assert_msg "check nrecbinds" (is_list nrecbinds))
     (multicall
      (nargs nbinds)
      (normalize_tuple sargs env ncx loc)
-     (debug "normletrec_list nargs=" nargs " nbinds=" nbinds)
+     (debug_msg nargs "normletrec_list nargs")
+     (debug_msg nbinds "normletrec_list nbinds")
      (assert_msg "check nbinds" (is_list_or_null nbinds))
      (assert_msg "check nargs's length vs cbind's length"
 		 (==i (multiple_length nargs) (-i (multiple_length cbind) 1)))
      (foreach_in_multiple
       (nargs)
       (curnarg :long nix)
-      (debug "normletrec_list curnarg" curnarg)
+      (debug_msg curnarg "normletrec_list curnarg")
       (let ( (curcbind  (multiple_nth cbind nix)) 
 	     (nextcbind  (multiple_nth cbind (+i 1 nix)))
 	     (nextpairsymb (if (is_a nextcbind class_normal_constructed_pair_binding)
 			       (get_field :binder nextcbind)))
 	     )
-	(debug "normletrec_list curcbind=" curcbind " nextcbind=" nextcbind
-	       " nextpairsymb=" nextpairsymb)
+	(debug_msg curcbind "normletrec_list curcbind")
+	(debug_msg nextcbind "normletrec_list nextcbind")
+	(debug_msg nextpairsymb "normletrec_list nextpairsymb")
 	(assert_msg "check curcbind" (is_a curcbind class_normal_constructed_pair_binding))
 	(let ( (nextpairloc	(if nextpairsymb (nreclist_find_locsym nextpairsymb nletrec))) )
-	  (debug "normletrec_list got nextpairloc" nextpairloc)
+	  (debug_msg nextpairloc "normletrec_list got nextpairloc")
 	  (put_fields curcbind
 		      :npairb_head curnarg
 		      :npairb_tail nextpairloc)
-	  (debug "normletrec_list updated curcbind" curcbind)
+	  (debug_msg curcbind "normletrec_list updated curcbind")
 	  (assert_msg "check curcbind" (is_a curcbind class_normal_constructed_pair_binding))
 	  )))
-     (debug "normletrec_list firstpairbind=" firstpairbind
-	    " lastpairbind=" lastpairbind
-	    " conslibind=" conslibind)
+     (debug_msg firstpairbind "normletrec_list firstpairbind")
+     (debug_msg lastpairbind "normletrec_list lastpairbind")
+     (debug_msg conslibind "normletrec_list conslibind again")
      (and (is_a firstpairbind class_normal_constructed_pair_binding)
 	  (is_a lastpairbind class_normal_constructed_pair_binding)
 	  (let ( (firstpairsymb (get_field :binder firstpairbind))
@@ -4242,23 +4318,25 @@ source location.}#
 		 (firstpairlocsy (nreclist_find_locsym firstpairsymb nletrec))
 		 (lastpairlocsy (nreclist_find_locsym lastpairsymb nletrec))
 		 )
-	    (debug "normletrec_list firstpairlocsy=" firstpairlocsy " lastpairlocsy=" lastpairlocsy)
+	    (debug_msg firstpairlocsy "normletrec_list firstpairlocsy")
+	    (debug_msg lastpairlocsy "normletrec_list lastpairlocsy")
 	    (put_fields conslibind
 			:nlistb_first firstpairlocsy
 			:nlistb_last lastpairlocsy)
-	    (debug "normletrec_list updated conslibind" conslibind)
+	    (debug_msg conslibind "normletrec_list updated conslibind")
 	    (void)
 	    ))
-     (debug "normletrec_list appending nbinds" nbinds)
+     (debug_msg nbinds "normletrec_list appending nbinds")
      (list_append2list nrecbinds nbinds)
-     (debug "normletrec_list ended updated nrecbinds" nrecbinds)
+     (debug_msg nrecbinds "normletrec_list ended updated nrecbinds")
      )))
 (install_method class_source_list normal_letrec_constructive normletrec_list)
 
 
 ;;;;;;;;;;;;;;;;
 (defun prepcons_instance (recv symb ncx sloc)
-  (debug "prepcons_instance recv=" recv " symb=" symb)
+  (debug_msg recv "prepcons_instance recv")
+  (debug_msg symb "prepcons_instance symb")
   (assert_msg "check recv" (is_a recv class_source_instance))
   (let  ( 
 	 (loc (get_field :loca_location recv))
@@ -4276,7 +4354,7 @@ source location.}#
 				))
 	 )
     (assert_msg "prepcons_instance check class" (is_a cla class_class))
-    (debug "prepcons_instance gives consinst" consinst)
+    (debug_msg consinst "prepcons_instance gives consinst")
     (return consinst)
     )
   )
@@ -4285,7 +4363,9 @@ source location.}#
 ;;;;
 
 (defun normletrec_instance  (cexpr symb cbind env ncx sloc)
-  (debug "normletrec_instance cexpr=" cexpr " symb=" symb " cbind=" cbind)
+  (debug_msg cexpr "normletrec_instance cexpr")
+  (debug_msg symb "normletrec_instance symb")
+  (debug_msg cbind "normletrec_instance cbind")
   (let ( (loc (or (unsafe_get_field :loca_location cexpr) sloc))
 	 (bslots (get_field :ninstb_slots cbind))
 	 (nletrec (get_field :nconsb_nletrec cbind))
@@ -4298,7 +4378,7 @@ source location.}#
 		      (normal_exp sclasym env ncx sloc)))
 	 (bindlist (make_list discr_list))
 	 )
-    (debug "normletrec_instance nletrec" nletrec)
+    (debug_msg nletrec "normletrec_instance nletrec")
     (if (not (is_a cladata class_nrep))
 	(progn
 	  (error_strv sloc "invalid class in (INSTANCE ..)" (unsafe_get_field :named_name sclass))
@@ -4315,7 +4395,7 @@ source location.}#
 		 (multicall
 		  (nexp nbind)
 		  (normal_exp curexp env ncx curfloc)
-		  (debug "normletrec_instance nexp" nexp)
+		  (debug_msg nexp "normletrec_instance nexp")
 		  (assert_msg "check nbind" (is_list_or_null nbind))
 		  (list_append2list bindlist  nbind)
 		  (instance class_nrep_fieldassign
@@ -4324,11 +4404,11 @@ source location.}#
 			    :nfla_val nexp)
 		  )))))
 	   )
-      (debug "normletrec_instance nfields" nfields)
+      (debug_msg nfields "normletrec_instance nfields")
       (foreach_in_multiple
        (nfields)
        (curnfieldass :long fldix)
-       (debug "normletrec_instance curnfieldass" curnfieldass)
+       (debug_msg curnfieldass "normletrec_instance curnfieldass")
        (let ( (curfield (get_field :nfla_field curnfieldass)) 
 	      (curfval (get_field :nfla_val curnfieldass))
 	      (curfloc (get_field :nrep_loc curnfieldass))
@@ -4345,7 +4425,7 @@ source location.}#
 	 (multiple_put_nth bslots curfoff curfval)
        ))
       (list_append2list nrecbinds bindlist)
-      (debug "normletrec_instance ended updated nrecbinds" nrecbinds)
+      (debug_msg nrecbinds "normletrec_instance ended updated nrecbinds")
       )
     ))
 (install_method class_source_instance normal_letrec_constructive normletrec_instance)
@@ -4357,7 +4437,7 @@ source location.}#
   (assert_msg "check letrec recv" (is_a recv class_source_letrec))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_letrec recv" recv)
+  (debug_msg recv "normexp_letrec recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sbinds (unsafe_get_field :slet_bindings recv))
 	 (sbody (unsafe_get_field :slet_body recv))
@@ -4373,26 +4453,27 @@ source location.}#
     (foreach_in_multiple
      (sbinds)
      (cursbind :long sbix)
-     (debug "normexp_letrec cursbind" cursbind)
+     (debug_msg cursbind "normexp_letrec cursbind")
      (assert_msg "check cursbind" (is_a cursbind class_source_letrec_binding))
      (let ( (locb (or (unsafe_get_field :loca_location cursbind) sloc psloc))
 	    (cursymb (unsafe_get_field :sletb_binder cursbind))
 	    (curexpr (unsafe_get_field :sletb_expr cursbind))
 	    )
-       (debug "normexp_letrec curexpr=" curexpr " cursymb=" cursymb)
+       (debug_msg curexpr "normexp_letrec curexpr")
+       (debug_msg cursymb "normexp_letrec cursymb")
        (assert_msg "check curexpr" (is_a curexpr class_source))
        (assert_msg "check cursymb" (is_a cursymb class_symbol))
        (mapobject_put symbexprmap cursymb curexpr)
        (let ( (curconsbind (prepare_constructor_binding curexpr cursymb ncx locb))
 	      )
-	 (debug "normexp_letrec curconsbind" curconsbind)
+	 (debug_msg curconsbind "normexp_letrec curconsbind")
 	 (cond ( (is_a curconsbind class_normal_constructor_binding)
-		 (debug "normexp_letrec curconsbind plain consbind" curconsbind)
+		 (debug_msg curconsbind "normexp_letrec curconsbind plain consbind")
 		 (list_append consbindlist curconsbind)
 		 (mapobject_put symbindmap cursymb curconsbind)
 		 )
 	       ( (is_multiple curconsbind)
-		 (debug "normexp_letrec curconsbind multiple" curconsbind)
+		 (debug_msg curconsbind "normexp_letrec curconsbind multiple")
 		 (foreach_in_multiple 
 		  (curconsbind)
 		  (subconsbind :long subix)
@@ -4402,7 +4483,7 @@ source location.}#
 		 (mapobject_put symbindmap cursymb curconsbind)
 		 )
 	       ( (is_list curconsbind)
-		 (debug "normexp_letrec curconsbind list" curconsbind)
+		 (debug_msg curconsbind "normexp_letrec curconsbind list")
 		 (foreach_in_list
 		  (curconsbind)
 		  (subconspair subconsbind)
@@ -4417,7 +4498,7 @@ source location.}#
 	 )
        )
      )
-    (debug "normexp_letrec consbindlist" consbindlist)
+    (debug_msg consbindlist "normexp_letrec consbindlist")
     (let (
 	  (:long nbconsbind (list_length consbindlist))
 	  (:long curcix 0)
@@ -4434,14 +4515,14 @@ source location.}#
 			     :nletrec_body_bindings ()
 			     )) 
 	  )
-      (debug "normexp_letrec unfilled nletrec" nletrec)
+      (debug_msg nletrec "normexp_letrec unfilled nletrec")
       ;;
       ;; second loop to make an environment where each constructive
       ;; binding is set, and to create the local symbol occurrences
       (foreach_in_list
        (consbindlist)
        (curpair curcbind)
-       (debug "normexp_letrec curcbind" curcbind)
+       (debug_msg curcbind "normexp_letrec curcbind")
        (assert_msg "check curcbind" (is_a curcbind class_normal_constructor_binding))
        (multiple_put_nth ncbindtup curcix curcbind)
        (put_int curcbind curcix)
@@ -4461,13 +4542,14 @@ source location.}#
 	     (let ( (clabind (get_field :ninstb_clabind curcbind))
 		    (clasym (get_field :binder clabind))
 		    )
-	       (debug "normexp_letrec clabind=" clabind " clasym=" clasym)
+	       (debug_msg clabind "normexp_letrec clabind")
+	       (debug_msg clasym "normexp_letrec clasym")
 	       ;; the only case when this happens is for instance constructors...
 	       (assert_msg "check curcbind for instance" (is_a curcbind class_normal_constructed_instance_binding))
 	       (let ( ;; we normalize the class symbol in the parent environment, not the new one! 
 		     (cladata (normal_exp clasym env ncx sloc)) 
 		     )
-		 (debug "normexp_letrec cladata" cladata)
+		 (debug_msg cladata "normexp_letrec cladata")
 		 (assert_msg "check cladata" (is_a cladata class_nrep))
 		 (put_fields curcbind :nconsb_discr cladata)
 		 )))
@@ -4480,7 +4562,7 @@ source location.}#
       (foreach_in_multiple
        (sbinds)
        (cursbind :long sbix)
-       (debug "normexp_letrec thirdloop cursbind=" cursbind " sbix=" sbix)
+       (debug_msg cursbind "normexp_letrec thirdloop cursbind")
        (assert_msg "check cursbind" (is_a cursbind class_source_letrec_binding))
        (let ( (locb (or (unsafe_get_field :loca_location cursbind) sloc psloc))
 	      (cursymb (unsafe_get_field :sletb_binder cursbind))
@@ -4488,35 +4570,36 @@ source location.}#
 	      (curbind (mapobject_get symbindmap cursymb))
 	      (cursexpr (mapobject_get symbexprmap cursymb))
 	      )
-	 (debug "normexp_letrec thirdloop curexpr=" curexpr
-		" cursymb=" cursymb
-		" curbind=" curbind
-		" cursexpr=" cursexpr)
+	 (debug_msg curexpr "normexp_letrec thirdloop curexpr")
+	 (debug_msg cursymb "normexp_letrec thirdloop cursymb")
+	 (debug_msg curbind "normexp_letrec thirdloop curbind")
+	 (debug_msg cursexpr "normexp_letrec thirdloop cursexpr")
 	 (assert_msg "check curxpr same cursexpr" (== curexpr cursexpr))
 	 (normal_letrec_constructive curexpr cursymb curbind newenv ncx sloc)
-	 (debug "normexp_letrec thirdloop done curexpr" curexpr)
+	 (debug_msg curexpr "normexp_letrec thirdloop done curexpr")
 	 )
        )
-      (debug "normexp_letrec recfillbindings before normalizing the body" recfillbindings)
+      (debug_msg recfillbindings "normexp_letrec recfillbindings before normalizing the body")
 ;;;
 ;;; normalize the body
-      (debug "normexp_letrec normalizing sbody" sbody)
+      (debug_msg sbody "normexp_letrec normalizing sbody")
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
-       (debug "normexp_letrec nbody=" nbody " nbodbindings=" nbodbindings)
+       (debug_msg nbody "normexp_letrec nbody")
+       (debug_msg nbodbindings "normexp_letrec nbodbindings")
        (assert_msg "normexp_letrec check nbodbindings" (is_list_or_null nbodbindings))
        (put_fields nletrec 
 		   :nlet_body nbody
 		   :nletrec_body_bindings nbodbindings)
-       (debug "normexp_letrec updated nletrec" nletrec)
+       (debug_msg nletrec "normexp_letrec updated nletrec")
        (assert_msg "normexp_letrec check bindlist" (is_list_or_null bindlist))
 ;;; remove every locally bound symbol from the symbol cache map
        (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
 	 (foreach_in_list
 	  (bindlist)
 	  (curpair bnd)
-	  (debug "normexp_letrec removing from sycmap bnd" bnd)
+	  (debug_msg bnd "normexp_letrec removing from sycmap bnd")
 	  (assert_msg "normexp_letrec check bnd" (is_a bnd class_normal_let_binding))
 	  (mapobject_remove sycmap (unsafe_get_field :binder bnd))
 	  ))
@@ -4538,8 +4621,9 @@ source location.}#
 	     (resbinds (make_list discr_list))
 	     )
 	 (list_append resbinds cbind)
-	 (debug "normexp_letrec result clocc=" clocc 
-		" nletrec=" nletrec " resbinds=" resbinds)
+	 (debug_msg clocc "normexp_letrec result clocc")
+	 (debug_msg nletrec "normexp_letrec result nletrec")
+	 (debug_msg resbinds "normexp_letrec result resbinds")
 	 (shortbacktrace_dbg "normexp_letrec ending" 15)
 	 (return clocc resbinds)
 	 )))))
@@ -4561,7 +4645,8 @@ source location.}#
 		  :nrpredef brk)
       (if (is_string msg) 
 	  (progn
-	    (debug "normalpredef predefmap=" predefmap " pred=" pred)
+	    (debug_msg predefmap "normalpredef predefmap")
+	    (debug_msg pred "normalpredef pred")
 	    (error_strv sloc "not a predef:" msg)
 	    ()
 	    )))))
@@ -4570,14 +4655,14 @@ source location.}#
 ;; retrieve or create the normalized datasym for a symbol
 (defun normal_symbol_data (sym ncx sloc)
   ;; sym should be strictly a symbol (not be in a subclass of class_symbol!)
-  (debug "normal_symbol_data start sym" sym)
+  (debug_msg sym "normal_symbol_data start sym")
   (assert_msg "check symb" (== (discrim sym) class_symbol))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap sym)) )
     (if osydata
 	(progn
-	  (debug "normal_symbol_data found osydata" osydata)
+	  (debug_msg osydata "normal_symbol_data found osydata")
 	  (return osydata))
       (let ( (:long syhash (obj_hash sym))
 	     (synamstr (unsafe_get_field :named_name sym))
@@ -4601,7 +4686,7 @@ source location.}#
 	(add_nctx_data ncx synamstrdata)
 	(mapobject_put valmap sym sydata)
 	(mapstring_putstr (unsafe_get_field :nctx_symbmap ncx) synamstr sydata)
-	(debug "normal_symbol_data return sydata" sydata)
+	(debug_msg sydata "normal_symbol_data return sydata")
 	(return sydata)
 	))))
 
@@ -4644,11 +4729,11 @@ source location.}#
 ;; create the tuples of slots of a datainstance for a particular class
 (defun create_data_slots (cla)
   (assert_msg "check cla" (is_a cla class_class)) 
-  (debug "create_data_slots cla" cla)
+  (debug_msg cla "create_data_slots cla")
   (let ( (tupslo 
 	  (make_multiple discr_multiple  (multiple_length (unsafe_get_field :class_fields cla)))) 
 	 )
-    (debug "create_data_slots tupslo" tupslo)
+    (debug_msg tupslo "create_data_slots tupslo")
     tupslo
     ))
 
@@ -4667,7 +4752,8 @@ source location.}#
   (assert_msg "check quote recv" (is_a recv class_source_quote))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_quote recv" recv)
+					;(debug_msg ncx "normexp_quote ncx")
+  (debug_msg recv "normexp_quote recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (quoted (unsafe_get_field :squoted recv)) 
 	 (curproc (unsafe_get_field :nctx_curproc ncx))
@@ -4699,7 +4785,7 @@ source location.}#
 
 	   ))
 	 )
-    (debug "normexp_quote ndata" ndata)
+    (debug_msg ndata "normexp_quote ndata")
     (if (is_a curproc class_nrep_routproc)
 	(let ( 
 	      (nconst (instance class_nrep_constant
@@ -4709,10 +4795,10 @@ source location.}#
 				:nconst_proc curproc
 				)) )
 	  (list_append (unsafe_get_field :nrpro_const curproc) ndata)
-	  (debug "normexp_quote in routine nconst" nconst)
+	  (debug_msg nconst "normexp_quote in routine nconst")
 	  (return nconst))
       (progn
-	(debug "normexp_quote in init ndata" ndata)
+	(debug_msg ndata "normexp_quote in init ndata")
 	(return ndata)
 	))))
 (install_method class_source_quote normal_exp normexp_quote)
@@ -4722,7 +4808,7 @@ source location.}#
   (assert_msg "check comment recv" (is_a recv class_source_comment))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_comment start recv" recv)
+  (debug_msg recv "normexp_comment start recv")
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (scomm (unsafe_get_field :scomm_str recv))
 	 (ncomm (instance class_nrep_comment
@@ -4744,8 +4830,9 @@ source location.}#
 	 )
     (if scomm (assert_msg "check scomm" (is_string scomm)))
     (list_append bindlist cbind)
-    (debug "normexp_comment end ncomm=" ncomm
-	   " return clocc=" clocc " bindlist=" bindlist)
+    (debug_msg ncomm "normexp_comment end ncomm")
+    (debug_msg clocc "normexp_comment return clocc")
+    (debug_msg bindlist "normexp_comment return bindlist")
     (return clocc bindlist)
     ))
 (install_method class_source_comment normal_exp normexp_comment)
@@ -4755,7 +4842,8 @@ source location.}#
   (assert_msg "check keyword recv" (is_a recv class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_keyword recv" recv)
+  ;;(debug_msg ncx "normexp_keyword ncx")
+  (debug_msg recv "normexp_keyword recv")
   (let ( (kdata (normal_keyword_data recv ncx psloc)) 
 	 (curproc (unsafe_get_field :nctx_curproc ncx)) 
 	 )
@@ -4769,13 +4857,13 @@ source location.}#
 				:nconst_data kdata
 				:nconst_proc curproc))
 	      )
-	  (debug "normexp_keyword routine curproc" curproc)
+	  (debug_msg curproc "normexp_keyword routine curproc")
 	  (list_append constlist kdata)
-	  (debug "normexp_keyword result nconst" nconst)
+	  (debug_msg nconst "normexp_keyword result nconst")
 	  (return nconst)
 	  )
       (progn
-	(debug "normexp_keyword routineinit result kdata" kdata)
+	(debug_msg kdata "normexp_keyword routineinit result kdata")
 	(return kdata)
 	))))
 (install_method class_keyword normal_exp normexp_keyword)
@@ -4838,7 +4926,7 @@ source location.}#
 		     (normal_symbol_data expcomp ncx sloc)
 		     )
 		   ( :else 
-		     (debug "bad component in C code expansion expcomp" expcomp)
+		     (debug_msg expcomp "bad component in C code expansion expcomp")
 		     (error_plain sloc "unexpected component in C code expansion"))))
 	    )
        (multiple_put_nth nexptuple ix compdata)
@@ -5014,7 +5102,7 @@ source location.}#
 		       )
 ;;;;;;;
     ;; return the data
-    (debug "normexp_defciterator return insdata" insdata)
+    (debug_msg insdata "normexp_defciterator return insdata")
     (return insdata)
     ))
 (install_method class_source_defciterator normal_exp normexp_defciterator)
@@ -5024,7 +5112,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a citeration
 (defun normexp_citeration (recv env ncx psloc)
-  (debug "normexp_citeration recv" recv)
+  (debug_msg recv "normexp_citeration recv")
   (assert_msg "check citeration recv" (is_a recv class_source_citeration))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
@@ -5046,9 +5134,10 @@ source location.}#
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
      (if (null nbindings) (setq nbindings (make_list discr_list)))
-     (debug "normexp_citeration nargs=" nargs " nbindings=" nbindings)
+     (debug_msg nargs "normexp_citeration nargs")
+     (debug_msg nbindings "normexp_citeration nbindings")
      (let ( (starformals (unsafe_get_field :citer_start_formals soper)) )
-       (debug "normexp_citeration starformals" starformals)
+       (debug_msg starformals "normexp_citeration starformals")
        (if (!=i (multiple_length starformals) (multiple_length nargs))
 	   (progn
 	     (error_strv sloc "start formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
@@ -5056,7 +5145,8 @@ source location.}#
        (multiple_every_both 
 	nargs starformals
 	(lambda (curnarg curforb :long ix)
-	  (debug "normexp_citeration curnarg=" curnarg " curforb=" curforb " ix=" ix)
+	  (debug_msg curnarg "normexp_citeration curnarg")
+	  (debug_msg curforb "normexp_citeration curforb")
 	  (assert_msg "check curforb" (is_a curforb class_formal_binding))
 	  (let ( (curctyp (get_ctype curnarg env)) 
 		 (formctyp (unsafe_get_field :fbind_type curforb))
@@ -5076,15 +5166,15 @@ source location.}#
 		(inform_strv sloc "mismatched citerator start formal argument" (unsafe_get_field :named_name formarg))))
 	    ))
 	)
-       (debug "normexp_citeration nbndtup" nbndtup)
+       (debug_msg nbndtup "normexp_citeration nbndtup")
        ;; bind the local vars
-       (debug "normexp_citeration svbind" svbind)
+       (debug_msg svbind "normexp_citeration svbind")
        (let ( (citbform (unsafe_get_field :citer_body_formals soper))
 	      (:long nbcitbform (multiple_length citbform))
 	      (nlocbindtup (make_multiple discr_multiple nbcitbform))
 	      (nsymocctup (make_multiple discr_multiple nbcitbform))
 	      )
-	 (debug "normexp_citeration citbform" citbform)
+	 (debug_msg citbform "normexp_citeration citbform")
 	 (if (!=i nbcitbform (multiple_length svbind))
 	     (progn
 	       (error_strv sloc "body formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
@@ -5092,8 +5182,8 @@ source location.}#
 	 (multiple_every_both 
 	  svbind citbform
 	  (lambda (curvbind curbform :long ix)
-	    (debug "normexp_citeration curvbind=" curvbind 
-		   " curbform=" curbform " ix=" ix)
+	    (debug_msg curvbind "normexp_citeration curvbind")
+	    (debug_msg curbform "normexp_citeration curbform")
 	    (assert_msg "check curvbind" (is_a curvbind class_formal_binding))
 	    (assert_msg "check curbform" (is_a curbform class_formal_binding))
 	    (let ( (curvsym (unsafe_get_field :binder curvbind))
@@ -5115,7 +5205,7 @@ source location.}#
 			 )
 		    (multiple_put_nth nlocbindtup ix nlvbind)
 		    (multiple_put_nth nsymocctup ix clocc)
-		    (debug "normexp_citeration nlvbind" nlvbind)
+		    (debug_msg nlvbind "normexp_citeration nlvbind")
 		    ;;(put_env bodyenv nlvbind)
 		    ;; update the curvsym in the symbol cache map to
 		    ;; ensure that it will be normalized as the same
@@ -5131,12 +5221,13 @@ source location.}#
 	      )
 	    (put_env bodyenv curvbind)
 	    ))
-	 (debug "normexp_citeration nlocbindtup=" nlocbindtup
-		" nsymocctup=" nsymocctup)
+	 (debug_msg nlocbindtup "normexp_citeration nlocbindtup")
+	 (debug_msg nsymocctup "normexp_citeration nsymocctup")
 	 (multicall
 	  (nbody nbodbindings)
 	  (normalize_tuple sbody bodyenv ncx sloc)
-	  (debug "normexp_citeration nbody=" nbody " nbodbindings=" nbodbindings)
+	  (debug_msg nbody "normexp_citeration nbody")
+	  (debug_msg nbodbindings "normexp_citeration nbodbindings")
 	  (let ( (citstate (unsafe_get_field :citer_state soper))
 		 (citstsym (clone_symbol citstate))
 		 (citstbind (instance class_normal_let_binding
@@ -5154,14 +5245,14 @@ source location.}#
 		 (citlocmap (make_mapobject discr_map_objects (+i 10 nbcitbform)))
 		 (citexpander 
 		  (lambda (xtup)
-		    (debug "normexp_citeration expanding xtup=" xtup)
+		    (debug_msg xtup "normexp_citeration expanding xtup")
 		    (multiple_map 
 		     xtup 
 		     (lambda (curelem :long ix)
 		       (if (is_a curelem class_symbol)
 			   (let ( (exelem (mapobject_get citlocmap curelem)) )
 			     (if (null exelem)
-				 (debug "normexp_citeration bad curelem" curelem))
+				 (debug_msg curelem "normexp_citeration bad curelem"))
 			     (assert_msg "check exelem in citeration" exelem)
 			     exelem)
 			 curelem)
@@ -5169,16 +5260,17 @@ source location.}#
 		    ))
 		 )
 	    (mapobject_put citlocmap citstate citstocc)
-	    (debug "normexp_citeration  again starformals=" starformals
-		   " nsymocctup=" nsymocctup)
+	    (debug_msg starformals "normexp_citeration starformals again")
+	    (debug_msg nsymocctup "normexp_citeration nsymocctup again")
 	    (multiple_every_both 
 	     starformals nargs
 	     (lambda (curvloc curnarg :long ix)
-	       (debug "normexp_citeration curvloc=" curvloc " curnarg=" curnarg)
+	       (debug_msg curvloc "normexp_citeration curvloc")
+	       (debug_msg curnarg "normexp_citeration curnarg")
 	       (mapobject_put citlocmap (unsafe_get_field :binder curvloc) curnarg)
 	       ))
-	    (debug "normexp_citeration  middle citlocmap=" citlocmap
-		   " citbform=" citbform)
+	    (debug_msg citlocmap "normexp_citeration citlocmap middle")
+	    (debug_msg citbform "normexp_citeration citbform again")
 	    (multiple_every
 	     citbform
 	     (lambda (curformb :long ix)
@@ -5188,12 +5280,12 @@ source location.}#
 			      (multiple_nth  nsymocctup ix))
 	       
 	       ))
-	    (debug "normexp_citeration citlocmap done" citlocmap)
+	    (debug_msg citlocmap "normexp_citeration citlocmap done")
 	    (let ( (chkbefore (citexpander citexpbefore))
 		   (chkafter (citexpander citexpafter))
 		   )
-	      (debug "normexp_citeration chkbefore=" chkbefore
-		     " chkafter=" chkafter)
+	      (debug_msg chkbefore "normexp_citeration chkbefore")
+	      (debug_msg chkafter "normexp_citeration chkafter")
 	      (let ( (nciter
 		      (instance  class_nrep_citeration
 				 :nrep_loc sloc
@@ -5222,8 +5314,9 @@ source location.}#
 		(list_every 
 		 uncachelist
 		 (lambda (csy) (mapobject_remove sycmap csy)))
-		(debug "normexp_citeration nciter=" nciter
-		       " result clocc=" clocc " nbindings=" nbindings)
+		(debug_msg nciter "normexp_citeration nciter")
+		(debug_msg clocc "normexp_citeration result clocc")
+		(debug_msg nbindings "normexp_citeration result nbindings")
 		(return clocc nbindings)
 		))))))))
   )
@@ -5241,16 +5334,16 @@ source location.}#
   (assert_msg "check defcmatcher recv" (is_a recv class_source_defcmatcher))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_defcmatcher recv" recv)
+  (debug_msg recv "normexp_defcmatcher recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
 	 (cmatcher (let ( (cm (unsafe_get_field :scmatdef_cmatcher recv)) )
-		     (debug "normexp_defcmatcher cmatcher" cm)
+		     (debug_msg cm "normexp_defcmatcher cmatcher")
 		     (assert_msg "check cmatcher" (is_a cm class_cmatcher))
 		     cm))
 	 (cmbind (let ( (b (find_env env sname)) )
-		   (debug "normexp_defcmatcher cmbind" b)
+		   (debug_msg b "normexp_defcmatcher cmbind")
 		   (assert_msg "check cmbind" (is_a b class_cmatcher_binding))
 		   b))
 	 (slotup (make_multiple discr_multiple (object_length cmatcher)))
@@ -5365,7 +5458,7 @@ source location.}#
 ;;; put the data in the binding
     (unsafe_put_fields cmbind :fixbind_data insdata)
     ;; return the data
-    (debug "normexp_defcmatcher return insdata" insdata)
+    (debug_msg insdata "normexp_defcmatcher return insdata")
     (return insdata)
     )
   )
@@ -5376,7 +5469,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a DEFUNMATCHER
 (defun normexp_defunmatcher (recv env ncx psloc)
-  (debug "normexp_defunmatcher start recv" recv)
+  (debug_msg recv "normexp_defunmatcher start recv")
   (assert_msg "normexp_defunmatcher check recv" (is_a recv class_source_defunmatcher))
   (assert_msg "normexp_defunmatcher check env" (is_a env class_environment))
   (assert_msg "normexp_defunmatcher check ncx" (is_a ncx class_normalization_context))
@@ -5392,12 +5485,12 @@ source location.}#
 	 (insfma (subseq_multiple sins 1 -1))
 	 (mbifma (multiple_nth sins 0))
 	 (fmbind (let ( (b (find_env env sname)) )
-		   (debug "normexp_defunmatcher fmbind" b)
+		   (debug_msg b "normexp_defunmatcher fmbind")
 		   (assert_msg "check fmbind" (is_a b class_funmatcher_binding))
 		   b))
 	 (funmatcher (get_field :fmbind_funmatcher fmbind))
 	 )
-    (debug "normexp_defunmatcher made funmatcher" funmatcher)
+    (debug_msg funmatcher "normexp_defunmatcher made funmatcher")
     (assert_msg "check smatched" (is_a smatched class_formal_binding))
     (assert_msg "check sins" (is_multiple sins))
     (assert_msg "check souts" (is_multiple souts))
@@ -5405,17 +5498,18 @@ source location.}#
     (multicall
      (nmatchf nmabinds)
      (normal_exp smatchf env ncx sloc)
-     (debug "normexp_defunmatcher nmatchf" nmatchf)
+     (debug_msg nmatchf "normexp_defunmatcher nmatchf")
      (list_append2list resbinds nmabinds)
      (multicall
       (napplf napbinds)
       (normal_exp sapplyf env ncx sloc)
-      (debug "normexp_defunmatcher napplf" napplf)
+      (debug_msg napplf "normexp_defunmatcher napplf")
       (list_append2list resbinds napbinds)
       (multicall
        (ndata ndabinds)
        (normal_exp sdata env ncx sloc)
-       (debug "normexp_defunmatcher ndata=" ndata " resbinds=" resbinds)
+       (debug_msg ndata "normexp_defunmatcher ndata")
+       (debug_msg resbinds "normexp_defunmatcher resbinds")
        (let (
 	     (namstrdata (instance class_nrep_datastring
 				   :nrep_loc sloc
@@ -5481,11 +5575,11 @@ source location.}#
 ;;; put the data in the binding
 	 (unsafe_put_fields fmbind :fixbind_data insdata)
 ;;; make a funmatcher binding
-	 (debug "normexp_defunmatcher final fmbind" fmbind)
+	 (debug_msg fmbind "normexp_defunmatcher final fmbind")
 	 (compile_warning "$@$incomplete normexp_defunmatcher" ())
 ;;; return insdata and resbinds
-	 (debug "normexp_defunmatcher return insdata=" insdata
-		" resbinds=" resbinds)
+	 (debug_msg insdata "normexp_defunmatcher return insdata")
+	 (debug_msg resbinds "normexp_defunmatcher return resbinds")
 	 (return insdata resbinds)
 	 )
        )))
@@ -5682,7 +5776,7 @@ source location.}#
   (assert_msg "check definstance recv" (is_a recv class_source_definstance))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_definstance recv" recv)
+  (debug_msg recv "normexp_definstance recv")
   (let ( (sloc   (unsafe_get_field :loca_location recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (spredef (unsafe_get_field :sobj_predef recv))
@@ -5700,7 +5794,7 @@ source location.}#
 	 (icladata (if (is_a sinstclasym class_symbol) 
 		       (normal_exp sinstclasym env ncx sloc)))
 	 )
-    (debug "normexp_definstance bindins" bindins)
+    (debug_msg bindins "normexp_definstance bindins")
     (assert_msg "check bindins" (is_a  bindins class_instance_binding))
     (if (not (is_a icladata class_nrep))
 	(progn
@@ -5737,7 +5831,7 @@ source location.}#
       (multiple_every
        sinstfields
        (lambda (flda :long ix)
-	 (debug "normexp_definstance flda" flda)
+	 (debug_msg flda "normexp_definstance flda")
 	 (assert_msg "check flda" (is_a flda class_source_fieldassign))
 	 (let ( (curfld (unsafe_get_field :sfla_field flda))
 		(curexp (unsafe_get_field :sfla_expr flda))
@@ -5752,11 +5846,11 @@ source location.}#
 			     (get_field :named_name curfld)
 			     )
 		 (return)))
-	   (debug "normexp_definstance field curexp" curexp)
+	   (debug_msg curexp "normexp_definstance field curexp")
 	   (multicall
 	    (ncur nbindcur)
 	    (normal_exp curexp env ncx sloc)
-	    (debug "normexp_definstance field ncur=" ncur " nbindcur=" nbindcur)
+	    (debug_msg ncur "normexp_definstance field ncur")
 	    (multiple_put_nth slotup curoff ncur)
 	    (if (is_list nbindcur)
 		(let ( (thebindlist (content nbindcont)))
@@ -5769,7 +5863,7 @@ source location.}#
 	(if (>i (multiple_length nbindtup) 0) 
 	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
 	;; return the data
-	(debug "normexp_definstance return insdata" insdata)
+	(debug_msg insdata "normexp_definstance return insdata")
 	insdata
 	))))
 (install_method class_source_definstance normal_exp normexp_definstance)
@@ -5781,7 +5875,7 @@ source location.}#
   (assert_msg "check define recv" (is_a recv class_source_define))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp define recv" recv)
+  (debug_msg recv "normexp define recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
@@ -5790,19 +5884,21 @@ source location.}#
 	(namdata (normal_symbol_data sname ncx sloc))
 	(curproc (unsafe_get_field :nctx_curproc ncx)) 
 	)
-    (debug "normexp_define namdata=" namdata " binddef=" binddef)
+    (debug_msg namdata "normexp_define namdata")
+    (debug_msg binddef "normexp_define binddef")
     (assert_msg "check body tuple" (is_multiple sbody))
-    (debug "normexp_define curproc" curproc)
+    (debug_msg curproc "normexp_define curproc")
     (if (is_not_a curproc class_nrep_initproc)
 	(progn
 	  (error_plain sloc "(DEFINE ...) can appear only at top-level")
 	  (return)))
-    (debug "normexp_define sbody" sbody)
+    (debug_msg sbody "normexp_define sbody")
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody env ncx sloc)
-     (debug "normexp_define nbody=" nbody " nbindings=" nbindings
-	    " sname=" sname)
+     (debug_msg nbody "normexp_define nbody")
+     (debug_msg nbindings "normexp_define nbindings")
+     (debug_msg sname "normexp_define sname")
      (let (
 	   (procdefbinds (get_field :ninit_defbinds curproc))
 	   (ndefname (normexp_symbol sname env ncx sloc))
@@ -5823,8 +5919,9 @@ source location.}#
 	(multiple_put_nth newbody bodix curnbody))
        (multiple_put_nth newbody nbodylen nlastassign)
        (list_append procdefbinds binddef)
-       (debug "normexp_define updated procdefbinds=" procdefbinds
-	      " ndefname=" ndefname " newbody=" newbody)
+       (debug_msg procdefbinds "normexp_define updated procdefbinds")
+       (debug_msg ndefname "normexp_define ndefname")
+       (debug_msg newbody "normexp_define newbody")
        (if (!= (get_ctype ndefname env) ctype_value)
 	   (error_strv sloc "DEFINE-d name is not a value" snamestr))
        (if (!= (get_ctype nlastbody newenv) ctype_value)
@@ -5844,7 +5941,7 @@ source location.}#
   (assert_msg "check defselector recv" (is_a recv class_source_defselector))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp defselector recv" recv)
+  (debug_msg recv "normexp defselector recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
@@ -5948,7 +6045,7 @@ source location.}#
 			       :fixbind_data insdata
 			       ))
 	;; return the data
-	(debug "normexp_defselector return insdata" insdata)
+	(debug_msg insdata "normexp_defselector return insdata")
 	insdata
 	))))
 (install_method class_source_defselector normal_exp normexp_defselector)
@@ -6003,8 +6100,9 @@ source location.}#
 ;;; nvalueexp is the normalized expression of the value exporter given
 ;;; by normal_value_exporter above
 (defun normal_exported_value (sym nexp nvaluexp env ncx psloc bindslist)
-  (debug "normal_exported_value start sym=" sym " nexp=" nexp
-	 " nvaluexp=" nvaluexp)
+  (debug_msg sym "normal_exported_value start sym")
+  (debug_msg nexp "normal_exported_value start nexp")
+  (debug_msg nvaluexp "normal_exported_value start nvaluexp")
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check nexp" (is_a nexp class_nrep))
   (assert_msg "check nvaluexp" (is_a nvaluexp class_nrep))
@@ -6023,11 +6121,12 @@ source location.}#
 			       :loca_location psloc
 			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
-    (debug "normal_exported_value scurenvbox" scurenvbox)
+    (debug_msg scurenvbox "normal_exported_value scurenvbox")
     (multicall 
      (ncurenvbox curenvbinds)
      (normal_exp scurenvbox env ncx psloc)
-     (debug "normal_exported_value ncurenvbox=" ncurenvbox " curenvbinds=" curenvbinds)
+     (debug_msg ncurenvbox "normal_exported_value ncurenvbox")
+     (debug_msg curenvbinds "normal_exported_value curenvbinds")
      ;;; if we are not at topevel it has no sense to call the cont_fresh_env!
      (list_append2list bindslist curenvbinds)
      (let (
@@ -6048,7 +6147,8 @@ source location.}#
 			    :nocc_symb csymexpo
 			    :nocc_bind cbind) )
 	   )
-       (debug "normal_exported_value cbind=" cbind " syocc=" syocc)
+       (debug_msg cbind "normal_exported_value cbind")
+       (debug_msg syocc "normal_exported_value return syocc")
        (list_append bindslist cbind)
        syocc
        ;;
@@ -6066,7 +6166,7 @@ source location.}#
   (assert_msg "check exportval recv" (is_a recv class_source_export_values))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_export_values recv" recv)
+  (debug_msg recv "normexp_export_values recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
@@ -6075,23 +6175,26 @@ source location.}#
 	(nilnrep (instance class_nrep_nil
 			   :nrep_loc sloc))
 	)
-    (debug "normexp_export_values nvaluexporter" nvaluexporter)
+    (debug_msg nvaluexporter "normexp_export_values nvaluexporter")
     (multiple_every
      sxnames
      (lambda (xnam :long ix)
        (assert_msg "check xnam" (is_a xnam class_symbol))
-       (debug "normexp_export_values xnam" xnam)
+       (debug_msg xnam "normexp_export_values xnam")
        (multicall
 	(nsym nsymbinds)
 	(normal_exp xnam env ncx sloc)
-	(debug "normexp_export_values nsym=" nsym " nsymbinds=" nsymbinds)
+	(debug_msg nsym "normexp_export_values nsym")
+	(debug_msg nsymbinds "normexp_export_values nsymbinds")
 	(list_append2list bindslist nsymbinds)
-	(debug "normexp_export_values again xnam=" xnam " bindslist=" bindslist)
+	(debug_msg xnam "normexp_export_values xnam again")
+	(debug_msg bindslist "normexp_export_values before normal_exported_value bindslist")
 	(let ( (nexpv (normal_exported_value xnam nsym nvaluexporter env ncx sloc bindslist))
 	       )
-	  (debug "normexp_export_values normal_exported_value gave nexpv" nexpv)
+	  (debug_msg nexpv "normexp_export_values normal_exported_value gave nexpv")
 	  ))))
-    (debug "normexp_export_values final nilnrep=" nilnrep " bindslist=" bindslist)
+    (debug_msg nilnrep "normexp_export_values final nilnrep")
+    (debug_msg bindslist "normexp_export_values final bindslist")
     (return nilnrep bindslist)
     ))
 
@@ -6104,7 +6207,7 @@ source location.}#
   (assert_msg "check exportsyn recv" (is_a recv class_source_export_synonym))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_export_synonym recv" recv)
+  (debug_msg recv "normexp_export_synonym recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(newname (unsafe_get_field :sexpsyn_newname recv))
@@ -6114,8 +6217,9 @@ source location.}#
 	(nilnrep (instance class_nrep_nil
 			   :nrep_loc sloc))
 	)
-    (debug "normexp_export_synonym nvaluexporter=" nvaluexporter
-	   " newname=" newname	 " oldname=" oldname)
+    (debug_msg nvaluexporter "normexp_export_synonym nvaluexporter")
+    (debug_msg newname "normexp_export_synonym newname")
+    (debug_msg oldname "normexp_export_synonym oldname")
     (assert_msg "check newname" (is_a newname class_symbol))
     (assert_msg "check oldname" (is_a oldname class_symbol))
     ;; when a class has a synonym, we should generate in the C code 
@@ -6126,13 +6230,14 @@ source location.}#
     (multicall
      (noldsym noldsymbinds)
      (normal_exp oldname env ncx sloc)
-     (debug "normexp_export_synonym noldsym=" noldsym " noldsymbinds=" noldsymbinds)
+     (debug_msg noldsym "normexp_export_synonym noldsym")
+     (debug_msg noldsymbinds "normexp_export_synonym noldsymbinds")
      (list_append2list bindslist noldsymbinds)
      (let ( (nexpv (normal_exported_value newname noldsym nvaluexporter env ncx sloc bindslist))
 	    )
-       (debug "normexp_export_synonym normal_exported_value gave nexpv=" nexpv
-	      " final nilnrep=" nilnrep
-	      " bindslist=" bindslist)
+       (debug_msg nexpv "normexp_export_synonym normal_exported_value gave nexpv")
+       (debug_msg nilnrep "normexp_export_synonym final nilnrep")
+       (debug_msg bindslist "normexp_export_synonym final bindslist")
        (return nilnrep bindslist)
        ))))
       
@@ -6144,7 +6249,7 @@ source location.}#
   (assert_msg "check export_class recv" (is_a recv class_source_export_class))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp export_class recv" recv)
+  (debug_msg recv "normexp export_class recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sxnames (unsafe_get_field :sexport_names recv))
@@ -6162,7 +6267,7 @@ source location.}#
        (let ( (xbind (find_env env xnam)) 
 	      (xsymdata (normal_symbol_data xnam ncx sloc))
 	      )
-	 (debug "normexp_export_class xbind" xbind)
+	 (debug_msg xbind "normexp_export_class xbind")
 	 (assert_msg "check xsymdata" (is_a xsymdata class_nrep_datasymbol))
 	 (if (is_not_a xbind class_class_binding)
 	     (progn 
@@ -6173,13 +6278,13 @@ source location.}#
 	 (let ( (xdata (unsafe_get_field :fixbind_data xbind)) 
 		(xclass (unsafe_get_field :cbind_class xbind))
 		)
-	   (debug "normexp_export_class xdata" xdata)
+	   (debug_msg xdata "normexp_export_class xdata")
 	   (if (is_not_a xdata class_nrep_data)
 	       (error_strv sloc "forward defined class symbol to EXPORT_CLASS"
 			   (unsafe_get_field :named_name xnam)))
 	   (let ( (nclav (normal_exported_value xnam xdata nvaluexporter env ncx sloc bindslist))
 		  )
-	     (debug "normexp_export_class nclav" nclav)
+	     (debug_msg nclav "normexp_export_class nclav")
 	     (assert_msg "check xclass" (is_a xclass class_class))
 	     (let ( (xclfields (unsafe_get_field :class_fields xclass))
 		    (expcladic (get_field :mocx_expclassdict mocx))
@@ -6207,10 +6312,11 @@ source location.}#
 			    (assert_msg "check field" (is_a field class_field))
 			    (assert_msg "check expfldic" (is_mapstring expfldic))
 			    (mapstring_putstr expfldic (unsafe_get_field :named_name field) field)
-			    (debug "normexp_export_class nfld" nfld)
+			    (debug_msg nfld "normexp_export_class nfld")
 			    ))))))))))
        ))
-    (debug "normexp_export_class final nilnrep=" nilnrep " bindslist=" bindslist)
+    (debug_msg nilnrep "normexp_export_class final nilnrep")
+    (debug_msg bindslist "normexp_export_class final bindslist")
     (return nilnrep bindslist)
     ))
 (install_method class_source_export_class normal_exp normexp_export_class)
@@ -6222,7 +6328,7 @@ source location.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check bindslist" (is_list bindslist))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
-  (debug "normal_macro_exporter start psloc" psloc)
+  (debug_msg psloc "normal_macro_exporter start psloc")
   (let ( (csymvalexp (clone_symbol '_macroxporter_))
 	 (nsysdat (instance class_nrep_predef
 			    :nrep_loc psloc
@@ -6242,7 +6348,7 @@ source location.}#
 			   :nocc_bind cbind))
 	 )
     (list_append bindslist cbind)
-    (debug "normal_macro_exporter return locsym" locsym)
+    (debug_msg locsym "normal_macro_exporter return locsym")
     (return locsym)
     ))
 
@@ -6252,7 +6358,7 @@ source location.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check bindslist" (is_list bindslist))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
-  (debug "normal_patmacro_exporter start psloc" psloc)
+  (debug_msg psloc "normal_patmacro_exporter start psloc")
   (let ( (csymvalexp (clone_symbol '_patmacroxporter_))
 	 (nsysdat (instance class_nrep_predef
 			    :nrep_loc psloc
@@ -6272,7 +6378,7 @@ source location.}#
 			   :nocc_bind cbind))
 	 )
     (list_append bindslist cbind)
-    (debug "normal_patmacro_exporter return locsym" locsym)
+    (debug_msg locsym "normal_patmacro_exporter return locsym")
     (return locsym)
     ))
 
@@ -6281,8 +6387,9 @@ source location.}#
 
 ;; return the normalized application to do the macro expport
 (defun normal_exported_macro (sym nexp nmacroxp env ncx psloc bindslist)
-  (debug "normal_exported_macro start sym=" sym " nexp=" nexp
-	 " nmacroxp=" nmacroxp)
+  (debug_msg sym "normal_exported_macro start sym")
+  (debug_msg nexp "normal_exported_macro start nexp")
+  (debug_msg nmacroxp "normal_exported_macro start nmacroxp")
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check nexp" (is_a nexp class_nrep))
   (assert_msg "check nmacroxp" (is_a nmacroxp class_nrep))
@@ -6299,11 +6406,12 @@ source location.}#
 			       :loca_location psloc
 			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
-    (debug "normal_exported_macro sgetcurenvbox" scurenvbox)
+    (debug_msg scurenvbox "normal_exported_macro sgetcurenvbox")
     (multicall 
      (ncurenvbox curenvbinds)
      (normal_exp scurenvbox env ncx psloc)
-     (debug "normal_exported_macro ncurenvbox=" ncurenvbox " curenvbinds=" curenvbinds)
+     (debug_msg ncurenvbox "normal_exported_macro ncurenvbox")
+     (debug_msg curenvbinds "normal_exported_macro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
 	   (argtup (tuple symdata nexp ncurenvbox))
@@ -6323,7 +6431,8 @@ source location.}#
 			    :nocc_symb csymexpo
 			    :nocc_bind cbind) )
 	   )
-       (debug "normal_exported_macro cbind=" cbind " syocc=" syocc)
+       (debug_msg cbind "normal_exported_macro cbind")
+       (debug_msg syocc "normal_exported_macro return syocc")
        (list_append bindslist cbind)
        syocc
        ;;
@@ -6334,7 +6443,7 @@ source location.}#
   (assert_msg "check export_macro recv" (is_a recv class_source_export_macro))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp export_macro recv" recv)
+  (debug_msg recv "normexp export_macro recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(mname (unsafe_get_field :sexpmac_mname recv))
@@ -6351,10 +6460,10 @@ source location.}#
      (let ( 
 	   (nexpm (normal_exported_macro mname nexp nmacexp env ncx sloc bindslist))
 	   )
-       (debug "normexp_export_macro nexpm" nexpm)
+       (debug_msg nexpm "normexp_export_macro nexpm")
        )
-     (debug "normexp_export_macro final nrepnil=" nrepnil
-	    " bindslist=" bindslist)
+     (debug_msg nrepnil "normexp_export_macro final nrepnil")
+     (debug_msg bindslist "normexp_export_macro final bindslist")
      (return nrepnil bindslist)
      )))
 (install_method class_source_export_macro normal_exp normexp_export_macro)
@@ -6368,8 +6477,10 @@ source location.}#
 ;; nmacroxp is the nrep of the macro expander
 ;; npattxp is the nrep of the pattern expander
 (defun normal_exported_patmacro (sym nexp nmacroxp npattxp env ncx psloc bindslist)
-  (debug "normal_exported_patmacro start sym=" sym " nexp=" nexp
-	 " nmacroxp=" nmacroxp " npattxp=" npattxp)
+  (debug_msg sym "normal_exported_patmacro start sym")
+  (debug_msg nexp "normal_exported_patmacro start nexp")
+  (debug_msg nmacroxp "normal_exported_patmacro start nmacroxp")
+  (debug_msg npattxp "normal_exported_patmacro start npattxp")
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check nexp" (is_a nexp class_nrep))
   (assert_msg "check nmacroxp" (is_a nmacroxp class_nrep))
@@ -6386,12 +6497,12 @@ source location.}#
 			       :loca_location psloc
 			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
-    (debug "normal_exported_patmacro sgetcurenvbox" scurenvbox)
+    (debug_msg scurenvbox "normal_exported_patmacro sgetcurenvbox")
     (multicall 
      (ncurenvbox curenvbinds)
      (normal_exp scurenvbox env ncx psloc)
-     (debug "normal_exported_patmacro ncurenvbox=" ncurenvbox
-	    " curenvbinds=" curenvbinds)
+     (debug_msg ncurenvbox "normal_exported_patmacro ncurenvbox")
+     (debug_msg curenvbinds "normal_exported_patmacro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
 	   (argtup  (tuple symdata nmacroxp npattxp ncurenvbox))
@@ -6411,7 +6522,8 @@ source location.}#
 			    :nocc_symb csymexpo
 			    :nocc_bind cbind) )
 	   )
-       (debug "normal_exported_patmacro cbind=" cbind " return syocc=" syocc)
+       (debug_msg cbind "normal_exported_patmacro cbind")
+       (debug_msg syocc "normal_exported_patmacro return syocc")
        (list_append bindslist cbind)
        syocc
        ;;
@@ -6422,7 +6534,7 @@ source location.}#
   (assert_msg "check export_patmacro recv" (is_a recv class_source_export_patmacro))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp export_patmacro recv" recv)
+  (debug_msg recv "normexp export_patmacro recv")
   (let (
 	(sloc (unsafe_get_field :loca_location recv))
 	(mname (unsafe_get_field :sexpmac_mname recv))
@@ -6432,21 +6544,23 @@ source location.}#
 	(npmaexp (normal_patmacro_exporter env ncx sloc bindslist))
 	(nrepnil (instance class_nrep_nil :nrep_loc sloc))
 	)
-    (debug "normexp export_patmacro mname=" mname " npmaexp=" npmaexp)
+    (debug_msg mname "normexp export_patmacro mname")
+    (debug_msg npmaexp "normexp export_patmacro npmaexp")
     (assert_msg "check mname" (is_a mname class_symbol))
     (multicall 
      (nexpmac nbindms)
      (normal_exp mvalexp env ncx sloc)
      (list_append2list bindslist nbindms)
-     (debug "normexp_export_patmacro nexpmac" nexpmac)
+     (debug_msg nexpmac "normexp_export_patmacro nexpmac")
      (multicall 
       (nexppat nbindps)
       (normal_exp mpatexp env ncx sloc)
       (list_append2list bindslist nbindps)
-      (debug "normexp_export_patmacro nexppat" nexpmac)
+      (debug_msg nexpmac "normexp_export_patmacro nexppat")
       (let ( (nexpm (normal_exported_patmacro mname npmaexp nexpmac nexppat env ncx sloc bindslist)) )
-	(debug "normexp_export_patmacro nexpm=" nexpm)
-	(debug "normexp_export_patmacro final nrepnil=" nrepnil " bindslist=" bindslist)
+	(debug_msg nexpm "normexp_export_patmacro nexpm")
+	(debug_msg nrepnil "normexp_export_macro final nrepnil")
+	(debug_msg bindslist "normexp_export_macro final bindslist")
 	(return nrepnil bindslist)
 	)
       ))
@@ -6459,7 +6573,7 @@ source location.}#
   (assert_msg "check current_module_environment_container recv" (is_a recv class_source_current_module_environment_container))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_current_module_environment_container recv" recv)
+  (debug_msg recv "normexp_current_module_environment_container recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(scomm (unsafe_get_field :cmec_comment recv))
@@ -6480,7 +6594,7 @@ source location.}#
 	  (list_append (unsafe_get_field :nrpro_const curproc) qdatcur)
 	  (list_append ncurmodenvlist curproc)
 	  ))
-    (debug "normexp_current_module_environment_container nquasi" nquasi)
+    (debug_msg nquasi "normexp_current_module_environment_container nquasi")
     (return nquasi)
     ))
 (install_method class_source_current_module_environment_container normal_exp normexp_current_module_environment_container)
@@ -6491,7 +6605,7 @@ source location.}#
   (assert_msg "check parent_module_environment recv" (is_a recv class_source_parent_module_environment))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_parent_module_environment  recv" recv)
+  (debug_msg recv "normexp_parent_module_environment  recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
@@ -6506,7 +6620,7 @@ source location.}#
     (assert_msg "check qdatpar" (is_a qdatpar class_nrep_quasidata_parent_module_environment))
     (if (is_a curproc class_nrep_routproc)
 	(list_append (unsafe_get_field :nrpro_const curproc) qdatpar))
-    (debug "normexp_parent_module_environment nquasi" nquasi)
+    (debug_msg nquasi "normexp_parent_module_environment nquasi")
     (return nquasi)
     ))
 (install_method class_source_parent_module_environment normal_exp normexp_parent_module_environment)
@@ -6517,7 +6631,7 @@ source location.}#
   (assert_msg "check update_current_module_environment_container recv" (is_a recv class_source_update_current_module_environment_container))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_update_current_module_environment_container recv" recv)
+  (debug_msg recv "normexp_update_current_module_environment_container recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(scomm (unsafe_get_field :sucme_comment recv))
@@ -6587,7 +6701,8 @@ source location.}#
        (normal_exp sgetcurenvbox env ncx sloc)
        (list_append bindlist cbind)
        (unsafe_put_fields nup :nucmeb_expr ncurenvbox)
-       (debug "normexp_update_current_module_environment_container result bindlist=" bindlist" clocc=" clocc)
+       (debug_msg bindlist "normexp_update_current_module_environment_container result bindlist")
+       (debug_msg clocc "normexp_update_current_module_environment_container result clocc")
        (return clocc bindlist)
        )
       )))
@@ -6600,7 +6715,7 @@ source location.}#
   (assert_msg "check fetch_predefined recv" (is_a recv class_source_fetch_predefined))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_fetch_predefined recv" recv)
+  (debug_msg recv "normexp_fetch_predefined recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(spred (unsafe_get_field :sfepd_predef recv))
@@ -6633,7 +6748,7 @@ source location.}#
 			   :nrpredef spred
 			   ))
 	   )
-      (debug "normexp_fetch_predefined result npre" npre)
+      (debug_msg npre "normexp_fetch_predefined result npre")
       (return npre)
       )))
 (install_method class_source_fetch_predefined normal_exp normexp_fetch_predefined)
@@ -6646,7 +6761,7 @@ source location.}#
   (assert_msg "check store_predefined recv" (is_a recv class_source_store_predefined))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_store_predefined recv" recv)
+  (debug_msg recv "normexp_store_predefined recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(spred (unsafe_get_field :sstpd_predef recv))
@@ -6696,7 +6811,8 @@ source location.}#
 			     :nocc_bind cbind))
 	    )
        (list_append nbinds cbind)
-       (debug "normexp_store_predefined result nbinds=" nbinds " syocc=" syocc)
+       (debug_msg nbinds "normexp_store_predefined result nbinds")
+       (debug_msg syocc "normexp_store_predefined result syocc")
        (return syocc nbinds)
        ))))
 (install_method class_source_store_predefined normal_exp normexp_store_predefined)
