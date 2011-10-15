@@ -1,7 +1,7 @@
 /** GENERATED MELT DESCRIPTOR FILE MELT-STAGE-ZERO/warmelt-normatch+meltdesc.c - ** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/
 /* These identifiers are generated in warmelt-outobj.melt & handled in melt-runtime.c carefully. */
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.7.0 20111012 (experimental) [melt-branch revision 180035] MELT_0.9.1";
+const char melt_genversionstr[]="4.7.0 20111012 (experimental) [melt-branch revision 180041] MELT_0.9.1";
 const char melt_versionmeltstr[]="0.9.1 MELT_REVISION";
 
 /* source name & real path of the module */
@@ -11,8 +11,8 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Sat Oct 15 15:07:42 2011 MEST";
-const long long melt_gen_timenum=1318684062;
+const char melt_gen_timestamp[]="Sat Oct 15 18:09:16 2011 MEST";
+const long long melt_gen_timenum=1318694956;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */
