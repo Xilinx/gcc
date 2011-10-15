@@ -84,7 +84,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for scanning any receiver (by failing)
 (defun scanpat_anyrecv (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_anypattern recv")
+  (debug "scanpat_anypattern recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
@@ -99,12 +99,12 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for scanning any pattern (by failing)
 (defun scanpat_anypattern (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_anypattern recv")
+  (debug "scanpat_anypattern recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern))
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
-    (debug_msg myclass "scanpat_anypattern myclass [discrim of recv]")
+    (debug "scanpat_anypattern myclass [discrim of recv]" myclass)
     (error_strv psloc 
 		"unimplemented scan_pattern for pattern " myclassname)
     (assert_msg "catchall scan_pattern unimplemented for pattern" ())
@@ -115,7 +115,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning pattern variable
 (defun scanpat_srcpatvar (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatvar recv")
+  (debug "scanpat_srcpatvar recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
   (let ( (sloc (unsafe_get_field :loca_location recv))
@@ -126,11 +126,11 @@ scanning variables.}#
 	 )
     (cond ( (null mvar)
 	    (mapobject_put mapvar svar recv)
-	    (debug_msg svar "scanpat_srcpatvar return new svar")
+	    (debug "scanpat_srcpatvar return new svar" svar)
 	    (setq mvar recv)
 	    )
 	  (:else
-	   (debug_msg mvar "scanpat_srcpatvar return found mvar")
+	   (debug "scanpat_srcpatvar return found mvar" mvar)
 	   ))
     (assert_msg "check mvar" (is_a mvar class_source_pattern_variable))
     (let ( (nboccbox (unsafe_get_field :spatvar_nbocc mvar)) 
@@ -149,7 +149,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning pattern joker
 (defun scanpat_srcpatjoker (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatjoker recv")
+  (debug "scanpat_srcpatjoker recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
   ;; just return
@@ -163,7 +163,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning a pattern constant
 (defun scanpat_srcpatconst (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatconst recv")
+  (debug "scanpat_srcpatconst recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_constant))
   (let ( (sconst (unsafe_get_field :spat_constx recv))
@@ -178,24 +178,24 @@ scanning variables.}#
     (assert_msg "check bindlist" (is_list bindlist))
     (cond 
      ( (not (is_object sconst))
-       (debug_msg sconst "scanpat_srcpatconst nonobj literal const")
+       (debug "scanpat_srcpatconst nonobj literal const" sconst)
 	(setq ncst sconst)
        )
      ( (null mcst)
        (multicall
 	(nconst nbindconst)
 	(normal_exp sconst env ncx sloc)
-	(debug_msg nconst "scanpat_srcpatconst nconst")
+	(debug "scanpat_srcpatconst nconst" nconst)
 	(mapobject_put mapcst sconst nconst)
 	(if nbindconst (list_append2list bindlist nbindconst))
 	(setq ncst nconst)
 	))
      (:else
-      (debug_msg mcst "scanpat_srcpatconst got mcst")
+      (debug "scanpat_srcpatconst got mcst" mcst)
       ))
-    (debug_msg ncst "scanpat_srcpatconst ncst")
+    (debug "scanpat_srcpatconst ncst" ncst)
     (let ( (rectyp (get_ctype ncst env)) )
-      (debug_msg rectyp "scanpat_srcpatconst rectyp")
+      (debug "scanpat_srcpatconst rectyp" rectyp)
       (assert_msg "check rectyp" (is_a rectyp class_ctype))
       (cond ((!= rectyp ctyp)
 	     (error_strv sloc "invalid ctype in constant pattern - expecting"
@@ -213,7 +213,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning a pattern object or instance
 (defun scanpat_srcpatobject (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatobject recv")
+  (debug "scanpat_srcpatobject recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_object))
   (let ( (sloc (unsafe_get_field :loca_location recv))
@@ -241,7 +241,7 @@ scanning variables.}#
        (scan_pattern fpat sloc ctype_value pcn)
        )
      )
-    (debug_msg recv "scanpat_srcpatobject end recv")
+    (debug "scanpat_srcpatobject end recv" recv)
     )
   )
 (install_method class_source_pattern_object scan_pattern scanpat_srcpatobject)
@@ -252,19 +252,18 @@ scanning variables.}#
 ;; scanning a composite pattern 
 (defun scanpat_srcpatcomposite (recv psloc ctyp pcn)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
-  (debug_msg recv "scanpat_srcpatcomposite start recv")
-  (debug_msg ctyp "scanpat_srcpatcomposite start ctyp")
+  (debug "scanpat_srcpatcomposite start recv=" recv " ctyp=" ctyp)
   (assert_msg "check ctyp" (is_a ctyp class_ctype))
   (assert_msg "check recv" (is_a recv class_source_pattern_composite))
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (soper (let ((sop (unsafe_get_field :spac_operator recv)))
-		  (debug_msg sop "scanpat_srcpatcomposite soper")
+		  (debug "scanpat_srcpatcomposite soper" sop)
 		  (assert_msg "check soper" (is_a sop class_any_matcher))
 		  sop))
 	 (sins (unsafe_get_field :spac_inargs recv)) 
 	 (souts (unsafe_get_field :spac_outargs recv)) 
 	 (matmb (let ( (mb (unsafe_get_field :amatch_matchbind soper)) )
-		  (debug_msg mb "scanpat_srcpatcomposite matmb")
+		  (debug "scanpat_srcpatcomposite matmb" mb)
 		  (assert_msg "check matmb" (is_a mb class_formal_binding))
 		  mb))
 	 (matin (unsafe_get_field :amatch_in soper))
@@ -276,38 +275,35 @@ scanning variables.}#
 	 (bindlist (unsafe_get_field :pctn_bindlist pcn))
 	 )
     (assert_msg "check matctyp" (is_a matctyp class_ctype))
-    (debug_msg matout "scanpat_srcpatcomposite matout")
+    (debug "scanpat_srcpatcomposite matout" matout)
     (cond ((!= ctyp matctyp)
 	   (error_strv sloc "invalid ctype in composite pattern - expecting"
 		       (unsafe_get_field :named_name matctyp))
 	   (warning_strv sloc "got ctype"
 			 (unsafe_get_field :named_name ctyp))
-	   (debug_msg ctyp "scanpat_srcpatcomposite mismatched ctyp")
-	   (debug_msg matctyp "scanpat_srcpatcomposite mismatched matctyp")
-	   (debug_msg recv "scanpat_srcpatcomposite mismatched recv")
+	   (debug "scanpat_srcpatcomposite mismatched ctyp=" ctyp
+		  " matctyp=" matctyp " mismatched recv=" recv)
 	   ;;
 	   (return)))
     (multicall 
      (nins bindins)
      (normalize_tuple sins env ncx sloc)
-     (debug_msg nins "scanpat_srcpatcomposite nins")
+     (debug "scanpat_srcpatcomposite nins" nins)
      (if bindins (list_append2list bindlist bindins))
-     (debug_msg souts "scanpat_srcpatcomposite souts")
-     (debug_msg matout "scanpat_srcpatcomposite matout")
+     (debug "scanpat_srcpatcomposite souts=" souts " matout=" matout)
      (foreach_in_multiple
       (souts)
       (pout :long ix)
-      (debug_msg pout "scanpat_srcpatcomposite before scan_pattern pout")
+      (debug "scanpat_srcpatcomposite before scan_pattern pout" pout)
       (let ( (curobind (multiple_nth matout ix)) 
 	     (curctype (get_field :fbind_type curobind))
 	     )
-	(debug_msg curobind "scanpat_srcpatcomposite curobind")
-	(debug_msg curctype "scanpat_srcpatcomposite curctype")
+	(debug "scanpat_srcpatcomposite curobind=" curobind " curctype=" curctype)
 	(assert_msg "check curctype" (is_a curctype class_ctype))
 	(scan_pattern pout sloc curctype pcn)
-	(debug_msg pout "scanpat_srcpatcomposite after scan_pattern pout")
+	(debug "scanpat_srcpatcomposite after scan_pattern pout" pout)
 	))
-     (debug_msg recv "scanpat_srcpatcomposite end recv")
+     (debug "scanpat_srcpatcomposite end recv" recv)
      )))
 (install_method class_source_pattern_composite scan_pattern scanpat_srcpatcomposite)
 
@@ -317,10 +313,10 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning or pattern
 (defun scanpat_srcpator (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpator recv")
+  (debug "scanpat_srcpator recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_or))
-  (debug_msg pcn "scanpat_srcpator pcn start")
+  (debug "scanpat_srcpator pcn start" pcn)
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (sdisj (unsafe_get_field :orpat_disj recv))
 	 (pvarmap (unsafe_get_field :pctn_mapatvar pcn))
@@ -329,7 +325,7 @@ scanning variables.}#
 	 (varhdlerlist (unsafe_get_field :pctn_varhandlers pcn))
 	 (ownvarhandler
 	  (lambda (mvar mypcn pvar)
-	    (debug_msg mvar "scanpat_srcpator.ownvarhandler mvar")
+	    (debug "scanpat_srcpator.ownvarhandler mvar" mvar)
 	    (assert_msg "check mvar" (is_a mvar class_source_pattern_variable))
 	    (assert_msg "check mypcn" (== mypcn pcn))
 	    (let ( (msymb (unsafe_get_field :spatvar_symb mvar)) )
@@ -346,13 +342,13 @@ scanning variables.}#
 	     (mapobject_put inimap cursym curpatvar))
 	    inimap))
 	 )
-    (debug_msg sdisj "scanpat_srcpator sdisj")
+    (debug "scanpat_srcpator sdisj" sdisj)
     (assert_msg "check sdisj" (is_multiple sdisj))
     (list_prepend varhdlerlist ownvarhandler)
     (foreach_in_multiple
      (sdisj)
      (dis :long ix)
-     (debug_msg dis "scanpat_srcpator dis")
+     (debug "scanpat_srcpator dis" dis)
      (scan_pattern dis sloc ctyp pcn)
      )
     (let ( (:long incrpvarmap 
@@ -377,11 +373,10 @@ scanning variables.}#
        (if (null (mapobject_get inipvarmap cursym))
 	   (mapobject_put orvarmap cursym curpatvar))
        )
-      (debug_msg orvarmap "scanpat_srcpator orvarmap")
+      (debug "scanpat_srcpator orvarmap" orvarmap)
       (mapobject_put pmapor recv orvarmap)
       )
-    (debug_msg pcn "scanpat_srcpator pcn end")
-    (debug_msg recv "scanpat_srcpator recv end")
+    (debug "scanpat_srcpator end pcn=" pcn " recv=" recv)
     ))
 (install_method class_source_pattern_or scan_pattern scanpat_srcpator)
 
@@ -392,7 +387,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;; scanning and pattern
 (defun scanpat_srcpatand (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatand recv")
+  (debug "scanpat_srcpatand recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (let ( (sloc (unsafe_get_field :loca_location recv))
@@ -404,7 +399,7 @@ scanning variables.}#
      (dis :long ix)
      (scan_pattern dis sloc ctyp pcn)
      )
-    (debug_msg recv "scanpat_srcpatand end recv")
+    (debug "scanpat_srcpatand end recv" recv)
     ))
 (install_method class_source_pattern_and scan_pattern scanpat_srcpatand)
 
@@ -535,8 +530,7 @@ scanning variables.}#
 
 ;;;;;; utility function to register a new normtester
 (defun register_new_normtester (ntest pcn)
-  (debug_msg ntest "register_new_normtester ntest")
-  (debug_msg pcn "register_new_normtester pcn")
+  (debug "register_new_normtester ntest=" ntest " pcn=" pcn)
   (assert_msg "check ntest" (is_a ntest class_normtester_any))
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (nmatched (unsafe_get_field :ntest_matched ntest))
@@ -556,7 +550,7 @@ scanning variables.}#
 	  )
       (assert_msg "check ntlist" (is_list ntlist))
       (list_append ntlist ntest)
-      (debug_msg stuffmap "register_new_normtester updated stuffmap")
+      (debug "register_new_normtester updated stuffmap" stuffmap)
       (return)
       )))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -566,8 +560,7 @@ scanning variables.}#
 ;; utility to set the then of a last test; also handle the case of
 ;; disjunctions by propagating into them
 (defun put_tester_then (curtester thentester)
-  (debug_msg curtester "put_tester_then curtester")
-  (debug_msg thentester "put_tester_then thentester")
+  (debug "put_tester_then curtester=" curtester " thentester=" thentester)
   (assert_msg "check curtester" (is_a curtester class_normtester_any))
   (assert_msg "check thentester" (is_a thentester class_normtester_any))
   (assert_msg "check curtester has no then" 
@@ -581,41 +574,40 @@ scanning variables.}#
   ;;; propagate into disjunctions
   (if (is_a curtester class_normtester_disjunction)
       (let ( (curdisjtuple (unsafe_get_field :ntdisjuncts curtester)) )
-	(debug_msg curdisjtuple "put_tester_then curdisjtuple")
+	(debug "put_tester_then curdisjtuple" curdisjtuple)
 	(foreach_in_multiple 
 	 (curdisjtuple)
 	 (curdisj :long disjix)
-	 (debug_msg curdisj "put_tester_then curdisj")
+	 (debug "put_tester_then curdisj=" curdisj)
 	 (let ( (curcont (instance class_container :container_value curdisj)) )
-	 (debug_msg curcont "put_tester_then curcont start")
+	 (debug "put_tester_then curcont start=" curcont)
 	 (set_new_tester_last_then thentester curcont)
-	 (debug_msg curcont "put_tester_then curcont done")
+	 (debug "put_tester_then curcont done" curcont)
 	 ))
       ))
-  (debug_msg curtester "put_tester_then curtester done")
+  (debug "put_tester_then curtester done" curtester)
 )
 
 ;; utility to set the newtester to the last of a ntest_then linked list
 (defun set_new_tester_last_then (newtester testercont)
-  (debug_msg newtester "set_new_tester_last_then newtester")
-  (debug_msg testercont "set_new_tester_last_then testercont")
+  (debug "set_new_tester_last_then newtester=" newtester " testercont=" testercont)
   (shortbacktrace_dbg "set_new_tester_last_then start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check testercont" (is_a testercont class_container))
   (let ( (curtester (get_field :container_value testercont)) )
     (forever 
      lastesterloop
-     (debug_msg curtester "set_new_tester_last_then loop curtester")
+     (debug "set_new_tester_last_then loop curtester" curtester)
      ;; indeed a safe get_field to handle the nil case!
      (let ( (nextester (get_field :ntest_then curtester)) )
        (if (is_a nextester class_normtester_any)
 	   (setq curtester nextester)
 	 (exit lastesterloop))))
-    (debug_msg curtester "set_new_tester_last_then final curtester")
+    (debug "set_new_tester_last_then final curtester" curtester)
     (assert_msg "check curtester set_new_tester_last_then" curtester)
     (put_fields testercont :container_value curtester)
     (put_tester_then curtester newtester)
-    (debug_msg testercont "set_new_tester_last_then end testercont")
+    (debug "set_new_tester_last_then end testercont" testercont)
     ))
 
 
@@ -623,8 +615,8 @@ scanning variables.}#
 ;; of a given partester return the list of updated testers, ie the
 ;; updatlist - which should be null initially
 (defun set_new_tester_all_elses (newtester partester updatlist)
-  (debug_msg newtester "set_new_tester_all_elses newtester")
-  (debug_msg partester "set_new_tester_all_elses partester")
+  (debug "set_new_tester_all_elses newtester" newtester)
+  (debug "set_new_tester_all_elses partester" partester)
   (shortbacktrace_dbg "set_new_tester_all_elses start" 15)
   (assert_msg "check newtester" (is_a newtester class_normtester_any))
   (assert_msg "check partester" (is_a partester class_normtester_any))
@@ -633,7 +625,7 @@ scanning variables.}#
   (assert_msg "check updatlist" (is_list updatlist))
   (forever
    allelseloop
-   (debug_msg partester "set_new_tester_all_elses allelseloop partester")
+   (debug "set_new_tester_all_elses allelseloop partester" partester)
    (cond
     ((null partester) 
      (exit allelseloop))
@@ -644,7 +636,7 @@ scanning variables.}#
        (cond
 	((null eltest)
 	 (put_fields partester :ntest_else newtester)
-	 (debug_msg partester "set_new_tester_all_elses updated partester")
+	 (debug "set_new_tester_all_elses updated partester" partester)
 	 (list_append updatlist partester)
 	 )
 	(:else
@@ -667,15 +659,15 @@ scanning variables.}#
 	  (if (== curtest newtester)
 	      (exit allelseloop))
 	  )
-	 (debug_msg thtest "set_new_tester_all_elses before recursion")
+	 (debug "set_new_tester_all_elses before recursion" thtest)
 	 (set_new_tester_all_elses newtester thtest updatlist)
-	 (debug_msg thtest "set_new_tester_all_elses after recursion")
+	 (debug "set_new_tester_all_elses after recursion" thtest)
 	 )))
      )
     (:else
      (exit allelseloop)))
    ) ;;;; end forever allelseloop
-  (debug_msg updatlist "set_new_tester_all_elses return updatlist")
+  (debug "set_new_tester_all_elses return updatlist" updatlist)
   (return updatlist)
   )
   
@@ -687,7 +679,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for normpat any receiver (by failing)
 (defun normpat_anyrecv (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_anyrecv recv")
+  (debug "normpat_anyrecv recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) 
@@ -703,7 +695,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for normpat any pattern (by failing)
 (defun normpat_anypat (recv nmatch hdler  pcn)
-  (debug_msg recv "normpat_anyrecv recv")
+  (debug "normpat_anyrecv recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern))
   (let ( (myclass (discrim recv))
@@ -730,7 +722,7 @@ scanning variables.}#
 	)
     (forever 
      loopstuff
-     (debug_msg tstuff "normvarpat_genreusetest tstuff")
+     (debug "normvarpat_genreusetest tstuff" tstuff)
      (cond 
       ( (== (get_field :ntsame_identical tstuff) lococc)
 	(setq tester tstuff)
@@ -742,7 +734,7 @@ scanning variables.}#
 	      (lambda (tester)
 		(shortbacktrace_dbg "normvarpat_genreusetest lambda curhdler" 15)
 		(put_fields tstuff :ntest_else tester)
-		(debug_msg tstuff "normvarpat_genreusetest lambda curhdler updatelse of tstuff")
+		(debug "normvarpat_genreusetest lambda curhdler updatelse of tstuff" tstuff)
 		(list_append (get_field :ntest_comefrom tester) tstuff)
 		))
 	)
@@ -758,7 +750,7 @@ scanning variables.}#
 	      )
 	 (shortbacktrace_dbg "normvarpat_genreusetest making same newtester" 15)
 	 (register_new_normtester newtester pcn)
-	 (debug_msg newtester "normvarpat_genreusetest newtester same")
+	 (debug "normvarpat_genreusetest newtester same" newtester)
 	 (setq tester newtester)
 	 (list_append testlist newtester)
 	 (curhdler newtester)
@@ -774,8 +766,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; normalize variable pattern
 (defun normpat_variablepat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_variablepat recv")
-  (debug_msg nmatch "normpat_variablepat nmatch")
+  (debug "normpat_variablepat recv=" recv " nmatch=" nmatch)
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (shortbacktrace_dbg "normpat_variablepat begin" 15) 
@@ -790,27 +781,25 @@ scanning variables.}#
 	 (ncx (get_field :pctn_normctxt pcn))
 	 (testlist (get_field :pctn_tests pcn))
 	 )
-    (debug_msg tstuff "normpat_variablepat tstuff")
-    (debug_msg lococc "normpat_variablepat lococc")
-    (debug_msg patvar "normpat_variablepat patvar")
+    (debug "normpat_variablepat tstuff=" tstuff " lococc=" lococc " patvar=" patvar)
     (compile_warning "we need to generate the clear of all or-variables")
     (cond 
      ( (is_a lococc class_nrep_locsymocc)
        ;; patvar already bound, generate or reuse a same test
-       (debug_msg lococc "normpat_variablepat alreadybound lococc")
+       (debug "normpat_variablepat alreadybound lococc" lococc)
        (normvarpat_genreusetest sloc nmatch lococc testlist tstuff hdler pcn)
        )
      ;; process specially or variables
      ((is_a lococc class_normal_or_variable)
-      (debug_msg lococc "normpat_variablepat lococc orvariable")
+      (debug "normpat_variablepat lococc orvariable" lococc)
       (compile_warning "normpat_variablepat unhandled orvariable")
       (let ( (realococc (unsafe_get_field :norvar_locsym lococc)) 
 	     (npatvar (unsafe_get_field :norvar_patvar lococc))
 	     (patsym (get_field :spatvar_symb npatvar))
 	     )
-	(debug_msg npatvar "normpat_variablepat orvariable npatvar")
+	(debug "normpat_variablepat orvariable npatvar" npatvar)
 	(assert_msg "check patsym == patvar" (== patsym patvar))
-	(debug_msg realococc "normpat_variablepat orvariable realococc")
+	(debug "normpat_variablepat orvariable realococc" realococc)
 	(cond ( (null realococc)
 		;; the or-variable was not bound at all
 		(let ( 
@@ -827,23 +816,23 @@ scanning variables.}#
 				       :nocc_symb patsym
 				       :nocc_bind cbind))
 		      )
-		  (debug_msg clocc "normpat_variablepat fresh orvariable clocc")
+		  (debug "normpat_variablepat fresh orvariable clocc" clocc)
 		  (put_fields lococc 
 			      :norvar_locsym clocc
 			      :norvar_norexp nmatch)
-		  (debug_msg lococc "normpat_variablepat updated fresh orvariable lococc")
+		  (debug "normpat_variablepat updated fresh orvariable lococc" lococc)
 		  (shortbacktrace_dbg "normpat_variablepat updated fresh orvar" 15)
 		  ;; put the clocc in the symbol cache map
 		  (mapobject_put (get_field :nctx_symbcachemap ncx) patvar clocc)
 		  (mapobject_put pvarlocmap patvar clocc)
-		  (debug_msg pvarlocmap "normpat_variablepat updated fresh orvariable pvarlocmap")
+		  (debug "normpat_variablepat updated fresh orvariable pvarlocmap" pvarlocmap)
 		  )
 		)
 	      ;;
 	      ;; the or-variable was already bound within the same
 	      ;; disjunct, so generate or reuse a same test
 	      ( (is_a realococc class_nrep_locsymocc)
-		(debug_msg realococc "normpat_variablepat bound orvariable realococccc")
+		(debug "normpat_variablepat bound orvariable realococccc" realococc)
 		(normvarpat_genreusetest sloc nmatch realococc testlist tstuff hdler pcn)
 		)
 	      ;; the or-variable was already bound in a previous
@@ -853,7 +842,7 @@ scanning variables.}#
 		      (ctyp (get_ctype nmatch env))
 		      (bxclocc (content realococc))
 		      )
-		  (debug_msg bxclocc "normpat_variablepat bxclocc")
+		  (debug "normpat_variablepat bxclocc" bxclocc)
 		  (assert_msg "check bxclocc" (is_a bxclocc class_nrep_locsymocc))
 		  ;; check ctype compatibility with former occurence
 		  (let (
@@ -872,7 +861,7 @@ scanning variables.}#
 		  (put_fields lococc 
 			      :norvar_locsym bxclocc
 			      :norvar_norexp nmatch)
-		  (debug_msg lococc "normpat_variablepat updated reusing orvariable lococc")
+		  (debug "normpat_variablepat updated reusing orvariable lococc" lococc)
 		  (shortbacktrace_dbg "normpat_variablepat updated reused orvar" 15)
 		))
 	      ;; unexpected case
@@ -897,15 +886,13 @@ scanning variables.}#
 			      :nocc_symb patvar
 			      :nocc_bind cbind))
 	     )
-	(debug_msg ctyp "normpat_variablepat ctyp")
-	(debug_msg clocc "normpat_variablepat new clocc")
+	(debug "normpat_variablepat ctyp=" ctyp " clocc=" clocc)
 	(shortbacktrace_dbg "normpat_variablepat:: new clocc" 12)
 	;; put the clocc in the symbol cache map
 	(mapobject_put (get_field :nctx_symbcachemap ncx) patvar clocc)
 	(mapobject_put pvarlocmap patvar clocc)
-	(debug_msg patvar "normpat_variablepat updated patvar")
-	(debug_msg clocc "normpat_variablepat updated clocc")
-	(debug_msg pvarlocmap "normpat_variablepat updated pvarlocmap")
+	(debug "normpat_variablepat updated patvar=" patvar " clocc=" clocc
+	       " pvarlocmap=" pvarlocmap)
 	)
       )
      (:else
@@ -923,8 +910,7 @@ scanning variables.}#
 
 ;;; normalize joker pattern
 (defun normpat_jokerpat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_jokerpat recv")
-  (debug_msg nmatch "normpat_jokerpat nmatch")
+  (debug "normpat_jokerpat recv=" recv" nmatch=" nmatch)
   (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   ;; we need nothing more, a joker pattern is essentially a black hole..
@@ -938,8 +924,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; normalize instance pattern
 (defun normpat_instancepat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_instancepat recv start")
-  (debug_msg nmatch "normpat_instancepat nmatch")
+  (debug "normpat_instancepat start recv=" recv " nmatch=" nmatch)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_instance))
   (let ( (psloc (get_field :loca_location (get_field :pctn_src pcn)))
@@ -962,7 +947,7 @@ scanning variables.}#
     ;; find the tester in the stuff
     (forever
      loopstuff
-     (debug_msg tstuff "normpat_instancepat loop tstuff")
+     (debug "normpat_instancepat loop tstuff" tstuff)
      ;; check if tstuff is a class_normtester_instance with good :ntinst_class
      (cond
       ( (== (get_field :ntinst_class tstuff) patcla)
@@ -975,7 +960,7 @@ scanning variables.}#
 	     (lambda (tester)
 	       (shortbacktrace_dbg "normpat_instancepat lambda" 15)
 	       (put_fields tstuff :ntest_else tester)
-	       (debug_msg tstuff "normpat_instancepat lambda updatelse of tstuff")
+	       (debug "normpat_instancepat lambda updatelse of tstuff" tstuff)
 	       (list_append (get_field :ntest_comefrom tester) tstuff)
 	       ))
        )
@@ -998,32 +983,29 @@ scanning variables.}#
 			:ntinst_fieldlocs newfieldlocs
 			))
 	     )
-	 (debug_msg newtester "normpat_instancepat newtester")
+	 (debug "normpat_instancepat newtester" newtester)
 	 (register_new_normtester newtester pcn)
 	 (setq tester newtester)
 	 (list_append testlist newtester)
-	 (debug_msg curhdler "normpat_instancepat before calling curhdler")
+	 (debug "normpat_instancepat before calling curhdler" curhdler)
 	 (curhdler tester)
-	 (debug_msg curhdler "normpat_instancepat after calling curhdler")
+	 (debug "normpat_instancepat after calling curhdler" curhdler)
 	 (exit loopstuff)
 	 )
        ))
      )
-    (debug_msg tester "normpat_instancepat tester")
-    (debug_msg recv "normpat_instancepat recv after tester")
-    (debug_msg patcla "normpat_instancepat patcla")
+    (debug "normpat_instancepat tester=" tester "recv=" recv " patcla=" patcla)
     (let ( (testloccl (get_field :ntest_locclist tester)) 
 	   (testercont (instance class_container
 				 :container_value tester
 				 ))
 	   )
-      (debug_msg testercont "normpat_instancepat testercont before loop")
+      (debug "normpat_instancepat testercont before loop" testercont)
       (assert_msg "check testbindl" (is_list testloccl))
       (foreach_in_multiple
        (patfields)
        (curpatf :long patix)
-       (debug_msg curpatf "normpat_instancepat curpatf in loop")
-       (debug_msg testercont "normpat_instancepat testercont in loop")
+       (debug "normpat_instancepat  in loop curpatf=" curpatf " testercont=" testercont)
        (assert_msg "check curpatf" (is_a curpatf class_source_field_pattern))
        (let ( (floc (get_field :loca_location curpatf))
 	      (curfld (get_field :spaf_field curpatf))
@@ -1031,25 +1013,25 @@ scanning variables.}#
 	      (curfldcla (get_field :fld_ownclass curfld))
 	      (subhdler 
 	       (lambda (newsubtester)
-		 (debug_msg newsubtester "normpat_instancepat.subhdler newsubtester")
-		 (debug_msg testercont "normpat_instancepat.subhdler testercont")
+		 (debug "normpat_instancepat.subhdler newsubtester=" newsubtester
+			"testercont=" testercont)
 		 (shortbacktrace_dbg "normpat_instancepat.subhdler" 16)
 		 (let ( (prevtester (get_field :container_value testercont)) )
-		   (debug_msg prevtester "normpat_instancepat.subhdler prevtester")
+		   (debug "normpat_instancepat.subhdler prevtester" prevtester)
 		   (assert_msg "check prevtester" (is_a prevtester class_normtester_anytester))
 		   (set_new_tester_last_then newsubtester testercont)
 		   )
-		 (debug_msg newsubtester "normpat_instancepat.subhdler end newsubtester")
+		 (debug "normpat_instancepat.subhdler end newsubtester" newsubtester)
 		 ))
 	      )
-	 (debug_msg curfld "normpat_instancepat curfld")
+	 (debug "normpat_instancepat curfld" curfld)
 	 (cond  ( (== curfldcla patcla) ())
 		( (subclass_of patcla curfldcla) ())
 		(:else (error_strv floc "bad field in instance pattern" (get_field :named_name curfld))))
-	 (debug_msg cursubpat "normpat_instancepat before normal_pattern cursubpat")
+	 (debug "normpat_instancepat before normal_pattern cursubpat" cursubpat)
 	 (let ( (curloccl ())
 		)
-	   (debug_msg testloccl "normpat_instancepat scanning testloccl")
+	   (debug "normpat_instancepat scanning testloccl" testloccl)
 	   ;; try to find an existing local occurrence for the field
 	   (foreach_in_list 
 	    (testloccl)
@@ -1061,7 +1043,7 @@ scanning variables.}#
 		  (setq testpair ())	;to exist from foreach
 		  (setq curloccl testlocsy)))
 	    )
-	   (debug_msg curloccl "normpat_instancepat got curloccl")
+	   (debug "normpat_instancepat got curloccl" curloccl)
 	   ;; if no local occurrence found, add a new one
 	   (if (null curloccl)
 	       (let ( 
@@ -1088,20 +1070,20 @@ scanning variables.}#
 		  newlocc)
 		 ;; put the newlocc in the symbol cache map
 		 (mapobject_put (get_field :nctx_symbcachemap ncx) newsym newlocc)
-		 (debug_msg tester "normpat_instancepat updated fieldlocs tester")
+		 (debug "normpat_instancepat updated fieldlocs tester" tester)
 		 (list_append testloccl newlocc)
-		 (debug_msg newlocc "normpat_instancepat made newlocc")
+		 (debug "normpat_instancepat made newlocc" newlocc)
 		 (setq curloccl newlocc)
 		 ))
-	   (debug_msg cursubpat "normpat_instancepat before normal_pattern cursubpat")
+	   (debug "normpat_instancepat before normal_pattern cursubpat" cursubpat)
 	   (normal_pattern cursubpat curloccl subhdler pcn)
-	   (debug_msg cursubpat "normpat_instancepat after normal_pattern cursubpat")
-	   (debug_msg curpatf "normpat_instancepat did curpatf")
+	   (debug "normpat_instancepat after normal_pattern cursubpat=" cursubpat 
+		  " curpatf=" curpatf)
 	   )
 	 )))
-    (debug_msg tester "normpat_instancepat final tester")
+    (debug "normpat_instancepat final tester" tester)
     )
-  (debug_msg recv "normpat_instancepat recv end")
+  (debug "normpat_instancepat recv end" recv)
   )
 (install_method class_source_pattern_instance normal_pattern normpat_instancepat)
 
@@ -1112,9 +1094,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; normalize a conjunction [and of subpatterns]
 (defun normpat_andpat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_andpat recv")
-  (debug_msg nmatch "normpat_andpat nmatch")
-  (debug_msg pcn "normpat_andpat pcn")
+  (debug "normpat_andpat recv=" recv "nmatch=" nmatch " pcn=" pcn)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
   (let (
@@ -1123,33 +1103,33 @@ scanning variables.}#
 	(testercont (instance class_container))
 	(subhdler
 	 (lambda (newtester) 
-	   (debug_msg newtester "normpat_andpat.subhdler newtester")
-	   (debug_msg testercont "normpat_andpat.subhdler testercont")
+	   (debug "normpat_andpat.subhdler newtester=" newtester
+		  " testercont=" testercont)
 	   (let ( (prevtester (get_field :container_value testercont)) )
 	     (cond
 	      ((is_a prevtester class_normtester_any)
-	       (debug_msg prevtester "normpat_andpat.subhdler prevtester")
+	       (debug "normpat_andpat.subhdler prevtester" prevtester)
 	       (set_new_tester_last_then newtester testercont)
 	       )
 	      (:else
-	       (debug_msg newtester "normpat_andpat.subhdler before calling hdler")
+	       (debug "normpat_andpat.subhdler before calling hdler" newtester)
 	       (hdler newtester)
 	       (put_fields testercont :container_value newtester)
-	       (debug_msg newtester "normpat_andpat.subhdler after calling hdler")
+	       (debug "normpat_andpat.subhdler after calling hdler" newtester)
 	       ))
-	     (debug_msg testercont "normpat_andpat.subhdler done testercont")
+	     (debug "normpat_andpat.subhdler done testercont" testercont)
 	     )))
 	)
     (foreach_in_multiple 
      (conjpats)
      (subpat :long subix)
-     (debug_msg testercont "normpat_andpat testercont")
-     (debug_msg subpat "normpat_andpat subpat before normal_pattern")
+     (debug "normpat_andpat  before normal_pattern testercont=" testercont 
+	    " subpat=" subpat)
      (normal_pattern subpat nmatch subhdler pcn)
-     (debug_msg subpat "normpat_andpat subpat after normal_pattern")
-     (debug_msg testercont "normpat_andpat subpat testercont")
+     (debug "normpat_andpat after normal_pattern subpat=" subpat
+	    " testercont=" testercont)
      )
-    (debug_msg recv "normpat_andpat recv end")
+    (debug "normpat_andpat recv end" recv)
     ))
 (install_method class_source_pattern_and normal_pattern normpat_andpat)
 
@@ -1163,10 +1143,8 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun normpat_orpat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_orpat recv")
+  (debug "normpat_orpat recv=" recv " nmatch=" nmatch " pcn=" pcn)
   (shortbacktrace_dbg "normpat_orpat called" 16)
-  (debug_msg nmatch "normpat_orpat nmatch")
-  (debug_msg pcn "normpat_orpat pcn")
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_or))
   (let (
@@ -1206,29 +1184,26 @@ scanning variables.}#
 	      (assert_msg "check curvarpat"
 			  (is_a curvarpat class_source_pattern_variable))
 	      (put_int curorvar orix)
-	      (debug_msg curorvar "normpat_orpat/sortlambda curorvar")
-	      (debug_msg curvarpat "normpat_orpat/sortlambda curvarpat")
-	      (debug_msg orsymb "normpat_orpat/sortlambda orsymb")
+	      (debug "normpat_orpat/sortlambda curorvar=" curorvar 
+		     " curvarpat=" curvarpat " orsymb=" orsymb)
 	      (mapobject_put pvarlocmap orsymb curorvar)
-	      (debug_msg pvarlocmap "normpat_orpat/sortlambda updated pvarlocmap")
+	      (debug "normpat_orpat/sortlambda updated pvarlocmap" pvarlocmap)
 	      (return curorvar)
 	      ))
 	  ))
 	(prevcont (instance class_container
 			    :container_value disjtester))
 	)
-    (debug_msg stuffmap "normpat_orpat orig stuffmap")
-    (debug_msg pvarlocmap "normpat_orpat orig pvarlocmap")
-    (debug_msg orvarmap "normpat_orpat orvarmap")
+    (debug "normpat_orpat orig stuffmap=" stuffmap " pvarlocmap=" pvarlocmap
+	   " orvarmap=" orvarmap)
     (assert_msg "check orvarmap" (is_mapobject orvarmap))
-    (debug_msg sortedorsymbs "normpat_orpat sortedorsymbs")
-    (debug_msg sortorvars "normpat_orpat sortorvars")
+    (debug "normpat_orpat sortedorsymbs=" sortedorsymbs " sortorvars=" sortorvars
+	   " disjtester=" disjtester)
     ;; first register and handle the empty disjtester
-    (debug_msg disjtester "normpat_orpat disjtester")
     (register_new_normtester disjtester pcn)
     (hdler disjtester)
     (list_append testlist disjtester)
-    (debug_msg disjtester "normpat_orpat handled disjtester")
+    (debug "normpat_orpat handled disjtester" disjtester)
 ;;;;;;;;;;;;;;;;
 ;;;; foreach disjunctive subpattern
     (foreach_in_multiple
@@ -1260,43 +1235,41 @@ scanning variables.}#
 	     )
 ;;;;;;;;;;;;;;;;
 	 ;; normalize the current disjunct
-	 (debug_msg curdisj "normpat_orpat curdisj before normalization")
+	 (debug "normpat_orpat curdisj before normalization" curdisj)
 	 ;; add the norclear
 	 (let (
 	       (prevtest (get_field :container_value prevcont))
 	       (prevloc (get_field :nrep_loc prevtest))
 	       )
-	   (debug_msg prevtest "normpat_orpat prevtest")
-	   (debug_msg norclear "normpat_orpat norclear")
+	   (debug "normpat_orpat prevtest=" prevtest " norclear=" norclear)
 	   (list_append testlist norclear)
-	   (debug_msg norclear "normpat_orclear setallelses norclear")
-	   (debug_msg prevtest "normpat_orclear setallelses prevtest")
+	   (debug "normpat_orclear setallelses norclear=" norclear " prevtest=" prevtest)
 	   (set_new_tester_all_elses norclear prevtest)
 	   (put_fields prevcont :container_value norclear)
-	   (debug_msg prevcont "normpat_orpat prevcont with norclear")
+	   (debug "normpat_orpat prevcont with norclear" prevcont)
 	   ;;
 	   (let (
 		 (subdisjcont (container ()))
 		 (subdisjhandler 
 		  (lambda (subtester)
-		    (debug_msg subtester "normpat_orpat.lambda subtester")
+		    (debug "normpat_orpat.lambda subtester" subtester)
 		    (set_content subdisjcont subtester)
 		    (let (
 			  (prevtestsub (unsafe_get_field :container_value prevcont))
 			  )
 		      (list_append subtestlist subtester)
-		      (debug_msg subtester "normpat_orpat.lambda setlastthen subtester")
-		      (debug_msg prevcont "normpat_orpat.lambda setlastthen subtester")
+		      (debug "normpat_orpat.lambda setlastthen subtester=" subtester
+			     " prevcont=" prevcont)
 		      (set_new_tester_last_then subtester prevcont)
-		      (debug_msg subtester "normpat_orpat.lambda done subtester")
+		      (debug "normpat_orpat.lambda done subtester" subtester)
 		      (put_fields prevcont :container_value subtester)
-		      (debug_msg prevcont "normpat_orpat prevcont with subtester")
+		      (debug "normpat_orpat prevcont with subtester" prevcont)
 		      ))
 		  )
 		 )
 	     (normal_pattern curdisj nmatch 
 			     subdisjhandler pcn)       
-	     (debug_msg curdisj "normpat_orpat curdisj after normalization")
+	     (debug "normpat_orpat curdisj after normalization" curdisj)
 	     (let (
 		   (lastdisj (content subdisjcont))
 		   (prevtestrans (unsafe_get_field :container_value prevcont))
@@ -1310,10 +1283,9 @@ scanning variables.}#
 					:ntortransmit_src ()
 					))
 		   )
-	       (debug_msg prevtestrans "normpat_orpat prevtestrans")
+	       (debug "normpat_orpat prevtestrans" prevtestrans)
 	       (list_append testlist nortransm)
-	       (debug_msg nortransm "normpat_orpat setlasthen nortransm")
-	       (debug_msg prevcont "normpat_orpat setlasthen prevcont")
+	       (debug "normpat_orpat setlasthen nortransm=" nortransm" prevcont=" prevcont)
 	       (set_new_tester_last_then nortransm prevcont)
 	       ;; if no proper disjunct test was generated, add the
 	       ;; ortransmit to the list of tests, so that distributing
@@ -1323,13 +1295,13 @@ scanning variables.}#
 	       )
 	     )
 	   )
-	 (debug_msg curdisj "normpat_orpat done curdisj")
+	 (debug "normpat_orpat done curdisj" curdisj)
 	 )
        )
      )
     ;;
-    (debug_msg pvarlocmap "normpat_orpat pvarlocmap before freshorvar")
-    (debug_msg subtestlist "normpat_orpat final subtestlist")
+    (debug "normpat_orpat pvarlocmap before freshorvar" pvarlocmap)
+    (debug "normpat_orpat final subtestlist" subtestlist)
     (let ( (freshorvar
 	    (multiple_map
 	     sortorvars
@@ -1342,22 +1314,21 @@ scanning variables.}#
 		 (if (is_a orlocsy class_container)
 		     (setq orlocsy (content orlocsy)))
 		 ;; the pvarlocmap should already have orsymb bound to orlocsy
-		 (debug_msg orsymb "normpat_orpat/finalambda orsymb")
-		 (debug_msg orlocsy "normpat_orpat/finalambda orlocsy")
+		 (debug "normpat_orpat/finalambda orsymb=" orsymb " orlocsy=" orlocsy)
 		 (return orlocsy))
 	       ))
 	    )
 	   )
-      (debug_msg freshorvar "normpat_orpat final freshorvar")
+      (debug "normpat_orpat final freshorvar" freshorvar)
       (put_fields disjtester 
 		  :ntdisjuncts (list_to_multiple subtestlist discr_multiple)
 		  :ntdisj_freshorvar freshorvar
 		  )
-      (debug_msg disjtester "normpat_orpat final disjtester")
+      (debug "normpat_orpat final disjtester" disjtester)
       )
     ;;
     (compile_warning "@$@unimplemented normpat_orpat")
-    (debug_msg recv "enf normpat_orpat recv")
+    (debug "enf normpat_orpat recv" recv)
     ))
 
 (install_method class_source_pattern_or normal_pattern normpat_orpat)
@@ -1368,9 +1339,8 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;; normalize anymatcher pattern
 (defun normpat_anymatchpat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_anymatchpat recv")
-  (debug_msg nmatch "normpat_anymatchpat nmatch")
-  (debug_msg pcn "normpat_anymatchpat pcn")
+  (debug "normpat_anymatchpat recv=" recv
+	 " nmatch=" nmatch " pcn=" pcn)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_matcher))
   (shortbacktrace_dbg "normpat_anymatchpat start" 14)
@@ -1390,12 +1360,11 @@ scanning variables.}#
 	)
     (assert_msg "check mat" (is_a mat class_any_matcher))
     (assert_msg "check matopbind" (is_a matopbind class_any_binding))
-    (debug_msg inargs "normpat_anymatchpat inargs")
-    (debug_msg mat "normpat_anymatchpat mat")
-    (debug_msg matopbind "normpat_anymatchpat matopbind")
+    (debug "normpat_anymatchpat inargs=" inargs
+	   " mat=" mat   " matopbind=" matopbind)
     (let ( 
 	  (matvar (let ( (mv (get_field :binder matopbind)) )
-		    (debug_msg mv "normpat_anymatchpat matvar")
+		    (debug "normpat_anymatchpat matvar" mv)
 		    (assert_msg "check matvar's binding"
 				(== (find_env env mv) matopbind))
 		    mv
@@ -1404,12 +1373,11 @@ scanning variables.}#
 	  ;; returns a single value
 	  (matndata (normal_exp matvar env ncx sloc))
 	  )
-      (debug_msg matndata "normpat_anymatchpat matndata")
+      (debug "normpat_anymatchpat matndata" matndata)
       (multicall
        (nins bindins)
        (normalize_tuple inargs env ncx sloc)
-       (debug_msg nins "normpat_anymatchpat nins")
-       (debug_msg bindins "normpat_anymatchpat bindins")
+       (debug "normpat_anymatchpat nins=" nins " bindins=" bindins)
        (if bindins (list_append2list bindlist bindins))
        (let (
 	     (inmatchs (get_field :amatch_in mat))
@@ -1424,8 +1392,7 @@ scanning variables.}#
 	       (error_strv sloc "unexpected matched type" (get_field :named_name matchctype))
 	       (inform_strv sloc "expecting type in matcher" (get_field :named_name (get_field :fbind_type matbind)))))
 	 ;; input args
-	 (debug_msg inargs "normpat_anymatchpat inargs")
-	 (debug_msg inmatchs "normpat_anymatchpat inmatchs")
+	 (debug "normpat_anymatchpat inargs=" inargs "inmatchs=" inmatchs)
 	 (let ( (:long nbinargs  (multiple_length inargs)) )
 	   (if (!=i nbinargs (multiple_length inmatchs))
 	       (error_strv 
@@ -1437,16 +1404,15 @@ scanning variables.}#
 		 (foreach_in_multiple
 		  (nins)
 		  (ncurin :long ix)
-		  (debug_msg ncurin "normpat_anymatchpat ncurin")
+		  (debug "normpat_anymatchpat ncurin" ncurin)
 		  (let ( (curmatch (multiple_nth inmatchs ix)) 
 			 (curctype (get_ctype ncurin env))
 			 (matchtype (get_field :fbind_type curmatch))
 			 )
-		    (debug_msg curmatch "normpat_anymatchpat curmatch")
+		    (debug "normpat_anymatchpat curmatch" curmatch)
 		    (assert_msg "check curmatch" 
 				(is_a curmatch class_formal_binding))
-		    (debug_msg curctype "normpat_anymatchpat curctype")
-		    (debug_msg matchtype "normpat_anymatchpat matchtype")
+		    (debug "normpat_anymatchpat curctype=" curctype " matchtype=" matchtype)
 		    (if (!= curctype matchtype)
 			(progn
 			  (error_strv sloc
@@ -1469,15 +1435,14 @@ scanning variables.}#
 					     :letbind_expr ncurin)
 				   )
 			     )
-			(debug_msg newb "normpat_anymatchpat newb")
+			(debug "normpat_anymatchpat newb" newb)
 			(put_env newenv newb)
 			))))
 		 (setq env newenv)
 		 (put_fields pcn :pctn_env newenv)
 		 )))
 	 ;; output args
-	 (debug_msg outargs "normpat_anymatchpat outargs")
-	 (debug_msg outmatchs "normpat_anymatchpat outmatchs")
+	 (debug "normpat_anymatchpat outargs=" outargs " outmatchs=" outmatchs)
 	 (let ( (:long nboutargs (multiple_length outargs)) ) 
 	   (if (!=i nboutargs (multiple_length outmatchs))
 	       (error_strv 
@@ -1489,7 +1454,7 @@ scanning variables.}#
 		  )
 	     (forever 
 	      loopstuff
-	      (debug_msg tstuff "normpat_anymatchpat tstuff")
+	      (debug "normpat_anymatchpat tstuff" tstuff)
 	      (cond 
 	       ((and (is_a tstuff class_normtester_matcher)
 		     (== (get_field :ntmatch_matcher tstuff) mat))
@@ -1505,7 +1470,7 @@ scanning variables.}#
 		   )
 		  (if good 
 		      (progn 
-			(debug_msg tstuff "normpat_anymatchpat good tstuff")
+			(debug "normpat_anymatchpat good tstuff" tstuff)
 			(setq tester tstuff)
 			(exit loopstuff))
 		    (progn
@@ -1514,7 +1479,7 @@ scanning variables.}#
 			    (lambda (tester)
 			      (shortbacktrace_dbg "normpat_anymatchpat lambda updating else" 15)
 			      (put_fields tstuff :ntest_else tester)
-			      (debug_msg tstuff "normpat_anymatchpat lambda updatelse of tstuff")
+			      (debug "normpat_anymatchpat lambda updatelse of tstuff" tstuff)
 			      (list_append (get_field :ntest_comefrom tester) tstuff)
 			      ))
 		      ))
@@ -1527,7 +1492,7 @@ scanning variables.}#
 		      (lambda (tester)
 			(put_fields tstuff :ntest_else tester)
 			(shortbacktrace_dbg "normpat_anymatchpat updatelse" 15)
-			(debug_msg tstuff "normpat_anymatchpat updatelse tsuff")
+			(debug "normpat_anymatchpat updatelse tsuff" tstuff)
 			(list_append (get_field :ntest_comefrom tester) tstuff)
 			))
 		)
@@ -1537,7 +1502,7 @@ scanning variables.}#
 		       (multiple_map 
 			outmatchs
 			(lambda (curoutmatch :long ix)
-			  (debug_msg curoutmatch "normpat_anymatchpat curoutmatch")
+			  (debug "normpat_anymatchpat curoutmatch" curoutmatch)
 			  (assert_msg "check curoutmatch" (is_a curoutmatch class_formal_binding))
 			  (let ( (csym (clone_symbol (get_field :binder curoutmatch)))
 				 (curtyp (get_field :fbind_type curoutmatch))
@@ -1577,7 +1542,7 @@ scanning variables.}#
 				 :ntmatch_outlocs outlocs
 				 ))
 		      )
-		  (debug_msg newtester "normpat_anymatchpat newtester")
+		  (debug "normpat_anymatchpat newtester" newtester)
 		  (register_new_normtester newtester pcn)
 		  (setq tester newtester)
 		  (list_append testlist newtester)
@@ -1588,18 +1553,17 @@ scanning variables.}#
 	       ))
 	     )
 	   )
-	 (debug_msg tester "normpat_anymatchpat got tester")
+	 (debug "normpat_anymatchpat got tester" tester)
 	 (assert_msg "check tester" (is_a tester class_normtester_matcher))
 	 ;;	
 	 (let ( (outlocs (get_field :ntmatch_outlocs tester)) )
-	   (debug_msg outlocs "normpat_anymatchpat outlocs from tester")
-	   (debug_msg outargs "normpat_anymatchpat outargs before foreach")
-	   (debug_msg outmatchs "normpat_anymatchpat outmatchs before foreach")
+	   (debug "normpat_anymatchpatfrom tester outlocs=" outlocs
+		  " outargs=" outargs  " outmatchs=" outmatchs)
 	   (foreach_in_multiple
 	    (outmatchs)
 	    (curmatch :long ixm)
 	    (messagenum_dbg "normpat_anymatchpat ixm in outmatchs" ixm)
-	    (debug_msg curmatch "normpat_anymatchpat curmatch in foreach")
+	    (debug "normpat_anymatchpat curmatch in foreach" curmatch)
 	    (let ( (clocc (multiple_nth outlocs ixm)) 
 		   (curout (multiple_nth outargs ixm))
 		   (testercont (instance class_container
@@ -1608,20 +1572,19 @@ scanning variables.}#
 		    ;; put the new tester as the last element of its
 		    ;; ntest_then chain
 		    (lambda (newtester)
-		      (debug_msg newtester "normpat_anymatchpat subhdler newtester")
+		      (debug "normpat_anymatchpat subhdler newtester" newtester)
 		      (shortbacktrace_dbg "normpat_anymatchpat subhdler" 14)
 		      (set_new_tester_last_then newtester testercont)
 		      ))
 		   )
-	      (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
-	      (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
+	      (debug "normpat_anymatchpat before normal_pattern curout=" curout " clocc=" clocc)
 	      (shortbacktrace_dbg "normpat_anymatchpat before normal_pattern curout" 14)
 	      (normal_pattern curout clocc subhdler pcn)
-	      (debug_msg curmatch "normpat_anymatchpat curout after normal_pattern")
+	      (debug "normpat_anymatchpat curout after normal_pattern" curmatch)
 	      )
 	    )
 	   )
-	 (debug_msg outbinds "normpat_anymatchpat outbinds")
+	 (debug "normpat_anymatchpat outbinds" outbinds)
 	 )
        )
       )
@@ -1635,9 +1598,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;; 
 ;;;; normalize a constant pattern
 (defun normpat_constpat (recv nmatch hdler pcn)
-  (debug_msg recv "normpat_constpat recv")
-  (debug_msg nmatch "normpat_constpat nmatch")
-  (debug_msg pcn "normpat_constpat pcn")
+  (debug "normpat_constpat recv=" recv " nmatch=" nmatch  " pcn=" pcn)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_constant))
   (let (
@@ -1653,16 +1614,16 @@ scanning variables.}#
 	(mapcst (get_field :pctn_mapatcst pcn))
 	)
 ;;; the constant has already been normalized in scanpat_srcpatconst
-    (debug_msg tstuff "normpat_constpat tstuff")
+    (debug "normpat_constpat tstuff" tstuff)
     (let (
 	  (tester ())
 	  (curhdler hdler)
 	  (nconst (if (is_object sconst) (mapobject_get mapcst sconst) sconst))
 	  )
-      (debug_msg nconst "normpat_constpat nconst")
+      (debug "normpat_constpat nconst" nconst)
       (forever 
        loopstuff
-       (debug_msg tstuff "normpat_constpat tstuff")
+       (debug "normpat_constpat tstuff" tstuff)
        (cond
 	( (== (get_field :ntsame_identical tstuff) nconst)
 	  (setq tester tstuff)
@@ -1673,7 +1634,7 @@ scanning variables.}#
 		(lambda (tester)
 		  (put_fields tstuff :ntest_else tester)
 		  (shortbacktrace_dbg "normpat_constpat lambda updatelse" 15)
-		  (debug_msg tstuff "normpat_constpat lambda updatelse tstuff")
+		  (debug "normpat_constpat lambda updatelse tstuff" tstuff)
 		  (list_append (get_field :ntest_comefrom tester) tstuff)
 		  ))
 	  )
@@ -1689,7 +1650,7 @@ scanning variables.}#
 		)
 	   (shortbacktrace_dbg "normpat_constpat making newtester same" 15)
 	   (register_new_normtester newtester pcn)
-	   (debug_msg newtester "normpat_constpat newtester same")
+	   (debug "normpat_constpat newtester same" newtester)
 	   (setq tester newtester)
 	   (list_append testlist newtester)
 	   (curhdler newtester)
@@ -1698,7 +1659,7 @@ scanning variables.}#
 	 )
 	)
        )				;end forever
-      (debug_msg tester "normpat_constpat got tester")
+      (debug "normpat_constpat got tester" tester)
       )
     )
   )
@@ -1716,11 +1677,10 @@ scanning variables.}#
   :container_value ())
 
 (defun match_graphic_optset (optsymb :cstring prefixs)
-  (debug_msg optsymb "match_graphic_optset optsumb")
+  (debug "match_graphic_optset optsumb" optsymb)
   (let ( (prefstr (make_stringconst discr_string prefixs)) )
     (put_fields match_graphic_dot_prefix :container_value prefstr)
-    (debug_msg match_graphic_dot_prefix
-	       "match_graphic_optset match_graphic_dot_prefix")
+    (debug "match_graphic_optset match_graphic_dot_prefix" match_graphic_dot_prefix)
     (return match_graphic_dot_prefix)
     ))
 
@@ -1772,7 +1732,7 @@ scanning variables.}#
 )
 
 (defun mglabel_any_test (ntest mg)
-  (debug_msg ntest "mglabel_any_test start ntest")
+  (debug "mglabel_any_test start ntest" ntest)
   (assert_msg "check ntest" (is_a ntest class_normtester_any))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (nloc (unsafe_get_field :nrep_loc ntest))
@@ -1780,8 +1740,7 @@ scanning variables.}#
 	 (nodout (unsafe_get_field :mchgx_nodout mg))
 	 (edgout (unsafe_get_field :mchgx_edgout mg))
 	 )
-    (debug_msg nloc "mglabel_any_test nloc")
-    (debug_msg nmatched "mglabel_any_test nmatched")
+    (debug "mglabel_any_test nloc=" nloc " nmatched=" nmatched)
     (assert_msg "check nodout" (is_out nodout))
     (assert_msg "check edgout" (is_out edgout))
     ;; first table row: output the node name in blue bold and the hashcode
@@ -1827,13 +1786,13 @@ scanning variables.}#
 	  (add2out_strconst nodout "</font></td> </tr>")
 	  (add2out_indentnl nodout 2)
 	  ))
-    (debug_msg ntest "mglabel_any_test end ntest")
+    (debug "mglabel_any_test end ntest" ntest)
     ))
 (install_method class_normtester_any matchgraphic_label mglabel_any_test)
 
 ;; output an instance test
 (defun mglabel_instance_test (ntest mg)
-  (debug_msg ntest "mglabel_instance_test start ntest")
+  (debug "mglabel_instance_test start ntest" ntest)
   (assert_msg "check ntest" (is_a ntest class_normtester_instance))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (nloc (unsafe_get_field :nrep_loc ntest))
@@ -1841,8 +1800,7 @@ scanning variables.}#
 	 (nodout (unsafe_get_field :mchgx_nodout mg))
 	 (edgout (unsafe_get_field :mchgx_edgout mg))
 	 )
-    (debug_msg nloc "mglabel_instance_test nloc")
-    (debug_msg nmatched "mglabel_instance_test nmatched")
+    (debug "mglabel_instance_test nloc=" nloc "nmatched=" nmatched)
     (assert_msg "check nodout" (is_out nodout))
     (assert_msg "check edgout" (is_out edgout))
     ;; first table row: output the node name in blue bold and the hashcode and the tested class
@@ -1893,13 +1851,13 @@ scanning variables.}#
 	  (add2out_strconst nodout "</font></td> </tr>")
 	  (add2out_indentnl nodout 2)
 	  ))
-    (debug_msg ntest "mglabel_instance_test end ntest")
+    (debug "mglabel_instance_test end ntest" ntest)
     ))
 (install_method class_normtester_instance matchgraphic_label mglabel_instance_test)
 
 ;;; output a success test
 (defun mglabel_success_test (ntest mg)
-  (debug_msg ntest "mglabel_success_test start ntest")
+  (debug "mglabel_success_test start ntest" ntest)
   (assert_msg "check ntest" (is_a ntest class_normtester_success))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (nloc (unsafe_get_field :nrep_loc ntest))
@@ -1907,8 +1865,7 @@ scanning variables.}#
 	 (nodout (unsafe_get_field :mchgx_nodout mg))
 	 (edgout (unsafe_get_field :mchgx_edgout mg))
 	 )
-    (debug_msg nloc "mglabel_success_test nloc")
-    (debug_msg nmatched "mglabel_success_test nmatched")
+    (debug "mglabel_success_test nloc=" nloc " nmatched=" nmatched)
     (assert_msg "check nodout" (is_out nodout))
     (assert_msg "check edgout" (is_out edgout))
     ;; first table row: output the node name and the hashcode
@@ -1932,7 +1889,7 @@ scanning variables.}#
        (add2out_indentnl nodout 2)
        )
      )
-    (debug_msg ntest "mglabel_success_test end ntest")
+    (debug "mglabel_success_test end ntest" ntest)
     ))
 (install_method class_normtester_success matchgraphic_label mglabel_success_test)
 
@@ -1940,8 +1897,7 @@ scanning variables.}#
 
 ;; internal function to out a tuple of test nodes in graphiz format
 (defun matchgraphic_tests (testup mg)
-  (debug_msg testup "matchgraphic_tests testup start")
-  (debug_msg mg "matchgraphic_tests mg start")
+  (debug "matchgraphic_tests  start testup=" testup " mg=" mg)
   (assert_msg "check testup" (is_multiple testup))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (nodout (unsafe_get_field :mchgx_nodout mg))
@@ -1953,7 +1909,7 @@ scanning variables.}#
      testup
      (curtest :long tix)
      (assert_msg "check curtest" (is_a curtest class_normtester_any))
-     (debug_msg curtest "matchgraphic_tests curtest")
+     (debug "matchgraphic_tests curtest" curtest)
      ;; output the node and its label
      (mg_out_node_name nodout curtest)
      (add2out_strconst nodout " [ label=<")
@@ -2012,7 +1968,7 @@ scanning variables.}#
            (add2sbuf_string pathsbuf dotprefix)
            (add2sbuf_longdec pathsbuf cnt)
            (add2sbuf_strconst pathsbuf ".dot")
-           (debug_msg pathsbuf "mg_draw_match_graphviz_file pathsbuf")
+           (debug "mg_draw_match_graphviz_file pathsbuf" pathsbuf)
            (strbuf2string discr_string pathsbuf)))
         (nodbuf (make_strbuf discr_strbuf))
         (edgbuf (make_strbuf discr_strbuf))
@@ -2022,9 +1978,9 @@ scanning variables.}#
                       :mchgx_edgout edgbuf
                       ))
         )
-    (debug_msg mg "mg_draw_match_graphviz_file initial mg")
+    (debug "mg_draw_match_graphviz_file initial mg" mg)
     (matchgraphic_tests teststupl mg)
-    (debug_msg mg "mg_draw_match_graphviz_file final mg")
+    (debug "mg_draw_match_graphviz_file final mg" mg)
     (assert_msg "check dotfilename" (is_string dotfilename))
     (code_chunk 
      outputmg
@@ -2065,7 +2021,7 @@ scanning variables.}#
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_match recv")
+  (debug "normexp_match recv" recv)
   (let ( (sloc (unsafe_get_field :loca_location recv))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))
@@ -2080,15 +2036,14 @@ scanning variables.}#
 	 (wholectype ())		;the ctype of the whole match
 	 (oldtester ())			;the previous tester
 	 )
-    (debug_msg smatsx "normexp_match smatsx")
+    (debug "normexp_match smatsx" smatsx)
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
-     (debug_msg nmatx "normexp_match nmatx")
-     (debug_msg scases "normexp_match scases")
+     (debug "normexp_match nmatx=" nmatx " scases=" scases)
      (let ( (ctyp (get_ctype nmatx env)) 
 	    )
-       (debug_msg ctyp "normexp_match ctyp")
+       (debug "normexp_match ctyp" ctyp)
        ;; if the matched stuff is not an object, it is a constant, so
        ;; make a binding for it
        (if (not (is_object nmatx))
@@ -2118,7 +2073,7 @@ scanning variables.}#
        (foreach_in_multiple
 	(scases)
 	(curcas :long ix)
-	(debug_msg curcas "normexp_match curcas")
+	(debug "normexp_match curcas" curcas)
 	(assert_msg "check curcas" (is_a curcas class_source_match_case))
 	(let ( 
 	      (curloc (unsafe_get_field :loca_location curcas))
@@ -2144,33 +2099,32 @@ scanning variables.}#
 			     ))
 	      (ntestcont (instance class_container)) ;container for tester
 	      )
-	  (debug_msg curpat "normexp_match curpat before scan_pattern")
+	  (debug "normexp_match curpat before scan_pattern" curpat)
 	  ;; I am not entirely sure of this assert! Perhaps there maybe
 	  ;; strange cases where curpat is null...
 	  (assert_msg "normexp_match check curpat" curpat)
 	  (scan_pattern curpat curloc ctyp pcn)
-	  (debug_msg curpat "normexp_match curpat after scan_pattern")
-	  (debug_msg mapvar "normexp_match mapvar")
-	  (debug_msg pvarlocmap "normexp_match pvarlocmap")
-	  (debug_msg mapcst "normexp_match mapcst")
+	  (debug "normexp_match  after scan_pattern curpat=" curpat
+		 " mapvar=" mapvar " pvarlocmap=" pvarlocmap
+		 " mapcst=" mapcst)
 	  (multiple_put_nth tupvarmap ix mapvar)
 	  (multiple_put_nth tupcstmap ix mapcst)
-	  (debug_msg shabindlist "normexp_match shabindlist before normal_pattern")
-	  (debug_msg curpat "normexp_match curpat before normal_pattern")
+	  (debug "normexp_match  before normal_pattern shabindlist=" shabindlist
+		 " curpat=" curpat)
 	  ;; normalize the current pattern, with the handler storing its topmost tester
 	  (normal_pattern 
 	   curpat nmatx
 	   (lambda (tester) 
-	     (debug_msg tester "normexp_match.lambda tester")
+	     (debug "normexp_match.lambda tester" tester)
 	     (shortbacktrace_dbg "normexp_match lambda tester" 12)
 	     (assert_msg "check empty ntestcont" 
 			 (null (unsafe_get_field :container_value ntestcont)))
 	     (put_fields ntestcont :container_value tester))
 	   pcn)
-	  (debug_msg curpat "normexp_match curpat after normal_pattern")
-	  (debug_msg pvarlocmap "normexp_match pvarlocmap after normal_pattern")
-	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
-	  (debug_msg shabindlist "normexp_match shabindlist after normal_pattern")
+	  (debug "normexp_match  after normal_pattern curpat=" curpat
+		 " pvarlocmap=" pvarlocmap
+		 "ntestcont= " ntestcont
+		 "shabindlist= " shabindlist)
 	  ;; 
 	  (let ( (newenv (get_field :pctn_env pcn))
 		 (curtester (get_field :container_value ntestcont))
@@ -2191,25 +2145,25 @@ scanning variables.}#
 			    :ntsuccess_do ()
 			    ))
 		 )
-	    (debug_msg newenv "normexp_match newenv after normal_pattern")
-	    (debug_msg newsuctester "normexp_match empty newsuctester")
-	    (debug_msg pvarlocmap "normexp_match pvarlocmap after normal_pattern")
-	    (debug_msg curcas "normexp_match curcas after normal_pattern")
-	    (debug_msg curtester "normexp_match curtester after normal_pattern")
-	    (debug_msg oldtester "normexp_match oldtester after normal_pattern")
+	    (debug "normexp_match  after normal_pattern newenv=" newenv
+		   " newsuctester=" newsuctester
+		   " pvarlocmap=" pvarlocmap
+		   " curcas=" curcas
+		   " curtester=" curtester
+		   " oldtester=" oldtester)
 	    ;; append the new success to the test list, so that it
 	    ;; will get its ntest_normatch later
 	    (list_append testlist newsuctester)
 	    (cond 
 	     ((null curtester)
-	      (debug_msg curcas "normexp_match curcas for null curtester")
+	      (debug "normexp_match curcas for null curtester" curcas)
 	      ;; curtester is null if the whole case is a joker,
 	      ;; this should be the last case
 	      (if (<i ix (-i (multiple_length scases) 1))
 		  (error_plain sloc "joker case in MATCH is not last"))
 	      ;; set the current tester to the success 
 	      (setq curtester newsuctester)
-	      (debug_msg curtester "normexp_match curestester set to success")
+	      (debug "normexp_match curestester set to success" curtester)
 	      )
 	     ;; else the curtester is not null; it cannot be a success
 	     (:else
@@ -2218,81 +2172,81 @@ scanning variables.}#
 ;;; add the newsuctester as the last then of the curtester
 	      (let ( (curtestcont (instance class_container
 					    :container_value curtester)) )
-		(debug_msg curtestcont "normexp_match our curtestcont")
-		(debug_msg newsuctester "normexp_match our newsuctester")
+		(debug "normexp_match our curtestcont=" curtestcont
+		       " newsuctester=" newsuctester)
 		(set_new_tester_last_then newsuctester curtestcont)
-		(debug_msg curtestcont "normexp_match final curtestcont")
+		(debug "normexp_match final curtestcont" curtestcont)
 		)
 	      ) ;; end when null curtester
 	     )	;; end cond
-	    (debug_msg curtester "normexp_match final curtester")
+	    (debug "normexp_match final curtester" curtester)
 	    (assert_msg "check final curtester"  (is_a curtester class_normtester_any))
 	    ;; if there is an oldtester, add the curtester as its last else case
 	    (if (is_a oldtester class_normtester_anytester)
 		(progn
-		  (debug_msg oldtester "normexp_match initial oldtester")
+		  (debug "normexp_match initial oldtester" oldtester)
 		  (set_new_tester_all_elses curtester oldtester)
-		  (debug_msg oldtester "normexp_match final oldtester")
+		  (debug "normexp_match final oldtester" oldtester)
 		  ))
 	    ;; always set the oldtester to the curtester
 	    (setq oldtester curtester)
-	    (debug_msg pcn "normexp_match pcn after lastesterloop")
-	    (debug_msg pvarlocmap "normexp_match pvarlocmap after lastesterloop")
+	    (debug "normexp_match after lastesterloop pcn=" pcn
+		   " pvarlocmap=" pvarlocmap)
 	    (let ( (sortedvars (mapobject_sorted_attribute_tuple pvarlocmap)) 
 		   (sortedbindings (make_multiple discr_multiple (multiple_length sortedvars)))
 		   (freshnewenv (fresh_env newenv))
 		   )
-	      (debug_msg sortedvars "normexp_match sortedvars")
+	      (debug "normexp_match sortedvars" sortedvars)
 	      ;; we have to make a list of bindings based upon the sortedvars
 	      (foreach_in_multiple
 	       (sortedvars)
 	       (svar :long svix)
-	       (debug_msg svar "normexp_match svar")
+	       (debug "normexp_match svar" svar)
 	       (let ( (socc (mapobject_get pvarlocmap svar))
 		      )
-		 (debug_msg socc "normexp_match socc")
+		 (debug "normexp_match socc" socc)
 		 (assert_msg "check socc" (is_a socc class_nrep_locsymocc))
 		 (let ( (sbind (unsafe_get_field :nocc_bind socc)) )
-		   (debug_msg sbind "normexp_match sbind")
+		   (debug "normexp_match sbind" sbind)
 		   (multiple_put_nth sortedbindings svix sbind)
 		   (put_env freshnewenv sbind)
 		   )
 		 ))
-	      (debug_msg freshnewenv "normexp_match freshnewenv")
-	      (debug_msg sortedbindings "normexp_match sortedbindings")
+	      (debug "normexp_match freshnewenv=" freshnewenv
+		     " sortedbindings=" sortedbindings)
 	      (assert_msg "check sortedbindings" (is_multiple sortedbindings))
 	      (let ( (subindlist (make_list discr_list)) 
 		     )
 		(foreach_in_multiple
 		 (sortedbindings)
 		 (cursortbind :long sortbix)
-		 (debug_msg cursortbind "normexp_match cursortbind")
+		 (debug "normexp_match cursortbind" cursortbind)
 		 (assert_msg "check cursortbind" 
 			     (is_a cursortbind class_normal_let_binding))
 		 (list_append subindlist cursortbind)
 		 )
-		(debug_msg curbody "normexp_match curbody before normalize_tuple")
+		(debug "normexp_match curbody before normalize_tuple" curbody)
 		(multicall 
 		 (nbody bindsbody)
 		 (normalize_tuple curbody freshnewenv ncx curloc)
-		 (debug_msg curbody "normexp_match curbody after normalize_tuple")
-		 (debug_msg nbody "normexp_match nbody")
-		 (debug_msg bindsbody "normexp_match bindsbody")
+		 (debug "normexp_match  after normalize_tuple curbody=" curbody
+			" nbody=" nbody
+			" bindsbody=" bindsbody)
 		 (assert_msg "check bindsbody" (is_list_or_null bindsbody))
 		 (foreach_in_list
 		  (bindsbody)
 		  (bindbodypair curbindbody)
-		  (debug_msg curbindbody "normexp_match curbindbody")
+		  (debug "normexp_match curbindbody" curbindbody)
 		  (list_append subindlist curbindbody)
 		  )
-		 (debug_msg subindlist "normexp_match final subindlist")
+		 (debug "normexp_match final subindlist" subindlist)
 		 (let ( (wnlet (wrap_normal_letseq nbody subindlist curloc)) 
 			(lastnbody (multiple_nth nbody -1))
 			(lastctype (get_ctype lastnbody freshnewenv))
 			)
-		   (debug_msg wnlet "normexp_match wnlet")
-		   (debug_msg lastnbody "normexp_match lastnbody")
-		   (debug_msg lastctype "normexp_match lastctype")
+		   (debug "normexp_match wnlet=" wnlet
+			  " lastnbody=" lastnbody 
+			  " lastctype=" lastctype)
 		   (put_fields newsuctester 
 			       :ntsuccess_do wnlet
 			       )
@@ -2308,24 +2262,24 @@ scanning variables.}#
 			   (inform_strv sloc "expected type of match case"
 					(get_field :named_name wholectype)))
 			 )
-		   (debug_msg newsuctester "normexp_match updated newsuctester")
+		   (debug "normexp_match updated newsuctester" newsuctester)
 		   ))))))) ;;; end foreach_in_multiple
        ;; end of loop on each case
-       (debug_msg tupvarmap "normexp_match tupvarmap")
-       (debug_msg tupcstmap "normexp_match tupcstmap")
-       (debug_msg testlist "normexp_match testlist")
-       (debug_msg stuffmap "normexp_match stuffmap")
-       (debug_msg (let ( (stmpklist (make_list discr_list)) )
-		    (foreach_in_mapobject
-		     (stuffmap)
-		     (lococck litest)
-		     (list_append stmpklist lococck)
-		     )
-		    stmpklist) 
-		  "normexp_match stuffmapkeylist")
+       (debug "normexp_match tupvarmap=" tupvarmap
+	      " tupcstmap=" tupcstmap
+	      " testlist=" testlist
+	      " stuffmap=" stuffmap
+	      " stuffmapkeylist=" 
+	      (let ( (stmpklist (make_list discr_list)) )
+		(foreach_in_mapobject
+		 (stuffmap)
+		 (lococck litest)
+		 (list_append stmpklist lococck)
+		 )
+		stmpklist))
        (let ( 
 	     (teststupl (let ( (tt (list_to_multiple testlist discr_multiple)) )
-			  (debug_msg tt "normexp_match teststupl")
+			  (debug "normexp_match teststupl" tt)
 			  tt))
 	     (nmatch (instance class_nrep_match
 			       :nrep_loc sloc
@@ -2345,40 +2299,38 @@ scanning variables.}#
 			      :letbind_type wholectype
 			      :letbind_expr nmatch))
 	     )
-	 (debug_msg csym "normexp_match csym")
+	 (debug "normexp_match csym" csym)
 	 (put_fields clocc :nocc_bind cbind)
-	 (debug_msg clocc "normexp_match clocc")
+	 (debug "normexp_match clocc" clocc)
 	 ;; put the clocc in the symbol cache map
 	 (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
 	 ;; put the index of each test 
 	 (foreach_in_multiple
 	  (teststupl)
 	  (curtest :long tstix)
-	  (debug_msg curtest "normexp_match raw curtest")
+	  (debug "normexp_match raw curtest" curtest)
 	  (assert_msg "check curtest" (is_a curtest class_normtester_any))
 	  (assert_msg "check tstix" (>=i tstix 0))
 	  (assert_msg "check tstix not too big" (<i tstix 32767))
 	  (messagenum_dbg "normexp_match testindex tstix" tstix)
 	  (put_int curtest tstix)
 	  (put_fields curtest :ntest_normatch nmatch)
-	  (debug_msg curtest "normexp_match indexed curtest")
+	  (debug "normexp_match indexed curtest" curtest)
 	  )
 	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
-	       (debug_msg match_graphic_dot_prefix "normexp_match match_graphic_dot_prefix")
-	       (debug_msg dotprefix "normexp_match dotprefix")
+	       (debug "normexp_match match_graphic_dot_prefix=" match_graphic_dot_prefix
+		      " dotprefix=" dotprefix)
 	       (if (is_string dotprefix) 
 		   (mg_draw_match_graphviz_file nmatch dotprefix teststupl
 		 ))))
 	 (unsafe_put_fields clocc :nocc_bind cbind)
-	 (debug_msg teststupl "normexp_match final teststupl")
-	 (debug_msg nbindmatx "normexp_match before append nbindmatx")
+	 (debug "normexp_match final teststupl=" teststupl " nbindmatx=" nbindmatx)
 	 (assert_msg "check nbindmatx" (is_list nbindmatx))
 	 (list_append nbindmatx cbind)
-	 (debug_msg nmatch "normexp_match final nmatch")
-	 (debug_msg cbind "normexp_match final cbind")
-	 (debug_msg nbindmatx "normexp_match returned nbindmatx")
-	 (debug_msg clocc "normexp_match returned clocc")
+	 (debug "normexp_match final nmatch=" nmatch 
+		" cbind=" cbind "returned nbindmatx=" nbindmatx
+		" returned clocc=" clocc)
 	 (return clocc nbindmatx)
 	 )))))
 
@@ -2647,8 +2599,7 @@ originating matched data. Field $NRMATD_RANK is a unique rank.}#
 ;;;;;;;;;;;;;;;;
 ;;; make a flag for a given source pattern in a given matching context
 (defun make_match_flag (spat mcx str)
-  (debug_msg spat "make_match_flag spat")
-  (debug_msg mcx "make_match_flag mcx")
+  (debug "make_match_flag spat=" spat " mcx=" mcx)
   (assert_msg "check spat" (is_a spat class_source_pattern))
   (assert_msg "check mcx" (is_a mcx class_matching_context))
   (assert_msg "check str" (is_string str))
@@ -2669,7 +2620,7 @@ originating matched data. Field $NRMATD_RANK is a unique rank.}#
 			    ))
 	   )
       (list_append flaglist mflag)
-      (debug_msg mflag "make_match_flag return mflag")
+      (debug "make_match_flag return mflag" mflag)
       mflag
     )
 ))
@@ -2693,7 +2644,7 @@ the flags of the $STEP with an extra context $CTX.}#
   :formals (step fun ctx))
 
 (defun scansubpat_anyrecv (recv fun ctx)
-  (debug_msg recv "scansubpat_anyrecv recv")
+  (debug "scansubpat_anyrecv recv" recv)
   (let ( (dis (discrim recv)) )
     (errormsg_strv "unexpected scan_subpatterns for" (unsafe_get_field :named_name dis))
     (assert_msg "@$@unexpected scansubpat_anyrecv")
@@ -2750,7 +2701,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun fill_matchcase (curmcase sloc)
-  (debug_msg curmcase "fill_matchcase curmcase")
+  (debug "fill_matchcase curmcase" curmcase)
   (assert_msg "check curmcase" (is_a curmcase class_match_case))
   (let (
 	(ourpatvarmap (make_mapobject discr_map_objects 17))
@@ -2760,7 +2711,7 @@ the flags of the $STEP with an extra context $CTX.}#
     (letrec (
 	     (varpatscanner 
 	      (lambda (pat patvarmap)
-		(debug_msg pat "fill_matchcase/varpatscanner pat")
+		(debug "fill_matchcase/varpatscanner pat" pat)
 		(if (is_a pat class_source_pattern_variable)
 		    (let (
 			  (pvarsymb (unsafe_get_field :spatvar_symb pat))
@@ -2777,7 +2728,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	    (varpatscanner curpat ourpatvarmap)
 	    (scan_subpatterns curpat varpatscanner ourpatvarmap)
 	    )
-    (debug_msg ourpatvarmap "fill_matchcase ourpatvarmap")
+    (debug "fill_matchcase ourpatvarmap" ourpatvarmap)
     (unsafe_put_fields curmcase :mcase_varmap ourpatvarmap)
     ))
 
@@ -2797,21 +2748,21 @@ the flags of the $STEP with an extra context $CTX.}#
    ( (is_a step class_match_step_test_group)
      (let ( (stastep (unsafe_get_field :mstgroup_start step))
 	    )
-       (debug_msg step "start_step group step")
-       (debug_msg stastep "stastep return stastep")
+       (debug "start_step group step" step)
+       (debug "stastep return stastep" stastep)
        (assert_msg "check stastep" (is_a stastep class_match_step))
        (return stastep)))
    (:else
-    (debug_msg step "start_step ordinary step")
+    (debug "start_step ordinary step" step)
     (assert_msg "check step" (is_a step class_match_step))
     (return step))))
 
 
 
 (defun putthen_matchthen (recv thenstep)
-  (debug_msg recv "putthen_matchthen recv")
+  (debug "putthen_matchthen recv" recv)
   (assert_msg "check recv" (is_a recv class_match_step_then))
-  (debug_msg thenstep "putthen_matchthen thenstep")
+  (debug "putthen_matchthen thenstep" thenstep)
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
   (assert_msg "check recv!=then" (!= recv thenstep))
   (compile_warning "temporary check for application depth..."
@@ -2825,32 +2776,32 @@ the flags of the $STEP with an extra context $CTX.}#
 	 )
     (if (== recv starthen)
 	(progn
-	  (debug_msg starthen "putthen_matchthen recv same starthen")
+	  (debug "putthen_matchthen recv same starthen" starthen)
 	  (return)))
     (if (== mythen starthen)
 	(progn
-	  (debug_msg starthen "putthen_matchthen mythen same starthen")
+	  (debug "putthen_matchthen mythen same starthen" starthen)
 	  (return)))
     (if (null mythen)
 	(progn
 	  (unsafe_put_fields recv :mstep_then starthen)
-	  (debug_msg recv "putthen_matchthen updated recv")
+	  (debug "putthen_matchthen updated recv" recv)
 	  ;(shortbacktrace_dbg "putthen_matchthen" 12)
 	  )
       (progn
-	(debug_msg mythen "putthen_matchthen recursing in mythen")
-	(debug_msg starthen "putthen_matchthen recursing for starthen")
+	(debug "putthen_matchthen recursing in mythen" mythen)
+	(debug "putthen_matchthen recursing for starthen" starthen)
 	(put_then_match mythen starthen)
-	(debug_msg mythen "putthen_matchthen did mythen"))))
+	(debug "putthen_matchthen did mythen" mythen))))
   )
 (install_method class_match_step_then put_then_match putthen_matchthen)
 
 
 
 (defun putthen_matchgroup (recv thenstep)
-  (debug_msg recv "putthen_matchgroup recv")
+  (debug "putthen_matchgroup recv" recv)
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
-  (debug_msg thenstep "putthen_matchgroup thenstep")
+  (debug "putthen_matchgroup thenstep" thenstep)
   (assert_msg "check thenstep" (is_a thenstep class_match_step))
   (putthen_matchthen recv thenstep)
   (let ( (thengroup (unsafe_get_field :mstgroup_then recv)) )
@@ -2870,7 +2821,7 @@ the flags of the $STEP with an extra context $CTX.}#
        (curthen :long thix)
        (put_then_match curthen thenstep)))
      (:else
-      (debug_msg thengroup "putthen_matchgroup bad thengroup")
+      (debug "putthen_matchgroup bad thengroup" thengroup)
       (assert_msg "bad thengroup" ())))))
 (install_method class_match_step_test_group put_then_match putthen_matchgroup)
 
@@ -2882,9 +2833,9 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;; method to putelse inside then-steps
 (defun putelse_matchstepthen (recv elsestep)
-  (debug_msg recv "putelse_matchstepthen recv")
+  (debug "putelse_matchstepthen recv" recv)
   (assert_msg "check recv" (is_a recv class_match_step_then))
-  (debug_msg elsestep "putelse_matchstepthen elsestep")
+  (debug "putelse_matchstepthen elsestep" elsestep)
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
   (compile_warning "temporary check for application depth..."
 		   (assert_msg "putelse_matchstepthen check shallow100" 
@@ -2895,31 +2846,31 @@ the flags of the $STEP with an extra context $CTX.}#
 	)
     (cond 
      ( (== recv elsestart)
-       (debug_msg recv "putelse_matchstepthen recv same elsestart")
+       (debug "putelse_matchstepthen recv same elsestart" recv)
        (return))
      ( (== mythen elsestep)
-       (debug_msg mythen "putelse_matchstepthen mythen same elsestep")
+       (debug "putelse_matchstepthen mythen same elsestep" mythen)
        (return))
      ( (== mythen elsestart)
-       (debug_msg mythen "putelse_matchstepthen mythen same elsestart")
+       (debug "putelse_matchstepthen mythen same elsestart" mythen)
        (return))
      (mythen 
-      (debug_msg mythen "putelse_matchstepthen recursing in mythen")
-      (debug_msg elsestart "putelse_matchstepthen recursing for elsestart")
-      (debug_msg recv "putelse_matchstepthen recursing from recv")
+      (debug "putelse_matchstepthen recursing in mythen" mythen)
+      (debug "putelse_matchstepthen recursing for elsestart" elsestart)
+      (debug "putelse_matchstepthen recursing from recv" recv)
       (put_else_match mythen elsestart)
-      (debug_msg mythen "putelse_matchstepthen done recursing in mythen"))
+      (debug "putelse_matchstepthen done recursing in mythen" mythen))
      )
-  (debug_msg recv "putelse_matchstepthen end recv")))
+  (debug "putelse_matchstepthen end recv" recv)))
 
 (install_method class_match_step_then put_else_match putelse_matchstepthen)
 
 	  
 ;; method to putelse inside tests
 (defun putelse_matchtest (recv elsestep)
-  (debug_msg recv "putelse_matchtest recv")
+  (debug "putelse_matchtest recv" recv)
   (assert_msg "check recv" (is_a recv class_match_step_test))
-  (debug_msg elsestep "putelse_matchtest elsestep")
+  (debug "putelse_matchtest elsestep" elsestep)
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
   (compile_warning "temporary check for application depth..."
 		   (assert_msg "putelse_matchtest check shallow100" 
@@ -2931,83 +2882,83 @@ the flags of the $STEP with an extra context $CTX.}#
 	)
     (cond 
      ( (== recv elsestep)
-       (debug_msg recv "putelse_matchtest recv same as elsestep")
+       (debug "putelse_matchtest recv same as elsestep" recv)
        (return))
      ( (== recv elsestart)
-       (debug_msg recv "putelse_matchtest recv same as elsestart")
+       (debug "putelse_matchtest recv same as elsestart" recv)
        (return))
      ( (== myelse elsestart)
-       (debug_msg recv "putelse_matchtest myelse same as elsestart")
+       (debug "putelse_matchtest myelse same as elsestart" recv)
        (return))
      ( (== myelse elsestep)
-       (debug_msg recv "putelse_matchtest myelse same as elsestep")
+       (debug "putelse_matchtest myelse same as elsestep" recv)
        (return))
      ( (== mythen elsestep)
-       (debug_msg recv "putelse_matchtest mythen same as elsestep")
+       (debug "putelse_matchtest mythen same as elsestep" recv)
        (return))
      ( (== mythen elsestart)
-       (debug_msg recv "putelse_matchtest mythen same as elsestart")
+       (debug "putelse_matchtest mythen same as elsestart" recv)
        (return))
      ( (null myelse)
        (unsafe_put_fields recv :mstep_else elsestart)
-       (debug_msg recv "putelse_matchtest updated recv")
+       (debug "putelse_matchtest updated recv" recv)
        (shortbacktrace_dbg "putelse_matchtest" 12)
        )
      (:else
-      (debug_msg myelse "putelse_matchtest myelse appending then")
+      (debug "putelse_matchtest myelse appending then" myelse)
       (put_then_match myelse elsestart)
       )
      )
     (if mythen
 	(progn
-	  (debug_msg mythen "putelse_matchtest recursing in mythen")
-	  (debug_msg elsestart "putelse_matchtest recursing with elsestart")
+	  (debug "putelse_matchtest recursing in mythen" mythen)
+	  (debug "putelse_matchtest recursing with elsestart" elsestart)
 	  (put_else_match mythen elsestart)))
     ;;
-    (debug_msg recv "putelse_matchtest end recv")
+    (debug "putelse_matchtest end recv" recv)
     ))
 (install_method class_match_step_test put_else_match putelse_matchtest)
 
 
 ;;;;;;;;;;;;;;;;
 (defun putelse_matchgroup (recv elsestep)
-  (debug_msg recv "putelse_matchgroup recv")
+  (debug "putelse_matchgroup recv" recv)
   (assert_msg "check recv" (is_a recv class_match_step_test_group))
-  (debug_msg elsestep "putelse_matchgroup elsestep")
+  (debug "putelse_matchgroup elsestep" elsestep)
   (assert_msg "check elsestep" (is_a elsestep class_match_step))
   (let ( (elsegroup (unsafe_get_field :mstgroup_else recv)) 
 	 (elsestart (start_step elsestep))
 	 (startgroup (unsafe_get_field :mstgroup_start recv))
 	 )
-    (debug_msg elsestart "putelse_matchgroup elsestart")
+    (debug "putelse_matchgroup elsestart" elsestart)
     (if startgroup
 	(progn
-	  (debug_msg startgroup "putelse_matchgroup recursing startgroup")
+	  (debug "putelse_matchgroup recursing startgroup" startgroup)
 	  (put_else_match startgroup elsestart)
 	  ))
-    (debug_msg elsegroup "putelse_matchgroup elsegroup")
+    (debug "putelse_matchgroup elsegroup" elsegroup)
     (cond 
      ((null elsegroup)
       ())
      ((is_a elsegroup class_match_step)
-      (debug_msg elsegroup "putelse_matchgroup elsegroup step")
+      (debug "putelse_matchgroup elsegroup step" elsegroup)
       (put_else_match elsegroup elsestart))
      ((is_list elsegroup)
       (foreach_in_list
        (elsegroup)
        (curpair curelse)
-       (debug_msg curelse "putelse_matchgroup curelse from list")
+       (debug "putelse_matchgroup curelse from list" curelse)
        (put_else_match curelse elsestart)))
      ((is_multiple elsegroup)
       (foreach_in_multiple
        (elsegroup)
        (curelse :long thix)
-       (debug_msg curelse "putelse_matchgroup curelse from tuple")
+       (debug "putelse_matchgroup curelse from tuple" curelse)
        (put_else_match curelse elsestart)))
      (:else
-      (debug_msg elsegroup "putelse_matchgroup bad elsegroup")
+      (debug "putelse_matchgroup bad elsegroup" elsegroup)
       (assert_msg "bad elsegroup" ())))
-    (debug_msg recv "putelse_matchgroup end recv")
+    (debug "putelse_matchgroup end recv" recv)
     ))
 (install_method class_match_step_test_group put_else_match putelse_matchgroup)
 
@@ -3070,10 +3021,10 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun translpat_anyrecv (recv mdata mcase varmap sloc)
-  (debug_msg recv "translpat_anyrecv recv")
-  (debug_msg mdata "translpat_anyrecv mdata")
+  (debug "translpat_anyrecv recv" recv)
+  (debug "translpat_anyrecv mdata" mdata)
   (let ( (dis (discrim recv)) )
-    (debug_msg dis "translpat_anyrecv dis")
+    (debug "translpat_anyrecv dis" dis)
     (error_strv sloc "unexpected TRANSLATE_PATTERN for" (unsafe_get_field :named_name dis))
     (assert_msg "@$@unexpected translpat_anyrecv")
 ))
@@ -3081,18 +3032,18 @@ the flags of the $STEP with an extra context $CTX.}#
 
 (defun translpat_jokerpat (recv mdata mcase varmap sloc)
   (assert_msg "check recv" (is_a recv class_source_pattern_joker_variable))
-  (debug_msg recv "translpat_jokerpat recv")
+  (debug "translpat_jokerpat recv" recv)
   (return)
 )
 (install_method class_source_pattern_joker_variable translate_pattern translpat_jokerpat)
 
 
 (defun translpat_constpat (recv mdata mcase varmap psloc)
-  (debug_msg recv "translpat_constpat recv")
+  (debug "translpat_constpat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_constant))
-  (debug_msg mdata "translpat_constpat mdata")
+  (debug "translpat_constpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_constpat mcase")
+  (debug "translpat_constpat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let ( 
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
@@ -3105,12 +3056,12 @@ the flags of the $STEP with an extra context $CTX.}#
 	)
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (assert_msg "check env" (is_a env class_environment))
-    (debug_msg sconstx "translpat_constpat before normalization sconstx")
+    (debug "translpat_constpat before normalization sconstx" sconstx)
     (multicall
      (nconst nbindconst)
      (normal_exp sconstx env ncx sloc)
-     (debug_msg nconst "translpat_constpat nconst")
-     (debug_msg nbindconst "translpat_constpat nbindconst")
+     (debug "translpat_constpat nconst" nconst)
+     (debug "translpat_constpat nbindconst" nbindconst)
      (let (
 	   (mflag (make_match_flag recv mctxt
 				   (or (get_field :named_name nconst) '"constant_pattern")))
@@ -3127,11 +3078,11 @@ the flags of the $STEP with an extra context $CTX.}#
 			       :msteptestconst_bind nbindconst
 			       ))
 	   )
-       (debug_msg flagstep "translpat_constpat flagstep")
+       (debug "translpat_constpat flagstep" flagstep)
        (list_append steplist steptest)
        (list_append steplist flagstep)
-       (debug_msg steptest "translpat_constpat return steptest")
-       (debug_msg mflag "translpat_constpat return mflag")
+       (debug "translpat_constpat return steptest" steptest)
+       (debug "translpat_constpat return mflag" mflag)
        (return steptest mflag)
        ;;
        ))))
@@ -3142,7 +3093,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 (defun translpat_tuplepat (recv mdata mcase varmap sloc)
   (assert_msg "check recv" (is_a recv class_source_pattern_tuple))
-  (debug_msg recv "translpat_tuplepat recv")
+  (debug "translpat_tuplepat recv" recv)
   (error_plain sloc "@@unimplemented translpat_tuplepat")
   (assert_msg "$@$ translpat_tuplepat unimplemented")
 )
@@ -3151,7 +3102,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 (defun translpat_listpat (recv mdata mcase varmap sloc)
   (assert_msg "check recv" (is_a recv class_source_pattern_list))
-  (debug_msg recv "translpat_listpat recv")
+  (debug "translpat_listpat recv" recv)
   (error_plain sloc "@@unimplemented translpat_listpat")
   (assert_msg "$@$ translpat_listpat unimplemented")
 )
@@ -3160,11 +3111,11 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun translpat_inspat (recv mdata mcase varmap psloc)
-  (debug_msg recv "translpat_inspat recv")
+  (debug "translpat_inspat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_instance))
-  (debug_msg mdata "translpat_inspat mdata")
+  (debug "translpat_inspat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_inspat mcase")
+  (debug "translpat_inspat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let ( 
 	(pclass (unsafe_get_field :spat_class recv))
@@ -3211,7 +3162,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	  ( (is_a curstep class_match_step_test)
 	    (setq laststeptest curstep))
 	  ))
-	(debug_msg laststeptest "translpat_inspat laststeptest")
+	(debug "translpat_inspat laststeptest" laststeptest)
 	;;
 	(if (null istep)
 	    (let 
@@ -3227,13 +3178,13 @@ the flags of the $STEP with an extra context $CTX.}#
 				    ))
 		 )
 	      (setq istep newstep)
-	      (debug_msg newstep "translpat_inspat newstep")
+	      (debug "translpat_inspat newstep" newstep)
 	      (list_append steplist newstep)
-	      (debug_msg steplist "translpat_inspat updated steplist")
+	      (debug "translpat_inspat updated steplist" steplist)
 	      (if laststeptest
 		  (progn 
 		    (put_else_match laststeptest newstep)
-		    (debug_msg laststeptest "translpat_inspat updated laststeptest")))
+		    (debug "translpat_inspat updated laststeptest" laststeptest)))
 	      ))
 	;; translate each mentioned non-joker field 
 	(let ( (mslots (unsafe_get_field :mstins_slots istep))
@@ -3263,18 +3214,18 @@ the flags of the $STEP with an extra context $CTX.}#
 						 :mdata_steps (make_list discr_list)
 						 )) 
 			      )
-			 (debug_msg newslot " translpat_inspat newslot")
+			 (debug " translpat_inspat newslot" newslot)
 			 (setq curslotdata newslot)
 			 (multiple_put_nth mslots curfix newslot)))
-		   (debug_msg curfpat "translpat_inspat before translation curfpat")
+		   (debug "translpat_inspat before translation curfpat" curfpat)
 		   (multicall
 		    (flstep flflag)
 		    (translate_pattern curfpat curslotdata mcase varmap psloc) 
-		    (debug_msg flstep "translpat_inspat flstep")
-		    (debug_msg flflag "translpat_inspat flflag")
+		    (debug "translpat_inspat flstep" flstep)
+		    (debug "translpat_inspat flflag" flflag)
 		    (if flstep 
 			(progn
-			  (debug_msg laststep "translpat_inspat laststep")
+			  (debug "translpat_inspat laststep" laststep)
 			  (put_then_match laststep flstep)
 			  (list_append elselist flstep)
 			  (setq laststep flstep)
@@ -3282,7 +3233,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		    (if flflag
 			(list_append flaglist flflag))
 		    )))))
-	  (debug_msg elselist "translpat_inspat elselist")
+	  (debug "translpat_inspat elselist" elselist)
 	  (let ( 
 		(stepsetflag
 		 (if (list_first_element flaglist)
@@ -3306,9 +3257,9 @@ the flags of the $STEP with an extra context $CTX.}#
 				     ))
 		)
 	    (put_fields mflag :mflag_setstep stepsetflag)
-	    (debug_msg stepsetflag  "translpat_inspat stepsetflag")
+	    (debug "translpat_inspat stepsetflag" stepsetflag)
 	    (put_then_match laststep stepsetflag)
-	    (debug_msg stepgroup "translpat_inspat return stepgroup")
+	    (debug "translpat_inspat return stepgroup" stepgroup)
 	    (return stepgroup mflag)
 	    ))))))
 (install_method class_source_pattern_instance translate_pattern translpat_inspat)
@@ -3317,11 +3268,11 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun translpat_varpat (recv mdata mcase varmap psloc)
-  (debug_msg recv "translpat_varpat recv")
+  (debug "translpat_varpat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
-  (debug_msg mdata "translpat_varpat mdata")
+  (debug "translpat_varpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_varpat mcase")
+  (debug "translpat_varpat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let ( 
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
@@ -3337,21 +3288,21 @@ the flags of the $STEP with an extra context $CTX.}#
 			    :mstep_then ()
 			    :mstep_flag mflag))
 	)
-    (debug_msg symb "translpat_varpat symb")
-    (debug_msg symbval "translpat_varpat symbval")
+    (debug "translpat_varpat symb" symb)
+    (debug "translpat_varpat symbval" symbval)
     (put_fields mflag :mflag_setstep flagstep)
-    (debug_msg flagstep "translpat_varpat flagstep")
+    (debug "translpat_varpat flagstep" flagstep)
     (cond 
      ( (null symbval)
        (mapobject_put varmap symb mdata)
-       (debug_msg varmap "translpat_varpat updated varmap & return null")
+       (debug "translpat_varpat updated varmap & return null" varmap)
        (list_append steplist flagstep)
        (foreach_in_list
 	(mhandlers)
 	(curpair curhandler)
 	(curhandler recv mdata mcase symbval flagstep mflag sloc))
-       (debug_msg mflag "translpat_varpat return mflag")
-       (debug_msg flagstep "translpat_varpat return flagstep")
+       (debug "translpat_varpat return mflag" mflag)
+       (debug "translpat_varpat return flagstep" flagstep)
        (return flagstep mflag)
        )
      (:else
@@ -3365,20 +3316,20 @@ the flags of the $STEP with an extra context $CTX.}#
 	  ( (and (is_a curteststep class_match_step_test_variable)
 		 (== (unsafe_get_field :msteptestvar_data curteststep) symbval))
 	    (progn
-	      (debug_msg curteststep "translpat_varpat found curteststep")
+	      (debug "translpat_varpat found curteststep" curteststep)
 	      (put_then_match curteststep flagstep)
 	      (foreach_in_list
 	       (mhandlers)
 	       (curpair curhandler)
 	       (curhandler recv mdata mcase symbval curteststep mflag sloc))
-	      (debug_msg mflag "translpat_varpat return mflag")
-	      (debug_msg curteststep "translpat_varpat return curteststep")
+	      (debug "translpat_varpat return mflag" mflag)
+	      (debug "translpat_varpat return curteststep" curteststep)
 	      (return curteststep mflag)))
 	  ( (is_a curteststep class_match_step_test)
 	    (setq laststeptest curteststep))
 	  )
 	 )
-	(debug_msg laststeptest "translpat_varpat laststeptest")
+	(debug "translpat_varpat laststeptest" laststeptest)
 	(let ( (steptest (instance class_match_step_test_variable
 				   :loca_location sloc
 				   :mstep_data mdata
@@ -3387,17 +3338,17 @@ the flags of the $STEP with an extra context $CTX.}#
 				   ))
 	       )
 	  (list_append steplist steptest)
-	  (debug_msg steptest "translpat_varpat made steptest")
+	  (debug "translpat_varpat made steptest" steptest)
 	  (if laststeptest
 	      (progn
 		(put_else_match laststeptest steptest)
-		(debug_msg laststeptest "translpat_varpat updated laststeptest")))
+		(debug "translpat_varpat updated laststeptest" laststeptest)))
 	  (foreach_in_list
 	   (mhandlers)
 	   (curpair curhandler)
 	   (curhandler recv mdata mcase symbval steptest mflag sloc))
-	  (debug_msg mflag "translpat_varpat return mflag")
-	  (debug_msg steptest "translpat_varpat return steptest")
+	  (debug "translpat_varpat return mflag" mflag)
+	  (debug "translpat_varpat return steptest" steptest)
 	  (return steptest mflag)
 	  ))))
     (assert_msg "@$@failed translpat_varpat")
@@ -3409,11 +3360,11 @@ the flags of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;
 ;;; translation of and-patterns
 (defun translpat_andpat (recv mdata mcase varmap psloc)
-  (debug_msg recv "translpat_andpat recv")
+  (debug "translpat_andpat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_and))
-  (debug_msg mdata "translpat_andpat mdata")
+  (debug "translpat_andpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_andpat mcase")
+  (debug "translpat_andpat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
@@ -3439,27 +3390,27 @@ the flags of the $STEP with an extra context $CTX.}#
 			    ))
 	)
     (assert_msg "check sconj" (is_multiple sconj))
-    (debug_msg flagstep "translpat_andpat flagstep")
+    (debug "translpat_andpat flagstep" flagstep)
     (put_fields mflag :mflag_setstep flagstep)
     (foreach_in_multiple
      (sconj)
      (curconj :long conjix)
-     (debug_msg curconj "translpat_andpat curconj")
+     (debug "translpat_andpat curconj" curconj)
      (multicall 
       (conjstep conjflag)
       (translate_pattern curconj mdata mcase varmap sloc)
-      (debug_msg conjstep "translpat_andpat conjstep")
-      (debug_msg conjflag "translpat_andpat conjflag")
+      (debug "translpat_andpat conjstep" conjstep)
+      (debug "translpat_andpat conjflag" conjflag)
       (if conjstep
 	  (progn
 	    (if (null curstep)
 		(progn
 		  (setq firststep conjstep)
-		  (debug_msg firststep "translpat_andpat firststep")
+		  (debug "translpat_andpat firststep" firststep)
 		  (list_append thenlist firststep)
 		  )
 	      (progn
-		(debug_msg curstep "translpat_andpat curstep")
+		(debug "translpat_andpat curstep" curstep)
 		(put_then_match curstep conjstep)
 		)
 	      )
@@ -3484,7 +3435,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	  )
     (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
     (put_then_match stepgroup flagstep)
-    (debug_msg stepgroup "translpat_andpat return stepgroup")
+    (debug "translpat_andpat return stepgroup" stepgroup)
     (return stepgroup mflag)
     ))
 (install_method class_source_pattern_and translate_pattern translpat_andpat)
@@ -3493,11 +3444,11 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;; translation of or-patterns
 (defun translpat_orpat (recv  mdata mcase varmap psloc)
-  (debug_msg recv "translpat_orpat recv")
+  (debug "translpat_orpat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_or))
-  (debug_msg mdata "translpat_orpat mdata")
+  (debug "translpat_orpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_orpat mcase")
+  (debug "translpat_orpat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
 	(firststep ())
@@ -3522,46 +3473,46 @@ the flags of the $STEP with an extra context $CTX.}#
 	(flaglist (make_list discr_list))
 	(steplist (make_list discr_list))
 	)
-    (debug_msg flagstep "translpat_orpat flagstep")
+    (debug "translpat_orpat flagstep" flagstep)
     (assert_msg "check sdisj" (is_multiple sdisj))
     (foreach_in_multiple
      (sdisj)
      (curdisj :long disjix)
-     (debug_msg curdisj "translpat_orpat curdisj")
+     (debug "translpat_orpat curdisj" curdisj)
      (let (
 	   (newvarmap (make_mapobject discr_map_objects 11))
 	   (varhandler
 	    (lambda 
 	      (varpat varmdata varmcase varsymbval varflagstep varmflag varsloc)
-	      (debug_msg varpat "translpat_orpat.varhandler varpat")
-	      (debug_msg varmdata "translpat_orpat.varhandler varmdata")
+	      (debug "translpat_orpat.varhandler varpat" varpat)
+	      (debug "translpat_orpat.varhandler varmdata" varmdata)
 	      (assert_msg "check varpat" (is_a varpat class_source_pattern_variable))
 	      (assert_msg "check varmdata" (is_a varmdata class_matched_data))
 	      (if (null varsymbval)
 		  (progn
 		    (mapobject_put newvarmap (get_field :spatvar_symb varpat)
 				   varmdata)
-		    (debug_msg newvarmap "translpat_orpat.varhandler updated newvarmap")
+		    (debug "translpat_orpat.varhandler updated newvarmap" newvarmap)
 		    ))
 	      ))
 	   )
        (list_prepend mhandlers varhandler)
-       (debug_msg curdisj "translpat_orpat curdisj before translate_pattern")
+       (debug "translpat_orpat curdisj before translate_pattern" curdisj)
        (multicall 
 	(disjstep disjflag)
 	(translate_pattern curdisj mdata mcase varmap sloc)
-	(debug_msg disjstep "translpat_orpat disjstep")
-	(debug_msg disjflag "translpat_orpat disjflag")
+	(debug "translpat_orpat disjstep" disjstep)
+	(debug "translpat_orpat disjflag" disjflag)
 	(if disjflag
 	    (list_append flaglist disjflag))
 	(if disjstep
 	    (progn 
 	      (cond 
 	       ( (is_a prevstep class_match_step_clear)
-		 (debug_msg prevstep "translpat_orpat prevstep clear so putthen")
+		 (debug "translpat_orpat prevstep clear so putthen" prevstep)
 		 (put_then_match prevstep disjstep))
 	       ( prevstep
-		 (debug_msg prevstep "translpat_orpat prevstep notnull so putelse")
+		 (debug "translpat_orpat prevstep notnull so putelse" prevstep)
 		 (put_else_match prevstep disjstep)))
 	      (if (>i (mapobject_count newvarmap) 0)
 		  (let ( 
@@ -3579,35 +3530,35 @@ the flags of the $STEP with an extra context $CTX.}#
 					     )
 				   )
 			)
-		    (debug_msg erasestep "translpat_orpat erasestep")
+		    (debug "translpat_orpat erasestep" erasestep)
 		    (put_else_match disjstep erasestep)
 		    (setq prevstep erasestep)
-		    (debug_msg prevstep "translpat_orpat prevstep is erasestep")
+		    (debug "translpat_orpat prevstep is erasestep" prevstep)
 		    )
 		(progn
 		  (setq prevstep disjstep)
-		  (debug_msg prevstep "translpat_orpat prevstep is disjstep")
+		  (debug "translpat_orpat prevstep is disjstep" prevstep)
 		  ))
 	      (list_append steplist disjstep)
 	      ))
 	)
-       (debug_msg newvarmap "translpat_orpat newvarmap")
+       (debug "translpat_orpat newvarmap" newvarmap)
        (let ( (oldvarhdler (list_popfirst mhandlers)) 
 	      )
 	 (assert_msg "check oldvarhdler" (== oldvarhdler varhandler))
 	 ))
      ) ;;;; end foreach disjunct
-    (debug_msg steplist "translpat_orpat final steplist")
+    (debug "translpat_orpat final steplist" steplist)
     (put_fields stepgroup
 		:mstgroup_start firststep
 		:mstgroup_then (list_to_multiple steplist)
 		:mstgroup_else ()
 		)
-    (debug_msg flaglist "translpat_orpat final flaglist")
+    (debug "translpat_orpat final flaglist" flaglist)
     (put_fields flagstep :mstep_flagargs (list_to_multiple flaglist discr_multiple))
-    (debug_msg flagstep "translpat_orpat final flagstep")
+    (debug "translpat_orpat final flagstep" flagstep)
     (put_then_match stepgroup flagstep)
-    (debug_msg stepgroup "translpat_orpat return stepgroup")
+    (debug "translpat_orpat return stepgroup" stepgroup)
     (return stepgroup mflag)
     ))
 (install_method class_source_pattern_or translate_pattern translpat_orpat)
@@ -3617,11 +3568,11 @@ the flags of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;
 ;; translation of pattern matchers (c-matchers or fun-matchers)
 (defun translpat_patmat (recv mdata mcase varmap psloc)
-  (debug_msg recv "translpat_patmat recv")
+  (debug "translpat_patmat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_matcher))
-  (debug_msg mdata "translpat_patmat mdata")
+  (debug "translpat_patmat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug_msg mcase "translpat_patmat mcase")
+  (debug "translpat_patmat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
   (let (
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
@@ -3641,16 +3592,16 @@ the flags of the $STEP with an extra context $CTX.}#
 	)
     (assert_msg "check matctx" (is_a matctx class_matching_context))
     (assert_msg "check env" (is_a env class_environment))
-    (debug_msg soper "translpat_patmat soper")
+    (debug "translpat_patmat soper" soper)
     (assert_msg "check soper" (is_a soper class_any_matcher))
-    (debug_msg sins "translpat_patmat sins")
-    (debug_msg souts "translpat_patmat souts")
-    (debug_msg sopbind "translpat_patmat sopbind")
+    (debug "translpat_patmat sins" sins)
+    (debug "translpat_patmat souts" souts)
+    (debug "translpat_patmat sopbind" sopbind)
     (multicall
      (nins inbinds)
      (normalize_tuple sins env ncx sloc)
-     (debug_msg nins "translpat_patmat nins")
-     (debug_msg inbinds "translpat_patmat inbinds")
+     (debug "translpat_patmat nins" nins)
+     (debug "translpat_patmat inbinds" inbinds)
      (assert_msg "check inbinds" (is_list_or_null inbinds))
      (if (!=i (multiple_length nins) (multiple_length opin))
 	 (error_strv sloc "bad input arity of matcher in pattern" 
@@ -3662,9 +3613,9 @@ the flags of the $STEP with an extra context $CTX.}#
 	     (curctyp (get_ctype curnin env))
 	     (inctyp (get_field :fbind_type curopin))
 	     )
-	(debug_msg curnin "translpat_patmat curnin")
-	(debug_msg curopin "translpat_patmat curopin")
-	(debug_msg curctyp "translpat_patmat curctyp")
+	(debug "translpat_patmat curnin" curnin)
+	(debug "translpat_patmat curopin" curopin)
+	(debug "translpat_patmat curctyp" curctyp)
 	(assert_msg "check curopin" (is_a curopin class_formal_binding))
 	(assert_msg "check curctyp" (is_a curctyp class_ctype))
 	(if (!= curctyp inctyp)
@@ -3707,7 +3658,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		     (setq cursimin ())
 		     (setq similarstep ())))
 	       )
-	      (debug_msg similarstep "translpat_patmat similiarstep")
+	      (debug "translpat_patmat similiarstep" similarstep)
 	      (if similarstep 
 		  (progn
 		    (setq curstep similarstep)
@@ -3715,7 +3666,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		    (setq curdatastep ())))
 	      ))
 	)
-       (debug_msg curstep "translpat_patmat custep after seeking")
+       (debug "translpat_patmat custep after seeking" curstep)
        (if (null curstep)
 	   (let ( 
 		 (outdatatup (make_multiple discr_multiple nbopout))
@@ -3730,17 +3681,17 @@ the flags of the $STEP with an extra context $CTX.}#
 				    :mstma_outs outdatatup))
 		 )
 	     (setq curstep newstep)
-	     (debug_msg newstep "translpat_patmat newstep")
+	     (debug "translpat_patmat newstep" newstep)
 	     (list_append mdatasteps newstep)
-	     (debug_msg mdatasteps "translpat_patmat updated mdatasteps")
+	     (debug "translpat_patmat updated mdatasteps" mdatasteps)
 	     (if laststeptest
 		 (progn
 		   (put_else_match laststeptest newstep)
-		   (debug_msg laststeptest "translpat_patmat updated laststeptest")))
+		   (debug "translpat_patmat updated laststeptest" laststeptest)))
 	     (foreach_in_multiple
 	      (opout)
 	      (curoutbind :long outix)
-	      (debug_msg curoutbind "translpat_patmat curoutbind")
+	      (debug "translpat_patmat curoutbind" curoutbind)
 	      (assert_msg "check curoutbind" (is_a curoutbind class_formal_binding))
 	      (let ( (outsymb (get_field :binder curoutbind))
 		     (outctyp (get_field :fbind_type curoutbind))
@@ -3750,15 +3701,15 @@ the flags of the $STEP with an extra context $CTX.}#
 					:mdata_orig newstep
 					:mdata_steps (make_list discr_list)))
 		     )
-		(debug_msg outsymb "translpat_patmat outsymb")
-		(debug_msg newslot "translpat_patmat newslot")
+		(debug "translpat_patmat outsymb" outsymb)
+		(debug "translpat_patmat newslot" newslot)
 		(multiple_put_nth outdatatup outix newslot)
 		(assert_msg "check outctyp" (is_a outctyp class_ctype))
 		))
 	     ))
-       (debug_msg curstep "translpat_patmat curstep after making it")
+       (debug "translpat_patmat curstep after making it" curstep)
        (assert_msg "check curstep" (is_a curstep class_match_step_test_matcher))
-       (debug_msg souts "translpat_patmat souts again")
+       (debug "translpat_patmat souts again" souts)
        (let ( 
 	     (outdata (get_field :mstma_outs curstep))
 	     (thenlist (make_list discr_list))
@@ -3775,20 +3726,20 @@ the flags of the $STEP with an extra context $CTX.}#
 				  :mstgroup_else ()
 				  ))
 	     )
-	 (debug_msg outdata "translpat_patmat outdata before foreach")
-	 (debug_msg souts "translpat_patmat souts before foreach")
+	 (debug "translpat_patmat outdata before foreach" outdata)
+	 (debug "translpat_patmat souts before foreach" souts)
 	 (foreach_in_multiple
 	  (outdata)
 	  (curoutdata :long dix)
 	  (let ( (outpat (multiple_nth souts dix))
 		 )
-	    (debug_msg curoutdata "translpat_patmat curoutdata")
-	    (debug_msg outpat "translpat_patmat outpat")
+	    (debug "translpat_patmat curoutdata" curoutdata)
+	    (debug "translpat_patmat outpat" outpat)
 	    (multicall 
 	     (outstep outflag)
 	     (translate_pattern outpat curoutdata mcase varmap sloc)
-	     (debug_msg outstep "translpat_patmat outstep")
-	     (debug_msg outflag "translpat_patmat outflag")
+	     (debug "translpat_patmat outstep" outstep)
+	     (debug "translpat_patmat outflag" outflag)
 	     (if outstep
 		 (progn
 		   (put_then_match laststep outstep)
@@ -3816,15 +3767,15 @@ the flags of the $STEP with an extra context $CTX.}#
 		     )
 		 )
 		)
-	   (debug_msg flagstep "translpat_patmat flagstep")
+	   (debug "translpat_patmat flagstep" flagstep)
 	   (if laststep (put_then_match laststep flagstep))
 	   (put_fields mflag :mflag_setstep flagstep)
 	   (put_fields
 	    testgroup
 	    :mstgroup_then flagstep
 	    :mstgroup_else elselist)
-	   (debug_msg mflag "translpat_patmat return mflag")
-	   (debug_msg testgroup "translpat_patmat return testgroup")
+	   (debug "translpat_patmat return mflag" mflag)
+	   (debug "translpat_patmat return testgroup" testgroup)
 	   (return testgroup mflag)
 	   )
 	 )	    
@@ -3846,7 +3797,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestvar (step mg)
-  (debug_msg step "mgaltstep_steptestvar step")
+  (debug "mgaltstep_steptestvar step" step)
   (assert_msg "check step" (is_a step class_match_step_test_variable))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -3878,7 +3829,7 @@ the flags of the $STEP with an extra context $CTX.}#
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\" color=\"navy\">")
     (compile_warning "testdata is usually not a symbol but a matched data...")
-    (debug_msg testdata "mgaltstep_steptestvar testdata")
+    (debug "mgaltstep_steptestvar testdata" testdata)
     (let ( (testdatasymb (get_field :mdata_symb testdata)) 
 	   )
     (add2out_string nodebuf (get_field :named_name testdatasymb))
@@ -3912,7 +3863,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestinst (step mg)
-  (debug_msg step "mgaltstep_steptestinst step")
+  (debug "mgaltstep_steptestinst step" step)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -3987,7 +3938,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestgroup (step mg)
-  (debug_msg step "mgaltstep_steptestgroup step")
+  (debug "mgaltstep_steptestgroup step" step)
   (assert_msg "check step" (is_a step class_match_step_test_group))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4037,7 +3988,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestmatcher (step mg)
-  (debug_msg step "mgaltstep_steptestmatcher step")
+  (debug "mgaltstep_steptestmatcher step" step)
   (assert_msg "check step" (is_a step class_match_step_test_matcher))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4075,7 +4026,7 @@ the flags of the $STEP with an extra context $CTX.}#
     (foreach_in_multiple
      (souts)
      (curout :long outix)
-     (debug_msg curout "mgaltstep_steptestmatcher curout")
+     (debug "mgaltstep_steptestmatcher curout" curout)
      (assert_msg "check curout" (is_a curout class_matched_data))
      (add2out_indentnl edgebuf 0)
      (add2out_string edgebuf stepname)
@@ -4114,7 +4065,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_stepsuccess (step mg)
-  (debug_msg step "mgaltstep_stepsuccess step")
+  (debug "mgaltstep_stepsuccess step" step)
   (assert_msg "check step" (is_a step class_match_step_success_when_flag))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4134,7 +4085,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	 (dis (discrim step))
 	 (clanam (get_field :named_name dis))
 	 )
-    (debug_msg sflag  "mgaltstep_stepsuccess sflag")
+    (debug "mgaltstep_stepsuccess sflag" sflag)
     (assert_msg "check sflag" (is_a sflag class_match_flag))
     (add2out_strconst nodebuf "<tr><td><font color=\"firebrick\" face=\"Times-Roman Bold\" point-size=\"6\">")
     (code_chunk 
@@ -4167,8 +4118,8 @@ the flags of the $STEP with an extra context $CTX.}#
     (if (is_a argfstep class_match_step_with_flag)
 	(let ( (argfstepname (mapobject_get stepmap argfstep))
 	       )
-	  (debug_msg argfstep  "mgaltstep_stepsuccess argfstep")
-	  (debug_msg argfstepname  "mgaltstep_stepsuccess argfstepname")
+	  (debug "mgaltstep_stepsuccess argfstep" argfstep)
+	  (debug "mgaltstep_stepsuccess argfstepname" argfstepname)
 	  (assert_msg "mgaltstep_stepsuccess check argfstepname" (is_string argfstepname))
 	  (add2out_indentnl edgebuf 0)
 	  (add2out_string edgebuf argfstepname)
@@ -4183,7 +4134,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_stepclear (step mg)
-  (debug_msg step "mgaltstep_stepclear step")
+  (debug "mgaltstep_stepclear step" step)
   (assert_msg "check step" (is_a step class_match_step_clear))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4240,7 +4191,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_match_step_clear matchgraphic_altstep mgaltstep_stepclear)
 
 (defun mgaltstep_stepflagset (step mg)
-  (debug_msg step "mgaltstep_stepflagset step")
+  (debug "mgaltstep_stepflagset step" step)
   (assert_msg "check step" (is_a step class_match_step_flag_set))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4292,7 +4243,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_match_step_flag_set matchgraphic_altstep mgaltstep_stepflagset)
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_stepflagoper (step mg)
-  (debug_msg step "mgaltstep_stepflagoper step")
+  (debug "mgaltstep_stepflagoper step" step)
   (assert_msg "check step" (is_a step class_match_step_flag_operation))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4353,10 +4304,10 @@ the flags of the $STEP with an extra context $CTX.}#
 	     (if (is_a argfstep class_match_step_with_flag)
 		 (let ( (argfstepname (mapobject_get stepmap argfstep))
 			)
-		   (debug_msg argfstep "mgaltstep_stepflagoper argfstep")
-		   (debug_msg argfstepname "mgaltstep_stepflagoper argfstepname")
+		   (debug "mgaltstep_stepflagoper argfstep" argfstep)
+		   (debug "mgaltstep_stepflagoper argfstepname" argfstepname)
 		   (if (null argfstepname) 
-		       (debug_msg stepmap "mgaltstep_stepflagoper bad stepmap"))
+		       (debug "mgaltstep_stepflagoper bad stepmap" stepmap))
 		   (assert_msg "check argstepname" (is_string argfstepname))
 		   (add2out_indentnl edgebuf 0)
 		   (add2out_string edgebuf argfstepname)
@@ -4387,15 +4338,15 @@ the flags of the $STEP with an extra context $CTX.}#
 (compile_warning "missing other methods for matchgraphic_altstep on other step classes")
 
 (defun translate_matchcase (curmcase sloc prevstep)
-  (debug_msg curmcase "translate_matchcase curmcase")
+  (debug "translate_matchcase curmcase" curmcase)
   (assert_msg "check curmcase" (is_a curmcase class_match_case))
   (let ( (matctx (unsafe_get_field  :mcase_mctxt curmcase))
 	 (curscas (unsafe_get_field :mcase_source curmcase))
 	 (mloc (unsafe_get_field :loca_location curscas))
 	 )
     (assert_msg "check matctx" (is_a matctx class_matching_context))
-    (debug_msg curscas "translate_matchcase curscas")
-    (debug_msg prevstep "translate_matchcase prevstep")
+    (debug "translate_matchcase curscas" curscas)
+    (debug "translate_matchcase prevstep" prevstep)
     (assert_msg "check curscas" (is_a curscas class_source_match_case))
     (let (
 	  (curloc (unsafe_get_field :loca_location curscas))
@@ -4410,18 +4361,18 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	  (newenv (fresh_env env))
 	  )
-      (debug_msg nmatx "translate_matchcase nmatx")
-      (debug_msg curpat "translate_matchcase curpat")
-      (debug_msg mdata "translate_matchcase mdata")
+      (debug "translate_matchcase nmatx" nmatx)
+      (debug "translate_matchcase curpat" curpat)
+      (debug "translate_matchcase mdata" mdata)
       (assert_msg "check ncx" (is_a ncx class_normalization_context))
       (assert_msg "check env" (is_a env class_environment))
       (multicall 
        (mstep mflag)
        (translate_pattern curpat mdata curmcase varmap sloc)
-       (debug_msg mstep "translate_matchcase got mstep")
-       (debug_msg mflag "translate_matchcase got mflag")
-       (debug_msg curbody "translate_matchcase got curbody")
-       (debug_msg varmap "translate_matchcase got varmap")
+       (debug "translate_matchcase got mstep" mstep)
+       (debug "translate_matchcase got mflag" mflag)
+       (debug "translate_matchcase got curbody" curbody)
+       (debug "translate_matchcase got varmap" varmap)
        (foreach_in_mapobject
 	(varmap)
 	(cursym curmdata)
@@ -4433,16 +4384,16 @@ the flags of the $STEP with an extra context $CTX.}#
 				    :matchbind_nbocc (make_integerbox discr_integer 0)
 				    ))
 	       )
-	  (debug_msg matchbind "translate_matchcase matchbind")
+	  (debug "translate_matchcase matchbind" matchbind)
 	  (put_env newenv matchbind)
 	  ))
-       (debug_msg newenv "translate_matchcase updated newenv")
-       (debug_msg curbody "translate_matchcase before normalizing curbody")
+       (debug "translate_matchcase updated newenv" newenv)
+       (debug "translate_matchcase before normalizing curbody" curbody)
        (multicall
 	(nbody nbinds)
 	(normalize_tuple curbody newenv ncx sloc)
-	(debug_msg nbody "translate_matchcase nbody after body normalization")
-	(debug_msg nbinds "translate_matchcase nbinds after body normalization")
+	(debug "translate_matchcase nbody after body normalization" nbody)
+	(debug "translate_matchcase nbinds after body normalization" nbinds)
 	(let (
 	      (listvarocc (make_list discr_list))
 	      (newbindmap (get_field :env_bind newenv))
@@ -4462,14 +4413,14 @@ the flags of the $STEP with an extra context $CTX.}#
 		    (>i (get_int (unsafe_get_field :matchbind_nbocc binding)) 0))
 	       (let ( (syocc (mapobject_get sycmap bsymb))
 		      )
-		 (debug_msg syocc "translate_matchcase found syocc")
+		 (debug "translate_matchcase found syocc" syocc)
 		 (assert_msg "check syocc" (is_a syocc class_nrep_locsymocc))
 		 (assert_msg "check syocc binding" (== (get_field :nocc_bind syocc) binding))
 		 (list_append listvarocc syocc)
 		 )
 	     ))
-	  (debug_msg listvarocc "translate_matchcase listvarocc")
-	  (debug_msg mstep "translate_matchcase have mstep")
+	  (debug "translate_matchcase listvarocc" listvarocc)
+	  (debug "translate_matchcase have mstep" mstep)
 	  (let ( (sortedvarocc
 		  (multiple_sort 
 		   (list_to_multiple listvarocc discr_multiple)
@@ -4477,23 +4428,23 @@ the flags of the $STEP with an extra context $CTX.}#
 		     (compare_named_alpha (get_field :nocc_symb o1) (get_field :nocc_symb o2)))
 		   discr_multiple))
 		 )
-	    (debug_msg sortedvarocc  "translate_matchcase sortedvarocc")
+	    (debug "translate_matchcase sortedvarocc" sortedvarocc)
 	    (put_fields 
 	     stepsucc :mstepsuccess_varocc sortedvarocc))
-	  (debug_msg stepsucc "translate_matchcase stepsucc")
-	  (debug_msg mstep "translate_matchcase mstep before put_then")
+	  (debug "translate_matchcase stepsucc" stepsucc)
+	  (debug "translate_matchcase mstep before put_then" mstep)
 	  (put_then_match mstep stepsucc)
-	  (debug_msg mstep "translate_matchcase updated mstep")
+	  (debug "translate_matchcase updated mstep" mstep)
 	  (if prevstep
 	      (progn
-		(debug_msg prevstep "translate_matchcase got prevstep")
+		(debug "translate_matchcase got prevstep" prevstep)
 		(compile_warning "translate_matchcase don't put_else_match")
 		;; the put_else_match is unneeded & wrong
 		;; (put_else_match prevstep mstep)
 		))
-	  (debug_msg prevstep "translate_matchcase updated prevstep")
-	  (debug_msg mstep "translate_matchcase return mstep")
-	  (debug_msg stepsucc "translate_matchcase return stepsucc")
+	  (debug "translate_matchcase updated prevstep" prevstep)
+	  (debug "translate_matchcase return mstep" mstep)
+	  (debug "translate_matchcase return stepsucc" stepsucc)
 	  (return mstep stepsucc)
 	  ))))))
 
@@ -4602,7 +4553,7 @@ $NTESTISA_JUMP.}#
 
 ;;; utility to normalize a flag with a match normalization context
 (defun altmatch_normalize_flag (flag nmctxt)
-  (debug_msg flag "altmatch_normalize_flag flag")
+  (debug "altmatch_normalize_flag flag" flag)
   (assert_msg "altmatch_normalize_flag check flag"
 	      (is_a flag class_match_flag))
   (assert_msg "altmatch_normalize_flag check nmctxt"
@@ -4634,7 +4585,7 @@ normalized expression.}#
 
 ;; utility function to update each index of data steps in a data
 (defun match_data_update_data_steps_index (mdata)
-  (debug_msg mdata "match_data_update_steps_index mdata")
+  (debug "match_data_update_steps_index mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
   (let ( (msteps (get_field :mdata_steps mdata))
 	 )
@@ -4644,7 +4595,7 @@ normalized expression.}#
 	      (foreach_in_multiple 
 	       (msteptup)
 	       (curmstep :long stix)
-	       (debug_msg curmstep "match_data_update_data_steps_index curmstep")
+	       (debug "match_data_update_data_steps_index curmstep" curmstep)
 	       (if (is_a curmstep class_match_step_with_data)
 		   (let ( (oldixv (unsafe_get_field :mstep_index curmstep)) )
 		     (if oldixv 
@@ -4654,25 +4605,25 @@ normalized expression.}#
 					  (make_integerbox discr_constant_integer (+i stix 1))))))
 	       )
 	      (put_fields mdata :mdata_steps msteptup)
-	      (debug_msg msteptup "match_data_update_data_steps_index updated msteptup")
+	      (debug "match_data_update_data_steps_index updated msteptup" msteptup)
 	      )
 	    )
 	  ( (is_multiple msteps)
-	    (debug_msg msteps "match_data_update_data_steps_index msteps already tuple")
+	    (debug "match_data_update_data_steps_index msteps already tuple" msteps)
 	    )
 	  (:else
-	   (debug_msg msteps "match_data_update_data_steps_index unexpected msteps")
+	   (debug "match_data_update_data_steps_index unexpected msteps" msteps)
 	   (assert_msg "@$@unexpected msteps in match_data_update_data_steps_index" ())))))
 
 
 ;; utility function to compute the index of a match step and update
 ;; the mdata_steps of its data to a tuple
 (defun match_step_index (mstep)
-  (debug_msg mstep "match_step_index mstep start")
+  (debug "match_step_index mstep start" mstep)
   (assert_msg "check mstep" (is_a mstep class_match_step))
   (if (is_not_a mstep class_match_step_with_data)
       (progn
-	(debug_msg mstep "match_step_index mstep without data so return nil")
+	(debug "match_step_index mstep without data so return nil" mstep)
 	(return)))
   (let ( (matindex (unsafe_get_field :mstep_index mstep))
 	 )
@@ -4682,11 +4633,11 @@ normalized expression.}#
 	  (return matindex))
       (let ( (matdata (get_field :mstep_data mstep))
 	     )
-	(debug_msg matdata "match_step_index matdata before match_data_update_data_steps_index")
+	(debug "match_step_index matdata before match_data_update_data_steps_index" matdata)
 	(match_data_update_data_steps_index matdata)
-	(debug_msg matdata "match_step_index matdata after match_data_update_data_steps_index")
+	(debug "match_step_index matdata after match_data_update_data_steps_index" matdata)
 	(setq matindex  (unsafe_get_field :mstep_index mstep))
-	(debug_msg matindex "match_step_index final matindex")
+	(debug "match_step_index final matindex" matindex)
 	(assert_msg "match_step_index bad matindex" (is_integerbox matindex))
 	(return matindex)
 	))))
@@ -4694,27 +4645,27 @@ normalized expression.}#
 ;; this utility function completes a normstep if the step is the last
 ;; in its data, or else return the normstep unchanged...
 (defun complete_normstep_if_last (step normstep nmctxt)
-  (debug_msg step "complete_normstep_if_last start step")
-  (debug_msg normstep "complete_normstep_if_last start normstep")
+  (debug "complete_normstep_if_last start step" step)
+  (debug "complete_normstep_if_last start normstep" normstep)
   (assert_msg "check step" (is_a step class_match_step))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (if (is_not_a step class_match_step_with_data)
       (progn
-	(debug_msg step "complete_normstep_if_last step without data")
-	(debug_msg normstep "complete_normstep_if_last returning unchanged normstep without data")
+	(debug "complete_normstep_if_last step without data" step)
+	(debug "complete_normstep_if_last returning unchanged normstep without data" normstep)
 	(return normstep)))
   (let ( (matdata (get_field :mstep_data step))
 	 )
-    (debug_msg matdata "complete_normstep_if_last matdata before match_data_update_data_steps_index")
+    (debug "complete_normstep_if_last matdata before match_data_update_data_steps_index" matdata)
     (assert_msg "check matdata" (is_a matdata class_matched_data))
     (match_data_update_data_steps_index matdata)
-    (debug_msg matdata "complete_normstep_if_last matdata after match_data_update_data_steps_index")
+    (debug "complete_normstep_if_last matdata after match_data_update_data_steps_index" matdata)
     (let (
 	  (matindex (match_step_index step))
 	  (datamap (unsafe_get_field :matnorx_datamap nmctxt))
 	  (ndata (mapobject_get datamap matdata))
 	  )
-      (debug_msg matindex "complete_normstep_if_last matindex")
+      (debug "complete_normstep_if_last matindex" matindex)
       (assert_msg "check matindex" (is_integerbox matindex))
       (let ( (:long numindex (get_int matindex))
 	     (datasteps (unsafe_get_field :mdata_steps matdata))
@@ -4725,11 +4676,11 @@ normalized expression.}#
 	(assert_msg "good numindex" (<=i numindex nbdatasteps))
 	(if (<i numindex nbdatasteps)
 	    (progn
-	      (debug_msg normstep "complete_normstep_if_last return non-last normstep")
+	      (debug "complete_normstep_if_last return non-last normstep" normstep)
 	      (return normstep)
 	      ))
-	(debug_msg step "complete_normstep_if_last last step")
-	(debug_msg ndata "complete_normstep_if_last ndata")
+	(debug "complete_normstep_if_last last step" step)
+	(debug "complete_normstep_if_last ndata" ndata)
 	(assert_msg "check ndata" (is_a ndata class_nrep_simple))
 	(if (is_a ndata class_nrep_matched_data)
 	    (let ( (clearndata (instance class_nrep_match_data_clear
@@ -4737,16 +4688,16 @@ normalized expression.}#
 		   (finalndata (instance class_nrep_match_data_finalizer
 					 :nmdac_data ndata))
 		   )
-	      (debug_msg clearndata "complete_normstep_if_last clearndata")
-	      (debug_msg finalndata "complete_normstep_if_last finalndata")
-	      (debug_msg normstep "complete_normstep_if_last normstep")
+	      (debug "complete_normstep_if_last clearndata" clearndata)
+	      (debug "complete_normstep_if_last finalndata" finalndata)
+	      (debug "complete_normstep_if_last normstep" normstep)
 	      (cond ( (is_object normstep)
 		      (let ( (normsteptup (tuple normstep clearndata finalndata)) )
-			(debug_msg normsteptup "complete_normstep_if_last new normsteptup")
+			(debug "complete_normstep_if_last new normsteptup" normsteptup)
 			(return normsteptup)))
 		    ( (null normstep)
 		      (let ( (steptupn (tuple clearndata finalndata)) )
-			(debug_msg steptupn "complete_normstep_if_last new steptupn for nil")
+			(debug "complete_normstep_if_last new steptupn for nil" steptupn)
 			(return steptupn)))
 		    ( (is_multiple normstep)
 		      (let ( (normsteplist (multiple_to_list normstep))
@@ -4754,39 +4705,39 @@ normalized expression.}#
 			(list_append normsteplist clearndata)
 			(list_append normsteplist finalndata)
 			(let ( (newnormstep (list_to_multiple normsteplist)) )
-			  (debug_msg newnormstep "complete_normstep_if_last newnormstep")
+			  (debug "complete_normstep_if_last newnormstep" newnormstep)
 			  (return newnormstep)
 			  )))
 		    ( (is_list normstep)
 		      (list_append normstep clearndata)
 		      (list_append normstep finalndata)
-		      (debug_msg normstep "complete_normstep_if_last extended normstep")
+		      (debug "complete_normstep_if_last extended normstep" normstep)
 		      (return normstep))
 		    (:else
-		     (debug_msg normstep "complete_normstep_if_last bad normstep")
+		     (debug "complete_normstep_if_last bad normstep" normstep)
 		     (assert_msg "complete_normstep_if_last unexpected normstep" ())
 		     )))
 	  (progn
-	    (debug_msg ndata "complete_normstep_if_last ndata not a matched data")
-	    (debug_msg normstep "complete_normstep_if_last unchanged normstep")
+	    (debug "complete_normstep_if_last ndata not a matched data" ndata)
+	    (debug "complete_normstep_if_last unchanged normstep" normstep)
 	    (return normstep))
 	  )))))
 
 (defun normstep_anyrecv (recv nmctxt sloc)
-  (debug_msg recv "normstep_anyrecv recv")
+  (debug "normstep_anyrecv recv" recv)
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (dis (discrim recv))
 	 (disname (get_field :named_name dis))
 	 )
     (error_strv sloc "unexpected NORMALIZE_STEP for" disname)
-    (debug_msg dis "normstep_anyrecv dis")
+    (debug "normstep_anyrecv dis" dis)
     (assert_msg "@$@ unexpected normstep_anyrecv" ())
 ))
 (install_method  discr_any_receiver normalize_step normstep_anyrecv)
 
 
 (defun normstep_mflagset (step nmctxt sloc)
-  (debug_msg step "normstep_mflagset step")
+  (debug "normstep_mflagset step" step)
   (assert_msg "check step" (is_a step class_match_step_flag_set))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -4802,15 +4753,15 @@ normalized expression.}#
 			   :nmjmp_label nthen))
 	  (nlisti (list nsetflag njump))
 	  )
-    (debug_msg nlisti "normstep_mflagset nlisti")
+    (debug "normstep_mflagset nlisti" nlisti)
     (let ( (res (complete_normstep_if_last step nlisti nmctxt)) )
-      (debug_msg res "normstep_mflagset return res")
+      (debug "normstep_mflagset return res" res)
       (return res)
       )))
 (install_method class_match_step_flag_set normalize_step normstep_mflagset)
 
 (defun normstep_mflagconj (step nmctxt sloc)
-  (debug_msg step "normstep_mflagconj step")
+  (debug "normstep_mflagconj step" step)
   (assert_msg "check step" (is_a step class_match_step_flag_conjunction))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -4828,8 +4779,8 @@ normalized expression.}#
 			   :nmjmp_label nthen))
 	  (nlisti (list nsetflag njump))
 	  )
-    (debug_msg nlisti "normstep_mflagconj nlisti")
-    (debug_msg matflagargs "normstep_mflagconj matflagargs")
+    (debug "normstep_mflagconj nlisti" nlisti)
+    (debug "normstep_mflagconj matflagargs" matflagargs)
     (cond
      ( (<=i matflagnbargs 0)
        (put_fields nsetflag :nstq_exp '0))
@@ -4852,10 +4803,10 @@ normalized expression.}#
 	(foreach_in_multiple
 	 (matflagargs)
 	 (curmatflag :long flagix)
-	 (debug_msg curmatflag "normstep_mflagconj curmatflag")
+	 (debug "normstep_mflagconj curmatflag" curmatflag)
 	 (let ( (curnflag (altmatch_normalize_flag curmatflag nmctxt))
 		)
-	   (debug_msg curnflag "normstep_mflagconj curnflag")
+	   (debug "normstep_mflagconj curnflag" curnflag)
 	 (if (>i flagix 0)
 	     (list_append nconjlist (make_stringconst discr_verbatim_string " && ")))
 	 (list_append nconjlist curnflag)
@@ -4863,15 +4814,15 @@ normalized expression.}#
 	(put_fields nchunk :nchunk_expansion (list_to_multiple nconjlist))
 	(put_fields nsetflag :nstq_exp nchunk)
       )))
-    (debug_msg nsetflag "normstep_mflagconj nsetflag")
+    (debug "normstep_mflagconj nsetflag" nsetflag)
     (let ( (res (complete_normstep_if_last step nlisti nmctxt)) )
-      (debug_msg res "normstep_mflagconj return res")
+      (debug "normstep_mflagconj return res" res)
       (return res)
       )))
 (install_method class_match_step_flag_conjunction normalize_step normstep_mflagconj)
 
 (defun normstep_mtestinstance (step nmctxt sloc)
-  (debug_msg step "normstep_mtestinstance step")
+  (debug "normstep_mtestinstance step" step)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -4883,11 +4834,11 @@ normalized expression.}#
 	 (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	 (ndata (altmatch_normalize_mdata matdata nmctxt))
 	 )
-    (debug_msg matclass "normstep_mtestinstance matclass")
-    (debug_msg ndata "normstep_mtestinstance ndata")
-    (debug_msg matslots "normstep_mtestinstance matslots")
-    (debug_msg matthen "normstep_mtestinstance matthen")
-    (debug_msg matelse "normstep_mtestinstance matelse")
+    (debug "normstep_mtestinstance matclass" matclass)
+    (debug "normstep_mtestinstance ndata" ndata)
+    (debug "normstep_mtestinstance matslots" matslots)
+    (debug "normstep_mtestinstance matthen" matthen)
+    (debug "normstep_mtestinstance matelse" matelse)
     (assert_msg "check matclass" (is_a matclass class_class))
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
@@ -4911,18 +4862,18 @@ normalized expression.}#
 			    :nif_then ()
 			    :nif_else ()))
 	  )
-      (debug_msg nthen "normstep_mtestinstance nthen")
-      (debug_msg nelse "normstep_mtestinstance nelse")
+      (debug "normstep_mtestinstance nthen" nthen)
+      (debug "normstep_mtestinstance nelse" nelse)
       (assert_msg "check nthen" (is_a nthen class_nrep_match_label))
       (assert_msg "check nelse" (is_a nelse class_nrep_match_label))
-      (debug_msg njthen "normstep_mtestinstance njthen")
-      (debug_msg njelse "normstep_mtestinstance njelse")
+      (debug "normstep_mtestinstance njthen" njthen)
+      (debug "normstep_mtestinstance njelse" njelse)
       (foreach_in_multiple
        (matslots)
        (curmslot :long curix)
        (if curmslot
 	   (progn
-	     (debug_msg curmslot "normstep_mtestinstance curmslot")
+	     (debug "normstep_mtestinstance curmslot" curmslot)
 	     (assert_msg "check curmslot" (is_a curmslot class_matched_data))
 	     (let ( (nslot (altmatch_normalize_mdata curmslot nmctxt))
 		    (curfld (multiple_nth clafields curix))
@@ -4935,13 +4886,13 @@ normalized expression.}#
 				     :nstq_var nslot
 				     :nstq_exp nflexp))
 		    )
-	       (debug_msg nslot "normstep_mtestinstance nslot")
-	       (debug_msg curfld "normstep_mtestinstance curfld")
-	       (debug_msg nsetf "normstep_mtestinstance nsetf")
+	       (debug "normstep_mtestinstance nslot" nslot)
+	       (debug "normstep_mtestinstance curfld" curfld)
+	       (debug "normstep_mtestinstance nsetf" nsetf)
 	       (assert_msg "check curfld" (is_a curfld class_field))
 	       (list_append niflist nsetf)
 	       ))))
-      (debug_msg nifisa "normstep_mtestinstance nifisa")
+      (debug "normstep_mtestinstance nifisa" nifisa)
       (cond ( (is_object njthen)
 	      (list_append niflist njthen))
 	    ( (is_list njthen)
@@ -4952,9 +4903,9 @@ normalized expression.}#
 	       (curjthen :long jix)
 	       (list_append niflist curjthen)))
 	    (:else
-	     (debug_msg njthen "normstep_mtestinstance unexpected njthen")
+	     (debug "normstep_mtestinstance unexpected njthen" njthen)
 	     (assert_msg "normstep_mtestinstance unexpected njthen" ())))
-      (debug_msg niflist "normstep_mtestinstance niflist")
+      (debug "normstep_mtestinstance niflist" niflist)
       (let ( (nthenprogn (instance class_nrep_progn
 				   :nrep_loc nsloc
 				   :nprogn_seq (list_to_multiple niflist)
@@ -4970,12 +4921,12 @@ normalized expression.}#
 			   :nprogn_seq njelse
 			   :nprogn_last ()))
 	       (:else
-		(debug_msg njelse "unexpected njelse")
+		(debug "unexpected njelse" njelse)
 		(assert_msg "normstep_mtestinstance unexpected njelse" ()))))
 	     )
 	(unsafe_put_fields nifisa :nif_then nthenprogn :nif_else npelse)
 	)
-      (debug_msg nifisa "normstep_mtestinstance updated nifisa")
+      (debug "normstep_mtestinstance updated nifisa" nifisa)
       (return nifisa)
       )))
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
@@ -4983,7 +4934,7 @@ normalized expression.}#
 
 
 (defun normstep_mtestvar (step nmctxt sloc)
-  (debug_msg step "normstep_mtestvar step")
+  (debug "normstep_mtestvar step" step)
   (assert_msg "check step" (is_a step class_match_step_test_variable))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -4993,10 +4944,10 @@ normalized expression.}#
 	  (matdata (unsafe_get_field :mstep_data step))
 	  (matestdata (unsafe_get_field :msteptestvar_data step))
 	  )
-    (debug_msg matthen "normstep_mtestvar matthen")
-    (debug_msg matelse "normstep_mtestvar matelse")
-    (debug_msg matdata "normstep_mtestvar matdata")
-    (debug_msg matestdata "normstep_mtestvar matestdata")
+    (debug "normstep_mtestvar matthen" matthen)
+    (debug "normstep_mtestvar matelse" matelse)
+    (debug "normstep_mtestvar matdata" matdata)
+    (debug "normstep_mtestvar matestdata" matestdata)
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nelse (altmatch_normalize_step matelse nmctxt))
@@ -5016,14 +4967,14 @@ normalized expression.}#
 			       :nif_then ()
 			       :nif_else ()))
 	  )
-      (debug_msg nthen "normstep_mtestvar nthen")
-      (debug_msg nelse "normstep_mtestvar nelse")
-      (debug_msg ndata "normstep_mtestvar ndata")
-      (debug_msg ntestdata "normstep_mtestvar ntestdata")
-      (debug_msg step "normstep_mtestvar step")
-      (debug_msg ntestsame "normstep_mtestvar ntestsame")
+      (debug "normstep_mtestvar nthen" nthen)
+      (debug "normstep_mtestvar nelse" nelse)
+      (debug "normstep_mtestvar ndata" ndata)
+      (debug "normstep_mtestvar ntestdata" ntestdata)
+      (debug "normstep_mtestvar step" step)
+      (debug "normstep_mtestvar ntestsame" ntestsame)
       ;; update ntestsame using njthen
-      (debug_msg njthen "normstep_mtestvar njthen")
+      (debug "normstep_mtestvar njthen" njthen)
       (cond ( (is_object njthen)
 	      (unsafe_put_fields ntestsame :nif_then njthen))
 	    ( (is_multiple njthen)
@@ -5034,11 +4985,11 @@ normalized expression.}#
 					   :nprogn_last ()))
 	      )
 	    (:else
-		(debug_msg njthen "unexpected njelse")
+		(debug "unexpected njelse" njthen)
 		(assert_msg "normstep_mtestvar unexpected njthen" ())
 	     ))
       ;; update ntestsame using njelse
-      (debug_msg njelse "normstep_mtestvar njelse")
+      (debug "normstep_mtestvar njelse" njelse)
       (cond ( (is_object njelse)
 	      (unsafe_put_fields ntestsame :nif_else njelse))
 	    ( (is_multiple njelse)
@@ -5049,21 +5000,21 @@ normalized expression.}#
 					   :nprogn_last ()))
 	      )
 	    (:else
-		(debug_msg njelse "unexpected njelse")
+		(debug "unexpected njelse" njelse)
 		(assert_msg "normstep_mtestvar unexpected njelse" ())
 	     ))
       ;;
-      (debug_msg ntestsame "normstep_mtestvar final ntestsame")
+      (debug "normstep_mtestvar final ntestsame" ntestsame)
       (return ntestsame)
       )))
 (install_method class_match_step_test_variable normalize_step normstep_mtestvar)
 
 
 (defun normstep_mgroup (step nmctxt sloc)
-  (debug_msg step "normstep_mgroup step")
+  (debug "normstep_mgroup step=" step 
+	 " class_match_step_test_group=" class_match_step_test_group 
+	 " nmctxt=" nmctxt)
   (assert_msg "check step" (is_a step class_match_step_test_group))
-  (debug_msg class_match_step_test_group "normstep_mgroup class_match_step_test_group")
-  (debug_msg nmctxt "normstep_mgroup nmctxt")
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let ( (matsloc (unsafe_get_field :loca_location step))
 	 (matthen (unsafe_get_field :mstep_then step))
@@ -5090,7 +5041,7 @@ normalized expression.}#
 	   ( (null mgrthen)
 	     ())
 	   (:else
-	    (debug_msg mgrthen "normstep_mgroup bad mgrthen")
+	    (debug "normstep_mgroup bad mgrthen" mgrthen)
 	    (assert_msg "invalid mgrthen")
 	    )))
 	 (nelsegr 
@@ -5106,21 +5057,21 @@ normalized expression.}#
 	   ( (null mgrelse)
 	     ())
 	   (:else
-	    (debug_msg mgrelse "normstep_mgroup bad mgrelse")
+	    (debug "normstep_mgroup bad mgrelse" mgrelse)
 	    (assert_msg "invalid mgrelse")
 	    )))
 	 )
-    (debug_msg ndata "normstep_mgroup ndata")
-    (debug_msg matthen "normstep_mgroup matthen")
-    (debug_msg matelse "normstep_mgroup matelse")
-    (debug_msg nthen "normstep_mgroup nthen")
-    (debug_msg nelse "normstep_mgroup nelse")
-    (debug_msg mgrstart "normstep_mgroup mgrstart")
-    (debug_msg nstartgr "normstep_mgroup nstartgr")
-    (debug_msg mgrthen "normstep_mgroup mgrthen")
-    (debug_msg nthengr "normstep_mgroup nthengr")
-    (debug_msg mgrelse "normstep_mgroup mgrelse")
-    (debug_msg nelsegr "normstep_mgroup nelseg")
+    (debug "normstep_mgroup ndata" ndata)
+    (debug "normstep_mgroup matthen" matthen)
+    (debug "normstep_mgroup matelse" matelse)
+    (debug "normstep_mgroup nthen" nthen)
+    (debug "normstep_mgroup nelse" nelse)
+    (debug "normstep_mgroup mgrstart" mgrstart)
+    (debug "normstep_mgroup nstartgr" nstartgr)
+    (debug "normstep_mgroup mgrthen" mgrthen)
+    (debug "normstep_mgroup nthengr" nthengr)
+    (debug "normstep_mgroup mgrelse" mgrelse)
+    (debug "normstep_mgroup nelseg" nelsegr)
     (assert_msg "$@$unimplemented normstep_mgroup")
     ))
 (install_method class_match_step_test_group normalize_step normstep_mgroup)
@@ -5128,7 +5079,7 @@ normalized expression.}#
 ;;;;;;;;;;;;;;;;
 
 (defun normstep_msuccwhenflag (step nmctxt sloc)
-  (debug_msg step "normstep_msuccwhenflag step")
+  (debug "normstep_msuccwhenflag step" step)
   (assert_msg "check step" (is_a step class_match_step_success_when_flag))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -5139,12 +5090,12 @@ normalized expression.}#
 	  (mbinds (unsafe_get_field :mstepsuccess_binds step))
 	  (matbody (unsafe_get_field :mstepsuccess_body step))
 	  )
-    (debug_msg matflag "normstep_msuccwhenflag mflag")
-    (debug_msg matvarocc "normstep_msuccwhenflag matvarocc")
-    (debug_msg mbinds "normstep_msuccwhenflag mbinds")
-    (debug_msg matbody "normstep_msuccwhenflag matbody")
-    (debug_msg matthen "normstep_msuccwhenflag mthen")
-    (debug_msg nmatresloc "normstep_msuccwhenflag nmatresloc")
+    (debug "normstep_msuccwhenflag mflag" matflag)
+    (debug "normstep_msuccwhenflag matvarocc" matvarocc)
+    (debug "normstep_msuccwhenflag mbinds" mbinds)
+    (debug "normstep_msuccwhenflag matbody" matbody)
+    (debug "normstep_msuccwhenflag mthen" matthen)
+    (debug "normstep_msuccwhenflag nmatresloc" nmatresloc)
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nflag (altmatch_normalize_flag matflag nmctxt))
@@ -5170,10 +5121,10 @@ normalized expression.}#
        )
       (multiple_put_nth newmatbody -2 nsetqres)
       (multiple_put_nth newmatbody -1 njthen)
-      (debug_msg nthen "normstep_msuccwhenflag nthen")
-      (debug_msg njthen "normstep_msuccwhenflag njthen")
-      (debug_msg nflag "normstep_msuccwhenflag nflag")
-      (debug_msg newmatbody "normstep_msuccwhenflag newmatbody")
+      (debug "normstep_msuccwhenflag nthen" nthen)
+      (debug "normstep_msuccwhenflag njthen" njthen)
+      (debug "normstep_msuccwhenflag nflag" nflag)
+      (debug "normstep_msuccwhenflag newmatbody" newmatbody)
       (let (
 	    (nifsucc (instance class_nrep_if
 			       :nrep_loc nsloc
@@ -5183,7 +5134,7 @@ normalized expression.}#
 			       :nif_else ()))
 
 	    )
-	(debug_msg nifsucc "normstep_msuccwhenflag final nifsucc")
+	(debug "normstep_msuccwhenflag final nifsucc" nifsucc)
 	(return nifsucc)
 	))))
 (install_method class_match_step_success_when_flag normalize_step normstep_msuccwhenflag)
@@ -5203,11 +5154,11 @@ normalized expression.}#
 )
 
 (defun normtestmatch_catchall (recv sloc ndata bindlist nmctxt njelse)
-  (debug_msg recv "normtestmatch_catchall recv")
-  (debug_msg nmctxt "normtestmatch_catchall nmctxt")
-  (debug_msg ndata "normtestmatch_catchall ndata")
-  (debug_msg bindlist "normtestmatch_catchall bindlist")
-  (debug_msg njelse "normtestmatch_catchall njelse")
+  (debug "normtestmatch_catchall recv" recv)
+  (debug "normtestmatch_catchall nmctxt" nmctxt)
+  (debug "normtestmatch_catchall ndata" ndata)
+  (debug "normtestmatch_catchall bindlist" bindlist)
+  (debug "normtestmatch_catchall njelse" njelse)
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv sloc 
@@ -5217,8 +5168,8 @@ normalized expression.}#
 (install_method discr_any_receiver normalize_test_matcher normtestmatch_catchall)
 
 (defun normfillmatch_catchall (recv sloc ndata  bindlist nouts nmctxt testextra testdata)
-  (debug_msg recv "normfillmatch_catchall recv")
-  (debug_msg nmctxt "normfillmatch_catchall nmctxt")
+  (debug "normfillmatch_catchall recv" recv)
+  (debug "normfillmatch_catchall nmctxt" nmctxt)
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv sloc 
@@ -5229,12 +5180,12 @@ normalized expression.}#
 
 ;;;;;;;;;;;;;;;;
 (defun normtestmatch_cmatcher  (recv sloc ndata bindlist nmctxt njelse)
-  (debug_msg recv "normtestmatch_cmatcher recv")
+  (debug "normtestmatch_cmatcher recv" recv)
   (assert_msg "check recv" (is_a recv class_cmatcher))
-  (debug_msg nmctxt "normtestmatch_cmatcher nmctxt")
-  (debug_msg ndata "normtestmatch_cmatcher ndata")
-  (debug_msg njelse "normtestmatch_cmatcher njelse")
-  (debug_msg bindlist "normtestmatch_cmatcher bindlist")
+  (debug "normtestmatch_cmatcher nmctxt" nmctxt)
+  (debug "normtestmatch_cmatcher ndata" ndata)
+  (debug "normtestmatch_cmatcher njelse" njelse)
+  (debug "normtestmatch_cmatcher bindlist" bindlist)
   (assert_msg "normtestmatch_cmatcher check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let (
 	(matbind (unsafe_get_field :amatch_matchbind recv))
@@ -5264,13 +5215,13 @@ normalized expression.}#
 			    :nexpr_ctyp ctype_void))
 	(bindmap (make_mapobject discr_map_objects (+i 5 (*i 2 lenbindlist))))
 	)
-    (debug_msg matbind "normtestmatch_cmatcher matbind")
-    (debug_msg matstate "normtestmatch_cmatcher matstate")
-    (debug_msg exptest "normtestmatch_cmatcher exptest")
+    (debug "normtestmatch_cmatcher matbind" matbind)
+    (debug "normtestmatch_cmatcher matstate" matstate)
+    (debug "normtestmatch_cmatcher exptest" exptest)
     (foreach_in_list
      (bindlist)
      (curpairbind curbind)
-     (debug_msg curbind "normtestmatch_cmatcher curbind")
+     (debug "normtestmatch_cmatcher curbind" curbind)
      (assert_msg "normtestmatch_cmatcher check curbind" (is_a curbind class_normal_let_binding))
      (mapobject_put bindmap (get_field :binder curbind) (get_field :letbind_expr curbind))
      )
@@ -5278,7 +5229,7 @@ normalized expression.}#
     (foreach_in_multiple
      (exptest)
      (curexp :long ix)
-     (debug_msg curexp "normtestmatch_cmatcher curexp")
+     (debug "normtestmatch_cmatcher curexp" curexp)
      (cond 
       ( (is_string curexp)
 	(multiple_put_nth expargs ix curexp))
@@ -5289,7 +5240,7 @@ normalized expression.}#
       ( (is_a curexp class_symbol)
 	(let ( (nval (mapobject_get bindmap curexp))
 	       )
-	  (debug_msg nval "normtestmatch_cmatcher nval")
+	  (debug "normtestmatch_cmatcher nval" nval)
 	  (if (is_a nval class_nrep)
 	      (multiple_put_nth expargs ix nval)
 	    (progn
@@ -5300,11 +5251,11 @@ normalized expression.}#
        (error_plain sloc "unexpected thing in cmatcher")
        (assert_msg "normtestmatch_cmatcher unimplemented case"))
      ))
-    (debug_msg expargs "normtestmatch_cmatcher expargs")
-    (debug_msg ntestelse "normtestmatch_cmatcher return ntestelse")
-    (debug_msg csymstate "normtestmatch_cmatcher return csymstate")
-    (debug_msg csymstr "normtestmatch_cmatcher return csymstr")
-    (debug_msg bindmap "normtestmatch_cmatcher return bindmap")
+    (debug "normtestmatch_cmatcher expargs" expargs)
+    (debug "normtestmatch_cmatcher return ntestelse" ntestelse)
+    (debug "normtestmatch_cmatcher return csymstate" csymstate)
+    (debug "normtestmatch_cmatcher return csymstr" csymstr)
+    (debug "normtestmatch_cmatcher return bindmap" bindmap)
     (return ntestelse (tuple csymstate csymstr bindmap))
     )
   )
@@ -5314,12 +5265,12 @@ normalized expression.}#
 
 
 (defun normfillmatch_cmatcher (recv sloc ndata bindlist nouts nmctxt testdata)
-  (debug_msg recv "normfillmatch_cmatcher recv")
-  (debug_msg nmctxt "normfillmatch_cmatcher nmctxt")
-  (debug_msg ndata "normfillmatch_cmatcher ndata")
-  (debug_msg bindlist "normfillmatch_cmatcher bindlist")
-  (debug_msg nouts "normfillmatch_cmatcher nouts")
-  (debug_msg testdata "normfillmatch_cmatcher testdata")
+  (debug "normfillmatch_cmatcher recv" recv)
+  (debug "normfillmatch_cmatcher nmctxt" nmctxt)
+  (debug "normfillmatch_cmatcher ndata" ndata)
+  (debug "normfillmatch_cmatcher bindlist" bindlist)
+  (debug "normfillmatch_cmatcher nouts" nouts)
+  (debug "normfillmatch_cmatcher testdata" testdata)
   (assert_msg "normfillmatch_cmatcher check recv" (is_a recv class_cmatcher))
   (assert_msg "normfillmatch_cmatcher check testdata" (is_multiple testdata))
   (let ( (expfill (unsafe_get_field :cmatch_expfill recv))
@@ -5340,7 +5291,7 @@ normalized expression.}#
 			       :nchunk_oper recv
 			       :nexpr_ctyp ctype_void))
 	 )
-    (debug_msg matout "normfillmatch_cmatcher matout")
+    (debug "normfillmatch_cmatcher matout" matout)
     (assert_msg "normfillmatch_cmatcher check nbnouts" (==i nbnouts (multiple_length matout)))
     (foreach_in_multiple
      (nouts)
@@ -5348,21 +5299,21 @@ normalized expression.}#
      (let ( (curoutf (multiple_nth matout noutix)) 
 	    (curoutsym (get_field :binder curoutf))
 	    )
-       ;;(debug_msg curoutf "normfillmatch_cmatcher curoutf")
-       ;;(debug_msg curoutsym "normfillmatch_cmatcher curoutsym")
-       ;;(debug_msg curnout "normfillmatch_cmatcher curnout")
+       ;;(debug "normfillmatch_cmatcher curoutf" curoutf)
+       ;;(debug "normfillmatch_cmatcher curoutsym" curoutsym)
+       ;;(debug "normfillmatch_cmatcher curnout" curnout)
        (assert_msg "normfillmatch_cmatcher check curoutf"
 		   (is_a curoutf class_formal_binding))
        (assert_msg "normfillmatch_cmatcher check curoutsym"
 		   (is_a curoutsym class_symbol))
        (mapobject_put bindmap curoutsym curnout)
        ))
-    (debug_msg bindmap "normfillmatch_cmatcher updated bindmap")
-    (debug_msg expfill "normfillmatch_cmatcher expfill")
+    (debug "normfillmatch_cmatcher updated bindmap" bindmap)
+    (debug "normfillmatch_cmatcher expfill" expfill)
     (foreach_in_multiple 
      (expfill)
      (curfill :long nix)
-     (debug_msg curfill "normfillmatch_cmatcher curfill")
+     (debug "normfillmatch_cmatcher curfill" curfill)
      (cond 
       ( (is_string curfill)
 	(multiple_put_nth nexpargs nix curfill)
@@ -5373,7 +5324,7 @@ normalized expression.}#
       ( (is_a curfill class_symbol)
 	(let ( (nfill (mapobject_get bindmap curfill))
 	       )
-	  (debug_msg nfill "normfillmatch_cmatcher nfill")
+	  (debug "normfillmatch_cmatcher nfill" nfill)
 	  (if nfill
 	      (multiple_put_nth nexpargs nix nfill)
 	    (assert_msg "normfillmatch_cmatcher no nfill"))
@@ -5381,7 +5332,7 @@ normalized expression.}#
       (:else
        (assert_msg "unexpected curfull normfillmatch_cmatcher")))
      )
-    (debug_msg nfillchunk "normfillmatch_cmatcher return nfillchunk")
+    (debug "normfillmatch_cmatcher return nfillchunk" nfillchunk)
     (return nfillchunk ())
     )
   )
@@ -5390,7 +5341,7 @@ normalized expression.}#
 
 ;;;;;;;;;;;;;;;;
 (defun normstep_mtestmatcher (step nmctxt sloc)
-  (debug_msg step "normstep_mtestmatcher step")
+  (debug "normstep_mtestmatcher step" step)
   (assert_msg "check step" (is_a step class_match_step_test_matcher))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -5403,10 +5354,10 @@ normalized expression.}#
 	  (mouts (unsafe_get_field :mstma_outs step))
 	  (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	  )
-    (debug_msg matdata "normstep_mtestmatcher matdata")
-    (debug_msg mins "normstep_mtestmatcher mins")
-    (debug_msg mouts "normstep_mtestmatcher mouts")
-    (debug_msg matmatcher "normstep_mtestmatcher matmatcher")
+    (debug "normstep_mtestmatcher matdata" matdata)
+    (debug "normstep_mtestmatcher mins" mins)
+    (debug "normstep_mtestmatcher mouts" mouts)
+    (debug "normstep_mtestmatcher matmatcher" matmatcher)
     (assert_msg "check matmatcher" (is_a matmatcher class_any_matcher))
     (let ( 
 	  (nthen (altmatch_normalize_step matthen nmctxt))
@@ -5427,13 +5378,13 @@ normalized expression.}#
 	  (:long nbmouts (multiple_length mouts))
 	  (normouts (make_multiple discr_multiple nbmouts))
 	  )
-      (debug_msg njthen "normstep_mtestmatcher njthen")
-      (debug_msg njelse "normstep_mtestmatcher njelse")
-      (debug_msg ndata "normstep_mtestmatcher ndata")
-      (debug_msg ambind "normstep_mtestmatcher ambind")
-      (debug_msg amin "normstep_mtestmatcher amin")
-      (debug_msg mins "normstep_mtestmatcher mins again")
-      (debug_msg matctx "normstep_mtestmatcher matctx")
+      (debug "normstep_mtestmatcher njthen" njthen)
+      (debug "normstep_mtestmatcher njelse" njelse)
+      (debug "normstep_mtestmatcher ndata" ndata)
+      (debug "normstep_mtestmatcher ambind" ambind)
+      (debug "normstep_mtestmatcher amin" amin)
+      (debug "normstep_mtestmatcher mins again" mins)
+      (debug "normstep_mtestmatcher matctx" matctx)
       (assert_msg "check env" (is_a env class_environment))
       ;; bind the matched data
       (assert_msg "check ambind" (is_a ambind class_formal_binding))
@@ -5457,7 +5408,7 @@ normalized expression.}#
 	      )
 	  (put_env newenv newambinding)
 	  )
-	(debug_msg newambinding "normstep_mtestmatcher newambinding")
+	(debug "normstep_mtestmatcher newambinding" newambinding)
 	(list_append newbindlist newambinding)
 	;; bind the matched inputs
 	(if (!=i (multiple_length amin) (multiple_length mins))
@@ -5473,9 +5424,9 @@ normalized expression.}#
 		(curmintype (get_field :fbind_type curmin))
 		(curminbinder (get_field :binder curmin))
 		)
-	   (debug_msg curmin "normstep_mtestmatcher curmin")
-	   (debug_msg curins "normstep_mtestmatcher curins")
-	   (debug_msg curctype "normstep_mtestmatcher curctype")
+	   (debug "normstep_mtestmatcher curmin" curmin)
+	   (debug "normstep_mtestmatcher curins" curins)
+	   (debug "normstep_mtestmatcher curctype" curctype)
 	   (assert_msg "check curmin" (is_a curmin class_formal_binding))
 	   (if (!= curmintype curctype)
 	       (progn
@@ -5494,15 +5445,15 @@ normalized expression.}#
 					:letbind_type curctype
 					:letbind_expr curins)
 			      ) )
-	     (debug_msg newbinding "normstep_mtestmatcher newbinding")
+	     (debug "normstep_mtestmatcher newbinding" newbinding)
 	     (put_env newenv newbinding)
 	     (list_append newbindlist newbinding)
 	     )
 	   ))
-	(debug_msg newbindlist "normstep_mtestmatcher newbindlist")
+	(debug "normstep_mtestmatcher newbindlist" newbindlist)
 ;;;
-	(debug_msg amout "normstep_mtestmatcher amout")
-	(debug_msg mouts "normstep_mtestmatcher mouts again")
+	(debug "normstep_mtestmatcher amout" amout)
+	(debug "normstep_mtestmatcher mouts again" mouts)
 	(if (!=i (multiple_length amout) (multiple_length mouts))
 	    (error_strv nsloc 
 			"mismatch on output arity of matcher" 
@@ -5512,36 +5463,36 @@ normalized expression.}#
 	 (curmoutbind :long mix)
 	 (let ( (curouts (multiple_nth mouts mix))
 		)
-	   (debug_msg curmoutbind "normstep_mtestmatcher curmoutbind")
-	   (debug_msg curouts "normstep_mtestmatcher curouts")
+	   (debug "normstep_mtestmatcher curmoutbind" curmoutbind)
+	   (debug "normstep_mtestmatcher curouts" curouts)
 	   (assert_msg "check curmoutbind" (is_a curmoutbind class_formal_binding))
 	   (assert_msg "check curouts" (is_a curouts class_matched_data))
 	   (let (  (nouts (altmatch_normalize_mdata curouts nmctxt))
 		   )
-	     (debug_msg nouts "normstep_mtestmatcher nouts")
+	     (debug "normstep_mtestmatcher nouts" nouts)
 	     ;; nouts is a class_nrep_matched_data
 	     (assert_msg "check nouts" (is_a nouts class_nrep_matched_data))
 	     (multiple_put_nth normouts mix nouts)
 	     )
 	   ))
 	;;
-	(debug_msg normouts "normstep_mtestmatcher normouts")
+	(debug "normstep_mtestmatcher normouts" normouts)
 	;; we should probably have a selector to make the test part of a matching
 	;; and another selector to make the fill part of it
-	(debug_msg matmatcher "normstep_mtestmatcher matmatcher before normalize_test_matcher")
+	(debug "normstep_mtestmatcher matmatcher before normalize_test_matcher" matmatcher)
 	(multicall
 	 (ntest testdata)
 	 (normalize_test_matcher matmatcher sloc ndata newbindlist nmctxt njelse)
-	 (debug_msg ntest "normstep_mtestmatcher ntest after normalize_test_matcher")
-	 (debug_msg testdata "normstep_mtestmatcher testdata after normalize_test_matcher")
+	 (debug "normstep_mtestmatcher ntest after normalize_test_matcher" ntest)
+	 (debug "normstep_mtestmatcher testdata after normalize_test_matcher" testdata)
 	 (let ( 
 	       (nfill
 		(normalize_fill_matcher matmatcher 
 					sloc ndata newbindlist normouts nmctxt testdata))
 	       )
-	   (debug_msg nfill "normstep_mtestmatcher after normalize_fill_matcher nfill")
+	   (debug "normstep_mtestmatcher after normalize_fill_matcher nfill" nfill)
 	   (let ( (restup (tuple ntest nfill njelse)) )
-	     (debug_msg restup "normalize_fill_matcher return restup")
+	     (debug "normalize_fill_matcher return restup" restup)
 	     (return restup)
 	     )))))))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)
@@ -5550,13 +5501,13 @@ normalized expression.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context
 (defun altmatch_normalize_step (step nmctxt)
-  (debug_msg step "altmatch_normalize_step step")
+  (debug "altmatch_normalize_step step" step)
   (assert_msg "altmatch_normalize_step check nmctxt" (is_a nmctxt class_match_normalization_context))
   ;; special case, null step so gives the end label
   (if (null step)
       (let ( (endlab (unsafe_get_field :matnorx_endlabel nmctxt))
 	     )
-	(debug_msg endlab "altmatch_normalize_step null step so return endlab")
+	(debug "altmatch_normalize_step null step so return endlab" endlab)
 	(return endlab)))
   (assert_msg "altmatch_normalize_step check step" (is_a step class_match_step))
   (let ( (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
@@ -5571,10 +5522,10 @@ normalized expression.}#
 			  :nrep_loc sloc
 			  :nmlab_step step))
 	       )
-	  (debug_msg newlab "altmatch_normalize_step newlab")
+	  (debug "altmatch_normalize_step newlab" newlab)
 	  (mapobject_put stepmap step newlab)
 	  (list_append mstepqueue step)
-	  (debug_msg mstepqueue "altmatch_normalize_step updated mstepqueue")
+	  (debug "altmatch_normalize_step updated mstepqueue" mstepqueue)
 	  (setq nlab newlab)
 	  ))
     (assert_msg "check good nlab" (is_a nlab class_nrep_match_label))
@@ -5583,7 +5534,7 @@ normalized expression.}#
 
 ;;; utility to normalize a matched data with a match normalization context
 (defun altmatch_normalize_mdata (mdata nmctxt)
-  (debug_msg mdata "altmatch_normalize_mdata mdata")
+  (debug "altmatch_normalize_mdata mdata" mdata)
   (assert_msg "altmatch_normalize_mdata check mdata" (is_a mdata class_matched_data))
   (assert_msg "altmatch_normalize_mdata check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (datamap (unsafe_get_field :matnorx_datamap nmctxt))
@@ -5593,12 +5544,12 @@ normalized expression.}#
 	 )
     (if ndata
 	(progn
-	  (debug_msg ndata "altmatch_normalize_mdata found ndata")
+	  (debug "altmatch_normalize_mdata found ndata" ndata)
 	  (return ndata)))
     (if (is_a mdata class_matched_normal_data)
 	(progn 
 	  (setq ndata (unsafe_get_field :mdata_orig mdata))
-	  (debug_msg ndata "altmatch_normalize_mdata got normal data"))
+	  (debug "altmatch_normalize_mdata got normal data" ndata))
       (let ( (msymb (unsafe_get_field :mdata_symb mdata))
 	     (mctyp (unsafe_get_field :mdata_ctype mdata))
 	     (sloc (get_field :loca_location 
@@ -5617,56 +5568,56 @@ normalized expression.}#
 	    )
 	(setq ndata newdata)
 	(list_append bodyl newdatainit)
-	(debug_msg newdata "altmatch_normalize_mdata made newdata")
+	(debug "altmatch_normalize_mdata made newdata" newdata)
 	))
     (mapobject_put datamap mdata ndata)
     (list_append mdataqueue mdata)
-    (debug_msg ndata "altmatch_normalize_mdata final ndata")
+    (debug "altmatch_normalize_mdata final ndata" ndata)
     (return ndata)
     ))
 
 
 (defun altmatch_handle_normalized_mdata (matdata ndata nmctxt)
-  (debug_msg matdata "altmatch_handle_normalized_mdata matdata")
-  (debug_msg ndata "altmatch_handle_normalized_mdata ndata")
+  (debug "altmatch_handle_normalized_mdata matdata" matdata)
+  (debug "altmatch_handle_normalized_mdata ndata" ndata)
   (assert_msg "check matdata" (is_a matdata class_matched_data))
   (assert_msg "check ndata" (is_a ndata class_nrep_simple))
   (let ( (msteps (unsafe_get_field :mdata_steps matdata))
 	 )
-    (debug_msg msteps "altmatch_handle_normalized_mdata msteps")
+    (debug "altmatch_handle_normalized_mdata msteps" msteps)
     (cond
      ((is_multiple msteps)
       (void))
      ((is_non_empty_list msteps)
-      (debug_msg msteps "altmatch_handle_normalized_mdata msteps nonemptylist")
-      (debug_msg matdata "altmatch_handle_normalized_mdata matdata before match_data_update_data_steps_index")
+      (debug "altmatch_handle_normalized_mdata msteps nonemptylist" msteps)
+      (debug "altmatch_handle_normalized_mdata matdata before match_data_update_data_steps_index" matdata)
       
       (match_data_update_data_steps_index matdata)
-      (debug_msg matdata "altmatch_handle_normalized_mdata matdata after match_data_update_data_steps_index")
+      (debug "altmatch_handle_normalized_mdata matdata after match_data_update_data_steps_index" matdata)
       (setq msteps (unsafe_get_field :mdata_steps matdata))
-      (debug_msg msteps "altmatch_handle_normalized_mdata msteps after match_data_update_data_steps")
+      (debug "altmatch_handle_normalized_mdata msteps after match_data_update_data_steps" msteps)
       )
      (:else
       (setq msteps (make_multiple discr_multiple 0))
-      (debug_msg msteps "altmatch_handle_normalized_mdata msteps emptytuple")))
-    (debug_msg msteps "altmatch_handle_normalized_mdata updated msteps")
+      (debug "altmatch_handle_normalized_mdata msteps emptytuple" msteps)))
+    (debug "altmatch_handle_normalized_mdata updated msteps" msteps)
     (assert_msg "good tuple msteps" (is_multiple msteps))
     (foreach_in_multiple
      (msteps)
      (curstep :long stepix)
-     (debug_msg curstep "altmatch_handle_normalized_mdata befora normalizing curstep")
+     (debug "altmatch_handle_normalized_mdata befora normalizing curstep" curstep)
      (let ( (nlab (altmatch_normalize_step curstep nmctxt))
 	    )
-       (debug_msg nlab "altmatch_handle_normalized_mdata after normalizing nlab")
+       (debug "altmatch_handle_normalized_mdata after normalizing nlab" nlab)
        ))
-    (debug_msg nmctxt "altmatch_normalize_step final nmctxt")
+    (debug "altmatch_normalize_step final nmctxt" nmctxt)
     ))
 
 
 ;;; utility function to make a match normalization context
 (defun altmatch_make_match_normalization_context (matctx matctyp sloc)
-  (debug_msg matctx "altmatch_make_match_normalization_context matctx")
-  (debug_msg matctyp "altmatch_make_match_normalization_context matctyp")
+  (debug "altmatch_make_match_normalization_context matctx" matctx)
+  (debug "altmatch_make_match_normalization_context matctyp" matctyp)
   (let 
       ( (nmatch (instance class_nrep_altmatch
 			  :nexpr_ctyp matctyp
@@ -5721,17 +5672,17 @@ normalized expression.}#
 			   :matnorx_matchctxt matctx
 			   ))
 	)
-    (debug_msg nmctxt "altmatch_make_match_normalization_context result nmctxt")
+    (debug "altmatch_make_match_normalization_context result nmctxt" nmctxt)
     (return nmctxt)
     ))
 
 ;;; function to really normalize an alternate match context
 ;;; called from normexp_altmatch
 (defun altmatch_normalize_match_context (mdata sloc nmctxt)
-  (debug_msg mdata "altmatch_normalize_match_context mdata")
+  (debug "altmatch_normalize_match_context mdata" mdata)
   (compile_warning "mcasetup not used in altmatch_normalize_match_context")
-  (debug_msg sloc "altmatch_normalize_match_context sloc")
-  (debug_msg nmctxt "altmatch_normalize_match_context nmctxt")
+  (debug "altmatch_normalize_match_context sloc" sloc)
+  (debug "altmatch_normalize_match_context nmctxt" nmctxt)
   (assert_msg "check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (mdataqueue (unsafe_get_field :matnorx_mdataqueue nmctxt))
 	 (mstepqueue (unsafe_get_field :matnorx_mstepqueue nmctxt))
@@ -5739,41 +5690,41 @@ normalized expression.}#
 	 (stepmap (unsafe_get_field :matnorx_stepmap nmctxt))
 	 (bodyl (unsafe_get_field :matnorx_bodylist nmctxt))
 	 )
-    (debug_msg mdata "altmatch_normalize_match_context starting with first mdata")
+    (debug "altmatch_normalize_match_context starting with first mdata" mdata)
     (altmatch_normalize_mdata mdata nmctxt)
-    (debug_msg mdataqueue "altmatch_normalize_match_context initial mdataqueue")
-    (debug_msg datamap "altmatch_normalize_match_context initial datamap")
+    (debug "altmatch_normalize_match_context initial mdataqueue" mdataqueue)
+    (debug "altmatch_normalize_match_context initial datamap" datamap)
     (forever 
      matchdatanormalizeloop
      (let ( (freshmdata (list_popfirst mdataqueue)) 
 	    (ndata (mapobject_get datamap freshmdata))
 	    )
-       (debug_msg freshmdata "altmatch_normalize_match_context freshmdata start loop")
-       (debug_msg ndata "altmatch_normalize_match_context ndata start loop")
+       (debug "altmatch_normalize_match_context freshmdata start loop" freshmdata)
+       (debug "altmatch_normalize_match_context ndata start loop" ndata)
        (if (null freshmdata) (exit matchdatanormalizeloop))
        (assert_msg "altmatch_normalize_match_context check freshmdata" 
 		   (is_a freshmdata class_matched_data))
        (assert_msg "altmatch_normalize_match_context check ndata"
 		   (is_a ndata class_nrep_simple))
        (altmatch_handle_normalized_mdata freshmdata ndata nmctxt)
-       (debug_msg freshmdata "altmatch_normalize_match_context freshmdata after altmatch_handle_normalized_mdata")
-       (debug_msg mstepqueue "altmatch_normalize_match_context mstepqueue after altmatch_handle_normalized_mdata")
+       (debug "altmatch_normalize_match_context freshmdata after altmatch_handle_normalized_mdata" freshmdata)
+       (debug "altmatch_normalize_match_context mstepqueue after altmatch_handle_normalized_mdata" mstepqueue)
        (forever
 	matchstepnormalizeloop
 	(let ( (freshmstep (list_popfirst mstepqueue)) 
 	       (freshlab (mapobject_get stepmap freshmstep))
 	       )
-	  (debug_msg freshmstep "altmatch_normalize_match_context freshmstep")
+	  (debug "altmatch_normalize_match_context freshmstep" freshmstep)
 	  (if (null freshmstep) (exit matchstepnormalizeloop))
-	  (debug_msg freshlab "altmatch_normalize_match_context freshlab")
-	  (debug_msg bodyl "altmatch_normalize_match_context bodyl before normalize_step")
+	  (debug "altmatch_normalize_match_context freshlab" freshlab)
+	  (debug "altmatch_normalize_match_context bodyl before normalize_step" bodyl)
 	  (let ( 
 		(normstep (normalize_step freshmstep nmctxt sloc)) 
 		)
 	    (list_append bodyl freshlab)
-	    (debug_msg freshmstep "altmatch_normalize_match_context freshmstep after normalize_step")
-	    (debug_msg normstep "altmatch_normalize_match_context normstep")
-	    (debug_msg bodyl "altmatch_normalize_match_context bodyl after normalize_step")
+	    (debug "altmatch_normalize_match_context freshmstep after normalize_step" freshmstep)
+	    (debug "altmatch_normalize_match_context normstep" normstep)
+	    (debug "altmatch_normalize_match_context bodyl after normalize_step" bodyl)
 	    (letrec ( (add_norm_step
 		       (lambda (ns)
 			 (cond 
@@ -5790,12 +5741,12 @@ normalized expression.}#
 			     (curcomp :long ix)
 			     (add_norm_step curcomp)))
 			  (:else
-			   (debug_msg ns "add_norm_step bad ns")
+			   (debug "add_norm_step bad ns" ns)
 			   (assert_msg "add_norm_step invalid argument")
 			   ))))
 		      )
 	      (add_norm_step normstep))
-	    (debug_msg bodyl "altmatch_normalize_match_context final bodyl")
+	    (debug "altmatch_normalize_match_context final bodyl" bodyl)
 	    )
 
 	  ))
@@ -5807,7 +5758,7 @@ normalized expression.}#
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp_altmatch recv")
+  (debug "normexp_altmatch recv" recv)
   (shortbacktrace_dbg "normexp_altmatch start" 20)
   (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
@@ -5815,13 +5766,13 @@ normalized expression.}#
 	 (:long nbcases (multiple_length scases))
 	 (firststep ())
 	 )
-    (debug_msg scases "normexp_altmatch scases")
-    (debug_msg smatsx "normexp_altmatch smatsx")
+    (debug "normexp_altmatch scases" scases)
+    (debug "normexp_altmatch smatsx" smatsx)
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
-     (debug_msg nmatx "normexp_altmatch nmatx")
-     (debug_msg nbindmatx "normexp_altmatch nbindmatx")
+     (debug "normexp_altmatch nmatx" nmatx)
+     (debug "normexp_altmatch nbindmatx" nbindmatx)
      (let ( (matctyp (get_ctype nmatx env))
 	    (mcasetup (make_multiple discr_multiple nbcases))
 	    (msteplist (make_list discr_list))
@@ -5852,13 +5803,13 @@ normalized expression.}#
 			      :mctx_endlabel endlab
 			      ))
 	    )
-       (debug_msg matctyp "normexp_altmatch matctyp")
-       (debug_msg matctx "normexp_altmatch matctx")
+       (debug "normexp_altmatch matctyp" matctyp)
+       (debug "normexp_altmatch matctx" matctx)
        ;; build each match case
        (foreach_in_multiple
 	(scases)
 	(curscas :long curix)
-	(debug_msg curscas "normexp_altmatch curscas")
+	(debug "normexp_altmatch curscas" curscas)
 	(assert_msg "check  curscas" (is_a curscas class_source_match_case))
 	(let ( (curmcase (instance class_match_case
 				   :mcase_mctxt matctx
@@ -5871,7 +5822,7 @@ normalized expression.}#
 	  (fill_matchcase curmcase sloc)
 	  (multiple_put_nth mcasetup curix curmcase)
 	  ))
-       (debug_msg mcasetup "normexp_altmatch mcasetup")
+       (debug "normexp_altmatch mcasetup" mcasetup)
        ;; translate each match case
        (let ( (prevstep ()) 
 	      (matresctyp ())
@@ -5879,15 +5830,15 @@ normalized expression.}#
 	 (foreach_in_multiple
 	  (mcasetup)
 	  (curmcase :long mix)
-	  (debug_msg curmcase "normexp_altmatch before translate_matchcase curmcase")
-	  (debug_msg prevstep "normexp_altmatch before translate_matchcase prevstep")
+	  (debug "normexp_altmatch before translate_matchcase curmcase" curmcase)
+	  (debug "normexp_altmatch before translate_matchcase prevstep" prevstep)
 	  (let ( (mcasloc (or (get_field :loca_location (get_field :mcase_source curmcase)) sloc))
 		 )
 	    (multicall
 	     (curstep curstsucc)
 	     (translate_matchcase curmcase mcasloc prevstep)
-	     (debug_msg curstep "normexp_altmatch after translate_matchcase curstep")
-	     (debug_msg curstsucc "normexp_altmatch after translate_matchcase curstsucc")
+	     (debug "normexp_altmatch after translate_matchcase curstep" curstep)
+	     (debug "normexp_altmatch after translate_matchcase curstsucc" curstsucc)
 	     (assert_msg "check curstsucc" (is_a curstsucc class_match_step_success_when_flag))
 	     (let ( 
 		   (curstbindtup (unsafe_get_field :mstepsuccess_binds curstsucc))
@@ -5897,7 +5848,7 @@ normalized expression.}#
 			     (unsafe_get_field :mstepsuccess_body curstsucc) 
 			     -1))
 			   )
-		      (debug_msg l "normexp_altmatch lastnbody")
+		      (debug "normexp_altmatch lastnbody" l)
 		      l))
 		   (lastctyp
 		    (if (is_a lastnbody class_nrep_locsymocc)
@@ -5912,8 +5863,8 @@ normalized expression.}#
 			(get_ctype lastnbody newcurenv)
 			)))
 		   )
-	       (debug_msg lastnbody "normexp_altmatch lastnbody")
-	       (debug_msg lastctyp "normexp_altmatch lastctyp")
+	       (debug "normexp_altmatch lastnbody" lastnbody)
+	       (debug "normexp_altmatch lastctyp" lastctyp)
 	       (assert_msg "check lastctyp" (is_a lastctyp class_ctype))
 	       (cond ( (null matresctyp)
 		       (setq matresctyp lastctyp))
@@ -5930,25 +5881,25 @@ normalized expression.}#
 	       (if (null firststep)
 		   (setq firststep curstep))
 	       ))
-	    (debug_msg prevstep "normexp_altmatch updated prevstep")
+	    (debug "normexp_altmatch updated prevstep" prevstep)
 	    ))			     ;end foreach_in_multiple mcasetup
 	 ;;
-	 (debug_msg firststep "normexp_altmatch firststep")
-	 (debug_msg matresctyp "normexp_altmatch matresctyp")
+	 (debug "normexp_altmatch firststep" firststep)
+	 (debug "normexp_altmatch matresctyp" matresctyp)
 	 ;;
-	 (debug_msg mdata "normexp_altmatch updated mdata")
+	 (debug "normexp_altmatch updated mdata" mdata)
 	 (if (melt_need_dbg 1)
 	     (let ( (dotprefix (get_field :container_value match_graphic_dot_prefix)) )
-	       (debug_msg match_graphic_dot_prefix "normexp_altmatch match_graphic_dot_prefix")
-	       (debug_msg dotprefix "normexp_altmatch dotprefix")
+	       (debug "normexp_altmatch dotprefix=" dotprefix
+		      " match_graphic_dot_prefix=" match_graphic_dot_prefix)
 	       (if (is_string dotprefix) 
 		   (mg_altdraw_graphviz mdata dotprefix))))
 	 (let ( (nmctxt (altmatch_make_match_normalization_context matctx matresctyp sloc))
 		)
-	   (debug_msg nmctxt "normexp_altmatch before altmatch_normalize_match_context nmctxt")
+	   (debug "normexp_altmatch before altmatch_normalize_match_context nmctxt" nmctxt)
 	   ;;
 	   (altmatch_normalize_match_context mdata sloc nmctxt)
-	   (debug_msg nmctxt "normexp_altmatch after altmatch_normalize_match_context nmctxt")
+	   (debug "normexp_altmatch after altmatch_normalize_match_context nmctxt" nmctxt)
 	   (let ( 
 		 (nresloc (unsafe_get_field :matnorx_resloc nmctxt))
 		 (nresmatch (unsafe_get_field :matnorx_nmatch nmctxt))
@@ -5958,14 +5909,14 @@ normalized expression.}#
 		 (nresbind (get_field :nocc_bind nresloc))
 		 (nflagslist (make_list discr_list))
 		 )
-	     (debug_msg nresloc "normexp_altmatch nresloc")
-	     (debug_msg nbodyl "normexp_altmatch nbodyl")
-	     (debug_msg nflagmap "normexp_altmatch nflagmap")
+	     (debug "normexp_altmatch nresloc" nresloc)
+	     (debug "normexp_altmatch nbodyl" nbodyl)
+	     (debug "normexp_altmatch nflagmap" nflagmap)
 	     (foreach_in_mapobject
 	      (nflagmap)
 	      (curflag curnormflag)
 	      (list_append nflagslist curnormflag))
-	     (debug_msg nflagslist "normexp_altmatch nflagslist")
+	     (debug "normexp_altmatch nflagslist" nflagslist)
 	     ;; sort the nflagslist using the mflag_rank of nrpfla_flag
 	     (let ( (rawnflagstup (list_to_multiple nflagslist))
 		    (sortedflagstup
@@ -5990,16 +5941,16 @@ normalized expression.}#
 			   :namatch_body (list_to_multiple nbodyl)
 			   :namatch_flags sortedflagstup
 			   )
-	       (debug_msg nresmatch "normexp_altmatch nresmatch")
-	       (debug_msg nresbind "normexp_altmatch final nresbind")
-	       (debug_msg nresloc "normexp_altmatch final nresloc")
+	       (debug "normexp_altmatch nresmatch" nresmatch)
+	       (debug "normexp_altmatch final nresbind" nresbind)
+	       (debug "normexp_altmatch final nresloc" nresloc)
 	       (warning_plain sloc "@@??implemented normexp_altmatch")
 	       (compile_warning "@@??implemented normexp_altmatch")
 	       (return nresloc (list nresbind))
 	       ))))))))
 
 (defun alternate_match_optset (optsymb :cstring opts)
-  (debug_msg optsymb "alternate_match_optset optsymb")
+  (debug "alternate_match_optset optsymb" optsymb)
   (informsg_plain "enabling alternate matching implementation")
   (install_method class_source_match normal_exp normexp_altmatch)
 )
@@ -6036,7 +5987,7 @@ normalized expression.}#
 	    (add2sbuf_strconst pathsbuf "+")
 	    (add2sbuf_longdec pathsbuf cnt)
 	    (add2sbuf_strconst pathsbuf ".dot")
-	    (debug_msg pathsbuf "mg_draw_match_graphviz_file pathsbuf")
+	    (debug "mg_draw_match_graphviz_file pathsbuf" pathsbuf)
 	    (strbuf2string discr_string pathsbuf)))
 	 (mg (instance class_match_graphic
 		       :mchgx_filename dotfilename
@@ -6052,13 +6003,13 @@ normalized expression.}#
     (letrec 
      ( (scandata 
 	(lambda (data)
-	  (debug_msg data "mg_altdraw_graphviz/scandata data")
+	  (debug "mg_altdraw_graphviz/scandata data" data)
 	  (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
 	  (let ( (oldname ( (mapobject_get mapdata data) ))
 		 )
 	    (if oldname
 		(progn 
-		  (debug_msg oldname "mg_altdraw_graphviz/scandata found oldname")
+		  (debug "mg_altdraw_graphviz/scandata found oldname" oldname)
 		  (return oldname))))
 	  (let ( (nambuf (make_strbuf discr_strbuf))
 		 (msymb (unsafe_get_field :mdata_symb data))
@@ -6086,13 +6037,13 @@ normalized expression.}#
 	  )))
        (scanstep 
 	(lambda (step)
-	  (debug_msg step "mg_altdraw_graphviz/scanstep step")
+	  (debug "mg_altdraw_graphviz/scanstep step" step)
 	  (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
 	  (let ( (oldname (mapobject_get mapstep step)) 
 		 )
 	    (if oldname
 		(progn
-		  (debug_msg oldname "mg_altdraw_graphviz.scanstep found oldname")
+		  (debug "mg_altdraw_graphviz.scanstep found oldname" oldname)
 		  (return oldname))))
 	  (let ( (nambuf (make_strbuf discr_strbuf))
 		 (:long mapcnt (mapobject_count mapstep))
@@ -6121,23 +6072,23 @@ normalized expression.}#
 	      ))))
        (scanflag
 	(lambda (flag)
-	  (debug_msg flag  "mg_altdraw_graphviz.scanflag flag")
+	  (debug "mg_altdraw_graphviz.scanflag flag" flag)
 	  (let ( (flstep (get_field :mflag_setstep flag))
 		 )
 	    (if flstep
 		(progn
-		  (debug_msg flstep "mg_altdraw_graphviz.scanflag flstep")
+		  (debug "mg_altdraw_graphviz.scanflag flstep" flstep)
 		  (assert_msg "check flstep" (is_a flstep class_match_step))
 		  (scanstep flstep)
 		  ))
 	  )))
        )
-     (debug_msg mdata "mg_altdraw_graphviz before scandata mdata")
-     (debug_msg scandata "mg_altdraw_graphviz scandata")
+     (debug "mg_altdraw_graphviz before scandata mdata" mdata)
+     (debug "mg_altdraw_graphviz scandata" scandata)
      (scandata mdata)
-     (debug_msg mdata "mg_altdraw_graphviz after scandata mdata")
-     (debug_msg mapdata "mg_altdraw_graphviz after scandata mapdata")
-     (debug_msg mapstep "mg_altdraw_graphviz after scandata mapstep")
+     (debug "mg_altdraw_graphviz after scandata mdata" mdata)
+     (debug "mg_altdraw_graphviz after scandata mapdata" mapdata)
+     (debug "mg_altdraw_graphviz after scandata mapstep" mapstep)
      )
 					;;
     (let (
@@ -6199,11 +6150,11 @@ normalized expression.}#
 	      ))
 	    )
 					;; draw the data nodes
-	(debug_msg sortupdata "mg_altdraw_graphviz sortupdata")
+	(debug "mg_altdraw_graphviz sortupdata" sortupdata)
 	(foreach_in_multiple
 	 (sortupdata)
 	 (curdata :long dix)
-	 (debug_msg curdata "mg_altdraw_graphviz curdata")
+	 (debug "mg_altdraw_graphviz curdata" curdata)
 	 (assert_msg "mg_altdraw_graphviz check curdata" (is_a curdata class_matched_data))
 	 (let ( 
 	       (curdataname (mapobject_get mapdata curdata))
@@ -6254,11 +6205,11 @@ normalized expression.}#
 	   )
 	 )
 					;; draw the step nodes
-	(debug_msg sortupstep "mg_altdraw_graphviz sortupstep")
+	(debug "mg_altdraw_graphviz sortupstep" sortupstep)
 	(foreach_in_multiple
 	 (sortupstep)
 	 (curstep :long dix)
-	 (debug_msg curstep "mg_altdraw_graphviz curstep")
+	 (debug "mg_altdraw_graphviz curstep" curstep)
 	 (assert_msg "mg_altdraw_graphviz check curstep" (is_a curstep class_match_step))
 	 (let ( 
 	       (curstepname (mapobject_get mapstep curstep))
