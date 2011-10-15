@@ -531,17 +531,8 @@ body.}#
   :super class_source_let
   :fields ())
 
-;; lambda
-(defclass class_source_lambda
-  :doc #{The internal $CLASS_SOURCE_LAMBDA is for abstract syntax of
-  $LAMBDA. The $SLAM_ARGBIND is the tuple of formals
-  $CLASS_FORMAL_BINDING and the $SLAM_BODY is the tuple of body
-  expressions.}#
-  :super class_source 
-  :fields (slam_argbind			;tuple of argument bindings
-	   slam_body			;tuple for body
-	   ))
 
+;; for support of VARIADIC macro
 (defclass class_source_ifvariadic
   :doc #{The internal $CLASS_SOURCE_IFVARIADIC is for abstract syntax of
   $VARIADIC. The $SIFVARIADIC_ARGBIND is the tuple of formals of
@@ -551,6 +542,17 @@ body.}#
   :fields (sifvariadic_argbind		;tuple for variadic formals
 	   sifvariadic_then		;tuple for body
 	   sifvariadic_else
+	   ))
+
+;; lambda
+(defclass class_source_lambda
+  :doc #{The internal $CLASS_SOURCE_LAMBDA is for abstract syntax of
+  $LAMBDA. The $SLAM_ARGBIND is the tuple of formals
+  $CLASS_FORMAL_BINDING and the $SLAM_BODY is the tuple of body
+  expressions.}#
+  :super class_source 
+  :fields (slam_argbind			;tuple of argument bindings
+	   slam_body			;tuple for body
 	   ))
 
 ;; multicall
@@ -1739,6 +1741,7 @@ the object-map for pattern variables.}#
 ;;; the formalsexp is the sexpr of formals 
 ;;; the [optional] checkargs should be set to non-null to check arguments type
 ;;; usually checkargs is just missing
+
 (defun lambda_arg_bindings (formalsexp checkargs)
   ;; special case for null arglist
   (if (null formalsexp)
@@ -1812,7 +1815,7 @@ the object-map for pattern variables.}#
 		  ()
 		  )
 		(:else 
-		 (debug_msg curarg "unexpected argument in formal arglist")
+		 (debug "unexpected argument in formal arglist" curarg)
 		 (let ( (discrarg  (discrim curarg) ))
 		   (error_strv argloc "unexpected argument in formal arglist"_
 			       (unsafe_get_field :named_name discrarg))
@@ -1835,9 +1838,11 @@ the object-map for pattern variables.}#
 	       (setq ix (+i ix 1))
 	       (setq bndpair (pair_tail bndpair))
 	       )
-      (debug_msg bndtup "lambda_arg_bindings result bndtup")
+      (debug "lambda_arg_bindings result bndtup" bndtup)
       (return bndtup)
       )))
+
+
 
 
 
@@ -5206,6 +5211,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;; for VARIADIC
+
 (defun mexpand_variadic (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -5214,13 +5220,13 @@ condition is a string such as "4.5." or a list of strings.}#)
 	 (firstpair (pair_tail (list_first cont))) 
 	 (rescont (container ()))
 	 (hookfun (lambda (x) 
-		    (debug_msg x "mexpand_variadic/hookfun rescont set to x")
+		    (debug "mexpand_variadic/hookfun rescont set to x" x)
 		    (set_content rescont x)))
 	 )
     (foreach_pair
      (firstpair)
      (curpaircase curcase)
-     (debug_msg curcase "mexpand_variadic curcase")
+     (debug "mexpand_variadic curcase" curcase)
      (if (is_not_a curcase class_sexpr)
 	 (progn
 	   (error_plain loc "(VARIADIC variadic-case...) expects a list, so cannot have non-list components.")
@@ -5232,7 +5238,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 	   (casefirst (pair_head curcasepair))
 	   (caserest (pair_tail curcasepair))
 	   )
-       (debug_msg casefirst "mexpand_variadic casefirst")
+       (debug "mexpand_variadic casefirst" casefirst)
        (cond
 	((== casefirst :else)
 	 (if (pair_tail curpaircase)
@@ -5245,8 +5251,8 @@ condition is a string such as "4.5." or a list of strings.}#)
 			   discr_multiple
 			   (lambda (e) (macroexpand_1 e env mexpander)))) 
 		 )
-	   (debug_msg bodytup "mexpand_variadic else bodytup before hookfun")
-	   (debug_msg hookfun "mexpand_variadic hookfun before")
+	   (debug "mexpand_variadic else bodytup before hookfun" bodytup)
+	   (debug "mexpand_variadic hookfun before" hookfun)
 	   (shortbacktrace_dbg "mexpand_variadic before calling hookfun for else" 15)
 	   (hookfun bodytup)
 	   )
@@ -5256,7 +5262,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 	 (let ( (args (lambda_arg_bindings casefirst :true))
 		(newenv (fresh_env env))
 		)
-	   (debug_msg args "mexpand_variadic args")
+	   (debug "mexpand_variadic args" args)
 	   (foreach_in_multiple 
 	    (args)
 	    (fbi :long fix)
@@ -5272,32 +5278,32 @@ condition is a string such as "4.5." or a list of strings.}#)
 					 :sifvariadic_then bodytup
 					 :sifvariadic_else ()))
 		  )
-	     (debug_msg bodytup "mexpand_variadic bodytup")
+	     (debug "mexpand_variadic bodytup" bodytup)
 	     (shortbacktrace_dbg "mexpand_variadic before calling hookfun for casefirst" 15)
 	     (hookfun sifvariadic)
 	     (setq hookfun
 		   (lambda (xtup) 
-		     (debug_msg xtup "mexpand_variadic/hookfun xtup")
+		     (debug "mexpand_variadic/hookfun xtup" xtup)
 		     (put_fields sifvariadic :sifvariadic_else 
 				 (if (is_multiple_or_null xtup) 
 				     xtup
 				   (tuple xtup)))
-		     (debug_msg sifvariadic "mexpand_variadic/hookfun updated sifvariadic")
+		     (debug "mexpand_variadic/hookfun updated sifvariadic" sifvariadic)
 		     ))
 	     )))
 	(:else
-	 (debug_msg casefirst "mexpand_variadic invalid casefirst")
+	 (debug "mexpand_variadic invalid casefirst" casefirst)
 	 (error_plain curcaseloc "invalid case in (VARIADIC ...), should start with formals")
 	 (return)
 	 )
 	)
        )
-     (debug_msg curcase "mexpand_variadic done curcase")
+     (debug "mexpand_variadic done curcase" curcase)
      )
-    (debug_msg rescont "mexpand_variadic rescont")
+    (debug "mexpand_variadic rescont" rescont)
     (let ( (res (content rescont)) 
 	   )
-      (debug_msg res "mexpand_variadic result")
+      (debug "mexpand_variadic result" res)
       (return res)
       )))
 (install_initial_macro 'variadic mexpand_variadic)
@@ -5312,7 +5318,7 @@ the actual variable arguments's signature match the given formals in a
 evaluated. If no @var{formals} match in type and number and if the last
 @var{variadic-case} starts with @code{:ELSE} it is exacuted. As an
 expression, @code{(VARIADIC @var{...})} gives no result, so is
-@code{:void}. In a @var{variadic-case}, if no @var{<formals} are
+@code{:void}. In a @var{variadic-case}, if no @var{formals} are
 given, the body is executed when no more actual variable arguments
 remain.}#)
 
@@ -5844,7 +5850,7 @@ remain.}#)
 (defun mexpand_debug  (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug_msg sexpr "mexpand_debug sexpr")
+  (debug "mexpand_debug sexpr" sexpr)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -5889,7 +5895,7 @@ remain.}#)
     (list_append dbgarglist dfilnam)
     (list_append dbgarglist (make_integerbox discr_constant_integer dline))
     (list_append2list dbgarglist xarglist)
-    (debug_msg dbgarglist "mexpand_debug dbgarglist")
+    (debug "mexpand_debug dbgarglist" dbgarglist)
     (let (
 	  (theneeddbg
 	   (cond 
@@ -5942,12 +5948,12 @@ remain.}#)
 			    :sifp_else ()
 			    )) 
 	  )
-      (debug_msg dcall  "mexpand_debug dcall")
-      (debug_msg dcppif "mexpand_debug return dcppif")
+      (debug "mexpand_debug dcall=" dcall " return dcppif=" dcppif)
       (return dcppif)
       )))
 (install_initial_macro 'debug mexpand_debug)
 (export_macro debug mexpand_debug)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; export_values macro (export_values <symbol> ...)

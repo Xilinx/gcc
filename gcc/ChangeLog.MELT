@@ -1,5 +1,9 @@
 
 2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Work in progress.}}
+	* melt/warmelt-macro.melt: Better.
+
+2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Work in progress. Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
