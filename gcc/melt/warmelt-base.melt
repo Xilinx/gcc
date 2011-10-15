@@ -1203,9 +1203,9 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 )
 
 (defun add2out (out :rest)
-  :doc #{Variadic function to add to an output $OUT (a file, a string
-  buffer) various things. Return the given $OUT. Use $ADD_TO_OUT selector
-  for values.}#
+  :doc #{Variadic function to add to an output $OUT (a file, a string buffer) 
+  various things. Return the given $OUT. Use $ADD_TO_OUT selector for values. 
+  Closure values are handled as manipulators for next thing.}#
   (if (not (is_out out))
       (return))
   (forever 
@@ -1222,17 +1222,36 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 	    (v out ll))
 	   ((:cstring ss)
 	    (v out ss))
+	   ((:tree tt)
+	    (v out tt))
+	   ((:gimple gg)
+	    (v out gg))
+	   ((:gimple_seq gs)
+	    (v out gs))
+	   ((:edge ee)
+	    (v out ee))
+	   ((:loop lo)
+	    (v out lo))
 	   (:else
-	    (assert_msg "invalid variadic argument after closure to ADD2OUT")
-	    (return)
-	    ))
+	    (let ( (vcty (variadic_ctype 0))
+		   )
+	      (errormsg_strv "ADD2OUT with manipulator for unsupported ctype "
+			    (get_field :named_name vcty))
+	      (assert_msg "invalid variadic argument after closure to ADD2OUT" ())
+	      (return)
+	      )))
 	(add_to_out v out)))
     ( (:long n)
       (add2out_longdec out n))
     ( (:cstring s)
       (add2out_strconst out s))
     ( :else
-      (assert_msg "invalid variadic argument to ADD2OUT")
+      (let ( (vcty (variadic_ctype 0))
+	     )
+	(errormsg_strv "ADD2OUT for unsupported ctype "
+		       (get_field :named_name vcty))
+	)
+      (assert_msg "invalid variadic argument to ADD2OUT" ())
       (return out)
       ))))
 
@@ -1267,7 +1286,7 @@ output $OUT. It is called by the $ADD2OUT variadic function.}#
 	   (add2out_strconst out "__")
 	   (add2out_longdec out nvarurank))
 	 (?_
-	  (assert_msg "bad cloned symbol"))))
+	  (assert_msg "bad cloned symbol" ()))))
 (install_method class_cloned_symbol add_to_out add2out4clonedsymb)
 
 (defun add2out4named (vn out)

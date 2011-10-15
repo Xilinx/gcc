@@ -1,4 +1,16 @@
 
+
+2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Work in progress.}}
+	* melt/warmelt-macro.melt (mexpand_variadic): Check that all
+	formals are different.
+	* melt/warmelt-base.melt (add2out): Accept manipulator for some
+	ctypes. Isse error when failing.
+	* melt/warmelt-outobj.melt: Use DEBUG instead of DEBUG_MSG. Remove
+	some DEBUG_MSG.
+	* melt/xtramelt-ana-base.melt: Restore to rev. 180026
+	* melt/xtramelt-ana-simple.melt: Restore to rev. 180026
+
 2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Work in progress. Regenerated}}
 	* melt/generated/warmelt-normatch+01.c: Regenerate.
