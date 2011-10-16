@@ -1,3 +1,9 @@
+2011-10-16   Diego Novillo  <dnovillo@google.com>
+
+	* gcc.dg/plugin/selfassign.c (check_self_assign): Rename
+	from warn_self_assign.
+	* g++.dg/plugin/selfassign.c (check_self_assign): Likewise.
+
 2011-10-14   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/c3variables.cc: Mark fixed.
