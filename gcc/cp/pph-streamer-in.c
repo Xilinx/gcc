@@ -748,9 +748,9 @@ pph_match_to_overload (tree expr ATTRIBUTE_UNUSED,
 			location_t where ATTRIBUTE_UNUSED,
 			const char *idstr, tree *link ATTRIBUTE_UNUSED)
 {
-  /* FIXME crowl: Assume functions are distinct for now.  */
+  /* FIXME pph: This is apparently not how overloading works.  */
   if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
+    fprintf (pph_logfile, "PPH: unhandled overload list for \"%s\"\n", idstr);
   return NULL;
 }
 
@@ -762,12 +762,17 @@ pph_match_to_overload (tree expr ATTRIBUTE_UNUSED,
 static tree
 pph_match_to_function (tree expr ATTRIBUTE_UNUSED,
 			location_t where ATTRIBUTE_UNUSED,
-			const char *idstr, tree *link ATTRIBUTE_UNUSED)
+			const char *idstr ATTRIBUTE_UNUSED, tree *link)
 {
-  /* FIXME crowl: Assume functions are distinct for now.  */
-  if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: function \"%s\" assumed distinct\n", idstr);
-  return NULL;
+  /* This function is called when strings match, which in the case
+     of functions are the mangled names.  The mangled names should be
+     distinct, so assume a match. */
+
+  /* FIXME pph: This routine may need to check overloading.
+     If it does, then we need to match on the identifier,
+     not the mangled name, as the identifier is the overload set.  */
+
+  return *link;
 }
 
 
@@ -783,6 +788,7 @@ pph_match_to_link (tree expr, location_t where, const char *idstr, tree *link)
 
   link_code = TREE_CODE (*link);
   if (link_code == TREE_LIST)
+    /* FIXME pph: This is apparently not how overloading works.  */
     return pph_match_to_overload (expr, where, idstr, link);
 
   expr_code = TREE_CODE (expr);
@@ -1174,15 +1180,25 @@ pph_in_struct_function (pph_stream *stream, tree decl)
       return;
     }
 
-  /* Allocate a new DECL_STRUCT_FUNCTION for DECL.  */
+  /* Possibly allocate a new DECL_STRUCT_FUNCTION for DECL.  */
   t = pph_in_tree (stream);
   gcc_assert (t == decl);
-  allocate_struct_function (decl, false);
   fn = DECL_STRUCT_FUNCTION (decl);
+  if (!fn)
+    {
+      /* The DECL_STRUCT_FUNCTION does not already already exists,
+         which implies that we are reading an entirely new function
+         and not merging into an existing function.  */
+      /* We would normally use ALLOC_AND_REGISTER,
+         but allocate_struct_function does not return a pointer.  */
+      allocate_struct_function (decl, false);
+      fn = DECL_STRUCT_FUNCTION (decl);
+    }
 
-  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
-     but allocate_struct_function does not return a pointer.  */
+  /* Now register it.  */
   pph_cache_insert_at (&stream->cache, fn, ix, PPH_function);
+
+  /* FIXME pph: For now, accept the new version of the fields when merging.  */
 
   input_struct_function_base (fn, stream->encoder.r.data_in,
 			      stream->encoder.r.ib);
@@ -2027,7 +2043,7 @@ pph_in_tree_1 (pph_stream *stream, tree *chain)
     TREE_CHAIN (expr) = saved_expr_chain;
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, chain != NULL);
+    pph_trace_tree (expr, chain != NULL, expr != read);
 
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
@@ -2200,6 +2216,8 @@ pph_in_symtab (pph_stream *stream)
 	  node = pph_in_cgraph_node (stream);
 	  if (node && node->local.finalized)
 	    {
+	      if (pph_decl_already_emitted (decl))
+		continue;
 	      /* Since the writer had finalized this cgraph node,
 		 we have to re-play its actions.  To do that, we need
 		 to clear the finalized and reachable bits in the

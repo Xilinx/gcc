@@ -1,5 +1,34 @@
 2011-10-16   Lawrence Crowl  <crowl@google.com>
 
+	* g++.dg/pph/c4inline.cc: Change to ICE in cgraph.
+	* g++.dg/pph/x1keyed.cc: Likewise.
+	* g++.dg/pph/x1keyno.cc: Likewise.
+	* g++.dg/pph/x4keyed.cc: Likewise.
+	* g++.dg/pph/x4keyex.cc: Likewise.
+	* g++.dg/pph/x4keyno.cc: Likewise.
+	* g++.dg/pph/x4tmplclass1.cc: Likewise.
+	* g++.dg/pph/x4tmplclass2.cc: Likewise.
+	* g++.dg/pph/x4tmplfuncinln.cc: Likewise.
+	* g++.dg/pph/x4tmplfuncninl.cc: Likewise.
+	* g++.dg/pph/x6rtti.cc: Likewise.
+	* g++.dg/pph/x7rtti.cc: Likewise.
+	* g++.dg/pph/z4tmplclass1.cc: Likewise.
+	* g++.dg/pph/z4tmplclass2.cc: Likewise.
+	* g++.dg/pph/z4tmplfuncinln.cc: Likewise.
+	* g++.dg/pph/z4tmplfuncninl.cc: Likewise.
+	* g++.dg/pph/x1tmplclass2.cc: Change to missing function.
+	* g++.dg/pph/x0overset0.cc: New.
+	* g++.dg/pph/x1overset1.cc: New.
+	* g++.dg/pph/x1overset2.cc: New.
+	* g++.dg/pph/x2overset1.cc: New.
+	* g++.dg/pph/x2overset2.cc: New.
+	* g++.dg/pph/x4overset1.cc: New.
+	* g++.dg/pph/x4overset2.cc: New.
+	* g++.dg/pph/x4overset3.cc: New.
+	* g++.dg/pph/x4overset4.cc: New.
+
+2011-10-16   Lawrence Crowl  <crowl@google.com>
+
 	* g++.dg/pph/x4tmplfuncinln.cc: Change failure to ICE.
 	* g++.dg/pph/x4tmplfuncninl.cc: Likewise.
 	* g++.dg/pph/z4tmplfuncinln.cc: Likewise.

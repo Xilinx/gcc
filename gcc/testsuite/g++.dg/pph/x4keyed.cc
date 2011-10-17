@@ -1,6 +1,6 @@
-// { dg-xfail-if "BOGUS MERGE AUXVAR" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x4keyed.cc:14:1: error: redefinition of 'const char _ZTS5keyed ..'" "" { xfail *-*-* } 0 }
-// The variable for the typeinfo name for 'keyed' is duplicated.
+// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x4keyed.cc:14:1: internal compiler error: in cgraph_analyze_functions, at cgraphunit.c:1193" "" { xfail *-*-* } 0 }
+// { dg-excess-errors "callgraph problems" }
 
 #include "x0keyed1.h"
 #include "x0keyed2.h"

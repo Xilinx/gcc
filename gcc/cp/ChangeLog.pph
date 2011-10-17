@@ -1,5 +1,20 @@
 2011-10-16   Lawrence Crowl  <crowl@google.com>
 
+	* pph-streamer-in.c (pph_match_to_overload): Comment on overloading.
+	(pph_match_to_function): Allow functions to match for merging.  
+	Comment on overloading.
+	(pph_match_to_link): Comment on overloading.
+	(pph_in_struct_function): Implement overwriting a struct function
+	when merging.
+	(pph_in_symtab): Add filtering for already emitted functions.
+	* pph-streamer.h (pph_trace_tree): Add a boolean parameter specifying
+	whether or not the tree was actually merged.
+	* pph-streamer.c (pph_trace_tree): Add a boolean parameter specifying
+	whether or not the tree was actually merged.  Change output to
+	correspond.  Update callers.
+
+2011-10-16   Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer.h (pph_dump_chain): New.
 	* pph-streamer.c (pph_trace_tree): Filter expressions from trace.
 	Print tree code.

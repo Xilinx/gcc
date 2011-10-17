@@ -1,4 +1,7 @@
-// pph asm xdiff 32642
+// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x4keyex.cc:29:1: internal compiler error: in cgraph_analyze_functions, at cgraphunit.c:1193" "" { xfail *-*-* } 0 }
+
+// Previously.
 // xfail BOGUS MERGE LABELS
 //
 // This test case fails to compare because LFB/LFE labels are different.

@@ -1,6 +1,5 @@
-// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "a0tmplfuncinln_g.h:17:23: internal compiler error: in instantiate_decl" "" { xfail *-*-* } 0 }
-// { dg-excess-errors "Template list problems" }
+// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x4tmplfuncinln.cc:1:0: internal compiler error: in cgraph_create_node, at cgraph.c:502" "" { xfail *-*-* } 0 }
 
 #include "x0tmplfuncinln1.h"
 #include "x0tmplfuncinln2.h"

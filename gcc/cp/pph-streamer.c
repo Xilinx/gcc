@@ -334,10 +334,10 @@ pph_add_include (pph_stream *stream, pph_stream *include)
 /* Print tracing information for a possibly MERGEABLE tree T.  */
 
 void
-pph_trace_tree (tree t, bool mergeable)
+pph_trace_tree (tree t, bool mergeable, bool merged)
 {
   bool emit = false;
-  char merging = mergeable ? '*' : '.';
+  char merging = merged ? '#' : mergeable ? '*' : '.';
   bool is_decl = DECL_P (t);
   char userdef =  is_decl ? '*' : '.';
 
