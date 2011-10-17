@@ -1,6 +1,10 @@
 
 
 2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (foreach_superloop): New citerator.
+	(superloop_tuple): New function.
+
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (melt_debug_fun): Remove debug aid.
 	* melt/xtramelt-ana-base.melt (superloop_at_depth): New primitive.
 	* melt/xtramelt-opengpu.melt: More debug.

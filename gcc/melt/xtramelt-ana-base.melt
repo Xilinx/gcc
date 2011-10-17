@@ -324,6 +324,41 @@ do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
   :doc #{Return the containing superloop of loop $LO at given $DEPTH or else null.}#
   #{(($LO && $DEPTH>=0 && $DEPTH<=loop_depth ($LO))?superloop_at_depth($LO, $DEPTH):NULL)}#)
 
+(defciterator foreach_superloop
+  (:loop lo)
+  eachsuperloop
+  (:loop curloop :long loopix)
+  :doc #{Iterate of each superloop of given loop $LO, for each $CURLOOP of indec $LOOPIX.}#
+  ;; before expansion
+  #{ /* $EACHSUPERLOOP */ unsigned $EACHSUPERLOOP#_ix = 0;
+   loop_p $EACHSUPERLOOP#_loop = NULL;
+   if ($LO) { 
+     FOR_EACH_VEC_ELT (loop_p, $LO->superloops, $EACHSUPERLOOP#_ix,  $EACHSUPERLOOP#_loop) {
+       $LOOPIX = $EACHSUPERLOOP#_ix;
+       $CURLOOP = $EACHSUPERLOOP#_loop;
+  }#
+  ;; after expansion
+  #{ }} /* end $EACHSUPERLOOP */ }#
+)
+
+(defun superloop_tuple (loopv)
+  :doc #{Given a boxed loop $LOOPV, return the tuple of its boxed superloops.}#
+  (if (is_loop loopv)
+      (let ( (:loop lo (loop_content loopv))
+	     )
+	(if lo
+	    (let (
+		  (:long lodepth (loop_depth lo))
+		  (tup (make_multiple discr_multiple lodepth))
+		  )
+	      (foreach_superloop
+	       (lo)
+	       (:loop curloop :long loopix)
+		 (multiple_put_nth tup loopix (make_loop discr_loop curloop))		 
+	       )
+	      (return tup)
+	      )))))
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -3836,6 +3871,7 @@ Don't scan operands of the added $G.}#
  foreach_mapgimple
  foreach_maploop
  foreach_maptree
+ foreach_superloop
  get_immediate_dominator
  get_immediate_post_dominator
  gimple_asm
@@ -4039,6 +4075,7 @@ Don't scan operands of the added $G.}#
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
  superloop_at_depth
+ superloop_tuple
  tree_addr_expr
  tree_array_ref
  tree_array_ref_full
