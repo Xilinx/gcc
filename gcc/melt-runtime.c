@@ -10757,7 +10757,7 @@ end:
 
 /* pretty print a tree */
 void
-meltgc_ppout_tree (melt_ptr_t out_p, int indentsp, tree tr)
+meltgc_ppout_tree_perhaps_briefly (melt_ptr_t out_p, int indentsp, tree tr, bool briefly)
 {
   int outmagic = 0;
 #define outv meltfram__.mcfr_varptr[0]
@@ -10776,7 +10776,10 @@ meltgc_ppout_tree (melt_ptr_t out_p, int indentsp, tree tr)
     case MELTOBMAG_STRBUF:
       {
 	FILE* oldfil = melt_open_ppfile ();
-	print_node (meltppfile, "", tr, indentsp);
+	if (briefly)
+	  print_node_brief (meltppfile, "", tr, indentsp);
+	else
+	  print_node (meltppfile, "", tr, indentsp);
 	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
@@ -10790,14 +10793,17 @@ meltgc_ppout_tree (melt_ptr_t out_p, int indentsp, tree tr)
 	FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
 	if (!f) 
 	  goto end;
-	print_node (f, "", tr, indentsp);
+	if (briefly)
+	  print_node_brief (f, "", tr, indentsp);
+	else
+	  print_node (f, "", tr, indentsp);
 	fflush (f);
       }
       break;
     default:
       goto end;
     }
-end:
+ end:
   MELT_EXITFRAME ();
 #undef outv
 }

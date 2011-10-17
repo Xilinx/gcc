@@ -3725,6 +3725,15 @@ Don't scan operands of the added $G.}#
       )))
 (register_tree_debug_fun debugfun_tree)
 
+(defun output_tree_briefly (out :tree tr)
+  (if (is_out out)
+      (if tr
+	  (code_chunk 
+	   treeoutchbr
+	   #{ /* $TREEOUTCHBR */ meltgc_ppout_tree_briefly ((melt_ptr_t)$OUT, 0, $TR) ; }#
+	   )
+	(add2out_strconst out "*nulltree*")
+	)))
 
 
 ;;;;;;;;;;;;;;;;
@@ -4043,6 +4052,7 @@ Don't scan operands of the added $G.}#
  number_of_loops
  output_edge
  output_loop
+ output_tree_briefly
  pop_cfun
  post_dominated_by_other
  post_dominated_by_other

@@ -1,5 +1,15 @@
 
 2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_ppout_tree_perhaps_briefly): New declaration.
+	(meltgc_ppout_tree, meltgc_ppout_tree_briefly): Add macros.
+
+	* melt-runtime.c (meltgc_ppout_tree): Remove, rename as..
+	(meltgc_ppout_tree_perhaps_briefly): Renamed function. May call
+	either print_node or print_node_brief.
+
+	* melt/xtramelt-ana-base.melt (output_tree_briefly): New function.
+
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_ppout_tree): Use print_node, not print_node_brief.
 	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
 	More.

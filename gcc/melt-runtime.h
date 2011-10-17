@@ -1935,7 +1935,9 @@ void meltgc_ppout_gimple_seq(melt_ptr_t outbuf_p, int indentsp, gimple_seq gseq)
 #define meltgc_ppstrbuf_gimple_seq(Out,I,G) meltgc_ppout_gimple_seq ((Out), (I), (G))
 
 /* pretty print into an OUTBUF a tree */
-void meltgc_ppout_tree(melt_ptr_t outbuf_p, int indentsp, tree tr);
+void meltgc_ppout_tree_perhaps_briefly(melt_ptr_t outbuf_p, int indentsp, tree tr, bool briefly);
+#define meltgc_ppout_tree(Out,I,T) meltgc_ppout_tree_perhaps_briefly((Out),(I),(T),FALSE)
+#define meltgc_ppout_tree_briefly(Out,I,T) meltgc_ppout_tree_perhaps_briefly((Out),(I),(T),TRUE)
 #define meltgc_ppstrbuf_tree(Out,I,T) meltgc_ppout_tree  ((Out), (I), (T))
 
 /* pretty print into an outbuf a basic_block */
