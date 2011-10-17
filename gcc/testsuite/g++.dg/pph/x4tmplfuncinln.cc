@@ -1,6 +1,6 @@
-// pph asm xdiff 16845
-// xfail BOGUS DUPFUN
-// double function1<double>(double) is duplicated
+// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "a0tmplfuncinln_g.h:17:23: internal compiler error: in instantiate_decl" "" { xfail *-*-* } 0 }
+// { dg-excess-errors "Template list problems" }
 
 #include "x0tmplfuncinln1.h"
 #include "x0tmplfuncinln2.h"

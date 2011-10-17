@@ -1086,7 +1086,8 @@ pph_in_mergeable_binding_level (cp_binding_level *existing, pph_stream *stream)
   if (flag_pph_debug >= 3)
     {
       fprintf (pph_logfile, "PPH: Merging into this chain:\n");
-      debug_tree_chain (existing->names);
+      pph_dump_chain (pph_logfile, existing->names);
+      fprintf (pph_logfile, "\n");
     }
   pph_in_mergeable_chain (stream, &existing->names);
   pph_in_mergeable_chain (stream, &existing->namespaces);
@@ -2377,9 +2378,6 @@ pph_read_file_1 (pph_stream *stream)
   /* Read the bindings from STREAM and merge them with the current bindings.  */
   pph_in_mergeable_binding_level (scope_chain->bindings, stream);
 
-  if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
-
   /* Read and merge the other global state collected during parsing of
      the original header.  */
   file_keyed_classes = pph_in_tree (stream);
@@ -2401,6 +2399,9 @@ pph_read_file_1 (pph_stream *stream)
   /* Mark this file as read.  If other images need to access its contents,
      we will not need to actually read it again.  */
   pph_mark_stream_read (stream);
+
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
 }
 
 

@@ -345,12 +345,14 @@ pph_trace_tree (tree t, bool mergeable)
     emit = true;
   else if ((mergeable || is_decl) && flag_pph_tracer >= 3)
     emit = true;
-  else if (flag_pph_tracer >= 4)
+  else if (!EXPR_P (t) && flag_pph_tracer >= 4)
     emit = true;
 
   if (emit)
     {
+      enum tree_code code = TREE_CODE (t);
       fprintf (pph_logfile, "PPH: %c%c ", merging, userdef);
+      fprintf (pph_logfile, "%-19s ", pph_tree_code_text (code));
       pph_dump_tree_name (pph_logfile, t, 0);
     }
 }

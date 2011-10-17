@@ -220,6 +220,7 @@ struct pph_stream {
 /* In pph.c  */
 extern const char *pph_tree_code_text (enum tree_code code);
 extern void pph_dump_min_decl (FILE *file, tree decl);
+extern void pph_dump_chain (FILE *, tree chain);
 extern void pph_dump_binding (FILE *, cp_binding_level *level);
 extern void pph_dump_namespace (FILE *, tree ns);
 

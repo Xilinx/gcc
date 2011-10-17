@@ -1,3 +1,30 @@
+2011-10-16   Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer.h (pph_dump_chain): New.
+	* pph-streamer.c (pph_trace_tree): Filter expressions from trace.
+	Print tree code.
+	* pph.c (pph_dump_tree_name): Add print newline.
+	(pph_dump_namespace): Remove print space.
+	(pph_dump_binding): Factor out dumping a chain.
+	(pph_dump_chain): New.
+	* pph-streamer-in.c (pph_in_mergeable_binding_level): Use
+	pph_dump_chain.
+	(pph_read_file_1): Change location of namespace dump.
+	* pph-streamer-out.c (pph_tree_matches): Remove redundant test.
+	(pph_out_tree_vec_1): Removed.
+	(pph_out_tree_vec): Takes core implementation from pph_out_tree_vec_1.
+	(pph_out_tree_vec_unchain): New. Takes core implementation from
+	pph_out_tree_vec_1.
+	(pph_out_mergeable_tree_vec): Likewise.
+	(pph_out_tree_vec_filtered): Likewise.
+	(chain2vec_filter): Prevent null filter.
+	(chain2vec): New.  Handles case above.
+	(pph_out_chain_1):  Removed.
+	(pph_out_chain):  Takes core implementation from pph_out_chain_1.
+	(pph_out_chain_filtered):  New.  Takes core implementation from
+	pph_out_chain_1.
+	(pph_out_mergeable_chain_filtered): Likewise.
+
 2011-10-14   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer.h (extern pph_dump_binding): New.

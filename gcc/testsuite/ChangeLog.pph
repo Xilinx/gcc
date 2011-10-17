@@ -1,3 +1,10 @@
+2011-10-16   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/x4tmplfuncinln.cc: Change failure to ICE.
+	* g++.dg/pph/x4tmplfuncninl.cc: Likewise.
+	* g++.dg/pph/z4tmplfuncinln.cc: Likewise.
+	* g++.dg/pph/z4tmplfuncninl.cc: Likewise.
+
 2011-10-16   Diego Novillo  <dnovillo@google.com>
 
 	* gcc.dg/plugin/selfassign.c (check_self_assign): Rename

@@ -753,15 +753,17 @@ pph_out_token_cache (pph_stream *f, cp_token_cache *cache)
 
 /******************************************************************* vectors */
 
+/* Note that we use the same format used by streamer_write_chain.
+   This is to support pph_out_chain_filtered, which writes the
+   filtered chain as a VEC.  Since the reader always reads chains
+   using streamer_read_chain, we have to write VECs in exactly the
+   same way as tree chains.  */
 
 /* Return true if T matches FILTER for STREAM.  */
 
 static inline bool
 pph_tree_matches (pph_stream *stream, tree t, unsigned filter)
 {
-  if (filter == PPHF_NONE)
-    return true;
-
   if ((filter & PPHF_NO_BUILTINS)
       && DECL_P (t)
       && DECL_IS_BUILTIN (t))
@@ -804,73 +806,56 @@ vec2vec_filter (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 }
 
 
-/* Write all the trees in VEC V to STREAM.  REVERSE is true if V should
-   be written in reverse.  MERGEABLE is true if the tree nodes in V
-   are mergeable trees (see pph_out_tree_1).  If FILTER is set,
-   only emit the elements in V that match it.  If UNCHAIN is true,
-   clear TREE_CHAIN on every element written out (this is to support
-   writing chains, as they are supposed to be re-chained by the
-   reader).  */
-
-static void
-pph_out_tree_vec_1 (pph_stream *stream, VEC(tree,gc) *v, unsigned filter,
-		    bool mergeable, bool reverse, bool unchain)
-{
-  unsigned i;
-  tree t;
-  VEC(tree,heap) *to_write;
-
-  if (filter != PPHF_NONE)
-    to_write = vec2vec_filter (stream, v, filter);
-  else
-    to_write = (VEC(tree,heap) *) v;
-
-  /* Note that we use the same format used by streamer_write_chain.
-     This is to support pph_out_chain_filtered, which writes the
-     filtered chain as a VEC.  Since the reader always reads chains
-     using streamer_read_chain, we have to write VECs in exactly the
-     same way as tree chains.  */
-  pph_out_hwi (stream, VEC_length (tree, to_write));
-
-  if (!reverse)
-    FOR_EACH_VEC_ELT (tree, to_write, i, t)
-      {
-	tree prev = NULL;
-	if (unchain)
-	  {
-	    prev = TREE_CHAIN (t);
-	    TREE_CHAIN (t) = NULL;
-	  }
-	pph_out_tree_1 (stream, t, mergeable);
-	if (unchain)
-	  TREE_CHAIN (t) = prev;
-      }
-  else
-    FOR_EACH_VEC_ELT_REVERSE (tree, to_write, i, t)
-      {
-	tree prev = NULL;
-	if (unchain)
-	  {
-	    prev = TREE_CHAIN (t);
-	    TREE_CHAIN (t) = NULL;
-	  }
-	pph_out_tree_1 (stream, t, mergeable);
-	if (unchain)
-	  TREE_CHAIN (t) = prev;
-      }
-
-  /* If we did not have to filter, TO_WRITE == V.  Do not free it!  */
-  if (filter != PPHF_NONE)
-    VEC_free (tree, heap, to_write);
-}
-
-
 /* Write all the trees in VEC V to STREAM.  */
 
 static void
 pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 {
-  pph_out_tree_vec_1 (stream, v, PPHF_NONE, false, false, false);
+  unsigned i;
+  tree t;
+  pph_out_hwi (stream, VEC_length (tree, v));
+  FOR_EACH_VEC_ELT (tree, v, i, t)
+    pph_out_tree (stream, t);
+}
+
+
+/* Write all the trees in VEC V to STREAM.
+   Clear TREE_CHAIN on every element written out (this is to support
+   writing chains, as they are supposed to be re-chained by the reader).  */
+
+static void
+pph_out_tree_vec_unchain (pph_stream *stream, VEC(tree,gc) *v)
+{
+  unsigned i;
+  tree t;
+  pph_out_hwi (stream, VEC_length (tree, v));
+  FOR_EACH_VEC_ELT (tree, v, i, t)
+    {
+      tree prev = TREE_CHAIN (t);
+      TREE_CHAIN (t) = NULL;
+      pph_out_tree (stream, t);
+      TREE_CHAIN (t) = prev;
+    }
+}
+
+
+/* Write all the mergeable trees in VEC V to STREAM.
+   The trees must go out in declaration order, i.e. reversed.
+   Unchain each before writing and rechain after writing.  */
+
+static void
+pph_out_mergeable_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
+{
+  unsigned i;
+  tree t;
+  pph_out_hwi (stream, VEC_length (tree, v));
+  FOR_EACH_VEC_ELT_REVERSE (tree, v, i, t)
+    {
+      tree prev = TREE_CHAIN (t);
+      TREE_CHAIN (t) = NULL;
+      pph_out_tree_1 (stream, t, /*mergeable=*/true);
+      TREE_CHAIN (t) = prev;
+    }
 }
 
 
@@ -879,7 +864,14 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 static void
 pph_out_tree_vec_filtered (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 {
-  pph_out_tree_vec_1 (stream, v, filter, false, false, false);
+  if (filter == PPHF_NONE)
+    pph_out_tree_vec (stream, v);
+  else
+    {
+      VEC(tree,heap) *w = vec2vec_filter (stream, v, filter);
+      pph_out_tree_vec (stream, (VEC(tree,gc) *)w);
+      VEC_free (tree, heap, w);
+    }
 }
 
 
@@ -929,6 +921,11 @@ chain2vec_filter (pph_stream *stream, tree chain, unsigned filter)
   tree t;
   VEC(tree,heap) *v = NULL;
 
+  /* Do not accept the nil filter.  The caller is responsible for
+     freeing the returned vector and they may inadvertently free
+     a vector they assumed to be allocated by this function.  */
+  gcc_assert (filter != PPHF_NONE);
+
   for (t = chain; t; t = TREE_CHAIN (t))
     if (pph_tree_matches (stream, t, filter))
       VEC_safe_push (tree, heap, v, t);
@@ -937,30 +934,18 @@ chain2vec_filter (pph_stream *stream, tree chain, unsigned filter)
 }
 
 
-/* Write a chain of trees to STREAM starting with FIRST (if REVERSE is
-   false) or the last element reachable from FIRST (if REVERSE is
-   true).  If FILTER is given, use it to decide what nodes should be
-   emitted.  MERGEABLE is as in pph_out_tree_1.  */
+/* Convert a CHAIN to a VEC by copying the nodes.  */
 
-static void
-pph_out_chain_1 (pph_stream *stream, tree first, unsigned filter,
-	         bool mergeable, bool reverse)
+static VEC(tree,heap) *
+chain2vec (tree chain)
 {
-  VEC(tree,heap) *vec = NULL;
+  tree t;
+  VEC(tree,heap) *v = NULL;
 
-  /* Unmodified chain writes go directly to the regular tree streamer.  */
-  if (filter == PPHF_NONE && !mergeable && !reverse)
-    {
-      streamer_write_chain (stream->encoder.w.ob, first, false);
-      return;
-    }
+  for (t = chain; t; t = TREE_CHAIN (t))
+    VEC_safe_push (tree, heap, v, t);
 
-  /* For everything else, convert the chain into a VEC and write it
-     out.  Since we have already applied FILTER, there is no need to
-     apply it again.  */
-  vec = chain2vec_filter (stream, first, filter);
-  pph_out_tree_vec_1 (stream, (VEC(tree,gc) *)vec, reverse, mergeable,
-		      PPHF_NONE, true);
+  return v;
 }
 
 
@@ -969,7 +954,7 @@ pph_out_chain_1 (pph_stream *stream, tree first, unsigned filter,
 static void
 pph_out_chain (pph_stream *stream, tree first)
 {
-  pph_out_chain_1 (stream, first, PPHF_NONE, false, false);
+  streamer_write_chain (stream->encoder.w.ob, first, false);
 }
 
 
@@ -979,7 +964,14 @@ pph_out_chain (pph_stream *stream, tree first)
 static void
 pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 {
-  pph_out_chain_1 (stream, first, filter, false, false);
+  if (filter == PPHF_NONE)
+    pph_out_chain (stream, first);
+  else
+    {
+      VEC(tree,heap) *w = chain2vec_filter (stream, first, filter);
+      pph_out_tree_vec_unchain (stream, (VEC(tree,gc) *)w);
+      VEC_free (tree, heap, w);
+    }
 }
 
 
@@ -991,7 +983,13 @@ static void
 pph_out_mergeable_chain_filtered (pph_stream *stream, tree chain,
 				  unsigned filter)
 {
-  pph_out_chain_1 (stream, chain, filter, true, true);
+  VEC(tree,heap) *w;
+  if (filter == PPHF_NONE)
+    w = chain2vec (chain);
+  else
+    w = chain2vec_filter (stream, chain, filter);
+  pph_out_mergeable_tree_vec (stream, (VEC(tree,gc) *)w);
+  VEC_free (tree, heap, w);
 }
 
 
@@ -2247,8 +2245,6 @@ pph_write_file (pph_stream *stream)
 
   /* Emit the bindings for the global namespace.  */
   pph_out_global_binding (stream);
-  if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
 
   /* Emit other global state kept by the parser.  FIXME pph, these
      globals should be fields in struct cp_parser.  */
@@ -2262,6 +2258,9 @@ pph_write_file (pph_stream *stream)
 
   /* Emit the symbol table.  */
   pph_out_symtab (stream);
+
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
 }
 
 

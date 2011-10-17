@@ -20301,9 +20301,7 @@ pph_dump_spec_entry_slot (void **slot, void *aux)
   struct spec_entry *entry = (struct spec_entry *) *slot;
   fprintf (stream, "spec_entry.tmpl: " );
   pph_dump_tree_name (stream, entry->tmpl, 0);
-  fprintf (stream, "spec_entry.args: " );
-  pph_dump_tree_name (stream, entry->args, 0);
-  fprintf (stream, "\nspec_entry.spec: " );
+  fprintf (stream, "spec_entry.spec: " );
   pph_dump_tree_name (stream, entry->spec, 0);
   return 1;
 }

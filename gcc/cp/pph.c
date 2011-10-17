@@ -101,7 +101,10 @@ pph_dump_tree_name (FILE *file, tree t, int flags)
   else if (EXPR_P (t))
     fprintf (file, "%s\n", expr_as_string (t, flags));
   else
-    print_generic_expr (file, t, flags);
+    {
+      print_generic_expr (file, t, flags);
+      fprintf (file, "\n");
+    }
 #endif
 }
 
@@ -113,7 +116,7 @@ pph_dump_namespace (FILE *file, tree ns)
 {
   fprintf (file, "namespace ");
   pph_dump_tree_name (file, ns, 0);
-  fprintf (file, " {\n");
+  fprintf (file, "{\n");
   pph_dump_binding (file, NAMESPACE_LEVEL (ns));
   fprintf (file, "}\n");
 }
@@ -124,19 +127,28 @@ pph_dump_namespace (FILE *file, tree ns)
 void
 pph_dump_binding (FILE *file, cp_binding_level *level)
 {
-  tree t, chain;
-
-  for (t = level->names; t; t = chain)
+  tree t, next;
+  pph_dump_chain (file, level->names);
+  for (t = level->namespaces; t; t = next)
     {
-      chain = DECL_CHAIN (t);
-      if (!DECL_IS_BUILTIN (t))
-        pph_dump_tree_name (file, t, 0);
-    }
-  for (t = level->namespaces; t; t = chain)
-    {
-      chain = DECL_CHAIN (t);
+      next = DECL_CHAIN (t);
       if (!DECL_IS_BUILTIN (t))
         pph_dump_namespace (file, t);
+    }
+}
+
+
+/* Dump a CHAIN for PPH.  */
+
+void
+pph_dump_chain (FILE *file, tree chain)
+{
+  tree t, next;
+  for (t = chain; t; t = next)
+    {
+      next = DECL_CHAIN (t);
+      if (!DECL_IS_BUILTIN (t))
+        pph_dump_tree_name (file, t, 0);
     }
 }
 
