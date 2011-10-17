@@ -37,7 +37,7 @@
 	   " bbloophead=" bbloophead " with nbsucc=" (basicblock_nb_succ bbloophead)
 	   " bblooplatch=" bblooplatch
 	   " curloopbodytuple=" curloopbodytuple
-	   " curloopedgetuple=" curloopedgetuple)
+	   " curloopedgetuple=" curloopedgetuple " loopix=" loopix)
     ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
     ;; tree-ssa-loop-niter.c function try_get_loop_niter &
     ;; canonicalize_loop_ivs & number_of_iterations_exit
@@ -112,15 +112,16 @@
      $INCRPASSCOUNT#_count++			       ;
      $PASSCOUNTER = $INCRPASSCOUNT#_count	       ;
      melt_cbreak ("opengpudetect_exec $INCRPASSCOUNT") ;
-     /* the dbgprintf goes to the dump_file */
-     dbgprintf ("opengpudetect_exec start $PASSCOUNTER= %ld", $PASSCOUNTER) ;
+     debugeprintf ("opengpudetect_exec start $PASSCOUNTER= %ld built %s", 
+		   $PASSCOUNTER, __DATE__ "@" __TIME__) ;
      }#)
+    (debug "opengpudetect_exec passcounter=" passcounter " pass=" pass)
     (code_chunk 
      dbgcfun #{ /* $DBGCFUN :: */
      debugeprintf("opengpudetect_exec start cfun=%p cfg=%p passcounter #%ld", 
 		  (void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
      }#) 
-    (debug "opengpudetect_exec before each_bb_cfun")
+    (debug "opengpudetect_exec before each_bb_cfun passcounter=" passcounter)
     (with_cfun_decl
      ()
      (:tree fundecl)
@@ -128,30 +129,31 @@
      (each_bb_current_fun
       ()
       (:basic_block bb)
-      (debugbasicblock "opengpudetect_exec bb" bb)
-      ))
+      (debug "opengpudetect_exec bb=" bb)
+      )
 ;;;
-    (debug "opengpudetect_exec after each_bb_cfun before each_loop")
-    (each_loop 
-     ()
-     (:loop curloop :long loopix)
-     (debug "opengpudetect_exec curloop=" curloop " loopix=" loopix 
+     (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" fundecl)
+     (each_loop 
+      ()
+      (:loop curloop :long loopix)
+      (debug "opengpudetect_exec curloop=" curloop " loopix=" loopix 
 	     " computed loopnum:" (loop_index_number curloop)
 	     " computed loopdepth:" (loop_depth curloop))
-     (if (loop_can_be_parallel curloop)
-	 (let ( (curloopval (make_loop discr_loop curloop))
-	       )
-	   (debug "opengpudetect_exec can be parallel!!! curloopval=" curloopval)
-	   (opengpudetect_handle_parallel_loop curloopval)
-	   (debug "opengpudetect_exec after opengpudetect_handle_parallel_loop curloopval=" curloopval)
-	   )
-       (debug "opengpudetect_exec is not parallel!!! curloop=" curloop)
-       )
-     )
-    ;;
-    (debug "opengpudetect_exec end pass=" pass)
-    (return :true)
-    ))
+      (if (loop_can_be_parallel curloop)
+	  (let ( (curloopval (make_loop discr_loop curloop))
+		 )
+	    (debug "opengpudetect_exec can be parallel!!! curloopval=" curloopval " loopix=" loopix)
+	    (opengpudetect_handle_parallel_loop curloopval)
+	    (debug "opengpudetect_exec after opengpudetect_handle_parallel_loop curloopval=" curloopval 
+		   " loopix=" loopix)
+	    )
+	(debug "opengpudetect_exec is not parallel!!! curloop=" curloop)
+	)
+      )
+     ;;
+     (debug "opengpudetect_exec end pass=" pass)
+     (return :true)
+     )))
 
 
 ;; the opengpu passes translate some Gimple into OpenCL.
@@ -168,7 +170,9 @@
 		    ))
 	 )
 ;    (install_melt_gcc_pass opengpudetect_pass "before" "vect" 0)
-    (install_melt_gcc_pass opengpudetect_pass "before" "ivcanon" 0)
+;    (install_melt_gcc_pass opengpudetect_pass "before" "ivcanon" 0)
+;; "ivcanon" is actually the pass just after graphite and its subpasses
+    (install_melt_gcc_pass opengpudetect_pass "after" "graphite" 0)
     ))
 
 (defun opengpu_docmd (cmd moduldata)

@@ -238,7 +238,6 @@ $FILENAM and $LINENO}#
 
 ;;; the debug_fun is usually called thru the debug macro.
 (defun melt_debug_fun (nothing :long count :cstring filename :long lineno :rest)
-  (debug_msg nothing "melt_debug_fun start")
   (if (melt_need_dbg 0) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 

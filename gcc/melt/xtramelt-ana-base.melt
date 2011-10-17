@@ -320,6 +320,10 @@ do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
   :doc #{Return the number of loops in current_loops.}#
   #{number_of_loops ()}#)
 
+(defprimitive superloop_at_depth (:loop lo :long depth) :loop
+  :doc #{Return the containing superloop of loop $LO at given $DEPTH or else null.}#
+  #{(($LO && $DEPTH>=0 && $DEPTH<=loop_depth ($LO))?superloop_at_depth($LO, $DEPTH):NULL)}#)
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -4034,6 +4038,7 @@ Don't scan operands of the added $G.}#
  raw_new_ppl_empty_constraint_system
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
+ superloop_at_depth
  tree_addr_expr
  tree_array_ref
  tree_array_ref_full

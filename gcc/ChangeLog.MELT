@@ -1,6 +1,13 @@
 
 
 2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun): Remove debug aid.
+	* melt/xtramelt-ana-base.melt (superloop_at_depth): New primitive.
+	* melt/xtramelt-opengpu.melt: More debug.
+	* testsuite/melt/topengpu-vecsum.c: Improve comment.
+	* testsuite/melt/topengpu-0.c: Likewise.
+
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt: Use DEBUG...
 
 2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
