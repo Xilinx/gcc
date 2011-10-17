@@ -7946,6 +7946,7 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	 that this happens when X or Y is NOP_EXPR or Y is INTEGER_CST. */
       if (POINTER_TYPE_P (type)
 	  && TREE_CODE (arg0) == POINTER_PLUS_EXPR
+	  && (!TYPE_RESTRICT (type) || TYPE_RESTRICT (TREE_TYPE (arg0)))
 	  && (TREE_CODE (TREE_OPERAND (arg0, 1)) == INTEGER_CST
 	      || TREE_CODE (TREE_OPERAND (arg0, 0)) == NOP_EXPR
 	      || TREE_CODE (TREE_OPERAND (arg0, 1)) == NOP_EXPR))
@@ -10692,9 +10693,9 @@ fold_binary_loc (location_t loc,
 		    }
 		}
 
-	      /* Optimize x*x as pow(x,2.0), which is expanded as x*x.  */
+	      /* Canonicalize x*x as pow(x,2.0), which is expanded as x*x.  */
 	      if (!in_gimple_form
-		  && optimize_function_for_speed_p (cfun)
+		  && optimize
 		  && operand_equal_p (arg0, arg1, 0))
 		{
 		  tree powfn = mathfn_built_in (type, BUILT_IN_POW);
@@ -13646,7 +13647,7 @@ fold_ternary_loc (location_t loc, enum tree_code code, tree type,
 
     case BIT_FIELD_REF:
       if ((TREE_CODE (arg0) == VECTOR_CST
-	   || (TREE_CODE (arg0) == CONSTRUCTOR && TREE_CONSTANT (arg0)))
+	   || TREE_CODE (arg0) == CONSTRUCTOR)
 	  && type == TREE_TYPE (TREE_TYPE (arg0)))
 	{
 	  unsigned HOST_WIDE_INT width = tree_low_cst (arg1, 1);
@@ -13658,24 +13659,17 @@ fold_ternary_loc (location_t loc, enum tree_code code, tree type,
 	      && (idx = idx / width)
 		 < TYPE_VECTOR_SUBPARTS (TREE_TYPE (arg0)))
 	    {
-	      tree elements = NULL_TREE;
-
 	      if (TREE_CODE (arg0) == VECTOR_CST)
-		elements = TREE_VECTOR_CST_ELTS (arg0);
-	      else
 		{
-		  unsigned HOST_WIDE_INT idx;
-		  tree value;
-
-		  FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (arg0), idx, value)
-		    elements = tree_cons (NULL_TREE, value, elements);
+		  tree elements = TREE_VECTOR_CST_ELTS (arg0);
+		  while (idx-- > 0 && elements)
+		    elements = TREE_CHAIN (elements);
+		  if (elements)
+		    return TREE_VALUE (elements);
 		}
-	      while (idx-- > 0 && elements)
-		elements = TREE_CHAIN (elements);
-	      if (elements)
-		return TREE_VALUE (elements);
-	      else
-		return build_zero_cst (type);
+	      else if (idx < CONSTRUCTOR_NELTS (arg0))
+		return CONSTRUCTOR_ELT (arg0, idx)->value;
+	      return build_zero_cst (type);
 	    }
 	}
 
@@ -13886,11 +13880,7 @@ fold_checksum_tree (const_tree expr, struct md5_ctx *ctx, htab_t ht)
   union tree_node buf;
   int i, len;
 
-recursive_label:
-
-  gcc_assert ((sizeof (struct tree_exp) + 5 * sizeof (tree)
-	       <= sizeof (struct tree_function_decl))
-	      && sizeof (struct tree_type) <= sizeof (struct tree_function_decl));
+ recursive_label:
   if (expr == NULL)
     return;
   slot = (void **) htab_find_slot (ht, expr, INSERT);

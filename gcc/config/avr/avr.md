@@ -77,7 +77,8 @@
 (include "constraints.md")
   
 ;; Condition code settings.
-(define_attr "cc" "none,set_czn,set_zn,set_n,compare,clobber"
+(define_attr "cc" "none,set_czn,set_zn,set_n,compare,clobber,
+                   out_plus"
   (const_string "none"))
 
 (define_attr "type" "branch,branch1,arith,xcall"
@@ -136,7 +137,7 @@
 ;; Otherwise do special processing depending on the attribute.
 
 (define_attr "adjust_len"
-  "out_bitop, out_plus, tsthi, tstsi, compare,
+  "out_bitop, out_plus, addto_sp, tsthi, tstsi, compare,
    mov8, mov16, mov32, reload_in16, reload_in32,
    ashlqi, ashrqi, lshrqi,
    ashlhi, ashrhi, lshrhi,
@@ -295,7 +296,7 @@
        operands[1] = copy_to_mode_reg(QImode, operand1);
   ")
 
-(define_insn "*movqi"
+(define_insn "movqi_insn"
   [(set (match_operand:QI 0 "nonimmediate_operand" "=r,d,Qm,r,q,r,*r")
 	(match_operand:QI 1 "general_operand"       "rL,i,rL,Qm,r,q,i"))]
   "(register_operand (operands[0],QImode)
@@ -345,15 +346,6 @@
       operands[1] = copy_to_mode_reg(HImode, operand1);
     }
 }")
-
-(define_insn "*movhi_sp"
-  [(set (match_operand:HI 0 "register_operand" "=q,r")
-        (match_operand:HI 1 "register_operand"  "r,q"))]
-  "((stack_register_operand(operands[0], HImode) && register_operand (operands[1], HImode))
-    || (register_operand (operands[0], HImode) && stack_register_operand(operands[1], HImode)))"
-  "* return output_movhi (insn, operands, NULL);"
-  [(set_attr "length" "5,2")
-   (set_attr "cc" "none,none")])
 
 (define_insn "movhi_sp_r_irq_off"
   [(set (match_operand:HI 0 "stack_register_operand" "=q")
@@ -767,142 +759,16 @@
   [(set_attr "length" "2")
    (set_attr "cc" "set_n")])
 
-(define_insn "*addhi3_sp_R_pc2"
+(define_insn "*addhi3_sp_R"
   [(set (match_operand:HI 1 "stack_register_operand" "=q")
         (plus:HI (match_operand:HI 2 "stack_register_operand" "q")
                  (match_operand:HI 0 "avr_sp_immediate_operand" "R")))]
-  "AVR_2_BYTE_PC"
-  "*{
-      if (CONST_INT_P (operands[0]))
-        {
-	  switch(INTVAL (operands[0]))
-	    {
-	    case -6: 
-	      return \"rcall .\" CR_TAB 
-	             \"rcall .\" CR_TAB 
-		     \"rcall .\";
-	    case -5: 
-	      return \"rcall .\" CR_TAB 
-	             \"rcall .\" CR_TAB 
-		     \"push __tmp_reg__\";
-	    case -4: 
-	      return \"rcall .\" CR_TAB 
-	             \"rcall .\";
-	    case -3: 
-	      return \"rcall .\" CR_TAB 
-	             \"push __tmp_reg__\";
-	    case -2: 
-	      return \"rcall .\";
-	    case -1: 
-	      return \"push __tmp_reg__\";
-	    case 0: 
-	      return \"\";
-	    case 1: 
-	      return \"pop __tmp_reg__\";
-	    case 2: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\";
-	    case 3: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\";
-	    case 4: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\";
-	    case 5: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\";
-	    }
-        }
-      return \"bug\";
-    }"
-  [(set (attr "length") 
-        (cond [(eq (const_int -6) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
-               (eq (const_int -5) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
-               (eq (const_int -4) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int -3) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int -2) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
-               (eq (const_int -1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
-               (eq (const_int  0) (symbol_ref "INTVAL (operands[0])")) (const_int 0)
-               (eq (const_int  1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
-               (eq (const_int  2) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int  3) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
-               (eq (const_int  4) (symbol_ref "INTVAL (operands[0])")) (const_int 4)
-               (eq (const_int  5) (symbol_ref "INTVAL (operands[0])")) (const_int 5)]
-               (const_int 0)))])
-
-(define_insn "*addhi3_sp_R_pc3"
-  [(set (match_operand:HI 1 "stack_register_operand" "=q")
-        (plus:HI (match_operand:HI 2 "stack_register_operand" "q")
-                 (match_operand:QI 0 "avr_sp_immediate_operand" "R")))]
-  "AVR_3_BYTE_PC"
-  "*{
-      if (CONST_INT_P (operands[0]))
-        {
-	  switch(INTVAL (operands[0]))
-	    {
-	    case -6: 
-	      return \"rcall .\" CR_TAB 
-		     \"rcall .\";
-	    case -5: 
-	      return \"rcall .\" CR_TAB 
-	             \"push __tmp_reg__\" CR_TAB 
-		     \"push __tmp_reg__\";
-	    case -4: 
-	      return \"rcall .\" CR_TAB 
-	             \"push __tmp_reg__\";
-	    case -3: 
-	      return \"rcall .\";
-	    case -2: 
-	      return \"push __tmp_reg__\" CR_TAB 
-		     \"push __tmp_reg__\";
-	    case -1: 
-	      return \"push __tmp_reg__\";
-	    case 0: 
-	      return \"\";
-	    case 1: 
-	      return \"pop __tmp_reg__\";
-	    case 2: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\";
-	    case 3: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\";
-	    case 4: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\";
-	    case 5: 
-	      return \"pop __tmp_reg__\" CR_TAB 
-	             \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\" CR_TAB 
-		     \"pop __tmp_reg__\";
-	    }
-        }
-      return \"bug\";
-    }"
-  [(set (attr "length") 
-        (cond [(eq (const_int -6) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int -5) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
-               (eq (const_int -4) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int -3) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
-               (eq (const_int -2) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int -1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
-               (eq (const_int  0) (symbol_ref "INTVAL (operands[0])")) (const_int 0)
-               (eq (const_int  1) (symbol_ref "INTVAL (operands[0])")) (const_int 1)
-               (eq (const_int  2) (symbol_ref "INTVAL (operands[0])")) (const_int 2)
-               (eq (const_int  3) (symbol_ref "INTVAL (operands[0])")) (const_int 3)
-               (eq (const_int  4) (symbol_ref "INTVAL (operands[0])")) (const_int 4)
-               (eq (const_int  5) (symbol_ref "INTVAL (operands[0])")) (const_int 5)]
-               (const_int 0)))])
+  ""
+  {
+    return avr_out_addto_sp (operands, NULL);
+  }
+  [(set_attr "length" "5")
+   (set_attr "adjust_len" "addto_sp")])
 
 (define_insn "*addhi3"
   [(set (match_operand:HI 0 "register_operand" "=r,!w,!w,d,r,r")
@@ -921,30 +787,28 @@
    (set_attr "cc" "set_n,set_czn,set_czn,set_czn,set_n,set_n")])
 
 (define_insn "addsi3"
-  [(set (match_operand:SI 0 "register_operand"          "=r,!w,!w,d,l,l ,d,r")
-        (plus:SI (match_operand:SI 1 "register_operand" "%0,0 ,0 ,0,0,0 ,0,0")
-                 (match_operand:SI 2 "nonmemory_operand" "r,I ,J ,s,P,N ,n,n")))
-   (clobber (match_scratch:QI 3                         "=X,X ,X ,X,X,X ,X,&d"))]
+  [(set (match_operand:SI 0 "register_operand"          "=r,d ,d,r")
+        (plus:SI (match_operand:SI 1 "register_operand" "%0,0 ,0,0")
+                 (match_operand:SI 2 "nonmemory_operand" "r,s ,n,n")))
+   (clobber (match_scratch:QI 3                         "=X,X ,X,&d"))]
   ""
   {
     static const char * const asm_code[] =
       {
         "add %A0,%A2\;adc %B0,%B2\;adc %C0,%C2\;adc %D0,%D2",
-        "adiw %0,%2\;adc %C0,__zero_reg__\;adc %D0,__zero_reg__",
-        "sbiw %0,%n2\;sbc %C0,__zero_reg__\;sbc %D0,__zero_reg__",
         "subi %0,lo8(-(%2))\;sbci %B0,hi8(-(%2))\;sbci %C0,hlo8(-(%2))\;sbci %D0,hhi8(-(%2))",
-        "sec\;adc %A0,__zero_reg__\;adc %B0,__zero_reg__\;adc %C0,__zero_reg__\;adc %D0,__zero_reg__",
-        "sec\;sbc %A0,__zero_reg__\;sbc %B0,__zero_reg__\;sbc %C0,__zero_reg__\;sbc %D0,__zero_reg__"
+        "",
+        ""
       };
 
-    if (which_alternative >= (signed) (sizeof (asm_code) / sizeof (*asm_code)))
-      return avr_out_plus (operands, NULL);
+    if (*asm_code[which_alternative])
+      return asm_code [which_alternative];
 
-    return asm_code [which_alternative];
+    return avr_out_plus (operands, NULL, NULL);
   }
-  [(set_attr "length" "4,3,3,4,5,5,8,8")
-   (set_attr "adjust_len" "*,*,*,*,*,*,out_plus,out_plus")
-   (set_attr "cc" "set_n,set_n,set_czn,set_czn,set_n,set_n,clobber,clobber")])
+  [(set_attr "length" "4,4,4,8")
+   (set_attr "adjust_len" "*,*,out_plus,out_plus")
+   (set_attr "cc" "set_n,set_czn,out_plus,out_plus")])
 
 (define_insn "*addsi3_zero_extend"
   [(set (match_operand:SI 0 "register_operand"                         "=r")
@@ -1695,13 +1559,11 @@
 	(mult:HI (match_operand:HI 1 "register_operand" "r")
 		 (match_operand:HI 2 "register_operand" "r")))]
   "AVR_HAVE_MUL"
-  "mul %A1,%A2
-	movw %0,r0
-	mul %A1,%B2
-	add %B0,r0
-	mul %B1,%A2
-	add %B0,r0
-	clr r1"
+  {
+    return REGNO (operands[1]) == REGNO (operands[2])
+           ? "mul %A1,%A1\;movw %0,r0\;mul %A1,%B1\;add %B0,r0\;add %B0,r0\;clr r1"
+           : "mul %A1,%A2\;movw %0,r0\;mul %A1,%B2\;add %B0,r0\;mul %B1,%A2\;add %B0,r0\;clr r1";
+  }
   [(set_attr "length" "7")
    (set_attr "cc" "clobber")])
 
@@ -3765,7 +3627,7 @@
   ""
   "")
 
-(define_insn "*call_insn"
+(define_insn "call_insn"
   [(parallel[(call (mem:HI (match_operand:HI 0 "nonmemory_operand" "z,s,z,s"))
                    (match_operand:HI 1 "general_operand"           "X,X,X,X"))
              (use (match_operand:HI 2 "const_int_operand"          "L,L,P,P"))])]
@@ -3788,7 +3650,7 @@
                                         (const_int 2)
                                         (const_int 1))])])
 
-(define_insn "*call_value_insn"
+(define_insn "call_value_insn"
   [(parallel[(set (match_operand 0 "register_operand"                   "=r,r,r,r")
                   (call (mem:HI (match_operand:HI 1 "nonmemory_operand"  "z,s,z,s"))
                         (match_operand:HI 2 "general_operand"            "X,X,X,X")))
@@ -3856,62 +3718,36 @@
    (set_attr "cc" "none")])
 
 ;; table jump
+;; For entries in jump table see avr_output_addr_vec_elt.
 
-;; Table made from "rjmp" instructions for <=8K devices.
+;; Table made from "rjmp .L<n>" instructions for <= 8K devices.
 (define_insn "*tablejump_rjmp"
-  [(set (pc) (unspec:HI [(match_operand:HI 0 "register_operand" "!z,*r")]
-			UNSPEC_INDEX_JMP))
+  [(set (pc)
+        (unspec:HI [(match_operand:HI 0 "register_operand" "!z,*r")]
+                   UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "(!AVR_HAVE_JMP_CALL) && (!AVR_HAVE_EIJMP_EICALL)"
+  "!AVR_HAVE_JMP_CALL"
   "@
 	ijmp
 	push %A0\;push %B0\;ret"
   [(set_attr "length" "1,3")
    (set_attr "cc" "none,none")])
 
-;; Not a prologue, but similar idea - move the common piece of code to libgcc.
+;; Move the common piece of code to libgcc.
+;; Table made from ".word gs(.L<n>)" addresses for > 8K devices.
+;; Read jump address from table and perform indirect jump.
 (define_insn "*tablejump_lib"
-  [(set (pc) (unspec:HI [(match_operand:HI 0 "register_operand" "z")]
-			UNSPEC_INDEX_JMP))
+  [(set (pc)
+        (unspec:HI [(match_operand:HI 0 "register_operand" "z")]
+                   UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "AVR_HAVE_JMP_CALL && TARGET_CALL_PROLOGUES"
-  "%~jmp __tablejump2__"
+  "AVR_HAVE_JMP_CALL"
+  "jmp __tablejump2__"
   [(set_attr "length" "2")
    (set_attr "cc" "clobber")])
 
-(define_insn "*tablejump_enh"
-  [(set (pc) (unspec:HI [(match_operand:HI 0 "register_operand" "z")]
-			UNSPEC_INDEX_JMP))
-   (use (label_ref (match_operand 1 "" "")))
-   (clobber (match_dup 0))]
-  "AVR_HAVE_JMP_CALL && AVR_HAVE_LPMX"
-  "lsl r30
-	rol r31
-	lpm __tmp_reg__,Z+
-	lpm r31,Z
-	mov r30,__tmp_reg__
-	%!ijmp"
-  [(set_attr "length" "6")
-   (set_attr "cc" "clobber")])
-
-(define_insn "*tablejump"
-  [(set (pc) (unspec:HI [(match_operand:HI 0 "register_operand" "z")]
-			UNSPEC_INDEX_JMP))
-   (use (label_ref (match_operand 1 "" "")))
-   (clobber (match_dup 0))]
-  "AVR_HAVE_JMP_CALL && !AVR_HAVE_EIJMP_EICALL"
-  "lsl r30
-	rol r31
-	lpm
-	inc r30
-	push r0
-	lpm
-	push r0
-	ret"
-  [(set_attr "length" "8")
-   (set_attr "cc" "clobber")])
 
 (define_expand "casesi"
   [(set (match_dup 6)

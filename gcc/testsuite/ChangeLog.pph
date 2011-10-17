@@ -1,3 +1,8 @@
+2011-10-17   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x6dynarray4.cc: Also expect an ICE.
+	* g++.dg/pph/x7dynarray5.cc: Likewise.
+
 2011-10-16   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/c4inline.cc: Change to ICE in cgraph.

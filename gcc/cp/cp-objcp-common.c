@@ -325,6 +325,7 @@ cp_common_init_ts (void)
   gcc_assert (tree_contains_struct[USING_STMT][TS_TYPED]);
   gcc_assert (tree_contains_struct[LAMBDA_EXPR][TS_TYPED]);
   gcc_assert (tree_contains_struct[CTOR_INITIALIZER][TS_TYPED]);
+  gcc_assert (tree_contains_struct[IMPLICIT_CONV_EXPR][TS_TYPED]);
 }
 
 #include "gt-cp-cp-objcp-common.h"

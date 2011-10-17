@@ -1,4 +1,5 @@
 // { dg-xfail-if "BOGUS MERGING" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus ".*internal compiler error.*" "" { xfail *-*-* } 0 }
 // Too many failures to diagnose.
 
 #include "x6dynarray5.h"

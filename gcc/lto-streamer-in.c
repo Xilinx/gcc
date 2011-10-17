@@ -775,15 +775,6 @@ input_struct_function_base (struct function *fn, struct data_in *data_in,
   struct bitpack_d bp;
   int len;
 
-  /* struct eh_status *eh;				-- maybe elsewhere */
-  /* struct control_flow_graph *cfg;			-- maybe elsewhere */
-  /* struct gimple_seq_d *gimple_body;			-- maybe elsewhere */
-  /* struct gimple_df *gimple_df;			-- maybe elsewhere */
-  /* struct loops *x_current_loops;			-- maybe elsewhere */
-  /* struct stack_usage *su;				-- maybe elsewhere */
-  /* htab_t value_histograms;				-- ignored */
-  /* tree decl;						-- ignored */
-
   /* Read the static chain and non-local goto save area.  */
   fn->static_chain_decl = stream_read_tree (ib, data_in);
   fn->nonlocal_goto_save_area = stream_read_tree (ib, data_in);
@@ -800,12 +791,6 @@ input_struct_function_base (struct function *fn, struct data_in *data_in,
 	  VEC_replace (tree, fn->local_decls, i, t);
 	}
     }
-
-  /* struct machine_function * machine;			-- ignored */
-  /* struct language_function * language;		-- maybe elsewhere */
-  /* htab_t used_types_hash;				-- maybe elsewhere */
-  /* int last_stmt_uid;					-- maybe elsewhere */
-  /* int funcdef_no;					-- maybe elsewhere */
 
   /* Input the function start and end loci.  */
   fn->function_start_locus = lto_input_location (ib, data_in);
@@ -1181,7 +1166,7 @@ lto_input_tree (struct lto_input_block *ib, struct data_in *data_in)
 /* Input toplevel asms.  */
 
 void
-lto_input_toplevel_asms (struct lto_file_decl_data *file_data)
+lto_input_toplevel_asms (struct lto_file_decl_data *file_data, int order_base)
 {
   size_t len;
   const char *data = lto_get_section_data (file_data, LTO_section_asm,
@@ -1210,7 +1195,12 @@ lto_input_toplevel_asms (struct lto_file_decl_data *file_data)
 		     header->lto_header.minor_version);
 
   while ((str = streamer_read_string_cst (data_in, &ib)))
-    cgraph_add_asm_node (str);
+    {
+      struct cgraph_asm_node *node = cgraph_add_asm_node (str);
+      node->order = streamer_read_hwi (&ib) + order_base;
+      if (node->order >= cgraph_order)
+	cgraph_order = node->order + 1;
+    }
 
   clear_line_info (data_in);
   lto_data_in_delete (data_in);

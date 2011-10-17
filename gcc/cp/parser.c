@@ -8937,7 +8937,9 @@ cp_parser_range_for (cp_parser *parser, tree scope, tree init, tree range_decl)
     {
       stmt = begin_range_for_stmt (scope, init);
       finish_range_for_decl (stmt, range_decl, range_expr);
-      if (!type_dependent_expression_p (range_expr))
+      if (!type_dependent_expression_p (range_expr)
+	  /* do_auto_deduction doesn't mess with template init-lists.  */
+	  && !BRACE_ENCLOSED_INITIALIZER_P (range_expr))
 	do_range_for_auto_deduction (range_decl, range_expr);
     }
   else
@@ -20864,7 +20866,8 @@ cp_parser_save_nsdmi (cp_parser* parser)
   cp_token *last;
   tree node;
 
-  cp_parser_cache_group (parser, CPP_CLOSE_PAREN, /*depth=*/0);
+  /* Save tokens until the next comma or semicolon.  */
+  cp_parser_cache_group (parser, CPP_COMMA, /*depth=*/0);
 
   last = parser->lexer->next_token;
 
@@ -21965,6 +21968,12 @@ cp_parser_cache_group (cp_parser *parser,
 	/* We've hit the end of an enclosing block, so there's been some
 	   kind of syntax error.  */
 	return true;
+
+      /* If we're caching something finished by a comma (or semicolon),
+	 such as an NSDMI, don't consume the comma.  */
+      if (end == CPP_COMMA
+	  && (token->type == CPP_SEMICOLON || token->type == CPP_COMMA))
+	return false;
 
       /* Consume the token.  */
       cp_lexer_consume_token (parser->lexer);

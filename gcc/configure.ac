@@ -3289,6 +3289,14 @@ elif test x$gcc_cv_ld != x; then
 	gcc_cv_ld_static_option="-noso"
 	gcc_cv_ld_dynamic_option="-so_archive"
         ;;
+      # HP-UX ld uses -a flags to select between shared and archive.
+      *-*-hpux*)
+	if test x"$gnu_ld" = xno; then
+	  gcc_cv_ld_static_dynamic=yes
+	  gcc_cv_ld_static_option="-aarchive_shared"
+	  gcc_cv_ld_dynamic_option="-adefault"
+	fi
+	;;
       # IRIX 6 ld supports -Bstatic/-Bdynamic.
       mips-sgi-irix6*)
         gcc_cv_ld_static_dynamic=yes
@@ -3524,6 +3532,8 @@ foo:
       gcc_cv_as_sparc_fmaf,,
       [-xarch=v9d],
       [.text
+       .register %g2, #scratch
+       .register %g3, #scratch
        .align 4
        fmaddd %f0, %f2, %f4, %f6
        addxccc %g1, %g2, %g3

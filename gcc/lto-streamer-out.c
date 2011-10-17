@@ -728,15 +728,6 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   unsigned i;
   tree t;
 
-  /* struct eh_status *eh;				-- maybe elsewhere */
-  /* struct control_flow_graph *cfg;			-- maybe elsewhere */
-  /* struct gimple_seq_d *gimple_body;			-- maybe elsewhere */
-  /* struct gimple_df *gimple_df;			-- maybe elsewhere */
-  /* struct loops *x_current_loops;			-- maybe elsewhere */
-  /* struct stack_usage *su;				-- maybe elsewhere */
-  /* htab_t value_histograms;				-- ignored */
-  /* tree decl;						-- ignored */
-
   /* Output the static chain and non-local goto save area.  */
   stream_write_tree (ob, fn->static_chain_decl, true);
   stream_write_tree (ob, fn->nonlocal_goto_save_area, true);
@@ -745,12 +736,6 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   streamer_write_hwi (ob, VEC_length (tree, fn->local_decls));
   FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
     stream_write_tree (ob, t, true);
-
-  /* struct machine_function * machine;			-- ignored */
-  /* struct language_function * language;		-- maybe elsewhere */
-  /* htab_t used_types_hash;				-- maybe elsewhere */
-  /* int last_stmt_uid;					-- maybe elsewhere */
-  /* int funcdef_no;					-- maybe elsewhere */
 
   /* Output the function start and end loci.  */
   lto_output_location (ob, fn->function_start_locus);
@@ -989,7 +974,10 @@ lto_output_toplevel_asms (void)
   streamer_write_char_stream (ob->string_stream, 0);
 
   for (can = cgraph_asm_nodes; can; can = can->next)
-    streamer_write_string_cst (ob, ob->main_stream, can->asm_str);
+    {
+      streamer_write_string_cst (ob, ob->main_stream, can->asm_str);
+      streamer_write_hwi (ob, can->order);
+    }
 
   streamer_write_string_cst (ob, ob->main_stream, NULL_TREE);
 
