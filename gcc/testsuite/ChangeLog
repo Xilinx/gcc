@@ -1,3 +1,233 @@
+2011-10-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	* gfortran.dg/c_kind_tests_3.f03: New.
+
+2011-10-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50547
+	* gfortran.dg/elemental_args_check_4.f90: New.
+
+2011-10-16  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50727
+	* gcc.dg/vect/pr50727.c: New test.
+
+2011-10-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/vla-23.c: New test.
+
+2011-10-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50596
+	* gcc.dg/vect/vect-cond-9.c: New test.
+
+2011-10-16  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/bb-slp-29.c: New test.
+
+2011-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50732
+	* g++.dg/ext/is_base_of_incomplete.C: New.
+	* g++.dg/ext/is_base_of_diagnostic.C: Adjust dg-errors.
+	* g++.dg/ext/unary_trait_incomplete.C: Likewise.
+
+2011-10-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.target/sparc/combined-1.c: Compile at -O2.
+
+2011-10-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/fma_float_?.c (dg-prune_output): Remove.
+	(dg-options): Add -Wno-attributes.
+	* gcc.target/i386/fma_double_?.c: Ditto.
+	* gcc.target/i386/fma_run_float_?.c: Ditto.
+	* gcc.target/i386/fma_run_double_?.c: Ditto.
+	* gcc.target/i386/l_fma_float_?.c: Dtto.
+	* gcc.target/i386/l_fma_double_?.c: Ditto.
+	* gcc.target/i386/l_fma_run_float_?.c: Ditto.
+	* gcc.target/i386/l_fma_run_double_?.c: Ditto.
+
+2011-10-15  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/bind_c_usage_23.f90: Change TR 29113 to TS 29113 in
+	the comments.
+	* gfortran.dg/bind_c_usage_24.f90: Ditto.
+	* gfortran.dg/rank_3.f90: Ditto.
+	* gfortran.dg/bind_c_usage_22.f90: Ditto, change -std=f2008tr to
+	-std=f2008ts in dg-options.
+	* gfortran.dg/rank_4.f90: Ditto.
+
+2011-10-15  Oleg Endo  <oleg.endo@t-online.de>
+
+	PR target/49263
+	* gcc.target/sh/pr49263.c: New.
+
+2011-10-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/debug1.ads: Tweak.
+
+2011-10-14  Kai Tietz  <ktietz@redhat.com>
+
+	* gfortran.fortran-torture/compile/logical-2.f90: New test.
+
+2011-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/sse2-mul-1.c: New test.
+	* gcc.target/i386/sse4_1-mul-1.c: New test.
+	* gcc.target/i386/avx-mul-1.c: New test.
+	* gcc.target/i386/xop-mul-1.c: New test.
+	* gcc.target/i386/avx2-mul-1.c: New test.
+
+2011-10-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50563
+	* g++.dg/cpp0x/nsdmi-list1.C: New.
+
+	PR c++/50707
+	* g++.dg/cpp0x/nsdmi-const1.C: New.
+
+2011-10-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50570
+	* gfortran.dg/pointer_intent_5.f90: New.
+
+2011-10-14  Artjoms Sinkarovs  <artyom.shinkaroff@gmail.com>
+
+	* gcc.target/i386/warn-vect-op-3.c: Exclude 32-bit architectures.
+	* gcc.target/i386/warn-vect-op-1.c: Ditto.
+	* gcc.target/i386/warn-vect-op-2.c: Ditto.
+
+2011-10-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50718
+	* gfortran.dg/pointer_check_11.f90: New.
+	* gfortran.dg/pointer_check_12.f90: New.
+
+2011-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38174
+	* g++.dg/overload/operator4.C: New.
+
+2011-10-14  David Alan Gilbert  <david.gilbert@linaro.org>
+
+	* gcc.dg/di-longlong64-sync-1.c: New test.
+	* gcc.dg/di-sync-multithread.c: New test.
+	* gcc.target/arm/di-longlong64-sync-withhelpers.c: New test.
+	* gcc.target/arm/di-longlong64-sync-withldrexd.c: New test.
+	* lib/target-supports.exp: (arm_arch_*_ok): Series of effective-target
+	tests for v5, v6, v6k, and v7-a, and add-options helpers.
+	(check_effective_target_arm_arm_ok): New helper.
+	(check_effective_target_sync_longlong): New helper.
+
+2011-10-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50723
+	* gcc.dg/torture/pr50723.c: New testcase.
+
+2011-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/17212
+	* g++.dg/warn/format6.C: New.
+	* obj-c++.dg/warn6.mm: Likewise.
+
+2011-10-13  Richard Henderson  <rth@redhat.com>
+
+	* lib/target-supports.exp (check_effective_target_vect_shift_scalar):
+	Delete.
+	* gcc.dg/vect/vec-scal-opt.c: Don't test vect_shift_scalar.
+	* gcc.dg/vect/vec-scal-opt1.c: Likewise.
+	* gcc.dg/vect/vec-scal-opt2.c: Likewise.
+
+2011-10-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50614
+	* g++.dg/cpp0x/nsdmi-template2.C: New.
+
+	PR c++/50437
+	* g++.dg/cpp0x/lambda/lambda-auto1.C: New.
+
+	PR c++/50618
+	* g++.dg/init/vbase1.C: New.
+
+2011-10-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/sse4_1-phminposuw-2.c: New test.
+	* gcc.target/i386/sse4_1-phminposuw-3.c: New test.
+	* gcc.target/i386/avx-vphminposuw-2.c: New test.
+	* gcc.target/i386/avx-vphminposuw-3.c: New test.
+
+2011-10-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr50712.c: Check ia32 instead of ilp32.
+
+2011-10-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/builtins-67.c: Guard iround and irint with HAVE_C99_RUNTIME.
+
+2011-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50712
+	* gcc.target/i386/pr50712.c: New testcase.
+
+2011-10-13  Tom de Vries  <tom@codesourcery.com>
+
+	* gcc.dg/memcpy-4.c: New test.
+
+2011-10-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50698
+	* g++.dg/vect/pr50698.cc: New testcase.
+
+2011-10-12  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/powerpc/warn-1.c: Skip if not powerpc_vsx_ok.
+	* gcc.target/powerpc/warn-2.c: Ditto.
+
+	* gcc.target/powerpc/ppc-fma-3.c: Require powerpc_fprs.
+	* gcc.target/powerpc/ppc-fma-4.c: Likewise.
+	* gcc.target/powerpc/ppc-fma-5.c: Likewise.
+	* gcc.target/powerpc/ppc-fma-7.c: Likewise.
+	* gcc.target/powerpc/ppc-fpconv-11.c: Likewise.
+	* gcc.target/powerpc/ppc-fpconv-3.c: Likewise.
+	* gcc.target/powerpc/ppc-fpconv-7.c: Likewise.
+	* gcc.target/powerpc/ppc-fpconv-8.c: Likewise.
+	* gcc.target/powerpc/ppc-pow.c: Likewise.
+	* gcc.target/powerpc/recip-1.c: Likewise.
+	* gcc.target/powerpc/recip-2.c: Likewise.
+	* gcc.target/powerpc/recip-3.c: Likewise.
+	* gcc.target/powerpc/recip-4.c: Likewise.
+	* gcc.target/powerpc/recip-5.c: Likewise.
+
+2011-10-12  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/cmask.c: Remove 'vis3' target check and specify
+	'-mvis3' instead of 'mcpu=niagara3' in options.
+	* gcc.target/sparc/fhalve.c: Likewise.
+	* gcc.target/sparc/fnegop.c: Likewise.
+	* gcc.target/sparc/fpadds.c: Likewise.
+	* gcc.target/sparc/fshift.c: Likewise.
+	* gcc.target/sparc/fucmp.c: Likewise.
+	* gcc.target/sparc/lzd.c: Likewise.
+	* gcc.target/sparc/vis3misc.c: Likewise.
+	* gcc.target/sparc/xmul.c: Likewise.
+
+2011-10-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/vect1.ad[sb]: New test.
+	* gnat.dg/vect1_pkg.ads: New helper.
+	* gnat.dg/vect2.ad[sb]: New test.
+	* gnat.dg/vect2_pkg.ads: New helper.
+	* gnat.dg/vect3.ad[sb]: New test.
+	* gnat.dg/vect3_pkg.ads: New helper.
+	* gnat.dg/vect4.ad[sb]: New test.
+	* gnat.dg/vect4_pkg.ads: New helper.
+	* gnat.dg/vect5.ad[sb]: New test.
+	* gnat.dg/vect5_pkg.ads: New helper.
+	* gnat.dg/vect6.ad[sb]: New test.
+	* gnat.dg/vect6_pkg.ads: New helper.
+
 2011-10-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* gcc.target/i386/fma_run_double_1.c: Add -mfpmath=sse.
@@ -7670,6 +7900,11 @@
 	* gfortran.dg/fmt_cache_1.f: Adjust test.
 	* gfortran.dg/char4_iunit_2.f03: Adjust test.
 	* gfortran.dg/real_const_3.f90: Adjust test.
+
+2011-04-29  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/inline-10.c: New testcase.
+	* gcc.dg/tree-ssa/inline-9.c: Disable partial inlining.
 
 2011-04-28  Xinliang David Li  <davidxl@google.com>
 

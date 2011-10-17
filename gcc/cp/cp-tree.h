@@ -201,6 +201,9 @@ c-common.h, not after.
 #define VAR_TEMPL_TYPE_OR_FUNCTION_DECL_CHECK(NODE) \
   TREE_CHECK4(NODE,VAR_DECL,FUNCTION_DECL,TYPE_DECL,TEMPLATE_DECL)
 
+#define VAR_TEMPL_TYPE_FIELD_OR_FUNCTION_DECL_CHECK(NODE) \
+  TREE_CHECK5(NODE,VAR_DECL,FIELD_DECL,FUNCTION_DECL,TYPE_DECL,TEMPLATE_DECL)
+
 #define BOUND_TEMPLATE_TEMPLATE_PARM_TYPE_CHECK(NODE) \
   TREE_CHECK(NODE,BOUND_TEMPLATE_TEMPLATE_PARM)
 
@@ -671,6 +674,12 @@ enum cp_lambda_default_capture_mode_type {
 #define LAMBDA_EXPR_PENDING_PROXIES(NODE) \
   (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->pending_proxies)
 
+/* The closure type of the lambda.  Note that the TREE_TYPE of a
+   LAMBDA_EXPR is always NULL_TREE, because we need to instantiate the
+   LAMBDA_EXPR in order to instantiate the type.  */
+#define LAMBDA_EXPR_CLOSURE(NODE) \
+  (((struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (NODE))->closure)
+
 struct GTY (()) tree_lambda_expr
 {
   struct tree_typed typed;
@@ -678,6 +687,7 @@ struct GTY (()) tree_lambda_expr
   tree this_capture;
   tree return_type;
   tree extra_scope;
+  tree closure;
   VEC(tree,gc)* pending_proxies;
   location_t locus;
   enum cp_lambda_default_capture_mode_type default_capture_mode;
@@ -1053,8 +1063,8 @@ struct GTY(()) language_function {
   BOOL_BITFIELD returns_value : 1;
   BOOL_BITFIELD returns_null : 1;
   BOOL_BITFIELD returns_abnormally : 1;
-  BOOL_BITFIELD in_function_try_handler : 1;
-  BOOL_BITFIELD in_base_initializer : 1;
+  BOOL_BITFIELD x_in_function_try_handler : 1;
+  BOOL_BITFIELD x_in_base_initializer : 1;
 
   /* True if this function can throw an exception.  */
   BOOL_BITFIELD can_throw : 1;
@@ -1121,9 +1131,9 @@ struct GTY(()) language_function {
   cp_function_chain->returns_abnormally
 
 /* Nonzero if we are processing a base initializer.  Zero elsewhere.  */
-#define in_base_initializer cp_function_chain->in_base_initializer
+#define in_base_initializer cp_function_chain->x_in_base_initializer
 
-#define in_function_try_handler cp_function_chain->in_function_try_handler
+#define in_function_try_handler cp_function_chain->x_in_function_try_handler
 
 /* Expression always returned from function, or error_mark_node
    otherwise, for use by the automatic named return value optimization.  */
@@ -2549,7 +2559,7 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    global function f.  In this case, DECL_TEMPLATE_INFO for S<int>::f
    will be non-NULL, but DECL_USE_TEMPLATE will be zero.  */
 #define DECL_TEMPLATE_INFO(NODE) \
-  (DECL_LANG_SPECIFIC (VAR_TEMPL_TYPE_OR_FUNCTION_DECL_CHECK (NODE)) \
+  (DECL_LANG_SPECIFIC (VAR_TEMPL_TYPE_FIELD_OR_FUNCTION_DECL_CHECK (NODE)) \
    ->u.min.template_info)
 
 /* For a VAR_DECL, indicates that the variable is actually a
@@ -2694,7 +2704,10 @@ extern void decl_shadowed_for_var_insert (tree, tree);
      template <class T> struct S { friend void f<int>(int, double); }
 
    the DECL_TI_TEMPLATE will be an IDENTIFIER_NODE for `f' and the
-   DECL_TI_ARGS will be {int}.  */
+   DECL_TI_ARGS will be {int}.
+
+   For a FIELD_DECL with a non-static data member initializer, this value
+   is the FIELD_DECL it was instantiated from.  */
 #define DECL_TI_TEMPLATE(NODE)      TI_TEMPLATE (DECL_TEMPLATE_INFO (NODE))
 
 /* The template arguments used to obtain this decl from the most

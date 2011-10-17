@@ -1,3 +1,64 @@
+2011-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50732
+	* semantics.c (finish_trait_expr): Do not try to instantiate the
+	the base type of an __is_base_of trait.
+	(check_trait_type): Return a tree; use complete_type_or_else.
+
+2011-10-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50563
+	* parser.c (cp_parser_cache_group): Handle end==CPP_COMMA.
+	(cp_parser_save_nsdmi): Pass it.
+
+	PR c++/50707
+	* method.c (walk_field_subobs): Check for NSDMI before
+	complaining about uninitialized fields.
+
+	* pt.c (tsubst_decl) [FIELD_DECL]: Use void_zero_node
+	instead of error_mark_node as a placeholder.
+
+2011-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38174
+	* call.c (add_builtin_candidate): If two pointers have a composite
+	pointer type, generate a single candidate with that type.
+
+2011-10-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50614
+	* cp-tree.h (VAR_TEMPL_TYPE_FIELD_OR_FUNCTION_DECL_CHECK): New.
+	(DECL_TEMPLATE_INFO): Use it.
+	* pt.c (tsubst_decl) [FIELD_DECL]: Set DECL_TEMPLATE_INFO
+	if the decl has an NSDMI.
+	* init.c (perform_member_init): Use it.
+
+	PR c++/50437
+	* cp-tree.h (struct tree_lambda_expr): Add closure field.
+	(LAMBDA_EXPR_CLOSURE): New.
+	* pt.c (tsubst_copy_and_build) [LAMBDA_EXPR]: Likewise.
+	* semantics.c (build_lambda_object): Use it instead of TREE_TYPE.
+	(begin_lambda_type, lambda_function, add_capture): Likewise.
+	(add_default_capture, lambda_expr_this_capture): Likewise.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (struct language_function): Rename in_function_try_handler
+	to x_in_function_try_handler.
+	Rename in_base_initializer to x_in_base_initializer.
+	Update all users.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
+	* class.c (sorted_fields_type_new): Factor out of ...
+	(finish_struct_1): ... here.
+
+2011-10-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50618
+	* init.c (expand_aggr_init_1): Don't zero-initialize virtual
+	bases of a base subobject.
+
 2011-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/50594

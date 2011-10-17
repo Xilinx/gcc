@@ -1,4 +1,8 @@
 
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 180071 using svnmerge.
+
 2011-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{MELT plugin 0.9.1 rc1}}
 	* INSTALL/README-MELT-PLUGIN: 0.9.1 dedicated to the memory of DMR.

@@ -4758,7 +4758,7 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 
   /* Store value to stack temp.  Load vector element.  Splat.  However, splat
      of 64-bit items is not supported on Altivec.  */
-  if (all_same && GET_MODE_SIZE (mode) <= 4)
+  if (all_same && GET_MODE_SIZE (inner_mode) <= 4)
     {
       mem = assign_stack_temp (mode, GET_MODE_SIZE (inner_mode), 0);
       emit_move_insn (adjust_address_nv (mem, inner_mode, 0),
@@ -12213,7 +12213,7 @@ rs6000_init_builtins (void)
 
 #if TARGET_XCOFF
   /* AIX libm provides clog as __clog.  */
-  if ((tdecl = builtin_decl_explicit ([BUILT_IN_CLOG))) != NULL_TREE)
+  if ((tdecl = builtin_decl_explicit (BUILT_IN_CLOG)) != NULL_TREE)
     set_user_assembler_name (tdecl, "__clog");
 #endif
 

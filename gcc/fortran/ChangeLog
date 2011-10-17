@@ -1,3 +1,51 @@
+2011-10-16  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (current_ns):  Make static.
+	(create_var):  Note parent of newly created namespace.
+	(optimize_namespace):  Don't wak sibling namespaces
+	if they are EXEC_BLOCK because this is handled...
+	(gfc_code_walker):  ... here.  Also walk ASSOCIATE lists.
+
+2011-10-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	* primary.c (match_kind_param): Detect ISO_C_BINDING kinds.
+	(get_kind): Pass on 'is_iso_c' flag.
+	(match_integer_constant,match_real_constant,match_logical_constant):
+	Set 'ts.is_c_interop'.
+
+2011-10-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50547
+	* resolve.c (resolve_formal_arglist): Remove unneeded error message.
+	Some reshuffling.
+
+2011-10-15  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi (Fortran 2008 status, TS 29113 status,
+	Further Interoperability of Fortran with C): Update implementation
+	status, change references from TR 29113 to TS 29113.
+	* intrinsic.texi (RANK): Change TR 29113 to TS 29113.
+	* invoke.text (-std=): Ditto, change -std=f2008tr to -std=f2008ts.
+	* lang.opt (std=): Ditto.
+	* options.c (gfc_handle_option, set_default_std_flags): Ditto and
+	change GFC_STD_F2008_TR to GFC_STD_F2008_TS.
+	* libgfortran.h: Ditto.
+	* intrinsic.c (add_functions, gfc_check_intrinsic_standard): Ditto.
+	* decl.c (verify_c_interop_param): Ditto.
+
+2011-10-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50570
+	* expr.c (gfc_check_vardef_context): Don't throw an error on
+	non-pointer assignments involving an intent(in) pointer dummy.
+
+2011-10-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50718
+	* trans-expr.c (gfc_conv_procedure_call): Fix -fcheck=pointer
+	for dummy arguments with VALUE attribute.
+
 2011-10-11  Tobias Burnus  <burnus@net-b.de>
 	    Janus Weil  <janus@gcc.gnu.org>
 

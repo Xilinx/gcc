@@ -497,11 +497,11 @@ perform_member_init (tree member, tree init)
      mem-initializer for this field.  */
   if (init == NULL_TREE)
     {
-      if (CLASSTYPE_TEMPLATE_INSTANTIATION (DECL_CONTEXT (member)))
+      if (DECL_LANG_SPECIFIC (member) && DECL_TEMPLATE_INFO (member))
 	/* Do deferred instantiation of the NSDMI.  */
 	init = (tsubst_copy_and_build
-		(DECL_INITIAL (member),
-		 CLASSTYPE_TI_ARGS (DECL_CONTEXT (member)),
+		(DECL_INITIAL (DECL_TI_TEMPLATE (member)),
+		 DECL_TI_ARGS (member),
 		 tf_warning_or_error, member, /*function_p=*/false,
 		 /*integral_constant_expression_p=*/false));
       else
@@ -1588,27 +1588,25 @@ expand_aggr_init_1 (tree binfo, tree true_exp, tree exp, tree init, int flags,
      that's value-initialization.  */
   if (init == void_type_node)
     {
-      /* If there's a user-provided constructor, we just call that.  */
-      if (type_has_user_provided_constructor (type))
-	/* Fall through.  */;
-      /* If there isn't, but we still need to call the constructor,
-	 zero out the object first.  */
-      else if (type_build_ctor_call (type))
+      /* If no user-provided ctor, we need to zero out the object.  */
+      if (!type_has_user_provided_constructor (type))
 	{
-	  init = build_zero_init (type, NULL_TREE, /*static_storage_p=*/false);
+	  tree field_size = NULL_TREE;
+	  if (exp != true_exp && CLASSTYPE_AS_BASE (type) != type)
+	    /* Don't clobber already initialized virtual bases.  */
+	    field_size = TYPE_SIZE (CLASSTYPE_AS_BASE (type));
+	  init = build_zero_init_1 (type, NULL_TREE, /*static_storage_p=*/false,
+				    field_size);
 	  init = build2 (INIT_EXPR, type, exp, init);
 	  finish_expr_stmt (init);
-	  /* And then call the constructor.  */
 	}
+
       /* If we don't need to mess with the constructor at all,
-	 then just zero out the object and we're done.  */
-      else
-	{
-	  init = build2 (INIT_EXPR, type, exp,
-			 build_value_init_noctor (type, complain));
-	  finish_expr_stmt (init);
-	  return;
-	}
+	 then we're done.  */
+      if (! type_build_ctor_call (type))
+	return;
+
+      /* Otherwise fall through and call the constructor.  */
       init = NULL_TREE;
     }
 
