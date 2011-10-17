@@ -1,3 +1,7 @@
+2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	* c-common.c: Rename __sync_mem to __atomic.
+
 2011-09-16  Andrew MacLeod  <amacleod@redhat.com>
 
 	* c-common.c (sync_resolve_params, sync_resolve_return): Only tweak 

@@ -181,7 +181,7 @@ union _dont_use_tree_here_;
 
 #endif
 
-/* Memory model types for the __sync_mem* builtins. 
+/* Memory model types for the __atomic* builtins. 
    This must match the order in libstdc++-v3/include/bits/atomic_base.h.  */
 enum memmodel
 {

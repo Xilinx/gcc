@@ -9079,7 +9079,7 @@ sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params,
       function_args_iter_next (&iter);
     }
 
-  /* __sync_mem routines are not variadic.  */
+  /* __atomic routines are not variadic.  */
   if (!orig_format && VEC_length (tree, params) != parmnum + 1)
     {
       error ("too many arguments to function %qE", orig_function);
@@ -9146,22 +9146,22 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
   /* Handle BUILT_IN_NORMAL here.  */
   switch (orig_code)
     {
-    case BUILT_IN_SYNC_MEM_EXCHANGE_N:
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_N:
-    case BUILT_IN_SYNC_MEM_LOAD_N:
-    case BUILT_IN_SYNC_MEM_STORE_N:
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_N:
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_N:
-    case BUILT_IN_SYNC_MEM_AND_FETCH_N:
-    case BUILT_IN_SYNC_MEM_NAND_FETCH_N:
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_N:
-    case BUILT_IN_SYNC_MEM_OR_FETCH_N:
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_N:
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_N:
-    case BUILT_IN_SYNC_MEM_FETCH_AND_N:
-    case BUILT_IN_SYNC_MEM_FETCH_NAND_N:
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_N:
-    case BUILT_IN_SYNC_MEM_FETCH_OR_N:
+    case BUILT_IN_ATOMIC_EXCHANGE_N:
+    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_N:
+    case BUILT_IN_ATOMIC_LOAD_N:
+    case BUILT_IN_ATOMIC_STORE_N:
+    case BUILT_IN_ATOMIC_ADD_FETCH_N:
+    case BUILT_IN_ATOMIC_SUB_FETCH_N:
+    case BUILT_IN_ATOMIC_AND_FETCH_N:
+    case BUILT_IN_ATOMIC_NAND_FETCH_N:
+    case BUILT_IN_ATOMIC_XOR_FETCH_N:
+    case BUILT_IN_ATOMIC_OR_FETCH_N:
+    case BUILT_IN_ATOMIC_FETCH_ADD_N:
+    case BUILT_IN_ATOMIC_FETCH_SUB_N:
+    case BUILT_IN_ATOMIC_FETCH_AND_N:
+    case BUILT_IN_ATOMIC_FETCH_NAND_N:
+    case BUILT_IN_ATOMIC_FETCH_XOR_N:
+    case BUILT_IN_ATOMIC_FETCH_OR_N:
       {
         orig_format = false;
 	/* Fallthru for parameter processing.  */
@@ -9199,7 +9199,7 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 	result = build_function_call_vec (loc, new_function, params, NULL);
 	if (orig_code != BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_N
 	    && orig_code != BUILT_IN_SYNC_LOCK_RELEASE_N
-	    && orig_code != BUILT_IN_SYNC_MEM_STORE_N)
+	    && orig_code != BUILT_IN_ATOMIC_STORE_N)
 	  result = sync_resolve_return (first_param, result, orig_format);
 
 	return result;

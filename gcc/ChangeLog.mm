@@ -1,3 +1,16 @@
+2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	* cppbuiltin.c: Rename __sync_mem to __atomic.
+	* optabs.c: Rename __sync_mem to __atomic.
+	* optabs.h: Rename __sync_mem to __atomic.
+	* genopinit.c: Rename __sync_mem to __atomic.
+	* builtins.c: Add __atomic as builtin prefix, rename all __sync_mem.
+	* sync-builtins.def: Rename __sync_mem to __atomic.
+	* expr.h: Rename __sync_mem to __atomic.
+	* coretypes.h: Rename __sync_mem to __atomic.
+	* doc/extend.texi: Rename __sync_mem to __atomic.
+	* config/i387/sync.md: Rename __sync_mem to __atomic.
+
 2011-10-13  Andrew MacLeod  <amacleod@redhat.com>
 
 	* optabs.h (DOI_sync_mem_always_lock_free): New.

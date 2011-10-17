@@ -6962,14 +6962,14 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
    TARGET is an option place to stick the return value.  */
 
 rtx
-expand_sync_mem_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
+expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
   rtx last_insn;
 
   /* If the target supports the exchange directly, great.  */
-  icode = direct_optab_handler (sync_mem_exchange_optab, mode);
+  icode = direct_optab_handler (atomic_exchange_optab, mode);
   if (icode != CODE_FOR_nothing)
     {
       struct expand_operand ops[4];
@@ -7034,7 +7034,7 @@ expand_sync_mem_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
    TARGET is an option place to stick the return value.  */
 
 rtx
-expand_sync_mem_compare_exchange (rtx target, rtx mem, rtx expected, 
+expand_atomic_compare_exchange (rtx target, rtx mem, rtx expected, 
 				  rtx desired, enum memmodel success, 
 				  enum memmodel failure)
 {
@@ -7042,7 +7042,7 @@ expand_sync_mem_compare_exchange (rtx target, rtx mem, rtx expected,
   enum insn_code icode;
 
   /* If the target supports the exchange directly, great.  */
-  icode = direct_optab_handler (sync_mem_compare_exchange_optab, mode);
+  icode = direct_optab_handler (atomic_compare_exchange_optab, mode);
   if (icode != CODE_FOR_nothing)
     {
       struct expand_operand ops[6];
@@ -7100,13 +7100,13 @@ expand_sync_mem_compare_exchange (rtx target, rtx mem, rtx expected,
    TARGET is an option place to stick the return value.  */
 
 rtx
-expand_sync_mem_load (rtx target, rtx mem, enum memmodel model)
+expand_atomic_load (rtx target, rtx mem, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
 
   /* If the target supports the load directly, great.  */
-  icode = direct_optab_handler (sync_mem_load_optab, mode);
+  icode = direct_optab_handler (atomic_load_optab, mode);
   if (icode != CODE_FOR_nothing)
     {
       struct expand_operand ops[3];
@@ -7152,14 +7152,14 @@ expand_sync_mem_load (rtx target, rtx mem, enum memmodel model)
    function returns const0_rtx if a pattern was emitted.  */
 
 rtx
-expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
+expand_atomic_store (rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
   struct expand_operand ops[3];
 
   /* If the target supports the store directly, great.  */
-  icode = direct_optab_handler (sync_mem_store_optab, mode);
+  icode = direct_optab_handler (atomic_store_optab, mode);
   if (icode != CODE_FOR_nothing)
     {
 
@@ -7193,7 +7193,7 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
      the result.  If that doesn't work, don't do anything.  */
   if (GET_MODE_PRECISION(mode) > BITS_PER_WORD)
     {
-      rtx target = expand_sync_mem_exchange (NULL_RTX, mem, val, model);
+      rtx target = expand_atomic_exchange (NULL_RTX, mem, val, model);
       if (target)
         return const0_rtx;
       else
@@ -7215,7 +7215,7 @@ expand_sync_mem_store (rtx mem, rtx val, enum memmodel model)
 
 
 /* Structure containing the pointers and values required to process the
-   various forms of the sync_mem_fetch_op and sync_mem_op_fetch builtins.  */
+   various forms of the atomic_fetch_op and atomic_op_fetch builtins.  */
 struct op_functions {
   struct direct_optab_d *mem_fetch_before;
   struct direct_optab_d *mem_fetch_after;
@@ -7227,54 +7227,54 @@ struct op_functions {
 };
 
 /* Initialize the fields for each supported opcode.  */
-static const struct op_functions add_op = { sync_mem_fetch_add_optab,
-				      sync_mem_add_fetch_optab,
-				      sync_mem_add_optab,
+static const struct op_functions add_op = { atomic_fetch_add_optab,
+				      atomic_add_fetch_optab,
+				      atomic_add_optab,
 				      sync_old_add_optab,
 				      sync_new_add_optab,
 				      sync_add_optab,
 				      MINUS
 				    };
 
-static const struct op_functions sub_op = { sync_mem_fetch_sub_optab,
-					    sync_mem_sub_fetch_optab,
-					    sync_mem_sub_optab,
+static const struct op_functions sub_op = { atomic_fetch_sub_optab,
+					    atomic_sub_fetch_optab,
+					    atomic_sub_optab,
 					    sync_old_sub_optab,
 					    sync_new_sub_optab,
 					    sync_sub_optab,
 					    PLUS
 					  };
 
-static const struct op_functions xor_op = { sync_mem_fetch_xor_optab,
-					    sync_mem_xor_fetch_optab,
-					    sync_mem_xor_optab,
+static const struct op_functions xor_op = { atomic_fetch_xor_optab,
+					    atomic_xor_fetch_optab,
+					    atomic_xor_optab,
 					    sync_old_xor_optab,
 					    sync_new_xor_optab,
 					    sync_xor_optab,
 					    UNKNOWN
 					  };
 
-static const struct op_functions and_op = { sync_mem_fetch_and_optab,
-					    sync_mem_and_fetch_optab,
-					    sync_mem_and_optab,
+static const struct op_functions and_op = { atomic_fetch_and_optab,
+					    atomic_and_fetch_optab,
+					    atomic_and_optab,
 					    sync_old_and_optab,
 					    sync_new_and_optab,
 					    sync_and_optab,
 					    UNKNOWN
 					  };
 
-static const struct op_functions nand_op = { sync_mem_fetch_nand_optab,
-					     sync_mem_nand_fetch_optab,
-					     sync_mem_nand_optab,
+static const struct op_functions nand_op = { atomic_fetch_nand_optab,
+					     atomic_nand_fetch_optab,
+					     atomic_nand_optab,
 					     sync_old_nand_optab,
 					     sync_new_nand_optab,
 					     sync_nand_optab,
 					     UNKNOWN
 					   };
 
-static const struct op_functions or_op = { sync_mem_fetch_or_optab,
-					   sync_mem_or_fetch_optab,
-					   sync_mem_or_optab,
+static const struct op_functions or_op = { atomic_fetch_or_optab,
+					   atomic_or_fetch_optab,
+					   atomic_or_optab,
 					   sync_old_ior_optab,
 					   sync_new_ior_optab,
 					   sync_ior_optab,
@@ -7357,7 +7357,7 @@ maybe_emit_op (const struct op_functions *optab, rtx target, rtx mem, rtx val,
    AFTER is true to return the result of the operation (OP_fetch).
    AFTER is false to return the value before the operation (fetch_OP).  */
 rtx
-expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
+expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 			  enum memmodel model, bool after)
 {
   enum machine_mode mode = GET_MODE (mem);
@@ -7406,7 +7406,7 @@ expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
       target = NULL_RTX;
     }
 
-  /* Try the __sync_mem version.  */
+  /* Try the __atomic version.  */
   result = maybe_emit_op (optab, target, mem, val, true, model, after);
   if (result)
     return result;
@@ -7420,7 +7420,7 @@ expand_sync_mem_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
      try that operation.  */
   if (after || optab->reverse_code != UNKNOWN || target == const0_rtx) 
     {
-      /* Try the __sync_mem version, then the older __sync version.  */
+      /* Try the __atomic version, then the older __sync version.  */
       result = maybe_emit_op (optab, target, mem, val, true, model, !after);
       if (!result)
 	result = maybe_emit_op (optab, target, mem, val, false, model, !after);

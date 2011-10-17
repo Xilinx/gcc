@@ -234,6 +234,8 @@ is_builtin_name (const char *name)
     return true;
   if (strncmp (name, "__sync_", 7) == 0)
     return true;
+  if (strncmp (name, "__atomic_", 9) == 0)
+    return true;
   return false;
 }
 
@@ -5070,7 +5072,7 @@ get_builtin_sync_mode (int fcode_diff)
    for the builtin_sync operations.  */
 
 static rtx
-get_builtin_sync_mem (tree loc, enum machine_mode mode)
+get_builtin_atomic (tree loc, enum machine_mode mode)
 {
   rtx addr, mem;
 
@@ -5171,10 +5173,10 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
     }
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_sync_mem_fetch_op (target, mem, val, code, MEMMODEL_SEQ_CST,
+  return expand_atomic_fetch_op (target, mem, val, code, MEMMODEL_SEQ_CST,
 				     after);
 }
 
@@ -5190,7 +5192,7 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
   rtx old_val, new_val, mem;
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
   old_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
   new_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
@@ -5213,10 +5215,10 @@ expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
   rtx val, mem;
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_sync_mem_exchange (target, mem, val, MEMMODEL_ACQUIRE);
+  return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -5227,9 +5229,9 @@ expand_builtin_sync_lock_release (enum machine_mode mode, tree exp)
   rtx mem;
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
 
-  expand_sync_mem_store (mem, const0_rtx, MEMMODEL_RELEASE);
+  expand_atomic_store (mem, const0_rtx, MEMMODEL_RELEASE);
 }
 
 /* Given an integer representing an ``enum memmodel'', verify its
@@ -5254,13 +5256,13 @@ get_memmodel (tree exp)
   return (enum memmodel) INTVAL (op);
 }
 
-/* Expand the __sync_mem_exchange intrinsic:
-   	TYPE __sync_mem_exchange (TYPE *object, TYPE desired, enum memmodel)
+/* Expand the __atomic_exchange intrinsic:
+   	TYPE __atomic_exchange (TYPE *object, TYPE desired, enum memmodel)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.  */
 
 static rtx
-expand_builtin_sync_mem_exchange (enum machine_mode mode, tree exp, rtx target)
+expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
 {
   rtx val, mem;
   enum memmodel model;
@@ -5268,26 +5270,26 @@ expand_builtin_sync_mem_exchange (enum machine_mode mode, tree exp, rtx target)
   model = get_memmodel (CALL_EXPR_ARG (exp, 2));
   if (model == MEMMODEL_CONSUME)
     {
-      error ("invalid memory model for %<__sync_mem_exchange%>");
+      error ("invalid memory model for %<__atomic_exchange%>");
       return NULL_RTX;
     }
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_sync_mem_exchange (target, mem, val, model);
+  return expand_atomic_exchange (target, mem, val, model);
 }
 
-/* Expand the __sync_mem_compare_exchange intrinsic:
-   	bool __sync_mem_compare_exchange (TYPE *object, TYPE *expect, 
+/* Expand the __atomic_compare_exchange intrinsic:
+   	bool __atomic_compare_exchange (TYPE *object, TYPE *expect, 
 					  TYPE desired, enum memmodel success,
 					  enum memmodel failure)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.  */
 
 static rtx
-expand_builtin_sync_mem_compare_exchange (enum machine_mode mode, tree exp, 
+expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp, 
 					  rtx target)
 {
   rtx expect, desired, mem;
@@ -5298,18 +5300,18 @@ expand_builtin_sync_mem_compare_exchange (enum machine_mode mode, tree exp,
 
   if (failure == MEMMODEL_RELEASE || failure == MEMMODEL_ACQ_REL)
     {
-      error ("invalid failure memory model for %<__sync_mem_compare_exchange%>");
+      error ("invalid failure memory model for %<__atomic_compare_exchange%>");
       return NULL_RTX;
     }
 
   if (failure > success)
     {
-      error ("failure memory model cannot be stronger than success memory model for %<__sync_mem_compare_exchange%>");
+      error ("failure memory model cannot be stronger than success memory model for %<__atomic_compare_exchange%>");
       return NULL_RTX;
     }
   
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
 
   expect = expand_expr (CALL_EXPR_ARG (exp, 1), NULL_RTX, ptr_mode, 
 			EXPAND_NORMAL);
@@ -5317,17 +5319,17 @@ expand_builtin_sync_mem_compare_exchange (enum machine_mode mode, tree exp,
 
   desired = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
-  return expand_sync_mem_compare_exchange (target, mem, expect, desired, 
+  return expand_atomic_compare_exchange (target, mem, expect, desired, 
 					   success, failure);
 }
 
-/* Expand the __sync_mem_load intrinsic:
-   	TYPE __sync_mem_load (TYPE *object, enum memmodel)
+/* Expand the __atomic_load intrinsic:
+   	TYPE __atomic_load (TYPE *object, enum memmodel)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.  */
 
 static rtx
-expand_builtin_sync_mem_load (enum machine_mode mode, tree exp, rtx target)
+expand_builtin_atomic_load (enum machine_mode mode, tree exp, rtx target)
 {
   rtx mem;
   enum memmodel model;
@@ -5336,24 +5338,24 @@ expand_builtin_sync_mem_load (enum machine_mode mode, tree exp, rtx target)
   if (model == MEMMODEL_RELEASE
       || model == MEMMODEL_ACQ_REL)
     {
-      error ("invalid memory model for %<__sync_mem_load%>");
+      error ("invalid memory model for %<__atomic_load%>");
       return NULL_RTX;
     }
 
   /* Expand the operand.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
 
-  return expand_sync_mem_load (target, mem, model);
+  return expand_atomic_load (target, mem, model);
 }
 
 
-/* Expand the __sync_mem_store intrinsic:
-   	void __sync_mem_store (TYPE *object, TYPE desired, enum memmodel)
+/* Expand the __atomic_store intrinsic:
+   	void __atomic_store (TYPE *object, TYPE desired, enum memmodel)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.  */
 
 static rtx
-expand_builtin_sync_mem_store (enum machine_mode mode, tree exp)
+expand_builtin_atomic_store (enum machine_mode mode, tree exp)
 {
   rtx mem, val;
   enum memmodel model;
@@ -5363,19 +5365,19 @@ expand_builtin_sync_mem_store (enum machine_mode mode, tree exp)
       && model != MEMMODEL_SEQ_CST
       && model != MEMMODEL_RELEASE)
     {
-      error ("invalid memory model for %<__sync_mem_store%>");
+      error ("invalid memory model for %<__atomic_store%>");
       return NULL_RTX;
     }
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_sync_mem_store (mem, val, model);
+  return expand_atomic_store (mem, val, model);
 }
 
-/* Expand the __sync_mem_fetch_XXX intrinsic:
-   	TYPE __sync_mem_fetch_XXX (TYPE *object, TYPE val, enum memmodel)
+/* Expand the __atomic_fetch_XXX intrinsic:
+   	TYPE __atomic_fetch_XXX (TYPE *object, TYPE val, enum memmodel)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.
    CODE is the operation, PLUS, MINUS, ADD, XOR, or IOR.
@@ -5383,7 +5385,7 @@ expand_builtin_sync_mem_store (enum machine_mode mode, tree exp)
    FETCH_AFTER is false if returning the value before the operation.  */
 
 static rtx
-expand_builtin_sync_mem_fetch_op (enum machine_mode mode, tree exp, rtx target,
+expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
 				  enum rtx_code code, bool fetch_after)
 {
   rtx val, mem;
@@ -5392,15 +5394,15 @@ expand_builtin_sync_mem_fetch_op (enum machine_mode mode, tree exp, rtx target,
   model = get_memmodel (CALL_EXPR_ARG (exp, 2));
 
   /* Expand the operands.  */
-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_sync_mem_fetch_op (target, mem, val, code, model, fetch_after);
+  return expand_atomic_fetch_op (target, mem, val, code, model, fetch_after);
 }
 
 /* Return true if size ARG is always lock free on this architecture.  */
 static tree
-fold_builtin_sync_mem_always_lock_free (tree arg)
+fold_builtin_atomic_always_lock_free (tree arg)
 {
   int size;
   enum machine_mode mode;
@@ -5426,18 +5428,18 @@ fold_builtin_sync_mem_always_lock_free (tree arg)
    object than will always generate lock-free instructions on this target.
    Otherwise return false.  */
 static rtx
-expand_builtin_sync_mem_always_lock_free (tree exp)
+expand_builtin_atomic_always_lock_free (tree exp)
 {
   tree size;
   tree arg = CALL_EXPR_ARG (exp, 0);
 
   if (TREE_CODE (arg) != INTEGER_CST)
     {
-      error ("non-constant argument to __sync_mem_always_lock_free");
+      error ("non-constant argument to __atomic_always_lock_free");
       return const0_rtx;
     }
 
-  size = fold_builtin_sync_mem_always_lock_free (arg);
+  size = fold_builtin_atomic_always_lock_free (arg);
   if (size == integer_one_node)
     return const1_rtx;
   return const0_rtx;
@@ -5446,9 +5448,9 @@ expand_builtin_sync_mem_always_lock_free (tree exp)
 /* Return a one or zero if it can be determined that size ARG is lock free on
    this architecture.  */
 static tree
-fold_builtin_sync_mem_is_lock_free (tree arg)
+fold_builtin_atomic_is_lock_free (tree arg)
 {
-  tree always = fold_builtin_sync_mem_always_lock_free (arg);
+  tree always = fold_builtin_atomic_always_lock_free (arg);
 
   /* If it isnt always lock free, don't generate a result.  */
   if (always == integer_one_node)
@@ -5460,19 +5462,19 @@ fold_builtin_sync_mem_is_lock_free (tree arg)
 /* Return one or zero if the first argument to call EXP represents a size of
    object than can generate lock-free instructions on this target.  */
 static rtx
-expand_builtin_sync_mem_is_lock_free (tree exp)
+expand_builtin_atomic_is_lock_free (tree exp)
 {
   tree size;
   tree arg = CALL_EXPR_ARG (exp, 0);
 
   if (!INTEGRAL_TYPE_P (TREE_TYPE (arg)))
     {
-      error ("non-integer argument to __sync_mem_is_lock_free");
+      error ("non-integer argument to __atomic_is_lock_free");
       return NULL_RTX;
     }
 
   /* If the value is known at compile time, return the RTX for it.  */
-  size = fold_builtin_sync_mem_is_lock_free (arg);
+  size = fold_builtin_atomic_is_lock_free (arg);
   if (size == integer_one_node)
     return const1_rtx;
 
@@ -5493,12 +5495,12 @@ expand_builtin_mem_thread_fence (enum memmodel model)
 #endif
 }
 
-/* Expand the __sync_mem_thread_fence intrinsic:
-   	void __sync_mem_thread_fence (enum memmodel)
+/* Expand the __atomic_thread_fence intrinsic:
+   	void __atomic_thread_fence (enum memmodel)
    EXP is the CALL_EXPR.  */
 
 static void
-expand_builtin_sync_mem_thread_fence (tree exp)
+expand_builtin_atomic_thread_fence (tree exp)
 {
   enum memmodel model;
   
@@ -5520,12 +5522,12 @@ expand_builtin_mem_signal_fence (enum memmodel model)
 #endif
 }
 
-/* Expand the __sync_mem_signal_fence intrinsic:
-   	void __sync_mem_signal_fence (enum memmodel)
+/* Expand the __atomic_signal_fence intrinsic:
+   	void __atomic_signal_fence (enum memmodel)
    EXP is the CALL_EXPR.  */
 
 static void
-expand_builtin_sync_mem_signal_fence (tree exp)
+expand_builtin_atomic_signal_fence (tree exp)
 {
   enum memmodel model;
 
@@ -6344,202 +6346,202 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       expand_builtin_sync_synchronize ();
       return const0_rtx;
 
-    case BUILT_IN_SYNC_MEM_EXCHANGE_1:
-    case BUILT_IN_SYNC_MEM_EXCHANGE_2:
-    case BUILT_IN_SYNC_MEM_EXCHANGE_4:
-    case BUILT_IN_SYNC_MEM_EXCHANGE_8:
-    case BUILT_IN_SYNC_MEM_EXCHANGE_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_EXCHANGE_1);
-      target = expand_builtin_sync_mem_exchange (mode, exp, target);
+    case BUILT_IN_ATOMIC_EXCHANGE_1:
+    case BUILT_IN_ATOMIC_EXCHANGE_2:
+    case BUILT_IN_ATOMIC_EXCHANGE_4:
+    case BUILT_IN_ATOMIC_EXCHANGE_8:
+    case BUILT_IN_ATOMIC_EXCHANGE_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_EXCHANGE_1);
+      target = expand_builtin_atomic_exchange (mode, exp, target);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_1:
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_2:
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_4:
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_8:
-    case BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_16:
+    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1:
+    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_2:
+    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_4:
+    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_8:
+    case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_16:
       mode = 
-	  get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_COMPARE_EXCHANGE_1);
-      target = expand_builtin_sync_mem_compare_exchange (mode, exp, target);
+	  get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1);
+      target = expand_builtin_atomic_compare_exchange (mode, exp, target);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_SYNC_MEM_LOAD_1:
-    case BUILT_IN_SYNC_MEM_LOAD_2:
-    case BUILT_IN_SYNC_MEM_LOAD_4:
-    case BUILT_IN_SYNC_MEM_LOAD_8:
-    case BUILT_IN_SYNC_MEM_LOAD_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_LOAD_1);
-      target = expand_builtin_sync_mem_load (mode, exp, target);
+    case BUILT_IN_ATOMIC_LOAD_1:
+    case BUILT_IN_ATOMIC_LOAD_2:
+    case BUILT_IN_ATOMIC_LOAD_4:
+    case BUILT_IN_ATOMIC_LOAD_8:
+    case BUILT_IN_ATOMIC_LOAD_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_LOAD_1);
+      target = expand_builtin_atomic_load (mode, exp, target);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_SYNC_MEM_STORE_1:
-    case BUILT_IN_SYNC_MEM_STORE_2:
-    case BUILT_IN_SYNC_MEM_STORE_4:
-    case BUILT_IN_SYNC_MEM_STORE_8:
-    case BUILT_IN_SYNC_MEM_STORE_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_STORE_1);
-      target = expand_builtin_sync_mem_store (mode, exp);
+    case BUILT_IN_ATOMIC_STORE_1:
+    case BUILT_IN_ATOMIC_STORE_2:
+    case BUILT_IN_ATOMIC_STORE_4:
+    case BUILT_IN_ATOMIC_STORE_8:
+    case BUILT_IN_ATOMIC_STORE_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_STORE_1);
+      target = expand_builtin_atomic_store (mode, exp);
       if (target)
 	return const0_rtx;
       break;
 
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_1:
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_2:
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_4:
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_8:
-    case BUILT_IN_SYNC_MEM_ADD_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_ADD_FETCH_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, PLUS, true);
+    case BUILT_IN_ATOMIC_ADD_FETCH_1:
+    case BUILT_IN_ATOMIC_ADD_FETCH_2:
+    case BUILT_IN_ATOMIC_ADD_FETCH_4:
+    case BUILT_IN_ATOMIC_ADD_FETCH_8:
+    case BUILT_IN_ATOMIC_ADD_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_ADD_FETCH_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS, true);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_1:
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_2:
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_4:
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_8:
-    case BUILT_IN_SYNC_MEM_SUB_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_SUB_FETCH_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, MINUS, 
+    case BUILT_IN_ATOMIC_SUB_FETCH_1:
+    case BUILT_IN_ATOMIC_SUB_FETCH_2:
+    case BUILT_IN_ATOMIC_SUB_FETCH_4:
+    case BUILT_IN_ATOMIC_SUB_FETCH_8:
+    case BUILT_IN_ATOMIC_SUB_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_SUB_FETCH_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, 
 						 true);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_AND_FETCH_1:
-    case BUILT_IN_SYNC_MEM_AND_FETCH_2:
-    case BUILT_IN_SYNC_MEM_AND_FETCH_4:
-    case BUILT_IN_SYNC_MEM_AND_FETCH_8:
-    case BUILT_IN_SYNC_MEM_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_AND_FETCH_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, AND, true);
+    case BUILT_IN_ATOMIC_AND_FETCH_1:
+    case BUILT_IN_ATOMIC_AND_FETCH_2:
+    case BUILT_IN_ATOMIC_AND_FETCH_4:
+    case BUILT_IN_ATOMIC_AND_FETCH_8:
+    case BUILT_IN_ATOMIC_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_AND_FETCH_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, AND, true);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_SYNC_MEM_NAND_FETCH_1:
-    case BUILT_IN_SYNC_MEM_NAND_FETCH_2:
-    case BUILT_IN_SYNC_MEM_NAND_FETCH_4:
-    case BUILT_IN_SYNC_MEM_NAND_FETCH_8:
-    case BUILT_IN_SYNC_MEM_NAND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_NAND_FETCH_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, NOT, true);
+    case BUILT_IN_ATOMIC_NAND_FETCH_1:
+    case BUILT_IN_ATOMIC_NAND_FETCH_2:
+    case BUILT_IN_ATOMIC_NAND_FETCH_4:
+    case BUILT_IN_ATOMIC_NAND_FETCH_8:
+    case BUILT_IN_ATOMIC_NAND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_NAND_FETCH_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, NOT, true);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_1:
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_2:
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_4:
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_8:
-    case BUILT_IN_SYNC_MEM_XOR_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_XOR_FETCH_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, XOR, true);
+    case BUILT_IN_ATOMIC_XOR_FETCH_1:
+    case BUILT_IN_ATOMIC_XOR_FETCH_2:
+    case BUILT_IN_ATOMIC_XOR_FETCH_4:
+    case BUILT_IN_ATOMIC_XOR_FETCH_8:
+    case BUILT_IN_ATOMIC_XOR_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_XOR_FETCH_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, XOR, true);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_OR_FETCH_1:
-    case BUILT_IN_SYNC_MEM_OR_FETCH_2:
-    case BUILT_IN_SYNC_MEM_OR_FETCH_4:
-    case BUILT_IN_SYNC_MEM_OR_FETCH_8:
-    case BUILT_IN_SYNC_MEM_OR_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_OR_FETCH_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, IOR, true);
+    case BUILT_IN_ATOMIC_OR_FETCH_1:
+    case BUILT_IN_ATOMIC_OR_FETCH_2:
+    case BUILT_IN_ATOMIC_OR_FETCH_4:
+    case BUILT_IN_ATOMIC_OR_FETCH_8:
+    case BUILT_IN_ATOMIC_OR_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_OR_FETCH_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, IOR, true);
       if (target)
 	return target;
       break;
  
 
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_1:
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_2:
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_4:
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_8:
-    case BUILT_IN_SYNC_MEM_FETCH_ADD_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_ADD_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, PLUS,
+    case BUILT_IN_ATOMIC_FETCH_ADD_1:
+    case BUILT_IN_ATOMIC_FETCH_ADD_2:
+    case BUILT_IN_ATOMIC_FETCH_ADD_4:
+    case BUILT_IN_ATOMIC_FETCH_ADD_8:
+    case BUILT_IN_ATOMIC_FETCH_ADD_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_ADD_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS,
 						 false);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_1:
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_2:
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_4:
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_8:
-    case BUILT_IN_SYNC_MEM_FETCH_SUB_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_SUB_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, MINUS,
+    case BUILT_IN_ATOMIC_FETCH_SUB_1:
+    case BUILT_IN_ATOMIC_FETCH_SUB_2:
+    case BUILT_IN_ATOMIC_FETCH_SUB_4:
+    case BUILT_IN_ATOMIC_FETCH_SUB_8:
+    case BUILT_IN_ATOMIC_FETCH_SUB_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_SUB_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS,
 						 false);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_SYNC_MEM_FETCH_AND_1:
-    case BUILT_IN_SYNC_MEM_FETCH_AND_2:
-    case BUILT_IN_SYNC_MEM_FETCH_AND_4:
-    case BUILT_IN_SYNC_MEM_FETCH_AND_8:
-    case BUILT_IN_SYNC_MEM_FETCH_AND_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_AND_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, AND, false);
+    case BUILT_IN_ATOMIC_FETCH_AND_1:
+    case BUILT_IN_ATOMIC_FETCH_AND_2:
+    case BUILT_IN_ATOMIC_FETCH_AND_4:
+    case BUILT_IN_ATOMIC_FETCH_AND_8:
+    case BUILT_IN_ATOMIC_FETCH_AND_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_AND_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, AND, false);
       if (target)
 	return target;
       break;
   
-    case BUILT_IN_SYNC_MEM_FETCH_NAND_1:
-    case BUILT_IN_SYNC_MEM_FETCH_NAND_2:
-    case BUILT_IN_SYNC_MEM_FETCH_NAND_4:
-    case BUILT_IN_SYNC_MEM_FETCH_NAND_8:
-    case BUILT_IN_SYNC_MEM_FETCH_NAND_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_NAND_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, NOT, false);
+    case BUILT_IN_ATOMIC_FETCH_NAND_1:
+    case BUILT_IN_ATOMIC_FETCH_NAND_2:
+    case BUILT_IN_ATOMIC_FETCH_NAND_4:
+    case BUILT_IN_ATOMIC_FETCH_NAND_8:
+    case BUILT_IN_ATOMIC_FETCH_NAND_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_NAND_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, NOT, false);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_1:
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_2:
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_4:
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_8:
-    case BUILT_IN_SYNC_MEM_FETCH_XOR_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_XOR_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, XOR, false);
+    case BUILT_IN_ATOMIC_FETCH_XOR_1:
+    case BUILT_IN_ATOMIC_FETCH_XOR_2:
+    case BUILT_IN_ATOMIC_FETCH_XOR_4:
+    case BUILT_IN_ATOMIC_FETCH_XOR_8:
+    case BUILT_IN_ATOMIC_FETCH_XOR_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_XOR_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, XOR, false);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_FETCH_OR_1:
-    case BUILT_IN_SYNC_MEM_FETCH_OR_2:
-    case BUILT_IN_SYNC_MEM_FETCH_OR_4:
-    case BUILT_IN_SYNC_MEM_FETCH_OR_8:
-    case BUILT_IN_SYNC_MEM_FETCH_OR_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_FETCH_OR_1);
-      target = expand_builtin_sync_mem_fetch_op (mode, exp, target, IOR, false);
+    case BUILT_IN_ATOMIC_FETCH_OR_1:
+    case BUILT_IN_ATOMIC_FETCH_OR_2:
+    case BUILT_IN_ATOMIC_FETCH_OR_4:
+    case BUILT_IN_ATOMIC_FETCH_OR_8:
+    case BUILT_IN_ATOMIC_FETCH_OR_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_OR_1);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, IOR, false);
       if (target)
 	return target;
       break;
  
-    case BUILT_IN_SYNC_MEM_ALWAYS_LOCK_FREE:
-      return expand_builtin_sync_mem_always_lock_free (exp);
+    case BUILT_IN_ATOMIC_ALWAYS_LOCK_FREE:
+      return expand_builtin_atomic_always_lock_free (exp);
 
-    case BUILT_IN_SYNC_MEM_IS_LOCK_FREE:
-      target = expand_builtin_sync_mem_is_lock_free (exp);
+    case BUILT_IN_ATOMIC_IS_LOCK_FREE:
+      target = expand_builtin_atomic_is_lock_free (exp);
       if (target)
         return target;
       break;
 
-    case BUILT_IN_SYNC_MEM_THREAD_FENCE:
-      expand_builtin_sync_mem_thread_fence (exp);
+    case BUILT_IN_ATOMIC_THREAD_FENCE:
+      expand_builtin_atomic_thread_fence (exp);
       return const0_rtx;
 
-    case BUILT_IN_SYNC_MEM_SIGNAL_FENCE:
-      expand_builtin_sync_mem_signal_fence (exp);
+    case BUILT_IN_ATOMIC_SIGNAL_FENCE:
+      expand_builtin_atomic_signal_fence (exp);
       return const0_rtx;
 
     case BUILT_IN_OBJECT_SIZE:
@@ -10378,11 +10380,11 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
 	return build_empty_stmt (loc);
       break;
 
-    case BUILT_IN_SYNC_MEM_ALWAYS_LOCK_FREE:
-      return fold_builtin_sync_mem_always_lock_free (arg0);
+    case BUILT_IN_ATOMIC_ALWAYS_LOCK_FREE:
+      return fold_builtin_atomic_always_lock_free (arg0);
 
-    case BUILT_IN_SYNC_MEM_IS_LOCK_FREE:
-      return fold_builtin_sync_mem_is_lock_free (arg0);
+    case BUILT_IN_ATOMIC_IS_LOCK_FREE:
+      return fold_builtin_atomic_is_lock_free (arg0);
 
     default:
       break;

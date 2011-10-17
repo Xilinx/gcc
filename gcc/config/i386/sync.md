@@ -232,7 +232,7 @@
   return "lock{%;} add{<imodesuffix>}\t{%1, %0|%0, %1}";
 })
 
-(define_expand "sync_mem_exchange<mode>"
+(define_expand "atomic_exchange<mode>"
   [(match_operand:SWI 0 "register_operand" "")		;; output
    (match_operand:SWI 1 "memory_operand" "")		;; memory
    (match_operand:SWI 2 "register_operand" "")		;; input

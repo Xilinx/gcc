@@ -1,3 +1,9 @@
+2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	* sync-mem*.c: Rename all files to atomic-*, rename __sync_mem.
+	* simulate-thread/sync*.c: Rename all files to atomic-*, rename 
+	__sync_mem to __atomic..
+
 2011-10-13  Andrew MacLeod  <amacleod@redhat.com>
 
 	* testsuite/gcc.dg/sync-mem-invalid.c: Test for invalid param.

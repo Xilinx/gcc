@@ -6789,7 +6789,7 @@ are not prevented from being speculated to before the barrier.
 The following builtins approximately match the requirements for
 C++11 memory model. Many are similar to the ``__sync'' prefixed builtins, but
 all also have a memory model parameter.  These are all identified by being
-prefixed with ``__sync_mem'', and most are overloaded such that they work
+prefixed with ``__atomic'', and most are overloaded such that they work
 with multiple types.
 
 GCC will allow any integral scalar or pointer type that is 1, 2, 4, or 8 bytes
@@ -6809,56 +6809,56 @@ code motion as well as synchronization requirements with other threads. These
 are listed in approximately ascending order of strength.
 
 @table  @code
-@item __SYNC_MEM_RELAXED
+@item __ATOMIC_RELAXED
 No barriers or synchronization.
-@item __SYNC_MEM_CONSUME
+@item __ATOMIC_CONSUME
 Data dependency only for both barrier and synchronization with another thread.
-@item __SYNC_MEM_ACQUIRE
+@item __ATOMIC_ACQUIRE
 Barrier to hoisting of code and synchronizes with release (or stronger)
 semantic stores from another thread.
-@item __SYNC_MEM_RELEASE
+@item __ATOMIC_RELEASE
 Barrier to sinking of code and synchronizes with acquire (or stronger) semantic
 loads from another thread.
-@item __SYNC_MEM_ACQ_REL
+@item __ATOMIC_ACQ_REL
 Full barrier in both directions and synchronizes with acquire loads and release
 stores in another thread.
-@item __SYNC_MEM_SEQ_CST
+@item __ATOMIC_SEQ_CST
 Full barrier in both directions and synchronizes with acquire loads and release
 stores in all threads.
 @end table
 
 When implementing patterns for these builtins, the memory model parameter can
 be ignored as long as the pattern implements the most restrictive 
-__SYNC_MEM_SEQ_CST model.  Any of the other memory models will execute 
+__ATOMIC_SEQ_CST model.  Any of the other memory models will execute 
 correctly with this memory model but they may not execute as efficiently as 
 they could with a more appropriate implemention of the relaxed requirements.
 
 Note that the C++11 standard allows for the memory model parameter to be
 determined at runtime rather than at compile time.  These builtins will map any 
-runtime value to __SYNC_MEM_SEQ_CST rather than invoke a runtime library 
+runtime value to __ATOMIC_SEQ_CST rather than invoke a runtime library 
 call or inline a switch statement.  This is standard compliant, safe, and the 
 simplest approach for now.
 
-@item @var{type} __sync_mem_load (@var{type} *ptr, int memmodel)
-@findex __sync_mem_load
+@item @var{type} __atomic_load (@var{type} *ptr, int memmodel)
+@findex __atomic_load
 This builtin implements an atomic load operation.  It returns the contents
 of @code{*@var{ptr}}.
 
 The valid memory model variants are
-__SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, __SYNC_MEM_ACQUIRE, and
-__SYNC_MEM_CONSUME.
+__ATOMIC_RELAXED, __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE, and
+__ATOMIC_CONSUME.
 
-@item void __sync_mem_store (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __sync_mem_store
+@item void __atomic_store (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __atomic_store
 This builtin implements an atomic store operation.  It writes @code{@var{val}}
 into @code{*@var{ptr}}.  On targets which are limited, 0 may be the only valid
 value. This mimics the behaviour of __sync_lock_release on such hardware.
 
 The valid memory model variants are
-__SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, and __SYNC_MEM_RELEASE.
+__ATOMIC_RELAXED, __ATOMIC_SEQ_CST, and __ATOMIC_RELEASE.
 
-@item @var{type} __sync_mem_exchange (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __sync_mem_exchange
+@item @var{type} __atomic_exchange (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __atomic_exchange
 This builtin implements an atomic exchange operation.  It writes @var{val}
 into @code{*@var{ptr}}, and returns the previous contents of @code{*@var{ptr}}.
 
@@ -6866,11 +6866,11 @@ On targets which are limited, a value of 1 may be the only valid value written.
 This mimics the behaviour of __sync_lock_test_and_set on such hardware.
 
 The valid memory model variants are
-__SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, __SYNC_MEM_ACQUIRE,
-__SYNC_MEM_RELEASE, and __SYNC_MEM_ACQ_REL.
+__ATOMIC_RELAXED, __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE,
+__ATOMIC_RELEASE, and __ATOMIC_ACQ_REL.
 
-@item bool __sync_mem_compare_exchange (@var{type} *ptr, @var{type} *expected, @var{type} desired, int success_memmodel, int failure_memmodel)
-@findex __sync_mem_compare_exchange
+@item bool __atomic_compare_exchange (@var{type} *ptr, @var{type} *expected, @var{type} desired, int success_memmodel, int failure_memmodel)
+@findex __atomic_compare_exchange
 This builtin implements an atomic compare_exchange operation.  This compares the
 contents of @code{*@var{ptr}} with the contents of @code{*@var{expected}} and if
 equal, writes @var{desired} into @code{*@var{ptr}}.  If they are not equal, the
@@ -6882,20 +6882,20 @@ the execution is considered to conform to the memory model specified by
 used here.
 
 False is returned otherwise, and the execution is considered to conform to
-@var{failure_memmodel}. This memory model cannot be __SYNC_MEM_RELEASE nor
-__SYNC_MEM_ACQ_REL.  It also cannot be a stronger model than that specified
+@var{failure_memmodel}. This memory model cannot be __ATOMIC_RELEASE nor
+__ATOMIC_ACQ_REL.  It also cannot be a stronger model than that specified
 by @var{success_memmodel}.
 
-@item @var{type} __sync_mem_add_fetch (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_sub_fetch (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_and_fetch (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_xor_fetch (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_or_fetch (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __sync_mem_add_fetch
-@findex __sync_mem_sub_fetch
-@findex __sync_mem_and_fetch
-@findex __sync_mem_xor_fetch
-@findex __sync_mem_or_fetch
+@item @var{type} __atomic_add_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_sub_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_and_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_xor_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_or_fetch (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __atomic_add_fetch
+@findex __atomic_sub_fetch
+@findex __atomic_and_fetch
+@findex __atomic_xor_fetch
+@findex __atomic_or_fetch
 These builtins perform the operation suggested by the name, and return the result 
 of the operation. That is,
 
@@ -6905,16 +6905,16 @@ of the operation. That is,
 
 All memory models are valid.
 
-@item @var{type} __sync_mem_fetch_add (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_fetch_sub (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_fetch_and (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_fetch_xor (@var{type} *ptr, @var{type} val, int memmodel)
-@itemx @var{type} __sync_mem_fetch_or (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __sync_mem_fetch_add
-@findex __sync_mem_fetch_sub
-@findex __sync_mem_fetch_and
-@findex __sync_mem_fetch_xor
-@findex __sync_mem_fetch_or
+@item @var{type} __atomic_fetch_add (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_fetch_sub (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_fetch_and (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_fetch_xor (@var{type} *ptr, @var{type} val, int memmodel)
+@itemx @var{type} __atomic_fetch_or (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __atomic_fetch_add
+@findex __atomic_fetch_sub
+@findex __atomic_fetch_and
+@findex __atomic_fetch_xor
+@findex __atomic_fetch_or
 These builtins perform the operation suggested by the name, and return the value
 that had previously been in *ptr .  That is,
 
@@ -6924,24 +6924,24 @@ that had previously been in *ptr .  That is,
 
 All memory models are valid.
 
-@item void __sync_mem_thread_fence (int memmodel)
-@findex __sync_mem_thread_fence
+@item void __atomic_thread_fence (int memmodel)
+@findex __atomic_thread_fence
 
 This builtin acts as a synchronization fence between threads based on the
 specified memory model.
 
 All memory orders are valid.
 
-@item void __sync_mem_signal_fence (int memmodel)
-@findex __sync_mem_signal_fence
+@item void __atomic_signal_fence (int memmodel)
+@findex __atomic_signal_fence
 
 This builtin acts as a synchronization fence between a thread and signal
 handlers based in the same thread.
 
 All memory orders are valid.
 
-@item bool __sync_mem_always_lock_free (size_t size)
-@findex __sync_mem_always_lock_free
+@item bool __atomic_always_lock_free (size_t size)
+@findex __atomic_always_lock_free
 
 This builtin returns true if objects of size bytes will always generate lock
 free atomic instructions for the target architecture.  Otherwise false is
@@ -6950,15 +6950,15 @@ returned.
 size must resolve to a compile time constant.
 
 @smallexample
-if (_sync_mem_always_lock_free (sizeof (long long)))
+if (_atomic_always_lock_free (sizeof (long long)))
 @end smallexample
 
-@item bool __sync_mem_is_lock_free (size_t size)
-@findex __sync_mem_is_lock_free
+@item bool __atomic_is_lock_free (size_t size)
+@findex __atomic_is_lock_free
 
 This builtin returns true if objects of size bytes will always generate lock
 free atomic instructions for the target architecture.  If it is not known to
-be lock free a call is made to a runtime routine named __sync_mem_is_lock_free.
+be lock free a call is made to a runtime routine named __atomic_is_lock_free.
 
 @end table
 
