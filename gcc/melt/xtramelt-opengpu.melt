@@ -24,7 +24,8 @@
 ***")
 
 (defun opengpudetect_handle_parallel_loop (curloopval :long loopix)
-  (debug_msg curloopval "opengpudetect_handle_parallel_loop start curloopval")
+  (debug "opengpudetect_handle_parallel_loop start curloopval=" curloopval 
+	 " loopix=" loopix)
   (let (
 	(:loop curloop (loop_content curloopval))
 	(curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
@@ -43,72 +44,66 @@
     (foreach_edge_bb_succs 
      (bbloophead)
      (:edge edgheadsuc)
-     (debugedge "opengpudetect_handle_parallel_loop edgheadsuc" edgheadsuc)
-     (debugbasicblock "opengpudetect_handle_parallel_loop edgheadsuc destbb"
-		      (edge_dest_bb edgheadsuc))
-     )
-    (debuglong  "opengpudetect_handle_parallel_loop nbsucc bblooplatch" (basicblock_nb_succ bblooplatch))
-    (debug_msg curloopbodytuple "opengpudetect_handle_parallel_loop parellelizable curloopbodytuple")
-    (debug_msg curloopedgetuple "opengpudetect_handle_parallel_loop parellelizable curloopedgetuple")
-    (foreach_in_multiple
-     (curloopbodytuple)
-     (curloopbody :long bodyix)
-     (debug_msg curloopbody "opengpudetect_handle_parallel_loop curloopbody")
-     (assert_msg "opengpudetect_handle_parallel_loop check curloopbody" (is_basicblock curloopbody))
-     (eachgimple_in_basicblock
-      ((basicblock_content curloopbody))
-      (:gimple gimbody)
-      (debuggimple "opengpudetect_handle_parallel_loop gimbody" gimbody)
-      (match gimbody
-	     (?(gimple_assign_single ?lhs ?rhs)
-	       (debugtree "opengpudetect_handle_parallel_loop assign single plain lhs" lhs)
-	       (debugtree "opengpudetect_handle_parallel_loop assign single plain rhs" rhs)
-	       )
-	     (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
-	       (debugtree "opengpudetect_handle_parallel_loop assign plus lhs" lhs)
-	       (debugtree "opengpudetect_handle_parallel_loop assign plus rhs1" rhs1)
-	       (debugtree "opengpudetect_handle_parallel_loop assign plus rhs2" rhs2)
-	       )
-	     (?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
-	       (debugtree "opengpudetect_handle_parallel_loop assign pointerplus lhs" lhs)
-	       (debugtree "opengpudetect_handle_parallel_loop assign pointerplus rhs1" rhs1)
-	       (debugtree "opengpudetect_handle_parallel_loop assign pointerplus rhs2" rhs2)
-	       )
-	     (?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
-	       (debugtree "opengpudetect_handle_parallel_loop assign mult lhs" lhs)
-	       (debugtree "opengpudetect_handle_parallel_loop assign mult rhs1" rhs1)
-	       (debugtree "opengpudetect_handle_parallel_loop assign mult rhs2" rhs2)
-	       )
-	     (?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
-	       (debugtree "opengpudetect_handle_parallel_loop assign binaryop lhs" lhs)
-	       (debugtree "opengpudetect_handle_parallel_loop assign binaryop rhs1" rhs1)
-	       (debugtree "opengpudetect_handle_parallel_loop assign binaryop rhs2" rhs2)
-	       (debuglong "opengpudetect_handle_parallel_loop assign binaryop opcod" opcod)
-	       (code_chunk 
-		debugopcodnam
-		#{/*$DEBUGOPCODNAM*/ const int $DEBUGOPCODNAM#_lin = __LINE__;
-		debugeprintfline($DEBUGOPCODNAM#_lin,
-				 "opengpudetect_handle_parallel_loop assign binaryopname %s",
-				 ($OPCOD>=0 && $OPCOD<MAX_TREE_CODES)?
-				 tree_code_name[$OPCOD]:"??");
-		}#)
-	       (assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
-	       )
-	     (?_
-	      ()))
+     (debug "opengpudetect_handle_parallel_loop edgheadsuc=" edgheadsuc
+	    " destbb=" (edge_dest_bb edgheadsuc)
+	    " nbsucc bblooplatch" (basicblock_nb_succ bblooplatch)
+	    " parellelizable curloopbodytuple=" curloopbodytuple
+	    "parellelizable curloopedgetuple=" curloopedgetuple)
+     (foreach_in_multiple
+      (curloopbodytuple)
+      (curloopbody :long bodyix)
+      (debug "opengpudetect_handle_parallel_loop curloopbody=" curloopbody
+	     " bodyix=" bodyix)
+      (assert_msg "opengpudetect_handle_parallel_loop check curloopbody" (is_basicblock curloopbody))
+      (eachgimple_in_basicblock
+       ((basicblock_content curloopbody))
+       (:gimple gimbody)
+       (debug"opengpudetect_handle_parallel_loop gimbody=" gimbody)
+       (match gimbody
+	      (?(gimple_assign_single ?lhs ?rhs)
+		(debug "opengpudetect_handle_parallel_loop assign single plain lhs=" lhs " rhs=" rhs)
+		)
+	      (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
+		(debug "opengpudetect_handle_parallel_loop assign plus lhs=" lhs
+		       " rhs1=" rhs1
+		       " rhs2=" rhs2)
+		)
+	      (?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
+		(debug "opengpudetect_handle_parallel_loop assign pointerplus lhs=" lhs 
+		       " rhs1=" rhs1 " rhs2=" rhs2)
+		)
+	      (?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
+		(debug "opengpudetect_handle_parallel_loop assign mult lhs=" lhs
+		       " rhs1=" rhs1 " rhs2=" rhs2)
+		)
+	      (?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
+		(debug "opengpudetect_handle_parallel_loop assign binaryop lhs=" lhs
+		       " rhs1=" rhs1 " rhs2=" rhs2 " opcod=" opcod)
+		(code_chunk 
+		 debugopcodnam
+		 #{/*$DEBUGOPCODNAM*/ const int $DEBUGOPCODNAM#_lin = __LINE__ ;
+		 debugeprintfline($DEBUGOPCODNAM#_lin,
+				  "opengpudetect_handle_parallel_loop assign binaryopname %s",
+				  ($OPCOD>=0 && $OPCOD<MAX_TREE_CODES)?
+				  tree_code_name[$OPCOD]:"??") ;
+		 }#)
+		(assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
+		)
+	      (?_
+	       ()))
+       )
       )
-     )
-  (debug_msg curloopval "opengpudetect_handle_parallel_loop end curloopval")
-  ))
+     (debug "opengpudetect_handle_parallel_loop end curloopval=" curloopval)
+     )))
 
 (defun opengpudetect_gate (pass)
-  (debug_msg pass "opengpudetect_gate start")
-  (debug_msg pass "opengpudetect_gate end")
+  (debug "opengpudetect_gate start pass=" pass)
+  (debug "opengpudetect_gate end")
   (return :true)
 )
 
 (defun opengpudetect_exec (pass)
-  (debug_msg pass "opengpudetect_exec start")
+  (debug "opengpudetect_exec start pass=" pass)
   (let ( (:long passcounter 0)
 	 )
     (code_chunk 
@@ -121,43 +116,40 @@
      dbgprintf ("opengpudetect_exec start $PASSCOUNTER= %ld", $PASSCOUNTER) ;
      }#)
     (code_chunk 
-     dbgcfun #{ /* $dbgcfun :: */
+     dbgcfun #{ /* $DBGCFUN :: */
      debugeprintf("opengpudetect_exec start cfun=%p cfg=%p passcounter #%ld", 
 		  (void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
      }#) 
-    (debug_msg pass "opengpudetect_exec before each_bb_cfun")
+    (debug "opengpudetect_exec before each_bb_cfun")
     (with_cfun_decl
      ()
      (:tree fundecl)
-     (debugtree "opengpudetect_exec fundecl" fundecl)
+     (debug "opengpudetect_exec fundecl=" fundecl)
      (each_bb_current_fun
       ()
       (:basic_block bb)
       (debugbasicblock "opengpudetect_exec bb" bb)
       ))
 ;;;
-    (debug_msg pass "opengpudetect_exec after each_bb_cfun before each_loop")
+    (debug "opengpudetect_exec after each_bb_cfun before each_loop")
     (each_loop 
      ()
      (:loop curloop :long loopix)
-     (debugloop curloop  "opengpudetect_exec curloop")
-     (debuglong "opengpudetect_exec loopix" loopix)
-     (debuglong "opengpudetect_exec computed loopnum"
-		(loop_index_number curloop))
-     (debuglong "opengpudetect_exec computed loopdepth" 
-		(loop_depth curloop))
+     (debug "opengpudetect_exec curloop=" curloop " loopix=" loopix 
+	     " computed loopnum:" (loop_index_number curloop)
+	     " computed loopdepth:" (loop_depth curloop))
      (if (loop_can_be_parallel curloop)
 	 (let ( (curloopval (make_loop discr_loop curloop))
 	       )
-	   (debug_msg curloopval  "opengpudetect_exec curloopval can be parallel!!!")
+	   (debug "opengpudetect_exec can be parallel!!! curloopval=" curloopval)
 	   (opengpudetect_handle_parallel_loop curloopval)
-	   (debug_msg curloopval  "opengpudetect_exec after opengpudetect_handle_parallel_loop")
+	   (debug "opengpudetect_exec after opengpudetect_handle_parallel_loop curloopval=" curloopval)
 	   )
-       (debugloop curloop "opengpudetect_exec curloop is not parallel!!!")
+       (debug "opengpudetect_exec is not parallel!!! curloop=" curloop)
        )
      )
     ;;
-    (debug_msg pass "opengpudetect_exec end")
+    (debug "opengpudetect_exec end pass=" pass)
     (return :true)
     ))
 

@@ -1,5 +1,8 @@
 
 
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt: Use DEBUG...
+
 2011-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
