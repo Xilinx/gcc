@@ -2508,7 +2508,7 @@ $SBUF.}#
 	 (nchkbef (unsafe_get_field :nciter_chunkbefore nciter))
 	 (nstatocc (let ( (ns (unsafe_get_field :nciter_statocc nciter)) ) 
 		     (assert_msg "check nstatocc" (is_a ns class_nrep_locsymocc))
-		     (debug_msg ns "compilobj_nrep_citeration nstatocc")
+		     (debug "compilobj_nrep_citeration nstatocc=" ns)
 		     ns))
 	 (nbody (unsafe_get_field :nciter_body nciter))
 	 (nbodbind (unsafe_get_field :nciter_bodbindings nciter))
@@ -5683,7 +5683,7 @@ $SBUF.}#
 	   ;; compile the curlocs
 	   (ocurl (let ( (oc (compile_obj curlocs gcx)) 
 			 )
-		    (debug_msg oc "compiltst_normtester_orclear ocurl")
+		    (debug "compiltst_normtester_orclear ocurl=" oc)
 		    oc))
 	   (oclrloc (instance class_objclear
 			      :obi_loc nloc

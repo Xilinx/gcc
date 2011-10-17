@@ -179,30 +179,25 @@
   (foreach_in_list
    (parameters)
    (pair parameter)
-   (let ((type (get_field :element_type parameter))
-	 (name (get_field :element_name parameter)))
-     (debug_msg type "Type : ")
-     (debug_msg name "Name : ")
-     (debug_msg '1 ","))))
+   (let ( (type (get_field :element_type parameter))
+	  (name (get_field :element_name parameter)) )
+     (debug "traverse_header_parameters type=" type " name=" name))))
 
 (defun traverse_header_function (header)
-  (let ((type (get_field :element_type header))
-	(name (get_field :element_name header))
-	(parameters (get_field :header_parameters header)))
-    (debug_msg '1 "Header : ")
-    (debug_msg type "Type : ")
-    (debug_msg name "Name : ")
+  (let ( (type (get_field :element_type header))
+	 (name (get_field :element_name header))
+	 (parameters (get_field :header_parameters header)) )
+    (debug "traverse_header_function type=" type " name=" name)
     (traverse_header_parameters_function parameters)))
 
 (defun traverse_local_variables_function (local_variables)
-  (debug_msg local_variables "Local variables :")
+  (debug "traverse_local_variables " local_variables)
   (foreach_in_list
    (local_variables)
    (pair declaration)
-   (let ((type (get_field :element_type declaration))
-	 (name (get_field :element_name declaration)))
-     (debug_msg type "Type : ")
-     (debug_msg name "Name : "))))
+   (let ( (type (get_field :element_type declaration))
+	 (name (get_field :element_name declaration)) )
+     (debug "traverse_local_variables type=" type " name=" name))))
 
 (defun traverse_block_instructions_function (_block_)
   (let ((id (get_field :block_id _block_))
@@ -210,7 +205,7 @@
     (foreach_in_list 
      (instructions)
      (pair instruction)
-     (debug_msg instruction "Instruction : "))))
+     (debug "traverse_block_instructions instruction=" instruction))))
 
 (defun traverse_blocks_function (blocks)
   (foreach_in_list
@@ -270,7 +265,7 @@
   (foreach_in_list
    (structures)
    (pair current_element)
-   (debug_msg current_element "Current : ")
+   (debug "add_structures_declarations_to_buffer current_element=" current_element)
    (add_to_buffer current_element buffer)))
 
 ;; Get prototypes
@@ -590,7 +585,7 @@
 	    ?(tree_identifier ?name))
 	   (add2sbuf_strconst buffer "struct ")
 	   (add2sbuf_strconst buffer name)
-	   (debug_msg buffer "Debug msg : ")
+	   (debug "Debug msg : " buffer)
 	   (add2sbuf_sbuf buffer accumulator))
 	 (?_ )))
 

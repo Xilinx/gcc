@@ -139,9 +139,9 @@ meta-linguistic | is an infix binary alternative.
 	       )
 	  (assert_msg "check peektop=potok" (== peektok poptok))
 	  (setq token poptok)
-	  (debug_msg token "infix_getlex returns parsed token")
+	  (debug "infix_getlex returns parsed token=" token)
 	  )
-      (debug_msg token "infix_getlex returns buffered token")
+      (debug "infix_getlex returns buffered token=" token)
       )
     (return token)
   ))
@@ -369,7 +369,7 @@ meta-linguistic | is an infix binary alternative.
 ))
 
 (defun parse_infix_file (filnam env)
-  (debug_msg filnam "parse_infix_file start filnam")
+  (debug "parse_infix_file start filnam=" filnam)
   (assert_msg "check filnam" (is_string filnam))
   (assert_msg "check env" (is_a env class_environment))
   (let (

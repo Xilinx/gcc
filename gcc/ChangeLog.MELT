@@ -1,5 +1,10 @@
 
 2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt: Don't use DEBUG.
+	* melt/xtramelt-c-generator.melt: Ditto.
+	* melt/xtramelt-parse-infix-syntax.melt: Ditto.
+
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_ppout_tree_perhaps_briefly): New declaration.
 	(meltgc_ppout_tree, meltgc_ppout_tree_briefly): Add macros.
 
