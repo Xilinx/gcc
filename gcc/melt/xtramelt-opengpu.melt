@@ -63,6 +63,9 @@
 	      (?(gimple_assign_single ?lhs ?rhs)
 		(debug "opengpudetect_handle_parallel_loop assign single plain lhs=" lhs " rhs=" rhs)
 		)
+	      (?(gimple_assign_cast ?lhs ?rhs)
+		(debug "opengpudetect_handle_parallel_loop assign cast lhs=" lhs " rhs=" rhs)
+		)
 	      (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign plus lhs=" lhs
 		       " rhs1=" rhs1
@@ -90,7 +93,8 @@
 		(assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
 		)
 	      (?_
-	       ()))
+	       (debug "opengpudetect_handle_parallel_loop other gimbody=" gimbody)
+	       ))
        )
       )
      (debug "opengpudetect_handle_parallel_loop end curloopval=" curloopval)

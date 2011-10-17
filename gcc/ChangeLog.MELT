@@ -1,4 +1,8 @@
 
+2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_ppout_tree): Use print_node, not print_node_brief.
+	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
+	More.
 
 2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (foreach_superloop): New citerator.
