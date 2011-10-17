@@ -1,3 +1,8 @@
+2011-10-17  Dehao Chen  <dehao@google.com>
+
+	* c-opts.c (c_common_parse_file): Write the options to
+	.gnu.switches.text sections.
+
 2011-09-20   Diego Novillo  <dnovillo@google.com>
 
 	* c-cppbuiltin.c (c_cpp_builtins): Do not define

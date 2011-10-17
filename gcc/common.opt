@@ -1718,6 +1718,14 @@ frecord-gcc-switches
 Common Report Var(flag_record_gcc_switches)
 Record gcc command line switches in the object file.
 
+; This option differs from frecord-gcc-switches in the way that it
+; divide the command line options into several categories. And the
+; section is not mergable so that linker can save gcc switches for
+; each module.
+frecord-gcc-switches-in-elf
+Common Report Var(flag_record_gcc_switches_in_elf)
+Record the compiler optimizations in a .gnu.switches.text section.
+
 freg-struct-return
 Common Report Var(flag_pcc_struct_return,0) Optimization
 Return small aggregates in registers

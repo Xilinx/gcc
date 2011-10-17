@@ -1,3 +1,13 @@
+2011-10-17  Dehao Chen  <dehao@google.com>
+
+	Add a flag (-frecord-gcc-switches-in-elf) to record compiler
+	command line options to .gnu.switches.text sections of
+	the object file.
+	* coverage.c (write_opts_to_asm): Write the options to
+	.gnu.switches.text sections.
+	* common.opt: Ditto.
+	* opts.h: Ditto.
+
 2011-10-04   Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/integration rev 179485.

@@ -1125,6 +1125,8 @@ c_common_parse_file (void)
   for (;;)
     {
       c_finish_options ();
+      if (flag_record_gcc_switches_in_elf && i == 0)
+	write_opts_to_asm ();
       pch_init ();
       set_lipo_c_parsing_context (parse_in, i, verbose);
       push_file_scope ();

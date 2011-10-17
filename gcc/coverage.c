@@ -56,6 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "l-ipo.h"
 #include "filenames.h"
+#include "dwarf2asm.h"
 
 #include "gcov-io.h"
 #include "gcov-io.c"
@@ -2133,4 +2134,69 @@ coverage_has_asm_stmt (void)
   has_asm_statement = flag_ripa_disallow_asm_modules;
 }
 
+/* Write command line options to the .note section.  */
+
+void
+write_opts_to_asm (void)
+{
+  size_t i;
+  cpp_dir *quote_paths, *bracket_paths, *pdir;
+  struct str_list *pdef, *pinc;
+  int num_quote_paths = 0;
+  int num_bracket_paths = 0;
+
+  get_include_chains (&quote_paths, &bracket_paths);
+
+  /* Write quote_paths to ASM section.  */
+  switch_to_section (get_section (".gnu.switches.text.quote_paths",
+				  SECTION_DEBUG, NULL));
+  for (pdir = quote_paths; pdir; pdir = pdir->next)
+    {
+      if (pdir == bracket_paths)
+	break;
+      num_quote_paths++;
+    }
+  dw2_asm_output_nstring (in_fnames[0], (size_t)-1, NULL);
+  dw2_asm_output_data_uleb128 (num_quote_paths, NULL);
+  for (pdir = quote_paths; pdir; pdir = pdir->next)
+    {
+      if (pdir == bracket_paths)
+	break;
+      dw2_asm_output_nstring (pdir->name, (size_t)-1, NULL);
+    }
+
+  /* Write bracket_paths to ASM section.  */
+  switch_to_section (get_section (".gnu.switches.text.bracket_paths",
+				  SECTION_DEBUG, NULL));
+  for (pdir = bracket_paths; pdir; pdir = pdir->next)
+    num_bracket_paths++;
+  dw2_asm_output_nstring (in_fnames[0], (size_t)-1, NULL);
+  dw2_asm_output_data_uleb128 (num_bracket_paths, NULL);
+  for (pdir = bracket_paths; pdir; pdir = pdir->next)
+    dw2_asm_output_nstring (pdir->name, (size_t)-1, NULL);
+
+  /* Write cpp_defines to ASM section.  */
+  switch_to_section (get_section (".gnu.switches.text.cpp_defines",
+				  SECTION_DEBUG, NULL));
+  dw2_asm_output_nstring (in_fnames[0], (size_t)-1, NULL);
+  dw2_asm_output_data_uleb128 (num_cpp_defines, NULL);
+  for (pdef = cpp_defines_head; pdef; pdef = pdef->next)
+    dw2_asm_output_nstring (pdef->str, (size_t)-1, NULL);
+
+  /* Write cpp_includes to ASM section.  */
+  switch_to_section (get_section (".gnu.switches.text.cpp_includes",
+				  SECTION_DEBUG, NULL));
+  dw2_asm_output_nstring (in_fnames[0], (size_t)-1, NULL);
+  dw2_asm_output_data_uleb128 (num_cpp_includes, NULL);
+  for (pinc = cpp_includes_head; pinc; pinc = pinc->next)
+    dw2_asm_output_nstring (pinc->str, (size_t)-1, NULL);
+
+  /* Write cl_args to ASM section.  */
+  switch_to_section (get_section (".gnu.switches.text.cl_args",
+				  SECTION_DEBUG, NULL));
+  dw2_asm_output_nstring (in_fnames[0], (size_t)-1, NULL);
+  dw2_asm_output_data_uleb128 (num_lipo_cl_args, NULL);
+  for (i = 0; i < num_lipo_cl_args; i++)
+    dw2_asm_output_nstring (lipo_cl_args[i], (size_t)-1, NULL);
+}
 #include "gt-coverage.h"

@@ -396,6 +396,7 @@ Objective-C and Objective-C++ Dialects}.
 -fpmu-profile-generate=@var{pmuoption} @gol
 -fpmu-profile-use=@var{pmuoption} @gol
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
+-frecord-gcc-switches-in-elf@gol
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
 -fripa -fripa-disallow-asm-modules -fripa-disallow-opt-mismatch @gol
@@ -8268,6 +8269,11 @@ section is created for each function. This section lists every callee and the
 number of times it is called. The params variable
 "note-cgraph-section-edge-threshold" can be used to only list edges above a
 certain threshold.
+
+@item -frecord-gcc-switches-in-elf
+@opindex frecord-gcc-switches-in-elf
+Record the command line options in the .gnu.switches.text elf section for sample
+based LIPO to do module grouping.
 @end table
 
 The following options control compiler behavior regarding floating

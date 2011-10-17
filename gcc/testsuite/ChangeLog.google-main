@@ -1,3 +1,7 @@
+2011-10-17  Dehao Chen  <dehao@google.com>
+
+	* gcc.dg/record-gcc-switches-in-elf-1.c: New test.
+
 2011-07-26  David Li  <davidxl@google.com>
 
 	* testsuite/gcc.dg/tree-prof/lipo/val-prof-2_0.c: update test case

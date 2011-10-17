@@ -413,4 +413,5 @@ extern void set_struct_debug_option (struct gcc_options *opts,
 				     const char *value);
 extern bool opt_enum_arg_to_value (size_t opt_index, const char *arg,
 				   int *value, unsigned int lang_mask);
+extern void write_opts_to_asm (void);
 #endif
