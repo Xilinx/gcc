@@ -1,4 +1,8 @@
 
+2011-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Explicitly add -Iinclude to meltframe.args.
+	* melt-build.mk: Regenerate.
+
 2011-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt: Don't use DEBUG.
 	* melt/xtramelt-c-generator.melt: Ditto.

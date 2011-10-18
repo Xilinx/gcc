@@ -617,6 +617,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
        $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) -o /dev/null > meltframe.args-tmp
 	@cat melt-runtime.args >> meltframe.args-tmp
+	echo -Iinclude/ >> meltframe.args-tmp
 	echo $(MELT_RUNTIME_C) >> meltframe.args-tmp
 	@mv meltframe.args-tmp meltframe.args
 	@echo; echo; echo; echo -n meltframe.args: ; cat meltframe.args ; echo "***** doing " meltframe  [+ (. (tpl-file-line))+]
