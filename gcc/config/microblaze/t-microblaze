@@ -27,7 +27,7 @@ dp-bit.c: $(srcdir)/config/fp-bit.c
 
 # Assemble startup files
 $(T)crti$(objext): $(srcdir)/config/microblaze/crti.s
-	$(GCC_FOR_TARGET) -c $(srcdir)/config/microblaze/crti.s -o $(T)crti$(objext)
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -c $(srcdir)/config/microblaze/crti.s -o $(T)crti$(objext)
 
 $(T)crtn$(objext): $(srcdir)/config/microblaze/crtn.s
-	$(GCC_FOR_TARGET) -c $(srcdir)/config/microblaze/crtn.s -o $(T)crtn$(objext)
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -c $(srcdir)/config/microblaze/crtn.s -o $(T)crtn$(objext)
