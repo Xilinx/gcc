@@ -404,6 +404,15 @@ cp_debug_print_unparsed_function (FILE *file, cp_unparsed_functions_entry *uf)
       fprintf (file, " ");
     }
   fprintf (file, "\n");
+
+  fprintf (file, "\n\tNon-static data members with initializers that require "
+           "post-processing\n\t\t");
+  for (i = 0; VEC_iterate (tree, uf->nsdmis, i, fn); i++)
+    {
+      print_node_brief (file, "", fn, 0);
+      fprintf (file, " ");
+    }
+  fprintf (file, "\n");
 }
 
 
@@ -545,6 +554,7 @@ cp_lexer_alloc (void)
 
   /* Initially we are not debugging.  */
   lexer->debugging_p = false;
+
   lexer->saved_tokens = VEC_alloc (cp_token_position, heap,
 				   CP_SAVED_TOKEN_STACK);
 
