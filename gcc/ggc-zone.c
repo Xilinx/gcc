@@ -1386,6 +1386,13 @@ ggc_alloc_typed_stat (enum gt_types_enum gte, size_t size
     }
 }
 
+
+void *
+ggc_finalized_alloc_stat (size_t sz, ggc_destructor_t*destr MEM_STAT_DECL)
+{
+  fatal_error ("unimplemented finalized alloc of size %d", (int) sz);
+}
+
 /* Normal GC allocation simply allocates into the main zone.  */
 
 void *

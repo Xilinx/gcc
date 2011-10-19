@@ -142,6 +142,11 @@ extern void gt_pch_save (FILE *f);
 
 /* Allocation.  */
 
+/* The macros MEM_STAT_DECL, MEM_STAT_INFO, PASS_MEM_STAT,
+   ALONE_MEM_STAT_DECL, ALONE_MEM_STAT_INFO are always defined but may
+   be empty.  They are provided by header file statistics.h, and are
+   useful when GATHER_STATISTICS is required. */
+ 
 /* The internal primitive.  */
 extern void *ggc_internal_alloc_stat (size_t MEM_STAT_DECL);
 
@@ -151,6 +156,17 @@ extern size_t ggc_round_alloc_size (size_t requested_size);
 
 /* Allocate an object of the specified type and size.  */
 extern void *ggc_alloc_typed_stat (enum gt_types_enum, size_t MEM_STAT_DECL);
+
+
+/* Signature of destructors -or finalizers-, as known to GGC.  */
+typedef void (ggc_destructor_t) (void*);
+
+/* Allocate finalized cleared memory.  The finalizer is run by the
+   garbage collector before destroying the object and realeasing its
+   memory.  It should not call, even indirectly, any allocator.  */
+extern void *ggc_finalized_alloc_stat (size_t, ggc_destructor_t* MEM_STAT_DECL);
+#define ggc_finalized_alloc(s, f) ggc_finalized_alloc_stat(s, f MEM_STAT_INFO)
+
 
 #define ggc_alloc_typed(s, z) ggc_alloc_typed_stat (s, z MEM_STAT_INFO)
 
@@ -267,6 +283,7 @@ extern struct alloc_zone tree_zone;
 /* For IDENTIFIER_NODE allocations.  */
 extern struct alloc_zone tree_id_zone;
 
+
 #define ggc_alloc_rtvec_sized(NELT)                                     \
   ggc_alloc_zone_rtvec_def (sizeof (struct rtvec_def)			\
 			    + ((NELT) - 1) * sizeof (rtx),		\
@@ -300,6 +317,7 @@ ggc_internal_zone_vec_alloc_stat (struct alloc_zone * z, size_t s, size_t n
 {
     return ggc_internal_alloc_zone_stat (s * n, z PASS_MEM_STAT);
 }
+
 
 
 #else

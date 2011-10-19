@@ -1,0 +1,10 @@
+
+
+2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* ggc.h (ggc_destructor_t): New type, signature of destructor routines.
+	(ggc_finalized_alloc_stat): New declaration.
+	(ggc_finalized_alloc): New macro.
+
+	* ggc-zone.c (ggc_finalized_alloc_stat): Adding new function.
+
+========= changelog for adding finalization to Ggc ==========
