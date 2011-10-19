@@ -1,5 +1,9 @@
 
 2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun): Emit newline when
+	appropriate for raw cstrings starting with space.
+
+2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_read_file): Do LC_LEAVE after reading
 	file.
 

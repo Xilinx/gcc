@@ -276,6 +276,8 @@ $FILENAM and $LINENO}#
 			      :dbgi_occmap occmap
 			      :dbgi_maxdepth boxedmaxdepth))
 	      (:long framdepth (the_framedepth)) 
+	      (:long outlen (output_length out)) 
+	      (:long laststroutlen outlen)
 	      )
 	  (add2out out "!!!!****####" dbgcounter "#^"  (-i framdepth 1) ":")
 	  (if filename
@@ -291,7 +293,17 @@ $FILENAM and $LINENO}#
 	    ( (:long l)
 	      (add2out_longdec out l))
 	    ( (:cstring s)
-	      (add2out_strconst out s))
+	      (let ( (:long curoutlen (output_length out)) 
+		     )
+		(match s
+		       ( ?(cstring_prefixed " ")
+			  (if (>i curoutlen (+i laststroutlen 70))
+			      (add2out_indentnl out 0)))
+		       ( ?_ (void)))
+		)
+	      (setq laststroutlen (output_length out))
+	      (add2out_strconst out s)
+	      )
 	    ( (:value val)
 	      (add2out_strconst out " ")
 	      (if val (dbg_out val dbgi 0)
@@ -356,7 +368,9 @@ $FILENAM and $LINENO}#
 				    $FILENAME, $LINENO) ;
 			   }#)
 	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
-	       ))))
+	       )))
+	   (setq outlen (output_length out))
+	   )
 	  (add2out_indentnl out 0)
 	  ))))
 
