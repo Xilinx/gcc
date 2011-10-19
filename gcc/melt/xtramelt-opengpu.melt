@@ -78,22 +78,25 @@
 		       " rhs=" rhs " rvar=" rvar " rvers=" rvers)
 		)
 	      (?(gimple_assign_cast ?lhs ?rhs)
-		(debug "opengpudetect_handle_parallel_loop assign cast lhs=" lhs " rhs=" rhs)
+		(debug "opengpudetect_handle_parallel_loop assign strange cast lhs=" lhs " rhs=" rhs)
 		)
 	      ;;
-	      (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
+	      (?(gimple_assign_plus ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign plus lhs=" lhs
+		       " lvar=" lvar " lvers=" lvers
 		       " rhs1=" rhs1
 		       " rhs2=" rhs2)
 		)
 	      ;;
-	      (?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
+	      (?(gimple_assign_pointerplus ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign pointerplus lhs=" lhs 
+		       " lvar=" lvar " lvers=" lvers
 		       " rhs1=" rhs1 " rhs2=" rhs2)
 		)
 	      ;;
-	      (?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
+	      (?(gimple_assign_mult ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign mult lhs=" lhs
+		       " lvar=" lvar " lvers=" lvers
 		       " rhs1=" rhs1 " rhs2=" rhs2)
 		)
 	      ;;

@@ -1,5 +1,9 @@
 
 2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
+	Match on ssa variables.
+
+2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (melt_debug_fun): Emit newline when
 	appropriate for raw cstrings starting with space.
 
