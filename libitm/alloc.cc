@@ -81,22 +81,16 @@ commit_allocations_2 (uintptr_t key, gtm_alloc_action *a, void *data)
         }
       else
         {
-          // Eliminate a parent allocation if it matches this memory release,
-          // otherwise just add it to the parent.
+          // ??? We could eliminate a parent allocation that matches this
+          // memory release, if we had support for removing all accesses
+          // to this allocation from the transaction's undo and redo logs
+          // (otherwise, the parent transaction's undo or redo might write to
+          // data that is already shared again because of calling free()).
+          // We don't have this support currently, and the benefit of this
+          // optimization is unknown, so just add it to the parent.
           gtm_alloc_action* a_parent;
-          aa_tree<uintptr_t, gtm_alloc_action>::node_ptr node_ptr =
-              cb_data->parent->remove(key, &a_parent);
-          if (node_ptr)
-            {
-              assert(a_parent->allocated);
-              a_parent->free_fn(ptr);
-              delete node_ptr;
-            }
-          else
-            {
-              a_parent = cb_data->parent->insert(key);
-              *a_parent = *a;
-            }
+          a_parent = cb_data->parent->insert(key);
+          *a_parent = *a;
         }
     }
 }

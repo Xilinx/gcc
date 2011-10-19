@@ -1,5 +1,10 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* alloc.cc (commit_allocations_2): Do not free transaction-local
+	memory when committing a nested transaction.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* method-serial.cc (GTM::gtm_thread::serialirr_mode): Fixed: Use
 	serial-irrevocable dispatch, not serial.
 
