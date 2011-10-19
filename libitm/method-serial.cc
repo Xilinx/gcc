@@ -90,6 +90,7 @@ class serialirr_dispatch : public abi_dispatch
   CREATE_DISPATCH_METHODS(virtual, )
   CREATE_DISPATCH_METHODS_MEM()
 
+  virtual gtm_restart_reason begin_or_restart() { return NO_RESTART; }
   virtual bool trycommit() { return true; }
   virtual void rollback(gtm_transaction_cp *cp) { abort(); }
 
@@ -141,6 +142,7 @@ public:
     ::memset(dst, c, size);
   }
 
+  virtual gtm_restart_reason begin_or_restart() { return NO_RESTART; }
   virtual bool trycommit() { return true; }
   // Local undo will handle this.
   // trydropreference() need not be changed either.

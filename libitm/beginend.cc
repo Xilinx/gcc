@@ -269,6 +269,14 @@ GTM::gtm_thread::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 #endif
     }
 
+  // Run dispatch-specific restart code. Retry until we succeed.
+  GTM::gtm_restart_reason rr;
+  while ((rr = disp->begin_or_restart()) != NO_RESTART)
+    {
+      tx->decide_retry_strategy(rr);
+      disp = abi_disp();
+    }
+
   // Determine the code path to run. Only irrevocable transactions cannot be
   // restarted, so all other transactions need to save live variables.
   ret = choose_code_path(prop, disp);
@@ -458,9 +466,17 @@ GTM::gtm_thread::restart (gtm_restart_reason r)
   rollback ();
   decide_retry_strategy (r);
 
-  GTM_longjmp (&this->jb,
-      choose_code_path(prop, abi_disp()) | a_restoreLiveVariables,
-      this->prop);
+  // Run dispatch-specific restart code. Retry until we succeed.
+  abi_dispatch* disp = abi_disp();
+  GTM::gtm_restart_reason rr;
+  while ((rr = disp->begin_or_restart()) != NO_RESTART)
+    {
+      decide_retry_strategy(rr);
+      disp = abi_disp();
+    }
+
+  GTM_longjmp (&jb,
+      choose_code_path(prop, disp) | a_restoreLiveVariables, prop);
 }
 
 void ITM_REGPARM

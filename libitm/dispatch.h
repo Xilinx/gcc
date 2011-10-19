@@ -260,6 +260,16 @@ private:
   abi_dispatch& operator=(const abi_dispatch &) = delete;
 
 public:
+  // Starts or restarts a transaction. Is called right before executing the
+  // transactional application code (by either returning from
+  // gtm_thread::begin_transaction or doing the longjmp when restarting).
+  // Returns NO_RESTART if the transaction started successfully. Returns
+  // a real restart reason if it couldn't start and does need to abort. This
+  // allows TM methods to just give up and delegate ensuring progress to the
+  // restart mechanism. If it returns a restart reason, this call must be
+  // idempotent because it will trigger the restart mechanism, which could
+  // switch to a different TM method.
+  virtual gtm_restart_reason begin_or_restart() = 0;
   // Tries to commit the transaction. Iff this returns true, the transaction
   // got committed and all per-transaction data will have been reset.
   // Currently, this is called only for the commit of the outermost

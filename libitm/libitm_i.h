@@ -53,22 +53,6 @@ template<> struct sized_integral<8> { typedef uint64_t type; };
 
 typedef unsigned int gtm_word __attribute__((mode (word)));
 
-} // namespace GTM
-
-#include "target.h"
-#include "rwlock.h"
-#include "aatree.h"
-#include "cacheline.h"
-#include "cachepage.h"
-#include "stmlock.h"
-#include "dispatch.h"
-#include "containers.h"
-
-namespace GTM HIDDEN {
-
-// A dispatch table parameterizes the implementation of the STM.
-struct abi_dispatch;
-
 // These values are given to GTM_restart_transaction and indicate the
 // reason for the restart.  The reason is used to decide what STM
 // implementation should be used during the next iteration.
@@ -83,8 +67,22 @@ enum gtm_restart_reason
   RESTART_SERIAL_IRR,
   RESTART_NOT_READONLY,
   RESTART_CLOSED_NESTING,
-  NUM_RESTARTS
+  NUM_RESTARTS,
+  NO_RESTART = NUM_RESTARTS
 };
+
+} // namespace GTM
+
+#include "target.h"
+#include "rwlock.h"
+#include "aatree.h"
+#include "cacheline.h"
+#include "cachepage.h"
+#include "stmlock.h"
+#include "dispatch.h"
+#include "containers.h"
+
+namespace GTM HIDDEN {
 
 // This type is private to alloc.c, but needs to be defined so that
 // the template used inside gtm_thread can instantiate.

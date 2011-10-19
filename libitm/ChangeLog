@@ -1,3 +1,13 @@
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
+	* libitm_i.h (GTM::gtm_restart_reason): Re-arrange and clean up
+	declarations.
+	* dispatch.h (GTM::abi_dispatch::begin_or_restart): New.
+	* method-serial.cc: Implement begin_or_restart().
+	* beginend.cc (GTM::gtm_thread::begin_transaction): Call
+	dispatch-specific begin_or_restart().
+	(GTM::gtm_thread::restart): Same.
+
 2011-08-23  Torvald Riegel  <triegel@redhat.com>
 
 	* retry.cc (GTM::gtm_thread::decide_retry_strategy): Cleanup. Fix
