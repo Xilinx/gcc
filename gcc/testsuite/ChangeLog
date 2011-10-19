@@ -1,3 +1,200 @@
+2011-10-18  Andrew Stubbs  <ams@codesourcery.com>
+
+	PR tree-optimization/50717
+
+	* gcc.dg/pr50717-1.c: New file.
+	* gcc.target/arm/wmul-12.c: Correct types.
+	* gcc.target/arm/wmul-8.c: Correct types.
+
+2011-10-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50531
+	* g++.dg/cpp0x/defaulted32.C: New.
+
+	PR c++/50742
+	* g++.dg/lookup/using23.C: New.
+
+	PR c++/50500
+	* g++.dg/cpp0x/implicit12.C: New.
+	* g++.dg/cpp0x/defaulted20.C: Adjust.
+	* g++.dg/cpp0x/defaulted21.C: Adjust.
+	* g++.dg/cpp0x/implicit-copy.C: Adjust.
+	* g++.dg/cpp0x/implicit4.C: Adjust.
+	* g++.dg/cpp0x/implicit5.C: Adjust.
+	* g++.dg/cpp0x/implicit8.C: Adjust.
+	* g++.dg/cpp0x/lambda/lambda-ice2.C: Adjust.
+	* g++.dg/cpp0x/not_special.C: Adjust.
+	* g++.dg/cpp0x/rv-trivial-bug.C: Adjust.
+	* g++.dg/cpp0x/rv1n.C: Adjust.
+	* g++.dg/cpp0x/rv2n.C: Adjust.
+	* g++.dg/cpp0x/rv3n.C: Adjust.
+	* g++.dg/cpp0x/rv4n.C: Adjust.
+	* g++.dg/cpp0x/rv5n.C: Adjust.
+	* g++.dg/cpp0x/rv6n.C: Adjust.
+	* g++.dg/cpp0x/rv7n.C: Adjust.
+
+2011-10-18  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* gcc.target/i386/avx2-vpop-check.h: New header.
+	* gcc.target/i386/avx2-vpaddd-3.c: New test.
+	* gcc.target/i386/avx2-vpaddw-3.c: Ditto.
+	* gcc.target/i386/avx2-vpaddb-3.c: Ditto.
+	* gcc.target/i386/avx2-vpaddq-3.c: Ditto.
+	* gcc.target/i386/avx2-vpand-3.c: Ditto.
+	* gcc.target/i386/avx2-vpmulld-3.c: Ditto.
+	* gcc.target/i386/avx2-vpmullw-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsrad-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsraw-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsrld-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsrlw-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsubb-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsubd-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsubq-3.c: Ditto.
+	* gcc.target/i386/avx2-vpsubw-3.c: Ditto.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* gfortran.dg/coarray_subobject_1.f90: New test.
+	* gfortran.dg/coarray/subobject_1.f90: New test.
+
+2011-10-18  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/50205
+	* gcc.dg/pr50205.c: New.
+
+2011-10-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50767
+	* gcc.dg/torture/pr50767.c: New testcase.
+
+2011-10-18  Julian Brown  <julian@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_unaligned): New.
+	* gcc.target/arm/unaligned-memcpy-1.c: New.
+	* gcc.target/arm/unaligned-memcpy-2.c: New.
+	* gcc.target/arm/unaligned-memcpy-3.c: New.
+	* gcc.target/arm/unaligned-memcpy-4.c: New.
+
+2011-10-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	* gfortran.dg/iso_c_binding_class.f03: New.
+
+2011-10-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	* testsuite/lib/target-supports.exp
+	(check_effective_target_vect_widen_shift): New.
+	* gcc.dg/vect/vect-widen-shift-s16.c: New.
+	* gcc.dg/vect/vect-widen-shift-s8.c: New.
+	* gcc.dg/vect/vect-widen-shift-u16.c: New.
+	* gcc.dg/vect/vect-widen-shift-u8.c: New.
+
+2011-10-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/restrict-1.c: New testcase.
+
+2011-10-17  Michael Spertus  <mike_spertus@symantec.com>
+
+	* g++.dg/ext/bases.C: New test.
+
+2011-10-17  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/fand.c: Remove __LP64__ ifdefs and expect
+	all operations to emit VIS instructions.
+	* gcc.target/sparc/fandnot.c: Likewise.
+	* gcc.target/sparc/fnot.c: Likewise.
+	* gcc.target/sparc/for.c: Likewise.
+	* gcc.target/sparc/fornot.c: Likewise.
+	* gcc.target/sparc/fxnor.c: Likewise.
+	* gcc.target/sparc/fxor.c: Likewise.
+	* gcc.target/sparc/combined-1.c: Revert change to use -O2, no longer
+	needed.
+
+2011-10-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c-torture/execute/vshuf-v16hi.c: New test.
+	* gcc.dg/torture/vshuf-16.inc: New file.
+	* gcc.dg/torture/vshuf-2.inc: New file.
+	* gcc.dg/torture/vshuf-32.inc: New file.
+	* gcc.dg/torture/vshuf-4.inc: New file.
+	* gcc.dg/torture/vshuf-8.inc: New file.
+	* gcc.dg/torture/vshuf-main.inc: New file.
+	* gcc.dg/torture/vshuf-v16hi.c: New test.
+	* gcc.dg/torture/vshuf-v16qi.c: New test.
+	* gcc.dg/torture/vshuf-v2df.c: New test.
+	* gcc.dg/torture/vshuf-v2di.c: New test.
+	* gcc.dg/torture/vshuf-v2sf.c: New test.
+	* gcc.dg/torture/vshuf-v2si.c: New test.
+	* gcc.dg/torture/vshuf-v32qi.c: New test.
+	* gcc.dg/torture/vshuf-v4df.c: New test.
+	* gcc.dg/torture/vshuf-v4di.c: New test.
+	* gcc.dg/torture/vshuf-v4hi.c: New test.
+	* gcc.dg/torture/vshuf-v4sf.c: New test.
+	* gcc.dg/torture/vshuf-v4si.c: New test.
+	* gcc.dg/torture/vshuf-v8hi.c: New test.
+	* gcc.dg/torture/vshuf-v8qi.c: New test.
+	* gcc.dg/torture/vshuf-v8sf.c: New test.
+	* gcc.dg/torture/vshuf-v8si.c: New test.
+
+2011-10-17  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50746
+	* gcc.dg/vect/vect-114.c: Remove vect_hw_misalign.
+
+2011-10-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50736
+	* g++.dg/cpp0x/lambda/lambda-capture-neg.C: New.
+
+2011-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44524
+	* g++.dg/parse/error41.C: New.
+	* g++.dg/parse/error20.C: Adjust.
+
+2011-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50757
+	* g++.dg/warn/format7.C: New.
+	* obj-c++.dg/warn7.mm: Likewise.
+
+2011-10-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50729
+	* gcc.dg/torture/pr50729.c: New testcase.
+
+2011-10-15  Tom Tromey  <tromey@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	* lib/prune.exp (prune_gcc_output):  Prune output referring to
+	included files.
+	* gcc.dg/cpp/macro-exp-tracking-1.c: New test.
+	* gcc.dg/cpp/macro-exp-tracking-2.c: Likewise.
+	* gcc.dg/cpp/macro-exp-tracking-3.c: Likewise.
+	* gcc.dg/cpp/pragma-diagnostic-2.c: Likewise.
+
+2011-10-15  Tom Tromey  <tromey@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	* gcc.dg/cpp/pragma-diagnostic-1.c: New test.
+
+2011-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48489
+	* g++.dg/inherit/error5.C: New.
+
+2011-10-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	PR fortran/50752
+	* gfortran.dg/kind_tests_4.f90: New.
+
+2011-10-17  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/vect-21.c: Expect the loops to get vectorized on
+	targets that support vector condition.
+
 2011-10-16  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/47023

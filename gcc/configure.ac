@@ -725,6 +725,19 @@ AC_ARG_ENABLE(shared,
 ], [enable_shared=yes])
 AC_SUBST(enable_shared)
 
+AC_ARG_WITH([native-system-header-dir],
+  [  --with-native-system-header-dir=dir
+                          use dir as the directory to look for standard
+                          system header files in.  Defaults to /usr/include.],
+[
+ case ${with_native_system_header_dir} in
+ yes|no) AC_MSG_ERROR([bad value ${withval} given for --with-native-system-header-dir]) ;;
+ /* | [[A-Za-z]]:[[\\/]]*) ;;
+ *) AC_MSG_ERROR([--with-native-system-header-dir argument ${withval} must be an absolute directory]) ;;
+ esac
+ configured_native_system_header_dir="${withval}"
+], [configured_native_system_header_dir=])
+
 AC_ARG_WITH(build-sysroot, 
   [AS_HELP_STRING([--with-build-sysroot=sysroot],
                   [use sysroot as the system root during the build])],
@@ -1027,7 +1040,7 @@ define(gcc_UNLOCKED_FUNCS, clearerr_unlocked feof_unlocked dnl
 AC_CHECK_FUNCS(times clock kill getrlimit setrlimit atoll atoq \
 	sysconf strsignal getrusage nl_langinfo \
 	gettimeofday mbstowcs wcswidth mmap setlocale \
-	gcc_UNLOCKED_FUNCS)
+	gcc_UNLOCKED_FUNCS madvise)
 
 if test x$ac_cv_func_mbstowcs = xyes; then
   AC_CACHE_CHECK(whether mbstowcs works, gcc_cv_func_mbstowcs_works,
@@ -1330,6 +1343,12 @@ if test "$host_xm_file" != "$build_xm_file"; then
 		done
 	fi
 fi
+
+if test -n "$configured_native_system_header_dir"; then
+  native_system_header_dir=$configured_native_system_header_dir
+fi
+NATIVE_SYSTEM_HEADER_DIR="$native_system_header_dir"
+AC_SUBST(NATIVE_SYSTEM_HEADER_DIR)
 
 case ${host} in
   powerpc*-*-darwin*)
@@ -4517,14 +4536,14 @@ if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
   elif test "x$with_sysroot" = x; then
     target_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
   elif test "x$with_build_sysroot" != "x"; then
-    target_header_dir="${with_build_sysroot}/usr/include"
+    target_header_dir="${with_build_sysroot}${native_system_header_dir}"
   elif test "x$with_sysroot" = xyes; then
-    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
+    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root${native_system_header_dir}"
   else
-    target_header_dir="${with_sysroot}/usr/include"
+    target_header_dir="${with_sysroot}${native_system_header_dir}"
   fi
 else
-  target_header_dir=/usr/include
+  target_header_dir=${native_system_header_dir}
 fi
 
 # Test for stack protector support in target C library.
@@ -4578,6 +4597,7 @@ GCC_TARGET_TEMPLATE([HAVE_SYS_SDT_H])
 AC_MSG_CHECKING(sys/sdt.h in the target C library)
 have_sys_sdt_h=no
 if test -f $target_header_dir/sys/sdt.h; then
+  have_sys_sdt_h=yes
   AC_DEFINE(HAVE_SYS_SDT_H, 1,
             [Define if your target C library provides sys/sdt.h])
 fi
