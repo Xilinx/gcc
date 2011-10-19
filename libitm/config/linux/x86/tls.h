@@ -72,7 +72,7 @@ namespace GTM HIDDEN {
 static inline struct gtm_thread *gtm_thr(void)
 {
   struct gtm_thread *r;
-  asm (SEG_READ(10) : "=r"(r));
+  asm volatile (SEG_READ(10) : "=r"(r));
   return r;
 }
 
@@ -84,7 +84,7 @@ static inline void set_gtm_thr(struct gtm_thread *x)
 static inline struct abi_dispatch *abi_disp(void)
 {
   struct abi_dispatch *r;
-  asm (SEG_DECODE_READ(11) : "=r"(r));
+  asm volatile (SEG_DECODE_READ(11) : "=r"(r));
   return r;
 }
 

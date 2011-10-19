@@ -1,5 +1,10 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* config/linux/x86/tls.h (abi_disp): Make TLS slot read volatile.
+	(gtm_thr): Same.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm_i.h: Add gl_wt dispatch.
 	* retry.cc (parse_default_method): Same.
 	* method-gl.cc: New file.
