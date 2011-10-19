@@ -7,7 +7,7 @@ static void throwit() {
 }
 
 void tranfunc() {
-	__transaction {
+	__transaction_atomic {
 		throwit();
 	}
 }

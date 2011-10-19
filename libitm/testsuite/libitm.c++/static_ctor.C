@@ -14,7 +14,7 @@ int f(int x)
 static void *thread (void *)
 {
   int bar;
-  __transaction { bar = f(10); }
+  __transaction_atomic { bar = f(10); }
   if (bar != 100)
     abort();
   return 0;
@@ -30,7 +30,7 @@ int main()
   pthread_join(pt, NULL);
 
   // Now y should already be initialized.
-  __transaction { bar = f(20); }
+  __transaction_atomic { bar = f(20); }
   if (bar != 200)
     abort();
 

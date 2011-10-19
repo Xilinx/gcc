@@ -10,7 +10,7 @@ int x = 0;
 
 int __attribute__((transaction_pure)) pure(int i)
 {
-  __transaction {
+  __transaction_atomic {
     x++;
   }
   if (_ITM_inTransaction() == outsideTransaction)
@@ -22,7 +22,7 @@ int __attribute__((transaction_unsafe)) unsafe(int i)
 {
   if (_ITM_inTransaction() != inIrrevocableTransaction)
     abort();
-  __transaction {
+  __transaction_atomic {
     x++;
   }
   if (_ITM_inTransaction() != inIrrevocableTransaction)
@@ -32,10 +32,10 @@ int __attribute__((transaction_unsafe)) unsafe(int i)
 
 static void *thread (void *dummy __attribute__((unused)))
 {
-  __transaction {
+  __transaction_atomic {
     pure(1);
   }
-  __transaction[[relaxed]] {
+  __transaction_relaxed {
     unsafe(1);
   }
   return 0;
@@ -46,10 +46,10 @@ int main()
   pthread_t pt;
   int r = 0;
 
-  __transaction {
+  __transaction_atomic {
     r += pure(1) + x;
   }
-  __transaction[[relaxed]] {
+  __transaction_relaxed {
     r += unsafe(1) + x;
   }
   if (r != 7)

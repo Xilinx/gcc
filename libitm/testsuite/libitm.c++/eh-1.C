@@ -14,7 +14,7 @@ static void f1()
 
 static void f2()
 {
-  __transaction {
+  __transaction_atomic {
     f1();
   }
 }

@@ -18,7 +18,7 @@ thread_exit_handler(void *dummy __attribute__((unused)))
     {
       // ??? It would be good if we could check here that the transaction has
       // indeed been released.
-      __transaction { round++; }
+      __transaction_atomic { round++; }
       if (pthread_setspecific(key, &round))
         abort();
     }
@@ -32,7 +32,7 @@ static void *thread (void *dummy __attribute__((unused)))
     abort();
   if (pthread_setspecific(key, &round))
     abort();
-  __transaction { round++; }
+  __transaction_atomic { round++; }
   return NULL;
 }
 

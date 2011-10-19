@@ -13,7 +13,7 @@ int main()
   for(i=0; i < 100; ++i)
     pp[i]=0x22;
 
-  __transaction {
+  __transaction_atomic {
     for(i=0; i < 100; ++i)
       pp[i]=0x33;
 

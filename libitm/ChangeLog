@@ -1,5 +1,10 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* testsuite/*: Change __transaction to __transaction_atomic or
+	__transaction_relaxed.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* config/linux/x86/tls.h (abi_disp): Make TLS slot read volatile.
 	(gtm_thr): Same.
 

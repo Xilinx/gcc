@@ -5,7 +5,7 @@ char *pp;
 
 int main()
 {
-  __transaction {
+  __transaction_atomic {
     _ITM_dropReferences (pp, 555);
   }
   return 0;
