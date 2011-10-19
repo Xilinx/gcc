@@ -291,7 +291,7 @@ GTM::gtm_transaction_cp::save(gtm_thread* tx)
 {
   // Save everything that we might have to restore on restarts or aborts.
   jb = tx->jb;
-  local_undo_size = tx->local_undo.size();
+  undolog_size = tx->undolog.size();
   memcpy(&alloc_actions, &tx->alloc_actions, sizeof(alloc_actions));
   user_actions_size = tx->user_actions.size();
   id = tx->id;
@@ -319,9 +319,16 @@ GTM::gtm_transaction_cp::commit(gtm_thread* tx)
 void
 GTM::gtm_thread::rollback (gtm_transaction_cp *cp)
 {
+  // The undo log is special in that it used for both thread-local and shared
+  // data. Because of the latter, we have to roll it back before any
+  // dispatch-specific rollback (which handles synchronization with other
+  // transactions).
+  rollback_undolog (cp ? cp->undolog_size : 0);
+
+  // Perform dispatch-specific rollback.
   abi_disp()->rollback (cp);
 
-  rollback_local (cp ? cp->local_undo_size : 0);
+  // Roll back all actions that are supposed to happen around the transaction.
   rollback_user_actions (cp ? cp->user_actions_size : 0);
   commit_allocations (true, (cp ? &cp->alloc_actions : 0));
   revert_cpp_exceptions (cp);
@@ -435,7 +442,9 @@ GTM::gtm_thread::trycommit ()
   // Commit of an outermost transaction.
   if (abi_disp()->trycommit ())
     {
-      commit_local ();
+      // We can commit the undo log after dispatch-specific commit because we
+      // only have to reset gtm_thread state.
+      commit_undolog ();
       // FIXME: run after ensuring privatization safety:
       commit_user_actions ();
       commit_allocations (false, 0);

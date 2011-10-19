@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -26,7 +26,7 @@
 
 namespace GTM HIDDEN {
 
-struct gtm_local_undo
+struct gtm_undolog_entry
 {
   void *addr;
   size_t len;
@@ -35,28 +35,28 @@ struct gtm_local_undo
 
 
 void
-gtm_thread::commit_local ()
+gtm_thread::commit_undolog ()
 {
-  size_t i, n = local_undo.size();
+  size_t i, n = undolog.size();
 
   if (n > 0)
     {
       for (i = 0; i < n; ++i)
-	free (local_undo[i]);
-      this->local_undo.clear();
+	free (undolog[i]);
+      this->undolog.clear();
     }
 }
 
 void
-gtm_thread::rollback_local (size_t until_size)
+gtm_thread::rollback_undolog (size_t until_size)
 {
-  size_t i, n = local_undo.size();
+  size_t i, n = undolog.size();
 
   if (n > 0)
     {
       for (i = n; i-- > until_size; )
 	{
-	  gtm_local_undo *u = *local_undo.pop();
+	  gtm_undolog_entry *u = *undolog.pop();
 	  if (u)
 	    {
 	      memcpy (u->addr, u->saved, u->len);
@@ -69,22 +69,22 @@ gtm_thread::rollback_local (size_t until_size)
 /* Forget any references to PTR in the local log.  */
 
 void
-gtm_thread::drop_references_local (const void *ptr, size_t len)
+gtm_thread::drop_references_undolog (const void *ptr, size_t len)
 {
-  size_t i, n = local_undo.size();
+  size_t i, n = undolog.size();
 
   if (n > 0)
     {
       for (i = n; i > 0; i--)
 	{
-	  gtm_local_undo *u = local_undo[i];
+	  gtm_undolog_entry *u = undolog[i];
 	  /* ?? Do we need such granularity, or can we get away with
 	     just comparing PTR and LEN. ??  */
 	  if ((const char *)u->addr >= (const char *)ptr
 	      && ((const char *)u->addr + u->len <= (const char *)ptr + len))
 	    {
 	      free (u);
-	      local_undo[i] = NULL;
+	      undolog[i] = NULL;
 	    }
 	}
     }
@@ -94,13 +94,14 @@ void ITM_REGPARM
 GTM_LB (const void *ptr, size_t len)
 {
   gtm_thread *tx = gtm_thr();
-  gtm_local_undo *undo;
+  gtm_undolog_entry *undo;
 
-  undo = (gtm_local_undo *) xmalloc (sizeof (struct gtm_local_undo) + len);
+  undo = (gtm_undolog_entry *)
+      xmalloc (sizeof (struct gtm_undolog_entry) + len);
   undo->addr = (void *) ptr;
   undo->len = len;
 
-  tx->local_undo.push()[0] = undo;
+  tx->undolog.push()[0] = undo;
 
   memcpy (undo->saved, ptr, len);
 }

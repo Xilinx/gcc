@@ -1,5 +1,15 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* libitm_i.h: Renamed gtm_local_undo to gtm_undolog_entry.
+	(GTM::gtm_thread): Renamed local_undo to undolog. Renamed
+	undolog-related member functions from *_local to *_undolog.
+	* local.cc (gtm_thread::commit_undolog): Same.
+	* beginend.cc (GTM::gtm_thread::trycommit): Same.
+	(GTM::gtm_thread::rollback): Roll back undolog before
+	dispatch-specific rollback.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* retry.cc (GTM::gtm_thread::decide_retry_strategy): Handle
 	re-initialization of the current method group.
 	* libitm_i.h (GTM::gtm_restart_reason): Add restart reason for this.

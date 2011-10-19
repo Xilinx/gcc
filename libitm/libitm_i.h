@@ -94,7 +94,7 @@ struct gtm_alloc_action
 };
 
 // This type is private to local.c.
-struct gtm_local_undo;
+struct gtm_undolog_entry;
 
 struct gtm_thread;
 
@@ -103,7 +103,7 @@ struct gtm_thread;
 struct gtm_transaction_cp
 {
   gtm_jmpbuf jb;
-  size_t local_undo_size;
+  size_t undolog_size;
   aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;
   size_t user_actions_size;
   _ITM_transactionId_t id;
@@ -147,8 +147,8 @@ struct gtm_thread
   // This field *must* be at the beginning of the transaction.
   gtm_jmpbuf jb;
 
-  // Data used by local.c for the local memory undo log.
-  vector<gtm_local_undo*> local_undo;
+  // Data used by local.c for the undo log for both local and shared memory.
+  vector<gtm_undolog_entry*> undolog;
 
   // Data used by alloc.c for the malloc/free undo log.
   aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;
@@ -248,9 +248,9 @@ struct gtm_thread
   void revert_cpp_exceptions (gtm_transaction_cp *cp = 0);
 
   // In local.cc
-  void commit_local (void);
-  void rollback_local (size_t until_size = 0);
-  void drop_references_local (const void *, size_t);
+  void commit_undolog (void);
+  void rollback_undolog (size_t until_size = 0);
+  void drop_references_undolog (const void *, size_t);
 
   // In retry.cc
   // Must be called outside of transactions (i.e., after rollback).
