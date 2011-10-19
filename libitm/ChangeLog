@@ -1,5 +1,13 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* beginend.cc (GTM::gtm_thread::trycommit): Ensure privatization
+	safety if requested by a TM method.
+	* dispatch.h (GTM::abi_dispatch::trycommit): Add parameter for
+	privatization safety.
+	* method-serial.cc: Same.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm_i.h: Renamed gtm_local_undo to gtm_undolog_entry.
 	(GTM::gtm_thread): Renamed local_undo to undolog. Renamed
 	undolog-related member functions from *_local to *_undolog.

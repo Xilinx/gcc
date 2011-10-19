@@ -275,9 +275,11 @@ public:
   // Currently, this is called only for the commit of the outermost
   // transaction, or when switching to serial mode (which can happen in a
   // nested transaction).
-  // If the current transaction is in serial or serial-irrevocable mode, this
-  // must return true.
-  virtual bool trycommit() = 0;
+  // If privatization safety must be ensured in a quiescence-based way, set
+  // priv_time to a value different to 0. Nontransactional code will not be
+  // executed after this commit until all registered threads' shared_state is
+  // larger than or equal to this value.
+  virtual bool trycommit(gtm_word& priv_time) = 0;
   // Rolls back a transaction. Called on abort or after trycommit() returned
   // false.
   virtual void rollback(gtm_transaction_cp *cp = 0) = 0;

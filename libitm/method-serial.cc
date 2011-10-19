@@ -91,7 +91,7 @@ class serialirr_dispatch : public abi_dispatch
   CREATE_DISPATCH_METHODS_MEM()
 
   virtual gtm_restart_reason begin_or_restart() { return NO_RESTART; }
-  virtual bool trycommit() { return true; }
+  virtual bool trycommit(gtm_word& priv_time) { return true; }
   virtual void rollback(gtm_transaction_cp *cp) { abort(); }
 
   virtual abi_dispatch* closed_nesting_alternative()
@@ -143,7 +143,7 @@ public:
   }
 
   virtual gtm_restart_reason begin_or_restart() { return NO_RESTART; }
-  virtual bool trycommit() { return true; }
+  virtual bool trycommit(gtm_word& priv_time) { return true; }
   // Local undo will handle this.
   // trydropreference() need not be changed either.
   virtual void rollback(gtm_transaction_cp *cp) { }
@@ -246,15 +246,25 @@ GTM::gtm_thread::serialirr_mode ()
       if (this->state & STATE_IRREVOCABLE)
 	return;
 
+      // Try to commit the dispatch-specific part of the transaction, as we
+      // would do for an outermost commit.
+      // We're already serial, so we don't need to ensure privatization safety
+      // for other transactions here.
+      gtm_word priv_time = 0;
+      bool ok = disp->trycommit (priv_time);
       // Given that we're already serial, the trycommit better work.
-      bool ok = disp->trycommit ();
       assert (ok);
       need_restart = false;
     }
   else if (serial_lock.write_upgrade (this))
     {
       this->state |= STATE_SERIAL;
-      if (disp->trycommit ())
+      // Try to commit the dispatch-specific part of the transaction, as we
+      // would do for an outermost commit.
+      // We have successfully upgraded to serial mode, so we don't need to
+      // ensure privatization safety for other transactions here.
+      gtm_word priv_time = 0;
+      if (disp->trycommit (priv_time))
         need_restart = false;
     }
 

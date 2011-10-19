@@ -440,27 +440,48 @@ GTM::gtm_thread::trycommit ()
     }
 
   // Commit of an outermost transaction.
-  if (abi_disp()->trycommit ())
+  gtm_word priv_time = 0;
+  if (abi_disp()->trycommit (priv_time))
     {
-      // We can commit the undo log after dispatch-specific commit because we
-      // only have to reset gtm_thread state.
-      commit_undolog ();
-      // FIXME: run after ensuring privatization safety:
-      commit_user_actions ();
-      commit_allocations (false, 0);
+      // The transaction is now inactive. Everything that we still have to do
+      // will not synchronize with other transactions anymore.
+      if (state & gtm_thread::STATE_SERIAL)
+        gtm_thread::serial_lock.write_unlock ();
+      else
+        gtm_thread::serial_lock.read_unlock (this);
+      state = 0;
 
-      // Reset transaction state.
+      // We can commit the undo log after dispatch-specific commit and after
+      // making the transaction inactive because we only have to reset
+      // gtm_thread state.
+      commit_undolog ();
+      // Reset further transaction state.
       cxa_catch_count = 0;
       cxa_unthrown = NULL;
       restart_total = 0;
 
-      // TODO can release SI mode before committing user actions? If so,
-      // we can release before ensuring privatization safety too.
-      if (state & gtm_thread::STATE_SERIAL)
-	gtm_thread::serial_lock.write_unlock ();
-      else
-	gtm_thread::serial_lock.read_unlock (this);
-      state = 0;
+      // Ensure privatization safety, if necessary.
+      if (priv_time)
+        {
+          // TODO Don't just spin but also block using cond vars / futexes
+          // here. Should probably be integrated with the serial lock code.
+          // TODO For C++0x atomics, the loads of other threads' shared_state
+          // should have acquire semantics (together with releases for the
+          // respective updates). But is this unnecessary overhead because
+          // weaker barriers are sufficient?
+          for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
+              it = it->next_thread)
+            {
+              if (it == this) continue;
+              while (it->shared_state < priv_time)
+                cpu_relax();
+            }
+        }
+
+      // After ensuring privatization safety, we execute potentially
+      // privatizing actions (e.g., calling free()). User actions are first.
+      commit_user_actions ();
+      commit_allocations (false, 0);
 
       return true;
     }
