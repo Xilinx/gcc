@@ -1,5 +1,11 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* retry.cc (GTM::gtm_thread::decide_retry_strategy): Handle
+	re-initialization of the current method group.
+	* libitm_i.h (GTM::gtm_restart_reason): Add restart reason for this.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* alloc.cc (commit_allocations_2): Do not free transaction-local
 	memory when committing a nested transaction.
 

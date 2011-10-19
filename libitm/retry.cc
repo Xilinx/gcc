@@ -40,6 +40,45 @@ GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
   this->restart_reason[r]++;
   this->restart_total++;
 
+  if (r == RESTART_INIT_METHOD_GROUP)
+    {
+      // A re-initializations of the method group has been requested. Switch
+      // to serial mode, initialize, and resume normal operation.
+      if ((state & STATE_SERIAL) == 0)
+        {
+          // We have to eventually re-init the method group. Therefore,
+          // we cannot just upgrade to a write lock here because this could
+          // fail forever when other transactions execute in serial mode.
+          // However, giving up the read lock then means that a change of the
+          // method group could happen in-between, so check that we're not
+          // re-initializing without a need.
+          // ??? Note that we can still re-initialize too often, but avoiding
+          // that would increase code complexity, which seems unnecessary
+          // given that re-inits should be very infrequent.
+          serial_lock.read_unlock(this);
+          serial_lock.write_lock();
+          if (disp->get_method_group() == default_dispatch->get_method_group())
+            {
+              // Still the same method group.
+              disp->get_method_group()->fini();
+              disp->get_method_group()->init();
+            }
+          serial_lock.write_unlock();
+          serial_lock.read_lock(this);
+          if (disp->get_method_group() != default_dispatch->get_method_group())
+            {
+              disp = default_dispatch;
+              set_abi_disp(disp);
+            }
+        }
+      else
+        {
+          // We are a serial transaction already, which makes things simple.
+          disp->get_method_group()->fini();
+          disp->get_method_group()->init();
+        }
+    }
+
   bool retry_irr = (r == RESTART_SERIAL_IRR);
   bool retry_serial = (retry_irr || this->restart_total > 100);
 
