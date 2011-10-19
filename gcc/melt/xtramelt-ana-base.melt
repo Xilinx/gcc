@@ -2215,19 +2215,32 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
        $TYPE = TREE_TYPE ($TR);
   }#)
 
-;;;; matcher for patter ssa_name
+;;;; matcher for pattern ssa_name
 (defcmatcher tree_ssa_name 
   (:tree tr)
   (:tree tvar tvalu :long vers :gimple defstmt)
   treessa
   ;; test expander
-  #{ (($tr) && TREE_CODE($tr) == SSA_NAME) }#
+  #{ /* $TREESSA ? */ (($tr) && TREE_CODE($tr) == SSA_NAME) }#
   ;; fill expander
-  #{
+  #{ /* $TREESSA ! */
    $tvar = SSA_NAME_VAR($tr);
    $tvalu = SSA_NAME_VALUE($tr);
    $vers = SSA_NAME_VERSION($tr);
    $defstmt = SSA_NAME_DEF_STMT($tr);
+  }# )
+
+;;;; simpler matcher for pattern ssa_name
+(defcmatcher tree_simple_ssa_name 
+  (:tree tr)
+  (:tree tvar :long vers)
+  treesssa
+  ;; test expander
+  #{ /* $TREESSSA ? */ (($TR) && TREE_CODE($TR) == SSA_NAME) }#
+  ;; fill expander
+  #{ /* $TREESSSA ! */
+   $tvar = SSA_NAME_VAR($tr);
+   $vers = SSA_NAME_VERSION($tr);
   }# )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
@@ -4116,6 +4129,7 @@ Don't scan operands of the added $G.}#
  tree_real_type
  tree_record_type
  tree_record_type_with_fields
+ tree_simple_ssa_name 
  tree_ssa_name 
  tree_string_cst
  tree_type

@@ -58,27 +58,45 @@
       (eachgimple_in_basicblock
        ((basicblock_content curloopbody))
        (:gimple gimbody)
-       (debug"opengpudetect_handle_parallel_loop gimbody=" gimbody)
+       (debug "opengpudetect_handle_parallel_loop gimbody=" gimbody)
        (match gimbody
+	      ;;
+	      (?(gimple_assign_single ?(tree_ssa_name ?lvar ?lvalu ?vers ?defstmt) ?rhs)
+		(debug "opengpudetect_handle_parallel_loop assign single ssaname lvar=" lvar
+		       " lvalu=" lvalu " vers=" vers " defstmt=" defstmt 
+		       " rhs=" rhs)
+		)
+	      ;;
 	      (?(gimple_assign_single ?lhs ?rhs)
 		(debug "opengpudetect_handle_parallel_loop assign single plain lhs=" lhs " rhs=" rhs)
+		)
+	      ;;
+	      (?(gimple_assign_cast ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
+				    ?(and ?rhs ?(tree_simple_ssa_name ?rvar ?rvers)))
+		(debug "opengpudetect_handle_parallel_loop assign cast ssa2 lhs=" lhs 
+		       " lvar=" lvar " lvers=" lvers
+		       " rhs=" rhs " rvar=" rvar " rvers=" rvers)
 		)
 	      (?(gimple_assign_cast ?lhs ?rhs)
 		(debug "opengpudetect_handle_parallel_loop assign cast lhs=" lhs " rhs=" rhs)
 		)
+	      ;;
 	      (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign plus lhs=" lhs
 		       " rhs1=" rhs1
 		       " rhs2=" rhs2)
 		)
+	      ;;
 	      (?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign pointerplus lhs=" lhs 
 		       " rhs1=" rhs1 " rhs2=" rhs2)
 		)
+	      ;;
 	      (?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
 		(debug "opengpudetect_handle_parallel_loop assign mult lhs=" lhs
 		       " rhs1=" rhs1 " rhs2=" rhs2)
 		)
+	      ;;
 	      (?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
 		(debug "opengpudetect_handle_parallel_loop assign binaryop lhs=" lhs
 		       " rhs1=" rhs1 " rhs2=" rhs2 " opcod=" opcod)
@@ -92,6 +110,15 @@
 		 }#)
 		(assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
 		)
+	      ;;
+	      (?(gimple_cond_lessequal ?lhs ?rhs)
+		(debug "opengpudetect_handle_parallel_loop cond <= lhs=" lhs " rhs=" rhs)
+		)
+	      ;;
+	      (?(gimple_cond_less ?lhs ?rhs)
+		(debug "opengpudetect_handle_parallel_loop cond < lhs=" lhs " rhs=" rhs)
+		)
+	      ;;
 	      (?_
 	       (debug "opengpudetect_handle_parallel_loop other gimbody=" gimbody)
 	       ))

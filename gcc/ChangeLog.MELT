@@ -1,4 +1,13 @@
 
+2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_read_file): Do LC_LEAVE after reading
+	file.
+
+	* melt/xtramelt-ana-base.melt (tree_simple_ssa_name): New cmatcher.
+
+	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
+	Use it.
+
 2011-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Explicitly add -Iinclude to meltframe.args.
 	* melt-build.mk: Regenerate.

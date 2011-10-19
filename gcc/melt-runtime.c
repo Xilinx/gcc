@@ -7656,6 +7656,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
     };
   if (rds.rfil)
     fclose (rds.rfil);
+  linemap_add (line_table, LC_LEAVE, false, NULL, 0);
   memset (&rds, 0, sizeof(rds));
   rd = 0;
  end:
