@@ -1,5 +1,13 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* libitm_i.h: Add gl_wt dispatch.
+	* retry.cc (parse_default_method): Same.
+	* method-gl.cc: New file.
+	* Makefile.am: Use method-gl.cc.
+	* Makefile.in: Rebuild.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* beginend.cc (GTM::gtm_thread::trycommit): Ensure privatization
 	safety if requested by a TM method.
 	* dispatch.h (GTM::abi_dispatch::trycommit): Add parameter for
