@@ -11,7 +11,7 @@ int f()
 {
   struct large lala;
   struct large lacopy = foobie();
-  __transaction {
+  __transaction_atomic {
     lala = lacopy;
   }
   return lala.x[asdf];

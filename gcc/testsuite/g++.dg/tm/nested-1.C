@@ -15,7 +15,7 @@ __attribute__((transaction_safe))
 int HashTree::add_element2()
 {
  int tt;
-  __transaction [[atomic]] {
+  __transaction_atomic {
     tt = Count;
  }
  return tt;

@@ -20,7 +20,7 @@ class list
 static list buildProjects;
 static void build()
 {
-	__transaction [[relaxed]]
+	__transaction_relaxed
 	{
 		buildProjects._M_get_Tp_allocator();
 	}

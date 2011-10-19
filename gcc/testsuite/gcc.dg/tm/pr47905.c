@@ -6,7 +6,7 @@ void funcB();
 
 void *thread()
 {
-        __transaction [[relaxed]]
+        __transaction_relaxed
         {
                 funcA();
         };

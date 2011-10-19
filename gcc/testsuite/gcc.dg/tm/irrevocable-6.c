@@ -10,7 +10,7 @@ void danger(void) __attribute__((transaction_unsafe));
 void wildthing()
 {
   /* All blocks should be propagated as irrevocable.  */
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     if (eee) {
       if (a)
 	foo();

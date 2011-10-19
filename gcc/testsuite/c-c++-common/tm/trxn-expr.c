@@ -5,7 +5,7 @@ int y, x, york;
 
 void foobar(void)
 {
-  x = y + __transaction (york);
+  x = y + __transaction_atomic (york);
 }
 
 /* { dg-final { scan-tree-dump-times "_ITM_RU.*york" 1 "tmmark" } } */

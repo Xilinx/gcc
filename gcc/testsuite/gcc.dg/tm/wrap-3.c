@@ -7,7 +7,7 @@ void *p;
 
 void foo() 
 {
-  __transaction [[relaxed]] { free (p); }
+  __transaction_relaxed { free (p); }
 }
 
 /* { dg-final { scan-tree-dump-times "free" 0 "optimized" } } */

@@ -7,7 +7,7 @@ int later;
 
 void MyFunc()
 {
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
         funcNoReturn();
         later=8;
   }

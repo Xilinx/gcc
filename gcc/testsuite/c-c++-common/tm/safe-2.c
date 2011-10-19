@@ -7,19 +7,19 @@ void
 f(void)
 {
   mco();			/* { dg-error "" } */
-  __transaction {
+  __transaction_atomic {
     mco();			/* { dg-error "" } */
   }
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     mco();			/* { dg-error "" } */
   }
-  __transaction [[outer]] {
+  __transaction_atomic [[outer]] {
     mco();
   }
-  __transaction [[outer]] {
-    __transaction {
-      __transaction {
-        __transaction {
+  __transaction_atomic [[outer]] {
+    __transaction_atomic {
+      __transaction_atomic {
+        __transaction_atomic {
           mco();
         }
       }
@@ -31,10 +31,10 @@ void __attribute__((transaction_may_cancel_outer))
 g(void)
 {
   mco();
-  __transaction {
-    __transaction {
-      __transaction {
-        __transaction {
+  __transaction_atomic {
+    __transaction_atomic {
+      __transaction_atomic {
+        __transaction_atomic {
           mco();
         }
       }

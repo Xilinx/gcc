@@ -1353,11 +1353,12 @@ dump_gimple_transaction (pretty_printer *buffer, gimple gs, int spc, int flags)
     }
   else
     {
-      pp_string (buffer, "__transaction");
       if (subcode & GTMA_IS_OUTER)
-	pp_string (buffer, " [[outer]]");
+	pp_string (buffer, "__transaction_atomic [[outer]]");
       else if (subcode & GTMA_IS_RELAXED)
-	pp_string (buffer, " [[relaxed]]");
+	pp_string (buffer, "__transaction_relaxed");
+      else
+	pp_string (buffer, "__transaction_atomic");
       subcode &= ~GTMA_DECLARATION_MASK;
 
       if (subcode || gimple_transaction_label (gs))

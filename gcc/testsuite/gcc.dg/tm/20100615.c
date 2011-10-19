@@ -28,7 +28,7 @@ static node_t *new_node(node_t *next)
 static node_t *set_new()
 {
   node_t *min, *max;
-  __transaction [[atomic]] {
+  __transaction_atomic {
     max = new_node(NULL);
     min = new_node(max);
   }

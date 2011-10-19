@@ -15,7 +15,7 @@ static int set_remove(int * val)
 {
   int result;
   int * v;
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     v = next->val;
     result = (v == val);
     if (result)

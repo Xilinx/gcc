@@ -2254,11 +2254,12 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       break;
 
     case TRANSACTION_EXPR:
-      pp_string (buffer, "__transaction");
       if (TRANSACTION_EXPR_OUTER (node))
-	pp_string (buffer, " [[outer]]");
+	pp_string (buffer, "__transaction_atomic [[outer]]");
       else if (TRANSACTION_EXPR_RELAXED (node))
-	pp_string (buffer, " [[relaxed]]");
+	pp_string (buffer, "__transaction_relaxed");
+      else
+        pp_string (buffer, "__transaction_atomic");
       if (!(flags & TDF_SLIM) && TRANSACTION_EXPR_BODY (node))
         {
           newline_and_indent (buffer, spc);

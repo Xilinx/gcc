@@ -2,7 +2,7 @@
 // { dg-options "-fgnu-tm" }
 
 void foo(){
-    __transaction {
+    __transaction_atomic {
         throw 5;
     }
 }

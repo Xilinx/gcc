@@ -28,17 +28,17 @@ test_mco (void)
 void
 test_atomic (void)
 {
-  __transaction {
+  __transaction_atomic {
     f_extern ();	/* { dg-error "unsafe function call" } */
     f_first ();
     f_later ();
   }
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     f_extern ();
     f_first ();
     f_later ();
   }
-  __transaction [[outer]] {
+  __transaction_atomic [[outer]] {
     f_extern ();	/* { dg-error "unsafe function call" } */
     f_first ();
     f_later ();

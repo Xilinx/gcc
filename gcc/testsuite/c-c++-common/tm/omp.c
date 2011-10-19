@@ -15,7 +15,7 @@ void ParClassify()
 #pragma omp parallel private(Parent)
   {
     times_t inside;
-    __transaction [[atomic]] {
+    __transaction_atomic {
        inside.enter = rdtsc();
     }
   }

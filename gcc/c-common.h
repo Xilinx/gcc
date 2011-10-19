@@ -86,7 +86,7 @@ enum rid
   RID_CXX_COMPAT_WARN,
 
   /* GNU transactional memory extension */
-  RID_TRANSACTION, RID_TRANSACTION_CANCEL,
+  RID_TRANSACTION_ATOMIC, RID_TRANSACTION_RELAXED, RID_TRANSACTION_CANCEL,
 
   /* Too many ways of getting the name of a function as a string */
   RID_FUNCTION_NAME, RID_PRETTY_FUNCTION_NAME, RID_C99_FUNCTION_NAME,

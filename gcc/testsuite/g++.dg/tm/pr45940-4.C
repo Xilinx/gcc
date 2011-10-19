@@ -61,7 +61,7 @@ shared_count * c;
 int main()
 {
   if ( i == 0) {
-    __transaction [[atomic]] {
+    __transaction_atomic {
      shared_count sc;
     }
   }

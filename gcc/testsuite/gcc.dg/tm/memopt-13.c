@@ -7,7 +7,7 @@ extern struct large function (void) __attribute__((transaction_safe));
 
 void f()
 {
-  __transaction {
+  __transaction_atomic {
       large_global = function();
   }
 }

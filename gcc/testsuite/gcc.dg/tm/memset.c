@@ -15,7 +15,7 @@ void *my_memset()
 int main()  
 {  
 
-	__transaction [[atomic]] {  
+	__transaction_atomic {  
 		my_memset();  
 	}  
 	return 0;  

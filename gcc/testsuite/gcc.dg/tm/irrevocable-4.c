@@ -7,7 +7,7 @@ void xyz(void) __attribute__((transaction_wrap (orig)));
 
 foo()
 {
-	__transaction [[relaxed]] {
+	__transaction_relaxed {
 		orig();
 	}
 }

@@ -5,7 +5,7 @@ void foo(void) __attribute__((transaction_safe));
 
 void bar(void)
 {
-  __transaction {
+  __transaction_atomic {
     foo();
   }
 }

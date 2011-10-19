@@ -5,7 +5,7 @@ extern void bar(void) __attribute__((transaction_callable));
 
 foo()
 {
-	__transaction [[relaxed]] {
+	__transaction_relaxed {
 		bar();
 	}
 }

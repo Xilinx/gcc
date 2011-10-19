@@ -11,7 +11,7 @@ int f()
   int *p;
   struct large *lp;
 
-  __transaction {
+  __transaction_atomic {
     p = malloc (sizeof (*p) * 100);
     lp = malloc (sizeof (*lp) * 100);
 

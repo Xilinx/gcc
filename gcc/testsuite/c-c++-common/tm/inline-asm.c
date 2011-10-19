@@ -10,7 +10,7 @@ inline_death ()
 void
 tranfunction ()
 {
-  __transaction
+  __transaction_atomic
     {
       inline_death ();
     }

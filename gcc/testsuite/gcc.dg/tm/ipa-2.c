@@ -5,7 +5,7 @@ void foo(void);
 
 void bar(void)
 {
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     foo();
   }
 }

@@ -5,7 +5,7 @@ int global;
 
 foo(int local)
 {
-  __transaction {
+  __transaction_atomic {
     local++;
     if (++global == 10)
       __transaction_cancel;

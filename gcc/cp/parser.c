@@ -173,7 +173,8 @@ typedef enum required_token {
   RT_CLASS_KEY, /* class-key */
   RT_CLASS_TYPENAME_TEMPLATE /* class, typename, or template */
 
-  , RT_TRANSACTION, /* __transaction */
+  , RT_TRANSACTION_ATOMIC, /* __transaction_atomic */
+  RT_TRANSACTION_RELAXED, /* __transaction_relaxed */
   RT_TRANSACTION_CANCEL /* __transaction_cancel */
 } required_token;
 
@@ -1867,11 +1868,11 @@ static void cp_parser_label_declaration
 /* Transactional Memory Extensions */
 
 static tree cp_parser_transaction
-  (cp_parser *);
+  (cp_parser *, enum rid);
 static tree cp_parser_transaction_expression
-  (cp_parser *);
+  (cp_parser *, enum rid);
 static bool cp_parser_function_transaction
-  (cp_parser *);
+  (cp_parser *, enum rid);
 static tree cp_parser_transaction_cancel
   (cp_parser *);
 
@@ -5843,8 +5844,9 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p,
 	  }
 	  break;
 
-	case RID_TRANSACTION:
-	  return cp_parser_transaction_expression (parser);
+	case RID_TRANSACTION_ATOMIC:
+	case RID_TRANSACTION_RELAXED:
+	  return cp_parser_transaction_expression (parser, keyword);
 
 	case RID_NOEXCEPT:
 	  {
@@ -8026,8 +8028,9 @@ cp_parser_statement (cp_parser* parser, tree in_statement_expr,
 	  cp_parser_declaration_statement (parser);
 	  return;
 	  
-	case RID_TRANSACTION:
-	  statement = cp_parser_transaction (parser);
+	case RID_TRANSACTION_ATOMIC:
+	case RID_TRANSACTION_RELAXED:
+	  statement = cp_parser_transaction (parser, keyword);
 	  break;
 	case RID_TRANSACTION_CANCEL:
 	  statement = cp_parser_transaction_cancel (parser);
@@ -20112,11 +20115,17 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
 
   start_lambda_scope (current_function_decl);
 
-  /* If the next token is `try' or `__transaction', then we are looking at
-     either function-try-block or function-transaction-block.  Note that
-     both of these include the function-body.  */
-  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRANSACTION))
-    ctor_initializer_p = cp_parser_function_transaction (parser);
+  /* If the next token is `try', `__transaction_atomic', or
+     `__transaction_relaxed`, then we are looking at either function-try-block
+     or function-transaction-block.  Note that all of these include the
+     function-body.  */
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRANSACTION_ATOMIC))
+    ctor_initializer_p = cp_parser_function_transaction (parser,
+        RID_TRANSACTION_ATOMIC);
+  else if (cp_lexer_next_token_is_keyword (parser->lexer,
+      RID_TRANSACTION_RELAXED))
+    ctor_initializer_p = cp_parser_function_transaction (parser,
+        RID_TRANSACTION_RELAXED);
   else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
     ctor_initializer_p = cp_parser_function_try_block (parser);
   else
@@ -21167,8 +21176,11 @@ cp_parser_required_error (cp_parser *parser,
       case RT_AT_THROW:
 	cp_parser_error (parser, "expected %<@throw%>");
 	return;
-      case RT_TRANSACTION:
-	cp_parser_error (parser, "expected %<__transaction%>");
+      case RT_TRANSACTION_ATOMIC:
+	cp_parser_error (parser, "expected %<__transaction_atomic%>");
+	return;
+      case RT_TRANSACTION_RELAXED:
+	cp_parser_error (parser, "expected %<__transaction_relaxed%>");
 	return;
       default:
 	break;
@@ -21400,8 +21412,10 @@ cp_parser_token_starts_function_definition_p (cp_token* token)
 	  || token->type == CPP_COLON
 	  /* A function-try-block begins with `try'.  */
 	  || token->keyword == RID_TRY
-	  /* A function-transaction-block begins with `__transaction'.  */
-	  || token->keyword == RID_TRANSACTION
+	  /* A function-transaction-block begins with `__transaction_atomic'
+	     or `__transaction_relaxed'.  */
+	  || token->keyword == RID_TRANSACTION_ATOMIC
+	  || token->keyword == RID_TRANSACTION_RELAXED
 	  /* The named return value extension begins with `return'.  */
 	  || token->keyword == RID_RETURN);
 }
@@ -25762,40 +25776,44 @@ cp_parser_txn_attribute_opt (cp_parser *parser)
   return attr;
 }
 
-/* Parse a __transaction statement.
+/* Parse a __transaction_atomic or __transaction_relaxed statement.
 
    transaction-statement:
-     __transaction txn-attribute[opt] txn-exception-spec[opt]
-	compound-statement
+     __transaction_atomic txn-attribute[opt] txn-exception-spec[opt]
+       compound-statement
+     __transaction_relaxed txn-exception-spec[opt] compound-statement
 
    ??? The exception specification is not yet implemented.
 */
 
 static tree
-cp_parser_transaction (cp_parser *parser)
+cp_parser_transaction (cp_parser *parser, enum rid keyword)
 {
   unsigned char old_in = parser->in_transaction;
   unsigned char this_in = 1, new_in;
   cp_token *token;
   tree stmt, attrs;
 
-  token = cp_parser_require_keyword (parser, RID_TRANSACTION, RT_TRANSACTION);
+  gcc_assert (keyword == RID_TRANSACTION_ATOMIC
+      || keyword == RID_TRANSACTION_RELAXED);
+  token = cp_parser_require_keyword (parser, keyword,
+      (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
+          : RT_TRANSACTION_RELAXED));
   gcc_assert (token != NULL);
 
-  attrs = cp_parser_txn_attribute_opt (parser);
-  if (attrs)
+  if (keyword == RID_TRANSACTION_RELAXED)
+    this_in |= TM_STMT_ATTR_RELAXED;
+  else
     {
-      this_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
-					     | TM_STMT_ATTR_ATOMIC
-					     | TM_STMT_ATTR_RELAXED));
-      /* The [[ atomic ]] attribute is the same as no attribute.  */
-      this_in &= ~TM_STMT_ATTR_ATOMIC;
+      attrs = cp_parser_txn_attribute_opt (parser);
+      if (attrs)
+        this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
     }
 
   /* Keep track if we're in the lexical scope of an outer transaction.  */
   new_in = this_in | (old_in & TM_STMT_ATTR_OUTER);
 
-  stmt = begin_transaction_stmt (token->location, NULL);
+  stmt = begin_transaction_stmt (token->location, NULL, this_in);
 
   parser->in_transaction = new_in;
   cp_parser_compound_statement (parser, NULL, false, false);
@@ -25806,33 +25824,37 @@ cp_parser_transaction (cp_parser *parser)
   return stmt;
 }
 
-/* Parse a __transaction expression.
+/* Parse a __transaction_atomic or __transaction_relaxed expression.
 
    transaction-expression:
-     __transaction txn-attribute[opt] txn-exception-spec[opt]
-	compound-statement
+     __transaction_atomic txn-exception-spec[opt] compound-statement
+     __transaction_relaxed txn-exception-spec[opt] compound-statement
 
    ??? The exception specification is not yet implemented.
 */
 
 static tree
-cp_parser_transaction_expression (cp_parser *parser)
+cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
 {
   unsigned char old_in = parser->in_transaction;
   unsigned char this_in = 1;
   cp_token *token;
   tree ret, attrs;
 
-  token = cp_parser_require_keyword (parser, RID_TRANSACTION, RT_TRANSACTION);
+  gcc_assert (keyword == RID_TRANSACTION_ATOMIC
+      || keyword == RID_TRANSACTION_RELAXED);
+  token = cp_parser_require_keyword (parser, keyword,
+      (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
+          : RT_TRANSACTION_RELAXED));
   gcc_assert (token != NULL);
 
-  attrs = cp_parser_txn_attribute_opt (parser);
-  if (attrs)
+  if (keyword == RID_TRANSACTION_RELAXED)
+    this_in |= TM_STMT_ATTR_RELAXED;
+  else
     {
-      this_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_ATOMIC
-					     | TM_STMT_ATTR_RELAXED));
-      /* The [[ atomic ]] attribute is the same as no attribute.  */
-      this_in &= ~TM_STMT_ATTR_ATOMIC;
+      attrs = cp_parser_txn_attribute_opt (parser);
+      if (attrs)
+        this_in |= parse_tm_stmt_attr (attrs, 0);
     }
 
   parser->in_transaction = this_in;
@@ -25857,12 +25879,15 @@ cp_parser_transaction_expression (cp_parser *parser)
 /* Parse a function-transaction-block.
 
    function-transaction-block:
-     __transaction txn-attribute[opt] ctor-initializer[opt] function-body
-     __transaction txn-attribute[opt] function-try-block
+     __transaction_atomic txn-attribute[opt] ctor-initializer[opt]
+         function-body
+     __transaction_atomic txn-attribute[opt] function-try-block
+     __transaction_relaxed ctor-initializer[opt] function-body
+     __transaction_relaxed function-try-block
 */
 
 static bool
-cp_parser_function_transaction (cp_parser *parser)
+cp_parser_function_transaction (cp_parser *parser, enum rid keyword)
 {
   unsigned char old_in = parser->in_transaction;
   unsigned char new_in = 1;
@@ -25870,20 +25895,23 @@ cp_parser_function_transaction (cp_parser *parser)
   bool ctor_initializer_p;
   cp_token *token;
 
-  token = cp_parser_require_keyword (parser, RID_TRANSACTION, RT_TRANSACTION);
+  gcc_assert (keyword == RID_TRANSACTION_ATOMIC
+      || keyword == RID_TRANSACTION_RELAXED);
+  token = cp_parser_require_keyword (parser, keyword,
+      (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
+          : RT_TRANSACTION_RELAXED));
   gcc_assert (token != NULL);
   
-  attrs = cp_parser_txn_attribute_opt (parser);
-  if (attrs)
+  if (keyword == RID_TRANSACTION_RELAXED)
+    new_in |= TM_STMT_ATTR_RELAXED;
+  else
     {
-      new_in |= parse_tm_stmt_attr (attrs, (TM_STMT_ATTR_OUTER
-					    | TM_STMT_ATTR_ATOMIC
-					    | TM_STMT_ATTR_RELAXED));
-      /* The [[ atomic ]] attribute is the same as no attribute.  */
-      new_in &= ~TM_STMT_ATTR_ATOMIC;
+      attrs = cp_parser_txn_attribute_opt (parser);
+      if (attrs)
+        new_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
     }
 
-  stmt = begin_transaction_stmt (token->location, &compound_stmt);
+  stmt = begin_transaction_stmt (token->location, &compound_stmt, new_in);
 
   parser->in_transaction = new_in;
 
@@ -25936,7 +25964,7 @@ cp_parser_transaction_cancel (cp_parser *parser)
   else if (parser->in_transaction & TM_STMT_ATTR_RELAXED)
     {
       error_at (token->location, "%<__transaction_cancel%> within a "
-		"relaxed %<__transaction%>");
+		"%<__transaction_relaxed%>");
       return error_mark_node;
     }
   else if (is_outer)
@@ -25945,7 +25973,7 @@ cp_parser_transaction_cancel (cp_parser *parser)
 	  && !is_tm_may_cancel_outer (current_function_decl))
 	{
 	  error_at (token->location, "outer %<__transaction_cancel%> not "
-		    "within outer %<__transaction%>");
+		    "within outer %<__transaction_atomic%>");
 	  error_at (token->location,
 		    "  or a %<transaction_may_cancel_outer%> function");
 	  return error_mark_node;
@@ -25954,7 +25982,7 @@ cp_parser_transaction_cancel (cp_parser *parser)
   else if (parser->in_transaction == 0)
     {
       error_at (token->location, "%<__transaction_cancel%> not within "
-		"%<__transaction%>");
+		"%<__transaction_atomic%>");
       return error_mark_node;
     }
 

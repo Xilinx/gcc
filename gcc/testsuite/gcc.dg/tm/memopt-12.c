@@ -11,7 +11,7 @@ int f()
   int *p1, *p2, *p3;
 
   p1 = malloc (sizeof (*p1)*5000);
-  __transaction {
+  __transaction_atomic {
     *p1 = 0;
 
     p2 = malloc (sizeof (*p2)*6000);

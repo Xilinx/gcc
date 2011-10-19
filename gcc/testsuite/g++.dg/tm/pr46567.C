@@ -2664,7 +2664,7 @@ static std::list<std::list<Game::BuildProject>::iterator>
 erasableBuildProjects;
 void *buildProjectSyncStepConcurrently(int id, int localTeam)
 {
-        __transaction [[relaxed]] {
+        __transaction_relaxed {
                 std::list<std::list<Game::BuildProject>::iterator>::iterator it
 = erasableBuildProjects.begin();
 		foobarit();

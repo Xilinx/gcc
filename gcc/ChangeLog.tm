@@ -1,3 +1,40 @@
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
+	* c-common.h (RID_TRANSACTION): Split into RID_TRANSACTION_ATOMIC
+	and RID_TRANSACTION_RELAXED.
+	* c-common.c (RID_TRANSACTION): Same.
+	(  parse_tm_stmt_attr): Do not accept "atomic" and "relaxed"
+	attributes anymore.
+	* c-family/common.h: Same.
+	* c-family/common.c: Same.
+	* c-parser.c (c_parser_transaction_expression, c_parser_transaction,
+	c_parser_statement_after_labels, c_parser_unary_expression):
+	Handle both RID_TRANSACTION_ATOMIC and RID_TRANSACTION_RELAXED.
+	(c_parser_attribute_any_word): Only RID_TRANSACTION_ATOMIC accepts
+	attributes.
+	(c_parser_transaction_cancel): Update error messages.
+	* tree-pretty-print.c: Adjust to new syntax.
+	* gimple-pretty-print.c: Same.
+	* cp/parser.c (cp_parser_transaction, cp_parser_function_transaction,
+	cp_parser_transaction_expression, cp_parser_unary_expression,
+	cp_parser_statement, cp_parser_function_definition_after_declarator,
+	cp_parser_token_starts_function_definition_p):
+	Handle both RID_TRANSACTION_ATOMIC and RID_TRANSACTION_RELAXED.
+	(RT_TRANSACTION): Split into RT_TRANSACTION_ATOMIC and
+	RT_TRANSACTION_RELAXED.
+	(cp_parser_required_error): Same.
+	(cp_parser_transaction_cancel): Update error messages.
+	* cp/parser.h (cp_parser): Update comment.
+	* gimple.h: Same.
+	* gimple.def: Same.
+	* cp/semantics.c (begin_transaction_stmt): Add flags parameter.
+	* cp/cp-tree.h: Same.
+	* cp/pt.c (tsubst_expr): Same.
+	
+	* testsuite/c-c++-common/tm/*: Adjust for new syntax.
+	* testsuite/g++.dg/tm/*: Same.
+	* testsuite/gcc.dg/tm/*: Same.
+
 2011-09-20  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (transaction_invariant_address_p): Handle MEM_REF.

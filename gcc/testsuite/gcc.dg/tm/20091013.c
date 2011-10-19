@@ -6,7 +6,7 @@ int g,i;
 
 f()
 {
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     for (i=0; i < 10; ++i)
       ringo(g);  
   }

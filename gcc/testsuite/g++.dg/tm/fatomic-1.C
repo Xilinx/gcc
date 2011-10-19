@@ -7,4 +7,4 @@ struct S
   S();
 };
 
-S::S() __transaction : i(1), j(2), k(3) { }
+S::S() __transaction_atomic : i(1), j(2), k(3) { }

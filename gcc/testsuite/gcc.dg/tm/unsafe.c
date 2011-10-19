@@ -9,5 +9,5 @@ static int func ()
 
 int main()
 {
-  __transaction { return func(); } /* { dg-error "unsafe function call .func. " } */
+  __transaction_atomic { return func(); } /* { dg-error "unsafe function call .func. " } */
 }

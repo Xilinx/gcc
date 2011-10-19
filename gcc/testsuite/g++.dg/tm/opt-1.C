@@ -6,4 +6,4 @@ struct S
   virtual void f() __attribute__((transaction_safe));
 };
 
-void f(S *s) { __transaction { s->f(); } }
+void f(S *s) { __transaction_atomic { s->f(); } }

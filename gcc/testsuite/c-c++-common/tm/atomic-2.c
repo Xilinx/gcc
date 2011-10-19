@@ -4,7 +4,7 @@
 int g;
 void f(void)
 {
-  __transaction {
+  __transaction_atomic {
     g++;
   }
 }

@@ -11,7 +11,7 @@ testing(){
 
 main() {
         b = 9898;
-	__transaction [[relaxed]] {
+	__transaction_relaxed {
 	        z = c;
 		a = 888;
 		testing();

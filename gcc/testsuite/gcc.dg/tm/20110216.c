@@ -6,7 +6,7 @@ int george;
 __attribute__((transaction_callable))
 void q1()
 {
-  __transaction [[atomic]] {
+  __transaction_atomic {
       george=999;
   }
   q1();

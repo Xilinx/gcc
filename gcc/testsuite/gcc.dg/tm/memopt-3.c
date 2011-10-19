@@ -8,7 +8,7 @@ int f()
 {
   int i = readint();
   struct large lala = { 0 };
-  __transaction {
+  __transaction_atomic {
     lala.x[i] = 666;
     if (test())
       __transaction_cancel;

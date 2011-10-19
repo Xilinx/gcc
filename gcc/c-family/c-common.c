@@ -472,7 +472,8 @@ const struct c_common_resword c_common_reswords[] =
   { "__signed",		RID_SIGNED,	0 },
   { "__signed__",	RID_SIGNED,	0 },
   { "__thread",		RID_THREAD,	0 },
-  { "__transaction",   RID_TRANSACTION, 0 },
+  { "__transaction_atomic", RID_TRANSACTION_ATOMIC, 0 },
+  { "__transaction_relaxed", RID_TRANSACTION_RELAXED, 0 },
   { "__transaction_cancel", RID_TRANSACTION_CANCEL, 0 },
   { "__typeof",		RID_TYPEOF,	0 },
   { "__typeof__",	RID_TYPEOF,	0 },
@@ -7325,10 +7326,6 @@ parse_tm_stmt_attr (tree attrs, int allowed)
 
       if (is_attribute_p ("outer", a))
 	m = TM_STMT_ATTR_OUTER;
-      else if (is_attribute_p ("atomic", a))
-	m = TM_STMT_ATTR_ATOMIC;
-      else if (is_attribute_p ("relaxed", a))
-	m = TM_STMT_ATTR_RELAXED;
 
       if ((m & allowed) == 0)
 	{

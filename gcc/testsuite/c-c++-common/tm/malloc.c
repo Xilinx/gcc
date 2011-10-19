@@ -8,7 +8,7 @@ char *z;
 void foobar(void)
 {
     char *p, *q;
-    __transaction {
+    __transaction_atomic {
         p = (char *)malloc(123);
         q = (char *)calloc(555,1);
         free(q);

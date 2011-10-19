@@ -11,7 +11,7 @@ int f()
   p = malloc (sizeof (*p) * 100);
   foo(p[5]);
 
-  __transaction {
+  __transaction_atomic {
     /* p[5] is thread private, however the SSA_NAME that holds the
        address dominates the entire transaction (transaction
        invariant) so we can use a save/restore pair.  */

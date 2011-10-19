@@ -4834,12 +4834,12 @@ finish_omp_taskyield (void)
   finish_expr_stmt (stmt);
 }
 
-/* Begin a __transaction statement.  If PCOMPOUND is non-null, this is
-   for a function-transaction-block, and we should create an extra
-   compound stmt.  */
+/* Begin a __transaction_atomic or __transaction_relaxed statement.
+   If PCOMPOUND is non-null, this is for a function-transaction-block, and we
+   should create an extra compound stmt.  */
 
 tree
-begin_transaction_stmt (location_t loc, tree *pcompound)
+begin_transaction_stmt (location_t loc, tree *pcompound, int flags)
 {
   tree r;
 
@@ -4852,15 +4852,19 @@ begin_transaction_stmt (location_t loc, tree *pcompound)
   if (flag_tm)
     add_stmt (r);
   else
-    error_at (loc, "%<__transaction%> without transactional memory "
-	      "support enabled");
+    error_at (loc, ((flags & TM_STMT_ATTR_RELAXED) != 0 ?
+        "%<__transaction_relaxed%> without transactional memory "
+	      "support enabled"
+        : "%<__transaction_atomic%> without transactional memory "
+	      "support enabled"));
 
   TRANSACTION_EXPR_BODY (r) = push_stmt_list ();
   return r;
 }
 
-/* End a __transaction statement.  If COMPOUND_STMT is non-null, this is
-   for a function-transaction-block, and we should end the compound.  */
+/* End a __transaction_atomic or __transaction_relaxed statement.
+   If COMPOUND_STMT is non-null, this is for a function-transaction-block,
+   and we should end the compound.  */
 
 void
 finish_transaction_stmt (tree stmt, tree compound_stmt, int flags)

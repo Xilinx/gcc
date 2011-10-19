@@ -9,7 +9,7 @@ int george;
 extern crap() __attribute__((transaction_unsafe));
 
 foo(){
-    __transaction [[relaxed]] {
+    __transaction_relaxed {
         global++;
         crap();
         george++;

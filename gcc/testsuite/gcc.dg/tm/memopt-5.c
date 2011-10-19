@@ -11,7 +11,7 @@ int f()
 {
   int i = readint();
   struct large lala = bark();
-  __transaction {
+  __transaction_atomic {
     lala.x[55] = 666;
     if (test())
       __transaction_cancel;

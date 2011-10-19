@@ -29,11 +29,11 @@ int HashTree::add_element()
  int tt;
  if (Hash_table[val] == __null)
  {
-  __transaction [[atomic]] {
+  __transaction_atomic {
     Hash_table[val] = new HashTree;
   }
  }
- __transaction [[atomic]] {
+ __transaction_atomic {
  tt = Count++;
  enter_exit_times_inside.exit_atomicsec_time = 5;
  }

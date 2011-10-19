@@ -8,7 +8,7 @@ int i;
 
 f()
 {
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     g = 666;
     george();
     if (i == 9)

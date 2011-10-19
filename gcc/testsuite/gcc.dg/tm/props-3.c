@@ -6,7 +6,7 @@
 void (*indirect)(void);
 
 foo(){
-    __transaction [[relaxed]] {
+    __transaction_relaxed {
       (*indirect)();
     }
 }

@@ -124,7 +124,8 @@ DEFGSCODE(GIMPLE_ASM, "gimple_asm", GSS_ASM)
     CHAIN is the optional static chain link for nested functions.  */
 DEFGSCODE(GIMPLE_CALL, "gimple_call", GSS_CALL)
 
-/* GIMPLE_TRANSACTION <BODY, LABEL> represents __transaction blocks.
+/* GIMPLE_TRANSACTION <BODY, LABEL> represents __transaction_atomic and
+   __transaction_relaxed blocks.
    BODY is the sequence of statements inside the transaction.
    LABEL is a label for the statement immediately following the
    transaction.  This is before RETURN so that it has MEM_OPS,

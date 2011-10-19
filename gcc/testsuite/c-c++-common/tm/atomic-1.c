@@ -3,7 +3,7 @@
 int g;
 void f(void)
 {
-  __transaction {	/* { dg-error "without transactional memory" } */
+  __transaction_atomic {	/* { dg-error "without transactional memory" } */
     g++;
   }
 }

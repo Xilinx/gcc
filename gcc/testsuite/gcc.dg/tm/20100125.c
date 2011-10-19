@@ -7,7 +7,7 @@ int trxn;
 
 void set_remove(int * val)
 {
-  __transaction {
+  __transaction_atomic {
       trxn = 5;
   }
   george();

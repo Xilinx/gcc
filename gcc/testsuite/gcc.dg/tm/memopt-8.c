@@ -9,7 +9,7 @@ int f()
 {
   int *p;
 
-  __transaction {
+  __transaction_atomic {
     p = malloc (sizeof (*p) * 100);
     escape (p);
 

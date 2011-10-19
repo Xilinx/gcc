@@ -771,7 +771,8 @@ struct GTY(()) gimple_statement_omp_atomic_store {
 
 /* Bits to be stored in the GIMPLE_TRANSACTION subcode.  */
 
-/* The __transaction was declared [[outer]] or [[relaxed]].  */
+/* The __transaction_atomic was declared [[outer]] or it is
+   __transaction_relaxed.  */
 #define GTMA_IS_OUTER			(1u << 0)
 #define GTMA_IS_RELAXED			(1u << 1)
 #define GTMA_DECLARATION_MASK		(GTMA_IS_OUTER | GTMA_IS_RELAXED)

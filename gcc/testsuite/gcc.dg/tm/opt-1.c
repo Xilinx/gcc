@@ -20,7 +20,7 @@ void *hello(void *arg)
   int tmp = p->id;
   int tmp3;
   printf ("Thread reads %d.\n", tmp);
-  __transaction
+  __transaction_atomic
     {
       int tmp2 = gvar;
       usleep ((int) (10.0*rand()/(10+1.0))/100);

@@ -7,7 +7,7 @@ void *memset(void *s, int c, __SIZE_TYPE__);
 
 int main()
 {
-  __transaction [[atomic]] {
+  __transaction_atomic {
     memset(array, 'b', sizeof(4));
   }
   return 0;

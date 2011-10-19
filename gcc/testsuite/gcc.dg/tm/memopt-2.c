@@ -5,7 +5,7 @@ char c;
 
 void f(void)
 {
-  __transaction {
+  __transaction_atomic {
     ++c;
   }
 }

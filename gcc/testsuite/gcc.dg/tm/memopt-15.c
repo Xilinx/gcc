@@ -15,7 +15,7 @@ vectype f()
 
   p = malloc (sizeof (*p) * 100);
 
-  __transaction {
+  __transaction_atomic {
     /* p[5] is thread private, but not transaction local since the
        malloc is outside of the transaction.  We can use the logging
        functions for this.  */

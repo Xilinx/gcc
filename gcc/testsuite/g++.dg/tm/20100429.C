@@ -7,7 +7,7 @@ int
 bar(int a)
 {
   int r;
-  __transaction
+  __transaction_atomic
     {
       r = foo(a); // { dg-error "unsafe function call 'int foo\\(int\\)'" }
     }

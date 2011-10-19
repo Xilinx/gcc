@@ -6,7 +6,7 @@ extern void virgin () __attribute__((transaction_pure));
 
 foo()
 {
-	__transaction {
+	__transaction_atomic {
 	    virgin(i);
 	}
 }

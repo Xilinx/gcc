@@ -11,7 +11,7 @@ public:
 shared_count * c;
 int main()
 {
-  __transaction [[atomic]] {
+  __transaction_atomic {
     shared_count sc;
   }
   return 0;

@@ -5458,7 +5458,7 @@ extern void finish_omp_atomic			(enum tree_code, enum tree_code,
 extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
-extern tree begin_transaction_stmt		(location_t, tree *);
+extern tree begin_transaction_stmt		(location_t, tree *, int);
 extern void finish_transaction_stmt		(tree, tree, int);
 extern void finish_omp_taskyield		(void);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);

@@ -55,7 +55,7 @@ LinkedList::LinkedList() : head(new LLNode(-1, 0)) { }
 
 void LinkedList::insert(int val)
 {
-  __transaction [[atomic]] {
+  __transaction_atomic {
     LLNode* prev = head;
     LLNode* curr = head->get_next();
 

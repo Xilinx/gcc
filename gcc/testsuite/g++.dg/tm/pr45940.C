@@ -24,7 +24,7 @@ public:
 sp_counted_base *base;
 
 void here(){
-  __transaction[[atomic]] {
+  __transaction_atomic {
     base->release();
   }
 }

@@ -3,7 +3,7 @@
 
 void foo(void (*fn)(void))
 {
-  __transaction [[relaxed]] {
+  __transaction_relaxed {
     fn();
   }
 }

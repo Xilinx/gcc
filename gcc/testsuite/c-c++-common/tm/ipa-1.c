@@ -8,7 +8,7 @@ extern void func();
 int set_remove(void)
 {
   int result = 8;
-  __transaction  {
+  __transaction_atomic  {
     result = george;
     if (val)
       goto out;

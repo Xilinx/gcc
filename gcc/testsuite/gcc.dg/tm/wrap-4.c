@@ -8,7 +8,7 @@ static void tootsie_roll () { bark(); }
 
 void foo()
 {
-  __transaction [[relaxed]] { candy(); }
+  __transaction_relaxed { candy(); }
 }
 
 /* { dg-final { scan-tree-dump-times "candy" 0 "optimized" } } */
