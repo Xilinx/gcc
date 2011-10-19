@@ -1,5 +1,10 @@
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
+	* method-serial.cc (GTM::gtm_thread::serialirr_mode): Fixed: Use
+	serial-irrevocable dispatch, not serial.
+
+2011-10-19  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm_i.h (GTM::gtm_restart_reason): Re-arrange and clean up
 	declarations.
 	* dispatch.h (GTM::abi_dispatch::begin_or_restart): New.

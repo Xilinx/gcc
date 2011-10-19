@@ -263,7 +263,7 @@ GTM::gtm_thread::serialirr_mode ()
   else
     {
       this->state |= (STATE_SERIAL | STATE_IRREVOCABLE);
-      set_abi_disp (dispatch_serial ());
+      set_abi_disp (dispatch_serialirr ());
     }
 }
 
