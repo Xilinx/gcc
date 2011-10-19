@@ -170,7 +170,7 @@ in the following sections.
 @item C Language Options
 @xref{C Dialect Options,,Options Controlling C Dialect}.
 @gccoptlist{-ansi  -std=@var{standard}  -fgnu89-inline @gol
--aux-info @var{filename} @gol
+-aux-info @var{filename} -fallow-parameterless-variadic-functions @gol
 -fno-asm  -fno-builtin  -fno-builtin-@var{function} @gol
 -fhosted  -ffreestanding -fopenmp -fms-extensions -fplan9-extensions @gol
 -trigraphs  -no-integrated-cpp  -traditional  -traditional-cpp @gol
@@ -271,7 +271,8 @@ Objective-C and Objective-C++ Dialects}.
 -Wunused-label  -Wunused-local-typedefs -Wunused-parameter @gol
 -Wno-unused-result -Wunused-value @gol -Wunused-variable @gol
 -Wunused-but-set-parameter -Wunused-but-set-variable @gol
--Wvariadic-macros -Wvla -Wvolatile-register-var  -Wwrite-strings}
+-Wvariadic-macros -Wvector-operation-performance -Wvla 
+-Wvolatile-register-var  -Wwrite-strings}
 
 @item C and Objective-C-only Warning Options
 @gccoptlist{-Wbad-function-cast  -Wmissing-declarations @gol
@@ -428,9 +429,9 @@ Objective-C and Objective-C++ Dialects}.
 -iwithprefixbefore @var{dir}  -isystem @var{dir} @gol
 -imultilib @var{dir} -isysroot @var{dir} @gol
 -M  -MM  -MF  -MG  -MP  -MQ  -MT  -nostdinc  @gol
--P  -fworking-directory  -remap @gol
--trigraphs  -undef  -U@var{macro}  -Wp,@var{option} @gol
--Xpreprocessor @var{option}}
+-P  -fdebug-cpp -ftrack-macro-expansion -fworking-directory @gol
+-remap -trigraphs  -undef  -U@var{macro}  @gol
+-Wp,@var{option} -Xpreprocessor @var{option}}
 
 @item Assembler Option
 @xref{Assembler Options,,Passing Options to the Assembler}.
@@ -486,7 +487,7 @@ Objective-C and Objective-C++ Dialects}.
 
 @emph{AVR Options}
 @gccoptlist{-mmcu=@var{mcu}  -mno-interrupts @gol
--mcall-prologues  -mtiny-stack  -mint8}
+-mcall-prologues  -mtiny-stack  -mint8  -mstrict-X}
 
 @emph{Blackfin Options}
 @gccoptlist{-mcpu=@var{cpu}@r{[}-@var{sirevision}@r{]} @gol
@@ -884,7 +885,8 @@ See RS/6000 and PowerPC Options.
 -munaligned-doubles  -mno-unaligned-doubles @gol
 -mv8plus  -mno-v8plus  -mvis  -mno-vis @gol
 -mvis2  -mno-vis2  -mvis3  -mno-vis3 @gol
--mfmaf  -mno-fmaf  -mpopc  -mno-popc}
+-mfmaf  -mno-fmaf  -mpopc  -mno-popc @gol
+-mfix-at697f}
 
 @emph{SPU Options}
 @gccoptlist{-mwarn-reloc -merror-reloc @gol
@@ -1621,6 +1623,13 @@ definition (@samp{C} or @samp{F}, respectively, in the following
 character).  In the case of function definitions, a K&R-style list of
 arguments followed by their declarations is also provided, inside
 comments, after the declaration.
+
+@item -fallow-parameterless-variadic-functions
+Accept variadic functions without named parameters.
+
+Although it is possible to define such a function, this is not very
+useful as it is not possible to read the arguments.  This is only
+supported for C as this construct is allowed by C++.
 
 @item -fno-asm
 @opindex fno-asm
@@ -3181,7 +3190,7 @@ in the case of @code{scanf} formats, this option will suppress the
 warning if the unused arguments are all pointers, since the Single
 Unix Specification says that such unused arguments are allowed.
 
-@item -Wno-format-zero-length @r{(C and Objective-C only)}
+@item -Wno-format-zero-length
 @opindex Wno-format-zero-length
 @opindex Wformat-zero-length
 If @option{-Wformat} is specified, do not warn about zero-length formats.
@@ -3993,19 +4002,19 @@ The message is in keeping with the output of @option{-fstack-usage}.
 If the stack usage is fully static but exceeds the specified amount, it's:
 
 @smallexample
-  warning: stack usage is 1120 bytes
+  warning: stack usage is 1120 bytes
 @end smallexample
 @item
 If the stack usage is (partly) dynamic but bounded, it's:
 
 @smallexample
-  warning: stack usage might be 1648 bytes
+  warning: stack usage might be 1648 bytes
 @end smallexample
 @item
 If the stack usage is (partly) dynamic and not bounded, it's:
 
 @smallexample
-  warning: stack usage might be unbounded
+  warning: stack usage might be unbounded
 @end smallexample
 @end itemize
 
@@ -4534,6 +4543,18 @@ modes.  To inhibit the warning messages, use @option{-Wno-long-long}.
 Warn if variadic macros are used in pedantic ISO C90 mode, or the GNU
 alternate syntax when in pedantic ISO C99 mode.  This is default.
 To inhibit the warning messages, use @option{-Wno-variadic-macros}.
+
+@item -Wvector-operation-performance
+@opindex Wvector-operation-performance
+@opindex Wno-vector-operation-performance
+Warn if vector operation is not implemented via SIMD capabilities of the
+architecture.  Mainly useful for the performance tuning.
+Vector operation can be implemented @code{piecewise} which means that the
+scalar operation is performed on every vector element; 
+@code{in parallel} which means that the vector operation is implemented
+using scalars of wider type, which normally is more performance efficient;
+and @code{as a single scalar} which means that vector fits into a
+scalar type.
 
 @item -Wvla
 @opindex Wvla
@@ -10668,6 +10689,23 @@ char will be 1 byte, an int will be 1 byte, a long will be 2 bytes
 and long long will be 4 bytes.  Please note that this option does not
 comply to the C standards, but it will provide you with smaller code
 size.
+
+@item -mstrict-X
+@opindex mstrict-X
+Use register @code{X} in a way proposed by the hardware.  This means
+that @code{X} will only be used in indirect, post-increment or
+pre-decrement addressing.
+
+Without this option, the @code{X} register may be used in the same way
+as @code{Y} or @code{Z} which then is emulated by additional
+instructions.  
+For example, loading a value with @code{X+const} addressing with a
+small @code{const <= 63} to a register @var{Rn} will be printed as
+@example
+adiw r26, const
+ld   @var{Rn}, X
+sbiw r26, const
+@end example
 @end table
 
 @node Blackfin Options
@@ -17529,6 +17567,11 @@ With @option{-mfmaf}, GCC generates code that takes advantage of the UltraSPARC
 Fused Multiply-Add Floating-point extensions.  The default is @option{-mfmaf}
 when targetting a cpu that supports such instructions, such as Niagara-3 and
 later.
+
+@item -mfix-at697f
+@opindex mfix-at697f
+Enable the documented workaround for the single erratum of the Atmel AT697F
+processor (which corresponds to erratum #13 of the AT697E processor).
 @end table
 
 These @samp{-m} options are supported in addition to the above

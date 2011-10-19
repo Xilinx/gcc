@@ -105,20 +105,18 @@ TEXI2PDF = texi2pdf
 GNATBIND_FLAGS = -static -x
 ADA_CFLAGS =
 ADAFLAGS = -W -Wall -gnatpg -gnata
-SOME_ADAFLAGS =-gnata
 FORCE_DEBUG_ADAFLAGS = -g
-NO_SIBLING_ADAFLAGS=-fno-optimize-sibling-calls
-NO_REORDER_ADAFLAGS=-fno-toplevel-reorder
-GNATLIBFLAGS = -gnatpg -nostdinc
+NO_SIBLING_ADAFLAGS = -fno-optimize-sibling-calls
+NO_REORDER_ADAFLAGS = -fno-toplevel-reorder
+GNATLIBFLAGS = -W -Wall -gnatpg -nostdinc
 GNATLIBCFLAGS = -g -O2
 PICFLAG_FOR_TARGET = @PICFLAG_FOR_TARGET@
 # Pretend that _Unwind_GetIPInfo is available for the target by default.  This
 # should be autodetected during the configuration of libada and passed down to
 # here, but we need something for --disable-libada and hope for the best.
-GNATLIBCFLAGS_FOR_C = $(GNATLIBCFLAGS) $(PICFLAG_FOR_TARGET) -fexceptions \
-	-DIN_RTS -DHAVE_GETIPINFO
+GNATLIBCFLAGS_FOR_C = -W -Wall $(GNATLIBCFLAGS) $(PICFLAG_FOR_TARGET) \
+	-fexceptions -DIN_RTS -DHAVE_GETIPINFO
 ALL_ADAFLAGS = $(CFLAGS) $(ADA_CFLAGS) $(ADAFLAGS)
-MOST_ADAFLAGS = $(CFLAGS) $(ADA_CFLAGS) $(SOME_ADAFLAGS)
 THREAD_KIND = native
 THREADSLIB =
 GMEM_LIB =
@@ -231,8 +229,7 @@ all.indirect: Makefile ../gnat1$(exeext)
 INTERNAL_CFLAGS = @CROSS@ -DIN_GCC
 
 # This is the variable actually used when we compile.
-LOOSE_CFLAGS = `echo $(CFLAGS) $(WARN2_CFLAGS)|sed -e 's/-pedantic//g' -e 's/-Wtraditional//g'`
-ALL_CFLAGS = $(INTERNAL_CFLAGS) $(T_CFLAGS) $(LOOSE_CFLAGS)
+ALL_CFLAGS = $(INTERNAL_CFLAGS) $(T_CFLAGS) $(CFLAGS)
 
 # Likewise.
 ALL_CPPFLAGS = $(CPPFLAGS)
@@ -576,6 +573,8 @@ ifeq ($(strip $(filter-out e500% powerpc% wrs vxworks,$(targ))),)
         endif
       endif
       EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o s-vxwexc.o
+      EXTRA_LIBGNAT_OBJS+=sigtramp-ppcvxw.o
+      EXTRA_LIBGNAT_SRCS+=sigtramp-ppcvxw.c
     endif
   endif
 
@@ -619,6 +618,9 @@ ifeq ($(strip $(filter-out powerpc% e500v2 wrs vxworksae,$(targ))),)
 
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o s-vxwexc.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o s-vxwext.o
+
+  EXTRA_LIBGNAT_SRCS+=sigtramp-ppcvxw.c
+  EXTRA_LIBGNAT_OBJS+=sigtramp-ppcvxw.o
 
   # Extra pairs for the vthreads runtime
   ifeq ($(strip $(filter-out vthreads,$(THREAD_KIND))),)
@@ -682,8 +684,8 @@ ifeq ($(strip $(filter-out e500% powerpc% wrs vxworksmils,$(targ))),)
   EXTRA_GNATRTL_NONTASKING_OBJS=i-vxwork.o i-vxwoio.o s-thread.o s-vxwexc.o
   EXTRA_GNATRTL_TASKING_OBJS=s-vxwork.o s-vxwext.o
 
-  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c
-  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o
+  EXTRA_LIBGNAT_SRCS+=vx_stack_info.c sigtramp-ppcvxw.c
+  EXTRA_LIBGNAT_OBJS+=vx_stack_info.o sigtramp-ppcvxw.o
   GNATRTL_SOCKETS_OBJS =
 
   ifeq ($(strip $(filter-out yes,$(TRACE))),)
@@ -847,7 +849,7 @@ ifeq ($(strip $(filter-out %86 wrs vxworks,$(targ))),)
       system.ads<system-vxworks-x86-rtp.ads
 
       EXTRA_GNATRTL_NONTASKING_OBJS=s-vxwexc.o
-      EXTRA_LIBGNAT_SRCS+=affinity.o
+      EXTRA_LIBGNAT_OBJS+=affinity.o
       EXTRA_LIBGNAT_SRCS+=affinity.c
     else
       ifeq ($(strip $(filter-out kernel-smp, $(THREAD_KIND))),)
@@ -2232,11 +2234,10 @@ LIBGNAT_OBJS = adadecode.o adaint.o argv.o cio.o cstreams.o ctrl_c.o	\
 
 include $(fsrcdir)/ada/Makefile.rtl
 
-GNATRTL_LINEARALGEBRA_OBJS = a-nlcoar.o a-nllcar.o \
-  a-nucoar.o i-forbla.o i-forlap.o s-gearop.o
+GNATRTL_LINEARALGEBRA_OBJS = i-forbla.o i-forlap.o
 
 GNATRTL_OBJS = $(GNATRTL_NONTASKING_OBJS) $(GNATRTL_TASKING_OBJS) \
-  $(GNATRTL_LINEARALGEBRA_OBJS) g-trasym.o memtrack.o
+  $(GNATRTL_LINEARALGEBRA_OBJS) memtrack.o
 
 # Default run time files
 
@@ -2416,7 +2417,6 @@ install-gnatlib: ../stamp-gnatlib-$(RTSDIR)
 	for file in $(RTSDIR)/*.ali; do \
 	    $(INSTALL_DATA_DATE) $$file $(DESTDIR)$(ADA_RTL_OBJ_DIR); \
 	done
-	-$(INSTALL_DATA) $(RTSDIR)/g-trasym$(objext) $(DESTDIR)$(ADA_RTL_OBJ_DIR)
 	-cd $(RTSDIR); for file in *$(arext);do \
 	    $(INSTALL_DATA) $$file $(DESTDIR)$(ADA_RTL_OBJ_DIR); \
 	    $(RANLIB_FOR_TARGET) $(DESTDIR)$(ADA_RTL_OBJ_DIR)/$$file; \
@@ -2736,10 +2736,6 @@ gnatlib-zcx:
 	     THREAD_KIND="$(THREAD_KIND)" \
 	     PICFLAG_FOR_TARGET="$(PICFLAG_FOR_TARGET)" gnatlib
 
-# .s files for cross-building
-gnat-cross: force
-	make $(GNAT1_ADA_OBJS) CC="gcc -B../stage1/" CFLAGS="-S -gnatp"
-
 # Compiling object files from source files.
 
 # Note that dependencies on obstack.h are not written
@@ -2842,6 +2838,7 @@ mkdir.o   : mkdir.c
 socket.o  : socket.c gsocket.h
 sysdep.o  : sysdep.c
 raise.o   : raise.c raise.h
+sigtramp-ppcvxw.o : sigtramp-ppcvxw.c sigtramp.h
 vx_stack_info.o : vx_stack_info.c
 
 raise-gcc.o : raise-gcc.c raise.h
