@@ -1579,6 +1579,15 @@ common_handle_option (struct gcc_options *opts,
       pp_set_line_maximum_length (dc->printer, value);
       break;
 
+    case OPT_fopt_info_:
+      if (value < 0 || value > OPT_INFO_MAX)
+	error_at (loc,
+		  "%d: invalid value for opt_info",
+		  value);
+      else
+	opts->x_flag_opt_info = value;
+      break;
+
     case OPT_fpack_struct_:
       if (value <= 0 || (value & (value - 1)) || value > 16)
 	error_at (loc,

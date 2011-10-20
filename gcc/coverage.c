@@ -355,7 +355,8 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
     warning (OPT_Wripa_opt_mismatch, "command line arguments mismatch for %s "
 	     "and %s", mod_info1->source_filename, mod_info2->source_filename);
 
-   if (warn_ripa_opt_mismatch && non_warning_mismatch && flag_ripa_verbose)
+   if (warn_ripa_opt_mismatch && non_warning_mismatch 
+       && (flag_opt_info >= OPT_INFO_MED))
      {
        inform (UNKNOWN_LOCATION, "Options for %s", mod_info1->source_filename);
        for (i = 0; i < num_non_warning_opts1; i++)
@@ -575,29 +576,47 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 	      int fd;
 	      char *aux_da_filename = get_da_file_name (mod_info->da_filename);
               gcc_assert (!mod_info->is_primary);
-	      if (pointer_set_insert (modset, (void *)(size_t)mod_info->ident))
-		inform (input_location, "Not importing %s: already imported",
-			mod_info->source_filename);
-	      else if ((module_infos[0]->lang & GCOV_MODULE_LANG_MASK) !=
-		       (mod_info->lang & GCOV_MODULE_LANG_MASK))
-		inform (input_location, "Not importing %s: source language"
-			" different from primary module's source language",
-			mod_info->source_filename);
-	      else if (module_infos_read == max_group)
-		inform (input_location, "Not importing %s: maximum group size"
-			" reached", mod_info->source_filename);
-	      else if (incompatible_cl_args (module_infos[0], mod_info))
-		inform (input_location, "Not importing %s: command-line"
-			" arguments not compatible with primary module",
-			mod_info->source_filename);
-	      else if ((fd = open (aux_da_filename, O_RDONLY)) < 0)
-		inform (input_location, "Not importing %s: couldn't open %s",
-			mod_info->source_filename, aux_da_filename);
-	      else if ((mod_info->lang & GCOV_MODULE_ASM_STMTS)
-		       && flag_ripa_disallow_asm_modules)
-		inform (input_location, "Not importing %s: contains assembler"
-			" statements", mod_info->source_filename);
-	      else
+              if (pointer_set_insert (modset, (void *)(size_t)mod_info->ident))
+                {
+                  if (flag_opt_info >= OPT_INFO_MAX)
+                    inform (input_location, "Not importing %s: already imported",
+                            mod_info->source_filename);
+                }
+              else if ((module_infos[0]->lang & GCOV_MODULE_LANG_MASK) !=
+                       (mod_info->lang & GCOV_MODULE_LANG_MASK))
+                {
+                  if (flag_opt_info >= OPT_INFO_MAX)
+                    inform (input_location, "Not importing %s: source language"
+                            " different from primary module's source language",
+                            mod_info->source_filename);
+                }
+              else if (module_infos_read == max_group)
+                {
+                  if (flag_opt_info >= OPT_INFO_MAX)
+                    inform (input_location, "Not importing %s: maximum group"
+                            " size reached", mod_info->source_filename);
+                }
+              else if (incompatible_cl_args (module_infos[0], mod_info))
+                {
+                  if (flag_opt_info >= OPT_INFO_MAX)
+                    inform (input_location, "Not importing %s: command-line"
+                            " arguments not compatible with primary module",
+                            mod_info->source_filename);
+                }
+              else if ((fd = open (aux_da_filename, O_RDONLY)) < 0)
+                {
+                  if (flag_opt_info >= OPT_INFO_MAX)
+                    inform (input_location, "Not importing %s: couldn't open %s",
+                            mod_info->source_filename, aux_da_filename);
+                }
+              else if ((mod_info->lang & GCOV_MODULE_ASM_STMTS)
+                       && flag_ripa_disallow_asm_modules)
+                {
+                  if (flag_opt_info >= OPT_INFO_MAX)
+                    inform (input_location, "Not importing %s: contains "
+                            "assembler statements", mod_info->source_filename);
+                }
+              else
 		{
 		  close (fd);
 		  module_infos_read++;
@@ -612,7 +631,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 		}
             }
 
-          if (flag_ripa_verbose)
+          if (flag_opt_info >= OPT_INFO_MAX)
             {
               inform (input_location,
                       "MODULE Id=%d, Is_Primary=%s,"
@@ -676,7 +695,7 @@ get_coverage_counts (unsigned counter, unsigned expected,
     {
       static int warned = 0;
 
-      if (!warned++)
+      if ((flag_opt_info >= OPT_INFO_MIN) && !warned++)
 	inform (input_location, (flag_guess_branch_prob
 		 ? "file %s not found, execution counts estimated"
 		 : "file %s not found, execution counts assumed to be zero"),
@@ -688,7 +707,7 @@ get_coverage_counts (unsigned counter, unsigned expected,
 
   if (!entry)
     {
-      if (!flag_dyn_ipa)
+      if ((flag_opt_info >= OPT_INFO_MIN) && !flag_dyn_ipa)
 	warning (0, "no coverage for function %qE found",
 		 DECL_ASSEMBLER_NAME (current_function_decl));
       return NULL;
@@ -705,7 +724,7 @@ get_coverage_counts (unsigned counter, unsigned expected,
 	warning_at (input_location, OPT_Wcoverage_mismatch,
 		    "The control flow of function %qE does not match "
 		    "its profile data (counter %qs)", id, ctr_names[counter]);
-      if (warning_printed)
+      if ((flag_opt_info >= OPT_INFO_MIN) && warning_printed)
 	{
 	 inform (input_location, "Use -Wno-error=coverage-mismatch to tolerate "
 	 	 "the mismatch but performance may drop if the function is hot");
@@ -727,7 +746,8 @@ get_coverage_counts (unsigned counter, unsigned expected,
     }
     else if (entry->lineno_checksum != lineno_checksum)
       {
-        warning (0, "Source location for function %qE have changed,"
+        warning (OPT_Wcoverage_mismatch,
+                 "Source location for function %qE have changed,"
                  " the profile data may be out of date",
                  DECL_ASSEMBLER_NAME (current_function_decl));
       }

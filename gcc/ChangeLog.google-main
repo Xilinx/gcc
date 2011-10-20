@@ -1,3 +1,34 @@
+2011-10-19   Rong Xu  <xur@google.com>
+(1) Introduce a new option -fopt-info:
+ * fopt-info=0 or fno-opt-info: no message will be emitted.
+ * fopt-info or fopt-info=1: emit important warnings and optimization
+   messages with large performance impact.
+ * fopt-info=2: warnings and optimization messages targeting power users.
+ * fopt-info=3: informational messages for compiler developers.
+(2) Suppress verbose notes/warnings printed in FDO-use compilation.
+
+        * gcc/common.opt (fopt-info): New flag. (fopt-info=) Ditto.
+	* gcc/opts.c (common_handle_option): Handle OPT_fopt_info_.
+	* gcc/flag-types.h (opt_info_verbosity_levels): New enum.
+        * gcc/value-prof.c (check_ic_counter): guard warnings/notes by
+          flag_opt_info.
+          (find_func_by_funcdef_no): Ditto. 
+          (check_ic_target): Ditto.
+          (check_counter): Ditto.
+          (check_ic_counter): Ditto.
+        * gcc/mcf.c (find_minimum_cost_flow): Ditto.
+        * gcc/profile.c (read_profile_edge_counts): Ditto.
+          (compute_branch_probabilities): Ditto.
+        * gcc/coverage.c (read_counts_file): Ditto.
+          (get_coverage_counts): Ditto.
+        * gcc/tree-profile.c: (gimple_gen_reusedist): Ditto.
+          (maybe_issue_profile_use_note): Ditto.
+          (optimize_reusedist): Ditto.
+        * gcc/testsuite/gcc.dg/pr32773.c: add -fopt-info.
+        * gcc/testsuite/gcc.dg/pr40209.c: Ditto.
+        * gcc/testsuite/gcc.dg/pr26570.c: Ditto.
+        * gcc/testsuite/g++.dg/tree-ssa/dom-invalid.C: Ditto.
+
 2011-10-17  Dehao Chen  <dehao@google.com>
 
 	Add a flag (-frecord-gcc-switches-in-elf) to record compiler

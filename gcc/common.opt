@@ -1125,11 +1125,6 @@ Common Report Var(flag_ripa_no_promote_always_inline) Init(0)
 Don't promote always inline static functions assuming they
 will be inlined and no copy is needed.
 
-
-fripa-verbose
-Common Report Var(flag_ripa_verbose)
-Enable verbose informational messages for LIPO compilation
-
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
 Perform early inlining
@@ -1571,6 +1566,19 @@ Support synchronous non-call exceptions
 fomit-frame-pointer
 Common Report Var(flag_omit_frame_pointer) Optimization
 When possible do not generate stack frames
+
+fopt-info
+Common Report Var(flag_opt_info) Optimization Init(1)
+Enable verbose informational messages for optimizations (same as -fopt-info=1)
+
+; fopt-info=0: no message will be emitted.
+; fopt-info or fopt-info=1: emit important warnings and optimization messages with
+;   large performance impact.
+; fopt-info=2: warnings and optimization messages targeting power users.
+; fopt-info=3: informational messages for compiler developers.
+fopt-info=
+Common RejectNegative Joined UInteger Optimization
+-fopt-info=[0|1|2|3] Set the verbose level of informational messages for optimizations
 
 foptimize-register-move
 Common Report Var(flag_regmove) Optimization

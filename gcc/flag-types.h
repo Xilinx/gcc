@@ -204,4 +204,11 @@ enum vect_verbosity_levels {
   MAX_VERBOSITY_LEVEL
 };
 
+/* flag_opt_info verbosity levels.  */
+enum opt_info_verbosity_levels {
+  OPT_INFO_NONE = 0,
+  OPT_INFO_MIN  = 1,
+  OPT_INFO_MED  = 2,
+  OPT_INFO_MAX  = 3
+};
 #endif /* ! GCC_FLAG_TYPES_H */

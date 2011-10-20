@@ -414,7 +414,7 @@ read_profile_edge_counts (gcov_type *exec_counts)
 		    if (flag_profile_correction)
 		      {
 			static bool informed = 0;
-			if (!informed)
+			if ((flag_opt_info >= OPT_INFO_MAX) && !informed)
 		          inform (input_location,
 			          "corrupted profile info: edge count exceeds maximal count");
 			informed = 1;
@@ -635,7 +635,7 @@ compute_branch_probabilities (unsigned cfg_checksum, unsigned lineno_checksum)
        {
          /* Inconsistency detected. Make it flow-consistent. */
          static int informed = 0;
-         if (informed == 0)
+         if ((flag_opt_info >= OPT_INFO_MAX) && informed == 0)
            {
              informed = 1;
              inform (input_location, "correcting inconsistent profile data");

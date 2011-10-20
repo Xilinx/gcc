@@ -1096,13 +1096,16 @@ gimple_gen_reusedist (void)
                 reusedist_make_instr_call (stmt, subst, counters),
                 GSI_NEW_STMT);
 
-            locus = (stmt != NULL)
-                ? gimple_location (stmt)
-                : DECL_SOURCE_LOCATION (current_function_decl);
-            inform (locus,
-                    "inserted reuse distance instrumentation for %qs, using "
-                    "%d gcov counters", subst->original_name,
-                    subst->num_ptr_args * RD_NUM_COUNTERS);
+            if (flag_opt_info >= OPT_INFO_MAX)
+              {
+                locus = (stmt != NULL)
+                    ? gimple_location (stmt)
+                    : DECL_SOURCE_LOCATION (current_function_decl);
+                inform (locus,
+                        "inserted reuse distance instrumentation for %qs, using "
+                        "%d gcov counters", subst->original_name,
+                        subst->num_ptr_args * RD_NUM_COUNTERS);
+              }
           }
       }
 }
@@ -1214,7 +1217,7 @@ maybe_issue_profile_use_note (location_t locus, gcov_type* counters, int arg)
 
   reusedist_from_counters (counters, &rd);
 
-  if (rd.count)
+  if ((flag_opt_info >= OPT_INFO_MAX) && rd.count)
     inform (locus, "reuse distance counters for arg %d: %lld %lld %lld %lld",
             arg, (long long int)rd.mean_dist, (long long int)rd.mean_size,
             (long long int)rd.count, (long long int)rd.dist_x_size);
@@ -1283,9 +1286,10 @@ reusedist_maybe_replace_with_nt_version (gimple stmt,
   subst_decl = reusedist_get_nt_decl (gimple_call_fndecl (stmt), subst,
                                       suffix);
   gimple_call_set_fndecl (stmt, subst_decl);
-  inform (locus, "replaced %qs with non-temporal %qs",
-          subst->original_name,
-          IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (subst_decl)));
+  if (flag_opt_info >= OPT_INFO_MED)
+    inform (locus, "replaced %qs with non-temporal %qs",
+            subst->original_name,
+            IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (subst_decl)));
 }
 
 /* Replace string operations with equivalent nontemporal, when profitable.  */
@@ -1323,11 +1327,13 @@ optimize_reusedist (void)
 
   if (counter_index != n_counters)
     {
-      warning (0, "coverage mismatch for reuse distance counters "
+      warning (OPT_Wcoverage_mismatch,
+               "coverage mismatch for reuse distance counters "
                "in function %qs", IDENTIFIER_POINTER
                (DECL_ASSEMBLER_NAME (current_function_decl)));
-      inform (input_location, "number of counters is %u instead of %u",
-              n_counters, counter_index);
+      if (flag_opt_info >= OPT_INFO_MAX)
+        inform (input_location, "number of counters is %u instead of %u",
+                n_counters, counter_index);
     }
 }
 
