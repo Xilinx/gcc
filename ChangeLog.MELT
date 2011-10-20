@@ -1,6 +1,11 @@
 
 2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	MELT branch merged with trunk rev 180258 using svnmerge
+	{so ggc-zone.c works again}
+
+2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	MELT branch merged with trunk rev 180237 using svnmerge.
 
 2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
