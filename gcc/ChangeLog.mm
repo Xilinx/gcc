@@ -1,3 +1,7 @@
+2011-10-20  Aldy Hernandez  <aldyh@redhat.com>
+
+	* optabs.c (expand_atomic_load): Handle a NULL target.
+
 2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
 
 	* optabs.c (add_op): Fix formatting from rename.

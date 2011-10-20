@@ -7140,7 +7140,7 @@ expand_atomic_load (rtx target, rtx mem, enum memmodel model)
       return target;
     }
 
-  if (target == const0_rtx)
+  if (!target || target == const0_rtx)
     target = gen_reg_rtx (mode);
 
   /* Emit the appropriate barrier before the load.  */
