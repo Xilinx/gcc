@@ -1,5 +1,20 @@
 2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
 
+	* optabs.c (add_op): Fix formatting from rename.
+	(expand_atomic_fetch_op): Fix formatting from rename.
+	* builtins.c (get_builtin_sync_mem): Reverse renamed get_builtin_atomic.
+	(expand_builtin_sync_operation): Fix rename issues.
+	(expand_builtin_compare_and_swap): Fix rename issues.
+	(expand_builtin_sync_lock_test_and_set): Fix rename issues.
+	(expand_builtin_sync_lock_release): Fix rename issues.
+	(expand_builtin_atomic_exchange): Fix rename issues.
+	(expand_builtin_atomic_load): Fix rename issues.
+	(expand_builtin_atomic_store): Fix rename issues.
+	(expand_builtin_atomic_fetch_op): Fix rename issues.
+	(expand_builtin): Fix formatting from rename.
+
+2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
+
 	* optabs.h (direct_optab_index): Replace DOI_atomic_compare_exchange
 	with DOI_atomic_compare_and_swap.
 	(direct_op): Add DOI_atomic_compare_and_swap.

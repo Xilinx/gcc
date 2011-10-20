@@ -7237,12 +7237,12 @@ struct op_functions {
 
 /* Initialize the fields for each supported opcode.  */
 static const struct op_functions add_op = { atomic_fetch_add_optab,
-				      atomic_add_fetch_optab,
-				      atomic_add_optab,
-				      sync_old_add_optab,
-				      sync_new_add_optab,
-				      sync_add_optab,
-				      MINUS
+					    atomic_add_fetch_optab,
+					    atomic_add_optab,
+					    sync_old_add_optab,
+					    sync_new_add_optab,
+					    sync_add_optab,
+					    MINUS
 				    };
 
 static const struct op_functions sub_op = { atomic_fetch_sub_optab,
@@ -7367,7 +7367,7 @@ maybe_emit_op (const struct op_functions *optab, rtx target, rtx mem, rtx val,
    AFTER is false to return the value before the operation (fetch_OP).  */
 rtx
 expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
-			  enum memmodel model, bool after)
+			enum memmodel model, bool after)
 {
   enum machine_mode mode = GET_MODE (mem);
   const struct op_functions *optab;

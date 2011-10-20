@@ -5072,7 +5072,7 @@ get_builtin_sync_mode (int fcode_diff)
    for the builtin_sync operations.  */
 
 static rtx
-get_builtin_atomic (tree loc, enum machine_mode mode)
+get_builtin_sync_mem (tree loc, enum machine_mode mode)
 {
   rtx addr, mem;
 
@@ -5173,11 +5173,11 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
     }
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
   return expand_atomic_fetch_op (target, mem, val, code, MEMMODEL_SEQ_CST,
-				     after);
+				 after);
 }
 
 /* Expand the __sync_val_compare_and_swap and __sync_bool_compare_and_swap
@@ -5192,7 +5192,7 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
   rtx old_val, new_val, mem;
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   old_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
   new_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
@@ -5210,12 +5210,12 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
 
 static rtx
 expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
-				  rtx target)
+				       rtx target)
 {
   rtx val, mem;
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
   return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE);
@@ -5229,7 +5229,7 @@ expand_builtin_sync_lock_release (enum machine_mode mode, tree exp)
   rtx mem;
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
   expand_atomic_store (mem, const0_rtx, MEMMODEL_RELEASE);
 }
@@ -5275,7 +5275,7 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
     }
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
   return expand_atomic_exchange (target, mem, val, model);
@@ -5312,7 +5312,7 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
     }
   
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
   expect = expand_expr (CALL_EXPR_ARG (exp, 1), NULL_RTX, ptr_mode, 
 			EXPAND_NORMAL);
@@ -5347,7 +5347,7 @@ expand_builtin_atomic_load (enum machine_mode mode, tree exp, rtx target)
     }
 
   /* Expand the operand.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
   return expand_atomic_load (target, mem, model);
 }
@@ -5374,7 +5374,7 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
     }
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
   return expand_atomic_store (mem, val, model);
@@ -5390,7 +5390,7 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
 
 static rtx
 expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
-				  enum rtx_code code, bool fetch_after)
+				enum rtx_code code, bool fetch_after)
 {
   rtx val, mem;
   enum memmodel model;
@@ -5398,7 +5398,7 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
   model = get_memmodel (CALL_EXPR_ARG (exp, 2));
 
   /* Expand the operands.  */
-  mem = get_builtin_atomic (CALL_EXPR_ARG (exp, 0), mode);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
   return expand_atomic_fetch_op (target, mem, val, code, model, fetch_after);
@@ -6412,8 +6412,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_SUB_FETCH_8:
     case BUILT_IN_ATOMIC_SUB_FETCH_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_SUB_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, 
-						 true);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, true);
       if (target)
 	return target;
       break;
@@ -6469,8 +6468,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_ADD_8:
     case BUILT_IN_ATOMIC_FETCH_ADD_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_ADD_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS,
-						 false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS, false);
       if (target)
 	return target;
       break;
@@ -6481,8 +6479,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_SUB_8:
     case BUILT_IN_ATOMIC_FETCH_SUB_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_SUB_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS,
-						 false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, false);
       if (target)
 	return target;
       break;
