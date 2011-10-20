@@ -158,13 +158,13 @@ extern size_t ggc_round_alloc_size (size_t requested_size);
 extern void *ggc_alloc_typed_stat (enum gt_types_enum, size_t MEM_STAT_DECL);
 
 
-/* Signature of destructors -or finalizers-, as known to GGC.  */
-typedef void (ggc_destructor_t) (void*);
+/* Signature of  finalizers, as known to GGC.  */
+typedef void (ggc_finalizer_t) (void*);
 
 /* Allocate finalized cleared memory.  The finalizer is run by the
    garbage collector before destroying the object and realeasing its
    memory.  It should not call, even indirectly, any allocator.  */
-extern void *ggc_finalized_alloc_stat (size_t, ggc_destructor_t* MEM_STAT_DECL);
+extern void *ggc_finalized_alloc_stat (size_t, ggc_finalizer_t* MEM_STAT_DECL);
 #define ggc_finalized_alloc(s, f) ggc_finalized_alloc_stat(s, f MEM_STAT_INFO)
 
 
@@ -283,7 +283,6 @@ extern struct alloc_zone tree_zone;
 /* For IDENTIFIER_NODE allocations.  */
 extern struct alloc_zone tree_id_zone;
 
-
 #define ggc_alloc_rtvec_sized(NELT)                                     \
   ggc_alloc_zone_rtvec_def (sizeof (struct rtvec_def)			\
 			    + ((NELT) - 1) * sizeof (rtx),		\
@@ -317,7 +316,6 @@ ggc_internal_zone_vec_alloc_stat (struct alloc_zone * z, size_t s, size_t n
 {
     return ggc_internal_alloc_zone_stat (s * n, z PASS_MEM_STAT);
 }
-
 
 
 #else

@@ -1,5 +1,16 @@
 
 
+2011-10-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* ggc.h (ggc_destructor_t): Rename as ...
+	(ggc_finalizer_t): New type for signature of finalizers.
+	(ggc_finalized_alloc_stat): Update accordingly.
+
+	* ggc-zone (enum page_kind_en): New.
+	(page_entry): Remove large_p & pch_p. Add page_kind field.
+	(alloc_large_page, free_small_page, free_large_page, ggc_free)
+	(ggc_set_mark, ggc_get_size, sweep_pages, ggc_pch_read): Use it.
+	(ggc_finalized_alloc_stat): Update signature.
+
 2011-10-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* ggc.h (ggc_destructor_t): New type, signature of destructor routines.
 	(ggc_finalized_alloc_stat): New declaration.

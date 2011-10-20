@@ -197,6 +197,7 @@ struct max_alignment {
 
 #define ROUND_UP(x, f) (CEIL (x, f) * (f))
 
+
 /* Types to use for the allocation and mark bitmaps.  It might be
    a good idea to add ffsl to libiberty and use unsigned long
    instead; that could speed us up where long is wider than int.  */
@@ -204,6 +205,14 @@ struct max_alignment {
 typedef unsigned int alloc_type;
 typedef unsigned int mark_type;
 #define alloc_ffs(x) ffs(x)
+
+/* A small enumeration for page kinds. */
+enum page_kind_en {
+  GGCZON_NONE=0,
+  GGCZON_SMALL_PAGE,
+  GGCZON_LARGE_PAGE,
+  GGCZON_PCH_PAGE
+};
 
 /* A page_entry records the status of an allocation page.  This is the
    common data between all three kinds of pages - small, large, and
@@ -221,11 +230,8 @@ typedef struct page_entry
   size_t survived;
 #endif
 
-  /* Does this page contain small objects, or one large object?  */
-  bool large_p;
-
-  /* Is this page part of the loaded PCH?  */
-  bool pch_p;
+  /* What kind of page is this.  Never zero! */
+  enum page_kind_en page_kind;
 } page_entry;
 
 /* Additional data needed for small pages.  */
@@ -259,6 +265,9 @@ struct large_page_entry
 
   /* The previous page in the list, so that we can unlink this one.  */
   struct large_page_entry *prev;
+
+  /* Finalization routine for this large object.  */
+  ggc_finalizer_t* large_finalizer;
 
   /* During marking, is this object marked?  */
   bool mark_p;
@@ -928,8 +937,7 @@ alloc_large_page (size_t size, struct alloc_zone *zone)
 
   entry->next = NULL;
   entry->common.page = page + sizeof (struct large_page_entry);
-  entry->common.large_p = true;
-  entry->common.pch_p = false;
+  entry->common.page_kind = GGCZON_LARGE_PAGE;
   entry->common.zone = zone;
 #ifdef GATHER_STATISTICS
   entry->common.survived = 0;
@@ -937,6 +945,7 @@ alloc_large_page (size_t size, struct alloc_zone *zone)
   entry->mark_p = false;
   entry->bytes = size;
   entry->prev = NULL;
+  entry->large_finalizer = NULL;
 
   set_page_table_entry (entry->common.page, &entry->common);
 
@@ -961,7 +970,7 @@ free_small_page (struct small_page_entry *entry)
 	     entry->common.zone->name, (PTR) entry,
 	     entry->common.page, entry->common.page + SMALL_PAGE_SIZE - 1);
 
-  gcc_assert (!entry->common.large_p);
+  gcc_assert (entry->common.page_kind == GGCZON_SMALL_PAGE);
 
   /* Mark the page as inaccessible.  Discard the handle to
      avoid handle leak.  */
@@ -984,7 +993,7 @@ free_large_page (struct large_page_entry *entry)
 	     entry->common.zone->name, (PTR) entry,
 	     entry->common.page, entry->common.page + SMALL_PAGE_SIZE - 1);
 
-  gcc_assert (entry->common.large_p);
+  gcc_assert (entry->common.page_kind == GGCZON_LARGE_PAGE);
 
   set_page_table_entry (entry->common.page, NULL);
   free (entry);
@@ -1388,7 +1397,7 @@ ggc_alloc_typed_stat (enum gt_types_enum gte, size_t size
 
 
 void *
-ggc_finalized_alloc_stat (size_t sz, ggc_destructor_t*destr MEM_STAT_DECL)
+ggc_finalized_alloc_stat (size_t sz, ggc_finalizer_t*destr MEM_STAT_DECL)
 {
   fatal_error ("unimplemented finalized alloc of size %d", (int) sz);
 }
@@ -1428,10 +1437,18 @@ ggc_free (void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->large_p)
+  if (page->page_kind == GGCZON_LARGE_PAGE)
     {
       struct large_page_entry *large_page
 	= (struct large_page_entry *) page;
+
+      /* Finalize the object, if relevant.  */
+      if (large_page->large_finalizer) 
+	{
+	  ggc_finalizer_t* finalizer = large_page->large_finalizer;
+	  large_page->large_finalizer = NULL;
+	  finalizer (p);
+	}
 
       /* Remove the page from the linked list.  */
       if (large_page->prev)
@@ -1449,7 +1466,7 @@ ggc_free (void *p)
       /* Release the memory associated with this object.  */
       free_large_page (large_page);
     }
-  else if (page->pch_p)
+  else if (page->page_kind == GGCZON_PCH_PAGE)
     /* Don't do anything.  We won't allocate a new object from the
        PCH zone so there's no point in releasing anything.  */
     ;
@@ -1481,7 +1498,7 @@ gt_ggc_m_S (const void *p)
   if (! entry)
     return;
 
-  if (entry->pch_p)
+  if (entry->page_kind == GGCZON_PCH_PAGE)
     {
       size_t alloc_word, alloc_bit, t;
       t = ((const char *) p - pch_zone.page) / BYTES_PER_ALLOC_BIT;
@@ -1490,7 +1507,7 @@ gt_ggc_m_S (const void *p)
       offset = zone_find_object_offset (pch_zone.alloc_bits, alloc_word,
 					alloc_bit);
     }
-  else if (entry->large_p)
+  else if (entry->page_kind == GGCZON_LARGE_PAGE)
     {
       struct large_page_entry *le = (struct large_page_entry *) entry;
       offset = ((const char *) p) - entry->page;
@@ -1536,7 +1553,7 @@ ggc_set_mark (const void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->pch_p)
+  if (page->page_kind == GGCZON_PCH_PAGE)
     {
       size_t mark_word, mark_bit, offset;
       offset = (ptr - pch_zone.page) / BYTES_PER_MARK_BIT;
@@ -1547,7 +1564,7 @@ ggc_set_mark (const void *p)
 	return 1;
       pch_zone.mark_bits[mark_word] |= (1 << mark_bit);
     }
-  else if (page->large_p)
+  else if (page->page_kind == GGCZON_LARGE_PAGE)
     {
       struct large_page_entry *large_page
 	= (struct large_page_entry *) page;
@@ -1586,7 +1603,7 @@ ggc_marked_p (const void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->pch_p)
+  if (page->page_kind == GGCZON_PCH_PAGE)
     {
       size_t mark_word, mark_bit, offset;
       offset = (ptr - pch_zone.page) / BYTES_PER_MARK_BIT;
@@ -1596,7 +1613,7 @@ ggc_marked_p (const void *p)
       return (pch_zone.mark_bits[mark_word] & (1 << mark_bit)) != 0;
     }
 
-  if (page->large_p)
+  if (page->page_kind == GGCZON_LARGE_PAGE)
     {
       struct large_page_entry *large_page
 	= (struct large_page_entry *) page;
@@ -1623,7 +1640,7 @@ ggc_get_size (const void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->pch_p)
+  if (page->page_kind == GGCZON_PCH_PAGE)
     {
       size_t alloc_word, alloc_bit, offset, max_size;
       offset = (ptr - pch_zone.page) / BYTES_PER_ALLOC_BIT + 1;
@@ -1634,7 +1651,7 @@ ggc_get_size (const void *p)
 				 max_size);
     }
 
-  if (page->large_p)
+  if (page->page_kind == GGCZON_LARGE_PAGE)
     return ((struct large_page_entry *)page)->bytes;
   else
     return zone_find_object_size ((struct small_page_entry *) page, p);
@@ -1756,7 +1773,7 @@ sweep_pages (struct alloc_zone *zone)
   lpp = &zone->large_pages;
   for (lp = zone->large_pages; lp != NULL; lp = lnext)
     {
-      gcc_assert (lp->common.large_p);
+      gcc_assert (lp->common.page_kind == GGCZON_LARGE_PAGE);
 
       lnext = lp->next;
 
@@ -1773,6 +1790,13 @@ sweep_pages (struct alloc_zone *zone)
 	}
       else
 	{
+	  ggc_finalizer_t* finalizer = lp->large_finalizer;
+	  if (finalizer != NULL) 
+	    {
+	      lp->large_finalizer = NULL;
+	      finalizer ((void*) lp);
+	    };
+
 	  *lpp = lnext;
 #ifdef ENABLE_GC_CHECKING
 	  /* Poison the page.  */
@@ -1794,7 +1818,7 @@ sweep_pages (struct alloc_zone *zone)
       alloc_type *alloc_word_p;
       mark_type *mark_word_p;
 
-      gcc_assert (!sp->common.large_p);
+      gcc_assert (sp->common.page_kind != GGCZON_NONE && sp->common.page_kind != GGCZON_LARGE_PAGE);
 
       snext = sp->next;
 
@@ -2525,7 +2549,7 @@ ggc_pch_read (FILE *f, void *addr)
      mapped into the PCH to reference it.  */
   pch_page = XCNEW (struct page_entry);
   pch_page->page = pch_zone.page;
-  pch_page->pch_p = true;
+  pch_page->page_kind = GGCZON_PCH_PAGE;
 
   for (p = pch_zone.page; p < pch_zone.end; p += GGC_PAGE_SIZE)
     set_page_table_entry (p, pch_page);
