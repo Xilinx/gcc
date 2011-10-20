@@ -690,7 +690,7 @@ enum direct_optab_index
 
   /* Atomic operations with memory model parameters. */
   DOI_atomic_exchange,
-  DOI_atomic_compare_exchange,
+  DOI_atomic_compare_and_swap,
   DOI_atomic_load,
   DOI_atomic_store,
   DOI_atomic_add_fetch,
@@ -765,8 +765,8 @@ typedef struct direct_optab_d *direct_optab;
 
 #define atomic_exchange_optab \
   (&direct_optab_table[(int) DOI_atomic_exchange])
-#define atomic_compare_exchange_optab \
-  (&direct_optab_table[(int) DOI_atomic_compare_exchange])
+#define atomic_compare_and_swap_optab \
+  (&direct_optab_table[(int) DOI_atomic_compare_and_swap])
 #define atomic_load_optab \
   (&direct_optab_table[(int) DOI_atomic_load])
 #define atomic_store_optab \

@@ -1,3 +1,8 @@
+2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/atomic-invalid.c: Add compare_exchange failures.
+	* gcc.dg/atomic-compare-exchange-{1-5}.c: New functional tests.
+
 2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
 
 	* sync-mem*.c: Rename all files to atomic-*, rename __sync_mem.

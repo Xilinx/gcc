@@ -5283,20 +5283,21 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
 
 /* Expand the __atomic_compare_exchange intrinsic:
    	bool __atomic_compare_exchange (TYPE *object, TYPE *expect, 
-					  TYPE desired, enum memmodel success,
-					  enum memmodel failure)
+					TYPE desired, BOOL weak, 
+					enum memmodel success,
+					enum memmodel failure)
    EXP is the CALL_EXPR.
    TARGET is an optional place for us to store the results.  */
 
 static rtx
 expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp, 
-					  rtx target)
+					rtx target)
 {
-  rtx expect, desired, mem;
+  rtx expect, desired, mem, weak;
   enum memmodel success, failure;
 
-  success = get_memmodel (CALL_EXPR_ARG (exp, 3));
-  failure = get_memmodel (CALL_EXPR_ARG (exp, 4));
+  success = get_memmodel (CALL_EXPR_ARG (exp, 4));
+  failure = get_memmodel (CALL_EXPR_ARG (exp, 5));
 
   if (failure == MEMMODEL_RELEASE || failure == MEMMODEL_ACQ_REL)
     {
@@ -5319,8 +5320,11 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
 
   desired = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
-  return expand_atomic_compare_exchange (target, mem, expect, desired, 
-					   success, failure);
+  weak = expand_expr (CALL_EXPR_ARG (exp, 3), NULL_RTX, ptr_mode,
+		      EXPAND_NORMAL);
+
+  return expand_atomic_compare_exchange (target, mem, expect, desired, weak,
+					 success, failure);
 }
 
 /* Expand the __atomic_load intrinsic:

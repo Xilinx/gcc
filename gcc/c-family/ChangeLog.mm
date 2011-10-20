@@ -1,3 +1,8 @@
+2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
+
+	* c-common.c (resolve_overloaded_builtin): Don't try to process a 
+	return value with an error mark.
+
 2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
 
 	* c-common.c: Rename __sync_mem to __atomic.

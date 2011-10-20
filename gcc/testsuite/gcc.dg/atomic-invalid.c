@@ -5,11 +5,15 @@
 
 #include <stddef.h>
 
-int i;
+int i, e, b;
 size_t s;
 
 main ()
 {
+  __atomic_compare_exchange (&i, &e, 1, 0, __ATOMIC_RELAXED, __ATOMIC_SEQ_CST); /* { dg-error "failure memory model cannot be stronger" } */
+  __atomic_compare_exchange (&i, &e, 1, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELEASE); /* { dg-error "invalid failure memory" } */
+  __atomic_compare_exchange (&i, &e, 1, 1, __ATOMIC_SEQ_CST, __ATOMIC_ACQ_REL); /* { dg-error "invalid failure memory" } */
+
   __atomic_exchange (&i, 1, __ATOMIC_CONSUME); /* { dg-error "invalid memory model" } */
 
   __atomic_load (&i, __ATOMIC_RELEASE); /* { dg-error "invalid memory model" } */

@@ -9197,6 +9197,8 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 
 	first_param = VEC_index (tree, params, 0);
 	result = build_function_call_vec (loc, new_function, params, NULL);
+	if (result == error_mark_node)
+	  return result;
 	if (orig_code != BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_N
 	    && orig_code != BUILT_IN_SYNC_LOCK_RELEASE_N
 	    && orig_code != BUILT_IN_ATOMIC_STORE_N)

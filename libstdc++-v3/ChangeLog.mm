@@ -1,3 +1,7 @@
+2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/bits/atomic_2.h: Use __atomic_compare_exchange.
+
 2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
 
 	* include/bits/atomic_2.h: Rename __sync_mem to __atomic.

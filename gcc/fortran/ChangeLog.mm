@@ -1,3 +1,8 @@
+2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
+
+	* types.def (BT_FN_BOOL_VPTR_PTR_I{1,2,4,8,16}_BOOL_INT_INT): Add a 
+	bool parameter for strong/weak.
+
 2011-10-13  Andrew MacLeod  <amacleod@redhat.com>
 
 	* types.def: Add BT_SIZE and BT_FN_BOOL_SIZE.

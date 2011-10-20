@@ -289,13 +289,25 @@ namespace __atomic2
       bool
       compare_exchange_weak(__int_type& __i1, __int_type __i2,
 			    memory_order __m1, memory_order __m2) noexcept
-      { return compare_exchange_strong(__i1, __i2, __m1, __m2); }
+      { 
+	__glibcxx_assert(__m2 != memory_order_release);
+	__glibcxx_assert(__m2 != memory_order_acq_rel);
+	__glibcxx_assert(__m2 <= __m1);
+
+        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 1, __m1, __m2);
+      }
 
       bool
       compare_exchange_weak(__int_type& __i1, __int_type __i2,
 			    memory_order __m1,
 			    memory_order __m2) volatile noexcept
-      { return compare_exchange_strong(__i1, __i2, __m1, __m2); }
+      { 
+	__glibcxx_assert(__m2 != memory_order_release);
+	__glibcxx_assert(__m2 != memory_order_acq_rel);
+	__glibcxx_assert(__m2 <= __m1);
+
+        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 1, __m1, __m2);
+      }
 
       bool
       compare_exchange_weak(__int_type& __i1, __int_type __i2,
@@ -321,13 +333,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-	__int_type __i1o = __i1;
-	// Compare_and_swap is a full barrier already.
-	__int_type __i1n = __sync_val_compare_and_swap(&_M_i, __i1o, __i2);
-
-	// Assume extra stores (of same value) allowed in true case.
-	__i1 = __i1n;
-	return __i1o == __i1n;
+        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 0, __m1, __m2);
       }
 
       bool
@@ -339,13 +345,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-	__int_type __i1o = __i1;
-	// Compare_and_swap is a full barrier already.
-	__int_type __i1n = __sync_val_compare_and_swap(&_M_i, __i1o, __i2);
-
-	// Assume extra stores (of same value) allowed in true case.
-	__i1 = __i1n;
-	return __i1o == __i1n;
+        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 0, __m1, __m2);
       }
 
       bool
@@ -575,13 +575,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-	__pointer_type __p1o = __p1;
-	// Compare_and_swap is a full barrier already.
-	__pointer_type __p1n = __sync_val_compare_and_swap(&_M_p, __p1o, __p2);
-
-	// Assume extra stores (of same value) allowed in true case.
-	__p1 = __p1n;
-	return __p1o == __p1n;
+	return __atomic_compare_exchange (&_M_p, &__p1, __p2, 0, __m1, __m2);
       }
 
       bool
@@ -593,13 +587,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-	__pointer_type __p1o = __p1;
-	// Compare_and_swap is a full barrier already.
-	__pointer_type __p1n = __sync_val_compare_and_swap(&_M_p, __p1o, __p2);
-
-	// Assume extra stores (of same value) allowed in true case.
-	__p1 = __p1n;
-	return __p1o == __p1n;
+	return __atomic_compare_exchange (&_M_p, &__p1, __p2, 0, __m1, __m2);
       }
 
       __pointer_type

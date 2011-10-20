@@ -244,7 +244,7 @@ static const char * const optabs[] =
   "set_direct_optab_handler (sync_lock_test_and_set_optab, $A, CODE_FOR_$(sync_lock_test_and_set$I$a$))",
   "set_direct_optab_handler (sync_lock_release_optab, $A, CODE_FOR_$(sync_lock_release$I$a$))",
   "set_direct_optab_handler (atomic_exchange_optab, $A, CODE_FOR_$(atomic_exchange$I$a$))",
-  "set_direct_optab_handler (atomic_compare_exchange_optab, $A, CODE_FOR_$(atomic_compare_exchange$I$a$))",
+  "set_direct_optab_handler (atomic_compare_and_swap_optab, $A, CODE_FOR_$(atomic_compare_and_swap$I$a$))",
   "set_direct_optab_handler (atomic_load_optab, $A, CODE_FOR_$(atomic_load$I$a$))",
   "set_direct_optab_handler (atomic_store_optab, $A, CODE_FOR_$(atomic_store$I$a$))",
   "set_direct_optab_handler (atomic_add_fetch_optab, $A, CODE_FOR_$(atomic_add_fetch$I$a$))",

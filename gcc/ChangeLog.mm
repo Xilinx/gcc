@@ -1,3 +1,19 @@
+2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
+
+	* optabs.h (direct_optab_index): Replace DOI_atomic_compare_exchange
+	with DOI_atomic_compare_and_swap.
+	(direct_op): Add DOI_atomic_compare_and_swap.
+	* genopinit.c: Set atomic_compare_and_swap_optab.
+	* expr.h (expand_atomic_compare_exchange): Add parameter.
+	* builtins.c (builtin_atomic_compare_exchange): Add weak parameter
+	and verify it is a compile time constant.
+	* optabs.c (expand_atomic_compare_exchange): Use atomic_compare_and_swap
+	pattern if present, otherwise use __sync_val_compare_and_swap.
+	* builtin-types.def (BT_FN_BOOL_VPTR_PTR_I{1,2,4,8,16}_BOOL_INT_INT):
+	Add the bool parameter.
+	* sync-builtins.def (BUILT_IN_ATOMIC_COMPARE_EXCHANGE_*): Use new
+	prototype.
+
 2011-10-17  Andrew MacLeod  <amacleod@redhat.com>
 
 	* cppbuiltin.c: Rename __sync_mem to __atomic.

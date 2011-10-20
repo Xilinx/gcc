@@ -7035,61 +7035,70 @@ expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
 
 rtx
 expand_atomic_compare_exchange (rtx target, rtx mem, rtx expected, 
-				  rtx desired, enum memmodel success, 
-				  enum memmodel failure)
+				rtx desired, rtx weak, enum memmodel success, 
+				enum memmodel failure)
 {
   enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode;
+  enum insn_code icode = CODE_FOR_nothing;
+  rtx expected_val, CAS_val;
 
-  /* If the target supports the exchange directly, great.  */
-  icode = direct_optab_handler (atomic_compare_exchange_optab, mode);
+  /* Load '*expected into a register for the compare and swap */
+  expected_val = gen_reg_rtx (mode);
+  emit_move_insn (expected_val, gen_rtx_MEM (mode, expected));
+
+  icode = direct_optab_handler (atomic_compare_and_swap_optab, mode);
+    
   if (icode != CODE_FOR_nothing)
     {
-      struct expand_operand ops[6];
+      struct expand_operand ops[8];
+      rtx original_val = gen_reg_rtx (mode);
+      enum machine_mode target_mode;
+      int is_weak;
 
-      create_output_operand (&ops[0], target, QImode);
-      create_output_operand (&ops[1], mem, mode);
-      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
-      create_convert_operand_to (&ops[2], expected, mode, true);
-      create_convert_operand_to (&ops[3], desired, mode, true);
-      create_integer_operand (&ops[4], success);
-      create_integer_operand (&ops[5], failure);
-      if (maybe_expand_insn (icode, 6, ops))
-	return ops[0].value;
+      target_mode = insn_data[icode].operand[0].mode;
+
+      /* Either WEAK is explcitly 1, or assume strong to be safe.  */
+      is_weak = (weak == const1_rtx);
+
+      if (target == NULL_RTX || target == const0_rtx 
+	  || GET_MODE (target) != target_mode)
+        target = gen_reg_rtx (target_mode);
+
+      /* Emit the compare_and_swap.  */
+      create_output_operand (&ops[0], target, target_mode);
+      create_output_operand (&ops[1], original_val, mode);
+      create_fixed_operand (&ops[2], mem);
+      create_convert_operand_to (&ops[3], expected_val, mode, true);
+      create_convert_operand_to (&ops[4], desired, mode, true);
+      create_integer_operand (&ops[5], is_weak);
+      create_integer_operand (&ops[6], success);
+      create_integer_operand (&ops[7], failure);
+      expand_insn (icode, 8, ops);
+
+      /* Store *expected = original_val  */
+      emit_move_insn (gen_rtx_MEM (mode, expected), original_val);
+
+      /* Return success/failure.  */
+      return ops[0].value;
     }
 
-  /* Instead try the instruction with a compare_ swap instruction and 
-     barriers assuming success (which must be the strongest model).  */
 
-
+  /* Otherwise fall back to the original __sync_val_compare_and_swap which is
+     always seq-cst.  */
   icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
   if (icode == CODE_FOR_nothing)
       return NULL_RTX;
 
-  return NULL_RTX;
-
-#if 0
-
-  /* We're punting on implementing compare_exchange to get everything else
-     checked in, then we'll come back and implement this, as well as provide
-     the weak and strong variations.  */
-
-  expand_builtin_mem_thread_fence (model);
-  
-  /* Load '*expected into a register for the compare and swap */
-  
   /* Issue the compare and swap */
-  /* cmp = expand_CAS (mem, expected, desired, target, &result); */
+  CAS_val = expand_val_compare_and_swap_1 (mem, expected_val, desired, NULL_RTX,
+					   icode);
 
-  /* If (cmp) target = cmp;      return true if success. */
+  /* Always store the result back into 'expected'.  If the result is true, its
+     an extra store, but makes the flow better.  */
+  emit_move_insn (gen_rtx_MEM (mode, expected), CAS_val);
 
-  /* else  {  *expected = result;   target = !cmp } */
-  /* Otherwise, copy old value into expected and return false; */
-
-  expand_builtin_mem_thread_fence (model);
-
-  return target;
-#endif
+  return emit_store_flag_force (target, EQ, CAS_val, expected_val,
+				VOIDmode, 1, 1);
 }
 
 
