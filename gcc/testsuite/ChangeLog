@@ -1,3 +1,60 @@
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/13657
+	* g++.dg/parse/error42.C: New.
+	* g++.old-deja/g++.other/ptrmem7.C: Tweak dg-errors.
+
+2011-10-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50793
+	* g++.dg/init/value9.C: New.
+
+2011-10-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/torture/vshuf-32.inc: Add interleave permutations.
+	* gcc.dg/torture/vshuf-16.inc: Likewise.
+	* gcc.dg/torture/vshuf-8.inc: Likewise.
+	* gcc.dg/torture/vshuf-4.inc: Likewise.
+
+2011-10-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	* gfortran.dg/sizeof_proc.f90: New.
+
+2011-10-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/compat/struct-layout-1_generate.c: Also pass -mno-mmx
+	-Wno-abi for i?86-*-mingw32* x86_64-*-mingw32* i?86-*-cygwin*.
+
+2011-10-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/50796
+	* gcc.dg/plugin/plugindir?.c Update dg_prune_output.
+
+2011-10-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50787
+	* g++.dg/init/ref20.C: New.
+
+2011-10-19  Kai Tietz  <ktietz@redhat.com>
+
+	PR middle-end/50795
+	* gcc.dg/tree-ssa/builtin-expect-1.c: Adjust test.
+	* gcc.dg/tree-ssa/builtin-expect-2.c: Adjust test.
+	* gcc.dg/tree-ssa/builtin-expect-3.c: Adjust test.
+	* gcc.dg/tree-ssa/builtin-expect-4.c: Adjust test.
+	* gcc.dg/tree-ssa/builtin-expect-5.c: Adjust test.
+
+2011-10-19  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/50768
+	* gcc.dg/torture/pr50768.c: New testcase.
+
+2011-10-19  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/50340
+	* gcc.dg/pr50340.c: New.
+
 2011-10-18  Andrew Stubbs  <ams@codesourcery.com>
 
 	PR tree-optimization/50717

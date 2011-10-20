@@ -1,3 +1,29 @@
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/13657
+	* class.c (instantiate_type): Fix error message.
+
+2011-10-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50793
+	* tree.c (bot_manip): Propagate AGGR_INIT_ZERO_FIRST.
+
+2011-10-19  Roland Stigge  <stigge@antcom.de>
+
+	PR translation/49704
+	* semantics.c (potential_constant_expression_1): Use "AST" instead of
+	"ast" in sorry message.
+
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38761
+	PR c++/40872
+	* decl.c (duplicate_decls, make_typename_type, grokdeclarator): Use
+	G_() in error message strings to facilitate translation.
+	* semantics.c (finish_id_expression): Likewise.
+	* parser.c (cp_parser_nested_name_specifier_opt,
+	cp_parser_parameter_declaration): Likewise.
+
 2011-10-18  Jason Merrill  <jason@redhat.com>
 
 	PR c++/50531

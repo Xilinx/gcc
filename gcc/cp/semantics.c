@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-objc.h"
 #include "tree-inline.h"
 #include "tree-mudflap.h"
+#include "intl.h"
 #include "toplev.h"
 #include "flags.h"
 #include "output.h"
@@ -2985,8 +2986,8 @@ finish_id_expression (tree id_expression,
 	  else
 	    {
 	      error (TREE_CODE (decl) == VAR_DECL
-		     ? "use of %<auto%> variable from containing function"
-		     : "use of parameter from containing function");
+		     ? G_("use of %<auto%> variable from containing function")
+		     : G_("use of parameter from containing function"));
 	      error ("  %q+#D declared here", decl);
 	      return error_mark_node;
 	    }
@@ -8340,7 +8341,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       return false;
 
     default:
-      sorry ("unexpected ast of kind %s", tree_code_name[TREE_CODE (t)]);
+      sorry ("unexpected AST of kind %s", tree_code_name[TREE_CODE (t)]);
       gcc_unreachable();
       return false;
     }
