@@ -58,20 +58,6 @@ static VEC(char_p,heap) *string_tables = NULL;
       pph_cache_insert_at (CACHE, DATA, IX, TAG);		\
     } while (0)
 
-/* FIXME pph: Unneeded macro.  */
-/* Same as ALLOC_AND_REGISTER, but instead of registering DATA into the
-   cache at slot IX, it registers ALT_DATA.  Used to support mapping
-   pointers to global data in the original CACHE that need to point
-   to a different instance when aggregating individual PPH files into
-   the current translation unit (see pph_in_binding_level for an
-   example).  */
-#define ALLOC_AND_REGISTER_ALTERNATE(CACHE, IX, TAG, DATA, ALLOC_EXPR,  \
-                                     ALT_DATA)                  \
-    do {							\
-      (DATA) = (ALLOC_EXPR);					\
-      pph_cache_insert_at (CACHE, ALT_DATA, IX, TAG);		\
-    } while (0)
-
 /* Set in pph_in_and_merge_line_table. Represents the source_location offset
    which every streamed in token must add to it's serialized source_location.
 
@@ -80,6 +66,8 @@ static VEC(char_p,heap) *string_tables = NULL;
    */
 static int pph_loc_offset;
 
+/* Forward declarations to avoid circularity.  */
+static tree pph_in_merge_key_tree (pph_stream *, tree *);
 
 /***************************************************** stream initialization */
 
@@ -433,6 +421,8 @@ pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
   gcc_assert (m == PPH_RECORD_START
               || m == PPH_RECORD_START_NO_CACHE
               || m == PPH_RECORD_START_MUTATED
+	      || m == PPH_RECORD_START_MERGE_KEY
+	      || m == PPH_RECORD_START_MERGE_BODY
               || m == PPH_RECORD_END
               || m == PPH_RECORD_IREF
               || m == PPH_RECORD_XREF
@@ -493,7 +483,9 @@ pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
      Also read the preloaded cache slot in IX for PPH_RECORD_PREF.  */
   if (marker == PPH_RECORD_START
       || marker == PPH_RECORD_IREF
-      || marker == PPH_RECORD_PREF)
+      || marker == PPH_RECORD_PREF
+      || marker == PPH_RECORD_START_MERGE_BODY
+      || marker == PPH_RECORD_START_MERGE_KEY)
     *cache_ix_p = pph_in_uint (stream);
   else if (marker == PPH_RECORD_XREF
            || marker == PPH_RECORD_START_MUTATED)
@@ -507,22 +499,6 @@ pph_in_start_record (pph_stream *stream, unsigned *include_ix_p,
     gcc_unreachable ();
 
   return marker;
-}
-
-
-/*************************************************************** tree shells */
-
-
-/* The core tree reader is defined much later.  */
-static tree pph_in_tree_1 (pph_stream *stream, tree *chain);
-
-
-/* Load a non-mergeable AST from STREAM.  Return the corresponding tree.  */
-
-tree
-pph_in_tree (pph_stream *stream)
-{
-  return pph_in_tree_1 (stream, NULL);
 }
 
 
@@ -704,38 +680,41 @@ pph_in_tree_pair_vec (pph_stream *stream)
 /******************************************************************** chains */
 
 
-/* Read a chain of ASTs from STREAM.  If CHAIN is set, the ASTs are
-   incorporated at the head of *CHAIN as they are read.  */
-
-static tree
-pph_in_chain_1 (pph_stream *stream, tree *chain)
-{
-  HOST_WIDE_INT i, count;
-
-  if (chain == NULL)
-    return streamer_read_chain (stream->encoder.r.ib,
-                                stream->encoder.r.data_in);
-
-  count = pph_in_hwi (stream);
-  for (i = 0; i < count; i++)
-    pph_in_tree_1 (stream, chain);
-
-  return *chain;
-}
+/* Read a chain of ASTs from STREAM.  */
 
 static tree
 pph_in_chain (pph_stream *stream)
 {
-  return pph_in_chain_1 (stream, NULL);
+  return streamer_read_chain (stream->encoder.r.ib, stream->encoder.r.data_in);
 }
 
 
-/* Read and merge a chain of ASTs from STREAM into an existing CHAIN.  */
+/* Read a chain of AST merge keys from STREAM.  Merge each tree
+   into *CHAIN.  */
 
 static void
-pph_in_mergeable_chain (pph_stream *stream, tree *chain)
+pph_in_merge_key_chain (pph_stream *stream, tree *chain)
 {
-  pph_in_chain_1 (stream, chain);
+  unsigned i;
+  HOST_WIDE_INT count;
+
+  count = pph_in_hwi (stream);
+  for (i = 0; i < count; i++)
+    pph_in_merge_key_tree (stream, chain);
+}
+
+
+/* Read a chain of AST merge bodies from STREAM.  */
+
+static void
+pph_in_merge_body_chain (pph_stream *stream)
+{
+  unsigned i;
+  HOST_WIDE_INT count;
+
+  count = pph_in_hwi (stream);
+  for (i = 0; i < count; i++)
+    pph_in_tree (stream);
 }
 
 
@@ -842,7 +821,7 @@ pph_search_in_chain (tree expr, location_t where, const char *idstr,
 }
 
 
-/* Prepend an tree EXPR to a CHAIN.  */
+/* Prepend a tree EXPR to a CHAIN.  */
 
 static tree
 pph_prepend_to_chain (tree expr, tree *chain)
@@ -890,7 +869,6 @@ pph_merge_into_chain (pph_stream *stream, tree expr, tree *chain)
 
 /* Forward declaration to break cyclic dependencies.  */
 static cp_binding_level *pph_in_binding_level (pph_stream *);
-static void pph_in_mergeable_binding_level (cp_binding_level *, pph_stream *);
 
 /* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
@@ -995,14 +973,16 @@ pph_in_label_binding (pph_stream *stream)
 }
 
 
-/* Help read binding level BL.
-   FIXME pph: Much of this may be wrong for mergeable bindings.  */
+/* Read the contents of binding level BL from STREAM.  */
 
 static void
-pph_in_binding_level_1 (cp_binding_level *bl, pph_stream *stream)
+pph_in_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
 {
   unsigned i, num;
   struct bitpack_d bp;
+
+  bl->this_entity = pph_in_tree (stream);
+  bl->static_decls = pph_in_tree_vec (stream);
 
   num = pph_in_uint (stream);
   bl->class_shadowed = NULL;
@@ -1058,51 +1038,15 @@ pph_in_binding_level (pph_stream *stream)
     }
 
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_binding_level, bl,
-			ggc_alloc_cleared_cp_binding_level ());
+		      ggc_alloc_cleared_cp_binding_level ());
 
-  bl->this_entity = pph_in_tree (stream);
   bl->names = pph_in_chain (stream);
   bl->namespaces = pph_in_chain (stream);
   bl->usings = pph_in_chain (stream);
   bl->using_directives = pph_in_chain (stream);
-  bl->static_decls = pph_in_tree_vec (stream);
-  pph_in_binding_level_1 (bl, stream);
+  pph_in_binding_level_1 (stream, bl);
 
   return bl;
-}
-
-
-/* Read an instance of cp_binding_level from STREAM and merge into EXISTING.
-   The existing specifies the binding level to register in the cache
-   in place of allocating a binding.  */
-
-static void
-pph_in_mergeable_binding_level (cp_binding_level *existing, pph_stream *stream)
-{
-  unsigned image_ix, ix;
-  enum pph_record_marker marker;
-  tree entity;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
-  gcc_assert (marker != PPH_RECORD_END && !pph_is_reference_marker (marker));
-  pph_cache_insert_at (&stream->cache, existing, ix, PPH_cp_binding_level);
-
-  entity = pph_in_tree (stream);
-  gcc_assert (entity == existing->this_entity);
-  if (flag_pph_debug >= 3)
-    {
-      fprintf (pph_logfile, "PPH: Merging into this chain:\n");
-      pph_dump_chain (pph_logfile, existing->names);
-      fprintf (pph_logfile, "\n");
-    }
-  pph_in_mergeable_chain (stream, &existing->names);
-  pph_in_mergeable_chain (stream, &existing->namespaces);
-  pph_in_mergeable_chain (stream, &existing->usings);
-  pph_in_mergeable_chain (stream, &existing->using_directives);
-  /* FIXME pph: We should really be merging the static_decls.  */
-  existing->static_decls = pph_in_tree_vec (stream);
-  /* FIXME pph: Note the suspect overwriting in the next call.  */
-  pph_in_binding_level_1 (existing, stream);
 }
 
 
@@ -1951,15 +1895,50 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
-/* Read a tree from the STREAM.  If CHAIN is not NULL, the tree may be
-   unified with an existing tree in that chain.  */
+/* Read a merge key from STREAM.  If the merge key read from
+   STREAM is not found in *CHAIN, the newly allocated tree is added to
+   it.  */
 
 static tree
-pph_in_tree_1 (pph_stream *stream, tree *chain)
+pph_in_merge_key_tree (pph_stream *stream, tree *chain)
+{
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+  tree read_expr, expr;
+  enum LTO_tags tag;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
+  gcc_assert (marker == PPH_RECORD_START_MERGE_KEY);
+  tag = streamer_read_record_start (ib);
+
+  /* Materialize a new node from STREAM.  This will also read all the
+     language-independent bitfields for the new tree.  */
+  read_expr = pph_in_tree_header (stream, tag);
+
+  /* Look for a match in CHAIN to READ_EXPR's header.  If we found a
+     match, EXPR will be the existing tree that matches READ_EXPR.
+     Otherwise, EXPR is the newly allocated READ_EXPR.  */
+  expr = pph_merge_into_chain (stream, read_expr, chain);
+
+  gcc_assert (expr != NULL);
+
+  pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
+
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, true, expr != read_expr);
+
+  return expr;
+}
+
+
+/* Read and return a tree from STREAM.  */
+
+tree
+pph_in_tree (pph_stream *stream)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
-  tree read = NULL;
   tree expr = NULL;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
@@ -1997,26 +1976,12 @@ pph_in_tree_1 (pph_stream *stream, tree *chain)
 
       /* Materialize a new node from STREAM.  This will also read all the
          language-independent bitfields for the new tree.  */
-      expr = read = pph_in_tree_header (stream, tag);
-
-      /* If we were told to insert the tree into a CHAIN, look for a
-	 match in CHAIN to EXPR's header.  If we find a match, EXPR
-	 will be the tree that we want to return.  */
-      if (chain)
-	{
-	  expr = pph_merge_into_chain (stream, expr, chain);
-
-	  /* Save TREE_CHAIN for EXPR because it will be clobbered by
-	     the call to pph_in_tree_body below.  Given that EXPR may
-	     now be in a different location in the chain, we need to
-	     make sure we do not lose it.  */
-	  saved_expr_chain = TREE_CHAIN (expr);
-	}
-      gcc_assert (expr != NULL);
+      expr = pph_in_tree_header (stream, tag);
     }
 
   gcc_assert (marker == PPH_RECORD_START
-              || marker == PPH_RECORD_START_MUTATED);
+              || marker == PPH_RECORD_START_MUTATED
+	      || marker == PPH_RECORD_START_MERGE_BODY);
 
   if (marker == PPH_RECORD_START_MUTATED)
     {
@@ -2029,21 +1994,39 @@ pph_in_tree_1 (pph_stream *stream, tree *chain)
       /* Read the internal cache slot where EXPR should be stored at.  */
       ix = pph_in_uint (stream);
     }
+  else if (marker == PPH_RECORD_START_MERGE_BODY)
+    {
+      /* When reading a merge body, the tree has already been allocated
+	 and added to STREAM's cache.  All we have to do now is read
+	 its body.  FIXME pph, this read should be a merging read; we are
+	 overwriting EXPR's fields now.  */
+      expr = (tree) pph_cache_get (&stream->cache, ix);
+    }
 
-  /* Add the new tree to the cache and read its body.  The tree
-     is added to the cache before we read its body to handle
-     circular references and references from children nodes.  */
-  pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
+  /* Add the new tree to the cache and read its body.  The tree is
+     added to the cache before we read its body to handle circular
+     references and references from children nodes.  If we are reading
+     a merge body, then the tree is already in the cache (it was added
+     by pph_in_merge_key_tree).  */
+  if (marker != PPH_RECORD_START_MERGE_BODY)
+    pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
+
+  /* If we are reading a merge body, it means that EXPR is already in
+     some chain.  Given that EXPR may now be in a different location
+     in the chain, we need to make sure we do not lose it.  */
+  if (marker == PPH_RECORD_START_MERGE_BODY)
+    saved_expr_chain = TREE_CHAIN (expr);
+
   pph_in_tree_body (stream, expr);
 
-  /* If EXPR had been recovered from an existing chain, the TREE_CHAIN
-     that we read from STREAM will be different than the chain
-     location we inserted it when we merged it in.  Recover it.  */
-  if (chain && saved_expr_chain != TREE_CHAIN (expr))
+  /* Restore TREE_CHAIN if necessary.  FIXME pph, we should just not
+     save TREE_CHAIN for merge bodies.  */
+  if (marker == PPH_RECORD_START_MERGE_BODY)
     TREE_CHAIN (expr) = saved_expr_chain;
 
+
   if (flag_pph_tracer)
-    pph_trace_tree (expr, chain != NULL, expr != read);
+    pph_trace_tree (expr, false, false);
 
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
@@ -2349,6 +2332,72 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
+/* Read all the merge keys from STREAM.  Merge into the corresponding
+   contexts.  Return a VEC of all the merge keys read.  */
+
+static void
+pph_in_merge_keys (pph_stream *stream)
+{
+  cp_binding_level *bl = scope_chain->bindings;
+
+  /* First read all the merge keys and merge into the global bindings.  */
+  pph_in_merge_key_chain (stream, &bl->names);
+  pph_in_merge_key_chain (stream, &bl->namespaces);
+  pph_in_merge_key_chain (stream, &bl->usings);
+  pph_in_merge_key_chain (stream, &bl->using_directives);
+
+  /* Now read the bodies of all the trees merged above.  */
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+}
+
+
+/* Read global bindings from STREAM into scope_chain->bindings.  Note
+   that this does not call pph_in_binding_level because that would
+   overwrite the fields merged by pph_in_merge_keys.  */
+
+static void
+pph_in_global_binding (pph_stream *stream)
+{
+  unsigned image_ix, ix;
+  enum pph_record_marker marker;
+  cp_binding_level *bl;
+
+  bl = scope_chain->bindings;
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
+  gcc_assert (marker != PPH_RECORD_END);
+
+  if (pph_is_reference_marker (marker))
+    {
+      /* If we found a reference to BL, it should be the same.  This happens
+	 when we pull BL from a nested PPH image.  */
+      cp_binding_level *other_bl;
+      other_bl = (cp_binding_level *) pph_cache_find (stream, marker, image_ix,
+						      ix, PPH_cp_binding_level);
+      gcc_assert (other_bl == bl);
+    }
+  else
+    {
+      /* Note that here we do not allocate a new binding level.  Since we
+	 are reading into the global one, we register the current
+	 scope_chain->bindings into the cache.  Otherwise, we would be
+	 associating these symbols into the global binding level from
+	 STREAM, instead of the current translation unit.  */
+      pph_cache_insert_at (&stream->cache, bl, ix, PPH_cp_binding_level);
+    }
+
+  /* Read the merge keys and merge them into the current compilation
+     context.  Since we have registered scope_chain->bindings in the
+     same slot IX that the writer used, the trees read now will be
+     bound to scope_chain->bindings.  */
+  pph_in_merge_keys (stream);
+
+  pph_in_binding_level_1 (stream, bl);
+}
+
+
 /* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
 
 static void
@@ -2393,8 +2442,8 @@ pph_read_file_1 (pph_stream *stream)
      working towards an identical line_table in pph and non-pph.  */
   cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
 
-  /* Read the bindings from STREAM and merge them with the current bindings.  */
-  pph_in_mergeable_binding_level (scope_chain->bindings, stream);
+  /* Read the bindings from STREAM.  */
+  pph_in_global_binding (stream);
 
   /* Read and merge the other global state collected during parsing of
      the original header.  */

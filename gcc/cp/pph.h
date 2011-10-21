@@ -62,6 +62,12 @@ enum pph_record_marker {
        top of the already allocated object.  */
   PPH_RECORD_START_MUTATED,
 
+  /* Start a merge key.  */
+  PPH_RECORD_START_MERGE_KEY,
+
+  /* Start a merge body.  */
+  PPH_RECORD_START_MERGE_BODY,
+
   /* End of record marker.  If a record starts with PPH_RECORD_END, the
      reader should return a NULL pointer.  */
   PPH_RECORD_END,

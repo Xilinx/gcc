@@ -89,6 +89,11 @@ typedef struct pph_cache_entry {
   /* Tag describing the type of the cached data.  */
   enum pph_tag tag;
 
+  /* Non-zero if this entry has been emitted as a merge key.  This means
+     that the next time this entry is written out, it should be written
+     as a merge body record (see pph_out_start_tree_record for details).  */
+  unsigned int needs_merge_body : 1;
+
   /* Checksum information for DATA.  */
   unsigned int crc;
 
@@ -232,11 +237,14 @@ void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);
 void pph_trace_tree (tree, bool, bool);
-void pph_cache_insert_at (pph_cache *, void *, unsigned, enum pph_tag);
-bool pph_cache_lookup (pph_cache *, void *, unsigned *, enum pph_tag);
-bool pph_cache_lookup_in_includes (pph_stream *, void *, unsigned *, unsigned *,
-                                   enum pph_tag);
-bool pph_cache_add (pph_cache *, void *, unsigned *, enum pph_tag);
+pph_cache_entry *pph_cache_insert_at (pph_cache *, void *, unsigned,
+				      enum pph_tag);
+pph_cache_entry *pph_cache_lookup (pph_cache *, void *, unsigned *,
+				   enum pph_tag);
+pph_cache_entry *pph_cache_lookup_in_includes (pph_stream *, void *,
+					       unsigned *, unsigned *,
+					       enum pph_tag);
+pph_cache_entry *pph_cache_add (pph_cache *, void *, unsigned *, enum pph_tag);
 void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
 unsigned pph_get_signature (tree, size_t *);
 void pph_writer_add_include (pph_stream *);
@@ -365,20 +373,24 @@ pph_tag_is_tree_code (enum pph_tag tag)
 }
 
 /* Return the PPH tag associated with tree node T.  */
-/* FIXME pph: apparently unused, except just below.  */
 static inline enum pph_tag
 pph_tree_code_to_tag (tree t)
 {
   return t ? (enum pph_tag) TREE_CODE (t) : PPH_null;
 }
 
-/* Return the tree code associated with PPH tag TAG.  */
-/* FIXME pph: apparently unused.  */
-static inline enum tree_code
-pph_tag_to_tree_code (enum pph_tag tag)
+/* Return true if EXPR can be emitted in two parts: a merge key and
+   a merge body.  This is used to support merging ASTs read from
+   multiple PPH images.  */
+static inline bool
+pph_tree_is_mergeable (tree expr)
 {
-  gcc_assert (pph_tag_is_tree_code (tag));
-  return (enum tree_code) tag;
+  return TREE_CODE (expr) == VAR_DECL
+	 || TREE_CODE (expr) == FUNCTION_DECL
+	 || TREE_CODE (expr) == TYPE_DECL
+	 || TREE_CODE (expr) == TEMPLATE_DECL
+	 || TREE_CODE (expr) == NAMESPACE_DECL
+	 || TREE_CODE (expr) == CONST_DECL;
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

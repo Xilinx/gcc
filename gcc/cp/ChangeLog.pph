@@ -1,3 +1,47 @@
+2011-10-20   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (ALLOC_AND_REGISTER_ALTERNATE): Remove.
+	(pph_in_tree_1): Remove.
+	(pph_in_tree): Rename from pph_in_tree_1.
+	(pph_in_chain): Call streamer_read_chain.
+	(pph_in_merge_key_chain): New.
+	(pph_in_merge_body_chain): Rename from pph_in_mergeable_chain.
+	(pph_in_binding_level_1): Switch the order of the arguments.
+	Update all users.
+	Read fields this_entity and static_decls.
+	(pph_in_mergeable_binding_level): Remove.
+	(pph_in_merge_key_tree): New.
+	(pph_in_tree): Handle PPH_RECORD_START_MERGE_BODY.
+	(pph_in_merge_keys): New.
+	(pph_in_global_binding): New.
+	(pph_read_file_1): Call it.
+	* pph-streamer-out.c (pph_get_marker_for):
+	(pph_out_start_tree_record): Handle PPH_RECORD_START_MERGE_BODY.
+	(pph_out_start_merge_key_record): New.
+	(pph_out_tree_1): Remove.
+	(pph_out_tree): Rename from pph_out_tree_1.
+	Handle PPH_RECORD_START_MERGE_BODY.
+	(pph_out_merge_key_vec): Rename from pph_out_mergeable_tree_vec.
+	Call pph_out_merge_key_tree.
+	(pph_out_merge_key_chain): Rename from pph_out_mergeable_chain_filtered.
+	(pph_out_binding_level_1): Handle fields this_entity and static_decls.
+	(pph_out_mergeable_binding_level): Remove.
+	(pph_out_merge_key_tree): New.
+	(pph_out_merge_keys): New.
+	(pph_out_global_binding): Call pph_out_merge_keys.
+	* pph-streamer.c (pph_cache_insert_at): Return the inserted entry.
+	Update all users.
+	(pph_cache_add): Likewise.
+	(pph_cache_lookup): Return the found entry.  Update all users.
+	(pph_cache_lookup_in_includes): Likewise.
+	(pph_merge_name): Ignore EXPRs with no lang-specific info.
+	* pph-streamer.h (pph_cache_entry): Add field needs_merge_body.
+	Update all users.
+	(pph_tag_to_tree_code): Remove.
+	(pph_tree_is_mergeable): New.
+	* pph.h (enum pph_record_marker): Add values PPH_RECORD_START_MERGE_KEY
+	and PPH_RECORD_START_MERGE_BODY.
+
 2011-10-16   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer-in.c (pph_match_to_overload): Comment on overloading.

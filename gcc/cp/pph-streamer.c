@@ -361,14 +361,14 @@ pph_trace_tree (tree t, bool mergeable, bool merged)
 /* Insert DATA in CACHE at slot IX.  TAG represents the data structure
    pointed-to by DATA.  As a restriction to prevent stomping on cache
    entries, this will not allow inserting into the same slot more than
-   once.  */
+   once.  Return the newly added entry.  */
 
-void
+pph_cache_entry *
 pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix,
                      enum pph_tag tag)
 {
   void **map_slot;
-  pph_cache_entry e = { data, tag, 0, 0 };
+  pph_cache_entry e = { data, tag, false, 0, 0 };
 
   map_slot = pointer_map_insert (cache->m, data);
 
@@ -379,23 +379,26 @@ pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix,
   if (ix + 1 > VEC_length (pph_cache_entry, cache->v))
     VEC_safe_grow_cleared (pph_cache_entry, heap, cache->v, ix + 1);
   VEC_replace (pph_cache_entry, cache->v, ix, &e);
+
+  return pph_cache_get_entry (cache, ix);
 }
 
 
-/* Return true if DATA exists in CACHE.  If IX_P is not NULL, store
-   the cache slot where DATA resides in *IX_P (or (unsigned)-1 if DATA
-   is not found). If CACHE is NULL use pph_preloaded_cache.
+/* If DATA exists in CACHE, return the cache entry holding it.  If
+   IX_P is not NULL, store the cache slot where DATA resides in *IX_P
+   (or (unsigned)-1 if DATA is not found). If CACHE is NULL use
+   pph_preloaded_cache.
 
    If a cache hit is found, the data type tag for the entry must match
    TAG.  */
 
-bool
+pph_cache_entry *
 pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
                   enum pph_tag tag)
 {
   void **map_slot;
   unsigned ix;
-  bool existed_p;
+  pph_cache_entry *e;
 
   if (cache == NULL)
     cache = pph_preloaded_cache;
@@ -403,7 +406,7 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
   map_slot = pointer_map_contains (cache->m, data);
   if (map_slot == NULL)
     {
-      existed_p = false;
+      e = NULL;
       ix = (unsigned) -1;
     }
   else
@@ -411,21 +414,18 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
       intptr_t slot_ix = (intptr_t) *map_slot;
       gcc_assert (slot_ix == (intptr_t)(unsigned) slot_ix);
       ix = (unsigned) slot_ix;
-      existed_p = true;
+      e = pph_cache_get_entry (cache, ix);
 
-      /* If the caller is looking for a specific tag, make sure
+      /* If the caller is looking for a specific TAG, make sure
          it matches the tag we pulled from the cache.  */
       if (tag != PPH_null)
-        {
-          pph_cache_entry *e = pph_cache_get_entry (cache, ix);
-          gcc_assert (tag == e->tag);
-        }
+	gcc_assert (tag == e->tag);
     }
 
   if (ix_p)
     *ix_p = ix;
 
-  return existed_p;
+  return e;
 }
 
 
@@ -444,36 +444,37 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
       - *IX_P is set to -1 (if IX_P is not NULL), and,
       - the function returns false.  */
 
-bool
+pph_cache_entry *
 pph_cache_lookup_in_includes (pph_stream *stream, void *data,
 			      unsigned *include_ix_p, unsigned *ix_p,
 			      enum pph_tag tag)
 {
   unsigned include_ix, ix;
   pph_stream *include;
-  bool found_it;
+  pph_cache_entry *e;
 
   /* When searching the external caches, do not try to find a match
      for TAG.  Since this is an external cache, the parser may have
      re-allocated the object pointed by DATA (e.g., when merging
      decls).  In this case, TAG will be different from the tag we find
-     in the cache, so instead of ICEing, we ignore the match so the
-     caller is forced to pickle DATA.  */
-  found_it = false;
+     in the cache, so instead of ICEing, we ignore the match to force
+     the caller to pickle DATA.  */
+  e = NULL;
   FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, include_ix, include)
-    if (pph_cache_lookup (&include->cache, data, &ix, PPH_null))
-      {
-        pph_cache_entry *e = pph_cache_get_entry (&include->cache, ix);
+    {
+      e = pph_cache_lookup (&include->cache, data, &ix, PPH_null);
+      if (e)
+	{
+	  /* Only consider DATA found if its data type matches TAG.  If
+	     not, it means that the object pointed by DATA has changed,
+	     so DATA will need to be re-pickled.  */
+	  if (e->tag != tag)
+	    e = NULL;
+	  break;
+	}
+    }
 
-        /* Only consider DATA found if its data type matches TAG.  If
-           not, it means that the object pointed by DATA has changed,
-           so DATA will need to be re-pickled.  */
-        if (e->tag == tag)
-          found_it = true;
-        break;
-      }
-
-  if (!found_it)
+  if (e == NULL)
     {
       include_ix = ix = (unsigned) -1;
       ix = (unsigned) -1;
@@ -485,33 +486,31 @@ pph_cache_lookup_in_includes (pph_stream *stream, void *data,
   if (ix_p)
     *ix_p = ix;
 
-  return found_it;
+  return e;
 }
 
 
 /* Add pointer DATA with data type TAG to CACHE.  If IX_P is not NULL,
    on exit *IX_P will contain the slot number where DATA is stored.
-   Return true if DATA already existed in the CACHE, false otherwise.  */
+   Return the newly added entry.  */
 
-bool
+pph_cache_entry *
 pph_cache_add (pph_cache *cache, void *data, unsigned *ix_p, enum pph_tag tag)
 {
   unsigned ix;
-  bool existed_p;
+  pph_cache_entry *e;
 
-  if (pph_cache_lookup (cache, data, &ix, tag))
-    existed_p = true;
-  else
+  e = pph_cache_lookup (cache, data, &ix, tag);
+  if (e == NULL)
     {
-      existed_p = false;
       ix = VEC_length (pph_cache_entry, cache->v);
-      pph_cache_insert_at (cache, data, ix, tag);
+      e = pph_cache_insert_at (cache, data, ix, tag);
     }
 
   if (ix_p)
     *ix_p = ix;
 
-  return existed_p;
+  return e;
 }
 
 
@@ -579,7 +578,9 @@ pph_get_signature (tree t, size_t *nbytes_p)
 tree
 pph_merge_name (tree expr)
 {
-  if (TREE_CODE (expr) == FUNCTION_DECL && !DECL_BUILT_IN (expr))
+  if (TREE_CODE (expr) == FUNCTION_DECL
+      && !DECL_BUILT_IN (expr)
+      && DECL_LANG_SPECIFIC (expr))
     return DECL_ASSEMBLER_NAME (expr);
   else
     return DECL_NAME (expr);
