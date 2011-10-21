@@ -1814,7 +1814,7 @@ sweep_pages (struct alloc_zone *zone)
 	  if (finalizer != NULL) 
 	    {
 	      lp->large_finalizer = NULL;
-	      finalizer ((void*) lp);
+	      finalizer ((void*) lp->common.page);
 	    };
 
 	  *lpp = lnext;

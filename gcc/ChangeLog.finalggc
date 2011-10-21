@@ -1,6 +1,10 @@
 
 
 2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* ggc-zone.c (sweep_pages): Call the finalizer on the page data of
+	large objects.
+
+2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* ggc-zone.c (max_finalized_alignment): New struct.
 	(MAX_FINALIZED_ALIGNMENT): New macro.
 	(alloc_small_page): Fill appropriately the page_kind.
