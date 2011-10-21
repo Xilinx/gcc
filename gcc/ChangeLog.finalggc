@@ -1,4 +1,8 @@
 
+2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* ggc-zone.c (ggc_free, gt_ggc_m_S, ggc_set_mark, ggc_marked_p)
+	(ggc_get_size): Use switch on page_kind.
+	(sweep_pages): Better assertion on small pages.
 
 2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* ggc-zone.c (struct alloc_zone): Rename pages field as small_pages.

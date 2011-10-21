@@ -1448,57 +1448,64 @@ void
 ggc_free (void *p)
 {
   struct page_entry *page;
+  size_t size;
 
 #ifdef GATHER_STATISTICS
   ggc_free_overhead (p);
 #endif
 
-  poison_region (p, ggc_get_size (p));
-
   page = zone_get_object_page (p);
+  size = ggc_get_size (p);
 
-  if (page->page_kind == GGCZON_LARGE_PAGE)
+  switch (page->page_kind) 
     {
-      struct large_page_entry *large_page
-	= (struct large_page_entry *) page;
+    case GGCZON_LARGE_PAGE:
+      {
+	struct large_page_entry *large_page
+	  = (struct large_page_entry *) page;
 
-      /* Finalize the object, if relevant.  */
-      if (large_page->large_finalizer) 
-	{
-	  ggc_finalizer_t* finalizer = large_page->large_finalizer;
-	  large_page->large_finalizer = NULL;
-	  finalizer (p);
-	}
+	/* Finalize the object, if relevant, then poison it.  */
+	if (large_page->large_finalizer) 
+	  {
+	    ggc_finalizer_t* finalizer = large_page->large_finalizer;
+	    large_page->large_finalizer = NULL;
+	    finalizer (p);
+	  }
+	poison_region (p, size);
 
-      /* Remove the page from the linked list.  */
-      if (large_page->prev)
-	large_page->prev->next = large_page->next;
-      else
-	{
-	  gcc_assert (large_page->common.zone->large_pages == large_page);
-	  large_page->common.zone->large_pages = large_page->next;
-	}
-      if (large_page->next)
-	large_page->next->prev = large_page->prev;
+	/* Remove the page from the linked list.  */
+	if (large_page->prev)
+	  large_page->prev->next = large_page->next;
+	else
+	  {
+	    gcc_assert (large_page->common.zone->large_pages == large_page);
+	    large_page->common.zone->large_pages = large_page->next;
+	  }
+	if (large_page->next)
+	  large_page->next->prev = large_page->prev;
 
-      large_page->common.zone->allocated -= large_page->bytes;
+	large_page->common.zone->allocated -= large_page->bytes;
 
-      /* Release the memory associated with this object.  */
-      free_large_page (large_page);
-    }
-  else if (page->page_kind == GGCZON_PCH_PAGE)
-    /* Don't do anything.  We won't allocate a new object from the
-       PCH zone so there's no point in releasing anything.  */
-    ;
-  else
-    {
-      size_t size = ggc_get_size (p);
+	/* Release the memory associated with this object.  */
+	free_large_page (large_page);
+      }
+      break;
+    case GGCZON_PCH_PAGE:
+      /* Don't do anything.  We won't allocate a new object from the
+	 PCH zone so there's no point in releasing anything.  */
+      break;
+    case GGCZON_SMALL_PAGE:
 
+      poison_region (p, size);
       page->zone->allocated -= size;
 
       /* Add the chunk to the free list.  We don't bother with coalescing,
 	 since we are likely to want a chunk of this size again.  */
       free_chunk ((char *)p, size, page->zone);
+      break;
+      
+    default:
+      gcc_unreachable ();
     }
 }
 
@@ -1515,35 +1522,43 @@ gt_ggc_m_S (const void *p)
 
   /* Look up the page on which the object is alloced.  .  */
   entry = lookup_page_table_if_allocated (p);
-  if (! entry)
+  if (!entry)
     return;
 
-  if (entry->page_kind == GGCZON_PCH_PAGE)
+  switch (entry->page_kind) 
     {
-      size_t alloc_word, alloc_bit, t;
-      t = ((const char *) p - pch_zone.page) / BYTES_PER_ALLOC_BIT;
-      alloc_word = t / (8 * sizeof (alloc_type));
-      alloc_bit = t % (8 * sizeof (alloc_type));
-      offset = zone_find_object_offset (pch_zone.alloc_bits, alloc_word,
-					alloc_bit);
-    }
-  else if (entry->page_kind == GGCZON_LARGE_PAGE)
-    {
-      struct large_page_entry *le = (struct large_page_entry *) entry;
-      offset = ((const char *) p) - entry->page;
-      gcc_assert (offset < le->bytes);
-    }
-  else
-    {
-      struct small_page_entry *se = (struct small_page_entry *) entry;
-      unsigned int start_word = zone_get_object_alloc_word (p);
-      unsigned int start_bit = zone_get_object_alloc_bit (p);
-      offset = zone_find_object_offset (se->alloc_bits, start_word, start_bit);
+    case GGCZON_PCH_PAGE:
+      {
+	size_t alloc_word, alloc_bit, t;
+	t = ((const char *) p - pch_zone.page) / BYTES_PER_ALLOC_BIT;
+	alloc_word = t / (8 * sizeof (alloc_type));
+	alloc_bit = t % (8 * sizeof (alloc_type));
+	offset = zone_find_object_offset (pch_zone.alloc_bits, alloc_word,
+					  alloc_bit);
+      }
+      break;
+    case GGCZON_LARGE_PAGE:
+      {
+	struct large_page_entry *le = (struct large_page_entry *) entry;
+	offset = ((const char *) p) - entry->page;
+	gcc_assert (offset < le->bytes);
+      }
+      break;
+    case GGCZON_SMALL_PAGE:
+      {
+	struct small_page_entry *se = (struct small_page_entry *) entry;
+	unsigned int start_word = zone_get_object_alloc_word (p);
+	unsigned int start_bit = zone_get_object_alloc_bit (p);
+	offset = zone_find_object_offset (se->alloc_bits, start_word, start_bit);
 
-      /* On some platforms a char* will not necessarily line up on an
-	 allocation boundary, so we have to update the offset to
-	 account for the leftover bytes.  */
-      offset += (size_t) p % BYTES_PER_ALLOC_BIT;
+	/* On some platforms a char* will not necessarily line up on an
+	   allocation boundary, so we have to update the offset to
+	   account for the leftover bytes.  */
+	offset += (size_t) p % BYTES_PER_ALLOC_BIT;
+      }
+      break;
+    default:
+      gcc_unreachable ();
     }
 
   if (offset)
@@ -1573,36 +1588,47 @@ ggc_set_mark (const void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->page_kind == GGCZON_PCH_PAGE)
+  switch (page->page_kind) 
     {
-      size_t mark_word, mark_bit, offset;
-      offset = (ptr - pch_zone.page) / BYTES_PER_MARK_BIT;
-      mark_word = offset / (8 * sizeof (mark_type));
-      mark_bit = offset % (8 * sizeof (mark_type));
+    case GGCZON_PCH_PAGE:
+      {
+	size_t mark_word, mark_bit, offset;
+	offset = (ptr - pch_zone.page) / BYTES_PER_MARK_BIT;
+	mark_word = offset / (8 * sizeof (mark_type));
+	mark_bit = offset % (8 * sizeof (mark_type));
 
-      if (pch_zone.mark_bits[mark_word] & (1 << mark_bit))
-	return 1;
-      pch_zone.mark_bits[mark_word] |= (1 << mark_bit);
-    }
-  else if (page->page_kind == GGCZON_LARGE_PAGE)
-    {
-      struct large_page_entry *large_page
-	= (struct large_page_entry *) page;
+	if (pch_zone.mark_bits[mark_word] & (1 << mark_bit))
+	  return 1;
+	pch_zone.mark_bits[mark_word] |= (1 << mark_bit);
+      }
+      break;
 
-      if (large_page->mark_p)
-	return 1;
-      large_page->mark_p = true;
-    }
-  else
-    {
-      struct small_page_entry *small_page
-	= (struct small_page_entry *) page;
+    case GGCZON_LARGE_PAGE:
+      {
+	struct large_page_entry *large_page
+	  = (struct large_page_entry *) page;
 
-      if (small_page->mark_bits[zone_get_object_mark_word (p)]
-	  & (1 << zone_get_object_mark_bit (p)))
-	return 1;
-      small_page->mark_bits[zone_get_object_mark_word (p)]
-	|= (1 << zone_get_object_mark_bit (p));
+	if (large_page->mark_p)
+	  return 1;
+	large_page->mark_p = true;
+      }
+      break;
+
+    case GGCZON_SMALL_PAGE:
+      {
+	struct small_page_entry *small_page
+	  = (struct small_page_entry *) page;
+
+	if (small_page->mark_bits[zone_get_object_mark_word (p)]
+	    & (1 << zone_get_object_mark_bit (p)))
+	  return 1;
+	small_page->mark_bits[zone_get_object_mark_word (p)]
+	  |= (1 << zone_get_object_mark_bit (p));
+      }
+      break;
+
+    default:
+      gcc_unreachable ();
     }
 
   if (GGC_DEBUG_LEVEL >= 4)
@@ -1623,30 +1649,37 @@ ggc_marked_p (const void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->page_kind == GGCZON_PCH_PAGE)
+  switch (page->page_kind) 
     {
-      size_t mark_word, mark_bit, offset;
-      offset = (ptr - pch_zone.page) / BYTES_PER_MARK_BIT;
-      mark_word = offset / (8 * sizeof (mark_type));
-      mark_bit = offset % (8 * sizeof (mark_type));
+    case GGCZON_PCH_PAGE:
+      {
+	size_t mark_word, mark_bit, offset;
+	offset = (ptr - pch_zone.page) / BYTES_PER_MARK_BIT;
+	mark_word = offset / (8 * sizeof (mark_type));
+	mark_bit = offset % (8 * sizeof (mark_type));
 
-      return (pch_zone.mark_bits[mark_word] & (1 << mark_bit)) != 0;
-    }
+	return (pch_zone.mark_bits[mark_word] & (1 << mark_bit)) != 0;
+      }
 
-  if (page->page_kind == GGCZON_LARGE_PAGE)
-    {
-      struct large_page_entry *large_page
-	= (struct large_page_entry *) page;
+    case GGCZON_LARGE_PAGE:
+      {
+	struct large_page_entry *large_page
+	  = (struct large_page_entry *) page;
 
-      return large_page->mark_p;
-    }
-  else
-    {
-      struct small_page_entry *small_page
-	= (struct small_page_entry *) page;
+	return large_page->mark_p;
+      }
+ 
+    case GGCZON_SMALL_PAGE:
+      {
+	struct small_page_entry *small_page
+	  = (struct small_page_entry *) page;
 
-      return 0 != (small_page->mark_bits[zone_get_object_mark_word (p)]
-		   & (1 << zone_get_object_mark_bit (p)));
+	return 0 != (small_page->mark_bits[zone_get_object_mark_word (p)]
+		     & (1 << zone_get_object_mark_bit (p)));
+      }
+
+    default:
+      gcc_unreachable ();
     }
 }
 
@@ -1660,21 +1693,28 @@ ggc_get_size (const void *p)
 
   page = zone_get_object_page (p);
 
-  if (page->page_kind == GGCZON_PCH_PAGE)
+  switch (page->page_kind) 
     {
-      size_t alloc_word, alloc_bit, offset, max_size;
-      offset = (ptr - pch_zone.page) / BYTES_PER_ALLOC_BIT + 1;
-      alloc_word = offset / (8 * sizeof (alloc_type));
-      alloc_bit = offset % (8 * sizeof (alloc_type));
-      max_size = pch_zone.bytes - (ptr - pch_zone.page);
-      return zone_object_size_1 (pch_zone.alloc_bits, alloc_word, alloc_bit,
-				 max_size);
-    }
+    case GGCZON_PCH_PAGE:
+      {
+	size_t alloc_word, alloc_bit, offset, max_size;
+	offset = (ptr - pch_zone.page) / BYTES_PER_ALLOC_BIT + 1;
+	alloc_word = offset / (8 * sizeof (alloc_type));
+	alloc_bit = offset % (8 * sizeof (alloc_type));
+	max_size = pch_zone.bytes - (ptr - pch_zone.page);
+	return zone_object_size_1 (pch_zone.alloc_bits, alloc_word, alloc_bit,
+				   max_size);
+      }
 
-  if (page->page_kind == GGCZON_LARGE_PAGE)
-    return ((struct large_page_entry *)page)->bytes;
-  else
-    return zone_find_object_size ((struct small_page_entry *) page, p);
+    case GGCZON_LARGE_PAGE:
+      return ((struct large_page_entry *)page)->bytes;
+
+    case GGCZON_SMALL_PAGE:
+      return zone_find_object_size ((struct small_page_entry *) page, p);
+
+    default:
+      gcc_unreachable ();
+    }
 }
 
 /* Initialize the ggc-zone-mmap allocator.  */
@@ -1838,7 +1878,7 @@ sweep_pages (struct alloc_zone *zone)
       alloc_type *alloc_word_p;
       mark_type *mark_word_p;
 
-      gcc_assert (sp->common.page_kind != GGCZON_NONE && sp->common.page_kind != GGCZON_LARGE_PAGE);
+      gcc_assert (sp->common.page_kind == GGCZON_SMALL_PAGE);
 
       snext = sp->next;
 
