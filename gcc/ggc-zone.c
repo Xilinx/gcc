@@ -193,6 +193,22 @@ struct max_alignment {
 
 #define MAX_ALIGNMENT (offsetof (struct max_alignment, u))
 
+/* On some machines, function pointers are bigger than data pointers
+   or should be more aligned, so we have a finalized alignment which
+   might be bigger than the plain one.  */
+struct max_finalized_alignment {
+  char c;
+  union {
+    HOST_WIDEST_INT i;
+    double d;
+    ggc_finalizer_t *f;
+    void* p;
+  } u;
+};
+
+/* The alignment for finalized objects, might be bigger than MAX_ALIGNMENT.  */
+#define MAX_FINALIZED_ALIGNMENT  (offsetof (struct max_finalized_alignment, u))
+
 /* Compute the smallest multiple of F that is >= X.  */
 
 #define ROUND_UP(x, f) (CEIL (x, f) * (f))
@@ -897,6 +913,7 @@ alloc_small_page (struct alloc_zone *zone)
 	  e = XCNEWVAR (struct small_page_entry, G.small_page_overhead);
 	  e->common.page = page + (i << GGC_PAGE_SHIFT);
 	  e->common.zone = zone;
+	  e->common.page_kind = GGCZON_SMALL_PAGE;
 	  e->next = f;
 	  f = e;
 	  set_page_table_entry (e->common.page, &e->common);
@@ -911,6 +928,7 @@ alloc_small_page (struct alloc_zone *zone)
     }
 
   zone->n_small_pages++;
+  entry->common.page_kind = GGCZON_SMALL_PAGE;
 
   if (GGC_DEBUG_LEVEL >= 2)
     fprintf (G.debug_file,
@@ -1397,8 +1415,10 @@ ggc_alloc_typed_stat (enum gt_types_enum gte, size_t size
 
 
 void *
-ggc_finalized_alloc_stat (size_t sz, ggc_finalizer_t*destr MEM_STAT_DECL)
-{
+ggc_finalized_alloc_stat (size_t sz, ggc_finalizer_t*finalizer MEM_STAT_DECL)
+ {
+   if (!finalizer)
+     return ggc_internal_cleared_alloc_zone_stat (sz, &main_zone PASS_MEM_STAT);
   fatal_error ("unimplemented finalized alloc of size %d", (int) sz);
 }
 
