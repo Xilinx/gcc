@@ -209,6 +209,54 @@ struct max_finalized_alignment {
 /* The alignment for finalized objects, might be bigger than MAX_ALIGNMENT.  */
 #define MAX_FINALIZED_ALIGNMENT  (offsetof (struct max_finalized_alignment, u))
 
+
+/* finalized chunks are multiple of MAX_FINALIZED_ALIGNMENT, with the
+   following possible sizes. */
+const unsigned 
+ggczon_finalized_sizetab[] =
+  {
+    0,
+    2, 3, 4, 5, 6, 
+    /* powers of two, or 3 times powers of two */
+    8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 
+    0
+  };
+#define GGCZON_NUMBER_FINALIZED_SIZES (sizeof(ggczon_finalized_sizetab)/sizeof(unsigned))
+
+/* State of finalizable memory chunks. */
+enum ggczon_chunkstate_en {
+  ZONECHUNK_NONE=0,
+  ZONECHUNK_ALLOCATED,		/* allocated but not yet marked object */
+  ZONECHUNK_MARKED,		/* marked object */
+  ZONECHUNK_FREE		/* free chunk, reusable for allocation */
+};
+  
+/* Finalized small objects are prefixed by a final prefix which is
+   placed just before the finalized object. */
+union ggczon_final_prefix_un {
+  char finpref_aligned_data[MAX_FINALIZED_ALIGNMENT];
+  struct {
+    /* the pointer to the finalization routine, should not be null. */
+    ggc_finalizer_t *finpref_finalizer_;
+#define finpref_finalizer finpref_un_.finpref_finalizer_
+    /* the chunk's state, actually an enum ggczon_chunkstate_en  */
+    unsigned char finpref_state_;
+#define finpref_state finpref_un_.finpref_state_
+    /* the size index of the object. */
+    unsigned char finpref_size_index_;
+#define finpref_size_index finpref_un_.finpref_size_index_
+    /* the offset, in multiple of MAX_FINALIZED_ALIGNMENT, of the next
+       chunk in this zone, or else 0. */
+    unsigned short finpref_next_offset_;
+#define finpref_next_offset finpref_un_.finpref_next_offset_
+  } finpref_un_;
+};
+
+/* given an object pointer inside a finalizing zone, get its prefix */
+#define GGCZON_FINALIZED_PREFIX(Chk) (((union ggczon_final_prefix_un*)(Chk))[-1])
+/* Given a finalizing prefix, get the object start */
+#define GGCZON_FINALIZED_OBJECT(Pre) ((void*)(((union ggczon_final_prefix_un*)(Pre))+1))
+
 /* Compute the smallest multiple of F that is >= X.  */
 
 #define ROUND_UP(x, f) (CEIL (x, f) * (f))
@@ -226,6 +274,7 @@ typedef unsigned int mark_type;
 enum page_kind_en {
   GGCZON_NONE=0,
   GGCZON_SMALL_PAGE,
+  GGCZON_FINALIZING_PAGE,
   GGCZON_LARGE_PAGE,
   GGCZON_PCH_PAGE
 };
@@ -248,15 +297,15 @@ typedef struct page_entry
 
   /* What kind of page is this.  Never zero! */
   enum page_kind_en page_kind;
+
+  /* The next page of its list, when appropriate */
+  struct page_entry *next_page;
 } page_entry;
 
 /* Additional data needed for small pages.  */
 struct small_page_entry
 {
   struct page_entry common;
-
-  /* The next small page entry, or NULL if this is the last.  */
-  struct small_page_entry *next;
 
   /* If currently marking this zone, a pointer to the mark bits
      for this page.  If we aren't currently marking this zone,
@@ -268,13 +317,18 @@ struct small_page_entry
   alloc_type alloc_bits[1];
 };
 
+
+/* Additional data needed for small finalizing pages, that is for
+   pages containing small finalized objects. */
+struct finalizing_page_entry
+{
+  struct page_entry common;
+};
+
 /* Additional data needed for large pages.  */
 struct large_page_entry
 {
   struct page_entry common;
-
-  /* The next large page entry, or NULL if this is the last.  */
-  struct large_page_entry *next;
 
   /* The number of bytes allocated, not including the page entry.  */
   size_t bytes;
@@ -401,6 +455,12 @@ struct alloc_zone
   /* Doubly linked list of large pages in this zone.  */
   struct large_page_entry *large_pages;
 
+  /* Linked list of finalizing pages for small finalized objects. */
+  struct finalizing_page_entry *finalizing_pages;
+
+  /* Array of free finalizing chunks */
+  void* free_finalizing_chunks[GGCZON_NUMBER_FINALIZED_SIZES];
+
   /* If we are currently marking this zone, a pointer to the mark bits.  */
   mark_type *mark_bits;
 
@@ -416,8 +476,12 @@ struct alloc_zone
   /* Total amount of memory mapped.  */
   size_t bytes_mapped;
 
-  /* A cache of free system pages.  */
-  struct small_page_entry *free_pages;
+  /* A cache of free system pages for small objects.  */
+  struct small_page_entry *free_small_pages;
+
+  /* A cache of free system pages for small finalizable objects.  */
+  struct finalizing_page_entry *free_finalizing_pages;
+#warning should check that free_finalizing_pages is correctly used
 
   /* Next zone in the linked list of zones.  */
   struct alloc_zone *next_zone;
@@ -485,6 +549,7 @@ struct pch_zone
 static char *alloc_anon (char *, size_t, struct alloc_zone *);
 #endif
 static struct small_page_entry * alloc_small_page (struct alloc_zone *);
+static struct finalizing_page_entry *alloc_finalizing_page (struct alloc_zone *);
 static struct large_page_entry * alloc_large_page (size_t, struct alloc_zone *);
 static void free_chunk (char *, size_t, struct alloc_zone *);
 static void free_small_page (struct small_page_entry *);
@@ -806,7 +871,8 @@ zone_allocate_marks (void)
       zone->mark_bits = (mark_type *) xcalloc (sizeof (mark_type),
 						   mark_words);
       cur_marks = zone->mark_bits;
-      for (page = zone->small_pages; page; page = page->next)
+      for (page = zone->small_pages; page; 
+	   page = (struct small_page_entry *) (page->common.next_page))
 	{
 	  page->mark_bits = cur_marks;
 	  cur_marks += mark_words_per_page;
@@ -880,6 +946,7 @@ alloc_anon (char *pref ATTRIBUTE_UNUSED, size_t size, struct alloc_zone *zone)
 }
 #endif
 
+
 /* Allocate a new page for allocating small objects in ZONE, and
    return an entry for it.  */
 
@@ -889,18 +956,18 @@ alloc_small_page (struct alloc_zone *zone)
   struct small_page_entry *entry;
 
   /* Check the list of free pages for one we can use.  */
-  entry = zone->free_pages;
+  entry = zone->free_small_pages;
   if (entry != NULL)
     {
       /* Recycle the allocated memory from this page ...  */
-      zone->free_pages = entry->next;
+      zone->free_small_pages = (struct small_page_entry*) (entry->common.next_page);
     }
   else
     {
       /* We want just one page.  Allocate a bunch of them and put the
 	 extras on the freelist.  (Can only do this optimization with
 	 mmap for backing store.)  */
-      struct small_page_entry *e, *f = zone->free_pages;
+      struct small_page_entry *e, *f = zone->free_small_pages;
       int i;
       char *page;
 
@@ -914,12 +981,12 @@ alloc_small_page (struct alloc_zone *zone)
 	  e->common.page = page + (i << GGC_PAGE_SHIFT);
 	  e->common.zone = zone;
 	  e->common.page_kind = GGCZON_SMALL_PAGE;
-	  e->next = f;
+	  e->common.next_page = (struct page_entry*)f;
 	  f = e;
 	  set_page_table_entry (e->common.page, &e->common);
 	}
 
-      zone->free_pages = f;
+      zone->free_small_pages = f;
 
       entry = XCNEWVAR (struct small_page_entry, G.small_page_overhead);
       entry->common.page = page;
@@ -939,6 +1006,67 @@ alloc_small_page (struct alloc_zone *zone)
   return entry;
 }
 
+
+/* Allocate a new page for allocating small finalized objects in ZONE, and
+   return an entry for it.  */
+
+static struct finalizing_page_entry *
+alloc_finalizing_page (struct alloc_zone *zone)
+{
+  struct finalizing_page_entry *entry;
+
+  /* Check the list of free pages for one we can use.  */
+  entry = (struct finalizing_page_entry *) (zone->free_finalizing_pages);
+  if (entry != NULL)
+    {
+      /* Recycle the allocated memory from this page ...  */
+      zone->free_finalizing_pages =  (struct finalizing_page_entry *) (entry->common.next_page);
+    }
+  else
+    {
+      /* We want just one page.  Allocate a bunch of them and put the
+	 extras on the freelist.  (Can only do this optimization with
+	 mmap for backing store.)  */
+      struct finalizing_page_entry *e, *f = zone->free_finalizing_pages;
+      int i;
+      char *page;
+
+      page = alloc_anon (NULL, GGC_PAGE_SIZE * G.quire_size, zone);
+
+      /* This loop counts down so that the chain will be in ascending
+	 memory order.  */
+      for (i = G.quire_size - 1; i >= 1; i--)
+	{
+	  e = XCNEWVAR (struct finalizing_page_entry, G.small_page_overhead);
+	  e->common.page = page + (i << GGC_PAGE_SHIFT);
+	  e->common.zone = zone;
+	  e->common.page_kind = GGCZON_FINALIZING_PAGE;
+	  e->common.next_page = (struct page_entry*)f;
+	  f = e;
+	  set_page_table_entry (e->common.page, &e->common);
+	}
+
+      zone->free_finalizing_pages = f;
+
+      entry = XCNEWVAR (struct finalizing_page_entry, G.small_page_overhead);
+      entry->common.page = page;
+      entry->common.zone = zone;
+      set_page_table_entry (page, &entry->common);
+    }
+
+  zone->n_small_pages++;
+  entry->common.page_kind = GGCZON_FINALIZING_PAGE;
+
+  if (GGC_DEBUG_LEVEL >= 2)
+    fprintf (G.debug_file,
+	     "Allocating %s page at %p, data %p-%p\n",
+	     entry->common.zone->name, (PTR) entry, entry->common.page,
+	     entry->common.page + SMALL_PAGE_SIZE - 1);
+
+  return entry;
+}
+
+
 /* Allocate a large page of size SIZE in ZONE.  */
 
 static struct large_page_entry *
@@ -953,7 +1081,7 @@ alloc_large_page (size_t size, struct alloc_zone *zone)
 
   entry = (struct large_page_entry *) page;
 
-  entry->next = NULL;
+  entry->common.next_page = NULL;
   entry->common.page = page + sizeof (struct large_page_entry);
   entry->common.page_kind = GGCZON_LARGE_PAGE;
   entry->common.zone = zone;
@@ -995,8 +1123,8 @@ free_small_page (struct small_page_entry *entry)
   VALGRIND_DISCARD (VALGRIND_MAKE_MEM_NOACCESS (entry->common.page,
 						SMALL_PAGE_SIZE));
 
-  entry->next = entry->common.zone->free_pages;
-  entry->common.zone->free_pages = entry;
+  entry->common.next_page = (struct page_entry*) (entry->common.zone->free_small_pages);
+  entry->common.zone->free_small_pages = entry;
   entry->common.zone->n_small_pages--;
 }
 
@@ -1028,19 +1156,19 @@ release_pages (struct alloc_zone *zone)
   size_t len;
 
   /* Gather up adjacent pages so they are unmapped together.  */
-  p = zone->free_pages;
+  p = zone->free_small_pages;
 
   while (p)
     {
       start = p->common.page;
-      next = p->next;
+      next = (struct small_page_entry *) (p->common.next_page);
       len = SMALL_PAGE_SIZE;
       set_page_table_entry (p->common.page, NULL);
       p = next;
 
       while (p && p->common.page == start + len)
 	{
-	  next = p->next;
+	  next =  (struct small_page_entry *) (p->common.next_page);
 	  len += SMALL_PAGE_SIZE;
 	  set_page_table_entry (p->common.page, NULL);
 	  p = next;
@@ -1050,7 +1178,7 @@ release_pages (struct alloc_zone *zone)
       zone->bytes_mapped -= len;
     }
 
-  zone->free_pages = NULL;
+  zone->free_small_pages = NULL;
 #endif
 }
 
@@ -1281,7 +1409,7 @@ ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
       entry->common.survived = 0;
 #endif
 
-      entry->next = zone->large_pages;
+      entry->common.next_page = (struct page_entry*) (zone->large_pages);
       if (zone->large_pages)
 	zone->large_pages->prev = entry;
       zone->large_pages = entry;
@@ -1294,7 +1422,7 @@ ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
   /* Failing everything above, allocate a new small page.  */
 
   entry = alloc_small_page (zone);
-  entry->next = zone->small_pages;
+  entry->common.next_page = (struct page_entry*) (zone->small_pages);
   zone->small_pages = entry;
 
   /* Mark the first chunk in the new page.  */
@@ -1475,14 +1603,15 @@ ggc_free (void *p)
 
 	/* Remove the page from the linked list.  */
 	if (large_page->prev)
-	  large_page->prev->next = large_page->next;
+	  large_page->prev->common.next_page = large_page->common.next_page;
 	else
 	  {
 	    gcc_assert (large_page->common.zone->large_pages == large_page);
-	    large_page->common.zone->large_pages = large_page->next;
+	    large_page->common.zone->large_pages
+	      = (struct large_page_entry*) (large_page->common.next_page);
 	  }
-	if (large_page->next)
-	  large_page->next->prev = large_page->prev;
+	if (large_page->common.next_page)
+	  ((struct large_page_entry*)large_page->common.next_page)->prev = large_page->prev;
 
 	large_page->common.zone->allocated -= large_page->bytes;
 
@@ -1490,10 +1619,12 @@ ggc_free (void *p)
 	free_large_page (large_page);
       }
       break;
+
     case GGCZON_PCH_PAGE:
       /* Don't do anything.  We won't allocate a new object from the
 	 PCH zone so there's no point in releasing anything.  */
       break;
+
     case GGCZON_SMALL_PAGE:
 
       poison_region (p, size);
@@ -1788,9 +1919,9 @@ init_ggc (void)
 	e = XCNEWVAR (struct small_page_entry, G.small_page_overhead);
 	e->common.page = p;
 	e->common.zone = &main_zone;
-	e->next = main_zone.free_pages;
+	e->common.next_page = main_zone.free_small_pages;
 	set_page_table_entry (e->common.page, &e->common);
-	main_zone.free_pages = e;
+	main_zone.free_small_pages = e;
       }
     else
       {
@@ -1835,7 +1966,7 @@ sweep_pages (struct alloc_zone *zone)
     {
       gcc_assert (lp->common.page_kind == GGCZON_LARGE_PAGE);
 
-      lnext = lp->next;
+      lnext = lp->common.next_page;
 
 #ifdef GATHER_STATISTICS
       /* This page has now survived another collection.  */
@@ -1846,7 +1977,7 @@ sweep_pages (struct alloc_zone *zone)
 	{
 	  lp->mark_p = false;
 	  allocated += lp->bytes;
-	  lpp = &lp->next;
+	  lpp = &lp->common.next_page;
 	}
       else
 	{
@@ -1863,9 +1994,9 @@ sweep_pages (struct alloc_zone *zone)
 	  memset (lp->common.page, 0xb5, SMALL_PAGE_SIZE);
 #endif
 	  if (lp->prev)
-	    lp->prev->next = lp->next;
-	  if (lp->next)
-	    lp->next->prev = lp->prev;
+	    lp->prev->common.next_page = lp->common.next_page;
+	  if (lp->common.next_page)
+	    ((struct large_page_entry*)lp->common.next_page)->prev = lp->prev;
 	  free_large_page (lp);
 	}
     }
@@ -1880,7 +2011,7 @@ sweep_pages (struct alloc_zone *zone)
 
       gcc_assert (sp->common.page_kind == GGCZON_SMALL_PAGE);
 
-      snext = sp->next;
+      snext = sp->common.next_page;
 
 #ifdef GATHER_STATISTICS
       /* This page has now survived another collection.  */
@@ -1984,7 +2115,7 @@ sweep_pages (struct alloc_zone *zone)
       else
 	allocated += object - last_object;
 
-      spp = &sp->next;
+      spp = &sp->common.next_page;
     }
 
   zone->allocated = allocated;
@@ -2234,7 +2365,7 @@ ggc_print_statistics (void)
       overhead = sizeof (struct alloc_zone);
 
       for (large_page = zone->large_pages; large_page != NULL;
-	   large_page = large_page->next)
+	   large_page = large_page->common.next_page)
 	{
 	  allocated += large_page->bytes;
 	  in_use += large_page->bytes;
@@ -2587,7 +2718,7 @@ ggc_pch_read (FILE *f, void *addr)
       /* Move all the small pages onto the free list.  */
       for (page = zone->small_pages; page != NULL; page = next_page)
 	{
-	  next_page = page->next;
+	  next_page = page->common.next_page;
 	  memset (page->alloc_bits, 0,
 		  G.small_page_overhead - PAGE_OVERHEAD);
 	  free_small_page (page);
@@ -2597,7 +2728,7 @@ ggc_pch_read (FILE *f, void *addr)
       for (large_page = zone->large_pages; large_page != NULL;
 	   large_page = next_large_page)
 	{
-	  next_large_page = large_page->next;
+	  next_large_page = large_page->common.next_page;
 	  free_large_page (large_page);
 	}
 

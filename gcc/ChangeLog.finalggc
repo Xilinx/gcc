@@ -1,5 +1,22 @@
 
 2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* ggc-zone.c (ggczon_finalized_sizetab): New constant array.
+	(GGCZON_NUMBER_FINALIZED_SIZES): New macro.
+	(enum ggczon_chunkstate_en): New.
+	(union ggczon_final_prefix_un): New.
+	(GGCZON_FINALIZED_PREFIX,GGCZON_FINALIZED_OBJECT): New macros.
+	(GGCZON_FINALIZING_PAGE): New enum value.
+	(struct page_entry): Move next field here.
+	(struct small_page_entry)
+	(struct finalizing_page_entry, struct large_page_entry): Remove
+	next field.
+	(struct alloc_zone): Added some fields.
+	(zone_allocate_marks, alloc_small_page, alloc_large_page)
+	(release_pages, ggc_internal_alloc_zone_stat, ggc_free, init_ggc)
+	(sweep_pages, ggc_print_statistics): Update for next field.
+	(alloc_finalizing_page): New function.
+
+2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* ggc-zone.c (ggc_free, gt_ggc_m_S, ggc_set_mark, ggc_marked_p)
 	(ggc_get_size): Use switch on page_kind.
 	(sweep_pages): Better assertion on small pages.
