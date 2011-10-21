@@ -188,7 +188,12 @@ enum dwarf_form
     DW_FORM_sec_offset = 0x17,
     DW_FORM_exprloc = 0x18,
     DW_FORM_flag_present = 0x19,
-    DW_FORM_ref_sig8 = 0x20
+    DW_FORM_ref_sig8 = 0x20,
+
+    /* Experimental.  */
+    DW_FORM_ref_index = 0x21,
+    DW_FORM_addr_index = 0x22,
+    DW_FORM_str_index = 0x23
   };
 
 /* Attribute names and codes.  */
@@ -293,6 +298,12 @@ enum dwarf_attribute
     DW_AT_const_expr      = 0x6c,
     DW_AT_enum_class      = 0x6d,
     DW_AT_linkage_name    = 0x6e,
+
+    /* Experimental.  */
+    DW_AT_dwo_name  = 0x6f,
+    DW_AT_dwo_id    = 0x70,
+    DW_AT_ref_base  = 0x71,
+    DW_AT_addr_base = 0x72,
 
     DW_AT_lo_user = 0x2000,	/* Implementation-defined range start.  */
     DW_AT_hi_user = 0x3fff,	/* Implementation-defined range end.  */
