@@ -78,22 +78,11 @@
   
 ;; Condition code settings.
 (define_attr "cc" "none,set_czn,set_zn,set_n,compare,clobber,
-                   out_plus"
+                   out_plus, out_plus_noclobber"
   (const_string "none"))
 
 (define_attr "type" "branch,branch1,arith,xcall"
   (const_string "arith"))
-
-(define_attr "mcu_have_movw" "yes,no"
-  (const (if_then_else (symbol_ref "AVR_HAVE_MOVW")
-		       (const_string "yes")
-		       (const_string "no"))))
-
-(define_attr "mcu_mega" "yes,no"
-  (const (if_then_else (symbol_ref "AVR_HAVE_JMP_CALL")
-		       (const_string "yes")
-		       (const_string "no"))))
-  
 
 ;; The size of instructions in bytes.
 ;; XXX may depend from "cc"
@@ -124,7 +113,7 @@
                                      (const_int 3)
                                      (const_int 4)))
 	 (eq_attr "type" "xcall")
-	 (if_then_else (eq_attr "mcu_mega" "no")
+	 (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
 		       (const_int 1)
 		       (const_int 2))]
         (const_int 2)))
@@ -133,17 +122,61 @@
 ;; Following insn attribute tells if and how the adjustment has to be
 ;; done:
 ;;     no     No adjustment needed; attribute "length" is fine.
-;;     yes    Analyse pattern in adjust_insn_length by hand.
 ;; Otherwise do special processing depending on the attribute.
 
 (define_attr "adjust_len"
-  "out_bitop, out_plus, addto_sp, tsthi, tstsi, compare,
+  "out_bitop, out_plus, out_plus_noclobber, addto_sp,
+   tsthi, tstsi, compare, call,
    mov8, mov16, mov32, reload_in16, reload_in32,
    ashlqi, ashrqi, lshrqi,
    ashlhi, ashrhi, lshrhi,
    ashlsi, ashrsi, lshrsi,
    no"
   (const_string "no"))
+
+;; Flavours of instruction set architecture (ISA), used in enabled attribute
+
+;; mov:   ISA has no MOVW
+;; movw:  ISA has MOVW
+;; rjmp:  ISA has no CALL/JMP
+;; jmp:   ISA has CALL/JMP
+;; ijmp:  ISA has no EICALL/EIJMP
+;; eijmp: ISA has EICALL/EIJMP
+
+(define_attr "isa"
+  "mov,movw, rjmp,jmp, ijmp,eijmp,
+   standard"
+  (const_string "standard"))
+
+(define_attr "enabled" ""
+  (cond [(eq_attr "isa" "standard")
+         (const_int 1)
+         
+         (and (eq_attr "isa" "mov")
+              (match_test "!AVR_HAVE_MOVW"))
+         (const_int 1)
+
+         (and (eq_attr "isa" "movw")
+              (match_test "AVR_HAVE_MOVW"))
+         (const_int 1)
+         
+         (and (eq_attr "isa" "rjmp")
+              (match_test "!AVR_HAVE_JMP_CALL"))
+         (const_int 1)
+
+         (and (eq_attr "isa" "jmp")
+              (match_test "AVR_HAVE_JMP_CALL"))
+         (const_int 1)
+         
+         (and (eq_attr "isa" "ijmp")
+              (match_test "!AVR_HAVE_EIJMP_EICALL"))
+         (const_int 1)
+
+         (and (eq_attr "isa" "eijmp")
+              (match_test "AVR_HAVE_EIJMP_EICALL"))
+         (const_int 1)
+         ] (const_int 0)))
+
 
 ;; Define mode iterators
 (define_mode_iterator QIHI  [(QI "") (HI "")])
@@ -727,14 +760,22 @@
 	(plus:HI (match_operand:HI 1 "register_operand" "")
 		 (match_operand:HI 2 "nonmemory_operand" "")))]
   ""
-  "
-{
-  if (GET_CODE (operands[2]) == CONST_INT)
-    {
-      short tmp = INTVAL (operands[2]);
-      operands[2] = GEN_INT(tmp);
-    }
-}")
+  {
+    if (CONST_INT_P (operands[2]))
+      {
+        operands[2] = gen_int_mode (INTVAL (operands[2]), HImode);
+
+        if (can_create_pseudo_p()
+            && !stack_register_operand (operands[0], HImode)
+            && !stack_register_operand (operands[1], HImode)
+            && !d_register_operand (operands[0], HImode)
+            && !d_register_operand (operands[1], HImode))
+          {
+            emit_insn (gen_addhi3_clobber (operands[0], operands[1], operands[2]));
+            DONE;
+          }
+      }
+  })
 
 
 (define_insn "*addhi3_zero_extend"
@@ -771,20 +812,77 @@
    (set_attr "adjust_len" "addto_sp")])
 
 (define_insn "*addhi3"
-  [(set (match_operand:HI 0 "register_operand" "=r,!w,!w,d,r,r")
- 	(plus:HI
- 	 (match_operand:HI 1 "register_operand" "%0,0,0,0,0,0")
- 	 (match_operand:HI 2 "nonmemory_operand" "r,I,J,i,P,N")))]
+  [(set (match_operand:HI 0 "register_operand"          "=r,d,d")
+        (plus:HI (match_operand:HI 1 "register_operand" "%0,0,0")
+                 (match_operand:HI 2 "nonmemory_operand" "r,s,n")))]
   ""
-  "@
- 	add %A0,%A2\;adc %B0,%B2
- 	adiw %A0,%2
- 	sbiw %A0,%n2
- 	subi %A0,lo8(-(%2))\;sbci %B0,hi8(-(%2))
- 	sec\;adc %A0,__zero_reg__\;adc %B0,__zero_reg__
- 	sec\;sbc %A0,__zero_reg__\;sbc %B0,__zero_reg__"
-  [(set_attr "length" "2,1,1,2,3,3")
-   (set_attr "cc" "set_n,set_czn,set_czn,set_czn,set_n,set_n")])
+  {
+    static const char * const asm_code[] =
+      {
+        "add %A0,%A2\;adc %B0,%B2",
+        "subi %A0,lo8(-(%2))\;sbci %B0,hi8(-(%2))",
+        ""
+      };
+
+    if (*asm_code[which_alternative])
+      return asm_code[which_alternative];
+
+    return avr_out_plus_noclobber (operands, NULL, NULL);
+  }
+  [(set_attr "length" "2,2,2")
+   (set_attr "adjust_len" "*,*,out_plus_noclobber")
+   (set_attr "cc" "set_n,set_czn,out_plus_noclobber")])
+
+;; Adding a constant to NO_LD_REGS might have lead to a reload of
+;; that constant to LD_REGS.  We don't add a scratch to *addhi3
+;; itself because that insn is special to reload.
+
+(define_peephole2 ; addhi3_clobber
+  [(set (match_operand:HI 0 "d_register_operand" "")
+        (match_operand:HI 1 "const_int_operand" ""))
+   (set (match_operand:HI 2 "l_register_operand" "")
+        (plus:HI (match_dup 2)
+                 (match_dup 0)))]
+  "peep2_reg_dead_p (2, operands[0])"
+  [(parallel [(set (match_dup 2)
+                   (plus:HI (match_dup 2)
+                            (match_dup 1)))
+              (clobber (match_dup 3))])]
+  {
+    operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, 0);
+  })
+
+;; Same, but with reload to NO_LD_REGS
+;; Combine *reload_inhi with *addhi3
+
+(define_peephole2 ; addhi3_clobber
+  [(parallel [(set (match_operand:HI 0 "l_register_operand" "")
+                   (match_operand:HI 1 "const_int_operand" ""))
+              (clobber (match_operand:QI 2 "d_register_operand" ""))])
+   (set (match_operand:HI 3 "l_register_operand" "")
+        (plus:HI (match_dup 3)
+                 (match_dup 0)))]
+  "peep2_reg_dead_p (2, operands[0])"
+  [(parallel [(set (match_dup 3)
+                   (plus:HI (match_dup 3)
+                            (match_dup 1)))
+              (clobber (match_dup 2))])])
+
+(define_insn "addhi3_clobber"
+  [(set (match_operand:HI 0 "register_operand"           "=d,l")
+        (plus:HI (match_operand:HI 1 "register_operand"  "%0,0")
+                 (match_operand:HI 2 "const_int_operand"  "n,n")))
+   (clobber (match_scratch:QI 3                          "=X,&d"))]
+  ""
+  {
+    gcc_assert (REGNO (operands[0]) == REGNO (operands[1]));
+    
+    return avr_out_plus (operands, NULL, NULL);
+  }
+  [(set_attr "length" "4")
+   (set_attr "adjust_len" "out_plus")
+   (set_attr "cc" "out_plus")])
+
 
 (define_insn "addsi3"
   [(set (match_operand:SI 0 "register_operand"          "=r,d ,d,r")
@@ -2949,20 +3047,17 @@
    (set_attr "cc" "set_czn,set_n,set_czn")])
 
 (define_insn "negsi2"
-  [(set (match_operand:SI 0 "register_operand"       "=!d,r,&r")
-	(neg:SI (match_operand:SI 1 "register_operand" "0,0,r")))]
+  [(set (match_operand:SI 0 "register_operand"       "=!d,r,&r,&r")
+        (neg:SI (match_operand:SI 1 "register_operand" "0,0,r ,r")))]
   ""
   "@
 	com %D0\;com %C0\;com %B0\;neg %A0\;sbci %B0,lo8(-1)\;sbci %C0,lo8(-1)\;sbci %D0,lo8(-1)
 	com %D0\;com %C0\;com %B0\;com %A0\;adc %A0,__zero_reg__\;adc %B0,__zero_reg__\;adc %C0,__zero_reg__\;adc %D0,__zero_reg__
-	clr %A0\;clr %B0\;{clr %C0\;clr %D0|movw %C0,%A0}\;sub %A0,%A1\;sbc %B0,%B1\;sbc %C0,%C1\;sbc %D0,%D1"
-  [(set_attr_alternative "length"
-			 [(const_int 7)
-			  (const_int 8)
-			  (if_then_else (eq_attr "mcu_have_movw" "yes")
-					(const_int 7)
-					(const_int 8))])
-   (set_attr "cc" "set_czn,set_n,set_czn")])
+	clr %A0\;clr %B0\;clr %C0\;clr %D0\;sub %A0,%A1\;sbc %B0,%B1\;sbc %C0,%C1\;sbc %D0,%D1
+	clr %A0\;clr %B0\;movw %C0,%A0\;sub %A0,%A1\;sbc %B0,%B1\;sbc %C0,%C1\;sbc %D0,%D1"
+  [(set_attr "length" "7,8,8,7")
+   (set_attr "isa"    "*,*,mov,movw")
+   (set_attr "cc" "set_czn,set_n,set_czn,set_czn")])
 
 (define_insn "negsf2"
   [(set (match_operand:SF 0 "register_operand" "=d,r")
@@ -3036,18 +3131,16 @@
    (set_attr "cc" "set_n,set_n")])
 
 (define_insn "extendhisi2"
-  [(set (match_operand:SI 0 "register_operand"                               "=r,r")
-        (sign_extend:SI (match_operand:HI 1 "combine_pseudo_register_operand" "0,*r")))]
+  [(set (match_operand:SI 0 "register_operand"                               "=r,r ,r")
+        (sign_extend:SI (match_operand:HI 1 "combine_pseudo_register_operand" "0,*r,*r")))]
   ""
   "@
 	clr %C0\;sbrc %B0,7\;com %C0\;mov %D0,%C0
-	{mov %A0,%A1\;mov %B0,%B1|movw %A0,%A1}\;clr %C0\;sbrc %B0,7\;com %C0\;mov %D0,%C0"
-  [(set_attr_alternative "length"
-			 [(const_int 4)
-			  (if_then_else (eq_attr "mcu_have_movw" "yes")
-					(const_int 5)
-					(const_int 6))])
-   (set_attr "cc" "set_n,set_n")])
+	mov %A0,%A1\;mov %B0,%B1\;clr %C0\;sbrc %B0,7\;com %C0\;mov %D0,%C0
+	movw %A0,%A1\;clr %C0\;sbrc %B0,7\;com %C0\;mov %D0,%C0"
+  [(set_attr "length" "4,6,5")
+   (set_attr "isa" "*,mov,movw")
+   (set_attr "cc" "set_n")])
 
 ;; xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x xx<---x
 ;; zero extend
@@ -3356,7 +3449,7 @@
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
 			   (le (minus (pc) (match_dup 3)) (const_int 2046)))
 		      (const_int 2)
-		      (if_then_else (eq_attr "mcu_mega" "no")
+		      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
 				    (const_int 2)
 				    (const_int 4))))
    (set_attr "cc" "clobber")])
@@ -3386,7 +3479,7 @@
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
 			   (le (minus (pc) (match_dup 3)) (const_int 2046)))
 		      (const_int 2)
-		      (if_then_else (eq_attr "mcu_mega" "no")
+		      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
 				    (const_int 2)
 				    (const_int 4))))
    (set_attr "cc" "clobber")])
@@ -3569,20 +3662,20 @@
   [(set (pc)
         (label_ref (match_operand 0 "" "")))]
   ""
-  "*{
-  if (AVR_HAVE_JMP_CALL && get_attr_length (insn) != 1)
-    return AS1 (jmp,%x0);
-  return AS1 (rjmp,%x0);
-}"
+  {
+    return AVR_HAVE_JMP_CALL && get_attr_length (insn) != 1
+           ? "jmp %x0"
+           : "rjmp %x0";
+  }
   [(set (attr "length")
 	(if_then_else (match_operand 0 "symbol_ref_operand" "")	
-		(if_then_else (eq_attr "mcu_mega" "no")
-			      (const_int 1)
-			      (const_int 2))
-		(if_then_else (and (ge (minus (pc) (match_dup 0)) (const_int -2047))
-				   (le (minus (pc) (match_dup 0)) (const_int 2047)))
-			      (const_int 1)
-			      (const_int 2))))
+                      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
+                                    (const_int 1)
+                                    (const_int 2))
+                      (if_then_else (and (ge (minus (pc) (match_dup 0)) (const_int -2047))
+                                         (le (minus (pc) (match_dup 0)) (const_int 2047)))
+                                    (const_int 1)
+                                    (const_int 2))))
    (set_attr "cc" "none")])
 
 ;; call
@@ -3640,15 +3733,8 @@
     %!ijmp
     %~jmp %x0"
   [(set_attr "cc" "clobber")
-   (set_attr_alternative "length"
-                         [(const_int 1)
-                          (if_then_else (eq_attr "mcu_mega" "yes")
-                                        (const_int 2)
-                                        (const_int 1))
-                          (const_int 1)
-                          (if_then_else (eq_attr "mcu_mega" "yes")
-                                        (const_int 2)
-                                        (const_int 1))])])
+   (set_attr "length" "1,*,1,*")
+   (set_attr "adjust_len" "*,call,*,call")])
 
 (define_insn "call_value_insn"
   [(parallel[(set (match_operand 0 "register_operand"                   "=r,r,r,r")
@@ -3664,15 +3750,8 @@
     %!ijmp
     %~jmp %x1"
   [(set_attr "cc" "clobber")
-   (set_attr_alternative "length"
-                         [(const_int 1)
-                          (if_then_else (eq_attr "mcu_mega" "yes")
-                                        (const_int 2)
-                                        (const_int 1))
-                          (const_int 1)
-                          (if_then_else (eq_attr "mcu_mega" "yes")
-                                        (const_int 2)
-                                        (const_int 1))])])
+   (set_attr "length" "1,*,1,*")
+   (set_attr "adjust_len" "*,call,*,call")])
 
 (define_insn "nop"
   [(const_int 0)]
@@ -3684,69 +3763,51 @@
 ; indirect jump
 
 (define_expand "indirect_jump"
-  [(set (pc) (match_operand:HI 0 "nonmemory_operand" ""))]
+  [(set (pc)
+        (match_operand:HI 0 "nonmemory_operand" ""))]
   ""
-  " if ((!AVR_HAVE_JMP_CALL) && !register_operand(operand0, HImode))
-    {
-      operands[0] = copy_to_mode_reg(HImode, operand0);
-    }"
-)
+  {
+    if (!AVR_HAVE_JMP_CALL && !register_operand (operands[0], HImode))
+      {
+        operands[0] = copy_to_mode_reg (HImode, operands[0]);
+      }
+  })
 
 ; indirect jump
-(define_insn "*jcindirect_jump"
-  [(set (pc) (match_operand:HI 0 "immediate_operand" "i"))]
+(define_insn "*indirect_jump"
+  [(set (pc)
+        (match_operand:HI 0 "nonmemory_operand" "i,i,!z,*r,z"))]
   ""
-  "%~jmp %x0"
-  [(set_attr "length" "2")
-   (set_attr "cc" "none")])
-
-;;
-(define_insn "*njcindirect_jump"
-  [(set (pc) (match_operand:HI 0 "register_operand" "!z,*r"))]
-  "!AVR_HAVE_EIJMP_EICALL"
   "@
+	rjmp %x0
+	jmp %x0
 	ijmp
-	push %A0\;push %B0\;ret"
-  [(set_attr "length" "1,3")
-   (set_attr "cc" "none,none")])
-
-(define_insn "*indirect_jump_avr6"
-  [(set (pc) (match_operand:HI 0 "register_operand" "z"))]
-  "AVR_HAVE_EIJMP_EICALL"
-  "eijmp"
-  [(set_attr "length" "1")
+	push %A0\;push %B0\;ret
+	eijmp"
+  [(set_attr "length" "1,2,1,3,1")
+   (set_attr "isa" "rjmp,jmp,ijmp,ijmp,eijmp")
    (set_attr "cc" "none")])
 
 ;; table jump
 ;; For entries in jump table see avr_output_addr_vec_elt.
 
-;; Table made from "rjmp .L<n>" instructions for <= 8K devices.
-(define_insn "*tablejump_rjmp"
+;; Table made from
+;;    "rjmp .L<n>"   instructions for <= 8K devices
+;;    ".word gs(.L<n>)" addresses for >  8K devices
+(define_insn "*tablejump"
   [(set (pc)
-        (unspec:HI [(match_operand:HI 0 "register_operand" "!z,*r")]
+        (unspec:HI [(match_operand:HI 0 "register_operand" "!z,*r,z")]
                    UNSPEC_INDEX_JMP))
    (use (label_ref (match_operand 1 "" "")))
    (clobber (match_dup 0))]
-  "!AVR_HAVE_JMP_CALL"
+  ""
   "@
 	ijmp
-	push %A0\;push %B0\;ret"
-  [(set_attr "length" "1,3")
-   (set_attr "cc" "none,none")])
-
-;; Move the common piece of code to libgcc.
-;; Table made from ".word gs(.L<n>)" addresses for > 8K devices.
-;; Read jump address from table and perform indirect jump.
-(define_insn "*tablejump_lib"
-  [(set (pc)
-        (unspec:HI [(match_operand:HI 0 "register_operand" "z")]
-                   UNSPEC_INDEX_JMP))
-   (use (label_ref (match_operand 1 "" "")))
-   (clobber (match_dup 0))]
-  "AVR_HAVE_JMP_CALL"
-  "jmp __tablejump2__"
-  [(set_attr "length" "2")
-   (set_attr "cc" "clobber")])
+	push %A0\;push %B0\;ret
+	jmp __tablejump2__"
+  [(set_attr "length" "1,3,2")
+   (set_attr "isa" "rjmp,rjmp,jmp")
+   (set_attr "cc" "none,none,clobber")])
 
 
 (define_expand "casesi"
@@ -3829,11 +3890,11 @@
   "* return avr_out_sbxx_branch (insn, operands);"
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
-			   (le (minus (pc) (match_dup 3)) (const_int 2046)))
-		      (const_int 2)
-		      (if_then_else (eq_attr "mcu_mega" "no")
-				    (const_int 2)
-				    (const_int 4))))
+                           (le (minus (pc) (match_dup 3)) (const_int 2046)))
+                      (const_int 2)
+                      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
+                                    (const_int 2)
+                                    (const_int 4))))
    (set_attr "cc" "clobber")])
 
 ;; Tests of bit 7 are pessimized to sign tests, so we need this too...
@@ -3853,11 +3914,11 @@
 }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 2)) (const_int -2046))
-			   (le (minus (pc) (match_dup 2)) (const_int 2046)))
-		      (const_int 2)
-		      (if_then_else (eq_attr "mcu_mega" "no")
-				    (const_int 2)
-				    (const_int 4))))
+                           (le (minus (pc) (match_dup 2)) (const_int 2046)))
+                      (const_int 2)
+                      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
+                                    (const_int 2)
+                                    (const_int 4))))
    (set_attr "cc" "clobber")])
 
 ;; Upper half of the I/O space - read port to __tmp_reg__ and use sbrc/sbrs.
@@ -3876,11 +3937,11 @@
   "* return avr_out_sbxx_branch (insn, operands);"
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
-			   (le (minus (pc) (match_dup 3)) (const_int 2045)))
-		      (const_int 3)
-		      (if_then_else (eq_attr "mcu_mega" "no")
-				    (const_int 3)
-				    (const_int 5))))
+                           (le (minus (pc) (match_dup 3)) (const_int 2045)))
+                      (const_int 3)
+                      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
+                                    (const_int 3)
+                                    (const_int 5))))
    (set_attr "cc" "clobber")])
 
 (define_insn "*sbix_branch_tmp_bit7"
@@ -3901,7 +3962,7 @@
 	(if_then_else (and (ge (minus (pc) (match_dup 2)) (const_int -2046))
 			   (le (minus (pc) (match_dup 2)) (const_int 2045)))
 		      (const_int 3)
-		      (if_then_else (eq_attr "mcu_mega" "no")
+                      (if_then_else (match_test "!AVR_HAVE_JMP_CALL")
 				    (const_int 3)
 				    (const_int 5))))
    (set_attr "cc" "clobber")])
@@ -4064,10 +4125,10 @@
 ;;  Library prologue saves
 (define_insn "call_prologue_saves"
   [(unspec_volatile:HI [(const_int 0)] UNSPECV_PROLOGUE_SAVES)
-   (match_operand:HI 0 "immediate_operand" "")
-   (set (reg:HI REG_SP) (minus:HI 
-                           (reg:HI REG_SP)
-                           (match_operand:HI 1 "immediate_operand" "")))
+   (match_operand:HI 0 "immediate_operand" "i,i")
+   (set (reg:HI REG_SP)
+        (minus:HI (reg:HI REG_SP)
+                  (match_operand:HI 1 "immediate_operand" "i,i")))
    (use (reg:HI REG_X))
    (clobber (reg:HI REG_Z))]
   ""
@@ -4075,30 +4136,26 @@
 	ldi r31,hi8(gs(1f))
 	%~jmp __prologue_saves__+((18 - %0) * 2)
 1:"
-  [(set_attr_alternative "length"
-			 [(if_then_else (eq_attr "mcu_mega" "yes")
-					(const_int 6)
-					(const_int 5))])
-  (set_attr "cc" "clobber")
-  ])
+  [(set_attr "length" "5,6")
+   (set_attr "cc" "clobber")
+   (set_attr "isa" "rjmp,jmp")])
   
 ;  epilogue  restores using library
 (define_insn "epilogue_restores"
   [(unspec_volatile:QI [(const_int 0)] UNSPECV_EPILOGUE_RESTORES)
-   (set (reg:HI REG_Y ) (plus:HI 
-                           (reg:HI REG_Y)
-                           (match_operand:HI 0 "immediate_operand" ""))) 
-   (set (reg:HI REG_SP) (reg:HI REG_Y))
-   (clobber  (reg:QI REG_Z))]
+   (set (reg:HI REG_Y)
+        (plus:HI (reg:HI REG_Y)
+                 (match_operand:HI 0 "immediate_operand" "i,i")))
+   (set (reg:HI REG_SP)
+        (plus:HI (reg:HI REG_Y)
+                 (match_dup 0)))
+   (clobber (reg:QI REG_Z))]
   ""
   "ldi r30, lo8(%0)
 	%~jmp __epilogue_restores__ + ((18 - %0) * 2)"
-  [(set_attr_alternative "length"
-			 [(if_then_else (eq_attr "mcu_mega" "yes")
-					(const_int 3)
-					(const_int 2))])
-  (set_attr "cc" "clobber")
-  ])
+  [(set_attr "length" "2,3")
+   (set_attr "cc" "clobber")
+   (set_attr "isa" "rjmp,jmp")])
   
 ; return
 (define_insn "return"
@@ -4140,11 +4197,10 @@
 (define_expand "prologue"
   [(const_int 0)]
   ""
-  "
   {
     expand_prologue (); 
     DONE;
-  }")
+  })
 
 (define_expand "epilogue"
   [(const_int 0)]

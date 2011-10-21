@@ -1051,9 +1051,10 @@ expand_epilogue (bool sibcall_p)
       if (frame_pointer_needed)
 	{
           /*  Get rid of frame.  */
-	  emit_move_insn(frame_pointer_rtx,
-                         gen_rtx_PLUS (HImode, frame_pointer_rtx,
-                                       gen_int_mode (size, HImode)));
+          if (size)
+            emit_move_insn (frame_pointer_rtx,
+                            gen_rtx_PLUS (HImode, frame_pointer_rtx,
+                                          gen_int_mode (size, HImode)));
 	}
       else
 	{
@@ -1355,11 +1356,13 @@ avr_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
    than 63 bytes or for R++ or --R addressing.  */
 
 rtx
-avr_legitimize_reload_address (rtx x, enum machine_mode mode,
+avr_legitimize_reload_address (rtx *px, enum machine_mode mode,
                                int opnum, int type, int addr_type,
                                int ind_levels ATTRIBUTE_UNUSED,
                                rtx (*mk_memloc)(rtx,int))
 {
+  rtx x = *px;
+  
   if (avr_log.legitimize_reload_address)
     avr_edump ("\n%?:%m %r\n", mode, x);
   
@@ -1371,7 +1374,7 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
                    opnum, RELOAD_OTHER);
       
       if (avr_log.legitimize_reload_address)
-        avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+        avr_edump (" RCLASS.1 = %R\n IN = %r\n OUT = %r\n",
                    POINTER_REGS, XEXP (x, 0), XEXP (x, 0));
       
       return x;
@@ -1397,7 +1400,7 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
                            1, addr_type);
               
               if (avr_log.legitimize_reload_address)
-                avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+                avr_edump (" RCLASS.2 = %R\n IN = %r\n OUT = %r\n",
                            POINTER_REGS, XEXP (mem, 0), NULL_RTX);
               
               push_reload (mem, NULL_RTX, &XEXP (x, 0), NULL,
@@ -1405,7 +1408,7 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
                            opnum, type);
               
               if (avr_log.legitimize_reload_address)
-                avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+                avr_edump (" RCLASS.2 = %R\n IN = %r\n OUT = %r\n",
                            BASE_POINTER_REGS, mem, NULL_RTX);
               
               return x;
@@ -1414,12 +1417,12 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
       else if (! (frame_pointer_needed
                   && XEXP (x, 0) == frame_pointer_rtx))
         {
-          push_reload (x, NULL_RTX, &x, NULL,
+          push_reload (x, NULL_RTX, px, NULL,
                        POINTER_REGS, GET_MODE (x), VOIDmode, 0, 0,
                        opnum, type);
           
           if (avr_log.legitimize_reload_address)
-            avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+            avr_edump (" RCLASS.3 = %R\n IN = %r\n OUT = %r\n",
                        POINTER_REGS, x, NULL_RTX);
           
           return x;
@@ -1682,14 +1685,19 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
       break;
 
     case CC_OUT_PLUS:
+    case CC_OUT_PLUS_NOCLOBBER:
       {
         rtx *op = recog_data.operand;
         int len_dummy, icc;
         
         /* Extract insn's operands.  */
         extract_constrain_insn_cached (insn);
+
+        if (CC_OUT_PLUS == cc)
+          avr_out_plus (op, &len_dummy, &icc);
+        else
+          avr_out_plus_noclobber (op, &len_dummy, &icc);
         
-        avr_out_plus (op, &len_dummy, &icc);
         cc = (enum attr_cc) icc;
         
         break;
@@ -4773,7 +4781,8 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
   /* Value to add.  There are two ways to add VAL: R += VAL and R -= -VAL.  */
   rtx xval = xop[2];
 
-  /* Addition does not set cc0 in a usable way.  */
+  /* Except in the case of ADIW with 16-bit register (see below)
+     addition does not set cc0 in a usable way.  */
   
   *pcc = (MINUS == code) ? CC_SET_CZN : CC_CLOBBER;
 
@@ -4821,6 +4830,9 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
                   started = true;
                   avr_asm_len (code == PLUS ? "adiw %0,%1" : "sbiw %0,%1",
                                op, plen, 1);
+
+                  if (n_bytes == 2 && PLUS == code)
+                      *pcc = CC_SET_ZN;
                 }
 
               i++;
@@ -4836,6 +4848,14 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
                          op, plen, 1);
           continue;
         }
+      else if ((val8 == 1 || val8 == 0xff)
+               && !started
+               && i == n_bytes - 1)
+      {
+          avr_asm_len ((code == PLUS) ^ (val8 == 1) ? "dec %0" : "inc %0",
+                       op, plen, 1);
+          break;
+      }
 
       switch (code)
         {
@@ -4923,6 +4943,22 @@ avr_out_plus (rtx *xop, int *plen, int *pcc)
   return "";
 }
 
+
+/* Same as above but XOP has just 3 entries.
+   Supply a dummy 4th operand.  */
+
+const char*
+avr_out_plus_noclobber (rtx *xop, int *plen, int *pcc)
+{
+  rtx op[4];
+
+  op[0] = xop[0];
+  op[1] = xop[1];
+  op[2] = xop[2];
+  op[3] = NULL_RTX;
+
+  return avr_out_plus (op, plen, pcc);
+}
 
 /* Output bit operation (IOR, AND, XOR) with register XOP[0] and compile
    time constant XOP[2]:
@@ -5308,6 +5344,8 @@ adjust_insn_length (rtx insn, int len)
     case ADJUST_LEN_OUT_BITOP: avr_out_bitop (insn, op, &len); break;
       
     case ADJUST_LEN_OUT_PLUS: avr_out_plus (op, &len, NULL); break;
+    case ADJUST_LEN_OUT_PLUS_NOCLOBBER:
+      avr_out_plus_noclobber (op, &len, NULL); break;
 
     case ADJUST_LEN_ADDTO_SP: avr_out_addto_sp (op, &len); break;
       
@@ -5331,6 +5369,8 @@ adjust_insn_length (rtx insn, int len)
     case ADJUST_LEN_ASHLHI: ashlhi3_out (insn, op, &len); break;
     case ADJUST_LEN_ASHLSI: ashlsi3_out (insn, op, &len); break;
       
+    case ADJUST_LEN_CALL: len = AVR_HAVE_JMP_CALL ? 2 : 1; break;
+
     default:
       gcc_unreachable();
     }

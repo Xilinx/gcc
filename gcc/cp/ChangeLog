@@ -1,3 +1,112 @@
+2011-10-21  Ville Voutilainen  <ville.voutilainen@gmail.com>
+
+	PR c++/50811
+	* parser.c (cp_parser_class_head): Parse virt-specifiers
+	regardless of whether an id is present
+
+2011-10-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41449
+	* typeck2.c (split_nonconstant_init_1): Handle EH cleanup of
+	initialized subobjects.
+
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/13657
+	* class.c (instantiate_type): Fix error message.
+
+2011-10-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50793
+	* tree.c (bot_manip): Propagate AGGR_INIT_ZERO_FIRST.
+
+2011-10-19  Roland Stigge  <stigge@antcom.de>
+
+	PR translation/49704
+	* semantics.c (potential_constant_expression_1): Use "AST" instead of
+	"ast" in sorry message.
+
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38761
+	PR c++/40872
+	* decl.c (duplicate_decls, make_typename_type, grokdeclarator): Use
+	G_() in error message strings to facilitate translation.
+	* semantics.c (finish_id_expression): Likewise.
+	* parser.c (cp_parser_nested_name_specifier_opt,
+	cp_parser_parameter_declaration): Likewise.
+
+2011-10-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50531
+	* pt.c (instantiate_decl): Recognize when a function defaulted
+	outside the class is already instantiated.
+
+	PR c++/50742
+	* decl.c (check_previous_goto_1): Handle using-decl.
+
+2011-10-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50500
+	DR 1082
+	* class.c (type_has_user_declared_move_constructor): New.
+	(type_has_user_declared_move_assign): New.
+	(add_implicitly_declared_members): Add lazy copy ops
+	even if there's a move.
+	* method.c (lazily_declare_fn): Delete implicit copies
+	if there's a move.
+	(maybe_explain_implicit_delete): Explain this.  Use inform rather
+	than error.
+	* cp-tree.h: Declare new fns.
+
+2011-10-18   Diego Novillo  <dnovillo@google.com>
+
+	* parser.c: Remove ENABLE_CHECKING markers around debugging
+	routines.
+	(cp_lexer_dump_tokens): Add arguments START_TOKEN and CURR_TOKEN.
+	Make static
+	When printing CURR_TOKEN surround it in [[ ]].
+	Start printing at START_TOKEN.
+	Update all users.
+	(cp_debug_print_tree_if_set): New.
+	(cp_debug_print_context): New.
+	(cp_debug_print_context_stack): New.
+	(cp_debug_print_flag): New.
+	(cp_debug_print_unparsed_function): New.
+	(cp_debug_print_unparsed_queues): New.
+	(cp_debug_parser_tokens): New.
+	(cp_debug_parser): New.
+	(cp_lexer_start_debugging): Set cp_lexer_debug_stream to stderr.
+	(cp_lexer_stop_debugging): Set cp_lexer_debug_stream to NULL.
+	* parser.h (cp_lexer_dump_tokens): Remove declaration.
+	(cp_debug_parser): Declare.
+
+2011-10-17  Michael Spertus  <mike_spertus@symantec.com>
+
+	* cp-tree.def: Add BASES as a new tree code.
+	* cp-tree.h (enum cp_trait_kind): Add CPTK_BASES, CPTK_DIRECT_BASES.
+	(BASES_TYPE, BASES_DIRECT): Define.
+	(calculate_bases, finish_bases, calculate_direct_bases): Declare.
+	* parser.c (cp_parser_trait_expr, cp_parser_template_argument_list,
+	(cp_parser_simple_type_specifier, cp_parser_save_nsdmi): Use them.
+	* pt.c (find_parameter_packs_r, tsubst_pack_expansion): Likewise.
+	* semantics.c (calculate_bases, finish_bases, calculate_direct_bases,
+	dfs_calculate_bases_pre, dfs_calculate_bases_post,
+	calculate_bases_helper): Define.
+
+2011-10-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50736
+	* parser.c (cp_parser_lambda_introducer): Check for more
+	invalid captures.
+
+2011-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44524
+	* typeck.c (build_class_member_access_expr): Provide a better error
+	message for X.Y where X is a pointer to class type.
+	(finish_class_member_access_expr): Likewise.
+
 2011-10-15  Tom Tromey  <tromey@redhat.com>
 	    Dodji Seketeli  <dodji@redhat.com>
 
