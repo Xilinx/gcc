@@ -396,7 +396,7 @@ struct alloc_zone
   size_t allocated;
 
   /* Linked list of the small pages in this zone.  */
-  struct small_page_entry *pages;
+  struct small_page_entry *small_pages;
 
   /* Doubly linked list of large pages in this zone.  */
   struct large_page_entry *large_pages;
@@ -806,7 +806,7 @@ zone_allocate_marks (void)
       zone->mark_bits = (mark_type *) xcalloc (sizeof (mark_type),
 						   mark_words);
       cur_marks = zone->mark_bits;
-      for (page = zone->pages; page; page = page->next)
+      for (page = zone->small_pages; page; page = page->next)
 	{
 	  page->mark_bits = cur_marks;
 	  cur_marks += mark_words_per_page;
@@ -1294,8 +1294,8 @@ ggc_internal_alloc_zone_stat (size_t orig_size, struct alloc_zone *zone
   /* Failing everything above, allocate a new small page.  */
 
   entry = alloc_small_page (zone);
-  entry->next = zone->pages;
-  zone->pages = entry;
+  entry->next = zone->small_pages;
+  zone->small_pages = entry;
 
   /* Mark the first chunk in the new page.  */
   entry->alloc_bits[0] = 1;
@@ -1830,8 +1830,8 @@ sweep_pages (struct alloc_zone *zone)
 	}
     }
 
-  spp = &zone->pages;
-  for (sp = zone->pages; sp != NULL; sp = snext)
+  spp = &zone->small_pages;
+  for (sp = zone->small_pages; sp != NULL; sp = snext)
     {
       char *object, *last_object;
       char *end;
@@ -2024,7 +2024,7 @@ calculate_average_page_survival (struct alloc_zone *zone)
   float survival = 0.0;
   struct small_page_entry *p;
   struct large_page_entry *lp;
-  for (p = zone->pages; p; p = p->next)
+  for (p = zone->small_pages; p; p = p->next)
     {
       count += 1.0;
       survival += p->common.survived;
@@ -2186,7 +2186,7 @@ ggc_print_statistics (void)
       size_t overhead, allocated, in_use;
 
       /* Skip empty zones.  */
-      if (!zone->pages && !zone->large_pages)
+      if (!zone->small_pages && !zone->large_pages)
 	continue;
 
       allocated = in_use = 0;
@@ -2545,7 +2545,7 @@ ggc_pch_read (FILE *f, void *addr)
       zone->cached_free_size = 0;
 
       /* Move all the small pages onto the free list.  */
-      for (page = zone->pages; page != NULL; page = next_page)
+      for (page = zone->small_pages; page != NULL; page = next_page)
 	{
 	  next_page = page->next;
 	  memset (page->alloc_bits, 0,
@@ -2561,7 +2561,7 @@ ggc_pch_read (FILE *f, void *addr)
 	  free_large_page (large_page);
 	}
 
-      zone->pages = NULL;
+      zone->small_pages = NULL;
       zone->large_pages = NULL;
     }
 

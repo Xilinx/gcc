@@ -1,6 +1,11 @@
 
 
 2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* ggc-zone.c (struct alloc_zone): Rename pages field as small_pages.
+	(zone_allocate_marks, ggc_internal_alloc_zone_stat, sweep_pages)
+	(calculate_average_page_survival, ggc_pch_read): Likewise.
+
+2011-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* ggc-zone.c (sweep_pages): Call the finalizer on the page data of
 	large objects.
 
