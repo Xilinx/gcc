@@ -259,6 +259,8 @@ pph_init (void)
   /* If we are generating a PPH file, initialize the writer.  */
   if (pph_writer_enabled_p ())
     pph_writer_init ();
+
+  pph_reader_init ();
 }
 
 

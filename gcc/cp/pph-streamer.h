@@ -203,10 +203,10 @@ struct pph_stream {
   unsigned int in_memory_p : 1;
 
   /* Symbol table.  This is collected as the compiler instantiates
-    symbols and functions.  Once we finish parsing the header file,
-    this array is written out to the PPH image.  This way, the reader
-    will be able to instantiate these symbols in the same order that
-    they were instantiated originally.  */
+     symbols and functions.  Once we finish parsing the header file,
+     this array is written out to the PPH image.  This way, the reader
+     will be able to instantiate these symbols in the same order that
+     they were instantiated originally.  */
   pph_symtab symtab;
 
   /* Transitive closure list of all the images included directly and
@@ -214,6 +214,10 @@ struct pph_stream {
      files, not regular text headers.  Regular text headers are embedded
      in this stream.  */
   VEC(pph_stream_ptr,heap) *includes;
+
+  /* Parent include file.  This points to the PPH stream for the file
+     that immediately includes this one.  */
+  pph_stream_ptr parent;
 };
 
 /* Filter values to avoid emitting certain objects to a PPH file.  */
@@ -264,6 +268,8 @@ void pph_init_read (pph_stream *);
 location_t pph_in_location (pph_stream *);
 pph_stream *pph_read_file (const char *);
 tree pph_in_tree (pph_stream *stream);
+void pph_reader_init (void);
+void pph_reader_finish (void);
 
 
 /* Inline functions.  */

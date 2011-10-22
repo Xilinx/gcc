@@ -1929,7 +1929,6 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
      to re-allocate EXPR in the reader) and the merge key, used to
      lookup EXPR in the reader's context and merge if necessary.  */
   pph_out_tree_header (stream, expr);
-  pph_out_location (stream, DECL_SOURCE_LOCATION (expr));
   pph_out_merge_name (stream, expr);
 }
 

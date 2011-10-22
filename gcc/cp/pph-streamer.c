@@ -194,6 +194,9 @@ pph_streamer_finish (void)
   /* Finalize the writer.  */
   pph_writer_finish ();
 
+  /* Finalize the reader.  */
+  pph_reader_finish ();
+
   /* Close any images read during parsing.  */
   FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
     pph_stream_close (image);
@@ -325,6 +328,7 @@ pph_add_include (pph_stream *stream, pph_stream *include)
   pph_stream *include_child;
   unsigned i;
 
+  include->parent = stream;
   VEC_safe_push (pph_stream_ptr, heap, stream->includes, include);
   FOR_EACH_VEC_ELT (pph_stream_ptr, include->includes, i, include_child)
     VEC_safe_push (pph_stream_ptr, heap, stream->includes, include_child);

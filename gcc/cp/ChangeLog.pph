@@ -1,3 +1,34 @@
+2011-10-22   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_merge_key_chain): Add new argument
+	IPATH_HASH.  Update all users.
+	(pph_match_to_overload): Remove.
+	(pph_match_to_function): Remove.
+	(pph_match_to_link): Remove.
+	(pph_search_in_chain): Remove.
+	(merge_toc): Declare.
+	(merge_toc_entry): Declare.
+	(htab_merge_key_hash): New.
+	(htab_merge_key_eq): New.
+	(pph_toc_lookup): New.
+	(pph_toc_add): New.
+	(pph_prepend_to_chain): Add argument IPATH_HASH.  Update all users.
+	Call pph_toc_lookup and pph_toc_add.
+	(pph_in_merge_key_tree): Add argument IPATH_HASH.  Update all users.
+	Call pph_in_string.
+	(pph_get_include_path_hash): New.
+	(pph_in_merge_keys): Call it.
+	(pph_reader_init): New.
+	(pph_reader_finish): New.
+	* pph-streamer-out.c (pph_out_merge_key_tree): Do not call
+	pph_out_location.
+	* pph-streamer.c (pph_streamer_finish): Call pph_reader_finish.
+	(pph_add_include): Update INCLUDE->PARENT.
+	* pph-streamer.h (struct pph_stream): Add field PARENT.
+	(pph_reader_init): Declare.
+	(pph_reader_finish): Declare.
+	* pph.c (pph_init): Call pph_reader_init.
+
 2011-10-20   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (ALLOC_AND_REGISTER_ALTERNATE): Remove.

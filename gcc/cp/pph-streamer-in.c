@@ -67,7 +67,7 @@ static VEC(char_p,heap) *string_tables = NULL;
 static int pph_loc_offset;
 
 /* Forward declarations to avoid circularity.  */
-static tree pph_in_merge_key_tree (pph_stream *, tree *);
+static tree pph_in_merge_key_tree (pph_stream *, tree *, hashval_t);
 
 /***************************************************** stream initialization */
 
@@ -690,17 +690,18 @@ pph_in_chain (pph_stream *stream)
 
 
 /* Read a chain of AST merge keys from STREAM.  Merge each tree
-   into *CHAIN.  */
+   into *CHAIN.  IPATH_HASH is the hash value of the include path
+   from STREAM to the root of the include tree.  */
 
 static void
-pph_in_merge_key_chain (pph_stream *stream, tree *chain)
+pph_in_merge_key_chain (pph_stream *stream, tree *chain, hashval_t ipath_hash)
 {
   unsigned i;
   HOST_WIDE_INT count;
 
   count = pph_in_hwi (stream);
   for (i = 0; i < count; i++)
-    pph_in_merge_key_tree (stream, chain);
+    pph_in_merge_key_tree (stream, chain, ipath_hash);
 }
 
 
@@ -718,106 +719,104 @@ pph_in_merge_body_chain (pph_stream *stream)
 }
 
 
-/* Match a new decl EXPR at location WHERE with identifier string IDSTR
-   against an overload set at the LINK of a chain.
-   The EXPR may be added to that set.  */
+/* Merge table of contents.  This TOC is used to decide whether a
+   symbol has already been merged into a given compilation context.
+   Compilation contexts are usually tree chains (e.g.,
+   scope_chain->bindings->names), but they can be any stable memory
+   address.
 
-static tree
-pph_match_to_overload (tree expr ATTRIBUTE_UNUSED,
-			location_t where ATTRIBUTE_UNUSED,
-			const char *idstr, tree *link ATTRIBUTE_UNUSED)
+   This TOC is indexed by two values: the merge key read by
+   pph_in_merge_key_tree and the context in which we are doing this
+   merge.  */
+static htab_t merge_toc = NULL;
+
+/* Table of contents entry.  */
+typedef struct {
+  /* Tree being matched.  */
+  tree expr;
+
+  /* Context where this tree should be inserted into.  */
+  tree *context;
+
+  /* Name of the tree (from pph_merge_name).  */
+  const char *name;
+
+  /* Hash value representing the include path starting at the image
+     where EXPR resides up to the root of the include tree.  Objects
+     found in any of these PPH images do not need to be merged.  They
+     were already emitted as external references and merged when
+     the PPH images were being generated.  */
+  hashval_t ipath_hash;
+} merge_toc_entry;
+
+
+/* Hash and equivalence functions for the merge TOC.  */
+
+static hashval_t
+htab_merge_key_hash (const void *p)
 {
-  /* FIXME pph: This is apparently not how overloading works.  */
-  if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: unhandled overload list for \"%s\"\n", idstr);
-  return NULL;
+  const merge_toc_entry *key = (const merge_toc_entry *) p;
+  hashval_t context_val = htab_hash_pointer (key->context);
+  hashval_t name_val = htab_hash_string (key->name);
+  return iterative_hash_hashval_t (context_val, name_val);
+}
+
+static int
+htab_merge_key_eq (const void *p1, const void *p2)
+{
+  const merge_toc_entry *key1 = (const merge_toc_entry *) p1;
+  const merge_toc_entry *key2 = (const merge_toc_entry *) p2;
+
+  /* Matches inside the same include path are not interesting.  These
+     symbols have already been merged.  */
+  if (key1->ipath_hash == key2->ipath_hash)
+    return false;
+
+  if (key1->context != key2->context)
+    return false;
+
+  if (TREE_CODE (key1->expr) != TREE_CODE (key2->expr))
+    return false;
+
+  if (key1->name == NULL || key2->name == NULL)
+    return false;
+
+  return strcmp (key1->name, key2->name) == 0;
 }
 
 
-/* Match a new decl EXPR at location WHERE with identifier string IDSTR
-   against a function at the LINK of a chain.
-   We may need to create an overload set if EXPR is not the same overload.  */
+/* Look in TOC for an existing tree matching KEY.  */
 
 static tree
-pph_match_to_function (tree expr ATTRIBUTE_UNUSED,
-			location_t where ATTRIBUTE_UNUSED,
-			const char *idstr ATTRIBUTE_UNUSED, tree *link)
+pph_toc_lookup (htab_t toc, merge_toc_entry *key)
 {
-  /* This function is called when strings match, which in the case
-     of functions are the mangled names.  The mangled names should be
-     distinct, so assume a match. */
+  void *slot = htab_find (toc, key);
+  tree expr = NULL;
 
-  /* FIXME pph: This routine may need to check overloading.
-     If it does, then we need to match on the identifier,
-     not the mangled name, as the identifier is the overload set.  */
-
-  return *link;
-}
-
-
-/* Match a new decl EXPR at location WHERE with identifier string IDSTR
-   against an LINK of a chain. */
-
-static tree
-pph_match_to_link (tree expr, location_t where, const char *idstr, tree *link)
-{
-  enum tree_code link_code, expr_code;
-  tree idtree;
-  const char *idptr;
-
-  link_code = TREE_CODE (*link);
-  if (link_code == TREE_LIST)
-    /* FIXME pph: This is apparently not how overloading works.  */
-    return pph_match_to_overload (expr, where, idstr, link);
-
-  expr_code = TREE_CODE (expr);
-  if (link_code != expr_code)
-    return NULL;
-
-  idtree = pph_merge_name (*link);
-  if (!idtree)
-    return NULL;
-
-  idptr = IDENTIFIER_POINTER (idtree);
-  if (!idptr)
-    return NULL;
-
-  if (strcmp (idptr, idstr) != 0)
+  if (slot)
     {
-      if (flag_pph_debug >= 4)
-        fprintf (pph_logfile, "PPH: link \"%s\" "
-			      "does not match mergeable \"%s\"\n",
-			      idptr, idstr);
-      return NULL;
+      merge_toc_entry *e = (merge_toc_entry *) slot;
+      expr = e->expr;
     }
 
-  /* A name match!  */
-
-  if (expr_code == FUNCTION_DECL)
-    return pph_match_to_function (expr, where, idstr, link);
-
-  /* A non-function match.  */
-  return *link;
+  return expr;
 }
 
 
-/* Possibly merge a new decl EXPR at location WHERE with identifier
-   string IDSTR into an the decl in the CHAIN. */
+/* Insert KEY into TOC.  */
 
-static tree
-pph_search_in_chain (tree expr, location_t where, const char *idstr,
-		     tree *chain)
+static void
+pph_toc_add (htab_t toc, merge_toc_entry *key)
 {
-  /* FIXME pph: This could resultin O(POW(n,2)) compilation.  */
-  tree *link = chain;
-  while (*link != NULL)
-    {
-      tree found = pph_match_to_link (expr, where, idstr, link);
-      if (found)
-        return found;
-      link = &DECL_CHAIN (*link);
-    }
-  return NULL;
+  void **slot;
+  merge_toc_entry *entry;
+
+  slot = htab_find_slot (toc, key, INSERT);
+  gcc_assert (*slot == NULL);
+
+  entry = XCNEW (merge_toc_entry);
+  memcpy (entry, key, sizeof (*key));
+  *slot = (void *) entry;
 }
 
 
@@ -831,34 +830,31 @@ pph_prepend_to_chain (tree expr, tree *chain)
   return expr;
 }
 
-/* Merge the just-read header for tree EXPR onto the CHAIN,
-   which may require reading more from the STREAM.  */
+
+/* Merge the just-read header for tree EXPR with NAME onto the CHAIN.
+   IPATH_HASH is the hash value of the include path from STREAM to the
+   root of the include tree.  */
 
 static tree
-pph_merge_into_chain (pph_stream *stream, tree expr, tree *chain)
+pph_merge_into_chain (tree expr, const char *name, tree *chain,
+		      hashval_t ipath_hash)
 {
-  location_t where;
-  const char *idstr;
-  tree found;
-
-  if (!DECL_P (expr))
-    return pph_prepend_to_chain (expr, chain);
-
-  where = pph_in_location (stream);
-  idstr = pph_in_string (stream);
-  if (!idstr)
-    return pph_prepend_to_chain (expr, chain);
-
-  found = pph_search_in_chain (expr, where, idstr, chain);
+  merge_toc_entry key = { expr, chain, name, ipath_hash };
+  tree found = pph_toc_lookup (merge_toc, &key);
   if (!found)
     {
+      pph_toc_add (merge_toc, &key);
+
       if (flag_pph_debug >= 3)
-        fprintf (pph_logfile, "PPH: %s NOT found on chain\n", idstr);
+        fprintf (pph_logfile, "PPH: %s NOT found on chain\n", name);
+
       return pph_prepend_to_chain (expr, chain);
     }
 
   if (flag_pph_debug >= 3)
-    fprintf (pph_logfile, "PPH: %s FOUND on chain\n", idstr);
+    fprintf (pph_logfile, "PPH: %s FOUND on chain\n", name);
+
+  gcc_assert (TREE_CODE (found) == TREE_CODE (expr));
 
   return found;
 }
@@ -1897,16 +1893,18 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 
 /* Read a merge key from STREAM.  If the merge key read from
    STREAM is not found in *CHAIN, the newly allocated tree is added to
-   it.  */
+   it.  IPATH_HASH is the hash value of the include path from STREAM to
+   the root of the include tree.  */
 
 static tree
-pph_in_merge_key_tree (pph_stream *stream, tree *chain)
+pph_in_merge_key_tree (pph_stream *stream, tree *chain, hashval_t ipath_hash)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
   tree read_expr, expr;
   enum LTO_tags tag;
+  const char *name;
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
   gcc_assert (marker == PPH_RECORD_START_MERGE_KEY);
@@ -1915,11 +1913,12 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   /* Materialize a new node from STREAM.  This will also read all the
      language-independent bitfields for the new tree.  */
   read_expr = pph_in_tree_header (stream, tag);
+  name = pph_in_string (stream);
 
   /* Look for a match in CHAIN to READ_EXPR's header.  If we found a
      match, EXPR will be the existing tree that matches READ_EXPR.
      Otherwise, EXPR is the newly allocated READ_EXPR.  */
-  expr = pph_merge_into_chain (stream, read_expr, chain);
+  expr = pph_merge_into_chain (read_expr, name, chain, ipath_hash);
 
   gcc_assert (expr != NULL);
 
@@ -2023,7 +2022,6 @@ pph_in_tree (pph_stream *stream)
      save TREE_CHAIN for merge bodies.  */
   if (marker == PPH_RECORD_START_MERGE_BODY)
     TREE_CHAIN (expr) = saved_expr_chain;
-
 
   if (flag_pph_tracer)
     pph_trace_tree (expr, false, false);
@@ -2332,6 +2330,22 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
+/* Compute a hash value for all the images starting at STREAM up to the
+   root of the include hierarchy.  */
+
+static hashval_t
+pph_get_include_path_hash (pph_stream *stream)
+{
+  pph_stream *i;
+  hashval_t val;
+
+  for (val = 0, i = stream; i; i = i->parent)
+    val = iterative_hash_hashval_t (htab_hash_pointer (i), val);
+
+  return val;
+}
+
+
 /* Read all the merge keys from STREAM.  Merge into the corresponding
    contexts.  Return a VEC of all the merge keys read.  */
 
@@ -2339,12 +2353,19 @@ static void
 pph_in_merge_keys (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
+  hashval_t include_path_hash = 0;
+
+  /* Compute the signature for the include path from STREAM up to
+     the root of the inclusion tree.  Symbols found in any image in
+     the direct path from STREAM up to the root do not need to be
+     merged.  They were already merged when the images were generated.  */
+  include_path_hash = pph_get_include_path_hash (stream);
 
   /* First read all the merge keys and merge into the global bindings.  */
-  pph_in_merge_key_chain (stream, &bl->names);
-  pph_in_merge_key_chain (stream, &bl->namespaces);
-  pph_in_merge_key_chain (stream, &bl->usings);
-  pph_in_merge_key_chain (stream, &bl->using_directives);
+  pph_in_merge_key_chain (stream, &bl->names, include_path_hash);
+  pph_in_merge_key_chain (stream, &bl->namespaces, include_path_hash);
+  pph_in_merge_key_chain (stream, &bl->usings, include_path_hash);
+  pph_in_merge_key_chain (stream, &bl->using_directives, include_path_hash);
 
   /* Now read the bodies of all the trees merged above.  */
   pph_in_merge_body_chain (stream);
@@ -2484,4 +2505,22 @@ pph_read_file (const char *filename)
   pph_read_file_1 (stream);
 
   return stream;
+}
+
+
+/* Initialize the reader.  */
+
+void
+pph_reader_init (void)
+{
+  merge_toc = htab_create (551, htab_merge_key_hash, htab_merge_key_eq, free);
+}
+
+
+/* Finalize the reader.  */
+
+void
+pph_reader_finish (void)
+{
+  htab_delete (merge_toc);
 }
