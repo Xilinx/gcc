@@ -10866,7 +10866,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     case MELTOBMAG_STRBUF:
       {
 	FILE* oldfil= melt_open_ppfile ();
-	dump_edge_info (meltppfile, edg, 0);
+	dump_edge_info (meltppfile, edg, /*do_succ=*/ 1);
 	melt_close_ppfile (oldfil);
 	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
 	free(meltppbuffer);
@@ -10880,7 +10880,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
 	FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
 	if (!f) 
 	  goto end;
-	dump_edge_info(f, edg, 0);
+	dump_edge_info (f, edg, /*do_succ=*/ 1);
 	fflush (f);
       }
       break;

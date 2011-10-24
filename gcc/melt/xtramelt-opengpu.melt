@@ -23,13 +23,22 @@
     <http://www.gnu.org/licenses/>.
 ***")
 
-(defun opengpudetect_handle_parallel_loop (curloopval :long loopix)
-  (debug "opengpudetect_handle_parallel_loop start curloopval=" curloopval 
-	 " loopix=" loopix)
+
+(defclass class_opengpu_data
+  :super class_proped
+  :fields (opengpu_passcount
+	   opengpu_fundecl
+	   )
+  )
+
+(defun opengpudetect_handle_parallel_loop (gpudata curloopval :long loopix :tree fundecl)
+  (debug "opengpudetect_handle_parallel_loop start gpudata=" gpudata
+	 " curloopval=" curloopval 
+	 " loopix=" loopix " fundecl=" fundecl)
   (let (
 	(:loop curloop (loop_content curloopval))
 	(curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
-	(curloopedgetuple (loop_exit_edges_tuple discr_multiple curloop))
+	(curloopexitedgetuple (loop_exit_edges_tuple discr_multiple curloop))
 	(:basic_block bbloophead (loop_header curloop))
 	(:basic_block bblooplatch (loop_latch curloop))
 	)
@@ -37,7 +46,7 @@
 	   " bbloophead=" bbloophead " with nbsucc=" (basicblock_nb_succ bbloophead)
 	   " bblooplatch=" bblooplatch
 	   " curloopbodytuple=" curloopbodytuple
-	   " curloopedgetuple=" curloopedgetuple " loopix=" loopix)
+	   " curloopexitedgetuple=" curloopexitedgetuple " loopix=" loopix)
     ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
     ;; tree-ssa-loop-niter.c function try_get_loop_niter &
     ;; canonicalize_loop_ivs & number_of_iterations_exit
@@ -48,7 +57,7 @@
 	    " destbb=" (edge_dest_bb edgheadsuc)
 	    " nbsucc bblooplatch" (basicblock_nb_succ bblooplatch)
 	    " parellelizable curloopbodytuple=" curloopbodytuple
-	    "parellelizable curloopedgetuple=" curloopedgetuple)
+	    " parellelizable curloopexitedgetuple=" curloopexitedgetuple)
      (foreach_in_multiple
       (curloopbodytuple)
       (curloopbody :long bodyix)
@@ -114,12 +123,16 @@
 		(assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
 		)
 	      ;;
-	      (?(gimple_cond_lessequal ?lhs ?rhs)
-		(debug "opengpudetect_handle_parallel_loop cond <= lhs=" lhs " rhs=" rhs)
+	      (?(and ?(gimple_cond_with_edges ?tedg ?fedg)
+		     ?(gimple_cond_lessequal ?lhs ?rhs))
+		(debug "opengpudetect_handle_parallel_loop cond <= lhs=" lhs " rhs=" rhs
+		       " tedg=" tedg " fedg=" fedg)
 		)
 	      ;;
-	      (?(gimple_cond_less ?lhs ?rhs)
-		(debug "opengpudetect_handle_parallel_loop cond < lhs=" lhs " rhs=" rhs)
+	      (?(and ?(gimple_cond_with_edges ?tedg ?fedg)
+		     ?(gimple_cond_less ?lhs ?rhs))
+		(debug "opengpudetect_handle_parallel_loop cond < lhs=" lhs " rhs=" rhs
+		       " tedg=" tedg " fedg=" fedg)
 		)
 	      ;;
 	      (?_
@@ -160,35 +173,42 @@
      ()
      (:tree fundecl)
      (debug "opengpudetect_exec fundecl=" fundecl)
-     (each_bb_current_fun
-      ()
-      (:basic_block bb)
-      (debug "opengpudetect_exec bb=" bb)
-      )
-;;;
-     (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" fundecl)
-     (each_loop 
-      ()
-      (:loop curloop :long loopix)
-      (debug "opengpudetect_exec curloop=" curloop " loopix=" loopix 
-	     " computed loopnum:" (loop_index_number curloop)
-	     " computed loopdepth:" (loop_depth curloop))
-      (if (loop_can_be_parallel curloop)
-	  (let ( (curloopval (make_loop discr_loop curloop))
-		 )
-	    (debug "opengpudetect_exec can be parallel!!! curloopval=" curloopval " loopix=" loopix)
-	    (opengpudetect_handle_parallel_loop curloopval)
-	    (debug "opengpudetect_exec after opengpudetect_handle_parallel_loop curloopval=" curloopval 
-		   " loopix=" loopix)
+     (let ( (fundeclval (make_tree discr_tree fundecl)) 
+	    (gpudata (instance class_opengpu_data
+			       :opengpu_passcount (make_integerbox discr_constant_integer passcounter)
+			       :opengpu_fundecl fundeclval
+			       ))
 	    )
-	(debug "opengpudetect_exec is not parallel!!! curloop=" curloop)
+       (debug "opengpudetect_exec gpudata=" gpudata)
+       (each_bb_current_fun
+	()
+	(:basic_block bb)
+	(debug "opengpudetect_exec bb=" bb)
 	)
-      )
-     ;;
-     (debug "opengpudetect_exec end pass=" pass " passcounter=" passcounter
-	    " fundecl=" fundecl)
-     (return :true)
-     )))
+;;;
+       (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" fundecl)
+       (each_loop 
+	()
+	(:loop curloop :long loopix)
+	(debug "opengpudetect_exec curloop=" curloop " loopix=" loopix 
+	       " computed loopnum:" (loop_index_number curloop)
+	       " computed loopdepth:" (loop_depth curloop))
+	(if (loop_can_be_parallel curloop)
+	    (let ( (curloopval (make_loop discr_loop curloop))
+		   )
+	      (debug "opengpudetect_exec can be parallel!!! curloopval=" curloopval " loopix=" loopix)
+	      (opengpudetect_handle_parallel_loop gpudata curloopval loopix fundecl)
+	      (debug "opengpudetect_exec after opengpudetect_handle_parallel_loop curloopval=" curloopval 
+		     " loopix=" loopix)
+	      )
+	  (debug "opengpudetect_exec is not parallel!!! curloop=" curloop)
+	  )
+	)
+       ;;
+       (debug "opengpudetect_exec end pass=" pass " passcounter=" passcounter
+	      " fundecl=" fundecl)
+       (return :true)
+       ))))
 
 
 ;; the opengpu passes translate some Gimple into OpenCL.

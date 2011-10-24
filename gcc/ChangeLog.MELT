@@ -1,5 +1,11 @@
 
 2011-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_out_edge): call dump_edge_info with do_succ flag set.
+	* melt/xtramelt-opengpu.melt (class_opengpu_data): New.
+	(opengpudetect_handle_parallel_loop): Get the gpudata. Get the edge of conds.
+	(opengpudetect_exec): Make a gpudata.
+
+2011-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.1+
 	* melt/warmelt-outobj.melt (objputpairhead_counter): New instance.
 	(outpucod_objputpairhead): Use it, to generate more reproducible code.
