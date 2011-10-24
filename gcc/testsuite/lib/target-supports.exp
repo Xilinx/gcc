@@ -3456,7 +3456,8 @@ proc check_effective_target_sync_int_128 { } {
         verbose "check_effective_target_sync_int_128: using cached result" 2
     } else {
         set et_sync_int_128_saved 0
-        if { [istarget x86_64-*-*] } {
+        if { ([istarget x86_64-*-*] || [istarget i?86-*-*])
+	     && ![is-effective-target ia32] } {
            set et_sync_int_128_saved 1
         }
     }
@@ -3474,7 +3475,8 @@ proc check_effective_target_sync_long_long { } {
         verbose "check_effective_target_sync_long_long: using cached result" 2
     } else {
         set et_sync_long_long_saved 0
-        if { [istarget x86_64-*-*] } {
+        if { ([istarget x86_64-*-*] || [istarget i?86-*-*])
+	     && ![is-effective-target ia32] } {
            set et_sync_long_long_saved 1
         }
     }

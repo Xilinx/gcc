@@ -1,3 +1,11 @@
+2011-10-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	* lib/target-supports.exp (check_effective_target_sync_int_128):
+	Handle both 32-bit and 64-bit triplets on x86.
+	(check_effective_target_sync_long_long): Same.
+	* gcc.dg/simulate-thread/atomic-load-int128.c: Handle i?86-*-*.
+	* gcc.dg/simulate-thread/atomic-other-int128.c: Same.
+
 2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/atomic-invalid.c: Add compare_exchange failures.
