@@ -77,7 +77,7 @@ install_builtin (const char *name, tree fntype, enum built_in_function code,
   DECL_FUNCTION_CODE (fndecl) = code;
   if (publish)
     fndecl = lang_hooks.decls.pushdecl (fndecl);
-  implicit_built_in_decls[code] = fndecl;
+  set_builtin_decl (code, fndecl, true);
   return fndecl;
 }
 
@@ -331,7 +331,7 @@ cilk_call_setjmp (tree frame)
 
   c = dot(frame, CILK_TI_FRAME_CONTEXT, false);
   c = build1 (ADDR_EXPR, build_pointer_type (ptr_type_node), c);
-  return build_call_expr (implicit_built_in_decls[BUILT_IN_SETJMP], 1, c);
+  return build_call_expr (builtin_decl_implicit (BUILT_IN_SETJMP), 1, c);
 }
 
 static rtx
