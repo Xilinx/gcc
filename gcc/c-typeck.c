@@ -2766,7 +2766,8 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
       && !comptypes (fntype, TREE_TYPE (tem)))
     {
       tree return_type = TREE_TYPE (fntype);
-      tree trap = build_function_call (loc, built_in_decls[BUILT_IN_TRAP],
+      tree trap = build_function_call (loc,
+				       builtin_decl_explicit (BUILT_IN_TRAP),
 				       NULL_TREE);
       int i;
 
@@ -2930,7 +2931,7 @@ c_build_vec_perm_expr (location_t loc, tree v0, tree v1, tree mask)
   mask = c_fully_fold (mask, false, &maybe_const);
   wrap &= maybe_const;
 
-  ret = build3 (VEC_PERM_EXPR, TREE_TYPE (v0), v0, v1, mask);
+  ret = build3_loc (loc, VEC_PERM_EXPR, TREE_TYPE (v0), v0, v1, mask);
 
   if (!wrap)
     ret = c_wrap_maybe_const (ret, true);

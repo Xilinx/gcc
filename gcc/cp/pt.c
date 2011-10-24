@@ -1591,6 +1591,7 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       return val;
 
     case CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
     case STATIC_CAST_EXPR:
     case REINTERPRET_CAST_EXPR:
     case CONST_CAST_EXPR:
@@ -7702,6 +7703,7 @@ for_each_template_parm_r (tree *tp, int *walk_subtrees, void *d)
 
     case MODOP_EXPR:
     case CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
     case REINTERPRET_CAST_EXPR:
     case CONST_CAST_EXPR:
     case STATIC_CAST_EXPR:
@@ -10267,6 +10269,16 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    = tsubst_expr (DECL_INITIAL (t), args,
 			   complain, in_decl,
 			   /*integral_constant_expression_p=*/true);
+	else if (DECL_INITIAL (t))
+	  {
+	    /* Set up DECL_TEMPLATE_INFO so that we can get at the
+	       NSDMI in perform_member_init.  Still set DECL_INITIAL
+	       so that we know there is one.  */
+	    DECL_INITIAL (r) = void_zero_node;
+	    gcc_assert (DECL_LANG_SPECIFIC (r) == NULL);
+	    retrofit_lang_decl (r);
+	    DECL_TEMPLATE_INFO (r) = build_template_info (t, args);
+	  }
 	/* We don't have to set DECL_CONTEXT here; it is set by
 	   finish_member_declaration.  */
 	DECL_CHAIN (r) = NULL_TREE;
@@ -11714,7 +11726,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
 
 /* Like tsubst, but deals with expressions.  This function just replaces
    template parms; to finish processing the resultant expression, use
-   tsubst_expr.  */
+   tsubst_copy_and_build or tsubst_expr.  */
 
 static tree
 tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
@@ -11879,6 +11891,8 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
     case CONST_CAST_EXPR:
     case STATIC_CAST_EXPR:
     case DYNAMIC_CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
+    case CONVERT_EXPR:
     case NOP_EXPR:
       return build1
 	(code, tsubst (TREE_TYPE (t), args, complain, in_decl),
@@ -13026,7 +13040,11 @@ tsubst_copy_and_build (tree t,
 	if (error_msg)
 	  error (error_msg);
 	if (!function_p && TREE_CODE (decl) == IDENTIFIER_NODE)
-	  decl = unqualified_name_lookup_error (decl);
+	  {
+	    if (complain & tf_error)
+	      unqualified_name_lookup_error (decl);
+	    decl = error_mark_node;
+	  }
 	return decl;
       }
 
@@ -13075,6 +13093,23 @@ tsubst_copy_and_build (tree t,
     case NOP_EXPR:
       return build_nop
 	(tsubst (TREE_TYPE (t), args, complain, in_decl),
+	 RECUR (TREE_OPERAND (t, 0)));
+
+    case IMPLICIT_CONV_EXPR:
+      {
+	tree type = tsubst (TREE_TYPE (t), args, complain, in_decl);
+	tree expr = RECUR (TREE_OPERAND (t, 0));
+	int flags = LOOKUP_IMPLICIT;
+	if (IMPLICIT_CONV_EXPR_DIRECT_INIT (t))
+	  flags = LOOKUP_NORMAL;
+	return perform_implicit_conversion_flags (type, expr, complain,
+						  flags);
+      }
+
+    case CONVERT_EXPR:
+      return build1
+	(CONVERT_EXPR,
+	 tsubst (TREE_TYPE (t), args, complain, in_decl),
 	 RECUR (TREE_OPERAND (t, 0)));
 
     case CAST_EXPR:
@@ -13912,8 +13947,8 @@ tsubst_copy_and_build (tree t,
       {
 	tree r = build_lambda_expr ();
 
-	tree type = tsubst (TREE_TYPE (t), args, complain, NULL_TREE);
-	TREE_TYPE (r) = type;
+	tree type = tsubst (LAMBDA_EXPR_CLOSURE (t), args, complain, NULL_TREE);
+	LAMBDA_EXPR_CLOSURE (r) = type;
 	CLASSTYPE_LAMBDA_EXPR (type) = r;
 
 	LAMBDA_EXPR_LOCATION (r)
@@ -19172,6 +19207,7 @@ type_dependent_expression_p (tree expression)
       || TREE_CODE (expression) == STATIC_CAST_EXPR
       || TREE_CODE (expression) == CONST_CAST_EXPR
       || TREE_CODE (expression) == REINTERPRET_CAST_EXPR
+      || TREE_CODE (expression) == IMPLICIT_CONV_EXPR
       || TREE_CODE (expression) == CAST_EXPR)
     return dependent_type_p (TREE_TYPE (expression));
 

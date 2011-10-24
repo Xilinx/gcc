@@ -235,6 +235,14 @@ expand_vector_piecewise (gimple_stmt_iterator *gsi, elem_op_func f,
   int delta = tree_low_cst (part_width, 1)
 	      / tree_low_cst (TYPE_SIZE (TREE_TYPE (type)), 1);
   int i;
+  location_t loc = gimple_location (gsi_stmt (*gsi));
+
+  if (types_compatible_p (gimple_expr_type (gsi_stmt (*gsi)), type))
+    warning_at (loc, OPT_Wvector_operation_performance,
+		"vector operation will be expanded piecewise");
+  else
+    warning_at (loc, OPT_Wvector_operation_performance,
+		"vector operation will be expanded in parallel");
 
   v = VEC_alloc(constructor_elt, gc, (nunits + delta - 1) / delta);
   for (i = 0; i < nunits;
@@ -260,6 +268,7 @@ expand_vector_parallel (gimple_stmt_iterator *gsi, elem_op_func f, tree type,
   tree result, compute_type;
   enum machine_mode mode;
   int n_words = tree_low_cst (TYPE_SIZE_UNIT (type), 1) / UNITS_PER_WORD;
+  location_t loc = gimple_location (gsi_stmt (*gsi));
 
   /* We have three strategies.  If the type is already correct, just do
      the operation an element at a time.  Else, if the vector is wider than
@@ -284,6 +293,9 @@ expand_vector_parallel (gimple_stmt_iterator *gsi, elem_op_func f, tree type,
       mode = mode_for_size (tree_low_cst (TYPE_SIZE (type), 1), MODE_INT, 0);
       compute_type = lang_hooks.types.type_for_mode (mode, 1);
       result = f (gsi, compute_type, a, b, NULL_TREE, NULL_TREE, code);
+      warning_at (loc, OPT_Wvector_operation_performance,
+	          "vector operation will be expanded with a "
+		  "single scalar operation");
     }
 
   return result;
@@ -400,8 +412,8 @@ expand_vector_operation (gimple_stmt_iterator *gsi, tree type, tree compute_type
       case PLUS_EXPR:
       case MINUS_EXPR:
         if (!TYPE_OVERFLOW_TRAPS (type))
-          return expand_vector_addition (gsi, do_binop, do_plus_minus, type,
-		      		         gimple_assign_rhs1 (assign),
+	  return expand_vector_addition (gsi, do_binop, do_plus_minus, type,
+					 gimple_assign_rhs1 (assign),
 					 gimple_assign_rhs2 (assign), code);
 	break;
 
@@ -626,10 +638,15 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
   tree constr, t, si, i_val;
   tree vec0tmp = NULL_TREE, vec1tmp = NULL_TREE, masktmp = NULL_TREE;
   bool two_operand_p = !operand_equal_p (vec0, vec1, 0);
+  location_t loc = gimple_location (gsi_stmt (*gsi));
   unsigned i;
 
-  if (expand_vec_perm_expr_p (TYPE_MODE (vect_type), vec0, vec1, mask))
+  if (can_vec_perm_expr_p (vect_type, mask))
     return;
+  
+  warning_at (loc, OPT_Wvector_operation_performance,
+              "vector shuffling operation will be expanded piecewise");
+
 
   v = VEC_alloc (constructor_elt, gc, elements);
   for (i = 0; i < elements; i++)
@@ -758,60 +775,39 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       || code == LROTATE_EXPR
       || code == RROTATE_EXPR)
     {
-      bool vector_scalar_shift;
-      op = optab_for_tree_code (code, type, optab_scalar);
-
-      /* Vector/Scalar shift is supported.  */
-      vector_scalar_shift = (op && (optab_handler (op, TYPE_MODE (type))
-				    != CODE_FOR_nothing));
-
-      /* If the 2nd argument is vector, we need a vector/vector shift.
-         Except all the elements in the second vector are the same.  */
+      /* Check whether we have vector <op> {x,x,x,x} where x
+         could be a scalar variable or a constant.  Transform
+         vector <op> {x,x,x,x} ==> vector <op> scalar.  */
       if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (rhs2))))
         {
           tree first;
           gimple def_stmt;
 
-          /* Check whether we have vector <op> {x,x,x,x} where x
-             could be a scalar variable or a constant. Transform
-             vector <op> {x,x,x,x} ==> vector <op> scalar.  */
-          if (vector_scalar_shift
-              && ((TREE_CODE (rhs2) == VECTOR_CST
-		   && (first = uniform_vector_p (rhs2)) != NULL_TREE)
-		  || (TREE_CODE (rhs2) == SSA_NAME
-		      && (def_stmt = SSA_NAME_DEF_STMT (rhs2))
-		      && gimple_assign_single_p (def_stmt)
-		      && (first = uniform_vector_p
-			    (gimple_assign_rhs1 (def_stmt))) != NULL_TREE)))
+          if ((TREE_CODE (rhs2) == VECTOR_CST
+	       && (first = uniform_vector_p (rhs2)) != NULL_TREE)
+	      || (TREE_CODE (rhs2) == SSA_NAME
+		  && (def_stmt = SSA_NAME_DEF_STMT (rhs2))
+		  && gimple_assign_single_p (def_stmt)
+		  && (first = uniform_vector_p
+		      (gimple_assign_rhs1 (def_stmt))) != NULL_TREE))
             {
               gimple_assign_set_rhs2 (stmt, first);
               update_stmt (stmt);
               rhs2 = first;
             }
-          else
-            op = optab_for_tree_code (code, type, optab_vector);
         }
 
-      /* Try for a vector/scalar shift, and if we don't have one, see if we
-         have a vector/vector shift */
-      else if (!vector_scalar_shift)
+      if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (rhs2))))
+        op = optab_for_tree_code (code, type, optab_vector);
+      else
 	{
-	  op = optab_for_tree_code (code, type, optab_vector);
+          op = optab_for_tree_code (code, type, optab_scalar);
 
-	  if (op && (optab_handler (op, TYPE_MODE (type))
-		     != CODE_FOR_nothing))
-	    {
-	      /* Transform vector <op> scalar => vector <op> {x,x,x,x}.  */
-	      int n_parts = TYPE_VECTOR_SUBPARTS (type);
-	      int part_size = tree_low_cst (TYPE_SIZE (TREE_TYPE (type)), 1);
-	      tree part_type = lang_hooks.types.type_for_size (part_size, 1);
-	      tree vect_type = build_vector_type (part_type, n_parts);
-
-	      rhs2 = fold_convert (part_type, rhs2);
-	      rhs2 = build_vector_from_val (vect_type, rhs2);
-	      gimple_assign_set_rhs2 (stmt, rhs2);
-	      update_stmt (stmt);
-	    }
+	  /* The rtl expander will expand vector/scalar as vector/vector
+	     if necessary.  Don't bother converting the stmt here.  */
+	  if (op == NULL
+	      || optab_handler (op, TYPE_MODE (type)) == CODE_FOR_nothing)
+	    op = optab_for_tree_code (code, type, optab_vector);
 	}
     }
   else
@@ -857,12 +853,7 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
   if (compute_type == type)
     {
       compute_mode = TYPE_MODE (compute_type);
-      if ((GET_MODE_CLASS (compute_mode) == MODE_VECTOR_INT
-	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_FLOAT
-	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_FRACT
-	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_UFRACT
-	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_ACCUM
-	   || GET_MODE_CLASS (compute_mode) == MODE_VECTOR_UACCUM)
+      if (VECTOR_MODE_P (compute_mode)
           && op != NULL
 	  && optab_handler (op, compute_mode) != CODE_FOR_nothing)
 	return;
