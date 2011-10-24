@@ -1,3 +1,13 @@
+2011-10-24  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	* builtin-attrs.def (ATTR_TMPURE_MALLOC_NOTHROW_LIST): Add
+	TM_PURE.
+	(ATTR_TMPURE_NOTHROW_LIST): New.
+	* gtm-builtions.def (BUILT_IN_TM_MALLOC): Use
+	ATTR_TMPURE_MALLOC_NOTHROW_LIST.
+	(BUILT_IN_TM_CALLOC): Same.
+	(BUILT_IN_TM_FREE): Use ATTR_TMPURE_NOTHROW_LIST.
+
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
 	* c-common.h (RID_TRANSACTION): Split into RID_TRANSACTION_ATOMIC
