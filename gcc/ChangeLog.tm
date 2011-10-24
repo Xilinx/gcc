@@ -1,5 +1,9 @@
 2011-10-24  Patrick Marlier  <patrick.marlier@gmail.com>
 
+	* tree-cfg.c (verify_gimple_in_seq_2): Fix typo.
+
+2011-10-24  Patrick Marlier  <patrick.marlier@gmail.com>
+
 	* builtin-attrs.def (ATTR_TMPURE_MALLOC_NOTHROW_LIST): Add
 	TM_PURE.
 	(ATTR_TMPURE_NOTHROW_LIST): New.

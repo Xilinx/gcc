@@ -4244,7 +4244,7 @@ verify_gimple_in_seq_2 (gimple_seq stmts)
 	  break;
 
 	case GIMPLE_TRANSACTION:
-	  err |= verify_gimple_in_seq_2 (gimple_omp_body (stmt));
+	  err |= verify_gimple_in_seq_2 (gimple_transaction_body (stmt));
 	  break;
 
 	default:
