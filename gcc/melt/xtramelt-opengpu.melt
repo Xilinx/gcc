@@ -185,7 +185,8 @@
 	)
       )
      ;;
-     (debug "opengpudetect_exec end pass=" pass)
+     (debug "opengpudetect_exec end pass=" pass " passcounter=" passcounter
+	    " fundecl=" fundecl)
      (return :true)
      )))
 
