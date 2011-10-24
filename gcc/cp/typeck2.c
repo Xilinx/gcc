@@ -571,7 +571,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 		{
 		  code = (build_special_member_call
 			  (sub, complete_dtor_identifier, NULL, inner_type,
-			   LOOKUP_NORMAL, tf_warning_or_error));
+			   LOOKUP_NORMAL, CALL_NORMAL, tf_warning_or_error));
 		  finish_eh_cleanup (code);
 		}
 
