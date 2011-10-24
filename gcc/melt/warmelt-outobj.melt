@@ -3249,16 +3249,21 @@
 (install_method class_objputuple output_c_code outpucod_objputuple)
 
 ;;;;
+(definstance objputpairhead_counter class_container :container_value '0)
+
 (defun outpucod_objputpairhead (oput declbuf implbuf :long depth)
   (let ( (oloc (unsafe_get_field :obi_loc oput))
 	 (opair (get_field :oputp_pair oput))
 	 (ohead (get_field :oputp_head oput))
+	 (oldcount !objputpairhead_counter)
+	 (newcount (+ivi oldcount 1))
 	)
     (output_location oloc implbuf depth "putpairhead")
     (add2sbuf_strconst implbuf "/*putpairhead*/")
     (add2sbuf_indentnl implbuf depth)
+    (set_content objputpairhead_counter newcount)
     (add2sbuf_strconst implbuf "melt_assertmsg(\"putpairhead /")
-    (add2sbuf_longhex implbuf (obj_hash oput))
+    (add2sbuf_longhex implbuf (get_int newcount))
     (add2sbuf_strconst implbuf " checkpair\", melt_magic_discr((melt_ptr_t)(")
     (output_c_code opair declbuf implbuf depth)
     (add2sbuf_strconst implbuf "))== MELTOBMAG_PAIR);")

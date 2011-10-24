@@ -1,5 +1,10 @@
 
 2011-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.1+
+	* melt/warmelt-outobj.melt (objputpairhead_counter): New instance.
+	(outpucod_objputpairhead): Use it, to generate more reproducible code.
+
+2011-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Better debug.
 
 	{{Regenerated}}
