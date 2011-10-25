@@ -1,3 +1,21 @@
+2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/atomic-generic-aux.c: New. Provide 4 functional external
+	entrypoints for new generic library functions.
+	* gcc.dg/atomic-generic.c: New. Test that generic functions produce
+	the expected library calls.
+	* gcc.dg/atomic-compare-exchange*.c: Replace __atomic_compare_exchange
+	with __atomic_compare_exchange_n.  Add generic variations.
+	* gcc.dg/atomic-exchange*.c: Replace __atomic_exchange with
+	__atomic_exchange_n.  Add generic variations.
+	* gcc.dg/atomic-invalid.c: Add _n to renamed functions.
+	gcc.dg/atomic-load*.c: Replace __atomic_load with __atomic_load_n.  Add
+	generic variations.
+	* gcc.dg/atomic-param.c: Add _n to renamed functions.
+	* gcc.dg/atomic-store*.c: Replace __atomic_store with __atomic_store_n.
+	Add generic variations.
+	* gcc.dg/simulate-thread/atomic*.c: Add _n to renamed functions.
+
 2011-10-24  Aldy Hernandez  <aldyh@redhat.com>
 
 	* lib/target-supports.exp (check_effective_target_sync_int_128):

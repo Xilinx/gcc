@@ -60,13 +60,13 @@ namespace __atomic2
     bool
     test_and_set(memory_order __m = memory_order_seq_cst) noexcept
     {
-      return __atomic_exchange (&_M_i, 1, __m);
+      return __atomic_exchange_n (&_M_i, 1, __m);
     }
 
     bool
     test_and_set(memory_order __m = memory_order_seq_cst) volatile noexcept
     {
-      return __atomic_exchange (&_M_i, 1, __m);
+      return __atomic_exchange_n (&_M_i, 1, __m);
     }
 
     void
@@ -76,7 +76,7 @@ namespace __atomic2
       __glibcxx_assert(__m != memory_order_acquire);
       __glibcxx_assert(__m != memory_order_acq_rel);
 
-      __atomic_store (&_M_i, 0, __m);
+      __atomic_store_n (&_M_i, 0, __m);
     }
 
     void
@@ -86,7 +86,7 @@ namespace __atomic2
       __glibcxx_assert(__m != memory_order_acquire);
       __glibcxx_assert(__m != memory_order_acq_rel);
 
-      __atomic_store (&_M_i, 0, __m);
+      __atomic_store_n (&_M_i, 0, __m);
     }
   };
 
@@ -239,7 +239,7 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_acq_rel);
 	__glibcxx_assert(__m != memory_order_consume);
 
-	__atomic_store (&_M_i, __i, __m);
+	__atomic_store_n (&_M_i, __i, __m);
       }
 
       void
@@ -250,7 +250,7 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_acq_rel);
 	__glibcxx_assert(__m != memory_order_consume);
 
-	__atomic_store (&_M_i, __i, __m);
+	__atomic_store_n (&_M_i, __i, __m);
       }
 
       __int_type
@@ -259,7 +259,7 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_release);
 	__glibcxx_assert(__m != memory_order_acq_rel);
 
-	return __atomic_load (&_M_i, __m);
+	return __atomic_load_n (&_M_i, __m);
       }
 
       __int_type
@@ -268,14 +268,14 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_release);
 	__glibcxx_assert(__m != memory_order_acq_rel);
 
-	return __atomic_load (&_M_i, __m);
+	return __atomic_load_n (&_M_i, __m);
       }
 
       __int_type
       exchange(__int_type __i,
 	       memory_order __m = memory_order_seq_cst) noexcept
       {
-        return __atomic_exchange (&_M_i, __i, __m);
+        return __atomic_exchange_n (&_M_i, __i, __m);
       }
 
 
@@ -283,7 +283,7 @@ namespace __atomic2
       exchange(__int_type __i,
 	       memory_order __m = memory_order_seq_cst) volatile noexcept
       {
-        return __atomic_exchange (&_M_i, __i, __m);
+        return __atomic_exchange_n (&_M_i, __i, __m);
       }
 
       bool
@@ -294,7 +294,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 1, __m1, __m2);
+        return __atomic_compare_exchange_n (&_M_i, &__i1, __i2, 1, __m1, __m2);
       }
 
       bool
@@ -306,7 +306,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 1, __m1, __m2);
+        return __atomic_compare_exchange_n (&_M_i, &__i1, __i2, 1, __m1, __m2);
       }
 
       bool
@@ -333,7 +333,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 0, __m1, __m2);
+        return __atomic_compare_exchange_n (&_M_i, &__i1, __i2, 0, __m1, __m2);
       }
 
       bool
@@ -345,7 +345,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-        return __atomic_compare_exchange (&_M_i, &__i1, __i2, 0, __m1, __m2);
+        return __atomic_compare_exchange_n (&_M_i, &__i1, __i2, 0, __m1, __m2);
       }
 
       bool
@@ -519,7 +519,7 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_acq_rel);
 	__glibcxx_assert(__m != memory_order_consume);
 
-	__atomic_store (&_M_p, __p, __m);
+	__atomic_store_n (&_M_p, __p, __m);
       }
 
       void
@@ -530,7 +530,7 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_acq_rel);
 	__glibcxx_assert(__m != memory_order_consume);
 
-	__atomic_store (&_M_p, __p, __m);
+	__atomic_store_n (&_M_p, __p, __m);
       }
 
       __pointer_type
@@ -539,7 +539,7 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_release);
 	__glibcxx_assert(__m != memory_order_acq_rel);
 
-	return __atomic_load (&_M_p, __m);
+	return __atomic_load_n (&_M_p, __m);
       }
 
       __pointer_type
@@ -548,14 +548,14 @@ namespace __atomic2
 	__glibcxx_assert(__m != memory_order_release);
 	__glibcxx_assert(__m != memory_order_acq_rel);
 
-	return __atomic_load (&_M_p, __m);
+	return __atomic_load_n (&_M_p, __m);
       }
 
       __pointer_type
       exchange(__pointer_type __p,
 	       memory_order __m = memory_order_seq_cst) noexcept
       {
-	return __atomic_exchange (&_M_p, __p, __m);
+	return __atomic_exchange_n (&_M_p, __p, __m);
       }
 
 
@@ -563,7 +563,7 @@ namespace __atomic2
       exchange(__pointer_type __p,
 	       memory_order __m = memory_order_seq_cst) volatile noexcept
       {
-	return __atomic_exchange (&_M_p, __p, __m);
+	return __atomic_exchange_n (&_M_p, __p, __m);
       }
 
       bool
@@ -575,7 +575,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-	return __atomic_compare_exchange (&_M_p, &__p1, __p2, 0, __m1, __m2);
+	return __atomic_compare_exchange_n (&_M_p, &__p1, __p2, 0, __m1, __m2);
       }
 
       bool
@@ -587,7 +587,7 @@ namespace __atomic2
 	__glibcxx_assert(__m2 != memory_order_acq_rel);
 	__glibcxx_assert(__m2 <= __m1);
 
-	return __atomic_compare_exchange (&_M_p, &__p1, __p2, 0, __m1, __m2);
+	return __atomic_compare_exchange_n (&_M_p, &__p1, __p2, 0, __m1, __m2);
       }
 
       __pointer_type

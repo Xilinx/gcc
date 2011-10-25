@@ -8,6 +8,6 @@ int i;
 main ()
 {
 
-  __atomic_exchange (&i, 1); /* { dg-error "too few arguments" } */
-  __atomic_exchange (&i, 1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); /* { dg-error "too many arguments" } */
+  __atomic_exchange_n (&i, 1); /* { dg-error "too few arguments" } */
+  __atomic_exchange_n (&i, 1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); /* { dg-error "too many arguments" } */
 }

@@ -97,15 +97,15 @@ void simulate_thread_main()
   /* Execute loads with value changing at various cyclic values.  */
   for (table_cycle_size = 16; table_cycle_size > 4 ; table_cycle_size--)
     {
-      ret = __atomic_load (&value, __ATOMIC_SEQ_CST);
+      ret = __atomic_load_n (&value, __ATOMIC_SEQ_CST);
       /* In order to verify the returned value (which is not atomic), it needs
 	 to be atomically stored into another variable and check that.  */
-      __atomic_store (&result, ret, __ATOMIC_SEQ_CST);
+      __atomic_store_n (&result, ret, __ATOMIC_SEQ_CST);
 
       /* Execute the fetch/store a couple of times just to ensure the cycles
          have a chance to be interesting.  */
-      ret = __atomic_load (&value, __ATOMIC_SEQ_CST);
-      __atomic_store (&result, ret, __ATOMIC_SEQ_CST);
+      ret = __atomic_load_n (&value, __ATOMIC_SEQ_CST);
+      __atomic_store_n (&result, ret, __ATOMIC_SEQ_CST);
     }
 }
 

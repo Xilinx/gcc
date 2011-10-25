@@ -6802,6 +6802,10 @@ set of ``__sync'' atomic builtins will be utilized, along with any required
 synchronization fences surrounding it in order to achieve the proper behaviour.
 Execution in this case is subject to the same restrictions as those builtins.
 
+If there is no pattern or mechanism to provide a lock free instruction sequence, a call is made to an external routine with the same parameters to be resolved at runtime.
+
+The four non-arithmetic functions (load, store, exchange, and compare_exchange) all have a generic version as well.  This generic version will work on any data type.  If the data type size maps to one of the integral sizes which may have lock free support, the generic version will utilize the lock free builtin.  Otherwise an external call is left to be resolved at runtime.  This external call will be the same format with the addition of a size_t parameter inserted as the first parameter indicating the size of the object being pointed to.  All objects must be the same size.
+
 There are 6 different memory models which can be specified.  These map to the
 same names in the C++11 standard.  Refer there or to the GCC wiki on atomics for
 more detailed definitions.  These memory models integrate both barriers to
@@ -6839,8 +6843,8 @@ runtime value to __ATOMIC_SEQ_CST rather than invoke a runtime library
 call or inline a switch statement.  This is standard compliant, safe, and the 
 simplest approach for now.
 
-@item @var{type} __atomic_load (@var{type} *ptr, int memmodel)
-@findex __atomic_load
+@item @var{type} __atomic_load_n (@var{type} *ptr, int memmodel)
+@findex __atomic_load_n
 This builtin implements an atomic load operation.  It returns the contents
 of @code{*@var{ptr}}.
 
@@ -6848,8 +6852,14 @@ The valid memory model variants are
 __ATOMIC_RELAXED, __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE, and
 __ATOMIC_CONSUME.
 
-@item void __atomic_store (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __atomic_store
+@item void __atomic_load (@var{type} *ptr, @var{type} *ret, int memmodel)
+@findex __atomic_load
+This is the generic version of an atomic load.  It will return the contents
+of @code{*@var{ptr}} in @code{*@var{ret}}.
+
+
+@item void __atomic_store_n (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __atomic_store_n
 This builtin implements an atomic store operation.  It writes @code{@var{val}}
 into @code{*@var{ptr}}.  On targets which are limited, 0 may be the only valid
 value. This mimics the behaviour of __sync_lock_release on such hardware.
@@ -6857,8 +6867,14 @@ value. This mimics the behaviour of __sync_lock_release on such hardware.
 The valid memory model variants are
 __ATOMIC_RELAXED, __ATOMIC_SEQ_CST, and __ATOMIC_RELEASE.
 
-@item @var{type} __atomic_exchange (@var{type} *ptr, @var{type} val, int memmodel)
-@findex __atomic_exchange
+@item void __atomic_store (@var{type} *ptr, @var{type} *val, int memmodel)
+@findex __atomic_store
+This is the generic version of an atomic store.  It will store the value of
+@code{*@var{val}} into @code{*@var{ptr}}.
+
+
+@item @var{type} __atomic_exchange_n (@var{type} *ptr, @var{type} val, int memmodel)
+@findex __atomic_exchange_n
 This builtin implements an atomic exchange operation.  It writes @var{val}
 into @code{*@var{ptr}}, and returns the previous contents of @code{*@var{ptr}}.
 
@@ -6869,8 +6885,15 @@ The valid memory model variants are
 __ATOMIC_RELAXED, __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE,
 __ATOMIC_RELEASE, and __ATOMIC_ACQ_REL.
 
-@item bool __atomic_compare_exchange (@var{type} *ptr, @var{type} *expected, @var{type} desired, int success_memmodel, int failure_memmodel)
-@findex __atomic_compare_exchange
+@item void __atomic_exchange (@var{type} *ptr, @var{type} *val, @var{type} *ret, int memmodel)
+@findex __atomic_exchange
+This is the generic version of an atomic exchange.  It will store the contents
+of @code{*@var{val}} into @code{*@var{ptr}}. The original value of
+@code{*@var{ptr}} will be copied into @code{*@var{ret}}.
+
+
+@item bool __atomic_compare_exchange_n (@var{type} *ptr, @var{type} *expected, @var{type} desired, bool weak, int success_memmodel, int failure_memmodel)
+@findex __atomic_compare_exchange_n
 This builtin implements an atomic compare_exchange operation.  This compares the
 contents of @code{*@var{ptr}} with the contents of @code{*@var{expected}} and if
 equal, writes @var{desired} into @code{*@var{ptr}}.  If they are not equal, the
@@ -6885,6 +6908,11 @@ False is returned otherwise, and the execution is considered to conform to
 @var{failure_memmodel}. This memory model cannot be __ATOMIC_RELEASE nor
 __ATOMIC_ACQ_REL.  It also cannot be a stronger model than that specified
 by @var{success_memmodel}.
+
+@item bool __atomic_compare_exchange (@var{type} *ptr, @var{type} *expected, @var{type} *desired, bool weak, int success_memmodel, int failure_memmodel)
+@findex __atomic_compare_exchange
+This builtin implements the generic version of __atomic_compare_exchange. The function is virtually identical to  __atomic_compare_exchange_n, except the desired value is also a pointer.
+
 
 @item @var{type} __atomic_add_fetch (@var{type} *ptr, @var{type} val, int memmodel)
 @itemx @var{type} __atomic_sub_fetch (@var{type} *ptr, @var{type} val, int memmodel)

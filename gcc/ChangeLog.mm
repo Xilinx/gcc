@@ -1,3 +1,18 @@
+2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
+
+	* c-typeck.c (build_function_call_vec): Don't reprocess __atomic
+	parameters.
+	* doc/extend.texi: Document generic __atomic functions.
+	* sync-builtin.def (BUILT_IN_ATOMIC_EXCHANGE_N, BUILT_IN_ATOMIC_LOAD_N,
+	BUILT_IN_ATOMIC_COMPARE_EXCHANGE_N, BUILT_IN_ATOMIC_STORE_N): Add "_n"
+	to the functions real name.
+	(BUILT_IN_ATOMIC_EXCHANGE, BUILT_IN_ATOMIC_LOAD,
+	BUILT_IN_ATOMIC_COMPARE_EXCHANGE, BUILT_IN_ATOMIC_STORE): New. Add
+	generic atomic builtin functions.
+	* builtin-types.def (BT_FN_VOID_SIZE_VPTR_PTR_INT,
+	BT_FN_VOID_SIZE_CONST_VPTR_PTR_INT, BT_FN_VOID_SIZE_VPTR_PTR_PTR_INT,
+	BT_FN_BOOL_SIZE_VPTR_PTR_PTR_INT_INT): New builtin types.
+
 2011-10-20  Aldy Hernandez  <aldyh@redhat.com>
 
 	* optabs.c (expand_atomic_load): Handle a NULL target.

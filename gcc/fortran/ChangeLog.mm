@@ -1,3 +1,9 @@
+2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
+
+	* fortran/types.def (BT_FN_VOID_SIZE_VPTR_PTR_INT,
+	BT_FN_VOID_SIZE_CONST_VPTR_PTR_INT, BT_FN_VOID_SIZE_VPTR_PTR_PTR_INT,
+	BT_FN_BOOL_SIZE_VPTR_PTR_PTR_INT_INT): New builtin types.
+
 2011-10-20  Andrew MacLeod  <amacleod@redhat.com>
 
 	* types.def (BT_FN_BOOL_VPTR_PTR_I{1,2,4,8,16}_BOOL_INT_INT): Add a 
