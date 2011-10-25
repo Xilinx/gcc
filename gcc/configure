@@ -729,6 +729,7 @@ USE_NLS
 extra_opt_files
 extra_modes_file
 gthread_flags
+NATIVE_SYSTEM_HEADER_DIR
 objext
 manext
 LIBICONV_DEP
@@ -766,7 +767,6 @@ TARGET_SYSTEM_ROOT_DEFINE
 TARGET_SYSTEM_ROOT
 RUNTIME_ROOT_PREFIX_DEFINE
 SYSROOT_CFLAGS_FOR_TARGET
-NATIVE_SYSTEM_HEADER_DIR
 enable_shared
 enable_fixed_point
 enable_decimal_float
@@ -7167,25 +7167,20 @@ fi
 
 
 
-# The use of native_system_header_dir here is for the value (optionally)
-# configured here.  Uses of NATIVE_SYSTEM_HEADER_DIR in this file refer
-# to the make variable defined in Makefile or in target make fragments.
 
 # Check whether --with-native-system-header-dir was given.
 if test "${with_native_system_header_dir+set}" = set; then :
   withval=$with_native_system_header_dir;
  case ${with_native_system_header_dir} in
- yes|no) as_fn_error "bad value ${withval} given for native system include directory" "$LINENO" 5 ;;
- /*) ;;
- *) as_fn_error "${withval} should be an absolute directory" "$LINENO" 5 ;;
+ yes|no) as_fn_error "bad value ${withval} given for --with-native-system-header-dir" "$LINENO" 5 ;;
+ /* | [A-Za-z]:[\\/]*) ;;
+ *) as_fn_error "--with-native-system-header-dir argument ${withval} must be an absolute directory" "$LINENO" 5 ;;
  esac
- native_system_header_dir="${withval}"
+ configured_native_system_header_dir="${withval}"
 
 else
-  native_system_header_dir=/usr/include
+  configured_native_system_header_dir=
 fi
-
-NATIVE_SYSTEM_HEADER_DIR=$native_system_header_dir
 
 
 
@@ -9067,7 +9062,7 @@ fi
 for ac_func in times clock kill getrlimit setrlimit atoll atoq \
 	sysconf strsignal getrusage nl_langinfo \
 	gettimeofday mbstowcs wcswidth mmap setlocale \
-	clearerr_unlocked feof_unlocked   ferror_unlocked fflush_unlocked fgetc_unlocked fgets_unlocked   fileno_unlocked fprintf_unlocked fputc_unlocked fputs_unlocked   fread_unlocked fwrite_unlocked getchar_unlocked getc_unlocked   putchar_unlocked putc_unlocked
+	clearerr_unlocked feof_unlocked   ferror_unlocked fflush_unlocked fgetc_unlocked fgets_unlocked   fileno_unlocked fprintf_unlocked fputc_unlocked fputs_unlocked   fread_unlocked fwrite_unlocked getchar_unlocked getc_unlocked   putchar_unlocked putc_unlocked madvise
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -10460,6 +10455,8 @@ $as_echo "#define HAVE_LANGINFO_CODESET 1" >>confdefs.h
 # We will need to find libiberty.h and ansidecl.h
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -I${srcdir} -I${srcdir}/../include"
+saved_CXXFLAGS="$CXXFLAGS"
+CXXFLAGS="$CXXFLAGS -I${srcdir} -I${srcdir}/../include"
 for ac_func in getenv atol asprintf sbrk abort atof getcwd getwd \
 	strsignal strstr strverscmp \
 	errno snprintf vsnprintf vasprintf malloc realloc calloc \
@@ -10764,6 +10761,127 @@ fi
 done
 
 
+# g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which hides the madvise()
+# prototype.
+if test "$ENABLE_BUILD_WITH_CXX" = "yes"; then :
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+   for ac_func in madvise
+do
+  ac_tr_decl=`$as_echo "HAVE_DECL_$ac_func" | $as_tr_cpp`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $ac_func is declared" >&5
+$as_echo_n "checking whether $ac_func is declared... " >&6; }
+if { as_var=gcc_cv_have_decl_$ac_func; eval "test \"\${$as_var+set}\" = set"; }; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#undef $ac_tr_decl
+#define $ac_tr_decl 1
+
+     #include "ansidecl.h"
+     #include "system.h"
+
+
+int
+main ()
+{
+#ifndef $ac_func
+char *(*pfn) = (char *(*)) $ac_func ;
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  eval "gcc_cv_have_decl_$ac_func=yes"
+else
+  eval "gcc_cv_have_decl_$ac_func=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+
+if eval "test \"`echo '$gcc_cv_have_decl_'$ac_func`\" = yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; } ; cat >>confdefs.h <<_ACEOF
+#define $ac_tr_decl 1
+_ACEOF
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; } ; cat >>confdefs.h <<_ACEOF
+#define $ac_tr_decl 0
+_ACEOF
+
+fi
+
+done
+
+   ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+else
+  for ac_func in madvise
+do
+  ac_tr_decl=`$as_echo "HAVE_DECL_$ac_func" | $as_tr_cpp`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $ac_func is declared" >&5
+$as_echo_n "checking whether $ac_func is declared... " >&6; }
+if { as_var=gcc_cv_have_decl_$ac_func; eval "test \"\${$as_var+set}\" = set"; }; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#undef $ac_tr_decl
+#define $ac_tr_decl 1
+
+     #include "ansidecl.h"
+     #include "system.h"
+
+
+int
+main ()
+{
+#ifndef $ac_func
+char *(*pfn) = (char *(*)) $ac_func ;
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  eval "gcc_cv_have_decl_$ac_func=yes"
+else
+  eval "gcc_cv_have_decl_$ac_func=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+
+if eval "test \"`echo '$gcc_cv_have_decl_'$ac_func`\" = yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; } ; cat >>confdefs.h <<_ACEOF
+#define $ac_tr_decl 1
+_ACEOF
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; } ; cat >>confdefs.h <<_ACEOF
+#define $ac_tr_decl 0
+_ACEOF
+
+fi
+
+done
+
+
+fi
+
 # More time-related stuff.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for struct tms" >&5
 $as_echo_n "checking for struct tms... " >&6; }
@@ -10840,8 +10958,9 @@ $as_echo "#define HAVE_CLOCK_T 1" >>confdefs.h
 
 fi
 
-# Restore CFLAGS from before the gcc_AC_NEED_DECLARATIONS tests.
+# Restore CFLAGS, CXXFLAGS from before the gcc_AC_NEED_DECLARATIONS tests.
 CFLAGS="$saved_CFLAGS"
+CXXFLAGS="$saved_CXXFLAGS"
 
 # Check whether --enable-initfini-array was given.
 if test "${enable_initfini_array+set}" = set; then :
@@ -11210,6 +11329,12 @@ if test "$host_xm_file" != "$build_xm_file"; then
 		done
 	fi
 fi
+
+if test -n "$configured_native_system_header_dir"; then
+  native_system_header_dir=$configured_native_system_header_dir
+fi
+NATIVE_SYSTEM_HEADER_DIR="$native_system_header_dir"
+
 
 case ${host} in
   powerpc*-*-darwin*)
@@ -18002,7 +18127,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 18005 "configure"
+#line 18130 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -18108,7 +18233,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 18111 "configure"
+#line 18236 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -23649,6 +23774,14 @@ elif test x$gcc_cv_ld != x; then
 	gcc_cv_ld_static_option="-noso"
 	gcc_cv_ld_dynamic_option="-so_archive"
         ;;
+      # HP-UX ld uses -a flags to select between shared and archive.
+      *-*-hpux*)
+	if test x"$gnu_ld" = xno; then
+	  gcc_cv_ld_static_dynamic=yes
+	  gcc_cv_ld_static_option="-aarchive_shared"
+	  gcc_cv_ld_dynamic_option="-adefault"
+	fi
+	;;
       # IRIX 6 ld supports -Bstatic/-Bdynamic.
       mips-sgi-irix6*)
         gcc_cv_ld_static_dynamic=yes
@@ -24133,6 +24266,8 @@ else
   gcc_cv_as_sparc_fmaf=no
   if test x$gcc_cv_as != x; then
     $as_echo '.text
+       .register %g2, #scratch
+       .register %g3, #scratch
        .align 4
        fmaddd %f0, %f2, %f4, %f6
        addxccc %g1, %g2, %g3
@@ -26554,6 +26689,7 @@ fi
 $as_echo_n "checking sys/sdt.h in the target C library... " >&6; }
 have_sys_sdt_h=no
 if test -f $target_header_dir/sys/sdt.h; then
+  have_sys_sdt_h=yes
 
 $as_echo "#define HAVE_SYS_SDT_H 1" >>confdefs.h
 

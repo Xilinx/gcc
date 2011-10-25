@@ -917,15 +917,11 @@ is currently only supported by some targets, notably Linux.
 
 @item --with-native-system-header-dir=@var{dirname}
 Specifies that @var{dirname} is the directory that contains native system
-header files, rather than @file{/usr/include}. This option is most useful
+header files, rather than @file{/usr/include}.  This option is most useful
 if you are creating a compiler that should be isolated from the system
 as much as possible.  It is most commonly used with the
 @option{--with-sysroot} option and will cause GCC to search
 @var{dirname} inside the system root specified by that option.
-
-Please note that for certain targets, such as DJGPP, this value is
-ignored. If the target specifies a default value for native system
-header files then this option is ignored.
 
 @item --enable-shared[=@var{package}[,@dots{}]]
 Build shared versions of libraries, if shared libraries are supported on

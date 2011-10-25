@@ -1,23 +1,30 @@
 # These tests fail in trunk in all configurations.
-FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for errors, line 1222)
+FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for errors, line 1223)
 FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for excess errors)
 FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for excess errors)
-FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for errors, line 1152)
+FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for errors, line 1153)
 FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for excess errors)
-FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for errors, line 1152)
+FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for errors, line 1153)
 FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
-FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for errors, line 1263)
+FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for errors, line 1264)
 FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
 XPASS: gcc.dg/inline_3.c (test for excess errors)
 XPASS: gcc.dg/inline_4.c (test for excess errors)
 FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom1 "x[^ ]* & y" 1
-XPASS: gcc.dg/uninit-B.c uninit i warning (test for warnings, line 12)
-XPASS: gcc.dg/uninit-pr19430.c uninitialized (test for warnings, line 41)
-XPASS: gcc.dg/uninit-pr19430.c (test for warnings, line 32)
 XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
+FAIL: gcc.dg/torture/vector-shift2.c -O0  execution test
+XPASS: gcc.dg/vect/no-scevccp-outer-6-global.c scan-tree-dump-times vect "OUTER LOOP VECTORIZED." 1
+FAIL: gfortran.dg/select_type_12.f03 -O  (test for excess errors)
+FAIL: gfortran.dg/select_type_12.f03 -O  (internal compiler error)
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution, -O2 -ftree-vectorize -msse2
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fomit-frame-pointer -finline-functions
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O3 -g
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fbounds-check
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fomit-frame-pointer -finline-functions -funroll-loops
 
 # The following tests are failing with gold.  The LTO plugin is not resolving
 # names properly.  Only builds configured to use gold will show these.
@@ -31,6 +38,33 @@ FAIL: boehm-gc.c/thread_leak_test.c -O2 (test for excess errors)
 
 # This test fails in trunk with -m32 when compiled with -mtune=pentium4
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
+
+# These tests fail with -m32 -march=pentium3 on trunk
+# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=50843
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -g  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O2  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O2 -flto -flto-partition=none
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O2 -flto
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -Os
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -fomit-frame-pointer -funroll-loops  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O2 -flto  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -g
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -fomit-frame-pointer
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -fomit-frame-pointer  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O2 -flto -flto-partition=none  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O1
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O2
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -fomit-frame-pointer -funroll-loops
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O1  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -Os  (internal compiler error)
+
+# These tests fail in trunk with -m32.
+FAIL: gcc.c-torture/execute/vector-shift2.c execution,  -O0
+FAIL: gcc.c-torture/execute/vshuf-v16qi.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
 
 # These are flaky when tested in loaded machines (they exceed the timeout)
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) output pattern test

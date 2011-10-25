@@ -351,6 +351,12 @@ enum optab_index
   OTI_vec_widen_umult_lo,
   OTI_vec_widen_smult_hi,
   OTI_vec_widen_smult_lo,
+  /* Widening shift left.
+     The high/low part of the resulting vector is returned.  */
+  OTI_vec_widen_ushiftl_hi,
+  OTI_vec_widen_ushiftl_lo,
+  OTI_vec_widen_sshiftl_hi,
+  OTI_vec_widen_sshiftl_lo,
   /* Extract and widen the high/low part of a vector of signed or
      floating point elements.  */
   OTI_vec_unpacks_hi,
@@ -544,6 +550,10 @@ enum optab_index
 #define vec_widen_umult_lo_optab (&optab_table[OTI_vec_widen_umult_lo])
 #define vec_widen_smult_hi_optab (&optab_table[OTI_vec_widen_smult_hi])
 #define vec_widen_smult_lo_optab (&optab_table[OTI_vec_widen_smult_lo])
+#define vec_widen_ushiftl_hi_optab (&optab_table[OTI_vec_widen_ushiftl_hi])
+#define vec_widen_ushiftl_lo_optab (&optab_table[OTI_vec_widen_ushiftl_lo])
+#define vec_widen_sshiftl_hi_optab (&optab_table[OTI_vec_widen_sshiftl_hi])
+#define vec_widen_sshiftl_lo_optab (&optab_table[OTI_vec_widen_sshiftl_lo])
 #define vec_unpacks_hi_optab (&optab_table[OTI_vec_unpacks_hi])
 #define vec_unpacks_lo_optab (&optab_table[OTI_vec_unpacks_lo])
 #define vec_unpacku_hi_optab (&optab_table[OTI_vec_unpacku_hi])
@@ -685,6 +695,10 @@ enum direct_optab_index
   /* Atomic clear with release semantics.  */
   DOI_sync_lock_release,
 
+  /* Vector permutation.  */
+  DOI_vec_perm,
+  DOI_vec_perm_const,
+
   DOI_MAX
 };
 
@@ -730,6 +744,8 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_sync_lock_test_and_set])
 #define sync_lock_release_optab \
   (&direct_optab_table[(int) DOI_sync_lock_release])
+#define vec_perm_optab (&direct_optab_table[DOI_vec_perm])
+#define vec_perm_const_optab (&direct_optab_table[(int) DOI_vec_perm_const])
 
 /* Target-dependent globals.  */
 struct target_optabs {
@@ -883,6 +899,12 @@ bool expand_vec_cond_expr_p (tree, tree);
 extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 /* Generate code for VEC_LSHIFT_EXPR and VEC_RSHIFT_EXPR.  */
 extern rtx expand_vec_shift_expr (sepops, rtx);
+
+/* Return tree if target supports vector operations for VEC_PERM_EXPR.  */
+extern bool can_vec_perm_expr_p (tree, tree);
+
+/* Generate code for VEC_PERM_EXPR.  */
+extern rtx expand_vec_perm_expr (tree, tree, tree, tree, rtx);
 
 /* Return the insn used to implement mode MODE of OP, or CODE_FOR_nothing
    if the target does not have such an insn.  */
