@@ -3495,26 +3495,50 @@ Don't scan operands of the added $G.}#
   (:basic_block bb)			;start formals
   eachgimpbb
   (:gimple g)				;local formals
+;;; before expansion
+  #{
+  /* start $EACHGIMPBB */ 
+  gimple_stmt_iterator gsi_$EACHGIMPBB	;
+  if ($BB) 
+  for (gsi_$EACHGIMPBB = gsi_start_bb ($BB) ;
+		       !gsi_end_p (gsi_$EACHGIMPBB) ;
+		       gsi_next (&gsi_$EACHGIMPBB)) {
+  $G = gsi_stmt (gsi_$EACHGIMPBB)	;
+  }#
+;;; after expansion
+  #{ } /* end $EACHGIMPBB */ }#  
+  )
+  
+
+(defciterator eachgimplephi_in_basicblock
+  (:basic_block bb)			;start formals
+  eachgimphi
+  (:gimple g)				;local formals
   ;;; before expansion
   #{
-   /* start $eachgimpbb */ 
-   gimple_stmt_iterator gsi_$eachgimpbb;
-   if ($bb) 
-     for (gsi_$eachgimpbb = gsi_start_bb ($bb);
-          !gsi_end_p (gsi_$eachgimpbb);
-          gsi_next (&gsi_$eachgimpbb)) {
-       $g = gsi_stmt (gsi_$eachgimpbb);
+   /* start $EACHGIMPHI */ 
+   gimple_stmt_iterator gsi_$EACHGIMPHI;
+   if ($BB) 
+     for (gsi_$EACHGIMPHI = gsi_start_phis ($BB);
+          !gsi_end_p (gsi_$EACHGIMPHI);
+          gsi_next (&gsi_$EACHGIMPHI)) {
+       $G = gsi_stmt (gsi_$EACHGIMPHI);
   }#
   ;;; after expansion
-  #{ } /* end $eachgimpbb */ }#  )
+  #{ } /* end $EACHGIMPHI */ }#  )
   
 
 (defun do_eachgimple_in_basicblock (f :basic_block bb)
   (eachgimple_in_basicblock 
    (bb) (:gimple g)
-   (let ( (gplval (make_gimple discr_gimple g)) )
-     (f gplval)))
-   )
+   (f (make_gimple discr_gimple g))
+   ))
+
+(defun do_eachgimplephi_in_basicblock (f :basic_block bb)
+  (eachgimplephi_in_basicblock 
+   (bb) (:gimple g)
+   (f (make_gimple discr_gimple g))
+   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a function formal parameters
@@ -3864,6 +3888,8 @@ Don't scan operands of the added $G.}#
  dominated_by_bb_iterator
  dominated_by_other
  dominated_by_other
+ do_eachgimple_in_basicblock
+ do_eachgimplephi_in_basicblock
  each_bb_cfun
  each_local_decl_cfun
  each_bb_current_fun
@@ -3875,6 +3901,7 @@ Don't scan operands of the added $G.}#
  each_loop
  each_param_in_fundecl
  eachgimple_in_basicblock
+ eachgimplephi_in_basicblock
  edge_content
  edge_dest_bb
  edge_for_false_value

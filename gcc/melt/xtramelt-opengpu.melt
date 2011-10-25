@@ -64,13 +64,23 @@
       (debug "opengpudetect_handle_parallel_loop curloopbody=" curloopbody
 	     " bodyix=" bodyix)
       (assert_msg "opengpudetect_handle_parallel_loop check curloopbody" (is_basicblock curloopbody))
-      (eachgimple_in_basicblock
+      ;;;
+      (eachgimplephi_in_basicblock
        ((basicblock_content curloopbody))
-       (:gimple gimbody)
-       (debug "opengpudetect_handle_parallel_loop gimbody=" gimbody)
-       (match gimbody
-	      ;;
-	      (?(gimple_assign_single ?(tree_ssa_name ?lvar ?lvalu ?vers ?defstmt) ?rhs)
+       (:gimple gimphi)
+       (debug "opengpudetect_handle_parallel_loop gimphi=" gimphi)
+       )
+      (debug "opengpudetect_handle_parallel_loop after eachgimplephi_in_basicblock loopix=" loopix)
+      ;;;
+      (let ( (:long gimpcount 0) )
+	(eachgimple_in_basicblock
+	 ((basicblock_content curloopbody))
+	 (:gimple gimbody)
+	 (debug "opengpudetect_handle_parallel_loop gimbody=" gimbody " gimpcount=" gimpcount)
+	 (setq gimpcount (+i gimpcount 1))
+	 (match gimbody
+		;;
+		(?(gimple_assign_single ?(tree_ssa_name ?lvar ?lvalu ?vers ?defstmt) ?rhs)
 		(debug "opengpudetect_handle_parallel_loop assign single ssaname lvar=" lvar
 		       " lvalu=" lvalu " vers=" vers " defstmt=" defstmt 
 		       " rhs=" rhs)
@@ -82,7 +92,7 @@
 	      ;;
 	      (?(gimple_assign_cast ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 				    ?(and ?rhs ?(tree_simple_ssa_name ?rvar ?rvers)))
-		(debug "opengpudetect_handle_parallel_loop assign cast ssa2 lhs=" lhs 
+		(debug "opengpudetect_handle_parallel_loop assign cast ssa lhs=" lhs 
 		       " lvar=" lvar " lvers=" lvers
 		       " rhs=" rhs " rvar=" rvar " rvers=" rvers)
 		)
@@ -136,9 +146,11 @@
 		)
 	      ;;
 	      (?_
-	       (debug "opengpudetect_handle_parallel_loop other gimbody=" gimbody)
+	       (debug "opengpudetect_handle_parallel_loop @@other gimbody=" gimbody)
+	       (return)
 	       ))
        )
+)
       )
      (debug "opengpudetect_handle_parallel_loop end curloopval=" curloopval)
      )))

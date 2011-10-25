@@ -1,4 +1,12 @@
 
+2011-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/topengpu-vecsum.c: Indent.
+	* melt/xtramelt-ana-base.melt (eachgimplephi_in_basicblock): New citerator.
+	(do_eachgimplephi_in_basicblock): New function.
+	(do_eachgimple_in_basicblock): Export it.
+	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
+	Use eachgimplephi_in_basicblock.
+
 2011-10-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_out_edge): call dump_edge_info with do_succ flag set.
 	* melt/xtramelt-opengpu.melt (class_opengpu_data): New.

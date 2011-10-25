@@ -19,7 +19,8 @@ void myvecsum (int sz,
        ix < sz; 
        ix++)
     tres[ix] = 
-      tx[ix] + ty[ix];
+      tx[ix] 
+      + ty[ix];
 }
 
 /* eof topengpu-vecsum.c */
