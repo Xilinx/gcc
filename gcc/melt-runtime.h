@@ -3022,6 +3022,13 @@ melt_get_file(melt_ptr_t file_p)
   return NULL;
 }
 
+/*** MELT interface to walk_use_def_chains;
+     walk from trvar if it is an SSA-name
+     and apply clos to val and the current tree & gimple
+     stop when then clos returns NULL
+****/
+void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar, bool depthfirstflag);
+
 #if ENABLE_CHECKING
 /* two useless routines in wich we can add a breakpoint from gdb. */
 void melt_sparebreakpoint_1_at (const char*fil, int lin, void*ptr, const char*msg);

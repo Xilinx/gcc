@@ -12679,6 +12679,59 @@ meltgc_notify_sysdata_passexec_hook (void)
 #undef passxhv
 }
 
+/* Routine passed to walk_use_def_chains by meltgc_walk_use_def_chain
+   below. */
+static bool 
+meltgc_usedef_internalfun(tree tr, gimple gi, void*data)
+{
+  bool proceed = false;
+  MELT_ENTERFRAME (3, NULL);
+#define closv meltfram__.mcfr_varptr[0]
+#define valv  meltfram__.mcfr_varptr[1]
+#define resv  meltfram__.mcfr_varptr[2]
+  closv = ((melt_ptr_t*)data)[0];
+  valv = ((melt_ptr_t*)data)[1];
+  gcc_assert (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE);
+  gcc_assert (tr != NULL);
+  {
+    union meltparam_un argtab[2];
+    memset (&argtab, 0, sizeof(argtab));
+    argtab[0].meltbp_tree = tr;
+    argtab[1].meltbp_gimple = gi;
+    resv = melt_apply ((meltclosure_ptr_t) closv,
+		       (melt_ptr_t) valv,
+		       MELTBPARSTR_TREE MELTBPARSTR_GIMPLE,
+		       argtab, NULL, (union meltparam_un*)NULL);
+    proceed = resv != NULL;
+  }
+  MELT_EXITFRAME ();
+  return proceed;
+}
+
+/*** MELT interface to walk_use_def_chains;
+     walk from trvar if it is an SSA-name
+     and apply clos to val and the current tree & gimple
+     stop when then clos returns NULL
+****/
+void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar, bool depthfirstflag)
+{
+  MELT_ENTERFRAME (4, NULL);
+  /* we need closv & valv to be consecutive! */
+#define closv meltfram__.mcfr_varptr[0]
+#define valv  meltfram__.mcfr_varptr[1]
+  closv = clos_p;
+  valv = val_p;
+  if (!trvar || TREE_CODE (trvar) != SSA_NAME) 
+    goto end;
+  if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
+    goto end;
+  walk_use_def_chains (trvar, meltgc_usedef_internalfun, &closv, depthfirstflag);
+ end:
+  MELT_EXITFRAME ();
+#undef closv
+#undef valv
+}
+
 
 /*****
  * called from handle_melt_attribute

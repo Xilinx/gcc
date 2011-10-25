@@ -292,6 +292,20 @@ do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
 )
 
 
+(defprimitive walk_use_def_chain_depth_first (:value clos val :tree trvar) :void
+  :doc #{Walk in a depth first order the use-def chaine of SSA
+variable $TRVAR; apply the $CLOS closure to the $VAL value and to the
+current :tree and :gimple. Stop walking if the closure gives null.}#
+  #{ meltgc_walk_use_def_chain (((melt_ptr_t)($CLOS)), ((melt_ptr_t)($VAL)), $TRVAR, /*depth first*/TRUE); }#
+)
+
+(defprimitive walk_use_def_chain_breadth_first (:value clos val :tree trvar) :void
+  :doc #{Walk in a breadth first order the use-def chaine of SSA
+variable $TRVAR; apply the $CLOS closure to the $VAL value and to the
+current :tree and :gimple. Stop walking if the closure gives null.}#
+  #{ meltgc_walk_use_def_chain (((melt_ptr_t)($CLOS)), ((melt_ptr_t)($VAL)), $TRVAR, /*depth first*/FALSE); }#
+)
+
 
 (defprimitive loop_can_be_parallel (:loop lo) :long
   #{ (($LO) && ($LO)->can_be_parallel) }#)
@@ -4166,6 +4180,8 @@ Don't scan operands of the added $G.}#
  tree_var_decl_named
  tree_vec
  tree_void_type
+ walk_use_def_chain_breadth_first
+ walk_use_def_chain_depth_first
  warning_at_gimple
  warning_at_gimple_strbuf
  warning_at_tree

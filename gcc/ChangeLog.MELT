@@ -1,5 +1,12 @@
 
 2011-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_walk_use_def_chain): New declaration.
+	* melt-runtime.c (meltgc_usedef_internalfun, meltgc_walk_use_def_chain): New functions.
+	* melt/xtramelt-ana-base.melt (walk_use_def_chain_breadth_first)
+	(walk_use_def_chain_depth_first): New primitives.
+	* melt/xtramelt-opengpu.melt (opengpu_candidate_induction_variables): New incomplete function.
+
+2011-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/topengpu-vecsum.c: Indent.
 	* melt/xtramelt-ana-base.melt (eachgimplephi_in_basicblock): New citerator.
 	(do_eachgimplephi_in_basicblock): New function.

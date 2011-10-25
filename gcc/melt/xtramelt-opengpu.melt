@@ -31,6 +31,63 @@
 	   )
   )
 
+;; utility function to return the tuple of possible induction variables inside a loop
+(defun opengpu_candidate_induction_variables (loopval) 
+  (debug "opengpu_candidate_induction_variables start loopval=" loopval)
+  (if (not (is_loop loopval))
+      (return))
+  (let (
+	(:loop curloop (loop_content loopval))
+	(curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
+	(curloopexitedgetuple (loop_exit_edges_tuple discr_multiple curloop))
+	(:basic_block bbloophead (loop_header curloop))
+	(:basic_block bblooplatch (loop_latch curloop))
+	(ivlist (make_list discr_list))
+	)
+    (debug "opengpu_candidate_induction_variables curloop=" curloop 
+	   " curloopexitedgetuple=" curloopexitedgetuple
+	   " bbloophead=" bbloophead " bblooplatch=" bblooplatch)
+    (foreach_in_multiple
+     (curloopexitedgetuple)
+     (exitedgev :long edgix)
+     (debug "opengpu_candidate_induction_variables exitedgev=" exitedgev " edgix=" edgix)
+     (let ( (:edge exitedg (edge_content exitedgev))
+	    (:basic_block bbexitsrc (edge_src_bb exitedg))
+	    (:basic_block bbexitdst (edge_dest_bb exitedg))
+	    (:gimple_seq gseqsrc (gimple_seq_of_basic_block bbexitsrc))
+	    (:gimple_seq gseqdst (gimple_seq_of_basic_block bbexitdst))
+	    (:gimple gimplastsrc (gimple_seq_last_stmt gseqsrc))
+	    )
+       (debug "opengpu_candidate_induction_variables edgix=" edgix
+	      " exitedg=" exitedg " bbexitsrc=" bbexitsrc
+	      " bbexitdst=" bbexitdst
+	      " gseqsrc=" gseqsrc " gseqdst=" gseqdst
+	      " gimplastsrc=" gimplastsrc)
+       (match gimplastsrc
+	      ( ?(gimple_cond_lessequal ?(tree_simple_ssa_name ?lvar ?lvers)
+					?(tree_simple_ssa_name ?rvar ?rvers))
+		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar " lvers=" lvers
+			" rvar=" rvar " rvers=" rvers)
+		 )
+	      ( ?(gimple_cond_lessequal ?(tree_simple_ssa_name ?lvar ?lvers)
+					?(tree_integer_cst ?rlim))
+		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar " lvers=" lvers
+			" const rlim=" rlim)
+		 )
+	      ( ?(gimple_cond_less ?(tree_simple_ssa_name ?lvar ?lvers)
+				   ?(tree_simple_ssa_name ?rvar ?rvers))
+		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar " lvers=" lvers
+			" rvar=" rvar " rvers=" rvers)
+		 )
+	      ( ?(gimple_cond_less ?(tree_simple_ssa_name ?lvar ?lvers)
+				   ?(tree_integer_cst ?rlim))
+		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar " lvers=" lvers
+			" const rlim=" rlim)
+		 )
+	      ( ?_ ()))
+       )
+     )))
+
 (defun opengpudetect_handle_parallel_loop (gpudata curloopval :long loopix :tree fundecl)
   (debug "opengpudetect_handle_parallel_loop start gpudata=" gpudata
 	 " curloopval=" curloopval 
@@ -47,113 +104,116 @@
 	   " bblooplatch=" bblooplatch
 	   " curloopbodytuple=" curloopbodytuple
 	   " curloopexitedgetuple=" curloopexitedgetuple " loopix=" loopix)
-    ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
-    ;; tree-ssa-loop-niter.c function try_get_loop_niter &
-    ;; canonicalize_loop_ivs & number_of_iterations_exit
-    (foreach_edge_bb_succs 
-     (bbloophead)
-     (:edge edgheadsuc)
-     (debug "opengpudetect_handle_parallel_loop edgheadsuc=" edgheadsuc
-	    " destbb=" (edge_dest_bb edgheadsuc)
-	    " nbsucc bblooplatch" (basicblock_nb_succ bblooplatch)
-	    " parellelizable curloopbodytuple=" curloopbodytuple
-	    " parellelizable curloopexitedgetuple=" curloopexitedgetuple)
-     (foreach_in_multiple
-      (curloopbodytuple)
-      (curloopbody :long bodyix)
-      (debug "opengpudetect_handle_parallel_loop curloopbody=" curloopbody
-	     " bodyix=" bodyix)
-      (assert_msg "opengpudetect_handle_parallel_loop check curloopbody" (is_basicblock curloopbody))
-      ;;;
-      (eachgimplephi_in_basicblock
-       ((basicblock_content curloopbody))
-       (:gimple gimphi)
-       (debug "opengpudetect_handle_parallel_loop gimphi=" gimphi)
-       )
-      (debug "opengpudetect_handle_parallel_loop after eachgimplephi_in_basicblock loopix=" loopix)
-      ;;;
-      (let ( (:long gimpcount 0) )
-	(eachgimple_in_basicblock
+    (let ( (inductionvars (opengpu_candidate_induction_variables curloopval))
+	  )
+      (debug "opengpudetect_handle_parallel_loop inductionvars=" inductionvars)
+      ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
+      ;; tree-ssa-loop-niter.c function try_get_loop_niter &
+      ;; canonicalize_loop_ivs & number_of_iterations_exit
+      (foreach_edge_bb_succs 
+       (bbloophead)
+       (:edge edgheadsuc)
+       (debug "opengpudetect_handle_parallel_loop edgheadsuc=" edgheadsuc
+	      " destbb=" (edge_dest_bb edgheadsuc)
+	      " nbsucc bblooplatch" (basicblock_nb_succ bblooplatch)
+	      " parellelizable curloopbodytuple=" curloopbodytuple
+	      " parellelizable curloopexitedgetuple=" curloopexitedgetuple)
+       (foreach_in_multiple
+	(curloopbodytuple)
+	(curloopbody :long bodyix)
+	(debug "opengpudetect_handle_parallel_loop curloopbody=" curloopbody
+	       " bodyix=" bodyix)
+	(assert_msg "opengpudetect_handle_parallel_loop check curloopbody" (is_basicblock curloopbody))
+;;;
+	(eachgimplephi_in_basicblock
 	 ((basicblock_content curloopbody))
-	 (:gimple gimbody)
-	 (debug "opengpudetect_handle_parallel_loop gimbody=" gimbody " gimpcount=" gimpcount)
-	 (setq gimpcount (+i gimpcount 1))
-	 (match gimbody
-		;;
-		(?(gimple_assign_single ?(tree_ssa_name ?lvar ?lvalu ?vers ?defstmt) ?rhs)
-		(debug "opengpudetect_handle_parallel_loop assign single ssaname lvar=" lvar
-		       " lvalu=" lvalu " vers=" vers " defstmt=" defstmt 
-		       " rhs=" rhs)
-		)
-	      ;;
-	      (?(gimple_assign_single ?lhs ?rhs)
-		(debug "opengpudetect_handle_parallel_loop assign single plain lhs=" lhs " rhs=" rhs)
-		)
-	      ;;
-	      (?(gimple_assign_cast ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
-				    ?(and ?rhs ?(tree_simple_ssa_name ?rvar ?rvers)))
-		(debug "opengpudetect_handle_parallel_loop assign cast ssa lhs=" lhs 
-		       " lvar=" lvar " lvers=" lvers
-		       " rhs=" rhs " rvar=" rvar " rvers=" rvers)
-		)
-	      (?(gimple_assign_cast ?lhs ?rhs)
-		(debug "opengpudetect_handle_parallel_loop assign strange cast lhs=" lhs " rhs=" rhs)
-		)
-	      ;;
-	      (?(gimple_assign_plus ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
-		(debug "opengpudetect_handle_parallel_loop assign plus lhs=" lhs
-		       " lvar=" lvar " lvers=" lvers
-		       " rhs1=" rhs1
-		       " rhs2=" rhs2)
-		)
-	      ;;
-	      (?(gimple_assign_pointerplus ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
-		(debug "opengpudetect_handle_parallel_loop assign pointerplus lhs=" lhs 
-		       " lvar=" lvar " lvers=" lvers
-		       " rhs1=" rhs1 " rhs2=" rhs2)
-		)
-	      ;;
-	      (?(gimple_assign_mult ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
-		(debug "opengpudetect_handle_parallel_loop assign mult lhs=" lhs
-		       " lvar=" lvar " lvers=" lvers
-		       " rhs1=" rhs1 " rhs2=" rhs2)
-		)
-	      ;;
-	      (?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
-		(debug "opengpudetect_handle_parallel_loop assign binaryop lhs=" lhs
-		       " rhs1=" rhs1 " rhs2=" rhs2 " opcod=" opcod)
-		(code_chunk 
-		 debugopcodnam
-		 #{/*$DEBUGOPCODNAM*/ const int $DEBUGOPCODNAM#_lin = __LINE__ ;
-		 debugeprintfline($DEBUGOPCODNAM#_lin,
-				  "opengpudetect_handle_parallel_loop assign binaryopname %s",
-				  ($OPCOD>=0 && $OPCOD<MAX_TREE_CODES)?
-				  tree_code_name[$OPCOD]:"??") ;
-		 }#)
-		(assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
-		)
-	      ;;
-	      (?(and ?(gimple_cond_with_edges ?tedg ?fedg)
-		     ?(gimple_cond_lessequal ?lhs ?rhs))
-		(debug "opengpudetect_handle_parallel_loop cond <= lhs=" lhs " rhs=" rhs
-		       " tedg=" tedg " fedg=" fedg)
-		)
-	      ;;
-	      (?(and ?(gimple_cond_with_edges ?tedg ?fedg)
-		     ?(gimple_cond_less ?lhs ?rhs))
-		(debug "opengpudetect_handle_parallel_loop cond < lhs=" lhs " rhs=" rhs
-		       " tedg=" tedg " fedg=" fedg)
-		)
-	      ;;
-	      (?_
-	       (debug "opengpudetect_handle_parallel_loop @@other gimbody=" gimbody)
-	       (return)
-	       ))
-       )
-)
-      )
-     (debug "opengpudetect_handle_parallel_loop end curloopval=" curloopval)
-     )))
+	 (:gimple gimphi)
+	 (debug "opengpudetect_handle_parallel_loop gimphi=" gimphi)
+	 )
+	(debug "opengpudetect_handle_parallel_loop after eachgimplephi_in_basicblock loopix=" loopix)
+;;;
+	(let ( (:long gimpcount 0) )
+	  (eachgimple_in_basicblock
+	   ((basicblock_content curloopbody))
+	   (:gimple gimbody)
+	   (debug "opengpudetect_handle_parallel_loop gimbody=" gimbody " gimpcount=" gimpcount)
+	   (setq gimpcount (+i gimpcount 1))
+	   (match gimbody
+		  ;;
+		  (?(gimple_assign_single ?(tree_ssa_name ?lvar ?lvalu ?vers ?defstmt) ?rhs)
+		    (debug "opengpudetect_handle_parallel_loop assign single ssaname lvar=" lvar
+			   " lvalu=" lvalu " vers=" vers " defstmt=" defstmt 
+			   " rhs=" rhs)
+		    )
+		  ;;
+		  (?(gimple_assign_single ?lhs ?rhs)
+		    (debug "opengpudetect_handle_parallel_loop assign single plain lhs=" lhs " rhs=" rhs)
+		    )
+		  ;;
+		  (?(gimple_assign_cast ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
+					?(and ?rhs ?(tree_simple_ssa_name ?rvar ?rvers)))
+		    (debug "opengpudetect_handle_parallel_loop assign cast ssa lhs=" lhs 
+			   " lvar=" lvar " lvers=" lvers
+			   " rhs=" rhs " rvar=" rvar " rvers=" rvers)
+		    )
+		  (?(gimple_assign_cast ?lhs ?rhs)
+		    (debug "opengpudetect_handle_parallel_loop assign strange cast lhs=" lhs " rhs=" rhs)
+		    )
+		  ;;
+		  (?(gimple_assign_plus ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
+		    (debug "opengpudetect_handle_parallel_loop assign plus lhs=" lhs
+			   " lvar=" lvar " lvers=" lvers
+			   " rhs1=" rhs1
+			   " rhs2=" rhs2)
+		    )
+		  ;;
+		  (?(gimple_assign_pointerplus ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
+		    (debug "opengpudetect_handle_parallel_loop assign pointerplus lhs=" lhs 
+			   " lvar=" lvar " lvers=" lvers
+			   " rhs1=" rhs1 " rhs2=" rhs2)
+		    )
+		  ;;
+		  (?(gimple_assign_mult ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers)) ?rhs1 ?rhs2)
+		    (debug "opengpudetect_handle_parallel_loop assign mult lhs=" lhs
+			   " lvar=" lvar " lvers=" lvers
+			   " rhs1=" rhs1 " rhs2=" rhs2)
+		    )
+		  ;;
+		  (?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
+		    (debug "opengpudetect_handle_parallel_loop assign binaryop lhs=" lhs
+			   " rhs1=" rhs1 " rhs2=" rhs2 " opcod=" opcod)
+		    (code_chunk 
+		     debugopcodnam
+		     #{/*$DEBUGOPCODNAM*/ const int $DEBUGOPCODNAM#_lin = __LINE__ ;
+		     debugeprintfline($DEBUGOPCODNAM#_lin,
+				      "opengpudetect_handle_parallel_loop assign binaryopname %s",
+				      ($OPCOD>=0 && $OPCOD<MAX_TREE_CODES)?
+				      tree_code_name[$OPCOD]:"??") ;
+		     }#)
+		    (assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
+		    )
+		  ;;
+		  (?(and ?(gimple_cond_with_edges ?tedg ?fedg)
+			 ?(gimple_cond_lessequal ?lhs ?rhs))
+		    (debug "opengpudetect_handle_parallel_loop cond <= lhs=" lhs " rhs=" rhs
+			   " tedg=" tedg " fedg=" fedg)
+		    )
+		  ;;
+		  (?(and ?(gimple_cond_with_edges ?tedg ?fedg)
+			 ?(gimple_cond_less ?lhs ?rhs))
+		    (debug "opengpudetect_handle_parallel_loop cond < lhs=" lhs " rhs=" rhs
+			   " tedg=" tedg " fedg=" fedg)
+		    )
+		  ;;
+		  (?_
+		   (debug "opengpudetect_handle_parallel_loop @@other gimbody=" gimbody)
+		   (return)
+		   ))
+	   )
+	  )
+	)
+       (debug "opengpudetect_handle_parallel_loop end curloopval=" curloopval)
+       ))))
 
 (defun opengpudetect_gate (pass)
   (debug "opengpudetect_gate start pass=" pass)
