@@ -1,5 +1,10 @@
 
 2011-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (gimple_assign_to): New cmatcher.
+	* melt/xtramelt-opengpu.melt (opengpu_increment_ssaname): New function.
+	(opengpu_candidate_induction_variables): More.
+
+2011-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-run.proto.h:
 	[[patch suggested by Allan McRae <allan@archlinux.org>]]
 	Include directly c-pragma.h & c-pretty-print.h with GCC4.6...

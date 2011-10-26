@@ -31,6 +31,64 @@
 	   )
   )
 
+;; given an SSA name, return the transformation of its boxed increment if it is defined only
+;; by additions or substractions to a constant, or else null
+(defun opengpu_increment_ssaname (trans :tree trssa)
+  (match trssa
+	 ( ?(tree_simple_ssa_name ?tvar ?vers)
+	    (let ( (vtrssa (make_tree discr_tree trssa))
+		   (vtvar (make_tree discr_tree tvar))
+		   (lincr (make_list discr_list))
+		   (transcont (container trans))
+		   )
+	      (debug "opengpu_increment_ssaname before walkusedef have trssa=" trssa)
+	      (walk_use_def_chain_depth_first 
+	       (lambda (lincrv :tree tr :gimple g)
+		 (let ( (:tree trssa (tree_content vtrssa))
+			(:tree tvar (tree_content vtvar)) )
+		   (debug "opengpu_increment_ssaname lincrv=" lincrv " tr=" tr " g=" g " tvar=" tvar)
+		   (match g
+			  (?(gimple_assign_plus trssa  
+						?(tree_simple_ssa_name tvar ?newvers) 
+						?(tree_integer_cst ?rincr))
+			    (debug "opengpu_increment_ssaname incrementing g=" g " rincr=" rincr)
+			    (list_append lincrv (make_integerbox discr_constant_integer rincr))
+			    (return lincr)
+			    )
+			  (?(gimple_assign_minus trssa  
+						 ?(tree_simple_ssa_name tvar ?newvers) 
+						 ?(tree_integer_cst ?rdecr))
+			    (debug "opengpu_increment_ssaname decrementing g=" g " rdecr=" rdecr)
+			    (list_append lincrv (make_integerbox discr_constant_integer (negi rdecr)))
+			    (return lincr)
+			    )
+			  (?(gimple_assign_to trssa)
+			    (debug "opengpu_increment_ssaname bad assign g=" g)
+			    (set_content transcont ())
+			    (return ()))
+			  (?(gimple_call trssa ?fndecl ?nbargs)
+			    (debug "opengpu_increment_ssaname bad call g=" g 
+				   " fndecl=" fndecl " nbargs=" nbargs)
+			    (set_content transcont ())
+			    (return ()))
+			  (?_
+			   (debug "opengpu_increment_ssaname ignored g=" g)
+			   (return lincr)
+			   ))))
+	       lincr
+	       trssa)
+	      (debug "opengpu_increment_ssaname after walkusedef lincr=" lincr " transcont=" transcont)
+	      (let ( (transf !transcont)
+		     )
+		(if (is_closure transf)
+		    (progn
+		      (debug "opengpu_increment_ssaname transforming good lincr=" lincr)
+		      (return (transf lincr))))
+		)))
+	 (?_ 
+	  (debug "opengpu_increment_ssaname bad trssa=" trssa)
+	  (assert_msg "opengpu_increment_ssaname bad trssa" ()))))
+
 ;; utility function to return the tuple of possible induction variables inside a loop
 (defun opengpu_candidate_induction_variables (loopval) 
   (debug "opengpu_candidate_induction_variables start loopval=" loopval)
@@ -64,20 +122,41 @@
 	      " gseqsrc=" gseqsrc " gseqdst=" gseqdst
 	      " gimplastsrc=" gimplastsrc)
        (match gimplastsrc
-	      ( ?(gimple_cond_lessequal ?(tree_simple_ssa_name ?lvar ?lvers)
-					?(tree_simple_ssa_name ?rvar ?rvers))
+	      ( ?(gimple_cond_lessequal ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
+					?(and ?rhs ?(tree_simple_ssa_name ?rvar ?rvers)))
 		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar " lvers=" lvers
 			" rvar=" rvar " rvers=" rvers)
+		 (debug "opengpu_candidate_induction_variables before walkusedef lhs=" lhs)
+		 (walk_use_def_chain_depth_first 
+		  (lambda (val :tree tr :gimple g)
+		    (debug "opengpu_candidate_induction_variables usedefwalk val=" val " tr=" tr " g=" g)
+		    (return :true))
+		  'something
+		  lhs)
+		 (debug "opengpu_candidate_induction_variables after walkusedef lhs=" lhs)
 		 )
 	      ( ?(gimple_cond_lessequal ?(tree_simple_ssa_name ?lvar ?lvers)
 					?(tree_integer_cst ?rlim))
 		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar " lvers=" lvers
 			" const rlim=" rlim)
 		 )
-	      ( ?(gimple_cond_less ?(tree_simple_ssa_name ?lvar ?lvers)
+	      ( ?(gimple_cond_less ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 				   ?(tree_simple_ssa_name ?rvar ?rvers))
 		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar " lvers=" lvers
 			" rvar=" rvar " rvers=" rvers)
+		 (debug "opengpu_candidate_induction_variables last < before walkusedef lhs=" lhs)
+		 (walk_use_def_chain_depth_first 
+		  (lambda (val :tree tr :gimple g)
+		    (assert_msg "opengpu_candidate_induction_variables usedefwalk container"
+				(is_a val class_container))
+		    (let ( (vcnt !val) )
+		      (set_content val (+ivi vcnt 1)))
+		    (debug "opengpu_candidate_induction_variables usedefwalk val=" val " tr=" tr " g=" g)
+		    (return :true))
+		  (container '0)
+		  lhs)
+		 (debug "opengpu_candidate_induction_variables after walkusedef lhs=" lhs)
+		 
 		 )
 	      ( ?(gimple_cond_less ?(tree_simple_ssa_name ?lvar ?lvers)
 				   ?(tree_integer_cst ?rlim))

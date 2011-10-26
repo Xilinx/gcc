@@ -389,6 +389,25 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
   #{ (meltgc_new_gimple((meltobject_ptr_t)NULL, ($g))) }#
 )
 
+
+;; match a gimple assign to something
+(defcmatcher gimple_assign_to 
+  (:gimple ga)				;match
+  ;; outputs
+  (:tree lhs				;left hand side
+	 )
+  gimpassto
+  :doc #{Match gimple $GA as some kind of assignment to $LHS.}#
+  ;; test expansion
+  #{/*$GIMPASSTO ?*/ ($GA && is_gimple_assign($GA)) }#
+  ;; fill expansion
+  #{/*$GIMPASSTO !*/ $LHS = gimple_assign_lhs ($GA);
+  }#
+  ;; no operator expansion
+)
+
+  
+
 ;; match or build a gimple single assign
 (defcmatcher gimple_assign_single
   (:gimple ga)				;match
@@ -3955,6 +3974,7 @@ Don't scan operands of the added $G.}#
  gimple_assign_round_mod
  gimple_assign_single
  gimple_assign_ssa_name_copy 
+ gimple_assign_to
  gimple_assign_trunc_div
  gimple_assign_trunc_mod
  gimple_assign_unary_minus
