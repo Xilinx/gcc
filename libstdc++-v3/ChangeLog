@@ -1,3 +1,38 @@
+2011-10-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/condition_variable (condition_variable_any): Remove
+	unused native_handle_type typedef.
+	* src/condition_variable.cc (condition_variable): Add missing noexcept
+	specifications.
+	* 30_threads/condition_variable_any/requirements/typedefs.cc: Remove.
+
+2011-10-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/50862
+	* include/std/condition_variable (condition_variable_any::wait): Fix
+	deadlock and ensure _Lock::lock() is called on exit.
+	(condition_variable_any::native_handle): Remove, as per LWG 1500.
+	* testsuite/30_threads/condition_variable_any/50862.cc: New.
+
+2011-10-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/49894
+	* include/std/mutex (__mutex_base,__recursive_mutex_base): Define new
+	base classes to manage construction/destruction of native mutexes,
+	using NSDMI when INIT macros are defined.
+	(mutex,recursive_mutex,timed_mutex,recursive_timed_mutex): Derive from
+	new base classes.
+	* include/std/condition_variable (condition_variable): Use NSDMI when
+	INIT macro is defined. Use noexcept.
+	* src/condition_variable.cc (condition_variable): Explicitly-default
+	constructor/destructor when using NSDMI. Use noexcept.
+	(condition_variable_any): Likewise.
+
+2011-10-24  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/30_threads/async/49668.cc: Add missing dg-require.
+	* testsuite/30_threads/packaged_task/49668.cc: Likewise.
+
 2011-10-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/50834

@@ -901,10 +901,13 @@ extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 extern rtx expand_vec_shift_expr (sepops, rtx);
 
 /* Return tree if target supports vector operations for VEC_PERM_EXPR.  */
-extern bool can_vec_perm_expr_p (tree, tree);
+extern bool can_vec_perm_p (enum machine_mode, bool, const unsigned char *);
+
+/* Return true if target supports vector operations using VEC_PERM_EXPR.  */
+extern bool can_vec_perm_for_code_p (enum tree_code, enum machine_mode, rtx *);
 
 /* Generate code for VEC_PERM_EXPR.  */
-extern rtx expand_vec_perm_expr (tree, tree, tree, tree, rtx);
+extern rtx expand_vec_perm (enum machine_mode, rtx, rtx, rtx, rtx);
 
 /* Return the insn used to implement mode MODE of OP, or CODE_FOR_nothing
    if the target does not have such an insn.  */

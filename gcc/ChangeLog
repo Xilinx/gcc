@@ -1,3 +1,264 @@
+2011-10-26  Andreas Tobler  <andreast@fgznet.ch>
+
+	* config/i386/freebsd64.h (LINK_SPEC): Emit the same warning as the
+	32-bit target does.
+
+2011-10-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR driver/46617
+	* gcc.c (main): Fix fatal_error string for translation.
+
+2011-10-25  Ian Lance Taylor  <iant@google.com>
+
+	* tree-eh.c (do_return_redirection): Remove return_value_p
+	parameter.  Change all callers.
+	(lower_try_finally_nofallthru): Remove local return_val.
+	(lower_try_finally_onedest): Likewise.
+	(lower_try_finally_copy): Likewise.
+	(lower_try_finally_switch): Likewise.
+
+2011-10-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/mmx.md (*mmx_maskmovq): Replace :SI with :P and
+	remove "&& !TARGET_64BIT"
+	(*mmx_maskmovq_rex): Removed.
+
+2011-10-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/46603
+	* reload.c (push_reload): In the out case, reload the subreg as well
+	as the reg if it has word mode.
+
+2011-10-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (add_gnat_descriptive_type_attribute): Temporarily
+	suppress debug info for the parent type.
+
+2011-10-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/ia64/ia64.c (ia64_profile_hook): Fix thinko.
+
+2011-10-25  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/sse.md (VEC_EXTRACT_EVENODD_MODE): Remove.
+	(vec_extract_even<mode>, vec_extract_odd<mode>): Remove.
+
+	* config/rs6000/altivec.md (vec_extract_evenv8hi,
+	vec_extract_evenv16qi, vec_extract_oddv4si,
+	vec_extract_oddv4sf): Remove.
+
+	* config/spu/spu.md (vec_extract_evenv4si, vec_extract_evenv4sf,
+	vec_extract_evenv8hi, vec_extract_evenv16qi, vec_extract_oddv4si,
+	vec_extract_oddv4sf, vec_extract_oddv8hi, vec_extract_oddv16qi,
+	vec_interleave_highv4sf, vec_interleave_lowv4sf,
+	vec_interleave_highv4si, vec_interleave_lowv4si,
+	vec_interleave_highv8hi, vec_interleave_lowv8hi,
+	vec_interleave_highv16qi, vec_interleave_lowv16qi): Remove.
+
+	* expr.c (expand_expr_real_2) [VEC_EXTRACT_EVEN_EXPR]: Use binop.
+	[VEC_EXTRACT_ODD_EXPR, VEC_INTERLEAVE_HIGH_EXPR]: Likewise.
+	[VEC_INTERLEAVE_LOW_EXPR]: Likewise.
+	* optabs.c (expand_binop): Implement vec_interleave_high_optab,
+	vec_interleave_low_optab, vec_extract_even_optab,
+	vec_extract_odd_optab with expand_vec_perm.
+	(can_vec_perm_for_code_p): New.
+	* optabs.h: Update.
+	* tree-vect-data-refs.c (vect_strided_store_supported): Allow for
+	fallback via can_vec_perm_for_code_p.
+	(vect_strided_load_supported): Likewise.
+	* tree-vect-generic.c (expand_vector_operations_1): Never lower
+	VEC_INTERLEAVE_HIGH_EXPR, VEC_INTERLEAVE_LOW_EXPR,
+	VEC_EXTRACT_EVEN_EXPR, VEC_EXTRACT_ODD_EXPR.
+
+	* target.def (vec_perm_const_ok): Change parameters to mode and
+	array of indicies.
+	* doc/tm.texi: Rebuild.
+	* config/i386/i386.c (ix86_vectorize_vec_perm_const_ok): Change
+	parameters to mode and array of indicies.
+	* expr.c (expand_expr_real_2) [VEC_PERM_EXPR]: Expand operands here.
+	* optabs.c (can_vec_perm_p): Rename from can_vec_perm_expr_p.
+	Change parameters to mode and array of indicies.
+	(expand_vec_perm_1): Rename from expand_vec_perm_expr_1.
+	(expand_vec_perm): Rename from expand_vec_perm_expr.  Change
+	parameters to mode and rtx inputs.  Try lowering to QImode
+	vec_perm_const before trying fully variable permutation.
+	* optabs.h: Update decls.
+	* tree-vect-generic.c (lower_vec_perm): Extract array of indices from
+	VECTOR_CST to pass to can_vec_perm_p.
+	* tree-vect-slp.c (vect_get_mask_element): Change mask parameter type
+	from int pointer to unsigned char pointer.
+	(vect_transform_slp_perm_load): Update for change to can_vec_perm_p.
+	* tree-vect-stmts.c (perm_mask_for_reverse): Likewise.
+
+	* tree.def (VEC_EXTRACT_EVEN_EXPR): Fix typo in text name.
+	(VEC_EXTRACT_ODD_EXPR, VEC_INTERLEAVE_HIGH_EXPR,
+	VEC_INTERLEAVE_LOW_EXPR): Likewise.
+
+2011-10-25  Mike Stump  <mikestump@comcast.net>
+
+	* reload.c (regno_clobbered_p): Fix typo.
+
+2011-10-25  Dodji Seketeli  <dodji@redhat.com>
+
+	* input.c (expand_location): Rewrite using
+	linemap_resolve_location and linemap_expand_location.  Add a
+	comment.
+
+2011-10-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50596
+	* tree-vect-stmts.c (vect_mark_relevant): Only use
+	FOR_EACH_IMM_USE_FAST if lhs is SSA_NAME.
+	(vectorizable_store): If is_pattern_stmt_p look through
+	VIEW_CONVERT_EXPR on lhs.
+	* tree-vect-patterns.c (check_bool_pattern, adjust_bool_pattern):
+	Use unsigned type instead of signed.
+	(vect_recog_bool_pattern): Optimize also stores into bool memory in
+	addition to casts from bool to integral types.
+	(vect_mark_pattern_stmts): If pattern_stmt already has vinfo
+	created, don't create it again.
+
+2011-10-25  Kai Tietz  <ktietz@redhat.com>
+
+	* config/i386/i386.c (ix86_frame_pointer_required): Require
+	frame-pointer, if setjmp is used for 32-bit ms-abi.
+
+2011-10-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* builtins.c (set_builtin_user_assembler_name): Remove extra
+	newline added in October 11th, 2011 change.
+
+2011-10-24  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/little-endian.opt: Delete.
+	* config.gcc: Remove references to config/sparc/little-endian.opt
+	* doc/invoke.texi: Remove documentation of -mlittl-endian on sparc.
+	* config/sparc/linux64.h: Delete references to -mlittle-endian.
+	* config/sparc/netbsd-elf.h: Likewise.
+	* config/sparc/openbsd64.h: Likewise.
+	* config/sparc/sparc.h: Likewise.
+	* config/sparc/sp64-elf.h: Likewise and delete overrides for
+	BYTES_BIG_ENDIAN and WORDS_BIG_ENDIAN.
+	* config/sparc/sparc.c (dump_target_flag_bits): Remove reference
+	to MASK_LITTLE_ENDIAN.
+	* config/sparc/sparc.opt (Mask(LITTLE_ENDIAN)): Delete.
+
+	* config/sparc/sparc.md: Only use F, G, and C constraints in FP
+	insns.  Only use D, Y, and Z constraints in vector insns.
+
+	* config/sparc/sparc.md (cpu_feature, enabled): New attributes.
+	(*movsi_insn_novis3, *movsi_insn_vis3): Consolidate into one pattern
+	called *movsi_insn.
+	(*movdi_insn_sp32_v9_novis3, *movdi_insn_sp32_v9_vis3): Consolidate
+	into *movdi_insn_sp32.
+	(*movdi_insn_sp64_novis3, *movdi_insn_sp64_vis3): Consolidate into
+	one pattern called *movdi_insn_sp64.
+	(*movsf_insn_novis3, *movsf_insn_vis3, *movsf_insn_no_fpu):
+	Consolidate into one pattern called *movsf_insn.
+	(*movdf_insn_sp32_no_fpu, *movdf_insn_sp32_v9_novis3,
+	*movdf_insn_sp32_v9_vis3, *movdf_insn_sp32_v9_no_fpu): Consolidate
+	into *movdf_insn_sp32.
+	(*movdf_insn_sp64_novis3, *movdf_insn_sp64_vis3,
+	*movdf_insn_sp64_no_fpu): Consolidate into one pattern called
+	*movdf_insn_sp64.
+	(*zero_extendsidi2_insn_sp64_novis3,
+	*zero_extendsidi2_insn_sp64_vis3): Consolidate into one pattern
+	called *zero_extendsidi2_insn_sp64.
+	(*sign_extendsidi2_insn_novis3, *sign_extendsidi2_insn_vis3):
+	Consolidate into one pattern named *sign_extendsidi2_insn.
+	(*mov<VM32:mode>_insn_novis3, *mov<VM32:mode>_insn_vis3):
+	Consolidate into one pattern named *mov<VM32:mode>_insn.
+	(*mov<VM64:mode>_insn_sp64_novis3,
+	*mov<VM64:mode>_insn_sp64_novis3): Consolidate into one pattern
+	named *mov<VM64:mode>_insn_sp64.
+	(*mov<VM64:mode>_insn_sp32_novis3,
+	*mov<VM64:mode>_insn_sp32_vis3): Consolidate into one pattern
+	named *mov<VM64:mode>_insn_sp32.
+
+2011-10-24  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* tree-ssa-strlen.c (get_string_length): Change assertion to STPCPY.
+	(zero_length_string): Change assertion to accept strinfo without
+	length but with stmt instead.
+	Set the endptr pointer also if starting a new chain.
+	(adjust_related_strinfos): Ignore strinfos marked for delayed
+	length computation.
+	(handle_builtin_strcpy): Mark earlier strinfo elements also for
+	delayed length computation.
+
+2011-10-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50820
+	Port from 4.6 branch r180379
+	* doc/invoke.texi (AVR Options): New subsubsection to explain EIND
+	handling and indirect jump/calls on devices > 128k.
+
+2011-10-24  Anatoly Sokolov  <aesok@post.ru>
+	    Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49824
+	* doc/extend.texi (Declaring Attributes of Functions):
+	Document OS_main and OS_task attributes.
+	(Specifying Attributes of Variables): Move up
+	subsection "AVR Variable Attributes" as of alphabetical order.
+
+2011-10-24  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Convert constants
+	to vector element type.
+	(vectorizable_assignment): Bail out for non-mode-precision operations.
+	(vectorizable_shift): Likewise.
+	(vectorizable_operation): Likewise.
+	(vectorizable_type_demotion): Likewise.
+	(vectorizable_type_promotion): Likewise.
+	(vectorizable_store): Handle non-mode-precision stores.
+	(vectorizable_load): Handle non-mode-precision loads.
+	(get_vectype_for_scalar_type_and_size): Return a vector type
+	for non-mode-precision integers.
+	* tree-vect-loop.c (vectorizable_reduction): Bail out for
+	non-mode-precision reductions.
+
+2011-10-24  Julian Brown  <julian@codesourcery.com>
+
+	* config/m68k/m68k.c (notice_update_cc): Tighten condition for
+	setting CC_REVERSED for FP comparisons.  
+
+2011-10-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50838
+	* tree-data-ref.c (dr_analyze_indices): Properly canonicalize
+	a MEM_REF base if we change it.
+
+2011-10-24  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR bootstrap/50836
+	* rtlanal.c: Swap includes of "hard-reg-set.h" and "rtl.h".
+
+	PR rtl-optimization/50833
+	* function.c (thread_prologue_and_epilogue_insns): Expect the
+	return insn optimization only if optimize.
+
+2011-10-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c: Break long lines.
+	Define target hooks on the fly if applicable.
+	(TARGET_ASM_FUNCTION_RODATA_SECTION): Remove first definition
+	overridden later.
+	(targetm): Move definition to end of file.
+	(avr_can_eliminate): Make static on the fly.
+	(avr_frame_pointer_required_p): Ditto.
+	(avr_hard_regno_scratch_ok): Ditto.
+	(avr_builtin_setjmp_frame_value): Make static on the fly.
+	Indent according to coding rules.
+	(avr_case_values_threshold): Ditto.
+	(avr_attribute_table): Move down.
+
+2011-10-24  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50730
+	* tree-vect-data-refs.c (vect_analyze_data_refs): Stop basic block
+	analysis if encountered unsupported data-ref.
+
 2011-10-23  David S. Miller  <davem@davemloft.net>
 
 	* config/sparc/sparc.c (sparc_option_override): Remove -mv8plus
