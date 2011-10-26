@@ -1,6 +1,6 @@
-// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x4tmplfuncinln.cc:1:0: internal compiler error: in cgraph_create_node, at cgraph.c:502" "" { xfail *-*-* } 0 }
-
+// { dg-xfail-if "ICE instantiate_decl - bad merge" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "internal compiler error: in instantiate_decl, at cp/pt.c" "" { xfail *-*-* } 0 }
+// { dg-excess-errors "decl merge problems" { xfail *-*-* } }
 #include "x0tmplfuncinln1.h"
 #include "x0tmplfuncinln2.h"
 #include "a0tmplfuncinln_u.h"

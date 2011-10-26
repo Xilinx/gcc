@@ -1,3 +1,15 @@
+2011-10-26   Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (get_mangled_id): Declare.
+	* mangle.c (get_mangled_id): Factor out of ...
+	(mangle_decl): ... here.
+	* pph-streamer-in.c
+	(pph_get_include_path_hash): Remove.  Update all users.
+	* pph-streamer-out.c (pph_merge_name): Move from pph-streamer.c.
+	Change return type to char *.
+	Call get_mangled_id and decl_as_string.
+	Update users.
+
 2011-10-22   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_in_merge_key_chain): Add new argument

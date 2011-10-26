@@ -1899,17 +1899,49 @@ pph_out_tree_header (pph_stream *stream, tree expr)
 }
 
 
+/* Return the merge name string identifier tree for a decl EXPR.  The
+   caller is responsible of freeing the returned string.  */
+
+static char *
+pph_merge_name (tree expr)
+{
+  char *retval;
+  size_t len;
+  const char *mangled_str, *name_str;
+  unsigned flags = TFF_PLAIN_IDENTIFIER
+		   | TFF_SCOPE
+		   | TFF_DECL_SPECIFIERS
+		   | TFF_CLASS_KEY_OR_ENUM
+		   | TFF_RETURN_TYPE;
+
+
+  if (TREE_CODE (expr) == FUNCTION_DECL)
+    flags |= TFF_RETURN_TYPE
+	     | TFF_FUNCTION_DEFAULT_ARGUMENTS
+	     | TFF_EXCEPTION_SPECIFICATION;
+  else if (TREE_CODE (expr) == TEMPLATE_DECL)
+    flags |= TFF_TEMPLATE_HEADER
+	     | TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS;
+
+  mangled_str = IDENTIFIER_POINTER (get_mangled_id (expr));
+  name_str = decl_as_string (expr, flags);
+
+  len = strlen (name_str) + sizeof("|") + strlen (mangled_str);
+  retval = XNEWVEC (char, len + 1);
+  sprintf (retval, "%s|%s", name_str, mangled_str);
+
+  return retval;
+}
+
+
 /* Write the merge name string for a decl EXPR.  */
 
 static void
 pph_out_merge_name (pph_stream *stream, tree expr)
 {
-  tree name = pph_merge_name (expr);
-  if (name)
-    pph_out_string_with_length (stream, IDENTIFIER_POINTER (name),
-                                        IDENTIFIER_LENGTH (name));
-  else
-    pph_out_string (stream, NULL);
+  char *name = pph_merge_name (expr);
+  pph_out_string (stream, name);
+  free (name);
 }
 
 

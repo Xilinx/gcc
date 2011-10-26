@@ -67,7 +67,7 @@ static VEC(char_p,heap) *string_tables = NULL;
 static int pph_loc_offset;
 
 /* Forward declarations to avoid circularity.  */
-static tree pph_in_merge_key_tree (pph_stream *, tree *, hashval_t);
+static tree pph_in_merge_key_tree (pph_stream *, tree *);
 
 /***************************************************** stream initialization */
 
@@ -690,18 +690,17 @@ pph_in_chain (pph_stream *stream)
 
 
 /* Read a chain of AST merge keys from STREAM.  Merge each tree
-   into *CHAIN.  IPATH_HASH is the hash value of the include path
-   from STREAM to the root of the include tree.  */
+   into *CHAIN.  */
 
 static void
-pph_in_merge_key_chain (pph_stream *stream, tree *chain, hashval_t ipath_hash)
+pph_in_merge_key_chain (pph_stream *stream, tree *chain)
 {
   unsigned i;
   HOST_WIDE_INT count;
 
   count = pph_in_hwi (stream);
   for (i = 0; i < count; i++)
-    pph_in_merge_key_tree (stream, chain, ipath_hash);
+    pph_in_merge_key_tree (stream, chain);
 }
 
 
@@ -740,13 +739,6 @@ typedef struct {
 
   /* Name of the tree (from pph_merge_name).  */
   const char *name;
-
-  /* Hash value representing the include path starting at the image
-     where EXPR resides up to the root of the include tree.  Objects
-     found in any of these PPH images do not need to be merged.  They
-     were already emitted as external references and merged when
-     the PPH images were being generated.  */
-  hashval_t ipath_hash;
 } merge_toc_entry;
 
 
@@ -766,11 +758,6 @@ htab_merge_key_eq (const void *p1, const void *p2)
 {
   const merge_toc_entry *key1 = (const merge_toc_entry *) p1;
   const merge_toc_entry *key2 = (const merge_toc_entry *) p2;
-
-  /* Matches inside the same include path are not interesting.  These
-     symbols have already been merged.  */
-  if (key1->ipath_hash == key2->ipath_hash)
-    return false;
 
   if (key1->context != key2->context)
     return false;
@@ -831,15 +818,12 @@ pph_prepend_to_chain (tree expr, tree *chain)
 }
 
 
-/* Merge the just-read header for tree EXPR with NAME onto the CHAIN.
-   IPATH_HASH is the hash value of the include path from STREAM to the
-   root of the include tree.  */
+/* Merge the just-read header for tree EXPR with NAME onto the CHAIN.  */
 
 static tree
-pph_merge_into_chain (tree expr, const char *name, tree *chain,
-		      hashval_t ipath_hash)
+pph_merge_into_chain (tree expr, const char *name, tree *chain)
 {
-  merge_toc_entry key = { expr, chain, name, ipath_hash };
+  merge_toc_entry key = { expr, chain, name };
   tree found = pph_toc_lookup (merge_toc, &key);
   if (!found)
     {
@@ -1893,11 +1877,10 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 
 /* Read a merge key from STREAM.  If the merge key read from
    STREAM is not found in *CHAIN, the newly allocated tree is added to
-   it.  IPATH_HASH is the hash value of the include path from STREAM to
-   the root of the include tree.  */
+   it.  */
 
 static tree
-pph_in_merge_key_tree (pph_stream *stream, tree *chain, hashval_t ipath_hash)
+pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   enum pph_record_marker marker;
@@ -1918,7 +1901,7 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain, hashval_t ipath_hash)
   /* Look for a match in CHAIN to READ_EXPR's header.  If we found a
      match, EXPR will be the existing tree that matches READ_EXPR.
      Otherwise, EXPR is the newly allocated READ_EXPR.  */
-  expr = pph_merge_into_chain (read_expr, name, chain, ipath_hash);
+  expr = pph_merge_into_chain (read_expr, name, chain);
 
   gcc_assert (expr != NULL);
 
@@ -2079,7 +2062,7 @@ pph_in_cgraph_node (pph_stream *stream)
 
   fndecl = pph_in_tree (stream);
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cgraph_node, node,
-                      cgraph_create_node (fndecl));
+                      cgraph_get_create_node (fndecl));
 
   node->origin = pph_in_cgraph_node (stream);
   node->nested = pph_in_cgraph_node (stream);
@@ -2330,22 +2313,6 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Compute a hash value for all the images starting at STREAM up to the
-   root of the include hierarchy.  */
-
-static hashval_t
-pph_get_include_path_hash (pph_stream *stream)
-{
-  pph_stream *i;
-  hashval_t val;
-
-  for (val = 0, i = stream; i; i = i->parent)
-    val = iterative_hash_hashval_t (htab_hash_pointer (i), val);
-
-  return val;
-}
-
-
 /* Read all the merge keys from STREAM.  Merge into the corresponding
    contexts.  Return a VEC of all the merge keys read.  */
 
@@ -2353,19 +2320,12 @@ static void
 pph_in_merge_keys (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
-  hashval_t include_path_hash = 0;
-
-  /* Compute the signature for the include path from STREAM up to
-     the root of the inclusion tree.  Symbols found in any image in
-     the direct path from STREAM up to the root do not need to be
-     merged.  They were already merged when the images were generated.  */
-  include_path_hash = pph_get_include_path_hash (stream);
 
   /* First read all the merge keys and merge into the global bindings.  */
-  pph_in_merge_key_chain (stream, &bl->names, include_path_hash);
-  pph_in_merge_key_chain (stream, &bl->namespaces, include_path_hash);
-  pph_in_merge_key_chain (stream, &bl->usings, include_path_hash);
-  pph_in_merge_key_chain (stream, &bl->using_directives, include_path_hash);
+  pph_in_merge_key_chain (stream, &bl->names);
+  pph_in_merge_key_chain (stream, &bl->namespaces);
+  pph_in_merge_key_chain (stream, &bl->usings);
+  pph_in_merge_key_chain (stream, &bl->using_directives);
 
   /* Now read the bodies of all the trees merged above.  */
   pph_in_merge_body_chain (stream);

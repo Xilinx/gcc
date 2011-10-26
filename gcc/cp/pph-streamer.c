@@ -376,7 +376,10 @@ pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix,
 
   map_slot = pointer_map_insert (cache->m, data);
 
-  /* We should not be trying to insert the same data more than once.  */
+  /* We should not be trying to insert the same data more than once.
+     This indicates that the same DATA pointer has been given two
+     different cache locations.  This almost always points to a
+     problem with merging data structures read from different files.  */
   gcc_assert (*map_slot == NULL);
 
   *map_slot = (void *) (intptr_t) ix;
@@ -574,18 +577,4 @@ pph_get_signature (tree t, size_t *nbytes_p)
   TREE_USED (t) = prev_used;
 
   return crc;
-}
-
-
-/* Return the merge name string identifier tree for a decl EXPR.  */
-
-tree
-pph_merge_name (tree expr)
-{
-  if (TREE_CODE (expr) == FUNCTION_DECL
-      && !DECL_BUILT_IN (expr)
-      && DECL_LANG_SPECIFIC (expr))
-    return DECL_ASSEMBLER_NAME (expr);
-  else
-    return DECL_NAME (expr);
 }

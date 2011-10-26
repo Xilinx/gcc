@@ -1,7 +1,4 @@
-// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x4tmplclass1.cc:1:0: internal compiler error: in cgraph_create_node, at cgraph.c:502" "" { xfail *-*-* } 0 }
-
-// Previoiusly:
+// pph asm xdiff 63957
 // Assembly differences seem to be due to the order in which the
 // symbols in the template hash tables are emitted.
 #include "x0tmplclass11.h"

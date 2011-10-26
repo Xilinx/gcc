@@ -5782,6 +5782,7 @@ extern tree merge_exception_specifiers		(tree, tree, tree);
 /* in mangle.c */
 extern void init_mangle				(void);
 extern void mangle_decl				(tree);
+extern tree get_mangled_id			(tree);
 extern const char *mangle_type_string		(tree);
 extern tree mangle_typeinfo_for_type		(tree);
 extern tree mangle_typeinfo_string_for_type	(tree);
