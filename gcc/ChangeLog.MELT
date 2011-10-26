@@ -1,5 +1,10 @@
 
 2011-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-run.proto.h:
+	[[patch suggested by Allan McRae <allan@archlinux.org>]]
+	Include directly c-pragma.h & c-pretty-print.h with GCC4.6...
+
+2011-10-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_walk_use_def_chain): New declaration.
 	* melt-runtime.c (meltgc_usedef_internalfun, meltgc_walk_use_def_chain): New functions.
 	* melt/xtramelt-ana-base.melt (walk_use_def_chain_breadth_first)
