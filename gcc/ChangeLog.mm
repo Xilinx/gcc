@@ -1,3 +1,11 @@
+2011-10-26  Andrew MacLeod  <amacleod@redhat.com>
+
+	* builtins.c (expand_builtin_atomic_fetch_op): External calls for
+	'op_fetch' builtins need to instead call 'fetch_op' externals and issue 
+	correction code.
+	(expand_builtin): Provide proper builtin name for external call and
+	ignored flag to expand_builtin_atomic_fetch_op.
+
 2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
 
 	* c-typeck.c (build_function_call_vec): Don't reprocess __atomic

@@ -5386,14 +5386,20 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
    TARGET is an optional place for us to store the results.
    CODE is the operation, PLUS, MINUS, ADD, XOR, or IOR.
    FETCH_AFTER is true if returning the result of the operation.
-   FETCH_AFTER is false if returning the value before the operation.  */
+   FETCH_AFTER is false if returning the value before the operation.
+   IGNORE is true if the result is not used.
+   EXT_CALL is the correct builtin for an external call if this cannot be
+   resolved to an instriction sequence.  */
 
 static rtx
 expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
-				enum rtx_code code, bool fetch_after)
+				enum rtx_code code, bool fetch_after,
+				bool ignore, enum built_in_function ext_call)
 {
-  rtx val, mem;
+  rtx val, mem, ret;
   enum memmodel model;
+  tree fndecl;
+  tree addr;
 
   model = get_memmodel (CALL_EXPR_ARG (exp, 2));
 
@@ -5401,7 +5407,33 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_fetch_op (target, mem, val, code, model, fetch_after);
+  ret = expand_atomic_fetch_op (target, mem, val, code, model, fetch_after);
+  if (ret)
+    return ret;
+
+  /* Return if a different routine isn't needed for the library call.  */
+  if (ext_call == BUILT_IN_NONE)
+    return NULL_RTX;
+
+  /* Change the call to the specified function.  */
+  fndecl = get_callee_fndecl (exp);
+  addr = CALL_EXPR_FN (exp);
+  STRIP_NOPS (addr);
+
+  gcc_assert (TREE_OPERAND (addr, 0) == fndecl);
+  TREE_OPERAND (addr, 0) = builtin_decl_explicit(ext_call);
+
+  /* Expand the call here so we can emit trailing code.  */
+  ret = expand_call (exp, target, ignore);
+
+  /* Replace the original function just in case it matters.  */
+  TREE_OPERAND (addr, 0) = fndecl;
+
+  /* Then issue the arithmetic correction to return the right result.  */
+  if (!ignore)
+    ret = expand_simple_binop (mode, code, ret, val, NULL_RTX, true,
+			       OPTAB_LIB_WIDEN);
+  return ret;
 }
 
 /* Return true if size ARG is always lock free on this architecture.  */
@@ -6400,75 +6432,105 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_ADD_FETCH_4:
     case BUILT_IN_ATOMIC_ADD_FETCH_8:
     case BUILT_IN_ATOMIC_ADD_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_ADD_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS, true);
-      if (target)
-	return target;
-      break;
- 
+      {
+	enum built_in_function lib;
+	mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_ADD_FETCH_1);
+	lib = (enum built_in_function)((int)BUILT_IN_ATOMIC_FETCH_ADD_1 + 
+				       (fcode - BUILT_IN_ATOMIC_ADD_FETCH_1));
+	target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS, true,
+						 ignore, lib);
+	if (target)
+	  return target;
+	break;
+      }
     case BUILT_IN_ATOMIC_SUB_FETCH_1:
     case BUILT_IN_ATOMIC_SUB_FETCH_2:
     case BUILT_IN_ATOMIC_SUB_FETCH_4:
     case BUILT_IN_ATOMIC_SUB_FETCH_8:
     case BUILT_IN_ATOMIC_SUB_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_SUB_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, true);
-      if (target)
-	return target;
-      break;
- 
+      {
+	enum built_in_function lib;
+	mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_SUB_FETCH_1);
+	lib = (enum built_in_function)((int)BUILT_IN_ATOMIC_FETCH_SUB_1 + 
+				       (fcode - BUILT_IN_ATOMIC_SUB_FETCH_1));
+	target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, true,
+						 ignore, lib);
+	if (target)
+	  return target;
+	break;
+      }
     case BUILT_IN_ATOMIC_AND_FETCH_1:
     case BUILT_IN_ATOMIC_AND_FETCH_2:
     case BUILT_IN_ATOMIC_AND_FETCH_4:
     case BUILT_IN_ATOMIC_AND_FETCH_8:
     case BUILT_IN_ATOMIC_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_AND_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, AND, true);
-      if (target)
-	return target;
-      break;
-
+      {
+	enum built_in_function lib;
+	mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_AND_FETCH_1);
+	lib = (enum built_in_function)((int)BUILT_IN_ATOMIC_FETCH_AND_1 + 
+				       (fcode - BUILT_IN_ATOMIC_AND_FETCH_1));
+	target = expand_builtin_atomic_fetch_op (mode, exp, target, AND, true,
+						 ignore, lib);
+	if (target)
+	  return target;
+	break;
+      }
     case BUILT_IN_ATOMIC_NAND_FETCH_1:
     case BUILT_IN_ATOMIC_NAND_FETCH_2:
     case BUILT_IN_ATOMIC_NAND_FETCH_4:
     case BUILT_IN_ATOMIC_NAND_FETCH_8:
     case BUILT_IN_ATOMIC_NAND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_NAND_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, NOT, true);
-      if (target)
-	return target;
-      break;
- 
+      {
+	enum built_in_function lib;
+	mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_NAND_FETCH_1);
+	lib = (enum built_in_function)((int)BUILT_IN_ATOMIC_FETCH_NAND_1 + 
+				       (fcode - BUILT_IN_ATOMIC_NAND_FETCH_1));
+	target = expand_builtin_atomic_fetch_op (mode, exp, target, NOT, true,
+						 ignore, lib);
+	if (target)
+	  return target;
+	break;
+      }
     case BUILT_IN_ATOMIC_XOR_FETCH_1:
     case BUILT_IN_ATOMIC_XOR_FETCH_2:
     case BUILT_IN_ATOMIC_XOR_FETCH_4:
     case BUILT_IN_ATOMIC_XOR_FETCH_8:
     case BUILT_IN_ATOMIC_XOR_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_XOR_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, XOR, true);
-      if (target)
-	return target;
-      break;
- 
+      {
+	enum built_in_function lib;
+	mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_XOR_FETCH_1);
+	lib = (enum built_in_function)((int)BUILT_IN_ATOMIC_FETCH_XOR_1 + 
+				       (fcode - BUILT_IN_ATOMIC_XOR_FETCH_1));
+	target = expand_builtin_atomic_fetch_op (mode, exp, target, XOR, true,
+						 ignore, lib);
+	if (target)
+	  return target;
+	break;
+      }
     case BUILT_IN_ATOMIC_OR_FETCH_1:
     case BUILT_IN_ATOMIC_OR_FETCH_2:
     case BUILT_IN_ATOMIC_OR_FETCH_4:
     case BUILT_IN_ATOMIC_OR_FETCH_8:
     case BUILT_IN_ATOMIC_OR_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_OR_FETCH_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, IOR, true);
-      if (target)
-	return target;
-      break;
- 
-
+      {
+	enum built_in_function lib;
+	mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_OR_FETCH_1);
+	lib = (enum built_in_function)((int)BUILT_IN_ATOMIC_FETCH_OR_1 + 
+				       (fcode - BUILT_IN_ATOMIC_OR_FETCH_1));
+	target = expand_builtin_atomic_fetch_op (mode, exp, target, IOR, true,
+						 ignore, lib);
+	if (target)
+	  return target;
+	break;
+      }
     case BUILT_IN_ATOMIC_FETCH_ADD_1:
     case BUILT_IN_ATOMIC_FETCH_ADD_2:
     case BUILT_IN_ATOMIC_FETCH_ADD_4:
     case BUILT_IN_ATOMIC_FETCH_ADD_8:
     case BUILT_IN_ATOMIC_FETCH_ADD_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_ADD_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS, false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, PLUS, false,
+					       ignore, BUILT_IN_NONE);
       if (target)
 	return target;
       break;
@@ -6479,7 +6541,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_SUB_8:
     case BUILT_IN_ATOMIC_FETCH_SUB_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_SUB_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, MINUS, false,
+					       ignore, BUILT_IN_NONE);
       if (target)
 	return target;
       break;
@@ -6490,7 +6553,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_AND_8:
     case BUILT_IN_ATOMIC_FETCH_AND_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_AND_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, AND, false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, AND, false,
+					       ignore, BUILT_IN_NONE);
       if (target)
 	return target;
       break;
@@ -6501,7 +6565,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_NAND_8:
     case BUILT_IN_ATOMIC_FETCH_NAND_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_NAND_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, NOT, false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, NOT, false,
+					       ignore, BUILT_IN_NONE);
       if (target)
 	return target;
       break;
@@ -6512,7 +6577,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_XOR_8:
     case BUILT_IN_ATOMIC_FETCH_XOR_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_XOR_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, XOR, false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, XOR, false,
+					       ignore, BUILT_IN_NONE);
       if (target)
 	return target;
       break;
@@ -6523,7 +6589,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_FETCH_OR_8:
     case BUILT_IN_ATOMIC_FETCH_OR_16:
       mode = get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_FETCH_OR_1);
-      target = expand_builtin_atomic_fetch_op (mode, exp, target, IOR, false);
+      target = expand_builtin_atomic_fetch_op (mode, exp, target, IOR, false,
+					       ignore, BUILT_IN_NONE);
       if (target)
 	return target;
       break;
