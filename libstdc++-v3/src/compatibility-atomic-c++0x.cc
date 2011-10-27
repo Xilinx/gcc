@@ -1,4 +1,4 @@
-// Support for atomic operations -*- C++ -*-
+// <atomic> compatibility -*- C++ -*-
 
 // Copyright (C) 2008, 2009, 2010, 2011
 // Free Software Foundation, Inc.
@@ -26,6 +26,9 @@
 #include "gstdint.h"
 #include <atomic>
 #include <mutex>
+
+// XXX GLIBCXX_ABI Deprecated
+// gcc-4.7.0
 
 #define LOGSIZE 4
 
@@ -55,6 +58,16 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   namespace __atomic0
   {
+
+    struct atomic_flag : public __atomic_flag_base
+    {
+     bool
+     test_and_set(memory_order) noexcept;
+     
+     void
+     clear(memory_order) noexcept;
+    };
+
     bool
     atomic_flag::test_and_set(memory_order) noexcept
     {
@@ -74,6 +87,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #endif
       _M_i = false;
     }
+  } // namespace __atomic0
 
   _GLIBCXX_BEGIN_EXTERN_C
 
@@ -116,10 +130,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   _GLIBCXX_END_EXTERN_C
 
-  } // namespace __atomic0
-
 _GLIBCXX_END_NAMESPACE_VERSION
-} // namespace
+} // namespace std
 
 
 // XXX GLIBCXX_ABI Deprecated
