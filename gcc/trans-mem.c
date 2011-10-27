@@ -4300,11 +4300,11 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
 
   gimple_call_set_fn (stmt, callfn);
 
-  /* Discard OBJ_TYPE_REF above, may produce incompatible LHS and RHS
+  /* Discarding OBJ_TYPE_REF above may produce incompatible LHS and RHS
      for a call statement.  Fix it.  */
   {
     tree lhs = gimple_call_lhs (stmt);
-    tree rettype =  TREE_TYPE (TREE_TYPE (TREE_TYPE (callfn)));
+    tree rettype = TREE_TYPE (gimple_call_fntype (stmt));
     if (lhs
 	&& !useless_type_conversion_p (TREE_TYPE (lhs), rettype))
     {

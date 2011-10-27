@@ -1,3 +1,8 @@
+2011-10-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Use gimple_call_fntype
+	to get function return type.
+
 2011-10-24  Patrick Marlier  <patrick.marlier@gmail.com>
 
 	* tree-cfg.c (verify_gimple_in_seq_2): Fix typo.
