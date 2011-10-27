@@ -30,6 +30,11 @@ RM ?= rm -vf
 ## the compiler used to build the melt.so plugin
 CC ?= gcc
 
+# Some versions of `touch' (such as the version on Solaris 2.8)
+# do not correctly set the timestamp due to buggy versions of `utime'
+# in the kernel.  So, we use `echo' instead.
+STAMP ?= echo timestamp >
+
 # Custom includes to lib needed to built melt.so
 # ie: -I/path/to/gmp/include
 LIBS_INCLUDEFLAGS ?=
@@ -247,7 +252,7 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 	-o $@ melt-runtime.c $(MELTGCC_LIBES)
 
 clean:
-	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp
+	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp stamp-*
 
 melt-build.mk: melt-build.def melt-build.tpl
 	$(AUTOGEN) melt-build.def

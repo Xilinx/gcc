@@ -1,4 +1,8 @@
 
+2011-10-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (STAMP): Define.
+	(clean): remove the timestamp files.
+
 2011-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (MELT_RUNTIME_C): Define.
 
