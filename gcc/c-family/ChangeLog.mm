@@ -1,3 +1,7 @@
+2011-10-27  Richard Henderson  <rth@redhat.com>
+
+	* c-cppbuiltin.c (c_cpp_builtins): Test both atomic and sync patterns.
+
 2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
 
 	* c-common.c (get_atomic_generic_size): New.  Find size of generic

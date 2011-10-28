@@ -1,3 +1,61 @@
+2011-10-27  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.md (UNSPECV_CMPXCHG): Split into ...
+	(UNSPECV_CMPXCHG_1, UNSPECV_CMPXCHG_2,
+	UNSPECV_CMPXCHG_3, UNSPECV_CMPXCHG_4): New.
+	* config/i386/sync.md (mem_thread_fence): Rename from memory_barrier.
+	Handle the added memory model parameter.
+	(mfence_nosse): Rename from memory_barrier_nosse.
+	(sync_compare_and_swap<CASMODE>): Split into ...
+	(atomic_compare_and_swap<SWI124>): this and ...
+	(atomic_compare_and_swap<CASMODE>): this.  Handle the new parameters.
+	(atomic_compare_and_swap_single<SWI>): Rename from
+	sync_compare_and_swap<SWI>; rewrite to use split unspecs.
+	(atomic_compare_and_swap_double<DCASMODE>): Rename from
+	sync_double_compare_and_swap<DCASMODE>; rewrite to use split unspecs.
+	(*atomic_compare_and_swap_doubledi_pic): Rename from
+	sync_double_compare_and_swapdi_pic; rewrite to use split unspecs.
+	(atomic_fetch_add<SWI>): Rename from sync_old_add<SWI>; add memory
+	model parameter.
+	(*atomic_fetch_add_cmp<SWI>): Similarly.
+	(atomic_add<SWI>, atomic<any_logic><SWI>): Similarly.
+	(atomic_sub<SWI>): Similarly.  Use x86_maybe_negate_const_int.
+	(sync_lock_test_and_set<SWI>): Merge with ...
+	(atomic_exchange<SWI>): ... this.
+
+	* optabs.c (get_atomic_op_for_code): Split out from ...
+	(maybe_emit_op): ... here.
+	* optabs.h (struct atomic_op_functions): Move from optabs.c and
+	rename from struct op_functions.
+	(get_atomic_op_for_code): Declare.
+	* omp-low.c (expand_omp_atomic_fetch_op): Use get_atomic_op_for_code
+	and test both atomic and sync optabs.
+
+	* genopinit.c (optabs): Add atomic_add, atomic_sub, atomic_and,
+	atomic_nand, atomic_xor, atomic_or.
+
+	* optabs.c (expand_val_compare_and_swap_1): Remove.
+	(expand_val_compare_and_swap, expand_bool_compare_and_swap): Remove.
+	(expand_atomic_compare_and_swap): Rename from
+	expand_atomic_compare_exchange.  Rewrite to return both success and
+	oldval return values; expand via both atomic and sync optabs.
+	(expand_compare_and_swap_loop): Use expand_atomic_compare_and_swap.
+	(expand_atomic_load): Likewise.
+	* builtins.c (expand_builtin_compare_and_swap): Likewise.
+	(expand_builtin_atomic_compare_exchange): Likewise.
+	* expr.h, optabs.h: Update.
+
+	* optabs.c (can_compare_and_swap_p): New.
+	(expand_atomic_exchange, expand_atomic_fetch_op): Use it.
+	* builtins.c (fold_builtin_atomic_always_lock_free): Likewise.
+	* omp-low.c (expand_omp_atomic_pipeline): Likewise.
+	* optabs.h: Update.
+
+	* optabs.c (maybe_gen_insn): Handle 8 operands.
+
+	* builtins.c (expand_builtin_mem_thread_fence): Fixup thinko in
+	mem_thread_fence case.
+
 2011-10-26  Andrew MacLeod  <amacleod@redhat.com>
 
 	* builtins.c (expand_builtin_atomic_fetch_op): External calls for
