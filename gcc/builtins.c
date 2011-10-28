@@ -5196,10 +5196,13 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
   old_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
   new_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
-  if (is_bool)
-    return expand_bool_compare_and_swap (mem, old_val, new_val, target);
-  else
-    return expand_val_compare_and_swap (mem, old_val, new_val, target);
+  if (!expand_atomic_compare_and_swap ((is_bool ? &target : NULL),
+				       (is_bool ? NULL : &target),
+				       mem, old_val, new_val, false,
+				       MEMMODEL_SEQ_CST, MEMMODEL_SEQ_CST))
+    return NULL_RTX;
+
+  return target;
 }
 
 /* Expand the __sync_lock_test_and_set intrinsic.  Note that the most
@@ -5293,8 +5296,10 @@ static rtx
 expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp, 
 					rtx target)
 {
-  rtx expect, desired, mem, weak;
+  rtx expect, desired, mem, oldval;
   enum memmodel success, failure;
+  tree weak;
+  bool is_weak;
 
   success = get_memmodel (CALL_EXPR_ARG (exp, 4));
   failure = get_memmodel (CALL_EXPR_ARG (exp, 5));
@@ -5307,24 +5312,31 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
 
   if (failure > success)
     {
-      error ("failure memory model cannot be stronger than success memory model for %<__atomic_compare_exchange%>");
+      error ("failure memory model cannot be stronger than success "
+	     "memory model for %<__atomic_compare_exchange%>");
       return NULL_RTX;
     }
   
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
-  expect = expand_expr (CALL_EXPR_ARG (exp, 1), NULL_RTX, ptr_mode, 
-			EXPAND_NORMAL);
+  expect = expand_normal (CALL_EXPR_ARG (exp, 1));
   expect = convert_memory_address (Pmode, expect);
-
   desired = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
-  weak = expand_expr (CALL_EXPR_ARG (exp, 3), NULL_RTX, ptr_mode,
-		      EXPAND_NORMAL);
+  weak = CALL_EXPR_ARG (exp, 3);
+  is_weak = false;
+  if (host_integerp (weak, 0) && tree_low_cst (weak, 0) != 0)
+    is_weak = true;
 
-  return expand_atomic_compare_exchange (target, mem, expect, desired, weak,
-					 success, failure);
+  oldval = copy_to_reg (gen_rtx_MEM (mode, expect));
+
+  if (!expand_atomic_compare_and_swap (&target, &oldval, mem, oldval,
+				       desired, is_weak, success, failure))
+    return NULL_RTX;
+
+  emit_move_insn (gen_rtx_MEM (mode, expect), oldval);
+  return target;
 }
 
 /* Expand the __atomic_load intrinsic:
@@ -5442,7 +5454,6 @@ fold_builtin_atomic_always_lock_free (tree arg)
 {
   int size;
   enum machine_mode mode;
-  enum insn_code icode;
 
   if (TREE_CODE (arg) != INTEGER_CST)
     return NULL_TREE;

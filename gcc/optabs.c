@@ -6799,45 +6799,6 @@ can_compare_and_swap_p (enum machine_mode mode)
   return false;
 }
 
-/* This is an internal subroutine of the other compare_and_swap expanders.
-   MEM, OLD_VAL and NEW_VAL are as you'd expect for a compare-and-swap
-   operation.  TARGET is an optional place to store the value result of
-   the operation.  ICODE is the particular instruction to expand.  Return
-   the result of the operation.  */
-
-static rtx
-expand_val_compare_and_swap_1 (rtx mem, rtx old_val, rtx new_val,
-			       rtx target, enum insn_code icode)
-{
-  struct expand_operand ops[4];
-  enum machine_mode mode = GET_MODE (mem);
-
-  create_output_operand (&ops[0], target, mode);
-  create_fixed_operand (&ops[1], mem);
-  /* OLD_VAL and NEW_VAL may have been promoted to a wider mode.
-     Shrink them if so.  */
-  create_convert_operand_to (&ops[2], old_val, mode, true);
-  create_convert_operand_to (&ops[3], new_val, mode, true);
-  if (maybe_expand_insn (icode, 4, ops))
-    return ops[0].value;
-  return NULL_RTX;
-}
-
-/* Expand a compare-and-swap operation and return its value.  */
-
-rtx
-expand_val_compare_and_swap (rtx mem, rtx old_val, rtx new_val, rtx target)
-{
-  enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode
-    = direct_optab_handler (sync_compare_and_swap_optab, mode);
-
-  if (icode == CODE_FOR_nothing)
-    return NULL_RTX;
-
-  return expand_val_compare_and_swap_1 (mem, old_val, new_val, target, icode);
-}
-
 /* Helper function to find the MODE_CC set in a sync_compare_and_swap
    pattern.  */
 
@@ -6853,58 +6814,6 @@ find_cc_set (rtx x, const_rtx pat, void *data)
     }
 }
 
-/* Expand a compare-and-swap operation and store true into the result if
-   the operation was successful and false otherwise.  Return the result.
-   Unlike other routines, TARGET is not optional.  */
-
-rtx
-expand_bool_compare_and_swap (rtx mem, rtx old_val, rtx new_val, rtx target)
-{
-  enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode;
-  rtx subtarget, seq, cc_reg;
-
-  /* If the target supports a compare-and-swap pattern that simultaneously
-     sets some flag for success, then use it.  Otherwise use the regular
-     compare-and-swap and follow that immediately with a compare insn.  */
-  icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
-  if (icode == CODE_FOR_nothing)
-    return NULL_RTX;
-
-  do_pending_stack_adjust ();
-  do
-    {
-      start_sequence ();
-      subtarget = expand_val_compare_and_swap_1 (mem, old_val, new_val,
-					         NULL_RTX, icode);
-      cc_reg = NULL_RTX;
-      if (subtarget == NULL_RTX)
-	{
-	  end_sequence ();
-	  return NULL_RTX;
-	}
-
-      if (have_insn_for (COMPARE, CCmode))
-	note_stores (PATTERN (get_last_insn ()), find_cc_set, &cc_reg);
-      seq = get_insns ();
-      end_sequence ();
-
-      /* We might be comparing against an old value.  Try again. :-(  */
-      if (!cc_reg && MEM_P (old_val))
-	{
-	  seq = NULL_RTX;
-	  old_val = force_reg (mode, old_val);
-        }
-    }
-  while (!seq);
-
-  emit_insn (seq);
-  if (cc_reg)
-    return emit_store_flag_force (target, EQ, cc_reg, const0_rtx, VOIDmode, 0, 1);
-  else
-    return emit_store_flag_force (target, EQ, subtarget, old_val, VOIDmode, 1, 1);
-}
-
 /* This is a helper function for the other atomic operations.  This function
    emits a loop that contains SEQ that iterates until a compare-and-swap
    operation at the end succeeds.  MEM is the memory to be modified.  SEQ is
@@ -6918,8 +6827,7 @@ static bool
 expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
 {
   enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode;
-  rtx label, cmp_reg, subtarget, cc_reg;
+  rtx label, cmp_reg, success, oldval;
 
   /* The loop we want to generate looks like
 
@@ -6927,8 +6835,8 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
       label:
         old_reg = cmp_reg;
 	seq;
-	cmp_reg = compare-and-swap(mem, old_reg, new_reg)
-	if (cmp_reg != old_reg)
+	(success, cmp_reg) = compare-and-swap(mem, old_reg, new_reg)
+	if (success)
 	  goto label;
 
      Note that we only do the plain load from memory once.  Subsequent
@@ -6943,35 +6851,19 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
   if (seq)
     emit_insn (seq);
 
-  /* If the target supports a compare-and-swap pattern that simultaneously
-     sets some flag for success, then use it.  Otherwise use the regular
-     compare-and-swap and follow that immediately with a compare insn.  */
-  icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
-  if (icode == CODE_FOR_nothing)
+  success = NULL_RTX;
+  oldval = cmp_reg;
+  if (!expand_atomic_compare_and_swap (&success, &oldval, mem, old_reg,
+				       new_reg, false, MEMMODEL_SEQ_CST,
+				       MEMMODEL_RELAXED))
     return false;
 
-  subtarget = expand_val_compare_and_swap_1 (mem, old_reg, new_reg,
-					     cmp_reg, icode);
-  if (subtarget == NULL_RTX)
-    return false;
-
-  cc_reg = NULL_RTX;
-  if (have_insn_for (COMPARE, CCmode))
-    note_stores (PATTERN (get_last_insn ()), find_cc_set, &cc_reg);
-  if (cc_reg)
-    {
-      cmp_reg = cc_reg;
-      old_reg = const0_rtx;
-    }
-  else
-    {
-      if (subtarget != cmp_reg)
-	emit_move_insn (cmp_reg, subtarget);
-    }
+  if (oldval != cmp_reg)
+    emit_move_insn (cmp_reg, oldval);
 
   /* ??? Mark this jump predicted not taken?  */
-  emit_cmp_and_jump_insns (cmp_reg, old_reg, NE, const0_rtx, GET_MODE (cmp_reg), 1,
-			   label);
+  emit_cmp_and_jump_insns (success, const0_rtx, EQ, const0_rtx,
+			   GET_MODE (success), 1, label);
   return true;
 }
 
@@ -7050,77 +6942,112 @@ expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
 
 /* This function expands the atomic compare exchange operation:
 
-   MEMMODEL is the memory model variant to use.
-   TARGET is an option place to stick the return value.  */
+   *PTARGET_BOOL is an optional place to store the boolean success/failure.
+   *PTARGET_OVAL is an optional place to store the old value from memory.
+   Both target parameters may be NULL to indicate that we do not care about
+   that return value.  Both target parameters are updated on success to
+   the actual location of the corresponding result.
 
-rtx
-expand_atomic_compare_exchange (rtx target, rtx mem, rtx expected, 
-				rtx desired, rtx weak, enum memmodel success, 
-				enum memmodel failure)
+   MEMMODEL is the memory model variant to use.
+
+   The return value of the function is true for success.  */
+
+bool
+expand_atomic_compare_and_swap (rtx *ptarget_bool, rtx *ptarget_oval,
+				rtx mem, rtx expected, rtx desired,
+				bool is_weak, enum memmodel succ_model,
+				enum memmodel fail_model)
 {
   enum machine_mode mode = GET_MODE (mem);
-  enum insn_code icode = CODE_FOR_nothing;
-  rtx expected_val, CAS_val;
+  struct expand_operand ops[8];
+  enum insn_code icode;
+  rtx target_bool, target_oval;
 
-  /* Load '*expected into a register for the compare and swap */
-  expected_val = gen_reg_rtx (mode);
-  emit_move_insn (expected_val, gen_rtx_MEM (mode, expected));
+  /* Load expected into a register for the compare and swap.  */
+  if (MEM_P (expected))
+    expected = copy_to_reg (expected);
+
+  /* Make sure we always have some place to put the return oldval.
+     Further, make sure that place is distinct from the input expected,
+     just in case we need that path down below.  */
+  if (ptarget_oval == NULL
+      || (target_oval = *ptarget_oval) == NULL
+      || reg_overlap_mentioned_p (expected, target_oval))
+    target_oval = gen_reg_rtx (mode);
 
   icode = direct_optab_handler (atomic_compare_and_swap_optab, mode);
-    
   if (icode != CODE_FOR_nothing)
     {
-      struct expand_operand ops[8];
-      rtx original_val = gen_reg_rtx (mode);
-      enum machine_mode target_mode;
-      int is_weak;
+      enum machine_mode bool_mode = insn_data[icode].operand[0].mode;
 
-      target_mode = insn_data[icode].operand[0].mode;
-
-      /* Either WEAK is explcitly 1, or assume strong to be safe.  */
-      is_weak = (weak == const1_rtx);
-
-      if (target == NULL_RTX || target == const0_rtx 
-	  || GET_MODE (target) != target_mode)
-        target = gen_reg_rtx (target_mode);
+      /* Make sure we always have a place for the bool operand.  */
+      if (ptarget_bool == NULL
+	  || (target_bool = *ptarget_bool) == NULL
+	  || GET_MODE (target_bool) != bool_mode)
+	target_bool = gen_reg_rtx (bool_mode);
 
       /* Emit the compare_and_swap.  */
-      create_output_operand (&ops[0], target, target_mode);
-      create_output_operand (&ops[1], original_val, mode);
+      create_output_operand (&ops[0], target_bool, bool_mode);
+      create_output_operand (&ops[1], target_oval, mode);
       create_fixed_operand (&ops[2], mem);
-      create_convert_operand_to (&ops[3], expected_val, mode, true);
+      create_convert_operand_to (&ops[3], expected, mode, true);
       create_convert_operand_to (&ops[4], desired, mode, true);
       create_integer_operand (&ops[5], is_weak);
-      create_integer_operand (&ops[6], success);
-      create_integer_operand (&ops[7], failure);
+      create_integer_operand (&ops[6], succ_model);
+      create_integer_operand (&ops[7], fail_model);
       expand_insn (icode, 8, ops);
 
-      /* Store *expected = original_val  */
-      emit_move_insn (gen_rtx_MEM (mode, expected), original_val);
-
       /* Return success/failure.  */
-      return ops[0].value;
+      target_bool = ops[0].value;
+      target_oval = ops[1].value;
+      goto success;
     }
 
-
-  /* Otherwise fall back to the original __sync_val_compare_and_swap which is
-     always seq-cst.  */
+  /* Otherwise fall back to the original __sync_val_compare_and_swap
+     which is always seq-cst.  */
   icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
-  if (icode == CODE_FOR_nothing)
-      return NULL_RTX;
+  if (icode != CODE_FOR_nothing)
+    {
+      rtx cc_reg;
 
-  /* Issue the compare and swap */
-  CAS_val = expand_val_compare_and_swap_1 (mem, expected_val, desired, NULL_RTX,
-					   icode);
+      create_output_operand (&ops[0], target_oval, mode);
+      create_fixed_operand (&ops[1], mem);
+      create_convert_operand_to (&ops[2], expected, mode, true);
+      create_convert_operand_to (&ops[3], desired, mode, true);
+      if (!maybe_expand_insn (icode, 4, ops))
+	return false;
 
-  /* Always store the result back into 'expected'.  If the result is true, its
-     an extra store, but makes the flow better.  */
-  emit_move_insn (gen_rtx_MEM (mode, expected), CAS_val);
+      target_oval = ops[0].value;
+      target_bool = NULL_RTX;
 
-  return emit_store_flag_force (target, EQ, CAS_val, expected_val,
-				VOIDmode, 1, 1);
+      /* If the caller isn't interested in the boolean return value,
+	 skip the computation of it.  */
+      if (ptarget_bool == NULL)
+	goto success;
+
+      /* Otherwise, work out if the compare-and-swap succeeded.  */
+      cc_reg = NULL_RTX;
+      if (have_insn_for (COMPARE, CCmode))
+	note_stores (PATTERN (get_last_insn ()), find_cc_set, &cc_reg);
+
+      target_bool
+	= (cc_reg
+	   ? emit_store_flag_force (target_bool, EQ, cc_reg,
+				    const0_rtx, VOIDmode, 0, 1)
+	   : emit_store_flag_force (target_bool, EQ, target_oval,
+				    expected, VOIDmode, 1, 1));
+      goto success;
+    }
+  return false;
+
+ success:
+  /* Make sure that the oval output winds up where the caller asked.  */
+  if (ptarget_oval)
+    *ptarget_oval = target_oval;
+  if (ptarget_bool)
+    *ptarget_bool = target_bool;
+  return true;
 }
-
 
 /* This function expands the atomic load operation:
    return the atomically loaded value in MEM.
@@ -7150,13 +7077,13 @@ expand_atomic_load (rtx target, rtx mem, enum memmodel model)
   /* If there is no load pattern, default to a move with barriers. If the size
      of the object is greater than word size on this target, a default load 
      will not be atomic.  */
-  if (GET_MODE_PRECISION(mode) > BITS_PER_WORD)
+  if (GET_MODE_PRECISION (mode) > BITS_PER_WORD)
     {
-      /* Issue val = compare_and_swap (mem, 0 , 0).
+      /* Issue val = compare_and_swap (mem, 0, 0).
 	 This may cause the occasional harmless store of 0 when the value is
 	 already 0, but do it anyway until its determined to be invalid.  */
-      target = expand_val_compare_and_swap (mem, const0_rtx, const0_rtx, 
-					    target);
+      expand_atomic_compare_and_swap (NULL, &target, mem, const0_rtx,
+				      const0_rtx, false, model, model);
       return target;
     }
 
