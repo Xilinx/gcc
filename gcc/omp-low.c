@@ -5190,8 +5190,7 @@ expand_omp_atomic_pipeline (basic_block load_bb, basic_block store_bb,
   type = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (addr)));
   itype = TREE_TYPE (TREE_TYPE (cmpxchg));
 
-  if (direct_optab_handler (sync_compare_and_swap_optab, TYPE_MODE (itype))
-      == CODE_FOR_nothing)
+  if (!can_compare_and_swap_p (TYPE_MODE (itype)))
     return false;
 
   /* Load the initial value, replacing the GIMPLE_OMP_ATOMIC_LOAD.  */

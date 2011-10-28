@@ -5452,12 +5452,11 @@ fold_builtin_atomic_always_lock_free (tree arg)
      of the pattern indicates support is present.  */
   size = INTVAL (expand_normal (arg)) * BITS_PER_UNIT;
   mode = mode_for_size (size, MODE_INT, 0);
-  icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
 
-  if (icode == CODE_FOR_nothing)
+  if (can_compare_and_swap_p (mode))
+    return integer_one_node;
+  else
     return integer_zero_node;
-
-  return integer_one_node;
 }
 
 /* Return true if the first argument to call EXP represents a size of

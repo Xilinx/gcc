@@ -952,6 +952,9 @@ extern void expand_float (rtx, rtx, int);
 /* Return the insn_code for a FLOAT_EXPR.  */
 enum insn_code can_float_p (enum machine_mode, enum machine_mode, int);
 
+/* Return true if there is an inline compare and swap pattern.  */
+extern bool can_compare_and_swap_p (enum machine_mode);
+
 /* Generate code for a FIX_EXPR.  */
 extern void expand_fix (rtx, rtx, int);
 

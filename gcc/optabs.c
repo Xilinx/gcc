@@ -6778,6 +6778,27 @@ expand_vec_cond_expr (tree vec_cond_type, tree op0, tree op1, tree op2,
 }
 
 
+/* Return true if there is a compare_and_swap pattern.  */
+
+bool
+can_compare_and_swap_p (enum machine_mode mode)
+{
+  enum insn_code icode;
+
+  /* Check for __sync_compare_and_swap.  */
+  icode = direct_optab_handler (sync_compare_and_swap_optab, mode);
+  if (icode != CODE_FOR_nothing)
+      return true;
+
+  /* Check for __atomic_compare_and_swap.  */
+  icode = direct_optab_handler (atomic_compare_and_swap_optab, mode);
+  if (icode != CODE_FOR_nothing)
+      return true;
+
+  /* No inline compare and swap.  */
+  return false;
+}
+
 /* This is an internal subroutine of the other compare_and_swap expanders.
    MEM, OLD_VAL and NEW_VAL are as you'd expect for a compare-and-swap
    operation.  TARGET is an optional place to store the value result of
@@ -7014,8 +7035,7 @@ expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
     delete_insns_since (last_insn);
 
   /* Otherwise, use a compare-and-swap loop for the exchange.  */
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing)
+  if (can_compare_and_swap_p (mode))
     {
       if (!target || !register_operand (target, mode))
 	target = gen_reg_rtx (mode);
@@ -7451,8 +7471,7 @@ expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
     }
 
   /* If nothing else has succeeded, default to a compare and swap loop.  */
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-        != CODE_FOR_nothing)
+  if (can_compare_and_swap_p (mode))
     {
       rtx insn;
       rtx t0 = gen_reg_rtx (mode), t1;
