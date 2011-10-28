@@ -1,3 +1,19 @@
+2011-10-28  Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (struct tm_ipa_cg_data): Add transaction_blocks_normal.
+	(bb_in_TM_region): Remove.
+	(ipa_tm_scan_calls_block): New.
+	(ipa_tm_scan_calls_clone): Use it.
+	(ipa_tm_scan_calls_transaction): Likewise.  Initialize
+	transaction_blocks_normal.
+	(ipa_tm_note_irrevocable): Use transaction_blocks_normal.
+	(ipa_tm_propagate_irr): Collect a set of blocks from
+	get_tm_region_blocks to use instead of bb_in_TM_region.
+	Free the data allocated within the function.
+	(ipa_tm_region_init): Remove.
+	(ipa_tm_execute): Don't init bb_in_TM_region.  Install the correct
+	cfg for use in ipa_tm_scan_calls_transaction.
+
 2011-10-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	* c-family/c-common.c (handle_tm_wrap_attribute): Handle decl

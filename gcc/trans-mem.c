@@ -3442,6 +3442,9 @@ struct tm_ipa_cg_data
   bitmap irrevocable_blocks_normal;
   bitmap irrevocable_blocks_clone;
 
+  /* The blocks of the normal function that are involved in transactions.  */
+  bitmap transaction_blocks_normal;
+
   /* The number of callers to the transactional clone of this function
      from normal and transactional clones respectively.  */
   unsigned tm_callers_normal;
@@ -3466,9 +3469,6 @@ DEF_VEC_P (cgraph_node_p);
 DEF_VEC_ALLOC_P (cgraph_node_p, heap);
 
 typedef VEC (cgraph_node_p, heap) *cgraph_node_queue;
-
-/* List of all BB's that are in transactional regions.  */
-static bitmap bb_in_TM_region = NULL;
 
 /* Return the ipa data associated with NODE, allocating zeroed memory
    if necessary.  */
@@ -3503,33 +3503,72 @@ maybe_push_queue (struct cgraph_node *node,
     }
 }
 
+/* A subroutine of ipa_tm_scan_calls_transaction and ipa_tm_scan_calls_clone.
+   Queue all callees within block BB.  */
+
+static void
+ipa_tm_scan_calls_block (cgraph_node_queue *callees_p,
+			 basic_block bb, bool for_clone)
+{
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (is_gimple_call (stmt) && !is_tm_pure_call (stmt))
+	{
+	  tree fndecl = gimple_call_fndecl (stmt);
+	  if (fndecl)
+	    {
+	      struct tm_ipa_cg_data *d;
+	      unsigned *pcallers;
+	      struct cgraph_node *node;
+
+	      if (is_tm_ending_fndecl (fndecl))
+		continue;
+	      if (find_tm_replacement_function (fndecl))
+		continue;
+
+	      node = cgraph_get_node (fndecl);
+	      gcc_assert (node != NULL);
+	      d = get_cg_data (node);
+
+	      pcallers = (for_clone ? &d->tm_callers_clone
+			  : &d->tm_callers_normal);
+	      *pcallers += 1;
+
+	      maybe_push_queue (node, callees_p, &d->in_callee_queue);
+	    }
+	}
+    }
+}
+
 /* Scan all calls in NODE that are within a transaction region,
    and push the resulting nodes into the callee queue.  */
 
 static void
-ipa_tm_scan_calls_transaction (struct cgraph_node *node,
-			     cgraph_node_queue *callees_p)
+ipa_tm_scan_calls_transaction (struct tm_ipa_cg_data *d,
+			       cgraph_node_queue *callees_p)
 {
-  struct cgraph_edge *e;
-  tree replacement;
+  struct tm_region *r;
 
-  for (e = node->callees; e ; e = e->next_callee)
-    /* Check if the callee is in a transactional region. */ 
-    if (bitmap_bit_p (bb_in_TM_region, gimple_bb (e->call_stmt)->index))
-      {
-	struct tm_ipa_cg_data *d;
+  d->transaction_blocks_normal = BITMAP_ALLOC (&tm_obstack);
+  d->all_tm_regions = all_tm_regions;
 
-	if (is_tm_pure_call (e->call_stmt))
-	  continue;
+  for (r = all_tm_regions; r; r = r->next)
+    {
+      VEC (basic_block, heap) *bbs;
+      basic_block bb;
+      unsigned i;
 
-	replacement = find_tm_replacement_function (e->callee->decl);
-	if (replacement)
-	  continue;
+      bbs = get_tm_region_blocks (r->entry_block, r->exit_blocks, NULL,
+				  d->transaction_blocks_normal, false);
 
-	d = get_cg_data (e->callee);
-	d->tm_callers_normal++;
-	maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
-      }
+      FOR_EACH_VEC_ELT (basic_block, bbs, i, bb)
+	ipa_tm_scan_calls_block (callees_p, bb, false);
+
+      VEC_free (basic_block, heap, bbs);
+    }
 }
 
 /* Scan all calls in NODE as if this is the transactional clone,
@@ -3539,22 +3578,11 @@ static void
 ipa_tm_scan_calls_clone (struct cgraph_node *node, 
 			 cgraph_node_queue *callees_p)
 {
-  struct cgraph_edge *e;
+  struct function *fn = DECL_STRUCT_FUNCTION (node->decl);
+  basic_block bb;
 
-  for (e = node->callees; e ; e = e->next_callee)
-    {
-      tree replacement = find_tm_replacement_function (e->callee->decl);
-      if (replacement)
-	continue;
-
-      if (!is_tm_pure_call (e->call_stmt))
-	{
-	  struct tm_ipa_cg_data *d = get_cg_data (e->callee);
-
-	  d->tm_callers_clone++;
-	  maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
-	}
-    }
+  FOR_EACH_BB_FN (bb, fn)
+    ipa_tm_scan_calls_block (callees_p, bb, true);
 }
 
 /* The function NODE has been detected to be irrevocable.  Push all
@@ -3571,7 +3599,7 @@ ipa_tm_note_irrevocable (struct cgraph_node *node,
 
   for (e = node->callers; e ; e = e->next_caller)
     {
-      d = get_cg_data (e->caller);
+      basic_block bb;
 
       /* Don't examine recursive calls.  */
       if (e->caller == node)
@@ -3581,10 +3609,16 @@ ipa_tm_note_irrevocable (struct cgraph_node *node,
       if (is_tm_safe_or_pure (e->caller->decl))
 	continue;
 
-      gcc_assert (gimple_bb (e->call_stmt) != NULL);
-      /* Check if the callee is in a transactional region. */ 
-      if (bitmap_bit_p (bb_in_TM_region, gimple_bb (e->call_stmt)->index))
+      d = get_cg_data (e->caller);
+
+      /* Check if the callee is in a transactional region.  If so,
+	 schedule the function for normal re-scan as well.  */
+      bb = gimple_bb (e->call_stmt);
+      gcc_assert (bb != NULL);
+      if (d->transaction_blocks_normal
+	  && bitmap_bit_p (d->transaction_blocks_normal, bb->index))
 	d->want_irr_scan_normal = true;
+
       maybe_push_queue (e->caller, worklist_p, &d->in_worklist);
     }
 }
@@ -3697,16 +3731,19 @@ ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
    which are gaining the irrevocable property during the current scan.  */
 
 static void
-ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
-		      bitmap exit_blocks)
+ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr,
+		      bitmap old_irr, bitmap exit_blocks)
 {
   VEC (basic_block, heap) *bbs;
+  bitmap all_region_blocks;
 
   /* If this block is in the old set, no need to rescan.  */
   if (old_irr && bitmap_bit_p (old_irr, entry_block->index))
     return;
 
-  bbs = get_tm_region_blocks (entry_block, exit_blocks, NULL, NULL, false);
+  all_region_blocks = BITMAP_ALLOC (&tm_obstack);
+  bbs = get_tm_region_blocks (entry_block, exit_blocks, NULL,
+			      all_region_blocks, false);
   do
     {
       basic_block bb = VEC_pop (basic_block, bbs);
@@ -3751,12 +3788,15 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
 	      /* Make sure block is actually in a TM region, and it
 		 isn't already in old_irr.  */
 	      if ((!old_irr || !bitmap_bit_p (old_irr, son->index))
-		  && bitmap_bit_p (bb_in_TM_region, son->index))
+		  && bitmap_bit_p (all_region_blocks, son->index))
 		bitmap_set_bit (new_irr, son->index);
 	    }
 	}
     }
   while (!VEC_empty (basic_block, bbs));
+
+  BITMAP_FREE (all_region_blocks);
+  VEC_free (basic_block, heap, bbs);
 }
 
 static void
@@ -4017,27 +4057,6 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
 
 	VEC_free (basic_block, heap, bbs);
       }
-}
-
-/* Invoke tm_region_init within the context of NODE.  */
-
-static struct tm_region *
-ipa_tm_region_init (struct cgraph_node *node)
-{
-  struct tm_region *regions;
-
-  current_function_decl = node->decl;
-  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
-  calculate_dominance_info (CDI_DOMINATORS);
-
-  tm_region_init (NULL);
-  regions = all_tm_regions;
-  all_tm_regions = NULL;
-
-  pop_cfun ();
-  current_function_decl = NULL;
-
-  return regions;
 }
 
 /* Return a transactional mangled name for the DECL_ASSEMBLER_NAME in
@@ -4577,23 +4596,6 @@ ipa_tm_execute (void)
 #endif
 
   bitmap_obstack_initialize (&tm_obstack);
-  bb_in_TM_region = BITMAP_ALLOC (&tm_obstack);
-
-  /* Build a bitmap of all BB's inside transaction regions.  */
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->reachable && node->lowered
-	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
-      {
-	struct tm_region *regions;
-	regions = ipa_tm_region_init (node); 
-	for ( ; regions; regions = regions->next)
-	  {
-	    get_tm_region_blocks (regions->entry_block,
-				  regions->exit_blocks,
-				  NULL, 
-				  bb_in_TM_region, false);
-	  }
-      }
 
   /* For all local functions marked tm_callable, queue them.  */
   for (node = cgraph_nodes; node; node = node->next)
@@ -4610,8 +4612,6 @@ ipa_tm_execute (void)
     if (node->reachable && node->lowered
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
-	struct tm_region *regions;
-
 	/* ... marked tm_pure, record that fact for the runtime by
 	   indicating that the pure function is its own tm_callable.
 	   No need to do this if the function's address can't be taken.  */
@@ -4622,14 +4622,30 @@ ipa_tm_execute (void)
 	    continue;
 	  }
 
-	/* ... otherwise scan for calls that are in a transaction.  */
-	regions = ipa_tm_region_init (node);
-	if (regions)
+	current_function_decl = node->decl;
+	push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+	calculate_dominance_info (CDI_DOMINATORS);
+
+	tm_region_init (NULL);
+	if (all_tm_regions)
 	  {
 	    d = get_cg_data (node);
-	    d->all_tm_regions = regions;
-	    ipa_tm_scan_calls_transaction (node, &tm_callees);
+
+	    /* Scan for calls that are in each transaction.  */
+	    ipa_tm_scan_calls_transaction (d, &tm_callees);
+
+	    /* If we saw something that will make us go irrevocable, put it
+	       in the worklist so we can scan the function later
+	       (ipa_tm_scan_irr_function) and mark the irrevocable blocks.  */
+	    if (node->local.tm_may_enter_irr)
+	      {
+	        maybe_push_queue (node, &irr_worklist, &d->in_worklist);
+		d->want_irr_scan_normal = true;
+	      }
 	  }
+
+	pop_cfun ();
+	current_function_decl = NULL;
       }
 
   /* For every local function on the callee list, scan as if we will be
@@ -4643,8 +4659,7 @@ ipa_tm_execute (void)
 
       /* If we saw something that will make us go irrevocable, put it
 	 in the worklist so we can scan the function later
-	 (ipa_tm_scan_irr_function) and mark the irrevocable
-	 blocks.  */
+	 (ipa_tm_scan_irr_function) and mark the irrevocable blocks.  */
       if (node->local.tm_may_enter_irr)
 	maybe_push_queue (node, &irr_worklist, &d->in_worklist);
 
