@@ -1,3 +1,39 @@
+2011-10-28   Lawrence Crowl  <crowl@google.com>
+
+	* pph.c (pph_dump_tree_name): Remove dead code.  Dump tree_code also.
+	* pph-streamer.h (enum pph_trace_kind): New.
+	(pph_trace_tree): Change bool parameters to a single enum parameter.
+	Update callers to match.
+	(pph_tree_is_mergeable): All decls and types are mergeable.
+	* pph-streamer.c (pph_trace_tree): Avoid printing names for unmerge
+	keys, as they are too sparse to print.  Change bool parameters to a
+	single enum parameter.  Update body to match.
+	* pph-streamer-out.c (pph_out_start_merge_key_record): Handle reference
+	merge keys.  Return status.
+	(pph_out_merge_body_vec): New.
+	(pph_out_merge_body_chain): New.
+	(pph_out_merge_keys): Replace with general binding routines below.
+	(pph_out_binding_merge_keys): New.
+	(pph_out_binding_merge_bodies): New.
+	(pph_out_global_binding): Use the above.
+	(pph_merge_name): Handle types as well as decls.  Handle unnamed decls.
+	Handle namespaces.  Add disabled handling of types.
+	(pph_out_tree): Move tracing to postorder traversal to match tracing of
+	input streaming.
+	* pph-streamer-in.c (htab_merge_key_hash): Hash in tree code.
+	(pph_merge_into_chain): Do not merge into null chains.
+	(pph_in_binding_level): Split ALLOC_AND_REGISTER into constituents
+	for future registration of previously allocated binding level.
+	(pph_in_merge_keys): Replace with general binding routines below.
+	(pph_in_binding_merge_keys): New.
+	(pph_in_binding_merge_bodies): New.
+	(pph_in_global_binding): Use the above.
+	(pph_in_lang_specific): Avoid reallocating DECL_LANG_SPECIFIC.
+	(pph_in_merge_key_tree): Reformat comment.  Handle null and reference
+	markers, which may be needed for types.  Add handling of namespaces.
+	Add disabled handling of classes and types.
+	
+
 2011-10-26   Diego Novillo  <dnovillo@google.com>
 
 	* cp-tree.h (get_mangled_id): Declare.

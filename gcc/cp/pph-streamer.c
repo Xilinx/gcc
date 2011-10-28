@@ -338,26 +338,66 @@ pph_add_include (pph_stream *stream, pph_stream *include)
 /* Print tracing information for a possibly MERGEABLE tree T.  */
 
 void
-pph_trace_tree (tree t, bool mergeable, bool merged)
+pph_trace_tree (tree t, enum pph_trace_kind kind)
 {
+  char kind_char, decl_char;
+  bool is_merge, is_decl;
   bool emit = false;
-  char merging = merged ? '#' : mergeable ? '*' : '.';
-  bool is_decl = DECL_P (t);
-  char userdef =  is_decl ? '*' : '.';
 
-  if (mergeable && is_decl && flag_pph_tracer >= 2)
+  switch (kind)
+    {
+      case pph_trace_key_out:
+	kind_char = 'K';
+	is_merge = true;
+	break;
+      case pph_trace_unmerged_key:
+	kind_char = 'U';
+	is_merge = true;
+	break;
+      case pph_trace_merged_key:
+	kind_char = 'M';
+	is_merge = true;
+	break;
+      case pph_trace_merge_body:
+	kind_char = 'B';
+	is_merge = true;
+	break;
+      case pph_trace_mutate:
+	kind_char = '=';
+	is_merge = false;
+	break;
+      case pph_trace_normal:
+	kind_char = '.';
+	is_merge = false;
+	break;
+      default:
+	kind_char = '?';
+	is_merge = false;
+    }
+
+  is_decl = DECL_P (t);
+  if (is_decl)
+    decl_char = 'D';
+  else if (TYPE_P (t))
+    decl_char = 'T';
+  else
+    decl_char = '.';
+
+  if (is_merge && is_decl && flag_pph_tracer >= 2)
     emit = true;
-  else if ((mergeable || is_decl) && flag_pph_tracer >= 3)
+  else if ((is_merge || is_decl) && flag_pph_tracer >= 3)
     emit = true;
   else if (!EXPR_P (t) && flag_pph_tracer >= 4)
     emit = true;
 
   if (emit)
     {
-      enum tree_code code = TREE_CODE (t);
-      fprintf (pph_logfile, "PPH: %c%c ", merging, userdef);
-      fprintf (pph_logfile, "%-19s ", pph_tree_code_text (code));
-      pph_dump_tree_name (pph_logfile, t, 0);
+      fprintf (pph_logfile, "PPH: %c%c ", kind_char, decl_char);
+      if (kind == pph_trace_unmerged_key)
+	fprintf (pph_logfile, "%s -------\n",
+			      pph_tree_code_text (TREE_CODE (t)));
+      else
+        pph_dump_tree_name (pph_logfile, t, 0);
     }
 }
 

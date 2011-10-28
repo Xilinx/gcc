@@ -750,7 +750,8 @@ htab_merge_key_hash (const void *p)
   const merge_toc_entry *key = (const merge_toc_entry *) p;
   hashval_t context_val = htab_hash_pointer (key->context);
   hashval_t name_val = htab_hash_string (key->name);
-  return iterative_hash_hashval_t (context_val, name_val);
+  hashval_t id_val = iterative_hash_hashval_t (name_val, TREE_CODE (key->expr));
+  return iterative_hash_hashval_t (context_val, id_val);
 }
 
 static int
@@ -832,7 +833,11 @@ pph_merge_into_chain (tree expr, const char *name, tree *chain)
       if (flag_pph_debug >= 3)
         fprintf (pph_logfile, "PPH: %s NOT found on chain\n", name);
 
-      return pph_prepend_to_chain (expr, chain);
+      /* Types (as opposed to type decls) are not on a chain.  */
+      if (chain)
+        return pph_prepend_to_chain (expr, chain);
+      else
+        return expr;
     }
 
   if (flag_pph_debug >= 3)
@@ -1017,8 +1022,8 @@ pph_in_binding_level (pph_stream *stream)
           pph_cache_find (stream, marker, image_ix, ix, PPH_cp_binding_level);
     }
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_binding_level, bl,
-		      ggc_alloc_cleared_cp_binding_level ());
+  bl = ggc_alloc_cleared_cp_binding_level ();
+  pph_cache_insert_at (&stream->cache, bl, ix, PPH_cp_binding_level);
 
   bl->names = pph_in_chain (stream);
   bl->namespaces = pph_in_chain (stream);
@@ -1027,6 +1032,31 @@ pph_in_binding_level (pph_stream *stream)
   pph_in_binding_level_1 (stream, bl);
 
   return bl;
+}
+
+
+/* Read all the merge keys from STREAM into the cp_binding_level BL.  */
+
+static void
+pph_in_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
+{
+  /* Read all the merge keys and merge into the bindings.  */
+  pph_in_merge_key_chain (stream, &bl->names);
+  pph_in_merge_key_chain (stream, &bl->namespaces);
+  pph_in_merge_key_chain (stream, &bl->usings);
+  pph_in_merge_key_chain (stream, &bl->using_directives);
+}
+
+
+/* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
+
+static void
+pph_in_binding_merge_bodies (pph_stream *stream)
+{
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
 }
 
 
@@ -1307,9 +1337,14 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
       return;
     }
 
-  /* Allocate a lang_decl structure for DECL.  */
-  retrofit_lang_decl (decl);
+  /* Allocate a lang_decl structure for DECL, if not already present.
+     Namespace merge keys preallocate it.  */
   ld = DECL_LANG_SPECIFIC (decl);
+  if (!ld)
+    {
+      retrofit_lang_decl (decl);
+      ld = DECL_LANG_SPECIFIC (decl);
+    }
 
   /* Now register it.  We would normally use ALLOC_AND_REGISTER,
      but retrofit_lang_decl does not return a pointer.  */
@@ -1875,9 +1910,8 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
-/* Read a merge key from STREAM.  If the merge key read from
-   STREAM is not found in *CHAIN, the newly allocated tree is added to
-   it.  */
+/* Read a merge key from STREAM.  If the merge key read from STREAM
+   is not found in *CHAIN, the newly allocated tree is added to it.  */
 
 static tree
 pph_in_merge_key_tree (pph_stream *stream, tree *chain)
@@ -1890,12 +1924,18 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   const char *name;
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (pph_is_reference_marker (marker))
+    return (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
   gcc_assert (marker == PPH_RECORD_START_MERGE_KEY);
+
   tag = streamer_read_record_start (ib);
 
   /* Materialize a new node from STREAM.  This will also read all the
      language-independent bitfields for the new tree.  */
   read_expr = pph_in_tree_header (stream, tag);
+  gcc_assert (pph_tree_is_mergeable (read_expr));
   name = pph_in_string (stream);
 
   /* Look for a match in CHAIN to READ_EXPR's header.  If we found a
@@ -1907,8 +1947,36 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
 
+  if (DECL_P (expr))
+    {
+      if (TREE_CODE (expr) == NAMESPACE_DECL)
+        {
+	  /* struct lang_decl *ld; */
+          retrofit_lang_decl (expr);
+	  /* ld = DECL_LANG_SPECIFIC (expr); */
+	  /* FIXME NOW: allocate binding.  */
+          pph_in_binding_merge_keys (stream, NAMESPACE_LEVEL (expr));
+        }
+#if 0
+/* FIXME pph: Disable type merging for the moment.  */
+      else if (TREE_CODE (expr) == TYPE_DECL)
+        /* Types are not on a chain.  */
+        TREE_TYPE (expr) = pph_in_merge_key_tree (stream, NULL);
+    }
+  else if (CLASS_TYPE_P (expr))
+    {
+      pph_in_merge_key_chain (stream, &TYPE_FIELDS (expr));
+      pph_in_merge_key_chain (stream, &TYPE_METHODS (expr));
+      /*FIXME pph: Nested types are broken.
+      pph_in_binding_table (stream, &CLASSTYPE_NESTED_UTDS (expr));
+      pph_in_merge_key_chain (stream, &CLASSTYPE_DECL_LIST (expr));
+      */
+#endif
+    }
+
   if (flag_pph_tracer)
-    pph_trace_tree (expr, true, expr != read_expr);
+    pph_trace_tree (expr, expr == read_expr ? pph_trace_unmerged_key
+					    : pph_trace_merged_key);
 
   return expr;
 }
@@ -2007,7 +2075,10 @@ pph_in_tree (pph_stream *stream)
     TREE_CHAIN (expr) = saved_expr_chain;
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, false, false);
+    pph_trace_tree (expr,
+	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
+	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
+	: pph_trace_normal );
 
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
@@ -2313,28 +2384,6 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Read all the merge keys from STREAM.  Merge into the corresponding
-   contexts.  Return a VEC of all the merge keys read.  */
-
-static void
-pph_in_merge_keys (pph_stream *stream)
-{
-  cp_binding_level *bl = scope_chain->bindings;
-
-  /* First read all the merge keys and merge into the global bindings.  */
-  pph_in_merge_key_chain (stream, &bl->names);
-  pph_in_merge_key_chain (stream, &bl->namespaces);
-  pph_in_merge_key_chain (stream, &bl->usings);
-  pph_in_merge_key_chain (stream, &bl->using_directives);
-
-  /* Now read the bodies of all the trees merged above.  */
-  pph_in_merge_body_chain (stream);
-  pph_in_merge_body_chain (stream);
-  pph_in_merge_body_chain (stream);
-  pph_in_merge_body_chain (stream);
-}
-
-
 /* Read global bindings from STREAM into scope_chain->bindings.  Note
    that this does not call pph_in_binding_level because that would
    overwrite the fields merged by pph_in_merge_keys.  */
@@ -2373,8 +2422,10 @@ pph_in_global_binding (pph_stream *stream)
      context.  Since we have registered scope_chain->bindings in the
      same slot IX that the writer used, the trees read now will be
      bound to scope_chain->bindings.  */
-  pph_in_merge_keys (stream);
+  pph_in_binding_merge_keys (stream, bl);
+  pph_in_binding_merge_bodies (stream);
 
+  /* FIXME pph: Are we sure this is right?  */
   pph_in_binding_level_1 (stream, bl);
 }
 

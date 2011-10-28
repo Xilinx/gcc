@@ -635,16 +635,21 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 
 /* Start a merge key record for EXPR on STREAM.  */
 
-static void
+static bool
 pph_out_start_merge_key_record (pph_stream *stream, tree expr)
 {
   enum pph_tag tag;
   enum pph_record_marker marker;
   pph_cache_entry *e;
-  unsigned ix;
+  unsigned include_ix, ix;
 
   tag = pph_tree_code_to_tag (expr);
-  marker = pph_get_marker_for (stream, expr, NULL, NULL, tag);
+  marker = pph_get_marker_for (stream, expr, &include_ix, &ix, tag);
+  if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
+    {
+      pph_out_reference_record (stream, marker, include_ix, ix, tag);
+      return true;
+    }
 
   /* This should be the first time that we try to write EXPR.  */
   gcc_assert (marker == PPH_RECORD_START);
@@ -653,6 +658,7 @@ pph_out_start_merge_key_record (pph_stream *stream, tree expr)
   e = pph_cache_add (&stream->cache, expr, &ix, tag);
   e->needs_merge_body = true;
   pph_out_uint (stream, ix);
+  return false;
 }
 
 
@@ -879,6 +885,20 @@ pph_out_merge_key_vec (pph_stream *stream, VEC(tree,gc) *v)
 }
 
 
+/* Write all the merge bodies for trees in VEC V to STREAM.  The bodies
+   should/must go out in declaration order, i.e. reversed.  */
+
+static void
+pph_out_merge_body_vec (pph_stream *stream, VEC(tree,gc) *v)
+{
+  unsigned i;
+  tree t;
+  pph_out_hwi (stream, VEC_length (tree, v));
+  FOR_EACH_VEC_ELT_REVERSE (tree, v, i, t)
+    pph_out_tree (stream, t);
+}
+
+
 /* Write all the trees in VEC V that match FILTER to STREAM.  */
 
 static void
@@ -1008,6 +1028,23 @@ pph_out_merge_key_chain (pph_stream *stream, tree chain, unsigned filter)
   else
     w = chain2vec_filter (stream, chain, filter);
   pph_out_merge_key_vec (stream, (VEC(tree,gc) *)w);
+  VEC_free (tree, heap, w);
+}
+
+
+/* Write, in reverse, a chain of merge bodies to STREAM starting
+   with the last element of CHAIN.  Only write the trees that match
+   FILTER.  */
+
+static void
+pph_out_merge_body_chain (pph_stream *stream, tree chain, unsigned filter)
+{
+  VEC(tree,heap) *w;
+  if (filter == PPHF_NONE)
+    w = chain2vec (chain);
+  else
+    w = chain2vec_filter (stream, chain, filter);
+  pph_out_merge_body_vec (stream, (VEC(tree,gc) *)w);
   VEC_free (tree, heap, w);
 }
 
@@ -1142,6 +1179,32 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
   pph_out_chain_filtered (stream, bl->usings, filter);
   pph_out_chain_filtered (stream, bl->using_directives, filter);
   pph_out_binding_level_1 (stream, bl, filter);
+}
+
+
+/* Write an index of mergeable objects from cp_binding_level BL to STREAM.  */
+
+static void
+pph_out_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
+{
+  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  pph_out_merge_key_chain (stream, bl->names, filter);
+  pph_out_merge_key_chain (stream, bl->namespaces, filter);
+  pph_out_merge_key_chain (stream, bl->usings, filter);
+  pph_out_merge_key_chain (stream, bl->using_directives, filter);
+}
+
+
+/* Write bodies of mergeable objects from cp_binding_level BL to STREAM.  */
+
+static void
+pph_out_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
+{
+  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  pph_out_merge_body_chain (stream, bl->names, filter);
+  pph_out_merge_body_chain (stream, bl->namespaces, filter);
+  pph_out_merge_body_chain (stream, bl->usings, filter);
+  pph_out_merge_body_chain (stream, bl->using_directives, filter);
 }
 
 
@@ -1908,27 +1971,43 @@ pph_merge_name (tree expr)
   char *retval;
   size_t len;
   const char *mangled_str, *name_str;
+  tree name;
+
   unsigned flags = TFF_PLAIN_IDENTIFIER
 		   | TFF_SCOPE
 		   | TFF_DECL_SPECIFIERS
 		   | TFF_CLASS_KEY_OR_ENUM
 		   | TFF_RETURN_TYPE;
 
+  if (TYPE_P (expr))
+    expr = TYPE_NAME (expr);
 
-  if (TREE_CODE (expr) == FUNCTION_DECL)
-    flags |= TFF_RETURN_TYPE
-	     | TFF_FUNCTION_DEFAULT_ARGUMENTS
-	     | TFF_EXCEPTION_SPECIFICATION;
-  else if (TREE_CODE (expr) == TEMPLATE_DECL)
-    flags |= TFF_TEMPLATE_HEADER
-	     | TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS;
-
-  mangled_str = IDENTIFIER_POINTER (get_mangled_id (expr));
   name_str = decl_as_string (expr, flags);
 
-  len = strlen (name_str) + sizeof("|") + strlen (mangled_str);
-  retval = XNEWVEC (char, len + 1);
-  sprintf (retval, "%s|%s", name_str, mangled_str);
+  name = DECL_NAME (expr);
+  if (name)
+    {
+      if (TREE_CODE (expr) == FUNCTION_DECL)
+	flags |= TFF_RETURN_TYPE
+		 | TFF_FUNCTION_DEFAULT_ARGUMENTS
+		 | TFF_EXCEPTION_SPECIFICATION;
+      else if (TREE_CODE (expr) == TEMPLATE_DECL)
+	flags |= TFF_TEMPLATE_HEADER
+		 | TFF_NO_OMIT_DEFAULT_TEMPLATE_ARGUMENTS;
+      mangled_str = IDENTIFIER_POINTER (get_mangled_id (expr));
+      len = strlen (name_str) + sizeof("|") + strlen (mangled_str);
+      retval = XNEWVEC (char, len + 1);
+      sprintf (retval, "%s|%s", name_str, mangled_str);
+    }
+  else
+    {
+      location_t locus = DECL_SOURCE_LOCATION (expr);
+      expanded_location xloc = expand_location (locus);
+      /* There are at most 20 digits in size_t.  Add :| for 22 characters.  */
+      len = strlen (name_str) + strlen (xloc.file) + 22;
+      retval = XNEWVEC (char, len + 1);
+      sprintf (retval, "%s|%s:%u", name_str, xloc.file, xloc.line);
+    }
 
   return retval;
 }
@@ -1952,16 +2031,37 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
 {
   gcc_assert (pph_tree_is_mergeable (expr));
 
-  pph_out_start_merge_key_record (stream, expr);
-
-  if (flag_pph_tracer)
-    pph_trace_tree (expr, true, false);
+  if (pph_out_start_merge_key_record (stream, expr))
+    return;
 
   /* Write merge key information.  This includes EXPR's header (needed
      to re-allocate EXPR in the reader) and the merge key, used to
      lookup EXPR in the reader's context and merge if necessary.  */
   pph_out_tree_header (stream, expr);
   pph_out_merge_name (stream, expr);
+  if (DECL_P (expr))
+    {
+      if (TREE_CODE (expr) == NAMESPACE_DECL)
+        pph_out_binding_merge_keys (stream, NAMESPACE_LEVEL (expr));
+#if 0
+/* FIXME pph: Distable tree merging for the moment.  */
+      else if (TREE_CODE (expr) == TYPE_DECL)
+        pph_out_merge_key_tree (stream, TREE_TYPE (expr));
+    }
+  else if (CLASS_TYPE_P (expr))
+    {
+      unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+      pph_out_merge_key_chain (stream, TYPE_FIELDS (expr), filter);
+      pph_out_merge_key_chain (stream, TYPE_METHODS (expr), filter);
+      /* FIXME pph: Nested types are broken.
+      pph_out_binding_table (stream, CLASSTYPE_NESTED_UTDS (expr));
+      pph_out_merge_key_chain (stream, CLASSTYPE_DECL_LIST (expr), filter);
+      */
+#endif
+    }
+
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, pph_trace_key_out);
 }
 
 
@@ -1999,8 +2099,6 @@ pph_out_tree (pph_stream *stream, tree expr)
     }
   else if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
-      if (flag_pph_tracer)
-	pph_trace_tree (expr, false, false);
 
       /* This is the first time we see EXPR, write it out.  */
       if (marker == PPH_RECORD_START)
@@ -2018,9 +2116,6 @@ pph_out_tree (pph_stream *stream, tree expr)
     {
       gcc_assert (pph_tree_is_mergeable (expr));
 
-      if (flag_pph_tracer)
-	pph_trace_tree (expr, true, false);
-
       /* When writing a merge body, we do not need to write EXPR's
 	 header, since that was written out when we wrote the merge
 	 key record for it.  */
@@ -2028,6 +2123,12 @@ pph_out_tree (pph_stream *stream, tree expr)
     }
   else
     gcc_unreachable ();
+
+  if (flag_pph_tracer)
+    pph_trace_tree (expr,
+	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
+	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
+	: pph_trace_normal );
 }
 
 
@@ -2228,28 +2329,6 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Write an index of mergeable objects to STREAM.  */
-
-static void
-pph_out_merge_keys (pph_stream *stream)
-{
-  cp_binding_level *bl = scope_chain->bindings;
-  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-
-  /* First emit all the merge keys.  */
-  pph_out_merge_key_chain (stream, bl->names, filter);
-  pph_out_merge_key_chain (stream, bl->namespaces, filter);
-  pph_out_merge_key_chain (stream, bl->usings, filter);
-  pph_out_merge_key_chain (stream, bl->using_directives, filter);
-
-  /* Now emit all the merge bodies.  */
-  pph_out_chain_filtered (stream, bl->names, filter);
-  pph_out_chain_filtered (stream, bl->namespaces, filter);
-  pph_out_chain_filtered (stream, bl->usings, filter);
-  pph_out_chain_filtered (stream, bl->using_directives, filter);
-}
-
-
 /* Write the global bindings in scope_chain to STREAM.  */
 
 static void
@@ -2287,9 +2366,11 @@ pph_out_global_binding (pph_stream *stream)
 
   /* Emit all the merge keys for objects that need to be merged when reading
      multiple PPH images.  */
-  pph_out_merge_keys (stream);
+  pph_out_binding_merge_keys (stream, bl);
+  pph_out_binding_merge_bodies (stream, bl);
 
   /* Emit the other fields in BL that need no merging.  */
+  /* FIXME pph: Are we sure this is right?  */
   pph_out_binding_level_1 (stream, bl,
 			   PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS);
 }

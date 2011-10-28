@@ -78,34 +78,20 @@ pph_dump_min_decl (FILE *file, tree decl)
 void
 pph_dump_tree_name (FILE *file, tree t, int flags)
 {
-#if 0
   enum tree_code code = TREE_CODE (t);
-  fprintf (file, "%s\t", pph_tree_code_text (code));
-  if (code == FUNCTION_TYPE || code == METHOD_TYPE)
-    {
-      dump_function_to_file (t, file, flags);
-    }
-  else
-    {
-      print_generic_expr (file, TREE_TYPE (t), flags);
-      /* FIXME pph: fprintf (file, " ", cxx_printable_name (t, 0)); */
-      fprintf (file, " " );
-      print_generic_expr (file, t, flags);
-    }
-  fprintf (file, "\n");
-#else
+  const char *text = pph_tree_code_text (code);
   if (DECL_P (t))
-    fprintf (file, "%s\n", decl_as_string (t, flags));
+    fprintf (file, "%s %s\n", text, decl_as_string (t, flags));
   else if (TYPE_P (t))
-    fprintf (file, "%s\n", type_as_string (t, flags));
+    fprintf (file, "%s %s\n", text, type_as_string (t, flags));
   else if (EXPR_P (t))
-    fprintf (file, "%s\n", expr_as_string (t, flags));
+    fprintf (file, "%s %s\n", text, expr_as_string (t, flags));
   else
     {
+      fprintf (file, "%s ", text );
       print_generic_expr (file, t, flags);
       fprintf (file, "\n");
     }
-#endif
 }
 
 

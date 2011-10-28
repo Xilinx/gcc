@@ -233,6 +233,12 @@ extern void pph_dump_chain (FILE *, tree chain);
 extern void pph_dump_binding (FILE *, cp_binding_level *level);
 extern void pph_dump_namespace (FILE *, tree ns);
 
+enum pph_trace_kind
+{
+  pph_trace_key_out, pph_trace_unmerged_key, pph_trace_merged_key,
+  pph_trace_merge_body, pph_trace_mutate, pph_trace_normal
+};
+
 /* In pph-streamer.c.  */
 void pph_streamer_init (void);
 void pph_streamer_finish (void);
@@ -240,7 +246,7 @@ pph_stream *pph_stream_open (const char *, const char *);
 void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);
-void pph_trace_tree (tree, bool, bool);
+void pph_trace_tree (tree, enum pph_trace_kind);
 pph_cache_entry *pph_cache_insert_at (pph_cache *, void *, unsigned,
 				      enum pph_tag);
 pph_cache_entry *pph_cache_lookup (pph_cache *, void *, unsigned *,
@@ -390,12 +396,7 @@ pph_tree_code_to_tag (tree t)
 static inline bool
 pph_tree_is_mergeable (tree expr)
 {
-  return TREE_CODE (expr) == VAR_DECL
-	 || TREE_CODE (expr) == FUNCTION_DECL
-	 || TREE_CODE (expr) == TYPE_DECL
-	 || TREE_CODE (expr) == TEMPLATE_DECL
-	 || TREE_CODE (expr) == NAMESPACE_DECL
-	 || TREE_CODE (expr) == CONST_DECL;
+  return DECL_P (expr) || TYPE_P (expr);
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */
