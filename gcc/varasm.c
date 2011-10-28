@@ -5910,7 +5910,7 @@ finish_tm_clone_pairs_1 (void **slot, void *info ATTRIBUTE_UNUSED)
   tree src = map->base.from;
   tree dst = map->to;
   struct cgraph_node *src_n = cgraph_get_node (src);
-  struct cgraph_node *dst_n = cgraph_get_create_node (dst);
+  struct cgraph_node *dst_n = cgraph_get_node (dst);
 
   /* The function ipa_tm_create_version() marks the clone as needed if
      the original function was needed.  But we also mark the clone as
@@ -5918,12 +5918,12 @@ finish_tm_clone_pairs_1 (void **slot, void *info ATTRIBUTE_UNUSED)
      TM_GETTMCLONE.  If neither of these are true, we didn't generate
      a clone, and we didn't call it indirectly... no sense keeping it
      in the clone table.  */
-  if (!dst_n->needed)
+  if (!dst_n || !dst_n->needed)
     return 1;
 
   /* This covers the case where we have optimized the original
      function away, and only access the transactional clone.  */
-  if (!src_n->needed)
+  if (!src_n || !src_n->needed)
     return 1;
 
   if (!*switched)

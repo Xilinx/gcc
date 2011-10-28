@@ -1,5 +1,8 @@
 2011-10-28  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (finish_tm_clone_pairs_1): Never create cgraph_nodes
+	here; allow them to vanish out from under.
+
 	* trans-mem.c (ipa_tm_mayenterirr_function): Recurse for aliases.
 	(ipa_tm_mark_needed_node): Split out of callback_mark_needed.
 	(ipa_tm_create_version_alias): Rename from callback_mark_needed.
