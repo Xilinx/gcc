@@ -1,4 +1,10 @@
-2011-10-24  Aldy Hernandez  <aldyh@redhat.com>
+2011-10-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_execute): Do not include aliases in
+	tm_callees.
+	(callback_mark_needed): Set analyzed bit.
+
+2011-10-27  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_insert_gettmclone_call): Use gimple_call_fntype
 	to get function return type.

@@ -4137,7 +4137,13 @@ callback_mark_needed (struct cgraph_node *node, void *data)
       record_tm_clone_pair (node->decl, tm_alias);
 
       if (info->old_node->needed)
-	cgraph_mark_needed_node (cgraph_get_node (tm_alias));
+	{
+	  struct cgraph_node *alias = cgraph_get_node (tm_alias);
+	  cgraph_mark_needed_node (alias);
+	  /* Needed so function_and_variable_visibility() won't reset
+	     the needed bit.  */
+	  alias->analyzed = 1;
+	}
     }
   return false;
 }
@@ -4592,6 +4598,7 @@ ipa_tm_execute (void)
   /* For all local functions marked tm_callable, queue them.  */
   for (node = cgraph_nodes; node; node = node->next)
     if (is_tm_callable (node->decl)
+	&& !node->alias
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
 	d = get_cg_data (node);
