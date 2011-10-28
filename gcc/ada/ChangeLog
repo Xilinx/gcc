@@ -1,3 +1,51 @@
+2011-10-28  Iain Sandoe  <iains@gcc.gnu.org>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/50678
+	* init.c (Darwin/__gnat_error_handler): Apply a work-around to the
+	bug [filed as radar #10302855], which is inconsistent unwind data
+	for sigtramp.
+
+2011-10-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/50842
+	* gcc-interface/Makefile.in (SYMDEPS): Delete.
+	(LIBICONV): New variable.
+	(LIBICONV_DEP): Likewise.
+	(LIBS): Add $(LIBICONV).
+	(LIBDEPS): Add $(LIBICONV_DEP).
+	(EXTRA_GNATTOOLS_OBJS): Merge into...
+	(TOOLS_LIBS): ...this.  Add $(LIBICONV).
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (elaborate_expression_1): Add EXPR_PUBLIC_P local
+	variable.  Always create the elaboration variable, if any, as constant.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Subtype>: Try to
+	make a packable type for fields of union types as well.
+	<is_type>: Use RECORD_OR_UNION_TYPE_P predicate.
+	(gnat_to_gnu_component_type): Try to make a packable type for fields
+	of union types as well.
+	(make_packable_type): Use RECORD_OR_UNION_TYPE_P predicate.
+	(maybe_pad_type): Try to make a packable type for fields of union types
+	as well.
+	(gnat_to_gnu_field): Likewise.
+	(is_variable_size): Use RECORD_OR_UNION_TYPE_P predicate.
+	(set_rm_size): Likewise.
+	(rm_size): Likewise.
+	* gcc-interface/misc.c (gnat_type_max_size): Likewise.
+	* gcc-interface/trans.c (add_decl_expr): Likewise.
+	* gcc-interface/utils.c (finish_record_type): Likewise.
+	* gcc-interface/utils2.c (build_simple_component_ref): Likewise.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_field): Always check components
+	declared as atomic.  Move around conditionally executed code.
+
 2011-10-24  Robert Dewar  <dewar@adacore.com>
 
 	* sem.adb (Initialize): Fix bug that blew up if called a second

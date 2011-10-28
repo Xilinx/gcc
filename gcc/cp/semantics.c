@@ -5115,7 +5115,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
            step.  */
         expr = TREE_OPERAND (expr, 1);
 
-      if (TREE_CODE (expr) == BASELINK)
+      if (BASELINK_P (expr))
         /* See through BASELINK nodes to the underlying function.  */
         expr = BASELINK_FUNCTIONS (expr);
 
@@ -6680,6 +6680,12 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
 	error ("%qE is not a constant expression", orig_whole);
       *non_constant_p = true;
     }
+  if (DECL_MUTABLE_P (part))
+    {
+      if (!allow_non_constant)
+	error ("mutable %qD is not usable in a constant expression", part);
+      *non_constant_p = true;
+    }
   if (*non_constant_p)
     return t;
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
@@ -7665,6 +7671,18 @@ cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 
   verify_constant (r, allow_non_constant, &non_constant_p);
 
+  if (TREE_CODE (t) != CONSTRUCTOR
+      && cp_has_mutable_p (TREE_TYPE (t)))
+    {
+      /* We allow a mutable type if the original expression was a
+	 CONSTRUCTOR so that we can do aggregate initialization of
+	 constexpr variables.  */
+      if (!allow_non_constant)
+	error ("%qT cannot be the type of a complete constant expression "
+	       "because it has mutable sub-objects", TREE_TYPE (t));
+      non_constant_p = true;
+    }
+
   if (non_constant_p && !allow_non_constant)
     return error_mark_node;
   else if (non_constant_p && TREE_CONSTANT (t))
@@ -7865,6 +7883,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case TEMPLATE_PARM_INDEX:
     case TRAIT_EXPR:
     case IDENTIFIER_NODE:
+    case USERDEF_LITERAL:
       /* We can see a FIELD_DECL in a pointer-to-member expression.  */
     case FIELD_DECL:
     case PARM_DECL:

@@ -1,3 +1,177 @@
+2011-10-28  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/vshift-1.c: New test.
+	* gcc.dg/vshift-2.c: New test.
+	* gcc.target/i386/xop-vshift-1.c: New test.
+	* gcc.target/i386/xop-vshift-2.c: New test.
+	* gcc.target/i386/avx2-vshift-1.c: New test.
+
+2011-10-28  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR rtl-optimization/49720
+	* g++.dg/torture/pr49720.C: New test.
+
+2011-10-27  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/setcc-3.c: New test.
+
+2011-10-27  Roberto Agostino Vitillo  <ravitillo@lbl.gov>
+
+	PR c++/30066
+	* g++.dg/ext/visibility/fvisibility-inlines-hidden-4.C: New test.
+
+2011-10-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/sse2-cvt-1.c: New test.
+	* gcc.target/i386/sse2-cvt-2.c: New test.
+	* gcc.target/i386/avx-cvt-1.c: New test.
+	* gcc.target/i386/avx-cvt-2.c: New test.
+	* gcc.target/i386/avx2-cvt-1.c: New test.
+	* gcc.target/i386/avx2-cvt-2.c: New test.
+
+2011-10-27  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/tree-ssa/pr45605.C: Scan fre1 dump and unxfail.
+
+2011-10-27  Uros Bizjak  <ubizjak@gmail.com>
+	    Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR target/50875
+	* gfortran.dg/pr50875.f90: New test.
+
+2011-10-26  David S. Miller  <davem@davemloft.net>
+
+	* gcc.target/sparc/fmaf-1.c: New test.
+
+	* gcc.target/sparc/setcc-1.c: New test.
+	* gcc.target/sparc/setcc-2.c: New test.
+
+2011-10-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/tls/thr-cse-1.c: For i?86-*-mingw*, check for multiple calls.
+
+2011-10-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/graphite/run-id-1.c: Pass -Wl,--stack,12582912 option for
+	Windows targets.
+
+2011-10-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/i386/pr37843-4.c: Allow for leading underscores on
+	symbol names.
+
+2011-10-26  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/i386/pad-4.c: Skip for Windows targets.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/discr1.ads: New test.
+	* gnat.dg/specs/discr1_pkg.ads: New helper.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/unchecked_union.ads: Rename to...
+	* gnat.dg/specs/unchecked_union1.ads: ...this.
+	* gnat.dg/specs/unchecked_union2.ads: New test.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/atomic1.ads: New test.
+
+2011-10-26  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	Implement C++11 user-defined literals.
+	* g++.dg/cpp0x/udlit-addr.C: New.
+	* g++.dg/cpp0x/udlit-args.C: New.
+	* g++.dg/cpp0x/udlit-args-neg.C: New.
+	* g++.dg/cpp0x/udlit-clink-neg.C: New.
+	* g++.dg/cpp0x/udlit-concat.C: New.
+	* g++.dg/cpp0x/udlit-concat-neg.C: New.
+	* g++.dg/cpp0x/udlit-constexpr.C: New.
+	* g++.dg/cpp0x/udlit-cpp98-neg.C: New.
+	* g++.dg/cpp0x/udlit-declare-neg.C: New.
+	* g++.dg/cpp0x/udlit-friend.C: New.
+	* g++.dg/cpp0x/udlit-general.C: New.
+	* g++.dg/cpp0x/udlit-inline.C: New.
+	* g++.dg/cpp0x/udlit-linkage-neg.C: New.
+	* g++.dg/cpp0x/udlit-member-neg.C: New.
+	* g++.dg/cpp0x/udlit-namespace.C: New.
+	* g++.dg/cpp0x/udlit-nofunc-neg.C: New.
+	* g++.dg/cpp0x/udlit-nonempty-str-neg.C: New.
+	* g++.dg/cpp0x/udlit-nospace-neg.C: New.
+	* g++.dg/cpp0x/udlit-nosuffix-neg.C: New.
+	* g++.dg/cpp0x/udlit-nounder-neg.C: New.
+	* g++.dg/cpp0x/udlit-operator-neg.C: New.
+	* g++.dg/cpp0x/udlit-raw-str.C: New.
+	* g++.dg/cpp0x/udlit-shadow-neg.C: New.
+	* g++.dg/cpp0x/udlit-suffix-neg.C: New.
+	* g++.dg/cpp0x/udlit-systemheader.C: New.
+	* g++.dg/cpp0x/udlit-template.C: New.
+	* g++.dg/cpp0x/udlit-tmpl-arg.C: New.
+	* g++.dg/cpp0x/udlit-tmpl-arg-neg.C: New.
+	* g++.dg/cpp0x/udlit-tmpl-parms.C: New.
+	* g++.dg/cpp0x/udlit-tmpl-parms-neg.C: New.
+	* g++.dg/cpp0x/udlit_system_header: New.
+
+2011-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50870
+	* g++.dg/cpp0x/decltype34.C: New.
+
+2011-10-26  Tom de Vries <tom@codesourcery.com>
+
+	* gcc.c-torture/unsorted/HIcmp.c: Fix unaligned pointer.
+	* gcc.c-torture/unsorted/HIset.c: Same.
+	* gcc.c-torture/unsorted/SIcmp.c: Same.
+	* gcc.c-torture/unsorted/SIset.c: Same.
+	* gcc.c-torture/unsorted/SFset.c: Same.
+	* gcc.c-torture/unsorted/UHIcmp.c: Same.
+	* gcc.c-torture/unsorted/USIcmp.c: Same.
+	* gcc.c-torture/unsorted/DFcmp.c: Same.
+
+2011-10-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/i386/avx2-i32gatherd-1.c: Adjust scan-assembler regex
+	to work also with -masm=intel and additionally test the xmm vs. ymm
+	register type combination on mask/dest and in vsib.
+	* gcc.target/i386/avx2-i32gatherd256-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherd256-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherd-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherpd-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherpd256-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherpd256-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherpd-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherps-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherps256-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherps256-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherps-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherq-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherq256-1.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherq256-3.c: Likewise.
+	* gcc.target/i386/avx2-i32gatherq-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherd-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherd256-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherd256-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherd-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherpd-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherpd256-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherpd256-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherpd-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherps-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherps256-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherps256-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherps-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherq-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherq256-1.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherq256-3.c: Likewise.
+	* gcc.target/i386/avx2-i64gatherq-3.c: Likewise.
+
+2011-10-26  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50763
+	* gcc.dg/pr50763-2.c: New test.
+
 2011-10-25  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc.dg/format/ms_c90-printf-1.c, gcc.dg/format/ms_c90-scanf-1.c:
@@ -177,7 +351,7 @@
 2011-10-20  Richard Henderson  <rth@redhat.com>
 
 	* gcc.target/i386/vperm-v2df.c, gcc.target/i386/vperm-v2di.c,
-	gcc.target/i386/vperm-v4sf-1.c, gcc.target/i386/vperm-v4sf-2.c, 
+	gcc.target/i386/vperm-v4sf-1.c, gcc.target/i386/vperm-v4sf-2.c,
 	gcc.target/i386/vperm-v4si-1.c, gcc.target/i386/vperm-v4si-2.c:
 	Use __builtin_shuffle.
 

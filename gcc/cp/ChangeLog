@@ -1,3 +1,66 @@
+2011-10-27  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (cxx_eval_outermost_constant_expr): Check
+	cp_has_mutable_p.
+	(cxx_eval_component_reference): Check DECL_MUTABLE_P.
+
+2011-10-27  Roberto Agostino Vitillo  <ravitillo@lbl.gov>
+
+	PR c++/30066
+	* decl2.c (determine_hidden_inline): New function.
+	(determine_visibility): fvisibility-inlines-hidden affects inline
+	functions.
+
+2011-10-27  Dodji Seketeli  <dodji@redhat.com>
+
+	* cp-tree.h (DECL_DECLARES_TYPE_P): Fix comment.
+
+2011-10-26  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (check_literal_operator_args): Avoid building types.
+
+2011-10-26  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	Implement C++11 user-defined literals.
+	* cp-objcp-common.c: (cp_tree_size) Return size of USERDEF_LITERAL tree.
+	* cp-tree.h: (UDLIT_OP_*, UDLIT_OPER_P): Literal operator
+	name tools. New tree code for user-defined literals.
+	* cxx-pretty-print.h: (pp_cxx_userdef_literal) New.
+	* cxx-pretty-print.c: (pp_cxx_userdef_literal) New.
+	(pp_cxx_primary_expression, pp_cxx_expression): Use it.
+	* decl.c: (cp_tree_node_structure): Return new tree code.
+	(duplicate_decls): Check for raw vs. template operator conflicts.
+	(grokfndecl, grokdeclarator): New checks for literal operators.
+	* error.c: (dump_expr): Warn about user-defined literals
+	in C++98 mode. (dump_function_name): Pretty printing.
+	* mangle.c: (write_literal_operator_name): New.
+	(write_unqualified_id, write_unqualified_name): Use it.
+	* parser.c: (cp_parser_operator): Handle operator"".
+	(cp_parser_userdef_char_literal, cp_parser_userdef_numeric_literal,
+	cp_parser_userdef_string_literal): New.
+	(cp_parser_primary_expression): Handle new user-defined literal tokens
+	with new functions.
+	* semantics.c: (potential_constant_expression_1): Add
+	user-defined literals.
+	* typeck.c (check_raw_literal_operator,
+	check_literal_operator_args): New.
+
+2011-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* typeck.c (cp_build_addr_expr_1): Use BASELINK_P.
+	* class.c (instantiate_type): Likewise.
+	* pt.c (convert_nontype_argument_function, uses_template_parms,
+	tsubst_copy, resolve_nondeduced_context, type_dependent_expression_p):
+	Likewise.
+	* semantics.c (finish_decltype_type): Likewise.
+	* decl2.c (mark_used): Likewise.
+	* name-lookup.c (arg_assoc): Likewise.
+
+2011-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50870
+	* typeck.c (non_reference): Pass NULL_TREE through.
+
 2011-10-25  Jason Merrill  <jason@redhat.com>
 
 	PR c++/50866

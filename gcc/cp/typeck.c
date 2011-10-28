@@ -4946,7 +4946,7 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
       if (TREE_CODE (arg) == OFFSET_REF)
 	PTRMEM_OK_P (val) = PTRMEM_OK_P (arg);
     }
-  else if (TREE_CODE (TREE_OPERAND (arg, 1)) == BASELINK)
+  else if (BASELINK_P (TREE_OPERAND (arg, 1)))
     {
       tree fn = BASELINK_FUNCTIONS (TREE_OPERAND (arg, 1));
 
@@ -8322,7 +8322,7 @@ casts_away_constness (tree t1, tree t2)
 tree
 non_reference (tree t)
 {
-  if (TREE_CODE (t) == REFERENCE_TYPE)
+  if (t && TREE_CODE (t) == REFERENCE_TYPE)
     t = TREE_TYPE (t);
   return t;
 }
@@ -8354,5 +8354,126 @@ lvalue_or_else (tree ref, enum lvalue_use use, tsubst_flags_t complain)
 	error ("using xvalue (rvalue reference) as lvalue");
     }
   return 1;
+}
+
+/* Return true if a user-defined literal operator is a raw operator.  */
+
+bool
+check_raw_literal_operator (const_tree decl)
+{
+  tree argtypes = TYPE_ARG_TYPES (TREE_TYPE (decl));
+  tree argtype;
+  int arity;
+  bool maybe_raw_p = false;
+
+  /* Count the number and type of arguments and check for ellipsis.  */
+  for (argtype = argtypes, arity = 0;
+       argtype && argtype != void_list_node;
+       ++arity, argtype = TREE_CHAIN (argtype))
+    {
+      tree t = TREE_VALUE (argtype);
+
+      if (same_type_p (t, const_string_type_node))
+	maybe_raw_p = true;
+    }
+  if (!argtype)
+    return false; /* Found ellipsis.  */
+
+  if (!maybe_raw_p || arity != 1)
+    return false;
+
+  return true;
+}
+
+
+/* Return true if a user-defined literal operator has one of the allowed
+   argument types.  */
+
+bool
+check_literal_operator_args (const_tree decl,
+			     bool *long_long_unsigned_p, bool *long_double_p)
+{
+  tree argtypes = TYPE_ARG_TYPES (TREE_TYPE (decl));
+  if (processing_template_decl)
+    return (argtypes == NULL_TREE
+	    || same_type_p (TREE_VALUE (argtypes), void_type_node));
+  else
+    {
+      tree argtype;
+      int arity;
+      int max_arity = 2;
+      bool found_string_p = false;
+      bool maybe_raw_p = false;
+      bool found_size_p = false;
+
+      *long_long_unsigned_p = false;
+      *long_double_p = false;
+
+      /* Count the number and type of arguments and check for ellipsis.  */
+      for (argtype = argtypes, arity = 0;
+	   argtype && argtype != void_list_node;
+	   argtype = TREE_CHAIN (argtype))
+	{
+	  tree t = TREE_VALUE (argtype);
+	  ++arity;
+
+	  if (TREE_CODE (t) == POINTER_TYPE)
+	    {
+	      t = TREE_TYPE (t);
+	      if (cp_type_quals (t) != TYPE_QUAL_CONST)
+		return false;
+	      t = TYPE_MAIN_VARIANT (t);
+	      if (same_type_p (t, char_type_node))
+		{
+		  found_string_p = true;
+		  maybe_raw_p = true;
+		}
+	      else if (same_type_p (t, wchar_type_node))
+		found_string_p = true;
+	      else if (same_type_p (t, char16_type_node))
+		found_string_p = true;
+	      else if (same_type_p (t, char32_type_node))
+		found_string_p = true;
+	      else
+		return false;
+	    }
+	  else if (same_type_p (t, size_type_node))
+	    {
+	      if (!found_string_p)
+		return false;
+	      found_size_p = true;
+	    }
+	  else if (same_type_p (t, long_long_unsigned_type_node))
+	    {
+	      max_arity = 1;
+	      *long_long_unsigned_p = true;
+	    }
+	  else if (same_type_p (t, long_double_type_node))
+	    {
+	      max_arity = 1;
+	      *long_double_p = true;
+	    }
+	  else if (same_type_p (t, char_type_node))
+	    max_arity = 1;
+	  else if (same_type_p (t, wchar_type_node))
+	    max_arity = 1;
+	  else if (same_type_p (t, char16_type_node))
+	    max_arity = 1;
+	  else if (same_type_p (t, char32_type_node))
+	    max_arity = 1;
+	  else
+	    return false;
+	}
+      if (!argtype)
+	return false; /* Found ellipsis.  */
+
+      if (arity > max_arity)
+	return false;
+
+      if (found_string_p && !maybe_raw_p && !found_size_p)
+	return false;
+
+      return true;
+    }
 }
 

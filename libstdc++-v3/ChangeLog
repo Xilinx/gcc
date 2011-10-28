@@ -1,10 +1,32 @@
+2011-10-28  Richard B. Kreckel  <kreckel@ginac.de>
+
+	* include/std/complex (__complex_acosh): Just use '< _Tp()'.
+	* include/tr1/complex (__complex_acosh): Likewise.
+
+2011-10-27  Richard B. Kreckel  <kreckel@ginac.de>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/50880
+	* include/std/complex (__complex_acosh): Fix for __z.real() < 0.
+	* include/tr1/complex (__complex_acosh): Likewise.
+	* testsuite/26_numerics/complex/50880.cc: New.
+	* testsuite/tr1/8_c_compatibility/complex/50880.cc: Likewise.
+
+2011-10-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/50862
+	* include/std/condition_variable (condition_variable_any::wait): Avoid
+	terminating if relocking user mutex throws during stack-unwinding.
+	* testsuite/30_threads/condition_variable_any/50862.cc: Add dg-require.
+
 2011-10-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/std/condition_variable (condition_variable_any): Remove
 	unused native_handle_type typedef.
 	* src/condition_variable.cc (condition_variable): Add missing noexcept
 	specifications.
-	* 30_threads/condition_variable_any/requirements/typedefs.cc: Remove.
+	* testsuite/30_threads/condition_variable_any/requirements/
+	typedefs.cc: Remove.
 
 2011-10-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
 

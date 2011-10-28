@@ -400,7 +400,9 @@ typedef enum cpp0x_warn_str
   /* override controls, override/final */
   CPP0X_OVERRIDE_CONTROLS,
   /* non-static data member initializers */
-  CPP0X_NSDMI
+  CPP0X_NSDMI,
+  /* user defined literals */
+  CPP0X_USER_DEFINED_LITERALS
 } cpp0x_warn_str;
   
 /* The various kinds of operation used by composite_pointer_type. */
@@ -740,6 +742,7 @@ enum cp_tree_node_structure_enum {
   TS_CP_TRAIT_EXPR,
   TS_CP_LAMBDA_EXPR,
   TS_CP_TEMPLATE_INFO,
+  TS_CP_USERDEF_LITERAL,
   LAST_TS_CP_ENUM
 };
 
@@ -765,6 +768,8 @@ union GTY((desc ("cp_tree_node_structure (&%h)"),
     lambda_expression;
   struct tree_template_info GTY ((tag ("TS_CP_TEMPLATE_INFO")))
     template_info;
+  struct tree_userdef_literal GTY ((tag ("TS_CP_USERDEF_LITERAL")))
+    userdef_literal;
 };
 
 
@@ -3620,7 +3625,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE			\
    && DECL_IMPLICIT_TYPEDEF_P (DECL_TEMPLATE_RESULT (NODE)))
 
-/* Nonzero if NODE which declares a type.  */
+/* Nonzero for a NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
   (TREE_CODE (NODE) == TYPE_DECL || DECL_CLASS_TEMPLATE_P (NODE))
 
@@ -4227,6 +4232,17 @@ extern GTY(()) VEC(tree,gc) *local_classes;
   (!strncmp (IDENTIFIER_POINTER (ID_NODE), \
              LAMBDANAME_PREFIX, \
 	     sizeof (LAMBDANAME_PREFIX) - 1))
+
+#define UDLIT_OP_ANSI_PREFIX "operator\"\" "
+#define UDLIT_OP_ANSI_FORMAT UDLIT_OP_ANSI_PREFIX "%s"
+#define UDLIT_OP_MANGLED_PREFIX "li"
+#define UDLIT_OP_MANGLED_FORMAT UDLIT_OP_MANGLED_PREFIX "%s"
+#define UDLIT_OPER_P(ID_NODE) \
+  (!strncmp (IDENTIFIER_POINTER (ID_NODE), \
+             UDLIT_OP_ANSI_PREFIX, \
+	     sizeof (UDLIT_OP_ANSI_PREFIX) - 1))
+#define UDLIT_OP_SUFFIX(ID_NODE) \
+  (IDENTIFIER_POINTER (ID_NODE) + sizeof (UDLIT_OP_ANSI_PREFIX) - 1)
 
 #if !defined(NO_DOLLAR_IN_LABEL) || !defined(NO_DOT_IN_LABEL)
 
@@ -5759,6 +5775,8 @@ extern tree convert_ptrmem			(tree, tree, bool, bool,
 extern int lvalue_or_else			(tree, enum lvalue_use,
                                                  tsubst_flags_t);
 extern void check_template_keyword		(tree);
+extern bool check_raw_literal_operator		(const_tree decl);
+extern bool check_literal_operator_args		(const_tree, bool *, bool *);
 
 /* in typeck2.c */
 extern void require_complete_eh_spec_types	(tree, tree);
