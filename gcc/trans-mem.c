@@ -3967,6 +3967,12 @@ ipa_tm_mayenterirr_function (struct cgraph_node *node)
   if (node->local.tm_may_enter_irr)
     return true;
 
+  /* Recurse on the main body for aliases.  In general, this will
+     result in one of the bits above being set so that we will not
+     have to recurse next time.  */
+  if (node->alias)
+    return ipa_tm_mayenterirr_function (cgraph_get_node (node->thunk.alias));
+
   /* What remains is unmarked local functions without items that force
      the function to go irrevocable.  */
   return false;
@@ -4120,50 +4126,70 @@ tm_mangle (tree old_asm_id)
   return new_asm_id;
 }
 
-/* Callback data for callback_mark_needed.  */
-struct mark_needed_info
+static inline void
+ipa_tm_mark_needed_node (struct cgraph_node *node)
+{
+  cgraph_mark_needed_node (node);
+  /* ??? function_and_variable_visibility will reset
+     the needed bit, without actually checking.  */
+  node->analyzed = 1;
+}
+
+/* Callback data for ipa_tm_create_version_alias.  */
+struct create_version_alias_info
 {
   struct cgraph_node *old_node;
   tree new_decl;
 };
 
+/* A subrontine of ipa_tm_create_version, called via
+   cgraph_for_node_and_aliases.  Create new tm clones for each of
+   the existing aliases.  */
 static bool
-callback_mark_needed (struct cgraph_node *node, void *data)
+ipa_tm_create_version_alias (struct cgraph_node *node, void *data)
 {
-  struct mark_needed_info *info = (struct mark_needed_info *)data;
-  if (node->alias || node->thunk.thunk_p)
-    {
-      tree tm_name = tm_mangle (DECL_ASSEMBLER_NAME (node->decl));
-      tree tm_alias = build_decl (DECL_SOURCE_LOCATION (node->decl),
-				  TREE_CODE (node->decl), tm_name,
-				  TREE_TYPE (node->decl));
+  struct create_version_alias_info *info
+    = (struct create_version_alias_info *)data;
+  tree old_decl, new_decl, tm_name;
+  struct cgraph_node *new_node;
 
-      SET_DECL_ASSEMBLER_NAME (tm_alias, tm_name);
-      SET_DECL_RTL (tm_alias, NULL);
+  if (!node->same_body_alias)
+    return false;
 
-      /* Based loosely on C++'s make_alias_for().  */
-      TREE_PUBLIC (tm_alias) = TREE_PUBLIC (node->decl);
-      DECL_CONTEXT (tm_alias) = NULL;
-      TREE_READONLY (tm_alias) = TREE_READONLY (node->decl);
-      DECL_EXTERNAL (tm_alias) = 0;
-      DECL_ARTIFICIAL (tm_alias) = 1;
-      TREE_ADDRESSABLE (tm_alias) = 1;
-      TREE_USED (tm_alias) = 1;
-      TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (tm_alias)) = 1;
+  old_decl = node->decl;
+  tm_name = tm_mangle (DECL_ASSEMBLER_NAME (old_decl));
+  new_decl = build_decl (DECL_SOURCE_LOCATION (old_decl),
+			 TREE_CODE (old_decl), tm_name,
+			 TREE_TYPE (old_decl));
 
-      cgraph_same_body_alias (NULL, tm_alias, info->new_decl);
+  SET_DECL_ASSEMBLER_NAME (new_decl, tm_name);
+  SET_DECL_RTL (new_decl, NULL);
 
-      record_tm_clone_pair (node->decl, tm_alias);
+  /* Based loosely on C++'s make_alias_for().  */
+  TREE_PUBLIC (new_decl) = TREE_PUBLIC (old_decl);
+  DECL_CONTEXT (new_decl) = NULL;
+  TREE_READONLY (new_decl) = TREE_READONLY (old_decl);
+  DECL_EXTERNAL (new_decl) = 0;
+  DECL_ARTIFICIAL (new_decl) = 1;
+  TREE_ADDRESSABLE (new_decl) = 1;
+  TREE_USED (new_decl) = 1;
+  TREE_SYMBOL_REFERENCED (tm_name) = 1;
 
-      if (info->old_node->needed)
-	{
-	  struct cgraph_node *alias = cgraph_get_node (tm_alias);
-	  cgraph_mark_needed_node (alias);
-	  /* Needed so function_and_variable_visibility() won't reset
-	     the needed bit.  */
-	  alias->analyzed = 1;
-	}
-    }
+  /* Perform the same remapping to the comdat group.  */
+  if (DECL_COMDAT (new_decl))
+    DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
+
+  /* ??? We should be able to remove DECL_IS_TM_CLONE.  We have enough
+     bits in cgraph to calculate all this.  */
+  DECL_IS_TM_CLONE (new_decl) = 1;
+
+  new_node = cgraph_same_body_alias (NULL, new_decl, info->new_decl);
+  get_cg_data (node)->clone = new_node;
+
+  record_tm_clone_pair (old_decl, new_decl);
+
+  if (info->old_node->needed)
+    ipa_tm_mark_needed_node (new_node);
   return false;
 }
 
@@ -4185,10 +4211,15 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   tm_name = tm_mangle (DECL_ASSEMBLER_NAME (old_decl));
   SET_DECL_ASSEMBLER_NAME (new_decl, tm_name);
   SET_DECL_RTL (new_decl, NULL);
+  TREE_SYMBOL_REFERENCED (tm_name) = 1;
 
   /* Perform the same remapping to the comdat group.  */
   if (DECL_COMDAT (new_decl))
     DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
+
+  /* ??? We should be able to remove DECL_IS_TM_CLONE.  We have enough
+     bits in cgraph to calculate all this.  */
+  DECL_IS_TM_CLONE (new_decl) = 1;
 
   new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL, NULL);
   get_cg_data (old_node)->clone = new_node;
@@ -4207,22 +4238,19 @@ ipa_tm_create_version (struct cgraph_node *old_node)
 				NULL, NULL);
     }
 
-  /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
-     bits in cgraph to calculate all this.  */
-  DECL_IS_TM_CLONE (new_decl) = 1;
-
   record_tm_clone_pair (old_decl, new_decl);
 
   cgraph_call_function_insertion_hooks (new_node);
   if (old_node->needed)
-    cgraph_mark_needed_node (new_node);
+    ipa_tm_mark_needed_node (new_node);
 
   /* Do the same thing, but for any aliases of the original node.  */
   {
-    struct mark_needed_info data;
+    struct create_version_alias_info data;
     data.old_node = old_node;
     data.new_decl = new_decl;
-    cgraph_for_node_and_aliases (old_node, callback_mark_needed, &data, true);
+    cgraph_for_node_and_aliases (old_node, ipa_tm_create_version_alias,
+				 &data, true);
   }
 }
 
@@ -4600,7 +4628,6 @@ ipa_tm_execute (void)
   /* For all local functions marked tm_callable, queue them.  */
   for (node = cgraph_nodes; node; node = node->next)
     if (is_tm_callable (node->decl)
-	&& !node->alias
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
 	d = get_cg_data (node);
@@ -4676,6 +4703,16 @@ ipa_tm_execute (void)
 	    ipa_tm_note_irrevocable (node, &irr_worklist);
 	  else if (!d->is_irrevocable)
 	    {
+	      /* If this is an alias, make sure its base is queued as well.
+		 we need not scan the callees now, as the base will do.  */
+	      if (node->alias)
+		{
+		  node = cgraph_get_node (node->thunk.alias);
+		  d = get_cg_data (node);
+		  maybe_push_queue (node, &tm_callees, &d->in_callee_queue);
+		  continue;
+		}
+
 	      /* Add all nodes called by this function into
 		 tm_callees as well.  */
 	      ipa_tm_scan_calls_clone (node, &tm_callees);
@@ -4726,7 +4763,10 @@ ipa_tm_execute (void)
   /* Propagate the tm_may_enter_irr bit to callers until stable.  */
   for (i = 0; i < VEC_length (cgraph_node_p, irr_worklist); ++i)
     {
+      struct cgraph_node *caller;
       struct cgraph_edge *e;
+      struct ipa_ref *ref;
+      unsigned j;
 
       if (i > 256 && i == VEC_length (cgraph_node_p, irr_worklist) / 8)
 	{
@@ -4739,10 +4779,29 @@ ipa_tm_execute (void)
       d->in_worklist = false;
       node->local.tm_may_enter_irr = true;
 
+      /* Propagate back to normal callers.  */
       for (e = node->callers; e ; e = e->next_caller)
-	if (!is_tm_safe_or_pure (e->caller->decl)
-	    && !e->caller->local.tm_may_enter_irr)
-	  maybe_push_queue (e->caller, &irr_worklist, &d->in_worklist);
+	{
+	  caller = e->caller;
+	  if (!is_tm_safe_or_pure (caller->decl)
+	      && !caller->local.tm_may_enter_irr)
+	    {
+	      d = get_cg_data (caller);
+	      maybe_push_queue (caller, &irr_worklist, &d->in_worklist);
+	    }
+	}
+
+      /* Propagate back to referring aliases as well.  */
+      for (j = 0; ipa_ref_list_refering_iterate (&node->ref_list, j, ref); j++)
+	{
+	  caller = ref->refering.cgraph_node;
+	  if (ref->use == IPA_REF_ALIAS
+	      && !caller->local.tm_may_enter_irr)
+	    {
+	      d = get_cg_data (caller);
+	      maybe_push_queue (caller, &irr_worklist, &d->in_worklist);
+	    }
+	}
     }
 
   /* Now validate all tm_safe functions, and all atomic regions in
@@ -4766,6 +4825,9 @@ ipa_tm_execute (void)
       bool doit = false;
 
       node = VEC_index (cgraph_node_p, tm_callees, i);
+      if (node->same_body_alias)
+	continue;
+
       a = cgraph_function_body_availability (node);
       d = get_cg_data (node);
 

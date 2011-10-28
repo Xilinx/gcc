@@ -1,5 +1,13 @@
 2011-10-28  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (ipa_tm_mayenterirr_function): Recurse for aliases.
+	(ipa_tm_mark_needed_node): Split out of callback_mark_needed.
+	(ipa_tm_create_version_alias): Rename from callback_mark_needed.
+	Handle comdat groups properly.
+	(ipa_tm_create_version): Use ipa_tm_mark_needed_node.
+	(ipa_tm_execute): Queue the base of an alias.  Propagate irrevokable
+	backward across alias references.  Don't clone aliases directly.
+
 	* trans-mem.c (struct tm_ipa_cg_data): Add transaction_blocks_normal.
 	(bb_in_TM_region): Remove.
 	(ipa_tm_scan_calls_block): New.
