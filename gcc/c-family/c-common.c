@@ -7489,12 +7489,15 @@ handle_tm_wrap_attribute (tree *node, tree name, tree args,
     warning (OPT_Wattributes, "%qE attribute ignored", name);
   else
     {
-      tree wrap_id = TREE_VALUE (args);
-      if (TREE_CODE (wrap_id) != IDENTIFIER_NODE)
+      tree wrap_decl = TREE_VALUE (args);
+      if (TREE_CODE (wrap_decl) != IDENTIFIER_NODE
+	  && TREE_CODE (wrap_decl) != VAR_DECL
+	  && TREE_CODE (wrap_decl) != FUNCTION_DECL)
 	error ("%qE argument not an identifier", name);
       else
 	{
-	  tree wrap_decl = lookup_name (wrap_id);
+	  if (TREE_CODE (wrap_decl) == IDENTIFIER_NODE)
+	    wrap_decl = lookup_name (wrap_decl);
 	  if (wrap_decl && TREE_CODE (wrap_decl) == FUNCTION_DECL)
 	    {
 	      if (lang_hooks.types_compatible_p (TREE_TYPE (decl),
@@ -7504,7 +7507,7 @@ handle_tm_wrap_attribute (tree *node, tree name, tree args,
 		error ("%qD is not compatible with %qD", wrap_decl, decl);
 	    }
 	  else
-	    error ("%qE is not a function", wrap_id);
+	    error ("transaction_wrap argument is not a function");
 	}
     }
 

@@ -1,5 +1,13 @@
 2011-10-28  Aldy Hernandez  <aldyh@redhat.com>
 
+	* c-family/c-common.c (handle_tm_wrap_attribute): Handle decl
+	argument.
+	* testsuite/c-c++-common/tm/wrap-2.c: Move...
+	* testsuite/gcc.dg/tm/wrap-2.c: ...here.
+	* testsuite/g++.dg/tm/wrap-2.C: New.
+
+2011-10-28  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (ipa_tm_execute): Do not include aliases in
 	tm_callees.
 	(callback_mark_needed): Set analyzed bit.
