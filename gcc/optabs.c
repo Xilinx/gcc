@@ -7172,70 +7172,48 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model)
 
 /* Structure containing the pointers and values required to process the
    various forms of the atomic_fetch_op and atomic_op_fetch builtins.  */
-struct op_functions {
-  struct direct_optab_d *mem_fetch_before;
-  struct direct_optab_d *mem_fetch_after;
-  struct direct_optab_d *mem_no_result;
-  struct direct_optab_d *fetch_before;
-  struct direct_optab_d *fetch_after;
-  struct direct_optab_d *no_result;
-  enum rtx_code reverse_code;
-};
 
-/* Initialize the fields for each supported opcode.  */
-static const struct op_functions add_op = { atomic_fetch_add_optab,
-					    atomic_add_fetch_optab,
-					    atomic_add_optab,
-					    sync_old_add_optab,
-					    sync_new_add_optab,
-					    sync_add_optab,
-					    MINUS
-				    };
+const struct atomic_op_functions *
+get_atomic_op_for_code (enum rtx_code code)
+{
+  static const struct atomic_op_functions add_op = {
+    atomic_fetch_add_optab, atomic_add_fetch_optab, atomic_add_optab,
+    sync_old_add_optab, sync_new_add_optab, sync_add_optab, MINUS
+  }, sub_op = {
+    atomic_fetch_sub_optab, atomic_sub_fetch_optab, atomic_sub_optab,
+    sync_old_sub_optab, sync_new_sub_optab, sync_sub_optab, PLUS
+  }, xor_op = {
+    atomic_fetch_xor_optab, atomic_xor_fetch_optab, atomic_xor_optab,
+    sync_old_xor_optab, sync_new_xor_optab, sync_xor_optab, XOR
+  }, and_op = {
+    atomic_fetch_and_optab, atomic_and_fetch_optab, atomic_and_optab,
+    sync_old_and_optab, sync_new_and_optab, sync_and_optab, UNKNOWN
+  }, nand_op = {
+    atomic_fetch_nand_optab, atomic_nand_fetch_optab, atomic_nand_optab,
+    sync_old_nand_optab, sync_new_nand_optab, sync_nand_optab, UNKNOWN
+  }, ior_op = {
+    atomic_fetch_or_optab, atomic_or_fetch_optab, atomic_or_optab,
+    sync_old_ior_optab, sync_new_ior_optab, sync_ior_optab, UNKNOWN
+  };
 
-static const struct op_functions sub_op = { atomic_fetch_sub_optab,
-					    atomic_sub_fetch_optab,
-					    atomic_sub_optab,
-					    sync_old_sub_optab,
-					    sync_new_sub_optab,
-					    sync_sub_optab,
-					    PLUS
-					  };
-
-static const struct op_functions xor_op = { atomic_fetch_xor_optab,
-					    atomic_xor_fetch_optab,
-					    atomic_xor_optab,
-					    sync_old_xor_optab,
-					    sync_new_xor_optab,
-					    sync_xor_optab,
-					    UNKNOWN
-					  };
-
-static const struct op_functions and_op = { atomic_fetch_and_optab,
-					    atomic_and_fetch_optab,
-					    atomic_and_optab,
-					    sync_old_and_optab,
-					    sync_new_and_optab,
-					    sync_and_optab,
-					    UNKNOWN
-					  };
-
-static const struct op_functions nand_op = { atomic_fetch_nand_optab,
-					     atomic_nand_fetch_optab,
-					     atomic_nand_optab,
-					     sync_old_nand_optab,
-					     sync_new_nand_optab,
-					     sync_nand_optab,
-					     UNKNOWN
-					   };
-
-static const struct op_functions or_op = { atomic_fetch_or_optab,
-					   atomic_or_fetch_optab,
-					   atomic_or_optab,
-					   sync_old_ior_optab,
-					   sync_new_ior_optab,
-					   sync_ior_optab,
-					   UNKNOWN
-					 };
+  switch (code)
+    {
+    case PLUS:
+      return &add_op;
+    case MINUS:
+      return &sub_op;
+    case XOR:
+      return &xor_op;
+    case AND:
+      return &and_op;
+    case IOR:
+      return &ior_op;
+    case NOT:
+      return &nand_op;
+    default:
+      gcc_unreachable ();
+    }
+}
 
 /* Try to emit an instruction for a specific operation varaition. 
    OPTAB contains the OP functions.
@@ -7247,8 +7225,8 @@ static const struct op_functions or_op = { atomic_fetch_or_optab,
    AFTER is true if the returned result is the value after the operation.  */
 
 static rtx 
-maybe_emit_op (const struct op_functions *optab, rtx target, rtx mem, rtx val,
-	    bool use_memmodel, enum memmodel model, bool after)
+maybe_emit_op (const struct atomic_op_functions *optab, rtx target, rtx mem,
+	       rtx val, bool use_memmodel, enum memmodel model, bool after)
 {
   enum machine_mode mode = GET_MODE (mem);
   struct direct_optab_d *this_optab;
@@ -7317,33 +7295,11 @@ expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 			enum memmodel model, bool after)
 {
   enum machine_mode mode = GET_MODE (mem);
-  const struct op_functions *optab;
+  const struct atomic_op_functions *optab;
   rtx result;
   bool unused_result = (target == const0_rtx);
 
-  switch (code)
-    {
-      case PLUS:
-        optab = &add_op;
-        break;
-      case MINUS:
-        optab = &sub_op;
-        break;
-      case AND:
-        optab = &and_op;
-        break;
-      case XOR:
-        optab = &xor_op;
-        break;
-      case IOR:
-        optab = &or_op;
-        break;
-      case NOT:
-        optab = &nand_op;
-        break;
-      default:
-        gcc_unreachable();
-    }
+  optab = get_atomic_op_for_code (code);
 
   /* Check for the case where the result isn't used and try those patterns.  */
   if (unused_result)

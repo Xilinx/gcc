@@ -5009,13 +5009,16 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
 {
   enum built_in_function oldbase, newbase, tmpbase;
   tree decl, itype, call;
-  direct_optab optab, oldoptab, newoptab;
+  const struct atomic_op_functions *optab;
   tree lhs, rhs;
   basic_block store_bb = single_succ (load_bb);
   gimple_stmt_iterator gsi;
   gimple stmt;
   location_t loc;
   bool need_old, need_new;
+  enum rtx_code r_code;
+  enum machine_mode imode;
+  bool have_old, have_new, have_noval;
 
   /* We expect to find the following sequences:
 
@@ -5053,41 +5056,33 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
     case POINTER_PLUS_EXPR:
       oldbase = BUILT_IN_SYNC_FETCH_AND_ADD_N;
       newbase = BUILT_IN_SYNC_ADD_AND_FETCH_N;
-      optab = sync_add_optab;
-      oldoptab = sync_old_add_optab;
-      newoptab = sync_new_add_optab;
+      r_code = PLUS;
       break;
     case MINUS_EXPR:
       oldbase = BUILT_IN_SYNC_FETCH_AND_SUB_N;
       newbase = BUILT_IN_SYNC_SUB_AND_FETCH_N;
-      optab = sync_add_optab;
-      oldoptab = sync_old_add_optab;
-      newoptab = sync_new_add_optab;
+      r_code = MINUS;
       break;
     case BIT_AND_EXPR:
       oldbase = BUILT_IN_SYNC_FETCH_AND_AND_N;
       newbase = BUILT_IN_SYNC_AND_AND_FETCH_N;
-      optab = sync_and_optab;
-      oldoptab = sync_old_and_optab;
-      newoptab = sync_new_and_optab;
+      r_code = AND;
       break;
     case BIT_IOR_EXPR:
       oldbase = BUILT_IN_SYNC_FETCH_AND_OR_N;
       newbase = BUILT_IN_SYNC_OR_AND_FETCH_N;
-      optab = sync_ior_optab;
-      oldoptab = sync_old_ior_optab;
-      newoptab = sync_new_ior_optab;
+      r_code = IOR;
       break;
     case BIT_XOR_EXPR:
       oldbase = BUILT_IN_SYNC_FETCH_AND_XOR_N;
       newbase = BUILT_IN_SYNC_XOR_AND_FETCH_N;
-      optab = sync_xor_optab;
-      oldoptab = sync_old_xor_optab;
-      newoptab = sync_new_xor_optab;
+      r_code = XOR;
       break;
     default:
       return false;
     }
+  optab = get_atomic_op_for_code (r_code);
+
   /* Make sure the expression is of the proper form.  */
   if (operand_equal_p (gimple_assign_rhs1 (stmt), loaded_val, 0))
     rhs = gimple_assign_rhs2 (stmt);
@@ -5103,31 +5098,33 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
   if (decl == NULL_TREE)
     return false;
   itype = TREE_TYPE (TREE_TYPE (decl));
+  imode = TYPE_MODE (itype);
+
+  have_new =
+    (direct_optab_handler (optab->mem_fetch_after, imode) == CODE_FOR_nothing
+     || direct_optab_handler (optab->fetch_after, imode) == CODE_FOR_nothing);
+  have_old =
+    (direct_optab_handler (optab->mem_fetch_before, imode) == CODE_FOR_nothing
+     || direct_optab_handler (optab->fetch_before, imode) == CODE_FOR_nothing);
+  have_noval =
+    (direct_optab_handler (optab->mem_no_result, imode) == CODE_FOR_nothing
+     || direct_optab_handler (optab->no_result, imode) == CODE_FOR_nothing);
 
   if (need_new)
     {
       /* expand_sync_fetch_operation can always compensate when interested
 	 in the new value.  */
-      if (direct_optab_handler (newoptab, TYPE_MODE (itype))
-	  == CODE_FOR_nothing
-	  && direct_optab_handler (oldoptab, TYPE_MODE (itype))
-	     == CODE_FOR_nothing)
+      if (!have_new && !have_old)
 	return false;
     }
   else if (need_old)
     {
       /* When interested in the old value, expand_sync_fetch_operation
-	 can compensate only if the operation is reversible.  AND and OR
-	 are not reversible.  */
-      if (direct_optab_handler (oldoptab, TYPE_MODE (itype))
-	  == CODE_FOR_nothing
-	  && (oldbase == BUILT_IN_SYNC_FETCH_AND_AND_N
-	      || oldbase == BUILT_IN_SYNC_FETCH_AND_OR_N
-	      || direct_optab_handler (newoptab, TYPE_MODE (itype))
-		 == CODE_FOR_nothing))
+	 can compensate only if the operation is reversible.  */
+      if (!have_old && !(have_new && optab->reverse_code != UNKNOWN))
 	return false;
     }
-  else if (direct_optab_handler (optab, TYPE_MODE (itype)) == CODE_FOR_nothing)
+  else if (!have_noval && !have_new && !have_old)
     return false;
 
   gsi = gsi_last_bb (load_bb);
