@@ -5523,11 +5523,12 @@ expand_builtin_atomic_is_lock_free (tree exp)
 void
 expand_builtin_mem_thread_fence (enum memmodel model)
 {
+  if (model == MEMMODEL_RELAXED)
+    return;
 #ifdef HAVE_mem_thread_fence
-  emit_insn (gen_mem_thread_fence (memmodel));
+  emit_insn (gen_mem_thread_fence (GEN_INT (model)));
 #else
-  if (model != MEMMODEL_RELAXED)
-    expand_builtin_sync_synchronize ();
+  expand_builtin_sync_synchronize ();
 #endif
 }
 
