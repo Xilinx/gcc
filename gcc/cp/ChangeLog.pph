@@ -1,3 +1,8 @@
+2011-10-29   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_node_already_emitted): New.
+	(pph_in_symtab): Call it.
+
 2011-10-28   Lawrence Crowl  <crowl@google.com>
 
 	* pph.c (pph_dump_tree_name): Remove dead code.  Dump tree_code also.

@@ -1,6 +1,5 @@
-// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x4keyed.cc:14:1: internal compiler error: in cgraph_analyze_functions, at cgraphunit.c:1193" "" { xfail *-*-* } 0 }
-// { dg-excess-errors "callgraph problems" }
+// { dg-xfail-if "redefinition problems" { *-*-* } { "-fpph-map=pph.map" } }
+// { dg-excess-errors "typeinfo redefinition problems.  May be merging issue for global binding" }
 
 #include "x0keyed1.h"
 #include "x0keyed2.h"

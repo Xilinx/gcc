@@ -1,8 +1,7 @@
-// FIXME pph: This should be a { dg=do run } (with '=' replaced by '-')
-// { dg-xfail-if "ICE CGRAPH" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x7rtti.cc:22:1: internal compiler error: in cgraph_analyze_functions, at cgraphunit.c:1193" "" { xfail *-*-* } 0 }
+// { dg-xfail-if "rtti problems" { *-*-* } { "-fpph-map=pph.map" } }
 // { dg-excess-errors "macro redefinition and operator match problems" }
 
+// FIXME pph: This should be a { dg=do run } (with '=' replaced by '-')
 #include "x5rtti1.h"
 #include "x5rtti2.h"
 

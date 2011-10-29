@@ -1,3 +1,16 @@
+2011-10-29   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1keyed.cc: Mark fixed.
+	* g++.dg/pph/x1keyno.cc: Likewise.
+	* g++.dg/pph/x6rtti.cc: Remove ICE failure.  Document operator match
+	problem.
+	* g++.dg/pph/x7rtti.cc: Likewise.
+	* g++.dg/pph/x1tmplclass2.cc: Document asm diff to out-of-order diff.
+	* g++.dg/pph/z4tmplclass2.cc: Likewise.
+	* g++.dg/pph/x4keyex.cc: Likewise.
+	* g++.dg/pph/x4keyed.cc: Change failure to typeinfo redefinition.
+	* g++.dg/pph/x4keyno.cc: Likewise.
+
 2011-10-26   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c4inline.cc: Mark fixed.

@@ -2209,6 +2209,19 @@ pph_decl_already_emitted (tree decl)
 }
 
 
+/* Have we already emitted this cgraph NODE?  */
+
+static bool
+pph_node_already_emitted (struct cgraph_node *node)
+{
+  static struct pointer_set_t *emitted_nodes = NULL;
+  gcc_assert (node != NULL);
+  if (!emitted_nodes)
+    emitted_nodes = pointer_set_create ();
+  return pointer_set_insert (emitted_nodes, node) != 0;
+}
+
+
 /* Read the symbol table from STREAM.  When this image is read into
    another translation unit, we want to guarantee that the IL
    instances taken from this image are instantiated in the same order
@@ -2241,6 +2254,7 @@ pph_in_symtab (pph_stream *stream)
 	  at_end = bp_unpack_value (&bp, 1);
           if (pph_decl_already_emitted (decl))
             continue;
+
 	  cp_rest_of_decl_compilation (decl, top_level, at_end);
 	}
       else if (action == PPH_SYMTAB_EXPAND)
@@ -2251,8 +2265,9 @@ pph_in_symtab (pph_stream *stream)
 	  node = pph_in_cgraph_node (stream);
 	  if (node && node->local.finalized)
 	    {
-	      if (pph_decl_already_emitted (decl))
+	      if (pph_node_already_emitted (node))
 		continue;
+
 	      /* Since the writer had finalized this cgraph node,
 		 we have to re-play its actions.  To do that, we need
 		 to clear the finalized and reachable bits in the

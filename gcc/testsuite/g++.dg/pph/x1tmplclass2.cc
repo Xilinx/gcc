@@ -1,9 +1,4 @@
-// pph asm xdiff 34237
-// xfail BOGUS MISSVAR, MISSFUNC
-// The assembly is missing a template class static member variable
-// base<char>::variable instantiated in a prior pph file.
-// Functions base<double>::d_static_non_inline() and
-// base<double>::d_dynamic_non_inline() are also missing.
-
+// pph asm xdiff 37711
+// Soft failure.  Symbols are emitted in different order in pph compile.
 #include "x0tmplclass23.h"
 #include "a0tmplclass2_u.h"
