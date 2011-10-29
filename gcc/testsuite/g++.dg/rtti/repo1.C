@@ -2,7 +2,6 @@
 // { dg-options "-frepo" }
 // { dg-require-host-local "" }
 // { dg-skip-if "dkms are not final links" { vxworks_kernel } }
-// { dg-skip-if "-frepo not supported with --sysroot (as it is not passed to COLLECT_GCC_OPTIONS" { *-*-linux* } { "*" } { "" } }
 
 #include <typeinfo>
 template<int>

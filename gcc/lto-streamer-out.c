@@ -744,9 +744,6 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   /* Output current IL state of the function.  */
   streamer_write_uhwi (ob, fn->curr_properties);
 
-  /* unsigned int last_verified;			-- ignored */
-  /* const char *cannot_be_copied_reason;		-- ignored */
-
   /* Write all the attributes for FN.  */
   bp = bitpack_create (ob->main_stream);
   bp_pack_value (&bp, fn->is_thunk, 1);
@@ -758,7 +755,6 @@ output_struct_function_base (struct output_block *ob, struct function *fn)
   bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
   bp_pack_value (&bp, fn->after_inlining, 1);
   bp_pack_value (&bp, fn->stdarg, 1);
-  /* unsigned int cannot_be_copied_set : 1;		-- ignored */
   bp_pack_value (&bp, fn->has_nonlocal_label, 1);
   bp_pack_value (&bp, fn->calls_alloca, 1);
   bp_pack_value (&bp, fn->calls_setjmp, 1);
