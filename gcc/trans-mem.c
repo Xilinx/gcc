@@ -1733,7 +1733,11 @@ struct tm_region
   /* The entry block to this region.  */
   basic_block entry_block;
 
-  /* The set of all blocks that end the region; NULL if only EXIT_BLOCK.  */
+  /* The set of all blocks that end the region; NULL if only EXIT_BLOCK.
+     These blocks are still a part of the region (i.e., the border is
+     inclusive). Note that this set is only complete for paths in the CFG
+     starting at ENTRY_BLOCK, and that there is no exit block recorded for
+     the edge to the "over" label.  */
   bitmap exit_blocks;
 
   /* The set of all blocks that have an TM_IRREVOCABLE call.  */
@@ -1840,6 +1844,7 @@ tm_region_init (struct tm_region *region)
   basic_block bb;
   VEC(basic_block, heap) *queue = NULL;
   bitmap visited_blocks = BITMAP_ALLOC (NULL);
+  struct tm_region *old_region;
 
   all_tm_regions = region;
   bb = single_succ (ENTRY_BLOCK_PTR);
@@ -1858,18 +1863,26 @@ tm_region_init (struct tm_region *region)
 
       /* Check for the last statement in the block beginning a new region.  */
       g = last_stmt (bb);
+      old_region = region;
       if (g && gimple_code (g) == GIMPLE_TRANSACTION)
-	region = tm_region_init_0 (region, bb, g);
+        region = tm_region_init_0 (region, bb, g);
 
       /* Process subsequent blocks.  */
       FOR_EACH_EDGE (e, ei, bb->succs)
-	if (!bitmap_bit_p (visited_blocks, e->dest->index))
-	  {
-	    bitmap_set_bit (visited_blocks, e->dest->index);
-	    VEC_safe_push (basic_block, heap, queue, e->dest);
-	    gcc_assert (!e->dest->aux); /* FIXME: Remove me.  */
-	    e->dest->aux = region;
-	  }
+        if (!bitmap_bit_p (visited_blocks, e->dest->index))
+          {
+            bitmap_set_bit (visited_blocks, e->dest->index);
+            VEC_safe_push (basic_block, heap, queue, e->dest);
+            gcc_assert (!e->dest->aux); /* FIXME: Remove me.  */
+
+            /* If the current block started a new region, make sure that only
+               the entry block of the new region is associated with this region.
+               Other successors are still part of the old region.  */
+            if (old_region != region && e->dest != region->entry_block)
+              e->dest->aux = old_region;
+            else
+              e->dest->aux = region;
+          }
     }
   while (!VEC_empty (basic_block, queue));
   VEC_free (basic_block, heap, queue);

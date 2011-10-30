@@ -1,3 +1,10 @@
+2011-10-29  Torvald Riegel  <triegel@redhat.com>
+
+	* trans-mem.c (struct tm_region): Extended comment.
+	(tm_region_init): Fix tm_region association of blocks with the "over"
+	label used for transcation abort.
+	* testsuite/c-c++-common/tm/cancel-1.c: New file.
+
 2011-10-28  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (finish_tm_clone_pairs_1): Never create cgraph_nodes
