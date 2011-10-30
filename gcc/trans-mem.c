@@ -1603,8 +1603,10 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 
   gimple_transaction_set_body (stmt, NULL);
 
-  /* If the transaction calls abort, add an "over" label afterwards.  */
-  if (this_state & GTMA_HAVE_ABORT)
+  /* If the transaction calls abort or if this is an outer transaction,
+     add an "over" label afterwards.  */
+  if ((this_state & (GTMA_HAVE_ABORT))
+      || (gimple_transaction_subcode(stmt) & GTMA_IS_OUTER))
     {
       tree label = create_artificial_label (UNKNOWN_LOCATION);
       gimple_transaction_set_label (stmt, label);
@@ -2563,7 +2565,10 @@ expand_transaction (struct tm_region *region)
     flags = PR_INSTRUMENTEDCODE;
   if ((subcode & GTMA_MAY_ENTER_IRREVOCABLE) == 0)
     flags |= PR_HASNOIRREVOCABLE;
-  if ((subcode & GTMA_HAVE_ABORT) == 0)
+  /* If the transaction does not have an abort in lexical scope and is not
+     marked as an outer transaction, then it will never abort.  */
+  if ((subcode & GTMA_HAVE_ABORT) == 0
+      && (subcode & GTMA_IS_OUTER) == 0)
     flags |= PR_HASNOABORT;
   if ((subcode & GTMA_HAVE_STORE) == 0)
     flags |= PR_READONLY;

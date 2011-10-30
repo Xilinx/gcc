@@ -1,5 +1,12 @@
 2011-10-29  Torvald Riegel  <triegel@redhat.com>
 
+	* trans-mem.c (lower_transaction): Also add an "over" label for outer
+	transactions.
+	(expand_transactions): Do not set hasNoAbort for outer transactions.
+	* testsuite/gcc.dg/tm/props-4.c: New file.
+
+2011-10-29  Torvald Riegel  <triegel@redhat.com>
+
 	* trans-mem.c (struct tm_region): Extended comment.
 	(tm_region_init): Fix tm_region association of blocks with the "over"
 	label used for transcation abort.
