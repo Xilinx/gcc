@@ -231,9 +231,12 @@ with flat nesting.
 @subsection Aborting a transaction
 
 @code{_ITM_rollbackTransaction} is not supported. @code{_ITM_abortTransaction}
-is supported but the abort reason @code{exceptionBlockAbort} is not (and there
-are no exception blocks in general, so the related cases also do not have to
-be considered).
+is supported but the abort reasons @code{exceptionBlockAbort},
+@code{TMConflict}, and @code{userRetry} are not supported. There are no
+exception blocks in general, so the related cases also do not have to be
+considered. To encode @code{__transaction_cancel [[outer]]}, compilers must
+set the new @code{outerAbort} bit (@code{0x10}) additionally to the
+@code{userAbort} bit in the abort reason.
 
 @subsection Committing a transaction
 

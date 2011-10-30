@@ -1,3 +1,13 @@
+2011-10-29  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::rollback): Add aborting flag and
+	handle aborts.
+	(_ITM_abortTransaction): Handle aborts of outer transactions.
+	* libitm_i.h: Same.
+	* eh_cpp.cc (GTM::gtm_thread::revert_cpp_exceptions): Fix assertion.
+	* libitm.texi: Document aborts of outer transactions.
+	* testsuite/libitm.c/cancel.c: New file.
+
 2011-10-19  Torvald Riegel  <triegel@redhat.com>
 
 	* testsuite/*: Change __transaction to __transaction_atomic or

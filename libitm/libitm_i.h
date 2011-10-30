@@ -229,7 +229,7 @@ struct gtm_thread
   }
 
   // In beginend.cc
-  void rollback (gtm_transaction_cp *cp = 0);
+  void rollback (gtm_transaction_cp *cp = 0, bool aborting = false);
   bool trycommit ();
   void restart (gtm_restart_reason) ITM_NORETURN;
 

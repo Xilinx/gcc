@@ -317,7 +317,7 @@ GTM::gtm_transaction_cp::commit(gtm_thread* tx)
 
 
 void
-GTM::gtm_thread::rollback (gtm_transaction_cp *cp)
+GTM::gtm_thread::rollback (gtm_transaction_cp *cp, bool aborting)
 {
   // The undo log is special in that it used for both thread-local and shared
   // data. Because of the latter, we have to roll it back before any
@@ -335,6 +335,11 @@ GTM::gtm_thread::rollback (gtm_transaction_cp *cp)
 
   if (cp)
     {
+      // We do not yet handle restarts of nested transactions. To do that, we
+      // would have to restore some state (jb, id, prop, nesting) not to the
+      // checkpoint but to the transaction that was started from this
+      // checkpoint (e.g., nesting = cp->nesting + 1);
+      assert(aborting);
       // Roll back the rest of the state to the checkpoint.
       jb = cp->jb;
       id = cp->id;
@@ -356,10 +361,10 @@ GTM::gtm_thread::rollback (gtm_transaction_cp *cp)
           prop = parent_txns[0].prop;
         }
       // Reset the transaction. Do not reset this->state, which is handled by
-      // the callers. Note that we reset the transaction to the point after
-      // having executed begin_transaction (we will return from it), so the
-      // nesting level must be one, not zero.
-      nesting = 1;
+      // the callers. Note that if we are not aborting, we reset the
+      // transaction to the point after having executed begin_transaction
+      // (we will return from it), so the nesting level must be one, not zero.
+      nesting = (aborting ? 0 : 1);
       parent_txns.clear();
     }
 
@@ -375,27 +380,28 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 {
   gtm_thread *tx = gtm_thr();
 
-  assert (reason == userAbort);
+  assert (reason == userAbort || reason == (userAbort | outerAbort));
   assert ((tx->prop & pr_hasNoAbort) == 0);
 
   if (tx->state & gtm_thread::STATE_IRREVOCABLE)
     abort ();
 
-  // If the current method does not support closed nesting, we are nested, and
-  // we can restart, then restart with a method that supports closed nesting.
-  abi_dispatch *disp = abi_disp();
-  if (!disp->closed_nesting())
-    tx->restart(RESTART_CLOSED_NESTING);
-
   // Roll back to innermost transaction.
-  if (tx->parent_txns.size() > 0)
+  if (tx->parent_txns.size() > 0 && !(reason & outerAbort))
     {
-      // The innermost transaction is a nested transaction.
+      // If the current method does not support closed nesting but we are
+      // nested and must only roll back the innermost transaction, then
+      // restart with a method that supports closed nesting.
+      abi_dispatch *disp = abi_disp();
+      if (!disp->closed_nesting())
+        tx->restart(RESTART_CLOSED_NESTING);
+
+      // The innermost transaction is a closed nested transaction.
       gtm_transaction_cp *cp = tx->parent_txns.pop();
       uint32_t longjmp_prop = tx->prop;
       gtm_jmpbuf longjmp_jb = tx->jb;
 
-      tx->rollback (cp);
+      tx->rollback (cp, true);
 
       // Jump to nested transaction (use the saved jump buffer).
       GTM_longjmp (&longjmp_jb, a_abortTransaction | a_restoreLiveVariables,
@@ -403,8 +409,9 @@ _ITM_abortTransaction (_ITM_abortReason reason)
     }
   else
     {
-      // There is no nested transaction, so roll back to outermost transaction.
-      tx->rollback ();
+      // There is no nested transaction or an abort of the outermost
+      // transaction was requested, so roll back to the outermost transaction.
+      tx->rollback (0, true);
 
       // Aborting an outermost transaction finishes execution of the whole
       // transaction. Therefore, reset transaction state.

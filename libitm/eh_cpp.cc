@@ -82,7 +82,7 @@ GTM::gtm_thread::revert_cpp_exceptions (gtm_transaction_cp *cp)
       // _ITM_commitTransactionEH
       void *unthrown =
           (cxa_unthrown != cp->cxa_unthrown ? cxa_unthrown : NULL);
-      assert (cxa_catch_count > cp->cxa_catch_count);
+      assert (cxa_catch_count >= cp->cxa_catch_count);
       uint32_t catch_count = cxa_catch_count - cp->cxa_catch_count;
       if (unthrown || catch_count)
         {
