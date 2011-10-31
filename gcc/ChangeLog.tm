@@ -1,3 +1,8 @@
+2011-10-31  Aldy Hernandez  <aldyh@redhat.com>
+
+	* ipa-inline.c (can_inline_edge_p): Do not inline TM safe calling
+	TM pure functions.
+
 2011-10-29  Torvald Riegel  <triegel@redhat.com>
 
 	* trans-mem.c (lower_transaction): Also add an "over" label for outer

@@ -291,8 +291,7 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
 	   && is_tm_safe (e->caller->decl))
     {
       e->inline_failed = CIF_UNSPECIFIED;
-      gimple_call_set_cannot_inline (e->call_stmt, true);
-      return false;
+      inlinable = false;
     }
   /* Don't inline if the callee can throw non-call exceptions but the
      caller cannot.
