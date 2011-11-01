@@ -1,3 +1,25 @@
+2011-10-31  Richard Henderson  <rth@redhat.com>
+
+	* lib/target-supports.exp (check_effective_target_cas_char): New.
+	(check_effective_target_cas_int): New.
+	* c-c++-common/gomp/atomic-10.c: Use cas_int; match __atomic builtin.
+	* c-c++-common/gomp/atomic-3.c: Likewise.
+	* c-c++-common/gomp/atomic-9.c: Likewise.
+
+	* gcc.dg/gomp/atomic-1.c, gcc.dg/gomp/atomic-2.c,
+	gcc.dg/gomp/atomic-3.c, gcc.dg/gomp/atomic-4.c, gcc.dg/gomp/atomic-7.c,
+	gcc.dg/gomp/atomic-8.c, gcc.dg/gomp/atomic-9.c,
+	gcc.dg/gomp/atomic-10.c, gcc.dg/gomp/atomic-12.c,
+	gcc.dg/gomp/atomic-13.c, gcc.dg/gomp/atomic-14.c,
+	gcc.dg/gomp/atomic-15.c: Move to c-c++-common/gomp/.
+	* g++.dg/gomp/atomic-1.C, g++.dg/gomp/atomic-2.C,
+	g++.dg/gomp/atomic-3.C, g++.dg/gomp/atomic-4.C, g++.dg/gomp/atomic-7.C,
+	g++.dg/gomp/atomic-8.C, g++.dg/gomp/atomic-9.C,
+	g++.dg/gomp/atomic-10.C, g++.dg/gomp/atomic-11.C,
+	g++.dg/gomp/atomic-12.C, g++.dg/gomp/atomic-13.C,
+	g++.dg/gomp/atomic-15.C: Remove.
+	* gcc.dg/gomp/gomp.exp, g++.dg/gomp/gomp.exp: Run c-c++-common tests.
+
 2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/atomic-generic-aux.c: New. Provide 4 functional external

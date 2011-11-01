@@ -7173,7 +7173,18 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model)
 /* Structure containing the pointers and values required to process the
    various forms of the atomic_fetch_op and atomic_op_fetch builtins.  */
 
-const struct atomic_op_functions *
+struct atomic_op_functions
+{
+  struct direct_optab_d *mem_fetch_before;
+  struct direct_optab_d *mem_fetch_after;
+  struct direct_optab_d *mem_no_result;
+  struct direct_optab_d *fetch_before;
+  struct direct_optab_d *fetch_after;
+  struct direct_optab_d *no_result;
+  enum rtx_code reverse_code;
+};
+
+static const struct atomic_op_functions *
 get_atomic_op_for_code (enum rtx_code code)
 {
   static const struct atomic_op_functions add_op = {

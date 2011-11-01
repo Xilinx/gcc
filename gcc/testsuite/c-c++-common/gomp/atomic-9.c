@@ -1,5 +1,6 @@
 /* { dg-do compile } */
 /* { dg-options "-fopenmp -fdump-tree-ompexp" } */
+/* { dg-require-effective-target cas_int } */
 
 volatile int *bar(void);
 
@@ -9,5 +10,5 @@ void f1(void)
     *bar() += 1;
 }
 
-/* { dg-final { scan-tree-dump-times "__sync_fetch_and_add" 1 "ompexp" { target i?86-*-* x86_64-*-* ia64-*-* powerpc*-*-* alpha*-*-* } } } */
+/* { dg-final { scan-tree-dump-times "__atomic_fetch_add" 1 "ompexp" } } */
 /* { dg-final { cleanup-tree-dump "ompexp" } } */

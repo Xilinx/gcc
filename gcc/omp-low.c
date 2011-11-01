@@ -4998,7 +4998,7 @@ expand_omp_atomic_store (basic_block load_bb, tree addr)
 }
 
 /* A subroutine of expand_omp_atomic.  Attempt to implement the atomic
-   operation as a __sync_fetch_and_op builtin.  INDEX is log2 of the
+   operation as a __atomic_fetch_op builtin.  INDEX is log2 of the
    size of the data type, and thus usable to find the index of the builtin
    decl.  Returns false if the expression is not of the proper form.  */
 
@@ -5009,16 +5009,14 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
 {
   enum built_in_function oldbase, newbase, tmpbase;
   tree decl, itype, call;
-  const struct atomic_op_functions *optab;
   tree lhs, rhs;
   basic_block store_bb = single_succ (load_bb);
   gimple_stmt_iterator gsi;
   gimple stmt;
   location_t loc;
+  enum tree_code code;
   bool need_old, need_new;
-  enum rtx_code r_code;
   enum machine_mode imode;
-  bool have_old, have_new, have_noval;
 
   /* We expect to find the following sequences:
 
@@ -5050,38 +5048,33 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
     return false;
 
   /* Check for one of the supported fetch-op operations.  */
-  switch (gimple_assign_rhs_code (stmt))
+  code = gimple_assign_rhs_code (stmt);
+  switch (code)
     {
     case PLUS_EXPR:
     case POINTER_PLUS_EXPR:
-      oldbase = BUILT_IN_SYNC_FETCH_AND_ADD_N;
-      newbase = BUILT_IN_SYNC_ADD_AND_FETCH_N;
-      r_code = PLUS;
+      oldbase = BUILT_IN_ATOMIC_FETCH_ADD_N;
+      newbase = BUILT_IN_ATOMIC_ADD_FETCH_N;
       break;
     case MINUS_EXPR:
-      oldbase = BUILT_IN_SYNC_FETCH_AND_SUB_N;
-      newbase = BUILT_IN_SYNC_SUB_AND_FETCH_N;
-      r_code = MINUS;
+      oldbase = BUILT_IN_ATOMIC_FETCH_SUB_N;
+      newbase = BUILT_IN_ATOMIC_SUB_FETCH_N;
       break;
     case BIT_AND_EXPR:
-      oldbase = BUILT_IN_SYNC_FETCH_AND_AND_N;
-      newbase = BUILT_IN_SYNC_AND_AND_FETCH_N;
-      r_code = AND;
+      oldbase = BUILT_IN_ATOMIC_FETCH_AND_N;
+      newbase = BUILT_IN_ATOMIC_AND_FETCH_N;
       break;
     case BIT_IOR_EXPR:
-      oldbase = BUILT_IN_SYNC_FETCH_AND_OR_N;
-      newbase = BUILT_IN_SYNC_OR_AND_FETCH_N;
-      r_code = IOR;
+      oldbase = BUILT_IN_ATOMIC_FETCH_OR_N;
+      newbase = BUILT_IN_ATOMIC_OR_FETCH_N;
       break;
     case BIT_XOR_EXPR:
-      oldbase = BUILT_IN_SYNC_FETCH_AND_XOR_N;
-      newbase = BUILT_IN_SYNC_XOR_AND_FETCH_N;
-      r_code = XOR;
+      oldbase = BUILT_IN_ATOMIC_FETCH_XOR_N;
+      newbase = BUILT_IN_ATOMIC_XOR_FETCH_N;
       break;
     default:
       return false;
     }
-  optab = get_atomic_op_for_code (r_code);
 
   /* Make sure the expression is of the proper form.  */
   if (operand_equal_p (gimple_assign_rhs1 (stmt), loaded_val, 0))
@@ -5100,37 +5093,23 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
   itype = TREE_TYPE (TREE_TYPE (decl));
   imode = TYPE_MODE (itype);
 
-  have_new =
-    (direct_optab_handler (optab->mem_fetch_after, imode) == CODE_FOR_nothing
-     || direct_optab_handler (optab->fetch_after, imode) == CODE_FOR_nothing);
-  have_old =
-    (direct_optab_handler (optab->mem_fetch_before, imode) == CODE_FOR_nothing
-     || direct_optab_handler (optab->fetch_before, imode) == CODE_FOR_nothing);
-  have_noval =
-    (direct_optab_handler (optab->mem_no_result, imode) == CODE_FOR_nothing
-     || direct_optab_handler (optab->no_result, imode) == CODE_FOR_nothing);
-
-  if (need_new)
-    {
-      /* expand_sync_fetch_operation can always compensate when interested
-	 in the new value.  */
-      if (!have_new && !have_old)
-	return false;
-    }
-  else if (need_old)
-    {
-      /* When interested in the old value, expand_sync_fetch_operation
-	 can compensate only if the operation is reversible.  */
-      if (!have_old && !(have_new && optab->reverse_code != UNKNOWN))
-	return false;
-    }
-  else if (!have_noval && !have_new && !have_old)
+  /* We could test all of the various optabs involved, but the fact of the
+     matter is that (with the exception of i486 vs i586 and xadd) all targets
+     that support any atomic operaton optab also implements compare-and-swap.
+     Let optabs.c take care of expanding any compare-and-swap loop.  */
+  if (!can_compare_and_swap_p (imode))
     return false;
 
   gsi = gsi_last_bb (load_bb);
   gcc_assert (gimple_code (gsi_stmt (gsi)) == GIMPLE_OMP_ATOMIC_LOAD);
-  call = build_call_expr_loc (loc, decl, 2, addr,
-			      fold_convert_loc (loc, itype, rhs));
+
+  /* OpenMP does not imply any barrier-like semantics on its atomic ops.
+     It only requires that the operation happen atomically.  Thus we can
+     use the RELAXED memory model.  */
+  call = build_call_expr_loc (loc, decl, 3, addr,
+			      fold_convert_loc (loc, itype, rhs),
+			      build_int_cst (NULL, MEMMODEL_RELAXED));
+
   if (need_old || need_new)
     {
       lhs = need_old ? loaded_val : stored_val;
@@ -5179,6 +5158,8 @@ expand_omp_atomic_pipeline (basic_block load_bb, basic_block store_bb,
   edge e;
   enum built_in_function fncode;
 
+  /* ??? We need a non-pointer interface to __atomic_compare_exchange in
+     order to use the RELAXED memory model effectively.  */
   fncode = (enum built_in_function)((int)BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_N
 				    + index + 1);
   cmpxchg = builtin_decl_explicit (fncode);

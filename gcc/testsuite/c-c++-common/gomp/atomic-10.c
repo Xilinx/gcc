@@ -1,6 +1,7 @@
 /* PR middle-end/28046 */
 /* { dg-do compile } */
 /* { dg-options "-fopenmp -fdump-tree-ompexp" } */
+/* { dg-require-effective-target cas_int } */
 
 int a[3], b;
 struct C { int x; int y; } c;
@@ -20,5 +21,5 @@ foo (void)
   *baz () += bar ();
 }
 
-/* { dg-final { scan-tree-dump-times "__sync_fetch_and_add" 4 "ompexp" { target i?86-*-* x86_64-*-* ia64-*-* powerpc*-*-* alpha*-*-* } } } */
+/* { dg-final { scan-tree-dump-times "__atomic_fetch_add" 4 "ompexp" } } */
 /* { dg-final { cleanup-tree-dump "ompexp" } } */

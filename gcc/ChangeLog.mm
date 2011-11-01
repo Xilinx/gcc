@@ -1,3 +1,13 @@
+2011-10-31  Richard Henderson  <rth@redhat.com>
+
+	* omp-low.c (expand_omp_atomic_fetch_op): Don't test individual
+	fetch_op optabs, only test can_compare_and_swap_p.  Use __atomic
+	builtins instead of __sync builtins.
+	* optabs.h (get_atomic_op_for_code): Remove decl.
+	(struct atomic_op_functions): Move to...
+	* optabs.c: ... here.
+	(get_atomic_op_for_code): Make static.
+
 2011-10-27  Richard Henderson  <rth@redhat.com>
 
 	* config/i386/i386.md (UNSPECV_CMPXCHG): Split into ...

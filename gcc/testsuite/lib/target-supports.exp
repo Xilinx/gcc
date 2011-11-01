@@ -655,6 +655,28 @@ proc check_effective_target_tls_runtime {} {
     } [add_options_for_tls ""]]
 }
 
+# Return 1 if atomic compare-and-swap is supported on 'int'
+
+proc check_effective_target_cas_char {} {
+    return [check_no_compiler_messages cas_char assembly {
+	#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
+	#error unsupported
+	#endif
+    } ""]
+}
+
+proc check_effective_target_cas_int {} {
+    return [check_no_compiler_messages cas_int assembly {
+	#if __INT_MAX__ == 0x7fff && __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
+        /* ok */
+        #elif __INT_MAX__ == 0x7fffffff && __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+	/* ok */
+	#else
+	#error unsupported
+	#endif
+    } ""]
+}
+
 # Return 1 if -ffunction-sections is supported, 0 otherwise.
 
 proc check_effective_target_function_sections {} {
