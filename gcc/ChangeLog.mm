@@ -1,5 +1,10 @@
 2011-10-31  Richard Henderson  <rth@redhat.com>
 
+	* optabs.c (expand_atomic_store): Use create_fixed_operand for
+	atomic_store optab.  Don't try to fall back to sync_lock_release.
+
+2011-10-31  Richard Henderson  <rth@redhat.com>
+
 	* omp-low.c (expand_omp_atomic_fetch_op): Don't test individual
 	fetch_op optabs, only test can_compare_and_swap_p.  Use __atomic
 	builtins instead of __sync builtins.

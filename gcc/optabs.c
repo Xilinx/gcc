@@ -7118,30 +7118,11 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model)
   icode = direct_optab_handler (atomic_store_optab, mode);
   if (icode != CODE_FOR_nothing)
     {
-
-      create_output_operand (&ops[0], mem, mode);
+      create_fixed_operand (&ops[0], mem);
       create_input_operand (&ops[1], val, mode);
       create_integer_operand (&ops[2], model);
       if (maybe_expand_insn (icode, 3, ops))
 	return const0_rtx;
-    }
-
-  /* A store of 0 is the same as __sync_lock_release, try that.  */
-  if (CONST_INT_P (val) && INTVAL (val) == 0)
-    {
-      icode = direct_optab_handler (sync_lock_release_optab, mode);
-      if (icode != CODE_FOR_nothing)
-	{
-	  create_fixed_operand (&ops[0], mem);
-	  create_input_operand (&ops[1], const0_rtx, mode);
-	  if (maybe_expand_insn (icode, 2, ops))
-	    {
-	      /* lock_release is only a release barrier.  */
-	      if (model == MEMMODEL_SEQ_CST)
-		expand_builtin_mem_thread_fence (model);
-	      return const0_rtx;
-	    }
-	}
     }
 
   /* If the size of the object is greater than word size on this target,
