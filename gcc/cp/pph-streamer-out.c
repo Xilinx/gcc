@@ -1137,8 +1137,6 @@ pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
 
   pph_out_tree (stream, bl->this_entity);
 
-  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
-
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
     pph_out_class_binding (stream, cs);
@@ -1178,6 +1176,7 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
   pph_out_chain_filtered (stream, bl->namespaces, filter);
   pph_out_chain_filtered (stream, bl->usings, filter);
   pph_out_chain_filtered (stream, bl->using_directives, filter);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
   pph_out_binding_level_1 (stream, bl, filter);
 }
 
@@ -1205,6 +1204,7 @@ pph_out_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
   pph_out_merge_body_chain (stream, bl->namespaces, filter);
   pph_out_merge_body_chain (stream, bl->usings, filter);
   pph_out_merge_body_chain (stream, bl->using_directives, filter);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
 }
 
 

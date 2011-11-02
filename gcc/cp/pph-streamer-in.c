@@ -677,6 +677,66 @@ pph_in_tree_pair_vec (pph_stream *stream)
 }
 
 
+/* Test whether tree T is an element of vector V.  */
+
+static bool
+pph_is_tree_element_of_vec (tree t, VEC(tree,gc) *v)
+{
+  unsigned i;
+  tree s;
+  FOR_EACH_VEC_ELT (tree, v, i, s)
+    if (s == t)
+      return true;
+  return false;
+}
+
+
+/* Return the union of two tree vecs.  The argument vectors are unmodified.  */
+
+static VEC(tree,gc) *
+pph_union_two_tree_vecs (VEC(tree,gc) *left, VEC(tree,gc) *right)
+{
+  /* FIXME pph: This O(left)+O(left*right) union may become a problem.
+     In the long run, we probably want to copy both into a hash table
+     and then copy the table into the result.  */
+  unsigned i;
+  tree t;
+  VEC(tree,gc) *unioned = VEC_copy (tree, gc, left);
+  FOR_EACH_VEC_ELT (tree, right, i, t)
+    {
+      if (!pph_is_tree_element_of_vec (t, left))
+	VEC_safe_push (tree, gc, unioned, t);
+    }
+  return unioned;
+}
+
+
+/* Union FROM one tree vec with and INTO a tree vec.  The INTO argument will
+   have an updated value.  The FROM argument is no longer valid.  */
+
+static void
+pph_union_into_tree_vec (VEC(tree,gc) **into, VEC(tree,gc) *from)
+{
+  if (!VEC_empty (tree, from))
+    {
+      if (*into == NULL)
+	*into = from;
+      else if (VEC_empty (tree, *into))
+	{
+	  VEC_free (tree, gc, *into);
+	  *into = from;
+	}
+      else
+	{
+	  VEC(tree,gc) *unioned = pph_union_two_tree_vecs (*into, from);
+	  VEC_free (tree, gc, *into);
+	  VEC_free (tree, gc, from);
+	  *into = unioned;
+	}
+    }
+}
+
+
 /******************************************************************** chains */
 
 
@@ -967,7 +1027,6 @@ pph_in_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
   struct bitpack_d bp;
 
   bl->this_entity = pph_in_tree (stream);
-  bl->static_decls = pph_in_tree_vec (stream);
 
   num = pph_in_uint (stream);
   bl->class_shadowed = NULL;
@@ -1029,6 +1088,7 @@ pph_in_binding_level (pph_stream *stream)
   bl->namespaces = pph_in_chain (stream);
   bl->usings = pph_in_chain (stream);
   bl->using_directives = pph_in_chain (stream);
+  bl->static_decls = pph_in_tree_vec (stream);
   pph_in_binding_level_1 (stream, bl);
 
   return bl;
@@ -1051,12 +1111,13 @@ pph_in_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
 /* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
 
 static void
-pph_in_binding_merge_bodies (pph_stream *stream)
+pph_in_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
 {
   pph_in_merge_body_chain (stream);
   pph_in_merge_body_chain (stream);
   pph_in_merge_body_chain (stream);
   pph_in_merge_body_chain (stream);
+  pph_union_into_tree_vec (&bl->static_decls, pph_in_tree_vec (stream));
 }
 
 
@@ -1951,11 +2012,11 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
     {
       if (TREE_CODE (expr) == NAMESPACE_DECL)
         {
-	  /* struct lang_decl *ld; */
-          retrofit_lang_decl (expr);
-	  /* ld = DECL_LANG_SPECIFIC (expr); */
-	  /* FIXME NOW: allocate binding.  */
-          pph_in_binding_merge_keys (stream, NAMESPACE_LEVEL (expr));
+	  cp_binding_level *bl;
+	  retrofit_lang_decl (expr);
+	  bl = ggc_alloc_cleared_cp_binding_level ();
+	  NAMESPACE_LEVEL (expr) = bl;
+	  pph_in_binding_merge_keys (stream, bl);
         }
 #if 0
 /* FIXME pph: Disable type merging for the moment.  */
@@ -2438,7 +2499,7 @@ pph_in_global_binding (pph_stream *stream)
      same slot IX that the writer used, the trees read now will be
      bound to scope_chain->bindings.  */
   pph_in_binding_merge_keys (stream, bl);
-  pph_in_binding_merge_bodies (stream);
+  pph_in_binding_merge_bodies (stream, bl);
 
   /* FIXME pph: Are we sure this is right?  */
   pph_in_binding_level_1 (stream, bl);

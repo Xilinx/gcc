@@ -1,3 +1,19 @@
+2011-11-01   Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer-out.c (pph_out_binding_level_1): Remove streaming of
+	static_decls.
+	(pph_out_binding_level): Add streaming of static_decls.
+	(pph_out_binding_merge_bodies): Likewise.
+	* pph-streamer-in.c (pph_is_tree_element_of_vec): New.
+	(pph_union_two_tree_vecs): New.
+	(pph_union_into_tree_vec): New.
+	(pph_in_binding_level_1): Remove streaming of static_decls.
+	(pph_in_binding_level): Add streaming of static_decls.
+	(pph_in_binding_merge_bodies): Add merging of static_decls from
+	streamer into existing binding.  Needs new function parameter.
+	(pph_in_merge_key_tree): Preallocate namespace cp_binding_level.
+	(pph_in_global_binding): Update call to pph_in_binding_merge_bodies.
+
 2011-10-29   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_node_already_emitted): New.
