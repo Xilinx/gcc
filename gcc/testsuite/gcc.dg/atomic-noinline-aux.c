@@ -45,7 +45,7 @@ short __atomic_fetch_add_2 (short *p, short v, short i)
   *p = 1;
 }
 
-int __atomic_is_lock_free (int i)
+int __atomic_is_lock_free (int i, void *p)
 {
   return 10;
 }

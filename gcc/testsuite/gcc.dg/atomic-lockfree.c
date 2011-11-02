@@ -20,8 +20,8 @@ int r1, r2;
 main ()
 {
   
-  r1 = __atomic_always_lock_free (sizeof(char));
-  r2 = __atomic_is_lock_free (sizeof(char));
+  r1 = __atomic_always_lock_free (sizeof(char), 0);
+  r2 = __atomic_is_lock_free (sizeof(char), 0);
   /* If always lock free, then is_lock_free must also be true.  */
   if (r1)
     { 
@@ -35,8 +35,8 @@ main ()
 	abort ();
     }
   
-  r1 = __atomic_always_lock_free (2);
-  r2 = __atomic_is_lock_free (2);
+  r1 = __atomic_always_lock_free (2, 0);
+  r2 = __atomic_is_lock_free (2, 0);
   /* If always lock free, then is_lock_free must also be true.  */
   if (r1)
     { 
@@ -51,8 +51,8 @@ main ()
     }
 
    
-  r1 = __atomic_always_lock_free (4);
-  r2 = __atomic_is_lock_free (4);     /* Try passing in a variable.  */
+  r1 = __atomic_always_lock_free (4, 0);
+  r2 = __atomic_is_lock_free (4, 0);     /* Try passing in a variable.  */
   /* If always lock free, then is_lock_free must also be true.  */
   if (r1)
     { 
@@ -67,8 +67,8 @@ main ()
     }
 
    
-  r1 = __atomic_always_lock_free (8);
-  r2 = __atomic_is_lock_free (8);
+  r1 = __atomic_always_lock_free (8, 0);
+  r2 = __atomic_is_lock_free (8, 0);
   /* If always lock free, then is_lock_free must also be true.  */
   if (r1)
     { 
@@ -83,8 +83,8 @@ main ()
     }
 
    
-  r1 = __atomic_always_lock_free (16);
-  r2 = __atomic_is_lock_free (16);
+  r1 = __atomic_always_lock_free (16, 0);
+  r2 = __atomic_is_lock_free (16, 0);
   /* If always lock free, then is_lock_free must also be true.  */
   if (r1)
     { 
@@ -99,8 +99,8 @@ main ()
     }
 
    
-  r1 = __atomic_always_lock_free (32);
-  r2 = __atomic_is_lock_free (32);
+  r1 = __atomic_always_lock_free (32, 0);
+  r2 = __atomic_is_lock_free (32, 0);
   /* If always lock free, then is_lock_free must also be true.  */
   if (r1)
     { 

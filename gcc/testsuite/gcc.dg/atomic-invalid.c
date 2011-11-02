@@ -23,5 +23,5 @@ main ()
   __atomic_store_n (&i, 1, __ATOMIC_CONSUME); /* { dg-error "invalid memory model" } */
   __atomic_store_n (&i, 1, __ATOMIC_ACQ_REL); /* { dg-error "invalid memory model" } */
 
-  i = __atomic_always_lock_free (s); /* { dg-error "non-constant argument" } */
+  i = __atomic_always_lock_free (s, NULL); /* { dg-error "non-constant argument" } */
 }

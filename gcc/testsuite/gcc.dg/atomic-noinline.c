@@ -46,7 +46,7 @@ main ()
     abort ();
 
   /* The fake external function should return 10.  */
-  if (__atomic_is_lock_free (4) != 10)
+  if (__atomic_is_lock_free (4, 0) != 10)
     abort ();
    
   return 0;

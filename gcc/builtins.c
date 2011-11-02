@@ -5464,75 +5464,118 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
   return ret;
 }
 
-/* Return true if size ARG is always lock free on this architecture.  */
+/* Return true if (optional) argument ARG1 of size ARG0 is always lock free on
+   this architecture.  If ARG1 is NULL, use typical alignment for size ARG0.  */
+
 static tree
-fold_builtin_atomic_always_lock_free (tree arg)
+fold_builtin_atomic_always_lock_free (tree arg0, tree arg1)
 {
   int size;
   enum machine_mode mode;
+  unsigned int mode_align, type_align;
 
-  if (TREE_CODE (arg) != INTEGER_CST)
+  if (TREE_CODE (arg0) != INTEGER_CST)
     return NULL_TREE;
+
+  size = INTVAL (expand_normal (arg0)) * BITS_PER_UNIT;
+  mode = mode_for_size (size, MODE_INT, 0);
+  mode_align = GET_MODE_ALIGNMENT (mode);
+
+  if (TREE_CODE (arg1) == INTEGER_CST && INTVAL (expand_normal (arg1)) == 0)
+    type_align = mode_align;
+  else
+    {
+      tree ttype = TREE_TYPE (arg1);
+
+      /* This function is usually invoked and folded immediately by the front
+	 end before anything else has a chance to look at it.  The pointer
+	 parameter at this point is usually cast to a void *, so check for that
+	 and look past the cast.  */
+      if (TREE_CODE (arg1) == NOP_EXPR && POINTER_TYPE_P (ttype)
+	  && VOID_TYPE_P (TREE_TYPE (ttype)))
+	arg1 = TREE_OPERAND (arg1, 0);
+
+      ttype = TREE_TYPE (arg1);
+      gcc_assert (POINTER_TYPE_P (ttype));
+
+      /* Get the underlying type of the object.  */
+      ttype = TREE_TYPE (ttype);
+      type_align = TYPE_ALIGN (ttype);
+    }
+
+  /* If the object has smaller alignment, the the lock free routines cannot
+     be used.  */
+  if (type_align < mode_align)
+    return integer_zero_node;
 
   /* Check if a compare_and_swap pattern exists for the mode which represents
      the required size.  The pattern is not allowed to fail, so the existence
      of the pattern indicates support is present.  */
-  size = INTVAL (expand_normal (arg)) * BITS_PER_UNIT;
-  mode = mode_for_size (size, MODE_INT, 0);
-
   if (can_compare_and_swap_p (mode))
     return integer_one_node;
   else
     return integer_zero_node;
 }
 
-/* Return true if the first argument to call EXP represents a size of
-   object than will always generate lock-free instructions on this target.
-   Otherwise return false.  */
+/* Return true if the parameters to call EXP represent an object which will
+   always generate lock free instructions.  The first argument represents the
+   size of the object, and the second parameter is a pointer to the object 
+   itself.  If NULL is passed for the object, then the result is based on 
+   typical alignment for an object of the specified size.  Otherwise return 
+   false.  */
+
 static rtx
 expand_builtin_atomic_always_lock_free (tree exp)
 {
   tree size;
-  tree arg = CALL_EXPR_ARG (exp, 0);
+  tree arg0 = CALL_EXPR_ARG (exp, 0);
+  tree arg1 = CALL_EXPR_ARG (exp, 1);
 
-  if (TREE_CODE (arg) != INTEGER_CST)
+  if (TREE_CODE (arg0) != INTEGER_CST)
     {
-      error ("non-constant argument to __atomic_always_lock_free");
+      error ("non-constant argument 1 to __atomic_always_lock_free");
       return const0_rtx;
     }
 
-  size = fold_builtin_atomic_always_lock_free (arg);
+  size = fold_builtin_atomic_always_lock_free (arg0, arg1);
   if (size == integer_one_node)
     return const1_rtx;
   return const0_rtx;
 }
 
-/* Return a one or zero if it can be determined that size ARG is lock free on
-   this architecture.  */
+/* Return a one or zero if it can be determined that object ARG1 of size ARG 
+   is lock free on this architecture.  */
+
 static tree
-fold_builtin_atomic_is_lock_free (tree arg)
+fold_builtin_atomic_is_lock_free (tree arg0, tree arg1)
 {
   if (!flag_inline_atomics)
     return NULL_TREE;
   
-  /* If it isnt always lock free, don't generate a result.  */
-  if (fold_builtin_atomic_always_lock_free (arg) == integer_one_node)
+  /* If it isn't always lock free, don't generate a result.  */
+  if (fold_builtin_atomic_always_lock_free (arg0, arg1) == integer_one_node)
     return integer_one_node;
 
   return NULL_TREE;
 }
 
-/* Return one or zero if the first argument to call EXP represents a size of
-   object than can generate lock-free instructions on this target.  */
+/* Return true if the parameters to call EXP represent an object which will
+   always generate lock free instructions.  The first argument represents the
+   size of the object, and the second parameter is a pointer to the object 
+   itself.  If NULL is passed for the object, then the result is based on 
+   typical alignment for an object of the specified size.  Otherwise return 
+   NULL*/
+
 static rtx
 expand_builtin_atomic_is_lock_free (tree exp)
 {
   tree size;
-  tree arg = CALL_EXPR_ARG (exp, 0);
+  tree arg0 = CALL_EXPR_ARG (exp, 0);
+  tree arg1 = CALL_EXPR_ARG (exp, 1);
 
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (arg)))
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (arg0)))
     {
-      error ("non-integer argument to __atomic_is_lock_free");
+      error ("non-integer argument 1 to __atomic_is_lock_free");
       return NULL_RTX;
     }
 
@@ -5540,7 +5583,7 @@ expand_builtin_atomic_is_lock_free (tree exp)
     return NULL_RTX; 
 
   /* If the value is known at compile time, return the RTX for it.  */
-  size = fold_builtin_atomic_is_lock_free (arg);
+  size = fold_builtin_atomic_is_lock_free (arg0, arg1);
   if (size == integer_one_node)
     return const1_rtx;
 
@@ -10479,12 +10522,6 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
 	return build_empty_stmt (loc);
       break;
 
-    case BUILT_IN_ATOMIC_ALWAYS_LOCK_FREE:
-      return fold_builtin_atomic_always_lock_free (arg0);
-
-    case BUILT_IN_ATOMIC_IS_LOCK_FREE:
-      return fold_builtin_atomic_is_lock_free (arg0);
-
     default:
       break;
     }
@@ -10687,6 +10724,12 @@ fold_builtin_2 (location_t loc, tree fndecl, tree arg0, tree arg1, bool ignore)
     case BUILT_IN_VFPRINTF:
       return fold_builtin_fprintf (loc, fndecl, arg0, arg1, NULL_TREE,
 				   ignore, fcode);
+
+    case BUILT_IN_ATOMIC_ALWAYS_LOCK_FREE:
+      return fold_builtin_atomic_always_lock_free (arg0, arg1);
+
+    case BUILT_IN_ATOMIC_IS_LOCK_FREE:
+      return fold_builtin_atomic_is_lock_free (arg0, arg1);
 
     default:
       break;
