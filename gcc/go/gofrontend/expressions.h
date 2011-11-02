@@ -359,9 +359,9 @@ class Expression
   string_constant_value(std::string* val) const
   { return this->do_string_constant_value(val); }
 
-  // This is called by the parser if the value of this expression is
-  // being discarded.  This issues warnings about computed values
-  // being unused.
+  // This is called if the value of this expression is being
+  // discarded.  This issues warnings about computed values being
+  // unused.
   void
   discarding_value()
   { this->do_discarding_value(); }
@@ -582,6 +582,18 @@ class Expression
   must_eval_in_order() const
   { return this->do_must_eval_in_order(); }
 
+  // Return whether subexpressions of this expression must be
+  // evaluated in order.  This is true of index expressions and
+  // pointer indirections.  This sets *SKIP to the number of
+  // subexpressions to skip during traversing, as index expressions
+  // only requiring moving the index, not the array.
+  bool
+  must_eval_subexpressions_in_order(int* skip) const
+  {
+    *skip = 0;
+    return this->do_must_eval_subexpressions_in_order(skip);
+  }
+
   // Return the tree for this expression.
   tree
   get_tree(Translate_context*);
@@ -717,6 +729,13 @@ class Expression
   do_must_eval_in_order() const
   { return false; }
 
+  // Child class implements whether this expressions requires that
+  // subexpressions be evaluated in order.  The child implementation
+  // may set *SKIP if it should be non-zero.
+  virtual bool
+  do_must_eval_subexpressions_in_order(int* /* skip */) const
+  { return false; }
+
   // Child class implements conversion to tree.
   virtual tree
   do_get_tree(Translate_context*) = 0;
@@ -725,9 +744,9 @@ class Expression
   virtual void
   do_export(Export*) const;
 
-  // For children to call to warn about an unused value.
+  // For children to call to give an error for an unused value.
   void
-  warn_about_unused_value();
+  unused_value_error();
 
   // For children to call when they detect that they are in error.
   void
@@ -1198,8 +1217,9 @@ class Call_expression : public Expression
 		  source_location location)
     : Expression(EXPRESSION_CALL, location),
       fn_(fn), args_(args), type_(NULL), results_(NULL), tree_(NULL),
-      is_varargs_(is_varargs), varargs_are_lowered_(false),
-      types_are_determined_(false), is_deferred_(false), issued_error_(false)
+      is_varargs_(is_varargs), are_hidden_fields_ok_(false),
+      varargs_are_lowered_(false), types_are_determined_(false),
+      is_deferred_(false), issued_error_(false)
   { }
 
   // The function to call.
@@ -1248,6 +1268,12 @@ class Call_expression : public Expression
   void
   set_varargs_are_lowered()
   { this->varargs_are_lowered_ = true; }
+
+  // Note that it is OK for this call to set hidden fields when
+  // passing arguments.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
 
   // Whether this call is being deferred.
   bool
@@ -1350,6 +1376,9 @@ class Call_expression : public Expression
   tree tree_;
   // True if the last argument is a varargs argument (f(a...)).
   bool is_varargs_;
+  // True if this statement may pass hidden fields in the arguments.
+  // This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
   // True if varargs have already been lowered.
   bool varargs_are_lowered_;
   // True if types have been determined.
@@ -1516,6 +1545,13 @@ class Index_expression : public Parser_expression
 				this->location());
   }
 
+  bool
+  do_must_eval_subexpressions_in_order(int* skip) const
+  {
+    *skip = 1;
+    return true;
+  }
+
   void
   do_dump_expression(Ast_dump_context*) const;
 
@@ -1611,6 +1647,13 @@ class Map_index_expression : public Expression
     return Expression::make_map_index(this->map_->copy(),
 				      this->index_->copy(),
 				      this->location());
+  }
+
+  bool
+  do_must_eval_subexpressions_in_order(int* skip) const
+  {
+    *skip = 1;
+    return true;
   }
 
   // A map index expression is an lvalue but it is not addressable.

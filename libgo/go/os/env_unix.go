@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build darwin freebsd linux openbsd
+
 // Unix environment variables.
 
 package os
@@ -15,7 +17,6 @@ var ENOENV = NewError("no such environment variable")
 
 var env map[string]string
 var once sync.Once
-
 
 func copyenv() {
 	env = make(map[string]string)

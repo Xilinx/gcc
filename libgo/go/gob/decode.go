@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	errBadUint = os.ErrorString("gob: encoded unsigned integer out of range")
-	errBadType = os.ErrorString("gob: unknown type id or corrupted data")
-	errRange   = os.ErrorString("gob: bad data: field numbers out of bounds")
+	errBadUint = os.NewError("gob: encoded unsigned integer out of range")
+	errBadType = os.NewError("gob: unknown type id or corrupted data")
+	errRange   = os.NewError("gob: bad data: field numbers out of bounds")
 )
 
 // decoderState is the execution state of an instance of the decoder. A new state
@@ -54,8 +54,8 @@ func (dec *Decoder) freeDecoderState(d *decoderState) {
 	dec.freeList = d
 }
 
-func overflow(name string) os.ErrorString {
-	return os.ErrorString(`value for "` + name + `" out of range`)
+func overflow(name string) os.Error {
+	return os.NewError(`value for "` + name + `" out of range`)
 }
 
 // decodeUintReader reads an encoded unsigned integer from an io.Reader.
@@ -70,13 +70,12 @@ func decodeUintReader(r io.Reader, buf []byte) (x uint64, width int, err os.Erro
 	if b <= 0x7f {
 		return uint64(b), width, nil
 	}
-	nb := -int(int8(b))
-	if nb > uint64Size {
+	n := -int(int8(b))
+	if n > uint64Size {
 		err = errBadUint
 		return
 	}
-	var n int
-	n, err = io.ReadFull(r, buf[0:nb])
+	width, err = io.ReadFull(r, buf[0:n])
 	if err != nil {
 		if err == os.EOF {
 			err = io.ErrUnexpectedEOF
@@ -84,11 +83,10 @@ func decodeUintReader(r io.Reader, buf []byte) (x uint64, width int, err os.Erro
 		return
 	}
 	// Could check that the high byte is zero but it's not worth it.
-	for i := 0; i < n; i++ {
-		x <<= 8
-		x |= uint64(buf[i])
-		width++
+	for _, b := range buf[0:width] {
+		x = x<<8 | uint64(b)
 	}
+	width++ // +1 for length byte
 	return
 }
 
@@ -102,19 +100,18 @@ func (state *decoderState) decodeUint() (x uint64) {
 	if b <= 0x7f {
 		return uint64(b)
 	}
-	nb := -int(int8(b))
-	if nb > uint64Size {
+	n := -int(int8(b))
+	if n > uint64Size {
 		error(errBadUint)
 	}
-	n, err := state.b.Read(state.buf[0:nb])
+	width, err := state.b.Read(state.buf[0:n])
 	if err != nil {
 		error(err)
 	}
 	// Don't need to check error; it's safe to loop regardless.
 	// Could check that the high byte is zero but it's not worth it.
-	for i := 0; i < n; i++ {
-		x <<= 8
-		x |= uint64(state.buf[i])
+	for _, b := range state.buf[0:width] {
+		x = x<<8 | uint64(b)
 	}
 	return x
 }
@@ -135,10 +132,10 @@ type decOp func(i *decInstr, state *decoderState, p unsafe.Pointer)
 // The 'instructions' of the decoding machine
 type decInstr struct {
 	op     decOp
-	field  int            // field number of the wire type
-	indir  int            // how many pointer indirections to reach the value in the struct
-	offset uintptr        // offset in the structure of the field to encode
-	ovfl   os.ErrorString // error message for overflow/underflow (for arrays, of the elements)
+	field  int      // field number of the wire type
+	indir  int      // how many pointer indirections to reach the value in the struct
+	offset uintptr  // offset in the structure of the field to encode
+	ovfl   os.Error // error message for overflow/underflow (for arrays, of the elements)
 }
 
 // Since the encoder writes no zeros, if we arrive at a decoder we have
@@ -172,7 +169,7 @@ func ignoreTwoUints(i *decInstr, state *decoderState, p unsafe.Pointer) {
 	state.decodeUint()
 }
 
-// decBool decodes a uiint and stores it as a boolean through p.
+// decBool decodes a uint and stores it as a boolean through p.
 func decBool(i *decInstr, state *decoderState, p unsafe.Pointer) {
 	if i.indir > 0 {
 		if *(*unsafe.Pointer)(p) == nil {
@@ -367,7 +364,7 @@ func decComplex64(i *decInstr, state *decoderState, p unsafe.Pointer) {
 		p = *(*unsafe.Pointer)(p)
 	}
 	storeFloat32(i, state, p)
-	storeFloat32(i, state, unsafe.Pointer(uintptr(p)+uintptr(unsafe.Sizeof(float32(0)))))
+	storeFloat32(i, state, unsafe.Pointer(uintptr(p)+unsafe.Sizeof(float32(0))))
 }
 
 // decComplex128 decodes a pair of unsigned integers, treats them as a
@@ -385,19 +382,29 @@ func decComplex128(i *decInstr, state *decoderState, p unsafe.Pointer) {
 	*(*complex128)(p) = complex(real, imag)
 }
 
-// decUint8Array decodes byte array and stores through p a slice header
+// decUint8Slice decodes a byte slice and stores through p a slice header
 // describing the data.
-// uint8 arrays are encoded as an unsigned count followed by the raw bytes.
-func decUint8Array(i *decInstr, state *decoderState, p unsafe.Pointer) {
+// uint8 slices are encoded as an unsigned count followed by the raw bytes.
+func decUint8Slice(i *decInstr, state *decoderState, p unsafe.Pointer) {
 	if i.indir > 0 {
 		if *(*unsafe.Pointer)(p) == nil {
 			*(*unsafe.Pointer)(p) = unsafe.Pointer(new([]uint8))
 		}
 		p = *(*unsafe.Pointer)(p)
 	}
-	b := make([]uint8, state.decodeUint())
-	state.b.Read(b)
-	*(*[]uint8)(p) = b
+	n := int(state.decodeUint())
+	if n < 0 {
+		errorf("negative length decoding []byte")
+	}
+	slice := (*[]uint8)(p)
+	if cap(*slice) < n {
+		*slice = make([]uint8, n)
+	} else {
+		*slice = (*slice)[0:n]
+	}
+	if _, err := state.b.Read(*slice); err != nil {
+		errorf("error decoding []byte: %s", err)
+	}
 }
 
 // decString decodes byte array and stores through p a string header
@@ -457,20 +464,17 @@ func allocate(rtyp reflect.Type, p uintptr, indir int) uintptr {
 // decodeSingle decodes a top-level value that is not a struct and stores it through p.
 // Such values are preceded by a zero, making them have the memory layout of a
 // struct field (although with an illegal field number).
-func (dec *Decoder) decodeSingle(engine *decEngine, ut *userTypeInfo, p uintptr) (err os.Error) {
-	indir := ut.indir
-	if ut.isGobDecoder {
-		indir = int(ut.decIndir)
-	}
-	p = allocate(ut.base, p, indir)
+func (dec *Decoder) decodeSingle(engine *decEngine, ut *userTypeInfo, basep uintptr) (err os.Error) {
 	state := dec.newDecoderState(&dec.buf)
 	state.fieldnum = singletonField
-	basep := p
 	delta := int(state.decodeUint())
 	if delta != 0 {
 		errorf("decode: corrupted data: non-zero delta for singleton")
 	}
 	instr := &engine.instr[singletonField]
+	if instr.indir != ut.indir {
+		return os.NewError("gob: internal error: inconsistent indirection")
+	}
 	ptr := unsafe.Pointer(basep) // offset will be zero
 	if instr.indir > 1 {
 		ptr = decIndirect(ptr, instr.indir)
@@ -552,7 +556,7 @@ func (dec *Decoder) ignoreSingle(engine *decEngine) {
 }
 
 // decodeArrayHelper does the work for decoding arrays and slices.
-func (dec *Decoder) decodeArrayHelper(state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, length, elemIndir int, ovfl os.ErrorString) {
+func (dec *Decoder) decodeArrayHelper(state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, length, elemIndir int, ovfl os.Error) {
 	instr := &decInstr{elemOp, 0, elemIndir, 0, ovfl}
 	for i := 0; i < length; i++ {
 		up := unsafe.Pointer(p)
@@ -567,7 +571,7 @@ func (dec *Decoder) decodeArrayHelper(state *decoderState, p uintptr, elemOp dec
 // decodeArray decodes an array and stores it through p, that is, p points to the zeroth element.
 // The length is an unsigned integer preceding the elements.  Even though the length is redundant
 // (it's part of the type), it's a useful check and is included in the encoding.
-func (dec *Decoder) decodeArray(atyp reflect.Type, state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, length, indir, elemIndir int, ovfl os.ErrorString) {
+func (dec *Decoder) decodeArray(atyp reflect.Type, state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, length, indir, elemIndir int, ovfl os.Error) {
 	if indir > 0 {
 		p = allocate(atyp, p, 1) // All but the last level has been allocated by dec.Indirect
 	}
@@ -579,7 +583,7 @@ func (dec *Decoder) decodeArray(atyp reflect.Type, state *decoderState, p uintpt
 
 // decodeIntoValue is a helper for map decoding.  Since maps are decoded using reflection,
 // unlike the other items we can't use a pointer directly.
-func decodeIntoValue(state *decoderState, op decOp, indir int, v reflect.Value, ovfl os.ErrorString) reflect.Value {
+func decodeIntoValue(state *decoderState, op decOp, indir int, v reflect.Value, ovfl os.Error) reflect.Value {
 	instr := &decInstr{op, 0, indir, 0, ovfl}
 	up := unsafe.Pointer(unsafeAddr(v))
 	if indir > 1 {
@@ -593,7 +597,7 @@ func decodeIntoValue(state *decoderState, op decOp, indir int, v reflect.Value, 
 // Maps are encoded as a length followed by key:value pairs.
 // Because the internals of maps are not visible to us, we must
 // use reflection rather than pointer magic.
-func (dec *Decoder) decodeMap(mtyp reflect.Type, state *decoderState, p uintptr, keyOp, elemOp decOp, indir, keyIndir, elemIndir int, ovfl os.ErrorString) {
+func (dec *Decoder) decodeMap(mtyp reflect.Type, state *decoderState, p uintptr, keyOp, elemOp decOp, indir, keyIndir, elemIndir int, ovfl os.Error) {
 	if indir > 0 {
 		p = allocate(mtyp, p, 1) // All but the last level has been allocated by dec.Indirect
 	}
@@ -616,7 +620,7 @@ func (dec *Decoder) decodeMap(mtyp reflect.Type, state *decoderState, p uintptr,
 
 // ignoreArrayHelper does the work for discarding arrays and slices.
 func (dec *Decoder) ignoreArrayHelper(state *decoderState, elemOp decOp, length int) {
-	instr := &decInstr{elemOp, 0, 0, 0, os.ErrorString("no error")}
+	instr := &decInstr{elemOp, 0, 0, 0, os.NewError("no error")}
 	for i := 0; i < length; i++ {
 		elemOp(instr, state, nil)
 	}
@@ -633,8 +637,8 @@ func (dec *Decoder) ignoreArray(state *decoderState, elemOp decOp, length int) {
 // ignoreMap discards the data for a map value with no destination.
 func (dec *Decoder) ignoreMap(state *decoderState, keyOp, elemOp decOp) {
 	n := int(state.decodeUint())
-	keyInstr := &decInstr{keyOp, 0, 0, 0, os.ErrorString("no error")}
-	elemInstr := &decInstr{elemOp, 0, 0, 0, os.ErrorString("no error")}
+	keyInstr := &decInstr{keyOp, 0, 0, 0, os.NewError("no error")}
+	elemInstr := &decInstr{elemOp, 0, 0, 0, os.NewError("no error")}
 	for i := 0; i < n; i++ {
 		keyOp(keyInstr, state, nil)
 		elemOp(elemInstr, state, nil)
@@ -643,7 +647,7 @@ func (dec *Decoder) ignoreMap(state *decoderState, keyOp, elemOp decOp) {
 
 // decodeSlice decodes a slice and stores the slice header through p.
 // Slices are encoded as an unsigned length followed by the elements.
-func (dec *Decoder) decodeSlice(atyp reflect.Type, state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, indir, elemIndir int, ovfl os.ErrorString) {
+func (dec *Decoder) decodeSlice(atyp reflect.Type, state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, indir, elemIndir int, ovfl os.Error) {
 	n := int(uintptr(state.decodeUint()))
 	if indir > 0 {
 		up := unsafe.Pointer(p)
@@ -653,12 +657,15 @@ func (dec *Decoder) decodeSlice(atyp reflect.Type, state *decoderState, p uintpt
 		}
 		p = *(*uintptr)(up)
 	}
-	// Allocate storage for the slice elements, that is, the underlying array.
+	// Allocate storage for the slice elements, that is, the underlying array,
+	// if the existing slice does not have the capacity.
 	// Always write a header at p.
 	hdrp := (*reflect.SliceHeader)(unsafe.Pointer(p))
-	hdrp.Data = uintptr(unsafe.NewArray(atyp.Elem(), n))
+	if hdrp.Cap < n {
+		hdrp.Data = uintptr(unsafe.NewArray(atyp.Elem(), n))
+		hdrp.Cap = n
+	}
 	hdrp.Len = n
-	hdrp.Cap = n
 	dec.decodeArrayHelper(state, hdrp.Data, elemOp, elemWid, n, elemIndir, ovfl)
 }
 
@@ -741,7 +748,7 @@ func (dec *Decoder) ignoreInterface(state *decoderState) {
 
 // decodeGobDecoder decodes something implementing the GobDecoder interface.
 // The data is encoded as a byte slice.
-func (dec *Decoder) decodeGobDecoder(state *decoderState, v reflect.Value, index int) {
+func (dec *Decoder) decodeGobDecoder(state *decoderState, v reflect.Value) {
 	// Read the bytes for the value.
 	b := make([]byte, state.decodeUint())
 	_, err := state.b.Read(b)
@@ -842,7 +849,7 @@ func (dec *Decoder) decOpFor(wireId typeId, rt reflect.Type, name string, inProg
 		case reflect.Slice:
 			name = "element of " + name
 			if t.Elem().Kind() == reflect.Uint8 {
-				op = decUint8Array
+				op = decUint8Slice
 				break
 			}
 			var elemId typeId
@@ -969,7 +976,7 @@ func (dec *Decoder) gobDecodeOpFor(ut *userTypeInfo) (*decOp, int) {
 		} else {
 			v = reflect.ValueOf(unsafe.Unreflect(rcvrType, p))
 		}
-		state.dec.decodeGobDecoder(state, v, methodIndex(rcvrType, gobDecodeMethodName))
+		state.dec.decodeGobDecoder(state, v)
 	}
 	return &op, int(ut.indir)
 
@@ -1056,18 +1063,15 @@ func (dec *Decoder) typeString(remoteId typeId) string {
 // compileSingle compiles the decoder engine for a non-struct top-level value, including
 // GobDecoders.
 func (dec *Decoder) compileSingle(remoteId typeId, ut *userTypeInfo) (engine *decEngine, err os.Error) {
-	rt := ut.base
-	if ut.isGobDecoder {
-		rt = ut.user
-	}
+	rt := ut.user
 	engine = new(decEngine)
 	engine.instr = make([]decInstr, 1) // one item
 	name := rt.String()                // best we can do
 	if !dec.compatibleType(rt, remoteId, make(map[reflect.Type]typeId)) {
-		return nil, os.ErrorString("gob: wrong type received for local value " + name + ": " + dec.typeString(remoteId))
+		return nil, os.NewError("gob: wrong type received for local value " + name + ": " + dec.typeString(remoteId))
 	}
 	op, indir := dec.decOpFor(remoteId, rt, name, make(map[reflect.Type]*decOp))
-	ovfl := os.ErrorString(`value for "` + name + `" out of range`)
+	ovfl := os.NewError(`value for "` + name + `" out of range`)
 	engine.instr[singletonField] = decInstr{*op, singletonField, indir, 0, ovfl}
 	engine.numInstr = 1
 	return
@@ -1150,7 +1154,7 @@ func (dec *Decoder) getDecEnginePtr(remoteId typeId, ut *userTypeInfo) (enginePt
 		decoderMap[remoteId] = enginePtr
 		*enginePtr, err = dec.compileDec(remoteId, ut)
 		if err != nil {
-			decoderMap[remoteId] = nil, false
+			delete(decoderMap, remoteId)
 		}
 	}
 	return
@@ -1175,7 +1179,7 @@ func (dec *Decoder) getIgnoreEnginePtr(wireId typeId) (enginePtr **decEngine, er
 			*enginePtr, err = dec.compileIgnoreSingle(wireId)
 		}
 		if err != nil {
-			dec.ignorerCache[wireId] = nil, false
+			delete(dec.ignorerCache, wireId)
 		}
 	}
 	return
@@ -1189,7 +1193,7 @@ func (dec *Decoder) decodeValue(wireId typeId, val reflect.Value) {
 		dec.decodeIgnoredValue(wireId)
 		return
 	}
-	// Dereference down to the underlying struct type.
+	// Dereference down to the underlying type.
 	ut := userType(val.Type())
 	base := ut.base
 	var enginePtr **decEngine

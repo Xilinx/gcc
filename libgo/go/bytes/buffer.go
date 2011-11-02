@@ -280,7 +280,7 @@ func (b *Buffer) ReadRune() (r int, size int, err os.Error) {
 // from any read operation.)
 func (b *Buffer) UnreadRune() os.Error {
 	if b.lastRead != opReadRune {
-		return os.ErrorString("bytes.Buffer: UnreadRune: previous operation was not ReadRune")
+		return os.NewError("bytes.Buffer: UnreadRune: previous operation was not ReadRune")
 	}
 	b.lastRead = opInvalid
 	if b.off > 0 {
@@ -295,7 +295,7 @@ func (b *Buffer) UnreadRune() os.Error {
 // returns an error.
 func (b *Buffer) UnreadByte() os.Error {
 	if b.lastRead != opReadRune && b.lastRead != opRead {
-		return os.ErrorString("bytes.Buffer: UnreadByte: previous operation was not a read")
+		return os.NewError("bytes.Buffer: UnreadByte: previous operation was not a read")
 	}
 	b.lastRead = opInvalid
 	if b.off > 0 {
@@ -336,13 +336,18 @@ func (b *Buffer) ReadString(delim byte) (line string, err os.Error) {
 
 // NewBuffer creates and initializes a new Buffer using buf as its initial
 // contents.  It is intended to prepare a Buffer to read existing data.  It
-// can also be used to size the internal buffer for writing.  To do that,
+// can also be used to size the internal buffer for writing. To do that,
 // buf should have the desired capacity but a length of zero.
+//
+// In most cases, new(Buffer) (or just declaring a Buffer variable) is
+// preferable to NewBuffer.  In particular, passing a non-empty buf to
+// NewBuffer and then writing to the Buffer will overwrite buf, not append to
+// it.
 func NewBuffer(buf []byte) *Buffer { return &Buffer{buf: buf} }
 
 // NewBufferString creates and initializes a new Buffer using string s as its
 // initial contents.  It is intended to prepare a buffer to read an existing
-// string.
+// string.  See the warnings about NewBuffer; similar issues apply here.
 func NewBufferString(s string) *Buffer {
 	return &Buffer{buf: []byte(s)}
 }

@@ -105,7 +105,7 @@ func (p *pollster) StopWaiting(fd int, bits uint) {
 		if e := syscall.EpollCtl(p.epfd, syscall.EPOLL_CTL_DEL, fd, nil); e != 0 {
 			print("Epoll delete fd=", fd, ": ", os.Errno(e).String(), "\n")
 		}
-		p.events[fd] = 0, false
+		delete(p.events, fd)
 	}
 }
 
@@ -116,6 +116,17 @@ func (p *pollster) DelFD(fd int, mode int) {
 		p.StopWaiting(fd, readFlags)
 	} else {
 		p.StopWaiting(fd, writeFlags)
+	}
+
+	// Discard any queued up events.
+	i := 0
+	for i < len(p.waitEvents) {
+		if fd == int(p.waitEvents[i].Fd) {
+			copy(p.waitEvents[i:], p.waitEvents[i+1:])
+			p.waitEvents = p.waitEvents[:len(p.waitEvents)-1]
+		} else {
+			i++
+		}
 	}
 }
 

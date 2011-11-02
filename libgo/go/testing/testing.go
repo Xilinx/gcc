@@ -44,6 +44,8 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -62,13 +64,16 @@ var (
 	memProfileRate = flag.Int("test.memprofilerate", 0, "if >=0, sets runtime.MemProfileRate")
 	cpuProfile     = flag.String("test.cpuprofile", "", "write a cpu profile to the named file during execution")
 	timeout        = flag.Int64("test.timeout", 0, "if > 0, sets time limit for tests in seconds")
+	cpuListStr     = flag.String("test.cpu", "", "comma-separated list of number of CPUs to use for each test")
+	parallel       = flag.Int("test.parallel", runtime.GOMAXPROCS(0), "maximum test parallelism")
+
+	cpuList []int
 )
 
 // Short reports whether the -test.short flag is set.
 func Short() bool {
 	return *short
 }
-
 
 // Insert final newline if needed and tabs after internal newlines.
 func tabify(s string) string {
@@ -88,9 +93,12 @@ func tabify(s string) string {
 // T is a type passed to Test functions to manage test state and support formatted test logs.
 // Logs are accumulated during execution and dumped to standard error when done.
 type T struct {
-	errors string
-	failed bool
-	ch     chan *T
+	name          string    // Name of test.
+	errors        string    // Error string from test.
+	failed        bool      // Test has failed.
+	ch            chan *T   // Output for serial tests.
+	startParallel chan bool // Parallel tests will wait on this.
+	ns            int64     // Duration of test in nanoseconds.
 }
 
 // Fail marks the Test function as having failed but continues execution.
@@ -102,6 +110,7 @@ func (t *T) Failed() bool { return t.failed }
 // FailNow marks the Test function as having failed and stops its execution.
 // Execution will continue at the next Test.
 func (t *T) FailNow() {
+	t.ns = time.Nanoseconds() - t.ns
 	t.Fail()
 	t.ch <- t
 	runtime.Goexit()
@@ -141,6 +150,13 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 	t.FailNow()
 }
 
+// Parallel signals that this test is to be run in parallel with (and only with) 
+// other parallel tests in this CPU group.
+func (t *T) Parallel() {
+	t.ch <- nil       // Release main testing loop
+	<-t.startParallel // Wait for serial tests to finish
+}
+
 // An internal type but exported because it is cross-package; part of the implementation
 // of gotest.
 type InternalTest struct {
@@ -149,61 +165,97 @@ type InternalTest struct {
 }
 
 func tRunner(t *T, test *InternalTest) {
+	t.ns = time.Nanoseconds()
 	test.F(t)
+	t.ns = time.Nanoseconds() - t.ns
 	t.ch <- t
 }
 
 // An internal function but exported because it is cross-package; part of the implementation
 // of gotest.
-func Main(matchString func(pat, str string) (bool, os.Error), tests []InternalTest, benchmarks []InternalBenchmark) {
+func Main(matchString func(pat, str string) (bool, os.Error), tests []InternalTest, benchmarks []InternalBenchmark, examples []InternalExample) {
 	flag.Parse()
+	parseCpuList()
 
 	before()
 	startAlarm()
-	RunTests(matchString, tests)
+	testOk := RunTests(matchString, tests)
+	exampleOk := RunExamples(examples)
+	if !testOk || !exampleOk {
+		fmt.Fprintln(os.Stderr, "FAIL")
+		os.Exit(1)
+	}
+	fmt.Fprintln(os.Stderr, "PASS")
 	stopAlarm()
 	RunBenchmarks(matchString, benchmarks)
 	after()
 }
 
-func RunTests(matchString func(pat, str string) (bool, os.Error), tests []InternalTest) {
-	ok := true
+func report(t *T) {
+	tstr := fmt.Sprintf("(%.2f seconds)", float64(t.ns)/1e9)
+	format := "--- %s: %s %s\n%s"
+	if t.failed {
+		fmt.Fprintf(os.Stderr, format, "FAIL", t.name, tstr, t.errors)
+	} else if *chatty {
+		fmt.Fprintf(os.Stderr, format, "PASS", t.name, tstr, t.errors)
+	}
+}
+
+func RunTests(matchString func(pat, str string) (bool, os.Error), tests []InternalTest) (ok bool) {
+	ok = true
 	if len(tests) == 0 {
-		println("testing: warning: no tests to run")
+		fmt.Fprintln(os.Stderr, "testing: warning: no tests to run")
+		return
 	}
-	for i := 0; i < len(tests); i++ {
-		matched, err := matchString(*match, tests[i].Name)
-		if err != nil {
-			println("invalid regexp for -test.run:", err.String())
-			os.Exit(1)
+	ch := make(chan *T)
+	for _, procs := range cpuList {
+		runtime.GOMAXPROCS(procs)
+
+		numParallel := 0
+		startParallel := make(chan bool)
+
+		for i := 0; i < len(tests); i++ {
+			matched, err := matchString(*match, tests[i].Name)
+			if err != nil {
+				println("invalid regexp for -test.run:", err.String())
+				os.Exit(1)
+			}
+			if !matched {
+				continue
+			}
+			testName := tests[i].Name
+			if procs != 1 {
+				testName = fmt.Sprintf("%s-%d", tests[i].Name, procs)
+			}
+			t := &T{ch: ch, name: testName, startParallel: startParallel}
+			if *chatty {
+				println("=== RUN", t.name)
+			}
+			go tRunner(t, &tests[i])
+			out := <-t.ch
+			if out == nil { // Parallel run.
+				numParallel++
+				continue
+			}
+			report(t)
+			ok = ok && !out.failed
 		}
-		if !matched {
-			continue
-		}
-		if *chatty {
-			println("=== RUN ", tests[i].Name)
-		}
-		ns := -time.Nanoseconds()
-		t := new(T)
-		t.ch = make(chan *T)
-		go tRunner(t, &tests[i])
-		<-t.ch
-		ns += time.Nanoseconds()
-		tstr := fmt.Sprintf("(%.2f seconds)", float64(ns)/1e9)
-		if t.failed {
-			println("--- FAIL:", tests[i].Name, tstr)
-			print(t.errors)
-			ok = false
-		} else if *chatty {
-			println("--- PASS:", tests[i].Name, tstr)
-			print(t.errors)
+
+		running := 0
+		for numParallel+running > 0 {
+			if running < *parallel && numParallel > 0 {
+				startParallel <- true
+				running++
+				numParallel--
+				continue
+			}
+			t := <-ch
+			report(t)
+			ok = ok && !t.failed
+			running--
 		}
 	}
-	if !ok {
-		println("FAIL")
-		os.Exit(1)
-	}
-	println("PASS")
+	return
 }
 
 // before runs before all testing.
@@ -264,4 +316,19 @@ func stopAlarm() {
 // alarm is called if the timeout expires.
 func alarm() {
 	panic("test timed out")
+}
+
+func parseCpuList() {
+	if len(*cpuListStr) == 0 {
+		cpuList = append(cpuList, runtime.GOMAXPROCS(-1))
+	} else {
+		for _, val := range strings.Split(*cpuListStr, ",") {
+			cpu, err := strconv.Atoi(val)
+			if err != nil || cpu <= 0 {
+				println("invalid value for -test.cpu")
+				os.Exit(1)
+			}
+			cpuList = append(cpuList, cpu)
+		}
+	}
 }

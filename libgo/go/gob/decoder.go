@@ -29,9 +29,15 @@ type Decoder struct {
 }
 
 // NewDecoder returns a new decoder that reads from the io.Reader.
+// If r does not also implement io.ByteReader, it will be wrapped in a
+// bufio.Reader.
 func NewDecoder(r io.Reader) *Decoder {
 	dec := new(Decoder)
-	dec.r = bufio.NewReader(r)
+	// We use the ability to read bytes as a plausible surrogate for buffering.
+	if _, ok := r.(io.ByteReader); !ok {
+		r = bufio.NewReader(r)
+	}
+	dec.r = r
 	dec.wireType = make(map[typeId]*wireType)
 	dec.decoderCache = make(map[reflect.Type]map[typeId]**decEngine)
 	dec.ignorerCache = make(map[typeId]**decEngine)
@@ -44,7 +50,7 @@ func NewDecoder(r io.Reader) *Decoder {
 func (dec *Decoder) recvType(id typeId) {
 	// Have we already seen this type?  That's an error
 	if id < firstUserId || dec.wireType[id] != nil {
-		dec.err = os.ErrorString("gob: duplicate type received")
+		dec.err = os.NewError("gob: duplicate type received")
 		return
 	}
 
@@ -58,6 +64,8 @@ func (dec *Decoder) recvType(id typeId) {
 	dec.wireType[id] = wire
 }
 
+var errBadCount = gobError{os.NewError("invalid message length")}
+
 // recvMessage reads the next count-delimited item from the input. It is the converse
 // of Encoder.writeMessage. It returns false on EOF or other error reading the message.
 func (dec *Decoder) recvMessage() bool {
@@ -65,6 +73,10 @@ func (dec *Decoder) recvMessage() bool {
 	nbytes, _, err := decodeUintReader(dec.r, dec.countBuf)
 	if err != nil {
 		dec.err = err
+		return false
+	}
+	if nbytes >= 1<<31 {
+		dec.err = errBadCount
 		return false
 	}
 	dec.readMessage(int(nbytes))
@@ -143,7 +155,7 @@ func (dec *Decoder) decodeTypeSequence(isInterface bool) typeId {
 		// will be absorbed by recvMessage.)
 		if dec.buf.Len() > 0 {
 			if !isInterface {
-				dec.err = os.ErrorString("extra data in buffer")
+				dec.err = os.NewError("extra data in buffer")
 				break
 			}
 			dec.nextUint()
@@ -155,8 +167,8 @@ func (dec *Decoder) decodeTypeSequence(isInterface bool) typeId {
 // Decode reads the next value from the connection and stores
 // it in the data represented by the empty interface value.
 // If e is nil, the value will be discarded. Otherwise,
-// the value underlying e must either be the correct type for the next
-// data item received, and must be a pointer.
+// the value underlying e must be a pointer to the
+// correct type for the next data item received.
 func (dec *Decoder) Decode(e interface{}) os.Error {
 	if e == nil {
 		return dec.DecodeValue(reflect.Value{})
@@ -165,7 +177,7 @@ func (dec *Decoder) Decode(e interface{}) os.Error {
 	// If e represents a value as opposed to a pointer, the answer won't
 	// get back to the caller.  Make sure it's a pointer.
 	if value.Type().Kind() != reflect.Ptr {
-		dec.err = os.ErrorString("gob: attempt to decode into a non-pointer")
+		dec.err = os.NewError("gob: attempt to decode into a non-pointer")
 		return dec.err
 	}
 	return dec.DecodeValue(value)
@@ -180,7 +192,7 @@ func (dec *Decoder) DecodeValue(v reflect.Value) os.Error {
 		if v.Kind() == reflect.Ptr && !v.IsNil() {
 			// That's okay, we'll store through the pointer.
 		} else if !v.CanSet() {
-			return os.ErrorString("gob: DecodeValue of unassignable value")
+			return os.NewError("gob: DecodeValue of unassignable value")
 		}
 	}
 	// Make sure we're single-threaded through here.

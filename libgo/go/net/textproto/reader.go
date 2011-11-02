@@ -7,11 +7,11 @@ package textproto
 import (
 	"bufio"
 	"bytes"
-	"container/vector"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // BUG(rsc): To let callers manage exposure to denial of service
@@ -33,22 +33,25 @@ func NewReader(r *bufio.Reader) *Reader {
 // ReadLine reads a single line from r,
 // eliding the final \n or \r\n from the returned string.
 func (r *Reader) ReadLine() (string, os.Error) {
-	line, err := r.ReadLineBytes()
+	line, err := r.readLineSlice()
 	return string(line), err
 }
 
 // ReadLineBytes is like ReadLine but returns a []byte instead of a string.
 func (r *Reader) ReadLineBytes() ([]byte, os.Error) {
-	r.closeDot()
-	line, err := r.R.ReadBytes('\n')
-	n := len(line)
-	if n > 0 && line[n-1] == '\n' {
-		n--
-		if n > 0 && line[n-1] == '\r' {
-			n--
-		}
+	line, err := r.readLineSlice()
+	if line != nil {
+		buf := make([]byte, len(line))
+		copy(buf, line)
+		line = buf
 	}
-	return line[0:n], err
+	return line, err
+}
+
+func (r *Reader) readLineSlice() ([]byte, os.Error) {
+	r.closeDot()
+	line, _, err := r.R.ReadLine()
+	return line, err
 }
 
 // ReadContinuedLine reads a possibly continued line from r,
@@ -71,7 +74,7 @@ func (r *Reader) ReadLineBytes() ([]byte, os.Error) {
 // A line consisting of only white space is never continued.
 //
 func (r *Reader) ReadContinuedLine() (string, os.Error) {
-	line, err := r.ReadContinuedLineBytes()
+	line, err := r.readContinuedLineSlice()
 	return string(line), err
 }
 
@@ -92,8 +95,18 @@ func trim(s []byte) []byte {
 // ReadContinuedLineBytes is like ReadContinuedLine but
 // returns a []byte instead of a string.
 func (r *Reader) ReadContinuedLineBytes() ([]byte, os.Error) {
+	line, err := r.readContinuedLineSlice()
+	if line != nil {
+		buf := make([]byte, len(line))
+		copy(buf, line)
+		line = buf
+	}
+	return line, err
+}
+
+func (r *Reader) readContinuedLineSlice() ([]byte, os.Error) {
 	// Read the first line.
-	line, err := r.ReadLineBytes()
+	line, err := r.readLineSlice()
 	if err != nil {
 		return line, err
 	}
@@ -101,6 +114,13 @@ func (r *Reader) ReadContinuedLineBytes() ([]byte, os.Error) {
 		return line, nil
 	}
 	line = trim(line)
+
+	copied := false
+	if r.R.Buffered() < 1 {
+		// ReadByte will flush the buffer; make a copy of the slice.
+		copied = true
+		line = append([]byte(nil), line...)
+	}
 
 	// Look for a continuation line.
 	c, err := r.R.ReadByte()
@@ -112,6 +132,11 @@ func (r *Reader) ReadContinuedLineBytes() ([]byte, os.Error) {
 		// Not a continuation.
 		r.R.UnreadByte()
 		return line, nil
+	}
+
+	if !copied {
+		// The next readLineSlice will invalidate the previous one.
+		line = append(make([]byte, 0, len(line)*2), line...)
 	}
 
 	// Read continuation lines.
@@ -128,7 +153,7 @@ func (r *Reader) ReadContinuedLineBytes() ([]byte, os.Error) {
 			}
 		}
 		var cont []byte
-		cont, err = r.ReadLineBytes()
+		cont, err = r.readLineSlice()
 		cont = trim(cont)
 		line = append(line, ' ')
 		line = append(line, cont...)
@@ -158,6 +183,10 @@ func (r *Reader) readCodeLine(expectCode int) (code int, continued bool, message
 	if err != nil {
 		return
 	}
+	return parseCodeLine(line, expectCode)
+}
+
+func parseCodeLine(line string, expectCode int) (code int, continued bool, message string, err os.Error) {
 	if len(line) < 4 || line[3] != ' ' && line[3] != '-' {
 		err = ProtocolError("short response: " + line)
 		return
@@ -200,15 +229,20 @@ func (r *Reader) ReadCodeLine(expectCode int) (code int, message string, err os.
 	return
 }
 
-// ReadResponse reads a multi-line response of the form
+// ReadResponse reads a multi-line response of the form:
+//
 //	code-message line 1
 //	code-message line 2
 //	...
 //	code message line n
-// where code is a 3-digit status code. Each line should have the same code.
-// The response is terminated by a line that uses a space between the code and
-// the message line rather than a dash. Each line in message is separated by
-// a newline (\n).
+//
+// where code is a 3-digit status code. The first line starts with the
+// code and a hyphen. The response is terminated by a line that starts
+// with the same code followed by a space. Each line in message is
+// separated by a newline (\n).
+//
+// See page 36 of RFC 959 (http://www.ietf.org/rfc/rfc959.txt) for
+// details.
 //
 // If the prefix of the status does not match the digits in expectCode,
 // ReadResponse returns with err set to &Error{code, message}.
@@ -220,11 +254,18 @@ func (r *Reader) ReadCodeLine(expectCode int) (code int, message string, err os.
 func (r *Reader) ReadResponse(expectCode int) (code int, message string, err os.Error) {
 	code, continued, message, err := r.readCodeLine(expectCode)
 	for err == nil && continued {
+		line, err := r.ReadLine()
+		if err != nil {
+			return 0, "", err
+		}
+
 		var code2 int
 		var moreMessage string
-		code2, continued, moreMessage, err = r.readCodeLine(expectCode)
-		if code != code2 {
-			err = ProtocolError("status code mismatch: " + strconv.Itoa(code) + ", " + strconv.Itoa(code2))
+		code2, continued, moreMessage, err = parseCodeLine(line, expectCode)
+		if err != nil || code2 != code {
+			message += "\n" + strings.TrimRight(line, "\r\n")
+			continued = true
+			continue
 		}
 		message += "\n" + moreMessage
 	}
@@ -237,7 +278,7 @@ func (r *Reader) ReadResponse(expectCode int) (code int, message string, err os.
 // to a method on r.
 //
 // Dot encoding is a common framing used for data blocks
-// in text protcols like SMTP.  The data consists of a sequence
+// in text protocols such as SMTP.  The data consists of a sequence
 // of lines, each of which ends in "\r\n".  The sequence itself
 // ends at a line containing just a dot: ".\r\n".  Lines beginning
 // with a dot are escaped with an additional dot to avoid
@@ -375,7 +416,7 @@ func (r *Reader) ReadDotLines() ([]string, os.Error) {
 	// We could use ReadDotBytes and then Split it,
 	// but reading a line at a time avoids needing a
 	// large contiguous block of memory and is simpler.
-	var v vector.StringVector
+	var v []string
 	var err os.Error
 	for {
 		var line string
@@ -394,7 +435,7 @@ func (r *Reader) ReadDotLines() ([]string, os.Error) {
 			}
 			line = line[1:]
 		}
-		v.Push(line)
+		v = append(v, line)
 	}
 	return v, err
 }
@@ -422,7 +463,7 @@ func (r *Reader) ReadDotLines() ([]string, os.Error) {
 func (r *Reader) ReadMIMEHeader() (MIMEHeader, os.Error) {
 	m := make(MIMEHeader)
 	for {
-		kv, err := r.ReadContinuedLineBytes()
+		kv, err := r.readContinuedLineSlice()
 		if len(kv) == 0 {
 			return m, err
 		}
@@ -441,9 +482,7 @@ func (r *Reader) ReadMIMEHeader() (MIMEHeader, os.Error) {
 		}
 		value := string(kv[i:])
 
-		v := vector.StringVector(m[key])
-		v.Push(value)
-		m[key] = v
+		m[key] = append(m[key], value)
 
 		if err != nil {
 			return m, err

@@ -719,9 +719,8 @@ relative_time_benefit (struct inline_summary *callee_info,
   uninlined_call_time =
     ((gcov_type)
      (callee_info->time
-      + inline_edge_summary (edge)->call_stmt_time
-      + CGRAPH_FREQ_BASE / 2) * edge->frequency
-     / CGRAPH_FREQ_BASE);
+      + inline_edge_summary (edge)->call_stmt_time) * edge->frequency
+     + CGRAPH_FREQ_BASE / 2) / CGRAPH_FREQ_BASE;
   /* Compute relative time benefit, i.e. how much the call becomes faster.
      ??? perhaps computing how much the caller+calle together become faster
      would lead to more realistic results.  */
@@ -832,8 +831,10 @@ edge_badness (struct cgraph_edge *edge, bool dump)
       /* Result must be integer in range 0...INT_MAX.
 	 Set the base of fixed point calculation so we don't lose much of
 	 precision for small bandesses (those are interesting) yet we don't
-	 overflow for growths that are still in interesting range.  */
-      badness = ((gcov_type)growth) * (1<<18);
+	 overflow for growths that are still in interesting range.
+
+	 Fixed point arithmetic with point at 8th bit. */
+      badness = ((gcov_type)growth) * (1<<(19+8));
       badness = (badness + div / 2) / div;
 
       /* Overall growth of inlining all calls of function matters: we want to
@@ -848,10 +849,14 @@ edge_badness (struct cgraph_edge *edge, bool dump)
 	 We might mix the valud into the fraction by taking into account
 	 relative growth of the unit, but for now just add the number
 	 into resulting fraction.  */
+      if (badness > INT_MAX / 2)
+	{
+	  badness = INT_MAX / 2;
+	  if (dump)
+	    fprintf (dump_file, "Badness overflow\n");
+	}
       growth_for_all = estimate_growth (callee);
       badness += growth_for_all;
-      if (badness > INT_MAX - 1)
-	badness = INT_MAX - 1;
       if (dump)
 	{
 	  fprintf (dump_file,
@@ -1394,6 +1399,7 @@ inline_small_functions (void)
       struct cgraph_node *where, *callee;
       int badness = fibheap_min_key (heap);
       int current_badness;
+      int cached_badness;
       int growth;
 
       edge = (struct cgraph_edge *) fibheap_extract_min (heap);
@@ -1402,16 +1408,18 @@ inline_small_functions (void)
       if (!edge->inline_failed)
 	continue;
 
-      /* Be sure that caches are maintained consistent.  */
-#ifdef ENABLE_CHECKING
+      /* Be sure that caches are maintained consistent.  
+         We can not make this ENABLE_CHECKING only because it cause differnt
+         updates of the fibheap queue.  */
+      cached_badness = edge_badness (edge, false);
       reset_edge_growth_cache (edge);
       reset_node_growth_cache (edge->callee);
-#endif
 
       /* When updating the edge costs, we only decrease badness in the keys.
 	 Increases of badness are handled lazilly; when we see key with out
 	 of date value on it, we re-insert it now.  */
       current_badness = edge_badness (edge, false);
+      gcc_assert (cached_badness == current_badness);
       gcc_assert (current_badness >= badness);
       if (current_badness != badness)
 	{
@@ -1522,8 +1530,13 @@ inline_small_functions (void)
 
 	  /* We inlined last offline copy to the body.  This might lead
 	     to callees of function having fewer call sites and thus they
-	     may need updating.  */
-	  if (callee->global.inlined_to)
+	     may need updating. 
+
+	     FIXME: the callee size could also shrink because more information
+	     is propagated from caller.  We don't track when this happen and
+	     thus we need to recompute everything all the time.  Once this is
+	     solved, "|| 1" should go away.  */
+	  if (callee->global.inlined_to || 1)
 	    update_all_callee_keys (heap, callee, updated_nodes);
 	  else
 	    update_callee_keys (heap, edge->callee, updated_nodes);
@@ -1669,10 +1682,8 @@ ipa_inline (void)
     XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
   int i;
 
-  if (in_lto_p && flag_indirect_inlining)
+  if (in_lto_p && optimize)
     ipa_update_after_lto_read ();
-  if (flag_indirect_inlining)
-    ipa_create_all_structures_for_iinln ();
 
   if (dump_file)
     dump_inline_summaries (dump_file);
@@ -1767,7 +1778,7 @@ ipa_inline (void)
     }
 
   /* Free ipa-prop structures if they are no longer needed.  */
-  if (flag_indirect_inlining)
+  if (optimize)
     ipa_free_all_structures_after_iinln ();
 
   if (dump_file)

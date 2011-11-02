@@ -707,7 +707,8 @@
 /* Define to use concept checking code from the boost libraries. */
 #undef _GLIBCXX_CONCEPT_CHECKS
 
-/* Define if a fully dynamic basic_string is wanted. */
+/* Define to 1 if a fully dynamic basic_string is wanted, 0 to disable,
+   undefined for platform defaults */
 #undef _GLIBCXX_FULLY_DYNAMIC_STRING
 
 /* Define if gthreads library is available. */
@@ -807,11 +808,17 @@
    this host. */
 #undef _GLIBCXX_USE_DECIMAL_FLOAT
 
+/* Define if __float128 is supported on this host. */
+#undef _GLIBCXX_USE_FLOAT128
+
 /* Defined if gettimeofday is available. */
 #undef _GLIBCXX_USE_GETTIMEOFDAY
 
 /* Define if get_nprocs is available in <sys/sysinfo.h>. */
 #undef _GLIBCXX_USE_GET_NPROCS
+
+/* Define if __int128 is supported on this host. */
+#undef _GLIBCXX_USE_INT128
 
 /* Define if LFS support is available. */
 #undef _GLIBCXX_USE_LFS

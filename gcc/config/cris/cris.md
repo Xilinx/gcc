@@ -191,10 +191,8 @@
 
 (define_delay (eq_attr "slottable" "has_call_slot")
   [(and (eq_attr "slottable" "yes")
-	(ior (eq (symbol_ref "RTX_FRAME_RELATED_P (insn)")
-		 (const_int 0))
-	     (eq (symbol_ref "flag_exceptions")
-		 (const_int 0))))
+	(ior (not (match_test "RTX_FRAME_RELATED_P (insn)"))
+	     (not (match_test "flag_exceptions"))))
    (nil) (nil)])
 
 ;; The insn in the return insn slot must not be the
@@ -204,8 +202,7 @@
 ;; naked RETURN in middle-end.
 (define_delay (eq_attr "slottable" "has_return_slot")
   [(and (eq_attr "slottable" "yes")
-	(eq (symbol_ref "dead_or_set_regno_p (insn, CRIS_SRP_REGNUM)")
-	    (const_int 0)))
+	(not (match_test "dead_or_set_regno_p (insn, CRIS_SRP_REGNUM)")))
    (nil) (nil)])
 
 
@@ -2578,7 +2575,7 @@
   "TARGET_HAS_MUL_INSNS"
   "%!mul<su><mm> %2,%0"
   [(set (attr "slottable")
-	(if_then_else (ne (symbol_ref "TARGET_MUL_BUG") (const_int 0))
+	(if_then_else (match_test "TARGET_MUL_BUG")
 		      (const_string "no")
 		      (const_string "yes")))
    ;; For umuls.[bwd] it's just N unusable here, but let's be safe.
@@ -2601,7 +2598,7 @@
   "TARGET_HAS_MUL_INSNS"
   "%!muls.d %2,%0"
   [(set (attr "slottable")
-	(if_then_else (ne (symbol_ref "TARGET_MUL_BUG") (const_int 0))
+	(if_then_else (match_test "TARGET_MUL_BUG")
 		      (const_string "no")
 		      (const_string "yes")))
    ;; Just N unusable here, but let's be safe.
@@ -3493,9 +3490,7 @@
 }
   [(set (attr "slottable")
  	(if_then_else
- 	 (ne (symbol_ref
-	      "(cris_return_address_on_stack_for_return ())")
- 	     (const_int 0))
+ 	 (match_test "cris_return_address_on_stack_for_return ()")
  	 (const_string "no")
 	 (const_string "has_return_slot")))])
 
@@ -4685,7 +4680,7 @@
 	(match_operator 4 "cris_mem_op" [(match_dup 0)]))]
   "GET_MODE_SIZE (GET_MODE (operands[4])) <= UNITS_PER_WORD
    && REGNO (operands[3]) != REGNO (operands[0])
-   && (BASE_P (operands[1]) || BASE_P (operands[2]))
+   && (cris_base_p (operands[1], true) || cris_base_p (operands[2], true))
    && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')
    && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
    && (INTVAL (operands[2]) >= -128 && INTVAL (operands[2]) < 128)
@@ -4721,7 +4716,7 @@
 	(match_operand 4 "register_operand" ""))]
   "GET_MODE_SIZE (GET_MODE (operands[4])) <= UNITS_PER_WORD
    && REGNO (operands[4]) != REGNO (operands[0])
-   && (BASE_P (operands[1]) || BASE_P (operands[2]))
+   && (cris_base_p (operands[1], true) || cris_base_p (operands[2], true))
    && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')
    && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
    && (INTVAL (operands[2]) >= -128 && INTVAL (operands[2]) < 128)

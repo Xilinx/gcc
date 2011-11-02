@@ -1473,7 +1473,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 static bool
 vect_analyze_loop_2 (loop_vec_info loop_vinfo)
 {
-  bool ok, dummy, slp = false;
+  bool ok, slp = false;
   int max_vf = MAX_VECTORIZATION_FACTOR;
   int min_vf = 2;
 
@@ -1514,7 +1514,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
      the dependences.
      FORNOW: fail at the first data dependence that we encounter.  */
 
-  ok = vect_analyze_data_ref_dependences (loop_vinfo, NULL, &max_vf, &dummy);
+  ok = vect_analyze_data_ref_dependences (loop_vinfo, NULL, &max_vf);
   if (!ok
       || max_vf < min_vf)
     {
@@ -2149,7 +2149,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
       op1 = gimple_assign_rhs1 (def_stmt);
       op2 = gimple_assign_rhs2 (def_stmt);
 
-      if (TREE_CODE (op1) != SSA_NAME || TREE_CODE (op2) != SSA_NAME)
+      if (TREE_CODE (op1) != SSA_NAME && TREE_CODE (op2) != SSA_NAME)
         {
           if (vect_print_dump_info (REPORT_DETAILS))
 	    report_vect_op (def_stmt, "reduction: uses not ssa_names: ");
@@ -2255,7 +2255,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
     def2 = SSA_NAME_DEF_STMT (op2);
 
   if (code != COND_EXPR
-      && (!def1 || !def2 || gimple_nop_p (def1) || gimple_nop_p (def2)))
+      && ((!def1 || gimple_nop_p (def1)) && (!def2 || gimple_nop_p (def2))))
     {
       if (vect_print_dump_info (REPORT_DETAILS))
 	report_vect_op (def_stmt, "reduction: no defs for operands: ");
@@ -2268,6 +2268,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
   if (def2 && def2 == phi
       && (code == COND_EXPR
+	  || !def1 || gimple_nop_p (def1)
           || (def1 && flow_bb_inside_loop_p (loop, gimple_bb (def1))
               && (is_gimple_assign (def1)
 		  || is_gimple_call (def1)
@@ -2285,6 +2286,7 @@ vect_is_simple_reduction_1 (loop_vec_info loop_info, gimple phi,
 
   if (def1 && def1 == phi
       && (code == COND_EXPR
+	  || !def2 || gimple_nop_p (def2)
           || (def2 && flow_bb_inside_loop_p (loop, gimple_bb (def2))
  	      && (is_gimple_assign (def2)
 		  || is_gimple_call (def2)
@@ -4418,6 +4420,11 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
   scalar_type = TREE_TYPE (scalar_dest);
   if (!POINTER_TYPE_P (scalar_type) && !INTEGRAL_TYPE_P (scalar_type)
       && !SCALAR_FLOAT_TYPE_P (scalar_type))
+    return false;
+
+  /* Do not try to vectorize bit-precision reductions.  */
+  if ((TYPE_PRECISION (scalar_type)
+       != GET_MODE_PRECISION (TYPE_MODE (scalar_type))))
     return false;
 
   /* All uses but the last are expected to be defined in the loop.

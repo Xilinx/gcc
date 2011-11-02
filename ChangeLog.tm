@@ -1,3 +1,7 @@
+2011-11-02  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Merge from mainline rev 180744.
+
 2011-09-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from mainline rev 178608.

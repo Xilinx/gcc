@@ -17,6 +17,7 @@
 #include "go-panic.h"
 #include "go-alloc.h"
 #include "runtime.h"
+#include "arch.h"
 #include "malloc.h"
 
 #ifdef USING_SPLIT_STACK
@@ -73,7 +74,7 @@ static sigset_t __go_thread_wait_sigset;
 /* Remove the current thread from the list of threads.  */
 
 static void
-remove_current_thread (void)
+remove_current_thread (void *dummy __attribute__ ((unused)))
 {
   struct __go_thread_id *list_entry;
   MCache *mcache;
@@ -92,7 +93,7 @@ remove_current_thread (void)
   if (list_entry->next != NULL)
     list_entry->next->prev = list_entry->prev;
 
-  /* This will look runtime_mheap as needed.  */
+  /* This will lock runtime_mheap as needed.  */
   runtime_MCache_ReleaseAll (mcache);
 
   /* This should never deadlock--there shouldn't be any code that
@@ -139,6 +140,8 @@ start_go_thread (void *thread_arg)
 
   m = newm;
 
+  pthread_cleanup_push (remove_current_thread, NULL);
+
   list_entry = newm->list_entry;
 
   pfn = list_entry->pfn;
@@ -166,7 +169,7 @@ start_go_thread (void *thread_arg)
 
   (*pfn) (arg);
 
-  remove_current_thread ();
+  pthread_cleanup_pop (1);
 
   return NULL;
 }
@@ -178,10 +181,13 @@ void Goexit (void) asm ("libgo_runtime.runtime.Goexit");
 void
 Goexit (void)
 {
-  remove_current_thread ();
   pthread_exit (NULL);
   abort ();
 }
+
+/* Count of threads created.  */
+
+static volatile int mcount;
 
 /* Implement the go statement.  */
 
@@ -223,6 +229,9 @@ __go_go (void (*pfn) (void*), void *arg)
   list_entry->arg = arg;
 
   newm->list_entry = list_entry;
+
+  newm->id = __sync_fetch_and_add (&mcount, 1);
+  newm->fastrand = 0x49f6428aUL + newm->id;
 
   newm->mcache = runtime_allocmcache ();
 
@@ -536,19 +545,24 @@ __go_cachestats (void)
   for (p = __go_all_thread_ids; p != NULL; p = p->next)
     {
       MCache *c;
+      int i;
 
+      runtime_purgecachedstats(p->m);
       c = p->m->mcache;
-      mstats.heap_alloc += c->local_alloc;
-      c->local_alloc = 0;
-      mstats.heap_objects += c->local_objects;
-      c->local_objects = 0;
+      for (i = 0; i < NumSizeClasses; ++i)
+	{
+	  mstats.by_size[i].nmalloc += c->local_by_size[i].nmalloc;
+	  c->local_by_size[i].nmalloc = 0;
+	  mstats.by_size[i].nfree += c->local_by_size[i].nfree;
+	  c->local_by_size[i].nfree = 0;
+	}
     }
 }
 
 /* Start the other threads after garbage collection.  */
 
 void
-runtime_starttheworld (void)
+runtime_starttheworld (bool extra __attribute__ ((unused)))
 {
   int i;
   pthread_t me;

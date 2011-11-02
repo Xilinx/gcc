@@ -9,185 +9,34 @@ import "go/token"
 // ----------------------------------------------------------------------------
 // Export filtering
 
-func identListExports(list []*Ident) []*Ident {
-	j := 0
-	for _, x := range list {
-		if x.IsExported() {
-			list[j] = x
-			j++
-		}
-	}
-	return list[0:j]
+// exportFilter is a special filter function to extract exported nodes.
+func exportFilter(name string) bool {
+	return IsExported(name)
 }
 
-
-// isExportedType assumes that typ is a correct type.
-func isExportedType(typ Expr) bool {
-	switch t := typ.(type) {
-	case *Ident:
-		return t.IsExported()
-	case *ParenExpr:
-		return isExportedType(t.X)
-	case *SelectorExpr:
-		// assume t.X is a typename
-		return t.Sel.IsExported()
-	case *StarExpr:
-		return isExportedType(t.X)
-	}
-	return false
-}
-
-
-func fieldListExports(fields *FieldList, incomplete *bool) {
-	if fields == nil {
-		return
-	}
-	list := fields.List
-	j := 0
-	for _, f := range list {
-		exported := false
-		if len(f.Names) == 0 {
-			// anonymous field
-			// (Note that a non-exported anonymous field
-			// may still refer to a type with exported
-			// fields, so this is not absolutely correct.
-			// However, this cannot be done w/o complete
-			// type information.)
-			exported = isExportedType(f.Type)
-		} else {
-			n := len(f.Names)
-			f.Names = identListExports(f.Names)
-			if len(f.Names) < n {
-				*incomplete = true
-			}
-			exported = len(f.Names) > 0
-		}
-		if exported {
-			typeExports(f.Type)
-			list[j] = f
-			j++
-		}
-	}
-	if j < len(list) {
-		*incomplete = true
-	}
-	fields.List = list[0:j]
-}
-
-
-func paramListExports(fields *FieldList) {
-	if fields == nil {
-		return
-	}
-	for _, f := range fields.List {
-		typeExports(f.Type)
-	}
-}
-
-
-func typeExports(typ Expr) {
-	switch t := typ.(type) {
-	case *ArrayType:
-		typeExports(t.Elt)
-	case *StructType:
-		fieldListExports(t.Fields, &t.Incomplete)
-	case *FuncType:
-		paramListExports(t.Params)
-		paramListExports(t.Results)
-	case *InterfaceType:
-		fieldListExports(t.Methods, &t.Incomplete)
-	case *MapType:
-		typeExports(t.Key)
-		typeExports(t.Value)
-	case *ChanType:
-		typeExports(t.Value)
-	}
-}
-
-
-func specExports(spec Spec) bool {
-	switch s := spec.(type) {
-	case *ValueSpec:
-		s.Names = identListExports(s.Names)
-		if len(s.Names) > 0 {
-			typeExports(s.Type)
-			return true
-		}
-	case *TypeSpec:
-		if s.Name.IsExported() {
-			typeExports(s.Type)
-			return true
-		}
-	}
-	return false
-}
-
-
-func specListExports(list []Spec) []Spec {
-	j := 0
-	for _, s := range list {
-		if specExports(s) {
-			list[j] = s
-			j++
-		}
-	}
-	return list[0:j]
-}
-
-
-func declExports(decl Decl) bool {
-	switch d := decl.(type) {
-	case *GenDecl:
-		d.Specs = specListExports(d.Specs)
-		return len(d.Specs) > 0
-	case *FuncDecl:
-		d.Body = nil // strip body
-		return d.Name.IsExported()
-	}
-	return false
-}
-
-
-// FileExports trims the AST for a Go source file in place such that only
-// exported nodes remain: all top-level identifiers which are not exported
+// FileExports trims the AST for a Go source file in place such that
+// only exported nodes remain: all top-level identifiers which are not exported
 // and their associated information (such as type, initial value, or function
 // body) are removed. Non-exported fields and methods of exported types are
-// stripped, and the function bodies of exported functions are set to nil.
-// The File.comments list is not changed.
+// stripped. The File.Comments list is not changed.
 //
-// FileExports returns true if there is an exported declaration; it returns
-// false otherwise.
+// FileExports returns true if there are exported declarationa;
+// it returns false otherwise.
 //
 func FileExports(src *File) bool {
-	j := 0
-	for _, d := range src.Decls {
-		if declExports(d) {
-			src.Decls[j] = d
-			j++
-		}
-	}
-	src.Decls = src.Decls[0:j]
-	return j > 0
+	return FilterFile(src, exportFilter)
 }
 
-
-// PackageExports trims the AST for a Go package in place such that only
-// exported nodes remain. The pkg.Files list is not changed, so that file
-// names and top-level package comments don't get lost.
+// PackageExports trims the AST for a Go package in place such that
+// only exported nodes remain. The pkg.Files list is not changed, so that
+// file names and top-level package comments don't get lost.
 //
-// PackageExports returns true if there is an exported declaration; it
-// returns false otherwise.
+// PackageExports returns true if there are exported declarations;
+// it returns false otherwise.
 //
 func PackageExports(pkg *Package) bool {
-	hasExports := false
-	for _, f := range pkg.Files {
-		if FileExports(f) {
-			hasExports = true
-		}
-	}
-	return hasExports
+	return FilterPackage(pkg, exportFilter)
 }
-
 
 // ----------------------------------------------------------------------------
 // General filtering
@@ -205,18 +54,132 @@ func filterIdentList(list []*Ident, f Filter) []*Ident {
 	return list[0:j]
 }
 
+// fieldName assumes that x is the type of an anonymous field and
+// returns the corresponding field name. If x is not an acceptable
+// anonymous field, the result is nil.
+//
+func fieldName(x Expr) *Ident {
+	switch t := x.(type) {
+	case *Ident:
+		return t
+	case *SelectorExpr:
+		if _, ok := t.X.(*Ident); ok {
+			return t.Sel
+		}
+	case *StarExpr:
+		return fieldName(t.X)
+	}
+	return nil
+}
+
+func filterFieldList(fields *FieldList, filter Filter) (removedFields bool) {
+	if fields == nil {
+		return false
+	}
+	list := fields.List
+	j := 0
+	for _, f := range list {
+		keepField := false
+		if len(f.Names) == 0 {
+			// anonymous field
+			name := fieldName(f.Type)
+			keepField = name != nil && filter(name.Name)
+		} else {
+			n := len(f.Names)
+			f.Names = filterIdentList(f.Names, filter)
+			if len(f.Names) < n {
+				removedFields = true
+			}
+			keepField = len(f.Names) > 0
+		}
+		if keepField {
+			if filter == exportFilter {
+				filterType(f.Type, filter)
+			}
+			list[j] = f
+			j++
+		}
+	}
+	if j < len(list) {
+		removedFields = true
+	}
+	fields.List = list[0:j]
+	return
+}
+
+func filterParamList(fields *FieldList, filter Filter) bool {
+	if fields == nil {
+		return false
+	}
+	var b bool
+	for _, f := range fields.List {
+		if filterType(f.Type, filter) {
+			b = true
+		}
+	}
+	return b
+}
+
+func filterType(typ Expr, f Filter) bool {
+	switch t := typ.(type) {
+	case *Ident:
+		return f(t.Name)
+	case *ParenExpr:
+		return filterType(t.X, f)
+	case *ArrayType:
+		return filterType(t.Elt, f)
+	case *StructType:
+		if filterFieldList(t.Fields, f) {
+			t.Incomplete = true
+		}
+		return len(t.Fields.List) > 0
+	case *FuncType:
+		b1 := filterParamList(t.Params, f)
+		b2 := filterParamList(t.Results, f)
+		return b1 || b2
+	case *InterfaceType:
+		if filterFieldList(t.Methods, f) {
+			t.Incomplete = true
+		}
+		return len(t.Methods.List) > 0
+	case *MapType:
+		b1 := filterType(t.Key, f)
+		b2 := filterType(t.Value, f)
+		return b1 || b2
+	case *ChanType:
+		return filterType(t.Value, f)
+	}
+	return false
+}
 
 func filterSpec(spec Spec, f Filter) bool {
 	switch s := spec.(type) {
 	case *ValueSpec:
 		s.Names = filterIdentList(s.Names, f)
-		return len(s.Names) > 0
+		if len(s.Names) > 0 {
+			if f == exportFilter {
+				filterType(s.Type, f)
+			}
+			return true
+		}
 	case *TypeSpec:
-		return f(s.Name.Name)
+		if f(s.Name.Name) {
+			if f == exportFilter {
+				filterType(s.Type, f)
+			}
+			return true
+		}
+		if f != exportFilter {
+			// For general filtering (not just exports),
+			// filter type even if name is not filtered
+			// out.
+			// If the type contains filtered elements,
+			// keep the declaration.
+			return filterType(s.Type, f)
+		}
 	}
 	return false
 }
-
 
 func filterSpecList(list []Spec, f Filter) []Spec {
 	j := 0
@@ -229,8 +192,14 @@ func filterSpecList(list []Spec, f Filter) []Spec {
 	return list[0:j]
 }
 
-
-func filterDecl(decl Decl, f Filter) bool {
+// FilterDecl trims the AST for a Go declaration in place by removing
+// all names (including struct field and interface method names, but
+// not from parameter lists) that don't pass through the filter f.
+//
+// FilterDecl returns true if there are any declared names left after
+// filtering; it returns false otherwise.
+//
+func FilterDecl(decl Decl, f Filter) bool {
 	switch d := decl.(type) {
 	case *GenDecl:
 		d.Specs = filterSpecList(d.Specs, f)
@@ -241,13 +210,12 @@ func filterDecl(decl Decl, f Filter) bool {
 	return false
 }
 
-
 // FilterFile trims the AST for a Go file in place by removing all
-// names from top-level declarations (but not from parameter lists
-// or inside types) that don't pass through the filter f. If the
-// declaration is empty afterwards, the declaration is removed from
-// the AST.
-// The File.comments list is not changed.
+// names from top-level declarations (including struct field and
+// interface method names, but not from parameter lists) that don't
+// pass through the filter f. If the declaration is empty afterwards,
+// the declaration is removed from the AST. The File.Comments list
+// is not changed.
 //
 // FilterFile returns true if there are any top-level declarations
 // left after filtering; it returns false otherwise.
@@ -255,7 +223,7 @@ func filterDecl(decl Decl, f Filter) bool {
 func FilterFile(src *File, f Filter) bool {
 	j := 0
 	for _, d := range src.Decls {
-		if filterDecl(d, f) {
+		if FilterDecl(d, f) {
 			src.Decls[j] = d
 			j++
 		}
@@ -264,14 +232,13 @@ func FilterFile(src *File, f Filter) bool {
 	return j > 0
 }
 
-
-// FilterPackage trims the AST for a Go package in place by removing all
-// names from top-level declarations (but not from parameter lists
-// or inside types) that don't pass through the filter f. If the
-// declaration is empty afterwards, the declaration is removed from
-// the AST.
-// The pkg.Files list is not changed, so that file names and top-level
-// package comments don't get lost.
+// FilterPackage trims the AST for a Go package in place by removing
+// all names from top-level declarations (including struct field and
+// interface method names, but not from parameter lists) that don't
+// pass through the filter f. If the declaration is empty afterwards,
+// the declaration is removed from the AST. The pkg.Files list is not
+// changed, so that file names and top-level package comments don't get
+// lost.
 //
 // FilterPackage returns true if there are any top-level declarations
 // left after filtering; it returns false otherwise.
@@ -286,7 +253,6 @@ func FilterPackage(pkg *Package, f Filter) bool {
 	return hasDecls
 }
 
-
 // ----------------------------------------------------------------------------
 // Merging of package files
 
@@ -299,13 +265,14 @@ const (
 	// If set, comments that are not associated with a specific
 	// AST node (as Doc or Comment) are excluded.
 	FilterUnassociatedComments
+	// If set, duplicate import declarations are excluded.
+	FilterImportDuplicates
 )
 
 // separator is an empty //-style comment that is interspersed between
 // different comment groups when they are concatenated into a single group
 //
 var separator = &Comment{noPos, "//"}
-
 
 // MergePackageFiles creates a file AST by merging the ASTs of the
 // files belonging to a package. The mode flags control merging behavior.
@@ -415,6 +382,31 @@ func MergePackageFiles(pkg *Package, mode MergeMode) *File {
 		}
 	}
 
+	// Collect import specs from all package files.
+	var imports []*ImportSpec
+	if mode&FilterImportDuplicates != 0 {
+		seen := make(map[string]bool)
+		for _, f := range pkg.Files {
+			for _, imp := range f.Imports {
+				if path := imp.Path.Value; !seen[path] {
+					// TODO: consider handling cases where:
+					// - 2 imports exist with the same import path but
+					//   have different local names (one should probably 
+					//   keep both of them)
+					// - 2 imports exist but only one has a comment
+					// - 2 imports exist and they both have (possibly
+					//   different) comments
+					imports = append(imports, imp)
+					seen[path] = true
+				}
+			}
+		}
+	} else {
+		for _, f := range pkg.Files {
+			imports = append(imports, f.Imports...)
+		}
+	}
+
 	// Collect comments from all package files.
 	var comments []*CommentGroup
 	if mode&FilterUnassociatedComments == 0 {
@@ -425,7 +417,6 @@ func MergePackageFiles(pkg *Package, mode MergeMode) *File {
 		}
 	}
 
-	// TODO(gri) need to compute pkgScope and unresolved identifiers!
-	// TODO(gri) need to compute imports!
-	return &File{doc, pos, NewIdent(pkg.Name), decls, nil, nil, nil, comments}
+	// TODO(gri) need to compute unresolved identifiers!
+	return &File{doc, pos, NewIdent(pkg.Name), decls, pkg.Scope, imports, nil, comments}
 }

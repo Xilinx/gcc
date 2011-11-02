@@ -44,9 +44,9 @@ func NewClientCodec(conn io.ReadWriteCloser) rpc.ClientCodec {
 }
 
 type clientRequest struct {
-	Method string         "method"
-	Params [1]interface{} "params"
-	Id     uint64         "id"
+	Method string         `json:"method"`
+	Params [1]interface{} `json:"params"`
+	Id     uint64         `json:"id"`
 }
 
 func (c *clientCodec) WriteRequest(r *rpc.Request, param interface{}) os.Error {
@@ -60,9 +60,9 @@ func (c *clientCodec) WriteRequest(r *rpc.Request, param interface{}) os.Error {
 }
 
 type clientResponse struct {
-	Id     uint64           "id"
-	Result *json.RawMessage "result"
-	Error  interface{}      "error"
+	Id     uint64           `json:"id"`
+	Result *json.RawMessage `json:"result"`
+	Error  interface{}      `json:"error"`
 }
 
 func (r *clientResponse) reset() {
@@ -79,7 +79,7 @@ func (c *clientCodec) ReadResponseHeader(r *rpc.Response) os.Error {
 
 	c.mutex.Lock()
 	r.ServiceMethod = c.pending[c.resp.Id]
-	c.pending[c.resp.Id] = "", false
+	delete(c.pending, c.resp.Id)
 	c.mutex.Unlock()
 
 	r.Error = ""

@@ -5,6 +5,7 @@
 package x509
 
 import (
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"os"
 	"strings"
@@ -31,7 +32,7 @@ var verifyTests = []verifyTest{
 		dnsName:       "www.google.com",
 
 		expectedChains: [][]string{
-			[]string{"Google", "Thawte", "VeriSign"},
+			{"Google", "Thawte", "VeriSign"},
 		},
 	},
 	{
@@ -68,17 +69,7 @@ var verifyTests = []verifyTest{
 		dnsName:       "www.google.com",
 
 		expectedChains: [][]string{
-			[]string{"Google", "Thawte", "VeriSign"},
-		},
-	},
-	{
-		leaf:          googleLeaf,
-		intermediates: []string{verisignRoot, thawteIntermediate},
-		roots:         []string{verisignRoot},
-		currentTime:   1302726541,
-
-		expectedChains: [][]string{
-			[]string{"Google", "Thawte", "VeriSign"},
+			{"Google", "Thawte", "VeriSign"},
 		},
 	},
 	{
@@ -88,7 +79,18 @@ var verifyTests = []verifyTest{
 		currentTime:   1302726541,
 
 		expectedChains: [][]string{
-			[]string{"dnssec-exp", "StartCom Class 1", "StartCom Certification Authority"},
+			{"dnssec-exp", "StartCom Class 1", "StartCom Certification Authority"},
+		},
+	},
+	{
+		leaf:          dnssecExpLeaf,
+		intermediates: []string{startComIntermediate, startComRoot},
+		roots:         []string{startComRoot},
+		currentTime:   1302726541,
+
+		expectedChains: [][]string{
+			{"dnssec-exp", "StartCom Class 1", "StartCom Certification Authority"},
+			{"dnssec-exp", "StartCom Class 1", "StartCom Certification Authority", "StartCom Certification Authority"},
 		},
 	},
 }
@@ -120,7 +122,7 @@ func expectAuthorityUnknown(t *testing.T, i int, err os.Error) (ok bool) {
 func certificateFromPEM(pemBytes string) (*Certificate, os.Error) {
 	block, _ := pem.Decode([]byte(pemBytes))
 	if block == nil {
-		return nil, os.ErrorString("failed to decode PEM")
+		return nil, os.NewError("failed to decode PEM")
 	}
 	return ParseCertificate(block.Bytes)
 }
@@ -208,6 +210,10 @@ func chainToDebugString(chain []*Certificate) string {
 		chainStr += nameToKey(&cert.Subject)
 	}
 	return chainStr
+}
+
+func nameToKey(name *pkix.Name) string {
+	return strings.Join(name.Country, ",") + "/" + strings.Join(name.Organization, ",") + "/" + strings.Join(name.OrganizationalUnit, ",") + "/" + name.CommonName
 }
 
 const verisignRoot = `-----BEGIN CERTIFICATE-----

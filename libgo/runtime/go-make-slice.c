@@ -12,6 +12,7 @@
 #include "go-type.h"
 #include "array.h"
 #include "runtime.h"
+#include "arch.h"
 #include "malloc.h"
 
 struct __go_open_array
@@ -35,7 +36,8 @@ __go_make_slice2 (const struct __go_type_descriptor *td, uintptr_t len,
   icap = (int) cap;
   if (cap < len
       || (uintptr_t) icap != cap
-      || cap > (uintptr_t) -1U / std->__element_type->__size)
+      || (std->__element_type->__size > 0
+	  && cap > (uintptr_t) -1U / std->__element_type->__size))
     __go_panic_msg ("makeslice: cap out of range");
 
   ret.__count = ilen;

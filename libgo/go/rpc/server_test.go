@@ -7,17 +7,20 @@ package rpc
 import (
 	"fmt"
 	"http/httptest"
+	"io"
 	"log"
 	"net"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 var (
+	newServer                 *Server
 	serverAddr, newServerAddr string
 	httpServerAddr            string
 	once, newOnce, httpOnce   sync.Once
@@ -52,7 +55,7 @@ func (t *Arith) Mul(args *Args, reply *Reply) os.Error {
 
 func (t *Arith) Div(args Args, reply *Reply) os.Error {
 	if args.B == 0 {
-		return os.ErrorString("divide by zero")
+		return os.NewError("divide by zero")
 	}
 	reply.C = args.A / args.B
 	return nil
@@ -93,15 +96,15 @@ func startServer() {
 }
 
 func startNewServer() {
-	s := NewServer()
-	s.Register(new(Arith))
+	newServer = NewServer()
+	newServer.Register(new(Arith))
 
 	var l net.Listener
 	l, newServerAddr = listenTCP()
 	log.Println("NewServer test RPC server listening on", newServerAddr)
 	go Accept(l)
 
-	s.HandleHTTP(newHttpPath, "/bar")
+	newServer.HandleHTTP(newHttpPath, "/bar")
 	httpOnce.Do(startHttpServer)
 }
 
@@ -264,6 +267,85 @@ func testHTTPRPC(t *testing.T, path string) {
 	}
 }
 
+// CodecEmulator provides a client-like api and a ServerCodec interface.
+// Can be used to test ServeRequest.
+type CodecEmulator struct {
+	server        *Server
+	serviceMethod string
+	args          *Args
+	reply         *Reply
+	err           os.Error
+}
+
+func (codec *CodecEmulator) Call(serviceMethod string, args *Args, reply *Reply) os.Error {
+	codec.serviceMethod = serviceMethod
+	codec.args = args
+	codec.reply = reply
+	codec.err = nil
+	var serverError os.Error
+	if codec.server == nil {
+		serverError = ServeRequest(codec)
+	} else {
+		serverError = codec.server.ServeRequest(codec)
+	}
+	if codec.err == nil && serverError != nil {
+		codec.err = serverError
+	}
+	return codec.err
+}
+
+func (codec *CodecEmulator) ReadRequestHeader(req *Request) os.Error {
+	req.ServiceMethod = codec.serviceMethod
+	req.Seq = 0
+	return nil
+}
+
+func (codec *CodecEmulator) ReadRequestBody(argv interface{}) os.Error {
+	if codec.args == nil {
+		return io.ErrUnexpectedEOF
+	}
+	*(argv.(*Args)) = *codec.args
+	return nil
+}
+
+func (codec *CodecEmulator) WriteResponse(resp *Response, reply interface{}) os.Error {
+	if resp.Error != "" {
+		codec.err = os.NewError(resp.Error)
+	}
+	*codec.reply = *(reply.(*Reply))
+	return nil
+}
+
+func (codec *CodecEmulator) Close() os.Error {
+	return nil
+}
+
+func TestServeRequest(t *testing.T) {
+	once.Do(startServer)
+	testServeRequest(t, nil)
+	newOnce.Do(startNewServer)
+	testServeRequest(t, newServer)
+}
+
+func testServeRequest(t *testing.T, server *Server) {
+	client := CodecEmulator{server: server}
+
+	args := &Args{7, 8}
+	reply := new(Reply)
+	err := client.Call("Arith.Add", args, reply)
+	if err != nil {
+		t.Errorf("Add: expected no error but got string %q", err.String())
+	}
+	if reply.C != args.A+args.B {
+		t.Errorf("Add: expected %d got %d", reply.C, args.A+args.B)
+	}
+
+	err = client.Call("Arith.Add", nil, reply)
+	if err == nil {
+		t.Errorf("expected error calling Arith.Add with nil arg")
+	}
+}
+
 type ReplyNotPointer int
 type ArgNotPublic int
 type ReplyNotPublic int
@@ -360,6 +442,7 @@ func countMallocs(dial func() (*Client, os.Error), t *testing.T) uint64 {
 	}
 	args := &Args{7, 8}
 	reply := new(Reply)
+	runtime.UpdateMemStats()
 	mallocs := 0 - runtime.MemStats.Mallocs
 	const count = 100
 	for i := 0; i < count; i++ {
@@ -371,6 +454,7 @@ func countMallocs(dial func() (*Client, os.Error), t *testing.T) uint64 {
 			t.Errorf("Add: expected %d got %d", reply.C, args.A+args.B)
 		}
 	}
+	runtime.UpdateMemStats()
 	mallocs += runtime.MemStats.Mallocs
 	return mallocs / count
 }
@@ -381,6 +465,32 @@ func TestCountMallocs(t *testing.T) {
 
 func TestCountMallocsOverHTTP(t *testing.T) {
 	fmt.Printf("mallocs per HTTP rpc round trip: %d\n", countMallocs(dialHTTP, t))
+}
+
+type writeCrasher struct{}
+
+func (writeCrasher) Close() os.Error {
+	return nil
+}
+
+func (writeCrasher) Read(p []byte) (int, os.Error) {
+	return 0, os.EOF
+}
+
+func (writeCrasher) Write(p []byte) (int, os.Error) {
+	return 0, os.NewError("fake write failure")
+}
+
+func TestClientWriteError(t *testing.T) {
+	c := NewClient(writeCrasher{})
+	res := false
+	err := c.Call("foo", 1, &res)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.String() != "fake write failure" {
+		t.Error("unexpected value of error:", err)
+	}
 }
 
 func benchmarkEndToEnd(dial func() (*Client, os.Error), b *testing.B) {
@@ -394,19 +504,79 @@ func benchmarkEndToEnd(dial func() (*Client, os.Error), b *testing.B) {
 
 	// Synchronous calls
 	args := &Args{7, 8}
-	reply := new(Reply)
+	procs := runtime.GOMAXPROCS(-1)
+	N := int32(b.N)
+	var wg sync.WaitGroup
+	wg.Add(procs)
 	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		err = client.Call("Arith.Add", args, reply)
-		if err != nil {
-			fmt.Printf("Add: expected no error but got string %q", err.String())
-			break
-		}
-		if reply.C != args.A+args.B {
-			fmt.Printf("Add: expected %d got %d", reply.C, args.A+args.B)
-			break
-		}
+
+	for p := 0; p < procs; p++ {
+		go func() {
+			reply := new(Reply)
+			for atomic.AddInt32(&N, -1) >= 0 {
+				err = client.Call("Arith.Add", args, reply)
+				if err != nil {
+					fmt.Printf("Add: expected no error but got string %q", err.String())
+					panic("rpc error")
+				}
+				if reply.C != args.A+args.B {
+					fmt.Printf("Add: expected %d got %d", reply.C, args.A+args.B)
+					panic("rpc error")
+				}
+			}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
+}
+
+func benchmarkEndToEndAsync(dial func() (*Client, os.Error), b *testing.B) {
+	const MaxConcurrentCalls = 100
+	b.StopTimer()
+	once.Do(startServer)
+	client, err := dial()
+	if err != nil {
+		fmt.Println("error dialing", err)
+		return
+	}
+
+	// Asynchronous calls
+	args := &Args{7, 8}
+	procs := 4 * runtime.GOMAXPROCS(-1)
+	send := int32(b.N)
+	recv := int32(b.N)
+	var wg sync.WaitGroup
+	wg.Add(procs)
+	gate := make(chan bool, MaxConcurrentCalls)
+	res := make(chan *Call, MaxConcurrentCalls)
+	b.StartTimer()
+
+	for p := 0; p < procs; p++ {
+		go func() {
+			for atomic.AddInt32(&send, -1) >= 0 {
+				gate <- true
+				reply := new(Reply)
+				client.Go("Arith.Add", args, reply, res)
+			}
+		}()
+		go func() {
+			for call := range res {
+				a := call.Args.(*Args).A
+				b := call.Args.(*Args).B
+				c := call.Reply.(*Reply).C
+				if a+b != c {
+					fmt.Printf("Add: expected %d got %d", a+b, c)
+					panic("incorrect reply")
+				}
+				<-gate
+				if atomic.AddInt32(&recv, -1) == 0 {
+					close(res)
+				}
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
 
 func BenchmarkEndToEnd(b *testing.B) {
@@ -415,4 +585,12 @@ func BenchmarkEndToEnd(b *testing.B) {
 
 func BenchmarkEndToEndHTTP(b *testing.B) {
 	benchmarkEndToEnd(dialHTTP, b)
+}
+
+func BenchmarkEndToEndAsync(b *testing.B) {
+	benchmarkEndToEndAsync(dialDirect, b)
+}
+
+func BenchmarkEndToEndAsyncHTTP(b *testing.B) {
+	benchmarkEndToEndAsync(dialHTTP, b)
 }

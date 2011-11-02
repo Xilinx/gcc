@@ -1,3 +1,164 @@
+2011-11-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/io.h (next_available_newunit): Remove prototype.
+	* io/unit.h (next_available_newunit): Make variable static,
+	initialize it.
+	(init_units): Don't initialize next_available_newunit.
+	(get_unique_unit_number): Use atomic builtin if available.
+
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/inquire.c (inquire_via_unit): Check whether we're at the
+	beginning or end if the position is unspecified. If the position
+	is not one of the 3 standard ones, return unspecified.
+	* io/io.h (update_position): Remove prototype.
+	* io/transfer.c (next_record): Set the position to unspecified,
+	letting inquire figure it out more exactly when needed.
+	* io/unit.c (update_position): Remove function.
+
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/unix.h (struct stream): Add size function pointer.
+	(ssize): New inline function.
+	(file_length): Remove prototype.
+	* io/unix.c (raw_size): New function.
+	(raw_init): Initialize st.size pointer.
+	(buf_size): New function.
+	(buf_init): Initialize st.size pointer.
+	(open_internal): Likewise.
+	(open_internal4): Likewise.
+	(file_length): Remove function.
+	* io/file_pos.c (st_rewind): Use ssize instead of file_length.
+	* io/open.c (test_endfile): Likewise.
+	* io/transfer.c (data_transfer_init): Likewise.
+	(next_record_r): Likewise.
+	(next_record_w): Likewise.
+	* io/unit.c (update_position): Likewise.
+
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/file_pos.c (st_rewind): Handle regular and special files
+	identically.
+	* io/intrinsics.c (fseek_sub): Don't check whether we think the
+	file is seekable, just do what the caller says.
+	* io/transfer.c (skip_record): First try to seek, then fallback to
+	reading and throwing away what we read.
+	* io/unit.c (update_position): Don't check whether file is
+	seekable, just try to do what we're told.
+	(unit_truncate): Likewise.
+	* io/unix.c (struct unix_stream): Remove special_file flag.
+	(buf_flush): Remove code for handling unseekable files.
+	(buf_seek): Likewise.
+	(fd_to_stream): Use buffered IO only for regular files.
+	(file_length): Remove is_seekable() call.
+	(is_seekable): Remove function.
+	(is_special): Likewise.
+	* io/unix.h: Remove prototypes for is_seekable and is_special.
+
+2011-09-10  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/49479
+	* generated/m4/ifunction.m4:  Always call internal_malloc_size
+	even when there is a zero-sized return array.
+	* generated/generated/maxloc1_16_i16.c: Regenerated.
+	* generated/generated/maxloc1_16_i1.c: Regenerated.
+	* generated/generated/maxloc1_16_i2.c: Regenerated.
+	* generated/generated/maxloc1_16_i4.c: Regenerated.
+	* generated/generated/maxloc1_16_i8.c: Regenerated.
+	* generated/generated/maxloc1_16_r10.c: Regenerated.
+	* generated/generated/maxloc1_16_r16.c: Regenerated.
+	* generated/generated/maxloc1_16_r4.c: Regenerated.
+	* generated/generated/maxloc1_16_r8.c: Regenerated.
+	* generated/generated/maxloc1_4_i16.c: Regenerated.
+	* generated/generated/maxloc1_4_i1.c: Regenerated.
+	* generated/generated/maxloc1_4_i2.c: Regenerated.
+	* generated/generated/maxloc1_4_i4.c: Regenerated.
+	* generated/generated/maxloc1_4_i8.c: Regenerated.
+	* generated/generated/maxloc1_4_r10.c: Regenerated.
+	* generated/generated/maxloc1_4_r16.c: Regenerated.
+	* generated/generated/maxloc1_4_r4.c: Regenerated.
+	* generated/generated/maxloc1_4_r8.c: Regenerated.
+	* generated/generated/maxloc1_8_i16.c: Regenerated.
+	* generated/generated/maxloc1_8_i1.c: Regenerated.
+	* generated/generated/maxloc1_8_i2.c: Regenerated.
+	* generated/generated/maxloc1_8_i4.c: Regenerated.
+	* generated/generated/maxloc1_8_i8.c: Regenerated.
+	* generated/generated/maxloc1_8_r10.c: Regenerated.
+	* generated/generated/maxloc1_8_r16.c: Regenerated.
+	* generated/generated/maxloc1_8_r4.c: Regenerated.
+	* generated/generated/maxloc1_8_r8.c: Regenerated.
+	* generated/generated/maxval_i16.c: Regenerated.
+	* generated/generated/maxval_i1.c: Regenerated.
+	* generated/generated/maxval_i2.c: Regenerated.
+	* generated/generated/maxval_i4.c: Regenerated.
+	* generated/generated/maxval_i8.c: Regenerated.
+	* generated/generated/maxval_r10.c: Regenerated.
+	* generated/generated/maxval_r16.c: Regenerated.
+	* generated/generated/maxval_r4.c: Regenerated.
+	* generated/generated/maxval_r8.c: Regenerated.
+	* generated/generated/minloc1_16_i16.c: Regenerated.
+	* generated/generated/minloc1_16_i1.c: Regenerated.
+	* generated/generated/minloc1_16_i2.c: Regenerated.
+	* generated/generated/minloc1_16_i4.c: Regenerated.
+	* generated/generated/minloc1_16_i8.c: Regenerated.
+	* generated/generated/minloc1_16_r10.c: Regenerated.
+	* generated/generated/minloc1_16_r16.c: Regenerated.
+	* generated/generated/minloc1_16_r4.c: Regenerated.
+	* generated/generated/minloc1_16_r8.c: Regenerated.
+	* generated/generated/minloc1_4_i16.c: Regenerated.
+	* generated/generated/minloc1_4_i1.c: Regenerated.
+	* generated/generated/minloc1_4_i2.c: Regenerated.
+	* generated/generated/minloc1_4_i4.c: Regenerated.
+	* generated/generated/minloc1_4_i8.c: Regenerated.
+	* generated/generated/minloc1_4_r10.c: Regenerated.
+	* generated/generated/minloc1_4_r16.c: Regenerated.
+	* generated/generated/minloc1_4_r4.c: Regenerated.
+	* generated/generated/minloc1_4_r8.c: Regenerated.
+	* generated/generated/minloc1_8_i16.c: Regenerated.
+	* generated/generated/minloc1_8_i1.c: Regenerated.
+	* generated/generated/minloc1_8_i2.c: Regenerated.
+	* generated/generated/minloc1_8_i4.c: Regenerated.
+	* generated/generated/minloc1_8_i8.c: Regenerated.
+	* generated/generated/minloc1_8_r10.c: Regenerated.
+	* generated/generated/minloc1_8_r16.c: Regenerated.
+	* generated/generated/minloc1_8_r4.c: Regenerated.
+	* generated/generated/minloc1_8_r8.c: Regenerated.
+	* generated/generated/minval_i16.c: Regenerated.
+	* generated/generated/minval_i1.c: Regenerated.
+	* generated/generated/minval_i2.c: Regenerated.
+	* generated/generated/minval_i4.c: Regenerated.
+	* generated/generated/minval_i8.c: Regenerated.
+	* generated/generated/minval_r10.c: Regenerated.
+	* generated/generated/minval_r16.c: Regenerated.
+	* generated/generated/minval_r4.c: Regenerated.
+	* generated/generated/minval_r8.c: Regenerated.
+	* generated/generated/product_c10.c: Regenerated.
+	* generated/generated/product_c16.c: Regenerated.
+	* generated/generated/product_c4.c: Regenerated.
+	* generated/generated/product_c8.c: Regenerated.
+	* generated/generated/product_i16.c: Regenerated.
+	* generated/generated/product_i1.c: Regenerated.
+	* generated/generated/product_i2.c: Regenerated.
+	* generated/generated/product_i4.c: Regenerated.
+	* generated/generated/product_i8.c: Regenerated.
+	* generated/generated/product_r10.c: Regenerated.
+	* generated/generated/product_r16.c: Regenerated.
+	* generated/generated/product_r4.c: Regenerated.
+	* generated/generated/product_r8.c: Regenerated.
+	* generated/generated/sum_c10.c: Regenerated.
+	* generated/generated/sum_c16.c: Regenerated.
+	* generated/generated/sum_c4.c: Regenerated.
+	* generated/generated/sum_c8.c: Regenerated.
+	* generated/generated/sum_i16.c: Regenerated.
+	* generated/generated/sum_i1.c: Regenerated.
+	* generated/generated/sum_i2.c: Regenerated.
+	* generated/generated/sum_i4.c: Regenerated.
+	* generated/generated/sum_i8.c: Regenerated.
+	* generated/generated/sum_r10.c: Regenerated.
+	* generated/generated/sum_r16.c: Regenerated.
+	* generated/generated/sum_r4.c: Regenerated.
+	* generated/generated/sum_r8.c: Regenerated.
+
 2011-09-01  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	* generated/bessel_r4.c: Regenerated.

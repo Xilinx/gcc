@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"url"
 )
 
 var respExcludeHeader = map[string]bool{
@@ -30,10 +31,6 @@ type Response struct {
 	ProtoMajor int    // e.g. 1
 	ProtoMinor int    // e.g. 0
 
-	// RequestMethod records the method used in the HTTP request.
-	// Header fields such as Content-Length have method-specific meaning.
-	RequestMethod string // e.g. "HEAD", "CONNECT", "GET", etc.
-
 	// Header maps header keys to values.  If the response had multiple
 	// headers with the same key, they will be concatenated, with comma
 	// delimiters.  (Section 4.2 of RFC 2616 requires that multiple headers
@@ -44,10 +41,11 @@ type Response struct {
 	// Keys in the map are canonicalized (see CanonicalHeaderKey).
 	Header Header
 
-	// SetCookie records the Set-Cookie requests sent with the response.
-	SetCookie []*Cookie
-
 	// Body represents the response body.
+	//
+	// The http Client and Transport guarantee that Body is always
+	// non-nil, even on responses without a body or responses with
+	// a zero-lengthed body.
 	Body io.ReadCloser
 
 	// ContentLength records the length of the associated content.  The
@@ -68,19 +66,48 @@ type Response struct {
 	// Trailer maps trailer keys to values, in the same
 	// format as the header.
 	Trailer Header
+
+	// The Request that was sent to obtain this Response.
+	// Request's Body is nil (having already been consumed).
+	// This is only populated for Client requests.
+	Request *Request
 }
 
-// ReadResponse reads and returns an HTTP response from r.  The RequestMethod
-// parameter specifies the method used in the corresponding request (e.g.,
-// "GET", "HEAD").  Clients must call resp.Body.Close when finished reading
-// resp.Body.  After that call, clients can inspect resp.Trailer to find
-// key/value pairs included in the response trailer.
-func ReadResponse(r *bufio.Reader, requestMethod string) (resp *Response, err os.Error) {
+// Cookies parses and returns the cookies set in the Set-Cookie headers.
+func (r *Response) Cookies() []*Cookie {
+	return readSetCookies(r.Header)
+}
+
+var ErrNoLocation = os.NewError("http: no Location header in response")
+
+// Location returns the URL of the response's "Location" header,
+// if present.  Relative redirects are resolved relative to
+// the Response's Request.  ErrNoLocation is returned if no
+// Location header is present.
+func (r *Response) Location() (*url.URL, os.Error) {
+	lv := r.Header.Get("Location")
+	if lv == "" {
+		return nil, ErrNoLocation
+	}
+	if r.Request != nil && r.Request.URL != nil {
+		return r.Request.URL.Parse(lv)
+	}
+	return url.Parse(lv)
+}
+
+// ReadResponse reads and returns an HTTP response from r.  The
+// req parameter specifies the Request that corresponds to
+// this Response.  Clients must call resp.Body.Close when finished
+// reading resp.Body.  After that call, clients can inspect
+// resp.Trailer to find key/value pairs included in the response
+// trailer.
+func ReadResponse(r *bufio.Reader, req *Request) (resp *Response, err os.Error) {
 
 	tp := textproto.NewReader(r)
 	resp = new(Response)
 
-	resp.RequestMethod = strings.ToUpper(requestMethod)
+	resp.Request = req
+	resp.Request.Method = strings.ToUpper(resp.Request.Method)
 
 	// Parse the first line of the response.
 	line, err := tp.ReadLine()
@@ -90,7 +117,7 @@ func ReadResponse(r *bufio.Reader, requestMethod string) (resp *Response, err os
 		}
 		return nil, err
 	}
-	f := strings.Split(line, " ", 3)
+	f := strings.SplitN(line, " ", 3)
 	if len(f) < 2 {
 		return nil, &badStringError{"malformed HTTP response", line}
 	}
@@ -123,8 +150,6 @@ func ReadResponse(r *bufio.Reader, requestMethod string) (resp *Response, err os
 	if err != nil {
 		return nil, err
 	}
-
-	resp.SetCookie = readSetCookies(resp.Header)
 
 	return resp, nil
 }
@@ -164,7 +189,9 @@ func (r *Response) ProtoAtLeast(major, minor int) bool {
 func (resp *Response) Write(w io.Writer) os.Error {
 
 	// RequestMethod should be upper-case
-	resp.RequestMethod = strings.ToUpper(resp.RequestMethod)
+	if resp.Request != nil {
+		resp.Request.Method = strings.ToUpper(resp.Request.Method)
+	}
 
 	// Status line
 	text := resp.Status
@@ -192,10 +219,6 @@ func (resp *Response) Write(w io.Writer) os.Error {
 	// Rest of header
 	err = resp.Header.WriteSubset(w, respExcludeHeader)
 	if err != nil {
-		return err
-	}
-
-	if err = writeSetCookies(w, resp.SetCookie); err != nil {
 		return err
 	}
 

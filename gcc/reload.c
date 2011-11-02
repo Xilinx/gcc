@@ -256,7 +256,6 @@ static int push_secondary_reload (int, rtx, int, int, enum reg_class,
 				  enum insn_code *, secondary_reload_info *);
 static enum reg_class find_valid_class (enum machine_mode, enum machine_mode,
 					int, unsigned int);
-static int reload_inner_reg_of_subreg (rtx, enum machine_mode, int);
 static void push_replacement (rtx *, int, enum machine_mode);
 static void dup_replacements (rtx *, rtx *);
 static void combine_reloads (void);
@@ -791,39 +790,39 @@ find_reusable_reload (rtx *p_in, rtx out, enum reg_class rclass,
   return n_reloads;
 }
 
-/* Return nonzero if X is a SUBREG which will require reloading of its
-   SUBREG_REG expression.  */
+/* Return true if X is a SUBREG that will need reloading of its SUBREG_REG
+   expression.  MODE is the mode that X will be used in.  OUTPUT is true if
+   the function is invoked for the output part of an enclosing reload.  */
 
-static int
-reload_inner_reg_of_subreg (rtx x, enum machine_mode mode, int output)
+static bool
+reload_inner_reg_of_subreg (rtx x, enum machine_mode mode, bool output)
 {
   rtx inner;
 
   /* Only SUBREGs are problematical.  */
   if (GET_CODE (x) != SUBREG)
-    return 0;
+    return false;
 
   inner = SUBREG_REG (x);
 
-  /* If INNER is a constant or PLUS, then INNER must be reloaded.  */
+  /* If INNER is a constant or PLUS, then INNER will need reloading.  */
   if (CONSTANT_P (inner) || GET_CODE (inner) == PLUS)
-    return 1;
+    return true;
 
-  /* If INNER is not a hard register, then INNER will not need to
-     be reloaded.  */
-  if (!REG_P (inner)
-      || REGNO (inner) >= FIRST_PSEUDO_REGISTER)
-    return 0;
+  /* If INNER is not a hard register, then INNER will not need reloading.  */
+  if (!(REG_P (inner) && HARD_REGISTER_P (inner)))
+    return false;
 
   /* If INNER is not ok for MODE, then INNER will need reloading.  */
-  if (! HARD_REGNO_MODE_OK (subreg_regno (x), mode))
-    return 1;
+  if (!HARD_REGNO_MODE_OK (subreg_regno (x), mode))
+    return true;
 
-  /* If the outer part is a word or smaller, INNER larger than a
-     word and the number of regs for INNER is not the same as the
-     number of words in INNER, then INNER will need reloading.  */
-  return (GET_MODE_SIZE (mode) <= UNITS_PER_WORD
-	  && output
+  /* If this is for an output, and the outer part is a word or smaller,
+     INNER is larger than a word and the number of registers in INNER is
+     not the same as the number of words in INNER, then INNER will need
+     reloading (with an in-out reload).  */
+  return (output
+	  && GET_MODE_SIZE (mode) <= UNITS_PER_WORD
 	  && GET_MODE_SIZE (GET_MODE (inner)) > UNITS_PER_WORD
 	  && ((GET_MODE_SIZE (GET_MODE (inner)) / UNITS_PER_WORD)
 	      != (int) hard_regno_nregs[REGNO (inner)][GET_MODE (inner)]));
@@ -990,9 +989,9 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
      For machines that extend byte loads, do this for any SUBREG of a pseudo
      where both M1 and M2 are a word or smaller, M1 is wider than M2, and
      M2 is an integral mode that gets extended when loaded.
-     Similar issue for (SUBREG:M1 (REG:M2 ...) ...) for a hard register R where
-     either M1 is not valid for R or M2 is wider than a word but we only
-     need one word to store an M2-sized quantity in R.
+     Similar issue for (SUBREG:M1 (REG:M2 ...) ...) for a hard register R
+     where either M1 is not valid for R or M2 is wider than a word but we
+     only need one register to store an M2-sized quantity in R.
      (However, if OUT is nonzero, we need to reload the reg *and*
      the subreg, so do nothing here, and let following statement handle it.)
 
@@ -1082,17 +1081,16 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
       inmode = GET_MODE (in);
     }
 
-  /* Similar issue for (SUBREG:M1 (REG:M2 ...) ...) for a hard register R where
-     either M1 is not valid for R or M2 is wider than a word but we only
-     need one word to store an M2-sized quantity in R.
+  /* Similar issue for (SUBREG:M1 (REG:M2 ...) ...) for a hard register R
+     where M1 is not valid for R if it was not handled by the code above.
+
+     Similar issue for (SUBREG constant ...) if it was not handled by the
+     code above.  This can happen if SUBREG_BYTE != 0.
 
      However, we must reload the inner reg *as well as* the subreg in
      that case.  */
 
-  /* Similar issue for (SUBREG constant ...) if it was not handled by the
-     code above.  This can happen if SUBREG_BYTE != 0.  */
-
-  if (in != 0 && reload_inner_reg_of_subreg (in, inmode, 0))
+  if (in != 0 && reload_inner_reg_of_subreg (in, inmode, false))
     {
       enum reg_class in_class = rclass;
 
@@ -1117,10 +1115,10 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 
   /* Similarly for paradoxical and problematical SUBREGs on the output.
      Note that there is no reason we need worry about the previous value
-     of SUBREG_REG (out); even if wider than out,
-     storing in a subreg is entitled to clobber it all
-     (except in the case of STRICT_LOW_PART,
-     and in that case the constraint should label it input-output.)  */
+     of SUBREG_REG (out); even if wider than out, storing in a subreg is
+     entitled to clobber it all (except in the case of a word mode subreg
+     or of a STRICT_LOW_PART, in that latter case the constraint should
+     label it input-output.)  */
   if (out != 0 && GET_CODE (out) == SUBREG
       && (subreg_lowpart_p (out) || strict_low)
 #ifdef CANNOT_CHANGE_MODE_CLASS
@@ -1144,14 +1142,12 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 		  ))
 	  || (REG_P (SUBREG_REG (out))
 	      && REGNO (SUBREG_REG (out)) < FIRST_PSEUDO_REGISTER
-	      && ((GET_MODE_SIZE (outmode) <= UNITS_PER_WORD
-		   && (GET_MODE_SIZE (GET_MODE (SUBREG_REG (out)))
-		       > UNITS_PER_WORD)
-		   && ((GET_MODE_SIZE (GET_MODE (SUBREG_REG (out)))
-			/ UNITS_PER_WORD)
-		       != (int) hard_regno_nregs[REGNO (SUBREG_REG (out))]
-						[GET_MODE (SUBREG_REG (out))]))
-		  || ! HARD_REGNO_MODE_OK (subreg_regno (out), outmode)))
+	      /* The case of a word mode subreg
+		 is handled differently in the following statement.  */
+	      && ! (GET_MODE_SIZE (outmode) <= UNITS_PER_WORD
+		    && (GET_MODE_SIZE (GET_MODE (SUBREG_REG (out)))
+		        > UNITS_PER_WORD))
+	      && ! HARD_REGNO_MODE_OK (subreg_regno (out), outmode))
 	  || (secondary_reload_class (0, rclass, outmode, out) != NO_REGS
 	      && (secondary_reload_class (0, rclass, GET_MODE (SUBREG_REG (out)),
 					  SUBREG_REG (out))
@@ -1178,31 +1174,32 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
       outmode = GET_MODE (out);
     }
 
-  /* Similar issue for (SUBREG:M1 (REG:M2 ...) ...) for a hard register R where
-     either M1 is not valid for R or M2 is wider than a word but we only
-     need one word to store an M2-sized quantity in R.
+  /* Similar issue for (SUBREG:M1 (REG:M2 ...) ...) for a hard register R
+     where either M1 is not valid for R or M2 is wider than a word but we
+     only need one register to store an M2-sized quantity in R.
 
      However, we must reload the inner reg *as well as* the subreg in
-     that case.  In this case, the inner reg is an in-out reload.  */
+     that case and the inner reg is an in-out reload.  */
 
-  if (out != 0 && reload_inner_reg_of_subreg (out, outmode, 1))
+  if (out != 0 && reload_inner_reg_of_subreg (out, outmode, true))
     {
+      enum reg_class in_out_class
+	= find_valid_class (outmode, GET_MODE (SUBREG_REG (out)),
+			    subreg_regno_offset (REGNO (SUBREG_REG (out)),
+						 GET_MODE (SUBREG_REG (out)),
+						 SUBREG_BYTE (out),
+						 GET_MODE (out)),
+			    REGNO (SUBREG_REG (out)));
+
       /* This relies on the fact that emit_reload_insns outputs the
 	 instructions for output reloads of type RELOAD_OTHER in reverse
 	 order of the reloads.  Thus if the outer reload is also of type
 	 RELOAD_OTHER, we are guaranteed that this inner reload will be
 	 output after the outer reload.  */
-      dont_remove_subreg = 1;
       push_reload (SUBREG_REG (out), SUBREG_REG (out), &SUBREG_REG (out),
-		   &SUBREG_REG (out),
-		   find_valid_class (outmode, GET_MODE (SUBREG_REG (out)),
-				     subreg_regno_offset (REGNO (SUBREG_REG (out)),
-							  GET_MODE (SUBREG_REG (out)),
-							  SUBREG_BYTE (out),
-							  GET_MODE (out)),
-				     REGNO (SUBREG_REG (out))),
-		   VOIDmode, VOIDmode, 0, 0,
-		   opnum, RELOAD_OTHER);
+		   &SUBREG_REG (out), in_out_class, VOIDmode, VOIDmode,
+		   0, 0, opnum, RELOAD_OTHER);
+      dont_remove_subreg = 1;
     }
 
   /* If IN appears in OUT, we can't share any input-only reload for IN.  */
@@ -2825,6 +2822,13 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	  /* Address operands are reloaded in their existing mode,
 	     no matter what is specified in the machine description.  */
 	  operand_mode[i] = GET_MODE (recog_data.operand[i]);
+
+	  /* If the address is a single CONST_INT pick address mode
+	     instead otherwise we will later not know in which mode
+	     the reload should be performed.  */
+	  if (operand_mode[i] == VOIDmode)
+	    operand_mode[i] = Pmode;
+
 	}
       else if (code == MEM)
 	{
@@ -7224,7 +7228,7 @@ regno_clobbered_p (unsigned int regno, rtx insn, enum machine_mode mode,
 	{
 	  rtx elt = XVECEXP (PATTERN (insn), 0, i);
 	  if ((GET_CODE (elt) == CLOBBER
-	       || (sets == 1 && GET_CODE (PATTERN (insn)) == SET))
+	       || (sets == 1 && GET_CODE (elt) == SET))
 	      && REG_P (XEXP (elt, 0)))
 	    {
 	      unsigned int test = REGNO (XEXP (elt, 0));

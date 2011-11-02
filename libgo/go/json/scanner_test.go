@@ -7,7 +7,9 @@ package json
 import (
 	"bytes"
 	"math"
+	"os"
 	"rand"
+	"reflect"
 	"testing"
 )
 
@@ -136,6 +138,29 @@ func TestIndentBig(t *testing.T) {
 	}
 }
 
+type indentErrorTest struct {
+	in  string
+	err os.Error
+}
+
+var indentErrorTests = []indentErrorTest{
+	{`{"X": "foo", "Y"}`, &SyntaxError{"invalid character '}' after object key", 17}},
+	{`{"X": "foo" "Y": "bar"}`, &SyntaxError{"invalid character '\"' after object key:value pair", 13}},
+}
+
+func TestIdentErrors(t *testing.T) {
+	for i, tt := range indentErrorTests {
+		slice := make([]uint8, 0)
+		buf := bytes.NewBuffer(slice)
+		if err := Indent(buf, []uint8(tt.in), "", ""); err != nil {
+			if !reflect.DeepEqual(err, tt.err) {
+				t.Errorf("#%d: Indent: %#v", i, err)
+				continue
+			}
+		}
+	}
+}
+
 func TestNextValueBig(t *testing.T) {
 	initBig()
 	var scan scanner
@@ -150,7 +175,7 @@ func TestNextValueBig(t *testing.T) {
 		t.Errorf("invalid rest: %d", len(rest))
 	}
 
-	item, rest, err = nextValue(append(jsonBig, []byte("HELLO WORLD")...), &scan)
+	item, rest, err = nextValue(append(jsonBig, "HELLO WORLD"...), &scan)
 	if err != nil {
 		t.Fatalf("nextValue extra: %s", err)
 	}
@@ -235,10 +260,10 @@ func genValue(n int) interface{} {
 }
 
 func genString(stddev float64) string {
-	n := int(math.Fabs(rand.NormFloat64()*stddev + stddev/2))
+	n := int(math.Abs(rand.NormFloat64()*stddev + stddev/2))
 	c := make([]int, n)
 	for i := range c {
-		f := math.Fabs(rand.NormFloat64()*64 + 32)
+		f := math.Abs(rand.NormFloat64()*64 + 32)
 		if f > 0x10ffff {
 			f = 0x10ffff
 		}
@@ -248,14 +273,14 @@ func genString(stddev float64) string {
 }
 
 func genArray(n int) []interface{} {
-	f := int(math.Fabs(rand.NormFloat64()) * math.Fmin(10, float64(n/2)))
+	f := int(math.Abs(rand.NormFloat64()) * math.Min(10, float64(n/2)))
 	if f > n {
 		f = n
 	}
 	if n > 0 && f == 0 {
 		f = 1
 	}
-	x := make([]interface{}, int(f))
+	x := make([]interface{}, f)
 	for i := range x {
 		x[i] = genValue(((i+1)*n)/f - (i*n)/f)
 	}
@@ -263,7 +288,7 @@ func genArray(n int) []interface{} {
 }
 
 func genMap(n int) map[string]interface{} {
-	f := int(math.Fabs(rand.NormFloat64()) * math.Fmin(10, float64(n/2)))
+	f := int(math.Abs(rand.NormFloat64()) * math.Min(10, float64(n/2)))
 	if f > n {
 		f = n
 	}

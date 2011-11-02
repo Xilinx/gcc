@@ -44,7 +44,7 @@ func (g *ByteStruct) GobEncode() ([]byte, os.Error) {
 
 func (g *ByteStruct) GobDecode(data []byte) os.Error {
 	if g == nil {
-		return os.ErrorString("NIL RECEIVER")
+		return os.NewError("NIL RECEIVER")
 	}
 	// Expect N sequential-valued bytes.
 	if len(data) == 0 {
@@ -53,7 +53,7 @@ func (g *ByteStruct) GobDecode(data []byte) os.Error {
 	g.a = data[0]
 	for i, c := range data {
 		if c != g.a+byte(i) {
-			return os.ErrorString("invalid data sequence")
+			return os.NewError("invalid data sequence")
 		}
 	}
 	return nil
@@ -71,7 +71,7 @@ func (g *StringStruct) GobDecode(data []byte) os.Error {
 	a := data[0]
 	for i, c := range data {
 		if c != a+byte(i) {
-			return os.ErrorString("invalid data sequence")
+			return os.NewError("invalid data sequence")
 		}
 	}
 	g.s = string(data)
@@ -84,7 +84,7 @@ func (a *ArrayStruct) GobEncode() ([]byte, os.Error) {
 
 func (a *ArrayStruct) GobDecode(data []byte) os.Error {
 	if len(data) != len(a.a) {
-		return os.ErrorString("wrong length in array decode")
+		return os.NewError("wrong length in array decode")
 	}
 	copy(a.a[:], data)
 	return nil
@@ -384,7 +384,7 @@ func TestGobEncoderFieldTypeError(t *testing.T) {
 	y := &GobTest1{}
 	err = dec.Decode(y)
 	if err == nil {
-		t.Fatal("expected decode error for mistmatched fields (non-encoder to decoder)")
+		t.Fatal("expected decode error for mismatched fields (non-encoder to decoder)")
 	}
 	if strings.Index(err.String(), "type") < 0 {
 		t.Fatal("expected type error; got", err)
@@ -424,7 +424,7 @@ func TestGobEncoderNonStructSingleton(t *testing.T) {
 		t.Fatal("decode error:", err)
 	}
 	if x != 1234 {
-		t.Errorf("expected 1234 got %c", x)
+		t.Errorf("expected 1234 got %d", x)
 	}
 }
 
@@ -464,5 +464,64 @@ func TestGobEncoderIgnoreNonStructField(t *testing.T) {
 	}
 	if x.X != 17 {
 		t.Errorf("expected 17 got %c", x.X)
+	}
+}
+
+func TestGobEncoderIgnoreNilEncoder(t *testing.T) {
+	b := new(bytes.Buffer)
+	// First a field that's a structure.
+	enc := NewEncoder(b)
+	err := enc.Encode(GobTest0{X: 18}) // G is nil
+	if err != nil {
+		t.Fatal("encode error:", err)
+	}
+	dec := NewDecoder(b)
+	x := new(GobTest0)
+	err = dec.Decode(x)
+	if err != nil {
+		t.Fatal("decode error:", err)
+	}
+	if x.X != 18 {
+		t.Errorf("expected x.X = 18, got %v", x.X)
+	}
+	if x.G != nil {
+		t.Errorf("expected x.G = nil, got %v", x.G)
+	}
+}
+
+type gobDecoderBug0 struct {
+	foo, bar string
+}
+
+func (br *gobDecoderBug0) String() string {
+	return br.foo + "-" + br.bar
+}
+
+func (br *gobDecoderBug0) GobEncode() ([]byte, os.Error) {
+	return []byte(br.String()), nil
+}
+
+func (br *gobDecoderBug0) GobDecode(b []byte) os.Error {
+	br.foo = "foo"
+	br.bar = "bar"
+	return nil
+}
+
+// This was a bug: the receiver has a different indirection level
+// than the variable.
+func TestGobEncoderExtraIndirect(t *testing.T) {
+	gdb := &gobDecoderBug0{"foo", "bar"}
+	buf := new(bytes.Buffer)
+	e := NewEncoder(buf)
+	if err := e.Encode(gdb); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	d := NewDecoder(buf)
+	var got *gobDecoderBug0
+	if err := d.Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.foo != gdb.foo || got.bar != gdb.bar {
+		t.Errorf("got = %q, want %q", got, gdb)
 	}
 }

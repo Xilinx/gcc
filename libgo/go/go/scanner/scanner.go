@@ -22,13 +22,13 @@ package scanner
 
 import (
 	"bytes"
+	"fmt"
 	"go/token"
 	"path/filepath"
 	"strconv"
 	"unicode"
 	"utf8"
 )
-
 
 // A Scanner holds the scanner's internal state while processing
 // a given text.  It can be allocated as part of another data
@@ -52,7 +52,6 @@ type Scanner struct {
 	// public state - ok to modify
 	ErrorCount int // number of errors encountered
 }
-
 
 // Read the next Unicode char into S.ch.
 // S.ch < 0 means end-of-file.
@@ -87,14 +86,12 @@ func (S *Scanner) next() {
 	}
 }
 
-
 // The mode parameter to the Init function is a set of flags (or 0).
 // They control scanner behavior.
 //
 const (
-	ScanComments      = 1 << iota // return comments as COMMENT tokens
-	AllowIllegalChars             // do not report an error for illegal chars
-	InsertSemis                   // automatically insert semicolons
+	ScanComments = 1 << iota // return comments as COMMENT tokens
+	InsertSemis              // automatically insert semicolons
 )
 
 // Init prepares the scanner S to tokenize the text src by setting the
@@ -133,44 +130,12 @@ func (S *Scanner) Init(file *token.File, src []byte, err ErrorHandler, mode uint
 	S.next()
 }
 
-
-func charString(ch int) string {
-	var s string
-	switch ch {
-	case -1:
-		return `EOF`
-	case '\a':
-		s = `\a`
-	case '\b':
-		s = `\b`
-	case '\f':
-		s = `\f`
-	case '\n':
-		s = `\n`
-	case '\r':
-		s = `\r`
-	case '\t':
-		s = `\t`
-	case '\v':
-		s = `\v`
-	case '\\':
-		s = `\\`
-	case '\'':
-		s = `\'`
-	default:
-		s = string(ch)
-	}
-	return "'" + s + "' (U+" + strconv.Itob(ch, 16) + ")"
-}
-
-
 func (S *Scanner) error(offs int, msg string) {
 	if S.err != nil {
 		S.err.Error(S.file.Position(S.file.Pos(offs)), msg)
 	}
 	S.ErrorCount++
 }
-
 
 var prefix = []byte("//line ")
 
@@ -186,12 +151,11 @@ func (S *Scanner) interpretLineComment(text []byte) {
 					filename = filepath.Join(S.dir, filename)
 				}
 				// update scanner position
-				S.file.AddLineInfo(S.lineOffset, filename, line-1) // -1 since comment applies to next line
+				S.file.AddLineInfo(S.lineOffset+len(text)+1, filename, line) // +len(text)+1 since comment applies to next line
 			}
 		}
 	}
 }
-
 
 func (S *Scanner) scanComment() {
 	// initial '/' already consumed; S.ch == '/' || S.ch == '*'
@@ -223,7 +187,6 @@ func (S *Scanner) scanComment() {
 
 	S.error(offs, "comment not terminated")
 }
-
 
 func (S *Scanner) findLineEnd() bool {
 	// initial '/' already consumed
@@ -269,16 +232,13 @@ func (S *Scanner) findLineEnd() bool {
 	return false
 }
 
-
 func isLetter(ch int) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
 }
 
-
 func isDigit(ch int) bool {
 	return '0' <= ch && ch <= '9' || ch >= 0x80 && unicode.IsDigit(ch)
 }
-
 
 func (S *Scanner) scanIdentifier() token.Token {
 	offs := S.offset
@@ -287,7 +247,6 @@ func (S *Scanner) scanIdentifier() token.Token {
 	}
 	return token.Lookup(S.src[offs:S.offset])
 }
-
 
 func digitVal(ch int) int {
 	switch {
@@ -301,13 +260,11 @@ func digitVal(ch int) int {
 	return 16 // larger than any legal digit val
 }
 
-
 func (S *Scanner) scanMantissa(base int) {
 	for digitVal(S.ch) < base {
 		S.next()
 	}
 }
-
 
 func (S *Scanner) scanNumber(seenDecimalPoint bool) token.Token {
 	// digitVal(S.ch) < 10
@@ -327,6 +284,10 @@ func (S *Scanner) scanNumber(seenDecimalPoint bool) token.Token {
 			// hexadecimal int
 			S.next()
 			S.scanMantissa(16)
+			if S.offset-offs <= 2 {
+				// only scanned "0x" or "0X"
+				S.error(offs, "illegal hexadecimal number")
+			}
 		} else {
 			// octal int or float
 			seenDecimalDigit := false
@@ -376,7 +337,6 @@ exit:
 	return tok
 }
 
-
 func (S *Scanner) scanEscape(quote int) {
 	offs := S.offset
 
@@ -421,7 +381,6 @@ func (S *Scanner) scanEscape(quote int) {
 	}
 }
 
-
 func (S *Scanner) scanChar() {
 	// '\'' opening already consumed
 	offs := S.offset - 1
@@ -448,7 +407,6 @@ func (S *Scanner) scanChar() {
 	}
 }
 
-
 func (S *Scanner) scanString() {
 	// '"' opening already consumed
 	offs := S.offset - 1
@@ -468,7 +426,6 @@ func (S *Scanner) scanString() {
 	S.next()
 }
 
-
 func (S *Scanner) scanRawString() {
 	// '`' opening already consumed
 	offs := S.offset - 1
@@ -485,13 +442,11 @@ func (S *Scanner) scanRawString() {
 	S.next()
 }
 
-
 func (S *Scanner) skipWhitespace() {
 	for S.ch == ' ' || S.ch == '\t' || S.ch == '\n' && !S.insertSemi || S.ch == '\r' {
 		S.next()
 	}
 }
-
 
 // Helper functions for scanning multi-byte tokens such as >> += >>= .
 // Different routines recognize different length tok_i based on matches
@@ -507,7 +462,6 @@ func (S *Scanner) switch2(tok0, tok1 token.Token) token.Token {
 	return tok0
 }
 
-
 func (S *Scanner) switch3(tok0, tok1 token.Token, ch2 int, tok2 token.Token) token.Token {
 	if S.ch == '=' {
 		S.next()
@@ -519,7 +473,6 @@ func (S *Scanner) switch3(tok0, tok1 token.Token, ch2 int, tok2 token.Token) tok
 	}
 	return tok0
 }
-
 
 func (S *Scanner) switch4(tok0, tok1 token.Token, ch2 int, tok2, tok3 token.Token) token.Token {
 	if S.ch == '=' {
@@ -536,7 +489,6 @@ func (S *Scanner) switch4(tok0, tok1 token.Token, ch2 int, tok2, tok3 token.Toke
 	}
 	return tok0
 }
-
 
 // Scan scans the next token and returns the token position,
 // the token, and the literal string corresponding to the
@@ -699,9 +651,7 @@ scanAgain:
 		case '|':
 			tok = S.switch3(token.OR, token.OR_ASSIGN, '|', token.LOR)
 		default:
-			if S.mode&AllowIllegalChars == 0 {
-				S.error(offs, "illegal character "+charString(ch))
-			}
+			S.error(offs, fmt.Sprintf("illegal character %#U", ch))
 			insertSemi = S.insertSemi // preserve insertSemi info
 		}
 	}

@@ -416,7 +416,7 @@ is_tm_abort (tree fndecl)
 tree
 build_tm_abort_call (location_t loc, bool is_outer)
 {
-  return build_call_expr_loc (loc, built_in_decls[BUILT_IN_TM_ABORT], 1,
+  return build_call_expr_loc (loc, builtin_decl_explicit (BUILT_IN_TM_ABORT), 1,
 			      build_int_cst (integer_type_node,
 					     AR_USERABORT
 					     | (is_outer ? AR_OUTERABORT : 0)));
@@ -486,11 +486,11 @@ find_tm_replacement_function (tree fndecl)
     switch (DECL_FUNCTION_CODE (fndecl))
       {
       case BUILT_IN_MEMCPY:
-	return built_in_decls[BUILT_IN_TM_MEMCPY];
+	return builtin_decl_explicit (BUILT_IN_TM_MEMCPY);
       case BUILT_IN_MEMMOVE:
-	return built_in_decls[BUILT_IN_TM_MEMMOVE];
+	return builtin_decl_explicit (BUILT_IN_TM_MEMMOVE);
       case BUILT_IN_MEMSET:
-	return built_in_decls[BUILT_IN_TM_MEMSET];
+	return builtin_decl_explicit (BUILT_IN_TM_MEMSET);
       default:
 	return NULL;
       }
@@ -519,11 +519,11 @@ tm_malloc_replacement (tree from)
   str = IDENTIFIER_POINTER (DECL_NAME (from));
 
   if (!strcmp (str, "malloc"))
-    to = built_in_decls[BUILT_IN_TM_MALLOC];
+    to = builtin_decl_explicit (BUILT_IN_TM_MALLOC);
   else if (!strcmp (str, "calloc"))
-    to = built_in_decls[BUILT_IN_TM_CALLOC];
+    to = builtin_decl_explicit (BUILT_IN_TM_CALLOC);
   else if (!strcmp (str, "free"))
-    to = built_in_decls[BUILT_IN_TM_FREE];
+    to = builtin_decl_explicit (BUILT_IN_TM_FREE);
   else
     return;
 
@@ -1104,11 +1104,11 @@ tm_log_emit_stmt (tree addr, gimple stmt)
 	  code = BUILT_IN_TM_LOG;
 	  if (TREE_CODE (type) == VECTOR_TYPE)
 	    {
-	      if (n == 8 && built_in_decls[BUILT_IN_TM_LOG_M64])
+	      if (n == 8 && builtin_decl_explicit (BUILT_IN_TM_LOG_M64))
 		code = BUILT_IN_TM_LOG_M64;
-	      else if (n == 16 && built_in_decls[BUILT_IN_TM_LOG_M128])
+	      else if (n == 16 && builtin_decl_explicit (BUILT_IN_TM_LOG_M128))
 		code = BUILT_IN_TM_LOG_M128;
-	      else if (n == 32 && built_in_decls[BUILT_IN_TM_LOG_M256])
+	      else if (n == 32 && builtin_decl_explicit (BUILT_IN_TM_LOG_M256))
 		code = BUILT_IN_TM_LOG_M256;
 	    }
 	  break;
@@ -1117,9 +1117,9 @@ tm_log_emit_stmt (tree addr, gimple stmt)
 
   addr = gimplify_addr (&gsi, addr);
   if (code == BUILT_IN_TM_LOG)
-    log = gimple_build_call (built_in_decls[code], 2, addr,  size);
+    log = gimple_build_call (builtin_decl_explicit (code), 2, addr,  size);
   else
-    log = gimple_build_call (built_in_decls[code], 1, addr);
+    log = gimple_build_call (builtin_decl_explicit (code), 1, addr);
   gsi_insert_before (&gsi, log, GSI_SAME_STMT);
 }
 
@@ -1576,7 +1576,7 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
 
   /* Wrap the body of the transaction in a try-finally node so that
      the commit call is always properly called.  */
-  g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT], 0);
+  g = gimple_build_call (builtin_decl_explicit (BUILT_IN_TM_COMMIT), 0);
   if (flag_exceptions)
     {
       tree ptr;
@@ -1585,13 +1585,14 @@ lower_transaction (gimple_stmt_iterator *gsi, struct walk_stmt_info *wi)
       n_seq = gimple_seq_alloc_with_stmt (g);
       e_seq = gimple_seq_alloc ();
 
-      g = gimple_build_call (built_in_decls[BUILT_IN_EH_POINTER],
+      g = gimple_build_call (builtin_decl_explicit (BUILT_IN_EH_POINTER),
 			     1, integer_zero_node);
       ptr = create_tmp_var (ptr_type_node, NULL);
       gimple_call_set_lhs (g, ptr);
       gimple_seq_add_stmt (&e_seq, g);
 
-      g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT_EH], 1, ptr);
+      g = gimple_build_call (builtin_decl_explicit (BUILT_IN_TM_COMMIT_EH),
+			     1, ptr);
       gimple_seq_add_stmt (&e_seq, g);
 
       g = gimple_build_eh_else (n_seq, e_seq);
@@ -2013,7 +2014,7 @@ build_tm_load (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 	return NULL;
     }
   else
-    decl = built_in_decls[code];
+    decl = builtin_decl_explicit (code);
 
   t = gimplify_addr (gsi, rhs);
   gcall = gimple_build_call (decl, 1, t);
@@ -2085,7 +2086,7 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 	return NULL;
     }
   else
-    fn = built_in_decls[code];
+    fn = builtin_decl_explicit (code);
 
   simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
 
@@ -2172,8 +2173,8 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 	 and the RHS and if not, use MEMCPY.  */
       lhs_addr = gimplify_addr (gsi, lhs);
       rhs_addr = gimplify_addr (gsi, rhs);
-      gcall = gimple_build_call (built_in_decls [BUILT_IN_TM_MEMMOVE], 3,
-				 lhs_addr, rhs_addr,
+      gcall = gimple_build_call (builtin_decl_explicit (BUILT_IN_TM_MEMMOVE),
+				 3, lhs_addr, rhs_addr,
 				 TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
       gimple_set_location (gcall, loc);
       gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
@@ -2206,10 +2207,10 @@ expand_call_tm (struct tm_region *region,
 
   fn_decl = gimple_call_fndecl (stmt);
 
-  if (fn_decl == built_in_decls[BUILT_IN_TM_MEMCPY]
-      || fn_decl == built_in_decls[BUILT_IN_TM_MEMMOVE])
+  if (fn_decl == builtin_decl_explicit (BUILT_IN_TM_MEMCPY)
+      || fn_decl == builtin_decl_explicit (BUILT_IN_TM_MEMMOVE))
     transaction_subcode_ior (region, GTMA_HAVE_STORE | GTMA_HAVE_LOAD);
-  if (fn_decl == built_in_decls[BUILT_IN_TM_MEMSET])
+  if (fn_decl == builtin_decl_explicit (BUILT_IN_TM_MEMSET))
     transaction_subcode_ior (region, GTMA_HAVE_STORE);
 
   if (is_tm_pure_call (stmt))
@@ -2554,7 +2555,7 @@ expand_transaction (struct tm_region *region)
   gimple g;
   int flags, subcode;
 
-  tm_start = built_in_decls[BUILT_IN_TM_START];
+  tm_start = builtin_decl_explicit (BUILT_IN_TM_START);
   status = make_rename_temp (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
 
   /* ??? There are plenty of bits here we're not computing.  */
@@ -3221,7 +3222,9 @@ tm_memopt_transform_stmt (unsigned int offset,
   tree fn = gimple_call_fn (stmt);
   gcc_assert (TREE_CODE (fn) == ADDR_EXPR);
   TREE_OPERAND (fn, 0)
-    = built_in_decls[DECL_FUNCTION_CODE (TREE_OPERAND (fn, 0)) + offset];
+    = builtin_decl_explicit ((enum built_in_function)
+			     (DECL_FUNCTION_CODE (TREE_OPERAND (fn, 0))
+			      + offset));
   gimple_call_set_fn (stmt, fn);
   gsi_replace (gsi, stmt, true);
   dump_tm_memopt_transform (stmt);
@@ -4283,7 +4286,7 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
 
   transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
-  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOCABLE],
+  g = gimple_build_call (builtin_decl_explicit (BUILT_IN_TM_IRREVOCABLE),
                          1, build_int_cst (NULL_TREE, MODE_SERIALIRREVOCABLE));
 
   split_block_after_labels (bb);
@@ -4291,10 +4294,11 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
 
   cgraph_create_edge (node,
-	       cgraph_get_create_node (built_in_decls[BUILT_IN_TM_IRREVOCABLE]),
-	       g, 0,
-	       compute_call_stmt_bb_frequency (node->decl,
-					       gimple_bb (g)));
+	       cgraph_get_create_node
+		  (builtin_decl_explicit (BUILT_IN_TM_IRREVOCABLE)),
+		      g, 0,
+		      compute_call_stmt_bb_frequency (node->decl,
+						      gimple_bb (g)));
 }
 
 /* Construct a call to TM_GETTMCLONE and insert it before GSI.  */
@@ -4325,8 +4329,8 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
     }
 
   safe = is_tm_safe (TREE_TYPE (old_fn));
-  gettm_fn = built_in_decls[safe ? BUILT_IN_TM_GETTMCLONE_SAFE
-			    : BUILT_IN_TM_GETTMCLONE_IRR];
+  gettm_fn = builtin_decl_explicit (safe ? BUILT_IN_TM_GETTMCLONE_SAFE
+				    : BUILT_IN_TM_GETTMCLONE_IRR);
   ret = create_tmp_var (ptr_type_node, NULL);
   add_referenced_var (ret);
 

@@ -402,7 +402,13 @@ Temporary_statement::do_check_types(Gogo*)
   if (this->type_ != NULL && this->init_ != NULL)
     {
       std::string reason;
-      if (!Type::are_assignable(this->type_, this->init_->type(), &reason))
+      bool ok;
+      if (this->are_hidden_fields_ok_)
+	ok = Type::are_assignable_hidden_ok(this->type_, this->init_->type(),
+					    &reason);
+      else
+	ok = Type::are_assignable(this->type_, this->init_->type(), &reason);
+      if (!ok)
 	{
 	  if (reason.empty())
 	    error_at(this->location(), "incompatible types in assignment");
@@ -504,8 +510,14 @@ class Assignment_statement : public Statement
   Assignment_statement(Expression* lhs, Expression* rhs,
 		       source_location location)
     : Statement(STATEMENT_ASSIGNMENT, location),
-      lhs_(lhs), rhs_(rhs)
+      lhs_(lhs), rhs_(rhs), are_hidden_fields_ok_(false)
   { }
+
+  // Note that it is OK for this assignment statement to set hidden
+  // fields.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
 
  protected:
   int
@@ -531,6 +543,9 @@ class Assignment_statement : public Statement
   Expression* lhs_;
   // Right hand side--the rvalue.
   Expression* rhs_;
+  // True if this statement may set hidden fields in the assignment
+  // statement.  This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
 };
 
 // Traversal.
@@ -579,7 +594,12 @@ Assignment_statement::do_check_types(Gogo*)
   Type* lhs_type = this->lhs_->type();
   Type* rhs_type = this->rhs_->type();
   std::string reason;
-  if (!Type::are_assignable(lhs_type, rhs_type, &reason))
+  bool ok;
+  if (this->are_hidden_fields_ok_)
+    ok = Type::are_assignable_hidden_ok(lhs_type, rhs_type, &reason);
+  else
+    ok = Type::are_assignable(lhs_type, rhs_type, &reason);
+  if (!ok)
     {
       if (reason.empty())
 	error_at(this->location(), "incompatible types in assignment");
@@ -632,6 +652,47 @@ Statement::make_assignment(Expression* lhs, Expression* rhs,
   return new Assignment_statement(lhs, rhs, location);
 }
 
+// The Move_subexpressions class is used to move all top-level
+// subexpressions of an expression.  This is used for things like
+// index expressions in which we must evaluate the index value before
+// it can be changed by a multiple assignment.
+
+class Move_subexpressions : public Traverse
+{
+ public:
+  Move_subexpressions(int skip, Block* block)
+    : Traverse(traverse_expressions),
+      skip_(skip), block_(block)
+  { }
+
+ protected:
+  int
+  expression(Expression**);
+
+ private:
+  // The number of subexpressions to skip moving.  This is used to
+  // avoid moving the array itself, as we only need to move the index.
+  int skip_;
+  // The block where new temporary variables should be added.
+  Block* block_;
+};
+
+int
+Move_subexpressions::expression(Expression** pexpr)
+{
+  if (this->skip_ > 0)
+    --this->skip_;
+  else if ((*pexpr)->temporary_reference_expression() == NULL)
+    {
+      source_location loc = (*pexpr)->location();
+      Temporary_statement* temp = Statement::make_temporary(NULL, *pexpr, loc);
+      this->block_->add_statement(temp);
+      *pexpr = Expression::make_temporary_reference(temp, loc);
+    }
+  // We only need to move top-level subexpressions.
+  return TRAVERSE_SKIP_COMPONENTS;
+}
+
 // The Move_ordered_evals class is used to find any subexpressions of
 // an expression that have an evaluation order dependency.  It creates
 // temporary variables to hold them.
@@ -659,6 +720,15 @@ Move_ordered_evals::expression(Expression** pexpr)
   // We have to look at subexpressions first.
   if ((*pexpr)->traverse_subexpressions(this) == TRAVERSE_EXIT)
     return TRAVERSE_EXIT;
+
+  int i;
+  if ((*pexpr)->must_eval_subexpressions_in_order(&i))
+    {
+      Move_subexpressions ms(i, this->block_);
+      if ((*pexpr)->traverse_subexpressions(&ms) == TRAVERSE_EXIT)
+	return TRAVERSE_EXIT;
+    }
+
   if ((*pexpr)->must_eval_in_order())
     {
       source_location loc = (*pexpr)->location();
@@ -820,8 +890,14 @@ class Tuple_assignment_statement : public Statement
   Tuple_assignment_statement(Expression_list* lhs, Expression_list* rhs,
 			     source_location location)
     : Statement(STATEMENT_TUPLE_ASSIGNMENT, location),
-      lhs_(lhs), rhs_(rhs)
+      lhs_(lhs), rhs_(rhs), are_hidden_fields_ok_(false)
   { }
+
+  // Note that it is OK for this assignment statement to set hidden
+  // fields.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
 
  protected:
   int
@@ -846,6 +922,9 @@ class Tuple_assignment_statement : public Statement
   Expression_list* lhs_;
   // Right hand side--a list of rvalues.
   Expression_list* rhs_;
+  // True if this statement may set hidden fields in the assignment
+  // statement.  This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
 };
 
 // Traversal.
@@ -872,10 +951,10 @@ Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
   // First move out any subexpressions on the left hand side.  The
   // right hand side will be evaluated in the required order anyhow.
   Move_ordered_evals moe(b);
-  for (Expression_list::const_iterator plhs = this->lhs_->begin();
+  for (Expression_list::iterator plhs = this->lhs_->begin();
        plhs != this->lhs_->end();
        ++plhs)
-    (*plhs)->traverse_subexpressions(&moe);
+    Expression::traverse(&*plhs, &moe);
 
   std::vector<Temporary_statement*> temps;
   temps.reserve(this->lhs_->size());
@@ -895,12 +974,14 @@ Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
 
       if ((*plhs)->is_sink_expression())
 	{
-	  b->add_statement(Statement::make_statement(*prhs));
+	  b->add_statement(Statement::make_statement(*prhs, true));
 	  continue;
 	}
 
       Temporary_statement* temp = Statement::make_temporary((*plhs)->type(),
 							    *prhs, loc);
+      if (this->are_hidden_fields_ok_)
+	temp->set_hidden_fields_are_ok();
       b->add_statement(temp);
       temps.push_back(temp);
 
@@ -924,6 +1005,11 @@ Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
 
       Expression* ref = Expression::make_temporary_reference(*ptemp, loc);
       Statement* s = Statement::make_assignment(*plhs, ref, loc);
+      if (this->are_hidden_fields_ok_)
+	{
+	  Assignment_statement* as = static_cast<Assignment_statement*>(s);
+	  as->set_hidden_fields_are_ok();
+	}
       b->add_statement(s);
       ++ptemp;
     }
@@ -1049,14 +1135,16 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
     Statement::make_temporary(Type::lookup_bool_type(), NULL, loc);
   b->add_statement(present_temp);
 
-  // present_temp = mapaccess2(MAP, &key_temp, &val_temp)
+  // present_temp = mapaccess2(DESCRIPTOR, MAP, &key_temp, &val_temp)
+  Expression* a1 = Expression::make_type_descriptor(map_type, loc);
+  Expression* a2 = map_index->map();
   Temporary_reference_expression* ref =
     Expression::make_temporary_reference(key_temp, loc);
-  Expression* a1 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* a3 = Expression::make_unary(OPERATOR_AND, ref, loc);
   ref = Expression::make_temporary_reference(val_temp, loc);
-  Expression* a2 = Expression::make_unary(OPERATOR_AND, ref, loc);
-  Expression* call = Runtime::make_call(Runtime::MAPACCESS2, loc, 3,
-					map_index->map(), a1, a2);
+  Expression* a4 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* call = Runtime::make_call(Runtime::MAPACCESS2, loc, 4,
+					a1, a2, a3, a4);
 
   ref = Expression::make_temporary_reference(present_temp, loc);
   ref->set_is_lvalue();
@@ -1204,7 +1292,7 @@ Map_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
   Expression* p4 = Expression::make_temporary_reference(insert_temp, loc);
   Expression* call = Runtime::make_call(Runtime::MAPASSIGN2, loc, 4,
 					p1, p2, p3, p4);
-  Statement* s = Statement::make_statement(call);
+  Statement* s = Statement::make_statement(call, true);
   b->add_statement(s);
 
   return Statement::make_block_statement(b, loc);
@@ -1578,9 +1666,9 @@ Statement::make_tuple_type_guard_assignment(Expression* val, Expression* ok,
 class Expression_statement : public Statement
 {
  public:
-  Expression_statement(Expression* expr)
+  Expression_statement(Expression* expr, bool is_ignored)
     : Statement(STATEMENT_EXPRESSION, expr->location()),
-      expr_(expr)
+      expr_(expr), is_ignored_(is_ignored)
   { }
 
   Expression*
@@ -1596,6 +1684,9 @@ class Expression_statement : public Statement
   do_determine_types()
   { this->expr_->determine_type_no_context(); }
 
+  void
+  do_check_types(Gogo*);
+
   bool
   do_may_fall_through() const;
 
@@ -1607,7 +1698,20 @@ class Expression_statement : public Statement
 
  private:
   Expression* expr_;
+  // Whether the value of this expression is being explicitly ignored.
+  bool is_ignored_;
 };
+
+// Check the types of an expression statement.  The only check we do
+// is to possibly give an error about discarding the value of the
+// expression.
+
+void
+Expression_statement::do_check_types(Gogo*)
+{
+  if (!this->is_ignored_)
+    this->expr_->discarding_value();
+}
 
 // An expression statement may fall through unless it is a call to a
 // function which does not return.
@@ -1663,9 +1767,9 @@ Expression_statement::do_dump_statement(Ast_dump_context* ast_dump_context)
 // Make an expression statement from an Expression.
 
 Statement*
-Statement::make_statement(Expression* expr)
+Statement::make_statement(Expression* expr, bool is_ignored)
 {
-  return new Expression_statement(expr);
+  return new Expression_statement(expr, is_ignored);
 }
 
 // A block statement--a list of statements which may include variable
@@ -2239,7 +2343,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name)
   Label* retaddr_label = NULL;
   if (may_call_recover)
     {
-      retaddr_label = gogo->add_label_reference("retaddr");
+      retaddr_label = gogo->add_label_reference("retaddr", location, false);
       Expression* arg = Expression::make_label_addr(retaddr_label, location);
       Expression* call = Runtime::make_call(Runtime::SET_DEFER_RETADDR,
 					    location, 1, arg);
@@ -2338,7 +2442,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name)
   // receiver parameter.
   call->set_varargs_are_lowered();
 
-  Statement* call_statement = Statement::make_statement(call);
+  Statement* call_statement = Statement::make_statement(call, true);
 
   gogo->add_statement(call_statement);
 
@@ -2503,11 +2607,10 @@ Return_statement::do_traverse_assignments(Traverse_assignments* tassign)
 
 // Lower a return statement.  If we are returning a function call
 // which returns multiple values which match the current function,
-// split up the call's results.  If the function has named result
-// variables, and the return statement lists explicit values, then
-// implement it by assigning the values to the result variables and
-// changing the statement to not list any values.  This lets
-// panic/recover work correctly.
+// split up the call's results.  If the return statement lists
+// explicit values, implement this statement by assigning the values
+// to the result variables and change this statement to a naked
+// return.  This lets panic/recover work correctly.
 
 Statement*
 Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing,
@@ -2592,7 +2695,12 @@ Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing,
       e->determine_type(&type_context);
 
       std::string reason;
-      if (Type::are_assignable(rvtype, e->type(), &reason))
+      bool ok;
+      if (this->are_hidden_fields_ok_)
+	ok = Type::are_assignable_hidden_ok(rvtype, e->type(), &reason);
+      else
+	ok = Type::are_assignable(rvtype, e->type(), &reason);
+      if (ok)
 	{
 	  Expression* ve = Expression::make_var_reference(rv, e->location());
 	  lhs->push_back(ve);
@@ -2614,13 +2722,28 @@ Return_statement::do_lower(Gogo*, Named_object* function, Block* enclosing,
     ;
   else if (lhs->size() == 1)
     {
-      b->add_statement(Statement::make_assignment(lhs->front(), rhs->front(),
-						  loc));
+      Statement* s = Statement::make_assignment(lhs->front(), rhs->front(),
+						loc);
+      if (this->are_hidden_fields_ok_)
+	{
+	  Assignment_statement* as = static_cast<Assignment_statement*>(s);
+	  as->set_hidden_fields_are_ok();
+	}
+      b->add_statement(s);
       delete lhs;
       delete rhs;
     }
   else
-    b->add_statement(Statement::make_tuple_assignment(lhs, rhs, loc));
+    {
+      Statement* s = Statement::make_tuple_assignment(lhs, rhs, loc);
+      if (this->are_hidden_fields_ok_)
+	{
+	  Tuple_assignment_statement* tas =
+	    static_cast<Tuple_assignment_statement*>(s);
+	  tas->set_hidden_fields_are_ok();
+	}
+      b->add_statement(s);
+    }
 
   b->add_statement(this);
 
@@ -2670,7 +2793,7 @@ Return_statement::do_dump_statement(Ast_dump_context* ast_dump_context) const
 
 // Make a return statement.
 
-Statement*
+Return_statement*
 Statement::make_return_statement(Expression_list* vals,
 				 source_location location)
 {
@@ -3736,7 +3859,7 @@ Switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing,
       Expression* val = this->val_;
       if (val == NULL)
 	val = Expression::make_boolean(true, loc);
-      return Statement::make_statement(val);
+      return Statement::make_statement(val, true);
     }
 
   Temporary_statement* val_temp;
@@ -4246,7 +4369,7 @@ Send_statement::do_get_backend(Translate_context* context)
 
     case Type::TYPE_ARRAY:
       is_small = false;
-      can_take_address = !element_type->is_open_array_type();
+      can_take_address = !element_type->is_slice_type();
       break;
 
     default:
@@ -4461,7 +4584,7 @@ Select_clauses::Select_clause::lower(Gogo* gogo, Named_object* function,
 	}
       else
 	{
-	  init->add_statement(Statement::make_statement(recv));
+	  init->add_statement(Statement::make_statement(recv, true));
 	}
     }
 
@@ -5108,7 +5231,7 @@ For_range_statement::do_lower(Gogo* gogo, Named_object*, Block* enclosing,
   Type* range_type = this->range_->type();
   if (range_type->points_to() != NULL
       && range_type->points_to()->array_type() != NULL
-      && !range_type->points_to()->is_open_array_type())
+      && !range_type->points_to()->is_slice_type())
     range_type = range_type->points_to();
 
   Type* index_type;
@@ -5538,7 +5661,7 @@ For_range_statement::lower_range_map(Gogo*,
   Expression* ref = Expression::make_temporary_reference(hiter, loc);
   Expression* p2 = Expression::make_unary(OPERATOR_AND, ref, loc);
   Expression* call = Runtime::make_call(Runtime::MAPITERINIT, loc, 2, p1, p2);
-  init->add_statement(Statement::make_statement(call));
+  init->add_statement(Statement::make_statement(call, true));
 
   *pinit = init;
 
@@ -5579,7 +5702,7 @@ For_range_statement::lower_range_map(Gogo*,
       Expression* p3 = Expression::make_unary(OPERATOR_AND, ref, loc);
       call = Runtime::make_call(Runtime::MAPITER2, loc, 3, p1, p2, p3);
     }
-  iter_init->add_statement(Statement::make_statement(call));
+  iter_init->add_statement(Statement::make_statement(call, true));
 
   *piter_init = iter_init;
 
@@ -5591,7 +5714,7 @@ For_range_statement::lower_range_map(Gogo*,
   ref = Expression::make_temporary_reference(hiter, loc);
   p1 = Expression::make_unary(OPERATOR_AND, ref, loc);
   call = Runtime::make_call(Runtime::MAPITERNEXT, loc, 1, p1);
-  post->add_statement(Statement::make_statement(call));
+  post->add_statement(Statement::make_statement(call, true));
 
   *ppost = post;
 }

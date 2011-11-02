@@ -41,6 +41,11 @@ if { [ishost "*-*-cygwin*"] } {
   setenv LANG C.ASCII
 }
 
+global GCC_UNDER_TEST
+if ![info exists GCC_UNDER_TEST] {
+    set GCC_UNDER_TEST "[find_gcc]"
+}
+
 if [info exists TORTURE_OPTIONS] {
     set DG_TORTURE_OPTIONS $TORTURE_OPTIONS
 } else {
@@ -69,16 +74,19 @@ if [info exists ADDITIONAL_TORTURE_OPTIONS] {
 
 set LTO_TORTURE_OPTIONS ""
 if [check_effective_target_lto] {
-    set LTO_TORTURE_OPTIONS [list \
-	{ -O2 -flto -flto-partition=none } \
-	{ -O2 -flto }
-    ]
-}
-
-
-global GCC_UNDER_TEST
-if ![info exists GCC_UNDER_TEST] {
-    set GCC_UNDER_TEST "[find_gcc]"
+    # When having plugin test both slim and fat LTO and plugin/nonplugin
+    # path.
+    if [check_linker_plugin_available] {
+      set LTO_TORTURE_OPTIONS [list \
+	  { -O2 -flto -fno-use-linker-plugin -flto-partition=none } \
+	  { -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects }
+      ]
+    } else {
+      set LTO_TORTURE_OPTIONS [list \
+	  { -O2 -flto -flto-partition=none } \
+	  { -O2 -flto }
+      ]
+    }
 }
 
 global orig_environment_saved
@@ -745,6 +753,28 @@ proc process-message { msgproc msgprefix dgargs } {
 proc dg-message { args } {
     upvar dg-messages dg-messages
     process-message saved-dg-warning "" $args
+}
+
+# Check the existence of a gdb in the path, and return true if there
+# is one.
+#
+# Set env(GDB_FOR_GCC_TESTING) accordingly.
+
+proc gdb-exists { args } {
+    if ![info exists ::env(GDB_FOR_GCC_TESTING)] {
+	global GDB
+	if ![info exists ::env(GDB_FOR_GCC_TESTING)] {
+	    if [info exists GDB] {
+		setenv GDB_FOR_GCC_TESTING "$GDB"
+	    } else {
+		setenv GDB_FOR_GCC_TESTING "[transform gdb]"
+	    }
+	}
+    }
+    if { [which $::env(GDB_FOR_GCC_TESTING)] != 0 } {
+	return 1;
+    }
+    return 0;
 }
 
 set additional_prunes ""

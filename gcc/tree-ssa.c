@@ -471,7 +471,10 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
 	  /* If we didn't replace uses with a debug decl fold the
 	     resulting expression.  Otherwise we end up with invalid IL.  */
 	  if (TREE_CODE (value) != DEBUG_EXPR_DECL)
-	    fold_stmt_inplace (stmt);
+	    {
+	      gimple_stmt_iterator gsi = gsi_for_stmt (stmt);
+	      fold_stmt_inplace (&gsi);
+	    }
 	}
       else
 	gimple_debug_bind_reset_value (stmt);
@@ -1267,12 +1270,6 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
 	  != TYPE_ADDR_SPACE (TREE_TYPE (inner_type)))
 	return false;
 
-      /* Do not lose casts to restrict qualified pointers.  */
-      if ((TYPE_RESTRICT (outer_type)
-	   != TYPE_RESTRICT (inner_type))
-	  && TYPE_RESTRICT (outer_type))
-	return false;
-
       /* If the outer type is (void *), the conversion is not necessary.  */
       if (VOID_TYPE_P (TREE_TYPE (outer_type)))
 	return true;
@@ -1966,6 +1963,8 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
 	 a non-register.  Otherwise we are confused and forget to
 	 add virtual operands for it.  */
       && (!is_gimple_reg_type (TREE_TYPE (var))
+	  || TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE
+	  || TREE_CODE (TREE_TYPE (var)) == COMPLEX_TYPE
 	  || !bitmap_bit_p (not_reg_needs, DECL_UID (var))))
     {
       TREE_ADDRESSABLE (var) = 0;

@@ -80,6 +80,11 @@ march=
 Target RejectNegative Joined Enum(arm_arch) Var(arm_arch_option)
 Specify the name of the target architecture
 
+; Other arm_arch values are loaded from arm-tables.opt
+; but that is a generated file and this is an odd-one-out.
+EnumValue
+Enum(arm_arch) String(native) Value(-1) DriverOnly
+
 marm
 Target Report RejectNegative InverseMask(THUMB)
 Generate code in 32 bit ARM state.
@@ -233,6 +238,11 @@ mtune=
 Target RejectNegative Joined Enum(processor_type) Var(arm_tune_option) Init(arm_none)
 Tune code for the given processor
 
+; Other processor_type values are loaded from arm-tables.opt
+; but that is a generated file and this is an odd-one-out.
+EnumValue
+Enum(processor_type) String(native) Value(-1) DriverOnly
+
 mwords-little-endian
 Target Report RejectNegative Mask(LITTLE_WORDS)
 Assume big endian bytes, little endian words.  This option is deprecated.
@@ -253,3 +263,7 @@ mfix-cortex-m3-ldrd
 Target Report Var(fix_cm3_ldrd) Init(2)
 Avoid overlapping destination and address registers on LDRD instructions
 that may trigger Cortex-M3 errata.
+
+munaligned-access
+Target Report Var(unaligned_access) Init(2)
+Enable unaligned word and halfword accesses to packed data.

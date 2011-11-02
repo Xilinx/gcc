@@ -198,24 +198,38 @@ func genSplit(s, sep string, sepSave, n int) []string {
 	return a[0 : na+1]
 }
 
-// Split slices s into substrings separated by sep and returns a slice of
+// SplitN slices s into substrings separated by sep and returns a slice of
+// the substrings between those separators.
+// If sep is empty, SplitN splits after each UTF-8 sequence.
+// The count determines the number of substrings to return:
+//   n > 0: at most n substrings; the last substring will be the unsplit remainder.
+//   n == 0: the result is nil (zero substrings)
+//   n < 0: all substrings
+func SplitN(s, sep string, n int) []string { return genSplit(s, sep, 0, n) }
+
+// SplitAfterN slices s into substrings after each instance of sep and
+// returns a slice of those substrings.
+// If sep is empty, SplitAfterN splits after each UTF-8 sequence.
+// The count determines the number of substrings to return:
+//   n > 0: at most n substrings; the last substring will be the unsplit remainder.
+//   n == 0: the result is nil (zero substrings)
+//   n < 0: all substrings
+func SplitAfterN(s, sep string, n int) []string {
+	return genSplit(s, sep, len(sep), n)
+}
+
+// Split slices s into all substrings separated by sep and returns a slice of
 // the substrings between those separators.
 // If sep is empty, Split splits after each UTF-8 sequence.
-// The count determines the number of substrings to return:
-//   n > 0: at most n substrings; the last substring will be the unsplit remainder.
-//   n == 0: the result is nil (zero substrings)
-//   n < 0: all substrings
-func Split(s, sep string, n int) []string { return genSplit(s, sep, 0, n) }
+// It is equivalent to SplitN with a count of -1.
+func Split(s, sep string) []string { return genSplit(s, sep, 0, -1) }
 
-// SplitAfter slices s into substrings after each instance of sep and
+// SplitAfter slices s into all substrings after each instance of sep and
 // returns a slice of those substrings.
-// If sep is empty, Split splits after each UTF-8 sequence.
-// The count determines the number of substrings to return:
-//   n > 0: at most n substrings; the last substring will be the unsplit remainder.
-//   n == 0: the result is nil (zero substrings)
-//   n < 0: all substrings
-func SplitAfter(s, sep string, n int) []string {
-	return genSplit(s, sep, len(sep), n)
+// If sep is empty, SplitAfter splits after each UTF-8 sequence.
+// It is equivalent to SplitAfterN with a count of -1.
+func SplitAfter(s, sep string) []string {
+	return genSplit(s, sep, len(sep), -1)
 }
 
 // Fields splits the string s around each instance of one or more consecutive white space
@@ -348,7 +362,6 @@ func Repeat(s string, count int) string {
 	}
 	return string(b)
 }
-
 
 // ToUpper returns a copy of the string s with all Unicode letters mapped to their upper case.
 func ToUpper(s string) string { return Map(unicode.ToUpper, s) }
@@ -569,4 +582,59 @@ func Replace(s, old, new string, n int) string {
 	}
 	w += copy(t[w:], s[start:])
 	return string(t[0:w])
+}
+
+// EqualFold reports whether s and t, interpreted as UTF-8 strings,
+// are equal under Unicode case-folding.
+func EqualFold(s, t string) bool {
+	for s != "" && t != "" {
+		// Extract first rune from each string.
+		var sr, tr int
+		if s[0] < utf8.RuneSelf {
+			sr, s = int(s[0]), s[1:]
+		} else {
+			r, size := utf8.DecodeRuneInString(s)
+			sr, s = r, s[size:]
+		}
+		if t[0] < utf8.RuneSelf {
+			tr, t = int(t[0]), t[1:]
+		} else {
+			r, size := utf8.DecodeRuneInString(t)
+			tr, t = r, t[size:]
+		}
+
+		// If they match, keep going; if not, return false.
+
+		// Easy case.
+		if tr == sr {
+			continue
+		}
+
+		// Make sr < tr to simplify what follows.
+		if tr < sr {
+			tr, sr = sr, tr
+		}
+		// Fast check for ASCII.
+		if tr < utf8.RuneSelf && 'A' <= sr && sr <= 'Z' {
+			// ASCII, and sr is upper case.  tr must be lower case.
+			if tr == sr+'a'-'A' {
+				continue
+			}
+			return false
+		}
+
+		// General case.  SimpleFold(x) returns the next equivalent rune > x
+		// or wraps around to smaller values.
+		r := unicode.SimpleFold(sr)
+		for r != sr && r < tr {
+			r = unicode.SimpleFold(r)
+		}
+		if r == tr {
+			continue
+		}
+		return false
+	}
+
+	// One string is empty.  Are both?
+	return s == t
 }

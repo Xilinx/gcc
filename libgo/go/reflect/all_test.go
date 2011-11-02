@@ -6,7 +6,7 @@ package reflect_test
 
 import (
 	"bytes"
-	"container/vector"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -127,17 +127,17 @@ var typeTests = []pair{
 	},
 	{struct {
 		x struct {
-			a int8 "hi there"
+			a int8 `reflect:"hi there"`
 		}
 	}{},
-		`struct { a int8 "hi there" }`,
+		`struct { a int8 "reflect:\"hi there\"" }`,
 	},
 	{struct {
 		x struct {
-			a int8 "hi \x00there\t\n\"\\"
+			a int8 `reflect:"hi \x00there\t\n\"\\"`
 		}
 	}{},
-		`struct { a int8 "hi \x00there\t\n\"\\" }`,
+		`struct { a int8 "reflect:\"hi \\x00there\\t\\n\\\"\\\\\"" }`,
 	},
 	{struct {
 		x struct {
@@ -380,7 +380,6 @@ func TestMapSetNil(t *testing.T) {
 	}
 }
 
-
 func TestAll(t *testing.T) {
 	testType(t, 1, TypeOf((int8)(0)), "int8")
 	testType(t, 2, TypeOf((*int8)(nil)).Elem(), "int8")
@@ -423,7 +422,7 @@ func TestAll(t *testing.T) {
 
 	// make sure tag strings are not part of element type
 	typ = TypeOf(struct {
-		d []uint32 "TAG"
+		d []uint32 `reflect:"TAG"`
 	}{}).Field(0).Type
 	testType(t, 14, typ, "[]uint32")
 }
@@ -744,7 +743,6 @@ func TestDeepEqualUnexportedMap(t *testing.T) {
 	}
 }
 
-
 func check2ndField(x interface{}, offs uintptr, t *testing.T) {
 	s := ValueOf(x)
 	f := s.Type().Field(1)
@@ -855,13 +853,13 @@ func TestIsNil(t *testing.T) {
 
 func TestInterfaceExtraction(t *testing.T) {
 	var s struct {
-		w io.Writer
+		W io.Writer
 	}
 
-	s.w = os.Stdout
+	s.W = os.Stdout
 	v := Indirect(ValueOf(&s)).Field(0).Interface()
-	if v != s.w.(interface{}) {
-		t.Error("Interface() on interface: ", v, s.w)
+	if v != s.W.(interface{}) {
+		t.Error("Interface() on interface: ", v, s.W)
 	}
 }
 
@@ -879,19 +877,20 @@ func TestMap(t *testing.T) {
 		t.Errorf("Len = %d, want %d", n, len(m))
 	}
 	keys := mv.MapKeys()
-	i := 0
 	newmap := MakeMap(mv.Type())
 	for k, v := range m {
 		// Check that returned Keys match keys in range.
-		// These aren't required to be in the same order,
-		// but they are in this implementation, which makes
-		// the test easier.
-		if i >= len(keys) {
-			t.Errorf("Missing key #%d %q", i, k)
-		} else if kv := keys[i]; kv.String() != k {
-			t.Errorf("Keys[%q] = %d, want %d", i, kv.Int(), k)
+		// These aren't required to be in the same order.
+		seen := false
+		for _, kv := range keys {
+			if kv.String() == k {
+				seen = true
+				break
+			}
 		}
-		i++
+		if !seen {
+			t.Errorf("Missing key %q", k)
+		}
 
 		// Check that value lookup is correct.
 		vv := mv.MapIndex(ValueOf(k))
@@ -1050,6 +1049,12 @@ type Point struct {
 	x, y int
 }
 
+// This will be index 0.
+func (p Point) AnotherMethod(scale int) int {
+	return -1
+}
+
+// This will be index 1.
 func (p Point) Dist(scale int) int {
 	//	println("Point.Dist", p.x, p.y, scale)
 	return p.x*p.x*scale + p.y*p.y*scale
@@ -1058,26 +1063,52 @@ func (p Point) Dist(scale int) int {
 func TestMethod(t *testing.T) {
 	// Non-curried method of type.
 	p := Point{3, 4}
-	i := TypeOf(p).Method(0).Func.Call([]Value{ValueOf(p), ValueOf(10)})[0].Int()
+	i := TypeOf(p).Method(1).Func.Call([]Value{ValueOf(p), ValueOf(10)})[0].Int()
 	if i != 250 {
 		t.Errorf("Type Method returned %d; want 250", i)
 	}
 
-	i = TypeOf(&p).Method(0).Func.Call([]Value{ValueOf(&p), ValueOf(10)})[0].Int()
+	m, ok := TypeOf(p).MethodByName("Dist")
+	if !ok {
+		t.Fatalf("method by name failed")
+	}
+	m.Func.Call([]Value{ValueOf(p), ValueOf(10)})[0].Int()
+	if i != 250 {
+		t.Errorf("Type MethodByName returned %d; want 250", i)
+	}
+
+	i = TypeOf(&p).Method(1).Func.Call([]Value{ValueOf(&p), ValueOf(10)})[0].Int()
 	if i != 250 {
 		t.Errorf("Pointer Type Method returned %d; want 250", i)
 	}
 
+	m, ok = TypeOf(&p).MethodByName("Dist")
+	if !ok {
+		t.Fatalf("ptr method by name failed")
+	}
+	i = m.Func.Call([]Value{ValueOf(&p), ValueOf(10)})[0].Int()
+	if i != 250 {
+		t.Errorf("Pointer Type MethodByName returned %d; want 250", i)
+	}
+
 	// Curried method of value.
-	i = ValueOf(p).Method(0).Call([]Value{ValueOf(10)})[0].Int()
+	i = ValueOf(p).Method(1).Call([]Value{ValueOf(10)})[0].Int()
 	if i != 250 {
 		t.Errorf("Value Method returned %d; want 250", i)
 	}
+	i = ValueOf(p).MethodByName("Dist").Call([]Value{ValueOf(10)})[0].Int()
+	if i != 250 {
+		t.Errorf("Value MethodByName returned %d; want 250", i)
+	}
 
 	// Curried method of pointer.
-	i = ValueOf(&p).Method(0).Call([]Value{ValueOf(10)})[0].Int()
+	i = ValueOf(&p).Method(1).Call([]Value{ValueOf(10)})[0].Int()
 	if i != 250 {
-		t.Errorf("Value Method returned %d; want 250", i)
+		t.Errorf("Pointer Value Method returned %d; want 250", i)
+	}
+	i = ValueOf(&p).MethodByName("Dist").Call([]Value{ValueOf(10)})[0].Int()
+	if i != 250 {
+		t.Errorf("Pointer Value MethodByName returned %d; want 250", i)
 	}
 
 	// Curried method of interface value.
@@ -1093,6 +1124,10 @@ func TestMethod(t *testing.T) {
 	i = pv.Method(0).Call([]Value{ValueOf(10)})[0].Int()
 	if i != 250 {
 		t.Errorf("Interface Method returned %d; want 250", i)
+	}
+	i = pv.MethodByName("Dist").Call([]Value{ValueOf(10)})[0].Int()
+	if i != 250 {
+		t.Errorf("Interface MethodByName returned %d; want 250", i)
 	}
 }
 
@@ -1156,18 +1191,18 @@ type D2 struct {
 }
 
 type S0 struct {
-	a, b, c int
+	A, B, C int
 	D1
 	D2
 }
 
 type S1 struct {
-	b int
+	B int
 	S0
 }
 
 type S2 struct {
-	a int
+	A int
 	*S1
 }
 
@@ -1182,36 +1217,36 @@ type S1y struct {
 type S3 struct {
 	S1x
 	S2
-	d, e int
+	D, E int
 	*S1y
 }
 
 type S4 struct {
 	*S4
-	a int
+	A int
 }
 
 var fieldTests = []FTest{
 	{struct{}{}, "", nil, 0},
-	{struct{}{}, "foo", nil, 0},
-	{S0{a: 'a'}, "a", []int{0}, 'a'},
-	{S0{}, "d", nil, 0},
-	{S1{S0: S0{a: 'a'}}, "a", []int{1, 0}, 'a'},
-	{S1{b: 'b'}, "b", []int{0}, 'b'},
+	{struct{}{}, "Foo", nil, 0},
+	{S0{A: 'a'}, "A", []int{0}, 'a'},
+	{S0{}, "D", nil, 0},
+	{S1{S0: S0{A: 'a'}}, "A", []int{1, 0}, 'a'},
+	{S1{B: 'b'}, "B", []int{0}, 'b'},
 	{S1{}, "S0", []int{1}, 0},
-	{S1{S0: S0{c: 'c'}}, "c", []int{1, 2}, 'c'},
-	{S2{a: 'a'}, "a", []int{0}, 'a'},
+	{S1{S0: S0{C: 'c'}}, "C", []int{1, 2}, 'c'},
+	{S2{A: 'a'}, "A", []int{0}, 'a'},
 	{S2{}, "S1", []int{1}, 0},
-	{S2{S1: &S1{b: 'b'}}, "b", []int{1, 0}, 'b'},
-	{S2{S1: &S1{S0: S0{c: 'c'}}}, "c", []int{1, 1, 2}, 'c'},
-	{S2{}, "d", nil, 0},
+	{S2{S1: &S1{B: 'b'}}, "B", []int{1, 0}, 'b'},
+	{S2{S1: &S1{S0: S0{C: 'c'}}}, "C", []int{1, 1, 2}, 'c'},
+	{S2{}, "D", nil, 0},
 	{S3{}, "S1", nil, 0},
-	{S3{S2: S2{a: 'a'}}, "a", []int{1, 0}, 'a'},
-	{S3{}, "b", nil, 0},
-	{S3{d: 'd'}, "d", []int{2}, 0},
-	{S3{e: 'e'}, "e", []int{3}, 'e'},
-	{S4{a: 'a'}, "a", []int{1}, 'a'},
-	{S4{}, "b", nil, 0},
+	{S3{S2: S2{A: 'a'}}, "A", []int{1, 0}, 'a'},
+	{S3{}, "B", nil, 0},
+	{S3{D: 'd'}, "D", []int{2}, 0},
+	{S3{E: 'e'}, "E", []int{3}, 'e'},
+	{S4{A: 'a'}, "A", []int{1}, 'a'},
+	{S4{}, "B", nil, 0},
 }
 
 func TestFieldByIndex(t *testing.T) {
@@ -1288,13 +1323,13 @@ func TestFieldByName(t *testing.T) {
 }
 
 func TestImportPath(t *testing.T) {
-	if path := TypeOf(vector.Vector{}).PkgPath(); path != "libgo_container.vector" {
-		t.Errorf("TypeOf(vector.Vector{}).PkgPath() = %q, want \"libgo_container.vector\"", path)
+	if path := TypeOf(&base64.Encoding{}).Elem().PkgPath(); path != "libgo_encoding.base64" {
+		t.Errorf(`TypeOf(&base64.Encoding{}).Elem().PkgPath() = %q, want "libgo_encoding.base64"`, path)
 	}
 }
 
-func TestDotDotDot(t *testing.T) {
-	// Test example from FuncType.DotDotDot documentation.
+func TestVariadicType(t *testing.T) {
+	// Test example from Type documentation.
 	var f func(x int, y ...float64)
 	typ := TypeOf(f)
 	if typ.NumIn() == 2 && typ.In(0) == TypeOf(int(0)) {
@@ -1453,7 +1488,9 @@ func noAlloc(t *testing.T, n int, f func(int)) {
 	for j := 0; j < n; j++ {
 		f(j)
 	}
-	if runtime.MemStats.Mallocs != 0 {
+	// A few allocs may happen in the testing package when GOMAXPROCS > 1, so don't
+	// require zero mallocs.
+	if runtime.MemStats.Mallocs > 5 {
 		t.Fatalf("%d mallocs after %d iterations", runtime.MemStats.Mallocs, n)
 	}
 }
@@ -1508,5 +1545,115 @@ func TestVariadic(t *testing.T) {
 	V(fmt.Fprintf).CallSlice([]Value{V(&b), V("%s, %d world"), V([]interface{}{"hello", 42})})
 	if b.String() != "hello, 42 world" {
 		t.Errorf("after Fprintf CallSlice: %q != %q", b.String(), "hello 42 world")
+	}
+}
+
+var tagGetTests = []struct {
+	Tag   StructTag
+	Key   string
+	Value string
+}{
+	{`protobuf:"PB(1,2)"`, `protobuf`, `PB(1,2)`},
+	{`protobuf:"PB(1,2)"`, `foo`, ``},
+	{`protobuf:"PB(1,2)"`, `rotobuf`, ``},
+	{`protobuf:"PB(1,2)" json:"name"`, `json`, `name`},
+	{`protobuf:"PB(1,2)" json:"name"`, `protobuf`, `PB(1,2)`},
+}
+
+func TestTagGet(t *testing.T) {
+	for _, tt := range tagGetTests {
+		if v := tt.Tag.Get(tt.Key); v != tt.Value {
+			t.Errorf("StructTag(%#q).Get(%#q) = %#q, want %#q", tt.Tag, tt.Key, v, tt.Value)
+		}
+	}
+}
+
+func TestBytes(t *testing.T) {
+	type B []byte
+	x := B{1, 2, 3, 4}
+	y := ValueOf(x).Bytes()
+	if !bytes.Equal(x, y) {
+		t.Fatalf("ValueOf(%v).Bytes() = %v", x, y)
+	}
+	if &x[0] != &y[0] {
+		t.Errorf("ValueOf(%p).Bytes() = %p", &x[0], &y[0])
+	}
+}
+
+func TestSetBytes(t *testing.T) {
+	type B []byte
+	var x B
+	y := []byte{1, 2, 3, 4}
+	ValueOf(&x).Elem().SetBytes(y)
+	if !bytes.Equal(x, y) {
+		t.Fatalf("ValueOf(%v).Bytes() = %v", x, y)
+	}
+	if &x[0] != &y[0] {
+		t.Errorf("ValueOf(%p).Bytes() = %p", &x[0], &y[0])
+	}
+}
+
+type Private struct {
+	x int
+	y **int
+}
+
+func (p *Private) m() {
+}
+
+type Public struct {
+	X int
+	Y **int
+}
+
+func (p *Public) M() {
+}
+
+func TestUnexported(t *testing.T) {
+	var pub Public
+	v := ValueOf(&pub)
+	isValid(v.Elem().Field(0))
+	isValid(v.Elem().Field(1))
+	isValid(v.Elem().FieldByName("X"))
+	isValid(v.Elem().FieldByName("Y"))
+	isValid(v.Type().Method(0).Func)
+	isNonNil(v.Elem().Field(0).Interface())
+	isNonNil(v.Elem().Field(1).Interface())
+	isNonNil(v.Elem().FieldByName("X").Interface())
+	isNonNil(v.Elem().FieldByName("Y").Interface())
+	isNonNil(v.Type().Method(0).Func.Interface())
+
+	var priv Private
+	v = ValueOf(&priv)
+	isValid(v.Elem().Field(0))
+	isValid(v.Elem().Field(1))
+	isValid(v.Elem().FieldByName("x"))
+	isValid(v.Elem().FieldByName("y"))
+	isValid(v.Type().Method(0).Func)
+	shouldPanic(func() { v.Elem().Field(0).Interface() })
+	shouldPanic(func() { v.Elem().Field(1).Interface() })
+	shouldPanic(func() { v.Elem().FieldByName("x").Interface() })
+	shouldPanic(func() { v.Elem().FieldByName("y").Interface() })
+	shouldPanic(func() { v.Type().Method(0).Func.Interface() })
+}
+
+func shouldPanic(f func()) {
+	defer func() {
+		if recover() == nil {
+			panic("did not panic")
+		}
+	}()
+	f()
+}
+
+func isNonNil(x interface{}) {
+	if x == nil {
+		panic("nil interface")
+	}
+}
+
+func isValid(v Value) {
+	if !v.IsValid() {
+		panic("zero Value")
 	}
 }

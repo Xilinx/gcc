@@ -46,6 +46,7 @@ extern void arm_output_fn_unwind (FILE *, bool);
 extern bool arm_vector_mode_supported_p (enum machine_mode);
 extern bool arm_small_register_classes_for_mode_p (enum machine_mode);
 extern int arm_hard_regno_mode_ok (unsigned int, enum machine_mode);
+extern bool arm_modes_tieable_p (enum machine_mode, enum machine_mode);
 extern int const_ok_for_arm (HOST_WIDE_INT);
 extern int const_ok_for_op (HOST_WIDE_INT, enum rtx_code);
 extern int arm_split_constant (RTX_CODE, enum machine_mode, rtx,
@@ -184,6 +185,7 @@ extern int is_called_in_ARM_mode (tree);
 #endif
 extern int thumb_shiftable_const (unsigned HOST_WIDE_INT);
 #ifdef RTX_CODE
+extern enum arm_cond_code maybe_get_arm_condition_code (rtx);
 extern void thumb1_final_prescan_insn (rtx);
 extern void thumb2_final_prescan_insn (rtx);
 extern const char *thumb_load_double_from_address (rtx *);

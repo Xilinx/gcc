@@ -58,9 +58,10 @@ code_stack;
 static code_stack *cs_base = NULL;
 
 
-/* Nonzero if we're inside a FORALL block.  */
+/* Nonzero if we're inside a FORALL or DO CONCURRENT block.  */
 
 static int forall_flag;
+static int do_concurrent_flag;
 
 /* Nonzero if we're inside a OpenMP WORKSHARE or PARALLEL WORKSHARE block.  */
 
@@ -268,46 +269,17 @@ resolve_formal_arglist (gfc_symbol *proc)
       if (sym->attr.if_source != IFSRC_UNKNOWN)
 	resolve_formal_arglist (sym);
 
-      if (sym->attr.subroutine || sym->attr.external || sym->attr.intrinsic)
+      if (sym->attr.subroutine || sym->attr.external)
 	{
-	  if (gfc_pure (proc) && !gfc_pure (sym))
-	    {
-	      gfc_error ("Dummy procedure '%s' of PURE procedure at %L must "
-			 "also be PURE", sym->name, &sym->declared_at);
-	      continue;
-	    }
-
-	  if (proc->attr.implicit_pure && !gfc_pure(sym))
-	    proc->attr.implicit_pure = 0;
-
-	  if (gfc_elemental (proc))
-	    {
-	      gfc_error ("Dummy procedure at %L not allowed in ELEMENTAL "
-			 "procedure", &sym->declared_at);
-	      continue;
-	    }
-
-	  if (sym->attr.function
-		&& sym->ts.type == BT_UNKNOWN
-		&& sym->attr.intrinsic)
-	    {
-	      gfc_intrinsic_sym *isym;
-	      isym = gfc_find_function (sym->name);
-	      if (isym == NULL || !isym->specific)
-		{
-		  gfc_error ("Unable to find a specific INTRINSIC procedure "
-			     "for the reference '%s' at %L", sym->name,
-			     &sym->declared_at);
-		}
-	      sym->ts = isym->ts;
-	    }
-
-	  continue;
+	  if (sym->attr.flavor == FL_UNKNOWN)
+	    gfc_add_flavor (&sym->attr, FL_PROCEDURE, sym->name, &sym->declared_at);
 	}
-
-      if (sym->ts.type == BT_UNKNOWN && !proc->attr.intrinsic
-	  && (!sym->attr.function || sym->result == sym))
-	gfc_set_default_type (sym, 1, sym->ns);
+      else
+	{
+	  if (sym->ts.type == BT_UNKNOWN && !proc->attr.intrinsic
+	      && (!sym->attr.function || sym->result == sym))
+	    gfc_set_default_type (sym, 1, sym->ns);
+	}
 
       gfc_resolve_array_spec (sym->as, 0);
 
@@ -339,49 +311,69 @@ resolve_formal_arglist (gfc_symbol *proc)
       if (sym->attr.flavor == FL_UNKNOWN)
 	gfc_add_flavor (&sym->attr, FL_VARIABLE, sym->name, &sym->declared_at);
 
-      if (gfc_pure (proc) && !sym->attr.pointer
-	  && sym->attr.flavor != FL_PROCEDURE)
+      if (gfc_pure (proc))
 	{
-	  if (proc->attr.function && sym->attr.intent != INTENT_IN)
+	  if (sym->attr.flavor == FL_PROCEDURE)
 	    {
-	      if (sym->attr.value)
-		gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Argument '%s' "
-				"of pure function '%s' at %L with VALUE "
-				"attribute but without INTENT(IN)", sym->name,
-				proc->name, &sym->declared_at);
-	      else
-		gfc_error ("Argument '%s' of pure function '%s' at %L must be "
-			   "INTENT(IN) or VALUE", sym->name, proc->name,
-			   &sym->declared_at);
+	      /* F08:C1279.  */
+	      if (!gfc_pure (sym))
+		{
+		  gfc_error ("Dummy procedure '%s' of PURE procedure at %L must "
+			    "also be PURE", sym->name, &sym->declared_at);
+		  continue;
+		}
 	    }
-
-	  if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN)
+	  else if (!sym->attr.pointer)
 	    {
-	      if (sym->attr.value)
-		gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Argument '%s' "
-				"of pure subroutine '%s' at %L with VALUE "
-				"attribute but without INTENT", sym->name,
-				proc->name, &sym->declared_at);
-	      else
-		gfc_error ("Argument '%s' of pure subroutine '%s' at %L must "
-		       "have its INTENT specified or have the VALUE "
-		       "attribute", sym->name, proc->name, &sym->declared_at);
+	      if (proc->attr.function && sym->attr.intent != INTENT_IN)
+		{
+		  if (sym->attr.value)
+		    gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Argument '%s'"
+				    " of pure function '%s' at %L with VALUE "
+				    "attribute but without INTENT(IN)",
+				    sym->name, proc->name, &sym->declared_at);
+		  else
+		    gfc_error ("Argument '%s' of pure function '%s' at %L must "
+			       "be INTENT(IN) or VALUE", sym->name, proc->name,
+			       &sym->declared_at);
+		}
+
+	      if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN)
+		{
+		  if (sym->attr.value)
+		    gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Argument '%s'"
+				    " of pure subroutine '%s' at %L with VALUE "
+				    "attribute but without INTENT", sym->name,
+				    proc->name, &sym->declared_at);
+		  else
+		    gfc_error ("Argument '%s' of pure subroutine '%s' at %L "
+			       "must have its INTENT specified or have the "
+			       "VALUE attribute", sym->name, proc->name,
+			       &sym->declared_at);
+		}
 	    }
 	}
 
-      if (proc->attr.implicit_pure && !sym->attr.pointer
-	  && sym->attr.flavor != FL_PROCEDURE)
+      if (proc->attr.implicit_pure)
 	{
-	  if (proc->attr.function && sym->attr.intent != INTENT_IN)
-	    proc->attr.implicit_pure = 0;
+	  if (sym->attr.flavor == FL_PROCEDURE)
+	    {
+	      if (!gfc_pure(sym))
+		proc->attr.implicit_pure = 0;
+	    }
+	  else if (!sym->attr.pointer)
+	    {
+	      if (proc->attr.function && sym->attr.intent != INTENT_IN)
+		proc->attr.implicit_pure = 0;
 
-	  if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN)
-	    proc->attr.implicit_pure = 0;
+	      if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN)
+		proc->attr.implicit_pure = 0;
+	    }
 	}
 
       if (gfc_elemental (proc))
 	{
-	  /* F2008, C1289.  */
+	  /* F08:C1289.  */
 	  if (sym->attr.codimension)
 	    {
 	      gfc_error ("Coarray dummy argument '%s' at %L to elemental "
@@ -904,6 +896,10 @@ resolve_common_blocks (gfc_symtree *common_root)
     gfc_error ("COMMON block '%s' at %L is used as PARAMETER at %L",
 	       sym->name, &common_root->n.common->where, &sym->declared_at);
 
+  if (sym->attr.external)
+    gfc_error ("COMMON block '%s' at %L can not have the EXTERNAL attribute",
+	       sym->name, &common_root->n.common->where);
+
   if (sym->attr.intrinsic)
     gfc_error ("COMMON block '%s' at %L is also an intrinsic procedure",
 	       sym->name, &common_root->n.common->where);
@@ -1013,7 +1009,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
       if (cons->expr->expr_type != EXPR_NULL && rank != cons->expr->rank
 	  && (comp->attr.allocatable || cons->expr->rank))
 	{
-	  gfc_error ("The rank of the element in the derived type "
+	  gfc_error ("The rank of the element in the structure "
 		     "constructor at %L does not match that of the "
 		     "component (%d/%d)", &cons->expr->where,
 		     cons->expr->rank, rank);
@@ -1035,7 +1031,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 	      t = SUCCESS;
 	    }
 	  else if (comp->attr.pointer && cons->expr->ts.type != BT_UNKNOWN)
-	    gfc_error ("The element in the derived type constructor at %L, "
+	    gfc_error ("The element in the structure constructor at %L, "
 		       "for pointer component '%s', is %s but should be %s",
 		       &cons->expr->where, comp->name,
 		       gfc_basic_typename (cons->expr->ts.type),
@@ -1113,10 +1109,44 @@ resolve_structure_cons (gfc_expr *expr, int init)
 		       || CLASS_DATA (comp)->attr.allocatable))))
 	{
 	  t = FAILURE;
-	  gfc_error ("The NULL in the derived type constructor at %L is "
+	  gfc_error ("The NULL in the structure constructor at %L is "
 		     "being applied to component '%s', which is neither "
 		     "a POINTER nor ALLOCATABLE", &cons->expr->where,
 		     comp->name);
+	}
+
+      if (comp->attr.proc_pointer && comp->ts.interface)
+	{
+	  /* Check procedure pointer interface.  */
+	  gfc_symbol *s2 = NULL;
+	  gfc_component *c2;
+	  const char *name;
+	  char err[200];
+
+	  if (gfc_is_proc_ptr_comp (cons->expr, &c2))
+	    {
+	      s2 = c2->ts.interface;
+	      name = c2->name;
+	    }
+	  else if (cons->expr->expr_type == EXPR_FUNCTION)
+	    {
+	      s2 = cons->expr->symtree->n.sym->result;
+	      name = cons->expr->symtree->n.sym->result->name;
+	    }
+	  else if (cons->expr->expr_type != EXPR_NULL)
+	    {
+	      s2 = cons->expr->symtree->n.sym;
+	      name = cons->expr->symtree->n.sym->name;
+	    }
+
+	  if (s2 && !gfc_compare_interfaces (comp->ts.interface, s2, name, 0, 1,
+					     err, sizeof (err)))
+	    {
+	      gfc_error ("Interface mismatch for procedure-pointer component "
+			 "'%s' in structure constructor at %L: %s",
+			 comp->name, &cons->expr->where, err);
+	      return FAILURE;
+	    }
 	}
 
       if (!comp->attr.pointer || comp->attr.proc_pointer
@@ -1128,7 +1158,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
       if (!a.pointer && !a.target)
 	{
 	  t = FAILURE;
-	  gfc_error ("The element in the derived type constructor at %L, "
+	  gfc_error ("The element in the structure constructor at %L, "
 		     "for pointer component '%s' should be a POINTER or "
 		     "a TARGET", &cons->expr->where, comp->name);
 	}
@@ -1156,7 +1186,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 	      || gfc_is_coindexed (cons->expr)))
 	{
 	  t = FAILURE;
-	  gfc_error ("Invalid expression in the derived type constructor for "
+	  gfc_error ("Invalid expression in the structure constructor for "
 		     "pointer component '%s' at %L in PURE procedure",
 		     comp->name, &cons->expr->where);
 	}
@@ -2779,7 +2809,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 			 &(args->expr->where));
 			 
           /* See if we have interoperable type and type param.  */
-          if (verify_c_interop (arg_ts) == SUCCESS
+          if (gfc_verify_c_interop (arg_ts) == SUCCESS
               || gfc_check_any_c_kind (arg_ts) == SUCCESS)
             {
               if (args_sym->attr.target == 1)
@@ -3125,9 +3155,16 @@ resolve_function (gfc_expr *expr)
     {
       if (forall_flag)
 	{
-	  gfc_error ("reference to non-PURE function '%s' at %L inside a "
+	  gfc_error ("Reference to non-PURE function '%s' at %L inside a "
 		     "FORALL %s", name, &expr->where,
 		     forall_flag == 2 ? "mask" : "block");
+	  t = FAILURE;
+	}
+      else if (do_concurrent_flag)
+	{
+	  gfc_error ("Reference to non-PURE function '%s' at %L inside a "
+		     "DO CONCURRENT %s", name, &expr->where,
+		     do_concurrent_flag == 2 ? "mask" : "block");
 	  t = FAILURE;
 	}
       else if (gfc_pure (NULL))
@@ -3196,6 +3233,9 @@ pure_subroutine (gfc_code *c, gfc_symbol *sym)
   if (forall_flag)
     gfc_error ("Subroutine call to '%s' in FORALL block at %L is not PURE",
 	       sym->name, &c->loc);
+  else if (do_concurrent_flag)
+    gfc_error ("Subroutine call to '%s' in DO CONCURRENT block at %L is not "
+	       "PURE", sym->name, &c->loc);
   else if (gfc_pure (NULL))
     gfc_error ("Subroutine call to '%s' at %L is not PURE", sym->name,
 	       &c->loc);
@@ -4344,14 +4384,6 @@ compare_spec_to_ref (gfc_array_ref *ar)
 	  return FAILURE;
       }
 
-  if (as->corank && ar->codimen == 0)
-    {
-      int n;
-      ar->codimen = as->corank;
-      for (n = ar->dimen; n < ar->dimen + ar->codimen; n++)
-	ar->dimen_type[n] = DIMEN_THIS_IMAGE;
-    }
-
   return SUCCESS;
 }
 
@@ -4600,8 +4632,23 @@ resolve_array_ref (gfc_array_ref *ar)
 	}
     }
 
-  if (ar->type == AR_FULL && ar->as->rank == 0)
-    ar->type = AR_ELEMENT;
+  if (ar->type == AR_FULL)
+    {
+      if (ar->as->rank == 0)
+	ar->type = AR_ELEMENT;
+
+      /* Make sure array is the same as array(:,:), this way
+	 we don't need to special case all the time.  */
+      ar->dimen = ar->as->rank;
+      for (i = 0; i < ar->dimen; i++)
+	{
+	  ar->dimen_type[i] = DIMEN_RANGE;
+
+	  gcc_assert (ar->start[i] == NULL);
+	  gcc_assert (ar->end[i] == NULL);
+	  gcc_assert (ar->stride[i] == NULL);
+	}
+    }
 
   /* If the reference type is unknown, figure out what kind it is.  */
 
@@ -4619,6 +4666,14 @@ resolve_array_ref (gfc_array_ref *ar)
 
   if (!ar->as->cray_pointee && compare_spec_to_ref (ar) == FAILURE)
     return FAILURE;
+
+  if (ar->as->corank && ar->codimen == 0)
+    {
+      int n;
+      ar->codimen = ar->as->corank;
+      for (n = ar->dimen; n < ar->dimen + ar->codimen; n++)
+	ar->dimen_type[n] = DIMEN_THIS_IMAGE;
+    }
 
   return SUCCESS;
 }
@@ -4791,7 +4846,8 @@ resolve_ref (gfc_expr *expr)
 	break;
 
       case REF_SUBSTRING:
-	resolve_substring (ref);
+	if (resolve_substring (ref) == FAILURE)
+	  return FAILURE;
 	break;
       }
 
@@ -8105,6 +8161,13 @@ resolve_transfer (gfc_code *code)
 	 && exp->value.op.op == INTRINSIC_PARENTHESES)
     exp = exp->value.op.op1;
 
+  if (exp && exp->expr_type == EXPR_NULL && exp->ts.type == BT_UNKNOWN)
+    {
+      gfc_error ("NULL intrinsic at %L in data transfer statement requires "
+		 "MOLD=", &exp->where);
+      return;
+    }
+
   if (exp == NULL || (exp->expr_type != EXPR_VARIABLE
 		      && exp->expr_type != EXPR_FUNCTION))
     return;
@@ -8170,7 +8233,7 @@ resolve_transfer (gfc_code *code)
 	}
     }
 
-  if (sym->as != NULL && sym->as->type == AS_ASSUMED_SIZE
+  if (sym->as != NULL && sym->as->type == AS_ASSUMED_SIZE && exp->ref
       && exp->ref->type == REF_ARRAY && exp->ref->u.ar.type == AR_FULL)
     {
       gfc_error ("Data transfer element at %L cannot be a full reference to "
@@ -8351,10 +8414,16 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 	 whether the label is still visible outside of the CRITICAL block,
 	 which is invalid.  */
       for (stack = cs_base; stack; stack = stack->prev)
-	if (stack->current->op == EXEC_CRITICAL
-	    && bitmap_bit_p (stack->reachable_labels, label->value))
-	  gfc_error ("GOTO statement at %L leaves CRITICAL construct for label"
-		      " at %L", &code->loc, &label->where);
+	{
+	  if (stack->current->op == EXEC_CRITICAL
+	      && bitmap_bit_p (stack->reachable_labels, label->value))
+	    gfc_error ("GOTO statement at %L leaves CRITICAL construct for "
+		      "label at %L", &code->loc, &label->where);
+	  else if (stack->current->op == EXEC_DO_CONCURRENT
+		   && bitmap_bit_p (stack->reachable_labels, label->value))
+	    gfc_error ("GOTO statement at %L leaves DO CONCURRENT construct "
+		      "for label at %L", &code->loc, &label->where);
+	}
 
       return;
     }
@@ -8373,6 +8442,12 @@ resolve_branch (gfc_st_label *label, gfc_code *code)
 	     construct as END CRITICAL is still part of it.  */
 	  gfc_error ("GOTO statement at %L leaves CRITICAL construct for label"
 		      " at %L", &code->loc, &label->where);
+	  return;
+	}
+      else if (stack->current->op == EXEC_DO_CONCURRENT)
+	{
+	  gfc_error ("GOTO statement at %L leaves DO CONCURRENT construct for "
+		     "label at %L", &code->loc, &label->where);
 	  return;
 	}
     }
@@ -8798,6 +8873,7 @@ gfc_resolve_blocks (gfc_code *b, gfc_namespace *ns)
 	case EXEC_FORALL:
 	case EXEC_DO:
 	case EXEC_DO_WHILE:
+	case EXEC_DO_CONCURRENT:
 	case EXEC_CRITICAL:
 	case EXEC_READ:
 	case EXEC_WRITE:
@@ -9037,7 +9113,7 @@ static void
 resolve_code (gfc_code *code, gfc_namespace *ns)
 {
   int omp_workshare_save;
-  int forall_save;
+  int forall_save, do_concurrent_save;
   code_stack frame;
   gfc_try t;
 
@@ -9051,6 +9127,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
     {
       frame.current = code;
       forall_save = forall_flag;
+      do_concurrent_save = do_concurrent_flag;
 
       if (code->op == EXEC_FORALL)
 	{
@@ -9083,6 +9160,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	      /* Blocks are handled in resolve_select_type because we have
 		 to transform the SELECT TYPE into ASSOCIATE first.  */
 	      break;
+            case EXEC_DO_CONCURRENT:
+	      do_concurrent_flag = 1;
+	      gfc_resolve_blocks (code->block, ns);
+	      do_concurrent_flag = 2;
+	      break;
 	    case EXEC_OMP_WORKSHARE:
 	      omp_workshare_save = omp_workshare_flag;
 	      omp_workshare_flag = 1;
@@ -9100,6 +9182,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
       if (code->op != EXEC_COMPCALL && code->op != EXEC_CALL_PPC)
 	t = gfc_resolve_expr (code->expr1);
       forall_flag = forall_save;
+      do_concurrent_flag = do_concurrent_save;
 
       if (gfc_resolve_expr (code->expr2) == FAILURE)
 	t = FAILURE;
@@ -9367,6 +9450,7 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	  resolve_transfer (code);
 	  break;
 
+	case EXEC_DO_CONCURRENT:
 	case EXEC_FORALL:
 	  resolve_forall_iterators (code->ext.forall_iterator);
 
@@ -10461,7 +10545,7 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
         {
           /* Skip implicitly typed dummy args here.  */
 	  if (curr_arg->sym->attr.implicit_type == 0)
-	    if (verify_c_interop_param (curr_arg->sym) == FAILURE)
+	    if (gfc_verify_c_interop_param (curr_arg->sym) == FAILURE)
 	      /* If something is found to fail, record the fact so we
 		 can mark the symbol for the procedure as not being
 		 BIND(C) to try and prevent multiple errors being
@@ -13536,6 +13620,7 @@ resolve_types (gfc_namespace *ns)
     }
 
   forall_flag = 0;
+  do_concurrent_flag = 0;
   gfc_check_interfaces (ns);
 
   gfc_traverse_ns (ns, resolve_values);

@@ -1,7 +1,7 @@
 /* Report error messages, build initializers, and perform
    some front-end optimizations for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -340,7 +340,10 @@ abstract_virtuals_error_sfinae (tree decl, tree type, tsubst_flags_t complain)
 	      type);
 
       FOR_EACH_VEC_ELT (tree, pure, ix, fn)
-	inform (input_location, "\t%+#D", fn);
+	if (! DECL_CLONED_FUNCTION_P (fn)
+	    || DECL_COMPLETE_DESTRUCTOR_P (fn))
+	  inform (input_location, "\t%+#D", fn);
+
       /* Now truncate the vector.  This leaves it non-null, so we know
 	 there are pure virtuals, but empty so we don't list them out
 	 again.  */
@@ -425,8 +428,15 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
 
     case OFFSET_TYPE:
     bad_member:
-      emit_diagnostic (diag_kind, input_location, 0,
-		       "invalid use of member (did you forget the %<&%> ?)");
+      if (DECL_FUNCTION_MEMBER_P (TREE_OPERAND (value, 1))
+	  && ! flag_ms_extensions)
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of member function "
+			 "(did you forget the %<()%> ?)");
+      else
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of member "
+			 "(did you forget the %<&%> ?)");
       break;
 
     case TEMPLATE_TYPE_PARM:
@@ -563,7 +573,15 @@ split_nonconstant_init_1 (tree dest, tree init)
 
 	      code = build2 (INIT_EXPR, inner_type, sub, value);
 	      code = build_stmt (input_location, EXPR_STMT, code);
+	      code = maybe_cleanup_point_expr_void (code);
 	      add_stmt (code);
+	      if (!TYPE_HAS_TRIVIAL_DESTRUCTOR (inner_type))
+		{
+		  code = (build_special_member_call
+			  (sub, complete_dtor_identifier, NULL, inner_type,
+			   LOOKUP_NORMAL, tf_warning_or_error));
+		  finish_eh_cleanup (code);
+		}
 
 	      num_split_elts++;
 	    }
@@ -812,8 +830,9 @@ digest_init_r (tree type, tree init, bool nested, int flags,
 
   /* We must strip the outermost array type when completing the type,
      because the its bounds might be incomplete at the moment.  */
-  if (!complete_type_or_else (TREE_CODE (type) == ARRAY_TYPE
-			      ? TREE_TYPE (type) : type, NULL_TREE))
+  if (!complete_type_or_maybe_complain (TREE_CODE (type) == ARRAY_TYPE
+					? TREE_TYPE (type) : type, NULL_TREE,
+					complain))
     return error_mark_node;
 
   /* Strip NON_LVALUE_EXPRs since we aren't using as an lvalue
@@ -1397,7 +1416,8 @@ build_scoped_ref (tree datum, tree basetype, tree* binfo_p)
     }
 
   *binfo_p = binfo;
-  return build_base_path (PLUS_EXPR, datum, binfo, 1);
+  return build_base_path (PLUS_EXPR, datum, binfo, 1,
+			  tf_warning_or_error);
 }
 
 /* Build a reference to an object specified by the C++ `->' operator.
@@ -1564,7 +1584,8 @@ build_m_component_ref (tree datum, tree component)
 
       /* Convert object to the correct base.  */
       if (binfo)
-	datum = build_base_path (PLUS_EXPR, datum, binfo, 1);
+	datum = build_base_path (PLUS_EXPR, datum, binfo, 1,
+				 tf_warning_or_error);
 
       /* Build an expression for "object + offset" where offset is the
 	 value stored in the pointer-to-data-member.  */

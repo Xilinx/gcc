@@ -8,7 +8,6 @@
 package json
 
 import (
-	"container/vector"
 	"encoding/base64"
 	"os"
 	"reflect"
@@ -23,17 +22,20 @@ import (
 // Unmarshal parses the JSON-encoded data and stores the result
 // in the value pointed to by v.
 //
-// Unmarshal traverses the value v recursively.
-// If an encountered value implements the Unmarshaler interface,
-// Unmarshal calls its UnmarshalJSON method with a well-formed
-// JSON encoding.
-//
-// Otherwise, Unmarshal uses the inverse of the encodings that
+// Unmarshal uses the inverse of the encodings that
 // Marshal uses, allocating maps, slices, and pointers as necessary,
 // with the following additional rules:
 //
-// To unmarshal a JSON value into a nil interface value, the
-// type stored in the interface value is one of:
+// To unmarshal JSON into a pointer, Unmarshal first handles the case of
+// the JSON being the JSON literal null.  In that case, Unmarshal sets
+// the pointer to nil.  Otherwise, Unmarshal unmarshals the JSON into
+// the value pointed at by the pointer.  If the pointer is nil, Unmarshal
+// allocates a new value for it to point to.
+//
+// To unmarshal JSON into an interface value, Unmarshal unmarshals
+// the JSON into the concrete value contained in the interface value.
+// If the interface value is nil, that is, has no concrete value stored in it,
+// Unmarshal stores one of these in the interface value:
 //
 //	bool, for JSON booleans
 //	float64, for JSON numbers
@@ -70,7 +72,6 @@ func Unmarshal(data []byte, v interface{}) os.Error {
 type Unmarshaler interface {
 	UnmarshalJSON([]byte) os.Error
 }
-
 
 // An UnmarshalTypeError describes a JSON value that was
 // not appropriate for a value of a specific Go type.
@@ -142,6 +143,7 @@ type decodeState struct {
 	scan       scanner
 	nextscan   scanner // for calls to nextValue
 	savedError os.Error
+	tempstr    string // scratch space to avoid some allocations
 }
 
 // errPhase is used for errors that should not happen unless
@@ -251,8 +253,14 @@ func (d *decodeState) value(v reflect.Value) {
 // indirect walks down v allocating pointers as needed,
 // until it gets to a non-pointer.
 // if it encounters an Unmarshaler, indirect stops and returns that.
-// if wantptr is true, indirect stops at the last pointer.
-func (d *decodeState) indirect(v reflect.Value, wantptr bool) (Unmarshaler, reflect.Value) {
+// if decodingNull is true, indirect stops at the last pointer so it can be set to nil.
+func (d *decodeState) indirect(v reflect.Value, decodingNull bool) (Unmarshaler, reflect.Value) {
+	// If v is a named type and is addressable,
+	// start with its address, so that if the type has pointer methods,
+	// we find them.
+	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
+		v = v.Addr()
+	}
 	for {
 		var isUnmarshaler bool
 		if v.Type().NumMethod() > 0 {
@@ -272,7 +280,7 @@ func (d *decodeState) indirect(v reflect.Value, wantptr bool) (Unmarshaler, refl
 			break
 		}
 
-		if pv.Elem().Kind() != reflect.Ptr && wantptr && pv.CanSet() && !isUnmarshaler {
+		if pv.Elem().Kind() != reflect.Ptr && decodingNull && pv.CanSet() {
 			return nil, pv
 		}
 		if pv.IsNil() {
@@ -386,11 +394,6 @@ func (d *decodeState) array(v reflect.Value) {
 	}
 }
 
-// matchName returns true if key should be written to a field named name.
-func matchName(key, name string) bool {
-	return strings.ToLower(key) == strings.ToLower(name)
-}
-
 // object consumes an object from d.data[d.off-1:], decoding into the value v.
 // the first byte of the object ('{') has been read already.
 func (d *decodeState) object(v reflect.Value) {
@@ -466,6 +469,8 @@ func (d *decodeState) object(v reflect.Value) {
 
 		// Figure out field corresponding to key.
 		var subv reflect.Value
+		destring := false // whether the value is wrapped in a string to be decoded first
+
 		if mv.IsValid() {
 			elemType := mv.Type().Elem()
 			if !mapElem.IsValid() {
@@ -478,23 +483,31 @@ func (d *decodeState) object(v reflect.Value) {
 			var f reflect.StructField
 			var ok bool
 			st := sv.Type()
-			// First try for field with that tag.
-			if isValidTag(key) {
-				for i := 0; i < sv.NumField(); i++ {
-					f = st.Field(i)
-					if f.Tag == key {
-						ok = true
-						break
-					}
+			for i := 0; i < sv.NumField(); i++ {
+				sf := st.Field(i)
+				tag := sf.Tag.Get("json")
+				if tag == "-" {
+					// Pretend this field doesn't exist.
+					continue
 				}
-			}
-			if !ok {
-				// Second, exact match.
-				f, ok = st.FieldByName(key)
-			}
-			if !ok {
-				// Third, case-insensitive match.
-				f, ok = st.FieldByNameFunc(func(s string) bool { return matchName(key, s) })
+				// First, tag match
+				tagName, _ := parseTag(tag)
+				if tagName == key {
+					f = sf
+					ok = true
+					break // no better match possible
+				}
+				// Second, exact field name match
+				if sf.Name == key {
+					f = sf
+					ok = true
+				}
+				// Third, case-insensitive field name match,
+				// but only if a better match hasn't already been seen
+				if !ok && strings.EqualFold(sf.Name, key) {
+					f = sf
+					ok = true
+				}
 			}
 
 			// Extract value; name must be exported.
@@ -504,6 +517,8 @@ func (d *decodeState) object(v reflect.Value) {
 				} else {
 					subv = sv.FieldByIndex(f.Index)
 				}
+				_, opts := parseTag(f.Tag.Get("json"))
+				destring = opts.Contains("string")
 			}
 		}
 
@@ -516,8 +531,12 @@ func (d *decodeState) object(v reflect.Value) {
 		}
 
 		// Read value.
-		d.value(subv)
-
+		if destring {
+			d.value(reflect.ValueOf(&d.tempstr))
+			d.literalStore([]byte(d.tempstr), subv)
+		} else {
+			d.value(subv)
+		}
 		// Write value back to map;
 		// if using struct, subv points into struct already.
 		if mv.IsValid() {
@@ -546,8 +565,12 @@ func (d *decodeState) literal(v reflect.Value) {
 	// Scan read one byte too far; back up.
 	d.off--
 	d.scan.undo(op)
-	item := d.data[start:d.off]
 
+	d.literalStore(d.data[start:d.off], v)
+}
+
+// literalStore decodes a literal stored in item into v.
+func (d *decodeState) literalStore(item []byte, v reflect.Value) {
 	// Check for unmarshaler.
 	wantptr := item[0] == 'n' // null
 	unmarshaler, pv := d.indirect(v, wantptr)
@@ -670,7 +693,7 @@ func (d *decodeState) valueInterface() interface{} {
 
 // arrayInterface is like array but returns []interface{}.
 func (d *decodeState) arrayInterface() []interface{} {
-	var v vector.Vector
+	var v []interface{}
 	for {
 		// Look ahead for ] - can only happen on first iteration.
 		op := d.scanWhile(scanSkipSpace)
@@ -682,7 +705,7 @@ func (d *decodeState) arrayInterface() []interface{} {
 		d.off--
 		d.scan.undo(op)
 
-		v.Push(d.valueInterface())
+		v = append(v, d.valueInterface())
 
 		// Next token must be , or ].
 		op = d.scanWhile(scanSkipSpace)
@@ -741,7 +764,6 @@ func (d *decodeState) objectInterface() map[string]interface{} {
 	}
 	return m
 }
-
 
 // literalInterface is like literal but returns an interface value.
 func (d *decodeState) literalInterface() interface{} {

@@ -13,9 +13,9 @@
 
 /* We use a single global lock and condition variable.  This is
    painful, since it will cause unnecessary contention, but is hard to
-   avoid in a portable manner.  On Linux we can use futexes, but they
-   are unfortunately not exposed by libc and are thus also hard to use
-   portably.  */
+   avoid in a portable manner.  On GNU/Linux we can use futexes, but
+   they are unfortunately not exposed by libc and are thus also hard
+   to use portably.  */
 
 static pthread_mutex_t sem_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t sem_cond = PTHREAD_COND_INITIALIZER;
@@ -44,7 +44,7 @@ acquire (uint32 *addr)
    and it remains nonnegative.  */
 
 void
-semacquire (uint32 *addr)
+runtime_semacquire (uint32 *addr)
 {
   while (1)
     {
@@ -86,7 +86,7 @@ semacquire (uint32 *addr)
    process.  */
 
 void
-semrelease (uint32 *addr)
+runtime_semrelease (uint32 *addr)
 {
   int32_t val;
 

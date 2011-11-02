@@ -804,6 +804,19 @@ package body Sem_Ch13 is
                goto Continue;
             end if;
 
+            --  Check restriction No_Implementation_Aspect_Specifications
+
+            if Impl_Defined_Aspects (A_Id) then
+               Check_Restriction
+                 (No_Implementation_Aspect_Specifications, Aspect);
+            end if;
+
+            --  Check restriction No_Specification_Of_Aspect
+
+            Check_Restriction_No_Specification_Of_Aspect (Aspect);
+
+            --  Analyze this aspect
+
             Set_Analyzed (Aspect);
             Set_Entity (Aspect, E);
             Ent := New_Occurrence_Of (E, Sloc (Id));
@@ -1390,7 +1403,10 @@ package body Sem_Ch13 is
 
                   Comp_Expr := First (Expressions (Expr));
                   while Present (Comp_Expr) loop
-                     Append (Relocate_Node (Comp_Expr), Args);
+                     Append
+                       (Make_Pragma_Argument_Association (Sloc (Comp_Expr),
+                          Expression => Relocate_Node (Comp_Expr)),
+                       Args);
                      Next (Comp_Expr);
                   end loop;
 
@@ -3352,10 +3368,22 @@ package body Sem_Ch13 is
          --  No statements other than code statements, pragmas, and labels.
          --  Again we allow certain internally generated statements.
 
+         --  In Ada 2012, qualified expressions are names, and the code
+         --  statement is initially parsed as a procedure call.
+
          Stmt := First (Statements (HSS));
          while Present (Stmt) loop
             StmtO := Original_Node (Stmt);
-            if Comes_From_Source (StmtO)
+
+            --  A procedure call transformed into a code statement is OK.
+
+            if Ada_Version >= Ada_2012
+              and then Nkind (StmtO) = N_Procedure_Call_Statement
+              and then Nkind (Name (StmtO)) = N_Qualified_Expression
+            then
+               null;
+
+            elsif Comes_From_Source (StmtO)
               and then not Nkind_In (StmtO, N_Pragma,
                                             N_Label,
                                             N_Code_Statement)

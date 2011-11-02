@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-objc.h"
 
 #define pp_separate_with_comma(PP) pp_cxx_separate_with (PP, ',')
+#define pp_separate_with_semicolon(PP) pp_cxx_separate_with (PP, ';')
 
 /* The global buffer where we dump everything.  It is there only for
    transitional purpose.  It is expected, in the near future, to be
@@ -259,7 +260,7 @@ dump_template_parameter (tree parm, int flags)
 static void
 dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 {
-  int need_comma = 0;
+  bool need_semicolon = false;
   int i;
   tree t;
 
@@ -283,8 +284,8 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 	  if (lvl_args && NUM_TMPL_ARGS (lvl_args) > arg_idx)
 	    arg = TREE_VEC_ELT (lvl_args, arg_idx);
 
-	  if (need_comma)
-	    pp_separate_with_comma (cxx_pp);
+	  if (need_semicolon)
+	    pp_separate_with_semicolon (cxx_pp);
 	  dump_template_parameter (TREE_VEC_ELT (p, i), TFF_PLAIN_IDENTIFIER);
 	  pp_cxx_whitespace (cxx_pp);
 	  pp_equal (cxx_pp);
@@ -301,7 +302,7 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 	    pp_string (cxx_pp, M_("<missing>"));
 
 	  ++arg_idx;
-	  need_comma = 1;
+	  need_semicolon = true;
 	}
 
       parms = TREE_CHAIN (parms);
@@ -313,8 +314,8 @@ dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 
   FOR_EACH_VEC_ELT (tree, typenames, i, t)
     {
-      if (need_comma)
-	pp_separate_with_comma (cxx_pp);
+      if (need_semicolon)
+	pp_separate_with_semicolon (cxx_pp);
       dump_type (t, TFF_PLAIN_IDENTIFIER);
       pp_cxx_whitespace (cxx_pp);
       pp_equal (cxx_pp);
@@ -1533,6 +1534,8 @@ dump_function_name (tree t, int flags)
     }
   else if (name && IDENTIFIER_OPNAME_P (name))
     pp_cxx_tree_identifier (cxx_pp, name);
+  else if (name && UDLIT_OPER_P (name))
+    pp_cxx_tree_identifier (cxx_pp, name);
   else
     dump_decl (name, flags);
 
@@ -1753,6 +1756,10 @@ dump_expr (tree t, int flags)
     case STRING_CST:
     case COMPLEX_CST:
       pp_constant (cxx_pp, t);
+      break;
+
+    case USERDEF_LITERAL:
+      pp_cxx_userdef_literal (cxx_pp, t);
       break;
 
     case THROW_EXPR:
@@ -2051,6 +2058,7 @@ dump_expr (tree t, int flags)
       break;
 
     CASE_CONVERT:
+    case IMPLICIT_CONV_EXPR:
     case VIEW_CONVERT_EXPR:
       {
 	tree op = TREE_OPERAND (t, 0);
@@ -2767,7 +2775,7 @@ static void
 cp_diagnostic_starter (diagnostic_context *context,
 		       diagnostic_info *diagnostic)
 {
-  diagnostic_report_current_module (context);
+  diagnostic_report_current_module (context, diagnostic->location);
   cp_print_error_function (context, diagnostic);
   maybe_print_instantiation_context (context);
   maybe_print_constexpr_context (context);
@@ -2777,8 +2785,9 @@ cp_diagnostic_starter (diagnostic_context *context,
 
 static void
 cp_diagnostic_finalizer (diagnostic_context *context,
-			 diagnostic_info *diagnostic ATTRIBUTE_UNUSED)
+			 diagnostic_info *diagnostic)
 {
+  virt_loc_aware_diagnostic_finalizer (context, diagnostic);
   pp_base_destroy_prefix (context->printer);
 }
 
@@ -3196,48 +3205,58 @@ maybe_warn_cpp0x (cpp0x_warn_str str)
       case CPP0X_INITIALIZER_LISTS:
 	pedwarn (input_location, 0, 
 		 "extended initializer lists "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_EXPLICIT_CONVERSION:
 	pedwarn (input_location, 0,
 		 "explicit conversion operators "
-		 "only available with -std=c++0x or -std=gnu++0x"); 
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_VARIADIC_TEMPLATES:
 	pedwarn (input_location, 0,
 		 "variadic templates "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_LAMBDA_EXPR:
 	pedwarn (input_location, 0,
 		 "lambda expressions "
-		  "only available with -std=c++0x or -std=gnu++0x");
+		  "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_AUTO:
 	pedwarn (input_location, 0,
-		 "C++0x auto only available with -std=c++0x or -std=gnu++0x");
+		 "C++0x auto only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_SCOPED_ENUMS:
 	pedwarn (input_location, 0,
-		 "scoped enums only available with -std=c++0x or -std=gnu++0x");
+		 "scoped enums only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_DEFAULTED_DELETED:
 	pedwarn (input_location, 0,
 		 "defaulted and deleted functions "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_INLINE_NAMESPACES:
 	pedwarn (input_location, OPT_pedantic,
 		 "inline namespaces "
-		 "only available with -std=c++0x or -std=gnu++0x");
-	break;	
+		 "only available with -std=c++11 or -std=gnu++11");
+	break;
       case CPP0X_OVERRIDE_CONTROLS:
 	pedwarn (input_location, 0,
 		 "override controls (override/final) "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
         break;
+      case CPP0X_NSDMI:
+	pedwarn (input_location, 0,
+		 "non-static data member initializers "
+		 "only available with -std=c++11 or -std=gnu++11");
+        break;
+      case CPP0X_USER_DEFINED_LITERALS:
+	pedwarn (input_location, 0,
+		 "user-defined literals "
+		 "only available with -std=c++11 or -std=gnu++11");
+	break;
       default:
-	gcc_unreachable();
+	gcc_unreachable ();
       }
 }
 

@@ -70,6 +70,8 @@ void gfc_trans_static_array_pointer (gfc_symbol *);
 gfc_ss *gfc_walk_expr (gfc_expr *);
 /* Workhorse for gfc_walk_expr.  */
 gfc_ss *gfc_walk_subexpr (gfc_ss *, gfc_expr *);
+/* Workhorse for gfc_walk_variable_expr.  */
+gfc_ss *gfc_walk_array_ref (gfc_ss *, gfc_expr *, gfc_ref * ref);
 /* Walk the arguments of an elemental function.  */
 gfc_ss *gfc_walk_elemental_function_args (gfc_ss *, gfc_actual_arglist *,
 					  gfc_ss_type);
@@ -87,6 +89,12 @@ void gfc_add_ss_to_loop (gfc_loopinfo *, gfc_ss *);
 void gfc_mark_ss_chain_used (gfc_ss *, unsigned);
 /* Free a gfc_ss chain.  */
 void gfc_free_ss_chain (gfc_ss *);
+/* Allocate a new array type ss.  */
+gfc_ss *gfc_get_array_ss (gfc_ss *, gfc_expr *, int, gfc_ss_type);
+/* Allocate a new temporary type ss.  */
+gfc_ss *gfc_get_temp_ss (tree, tree, int);
+/* Allocate a new scalar type ss.  */
+gfc_ss *gfc_get_scalar_ss (gfc_ss *, gfc_expr *);
 
 /* Calculates the lower bound and stride of array sections.  */
 void gfc_conv_ss_startstride (gfc_loopinfo *);

@@ -2104,7 +2104,8 @@ incorporeal_function_p (tree decl)
       const char *name;
 
       if (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL
-	  && DECL_FUNCTION_CODE (decl) == BUILT_IN_ALLOCA)
+	  && (DECL_FUNCTION_CODE (decl) == BUILT_IN_ALLOCA
+	      || DECL_FUNCTION_CODE (decl) == BUILT_IN_ALLOCA_WITH_ALIGN))
 	return true;
 
       name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
@@ -3118,7 +3119,7 @@ build_constant_desc (tree exp)
   SET_SYMBOL_REF_DECL (symbol, decl);
   TREE_CONSTANT_POOL_ADDRESS_P (symbol) = 1;
 
-  rtl = gen_rtx_MEM (TYPE_MODE (TREE_TYPE (exp)), symbol);
+  rtl = gen_const_mem (TYPE_MODE (TREE_TYPE (exp)), symbol);
   set_mem_attributes (rtl, exp, 1);
   set_mem_alias_set (rtl, 0);
   set_mem_alias_set (rtl, const_alias_set);
@@ -6256,6 +6257,8 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
 
   if (!(flags & SECTION_DEBUG))
     *f++ = 'a';
+  if (flags & SECTION_EXCLUDE)
+    *f++ = 'e';
   if (flags & SECTION_WRITE)
     *f++ = 'w';
   if (flags & SECTION_CODE)
@@ -6778,6 +6781,7 @@ static bool
 resolution_to_local_definition_p (enum ld_plugin_symbol_resolution resolution)
 {
   return (resolution == LDPR_PREVAILING_DEF
+	  || resolution == LDPR_PREVAILING_DEF_IRONLY_EXP
 	  || resolution == LDPR_PREVAILING_DEF_IRONLY);
 }
 
@@ -6789,6 +6793,7 @@ resolution_local_p (enum ld_plugin_symbol_resolution resolution)
 {
   return (resolution == LDPR_PREVAILING_DEF
 	  || resolution == LDPR_PREVAILING_DEF_IRONLY
+	  || resolution == LDPR_PREVAILING_DEF_IRONLY_EXP
 	  || resolution == LDPR_PREEMPTED_REG
 	  || resolution == LDPR_PREEMPTED_IR
 	  || resolution == LDPR_RESOLVED_IR

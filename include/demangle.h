@@ -403,15 +403,17 @@ enum demangle_component_type
   DEMANGLE_COMPONENT_DEFAULT_ARG,
   /* An unnamed type.  */
   DEMANGLE_COMPONENT_UNNAMED_TYPE,
-  /* A pack expansion.  */
-  DEMANGLE_COMPONENT_PACK_EXPANSION,
   /* A transactional clone.  This has one subtree, the encoding for
      which it is providing alternative linkage.  */
   DEMANGLE_COMPONENT_TRANSACTION_CLONE,
   /* A non-transactional clone entry point.  In the i386/x86_64 abi,
      the unmangled symbol of a tm_callable becomes a thunk and the
      non-transactional function version is mangled thus.  */
-  DEMANGLE_COMPONENT_NONTRANSACTION_CLONE
+  DEMANGLE_COMPONENT_NONTRANSACTION_CLONE,
+  /* A pack expansion.  */
+  DEMANGLE_COMPONENT_PACK_EXPANSION,
+  /* A cloned function.  */
+  DEMANGLE_COMPONENT_CLONE
 };
 
 /* Types which are only used internally.  */

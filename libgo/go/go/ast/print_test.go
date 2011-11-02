@@ -10,7 +10,6 @@ import (
 	"testing"
 )
 
-
 var tests = []struct {
 	x interface{} // x is printed as s
 	s string
@@ -42,18 +41,17 @@ var tests = []struct {
 		4  }`},
 
 	// structs
-	{struct{ x, y int }{42, 991},
-		`0  struct { x int; y int } {
-		1  .  x: 42
-		2  .  y: 991
+	{struct{ X, Y int }{42, 991},
+		`0  struct { X int; Y int } {
+		1  .  X: 42
+		2  .  Y: 991
 		3  }`},
 }
-
 
 // Split s into lines, trim whitespace from all lines, and return
 // the concatenated non-empty lines.
 func trim(s string) string {
-	lines := strings.Split(s, "\n", -1)
+	lines := strings.Split(s, "\n")
 	i := 0
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -64,7 +62,6 @@ func trim(s string) string {
 	}
 	return strings.Join(lines[0:i], "\n")
 }
-
 
 func TestPrint(t *testing.T) {
 	var buf bytes.Buffer

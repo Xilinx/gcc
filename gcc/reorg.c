@@ -219,9 +219,7 @@ static rtx fill_slots_from_thread (rtx, rtx, rtx, rtx,
 				   int *, rtx);
 static void fill_eager_delay_slots (void);
 static void relax_delay_slots (rtx);
-#ifdef HAVE_return
 static void make_return_insns (rtx);
-#endif
 
 /* A wrapper around next_active_insn which takes care to return ret_rtx
    unchanged.  */
@@ -469,7 +467,7 @@ find_end_label (rtx kind)
 	      /* The return we make may have delay slots too.  */
 	      rtx insn = gen_return ();
 	      insn = emit_jump_insn (insn);
-	      JUMP_LABEL (insn) = ret_rtx;
+	      set_return_jump_label (insn);
 	      emit_barrier ();
 	      if (num_delay_slots (insn) > 0)
 		obstack_ptr_grow (&unfilled_slots_obstack, insn);
@@ -3351,6 +3349,21 @@ delete_jump (rtx insn)
     delete_computation (insn);
 }
 
+static rtx
+label_before_next_insn (rtx x, rtx scan_limit)
+{
+  rtx insn = next_active_insn (x);
+  while (insn)
+    {
+      insn = PREV_INSN (insn);
+      if (insn == scan_limit || insn == NULL_RTX)
+	return NULL_RTX;
+      if (LABEL_P (insn))
+	break;
+    }
+  return insn;
+}
+
 
 /* Once we have tried two ways to fill a delay slot, make a pass over the
    code to try to improve the results and to do such things as more jump
@@ -3636,7 +3649,7 @@ relax_delay_slots (rtx first)
 	 identical to the one in its delay slot.  In this case, we can just
 	 delete the branch and the insn in its delay slot.  */
       if (next && NONJUMP_INSN_P (next)
-	  && prev_label (next_active_insn (next)) == target_label
+	  && label_before_next_insn (next, insn) == target_label
 	  && simplejump_p (insn)
 	  && XVECLEN (pat, 0) == 2
 	  && rtx_equal_p (PATTERN (next), PATTERN (XVECEXP (pat, 0, 1))))
@@ -3711,7 +3724,6 @@ relax_delay_slots (rtx first)
     }
 }
 
-#ifdef HAVE_return
 
 /* Look for filled jumps to the end of function label.  We can try to convert
    them into RETURN insns if the insns in the delay slot are valid for the
@@ -3867,7 +3879,6 @@ make_return_insns (rtx first)
   fill_simple_delay_slots (1);
   fill_simple_delay_slots (0);
 }
-#endif
 
 /* Try to find insns to place in delay slots.  */
 

@@ -45,6 +45,8 @@ AC_SUBST(enable_static)
 CC_FOR_BUILD=${CC_FOR_BUILD:-gcc}
 AC_SUBST(CC_FOR_BUILD)
 
+AC_PROG_AWK
+
 WARN_FLAGS='-Wall -Wextra -Wwrite-strings -Wcast-qual'
 AC_SUBST(WARN_FLAGS)
 
@@ -249,17 +251,26 @@ AM_CONDITIONAL(LIBGO_IS_X86_64, test $is_x86_64 = yes)
 AC_SUBST(GOARCH)
 
 dnl Some files are only present when needed for specific architectures.
-GO_SYSCALLS_SYSCALL_OS_ARCH_FILE=
-if test -f ${srcdir}/syscalls/syscall_${GOOS}_${GOARCH}.go; then
-  GO_SYSCALLS_SYSCALL_OS_ARCH_FILE=syscalls/syscall_${GOOS}_${GOARCH}.go
+GO_LIBCALL_OS_FILE=
+GO_LIBCALL_OS_ARCH_FILE=
+GO_SYSCALL_OS_FILE=
+GO_SYSCALL_OS_ARCH_FILE=
+if test -f ${srcdir}/go/syscall/libcall_${GOOS}.go; then
+  GO_LIBCALL_OS_FILE=go/syscall/libcall_${GOOS}.go
 fi
-AC_SUBST(GO_SYSCALLS_SYSCALL_OS_ARCH_FILE)
-
-GO_DEBUG_PROC_REGS_OS_ARCH_FILE=
-if test -f ${srcdir}/go/debug/proc/regs_${GOOS}_${GOARCH}.go; then
-  GO_DEBUG_PROC_REGS_OS_ARCH_FILE=go/debug/proc/regs_${GOOS}_${GOARCH}.go
+if test -f ${srcdir}/go/syscall/libcall_${GOOS}_${GOARCH}.go; then
+  GO_LIBCALL_OS_ARCH_FILE=go/syscall/libcall_${GOOS}_${GOARCH}.go
 fi
-AC_SUBST(GO_DEBUG_PROC_REGS_OS_ARCH_FILE)
+if test -f ${srcdir}/go/syscall/syscall_${GOOS}.go; then
+  GO_SYSCALL_OS_FILE=go/syscall/syscall_${GOOS}.go
+fi
+if test -f ${srcdir}/go/syscall/syscall_${GOOS}_${GOARCH}.go; then
+  GO_SYSCALL_OS_ARCH_FILE=go/syscall/syscall_${GOOS}_${GOARCH}.go
+fi
+AC_SUBST(GO_LIBCALL_OS_FILE)
+AC_SUBST(GO_LIBCALL_OS_ARCH_FILE)
+AC_SUBST(GO_SYSCALL_OS_FILE)
+AC_SUBST(GO_SYSCALL_OS_ARCH_FILE)
 
 dnl Some targets need special flags to build sysinfo.go.
 case "$target" in
@@ -431,7 +442,14 @@ no)
   ;;
 esac
 
-AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h)
+AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h)
+
+AC_CHECK_HEADERS([linux/filter.h linux/netlink.h linux/rtnetlink.h], [], [],
+[#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+])
+
 AM_CONDITIONAL(HAVE_SYS_MMAN_H, test "$ac_cv_header_sys_mman_h" = yes)
 
 AC_CHECK_FUNCS(srandom random strerror_r strsignal wait4 mincore setenv)
@@ -486,6 +504,28 @@ CFLAGS_hold=$CFLAGS
 CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 AC_CHECK_TYPES(off64_t)
 CFLAGS=$CFLAGS_hold
+
+dnl Work out the size of the epoll_events struct on GNU/Linux.
+AC_CACHE_CHECK([epoll_event size],
+[libgo_cv_c_epoll_event_size],
+[AC_COMPUTE_INT(libgo_cv_c_epoll_event_size,
+[sizeof (struct epoll_event)],
+[#include <sys/epoll.h>],
+[libgo_cv_c_epoll_event_size=0])])
+SIZEOF_STRUCT_EPOLL_EVENT=${libgo_cv_c_epoll_event_size}
+AC_SUBST(SIZEOF_STRUCT_EPOLL_EVENT)
+
+dnl Work out the offset of the fd field in the epoll_events struct on
+dnl GNU/Linux.
+AC_CACHE_CHECK([epoll_event data.fd offset],
+[libgo_cv_c_epoll_event_fd_offset],
+[AC_COMPUTE_INT(libgo_cv_c_epoll_event_fd_offset,
+[offsetof (struct epoll_event, data.fd)],
+[#include <stddef.h>
+#include <sys/epoll.h>],
+[libgo_cv_c_epoll_event_fd_offset=0])])
+STRUCT_EPOLL_EVENT_FD_OFFSET=${libgo_cv_c_epoll_event_fd_offset}
+AC_SUBST(STRUCT_EPOLL_EVENT_FD_OFFSET)
 
 AC_CACHE_SAVE
 

@@ -235,7 +235,8 @@ tree
 build_base_path (enum tree_code code,
 		 tree expr,
 		 tree binfo,
-		 int nonnull)
+		 int nonnull,
+		 tsubst_flags_t complain)
 {
   tree v_binfo = NULL_TREE;
   tree d_binfo = NULL_TREE;
@@ -276,14 +277,16 @@ build_base_path (enum tree_code code,
 
   if (code == MINUS_EXPR && v_binfo)
     {
-      error ("cannot convert from base %qT to derived type %qT via virtual base %qT",
-	     BINFO_TYPE (binfo), BINFO_TYPE (d_binfo), BINFO_TYPE (v_binfo));
+      if (complain & tf_error)
+	error ("cannot convert from base %qT to derived type %qT via "
+	       "virtual base %qT", BINFO_TYPE (binfo), BINFO_TYPE (d_binfo),
+	       BINFO_TYPE (v_binfo));
       return error_mark_node;
     }
 
   if (!want_pointer)
     /* This must happen before the call to save_expr.  */
-    expr = cp_build_addr_expr (expr, tf_warning_or_error);
+    expr = cp_build_addr_expr (expr, complain);
   else
     expr = mark_rvalue_use (expr);
 
@@ -341,7 +344,7 @@ build_base_path (enum tree_code code,
 	 interesting to the optimizers anyway.  */
       && !has_empty)
     {
-      expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
+      expr = cp_build_indirect_ref (expr, RO_NULL, complain);
       expr = build_simple_base_path (expr, binfo);
       if (want_pointer)
 	expr = build_address (expr);
@@ -366,19 +369,18 @@ build_base_path (enum tree_code code,
 	  t = TREE_TYPE (TYPE_VFIELD (current_class_type));
 	  t = build_pointer_type (t);
 	  v_offset = convert (t, current_vtt_parm);
-	  v_offset = cp_build_indirect_ref (v_offset, RO_NULL, 
-                                            tf_warning_or_error);
+	  v_offset = cp_build_indirect_ref (v_offset, RO_NULL, complain);
 	}
       else
 	v_offset = build_vfield_ref (cp_build_indirect_ref (expr, RO_NULL,
-                                                            tf_warning_or_error),
+                                                            complain),
 				     TREE_TYPE (TREE_TYPE (expr)));
 
       v_offset = fold_build_pointer_plus (v_offset, BINFO_VPTR_FIELD (v_binfo));
       v_offset = build1 (NOP_EXPR,
 			 build_pointer_type (ptrdiff_type_node),
 			 v_offset);
-      v_offset = cp_build_indirect_ref (v_offset, RO_NULL, tf_warning_or_error);
+      v_offset = cp_build_indirect_ref (v_offset, RO_NULL, complain);
       TREE_CONSTANT (v_offset) = 1;
 
       offset = convert_to_integer (ptrdiff_type_node,
@@ -418,7 +420,7 @@ build_base_path (enum tree_code code,
     null_test = NULL;
 
   if (!want_pointer)
-    expr = cp_build_indirect_ref (expr, RO_NULL, tf_warning_or_error);
+    expr = cp_build_indirect_ref (expr, RO_NULL, complain);
 
  out:
   if (null_test)
@@ -523,7 +525,7 @@ convert_to_base (tree object, tree type, bool check_access, bool nonnull,
   if (!binfo || binfo == error_mark_node)
     return error_mark_node;
 
-  return build_base_path (PLUS_EXPR, object, binfo, nonnull);
+  return build_base_path (PLUS_EXPR, object, binfo, nonnull, complain);
 }
 
 /* EXPR is an expression with unqualified class type.  BASE is a base
@@ -2750,13 +2752,12 @@ add_implicitly_declared_members (tree t,
 
      If a class definition does not explicitly declare a copy
      constructor, one is declared implicitly.  */
-  if (! TYPE_HAS_COPY_CTOR (t) && ! TYPE_FOR_JAVA (t)
-      && !type_has_move_constructor (t))
+  if (! TYPE_HAS_COPY_CTOR (t) && ! TYPE_FOR_JAVA (t))
     {
       TYPE_HAS_COPY_CTOR (t) = 1;
       TYPE_HAS_CONST_COPY_CTOR (t) = !cant_have_const_cctor;
       CLASSTYPE_LAZY_COPY_CTOR (t) = 1;
-      if (cxx_dialect >= cxx0x)
+      if (cxx_dialect >= cxx0x && !type_has_move_constructor (t))
 	CLASSTYPE_LAZY_MOVE_CTOR (t) = 1;
     }
 
@@ -2764,13 +2765,12 @@ add_implicitly_declared_members (tree t,
      when it is needed.  For now, just record whether or not the type
      of the parameter to the assignment operator will be a const or
      non-const reference.  */
-  if (!TYPE_HAS_COPY_ASSIGN (t) && !TYPE_FOR_JAVA (t)
-      && !type_has_move_assign (t))
+  if (!TYPE_HAS_COPY_ASSIGN (t) && !TYPE_FOR_JAVA (t))
     {
       TYPE_HAS_COPY_ASSIGN (t) = 1;
       TYPE_HAS_CONST_COPY_ASSIGN (t) = !cant_have_const_assignment;
       CLASSTYPE_LAZY_COPY_ASSIGN (t) = 1;
-      if (cxx_dialect >= cxx0x)
+      if (cxx_dialect >= cxx0x && !type_has_move_assign (t))
 	CLASSTYPE_LAZY_MOVE_ASSIGN (t) = 1;
     }
 
@@ -2940,7 +2940,7 @@ check_field_decl (tree field,
 	  if (!warned && errorcount > oldcount)
 	    {
 	      inform (DECL_SOURCE_LOCATION (field), "unrestricted unions "
-		      "only available with -std=c++0x or -std=gnu++0x");
+		      "only available with -std=c++11 or -std=gnu++11");
 	      warned = true;
 	    }
 	}
@@ -2972,7 +2972,7 @@ check_field_decl (tree field,
     {
       /* `build_class_init_list' does not recognize
 	 non-FIELD_DECLs.  */
-      if (TREE_CODE (t) == UNION_TYPE && any_default_members != 0)
+      if (TREE_CODE (t) == UNION_TYPE && *any_default_members != 0)
 	error ("multiple fields in union %qT initialized", t);
       *any_default_members = 1;
     }
@@ -3268,6 +3268,14 @@ check_field_decls (tree t, tree *access_decls,
       else if (! TYPE_HAS_COPY_ASSIGN (t))
 	warning (OPT_Weffc__,
 		 "  but does not override %<operator=(const %T&)%>", t);
+    }
+
+  /* Non-static data member initializers make the default constructor
+     non-trivial.  */
+  if (any_default_members)
+    {
+      TYPE_NEEDS_CONSTRUCTING (t) = true;
+      TYPE_HAS_COMPLEX_DFLT (t) = true;
     }
 
   /* If any of the fields couldn't be packed, unset TYPE_PACKED.  */
@@ -4503,6 +4511,40 @@ type_has_user_provided_default_constructor (tree t)
   return false;
 }
 
+/* If default-initialization leaves part of TYPE uninitialized, returns
+   a DECL for the field or TYPE itself (DR 253).  */
+
+tree
+default_init_uninitialized_part (tree type)
+{
+  tree t, r, binfo;
+  int i;
+
+  type = strip_array_types (type);
+  if (!CLASS_TYPE_P (type))
+    return type;
+  if (type_has_user_provided_default_constructor (type))
+    return NULL_TREE;
+  for (binfo = TYPE_BINFO (type), i = 0;
+       BINFO_BASE_ITERATE (binfo, i, t); ++i)
+    {
+      r = default_init_uninitialized_part (BINFO_TYPE (t));
+      if (r)
+	return r;
+    }
+  for (t = TYPE_FIELDS (type); t; t = DECL_CHAIN (t))
+    if (TREE_CODE (t) == FIELD_DECL
+	&& !DECL_ARTIFICIAL (t)
+	&& !DECL_INITIAL (t))
+      {
+	r = default_init_uninitialized_part (TREE_TYPE (t));
+	if (r)
+	  return DECL_P (r) ? r : t;
+      }
+
+  return NULL_TREE;
+}
+
 /* Returns true iff for class T, a trivial synthesized default constructor
    would be constexpr.  */
 
@@ -4590,10 +4632,58 @@ type_has_move_assign (tree t)
       lazily_declare_fn (sfk_move_assignment, t);
     }
 
-  for (fns = lookup_fnfields_slot (t, ansi_assopname (NOP_EXPR));
+  for (fns = lookup_fnfields_slot_nolazy (t, ansi_assopname (NOP_EXPR));
        fns; fns = OVL_NEXT (fns))
     if (move_fn_p (OVL_CURRENT (fns)))
       return true;
+
+  return false;
+}
+
+/* Returns true iff class T has a move constructor that was explicitly
+   declared in the class body.  Note that this is different from
+   "user-provided", which doesn't include functions that are defaulted in
+   the class.  */
+
+bool
+type_has_user_declared_move_constructor (tree t)
+{
+  tree fns;
+
+  if (CLASSTYPE_LAZY_MOVE_CTOR (t))
+    return false;
+
+  if (!CLASSTYPE_METHOD_VEC (t))
+    return false;
+
+  for (fns = CLASSTYPE_CONSTRUCTORS (t); fns; fns = OVL_NEXT (fns))
+    {
+      tree fn = OVL_CURRENT (fns);
+      if (move_fn_p (fn) && !DECL_ARTIFICIAL (fn))
+	return true;
+    }
+
+  return false;
+}
+
+/* Returns true iff class T has a move assignment operator that was
+   explicitly declared in the class body.  */
+
+bool
+type_has_user_declared_move_assign (tree t)
+{
+  tree fns;
+
+  if (CLASSTYPE_LAZY_MOVE_ASSIGN (t))
+    return false;
+
+  for (fns = lookup_fnfields_slot_nolazy (t, ansi_assopname (NOP_EXPR));
+       fns; fns = OVL_NEXT (fns))
+    {
+      tree fn = OVL_CURRENT (fns);
+      if (move_fn_p (fn) && !DECL_ARTIFICIAL (fn))
+	return true;
+    }
 
   return false;
 }
@@ -4728,7 +4818,7 @@ finalize_literal_type_property (tree t)
 	  && !DECL_CONSTRUCTOR_P (fn))
 	{
 	  DECL_DECLARED_CONSTEXPR_P (fn) = false;
-	  if (!DECL_TEMPLATE_INFO (fn))
+	  if (!DECL_GENERATED_P (fn))
 	    {
 	      error ("enclosing class of constexpr non-static member "
 		     "function %q+#D is not a literal type", fn);
@@ -5766,6 +5856,22 @@ determine_key_method (tree type)
   return;
 }
 
+
+/* Allocate and return an instance of struct sorted_fields_type with
+   N fields.  */
+
+static struct sorted_fields_type *
+sorted_fields_type_new (int n)
+{
+  struct sorted_fields_type *sft;
+  sft = ggc_alloc_sorted_fields_type (sizeof (struct sorted_fields_type)
+				      + n * sizeof (tree));
+  sft->len = n;
+
+  return sft;
+}
+
+
 /* Perform processing required when the definition of T (a class type)
    is complete.  */
 
@@ -5896,9 +6002,7 @@ finish_struct_1 (tree t)
   n_fields = count_fields (TYPE_FIELDS (t));
   if (n_fields > 7)
     {
-      struct sorted_fields_type *field_vec = ggc_alloc_sorted_fields_type
-	 (sizeof (struct sorted_fields_type) + n_fields * sizeof (tree));
-      field_vec->len = n_fields;
+      struct sorted_fields_type *field_vec = sorted_fields_type_new (n_fields);
       add_fields_to_record_type (TYPE_FIELDS (t), field_vec, 0);
       qsort (field_vec->elts, n_fields, sizeof (tree),
 	     field_decl_cmp);
@@ -6166,10 +6270,13 @@ fixed_type_or_null (tree instance, int *nonnull, int *cdtorp)
 	  if (nonnull)
 	    *nonnull = 1;
 
-	  /* if we're in a ctor or dtor, we know our type.  */
-	  if (DECL_LANG_SPECIFIC (current_function_decl)
-	      && (DECL_CONSTRUCTOR_P (current_function_decl)
-		  || DECL_DESTRUCTOR_P (current_function_decl)))
+	  /* if we're in a ctor or dtor, we know our type.  If
+	     current_class_ptr is set but we aren't in a function, we're in
+	     an NSDMI (and therefore a constructor).  */
+	  if (current_scope () != current_function_decl
+	      || (DECL_LANG_SPECIFIC (current_function_decl)
+		  && (DECL_CONSTRUCTOR_P (current_function_decl)
+		      || DECL_DESTRUCTOR_P (current_function_decl))))
 	    {
 	      if (cdtorp)
 		*cdtorp = 1;
@@ -6908,13 +7015,13 @@ instantiate_type (tree lhstype, tree rhs, tsubst_flags_t flags)
       else
 	{
 	  if (flags & tf_error)
-	    error ("argument of type %qT does not match %qT",
-		   TREE_TYPE (rhs), lhstype);
+	    error ("cannot convert %qE from type %qT to type %qT",
+		   rhs, TREE_TYPE (rhs), lhstype);
 	  return error_mark_node;
 	}
     }
 
-  if (TREE_CODE (rhs) == BASELINK)
+  if (BASELINK_P (rhs))
     {
       access_path = BASELINK_ACCESS_BINFO (rhs);
       rhs = BASELINK_FUNCTIONS (rhs);

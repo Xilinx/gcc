@@ -129,10 +129,17 @@
   (ior (match_operand 0 "arm_rhs_operand")
        (match_operand 0 "memory_operand")))
 
+;; This doesn't have to do much because the constant is already checked
+;; in the shift_operator predicate.
 (define_predicate "shift_amount_operand"
   (ior (and (match_test "TARGET_ARM")
 	    (match_operand 0 "s_register_operand"))
        (match_operand 0 "const_int_operand")))
+
+(define_predicate "const_neon_scalar_shift_amount_operand"
+  (and (match_code "const_int")
+       (match_test "((unsigned HOST_WIDE_INT) INTVAL (op)) <= GET_MODE_BITSIZE (mode)
+	&& ((unsigned HOST_WIDE_INT) INTVAL (op)) > 0")))
 
 (define_predicate "arm_add_operand"
   (ior (match_operand 0 "arm_rhs_operand")
@@ -218,13 +225,20 @@
        (match_test "mode == GET_MODE (op)")))
 
 ;; True for shift operators.
+;; Notes:
+;;  * mult is only permitted with a constant shift amount
+;;  * patterns that permit register shift amounts only in ARM mode use
+;;    shift_amount_operand, patterns that always allow registers do not,
+;;    so we don't have to worry about that sort of thing here.
 (define_special_predicate "shift_operator"
   (and (ior (ior (and (match_code "mult")
 		      (match_test "power_of_two_operand (XEXP (op, 1), mode)"))
 		 (and (match_code "rotate")
 		      (match_test "GET_CODE (XEXP (op, 1)) == CONST_INT
 				   && ((unsigned HOST_WIDE_INT) INTVAL (XEXP (op, 1))) < 32")))
-	    (match_code "ashift,ashiftrt,lshiftrt,rotatert"))
+	    (and (match_code "ashift,ashiftrt,lshiftrt,rotatert")
+		 (match_test "GET_CODE (XEXP (op, 1)) != CONST_INT
+			      || ((unsigned HOST_WIDE_INT) INTVAL (XEXP (op, 1))) < 32")))
        (match_test "mode == GET_MODE (op)")))
 
 ;; True for shift operators which can be used with saturation instructions.
@@ -248,11 +262,15 @@
 
 ;; True for integer comparisons and, if FP is active, for comparisons
 ;; other than LTGT or UNEQ.
+(define_special_predicate "expandable_comparison_operator"
+  (match_code "eq,ne,le,lt,ge,gt,geu,gtu,leu,ltu,
+	       unordered,ordered,unlt,unle,unge,ungt"))
+
+;; Likewise, but only accept comparisons that are directly supported
+;; by ARM condition codes.
 (define_special_predicate "arm_comparison_operator"
-  (ior (match_code "eq,ne,le,lt,ge,gt,geu,gtu,leu,ltu")
-       (and (match_test "TARGET_32BIT && TARGET_HARD_FLOAT
-			 && (TARGET_FPA || TARGET_VFP)")
-            (match_code "unordered,ordered,unlt,unle,unge,ungt"))))
+  (and (match_operand 0 "expandable_comparison_operator")
+       (match_test "maybe_get_arm_condition_code (op) != ARM_NV")))
 
 (define_special_predicate "lt_ge_comparison_operator"
   (match_code "lt,ge"))
@@ -296,8 +314,11 @@
 
 (define_special_predicate "arm_extendqisi_mem_op"
   (and (match_operand 0 "memory_operand")
-       (match_test "arm_legitimate_address_outer_p (mode, XEXP (op, 0),
-						    SIGN_EXTEND, 0)")))
+       (match_test "TARGET_ARM ? arm_legitimate_address_outer_p (mode,
+                                                                 XEXP (op, 0),
+						                 SIGN_EXTEND,
+								 0)
+                               : memory_address_p (QImode, XEXP (op, 0))")))
 
 (define_special_predicate "arm_reg_or_extendqisi_mem_op"
   (ior (match_operand 0 "arm_extendqisi_mem_op")
@@ -344,12 +365,6 @@
   (ior (match_code "const_double")
        (and (match_code "reg,subreg,mem")
 	    (match_operand 0 "nonimmediate_soft_df_operand"))))
-
-(define_predicate "const_shift_operand"
-  (and (match_code "const_int")
-       (ior (match_operand 0 "power_of_two_operand")
-	    (match_test "((unsigned HOST_WIDE_INT) INTVAL (op)) < 32"))))
-
 
 (define_special_predicate "load_multiple_operation"
   (match_code "parallel")

@@ -479,6 +479,14 @@ optab_for_tree_code (enum tree_code code, const_tree type,
       return TYPE_UNSIGNED (type) ?
 	vec_widen_umult_lo_optab : vec_widen_smult_lo_optab;
 
+    case VEC_WIDEN_LSHIFT_HI_EXPR:
+      return TYPE_UNSIGNED (type) ?
+        vec_widen_ushiftl_hi_optab : vec_widen_sshiftl_hi_optab;
+
+    case VEC_WIDEN_LSHIFT_LO_EXPR:
+      return TYPE_UNSIGNED (type) ?
+        vec_widen_ushiftl_lo_optab : vec_widen_sshiftl_lo_optab;
+
     case VEC_UNPACK_HI_EXPR:
       return TYPE_UNSIGNED (type) ?
 	vec_unpacku_hi_optab : vec_unpacks_hi_optab;
@@ -733,6 +741,41 @@ expand_vec_shift_expr (sepops ops, rtx target)
   expand_insn (icode, 3, eops);
 
   return eops[0].value;
+}
+
+/* Create a new vector value in VMODE with all elements set to OP.  The
+   mode of OP must be the element mode of VMODE.  If OP is a constant,
+   then the return value will be a constant.  */
+
+static rtx
+expand_vector_broadcast (enum machine_mode vmode, rtx op)
+{
+  enum insn_code icode;
+  rtvec vec;
+  rtx ret;
+  int i, n;
+
+  gcc_checking_assert (VECTOR_MODE_P (vmode));
+
+  n = GET_MODE_NUNITS (vmode);
+  vec = rtvec_alloc (n);
+  for (i = 0; i < n; ++i)
+    RTVEC_ELT (vec, i) = op;
+
+  if (CONSTANT_P (op))
+    return gen_rtx_CONST_VECTOR (vmode, vec);
+
+  /* ??? If the target doesn't have a vec_init, then we have no easy way
+     of performing this operation.  Most of this sort of generic support
+     is hidden away in the vector lowering support in gimple.  */
+  icode = optab_handler (vec_init_optab, vmode);
+  if (icode == CODE_FOR_nothing)
+    return NULL;
+
+  ret = gen_reg_rtx (vmode);
+  emit_insn (GEN_FCN (icode) (ret, gen_rtx_PARALLEL (vmode, vec)));
+
+  return ret;
 }
 
 /* This subroutine of expand_doubleword_shift handles the cases in which
@@ -1530,6 +1573,60 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	    return gen_lowpart (mode, temp);
 	  else
 	    return convert_to_mode (mode, temp, unsignedp);
+	}
+    }
+
+  /* If this is a vector shift by a scalar, see if we can do a vector
+     shift by a vector.  If so, broadcast the scalar into a vector.  */
+  if (mclass == MODE_VECTOR_INT)
+    {
+      optab otheroptab = NULL;
+
+      if (binoptab == ashl_optab)
+	otheroptab = vashl_optab;
+      else if (binoptab == ashr_optab)
+	otheroptab = vashr_optab;
+      else if (binoptab == lshr_optab)
+	otheroptab = vlshr_optab;
+      else if (binoptab == rotl_optab)
+	otheroptab = vrotl_optab;
+      else if (binoptab == rotr_optab)
+	otheroptab = vrotr_optab;
+
+      if (otheroptab && optab_handler (otheroptab, mode) != CODE_FOR_nothing)
+	{
+	  rtx vop1 = expand_vector_broadcast (mode, op1);
+	  if (vop1)
+	    {
+	      temp = expand_binop_directly (mode, otheroptab, op0, vop1,
+					    target, unsignedp, methods, last);
+	      if (temp)
+		return temp;
+	    }
+	}
+    }
+
+  /* Certain vector operations can be implemented with vector permutation.  */
+  if (VECTOR_MODE_P (mode))
+    {
+      enum tree_code tcode = ERROR_MARK;
+      rtx sel;
+
+      if (binoptab == vec_interleave_high_optab)
+	tcode = VEC_INTERLEAVE_HIGH_EXPR;
+      else if (binoptab == vec_interleave_low_optab)
+	tcode = VEC_INTERLEAVE_LOW_EXPR;
+      else if (binoptab == vec_extract_even_optab)
+	tcode = VEC_EXTRACT_EVEN_EXPR;
+      else if (binoptab == vec_extract_odd_optab)
+	tcode = VEC_EXTRACT_ODD_EXPR;
+
+      if (tcode != ERROR_MARK
+	  && can_vec_perm_for_code_p (tcode, mode, &sel))
+	{
+	  temp = expand_vec_perm (mode, op0, op1, sel, target);
+	  gcc_assert (temp != NULL);
+	  return temp;
 	}
     }
 
@@ -4727,6 +4824,60 @@ can_float_p (enum machine_mode fltmode, enum machine_mode fixmode,
   tab = unsignedp ? ufloat_optab : sfloat_optab;
   return convert_optab_handler (tab, fltmode, fixmode);
 }
+
+/* Function supportable_convert_operation
+
+   Check whether an operation represented by the code CODE is a
+   convert operation that is supported by the target platform in
+   vector form (i.e., when operating on arguments of type VECTYPE_IN
+   producing a result of type VECTYPE_OUT).
+   
+   Convert operations we currently support directly are FIX_TRUNC and FLOAT.
+   This function checks if these operations are supported
+   by the target platform either directly (via vector tree-codes), or via
+   target builtins.
+   
+   Output:
+   - CODE1 is code of vector operation to be used when
+   vectorizing the operation, if available.
+   - DECL is decl of target builtin functions to be used
+   when vectorizing the operation, if available.  In this case,
+   CODE1 is CALL_EXPR.  */
+
+bool
+supportable_convert_operation (enum tree_code code,
+                                    tree vectype_out, tree vectype_in,
+                                    tree *decl, enum tree_code *code1)
+{
+  enum machine_mode m1,m2;
+  int truncp;
+
+  m1 = TYPE_MODE (vectype_out);
+  m2 = TYPE_MODE (vectype_in);
+
+  /* First check if we can done conversion directly.  */
+  if ((code == FIX_TRUNC_EXPR 
+       && can_fix_p (m1,m2,TYPE_UNSIGNED (vectype_out), &truncp) 
+          != CODE_FOR_nothing)
+      || (code == FLOAT_EXPR
+          && can_float_p (m1,m2,TYPE_UNSIGNED (vectype_in))
+	     != CODE_FOR_nothing))
+    {
+      *code1 = code;
+      return true;
+    }
+
+  /* Now check for builtin.  */
+  if (targetm.vectorize.builtin_conversion
+      && targetm.vectorize.builtin_conversion (code, vectype_out, vectype_in))
+    {
+      *code1 = CALL_EXPR;
+      *decl = targetm.vectorize.builtin_conversion (code, vectype_out, vectype_in);
+      return true;
+    }
+  return false;
+}
+
 
 /* Generate code to convert FROM to floating point
    and store in TO.  FROM must be fixed point and not VOIDmode.
@@ -6132,6 +6283,10 @@ init_optabs (void)
   init_optab (vec_widen_umult_lo_optab, UNKNOWN);
   init_optab (vec_widen_smult_hi_optab, UNKNOWN);
   init_optab (vec_widen_smult_lo_optab, UNKNOWN);
+  init_optab (vec_widen_ushiftl_hi_optab, UNKNOWN);
+  init_optab (vec_widen_ushiftl_lo_optab, UNKNOWN);
+  init_optab (vec_widen_sshiftl_hi_optab, UNKNOWN);
+  init_optab (vec_widen_sshiftl_lo_optab, UNKNOWN);
   init_optab (vec_unpacks_hi_optab, UNKNOWN);
   init_optab (vec_unpacks_lo_optab, UNKNOWN);
   init_optab (vec_unpacku_hi_optab, UNKNOWN);
@@ -6618,6 +6773,321 @@ vector_compare_rtx (tree cond, bool unsignedp, enum insn_code icode)
   if (!maybe_legitimize_operands (icode, 4, 2, ops))
     gcc_unreachable ();
   return gen_rtx_fmt_ee (rcode, VOIDmode, ops[0].value, ops[1].value);
+}
+
+/* Return true if VEC_PERM_EXPR can be expanded using SIMD extensions
+   of the CPU.  SEL may be NULL, which stands for an unknown constant.  */
+
+bool
+can_vec_perm_p (enum machine_mode mode, bool variable,
+		const unsigned char *sel)
+{
+  enum machine_mode qimode;
+
+  /* If the target doesn't implement a vector mode for the vector type,
+     then no operations are supported.  */
+  if (!VECTOR_MODE_P (mode))
+    return false;
+
+  if (!variable)
+    {
+      if (direct_optab_handler (vec_perm_const_optab, mode) != CODE_FOR_nothing
+	  && (sel == NULL
+	      || targetm.vectorize.vec_perm_const_ok == NULL
+	      || targetm.vectorize.vec_perm_const_ok (mode, sel)))
+	return true;
+    }
+
+  if (direct_optab_handler (vec_perm_optab, mode) != CODE_FOR_nothing)
+    return true;
+
+  /* We allow fallback to a QI vector mode, and adjust the mask.  */
+  if (GET_MODE_INNER (mode) == QImode)
+    return false;
+  qimode = mode_for_vector (QImode, GET_MODE_SIZE (mode));
+  if (!VECTOR_MODE_P (qimode))
+    return false;
+
+  /* ??? For completeness, we ought to check the QImode version of
+      vec_perm_const_optab.  But all users of this implicit lowering
+      feature implement the variable vec_perm_optab.  */
+  if (direct_optab_handler (vec_perm_optab, qimode) == CODE_FOR_nothing)
+    return false;
+
+  /* In order to support the lowering of variable permutations,
+     we need to support shifts and adds.  */
+  if (variable)
+    {
+      if (GET_MODE_UNIT_SIZE (mode) > 2
+	  && optab_handler (ashl_optab, mode) == CODE_FOR_nothing
+	  && optab_handler (vashl_optab, mode) == CODE_FOR_nothing)
+	return false;
+      if (optab_handler (add_optab, qimode) == CODE_FOR_nothing)
+	return false;
+    }
+
+  return true;
+}
+
+/* Return true if we can implement VEC_INTERLEAVE_{HIGH,LOW}_EXPR or
+   VEC_EXTRACT_{EVEN,ODD}_EXPR with VEC_PERM_EXPR for this target.
+   If PSEL is non-null, return the selector for the permutation.  */
+
+bool
+can_vec_perm_for_code_p (enum tree_code code, enum machine_mode mode,
+			 rtx *psel)
+{
+  bool need_sel_test = false;
+  enum insn_code icode;
+
+  /* If the target doesn't implement a vector mode for the vector type,
+     then no operations are supported.  */
+  if (!VECTOR_MODE_P (mode))
+    return false;
+
+  /* Do as many tests as possible without reqiring the selector.  */
+  icode = direct_optab_handler (vec_perm_optab, mode);
+  if (icode == CODE_FOR_nothing && GET_MODE_INNER (mode) != QImode)
+    {
+      enum machine_mode qimode
+	= mode_for_vector (QImode, GET_MODE_SIZE (mode));
+      if (VECTOR_MODE_P (qimode))
+	icode = direct_optab_handler (vec_perm_optab, qimode);
+    }
+  if (icode == CODE_FOR_nothing)
+    {
+      icode = direct_optab_handler (vec_perm_const_optab, mode);
+      if (icode != CODE_FOR_nothing
+	  && targetm.vectorize.vec_perm_const_ok != NULL)
+	need_sel_test = true;
+    }
+  if (icode == CODE_FOR_nothing)
+    return false;
+
+  /* If the selector is required, or if we need to test it, build it.  */
+  if (psel || need_sel_test)
+    {
+      int i, nelt = GET_MODE_NUNITS (mode), alt = 0;
+      unsigned char *data = XALLOCAVEC (unsigned char, nelt);
+
+      switch (code)
+	{
+	case VEC_EXTRACT_ODD_EXPR:
+	  alt = 1;
+	  /* FALLTHRU */
+	case VEC_EXTRACT_EVEN_EXPR:
+	  for (i = 0; i < nelt; ++i)
+	    data[i] = i * 2 + alt;
+	  break;
+
+	case VEC_INTERLEAVE_HIGH_EXPR:
+	  alt = nelt / 2;
+	  /* FALLTHRU */
+	case VEC_INTERLEAVE_LOW_EXPR:
+	  for (i = 0; i < nelt / 2; ++i)
+	    {
+	      data[i * 2] = i + alt;
+	      data[i * 2 + 1] = i + nelt + alt;
+	    }
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
+
+      if (need_sel_test
+	  && !targetm.vectorize.vec_perm_const_ok (mode, data))
+	return false;
+
+      if (psel)
+	{
+	  rtvec vec = rtvec_alloc (nelt);
+	  enum machine_mode imode = mode;
+
+	  for (i = 0; i < nelt; ++i)
+	    RTVEC_ELT (vec, i) = GEN_INT (data[i]);
+
+	  if (GET_MODE_CLASS (mode) != MODE_VECTOR_INT)
+	    {
+	      imode = int_mode_for_mode (GET_MODE_INNER (mode));
+	      imode = mode_for_vector (imode, nelt);
+	      gcc_assert (GET_MODE_CLASS (imode) == MODE_VECTOR_INT);
+	    }
+
+	  *psel = gen_rtx_CONST_VECTOR (imode, vec);
+	}
+    }
+
+  return true;
+}
+
+/* A subroutine of expand_vec_perm for expanding one vec_perm insn.  */
+
+static rtx
+expand_vec_perm_1 (enum insn_code icode, rtx target,
+		   rtx v0, rtx v1, rtx sel)
+{
+  enum machine_mode tmode = GET_MODE (target);
+  enum machine_mode smode = GET_MODE (sel);
+  struct expand_operand ops[4];
+
+  create_output_operand (&ops[0], target, tmode);
+  create_input_operand (&ops[3], sel, smode);
+
+  /* Make an effort to preserve v0 == v1.  The target expander is able to
+     rely on this to determine if we're permuting a single input operand.  */
+  if (rtx_equal_p (v0, v1))
+    {
+      if (!insn_operand_matches (icode, 1, v0))
+        v0 = force_reg (tmode, v0);
+      gcc_checking_assert (insn_operand_matches (icode, 1, v0));
+      gcc_checking_assert (insn_operand_matches (icode, 2, v0));
+
+      create_fixed_operand (&ops[1], v0);
+      create_fixed_operand (&ops[2], v0);
+    }
+  else
+    {
+      create_input_operand (&ops[1], v0, tmode);
+      create_input_operand (&ops[2], v1, tmode);
+    }
+
+  if (maybe_expand_insn (icode, 4, ops))
+    return ops[0].value;
+  return NULL_RTX;
+}
+
+/* Generate instructions for vec_perm optab given its mode
+   and three operands.  */
+
+rtx
+expand_vec_perm (enum machine_mode mode, rtx v0, rtx v1, rtx sel, rtx target)
+{
+  enum insn_code icode;
+  enum machine_mode qimode;
+  unsigned int i, w, e, u;
+  rtx tmp, sel_qi = NULL;
+  rtvec vec;
+
+  if (!target || GET_MODE (target) != mode)
+    target = gen_reg_rtx (mode);
+
+  w = GET_MODE_SIZE (mode);
+  e = GET_MODE_NUNITS (mode);
+  u = GET_MODE_UNIT_SIZE (mode);
+
+  /* Set QIMODE to a different vector mode with byte elements.
+     If no such mode, or if MODE already has byte elements, use VOIDmode.  */
+  qimode = VOIDmode;
+  if (GET_MODE_INNER (mode) != QImode)
+    {
+      qimode = mode_for_vector (QImode, w);
+      if (!VECTOR_MODE_P (qimode))
+	qimode = VOIDmode;
+    }
+
+  /* If the input is a constant, expand it specially.  */
+  if (CONSTANT_P (sel))
+    {
+      icode = direct_optab_handler (vec_perm_const_optab, mode);
+      if (icode != CODE_FOR_nothing)
+	{
+	  tmp = expand_vec_perm_1 (icode, target, v0, v1, sel);
+	  if (tmp)
+	    return tmp;
+	}
+
+      /* Fall back to a constant byte-based permutation.  */
+      if (qimode != VOIDmode)
+	{
+	  vec = rtvec_alloc (w);
+	  for (i = 0; i < e; ++i)
+	    {
+	      unsigned int j, this_e;
+
+	      this_e = INTVAL (XVECEXP (sel, 0, i));
+	      this_e &= 2 * e - 1;
+	      this_e *= u;
+
+	      for (j = 0; j < u; ++j)
+		RTVEC_ELT (vec, i * u + j) = GEN_INT (this_e + j);
+	    }
+	  sel_qi = gen_rtx_CONST_VECTOR (qimode, vec);
+
+	  icode = direct_optab_handler (vec_perm_const_optab, qimode);
+	  if (icode != CODE_FOR_nothing)
+	    {
+	      tmp = expand_vec_perm_1 (icode, gen_lowpart (qimode, target),
+				       gen_lowpart (qimode, v0),
+				       gen_lowpart (qimode, v1), sel_qi);
+	      if (tmp)
+		return gen_lowpart (mode, tmp);
+	    }
+	}
+    }
+
+  /* Otherwise expand as a fully variable permuation.  */
+  icode = direct_optab_handler (vec_perm_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    {
+      tmp = expand_vec_perm_1 (icode, target, v0, v1, sel);
+      if (tmp)
+	return tmp;
+    }
+
+  /* As a special case to aid several targets, lower the element-based
+     permutation to a byte-based permutation and try again.  */
+  if (qimode == VOIDmode)
+    return NULL_RTX;
+  icode = direct_optab_handler (vec_perm_optab, qimode);
+  if (icode == CODE_FOR_nothing)
+    return NULL_RTX;
+
+  if (sel_qi == NULL)
+    {
+      /* Multiply each element by its byte size.  */
+      enum machine_mode selmode = GET_MODE (sel);
+      if (u == 2)
+	sel = expand_simple_binop (selmode, PLUS, sel, sel,
+				   sel, 0, OPTAB_DIRECT);
+      else
+	sel = expand_simple_binop (selmode, ASHIFT, sel,
+				   GEN_INT (exact_log2 (u)),
+				   sel, 0, OPTAB_DIRECT);
+      gcc_assert (sel != NULL);
+
+      /* Broadcast the low byte each element into each of its bytes.  */
+      vec = rtvec_alloc (w);
+      for (i = 0; i < w; ++i)
+	{
+	  int this_e = i / u * u;
+	  if (BYTES_BIG_ENDIAN)
+	    this_e += u - 1;
+	  RTVEC_ELT (vec, i) = GEN_INT (this_e);
+	}
+      tmp = gen_rtx_CONST_VECTOR (qimode, vec);
+      sel = gen_lowpart (qimode, sel);
+      sel = expand_vec_perm (qimode, sel, sel, tmp, NULL);
+      gcc_assert (sel != NULL);
+
+      /* Add the byte offset to each byte element.  */
+      /* Note that the definition of the indicies here is memory ordering,
+	 so there should be no difference between big and little endian.  */
+      vec = rtvec_alloc (w);
+      for (i = 0; i < w; ++i)
+	RTVEC_ELT (vec, i) = GEN_INT (i % u);
+      tmp = gen_rtx_CONST_VECTOR (qimode, vec);
+      sel_qi = expand_simple_binop (qimode, PLUS, sel, tmp,
+				    sel, 0, OPTAB_DIRECT);
+      gcc_assert (sel_qi != NULL);
+    }
+
+  tmp = expand_vec_perm_1 (icode, gen_lowpart (qimode, target),
+			   gen_lowpart (qimode, v0),
+			   gen_lowpart (qimode, v1), sel_qi);
+  if (tmp)
+    tmp = gen_lowpart (mode, tmp);
+  return tmp;
 }
 
 /* Return insn code for a conditional operator with a comparison in

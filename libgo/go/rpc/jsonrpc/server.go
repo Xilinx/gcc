@@ -43,9 +43,9 @@ func NewServerCodec(conn io.ReadWriteCloser) rpc.ServerCodec {
 }
 
 type serverRequest struct {
-	Method string           "method"
-	Params *json.RawMessage "params"
-	Id     *json.RawMessage "id"
+	Method string           `json:"method"`
+	Params *json.RawMessage `json:"params"`
+	Id     *json.RawMessage `json:"id"`
 }
 
 func (r *serverRequest) reset() {
@@ -59,9 +59,9 @@ func (r *serverRequest) reset() {
 }
 
 type serverResponse struct {
-	Id     *json.RawMessage "id"
-	Result interface{}      "result"
-	Error  interface{}      "error"
+	Id     *json.RawMessage `json:"id"`
+	Result interface{}      `json:"result"`
+	Error  interface{}      `json:"error"`
 }
 
 func (c *serverCodec) ReadRequestHeader(r *rpc.Request) os.Error {
@@ -107,7 +107,7 @@ func (c *serverCodec) WriteResponse(r *rpc.Response, x interface{}) os.Error {
 		c.mutex.Unlock()
 		return os.NewError("invalid sequence number in response")
 	}
-	c.pending[r.Seq] = nil, false
+	delete(c.pending, r.Seq)
 	c.mutex.Unlock()
 
 	if b == nil {

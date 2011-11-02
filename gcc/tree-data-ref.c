@@ -589,9 +589,6 @@ split_constant_offset_1 (tree type, tree op0, enum tree_code code, tree op1,
 	int punsignedp, pvolatilep;
 
 	op0 = TREE_OPERAND (op0, 0);
-	if (!handled_component_p (op0))
-	  return false;
-
 	base = get_inner_reference (op0, &pbitsize, &pbitpos, &poffset,
 				    &pmode, &punsignedp, &pvolatilep, false);
 
@@ -686,7 +683,8 @@ split_constant_offset (tree exp, tree *var, tree *off)
   *off = ssize_int (0);
   STRIP_NOPS (exp);
 
-  if (tree_is_chrec (exp))
+  if (tree_is_chrec (exp)
+      || get_gimple_rhs_class (TREE_CODE (exp)) == GIMPLE_TERNARY_RHS)
     return;
 
   otype = TREE_TYPE (exp);
@@ -721,11 +719,11 @@ canonicalize_base_object_address (tree addr)
 }
 
 /* Analyzes the behavior of the memory reference DR in the innermost loop or
-   basic block that contains it. Returns true if analysis succeed or false
+   basic block that contains it.  Returns true if analysis succeed or false
    otherwise.  */
 
 bool
-dr_analyze_innermost (struct data_reference *dr)
+dr_analyze_innermost (struct data_reference *dr, struct loop *nest)
 {
   gimple stmt = DR_STMT (dr);
   struct loop *loop = loop_containing_stmt (stmt);
@@ -768,14 +766,25 @@ dr_analyze_innermost (struct data_reference *dr)
     }
   else
     base = build_fold_addr_expr (base);
+
   if (in_loop)
     {
       if (!simple_iv (loop, loop_containing_stmt (stmt), base, &base_iv,
                       false))
         {
-          if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file, "failed: evolution of base is not affine.\n");
-          return false;
+          if (nest)
+            {
+              if (dump_file && (dump_flags & TDF_DETAILS))
+                fprintf (dump_file, "failed: evolution of base is not"
+                                    " affine.\n");
+              return false;
+            }
+          else
+            {
+              base_iv.base = base;
+              base_iv.step = ssize_int (0);
+              base_iv.no_overflow = true;
+            }
         }
     }
   else
@@ -800,10 +809,18 @@ dr_analyze_innermost (struct data_reference *dr)
       else if (!simple_iv (loop, loop_containing_stmt (stmt),
                            poffset, &offset_iv, false))
         {
-          if (dump_file && (dump_flags & TDF_DETAILS))
-            fprintf (dump_file, "failed: evolution of offset is not"
-                                " affine.\n");
-          return false;
+          if (nest)
+            {
+              if (dump_file && (dump_flags & TDF_DETAILS))
+                fprintf (dump_file, "failed: evolution of offset is not"
+                                    " affine.\n");
+              return false;
+            }
+          else
+            {
+              offset_iv.base = poffset;
+              offset_iv.step = ssize_int (0);
+            }
         }
     }
 
@@ -838,7 +855,7 @@ static void
 dr_analyze_indices (struct data_reference *dr, loop_p nest, loop_p loop)
 {
   VEC (tree, heap) *access_fns = NULL;
-  tree ref, aref, op;
+  tree ref, *aref, op;
   tree base, off, access_fn;
   basic_block before_loop;
 
@@ -869,50 +886,58 @@ dr_analyze_indices (struct data_reference *dr, loop_p nest, loop_p loop)
     }
 
   /* Analyze access functions of dimensions we know to be independent.  */
-  aref = ref;
-  while (handled_component_p (aref))
+  aref = &ref;
+  while (handled_component_p (*aref))
     {
-      if (TREE_CODE (aref) == ARRAY_REF)
+      if (TREE_CODE (*aref) == ARRAY_REF)
 	{
-	  op = TREE_OPERAND (aref, 1);
+	  op = TREE_OPERAND (*aref, 1);
 	  access_fn = analyze_scalar_evolution (loop, op);
 	  access_fn = instantiate_scev (before_loop, loop, access_fn);
 	  VEC_safe_push (tree, heap, access_fns, access_fn);
 	  /* For ARRAY_REFs the base is the reference with the index replaced
 	     by zero if we can not strip it as the outermost component.  */
-	  if (aref == ref)
-	    ref = TREE_OPERAND (ref, 0);
+	  if (*aref == ref)
+	    {
+	      *aref = TREE_OPERAND (*aref, 0);
+	      continue;
+	    }
 	  else
-	    TREE_OPERAND (aref, 1) = build_int_cst (TREE_TYPE (op), 0);
+	    TREE_OPERAND (*aref, 1) = build_int_cst (TREE_TYPE (op), 0);
 	}
 
-      aref = TREE_OPERAND (aref, 0);
+      aref = &TREE_OPERAND (*aref, 0);
     }
 
   /* If the address operand of a MEM_REF base has an evolution in the
      analyzed nest, add it as an additional independent access-function.  */
-  if (TREE_CODE (aref) == MEM_REF)
+  if (TREE_CODE (*aref) == MEM_REF)
     {
-      op = TREE_OPERAND (aref, 0);
+      op = TREE_OPERAND (*aref, 0);
       access_fn = analyze_scalar_evolution (loop, op);
       access_fn = instantiate_scev (before_loop, loop, access_fn);
       if (TREE_CODE (access_fn) == POLYNOMIAL_CHREC)
 	{
+	  tree orig_type;
 	  base = initial_condition (access_fn);
+	  orig_type = TREE_TYPE (base);
+	  STRIP_USELESS_TYPE_CONVERSION (base);
 	  split_constant_offset (base, &base, &off);
 	  /* Fold the MEM_REF offset into the evolutions initial
 	     value to make more bases comparable.  */
-	  if (!integer_zerop (TREE_OPERAND (aref, 1)))
+	  if (!integer_zerop (TREE_OPERAND (*aref, 1)))
 	    {
 	      off = size_binop (PLUS_EXPR, off,
 				fold_convert (ssizetype,
-					      TREE_OPERAND (aref, 1)));
-	      TREE_OPERAND (aref, 1)
-		= build_int_cst (TREE_TYPE (TREE_OPERAND (aref, 1)), 0);
+					      TREE_OPERAND (*aref, 1)));
+	      TREE_OPERAND (*aref, 1)
+		= build_int_cst (TREE_TYPE (TREE_OPERAND (*aref, 1)), 0);
 	    }
 	  access_fn = chrec_replace_initial_condition
-	      (access_fn, fold_convert (TREE_TYPE (base), off));
-	  TREE_OPERAND (aref, 0) = base;
+	      (access_fn, fold_convert (orig_type, off));
+	  *aref = fold_build2_loc (EXPR_LOCATION (*aref),
+				   MEM_REF, TREE_TYPE (*aref),
+				   base, TREE_OPERAND (*aref, 1));
 	  VEC_safe_push (tree, heap, access_fns, access_fn);
 	}
     }
@@ -971,7 +996,7 @@ create_data_ref (loop_p nest, loop_p loop, tree memref, gimple stmt,
   DR_REF (dr) = memref;
   DR_IS_READ (dr) = is_read;
 
-  dr_analyze_innermost (dr);
+  dr_analyze_innermost (dr, nest);
   dr_analyze_indices (dr, nest, loop);
   dr_analyze_alias (dr);
 
@@ -5149,7 +5174,7 @@ stmt_with_adjacent_zero_store_dr_p (gimple stmt)
   DR_STMT (dr) = stmt;
   DR_REF (dr) = op0;
 
-  res = dr_analyze_innermost (dr)
+  res = dr_analyze_innermost (dr, loop_containing_stmt (stmt))
     && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0));
 
   free_data_ref (dr);
@@ -5189,7 +5214,7 @@ ref_base_address (gimple stmt, data_ref_loc *ref)
 
   DR_STMT (dr) = stmt;
   DR_REF (dr) = *ref->pos;
-  dr_analyze_innermost (dr);
+  dr_analyze_innermost (dr, loop_containing_stmt (stmt));
   base_address = DR_BASE_ADDRESS (dr);
 
   if (!base_address)

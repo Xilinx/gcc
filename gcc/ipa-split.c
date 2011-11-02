@@ -958,7 +958,6 @@ split_function (struct split_point *split_point)
   tree retval = NULL, real_retval = NULL;
   bool split_part_return_p = false;
   gimple last_stmt = NULL;
-  bool conv_needed = false;
   unsigned int i;
   tree arg;
 
@@ -985,22 +984,23 @@ split_function (struct split_point *split_point)
       bitmap_set_bit (args_to_skip, num);
     else
       {
-	arg = gimple_default_def (cfun, parm);
-	if (!arg)
+	/* This parm might not have been used up to now, but is going to be
+	   used, hence register it.  */
+	add_referenced_var (parm);
+	if (is_gimple_reg (parm))
 	  {
-	    /* This parm wasn't used up to now, but is going to be used,
-	       hence register it.  */
-	    add_referenced_var (parm);
-	    arg = make_ssa_name (parm, gimple_build_nop ());
-	    set_default_def (parm, arg);
+	    arg = gimple_default_def (cfun, parm);
+	    if (!arg)
+	      {
+		arg = make_ssa_name (parm, gimple_build_nop ());
+		set_default_def (parm, arg);
+	      }
 	  }
+	else
+	  arg = parm;
 
-	if (TYPE_MAIN_VARIANT (DECL_ARG_TYPE (parm))
-	    != TYPE_MAIN_VARIANT (TREE_TYPE (arg)))
-	  {
-	    conv_needed = true;
-	    arg = fold_convert (DECL_ARG_TYPE (parm), arg);
-	  }
+	if (!useless_type_conversion_p (DECL_ARG_TYPE (parm), TREE_TYPE (arg)))
+	  arg = fold_convert (DECL_ARG_TYPE (parm), arg);
 	VEC_safe_push (tree, heap, args_to_pass, arg);
       }
 
@@ -1130,14 +1130,13 @@ split_function (struct split_point *split_point)
 
   /* Produce the call statement.  */
   gsi = gsi_last_bb (call_bb);
-  if (conv_needed)
-    FOR_EACH_VEC_ELT (tree, args_to_pass, i, arg)
-      if (!is_gimple_val (arg))
-	{
-	  arg = force_gimple_operand_gsi (&gsi, arg, true, NULL_TREE,
-					  false, GSI_NEW_STMT);
-	  VEC_replace (tree, args_to_pass, i, arg);
-	}
+  FOR_EACH_VEC_ELT (tree, args_to_pass, i, arg)
+    if (!is_gimple_val (arg))
+      {
+	arg = force_gimple_operand_gsi (&gsi, arg, true, NULL_TREE,
+					false, GSI_CONTINUE_LINKING);
+	VEC_replace (tree, args_to_pass, i, arg);
+      }
   call = gimple_build_call_vec (node->decl, args_to_pass);
   gimple_set_block (call, DECL_INITIAL (current_function_decl));
 
@@ -1446,7 +1445,7 @@ struct gimple_opt_pass pass_split_functions =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0             			/* todo_flags_finish */
+  TODO_verify_all      			/* todo_flags_finish */
  }
 };
 
@@ -1487,6 +1486,6 @@ struct gimple_opt_pass pass_feedback_split_functions =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0             			/* todo_flags_finish */
+  TODO_verify_all      			/* todo_flags_finish */
  }
 };

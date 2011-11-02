@@ -268,7 +268,7 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
 
   DR_STMT (dr) = stmt;
   DR_REF (dr) = op0;
-  res = dr_analyze_innermost (dr);
+  res = dr_analyze_innermost (dr, loop_containing_stmt (stmt));
   gcc_assert (res && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0)));
 
   nb_bytes = build_size_arg_loc (loc, nb_iter, op0, &stmt_list);
@@ -289,7 +289,7 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
   mem = force_gimple_operand (addr_base, &stmts, true, NULL);
   gimple_seq_add_seq (&stmt_list, stmts);
 
-  fn = build_fold_addr_expr (implicit_built_in_decls [BUILT_IN_MEMSET]);
+  fn = build_fold_addr_expr (builtin_decl_implicit (BUILT_IN_MEMSET));
   fn_call = gimple_build_call (fn, 3, mem, integer_zero_node, nb_bytes);
   gimple_seq_add_stmt (&stmt_list, fn_call);
   gsi_insert_seq_after (&bsi, stmt_list, GSI_CONTINUE_LINKING);

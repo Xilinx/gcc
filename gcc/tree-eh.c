@@ -720,66 +720,35 @@ verify_norecord_switch_expr (struct leh_state *state, gimple switch_expr)
 #define verify_norecord_switch_expr(state, switch_expr)
 #endif
 
-/* Redirect a RETURN_EXPR pointed to by STMT_P to FINLAB.  Place in CONT_P
-   whatever is needed to finish the return.  If MOD is non-null, insert it
-   before the new branch.  RETURN_VALUE_P is a cache containing a temporary
-   variable to be used in manipulating the value returned from the function.  */
+/* Redirect a RETURN_EXPR pointed to by Q to FINLAB.  If MOD is
+   non-null, insert it before the new branch.  */
 
 static void
-do_return_redirection (struct goto_queue_node *q, tree finlab, gimple_seq mod,
-		       tree *return_value_p)
+do_return_redirection (struct goto_queue_node *q, tree finlab, gimple_seq mod)
 {
-  tree ret_expr;
   gimple x;
 
-  /* In the case of a return, the queue node must be a gimple statement. */
+  /* In the case of a return, the queue node must be a gimple statement.  */
   gcc_assert (!q->is_label);
 
-  ret_expr = gimple_return_retval (q->stmt.g);
+  /* Note that the return value may have already been computed, e.g.,
 
-  if (ret_expr)
-    {
-      if (!*return_value_p)
-        *return_value_p = ret_expr;
-      else
-        gcc_assert (*return_value_p == ret_expr);
-      q->cont_stmt = q->stmt.g;
-      /* The nasty part about redirecting the return value is that the
-	 return value itself is to be computed before the FINALLY block
-	 is executed.  e.g.
-
-		int x;
-		int foo (void)
-		{
-		  x = 0;
-		  try {
-		    return x;
-		  } finally {
-		    x++;
-		  }
-		}
-
-	  should return 0, not 1.  Arrange for this to happen by copying
-	  computed the return value into a local temporary.  This also
-	  allows us to redirect multiple return statements through the
-	  same destination block; whether this is a net win or not really
-	  depends, I guess, but it does make generation of the switch in
-	  lower_try_finally_switch easier.  */
-
-      if (TREE_CODE (ret_expr) == RESULT_DECL)
+	int x;
+	int foo (void)
 	{
-	  if (!*return_value_p)
-	    *return_value_p = ret_expr;
-	  else
-	    gcc_assert (*return_value_p == ret_expr);
-	  q->cont_stmt = q->stmt.g;
+	  x = 0;
+	  try {
+	    return x;
+	  } finally {
+	    x++;
+	  }
 	}
-      else
-	  gcc_unreachable ();
-    }
-  else
-      /* If we don't return a value, all return statements are the same.  */
-      q->cont_stmt = q->stmt.g;
+
+     should return 0, not 1.  We don't have to do anything to make
+     this happens because the return value has been placed in the
+     RESULT_DECL already.  */
+
+  q->cont_stmt = q->stmt.g;
 
   if (!q->repl_stmt)
     q->repl_stmt = gimple_seq_alloc ();
@@ -1071,7 +1040,7 @@ static void
 lower_try_finally_nofallthru (struct leh_state *state,
 			      struct leh_tf_state *tf)
 {
-  tree lab, return_val;
+  tree lab;
   gimple x, eh_else;
   gimple_seq finally;
   struct goto_queue_node *q, *qe;
@@ -1085,12 +1054,11 @@ lower_try_finally_nofallthru (struct leh_state *state,
   x = gimple_build_label (lab);
   gimple_seq_add_stmt (&tf->top_p_seq, x);
 
-  return_val = NULL;
   q = tf->goto_queue;
   qe = q + tf->goto_queue_active;
   for (; q < qe; ++q)
     if (q->index < 0)
-      do_return_redirection (q, lab, NULL, &return_val);
+      do_return_redirection (q, lab, NULL);
     else
       do_goto_redirection (q, lab, NULL, tf);
 
@@ -1188,9 +1156,8 @@ lower_try_finally_onedest (struct leh_state *state, struct leh_tf_state *tf)
   if (tf->may_return)
     {
       /* Reachable by return expressions only.  Redirect them.  */
-      tree return_val = NULL;
       for (; q < qe; ++q)
-	do_return_redirection (q, finally_label, NULL, &return_val);
+	do_return_redirection (q, finally_label, NULL);
       replace_goto_queue (tf);
     }
   else
@@ -1271,7 +1238,6 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
   if (tf->goto_queue)
     {
       struct goto_queue_node *q, *qe;
-      tree return_val = NULL;
       int return_index, index;
       struct labels_s
       {
@@ -1304,7 +1270,7 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
 	    = create_artificial_label (tf_loc);
 
 	  if (index == return_index)
-	    do_return_redirection (q, lab, NULL, &return_val);
+	    do_return_redirection (q, lab, NULL);
 	  else
 	    do_goto_redirection (q, lab, NULL, tf);
 
@@ -1331,7 +1297,7 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
 	  lab = labels[index].label;
 
 	  if (index == return_index)
-	    do_return_redirection (q, lab, NULL, &return_val);
+	    do_return_redirection (q, lab, NULL);
 	  else
 	    do_goto_redirection (q, lab, NULL, tf);
 	}
@@ -1354,7 +1320,6 @@ static void
 lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 {
   struct goto_queue_node *q, *qe;
-  tree return_val = NULL;
   tree finally_tmp, finally_label;
   int return_index, eh_index, fallthru_index;
   int nlabels, ndests, j, last_case_index;
@@ -1492,7 +1457,7 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 				   build_int_cst (integer_type_node,
 						  return_index));
 	  gimple_seq_add_stmt (&mod, x);
-	  do_return_redirection (q, finally_label, mod, &return_val);
+	  do_return_redirection (q, finally_label, mod);
 	  switch_id = return_index;
 	}
       else
@@ -2621,7 +2586,13 @@ stmt_could_throw_1_p (gimple stmt)
       || TREE_CODE_CLASS (code) == tcc_unary
       || TREE_CODE_CLASS (code) == tcc_binary)
     {
-      t = gimple_expr_type (stmt);
+      if (is_gimple_assign (stmt)
+	  && TREE_CODE_CLASS (code) == tcc_comparison)
+	t = TREE_TYPE (gimple_assign_rhs1 (stmt));
+      else if (gimple_code (stmt) == GIMPLE_COND)
+	t = TREE_TYPE (gimple_cond_lhs (stmt));
+      else
+	t = gimple_expr_type (stmt);
       fp_operation = FLOAT_TYPE_P (t);
       if (fp_operation)
 	{
@@ -3047,7 +3018,7 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 
 	 Resolve this by expanding the resx node to an abort.  */
 
-      fn = implicit_built_in_decls[BUILT_IN_TRAP];
+      fn = builtin_decl_implicit (BUILT_IN_TRAP);
       x = gimple_build_call (fn, 0);
       gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 
@@ -3104,7 +3075,7 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	  edge_iterator ei;
 	  tree dst_nr = build_int_cst (integer_type_node, dst_r->index);
 
-	  fn = implicit_built_in_decls[BUILT_IN_EH_COPY_VALUES];
+	  fn = builtin_decl_implicit (BUILT_IN_EH_COPY_VALUES);
 	  src_nr = build_int_cst (integer_type_node, src_r->index);
 	  x = gimple_build_call (fn, 2, dst_nr, src_nr);
 	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
@@ -3139,13 +3110,13 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	 with no arguments for C++ and Java.  Check for that.  */
       if (src_r->use_cxa_end_cleanup)
 	{
-	  fn = implicit_built_in_decls[BUILT_IN_CXA_END_CLEANUP];
+	  fn = builtin_decl_implicit (BUILT_IN_CXA_END_CLEANUP);
 	  x = gimple_build_call (fn, 0);
 	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 	}
       else
 	{
-	  fn = implicit_built_in_decls[BUILT_IN_EH_POINTER];
+	  fn = builtin_decl_implicit (BUILT_IN_EH_POINTER);
 	  src_nr = build_int_cst (integer_type_node, src_r->index);
 	  x = gimple_build_call (fn, 1, src_nr);
 	  var = create_tmp_var (ptr_type_node, NULL);
@@ -3153,7 +3124,7 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	  gimple_call_set_lhs (x, var);
 	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 
-	  fn = implicit_built_in_decls[BUILT_IN_UNWIND_RESUME];
+	  fn = builtin_decl_implicit (BUILT_IN_UNWIND_RESUME);
 	  x = gimple_build_call (fn, 1, var);
 	  gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 	}
@@ -3319,7 +3290,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	  }
 	else
 	  {
-	    fn = implicit_built_in_decls[BUILT_IN_EH_FILTER];
+	    fn = builtin_decl_implicit (BUILT_IN_EH_FILTER);
 	    x = gimple_build_call (fn, 1, build_int_cst (integer_type_node,
 							 region_nr));
 	    filter = create_tmp_var (TREE_TYPE (TREE_TYPE (fn)), NULL);
@@ -3345,7 +3316,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	edge b_e = BRANCH_EDGE (src);
 	edge f_e = FALLTHRU_EDGE (src);
 
-	fn = implicit_built_in_decls[BUILT_IN_EH_FILTER];
+	fn = builtin_decl_implicit (BUILT_IN_EH_FILTER);
 	x = gimple_build_call (fn, 1, build_int_cst (integer_type_node,
 						     region_nr));
 	filter = create_tmp_var (TREE_TYPE (TREE_TYPE (fn)), NULL);
@@ -3443,7 +3414,7 @@ remove_unreachable_handlers (void)
 
   FOR_EACH_BB (bb)
     {
-      gimple_stmt_iterator gsi = gsi_start_bb (bb);
+      gimple_stmt_iterator gsi;
 
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
@@ -3976,8 +3947,15 @@ cleanup_empty_eh (eh_landing_pad lp)
       return cleanup_empty_eh_unsplit (bb, e_out, lp);
     }
 
-  /* The block should consist only of a single RESX statement.  */
+  /* The block should consist only of a single RESX statement, modulo a
+     preceding call to __builtin_stack_restore if there is no outgoing
+     edge, since the call can be eliminated in this case.  */
   resx = gsi_stmt (gsi);
+  if (!e_out && gimple_call_builtin_p (resx, BUILT_IN_STACK_RESTORE))
+    {
+      gsi_next (&gsi);
+      resx = gsi_stmt (gsi);
+    }
   if (!is_gimple_resx (resx))
     return false;
   gcc_assert (gsi_one_before_end_p (gsi));

@@ -9,6 +9,7 @@ package httptest
 import (
 	"crypto/rand"
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"http"
 	"net"
@@ -22,6 +23,10 @@ type Server struct {
 	URL      string // base URL of form http://ipaddr:port with no trailing slash
 	Listener net.Listener
 	TLS      *tls.Config // nil if not using using TLS
+
+	// Config may be changed after calling NewUnstartedServer and
+	// before Start or StartTLS.
+	Config *http.Server
 }
 
 // historyListener keeps track of all connections that it's ever
@@ -40,6 +45,13 @@ func (hs *historyListener) Accept() (c net.Conn, err os.Error) {
 }
 
 func newLocalListener() net.Listener {
+	if *serve != "" {
+		l, err := net.Listen("tcp", *serve)
+		if err != nil {
+			panic(fmt.Sprintf("httptest: failed to listen on %v: %v", *serve, err))
+		}
+		return l
+	}
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		if l, err = net.Listen("tcp6", "[::1]:0"); err != nil {
@@ -49,41 +61,75 @@ func newLocalListener() net.Listener {
 	return l
 }
 
+// When debugging a particular http server-based test,
+// this flag lets you run
+//	gotest -run=BrokenTest -httptest.serve=127.0.0.1:8000
+// to start the broken server so you can interact with it manually.
+var serve = flag.String("httptest.serve", "", "if non-empty, httptest.NewServer serves on this address and blocks")
+
 // NewServer starts and returns a new Server.
 // The caller should call Close when finished, to shut it down.
 func NewServer(handler http.Handler) *Server {
-	ts := new(Server)
-	l := newLocalListener()
-	ts.Listener = &historyListener{l, make([]net.Conn, 0)}
-	ts.URL = "http://" + l.Addr().String()
-	server := &http.Server{Handler: handler}
-	go server.Serve(ts.Listener)
+	ts := NewUnstartedServer(handler)
+	ts.Start()
 	return ts
 }
 
-// NewTLSServer starts and returns a new Server using TLS.
+// NewUnstartedServer returns a new Server but doesn't start it.
+//
+// After changing its configuration, the caller should call Start or
+// StartTLS.
+//
 // The caller should call Close when finished, to shut it down.
-func NewTLSServer(handler http.Handler) *Server {
-	l := newLocalListener()
-	ts := new(Server)
+func NewUnstartedServer(handler http.Handler) *Server {
+	return &Server{
+		Listener: newLocalListener(),
+		Config:   &http.Server{Handler: handler},
+	}
+}
 
+// Start starts a server from NewUnstartedServer.
+func (s *Server) Start() {
+	if s.URL != "" {
+		panic("Server already started")
+	}
+	s.Listener = &historyListener{s.Listener, make([]net.Conn, 0)}
+	s.URL = "http://" + s.Listener.Addr().String()
+	go s.Config.Serve(s.Listener)
+	if *serve != "" {
+		fmt.Println(os.Stderr, "httptest: serving on", s.URL)
+		select {}
+	}
+}
+
+// StartTLS starts TLS on a server from NewUnstartedServer.
+func (s *Server) StartTLS() {
+	if s.URL != "" {
+		panic("Server already started")
+	}
 	cert, err := tls.X509KeyPair(localhostCert, localhostKey)
 	if err != nil {
 		panic(fmt.Sprintf("httptest: NewTLSServer: %v", err))
 	}
 
-	ts.TLS = &tls.Config{
+	s.TLS = &tls.Config{
 		Rand:         rand.Reader,
 		Time:         time.Seconds,
 		NextProtos:   []string{"http/1.1"},
 		Certificates: []tls.Certificate{cert},
 	}
-	tlsListener := tls.NewListener(l, ts.TLS)
+	tlsListener := tls.NewListener(s.Listener, s.TLS)
 
-	ts.Listener = &historyListener{tlsListener, make([]net.Conn, 0)}
-	ts.URL = "https://" + l.Addr().String()
-	server := &http.Server{Handler: handler}
-	go server.Serve(ts.Listener)
+	s.Listener = &historyListener{tlsListener, make([]net.Conn, 0)}
+	s.URL = "https://" + s.Listener.Addr().String()
+	go s.Config.Serve(s.Listener)
+}
+
+// NewTLSServer starts and returns a new Server using TLS.
+// The caller should call Close when finished, to shut it down.
+func NewTLSServer(handler http.Handler) *Server {
+	ts := NewUnstartedServer(handler)
+	ts.StartTLS()
 	return ts
 }
 
@@ -108,29 +154,24 @@ func (s *Server) CloseClientConnections() {
 // "127.0.0.1" and "[::1]", expiring at the last second of 2049 (the end
 // of ASN.1 time).
 var localhostCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIBwTCCASugAwIBAgIBADALBgkqhkiG9w0BAQUwADAeFw0xMTAzMzEyMDI1MDda
-Fw00OTEyMzEyMzU5NTlaMAAwggCdMAsGCSqGSIb3DQEBAQOCAIwAMIIAhwKCAIB6
-oy4iT42G6qk+GGn5VL5JlnJT6ZG5cqaMNFaNGlIxNb6CPUZLKq2sM3gRaimsktIw
-nNAcNwQGHpe1tZo+J/Pl04JTt71Y/TTAxy7OX27aZf1Rpt0SjdZ7vTPnFDPNsHGe
-KBKvPt55l2+YKjkZmV7eRevsVbpkNvNGB+T5d4Ge/wIBA6NPME0wDgYDVR0PAQH/
-BAQDAgCgMA0GA1UdDgQGBAQBAgMEMA8GA1UdIwQIMAaABAECAwQwGwYDVR0RBBQw
-EoIJMTI3LjAuMC4xggVbOjoxXTALBgkqhkiG9w0BAQUDggCBAHC3gbdvc44vs+wD
-g2kONiENnx8WKc0UTGg/TOXS3gaRb+CUIQtHWja65l8rAfclEovjHgZ7gx8brO0W
-JuC6p3MUAKsgOssIrrRIx2rpnfcmFVMzguCmrMNVmKUAalw18Yp0F72xYAIitVQl
-kJrLdIhBajcJRYu/YGltHQRaXuVt
+MIIBOTCB5qADAgECAgEAMAsGCSqGSIb3DQEBBTAAMB4XDTcwMDEwMTAwMDAwMFoX
+DTQ5MTIzMTIzNTk1OVowADBaMAsGCSqGSIb3DQEBAQNLADBIAkEAsuA5mAFMj6Q7
+qoBzcvKzIq4kzuT5epSp2AkcQfyBHm7K13Ws7u+0b5Vb9gqTf5cAiIKcrtrXVqkL
+8i1UQF6AzwIDAQABo08wTTAOBgNVHQ8BAf8EBAMCACQwDQYDVR0OBAYEBAECAwQw
+DwYDVR0jBAgwBoAEAQIDBDAbBgNVHREEFDASggkxMjcuMC4wLjGCBVs6OjFdMAsG
+CSqGSIb3DQEBBQNBAJH30zjLWRztrWpOCgJL8RQWLaKzhK79pVhAx6q/3NrF16C7
++l1BRZstTwIGdoGId8BRpErK1TXkniFb95ZMynM=
 -----END CERTIFICATE-----
 `)
 
 // localhostKey is the private key for localhostCert.
 var localhostKey = []byte(`-----BEGIN RSA PRIVATE KEY-----
-MIIBkgIBAQKCAIB6oy4iT42G6qk+GGn5VL5JlnJT6ZG5cqaMNFaNGlIxNb6CPUZL
-Kq2sM3gRaimsktIwnNAcNwQGHpe1tZo+J/Pl04JTt71Y/TTAxy7OX27aZf1Rpt0S
-jdZ7vTPnFDPNsHGeKBKvPt55l2+YKjkZmV7eRevsVbpkNvNGB+T5d4Ge/wIBAwKC
-AIBRwh7Bil5Z8cYpZZv7jdQxDvbim7Z7ocRdeDmzZuF2I9RW04QyHHPIIlALnBvI
-YeF1veASz1gEFGUjzmbUGqKYSbCoTzXoev+F4bmbRxcX9sOmtslqvhMSHRSzA5NH
-aDVI3Hn4wvBVD8gePu8ACWqvPGbCiql11OKCMfjlPn2uuwJAx/24/F5DjXZ6hQQ7
-HxScOxKrpx5WnA9r1wZTltOTZkhRRzuLc21WJeE3M15QUdWi3zZxCKRFoth65HEs
-jy9YHQJAnPueRI44tz79b5QqVbeaOMUr7ZCb1Kp0uo6G+ANPLdlfliAupwij2eIz
-mHRJOWk0jBtXfRft1McH2H51CpXAyw==
+MIIBPQIBAAJBALLgOZgBTI+kO6qAc3LysyKuJM7k+XqUqdgJHEH8gR5uytd1rO7v
+tG+VW/YKk3+XAIiCnK7a11apC/ItVEBegM8CAwEAAQJBAI5sxq7naeR9ahyqRkJi
+SIv2iMxLuPEHaezf5CYOPWjSjBPyVhyRevkhtqEjF/WkgL7C2nWpYHsUcBDBQVF0
+3KECIQDtEGB2ulnkZAahl3WuJziXGLB+p8Wgx7wzSM6bHu1c6QIhAMEp++CaS+SJ
+/TrU0zwY/fW4SvQeb49BPZUF3oqR8Xz3AiEA1rAJHBzBgdOQKdE3ksMUPcnvNJSN
+poCcELmz2clVXtkCIQCLytuLV38XHToTipR4yMl6O+6arzAjZ56uq7m7ZRV0TwIh
+AM65XAOw8Dsg9Kq78aYXiOEDc5DL0sbFUu/SlmRcCg93
 -----END RSA PRIVATE KEY-----
 `)

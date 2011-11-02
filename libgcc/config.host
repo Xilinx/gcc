@@ -777,7 +777,7 @@ sparc-wrs-vxworks)
 	;;
 sparc64-*-freebsd*|ultrasparc-*-freebsd*)
 	tmake_file="$tmake_file t-crtfm"
-	extra_parts=crtfastmath.o
+	extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o crtfastmath.o"
 	;;
 sparc64-*-linux*)		# 64-bit SPARC's running GNU/Linux
 	extra_parts="$extra_parts crtfastmath.o"
@@ -790,7 +790,8 @@ spu-*-elf*)
 	tmake_file="t-fdpbit spu/t-elf"
 	;;
 tic6x-*-*)
-	tmake_file="${tmake_file} t-softfp-sfdf t-softfp-excl t-softfp t-gnu-prefix"
+	tmake_file="${tmake_file} t-softfp-sfdf t-softfp-excl t-softfp t-gnu-prefix c6x/t-c6x-elf"
+	unwind_header=config/c6x/unwind-c6x.h
 	;;
 v850*-*-*)
 	tmake_file=t-fdpbit

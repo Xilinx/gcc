@@ -16,7 +16,6 @@ package cgi
 
 import (
 	"bufio"
-	"bytes"
 	"exec"
 	"fmt"
 	"http"
@@ -33,19 +32,26 @@ import (
 var trailingPort = regexp.MustCompile(`:([0-9]+)$`)
 
 var osDefaultInheritEnv = map[string][]string{
-	"darwin":  []string{"DYLD_LIBRARY_PATH"},
-	"freebsd": []string{"LD_LIBRARY_PATH"},
-	"hpux":    []string{"LD_LIBRARY_PATH", "SHLIB_PATH"},
-	"irix":    []string{"LD_LIBRARY_PATH", "LD_LIBRARYN32_PATH", "LD_LIBRARY64_PATH"},
-	"linux":   []string{"LD_LIBRARY_PATH"},
-	"solaris": []string{"LD_LIBRARY_PATH", "LD_LIBRARY_PATH_32", "LD_LIBRARY_PATH_64"},
-	"windows": []string{"SystemRoot", "COMSPEC", "PATHEXT", "WINDIR"},
+	"darwin":  {"DYLD_LIBRARY_PATH"},
+	"freebsd": {"LD_LIBRARY_PATH"},
+	"hpux":    {"LD_LIBRARY_PATH", "SHLIB_PATH"},
+	"irix":    {"LD_LIBRARY_PATH", "LD_LIBRARYN32_PATH", "LD_LIBRARY64_PATH"},
+	"linux":   {"LD_LIBRARY_PATH"},
+	"openbsd": {"LD_LIBRARY_PATH"},
+	"solaris": {"LD_LIBRARY_PATH", "LD_LIBRARY_PATH_32", "LD_LIBRARY_PATH_64"},
+	"windows": {"SystemRoot", "COMSPEC", "PATHEXT", "WINDIR"},
 }
 
 // Handler runs an executable in a subprocess with a CGI environment.
 type Handler struct {
 	Path string // path to the CGI executable
 	Root string // root URI prefix of handler or empty for "/"
+
+	// Dir specifies the CGI executable's working directory.
+	// If Dir is empty, the base directory of Path is used.
+	// If Path has no base directory, the current working
+	// directory is used.
+	Dir string
 
 	Env        []string    // extra environment variables to set, if any, as "key=value"
 	InheritEnv []string    // environment variables to inherit from host, as "key"
@@ -61,6 +67,31 @@ type Handler struct {
 	// If nil, a CGI response with a local URI path is instead sent
 	// back to the client and not redirected internally.
 	PathLocationHandler http.Handler
+}
+
+// removeLeadingDuplicates remove leading duplicate in environments.
+// It's possible to override environment like following.
+//    cgi.Handler{
+//      ...
+//      Env: []string{"SCRIPT_FILENAME=foo.php"},
+//    }
+func removeLeadingDuplicates(env []string) (ret []string) {
+	n := len(env)
+	for i := 0; i < n; i++ {
+		e := env[i]
+		s := strings.SplitN(e, "=", 2)[0]
+		found := false
+		for j := i + 1; j < n; j++ {
+			if s == strings.SplitN(env[j], "=", 2)[0] {
+				found = true
+				break
+			}
+		}
+		if !found {
+			ret = append(ret, e)
+		}
+	}
+	return
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -106,20 +137,13 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		env = append(env, "HTTPS=on")
 	}
 
-	if len(req.Cookie) > 0 {
-		b := new(bytes.Buffer)
-		for idx, c := range req.Cookie {
-			if idx > 0 {
-				b.Write([]byte("; "))
-			}
-			fmt.Fprintf(b, "%s=%s", c.Name, c.Value)
-		}
-		env = append(env, "HTTP_COOKIE="+b.String())
-	}
-
 	for k, v := range req.Header {
 		k = strings.Map(upperCaseAndUnderscore, k)
-		env = append(env, "HTTP_"+k+"="+strings.Join(v, ", "))
+		joinStr := ", "
+		if k == "COOKIE" {
+			joinStr = "; "
+		}
+		env = append(env, "HTTP_"+k+"="+strings.Join(v, joinStr))
 	}
 
 	if req.ContentLength > 0 {
@@ -133,11 +157,11 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		env = append(env, h.Env...)
 	}
 
-	path := os.Getenv("PATH")
-	if path == "" {
-		path = "/bin:/usr/bin:/usr/ucb:/usr/bsd:/usr/local/bin"
+	envPath := os.Getenv("PATH")
+	if envPath == "" {
+		envPath = "/bin:/usr/bin:/usr/ucb:/usr/bsd:/usr/local/bin"
 	}
-	env = append(env, "PATH="+path)
+	env = append(env, "PATH="+envPath)
 
 	for _, e := range h.InheritEnv {
 		if v := os.Getenv(e); v != "" {
@@ -151,39 +175,49 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	cwd, pathBase := filepath.Split(h.Path)
+	env = removeLeadingDuplicates(env)
+
+	var cwd, path string
+	if h.Dir != "" {
+		path = h.Path
+		cwd = h.Dir
+	} else {
+		cwd, path = filepath.Split(h.Path)
+	}
 	if cwd == "" {
 		cwd = "."
 	}
 
-	args := []string{h.Path}
-	args = append(args, h.Args...)
-
-	cmd, err := exec.Run(
-		pathBase,
-		args,
-		env,
-		cwd,
-		exec.Pipe,        // stdin
-		exec.Pipe,        // stdout
-		exec.PassThrough, // stderr (for now)
-	)
-	if err != nil {
+	internalError := func(err os.Error) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		h.printf("CGI error: %v", err)
+	}
+
+	cmd := &exec.Cmd{
+		Path:   path,
+		Args:   append([]string{h.Path}, h.Args...),
+		Dir:    cwd,
+		Env:    env,
+		Stderr: os.Stderr, // for now
+	}
+	if req.ContentLength != 0 {
+		cmd.Stdin = req.Body
+	}
+	stdoutRead, err := cmd.StdoutPipe()
+	if err != nil {
+		internalError(err)
 		return
 	}
-	defer func() {
-		cmd.Stdin.Close()
-		cmd.Stdout.Close()
-		cmd.Wait(0) // no zombies
-	}()
 
-	if req.ContentLength != 0 {
-		go io.Copy(cmd.Stdin, req.Body)
+	err = cmd.Start()
+	if err != nil {
+		internalError(err)
+		return
 	}
+	defer cmd.Wait()
+	defer stdoutRead.Close()
 
-	linebody, _ := bufio.NewReaderSize(cmd.Stdout, 1024)
+	linebody, _ := bufio.NewReaderSize(stdoutRead, 1024)
 	headers := make(http.Header)
 	statusCode := 0
 	for {
@@ -204,7 +238,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if len(line) == 0 {
 			break
 		}
-		parts := strings.Split(string(line), ":", 2)
+		parts := strings.SplitN(string(line), ":", 2)
 		if len(parts) < 2 {
 			h.printf("cgi: bogus header line: %s", string(line))
 			continue
@@ -270,7 +304,7 @@ func (h *Handler) printf(format string, v ...interface{}) {
 }
 
 func (h *Handler) handleInternalRedirect(rw http.ResponseWriter, req *http.Request, path string) {
-	url, err := req.URL.ParseURL(path)
+	url, err := req.URL.Parse(path)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		h.printf("cgi: error resolving local URI path %q: %v", path, err)
@@ -288,7 +322,6 @@ func (h *Handler) handleInternalRedirect(rw http.ResponseWriter, req *http.Reque
 	newReq := &http.Request{
 		Method:     "GET",
 		URL:        url,
-		RawURL:     path,
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
 		ProtoMinor: 1,

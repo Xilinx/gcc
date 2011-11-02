@@ -3085,11 +3085,15 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
 						    stmts, domstmt);
 	    if (!genop[i])
 	      return NULL_TREE;
-	    /* Ensure genop[1] is a ptrofftype for POINTER_PLUS_EXPR.  It
-	       may be a constant with the wrong type.  */
-	    if (i == 1
-		&& nary->opcode == POINTER_PLUS_EXPR)
-	      genop[i] = convert_to_ptrofftype (genop[i]);
+	    /* Ensure genop[] is properly typed for POINTER_PLUS_EXPR.  It
+	       may have conversions stripped.  */
+	    if (nary->opcode == POINTER_PLUS_EXPR)
+	      {
+		if (i == 0)
+		  genop[i] = fold_convert (nary->type, genop[i]);
+		else if (i == 1)
+		  genop[i] = convert_to_ptrofftype (genop[i]);
+	      }
 	    else
 	      genop[i] = fold_convert (TREE_TYPE (nary->op[i]), genop[i]);
 	  }
@@ -3181,6 +3185,11 @@ create_expression_by_pieces (basic_block block, pre_expr expr,
 
   /* All the symbols in NEWEXPR should be put into SSA form.  */
   mark_symbols_for_renaming (newstmt);
+
+  /* Fold the last statement.  */
+  gsi = gsi_last (*stmts);
+  if (fold_stmt_inplace (&gsi))
+    update_stmt (gsi_stmt (gsi));
 
   /* Add a value number to the temporary.
      The value may already exist in either NEW_SETS, or AVAIL_OUT, because
@@ -4907,7 +4916,6 @@ execute_pre (bool do_fre)
   statistics_counter_event (cfun, "Constified", pre_stats.constified);
 
   clear_expression_ids ();
-  free_scc_vn ();
   if (!do_fre)
     {
       remove_dead_inserted_code ();
@@ -4916,6 +4924,17 @@ execute_pre (bool do_fre)
 
   scev_finalize ();
   fini_pre (do_fre);
+
+  if (!do_fre)
+    /* TODO: tail_merge_optimize may merge all predecessors of a block, in which
+       case we can merge the block with the remaining predecessor of the block.
+       It should either:
+       - call merge_blocks after each tail merge iteration
+       - call merge_blocks after all tail merge iterations
+       - mark TODO_cleanup_cfg when necessary
+       - share the cfg cleanup with fini_pre.  */
+    todo |= tail_merge_optimize (todo);
+  free_scc_vn ();
 
   return todo;
 }

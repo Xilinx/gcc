@@ -15,12 +15,17 @@ import (
 	"io/ioutil"
 	"reflect"
 	"testing"
+	"url"
 )
 
 type respTest struct {
 	Raw  string
 	Resp Response
 	Body string
+}
+
+func dummyReq(method string) *Request {
+	return &Request{Method: method}
 }
 
 var respTests = []respTest{
@@ -32,12 +37,12 @@ var respTests = []respTest{
 			"Body here\n",
 
 		Response{
-			Status:        "200 OK",
-			StatusCode:    200,
-			Proto:         "HTTP/1.0",
-			ProtoMajor:    1,
-			ProtoMinor:    0,
-			RequestMethod: "GET",
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.0",
+			ProtoMajor: 1,
+			ProtoMinor: 0,
+			Request:    dummyReq("GET"),
 			Header: Header{
 				"Connection": {"close"}, // TODO(rsc): Delete?
 			},
@@ -61,7 +66,7 @@ var respTests = []respTest{
 			Proto:         "HTTP/1.1",
 			ProtoMajor:    1,
 			ProtoMinor:    1,
-			RequestMethod: "GET",
+			Request:       dummyReq("GET"),
 			Close:         true,
 			ContentLength: -1,
 		},
@@ -81,7 +86,7 @@ var respTests = []respTest{
 			Proto:         "HTTP/1.1",
 			ProtoMajor:    1,
 			ProtoMinor:    1,
-			RequestMethod: "GET",
+			Request:       dummyReq("GET"),
 			Close:         false,
 			ContentLength: 0,
 		},
@@ -98,12 +103,12 @@ var respTests = []respTest{
 			"Body here\n",
 
 		Response{
-			Status:        "200 OK",
-			StatusCode:    200,
-			Proto:         "HTTP/1.0",
-			ProtoMajor:    1,
-			ProtoMinor:    0,
-			RequestMethod: "GET",
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.0",
+			ProtoMajor: 1,
+			ProtoMinor: 0,
+			Request:    dummyReq("GET"),
 			Header: Header{
 				"Connection":     {"close"}, // TODO(rsc): Delete?
 				"Content-Length": {"10"},    // TODO(rsc): Delete?
@@ -133,7 +138,7 @@ var respTests = []respTest{
 			Proto:            "HTTP/1.0",
 			ProtoMajor:       1,
 			ProtoMinor:       0,
-			RequestMethod:    "GET",
+			Request:          dummyReq("GET"),
 			Header:           Header{},
 			Close:            true,
 			ContentLength:    -1,
@@ -160,7 +165,7 @@ var respTests = []respTest{
 			Proto:            "HTTP/1.0",
 			ProtoMajor:       1,
 			ProtoMinor:       0,
-			RequestMethod:    "GET",
+			Request:          dummyReq("GET"),
 			Header:           Header{},
 			Close:            true,
 			ContentLength:    -1, // TODO(rsc): Fix?
@@ -183,7 +188,7 @@ var respTests = []respTest{
 			Proto:         "HTTP/1.0",
 			ProtoMajor:    1,
 			ProtoMinor:    0,
-			RequestMethod: "HEAD",
+			Request:       dummyReq("HEAD"),
 			Header:        Header{},
 			Close:         true,
 			ContentLength: 0,
@@ -199,12 +204,12 @@ var respTests = []respTest{
 			"\r\n",
 
 		Response{
-			Status:        "200 OK",
-			StatusCode:    200,
-			Proto:         "HTTP/1.1",
-			ProtoMajor:    1,
-			ProtoMinor:    1,
-			RequestMethod: "GET",
+			Status:     "200 OK",
+			StatusCode: 200,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Request:    dummyReq("GET"),
 			Header: Header{
 				"Content-Length": {"0"},
 			},
@@ -225,7 +230,7 @@ var respTests = []respTest{
 			Proto:         "HTTP/1.0",
 			ProtoMajor:    1,
 			ProtoMinor:    0,
-			RequestMethod: "GET",
+			Request:       dummyReq("GET"),
 			Header:        Header{},
 			Close:         true,
 			ContentLength: -1,
@@ -244,7 +249,7 @@ var respTests = []respTest{
 			Proto:         "HTTP/1.0",
 			ProtoMajor:    1,
 			ProtoMinor:    0,
-			RequestMethod: "GET",
+			Request:       dummyReq("GET"),
 			Header:        Header{},
 			Close:         true,
 			ContentLength: -1,
@@ -259,7 +264,7 @@ func TestReadResponse(t *testing.T) {
 		tt := &respTests[i]
 		var braw bytes.Buffer
 		braw.WriteString(tt.Raw)
-		resp, err := ReadResponse(bufio.NewReader(&braw), tt.Resp.RequestMethod)
+		resp, err := ReadResponse(bufio.NewReader(&braw), tt.Resp.Request)
 		if err != nil {
 			t.Errorf("#%d: %s", i, err)
 			continue
@@ -340,7 +345,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 		buf.WriteString("Next Request Here")
 
 		bufr := bufio.NewReader(&buf)
-		resp, err := ReadResponse(bufr, "GET")
+		resp, err := ReadResponse(bufr, dummyReq("GET"))
 		checkErr(err, "ReadResponse")
 		expectedLength := int64(-1)
 		if !test.chunked {
@@ -372,7 +377,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 		rest, err := ioutil.ReadAll(bufr)
 		checkErr(err, "ReadAll on remainder")
 		if e, g := "Next Request Here", string(rest); e != g {
-			fatalf("for chunked=%v remainder = %q, expected %q", g, e)
+			fatalf("remainder = %q, expected %q", g, e)
 		}
 	}
 }
@@ -381,13 +386,62 @@ func diff(t *testing.T, prefix string, have, want interface{}) {
 	hv := reflect.ValueOf(have).Elem()
 	wv := reflect.ValueOf(want).Elem()
 	if hv.Type() != wv.Type() {
-		t.Errorf("%s: type mismatch %v vs %v", prefix, hv.Type(), wv.Type())
+		t.Errorf("%s: type mismatch %v want %v", prefix, hv.Type(), wv.Type())
 	}
 	for i := 0; i < hv.NumField(); i++ {
 		hf := hv.Field(i).Interface()
 		wf := wv.Field(i).Interface()
 		if !reflect.DeepEqual(hf, wf) {
 			t.Errorf("%s: %s = %v want %v", prefix, hv.Type().Field(i).Name, hf, wf)
+		}
+	}
+}
+
+type responseLocationTest struct {
+	location string // Response's Location header or ""
+	requrl   string // Response.Request.URL or ""
+	want     string
+	wantErr  os.Error
+}
+
+var responseLocationTests = []responseLocationTest{
+	{"/foo", "http://bar.com/baz", "http://bar.com/foo", nil},
+	{"http://foo.com/", "http://bar.com/baz", "http://foo.com/", nil},
+	{"", "http://bar.com/baz", "", ErrNoLocation},
+}
+
+func TestLocationResponse(t *testing.T) {
+	for i, tt := range responseLocationTests {
+		res := new(Response)
+		res.Header = make(Header)
+		res.Header.Set("Location", tt.location)
+		if tt.requrl != "" {
+			res.Request = &Request{}
+			var err os.Error
+			res.Request.URL, err = url.Parse(tt.requrl)
+			if err != nil {
+				t.Fatalf("bad test URL %q: %v", tt.requrl, err)
+			}
+		}
+
+		got, err := res.Location()
+		if tt.wantErr != nil {
+			if err == nil {
+				t.Errorf("%d. err=nil; want %q", i, tt.wantErr)
+				continue
+			}
+			if g, e := err.String(), tt.wantErr.String(); g != e {
+				t.Errorf("%d. err=%q; want %q", i, g, e)
+				continue
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%d. err=%q", i, err)
+			continue
+		}
+		if g, e := got.String(), tt.want; g != e {
+			t.Errorf("%d. Location=%q; want %q", i, g, e)
 		}
 	}
 }

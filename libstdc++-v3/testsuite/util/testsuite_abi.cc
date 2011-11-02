@@ -205,6 +205,7 @@ check_version(symbol& test, bool added)
       known_versions.push_back("CXXABI_1.3.4");
       known_versions.push_back("CXXABI_TM_1");
       known_versions.push_back("CXXABI_1.3.5");
+      known_versions.push_back("CXXABI_1.3.6");
       known_versions.push_back("CXXABI_LDBL_1.3");
     }
   compat_list::iterator begin = known_versions.begin();

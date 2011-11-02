@@ -14,7 +14,7 @@ import (
 )
 
 func (c *Conn) clientHandshake() os.Error {
-	finishedHash := newFinishedHash()
+	finishedHash := newFinishedHash(versionTLS10)
 
 	if c.config == nil {
 		c.config = defaultConfig()
@@ -40,7 +40,7 @@ func (c *Conn) clientHandshake() os.Error {
 	_, err := io.ReadFull(c.config.rand(), hello.random[4:])
 	if err != nil {
 		c.sendAlert(alertInternalError)
-		return os.ErrorString("short read from Rand")
+		return os.NewError("short read from Rand")
 	}
 
 	finishedHash.Write(hello.marshal())
@@ -69,7 +69,7 @@ func (c *Conn) clientHandshake() os.Error {
 
 	if !hello.nextProtoNeg && serverHello.nextProtoNeg {
 		c.sendAlert(alertHandshakeFailure)
-		return os.ErrorString("server advertised unrequested NPN")
+		return os.NewError("server advertised unrequested NPN")
 	}
 
 	suite, suiteId := mutualCipherSuite(c.config.cipherSuites(), serverHello.cipherSuite)
@@ -92,16 +92,14 @@ func (c *Conn) clientHandshake() os.Error {
 		cert, err := x509.ParseCertificate(asn1Data)
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
-			return os.ErrorString("failed to parse certificate from server: " + err.String())
+			return os.NewError("failed to parse certificate from server: " + err.String())
 		}
 		certs[i] = cert
 	}
 
-	// If we don't have a root CA set configured then anything is accepted.
-	// TODO(rsc): Find certificates for OS X 10.6.
-	if c.config.RootCAs != nil {
+	if !c.config.InsecureSkipVerify {
 		opts := x509.VerifyOptions{
-			Roots:         c.config.RootCAs,
+			Roots:         c.config.rootCAs(),
 			CurrentTime:   c.config.time(),
 			DNSName:       c.config.ServerName,
 			Intermediates: x509.NewCertPool(),
@@ -247,11 +245,11 @@ func (c *Conn) clientHandshake() os.Error {
 	}
 
 	masterSecret, clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
-		keysFromPreMasterSecret10(preMasterSecret, hello.random, serverHello.random, suite.macLen, suite.keyLen, suite.ivLen)
+		keysFromPreMasterSecret(c.vers, preMasterSecret, hello.random, serverHello.random, suite.macLen, suite.keyLen, suite.ivLen)
 
 	clientCipher := suite.cipher(clientKey, clientIV, false /* not for reading */ )
-	clientHash := suite.mac(clientMAC)
-	c.out.prepareCipherSpec(clientCipher, clientHash)
+	clientHash := suite.mac(c.vers, clientMAC)
+	c.out.prepareCipherSpec(c.vers, clientCipher, clientHash)
 	c.writeRecord(recordTypeChangeCipherSpec, []byte{1})
 
 	if serverHello.nextProtoNeg {
@@ -271,8 +269,8 @@ func (c *Conn) clientHandshake() os.Error {
 	c.writeRecord(recordTypeHandshake, finished.marshal())
 
 	serverCipher := suite.cipher(serverKey, serverIV, true /* for reading */ )
-	serverHash := suite.mac(serverMAC)
-	c.in.prepareCipherSpec(serverCipher, serverHash)
+	serverHash := suite.mac(c.vers, serverMAC)
+	c.in.prepareCipherSpec(c.vers, serverCipher, serverHash)
 	c.readRecord(recordTypeChangeCipherSpec)
 	if c.err != nil {
 		return c.err

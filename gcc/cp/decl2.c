@@ -86,6 +86,7 @@ static void write_out_vars (tree);
 static void import_export_class (tree);
 static tree get_guard_bits (tree);
 static void determine_visibility_from_class (tree, tree);
+static bool determine_hidden_inline (tree);
 static bool decl_defined_p (tree);
 
 /* A list of static class variables.  This is needed, because a
@@ -795,7 +796,7 @@ grokfield (const cp_declarator *declarator,
 {
   tree value;
   const char *asmspec = 0;
-  int flags = LOOKUP_ONLYCONVERTING;
+  int flags;
   tree name;
 
   if (init
@@ -868,6 +869,7 @@ grokfield (const cp_declarator *declarator,
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
 	set_underlying_type (value);
 
+      record_locally_defined_typedef (value);
       return value;
     }
 
@@ -901,6 +903,8 @@ grokfield (const cp_declarator *declarator,
 		  DECL_DECLARED_INLINE_P (value) = 1;
 		}
 	    }
+	  else if (TREE_CODE (init) == DEFAULT_ARG)
+	    error ("invalid initializer for member function %qD", value);
 	  else if (TREE_CODE (TREE_TYPE (value)) == METHOD_TYPE)
 	    {
 	      if (integer_zerop (init))
@@ -918,9 +922,10 @@ grokfield (const cp_declarator *declarator,
 		     value);
 	    }
 	}
-      else if (pedantic && TREE_CODE (value) != VAR_DECL)
-	/* Already complained in grokdeclarator.  */
-	init = NULL_TREE;
+      else if (TREE_CODE (value) == FIELD_DECL)
+	/* C++11 NSDMI, keep going.  */;
+      else if (TREE_CODE (value) != VAR_DECL)
+	gcc_unreachable ();
       else if (!processing_template_decl)
 	{
 	  if (TREE_CODE (init) == CONSTRUCTOR)
@@ -954,6 +959,12 @@ grokfield (const cp_declarator *declarator,
   if (attrlist)
     cplus_decl_attributes (&value, attrlist, 0);
 
+  if (init && BRACE_ENCLOSED_INITIALIZER_P (init)
+      && CONSTRUCTOR_IS_DIRECT_INIT (init))
+    flags = LOOKUP_NORMAL;
+  else
+    flags = LOOKUP_IMPLICIT;
+
   switch (TREE_CODE (value))
     {
     case VAR_DECL:
@@ -968,7 +979,6 @@ grokfield (const cp_declarator *declarator,
 	init = error_mark_node;
       cp_finish_decl (value, init, /*init_const_expr_p=*/false,
 		      NULL_TREE, flags);
-      DECL_INITIAL (value) = init;
       DECL_IN_AGGR_P (value) = 1;
       return value;
 
@@ -2079,14 +2089,29 @@ determine_visibility (tree decl)
 	     containing function by default, except that
 	     -fvisibility-inlines-hidden doesn't affect them.  */
 	  tree fn = DECL_CONTEXT (decl);
-	  if (DECL_VISIBILITY_SPECIFIED (fn) || ! DECL_CLASS_SCOPE_P (fn))
+	  if (DECL_VISIBILITY_SPECIFIED (fn))
 	    {
 	      DECL_VISIBILITY (decl) = DECL_VISIBILITY (fn);
 	      DECL_VISIBILITY_SPECIFIED (decl) = 
 		DECL_VISIBILITY_SPECIFIED (fn);
 	    }
 	  else
-	    determine_visibility_from_class (decl, DECL_CONTEXT (fn));
+	    {
+	      if (DECL_CLASS_SCOPE_P (fn))
+		determine_visibility_from_class (decl, DECL_CONTEXT (fn));
+	      else if (determine_hidden_inline (fn))
+		{
+		  DECL_VISIBILITY (decl) = default_visibility;
+		  DECL_VISIBILITY_SPECIFIED (decl) =
+		    visibility_options.inpragma;
+		}
+	      else
+		{
+	          DECL_VISIBILITY (decl) = DECL_VISIBILITY (fn);
+	          DECL_VISIBILITY_SPECIFIED (decl) =
+		    DECL_VISIBILITY_SPECIFIED (fn);
+		}
+	    }
 
 	  /* Local classes in templates have CLASSTYPE_USE_TEMPLATE set,
 	     but have no TEMPLATE_INFO, so don't try to check it.  */
@@ -2125,10 +2150,15 @@ determine_visibility (tree decl)
 	   on their template unless they override it with an attribute.  */;
       else if (! DECL_VISIBILITY_SPECIFIED (decl))
 	{
-	  /* Set default visibility to whatever the user supplied with
-	     #pragma GCC visibility or a namespace visibility attribute.  */
-	  DECL_VISIBILITY (decl) = default_visibility;
-	  DECL_VISIBILITY_SPECIFIED (decl) = visibility_options.inpragma;
+          if (determine_hidden_inline (decl))
+	    DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+	  else
+            {
+	      /* Set default visibility to whatever the user supplied with
+	         #pragma GCC visibility or a namespace visibility attribute.  */
+	      DECL_VISIBILITY (decl) = default_visibility;
+	      DECL_VISIBILITY_SPECIFIED (decl) = visibility_options.inpragma;
+            }
 	}
     }
 
@@ -2148,9 +2178,15 @@ determine_visibility (tree decl)
 
 	  if (!DECL_VISIBILITY_SPECIFIED (decl))
 	    {
-	      DECL_VISIBILITY (decl) = DECL_VISIBILITY (pattern);
-	      DECL_VISIBILITY_SPECIFIED (decl)
-		= DECL_VISIBILITY_SPECIFIED (pattern);
+	      if (!DECL_VISIBILITY_SPECIFIED (pattern)
+		  && determine_hidden_inline (decl))
+		DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+	      else
+		{
+	          DECL_VISIBILITY (decl) = DECL_VISIBILITY (pattern);
+	          DECL_VISIBILITY_SPECIFIED (decl)
+		    = DECL_VISIBILITY_SPECIFIED (pattern);
+		}
 	    }
 
 	  /* FIXME should TMPL_ARGS_DEPTH really return 1 for null input? */
@@ -2205,15 +2241,7 @@ determine_visibility_from_class (tree decl, tree class_type)
   if (DECL_VISIBILITY_SPECIFIED (decl))
     return;
 
-  if (visibility_options.inlines_hidden
-      /* Don't do this for inline templates; specializations might not be
-	 inline, and we don't want them to inherit the hidden
-	 visibility.  We'll set it here for all inline instantiations.  */
-      && !processing_template_decl
-      && TREE_CODE (decl) == FUNCTION_DECL
-      && DECL_DECLARED_INLINE_P (decl)
-      && (! DECL_LANG_SPECIFIC (decl)
-	  || ! DECL_EXPLICIT_INSTANTIATION (decl)))
+  if (determine_hidden_inline (decl))
     DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
   else
     {
@@ -2236,6 +2264,23 @@ determine_visibility_from_class (tree decl, tree class_type)
       && !DECL_REALLY_EXTERN (decl)
       && !CLASSTYPE_VISIBILITY_SPECIFIED (class_type))
     targetm.cxx.determine_class_data_visibility (decl);
+}
+
+/* Returns true iff DECL is an inline that should get hidden visibility
+   because of -fvisibility-inlines-hidden.  */
+
+static bool
+determine_hidden_inline (tree decl)
+{
+  return (visibility_options.inlines_hidden
+	  /* Don't do this for inline templates; specializations might not be
+	     inline, and we don't want them to inherit the hidden
+	     visibility.  We'll set it here for all inline instantiations.  */
+	  && !processing_template_decl
+	  && TREE_CODE (decl) == FUNCTION_DECL
+	  && DECL_DECLARED_INLINE_P (decl)
+	  && (! DECL_LANG_SPECIFIC (decl)
+	      || ! DECL_EXPLICIT_INSTANTIATION (decl)));
 }
 
 /* Constrain the visibility of a class TYPE based on the visibility of its
@@ -4165,7 +4210,7 @@ mark_used (tree decl)
      like the DECL for the function.  Otherwise, if the BASELINK is
      for an overloaded function, we don't know which function was
      actually used until after overload resolution.  */
-  if (TREE_CODE (decl) == BASELINK)
+  if (BASELINK_P (decl))
     {
       decl = BASELINK_FUNCTIONS (decl);
       if (really_overloaded_fn (decl))

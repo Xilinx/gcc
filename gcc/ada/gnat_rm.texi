@@ -1014,7 +1014,8 @@ by any part of the GNAT compiler, except to generate corresponding note
 lines in the generated ALI file. For the format of these note lines, see
 the compiler source file lib-writ.ads. This pragma is intended for use by
 external tools, including ASIS@. The use of pragma Annotate does not
-affect the compilation process in any way.
+affect the compilation process in any way. This pragma may be used as
+a configuration pragma.
 
 @node Pragma Assert
 @unnumberedsec Pragma Assert
@@ -7915,8 +7916,9 @@ Not followed.  This implementation is not targeted to such a domain.
 The implementation should use names that end with @samp{_Locking} for
 locking policies defined by the implementation.
 @end cartouche
-Followed.  A single implementation-defined locking policy is defined,
-whose name (@code{Inheritance_Locking}) follows this suggestion.
+Followed.  Two implementation-defined locking policies are defined,
+whose names (@code{Inheritance_Locking} and
+@code{Concurrent_Readers_Locking}) follow this suggestion.
 
 @cindex Entry queuing policies
 @unnumberedsec D.4(16): Entry Queuing Policies
@@ -9014,6 +9016,32 @@ in a distributed environment. If this exception is active, then the generated
 code is simplified by omitting the otherwise-required global registration
 of exceptions when they are declared.
 
+@item No_Finalization
+@findex No_Finalization
+This restriction disables the language features described in chapter 7.6 of the
+Ada 2005 RM as well as all form of code generation performed by the compiler to
+support these features. The following types are no longer considered controlled
+when this restriction is in effect:
+@itemize @bullet
+@item
+@code{Ada.Finalization.Controlled}
+@item
+@code{Ada.Finalization.Limited_Controlled}
+@item
+Derivations from @code{Controlled} or @code{Limited_Controlled}
+@item
+Class-wide types
+@item
+Protected types
+@item
+Task types
+@item
+Array and record types with controlled components
+@end itemize
+The compiler no longer generates code to initialize, finalize or adjust an
+object or a nested component, either declared on the stack or on the heap. The
+deallocation of a controlled object no longer finalizes its contents.
+
 @item No_Implicit_Aliasing
 @findex No_Implicit_Aliasing
 
@@ -9894,11 +9922,15 @@ The policy is the same as that of the underlying threads implementation.
 in a pragma @code{Locking_Policy}.  See D.3(4).
 @end cartouche
 @noindent
-The only implementation defined policy permitted in GNAT is
-@code{Inheritance_Locking}.  On targets that support this policy, locking
-is implemented by inheritance, i.e.@: the task owning the lock operates
+The two implementation defined policies permitted in GNAT are
+@code{Inheritance_Locking} and  @code{Conccurent_Readers_Locking}.  On
+targets that support the @code{Inheritance_Locking} policy, locking is
+implemented by inheritance, i.e.@: the task owning the lock operates
 at a priority equal to the highest priority of any task currently
-requesting the lock.
+requesting the lock.  On targets that support the
+@code{Conccurent_Readers_Locking} policy, locking is implemented with a
+read/write lock allowing multiple propected object functions to enter
+concurrently.
 
 @sp 1
 @cartouche
@@ -11919,9 +11951,7 @@ The type of the item is non-elementary (e.g.@: a record or array).
 
 @item
 There is explicit or implicit initialization required for the object.
-Note that access values are always implicitly initialized, and also
-in GNAT, certain bit-packed arrays (those having a dynamic length or
-a length greater than 64) will also be implicitly initialized to zero.
+Note that access values are always implicitly initialized.
 
 @item
 The address value is non-static.  Here GNAT is more permissive than the

@@ -6,6 +6,7 @@ package bytes_test
 
 import (
 	. "bytes"
+	"reflect"
 	"testing"
 	"unicode"
 	"utf8"
@@ -315,7 +316,7 @@ var explodetests = []ExplodeTest{
 
 func TestExplode(t *testing.T) {
 	for _, tt := range explodetests {
-		a := Split([]byte(tt.s), nil, tt.n)
+		a := SplitN([]byte(tt.s), nil, tt.n)
 		result := arrayOfString(a)
 		if !eq(result, tt.a) {
 			t.Errorf(`Explode("%s", %d) = %v; want %v`, tt.s, tt.n, result, tt.a)
@@ -327,7 +328,6 @@ func TestExplode(t *testing.T) {
 		}
 	}
 }
-
 
 type SplitTest struct {
 	s   string
@@ -354,7 +354,7 @@ var splittests = []SplitTest{
 
 func TestSplit(t *testing.T) {
 	for _, tt := range splittests {
-		a := Split([]byte(tt.s), []byte(tt.sep), tt.n)
+		a := SplitN([]byte(tt.s), []byte(tt.sep), tt.n)
 		result := arrayOfString(a)
 		if !eq(result, tt.a) {
 			t.Errorf(`Split(%q, %q, %d) = %v; want %v`, tt.s, tt.sep, tt.n, result, tt.a)
@@ -366,6 +366,12 @@ func TestSplit(t *testing.T) {
 		s := Join(a, []byte(tt.sep))
 		if string(s) != tt.s {
 			t.Errorf(`Join(Split(%q, %q, %d), %q) = %q`, tt.s, tt.sep, tt.n, tt.sep, s)
+		}
+		if tt.n < 0 {
+			b := Split([]byte(tt.s), []byte(tt.sep))
+			if !reflect.DeepEqual(a, b) {
+				t.Errorf("Split disagrees withSplitN(%q, %q, %d) = %v; want %v", tt.s, tt.sep, tt.n, b, a)
+			}
 		}
 	}
 }
@@ -388,7 +394,7 @@ var splitaftertests = []SplitTest{
 
 func TestSplitAfter(t *testing.T) {
 	for _, tt := range splitaftertests {
-		a := SplitAfter([]byte(tt.s), []byte(tt.sep), tt.n)
+		a := SplitAfterN([]byte(tt.s), []byte(tt.sep), tt.n)
 		result := arrayOfString(a)
 		if !eq(result, tt.a) {
 			t.Errorf(`Split(%q, %q, %d) = %v; want %v`, tt.s, tt.sep, tt.n, result, tt.a)
@@ -397,6 +403,12 @@ func TestSplitAfter(t *testing.T) {
 		s := Join(a, nil)
 		if string(s) != tt.s {
 			t.Errorf(`Join(Split(%q, %q, %d), %q) = %q`, tt.s, tt.sep, tt.n, tt.sep, s)
+		}
+		if tt.n < 0 {
+			b := SplitAfter([]byte(tt.s), []byte(tt.sep))
+			if !reflect.DeepEqual(a, b) {
+				t.Errorf("SplitAfter disagrees withSplitAfterN(%q, %q, %d) = %v; want %v", tt.s, tt.sep, tt.n, b, a)
+			}
 		}
 	}
 }
@@ -649,7 +661,6 @@ func TestRunes(t *testing.T) {
 	}
 }
 
-
 type TrimTest struct {
 	f               func([]byte, string) []byte
 	in, cutset, out string
@@ -818,8 +829,14 @@ var ReplaceTests = []ReplaceTest{
 
 func TestReplace(t *testing.T) {
 	for _, tt := range ReplaceTests {
-		if s := string(Replace([]byte(tt.in), []byte(tt.old), []byte(tt.new), tt.n)); s != tt.out {
+		in := append([]byte(tt.in), "<spare>"...)
+		in = in[:len(tt.in)]
+		out := Replace(in, []byte(tt.old), []byte(tt.new), tt.n)
+		if s := string(out); s != tt.out {
 			t.Errorf("Replace(%q, %q, %q, %d) = %q, want %q", tt.in, tt.old, tt.new, tt.n, s, tt.out)
+		}
+		if cap(in) == cap(out) && &in[:1][0] == &out[:1][0] {
+			t.Errorf("Replace(%q, %q, %q, %d) didn't copy", tt.in, tt.old, tt.new, tt.n)
 		}
 	}
 }
@@ -842,6 +859,34 @@ func TestTitle(t *testing.T) {
 	for _, tt := range TitleTests {
 		if s := string(Title([]byte(tt.in))); s != tt.out {
 			t.Errorf("Title(%q) = %q, want %q", tt.in, s, tt.out)
+		}
+	}
+}
+
+var EqualFoldTests = []struct {
+	s, t string
+	out  bool
+}{
+	{"abc", "abc", true},
+	{"ABcd", "ABcd", true},
+	{"123abc", "123ABC", true},
+	{"αβδ", "ΑΒΔ", true},
+	{"abc", "xyz", false},
+	{"abc", "XYZ", false},
+	{"abcdefghijk", "abcdefghijX", false},
+	{"abcdefghijk", "abcdefghij\u212A", true},
+	{"abcdefghijK", "abcdefghij\u212A", true},
+	{"abcdefghijkz", "abcdefghij\u212Ay", false},
+	{"abcdefghijKz", "abcdefghij\u212Ay", false},
+}
+
+func TestEqualFold(t *testing.T) {
+	for _, tt := range EqualFoldTests {
+		if out := EqualFold([]byte(tt.s), []byte(tt.t)); out != tt.out {
+			t.Errorf("EqualFold(%#q, %#q) = %v, want %v", tt.s, tt.t, out, tt.out)
+		}
+		if out := EqualFold([]byte(tt.t), []byte(tt.s)); out != tt.out {
+			t.Errorf("EqualFold(%#q, %#q) = %v, want %v", tt.t, tt.s, out, tt.out)
 		}
 	}
 }

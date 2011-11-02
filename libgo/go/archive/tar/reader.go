@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	HeaderError os.Error = os.ErrorString("invalid tar header")
+	HeaderError = os.NewError("invalid tar header")
 )
 
 // A Reader provides sequential access to the contents of a tar archive.
@@ -94,7 +94,7 @@ func (tr *Reader) skipUnread() {
 			return
 		}
 	}
-	_, tr.err = io.Copyn(ioutil.Discard, tr.r, nr)
+	_, tr.err = io.CopyN(ioutil.Discard, tr.r, nr)
 }
 
 func (tr *Reader) verifyChecksum(header []byte) bool {

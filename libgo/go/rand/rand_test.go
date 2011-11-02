@@ -30,11 +30,11 @@ func max(a, b float64) float64 {
 }
 
 func nearEqual(a, b, closeEnough, maxError float64) bool {
-	absDiff := math.Fabs(a - b)
+	absDiff := math.Abs(a - b)
 	if absDiff < closeEnough { // Necessary when one value is zero and one value is close to zero.
 		return true
 	}
-	return absDiff/max(math.Fabs(a), math.Fabs(b)) < maxError
+	return absDiff/max(math.Abs(a), math.Abs(b)) < maxError
 }
 
 var testSeeds = []int64{1, 1754801282, 1698661970, 1550503961}
@@ -45,12 +45,12 @@ func (this *statsResults) checkSimilarDistribution(expected *statsResults) os.Er
 	if !nearEqual(this.mean, expected.mean, expected.closeEnough, expected.maxError) {
 		s := fmt.Sprintf("mean %v != %v (allowed error %v, %v)", this.mean, expected.mean, expected.closeEnough, expected.maxError)
 		fmt.Println(s)
-		return os.ErrorString(s)
+		return os.NewError(s)
 	}
 	if !nearEqual(this.stddev, expected.stddev, 0, expected.maxError) {
 		s := fmt.Sprintf("stddev %v != %v (allowed error %v, %v)", this.stddev, expected.stddev, expected.closeEnough, expected.maxError)
 		fmt.Println(s)
-		return os.ErrorString(s)
+		return os.NewError(s)
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func initNorm() (testKn []uint32, testWn, testFn []float32) {
 	const m1 = 1 << 31
 	var (
 		dn float64 = rn
-		tn = dn
+		tn         = dn
 		vn float64 = 9.91256303526217e-3
 	)
 
@@ -226,7 +226,7 @@ func initExp() (testKe []uint32, testWe, testFe []float32) {
 	const m2 = 1 << 32
 	var (
 		de float64 = re
-		te = de
+		te         = de
 		ve float64 = 3.9496598225815571993e-3
 	)
 

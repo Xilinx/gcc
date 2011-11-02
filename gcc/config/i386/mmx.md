@@ -98,9 +98,18 @@
 	      (const_string "sselog1")
 	   ]
 	   (const_string "ssemov")))
-   (set_attr "unit" "*,*,*,*,*,*,mmx,mmx,*,*,*,*,*")
-   (set_attr "prefix_rep" "*,*,*,*,*,*,1,1,*,1,*,*,*")
-   (set_attr "prefix_data16" "*,*,*,*,*,*,*,*,*,*,1,1,1")
+   (set (attr "unit")
+     (if_then_else (eq_attr "alternative" "6,7")
+       (const_string "mmx")
+       (const_string "*")))
+   (set (attr "prefix_rep")
+     (if_then_else (eq_attr "alternative" "6,7,9")
+       (const_string "1")
+       (const_string "*")))
+   (set (attr "prefix_data16")
+     (if_then_else (eq_attr "alternative" "10,11,12")
+       (const_string "1")
+       (const_string "*")))
    (set (attr "prefix_rex")
      (if_then_else (eq_attr "alternative" "9,10")
        (symbol_ref "x86_extended_reg_mentioned_p (insn)")
@@ -154,7 +163,10 @@
 	      (const_string "multi")
 	   ]
 	   (const_string "ssemov")))
-   (set_attr "unit" "*,*,*,*,mmx,mmx,*,*,*,*,*,*,*,*,*")
+   (set (attr "unit")
+     (if_then_else (eq_attr "alternative" "4,5")
+       (const_string "mmx")
+       (const_string "*")))
    (set (attr "prefix_rep")
      (if_then_else
        (ior (eq_attr "alternative" "4,5")
@@ -219,8 +231,14 @@
 	      (const_string "sselog1")
 	   ]
 	   (const_string "ssemov")))
-   (set_attr "unit" "*,*,*,*,*,*,mmx,mmx,*,*,*,*,*,*")
-   (set_attr "prefix_rep" "*,*,*,*,*,*,1,1,*,*,*,*,*,*")
+   (set (attr "unit")
+     (if_then_else (eq_attr "alternative" "6,7")
+       (const_string "mmx")
+       (const_string "*")))
+   (set (attr "prefix_rep")
+     (if_then_else (eq_attr "alternative" "6,7")
+       (const_string "1")
+       (const_string "*")))
    (set (attr "length_vex")
      (if_then_else
        (and (eq_attr "alternative" "12,13")
@@ -270,8 +288,14 @@
 	      (const_string "multi")
 	   ]
 	   (const_string "ssemov")))
-   (set_attr "unit" "*,*,*,*,mmx,mmx,*,*,*,*,*,*")
-   (set_attr "prefix_rep" "*,*,*,*,1,1,*,*,*,*,*,*")
+   (set (attr "unit")
+     (if_then_else (eq_attr "alternative" "4,5")
+       (const_string "mmx")
+       (const_string "*")))
+   (set (attr "prefix_rep")
+     (if_then_else (eq_attr "alternative" "4,5")
+       (const_string "1")
+       (const_string "*")))
    (set (attr "prefix")
      (if_then_else (eq_attr "alternative" "6,7,8,9")
        (const_string "maybe_vex")
@@ -1013,27 +1037,13 @@
        (const_string "0")))
    (set_attr "mode" "DI")])
 
-(define_insn "mmx_lshr<mode>3"
+(define_insn "mmx_<shift_insn><mode>3"
   [(set (match_operand:MMXMODE248 0 "register_operand" "=y")
-        (lshiftrt:MMXMODE248
+        (any_lshift:MMXMODE248
 	  (match_operand:MMXMODE248 1 "register_operand" "0")
 	  (match_operand:SI 2 "nonmemory_operand" "yN")))]
   "TARGET_MMX"
-  "psrl<mmxvecsize>\t{%2, %0|%0, %2}"
-  [(set_attr "type" "mmxshft")
-   (set (attr "length_immediate")
-     (if_then_else (match_operand 2 "const_int_operand" "")
-       (const_string "1")
-       (const_string "0")))
-   (set_attr "mode" "DI")])
-
-(define_insn "mmx_ashl<mode>3"
-  [(set (match_operand:MMXMODE248 0 "register_operand" "=y")
-        (ashift:MMXMODE248
-	  (match_operand:MMXMODE248 1 "register_operand" "0")
-	  (match_operand:SI 2 "nonmemory_operand" "yN")))]
-  "TARGET_MMX"
-  "psll<mmxvecsize>\t{%2, %0|%0, %2}"
+  "p<vshift><mmxvecsize>\t{%2, %0|%0, %2}"
   [(set_attr "type" "mmxshft")
    (set (attr "length_immediate")
      (if_then_else (match_operand 2 "const_int_operand" "")
@@ -1632,24 +1642,12 @@
   "TARGET_SSE || TARGET_3DNOW_A")
 
 (define_insn "*mmx_maskmovq"
-  [(set (mem:V8QI (match_operand:SI 0 "register_operand" "D"))
+  [(set (mem:V8QI (match_operand:P 0 "register_operand" "D"))
 	(unspec:V8QI [(match_operand:V8QI 1 "register_operand" "y")
 		      (match_operand:V8QI 2 "register_operand" "y")
 		      (mem:V8QI (match_dup 0))]
 		     UNSPEC_MASKMOV))]
-  "(TARGET_SSE || TARGET_3DNOW_A) && !TARGET_64BIT"
-  ;; @@@ check ordering of operands in intel/nonintel syntax
-  "maskmovq\t{%2, %1|%1, %2}"
-  [(set_attr "type" "mmxcvt")
-   (set_attr "mode" "DI")])
-
-(define_insn "*mmx_maskmovq_rex"
-  [(set (mem:V8QI (match_operand:DI 0 "register_operand" "D"))
-	(unspec:V8QI [(match_operand:V8QI 1 "register_operand" "y")
-		      (match_operand:V8QI 2 "register_operand" "y")
-		      (mem:V8QI (match_dup 0))]
-		     UNSPEC_MASKMOV))]
-  "(TARGET_SSE || TARGET_3DNOW_A) && TARGET_64BIT"
+  "TARGET_SSE || TARGET_3DNOW_A"
   ;; @@@ check ordering of operands in intel/nonintel syntax
   "maskmovq\t{%2, %1|%1, %2}"
   [(set_attr "type" "mmxcvt")

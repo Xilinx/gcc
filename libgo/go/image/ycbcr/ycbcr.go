@@ -15,6 +15,7 @@ package ycbcr
 
 import (
 	"image"
+	"image/color"
 )
 
 // RGBToYCbCr converts an RGB triple to a YCbCr triple. All components lie
@@ -92,7 +93,7 @@ func (c YCbCrColor) RGBA() (uint32, uint32, uint32, uint32) {
 	return uint32(r) * 0x101, uint32(g) * 0x101, uint32(b) * 0x101, 0xffff
 }
 
-func toYCbCrColor(c image.Color) image.Color {
+func toYCbCrColor(c color.Color) color.Color {
 	if _, ok := c.(YCbCrColor); ok {
 		return c
 	}
@@ -102,7 +103,7 @@ func toYCbCrColor(c image.Color) image.Color {
 }
 
 // YCbCrColorModel is the color model for YCbCrColor.
-var YCbCrColorModel image.ColorModel = image.ColorModelFunc(toYCbCrColor)
+var YCbCrColorModel color.Model = color.ModelFunc(toYCbCrColor)
 
 // SubsampleRatio is the chroma subsample ratio used in a YCbCr image.
 type SubsampleRatio int
@@ -133,7 +134,7 @@ type YCbCr struct {
 	Rect           image.Rectangle
 }
 
-func (p *YCbCr) ColorModel() image.ColorModel {
+func (p *YCbCr) ColorModel() color.Model {
 	return YCbCrColorModel
 }
 
@@ -141,8 +142,8 @@ func (p *YCbCr) Bounds() image.Rectangle {
 	return p.Rect
 }
 
-func (p *YCbCr) At(x, y int) image.Color {
-	if !p.Rect.Contains(image.Point{x, y}) {
+func (p *YCbCr) At(x, y int) color.Color {
+	if !(image.Point{x, y}.In(p.Rect)) {
 		return YCbCrColor{}
 	}
 	switch p.SubsampleRatio {
@@ -167,6 +168,15 @@ func (p *YCbCr) At(x, y int) image.Color {
 		p.Cb[y*p.CStride+x],
 		p.Cr[y*p.CStride+x],
 	}
+}
+
+// SubImage returns an image representing the portion of the image p visible
+// through r. The returned value shares pixels with the original image.
+func (p *YCbCr) SubImage(r image.Rectangle) image.Image {
+	q := new(YCbCr)
+	*q = *p
+	q.Rect = q.Rect.Intersect(r)
+	return q
 }
 
 func (p *YCbCr) Opaque() bool {

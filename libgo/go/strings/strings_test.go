@@ -5,6 +5,7 @@
 package strings_test
 
 import (
+	"bytes"
 	"os"
 	"reflect"
 	"strconv"
@@ -119,13 +120,11 @@ func TestLastIndex(t *testing.T)    { runIndexTests(t, LastIndex, "LastIndex", l
 func TestIndexAny(t *testing.T)     { runIndexTests(t, IndexAny, "IndexAny", indexAnyTests) }
 func TestLastIndexAny(t *testing.T) { runIndexTests(t, LastIndexAny, "LastIndexAny", lastIndexAnyTests) }
 
-type IndexRuneTest struct {
+var indexRuneTests = []struct {
 	s    string
 	rune int
 	out  int
-}
-
-var indexRuneTests = []IndexRuneTest{
+}{
 	{"a A x", 'A', 2},
 	{"some_text=some_value", '=', 9},
 	{"☺a", 'a', 3},
@@ -169,14 +168,11 @@ func BenchmarkIndex(b *testing.B) {
 	}
 }
 
-
-type ExplodeTest struct {
+var explodetests = []struct {
 	s string
 	n int
 	a []string
-}
-
-var explodetests = []ExplodeTest{
+}{
 	{"", -1, []string{}},
 	{abcd, 4, []string{"a", "b", "c", "d"}},
 	{faces, 3, []string{"☺", "☻", "☹"}},
@@ -185,7 +181,7 @@ var explodetests = []ExplodeTest{
 
 func TestExplode(t *testing.T) {
 	for _, tt := range explodetests {
-		a := Split(tt.s, "", tt.n)
+		a := SplitN(tt.s, "", tt.n)
 		if !eq(a, tt.a) {
 			t.Errorf("explode(%q, %d) = %v; want %v", tt.s, tt.n, a, tt.a)
 			continue
@@ -222,7 +218,7 @@ var splittests = []SplitTest{
 
 func TestSplit(t *testing.T) {
 	for _, tt := range splittests {
-		a := Split(tt.s, tt.sep, tt.n)
+		a := SplitN(tt.s, tt.sep, tt.n)
 		if !eq(a, tt.a) {
 			t.Errorf("Split(%q, %q, %d) = %v; want %v", tt.s, tt.sep, tt.n, a, tt.a)
 			continue
@@ -233,6 +229,12 @@ func TestSplit(t *testing.T) {
 		s := Join(a, tt.sep)
 		if s != tt.s {
 			t.Errorf("Join(Split(%q, %q, %d), %q) = %q", tt.s, tt.sep, tt.n, tt.sep, s)
+		}
+		if tt.n < 0 {
+			b := Split(tt.s, tt.sep)
+			if !reflect.DeepEqual(a, b) {
+				t.Errorf("Split disagrees with SplitN(%q, %q, %d) = %v; want %v", tt.s, tt.sep, tt.n, b, a)
+			}
 		}
 	}
 }
@@ -255,7 +257,7 @@ var splitaftertests = []SplitTest{
 
 func TestSplitAfter(t *testing.T) {
 	for _, tt := range splitaftertests {
-		a := SplitAfter(tt.s, tt.sep, tt.n)
+		a := SplitAfterN(tt.s, tt.sep, tt.n)
 		if !eq(a, tt.a) {
 			t.Errorf(`Split(%q, %q, %d) = %v; want %v`, tt.s, tt.sep, tt.n, a, tt.a)
 			continue
@@ -263,6 +265,12 @@ func TestSplitAfter(t *testing.T) {
 		s := Join(a, "")
 		if s != tt.s {
 			t.Errorf(`Join(Split(%q, %q, %d), %q) = %q`, tt.s, tt.sep, tt.n, tt.sep, s)
+		}
+		if tt.n < 0 {
+			b := SplitAfter(tt.s, tt.sep)
+			if !reflect.DeepEqual(a, b) {
+				t.Errorf("SplitAfter disagrees with SplitAfterN(%q, %q, %d) = %v; want %v", tt.s, tt.sep, tt.n, b, a)
+			}
 		}
 	}
 }
@@ -296,22 +304,22 @@ func TestFields(t *testing.T) {
 	}
 }
 
+var FieldsFuncTests = []FieldsTest{
+	{"", []string{}},
+	{"XX", []string{}},
+	{"XXhiXXX", []string{"hi"}},
+	{"aXXbXXXcX", []string{"a", "b", "c"}},
+}
+
 func TestFieldsFunc(t *testing.T) {
 	pred := func(c int) bool { return c == 'X' }
-	var fieldsFuncTests = []FieldsTest{
-		{"", []string{}},
-		{"XX", []string{}},
-		{"XXhiXXX", []string{"hi"}},
-		{"aXXbXXXcX", []string{"a", "b", "c"}},
-	}
-	for _, tt := range fieldsFuncTests {
+	for _, tt := range FieldsFuncTests {
 		a := FieldsFunc(tt.s, pred)
 		if !eq(a, tt.a) {
 			t.Errorf("FieldsFunc(%q) = %v, want %v", tt.s, a, tt.a)
 		}
 	}
 }
-
 
 // Test case for any function which accepts and returns a single string.
 type StringTest struct {
@@ -480,12 +488,10 @@ func TestSpecialCase(t *testing.T) {
 
 func TestTrimSpace(t *testing.T) { runStringTests(t, TrimSpace, "TrimSpace", trimSpaceTests) }
 
-type TrimTest struct {
+var trimTests = []struct {
 	f               func(string, string) string
 	in, cutset, out string
-}
-
-var trimTests = []TrimTest{
+}{
 	{Trim, "abba", "a", "bb"},
 	{Trim, "abba", "ab", ""},
 	{TrimLeft, "abba", "ab", ""},
@@ -544,11 +550,6 @@ var isValidRune = predicate{
 	"IsValidRune",
 }
 
-type TrimFuncTest struct {
-	f       predicate
-	in, out string
-}
-
 func not(p predicate) predicate {
 	return predicate{
 		func(r int) bool {
@@ -558,7 +559,10 @@ func not(p predicate) predicate {
 	}
 }
 
-var trimFuncTests = []TrimFuncTest{
+var trimFuncTests = []struct {
+	f       predicate
+	in, out string
+}{
 	{isSpace, space + " hello " + space, "hello"},
 	{isDigit, "\u0e50\u0e5212hello34\u0e50\u0e51", "hello"},
 	{isUpper, "\u2C6F\u2C6F\u2C6F\u2C6FABCDhelloEF\u2C6F\u2C6FGH\u2C6F\u2C6F", "hello"},
@@ -577,13 +581,11 @@ func TestTrimFunc(t *testing.T) {
 	}
 }
 
-type IndexFuncTest struct {
+var indexFuncTests = []struct {
 	in          string
 	f           predicate
 	first, last int
-}
-
-var indexFuncTests = []IndexFuncTest{
+}{
 	{"", isValidRune, -1, -1},
 	{"abc", isDigit, -1, -1},
 	{"0123", isDigit, 0, 3},
@@ -622,8 +624,8 @@ func equal(m string, s1, s2 string, t *testing.T) bool {
 	if s1 == s2 {
 		return true
 	}
-	e1 := Split(s1, "", -1)
-	e2 := Split(s2, "", -1)
+	e1 := Split(s1, "")
+	e2 := Split(s2, "")
 	for i, c1 := range e1 {
 		if i > len(e2) {
 			break
@@ -681,12 +683,10 @@ func TestCaseConsistency(t *testing.T) {
 	*/
 }
 
-type RepeatTest struct {
+var RepeatTests = []struct {
 	in, out string
 	count   int
-}
-
-var RepeatTests = []RepeatTest{
+}{
 	{"", "", 0},
 	{"", "", 1},
 	{"", "", 2},
@@ -718,13 +718,11 @@ func runesEqual(a, b []int) bool {
 	return true
 }
 
-type RunesTest struct {
+var RunesTests = []struct {
 	in    string
 	out   []int
 	lossy bool
-}
-
-var RunesTests = []RunesTest{
+}{
 	{"", []int{}, false},
 	{" ", []int{32}, false},
 	{"ABC", []int{65, 66, 67}, false},
@@ -751,13 +749,56 @@ func TestRunes(t *testing.T) {
 	}
 }
 
+func TestReadByte(t *testing.T) {
+	testStrings := []string{"", abcd, faces, commas}
+	for _, s := range testStrings {
+		reader := NewReader(s)
+		if e := reader.UnreadByte(); e == nil {
+			t.Errorf("Unreading %q at beginning: expected error", s)
+		}
+		var res bytes.Buffer
+		for {
+			b, e := reader.ReadByte()
+			if e == os.EOF {
+				break
+			}
+			if e != nil {
+				t.Errorf("Reading %q: %s", s, e)
+				break
+			}
+			res.WriteByte(b)
+			// unread and read again
+			e = reader.UnreadByte()
+			if e != nil {
+				t.Errorf("Unreading %q: %s", s, e)
+				break
+			}
+			b1, e := reader.ReadByte()
+			if e != nil {
+				t.Errorf("Reading %q after unreading: %s", s, e)
+				break
+			}
+			if b1 != b {
+				t.Errorf("Reading %q after unreading: want byte %q, got %q", s, b, b1)
+				break
+			}
+		}
+		if res.String() != s {
+			t.Errorf("Reader(%q).ReadByte() produced %q", s, res.String())
+		}
+	}
+}
+
 func TestReadRune(t *testing.T) {
 	testStrings := []string{"", abcd, faces, commas}
 	for _, s := range testStrings {
 		reader := NewReader(s)
+		if e := reader.UnreadRune(); e == nil {
+			t.Errorf("Unreading %q at beginning: expected error", s)
+		}
 		res := ""
 		for {
-			r, _, e := reader.ReadRune()
+			r, z, e := reader.ReadRune()
 			if e == os.EOF {
 				break
 			}
@@ -766,6 +807,25 @@ func TestReadRune(t *testing.T) {
 				break
 			}
 			res += string(r)
+			// unread and read again
+			e = reader.UnreadRune()
+			if e != nil {
+				t.Errorf("Unreading %q: %s", s, e)
+				break
+			}
+			r1, z1, e := reader.ReadRune()
+			if e != nil {
+				t.Errorf("Reading %q after unreading: %s", s, e)
+				break
+			}
+			if r1 != r {
+				t.Errorf("Reading %q after unreading: want rune %q, got %q", s, r, r1)
+				break
+			}
+			if z1 != z {
+				t.Errorf("Reading %q after unreading: want size %d, got %d", s, z, z1)
+				break
+			}
 		}
 		if res != s {
 			t.Errorf("Reader(%q).ReadRune() produced %q", s, res)
@@ -773,14 +833,12 @@ func TestReadRune(t *testing.T) {
 	}
 }
 
-type ReplaceTest struct {
+var ReplaceTests = []struct {
 	in       string
 	old, new string
 	n        int
 	out      string
-}
-
-var ReplaceTests = []ReplaceTest{
+}{
 	{"hello", "l", "L", 0, "hello"},
 	{"hello", "l", "L", -1, "heLLo"},
 	{"hello", "x", "X", -1, "hello"},
@@ -810,11 +868,9 @@ func TestReplace(t *testing.T) {
 	}
 }
 
-type TitleTest struct {
+var TitleTests = []struct {
 	in, out string
-}
-
-var TitleTests = []TitleTest{
+}{
 	{"", ""},
 	{"a", "A"},
 	{" aaa aaa aaa ", " Aaa Aaa Aaa "},
@@ -832,12 +888,10 @@ func TestTitle(t *testing.T) {
 	}
 }
 
-type ContainsTest struct {
+var ContainsTests = []struct {
 	str, substr string
 	expected    bool
-}
-
-var ContainsTests = []ContainsTest{
+}{
 	{"abc", "bc", true},
 	{"abc", "bcd", false},
 	{"abc", "", true},
@@ -849,6 +903,34 @@ func TestContains(t *testing.T) {
 		if Contains(ct.str, ct.substr) != ct.expected {
 			t.Errorf("Contains(%s, %s) = %v, want %v",
 				ct.str, ct.substr, !ct.expected, ct.expected)
+		}
+	}
+}
+
+var EqualFoldTests = []struct {
+	s, t string
+	out  bool
+}{
+	{"abc", "abc", true},
+	{"ABcd", "ABcd", true},
+	{"123abc", "123ABC", true},
+	{"αβδ", "ΑΒΔ", true},
+	{"abc", "xyz", false},
+	{"abc", "XYZ", false},
+	{"abcdefghijk", "abcdefghijX", false},
+	{"abcdefghijk", "abcdefghij\u212A", true},
+	{"abcdefghijK", "abcdefghij\u212A", true},
+	{"abcdefghijkz", "abcdefghij\u212Ay", false},
+	{"abcdefghijKz", "abcdefghij\u212Ay", false},
+}
+
+func TestEqualFold(t *testing.T) {
+	for _, tt := range EqualFoldTests {
+		if out := EqualFold(tt.s, tt.t); out != tt.out {
+			t.Errorf("EqualFold(%#q, %#q) = %v, want %v", tt.s, tt.t, out, tt.out)
+		}
+		if out := EqualFold(tt.t, tt.s); out != tt.out {
+			t.Errorf("EqualFold(%#q, %#q) = %v, want %v", tt.t, tt.s, out, tt.out)
 		}
 	}
 }

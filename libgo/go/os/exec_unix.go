@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build darwin freebsd linux openbsd
+
 package os
 
 import (
@@ -38,11 +40,26 @@ func (p *Process) Wait(options int) (w *Waitmsg, err Error) {
 	if e != 0 {
 		return nil, NewSyscallError("wait", e)
 	}
+	// With WNOHANG pid is 0 if child has not exited.
+	if pid1 != 0 && options&WSTOPPED == 0 {
+		p.done = true
+	}
 	w = new(Waitmsg)
 	w.Pid = pid1
 	w.WaitStatus = status
 	w.Rusage = rusage
 	return w, nil
+}
+
+// Signal sends a signal to the Process.
+func (p *Process) Signal(sig Signal) Error {
+	if p.done {
+		return NewError("os: process already finished")
+	}
+	if e := syscall.Kill(p.Pid, int(sig.(UnixSignal))); e != 0 {
+		return Errno(e)
+	}
+	return nil
 }
 
 // Release releases any resources associated with the Process.

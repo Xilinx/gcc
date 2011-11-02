@@ -333,6 +333,19 @@ package body Sem_Util is
       end if;
    end Apply_Compile_Time_Constraint_Error;
 
+   --------------------------------------
+   -- Available_Full_View_Of_Component --
+   --------------------------------------
+
+   function Available_Full_View_Of_Component (T : Entity_Id) return Boolean is
+      ST  : constant Entity_Id := Scope (T);
+      SCT : constant Entity_Id := Scope (Component_Type (T));
+   begin
+      return In_Open_Scopes (ST)
+        and then In_Open_Scopes (SCT)
+        and then Scope_Depth (ST) >= Scope_Depth (SCT);
+   end Available_Full_View_Of_Component;
+
    --------------------------------
    -- Bad_Predicated_Subtype_Use --
    --------------------------------
@@ -2265,6 +2278,40 @@ package body Sem_Util is
    end Conditional_Delay;
 
    -------------------------
+   -- Copy_Component_List --
+   -------------------------
+
+   function Copy_Component_List
+     (R_Typ : Entity_Id;
+      Loc   : Source_Ptr) return List_Id
+   is
+      Comp  : Node_Id;
+      Comps : constant List_Id := New_List;
+
+   begin
+      Comp := First_Component (Underlying_Type (R_Typ));
+      while Present (Comp) loop
+         if Comes_From_Source (Comp) then
+            declare
+               Comp_Decl : constant Node_Id := Declaration_Node (Comp);
+            begin
+               Append_To (Comps,
+                 Make_Component_Declaration (Loc,
+                   Defining_Identifier =>
+                     Make_Defining_Identifier (Loc, Chars (Comp)),
+                   Component_Definition =>
+                     New_Copy_Tree
+                       (Component_Definition (Comp_Decl), New_Sloc => Loc)));
+            end;
+         end if;
+
+         Next_Component (Comp);
+      end loop;
+
+      return Comps;
+   end Copy_Component_List;
+
+   -------------------------
    -- Copy_Parameter_List --
    -------------------------
 
@@ -2705,7 +2752,7 @@ package body Sem_Util is
          end if;
 
       elsif Is_Entity_Name (A2) then
-         return Denotes_Same_Prefix (A2, A1);
+         return Denotes_Same_Prefix (A1 => A2, A2 => A1);
 
       elsif Nkind_In (A1, N_Selected_Component, N_Indexed_Component, N_Slice)
               and then
@@ -2959,7 +3006,7 @@ package body Sem_Util is
             if not Is_Local_Anonymous_Access (Etype (Expr)) then
 
                --  Handle type conversions introduced for a rename of an
-               --  Ada2012 stand-alone object of an anonymous access type.
+               --  Ada 2012 stand-alone object of an anonymous access type.
 
                return Dynamic_Accessibility_Level (Expression (Expr));
             end if;
@@ -2978,7 +3025,8 @@ package body Sem_Util is
    function Effective_Extra_Accessibility (Id : Entity_Id) return Entity_Id is
    begin
       if Present (Renamed_Object (Id))
-        and then Is_Entity_Name (Renamed_Object (Id)) then
+        and then Is_Entity_Name (Renamed_Object (Id))
+      then
          return Effective_Extra_Accessibility (Entity (Renamed_Object (Id)));
       end if;
 
@@ -3862,8 +3910,8 @@ package body Sem_Util is
             end if;
          end loop;
 
-         --  This loop checks the form of the prefix for an entity,
-         --  using recursion to deal with intermediate components.
+         --  This loop checks the form of the prefix for an entity, using
+         --  recursion to deal with intermediate components.
 
          loop
             --  Check for Y where Y is an entity
@@ -3875,8 +3923,8 @@ package body Sem_Util is
             --  Check for components
 
             elsif
-               Nkind_In (Expr, N_Selected_Component, N_Indexed_Component) then
-
+              Nkind_In (Expr, N_Selected_Component, N_Indexed_Component)
+            then
                Expr := Prefix (Expr);
                Off := True;
 
@@ -5917,6 +5965,29 @@ package body Sem_Util is
       return Name_Buffer (Name_Len) = Suffix;
    end Has_Suffix;
 
+   ----------------
+   -- Add_Suffix --
+   ----------------
+
+   function Add_Suffix (E : Entity_Id; Suffix : Character) return Name_Id is
+   begin
+      Get_Name_String (Chars (E));
+      Add_Char_To_Name_Buffer (Suffix);
+      return Name_Find;
+   end Add_Suffix;
+
+   -------------------
+   -- Remove_Suffix --
+   -------------------
+
+   function Remove_Suffix (E : Entity_Id; Suffix : Character) return Name_Id is
+   begin
+      pragma Assert (Has_Suffix (E, Suffix));
+      Get_Name_String (Chars (E));
+      Name_Len := Name_Len - 1;
+      return Name_Find;
+   end Remove_Suffix;
+
    --------------------------
    -- Has_Tagged_Component --
    --------------------------
@@ -6520,19 +6591,18 @@ package body Sem_Util is
            (Is_Object (E)
              and then
                (Is_Aliased (E)
-                  or else (Present (Renamed_Object (E))
-                             and then Is_Aliased_View (Renamed_Object (E)))))
+                 or else (Present (Renamed_Object (E))
+                           and then Is_Aliased_View (Renamed_Object (E)))))
 
            or else ((Is_Formal (E)
                       or else Ekind (E) = E_Generic_In_Out_Parameter
                       or else Ekind (E) = E_Generic_In_Parameter)
                     and then Is_Tagged_Type (Etype (E)))
 
-           or else (Is_Concurrent_Type (E)
-                     and then In_Open_Scopes (E))
+           or else (Is_Concurrent_Type (E) and then In_Open_Scopes (E))
 
-            --  Current instance of type, either directly or as rewritten
-            --  reference to the current object.
+           --  Current instance of type, either directly or as rewritten
+           --  reference to the current object.
 
            or else (Is_Entity_Name (Original_Node (Obj))
                      and then Present (Entity (Original_Node (Obj)))
@@ -6541,7 +6611,13 @@ package body Sem_Util is
            or else (Is_Type (E) and then E = Current_Scope)
 
            or else (Is_Incomplete_Or_Private_Type (E)
-                     and then Full_View (E) = Current_Scope);
+                     and then Full_View (E) = Current_Scope)
+
+           --  Ada 2012 AI05-0053: the return object of an extended return
+           --  statement is aliased if its type is immutably limited.
+
+           or else (Is_Return_Object (E)
+                     and then Is_Immutably_Limited_Type (Etype (E)));
 
       elsif Nkind (Obj) = N_Selected_Component then
          return Is_Aliased (Entity (Selector_Name (Obj)));
@@ -7311,6 +7387,34 @@ package body Sem_Util is
       end if;
    end Is_Fully_Initialized_Variant;
 
+   ----------------------------
+   -- Is_Inherited_Operation --
+   ----------------------------
+
+   function Is_Inherited_Operation (E : Entity_Id) return Boolean is
+      pragma Assert (Is_Overloadable (E));
+      Kind : constant Node_Kind := Nkind (Parent (E));
+   begin
+      return Kind = N_Full_Type_Declaration
+        or else Kind = N_Private_Extension_Declaration
+        or else Kind = N_Subtype_Declaration
+        or else (Ekind (E) = E_Enumeration_Literal
+                  and then Is_Derived_Type (Etype (E)));
+   end Is_Inherited_Operation;
+
+   -------------------------------------
+   -- Is_Inherited_Operation_For_Type --
+   -------------------------------------
+
+   function Is_Inherited_Operation_For_Type
+     (E   : Entity_Id;
+      Typ : Entity_Id) return Boolean
+   is
+   begin
+      return Is_Inherited_Operation (E)
+        and then Etype (Parent (E)) = Typ;
+   end Is_Inherited_Operation_For_Type;
+
    -----------------
    -- Is_Iterator --
    -----------------
@@ -7381,33 +7485,6 @@ package body Sem_Util is
       end if;
    end Is_LHS;
 
-   ----------------------------
-   -- Is_Inherited_Operation --
-   ----------------------------
-
-   function Is_Inherited_Operation (E : Entity_Id) return Boolean is
-      Kind : constant Node_Kind := Nkind (Parent (E));
-   begin
-      pragma Assert (Is_Overloadable (E));
-      return Kind = N_Full_Type_Declaration
-        or else Kind = N_Private_Extension_Declaration
-        or else Kind = N_Subtype_Declaration
-        or else (Ekind (E) = E_Enumeration_Literal
-                  and then Is_Derived_Type (Etype (E)));
-   end Is_Inherited_Operation;
-
-   -------------------------------------
-   -- Is_Inherited_Operation_For_Type --
-   -------------------------------------
-
-   function Is_Inherited_Operation_For_Type
-     (E : Entity_Id; Typ : Entity_Id) return Boolean
-   is
-   begin
-      return Is_Inherited_Operation (E)
-        and then Etype (Parent (E)) = Typ;
-   end Is_Inherited_Operation_For_Type;
-
    -----------------------------
    -- Is_Library_Level_Entity --
    -----------------------------
@@ -7427,6 +7504,17 @@ package body Sem_Util is
 
       return Enclosing_Dynamic_Scope (E) = Standard_Standard;
    end Is_Library_Level_Entity;
+
+   --------------------------------
+   -- Is_Limited_Class_Wide_Type --
+   --------------------------------
+
+   function Is_Limited_Class_Wide_Type (Typ : Entity_Id) return Boolean is
+   begin
+      return
+        Is_Class_Wide_Type (Typ)
+          and then Is_Limited_Type (Typ);
+   end Is_Limited_Class_Wide_Type;
 
    ---------------------------------
    -- Is_Local_Variable_Reference --
@@ -7467,7 +7555,7 @@ package body Sem_Util is
                  Is_Object_Reference (Prefix (N))
                    or else Is_Access_Type (Etype (Prefix (N)));
 
-            --  In Ada95, a function call is a constant object; a procedure
+            --  In Ada 95, a function call is a constant object; a procedure
             --  call is not.
 
             when N_Function_Call =>
@@ -7583,7 +7671,7 @@ package body Sem_Util is
 
       elsif Original_Node (AV) /= AV then
 
-         --  In Ada2012, the explicit dereference may be a rewritten call to a
+         --  In Ada 2012, the explicit dereference may be a rewritten call to a
          --  Reference function.
 
          if Ada_Version >= Ada_2012

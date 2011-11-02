@@ -100,7 +100,8 @@ dfs_initialize_vtbl_ptrs (tree binfo, void *data)
     {
       tree base_ptr = TREE_VALUE ((tree) data);
 
-      base_ptr = build_base_path (PLUS_EXPR, base_ptr, binfo, /*nonnull=*/1);
+      base_ptr = build_base_path (PLUS_EXPR, base_ptr, binfo, /*nonnull=*/1,
+				  tf_warning_or_error);
 
       expand_virtual_init (binfo, base_ptr);
     }
@@ -492,6 +493,21 @@ perform_member_init (tree member, tree init)
   tree decl;
   tree type = TREE_TYPE (member);
 
+  /* Use the non-static data member initializer if there was no
+     mem-initializer for this field.  */
+  if (init == NULL_TREE)
+    {
+      if (DECL_LANG_SPECIFIC (member) && DECL_TEMPLATE_INFO (member))
+	/* Do deferred instantiation of the NSDMI.  */
+	init = (tsubst_copy_and_build
+		(DECL_INITIAL (DECL_TI_TEMPLATE (member)),
+		 DECL_TI_ARGS (member),
+		 tf_warning_or_error, member, /*function_p=*/false,
+		 /*integral_constant_expression_p=*/false));
+      else
+	init = break_out_target_exprs (DECL_INITIAL (member));
+    }
+
   /* Effective C++ rule 12 requires that all data members be
      initialized.  */
   if (warn_ecpp && init == NULL_TREE && TREE_CODE (type) != ARRAY_TYPE)
@@ -579,7 +595,7 @@ perform_member_init (tree member, tree init)
 	    flags |= LOOKUP_DEFAULTED;
 	  if (CP_TYPE_CONST_P (type)
 	      && init == NULL_TREE
-	      && !type_has_user_provided_default_constructor (type))
+	      && default_init_uninitialized_part (type))
 	    /* TYPE_NEEDS_CONSTRUCTING can be set just because we have a
 	       vtable; still give this diagnostic.  */
 	    permerror (DECL_SOURCE_LOCATION (current_function_decl),
@@ -963,7 +979,7 @@ emit_mem_initializers (tree mem_inits)
 	  tree base_addr;
 
 	  base_addr = build_base_path (PLUS_EXPR, current_class_ptr,
-				       subobject, 1);
+				       subobject, 1, tf_warning_or_error);
 	  expand_aggr_init_1 (subobject, NULL_TREE,
 			      cp_build_indirect_ref (base_addr, RO_NULL,
                                                      tf_warning_or_error),
@@ -1572,27 +1588,25 @@ expand_aggr_init_1 (tree binfo, tree true_exp, tree exp, tree init, int flags,
      that's value-initialization.  */
   if (init == void_type_node)
     {
-      /* If there's a user-provided constructor, we just call that.  */
-      if (type_has_user_provided_constructor (type))
-	/* Fall through.  */;
-      /* If there isn't, but we still need to call the constructor,
-	 zero out the object first.  */
-      else if (type_build_ctor_call (type))
+      /* If no user-provided ctor, we need to zero out the object.  */
+      if (!type_has_user_provided_constructor (type))
 	{
-	  init = build_zero_init (type, NULL_TREE, /*static_storage_p=*/false);
+	  tree field_size = NULL_TREE;
+	  if (exp != true_exp && CLASSTYPE_AS_BASE (type) != type)
+	    /* Don't clobber already initialized virtual bases.  */
+	    field_size = TYPE_SIZE (CLASSTYPE_AS_BASE (type));
+	  init = build_zero_init_1 (type, NULL_TREE, /*static_storage_p=*/false,
+				    field_size);
 	  init = build2 (INIT_EXPR, type, exp, init);
 	  finish_expr_stmt (init);
-	  /* And then call the constructor.  */
 	}
+
       /* If we don't need to mess with the constructor at all,
-	 then just zero out the object and we're done.  */
-      else
-	{
-	  init = build2 (INIT_EXPR, type, exp,
-			 build_value_init_noctor (type, complain));
-	  finish_expr_stmt (init);
-	  return;
-	}
+	 then we're done.  */
+      if (! type_build_ctor_call (type))
+	return;
+
+      /* Otherwise fall through and call the constructor.  */
       init = NULL_TREE;
     }
 
@@ -1778,10 +1792,11 @@ build_offset_ref (tree type, tree member, bool address_p)
    constant initializer, return the initializer (or, its initializers,
    recursively); otherwise, return DECL.  If INTEGRAL_P, the
    initializer is only returned if DECL is an integral
-   constant-expression.  */
+   constant-expression.  If RETURN_AGGREGATE_CST_OK_P, it is ok to
+   return an aggregate constant.  */
 
 static tree
-constant_value_1 (tree decl, bool integral_p)
+constant_value_1 (tree decl, bool integral_p, bool return_aggregate_cst_ok_p)
 {
   while (TREE_CODE (decl) == CONST_DECL
 	 || (integral_p
@@ -1818,12 +1833,13 @@ constant_value_1 (tree decl, bool integral_p)
       if (!init
 	  || !TREE_TYPE (init)
 	  || !TREE_CONSTANT (init)
-	  || (!integral_p
-	      /* Do not return an aggregate constant (of which
-		 string literals are a special case), as we do not
-		 want to make inadvertent copies of such entities,
-		 and we must be sure that their addresses are the
-		 same everywhere.  */
+	  || (!integral_p && !return_aggregate_cst_ok_p
+	      /* Unless RETURN_AGGREGATE_CST_OK_P is true, do not
+		 return an aggregate constant (of which string
+		 literals are a special case), as we do not want
+		 to make inadvertent copies of such entities, and
+		 we must be sure that their addresses are the
+ 		 same everywhere.  */
 	      && (TREE_CODE (init) == CONSTRUCTOR
 		  || TREE_CODE (init) == STRING_CST)))
 	break;
@@ -1840,18 +1856,28 @@ constant_value_1 (tree decl, bool integral_p)
 tree
 integral_constant_value (tree decl)
 {
-  return constant_value_1 (decl, /*integral_p=*/true);
+  return constant_value_1 (decl, /*integral_p=*/true,
+			   /*return_aggregate_cst_ok_p=*/false);
 }
 
 /* A more relaxed version of integral_constant_value, used by the
-   common C/C++ code and by the C++ front end for optimization
-   purposes.  */
+   common C/C++ code.  */
 
 tree
 decl_constant_value (tree decl)
 {
-  return constant_value_1 (decl,
-			   /*integral_p=*/processing_template_decl);
+  return constant_value_1 (decl, /*integral_p=*/processing_template_decl,
+			   /*return_aggregate_cst_ok_p=*/true);
+}
+
+/* A version of integral_constant_value used by the C++ front end for
+   optimization purposes.  */
+
+tree
+decl_constant_value_safe (tree decl)
+{
+  return constant_value_1 (decl, /*integral_p=*/processing_template_decl,
+			   /*return_aggregate_cst_ok_p=*/false);
 }
 
 /* Common subroutines of build_new and build_vec_delete.  */
@@ -2088,7 +2114,7 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
     }
 
   if (CP_TYPE_CONST_P (elt_type) && *init == NULL
-      && !type_has_user_provided_default_constructor (elt_type))
+      && default_init_uninitialized_part (elt_type))
     {
       if (complain & tf_error)
         error ("uninitialized const in %<new%> of %q#T", elt_type);
@@ -2972,7 +2998,8 @@ build_vec_init (tree base, tree maxindex, tree init,
   if (TREE_CODE (atype) == ARRAY_TYPE && TYPE_DOMAIN (atype))
     maxindex = array_type_nelts (atype);
 
-  if (maxindex == NULL_TREE || maxindex == error_mark_node)
+  if (maxindex == NULL_TREE || maxindex == error_mark_node
+      || integer_all_onesp (maxindex))
     return error_mark_node;
 
   if (explicit_value_init_p)

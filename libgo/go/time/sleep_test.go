@@ -7,7 +7,6 @@ package time_test
 import (
 	"fmt"
 	"os"
-	"syscall"
 	"testing"
 	"sort"
 	. "time"
@@ -17,7 +16,7 @@ func TestSleep(t *testing.T) {
 	const delay = int64(100e6)
 	go func() {
 		Sleep(delay / 2)
-		syscall.Kill(os.Getpid(), syscall.SIGCHLD)
+		Interrupt()
 	}()
 	start := Nanoseconds()
 	Sleep(delay)
@@ -173,7 +172,7 @@ func testAfterQueuing(t *testing.T) os.Error {
 	for _, slot := range slots {
 		go await(slot, result, After(int64(slot)*Delta))
 	}
-	sort.SortInts(slots)
+	sort.Ints(slots)
 	for _, slot := range slots {
 		r := <-result
 		if r.slot != slot {

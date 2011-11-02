@@ -12,6 +12,7 @@ import (
 	"compress/zlib"
 	"encoding/binary"
 	"image"
+	"image/color"
 	"io"
 	"io/ioutil"
 	"os"
@@ -45,7 +46,12 @@ type decoder struct {
 	config    image.Config
 	mode      imageMode
 	features  map[int][]uint
-	palette   []image.Color
+	palette   []color.Color
+
+	buf   []byte
+	off   int    // Current offset in buf.
+	v     uint32 // Buffer value for reading with arbitrary bit depths.
+	nbits uint   // Remaining number of bits in v.
 }
 
 // firstVal returns the first uint of the features entry with the given tag,
@@ -124,93 +130,126 @@ func (d *decoder) parseIFD(p []byte) os.Error {
 		if len(val)%3 != 0 || numcolors <= 0 || numcolors > 256 {
 			return FormatError("bad ColorMap length")
 		}
-		d.palette = make([]image.Color, numcolors)
+		d.palette = make([]color.Color, numcolors)
 		for i := 0; i < numcolors; i++ {
-			d.palette[i] = image.RGBA64Color{
+			d.palette[i] = color.RGBA64{
 				uint16(val[i]),
 				uint16(val[i+numcolors]),
 				uint16(val[i+2*numcolors]),
 				0xffff,
 			}
 		}
+	case tSampleFormat:
+		// Page 27 of the spec: If the SampleFormat is present and
+		// the value is not 1 [= unsigned integer data], a Baseline
+		// TIFF reader that cannot handle the SampleFormat value
+		// must terminate the import process gracefully.
+		val, err := d.ifdUint(p)
+		if err != nil {
+			return err
+		}
+		for _, v := range val {
+			if v != 1 {
+				return UnsupportedError("sample format")
+			}
+		}
 	}
 	return nil
 }
 
-// decode decodes the raw data of an image with 8 bits in each sample.
-// It reads from p and writes the strip with ymin <= y < ymax into dst.
-func (d *decoder) decode(dst image.Image, p []byte, ymin, ymax int) os.Error {
-	spp := len(d.features[tBitsPerSample]) // samples per pixel
-	off := 0
-	width := dst.Bounds().Dx()
-
-	if len(p) < spp*(ymax-ymin)*width {
-		return FormatError("short data strip")
+// readBits reads n bits from the internal buffer starting at the current offset.
+func (d *decoder) readBits(n uint) uint32 {
+	for d.nbits < n {
+		d.v <<= 8
+		d.v |= uint32(d.buf[d.off])
+		d.off++
+		d.nbits += 8
 	}
+	d.nbits -= n
+	rv := d.v >> d.nbits
+	d.v &^= rv << d.nbits
+	return rv
+}
+
+// flushBits discards the unread bits in the buffer used by readBits.
+// It is used at the end of a line.
+func (d *decoder) flushBits() {
+	d.v = 0
+	d.nbits = 0
+}
+
+// decode decodes the raw data of an image.
+// It reads from d.buf and writes the strip with ymin <= y < ymax into dst.
+func (d *decoder) decode(dst image.Image, ymin, ymax int) os.Error {
+	d.off = 0
 
 	// Apply horizontal predictor if necessary.
 	// In this case, p contains the color difference to the preceding pixel.
 	// See page 64-65 of the spec.
-	if d.firstVal(tPredictor) == prHorizontal {
+	if d.firstVal(tPredictor) == prHorizontal && d.firstVal(tBitsPerSample) == 8 {
+		var off int
+		spp := len(d.features[tBitsPerSample]) // samples per pixel
 		for y := ymin; y < ymax; y++ {
 			off += spp
-			for x := 0; x < (width-1)*spp; x++ {
-				p[off] += p[off-spp]
+			for x := 0; x < (dst.Bounds().Dx()-1)*spp; x++ {
+				d.buf[off] += d.buf[off-spp]
 				off++
 			}
 		}
-		off = 0
 	}
 
 	switch d.mode {
-	case mGray:
+	case mGray, mGrayInvert:
 		img := dst.(*image.Gray)
+		bpp := d.firstVal(tBitsPerSample)
+		max := uint32((1 << bpp) - 1)
 		for y := ymin; y < ymax; y++ {
 			for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
-				img.Set(x, y, image.GrayColor{p[off]})
-				off += spp
+				v := uint8(d.readBits(bpp) * 0xff / max)
+				if d.mode == mGrayInvert {
+					v = 0xff - v
+				}
+				img.SetGray(x, y, color.Gray{v})
 			}
-		}
-	case mGrayInvert:
-		img := dst.(*image.Gray)
-		for y := ymin; y < ymax; y++ {
-			for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
-				img.Set(x, y, image.GrayColor{0xff - p[off]})
-				off += spp
-			}
+			d.flushBits()
 		}
 	case mPaletted:
 		img := dst.(*image.Paletted)
+		bpp := d.firstVal(tBitsPerSample)
 		for y := ymin; y < ymax; y++ {
 			for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
-				img.SetColorIndex(x, y, p[off])
-				off += spp
+				img.SetColorIndex(x, y, uint8(d.readBits(bpp)))
 			}
+			d.flushBits()
 		}
 	case mRGB:
 		img := dst.(*image.RGBA)
-		for y := ymin; y < ymax; y++ {
-			for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
-				img.Set(x, y, image.RGBAColor{p[off], p[off+1], p[off+2], 0xff})
-				off += spp
-			}
+		min := (ymin-img.Rect.Min.Y)*img.Stride - img.Rect.Min.X*4
+		max := (ymax-img.Rect.Min.Y)*img.Stride - img.Rect.Min.X*4
+		var off int
+		for i := min; i < max; i += 4 {
+			img.Pix[i+0] = d.buf[off+0]
+			img.Pix[i+1] = d.buf[off+1]
+			img.Pix[i+2] = d.buf[off+2]
+			img.Pix[i+3] = 0xff
+			off += 3
 		}
 	case mNRGBA:
 		img := dst.(*image.NRGBA)
-		for y := ymin; y < ymax; y++ {
-			for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
-				img.Set(x, y, image.NRGBAColor{p[off], p[off+1], p[off+2], p[off+3]})
-				off += spp
-			}
+		min := (ymin-img.Rect.Min.Y)*img.Stride - img.Rect.Min.X*4
+		max := (ymax-img.Rect.Min.Y)*img.Stride - img.Rect.Min.X*4
+		if len(d.buf) != max-min {
+			return FormatError("short data strip")
 		}
+		copy(img.Pix[min:max], d.buf)
 	case mRGBA:
 		img := dst.(*image.RGBA)
-		for y := ymin; y < ymax; y++ {
-			for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
-				img.Set(x, y, image.RGBAColor{p[off], p[off+1], p[off+2], p[off+3]})
-				off += spp
-			}
+		min := (ymin-img.Rect.Min.Y)*img.Stride - img.Rect.Min.X*4
+		max := (ymax-img.Rect.Min.Y)*img.Stride - img.Rect.Min.X*4
+		if len(d.buf) != max-min {
+			return FormatError("short data strip")
 		}
+		copy(img.Pix[min:max], d.buf)
 	}
 
 	return nil
@@ -258,13 +297,25 @@ func newDecoder(r io.Reader) (*decoder, os.Error) {
 	d.config.Width = int(d.firstVal(tImageWidth))
 	d.config.Height = int(d.firstVal(tImageLength))
 
+	if _, ok := d.features[tBitsPerSample]; !ok {
+		return nil, FormatError("BitsPerSample tag missing")
+	}
+
 	// Determine the image mode.
 	switch d.firstVal(tPhotometricInterpretation) {
 	case pRGB:
-		d.config.ColorModel = image.RGBAColorModel
+		for _, b := range d.features[tBitsPerSample] {
+			if b != 8 {
+				return nil, UnsupportedError("non-8-bit RGB image")
+			}
+		}
+		d.config.ColorModel = color.RGBAModel
 		// RGB images normally have 3 samples per pixel.
 		// If there are more, ExtraSamples (p. 31-32 of the spec)
 		// gives their meaning (usually an alpha channel).
+		//
+		// This implementation does not support extra samples
+		// of an unspecified type.
 		switch len(d.features[tBitsPerSample]) {
 		case 3:
 			d.mode = mRGB
@@ -274,34 +325,24 @@ func newDecoder(r io.Reader) (*decoder, os.Error) {
 				d.mode = mRGBA
 			case 2:
 				d.mode = mNRGBA
-				d.config.ColorModel = image.NRGBAColorModel
+				d.config.ColorModel = color.NRGBAModel
 			default:
-				// The extra sample is discarded.
-				d.mode = mRGB
+				return nil, FormatError("wrong number of samples for RGB")
 			}
 		default:
 			return nil, FormatError("wrong number of samples for RGB")
 		}
 	case pPaletted:
 		d.mode = mPaletted
-		d.config.ColorModel = image.PalettedColorModel(d.palette)
+		d.config.ColorModel = color.Palette(d.palette)
 	case pWhiteIsZero:
 		d.mode = mGrayInvert
-		d.config.ColorModel = image.GrayColorModel
+		d.config.ColorModel = color.GrayModel
 	case pBlackIsZero:
 		d.mode = mGray
-		d.config.ColorModel = image.GrayColorModel
+		d.config.ColorModel = color.GrayModel
 	default:
 		return nil, UnsupportedError("color model")
-	}
-
-	if _, ok := d.features[tBitsPerSample]; !ok {
-		return nil, FormatError("BitsPerSample tag missing")
-	}
-	for _, b := range d.features[tBitsPerSample] {
-		if b != 8 {
-			return nil, UnsupportedError("not an 8-bit image")
-		}
 	}
 
 	return d, nil
@@ -327,6 +368,10 @@ func Decode(r io.Reader) (img image.Image, err os.Error) {
 
 	// Check if we have the right number of strips, offsets and counts.
 	rps := int(d.firstVal(tRowsPerStrip))
+	if rps == 0 {
+		// Assume only one strip.
+		rps = d.config.Height
+	}
 	numStrips := (d.config.Height + rps - 1) / rps
 	if rps == 0 || len(d.features[tStripOffsets]) < numStrips || len(d.features[tStripByteCounts]) < numStrips {
 		return nil, FormatError("inconsistent header")
@@ -334,16 +379,15 @@ func Decode(r io.Reader) (img image.Image, err os.Error) {
 
 	switch d.mode {
 	case mGray, mGrayInvert:
-		img = image.NewGray(d.config.Width, d.config.Height)
+		img = image.NewGray(image.Rect(0, 0, d.config.Width, d.config.Height))
 	case mPaletted:
-		img = image.NewPaletted(d.config.Width, d.config.Height, d.palette)
+		img = image.NewPaletted(image.Rect(0, 0, d.config.Width, d.config.Height), d.palette)
 	case mNRGBA:
-		img = image.NewNRGBA(d.config.Width, d.config.Height)
+		img = image.NewNRGBA(image.Rect(0, 0, d.config.Width, d.config.Height))
 	case mRGB, mRGBA:
-		img = image.NewRGBA(d.config.Width, d.config.Height)
+		img = image.NewRGBA(image.Rect(0, 0, d.config.Width, d.config.Height))
 	}
 
-	var p []byte
 	for i := 0; i < numStrips; i++ {
 		ymin := i * rps
 		// The last strip may be shorter.
@@ -355,26 +399,28 @@ func Decode(r io.Reader) (img image.Image, err os.Error) {
 		switch d.firstVal(tCompression) {
 		case cNone:
 			// TODO(bsiegert): Avoid copy if r is a tiff.buffer.
-			p = make([]byte, 0, n)
-			_, err = d.r.ReadAt(p, offset)
+			d.buf = make([]byte, n)
+			_, err = d.r.ReadAt(d.buf, offset)
 		case cLZW:
 			r := lzw.NewReader(io.NewSectionReader(d.r, offset, n), lzw.MSB, 8)
-			p, err = ioutil.ReadAll(r)
+			d.buf, err = ioutil.ReadAll(r)
 			r.Close()
 		case cDeflate, cDeflateOld:
 			r, err := zlib.NewReader(io.NewSectionReader(d.r, offset, n))
 			if err != nil {
 				return nil, err
 			}
-			p, err = ioutil.ReadAll(r)
+			d.buf, err = ioutil.ReadAll(r)
 			r.Close()
+		case cPackBits:
+			d.buf, err = unpackBits(io.NewSectionReader(d.r, offset, n))
 		default:
 			err = UnsupportedError("compression")
 		}
 		if err != nil {
 			return
 		}
-		err = d.decode(img, p, ymin, ymin+rps)
+		err = d.decode(img, ymin, ymin+rps)
 	}
 	return
 }
