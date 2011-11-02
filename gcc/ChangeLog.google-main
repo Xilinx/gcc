@@ -1,3 +1,16 @@
+2011-11-02   Kostya Serebryany  <kcc@google.com>
+
+	Introduce a new option -fasan which enables
+	AddressSanitizer, a fast memory error detector:
+        * gcc/Makefile.in: Add tree-asan.c.
+	* gcc/common.opt: Add -fasan option.
+	* gcc/invoke.texi: Document the new flag.
+	* gcc/passes.c: Add the asan pass.
+	* gcc/toplev.c (compile_file): Call asan_finish_file.
+	* gcc/tree-asan.c: New file.
+	* gcc/tree-asan.h: New file.
+	* gcc/tree-pass.h: Declare pass_asan.
+
 2011-10-19   Rong Xu  <xur@google.com>
 (1) Introduce a new option -fopt-info:
  * fopt-info=0 or fno-opt-info: no message will be emitted.
