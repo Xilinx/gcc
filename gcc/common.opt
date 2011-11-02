@@ -1266,6 +1266,10 @@ finline-limit=
 Common RejectNegative Joined UInteger
 -finline-limit=<number>	Limit the size of inlined functions to <number>
 
+finline-atomics
+Common Report Var(flag_inline_atomics) Init(1) Optimization
+Inline __atomic operations when a lock free instruction sequence is available.
+
 finstrument-functions
 Common Report Var(flag_instrument_function_entry_exit)
 Instrument function entry and exit with profiling calls

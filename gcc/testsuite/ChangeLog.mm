@@ -1,3 +1,8 @@
+2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/atomic-noinline.c: New.  Make a variety of atomics calls.
+	* gcc.dg/atomic-noinline-aux.c: New.  Provide some entry points.
+
 2011-10-31  Richard Henderson  <rth@redhat.com>
 
 	* lib/target-supports.exp (check_effective_target_cas_char): New.

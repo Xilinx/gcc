@@ -5277,6 +5277,9 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
       return NULL_RTX;
     }
 
+  if (!flag_inline_atomics)
+    return NULL_RTX;
+
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
@@ -5317,6 +5320,9 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
       return NULL_RTX;
     }
   
+  if (!flag_inline_atomics)
+    return NULL_RTX;
+
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
@@ -5358,6 +5364,9 @@ expand_builtin_atomic_load (enum machine_mode mode, tree exp, rtx target)
       return NULL_RTX;
     }
 
+  if (!flag_inline_atomics)
+    return NULL_RTX;
+
   /* Expand the operand.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
@@ -5385,6 +5394,9 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
       return NULL_RTX;
     }
 
+  if (!flag_inline_atomics)
+    return NULL_RTX;
+
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
@@ -5401,7 +5413,7 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
    FETCH_AFTER is false if returning the value before the operation.
    IGNORE is true if the result is not used.
    EXT_CALL is the correct builtin for an external call if this cannot be
-   resolved to an instriction sequence.  */
+   resolved to an instruction sequence.  */
 
 static rtx
 expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
@@ -5419,9 +5431,13 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  ret = expand_atomic_fetch_op (target, mem, val, code, model, fetch_after);
-  if (ret)
-    return ret;
+  /* Only try generating instructions if inlining is turned on.  */
+  if (flag_inline_atomics)
+    {
+      ret = expand_atomic_fetch_op (target, mem, val, code, model, fetch_after);
+      if (ret)
+	return ret;
+    }
 
   /* Return if a different routine isn't needed for the library call.  */
   if (ext_call == BUILT_IN_NONE)
@@ -5496,11 +5512,12 @@ expand_builtin_atomic_always_lock_free (tree exp)
 static tree
 fold_builtin_atomic_is_lock_free (tree arg)
 {
-  tree always = fold_builtin_atomic_always_lock_free (arg);
-
+  if (!flag_inline_atomics)
+    return NULL_TREE;
+  
   /* If it isnt always lock free, don't generate a result.  */
-  if (always == integer_one_node)
-    return always;
+  if (fold_builtin_atomic_always_lock_free (arg) == integer_one_node)
+    return integer_one_node;
 
   return NULL_TREE;
 }
@@ -5518,6 +5535,9 @@ expand_builtin_atomic_is_lock_free (tree exp)
       error ("non-integer argument to __atomic_is_lock_free");
       return NULL_RTX;
     }
+
+  if (!flag_inline_atomics)
+    return NULL_RTX; 
 
   /* If the value is known at compile time, return the RTX for it.  */
   size = fold_builtin_atomic_is_lock_free (arg);

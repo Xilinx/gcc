@@ -1,3 +1,12 @@
+2011-11-02  Andrew MacLeod
+
+	* common.opt (finline-atomics): New. Flag to disable atomic inlining.
+	* builtins.c (expand_builtin_atomic_exchange,
+	expand_builtin_atomic_compare_exchange, expand_builtin_atomic_load,
+	expand_builtin_atomic_store, expand_builtin_atomic_fetch_op,
+	fold_builtin_atomic_is_lock_free, expand_builtin_atomic_is_lock_free):
+	Don't attempt instruction expansion if inlining atomics is disabled.
+
 2011-10-31  Richard Henderson  <rth@redhat.com>
 
 	* optabs.c (expand_atomic_store): Use create_fixed_operand for
