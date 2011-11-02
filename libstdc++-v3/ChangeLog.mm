@@ -1,3 +1,10 @@
+2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/std/atomic (is_lock_free): Add object pointer to 
+	__atomic_is_lock_free.
+	* include/bits/atomic_base.h (LOCKFREE_PROP): Add 0 for object ptr.
+	(is_lock_free): Add object pointer to __atomic_is_lock_free.
+
 2011-10-27  Benjamin Kosnik  <bkoz@redhat.com>
 	    Andrew MacLeod  <amacleod@redhat.com>
 

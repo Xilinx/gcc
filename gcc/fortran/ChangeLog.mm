@@ -1,6 +1,11 @@
+2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
+
+	* types.def (BT_FN_BOOL_SIZE): Remove.
+	(BT_FN_BOOL_SIZE_CONST_VPTR): Add.
+
 2011-10-25  Andrew MacLeod  <amacleod@redhat.com>
 
-	* fortran/types.def (BT_FN_VOID_SIZE_VPTR_PTR_INT,
+	* types.def (BT_FN_VOID_SIZE_VPTR_PTR_INT,
 	BT_FN_VOID_SIZE_CONST_VPTR_PTR_INT, BT_FN_VOID_SIZE_VPTR_PTR_PTR_INT,
 	BT_FN_BOOL_SIZE_VPTR_PTR_PTR_INT_INT): New builtin types.
 

@@ -1,3 +1,16 @@
+2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
+
+	* builtins.c (fold_builtin_atomic_always_lock_free): Add object param
+	and check alignment if present.
+	(expand_builtin_atomic_always_lock_free): Expect 2nd argument.
+	(fold_builtin_atomic_is_lock_free): Expect 2nd argument.
+	(expand_builtin_atomic_is_lock_free): Expect 2nd argument.
+	(fold_builtin_1): Remove LOCK_FREE builtins.
+	(fold_builtin_2): Add LOCK_FREE builtins.
+	* sync-builtins.def (BUILT_IN_ATOMIC_{IS,ALWAYS}_LOCK_FREE): Add param.
+	* builtin-types.def (BT_FN_BOOL_SIZE): Remove.
+	(BT_FN_BOOL_SIZE_CONST_VPTR): Add.
+
 2011-11-02  Andrew MacLeod
 
 	* common.opt (finline-atomics): New. Flag to disable atomic inlining.

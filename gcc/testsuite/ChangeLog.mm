@@ -1,5 +1,13 @@
 2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
 
+	* gcc.dg/atomic-lockfree.c: Add extra lock-free parameter.
+	* gcc.dg/atomic-lockfree-aux.c: Add extra lock-free parameter.
+	* gcc.dg/atomic-noinline.c: Add extra lock-free parameter.
+	* gcc.dg/atomic-noinline-aux.c: Add extra lock-free parameter.
+	* gcc.dg/atomic-invalid.c: Add extra lock-free parameter.
+
+2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
+
 	* gcc.dg/atomic-noinline.c: New.  Make a variety of atomics calls.
 	* gcc.dg/atomic-noinline-aux.c: New.  Provide some entry points.
 
