@@ -14766,6 +14766,29 @@ i386_asm_output_addr_const_extra (FILE *file, rtx x)
 
   return true;
 }
+
+/* Since x64-64 linker IE->LE transition requires a REX prefix, we
+   output a REX prefix if there isn't one.  */
+
+bool
+ix86_output_rex_prefix_p (rtx dest, rtx op)
+{
+  if (!TARGET_X32
+      || GET_MODE (dest) != SImode
+      || REX_INT_REG_P (dest)
+      || !MEM_P (op))
+    return false;
+
+  op = XEXP (op, 0);
+  if (GET_CODE (op) != CONST)
+    return false;
+
+  op = XEXP (op, 0);
+  if (GET_CODE (op) != UNSPEC)
+    return false;
+
+  return XINT (op, 1) == UNSPEC_GOTNTPOFF;
+}
 
 /* Split one or more double-mode RTL references into pairs of half-mode
    references.  The RTL can be REG, offsettable MEM, integer constant, or

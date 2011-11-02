@@ -1,5 +1,14 @@
 2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386-protos.h (ix86_output_rex_prefix_p): New.
+	* config/i386/i386.c (ix86_output_rex_prefix_p): Likewise.
+
+	* config/i386/i386.md (*movsi_internal): Output REX prefix if
+	needed.
+	(*add<mode>_1): Likewise.
+
+2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_gen_pro_epilogue_adjust_stack): New.
 	(ix86_option_override_internal): Check TARGET_LP64.  Set
 	ix86_gen_pro_epilogue_adjust_stack. Update ix86_gen_monitor.

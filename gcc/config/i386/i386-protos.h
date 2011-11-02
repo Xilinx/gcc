@@ -258,6 +258,8 @@ extern void x86_output_aligned_bss (FILE *, tree, const char *,
 extern void x86_elf_aligned_common (FILE *, const char *,
 				    unsigned HOST_WIDE_INT, int);
 
+extern bool ix86_output_rex_prefix_p (rtx, rtx);
+
 #ifdef RTX_CODE
 extern void ix86_fp_comparison_codes (enum rtx_code code, enum rtx_code *,
 				      enum rtx_code *, enum rtx_code *);
