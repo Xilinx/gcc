@@ -1,3 +1,12 @@
+2011-11-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386-protos.h (ix86_output_rex_prefix_p): New.
+	* config/i386/i386.c (ix86_output_rex_prefix_p): Likewise.
+
+	* config/i386/i386.md (*movsi_internal): Output REX prefix if
+	needed.
+	(*add<mode>_1): Likewise.
+
 2011-11-11  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (function_value_64): Return pointers in
