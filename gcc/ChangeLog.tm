@@ -1,5 +1,10 @@
 2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
 
+	* testsuite/gcc.dg/alias-1.c: Use __UINTPTR_TYPE__.
+	* testsuite/gcc.dg/alias-2.c: Use __UINTPTR_TYPE__.
+
+2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
 	* doc/invoke.texi (C Dialect Options): Document -fgnu-tm.
 
 2011-10-31  Aldy Hernandez  <aldyh@redhat.com>

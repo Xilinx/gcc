@@ -1,15 +1,7 @@
 /* { dg-do compile } */
 /* { dg-options "-fgnu-tm -fdump-tree-ealias -O" } */
 
-#if (__SIZEOF_LONG_LONG__ == __SIZEOF_POINTER__)
-typedef unsigned long long ptrcast;
-#elif (__SIZEOF_LONG__ == __SIZEOF_POINTER__)
-typedef unsigned long ptrcast;
-#elif (__SIZEOF_INT__ == __SIZEOF_POINTER__)
-typedef unsigned int ptrcast;
-#else
-#error Add target support here
-#endif
+typedef __UINTPTR_TYPE__ ptrcast;
 
 #if (__SIZEOF_POINTER__ == 4)
 #define TM_LOAD  __builtin__ITM_RU4
