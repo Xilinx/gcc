@@ -516,6 +516,7 @@ simplify_transformation_to_array (gfc_expr *result, gfc_expr *array, gfc_expr *d
      linked-list traversal. Masked elements are set to NULL.  */
   gfc_array_size (array, &size);
   arraysize = mpz_get_ui (size);
+  mpz_clear (size);
 
   arrayvec = XCNEWVEC (gfc_expr*, arraysize);
 
@@ -1898,13 +1899,7 @@ simplify_dshift (gfc_expr *arg1, gfc_expr *arg2, gfc_expr *shiftarg,
   k = gfc_validate_kind (BT_INTEGER, arg1->ts.kind, false);
   size = gfc_integer_kinds[k].bit_size;
 
-  if (gfc_extract_int (shiftarg, &shift) != NULL)
-    {
-      gfc_error ("Invalid SHIFT argument of DSHIFTL at %L", &shiftarg->where);
-      return &gfc_bad_expr;
-    }
-
-  gcc_assert (shift >= 0 && shift <= size);
+  gfc_extract_int (shiftarg, &shift);
 
   /* DSHIFTR(I,J,SHIFT) = DSHIFTL(I,J,SIZE-SHIFT).  */
   if (right)
@@ -2508,20 +2503,9 @@ gfc_simplify_ibclr (gfc_expr *x, gfc_expr *y)
   if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (y, &pos) != NULL || pos < 0)
-    {
-      gfc_error ("Invalid second argument of IBCLR at %L", &y->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (y, &pos);
 
   k = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-
-  if (pos >= gfc_integer_kinds[k].bit_size)
-    {
-      gfc_error ("Second argument of IBCLR exceeds bit size at %L",
-		 &y->where);
-      return &gfc_bad_expr;
-    }
 
   result = gfc_copy_expr (x);
 
@@ -2550,17 +2534,8 @@ gfc_simplify_ibits (gfc_expr *x, gfc_expr *y, gfc_expr *z)
       || z->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (y, &pos) != NULL || pos < 0)
-    {
-      gfc_error ("Invalid second argument of IBITS at %L", &y->where);
-      return &gfc_bad_expr;
-    }
-
-  if (gfc_extract_int (z, &len) != NULL || len < 0)
-    {
-      gfc_error ("Invalid third argument of IBITS at %L", &z->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (y, &pos);
+  gfc_extract_int (z, &len);
 
   k = gfc_validate_kind (BT_INTEGER, x->ts.kind, false);
 
@@ -2613,20 +2588,9 @@ gfc_simplify_ibset (gfc_expr *x, gfc_expr *y)
   if (x->expr_type != EXPR_CONSTANT || y->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (y, &pos) != NULL || pos < 0)
-    {
-      gfc_error ("Invalid second argument of IBSET at %L", &y->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (y, &pos);
 
   k = gfc_validate_kind (x->ts.type, x->ts.kind, false);
-
-  if (pos >= gfc_integer_kinds[k].bit_size)
-    {
-      gfc_error ("Second argument of IBSET exceeds bit size at %L",
-		 &y->where);
-      return &gfc_bad_expr;
-    }
 
   result = gfc_copy_expr (x);
 
@@ -3003,11 +2967,8 @@ simplify_shift (gfc_expr *e, gfc_expr *s, const char *name,
 
   if (e->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
-  if (gfc_extract_int (s, &shift) != NULL)
-    {
-      gfc_error ("Invalid second argument of %s at %L", name, &s->where);
-      return &gfc_bad_expr;
-    }
+
+  gfc_extract_int (s, &shift);
 
   k = gfc_validate_kind (BT_INTEGER, e->ts.kind, false);
   bitsize = gfc_integer_kinds[k].bit_size;
@@ -3145,11 +3106,7 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
   if (e->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
 
-  if (gfc_extract_int (s, &shift) != NULL)
-    {
-      gfc_error ("Invalid second argument of ISHFTC at %L", &s->where);
-      return &gfc_bad_expr;
-    }
+  gfc_extract_int (s, &shift);
 
   k = gfc_validate_kind (e->ts.type, e->ts.kind, false);
   isize = gfc_integer_kinds[k].bit_size;
@@ -3159,18 +3116,8 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
       if (sz->expr_type != EXPR_CONSTANT)
 	return NULL;
 
-      if (gfc_extract_int (sz, &ssize) != NULL || ssize <= 0)
-	{
-	  gfc_error ("Invalid third argument of ISHFTC at %L", &sz->where);
-	  return &gfc_bad_expr;
-	}
+      gfc_extract_int (sz, &ssize);
 
-      if (ssize > isize)
-	{
-	  gfc_error ("Magnitude of third argument of ISHFTC exceeds "
-		     "BIT_SIZE of first argument at %L", &s->where);
-	  return &gfc_bad_expr;
-	}
     }
   else
     ssize = isize;
@@ -3182,10 +3129,7 @@ gfc_simplify_ishftc (gfc_expr *e, gfc_expr *s, gfc_expr *sz)
 
   if (ashift > ssize)
     {
-      if (sz != NULL)
-	gfc_error ("Magnitude of second argument of ISHFTC exceeds "
-		   "third argument at %L", &s->where);
-      else
+      if (sz == NULL)
 	gfc_error ("Magnitude of second argument of ISHFTC exceeds "
 		   "BIT_SIZE of first argument at %L", &s->where);
       return &gfc_bad_expr;
@@ -3512,11 +3456,9 @@ simplify_cobound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind, int upper)
 	  switch (ref->u.ar.type)
 	    {
 	    case AR_ELEMENT:
-	      if (ref->next == NULL)
+	      if (ref->u.ar.as->corank > 0)
 		{
-		  gcc_assert (ref->u.ar.as->corank > 0
-			      && ref->u.ar.as->rank == 0);
-		  as = ref->u.ar.as;
+		  gcc_assert (as == ref->u.ar.as);
 		  goto done;
 		}
 	      as = NULL;
@@ -4382,13 +4324,6 @@ gfc_simplify_nearest (gfc_expr *x, gfc_expr *s)
 
   if (x->expr_type != EXPR_CONSTANT || s->expr_type != EXPR_CONSTANT)
     return NULL;
-
-  if (mpfr_sgn (s->value.real) == 0)
-    {
-      gfc_error ("Second argument of NEAREST at %L shall not be zero",
-		 &s->where);
-      return &gfc_bad_expr;
-    }
 
   result = gfc_copy_expr (x);
 

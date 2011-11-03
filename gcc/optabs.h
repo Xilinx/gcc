@@ -351,6 +351,12 @@ enum optab_index
   OTI_vec_widen_umult_lo,
   OTI_vec_widen_smult_hi,
   OTI_vec_widen_smult_lo,
+  /* Widening shift left.
+     The high/low part of the resulting vector is returned.  */
+  OTI_vec_widen_ushiftl_hi,
+  OTI_vec_widen_ushiftl_lo,
+  OTI_vec_widen_sshiftl_hi,
+  OTI_vec_widen_sshiftl_lo,
   /* Extract and widen the high/low part of a vector of signed or
      floating point elements.  */
   OTI_vec_unpacks_hi,
@@ -544,6 +550,10 @@ enum optab_index
 #define vec_widen_umult_lo_optab (&optab_table[OTI_vec_widen_umult_lo])
 #define vec_widen_smult_hi_optab (&optab_table[OTI_vec_widen_smult_hi])
 #define vec_widen_smult_lo_optab (&optab_table[OTI_vec_widen_smult_lo])
+#define vec_widen_ushiftl_hi_optab (&optab_table[OTI_vec_widen_ushiftl_hi])
+#define vec_widen_ushiftl_lo_optab (&optab_table[OTI_vec_widen_ushiftl_lo])
+#define vec_widen_sshiftl_hi_optab (&optab_table[OTI_vec_widen_sshiftl_hi])
+#define vec_widen_sshiftl_lo_optab (&optab_table[OTI_vec_widen_sshiftl_lo])
 #define vec_unpacks_hi_optab (&optab_table[OTI_vec_unpacks_hi])
 #define vec_unpacks_lo_optab (&optab_table[OTI_vec_unpacks_lo])
 #define vec_unpacku_hi_optab (&optab_table[OTI_vec_unpacku_hi])
@@ -638,9 +648,6 @@ enum direct_optab_index
   DOI_reload_in,
   DOI_reload_out,
 
-  /* Vector shuffling.  */
-  DOI_vec_perm,
-
   /* Block move operation.  */
   DOI_movmem,
 
@@ -716,6 +723,10 @@ enum direct_optab_index
   DOI_atomic_thread_fence,
   DOI_atomic_signal_fence,
 
+  /* Vector permutation.  */
+  DOI_vec_perm,
+  DOI_vec_perm_const,
+
   DOI_MAX
 };
 
@@ -732,7 +743,6 @@ typedef struct direct_optab_d *direct_optab;
 #endif
 #define reload_in_optab (&direct_optab_table[(int) DOI_reload_in])
 #define reload_out_optab (&direct_optab_table[(int) DOI_reload_out])
-#define vec_perm_optab (&direct_optab_table[(int) DOI_vec_perm])
 #define movmem_optab (&direct_optab_table[(int) DOI_movmem])
 #define setmem_optab (&direct_optab_table[(int) DOI_setmem])
 #define cmpstr_optab (&direct_optab_table[(int) DOI_cmpstr])
@@ -815,6 +825,9 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_atomic_thread_fence])
 #define atomic_signal_fence_optab \
   (&direct_optab_table[(int) DOI_atomic_signal_fence])
+
+#define vec_perm_optab (&direct_optab_table[DOI_vec_perm])
+#define vec_perm_const_optab (&direct_optab_table[(int) DOI_vec_perm_const])
 
 /* Target-dependent globals.  */
 struct target_optabs {
@@ -959,6 +972,12 @@ extern bool can_compare_and_swap_p (enum machine_mode);
 extern bool expand_atomic_compare_and_swap (rtx *, rtx *, rtx, rtx, rtx, bool,
 					    enum memmodel, enum memmodel);
 
+/* Check whether an operation represented by the code CODE is a
+   convert operation that is supported by the target platform in
+   vector form */
+bool supportable_convert_operation (enum tree_code, tree, tree, tree *, 
+                                    enum tree_code *);
+
 /* Generate code for a FIX_EXPR.  */
 extern void expand_fix (rtx, rtx, int);
 
@@ -977,10 +996,13 @@ extern rtx expand_vec_cond_expr (tree, tree, tree, tree, rtx);
 extern rtx expand_vec_shift_expr (sepops, rtx);
 
 /* Return tree if target supports vector operations for VEC_PERM_EXPR.  */
-bool expand_vec_perm_expr_p (enum machine_mode, tree, tree, tree);
+extern bool can_vec_perm_p (enum machine_mode, bool, const unsigned char *);
+
+/* Return true if target supports vector operations using VEC_PERM_EXPR.  */
+extern bool can_vec_perm_for_code_p (enum tree_code, enum machine_mode, rtx *);
 
 /* Generate code for VEC_PERM_EXPR.  */
-extern rtx expand_vec_perm_expr (tree, tree, tree, tree, rtx);
+extern rtx expand_vec_perm (enum machine_mode, rtx, rtx, rtx, rtx);
 
 /* Return the insn used to implement mode MODE of OP, or CODE_FOR_nothing
    if the target does not have such an insn.  */

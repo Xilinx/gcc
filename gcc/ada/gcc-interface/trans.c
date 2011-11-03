@@ -189,8 +189,33 @@ static GTY(()) VEC(tree,gc) *gnu_return_label_stack;
    parameters.  See processing for N_Subprogram_Body.  */
 static GTY(()) VEC(tree,gc) *gnu_return_var_stack;
 
-/* Stack of LOOP_STMT nodes.  */
-static GTY(()) VEC(tree,gc) *gnu_loop_label_stack;
+/* Structure used to record information for a range check.  */
+struct GTY(()) range_check_info_d {
+  tree low_bound;
+  tree high_bound;
+  tree type;
+  tree invariant_cond;
+};
+
+typedef struct range_check_info_d *range_check_info;
+
+DEF_VEC_P(range_check_info);
+DEF_VEC_ALLOC_P(range_check_info,gc);
+
+/* Structure used to record information for a loop.  */
+struct GTY(()) loop_info_d {
+  tree label;
+  tree loop_var;
+  VEC(range_check_info,gc) *checks;
+};
+
+typedef struct loop_info_d *loop_info;
+
+DEF_VEC_P(loop_info);
+DEF_VEC_ALLOC_P(loop_info,gc);
+
+/* Stack of loop_info structures associated with LOOP_STMT nodes.  */
+static GTY(()) VEC(loop_info,gc) *gnu_loop_stack;
 
 /* The stacks for N_{Push,Pop}_*_Label.  */
 static GTY(()) VEC(tree,gc) *gnu_constraint_error_label_stack;
@@ -289,7 +314,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 	     (Get_Name_String (file_info_ptr[i].File_Name))));
 
       /* We rely on the order isomorphism between files and line maps.  */
-      gcc_assert ((int) line_table->used == i);
+      gcc_assert ((int) LINEMAPS_ORDINARY_USED (line_table) == i);
 
       /* We create the line map for a source file at once, with a fixed number
 	 of columns chosen to avoid jumping over the next power of 2.  */
@@ -1008,6 +1033,9 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
 	  gnu_result = build_unary_op (INDIRECT_REF, NULL_TREE, gnu_result);
 	  if (TREE_CODE (gnu_result) == INDIRECT_REF)
 	    TREE_THIS_NOTRAP (gnu_result) = 1;
+
+	  if (read_only)
+	    TREE_READONLY (gnu_result) = 1;
 	}
 
       /* If it's a PARM_DECL to foreign convention subprogram, convert it.  */
@@ -1024,6 +1052,7 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
 	 we can reference the renamed object directly, since the renamed
 	 expression has been protected against multiple evaluations.  */
       if (TREE_CODE (gnu_result) == VAR_DECL
+          && !DECL_LOOP_PARM_P (gnu_result)
 	  && DECL_RENAMED_OBJECT (gnu_result)
 	  && (!DECL_RENAMING_GLOBAL_P (gnu_result) || global_bindings_p ()))
 	gnu_result = DECL_RENAMED_OBJECT (gnu_result);
@@ -1335,10 +1364,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	 don't try to build a trampoline.  */
       if (attribute == Attr_Code_Address)
 	{
-	  for (gnu_expr = gnu_result;
-	       CONVERT_EXPR_P (gnu_expr);
-	       gnu_expr = TREE_OPERAND (gnu_expr, 0))
-	    TREE_CONSTANT (gnu_expr) = 1;
+	  gnu_expr = remove_conversions (gnu_result, false);
 
 	  if (TREE_CODE (gnu_expr) == ADDR_EXPR)
 	    TREE_NO_TRAMPOLINE (gnu_expr) = TREE_CONSTANT (gnu_expr) = 1;
@@ -1349,10 +1375,7 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 	 a useful warning with -Wtrampolines.  */
       else if (TREE_CODE (TREE_TYPE (gnu_prefix)) == FUNCTION_TYPE)
 	{
-	  for (gnu_expr = gnu_result;
-	       CONVERT_EXPR_P (gnu_expr);
-	       gnu_expr = TREE_OPERAND (gnu_expr, 0))
-	    ;
+	  gnu_expr = remove_conversions (gnu_result, false);
 
 	  if (TREE_CODE (gnu_expr) == ADDR_EXPR
 	      && decl_function_context (TREE_OPERAND (gnu_expr, 0)))
@@ -2114,6 +2137,43 @@ Case_Statement_to_gnu (Node_Id gnat_node)
   return gnu_result;
 }
 
+/* Find out whether VAR is an iteration variable of an enclosing loop in the
+   current function.  If so, push a range_check_info structure onto the stack
+   of this enclosing loop and return it.  Otherwise, return NULL.  */
+
+static struct range_check_info_d *
+push_range_check_info (tree var)
+{
+  struct loop_info_d *iter = NULL;
+  unsigned int i;
+
+  if (VEC_empty (loop_info, gnu_loop_stack))
+    return NULL;
+
+  var = remove_conversions (var, false);
+
+  if (TREE_CODE (var) != VAR_DECL)
+    return NULL;
+
+  if (decl_function_context (var) != current_function_decl)
+    return NULL;
+
+  for (i = VEC_length (loop_info, gnu_loop_stack) - 1;
+       VEC_iterate (loop_info, gnu_loop_stack, i, iter);
+       i--)
+    if (var == iter->loop_var)
+      break;
+
+  if (iter)
+    {
+      struct range_check_info_d *rci = ggc_alloc_range_check_info_d ();
+      VEC_safe_push (range_check_info, gc, iter->checks, rci);
+      return rci;
+    }
+
+  return NULL;
+}
+
 /* Return true if VAL (of type TYPE) can equal the minimum value if MAX is
    false, or the maximum value if MAX is true, of TYPE.  */
 
@@ -2181,10 +2241,15 @@ static tree
 Loop_Statement_to_gnu (Node_Id gnat_node)
 {
   const Node_Id gnat_iter_scheme = Iteration_Scheme (gnat_node);
+  struct loop_info_d *gnu_loop_info = ggc_alloc_cleared_loop_info_d ();
   tree gnu_loop_stmt = build4 (LOOP_STMT, void_type_node, NULL_TREE,
 			       NULL_TREE, NULL_TREE, NULL_TREE);
   tree gnu_loop_label = create_artificial_label (input_location);
-  tree gnu_cond_expr = NULL_TREE, gnu_result;
+  tree gnu_cond_expr = NULL_TREE, gnu_low = NULL_TREE, gnu_high = NULL_TREE;
+  tree gnu_result;
+
+  /* Push the loop_info structure associated with the LOOP_STMT.  */
+  VEC_safe_push (loop_info, gc, gnu_loop_stack, gnu_loop_info);
 
   /* Set location information for statement and end label.  */
   set_expr_location_from_node (gnu_loop_stmt, gnat_node);
@@ -2192,9 +2257,8 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
 		 &DECL_SOURCE_LOCATION (gnu_loop_label));
   LOOP_STMT_LABEL (gnu_loop_stmt) = gnu_loop_label;
 
-  /* Save the end label of this LOOP_STMT in a stack so that a corresponding
-     N_Exit_Statement can find it.  */
-  VEC_safe_push (tree, gc, gnu_loop_label_stack, gnu_loop_label);
+  /* Save the label so that a corresponding N_Exit_Statement can find it.  */
+  gnu_loop_info->label = gnu_loop_label;
 
   /* Set the condition under which the loop must keep going.
      For the case "LOOP .... END LOOP;" the condition is always true.  */
@@ -2214,13 +2278,14 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
       Entity_Id gnat_loop_var = Defining_Entity (gnat_loop_spec);
       Entity_Id gnat_type = Etype (gnat_loop_var);
       tree gnu_type = get_unpadded_type (gnat_type);
-      tree gnu_low = TYPE_MIN_VALUE (gnu_type);
-      tree gnu_high = TYPE_MAX_VALUE (gnu_type);
       tree gnu_base_type = get_base_type (gnu_type);
       tree gnu_one_node = convert (gnu_base_type, integer_one_node);
       tree gnu_loop_var, gnu_loop_iv, gnu_first, gnu_last, gnu_stmt;
       enum tree_code update_code, test_code, shift_code;
       bool reverse = Reverse_Present (gnat_loop_spec), use_iv = false;
+
+      gnu_low = TYPE_MIN_VALUE (gnu_type);
+      gnu_high = TYPE_MAX_VALUE (gnu_type);
 
       /* We must disable modulo reduction for the iteration variable, if any,
 	 in order for the loop comparison to be effective.  */
@@ -2296,17 +2361,20 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
 	    ;
 
 	  /* Otherwise, use the do-while form with the help of a special
-	     induction variable in the (unsigned version of) the base
-	     type, in order to have wrap-around arithmetics for it.  */
+	     induction variable in the unsigned version of the base type
+	     or the unsigned version of the size type, whichever is the
+	     largest, in order to have wrap-around arithmetics for it.  */
 	  else
 	    {
-	      if (!TYPE_UNSIGNED (gnu_base_type))
-		{
-		  gnu_base_type = gnat_unsigned_type (gnu_base_type);
-		  gnu_first = convert (gnu_base_type, gnu_first);
-		  gnu_last = convert (gnu_base_type, gnu_last);
-		  gnu_one_node = convert (gnu_base_type, integer_one_node);
-		}
+	      if (TYPE_PRECISION (gnu_base_type)
+		  > TYPE_PRECISION (size_type_node))
+		gnu_base_type = gnat_unsigned_type (gnu_base_type);
+	      else
+		gnu_base_type = size_type_node;
+
+	      gnu_first = convert (gnu_base_type, gnu_first);
+	      gnu_last = convert (gnu_base_type, gnu_last);
+	      gnu_one_node = convert (gnu_base_type, integer_one_node);
 	      use_iv = true;
 	    }
 
@@ -2379,6 +2447,12 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
       gnu_loop_var = gnat_to_gnu_entity (gnat_loop_var, gnu_first, 1);
       if (DECL_BY_REF_P (gnu_loop_var))
 	gnu_loop_var = build_unary_op (INDIRECT_REF, NULL_TREE, gnu_loop_var);
+      else if (use_iv)
+	{
+	  gcc_assert (DECL_LOOP_PARM_P (gnu_loop_var));
+	  SET_DECL_INDUCTION_VAR (gnu_loop_var, gnu_loop_iv);
+	}
+      gnu_loop_info->loop_var = gnu_loop_var;
 
       /* Do all the arithmetics in the base type.  */
       gnu_loop_var = convert (gnu_base_type, gnu_loop_var);
@@ -2437,6 +2511,45 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
      the LOOP_STMT to it, finish it and make it the "loop".  */
   if (Present (gnat_iter_scheme) && No (Condition (gnat_iter_scheme)))
     {
+      struct range_check_info_d *rci;
+      unsigned n_checks = VEC_length (range_check_info, gnu_loop_info->checks);
+      unsigned int i;
+
+      /* First, if we have computed a small number of invariant conditions for
+	 range checks applied to the iteration variable, then initialize these
+	 conditions in front of the loop.  Otherwise, leave them set to True.
+
+	 ??? The heuristics need to be improved, by taking into account the
+	     following datapoints:
+	       - loop unswitching is disabled for big loops.  The cap is the
+		 parameter PARAM_MAX_UNSWITCH_INSNS (50).
+	       - loop unswitching can only be applied a small number of times
+		 to a given loop.  The cap is PARAM_MAX_UNSWITCH_LEVEL (3).
+	       - the front-end quickly generates useless or redundant checks
+		 that can be entirely optimized away in the end.  */
+      if (1 <= n_checks && n_checks <= 4)
+	for (i = 0;
+	     VEC_iterate (range_check_info, gnu_loop_info->checks, i, rci);
+	     i++)
+	  {
+	    tree low_ok
+	      = build_binary_op (GE_EXPR, boolean_type_node,
+				 convert (rci->type, gnu_low),
+				 rci->low_bound);
+	    tree high_ok
+	      = build_binary_op (LE_EXPR, boolean_type_node,
+				 convert (rci->type, gnu_high),
+				 rci->high_bound);
+	    tree range_ok
+	      = build_binary_op (TRUTH_ANDIF_EXPR, boolean_type_node,
+				 low_ok, high_ok);
+
+	    TREE_OPERAND (rci->invariant_cond, 0)
+	      = build_unary_op (TRUTH_NOT_EXPR, boolean_type_node, range_ok);
+
+	    add_stmt_with_node_force (rci->invariant_cond, gnat_node);
+	  }
+
       add_stmt (gnu_loop_stmt);
       gnat_poplevel ();
       gnu_loop_stmt = end_stmt_group ();
@@ -2453,7 +2566,7 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
   else
     gnu_result = gnu_loop_stmt;
 
-  VEC_pop (tree, gnu_loop_label_stack);
+  VEC_pop (loop_info, gnu_loop_stack);
 
   return gnu_result;
 }
@@ -4359,6 +4472,28 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
   invalidate_global_renaming_pointers ();
 }
 
+/* Return true if GNAT_NODE is on the LHS of an assignment or an actual
+   parameter of a call.  */
+
+static bool
+lhs_or_actual_p (Node_Id gnat_node)
+{
+  Node_Id gnat_parent = Parent (gnat_node);
+  Node_Kind kind = Nkind (gnat_parent);
+
+  if (kind == N_Assignment_Statement && Name (gnat_parent) == gnat_node)
+    return true;
+
+  if ((kind == N_Procedure_Call_Statement || kind == N_Function_Call)
+      && Name (gnat_parent) != gnat_node)
+    return true;
+
+  if (kind == N_Parameter_Association)
+    return true;
+
+  return false;
+}
+
 /* Return true if GNAT_NODE, an unchecked type conversion, is a no-op as far
    as gigi is concerned.  This is used to avoid conversions on the LHS.  */
 
@@ -4370,11 +4505,7 @@ unchecked_conversion_nop (Node_Id gnat_node)
   /* The conversion must be on the LHS of an assignment or an actual parameter
      of a call.  Otherwise, even if the conversion was essentially a no-op, it
      could de facto ensure type consistency and this should be preserved.  */
-  if (!(Nkind (Parent (gnat_node)) == N_Assignment_Statement
-	&& Name (Parent (gnat_node)) == gnat_node)
-      && !((Nkind (Parent (gnat_node)) == N_Procedure_Call_Statement
-	    || Nkind (Parent (gnat_node)) == N_Function_Call)
-	   && Name (Parent (gnat_node)) != gnat_node))
+  if (!lhs_or_actual_p (gnat_node))
     return false;
 
   from_type = Etype (Expression (gnat_node));
@@ -5588,7 +5719,7 @@ gnat_to_gnu (Node_Id gnat_node)
 		   ? gnat_to_gnu (Condition (gnat_node)) : NULL_TREE),
 		  (Present (Name (gnat_node))
 		   ? get_gnu_tree (Entity (Name (gnat_node)))
-		   : VEC_last (tree, gnu_loop_label_stack)));
+		   : VEC_last (loop_info, gnu_loop_stack)->label));
       break;
 
     case N_Return_Statement:
@@ -6019,7 +6150,7 @@ gnat_to_gnu (Node_Id gnat_node)
 		     is modelled on the C front-end.  */
 		  if (!allows_reg)
 		    {
-		      STRIP_NOPS (output);
+		      output = remove_conversions (output, false);
 		      if (TREE_CODE (output) == CONST_DECL
 			  && DECL_CONST_CORRESPONDING_VAR (output))
 			output = DECL_CONST_CORRESPONDING_VAR (output);
@@ -6047,7 +6178,7 @@ gnat_to_gnu (Node_Id gnat_node)
 		     mark it addressable.  */
 		  if (!allows_reg && allows_mem)
 		    {
-		      STRIP_NOPS (input);
+		      input = remove_conversions (input, false);
 		      if (TREE_CODE (input) == CONST_DECL
 			  && DECL_CONST_CORRESPONDING_VAR (input))
 			input = DECL_CONST_CORRESPONDING_VAR (input);
@@ -6174,7 +6305,11 @@ gnat_to_gnu (Node_Id gnat_node)
     case N_Raise_Storage_Error:
       {
 	const int reason = UI_To_Int (Reason (gnat_node));
-	const Node_Id cond = Condition (gnat_node);
+	const Node_Id gnat_cond = Condition (gnat_node);
+	const bool with_extra_info = Exception_Extra_Info
+				     && !No_Exception_Handlers_Set ()
+				     && !get_exception_label (kind);
+	tree gnu_cond = NULL_TREE;
 
 	if (type_annotate_only)
 	  {
@@ -6184,43 +6319,66 @@ gnat_to_gnu (Node_Id gnat_node)
 
         gnu_result_type = get_unpadded_type (Etype (gnat_node));
 
-	if (Exception_Extra_Info
-	    && !No_Exception_Handlers_Set ()
-	    && !get_exception_label (kind)
-	    && VOID_TYPE_P (gnu_result_type)
-	    && Present (cond))
-	  switch (reason)
-	    {
-	    case CE_Access_Check_Failed:
+	switch (reason)
+	  {
+	  case CE_Access_Check_Failed:
+	    if (with_extra_info)
 	      gnu_result = build_call_raise_column (reason, gnat_node);
-	      break;
+	    break;
 
-	    case CE_Index_Check_Failed:
-	    case CE_Range_Check_Failed:
-	    case CE_Invalid_Data:
-	      if (Nkind (cond) == N_Op_Not
-		  && Nkind (Right_Opnd (cond)) == N_In
-		  && Nkind (Right_Opnd (Right_Opnd (cond))) == N_Range)
-		{
-		  Node_Id op = Right_Opnd (cond);  /* N_In node */
-		  Node_Id index = Left_Opnd (op);
-		  Node_Id range = Right_Opnd (op);
-		  Node_Id type = Etype (index);
-		  if (Is_Type (type)
-		      && Known_Esize (type)
-		      && UI_To_Int (Esize (type)) <= 32)
-		    gnu_result
-		      = build_call_raise_range (reason, gnat_node,
-						gnat_to_gnu (index),
-						gnat_to_gnu
-						(Low_Bound (range)),
-						gnat_to_gnu
-						(High_Bound (range)));
-	        }
-	      break;
+	  case CE_Index_Check_Failed:
+	  case CE_Range_Check_Failed:
+	  case CE_Invalid_Data:
+	    if (Present (gnat_cond)
+		&& Nkind (gnat_cond) == N_Op_Not
+		&& Nkind (Right_Opnd (gnat_cond)) == N_In
+		&& Nkind (Right_Opnd (Right_Opnd (gnat_cond))) == N_Range)
+	      {
+		Node_Id gnat_index = Left_Opnd (Right_Opnd (gnat_cond));
+		Node_Id gnat_type = Etype (gnat_index);
+		Node_Id gnat_range = Right_Opnd (Right_Opnd (gnat_cond));
+		tree gnu_index = gnat_to_gnu (gnat_index);
+		tree gnu_low_bound = gnat_to_gnu (Low_Bound (gnat_range));
+		tree gnu_high_bound = gnat_to_gnu (High_Bound (gnat_range));
+		struct range_check_info_d *rci;
 
-	    default:
-	      break;
+		if (with_extra_info
+		    && Known_Esize (gnat_type)
+		    && UI_To_Int (Esize (gnat_type)) <= 32)
+		  gnu_result
+		    = build_call_raise_range (reason, gnat_node, gnu_index,
+					      gnu_low_bound, gnu_high_bound);
+
+		/* If loop unswitching is enabled, we try to compute invariant
+		   conditions for checks applied to iteration variables, i.e.
+		   conditions that are both independent of the variable and
+		   necessary in order for the check to fail in the course of
+		   some iteration, and prepend them to the original condition
+		   of the checks.  This will make it possible later for the
+		   loop unswitching pass to replace the loop with two loops,
+		   one of which has the checks eliminated and the other has
+		   the original checks reinstated, and a run time selection.
+		   The former loop will be suitable for vectorization.  */
+		if (flag_unswitch_loops
+		    && (gnu_low_bound = gnat_invariant_expr (gnu_low_bound))
+		    && (gnu_high_bound = gnat_invariant_expr (gnu_high_bound))
+		    && (rci = push_range_check_info (gnu_index)))
+		  {
+		    rci->low_bound = gnu_low_bound;
+		    rci->high_bound = gnu_high_bound;
+		    rci->type = gnat_to_gnu_type (gnat_type);
+		    rci->invariant_cond = build1 (SAVE_EXPR, boolean_type_node,
+						  boolean_true_node);
+		    gnu_cond = build_binary_op (TRUTH_ANDIF_EXPR,
+						boolean_type_node,
+						rci->invariant_cond,
+						gnat_to_gnu (gnat_cond));
+		  }
+	      }
+	    break;
+
+	  default:
+	    break;
 	  }
 
 	if (gnu_result == error_mark_node)
@@ -6232,10 +6390,14 @@ gnat_to_gnu (Node_Id gnat_node)
 	   the code for the call.  Handle a condition, if there is one.  */
 	if (VOID_TYPE_P (gnu_result_type))
 	  {
-	    if (Present (cond))
-	      gnu_result
-		= build3 (COND_EXPR, void_type_node, gnat_to_gnu (cond),
-			  gnu_result, alloc_stmt_list ());
+	    if (Present (gnat_cond))
+	      {
+		if (!gnu_cond)
+		  gnu_cond = gnat_to_gnu (gnat_cond);
+		gnu_result
+		  = build3 (COND_EXPR, void_type_node, gnu_cond, gnu_result,
+			    alloc_stmt_list ());
+	      }
 	  }
 	else
 	  gnu_result = build1 (NULL_EXPR, gnu_result_type, gnu_result);
@@ -6384,13 +6546,13 @@ gnat_to_gnu (Node_Id gnat_node)
   /* Now convert the result to the result type, unless we are in one of the
      following cases:
 
-       1. If this is the Name of an assignment statement or a parameter of
-	  a procedure call, return the result almost unmodified since the
-	  RHS will have to be converted to our type in that case, unless
-	  the result type has a simpler size.  Likewise if there is just
-	  a no-op unchecked conversion in-between.  Similarly, don't convert
-	  integral types that are the operands of an unchecked conversion
-	  since we need to ignore those conversions (for 'Valid).
+       1. If this is the LHS of an assignment or an actual parameter of a
+	  call, return the result almost unmodified since the RHS will have
+	  to be converted to our type in that case, unless the result type
+	  has a simpler size.  Likewise if there is just a no-op unchecked
+	  conversion in-between.  Similarly, don't convert integral types
+	  that are the operands of an unchecked conversion since we need
+	  to ignore those conversions (for 'Valid).
 
        2. If we have a label (which doesn't have any well-defined type), a
 	  field or an error, return the result almost unmodified.  Similarly,
@@ -6405,13 +6567,9 @@ gnat_to_gnu (Node_Id gnat_node)
        4. Finally, if the type of the result is already correct.  */
 
   if (Present (Parent (gnat_node))
-      && ((Nkind (Parent (gnat_node)) == N_Assignment_Statement
-	   && Name (Parent (gnat_node)) == gnat_node)
+      && (lhs_or_actual_p (gnat_node)
 	  || (Nkind (Parent (gnat_node)) == N_Unchecked_Type_Conversion
 	      && unchecked_conversion_nop (Parent (gnat_node)))
-	  || (Nkind (Parent (gnat_node)) == N_Procedure_Call_Statement
-	      && Name (Parent (gnat_node)) != gnat_node)
-	  || Nkind (Parent (gnat_node)) == N_Parameter_Association
 	  || (Nkind (Parent (gnat_node)) == N_Unchecked_Type_Conversion
 	      && !AGGREGATE_TYPE_P (gnu_result_type)
 	      && !AGGREGATE_TYPE_P (TREE_TYPE (gnu_result))))
@@ -6596,10 +6754,8 @@ add_decl_expr (tree gnu_decl, Entity_Id gnat_entity)
 	}
       /* In any case, we have to deal with our own TYPE_ADA_SIZE field.  */
       else if (TREE_CODE (gnu_decl) == TYPE_DECL
-	       && ((TREE_CODE (type) == RECORD_TYPE
-		    && !TYPE_FAT_POINTER_P (type))
-		   || TREE_CODE (type) == UNION_TYPE
-		   || TREE_CODE (type) == QUAL_UNION_TYPE))
+	       && RECORD_OR_UNION_TYPE_P (type)
+	       && !TYPE_FAT_POINTER_P (type))
 	MARK_VISITED (TYPE_ADA_SIZE (type));
     }
   else if (!DECL_EXTERNAL (gnu_decl))
@@ -8247,12 +8403,14 @@ Sloc_to_locus (Source_Ptr Sloc, location_t *locus)
       Source_File_Index file = Get_Source_File_Index (Sloc);
       Logical_Line_Number line = Get_Logical_Line_Number (Sloc);
       Column_Number column = Get_Column_Number (Sloc);
-      struct line_map *map = &line_table->maps[file - 1];
+      struct line_map *map = LINEMAPS_ORDINARY_MAP_AT (line_table, file - 1);
 
-      /* Translate the location according to the line-map.h formula.  */
-      *locus = map->start_location
-		+ ((line - map->to_line) << map->column_bits)
-		+ (column & ((1 << map->column_bits) - 1));
+      /* We can have zero if pragma Source_Reference is in effect.  */
+      if (line < 1)
+	line = 1;
+
+      /* Translate the location.  */
+      *locus = linemap_position_for_line_and_column (map, line, column);
     }
 
   ref_filename

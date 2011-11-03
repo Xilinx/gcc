@@ -56,7 +56,9 @@
 
 #define AVR_SECTION_PROGMEM (SECTION_MACH_DEP << 0)
 
-static void avr_option_override (void);
+
+/* Prototypes for local helper functions.  */
+
 static int avr_naked_function_p (tree);
 static int interrupt_function_p (tree);
 static int signal_function_p (tree);
@@ -68,53 +70,15 @@ static int sequent_regs_live (void);
 static const char *ptrreg_to_str (int);
 static const char *cond_string (enum rtx_code);
 static int avr_num_arg_regs (enum machine_mode, const_tree);
-
-static rtx avr_legitimize_address (rtx, rtx, enum machine_mode);
-static tree avr_handle_progmem_attribute (tree *, tree, tree, int, bool *);
-static tree avr_handle_fndecl_attribute (tree *, tree, tree, int, bool *);
-static tree avr_handle_fntype_attribute (tree *, tree, tree, int, bool *);
-static bool avr_assemble_integer (rtx, unsigned int, int);
-static void avr_file_start (void);
-static void avr_file_end (void);
-static bool avr_legitimate_address_p (enum machine_mode, rtx, bool);
-static void avr_asm_function_end_prologue (FILE *);
-static void avr_asm_function_begin_epilogue (FILE *);
-static bool avr_cannot_modify_jumps_p (void);
-static rtx avr_function_value (const_tree, const_tree, bool);
-static rtx avr_libcall_value (enum machine_mode, const_rtx);
-static bool avr_function_value_regno_p (const unsigned int);
-static void avr_insert_attributes (tree, tree *);
-static void avr_asm_init_sections (void);
-static unsigned int avr_section_type_flags (tree, const char *, int);
-
-static void avr_reorg (void);
-static void avr_asm_out_ctor (rtx, int);
-static void avr_asm_out_dtor (rtx, int);
-static int avr_register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
-static int avr_memory_move_cost (enum machine_mode, reg_class_t, bool);
 static int avr_operand_rtx_cost (rtx, enum machine_mode, enum rtx_code,
 				 int, bool);
-static bool avr_rtx_costs (rtx, int, int, int, int *, bool);
-static int avr_address_cost (rtx, bool);
-static bool avr_return_in_memory (const_tree, const_tree);
 static struct machine_function * avr_init_machine_status (void);
-static void avr_init_builtins (void);
-static rtx avr_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
-static rtx avr_builtin_setjmp_frame_value (void);
-static bool avr_hard_regno_scratch_ok (unsigned int);
-static unsigned int avr_case_values_threshold (void);
-static bool avr_frame_pointer_required_p (void);
-static bool avr_can_eliminate (const int, const int);
-static bool avr_class_likely_spilled_p (reg_class_t c);
-static rtx avr_function_arg (cumulative_args_t , enum machine_mode,
-			     const_tree, bool);
-static void avr_function_arg_advance (cumulative_args_t, enum machine_mode,
-				      const_tree, bool);
-static bool avr_function_ok_for_sibcall (tree, tree);
-static void avr_asm_named_section (const char *name, unsigned int flags, tree decl);
-static void avr_encode_section_info (tree, rtx, int);
-static section* avr_asm_function_rodata_section (tree);
-static section* avr_asm_select_section (tree, int, unsigned HOST_WIDE_INT);
+
+
+/* Prototypes for hook implementors if needed before their implementation.  */
+
+static bool avr_rtx_costs (rtx, int, int, int, int *, bool);
+
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -147,25 +111,6 @@ static GTY(()) section *progmem_section;
 bool avr_need_clear_bss_p = false;
 bool avr_need_copy_data_p = false;
 
-/* AVR attributes.  */
-static const struct attribute_spec avr_attribute_table[] =
-{
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
-       affects_type_identity } */
-  { "progmem",   0, 0, false, false, false,  avr_handle_progmem_attribute,
-    false },
-  { "signal",    0, 0, true,  false, false,  avr_handle_fndecl_attribute,
-    false },
-  { "interrupt", 0, 0, true,  false, false,  avr_handle_fndecl_attribute,
-    false },
-  { "naked",     0, 0, false, true,  true,   avr_handle_fntype_attribute,
-    false },
-  { "OS_task",   0, 0, false, true,  true,   avr_handle_fntype_attribute,
-    false },
-  { "OS_main",   0, 0, false, true,  true,   avr_handle_fntype_attribute,
-    false },
-  { NULL,        0, 0, false, false, false, NULL, false }
-};
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -197,8 +142,6 @@ static const struct attribute_spec avr_attribute_table[] =
 
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE avr_attribute_table
-#undef TARGET_ASM_FUNCTION_RODATA_SECTION
-#define TARGET_ASM_FUNCTION_RODATA_SECTION default_no_function_rodata_section
 #undef TARGET_INSERT_ATTRIBUTES
 #define TARGET_INSERT_ATTRIBUTES avr_insert_attributes
 #undef TARGET_SECTION_TYPE_FLAGS
@@ -274,7 +217,6 @@ static const struct attribute_spec avr_attribute_table[] =
 #undef TARGET_ASM_FUNCTION_RODATA_SECTION
 #define TARGET_ASM_FUNCTION_RODATA_SECTION avr_asm_function_rodata_section
 
-struct gcc_target targetm = TARGET_INITIALIZER;
 
 
 /* Custom function to replace string prefix.
@@ -351,6 +293,17 @@ avr_option_override (void)
 {
   flag_delete_null_pointer_checks = 0;
 
+  /* caller-save.c looks for call-clobbered hard registers that are assigned
+     to pseudos that cross calls and tries so save-restore them around calls
+     in order to reduce the number of stack slots needed.
+
+     This might leads to situations where reload is no more able to cope
+     with the challenge of AVR's very few address registers and fails to
+     perform the requested spills.  */
+  
+  if (avr_strict_X)
+    flag_caller_saves = 0;
+
   /* Unwind tables currently require a frame pointer for correctness,
      see toplev.c:process_options().  */
 
@@ -360,10 +313,6 @@ avr_option_override (void)
       && !ACCUMULATE_OUTGOING_ARGS)
     {
       flag_omit_frame_pointer = 0;
-    }
-  else
-    {
-      flag_omit_frame_pointer = (optimize >= 1);
     }
 
   avr_current_device = &avr_mcu_types[avr_mcu_index];
@@ -484,6 +433,47 @@ avr_OS_main_function_p (tree func)
   return avr_lookup_function_attribute1 (func, "OS_main");
 }
 
+
+/* Implement `ACCUMULATE_OUTGOING_ARGS'.  */
+bool
+avr_accumulate_outgoing_args (void)
+{
+  if (!cfun)
+    return TARGET_ACCUMULATE_OUTGOING_ARGS;
+
+  /* FIXME: For setjmp and in avr_builtin_setjmp_frame_value we don't know
+        what offset is correct.  In some cases it is relative to
+        virtual_outgoing_args_rtx and in others it is relative to
+        virtual_stack_vars_rtx.  For example code see
+            gcc.c-torture/execute/built-in-setjmp.c
+            gcc.c-torture/execute/builtins/sprintf-chk.c   */
+  
+  return (TARGET_ACCUMULATE_OUTGOING_ARGS
+          && !(cfun->calls_setjmp
+               || cfun->has_nonlocal_label));
+}
+
+
+/* Report contribution of accumulated outgoing arguments to stack size.  */
+
+static inline int
+avr_outgoing_args_size (void)
+{
+  return ACCUMULATE_OUTGOING_ARGS ? crtl->outgoing_args_size : 0;
+}
+
+
+/* Implement `STARTING_FRAME_OFFSET'.  */
+/* This is the offset from the frame pointer register to the first stack slot
+   that contains a variable living in the frame.  */
+
+int
+avr_starting_frame_offset (void)
+{
+  return 1 + avr_outgoing_args_size ();
+}
+
+
 /* Return the number of hard registers to push/pop in the prologue/epilogue
    of the current function, and optionally store these registers in SET.  */
 
@@ -492,7 +482,7 @@ avr_regs_to_save (HARD_REG_SET *set)
 {
   int reg, count;
   int int_or_sig_p = (interrupt_function_p (current_function_decl)
-		      || signal_function_p (current_function_decl));
+                      || signal_function_p (current_function_decl));
 
   if (set)
     CLEAR_HARD_REG_SET (*set);
@@ -508,33 +498,36 @@ avr_regs_to_save (HARD_REG_SET *set)
   for (reg = 0; reg < 32; reg++)
     {
       /* Do not push/pop __tmp_reg__, __zero_reg__, as well as
-	 any global register variables.  */
+         any global register variables.  */
       if (fixed_regs[reg])
-	continue;
+        continue;
 
       if ((int_or_sig_p && !current_function_is_leaf && call_used_regs[reg])
-	  || (df_regs_ever_live_p (reg)
-	      && (int_or_sig_p || !call_used_regs[reg])
-	      && !(frame_pointer_needed
-		   && (reg == REG_Y || reg == (REG_Y+1)))))
-	{
-	  if (set)
-	    SET_HARD_REG_BIT (*set, reg);
-	  count++;
-	}
+          || (df_regs_ever_live_p (reg)
+              && (int_or_sig_p || !call_used_regs[reg])
+              /* Don't record frame pointer registers here.  They are treated
+                 indivitually in prologue.  */
+              && !(frame_pointer_needed
+                   && (reg == REG_Y || reg == (REG_Y+1)))))
+        {
+          if (set)
+            SET_HARD_REG_BIT (*set, reg);
+          count++;
+        }
     }
   return count;
 }
 
 /* Return true if register FROM can be eliminated via register TO.  */
 
-bool
+static bool
 avr_can_eliminate (const int from, const int to)
 {
   return ((from == ARG_POINTER_REGNUM && to == FRAME_POINTER_REGNUM)
-	  || ((from == FRAME_POINTER_REGNUM 
-	       || from == FRAME_POINTER_REGNUM + 1)
-	      && !frame_pointer_needed));
+          || (frame_pointer_needed && to == FRAME_POINTER_REGNUM)
+          || ((from == FRAME_POINTER_REGNUM 
+               || from == FRAME_POINTER_REGNUM + 1)
+              && !frame_pointer_needed));
 }
 
 /* Compute offset between arg_pointer and frame_pointer.  */
@@ -548,9 +541,10 @@ avr_initial_elimination_offset (int from, int to)
     {
       int offset = frame_pointer_needed ? 2 : 0;
       int avr_pc_size = AVR_HAVE_EIJMP_EICALL ? 3 : 2;
-
+      
       offset += avr_regs_to_save (NULL);
-      return get_frame_size () + (avr_pc_size) + 1 + offset;
+      return (get_frame_size () + avr_outgoing_args_size()
+              + avr_pc_size + 1 + offset);
     }
 }
 
@@ -559,10 +553,11 @@ avr_initial_elimination_offset (int from, int to)
    Using saved frame = virtual_stack_vars_rtx - STARTING_FRAME_OFFSET
    avoids creating add/sub of offset in nonlocal goto and setjmp.  */
 
-rtx avr_builtin_setjmp_frame_value (void)
+static rtx
+avr_builtin_setjmp_frame_value (void)
 {
   return gen_rtx_MINUS (Pmode, virtual_stack_vars_rtx, 
-			 gen_int_mode (STARTING_FRAME_OFFSET, Pmode));
+                        gen_int_mode (STARTING_FRAME_OFFSET, Pmode));
 }
 
 /* Return contents of MEM at frame pointer + stack size + 1 (+2 if 3 byte PC).
@@ -596,12 +591,13 @@ int
 avr_simple_epilogue (void)
 {
   return (! frame_pointer_needed
-	  && get_frame_size () == 0
-	  && avr_regs_to_save (NULL) == 0
-	  && ! interrupt_function_p (current_function_decl)
-	  && ! signal_function_p (current_function_decl)
-	  && ! avr_naked_function_p (current_function_decl)
-	  && ! TREE_THIS_VOLATILE (current_function_decl));
+          && get_frame_size () == 0
+          && avr_outgoing_args_size() == 0
+          && avr_regs_to_save (NULL) == 0
+          && ! interrupt_function_p (current_function_decl)
+          && ! signal_function_p (current_function_decl)
+          && ! avr_naked_function_p (current_function_decl)
+          && ! TREE_THIS_VOLATILE (current_function_decl));
 }
 
 /* This function checks sequence of live registers.  */
@@ -706,17 +702,238 @@ emit_push_byte (unsigned regno, bool frame_related_p)
   cfun->machine->stack_usage++;
 }
 
+static void
+avr_prologue_setup_frame (HOST_WIDE_INT size, HARD_REG_SET set)
+{
+  rtx insn;
+  bool isr_p = cfun->machine->is_interrupt || cfun->machine->is_signal;
+  int live_seq = sequent_regs_live ();
+
+  bool minimize = (TARGET_CALL_PROLOGUES
+                   && live_seq
+                   && !isr_p
+                   && !cfun->machine->is_OS_task
+                   && !cfun->machine->is_OS_main);
+  
+  if (minimize
+      && (frame_pointer_needed
+          || avr_outgoing_args_size() > 8
+          || (AVR_2_BYTE_PC && live_seq > 6)
+          || live_seq > 7)) 
+    {
+      rtx pattern;
+      int first_reg, reg, offset;
+
+      emit_move_insn (gen_rtx_REG (HImode, REG_X), 
+                      gen_int_mode (size, HImode));
+
+      pattern = gen_call_prologue_saves (gen_int_mode (live_seq, HImode),
+                                         gen_int_mode (live_seq+size, HImode));
+      insn = emit_insn (pattern);
+      RTX_FRAME_RELATED_P (insn) = 1;
+
+      /* Describe the effect of the unspec_volatile call to prologue_saves.
+         Note that this formulation assumes that add_reg_note pushes the
+         notes to the front.  Thus we build them in the reverse order of
+         how we want dwarf2out to process them.  */
+
+      /* The function does always set frame_pointer_rtx, but whether that
+         is going to be permanent in the function is frame_pointer_needed.  */
+
+      add_reg_note (insn, REG_CFA_ADJUST_CFA,
+                    gen_rtx_SET (VOIDmode, (frame_pointer_needed
+                                            ? frame_pointer_rtx
+                                            : stack_pointer_rtx),
+                                 plus_constant (stack_pointer_rtx,
+                                                -(size + live_seq))));
+
+      /* Note that live_seq always contains r28+r29, but the other
+         registers to be saved are all below 18.  */
+
+      first_reg = 18 - (live_seq - 2);
+
+      for (reg = 29, offset = -live_seq + 1;
+           reg >= first_reg;
+           reg = (reg == 28 ? 17 : reg - 1), ++offset)
+        {
+          rtx m, r;
+
+          m = gen_rtx_MEM (QImode, plus_constant (stack_pointer_rtx, offset));
+          r = gen_rtx_REG (QImode, reg);
+          add_reg_note (insn, REG_CFA_OFFSET, gen_rtx_SET (VOIDmode, m, r));
+        }
+
+      cfun->machine->stack_usage += size + live_seq;
+    }
+  else /* !minimize */
+    {
+      int reg;
+      
+      for (reg = 0; reg < 32; ++reg)
+        if (TEST_HARD_REG_BIT (set, reg))
+          emit_push_byte (reg, true);
+
+      if (frame_pointer_needed
+          && (!(cfun->machine->is_OS_task || cfun->machine->is_OS_main)))
+        {
+          /* Push frame pointer.  Always be consistent about the
+             ordering of pushes -- epilogue_restores expects the
+             register pair to be pushed low byte first.  */
+          
+          emit_push_byte (REG_Y, true);
+          emit_push_byte (REG_Y + 1, true);
+        }
+          
+      if (frame_pointer_needed
+          && size == 0)
+        {
+          insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+          RTX_FRAME_RELATED_P (insn) = 1;
+        }
+      
+      if (size != 0)
+        {
+          /*  Creating a frame can be done by direct manipulation of the
+              stack or via the frame pointer. These two methods are:
+                  fp =  sp
+                  fp -= size
+                  sp =  fp
+              or
+                  sp -= size
+                  fp =  sp    (*)
+              the optimum method depends on function type, stack and
+              frame size.  To avoid a complex logic, both methods are
+              tested and shortest is selected.
+
+              There is also the case where SIZE != 0 and no frame pointer is
+              needed; this can occur if ACCUMULATE_OUTGOING_ARGS is on.
+              In that case, insn (*) is not needed in that case.
+              We use the X register as scratch. This is save because in X
+              is call-clobbered.
+                 In an interrupt routine, the case of SIZE != 0 together with
+              !frame_pointer_needed can only occur if the function is not a
+              leaf function and thus X has already been saved.  */
+              
+          rtx fp_plus_insns, fp, my_fp;
+          rtx sp_minus_size = plus_constant (stack_pointer_rtx, -size);
+
+          gcc_assert (frame_pointer_needed
+                      || !isr_p
+                      || !current_function_is_leaf);
+          
+          fp = my_fp = (frame_pointer_needed
+                        ? frame_pointer_rtx
+                        : gen_rtx_REG (Pmode, REG_X));
+          
+          if (AVR_HAVE_8BIT_SP)
+            {
+              /* The high byte (r29) does not change:
+                 Prefer SUBI (1 cycle) over ABIW (2 cycles, same size).  */
+
+              my_fp = simplify_gen_subreg (QImode, fp, Pmode, 0);
+            }
+
+          /************  Method 1: Adjust frame pointer  ************/
+          
+          start_sequence ();
+
+          /* Normally, the dwarf2out frame-related-expr interpreter does
+             not expect to have the CFA change once the frame pointer is
+             set up.  Thus, we avoid marking the move insn below and
+             instead indicate that the entire operation is complete after
+             the frame pointer subtraction is done.  */
+          
+          insn = emit_move_insn (fp, stack_pointer_rtx);
+          if (!frame_pointer_needed)
+            RTX_FRAME_RELATED_P (insn) = 1;
+
+          insn = emit_move_insn (my_fp, plus_constant (my_fp, -size));
+          RTX_FRAME_RELATED_P (insn) = 1;
+          
+          if (frame_pointer_needed)
+            {
+              add_reg_note (insn, REG_CFA_ADJUST_CFA,
+                            gen_rtx_SET (VOIDmode, fp, sp_minus_size));
+            }
+          
+          /* Copy to stack pointer.  Note that since we've already
+             changed the CFA to the frame pointer this operation
+             need not be annotated if frame pointer is needed.  */
+              
+          if (AVR_HAVE_8BIT_SP)
+            {
+              insn = emit_move_insn (stack_pointer_rtx, fp);
+            }
+          else if (TARGET_NO_INTERRUPTS 
+                   || isr_p
+                   || cfun->machine->is_OS_main)
+            {
+              rtx irqs_are_on = GEN_INT (!!cfun->machine->is_interrupt);
+              
+              insn = emit_insn (gen_movhi_sp_r (stack_pointer_rtx,
+                                                fp, irqs_are_on));
+            }
+          else
+            {
+              insn = emit_move_insn (stack_pointer_rtx, fp);
+            }
+
+          if (!frame_pointer_needed)
+            RTX_FRAME_RELATED_P (insn) = 1;
+
+          fp_plus_insns = get_insns ();
+          end_sequence ();
+          
+          /************  Method 2: Adjust Stack pointer  ************/
+
+          /* Stack adjustment by means of RCALL . and/or PUSH __TMP_REG__
+             can only handle specific offsets.  */
+          
+          if (avr_sp_immediate_operand (gen_int_mode (-size, HImode), HImode))
+            {
+              rtx sp_plus_insns;
+              
+              start_sequence ();
+
+              insn = emit_move_insn (stack_pointer_rtx, sp_minus_size);
+              RTX_FRAME_RELATED_P (insn) = 1;
+
+              if (frame_pointer_needed)
+                {
+                  insn = emit_move_insn (fp, stack_pointer_rtx);
+                  RTX_FRAME_RELATED_P (insn) = 1;
+                }
+
+              sp_plus_insns = get_insns ();
+              end_sequence ();
+
+              /************ Use shortest method  ************/
+                  
+              emit_insn (get_sequence_length (sp_plus_insns)
+                         < get_sequence_length (fp_plus_insns)
+                         ? sp_plus_insns
+                         : fp_plus_insns);
+            }
+          else
+            {
+              emit_insn (fp_plus_insns);
+            }
+
+          cfun->machine->stack_usage += size;
+        } /* !minimize && size != 0 */
+    } /* !minimize */
+}
+
 
 /*  Output function prologue.  */
 
 void
 expand_prologue (void)
 {
-  int live_seq;
   HARD_REG_SET set;
-  int minimize;
-  HOST_WIDE_INT size = get_frame_size();
-  rtx insn;
+  HOST_WIDE_INT size;
+
+  size = get_frame_size() + avr_outgoing_args_size();
   
   /* Init cfun->machine.  */
   cfun->machine->is_naked = avr_naked_function_p (current_function_decl);
@@ -733,20 +950,13 @@ expand_prologue (void)
     }
 
   avr_regs_to_save (&set);
-  live_seq = sequent_regs_live ();
-  minimize = (TARGET_CALL_PROLOGUES
-	      && !cfun->machine->is_interrupt
-	      && !cfun->machine->is_signal
-	      && !cfun->machine->is_OS_task
-	      && !cfun->machine->is_OS_main
-	      && live_seq);
 
   if (cfun->machine->is_interrupt || cfun->machine->is_signal)
     {
       /* Enable interrupts.  */
       if (cfun->machine->is_interrupt)
-	emit_insn (gen_enable_interrupt ());
-	
+        emit_insn (gen_enable_interrupt ());
+        
       /* Push zero reg.  */
       emit_push_byte (ZERO_REGNO, true);
 
@@ -765,189 +975,19 @@ expand_prologue (void)
           && TEST_HARD_REG_BIT (set, REG_Z + 1))
         {
           emit_move_insn (tmp_reg_rtx,
-			  gen_rtx_MEM (QImode, GEN_INT (RAMPZ_ADDR)));
-	  emit_push_byte (TMP_REGNO, false);
+                          gen_rtx_MEM (QImode, GEN_INT (RAMPZ_ADDR)));
+          emit_push_byte (TMP_REGNO, false);
         }
-	
+        
       /* Clear zero reg.  */
       emit_move_insn (zero_reg_rtx, const0_rtx);
 
       /* Prevent any attempt to delete the setting of ZERO_REG!  */
       emit_use (zero_reg_rtx);
     }
-  if (minimize && (frame_pointer_needed 
-		   || (AVR_2_BYTE_PC && live_seq > 6)
-		   || live_seq > 7)) 
-    {
-      int first_reg, reg, offset;
 
-      emit_move_insn (gen_rtx_REG (HImode, REG_X), 
-                      gen_int_mode (size, HImode));
-
-      insn = emit_insn (gen_call_prologue_saves
-			(gen_int_mode (live_seq, HImode),
-		         gen_int_mode (size + live_seq, HImode)));
-      RTX_FRAME_RELATED_P (insn) = 1;
-
-      /* Describe the effect of the unspec_volatile call to prologue_saves.
-	 Note that this formulation assumes that add_reg_note pushes the
-	 notes to the front.  Thus we build them in the reverse order of
-	 how we want dwarf2out to process them.  */
-
-      /* The function does always set frame_pointer_rtx, but whether that
-	 is going to be permanent in the function is frame_pointer_needed.  */
-      add_reg_note (insn, REG_CFA_ADJUST_CFA,
-		    gen_rtx_SET (VOIDmode,
-				 (frame_pointer_needed
-				  ? frame_pointer_rtx : stack_pointer_rtx),
-				 plus_constant (stack_pointer_rtx,
-						-(size + live_seq))));
-
-      /* Note that live_seq always contains r28+r29, but the other
-	 registers to be saved are all below 18.  */
-      first_reg = 18 - (live_seq - 2);
-
-      for (reg = 29, offset = -live_seq + 1;
-	   reg >= first_reg;
-	   reg = (reg == 28 ? 17 : reg - 1), ++offset)
-	{
-	  rtx m, r;
-
-	  m = gen_rtx_MEM (QImode, plus_constant (stack_pointer_rtx, offset));
-	  r = gen_rtx_REG (QImode, reg);
-	  add_reg_note (insn, REG_CFA_OFFSET, gen_rtx_SET (VOIDmode, m, r));
-	}
-
-      cfun->machine->stack_usage += size + live_seq;
-    }
-  else
-    {
-      int reg;
-      for (reg = 0; reg < 32; ++reg)
-        if (TEST_HARD_REG_BIT (set, reg))
-	  emit_push_byte (reg, true);
-
-      if (frame_pointer_needed)
-        {
-	  if (!(cfun->machine->is_OS_task || cfun->machine->is_OS_main))
-	    {
-              /* Push frame pointer.  Always be consistent about the
-		 ordering of pushes -- epilogue_restores expects the
-		 register pair to be pushed low byte first.  */
-	      emit_push_byte (REG_Y, true);
-	      emit_push_byte (REG_Y + 1, true);
-	    }
-
-          if (!size)
-            {
-              insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
-              RTX_FRAME_RELATED_P (insn) = 1;
-            }
-          else
-            {
-              /*  Creating a frame can be done by direct manipulation of the
-                  stack or via the frame pointer. These two methods are:
-                    fp=sp
-                    fp-=size
-                    sp=fp
-                  OR
-                    sp-=size
-                    fp=sp
-              the optimum method depends on function type, stack and frame size.
-              To avoid a complex logic, both methods are tested and shortest
-              is selected.  */
-              rtx myfp;
-	      rtx fp_plus_insns; 
-
-              if (AVR_HAVE_8BIT_SP)
-                {
-                  /* The high byte (r29) doesn't change.  Prefer 'subi'
-		     (1 cycle) over 'sbiw' (2 cycles, same size).  */
-                  myfp = gen_rtx_REG (QImode, FRAME_POINTER_REGNUM);
-                }
-              else 
-                {
-                  /*  Normal sized addition.  */
-                  myfp = frame_pointer_rtx;
-                }
-
-	      /* Method 1-Adjust frame pointer.  */
-	      start_sequence ();
-
-	      /* Normally the dwarf2out frame-related-expr interpreter does
-		 not expect to have the CFA change once the frame pointer is
-		 set up.  Thus we avoid marking the move insn below and
-		 instead indicate that the entire operation is complete after
-		 the frame pointer subtraction is done.  */
-
-              emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
-
-              insn = emit_move_insn (myfp, plus_constant (myfp, -size));
-              RTX_FRAME_RELATED_P (insn) = 1;
-	      add_reg_note (insn, REG_CFA_ADJUST_CFA,
-			    gen_rtx_SET (VOIDmode, frame_pointer_rtx,
-					 plus_constant (stack_pointer_rtx,
-							-size)));
-
-	      /* Copy to stack pointer.  Note that since we've already
-		 changed the CFA to the frame pointer this operation
-		 need not be annotated at all.  */
-	      if (AVR_HAVE_8BIT_SP)
-		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
-		}
-	      else if (TARGET_NO_INTERRUPTS 
-		       || cfun->machine->is_signal
-		       || cfun->machine->is_OS_main)
-		{
-		  emit_insn (gen_movhi_sp_r_irq_off (stack_pointer_rtx, 
-						     frame_pointer_rtx));
-		}
-	      else if (cfun->machine->is_interrupt)
-		{
-		  emit_insn (gen_movhi_sp_r_irq_on (stack_pointer_rtx, 
-						    frame_pointer_rtx));
-		}
-	      else
-		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
-		}
-
-	      fp_plus_insns = get_insns ();
-	      end_sequence ();
-
-	      /* Method 2-Adjust Stack pointer.  */
-              if (size <= 6)
-                {
-		  rtx sp_plus_insns;
-
-		  start_sequence ();
-
-	          insn = plus_constant (stack_pointer_rtx, -size);
-		  insn = emit_move_insn (stack_pointer_rtx, insn);
-		  RTX_FRAME_RELATED_P (insn) = 1;
-		  
-		  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
-		  RTX_FRAME_RELATED_P (insn) = 1;
-
-		  sp_plus_insns = get_insns ();
-		  end_sequence ();
-
-		  /* Use shortest method.  */
-		  if (get_sequence_length (sp_plus_insns) 
-		      < get_sequence_length (fp_plus_insns))
-		    emit_insn (sp_plus_insns);
-		  else
-		    emit_insn (fp_plus_insns);
-                }
-	      else
-		emit_insn (fp_plus_insns);
-
-	      cfun->machine->stack_usage += size;
-            }
-        }
-    }
-
+  avr_prologue_setup_frame (size, set);
+  
   if (flag_stack_usage_info)
     current_function_static_stack_size = cfun->machine->stack_usage;
 }
@@ -974,6 +1014,11 @@ avr_asm_function_end_prologue (FILE *file)
       else
         fputs ("/* prologue: function */\n", file);
     }
+
+  if (ACCUMULATE_OUTGOING_ARGS)
+    fprintf (file, "/* outgoing args size = %d */\n",
+             avr_outgoing_args_size());
+
   fprintf (file, "/* frame size = " HOST_WIDE_INT_PRINT_DEC " */\n",
                  get_frame_size());
   fprintf (file, "/* stack size = %d */\n",
@@ -1019,7 +1064,10 @@ expand_epilogue (bool sibcall_p)
   int live_seq;
   HARD_REG_SET set;      
   int minimize;
-  HOST_WIDE_INT size = get_frame_size();
+  HOST_WIDE_INT size;
+  bool isr_p = cfun->machine->is_interrupt || cfun->machine->is_signal;
+
+  size = get_frame_size() + avr_outgoing_args_size();
   
   /* epilogue: naked  */
   if (cfun->machine->is_naked)
@@ -1032,145 +1080,158 @@ expand_epilogue (bool sibcall_p)
 
   avr_regs_to_save (&set);
   live_seq = sequent_regs_live ();
-  minimize = (TARGET_CALL_PROLOGUES
-	      && !cfun->machine->is_interrupt
-	      && !cfun->machine->is_signal
-	      && !cfun->machine->is_OS_task
-	      && !cfun->machine->is_OS_main
-	      && live_seq);
   
-  if (minimize && (frame_pointer_needed || live_seq > 4))
+  minimize = (TARGET_CALL_PROLOGUES
+              && live_seq
+              && !isr_p
+              && !cfun->machine->is_OS_task
+              && !cfun->machine->is_OS_main);
+  
+  if (minimize
+      && (live_seq > 4
+          || frame_pointer_needed
+          || size))
     {
-      if (frame_pointer_needed)
-	{
-          /*  Get rid of frame.  */
-	  emit_move_insn(frame_pointer_rtx,
-                         gen_rtx_PLUS (HImode, frame_pointer_rtx,
-                                       gen_int_mode (size, HImode)));
-	}
-      else
-	{
-          emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
-	}
-	
-      emit_insn (gen_epilogue_restores (gen_int_mode (live_seq, HImode)));
-    }
-  else
-    {
-      if (frame_pointer_needed)
-	{
-	  if (size)
-	    {
-              /* Try two methods to adjust stack and select shortest.  */
-	      rtx myfp;
-	      rtx fp_plus_insns;
-
-	      if (AVR_HAVE_8BIT_SP)
-                {
-                  /* The high byte (r29) doesn't change - prefer 'subi' 
-                     (1 cycle) over 'sbiw' (2 cycles, same size).  */
-                  myfp = gen_rtx_REG (QImode, FRAME_POINTER_REGNUM);
-                }
-              else 
-                {
-                  /* Normal sized addition.  */
-                  myfp = frame_pointer_rtx;
-                }
-	      
-              /* Method 1-Adjust frame pointer.  */
-	      start_sequence ();
-
-	      emit_move_insn (myfp, plus_constant (myfp, size));
-
-	      /* Copy to stack pointer.  */
-	      if (AVR_HAVE_8BIT_SP)
-		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
-		}
-	      else if (TARGET_NO_INTERRUPTS 
-		       || cfun->machine->is_signal)
-		{
-		  emit_insn (gen_movhi_sp_r_irq_off (stack_pointer_rtx, 
-						     frame_pointer_rtx));
-		}
-	      else if (cfun->machine->is_interrupt)
-		{
-		  emit_insn (gen_movhi_sp_r_irq_on (stack_pointer_rtx, 
-						    frame_pointer_rtx));
-		}
-	      else
-		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
-		}
-
-	      fp_plus_insns = get_insns ();
-	      end_sequence ();	      
-
-              /* Method 2-Adjust Stack pointer.  */
-              if (size <= 5)
-                {
-		  rtx sp_plus_insns;
-
-		  start_sequence ();
-
-		  emit_move_insn (stack_pointer_rtx,
-				  plus_constant (stack_pointer_rtx, size));
-
-		  sp_plus_insns = get_insns ();
-		  end_sequence ();
-
-		  /* Use shortest method.  */
-		  if (get_sequence_length (sp_plus_insns) 
-		      < get_sequence_length (fp_plus_insns))
-		    emit_insn (sp_plus_insns);
-		  else
-		    emit_insn (fp_plus_insns);
-                }
-	      else
-		emit_insn (fp_plus_insns);
-            }
-	  if (!(cfun->machine->is_OS_task || cfun->machine->is_OS_main))
-	    {
-              /* Restore previous frame_pointer.  See expand_prologue for
-		 rationale for not using pophi.  */
-	      emit_pop_byte (REG_Y + 1);
-	      emit_pop_byte (REG_Y);
-	    }
-	}
-
-      /* Restore used registers.  */
-      for (reg = 31; reg >= 0; --reg)
-        if (TEST_HARD_REG_BIT (set, reg))
-          emit_pop_byte (reg);
-
-      if (cfun->machine->is_interrupt || cfun->machine->is_signal)
-        {
-          /* Restore RAMPZ using tmp reg as scratch.  */
-	  if (AVR_HAVE_RAMPZ 
-              && TEST_HARD_REG_BIT (set, REG_Z)
-	      && TEST_HARD_REG_BIT (set, REG_Z + 1))
-            {
-	      emit_pop_byte (TMP_REGNO);
-	      emit_move_insn (gen_rtx_MEM (QImode, GEN_INT (RAMPZ_ADDR)), 
-			      tmp_reg_rtx);
-	    }
-
-          /* Restore SREG using tmp reg as scratch.  */
-          emit_pop_byte (TMP_REGNO);
+      /*  Get rid of frame.  */
       
-          emit_move_insn (gen_rtx_MEM (QImode, GEN_INT (SREG_ADDR)), 
-			  tmp_reg_rtx);
-
-          /* Restore tmp REG.  */
-          emit_pop_byte (TMP_REGNO);
-
-          /* Restore zero REG.  */
-          emit_pop_byte (ZERO_REGNO);
+      if (!frame_pointer_needed)
+        {
+          emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
         }
 
-      if (!sibcall_p)
-        emit_jump_insn (gen_return ());
+      if (size)
+        {
+          emit_move_insn (frame_pointer_rtx,
+                          plus_constant (frame_pointer_rtx, size));
+        }
+        
+      emit_insn (gen_epilogue_restores (gen_int_mode (live_seq, HImode)));
+      return;
     }
+      
+  if (size)
+    {
+      /* Try two methods to adjust stack and select shortest.  */
+          
+      rtx fp, my_fp;
+      rtx fp_plus_insns;
+
+      gcc_assert (frame_pointer_needed
+                  || !isr_p
+                  || !current_function_is_leaf);
+      
+      fp = my_fp = (frame_pointer_needed
+                    ? frame_pointer_rtx
+                    : gen_rtx_REG (Pmode, REG_X));
+
+      if (AVR_HAVE_8BIT_SP)
+        {
+          /* The high byte (r29) does not change:
+             Prefer SUBI (1 cycle) over SBIW (2 cycles).  */
+                  
+          my_fp = simplify_gen_subreg (QImode, fp, Pmode, 0);
+        }
+              
+      /********** Method 1: Adjust fp register  **********/
+              
+      start_sequence ();
+
+      if (!frame_pointer_needed)
+        emit_move_insn (fp, stack_pointer_rtx);
+
+      emit_move_insn (my_fp, plus_constant (my_fp, size));
+
+      /* Copy to stack pointer.  */
+              
+      if (AVR_HAVE_8BIT_SP)
+        {
+          emit_move_insn (stack_pointer_rtx, fp);
+        }
+      else if (TARGET_NO_INTERRUPTS 
+               || isr_p
+               || cfun->machine->is_OS_main)
+        {
+          rtx irqs_are_on = GEN_INT (!!cfun->machine->is_interrupt);
+          
+          emit_insn (gen_movhi_sp_r (stack_pointer_rtx, fp, irqs_are_on));
+        }
+      else
+        {
+          emit_move_insn (stack_pointer_rtx, fp);
+        }
+
+      fp_plus_insns = get_insns ();
+      end_sequence ();        
+
+      /********** Method 2: Adjust Stack pointer  **********/
+      
+      if (avr_sp_immediate_operand (gen_int_mode (size, HImode), HImode))
+        {
+          rtx sp_plus_insns;
+
+          start_sequence ();
+
+          emit_move_insn (stack_pointer_rtx,
+                          plus_constant (stack_pointer_rtx, size));
+
+          sp_plus_insns = get_insns ();
+          end_sequence ();
+
+          /************ Use shortest method  ************/
+          
+          emit_insn (get_sequence_length (sp_plus_insns)
+                     < get_sequence_length (fp_plus_insns)
+                     ? sp_plus_insns
+                     : fp_plus_insns);
+        }
+      else
+        emit_insn (fp_plus_insns);
+    } /* size != 0 */
+          
+  if (frame_pointer_needed
+      && !(cfun->machine->is_OS_task || cfun->machine->is_OS_main))
+    {
+      /* Restore previous frame_pointer.  See expand_prologue for
+         rationale for not using pophi.  */
+              
+      emit_pop_byte (REG_Y + 1);
+      emit_pop_byte (REG_Y);
+    }
+
+  /* Restore used registers.  */
+  
+  for (reg = 31; reg >= 0; --reg)
+    if (TEST_HARD_REG_BIT (set, reg))
+      emit_pop_byte (reg);
+
+  if (isr_p)
+    {
+      /* Restore RAMPZ using tmp reg as scratch.  */
+      
+      if (AVR_HAVE_RAMPZ 
+          && TEST_HARD_REG_BIT (set, REG_Z)
+          && TEST_HARD_REG_BIT (set, REG_Z + 1))
+        {
+          emit_pop_byte (TMP_REGNO);
+          emit_move_insn (gen_rtx_MEM (QImode, GEN_INT (RAMPZ_ADDR)), 
+                          tmp_reg_rtx);
+        }
+
+      /* Restore SREG using tmp reg as scratch.  */
+      
+      emit_pop_byte (TMP_REGNO);
+      emit_move_insn (gen_rtx_MEM (QImode, GEN_INT (SREG_ADDR)), 
+                      tmp_reg_rtx);
+
+      /* Restore tmp REG.  */
+      emit_pop_byte (TMP_REGNO);
+
+      /* Restore zero REG.  */
+      emit_pop_byte (ZERO_REGNO);
+    }
+
+  if (!sibcall_p)
+    emit_jump_insn (gen_return ());
 }
 
 /* Output summary messages at beginning of function epilogue.  */
@@ -1205,11 +1266,12 @@ avr_cannot_modify_jumps_p (void)
 /* Helper function for `avr_legitimate_address_p'.  */
 
 static inline bool
-avr_reg_ok_for_addr_p (rtx reg, addr_space_t as ATTRIBUTE_UNUSED, int strict)
+avr_reg_ok_for_addr_p (rtx reg, addr_space_t as ATTRIBUTE_UNUSED,
+                       RTX_CODE outer_code, bool strict)
 {
   return (REG_P (reg)
           && (avr_regno_mode_code_ok_for_base_p (REGNO (reg),
-                                                 QImode, MEM, UNKNOWN)
+                                                 QImode, outer_code, UNKNOWN)
               || (!strict
                   && REGNO (reg) >= FIRST_PSEUDO_REGISTER)));
 }
@@ -1221,58 +1283,69 @@ avr_reg_ok_for_addr_p (rtx reg, addr_space_t as ATTRIBUTE_UNUSED, int strict)
 static bool
 avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
-  reg_class_t r = NO_REGS;
+  bool ok = CONSTANT_ADDRESS_P (x);
   
-  if (REG_P (x)
-      && avr_reg_ok_for_addr_p (x, ADDR_SPACE_GENERIC, strict))
+  switch (GET_CODE (x))
     {
-      r = POINTER_REGS;
-    }
-  else if (CONSTANT_ADDRESS_P (x))
-    {
-      r = ALL_REGS;
-    }
-  else if (GET_CODE (x) == PLUS
-           && REG_P (XEXP (x, 0))
-           && CONST_INT_P (XEXP (x, 1))
-           && INTVAL (XEXP (x, 1)) >= 0)
-    {
-      rtx reg = XEXP (x, 0);
-      bool fit = INTVAL (XEXP (x, 1)) <= MAX_LD_OFFSET (mode);
-      
-      if (fit)
-        {
-          if (! strict
-              || REGNO (reg) == REG_X
-              || REGNO (reg) == REG_Y
-              || REGNO (reg) == REG_Z)
-            {
-              r = BASE_POINTER_REGS;
-            }
-          
-          if (reg == frame_pointer_rtx
-              || reg == arg_pointer_rtx)
-            {
-              r = BASE_POINTER_REGS;
-            }
-        }
-      else if (frame_pointer_needed && reg == frame_pointer_rtx)
-        {
-          r = POINTER_Y_REGS;
-        }
-    }
-  else if ((GET_CODE (x) == PRE_DEC || GET_CODE (x) == POST_INC)
-           && REG_P (XEXP (x, 0))
-           && avr_reg_ok_for_addr_p (XEXP (x, 0), ADDR_SPACE_GENERIC, strict))
-    {
-      r = POINTER_REGS;
-    }
+    case REG:
+      ok = avr_reg_ok_for_addr_p (x, ADDR_SPACE_GENERIC,
+                                  MEM, strict);
 
+      if (strict
+          && DImode == mode
+          && REG_X == REGNO (x))
+        {
+          ok = false;
+        }
+      break;
+
+    case POST_INC:
+    case PRE_DEC:
+      ok = avr_reg_ok_for_addr_p (XEXP (x, 0), ADDR_SPACE_GENERIC,
+                                  GET_CODE (x), strict);
+      break;
+
+    case PLUS:
+      {
+        rtx reg = XEXP (x, 0);
+        rtx op1 = XEXP (x, 1);
+        
+        if (REG_P (reg)
+            && CONST_INT_P (op1)
+            && INTVAL (op1) >= 0)
+          {
+            bool fit = IN_RANGE (INTVAL (op1), 0, MAX_LD_OFFSET (mode));
+
+            if (fit)
+              {
+                ok = (! strict
+                      || avr_reg_ok_for_addr_p (reg, ADDR_SPACE_GENERIC,
+                                                PLUS, strict));
+          
+                if (reg == frame_pointer_rtx
+                    || reg == arg_pointer_rtx)
+                  {
+                    ok = true;
+                  }
+              }
+            else if (frame_pointer_needed
+                     && reg == frame_pointer_rtx)
+              {
+                ok = true;
+              }
+          }
+      }
+      break;
+      
+    default:
+      break;
+    }
+  
   if (avr_log.legitimate_address_p)
     {
-      avr_edump ("\n%?: ret=%d=%R, mode=%m strict=%d "
+      avr_edump ("\n%?: ret=%d, mode=%m strict=%d "
                  "reload_completed=%d reload_in_progress=%d %s:",
-                 !!r, r, mode, strict, reload_completed, reload_in_progress,
+                 ok, mode, strict, reload_completed, reload_in_progress,
                  reg_renumber ? "(reg_renumber)" : "");
       
       if (GET_CODE (x) == PLUS
@@ -1288,7 +1361,7 @@ avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
       avr_edump ("\n%r\n", x);
     }
   
-  return r == NO_REGS ? 0 : (int)r;
+  return ok;
 }
 
 /* Attempts to replace X with a valid
@@ -1336,11 +1409,13 @@ avr_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
    than 63 bytes or for R++ or --R addressing.  */
 
 rtx
-avr_legitimize_reload_address (rtx x, enum machine_mode mode,
+avr_legitimize_reload_address (rtx *px, enum machine_mode mode,
                                int opnum, int type, int addr_type,
                                int ind_levels ATTRIBUTE_UNUSED,
                                rtx (*mk_memloc)(rtx,int))
 {
+  rtx x = *px;
+  
   if (avr_log.legitimize_reload_address)
     avr_edump ("\n%?:%m %r\n", mode, x);
   
@@ -1352,7 +1427,7 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
                    opnum, RELOAD_OTHER);
       
       if (avr_log.legitimize_reload_address)
-        avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+        avr_edump (" RCLASS.1 = %R\n IN = %r\n OUT = %r\n",
                    POINTER_REGS, XEXP (x, 0), XEXP (x, 0));
       
       return x;
@@ -1378,7 +1453,7 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
                            1, addr_type);
               
               if (avr_log.legitimize_reload_address)
-                avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+                avr_edump (" RCLASS.2 = %R\n IN = %r\n OUT = %r\n",
                            POINTER_REGS, XEXP (mem, 0), NULL_RTX);
               
               push_reload (mem, NULL_RTX, &XEXP (x, 0), NULL,
@@ -1386,7 +1461,7 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
                            opnum, type);
               
               if (avr_log.legitimize_reload_address)
-                avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+                avr_edump (" RCLASS.2 = %R\n IN = %r\n OUT = %r\n",
                            BASE_POINTER_REGS, mem, NULL_RTX);
               
               return x;
@@ -1395,12 +1470,12 @@ avr_legitimize_reload_address (rtx x, enum machine_mode mode,
       else if (! (frame_pointer_needed
                   && XEXP (x, 0) == frame_pointer_rtx))
         {
-          push_reload (x, NULL_RTX, &x, NULL,
+          push_reload (x, NULL_RTX, px, NULL,
                        POINTER_REGS, GET_MODE (x), VOIDmode, 0, 0,
                        opnum, type);
           
           if (avr_log.legitimize_reload_address)
-            avr_edump (" RCLASS = %R\n IN = %r\n OUT = %r\n",
+            avr_edump (" RCLASS.3 = %R\n IN = %r\n OUT = %r\n",
                        POINTER_REGS, x, NULL_RTX);
           
           return x;
@@ -1452,7 +1527,8 @@ ptrreg_to_str (int regno)
     case REG_Y: return "Y";
     case REG_Z: return "Z";
     default:
-      output_operand_lossage ("address operand requires constraint for X, Y, or Z register");
+      output_operand_lossage ("address operand requires constraint for"
+                              " X, Y, or Z register");
     }
   return NULL;
 }
@@ -1517,14 +1593,15 @@ print_operand_address (FILE *file, rtx addr)
 	  if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x,1)) == CONST_INT)
 	    {
 	      /* Assembler gs() will implant word address. Make offset 
-		 a byte offset inside gs() for assembler. This is 
-		 needed because the more logical (constant+gs(sym)) is not 
-		 accepted by gas. For 128K and lower devices this is ok. For
-		 large devices it will create a Trampoline to offset from symbol 
-		 which may not be what the user really wanted.  */
+                 a byte offset inside gs() for assembler. This is 
+                 needed because the more logical (constant+gs(sym)) is not 
+                 accepted by gas. For 128K and lower devices this is ok.
+                 For large devices it will create a Trampoline to offset
+                 from symbol which may not be what the user really wanted.  */
 	      fprintf (file, "gs(");
 	      output_addr_const (file, XEXP (x,0));
-	      fprintf (file,"+" HOST_WIDE_INT_PRINT_DEC ")", 2 * INTVAL (XEXP (x,1)));
+              fprintf (file, "+" HOST_WIDE_INT_PRINT_DEC ")",
+                       2 * INTVAL (XEXP (x, 1)));
 	      if (AVR_3_BYTE_PC)
 	        if (warning (0, "pointer offset from symbol maybe incorrect"))
 		  {
@@ -1576,19 +1653,21 @@ print_operand (FILE *file, rtx x, int code)
     fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (x) + abcd);
   else if (GET_CODE (x) == MEM)
     {
-      rtx addr = XEXP (x,0);
+      rtx addr = XEXP (x, 0);
+      
       if (code == 'm')
 	{
-	   if (!CONSTANT_P (addr))
-	    fatal_insn ("bad address, not a constant):", addr);
-	  /* Assembler template with m-code is data - not progmem section */
-	  if (text_segment_operand (addr, VOIDmode))
-	    if (warning ( 0, "accessing data memory with program memory address"))
-	      {
-		output_addr_const (stderr, addr);
-		fprintf(stderr,"\n");
-	      }
-	  output_addr_const (file, addr);
+          if (!CONSTANT_P (addr))
+            fatal_insn ("bad address, not a constant):", addr);
+          /* Assembler template with m-code is data - not progmem section */
+          if (text_segment_operand (addr, VOIDmode))
+            if (warning (0, "accessing data memory with"
+                         " program memory address"))
+              {
+                output_addr_const (stderr, addr);
+                fprintf(stderr,"\n");
+              }
+          output_addr_const (file, addr);
 	}
       else if (code == 'o')
 	{
@@ -1623,7 +1702,8 @@ print_operand (FILE *file, rtx x, int code)
     {
       /* Constant progmem address - like used in jmp or call */
       if (0 == text_segment_operand (x, VOIDmode))
-	    if (warning ( 0, "accessing program  memory with data memory address"))
+        if (warning (0, "accessing program memory"
+                     " with data memory address"))
 	  {
 	    output_addr_const (stderr, x);
 	    fprintf(stderr,"\n");
@@ -1663,14 +1743,19 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
       break;
 
     case CC_OUT_PLUS:
+    case CC_OUT_PLUS_NOCLOBBER:
       {
         rtx *op = recog_data.operand;
         int len_dummy, icc;
         
         /* Extract insn's operands.  */
         extract_constrain_insn_cached (insn);
+
+        if (CC_OUT_PLUS == cc)
+          avr_out_plus (op, &len_dummy, &icc);
+        else
+          avr_out_plus_noclobber (op, &len_dummy, &icc);
         
-        avr_out_plus (op, &len_dummy, &icc);
         cc = (enum attr_cc) icc;
         
         break;
@@ -3090,12 +3175,14 @@ out_movhi_mr_r (rtx insn, rtx op[], int *l)
 
 /* Return 1 if frame pointer for current function required.  */
 
-bool
+static bool
 avr_frame_pointer_required_p (void)
 {
   return (cfun->calls_alloca
-	  || crtl->args.info.nregs == 0
-  	  || get_frame_size () > 0);
+          || cfun->calls_setjmp
+          || cfun->has_nonlocal_label
+          || crtl->args.info.nregs == 0
+          || get_frame_size () > 0);
 }
 
 /* Returns the condition of compare insn INSN, or UNKNOWN.  */
@@ -4754,7 +4841,8 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
   /* Value to add.  There are two ways to add VAL: R += VAL and R -= -VAL.  */
   rtx xval = xop[2];
 
-  /* Addition does not set cc0 in a usable way.  */
+  /* Except in the case of ADIW with 16-bit register (see below)
+     addition does not set cc0 in a usable way.  */
   
   *pcc = (MINUS == code) ? CC_SET_CZN : CC_CLOBBER;
 
@@ -4802,6 +4890,9 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
                   started = true;
                   avr_asm_len (code == PLUS ? "adiw %0,%1" : "sbiw %0,%1",
                                op, plen, 1);
+
+                  if (n_bytes == 2 && PLUS == code)
+                      *pcc = CC_SET_ZN;
                 }
 
               i++;
@@ -4817,6 +4908,14 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
                          op, plen, 1);
           continue;
         }
+      else if ((val8 == 1 || val8 == 0xff)
+               && !started
+               && i == n_bytes - 1)
+      {
+          avr_asm_len ((code == PLUS) ^ (val8 == 1) ? "dec %0" : "inc %0",
+                       op, plen, 1);
+          break;
+      }
 
       switch (code)
         {
@@ -4904,6 +5003,22 @@ avr_out_plus (rtx *xop, int *plen, int *pcc)
   return "";
 }
 
+
+/* Same as above but XOP has just 3 entries.
+   Supply a dummy 4th operand.  */
+
+const char*
+avr_out_plus_noclobber (rtx *xop, int *plen, int *pcc)
+{
+  rtx op[4];
+
+  op[0] = xop[0];
+  op[1] = xop[1];
+  op[2] = xop[2];
+  op[3] = NULL_RTX;
+
+  return avr_out_plus (op, plen, pcc);
+}
 
 /* Output bit operation (IOR, AND, XOR) with register XOP[0] and compile
    time constant XOP[2]:
@@ -5289,6 +5404,8 @@ adjust_insn_length (rtx insn, int len)
     case ADJUST_LEN_OUT_BITOP: avr_out_bitop (insn, op, &len); break;
       
     case ADJUST_LEN_OUT_PLUS: avr_out_plus (op, &len, NULL); break;
+    case ADJUST_LEN_OUT_PLUS_NOCLOBBER:
+      avr_out_plus_noclobber (op, &len, NULL); break;
 
     case ADJUST_LEN_ADDTO_SP: avr_out_addto_sp (op, &len); break;
       
@@ -5312,6 +5429,8 @@ adjust_insn_length (rtx insn, int len)
     case ADJUST_LEN_ASHLHI: ashlhi3_out (insn, op, &len); break;
     case ADJUST_LEN_ASHLSI: ashlsi3_out (insn, op, &len); break;
       
+    case ADJUST_LEN_CALL: len = AVR_HAVE_JMP_CALL ? 2 : 1; break;
+
     default:
       gcc_unreachable();
     }
@@ -5577,6 +5696,28 @@ avr_handle_fntype_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+
+/* AVR attributes.  */
+static const struct attribute_spec
+avr_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
+  { "progmem",   0, 0, false, false, false,  avr_handle_progmem_attribute,
+    false },
+  { "signal",    0, 0, true,  false, false,  avr_handle_fndecl_attribute,
+    false },
+  { "interrupt", 0, 0, true,  false, false,  avr_handle_fndecl_attribute,
+    false },
+  { "naked",     0, 0, false, true,  true,   avr_handle_fntype_attribute,
+    false },
+  { "OS_task",   0, 0, false, true,  true,   avr_handle_fntype_attribute,
+    false },
+  { "OS_main",   0, 0, false, true,  true,   avr_handle_fntype_attribute,
+    false },
+  { NULL,        0, 0, false, false, false, NULL, false }
+};
+
 /* Look for attribute `progmem' in DECL
    if found return 1, otherwise 0.  */
 
@@ -5642,8 +5783,10 @@ avr_insert_attributes (tree node, tree *attributes)
 /* Track need of __do_clear_bss.  */
 
 void
-avr_asm_output_aligned_decl_common (FILE * stream, const_tree decl ATTRIBUTE_UNUSED,
-                                    const char *name, unsigned HOST_WIDE_INT size,
+avr_asm_output_aligned_decl_common (FILE * stream,
+                                    const_tree decl ATTRIBUTE_UNUSED,
+                                    const char *name,
+                                    unsigned HOST_WIDE_INT size,
                                     unsigned int align, bool local_p)
 {
   avr_need_clear_bss_p = true;
@@ -5762,7 +5905,8 @@ avr_asm_function_rodata_section (tree decl)
 
           if (STR_PREFIX_P (name, old_prefix))
             {
-              const char *rname = avr_replace_prefix (name, old_prefix, new_prefix);
+              const char *rname = avr_replace_prefix (name,
+                                                      old_prefix, new_prefix);
 
               flags &= ~SECTION_CODE;
               flags |= AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE;
@@ -5877,7 +6021,8 @@ avr_asm_select_section (tree decl, int reloc, unsigned HOST_WIDE_INT align)
 
           if (STR_PREFIX_P (name, old_prefix))
             {
-              const char *sname = avr_replace_prefix (name, old_prefix, new_prefix);
+              const char *sname = avr_replace_prefix (name,
+                                                      old_prefix, new_prefix);
 
               return get_section (sname, sect->common.flags, sect->named.decl);
             }
@@ -6003,7 +6148,8 @@ avr_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 /* Implement `TARGET_MEMORY_MOVE_COST' */
 
 static int
-avr_memory_move_cost (enum machine_mode mode, reg_class_t rclass ATTRIBUTE_UNUSED,
+avr_memory_move_cost (enum machine_mode mode,
+                      reg_class_t rclass ATTRIBUTE_UNUSED,
                       bool in ATTRIBUTE_UNUSED)
 {
   return (mode == QImode ? 2
@@ -6331,11 +6477,16 @@ avr_rtx_costs_1 (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED,
     case UDIV:
     case UMOD:
       if (!speed)
-	*total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
+        *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
       else
-	return false;
+        *total = COSTS_N_INSNS (15 * GET_MODE_SIZE (mode));
       *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, 0, speed);
-      *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, 1, speed);
+      /* For div/mod with const-int divisor we have at least the cost of
+         loading the divisor. */
+      if (CONST_INT_P (XEXP (x, 1)))
+        *total += COSTS_N_INSNS (GET_MODE_SIZE (mode));
+      /* Add some overall penaly for clobbering and moving around registers */
+      *total += COSTS_N_INSNS (2);
       return true;
 
     case ROTATE:
@@ -7304,10 +7455,13 @@ avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
 
 reg_class_t
 avr_mode_code_base_reg_class (enum machine_mode mode ATTRIBUTE_UNUSED,
-                              RTX_CODE outer_code ATTRIBUTE_UNUSED,
+                              RTX_CODE outer_code,
                               RTX_CODE index_code ATTRIBUTE_UNUSED)
 {
-  return reload_completed ? BASE_POINTER_REGS : POINTER_REGS;
+  if (!avr_strict_X)
+    return reload_completed ? BASE_POINTER_REGS : POINTER_REGS;
+
+  return PLUS == outer_code ? BASE_POINTER_REGS : POINTER_REGS;
 }
 
 
@@ -7316,19 +7470,20 @@ avr_mode_code_base_reg_class (enum machine_mode mode ATTRIBUTE_UNUSED,
 bool
 avr_regno_mode_code_ok_for_base_p (int regno,
                                    enum machine_mode mode ATTRIBUTE_UNUSED,
-                                   RTX_CODE outer_code ATTRIBUTE_UNUSED,
+                                   RTX_CODE outer_code,
                                    RTX_CODE index_code ATTRIBUTE_UNUSED)
 {
+  bool ok = false;
+  
   if (regno < FIRST_PSEUDO_REGISTER
       && (regno == REG_X
           || regno == REG_Y
           || regno == REG_Z
           || regno == ARG_POINTER_REGNUM))
     {
-      return true;
+      ok = true;
     }
-
-  if (reg_renumber)
+  else if (reg_renumber)
     {
       regno = reg_renumber[regno];
 
@@ -7337,11 +7492,18 @@ avr_regno_mode_code_ok_for_base_p (int regno,
           || regno == REG_Z
           || regno == ARG_POINTER_REGNUM)
         {
-          return true;
+          ok = true;
         }
     }
-  
-  return false;
+
+  if (avr_strict_X
+      && PLUS == outer_code
+      && regno == REG_X)
+    {
+      ok = false;
+    }
+
+  return ok;
 }
 
 
@@ -7680,7 +7842,7 @@ avr_output_addr_vec_elt (FILE *stream, int value)
 /* Returns true if SCRATCH are safe to be allocated as a scratch
    registers (for a define_peephole2) in the current function.  */
 
-bool
+static bool
 avr_hard_regno_scratch_ok (unsigned int regno)
 {
   /* Interrupt functions can only use registers that have already been saved
@@ -7834,7 +7996,8 @@ avr_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 
 /* Worker function for CASE_VALUES_THRESHOLD.  */
 
-unsigned int avr_case_values_threshold (void)
+static unsigned int
+avr_case_values_threshold (void)
 {
   return (!AVR_HAVE_JMP_CALL || TARGET_CALL_PROLOGUES) ? 8 : 17;
 }
@@ -8140,7 +8303,8 @@ avr_expand_builtin (tree exp, rtx target,
         op0 = expand_expr (arg0, NULL_RTX, VOIDmode, EXPAND_NORMAL);
 
         if (! CONST_INT_P (op0))
-          error ("__builtin_avr_delay_cycles expects a compile time integer constant.");
+          error ("__builtin_avr_delay_cycles expects a"
+                 " compile time integer constant.");
 
         avr_expand_delay_cycles (op0);
         return 0;
@@ -8158,5 +8322,6 @@ avr_expand_builtin (tree exp, rtx target,
   gcc_unreachable ();
 }
 
+struct gcc_target targetm = TARGET_INITIALIZER;
 
 #include "gt-avr.h"

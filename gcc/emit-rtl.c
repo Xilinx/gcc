@@ -1696,6 +1696,12 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	  && !TREE_THIS_VOLATILE (base))
 	MEM_READONLY_P (ref) = 1;
 
+      /* Mark static const strings readonly as well.  */
+      if (base && TREE_CODE (base) == STRING_CST
+	  && TREE_READONLY (base)
+	  && TREE_STATIC (base))
+	MEM_READONLY_P (ref) = 1;
+
       /* If this expression uses it's parent's alias set, mark it such
 	 that we won't change it.  */
       if (component_uses_parent_alias_set (t))
@@ -3317,21 +3323,6 @@ next_label (rtx insn)
   while (insn)
     {
       insn = NEXT_INSN (insn);
-      if (insn == 0 || LABEL_P (insn))
-	break;
-    }
-
-  return insn;
-}
-
-/* Return the last CODE_LABEL before the insn INSN, or 0 if there is none.  */
-
-rtx
-prev_label (rtx insn)
-{
-  while (insn)
-    {
-      insn = PREV_INSN (insn);
       if (insn == 0 || LABEL_P (insn))
 	break;
     }

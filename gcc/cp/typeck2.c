@@ -428,8 +428,15 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
 
     case OFFSET_TYPE:
     bad_member:
-      emit_diagnostic (diag_kind, input_location, 0,
-		       "invalid use of member (did you forget the %<&%> ?)");
+      if (DECL_FUNCTION_MEMBER_P (TREE_OPERAND (value, 1))
+	  && ! flag_ms_extensions)
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of member function "
+			 "(did you forget the %<()%> ?)");
+      else
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of member "
+			 "(did you forget the %<&%> ?)");
       break;
 
     case TEMPLATE_TYPE_PARM:
@@ -566,7 +573,15 @@ split_nonconstant_init_1 (tree dest, tree init)
 
 	      code = build2 (INIT_EXPR, inner_type, sub, value);
 	      code = build_stmt (input_location, EXPR_STMT, code);
+	      code = maybe_cleanup_point_expr_void (code);
 	      add_stmt (code);
+	      if (!TYPE_HAS_TRIVIAL_DESTRUCTOR (inner_type))
+		{
+		  code = (build_special_member_call
+			  (sub, complete_dtor_identifier, NULL, inner_type,
+			   LOOKUP_NORMAL, tf_warning_or_error));
+		  finish_eh_cleanup (code);
+		}
 
 	      num_split_elts++;
 	    }

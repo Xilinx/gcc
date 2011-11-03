@@ -10766,6 +10766,335 @@ gen_const_stm_seq (rtx *operands, int nops)
   return true;
 }
 
+/* Copy a block of memory using plain ldr/str/ldrh/strh instructions, to permit
+   unaligned copies on processors which support unaligned semantics for those
+   instructions.  INTERLEAVE_FACTOR can be used to attempt to hide load latency
+   (using more registers) by doing e.g. load/load/store/store for a factor of 2.
+   An interleave factor of 1 (the minimum) will perform no interleaving. 
+   Load/store multiple are used for aligned addresses where possible.  */
+
+static void
+arm_block_move_unaligned_straight (rtx dstbase, rtx srcbase,
+				   HOST_WIDE_INT length,
+				   unsigned int interleave_factor)
+{
+  rtx *regs = XALLOCAVEC (rtx, interleave_factor);
+  int *regnos = XALLOCAVEC (int, interleave_factor);
+  HOST_WIDE_INT block_size_bytes = interleave_factor * UNITS_PER_WORD;
+  HOST_WIDE_INT i, j;
+  HOST_WIDE_INT remaining = length, words;
+  rtx halfword_tmp = NULL, byte_tmp = NULL;
+  rtx dst, src;
+  bool src_aligned = MEM_ALIGN (srcbase) >= BITS_PER_WORD;
+  bool dst_aligned = MEM_ALIGN (dstbase) >= BITS_PER_WORD;
+  HOST_WIDE_INT srcoffset, dstoffset;
+  HOST_WIDE_INT src_autoinc, dst_autoinc;
+  rtx mem, addr;
+  
+  gcc_assert (1 <= interleave_factor && interleave_factor <= 4);
+  
+  /* Use hard registers if we have aligned source or destination so we can use
+     load/store multiple with contiguous registers.  */
+  if (dst_aligned || src_aligned)
+    for (i = 0; i < interleave_factor; i++)
+      regs[i] = gen_rtx_REG (SImode, i);
+  else
+    for (i = 0; i < interleave_factor; i++)
+      regs[i] = gen_reg_rtx (SImode);
+
+  dst = copy_addr_to_reg (XEXP (dstbase, 0));
+  src = copy_addr_to_reg (XEXP (srcbase, 0));
+
+  srcoffset = dstoffset = 0;
+  
+  /* Calls to arm_gen_load_multiple and arm_gen_store_multiple update SRC/DST.
+     For copying the last bytes we want to subtract this offset again.  */
+  src_autoinc = dst_autoinc = 0;
+
+  for (i = 0; i < interleave_factor; i++)
+    regnos[i] = i;
+
+  /* Copy BLOCK_SIZE_BYTES chunks.  */
+
+  for (i = 0; i + block_size_bytes <= length; i += block_size_bytes)
+    {
+      /* Load words.  */
+      if (src_aligned && interleave_factor > 1)
+	{
+	  emit_insn (arm_gen_load_multiple (regnos, interleave_factor, src,
+					    TRUE, srcbase, &srcoffset));
+	  src_autoinc += UNITS_PER_WORD * interleave_factor;
+	}
+      else
+	{
+	  for (j = 0; j < interleave_factor; j++)
+	    {
+	      addr = plus_constant (src, srcoffset + j * UNITS_PER_WORD
+					 - src_autoinc);
+	      mem = adjust_automodify_address (srcbase, SImode, addr,
+					       srcoffset + j * UNITS_PER_WORD);
+	      emit_insn (gen_unaligned_loadsi (regs[j], mem));
+	    }
+	  srcoffset += block_size_bytes;
+	}
+
+      /* Store words.  */
+      if (dst_aligned && interleave_factor > 1)
+	{
+	  emit_insn (arm_gen_store_multiple (regnos, interleave_factor, dst,
+					     TRUE, dstbase, &dstoffset));
+	  dst_autoinc += UNITS_PER_WORD * interleave_factor;
+	}
+      else
+	{
+	  for (j = 0; j < interleave_factor; j++)
+	    {
+	      addr = plus_constant (dst, dstoffset + j * UNITS_PER_WORD
+					 - dst_autoinc);
+	      mem = adjust_automodify_address (dstbase, SImode, addr,
+					       dstoffset + j * UNITS_PER_WORD);
+	      emit_insn (gen_unaligned_storesi (mem, regs[j]));
+	    }
+	  dstoffset += block_size_bytes;
+	}
+
+      remaining -= block_size_bytes;
+    }
+  
+  /* Copy any whole words left (note these aren't interleaved with any
+     subsequent halfword/byte load/stores in the interests of simplicity).  */
+  
+  words = remaining / UNITS_PER_WORD;
+
+  gcc_assert (words < interleave_factor);
+  
+  if (src_aligned && words > 1)
+    {
+      emit_insn (arm_gen_load_multiple (regnos, words, src, TRUE, srcbase,
+					&srcoffset));
+      src_autoinc += UNITS_PER_WORD * words;
+    }
+  else
+    {
+      for (j = 0; j < words; j++)
+	{
+	  addr = plus_constant (src,
+				srcoffset + j * UNITS_PER_WORD - src_autoinc);
+	  mem = adjust_automodify_address (srcbase, SImode, addr,
+					   srcoffset + j * UNITS_PER_WORD);
+	  emit_insn (gen_unaligned_loadsi (regs[j], mem));
+	}
+      srcoffset += words * UNITS_PER_WORD;
+    }
+
+  if (dst_aligned && words > 1)
+    {
+      emit_insn (arm_gen_store_multiple (regnos, words, dst, TRUE, dstbase,
+					 &dstoffset));
+      dst_autoinc += words * UNITS_PER_WORD;
+    }
+  else
+    {
+      for (j = 0; j < words; j++)
+	{
+	  addr = plus_constant (dst,
+				dstoffset + j * UNITS_PER_WORD - dst_autoinc);
+	  mem = adjust_automodify_address (dstbase, SImode, addr,
+					   dstoffset + j * UNITS_PER_WORD);
+	  emit_insn (gen_unaligned_storesi (mem, regs[j]));
+	}
+      dstoffset += words * UNITS_PER_WORD;
+    }
+
+  remaining -= words * UNITS_PER_WORD;
+  
+  gcc_assert (remaining < 4);
+  
+  /* Copy a halfword if necessary.  */
+  
+  if (remaining >= 2)
+    {
+      halfword_tmp = gen_reg_rtx (SImode);
+
+      addr = plus_constant (src, srcoffset - src_autoinc);
+      mem = adjust_automodify_address (srcbase, HImode, addr, srcoffset);
+      emit_insn (gen_unaligned_loadhiu (halfword_tmp, mem));
+
+      /* Either write out immediately, or delay until we've loaded the last
+	 byte, depending on interleave factor.  */
+      if (interleave_factor == 1)
+	{
+	  addr = plus_constant (dst, dstoffset - dst_autoinc);
+	  mem = adjust_automodify_address (dstbase, HImode, addr, dstoffset);
+	  emit_insn (gen_unaligned_storehi (mem,
+		       gen_lowpart (HImode, halfword_tmp)));
+	  halfword_tmp = NULL;
+	  dstoffset += 2;
+	}
+
+      remaining -= 2;
+      srcoffset += 2;
+    }
+  
+  gcc_assert (remaining < 2);
+  
+  /* Copy last byte.  */
+  
+  if ((remaining & 1) != 0)
+    {
+      byte_tmp = gen_reg_rtx (SImode);
+
+      addr = plus_constant (src, srcoffset - src_autoinc);
+      mem = adjust_automodify_address (srcbase, QImode, addr, srcoffset);
+      emit_move_insn (gen_lowpart (QImode, byte_tmp), mem);
+
+      if (interleave_factor == 1)
+	{
+	  addr = plus_constant (dst, dstoffset - dst_autoinc);
+	  mem = adjust_automodify_address (dstbase, QImode, addr, dstoffset);
+	  emit_move_insn (mem, gen_lowpart (QImode, byte_tmp));
+	  byte_tmp = NULL;
+	  dstoffset++;
+	}
+
+      remaining--;
+      srcoffset++;
+    }
+  
+  /* Store last halfword if we haven't done so already.  */
+  
+  if (halfword_tmp)
+    {
+      addr = plus_constant (dst, dstoffset - dst_autoinc);
+      mem = adjust_automodify_address (dstbase, HImode, addr, dstoffset);
+      emit_insn (gen_unaligned_storehi (mem,
+		   gen_lowpart (HImode, halfword_tmp)));
+      dstoffset += 2;
+    }
+
+  /* Likewise for last byte.  */
+
+  if (byte_tmp)
+    {
+      addr = plus_constant (dst, dstoffset - dst_autoinc);
+      mem = adjust_automodify_address (dstbase, QImode, addr, dstoffset);
+      emit_move_insn (mem, gen_lowpart (QImode, byte_tmp));
+      dstoffset++;
+    }
+  
+  gcc_assert (remaining == 0 && srcoffset == dstoffset);
+}
+
+/* From mips_adjust_block_mem:
+
+   Helper function for doing a loop-based block operation on memory
+   reference MEM.  Each iteration of the loop will operate on LENGTH
+   bytes of MEM.
+
+   Create a new base register for use within the loop and point it to
+   the start of MEM.  Create a new memory reference that uses this
+   register.  Store them in *LOOP_REG and *LOOP_MEM respectively.  */
+
+static void
+arm_adjust_block_mem (rtx mem, HOST_WIDE_INT length, rtx *loop_reg,
+		      rtx *loop_mem)
+{
+  *loop_reg = copy_addr_to_reg (XEXP (mem, 0));
+  
+  /* Although the new mem does not refer to a known location,
+     it does keep up to LENGTH bytes of alignment.  */
+  *loop_mem = change_address (mem, BLKmode, *loop_reg);
+  set_mem_align (*loop_mem, MIN (MEM_ALIGN (mem), length * BITS_PER_UNIT));
+}
+
+/* From mips_block_move_loop:
+
+   Move LENGTH bytes from SRC to DEST using a loop that moves BYTES_PER_ITER
+   bytes at a time.  LENGTH must be at least BYTES_PER_ITER.  Assume that
+   the memory regions do not overlap.  */
+
+static void
+arm_block_move_unaligned_loop (rtx dest, rtx src, HOST_WIDE_INT length,
+			       unsigned int interleave_factor,
+			       HOST_WIDE_INT bytes_per_iter)
+{
+  rtx label, src_reg, dest_reg, final_src, test;
+  HOST_WIDE_INT leftover;
+  
+  leftover = length % bytes_per_iter;
+  length -= leftover;
+  
+  /* Create registers and memory references for use within the loop.  */
+  arm_adjust_block_mem (src, bytes_per_iter, &src_reg, &src);
+  arm_adjust_block_mem (dest, bytes_per_iter, &dest_reg, &dest);
+  
+  /* Calculate the value that SRC_REG should have after the last iteration of
+     the loop.  */
+  final_src = expand_simple_binop (Pmode, PLUS, src_reg, GEN_INT (length),
+				   0, 0, OPTAB_WIDEN);
+
+  /* Emit the start of the loop.  */
+  label = gen_label_rtx ();
+  emit_label (label);
+  
+  /* Emit the loop body.  */
+  arm_block_move_unaligned_straight (dest, src, bytes_per_iter,
+				     interleave_factor);
+
+  /* Move on to the next block.  */
+  emit_move_insn (src_reg, plus_constant (src_reg, bytes_per_iter));
+  emit_move_insn (dest_reg, plus_constant (dest_reg, bytes_per_iter));
+  
+  /* Emit the loop condition.  */
+  test = gen_rtx_NE (VOIDmode, src_reg, final_src);
+  emit_jump_insn (gen_cbranchsi4 (test, src_reg, final_src, label));
+  
+  /* Mop up any left-over bytes.  */
+  if (leftover)
+    arm_block_move_unaligned_straight (dest, src, leftover, interleave_factor);
+}
+
+/* Emit a block move when either the source or destination is unaligned (not
+   aligned to a four-byte boundary).  This may need further tuning depending on
+   core type, optimize_size setting, etc.  */
+
+static int
+arm_movmemqi_unaligned (rtx *operands)
+{
+  HOST_WIDE_INT length = INTVAL (operands[2]);
+  
+  if (optimize_size)
+    {
+      bool src_aligned = MEM_ALIGN (operands[1]) >= BITS_PER_WORD;
+      bool dst_aligned = MEM_ALIGN (operands[0]) >= BITS_PER_WORD;
+      /* Inlined memcpy using ldr/str/ldrh/strh can be quite big: try to limit
+	 size of code if optimizing for size.  We'll use ldm/stm if src_aligned
+	 or dst_aligned though: allow more interleaving in those cases since the
+	 resulting code can be smaller.  */
+      unsigned int interleave_factor = (src_aligned || dst_aligned) ? 2 : 1;
+      HOST_WIDE_INT bytes_per_iter = (src_aligned || dst_aligned) ? 8 : 4;
+      
+      if (length > 12)
+	arm_block_move_unaligned_loop (operands[0], operands[1], length,
+				       interleave_factor, bytes_per_iter);
+      else
+	arm_block_move_unaligned_straight (operands[0], operands[1], length,
+					   interleave_factor);
+    }
+  else
+    {
+      /* Note that the loop created by arm_block_move_unaligned_loop may be
+	 subject to loop unrolling, which makes tuning this condition a little
+	 redundant.  */
+      if (length > 32)
+	arm_block_move_unaligned_loop (operands[0], operands[1], length, 4, 16);
+      else
+	arm_block_move_unaligned_straight (operands[0], operands[1], length, 4);
+    }
+  
+  return 1;
+}
+
 int
 arm_gen_movmemqi (rtx *operands)
 {
@@ -10778,8 +11107,13 @@ arm_gen_movmemqi (rtx *operands)
 
   if (GET_CODE (operands[2]) != CONST_INT
       || GET_CODE (operands[3]) != CONST_INT
-      || INTVAL (operands[2]) > 64
-      || INTVAL (operands[3]) & 3)
+      || INTVAL (operands[2]) > 64)
+    return 0;
+
+  if (unaligned_access && (INTVAL (operands[3]) & 3) != 0)
+    return arm_movmemqi_unaligned (operands);
+
+  if (INTVAL (operands[3]) & 3)
     return 0;
 
   dstbase = operands[0];
@@ -21318,7 +21652,8 @@ thumb_unexpanded_epilogue (void)
   if (extra_pop > 0)
     {
       unsigned long extra_mask = (1 << extra_pop) - 1;
-      live_regs_mask |= extra_mask << (size / UNITS_PER_WORD);
+      live_regs_mask |= extra_mask << ((size + UNITS_PER_WORD - 1) 
+				       / UNITS_PER_WORD);
     }
 
   /* The prolog may have pushed some high registers to use as
@@ -23160,7 +23495,7 @@ arm_small_register_classes_for_mode_p (enum machine_mode mode ATTRIBUTE_UNUSED)
 
 /* Implement TARGET_SHIFT_TRUNCATION_MASK.  SImode shifts use normal
    ARM insns and therefore guarantee that the shift count is modulo 256.
-   DImode shifts (those implemented by lib1funcs.asm or by optabs.c)
+   DImode shifts (those implemented by lib1funcs.S or by optabs.c)
    guarantee no particular behavior for out-of-range counts.  */
 
 static unsigned HOST_WIDE_INT
@@ -24042,12 +24377,26 @@ arm_output_ldrex (emit_f emit,
 		  rtx target,
 		  rtx memory)
 {
-  const char *suffix = arm_ldrex_suffix (mode);
-  rtx operands[2];
+  rtx operands[3];
 
   operands[0] = target;
-  operands[1] = memory;
-  arm_output_asm_insn (emit, 0, operands, "ldrex%s\t%%0, %%C1", suffix);
+  if (mode != DImode)
+    {
+      const char *suffix = arm_ldrex_suffix (mode);
+      operands[1] = memory;
+      arm_output_asm_insn (emit, 0, operands, "ldrex%s\t%%0, %%C1", suffix);
+    }
+  else
+    {
+      /* The restrictions on target registers in ARM mode are that the two
+	 registers are consecutive and the first one is even; Thumb is
+	 actually more flexible, but DI should give us this anyway.
+	 Note that the 1st register always gets the lowest word in memory.  */
+      gcc_assert ((REGNO (target) & 1) == 0);
+      operands[1] = gen_rtx_REG (SImode, REGNO (target) + 1);
+      operands[2] = memory;
+      arm_output_asm_insn (emit, 0, operands, "ldrexd\t%%0, %%1, %%C2");
+    }
 }
 
 /* Emit a strex{b,h,d, } instruction appropriate for the specified
@@ -24060,14 +24409,41 @@ arm_output_strex (emit_f emit,
 		  rtx value,
 		  rtx memory)
 {
-  const char *suffix = arm_ldrex_suffix (mode);
-  rtx operands[3];
+  rtx operands[4];
 
   operands[0] = result;
   operands[1] = value;
-  operands[2] = memory;
-  arm_output_asm_insn (emit, 0, operands, "strex%s%s\t%%0, %%1, %%C2", suffix,
-		       cc);
+  if (mode != DImode)
+    {
+      const char *suffix = arm_ldrex_suffix (mode);
+      operands[2] = memory;
+      arm_output_asm_insn (emit, 0, operands, "strex%s%s\t%%0, %%1, %%C2",
+			  suffix, cc);
+    }
+  else
+    {
+      /* The restrictions on target registers in ARM mode are that the two
+	 registers are consecutive and the first one is even; Thumb is
+	 actually more flexible, but DI should give us this anyway.
+	 Note that the 1st register always gets the lowest word in memory.  */
+      gcc_assert ((REGNO (value) & 1) == 0 || TARGET_THUMB2);
+      operands[2] = gen_rtx_REG (SImode, REGNO (value) + 1);
+      operands[3] = memory;
+      arm_output_asm_insn (emit, 0, operands, "strexd%s\t%%0, %%1, %%2, %%C3",
+			   cc);
+    }
+}
+
+/* Helper to emit an it instruction in Thumb2 mode only; although the assembler
+   will ignore it in ARM mode, emitting it will mess up instruction counts we
+   sometimes keep 'flags' are the extra t's and e's if it's more than one
+   instruction that is conditional.  */
+static void
+arm_output_it (emit_f emit, const char *flags, const char *cond)
+{
+  rtx operands[1]; /* Don't actually use the operand.  */
+  if (TARGET_THUMB2)
+    arm_output_asm_insn (emit, 0, operands, "it%s\t%s", flags, cond);
 }
 
 /* Helper to emit a two operand instruction.  */
@@ -24109,7 +24485,7 @@ arm_output_op3 (emit_f emit, const char *mnemonic, rtx d, rtx a, rtx b)
 
    required_value:
 
-   RTX register or const_int representing the required old_value for
+   RTX register representing the required old_value for
    the modify to continue, if NULL no comparsion is performed.  */
 static void
 arm_output_sync_loop (emit_f emit,
@@ -24123,7 +24499,13 @@ arm_output_sync_loop (emit_f emit,
 		      enum attr_sync_op sync_op,
 		      int early_barrier_required)
 {
-  rtx operands[1];
+  rtx operands[2];
+  /* We'll use the lo for the normal rtx in the none-DI case
+     as well as the least-sig word in the DI case.  */
+  rtx old_value_lo, required_value_lo, new_value_lo, t1_lo;
+  rtx old_value_hi, required_value_hi, new_value_hi, t1_hi;
+
+  bool is_di = mode == DImode;
 
   gcc_assert (t1 != t2);
 
@@ -24134,82 +24516,142 @@ arm_output_sync_loop (emit_f emit,
 
   arm_output_ldrex (emit, mode, old_value, memory);
 
+  if (is_di)
+    {
+      old_value_lo = gen_lowpart (SImode, old_value);
+      old_value_hi = gen_highpart (SImode, old_value);
+      if (required_value)
+	{
+	  required_value_lo = gen_lowpart (SImode, required_value);
+	  required_value_hi = gen_highpart (SImode, required_value);
+	}
+      else
+	{
+	  /* Silence false potentially unused warning.  */
+	  required_value_lo = NULL_RTX;
+	  required_value_hi = NULL_RTX;
+	}
+      new_value_lo = gen_lowpart (SImode, new_value);
+      new_value_hi = gen_highpart (SImode, new_value);
+      t1_lo = gen_lowpart (SImode, t1);
+      t1_hi = gen_highpart (SImode, t1);
+    }
+  else
+    {
+      old_value_lo = old_value;
+      new_value_lo = new_value;
+      required_value_lo = required_value;
+      t1_lo = t1;
+
+      /* Silence false potentially unused warning.  */
+      t1_hi = NULL_RTX;
+      new_value_hi = NULL_RTX;
+      required_value_hi = NULL_RTX;
+      old_value_hi = NULL_RTX;
+    }
+
   if (required_value)
     {
-      rtx operands[2];
+      operands[0] = old_value_lo;
+      operands[1] = required_value_lo;
 
-      operands[0] = old_value;
-      operands[1] = required_value;
       arm_output_asm_insn (emit, 0, operands, "cmp\t%%0, %%1");
+      if (is_di)
+        {
+          arm_output_it (emit, "", "eq");
+          arm_output_op2 (emit, "cmpeq", old_value_hi, required_value_hi);
+        }
       arm_output_asm_insn (emit, 0, operands, "bne\t%sLSYB%%=", LOCAL_LABEL_PREFIX);
     }
 
   switch (sync_op)
     {
     case SYNC_OP_ADD:
-      arm_output_op3 (emit, "add", t1, old_value, new_value);
+      arm_output_op3 (emit, is_di ? "adds" : "add",
+		      t1_lo, old_value_lo, new_value_lo);
+      if (is_di)
+	arm_output_op3 (emit, "adc", t1_hi, old_value_hi, new_value_hi);
       break;
 
     case SYNC_OP_SUB:
-      arm_output_op3 (emit, "sub", t1, old_value, new_value);
+      arm_output_op3 (emit, is_di ? "subs" : "sub",
+		      t1_lo, old_value_lo, new_value_lo);
+      if (is_di)
+	arm_output_op3 (emit, "sbc", t1_hi, old_value_hi, new_value_hi);
       break;
 
     case SYNC_OP_IOR:
-      arm_output_op3 (emit, "orr", t1, old_value, new_value);
+      arm_output_op3 (emit, "orr", t1_lo, old_value_lo, new_value_lo);
+      if (is_di)
+	arm_output_op3 (emit, "orr", t1_hi, old_value_hi, new_value_hi);
       break;
 
     case SYNC_OP_XOR:
-      arm_output_op3 (emit, "eor", t1, old_value, new_value);
+      arm_output_op3 (emit, "eor", t1_lo, old_value_lo, new_value_lo);
+      if (is_di)
+	arm_output_op3 (emit, "eor", t1_hi, old_value_hi, new_value_hi);
       break;
 
     case SYNC_OP_AND:
-      arm_output_op3 (emit,"and", t1, old_value, new_value);
+      arm_output_op3 (emit,"and", t1_lo, old_value_lo, new_value_lo);
+      if (is_di)
+	arm_output_op3 (emit, "and", t1_hi, old_value_hi, new_value_hi);
       break;
 
     case SYNC_OP_NAND:
-      arm_output_op3 (emit, "and", t1, old_value, new_value);
-      arm_output_op2 (emit, "mvn", t1, t1);
+      arm_output_op3 (emit, "and", t1_lo, old_value_lo, new_value_lo);
+      if (is_di)
+	arm_output_op3 (emit, "and", t1_hi, old_value_hi, new_value_hi);
+      arm_output_op2 (emit, "mvn", t1_lo, t1_lo);
+      if (is_di)
+	arm_output_op2 (emit, "mvn", t1_hi, t1_hi);
       break;
 
     case SYNC_OP_NONE:
       t1 = new_value;
+      t1_lo = new_value_lo;
+      if (is_di)
+	t1_hi = new_value_hi;
       break;
     }
 
+  /* Note that the result of strex is a 0/1 flag that's always 1 register.  */
   if (t2)
     {
-       arm_output_strex (emit, mode, "", t2, t1, memory);
-       operands[0] = t2;
-       arm_output_asm_insn (emit, 0, operands, "teq\t%%0, #0");
-       arm_output_asm_insn (emit, 0, operands, "bne\t%sLSYT%%=",
-			    LOCAL_LABEL_PREFIX);
+      arm_output_strex (emit, mode, "", t2, t1, memory);
+      operands[0] = t2;
+      arm_output_asm_insn (emit, 0, operands, "teq\t%%0, #0");
+      arm_output_asm_insn (emit, 0, operands, "bne\t%sLSYT%%=",
+			   LOCAL_LABEL_PREFIX);
     }
   else
     {
       /* Use old_value for the return value because for some operations
 	 the old_value can easily be restored.  This saves one register.  */
-      arm_output_strex (emit, mode, "", old_value, t1, memory);
-      operands[0] = old_value;
+      arm_output_strex (emit, mode, "", old_value_lo, t1, memory);
+      operands[0] = old_value_lo;
       arm_output_asm_insn (emit, 0, operands, "teq\t%%0, #0");
       arm_output_asm_insn (emit, 0, operands, "bne\t%sLSYT%%=",
 			   LOCAL_LABEL_PREFIX);
 
+      /* Note that we only used the _lo half of old_value as a temporary
+	 so in DI we don't have to restore the _hi part.  */
       switch (sync_op)
 	{
 	case SYNC_OP_ADD:
-	  arm_output_op3 (emit, "sub", old_value, t1, new_value);
+	  arm_output_op3 (emit, "sub", old_value_lo, t1_lo, new_value_lo);
 	  break;
 
 	case SYNC_OP_SUB:
-	  arm_output_op3 (emit, "add", old_value, t1, new_value);
+	  arm_output_op3 (emit, "add", old_value_lo, t1_lo, new_value_lo);
 	  break;
 
 	case SYNC_OP_XOR:
-	  arm_output_op3 (emit, "eor", old_value, t1, new_value);
+	  arm_output_op3 (emit, "eor", old_value_lo, t1_lo, new_value_lo);
 	  break;
 
 	case SYNC_OP_NONE:
-	  arm_output_op2 (emit, "mov", old_value, required_value);
+	  arm_output_op2 (emit, "mov", old_value_lo, required_value_lo);
 	  break;
 
 	default:
@@ -24217,8 +24659,11 @@ arm_output_sync_loop (emit_f emit,
 	}
     }
 
-  arm_process_output_memory_barrier (emit, NULL);
+  /* Note: label is before barrier so that in cmp failure case we still get
+     a barrier to stop subsequent loads floating upwards past the ldrex
+     PR target/48126.  */
   arm_output_asm_insn (emit, 1, operands, "%sLSYB%%=:", LOCAL_LABEL_PREFIX);
+  arm_process_output_memory_barrier (emit, NULL);
 }
 
 static rtx
@@ -24312,7 +24757,7 @@ arm_expand_sync (enum machine_mode mode,
     target = gen_reg_rtx (mode);
 
   memory = arm_legitimize_sync_memory (memory);
-  if (mode != SImode)
+  if (mode != SImode && mode != DImode)
     {
       rtx load_temp = gen_reg_rtx (SImode);
 

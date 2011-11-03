@@ -1,3 +1,7 @@
+2011-11-02  Aldy Hernandez  <aldyh@redhat.com>
+
+	* Merge from trunk at revision 180790.
+
 2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
 
 	* builtins.c (fold_builtin_atomic_always_lock_free): Add object param

@@ -1534,6 +1534,8 @@ dump_function_name (tree t, int flags)
     }
   else if (name && IDENTIFIER_OPNAME_P (name))
     pp_cxx_tree_identifier (cxx_pp, name);
+  else if (name && UDLIT_OPER_P (name))
+    pp_cxx_tree_identifier (cxx_pp, name);
   else
     dump_decl (name, flags);
 
@@ -1754,6 +1756,10 @@ dump_expr (tree t, int flags)
     case STRING_CST:
     case COMPLEX_CST:
       pp_constant (cxx_pp, t);
+      break;
+
+    case USERDEF_LITERAL:
+      pp_cxx_userdef_literal (cxx_pp, t);
       break;
 
     case THROW_EXPR:
@@ -2769,7 +2775,7 @@ static void
 cp_diagnostic_starter (diagnostic_context *context,
 		       diagnostic_info *diagnostic)
 {
-  diagnostic_report_current_module (context);
+  diagnostic_report_current_module (context, diagnostic->location);
   cp_print_error_function (context, diagnostic);
   maybe_print_instantiation_context (context);
   maybe_print_constexpr_context (context);
@@ -2779,8 +2785,9 @@ cp_diagnostic_starter (diagnostic_context *context,
 
 static void
 cp_diagnostic_finalizer (diagnostic_context *context,
-			 diagnostic_info *diagnostic ATTRIBUTE_UNUSED)
+			 diagnostic_info *diagnostic)
 {
+  virt_loc_aware_diagnostic_finalizer (context, diagnostic);
   pp_base_destroy_prefix (context->printer);
 }
 
@@ -3198,53 +3205,58 @@ maybe_warn_cpp0x (cpp0x_warn_str str)
       case CPP0X_INITIALIZER_LISTS:
 	pedwarn (input_location, 0, 
 		 "extended initializer lists "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_EXPLICIT_CONVERSION:
 	pedwarn (input_location, 0,
 		 "explicit conversion operators "
-		 "only available with -std=c++0x or -std=gnu++0x"); 
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_VARIADIC_TEMPLATES:
 	pedwarn (input_location, 0,
 		 "variadic templates "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_LAMBDA_EXPR:
 	pedwarn (input_location, 0,
 		 "lambda expressions "
-		  "only available with -std=c++0x or -std=gnu++0x");
+		  "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_AUTO:
 	pedwarn (input_location, 0,
-		 "C++0x auto only available with -std=c++0x or -std=gnu++0x");
+		 "C++0x auto only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_SCOPED_ENUMS:
 	pedwarn (input_location, 0,
-		 "scoped enums only available with -std=c++0x or -std=gnu++0x");
+		 "scoped enums only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_DEFAULTED_DELETED:
 	pedwarn (input_location, 0,
 		 "defaulted and deleted functions "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
 	break;
       case CPP0X_INLINE_NAMESPACES:
 	pedwarn (input_location, OPT_pedantic,
 		 "inline namespaces "
-		 "only available with -std=c++0x or -std=gnu++0x");
-	break;	
+		 "only available with -std=c++11 or -std=gnu++11");
+	break;
       case CPP0X_OVERRIDE_CONTROLS:
 	pedwarn (input_location, 0,
 		 "override controls (override/final) "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
         break;
       case CPP0X_NSDMI:
 	pedwarn (input_location, 0,
 		 "non-static data member initializers "
-		 "only available with -std=c++0x or -std=gnu++0x");
+		 "only available with -std=c++11 or -std=gnu++11");
         break;
+      case CPP0X_USER_DEFINED_LITERALS:
+	pedwarn (input_location, 0,
+		 "user-defined literals "
+		 "only available with -std=c++11 or -std=gnu++11");
+	break;
       default:
-	gcc_unreachable();
+	gcc_unreachable ();
       }
 }
 

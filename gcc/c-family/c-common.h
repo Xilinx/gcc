@@ -128,12 +128,13 @@ enum rid
   RID_CONSTCAST, RID_DYNCAST, RID_REINTCAST, RID_STATCAST,
 
   /* C++ extensions */
+  RID_BASES,                  RID_DIRECT_BASES,
   RID_HAS_NOTHROW_ASSIGN,      RID_HAS_NOTHROW_CONSTRUCTOR,
   RID_HAS_NOTHROW_COPY,        RID_HAS_TRIVIAL_ASSIGN,
   RID_HAS_TRIVIAL_CONSTRUCTOR, RID_HAS_TRIVIAL_COPY,
   RID_HAS_TRIVIAL_DESTRUCTOR,  RID_HAS_VIRTUAL_DESTRUCTOR,
   RID_IS_ABSTRACT,             RID_IS_BASE_OF,
-  RID_IS_CONVERTIBLE_TO,       RID_IS_CLASS,
+  RID_IS_CLASS,                RID_IS_CONVERTIBLE_TO,
   RID_IS_EMPTY,                RID_IS_ENUM,
   RID_IS_LITERAL_TYPE,         RID_IS_POD,
   RID_IS_POLYMORPHIC,          RID_IS_STD_LAYOUT,
@@ -642,11 +643,12 @@ extern int flag_use_repository;
 /* The supported C++ dialects.  */
 
 enum cxx_dialect {
-  /* C++98  */
+  /* C++98 with TC1  */
   cxx98,
-  /* Experimental features that are likely to become part of
-     C++0x.  */
-  cxx0x
+  cxx03 = cxx98,
+  /* C++11  */
+  cxx0x,
+  cxx11 = cxx0x
 };
 
 /* The C++ dialect being used. C++98 is the default.  */
@@ -1065,5 +1067,28 @@ c_tree_chain_next (tree t)
     return TREE_CHAIN (t);
   return NULL;
 }
+
+/* A suffix-identifier value doublet that represents user-defined literals
+   for C++-0x.  */
+struct GTY(()) tree_userdef_literal {
+  struct tree_base base;
+  tree suffix_id;
+  tree value;
+  tree num_string;
+};
+
+#define USERDEF_LITERAL_SUFFIX_ID(NODE) \
+  (((struct tree_userdef_literal *)USERDEF_LITERAL_CHECK (NODE))->suffix_id)
+
+#define USERDEF_LITERAL_VALUE(NODE) \
+  (((struct tree_userdef_literal *)USERDEF_LITERAL_CHECK (NODE))->value)
+
+#define USERDEF_LITERAL_NUM_STRING(NODE) \
+  (((struct tree_userdef_literal *)USERDEF_LITERAL_CHECK (NODE))->num_string)
+
+#define USERDEF_LITERAL_TYPE(NODE) \
+  (TREE_TYPE (USERDEF_LITERAL_VALUE (NODE)))
+
+extern tree build_userdef_literal (tree suffix_id, tree value, tree num_string);
 
 #endif /* ! GCC_C_COMMON_H */

@@ -98,6 +98,7 @@ along with GCC; see the file COPYING3.  If not see
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
 static rtx last_var_location_insn;
+static rtx cached_next_real_insn;
 
 #ifdef VMS_DEBUGGING_INFO
 int vms_file_stats_name (const char *, long long *, long *, char *, int *);
@@ -1090,6 +1091,7 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
 
   last_var_location_insn = NULL_RTX;
+  cached_next_real_insn = NULL_RTX;
 
   if (dwarf2out_do_cfi_asm ())
     fprintf (asm_out_file, "\t.cfi_endproc\n");
@@ -12502,7 +12504,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	 legitimate to make the Dwarf info refer to the whole register which
 	 contains the given subreg.  */
       if (REG_P (SUBREG_REG (rtl)) && subreg_lowpart_p (rtl))
-	loc_result = loc_descriptor (SUBREG_REG (rtl), mode, initialized);
+	loc_result = loc_descriptor (SUBREG_REG (rtl),
+				     GET_MODE (SUBREG_REG (rtl)), initialized);
       else
 	goto do_default;
       break;
@@ -15414,7 +15417,11 @@ add_gnat_descriptive_type_attribute (dw_die_ref die, tree type,
   dtype_die = lookup_type_die (dtype);
   if (!dtype_die)
     {
+      /* The descriptive type indirectly references TYPE if this is also the
+	 case for TYPE itself.  Do not deal with the circularity here.  */
+      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
       gen_type_die (dtype, context_die);
+      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 0;
       dtype_die = lookup_type_die (dtype);
       gcc_assert (dtype_die);
     }
@@ -20122,10 +20129,11 @@ dwarf2out_var_location (rtx loc_note)
 {
   char loclabel[MAX_ARTIFICIAL_LABEL_BYTES + 2];
   struct var_loc_node *newloc;
-  rtx next_real;
+  rtx next_real, next_note;
   static const char *last_label;
   static const char *last_postcall_label;
   static bool last_in_cold_section_p;
+  static rtx expected_next_loc_note;
   tree decl;
   bool var_loc_p;
 
@@ -20144,7 +20152,35 @@ dwarf2out_var_location (rtx loc_note)
   if (var_loc_p && !DECL_P (NOTE_VAR_LOCATION_DECL (loc_note)))
     return;
 
-  next_real = next_real_insn (loc_note);
+  /* Optimize processing a large consecutive sequence of location
+     notes so we don't spend too much time in next_real_insn.  If the
+     next insn is another location note, remember the next_real_insn
+     calculation for next time.  */
+  next_real = cached_next_real_insn;
+  if (next_real)
+    {
+      if (expected_next_loc_note != loc_note)
+	next_real = NULL_RTX;
+    }
+
+  next_note = NEXT_INSN (loc_note);
+  if (! next_note
+      || INSN_DELETED_P (next_note)
+      || GET_CODE (next_note) != NOTE
+      || (NOTE_KIND (next_note) != NOTE_INSN_VAR_LOCATION
+	  && NOTE_KIND (next_note) != NOTE_INSN_CALL_ARG_LOCATION))
+    next_note = NULL_RTX;
+
+  if (! next_real)
+    next_real = next_real_insn (loc_note);
+
+  if (next_note)
+    {
+      expected_next_loc_note = next_note;
+      cached_next_real_insn = next_real;
+    }
+  else
+    cached_next_real_insn = NULL_RTX;
 
   /* If there are no instructions which would be affected by this note,
      don't do anything.  */

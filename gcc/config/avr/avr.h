@@ -324,7 +324,7 @@ enum reg_class {
 
 #define STACK_GROWS_DOWNWARD
 
-#define STARTING_FRAME_OFFSET 1
+#define STARTING_FRAME_OFFSET avr_starting_frame_offset()
 
 #define STACK_POINTER_OFFSET 1
 
@@ -375,7 +375,7 @@ typedef struct avr_args {
 
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_L,WIN)          \
   do {                                                                  \
-    rtx new_x = avr_legitimize_reload_address (X, MODE, OPNUM, TYPE,    \
+    rtx new_x = avr_legitimize_reload_address (&(X), MODE, OPNUM, TYPE, \
                                                ADDR_TYPE (TYPE),        \
                                                IND_L, make_memloc);     \
     if (new_x)                                                          \
@@ -385,7 +385,7 @@ typedef struct avr_args {
       }                                                                 \
   } while (0)
 
-#define BRANCH_COST(speed_p, predictable_p) 0
+#define BRANCH_COST(speed_p, predictable_p) avr_branch_cost
 
 #define SLOW_BYTE_ACCESS 0
 
@@ -453,8 +453,6 @@ typedef struct avr_args {
 #define PRINT_OPERAND_PUNCT_VALID_P(CODE) ((CODE) == '~' || (CODE) == '!')
 
 #define PRINT_OPERAND_ADDRESS(STREAM, X) print_operand_address(STREAM, X)
-
-#define ASSEMBLER_DIALECT AVR_HAVE_MOVW
 
 #define ASM_OUTPUT_REG_PUSH(STREAM, REGNO)	\
 {						\
@@ -637,3 +635,5 @@ struct GTY(()) machine_function
 /* AVR does not round pushes, but the existance of this macro is
    required in order for pushes to be generated.  */
 #define PUSH_ROUNDING(X)	(X)
+
+#define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()

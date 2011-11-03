@@ -184,7 +184,7 @@ package body Ch6 is
       Scope.Table (Scope.Last).Ecol := Start_Column;
       Scope.Table (Scope.Last).Lreq := False;
 
-      --  Ada 2005: scan leading NOT OVERRIDING indicator
+      --  Ada 2005: Scan leading NOT OVERRIDING indicator
 
       if Token = Tok_Not then
          Scan;  -- past NOT
@@ -1676,6 +1676,14 @@ package body Ch6 is
       elsif Token = Tok_Aliased then
          Scan; -- past ALIASED
          Set_Aliased_Present (Decl_Node);
+
+         if Ada_Version < Ada_2012 then
+            Error_Msg_SC -- CODEFIX
+              ("ALIASED not allowed in extended return in Ada2012?");
+         else
+            Error_Msg_SC -- CODEFIX
+              ("ALIASED not allowed in extended return");
+         end if;
 
          if Token = Tok_Constant then
             Scan; -- past CONSTANT

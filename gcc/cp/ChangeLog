@@ -1,3 +1,391 @@
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50956
+	* typeck.c (build_const_cast_1): Fix -Wcast-qual for false
+	comp_ptr_ttypes_const.
+
+2011-11-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Make-lang.in (g++spec.o): Pass SHLIB instead of SHLIB_LINK.
+
+2011-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44277
+	* cvt.c (cp_convert_to_pointer): Warn for zero as null pointer
+	constant.
+	* typeck.c (cp_truthvalue_conversion): Handle pointers and member
+	function pointers under c_inhibit_evaluation_warnings; use
+	nullptr_node for data member pointers.
+	(cp_build_binary_op): Tweak, just forward to cp_convert op1,
+	either a nullptr_node or an integer_zero_node.
+	(build_ptrmemfunc): Use nullptr_node.
+	* init.c (build_zero_init_1): Likewise.
+
+2011-11-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50500
+	DR 1082
+	* search.c (lookup_fnfields_idx_nolazy): Split out from...
+	(lookup_fnfields_1): ...here.
+	(lookup_fnfields_slot_nolazy): Use it.
+	* cp-tree.h: Declare it.
+	* class.c (type_has_move_assign): Use it.
+	(type_has_user_declared_move_assign): Likewise.
+
+2011-10-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50920
+	* class.c (check_field_decl): Change c++0x in diags to c++11.
+	* error.c (maybe_warn_cpp0x): Likewise.
+	* parser.c (cp_parser_diagnose_invalid_type_name): Likewise.
+	* pt.c (check_default_tmpl_args): Likewise.
+
+2011-10-31   Diego Novillo  <dnovillo@google.com>
+
+	* mangle.c (get_mangled_id): Factor from ...
+	(mangle_decl): ... here.
+	Call get_mangled_id.
+
+2011-10-25  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* NEWS (GCC 2.95): Refer to GNU/Linux instead of Linux.
+	(EGCS 1.0): Ditto.
+
+2011-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50901
+	* call.c (build_new_op_1): Handle ABS_EXPR together with the
+	other unary EXPR.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+        2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* pt.c (tsubst_copy_and_build): Fix qualified_name_lookup_error
+	call in case COMPONENT_REF.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (unify_pack_expansion): Initialize bad_old_arg and bad_new_arg.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* pt.c (tsubst_copy_and_build): Fix qualified_name_lookup_error
+	call in case COMPONENT_REF.
+
+2011-10-27  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (cxx_eval_outermost_constant_expr): Check
+	cp_has_mutable_p.
+	(cxx_eval_component_reference): Check DECL_MUTABLE_P.
+
+2011-10-27  Roberto Agostino Vitillo  <ravitillo@lbl.gov>
+
+	PR c++/30066
+	* decl2.c (determine_hidden_inline): New function.
+	(determine_visibility): fvisibility-inlines-hidden affects inline
+	functions.
+
+2011-10-27  Dodji Seketeli  <dodji@redhat.com>
+
+	* cp-tree.h (DECL_DECLARES_TYPE_P): Fix comment.
+
+2011-10-26  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (check_literal_operator_args): Avoid building types.
+
+2011-10-26  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	Implement C++11 user-defined literals.
+	* cp-objcp-common.c: (cp_tree_size) Return size of USERDEF_LITERAL tree.
+	* cp-tree.h: (UDLIT_OP_*, UDLIT_OPER_P): Literal operator
+	name tools. New tree code for user-defined literals.
+	* cxx-pretty-print.h: (pp_cxx_userdef_literal) New.
+	* cxx-pretty-print.c: (pp_cxx_userdef_literal) New.
+	(pp_cxx_primary_expression, pp_cxx_expression): Use it.
+	* decl.c: (cp_tree_node_structure): Return new tree code.
+	(duplicate_decls): Check for raw vs. template operator conflicts.
+	(grokfndecl, grokdeclarator): New checks for literal operators.
+	* error.c: (dump_expr): Warn about user-defined literals
+	in C++98 mode. (dump_function_name): Pretty printing.
+	* mangle.c: (write_literal_operator_name): New.
+	(write_unqualified_id, write_unqualified_name): Use it.
+	* parser.c: (cp_parser_operator): Handle operator"".
+	(cp_parser_userdef_char_literal, cp_parser_userdef_numeric_literal,
+	cp_parser_userdef_string_literal): New.
+	(cp_parser_primary_expression): Handle new user-defined literal tokens
+	with new functions.
+	* semantics.c: (potential_constant_expression_1): Add
+	user-defined literals.
+	* typeck.c (check_raw_literal_operator,
+	check_literal_operator_args): New.
+
+2011-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* typeck.c (cp_build_addr_expr_1): Use BASELINK_P.
+	* class.c (instantiate_type): Likewise.
+	* pt.c (convert_nontype_argument_function, uses_template_parms,
+	tsubst_copy, resolve_nondeduced_context, type_dependent_expression_p):
+	Likewise.
+	* semantics.c (finish_decltype_type): Likewise.
+	* decl2.c (mark_used): Likewise.
+	* name-lookup.c (arg_assoc): Likewise.
+
+2011-10-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50870
+	* typeck.c (non_reference): Pass NULL_TREE through.
+
+2011-10-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50866
+	PR c++/41449
+	* semantics.c (maybe_cleanup_point_expr_void): No longer static.
+	* typeck2.c (split_nonconstant_init_1): Use it.
+	* cp-tree.h: Declare it.
+	* decl.c (wrap_cleanups_r): Stop at CLEANUP_POINT_EXPR.
+
+	PR c++/49996
+	* tree.c (stabilize_init): Stabilize scalar elements of a
+	CONSTRUCTOR, too.
+
+2011-10-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50858
+	* typeck.c (composite_pointer_type_r): Check return value of
+	composite_pointer_type_r for error_mark_node.
+
+2011-10-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50861
+	* pt.c (tsubst_copy_and_build): Check return value of
+	tsubst_copy_and_build for error_mark_node.
+
+2011-10-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50841
+	Revert:
+	2011-10-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50810
+	* typeck2.c (check_narrowing): Adjust OPT_Wnarrowing diagnostics.
+	(digest_init_r): Call check_narrowing irrespective of the C++ dialect.
+	* decl.c (check_initializer): Likewise.
+	* semantics.c (finish_compound_literal): Likewise.
+
+2011-10-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50810
+	* typeck2.c (check_narrowing): Adjust OPT_Wnarrowing diagnostics.
+	(digest_init_r): Call check_narrowing irrespective of the C++ dialect.
+	* decl.c (check_initializer): Likewise.
+	* semantics.c (finish_compound_literal): Likewise.
+
+2011-10-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/45385
+	* init.c (build_vec_init): Early return error_mark_node if
+	maxindex is -1.
+
+2011-10-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/31423
+	* typeck2.c (cxx_incomplete_type_diagnostic): Improve error message
+	for invalid use of member function.
+
+2011-10-21  Ville Voutilainen  <ville.voutilainen@gmail.com>
+
+	PR c++/50811
+	* parser.c (cp_parser_class_head): Parse virt-specifiers
+	regardless of whether an id is present
+
+2011-10-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/41449
+	* typeck2.c (split_nonconstant_init_1): Handle EH cleanup of
+	initialized subobjects.
+
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/13657
+	* class.c (instantiate_type): Fix error message.
+
+2011-10-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50793
+	* tree.c (bot_manip): Propagate AGGR_INIT_ZERO_FIRST.
+
+2011-10-19  Roland Stigge  <stigge@antcom.de>
+
+	PR translation/49704
+	* semantics.c (potential_constant_expression_1): Use "AST" instead of
+	"ast" in sorry message.
+
+2011-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38761
+	PR c++/40872
+	* decl.c (duplicate_decls, make_typename_type, grokdeclarator): Use
+	G_() in error message strings to facilitate translation.
+	* semantics.c (finish_id_expression): Likewise.
+	* parser.c (cp_parser_nested_name_specifier_opt,
+	cp_parser_parameter_declaration): Likewise.
+
+2011-10-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50531
+	* pt.c (instantiate_decl): Recognize when a function defaulted
+	outside the class is already instantiated.
+
+	PR c++/50742
+	* decl.c (check_previous_goto_1): Handle using-decl.
+
+2011-10-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50500
+	DR 1082
+	* class.c (type_has_user_declared_move_constructor): New.
+	(type_has_user_declared_move_assign): New.
+	(add_implicitly_declared_members): Add lazy copy ops
+	even if there's a move.
+	* method.c (lazily_declare_fn): Delete implicit copies
+	if there's a move.
+	(maybe_explain_implicit_delete): Explain this.  Use inform rather
+	than error.
+	* cp-tree.h: Declare new fns.
+
+2011-10-18   Diego Novillo  <dnovillo@google.com>
+
+	* parser.c: Remove ENABLE_CHECKING markers around debugging
+	routines.
+	(cp_lexer_dump_tokens): Add arguments START_TOKEN and CURR_TOKEN.
+	Make static
+	When printing CURR_TOKEN surround it in [[ ]].
+	Start printing at START_TOKEN.
+	Update all users.
+	(cp_debug_print_tree_if_set): New.
+	(cp_debug_print_context): New.
+	(cp_debug_print_context_stack): New.
+	(cp_debug_print_flag): New.
+	(cp_debug_print_unparsed_function): New.
+	(cp_debug_print_unparsed_queues): New.
+	(cp_debug_parser_tokens): New.
+	(cp_debug_parser): New.
+	(cp_lexer_start_debugging): Set cp_lexer_debug_stream to stderr.
+	(cp_lexer_stop_debugging): Set cp_lexer_debug_stream to NULL.
+	* parser.h (cp_lexer_dump_tokens): Remove declaration.
+	(cp_debug_parser): Declare.
+
+2011-10-17  Michael Spertus  <mike_spertus@symantec.com>
+
+	* cp-tree.def: Add BASES as a new tree code.
+	* cp-tree.h (enum cp_trait_kind): Add CPTK_BASES, CPTK_DIRECT_BASES.
+	(BASES_TYPE, BASES_DIRECT): Define.
+	(calculate_bases, finish_bases, calculate_direct_bases): Declare.
+	* parser.c (cp_parser_trait_expr, cp_parser_template_argument_list,
+	(cp_parser_simple_type_specifier, cp_parser_save_nsdmi): Use them.
+	* pt.c (find_parameter_packs_r, tsubst_pack_expansion): Likewise.
+	* semantics.c (calculate_bases, finish_bases, calculate_direct_bases,
+	dfs_calculate_bases_pre, dfs_calculate_bases_post,
+	calculate_bases_helper): Define.
+
+2011-10-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50736
+	* parser.c (cp_parser_lambda_introducer): Check for more
+	invalid captures.
+
+2011-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44524
+	* typeck.c (build_class_member_access_expr): Provide a better error
+	message for X.Y where X is a pointer to class type.
+	(finish_class_member_access_expr): Likewise.
+
+2011-10-15  Tom Tromey  <tromey@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	* error.c (cp_diagnostic_starter): Pass the relevant location to
+	diagnostic_report_current_module.
+	(cp_diagnostic_finalizer): Call virt_loc_aware_diagnostic_finalizer.
+
+2011-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48489
+	* typeck.c (finish_class_member_access_expr): Fix error call
+	for TREE_CODE (access_path) == TREE_BINFO.
+
+2011-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50732
+	* semantics.c (finish_trait_expr): Do not try to instantiate the
+	the base type of an __is_base_of trait.
+	(check_trait_type): Return a tree; use complete_type_or_else.
+
+2011-10-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50563
+	* parser.c (cp_parser_cache_group): Handle end==CPP_COMMA.
+	(cp_parser_save_nsdmi): Pass it.
+
+	PR c++/50707
+	* method.c (walk_field_subobs): Check for NSDMI before
+	complaining about uninitialized fields.
+
+	* pt.c (tsubst_decl) [FIELD_DECL]: Use void_zero_node
+	instead of error_mark_node as a placeholder.
+
+2011-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38174
+	* call.c (add_builtin_candidate): If two pointers have a composite
+	pointer type, generate a single candidate with that type.
+
+2011-10-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50614
+	* cp-tree.h (VAR_TEMPL_TYPE_FIELD_OR_FUNCTION_DECL_CHECK): New.
+	(DECL_TEMPLATE_INFO): Use it.
+	* pt.c (tsubst_decl) [FIELD_DECL]: Set DECL_TEMPLATE_INFO
+	if the decl has an NSDMI.
+	* init.c (perform_member_init): Use it.
+
+	PR c++/50437
+	* cp-tree.h (struct tree_lambda_expr): Add closure field.
+	(LAMBDA_EXPR_CLOSURE): New.
+	* pt.c (tsubst_copy_and_build) [LAMBDA_EXPR]: Likewise.
+	* semantics.c (build_lambda_object): Use it instead of TREE_TYPE.
+	(begin_lambda_type, lambda_function, add_capture): Likewise.
+	(add_default_capture, lambda_expr_this_capture): Likewise.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (struct language_function): Rename in_function_try_handler
+	to x_in_function_try_handler.
+	Rename in_base_initializer to x_in_base_initializer.
+	Update all users.
+
+2011-10-13   Diego Novillo  <dnovillo@google.com>
+
+	* class.c (sorted_fields_type_new): Factor out of ...
+	(finish_struct_1): ... here.
+
+2011-10-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50618
+	* init.c (expand_aggr_init_1): Don't zero-initialize virtual
+	bases of a base subobject.
+
+2011-10-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50594
+	* decl.c (cxx_init_decl_processing): Add
+	__attribute__((externally_visible)) to operator new and
+	operator delete library fn.
+
 2011-10-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* decl.c (duplicate_decls): Delete old interface with two parallel
