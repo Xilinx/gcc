@@ -1,5 +1,11 @@
 2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
 
+	* testsuite/config/default.exp: Update copyright date.
+	* configure.ac: Add copyright info.
+	* configure.tgt: Same.
+
+2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
 	* testsuite/libitm.c/reentrant.c: XFAIL.
 	* testsuite/libitm.c++/static_ctor.C: XFAIL.
 
