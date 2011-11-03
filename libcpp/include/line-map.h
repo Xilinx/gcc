@@ -651,7 +651,10 @@ enum location_resolution_kind
    LRK_SPELLING_LOCATION.
 
    If LOC_MAP is not NULL, *LOC_MAP is set to the map encoding the
-   returned location.  */
+   returned location.  Note that if the resturned location wasn't originally
+   encoded by a map, the *MAP is set to NULL.  This can happen if LOC
+   resolves to a location reserved for the client code, like
+   UNKNOWN_LOCATION or BUILTINS_LOCATION in GCC.  */
 
 source_location linemap_resolve_location (struct line_maps *,
 					  source_location loc,
@@ -670,34 +673,28 @@ source_location linemap_unwind_toward_expansion (struct line_maps *,
 						 const struct line_map **loc_map);
 
 /* Expand source code location LOC and return a user readable source
-   code location.  LOC must be a spelling (non-virtual) location.  */
-
-expanded_location linemap_expand_location (const struct line_map *,
+   code location.  LOC must be a spelling (non-virtual) location.  If
+   it's a location < RESERVED_LOCATION_COUNT a zeroed expanded source
+   location is returned.  */
+expanded_location linemap_expand_location (struct line_maps *,
+					   const struct line_map *,
 					   source_location loc);
-
-/* Expand source code location LOC and return a user readable source
-   code location.  LOC can be a virtual location.  The LRK parameter
-   is the same as for linemap_resolve_location.  */
-
-expanded_location linemap_expand_location_full (struct line_maps *,
-						source_location loc,
-						enum location_resolution_kind lrk);
 
 /* Statistics about maps allocation and usage as returned by
    linemap_get_statistics.  */
 struct linemap_stats
 {
-  size_t num_ordinary_maps_allocated;
-  size_t num_ordinary_maps_used;
-  size_t ordinary_maps_allocated_size;
-  size_t ordinary_maps_used_size;
-  size_t num_expanded_macros;
-  size_t num_macro_tokens;
-  size_t num_macro_maps_used;
-  size_t macro_maps_allocated_size;
-  size_t macro_maps_used_size;
-  size_t macro_maps_locations_size;
-  size_t duplicated_macro_maps_locations_size;
+  long num_ordinary_maps_allocated;
+  long num_ordinary_maps_used;
+  long ordinary_maps_allocated_size;
+  long ordinary_maps_used_size;
+  long num_expanded_macros;
+  long num_macro_tokens;
+  long num_macro_maps_used;
+  long macro_maps_allocated_size;
+  long macro_maps_used_size;
+  long macro_maps_locations_size;
+  long duplicated_macro_maps_locations_size;
 };
 
 /* Compute and return statistics about the memory consumption of some

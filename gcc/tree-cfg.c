@@ -3342,7 +3342,9 @@ verify_gimple_assign_unary (gimple stmt)
 
     case FLOAT_EXPR:
       {
-	if (!INTEGRAL_TYPE_P (rhs1_type) || !SCALAR_FLOAT_TYPE_P (lhs_type))
+	if ((!INTEGRAL_TYPE_P (rhs1_type) || !SCALAR_FLOAT_TYPE_P (lhs_type))
+	    && (!VECTOR_INTEGER_TYPE_P (rhs1_type)
+	        || !VECTOR_FLOAT_TYPE_P(lhs_type)))
 	  {
 	    error ("invalid types in conversion to floating point");
 	    debug_generic_expr (lhs_type);
@@ -3355,7 +3357,9 @@ verify_gimple_assign_unary (gimple stmt)
 
     case FIX_TRUNC_EXPR:
       {
-	if (!INTEGRAL_TYPE_P (lhs_type) || !SCALAR_FLOAT_TYPE_P (rhs1_type))
+        if ((!INTEGRAL_TYPE_P (lhs_type) || !SCALAR_FLOAT_TYPE_P (rhs1_type))
+            && (!VECTOR_INTEGER_TYPE_P (lhs_type)
+                || !VECTOR_FLOAT_TYPE_P(rhs1_type)))
 	  {
 	    error ("invalid types in conversion to integer");
 	    debug_generic_expr (lhs_type);
@@ -3508,6 +3512,44 @@ verify_gimple_assign_binary (gimple stmt)
 	  }
 
 	return false;
+      }
+
+    case WIDEN_LSHIFT_EXPR:
+      {
+        if (!INTEGRAL_TYPE_P (lhs_type)
+            || !INTEGRAL_TYPE_P (rhs1_type)
+            || TREE_CODE (rhs2) != INTEGER_CST
+            || (2 * TYPE_PRECISION (rhs1_type) > TYPE_PRECISION (lhs_type)))
+          {
+            error ("type mismatch in widening vector shift expression");
+            debug_generic_expr (lhs_type);
+            debug_generic_expr (rhs1_type);
+            debug_generic_expr (rhs2_type);
+            return true;
+          }
+
+        return false;
+      }
+
+    case VEC_WIDEN_LSHIFT_HI_EXPR:
+    case VEC_WIDEN_LSHIFT_LO_EXPR:
+      {
+        if (TREE_CODE (rhs1_type) != VECTOR_TYPE
+            || TREE_CODE (lhs_type) != VECTOR_TYPE
+            || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+            || !INTEGRAL_TYPE_P (TREE_TYPE (lhs_type))
+            || TREE_CODE (rhs2) != INTEGER_CST
+            || (2 * TYPE_PRECISION (TREE_TYPE (rhs1_type))
+                > TYPE_PRECISION (TREE_TYPE (lhs_type))))
+          {
+            error ("type mismatch in widening vector shift expression");
+            debug_generic_expr (lhs_type);
+            debug_generic_expr (rhs1_type);
+            debug_generic_expr (rhs2_type);
+            return true;
+          }
+
+        return false;
       }
 
     case PLUS_EXPR:

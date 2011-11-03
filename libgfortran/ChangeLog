@@ -1,3 +1,52 @@
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/inquire.c (inquire_via_unit): Check whether we're at the
+	beginning or end if the position is unspecified. If the position
+	is not one of the 3 standard ones, return unspecified.
+	* io/io.h (update_position): Remove prototype.
+	* io/transfer.c (next_record): Set the position to unspecified,
+	letting inquire figure it out more exactly when needed.
+	* io/unit.c (update_position): Remove function.
+
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/unix.h (struct stream): Add size function pointer.
+	(ssize): New inline function.
+	(file_length): Remove prototype.
+	* io/unix.c (raw_size): New function.
+	(raw_init): Initialize st.size pointer.
+	(buf_size): New function.
+	(buf_init): Initialize st.size pointer.
+	(open_internal): Likewise.
+	(open_internal4): Likewise.
+	(file_length): Remove function.
+	* io/file_pos.c (st_rewind): Use ssize instead of file_length.
+	* io/open.c (test_endfile): Likewise.
+	* io/transfer.c (data_transfer_init): Likewise.
+	(next_record_r): Likewise.
+	(next_record_w): Likewise.
+	* io/unit.c (update_position): Likewise.
+
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/file_pos.c (st_rewind): Handle regular and special files
+	identically.
+	* io/intrinsics.c (fseek_sub): Don't check whether we think the
+	file is seekable, just do what the caller says.
+	* io/transfer.c (skip_record): First try to seek, then fallback to
+	reading and throwing away what we read.
+	* io/unit.c (update_position): Don't check whether file is
+	seekable, just try to do what we're told.
+	(unit_truncate): Likewise.
+	* io/unix.c (struct unix_stream): Remove special_file flag.
+	(buf_flush): Remove code for handling unseekable files.
+	(buf_seek): Likewise.
+	(fd_to_stream): Use buffered IO only for regular files.
+	(file_length): Remove is_seekable() call.
+	(is_seekable): Remove function.
+	(is_special): Likewise.
+	* io/unix.h: Remove prototypes for is_seekable and is_special.
+
 2011-09-10  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/49479

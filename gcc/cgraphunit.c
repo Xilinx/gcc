@@ -1219,7 +1219,6 @@ handle_alias_pairs (void)
   for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p);)
     {
       if (TREE_CODE (p->decl) == FUNCTION_DECL
-	   && !lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
 	  && (target_node = cgraph_node_for_asm (p->target)) != NULL)
 	{
 	  src_node = cgraph_get_node (p->decl);
@@ -1231,12 +1230,12 @@ handle_alias_pairs (void)
 	     However for weakref we insist on EXTERNAL flag being set.
 	     See gcc.dg/attr-alias-5.c  */
 	  if (DECL_EXTERNAL (p->decl))
-	    DECL_EXTERNAL (p->decl) = 0;
+	    DECL_EXTERNAL (p->decl) = lookup_attribute ("weakref",
+							DECL_ATTRIBUTES (p->decl)) != NULL;
 	  cgraph_create_function_alias (p->decl, target_node->decl);
 	  VEC_unordered_remove (alias_pair, alias_pairs, i);
 	}
       else if (TREE_CODE (p->decl) == VAR_DECL
-	       && !lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
 	       && (target_vnode = varpool_node_for_asm (p->target)) != NULL)
 	{
 	  /* Normally EXTERNAL flag is used to mark external inlines,
@@ -1245,8 +1244,24 @@ handle_alias_pairs (void)
 	     However for weakref we insist on EXTERNAL flag being set.
 	     See gcc.dg/attr-alias-5.c  */
 	  if (DECL_EXTERNAL (p->decl))
-	    DECL_EXTERNAL (p->decl) = 0;
+	    DECL_EXTERNAL (p->decl) = lookup_attribute ("weakref",
+							DECL_ATTRIBUTES (p->decl)) != NULL;
 	  varpool_create_variable_alias (p->decl, target_vnode->decl);
+	  VEC_unordered_remove (alias_pair, alias_pairs, i);
+	}
+      /* Weakrefs with target not defined in current unit are easy to handle; they
+	 behave just as external variables except we need to note the alias flag
+	 to later output the weakref pseudo op into asm file.  */
+      else if (lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)) != NULL
+	       && (TREE_CODE (p->decl) == FUNCTION_DECL
+		   ? (varpool_node_for_asm (p->target) == NULL)
+		   : (cgraph_node_for_asm (p->target) == NULL)))
+	{
+	  if (TREE_CODE (p->decl) == FUNCTION_DECL)
+	    cgraph_get_create_node (p->decl)->alias = true;
+	  else
+	    varpool_get_node (p->decl)->alias = true;
+	  DECL_EXTERNAL (p->decl) = 1;
 	  VEC_unordered_remove (alias_pair, alias_pairs, i);
 	}
       else
@@ -2065,6 +2080,40 @@ ipa_passes (void)
 }
 
 
+/* Return string alias is alias of.  */
+
+static tree
+get_alias_symbol (tree decl)
+{
+  tree alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
+  return get_identifier (TREE_STRING_POINTER
+			  (TREE_VALUE (TREE_VALUE (alias))));
+}
+
+
+/* Weakrefs may be associated to external decls and thus not output
+   at expansion time.  Emit all neccesary aliases.  */
+
+static void
+output_weakrefs (void)
+{
+  struct cgraph_node *node;
+  struct varpool_node *vnode;
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->alias && DECL_EXTERNAL (node->decl)
+        && !TREE_ASM_WRITTEN (node->decl))
+      assemble_alias (node->decl,
+		      node->thunk.alias ? DECL_ASSEMBLER_NAME (node->thunk.alias)
+		      : get_alias_symbol (node->decl));
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    if (vnode->alias && DECL_EXTERNAL (vnode->decl)
+        && !TREE_ASM_WRITTEN (vnode->decl))
+      assemble_alias (vnode->decl,
+		      vnode->alias_of ? DECL_ASSEMBLER_NAME (vnode->alias_of)
+		      : get_alias_symbol (vnode->decl));
+}
+
+
 /* Perform simple optimizations based on callgraph.  */
 
 void
@@ -2150,6 +2199,8 @@ cgraph_optimize (void)
 
       varpool_assemble_pending_decls ();
     }
+
+  output_weakrefs ();
   cgraph_process_new_functions ();
   cgraph_state = CGRAPH_STATE_FINISHED;
 
@@ -2314,6 +2365,10 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
   DECL_NAME (new_decl) = clone_function_name (old_decl, clone_name);
   SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
   SET_DECL_RTL (new_decl, NULL);
+
+  /* When the old decl was a con-/destructor make sure the clone isn't.  */
+  DECL_STATIC_CONSTRUCTOR(new_decl) = 0;
+  DECL_STATIC_DESTRUCTOR(new_decl) = 0;
 
   /* Create the new version's call-graph node.
      and update the edges of the new node. */

@@ -125,8 +125,10 @@ static tree
 do_binop (gimple_stmt_iterator *gsi, tree inner_type, tree a, tree b,
 	  tree bitpos, tree bitsize, enum tree_code code)
 {
-  a = tree_vec_extract (gsi, inner_type, a, bitsize, bitpos);
-  b = tree_vec_extract (gsi, inner_type, b, bitsize, bitpos);
+  if (TREE_CODE (TREE_TYPE (a)) == VECTOR_TYPE)
+    a = tree_vec_extract (gsi, inner_type, a, bitsize, bitpos);
+  if (TREE_CODE (TREE_TYPE (b)) == VECTOR_TYPE)
+    b = tree_vec_extract (gsi, inner_type, b, bitsize, bitpos);
   return gimplify_build2 (gsi, code, inner_type, a, b);
 }
 
@@ -641,12 +643,22 @@ lower_vec_perm (gimple_stmt_iterator *gsi)
   location_t loc = gimple_location (gsi_stmt (*gsi));
   unsigned i;
 
-  if (can_vec_perm_expr_p (vect_type, mask))
+  if (TREE_CODE (mask) == VECTOR_CST)
+    {
+      unsigned char *sel_int = XALLOCAVEC (unsigned char, elements);
+      tree vals = TREE_VECTOR_CST_ELTS (mask);
+
+      for (i = 0; i < elements; ++i, vals = TREE_CHAIN (vals))
+	sel_int[i] = TREE_INT_CST_LOW (TREE_VALUE (vals));
+
+      if (can_vec_perm_p (TYPE_MODE (vect_type), false, sel_int))
+	return;
+    }
+  else if (can_vec_perm_p (TYPE_MODE (vect_type), true, NULL))
     return;
   
   warning_at (loc, OPT_Wvector_operation_performance,
               "vector shuffling operation will be expanded piecewise");
-
 
   v = VEC_alloc (constructor_elt, gc, elements);
   for (i = 0; i < elements; i++)
@@ -761,6 +773,15 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       || code == VIEW_CONVERT_EXPR)
     return;
 
+  /* These are only created by the vectorizer, after having queried
+     the target support.  It's more than just looking at the optab,
+     and there's no need to do it again.  */
+  if (code == VEC_INTERLEAVE_HIGH_EXPR
+      || code == VEC_INTERLEAVE_LOW_EXPR
+      || code == VEC_EXTRACT_EVEN_EXPR
+      || code == VEC_EXTRACT_ODD_EXPR)
+    return;
+
   gcc_assert (code != CONVERT_EXPR);
 
   /* The signedness is determined from input argument.  */
@@ -823,7 +844,9 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       || code == VEC_UNPACK_LO_EXPR
       || code == VEC_PACK_TRUNC_EXPR
       || code == VEC_PACK_SAT_EXPR
-      || code == VEC_PACK_FIX_TRUNC_EXPR)
+      || code == VEC_PACK_FIX_TRUNC_EXPR
+      || code == VEC_WIDEN_LSHIFT_HI_EXPR
+      || code == VEC_WIDEN_LSHIFT_LO_EXPR)
     type = TREE_TYPE (rhs1);
 
   /* Optabs will try converting a negation into a subtraction, so

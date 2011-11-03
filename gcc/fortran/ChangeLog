@@ -1,3 +1,143 @@
+2011-10-30  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/50573
+	* check.c (gfc_check_dshift): Update argument checking for BOZ.
+	Update checking SHIFT against BITSIZE of I or J.
+	* intrinsic.texi: Update docs for DSHIFTL and DSHIFTR.
+
+2011-10-28  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* check.c (gfc_check_atan_2): Typo in comment.
+	(gfc_check_nearest): If 's' is constant, check that it is not 0.
+	* simplify.c (simplify_dshift, gfc_simplify_ibclr, gfc_simplify_ibits,
+	gfc_simplify_ibset, simplify_shift, gfc_simplify_ishftc,
+	gfc_simplify_nearest): Remove dead code.
+
+2011-10-23  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* simplify.c (simplify_transformation_to_array): Fix memory leak.
+ 
+2011-10-20  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/50821
+	* check.c (gfc_check_ishftc): Check args are constant before 
+	extracting the integer.
+
+2011-10-20  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/50514
+	* check.c (less_than_bitsize1): Check |shift| <= bit_size(i).
+	(gfc_check_ishftc):  Check |shift| <= bit_size(i) and check
+	that size is positive.
+
+2011-10-20  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/50524
+	* resolve.c (resolve_ref): Check return value of resolve_substring().
+
+2011-10-20  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* io.c (match_dt_format): Match a user-defined operator or a kind
+	type prefixed string.
+
+2011-10-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	* check.c (gfc_check_sizeof): Reject procedures as argument of SIZEOF.
+	* intrinsinc.texi (SIZEOF): Document it.
+	(STORAGE_SIZE): Fix special characters. Fix line breaks.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans.c (gfc_build_array_ref): If type is not an array, check that
+	there is nothing to do, and do nothing.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans-types.c (gfc_build_array_type): Don't force lower bound to one
+	in the deferred case.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* simplify.c (simplify_cobound): Accept non-last-in-ref-chain coarrays.
+	Don't set already set array ref.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* array.c (gfc_find_array_ref): Remove coarray-specific handling.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* check.c (dim_corank_check): Use gfc_get_corank to get corank.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans-intrinsic.c (walk_coarray): Change AR_ELEMENT to AR_SECTION.
+
+	PR fortran/50420
+	* trans-intrinsic.c (walk_coarray): Use gfc_walk_array_ref for
+	the scalarization chain initialization. 
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans-intrinsic.c (walk_coarray): Allow subreferences after a
+	coarray object reference.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans-array.c (gfc_walk_array_ref): Allow zero rank arrays
+	if they are coarrays.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.h (gfc_walk_array_ref): New prototype.
+	* trans-array.c (gfc_walk_array_ref): New function, containing
+	all but the beginning of gfc_walk_variable_expr's code.
+	(gfc_walk_variable_expr): Use gfc_walk_array_ref.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans-array.c (gfc_conv_expr_descriptor): Use loop.dimen instead of
+	ndim for the descriptor's rank.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50420
+	* trans-array.c (gfc_conv_expr_descriptor): Count codimensions starting
+	from zero, and add then the relevant offset (either ndim or loop.dimen)
+	depending on context.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_expr_descriptor): Save some horizontal space.
+
+2011-10-18  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (gfc_conv_expr_descriptor): Move ndim initialization
+	earlier.
+
+2011-10-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47023
+	* decl.c (verify_c_interop_param): Renamed to
+	'gfc_verify_c_interop_param'. Add error message for polymorphic
+	arguments.
+	(verify_c_interop): Renamed to 'gfc_verify_c_interop'. Reject
+	polymorphic variables.
+	(verify_bind_c_sym): Renamed 'verify_c_interop'.
+	* gfortran.h (verify_c_interop,verify_c_interop_param): Renamed.
+	* check.c (gfc_check_sizeof): Ditto.
+	* resolve.c (gfc_iso_c_func_interface,resolve_fl_procedure): Ditto.
+	* symbol.c (verify_bind_c_derived_type): Ditto.
+
 2011-10-15  Tom Tromey  <tromey@redhat.com>
 	    Dodji Seketeli  <dodji@redhat.com>
 

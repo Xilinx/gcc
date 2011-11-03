@@ -423,6 +423,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__asm__",		RID_ASM,	0 },
   { "__attribute",	RID_ATTRIBUTE,	0 },
   { "__attribute__",	RID_ATTRIBUTE,	0 },
+  { "__bases",          RID_BASES, D_CXXONLY },
   { "__builtin_choose_expr", RID_CHOOSE_EXPR, D_CONLY },
   { "__builtin_complex", RID_BUILTIN_COMPLEX, D_CONLY },
   { "__builtin_shuffle", RID_BUILTIN_SHUFFLE, D_CONLY },
@@ -434,6 +435,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__const",		RID_CONST,	0 },
   { "__const__",	RID_CONST,	0 },
   { "__decltype",       RID_DECLTYPE,   D_CXXONLY },
+  { "__direct_bases",   RID_DIRECT_BASES, D_CXXONLY },
   { "__extension__",	RID_EXTENSION,	0 },
   { "__func__",		RID_C99_FUNCTION_NAME, 0 },
   { "__has_nothrow_assign", RID_HAS_NOTHROW_ASSIGN, D_CXXONLY },
@@ -2119,22 +2121,11 @@ unsafe_conversion_p (tree type, tree expr, bool produce_warns)
 static void
 conversion_warning (tree type, tree expr)
 {
-  int i;
-  const int expr_num_operands = TREE_OPERAND_LENGTH (expr);
   tree expr_type = TREE_TYPE (expr);
   location_t loc = EXPR_LOC_OR_HERE (expr);
 
   if (!warn_conversion && !warn_sign_conversion)
     return;
-
-  /* If any operand is artificial, then this expression was generated
-     by the compiler and we do not warn.  */
-  for (i = 0; i < expr_num_operands; i++)
-    {
-      tree op = TREE_OPERAND (expr, i);
-      if (op && DECL_P (op) && DECL_ARTIFICIAL (op))
-	return;
-    }
 
   switch (TREE_CODE (expr))
     {
@@ -9919,6 +9910,19 @@ c_common_init_ts (void)
 {
   MARK_TS_TYPED (C_MAYBE_CONST_EXPR);
   MARK_TS_TYPED (EXCESS_PRECISION_EXPR);
+}
+
+/* Build a user-defined numeric literal out of an integer constant type VALUE
+   with identifier SUFFIX.  */
+
+tree
+build_userdef_literal (tree suffix_id, tree value, tree num_string)
+{
+  tree literal = make_node (USERDEF_LITERAL);
+  USERDEF_LITERAL_SUFFIX_ID (literal) = suffix_id;
+  USERDEF_LITERAL_VALUE (literal) = value;
+  USERDEF_LITERAL_NUM_STRING (literal) = num_string;
+  return literal;
 }
 
 #include "gt-c-family-c-common.h"

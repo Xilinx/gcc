@@ -1,12 +1,306 @@
-2011-10-15  Tom Tromey  <tromey@redhat.com> 
+2011-10-28  Iain Sandoe  <iains@gcc.gnu.org>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/50678
+	* init.c (__gnat_error_handler) [Darwin]: Apply a work-around to the
+	bug filed as radar #10302855 (inconsistent unwind data for sigtramp).
+
+2011-10-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/50842
+	* gcc-interface/Makefile.in (SYMDEPS): Delete.
+	(LIBICONV): New variable.
+	(LIBICONV_DEP): Likewise.
+	(LIBS): Add $(LIBICONV).
+	(LIBDEPS): Add $(LIBICONV_DEP).
+	(EXTRA_GNATTOOLS_OBJS): Merge into...
+	(TOOLS_LIBS): ...this.  Add $(LIBICONV).
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (elaborate_expression_1): Add EXPR_PUBLIC_P local
+	variable.  Always create the elaboration variable, if any, as constant.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Record_Subtype>: Try to
+	make a packable type for fields of union types as well.
+	<is_type>: Use RECORD_OR_UNION_TYPE_P predicate.
+	(gnat_to_gnu_component_type): Try to make a packable type for fields
+	of union types as well.
+	(make_packable_type): Use RECORD_OR_UNION_TYPE_P predicate.
+	(maybe_pad_type): Try to make a packable type for fields of union types
+	as well.
+	(gnat_to_gnu_field): Likewise.
+	(is_variable_size): Use RECORD_OR_UNION_TYPE_P predicate.
+	(set_rm_size): Likewise.
+	(rm_size): Likewise.
+	* gcc-interface/misc.c (gnat_type_max_size): Likewise.
+	* gcc-interface/trans.c (add_decl_expr): Likewise.
+	* gcc-interface/utils.c (finish_record_type): Likewise.
+	* gcc-interface/utils2.c (build_simple_component_ref): Likewise.
+
+2011-10-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_field): Always check components
+	declared as atomic.  Move around conditionally executed code.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* sem.adb (Initialize): Fix bug that blew up if called a second time.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* tb-alvxw.c, tracebak.c, expect.c, initflt.c, tb-alvms.c,
+	tb-ivms.c, tb-gcc.c: Update headers to GPL 3.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb (Analyze_Pragma, case Debug): Give proper pragma
+	name in error msg.
+
+2011-10-24  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* gnat_rm.texi: Add an entry for restriction No_Finalization.
+
+2011-10-24  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch12.adb (Insert_Freeze_Node_For_Instance):  If the
+	current instance is within the one that contains the generic,
+	the freeze node for the current one must appear in the current
+	declarative part. Ditto if the current instance is within another
+	package instance. In both of these cases the freeze node of the
+	previous instance is not relevant.
+
+2011-10-24  Gary Dismukes  <dismukes@adacore.com>
+
+	* switch-m.adb (Normalize_Compiler_Switches): Add recognition
+	of AAMP-specific switches -univ and -aamp_target.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* a-tienau.adb (Put): Deal properly with limited line length.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb, sem_ch12.adb: Minor reformatting.
+
+2011-10-24  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc-interface/Makefile.in: Use GNU ld switches to generate map files
+	on AIX.
+
+2011-10-24  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch12.adb (Earlier): make available globally. If both
+	nodes have the same sloc, the freeze node that does not come
+	from source is the later one.
+	(True_Parent): Make available globally.
+	(Previous_Instance): Subsidiary of
+	Insert_Freeze_Node_For_Instance, to check whether the generic
+	parent of the current instance is declared within a previous
+	instance in the same unit or declarative  part, in which case the
+	freeze nodes of both instances must appear in order to prevent
+	elaboration problems in gigi.
+	* sem_ch12.adb (Insert_Freeze_Node_For_Instance): A stub is a
+	freeze point, and the freeze node of a preceding instantiation
+	must be inserted before it.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* checks.ads, checks.adb: Add handling of Synchronization_Check
+	* debug.adb: Add doc for -gnatd.d and -gnatd.e (disable/enable
+	atomic sync).
+	* exp_ch2.adb (Expand_Entity_Reference): Set Atomic_Sync_Required
+	flag Minor code reorganization.
+	* opt.ads (Warn_On_Atomic_Synchronization): New switch.
+	* par-prag.adb: Add dummy entries for pragma
+	Disable/Enable_Atomic_Synchronization.
+	* sem_prag.adb (Process_Suppress_Unsuppress): Handle
+	case of Atomic_Synchronization specially (not suppressed
+	by All_Checks, cannot be set from Source).
+	(Pragma Disable/Enable_Atomic_Synchronization): Add processing.
+	* sinfo.ads, sinfo.adb: Add Atomic_Sync_Required flag
+	* snames.ads-tmpl: Add entry for Atomic_Synchronization Add
+	entry for pragma Disable/Enable_Atomic_Synchronization
+	* switch-c.adb: The -gnatp switch does not disable
+	Atomic_Synchronization Add -gnatep switch to disable
+	Atomic_Synchronization.
+	* types.ads: Add entry for Synchronization_Check
+	* usage.adb: Add line for -gnated switch
+	* warnsw.adb: Settings for Warn_On_Atomic_Synchronization
+
+2011-10-24  Geert Bosch  <bosch@adacore.com>
+
+	* s-gearop.adb (Back_Substitute): Avoid overflow if matrix bounds start
+	at Integer'First.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch12.adb, s-gearop.adb: Minor reformatting.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* warnsw.adb: Add some missing warnings to Set_GNAT_Mode_Warnings.
+	* warnsw.ads: Add comments to Set_GNAT_Mode_Warnings.
+
+2011-10-24  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-proc.adb (Process_Expression_Variable_Decl): No special
+	handling for Project_Path unless it is an attribute.
+
+2011-10-24  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch12.adb (Check_Hidden_Primitives): New subprogram.
+	(Install_Hidden_Primitives): New subprogram.
+	(Restore_Hidden_Primitives): New subprogram.
+	(Analyze_Formal_Package_Declaration,
+	Analyze_Package_Instantiation, Analyze_Subprogram_Instantiation):
+	Invoke Check_Hidden_Primitives after every call to
+	Analyze_Associations, and invoke Restore_Hidden_Primitives to
+	restore their visibility after processing the instantiation.
+	(Instantiate_Package_Body): Install visible primitives before
+	analyzing the instantiation and uninstall them to restore their
+	visibility when the instantiation has been analyzed.
+	* sem_util.ads, sem_util.adb (Add_Suffix): New subprogram
+	(Remove_Suffix): New subprogram
+	* sem_ch3.adb (Derive_Subprogram): When handling
+	a derived subprogram for the instantiation of a formal derived
+	tagged type, inherit the dispatching attributes from the actual
+	subprogram (not from the parent type).
+
+2011-10-24  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* gnat_ugn.texi: Document explicit use of XDECGNAT library.
+
+2011-10-24  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch3.adb (Build_Assignment): Add local constant N_Loc and
+	update its uses.
+	(Build_Discriminant_Assignments): Add local variable D_Loc and update
+	its uses.
+	(Build_Init_Statements): Add local variables Comp_Loc, Decl_Loc and
+	Var_Loc and update their uses.
+	(Build_Record_Init_Proc): Code reformatting.
+	(Increment_Counter): Add formal parameter Loc.
+	(Make_Counter): Add formal parameter Loc.
+
+2011-10-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* sem_disp.adb (Covers_Some_Interface): Fix typo.
+
+2011-10-24  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cuprqu.adb, a-cbprqu.adb (Dequeue_Only_High_Priority): Fix sense
+	of predicate.
+
+2011-10-24  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch13.adb (Analyze_Aspect_Specifications/Aspect_Test_Case):
+	Translate arguments in positional notation into pragma argument
+	association arguments for the generated pragma.
+
+2011-10-24  Arnaud Charlet  <charlet@adacore.com>
+
+	* exp_ch5.adb: Fix minor typo.
+
+2011-10-24  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Is_Visible_Component): Refine predicate for
+	the case of a component reference in an instance body, when the
+	enclosing type is private.
+
+2011-10-24  Sergey Rybin  <rybin@adacore.com frybin>
+
+	* gnat_ugn.texi: For gnatelim, move the note about using the GNAT
+	driver for getting the project support into gnatelim section.
+
+2011-10-24  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Minor correction to documentation on address clause.
+
+2011-10-24  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* s-finmas.adb (Attach): Synchronize and call the unprotected version.
+	(Attach_Unprotected): New routine.
+	(Delete_Finalize_Address): Removed.
+	(Delete_Finalize_Address_Unprotected): New routine.
+	(Detach): Synchronize and call the unprotected version.
+	(Detach_Unprotected): Remove locking.
+	(Finalize): Add various comment on synchronization. Lock the critical
+	region and call the unprotected versions of routines.
+	(Finalize_Address): Removed.
+	(Finalize_Address_Unprotected): New routine.
+	(Set_Finalize_Address): Synchronize and call
+	the unprotected version.
+	(Set_Finalize_Address_Unprotected): New routine.
+	(Set_Heterogeneous_Finalize_Address): Removed.
+	(Set_Heterogeneous_Finalize_Address_Unprotected): New routine.
+	(Set_Is_Heterogeneous): Add comment on synchronization and
+	locking.
+	* s-finmas.ads: Flag Finalization_Started is no longer atomic
+	because synchronization uses task locking / unlocking.
+	(Attach): Add comment on usage.
+	(Attach_Unprotected): New routine.
+	(Delete_Finalize_Address): Renamed to
+	Delete_Finalize_Address_Unprotected.
+	(Detach): Add comment on usage.
+	(Detach_Unprotected): New routine.
+	(Finalize_Address): Renamed to Finalize_Address_Unprotected.
+	(Set_Finalize_Address): Add comment on usage.
+	(Set_Finalize_Address_Unprotected): New routine.
+	(Set_Heterogeneous_Finalize_Address): Renamed to
+	Set_Heterogeneous_Finalize_Address_Unprotected.
+	* s-stposu.adb (Allocate_Any_Controlled): Add local variable
+	Allocation_Locked. Add various comments on synchronization. Lock
+	the critical region and call the unprotected version of
+	routines.
+	(Deallocate_Any_Controlled): Add various comments on
+	synchronization. Lock the critical region and call the unprotected
+	version of routines.
+
+2011-10-24  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Set_Fixed_Range): The bounds of a fixed point type
+	are universal and must carry the corresponding type.
+	* sem_eval.adb (Check_Non_Static_Context): If the type of the
+	expression is universal real, as may be the case for a fixed point
+	expression with constant operands in the context of a conversion,
+	there is nothing to check.
+	* s-finmas.adb: Minor reformatting
+
+2011-10-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (create_concat_name): Add explicit cast.
+
+2011-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/Make-lang.in (GNATLIBFLAGS, GNATLIBCFLAGS, THREAD_KIND,
+	TRACE): Reintroduce.
+	(ada/tracebak.o, ada/targext.o, ada/cio.o, ada/init.o,
+	ada/initialize.o, ada/raise.o): Reintroduce explicit compilation rules.
+
+2011-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (lhs_or_actual_p): New predicate.
+	(unchecked_conversion_nop): Use it.
+	(gnat_to_gnu): Likewise.
+
+2011-10-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* back_end.adb (Call_Back_End): Pass the maximum logical line number
+	instead of the maximum physical line number to gigi.
+	* gcc-interface/trans.c (Sloc_to_locus): Cope with line zero.
+
+2011-10-16  Tom Tromey  <tromey@redhat.com>
 	    Dodji Seketeli  <dodji@redhat.com>
 
-	* gcc-interface/trans.c (gigi, Sloc_to_locus): Adjust to use the
-	new public ordinary map interface.
+	* gcc-interface/trans.c (gigi, Sloc_to_locus): Adjust to use the new
+	public ordinary map interface.
 
 2011-10-16  Tristan Gingold  <gingold@adacore.com>
 
-	* link.c (_AIX): Add support for GNU ld.        
+	* link.c (_AIX): Add support for GNU ld.
 
 2011-10-16  Fedor Rybin  <frybin@adacore.com>
 
@@ -342,13 +636,13 @@
 
 2011-10-13  Nicolas Roche  <roche@adacore.com>
 
-	* gnatlink.adb: Ensure that -mrtp is passed when
-	runtime name ends with 'rtp'.
+	* gnatlink.adb: Ensure that -mrtp is passed when runtime name ends
+	with 'rtp'.
 
 2011-10-13  Ed Schonberg  <schonberg@adacore.com>
 
-	* sem_prag.adb (Analyze_Pragma, case Unchecked_Union): an
-	unchecked union type can be limited.
+	* sem_prag.adb (Analyze_Pragma, case Unchecked_Union): Take into
+	account that an unchecked union type can be limited.
 
 2011-10-13  Olivier Hainque  <hainque@adacore.com>
 
@@ -359,8 +653,8 @@
 
 2011-10-13  Yannick Moy  <moy@adacore.com>
 
-	* sem_aggr.adb (Resolve_Aggr_Expr): Always perform semantic
-	analysis in Alfa mode.
+	* sem_aggr.adb (Resolve_Aggr_Expr): Always perform semantic analysis
+	in Alfa mode.
 
 2011-10-13  Ed Schonberg  <schonberg@adacore.com>
 
@@ -426,9 +720,8 @@
 
 2011-10-13  Ed Schonberg  <schonberg@adacore.com>
 
-	* sem_attr.adb (Check_Enum_Image, Analyze_Attribute case
-	'Value): Mark literals as referenced only if reference is in
-	current source unit.
+	* sem_attr.adb (Check_Enum_Image, Analyze_Attribute case 'Value): Mark
+	literals as referenced only if reference is in current source unit.
 
 2011-10-13  Matthew Heaney  <heaney@adacore.com>
 
