@@ -1715,6 +1715,18 @@ Program Interface v3.0 @w{@uref{http://www.openmp.org/}}.  This option
 implies @option{-pthread}, and thus is only supported on targets that
 have support for @option{-pthread}.
 
+@item -fgnu-tm
+@opindex fgnu-tm
+When the option @option{-fgnu-tm} is specified, the compiler will
+generate code for the Linux variant of Intel's current Transactional
+Memory ABI specification document (Revision 1.1, May 6 2009).  This is
+an experimental feature whose interface may change in future versions
+of GCC, as the official specification changes.  Please note that not
+all architectures are supported for this feature.
+
+For more information on GCC's support for transactional memory, see
+the accompanying documentation for @file{libitm}.
+
 @item -fms-extensions
 @opindex fms-extensions
 Accept some non-standard constructs used in Microsoft header files.

@@ -1,3 +1,7 @@
+2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* doc/invoke.texi (C Dialect Options): Document -fgnu-tm.
+
 2011-10-31  Aldy Hernandez  <aldyh@redhat.com>
 
 	* ipa-inline.c (can_inline_edge_p): Do not inline TM safe calling
