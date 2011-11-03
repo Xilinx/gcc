@@ -1,5 +1,12 @@
 2011-11-02  Richard Henderson  <rth@redhat.com>
 
+	* config/i386/i386.md (UNSPEC_MOVA): New.
+	* config/i386/sync.md (ATOMIC): New mode iterator.
+	(atomic_load<ATOMIC>, atomic_store<ATOMIC>): New.
+	(atomic_loaddi_fpu, atomic_storedi_fpu, movdi_via_fpu): New.
+
+2011-11-02  Richard Henderson  <rth@redhat.com>
+
 	* optabs.c (expand_atomic_load): Don't try compare-and-swap.
 
 2011-11-02  Aldy Hernandez  <aldyh@redhat.com>

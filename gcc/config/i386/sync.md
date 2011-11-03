@@ -46,6 +46,169 @@
   "lock{%;} or{l}\t{$0, (%%esp)|DWORD PTR [esp], 0}"
   [(set_attr "memory" "unknown")])
 
+;; ??? From volume 3 section 7.1.1 Guaranteed Atomic Operations,
+;; Only beginning at Pentium family processors do we get any guarantee of
+;; atomicity in aligned 64-bit quantities.  Beginning at P6, we get a
+;; guarantee for 64-bit accesses that do not cross a cacheline boundary.
+;;
+;; Note that the TARGET_CMPXCHG8B test below is a stand-in for "Pentium".
+;;
+;; Importantly, *no* processor makes atomicity guarantees for larger
+;; accesses.  In particular, there's no way to perform an atomic TImode
+;; move, despite the apparent applicability of MOVDQA et al.
+
+(define_mode_iterator ATOMIC
+   [QI HI SI
+    (DI "TARGET_64BIT || (TARGET_CMPXCHG8B && (TARGET_80387 || TARGET_SSE))")
+   ])
+
+(define_expand "atomic_load<mode>"
+  [(set (match_operand:ATOMIC 0 "register_operand" "")
+	(unspec:ATOMIC [(match_operand:ATOMIC 1 "memory_operand" "")
+			(match_operand:SI 2 "const_int_operand" "")]
+		       UNSPEC_MOVA))]
+  ""
+{
+  /* For DImode on 32-bit, we can use the FPU to perform the load.  */
+  if (<MODE>mode == DImode && !TARGET_64BIT)
+    emit_insn (gen_atomic_loaddi_fpu
+	       (operands[0], operands[1],
+	        assign_386_stack_local (DImode,
+					(virtuals_instantiated
+					 ? SLOT_TEMP : SLOT_VIRTUAL))));
+  else
+    emit_move_insn (operands[0], operands[1]);
+  DONE;
+})
+
+(define_insn_and_split "atomic_loaddi_fpu"
+  [(set (match_operand:DI 0 "nonimmediate_operand" "=x,m,?r")
+	(unspec:DI [(match_operand:DI 1 "memory_operand" "m,m,m")]
+		   UNSPEC_MOVA))
+   (clobber (match_operand:DI 2 "memory_operand" "=X,X,m"))
+   (clobber (match_scratch:DF 3 "=X,xf,xf"))]
+  "!TARGET_64BIT && (TARGET_80387 || TARGET_SSE)"
+  "#"
+  "&& reload_completed"
+  [(const_int 0)]
+{
+  rtx dst = operands[0], src = operands[1];
+  rtx mem = operands[2], tmp = operands[3];
+
+  if (SSE_REG_P (dst))
+    emit_move_insn (dst, src);
+  else
+    {
+      if (MEM_P (dst))
+	mem = dst;
+
+      if (FP_REG_P (tmp))
+	emit_insn (gen_movdi_via_fpu (mem, src, tmp));
+      else
+	{
+	  adjust_reg_mode (tmp, DImode);
+	  emit_move_insn (tmp, src);
+	  emit_move_insn (mem, tmp);
+	}
+
+      if (mem != dst)
+	emit_move_insn (dst, mem);
+    }
+  DONE;
+})
+
+(define_expand "atomic_store<mode>"
+  [(set (match_operand:ATOMIC 0 "memory_operand" "")
+	(unspec:ATOMIC [(match_operand:ATOMIC 1 "register_operand" "")
+			(match_operand:SI 2 "const_int_operand" "")]
+		       UNSPEC_MOVA))]
+  ""
+{
+  enum memmodel model = (enum memmodel) INTVAL (operands[2]);
+
+  if (<MODE>mode == DImode && !TARGET_64BIT)
+    {
+      /* For DImode on 32-bit, we can use the FPU to perform the store.  */
+      /* Note that while we could perform a cmpxchg8b loop, that turns
+	 out to be significantly larger than this plus a barrier.  */
+      emit_insn (gen_atomic_storedi_fpu
+		 (operands[0], operands[1],
+	          assign_386_stack_local (DImode,
+					  (virtuals_instantiated
+					   ? SLOT_TEMP : SLOT_VIRTUAL))));
+    }
+  else
+    {
+      /* For seq-cst stores, when we lack MFENCE, use XCHG.  */
+      if (model == MEMMODEL_SEQ_CST && !(TARGET_64BIT || TARGET_SSE2))
+	{
+	  emit_insn (gen_atomic_exchange<mode> (gen_reg_rtx (<MODE>mode),
+						operands[0], operands[1],
+						operands[2]));
+	  DONE;
+	}
+
+      /* Otherwise use a normal store.  */
+      emit_move_insn (operands[0], operands[1]);
+    }
+  /* ... followed by an MFENCE, if required.  */
+  if (model == MEMMODEL_SEQ_CST)
+    emit_insn (gen_mem_thread_fence (operands[2]));
+  DONE;
+})
+
+(define_insn_and_split "atomic_storedi_fpu"
+  [(set (match_operand:DI 0 "memory_operand" "=m,m,m")
+	(unspec:DI [(match_operand:DI 1 "register_operand" "x,m,?r")]
+		   UNSPEC_MOVA))
+   (clobber (match_operand:DI 2 "memory_operand" "=X,X,m"))
+   (clobber (match_scratch:DF 3 "=X,xf,xf"))]
+  "!TARGET_64BIT && (TARGET_80387 || TARGET_SSE)"
+  "#"
+  "&& reload_completed"
+  [(const_int 0)]
+{
+  rtx dst = operands[0], src = operands[1];
+  rtx mem = operands[2], tmp = operands[3];
+
+  if (!SSE_REG_P (src))
+    {
+      if (REG_P (src))
+	{
+	  emit_move_insn (mem, src);
+	  src = mem;
+	}
+
+      if (FP_REG_P (tmp))
+	{
+	  emit_insn (gen_movdi_via_fpu (dst, src, tmp));
+	  DONE;
+	}
+      else
+	{
+	  adjust_reg_mode (tmp, DImode);
+	  emit_move_insn (tmp, mem);
+	  src = tmp;
+	}
+    }
+  emit_move_insn (dst, src);
+  DONE;
+})
+
+;; ??? You'd think that we'd be able to perform this via FLOAT + FIX_TRUNC
+;; operations.  But the fix_trunc patterns want way more setup than we want
+;; to provide.  Note that the scratch is DFmode instead of XFmode in order
+;; to make it easy to allocate a scratch in either SSE or FP_REGs above.
+(define_insn "movdi_via_fpu"
+  [(set (match_operand:DI 0 "memory_operand" "=m")
+	(unspec:DI [(match_operand:DI 1 "memory_operand" "m")] UNSPEC_MOVA))
+   (clobber (match_operand:DF 2 "register_operand" "=f"))]
+  "TARGET_80387"
+  "fild\t%1\;fistp\t%0"
+  [(set_attr "type" "multi")
+   ;; Worst case based on full sib+offset32 addressing modes
+   (set_attr "length" "14")])
+
 (define_expand "atomic_compare_and_swap<mode>"
   [(match_operand:QI 0 "register_operand" "")		;; bool success output
    (match_operand:SWI124 1 "register_operand" "")	;; oldval output
