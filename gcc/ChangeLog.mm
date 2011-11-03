@@ -1,5 +1,12 @@
 2011-11-02  Richard Henderson  <rth@redhat.com>
 
+	* builtins.c (HAVE_mem_thread_fence, gen_mem_thread_fence,
+	HAVE_mem_signal_fence, gen_mem_signal_fence): Default.
+	(expand_builtin_mem_thread_fence): Tidy.
+	(expand_builtin_mem_signal_fence): Fallback to asm memory barrier.
+
+2011-11-02  Richard Henderson  <rth@redhat.com>
+
 	* config/i386/i386.md (UNSPEC_MOVA): New.
 	* config/i386/sync.md (ATOMIC): New mode iterator.
 	(atomic_load<ATOMIC>, atomic_store<ATOMIC>): New.

@@ -5593,16 +5593,18 @@ expand_builtin_atomic_is_lock_free (tree exp)
 /* This routine will either emit the mem_thread_fence pattern or issue a 
    sync_synchronize to generate a fence for memory model MEMMODEL.  */
 
+#ifndef HAVE_mem_thread_fence
+# define HAVE_mem_thread_fence 0
+# define gen_mem_thread_fence(x) (gcc_unreachable (), NULL_RTX)
+#endif
+
 void
 expand_builtin_mem_thread_fence (enum memmodel model)
 {
-  if (model == MEMMODEL_RELAXED)
-    return;
-#ifdef HAVE_mem_thread_fence
-  emit_insn (gen_mem_thread_fence (GEN_INT (model)));
-#else
-  expand_builtin_sync_synchronize ();
-#endif
+  if (HAVE_mem_thread_fence)
+    emit_insn (gen_mem_thread_fence (GEN_INT (model)));
+  else if (model != MEMMODEL_RELAXED)
+    expand_builtin_sync_synchronize ();
 }
 
 /* Expand the __atomic_thread_fence intrinsic:
@@ -5621,15 +5623,37 @@ expand_builtin_atomic_thread_fence (tree exp)
 /* This routine will either emit the mem_signal_fence pattern or issue a 
    sync_synchronize to generate a fence for memory model MEMMODEL.  */
 
+#ifndef HAVE_mem_signal_fence
+# define HAVE_mem_signal_fence 0
+# define gen_mem_signal_fence(x) (gcc_unreachable (), NULL_RTX)
+#endif
+
 static void
 expand_builtin_mem_signal_fence (enum memmodel model)
 {
-#ifdef HAVE_mem_signal_fence
-  emit_insn (gen_mem_signal_fence (memmodel));
-#else
-  if (model != MEMMODEL_RELAXED)
-    expand_builtin_sync_synchronize ();
-#endif
+  if (HAVE_mem_signal_fence)
+    emit_insn (gen_mem_signal_fence (GEN_INT (model)));
+  else if (model != MEMMODEL_RELAXED)
+    {
+      rtx asm_op, clob;
+
+      /* By default targets are coherent between a thread and the signal
+	 handler running on the same thread.  Thus this really becomes a
+	 compiler barrier, in that stores must not be sunk past
+	 (or raised above) a given point.  */
+
+      /* Generate asm volatile("" : : : "memory") as the memory barrier.  */
+      asm_op = gen_rtx_ASM_OPERANDS (VOIDmode, empty_string, empty_string, 0,
+				     rtvec_alloc (0), rtvec_alloc (0),
+				     rtvec_alloc (0), UNKNOWN_LOCATION);
+      MEM_VOLATILE_P (asm_op) = 1;
+
+      clob = gen_rtx_SCRATCH (VOIDmode);
+      clob = gen_rtx_MEM (BLKmode, clob);
+      clob = gen_rtx_CLOBBER (VOIDmode, clob);
+
+      emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, asm_op, clob)));
+    }
 }
 
 /* Expand the __atomic_signal_fence intrinsic:
