@@ -1,3 +1,8 @@
+2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* testsuite/libitm.c/reentrant.c: XFAIL.
+	* testsuite/libitm.c++/static_ctor.C: XFAIL.
+
 2011-10-29  Torvald Riegel  <triegel@redhat.com>
 
 	* beginend.cc (GTM::gtm_thread::rollback): Add aborting flag and

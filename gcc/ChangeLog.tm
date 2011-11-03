@@ -1,5 +1,14 @@
 2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
 
+	* testsuite/gcc.dg/tm/memopt-3.c: XFAIL.
+	* testsuite/gcc.dg/tm/memopt-4.c: XFAIL.
+	* testsuite/gcc.dg/tm/memopt-5.c: XFAIL.
+	* testsuite/gcc.dg/tm/memopt-7.c: XFAIL.
+	* testsuite/gcc.dg/tm/alias-1.c: XFAIL.
+	* testsuite/gcc.dg/tm/alias-2.c: XFAIL.
+
+2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
 	* testsuite/gcc.dg/alias-1.c: Use __UINTPTR_TYPE__.
 	* testsuite/gcc.dg/alias-2.c: Use __UINTPTR_TYPE__.
 

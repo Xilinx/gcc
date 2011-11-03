@@ -1,4 +1,5 @@
-// { dg-do run }
+/* { dg-do run } */
+/* { dg-xfail-if "" { *-*-* } { "*" } { "" } } */
 /* Tests static constructors inside of transactional code.  */
 
 #include <pthread.h>
