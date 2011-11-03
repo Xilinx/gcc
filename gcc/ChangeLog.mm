@@ -1,3 +1,7 @@
+2011-11-02  Richard Henderson  <rth@redhat.com>
+
+	* optabs.c (expand_atomic_load): Don't try compare-and-swap.
+
 2011-11-02  Aldy Hernandez  <aldyh@redhat.com>
 
 	* Merge from trunk at revision 180790.
@@ -15,7 +19,7 @@
 	* builtin-types.def (BT_FN_BOOL_SIZE): Remove.
 	(BT_FN_BOOL_SIZE_CONST_VPTR): Add.
 
-2011-11-02  Andrew MacLeod
+2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
 
 	* common.opt (finline-atomics): New. Flag to disable atomic inlining.
 	* builtins.c (expand_builtin_atomic_exchange,

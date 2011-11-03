@@ -1,3 +1,8 @@
+2011-11-02  Richard Henderson  <rth@redhat.com>
+
+	* gcc.dg/atomic-load-5.c: Remove.
+	* gcc.dg/simulate-thread/atomic-load-int128.c: Remove.
+
 2011-11-02  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/atomic-lockfree.c: Add extra lock-free parameter.

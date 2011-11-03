@@ -7458,19 +7458,12 @@ expand_atomic_load (rtx target, rtx mem, enum memmodel model)
 	return ops[0].value;
     }
 
-  /* If there is no load pattern, default to a move with barriers. If the size
-     of the object is greater than word size on this target, a default load 
-     will not be atomic.  */
+  /* If the size of the object is greater than word size on this target,
+     then we assume that a load will not be atomic.  */
   if (GET_MODE_PRECISION (mode) > BITS_PER_WORD)
-    {
-      /* Issue val = compare_and_swap (mem, 0, 0).
-	 This may cause the occasional harmless store of 0 when the value is
-	 already 0, but do it anyway until its determined to be invalid.  */
-      expand_atomic_compare_and_swap (NULL, &target, mem, const0_rtx,
-				      const0_rtx, false, model, model);
-      return target;
-    }
+    return NULL_RTX;
 
+  /* Otherwise assume loads are atomic, and emit the proper barriers.  */
   if (!target || target == const0_rtx)
     target = gen_reg_rtx (mode);
 
