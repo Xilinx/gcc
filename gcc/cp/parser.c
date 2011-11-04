@@ -26640,8 +26640,8 @@ cp_parser_transaction (cp_parser *parser, enum rid keyword)
 /* Parse a __transaction_atomic or __transaction_relaxed expression.
 
    transaction-expression:
-     __transaction_atomic txn-exception-spec[opt] compound-statement
-     __transaction_relaxed txn-exception-spec[opt] compound-statement
+     __transaction_atomic txn-exception-spec[opt] ( expression )
+     __transaction_relaxed txn-exception-spec[opt] ( expression )
 
    ??? The exception specification is not yet implemented.
 */
