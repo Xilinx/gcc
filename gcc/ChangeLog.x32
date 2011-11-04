@@ -1,5 +1,10 @@
 2011-11-04  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.h (Pmode): Replace TARGET_64BIT with
+	TARGET_LP64.
+
+2011-11-04  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config.gcc: Support --with-multilib-list for x86 Linux
 	targets.
 
