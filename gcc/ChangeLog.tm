@@ -1,3 +1,7 @@
+2011-11-04  Torvald Riegel  <triegel@redhat.com>
+
+	* trans-mem.c: Removed unnecessary includes.
+
 2011-11-04  Richard Henderson  <rth@redhat.com>
 
 	* cp/parser.c (cp_parser_init_declarator): Fix production comments.
