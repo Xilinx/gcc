@@ -1,5 +1,10 @@
 2011-11-03  Richard Henderson  <rth@redhat.com>
 
+	* local_type_traits: New file.
+	* libitm_i.h: Use it.  Use C headers, not C++ wrappers.
+
+2011-11-03  Richard Henderson  <rth@redhat.com>
+
 	* configure.ac: Don't test for gfortran.
 	* configure: Rebuild.
 
