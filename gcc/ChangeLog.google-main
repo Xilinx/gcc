@@ -1,3 +1,8 @@
+2011-11-04   Rong Xu  <xur@google.com>
+
+	* gcc/dwarf2out.c (dwarf2out_decl): not emit type info
+	for unreachable functions in LIPO mode.
+
 2011-10-31   Teresa Johnson  <tejohnson@google.com>
 
 	* common.opt (fopt-info): Disable -fopt-info by default.
@@ -28,13 +33,13 @@
 	* gcc/tree-pass.h: Declare pass_asan.
 
 2011-10-19   Rong Xu  <xur@google.com>
-(1) Introduce a new option -fopt-info:
- * fopt-info=0 or fno-opt-info: no message will be emitted.
- * fopt-info or fopt-info=1: emit important warnings and optimization
-   messages with large performance impact.
- * fopt-info=2: warnings and optimization messages targeting power users.
- * fopt-info=3: informational messages for compiler developers.
-(2) Suppress verbose notes/warnings printed in FDO-use compilation.
+	(1) Introduce a new option -fopt-info:
+	 * fopt-info=0 or fno-opt-info: no message will be emitted.
+	 * fopt-info or fopt-info=1: emit important warnings and optimization
+	   messages with large performance impact.
+	 * fopt-info=2: warnings and optimization messages targeting power users.
+	 * fopt-info=3: informational messages for compiler developers.
+	(2) Suppress verbose notes/warnings printed in FDO-use compilation.
 
         * gcc/common.opt (fopt-info): New flag. (fopt-info=) Ditto.
 	* gcc/opts.c (common_handle_option): Handle OPT_fopt_info_.
