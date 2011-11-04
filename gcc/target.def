@@ -1006,7 +1006,8 @@ DEFHOOK
 /* Return the builtin decl needed to load a vector of TYPE.  */
 DEFHOOK
 (builtin_tm_load,
- "",
+ "This hook should return the built-in decl needed to load a vector of the "
+ "given type within a transaction.",
  tree,
  (tree),
  default_builtin_tm_load_store)
@@ -1014,7 +1015,8 @@ DEFHOOK
 /* Return the builtin decl needed to store a vector of TYPE.  */
 DEFHOOK
 (builtin_tm_store,
- "",
+ "This hook should return the built-in decl needed to store a vector of the "
+ "given type within a transaction.",
  tree,
  (tree),
  default_builtin_tm_load_store)

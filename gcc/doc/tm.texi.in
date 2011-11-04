@@ -5697,14 +5697,8 @@ The default is zero which means to not iterate over other vector sizes.
 @end deftypefn
 
 @hook TARGET_VECTORIZE_BUILTIN_TM_LOAD
-This hook should return the built-in decl needed to load a vector of
-the given type.
-@end deftypefn
 
 @hook TARGET_VECTORIZE_BUILTIN_TM_STORE
-This hook should return the built-in decl needed to store a vector of
-the given type.
-@end deftypefn
 
 @node Anchored Addresses
 @section Anchored Addresses
