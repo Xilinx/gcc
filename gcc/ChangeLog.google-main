@@ -1,3 +1,19 @@
+2011-10-31   Teresa Johnson  <tejohnson@google.com>
+
+	* common.opt (fopt-info): Disable -fopt-info by default.
+	* loop-unroll.c (report_unroll_peel): New function.
+	(unroll_and_peel_loops): Call record_loop_exits for later use.
+	(peel_loops_completely): Print the loop source position in dump
+	info and emit note under -fopt-info.
+	(decide_unroll_and_peeling): Ditto.
+	(decide_peel_once_rolling): Record peel factor for use in note
+	emission.
+	(decide_peel_completely): Ditto.
+	* cfgloop.c (get_loop_location): New function.
+	* cfgloop.h (get_loop_location): Ditto.
+	* tree-ssa-loop-ivcanon.c (try_unroll_loop_completely): Emit note
+	under -fopt-info.
+
 2011-11-02   Kostya Serebryany  <kcc@google.com>
 
 	Introduce a new option -fasan which enables

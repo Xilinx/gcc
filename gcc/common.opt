@@ -1572,7 +1572,7 @@ Common Report Var(flag_omit_frame_pointer) Optimization
 When possible do not generate stack frames
 
 fopt-info
-Common Report Var(flag_opt_info) Optimization Init(1)
+Common Report Var(flag_opt_info) Optimization Init(0)
 Enable verbose informational messages for optimizations (same as -fopt-info=1)
 
 ; fopt-info=0: no message will be emitted.

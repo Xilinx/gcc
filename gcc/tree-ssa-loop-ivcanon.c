@@ -52,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "tree-inline.h"
 #include "target.h"
+#include "diagnostic.h"
 
 /* Specifies types of loops that may be unrolled.  */
 
@@ -442,6 +443,16 @@ try_unroll_loop_completely (struct loop *loop,
   if (dump_file)
     fprintf (dump_file, "Unrolled loop %d completely by factor %d.\n",
              loop->num, (int) n_unroll);
+
+  if (flag_opt_info >= OPT_INFO_MIN)
+    {
+      location_t locus;
+      locus = gimple_location (cond);
+
+      inform (locus, "Completely Unroll loop by %d (header execution count %d)",
+              (int) n_unroll,
+              (int) loop->header->count);
+    }
 
   return true;
 }
