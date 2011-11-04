@@ -1,10 +1,15 @@
 2011-11-04  Richard Henderson  <rth@redhat.com>
 
+	* cp/parser.c (cp_parser_init_declarator): Fix production comments.
+	(cp_parser_transaction_expression): Don't parse txn-attributes here.
+
+2011-11-04  Richard Henderson  <rth@redhat.com>
+
 	* c-parser.c: Fix production comments using transaction-attribute.
 
 2011-11-04  Aldy Hernandez  <aldyh@redhat.com>
 
-	cp/parser.c (enum required_token): Fix comma.
+	* cp/parser.c (enum required_token): Fix comma.
 
 2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
 

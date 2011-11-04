@@ -15116,7 +15116,7 @@ cp_parser_asm_definition (cp_parser* parser)
    TM Extension:
 
    function-definition:
-     decl-specifier-seq [opt] declarator function-atomic-block
+     decl-specifier-seq [opt] declarator function-transaction-block
 
    The DECL_SPECIFIERS apply to this declarator.  Returns a
    representation of the entity declared.  If MEMBER_P is TRUE, then
@@ -26652,7 +26652,7 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
   unsigned char old_in = parser->in_transaction;
   unsigned char this_in = 1;
   cp_token *token;
-  tree ret, attrs;
+  tree ret;
 
   gcc_assert (keyword == RID_TRANSACTION_ATOMIC
       || keyword == RID_TRANSACTION_RELAXED);
@@ -26663,12 +26663,6 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
 
   if (keyword == RID_TRANSACTION_RELAXED)
     this_in |= TM_STMT_ATTR_RELAXED;
-  else
-    {
-      attrs = cp_parser_txn_attribute_opt (parser);
-      if (attrs)
-        this_in |= parse_tm_stmt_attr (attrs, 0);
-    }
 
   parser->in_transaction = this_in;
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
