@@ -171,9 +171,8 @@ typedef enum required_token {
   RT_INTERATION, /* iteration-statement */
   RT_JUMP, /* jump-statement */
   RT_CLASS_KEY, /* class-key */
-  RT_CLASS_TYPENAME_TEMPLATE /* class, typename, or template */
-
-  , RT_TRANSACTION_ATOMIC, /* __transaction_atomic */
+  RT_CLASS_TYPENAME_TEMPLATE, /* class, typename, or template */
+  RT_TRANSACTION_ATOMIC, /* __transaction_atomic */
   RT_TRANSACTION_RELAXED, /* __transaction_relaxed */
   RT_TRANSACTION_CANCEL /* __transaction_cancel */
 } required_token;

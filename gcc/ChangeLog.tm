@@ -1,3 +1,11 @@
+2011-11-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	cp/parser.c (enum required_token): Fix comma.
+
+2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	* doc/invoke.texi: Add xref for libitm.
+
 2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* testsuite/gcc.dg/tm/memopt-3.c: XFAIL.
