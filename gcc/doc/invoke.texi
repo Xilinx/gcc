@@ -1724,8 +1724,9 @@ an experimental feature whose interface may change in future versions
 of GCC, as the official specification changes.  Please note that not
 all architectures are supported for this feature.
 
-For more information on GCC's support for transactional memory, see
-the accompanying documentation for @file{libitm}.
+For more information on GCC's support for transactional memory,
+@xref{Enabling libitm,,The GNU Transactional Memory Library,libitm,GNU
+Transactional Memory Library}.
 
 @item -fms-extensions
 @opindex fms-extensions
