@@ -1,3 +1,11 @@
+2011-11-03  Richard Henderson  <rth@redhat.com>
+
+	* configure.ac: Don't test for gfortran.
+	* configure: Rebuild.
+
+	* testsuite/lib/libitm.exp: Don't include gfortran-dg.exp.
+	* testsuite/libitm.c++/c++.exp: Don't use gfortran-dg-runtest.
+
 2011-11-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* testsuite/libitm.c/memcpy-1.c: Add copyright notice.

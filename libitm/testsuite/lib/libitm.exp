@@ -39,7 +39,6 @@ load_gcc_lib torture-options.exp
 load_gcc_lib timeout.exp
 load_gcc_lib timeout-dg.exp
 load_gcc_lib gcc-dg.exp
-load_gcc_lib gfortran-dg.exp
 
 set dg-do-what-default run
 

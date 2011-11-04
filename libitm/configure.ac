@@ -151,13 +151,6 @@ AC_SUBST(enable_static)
 
 AM_MAINTAINER_MODE
 
-# We need gfortran to compile parts of the library
-# We can't use AC_PROG_FC because it expects a fully working gfortran.
-#AC_PROG_FC(gfortran)
-FC="$GFORTRAN"
-AC_PROG_FC(gfortran)
-FCFLAGS="$FCFLAGS -Wall"
-
 # For libtool versioning info, format is CURRENT:REVISION:AGE
 libtool_VERSION=1:0:0
 AC_SUBST(libtool_VERSION)
