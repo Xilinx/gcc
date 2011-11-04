@@ -5230,6 +5230,7 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
     case POSTDECREMENT_EXPR:
     case REALPART_EXPR:
     case IMAGPART_EXPR:
+    case ABS_EXPR:
       return cp_build_unary_op (code, arg1, candidates != 0, complain);
 
     case ARRAY_REF:
@@ -5662,10 +5663,14 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	    && CONSTRUCTOR_NELTS (expr) == 0
 	    && TYPE_HAS_DEFAULT_CONSTRUCTOR (totype))
 	  {
+	    bool direct = CONSTRUCTOR_IS_DIRECT_INIT (expr);
 	    expr = build_value_init (totype, complain);
 	    expr = get_target_expr_sfinae (expr, complain);
 	    if (expr != error_mark_node)
-	      TARGET_EXPR_LIST_INIT_P (expr) = true;
+	      {
+		TARGET_EXPR_LIST_INIT_P (expr) = true;
+		TARGET_EXPR_DIRECT_INIT_P (expr) = direct;
+	      }
 	    return expr;
 	  }
 

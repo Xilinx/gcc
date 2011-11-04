@@ -62,8 +62,7 @@
 (define_c_enum "unspecv"
   [UNSPECV_PROLOGUE_SAVES
    UNSPECV_EPILOGUE_RESTORES
-   UNSPECV_WRITE_SP_IRQ_ON
-   UNSPECV_WRITE_SP_IRQ_OFF
+   UNSPECV_WRITE_SP
    UNSPECV_GOTO_RECEIVER
    UNSPECV_ENABLE_IRQS
    UNSPECV_NOP
@@ -380,26 +379,24 @@
     }
 }")
 
-(define_insn "movhi_sp_r_irq_off"
-  [(set (match_operand:HI 0 "stack_register_operand" "=q")
-        (unspec_volatile:HI [(match_operand:HI 1 "register_operand"  "r")] 
-			    UNSPECV_WRITE_SP_IRQ_OFF))]
-  ""
-  "out __SP_H__, %B1
-	out __SP_L__, %A1"
-  [(set_attr "length" "2")
-   (set_attr "cc" "none")])
 
-(define_insn "movhi_sp_r_irq_on"
-  [(set (match_operand:HI 0 "stack_register_operand" "=q")
-        (unspec_volatile:HI [(match_operand:HI 1 "register_operand"  "r")] 
-			    UNSPECV_WRITE_SP_IRQ_ON))]
+;; Move register $1 to the Stack Pointer register SP.
+;; This insn is emit during function prologue/epilogue generation.
+;;    $2 = 0: We know that IRQs are off
+;;    $2 = 1: We know that IRQs are on
+;; Remaining cases when the state of the I-Flag is unknown are
+;; handled by generic movhi insn.
+
+(define_insn "movhi_sp_r"
+  [(set (match_operand:HI 0 "stack_register_operand"                "=q,q")
+        (unspec_volatile:HI [(match_operand:HI 1 "register_operand"  "r,r")
+                             (match_operand:HI 2 "const_int_operand" "L,P")]
+                            UNSPECV_WRITE_SP))]
   ""
-  "cli
-        out __SP_H__, %B1
-	sei
-	out __SP_L__, %A1"
-  [(set_attr "length" "4")
+  "@
+	out __SP_H__,%B1\;out __SP_L__,%A1
+	cli\;out __SP_H__,%B1\;sei\;out __SP_L__,%A1"
+  [(set_attr "length" "2,4")
    (set_attr "cc" "none")])
 
 (define_peephole2
@@ -779,36 +776,45 @@
 
 
 (define_insn "*addhi3_zero_extend"
-  [(set (match_operand:HI 0 "register_operand" "=r")
-	(plus:HI (zero_extend:HI
-		  (match_operand:QI 1 "register_operand" "r"))
-		 (match_operand:HI 2 "register_operand" "0")))]
+  [(set (match_operand:HI 0 "register_operand"                         "=r")
+        (plus:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
+                 (match_operand:HI 2 "register_operand"                 "0")))]
   ""
-  "add %A0,%1
-	adc %B0,__zero_reg__"
+  "add %A0,%1\;adc %B0,__zero_reg__"
   [(set_attr "length" "2")
    (set_attr "cc" "set_n")])
 
 (define_insn "*addhi3_zero_extend1"
-  [(set (match_operand:HI 0 "register_operand" "=r")
-	(plus:HI (match_operand:HI 1 "register_operand" "%0")
-		 (zero_extend:HI
-		  (match_operand:QI 2 "register_operand" "r"))))]
+  [(set (match_operand:HI 0 "register_operand"                         "=r")
+        (plus:HI (match_operand:HI 1 "register_operand"                 "0")
+                 (zero_extend:HI (match_operand:QI 2 "register_operand" "r"))))]
   ""
-  "add %A0,%2
-	adc %B0,__zero_reg__"
+  "add %A0,%2\;adc %B0,__zero_reg__"
   [(set_attr "length" "2")
    (set_attr "cc" "set_n")])
 
-(define_insn "*addhi3_sp_R"
-  [(set (match_operand:HI 1 "stack_register_operand" "=q")
-        (plus:HI (match_operand:HI 2 "stack_register_operand" "q")
-                 (match_operand:HI 0 "avr_sp_immediate_operand" "R")))]
+(define_insn "*addhi3.sign_extend1"
+  [(set (match_operand:HI 0 "register_operand"                         "=r")
+        (plus:HI (sign_extend:HI (match_operand:QI 1 "register_operand" "r"))
+                 (match_operand:HI 2 "register_operand"                 "0")))]
+  ""
+  {
+    return reg_overlap_mentioned_p (operands[0], operands[1])
+      ? "mov __tmp_reg__,%1\;add %A0,%1\;adc %B0,__zero_reg__\;sbrc __tmp_reg__,7\;dec %B0"
+      : "add %A0,%1\;adc %B0,__zero_reg__\;sbrc %1,7\;dec %B0";
+  }
+  [(set_attr "length" "5")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*addhi3_sp"
+  [(set (match_operand:HI 1 "stack_register_operand"           "=q")
+        (plus:HI (match_operand:HI 2 "stack_register_operand"   "q")
+                 (match_operand:HI 0 "avr_sp_immediate_operand" "Csp")))]
   ""
   {
     return avr_out_addto_sp (operands, NULL);
   }
-  [(set_attr "length" "5")
+  [(set_attr "length" "6")
    (set_attr "adjust_len" "addto_sp")])
 
 (define_insn "*addhi3"
@@ -959,6 +965,19 @@
   [(set_attr "length" "2")
    (set_attr "cc" "set_czn")])
 
+(define_insn "*subhi3.sign_extend2"
+  [(set (match_operand:HI 0 "register_operand"                          "=r")
+        (minus:HI (match_operand:HI 1 "register_operand"                 "0")
+                  (sign_extend:HI (match_operand:QI 2 "register_operand" "r"))))]
+  ""
+  {
+    return reg_overlap_mentioned_p (operands[0], operands[2])
+      ? "mov __tmp_reg__,%2\;sub %A0,%2\;sbc %B0,__zero_reg__\;sbrc __tmp_reg__,7\;inc %B0"
+      : "sub %A0,%2\;sbc %B0,__zero_reg__\;sbrc %2,7\;inc %B0";
+  }
+  [(set_attr "length" "5")
+   (set_attr "cc" "clobber")])
+
 (define_insn "subsi3"
   [(set (match_operand:SI 0 "register_operand"          "=r")
         (minus:SI (match_operand:SI 1 "register_operand" "0")
@@ -1056,6 +1075,41 @@
   "sbrc %2,7\;inc %0"
   [(set_attr "length" "2")
    (set_attr "cc" "clobber")])
+
+(define_insn "*addqi3.lt0"
+  [(set (match_operand:QI 0 "register_operand"                 "=r")
+        (plus:QI (lt:QI (match_operand:QI 1 "register_operand"  "r")
+                        (const_int 0))
+                 (match_operand:QI 2 "register_operand"         "0")))]
+  ""
+  "sbrc %1,7\;inc %0"
+  [(set_attr "length" "2")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*addhi3.lt0"
+  [(set (match_operand:HI 0 "register_operand"                   "=w,r")
+        (plus:HI (lt:HI (match_operand:QI 1 "register_operand"    "r,r")
+                        (const_int 0))
+                 (match_operand:HI 2 "register_operand"           "0,0")))
+   (clobber (match_scratch:QI 3                                  "=X,&1"))]
+  ""
+  "@
+	sbrc %1,7\;adiw %0,1
+	lsl %1\;adc %A0,__zero_reg__\;adc %B0,__zero_reg__"
+  [(set_attr "length" "2,3")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*addsi3.lt0"
+  [(set (match_operand:SI 0 "register_operand"                       "=r")
+        (plus:SI (lshiftrt:SI (match_operand:SI 1 "register_operand"  "r")
+                              (const_int 31))
+                 (match_operand:SI 2 "register_operand"               "0")))]
+  ""
+  "mov __tmp_reg__,%D1\;lsl __tmp_reg__
+	adc %A0,__zero_reg__\;adc %B0,__zero_reg__\;adc %C0,__zero_reg__\;adc %D0,__zero_reg__"
+  [(set_attr "length" "6")
+   (set_attr "cc" "clobber")])
+  
 
 ;; "umulqihi3"
 ;; "mulqihi3"
@@ -4288,15 +4342,41 @@
 
 ;; Parity
 
+;; Postpone expansion of 16-bit parity to libgcc call until after combine for
+;; better 8-bit parity recognition.
+
 (define_expand "parityhi2"
+  [(parallel [(set (match_operand:HI 0 "register_operand" "")
+                   (parity:HI (match_operand:HI 1 "register_operand" "")))
+              (clobber (reg:HI 24))])])
+
+(define_insn_and_split "*parityhi2"
+  [(set (match_operand:HI 0 "register_operand"           "=r")
+        (parity:HI (match_operand:HI 1 "register_operand" "r")))
+   (clobber (reg:HI 24))]
+  "!reload_completed"
+  { gcc_unreachable(); }
+  "&& 1"
   [(set (reg:HI 24)
-        (match_operand:HI 1 "register_operand" ""))
+        (match_dup 1))
    (set (reg:HI 24)
         (parity:HI (reg:HI 24)))
-   (set (match_operand:HI 0 "register_operand" "")
-        (reg:HI 24))]
-  ""
-  "")
+   (set (match_dup 0)
+        (reg:HI 24))])
+
+(define_insn_and_split "*parityqihi2"
+  [(set (match_operand:HI 0 "register_operand"           "=r")
+        (parity:HI (match_operand:QI 1 "register_operand" "r")))
+   (clobber (reg:HI 24))]
+  "!reload_completed"
+  { gcc_unreachable(); }
+  "&& 1"
+  [(set (reg:QI 24)
+        (match_dup 1))
+   (set (reg:HI 24)
+        (zero_extend:HI (parity:QI (reg:QI 24))))
+   (set (match_dup 0)
+        (reg:HI 24))])
 
 (define_expand "paritysi2"
   [(set (reg:SI 22)

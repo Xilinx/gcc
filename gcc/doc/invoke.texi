@@ -235,7 +235,7 @@ Objective-C and Objective-C++ Dialects}.
 -pedantic-errors @gol
 -w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
 -Wno-attributes -Wno-builtin-macro-redefined @gol
--Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
+-Wc++-compat -Wc++11-compat -Wcast-align  -Wcast-qual  @gol
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
 -Wconversion  -Wcoverage-mismatch  -Wno-cpp  -Wno-deprecated  @gol
 -Wno-deprecated-declarations -Wdisabled-optimization  @gol
@@ -1574,16 +1574,13 @@ C++ code.
 GNU dialect of @option{-std=c++98}.  This is the default for
 C++ code.
 
-@item c++0x
-The working draft of the upcoming ISO C++0x standard. This option
-enables experimental features that are likely to be included in
-C++0x. The working draft is constantly changing, and any feature that is
-enabled by this flag may be removed from future versions of GCC if it is
-not part of the C++0x standard.
+@item c++11
+The 2011 ISO C++ standard plus amendments.  Support for C++11 is still
+experimental, and may change in incompatible ways in future releases.
 
-@item gnu++0x
-GNU dialect of @option{-std=c++0x}. This option enables
-experimental features that may be removed in future versions of GCC.
+@item gnu++11
+GNU dialect of @option{-std=c++11}. Support for C++11 is still
+experimental, and may change in incompatible ways in future releases.
 @end table
 
 @item -fgnu89-inline
@@ -1870,7 +1867,7 @@ Version 5 corrects the mangling of attribute const/volatile on
 function pointer types, decltype of a plain decl, and use of a
 function parameter in the declaration of another parameter.
 
-Version 6 corrects the promotion behavior of C++0x scoped enums.
+Version 6 corrects the promotion behavior of C++11 scoped enums.
 
 See also @option{-Wabi}.
 
@@ -1905,14 +1902,14 @@ been added for putting variables into BSS without making them common.
 
 @item -fconstexpr-depth=@var{n}
 @opindex fconstexpr-depth
-Set the maximum nested evaluation depth for C++0x constexpr functions
+Set the maximum nested evaluation depth for C++11 constexpr functions
 to @var{n}.  A limit is needed to detect endless recursion during
 constant expression evaluation.  The minimum specified by the standard
 is 512.
 
-@item -fno-deduce-init-list
-@opindex fno-deduce-init-list
-Disable deduction of a template type parameter as
+@item -fdeduce-init-list
+@opindex fdeduce-init-list
+Enable deduction of a template type parameter as
 std::initializer_list from a brace-enclosed initializer list, i.e.
 
 @smallexample
@@ -1927,9 +1924,10 @@ void f()
 @}
 @end smallexample
 
-This option is present because this deduction is an extension to the
-current specification in the C++0x working draft, and there was
-some concern about potential overload resolution problems.
+This deduction was implemented as a possible extension to the
+originally proposed semantics for the C++11 standard, but was not part
+of the final standard, so it is disabled by default.  This option is
+deprecated, and may be removed in a future version of G++.
 
 @item -ffriend-injection
 @opindex ffriend-injection
@@ -2093,7 +2091,7 @@ Set the maximum instantiation depth for template classes to @var{n}.
 A limit on the template instantiation depth is needed to detect
 endless recursions during template class instantiation.  ANSI/ISO C++
 conforming programs must not rely on a maximum depth greater than 17
-(changed to 1024 in C++0x).  The default value is 900, as the compiler
+(changed to 1024 in C++11).  The default value is 900, as the compiler
 can run out of stack space before hitting 1024 in some situations.
 
 @item -fno-threadsafe-statics
@@ -2120,7 +2118,7 @@ if the runtime routine is not available.
 @item -fvisibility-inlines-hidden
 @opindex fvisibility-inlines-hidden
 This switch declares that the user does not attempt to compare
-pointers to inline methods where the addresses of the two functions
+pointers to inline functions or methods where the addresses of the two functions
 were taken in different shared objects.
 
 The effect of this is that GCC may, effectively, mark inline methods with
@@ -2365,17 +2363,22 @@ an instance of a derived class through a pointer to a base class if the
 base class does not have a virtual destructor.  This warning is enabled
 by @option{-Wall}.
 
-@item -Wno-narrowing @r{(C++ and Objective-C++ only)}
+@item -Wnarrowing @r{(C++ and Objective-C++ only)}
 @opindex Wnarrowing
 @opindex Wno-narrowing
-With -std=c++0x, suppress the diagnostic required by the standard for
-narrowing conversions within @samp{@{ @}}, e.g.
+Warn when a narrowing conversion prohibited by C++11 occurs within
+@samp{@{ @}}, e.g.
 
 @smallexample
 int i = @{ 2.2 @}; // error: narrowing from double to int
 @end smallexample
 
-This flag can be useful for compiling valid C++98 code in C++0x mode.
+This flag is included in @option{-Wall} and @option{-Wc++11-compat}.
+
+With -std=c++11, @option{-Wno-narrowing} suppresses the diagnostic
+required by the standard.  Note that this does not affect the meaning
+of well-formed code; narrowing conversions are still considered
+ill-formed in SFINAE context.
 
 @item -Wnoexcept @r{(C++ and Objective-C++ only)}
 @opindex Wnoexcept
@@ -2993,7 +2996,7 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 
 @gccoptlist{-Waddress   @gol
 -Warray-bounds @r{(only with} @option{-O2}@r{)}  @gol
--Wc++0x-compat  @gol
+-Wc++11-compat  @gol
 -Wchar-subscripts  @gol
 -Wenum-compare @r{(in C/Objc; this is on by default in C++)} @gol
 -Wimplicit-int @r{(C and Objective-C only)} @gol
@@ -4063,10 +4066,11 @@ Warn about ISO C constructs that are outside of the common subset of
 ISO C and ISO C++, e.g.@: request for implicit conversion from
 @code{void *} to a pointer to non-@code{void} type.
 
-@item -Wc++0x-compat @r{(C++ and Objective-C++ only)}
-Warn about C++ constructs whose meaning differs between ISO C++ 1998 and
-ISO C++ 200x, e.g., identifiers in ISO C++ 1998 that will become keywords
-in ISO C++ 200x.  This warning is enabled by @option{-Wall}.
+@item -Wc++11-compat @r{(C++ and Objective-C++ only)}
+Warn about C++ constructs whose meaning differs between ISO C++ 1998
+and ISO C++ 2011, e.g., identifiers in ISO C++ 1998 that are keywords
+in ISO C++ 2011.  This warning turns on @option{-Wnarrowing} and is
+enabled by @option{-Wall}.
 
 @item -Wcast-qual
 @opindex Wcast-qual
@@ -4143,6 +4147,12 @@ unsigned integers are disabled by default in C++ unless
 @opindex Wno-conversion-null
 Do not warn for conversions between @code{NULL} and non-pointer
 types. @option{-Wconversion-null} is enabled by default.
+
+@item -Wzero-as-null-pointer-constant @r{(C++ and Objective-C++ only)}
+@opindex Wzero-as-null-pointer-constant
+@opindex Wno-zero-as-null-pointer-constant
+Warn when a literal '0' is used as null pointer constant.  This can
+be useful to facilitate the conversion to @code{nullptr} in C++11.
 
 @item -Wempty-body
 @opindex Wempty-body
@@ -9133,6 +9143,13 @@ partitions.
 The maximum number of namespaces to consult for suggestions when C++
 name lookup fails for an identifier.  The default is 1000.
 
+@item sink-frequency-threshold
+The maximum relative execution frequency (in percents) of the target block
+relative to a statement's original block to allow statement sinking of a
+statement.  Larger numbers result in more aggressive statement sinking.
+The default value is 75.  A small positive adjustment is applied for
+statements with memory operands as those are even more profitable so sink.
+
 @item max-stores-to-sink
 The maximum number of conditional stores paires that can be sunk.  Set to 0
 if either vectorization (@option{-ftree-vectorize}) or if-conversion
@@ -10722,6 +10739,117 @@ ld   @var{Rn}, X
 sbiw r26, const
 @end example
 @end table
+
+@subsubsection @code{EIND} and Devices with more than 128k Bytes of Flash
+
+Pointers in the implementation are 16 bits wide.
+The address of a function or label is represented as word address so
+that indirect jumps and calls can address any code address in the
+range of 64k words.
+
+In order to faciliate indirect jump on devices with more than 128k
+bytes of program memory space, there is a special function register called
+@code{EIND} that serves as most significant part of the target address
+when @code{EICALL} or @code{EIJMP} instructions are used.
+
+Indirect jumps and calls on these devices are handled as follows and
+are subject to some limitations:
+
+@itemize @bullet
+
+@item
+The compiler never sets @code{EIND}.
+
+@item
+The startup code from libgcc never sets @code{EIND}.
+Notice that startup code is a blend of code from libgcc and avr-libc.
+For the impact of avr-libc on @code{EIND}, see the
+@w{@uref{http://nongnu.org/avr-libc/user-manual,avr-libc user manual}}.
+
+@item
+The compiler uses @code{EIND} implicitely in @code{EICALL}/@code{EIJMP}
+instructions or might read @code{EIND} directly.
+
+@item
+The compiler assumes that @code{EIND} never changes during the startup
+code or run of the application. In particular, @code{EIND} is not
+saved/restored in function or interrupt service routine
+prologue/epilogue.
+
+@item
+It is legitimate for user-specific startup code to set up @code{EIND}
+early, for example by means of initialization code located in
+section @code{.init3}, and thus prior to general startup code that
+initializes RAM and calls constructors.
+
+@item
+For indirect calls to functions and computed goto, the linker will
+generate @emph{stubs}. Stubs are jump pads sometimes also called
+@emph{trampolines}. Thus, the indirect call/jump will jump to such a stub.
+The stub contains a direct jump to the desired address.
+
+@item
+Stubs will be generated automatically by the linker if
+the following two conditions are met:
+@itemize @minus
+
+@item The address of a label is taken by means of the @code{gs} modifier
+(short for @emph{generate stubs}) like so:
+@example
+LDI r24, lo8(gs(@var{func}))
+LDI r25, hi8(gs(@var{func}))
+@end example
+@item The final location of that label is in a code segment
+@emph{outside} the segment where the stubs are located.
+@end itemize
+
+@item
+The compiler will emit such @code{gs} modifiers for code labels in the
+following situations:
+@itemize @minus
+@item Taking address of a function or code label.
+@item Computed goto.
+@item If prologue-save function is used, see @option{-mcall-prologues}
+command line option.
+@item Switch/case dispatch tables. If you do not want such dispatch
+tables you can specify the @option{-fno-jump-tables} command line option.
+@item C and C++ constructors/destructors called during startup/shutdown.
+@item If the tools hit a @code{gs()} modifier explained above.
+@end itemize
+
+@item
+The default linker script is arranged for code with @code{EIND = 0}.
+If code is supposed to work for a setup with @code{EIND != 0}, a custom
+linker script has to be used in order to place the sections whose
+name start with @code{.trampolines} into the segment where @code{EIND}
+points to.
+
+@item
+Jumping to non-symbolic addresses like so is @emph{not} supported:
+
+@example
+int main (void)
+@{
+    /* Call function at word address 0x2 */
+    return ((int(*)(void)) 0x2)();
+@}
+@end example
+
+Instead, a stub has to be set up:
+
+@example
+int main (void)
+@{
+    extern int func_4 (void);
+
+    /* Call function at byte address 0x4 */
+    return func_4();
+@}
+@end example
+
+and the application be linked with @code{-Wl,--defsym,func_4=0x4}.
+Alternatively, @code{func_4} can be defined in the linker script.
+@end itemize
 
 @node Blackfin Options
 @subsection Blackfin Options

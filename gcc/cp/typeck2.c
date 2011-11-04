@@ -428,8 +428,15 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
 
     case OFFSET_TYPE:
     bad_member:
-      emit_diagnostic (diag_kind, input_location, 0,
-		       "invalid use of member (did you forget the %<&%> ?)");
+      if (DECL_FUNCTION_MEMBER_P (TREE_OPERAND (value, 1))
+	  && ! flag_ms_extensions)
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of member function "
+			 "(did you forget the %<()%> ?)");
+      else
+	emit_diagnostic (diag_kind, input_location, 0,
+			 "invalid use of member "
+			 "(did you forget the %<&%> ?)");
       break;
 
     case TEMPLATE_TYPE_PARM:
@@ -566,6 +573,7 @@ split_nonconstant_init_1 (tree dest, tree init)
 
 	      code = build2 (INIT_EXPR, inner_type, sub, value);
 	      code = build_stmt (input_location, EXPR_STMT, code);
+	      code = maybe_cleanup_point_expr_void (code);
 	      add_stmt (code);
 	      if (!TYPE_HAS_TRIVIAL_DESTRUCTOR (inner_type))
 		{
@@ -796,8 +804,16 @@ check_narrowing (tree type, tree init)
     }
 
   if (!ok)
-    pedwarn (input_location, OPT_Wnarrowing, "narrowing conversion of %qE "
-	     "from %qT to %qT inside { }", init, ftype, type);
+    {
+      if (cxx_dialect >= cxx0x)
+	pedwarn (EXPR_LOC_OR_HERE (init), OPT_Wnarrowing,
+		 "narrowing conversion of %qE from %qT to %qT inside { }",
+		 init, ftype, type);
+      else
+	warning_at (EXPR_LOC_OR_HERE (init), OPT_Wnarrowing,
+		    "narrowing conversion of %qE from %qT to %qT inside { } "
+		    "is ill-formed in C++11", init, ftype, type);
+    }
 }
 
 /* Process the initializer INIT for a variable of type TYPE, emitting
@@ -894,7 +910,7 @@ digest_init_r (tree type, tree init, bool nested, int flags,
     {
       tree *exp;
 
-      if (cxx_dialect != cxx98 && nested)
+      if (nested)
 	check_narrowing (type, init);
       init = convert_for_initialization (0, type, init, flags,
 					 ICR_INIT, NULL_TREE, 0,

@@ -1608,7 +1608,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
 static bool
 vect_analyze_loop_2 (loop_vec_info loop_vinfo)
 {
-  bool ok, dummy, slp = false;
+  bool ok, slp = false;
   int max_vf = MAX_VECTORIZATION_FACTOR;
   int min_vf = 2;
 
@@ -1649,7 +1649,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
      the dependences.
      FORNOW: fail at the first data dependence that we encounter.  */
 
-  ok = vect_analyze_data_ref_dependences (loop_vinfo, NULL, &max_vf, &dummy);
+  ok = vect_analyze_data_ref_dependences (loop_vinfo, NULL, &max_vf);
   if (!ok
       || max_vf < min_vf)
     {
@@ -3672,8 +3672,8 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
 
   /* Get the loop-entry arguments.  */
   if (slp_node)
-    vect_get_slp_defs (reduction_op, NULL_TREE, slp_node, &vec_initial_defs,
-                       NULL, reduc_index);
+    vect_get_vec_defs (reduction_op, NULL_TREE, stmt, &vec_initial_defs,
+                       NULL, slp_node, reduc_index);
   else
     {
       vec_initial_defs = VEC_alloc (tree, heap, 1);
@@ -4557,6 +4557,11 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
       && !SCALAR_FLOAT_TYPE_P (scalar_type))
     return false;
 
+  /* Do not try to vectorize bit-precision reductions.  */
+  if ((TYPE_PRECISION (scalar_type)
+       != GET_MODE_PRECISION (TYPE_MODE (scalar_type))))
+    return false;
+
   /* All uses but the last are expected to be defined in the loop.
      The last use is the reduction variable.  In case of nested cycle this
      assumption is not true: we use reduc_index to record the index of the
@@ -4922,8 +4927,8 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
             }
 
           if (slp_node)
-            vect_get_slp_defs (op0, op1, slp_node, &vec_oprnds0, &vec_oprnds1,
-                               -1);
+            vect_get_vec_defs (op0, op1, stmt, &vec_oprnds0, &vec_oprnds1,
+                               slp_node, -1);
           else
             {
               loop_vec_def0 = vect_get_vec_def_for_operand (ops[!reduc_index],

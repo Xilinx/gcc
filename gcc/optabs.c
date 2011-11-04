@@ -1606,6 +1606,30 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	}
     }
 
+  /* Certain vector operations can be implemented with vector permutation.  */
+  if (VECTOR_MODE_P (mode))
+    {
+      enum tree_code tcode = ERROR_MARK;
+      rtx sel;
+
+      if (binoptab == vec_interleave_high_optab)
+	tcode = VEC_INTERLEAVE_HIGH_EXPR;
+      else if (binoptab == vec_interleave_low_optab)
+	tcode = VEC_INTERLEAVE_LOW_EXPR;
+      else if (binoptab == vec_extract_even_optab)
+	tcode = VEC_EXTRACT_EVEN_EXPR;
+      else if (binoptab == vec_extract_odd_optab)
+	tcode = VEC_EXTRACT_ODD_EXPR;
+
+      if (tcode != ERROR_MARK
+	  && can_vec_perm_for_code_p (tcode, mode, &sel))
+	{
+	  temp = expand_vec_perm (mode, op0, op1, sel, target);
+	  gcc_assert (temp != NULL);
+	  return temp;
+	}
+    }
+
   /* Look for a wider mode of the same class for which we think we
      can open-code the operation.  Check for a widening multiply at the
      wider mode as well.  */
@@ -4800,6 +4824,60 @@ can_float_p (enum machine_mode fltmode, enum machine_mode fixmode,
   tab = unsignedp ? ufloat_optab : sfloat_optab;
   return convert_optab_handler (tab, fltmode, fixmode);
 }
+
+/* Function supportable_convert_operation
+
+   Check whether an operation represented by the code CODE is a
+   convert operation that is supported by the target platform in
+   vector form (i.e., when operating on arguments of type VECTYPE_IN
+   producing a result of type VECTYPE_OUT).
+   
+   Convert operations we currently support directly are FIX_TRUNC and FLOAT.
+   This function checks if these operations are supported
+   by the target platform either directly (via vector tree-codes), or via
+   target builtins.
+   
+   Output:
+   - CODE1 is code of vector operation to be used when
+   vectorizing the operation, if available.
+   - DECL is decl of target builtin functions to be used
+   when vectorizing the operation, if available.  In this case,
+   CODE1 is CALL_EXPR.  */
+
+bool
+supportable_convert_operation (enum tree_code code,
+                                    tree vectype_out, tree vectype_in,
+                                    tree *decl, enum tree_code *code1)
+{
+  enum machine_mode m1,m2;
+  int truncp;
+
+  m1 = TYPE_MODE (vectype_out);
+  m2 = TYPE_MODE (vectype_in);
+
+  /* First check if we can done conversion directly.  */
+  if ((code == FIX_TRUNC_EXPR 
+       && can_fix_p (m1,m2,TYPE_UNSIGNED (vectype_out), &truncp) 
+          != CODE_FOR_nothing)
+      || (code == FLOAT_EXPR
+          && can_float_p (m1,m2,TYPE_UNSIGNED (vectype_in))
+	     != CODE_FOR_nothing))
+    {
+      *code1 = code;
+      return true;
+    }
+
+  /* Now check for builtin.  */
+  if (targetm.vectorize.builtin_conversion
+      && targetm.vectorize.builtin_conversion (code, vectype_out, vectype_in))
+    {
+      *code1 = CALL_EXPR;
+      *decl = targetm.vectorize.builtin_conversion (code, vectype_out, vectype_in);
+      return true;
+    }
+  return false;
+}
+
 
 /* Generate code to convert FROM to floating point
    and store in TO.  FROM must be fixed point and not VOIDmode.
@@ -6701,20 +6779,22 @@ vector_compare_rtx (tree cond, bool unsignedp, enum insn_code icode)
    of the CPU.  SEL may be NULL, which stands for an unknown constant.  */
 
 bool
-can_vec_perm_expr_p (tree type, tree sel)
+can_vec_perm_p (enum machine_mode mode, bool variable,
+		const unsigned char *sel)
 {
-  enum machine_mode mode, qimode;
-  mode = TYPE_MODE (type);
+  enum machine_mode qimode;
 
   /* If the target doesn't implement a vector mode for the vector type,
      then no operations are supported.  */
   if (!VECTOR_MODE_P (mode))
     return false;
 
-  if (sel == NULL || TREE_CODE (sel) == VECTOR_CST)
+  if (!variable)
     {
       if (direct_optab_handler (vec_perm_const_optab, mode) != CODE_FOR_nothing
-	  && (sel == NULL || targetm.vectorize.vec_perm_const_ok (type, sel)))
+	  && (sel == NULL
+	      || targetm.vectorize.vec_perm_const_ok == NULL
+	      || targetm.vectorize.vec_perm_const_ok (mode, sel)))
 	return true;
     }
 
@@ -6722,6 +6802,8 @@ can_vec_perm_expr_p (tree type, tree sel)
     return true;
 
   /* We allow fallback to a QI vector mode, and adjust the mask.  */
+  if (GET_MODE_INNER (mode) == QImode)
+    return false;
   qimode = mode_for_vector (QImode, GET_MODE_SIZE (mode));
   if (!VECTOR_MODE_P (qimode))
     return false;
@@ -6732,9 +6814,9 @@ can_vec_perm_expr_p (tree type, tree sel)
   if (direct_optab_handler (vec_perm_optab, qimode) == CODE_FOR_nothing)
     return false;
 
-  /* In order to support the lowering of non-constant permutations,
+  /* In order to support the lowering of variable permutations,
      we need to support shifts and adds.  */
-  if (sel != NULL && TREE_CODE (sel) != VECTOR_CST)
+  if (variable)
     {
       if (GET_MODE_UNIT_SIZE (mode) > 2
 	  && optab_handler (ashl_optab, mode) == CODE_FOR_nothing
@@ -6747,11 +6829,103 @@ can_vec_perm_expr_p (tree type, tree sel)
   return true;
 }
 
-/* A subroutine of expand_vec_perm_expr for expanding one vec_perm insn.  */
+/* Return true if we can implement VEC_INTERLEAVE_{HIGH,LOW}_EXPR or
+   VEC_EXTRACT_{EVEN,ODD}_EXPR with VEC_PERM_EXPR for this target.
+   If PSEL is non-null, return the selector for the permutation.  */
+
+bool
+can_vec_perm_for_code_p (enum tree_code code, enum machine_mode mode,
+			 rtx *psel)
+{
+  bool need_sel_test = false;
+  enum insn_code icode;
+
+  /* If the target doesn't implement a vector mode for the vector type,
+     then no operations are supported.  */
+  if (!VECTOR_MODE_P (mode))
+    return false;
+
+  /* Do as many tests as possible without reqiring the selector.  */
+  icode = direct_optab_handler (vec_perm_optab, mode);
+  if (icode == CODE_FOR_nothing && GET_MODE_INNER (mode) != QImode)
+    {
+      enum machine_mode qimode
+	= mode_for_vector (QImode, GET_MODE_SIZE (mode));
+      if (VECTOR_MODE_P (qimode))
+	icode = direct_optab_handler (vec_perm_optab, qimode);
+    }
+  if (icode == CODE_FOR_nothing)
+    {
+      icode = direct_optab_handler (vec_perm_const_optab, mode);
+      if (icode != CODE_FOR_nothing
+	  && targetm.vectorize.vec_perm_const_ok != NULL)
+	need_sel_test = true;
+    }
+  if (icode == CODE_FOR_nothing)
+    return false;
+
+  /* If the selector is required, or if we need to test it, build it.  */
+  if (psel || need_sel_test)
+    {
+      int i, nelt = GET_MODE_NUNITS (mode), alt = 0;
+      unsigned char *data = XALLOCAVEC (unsigned char, nelt);
+
+      switch (code)
+	{
+	case VEC_EXTRACT_ODD_EXPR:
+	  alt = 1;
+	  /* FALLTHRU */
+	case VEC_EXTRACT_EVEN_EXPR:
+	  for (i = 0; i < nelt; ++i)
+	    data[i] = i * 2 + alt;
+	  break;
+
+	case VEC_INTERLEAVE_HIGH_EXPR:
+	  alt = nelt / 2;
+	  /* FALLTHRU */
+	case VEC_INTERLEAVE_LOW_EXPR:
+	  for (i = 0; i < nelt / 2; ++i)
+	    {
+	      data[i * 2] = i + alt;
+	      data[i * 2 + 1] = i + nelt + alt;
+	    }
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
+
+      if (need_sel_test
+	  && !targetm.vectorize.vec_perm_const_ok (mode, data))
+	return false;
+
+      if (psel)
+	{
+	  rtvec vec = rtvec_alloc (nelt);
+	  enum machine_mode imode = mode;
+
+	  for (i = 0; i < nelt; ++i)
+	    RTVEC_ELT (vec, i) = GEN_INT (data[i]);
+
+	  if (GET_MODE_CLASS (mode) != MODE_VECTOR_INT)
+	    {
+	      imode = int_mode_for_mode (GET_MODE_INNER (mode));
+	      imode = mode_for_vector (imode, nelt);
+	      gcc_assert (GET_MODE_CLASS (imode) == MODE_VECTOR_INT);
+	    }
+
+	  *psel = gen_rtx_CONST_VECTOR (imode, vec);
+	}
+    }
+
+  return true;
+}
+
+/* A subroutine of expand_vec_perm for expanding one vec_perm insn.  */
 
 static rtx
-expand_vec_perm_expr_1 (enum insn_code icode, rtx target,
-			rtx v0, rtx v1, rtx sel)
+expand_vec_perm_1 (enum insn_code icode, rtx target,
+		   rtx v0, rtx v1, rtx sel)
 {
   enum machine_mode tmode = GET_MODE (target);
   enum machine_mode smode = GET_MODE (sel);
@@ -6783,121 +6957,138 @@ expand_vec_perm_expr_1 (enum insn_code icode, rtx target,
   return NULL_RTX;
 }
 
-/* Generate instructions for VEC_PERM_EXPR given its type and three
-   operands.  */
+/* Generate instructions for vec_perm optab given its mode
+   and three operands.  */
+
 rtx
-expand_vec_perm_expr (tree type, tree v0, tree v1, tree sel, rtx target)
+expand_vec_perm (enum machine_mode mode, rtx v0, rtx v1, rtx sel, rtx target)
 {
   enum insn_code icode;
-  enum machine_mode mode = TYPE_MODE (type);
   enum machine_mode qimode;
-  rtx v0_rtx, v1_rtx, sel_rtx, *vec, vt, tmp;
   unsigned int i, w, e, u;
+  rtx tmp, sel_qi = NULL;
+  rtvec vec;
 
-  if (!target)
+  if (!target || GET_MODE (target) != mode)
     target = gen_reg_rtx (mode);
-  v0_rtx = expand_normal (v0);
-  if (operand_equal_p (v0, v1, 0))
-    v1_rtx = v0_rtx;
-  else
-    v1_rtx = expand_normal (v1);
-  sel_rtx = expand_normal (sel);
-
-  /* If the input is a constant, expand it specially.  */
-  if (CONSTANT_P (sel_rtx))
-    {
-      icode = direct_optab_handler (vec_perm_const_optab, mode);
-      if (icode != CODE_FOR_nothing
-	  && targetm.vectorize.vec_perm_const_ok (TREE_TYPE (v0), sel)
-	  && (tmp = expand_vec_perm_expr_1 (icode, target, v0_rtx,
-					    v1_rtx, sel_rtx)) != NULL)
-	return tmp;
-    }
-
-  /* Otherwise fall back to a fully variable permuation.  */
-  icode = direct_optab_handler (vec_perm_optab, mode);
-  if (icode != CODE_FOR_nothing
-      && (tmp = expand_vec_perm_expr_1 (icode, target, v0_rtx,
-					v1_rtx, sel_rtx)) != NULL)
-    return tmp;
-
-  /* As a special case to aid several targets, lower the element-based
-     permutation to a byte-based permutation and try again.  */
-  qimode = mode_for_vector (QImode, GET_MODE_SIZE (mode));
-  if (!VECTOR_MODE_P (qimode))
-    return NULL_RTX;
-
-  /* ??? For completeness, we ought to check the QImode version of
-     vec_perm_const_optab.  But all users of this implicit lowering
-     feature implement the variable vec_perm_optab.  */
-  icode = direct_optab_handler (vec_perm_optab, qimode);
-  if (icode == CODE_FOR_nothing)
-    return NULL_RTX;
 
   w = GET_MODE_SIZE (mode);
   e = GET_MODE_NUNITS (mode);
   u = GET_MODE_UNIT_SIZE (mode);
-  vec = XALLOCAVEC (rtx, w);
 
-  if (CONSTANT_P (sel_rtx))
+  /* Set QIMODE to a different vector mode with byte elements.
+     If no such mode, or if MODE already has byte elements, use VOIDmode.  */
+  qimode = VOIDmode;
+  if (GET_MODE_INNER (mode) != QImode)
     {
-      unsigned int j;
-      for (i = 0; i < e; ++i)
-	{
-	  unsigned int this_e = INTVAL (XVECEXP (sel_rtx, 0, i));
-	  this_e &= 2 * e - 1;
-          this_e *= u;
-
-	  for (j = 0; j < u; ++j)
-	    vec[i * u + j] = GEN_INT (this_e + j);
-	}
-      sel_rtx = gen_rtx_CONST_VECTOR (qimode, gen_rtvec_v (w, vec));
+      qimode = mode_for_vector (QImode, w);
+      if (!VECTOR_MODE_P (qimode))
+	qimode = VOIDmode;
     }
-  else
+
+  /* If the input is a constant, expand it specially.  */
+  if (CONSTANT_P (sel))
+    {
+      icode = direct_optab_handler (vec_perm_const_optab, mode);
+      if (icode != CODE_FOR_nothing)
+	{
+	  tmp = expand_vec_perm_1 (icode, target, v0, v1, sel);
+	  if (tmp)
+	    return tmp;
+	}
+
+      /* Fall back to a constant byte-based permutation.  */
+      if (qimode != VOIDmode)
+	{
+	  vec = rtvec_alloc (w);
+	  for (i = 0; i < e; ++i)
+	    {
+	      unsigned int j, this_e;
+
+	      this_e = INTVAL (XVECEXP (sel, 0, i));
+	      this_e &= 2 * e - 1;
+	      this_e *= u;
+
+	      for (j = 0; j < u; ++j)
+		RTVEC_ELT (vec, i * u + j) = GEN_INT (this_e + j);
+	    }
+	  sel_qi = gen_rtx_CONST_VECTOR (qimode, vec);
+
+	  icode = direct_optab_handler (vec_perm_const_optab, qimode);
+	  if (icode != CODE_FOR_nothing)
+	    {
+	      tmp = expand_vec_perm_1 (icode, gen_lowpart (qimode, target),
+				       gen_lowpart (qimode, v0),
+				       gen_lowpart (qimode, v1), sel_qi);
+	      if (tmp)
+		return gen_lowpart (mode, tmp);
+	    }
+	}
+    }
+
+  /* Otherwise expand as a fully variable permuation.  */
+  icode = direct_optab_handler (vec_perm_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    {
+      tmp = expand_vec_perm_1 (icode, target, v0, v1, sel);
+      if (tmp)
+	return tmp;
+    }
+
+  /* As a special case to aid several targets, lower the element-based
+     permutation to a byte-based permutation and try again.  */
+  if (qimode == VOIDmode)
+    return NULL_RTX;
+  icode = direct_optab_handler (vec_perm_optab, qimode);
+  if (icode == CODE_FOR_nothing)
+    return NULL_RTX;
+
+  if (sel_qi == NULL)
     {
       /* Multiply each element by its byte size.  */
+      enum machine_mode selmode = GET_MODE (sel);
       if (u == 2)
-	sel_rtx = expand_simple_binop (mode, PLUS, sel_rtx, sel_rtx,
-				       sel_rtx, 0, OPTAB_DIRECT);
+	sel = expand_simple_binop (selmode, PLUS, sel, sel,
+				   sel, 0, OPTAB_DIRECT);
       else
-	sel_rtx = expand_simple_binop (mode, ASHIFT, sel_rtx,
-				       GEN_INT (exact_log2 (u)),
-				       sel_rtx, 0, OPTAB_DIRECT);
-      gcc_assert (sel_rtx);
+	sel = expand_simple_binop (selmode, ASHIFT, sel,
+				   GEN_INT (exact_log2 (u)),
+				   sel, 0, OPTAB_DIRECT);
+      gcc_assert (sel != NULL);
 
       /* Broadcast the low byte each element into each of its bytes.  */
+      vec = rtvec_alloc (w);
       for (i = 0; i < w; ++i)
 	{
 	  int this_e = i / u * u;
 	  if (BYTES_BIG_ENDIAN)
 	    this_e += u - 1;
-	  vec[i] = GEN_INT (this_e);
+	  RTVEC_ELT (vec, i) = GEN_INT (this_e);
 	}
-      vt = gen_rtx_CONST_VECTOR (qimode, gen_rtvec_v (w, vec));
-      sel_rtx = gen_lowpart (qimode, sel_rtx);
-      sel_rtx = expand_vec_perm_expr_1 (icode, gen_reg_rtx (qimode),
-					sel_rtx, sel_rtx, vt);
-      gcc_assert (sel_rtx != NULL);
+      tmp = gen_rtx_CONST_VECTOR (qimode, vec);
+      sel = gen_lowpart (qimode, sel);
+      sel = expand_vec_perm (qimode, sel, sel, tmp, NULL);
+      gcc_assert (sel != NULL);
 
       /* Add the byte offset to each byte element.  */
       /* Note that the definition of the indicies here is memory ordering,
 	 so there should be no difference between big and little endian.  */
+      vec = rtvec_alloc (w);
       for (i = 0; i < w; ++i)
-	vec[i] = GEN_INT (i % u);
-      vt = gen_rtx_CONST_VECTOR (qimode, gen_rtvec_v (w, vec));
-      sel_rtx = expand_simple_binop (qimode, PLUS, sel_rtx, vt,
-				     NULL_RTX, 0, OPTAB_DIRECT);
-      gcc_assert (sel_rtx);
+	RTVEC_ELT (vec, i) = GEN_INT (i % u);
+      tmp = gen_rtx_CONST_VECTOR (qimode, vec);
+      sel_qi = expand_simple_binop (qimode, PLUS, sel, tmp,
+				    sel, 0, OPTAB_DIRECT);
+      gcc_assert (sel_qi != NULL);
     }
 
-  tmp = expand_vec_perm_expr_1 (icode, gen_lowpart (qimode, target),
-			        gen_lowpart (qimode, v0_rtx),
-			        gen_lowpart (qimode, v1_rtx), sel_rtx);
-  gcc_assert (tmp != NULL);
-
-  return gen_lowpart (mode, tmp);
+  tmp = expand_vec_perm_1 (icode, gen_lowpart (qimode, target),
+			   gen_lowpart (qimode, v0),
+			   gen_lowpart (qimode, v1), sel_qi);
+  if (tmp)
+    tmp = gen_lowpart (mode, tmp);
+  return tmp;
 }
-
 
 /* Return insn code for a conditional operator with a comparison in
    mode CMODE, unsigned if UNS is true, resulting in a value of mode VMODE.  */

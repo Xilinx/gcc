@@ -43,6 +43,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "intl.h"
 #include "diagnostic.h"
 #include "obstack.h"
+#include "opts.h"
+#include "options.h"
 
 int debug;				/* true if -save-temps.  */
 int verbose;				/* true if -v.  */
@@ -280,6 +282,61 @@ fork_execute (char **argv)
 /* Template of LTRANS dumpbase suffix.  */
 #define DUMPBASE_SUFFIX ".ltrans18446744073709551615"
 
+/* Create decoded options from the COLLECT_GCC and COLLECT_GCC_OPTIONS
+   environment according to LANG_MASK.  */
+
+static void
+get_options_from_collect_gcc_options (const char *collect_gcc,
+				      const char *collect_gcc_options,
+				      unsigned int lang_mask,
+				      struct cl_decoded_option **decoded_options,
+				      unsigned int *decoded_options_count)
+{
+  struct obstack argv_obstack;
+  char *argv_storage;
+  const char **argv;
+  int j, k, argc;
+
+  argv_storage = xstrdup (collect_gcc_options);
+  obstack_init (&argv_obstack);
+  obstack_ptr_grow (&argv_obstack, collect_gcc);
+
+  for (j = 0, k = 0; argv_storage[j] != '\0'; ++j)
+    {
+      if (argv_storage[j] == '\'')
+	{
+	  obstack_ptr_grow (&argv_obstack, &argv_storage[k]);
+	  ++j;
+	  do
+	    {
+	      if (argv_storage[j] == '\0')
+		fatal ("malformed COLLECT_GCC_OPTIONS");
+	      else if (strncmp (&argv_storage[j], "'\\''", 4) == 0)
+		{
+		  argv_storage[k++] = '\'';
+		  j += 4;
+		}
+	      else if (argv_storage[j] == '\'')
+		break;
+	      else
+		argv_storage[k++] = argv_storage[j++];
+	    }
+	  while (1);
+	  argv_storage[k++] = '\0';
+	}
+    }
+
+  obstack_ptr_grow (&argv_obstack, NULL);
+  argc = obstack_object_size (&argv_obstack) / sizeof (void *) - 1;
+  argv = XOBFINISH (&argv_obstack, const char **);
+
+  decode_cmdline_options_to_array (argc, (const char **)argv,
+				   lang_mask,
+				   decoded_options, decoded_options_count);
+  obstack_free (&argv_obstack, NULL);
+}
+
+
 /* Execute gcc. ARGC is the number of arguments. ARGV contains the arguments. */
 
 static void
@@ -290,99 +347,88 @@ run_gcc (unsigned argc, char *argv[])
   const char **argv_ptr;
   char *list_option_full = NULL;
   const char *linker_output = NULL;
-  const char *collect_gcc_options, *collect_gcc;
-  struct obstack env_obstack;
-  bool seen_o = false;
+  const char *collect_gcc, *collect_gcc_options;
   int parallel = 0;
   int jobserver = 0;
   bool no_partition = false;
+  struct cl_decoded_option *decoded_options;
+  unsigned int decoded_options_count;
+  struct obstack argv_obstack;
+  int new_head_argc;
 
   /* Get the driver and options.  */
   collect_gcc = getenv ("COLLECT_GCC");
   if (!collect_gcc)
     fatal ("environment variable COLLECT_GCC must be set");
-
-  /* Set the CFLAGS environment variable.  */
   collect_gcc_options = getenv ("COLLECT_GCC_OPTIONS");
   if (!collect_gcc_options)
     fatal ("environment variable COLLECT_GCC_OPTIONS must be set");
-
-  /* Count arguments.  */
-  i = 0;
-  for (j = 0; collect_gcc_options[j] != '\0'; ++j)
-    if (collect_gcc_options[j] == '\'')
-      ++i;
-
-  if (i % 2 != 0)
-    fatal ("malformed COLLECT_GCC_OPTIONS");
+  get_options_from_collect_gcc_options (collect_gcc, collect_gcc_options,
+					CL_LANG_ALL,
+					&decoded_options,
+					&decoded_options_count);
 
   /* Initalize the common arguments for the driver.  */
-  new_argv = (const char **) xmalloc ((15 + i / 2 + argc) * sizeof (char *));
-  argv_ptr = new_argv;
-  *argv_ptr++ = collect_gcc;
-  *argv_ptr++ = "-xlto";
-  *argv_ptr++ = "-c";
-  for (j = 0; collect_gcc_options[j] != '\0'; ++j)
-    if (collect_gcc_options[j] == '\'')
-      {
-	char *option;
+  obstack_init (&argv_obstack);
+  obstack_ptr_grow (&argv_obstack, collect_gcc);
+  obstack_ptr_grow (&argv_obstack, "-xlto");
+  obstack_ptr_grow (&argv_obstack, "-c");
+  for (j = 1; j < decoded_options_count; ++j)
+    {
+      struct cl_decoded_option *option = &decoded_options[j];
 
-	++j;
-	i = j;
-	while (collect_gcc_options[j] != '\'')
-	  ++j;
+      /* Do not pass on frontend specific flags not suitable for lto.  */
+      if (!(cl_options[option->opt_index].flags
+	    & (CL_COMMON|CL_TARGET|CL_DRIVER|CL_LTO)))
+	continue;
 
-	obstack_init (&env_obstack);
-	obstack_grow (&env_obstack, &collect_gcc_options[i], j - i);
-	obstack_1grow (&env_obstack, 0);
-	option = XOBFINISH (&env_obstack, char *);
-	if (seen_o)
-	  {
-	    linker_output = option;
-	    seen_o = false;
-	    continue;
-	  }
+      switch (option->opt_index)
+	{
+	case OPT_o:
+	  linker_output = option->arg;
+	  /* We generate new intermediate output, drop this arg.  */
+	  continue;
 
-	/* If we see -o, skip it and skip and record its argument.  */
-	if (option[0] == '-' && option[1] == 'o')
-	  {
-	    if (option[2] == '\0')
-	      seen_o = true;
-	    else
-	      linker_output = &option[2];
-	    continue;
-	  }
-
-	if (strcmp (option, "-save-temps") == 0)
+	case OPT_save_temps:
 	  debug = 1;
-	if (strcmp (option, "-v") == 0)
-	  verbose = 1;
+	  break;
 
-	if (strcmp (option, "-flto-partition=none") == 0)
+	case OPT_v:
+	  verbose = 1;
+	  break;
+
+	case OPT_flto_partition_none:
 	  no_partition = true;
-	/* We've handled these LTO options, do not pass them on.  */
-	if (strncmp (option, "-flto=", 6) == 0
-	    || !strcmp (option, "-flto"))
-	  {
-	    lto_mode = LTO_MODE_WHOPR;
-	    if (option[5] == '=')
-	      {
-		if (!strcmp (option + 6, "jobserver"))
-		  {
-		    jobserver = 1;
-		    parallel = 1;
-		  }
-		else
-		  {
-		    parallel = atoi (option + 6);
-		    if (parallel <= 1)
-		      parallel = 0;
-		  }
-	      }
-	  }
-	else
-	  *argv_ptr++ = option;
-      }
+	  break;
+
+	case OPT_flto_:
+	  if (strcmp (option->arg, "jobserver") == 0)
+	    {
+	      jobserver = 1;
+	      parallel = 1;
+	    }
+	  else
+	    {
+	      parallel = atoi (option->arg);
+	      if (parallel <= 1)
+		parallel = 0;
+	    }
+	  /* Fallthru.  */
+
+	case OPT_flto:
+	  lto_mode = LTO_MODE_WHOPR;
+	  /* We've handled these LTO options, do not pass them on.  */
+	  continue;
+
+	default:
+	  break;
+	}
+
+      /* Pass the option on.  */
+      for (i = 0; i < option->canonical_option_num_elements; ++i)
+	obstack_ptr_grow (&argv_obstack, option->canonical_option[i]);
+    }
+
   if (no_partition)
     {
       lto_mode = LTO_MODE_LTO;
@@ -410,22 +456,23 @@ run_gcc (unsigned argc, char *argv[])
 	}
       if (!bit_bucket)
 	{
-	  *argv_ptr++ = "-dumpdir";
-	  *argv_ptr++ = output_dir;
+	  obstack_ptr_grow (&argv_obstack, "-dumpdir");
+	  obstack_ptr_grow (&argv_obstack, output_dir);
 	}
 
-      *argv_ptr++ = "-dumpbase";
+      obstack_ptr_grow (&argv_obstack, "-dumpbase");
     }
-  else
-    argv_ptr--;
+
+  /* Remember at which point we can scrub args to re-use the commons.  */
+  new_head_argc = obstack_object_size (&argv_obstack) / sizeof (void *);
 
   if (lto_mode == LTO_MODE_LTO)
     {
       flto_out = make_temp_file (".lto.o");
       if (linker_output)
-	argv_ptr[0] = linker_output;
-      argv_ptr[1] = "-o";
-      argv_ptr[2] = flto_out;
+	obstack_ptr_grow (&argv_obstack, linker_output);
+      obstack_ptr_grow (&argv_obstack, "-o");
+      obstack_ptr_grow (&argv_obstack, flto_out);
     }
   else 
     {
@@ -439,7 +486,7 @@ run_gcc (unsigned argc, char *argv[])
 					     + sizeof (".wpa") + 1);
 	  strcpy (dumpbase, linker_output);
 	  strcat (dumpbase, ".wpa");
-	  argv_ptr[0] = dumpbase;
+	  obstack_ptr_grow (&argv_obstack, dumpbase);
 	}
 
       if (linker_output && debug)
@@ -455,19 +502,21 @@ run_gcc (unsigned argc, char *argv[])
 		         (strlen (ltrans_output_file) + list_option_len + 1));
       tmp = list_option_full;
 
-      argv_ptr[1] = tmp;
+      obstack_ptr_grow (&argv_obstack, tmp);
       strcpy (tmp, list_option);
       tmp += list_option_len;
       strcpy (tmp, ltrans_output_file);
 
-      argv_ptr[2] = "-fwpa";
+      obstack_ptr_grow (&argv_obstack, "-fwpa");
     }
 
   /* Append the input objects and possible preceeding arguments.  */
   for (i = 1; i < argc; ++i)
-    argv_ptr[2 + i] = argv[i];
-  argv_ptr[2 + i] = NULL;
+    obstack_ptr_grow (&argv_obstack, argv[i]);
+  obstack_ptr_grow (&argv_obstack, NULL);
 
+  new_argv = XOBFINISH (&argv_obstack, const char **);
+  argv_ptr = &new_argv[new_head_argc];
   fork_execute (CONST_CAST (char **, new_argv));
 
   if (lto_mode == LTO_MODE_LTO)
@@ -480,11 +529,13 @@ run_gcc (unsigned argc, char *argv[])
     {
       FILE *stream = fopen (ltrans_output_file, "r");
       FILE *mstream = NULL;
+      struct obstack env_obstack;
 
       if (!stream)
 	fatal_perror ("fopen: %s", ltrans_output_file);
 
       /* Parse the list of LTRANS inputs from the WPA stage.  */
+      obstack_init (&env_obstack);
       nr = 0;
       for (;;)
 	{
@@ -537,7 +588,6 @@ cont:
 
 	  /* Replace the .o suffix with a .ltrans.o suffix and write
 	     the resulting name to the LTRANS output list.  */
-	  obstack_init (&env_obstack);
 	  obstack_grow (&env_obstack, input_name, strlen (input_name) - 2);
 	  obstack_grow (&env_obstack, ".ltrans.o", sizeof (".ltrans.o"));
 	  output_name = XOBFINISH (&env_obstack, char *);
@@ -617,9 +667,10 @@ cont:
       free (output_names);
       free (input_names);
       free (list_option_full);
+      obstack_free (&env_obstack, NULL);
     }
 
-  obstack_free (&env_obstack, NULL);
+  obstack_free (&argv_obstack, NULL);
 }
 
 
@@ -662,6 +713,7 @@ main (int argc, char *argv[])
   /* We may be called with all the arguments stored in some file and
      passed with @file.  Expand them into argv before processing.  */
   expandargv (&argc, &argv);
+
   run_gcc (argc, argv);
 
   return 0;
