@@ -1,5 +1,9 @@
 2011-11-04   Rong Xu  <xur@google.com>
 
+	* gcc/c-family/c-opts.c: move the notes under fopt-info.
+
+2011-11-04   Rong Xu  <xur@google.com>
+
 	* gcc/dwarf2out.c (dwarf2out_decl): not emit type info
 	for unreachable functions in LIPO mode.
 
