@@ -11,21 +11,10 @@ Copyright @copyright{} 2011 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
-any later version published by the Free Software Foundation; with the
-Invariant Sections being ``Funding Free Software'', the Front-Cover
-texts being (a) (see below), and with the Back-Cover Texts being (b)
-(see below).  A copy of the license is included in the section entitled
-``GNU Free Documentation License''.
-
-(a) The FSF's Front-Cover Text is:
-
-     A GNU Manual
-
-(b) The FSF's Back-Cover Text is:
-
-     You have freedom to copy and modify this GNU Manual, like GNU
-     software.  Copies published by the Free Software Foundation raise
-     funds for GNU development.
+any later version published by the Free Software Foundation; with no
+Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
 @end copying
 
 @ifinfo
@@ -35,10 +24,6 @@ texts being (a) (see below), and with the Back-Cover Texts being (b)
 @end direntry
 
 This manual documents the GNU Transactional Memory Library.
-
-Published by the Free Software Foundation
-51 Franklin Street, Fifth Floor
-Boston, MA 02110-1301 USA
 
 @insertcopying
 @end ifinfo
@@ -51,10 +36,6 @@ Boston, MA 02110-1301 USA
 @page
 @vskip 0pt plus 1filll
 @comment For the @value{version-GCC} Version*
-@sp 1
-Published by the Free Software Foundation @*
-51 Franklin Street, Fifth Floor@*
-Boston, MA 02110-1301, USA@*
 @sp 1
 @insertcopying
 @end titlepage
@@ -86,12 +67,8 @@ several threads.
                                by gcc.
 * The libitm ABI::             Notes on the external ABI provided by libitm.
 * Internals::                  Notes on libitm's internal synchronization.
-* Copying::                    GNU general public license says
-                               how you can copy and share libgomp.
 * GNU Free Documentation License::
                                How you can copy and share this manual.
-* Funding::                    How to help assure continued work for free 
-                               software.
 * Index::                      Index of this documentation.
 @end menu
 
@@ -745,26 +722,10 @@ priority inheritance until the TM has priority-aware contention management.
 
 
 @c ---------------------------------------------------------------------
-@c GNU General Public License
-@c ---------------------------------------------------------------------
-
-@include gpl.texi
-
-
-
-@c ---------------------------------------------------------------------
 @c GNU Free Documentation License
 @c ---------------------------------------------------------------------
 
 @include fdl.texi
-
-
-
-@c ---------------------------------------------------------------------
-@c Funding Free Software
-@c ---------------------------------------------------------------------
-
-@include funding.texi
 
 @c ---------------------------------------------------------------------
 @c Index
