@@ -10555,7 +10555,7 @@ c_parser_transaction_attributes (c_parser *parser)
    (GCC Extension).
 
    transaction-statement:
-     __transaction_atomic attributes[opt] compound-statement
+     __transaction_atomic transaction-attribute[opt] compound-statement
      __transaction_relaxed compound-statement
 
    Note that the only valid attribute is: "outer".
@@ -10664,7 +10664,7 @@ c_parser_transaction_expression (c_parser *parser, enum rid keyword)
 /* Parse a __transaction_cancel statement (GCC Extension).
 
    transaction-cancel-statement:
-     __transaction_cancel attributes[opt] ;
+     __transaction_cancel transaction-attribute[opt] ;
 
    Note that the only valid attribute is "outer".
 */
