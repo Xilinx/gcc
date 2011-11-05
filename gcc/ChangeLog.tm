@@ -1,3 +1,14 @@
+2011-11-05  Aldy Hernandez  <aldyh@redhat.com>
+
+        * trans-mem.c (ipa_tm_insert_gettmclone_call): Remove call to
+	gimple_call_set_noinline_p.
+	* gimple.h (enum gf_mask): Remove GF_CALL_NOINLINE.
+	(gimple_call_noinline_p): Remove.
+	(gimple_call_set_noinline_p): Remove.
+	* gimple.c (walk_gimple_stmt): Move comment down.
+	* calls.c (is_tm_builtin): Fix whitespace problem.
+	* gimple.def (GIMPLE_EH_ELSE): Fix typo in comment.
+
 2011-11-04  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimple.c (walk_gimple_seq): Document usage of removed_stmt

@@ -161,7 +161,7 @@ DEFGSCODE(GIMPLE_EH_MUST_NOT_THROW, "gimple_eh_must_not_throw", GSS_EH_MNT)
 
 /* GIMPLE_EH_ELSE <N_BODY, E_BODY> must be the sole contents of
    a GIMPLE_TRY_FINALLY node.  For all normal exits from the try block,
-   we N_BODY is run; for all exception exits from the try block,
+   N_BODY is run; for all exception exits from the try block,
    E_BODY is run.  */
 DEFGSCODE(GIMPLE_EH_ELSE, "gimple_eh_else", GSS_EH_ELSE)
 

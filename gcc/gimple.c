@@ -1788,9 +1788,10 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
 	 a value to return.  */
       gcc_assert (tree_ret == NULL);
 
-      /* Re-read stmt in case the callback changed it.  */
       if (wi && wi->removed_stmt)
 	return NULL;
+
+      /* Re-read stmt in case the callback changed it.  */
       stmt = gsi_stmt (*gsi);
     }
 

@@ -4361,12 +4361,6 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   if (gimple_call_nothrow_p (stmt))
     gimple_call_set_nothrow (stmt, true);
 
-  /* ??? This is a hack to prevent tree-eh.c inlineable_call_p from
-     deciding that the indirect call we have after this transformation
-     might be inlinable, and thus changing the value of can_throw_internal,
-     and thus requiring extra EH edges.  */
-  gimple_call_set_noinline_p (stmt);
-
   gimple_call_set_fn (stmt, callfn);
 
   /* Discarding OBJ_TYPE_REF above may produce incompatible LHS and RHS
