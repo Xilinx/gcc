@@ -4,6 +4,14 @@
 
 2011-11-04  Richard Henderson  <rth@redhat.com>
 
+	* cp/parser.c (enum non_integral_constant): Add NIC_TRANSACTION.
+	(cp_parser_non_integral_constant_expression): Handle it.
+	(cp_parser_transaction_expression): Generate an error if TM is
+	not enabled.  Use cp_parser_non_integral_constant_expression.
+	* testsuite/c-c++-common/tm/trxn-expr-2.c: New test.
+
+2011-11-04  Richard Henderson  <rth@redhat.com>
+
 	* cp/parser.c (cp_parser_init_declarator): Fix production comments.
 	(cp_parser_transaction_expression): Don't parse txn-attributes here.
 

@@ -106,7 +106,9 @@ typedef enum non_integral_constant {
   /* a comma operator */
   NIC_COMMA,
   /* a call to a constructor */
-  NIC_CONSTRUCTOR
+  NIC_CONSTRUCTOR,
+  /* a transaction expression */
+  NIC_TRANSACTION
 } non_integral_constant;
 
 /* The various kinds of errors about name-lookup failing. */
@@ -2680,6 +2682,10 @@ cp_parser_non_integral_constant_expression (cp_parser  *parser,
 		return true;
 	      case NIC_CONSTRUCTOR:
 		error ("a call to a constructor "
+		       "cannot appear in a constant-expression");
+		return true;
+	      case NIC_TRANSACTION:
+		error ("a transaction expression "
 		       "cannot appear in a constant-expression");
 		return true;
 	      case NIC_THIS:
@@ -26656,6 +26662,14 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
 
   gcc_assert (keyword == RID_TRANSACTION_ATOMIC
       || keyword == RID_TRANSACTION_RELAXED);
+
+  if (!flag_tm)
+    error (keyword == RID_TRANSACTION_RELAXED
+	   ? "%<__transaction_relaxed%> without transactional memory "
+             "support enabled"
+	   : "%<__transaction_atomic%> without transactional memory "
+             "support enabled");
+
   token = cp_parser_require_keyword (parser, keyword,
       (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
           : RT_TRANSACTION_RELAXED));
@@ -26680,7 +26694,10 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
     }
   parser->in_transaction = old_in;
 
-  return ret;
+  if (cp_parser_non_integral_constant_expression (parser, NIC_TRANSACTION))
+    return error_mark_node;
+
+  return (flag_tm ? ret : error_mark_node);
 }
 
 /* Parse a function-transaction-block.

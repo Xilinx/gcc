@@ -8140,6 +8140,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case STMT_EXPR:
     case EXPR_STMT:
     case BIND_EXPR:
+    case TRANSACTION_EXPR:
       if (flags & tf_error)
         error ("expression %qE is not a constant-expression", t);
       return false;
