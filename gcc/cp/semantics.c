@@ -4983,11 +4983,11 @@ begin_transaction_stmt (location_t loc, tree *pcompound, int flags)
   if (flag_tm)
     add_stmt (r);
   else
-    error_at (loc, ((flags & TM_STMT_ATTR_RELAXED) != 0 ?
-        "%<__transaction_relaxed%> without transactional memory "
-	      "support enabled"
-        : "%<__transaction_atomic%> without transactional memory "
-	      "support enabled"));
+    error_at (loc, ((flags & TM_STMT_ATTR_RELAXED) != 0
+		    ? G_("%<__transaction_relaxed%> without "
+			 "transactional memory support enabled")
+		    : G_("%<__transaction_atomic%> without "
+			 "transactional memory support enabled")));
 
   TRANSACTION_EXPR_BODY (r) = push_stmt_list ();
   return r;

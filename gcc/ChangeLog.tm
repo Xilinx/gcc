@@ -4,6 +4,12 @@
 
 2011-11-04  Richard Henderson  <rth@redhat.com>
 
+	* cp/parser.c (cp_parser_transaction_expression): Use G_ for
+	conditional operands to error.
+	* cp/semantics.c (begin_transaction_stmt): Likewise.
+
+2011-11-04  Richard Henderson  <rth@redhat.com>
+
 	* cp/parser.c (enum non_integral_constant): Add NIC_TRANSACTION.
 	(cp_parser_non_integral_constant_expression): Handle it.
 	(cp_parser_transaction_expression): Generate an error if TM is

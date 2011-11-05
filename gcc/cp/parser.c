@@ -26665,10 +26665,10 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
 
   if (!flag_tm)
     error (keyword == RID_TRANSACTION_RELAXED
-	   ? "%<__transaction_relaxed%> without transactional memory "
-             "support enabled"
-	   : "%<__transaction_atomic%> without transactional memory "
-             "support enabled");
+	   ? G_("%<__transaction_relaxed%> without transactional memory "
+                "support enabled")
+	   : G_("%<__transaction_atomic%> without transactional memory "
+                "support enabled"));
 
   token = cp_parser_require_keyword (parser, keyword,
       (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
