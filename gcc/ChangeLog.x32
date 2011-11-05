@@ -1,5 +1,11 @@
 2011-11-04  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* dwarf2out.c (dwarf2out_frame_debug_expr): Check
+	HARD_FRAME_POINTER_REGNUM instead of hard_frame_pointer_rtx
+	in Rule 18.
+
+2011-11-04  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/mmx.md (*mmx_maskmovq): Replace :SI with :P and
 	remove "&& !TARGET_64BIT"
 	(*mmx_maskmovq_rex): Removed.

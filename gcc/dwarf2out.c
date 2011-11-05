@@ -2602,7 +2602,8 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	     regiser.  */
           if (fde
               && fde->stack_realign
-              && src == hard_frame_pointer_rtx)
+	      && REG_P (src)
+	      && REGNO (src) == HARD_FRAME_POINTER_REGNUM)
 	    {
 	      gcc_assert (cfa.reg != HARD_FRAME_POINTER_REGNUM);
 	      cfa_store.offset = 0;
