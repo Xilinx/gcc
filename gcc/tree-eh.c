@@ -54,26 +54,6 @@ using_eh_for_cleanups (void)
 
 /* Misc functions used in this file.  */
 
-/* Compare and hash for any structure which begins with a canonical
-   pointer.  Assumes all pointers are interchangeable, which is sort
-   of already assumed by gcc elsewhere IIRC.  */
-
-int
-struct_ptr_eq (const void *a, const void *b)
-{
-  const void * const * x = (const void * const *) a;
-  const void * const * y = (const void * const *) b;
-  return *x == *y;
-}
-
-hashval_t
-struct_ptr_hash (const void *a)
-{
-  const void * const * x = (const void * const *) a;
-  return (size_t)*x >> 4;
-}
-
-
 /* Remember and lookup EH landing pad data for arbitrary statements.
    Really this means any statement that could_throw_p.  We could
    stuff this information into the stmt_ann data structure, but:

@@ -496,60 +496,7 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
 static int
 special_function_p (const_tree fndecl, int flags)
 {
-  if (fndecl == NULL)
-    return flags;
-
-  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
-    {
-      switch (DECL_FUNCTION_CODE (fndecl))
-	{
-	case BUILT_IN_TM_COMMIT:
-	case BUILT_IN_TM_COMMIT_EH:
-	case BUILT_IN_TM_ABORT:
-	case BUILT_IN_TM_IRREVOCABLE:
-	case BUILT_IN_TM_GETTMCLONE_IRR:
-	case BUILT_IN_TM_MEMCPY:
-	case BUILT_IN_TM_MEMMOVE:
-        case BUILT_IN_TM_MEMSET:
-	CASE_BUILT_IN_TM_STORE (1):
-	CASE_BUILT_IN_TM_STORE (2):
-	CASE_BUILT_IN_TM_STORE (4):
-	CASE_BUILT_IN_TM_STORE (8):
-	CASE_BUILT_IN_TM_STORE (FLOAT):
-	CASE_BUILT_IN_TM_STORE (DOUBLE):
-	CASE_BUILT_IN_TM_STORE (LDOUBLE):
-	CASE_BUILT_IN_TM_STORE (M64):
-	CASE_BUILT_IN_TM_STORE (M128):
-	CASE_BUILT_IN_TM_STORE (M256):
-	CASE_BUILT_IN_TM_LOAD (1):
-	CASE_BUILT_IN_TM_LOAD (2):
-	CASE_BUILT_IN_TM_LOAD (4):
-	CASE_BUILT_IN_TM_LOAD (8):
-	CASE_BUILT_IN_TM_LOAD (FLOAT):
-	CASE_BUILT_IN_TM_LOAD (DOUBLE):
-	CASE_BUILT_IN_TM_LOAD (LDOUBLE):
-	CASE_BUILT_IN_TM_LOAD (M64):
-	CASE_BUILT_IN_TM_LOAD (M128):
-	CASE_BUILT_IN_TM_LOAD (M256):
-	case BUILT_IN_TM_LOG:
-	case BUILT_IN_TM_LOG_1:
-	case BUILT_IN_TM_LOG_2:
-	case BUILT_IN_TM_LOG_4:
-	case BUILT_IN_TM_LOG_8:
-	case BUILT_IN_TM_LOG_FLOAT:
-	case BUILT_IN_TM_LOG_DOUBLE:
-	case BUILT_IN_TM_LOG_LDOUBLE:
-	case BUILT_IN_TM_LOG_M64:
-	case BUILT_IN_TM_LOG_M128:
-	case BUILT_IN_TM_LOG_M256:
-	  flags |= ECF_TM_OPS;
-	  break;
-	default:
-	  break;
-	}
-    }
-
-  if (DECL_NAME (fndecl)
+  if (fndecl && DECL_NAME (fndecl)
       && IDENTIFIER_LENGTH (DECL_NAME (fndecl)) <= 17
       /* Exclude functions not at the file scope, or not `extern',
 	 since they are not the magic functions we would otherwise
@@ -664,6 +611,69 @@ alloca_call_p (const_tree exp)
   return false;
 }
 
+/* Return TRUE if FNDECL is either a TM builtin or a TM cloned
+   function.  Return FALSE otherwise.  */
+
+static bool
+is_tm_builtin (const_tree fndecl)
+{
+  if (fndecl == NULL)
+    return false;
+
+  if (DECL_IS_TM_CLONE (fndecl))
+    return true;
+
+  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    {
+      switch (DECL_FUNCTION_CODE (fndecl))
+	{
+	case BUILT_IN_TM_COMMIT:
+	case BUILT_IN_TM_COMMIT_EH:
+	case BUILT_IN_TM_ABORT:
+	case BUILT_IN_TM_IRREVOCABLE:
+	case BUILT_IN_TM_GETTMCLONE_IRR:
+	case BUILT_IN_TM_MEMCPY:
+	case BUILT_IN_TM_MEMMOVE:
+        case BUILT_IN_TM_MEMSET:
+	CASE_BUILT_IN_TM_STORE (1):
+	CASE_BUILT_IN_TM_STORE (2):
+	CASE_BUILT_IN_TM_STORE (4):
+	CASE_BUILT_IN_TM_STORE (8):
+	CASE_BUILT_IN_TM_STORE (FLOAT):
+	CASE_BUILT_IN_TM_STORE (DOUBLE):
+	CASE_BUILT_IN_TM_STORE (LDOUBLE):
+	CASE_BUILT_IN_TM_STORE (M64):
+	CASE_BUILT_IN_TM_STORE (M128):
+	CASE_BUILT_IN_TM_STORE (M256):
+	CASE_BUILT_IN_TM_LOAD (1):
+	CASE_BUILT_IN_TM_LOAD (2):
+	CASE_BUILT_IN_TM_LOAD (4):
+	CASE_BUILT_IN_TM_LOAD (8):
+	CASE_BUILT_IN_TM_LOAD (FLOAT):
+	CASE_BUILT_IN_TM_LOAD (DOUBLE):
+	CASE_BUILT_IN_TM_LOAD (LDOUBLE):
+	CASE_BUILT_IN_TM_LOAD (M64):
+	CASE_BUILT_IN_TM_LOAD (M128):
+	CASE_BUILT_IN_TM_LOAD (M256):
+	case BUILT_IN_TM_LOG:
+	case BUILT_IN_TM_LOG_1:
+	case BUILT_IN_TM_LOG_2:
+	case BUILT_IN_TM_LOG_4:
+	case BUILT_IN_TM_LOG_8:
+	case BUILT_IN_TM_LOG_FLOAT:
+	case BUILT_IN_TM_LOG_DOUBLE:
+	case BUILT_IN_TM_LOG_LDOUBLE:
+	case BUILT_IN_TM_LOG_M64:
+	case BUILT_IN_TM_LOG_M128:
+	case BUILT_IN_TM_LOG_M256:
+	  return true;
+	default:
+	  break;
+	}
+    }
+  return false;
+}
+
 /* Detect flags (function attributes) from the function decl or type node.  */
 
 int
@@ -697,7 +707,7 @@ flags_from_decl_or_type (const_tree exp)
       if (TREE_NOTHROW (exp))
 	flags |= ECF_NOTHROW;
 
-      if (DECL_IS_TM_CLONE (exp))
+      if (is_tm_builtin (exp))
 	flags |= ECF_TM_OPS;
 
       flags = special_function_p (exp, flags);

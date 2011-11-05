@@ -1341,9 +1341,11 @@ gimple_seq_copy (gimple_seq src)
 /* Walk all the statements in the sequence SEQ calling walk_gimple_stmt
    on each one.  WI is as in walk_gimple_stmt.
 
-   If walk_gimple_stmt returns non-NULL, the walk is stopped, the
-   value is stored in WI->CALLBACK_RESULT and the statement that
-   produced the value is returned.
+   If walk_gimple_stmt returns non-NULL, the walk is stopped, and the
+   value is stored in WI->CALLBACK_RESULT.  Also, the statement that
+   produced the value is returned if this statement has not been
+   removed by a callback (wi->removed_stmt).  If the statement has
+   been removed, NULL is returned.
 
    Otherwise, all the statements are walked and NULL returned.  */
 
@@ -2850,37 +2852,6 @@ is_gimple_address (const_tree t)
     }
 }
 
-/* Strip out all handled components that produce invariant
-   offsets.  */
-
-const_tree
-strip_invariant_refs (const_tree op)
-{
-  while (handled_component_p (op))
-    {
-      switch (TREE_CODE (op))
-	{
-	case ARRAY_REF:
-	case ARRAY_RANGE_REF:
-	  if (!is_gimple_constant (TREE_OPERAND (op, 1))
-	      || TREE_OPERAND (op, 2) != NULL_TREE
-	      || TREE_OPERAND (op, 3) != NULL_TREE)
-	    return NULL;
-	  break;
-
-	case COMPONENT_REF:
-	  if (TREE_OPERAND (op, 2) != NULL_TREE)
-	    return NULL;
-	  break;
-
-	default:;
-	}
-      op = TREE_OPERAND (op, 0);
-    }
-
-  return op;
-}
-
 /* Return true if T is a gimple invariant address.  */
 
 bool
@@ -3141,23 +3112,6 @@ is_gimple_mem_ref_addr (tree t)
 	  || (TREE_CODE (t) == ADDR_EXPR
 	      && (CONSTANT_CLASS_P (TREE_OPERAND (t, 0))
 		  || decl_address_invariant_p (TREE_OPERAND (t, 0)))));
-}
-
-/* If T makes a function call, return the corresponding CALL_EXPR operand.
-   Otherwise, return NULL_TREE.  */
-
-tree
-get_call_expr_in (tree t)
-{
-  if (TREE_CODE (t) == MODIFY_EXPR)
-    t = TREE_OPERAND (t, 1);
-  if (TREE_CODE (t) == WITH_SIZE_EXPR)
-    t = TREE_OPERAND (t, 0);
-  if (TREE_CODE (t) == VIEW_CONVERT_EXPR)
-    t = TREE_OPERAND (t, 0);
-  if (TREE_CODE (t) == CALL_EXPR)
-    return t;
-  return NULL_TREE;
 }
 
 

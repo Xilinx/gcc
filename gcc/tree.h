@@ -5193,6 +5193,7 @@ extern bool auto_var_in_fn_p (const_tree, const_tree);
 extern tree build_low_bits_mask (tree, unsigned);
 extern tree tree_strip_nop_conversions (tree);
 extern tree tree_strip_sign_nop_conversions (tree);
+extern const_tree strip_invariant_refs (const_tree);
 extern tree lhd_gcc_personality (void);
 extern void assign_assembler_name_if_neeeded (tree);
 extern void warn_deprecated_use (tree, tree);
@@ -5217,8 +5218,25 @@ extern void expand_return (tree);
 
 /* In tree-eh.c */
 extern void using_eh_for_cleanups (void);
-extern int struct_ptr_eq (const void *, const void *);
-extern hashval_t struct_ptr_hash (const void *);
+
+/* Compare and hash for any structure which begins with a canonical
+   pointer.  Assumes all pointers are interchangeable, which is sort
+   of already assumed by gcc elsewhere IIRC.  */
+
+static inline int
+struct_ptr_eq (const void *a, const void *b)
+{
+  const void * const * x = (const void * const *) a;
+  const void * const * y = (const void * const *) b;
+  return *x == *y;
+}
+
+static inline hashval_t
+struct_ptr_hash (const void *a)
+{
+  const void * const * x = (const void * const *) a;
+  return (intptr_t)*x >> 4;
+}
 
 /* In fold-const.c */
 
@@ -5864,7 +5882,7 @@ extern void record_tm_replacement (tree, tree);
 extern void tm_malloc_replacement (tree);
 
 static inline bool
-is_tm_safe_or_pure (tree x)
+is_tm_safe_or_pure (const_tree x)
 {
   return is_tm_safe (x) || is_tm_pure (x);
 }

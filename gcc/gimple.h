@@ -1015,8 +1015,6 @@ extern bool is_gimple_non_addressable (tree t);
 
 /* Returns true iff T is a valid call address expression.  */
 extern bool is_gimple_call_addr (tree);
-/* If T makes a function call, returns the CALL_EXPR operand.  */
-extern tree get_call_expr_in (tree t);
 
 extern void recalculate_side_effects (tree);
 extern bool gimple_compare_field_offset (tree, tree);
@@ -1037,7 +1035,6 @@ extern bool walk_stmt_load_store_ops (gimple, void *,
 				      bool (*)(gimple, tree, void *),
 				      bool (*)(gimple, tree, void *));
 extern bool gimple_ior_addresses_taken (bitmap, gimple);
-extern const_tree strip_invariant_refs (const_tree);
 extern bool gimple_call_builtin_p (gimple, enum built_in_function);
 extern bool gimple_asm_clobbers_memory_p (const_gimple);
 

@@ -706,11 +706,7 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
   if (TREE_CODE (fn) == FUNCTION_DECL
       && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
       && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_START
-      /* Check we're referring to Intel's TM specifications.  */
-      && !strcmp (IDENTIFIER_POINTER (DECL_NAME (fn)),
-		  "__builtin__ITM_beginTransaction")
-      && gimple_call_num_args (gs) > 0
-      )
+      && gimple_call_num_args (gs) > 0)
     {
       tree t = gimple_call_arg (gs, 0);
       unsigned HOST_WIDE_INT props;

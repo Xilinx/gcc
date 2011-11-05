@@ -1,3 +1,21 @@
+2011-11-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimple.c (walk_gimple_seq): Document usage of removed_stmt
+	field.
+	(get_call_expr_in): Remove.
+	(strip_invariant_refs): Move from here...
+	* tree.c (strip_invariant_refs): ...to here.
+	* gimple-pretty-print.c (dump_gimple_call): Remove explicit check
+	for __builtin_ITM_beginTransaction identifier.
+	* tree-eh.c (struct_ptr_eq): Make inline and move to tree.h.
+	(struct_ptr_hash): Same.
+	* gimple.h (get_call_expr_in): Remove prototype.
+	(strip_invariant_refs): Move from here...
+	* tree.h (strip_invariant_refs): ...to here.
+	(is_tm_safe_or_pure): Make argument const_tree.
+	* tree-inline.c (gimple_expand_calls_inline): Remove reference to
+	get_call_expr_in in comment.
+
 2011-11-04  Torvald Riegel  <triegel@redhat.com>
 
 	* trans-mem.c: Removed unnecessary includes.
