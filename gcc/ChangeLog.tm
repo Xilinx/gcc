@@ -1,5 +1,23 @@
 2011-11-05  Aldy Hernandez  <aldyh@redhat.com>
 
+	* cgraph.c (dump_cgraph_node): Handle tm_clone.
+	* cgraph.h (struct cgraph_node): Add tm_clone field.
+	(decl_is_tm_clone): New.
+	* tree.h (DECL_IS_TM_CLONE): Remove.
+	* trans-mem.c (execute_lower_tm): Rename DECL_IS_TM_CLONE to
+	decl_is_tm_clone.
+	(gate_tm_init): Same.
+	(ipa_tm_create_version_alias): Set tm_clone.
+	(ipa_tm_create_version): Same.
+	(ipa_tm_transform_calls_redirect): Rename DECL_IS_TM_CLONE to
+	decl_is_tm_clone.
+	* calls.c (is_tm_builtin): Same.
+	* tree-cfg.c (dump_function_to_file): Same.
+	* print-tree.c (print_node): Same.
+	* gimple-pretty-print.c (dump_gimple_call): Same.
+
+2011-11-05  Aldy Hernandez  <aldyh@redhat.com>
+
         * trans-mem.c (ipa_tm_insert_gettmclone_call): Remove call to
 	gimple_call_set_noinline_p.
 	* gimple.h (enum gf_mask): Remove GF_CALL_NOINLINE.

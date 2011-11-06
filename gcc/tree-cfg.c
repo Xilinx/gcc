@@ -6503,7 +6503,7 @@ dump_function_to_file (tree fn, FILE *file, int flags)
   bool ignore_topmost_bind = false, any_var = false;
   basic_block bb;
   tree chain;
-  bool tmclone = TREE_CODE (fn) == FUNCTION_DECL && DECL_IS_TM_CLONE (fn);
+  bool tmclone = TREE_CODE (fn) == FUNCTION_DECL && decl_is_tm_clone (fn);
 
   fprintf (file, "%s %s(", lang_hooks.decl_printable_name (fn, 2),
 	   tmclone ? "[tm-clone] " : "");

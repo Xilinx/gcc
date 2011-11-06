@@ -3466,11 +3466,6 @@ struct GTY(())
 #define DECL_NO_INLINE_WARNING_P(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.no_inline_warning_flag)
 
-/* Nonzero in a FUNCTION_DECL means this function is the transactional
-   clone of a function - called only from inside transactions.  */
-#define DECL_IS_TM_CLONE(NODE) \
-  (FUNCTION_DECL_CHECK (NODE)->function_decl.tm_clone_flag)
-
 /* Nonzero if a FUNCTION_CODE is a TM load/store.  */
 #define BUILTIN_TM_LOAD_STORE_P(FN) \
   ((FN) >= BUILT_IN_TM_STORE_1 && (FN) <= BUILT_IN_TM_LOAD_RFW_LDOUBLE)

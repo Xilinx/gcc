@@ -1683,7 +1683,7 @@ execute_lower_tm (void)
   struct walk_stmt_info wi;
 
   /* Transactional clones aren't created until a later pass.  */
-  gcc_assert (!DECL_IS_TM_CLONE (current_function_decl));
+  gcc_assert (!decl_is_tm_clone (current_function_decl));
 
   memset (&wi, 0, sizeof (wi));
   walk_gimple_seq (gimple_body (current_function_decl),
@@ -1901,7 +1901,7 @@ gate_tm_init (void)
   bitmap_obstack_initialize (&tm_obstack);
 
   /* If the function is a TM_CLONE, then the entire function is the region.  */
-  if (DECL_IS_TM_CLONE (current_function_decl))
+  if (decl_is_tm_clone (current_function_decl))
     {
       struct tm_region *region = (struct tm_region *)
 	obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
@@ -4194,11 +4194,8 @@ ipa_tm_create_version_alias (struct cgraph_node *node, void *data)
   if (DECL_COMDAT (new_decl))
     DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
 
-  /* ??? We should be able to remove DECL_IS_TM_CLONE.  We have enough
-     bits in cgraph to calculate all this.  */
-  DECL_IS_TM_CLONE (new_decl) = 1;
-
   new_node = cgraph_same_body_alias (NULL, new_decl, info->new_decl);
+  new_node->tm_clone = true;
   get_cg_data (node)->clone = new_node;
 
   record_tm_clone_pair (old_decl, new_decl);
@@ -4232,11 +4229,8 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   if (DECL_COMDAT (new_decl))
     DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
 
-  /* ??? We should be able to remove DECL_IS_TM_CLONE.  We have enough
-     bits in cgraph to calculate all this.  */
-  DECL_IS_TM_CLONE (new_decl) = 1;
-
   new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL, NULL);
+  new_node->tm_clone = 1;
   get_cg_data (old_node)->clone = new_node;
 
   if (cgraph_function_body_availability (old_node) >= AVAIL_OVERWRITABLE)
@@ -4418,7 +4412,7 @@ ipa_tm_transform_calls_redirect (struct cgraph_node *node,
   /* Fixup recursive calls inside clones.  */
   /* ??? Why did cgraph_copy_node_for_versioning update the call edges 
      for recursion but not update the call statements themselves?  */
-  if (e->caller == e->callee && DECL_IS_TM_CLONE (current_function_decl))
+  if (e->caller == e->callee && decl_is_tm_clone (current_function_decl))
     {
       gimple_call_set_fndecl (stmt, current_function_decl);
       return;

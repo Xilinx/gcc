@@ -620,7 +620,7 @@ is_tm_builtin (const_tree fndecl)
   if (fndecl == NULL)
     return false;
 
-  if (DECL_IS_TM_CLONE (fndecl))
+  if (decl_is_tm_clone (fndecl))
     return true;
 
   if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
