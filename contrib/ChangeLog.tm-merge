@@ -1,0 +1,5 @@
+2011-11-07  Richard Henderson  <rth@redhat.com>
+
+	Merged from transactional-memory.
+
+	* contrib/gcc_update: Add libitm to touch data.

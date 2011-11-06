@@ -1,0 +1,11 @@
+2011-11-07  Richard Henderson  <rth@redhat.com>
+	    Aldy Hernandez  <aldyh@redhat.com>
+	    Torvald Riegel  <triegel@redhat.com>
+
+	Merged from transactional-memory.
+
+	* testsuite/g++.dg/dg.exp: Run transactional memory tests.
+	* testsuite/g++.dg/tm: New directory with new tests.
+	* testsuite/gcc.dg/tm: New directory with new tests.
+	* testsuite/c-c++-common/tm: New directory with new tests.
+
