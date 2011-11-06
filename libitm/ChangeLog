@@ -1,3 +1,31 @@
+2011-11-05  Aldy Hernandez  <aldyh@redhat.com>
+
+	* method-wbetl.cc: Update copyright notice.
+	* aatree.cc: Same.
+	* util.cc: Same.
+	* libitm.h: Same.
+	* memset.cc: Same.
+	* eh_cpp.cc: Same.
+	* barrier.tpl: Same.
+	* useraction.cc: Same.
+	* stmlock.h: Same.
+	* memcpy.cc: Same.
+	* common.h: Same.
+	* config/generic/tls.cc: Same.
+	* config/generic/cacheline.h: Same.
+	* config/generic/cachepage.h: Same.
+	* config/generic/cacheline.cc: Same.
+	* config/generic/unaligned.h: Same.
+	* config/x86/cacheline.h: Same.
+	* config/x86/cacheline.cc: Same.
+	* config/x86/unaligned.h: Same.
+	* config/alpha/cacheline.h: Same.
+	* config/alpha/unaligned.h: Same.
+	* config/alpha/sjlj.S: Same.
+	* config/posix/cachepage.cc: Same.
+	* config/linux/futex.h: Same.
+	* config/linux/alpha/futex_bits.h: Same.
+
 2011-11-04  Torvald Riegel  <triegel@redhat.com>
 
 	* libitm.texi: No cover text and invariant sections.
