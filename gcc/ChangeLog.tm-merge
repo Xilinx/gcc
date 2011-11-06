@@ -9,6 +9,9 @@
 	* trans-mem.c: New file.
 	* trans-mem.h: New file.
 
+	* opts.c (finish_options): Error out when using -flto and
+	-fgnu-tm.
+
 	* config/i386/i386.c: Define TARGET_VECTORIZE* transactional variants.
 	(ix86_handle_tm_regparm_attribute, struct bdesc_tm,
 	ix86_builtin_tm_load, ix86_builtin_tm_store,
