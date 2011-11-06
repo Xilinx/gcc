@@ -1,3 +1,318 @@
+2011-11-06  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/bb-slp-cond-1.c: New test.
+	* gcc.dg/vect/slp-cond-1.c: New test.
+	* gcc.dg/vect/slp-cond-2.c: New test.
+
+2011-11-05  David S. Miller  <davem@davemloft.net>
+
+	* lib/test-supports.exp
+	(check_effective_target_ultrasparc_vis2_hw): New proc.
+	(check_effective_target_ultrasparc_vis3_hw): New proc.
+	* gcc.target/sparc/vec-init-1.inc: New vector init common code.
+	* gcc.target/sparc/vec-init-2.inc: Likewise.
+	* gcc.target/sparc/vec-init-3.inc: Likewise.
+	* gcc.target/sparc/vec-init-1-vis1.c: New test.
+	* gcc.target/sparc/vec-init-1-vis2.c: New test.
+	* gcc.target/sparc/vec-init-1-vis3.c: New test.
+	* gcc.target/sparc/vec-init-2-vis1.c: New test.
+	* gcc.target/sparc/vec-init-2-vis2.c: New test.
+	* gcc.target/sparc/vec-init-2-vis3.c: New test.
+	* gcc.target/sparc/vec-init-3-vis1.c: New test.
+	* gcc.target/sparc/vec-init-3-vis2.c: New test.
+	* gcc.target/sparc/vec-init-3-vis3.c: New test.
+
+2011-11-05  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* gcc.c-torture/execute/ieee/mul-subnormal-single-1.x:
+	Disable test on Epiphany.
+	* gcc.c-torture/execute/20101011-1.c: Disable test on Epiphany.
+	* gcc.dg/stack-usage-1.c [__epiphany__] (SIZE): Define.
+	* gcc.dg/pragma-pack-3.c: Disable test on Epiphany.
+	* g++.dg/parse/pragma3.C: Likewise.
+	* stackalign/builtin-apply-2.c (STACK_ARGUMENTS_SIZE): Define.
+	(bar): Use it.
+	* gcc.dg/weak/typeof-2.c [epiphany-*-*]: Add option -mshort-calls.
+	* gcc.dg/tls/thr-cse-1.c: Likewise.
+	* g++.dg/opt/devirt2.C: Likewise.
+	* gcc.dg/20020312-2.c [epiphany-*-*] (PIC_REG): Define.
+	* gcc.dg/builtin-apply2.c [__epiphany__]: (STACK_ARGUMENTS_SIZE): 20.
+	* gcc.target/epiphany: New directory.
+
+2011-11-05  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/quad_2.f90: New.
+
+2011-11-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/strlenopt-22g.c: New wrapper around...
+	* gcc.dg/strlenopt-22.c: ...this.  Do not define USE_GNU and adjust.
+
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/26714
+	* g++.dg/init/lifetime2.C: New.
+	* g++.dg/cpp0x/initlist-lifetime2.C: New.
+
+	PR c++/48370
+	* g++.dg/init/lifetime1.C: Test cleanup order.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/other/offsetof7.C: New test.
+
+2011-11-04  Hans-Peter Nilsson  <hp@axis.com>
+
+	* lib/gcc-dg.exp (gcc_force_conventional_output): New global
+	variable, default empty, -ffat-lto-objects for effective_target_lto.
+	(gcc-dg-test-1): Add options from dg-final methods.
+	* lib/scanasm.exp (scan-assembler_required_options)
+	(scan-assembler-not_required_options): New procs.
+
+2011-10-09  Magnus Fromreide  <magfr@lysator.liu.se>
+
+	* g++.dg/cpp0x/enum21a.C: Test that enum x { y, } does
+	generate a pedwarn in c++98-mode.
+	* g++.dg/cpp0x/enum21b.C: Test that enum x { y, }
+	don't generate a pedwarn in c++0x-mode.
+
+2011-11-04  Olivier Goffart  <olivier@woboq.com>
+
+	PR c++/50965
+	* g++.dg/cpp0x/nsdmi1.C: Add more cases.
+
+2011-11-04  Jiangning Liu  <jiangning.liu@arm.com>
+
+	PR rtl-optimization/38644
+	* gcc.target/arm/stack-red-zone.c: New.
+
+2011-11-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48420
+	* g++.dg/warn/Wconversion-null-3.C: New.
+
+2011-11-04  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50941
+	* g++.dg/cpp0x/udlit-strint-length.C: New.
+
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48370
+	* g++.dg/cpp0x/initlist-lifetime1.C: New.
+	* g++.dg/init/lifetime1.C: New.
+	* g++.dg/init/ref21.C: New.
+	* g++.dg/eh/array1.C: New.
+
+2011-11-04  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50763
+	* gcc.dg/pr50763-5.c: New test.
+
+2011-11-04  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50763
+	* g++.dg/pr50763-4.C: New test.
+
+2011-11-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/torture/vec-cvt-1.c: Enable commented out inttoflttestui
+	test.
+
+	* gcc.dg/torture/vec-cvt-1.c: Enable flttointtestui test.
+
+	* gcc.dg/torture/vec-cvt-1.c: New test.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/private1[-sub].ads: New test.
+
+2011-11-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/43829
+	* gfortran.dg/function_optimize_7.f90: Disable sum inlining.
+	* gfortran.dg/inline_sum_1.f90: New.
+	* gfortran.dg/inline_sum_2.f90: New.
+	* gfortran.dg/inline_sum_bounds_check_1.f90: New.
+	* gfortran.dg/inline_sum_bounds_check_2.f90: New.
+	* gfortran.dg/inline_product_1.f90: New.
+
+2011-11-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50933
+	* gfortran.dg/bind_c_dts_5.f90: New.
+
+2011-11-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50960
+	* gfortran.dg/module_parameter_array_refs_2.f90: New.
+
+2011-11-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/50079
+	* g++.dg/init/copy7.C: Remove testcase.
+
+2011-11-03  Martin Jambor  <mjambor@suse.cz>
+
+	* g++.dg/ipa/devirt-c-1.C: Add dump scans.
+	* g++.dg/ipa/devirt-c-2.C: Likewise.
+	* g++.dg/ipa/devirt-c-7.C: New test.
+	* g++.dg/ipa/devirt-c-8.C: Likewise.
+
+2011-11-03  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/50912
+	* gnat.dg/loop_optimization10.ad[sb]: New test.
+	* gnat.dg/loop_optimization10_pkg.ads: New helper.
+
+2011-11-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50930
+	* g++.dg/cpp0x/nsdmi-list2.C: New.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50810
+	* g++.dg/cpp0x/warn_cxx0x2.C: New.
+	* g++.dg/cpp0x/warn_cxx0x3.C: Likewise.
+
+2011-11-02  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50769
+	* gfortran.dg/pr50769.f90: New test.
+
+2011-11-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.target/sparc/20111102-1.c: New test.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50956
+	* g++.dg/warn/Wcast-qual2.C: New.
+
+2011-11-02  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50763
+	* g++.dg/pr50763-3.C: New test.
+
+2011-11-02  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50672
+	* g++.dg/pr50672.C: New test.
+
+2011-11-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx-cvt-2.c (dg-options): Add -mtune=generic.
+	* gcc.target/i386/avx2-cvt-2.c (dg-options): Ditto.
+	* gcc.target/i386/sse2-cvt-2.c (dg-options): Ditto.
+
+	* gcc.target/i386/vectorize4-avx.c (scan-assembler): Remove xfail.
+
+2011-11-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50902
+	* gcc.dg/torture/pr50902.c: New testcase.
+
+2010-11-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50890
+	* gcc.dg/torture/pr50890.c: New testcase.
+
+2011-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44277
+	* g++.dg/warn/Wzero-as-null-pointer-constant-1.C: New.
+	* g++.dg/cpp0x/Wzero-as-null-pointer-constant-1.C: Likewise.
+
+2011-11-01  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/50908
+	* gcc.dg/pr50908.c: New test.
+	* gcc.dg/pr50908-2.c: Same.
+	* gcc.dg/pr50908-3.c: Same.
+
+2011-11-01  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/no-scevccp-outer-6-global.c: Expect to vectorize
+	the outer loop.  Remove comment.  Don't check for widen-mult.
+
+2011-10-31  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/ipcp-4.c: New test.
+
+2011-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/vshift-3.c: New test.
+	* gcc.dg/vshift-4.c: New test.
+	* gcc.dg/vshift-5.c: New test.
+
+2011-10-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* gfortran.dg/inquire_5.f90: Update testcase to match the standard
+	and current implementation.
+
+2011-10-31  Paul Brook  <paul@codesourcery.com>
+
+	* gcc.dg/constructor-1.c: New test.
+
+2011-10-30  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/50753
+	* gfortran.dg/dshift_3.f90: New test.
+
+2011-10-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/scal-to-vec2.c (dg-options): Add -fno-common to options on
+	hppa*-*-hpux*.
+	* gcc.dg/torture/vshuf-v8hi.c: Likewise.
+	* gcc.dg/torture/vshuf-v4si.c: Likewise.
+	* gcc.dg/torture/vshuf-v8si.c: Likewise.
+	* gcc.dg/torture/vshuf-v32qi.c: Likewise.
+	* gcc.dg/torture/vshuf-v4di.c: Likewise.
+	* gcc.dg/torture/vshuf-v2df.c: Likewise.
+	* gcc.dg/torture/vshuf-v16qi.c: Likewise.
+	* gcc.dg/torture/vshuf-v4sf.c: Likewise.
+	* gcc.dg/torture/vshuf-v8sf.c: Likewise.
+	* gcc.dg/torture/vshuf-v2di.c: Likewise.
+	* gcc.dg/torture/vshuf-v16hi.c: Likewise.
+	* gcc.dg/torture/vshuf-v4df.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-31.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-33.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-34.c: Likewise.
+	* gcc.dg/vector-compare-2.c: Likewise.
+
+2011-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50901
+	* g++.dg/cpp0x/pr50901.C: New.
+
+2011-10-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/fma-check.h (main): Use return 0 instead of exit (0).
+	* gcc.target/i386/fma4-check.h (main): Ditto.
+	* gcc.target/i386/xop-check.h (main): Ditto.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+	2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* g++.dg/template/crash109.C: New.
+
+2011-10-28  Jason Merrill  <jason@redhat.com>
+
+	* c-c++-common/dfp/pr33466.c: Adjust for user-defined literals.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* g++.dg/template/crash109.C: New.
+
+2011-10-28  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.dg/nearest_5.f90: New test.
+
 2011-10-28  Jakub Jelinek  <jakub@redhat.com>
 
 	* gcc.dg/vshift-1.c: New test.

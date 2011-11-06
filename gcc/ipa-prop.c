@@ -271,8 +271,20 @@ ipa_print_all_jump_functions (FILE *f)
 
 struct type_change_info
 {
+  /* Offset into the object where there is the virtual method pointer we are
+     looking for.  */
+  HOST_WIDE_INT offset;
+  /* The declaration or SSA_NAME pointer of the base that we are checking for
+     type change.  */
+  tree object;
+  /* If we actually can tell the type that the object has changed to, it is
+     stored in this field.  Otherwise it remains NULL_TREE.  */
+  tree known_current_type;
   /* Set to true if dynamic type change has been detected.  */
   bool type_maybe_changed;
+  /* Set to true if multiple types have been encountered.  known_current_type
+     must be disregarded in that case.  */
+  bool multiple_types_encountered;
 };
 
 /* Return true if STMT can modify a virtual method table pointer.
@@ -338,6 +350,50 @@ stmt_may_be_vtbl_ptr_store (gimple stmt)
   return true;
 }
 
+/* If STMT can be proved to be an assignment to the virtual method table
+   pointer of ANALYZED_OBJ and the type associated with the new table
+   identified, return the type.  Otherwise return NULL_TREE.  */
+
+static tree
+extr_type_from_vtbl_ptr_store (gimple stmt, struct type_change_info *tci)
+{
+  HOST_WIDE_INT offset, size, max_size;
+  tree lhs, rhs, base;
+
+  if (!gimple_assign_single_p (stmt))
+    return NULL_TREE;
+
+  lhs = gimple_assign_lhs (stmt);
+  rhs = gimple_assign_rhs1 (stmt);
+  if (TREE_CODE (lhs) != COMPONENT_REF
+      || !DECL_VIRTUAL_P (TREE_OPERAND (lhs, 1))
+      || TREE_CODE (rhs) != ADDR_EXPR)
+    return NULL_TREE;
+  rhs = get_base_address (TREE_OPERAND (rhs, 0));
+  if (!rhs
+      || TREE_CODE (rhs) != VAR_DECL
+      || !DECL_VIRTUAL_P (rhs))
+    return NULL_TREE;
+
+  base = get_ref_base_and_extent (lhs, &offset, &size, &max_size);
+  if (offset != tci->offset
+      || size != POINTER_SIZE
+      || max_size != POINTER_SIZE)
+    return NULL_TREE;
+  if (TREE_CODE (base) == MEM_REF)
+    {
+      if (TREE_CODE (tci->object) != MEM_REF
+	  || TREE_OPERAND (tci->object, 0) != TREE_OPERAND (base, 0)
+	  || !tree_int_cst_equal (TREE_OPERAND (tci->object, 1),
+				  TREE_OPERAND (base, 1)))
+	return NULL_TREE;
+    }
+  else if (tci->object != base)
+    return NULL_TREE;
+
+  return DECL_CONTEXT (rhs);
+}
+
 /* Callback of walk_aliased_vdefs and a helper function for
    detect_type_change to check whether a particular statement may modify
    the virtual table pointer, and if possible also determine the new type of
@@ -352,11 +408,71 @@ check_stmt_for_type_change (ao_ref *ao ATTRIBUTE_UNUSED, tree vdef, void *data)
 
   if (stmt_may_be_vtbl_ptr_store (stmt))
     {
+      tree type;
+      type = extr_type_from_vtbl_ptr_store (stmt, tci);
+      if (tci->type_maybe_changed
+	  && type != tci->known_current_type)
+	tci->multiple_types_encountered = true;
+      tci->known_current_type = type;
       tci->type_maybe_changed = true;
       return true;
     }
   else
     return false;
+}
+
+
+
+/* Like detect_type_change but with extra argument COMP_TYPE which will become
+   the component type part of new JFUNC of dynamic type change is detected and
+   the new base type is identified.  */
+
+static bool
+detect_type_change_1 (tree arg, tree base, tree comp_type, gimple call,
+		      struct ipa_jump_func *jfunc, HOST_WIDE_INT offset)
+{
+  struct type_change_info tci;
+  ao_ref ao;
+
+  gcc_checking_assert (DECL_P (arg)
+		       || TREE_CODE (arg) == MEM_REF
+		       || handled_component_p (arg));
+  /* Const calls cannot call virtual methods through VMT and so type changes do
+     not matter.  */
+  if (!flag_devirtualize || !gimple_vuse (call))
+    return false;
+
+  ao.ref = arg;
+  ao.base = base;
+  ao.offset = offset;
+  ao.size = POINTER_SIZE;
+  ao.max_size = ao.size;
+  ao.ref_alias_set = -1;
+  ao.base_alias_set = -1;
+
+  tci.offset = offset;
+  tci.object = get_base_address (arg);
+  tci.known_current_type = NULL_TREE;
+  tci.type_maybe_changed = false;
+  tci.multiple_types_encountered = false;
+
+  walk_aliased_vdefs (&ao, gimple_vuse (call), check_stmt_for_type_change,
+		      &tci, NULL);
+  if (!tci.type_maybe_changed)
+    return false;
+
+  if (!tci.known_current_type
+      || tci.multiple_types_encountered
+      || offset != 0)
+    jfunc->type = IPA_JF_UNKNOWN;
+  else
+    {
+      jfunc->type = IPA_JF_KNOWN_TYPE;
+      jfunc->value.known_type.base_type = tci.known_current_type;
+      jfunc->value.known_type.component_type = comp_type;
+    }
+
+  return true;
 }
 
 /* Detect whether the dynamic type of ARG has changed (before callsite CALL) by
@@ -370,34 +486,7 @@ static bool
 detect_type_change (tree arg, tree base, gimple call,
 		    struct ipa_jump_func *jfunc, HOST_WIDE_INT offset)
 {
-  struct type_change_info tci;
-  ao_ref ao;
-
-  gcc_checking_assert (DECL_P (arg)
-		       || TREE_CODE (arg) == MEM_REF
-		       || handled_component_p (arg));
-  /* Const calls cannot call virtual methods through VMT and so type changes do
-     not matter.  */
-  if (!flag_devirtualize || !gimple_vuse (call))
-    return false;
-
-  tci.type_maybe_changed = false;
-
-  ao.ref = arg;
-  ao.base = base;
-  ao.offset = offset;
-  ao.size = POINTER_SIZE;
-  ao.max_size = ao.size;
-  ao.ref_alias_set = -1;
-  ao.base_alias_set = -1;
-
-  walk_aliased_vdefs (&ao, gimple_vuse (call), check_stmt_for_type_change,
-		      &tci, NULL);
-  if (!tci.type_maybe_changed)
-    return false;
-
-  jfunc->type = IPA_JF_UNKNOWN;
-  return true;
+  return detect_type_change_1 (arg, base, TREE_TYPE (arg), call, jfunc, offset);
 }
 
 /* Like detect_type_change but ARG is supposed to be a non-dereferenced pointer
@@ -407,43 +496,169 @@ detect_type_change (tree arg, tree base, gimple call,
 static bool
 detect_type_change_ssa (tree arg, gimple call, struct ipa_jump_func *jfunc)
 {
+  tree comp_type;
+
   gcc_checking_assert (TREE_CODE (arg) == SSA_NAME);
   if (!flag_devirtualize
       || !POINTER_TYPE_P (TREE_TYPE (arg))
       || TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) != RECORD_TYPE)
     return false;
 
+  comp_type = TREE_TYPE (TREE_TYPE (arg));
   arg = build2 (MEM_REF, ptr_type_node, arg,
-                build_int_cst (ptr_type_node, 0));
+		build_int_cst (ptr_type_node, 0));
 
-  return detect_type_change (arg, arg, call, jfunc, 0);
+  return detect_type_change_1 (arg, arg, comp_type, call, jfunc, 0);
 }
 
+/* Callback of walk_aliased_vdefs.  Flags that it has been invoked to the
+   boolean variable pointed to by DATA.  */
+
+static bool
+mark_modified (ao_ref *ao ATTRIBUTE_UNUSED, tree vdef ATTRIBUTE_UNUSED,
+		     void *data)
+{
+  bool *b = (bool *) data;
+  *b = true;
+  return true;
+}
+
+/* Return true if the formal parameter PARM might have been modified in this
+   function before reaching the statement STMT.  PARM_AINFO is a pointer to a
+   structure containing temporary information about PARM.  */
+
+static bool
+is_parm_modified_before_stmt (struct param_analysis_info *parm_ainfo,
+			      gimple stmt, tree parm)
+{
+  bool modified = false;
+  ao_ref refd;
+
+  if (parm_ainfo->modified)
+    return true;
+
+  gcc_checking_assert (gimple_vuse (stmt) != NULL_TREE);
+  ao_ref_init (&refd, parm);
+  walk_aliased_vdefs (&refd, gimple_vuse (stmt), mark_modified,
+		      &modified, &parm_ainfo->visited_statements);
+  if (modified)
+    {
+      parm_ainfo->modified = true;
+      return true;
+    }
+  return false;
+}
+
+/* If STMT is an assignment that loads a value from an parameter declaration,
+   return the index of the parameter in ipa_node_params which has not been
+   modified.  Otherwise return -1.  */
+
+static int
+load_from_unmodified_param (struct ipa_node_params *info,
+			    struct param_analysis_info *parms_ainfo,
+			    gimple stmt)
+{
+  int index;
+  tree op1;
+
+  if (!gimple_assign_single_p (stmt))
+    return -1;
+
+  op1 = gimple_assign_rhs1 (stmt);
+  if (TREE_CODE (op1) != PARM_DECL)
+    return -1;
+
+  index = ipa_get_param_decl_index (info, op1);
+  if (index < 0
+      || is_parm_modified_before_stmt (&parms_ainfo[index], stmt, op1))
+    return -1;
+
+  return index;
+}
 
 /* Given that an actual argument is an SSA_NAME (given in NAME) and is a result
-   of an assignment statement STMT, try to find out whether NAME can be
-   described by a (possibly polynomial) pass-through jump-function or an
-   ancestor jump function and if so, write the appropriate function into
-   JFUNC */
+   of an assignment statement STMT, try to determine whether we are actually
+   handling any of the following cases and construct an appropriate jump
+   function into JFUNC if so:
+
+   1) The passed value is loaded from a formal parameter which is not a gimple
+   register (most probably because it is addressable, the value has to be
+   scalar) and we can guarantee the value has not changed.  This case can
+   therefore be described by a simple pass-through jump function.  For example:
+
+      foo (int a)
+      {
+        int a.0;
+
+        a.0_2 = a;
+        bar (a.0_2);
+
+   2) The passed value can be described by a simple arithmetic pass-through
+   jump function. E.g.
+
+      foo (int a)
+      {
+        int D.2064;
+
+        D.2064_4 = a.1(D) + 4;
+        bar (D.2064_4);
+
+   This case can also occur in combination of the previous one, e.g.:
+
+      foo (int a, int z)
+      {
+        int a.0;
+        int D.2064;
+
+	a.0_3 = a;
+	D.2064_4 = a.0_3 + 4;
+	foo (D.2064_4);
+
+   3) The passed value is an address of an object within another one (which
+   also passed by reference).  Such situations are described by an ancestor
+   jump function and describe situations such as:
+
+     B::foo() (struct B * const this)
+     {
+       struct A * D.1845;
+
+       D.1845_2 = &this_1(D)->D.1748;
+       A::bar (D.1845_2);
+
+   INFO is the structure describing individual parameters access different
+   stages of IPA optimizations.  PARMS_AINFO contains the information that is
+   only needed for intraprocedural analysis.  */
 
 static void
 compute_complex_assign_jump_func (struct ipa_node_params *info,
+				  struct param_analysis_info *parms_ainfo,
 				  struct ipa_jump_func *jfunc,
 				  gimple call, gimple stmt, tree name)
 {
   HOST_WIDE_INT offset, size, max_size;
-  tree op1, op2, base, ssa;
+  tree op1, tc_ssa, base, ssa;
   int index;
 
   op1 = gimple_assign_rhs1 (stmt);
-  op2 = gimple_assign_rhs2 (stmt);
 
-  if (TREE_CODE (op1) == SSA_NAME
-      && SSA_NAME_IS_DEFAULT_DEF (op1))
+  if (TREE_CODE (op1) == SSA_NAME)
     {
-      index = ipa_get_param_decl_index (info, SSA_NAME_VAR (op1));
-      if (index < 0)
-	return;
+      if (SSA_NAME_IS_DEFAULT_DEF (op1))
+	index = ipa_get_param_decl_index (info, SSA_NAME_VAR (op1));
+      else
+	index = load_from_unmodified_param (info, parms_ainfo,
+					    SSA_NAME_DEF_STMT (op1));
+      tc_ssa = op1;
+    }
+  else
+    {
+      index = load_from_unmodified_param (info, parms_ainfo, stmt);
+      tc_ssa = gimple_assign_lhs (stmt);
+    }
+
+  if (index >= 0)
+    {
+      tree op2 = gimple_assign_rhs2 (stmt);
 
       if (op2)
 	{
@@ -458,8 +673,8 @@ compute_complex_assign_jump_func (struct ipa_node_params *info,
 	  jfunc->value.pass_through.operation = gimple_assign_rhs_code (stmt);
 	  jfunc->value.pass_through.operand = op2;
 	}
-      else if (gimple_assign_unary_nop_p (stmt)
-	       && !detect_type_change_ssa (op1, call, jfunc))
+      else if (gimple_assign_single_p (stmt)
+	       && !detect_type_change_ssa (tc_ssa, call, jfunc))
 	{
 	  jfunc->type = IPA_JF_PASS_THROUGH;
 	  jfunc->value.pass_through.formal_id = index;
@@ -665,12 +880,14 @@ compute_known_type_jump_func (tree op, struct ipa_jump_func *jfunc,
 
 /* Determine the jump functions of scalar arguments.  Scalar means SSA names
    and constants of a number of selected types.  INFO is the ipa_node_params
-   structure associated with the caller, FUNCTIONS is a pointer to an array of
-   jump function structures associated with CALL which is the call statement
-   being examined.*/
+   structure associated with the caller, PARMS_AINFO describes state of
+   analysis with respect to individual formal parameters.  ARGS is the
+   ipa_edge_args structure describing the callsite CALL which is the call
+   statement being examined.*/
 
 static void
 compute_scalar_jump_functions (struct ipa_node_params *info,
+			       struct param_analysis_info *parms_ainfo,
 			       struct ipa_edge_args *args,
 			       gimple call)
 {
@@ -705,7 +922,8 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
 	    {
 	      gimple stmt = SSA_NAME_DEF_STMT (arg);
 	      if (is_gimple_assign (stmt))
-		compute_complex_assign_jump_func (info, jfunc, call, stmt, arg);
+		compute_complex_assign_jump_func (info, parms_ainfo, jfunc,
+						  call, stmt, arg);
 	      else if (gimple_code (stmt) == GIMPLE_PHI)
 		compute_complex_ancestor_jump_func (info, jfunc, call, stmt);
 	    }
@@ -748,43 +966,6 @@ type_like_member_ptr_p (tree type, tree *method_ptr, tree *delta)
   return true;
 }
 
-/* Callback of walk_aliased_vdefs.  Flags that it has been invoked to the
-   boolean variable pointed to by DATA.  */
-
-static bool
-mark_modified (ao_ref *ao ATTRIBUTE_UNUSED, tree vdef ATTRIBUTE_UNUSED,
-		     void *data)
-{
-  bool *b = (bool *) data;
-  *b = true;
-  return true;
-}
-
-/* Return true if the formal parameter PARM might have been modified in this
-   function before reaching the statement CALL.  PARM_INFO is a pointer to a
-   structure containing intermediate information about PARM.  */
-
-static bool
-is_parm_modified_before_call (struct param_analysis_info *parm_info,
-			      gimple call, tree parm)
-{
-  bool modified = false;
-  ao_ref refd;
-
-  if (parm_info->modified)
-    return true;
-
-  ao_ref_init (&refd, parm);
-  walk_aliased_vdefs (&refd, gimple_vuse (call), mark_modified,
-		      &modified, &parm_info->visited_statements);
-  if (modified)
-    {
-      parm_info->modified = true;
-      return true;
-    }
-  return false;
-}
-
 /* Go through arguments of the CALL and for every one that looks like a member
    pointer, check whether it can be safely declared pass-through and if so,
    mark that to the corresponding item of jump FUNCTIONS.  Return true iff
@@ -813,7 +994,7 @@ compute_pass_through_member_ptrs (struct ipa_node_params *info,
 	      int index = ipa_get_param_decl_index (info, arg);
 
 	      gcc_assert (index >=0);
-	      if (!is_parm_modified_before_call (&parms_ainfo[index], call,
+	      if (!is_parm_modified_before_stmt (&parms_ainfo[index], call,
 						 arg))
 		{
 		  struct ipa_jump_func *jfunc = ipa_get_ith_jump_func (args,
@@ -982,7 +1163,7 @@ ipa_compute_jump_functions_for_edge (struct param_analysis_info *parms_ainfo,
   VEC_safe_grow_cleared (ipa_jump_func_t, gc, args->jump_functions, arg_num);
 
   /* We will deal with constants and SSA scalars first:  */
-  compute_scalar_jump_functions (info, args, call);
+  compute_scalar_jump_functions (info, parms_ainfo, args, call);
 
   /* Let's check whether there are any potential member pointers and if so,
      whether we can determine their functions as pass_through.  */
@@ -1284,7 +1465,7 @@ ipa_analyze_indirect_call_uses (struct cgraph_node *node,
     return;
 
   index = ipa_get_param_decl_index (info, rec);
-  if (index >= 0 && !is_parm_modified_before_call (&parms_ainfo[index],
+  if (index >= 0 && !is_parm_modified_before_stmt (&parms_ainfo[index],
 						   call, rec))
     ipa_note_param_call (node, index, call);
 

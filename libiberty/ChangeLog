@@ -1,3 +1,20 @@
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48370
+	* cp-demangle.c (d_special_name, d_print_comp): Handle a
+	discriminator number on DEMANGLE_COMPONENT_REFTEMP.
+
+2011-11-02  Doug Evans  <dje@google.com>
+
+	* Makefile.in (CFILES): Add timeval-utils.c.
+	(REQUIRED_OFILES): Add timeval-utils.$(objext).
+	(INSTALLED_HEADERS): Add timeval-utils.h.
+	(timeval-utils.$(objext)): Add rule.
+
+2011-10-28  Ian Lance Taylor  <iant@google.com>
+
+	* setproctitle.c (setproctitle): Use "GNU/Linux" in comment.
+
 2011-10-26  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR target/48108
@@ -21,10 +38,6 @@
 2011-09-28  Doug Evans  <dje@google.com>
 
 	* timeval-utils.c: New file.
-	* Makefile.in (CFILES): Add it.
-	(REQUIRED_OFILES): Add timeval-utils.$(objext).
-	(INSTALLED_HEADERS): Add timeval-utils.h.
-	(timeval-utils.$(objext)): Add rule.
 
 	* argv.c (countargv): New function.
 

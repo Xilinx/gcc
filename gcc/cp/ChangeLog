@@ -1,3 +1,175 @@
+2011-11-05  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (cp_finish_decl): Mostly revert previous change.
+
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/26714
+	* init.c (perform_member_init): Strip TARGET_EXPR around NSDMI.
+	Do temporary lifetime extension.
+
+	PR c++/48370
+	* decl.c (cp_finish_decl): Run cleanups in the right order.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/50608
+	* semantics.c (finish_offsetof): Adjust call to fold_offsetof.
+	* typeck.c (cp_build_addr_expr_1): Call fold_offsetof_1.
+
+2011-11-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* typeck.c (build_indirect_ref): Use ATTRIBUTE_UNUSED.
+	* mangle.c (write_unnamed_type_name): Likewise.
+
+2011-11-04  Magnus Fromreide  <magfr@lysator.liu.se>
+
+        * parser.c (cp_parser_enumerator_list): Do not warn about
+        trailing commas in C++0x mode.
+
+2011-11-04  Olivier Goffart  <olivier@woboq.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/50965
+	* class.c (check_field_decls): NSDMI makes a class non-aggregate.
+
+2011-11-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48420
+	* call.c (conversion_null_warnings): For 'false' to NULL pointer,
+	just check that TREE_TYPE (expr) is a BOOLEAN_TYPE.
+
+2011-11-04  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50941
+	* parser.c (cp_parser_userdef_string_literal): Fix string length.
+
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48370
+	* call.c (extend_ref_init_temps, extend_ref_init_temps_1): New.
+	(set_up_extended_ref_temp): Use it.  Change cleanup parm to VEC.
+	(initialize_reference): Just call convert_like.
+	* decl.c (grok_reference_init): Just call initialize_reference.
+	(build_init_list_var_init): Remove.
+	(check_initializer): Change cleanup parm to VEC.  Handle references
+	like other types.  Call perform_implicit_conversion instead
+	of build_init_list_var_init.  Don't use build_aggr_init for
+	aggregate initialization of arrays.
+	(cp_finish_decl): Change cleanup to VEC.
+	* typeck2.c (store_init_value): Call extend_ref_init_temps.
+	Use build_vec_init for non-constant arrays.
+	* init.c (expand_aggr_init_1): Adjust.
+	(build_vec_init): Avoid re-converting an initializer
+	that's already digested.
+	* mangle.c (mangle_ref_init_variable): Add a discriminator.
+	* cp-tree.h: Adjust.
+	* typeck.c (convert_for_initialization): Adjust.
+	* decl2.c (maybe_emit_vtables): Adjust.
+
+2011-11-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50930
+	* init.c (build_aggr_init): Don't set LOOKUP_ONLYCONVERTING
+	if the initializer has TARGET_EXPR_DIRECT_INIT_P.
+	(expand_default_init): An initializer with TARGET_EXPR_DIRECT_INIT_P
+	or TARGET_EXPR_LIST_INIT_P doesn't need more processing.
+	* tree.c (bot_manip): Propagate TARGET_EXPR_IMPLICIT_P,
+	TARGET_EXPR_LIST_INIT_P, TARGET_EXPR_DIRECT_INIT_P.
+	* call.c (convert_like_real): Set TARGET_EXPR_DIRECT_INIT_P
+	as appropriate on list-value-initialization.
+
+	* parser.c (cp_parser_decl_specifier_seq): Change "C++0x" to
+	"C++11" in warnings.
+	(cp_lexer_get_preprocessor_token): Likewise.
+	(cp_parser_binary_expression): Likewise.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50810
+	* typeck2.c (check_narrowing): Adjust OPT_Wnarrowing diagnostics.
+	(digest_init_r): Call check_narrowing irrespective of the C++ dialect.
+	* decl.c (check_initializer): Likewise.
+	* semantics.c (finish_compound_literal): Likewise.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50956
+	* typeck.c (build_const_cast_1): Fix -Wcast-qual for false
+	comp_ptr_ttypes_const.
+
+2011-11-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Make-lang.in (g++spec.o): Pass SHLIB instead of SHLIB_LINK.
+
+2011-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44277
+	* cvt.c (cp_convert_to_pointer): Warn for zero as null pointer
+	constant.
+	* typeck.c (cp_truthvalue_conversion): Handle pointers and member
+	function pointers under c_inhibit_evaluation_warnings; use
+	nullptr_node for data member pointers.
+	(cp_build_binary_op): Tweak, just forward to cp_convert op1,
+	either a nullptr_node or an integer_zero_node.
+	(build_ptrmemfunc): Use nullptr_node.
+	* init.c (build_zero_init_1): Likewise.
+
+2011-11-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50500
+	DR 1082
+	* search.c (lookup_fnfields_idx_nolazy): Split out from...
+	(lookup_fnfields_1): ...here.
+	(lookup_fnfields_slot_nolazy): Use it.
+	* cp-tree.h: Declare it.
+	* class.c (type_has_move_assign): Use it.
+	(type_has_user_declared_move_assign): Likewise.
+
+2011-10-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50920
+	* class.c (check_field_decl): Change c++0x in diags to c++11.
+	* error.c (maybe_warn_cpp0x): Likewise.
+	* parser.c (cp_parser_diagnose_invalid_type_name): Likewise.
+	* pt.c (check_default_tmpl_args): Likewise.
+
+2011-10-31   Diego Novillo  <dnovillo@google.com>
+
+	* mangle.c (get_mangled_id): Factor from ...
+	(mangle_decl): ... here.
+	Call get_mangled_id.
+
+2011-10-25  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* NEWS (GCC 2.95): Refer to GNU/Linux instead of Linux.
+	(EGCS 1.0): Ditto.
+
+2011-10-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50901
+	* call.c (build_new_op_1): Handle ABS_EXPR together with the
+	other unary EXPR.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+        2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* pt.c (tsubst_copy_and_build): Fix qualified_name_lookup_error
+	call in case COMPONENT_REF.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (unify_pack_expansion): Initialize bad_old_arg and bad_new_arg.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* pt.c (tsubst_copy_and_build): Fix qualified_name_lookup_error
+	call in case COMPONENT_REF.
+
 2011-10-27  Jason Merrill  <jason@redhat.com>
 
 	* semantics.c (cxx_eval_outermost_constant_expr): Check

@@ -1,3 +1,38 @@
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/50608
+	* c-common.c (c_fully_fold_internal) <ADDR_EXPR>: Call fold_offsetof_1.
+	(fold_offsetof_1): Make global.  Remove STOP_REF argument and adjust.
+	<INDIRECT_REF>: Return the argument.
+	<ARRAY_REF>: Remove special code for negative offset.
+	Call fold_build_pointer_plus instead of size_binop.
+	(fold_offsetof): Remove STOP_REF argument and adjust.
+	* c-common.h (fold_offsetof_1): Declare.
+	(fold_offsetof): Remove STOP_REF argument.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50810
+	* c-opts.c (c_common_handle_option): Enable -Wnarrowing as part
+	of -Wall; include -Wnarrowing in -Wc++0x-compat; adjust default
+	Wnarrowing for C++0x and C++98.
+	* c.opt ([Wnarrowing]): Update.
+
+2011-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44277
+	* c.opt: Add Wzero-as-null-pointer-constant.
+
+2011-10-31  Jason Merrill  <jason@redhat.com>
+
+	* c.opt (-fdeduce-init-list): Off by default.
+
+	PR c++/50920
+	* c-common.h (cxx_dialect): Add cxx11 and cxx03.
+	* c.opt: Add -std=c++11, -std=gnu++11, -std=gnu++03,
+	and -Wc++11-compat.
+	* c-opts.c (set_std_cxx11): Rename from set_std_cxx0x.
+
 2011-10-27  Roberto Agostino Vitillo  <ravitillo@lbl.gov>
 
 	PR c++/30066

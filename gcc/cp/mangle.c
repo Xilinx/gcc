@@ -1339,7 +1339,7 @@ nested_anon_class_index (tree type)
 /* <unnamed-type-name> ::= Ut [ <nonnegative number> ] _ */
 
 static void
-write_unnamed_type_name (const tree type __attribute__ ((__unused__)))
+write_unnamed_type_name (const tree type ATTRIBUTE_UNUSED)
 {
   int discriminator;
   MANGLE_TRACE_TREE ("unnamed-type-name", type);
@@ -3177,13 +3177,21 @@ mangle_decl_string (const tree decl)
   return result;
 }
 
+/* Return an identifier for the external mangled name of DECL.  */
+
+static tree
+get_mangled_id (tree decl)
+{
+  tree id = mangle_decl_string (decl);
+  return targetm.mangle_decl_assembler_name (decl, id);
+}
+
 /* Create an identifier for the external mangled name of DECL.  */
 
 void
 mangle_decl (const tree decl)
 {
-  tree id = mangle_decl_string (decl);
-  id = targetm.mangle_decl_assembler_name (decl, id);
+  tree id = get_mangled_id (decl);
   SET_DECL_ASSEMBLER_NAME (decl, id);
 
   if (G.need_abi_warning)
@@ -3495,12 +3503,17 @@ mangle_guard_variable (const tree variable)
    initialize a static reference.  This isn't part of the ABI, but we might
    as well call them something readable.  */
 
+static GTY(()) int temp_count;
+
 tree
 mangle_ref_init_variable (const tree variable)
 {
   start_mangling (variable);
   write_string ("_ZGR");
   write_name (variable, /*ignore_local_scope=*/0);
+  /* Avoid name clashes with aggregate initialization of multiple
+     references at once.  */
+  write_unsigned_number (temp_count++);
   return finish_mangling_get_identifier (/*warn=*/false);
 }
 

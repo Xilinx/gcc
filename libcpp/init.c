@@ -94,11 +94,11 @@ static const struct lang_flags lang_defaults[] =
   /* STDC1X   */  { 1,  0,  1,   0,  1,   1,   1,   1,   0,    0 },
   /* GNUCXX   */  { 0,  1,  1,   0,  0,   1,   1,   0,   0,    0 },
   /* CXX98    */  { 0,  1,  1,   0,  1,   1,   1,   0,   0,    0 },
-  /* GNUCXX0X */  { 1,  1,  1,   0,  0,   1,   1,   1,   1,    1 },
-  /* CXX0X    */  { 1,  1,  1,   0,  1,   1,   1,   1,   1,    1 },
+  /* GNUCXX11 */  { 1,  1,  1,   0,  0,   1,   1,   1,   1,    1 },
+  /* CXX11    */  { 1,  1,  1,   0,  1,   1,   1,   1,   1,    1 },
   /* ASM      */  { 0,  0,  1,   0,  0,   1,   0,   0,   0,    0 }
-  /* xid should be 1 for GNUC99, STDC99, GNUCXX, CXX98, GNUCXX0X, and
-     CXX0X when no longer experimental (when all uses of identifiers
+  /* xid should be 1 for GNUC99, STDC99, GNUCXX, CXX98, GNUCXX11, and
+     CXX11 when no longer experimental (when all uses of identifiers
      in the compiler have been audited for correct handling of
      extended identifiers).  */
 };
@@ -461,7 +461,13 @@ cpp_init_builtins (cpp_reader *pfile, int hosted)
     _cpp_define_builtin (pfile, "__STDC__ 1");
 
   if (CPP_OPTION (pfile, cplusplus))
-    _cpp_define_builtin (pfile, "__cplusplus 199711L");
+    {
+      if (CPP_OPTION (pfile, lang) == CLK_CXX11
+	   || CPP_OPTION (pfile, lang) == CLK_GNUCXX11)
+	_cpp_define_builtin (pfile, "__cplusplus 201103L");
+      else
+	_cpp_define_builtin (pfile, "__cplusplus 199711L");
+    }
   else if (CPP_OPTION (pfile, lang) == CLK_ASM)
     _cpp_define_builtin (pfile, "__ASSEMBLER__ 1");
   else if (CPP_OPTION (pfile, lang) == CLK_STDC94)

@@ -32,6 +32,7 @@ extern int avr_initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
 extern rtx avr_return_addr_rtx (int count, rtx tem);
+extern bool avr_accumulate_outgoing_args (void);
 
 #ifdef TREE_CODE
 extern void avr_asm_output_aligned_decl_common (FILE*, const_tree, const char*, unsigned HOST_WIDE_INT, unsigned int, bool);
@@ -58,8 +59,10 @@ extern const char *out_movsi_mr_r (rtx insn, rtx op[], int *l);
 extern const char *output_movsisf (rtx insn, rtx operands[], int *l);
 extern const char *avr_out_tstsi (rtx, rtx*, int*);
 extern const char *avr_out_tsthi (rtx, rtx*, int*);
+extern const char *avr_out_tstpsi (rtx, rtx*, int*);
 extern const char *avr_out_compare (rtx, rtx*, int*);
 extern const char *ret_cond_branch (rtx x, int len, int reverse);
+extern const char *avr_out_movpsi (rtx, rtx*, int*);
 
 extern const char *ashlqi3_out (rtx insn, rtx operands[], int *len);
 extern const char *ashlhi3_out (rtx insn, rtx operands[], int *len);
@@ -72,11 +75,17 @@ extern const char *ashrsi3_out (rtx insn, rtx operands[], int *len);
 extern const char *lshrqi3_out (rtx insn, rtx operands[], int *len);
 extern const char *lshrhi3_out (rtx insn, rtx operands[], int *len);
 extern const char *lshrsi3_out (rtx insn, rtx operands[], int *len);
+
+extern const char *avr_out_ashlpsi3 (rtx, rtx*, int*);
+extern const char *avr_out_ashrpsi3 (rtx, rtx*, int*);
+extern const char *avr_out_lshrpsi3 (rtx, rtx*, int*);
+
 extern bool avr_rotate_bytes (rtx operands[]);
 
 extern void expand_prologue (void);
 extern void expand_epilogue (bool);
 extern int avr_epilogue_uses (int regno);
+extern int avr_starting_frame_offset (void);
 
 extern void avr_output_bld (rtx operands[], int bit_nr);
 extern void avr_output_addr_vec_elt (FILE *stream, int value);
@@ -91,6 +100,7 @@ extern int extra_constraint_Q (rtx x);
 extern int adjust_insn_length (rtx insn, int len);
 extern const char* output_reload_inhi (rtx*, rtx, int*);
 extern const char* output_reload_insisf (rtx*, rtx, int*);
+extern const char* avr_out_reload_inpsi (rtx*, rtx, int*);
 extern void notice_update_cc (rtx body, rtx insn);
 extern void print_operand (FILE *file, rtx x, int code);
 extern void print_operand_address (FILE *file, rtx addr);

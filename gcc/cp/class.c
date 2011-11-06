@@ -2924,7 +2924,7 @@ check_field_decl (tree field,
 	  if (!warned && errorcount > oldcount)
 	    {
 	      inform (DECL_SOURCE_LOCATION (field), "unrestricted unions "
-		      "only available with -std=c++0x or -std=gnu++0x");
+		      "only available with -std=c++11 or -std=gnu++11");
 	      warned = true;
 	    }
 	}
@@ -3188,6 +3188,12 @@ check_field_decls (tree t, tree *access_decls,
 			  cant_have_const_ctor_p,
 			  no_const_asn_ref_p,
 			  &any_default_members);
+
+      /* Now that we've removed bit-field widths from DECL_INITIAL,
+	 anything left in DECL_INITIAL is an NSDMI that makes the class
+	 non-aggregate.  */
+      if (DECL_INITIAL (x))
+	CLASSTYPE_NON_AGGREGATE (t) = true;
 
       /* If any field is const, the structure type is pseudo-const.  */
       if (CP_TYPE_CONST_P (type))
@@ -4485,7 +4491,7 @@ type_has_move_assign (tree t)
       lazily_declare_fn (sfk_move_assignment, t);
     }
 
-  for (fns = lookup_fnfields_slot (t, ansi_assopname (NOP_EXPR));
+  for (fns = lookup_fnfields_slot_nolazy (t, ansi_assopname (NOP_EXPR));
        fns; fns = OVL_NEXT (fns))
     if (move_fn_p (OVL_CURRENT (fns)))
       return true;
@@ -4530,7 +4536,7 @@ type_has_user_declared_move_assign (tree t)
   if (CLASSTYPE_LAZY_MOVE_ASSIGN (t))
     return false;
 
-  for (fns = lookup_fnfields_slot (t, ansi_assopname (NOP_EXPR));
+  for (fns = lookup_fnfields_slot_nolazy (t, ansi_assopname (NOP_EXPR));
        fns; fns = OVL_NEXT (fns))
     {
       tree fn = OVL_CURRENT (fns);

@@ -2369,7 +2369,7 @@ finish_compound_literal (tree type, tree compound_literal,
       && check_array_initializer (NULL_TREE, type, compound_literal))
     return error_mark_node;
   compound_literal = reshape_init (type, compound_literal, complain);
-  if (cxx_dialect >= cxx0x && SCALAR_TYPE_P (type)
+  if (SCALAR_TYPE_P (type)
       && !BRACE_ENCLOSED_INITIALIZER_P (compound_literal))
     check_narrowing (type, compound_literal);
   if (TREE_CODE (type) == ARRAY_TYPE
@@ -3568,7 +3568,7 @@ finish_offsetof (tree expr)
       if (!complete_type_or_else (TREE_TYPE (object), object))
 	return error_mark_node;
     }
-  return fold_offsetof (expr, NULL_TREE);
+  return fold_offsetof (expr);
 }
 
 /* Replace the AGGR_INIT_EXPR at *TP with an equivalent CALL_EXPR.  This

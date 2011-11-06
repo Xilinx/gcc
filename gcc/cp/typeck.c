@@ -2726,7 +2726,7 @@ build_x_indirect_ref (tree expr, ref_operator errorstring,
 
 /* Helper function called from c-common.  */
 tree
-build_indirect_ref (location_t loc __attribute__ ((__unused__)),
+build_indirect_ref (location_t loc ATTRIBUTE_UNUSED,
 		    tree ptr, ref_operator errorstring)
 {
   return cp_build_indirect_ref (ptr, errorstring, tf_warning_or_error);
@@ -4058,7 +4058,7 @@ cp_build_binary_op (location_t location,
      	  else 
 	    {
 	      op0 = build_ptrmemfunc_access_expr (op0, pfn_identifier);
-	      op1 = cp_convert (TREE_TYPE (op0), integer_zero_node); 
+	      op1 = cp_convert (TREE_TYPE (op0), op1);
 	    }
 	  result_type = TREE_TYPE (op0);
 	}
@@ -4668,7 +4668,17 @@ cp_truthvalue_conversion (tree expr)
   tree type = TREE_TYPE (expr);
   if (TYPE_PTRMEM_P (type))
     return build_binary_op (EXPR_LOCATION (expr),
-			    NE_EXPR, expr, integer_zero_node, 1);
+			    NE_EXPR, expr, nullptr_node, 1);
+  else if (TYPE_PTR_P (type) || TYPE_PTRMEMFUNC_P (type))
+    {
+      /* With -Wzero-as-null-pointer-constant do not warn for an
+	 'if (p)' or a 'while (!p)', where p is a pointer.  */
+      tree ret;
+      ++c_inhibit_evaluation_warnings;
+      ret = c_common_truthvalue_conversion (input_location, expr);
+      --c_inhibit_evaluation_warnings;
+      return ret;
+    }
   else
     return c_common_truthvalue_conversion (input_location, expr);
 }
@@ -4871,9 +4881,7 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
       && TREE_CONSTANT (TREE_OPERAND (val, 0)))
     {
       tree type = build_pointer_type (argtype);
-      tree op0 = fold_convert (type, TREE_OPERAND (val, 0));
-      tree op1 = fold_offsetof (arg, val);
-      return fold_build_pointer_plus (op0, op1);
+      return fold_convert (type, fold_offsetof_1 (arg));
     }
 
   /* Handle complex lvalues (when permitted)
@@ -6335,34 +6343,41 @@ build_const_cast_1 (tree dst_type, tree expr, tsubst_flags_t complain,
 	return error_mark_node;
     }
 
-  if ((TYPE_PTR_P (src_type) || TYPE_PTRMEM_P (src_type))
-      && comp_ptr_ttypes_const (dst_type, src_type))
+  if (TYPE_PTR_P (src_type) || TYPE_PTRMEM_P (src_type))
     {
-      if (valid_p)
+      if (comp_ptr_ttypes_const (dst_type, src_type))
 	{
-	  *valid_p = true;
-	  /* This cast is actually a C-style cast.  Issue a warning if
-	     the user is making a potentially unsafe cast.  */
-	  check_for_casting_away_constness (src_type, dst_type, CAST_EXPR,
-					    complain);
+	  if (valid_p)
+	    {
+	      *valid_p = true;
+	      /* This cast is actually a C-style cast.  Issue a warning if
+		 the user is making a potentially unsafe cast.  */
+	      check_for_casting_away_constness (src_type, dst_type,
+						CAST_EXPR, complain);
+	    }
+	  if (reference_type)
+	    {
+	      expr = cp_build_addr_expr (expr, complain);
+	      expr = build_nop (reference_type, expr);
+	      return convert_from_reference (expr);
+	    }
+	  else
+	    {
+	      expr = decay_conversion (expr);
+	      /* build_c_cast puts on a NOP_EXPR to make the result not an
+		 lvalue.  Strip such NOP_EXPRs if VALUE is being used in
+		 non-lvalue context.  */
+	      if (TREE_CODE (expr) == NOP_EXPR
+		  && TREE_TYPE (expr) == TREE_TYPE (TREE_OPERAND (expr, 0)))
+		expr = TREE_OPERAND (expr, 0);
+	      return build_nop (dst_type, expr);
+	    }
 	}
-      if (reference_type)
-	{
-	  expr = cp_build_addr_expr (expr, complain);
-	  expr = build_nop (reference_type, expr);
-	  return convert_from_reference (expr);
-	}
-      else
-	{
-	  expr = decay_conversion (expr);
-	  /* build_c_cast puts on a NOP_EXPR to make the result not an
-	     lvalue.  Strip such NOP_EXPRs if VALUE is being used in
-	     non-lvalue context.  */
-	  if (TREE_CODE (expr) == NOP_EXPR
-	      && TREE_TYPE (expr) == TREE_TYPE (TREE_OPERAND (expr, 0)))
-	    expr = TREE_OPERAND (expr, 0);
-	  return build_nop (dst_type, expr);
-	}
+      else if (valid_p
+	       && !at_least_as_qualified_p (TREE_TYPE (dst_type),
+					    TREE_TYPE (src_type)))
+	check_for_casting_away_constness (src_type, dst_type, CAST_EXPR,
+					  complain);
     }
 
   if (complain & tf_error)
@@ -7148,7 +7163,7 @@ build_ptrmemfunc (tree type, tree pfn, int force, bool c_cast_p,
   /* Handle null pointer to member function conversions.  */
   if (null_ptr_cst_p (pfn))
     {
-      pfn = build_c_cast (input_location, type, integer_zero_node);
+      pfn = build_c_cast (input_location, type, nullptr_node);
       return build_ptrmemfunc1 (to_type,
 				integer_zero_node,
 				pfn);
@@ -7544,8 +7559,7 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
 
       if (fndecl)
 	savew = warningcount, savee = errorcount;
-      rhs = initialize_reference (type, rhs, /*decl=*/NULL_TREE,
-				  /*cleanup=*/NULL, flags, complain);
+      rhs = initialize_reference (type, rhs, flags, complain);
       if (fndecl)
 	{
 	  if (warningcount > savew)

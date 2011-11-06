@@ -744,7 +744,7 @@ cp_lexer_get_preprocessor_token (cp_lexer *lexer, cp_token *token)
               /* Warn about the C++0x keyword (but still treat it as
                  an identifier).  */
               warning (OPT_Wc__0x_compat, 
-                       "identifier %qE will become a keyword in C++0x",
+                       "identifier %qE is a keyword in C++11",
                        token->u.value);
 
               /* Clear out the C_RID_CODE so we don't warn about this
@@ -2759,8 +2759,8 @@ cp_parser_diagnose_invalid_type_name (cp_parser *parser,
 
 	 The user should have said "typename A<T>::X".  */
       if (cxx_dialect < cxx0x && id == ridpointers[(int)RID_CONSTEXPR])
-	inform (location, "C++0x %<constexpr%> only available with "
-		"-std=c++0x or -std=gnu++0x");
+	inform (location, "C++11 %<constexpr%> only available with "
+		"-std=c++11 or -std=gnu++11");
       else if (processing_template_decl && current_class_type
 	       && TYPE_BINFO (current_class_type))
 	{
@@ -3681,8 +3681,8 @@ cp_parser_userdef_string_literal (cp_token *token)
   suffix_id = USERDEF_LITERAL_SUFFIX_ID (literal);
   name = cp_literal_operator_id (IDENTIFIER_POINTER (suffix_id));
   value = USERDEF_LITERAL_VALUE (literal);
-  len = TREE_STRING_LENGTH (value) - 1;
-
+  len = TREE_STRING_LENGTH (value)
+	/ TREE_INT_CST_LOW (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (value)))) - 1;
   /* Build up a call to the user-defined operator  */
   /* Lookup the name we got back from the id-expression.  */
   vec = make_tree_vector ();
@@ -7198,8 +7198,8 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p,
           && !parser->greater_than_is_operator_p)
         {
           if (warning_at (token->location, OPT_Wc__0x_compat, 
-			  "%<>>%> operator will be treated as"
-			  " two right angle brackets in C++0x"))
+			  "%<>>%> operator is treated as"
+			  " two right angle brackets in C++11"))
 	    inform (token->location,
 		    "suggest parentheses around %<>>%> expression");
         }
@@ -10528,7 +10528,7 @@ cp_parser_decl_specifier_seq (cp_parser* parser,
               /* Complain about `auto' as a storage specifier, if
                  we're complaining about C++0x compatibility.  */
               warning_at (token->location, OPT_Wc__0x_compat, "%<auto%>"
-			  " will change meaning in C++0x; please remove it");
+			  " changes meaning in C++11; please remove it");
 
               /* Set the storage class anyway.  */
               cp_parser_set_storage_class (parser, decl_specs, RID_AUTO,
@@ -14058,6 +14058,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 
    enum-specifier:
      enum-head { enumerator-list [opt] }
+     enum-head { enumerator-list , } [C++0x]
 
    enum-head:
      enum-key identifier [opt] enum-base [opt]
@@ -14077,6 +14078,8 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
    GNU Extensions:
      enum-key attributes[opt] identifier [opt] enum-base [opt] 
        { enumerator-list [opt] }attributes[opt]
+     enum-key attributes[opt] identifier [opt] enum-base [opt]
+       { enumerator-list, }attributes[opt] [C++0x]
 
    Returns an ENUM_TYPE representing the enumeration, or NULL_TREE
    if the token stream isn't an enum-specifier after all.  */
@@ -14416,8 +14419,9 @@ cp_parser_enumerator_list (cp_parser* parser, tree type)
       /* If the next token is a `}', there is a trailing comma.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_BRACE))
 	{
-	  if (!in_system_header)
-	    pedwarn (input_location, OPT_pedantic, "comma at end of enumerator list");
+	  if (cxx_dialect < cxx0x && !in_system_header)
+	    pedwarn (input_location, OPT_pedantic,
+                     "comma at end of enumerator list");
 	  break;
 	}
     }

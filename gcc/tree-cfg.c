@@ -1454,8 +1454,8 @@ gimple_can_merge_blocks_p (basic_block a, basic_block b)
 	break;
       lab = gimple_label_label (stmt);
 
-      /* Do not remove user labels.  */
-      if (!DECL_ARTIFICIAL (lab))
+      /* Do not remove user forced labels.  */
+      if (!DECL_ARTIFICIAL (lab) && FORCED_LABEL (lab))
 	return false;
     }
 
@@ -1700,6 +1700,15 @@ gimple_merge_blocks (basic_block a, basic_block b)
 	    {
 	      gimple_stmt_iterator dest_gsi = gsi_start_bb (a);
 	      gsi_insert_before (&dest_gsi, stmt, GSI_NEW_STMT);
+	    }
+	  /* Other user labels keep around in a form of a debug stmt.  */
+	  else if (!DECL_ARTIFICIAL (label) && MAY_HAVE_DEBUG_STMTS)
+	    {
+	      gimple dbg = gimple_build_debug_bind (label,
+						    integer_zero_node,
+						    stmt);
+	      gimple_debug_bind_reset_value (dbg);
+	      gsi_insert_before (&gsi, dbg, GSI_SAME_STMT);
 	    }
 
 	  lp_nr = EH_LANDING_PAD_NR (label);
@@ -3342,7 +3351,9 @@ verify_gimple_assign_unary (gimple stmt)
 
     case FLOAT_EXPR:
       {
-	if (!INTEGRAL_TYPE_P (rhs1_type) || !SCALAR_FLOAT_TYPE_P (lhs_type))
+	if ((!INTEGRAL_TYPE_P (rhs1_type) || !SCALAR_FLOAT_TYPE_P (lhs_type))
+	    && (!VECTOR_INTEGER_TYPE_P (rhs1_type)
+	        || !VECTOR_FLOAT_TYPE_P(lhs_type)))
 	  {
 	    error ("invalid types in conversion to floating point");
 	    debug_generic_expr (lhs_type);
@@ -3355,7 +3366,9 @@ verify_gimple_assign_unary (gimple stmt)
 
     case FIX_TRUNC_EXPR:
       {
-	if (!INTEGRAL_TYPE_P (lhs_type) || !SCALAR_FLOAT_TYPE_P (rhs1_type))
+        if ((!INTEGRAL_TYPE_P (lhs_type) || !SCALAR_FLOAT_TYPE_P (rhs1_type))
+            && (!VECTOR_INTEGER_TYPE_P (lhs_type)
+                || !VECTOR_FLOAT_TYPE_P(rhs1_type)))
 	  {
 	    error ("invalid types in conversion to integer");
 	    debug_generic_expr (lhs_type);
@@ -5201,6 +5214,12 @@ gimple_duplicate_bb (basic_block bb)
 
       stmt = gsi_stmt (gsi);
       if (gimple_code (stmt) == GIMPLE_LABEL)
+	continue;
+
+      /* Don't duplicate label debug stmts.  */
+      if (gimple_debug_bind_p (stmt)
+	  && TREE_CODE (gimple_debug_bind_get_var (stmt))
+	     == LABEL_DECL)
 	continue;
 
       /* Create a new copy of STMT and duplicate STMT's virtual

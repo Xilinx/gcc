@@ -1,3 +1,155 @@
+2011-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/test.xml: Fix dg-warning examples.
+
+2011-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/44436
+	* doc/xml/manual/status_cxx200x.xml: Document emplace members are
+	missing.
+
+2011-11-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/49894
+	PR bootstrap/50982
+	* include/std/mutex (once_flag): Use NSDMI.
+
+2011-11-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/run_doxygen: Fix sed quoting.
+
+2011-11-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/doxygroups.cc: Add markup for namespace tr2.
+	* include/tr2/bool_set: Adjust doxygen markup.
+	* include/tr2/dynamic_bitset: Same.
+	* include/tr2/type_traits: Same.
+
+2011-11-03  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/html/*: Regenerate.
+
+2011-11-02  Richard B. Kreckel  <kreckel@ginac.de>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/50880
+	* include/std/complex (__complex_acosh): Fix in a better way,
+	use Kahan's formula.
+	* include/tr1/complex (__complex_acosh): Likewise.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/50951
+	* include/bits/random.tcc (operator<<(basic_ostream<>&,
+	const mersenne_twister_engine<>&): Output _M_p too.
+	(operator<<(basic_ostream<>&, const
+	subtract_with_carry_engine<>&): Likewise.
+	(operator>>(basic_istream<>&, mersenne_twister_engine<>&):
+	Reload it.
+	(operator>>(basic_istream<>&, subtract_with_carry_engine<>&):
+	Likewise.
+	* include/bits/random.h (mersenne_twister_engine<>::operator==):
+	Compare _M_p too.
+	(subtract_with_carry_engine<>::operator==): Compare _M_carry
+	and _M_p too.
+	(shuffle_order_engine<>::operator==): Compare _M_v(s) and _M_y too.
+	* testsuite/26_numerics/random/independent_bits_engine/
+	operators/serialize.cc: Extend.
+	* testsuite/26_numerics/random/subtract_with_carry_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/discard_block_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/mersenne_twister_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/linear_congruential_engine/
+	operators/serialize.cc: Likewise.
+	* testsuite/26_numerics/random/shuffle_order_engine/
+	operators/serialize.cc: Likewise.
+
+2011-11-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (GLIBCXX_CONFIGURE): Determine and substitute
+	toplevel_builddir.
+	(GLIBCXX_ENABLE_THREADS): Remove glibcxx_thread_h,
+	HAVE_GTHR_DEFAULT, enable_thread.
+	(GLIBCXX_CHECK_GTHREADS): Reflect gthr move to libgcc.
+	* include/Makefile.am (thread_host_headers): Remove
+	${host_builddir}/gthr-tpf.h.
+	(${host_builddir}/gthr.h): Reflect gthr move to libgcc.
+	Use $<.
+	(${host_builddir}/gthr-single.h): Likewise.
+	(${host_builddir}/gthr-posix.h): Likewise.
+	(${host_builddir}/gthr-tpf.h): Remove.
+	(${host_builddir}/gthr-default.h): Likewise.
+	* configure, config.h.in: Regenerate.
+	* Makefile.in, doc/Makefile.in, include/Makefile.in,
+	libsupc++/Makefile.in, po/Makefile.in, python/Makefile.in,
+	src/Makefile.intestsuite/Makefile.in: Regenerate.
+
+2011-11-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config: Add tr2 to versioned namespaces.
+	* scripts/run_doxygen: Adjust generated man files as well.
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Adjust line numbers.
+
+2011-11-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (promise): Add constructors for uses-allocator
+	construction from rvalue promise.
+	(packaged_task): Implement LWG 2067. Add additional constructors for
+	uses-allocator construction.
+	* testsuite/30_threads/packaged_task/cons/3.cc: New.
+	* testsuite/30_threads/packaged_task/cons/alloc2.cc: New.
+	* testsuite/30_threads/promise/cons/alloc2.cc: New.
+
+2011-10-31  Jason Merrill  <jason@redhat.com>
+
+	* include/Makefile.am (install-freestanding-headers): Install
+	c++0x_warning.h.
+	* libsupc++/initializer_list: Include it.
+
+2011-10-31  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* acinclude.m4 (GLIBCXX_CONFIGURE): Refer to GNU/Linux.
+	* configure: Regenerate.
+
+2011-10-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50920
+	* include/bits/c++0x_warning.h: Change -std=c++0x to -std=c++11.
+
+2011-10-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* prerequisites.xml: Refer to GCC (instead of gcc) and GNU/Linux.
+	Remove an obsolete reference to a Red Hat release we do not
+	support any longer.
+	Refer to Debian GNU/Linux.
+
+2011-10-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* faq.xml (Who's in charge of it?): Refer to the Linux kernel
+	instead of just Linux.
+	(How do I install libstdc++?): Refer to GNU/Linux instead of
+	just Linux.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/30_threads/condition_variable_any/50862.cc: Trivial
+	formatting fixes.
+
+2011-10-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/unordered_map/operations/count.cc: New.
+	* testsuite/23_containers/multimap/operations/count.cc: Likewise.
+	* testsuite/23_containers/set/operations/count.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/operations/count.cc:
+	Likewise.
+	* testsuite/23_containers/unordered_set/operations/count.cc: Likewise.
+	* testsuite/23_containers/multiset/operations/count.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/operations/count.cc:
+	Likewise.
+	* testsuite/23_containers/map/operations/count.cc: Likewise.
+
 2011-10-28  Richard B. Kreckel  <kreckel@ginac.de>
 
 	* include/std/complex (__complex_acosh): Just use '< _Tp()'.

@@ -160,6 +160,76 @@ package body Exp_Util is
    --  or body. Flag Nested_Constructs should be set when any nested packages
    --  declared in L must be processed.
 
+   -------------------------------------
+   -- Activate_Atomic_Synchronization --
+   -------------------------------------
+
+   procedure Activate_Atomic_Synchronization (N : Node_Id) is
+      Msg_Node : Node_Id;
+
+   begin
+      case Nkind (Parent (N)) is
+
+         --  Check for cases of appearing in the prefix of a construct where
+         --  we don't need atomic synchronization for this kind of usage.
+
+         when
+              --  Nothing to do if we are the prefix of an attribute, since we
+              --  do not want an atomic sync operation for things like 'Size.
+
+              N_Attribute_Reference |
+
+              --  The N_Reference node is like an attribute
+
+              N_Reference           |
+
+              --  Nothing to do for a reference to a component (or components)
+              --  of a composite object. Only reads and updates of the object
+              --  as a whole require atomic synchronization (RM C.6 (15)).
+
+              N_Indexed_Component   |
+              N_Selected_Component  |
+              N_Slice               =>
+
+            --  For all the above cases, nothing to do if we are the prefix
+
+            if Prefix (Parent (N)) = N then
+               return;
+            end if;
+
+         when others => null;
+      end case;
+
+      --  Go ahead and set the flag
+
+      Set_Atomic_Sync_Required (N);
+
+      --  Generate info message if requested
+
+      if Warn_On_Atomic_Synchronization then
+         case Nkind (N) is
+            when N_Identifier =>
+               Msg_Node := N;
+
+            when N_Selected_Component | N_Expanded_Name =>
+               Msg_Node := Selector_Name (N);
+
+            when N_Explicit_Dereference | N_Indexed_Component =>
+               Msg_Node := Empty;
+
+            when others =>
+               pragma Assert (False);
+               return;
+         end case;
+
+         if Present (Msg_Node) then
+            Error_Msg_N ("?info: atomic synchronization set for &", Msg_Node);
+         else
+            Error_Msg_N ("?info: atomic synchronization set", N);
+         end if;
+      end if;
+   end Activate_Atomic_Synchronization;
+
    ----------------------
    -- Adjust_Condition --
    ----------------------
@@ -4203,9 +4273,14 @@ package body Exp_Util is
          return True;
       end if;
 
-      --  Case of component reference
+      --  Case of indexed component reference: test whether prefix is unaligned
 
-      if Nkind (N) = N_Selected_Component then
+      if Nkind (N) = N_Indexed_Component then
+         return Is_Possibly_Unaligned_Object (Prefix (N));
+
+      --  Case of selected component reference
+
+      elsif Nkind (N) = N_Selected_Component then
          declare
             P : constant Node_Id   := Prefix (N);
             C : constant Entity_Id := Entity (Selector_Name (N));

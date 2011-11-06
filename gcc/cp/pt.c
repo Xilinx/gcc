@@ -4650,7 +4650,7 @@ check_default_tmpl_args (tree decl, tree parms, int is_primary,
 	     "friend declarations");
   else if (TREE_CODE (decl) == FUNCTION_DECL && (cxx_dialect == cxx98))
     msg = G_("default template arguments may not be used in function templates "
-	     "without -std=c++0x or -std=gnu++0x");
+	     "without -std=c++11 or -std=gnu++11");
   else if (is_partial)
     msg = G_("default template arguments may not be used in "
 	     "partial specializations");
@@ -15717,7 +15717,7 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
         }
       else
 	{
-	  tree bad_old_arg, bad_new_arg;
+	  tree bad_old_arg = NULL_TREE, bad_new_arg = NULL_TREE;
 	  tree old_args = ARGUMENT_PACK_ARGS (old_pack);
 
 	  if (!comp_template_args_with_info (old_args, new_args,

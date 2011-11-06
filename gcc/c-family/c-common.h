@@ -643,11 +643,12 @@ extern int flag_use_repository;
 /* The supported C++ dialects.  */
 
 enum cxx_dialect {
-  /* C++98  */
+  /* C++98 with TC1  */
   cxx98,
-  /* Experimental features that are likely to become part of
-     C++0x.  */
-  cxx0x
+  cxx03 = cxx98,
+  /* C++11  */
+  cxx0x,
+  cxx11 = cxx0x
 };
 
 /* The C++ dialect being used. C++98 is the default.  */
@@ -955,7 +956,8 @@ extern bool c_dump_tree (void *, tree);
 
 extern void verify_sequence_points (tree);
 
-extern tree fold_offsetof (tree, tree);
+extern tree fold_offsetof_1 (tree);
+extern tree fold_offsetof (tree);
 
 /* Places where an lvalue, or modifiable lvalue, may be required.
    Used to select diagnostic messages in lvalue_error and
