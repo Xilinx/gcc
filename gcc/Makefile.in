@@ -2310,10 +2310,10 @@ gtype-desc.o: gtype-desc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(CFGLOOP_H) $(TARGET_H) $(IPA_PROP_H) $(LTO_STREAMER_H) \
 	target-globals.h
 
-trans-mem.o : trans-mem.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-	$(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) tree-pass.h except.h \
-	$(DIAGNOSTIC_H) $(TOPLEV_H) $(FLAGS_H) $(DEMANGLE_H) $(TRANS_MEM_H) \
-	$(TREE_DUMP_H) $(PARAMS_H) $(TARGET_DEF_H) \
+trans-mem.o : trans-mem.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+	$(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) $(TREE_PASS_H) $(TREE_INLINE_H) \
+	$(DIAGNOSTIC_CORE_H) $(DEMANGLE_H) output.h $(TRANS_MEM_H) \
+	$(PARAMS_H) $(TARGET_H) langhooks.h \
 	tree-pretty-print.h gimple-pretty-print.h
 
 ggc-common.o: ggc-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h		\
