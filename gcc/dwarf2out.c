@@ -3543,6 +3543,12 @@ static void gen_scheduled_generic_parms_dies (void);
 #ifndef COLD_TEXT_SECTION_LABEL
 #define COLD_TEXT_SECTION_LABEL         "Ltext_cold"
 #endif
+#ifndef DEBUG_PUBNAMES_SECTION_LABEL
+#define DEBUG_PUBNAMES_SECTION_LABEL	"Ldebug_pubnames"
+#endif
+#ifndef DEBUG_PUBTYPES_SECTION_LABEL
+#define DEBUG_PUBTYPES_SECTION_LABEL	"Ldebug_pubtypes"
+#endif
 #ifndef DEBUG_LINE_SECTION_LABEL
 #define DEBUG_LINE_SECTION_LABEL	"Ldebug_line"
 #endif
@@ -3579,6 +3585,8 @@ static char cold_end_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char abbrev_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char debug_info_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char debug_line_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
+static char debug_pubnames_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
+static char debug_pubtypes_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char macinfo_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char loc_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char ranges_section_label[2 * MAX_ARTIFICIAL_LABEL_BYTES];
@@ -8692,6 +8700,10 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
 
+  if (names == pubname_table)
+    ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
+  else
+    ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
@@ -21040,6 +21052,10 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 
   ASM_GENERATE_INTERNAL_LABEL (debug_info_section_label,
 			       DEBUG_INFO_SECTION_LABEL, 0);
+  ASM_GENERATE_INTERNAL_LABEL (debug_pubnames_section_label,
+			       DEBUG_PUBNAMES_SECTION_LABEL, 0);
+  ASM_GENERATE_INTERNAL_LABEL (debug_pubtypes_section_label,
+			       DEBUG_PUBTYPES_SECTION_LABEL, 0);
   ASM_GENERATE_INTERNAL_LABEL (debug_line_section_label,
 			       DEBUG_LINE_SECTION_LABEL, 0);
   ASM_GENERATE_INTERNAL_LABEL (ranges_section_label,
@@ -22644,6 +22660,22 @@ dwarf2out_finish (const char *filename)
       *slot = ctnode;
     }
   htab_delete (comdat_type_table);
+
+  /* Add the DW_AT_GNU_pubnames and DW_AT_GNU_pubtypes attributes.  */
+  if (!VEC_empty (pubname_entry, pubname_table))
+    {
+      /* FIXME: Should use add_AT_pubnamesptr.  This works because
+         most targets don't care what the base section is.  */
+      add_AT_lineptr (comp_unit_die (), DW_AT_GNU_pubnames,
+		      debug_pubnames_section_label);
+    }
+  if (!VEC_empty (pubname_entry, pubtype_table))
+    {
+      /* FIXME: Should use add_AT_pubtypesptr.  This works because
+         most targets don't care what the base section is.  */
+      add_AT_lineptr (comp_unit_die (), DW_AT_GNU_pubtypes,
+		      debug_pubtypes_section_label);
+    }
 
   /* Output the main compilation unit if non-empty or if .debug_macinfo
      will be emitted.  */
