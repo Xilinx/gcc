@@ -4211,6 +4211,7 @@ ipa_tm_create_version (struct cgraph_node *old_node)
     DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
 
   new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL, NULL);
+  new_node->lowered = true;
   new_node->tm_clone = 1;
   get_cg_data (old_node)->clone = new_node;
 

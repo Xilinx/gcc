@@ -69,8 +69,7 @@
 	(struct cgraph_local_info): Add tm_may_enter_irr.
 	(cgraph_copy_node_for_versioning): Declare.
 	* cgraphunit.c (cgraph_copy_node_for_versioning): Export;
-	copy analyzed from old version. Move setting lowered to true from ...
-	(cgraph_function_versioning): ... here.
+	copy analyzed from old version.
 	* combine.c (distribute_notes): Handle REG_TM notes.
 	* common.opt: Add -fgnu-tm.
 	* crtstuff.c (__TMC_LIST__, __TMC_END__): New.
