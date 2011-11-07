@@ -791,7 +791,7 @@ static const char *cc1_options =
  %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}}\
  %{fsyntax-only:-o %j} %{-param*}\
  %{fmudflap|fmudflapth:-fno-builtin -fno-merge-constants}\
- %{coverage:-fprofile-arcs -ftest-coverage}";
+ %{coverage:-fprofile-arcs -ftest-coverage -fno-early-inlining}";
 
 /* If an assembler wrapper is used to invoke post-assembly tools
    like MAO, --save-temps need to be passed to save the output of

@@ -1,3 +1,7 @@
+2011-11-07   Sharad Singhai  <singhai@google.com>
+
+       * gcc.c (cc1_options): Added -fno-early-inlining for coverage.
+
 2011-11-04   Rong Xu  <xur@google.com>
 
 	* gcc/c-family/c-opts.c: move the notes under fopt-info.
