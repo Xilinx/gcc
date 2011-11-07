@@ -120,7 +120,7 @@
 	(GTFILES): Add trans-mem.c.
 	* omp-low.c (WALK_SUBSTMTS): Add GIMPLE_TRANSACTION.
 	* output.h (record_tm_clone_pair, finish_tm_clone_pairs,
-	finish_tm_clone_pairs_1, get_tm_clone_pair): Declare.
+	get_tm_clone_pair): Declare.
 	* params.def (PARAM_TM_MAX_AGGREGATE_SIZE): New.
 	* passes.c (init_optimization_passes): Place transactional memory
 	passes.
@@ -189,6 +189,7 @@
 	(build_tm_abort_call, is_tm_safe, is_tm_pure,
 	is_tm_may_cancel_outer, is_tm_ending_fndecl, record_tm_replacement,
 	tm_malloc_replacement): Declare.
-	* varasm.c (tm_clone_pairs): New.
-	(record_tm_clone_pair, finish_tm_clone_pairs, finish_tm_clone_pairs_1,
-	get_tm_clone_pair): New.
+	* varasm.c (tm_clone_hash): New.
+	(record_tm_clone_pair, finish_tm_clone_pairs, get_tm_clone_pair,
+	dump_tm_clone_to_vec, dump_tm_clone_pairs, tm_alias_pair_cmp): New.
+	(struct tm_alias_pair): New.  Declare VEC types for object.

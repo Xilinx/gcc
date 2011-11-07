@@ -608,7 +608,6 @@ extern void output_section_asm_op (const void *);
 
 extern void record_tm_clone_pair (tree, tree);
 extern void finish_tm_clone_pairs (void);
-extern int finish_tm_clone_pairs_1 (void **, void *);
 extern tree get_tm_clone_pair (tree);
 
 extern void default_asm_output_source_filename (FILE *, const char *);
