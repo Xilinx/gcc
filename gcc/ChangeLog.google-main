@@ -1,3 +1,7 @@
+2011-11-07   Rong Xu  <xur@google.com>
+
+	* gcc/dwarf2out.c (dwarf2out_decl): fix mixed declarations and code.
+
 2011-11-07   Sharad Singhai  <singhai@google.com>
 
        * gcc.c (cc1_options): Added -fno-early-inlining for coverage.
