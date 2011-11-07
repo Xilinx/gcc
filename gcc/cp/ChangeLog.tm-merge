@@ -10,7 +10,9 @@
 	(look_for_tm_attr_overrides, set_one_vmethod_tm_attributes,
 	set_method_tm_attributes): New.
 	(finish_struct_1): Call set_method_tm_attributes.
-	* cp-tree.h (begin_transaction_stmt, finish_transaction_stmt): Declare.
+	* cp-tree.h (begin_transaction_stmt, finish_transaction_stmt,
+	build_transaction_expr): Declare.
+	(TRANSACTION_EXPR_IS_STMT): New.
 	* decl.c (push_cp_library_fn): Set attribute to transaction_safe.
 	* except.c (do_get_exception_ptr): Apply transaction_pure.
 	(do_begin_catch): Mark _ITM_cxa_begin_catch transaction_pure and
@@ -30,4 +32,5 @@
 	cp_parser_token_starts_function_definition_p): Same.
 	(cp_parser_required_error): Handle RT_TRANSACTION*.
 	* pt.c (tsubst_expr): Handle TRANSACTION_EXPR.
-	* semantics.c (begin_transaction_stmt, finish_transaction_stmt): New.
+	* semantics.c (begin_transaction_stmt, finish_transaction_stmt,
+	build_transaction_expr): New.

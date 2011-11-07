@@ -5003,10 +5003,24 @@ finish_transaction_stmt (tree stmt, tree compound_stmt, int flags)
   TRANSACTION_EXPR_BODY (stmt) = pop_stmt_list (TRANSACTION_EXPR_BODY (stmt));
   TRANSACTION_EXPR_OUTER (stmt) = (flags & TM_STMT_ATTR_OUTER) != 0;
   TRANSACTION_EXPR_RELAXED (stmt) = (flags & TM_STMT_ATTR_RELAXED) != 0;
+  TRANSACTION_EXPR_IS_STMT (stmt) = 1;
 
   if (compound_stmt)
     finish_compound_stmt (compound_stmt);
   finish_stmt ();
+}
+
+/* Build a __transaction_atomic or __transaction_relaxed expression.  */
+
+tree
+build_transaction_expr (location_t loc, tree expr, int flags)
+{
+  tree ret;
+  ret = build1 (TRANSACTION_EXPR, TREE_TYPE (expr), expr);
+  if (flags & TM_STMT_ATTR_RELAXED)
+	TRANSACTION_EXPR_RELAXED (ret) = 1;
+  SET_EXPR_LOCATION (ret, loc);
+  return ret;
 }
 
 void

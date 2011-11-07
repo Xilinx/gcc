@@ -26682,10 +26682,7 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
       tree expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
-      ret = build1 (TRANSACTION_EXPR, TREE_TYPE (expr), expr);
-      if (this_in & TM_STMT_ATTR_RELAXED)
-	TRANSACTION_EXPR_RELAXED (ret) = 1;
-      SET_EXPR_LOCATION (ret, token->location);
+      ret = build_transaction_expr (token->location, expr, this_in);
     }
   else
     {
