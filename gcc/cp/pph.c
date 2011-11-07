@@ -45,7 +45,7 @@ FILE *pph_logfile = NULL;
 
 /* Convert a checked tree_code CODE to a string.  */
 
-const char*
+const char *
 pph_tree_code_text (enum tree_code code)
 {
   gcc_assert (code < MAX_TREE_CODES);

@@ -335,12 +335,64 @@ pph_add_include (pph_stream *stream, pph_stream *include)
 }
 
 
+/* Trace a record MARKER and TAG.  */
+
+static const char *marker_strings[] =
+{
+  "PPH_RECORD_START",
+  "PPH_RECORD_START_NO_CACHE",
+  "PPH_RECORD_START_MUTATED",
+  "PPH_RECORD_START_MERGE_KEY",
+  "PPH_RECORD_START_MERGE_BODY",
+  "PPH_RECORD_END",
+  "PPH_RECORD_IREF",
+  "PPH_RECORD_XREF",
+  "PPH_RECORD_PREF"
+};
+
+static const char *tag_strings[] =
+{
+  "PPH_any_tree",
+  "PPH_binding_entry",
+  "PPH_binding_table",
+  "PPH_cgraph_node",
+  "PPH_cp_binding_level",
+  "PPH_cp_class_binding",
+  "PPH_cp_label_binding",
+  "PPH_cxx_binding",
+  "PPH_function",
+  "PPH_lang_decl",
+  "PPH_lang_type",
+  "PPH_language_function",
+  "PPH_sorted_fields_type"
+};
+
+void
+pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag)
+{
+  fprintf (pph_logfile, "marker ");
+  if (PPH_RECORD_START <= marker && marker <= PPH_RECORD_PREF)
+    fprintf (pph_logfile, "%s", marker_strings[marker - PPH_RECORD_START]);
+  else
+    fprintf (pph_logfile, "unknown");
+  fprintf (pph_logfile, " tag ");
+  if (tag == PPH_null)
+    fprintf (pph_logfile, "PPH_null\n");
+  else if (tag < PPH_any_tree)
+    fprintf (pph_logfile, "%s\n", tree_code_name[tag]);
+  else if (tag < PPH_NUM_TAGS)
+    fprintf (pph_logfile, "%s\n", tag_strings[tag - PPH_any_tree]);
+  else
+    fprintf (pph_logfile, "unknown\n");
+}
+
+
 /* Print tracing information for a possibly MERGEABLE tree T.  */
 
 void
-pph_trace_tree (tree t, enum pph_trace_kind kind)
+pph_trace_tree (tree t, enum pph_trace_end end, enum pph_trace_kind kind)
 {
-  char kind_char, decl_char;
+  char end_char, kind_char, decl_char;
   bool is_merge, is_decl;
   bool emit = false;
 
@@ -375,6 +427,8 @@ pph_trace_tree (tree t, enum pph_trace_kind kind)
 	is_merge = false;
     }
 
+  end_char = end == pph_trace_front ? '{' : '}';
+
   is_decl = DECL_P (t);
   if (is_decl)
     decl_char = 'D';
@@ -392,8 +446,8 @@ pph_trace_tree (tree t, enum pph_trace_kind kind)
 
   if (emit)
     {
-      fprintf (pph_logfile, "PPH: %c%c ", kind_char, decl_char);
-      if (kind == pph_trace_unmerged_key)
+      fprintf (pph_logfile, "PPH: %c%c%c ", end_char, kind_char, decl_char);
+      if (kind == pph_trace_unmerged_key || end == pph_trace_front)
 	fprintf (pph_logfile, "%s -------\n",
 			      pph_tree_code_text (TREE_CODE (t)));
       else

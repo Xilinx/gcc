@@ -1,3 +1,9 @@
+2011-11-07   Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp (dg-pph-pos): Recognize bogus errors.
+	* g++.dg/pph/x0namespace2.h: New.
+	* g++.dg/pph/x4namespace.cc: New.
+
 2011-10-29   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1keyed.cc: Mark fixed.

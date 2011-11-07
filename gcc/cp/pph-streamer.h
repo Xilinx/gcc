@@ -239,6 +239,11 @@ enum pph_trace_kind
   pph_trace_merge_body, pph_trace_mutate, pph_trace_normal
 };
 
+enum pph_trace_end
+{
+  pph_trace_front, pph_trace_back
+};
+
 /* In pph-streamer.c.  */
 void pph_streamer_init (void);
 void pph_streamer_finish (void);
@@ -246,7 +251,8 @@ pph_stream *pph_stream_open (const char *, const char *);
 void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);
-void pph_trace_tree (tree, enum pph_trace_kind);
+void pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag);
+void pph_trace_tree (tree, enum pph_trace_end, enum pph_trace_kind);
 pph_cache_entry *pph_cache_insert_at (pph_cache *, void *, unsigned,
 				      enum pph_tag);
 pph_cache_entry *pph_cache_lookup (pph_cache *, void *, unsigned *,

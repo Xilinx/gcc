@@ -1,3 +1,38 @@
+2011-11-07   Lawrence Crowl  <crowl@google.com>
+
+	* pph.c (pph_tree_code_text): Fix formatting.
+	* pph-streamer.h (enum pph_trace_end): New.
+	(pph_trace_tree): Add 'which end' parameter.
+	(pph_trace_marker): New.
+	* gcc/cp/pph-streamer.c (marker_strings[]): New.
+	(tag_strings[]): New.
+	(pph_trace_marker): New.
+	(pph_trace_tree): Add tree prefix tracing.
+	* pph-streamer-out.c: Add section separators.
+	(pph_out_stream): Move to stream initialization section.
+	(pph_out_record_marker): Add record tracing.
+	(chain2vec_filter): Disable assert on 'none' filter.
+	(pph_out_chain_filtered): Likewise.
+	(pph_out_binding_merge_bodies): Add more merge fodder.
+	(pph_out_merge_key_tree): Add tree prefix tracing.
+	(pph_out_tree): Likewise.
+	* pph-streamer-in.c: Add section separators.
+	(ALLOC_AND_REGISTER): Move to record handling section.
+	(pph_loc_offset): Move to source information section.
+	(pph_in_record_marker): Add record tracing.
+	(pph_in_binding_level): Factor into pph_in_binding_level and
+	pph_in_binding_level_start.
+	(pph_in_binding_merge_bodies): Factor actual merging into separate
+	pph_in_binding_merge_bodies_1.
+	(pph_in_ld_ns): Merge into a binding if one already exists.
+	(pph_in_tree_body): Add debugging code.
+	(pph_in_merge_key_tree): Add tree prefix tracing.
+	Do not allocate a namespace binding if one exists already.
+	(pph_in_tree): Add prefix tracing.
+	(pph_in_global_binding): Call pph_in_binding_merge_bodies_1 to avoid
+	allocation.
+	
+
 2011-11-01   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer-out.c (pph_out_binding_level_1): Remove streaming of

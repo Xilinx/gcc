@@ -34,16 +34,22 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "parser.h"
 
+
+/****************************************************** forward declarations */
+
+
+/* Forward declarations to avoid circular references.  */
+static void pph_out_merge_key_tree (pph_stream *, tree);
+
+
+/***************************************************** stream initialization */
+
+
 /* PPH stream that we are currently generating.  FIXME pph, this
    global is needed because we call back from various parts of the
    compiler that do not know about PPH (e.g., some LTO callbacks,
    cp_rest_of_decl_compilation).  */
 static pph_stream *pph_out_stream = NULL;
-
-/* Forward declarations to avoid circular references.  */
-static void pph_out_merge_key_tree (pph_stream *, tree);
-
-/***************************************************** stream initialization */
 
 
 /* Initialize buffers and tables in STREAM for writing.  */
@@ -417,6 +423,9 @@ pph_out_record_marker (pph_stream *stream, enum pph_record_marker marker,
 
   gcc_assert (tag == (enum pph_tag)(unsigned) tag);
   pph_out_uint (stream, tag);
+
+  if (flag_pph_tracer >= 5)
+    pph_trace_marker (marker, tag);
 }
 
 
@@ -589,6 +598,7 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
         marker = PPH_RECORD_START_NO_CACHE;
 
       pph_out_record_marker (stream, marker, tag);
+
       if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MERGE_BODY)
         {
           unsigned ix;
@@ -645,6 +655,7 @@ pph_out_start_merge_key_record (pph_stream *stream, tree expr)
 
   tag = pph_tree_code_to_tag (expr);
   marker = pph_get_marker_for (stream, expr, &include_ix, &ix, tag);
+
   if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
     {
       pph_out_reference_record (stream, marker, include_ix, ix, tag);
@@ -964,7 +975,7 @@ chain2vec_filter (pph_stream *stream, tree chain, unsigned filter)
   /* Do not accept the nil filter.  The caller is responsible for
      freeing the returned vector and they may inadvertently free
      a vector they assumed to be allocated by this function.  */
-  gcc_assert (filter != PPHF_NONE);
+  /* FIXME crowl: gcc_assert (filter != PPHF_NONE); */
 
   for (t = chain; t; t = TREE_CHAIN (t))
     if (pph_tree_matches (stream, t, filter))
@@ -1004,14 +1015,9 @@ pph_out_chain (pph_stream *stream, tree first)
 static void
 pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
 {
-  if (filter == PPHF_NONE)
-    pph_out_chain (stream, first);
-  else
-    {
-      VEC(tree,heap) *w = chain2vec_filter (stream, first, filter);
-      pph_out_tree_vec_unchain (stream, (VEC(tree,gc) *)w);
-      VEC_free (tree, heap, w);
-    }
+  VEC(tree,heap) *w = chain2vec_filter (stream, first, filter);
+  pph_out_tree_vec_unchain (stream, (VEC(tree,gc) *)w);
+  VEC_free (tree, heap, w);
 }
 
 
@@ -1205,6 +1211,7 @@ pph_out_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
   pph_out_merge_body_chain (stream, bl->usings, filter);
   pph_out_merge_body_chain (stream, bl->using_directives, filter);
   pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
+  pph_out_binding_level_1 (stream, bl, filter);
 }
 
 
@@ -2034,6 +2041,9 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
   if (pph_out_start_merge_key_record (stream, expr))
     return;
 
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, pph_trace_front, pph_trace_key_out);
+
   /* Write merge key information.  This includes EXPR's header (needed
      to re-allocate EXPR in the reader) and the merge key, used to
      lookup EXPR in the reader's context and merge if necessary.  */
@@ -2061,7 +2071,7 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_key_out);
+    pph_trace_tree (expr, pph_trace_back, pph_trace_key_out);
 }
 
 
@@ -2088,6 +2098,7 @@ pph_out_tree (pph_stream *stream, tree expr)
          the class and code.  */
       gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
       streamer_write_builtin (stream->encoder.w.ob, expr);
+      return;
     }
   else if (TREE_CODE (expr) == INTEGER_CST)
     {
@@ -2096,8 +2107,16 @@ pph_out_tree (pph_stream *stream, tree expr)
 	 TYPE_CACHED_VALUES).  */
       gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
       streamer_write_integer_cst (stream->encoder.w.ob, expr, false);
+      return;
     }
-  else if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
+
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, pph_trace_front,
+	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
+	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
+	: pph_trace_normal);
+
+  if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
 
       /* This is the first time we see EXPR, write it out.  */
@@ -2125,10 +2144,10 @@ pph_out_tree (pph_stream *stream, tree expr)
     gcc_unreachable ();
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr,
+    pph_trace_tree (expr, pph_trace_back,
 	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
-	: pph_trace_normal );
+	: pph_trace_normal);
 }
 
 
@@ -2368,11 +2387,6 @@ pph_out_global_binding (pph_stream *stream)
      multiple PPH images.  */
   pph_out_binding_merge_keys (stream, bl);
   pph_out_binding_merge_bodies (stream, bl);
-
-  /* Emit the other fields in BL that need no merging.  */
-  /* FIXME pph: Are we sure this is right?  */
-  pph_out_binding_level_1 (stream, bl,
-			   PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS);
 }
 
 
