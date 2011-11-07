@@ -56,7 +56,7 @@
 	* c-typeck.c (c_finish_transaction): New.
 	(build_function_call_vec): Call tm_malloc_replacement.
 	* calls.c (is_tm_builtin): New.
-	(flags_from_decl_or_type): Add ECF_TM_OPS for TM clones.
+	(flags_from_decl_or_type): Add ECF_TM_BUILTIN and ECF_TM_PURE.
 	* cfgbuild.c (make_edges): Add edges for REG_TM notes.
 	* cfgexpand.c (expand_call_stmt): Call
 	mark_transaction_restart_calls.
@@ -176,14 +176,15 @@
 	vector stores and loads. Handle BUILT_IN_TM_MEMSET,
 	BUILT_IN_TM_MEMCPY, BUILT_IN_TM_MEMMOVE.
 	* tree.c (strip_invariant_refs): Moved from gimple.c to here.
-	(build_common_builtin_nodes): Set __builtin_eh_pointer to
-	transaction_pure.
+	(local_define_builtin): Handle ECF_TM_PURE.
+	(build_common_builtin_nodes): Set __builtin_eh_pointer to ECF_TM_PURE.
 	* tree.def (TRANSACTION_EXPR): New.
 	* tree.h (strip_invariant_refs): Moved from gimple.h to here.
 	(TRANSACTION_EXPR_BODY, TRANSACTION_EXPR_CHECK,
 	TRANSACTION_EXPR_OUTER, TRANSACTION_EXPR_RELAXED,
 	BUILTIN_TM_LOAD_STORE_P, BUILTIN_TM_LOAD_P, BUILTIN_TM_STORE_P,
-	CASE_BUILT_IN_TM_LOAD, CASE_BUILT_IN_TM_STORE, ECF_TM_OPS): New.
+	CASE_BUILT_IN_TM_LOAD, CASE_BUILT_IN_TM_STORE): New.
+	(ECF_TM_PURE, ECF_TM_BUILTIN): New.
 	(struct tree_function_decl): Add tm_clone_flag.
 	(struct_ptr_eq, struct_ptr_hash): New.
 	(apply_tm_attr): Declare.

@@ -2298,9 +2298,9 @@ is_ctrl_altering_stmt (gimple t)
 	  return true;
 
 	/* TM ending statements have backedges out of the transaction.
-	   Return true so we split the basic block containing
-	   them.  */
-	if ((flags & ECF_TM_OPS)
+	   Return true so we split the basic block containing them.
+	   Note that the TM_BUILTIN test is merely an optimization.  */
+	if ((flags & ECF_TM_BUILTIN)
 	    && is_tm_ending_fndecl (gimple_call_fndecl (t)))
 	  return true;
 

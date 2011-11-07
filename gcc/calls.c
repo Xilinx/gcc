@@ -707,13 +707,28 @@ flags_from_decl_or_type (const_tree exp)
       if (TREE_NOTHROW (exp))
 	flags |= ECF_NOTHROW;
 
-      if (is_tm_builtin (exp))
-	flags |= ECF_TM_OPS;
+      if (flag_tm)
+	{
+	  if (is_tm_builtin (exp))
+	    flags |= ECF_TM_BUILTIN;
+	  else if ((flags & ECF_CONST) != 0
+		   || lookup_attribute ("transaction_pure",
+					TYPE_ATTRIBUTES (TREE_TYPE (exp))))
+	    flags |= ECF_TM_PURE;
+	}
 
       flags = special_function_p (exp, flags);
     }
-  else if (TYPE_P (exp) && TYPE_READONLY (exp))
-    flags |= ECF_CONST;
+  else if (TYPE_P (exp))
+    {
+      if (TYPE_READONLY (exp))
+	flags |= ECF_CONST;
+
+      if (flag_tm
+	  && ((flags & ECF_CONST) != 0
+	      || lookup_attribute ("transaction_pure", TYPE_ATTRIBUTES (exp))))
+	flags |= ECF_TM_PURE;
+    }
 
   if (TREE_THIS_VOLATILE (exp))
     {

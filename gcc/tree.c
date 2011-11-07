@@ -9428,6 +9428,8 @@ local_define_builtin (const char *name, tree type, enum built_in_function code,
   if (ecf_flags & ECF_LEAF)
     DECL_ATTRIBUTES (decl) = tree_cons (get_identifier ("leaf"),
 					NULL, DECL_ATTRIBUTES (decl));
+  if ((ecf_flags & ECF_TM_PURE) && flag_tm)
+    apply_tm_attr (decl, get_identifier ("transaction_pure"));
 
   set_builtin_decl (code, decl, true);
 }
@@ -9593,10 +9595,8 @@ build_common_builtin_nodes (void)
   ftype = build_function_type_list (ptr_type_node,
 				    integer_type_node, NULL_TREE);
   local_define_builtin ("__builtin_eh_pointer", ftype, BUILT_IN_EH_POINTER,
-			"__builtin_eh_pointer", ECF_PURE | ECF_NOTHROW | ECF_LEAF);
-  if (flag_tm)
-    apply_tm_attr (builtin_decl_explicit (BUILT_IN_EH_POINTER),
-		   get_identifier ("transaction_pure"));
+			"__builtin_eh_pointer",
+			ECF_PURE | ECF_NOTHROW | ECF_LEAF | ECF_TM_PURE);
 
   tmp = lang_hooks.types.type_for_mode (targetm.eh_return_filter_mode (), 0);
   ftype = build_function_type_list (tmp, integer_type_node, NULL_TREE);

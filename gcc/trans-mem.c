@@ -172,14 +172,8 @@ get_attrs_for (const_tree x)
 bool
 is_tm_pure (const_tree x)
 {
-  if (flag_tm)
-    {
-      tree attrs = get_attrs_for (x);
-      if (attrs)
-	return lookup_attribute ("transaction_pure", attrs) != NULL;
-      return false;
-    }
-  return false;
+  unsigned flags = flags_from_decl_or_type (x);
+  return (flags & ECF_TM_PURE) != 0;
 }
 
 /* Return true if X has been marked TM_IRREVOCABLE.  */
@@ -229,10 +223,6 @@ static bool
 is_tm_pure_call (gimple call)
 {
   tree fn = gimple_call_fn (call);
-  unsigned flags;
-
-  if (is_tm_pure (TREE_TYPE (fn)))
-    return true;
 
   if (TREE_CODE (fn) == ADDR_EXPR)
     {
@@ -241,9 +231,8 @@ is_tm_pure_call (gimple call)
     }
   else
     fn = TREE_TYPE (fn);
-  flags = flags_from_decl_or_type (fn);
 
-  return (flags & ECF_CONST) != 0;
+  return is_tm_pure (fn);
 }
 
 /* Return true if X has been marked TM_CALLABLE.  */
@@ -2484,7 +2473,7 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
 }
 
 
-/* Split block BB as necessary for every TM_OPS function we added, and
+/* Split block BB as necessary for every builtin function we added, and
    wire up the abnormal back edges implied by the transaction restart.  */
 
 static void
@@ -2496,15 +2485,16 @@ expand_block_edges (struct tm_region *region, basic_block bb)
     {
       gimple stmt = gsi_stmt (gsi);
 
-      /* ??? TM_COMMIT (and any other ECF_TM_OPS function) in a nested
+      /* ??? TM_COMMIT (and any other tm builtin function) in a nested
 	 transaction has an abnormal edge back to the outer-most transaction
 	 (there are no nested retries), while a TM_ABORT also has an abnormal
 	 backedge to the inner-most transaction.  We haven't actually saved
 	 the inner-most transaction here.  We should be able to get to it
 	 via the region_nr saved on STMT, and read the transaction_stmt from
 	 that, and find the first region block from there.  */
+      /* ??? Shouldn't we split for any non-pure, non-irrevocable function?  */
       if (gimple_code (stmt) == GIMPLE_CALL
-	  && (gimple_call_flags (stmt) & ECF_TM_OPS) != 0)
+	  && (gimple_call_flags (stmt) & ECF_TM_BUILTIN) != 0)
 	{
 	  if (gsi_one_before_end_p (gsi))
 	    make_tm_edge (stmt, bb, region);
@@ -3934,11 +3924,18 @@ ipa_tm_mayenterirr_function (struct cgraph_node *node)
 {
   struct tm_ipa_cg_data *d = get_cg_data (node);
   tree decl = node->decl;
+  unsigned flags = flags_from_decl_or_type (decl);
+
+  /* Handle some TM builtins.  Ordinarily these aren't actually generated
+     at this point, but handling these functions when written in by the
+     user makes it easier to build unit tests.  */
+  if (flags & ECF_TM_BUILTIN)
+    return false;
 
   /* Filter out all functions that are marked.  */
-  if (is_tm_safe_or_pure (decl))
+  if (flags & ECF_TM_PURE)
     return false;
-  if ((flags_from_decl_or_type (decl) & ECF_CONST) != 0)
+  if (is_tm_safe (decl))
     return false;
   if (is_tm_irrevocable (decl))
     return true;
@@ -3946,11 +3943,6 @@ ipa_tm_mayenterirr_function (struct cgraph_node *node)
     return true;
   if (find_tm_replacement_function (decl))
     return true;
-
-  /* Handle some TM builtins.  */
-  if (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL
-      && (flags_from_decl_or_type (decl) & ECF_TM_OPS) != 0)
-    return false;
 
   /* If we aren't seeing the final version of the function we don't
      know what it will contain at runtime.  */
@@ -4394,8 +4386,10 @@ ipa_tm_transform_calls_redirect (struct cgraph_node *node,
       return;
     }
 
-  /* If the call is to the TM runtime, do nothing further.  */
-  if (flags_from_decl_or_type (fndecl) & ECF_TM_OPS)
+  /* Handle some TM builtins.  Ordinarily these aren't actually generated
+     at this point, but handling these functions when written in by the
+     user makes it easier to build unit tests.  */
+  if (flags_from_decl_or_type (fndecl) & ECF_TM_BUILTIN)
     return;
 
   /* Fixup recursive calls inside clones.  */

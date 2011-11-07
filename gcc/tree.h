@@ -5601,8 +5601,10 @@ extern tree build_duplicate_type (tree);
 #define ECF_NOVOPS		  (1 << 9)
 /* The function does not lead to calls within current function unit.  */
 #define ECF_LEAF		  (1 << 10)
-/* Nonzero if this call performs a transactional memory operation.  */
-#define ECF_TM_OPS		  (1 << 11)
+/* Nonzero if this call does not affect transactions.  */
+#define ECF_TM_PURE		  (1 << 11)
+/* Nonzero if this call is into the transaction runtime library.  */
+#define ECF_TM_BUILTIN		  (1 << 12)
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
