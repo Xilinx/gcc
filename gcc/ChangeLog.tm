@@ -1,3 +1,26 @@
+2011-11-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* tree-cfg.c (verify_gimple_transaction): Verify body.  Move down.
+	(verify_gimple_in_seq_2): Verify the label in a
+	GIMPLE_TRANSACTION.
+	* function.h (struct function): Move tm_restart field to struct
+	gimple_df in tree-flow.h
+	Move tm_restart_node to tree-flow.h
+	* tree-flow.h (struct gimple_df): New location for tm_restart
+	field.
+	New location for tm_restart_node.
+	(is_transactional_stmt): Remove.
+	* trans-mem.c (is_transactional_stmt): Remove.
+	(make_tm_edge): Field tm_restart is now in gimple_df.
+	* cfgexpand.c (gimple_expand_cfg): Field tm_restart is now in
+	cfun->gimple_df.
+	Free tm_restart.
+	* cfgexpand.c (expand_gimple_stmt): Field tm_restart is now in
+	gimple_df.
+	* ipa-inline.c (can_inline_edge_p): Do not check flag_tm.
+	* trans-mem.c (is_tm_pure): Check flag_tm.
+	(is_tm_safe): Same.
+
 2011-11-05  Aldy Hernandez  <aldyh@redhat.com>
 
 	* cgraph.c (dump_cgraph_node): Handle tm_clone.

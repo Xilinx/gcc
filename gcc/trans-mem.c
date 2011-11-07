@@ -172,9 +172,13 @@ get_attrs_for (const_tree x)
 bool
 is_tm_pure (const_tree x)
 {
-  tree attrs = get_attrs_for (x);
-  if (attrs)
-    return lookup_attribute ("transaction_pure", attrs) != NULL;
+  if (flag_tm)
+    {
+      tree attrs = get_attrs_for (x);
+      if (attrs)
+	return lookup_attribute ("transaction_pure", attrs) != NULL;
+      return false;
+    }
   return false;
 }
 
@@ -205,16 +209,17 @@ is_tm_irrevocable (tree x)
 bool
 is_tm_safe (const_tree x)
 {
-  tree attrs = get_attrs_for (x);
-
-  if (attrs)
+  if (flag_tm)
     {
-      if (lookup_attribute ("transaction_safe", attrs))
-	return true;
-      if (lookup_attribute ("transaction_may_cancel_outer", attrs))
-	return true;
+      tree attrs = get_attrs_for (x);
+      if (attrs)
+	{
+	  if (lookup_attribute ("transaction_safe", attrs))
+	    return true;
+	  if (lookup_attribute ("transaction_may_cancel_outer", attrs))
+	    return true;
+	}
     }
-
   return false;
 }
 
@@ -268,22 +273,6 @@ is_tm_may_cancel_outer (tree x)
   if (attrs)
     return lookup_attribute ("transaction_may_cancel_outer", attrs) != NULL;
   return false;
-}
-
-/* Return true if STMT may alter control flow via a transactional edge.  */
-
-bool
-is_transactional_stmt (const_gimple stmt)
-{
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_CALL:
-      return (gimple_call_flags (stmt) & ECF_TM_OPS) != 0;
-    case GIMPLE_TRANSACTION:
-      return true;
-    default:
-      return false;
-    }
 }
 
 /* Return true for built in functions that "end" a transaction.   */
@@ -2470,13 +2459,13 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
   void **slot;
   struct tm_restart_node *n, dummy;
 
-  if (cfun->tm_restart == NULL)
-    cfun->tm_restart = htab_create_ggc (31, struct_ptr_hash,
-					struct_ptr_eq, ggc_free);
+  if (cfun->gimple_df->tm_restart == NULL)
+    cfun->gimple_df->tm_restart = htab_create_ggc (31, struct_ptr_hash,
+						   struct_ptr_eq, ggc_free);
 
   dummy.stmt = stmt;
   dummy.label_or_list = gimple_block_label (region->entry_block); 
-  slot = htab_find_slot (cfun->tm_restart, &dummy, INSERT);
+  slot = htab_find_slot (cfun->gimple_df->tm_restart, &dummy, INSERT);
   n = (struct tm_restart_node *) *slot;
   if (n == NULL)
     {

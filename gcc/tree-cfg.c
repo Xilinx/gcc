@@ -117,6 +117,7 @@ static int gimple_verify_flow_info (void);
 static void gimple_make_forwarder_block (edge);
 static void gimple_cfg2vcg (FILE *);
 static gimple first_non_label_stmt (basic_block);
+static bool verify_gimple_transaction (gimple);
 
 /* Flowgraph optimization and cleanup.  */
 static void gimple_merge_blocks (basic_block, basic_block);
@@ -4098,18 +4099,6 @@ verify_gimple_switch (gimple stmt)
   return false;
 }
 
-/* Verify the contents of a GIMPLE_TRANSACTION.  Returns true if there
-   is a problem, otherwise false.  */
-
-static bool
-verify_gimple_transaction (gimple stmt)
-{
-  tree lab = gimple_transaction_label (stmt);
-  if (lab != NULL && TREE_CODE (lab) != LABEL_DECL)
-    return true;
-  return false;
-}
-
 /* Verify a gimple debug statement STMT.
    Returns true if anything is wrong.  */
 
@@ -4339,7 +4328,7 @@ verify_gimple_in_seq_2 (gimple_seq stmts)
 	  break;
 
 	case GIMPLE_TRANSACTION:
-	  err |= verify_gimple_in_seq_2 (gimple_transaction_body (stmt));
+	  err |= verify_gimple_transaction (stmt);
 	  break;
 
 	default:
@@ -4353,6 +4342,18 @@ verify_gimple_in_seq_2 (gimple_seq stmts)
     }
 
   return err;
+}
+
+/* Verify the contents of a GIMPLE_TRANSACTION.  Returns true if there
+   is a problem, otherwise false.  */
+
+static bool
+verify_gimple_transaction (gimple stmt)
+{
+  tree lab = gimple_transaction_label (stmt);
+  if (lab != NULL && TREE_CODE (lab) != LABEL_DECL)
+    return true;
+  return verify_gimple_in_seq_2 (gimple_transaction_body (stmt));
 }
 
 
@@ -5122,7 +5123,6 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
     case GIMPLE_TRANSACTION:
       /* The ABORT edge has a stored label associated with it, otherwise
 	 the edges are simply redirectable.  */
-      /* ??? We don't really need this label after the cfg is created.  */
       if (e->flags == 0)
 	gimple_transaction_set_label (stmt, gimple_block_label (dest));
       break;

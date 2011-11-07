@@ -76,8 +76,6 @@
 	(frame_dummy): Register clone table.
 	* emit-rtl.c (try_split): Handle REG_TM. Early return if no function
 	body.
-	* function.h (struct tm_restart_node): New.
-	(struct function): Add tm_restart member.
 	* gimple-low.c (lower_stmt): Handle GIMPLE_EH_ELSE and
 	GIMPLE_TRANSACTION.
 	(gimple_stmt_may_fallthru): Handle GIMPLE_EH_ELSE.
@@ -159,7 +157,8 @@
 	(decide_copy_try_finally): Likewise.
 	(lower_eh_constructs_2): Likewise.
 	(refactor_eh_r): Likewise.
-	* tree-flow.h (is_transactional_stmt): Declare.
+	* tree-flow.h (struct gimple_df): Add tm_restart field.
+	Define tm_restart_node.
 	* tree-inline.c (remap_gimple_stmt): Handle GIMPLE_TRANSACTION.
 	(estimate_num_insns): Likewise.
 	(init_inline_once): Init tm_cost.

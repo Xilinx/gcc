@@ -33,6 +33,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-alias.h"
 
 
+/* This structure is used to map a gimple statement to a label,
+   or list of labels to represent transaction restart.  */
+
+struct GTY(()) tm_restart_node {
+  gimple stmt;
+  tree label_or_list;
+};
+
 /* Gimple dataflow datastructure. All publicly available fields shall have
    gimple_ accessor defined in tree-flow-inline.h, all publicly modifiable
    fields should have gimple_set accessor.  */
@@ -80,6 +88,10 @@ struct GTY(()) gimple_df {
   unsigned int ipa_pta : 1;
 
   struct ssa_operands ssa_operands;
+
+  /* Map gimple stmt to tree label (or list of labels) for transaction
+     restart and abort.  */
+  htab_t GTY ((param_is (struct tm_restart_node))) tm_restart;
 };
 
 /* Accessors for internal use only.  Generic code should use abstraction
@@ -777,9 +789,6 @@ extern bool maybe_duplicate_eh_stmt_fn (struct function *, gimple,
 extern bool maybe_duplicate_eh_stmt (gimple, gimple);
 extern bool verify_eh_edges (gimple);
 extern bool verify_eh_dispatch_edge (gimple);
-
-/* In gtm-low.c  */
-extern bool is_transactional_stmt (const_gimple);
 
 /* In tree-ssa-pre.c  */
 struct pre_expr_d;

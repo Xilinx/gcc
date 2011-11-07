@@ -2097,13 +2097,13 @@ expand_gimple_stmt (gimple stmt)
     }
 
   /* Mark all calls that can have a transaction restart.  */
-  if (cfun->tm_restart && is_gimple_call (stmt))
+  if (cfun->gimple_df->tm_restart && is_gimple_call (stmt))
     {
       struct tm_restart_node dummy;
       void **slot;
 
       dummy.stmt = stmt;
-      slot = htab_find_slot (cfun->tm_restart, &dummy, NO_INSERT);
+      slot = htab_find_slot (cfun->gimple_df->tm_restart, &dummy, NO_INSERT);
       if (slot)
 	{
 	  struct tm_restart_node *n = (struct tm_restart_node *) *slot;
@@ -4483,7 +4483,11 @@ gimple_expand_cfg (void)
   naked_return_label = NULL;
 
   /* After expanding, the tm_restart map is no longer needed.  */
-  cfun->tm_restart = NULL;
+  if (cfun->gimple_df->tm_restart)
+    {
+      htab_delete (cfun->gimple_df->tm_restart);
+      cfun->gimple_df->tm_restart = NULL;
+    }
 
   /* Tag the blocks with a depth number so that change_scope can find
      the common parent easily.  */
