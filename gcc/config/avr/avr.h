@@ -308,13 +308,13 @@ enum reg_class {
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
 
-#define MODE_CODE_BASE_REG_CLASS(mode, outer_code, index_code) \
-  avr_mode_code_base_reg_class (mode, outer_code, index_code)
+#define MODE_CODE_BASE_REG_CLASS(mode, as, outer_code, index_code)   \
+  avr_mode_code_base_reg_class (mode, as, outer_code, index_code)
 
 #define INDEX_REG_CLASS NO_REGS
 
-#define REGNO_MODE_CODE_OK_FOR_BASE_P(num, mode, outer_code, index_code) \
-  avr_regno_mode_code_ok_for_base_p (num, mode, outer_code, index_code)
+#define REGNO_MODE_CODE_OK_FOR_BASE_P(num, mode, as, outer_code, index_code) \
+  avr_regno_mode_code_ok_for_base_p (num, mode, as, outer_code, index_code)
 
 #define REGNO_OK_FOR_INDEX_P(NUM) 0
 
@@ -324,7 +324,7 @@ enum reg_class {
 
 #define STACK_GROWS_DOWNWARD
 
-#define STARTING_FRAME_OFFSET 1
+#define STARTING_FRAME_OFFSET avr_starting_frame_offset()
 
 #define STACK_POINTER_OFFSET 1
 
@@ -375,7 +375,7 @@ typedef struct avr_args {
 
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_L,WIN)          \
   do {                                                                  \
-    rtx new_x = avr_legitimize_reload_address (X, MODE, OPNUM, TYPE,    \
+    rtx new_x = avr_legitimize_reload_address (&(X), MODE, OPNUM, TYPE, \
                                                ADDR_TYPE (TYPE),        \
                                                IND_L, make_memloc);     \
     if (new_x)                                                          \
@@ -385,7 +385,7 @@ typedef struct avr_args {
       }                                                                 \
   } while (0)
 
-#define BRANCH_COST(speed_p, predictable_p) 0
+#define BRANCH_COST(speed_p, predictable_p) avr_branch_cost
 
 #define SLOW_BYTE_ACCESS 0
 
@@ -635,3 +635,5 @@ struct GTY(()) machine_function
 /* AVR does not round pushes, but the existance of this macro is
    required in order for pushes to be generated.  */
 #define PUSH_ROUNDING(X)	(X)
+
+#define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()

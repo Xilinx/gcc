@@ -32,7 +32,10 @@
 
 #pragma GCC system_header
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <initializer_list>
+#endif
+
 #include <ext/vstring_util.h>
 #include <ext/rc_string_base.h>
 #include <ext/sso_string_base.h>
@@ -1136,6 +1139,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	this->_M_set_leaked();
 	return iterator(this->_M_data() + __pos);
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Remove the last character.
+       *
+       *  The string must be non-empty.
+       */
+      void
+      pop_back()
+      { this->_M_erase(size()-1, 1); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
        *  @brief  Replace characters with value from another string.

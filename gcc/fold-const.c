@@ -2100,15 +2100,14 @@ pedantic_non_lvalue_loc (location_t loc, tree x)
   return protected_set_expr_location_unshare (x, loc);
 }
 
-/* Given a tree comparison code, return the code that is the logical inverse
-   of the given code.  It is not safe to do this for floating-point
-   comparisons, except for NE_EXPR and EQ_EXPR, so we receive a machine mode
-   as well: if reversing the comparison is unsafe, return ERROR_MARK.  */
+/* Given a tree comparison code, return the code that is the logical inverse.
+   It is generally not safe to do this for floating-point comparisons, except
+   for EQ_EXPR and NE_EXPR, so we return ERROR_MARK in this case.  */
 
 enum tree_code
 invert_tree_comparison (enum tree_code code, bool honor_nans)
 {
-  if (honor_nans && flag_trapping_math)
+  if (honor_nans && flag_trapping_math && code != EQ_EXPR && code != NE_EXPR)
     return ERROR_MARK;
 
   switch (code)
@@ -3695,22 +3694,22 @@ simple_operand_p (const_tree exp)
 
 /* Subroutine for fold_truth_andor: determine if an operand is simple enough
    to be evaluated unconditionally.
-   I addition to simple_operand_p, we assume that comparisons and logic-not
-   operations are simple, if their operands are simple, too.  */
+   I addition to simple_operand_p, we assume that comparisons, conversions,
+   and logic-not operations are simple, if their operands are simple, too.  */
 
 static bool
 simple_operand_p_2 (tree exp)
 {
   enum tree_code code;
 
-  /* Strip any conversions that don't change the machine mode.  */
-  STRIP_NOPS (exp);
-
-  code = TREE_CODE (exp);
-
   if (TREE_SIDE_EFFECTS (exp)
       || tree_could_trap_p (exp))
     return false;
+
+  while (CONVERT_EXPR_P (exp))
+    exp = TREE_OPERAND (exp, 0);
+
+  code = TREE_CODE (exp);
 
   if (TREE_CODE_CLASS (code) == tcc_comparison)
     return (simple_operand_p (TREE_OPERAND (exp, 0))
