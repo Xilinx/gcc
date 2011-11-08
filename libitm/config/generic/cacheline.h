@@ -77,7 +77,7 @@ gtm_cacheline::store_mask (T *d, T s, uint8_t m)
       if (__builtin_expect ((m & tm) == tm, 1))
 	*d = s;
       else
-        {
+	{
 	  const int half = sizeof(T) / 2;
 	  typedef typename sized_integral<half>::type half_t;
 	  half_t *dhalf = reinterpret_cast<half_t *>(d);

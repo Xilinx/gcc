@@ -41,7 +41,7 @@ gtm_rwlock::read_lock (gtm_thread *tx)
       tx->shared_state = 0;
       __sync_synchronize();
       if (likely(writers == 0))
-        return;
+	return;
 
       // There seems to be an active, waiting, or confirmed writer, so enter
       // the futex-based slow path.
@@ -54,27 +54,27 @@ gtm_rwlock::read_lock (gtm_thread *tx)
       tx->shared_state = ~(typeof tx->shared_state)0;
       __sync_synchronize();
       if (writer_readers > 0)
-        {
-          writer_readers = 0;
-          futex_wake(&writer_readers, 1);
-        }
+	{
+	  writer_readers = 0;
+	  futex_wake(&writer_readers, 1);
+	}
 
       // Signal that there are waiting readers and wait until there is no
       // writer anymore.
       // TODO Spin here on writers for a while. Consider whether we woke
       // any writers before?
       while (writers)
-        {
-          // An active writer. Wait until it has finished. To avoid lost
-          // wake-ups, we need to use Dekker-like synchronization.
-          // Note that we cannot reset readers to zero when we see that there
-          // are no writers anymore after the barrier because this pending
-          // store could then lead to lost wake-ups at other readers.
-          readers = 1;
-          __sync_synchronize();
-          if (writers)
-            futex_wait(&readers, 1);
-        }
+	{
+	  // An active writer. Wait until it has finished. To avoid lost
+	  // wake-ups, we need to use Dekker-like synchronization.
+	  // Note that we cannot reset readers to zero when we see that there
+	  // are no writers anymore after the barrier because this pending
+	  // store could then lead to lost wake-ups at other readers.
+	  readers = 1;
+	  __sync_synchronize();
+	  if (writers)
+	    futex_wait(&readers, 1);
+	}
 
       // And we try again to acquire a read lock.
     }
@@ -103,7 +103,7 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
       // If this is an upgrade, we must not wait for other writers or
       // upgrades.
       if (tx != 0)
-        return false;
+	return false;
 
       // There is already a writer. If there are no other waiting writers,
       // switch to contended mode.
@@ -114,12 +114,12 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
       // consider here.
       // ??? Use C++0x atomics as soon as they are available.
       if (w != 2)
-        w = __sync_lock_test_and_set(&writers, 2);
+	w = __sync_lock_test_and_set(&writers, 2);
       while (w != 0)
-        {
-          futex_wait(&writers, 2);
-          w = __sync_lock_test_and_set(&writers, 2);
-        }
+	{
+	  futex_wait(&writers, 2);
+	  w = __sync_lock_test_and_set(&writers, 2);
+	}
     }
 
   // We have acquired the writer side of the R/W lock. Now wait for any
@@ -139,20 +139,20 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
     {
       // Use a loop here to check reader flags again after waiting.
       while (it->shared_state != ~(typeof it->shared_state)0)
-        {
-          // An active reader. Wait until it has finished. To avoid lost
-          // wake-ups, we need to use Dekker-like synchronization.
-          // Note that we can reset writer_readers to zero when we see after
-          // the barrier that the reader has finished in the meantime;
-          // however, this is only possible because we are the only writer.
-          // TODO Spin for a while on this reader flag.
-          writer_readers = 1;
-          __sync_synchronize();
-          if (it->shared_state != ~(typeof it->shared_state)0)
-            futex_wait(&writer_readers, 1);
-          else
-            writer_readers = 0;
-        }
+	{
+	  // An active reader. Wait until it has finished. To avoid lost
+	  // wake-ups, we need to use Dekker-like synchronization.
+	  // Note that we can reset writer_readers to zero when we see after
+	  // the barrier that the reader has finished in the meantime;
+	  // however, this is only possible because we are the only writer.
+	  // TODO Spin for a while on this reader flag.
+	  writer_readers = 1;
+	  __sync_synchronize();
+	  if (it->shared_state != ~(typeof it->shared_state)0)
+	    futex_wait(&writer_readers, 1);
+	  else
+	    writer_readers = 0;
+	}
     }
 
   return true;
@@ -212,14 +212,14 @@ gtm_rwlock::write_unlock ()
       // There might be waiting writers, so wake them.
       writers = 0;
       if (futex_wake(&writers, 1) == 0)
-        {
-          // If we did not wake any waiting writers, we might indeed be the
-          // last writer (this can happen because write_lock_generic()
-          // exchanges 0 or 1 to 2 and thus might go to contended mode even if
-          // no other thread holds the write lock currently). Therefore, we
-          // have to wake up readers here as well.
-          futex_wake(&readers, INT_MAX);
-        }
+	{
+	  // If we did not wake any waiting writers, we might indeed be the
+	  // last writer (this can happen because write_lock_generic()
+	  // exchanges 0 or 1 to 2 and thus might go to contended mode even if
+	  // no other thread holds the write lock currently). Therefore, we
+	  // have to wake up readers here as well.
+	  futex_wake(&readers, INT_MAX);
+	}
       return;
     }
   // No waiting writers, so wake up all waiting readers.

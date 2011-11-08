@@ -37,7 +37,7 @@ _ITM_LM256 (const _ITM_TYPE_M256 *ptr)
 
 // Helpers for re-aligning two 128-bit values.
 #ifdef __XOP__
-const __v16qi GTM::GTM_vpperm_shift[16] = 
+const __v16qi GTM::GTM_vpperm_shift[16] =
 {
   {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
   {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16 },

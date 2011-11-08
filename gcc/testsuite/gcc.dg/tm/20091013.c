@@ -8,6 +8,6 @@ f()
 {
   __transaction_relaxed {
     for (i=0; i < 10; ++i)
-      ringo(g);  
+      ringo(g);
   }
 }

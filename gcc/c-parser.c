@@ -10513,7 +10513,7 @@ c_parser_omp_threadprivate (c_parser *parser)
 }
 
 /* Parse a transaction attribute (GCC Extension).
- 
+
    transaction-attribute:
      attributes
      [ [ any-word ] ]
@@ -10580,7 +10580,7 @@ c_parser_transaction (c_parser *parser, enum rid keyword)
     {
       attrs = c_parser_transaction_attributes (parser);
       if (attrs)
-        this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
+	this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
     }
 
   /* Keep track if we're in the lexical scope of an outer transaction.  */
@@ -10594,9 +10594,9 @@ c_parser_transaction (c_parser *parser, enum rid keyword)
     stmt = c_finish_transaction (loc, stmt, this_in);
   else
     error_at (loc, (keyword == RID_TRANSACTION_ATOMIC ?
-        "%<__transaction_atomic%> without transactional memory support enabled"
-        : "%<__transaction_relaxed %> "
-        "without transactional memory support enabled"));
+	"%<__transaction_atomic%> without transactional memory support enabled"
+	: "%<__transaction_relaxed %> "
+	"without transactional memory support enabled"));
 
   return stmt;
 }
@@ -10629,7 +10629,7 @@ c_parser_transaction_expression (c_parser *parser, enum rid keyword)
     {
       attrs = c_parser_transaction_attributes (parser);
       if (attrs)
-        this_in |= parse_tm_stmt_attr (attrs, 0);
+	this_in |= parse_tm_stmt_attr (attrs, 0);
     }
 
   parser->in_transaction = this_in;
@@ -10654,9 +10654,9 @@ c_parser_transaction_expression (c_parser *parser, enum rid keyword)
 
   if (!flag_tm)
     error_at (loc, (keyword == RID_TRANSACTION_ATOMIC ?
-        "%<__transaction_atomic%> without transactional memory support enabled"
-        : "%<__transaction_relaxed %> "
-        "without transactional memory support enabled"));
+	"%<__transaction_atomic%> without transactional memory support enabled"
+	: "%<__transaction_relaxed %> "
+	"without transactional memory support enabled"));
 
   return ret;
 }
@@ -10709,7 +10709,7 @@ c_parser_transaction_cancel(c_parser *parser)
   else if (parser->in_transaction == 0)
     {
       error_at (loc, "%<__transaction_cancel%> not within "
-                "%<__transaction_atomic%>");
+		"%<__transaction_atomic%>");
       goto ret_error;
     }
 

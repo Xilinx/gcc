@@ -11,8 +11,8 @@ void SeqfileGetLine()
 
 __attribute__((transaction_callable)) void readLoop()
 {
-        SeqfileGetLine();
-        if (global)
-          funky();
+	SeqfileGetLine();
+	if (global)
+	  funky();
 
 }

@@ -99,10 +99,10 @@ GTM::gtm_thread::~gtm_thread()
   for (; *prev; prev = &(*prev)->next_thread)
     {
       if (*prev == this)
-        {
-          *prev = (*prev)->next_thread;
-          break;
-        }
+	{
+	  *prev = (*prev)->next_thread;
+	  break;
+	}
     }
   number_of_threads--;
   number_of_threads_changed(number_of_threads + 1, number_of_threads);
@@ -185,19 +185,19 @@ GTM::gtm_thread::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
       // ??? For pr_readOnly, lexical or dynamic scope is unspecified.
 
       if (prop & pr_hasNoAbort)
-        {
-          // We can use flat nesting, so elide this transaction.
-          if (!(prop & pr_instrumentedCode))
-            {
-              if (!(tx->state & STATE_SERIAL) ||
-                  !(tx->state & STATE_IRREVOCABLE))
-                tx->serialirr_mode();
-            }
-          // Increment nesting level after checking that we have a method that
-          // allows us to continue.
-          tx->nesting++;
-          return choose_code_path(prop, abi_disp());
-        }
+	{
+	  // We can use flat nesting, so elide this transaction.
+	  if (!(prop & pr_instrumentedCode))
+	    {
+	      if (!(tx->state & STATE_SERIAL) ||
+		  !(tx->state & STATE_IRREVOCABLE))
+		tx->serialirr_mode();
+	    }
+	  // Increment nesting level after checking that we have a method that
+	  // allows us to continue.
+	  tx->nesting++;
+	  return choose_code_path(prop, abi_disp());
+	}
 
       // The transaction might abort, so use closed nesting if possible.
       // pr_hasNoAbort has lexical scope, so the compiler should really have
@@ -215,32 +215,32 @@ GTM::gtm_thread::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
       // restart in _ITM_abortTransaction when we really have to.
       disp = abi_disp();
       if (!disp->closed_nesting())
-        {
-          // ??? Should we elide the transaction if there is no alternative
-          // method that supports closed nesting? If we do, we need to set
-          // some flag to prevent _ITM_abortTransaction from aborting the
-          // wrong transaction (i.e., some parent transaction).
-          abi_dispatch *cn_disp = disp->closed_nesting_alternative();
-          if (cn_disp)
-            {
-              disp = cn_disp;
-              set_abi_disp(disp);
-            }
-        }
+	{
+	  // ??? Should we elide the transaction if there is no alternative
+	  // method that supports closed nesting? If we do, we need to set
+	  // some flag to prevent _ITM_abortTransaction from aborting the
+	  // wrong transaction (i.e., some parent transaction).
+	  abi_dispatch *cn_disp = disp->closed_nesting_alternative();
+	  if (cn_disp)
+	    {
+	      disp = cn_disp;
+	      set_abi_disp(disp);
+	    }
+	}
     }
   else
     {
       // Outermost transaction
       disp = tx->decide_begin_dispatch (prop);
       if (disp == dispatch_serialirr() || disp == dispatch_serial())
-        {
-          tx->state = STATE_SERIAL;
-          if (disp == dispatch_serialirr())
-            tx->state |= STATE_IRREVOCABLE;
-          serial_lock.write_lock ();
-        }
+	{
+	  tx->state = STATE_SERIAL;
+	  if (disp == dispatch_serialirr())
+	    tx->state |= STATE_IRREVOCABLE;
+	  serial_lock.write_lock ();
+	}
       else
-        serial_lock.read_lock (tx);
+	serial_lock.read_lock (tx);
 
       set_abi_disp (disp);
     }
@@ -345,7 +345,7 @@ GTM::gtm_thread::rollback (gtm_transaction_cp *cp, bool aborting)
       id = cp->id;
       prop = cp->prop;
       if (cp->disp != abi_disp())
-        set_abi_disp(cp->disp);
+	set_abi_disp(cp->disp);
       memcpy(&alloc_actions, &cp->alloc_actions, sizeof(alloc_actions));
       nesting = cp->nesting;
     }
@@ -355,11 +355,11 @@ GTM::gtm_thread::rollback (gtm_transaction_cp *cp, bool aborting)
       // Restore the jump buffer and transaction properties, which we will
       // need for the longjmp used to restart or abort the transaction.
       if (parent_txns.size() > 0)
-        {
-          jb = parent_txns[0].jb;
-          id = parent_txns[0].id;
-          prop = parent_txns[0].prop;
-        }
+	{
+	  jb = parent_txns[0].jb;
+	  id = parent_txns[0].id;
+	  prop = parent_txns[0].prop;
+	}
       // Reset the transaction. Do not reset this->state, which is handled by
       // the callers. Note that if we are not aborting, we reset the
       // transaction to the point after having executed begin_transaction
@@ -394,7 +394,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
       // restart with a method that supports closed nesting.
       abi_dispatch *disp = abi_disp();
       if (!disp->closed_nesting())
-        tx->restart(RESTART_CLOSED_NESTING);
+	tx->restart(RESTART_CLOSED_NESTING);
 
       // The innermost transaction is a closed nested transaction.
       gtm_transaction_cp *cp = tx->parent_txns.pop();
@@ -405,7 +405,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 
       // Jump to nested transaction (use the saved jump buffer).
       GTM_longjmp (&longjmp_jb, a_abortTransaction | a_restoreLiveVariables,
-          longjmp_prop);
+	  longjmp_prop);
     }
   else
     {
@@ -416,13 +416,13 @@ _ITM_abortTransaction (_ITM_abortReason reason)
       // Aborting an outermost transaction finishes execution of the whole
       // transaction. Therefore, reset transaction state.
       if (tx->state & gtm_thread::STATE_SERIAL)
-        gtm_thread::serial_lock.write_unlock ();
+	gtm_thread::serial_lock.write_unlock ();
       else
-        gtm_thread::serial_lock.read_unlock (tx);
+	gtm_thread::serial_lock.read_unlock (tx);
       tx->state = 0;
 
       GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables,
-          tx->prop);
+	  tx->prop);
     }
 }
 
@@ -453,9 +453,9 @@ GTM::gtm_thread::trycommit ()
       // The transaction is now inactive. Everything that we still have to do
       // will not synchronize with other transactions anymore.
       if (state & gtm_thread::STATE_SERIAL)
-        gtm_thread::serial_lock.write_unlock ();
+	gtm_thread::serial_lock.write_unlock ();
       else
-        gtm_thread::serial_lock.read_unlock (this);
+	gtm_thread::serial_lock.read_unlock (this);
       state = 0;
 
       // We can commit the undo log after dispatch-specific commit and after
@@ -469,21 +469,21 @@ GTM::gtm_thread::trycommit ()
 
       // Ensure privatization safety, if necessary.
       if (priv_time)
-        {
-          // TODO Don't just spin but also block using cond vars / futexes
-          // here. Should probably be integrated with the serial lock code.
-          // TODO For C++0x atomics, the loads of other threads' shared_state
-          // should have acquire semantics (together with releases for the
-          // respective updates). But is this unnecessary overhead because
-          // weaker barriers are sufficient?
-          for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
-              it = it->next_thread)
-            {
-              if (it == this) continue;
-              while (it->shared_state < priv_time)
-                cpu_relax();
-            }
-        }
+	{
+	  // TODO Don't just spin but also block using cond vars / futexes
+	  // here. Should probably be integrated with the serial lock code.
+	  // TODO For C++0x atomics, the loads of other threads' shared_state
+	  // should have acquire semantics (together with releases for the
+	  // respective updates). But is this unnecessary overhead because
+	  // weaker barriers are sufficient?
+	  for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
+	      it = it->next_thread)
+	    {
+	      if (it == this) continue;
+	      while (it->shared_state < priv_time)
+		cpu_relax();
+	    }
+	}
 
       // After ensuring privatization safety, we execute potentially
       // privatizing actions (e.g., calling free()). User actions are first.

@@ -1871,7 +1871,7 @@ d_special_name (struct d_info *di)
 				  d_encoding (di, 0), NULL);
 	    default:
 	      /* ??? The proposal is that other letters (such as 'h') stand
-		 for different variants of transaction cloning, such as 
+		 for different variants of transaction cloning, such as
 		 compiling directly for hardware transaction support.  But
 		 they still should all be transactional clones of some sort
 		 so go ahead and call them that.  */

@@ -274,7 +274,7 @@ struct gtm_thread
 
 namespace GTM HIDDEN {
 
-// An unscaled count of the number of times we should spin attempting to 
+// An unscaled count of the number of times we should spin attempting to
 // acquire locks before we block the current thread and defer to the OS.
 // This variable isn't used when the standard POSIX lock implementations
 // are used.

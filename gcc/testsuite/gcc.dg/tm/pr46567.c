@@ -1,4 +1,4 @@
-__attribute__((transaction_callable)) 
+__attribute__((transaction_callable))
 static void SeqfileGetLine ()
 {
   SSIGetFilePosition ();
@@ -10,9 +10,9 @@ static void readLoop (int addfirst)
   if (!addfirst)
     {
       if (!addfirst)
-        {
-          SSIGetFilePosition ();
-        }
+	{
+	  SSIGetFilePosition ();
+	}
       SeqfileGetLine ();
     }
 }

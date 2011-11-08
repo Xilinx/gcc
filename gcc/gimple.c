@@ -2393,7 +2393,7 @@ gimple_copy (gimple stmt)
 	  gimple_omp_set_body (copy, new_seq);
 	  break;
 
-        case GIMPLE_TRANSACTION:
+	case GIMPLE_TRANSACTION:
 	  new_seq = gimple_seq_copy (gimple_transaction_body (stmt));
 	  gimple_transaction_set_body (copy, new_seq);
 	  break;

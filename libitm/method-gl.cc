@@ -86,26 +86,26 @@ protected:
     gtm_thread *tx = gtm_thr();
     if (unlikely(!gl_mg::is_locked(tx->shared_state)))
       {
-        // Check for and handle version number overflow.
-        if (unlikely(tx->shared_state >= gl_mg::VERSION_MAX))
-          tx->restart(RESTART_INIT_METHOD_GROUP);
+	// Check for and handle version number overflow.
+	if (unlikely(tx->shared_state >= gl_mg::VERSION_MAX))
+	  tx->restart(RESTART_INIT_METHOD_GROUP);
 
-        // CAS global orec from our snapshot time to the locked state.
-        // This validates that we have a consistent snapshot, which is also
-        // for making privatization safety work (see the class' comments).
-        gtm_word now = o_gl_mg.orec;
-        if (now != tx->shared_state)
-          tx->restart(RESTART_VALIDATE_WRITE);
-        if (__sync_val_compare_and_swap(&o_gl_mg.orec, now,
-            gl_mg::set_locked(now)) != now)
-          tx->restart(RESTART_LOCKED_WRITE);
+	// CAS global orec from our snapshot time to the locked state.
+	// This validates that we have a consistent snapshot, which is also
+	// for making privatization safety work (see the class' comments).
+	gtm_word now = o_gl_mg.orec;
+	if (now != tx->shared_state)
+	  tx->restart(RESTART_VALIDATE_WRITE);
+	if (__sync_val_compare_and_swap(&o_gl_mg.orec, now,
+	    gl_mg::set_locked(now)) != now)
+	  tx->restart(RESTART_LOCKED_WRITE);
 
-        // Set shared_state to new value. The CAS is a full barrier, so the
-        // acquisition of the global orec is visible before this store here,
-        // and the store will not be visible before earlier data loads, which
-        // is required to correctly ensure privatization safety (see
-        // begin_and_restart() and release_orec() for further comments).
-        tx->shared_state = gl_mg::set_locked(now);
+	// Set shared_state to new value. The CAS is a full barrier, so the
+	// acquisition of the global orec is visible before this store here,
+	// and the store will not be visible before earlier data loads, which
+	// is required to correctly ensure privatization safety (see
+	// begin_and_restart() and release_orec() for further comments).
+	tx->shared_state = gl_mg::set_locked(now);
       }
 
     // TODO Ensure that this gets inlined: Use internal log interface and LTO.
@@ -129,8 +129,8 @@ protected:
     // break later WaW optimizations.
     if (unlikely(mod == RfW))
       {
-        pre_write(addr, sizeof(V));
-        return *addr;
+	pre_write(addr, sizeof(V));
+	return *addr;
       }
     V v = *addr;
     if (likely(mod != RaW))
@@ -151,7 +151,7 @@ public:
       bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod)
   {
     if ((dst_mod != WaW && src_mod != RaW)
-        && (dst_mod != NONTXNAL || src_mod == RfW))
+	&& (dst_mod != NONTXNAL || src_mod == RfW))
       pre_write(dst, size);
 
     if (!may_overlap)
@@ -160,7 +160,7 @@ public:
       ::memmove(dst, src, size);
 
     if (src_mod != RfW && src_mod != RaW && src_mod != NONTXNAL
-        && dst_mod != WaW)
+	&& dst_mod != WaW)
       validate();
   }
 
@@ -184,9 +184,9 @@ public:
     unsigned i = 0;
     while (gl_mg::is_locked(v = o_gl_mg.orec))
       {
-        // TODO need method-specific max spin count
-        if (++i > gtm_spin_count_var) return RESTART_VALIDATE_READ;
-        cpu_relax();
+	// TODO need method-specific max spin count
+	if (++i > gtm_spin_count_var) return RESTART_VALIDATE_READ;
+	cpu_relax();
       }
     // This barrier ensures that we have read the global orec before later
     // data loads.
@@ -226,16 +226,16 @@ public:
     // location.
     if (gl_mg::is_locked(v))
       {
-        // Release the global orec, increasing its version number / timestamp.
-        // TODO replace with C++0x-style atomics (a release in this case)
-        atomic_write_barrier();
-        v = gl_mg::clear_locked(v) + 1;
-        o_gl_mg.orec = v;
+	// Release the global orec, increasing its version number / timestamp.
+	// TODO replace with C++0x-style atomics (a release in this case)
+	atomic_write_barrier();
+	v = gl_mg::clear_locked(v) + 1;
+	o_gl_mg.orec = v;
 
-        // Need to ensure privatization safety. Every other transaction must
-        // have a snapshot time that is at least as high as our commit time
-        // (i.e., our commit must be visible to them).
-        priv_time = v;
+	// Need to ensure privatization safety. Every other transaction must
+	// have a snapshot time that is at least as high as our commit time
+	// (i.e., our commit must be visible to them).
+	priv_time = v;
       }
     return true;
   }
@@ -262,25 +262,25 @@ public:
     // value that is correct wrt. privatization safety.
     if (gl_mg::is_locked(v))
       {
-        // Release the global orec, increasing its version number / timestamp.
-        // TODO replace with C++0x-style atomics (a release in this case)
-        atomic_write_barrier();
-        v = gl_mg::clear_locked(v) + 1;
-        o_gl_mg.orec = v;
+	// Release the global orec, increasing its version number / timestamp.
+	// TODO replace with C++0x-style atomics (a release in this case)
+	atomic_write_barrier();
+	v = gl_mg::clear_locked(v) + 1;
+	o_gl_mg.orec = v;
 
-        // Also reset the timestamp published via shared_state.
-        // Special case: Only do this if we are not a serial transaction
-        // because otherwise, we would interfere with the serial lock.
-        if (tx->shared_state != ~(typeof tx->shared_state)0)
-          tx->shared_state = v;
+	// Also reset the timestamp published via shared_state.
+	// Special case: Only do this if we are not a serial transaction
+	// because otherwise, we would interfere with the serial lock.
+	if (tx->shared_state != ~(typeof tx->shared_state)0)
+	  tx->shared_state = v;
 
-        // We need a store-load barrier after this store to prevent it
-        // from becoming visible after later data loads because the
-        // previous value of shared_state has been higher than the actual
-        // snapshot time (the lock bit had been set), which could break
-        // privatization safety. We do not need a barrier before this
-        // store (see pre_write() for an explanation).
-        __sync_synchronize();
+	// We need a store-load barrier after this store to prevent it
+	// from becoming visible after later data loads because the
+	// previous value of shared_state has been higher than the actual
+	// snapshot time (the lock bit had been set), which could break
+	// privatization safety. We do not need a barrier before this
+	// store (see pre_write() for an explanation).
+	__sync_synchronize();
       }
 
   }

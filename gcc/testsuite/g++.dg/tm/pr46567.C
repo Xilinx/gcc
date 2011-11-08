@@ -1,6 +1,6 @@
 // { dg-do compile }
 // { dg-options "-fgnu-tm -O2" }
-       
+
 typedef __PTRDIFF_TYPE__ ptrdiff_t;
 typedef __SIZE_TYPE__ size_t;
 namespace std __attribute__ ((__visibility__ ("default"))) {
@@ -39,7 +39,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   void
   __throw_system_error(int) __attribute__((__noreturn__));
 }
-       
+
 namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
   template<typename _Iterator, typename _Container>
     class __normal_iterator;
@@ -211,7 +211,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     };
   template<typename _Iterator, typename _Container>
     struct __is_normal_iterator< __gnu_cxx::__normal_iterator<_Iterator,
-             _Container> >
+	     _Container> >
     {
       enum { __value = 1 };
       typedef __true_type __type;
@@ -277,7 +277,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef __false_type __type;
     };
 }
-       
+
 namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
   template<bool, typename>
     struct __enable_if
@@ -396,7 +396,7 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
       typedef __typeof__(__type1() + __type2() + __type3() + __type4()) __type;
     };
 }
-       
+
 namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
   template<typename _Value>
     struct __numeric_traits_integer
@@ -437,14 +437,14 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
     __numeric_traits_floating<_Value> >::__type
     { };
 }
-       
-       
+
+
 namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Tp>
     inline void
     swap(_Tp& __a, _Tp& __b)
     {
-     
+
       _Tp __tmp = (__a);
       __a = (__b);
       __b = (__tmp);
@@ -470,7 +470,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       pair(const _T1& __a, const _T2& __b)
       : first(__a), second(__b) { }
       template<class _U1, class _U2>
-        pair(const pair<_U1, _U2>& __p)
+	pair(const pair<_U1, _U2>& __p)
  : first(__p.first),
    second(__p.second) { }
     };
@@ -504,8 +504,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     make_pair(_T1 __x, _T2 __y)
     { return pair<_T1, _T2>(__x, __y); }
 }
-       
-       
+
+
 namespace std __attribute__ ((__visibility__ ("default"))) {
   struct input_iterator_tag { };
   struct output_iterator_tag { };
@@ -513,7 +513,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   struct bidirectional_iterator_tag : public forward_iterator_tag { };
   struct random_access_iterator_tag : public bidirectional_iterator_tag { };
   template<typename _Category, typename _Tp, typename _Distance = ptrdiff_t,
-           typename _Pointer = _Tp*, typename _Reference = _Tp&>
+	   typename _Pointer = _Tp*, typename _Reference = _Tp&>
     struct iterator
     {
       typedef _Category iterator_category;
@@ -554,14 +554,14 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     __iterator_category(const _Iter&)
     { return typename iterator_traits<_Iter>::iterator_category(); }
 }
-       
+
 namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _InputIterator>
     inline typename iterator_traits<_InputIterator>::difference_type
     __distance(_InputIterator __first, _InputIterator __last,
-               input_iterator_tag)
+	       input_iterator_tag)
     {
-     
+
       typename iterator_traits<_InputIterator>::difference_type __n = 0;
       while (__first != __last)
  {
@@ -573,9 +573,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _RandomAccessIterator>
     inline typename iterator_traits<_RandomAccessIterator>::difference_type
     __distance(_RandomAccessIterator __first, _RandomAccessIterator __last,
-               random_access_iterator_tag)
+	       random_access_iterator_tag)
     {
-     
+
       return __last - __first;
     }
   template<typename _InputIterator>
@@ -583,13 +583,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     distance(_InputIterator __first, _InputIterator __last)
     {
       return std::__distance(__first, __last,
-        std::__iterator_category(__first));
+	std::__iterator_category(__first));
     }
   template<typename _InputIterator, typename _Distance>
     inline void
     __advance(_InputIterator& __i, _Distance __n, input_iterator_tag)
     {
-     
+
       while (__n--)
  ++__i;
     }
@@ -598,20 +598,20 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     __advance(_BidirectionalIterator& __i, _Distance __n,
        bidirectional_iterator_tag)
     {
-     
+
       if (__n > 0)
-        while (__n--)
+	while (__n--)
    ++__i;
       else
-        while (__n++)
+	while (__n++)
    --__i;
     }
   template<typename _RandomAccessIterator, typename _Distance>
     inline void
     __advance(_RandomAccessIterator& __i, _Distance __n,
-              random_access_iterator_tag)
+	      random_access_iterator_tag)
     {
-     
+
       __i += __n;
     }
   template<typename _InputIterator, typename _Distance>
@@ -626,17 +626,17 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Iterator>
     class reverse_iterator
     : public iterator<typename iterator_traits<_Iterator>::iterator_category,
-        typename iterator_traits<_Iterator>::value_type,
-        typename iterator_traits<_Iterator>::difference_type,
-        typename iterator_traits<_Iterator>::pointer,
-                      typename iterator_traits<_Iterator>::reference>
+	typename iterator_traits<_Iterator>::value_type,
+	typename iterator_traits<_Iterator>::difference_type,
+	typename iterator_traits<_Iterator>::pointer,
+		      typename iterator_traits<_Iterator>::reference>
     {
     protected:
       _Iterator current;
     public:
       typedef _Iterator iterator_type;
       typedef typename iterator_traits<_Iterator>::difference_type
-              difference_type;
+	      difference_type;
       typedef typename iterator_traits<_Iterator>::reference reference;
       typedef typename iterator_traits<_Iterator>::pointer pointer;
     public:
@@ -646,7 +646,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       reverse_iterator(const reverse_iterator& __x)
       : current(__x.current) { }
       template<typename _Iter>
-        reverse_iterator(const reverse_iterator<_Iter>& __x)
+	reverse_iterator(const reverse_iterator<_Iter>& __x)
  : current(__x.base()) { }
       iterator_type
       base() const
@@ -711,7 +711,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Iterator>
     inline bool
     operator==(const reverse_iterator<_Iterator>& __x,
-        const reverse_iterator<_Iterator>& __y)
+	const reverse_iterator<_Iterator>& __y)
     { return __x.base() == __y.base(); }
   template<typename _Iterator>
     inline bool
@@ -721,7 +721,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Iterator>
     inline bool
     operator!=(const reverse_iterator<_Iterator>& __x,
-        const reverse_iterator<_Iterator>& __y)
+	const reverse_iterator<_Iterator>& __y)
     { return !(__x == __y); }
   template<typename _Iterator>
     inline bool
@@ -731,12 +731,12 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Iterator>
     inline bool
     operator<=(const reverse_iterator<_Iterator>& __x,
-        const reverse_iterator<_Iterator>& __y)
+	const reverse_iterator<_Iterator>& __y)
     { return !(__y < __x); }
   template<typename _Iterator>
     inline bool
     operator>=(const reverse_iterator<_Iterator>& __x,
-        const reverse_iterator<_Iterator>& __y)
+	const reverse_iterator<_Iterator>& __y)
     { return !(__x < __y); }
   template<typename _Iterator>
     inline typename reverse_iterator<_Iterator>::difference_type
@@ -751,7 +751,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _IteratorL, typename _IteratorR>
     inline bool
     operator==(const reverse_iterator<_IteratorL>& __x,
-        const reverse_iterator<_IteratorR>& __y)
+	const reverse_iterator<_IteratorR>& __y)
     { return __x.base() == __y.base(); }
   template<typename _IteratorL, typename _IteratorR>
     inline bool
@@ -761,7 +761,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _IteratorL, typename _IteratorR>
     inline bool
     operator!=(const reverse_iterator<_IteratorL>& __x,
-        const reverse_iterator<_IteratorR>& __y)
+	const reverse_iterator<_IteratorR>& __y)
     { return !(__x == __y); }
   template<typename _IteratorL, typename _IteratorR>
     inline bool
@@ -771,12 +771,12 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _IteratorL, typename _IteratorR>
     inline bool
     operator<=(const reverse_iterator<_IteratorL>& __x,
-        const reverse_iterator<_IteratorR>& __y)
+	const reverse_iterator<_IteratorR>& __y)
     { return !(__y < __x); }
   template<typename _IteratorL, typename _IteratorR>
     inline bool
     operator>=(const reverse_iterator<_IteratorL>& __x,
-        const reverse_iterator<_IteratorR>& __y)
+	const reverse_iterator<_IteratorR>& __y)
     { return !(__x < __y); }
   template<typename _IteratorL, typename _IteratorR>
     inline typename reverse_iterator<_IteratorL>::difference_type
@@ -889,21 +889,21 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
     public:
       typedef _Iterator iterator_type;
       typedef typename iterator_traits<_Iterator>::iterator_category
-                                                             iterator_category;
+							     iterator_category;
       typedef typename iterator_traits<_Iterator>::value_type value_type;
       typedef typename iterator_traits<_Iterator>::difference_type
-                                                             difference_type;
+							     difference_type;
       typedef typename iterator_traits<_Iterator>::reference reference;
       typedef typename iterator_traits<_Iterator>::pointer pointer;
       __normal_iterator() : _M_current(_Iterator()) { }
       explicit
       __normal_iterator(const _Iterator& __i) : _M_current(__i) { }
       template<typename _Iter>
-        __normal_iterator(const __normal_iterator<_Iter,
+	__normal_iterator(const __normal_iterator<_Iter,
      typename __enable_if<
-              (std::__are_same<_Iter, typename _Container::pointer>::__value),
-        _Container>::__type>& __i)
-        : _M_current(__i.base()) { }
+	      (std::__are_same<_Iter, typename _Container::pointer>::__value),
+	_Container>::__type>& __i)
+	: _M_current(__i.base()) { }
       reference
       operator*() const
       { return *_M_current; }
@@ -950,22 +950,22 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
   template<typename _IteratorL, typename _IteratorR, typename _Container>
     inline bool
     operator==(const __normal_iterator<_IteratorL, _Container>& __lhs,
-        const __normal_iterator<_IteratorR, _Container>& __rhs)
+	const __normal_iterator<_IteratorR, _Container>& __rhs)
     { return __lhs.base() == __rhs.base(); }
   template<typename _Iterator, typename _Container>
     inline bool
     operator==(const __normal_iterator<_Iterator, _Container>& __lhs,
-        const __normal_iterator<_Iterator, _Container>& __rhs)
+	const __normal_iterator<_Iterator, _Container>& __rhs)
     { return __lhs.base() == __rhs.base(); }
   template<typename _IteratorL, typename _IteratorR, typename _Container>
     inline bool
     operator!=(const __normal_iterator<_IteratorL, _Container>& __lhs,
-        const __normal_iterator<_IteratorR, _Container>& __rhs)
+	const __normal_iterator<_IteratorR, _Container>& __rhs)
     { return __lhs.base() != __rhs.base(); }
   template<typename _Iterator, typename _Container>
     inline bool
     operator!=(const __normal_iterator<_Iterator, _Container>& __lhs,
-        const __normal_iterator<_Iterator, _Container>& __rhs)
+	const __normal_iterator<_Iterator, _Container>& __rhs)
     { return __lhs.base() != __rhs.base(); }
   template<typename _IteratorL, typename _IteratorR, typename _Container>
     inline bool
@@ -990,22 +990,22 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
   template<typename _IteratorL, typename _IteratorR, typename _Container>
     inline bool
     operator<=(const __normal_iterator<_IteratorL, _Container>& __lhs,
-        const __normal_iterator<_IteratorR, _Container>& __rhs)
+	const __normal_iterator<_IteratorR, _Container>& __rhs)
     { return __lhs.base() <= __rhs.base(); }
   template<typename _Iterator, typename _Container>
     inline bool
     operator<=(const __normal_iterator<_Iterator, _Container>& __lhs,
-        const __normal_iterator<_Iterator, _Container>& __rhs)
+	const __normal_iterator<_Iterator, _Container>& __rhs)
     { return __lhs.base() <= __rhs.base(); }
   template<typename _IteratorL, typename _IteratorR, typename _Container>
     inline bool
     operator>=(const __normal_iterator<_IteratorL, _Container>& __lhs,
-        const __normal_iterator<_IteratorR, _Container>& __rhs)
+	const __normal_iterator<_IteratorR, _Container>& __rhs)
     { return __lhs.base() >= __rhs.base(); }
   template<typename _Iterator, typename _Container>
     inline bool
     operator>=(const __normal_iterator<_Iterator, _Container>& __lhs,
-        const __normal_iterator<_Iterator, _Container>& __rhs)
+	const __normal_iterator<_Iterator, _Container>& __rhs)
     { return __lhs.base() >= __rhs.base(); }
   template<typename _IteratorL, typename _IteratorR, typename _Container>
     inline typename __normal_iterator<_IteratorL, _Container>::difference_type
@@ -1036,25 +1036,25 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __iter_swap
     {
       template<typename _ForwardIterator1, typename _ForwardIterator2>
-        static void
-        iter_swap(_ForwardIterator1 __a, _ForwardIterator2 __b)
-        {
-          typedef typename iterator_traits<_ForwardIterator1>::value_type
-            _ValueType1;
-          _ValueType1 __tmp = (*__a);
-          *__a = (*__b);
-          *__b = (__tmp);
+	static void
+	iter_swap(_ForwardIterator1 __a, _ForwardIterator2 __b)
+	{
+	  typedef typename iterator_traits<_ForwardIterator1>::value_type
+	    _ValueType1;
+	  _ValueType1 __tmp = (*__a);
+	  *__a = (*__b);
+	  *__b = (__tmp);
  }
     };
   template<>
     struct __iter_swap<true>
     {
       template<typename _ForwardIterator1, typename _ForwardIterator2>
-        static void
-        iter_swap(_ForwardIterator1 __a, _ForwardIterator2 __b)
-        {
-          swap(*__a, *__b);
-        }
+	static void
+	iter_swap(_ForwardIterator1 __a, _ForwardIterator2 __b)
+	{
+	  swap(*__a, *__b);
+	}
     };
   template<typename _ForwardIterator1, typename _ForwardIterator2>
     inline void
@@ -1064,10 +1064,10 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
  _ValueType1;
       typedef typename iterator_traits<_ForwardIterator2>::value_type
  _ValueType2;
-     
-     
-     
-     
+
+
+
+
       typedef typename iterator_traits<_ForwardIterator1>::reference
  _ReferenceType1;
       typedef typename iterator_traits<_ForwardIterator2>::reference
@@ -1082,8 +1082,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     swap_ranges(_ForwardIterator1 __first1, _ForwardIterator1 __last1,
   _ForwardIterator2 __first2)
     {
-     
-     
+
+
       ;
       for (; __first1 != __last1; ++__first1, ++__first2)
  std::iter_swap(__first1, __first2);
@@ -1093,7 +1093,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     inline const _Tp&
     min(const _Tp& __a, const _Tp& __b)
     {
-     
+
       if (__b < __a)
  return __b;
       return __a;
@@ -1102,7 +1102,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     inline const _Tp&
     max(const _Tp& __a, const _Tp& __b)
     {
-     
+
       if (__a < __b)
  return __b;
       return __a;
@@ -1157,9 +1157,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __copy_move
     {
       template<typename _II, typename _OI>
-        static _OI
-        __copy_m(_II __first, _II __last, _OI __result)
-        {
+	static _OI
+	__copy_m(_II __first, _II __last, _OI __result)
+	{
    for (; __first != __last; ++__result, ++__first)
      *__result = *__first;
    return __result;
@@ -1169,9 +1169,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __copy_move<false, false, random_access_iterator_tag>
     {
       template<typename _II, typename _OI>
-        static _OI
-        __copy_m(_II __first, _II __last, _OI __result)
-        {
+	static _OI
+	__copy_m(_II __first, _II __last, _OI __result)
+	{
    typedef typename iterator_traits<_II>::difference_type _Distance;
    for(_Distance __n = __last - __first; __n > 0; --__n)
      {
@@ -1186,9 +1186,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __copy_move<_IsMove, true, random_access_iterator_tag>
     {
       template<typename _Tp>
-        static _Tp*
-        __copy_m(const _Tp* __first, const _Tp* __last, _Tp* __result)
-        {
+	static _Tp*
+	__copy_m(const _Tp* __first, const _Tp* __last, _Tp* __result)
+	{
    __builtin_memmove(__result, __first,
        sizeof(_Tp) * (__last - __first));
    return __result + (__last - __first);
@@ -1202,11 +1202,11 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef typename iterator_traits<_OI>::value_type _ValueTypeO;
       typedef typename iterator_traits<_II>::iterator_category _Category;
       const bool __simple = (__is_pod(_ValueTypeI)
-                      && __is_pointer<_II>::__value
-                      && __is_pointer<_OI>::__value
-        && __are_same<_ValueTypeI, _ValueTypeO>::__value);
+		      && __is_pointer<_II>::__value
+		      && __is_pointer<_OI>::__value
+	&& __are_same<_ValueTypeI, _ValueTypeO>::__value);
       return std::__copy_move<_IsMove, __simple,
-                       _Category>::__copy_m(__first, __last, __result);
+		       _Category>::__copy_m(__first, __last, __result);
     }
   template<typename _CharT>
     struct char_traits;
@@ -1226,7 +1226,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
      ostreambuf_iterator<_CharT, char_traits<_CharT> >);
   template<bool _IsMove, typename _CharT>
     typename __gnu_cxx::__enable_if<__is_char<_CharT>::__value,
-        _CharT*>::__type
+	_CharT*>::__type
     __copy_move_a2(istreambuf_iterator<_CharT, char_traits<_CharT> >,
      istreambuf_iterator<_CharT, char_traits<_CharT> >, _CharT*);
   template<bool _IsMove, typename _II, typename _OI>
@@ -1242,20 +1242,20 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     inline _OI
     copy(_II __first, _II __last, _OI __result)
     {
-     
-     
+
+
       ;
       return (std::__copy_move_a2<__is_move_iterator<_II>::__value>
        (std::__miter_base<_II>::__b(__first),
-        std::__miter_base<_II>::__b(__last), __result));
+	std::__miter_base<_II>::__b(__last), __result));
     }
   template<bool, bool, typename>
     struct __copy_move_backward
     {
       template<typename _BI1, typename _BI2>
-        static _BI2
-        __copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
-        {
+	static _BI2
+	__copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
+	{
    while (__first != __last)
      *--__result = *--__last;
    return __result;
@@ -1265,9 +1265,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __copy_move_backward<false, false, random_access_iterator_tag>
     {
       template<typename _BI1, typename _BI2>
-        static _BI2
-        __copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
-        {
+	static _BI2
+	__copy_move_b(_BI1 __first, _BI1 __last, _BI2 __result)
+	{
    typename iterator_traits<_BI1>::difference_type __n;
    for (__n = __last - __first; __n > 0; --__n)
      *--__result = *--__last;
@@ -1278,9 +1278,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __copy_move_backward<_IsMove, true, random_access_iterator_tag>
     {
       template<typename _Tp>
-        static _Tp*
-        __copy_move_b(const _Tp* __first, const _Tp* __last, _Tp* __result)
-        {
+	static _Tp*
+	__copy_move_b(const _Tp* __first, const _Tp* __last, _Tp* __result)
+	{
    const ptrdiff_t _Num = __last - __first;
    __builtin_memmove(__result - _Num, __first, sizeof(_Tp) * _Num);
    return __result - _Num;
@@ -1294,13 +1294,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef typename iterator_traits<_BI2>::value_type _ValueType2;
       typedef typename iterator_traits<_BI1>::iterator_category _Category;
       const bool __simple = (__is_pod(_ValueType1)
-                      && __is_pointer<_BI1>::__value
-                      && __is_pointer<_BI2>::__value
-        && __are_same<_ValueType1, _ValueType2>::__value);
+		      && __is_pointer<_BI1>::__value
+		      && __is_pointer<_BI2>::__value
+	&& __are_same<_ValueType1, _ValueType2>::__value);
       return std::__copy_move_backward<_IsMove, __simple,
-                                _Category>::__copy_move_b(__first,
-         __last,
-         __result);
+				_Category>::__copy_move_b(__first,
+	 __last,
+	 __result);
     }
   template<bool _IsMove, typename _BI1, typename _BI2>
     inline _BI2
@@ -1315,13 +1315,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     inline _BI2
     copy_backward(_BI1 __first, _BI1 __last, _BI2 __result)
     {
-     
-     
-     
+
+
+
       ;
       return (std::__copy_move_backward_a2<__is_move_iterator<_BI1>::__value>
        (std::__miter_base<_BI1>::__b(__first),
-        std::__miter_base<_BI1>::__b(__last), __result));
+	std::__miter_base<_BI1>::__b(__last), __result));
     }
   template<typename _ForwardIterator, typename _Tp>
     inline typename
@@ -1349,13 +1349,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     {
       const _Tp __tmp = __c;
       __builtin_memset(__first, static_cast<unsigned char>(__tmp),
-         __last - __first);
+	 __last - __first);
     }
   template<typename _ForwardIterator, typename _Tp>
     inline void
     fill(_ForwardIterator __first, _ForwardIterator __last, const _Tp& __value)
     {
-     
+
       ;
       std::__fill_a(std::__niter_base<_ForwardIterator>::__b(__first),
       std::__niter_base<_ForwardIterator>::__b(__last), __value);
@@ -1391,7 +1391,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     inline _OI
     fill_n(_OI __first, _Size __n, const _Tp& __value)
     {
-     
+
       return _OI(std::__fill_n_a(std::__niter_base<_OI>::__b(__first),
      __n, __value));
     }
@@ -1399,9 +1399,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __equal
     {
       template<typename _II1, typename _II2>
-        static bool
-        equal(_II1 __first1, _II1 __last1, _II2 __first2)
-        {
+	static bool
+	equal(_II1 __first1, _II1 __last1, _II2 __first2)
+	{
    for (; __first1 != __last1; ++__first1, ++__first2)
      if (!(*__first1 == *__first2))
        return false;
@@ -1412,9 +1412,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __equal<true>
     {
       template<typename _Tp>
-        static bool
-        equal(const _Tp* __first1, const _Tp* __last1, const _Tp* __first2)
-        {
+	static bool
+	equal(const _Tp* __first1, const _Tp* __last1, const _Tp* __first2)
+	{
    return !__builtin_memcmp(__first1, __first2, sizeof(_Tp)
        * (__last1 - __first1));
  }
@@ -1426,31 +1426,31 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef typename iterator_traits<_II1>::value_type _ValueType1;
       typedef typename iterator_traits<_II2>::value_type _ValueType2;
       const bool __simple = (__is_integer<_ValueType1>::__value
-                      && __is_pointer<_II1>::__value
-                      && __is_pointer<_II2>::__value
-        && __are_same<_ValueType1, _ValueType2>::__value);
+		      && __is_pointer<_II1>::__value
+		      && __is_pointer<_II2>::__value
+	&& __are_same<_ValueType1, _ValueType2>::__value);
       return std::__equal<__simple>::equal(__first1, __last1, __first2);
     }
   template<typename, typename>
     struct __lc_rai
     {
       template<typename _II1, typename _II2>
-        static _II1
-        __newlast1(_II1, _II1 __last1, _II2, _II2)
-        { return __last1; }
+	static _II1
+	__newlast1(_II1, _II1 __last1, _II2, _II2)
+	{ return __last1; }
       template<typename _II>
-        static bool
-        __cnd2(_II __first, _II __last)
-        { return __first != __last; }
+	static bool
+	__cnd2(_II __first, _II __last)
+	{ return __first != __last; }
     };
   template<>
     struct __lc_rai<random_access_iterator_tag, random_access_iterator_tag>
     {
       template<typename _RAI1, typename _RAI2>
-        static _RAI1
-        __newlast1(_RAI1 __first1, _RAI1 __last1,
+	static _RAI1
+	__newlast1(_RAI1 __first1, _RAI1 __last1,
      _RAI2 __first2, _RAI2 __last2)
-        {
+	{
    const typename iterator_traits<_RAI1>::difference_type
      __diff1 = __last1 - __first1;
    const typename iterator_traits<_RAI2>::difference_type
@@ -1458,15 +1458,15 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
    return __diff2 < __diff1 ? __first1 + __diff2 : __last1;
  }
       template<typename _RAI>
-        static bool
-        __cnd2(_RAI, _RAI)
-        { return true; }
+	static bool
+	__cnd2(_RAI, _RAI)
+	{ return true; }
     };
   template<bool _BoolType>
     struct __lexicographical_compare
     {
       template<typename _II1, typename _II2>
-        static bool __lc(_II1, _II1, _II2, _II2);
+	static bool __lc(_II1, _II1, _II2, _II2);
     };
   template<bool _BoolType>
     template<typename _II1, typename _II2>
@@ -1493,8 +1493,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     struct __lexicographical_compare<true>
     {
       template<typename _Tp, typename _Up>
-        static bool
-        __lc(const _Tp* __first1, const _Tp* __last1,
+	static bool
+	__lc(const _Tp* __first1, const _Tp* __last1,
       const _Up* __first2, const _Up* __last2)
  {
    const size_t __len1 = __last1 - __first1;
@@ -1518,7 +1518,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   && __is_pointer<_II1>::__value
   && __is_pointer<_II2>::__value);
       return std::__lexicographical_compare<__simple>::__lc(__first1, __last1,
-           __first2, __last2);
+	   __first2, __last2);
     }
 }
 namespace std __attribute__ ((__visibility__ ("default"))) {
@@ -1526,21 +1526,21 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     inline bool
     equal(_II1 __first1, _II1 __last1, _II2 __first2)
     {
-     
-     
-     
+
+
+
       ;
       return std::__equal_aux(std::__niter_base<_II1>::__b(__first1),
-         std::__niter_base<_II1>::__b(__last1),
-         std::__niter_base<_II2>::__b(__first2));
+	 std::__niter_base<_II1>::__b(__last1),
+	 std::__niter_base<_II2>::__b(__first2));
     }
   template<typename _IIter1, typename _IIter2, typename _BinaryPredicate>
     inline bool
     equal(_IIter1 __first1, _IIter1 __last1,
    _IIter2 __first2, _BinaryPredicate __binary_pred)
     {
-     
-     
+
+
       ;
       for (; __first1 != __last1; ++__first1, ++__first2)
  if (!bool(__binary_pred(*__first1, *__first2)))
@@ -1554,10 +1554,10 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     {
       typedef typename iterator_traits<_II1>::value_type _ValueType1;
       typedef typename iterator_traits<_II2>::value_type _ValueType2;
-     
-     
-     
-     
+
+
+
+
       ;
       ;
       return std::__lexicographical_compare_aux
@@ -1574,8 +1574,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef typename iterator_traits<_II1>::iterator_category _Category1;
       typedef typename iterator_traits<_II2>::iterator_category _Category2;
       typedef std::__lc_rai<_Category1, _Category2> __rai_type;
-     
-     
+
+
       ;
       ;
       __last1 = __rai_type::__newlast1(__first1, __last1, __first2, __last2);
@@ -1594,15 +1594,15 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     mismatch(_InputIterator1 __first1, _InputIterator1 __last1,
       _InputIterator2 __first2)
     {
-     
-     
-     
+
+
+
       ;
       while (__first1 != __last1 && *__first1 == *__first2)
-        {
+	{
    ++__first1;
    ++__first2;
-        }
+	}
       return pair<_InputIterator1, _InputIterator2>(__first1, __first2);
     }
   template<typename _InputIterator1, typename _InputIterator2,
@@ -1611,18 +1611,18 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     mismatch(_InputIterator1 __first1, _InputIterator1 __last1,
       _InputIterator2 __first2, _BinaryPredicate __binary_pred)
     {
-     
-     
+
+
       ;
       while (__first1 != __last1 && bool(__binary_pred(*__first1, *__first2)))
-        {
+	{
    ++__first1;
    ++__first2;
-        }
+	}
       return pair<_InputIterator1, _InputIterator2>(__first1, __first2);
     }
 }
-       
+
 extern "C++" {
 namespace std
 {
@@ -1695,12 +1695,12 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
       typedef const _Tp& const_reference;
       typedef _Tp value_type;
       template<typename _Tp1>
-        struct rebind
-        { typedef new_allocator<_Tp1> other; };
+	struct rebind
+	{ typedef new_allocator<_Tp1> other; };
       new_allocator() throw() { }
       new_allocator(const new_allocator&) throw() { }
       template<typename _Tp1>
-        new_allocator(const new_allocator<_Tp1>&) throw() { }
+	new_allocator(const new_allocator<_Tp1>&) throw() { }
       ~new_allocator() throw() { }
       pointer
       address(reference __x) const { return &__x; }
@@ -1747,8 +1747,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef const void* const_pointer;
       typedef void value_type;
       template<typename _Tp1>
-        struct rebind
-        { typedef allocator<_Tp1> other; };
+	struct rebind
+	{ typedef allocator<_Tp1> other; };
     };
   template<typename _Tp>
     class allocator: public __gnu_cxx::new_allocator<_Tp>
@@ -1762,13 +1762,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef const _Tp& const_reference;
       typedef _Tp value_type;
       template<typename _Tp1>
-        struct rebind
-        { typedef allocator<_Tp1> other; };
+	struct rebind
+	{ typedef allocator<_Tp1> other; };
       allocator() throw() { }
       allocator(const allocator& __a) throw()
       : __gnu_cxx::new_allocator<_Tp>(__a) { }
       template<typename _Tp1>
-        allocator(const allocator<_Tp1>&) throw() { }
+	allocator(const allocator<_Tp1>&) throw() { }
       ~allocator() throw() { }
     };
   template<typename _T1, typename _T2>
@@ -1955,19 +1955,19 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Val>
     inline bool
     operator==(const _List_iterator<_Val>& __x,
-        const _List_const_iterator<_Val>& __y)
+	const _List_const_iterator<_Val>& __y)
     { return __x._M_node == __y._M_node; }
   template<typename _Val>
     inline bool
     operator!=(const _List_iterator<_Val>& __x,
-               const _List_const_iterator<_Val>& __y)
+	       const _List_const_iterator<_Val>& __y)
     { return __x._M_node != __y._M_node; }
   template<typename _Tp, typename _Alloc>
     class _List_base
     {
     protected:
       typedef typename _Alloc::template rebind<_List_node<_Tp> >::other
-        _Node_alloc_type;
+	_Node_alloc_type;
       typedef typename _Alloc::template rebind<_Tp>::other _Tp_alloc_type;
       struct _List_impl
       : public _Node_alloc_type
@@ -2014,16 +2014,16 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       void
       _M_init()
       {
-        this->_M_impl._M_node._M_next = &this->_M_impl._M_node;
-        this->_M_impl._M_node._M_prev = &this->_M_impl._M_node;
+	this->_M_impl._M_node._M_next = &this->_M_impl._M_node;
+	this->_M_impl._M_node._M_prev = &this->_M_impl._M_node;
       }
     };
   template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
     class list : protected _List_base<_Tp, _Alloc>
     {
       typedef typename _Alloc::value_type _Alloc_value_type;
-     
-     
+
+
       typedef _List_base<_Tp, _Alloc> _Base;
       typedef typename _Base::_Tp_alloc_type _Tp_alloc_type;
     public:
@@ -2076,10 +2076,10 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       : _Base(__x._M_get_Node_allocator())
       { _M_initialize_dispatch(__x.begin(), __x.end(), __false_type()); }
       template<typename _InputIterator>
-        list(_InputIterator __first, _InputIterator __last,
+	list(_InputIterator __first, _InputIterator __last,
       const allocator_type& __a = allocator_type())
-        : _Base(__a)
-        {
+	: _Base(__a)
+	{
    typedef typename std::__is_integer<_InputIterator>::__type _Integral;
    _M_initialize_dispatch(__first, __last, _Integral());
  }
@@ -2089,9 +2089,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       assign(size_type __n, const value_type& __val)
       { _M_fill_assign(__n, __val); }
       template<typename _InputIterator>
-        void
-        assign(_InputIterator __first, _InputIterator __last)
-        {
+	void
+	assign(_InputIterator __first, _InputIterator __last)
+	{
    typedef typename std::__is_integer<_InputIterator>::__type _Integral;
    _M_assign_dispatch(__first, __last, _Integral());
  }
@@ -2174,10 +2174,10 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
  splice(__position, __tmp);
       }
       template<typename _InputIterator>
-        void
-        insert(iterator __position, _InputIterator __first,
-        _InputIterator __last)
-        {
+	void
+	insert(iterator __position, _InputIterator __first,
+	_InputIterator __last)
+	{
    list __tmp(__first, __last, _M_get_Node_allocator());
    splice(__position, __tmp);
  }
@@ -2200,8 +2200,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       void
       clear()
       {
-        _Base::_M_clear();
-        _Base::_M_init();
+	_Base::_M_clear();
+	_Base::_M_init();
       }
       void
       splice(iterator __position, list& __x)
@@ -2237,36 +2237,36 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       void
       remove(const _Tp& __value);
       template<typename _Predicate>
-        void
-        remove_if(_Predicate);
+	void
+	remove_if(_Predicate);
       void
       unique();
       template<typename _BinaryPredicate>
-        void
-        unique(_BinaryPredicate);
+	void
+	unique(_BinaryPredicate);
       void
       merge(list& __x);
       template<typename _StrictWeakOrdering>
-        void
-        merge(list&, _StrictWeakOrdering);
+	void
+	merge(list&, _StrictWeakOrdering);
       void
       reverse()
       { this->_M_impl._M_node.reverse(); }
       void
       sort();
       template<typename _StrictWeakOrdering>
-        void
-        sort(_StrictWeakOrdering);
+	void
+	sort(_StrictWeakOrdering);
     protected:
       template<typename _Integer>
-        void
-        _M_initialize_dispatch(_Integer __n, _Integer __x, __true_type)
-        { _M_fill_initialize(static_cast<size_type>(__n), __x); }
+	void
+	_M_initialize_dispatch(_Integer __n, _Integer __x, __true_type)
+	{ _M_fill_initialize(static_cast<size_type>(__n), __x); }
       template<typename _InputIterator>
-        void
-        _M_initialize_dispatch(_InputIterator __first, _InputIterator __last,
-          __false_type)
-        {
+	void
+	_M_initialize_dispatch(_InputIterator __first, _InputIterator __last,
+	  __false_type)
+	{
    for (; __first != __last; ++__first)
      push_back(*__first);
  }
@@ -2277,12 +2277,12 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
    push_back(__x);
       }
       template<typename _Integer>
-        void
-        _M_assign_dispatch(_Integer __n, _Integer __val, __true_type)
-        { _M_fill_assign(__n, __val); }
+	void
+	_M_assign_dispatch(_Integer __n, _Integer __val, __true_type)
+	{ _M_fill_assign(__n, __val); }
       template<typename _InputIterator>
-        void
-        _M_assign_dispatch(_InputIterator __first, _InputIterator __last,
+	void
+	_M_assign_dispatch(_InputIterator __first, _InputIterator __last,
       __false_type);
       void
       _M_fill_assign(size_type __n, const value_type& __val);
@@ -2292,16 +2292,16 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       void
       _M_insert(iterator __position, const value_type& __x)
       {
-        _Node* __tmp = _M_create_node(__x);
-        __tmp->hook(__position._M_node);
+	_Node* __tmp = _M_create_node(__x);
+	__tmp->hook(__position._M_node);
       }
       void
       _M_erase(iterator __position)
       {
-        __position._M_node->unhook();
-        _Node* __n = static_cast<_Node*>(__position._M_node);
+	__position._M_node->unhook();
+	_Node* __n = static_cast<_Node*>(__position._M_node);
  _M_get_Tp_allocator().destroy(&__n->_M_data);
-        _M_put_node(__n);
+	_M_put_node(__n);
       }
       void
       _M_check_equal_allocators(list& __x)
@@ -2395,11 +2395,11 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       iterator __i = begin();
       size_type __len = 0;
       for (; __i != end() && __len < __new_size; ++__i, ++__len)
-        ;
+	;
       if (__len == __new_size)
-        erase(__i, end());
+	erase(__i, end());
       else
-        insert(end(), __new_size - __len, __x);
+	insert(end(), __new_size - __len, __x);
     }
   template<typename _Tp, typename _Alloc>
     list<_Tp, _Alloc>&
@@ -2413,7 +2413,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
    const_iterator __first2 = __x.begin();
    const_iterator __last2 = __x.end();
    for (; __first1 != __last1 && __first2 != __last2;
-        ++__first1, ++__first2)
+	++__first1, ++__first2)
      *__first1 = *__first2;
    if (__first2 == __last2)
      erase(__first1, __last1);
@@ -2429,11 +2429,11 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     {
       iterator __i = begin();
       for (; __i != end() && __n > 0; ++__i, --__n)
-        *__i = __val;
+	*__i = __val;
       if (__n > 0)
-        insert(end(), __n, __val);
+	insert(end(), __n, __val);
       else
-        erase(__i, end());
+	erase(__i, end());
     }
   template<typename _Tp, typename _Alloc>
     template <typename _InputIterator>
@@ -2442,15 +2442,15 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       _M_assign_dispatch(_InputIterator __first2, _InputIterator __last2,
     __false_type)
       {
-        iterator __first1 = begin();
-        iterator __last1 = end();
-        for (; __first1 != __last1 && __first2 != __last2;
+	iterator __first1 = begin();
+	iterator __last1 = end();
+	for (; __first1 != __last1 && __first2 != __last2;
       ++__first1, ++__first2)
-          *__first1 = *__first2;
-        if (__first2 == __last2)
-          erase(__first1, __last1);
-        else
-          insert(__last1, __first2, __last2);
+	  *__first1 = *__first2;
+	if (__first2 == __last2)
+	  erase(__first1, __last1);
+	else
+	  insert(__last1, __first2, __last2);
       }
   template<typename _Tp, typename _Alloc>
     void
@@ -2554,11 +2554,11 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       if (this->_M_impl._M_node._M_next != &this->_M_impl._M_node
    && this->_M_impl._M_node._M_next->_M_next != &this->_M_impl._M_node)
       {
-        list __carry;
-        list __tmp[64];
-        list * __fill = &__tmp[0];
-        list * __counter;
-        do
+	list __carry;
+	list __tmp[64];
+	list * __fill = &__tmp[0];
+	list * __counter;
+	do
    {
      __carry.splice(__carry.begin(), *this, begin());
      for(__counter = &__tmp[0];
@@ -2573,9 +2573,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
        ++__fill;
    }
  while ( !empty() );
-        for (__counter = &__tmp[1]; __counter != __fill; ++__counter)
-          __counter->merge(*(__counter - 1));
-        swap( *(__fill - 1) );
+	for (__counter = &__tmp[1]; __counter != __fill; ++__counter)
+	  __counter->merge(*(__counter - 1));
+	swap( *(__fill - 1) );
       }
     }
   template<typename _Tp, typename _Alloc>
@@ -2584,9 +2584,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       list<_Tp, _Alloc>::
       remove_if(_Predicate __pred)
       {
-        iterator __first = begin();
-        iterator __last = end();
-        while (__first != __last)
+	iterator __first = begin();
+	iterator __last = end();
+	while (__first != __last)
    {
      iterator __next = __first;
      ++__next;
@@ -2601,12 +2601,12 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       list<_Tp, _Alloc>::
       unique(_BinaryPredicate __binary_pred)
       {
-        iterator __first = begin();
-        iterator __last = end();
-        if (__first == __last)
+	iterator __first = begin();
+	iterator __last = end();
+	if (__first == __last)
    return;
-        iterator __next = __first;
-        while (++__next != __last)
+	iterator __next = __first;
+	while (++__next != __last)
    {
      if (__binary_pred(*__first, *__next))
        _M_erase(__next);
@@ -2653,24 +2653,24 @@ extern void foobarit(void);
 class Game
 {
 public:
-        struct BuildProject
-        {
-                int posX;
-        };
-        std::list<BuildProject> buildProjects;
+	struct BuildProject
+	{
+		int posX;
+	};
+	std::list<BuildProject> buildProjects;
 };
 static Game game;
 static std::list<std::list<Game::BuildProject>::iterator>
 erasableBuildProjects;
 void *buildProjectSyncStepConcurrently(int id, int localTeam)
 {
-        __transaction_relaxed {
-                std::list<std::list<Game::BuildProject>::iterator>::iterator it
+	__transaction_relaxed {
+		std::list<std::list<Game::BuildProject>::iterator>::iterator it
 = erasableBuildProjects.begin();
 		foobarit();
-                game.buildProjects.erase( (std::list<Game::BuildProject>
+		game.buildProjects.erase( (std::list<Game::BuildProject>
 ::iterator) *it);
-        }
-        return 0;
+	}
+	return 0;
 }
 

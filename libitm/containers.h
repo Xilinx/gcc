@@ -96,8 +96,8 @@ class vector
   iterator pop() {
     if (likely(m_size > 0))
       {
-        m_size--;
-        return entries + m_size;
+	m_size--;
+	return entries + m_size;
       }
     else return 0;
   }

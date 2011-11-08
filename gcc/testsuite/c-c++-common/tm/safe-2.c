@@ -19,9 +19,9 @@ f(void)
   __transaction_atomic [[outer]] {
     __transaction_atomic {
       __transaction_atomic {
-        __transaction_atomic {
-          mco();
-        }
+	__transaction_atomic {
+	  mco();
+	}
       }
     }
   }
@@ -34,9 +34,9 @@ g(void)
   __transaction_atomic {
     __transaction_atomic {
       __transaction_atomic {
-        __transaction_atomic {
-          mco();
-        }
+	__transaction_atomic {
+	  mco();
+	}
       }
     }
   }

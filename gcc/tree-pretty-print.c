@@ -2270,17 +2270,17 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       else if (TRANSACTION_EXPR_RELAXED (node))
 	pp_string (buffer, "__transaction_relaxed");
       else
-        pp_string (buffer, "__transaction_atomic");
+	pp_string (buffer, "__transaction_atomic");
       if (!(flags & TDF_SLIM) && TRANSACTION_EXPR_BODY (node))
-        {
-          newline_and_indent (buffer, spc);
-          pp_character (buffer, '{');
-          newline_and_indent (buffer, spc + 2);
-          dump_generic_node (buffer, TRANSACTION_EXPR_BODY (node),
+	{
+	  newline_and_indent (buffer, spc);
+	  pp_character (buffer, '{');
+	  newline_and_indent (buffer, spc + 2);
+	  dump_generic_node (buffer, TRANSACTION_EXPR_BODY (node),
 			     spc + 2, flags, false);
-          newline_and_indent (buffer, spc);
-          pp_character (buffer, '}');
-        }
+	  newline_and_indent (buffer, spc);
+	  pp_character (buffer, '}');
+	}
       is_expr = false;
       break;
 

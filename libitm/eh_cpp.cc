@@ -81,28 +81,28 @@ GTM::gtm_thread::revert_cpp_exceptions (gtm_transaction_cp *cp)
       // because it just contains the argument provided to
       // _ITM_commitTransactionEH
       void *unthrown =
-          (cxa_unthrown != cp->cxa_unthrown ? cxa_unthrown : NULL);
+	  (cxa_unthrown != cp->cxa_unthrown ? cxa_unthrown : NULL);
       assert (cxa_catch_count >= cp->cxa_catch_count);
       uint32_t catch_count = cxa_catch_count - cp->cxa_catch_count;
       if (unthrown || catch_count)
-        {
-          __cxa_tm_cleanup (unthrown, this->eh_in_flight, catch_count);
-          cxa_catch_count = cp->cxa_catch_count;
-          cxa_unthrown = cp->cxa_unthrown;
-          this->eh_in_flight = NULL;
-        }
+	{
+	  __cxa_tm_cleanup (unthrown, this->eh_in_flight, catch_count);
+	  cxa_catch_count = cp->cxa_catch_count;
+	  cxa_unthrown = cp->cxa_unthrown;
+	  this->eh_in_flight = NULL;
+	}
     }
   else
     {
       // Both cxa_catch_count and cxa_unthrown are maximal because EH regions
       // and transactions are properly nested.
       if (this->cxa_unthrown || this->cxa_catch_count)
-        {
-          __cxa_tm_cleanup (this->cxa_unthrown, this->eh_in_flight,
-              this->cxa_catch_count);
-          this->cxa_catch_count = 0;
-          this->cxa_unthrown = NULL;
-          this->eh_in_flight = NULL;
-        }
+	{
+	  __cxa_tm_cleanup (this->cxa_unthrown, this->eh_in_flight,
+	      this->cxa_catch_count);
+	  this->cxa_catch_count = 0;
+	  this->cxa_unthrown = NULL;
+	  this->eh_in_flight = NULL;
+	}
     }
 }

@@ -7306,9 +7306,9 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_omp_atomic (expr_p, pre_p);
 	  break;
 
-        case TRANSACTION_EXPR:
-          ret = gimplify_transaction (expr_p, pre_p);
-          break;
+	case TRANSACTION_EXPR:
+	  ret = gimplify_transaction (expr_p, pre_p);
+	  break;
 
 	case TRUTH_AND_EXPR:
 	case TRUTH_OR_EXPR:

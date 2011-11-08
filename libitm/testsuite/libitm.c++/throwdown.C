@@ -3,7 +3,7 @@
 #include <libitm.h>
 
 static void throwit() {
-	throw 1; 
+	throw 1;
 }
 
 void tranfunc() {

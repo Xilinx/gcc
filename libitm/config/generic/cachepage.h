@@ -60,7 +60,7 @@ struct gtm_cacheline_page
     size_t index = c - &this->lines[0];
     return &this->masks[index];
   }
-    
+
   static gtm_cacheline_mask *
   mask_for_page_line (gtm_cacheline *c)
   {

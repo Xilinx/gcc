@@ -46,7 +46,7 @@ unaligned_load2<uint16_t>(const gtm_cacheline *c1,
 {
   uint64_t v1 = c1->u64[CACHELINE_SIZE / sizeof(uint64_t) - 1];
   uint64_t v2 = c2->u64[0];
-  
+
   return __builtin_alpha_extwl (v1, ofs) | __builtin_alpha_extwh (v2, ofs);
 }
 

@@ -99,7 +99,7 @@ template < typename _Iterator > class reverse_iterator:public iterator < typenam
     reference operator* () const
     {
       _Iterator __tmp = current;
-        return *--__tmp;
+	return *--__tmp;
     }
     pointer operator-> () const
     {
@@ -653,7 +653,7 @@ namespace std __attribute__ ((__visibility__ ("default")))
     struct _List_impl:public _Node_alloc_type
     {
       _List_node_base _M_node;
-        _List_impl ():_Node_alloc_type (), _M_node ()
+	_List_impl ():_Node_alloc_type (), _M_node ()
       {
       } _List_impl (const _Node_alloc_type & __a):_Node_alloc_type (__a),
 	_M_node ()

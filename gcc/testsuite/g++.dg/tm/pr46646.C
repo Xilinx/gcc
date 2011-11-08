@@ -15,8 +15,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       : first(__a), second(__b) { }
     };
 }
-       
-       
+
+
 typedef long int ptrdiff_t;
 typedef __SIZE_TYPE__ size_t;
 namespace std __attribute__ ((__visibility__ ("default"))) {
@@ -30,7 +30,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   struct bidirectional_iterator_tag : public forward_iterator_tag { };
   struct random_access_iterator_tag : public bidirectional_iterator_tag { };
   template<typename _Category, typename _Tp, typename _Distance = ptrdiff_t,
-           typename _Pointer = _Tp*, typename _Reference = _Tp&>
+	   typename _Pointer = _Tp*, typename _Reference = _Tp&>
     struct iterator
     {
       typedef _Category iterator_category;
@@ -75,10 +75,10 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Iterator>
     class reverse_iterator
     : public iterator<typename iterator_traits<_Iterator>::iterator_category,
-        typename iterator_traits<_Iterator>::value_type,
-        typename iterator_traits<_Iterator>::difference_type,
-        typename iterator_traits<_Iterator>::pointer,
-                      typename iterator_traits<_Iterator>::reference>
+	typename iterator_traits<_Iterator>::value_type,
+	typename iterator_traits<_Iterator>::difference_type,
+	typename iterator_traits<_Iterator>::pointer,
+		      typename iterator_traits<_Iterator>::reference>
     {
     protected:
       _Iterator current;
@@ -94,7 +94,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       reverse_iterator(const reverse_iterator& __x)
       : current(__x.current) { }
       template<typename _Iter>
-        reverse_iterator(const reverse_iterator<_Iter>& __x)
+	reverse_iterator(const reverse_iterator<_Iter>& __x)
  : current(__x.base()) { }
       iterator_type
       base() const
@@ -157,9 +157,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       { return *(*this + __n); }
     };
 }
-       
-       
-       
+
+
+
 extern "C++" {
 namespace std
 {
@@ -251,14 +251,14 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
   void
   __throw_bad_function_call() __attribute__((__noreturn__));
 }
-       
-       
+
+
 namespace std __attribute__ ((__visibility__ ("default"))) {
   template<typename _Tp>
     inline void
     swap(_Tp& __a, _Tp& __b)
     {
-     
+
       _Tp __tmp = (__a);
       __a = (__b);
       __b = (__tmp);
@@ -286,12 +286,12 @@ namespace __gnu_cxx __attribute__ ((__visibility__ ("default"))) {
       typedef const _Tp& const_reference;
       typedef _Tp value_type;
       template<typename _Tp1>
-        struct rebind
-        { typedef new_allocator<_Tp1> other; };
+	struct rebind
+	{ typedef new_allocator<_Tp1> other; };
       new_allocator() throw() { }
       new_allocator(const new_allocator&) throw() { }
       template<typename _Tp1>
-        new_allocator(const new_allocator<_Tp1>&) throw() { }
+	new_allocator(const new_allocator<_Tp1>&) throw() { }
       ~new_allocator() throw() { }
       pointer
       address(reference __x) const { return &__x; }
@@ -340,8 +340,8 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef const void* const_pointer;
       typedef void value_type;
       template<typename _Tp1>
-        struct rebind
-        { typedef allocator<_Tp1> other; };
+	struct rebind
+	{ typedef allocator<_Tp1> other; };
     };
   template<typename _Tp>
     class allocator: public __gnu_cxx::new_allocator<_Tp>
@@ -355,13 +355,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       typedef const _Tp& const_reference;
       typedef _Tp value_type;
       template<typename _Tp1>
-        struct rebind
-        { typedef allocator<_Tp1> other; };
+	struct rebind
+	{ typedef allocator<_Tp1> other; };
       allocator() throw() { }
       allocator(const allocator& __a) throw()
       : __gnu_cxx::new_allocator<_Tp>(__a) { }
       template<typename _Tp1>
-        allocator(const allocator<_Tp1>&) throw() { }
+	allocator(const allocator<_Tp1>&) throw() { }
       ~allocator() throw() { }
     };
   template<typename _T1, typename _T2>
@@ -629,18 +629,18 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     };
   void
   _Rb_tree_insert_and_rebalance(const bool __insert_left,
-                                _Rb_tree_node_base* __x,
-                                _Rb_tree_node_base* __p,
-                                _Rb_tree_node_base& __header) throw ();
+				_Rb_tree_node_base* __x,
+				_Rb_tree_node_base* __p,
+				_Rb_tree_node_base& __header) throw ();
   _Rb_tree_node_base*
   _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* const __z,
-          _Rb_tree_node_base& __header) throw ();
+	  _Rb_tree_node_base& __header) throw ();
   template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc = allocator<_Val> >
+	   typename _Compare, typename _Alloc = allocator<_Val> >
     class _Rb_tree
     {
       typedef typename _Alloc::template rebind<_Rb_tree_node<_Val> >::other
-              _Node_allocator;
+	      _Node_allocator;
     protected:
       typedef _Rb_tree_node_base* _Base_ptr;
       typedef const _Rb_tree_node_base* _Const_Base_ptr;
@@ -695,9 +695,9 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       }
     protected:
       template<typename _Key_compare,
-        bool _Is_pod_comparator = __is_pod(_Key_compare)>
-        struct _Rb_tree_impl : public _Node_allocator
-        {
+	bool _Is_pod_comparator = __is_pod(_Key_compare)>
+	struct _Rb_tree_impl : public _Node_allocator
+	{
    _Key_compare _M_key_compare;
    _Rb_tree_node_base _M_header;
    size_type _M_node_count;
@@ -799,7 +799,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       begin() const
       {
  return const_iterator(static_cast<_Const_Link_type>
-         (this->_M_impl._M_header._M_left));
+	 (this->_M_impl._M_header._M_left));
       }
       iterator
       end()
@@ -808,13 +808,13 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       end() const
       {
  return const_iterator(static_cast<_Const_Link_type>
-         (&this->_M_impl._M_header));
+	 (&this->_M_impl._M_header));
       }
       pair<iterator, bool>
       _M_insert_unique(const value_type& __x);
     };
   template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
+	   typename _Compare, typename _Alloc>
     typename _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::iterator
     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
     _M_insert_(_Const_Base_ptr __x, _Const_Base_ptr __p, const _Val& __v)
@@ -823,7 +823,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
       return iterator(__z);
     }
   template<typename _Key, typename _Val, typename _KeyOfValue,
-           typename _Compare, typename _Alloc>
+	   typename _Compare, typename _Alloc>
     pair<typename _Rb_tree<_Key, _Val, _KeyOfValue,
       _Compare, _Alloc>::iterator, bool>
     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
@@ -849,7 +849,7 @@ namespace std __attribute__ ((__visibility__ ("default"))) {
     private:
       typedef typename _Alloc::template rebind<_Key>::other _Key_alloc_type;
       typedef _Rb_tree<key_type, value_type, _Identity<value_type>,
-         key_compare, _Key_alloc_type> _Rep_type;
+	 key_compare, _Key_alloc_type> _Rep_type;
       _Rep_type _M_t;
     public:
       typedef typename _Key_alloc_type::pointer pointer;

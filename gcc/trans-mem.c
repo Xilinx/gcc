@@ -68,7 +68,7 @@
   trivially replaced with a GIMPLE_TRANSACTION node.
 
   During pass_lower_tm, we examine the body of transactions looking
-  for aborts.  Transactions that do not contain an abort may be 
+  for aborts.  Transactions that do not contain an abort may be
   merged into an outer transaction.  We also add a TRY-FINALLY node
   to arrange for the transaction to be committed on any exit.
 
@@ -112,7 +112,7 @@
   During pass_ipa_tm, we examine all GIMPLE_TRANSACTION blocks in all
   functions and mark functions for cloning.
 
-  At the end of gimple optimization, before exiting SSA form, 
+  At the end of gimple optimization, before exiting SSA form,
   pass_tm_edges replaces statements that perform transactional
   memory operations with the appropriate TM builtins, and swap
   out function calls with their transactional clones.  At this
@@ -124,9 +124,9 @@
 	if (x & abort_transaction)
 	  goto over;
 	local = local + 1;
-        t0 = __builtin___tm_load (global);
+	t0 = __builtin___tm_load (global);
 	t1 = t0 + 1;
-        __builtin___tm_store (&global, t1);
+	__builtin___tm_store (&global, t1);
 	if (t1 == 10)
 	  __builtin___tm_abort ();
 	__builtin___tm_commit ();
@@ -621,7 +621,7 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 	      is_safe = true;
 	    else if (is_tm_callable (fn) || is_tm_irrevocable (fn))
 	      {
-		/* A function explicitly marked transaction_callable as 
+		/* A function explicitly marked transaction_callable as
 		   opposed to transaction_safe is being defined to be
 		   unsafe as part of its ABI, regardless of its contents.  */
 		is_safe = false;
@@ -679,7 +679,7 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 	error_at (gimple_location (stmt),
 		  "asm not allowed in atomic transaction");
       else if (d->func_flags & DIAG_TM_SAFE)
-        error_at (gimple_location (stmt),
+	error_at (gimple_location (stmt),
 		  "asm not allowed in %<transaction_safe%> function");
       else
 	d->saw_unsafe = true;
@@ -809,7 +809,7 @@ struct gimple_opt_pass pass_diagnose_tm_blocks =
        struct large { int x[1000]; };
        struct large lala = { 0 };
        __transaction {
-         lala.x[i] = 123;
+	 lala.x[i] = 123;
 	 ...
        }
 
@@ -818,16 +818,16 @@ struct gimple_opt_pass pass_diagnose_tm_blocks =
        lala = { 0 };
        trxn = _ITM_startTransaction ();
        if (trxn & a_saveLiveVariables)
-         tmp_lala1 = lala.x[i];
+	 tmp_lala1 = lala.x[i];
        else if (a & a_restoreLiveVariables)
-         lala.x[i] = tmp_lala1;
+	 lala.x[i] = tmp_lala1;
 
    or use the logging functions:
 
        lala = { 0 };
        trxn = _ITM_startTransaction ();
        _ITM_LU4 (&lala.x[i]);
-      
+
    Obviously, if we use _ITM_L* to log, we prefer to call _ITM_L* as
    far up the dominator tree to shadow all of the writes to a given
    location (thus reducing the total number of logging calls), but not
@@ -1805,7 +1805,7 @@ tm_region_init_1 (struct tm_region *region, basic_block bb)
       || (!region->irr_blocks && !region->exit_blocks))
     return region;
 
-  /* Check to see if this is the end of a region by seeing if it 
+  /* Check to see if this is the end of a region by seeing if it
      contains a call to __builtin_tm_commit{,_eh}.  Note that the
      outermost region for DECL_IS_TM_CLONE need not collect this.  */
   for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
@@ -1866,24 +1866,24 @@ tm_region_init (struct tm_region *region)
       g = last_stmt (bb);
       old_region = region;
       if (g && gimple_code (g) == GIMPLE_TRANSACTION)
-        region = tm_region_init_0 (region, bb, g);
+	region = tm_region_init_0 (region, bb, g);
 
       /* Process subsequent blocks.  */
       FOR_EACH_EDGE (e, ei, bb->succs)
-        if (!bitmap_bit_p (visited_blocks, e->dest->index))
-          {
-            bitmap_set_bit (visited_blocks, e->dest->index);
-            VEC_safe_push (basic_block, heap, queue, e->dest);
-            gcc_assert (!e->dest->aux); /* FIXME: Remove me.  */
+	if (!bitmap_bit_p (visited_blocks, e->dest->index))
+	  {
+	    bitmap_set_bit (visited_blocks, e->dest->index);
+	    VEC_safe_push (basic_block, heap, queue, e->dest);
+	    gcc_assert (!e->dest->aux); /* FIXME: Remove me.  */
 
-            /* If the current block started a new region, make sure that only
-               the entry block of the new region is associated with this region.
-               Other successors are still part of the old region.  */
-            if (old_region != region && e->dest != region->entry_block)
-              e->dest->aux = old_region;
-            else
-              e->dest->aux = region;
-          }
+	    /* If the current block started a new region, make sure that only
+	       the entry block of the new region is associated with this region.
+	       Other successors are still part of the old region.  */
+	    if (old_region != region && e->dest != region->entry_block)
+	      e->dest->aux = old_region;
+	    else
+	      e->dest->aux = region;
+	  }
     }
   while (!VEC_empty (basic_block, queue));
   VEC_free (basic_block, heap, queue);
@@ -2120,7 +2120,7 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
   gcall = gimple_build_call (fn, 2, t, rhs);
   gimple_set_location (gcall, loc);
   gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
-  
+
   return gcall;
 }
 
@@ -2234,7 +2234,7 @@ expand_call_tm (struct tm_region *region,
 	return false;
       else
 	transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
-      
+
       return false;
     }
 
@@ -2338,7 +2338,7 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 	  break;
 	}
       if (!gsi_end_p (gsi))
-        gsi_next (&gsi);
+	gsi_next (&gsi);
     }
 }
 
@@ -2479,7 +2479,7 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
 						   struct_ptr_eq, ggc_free);
 
   dummy.stmt = stmt;
-  dummy.label_or_list = gimple_block_label (region->entry_block); 
+  dummy.label_or_list = gimple_block_label (region->entry_block);
   slot = htab_find_slot (cfun->gimple_df->tm_restart, &dummy, INSERT);
   n = (struct tm_restart_node *) *slot;
   if (n == NULL)
@@ -2488,7 +2488,7 @@ make_tm_edge (gimple stmt, basic_block bb, struct tm_region *region)
       *n = dummy;
     }
   else
-    { 
+    {
       tree old = n->label_or_list;
       if (TREE_CODE (old) == LABEL_DECL)
 	old = tree_cons (NULL, old, NULL);
@@ -3027,7 +3027,7 @@ tm_memopt_compute_available (struct tm_region *region,
      list if they were not already on the list.  So the size is
      bounded by the number of basic blocks in the region.  */
   qlen = VEC_length (basic_block, blocks) - 1;
-  qin = qout = worklist = 
+  qin = qout = worklist =
     XNEWVEC (basic_block, qlen);
 
   /* Put every block in the region on the worklist.  */
@@ -3114,7 +3114,7 @@ tm_memopt_compute_antic (struct tm_region *region,
   /* Allocate a worklist array/queue.  Entries are only added to the
      list if they were not already on the list.  So the size is
      bounded by the number of basic blocks in the region.  */
-  qin = qout = worklist = 
+  qin = qout = worklist =
     XNEWVEC (basic_block, VEC_length (basic_block, blocks));
 
   for (qlen = 0, i = VEC_length (basic_block, blocks) - 1; i >= 0; --i)
@@ -3276,7 +3276,7 @@ tm_memopt_transform_blocks (VEC (basic_block, heap) *blocks)
 		  bitmap_set_bit (store_avail, loc);
 		}
 	    }
-        }
+	}
     }
 }
 
@@ -3347,8 +3347,8 @@ execute_tm_memopt (void)
       /* Save all BBs for the current region.  */
       bbs = get_tm_region_blocks (region->entry_block,
 				  region->exit_blocks,
-				  region->irr_blocks, 
-				  NULL, 
+				  region->irr_blocks,
+				  NULL,
 				  false);
 
       /* Collect all the memory operations.  */
@@ -3404,7 +3404,7 @@ struct gimple_opt_pass pass_tm_memopt =
 /* Interprocedual analysis for the creation of transactional clones.
    The aim of this pass is to find which functions are referenced in
    a non-irrevocable transaction context, and for those over which
-   we have control (or user directive), create a version of the 
+   we have control (or user directive), create a version of the
    function which uses only the transactional interface to reference
    protected memories.  This analysis proceeds in several steps:
 
@@ -3434,7 +3434,7 @@ struct gimple_opt_pass pass_tm_memopt =
 
 	(c) If we reach the entry block for a possible transactional
 	    clone, then the transactional clone is irrevocable, and
-	    we should not create the clone after all.  Push all 
+	    we should not create the clone after all.  Push all
 	    callers onto the worklist.
 
 	(d) Place tm_irrevocable calls at the beginning of the relevant
@@ -3457,7 +3457,7 @@ struct tm_ipa_cg_data
   /* The tm regions in the normal function.  */
   struct tm_region *all_tm_regions;
 
-  /* The blocks of the normal/clone functions that contain irrevocable 
+  /* The blocks of the normal/clone functions that contain irrevocable
      calls, or blocks that are post-dominated by irrevocable calls.  */
   bitmap irrevocable_blocks_normal;
   bitmap irrevocable_blocks_clone;
@@ -3509,7 +3509,7 @@ get_cg_data (struct cgraph_node *node)
   return d;
 }
 
-/* Add NODE to the end of QUEUE, unless IN_QUEUE_P indicates that 
+/* Add NODE to the end of QUEUE, unless IN_QUEUE_P indicates that
    it is already present.  */
 
 static void
@@ -3595,7 +3595,7 @@ ipa_tm_scan_calls_transaction (struct tm_ipa_cg_data *d,
    and push the destinations into the callee queue.  */
 
 static void
-ipa_tm_scan_calls_clone (struct cgraph_node *node, 
+ipa_tm_scan_calls_clone (struct cgraph_node *node,
 			 cgraph_node_queue *callees_p)
 {
   struct function *fn = DECL_STRUCT_FUNCTION (node->decl);
@@ -3689,7 +3689,7 @@ ipa_tm_scan_irr_block (basic_block bb)
 	case GIMPLE_ASM:
 	  /* ??? The Approved Method of indicating that an inline
 	     assembly statement is not relevant to the transaction
-	     is to wrap it in a __tm_waiver block.  This is not 
+	     is to wrap it in a __tm_waiver block.  This is not
 	     yet implemented, so we can't check for it.  */
 	  return true;
 
@@ -3707,7 +3707,7 @@ ipa_tm_scan_irr_block (basic_block bb)
 
 static bool
 ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
-		        bitmap old_irr, bitmap exit_blocks)
+			bitmap old_irr, bitmap exit_blocks)
 {
   bool any_new_irr = false;
   edge e;
@@ -3790,7 +3790,7 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr,
 	    {
 	      /* Add block to new_irr if it hasn't already been processed. */
 	      if (!old_irr || !bitmap_bit_p (old_irr, bb->index))
-	        {
+		{
 		  bitmap_set_bit (new_irr, bb->index);
 		  this_irr = true;
 		}
@@ -3979,7 +3979,7 @@ ipa_tm_mayenterirr_function (struct cgraph_node *node)
   if (d->is_irrevocable)
     return true;
 
-  /* If there are any blocks marked irrevocable, then the function 
+  /* If there are any blocks marked irrevocable, then the function
      as a whole may enter irrevocable.  */
   if (d->irrevocable_blocks_clone)
     return true;
@@ -4000,7 +4000,7 @@ ipa_tm_mayenterirr_function (struct cgraph_node *node)
   return false;
 }
 
-/* Diagnose calls from transaction_safe functions to unmarked 
+/* Diagnose calls from transaction_safe functions to unmarked
    functions that are determined to not be safe.  */
 
 static void
@@ -4283,7 +4283,7 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
   transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
   g = gimple_build_call (builtin_decl_explicit (BUILT_IN_TM_IRREVOCABLE),
-                         1, build_int_cst (NULL_TREE, MODE_SERIALIRREVOCABLE));
+			 1, build_int_cst (NULL_TREE, MODE_SERIALIRREVOCABLE));
 
   split_block_after_labels (bb);
   gsi = gsi_after_labels (bb);
@@ -4316,9 +4316,9 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
       tree clone = get_tm_clone_pair (fndecl);
 
       /* By transforming the call into a TM_GETTMCLONE, we are
-         technically taking the address of the original function and
-         its clone.  Explain this so inlining will know this function
-         is needed.  */
+	 technically taking the address of the original function and
+	 its clone.  Explain this so inlining will know this function
+	 is needed.  */
       cgraph_mark_address_taken_node (cgraph_get_node (fndecl));
       if (clone)
 	cgraph_mark_address_taken_node (cgraph_get_node (clone));
@@ -4420,7 +4420,7 @@ ipa_tm_transform_calls_redirect (struct cgraph_node *node,
     return;
 
   /* Fixup recursive calls inside clones.  */
-  /* ??? Why did cgraph_copy_node_for_versioning update the call edges 
+  /* ??? Why did cgraph_copy_node_for_versioning update the call edges
      for recursion but not update the call statements themselves?  */
   if (e->caller == e->callee && decl_is_tm_clone (current_function_decl))
     {
@@ -4680,7 +4680,7 @@ ipa_tm_execute (void)
 	       (ipa_tm_scan_irr_function) and mark the irrevocable blocks.  */
 	    if (node->local.tm_may_enter_irr)
 	      {
-	        maybe_push_queue (node, &irr_worklist, &d->in_worklist);
+		maybe_push_queue (node, &irr_worklist, &d->in_worklist);
 		d->want_irr_scan_normal = true;
 	      }
 	  }

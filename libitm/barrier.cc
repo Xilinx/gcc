@@ -32,9 +32,9 @@ bool abi_dispatch::memmove_overlap_check(void *dst, const void *src,
   if (dst_mod == NONTXNAL || src_mod == NONTXNAL)
     {
       if (((uintptr_t)dst <= (uintptr_t)src ?
-          (uintptr_t)dst + size > (uintptr_t)src :
-          (uintptr_t)src + size > (uintptr_t)dst))
-        GTM::GTM_fatal("_ITM_memmove overlapping and t/nt is not allowed");
+	  (uintptr_t)dst + size > (uintptr_t)src :
+	  (uintptr_t)src + size > (uintptr_t)dst))
+	GTM::GTM_fatal("_ITM_memmove overlapping and t/nt is not allowed");
       return false;
     }
   return true;

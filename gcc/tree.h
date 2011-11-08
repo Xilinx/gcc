@@ -540,7 +540,7 @@ struct GTY(()) tree_common {
 	   ENUMERAL_TYPE
 
        TRANSACTION_EXPR_OUTER in
-           TRANSACTION_EXPR
+	   TRANSACTION_EXPR
 
    public_flag:
 
@@ -570,7 +570,7 @@ struct GTY(()) tree_common {
            OMP_CLAUSE_PRIVATE
 
        TRANSACTION_EXPR_RELAXED in
-           TRANSACTION_EXPR
+	   TRANSACTION_EXPR
 
    private_flag:
 

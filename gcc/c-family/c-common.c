@@ -671,19 +671,19 @@ const struct attribute_spec c_common_attribute_table[] =
   { "pure",                   0, 0, true,  false, false,
 			      handle_pure_attribute, false },
   { "transaction_callable",   0, 0, false, true,  false,
-                              handle_tm_attribute, false },
+			      handle_tm_attribute, false },
   { "transaction_unsafe",     0, 0, false, true,  false,
-                              handle_tm_attribute, false },
+			      handle_tm_attribute, false },
   { "transaction_safe",       0, 0, false, true,  false,
-                              handle_tm_attribute, false },
+			      handle_tm_attribute, false },
   { "transaction_may_cancel_outer", 0, 0, false, true, false,
-                              handle_tm_attribute, false },
+			      handle_tm_attribute, false },
   /* ??? These two attributes didn't make the transition from the
      Intel language document to the multi-vendor language document.  */
   { "transaction_pure",       0, 0, false, true,  false,
-                              handle_tm_attribute, false },
+			      handle_tm_attribute, false },
   { "transaction_wrap",       1, 1, true,  false,  false,
-                             handle_tm_wrap_attribute, false },
+			     handle_tm_wrap_attribute, false },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
@@ -728,7 +728,7 @@ const struct attribute_spec c_common_attribute_table[] =
   /* For internal use only.  The leading '*' both prevents its usage in
      source code and signals that it may be overridden by machine tables.  */
   { "*tm regparm",            0, 0, false, true, true,
-                              ignore_attribute, false },
+			      ignore_attribute, false },
   { "no_split_stack",	      0, 0, true,  false, false,
 			      handle_no_split_stack_attribute, false },
   /* For internal use (marking of builtins and runtime functions) only.
@@ -7414,7 +7414,7 @@ find_tm_attribute (tree list)
     }
   return NULL_TREE;
 }
-  
+
 /* Handle the TM attributes; arguments as in struct attribute_spec.handler.
    Here we accept only function types, and verify that none of the other
    function TM attributes are also applied.  */
@@ -7507,7 +7507,7 @@ handle_tm_wrap_attribute (tree *node, tree name, tree args,
 	    {
 	      if (lang_hooks.types_compatible_p (TREE_TYPE (decl),
 						 TREE_TYPE (wrap_decl)))
-	        record_tm_replacement (wrap_decl, decl);
+		record_tm_replacement (wrap_decl, decl);
 	      else
 		error ("%qD is not compatible with %qD", wrap_decl, decl);
 	    }

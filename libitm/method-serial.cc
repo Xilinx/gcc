@@ -169,7 +169,7 @@ class serialirr_onwrite_dispatch : public serialirr_dispatch
   {
     gtm_thread *tx = gtm_thr();
     if (!(tx->state & (gtm_thread::STATE_SERIAL
-        | gtm_thread::STATE_IRREVOCABLE)))
+	| gtm_thread::STATE_IRREVOCABLE)))
       tx->serialirr_mode();
   }
 
@@ -188,7 +188,7 @@ class serialirr_onwrite_dispatch : public serialirr_dispatch
   {
     pre_write();
     serialirr_dispatch::memtransfer_static(dst, src, size, may_overlap,
-        dst_mod, src_mod);
+	dst_mod, src_mod);
   }
 
   static void memset_static(void *dst, int c, size_t size, ls_modifier mod)
@@ -265,7 +265,7 @@ GTM::gtm_thread::serialirr_mode ()
       // ensure privatization safety for other transactions here.
       gtm_word priv_time = 0;
       if (disp->trycommit (priv_time))
-        need_restart = false;
+	need_restart = false;
     }
 
   if (need_restart)

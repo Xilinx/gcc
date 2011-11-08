@@ -20828,11 +20828,11 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
      function-body.  */
   if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRANSACTION_ATOMIC))
     ctor_initializer_p = cp_parser_function_transaction (parser,
-        RID_TRANSACTION_ATOMIC);
+	RID_TRANSACTION_ATOMIC);
   else if (cp_lexer_next_token_is_keyword (parser->lexer,
       RID_TRANSACTION_RELAXED))
     ctor_initializer_p = cp_parser_function_transaction (parser,
-        RID_TRANSACTION_RELAXED);
+	RID_TRANSACTION_RELAXED);
   else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
     ctor_initializer_p = cp_parser_function_try_block (parser);
   else
@@ -26560,7 +26560,7 @@ cp_parser_omp_construct (cp_parser *parser, cp_token *pragma_tok)
    implemented properly.  */
 
 static tree
-cp_parser_txn_attribute_opt (cp_parser *parser) 
+cp_parser_txn_attribute_opt (cp_parser *parser)
 {
   cp_token *token;
   tree attr_name, attr = NULL;
@@ -26617,7 +26617,7 @@ cp_parser_transaction (cp_parser *parser, enum rid keyword)
       || keyword == RID_TRANSACTION_RELAXED);
   token = cp_parser_require_keyword (parser, keyword,
       (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
-          : RT_TRANSACTION_RELAXED));
+	  : RT_TRANSACTION_RELAXED));
   gcc_assert (token != NULL);
 
   if (keyword == RID_TRANSACTION_RELAXED)
@@ -26626,7 +26626,7 @@ cp_parser_transaction (cp_parser *parser, enum rid keyword)
     {
       attrs = cp_parser_txn_attribute_opt (parser);
       if (attrs)
-        this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
+	this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
     }
 
   /* Keep track if we're in the lexical scope of an outer transaction.  */
@@ -26666,13 +26666,13 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
   if (!flag_tm)
     error (keyword == RID_TRANSACTION_RELAXED
 	   ? G_("%<__transaction_relaxed%> without transactional memory "
-                "support enabled")
+		"support enabled")
 	   : G_("%<__transaction_atomic%> without transactional memory "
-                "support enabled"));
+		"support enabled"));
 
   token = cp_parser_require_keyword (parser, keyword,
       (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
-          : RT_TRANSACTION_RELAXED));
+	  : RT_TRANSACTION_RELAXED));
   gcc_assert (token != NULL);
 
   if (keyword == RID_TRANSACTION_RELAXED)
@@ -26701,7 +26701,7 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
 
    function-transaction-block:
      __transaction_atomic txn-attribute[opt] ctor-initializer[opt]
-         function-body
+	 function-body
      __transaction_atomic txn-attribute[opt] function-try-block
      __transaction_relaxed ctor-initializer[opt] function-body
      __transaction_relaxed function-try-block
@@ -26720,16 +26720,16 @@ cp_parser_function_transaction (cp_parser *parser, enum rid keyword)
       || keyword == RID_TRANSACTION_RELAXED);
   token = cp_parser_require_keyword (parser, keyword,
       (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
-          : RT_TRANSACTION_RELAXED));
+	  : RT_TRANSACTION_RELAXED));
   gcc_assert (token != NULL);
-  
+
   if (keyword == RID_TRANSACTION_RELAXED)
     new_in |= TM_STMT_ATTR_RELAXED;
   else
     {
       attrs = cp_parser_txn_attribute_opt (parser);
       if (attrs)
-        new_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
+	new_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
     }
 
   stmt = begin_transaction_stmt (token->location, &compound_stmt, new_in);

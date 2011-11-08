@@ -4232,7 +4232,7 @@ find_func_aliases_for_builtin_call (gimple t)
       CASE_BUILT_IN_TM_LOAD (M64):
       CASE_BUILT_IN_TM_LOAD (M128):
       CASE_BUILT_IN_TM_LOAD (M256):
-        {
+	{
 	  tree dest = gimple_call_lhs (t);
 	  tree addr = gimple_call_arg (t, 0);
 
@@ -4243,7 +4243,7 @@ find_func_aliases_for_builtin_call (gimple t)
 	  VEC_free (ce_s, heap, lhsc);
 	  VEC_free (ce_s, heap, rhsc);
 	  return true;
-        }
+	}
       /* Variadic argument handling needs to be handled in IPA
 	 mode as well.  */
       case BUILT_IN_VA_START:

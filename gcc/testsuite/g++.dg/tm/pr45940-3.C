@@ -16,17 +16,17 @@ class sp_counted_base
 {
 protected:
     int use_count_;        // #shared
-public:   
+public:
     __attribute__((transaction_safe))
     virtual void dispose() = 0; // nothrow
 
     __attribute__((transaction_safe))
     void release() // nothrow
-    {   
-        if( atomic_exchange_and_add( &use_count_, -1 ) == 1 )
-        {
-            dispose();
-        }
+    {
+	if( atomic_exchange_and_add( &use_count_, -1 ) == 1 )
+	{
+	    dispose();
+	}
     }
 };
 
@@ -51,8 +51,8 @@ public:
     }
     __attribute__((transaction_safe))
     ~shared_count() // nothrow
-    {  
-        if( pi_ != 0 ) pi_->release();
+    {
+	if( pi_ != 0 ) pi_->release();
     }
 };
 

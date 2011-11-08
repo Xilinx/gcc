@@ -43,14 +43,14 @@
 
 #define ITM_WRITE_M(T, LSMOD, M, M2)                         \
   M void ITM_REGPARM ITM_##LSMOD##T##M2 (_ITM_TYPE_##T *ptr, \
-                                         _ITM_TYPE_##T val)  \
+					 _ITM_TYPE_##T val)  \
   {                                                          \
     store(ptr, val, abi_dispatch::LSMOD);                    \
   }
 
 #define ITM_WRITE_M_PV(T, LSMOD, M, M2)                      \
   M void ITM_REGPARM ITM_##LSMOD##T##M2 (_ITM_TYPE_##T *ptr, \
-                                         _ITM_TYPE_##T val)  \
+					 _ITM_TYPE_##T val)  \
   = 0;
 
 // Creates ABI load/store methods for all load/store modifiers for a particular
@@ -145,13 +145,13 @@ virtual void memset(void *dst, int c, size_t size, ls_modifier mod) = 0;
 void ITM_REGPARM _ITM_memcpy##NAME(void *dst, const void *src, size_t size)  \
 {                                                                            \
   TARGET memtransfer##M2 (dst, src, size,                                   \
-             false, GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ);      \
+	     false, GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ);      \
 }                                                                            \
 void ITM_REGPARM _ITM_memmove##NAME(void *dst, const void *src, size_t size) \
 {                                                                            \
   TARGET memtransfer##M2 (dst, src, size,                                   \
       GTM::abi_dispatch::memmove_overlap_check(dst, src, size,               \
-          GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ),                \
+	  GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ),                \
       GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ);                    \
 }
 
@@ -211,7 +211,7 @@ void ITM_REGPARM _ITM_memset##WRITE(void *dst, int c, size_t size) \
   {                                                                   \
     _ITM_TYPE_##T v;                                                  \
     TARGET memtransfer##M2(&v, ptr, sizeof(_ITM_TYPE_##T), false,    \
-        GTM::abi_dispatch::NONTXNAL, GTM::abi_dispatch::LSMOD);       \
+	GTM::abi_dispatch::NONTXNAL, GTM::abi_dispatch::LSMOD);       \
     return v;                                                         \
   }
 
@@ -219,7 +219,7 @@ void ITM_REGPARM _ITM_memset##WRITE(void *dst, int c, size_t size) \
   void ITM_REGPARM _ITM_##LSMOD##T (_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)\
   {                                                                       \
     TARGET memtransfer##M2(ptr, &val, sizeof(_ITM_TYPE_##T), false,      \
-        GTM::abi_dispatch::LSMOD, GTM::abi_dispatch::NONTXNAL);           \
+	GTM::abi_dispatch::LSMOD, GTM::abi_dispatch::NONTXNAL);           \
   }
 
 #define CREATE_DISPATCH_FUNCTIONS_T_MEMCPY(T, TARGET, M2) \

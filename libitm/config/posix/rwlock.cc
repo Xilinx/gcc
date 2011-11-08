@@ -86,7 +86,7 @@ gtm_rwlock::read_lock (gtm_thread *tx)
     {
       this->a_readers--;
       if (this->a_readers == 0)
-        pthread_cond_signal(&this->c_confirmed_writers);
+	pthread_cond_signal(&this->c_confirmed_writers);
     }
 
   // If there is an active or waiting writer, we must wait.
@@ -130,12 +130,12 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
   while (sum & a_writer)
     {
       if (tx != 0)
-        {
-          // If this is an upgrade, we must not wait for other writers or
-          // upgrades that already have gone in
-          pthread_mutex_unlock (&this->mutex);
-          return false;
-        }
+	{
+	  // If this is an upgrade, we must not wait for other writers or
+	  // upgrades that already have gone in
+	  pthread_mutex_unlock (&this->mutex);
+	  return false;
+	}
 
       this->summary = sum | w_writer;
       this->w_writers++;
@@ -191,16 +191,16 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
       // we get when checking reader flags.
       int readers = 0;
       for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
-          it = it->next_thread)
-        {
-          // Don't count ourself if this is an upgrade.
-          if (it->shared_state != ~(typeof it->shared_state)0)
-            readers++;
-        }
+	  it = it->next_thread)
+	{
+	  // Don't count ourself if this is an upgrade.
+	  if (it->shared_state != ~(typeof it->shared_state)0)
+	    readers++;
+	}
 
       // If we have not seen any readers, we will not wait.
       if (readers == 0)
-        break;
+	break;
 
       // We've seen a number of readers, so we publish this number and wait.
       this->a_readers = readers;
@@ -254,7 +254,7 @@ gtm_rwlock::read_unlock (gtm_thread *tx)
     {
       this->a_readers--;
       if (this->a_readers == 0)
-        pthread_cond_signal(&this->c_confirmed_writers);
+	pthread_cond_signal(&this->c_confirmed_writers);
     }
 
   // We don't need to wake up any writers waiting for other writers. Active

@@ -128,7 +128,7 @@ extern const char * _ITM_libraryVersion (void) ITM_REGPARM;
 
 void _ITM_error(const _ITM_srcLocation *, int errorCode)
   ITM_REGPARM ITM_NORETURN;
- 
+
 extern _ITM_howExecuting _ITM_inTransaction(void) ITM_REGPARM;
 
 typedef uint64_t _ITM_transactionId_t;	/* Transaction identifier */

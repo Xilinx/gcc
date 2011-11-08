@@ -116,7 +116,7 @@ unaligned_load2<uint16_t>(const gtm_cacheline *c1,
 {
   uint16_t v1 = c1->b[CACHELINE_SIZE - 1];
   uint16_t v2 = c2->b[0];
-  
+
   if (WORDS_BIGENDIAN)
     return v1 << 8 | v2;
   else
@@ -134,7 +134,7 @@ unaligned_load2<uint32_t>(const gtm_cacheline *c1,
   uint32_t v2 = c2->u32[0];
   int s2 = (ofs & (sizeof(uint32_t) - 1)) * 8;
   int s1 = sizeof(uint32_t) * 8 - s2;
-  
+
   if (WORDS_BIGENDIAN)
     return v1 << s2 | v2 >> s1;
   else
@@ -152,7 +152,7 @@ unaligned_load2<uint64_t>(const gtm_cacheline *c1,
   uint64_t v2 = c2->u64[0];
   int s2 = (ofs & (sizeof(uint64_t) - 1)) * 8;
   int s1 = sizeof(uint64_t) * 8 - s2;
-  
+
   if (WORDS_BIGENDIAN)
     return v1 << s2 | v2 >> s1;
   else

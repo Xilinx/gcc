@@ -58,7 +58,7 @@ futex_wait (int *addr, int val)
       else if (res == -EFAULT)
 	GTM_fatal ("futex failed (EFAULT %p)", addr);
       else
-        GTM_fatal ("futex failed (%s)", strerror(-res));
+	GTM_fatal ("futex failed (%s)", strerror(-res));
     }
 }
 

@@ -52,11 +52,11 @@ namespace GTM HIDDEN {
 # define SEG_READ(OFS)          "movl\t%%fs:(" #OFS "*4),%0"
 # define SEG_WRITE(OFS)         "movl\t%0,%%fs:(" #OFS "*4)"
 # define SEG_DECODE_READ(OFS)   SEG_READ(OFS) "\n\t" \
-                                "rorl\t$9,%0\n\t" \
-                                "xorl\t%%fs:24,%0"
+				"rorl\t$9,%0\n\t" \
+				"xorl\t%%fs:24,%0"
 # define SEG_ENCODE_WRITE(OFS)  "xorl\t%%fs:24,%0\n\t" \
-                                "roll\t$9,%0\n\t" \
-                                SEG_WRITE(OFS)
+				"roll\t$9,%0\n\t" \
+				SEG_WRITE(OFS)
 #endif
 #else
 # define SEG_READ(OFS)  "movl\t%%gs:(" #OFS "*4),%0"

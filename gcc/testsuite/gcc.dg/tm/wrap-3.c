@@ -5,7 +5,7 @@ void free (void *);
 void wrapper (void *) __attribute__((transaction_wrap (free)));
 void *p;
 
-void foo() 
+void foo()
 {
   __transaction_relaxed { free (p); }
 }

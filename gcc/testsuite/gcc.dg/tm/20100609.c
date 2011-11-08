@@ -8,7 +8,7 @@ int later;
 void MyFunc()
 {
   __transaction_relaxed {
-        funcNoReturn();
-        later=8;
+	funcNoReturn();
+	later=8;
   }
 }

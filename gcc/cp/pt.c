@@ -12954,9 +12954,9 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
     case TRANSACTION_EXPR:
       {
-        int flags = 0;
-        flags |= (TRANSACTION_EXPR_OUTER (t) ? TM_STMT_ATTR_OUTER : 0);
-        flags |= (TRANSACTION_EXPR_RELAXED (t) ? TM_STMT_ATTR_RELAXED : 0);
+	int flags = 0;
+	flags |= (TRANSACTION_EXPR_OUTER (t) ? TM_STMT_ATTR_OUTER : 0);
+	flags |= (TRANSACTION_EXPR_RELAXED (t) ? TM_STMT_ATTR_RELAXED : 0);
 
         if (TRANSACTION_EXPR_IS_STMT (t))
           {

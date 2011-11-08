@@ -33,7 +33,7 @@ gtm_thread::rollback_user_actions(size_t until_size)
     {
       user_action *a = user_actions.pop();
       if (!a->on_commit)
-        a->fn (a->arg);
+	a->fn (a->arg);
     }
 }
 
@@ -45,7 +45,7 @@ gtm_thread::commit_user_actions()
       ie = user_actions.end(); i != ie; i++)
     {
       if (i->on_commit)
-        i->fn (i->arg);
+	i->fn (i->arg);
     }
   user_actions.clear();
 }
@@ -61,7 +61,7 @@ _ITM_addUserCommitAction(_ITM_userCommitFunction fn,
   gtm_thread *tx = gtm_thr();
   if (tid != _ITM_noTransactionId)
     GTM_fatal("resumingTransactionId in _ITM_addUserCommitAction must be "
-              "_ITM_noTransactionId");
+	      "_ITM_noTransactionId");
   gtm_thread::user_action *a = tx->user_actions.push();
   a->fn = fn;
   a->arg = arg;

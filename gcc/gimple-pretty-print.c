@@ -218,9 +218,9 @@ dump_gimple_fmt (pretty_printer *buffer, int spc, int flags,
                 newline_and_indent (buffer, spc);
                 break;
 
-              case 'x':
-                pp_scalar (buffer, "%x", va_arg (args, int));
-                break;
+	      case 'x':
+		pp_scalar (buffer, "%x", va_arg (args, int));
+		break;
 
               case '+':
                 spc += 2;
@@ -1012,12 +1012,12 @@ dump_gimple_eh_else (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   if (flags & TDF_RAW)
     dump_gimple_fmt (buffer, spc, flags,
-                     "%G <%+N_BODY <%S>%nE_BODY <%S>%->", gs,
-                     gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
+		     "%G <%+N_BODY <%S>%nE_BODY <%S>%->", gs,
+		     gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
   else
     dump_gimple_fmt (buffer, spc, flags,
-                    "<<<if_normal_exit>>>%+{%S}%-<<<else_eh_exit>>>%+{%S}",
-                     gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
+		    "<<<if_normal_exit>>>%+{%S}%-<<<else_eh_exit>>>%+{%S}",
+		     gimple_eh_else_n_body (gs), gimple_eh_else_e_body (gs));
 }
 
 

@@ -3,23 +3,23 @@
 
 template<typename _Tp> class allocator
 {
-        public:
-        allocator() { }
+	public:
+	allocator() { }
 };
 extern template class allocator<char>;
 
 template<typename _Alloc = allocator<char> > class basic_string
 {
-        public:
-        _Alloc _M_dataplus;
+	public:
+	_Alloc _M_dataplus;
 
-        __attribute__((transaction_safe))    
-        basic_string() : _M_dataplus(_Alloc())
-        {
-        }
+	__attribute__((transaction_safe))
+	basic_string() : _M_dataplus(_Alloc())
+	{
+	}
 };
 
 int getStringHeight()
 {
-        basic_string<> tmp;
+	basic_string<> tmp;
 }

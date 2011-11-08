@@ -45,38 +45,38 @@ GTM::gtm_thread::decide_retry_strategy (gtm_restart_reason r)
       // A re-initializations of the method group has been requested. Switch
       // to serial mode, initialize, and resume normal operation.
       if ((state & STATE_SERIAL) == 0)
-        {
-          // We have to eventually re-init the method group. Therefore,
-          // we cannot just upgrade to a write lock here because this could
-          // fail forever when other transactions execute in serial mode.
-          // However, giving up the read lock then means that a change of the
-          // method group could happen in-between, so check that we're not
-          // re-initializing without a need.
-          // ??? Note that we can still re-initialize too often, but avoiding
-          // that would increase code complexity, which seems unnecessary
-          // given that re-inits should be very infrequent.
-          serial_lock.read_unlock(this);
-          serial_lock.write_lock();
-          if (disp->get_method_group() == default_dispatch->get_method_group())
-            {
-              // Still the same method group.
-              disp->get_method_group()->fini();
-              disp->get_method_group()->init();
-            }
-          serial_lock.write_unlock();
-          serial_lock.read_lock(this);
-          if (disp->get_method_group() != default_dispatch->get_method_group())
-            {
-              disp = default_dispatch;
-              set_abi_disp(disp);
-            }
-        }
+	{
+	  // We have to eventually re-init the method group. Therefore,
+	  // we cannot just upgrade to a write lock here because this could
+	  // fail forever when other transactions execute in serial mode.
+	  // However, giving up the read lock then means that a change of the
+	  // method group could happen in-between, so check that we're not
+	  // re-initializing without a need.
+	  // ??? Note that we can still re-initialize too often, but avoiding
+	  // that would increase code complexity, which seems unnecessary
+	  // given that re-inits should be very infrequent.
+	  serial_lock.read_unlock(this);
+	  serial_lock.write_lock();
+	  if (disp->get_method_group() == default_dispatch->get_method_group())
+	    {
+	      // Still the same method group.
+	      disp->get_method_group()->fini();
+	      disp->get_method_group()->init();
+	    }
+	  serial_lock.write_unlock();
+	  serial_lock.read_lock(this);
+	  if (disp->get_method_group() != default_dispatch->get_method_group())
+	    {
+	      disp = default_dispatch;
+	      set_abi_disp(disp);
+	    }
+	}
       else
-        {
-          // We are a serial transaction already, which makes things simple.
-          disp->get_method_group()->fini();
-          disp->get_method_group()->init();
-        }
+	{
+	  // We are a serial transaction already, which makes things simple.
+	  disp->get_method_group()->fini();
+	  disp->get_method_group()->init();
+	}
     }
 
   bool retry_irr = (r == RESTART_SERIAL_IRR);
@@ -164,10 +164,10 @@ GTM::gtm_thread::set_default_dispatch(GTM::abi_dispatch* disp)
     {
       // If we are switching method groups, initialize and shut down properly.
       if (default_dispatch->get_method_group() != disp->get_method_group())
-        {
-          default_dispatch->get_method_group()->fini();
-          disp->get_method_group()->init();
-        }
+	{
+	  default_dispatch->get_method_group()->fini();
+	  disp->get_method_group()->init();
+	}
     }
   else
     disp->get_method_group()->init();
@@ -231,11 +231,11 @@ GTM::gtm_thread::number_of_threads_changed(unsigned previous, unsigned now)
       // No registered threads before, so initialize.
       static bool initialized = false;
       if (!initialized)
-        {
-          initialized = true;
-          // Check for user preferences here.
-          default_dispatch_user = parse_default_method();
-        }
+	{
+	  initialized = true;
+	  // Check for user preferences here.
+	  default_dispatch_user = parse_default_method();
+	}
     }
   else if (now == 0)
     {
@@ -250,16 +250,16 @@ GTM::gtm_thread::number_of_threads_changed(unsigned previous, unsigned now)
       // ??? If we don't have a fast serial mode implementation, it might be
       // better to use the global lock method set here.
       if (default_dispatch_user)
-        set_default_dispatch(default_dispatch_user);
+	set_default_dispatch(default_dispatch_user);
       else
-        set_default_dispatch(dispatch_serialirr());
+	set_default_dispatch(dispatch_serialirr());
     }
   else if (now > 1 && previous <= 1)
     {
       // More than one thread, use the default method.
       if (default_dispatch_user)
-        set_default_dispatch(default_dispatch_user);
+	set_default_dispatch(default_dispatch_user);
       else
-        set_default_dispatch(dispatch_serialirr_onwrite());
+	set_default_dispatch(dispatch_serialirr_onwrite());
     }
 }

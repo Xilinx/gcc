@@ -277,7 +277,7 @@
 
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
 
-	* query.cc (_ITM_getThreadnum): Set up gtm_thread if necessary. 
+	* query.cc (_ITM_getThreadnum): Set up gtm_thread if necessary.
 	* testsuite/libitm.c/notx.c: New file.
 
 2011-08-12  Torvald Riegel  <triegel@redhat.com>
@@ -312,7 +312,7 @@
 	transaction properties from the caller instead of from the
 	transaction object.
 	* libitm_i.h: Same.
-	* beginend.cc (GTM::gtm_transaction::begin_transaction): Same. 
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Same.
 
 2011-07-28  Torvald Riegel  <triegel@redhat.com>
 
@@ -372,7 +372,7 @@
 
 2011-07-02  Torvald Riegel  <triegel@redhat.com>
 
-	* containers.h: New file. 
+	* containers.h: New file.
 	* util.cc (xmalloc, xrealloc): Accept cacheline-alloc flag.
 	* libitm_i.h (xmalloc, xrealloc): Moved declarations from here ...
 	* common.h: ... to here.
@@ -404,7 +404,7 @@
 	Rename GTM::abi_dispatch::lock_type to ls_modifier.
 	RenameGTM::abi_dispatch::NOLOCK to NONTXNAL.
 	* beginend.cc (GTM::gtm_transaction::begin_transaction): Delegate mode
-	decision to retry.cc. 
+	decision to retry.cc.
 	* retry.cc (GTM::gtm_transaction::decide_retry_strategy): Use serial mode
 	only.
 	(GTM::gtm_transaction::decide_begin_dispatch): Same.
@@ -420,7 +420,7 @@
 	* method-readonly.cc: Remove.
 	* method-wbetl.cc: Rename GTM::abi_dispatch::lock_type to ls_modifier.
 	Rename GTM::abi_dispatch::NOLOCK to NONTXNAL.
-	
+
 2011-06-30  Torvald Riegel  <triegel@redhat.com>
 
 	* alloc_c.cc (_ITM_dropReferences): Don't support it anymore.
@@ -807,20 +807,20 @@
 
 2009-07-18  Richard Henderson  <rth@redhat.com>
 
-        * aatree.c, aatree.h, alloc.c, alloc_c.c, alloc_cpp.c: New files.
-        * Makefile.am (libitm_la_SOURCES): Add them.
-        * Makefile.in: Rebuild.
-        * beginend.c (GTM_rollback_transaction): Use GTM_commit_allocations.
-        (GTM_trycommit_transaction): Likewise.
-        * libitm.h: Include aatree.h
-        (struct gtm_alloc_action): New.
-        (struct gtm_transaction): Add alloc_actions.
-        (GTM_record_allocation, GTM_forget_allocation): Declare.
-        (GTM_get_allocation_size, GTM_commit_allocations): Declare.
-        * libitm.map (_ITM_malloc, _ITM_calloc, _ITM_realloc, _ITM_free,
-        _ZGTtnwm, _ZGTtnam, _ZGTtdlPv, _ZGTtdaPv, _ZGTtnwmRKSt9nothrow_t,
-        _ZGTtnamRKSt9nothrow_t, _ZGTtdlPvRKSt9nothrow_t,
-        _ZGTtdaPvRKSt9nothrow_t): Export.
+	* aatree.c, aatree.h, alloc.c, alloc_c.c, alloc_cpp.c: New files.
+	* Makefile.am (libitm_la_SOURCES): Add them.
+	* Makefile.in: Rebuild.
+	* beginend.c (GTM_rollback_transaction): Use GTM_commit_allocations.
+	(GTM_trycommit_transaction): Likewise.
+	* libitm.h: Include aatree.h
+	(struct gtm_alloc_action): New.
+	(struct gtm_transaction): Add alloc_actions.
+	(GTM_record_allocation, GTM_forget_allocation): Declare.
+	(GTM_get_allocation_size, GTM_commit_allocations): Declare.
+	* libitm.map (_ITM_malloc, _ITM_calloc, _ITM_realloc, _ITM_free,
+	_ZGTtnwm, _ZGTtnam, _ZGTtdlPv, _ZGTtdaPv, _ZGTtnwmRKSt9nothrow_t,
+	_ZGTtnamRKSt9nothrow_t, _ZGTtdlPvRKSt9nothrow_t,
+	_ZGTtdaPvRKSt9nothrow_t): Export.
 
 2009-07-18  Richard Henderson  <rth@redhat.com>
 

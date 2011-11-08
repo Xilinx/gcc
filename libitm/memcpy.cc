@@ -183,7 +183,7 @@ do_memmove (uintptr_t idst, uintptr_t isrc, size_t size,
   uintptr_t dleft, sleft, sofs, dofs;
   const gtm_cacheline *sline;
   abi_dispatch::mask_pair dpair;
-  
+
   if (size == 0)
     return;
 

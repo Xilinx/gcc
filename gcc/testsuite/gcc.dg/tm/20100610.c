@@ -38,32 +38,32 @@ calculateCircumCircle (element_t* elementPtr)
     coordinate_t* circumCenterPtr = &elementPtr->circumCenter;
     ((void) (0));
     if (numCoordinate == 2) {
-        circumCenterPtr->x = (coordinates[0].x + coordinates[1].x) / 2.0;
-        circumCenterPtr->y = (coordinates[0].y + coordinates[1].y) / 2.0;
+	circumCenterPtr->x = (coordinates[0].x + coordinates[1].x) / 2.0;
+	circumCenterPtr->y = (coordinates[0].y + coordinates[1].y) / 2.0;
     }
  else {
-        double ax = coordinates[0].x;
-        double ay = coordinates[0].y;
-        double bx = coordinates[1].x;
-        double by = coordinates[1].y;
-        double cx = coordinates[2].x;
-        double cy = coordinates[2].y;
-        double bxDelta = bx - ax;
-        double byDelta = by - ay;
-        double cxDelta = cx - ax;
-        double cyDelta = cy - ay;
-        double bDistance2 = (bxDelta * bxDelta) + (byDelta * byDelta);
-        double cDistance2 = (cxDelta * cxDelta) + (cyDelta * cyDelta);
-        double xNumerator = (byDelta * cDistance2) - (cyDelta * bDistance2);
-        double yNumerator = (bxDelta * cDistance2) - (cxDelta * bDistance2);
-        double denominator = 2 * ((bxDelta * cyDelta) - (cxDelta * byDelta));
-        double rx = ax - (xNumerator / denominator);
-        double ry = ay + (yNumerator / denominator);
-        circumCenterPtr->x = rx;
-        circumCenterPtr->y = ry;
+	double ax = coordinates[0].x;
+	double ay = coordinates[0].y;
+	double bx = coordinates[1].x;
+	double by = coordinates[1].y;
+	double cx = coordinates[2].x;
+	double cy = coordinates[2].y;
+	double bxDelta = bx - ax;
+	double byDelta = by - ay;
+	double cxDelta = cx - ax;
+	double cyDelta = cy - ay;
+	double bDistance2 = (bxDelta * bxDelta) + (byDelta * byDelta);
+	double cDistance2 = (cxDelta * cxDelta) + (cyDelta * cyDelta);
+	double xNumerator = (byDelta * cDistance2) - (cyDelta * bDistance2);
+	double yNumerator = (bxDelta * cDistance2) - (cxDelta * bDistance2);
+	double denominator = 2 * ((bxDelta * cyDelta) - (cxDelta * byDelta));
+	double rx = ax - (xNumerator / denominator);
+	double ry = ay + (yNumerator / denominator);
+	circumCenterPtr->x = rx;
+	circumCenterPtr->y = ry;
     }
     elementPtr->circumRadius = coordinate_distance(circumCenterPtr,
-                                                   &coordinates[0]);
+						   &coordinates[0]);
 }
 
 element_t*
@@ -72,7 +72,7 @@ element_alloc (coordinate_t* coordinates, long numCoordinate)
     element_t* elementPtr;
     elementPtr = (element_t*)xmalloc(sizeof(element_t));
     if (elementPtr) {
-        calculateCircumCircle(elementPtr);
+	calculateCircumCircle(elementPtr);
     }
     return elementPtr;
 }
@@ -84,7 +84,7 @@ TMelement_alloc (coordinate_t* coordinates, long numCoordinate)
     element_t* elementPtr;
     elementPtr = (element_t*)xmalloc(sizeof(element_t));
     if (elementPtr) {
-        calculateCircumCircle(elementPtr);
+	calculateCircumCircle(elementPtr);
     }
     return elementPtr;
 }

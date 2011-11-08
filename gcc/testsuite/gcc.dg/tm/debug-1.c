@@ -10,9 +10,9 @@ testing(){
 }
 
 main() {
-        b = 9898;
+	b = 9898;
 	__transaction_relaxed {
-	        z = c;
+		z = c;
 		a = 888;
 		testing();
 	}

@@ -69,29 +69,29 @@ commit_allocations_2 (uintptr_t key, gtm_alloc_action *a, void *data)
     {
       // Roll back nested allocations.
       if (a->allocated)
-        a->free_fn (ptr);
+	a->free_fn (ptr);
     }
   else
     {
       if (a->allocated)
-        {
-          // Add nested allocations to parent transaction.
-          gtm_alloc_action* a_parent = cb_data->parent->insert(key);
-          *a_parent = *a;
-        }
+	{
+	  // Add nested allocations to parent transaction.
+	  gtm_alloc_action* a_parent = cb_data->parent->insert(key);
+	  *a_parent = *a;
+	}
       else
-        {
-          // ??? We could eliminate a parent allocation that matches this
-          // memory release, if we had support for removing all accesses
-          // to this allocation from the transaction's undo and redo logs
-          // (otherwise, the parent transaction's undo or redo might write to
-          // data that is already shared again because of calling free()).
-          // We don't have this support currently, and the benefit of this
-          // optimization is unknown, so just add it to the parent.
-          gtm_alloc_action* a_parent;
-          a_parent = cb_data->parent->insert(key);
-          *a_parent = *a;
-        }
+	{
+	  // ??? We could eliminate a parent allocation that matches this
+	  // memory release, if we had support for removing all accesses
+	  // to this allocation from the transaction's undo and redo logs
+	  // (otherwise, the parent transaction's undo or redo might write to
+	  // data that is already shared again because of calling free()).
+	  // We don't have this support currently, and the benefit of this
+	  // optimization is unknown, so just add it to the parent.
+	  gtm_alloc_action* a_parent;
+	  a_parent = cb_data->parent->insert(key);
+	  *a_parent = *a;
+	}
     }
 }
 

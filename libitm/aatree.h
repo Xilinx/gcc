@@ -49,7 +49,7 @@ class aa_node_base
  public:
   aa_node_base(level_type l = 1)
     : m_link { const_cast<aa_node_base *>(&s_nil),
-               const_cast<aa_node_base *>(&s_nil) },
+	       const_cast<aa_node_base *>(&s_nil) },
       m_level(l)
   { }
 
@@ -175,7 +175,7 @@ class aa_tree : public aa_tree_key<KEY>
     if (n)
       {
 	this->m_tree = 0;
-        clear_1 (n);
+	clear_1 (n);
       }
   }
 

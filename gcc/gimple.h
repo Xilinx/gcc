@@ -4640,7 +4640,7 @@ gimple_omp_continue_set_control_use (gimple g, tree use)
 
 /* Return the body for the GIMPLE_TRANSACTION statement GS.  */
 
-static inline gimple_seq 
+static inline gimple_seq
 gimple_transaction_body (gimple gs)
 {
   GIMPLE_CHECK (gs, GIMPLE_TRANSACTION);

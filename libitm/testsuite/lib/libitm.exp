@@ -2,12 +2,12 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -103,7 +103,7 @@ proc libitm_init { args } {
     # SHLIB_EXT on different platforms
     set gccdir [lookfor_file $tool_root_dir gcc/libgcc.a]
     if {$gccdir != ""} {
-        set gccdir [file dirname $gccdir]
+	set gccdir [file dirname $gccdir]
     }
 
     # Compute what needs to be put into LD_LIBRARY_PATH
@@ -135,9 +135,9 @@ proc libitm_init { args } {
 
     set ALWAYS_CFLAGS ""
     if { $blddir != "" } {
-        lappend ALWAYS_CFLAGS "additional_flags=-B${blddir}/"
-        lappend ALWAYS_CFLAGS "additional_flags=-I${blddir}"
-        lappend ALWAYS_CFLAGS "ldflags=-L${blddir}/.libs"
+	lappend ALWAYS_CFLAGS "additional_flags=-B${blddir}/"
+	lappend ALWAYS_CFLAGS "additional_flags=-I${blddir}"
+	lappend ALWAYS_CFLAGS "ldflags=-L${blddir}/.libs"
     }
     lappend ALWAYS_CFLAGS "additional_flags=-I${srcdir}/.."
     lappend ALWAYS_CFLAGS "ldflags=-litm"
@@ -183,10 +183,10 @@ proc libitm_target_compile { source dest type options } {
     global lang_link_flags
 
     if { [info exists lang_test_file] } {
-        if { $blddir != "" } {
-            lappend options "ldflags=-L${blddir}/${lang_library_path}"
-        }
-        lappend options "ldflags=${lang_link_flags}"
+	if { $blddir != "" } {
+	    lappend options "ldflags=-L${blddir}/${lang_library_path}"
+	}
+	lappend options "ldflags=${lang_link_flags}"
     }
 
     if { [target_info needs_status_wrapper] != "" && [info exists gluefile] } {

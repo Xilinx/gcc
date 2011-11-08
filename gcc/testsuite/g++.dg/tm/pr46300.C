@@ -3,6 +3,6 @@
 
 void foo(){
     __transaction_atomic {
-        throw 5;
+	throw 5;
     }
 }

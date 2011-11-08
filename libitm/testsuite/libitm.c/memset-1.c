@@ -57,21 +57,21 @@ do_test (size_t align, size_t len)
     if (buf[i] != c1)
       {
 	printf ("Garbage before: ofs %zd\n", i);
-        fail = 1;
+	fail = 1;
 	break;
       }
   for (; i < align + len; ++i)
     if (buf[i] != c2)
       {
 	printf ("Wrong result: ofs %zd\n", i);
-        fail = 1;
+	fail = 1;
 	break;
       }
   for (j = i + 64 < bufsize ? i + 64 : bufsize; i < j; ++i)
     if (buf[i] != c1)
       {
 	printf ("Garbage after: ofs %zd\n", i);
-        fail = 1;
+	fail = 1;
 	break;
       }
 }

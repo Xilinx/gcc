@@ -11,13 +11,13 @@ inline int atomic_exchange_and_add(int dv )
 
 class sp_counted_base
 {
-public:   
+public:
     __attribute__((transaction_safe))
     void release()
-    {   
-        if( atomic_exchange_and_add(-1 ) == 1 )
-        {
-        }
+    {
+	if( atomic_exchange_and_add(-1 ) == 1 )
+	{
+	}
     }
 };
 

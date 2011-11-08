@@ -124,7 +124,7 @@ class ExcludeTransaction
 
  public:
   ExcludeTransaction()
-  { 
+  {
     gtm_thread *tx = gtm_thr();
     do_lock = !(tx && (tx->state & gtm_thread::STATE_SERIAL));
 
@@ -174,8 +174,8 @@ _ITM_deregisterTMCloneTable (void *xent)
     clone_table **pprev;
 
     for (pprev = &all_tables;
-         tab = *pprev, tab->table != ent;
-         pprev = &tab->next)
+	 tab = *pprev, tab->table != ent;
+	 pprev = &tab->next)
       continue;
     *pprev = tab->next;
   }

@@ -27,7 +27,7 @@
 
 namespace GTM HIDDEN {
 
-/* A versioned write lock on a cacheline.  This must be wide enough to 
+/* A versioned write lock on a cacheline.  This must be wide enough to
    store a pointer, and preferably wide enough to avoid overflowing the
    version counter.  Thus we use a "word", which should be 64-bits on
    64-bit systems even when their pointer size is forced smaller.  */
@@ -47,7 +47,7 @@ typedef gtm_word gtm_version;
 /* This bit is set when the write lock is held.  When set, the balance of
    the bits in the lock is a pointer that references STM backend specific
    data; it is up to the STM backend to determine if this thread holds the
-   lock.  If this bit is clear, the balance of the bits are the last 
+   lock.  If this bit is clear, the balance of the bits are the last
    version number committed to the cacheline.  */
 static inline bool
 gtm_stmlock_owned_p (gtm_stmlock lock)

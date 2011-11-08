@@ -244,10 +244,10 @@ DEF_ATTR_TREE_LIST (ATTR_TM_CONST_NOTHROW_LIST,
 
 /* Same attributes used for BUILT_IN_MALLOC except with TM_PURE thrown in.  */
 DEF_ATTR_TREE_LIST (ATTR_TMPURE_MALLOC_NOTHROW_LIST,
-                   ATTR_TM_TMPURE, ATTR_NULL, ATTR_MALLOC_NOTHROW_LIST)
+		   ATTR_TM_TMPURE, ATTR_NULL, ATTR_MALLOC_NOTHROW_LIST)
 /* Same attributes used for BUILT_IN_FREE except with TM_PURE thrown in.  */
 DEF_ATTR_TREE_LIST (ATTR_TMPURE_NOTHROW_LIST,
-                   ATTR_TM_TMPURE, ATTR_NULL, ATTR_NOTHROW_LIST)
+		   ATTR_TM_TMPURE, ATTR_NULL, ATTR_NOTHROW_LIST)
 
 /* Construct a tree for a format_arg attribute.  */
 #define DEF_FORMAT_ARG_ATTRIBUTE(FA)					\

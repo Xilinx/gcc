@@ -12,32 +12,32 @@ namespace bench
     	int data;
 
     public:
-        __attribute__((transaction_safe)) 
+	__attribute__((transaction_safe))
 	LLNode(int val, LLNode* m_next)
-        {
+	{
 		data = val;
 		next = m_next;
-        }
-        __attribute__((transaction_safe))
+	}
+	__attribute__((transaction_safe))
 	  ~LLNode(){}
-        __attribute__((transaction_safe))
+	__attribute__((transaction_safe))
 	  int get_val()  {return data;}
-        __attribute__((transaction_safe))
+	__attribute__((transaction_safe))
 	  LLNode* get_next()  {return next;}
 	__attribute__((transaction_safe))
 	  void set_val(int val) {data = val;}
-        __attribute__((transaction_safe))
+	__attribute__((transaction_safe))
 	  void set_next(LLNode* n)  {next = n;}
-        __attribute__((transaction_safe))
+	__attribute__((transaction_safe))
 	  void *operator new(size_t size);
     };
 
-    class LinkedList 
+    class LinkedList
     {
       LLNode* head;
     public:
-        LinkedList();
-        void insert(int val);
+	LinkedList();
+	void insert(int val);
     };
 }
 
@@ -70,7 +70,7 @@ void LinkedList::insert(int val)
       LLNode* tmp = new LLNode(val,curr);
       prev->set_next(tmp);
     }
-  }  
+  }
 }
 
 // Make sure we don't do tail optimization on the commit.

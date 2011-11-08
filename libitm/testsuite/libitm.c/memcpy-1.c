@@ -72,14 +72,14 @@ do_test (size_t align1, size_t align2, size_t len)
     if (buf2[i] != c2)
       {
 	printf ("Garbage before: ofs %zd\n", i);
-        fail = 1;
+	fail = 1;
 	break;
       }
   for (i = align2 + len, j = i+64 < bufsize ? i+64 : bufsize; i < j; ++i)
     if (buf2[i] != c2)
       {
 	printf ("Garbage after: ofs %zd\n", i);
-        fail = 1;
+	fail = 1;
 	break;
       }
 }

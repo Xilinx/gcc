@@ -47,7 +47,7 @@
 
 2011-11-05  Aldy Hernandez  <aldyh@redhat.com>
 
-        * trans-mem.c (ipa_tm_insert_gettmclone_call): Remove call to
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Remove call to
 	gimple_call_set_noinline_p.
 	* gimple.h (enum gf_mask): Remove GF_CALL_NOINLINE.
 	(gimple_call_noinline_p): Remove.
@@ -238,7 +238,7 @@
 	* cp/semantics.c (begin_transaction_stmt): Add flags parameter.
 	* cp/cp-tree.h: Same.
 	* cp/pt.c (tsubst_expr): Same.
-	
+
 	* testsuite/c-c++-common/tm/*: Adjust for new syntax.
 	* testsuite/g++.dg/tm/*: Same.
 	* testsuite/gcc.dg/tm/*: Same.
@@ -333,7 +333,7 @@
 2011-02-03 Andrew MacLeod  <amacleod@redhat.com>
 
 	PR/46567
-        * trans-mem.c (ipa_tm_propagate_irr): Don't reprocess blocks
+	* trans-mem.c (ipa_tm_propagate_irr): Don't reprocess blocks
 	already in the old irrevocable list.
 
 2011-02-03  Aldy Hernandez  <aldyh@redhat.com>
@@ -386,10 +386,10 @@
 
 2011-01-28  Andrew MacLeod  <amacleod@redhat.com>
 
-	PR/46567 
+	PR/46567
 	* gimple-pretty-print (dump_gimple_call): Don't check in_transaction.
 	* trans-mem.c (examine_call_tm): Remove gimple_call_set_in_transaction.
-	(get_tm_region_blocks): Add new parameter for returning all blocks in 
+	(get_tm_region_blocks): Add new parameter for returning all blocks in
 	transactions.
 	(execute_tm_mark, expand_regions_1, execute_tm_memopt): Add extra
 	parameter to call.
@@ -494,14 +494,14 @@
 2010-12-13  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/45940
-        * tree.h: Remove prototypes for is_tm_callable, is_tm_irrevocable.
+	* tree.h: Remove prototypes for is_tm_callable, is_tm_irrevocable.
 	(is_tm_safe_or_pure): New.
-        * trans-mem.c (is_tm_irrevocable): Make static.
-        (is_tm_callable): Same.
-        (diagnose_tm_1): Use is_tm_safe_or_pure.
-        (ipa_tm_note_irrevocable): Same.
-        (ipa_tm_mayenterirr_function): Same.
-        (ipa_tm_execute): Same.
+	* trans-mem.c (is_tm_irrevocable): Make static.
+	(is_tm_callable): Same.
+	(diagnose_tm_1): Use is_tm_safe_or_pure.
+	(ipa_tm_note_irrevocable): Same.
+	(ipa_tm_mayenterirr_function): Same.
+	(ipa_tm_execute): Same.
 	(diagnose_tm_blocks): Change is_tm_safe to is_tm_safe_or_pure.
 	* integrate.c (function_attribute_inlinable_p): Do not inline TM
 	pure functions.
@@ -1273,7 +1273,7 @@
 	ipa_tm_transform_tm_atomic.
 	* gimple.h: Rename GTMA_MUST_CALL_IRREVOKABLE into
 	GTMA_DOES_GO_IRREVOKABLE.
-					 
+
 2009-07-23  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gimple-pretty-print.c (dump_gimple_tm_atomic_subcode): Add space
@@ -1601,7 +1601,7 @@
 	ipa_tm_scan_irr_block, ipa_tm_scan_irr_blocks, ipa_tm_propagate_irr,
 	ipa_tm_decrement_clone_counts, ipa_tm_scan_irr_function,
 	ipa_tm_region_init, ipa_tm_mark_for_rename, ipa_tm_insert_irr_call,
-	ipa_tm_transform_calls, ipa_tm_transform_tm_atomic, 
+	ipa_tm_transform_calls, ipa_tm_transform_tm_atomic,
 	ipa_tm_transform_clone): New.
 	(ipa_tm_create_version): Don't use cgraph_function_versioning.
 	(ipa_tm_execute): Rewrite.
@@ -1771,7 +1771,7 @@
 	ADDR_EXPR.
 	(add_tm_call_ops): New.
 	(maybe_add_call_clobbered_vops): Use it.
-	(add_all_call_clobber_ops): Split out from ... 
+	(add_all_call_clobber_ops): Split out from ...
 	(get_asm_expr_operands): ... here.
 	(parse_ssa_operands): Convert to switch.
 	* tree.def (TM_LOAD, TM_STORE): Remove.
@@ -1836,7 +1836,7 @@
 	(dump_gimple_assign): Handle TM_LOAD/STORE.
 	(dump_gimple_tm_atomic): Dump the subcode.
 	* gimple.h (GTMA_HAVE_ABORT, GTMA_HAVE_LOAD, GTMA_HAVE_STORE,
-	GTMA_HAVE_CALL_TM, GTMA_HAVE_CALL_IRREVOKABLE, 
+	GTMA_HAVE_CALL_TM, GTMA_HAVE_CALL_IRREVOKABLE,
 	GTMA_MUST_CALL_IRREVOKABLE, GTMA_HAVE_CALL_INDIRECT): New.
 	(gimple_tm_atomic_subcode, gimple_tm_atomic_set_subcode): New.
 	* gtm-low.c (struct ltm_state, add_stmt_to_transaction,
@@ -1880,7 +1880,7 @@
 	* c-pragma.h (PRAGMA_GTM_ATOMIC): Remove.
 	(enum pragma_gtm_clause): Remove.
 	(c_finish_tm_abort): Remove.
-	(prepare_tm_clone): Match Intel's transaction suffix.  Remove	
+	(prepare_tm_clone): Match Intel's transaction suffix.  Remove
 	code to add an explicit handle.
 	* defaults.h (TINYSTM_VERSION_0_9_5, GTM_EXPL_HANDLE,
 	GTM_IMPL_HANDLE, TANGER): Remove.
@@ -1936,7 +1936,7 @@
 	(walk_gimple_stmt): Add GTM codes.
 	(gimple_rhs_class_table): Make GTM_LOAD/STORE be GIMPLE_SINGLE_RHS.
 	* gimple.def (GIMPLE_GTM_TXN, GIMPLE_GTM_RETURN, GIMPLE_GTM_ABORT): New.
-	* gimple.h (struct gimple_statement_seq): Rename from 
+	* gimple.h (struct gimple_statement_seq): Rename from
 	gimple_statement_omp.  Update all users.
 	(is_gimple_gtm): New.
 	* gtm-low.c (new_gtm_region): Remove type code.
@@ -1948,12 +1948,12 @@
 	(requires_barrier): Merge requires_read_barrier and
 	requires_write_barrier; rewrite to match memory variables only.
 	(get_real_stm_decl, get_uint_stm_decl, insert_temporary,
-	may_repair_rhs, compensate_for_taking_the_address, 
-	compose_stm_store_call, compose_stm_load_call, 
+	may_repair_rhs, compensate_for_taking_the_address,
+	compose_stm_store_call, compose_stm_load_call,
 	insert_rhs_stm_call, replace_lhs, maybe_replace_rhs_stmt,
 	replace_txn_mod_stmt, build_txn_call_expr, replace_txn_stmt,
-	setup_recover_bb, setup_begin_bb, expand_gtm_abort, 
-	maybe_insert_stm_new, insert_stm_init_thread, 
+	setup_recover_bb, setup_begin_bb, expand_gtm_abort,
+	maybe_insert_stm_new, insert_stm_init_thread,
 	maybe_insert_stm_init_thread, insert_stm_exit_thread,
 	maybe_insert_stm_exit_thread, expand_gtm_txn_marker,
 	expand_gtm_return, insert_stm_init, insert_stm_exit,

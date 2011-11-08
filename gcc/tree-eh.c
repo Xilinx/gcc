@@ -1099,9 +1099,9 @@ lower_try_finally_onedest (struct leh_state *state, struct leh_tf_state *tf)
   if (x)
     {
       if (tf->may_throw)
-        finally = gimple_eh_else_e_body (x);
+	finally = gimple_eh_else_e_body (x);
       else
-        finally = gimple_eh_else_n_body (x);
+	finally = gimple_eh_else_n_body (x);
     }
 
   lower_eh_constructs_1 (state, finally);
@@ -1205,9 +1205,9 @@ lower_try_finally_copy (struct leh_state *state, struct leh_tf_state *tf)
       /* We don't need to copy the EH path of EH_ELSE,
 	 since it is only emitted once.  */
       if (eh_else)
-        seq = gimple_eh_else_e_body (eh_else);
+	seq = gimple_eh_else_e_body (eh_else);
       else
-        seq = lower_try_finally_dup_block (finally, state);
+	seq = lower_try_finally_dup_block (finally, state);
       lower_eh_constructs_1 (state, seq);
 
       emit_post_landing_pad (&eh_seq, tf->region);

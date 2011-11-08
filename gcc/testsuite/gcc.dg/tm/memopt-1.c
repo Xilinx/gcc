@@ -16,7 +16,7 @@ f()
     xxx=8;
     yyy=9;
     for (i=0; i < 10; ++i)
-      ringo(g);  
+      ringo(g);
   bye:
     ringo(g);
   }

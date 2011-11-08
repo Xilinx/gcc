@@ -9,9 +9,9 @@ void foobar(void)
 {
     char *p, *q;
     __transaction_atomic {
-        p = (char *)malloc(123);
-        q = (char *)calloc(555,1);
-        free(q);
+	p = (char *)malloc(123);
+	q = (char *)calloc(555,1);
+	free(q);
 	free(p);
     }
     z = (char *)malloc (666);
