@@ -106,7 +106,9 @@ typedef enum non_integral_constant {
   /* a comma operator */
   NIC_COMMA,
   /* a call to a constructor */
-  NIC_CONSTRUCTOR
+  NIC_CONSTRUCTOR,
+  /* a transaction expression */
+  NIC_TRANSACTION
 } non_integral_constant;
 
 /* The various kinds of errors about name-lookup failing. */
@@ -171,7 +173,10 @@ typedef enum required_token {
   RT_INTERATION, /* iteration-statement */
   RT_JUMP, /* jump-statement */
   RT_CLASS_KEY, /* class-key */
-  RT_CLASS_TYPENAME_TEMPLATE /* class, typename, or template */
+  RT_CLASS_TYPENAME_TEMPLATE, /* class, typename, or template */
+  RT_TRANSACTION_ATOMIC, /* __transaction_atomic */
+  RT_TRANSACTION_RELAXED, /* __transaction_relaxed */
+  RT_TRANSACTION_CANCEL /* __transaction_cancel */
 } required_token;
 
 /* Prototypes.  */
@@ -1935,6 +1940,8 @@ static bool cp_parser_using_declaration
   (cp_parser *, bool);
 static void cp_parser_using_directive
   (cp_parser *);
+static tree cp_parser_alias_declaration
+  (cp_parser *);
 static void cp_parser_asm_definition
   (cp_parser *);
 static void cp_parser_linkage_specification
@@ -2102,6 +2109,17 @@ static tree cp_parser_attribute_list
 static bool cp_parser_extension_opt
   (cp_parser *, int *);
 static void cp_parser_label_declaration
+  (cp_parser *);
+
+/* Transactional Memory Extensions */
+
+static tree cp_parser_transaction
+  (cp_parser *, enum rid);
+static tree cp_parser_transaction_expression
+  (cp_parser *, enum rid);
+static bool cp_parser_function_transaction
+  (cp_parser *, enum rid);
+static tree cp_parser_transaction_cancel
   (cp_parser *);
 
 enum pragma_context { pragma_external, pragma_stmt, pragma_compound };
@@ -2509,6 +2527,7 @@ cp_parser_check_decl_spec (cp_decl_specifier_seq *decl_specs,
 	    "explicit",
 	    "friend",
 	    "typedef",
+	    "using",
             "constexpr",
 	    "__complex",
 	    "__thread"
@@ -2666,6 +2685,10 @@ cp_parser_non_integral_constant_expression (cp_parser  *parser,
 		return true;
 	      case NIC_CONSTRUCTOR:
 		error ("a call to a constructor "
+		       "cannot appear in a constant-expression");
+		return true;
+	      case NIC_TRANSACTION:
+		error ("a transaction expression "
 		       "cannot appear in a constant-expression");
 		return true;
 	      case NIC_THIS:
@@ -5135,7 +5158,7 @@ cp_parser_nested_name_specifier (cp_parser *parser,
    this is either a class-name or a namespace-name (which corresponds
    to the class-or-namespace-name production in the grammar). For
    C++0x, it can also be a type-name that refers to an enumeration
-   type.
+   type or a simple-template-id.
 
    TYPENAME_KEYWORD_P is TRUE iff the `typename' keyword is in effect.
    TEMPLATE_KEYWORD_P is TRUE iff the `template' keyword is in effect.
@@ -5211,8 +5234,8 @@ cp_parser_qualifying_entity (cp_parser *parser,
       /* Parse tentatively.  */
       cp_parser_parse_tentatively (parser);
      
-      /* Parse a typedef-name or enum-name.  */
-      scope = cp_parser_nonclass_name (parser);
+      /* Parse a type-name  */
+      scope = cp_parser_type_name (parser);
 
       /* "If the name found does not designate a namespace or a class,
 	 enumeration, or dependent type, the program is ill-formed."
@@ -5966,10 +5989,17 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
 	{
 	  if (name != error_mark_node && !BASELINK_P (name) && parser->scope)
 	    {
-	      name = build_qualified_name (/*type=*/NULL_TREE,
-					   parser->scope,
-					   name,
-					   template_p);
+	      if (TREE_CODE (parser->scope) == NAMESPACE_DECL)
+		{
+		  error_at (token->location, "%<%D::%D%> is not a class member",
+			    parser->scope, name);
+		  postfix_expression = error_mark_node;
+		}
+	      else
+		name = build_qualified_name (/*type=*/NULL_TREE,
+					     parser->scope,
+					     name,
+					     template_p);
 	      parser->scope = NULL_TREE;
 	      parser->qualifying_scope = NULL_TREE;
 	      parser->object_scope = NULL_TREE;
@@ -6361,6 +6391,10 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p,
                                      tf_warning_or_error);
 	  }
 	  break;
+
+	case RID_TRANSACTION_ATOMIC:
+	case RID_TRANSACTION_RELAXED:
+	  return cp_parser_transaction_expression (parser, keyword);
 
 	case RID_NOEXCEPT:
 	  {
@@ -8496,6 +8530,11 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
      declaration-statement
      try-block
 
+  TM Extension:
+
+   statement:
+     atomic-statement
+
   IN_COMPOUND is true when the statement is nested inside a
   cp_parser_compound_statement; this matters for certain pragmas.
 
@@ -8572,6 +8611,14 @@ cp_parser_statement (cp_parser* parser, tree in_statement_expr,
 	  cp_parser_declaration_statement (parser);
 	  return;
 	  
+	case RID_TRANSACTION_ATOMIC:
+	case RID_TRANSACTION_RELAXED:
+	  statement = cp_parser_transaction (parser, keyword);
+	  break;
+	case RID_TRANSACTION_CANCEL:
+	  statement = cp_parser_transaction_cancel (parser);
+	  break;
+
 	default:
 	  /* It might be a keyword like `int' that can start a
 	     declaration-statement.  */
@@ -10150,8 +10197,8 @@ cp_parser_block_declaration (cp_parser *parser,
      namespace-alias-definition.  */
   else if (token1->keyword == RID_NAMESPACE)
     cp_parser_namespace_alias_definition (parser);
-  /* If the next keyword is `using', we have either a
-     using-declaration or a using-directive.  */
+  /* If the next keyword is `using', we have a
+     using-declaration, a using-directive, or an alias-declaration.  */
   else if (token1->keyword == RID_USING)
     {
       cp_token *token2;
@@ -10163,6 +10210,14 @@ cp_parser_block_declaration (cp_parser *parser,
       token2 = cp_lexer_peek_nth_token (parser->lexer, 2);
       if (token2->keyword == RID_NAMESPACE)
 	cp_parser_using_directive (parser);
+      /* If the second token after 'using' is '=', then we have an
+	 alias-declaration.  */
+      else if (cxx_dialect >= cxx0x
+	       && token2->type == CPP_NAME
+	       && ((cp_lexer_peek_nth_token (parser->lexer, 3)->type == CPP_EQ)
+		   || (cp_lexer_peek_nth_token (parser->lexer, 3)->keyword
+		       == RID_ATTRIBUTE)))
+	cp_parser_alias_declaration (parser);
       /* Otherwise, it's a using-declaration.  */
       else
 	cp_parser_using_declaration (parser,
@@ -12343,7 +12398,7 @@ cp_parser_template_id (cp_parser *parser,
   /* Build a representation of the specialization.  */
   if (TREE_CODE (templ) == IDENTIFIER_NODE)
     template_id = build_min_nt (TEMPLATE_ID_EXPR, templ, arguments);
-  else if (DECL_CLASS_TEMPLATE_P (templ)
+  else if (DECL_TYPE_TEMPLATE_P (templ)
 	   || DECL_TEMPLATE_TEMPLATE_PARM_P (templ))
     {
       bool entering_scope;
@@ -13611,6 +13666,7 @@ cp_parser_simple_type_specifier (cp_parser* parser,
      class-name
      enum-name
      typedef-name
+     simple-template-id [in c++0x]
 
    enum-name:
      identifier
@@ -13638,8 +13694,37 @@ cp_parser_type_name (cp_parser* parser)
   /* If it's not a class-name, keep looking.  */
   if (!cp_parser_parse_definitely (parser))
     {
-      /* It must be a typedef-name or an enum-name.  */
-      return cp_parser_nonclass_name (parser);
+      if (cxx_dialect < cxx0x)
+	/* It must be a typedef-name or an enum-name.  */
+	return cp_parser_nonclass_name (parser);
+
+      cp_parser_parse_tentatively (parser);
+      /* It is either a simple-template-id representing an
+	 instantiation of an alias template...  */
+      type_decl = cp_parser_template_id (parser,
+					 /*template_keyword_p=*/false,
+					 /*check_dependency_p=*/false,
+					 /*is_declaration=*/false);
+      /* Note that this must be an instantiation of an alias template
+	 because [temp.names]/6 says:
+	 
+	     A template-id that names an alias template specialization
+	     is a type-name.
+
+	 Whereas [temp.names]/7 says:
+	 
+	     A simple-template-id that names a class template
+	     specialization is a class-name.  */
+      if (type_decl != NULL_TREE
+	  && TREE_CODE (type_decl) == TYPE_DECL
+	  && TYPE_DECL_ALIAS_P (type_decl))
+	gcc_assert (DECL_TEMPLATE_INSTANTIATION (type_decl));
+      else
+	cp_parser_simulate_error (parser);
+
+      if (!cp_parser_parse_definitely (parser))
+	/* ... Or a typedef-name or an enum-name.  */
+	return cp_parser_nonclass_name (parser);
     }
 
   return type_decl;
@@ -14835,6 +14920,66 @@ cp_parser_using_declaration (cp_parser* parser,
   return true;
 }
 
+/* Parse an alias-declaration.
+
+   alias-declaration:
+     using identifier attribute-specifier-seq [opt] = type-id  */
+
+static tree
+cp_parser_alias_declaration (cp_parser* parser)
+{
+  tree id, type, decl, pushed_scope = NULL_TREE, attributes;
+  location_t id_location;
+  cp_declarator *declarator;
+  cp_decl_specifier_seq decl_specs;
+
+  /* Look for the `using' keyword.  */
+  cp_parser_require_keyword (parser, RID_USING, RT_USING);
+  id_location = cp_lexer_peek_token (parser->lexer)->location;
+  id = cp_parser_identifier (parser);
+  attributes = cp_parser_attributes_opt (parser);
+  cp_parser_require (parser, CPP_EQ, RT_EQ);
+
+  type = cp_parser_type_id (parser);
+
+  /* A typedef-name can also be introduced by an alias-declaration. The
+     identifier following the using keyword becomes a typedef-name. It has
+     the same semantics as if it were introduced by the typedef
+     specifier. In particular, it does not define a new type and it shall
+     not appear in the type-id.  */
+
+  clear_decl_specs (&decl_specs);
+  decl_specs.type = type;
+  decl_specs.attributes = attributes;
+  ++decl_specs.specs[(int) ds_typedef];
+  ++decl_specs.specs[(int) ds_alias];
+
+  declarator = make_id_declarator (NULL_TREE, id, sfk_none);
+  declarator->id_loc = id_location;
+
+  if (at_class_scope_p ())
+    decl = grokfield (declarator, &decl_specs, NULL_TREE, false,
+		      NULL_TREE, attributes);
+  else
+    decl = start_decl (declarator, &decl_specs, 0,
+		       attributes, NULL_TREE, &pushed_scope);
+  if (decl == error_mark_node)
+    return decl;
+
+  cp_finish_decl (decl, NULL_TREE, 0, NULL_TREE, 0);
+
+  if (pushed_scope)
+    pop_scope (pushed_scope);
+
+  /* If decl is a template, return its TEMPLATE_DECL so that it gets
+     added into the symbol table; otherwise, return the TYPE_DECL.  */
+  if (DECL_LANG_SPECIFIC (decl)
+      && DECL_TEMPLATE_INFO (decl)
+      && PRIMARY_TEMPLATE_P (DECL_TI_TEMPLATE (decl)))
+    decl = DECL_TI_TEMPLATE (decl);
+  return decl;
+}
+
 /* Parse a using-directive.
 
    using-directive:
@@ -15085,6 +15230,11 @@ cp_parser_asm_definition (cp_parser* parser)
 
    function-definition:
      __extension__ function-definition
+
+   TM Extension:
+
+   function-definition:
+     decl-specifier-seq [opt] declarator function-transaction-block
 
    The DECL_SPECIFIERS apply to this declarator.  Returns a
    representation of the entity declared.  If MEMBER_P is TRUE, then
@@ -17482,10 +17632,13 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	       && !c_dialect_objc ()
 	       && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_SQUARE))
 	{
+	  /* In C++11, [ could start a lambda-introducer.  */
+	  cp_parser_parse_tentatively (parser);
 	  cp_lexer_consume_token (parser->lexer);
 	  designator = cp_parser_constant_expression (parser, false, NULL);
 	  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 	  cp_parser_require (parser, CPP_EQ, RT_EQ);
+	  cp_parser_parse_definitely (parser);
 	}
       else
 	designator = NULL_TREE;
@@ -18532,6 +18685,7 @@ cp_parser_member_specification_opt (cp_parser* parser)
      :: [opt] nested-name-specifier template [opt] unqualified-id ;
      using-declaration
      template-declaration
+     alias-declaration
 
    member-declarator-list:
      member-declarator
@@ -18599,10 +18753,25 @@ cp_parser_member_declaration (cp_parser* parser)
   /* Check for a using-declaration.  */
   if (cp_lexer_next_token_is_keyword (parser->lexer, RID_USING))
     {
-      /* Parse the using-declaration.  */
-      cp_parser_using_declaration (parser,
-				   /*access_declaration_p=*/false);
-      return;
+      if (cxx_dialect < cxx0x)
+	{
+	  /* Parse the using-declaration.  */
+	  cp_parser_using_declaration (parser,
+				       /*access_declaration_p=*/false);
+	  return;
+	}
+      else
+	{
+	  tree decl;
+	  cp_parser_parse_tentatively (parser);
+	  decl = cp_parser_alias_declaration (parser);
+	  if (cp_parser_parse_definitely (parser))
+	    finish_member_declaration (decl);
+	  else
+	    cp_parser_using_declaration (parser,
+					 /*access_declaration_p=*/false);
+	  return;
+	}
     }
 
   /* Check for @defs.  */
@@ -20784,12 +20953,19 @@ cp_parser_function_definition_after_declarator (cp_parser* parser,
 
   start_lambda_scope (current_function_decl);
 
-  /* If the next token is `try', then we are looking at a
-     function-try-block.  */
-  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
+  /* If the next token is `try', `__transaction_atomic', or
+     `__transaction_relaxed`, then we are looking at either function-try-block
+     or function-transaction-block.  Note that all of these include the
+     function-body.  */
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRANSACTION_ATOMIC))
+    ctor_initializer_p = cp_parser_function_transaction (parser,
+	RID_TRANSACTION_ATOMIC);
+  else if (cp_lexer_next_token_is_keyword (parser->lexer,
+      RID_TRANSACTION_RELAXED))
+    ctor_initializer_p = cp_parser_function_transaction (parser,
+	RID_TRANSACTION_RELAXED);
+  else if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
     ctor_initializer_p = cp_parser_function_try_block (parser);
-  /* A function-try-block includes the function-body, so we only do
-     this next part if we're not processing a function-try-block.  */
   else
     ctor_initializer_p
       = cp_parser_ctor_initializer_opt_and_function_body (parser);
@@ -20893,6 +21069,9 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
   if (cp_lexer_next_token_is_keyword (parser->lexer,
 				      RID_TEMPLATE))
     cp_parser_template_declaration_after_export (parser, member_p);
+  else if (cxx_dialect >= cxx0x
+	   && cp_lexer_next_token_is_keyword (parser->lexer, RID_USING))
+    decl = cp_parser_alias_declaration (parser);
   else
     {
       /* There are no access checks when parsing a template, as we do not
@@ -21943,6 +22122,12 @@ cp_parser_required_error (cp_parser *parser,
       case RT_AT_THROW:
 	cp_parser_error (parser, "expected %<@throw%>");
 	return;
+      case RT_TRANSACTION_ATOMIC:
+	cp_parser_error (parser, "expected %<__transaction_atomic%>");
+	return;
+      case RT_TRANSACTION_RELAXED:
+	cp_parser_error (parser, "expected %<__transaction_relaxed%>");
+	return;
       default:
 	break;
     }
@@ -22173,6 +22358,10 @@ cp_parser_token_starts_function_definition_p (cp_token* token)
 	  || token->type == CPP_COLON
 	  /* A function-try-block begins with `try'.  */
 	  || token->keyword == RID_TRY
+	  /* A function-transaction-block begins with `__transaction_atomic'
+	     or `__transaction_relaxed'.  */
+	  || token->keyword == RID_TRANSACTION_ATOMIC
+	  || token->keyword == RID_TRANSACTION_RELAXED
 	  /* The named return value extension begins with `return'.  */
 	  || token->keyword == RID_RETURN);
 }
@@ -26491,6 +26680,272 @@ cp_parser_omp_construct (cp_parser *parser, cp_token *pragma_tok)
 
   if (stmt)
     SET_EXPR_LOCATION (stmt, pragma_tok->location);
+}
+
+/* Transactional Memory parsing routines.  */
+
+/* Parse a transaction attribute.
+
+   txn-attribute:
+	attribute
+	[ [ identifier ] ]
+
+   ??? Simplify this when C++0x bracket attributes are
+   implemented properly.  */
+
+static tree
+cp_parser_txn_attribute_opt (cp_parser *parser)
+{
+  cp_token *token;
+  tree attr_name, attr = NULL;
+
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_ATTRIBUTE))
+    return cp_parser_attributes_opt (parser);
+
+  if (cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_SQUARE))
+    return NULL_TREE;
+  cp_lexer_consume_token (parser->lexer);
+  if (!cp_parser_require (parser, CPP_OPEN_SQUARE, RT_OPEN_SQUARE))
+    goto error1;
+
+  token = cp_lexer_peek_token (parser->lexer);
+  if (token->type == CPP_NAME || token->type == CPP_KEYWORD)
+    {
+      token = cp_lexer_consume_token (parser->lexer);
+
+      attr_name = (token->type == CPP_KEYWORD
+		   /* For keywords, use the canonical spelling,
+		      not the parsed identifier.  */
+		   ? ridpointers[(int) token->keyword]
+		   : token->u.value);
+      attr = build_tree_list (attr_name, NULL_TREE);
+    }
+  else
+    cp_parser_error (parser, "expected identifier");
+
+  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
+ error1:
+  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
+  return attr;
+}
+
+/* Parse a __transaction_atomic or __transaction_relaxed statement.
+
+   transaction-statement:
+     __transaction_atomic txn-attribute[opt] txn-exception-spec[opt]
+       compound-statement
+     __transaction_relaxed txn-exception-spec[opt] compound-statement
+
+   ??? The exception specification is not yet implemented.
+*/
+
+static tree
+cp_parser_transaction (cp_parser *parser, enum rid keyword)
+{
+  unsigned char old_in = parser->in_transaction;
+  unsigned char this_in = 1, new_in;
+  cp_token *token;
+  tree stmt, attrs;
+
+  gcc_assert (keyword == RID_TRANSACTION_ATOMIC
+      || keyword == RID_TRANSACTION_RELAXED);
+  token = cp_parser_require_keyword (parser, keyword,
+      (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
+	  : RT_TRANSACTION_RELAXED));
+  gcc_assert (token != NULL);
+
+  if (keyword == RID_TRANSACTION_RELAXED)
+    this_in |= TM_STMT_ATTR_RELAXED;
+  else
+    {
+      attrs = cp_parser_txn_attribute_opt (parser);
+      if (attrs)
+	this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
+    }
+
+  /* Keep track if we're in the lexical scope of an outer transaction.  */
+  new_in = this_in | (old_in & TM_STMT_ATTR_OUTER);
+
+  stmt = begin_transaction_stmt (token->location, NULL, this_in);
+
+  parser->in_transaction = new_in;
+  cp_parser_compound_statement (parser, NULL, false, false);
+  parser->in_transaction = old_in;
+
+  finish_transaction_stmt (stmt, NULL, this_in);
+
+  return stmt;
+}
+
+/* Parse a __transaction_atomic or __transaction_relaxed expression.
+
+   transaction-expression:
+     __transaction_atomic txn-exception-spec[opt] ( expression )
+     __transaction_relaxed txn-exception-spec[opt] ( expression )
+
+   ??? The exception specification is not yet implemented.
+*/
+
+static tree
+cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
+{
+  unsigned char old_in = parser->in_transaction;
+  unsigned char this_in = 1;
+  cp_token *token;
+  tree ret;
+
+  gcc_assert (keyword == RID_TRANSACTION_ATOMIC
+      || keyword == RID_TRANSACTION_RELAXED);
+
+  if (!flag_tm)
+    error (keyword == RID_TRANSACTION_RELAXED
+	   ? G_("%<__transaction_relaxed%> without transactional memory "
+		"support enabled")
+	   : G_("%<__transaction_atomic%> without transactional memory "
+		"support enabled"));
+
+  token = cp_parser_require_keyword (parser, keyword,
+      (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
+	  : RT_TRANSACTION_RELAXED));
+  gcc_assert (token != NULL);
+
+  if (keyword == RID_TRANSACTION_RELAXED)
+    this_in |= TM_STMT_ATTR_RELAXED;
+
+  parser->in_transaction = this_in;
+  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
+    {
+      tree expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+      ret = build_transaction_expr (token->location, expr, this_in);
+    }
+  else
+    {
+      cp_parser_error (parser, "expected %<(%>");
+      ret = error_mark_node;
+    }
+  parser->in_transaction = old_in;
+
+  if (cp_parser_non_integral_constant_expression (parser, NIC_TRANSACTION))
+    return error_mark_node;
+
+  return (flag_tm ? ret : error_mark_node);
+}
+
+/* Parse a function-transaction-block.
+
+   function-transaction-block:
+     __transaction_atomic txn-attribute[opt] ctor-initializer[opt]
+	 function-body
+     __transaction_atomic txn-attribute[opt] function-try-block
+     __transaction_relaxed ctor-initializer[opt] function-body
+     __transaction_relaxed function-try-block
+*/
+
+static bool
+cp_parser_function_transaction (cp_parser *parser, enum rid keyword)
+{
+  unsigned char old_in = parser->in_transaction;
+  unsigned char new_in = 1;
+  tree compound_stmt, stmt, attrs;
+  bool ctor_initializer_p;
+  cp_token *token;
+
+  gcc_assert (keyword == RID_TRANSACTION_ATOMIC
+      || keyword == RID_TRANSACTION_RELAXED);
+  token = cp_parser_require_keyword (parser, keyword,
+      (keyword == RID_TRANSACTION_ATOMIC ? RT_TRANSACTION_ATOMIC
+	  : RT_TRANSACTION_RELAXED));
+  gcc_assert (token != NULL);
+
+  if (keyword == RID_TRANSACTION_RELAXED)
+    new_in |= TM_STMT_ATTR_RELAXED;
+  else
+    {
+      attrs = cp_parser_txn_attribute_opt (parser);
+      if (attrs)
+	new_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
+    }
+
+  stmt = begin_transaction_stmt (token->location, &compound_stmt, new_in);
+
+  parser->in_transaction = new_in;
+
+  if (cp_lexer_next_token_is_keyword (parser->lexer, RID_TRY))
+    ctor_initializer_p = cp_parser_function_try_block (parser);
+  else
+    ctor_initializer_p
+      = cp_parser_ctor_initializer_opt_and_function_body (parser);
+
+  parser->in_transaction = old_in;
+
+  finish_transaction_stmt (stmt, compound_stmt, new_in);
+
+  return ctor_initializer_p;
+}
+
+/* Parse a __transaction_cancel statement.
+
+   cancel-statement:
+     __transaction_cancel txn-attribute[opt] ;
+     __transaction_cancel txn-attribute[opt] throw-expression ;
+
+   ??? Cancel and throw is not yet implemented.  */
+
+static tree
+cp_parser_transaction_cancel (cp_parser *parser)
+{
+  cp_token *token;
+  bool is_outer = false;
+  tree stmt, attrs;
+
+  token = cp_parser_require_keyword (parser, RID_TRANSACTION_CANCEL,
+				     RT_TRANSACTION_CANCEL);
+  gcc_assert (token != NULL);
+
+  attrs = cp_parser_txn_attribute_opt (parser);
+  if (attrs)
+    is_outer = (parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER) != 0);
+
+  /* ??? Parse cancel-and-throw here.  */
+
+  cp_parser_require (parser, CPP_SEMICOLON, RT_SEMICOLON);
+
+  if (!flag_tm)
+    {
+      error_at (token->location, "%<__transaction_cancel%> without "
+		"transactional memory support enabled");
+      return error_mark_node;
+    }
+  else if (parser->in_transaction & TM_STMT_ATTR_RELAXED)
+    {
+      error_at (token->location, "%<__transaction_cancel%> within a "
+		"%<__transaction_relaxed%>");
+      return error_mark_node;
+    }
+  else if (is_outer)
+    {
+      if ((parser->in_transaction & TM_STMT_ATTR_OUTER) == 0
+	  && !is_tm_may_cancel_outer (current_function_decl))
+	{
+	  error_at (token->location, "outer %<__transaction_cancel%> not "
+		    "within outer %<__transaction_atomic%>");
+	  error_at (token->location,
+		    "  or a %<transaction_may_cancel_outer%> function");
+	  return error_mark_node;
+	}
+    }
+  else if (parser->in_transaction == 0)
+    {
+      error_at (token->location, "%<__transaction_cancel%> not within "
+		"%<__transaction_atomic%>");
+      return error_mark_node;
+    }
+
+  stmt = build_tm_abort_call (token->location, is_outer);
+  add_stmt (stmt);
+  finish_stmt ();
+
+  return stmt;
 }
 
 /* The parser.  */

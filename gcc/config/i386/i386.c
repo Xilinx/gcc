@@ -5028,6 +5028,40 @@ ix86_handle_cconv_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* The transactional memory builtins are implicitly regparm or fastcall
+   depending on the ABI.  Override the generic do-nothing attribute that
+   these builtins were declared with, and replace it with one of the two
+   attributes that we expect elsewhere.  */
+
+static tree
+ix86_handle_tm_regparm_attribute (tree *node, tree name ATTRIBUTE_UNUSED,
+    				  tree args ATTRIBUTE_UNUSED,
+				  int flags ATTRIBUTE_UNUSED,
+				  bool *no_add_attrs)
+{
+  tree alt;
+
+  /* In no case do we want to add the placeholder attribute.  */
+  *no_add_attrs = true;
+
+  /* The 64-bit ABI is unchanged for transactional memory.  */
+  if (TARGET_64BIT)
+    return NULL_TREE;
+
+  /* ??? Is there a better way to validate 32-bit windows?  We have
+     cfun->machine->call_abi, but that seems to be set only for 64-bit.  */
+  if (CHECK_STACK_LIMIT > 0)
+    alt = tree_cons (get_identifier ("fastcall"), NULL, NULL);
+  else
+    {
+      alt = tree_cons (NULL, build_int_cst (NULL, 2), NULL);
+      alt = tree_cons (get_identifier ("regparm"), alt, NULL);
+    }
+  decl_attributes (node, alt, flags);
+
+  return NULL_TREE;
+}
+
 /* This function determines from TYPE the calling-convention.  */
 
 unsigned int
@@ -16509,6 +16543,29 @@ ix86_avoid_lea_for_add (rtx insn, rtx operands[])
     return !ix86_lea_outperforms (insn, regno0, regno1, regno2, 1);
 }
 
+/* Return true if we should emit lea instruction instead of mov
+   instruction.  */
+
+bool
+ix86_use_lea_for_mov (rtx insn, rtx operands[])
+{
+  unsigned int regno0;
+  unsigned int regno1;
+
+  /* Check if we need to optimize.  */
+  if (!TARGET_OPT_AGU || optimize_function_for_size_p (cfun))
+    return false;
+
+  /* Use lea for reg to reg moves only.  */
+  if (!REG_P (operands[0]) || !REG_P (operands[1]))
+    return false;
+
+  regno0 = true_regnum (operands[0]);
+  regno1 = true_regnum (operands[1]);
+
+  return ix86_lea_outperforms (insn, regno0, regno1, -1, 0);
+}
+
 /* Return true if we need to split lea into a sequence of
    instructions to avoid AGU stalls. */
 
@@ -24807,6 +24864,7 @@ enum ix86_builtins
   IX86_BUILTIN_VEC_SET_V16QI,
 
   IX86_BUILTIN_VEC_PACK_SFIX,
+  IX86_BUILTIN_VEC_PACK_SFIX256,
 
   /* SSE4.2.  */
   IX86_BUILTIN_CRC32QI,
@@ -25166,6 +25224,13 @@ enum ix86_builtins
   IX86_BUILTIN_GATHERSIV8SI,
   IX86_BUILTIN_GATHERDIV4SI,
   IX86_BUILTIN_GATHERDIV8SI,
+
+  /* Alternate 4 element gather for the vectorizer where
+     all operands are 32-byte wide.  */
+  IX86_BUILTIN_GATHERALTSIV4DF,
+  IX86_BUILTIN_GATHERALTDIV8SF,
+  IX86_BUILTIN_GATHERALTSIV4DI,
+  IX86_BUILTIN_GATHERALTDIV8SI,
 
   /* TFmode support builtins.  */
   IX86_BUILTIN_INFQ,
@@ -26328,6 +26393,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv8sf3,  "__builtin_ia32_copysignps256", IX86_BUILTIN_CPYSGNPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_copysignv4df3,  "__builtin_ia32_copysignpd256", IX86_BUILTIN_CPYSGNPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF },
 
+  { OPTION_MASK_ISA_AVX, CODE_FOR_vec_pack_sfix_v4df, "__builtin_ia32_vec_pack_sfix256 ", IX86_BUILTIN_VEC_PACK_SFIX256, UNKNOWN, (int) V8SI_FTYPE_V4DF_V4DF },
+
   /* AVX2 */
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_mpsadbw, "__builtin_ia32_mpsadbw256", IX86_BUILTIN_MPSADBW256, UNKNOWN, (int) V32QI_FTYPE_V32QI_V32QI_INT },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_absv32qi2, "__builtin_ia32_pabsb256", IX86_BUILTIN_PABSB256, UNKNOWN, (int) V32QI_FTYPE_V32QI },
@@ -26757,6 +26824,154 @@ static const struct builtin_description bdesc_multi_arg[] =
   { OPTION_MASK_ISA_XOP, CODE_FOR_xop_vpermil2v8sf3,     "__builtin_ia32_vpermil2ps256", IX86_BUILTIN_VPERMIL2PS256, UNKNOWN, (int)MULTI_ARG_4_SF2_SI_I1 },
 
 };
+
+/* TM vector builtins.  */
+
+/* Reuse the existing x86-specific `struct builtin_description' cause
+   we're lazy.  Add casts to make them fit.  */
+static const struct builtin_description bdesc_tm[] =
+{
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_WM64", (enum ix86_builtins) BUILT_IN_TM_STORE_M64, UNKNOWN, VOID_FTYPE_PV2SI_V2SI },
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_WaRM64", (enum ix86_builtins) BUILT_IN_TM_STORE_WAR_M64, UNKNOWN, VOID_FTYPE_PV2SI_V2SI },
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_WaWM64", (enum ix86_builtins) BUILT_IN_TM_STORE_WAW_M64, UNKNOWN, VOID_FTYPE_PV2SI_V2SI },
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_RM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_RaRM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_RaWM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_RfWM64", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M64, UNKNOWN, V2SI_FTYPE_PCV2SI },
+
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_WM128", (enum ix86_builtins) BUILT_IN_TM_STORE_M128, UNKNOWN, VOID_FTYPE_PV4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_WaRM128", (enum ix86_builtins) BUILT_IN_TM_STORE_WAR_M128, UNKNOWN, VOID_FTYPE_PV4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_WaWM128", (enum ix86_builtins) BUILT_IN_TM_STORE_WAW_M128, UNKNOWN, VOID_FTYPE_PV4SF_V4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_RM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_RaRM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_RaWM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_RfWM128", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M128, UNKNOWN, V4SF_FTYPE_PCV4SF },
+
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_WM256", (enum ix86_builtins) BUILT_IN_TM_STORE_M256, UNKNOWN, VOID_FTYPE_PV8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_WaRM256", (enum ix86_builtins) BUILT_IN_TM_STORE_WAR_M256, UNKNOWN, VOID_FTYPE_PV8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_WaWM256", (enum ix86_builtins) BUILT_IN_TM_STORE_WAW_M256, UNKNOWN, VOID_FTYPE_PV8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RaRM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAR_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RaWM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RAW_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_RfWM256", (enum ix86_builtins) BUILT_IN_TM_LOAD_RFW_M256, UNKNOWN, V8SF_FTYPE_PCV8SF },
+
+  { OPTION_MASK_ISA_MMX, CODE_FOR_nothing, "__builtin__ITM_LM64", (enum ix86_builtins) BUILT_IN_TM_LOG_M64, UNKNOWN, VOID_FTYPE_PCVOID },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_nothing, "__builtin__ITM_LM128", (enum ix86_builtins) BUILT_IN_TM_LOG_M128, UNKNOWN, VOID_FTYPE_PCVOID },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_nothing, "__builtin__ITM_LM256", (enum ix86_builtins) BUILT_IN_TM_LOG_M256, UNKNOWN, VOID_FTYPE_PCVOID },
+};
+
+/* TM callbacks.  */
+
+/* Return the builtin decl needed to load a vector of TYPE.  */
+
+static tree
+ix86_builtin_tm_load (tree type)
+{
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    {
+      switch (tree_low_cst (TYPE_SIZE (type), 1))
+	{
+	case 64:
+	  return builtin_decl_explicit (BUILT_IN_TM_LOAD_M64);
+	case 128:
+	  return builtin_decl_explicit (BUILT_IN_TM_LOAD_M128);
+	case 256:
+	  return builtin_decl_explicit (BUILT_IN_TM_LOAD_M256);
+	}
+    }
+  return NULL_TREE;
+}
+
+/* Return the builtin decl needed to store a vector of TYPE.  */
+
+static tree
+ix86_builtin_tm_store (tree type)
+{
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    {
+      switch (tree_low_cst (TYPE_SIZE (type), 1))
+	{
+	case 64:
+	  return builtin_decl_explicit (BUILT_IN_TM_STORE_M64);
+	case 128:
+	  return builtin_decl_explicit (BUILT_IN_TM_STORE_M128);
+	case 256:
+	  return builtin_decl_explicit (BUILT_IN_TM_STORE_M256);
+	}
+    }
+  return NULL_TREE;
+}
+
+/* Initialize the transactional memory vector load/store builtins.  */
+
+static void
+ix86_init_tm_builtins (void)
+{
+  enum ix86_builtin_func_type ftype;
+  const struct builtin_description *d;
+  size_t i;
+  tree decl;
+  tree attrs_load, attrs_type_load, attrs_store, attrs_type_store;
+  tree attrs_log, attrs_type_log;
+
+  if (!flag_tm)
+    return;
+
+  /* Use whatever attributes a normal TM load has.  */
+  decl = builtin_decl_explicit (BUILT_IN_TM_LOAD_1);
+  attrs_load = DECL_ATTRIBUTES (decl);
+  attrs_type_load = TYPE_ATTRIBUTES (TREE_TYPE (decl));
+  /* Use whatever attributes a normal TM store has.  */
+  decl = builtin_decl_explicit (BUILT_IN_TM_STORE_1);
+  attrs_store = DECL_ATTRIBUTES (decl);
+  attrs_type_store = TYPE_ATTRIBUTES (TREE_TYPE (decl));
+  /* Use whatever attributes a normal TM log has.  */
+  decl = builtin_decl_explicit (BUILT_IN_TM_LOG);
+  attrs_log = DECL_ATTRIBUTES (decl);
+  attrs_type_log = TYPE_ATTRIBUTES (TREE_TYPE (decl));
+
+  for (i = 0, d = bdesc_tm;
+       i < ARRAY_SIZE (bdesc_tm);
+       i++, d++)
+    {
+      if ((d->mask & ix86_isa_flags) != 0
+	  || (lang_hooks.builtin_function
+	      == lang_hooks.builtin_function_ext_scope))
+	{
+	  tree type, attrs, attrs_type;
+	  enum built_in_function code = (enum built_in_function) d->code;
+
+	  ftype = (enum ix86_builtin_func_type) d->flag;
+	  type = ix86_get_builtin_func_type (ftype);
+
+	  if (BUILTIN_TM_LOAD_P (code))
+	    {
+	      attrs = attrs_load;
+	      attrs_type = attrs_type_load;
+	    }
+	  else if (BUILTIN_TM_STORE_P (code))
+	    {
+	      attrs = attrs_store;
+	      attrs_type = attrs_type_store;
+	    }
+	  else
+	    {
+	      attrs = attrs_log;
+	      attrs_type = attrs_type_log;
+	    }
+	  decl = add_builtin_function (d->name, type, code, BUILT_IN_NORMAL,
+				       /* The builtin without the prefix for
+					  calling it directly.  */
+				       d->name + strlen ("__builtin_"),
+				       attrs);
+	  /* add_builtin_function() will set the DECL_ATTRIBUTES, now
+	     set the TYPE_ATTRIBUTES.  */
+	  decl_attributes (&TREE_TYPE (decl), attrs_type, ATTR_FLAG_BUILT_IN);
+
+	  set_builtin_decl (code, decl, false);
+	}
+    }
+}
 
 /* Set up all the MMX/SSE builtins, even builtins for instructions that are not
    in the current target ISA to allow the user to compile particular modules
@@ -26945,6 +27160,22 @@ ix86_init_mmx_sse_builtins (void)
 	       V4SI_FTYPE_V4SI_PCINT_V4DI_V4SI_INT,
 	       IX86_BUILTIN_GATHERDIV8SI);
 
+  def_builtin (OPTION_MASK_ISA_AVX2, "__builtin_ia32_gatheraltsiv4df ",
+	       V4DF_FTYPE_V4DF_PCDOUBLE_V8SI_V4DF_INT,
+	       IX86_BUILTIN_GATHERALTSIV4DF);
+
+  def_builtin (OPTION_MASK_ISA_AVX2, "__builtin_ia32_gatheraltdiv4sf256 ",
+	       V8SF_FTYPE_V8SF_PCFLOAT_V4DI_V8SF_INT,
+	       IX86_BUILTIN_GATHERALTDIV8SF);
+
+  def_builtin (OPTION_MASK_ISA_AVX2, "__builtin_ia32_gatheraltsiv4di ",
+	       V4DI_FTYPE_V4DI_PCINT64_V8SI_V4DI_INT,
+	       IX86_BUILTIN_GATHERALTSIV4DI);
+
+  def_builtin (OPTION_MASK_ISA_AVX2, "__builtin_ia32_gatheraltdiv4si256 ",
+	       V8SI_FTYPE_V8SI_PCINT_V4DI_V8SI_INT,
+	       IX86_BUILTIN_GATHERALTDIV8SI);
+
   /* MMX access to the vec_init patterns.  */
   def_builtin_const (OPTION_MASK_ISA_MMX, "__builtin_ia32_vec_init_v2si",
 		     V2SI_FTYPE_INT_INT, IX86_BUILTIN_VEC_INIT_V2SI);
@@ -27114,6 +27345,7 @@ ix86_init_builtins (void)
   TREE_READONLY (t) = 1;
   ix86_builtins[(int) IX86_BUILTIN_COPYSIGNQ] = t;
 
+  ix86_init_tm_builtins ();
   ix86_init_mmx_sse_builtins ();
 
   if (TARGET_LP64)
@@ -28002,6 +28234,7 @@ ix86_expand_args_builtin (const struct builtin_description *d,
     case V32QI_FTYPE_V32QI_V32QI:
     case V16HI_FTYPE_V32QI_V32QI:
     case V16HI_FTYPE_V16HI_V16HI:
+    case V8SI_FTYPE_V4DF_V4DF:
     case V8SI_FTYPE_V8SI_V8SI:
     case V8SI_FTYPE_V16HI_V16HI:
     case V4DI_FTYPE_V4DI_V4DI:
@@ -28931,7 +29164,7 @@ rdrand_step:
       icode = CODE_FOR_avx2_gatherdiv4sf;
       goto gather_gen;
     case IX86_BUILTIN_GATHERDIV8SF:
-      icode = CODE_FOR_avx2_gatherdiv4sf256;
+      icode = CODE_FOR_avx2_gatherdiv8sf;
       goto gather_gen;
     case IX86_BUILTIN_GATHERSIV2DI:
       icode = CODE_FOR_avx2_gathersiv2di;
@@ -28955,7 +29188,20 @@ rdrand_step:
       icode = CODE_FOR_avx2_gatherdiv4si;
       goto gather_gen;
     case IX86_BUILTIN_GATHERDIV8SI:
-      icode = CODE_FOR_avx2_gatherdiv4si256;
+      icode = CODE_FOR_avx2_gatherdiv8si;
+      goto gather_gen;
+    case IX86_BUILTIN_GATHERALTSIV4DF:
+      icode = CODE_FOR_avx2_gathersiv4df;
+      goto gather_gen;
+    case IX86_BUILTIN_GATHERALTDIV8SF:
+      icode = CODE_FOR_avx2_gatherdiv8sf;
+      goto gather_gen;
+    case IX86_BUILTIN_GATHERALTSIV4DI:
+      icode = CODE_FOR_avx2_gathersiv4df;
+      goto gather_gen;
+    case IX86_BUILTIN_GATHERALTDIV8SI:
+      icode = CODE_FOR_avx2_gatherdiv8si;
+      goto gather_gen;
 
     gather_gen:
       arg0 = CALL_EXPR_ARG (exp, 0);
@@ -28974,8 +29220,39 @@ rdrand_step:
       mode3 = insn_data[icode].operand[4].mode;
       mode4 = insn_data[icode].operand[5].mode;
 
-      if (target == NULL_RTX)
-	target = gen_reg_rtx (insn_data[icode].operand[0].mode);
+      if (target == NULL_RTX
+	  || GET_MODE (target) != insn_data[icode].operand[0].mode)
+	subtarget = gen_reg_rtx (insn_data[icode].operand[0].mode);
+      else
+	subtarget = target;
+
+      if (fcode == IX86_BUILTIN_GATHERALTSIV4DF
+	  || fcode == IX86_BUILTIN_GATHERALTSIV4DI)
+	{
+	  rtx half = gen_reg_rtx (V4SImode);
+	  if (!nonimmediate_operand (op2, V8SImode))
+	    op2 = copy_to_mode_reg (V8SImode, op2);
+	  emit_insn (gen_vec_extract_lo_v8si (half, op2));
+	  op2 = half;
+	}
+      else if (fcode == IX86_BUILTIN_GATHERALTDIV8SF
+	       || fcode == IX86_BUILTIN_GATHERALTDIV8SI)
+	{
+	  rtx (*gen) (rtx, rtx);
+	  rtx half = gen_reg_rtx (mode0);
+	  if (mode0 == V4SFmode)
+	    gen = gen_vec_extract_lo_v8sf;
+	  else
+	    gen = gen_vec_extract_lo_v8si;
+	  if (!nonimmediate_operand (op0, GET_MODE (op0)))
+	    op0 = copy_to_mode_reg (GET_MODE (op0), op0);
+	  emit_insn (gen (half, op0));
+	  op0 = half;
+	  if (!nonimmediate_operand (op3, GET_MODE (op3)))
+	    op3 = copy_to_mode_reg (GET_MODE (op3), op3);
+	  emit_insn (gen (half, op3));
+	  op3 = half;
+	}
 
       /* Force memory operand only with base register here.  But we
 	 don't want to do it on memory operand for other builtin
@@ -28997,10 +29274,91 @@ rdrand_step:
           error ("last argument must be scale 1, 2, 4, 8");
           return const0_rtx;
 	}
-      pat = GEN_FCN (icode) (target, op0, op1, op2, op3, op4);
+
+      /* Optimize.  If mask is known to have all high bits set,
+	 replace op0 with pc_rtx to signal that the instruction
+	 overwrites the whole destination and doesn't use its
+	 previous contents.  */
+      if (optimize)
+	{
+	  if (TREE_CODE (arg3) == VECTOR_CST)
+	    {
+	      tree elt;
+	      unsigned int negative = 0;
+	      for (elt = TREE_VECTOR_CST_ELTS (arg3);
+		   elt; elt = TREE_CHAIN (elt))
+		{
+		  tree cst = TREE_VALUE (elt);
+		  if (TREE_CODE (cst) == INTEGER_CST
+		      && tree_int_cst_sign_bit (cst))
+		    negative++;
+		  else if (TREE_CODE (cst) == REAL_CST
+			   && REAL_VALUE_NEGATIVE (TREE_REAL_CST (cst)))
+		    negative++;
+		}
+	      if (negative == TYPE_VECTOR_SUBPARTS (TREE_TYPE (arg3)))
+		op0 = pc_rtx;
+	    }
+	  else if (TREE_CODE (arg3) == SSA_NAME)
+	    {
+	      /* Recognize also when mask is like:
+		 __v2df src = _mm_setzero_pd ();
+		 __v2df mask = _mm_cmpeq_pd (src, src);
+		 or
+		 __v8sf src = _mm256_setzero_ps ();
+		 __v8sf mask = _mm256_cmp_ps (src, src, _CMP_EQ_OQ);
+		 as that is a cheaper way to load all ones into
+		 a register than having to load a constant from
+		 memory.  */
+	      gimple def_stmt = SSA_NAME_DEF_STMT (arg3);
+	      if (is_gimple_call (def_stmt))
+		{
+		  tree fndecl = gimple_call_fndecl (def_stmt);
+		  if (fndecl
+		      && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD)
+		    switch ((unsigned int) DECL_FUNCTION_CODE (fndecl))
+		      {
+		      case IX86_BUILTIN_CMPPD:
+		      case IX86_BUILTIN_CMPPS:
+		      case IX86_BUILTIN_CMPPD256:
+		      case IX86_BUILTIN_CMPPS256:
+			if (!integer_zerop (gimple_call_arg (def_stmt, 2)))
+			  break;
+			/* FALLTHRU */
+		      case IX86_BUILTIN_CMPEQPD:
+		      case IX86_BUILTIN_CMPEQPS:
+			if (initializer_zerop (gimple_call_arg (def_stmt, 0))
+			    && initializer_zerop (gimple_call_arg (def_stmt,
+								   1)))
+			  op0 = pc_rtx;
+			break;
+		      default:
+			break;
+		      }
+		}
+	    }
+	}
+
+      pat = GEN_FCN (icode) (subtarget, op0, op1, op2, op3, op4);
       if (! pat)
 	return const0_rtx;
       emit_insn (pat);
+
+      if (fcode == IX86_BUILTIN_GATHERDIV8SF
+	  || fcode == IX86_BUILTIN_GATHERDIV8SI)
+	{
+	  enum machine_mode tmode = GET_MODE (subtarget) == V8SFmode
+				    ? V4SFmode : V4SImode;
+	  if (target == NULL_RTX)
+	    target = gen_reg_rtx (tmode);
+	  if (tmode == V4SFmode)
+	    emit_insn (gen_vec_extract_lo_v8sf (target, subtarget));
+	  else
+	    emit_insn (gen_vec_extract_lo_v8si (target, subtarget));
+	}
+      else
+	target = subtarget;
+
       return target;
 
     default:
@@ -29097,13 +29455,21 @@ ix86_builtin_vectorized_function (tree fndecl, tree type_out,
 	}
       break;
 
+    case BUILT_IN_IRINT:
     case BUILT_IN_LRINT:
-      if (out_mode == SImode && out_n == 4
-	  && in_mode == DFmode && in_n == 2)
-	return ix86_builtins[IX86_BUILTIN_VEC_PACK_SFIX];
+    case BUILT_IN_LLRINT:
+      if (out_mode == SImode && in_mode == DFmode)
+	{
+	  if (out_n == 4 && in_n == 2)
+	    return ix86_builtins[IX86_BUILTIN_VEC_PACK_SFIX];
+	  else if (out_n == 8 && in_n == 4)
+	    return ix86_builtins[IX86_BUILTIN_VEC_PACK_SFIX256];
+	}
       break;
 
+    case BUILT_IN_IRINTF:
     case BUILT_IN_LRINTF:
+    case BUILT_IN_LLRINTF:
       if (out_mode == SImode && in_mode == SFmode)
 	{
 	  if (out_n == 4 && in_n == 4)
@@ -29505,6 +29871,73 @@ ix86_veclibabi_acml (enum built_in_function fn, tree type_out, tree type_in)
   return new_fndecl;
 }
 
+/* Returns a decl of a function that implements gather load with
+   memory type MEM_VECTYPE and index type INDEX_VECTYPE and SCALE.
+   Return NULL_TREE if it is not available.  */
+
+static tree
+ix86_vectorize_builtin_gather (const_tree mem_vectype,
+			       const_tree index_type, int scale)
+{
+  bool si;
+  enum ix86_builtins code;
+
+  if (! TARGET_AVX2)
+    return NULL_TREE;
+
+  if ((TREE_CODE (index_type) != INTEGER_TYPE
+       && !POINTER_TYPE_P (index_type))
+      || (TYPE_MODE (index_type) != SImode
+	  && TYPE_MODE (index_type) != DImode))
+    return NULL_TREE;
+
+  if (TYPE_PRECISION (index_type) > POINTER_SIZE)
+    return NULL_TREE;
+
+  /* v*gather* insn sign extends index to pointer mode.  */
+  if (TYPE_PRECISION (index_type) < POINTER_SIZE
+      && TYPE_UNSIGNED (index_type))
+    return NULL_TREE;
+
+  if (scale <= 0
+      || scale > 8
+      || (scale & (scale - 1)) != 0)
+    return NULL_TREE;
+
+  si = TYPE_MODE (index_type) == SImode;
+  switch (TYPE_MODE (mem_vectype))
+    {
+    case V2DFmode:
+      code = si ? IX86_BUILTIN_GATHERSIV2DF : IX86_BUILTIN_GATHERDIV2DF;
+      break;
+    case V4DFmode:
+      code = si ? IX86_BUILTIN_GATHERALTSIV4DF : IX86_BUILTIN_GATHERDIV4DF;
+      break;
+    case V2DImode:
+      code = si ? IX86_BUILTIN_GATHERSIV2DI : IX86_BUILTIN_GATHERDIV2DI;
+      break;
+    case V4DImode:
+      code = si ? IX86_BUILTIN_GATHERALTSIV4DI : IX86_BUILTIN_GATHERDIV4DI;
+      break;
+    case V4SFmode:
+      code = si ? IX86_BUILTIN_GATHERSIV4SF : IX86_BUILTIN_GATHERDIV4SF;
+      break;
+    case V8SFmode:
+      code = si ? IX86_BUILTIN_GATHERSIV8SF : IX86_BUILTIN_GATHERALTDIV8SF;
+      break;
+    case V4SImode:
+      code = si ? IX86_BUILTIN_GATHERSIV4SI : IX86_BUILTIN_GATHERDIV4SI;
+      break;
+    case V8SImode:
+      code = si ? IX86_BUILTIN_GATHERSIV8SI : IX86_BUILTIN_GATHERALTDIV8SI;
+      break;
+    default:
+      return NULL_TREE;
+    }
+
+  return ix86_builtins[code];
+}
+
 /* Returns a code for a target-specific builtin that implements
    reciprocal of the function, or NULL_TREE if not available.  */
 
@@ -29671,7 +30104,6 @@ avx_vperm2f128_parallel (rtx par, enum machine_mode mode)
   return mask + 1;
 }
 
-
 /* Store OPERAND to the memory after reload is completed.  This means
    that we can't easily use assign_stack_local.  */
 rtx
@@ -34534,6 +34966,11 @@ static const struct attribute_spec ix86_attribute_table[] =
      for FP arguments.  */
   { "sseregparm", 0, 0, false, true, true, ix86_handle_cconv_attribute,
     true },
+  /* The transactional memory builtins are implicitly regparm or fastcall
+     depending on the ABI.  Override the generic do-nothing attribute that
+     these builtins were declared with.  */
+  { "*tm regparm", 0, 0, false, true, true, ix86_handle_tm_regparm_attribute,
+    true },
   /* force_align_arg_pointer says this function realigns the stack at entry.  */
   { (const char *)&ix86_force_align_arg_pointer_string, 0, 0,
     false, true,  true, ix86_handle_cconv_attribute, false },
@@ -37703,6 +38140,15 @@ ix86_autovectorize_vector_sizes (void)
 #undef TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION \
   ix86_builtin_vectorized_function
+
+#undef TARGET_VECTORIZE_BUILTIN_TM_LOAD
+#define TARGET_VECTORIZE_BUILTIN_TM_LOAD ix86_builtin_tm_load
+
+#undef TARGET_VECTORIZE_BUILTIN_TM_STORE
+#define TARGET_VECTORIZE_BUILTIN_TM_STORE ix86_builtin_tm_store
+
+#undef TARGET_VECTORIZE_BUILTIN_GATHER
+#define TARGET_VECTORIZE_BUILTIN_GATHER ix86_vectorize_builtin_gather
 
 #undef TARGET_BUILTIN_RECIPROCAL
 #define TARGET_BUILTIN_RECIPROCAL ix86_builtin_reciprocal

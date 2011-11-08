@@ -58,8 +58,7 @@
 #  			Defaults to "$cpu_type/sfp-machine.h" if it exists,
 #			no-sfp-machine.h otherwise.
 #  tmake_file		A list of machine-description-specific
-#			makefile-fragments, if different from
-#			"$cpu_type/t-$cpu_type".
+#			makefile fragments.
 #  tm_defines		List of target macros to define for all compilations.
 #  tm_file		A list of target macro files used only for code
 #			built for the target, not the host.  These files
@@ -229,6 +228,7 @@ case ${host} in
   esac
   ;;
 *-*-rtems*)
+  tmake_file="$tmake_file t-rtems"
   extra_parts="crtbegin.o crtend.o"
   ;;
 *-*-solaris2*)
@@ -361,11 +361,11 @@ arm*-*-ecos-elf)
 	tmake_file="$tmake_file arm/t-arm arm/t-elf t-softfp-sfdf t-softfp-excl arm/t-softfp t-softfp"
 	extra_parts="$extra_parts crti.o crtn.o"
 	;;
-arm*-*-eabi* | arm*-*-symbianelf* )
+arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
 	tmake_file="${tmake_file} arm/t-arm arm/t-elf t-fixedpoint-gnu-prefix"
 	tm_file="$tm_file arm/bpabi-lib.h"
 	case ${host} in
-	arm*-*-eabi*)
+	arm*-*-eabi* | arm*-*-rtemseabi*)
 	  tmake_file="${tmake_file} arm/t-bpabi"
 	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
 	  ;;
@@ -401,16 +401,16 @@ avr-*-*)
 	tm_file="$tm_file avr/avr-lib.h"
 	;;
 bfin*-elf*)
-	tmake_file="bfin/t-bfin bfin/t-elf bfin/t-crtlibid bfin/t-crtstuff t-fdpbit"
+	tmake_file="bfin/t-bfin bfin/t-crtlibid bfin/t-crtstuff t-libgcc-pic t-fdpbit"
 	extra_parts="$extra_parts crtbeginS.o crtendS.o crti.o crtn.o crtlibid.o"
         ;;
 bfin*-uclinux*)
-	tmake_file="bfin/t-bfin bfin/t-elf bfin/t-crtlibid bfin/t-crtstuff t-fdpbit"
+	tmake_file="bfin/t-bfin bfin/t-crtlibid bfin/t-crtstuff t-libgcc-pic t-fdpbit"
 	extra_parts="$extra_parts crtbeginS.o crtendS.o crtlibid.o"
 	md_unwind_header=bfin/linux-unwind.h
         ;;
 bfin*-linux-uclibc*)
-	tmake_file="$tmake_file bfin/t-bfin bfin/t-elf bfin/t-crtstuff t-fdpbit bfin/t-linux"
+	tmake_file="$tmake_file bfin/t-bfin bfin/t-crtstuff t-libgcc-pic t-fdpbit bfin/t-linux"
 	# No need to build crtbeginT.o on uClibc systems.  Should probably
 	# be moved to the OS specific section above.
 	extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o"
@@ -568,8 +568,8 @@ i[34567]86-*-nto-qnx*)
 	extra_parts=crtbegin.o
 	;;
 i[34567]86-*-rtems*)
+	tmake_file="$tmake_file i386/t-softfp i386/t-crtstuff"
 	extra_parts="$extra_parts crti.o crtn.o"
-	tmake_file="${tmake_file} i386/t-softfp i386/t-crtstuff t-rtems"
 	;;
 i[34567]86-*-solaris2* | x86_64-*-solaris2.1[0-9]*)
 	tmake_file="$tmake_file i386/t-crtpc i386/t-crtfm"
@@ -675,9 +675,13 @@ iq2000*-*-elf*)
 	# Don't use default.
 	extra_parts=
         ;;
-lm32-*-elf*|lm32-*-rtems*)
+lm32-*-elf*)
         extra_parts="$extra_parts crti.o crtn.o"
         tmake_file="lm32/t-lm32 lm32/t-elf t-softfp-sfdf t-softfp"
+	;;
+lm32-*-rtems*)
+        tmake_file="$tmake_file lm32/t-lm32 lm32/t-elf t-softfp-sfdf t-softfp"
+        extra_parts="$extra_parts crti.o crtn.o"
 	;;
 lm32-*-uclinux*)
         extra_parts="$extra_parts crtbegin.o crtendS.o crtbeginT.o"
@@ -687,7 +691,7 @@ m32r-*-elf*)
 	tmake_file=t-fdpbit
  	;;
 m32r-*-rtems*)
-	tmake_file="m32r/t-m32r t-fdpbit"
+	tmake_file="$tmake_file m32r/t-m32r t-fdpbit"
 	;;
 m32rle-*-elf*)
 	tmake_file=t-fdpbit
@@ -819,7 +823,7 @@ moxie-*-elf | moxie-*-uclinux*)
 	extra_parts="$extra_parts crti.o crtn.o"
 	;;
 moxie-*-rtems*)
-	tmake_file="moxie/t-moxie t-softfp-sfdf t-softfp-excl t-softfp"
+	tmake_file="$tmake_file moxie/t-moxie t-softfp-sfdf t-softfp-excl t-softfp"
 	# Don't use default.
 	extra_parts=
 	;;
@@ -1029,7 +1033,7 @@ sparc-*-linux*)		# SPARC's running GNU/Linux, libc6
 	md_unwind_header=sparc/linux-unwind.h
 	;;
 sparc-*-rtems*)
-	tmake_file="sparc/t-elf sparc/t-softmul t-crtfm t-rtems t-fdpbit"
+	tmake_file="$tmake_file sparc/t-elf sparc/t-softmul t-crtfm t-fdpbit"
 	extra_parts="$extra_parts crti.o crtn.o crtfastmath.o"
 	;;
 sparc*-*-solaris2*)
@@ -1042,7 +1046,7 @@ sparc64-*-elf*)
 	extra_parts="$extra_parts crti.o crtn.o crtfastmath.o"
 	;;
 sparc64-*-rtems*)
-	tmake_file="sparc/t-elf t-crtfm t-rtems"
+	tmake_file="$tmake_file sparc/t-elf t-crtfm"
 	extra_parts="$extra_parts crti.o crtn.o crtfastmath.o"
 	;;
 sparc-wrs-vxworks)
@@ -1094,7 +1098,7 @@ vax-*-netbsdelf*)
 vax-*-openbsd*)
 	;;
 xstormy16-*-elf)
-	tmake_file=t-fdpbit
+	tmake_file="stormy16/t-stormy16 t-fdpbit"
 	;;
 xtensa*-*-elf*)
 	tmake_file="$tmake_file xtensa/t-xtensa xtensa/t-elf"

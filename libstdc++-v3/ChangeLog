@@ -1,3 +1,213 @@
+2011-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_ENABLE_VISIBILITY]): Rename to
+	[GLIBCXX_ENABLE_LIBSTDCXX_VISIBILITY], likewise for the
+	option itself, to --enable-libstdcxx-visibility.
+	* configure.ac: Adjust call.
+	* doc/xml/manual/configure.xml: Update.
+	* configure: Regenerate.
+
+2011-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/29_atomics/headers/atomic/macros.cc: Avoid -Wall
+	warnings.
+	* testsuite/29_atomics/atomic/cons/user_pod.cc: Likewise.
+
+2011-11-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51018
+	* testsuite/30_threads/thread/native_handle/typesizes.cc: Do not run
+	on netbsd.
+
+2011-11-07  Aldy Hernandez  <aldyh@redhat.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	Merged from transactional-memory.
+
+	* testsuite/util/testsuite_abi.cc (check_version): Add CXXABI_TM_1.
+	* libsupc++/eh_tm.cc: New file.
+	* libsupc++/unwind-cxx.h (__cxa_tm_cleanup): Declare.
+	* config/abi/pre/gnu.ver: Export __cxa_tm_cleanup.
+	* config/abi/pre/gnu-versioned-namespace.ver: Likewise.
+	* libsupc++/Makefile.am (sources): Add eh_tm.cc.
+	* libsupc++/Makefile.in: Rebuild.
+
+2011-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/51018
+	* include/profile/impl/profiler_node.h (__stack_hash::
+	operator()(__stack_t)): Just use std::size_t everywhere.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (__future_base::_Ptr): Use alias-declaration.
+	(__is_same_pkgdtask): Rename to __constrain_pkgdtask and use decay
+	instead of remove_reference so that cv-quals are removed.
+
+2011-11-07  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/precompiled/stdc++.h: Add cstdalign.
+
+2011-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (complex<>::real(), complex<>::imag()):
+	Remove redundant const qualifiers.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/ptr_traits.h (__rebind): Replace with...
+	(rebind): Implement using alias-declaration.
+	* include/ext/pointer.h (__rebind): Replace with...
+	(rebind): Implement using alias-declaration.
+	* include/bits/alloc_traits.h (__rebind_alloc, __rebind_traits):
+	Replace with...
+	(rebind_alloc, rebind_traits): Implement using alias-declaration.
+	* include/ext/alloc_traits.h (rebind): Use rebind_alloc instead of
+	__rebind_alloc.
+	* include/std/scoped_allocator (rebind): Likewise.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/mutex (call_once): Store closure in __once_functor
+	as bound function wrapper might not be copyable.
+
+2011-11-07  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/bits/atomic_base.h (atomic_thread_fence): Revert.
+	(atomic_signal_fence): Revert.
+
+2011-11-07  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/bits/atomic_base.h (atomic_thread_fence): Call builtin.
+	(atomic_signal_fence): Call builtin.
+	(atomic_flag::test_and_set): Call __atomic_exchange when it is lockfree,
+	otherwise fall back to call __sync_lock_test_and_set.
+	(atomic_flag::clear): Call __atomic_store when it is lockfree,
+	otherwise fall back to call __sync_lock_release.
+
+2011-11-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/50982
+	* include/Makefile.am (${host_builddir}/gthr-posix.h): Reflect
+	gthr-posix.h move.
+	* include/Makefile.in: Regenerate.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* acinclude.m4 (GLIBCXX_CHECK_SC_NPROC_ONLN): Define.
+	(GLIBCXX_CHECK_PTHREADS_NUM_PROCESSORS_NP): Define.
+	(GLIBCXX_CHECK_SYSCTL_HW_NCPU): Define.
+	* configure.ac: Use new checks.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* src/thread.cc: Check new config macros.
+	* testsuite/lib/libstdc++.exp: Likewise.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* config/abi/pre/gnu.ver: Fix exports for string::pop_back.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* acinclude.m4: Check for <stdalign.h>
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+	* include/Makefile.am: Add <cstdalign>.
+	* include/Makefile.in: Regenerate.
+	* include/c_global/cstdalign: New.
+	* testsuite/18_support/headers/cstdalign/std_c++0x_neg.cc: New.
+	* doc/xml/manual/backwards_compatibility.xml: Update.
+	* doc/xml/manual/status_cxx2011.xml: Update.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/50982
+	* include/std/mutex (__once_proxy): Use void parameter list to
+	work on implicit extern "C" systems.
+
+2011-11-07  Xinliang David Li  <davidxl@google.com>
+
+	* include/backward/hashtable.h: Make __stl_prime_list
+	in comdat section.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/basic_string.h (basic_string::at): Move adjacent to other
+	overload.
+	(basic_string::pop_back): Define.
+	* include/debug/string (__gnu_debug::basic_string::pop_back): Likewise.
+	* include/ext/vstring.h (__versa_string::pop_back): Likewise.
+	* config/abi/pre/gnu.ver: Add new symbols.
+	* testsuite/21_strings/basic_string/modifiers/char/pop_back.cc: New.
+	* testsuite/21_strings/basic_string/modifiers/wchar_t/pop_back.cc: New.
+	* testsuite/21_strings/basic_string/range_access.cc: Split to ...
+	* testsuite/21_strings/basic_string/range_access/char/1.cc: Here and ...
+	* testsuite/21_strings/basic_string/range_access/wchar_t/1.cc: Here.
+	* testsuite/ext/vstring/modifiers/char/pop_back.cc: New.
+	* testsuite/ext/vstring/modifiers/wchar_t/pop_back.cc: New.
+
+2011-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/backwards_compatibility.xml: Fix autoconf tests for
+	C++11 compiler features and library headers. Add stable id
+	attributes. Use <filename> element for headers and surround in angle
+	brackets. Use <classname> for classes.
+	* doc/html/*: Regenerate.
+
+2011-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx2011.xml: Document <cuchar> and
+	<cstdalign> as missing.
+
+2011-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/faq.xml: Replace references to C++0x with C++11.
+	* doc/xml/manual/intro.xml: Likewise.
+	* doc/xml/manual/backwards_compatibility.xml: Likewise.
+	* doc/xml/manual/shared_ptr.xml: Likewise.
+	* doc/xml/manual/configure.xml: Likewise.
+	* doc/xml/manual/evolution.xml: Likewise.
+	* doc/xml/manual/using.xml: Likewise.
+	* doc/xml/manual/strings.xml: Likewise.
+	* doc/xml/manual/debug_mode.xml: Likewise.
+	* doc/xml/manual/policy_data_structures.xml: Likewise.
+	* doc/xml/manual/extensions.xml: Likewise.
+	* doc/xml/manual/diagnostics.xml: Likewise.
+	* doc/xml/manual/test.xml: Likewise.
+	* doc/xml/manual/status_cxx200x.xml: Likewise, and rename to...
+	* doc/xml/manual/status_cxx2011.xml: Here.
+	* doc/Makefile.am: Rename status_cxx200x.xml.
+	* doc/Makefile.in: Regenerate.
+	* doc/html/*: Regenerate.
+
+2011-11-06  François Dumont <fdumont@gcc.gnu.org>
+
+	* testsuite/performance/23_containers/insert_erase/41975.cc: Add
+	tests to check performance with or without cache of hash code and with
+	string type that has a costlier hash functor than int type.
+
+2011-11-06  Benjamin Kosnik  <bkoz@redhat.com>
+	    Andrew MacLeod  <amacleod@redhat.com>
+
+	Merged from cxx-mem-model.
+
+	* include/Makefile.am (bits_headers): Remove atomic_0.h, atomic_2.h.
+	* include/Makefile.in: Regenerate.
+	* src/Makefile.am (sources): Rename atomic.cc to
+	compatibility-atomic-c++0x.cc.
+	* src/Makefile.in: Regenerate.
+	* include/bits/atomic_0.h: Remove.
+	* include/bits/atomic_2.h: Incorporate into...
+	* include/bits/atomic_base.h: ...this.  Use new __atomic routines.
+	* include/std/atomic: Add generic atomic calls to basic atomic class.
+	* src/atomic.cc: Move...
+	* src/compatibility-atomic-c++0x.cc: ...here.
+	* src/compatibility-c++0x.cc: Tweak.
+	* testsuite/29_atomics/atomic/cons/user_pod.cc: Fix.
+	* testsuite/29_atomics/atomic/requirements/explicit_instantiation/1.cc:
+	  Same.
+	* testsuite/29_atomics/headers/atomic/macros.cc: Same.
+
 2011-11-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* doc/xml/manual/test.xml: Fix dg-warning examples.
