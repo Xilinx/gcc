@@ -2370,6 +2370,7 @@ static rtx (*ix86_gen_andsp) (rtx, rtx, rtx);
 static rtx (*ix86_gen_allocate_stack_worker) (rtx, rtx);
 static rtx (*ix86_gen_adjust_stack_and_probe) (rtx, rtx, rtx);
 static rtx (*ix86_gen_probe_stack_range) (rtx, rtx, rtx);
+static rtx (*ix86_gen_pro_epilogue_adjust_stack) (rtx, rtx, rtx);
 
 /* Preferred alignment for stack boundary in bits.  */
 unsigned int ix86_preferred_stack_boundary;
@@ -4230,28 +4231,42 @@ ix86_option_override_internal (bool main_args_p)
   if (TARGET_64BIT)
     {
       ix86_gen_leave = gen_leave_rex64;
-      ix86_gen_add3 = gen_adddi3;
-      ix86_gen_sub3 = gen_subdi3;
-      ix86_gen_sub3_carry = gen_subdi3_carry;
-      ix86_gen_one_cmpl2 = gen_one_cmpldi2;
-      ix86_gen_monitor = gen_sse3_monitor64;
-      ix86_gen_andsp = gen_anddi3;
-      ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_di;
-      ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probedi;
-      ix86_gen_probe_stack_range = gen_probe_stack_rangedi;
+      if (TARGET_X32)
+	ix86_gen_monitor = gen_sse3_monitor_x32;
+      else
+	ix86_gen_monitor = gen_sse3_monitor_64;
     }
   else
     {
       ix86_gen_leave = gen_leave;
+      ix86_gen_monitor = gen_sse3_monitor;
+    }
+
+  if (TARGET_LP64)
+    {
+      ix86_gen_add3 = gen_adddi3;
+      ix86_gen_sub3 = gen_subdi3;
+      ix86_gen_sub3_carry = gen_subdi3_carry;
+      ix86_gen_one_cmpl2 = gen_one_cmpldi2;
+      ix86_gen_andsp = gen_anddi3;
+      ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_di;
+      ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probedi;
+      ix86_gen_probe_stack_range = gen_probe_stack_rangedi;
+      ix86_gen_pro_epilogue_adjust_stack
+	= gen_pro_epilogue_adjust_stack_di_sub;
+    }
+  else
+    {
       ix86_gen_add3 = gen_addsi3;
       ix86_gen_sub3 = gen_subsi3;
       ix86_gen_sub3_carry = gen_subsi3_carry;
       ix86_gen_one_cmpl2 = gen_one_cmplsi2;
-      ix86_gen_monitor = gen_sse3_monitor;
       ix86_gen_andsp = gen_andsi3;
       ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_si;
       ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probesi;
       ix86_gen_probe_stack_range = gen_probe_stack_rangesi;
+      ix86_gen_pro_epilogue_adjust_stack
+	= gen_pro_epilogue_adjust_stack_si_sub;
     }
 
 #ifdef USE_IX86_CLD
@@ -7906,12 +7921,13 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 
   for (i = cum->regno; i < max; i++)
     {
-      mem = gen_rtx_MEM (Pmode,
+      mem = gen_rtx_MEM (word_mode,
 			 plus_constant (save_area, i * UNITS_PER_WORD));
       MEM_NOTRAP_P (mem) = 1;
       set_mem_alias_set (mem, set);
-      emit_move_insn (mem, gen_rtx_REG (Pmode,
-					x86_64_int_parameter_registers[i]));
+      emit_move_insn (mem,
+		      gen_rtx_REG (word_mode,
+				   x86_64_int_parameter_registers[i]));
     }
 
   if (ix86_varargs_fpr_size)
@@ -9014,8 +9030,11 @@ gen_push (rtx arg)
     m->fs.cfa_offset += UNITS_PER_WORD;
   m->fs.sp_offset += UNITS_PER_WORD;
 
+  if (REG_P (arg) && GET_MODE (arg) != word_mode)
+    arg = gen_rtx_REG (word_mode, REGNO (arg));
+
   return gen_rtx_SET (VOIDmode,
-		      gen_rtx_MEM (Pmode,
+		      gen_rtx_MEM (word_mode,
 				   gen_rtx_PRE_DEC (Pmode,
 						    stack_pointer_rtx)),
 		      arg);
@@ -9026,9 +9045,12 @@ gen_push (rtx arg)
 static rtx
 gen_pop (rtx arg)
 {
+  if (REG_P (arg) && GET_MODE (arg) != word_mode)
+    arg = gen_rtx_REG (word_mode, REGNO (arg));
+
   return gen_rtx_SET (VOIDmode,
 		      arg,
-		      gen_rtx_MEM (Pmode,
+		      gen_rtx_MEM (word_mode,
 				   gen_rtx_POST_INC (Pmode,
 						     stack_pointer_rtx)));
 }
@@ -9528,7 +9550,7 @@ ix86_emit_save_regs (void)
   for (regno = FIRST_PSEUDO_REGISTER - 1; regno-- > 0; )
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
       {
-	insn = emit_insn (gen_push (gen_rtx_REG (Pmode, regno)));
+	insn = emit_insn (gen_push (gen_rtx_REG (word_mode, regno)));
 	RTX_FRAME_RELATED_P (insn) = 1;
       }
 }
@@ -9608,7 +9630,7 @@ ix86_emit_save_regs_using_mov (HOST_WIDE_INT cfa_offset)
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
       {
-        ix86_emit_save_reg_using_mov (Pmode, regno, cfa_offset);
+        ix86_emit_save_reg_using_mov (word_mode, regno, cfa_offset);
 	cfa_offset -= UNITS_PER_WORD;
       }
 }
@@ -9682,7 +9704,7 @@ pro_epilogue_adjust_stack (rtx dest, rtx src, rtx offset,
   rtx insn;
   bool add_frame_related_expr = false;
 
-  if (! TARGET_64BIT)
+  if (! TARGET_LP64)
     insn = gen_pro_epilogue_adjust_stack_si_add (dest, src, offset);
   else if (x86_64_immediate_operand (offset, DImode))
     insn = gen_pro_epilogue_adjust_stack_di_add (dest, src, offset);
@@ -10489,7 +10511,7 @@ ix86_expand_prologue (void)
 	 to implement macro RETURN_ADDR_RTX and intrinsic function
 	 expand_builtin_return_addr etc.  */
       t = plus_constant (crtl->drap_reg, -UNITS_PER_WORD);
-      t = gen_frame_mem (Pmode, t);
+      t = gen_frame_mem (word_mode, t);
       insn = emit_insn (gen_push (t));
       RTX_FRAME_RELATED_P (insn) = 1;
 
@@ -10635,7 +10657,6 @@ ix86_expand_prologue (void)
     {
       rtx eax = gen_rtx_REG (Pmode, AX_REG);
       rtx r10 = NULL;
-      rtx (*adjust_stack_insn)(rtx, rtx, rtx);
 
       bool eax_live = false;
       bool r10_live = false;
@@ -10661,12 +10682,8 @@ ix86_expand_prologue (void)
       emit_insn (ix86_gen_allocate_stack_worker (eax, eax));
 
       /* Use the fact that AX still contains ALLOCATE.  */
-      adjust_stack_insn = (TARGET_64BIT
-			   ? gen_pro_epilogue_adjust_stack_di_sub
-			   : gen_pro_epilogue_adjust_stack_si_sub);
-
-      insn = emit_insn (adjust_stack_insn (stack_pointer_rtx,
-					   stack_pointer_rtx, eax));
+      insn = emit_insn (ix86_gen_pro_epilogue_adjust_stack
+			(stack_pointer_rtx, stack_pointer_rtx, eax));
 
       /* Note that SEH directives need to continue tracking the stack
 	 pointer even after the frame pointer has been set up.  */
@@ -10686,14 +10703,18 @@ ix86_expand_prologue (void)
       if (r10_live && eax_live)
         {
 	  t = choose_baseaddr (m->fs.sp_offset - allocate);
-	  emit_move_insn (r10, gen_frame_mem (Pmode, t));
+	  emit_move_insn (gen_rtx_REG (word_mode, R10_REG),
+			  gen_frame_mem (word_mode, t));
 	  t = choose_baseaddr (m->fs.sp_offset - allocate - UNITS_PER_WORD);
-	  emit_move_insn (eax, gen_frame_mem (Pmode, t));
+	  emit_move_insn (gen_rtx_REG (word_mode, AX_REG),
+			  gen_frame_mem (word_mode, t));
 	}
       else if (eax_live || r10_live)
 	{
 	  t = choose_baseaddr (m->fs.sp_offset - allocate);
-	  emit_move_insn ((eax_live ? eax : r10), gen_frame_mem (Pmode, t));
+	  emit_move_insn (gen_rtx_REG (word_mode,
+				       (eax_live ? AX_REG : R10_REG)),
+			  gen_frame_mem (word_mode, t));
 	}
     }
   gcc_assert (m->fs.sp_offset == frame.stack_pointer_offset);
@@ -10857,7 +10878,7 @@ ix86_emit_restore_regs_using_pop (void)
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, false))
-      ix86_emit_restore_reg_using_pop (gen_rtx_REG (Pmode, regno));
+      ix86_emit_restore_reg_using_pop (gen_rtx_REG (word_mode, regno));
 }
 
 /* Emit code and notes for the LEAVE instruction.  */
@@ -10900,11 +10921,11 @@ ix86_emit_restore_regs_using_mov (HOST_WIDE_INT cfa_offset,
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, maybe_eh_return))
       {
-	rtx reg = gen_rtx_REG (Pmode, regno);
+	rtx reg = gen_rtx_REG (word_mode, regno);
 	rtx insn, mem;
 	
 	mem = choose_baseaddr (cfa_offset);
-	mem = gen_frame_mem (Pmode, mem);
+	mem = gen_frame_mem (word_mode, mem);
 	insn = emit_move_insn (reg, mem);
 
         if (m->fs.cfa_reg == crtl->drap_reg && regno == REGNO (crtl->drap_reg))
@@ -11486,8 +11507,8 @@ ix86_expand_split_stack_prologue (void)
 	{
 	  rtx rax;
 
-	  rax = gen_rtx_REG (Pmode, AX_REG);
-	  emit_move_insn (rax, reg10);
+	  rax = gen_rtx_REG (word_mode, AX_REG);
+	  emit_move_insn (rax, gen_rtx_REG (word_mode, R10_REG));
 	  use_reg (&call_fusage, rax);
 	}
 
@@ -11566,8 +11587,8 @@ ix86_expand_split_stack_prologue (void)
   /* If we are in 64-bit mode and this function uses a static chain,
      we saved %r10 in %rax before calling _morestack.  */
   if (TARGET_64BIT && DECL_STATIC_CHAIN (cfun->decl))
-    emit_move_insn (gen_rtx_REG (Pmode, R10_REG),
-		    gen_rtx_REG (Pmode, AX_REG));
+    emit_move_insn (gen_rtx_REG (word_mode, R10_REG),
+		    gen_rtx_REG (word_mode, AX_REG));
 
   /* If this function calls va_start, we need to store a pointer to
      the arguments on the old stack, because they may not have been
@@ -11759,6 +11780,11 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     }
   else
     disp = addr;			/* displacement */
+
+  /* Since address override works only on the (reg) part in fs:(reg),
+     we can't use it as memory operand.  */
+  if (Pmode != word_mode && seg == SEG_FS && (base || index))
+    return 0;
 
   /* Extract the integral value of scale.  */
   if (scale_rtx)
@@ -12797,8 +12823,19 @@ legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
           base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
-	  off = force_reg (Pmode, off);
-	  return gen_rtx_PLUS (Pmode, base, off);
+	  if (Pmode != word_mode)
+	    {
+	      /* Since address override works only on the (reg) part in
+		 fs:(reg), we can't use it as memory operand.  */
+	      rtx reg = gen_reg_rtx (Pmode);
+	      emit_move_insn (reg, base);
+	      return gen_rtx_PLUS (Pmode, reg, off);
+	    }
+	  else
+	    {
+	      off = force_reg (Pmode, off);
+	      return gen_rtx_PLUS (Pmode, base, off);
+	    }
 	}
       else
 	{
@@ -12817,7 +12854,16 @@ legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
 	  base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
-	  return gen_rtx_PLUS (Pmode, base, off);
+	  if (Pmode != word_mode)
+	    {
+	      /* Since address override works only on the (reg) part in
+		 fs:(reg), we can't use it as memory operand.  */
+	      rtx reg = gen_reg_rtx (Pmode);
+	      emit_move_insn (reg, base);
+	      return gen_rtx_PLUS (Pmode, reg, off);
+	    }
+	  else
+	    return gen_rtx_PLUS (Pmode, base, off);
 	}
       else
 	{
@@ -13922,7 +13968,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	      gcc_unreachable ();
 	    }
 
-	  ix86_print_operand (file, x, 0);
+	  ix86_print_operand (file, x,
+			      TARGET_64BIT && REG_P (x) ? 'q' : 0);
 	  return;
 
 
@@ -19329,7 +19376,7 @@ ix86_split_to_parts (rtx operand, rtx *parts, enum machine_mode mode)
       gcc_assert (ok);
 
       operand = copy_rtx (operand);
-      PUT_MODE (operand, Pmode);
+      PUT_MODE (operand, word_mode);
       parts[0] = parts[1] = parts[2] = parts[3] = operand;
       return size;
     }
@@ -19482,7 +19529,7 @@ ix86_split_long_move (rtx operands[])
       if (push_operand (operands[0], VOIDmode))
 	{
 	  operands[0] = copy_rtx (operands[0]);
-	  PUT_MODE (operands[0], Pmode);
+	  PUT_MODE (operands[0], word_mode);
 	}
       else
         operands[0] = gen_lowpart (DImode, operands[0]);
@@ -20043,7 +20090,11 @@ ix86_zero_extend_to_Pmode (rtx exp)
   if (GET_MODE (exp) == Pmode)
     return copy_to_mode_reg (Pmode, exp);
   r = gen_reg_rtx (Pmode);
-  emit_insn (gen_zero_extendsidi2 (r, exp));
+  if (Pmode == DImode)
+    emit_insn (gen_zero_extendsidi2 (r, exp));
+  else
+    emit_move_insn (r,
+		    simplify_gen_subreg (Pmode, exp, GET_MODE (exp), 0));
   return r;
 }
 
@@ -21070,11 +21121,11 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
       gcc_unreachable ();
     case loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode);
+      size_needed = GET_MODE_SIZE (word_mode);
       break;
     case unrolled_loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode) * (TARGET_64BIT ? 4 : 2);
+      size_needed = GET_MODE_SIZE (word_mode) * (TARGET_64BIT ? 4 : 2);
       break;
     case rep_prefix_8_byte:
       size_needed = 8;
