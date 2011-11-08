@@ -6711,6 +6711,22 @@ is_cu_die (dw_die_ref c)
   return c && c->die_tag == DW_TAG_compile_unit;
 }
 
+/* Returns true iff C is a namespace DIE.  */
+
+static inline bool
+is_namespace_die (dw_die_ref c)
+{
+  return c && c->die_tag == DW_TAG_namespace;
+}
+
+/* Returns true iff C is a class DIE.  */
+
+static inline bool
+is_class_die (dw_die_ref c)
+{
+  return c && c->die_tag == DW_TAG_class_type;
+}
+
 static char *
 gen_internal_sym (const char *prefix)
 {
@@ -8629,12 +8645,29 @@ add_pubname_string (const char *str, dw_die_ref die)
 static void
 add_pubname (tree decl, dw_die_ref die)
 {
-  if (targetm.want_debug_pub_sections && TREE_PUBLIC (decl))
+  if (!targetm.want_debug_pub_sections)
+    return;
+
+  if ((TREE_PUBLIC (decl) && !is_class_die (die->die_parent))
+      || is_cu_die (die->die_parent) || is_namespace_die (die->die_parent))
     {
       const char *name = dwarf2_name (decl, 1);
       if (name)
 	add_pubname_string (name, die);
     }
+}
+
+/* Add an enumerator to the pubnames section.  */
+
+static void
+add_enumerator_pubname (const char *scope_name, const char *sep, dw_die_ref die)
+{
+  const char *name;
+  if (scope_name)
+    name = concat (scope_name, sep, get_AT_string (die, DW_AT_name), NULL);
+  else
+    name = xstrdup (get_AT_string (die, DW_AT_name));
+  add_pubname_string (name, die);
 }
 
 /* Add a new entry to .debug_pubtypes if appropriate.  */
@@ -8649,34 +8682,39 @@ add_pubtype (tree decl, dw_die_ref die)
 
   e.name = NULL;
   if ((TREE_PUBLIC (decl)
-       || is_cu_die (die->die_parent))
+       || is_cu_die (die->die_parent) || is_namespace_die (die->die_parent))
       && (die->die_tag == DW_TAG_typedef || COMPLETE_TYPE_P (decl)))
     {
+      tree scope = NULL;
+      const char *scope_name = NULL;
+      const char *sep = is_cxx () ? "::" : ".";
+
       e.die = die;
       if (TYPE_P (decl))
-	{
-	  if (TYPE_NAME (decl))
-	    {
-	      if (TREE_CODE (TYPE_NAME (decl)) == IDENTIFIER_NODE)
-		e.name = IDENTIFIER_POINTER (TYPE_NAME (decl));
-	      else if (TREE_CODE (TYPE_NAME (decl)) == TYPE_DECL
-		       && DECL_NAME (TYPE_NAME (decl)))
-		e.name = IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (decl)));
-	      else
-	       e.name = xstrdup ((const char *) get_AT_string (die, DW_AT_name));
-	    }
-	}
+        e.name = xstrdup (type_tag (decl));
+      /*e.name = lang_hooks.dwarf_name (type_tag (decl), 1);*/
       else
-	{
-	  e.name = dwarf2_name (decl, 1);
-	  if (e.name)
-	    e.name = xstrdup (e.name);
-	}
+        e.name = xstrdup (lang_hooks.dwarf_name (decl, 1));
 
+      scope = TYPE_P (decl) ? TYPE_CONTEXT (decl) : NULL;
+      if (scope && TREE_CODE (scope) == NAMESPACE_DECL)
+        {
+          scope_name = lang_hooks.dwarf_name (scope, 1);
+          e.name = concat (scope_name, sep, e.name, NULL);
+        }
       /* If we don't have a name for the type, there's no point in adding
 	 it to the table.  */
       if (e.name && e.name[0] != '\0')
 	VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
+
+      /* Although it might be more logical to add the pubnames for the
+         enumerators as their dies are created, they should only be
+         added if the type meets the criteria above.  */
+      if (die->die_tag == DW_TAG_enumeration_type)
+        {
+          dw_die_ref c;
+          FOR_EACH_CHILD (die, c, add_enumerator_pubname (scope_name, sep, c));
+        }
     }
 }
 
@@ -9601,6 +9639,7 @@ base_type_die (tree type)
   add_AT_unsigned (base_type_result, DW_AT_byte_size,
 		   int_size_in_bytes (type));
   add_AT_unsigned (base_type_result, DW_AT_encoding, encoding);
+  add_pubtype (type, base_type_result);
 
   return base_type_result;
 }
@@ -17951,7 +17990,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
       else
         add_location_or_const_value_attribute (var_die, decl_or_origin,
 					       decl == NULL, DW_AT_location);
-      add_pubname (decl_or_origin, var_die);
+      add_pubname (decl, var_die);
     }
   else
     tree_add_const_value_attribute_for_decl (var_die, decl_or_origin);
@@ -19371,6 +19410,8 @@ gen_namespace_die (tree decl, dw_die_ref context_die)
       add_AT_die_ref (namespace_die, DW_AT_import, origin_die);
       equate_decl_number_to_die (decl, namespace_die);
     }
+  /* Bypass dwarf2_name's check for DECL_NAMELESS.  */
+  add_pubname_string (lang_hooks.dwarf_name (decl, 1), namespace_die);
 }
 
 /* Generate Dwarf debug information for a decl described by DECL.
