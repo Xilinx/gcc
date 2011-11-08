@@ -35,6 +35,7 @@ dnl  SUBDIRS
 dnl Substs:
 dnl  glibcxx_builddir     (absolute path)
 dnl  glibcxx_srcdir       (absolute path)
+dnl  toplevel_builddir    (absolute path)
 dnl  toplevel_srcdir      (absolute path)
 dnl  with_cross_host
 dnl  with_newlib
@@ -59,9 +60,11 @@ AC_DEFUN([GLIBCXX_CONFIGURE], [
     [\\/$]* | ?:[\\/]*) glibcxx_srcdir=${srcdir} ;;
     *) glibcxx_srcdir=`cd "$srcdir" && ${PWDCMD-pwd} || echo "$srcdir"` ;;
   esac
+  toplevel_builddir=${glibcxx_builddir}/..
   toplevel_srcdir=${glibcxx_srcdir}/..
   AC_SUBST(glibcxx_builddir)
   AC_SUBST(glibcxx_srcdir)
+  AC_SUBST(toplevel_builddir)
   AC_SUBST(toplevel_srcdir)
 
   # We use these options to decide which functions to include.  They are
@@ -1637,6 +1640,9 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
 
   # Check for the existence of the <stdbool.h> header.
   AC_CHECK_HEADERS(stdbool.h)
+
+  # Check for the existence of the <stdalign.h> header.
+  AC_CHECK_HEADERS(stdalign.h)
 
   CXXFLAGS="$ac_save_CXXFLAGS"
   AC_LANG_RESTORE
@@ -3315,34 +3321,10 @@ dnl having to write complex code (the sed commands to clean the macro
 dnl namespace are complex and fragile enough as it is).  We must also
 dnl add a relative path so that -I- is supported properly.
 dnl
-dnl Substs:
-dnl  glibcxx_thread_h
-dnl
-dnl Defines:
-dnl  HAVE_GTHR_DEFAULT
-dnl
 AC_DEFUN([GLIBCXX_ENABLE_THREADS], [
   AC_MSG_CHECKING([for thread model used by GCC])
   target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
   AC_MSG_RESULT([$target_thread_file])
-
-  if test $target_thread_file != single; then
-    AC_DEFINE(HAVE_GTHR_DEFAULT, 1,
-	      [Define if gthr-default.h exists
-	      (meaning that threading support is enabled).])
-  fi
-
-  glibcxx_thread_h=gthr-$target_thread_file.h
-
-  dnl Check for __GTHREADS define.
-  gthread_file=${toplevel_srcdir}/gcc/${glibcxx_thread_h}
-  if grep __GTHREADS $gthread_file >/dev/null 2>&1 ; then
-    enable_thread=yes
-  else
-   enable_thread=no
-  fi
-
-  AC_SUBST(glibcxx_thread_h)
 ])
 
 
@@ -3356,7 +3338,8 @@ AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
   AC_LANG_CPLUSPLUS
 
   ac_save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS -fno-exceptions -I${toplevel_srcdir}/gcc"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions \
+	-I${toplevel_srcdir}/libgcc -I${toplevel_builddir}/libgcc"
 
   target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
   case $target_thread_file in
@@ -3476,6 +3459,94 @@ AC_DEFUN([GLIBCXX_CHECK_SC_NPROCESSORS_ONLN], [
   AC_LANG_RESTORE
 ])
 
+dnl
+dnl Check whether sysconf(_SC_NPROC_ONLN) is available in <unistd.h>, and define _GLIBCXX_USE_SC_NPROC_ONLN.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_SC_NPROC_ONLN], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
+  AC_MSG_CHECKING([for _SC_NPROC_ONLN])
+  AC_CACHE_VAL(glibcxx_cv_SC_NPROC_ONLN, [
+    GCC_TRY_COMPILE_OR_LINK(
+      [#include <unistd.h>],
+      [int n = sysconf(_SC_NPROC_ONLN);],
+      [glibcxx_cv_SC_NPROC_ONLN=yes],
+      [glibcxx_cv_SC_NPROC_ONLN=no])
+  ])
+  if test $glibcxx_cv_SC_NPROC_ONLN = yes; then
+    AC_DEFINE(_GLIBCXX_USE_SC_NPROC_ONLN, 1, [Define if _SC_NPROC_ONLN  is available in <unistd.h>.])
+  fi
+  AC_MSG_RESULT($glibcxx_cv_SC_NPROC_ONLN)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
+])
+
+dnl
+dnl Check whether pthread_num_processors_np is available in <pthread.h>, and define _GLIBCXX_USE_PTHREADS_NUM_PROCESSORS_NP.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_PTHREADS_NUM_PROCESSORS_NP], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
+  AC_MSG_CHECKING([for pthreads_num_processors_np])
+  AC_CACHE_VAL(glibcxx_cv_PTHREADS_NUM_PROCESSORS_NP, [
+    GCC_TRY_COMPILE_OR_LINK(
+      [#include <pthread.h>],
+      [int n = pthread_num_processors_np();],
+      [glibcxx_cv_PTHREADS_NUM_PROCESSORS_NP=yes],
+      [glibcxx_cv_PTHREADS_NUM_PROCESSORS_NP=no])
+  ])
+  if test $glibcxx_cv_PTHREADS_NUM_PROCESSORS_NP = yes; then
+    AC_DEFINE(_GLIBCXX_USE_PTHREADS_NUM_PROCESSORS_NP, 1, [Define if pthreads_num_processors_np is available in <pthread.h>.])
+  fi
+  AC_MSG_RESULT($glibcxx_cv_PTHREADS_NUM_PROCESSORS_NP)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
+])
+
+dnl
+dnl Check whether sysctl is available in <pthread.h>, and define _GLIBCXX_USE_SYSCTL_HW_NCPU.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_SYSCTL_HW_NCPU], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
+  AC_MSG_CHECKING([for hw.ncpu sysctl])
+  AC_CACHE_VAL(glibcxx_cv_SYSCTL_HW_NCPU, [
+    GCC_TRY_COMPILE_OR_LINK(
+      [
+       #include <stddef.h>
+       #include <sys/sysctl.h>
+       ],
+      [
+       int count;
+       size_t size = sizeof(count);
+       int mib[] = { CTL_HW, HW_NCPU };
+       sysctl(mib, 2, &count, &size, NULL, 0);
+      ],
+      [glibcxx_cv_SYSCTL_HW_NCPU=yes],
+      [glibcxx_cv_SYSCTL_HW_NCPU=no])
+  ])
+  if test $glibcxx_cv_SYSCTL_HW_NCPU = yes; then
+    AC_DEFINE(_GLIBCXX_USE_SYSCTL_HW_NCPU, 1, [Define if sysctl(), CTL_HW and HW_NCPU are available in <sys/sysctl.h>.])
+  fi
+  AC_MSG_RESULT($glibcxx_cv_SYSCTL_HW_NCPU)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
+])
 
 # Macros from the top-level gcc directory.
 m4_include([../config/gc++filt.m4])

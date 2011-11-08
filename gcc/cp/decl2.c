@@ -848,9 +848,6 @@ grokfield (const cp_declarator *declarator,
       DECL_NONLOCAL (value) = 1;
       DECL_CONTEXT (value) = current_class_type;
 
-      if (processing_template_decl)
-	value = push_template_decl (value);
-
       if (attrlist)
 	{
 	  int attrflags = 0;
@@ -868,6 +865,12 @@ grokfield (const cp_declarator *declarator,
           && TREE_TYPE (value) != error_mark_node
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
 	set_underlying_type (value);
+
+      /* It's important that push_template_decl below follows
+	 set_underlying_type above so that the created template
+	 carries the properly set type of VALUE.  */
+      if (processing_template_decl)
+	value = push_template_decl (value);
 
       record_locally_defined_typedef (value);
       return value;
@@ -1877,10 +1880,12 @@ maybe_emit_vtables (tree ctype)
 
       if (TREE_TYPE (DECL_INITIAL (vtbl)) == 0)
 	{
-	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), LOOKUP_NORMAL);
+	  VEC(tree,gc)* cleanups = NULL;
+	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), &cleanups,
+					LOOKUP_NORMAL);
 
 	  /* It had better be all done at compile-time.  */
-	  gcc_assert (!expr);
+	  gcc_assert (!expr && !cleanups);
 	}
 
       /* Write it out.  */
@@ -1952,10 +1957,12 @@ type_visibility (tree type)
 }
 
 /* Limit the visibility of DECL to VISIBILITY, if not explicitly
-   specified (or if VISIBILITY is static).  */
+   specified (or if VISIBILITY is static).  If TMPL is true, this
+   constraint is for a template argument, and takes precedence
+   over explicitly-specified visibility on the template.  */
 
-static bool
-constrain_visibility (tree decl, int visibility)
+static void
+constrain_visibility (tree decl, int visibility, bool tmpl)
 {
   if (visibility == VISIBILITY_ANON)
     {
@@ -1973,12 +1980,10 @@ constrain_visibility (tree decl, int visibility)
 	}
     }
   else if (visibility > DECL_VISIBILITY (decl)
-	   && !DECL_VISIBILITY_SPECIFIED (decl))
+	   && (tmpl || !DECL_VISIBILITY_SPECIFIED (decl)))
     {
       DECL_VISIBILITY (decl) = (enum symbol_visibility) visibility;
-      return true;
     }
-  return false;
 }
 
 /* Constrain the visibility of DECL based on the visibility of its template
@@ -2014,7 +2019,7 @@ constrain_visibility_for_template (tree decl, tree targs)
 	    }
 	}
       if (vis)
-	constrain_visibility (decl, vis);
+	constrain_visibility (decl, vis, true);
     }
 }
 
@@ -2127,7 +2132,7 @@ determine_visibility (tree decl)
 	  if (underlying_vis == VISIBILITY_ANON
 	      || (CLASS_TYPE_P (underlying_type)
 		  && CLASSTYPE_VISIBILITY_SPECIFIED (underlying_type)))
-	    constrain_visibility (decl, underlying_vis);
+	    constrain_visibility (decl, underlying_vis, false);
 	  else
 	    DECL_VISIBILITY (decl) = VISIBILITY_DEFAULT;
 	}
@@ -2135,7 +2140,7 @@ determine_visibility (tree decl)
 	{
 	  /* tinfo visibility is based on the type it's for.  */
 	  constrain_visibility
-	    (decl, type_visibility (TREE_TYPE (DECL_NAME (decl))));
+	    (decl, type_visibility (TREE_TYPE (DECL_NAME (decl))), false);
 
 	  /* Give the target a chance to override the visibility associated
 	     with DECL.  */
@@ -2202,14 +2207,14 @@ determine_visibility (tree decl)
   if (decl_anon_ns_mem_p (decl))
     /* Names in an anonymous namespace get internal linkage.
        This might change once we implement export.  */
-    constrain_visibility (decl, VISIBILITY_ANON);
+    constrain_visibility (decl, VISIBILITY_ANON, false);
   else if (TREE_CODE (decl) != TYPE_DECL)
     {
       /* Propagate anonymity from type to decl.  */
       int tvis = type_visibility (TREE_TYPE (decl));
       if (tvis == VISIBILITY_ANON
 	  || ! DECL_VISIBILITY_SPECIFIED (decl))
-	constrain_visibility (decl, tvis);
+	constrain_visibility (decl, tvis, false);
     }
   else if (no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/true))
     /* DR 757: A type without linkage shall not be used as the type of a
@@ -2220,7 +2225,7 @@ determine_visibility (tree decl)
 
        Since non-extern "C" decls need to be defined in the same
        translation unit, we can make the type internal.  */
-    constrain_visibility (decl, VISIBILITY_ANON);
+    constrain_visibility (decl, VISIBILITY_ANON, false);
 
   /* If visibility changed and DECL already has DECL_RTL, ensure
      symbol flags are updated.  */
@@ -4201,9 +4206,10 @@ possibly_inlined_p (tree decl)
 
 /* Mark DECL (either a _DECL or a BASELINK) as "used" in the program.
    If DECL is a specialization or implicitly declared class member,
-   generate the actual definition.  */
+   generate the actual definition.  Return false if something goes
+   wrong, true otherwise.  */
 
-void
+bool
 mark_used (tree decl)
 {
   /* If DECL is a BASELINK for a single function, then treat it just
@@ -4214,7 +4220,7 @@ mark_used (tree decl)
     {
       decl = BASELINK_FUNCTIONS (decl);
       if (really_overloaded_fn (decl))
-	return;
+	return true;
       decl = OVL_CURRENT (decl);
     }
 
@@ -4235,13 +4241,13 @@ mark_used (tree decl)
 		 generate it properly; see maybe_add_lambda_conv_op.  */
 	      sorry ("converting lambda which uses %<...%> to "
 		     "function pointer");
-	      return;
+	      return false;
 	    }
 	}
       error ("use of deleted function %qD", decl);
       if (!maybe_explain_implicit_delete (decl))
 	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
-      return;
+      return false;
     }
 
   /* We can only check DECL_ODR_USED on variables or functions with
@@ -4250,20 +4256,20 @@ mark_used (tree decl)
   if ((TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
       || DECL_LANG_SPECIFIC (decl) == NULL
       || DECL_THUNK_P (decl))
-    return;
+    return true;
 
   /* We only want to do this processing once.  We don't need to keep trying
      to instantiate inline templates, because unit-at-a-time will make sure
      we get them compiled before functions that want to inline them.  */
   if (DECL_ODR_USED (decl))
-    return;
+    return true;
 
   /* If within finish_function, defer the rest until that function
      finishes, otherwise it might recurse.  */
   if (defer_mark_used_calls)
     {
       VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
-      return;
+      return true;
     }
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
@@ -4292,15 +4298,15 @@ mark_used (tree decl)
 
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
-    return;
+    return true;
 
   if (processing_template_decl)
-    return;
+    return true;
 
   /* Check this too in case we're within fold_non_dependent_expr.  */
   if (DECL_TEMPLATE_INFO (decl)
       && uses_template_parms (DECL_TI_ARGS (decl)))
-    return;
+    return true;
 
   DECL_ODR_USED (decl) = 1;
   if (DECL_CLONED_FUNCTION_P (decl))
@@ -4378,6 +4384,8 @@ mark_used (tree decl)
 			/*expl_inst_class_mem_p=*/false);
       --function_depth;
     }
+
+  return true;
 }
 
 #include "gt-cp-decl2.h"

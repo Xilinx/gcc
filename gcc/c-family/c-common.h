@@ -106,6 +106,9 @@ enum rid
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
   RID_FRACT, RID_ACCUM,
 
+  /* C1X */
+  RID_ALIGNAS,
+
   /* This means to warn that this is a C++ keyword, and then treat it
      as a normal identifier.  */
   RID_CXX_COMPAT_WARN,
@@ -727,6 +730,7 @@ extern void finish_fname_decls (void);
 extern const char *fname_as_string (int);
 extern tree fname_decl (location_t, unsigned, tree);
 
+extern int check_user_alignment (const_tree, bool);
 extern void check_function_arguments (const_tree, int, tree *);
 extern void check_function_arguments_recurse (void (*)
 					      (void *, tree,
@@ -959,7 +963,8 @@ extern bool c_dump_tree (void *, tree);
 
 extern void verify_sequence_points (tree);
 
-extern tree fold_offsetof (tree, tree);
+extern tree fold_offsetof_1 (tree);
+extern tree fold_offsetof (tree);
 
 /* Places where an lvalue, or modifiable lvalue, may be required.
    Used to select diagnostic messages in lvalue_error and

@@ -140,6 +140,7 @@ c-common.h, not after.
    5: DECL_INTERFACE_KNOWN.
    6: DECL_THIS_STATIC (in VAR_DECL or FUNCTION_DECL).
       DECL_FIELD_IS_BASE (in FIELD_DECL)
+      TYPE_DECL_ALIAS_P (in TYPE_DECL)
    7: DECL_DEAD_FOR_LOCAL (in VAR_DECL).
       DECL_THUNK_P (in a member FUNCTION_DECL)
       DECL_NORMAL_CAPTURE_P (in FIELD_DECL)
@@ -2542,6 +2543,17 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define DECL_PENDING_INLINE_INFO(NODE) \
   (LANG_DECL_FN_CHECK (NODE)->u.pending_inline_info)
 
+/* Nonzero for TYPE_DECL means that it was written 'using name = type'.  */
+#define TYPE_DECL_ALIAS_P(NODE) \
+  DECL_LANG_FLAG_6 (TYPE_DECL_CHECK (NODE))
+
+/* Nonzero for a type which is an alias for another type; i.e, a type
+   which declaration was written 'using name-of-type =
+   another-type'.  */
+#define TYPE_ALIAS_P(NODE) \
+  (TYPE_P (NODE) \
+   && TYPE_DECL_ALIAS_P (TYPE_NAME (NODE)))
+
 /* For a class type: if this structure has many fields, we'll sort them
    and put them into a TREE_VEC.  */
 #define CLASSTYPE_SORTED_FIELDS(NODE) \
@@ -2598,16 +2610,20 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    ? ENUM_TEMPLATE_INFO (NODE) :			\
    (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM	\
     ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :	\
-    (TYPE_LANG_SPECIFIC (NODE)				\
+    ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))	\
      ? CLASSTYPE_TEMPLATE_INFO (NODE)			\
-     : NULL_TREE)))
+     : (DECL_LANG_SPECIFIC (TYPE_NAME (NODE))		\
+	? (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)))	\
+	: NULL_TREE))))
 
 /* Set the template information for an ENUMERAL_, RECORD_, or
    UNION_TYPE to VAL.  */
-#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)	\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE		\
-   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))	\
-   : (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL)))
+#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)				\
+  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
+   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))				\
+   : ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))			\
+      ? (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL))			\
+      : (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)) = (VAL))))
 
 #define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
 #define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
@@ -3206,8 +3222,9 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* [dcl.init.aggr]
 
-   An aggregate is an array or a class with no user-declared
-   constructors, no private or protected non-static data members, no
+   An aggregate is an array or a class with no user-provided
+   constructors, no brace-or-equal-initializers for non-static data
+   members, no private or protected non-static data members, no
    base classes, and no virtual functions.
 
    As an extension, we also treat vectors as aggregates.  Keep these
@@ -3620,11 +3637,22 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && !DECL_UNBOUND_CLASS_TEMPLATE_P (NODE) \
    && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == FUNCTION_DECL)
 
-/* Nonzero for a DECL that represents a template class.  */
-#define DECL_CLASS_TEMPLATE_P(NODE)				\
+/* Nonzero for a DECL that represents a class template or alias
+   template.  */
+#define DECL_TYPE_TEMPLATE_P(NODE)				\
   (TREE_CODE (NODE) == TEMPLATE_DECL				\
    && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE			\
+   && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL)
+
+/* Nonzero for a DECL that represents a class template.  */
+#define DECL_CLASS_TEMPLATE_P(NODE)				\
+  (DECL_TYPE_TEMPLATE_P (NODE)					\
    && DECL_IMPLICIT_TYPEDEF_P (DECL_TEMPLATE_RESULT (NODE)))
+
+/* Nonzero for a TEMPLATE_DECL that represents an alias template.  */
+#define DECL_ALIAS_TEMPLATE_P(NODE)			\
+  (DECL_TYPE_TEMPLATE_P (NODE)				\
+   && !DECL_ARTIFICIAL (DECL_TEMPLATE_RESULT (NODE)))
 
 /* Nonzero for a NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
@@ -4584,6 +4612,7 @@ typedef enum cp_decl_spec {
   ds_explicit,
   ds_friend,
   ds_typedef,
+  ds_alias,
   ds_constexpr,
   ds_complex,
   ds_thread,
@@ -4815,9 +4844,9 @@ extern tree cxx_type_promotes_to		(tree);
 extern tree type_passed_as			(tree);
 extern tree convert_for_arg_passing		(tree, tree);
 extern bool is_properly_derived_from		(tree, tree);
-extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
-extern tree initialize_reference		(tree, tree, tree, tree *, int,
+extern tree initialize_reference		(tree, tree, int,
 						 tsubst_flags_t);
+extern tree extend_ref_init_temps		(tree, tree, VEC(tree,gc)**);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
 extern bool reference_related_p			(tree, tree);
@@ -5053,7 +5082,7 @@ extern tree build_offset_ref_call_from_tree	(tree, VEC(tree,gc) **);
 extern bool decl_constant_var_p			(tree);
 extern bool decl_maybe_constant_var_p		(tree);
 extern void check_default_args			(tree);
-extern void mark_used				(tree);
+extern bool mark_used				(tree);
 extern void finish_static_data_member_decl	(tree, tree, bool, tree, int);
 extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
@@ -5287,6 +5316,8 @@ extern tree build_non_dependent_expr		(tree);
 extern void make_args_non_dependent		(VEC(tree,gc) *);
 extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
+extern bool alias_type_or_template_p            (tree);
+extern bool alias_template_specialization_p     (tree);
 extern bool explicit_class_specialization_p     (tree);
 extern int push_tinst_level                     (tree);
 extern void pop_tinst_level                     (void);
@@ -5801,7 +5832,7 @@ extern void complete_type_check_abstract	(tree);
 extern int abstract_virtuals_error		(tree, tree);
 extern int abstract_virtuals_error_sfinae	(tree, tree, tsubst_flags_t);
 
-extern tree store_init_value			(tree, tree, int);
+extern tree store_init_value			(tree, tree, VEC(tree,gc)**, int);
 extern void check_narrowing			(tree, tree);
 extern tree digest_init				(tree, tree, tsubst_flags_t);
 extern tree digest_init_flags			(tree, tree, int);

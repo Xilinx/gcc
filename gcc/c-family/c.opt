@@ -494,8 +494,8 @@ C ObjC C++ ObjC++ Warning
 Warn about use of multi-character character constants
 
 Wnarrowing
-C ObjC C++ ObjC++ Warning Var(warn_narrowing) Init(1)
--Wno-narrowing	  In C++0x mode, ignore ill-formed narrowing conversions within { }
+C ObjC C++ ObjC++ Warning Var(warn_narrowing) Init(-1)
+Warn about narrowing conversions within { } that are ill-formed in C++11
 
 Wnested-externs
 C ObjC Var(warn_nested_externs) Warning
@@ -688,6 +688,10 @@ In C++, nonzero means warn about deprecated conversion from string literals to '
 Wpointer-sign
 C ObjC Var(warn_pointer_sign) Init(-1) Warning
 Warn when a pointer differs in signedness in an assignment
+
+Wzero-as-null-pointer-constant
+C++ ObjC++ Var(warn_zero_as_null_pointer_constant) Warning
+Warn when a literal '0' is used as null pointer
 
 ansi
 C ObjC C++ ObjC++

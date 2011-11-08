@@ -3537,8 +3537,8 @@ vect_create_epilog_for_reduction (VEC (tree, heap) *vect_defs, gimple stmt,
 
   /* Get the loop-entry arguments.  */
   if (slp_node)
-    vect_get_slp_defs (reduction_op, NULL_TREE, slp_node, &vec_initial_defs,
-                       NULL, reduc_index);
+    vect_get_vec_defs (reduction_op, NULL_TREE, stmt, &vec_initial_defs,
+                       NULL, slp_node, reduc_index);
   else
     {
       vec_initial_defs = VEC_alloc (tree, heap, 1);
@@ -4416,6 +4416,9 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
       gcc_unreachable ();
     }
 
+  if (code == COND_EXPR && slp_node)
+    return false;
+
   scalar_dest = gimple_assign_lhs (stmt);
   scalar_type = TREE_TYPE (scalar_dest);
   if (!POINTER_TYPE_P (scalar_type) && !INTEGRAL_TYPE_P (scalar_type)
@@ -4502,7 +4505,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 
   if (code == COND_EXPR)
     {
-      if (!vectorizable_condition (stmt, gsi, NULL, ops[reduc_index], 0))
+      if (!vectorizable_condition (stmt, gsi, NULL, ops[reduc_index], 0, NULL))
         {
           if (vect_print_dump_info (REPORT_DETAILS))
             fprintf (vect_dump, "unsupported condition in reduction");
@@ -4774,7 +4777,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
           gcc_assert (!slp_node);
           vectorizable_condition (stmt, gsi, vec_stmt, 
                                   PHI_RESULT (VEC_index (gimple, phis, 0)), 
-                                  reduc_index);
+                                  reduc_index, NULL);
           /* Multiple types are not supported for condition.  */
           break;
         }
@@ -4792,8 +4795,8 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
             }
 
           if (slp_node)
-            vect_get_slp_defs (op0, op1, slp_node, &vec_oprnds0, &vec_oprnds1,
-                               -1);
+            vect_get_vec_defs (op0, op1, stmt, &vec_oprnds0, &vec_oprnds1,
+                               slp_node, -1);
           else
             {
               loop_vec_def0 = vect_get_vec_def_for_operand (ops[!reduc_index],

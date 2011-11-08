@@ -1176,6 +1176,7 @@ static void rs6000_trampoline_init (rtx, tree, rtx);
 static bool rs6000_cannot_force_const_mem (enum machine_mode, rtx);
 static bool rs6000_legitimate_constant_p (enum machine_mode, rtx);
 static bool rs6000_save_toc_in_prologue_p (void);
+static void rs6000_code_end (void) ATTRIBUTE_UNUSED;
 
 /* Hash table stuff for keeping track of TOC entries.  */
 
@@ -19660,7 +19661,7 @@ rs6000_emit_stack_reset (rs6000_stack_t *info,
 {
   /* This blockage is needed so that sched doesn't decide to move
      the sp change before the register restores.  */
-  if (frame_reg_rtx != sp_reg_rtx
+  if (DEFAULT_ABI == ABI_V4
       || (TARGET_SPE_ABI
 	  && info->spe_64bit_regs_used != 0
 	  && info->first_gp_reg_save != 32))
@@ -21460,15 +21461,28 @@ rs6000_output_function_epilogue (FILE *file,
      it looks like we might want one, insert a NOP.  */
   {
     rtx insn = get_last_insn ();
+    rtx deleted_debug_label = NULL_RTX;
     while (insn
 	   && NOTE_P (insn)
 	   && NOTE_KIND (insn) != NOTE_INSN_DELETED_LABEL)
-      insn = PREV_INSN (insn);
+      {
+	/* Don't insert a nop for NOTE_INSN_DELETED_DEBUG_LABEL
+	   notes only, instead set their CODE_LABEL_NUMBER to -1,
+	   otherwise there would be code generation differences
+	   in between -g and -g0.  */
+	if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL)
+	  deleted_debug_label = insn;
+	insn = PREV_INSN (insn);
+      }
     if (insn
 	&& (LABEL_P (insn)
 	    || (NOTE_P (insn)
 		&& NOTE_KIND (insn) == NOTE_INSN_DELETED_LABEL)))
       fputs ("\tnop\n", file);
+    else if (deleted_debug_label)
+      for (insn = deleted_debug_label; insn; insn = NEXT_INSN (insn))
+	if (NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL)
+	  CODE_LABEL_NUMBER (insn) = -1;
   }
 #endif
 
@@ -25070,7 +25084,7 @@ macho_branch_islands (void)
 	  if (TARGET_LINK_STACK)
 	    {
 	      char name[32];
-	      get_ppc64_thunk_name (name);
+	      get_ppc476_thunk_name (name);
 	      strcat (tmp_buf, ":\n\tmflr r0\n\tbl ");
 	      strcat (tmp_buf, name);
 	      strcat (tmp_buf, "\n");
@@ -27948,6 +27962,12 @@ rs6000_save_toc_in_prologue_p (void)
   return (cfun && cfun->machine && cfun->machine->save_toc_in_prologue);
 }
 
+#ifdef HAVE_GAS_HIDDEN
+# define USE_HIDDEN_LINKONCE 1
+#else
+# define USE_HIDDEN_LINKONCE 0
+#endif
+
 /* Fills in the label name that should be used for a 476 link stack thunk.  */
 
 void
@@ -27955,7 +27975,7 @@ get_ppc476_thunk_name (char name[32])
 {
   gcc_assert (TARGET_LINK_STACK);
 
-  if (HAVE_GAS_HIDDEN)
+  if (USE_HIDDEN_LINKONCE)
     sprintf (name, "__ppc476.get_thunk");
   else
     ASM_GENERATE_INTERNAL_LABEL (name, "LPPC476_", 0);
@@ -27982,7 +28002,7 @@ rs6000_code_end (void)
   TREE_PUBLIC (decl) = 1;
   TREE_STATIC (decl) = 1;
 
-  if (HAVE_GAS_HIDDEN)
+  if (USE_HIDDEN_LINKONCE)
     {
       DECL_COMDAT_GROUP (decl) = DECL_ASSEMBLER_NAME (decl);
       targetm.asm_out.unique_section (decl, 0);

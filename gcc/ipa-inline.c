@@ -1957,6 +1957,8 @@ early_inliner (void)
 		= estimate_num_insns (edge->call_stmt, &eni_size_weights);
 	      es->call_stmt_time
 		= estimate_num_insns (edge->call_stmt, &eni_time_weights);
+	      edge->call_stmt_cannot_inline_p
+		= gimple_call_cannot_inline_p (edge->call_stmt);
 	    }
 	  timevar_pop (TV_INTEGRATION);
 	  iterations++;

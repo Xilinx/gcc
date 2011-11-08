@@ -1,5 +1,9 @@
 2011-11-07  Aldy Hernandez  <aldyh@redhat.com>
 
+	* Merge from mainline rev 181122.
+
+2011-11-07  Aldy Hernandez  <aldyh@redhat.com>
+
 	* Fix leading tabs and trailing whitespace throughout entire
 	branch.
 

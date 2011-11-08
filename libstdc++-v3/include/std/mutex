@@ -760,11 +760,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   {
   private:
     typedef __gthread_once_t __native_type;
-    __native_type  _M_once;
+    __native_type  _M_once = __GTHREAD_ONCE_INIT;
 
   public:
     /// Constructor
-    constexpr once_flag() noexcept : _M_once(__GTHREAD_ONCE_INIT) { }
+    constexpr once_flag() noexcept = default;
 
     /// Deleted copy constructor
     once_flag(const once_flag&) = delete;
@@ -796,7 +796,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   __get_once_mutex();
 #endif
 
-  extern "C" void __once_proxy();
+  extern "C" void __once_proxy(void);
 
   /// call_once
   template<typename _Callable, typename... _Args>

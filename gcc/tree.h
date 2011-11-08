@@ -1527,6 +1527,7 @@ struct GTY(()) tree_fixed_cst {
 };
 
 /* In a STRING_CST */
+/* In C terms, this is sizeof, not strlen.  */
 #define TREE_STRING_LENGTH(NODE) (STRING_CST_CHECK (NODE)->string.length)
 #define TREE_STRING_POINTER(NODE) \
   ((const char *)(STRING_CST_CHECK (NODE)->string.str))
@@ -2699,7 +2700,9 @@ struct function;
     nodes, this points to either the FUNCTION_DECL for the containing
     function, the RECORD_TYPE or UNION_TYPE for the containing type, or
     NULL_TREE or a TRANSLATION_UNIT_DECL if the given decl has "file
-    scope".  */
+    scope".  In particular, for VAR_DECLs which are virtual table pointers
+    (they have DECL_VIRTUAL set), we use DECL_CONTEXT to determine the type
+    they belong to.  */
 #define DECL_CONTEXT(NODE) (DECL_MINIMAL_CHECK (NODE)->decl_minimal.context)
 #define DECL_FIELD_CONTEXT(NODE) \
   (FIELD_DECL_CHECK (NODE)->decl_minimal.context)
