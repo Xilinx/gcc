@@ -172,7 +172,31 @@ get_attrs_for (const_tree x)
 bool
 is_tm_pure (const_tree x)
 {
-  unsigned flags = flags_from_decl_or_type (x);
+  unsigned flags;
+
+  switch (TREE_CODE (x))
+    {
+    case FUNCTION_DECL:
+    case FUNCTION_TYPE:
+    case METHOD_TYPE:
+      break;
+
+    default:
+      if (TYPE_P (x))
+	return false;
+      x = TREE_TYPE (x);
+      if (TREE_CODE (x) != POINTER_TYPE)
+	return false;
+      /* FALLTHRU */
+
+    case POINTER_TYPE:
+      x = TREE_TYPE (x);
+      if (TREE_CODE (x) != FUNCTION_TYPE && TREE_CODE (x) != METHOD_TYPE)
+	return false;
+      break;
+    }
+
+  flags = flags_from_decl_or_type (x);
   return (flags & ECF_TM_PURE) != 0;
 }
 
@@ -604,7 +628,9 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 	      }
 	    else if (direct_call_p)
 	      {
-		if (replacement)
+		if (flags_from_decl_or_type (fn) & ECF_TM_BUILTIN)
+		  is_safe = true;
+		else if (replacement)
 		  {
 		    /* ??? At present we've been considering replacements
 		       merely transaction_callable, and therefore might

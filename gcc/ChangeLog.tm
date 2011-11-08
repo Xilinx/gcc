@@ -1,3 +1,9 @@
+2011-11-07  Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (is_tm_pure): Expand get_attrs_for logic inline
+	before using flags_from_decl_or_type.
+	(diagnose_tm_1): Ignore ECF_TM_BUILTIN functions.
+
 2011-11-06  Aldy Hernandez  <aldyh@redhat.com>
 
 	* tree-cfg.c (verify_gimple_transaction): Verify body.  Move down.
