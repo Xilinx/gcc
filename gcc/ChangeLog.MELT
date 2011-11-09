@@ -1,4 +1,7 @@
 
+2011-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (opengpu_docmd): More debug.
+
 2011-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (gimple_assign_to): New cmatcher.
 	* melt/xtramelt-opengpu.melt (opengpu_increment_ssaname): New function.

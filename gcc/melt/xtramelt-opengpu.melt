@@ -392,6 +392,9 @@
 		$WITHGRAPHITE = (long) flag_graphite		  ;
 		$WITHPARALLELIZEALL = (long) flag_loop_parallelize_all ;
 		}#)
+    (debug "opengpu_docmd optimlevel=" optimlevel 
+	   " withgraphite=" withgraphite 
+	   " withparallelizeall=" withparallelizeall)
     (cond 
      ( (<i optimlevel 2)
        (warningmsg_plain 
