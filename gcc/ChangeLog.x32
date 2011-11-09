@@ -1,3 +1,11 @@
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_legitimate_address_p): Allow SImode
+	and DImode base and index registers.
+
+	* config/i386/i386.md (*lea_1): Renamed to ...
+	(lea<mode>_1): This.  Replace :P with :SWI48.
+
 2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
