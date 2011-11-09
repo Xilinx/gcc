@@ -8690,24 +8690,29 @@ add_pubtype (tree decl, dw_die_ref die)
       tree scope = NULL;
       const char *scope_name = NULL;
       const char *sep = is_cxx () ? "::" : ".";
+      const char *name = NULL;
+
+      if (TYPE_P (decl))
+        name = type_tag (decl);
+      else
+        name = lang_hooks.dwarf_name (decl, 1);
+
+      /* If we don't have a name for the type, there's no point in adding
+	 it to the table.  */
+      if (name == NULL || name[0] == '\0')
+        return;
 
       e.die = die;
-      if (TYPE_P (decl))
-        e.name = xstrdup (type_tag (decl));
-      /*e.name = lang_hooks.dwarf_name (type_tag (decl), 1);*/
-      else
-        e.name = xstrdup (lang_hooks.dwarf_name (decl, 1));
+      e.name = xstrdup (name);
 
       scope = TYPE_P (decl) ? TYPE_CONTEXT (decl) : NULL;
       if (scope && TREE_CODE (scope) == NAMESPACE_DECL)
         {
           scope_name = lang_hooks.dwarf_name (scope, 1);
-          e.name = concat (scope_name, sep, e.name, NULL);
+          if (scope_name != NULL)
+            e.name = concat (scope_name, sep, e.name, NULL);
         }
-      /* If we don't have a name for the type, there's no point in adding
-	 it to the table.  */
-      if (e.name && e.name[0] != '\0')
-	VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
+      VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
 
       /* Although it might be more logical to add the pubnames for the
          enumerators as their dies are created, they should only be
@@ -17996,7 +18001,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
       else
         add_location_or_const_value_attribute (var_die, decl_or_origin,
 					       decl == NULL, DW_AT_location);
-      add_pubname (decl, var_die);
+      add_pubname (decl_or_origin, var_die);
     }
   else
     tree_add_const_value_attribute_for_decl (var_die, decl_or_origin);
