@@ -1,5 +1,11 @@
 2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md (stack_protect_set): Check TARGET_LP64
+	instead of TARGET_64BIT.
+	(stack_protect_test): Likewise.
+
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_trampoline_init): Use movl for 64bit
 	if ptr_mode == SImode.  Replace DImode with Pmode or ptr_mode.
 
