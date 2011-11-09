@@ -1,5 +1,19 @@
 2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md (add->lea splitter): Add :DWI.  Extend
+	operands less than SImode wide to SImode.
+	(*lea_general_1): Check TARGET_LP64 instead of TARGET_64BIT.
+	(*lea_general_2): Likewise.
+	(*lea_general_3): Likewise.
+	(*lea_general_1_zext): Replace Pmode with DImode.
+	(*lea_general_2_zext): Likewise.
+	(*lea_general_3_zext): Likewise.
+	(ashift->lea splitter): Extend operands less than SImode wide to
+	SImode.
+	(lea peephole): Replace Pmode with word_mode.
+
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_legitimate_address_p): Allow SImode
 	and DImode base and index registers.
 
