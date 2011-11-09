@@ -1,5 +1,42 @@
 2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
 
+	Backport from mainline
+	2011-07-20  H.J. Lu  <hongjiu.lu@intel.com>
+		    Uros Bizjak  <ubizjak@gmail.com>
+		    Richard Henderson  <rth@redhat.com>
+
+	* config/i386/constraints.md (w): New.
+
+	* config/i386/i386.c (ix86_output_addr_vec_elt): Check
+	TARGET_LP64 instead of TARGET_64BIT for ASM_QUAD.
+
+	* config/i386/i386.h (CASE_VECTOR_MODE): Check TARGET_LP64
+	instead of TARGET_64BIT.
+
+	* config/i386/i386.md (indirect_jump): Replace
+	nonimmediate_operand with indirect_branch_operand.
+	(*indirect_jump): Likewise.  Replace constraint "m" with "w".
+	(tablejump): Replace nonimmediate_operand with
+	indirect_branch_operand.
+	(*tablejump_1): Replace nonimmediate_operand with
+	indirect_branch_operand.  Replace constraint "m" with "w".
+	(*call_1_rex64_vzeroupper): Replace :DI with :P.  Replace
+	constraint "m" with "w".
+	(*call_1_rex64): Likewise.
+	(*sibcall_1_rex64_vzeroupper): Likewise.
+	(*sibcall_1_rex64): Likewise.
+	(*call_value_0_rex64_vzeroupper): Likewise.
+	(*call_value_0_rex64): Likewise.
+	(*call_value_1_rex64_vzeroupper): Likewise.
+	(*call_value_1_rex64): Likewise.
+	(set_got_offset_rex64): Check TARGET_LP64 instead of
+	TARGET_64BIT.
+
+	* config/i386/predicates.md (indirect_branch_operand): New.
+	(call_insn_operand): Support x32.
+
+2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386-protos.h (ix86_output_rex_prefix_p): New.
 	* config/i386/i386.c (ix86_output_rex_prefix_p): Likewise.
 
