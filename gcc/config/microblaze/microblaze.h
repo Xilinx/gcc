@@ -104,8 +104,8 @@ extern enum pipeline_type microblaze_pipe;
 /* -xl-mode-xmdstub translated to -Zxl-mode-xmdstub -- deprecated.  */
 
 #define LINK_SPEC "%{shared:-shared} -N -relax \
-  %{mbig-endian:-EB} \
-  %{mlittle-endian:-EL} \
+  %{mbig-endian:-EB --oformat=elf32-microblaze} \
+  %{mlittle-endian:-EL --oformat=elf32-microblazeel} \
   %{Zxl-mode-xmdstub:-defsym _TEXT_START_ADDR=0x800} \
   %{mxl-mode-xmdstub:-defsym _TEXT_START_ADDR=0x800} \
   %{mxl-gp-opt:%{G*}} %{!mxl-gp-opt: -G 0} \
