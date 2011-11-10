@@ -1,5 +1,10 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/pr46212.c: Correct merge.
+	* gcc.target/i386/incoming-8.c: Likewise.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-16.c: Only run
 	on lp64 targets.
 	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-17.c: Likewise.
