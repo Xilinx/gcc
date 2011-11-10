@@ -29851,7 +29851,7 @@ x86_this_parameter (tree function)
         parm_regs = x86_64_ms_abi_int_parameter_registers;
       else
         parm_regs = x86_64_int_parameter_registers;
-      return gen_rtx_REG (DImode, parm_regs[aggr]);
+      return gen_rtx_REG (Pmode, parm_regs[aggr]);
     }
 
   nregs = ix86_function_regparm (type, function);
@@ -29952,18 +29952,18 @@ x86_output_mi_thunk (FILE *file,
       xops[1] = this_reg ? this_reg : this_param;
       if (TARGET_64BIT)
 	{
-	  if (!x86_64_general_operand (xops[0], DImode))
+	  if (!x86_64_general_operand (xops[0], Pmode))
 	    {
-	      tmp = gen_rtx_REG (DImode, R10_REG);
+	      tmp = gen_rtx_REG (Pmode, R10_REG);
 	      xops[1] = tmp;
-	      output_asm_insn ("mov{q}\t{%1, %0|%0, %1}", xops);
+	      output_asm_insn ("mov%z1\t{%1, %0|%0, %1}", xops);
 	      xops[0] = tmp;
 	      xops[1] = this_param;
 	    }
-	  if (x86_maybe_negate_const_int (&xops[0], DImode))
-	    output_asm_insn ("sub{q}\t{%0, %1|%1, %0}", xops);
+	  if (x86_maybe_negate_const_int (&xops[0], Pmode))
+	    output_asm_insn ("sub%z1\t{%0, %1|%1, %0}", xops);
 	  else
-	    output_asm_insn ("add{q}\t{%0, %1|%1, %0}", xops);
+	    output_asm_insn ("add%z1\t{%0, %1|%1, %0}", xops);
 	}
       else if (x86_maybe_negate_const_int (&xops[0], SImode))
 	output_asm_insn ("sub{l}\t{%0, %1|%1, %0}", xops);
@@ -29975,7 +29975,7 @@ x86_output_mi_thunk (FILE *file,
   if (vcall_offset)
     {
       if (TARGET_64BIT)
-	tmp = gen_rtx_REG (DImode, R10_REG);
+	tmp = gen_rtx_REG (Pmode, R10_REG);
       else
 	{
 	  int tmp_regno = CX_REG;
@@ -29995,10 +29995,10 @@ x86_output_mi_thunk (FILE *file,
       xops[0] = gen_rtx_MEM (Pmode, plus_constant (tmp, vcall_offset));
       if (TARGET_64BIT && !memory_operand (xops[0], Pmode))
 	{
-	  rtx tmp2 = gen_rtx_REG (DImode, R11_REG);
+	  rtx tmp2 = gen_rtx_REG (Pmode, R11_REG);
 	  xops[0] = GEN_INT (vcall_offset);
 	  xops[1] = tmp2;
-	  output_asm_insn ("mov{q}\t{%0, %1|%1, %0}", xops);
+	  output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
 	  xops[0] = gen_rtx_MEM (Pmode, gen_rtx_PLUS (Pmode, tmp, tmp2));
 	}
       xops[1] = this_reg;

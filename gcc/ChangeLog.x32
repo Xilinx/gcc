@@ -1,5 +1,11 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (x86_this_parameter): Replace DImode with
+	Pmode.
+	(x86_output_mi_thunk): Likewise.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (function_value_64): Return pointers in
 	word_mode instead of Pmode.
 	(ix86_promote_function_mode): Likewise.
