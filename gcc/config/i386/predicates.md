@@ -857,6 +857,11 @@
   ok = ix86_decompose_address (op, &parts);
   gcc_assert (ok);
 
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    parts.base = SUBREG_REG (parts.base);
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    parts.index = SUBREG_REG (parts.index);
+
   /* Look for some component that isn't known to be aligned.  */
   if (parts.index)
     {
@@ -920,6 +925,12 @@
 
   ok = ix86_decompose_address (XEXP (op, 0), &parts);
   gcc_assert (ok);
+
+  if (parts.base && GET_CODE (parts.base) == SUBREG)
+    parts.base = SUBREG_REG (parts.base);
+  if (parts.index && GET_CODE (parts.index) == SUBREG)
+    parts.index = SUBREG_REG (parts.index);
+
   if (parts.base == NULL_RTX
       || parts.base == arg_pointer_rtx
       || parts.base == frame_pointer_rtx

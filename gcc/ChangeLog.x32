@@ -1,5 +1,15 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	Backport from mainline
+	2011-08-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_print_operand_address): Handle SUBREGs of
+	parts.base and parts.index.
+	* config/i386/predicates.md (aligned_operand): Ditto.
+	(cmpxchg8b_pic_memory_operand): Ditto.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (x86_this_parameter): Replace DImode with
 	Pmode.
 	(x86_output_mi_thunk): Likewise.
