@@ -1,5 +1,18 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	Backport from mainline
+	2011-07-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47715
+	* config/i386/i386.md (*load_tp_x32): New.
+	(*load_tp_x32_zext): Ditto.
+	(*add_tp_x32): Ditto.
+	(*add_tp_x32_zext): Ditto.
+	(*load_tp_<mode>): Disable for TARGET_X32 targets.
+	(*add_tp_<mode>): Ditto.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* unwind-dw2.c (_Unwind_SetGRValue): Assert DWARF register size
 	<= saved reg size.
 
