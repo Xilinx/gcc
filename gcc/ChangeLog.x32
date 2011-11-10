@@ -1,5 +1,12 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md (*lea_3_zext): New.
+	(*lea_general_1_zext): Removed.
+	(*lea_general_2_zext): Likewise.
+	(*lea_general_3_zext): Likewise.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*lea_general_2): Replace "i" with "n"
 	on const248_operand.
 	(*lea_general_3): Likewise.
