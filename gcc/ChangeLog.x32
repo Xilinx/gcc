@@ -1,3 +1,46 @@
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
+	2011-07-26  Uros Bizjak  <ubizjak@gmail.com>
+		    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47381
+	PR target/49832
+	PR target/49833
+	* config/i386/i386.md (i): Change SImode attribute to "e".
+	(g): Change SImode attribute to "rme".
+	(di): Change SImode attribute to "nF".
+	(general_operand): Change SImode attribute to x86_64_general_operand.
+	(general_szext_operand): Change SImode attribute to
+	x86_64_szext_general_operand.
+	(immediate_operand): Change SImode attribute to
+	x86_64_immediate_operand.
+	(nonmemory_operand): Change SImode attribute to
+	x86_64_nonmemory_operand.
+	(*movdi_internal_rex64): Remove mode from pic_32bit_operand check.
+	(*movsi_internal): Ditto.  Use "e" constraint in alternative 2.
+	(testsi_ccno_1): Use x86_64_nonmemory_operand predicate for operand 2.
+	(*bt<mode>): Ditto.
+	(*add<mode>1): Use x86_64_general_operand predicate for operand 2.
+	Update operand constraints.
+	(addsi_1_zext): Ditto.
+	(*add<mode>2): Ditto.
+	(*addsi_3_zext): Ditto.
+	(*subsi_1_zext): Ditto.
+	(*subsi_2_zext): Ditto.
+	(*subsi_3_zext): Ditto.
+	(*addsi3_carry_zext): Ditto.
+	(*<plusminus_insn>si3_zext_cc_overflow): Ditto.
+	(*mulsi3_1_zext): Ditto.
+	(*andsi_1): Ditto.
+	(*andsi_1_zext): Ditto.
+	(*andsi_2_zext): Ditto.
+	(*<any_or:code>si_1_zext): Ditto.
+	(*<any_or:code>si_2_zext): Ditto.
+	(*test<mode>_1): Use <general_operand> predicate for operand 1.
+	(*and<mode>_2): Ditto.
+	(mov<mode>cc): Use  <general_operand> predicate for operands 1 and 2.
+
 2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (legitimize_tls_address): Use
