@@ -8174,7 +8174,7 @@
    (set_attr "mode" "TI")])
 
 (define_insn "*sse2_maskmovdqu_rex64"
-  [(set (mem:V16QI (match_operand:DI 0 "register_operand" "D"))
+  [(set (mem:V16QI (match_operand:P 0 "register_operand" "D"))
 	(unspec:V16QI [(match_operand:V16QI 1 "register_operand" "x")
 		       (match_operand:V16QI 2 "register_operand" "x")
 		       (mem:V16QI (match_dup 0))]

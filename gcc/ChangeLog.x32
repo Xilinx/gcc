@@ -1,5 +1,10 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/sse.md (*sse2_maskmovdqu_rex64): Replace :DI
+	with :P.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	Backport from mainline
 	2011-07-29  Uros Bizjak  <ubizjak@gmail.com>
 
