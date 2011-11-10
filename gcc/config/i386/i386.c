@@ -12727,7 +12727,10 @@ legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
 	  rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
 
 	  start_sequence ();
-	  emit_call_insn (gen_tls_global_dynamic_64 (rax, x));
+	  if (TARGET_X32)
+	    emit_call_insn (gen_tls_global_dynamic_x32 (rax, x));
+	  else
+	    emit_call_insn (gen_tls_global_dynamic_64 (rax, x));
 	  insns = get_insns ();
 	  end_sequence ();
 
