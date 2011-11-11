@@ -1,5 +1,9 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* objc.dg/torture/forward-1.m: Check ia32 instead of ilp32.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/pr49920.c: Check ia32 instead of ilp32.
 	* gcc.target/i386/pr50712.c: Likewise.
 
