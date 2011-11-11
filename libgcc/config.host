@@ -361,11 +361,11 @@ arm*-*-ecos-elf)
 	tmake_file="$tmake_file arm/t-arm arm/t-elf t-softfp-sfdf t-softfp-excl arm/t-softfp t-softfp"
 	extra_parts="$extra_parts crti.o crtn.o"
 	;;
-arm*-*-eabi* | arm*-*-symbianelf* )
+arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
 	tmake_file="${tmake_file} arm/t-arm arm/t-elf t-fixedpoint-gnu-prefix"
 	tm_file="$tm_file arm/bpabi-lib.h"
 	case ${host} in
-	arm*-*-eabi*)
+	arm*-*-eabi* | arm*-*-rtemseabi*)
 	  tmake_file="${tmake_file} arm/t-bpabi"
 	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
 	  ;;
@@ -390,7 +390,7 @@ arm*-wince-pe*)
 	tmake_file="$tmake_file arm/t-arm arm/t-wince-pe"
 	;;
 avr-*-rtems*)
-	tmake_file="$tmake_file avr/t-avr t-fpbit"
+	tmake_file="$tmake_file avr/t-avr avr/t-rtems t-fpbit"
 	tm_file="$tm_file avr/avr-lib.h"
 	# Don't use default.
 	extra_parts=
@@ -425,21 +425,17 @@ bfin*-*)
 	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
         ;;
 crisv32-*-elf)
-	tmake_file="cris/t-cris t-fdpbit"
+	tmake_file="$tmake_file cris/t-cris t-fdpbit"
  	;;
-crisv32-*-none)
-	tmake_file="cris/t-cris t-fdpbit"
-	extra_parts="crtbegin.o crtend.o"
-	;;
 cris-*-elf)
-	tmake_file="$tmake_file cris/t-cris cris/t-elfmulti"
-	;;
-cris-*-none)
-	tmake_file="$tmake_file cris/t-cris cris/t-elfmulti"
- 	extra_parts="crtbegin.o crtend.o"
+	tmake_file="$tmake_file cris/t-cris t-fdpbit cris/t-elfmulti"
 	;;
 cris-*-linux* | crisv32-*-linux*)
 	tmake_file="$tmake_file cris/t-cris t-fdpbit cris/t-linux"
+	;;
+epiphany-*-elf*)
+	tmake_file="epiphany/t-epiphany t-fdpbit epiphany/t-custom-eqsf"
+	extra_parts="$extra_parts crti.o crtint.o crtrunc.o crtm1reg-r43.o crtm1reg-r63.o crtn.o"
 	;;
 fr30-*-elf)
 	tmake_file="$tmake_file fr30/t-fr30 t-fdpbit"
@@ -1033,7 +1029,7 @@ sparc-*-linux*)		# SPARC's running GNU/Linux, libc6
 	md_unwind_header=sparc/linux-unwind.h
 	;;
 sparc-*-rtems*)
-	tmake_file="sparc/t-elf t-crtfm t-rtems t-fdpbit"
+	tmake_file="sparc/t-elf sparc/t-softmul t-crtfm t-rtems t-fdpbit"
 	extra_parts="$extra_parts crti.o crtn.o crtfastmath.o"
 	;;
 sparc*-*-solaris2*)

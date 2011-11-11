@@ -335,8 +335,6 @@ bits_headers = \
 	${bits_srcdir}/alloc_traits.h \
 	${bits_srcdir}/allocator.h \
 	${bits_srcdir}/atomic_base.h \
-	${bits_srcdir}/atomic_0.h \
-	${bits_srcdir}/atomic_2.h \
 	${bits_srcdir}/basic_ios.h \
 	${bits_srcdir}/basic_ios.tcc \
 	${bits_srcdir}/basic_string.h \
@@ -887,6 +885,7 @@ c_base_headers = \
 	${c_base_srcdir}/cmath \
 	${c_base_srcdir}/csetjmp \
 	${c_base_srcdir}/csignal \
+	${c_base_srcdir}/cstdalign \
 	${c_base_srcdir}/cstdarg \
 	${c_base_srcdir}/cstdbool \
 	${c_base_srcdir}/cstddef \

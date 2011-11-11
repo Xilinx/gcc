@@ -1,3 +1,85 @@
+2011-11-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35688
+	* decl2.c (constrain_visibility): Check decl_has_visibility_attr
+	rather than DECL_VISIBILITY_SPECIFIED.
+
+2011-11-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47695
+	* decl2.c (mark_used): Early return false after error or sorry.
+	* cp-tree.h (mark_used): Adjust declaration.
+	* semantics.c (finish_id_expression): Check mark_used return value.
+
+2011-11-05  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (cp_finish_decl): Mostly revert previous change.
+
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/26714
+	* init.c (perform_member_init): Strip TARGET_EXPR around NSDMI.
+	Do temporary lifetime extension.
+
+	PR c++/48370
+	* decl.c (cp_finish_decl): Run cleanups in the right order.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/50608
+	* semantics.c (finish_offsetof): Adjust call to fold_offsetof.
+	* typeck.c (cp_build_addr_expr_1): Call fold_offsetof_1.
+
+2011-11-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* typeck.c (build_indirect_ref): Use ATTRIBUTE_UNUSED.
+	* mangle.c (write_unnamed_type_name): Likewise.
+
+2011-11-04  Magnus Fromreide  <magfr@lysator.liu.se>
+
+        * parser.c (cp_parser_enumerator_list): Do not warn about
+        trailing commas in C++0x mode.
+
+2011-11-04  Olivier Goffart  <olivier@woboq.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/50965
+	* class.c (check_field_decls): NSDMI makes a class non-aggregate.
+
+2011-11-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48420
+	* call.c (conversion_null_warnings): For 'false' to NULL pointer,
+	just check that TREE_TYPE (expr) is a BOOLEAN_TYPE.
+
+2011-11-04  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50941
+	* parser.c (cp_parser_userdef_string_literal): Fix string length.
+
+2011-11-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48370
+	* call.c (extend_ref_init_temps, extend_ref_init_temps_1): New.
+	(set_up_extended_ref_temp): Use it.  Change cleanup parm to VEC.
+	(initialize_reference): Just call convert_like.
+	* decl.c (grok_reference_init): Just call initialize_reference.
+	(build_init_list_var_init): Remove.
+	(check_initializer): Change cleanup parm to VEC.  Handle references
+	like other types.  Call perform_implicit_conversion instead
+	of build_init_list_var_init.  Don't use build_aggr_init for
+	aggregate initialization of arrays.
+	(cp_finish_decl): Change cleanup to VEC.
+	* typeck2.c (store_init_value): Call extend_ref_init_temps.
+	Use build_vec_init for non-constant arrays.
+	* init.c (expand_aggr_init_1): Adjust.
+	(build_vec_init): Avoid re-converting an initializer
+	that's already digested.
+	* mangle.c (mangle_ref_init_variable): Add a discriminator.
+	* cp-tree.h: Adjust.
+	* typeck.c (convert_for_initialization): Adjust.
+	* decl2.c (maybe_emit_vtables): Adjust.
+
 2011-11-02  Jason Merrill  <jason@redhat.com>
 
 	PR c++/50930

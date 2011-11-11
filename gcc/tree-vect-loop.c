@@ -4551,6 +4551,9 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
       gcc_unreachable ();
     }
 
+  if (code == COND_EXPR && slp_node)
+    return false;
+
   scalar_dest = gimple_assign_lhs (stmt);
   scalar_type = TREE_TYPE (scalar_dest);
   if (!POINTER_TYPE_P (scalar_type) && !INTEGRAL_TYPE_P (scalar_type)
@@ -4637,7 +4640,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
 
   if (code == COND_EXPR)
     {
-      if (!vectorizable_condition (stmt, gsi, NULL, ops[reduc_index], 0))
+      if (!vectorizable_condition (stmt, gsi, NULL, ops[reduc_index], 0, NULL))
         {
           if (vect_print_dump_info (REPORT_DETAILS))
             fprintf (vect_dump, "unsupported condition in reduction");
@@ -4909,7 +4912,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
           gcc_assert (!slp_node);
           vectorizable_condition (stmt, gsi, vec_stmt, 
                                   PHI_RESULT (VEC_index (gimple, phis, 0)), 
-                                  reduc_index);
+                                  reduc_index, NULL);
           /* Multiple types are not supported for condition.  */
           break;
         }

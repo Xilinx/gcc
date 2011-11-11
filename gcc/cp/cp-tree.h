@@ -3215,8 +3215,9 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* [dcl.init.aggr]
 
-   An aggregate is an array or a class with no user-declared
-   constructors, no private or protected non-static data members, no
+   An aggregate is an array or a class with no user-provided
+   constructors, no brace-or-equal-initializers for non-static data
+   members, no private or protected non-static data members, no
    base classes, and no virtual functions.
 
    As an extension, we also treat vectors as aggregates.  Keep these
@@ -4861,9 +4862,9 @@ extern tree cxx_type_promotes_to		(tree);
 extern tree type_passed_as			(tree);
 extern tree convert_for_arg_passing		(tree, tree);
 extern bool is_properly_derived_from		(tree, tree);
-extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
-extern tree initialize_reference		(tree, tree, tree, tree *, int,
+extern tree initialize_reference		(tree, tree, int,
 						 tsubst_flags_t);
+extern tree extend_ref_init_temps		(tree, tree, VEC(tree,gc)**);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
 extern bool reference_related_p			(tree, tree);
@@ -5100,7 +5101,7 @@ extern tree build_offset_ref_call_from_tree	(tree, VEC(tree,gc) **);
 extern bool decl_constant_var_p			(tree);
 extern bool decl_maybe_constant_var_p		(tree);
 extern void check_default_args			(tree);
-extern void mark_used				(tree);
+extern bool mark_used				(tree);
 extern void finish_static_data_member_decl	(tree, tree, bool, tree, int);
 extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
@@ -5855,7 +5856,7 @@ extern void complete_type_check_abstract	(tree);
 extern int abstract_virtuals_error		(tree, tree);
 extern int abstract_virtuals_error_sfinae	(tree, tree, tsubst_flags_t);
 
-extern tree store_init_value			(tree, tree, int);
+extern tree store_init_value			(tree, tree, VEC(tree,gc)**, int);
 extern void check_narrowing			(tree, tree);
 extern tree digest_init				(tree, tree, tsubst_flags_t);
 extern tree digest_init_flags			(tree, tree, int);

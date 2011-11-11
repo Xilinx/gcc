@@ -3733,8 +3733,8 @@ cp_parser_userdef_string_literal (cp_token *token)
   suffix_id = USERDEF_LITERAL_SUFFIX_ID (literal);
   name = cp_literal_operator_id (IDENTIFIER_POINTER (suffix_id));
   value = USERDEF_LITERAL_VALUE (literal);
-  len = TREE_STRING_LENGTH (value) - 1;
-
+  len = TREE_STRING_LENGTH (value)
+	/ TREE_INT_CST_LOW (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (value)))) - 1;
   /* Build up a call to the user-defined operator  */
   /* Lookup the name we got back from the id-expression.  */
   vec = make_tree_vector ();
@@ -14256,6 +14256,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 
    enum-specifier:
      enum-head { enumerator-list [opt] }
+     enum-head { enumerator-list , } [C++0x]
 
    enum-head:
      enum-key identifier [opt] enum-base [opt]
@@ -14275,6 +14276,8 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
    GNU Extensions:
      enum-key attributes[opt] identifier [opt] enum-base [opt] 
        { enumerator-list [opt] }attributes[opt]
+     enum-key attributes[opt] identifier [opt] enum-base [opt]
+       { enumerator-list, }attributes[opt] [C++0x]
 
    Returns an ENUM_TYPE representing the enumeration, or NULL_TREE
    if the token stream isn't an enum-specifier after all.  */
@@ -14614,8 +14617,9 @@ cp_parser_enumerator_list (cp_parser* parser, tree type)
       /* If the next token is a `}', there is a trailing comma.  */
       if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_BRACE))
 	{
-	  if (!in_system_header)
-	    pedwarn (input_location, OPT_pedantic, "comma at end of enumerator list");
+	  if (cxx_dialect < cxx0x && !in_system_header)
+	    pedwarn (input_location, OPT_pedantic,
+                     "comma at end of enumerator list");
 	  break;
 	}
     }

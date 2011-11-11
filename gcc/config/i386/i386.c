@@ -10885,15 +10885,28 @@ ix86_output_function_epilogue (FILE *file ATTRIBUTE_UNUSED,
      it looks like we might want one, insert a NOP.  */
   {
     rtx insn = get_last_insn ();
+    rtx deleted_debug_label = NULL_RTX;
     while (insn
 	   && NOTE_P (insn)
 	   && NOTE_KIND (insn) != NOTE_INSN_DELETED_LABEL)
-      insn = PREV_INSN (insn);
+      {
+	/* Don't insert a nop for NOTE_INSN_DELETED_DEBUG_LABEL
+	   notes only, instead set their CODE_LABEL_NUMBER to -1,
+	   otherwise there would be code generation differences
+	   in between -g and -g0.  */
+	if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL)
+	  deleted_debug_label = insn;
+	insn = PREV_INSN (insn);
+      }
     if (insn
 	&& (LABEL_P (insn)
 	    || (NOTE_P (insn)
 		&& NOTE_KIND (insn) == NOTE_INSN_DELETED_LABEL)))
       fputs ("\tnop\n", file);
+    else if (deleted_debug_label)
+      for (insn = deleted_debug_label; insn; insn = NEXT_INSN (insn))
+	if (NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL)
+	  CODE_LABEL_NUMBER (insn) = -1;
   }
 #endif
 
@@ -16502,6 +16515,29 @@ ix86_avoid_lea_for_add (rtx insn, rtx operands[])
     return !ix86_lea_outperforms (insn, regno0, regno1, regno2, 1);
 }
 
+/* Return true if we should emit lea instruction instead of mov
+   instruction.  */
+
+bool
+ix86_use_lea_for_mov (rtx insn, rtx operands[])
+{
+  unsigned int regno0;
+  unsigned int regno1;
+
+  /* Check if we need to optimize.  */
+  if (!TARGET_OPT_AGU || optimize_function_for_size_p (cfun))
+    return false;
+
+  /* Use lea for reg to reg moves only.  */
+  if (!REG_P (operands[0]) || !REG_P (operands[1]))
+    return false;
+
+  regno0 = true_regnum (operands[0]);
+  regno1 = true_regnum (operands[1]);
+
+  return ix86_lea_outperforms (insn, regno0, regno1, -1, 0);
+}
+
 /* Return true if we need to split lea into a sequence of
    instructions to avoid AGU stalls. */
 
@@ -17022,18 +17058,56 @@ ix86_expand_convert_uns_sisf_sse (rtx target, rtx input)
     emit_move_insn (target, fp_hi);
 }
 
+/* floatunsv{4,8}siv{4,8}sf2 expander.  Expand code to convert
+   a vector of unsigned ints VAL to vector of floats TARGET.  */
+
+void
+ix86_expand_vector_convert_uns_vsivsf (rtx target, rtx val)
+{
+  rtx tmp[8];
+  REAL_VALUE_TYPE TWO16r;
+  enum machine_mode intmode = GET_MODE (val);
+  enum machine_mode fltmode = GET_MODE (target);
+  rtx (*cvt) (rtx, rtx);
+
+  if (intmode == V4SImode)
+    cvt = gen_floatv4siv4sf2;
+  else
+    cvt = gen_floatv8siv8sf2;
+  tmp[0] = ix86_build_const_vector (intmode, 1, GEN_INT (0xffff));
+  tmp[0] = force_reg (intmode, tmp[0]);
+  tmp[1] = expand_simple_binop (intmode, AND, val, tmp[0], NULL_RTX, 1,
+				OPTAB_DIRECT);
+  tmp[2] = expand_simple_binop (intmode, LSHIFTRT, val, GEN_INT (16),
+				NULL_RTX, 1, OPTAB_DIRECT);
+  tmp[3] = gen_reg_rtx (fltmode);
+  emit_insn (cvt (tmp[3], tmp[1]));
+  tmp[4] = gen_reg_rtx (fltmode);
+  emit_insn (cvt (tmp[4], tmp[2]));
+  real_ldexp (&TWO16r, &dconst1, 16);
+  tmp[5] = const_double_from_real_value (TWO16r, SFmode);
+  tmp[5] = force_reg (fltmode, ix86_build_const_vector (fltmode, 1, tmp[5]));
+  tmp[6] = expand_simple_binop (fltmode, MULT, tmp[4], tmp[5], NULL_RTX, 1,
+				OPTAB_DIRECT);
+  tmp[7] = expand_simple_binop (fltmode, PLUS, tmp[3], tmp[6], target, 1,
+				OPTAB_DIRECT);
+  if (tmp[7] != target)
+    emit_move_insn (target, tmp[7]);
+}
+
 /* Adjust a V*SFmode/V*DFmode value VAL so that *sfix_trunc* resp. fix_trunc*
    pattern can be used on it instead of *ufix_trunc* resp. fixuns_trunc*.
-   This is done by subtracting 0x1p32 from VAL if VAL is greater or equal
-   (non-signalling) than 0x1p31.  */
+   This is done by doing just signed conversion if < 0x1p31, and otherwise by
+   subtracting 0x1p31 first and xoring in 0x80000000 from *XORP afterwards.  */
 
 rtx
-ix86_expand_adjust_ufix_to_sfix_si (rtx val)
+ix86_expand_adjust_ufix_to_sfix_si (rtx val, rtx *xorp)
 {
-  REAL_VALUE_TYPE MTWO32r, TWO31r;
-  rtx two31r, mtwo32r, tmp[3];
+  REAL_VALUE_TYPE TWO31r;
+  rtx two31r, tmp[4];
   enum machine_mode mode = GET_MODE (val);
   enum machine_mode scalarmode = GET_MODE_INNER (mode);
+  enum machine_mode intmode = GET_MODE_SIZE (mode) == 32 ? V8SImode : V4SImode;
   rtx (*cmp) (rtx, rtx, rtx, rtx);
   int i;
 
@@ -17043,22 +17117,33 @@ ix86_expand_adjust_ufix_to_sfix_si (rtx val)
   two31r = const_double_from_real_value (TWO31r, scalarmode);
   two31r = ix86_build_const_vector (mode, 1, two31r);
   two31r = force_reg (mode, two31r);
-  real_ldexp (&MTWO32r, &dconstm1, 32);
-  mtwo32r = const_double_from_real_value (MTWO32r, scalarmode);
-  mtwo32r = ix86_build_const_vector (mode, 1, mtwo32r);
-  mtwo32r = force_reg (mode, mtwo32r);
   switch (mode)
     {
-    case V8SFmode: cmp = gen_avx_cmpv8sf3; break;
-    case V4SFmode: cmp = gen_avx_cmpv4sf3; break;
-    case V4DFmode: cmp = gen_avx_cmpv4df3; break;
-    case V2DFmode: cmp = gen_avx_cmpv2df3; break;
+    case V8SFmode: cmp = gen_avx_maskcmpv8sf3; break;
+    case V4SFmode: cmp = gen_sse_maskcmpv4sf3; break;
+    case V4DFmode: cmp = gen_avx_maskcmpv4df3; break;
+    case V2DFmode: cmp = gen_sse2_maskcmpv2df3; break;
     default: gcc_unreachable ();
     }
-  emit_insn (cmp (tmp[0], val, two31r, GEN_INT (29)));
-  tmp[1] = expand_simple_binop (mode, AND, tmp[0], mtwo32r, tmp[1],
+  tmp[3] = gen_rtx_LE (mode, two31r, val);
+  emit_insn (cmp (tmp[0], two31r, val, tmp[3]));
+  tmp[1] = expand_simple_binop (mode, AND, tmp[0], two31r, tmp[1],
 				0, OPTAB_DIRECT);
-  return expand_simple_binop (mode, PLUS, val, tmp[1], tmp[2],
+  if (intmode == V4SImode || TARGET_AVX2)
+    *xorp = expand_simple_binop (intmode, ASHIFT,
+				 gen_lowpart (intmode, tmp[0]),
+				 GEN_INT (31), NULL_RTX, 0,
+				 OPTAB_DIRECT);
+  else
+    {
+      rtx two31 = GEN_INT ((unsigned HOST_WIDE_INT) 1 << 31);
+      two31 = ix86_build_const_vector (intmode, 1, two31);
+      *xorp = expand_simple_binop (intmode, AND,
+				   gen_lowpart (intmode, tmp[0]),
+				   two31, NULL_RTX, 0,
+				   OPTAB_DIRECT);
+    }
+  return expand_simple_binop (mode, MINUS, val, tmp[1], tmp[2],
 			      0, OPTAB_DIRECT);
 }
 

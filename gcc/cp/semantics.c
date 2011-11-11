@@ -3303,8 +3303,9 @@ finish_id_expression (tree id_expression,
 	  if (TREE_CODE (first_fn) == TEMPLATE_DECL)
 	    first_fn = DECL_TEMPLATE_RESULT (first_fn);
 
-	  if (!really_overloaded_fn (decl))
-	    mark_used (first_fn);
+	  if (!really_overloaded_fn (decl)
+	      && !mark_used (first_fn))
+	    return error_mark_node;
 
 	  if (!template_arg_p
 	      && TREE_CODE (first_fn) == FUNCTION_DECL
@@ -3585,7 +3586,7 @@ finish_offsetof (tree expr)
       if (!complete_type_or_else (TREE_TYPE (object), object))
 	return error_mark_node;
     }
-  return fold_offsetof (expr, NULL_TREE);
+  return fold_offsetof (expr);
 }
 
 /* Replace the AGGR_INIT_EXPR at *TP with an equivalent CALL_EXPR.  This

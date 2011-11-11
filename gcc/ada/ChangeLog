@@ -1,3 +1,304 @@
+2011-11-04  Arnaud Charlet  <charlet@adacore.com>
+
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* sprint.adb (Sprint_Node_Actual, case Qualified_Expression):
+	Avoid junk semicolon after argument of machine code Asm operand.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch11.adb (Generate_Push_Pop): Inhibit push/pop nodes in
+	CodePeer mode or if restriction No_Exception_Handlers is present.
+	* exp_ch6.adb (Expand_N_Subprogram_Body): (Inhibit push/pop
+	nodes in CodePeer mode or if restriction No_Exception_Handlers
+	is present.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* s-tassta.adb, atree.ads, errout.adb, sinput.adb: Minor reformatting.
+
+2011-11-04  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Subprogram_Specification): The
+	specification is legal if it is a function that returns an
+	abstract type, if it comes from an attribute renaming of a stream
+	attribute of an abstract type.
+
+2011-11-04  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_util.adb (Is_Possibly_Unaligned_Object): In case of indexed
+	components, check whether recursively check whether the prefix
+	denotes an unaligned object.
+
+2011-11-04  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_prag.adb (Analyze_Pragma, case Debug): The argument of
+	the pragma is legal if it is an expanded name that denotes a
+	procedure that be can called without parameters.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat_ugn.texi (Performance Considerations) <Vectorization
+	of loops>: New sub-section.  <Other Optimization Switches>:
+	Minor tweak.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Minor reformatting.
+
+2011-11-04  Matthew Heaney  <heaney@adacore.com>
+
+	* a-convec.adb, a-coinve.adb, a-cobove.adb (Merge): Raise PE
+	when Target and Source denote same non-empty object
+	* a-cdlili.adb, a-cidlli.adb, a-cbdlli.adb (Merge): Ditto
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* exp_attr.adb: Minor reformatting.
+
+2011-11-04  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch5.adb (Expand_Assign_Record): Do not generate a
+	discriminant assignment within an initialization proc if the
+	record is an unchecked union, as it can only come from the
+	initialization of an unchecked union component.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Minor reformatting.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* par-labl.adb (Rewrite_As_Loop): Generate info msg rather than
+	warning message.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb: Minor code reorganization (remove junk obsolete
+	var Save_Space).
+
+2011-11-04  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_alfa.adb: Add local constant
+	Disable_Processing_Of_Renamings;
+	(Expand_Alfa_N_Object_Renaming_Declaration): Disable
+	the name evaluation of object renamings for now.
+	(Expand_Potential_Renaming): Do not perform the substitution
+	for now.
+	* exp_util.adb (Remove_Side_Effects): Remove processing for
+        functions with side effects in Alfa mode.
+
+2011-11-04  Gary Dismukes  <dismukes@adacore.com>
+
+	* bindgen.adb (Gen_Elab_Calls): In the case
+	of the AAMP target, set elaboration entities to 1 rather than
+	incrementing.
+
+2011-11-04  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Install_Limited_With_Unit): To establish the
+	proper entities on the ancestors of a child unit that appear
+	in a limited_with clause, follow the unit links because the
+	units are not analyzed and scope information is incomplete.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Selected_Component): Refine code
+	setting the Atomic_Sync_Required flag to detect one more case.
+	* exp_util.adb (Activate_Atomic_Synchronization): Refine code
+	setting the Atomic_Sync_Required flag to exclude more cases,
+	depending on the parent of the node to be examined.
+
+2011-11-04  Bob Duff  <duff@adacore.com>
+
+	* g-excact.adb: Minor: use named notation.
+
+2011-11-04  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch5.adb: Improve error messages for illegal iterators.
+
+2011-11-04  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_alfa.adb: Add with and use clauses for Exp_Ch8 and
+	Sem_Util.
+	(Expand_Alfa): Alphabetize cases on first choice. Add
+	processing for object renaming declarations, identifiers and
+	expanded names.
+	(Expand_Alfa_N_In): Remove useless return.
+	(Expand_Alfa_N_Object_Renaming_Declaration): New routine.
+	(Expand_Potential_Renaming): New routine.
+	* exp_ch8.adb (Evaluate_Name): Moved to the top level.
+	(Expand_N_Object_Declaration): Alphabetize local variables. Move
+	Evaluate_Name out to the top level.
+	* exp_ch8.ads (Evaluate_Name): Moved from body to package spec.
+	* exp_util.adb (Remove_Side_Effects): Add processing for
+	functions with side effects in Alfa mode.
+
+2011-11-04  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* gnat_rm.texi: Add entries for
+	restrictions No_Relative_Delay, No_Requeue_Statements and
+	No_Stream_Optimizations.
+
+2011-11-04  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch4.adb: Set type of entity in prefixed call, for
+	completeness in a generic context.
+
+2011-11-04  Yannick Moy  <moy@adacore.com>
+
+	* sem_prag.adb: Minor refactoring (renaming of a parameter).
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* atree.ads: Minor reformatting.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb (Atomic_Synchronization_Disabled): Check -gnatd.d
+	and -gnatd.e here
+	* exp_ch2.adb (Expand_Entity_Reference): Use
+	Activate_Atomic_Synchronization
+	* exp_ch4.adb (Expand_N_Explicit_Dereference): Use
+	Activate_Atomic_Synchronization (Expand_N_Indexed_Compoonent):
+	Activate_Atomic_Synchronization (Expand_N_Selected_Component):
+	Use Activate_Atomic_Synchronization
+	* exp_util.ads, exp_util.adb (Activate_Atomic_Synchronization): New
+	procedure.
+	* sinfo.ads, sinfo.adb (Atomic_Sync_Required): Can now apply to
+	N_Selected_Component node
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb, atree.ads, prj-env.adb, prj-env.ads: Minor reformatting.
+
+2011-11-04  Yannick Moy  <moy@adacore.com>
+
+	* atree.adb, atree.ads (Set_Original_Node): New set procedure.
+	* sem_ch13.adb (Analyze_Aspect_Specifications/Pre_Post_Aspects):
+	In ASIS mode, no splitting of aspects between conjuncts.
+	(Analyze_Aspect_Specifications/Aspect_Test_Case): Make pragma
+	expressions refer to the original aspect expressions through
+	the Original_Node link. This is used in semantic analysis for
+	ASIS mode, so that the original expression also gets analyzed.
+	* sem_prag.adb (Preanalyze_TC_Args,
+	Check_Precondition_Postcondition,
+	Analyze_Pragma/Pragma_Test_Case): In ASIS mode, for a pragma
+	generated from a source aspect, also analyze the original aspect
+	expression.
+	(Check_Expr_Is_Static_Expression): New procedure
+	similar to existing procedure Check_Arg_Is_Static_Expression,
+	except called on expression inside pragma.
+
+2011-11-04  Tristan Gingold  <gingold@adacore.com>
+
+	* prj-env.adb, prj-env.ads (Find_Name_In_Path): New function, from
+	Find_Project.Try_Path_Name.
+	(Find_Project): Use Find_Name_In_Path to implement Try_Path_Name.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* s-atocou.ads (Atomic_Counter): Remove redundant pragma Volatile.
+
+2011-11-04  Pascal Obry  <obry@adacore.com>
+
+	* projects.texi: Add short description for qualifiers aggregate
+	and aggregate library.
+
+2011-11-04  Matthew Heaney  <heaney@adacore.com>
+
+	* Makefile.rtl, impunit.adb: Added a-cogeso.ad[sb]
+	* a-cgaaso.adb: Replaced implementation with instantiation
+	of Generic_Sort.
+	* a-cogeso.ad[sb] This is the new Ada 2012 unit
+	Ada.Containers.Generic_Sort
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch2.adb (Expand_Entity_Reference): Do not set
+	Atomic_Sync_Required for the case of a prefix of an attribute.
+	* exp_ch4.adb (Expand_N_Explicit_Dereference): May require
+	atomic synchronization
+	(Expand_N_Indexed_Component): Ditto.
+	(Expand_B_Selected_Component): Ditto.
+	* sem_prag.adb (Process_Suppress_Unsuppress):
+	Disable/Enable_Atomic_Synchronization can now occur for array
+	types with pragma Atomic_Components.
+	* sinfo.ads, sinfo.adb (Atomic_Sync_Required): Can now occur on
+	N_Explicit_Dereference nodes and on N_Indexed_Component nodes.
+
+2011-11-04  Gary Dismukes  <dismukes@adacore.com>
+
+	* gnat_ugn.texi: Editorial corrections for gnattest section.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb: Minor reformatting.
+	* gnat_rm.texi: Update documentation for pragma Warnings (Off,
+	"***") usage.
+	* exp_ch2.adb (Expand_Entity_Reference): Only set
+	Atomic_Sync_Required on entities that are variables. Doesn't
+	make any sense on anything else.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch2.adb (Expand_Entity_Reference): Extend handling of
+	atomic sync to type case.
+	* sem_prag.adb (Process_Suppress_Unsuppress): Atomic Sync can
+	apply to types.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb (Warn_On_Useless_Assignment): More accurate test
+	for call vs assign.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb: Detect more cases of Long_Float inconsistencies at
+	compile time.
+
+2011-11-04  Matthew Heaney  <heaney@adacore.com>
+
+	* Makefile.rtl, impunit.adb: Added a-sfecin.ads,
+	* a-sfhcin.ads, a-sflcin.ads, a-sbecin.ad[sb], a-sbhcin.ad[sb],
+	a-sblcin.ad[sb], a-suecin.ad[sb], a-suhcin.ad[sb], a-sulcin.ad[sb]
+	* a-sfecin.ads, a-sfhcin.ads, a-sflcin.ads, a-sbecin.ad[sb],
+	a-sbhcin.ad[sb], a-sblcin.ad[sb], a-suecin.ad[sb], a-suhcin.ad[sb],
+	a-sulcin.ad[sb]: New files.
+
+2011-11-04  Geert Bosch  <bosch@adacore.com>
+
+	* i-forbla-unimplemented.ads, s-gecola.adb, s-gecola.ads,
+	s-gerebl.adb, s-gerebl.ads, i-forbla.adb, i-forbla.ads,
+	i-forlap.ads, i-forbla-darwin.adb, s-gecobl.adb, s-gecobl.ads,
+	s-gerela.adb, s-gerela.ads: Remove partial interface to BLAS/LAPACK.
+	* gcc-interface/Makefile.in: Remove libgnala and related objects.
+
+2011-11-04  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cdlili.ad[sb], a-cidlli.ad[sb], a-coorse.ad[sb], a-ciorse.ad[sb],
+	a-coorma.ad[sb], a-ciorma.ad[sb], a-coormu.ad[sb], a-ciormu.ad[sb],
+	a-cohama.ad[sb], a-cihama.ad[sb], a-cohase.ad[sb], a-cihase.ad[sb],
+	a-convec.ad[sb], a-coinve.ad[sb] (Assign, Copy): New operations
+	added to package.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Function>: Do not assert
+	that the type of the parameters isn't dummy in type_annotate_only mode.
+
+2011-11-04  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch12.adb: Minor reformatting
+
+2011-11-04  Gary Dismukes  <dismukes@adacore.com>
+
+	* bindgen.adb (Gen_Elab_Calls): In the case of the AAMP target,
+	initialize elaboration entities to zero when specs are processed.
+
 2011-10-28  Iain Sandoe  <iains@gcc.gnu.org>
 	    Eric Botcazou  <ebotcazou@adacore.com>
 

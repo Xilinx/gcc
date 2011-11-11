@@ -1,3 +1,54 @@
+2011-11-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35688
+	* c-common.c (decl_has_visibility_attr): Split out from...
+	(c_determine_visibility): ...here.
+	* c-common.h: Declare it.
+
+2011-11-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (c_common_reswords): Add _Alignas and _Alignof.
+	(c_sizeof_or_alignof_type): Diagnose alignof applied to a function
+	type.
+	(check_user_alignment): New.  Split out of
+	handle_aligned_attribute.  Disallow integer constants with
+	noninteger types.  Conditionally allow zero.
+	(handle_aligned_attribute): Use check_user_alignment.
+	* c-common.h (RID_ALIGNAS, check_user_alignment): New.
+
+2011-11-06  Andrew MacLeod  <amacleod@redhat.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	Merged from cxx-mem-model.
+
+	* c-cppbuiltin.c (c_cpp_builtins): Test both atomic and sync patterns.
+	* c-common.c (sync_resolve_params, sync_resolve_return): Only tweak 
+	parameters that are the same type size.
+	(get_atomic_generic_size): New.  Find size of generic
+	atomic function parameters and do typechecking.
+	(add_atomic_size_parameter): New.  Insert size into parameter list.
+	(resolve_overloaded_atomic_exchange): Restructure __atomic_exchange to
+	either __atomic_exchange_n or external library call.
+	(resolve_overloaded_atomic_compare_exchange): Restructure 
+	__atomic_compare_exchange to either _n variant or external library call.
+	(resolve_overloaded_atomic_load): Restructure __atomic_load to either 
+	__atomic_load_n or an external library call.
+	(resolve_overloaded_atomic_store): Restructure __atomic_store to either
+	__atomic_store_n or an external library call.
+	(resolve_overloaded_builtin): Handle new __atomic builtins.
+
+2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR c++/50608
+	* c-common.c (c_fully_fold_internal) <ADDR_EXPR>: Call fold_offsetof_1.
+	(fold_offsetof_1): Make global.  Remove STOP_REF argument and adjust.
+	<INDIRECT_REF>: Return the argument.
+	<ARRAY_REF>: Remove special code for negative offset.
+	Call fold_build_pointer_plus instead of size_binop.
+	(fold_offsetof): Remove STOP_REF argument and adjust.
+	* c-common.h (fold_offsetof_1): Declare.
+	(fold_offsetof): Remove STOP_REF argument.
+
 2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/50810

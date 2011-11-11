@@ -1877,10 +1877,12 @@ maybe_emit_vtables (tree ctype)
 
       if (TREE_TYPE (DECL_INITIAL (vtbl)) == 0)
 	{
-	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), LOOKUP_NORMAL);
+	  VEC(tree,gc)* cleanups = NULL;
+	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), &cleanups,
+					LOOKUP_NORMAL);
 
 	  /* It had better be all done at compile-time.  */
-	  gcc_assert (!expr);
+	  gcc_assert (!expr && !cleanups);
 	}
 
       /* Write it out.  */
@@ -1972,8 +1974,11 @@ constrain_visibility (tree decl, int visibility)
 	    DECL_NOT_REALLY_EXTERN (decl) = 1;
 	}
     }
+  /* We check decl_has_visibility_attr rather than
+     DECL_VISIBILITY_SPECIFIED here because we want other considerations
+     to override visibility from a namespace or #pragma.  */
   else if (visibility > DECL_VISIBILITY (decl)
-	   && !DECL_VISIBILITY_SPECIFIED (decl))
+	   && !decl_has_visibility_attr (decl))
     {
       DECL_VISIBILITY (decl) = (enum symbol_visibility) visibility;
       return true;
@@ -4203,9 +4208,10 @@ possibly_inlined_p (tree decl)
 
 /* Mark DECL (either a _DECL or a BASELINK) as "used" in the program.
    If DECL is a specialization or implicitly declared class member,
-   generate the actual definition.  */
+   generate the actual definition.  Return false if something goes
+   wrong, true otherwise.  */
 
-void
+bool
 mark_used (tree decl)
 {
   /* If DECL is a BASELINK for a single function, then treat it just
@@ -4216,7 +4222,7 @@ mark_used (tree decl)
     {
       decl = BASELINK_FUNCTIONS (decl);
       if (really_overloaded_fn (decl))
-	return;
+	return true;
       decl = OVL_CURRENT (decl);
     }
 
@@ -4237,13 +4243,13 @@ mark_used (tree decl)
 		 generate it properly; see maybe_add_lambda_conv_op.  */
 	      sorry ("converting lambda which uses %<...%> to "
 		     "function pointer");
-	      return;
+	      return false;
 	    }
 	}
       error ("use of deleted function %qD", decl);
       if (!maybe_explain_implicit_delete (decl))
 	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
-      return;
+      return false;
     }
 
   /* We can only check DECL_ODR_USED on variables or functions with
@@ -4252,20 +4258,20 @@ mark_used (tree decl)
   if ((TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
       || DECL_LANG_SPECIFIC (decl) == NULL
       || DECL_THUNK_P (decl))
-    return;
+    return true;
 
   /* We only want to do this processing once.  We don't need to keep trying
      to instantiate inline templates, because unit-at-a-time will make sure
      we get them compiled before functions that want to inline them.  */
   if (DECL_ODR_USED (decl))
-    return;
+    return true;
 
   /* If within finish_function, defer the rest until that function
      finishes, otherwise it might recurse.  */
   if (defer_mark_used_calls)
     {
       VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
-      return;
+      return true;
     }
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
@@ -4294,15 +4300,15 @@ mark_used (tree decl)
 
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
-    return;
+    return true;
 
   if (processing_template_decl)
-    return;
+    return true;
 
   /* Check this too in case we're within fold_non_dependent_expr.  */
   if (DECL_TEMPLATE_INFO (decl)
       && uses_template_parms (DECL_TI_ARGS (decl)))
-    return;
+    return true;
 
   DECL_ODR_USED (decl) = 1;
   if (DECL_CLONED_FUNCTION_P (decl))
@@ -4380,6 +4386,8 @@ mark_used (tree decl)
 			/*expl_inst_class_mem_p=*/false);
       --function_depth;
     }
+
+  return true;
 }
 
 #include "gt-cp-decl2.h"

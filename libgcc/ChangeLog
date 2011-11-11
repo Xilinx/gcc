@@ -1,3 +1,84 @@
+2011-11-06  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* config.host (arm*-*-rtemseabi*): New target.
+
+2011-11-06  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR other/50991
+	* Makefile.in: Make EXTRA_PARTS depend on libgcc_tm.h instead of
+	extra-parts.
+
+2011-11-05  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* config.host (epiphany-*-elf*): New configuration.
+	* config/epiphany: New Directory.
+
+2011-11-05  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	* config.host (avr-*-rtems*): Add config/avr/t-rtems.
+	* config/avr/t-rtems: New.
+	Filter out _exit from LIB1ASMFUNCS.
+
+2011-11-04  David S. Miller  <davem@davemloft.net>
+
+	* configure.ac: Test for 64-bit addresses on !x86 using __LP64__.
+	* configure: Rebuild.
+
+2011-11-04  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/t-crtstuff: Add -fPIC to CRTSTUFF_T_CFLAGS_S
+	variable.
+
+2011-11-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50931
+	* config/t-avr (LIB1ASMFUNCS): Add _divmodpsi4, _udivmodpsi4.
+	* config/lib1funcs.S (__udivmodpsi4, __divmodpsi4): New functions.
+
+2011-11-04  Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	PR target/50989
+	* config.host (sparc-*-rtems*): Add sparc/t-softmul.
+
+2011-11-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/c6x/t-elf (LIB2ADDEH): Set.
+	* config/c6x/t-c6x-elf: Remove.
+
+2011-11-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/sol2-ci.S: Rename to ...
+	* config/i386/crti.S: ... this.
+	* config/i386/sol2-cn.S: Rename to ...
+	* config/i386/crtn.S: ... this.
+	* config/sparc/sol2-ci.S: Rename to ...
+	* config/sparc/crti.S: ... this.
+	* config/sparc/sol2-cn.S: Rename to ...
+	* config/sparc/crtn.S: ... this.
+	* config/t-sol2 (CUSTOM_CRTIN): Remove.
+	(crti.o, crtn.o): Remove.
+
+2011-11-04  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/fde-vms.c: Do not include md-unwind-support.h
+
+2011-11-04  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/t-sh: Use $(gcc_compile) instead of $(compile).
+
+2011-11-03  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config.host (crisv32-*-none, cris-*-none): Remove.
+	(crisv32-*-elf): Append to tmake_file, don't just set it.
+	(cris-*-elf): Add missing t-fdpbit to tmake_file.
+
+2011-11-03  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/rs6000/t-ppccomm (ecrti$(objext)): Use $<.
+	(ecrtn$(objext)): Likewise.
+	(ncrti$(objext)): Likewise.
+	(ncrtn$(objext)): Likewise.
+
 2011-11-03  Andreas Schwab  <schwab@redhat.com>
 
 	* config/ia64/t-ia64 (crtbeginS.o): Fix whitespace damage.
