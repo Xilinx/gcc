@@ -1,5 +1,10 @@
 2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* opts.c: Removed the CILKPLUS_IMPLEMENTED macro and the #ifdef and
+	#ifndefs that uses this macro.
+
+2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* cilk-spawn.c (wrapper_parm_cb): Changed a const tree cast
 	to (tree *).
 	(for_local_cb): Likewise.

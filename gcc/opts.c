@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "common/common-target.h"
 
 
-#define CILKPLUS_IMPLEMENTED /* bviyer: Please do not remove this #define */
 
 /* Indexed by enum debug_info_type.  */
 const char *const debug_type_names[] =
@@ -424,9 +423,6 @@ maybe_default_options (struct gcc_options *opts,
 static const struct default_options default_options_table[] =
   {
     /* -O1 optimizations.  */
-#ifdef CILKPLUS_IMPLEMENTED
-    { OPT_LEVELS_1_PLUS, OPT_ftree_vectorize, NULL, 1 },
-#endif
     { OPT_LEVELS_1_PLUS, OPT_fdefer_pop, NULL, 1 },
 #ifdef DELAY_SLOTS
     { OPT_LEVELS_1_PLUS, OPT_fdelayed_branch, NULL, 1 },
@@ -503,9 +499,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_1_PLUS, OPT_finline_functions_called_once, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_funswitch_loops, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_fgcse_after_reload, NULL, 1 },
-#ifndef CILKPLUS_IMPLEMENTED
     { OPT_LEVELS_3_PLUS, OPT_ftree_vectorize, NULL, 1 },
-#endif
     { OPT_LEVELS_3_PLUS, OPT_fipa_cp_clone, NULL, 1 },
 
     /* -Ofast adds optimizations to -O3.  */
