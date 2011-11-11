@@ -1,3 +1,10 @@
+2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_userdef_char_literal): Added CALL_NORMAL
+	parameter to finish_call_expr function call.
+	(cp_parser_userdef_numeral_literal): Likewise.
+	(cp_parser_userdef_string_literal): Likewise.
+
 2011-10-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* typeck2.c (split_nonconstant_init_1): Added "CALL_NORMAL" parameter

@@ -3602,7 +3602,8 @@ cp_parser_userdef_char_literal (cp_parser *parser)
       release_tree_vector (vec);
       return error_mark_node;
     }
-  result = finish_call_expr (decl, &vec, false, true, tf_warning_or_error);
+  result = finish_call_expr (decl, &vec, false, true, CALL_NORMAL,
+			     tf_warning_or_error);
   release_tree_vector (vec);
 
   return result;
@@ -3662,7 +3663,8 @@ cp_parser_userdef_numeric_literal (cp_parser *parser)
   decl = lookup_function_nonclass (name, args, /*block_p=*/false);
   if (decl && decl != error_mark_node)
     {
-      result = finish_call_expr (decl, &args, false, true, tf_none);
+      result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+				 tf_none);
       if (result != error_mark_node)
 	{
 	  release_tree_vector (args);
@@ -3679,7 +3681,8 @@ cp_parser_userdef_numeric_literal (cp_parser *parser)
   decl = lookup_function_nonclass (name, args, /*block_p=*/false);
   if (decl && decl != error_mark_node)
     {
-      result = finish_call_expr (decl, &args, false, true, tf_none);
+      result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+				 tf_none);
       if (result != error_mark_node)
 	{
 	  release_tree_vector (args);
@@ -3697,7 +3700,8 @@ cp_parser_userdef_numeric_literal (cp_parser *parser)
     {
       tree tmpl_args = make_char_string_pack (num_string);
       decl = lookup_template_function (decl, tmpl_args);
-      result = finish_call_expr (decl, &args, false, true, tf_none);
+      result = finish_call_expr (decl, &args, false, true, CALL_NORMAL,
+				 tf_none);
       if (result != error_mark_node)
 	{
 	  release_tree_vector (args);
@@ -3743,7 +3747,7 @@ cp_parser_userdef_string_literal (cp_token *token)
       release_tree_vector (vec);
       return error_mark_node;
     }
-  result = finish_call_expr (decl, &vec, false, true, tf_none);
+  result = finish_call_expr (decl, &vec, false, true, CALL_NORMAL, tf_none);
   if (result == error_mark_node)
     error ("unable to find valid user-defined string literal operator %qD."
 	   "  Possible missing length argument in string literal operator.",
