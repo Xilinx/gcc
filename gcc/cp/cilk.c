@@ -289,7 +289,7 @@ copy_decl_for_cilk (tree decl, copy_body_data *id)
 static bool
 for_local_cb (const void *k_v, void **vp, void *p)
 {
-  tree k = (tree) k_v;
+  tree k = *(tree *) &k_v;
   tree v = (tree) *vp;
 
 
@@ -334,7 +334,7 @@ static bool
 wrapper_local_cb (const void *k_v, void **vp, void *data)
 {
   copy_body_data *id = (copy_body_data *)data;
-  tree key = (tree)k_v;
+  tree key = *(tree *) &k_v;
   tree val = (tree)*vp;
 
   if (val == error_mark_node)

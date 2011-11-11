@@ -1,5 +1,10 @@
 2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* cilk.c (for_local_cb): Changed a const tree cast to (tree *).
+	(wrapper_local_cb): Likewise.
+
+2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* parser.c (cp_parser_userdef_char_literal): Added CALL_NORMAL
 	parameter to finish_call_expr function call.
 	(cp_parser_userdef_numeral_literal): Likewise.

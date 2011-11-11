@@ -1290,7 +1290,7 @@ static bool
 wrapper_parm_cb (const void *key0, void **val0, void *data)
 {
   struct wrapper_data *wd = (struct wrapper_data *)data;
-  tree arg = (const tree)key0;
+  tree arg = * (tree *)&key0;
   tree val = (tree)*val0;
   tree parm;
 
@@ -1450,7 +1450,7 @@ build_cilk_wrapper_body (tree stmt,
 static bool
 for_local_cb (const void *k_v, void **vp, void *p)
 {
-  tree k = (const tree) k_v; /* const cast */
+  tree k = *(tree *) &k_v; /* const cast */
   tree v = (tree) *vp;
 
   if (v == error_mark_node)
@@ -1462,7 +1462,7 @@ static bool
 wrapper_local_cb (const void *k_v, void **vp, void *data)
 {
   copy_body_data *id = (copy_body_data *)data;
-  tree key = (const tree) k_v;
+  tree key = *(tree *) &k_v;
   tree val = (tree) *vp;
 
   if (val == error_mark_node)
