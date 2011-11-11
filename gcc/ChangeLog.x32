@@ -1,5 +1,9 @@
 2011-11-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* unwind-dw2.c (_Unwind_SetGRValue): Update comments.
+
+2011-11-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*zero_extendsidi2_x32): New.
 	* config/i386/predicates.md (x86_64_symbolic_immediate_operand):
 	Likewise.

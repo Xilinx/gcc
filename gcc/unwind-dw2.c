@@ -289,7 +289,7 @@ _Unwind_SetGRValue (struct _Unwind_Context *context, int index,
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
   gcc_assert (index < (int) sizeof(dwarf_reg_size_table));
-  /* Stack pointer may be smaller than _Unwind_Context_Reg_Va.  */ 
+  /* Return column size may be smaller than _Unwind_Context_Reg_Va.  */ 
   gcc_assert (dwarf_reg_size_table[index] <= sizeof (_Unwind_Context_Reg_Val));
 
   context->by_value[index] = 1;
