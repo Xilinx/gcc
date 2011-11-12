@@ -7193,8 +7193,8 @@ function_value_64 (enum machine_mode orig_mode, enum machine_mode mode,
     }
   else if (POINTER_TYPE_P (valtype))
     {
-      /* Pointers are always returned in Pmode. */
-      mode = Pmode;
+      /* Pointers are always returned in word_mode.  */
+      mode = word_mode;
     }
 
   ret = construct_container (mode, orig_mode, valtype, 1,
@@ -7265,7 +7265,8 @@ ix86_function_value (const_tree valtype, const_tree fntype_or_decl,
   return ix86_function_value_1 (valtype, fntype_or_decl, orig_mode, mode);
 }
 
-/* Pointer function arguments and return values are promoted to Pmode.  */
+/* Pointer function arguments and return values are promoted to
+   word_mode.  */
 
 static enum machine_mode
 ix86_promote_function_mode (const_tree type, enum machine_mode mode,
@@ -7275,7 +7276,7 @@ ix86_promote_function_mode (const_tree type, enum machine_mode mode,
   if (type != NULL_TREE && POINTER_TYPE_P (type))
     {
       *punsignedp = POINTERS_EXTEND_UNSIGNED;
-      return Pmode;
+      return word_mode;
     }
   return default_promote_function_mode (type, mode, punsignedp, fntype,
 					for_return);
@@ -7553,12 +7554,13 @@ setup_incoming_varargs_64 (CUMULATIVE_ARGS *cum)
 
   for (i = cum->regno; i < max; i++)
     {
-      mem = gen_rtx_MEM (Pmode,
+      mem = gen_rtx_MEM (word_mode,
 			 plus_constant (save_area, i * UNITS_PER_WORD));
       MEM_NOTRAP_P (mem) = 1;
       set_mem_alias_set (mem, set);
-      emit_move_insn (mem, gen_rtx_REG (Pmode,
-					x86_64_int_parameter_registers[i]));
+      emit_move_insn (mem,
+		      gen_rtx_REG (word_mode,
+				   x86_64_int_parameter_registers[i]));
     }
 
   if (ix86_varargs_fpr_size)
@@ -8613,8 +8615,11 @@ gen_push (rtx arg)
     m->fs.cfa_offset += UNITS_PER_WORD;
   m->fs.sp_offset += UNITS_PER_WORD;
 
+  if (REG_P (arg) && GET_MODE (arg) != word_mode)
+    arg = gen_rtx_REG (word_mode, REGNO (arg));
+
   return gen_rtx_SET (VOIDmode,
-		      gen_rtx_MEM (Pmode,
+		      gen_rtx_MEM (word_mode,
 				   gen_rtx_PRE_DEC (Pmode,
 						    stack_pointer_rtx)),
 		      arg);
@@ -8625,9 +8630,12 @@ gen_push (rtx arg)
 static rtx
 gen_pop (rtx arg)
 {
+  if (REG_P (arg) && GET_MODE (arg) != word_mode)
+    arg = gen_rtx_REG (word_mode, REGNO (arg));
+
   return gen_rtx_SET (VOIDmode,
 		      arg,
-		      gen_rtx_MEM (Pmode,
+		      gen_rtx_MEM (word_mode,
 				   gen_rtx_POST_INC (Pmode,
 						     stack_pointer_rtx)));
 }
@@ -9094,7 +9102,7 @@ ix86_emit_save_regs (void)
   for (regno = FIRST_PSEUDO_REGISTER - 1; regno-- > 0; )
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
       {
-	insn = emit_insn (gen_push (gen_rtx_REG (Pmode, regno)));
+	insn = emit_insn (gen_push (gen_rtx_REG (word_mode, regno)));
 	RTX_FRAME_RELATED_P (insn) = 1;
       }
 }
@@ -9174,7 +9182,7 @@ ix86_emit_save_regs_using_mov (HOST_WIDE_INT cfa_offset)
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, true))
       {
-        ix86_emit_save_reg_using_mov (Pmode, regno, cfa_offset);
+        ix86_emit_save_reg_using_mov (word_mode, regno, cfa_offset);
 	cfa_offset -= UNITS_PER_WORD;
       }
 }
@@ -10055,7 +10063,7 @@ ix86_expand_prologue (void)
 	 to implement macro RETURN_ADDR_RTX and intrinsic function
 	 expand_builtin_return_addr etc.  */
       t = plus_constant (crtl->drap_reg, -UNITS_PER_WORD);
-      t = gen_frame_mem (Pmode, t);
+      t = gen_frame_mem (word_mode, t);
       insn = emit_insn (gen_push (t));
       RTX_FRAME_RELATED_P (insn) = 1;
 
@@ -10252,14 +10260,18 @@ ix86_expand_prologue (void)
       if (r10_live && eax_live)
         {
 	  t = choose_baseaddr (m->fs.sp_offset - allocate);
-	  emit_move_insn (r10, gen_frame_mem (Pmode, t));
+	  emit_move_insn (gen_rtx_REG (word_mode, R10_REG),
+			  gen_frame_mem (word_mode, t));
 	  t = choose_baseaddr (m->fs.sp_offset - allocate - UNITS_PER_WORD);
-	  emit_move_insn (eax, gen_frame_mem (Pmode, t));
+	  emit_move_insn (gen_rtx_REG (word_mode, AX_REG),
+			  gen_frame_mem (word_mode, t));
 	}
       else if (eax_live || r10_live)
 	{
 	  t = choose_baseaddr (m->fs.sp_offset - allocate);
-	  emit_move_insn ((eax_live ? eax : r10), gen_frame_mem (Pmode, t));
+	  emit_move_insn (gen_rtx_REG (word_mode,
+				       (eax_live ? AX_REG : R10_REG)),
+			  gen_frame_mem (word_mode, t));
 	}
     }
   gcc_assert (m->fs.sp_offset == frame.stack_pointer_offset);
@@ -10429,7 +10441,7 @@ ix86_emit_restore_regs_using_pop (void)
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, false))
-      ix86_emit_restore_reg_using_pop (gen_rtx_REG (Pmode, regno));
+      ix86_emit_restore_reg_using_pop (gen_rtx_REG (word_mode, regno));
 }
 
 /* Emit code and notes for the LEAVE instruction.  */
@@ -10472,11 +10484,11 @@ ix86_emit_restore_regs_using_mov (HOST_WIDE_INT cfa_offset,
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (!SSE_REGNO_P (regno) && ix86_save_reg (regno, maybe_eh_return))
       {
-	rtx reg = gen_rtx_REG (Pmode, regno);
+	rtx reg = gen_rtx_REG (word_mode, regno);
 	rtx insn, mem;
 
 	mem = choose_baseaddr (cfa_offset);
-	mem = gen_frame_mem (Pmode, mem);
+	mem = gen_frame_mem (word_mode, mem);
 	insn = emit_move_insn (reg, mem);
 
         if (m->fs.cfa_reg == crtl->drap_reg && regno == REGNO (crtl->drap_reg))
@@ -11060,8 +11072,8 @@ ix86_expand_split_stack_prologue (void)
 	{
 	  rtx rax;
 
-	  rax = gen_rtx_REG (Pmode, AX_REG);
-	  emit_move_insn (rax, reg10);
+	  rax = gen_rtx_REG (word_mode, AX_REG);
+	  emit_move_insn (rax, gen_rtx_REG (word_mode, R10_REG));
 	  use_reg (&call_fusage, rax);
 	}
 
@@ -11140,8 +11152,8 @@ ix86_expand_split_stack_prologue (void)
   /* If we are in 64-bit mode and this function uses a static chain,
      we saved %r10 in %rax before calling _morestack.  */
   if (TARGET_64BIT && DECL_STATIC_CHAIN (cfun->decl))
-    emit_move_insn (gen_rtx_REG (Pmode, R10_REG),
-		    gen_rtx_REG (Pmode, AX_REG));
+    emit_move_insn (gen_rtx_REG (word_mode, R10_REG),
+		    gen_rtx_REG (word_mode, AX_REG));
 
   /* If this function calls va_start, we need to store a pointer to
      the arguments on the old stack, because they may not have been
@@ -11387,6 +11399,11 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     }
   else
     disp = addr;			/* displacement */
+
+  /* Since address override works only on the (reg) part in fs:(reg),
+     we can't use it as memory operand.  */
+  if (Pmode != word_mode && seg == SEG_FS && (base || index))
+    return 0;
 
   if (index)
     {
@@ -12501,8 +12518,19 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
           base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
-	  off = force_reg (Pmode, off);
-	  return gen_rtx_PLUS (Pmode, base, off);
+	  if (Pmode != word_mode)
+	    {
+	      /* Since address override works only on the (reg) part in
+		 fs:(reg), we can't use it as memory operand.  */
+	      rtx reg = gen_reg_rtx (Pmode);
+	      emit_move_insn (reg, base);
+	      return gen_rtx_PLUS (Pmode, reg, off);
+	    }
+	  else
+	    {
+	      off = force_reg (Pmode, off);
+	      return gen_rtx_PLUS (Pmode, base, off);
+	    }
 	}
       else
 	{
@@ -13637,7 +13665,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	      gcc_unreachable ();
 	    }
 
-	  ix86_print_operand (file, x, 0);
+	  ix86_print_operand (file, x,
+			      TARGET_64BIT && REG_P (x) ? 'q' : 0);
 	  return;
 
 
@@ -19987,7 +20016,7 @@ ix86_split_to_parts (rtx operand, rtx *parts, enum machine_mode mode)
       gcc_assert (ok);
 
       operand = copy_rtx (operand);
-      PUT_MODE (operand, Pmode);
+      PUT_MODE (operand, word_mode);
       parts[0] = parts[1] = parts[2] = parts[3] = operand;
       return size;
     }
@@ -20140,7 +20169,7 @@ ix86_split_long_move (rtx operands[])
       if (push_operand (operands[0], VOIDmode))
 	{
 	  operands[0] = copy_rtx (operands[0]);
-	  PUT_MODE (operands[0], Pmode);
+	  PUT_MODE (operands[0], word_mode);
 	}
       else
         operands[0] = gen_lowpart (DImode, operands[0]);
@@ -20701,7 +20730,11 @@ ix86_zero_extend_to_Pmode (rtx exp)
   if (GET_MODE (exp) == Pmode)
     return copy_to_mode_reg (Pmode, exp);
   r = gen_reg_rtx (Pmode);
-  emit_insn (gen_zero_extendsidi2 (r, exp));
+  if (Pmode == DImode)
+    emit_insn (gen_zero_extendsidi2 (r, exp));
+  else
+    emit_move_insn (r,
+		    simplify_gen_subreg (Pmode, exp, GET_MODE (exp), 0));
   return r;
 }
 
@@ -21730,11 +21763,11 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
       gcc_unreachable ();
     case loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode);
+      size_needed = GET_MODE_SIZE (word_mode);
       break;
     case unrolled_loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode) * (TARGET_64BIT ? 4 : 2);
+      size_needed = GET_MODE_SIZE (word_mode) * (TARGET_64BIT ? 4 : 2);
       break;
     case rep_prefix_8_byte:
       size_needed = 8;
@@ -23979,10 +24012,13 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
       /* Load the function address to r11.  Try to load address using
 	 the shorter movl instead of movabs.  We may want to support
 	 movq for kernel mode, but kernel does not use trampolines at
-	 the moment.  */
-      if (x86_64_zext_immediate_operand (fnaddr, VOIDmode))
+	 the moment.  FNADDR is a 32bit address and may not be in
+	 DImode when ptr_mode == SImode.  Always use movl in this
+	 case.  */
+      if (ptr_mode == SImode
+	  || x86_64_zext_immediate_operand (fnaddr, VOIDmode))
 	{
-	  fnaddr = copy_to_mode_reg (DImode, fnaddr);
+	  fnaddr = copy_to_mode_reg (Pmode, fnaddr);
 
 	  mem = adjust_address (m_tramp, HImode, offset);
 	  emit_move_insn (mem, gen_int_mode (0xbb41, HImode));
@@ -24001,9 +24037,9 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	  offset += 10;
 	}
 
-      /* Load static chain using movabs to r10.  Use the
-	 shorter movl instead of movabs for x32.  */
-      if (TARGET_X32)
+      /* Load static chain using movabs to r10.  Use the shorter movl
+         instead of movabs when ptr_mode == SImode.  */
+      if (ptr_mode == SImode)
 	{
 	  opcode = 0xba41;
 	  size = 6;
@@ -31077,7 +31113,7 @@ x86_this_parameter (tree function)
         parm_regs = x86_64_ms_abi_int_parameter_registers;
       else
         parm_regs = x86_64_int_parameter_registers;
-      return gen_rtx_REG (DImode, parm_regs[aggr]);
+      return gen_rtx_REG (Pmode, parm_regs[aggr]);
     }
 
   nregs = ix86_function_regparm (type, function);
