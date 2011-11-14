@@ -1,3 +1,8 @@
+2011-11-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_print_operand_address): Only handle
+	zero-extended DImode addresses.
+
 2011-11-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386-protos.h (ix86_output_rex_prefix_p): New.
