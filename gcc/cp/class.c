@@ -359,6 +359,11 @@ build_base_path (enum tree_code code,
 	 V_BINFO.  That offset is an entry in D_BINFO's vtable.  */
       tree v_offset;
 
+      /* In a constructor template, current_in_charge_parm isn't set,
+	 and we might end up here via fold_non_dependent_expr.  */
+      if (fixed_type_p < 0 && !(cfun && current_in_charge_parm))
+	fixed_type_p = 0;
+
       if (fixed_type_p < 0 && in_base_initializer)
 	{
 	  /* In a base member initializer, we cannot rely on the
@@ -1167,7 +1172,8 @@ handle_using_decl (tree using_decl, tree t)
 
   gcc_assert (!processing_template_decl && decl);
 
-  old_value = lookup_member (t, name, /*protect=*/0, /*want_type=*/false);
+  old_value = lookup_member (t, name, /*protect=*/0, /*want_type=*/false,
+			     tf_warning_or_error);
   if (old_value)
     {
       if (is_overloaded_fn (old_value))
@@ -7290,7 +7296,7 @@ maybe_note_name_used_in_class (tree name, tree decl)
   /* If there's already a binding for this NAME, then we don't have
      anything to worry about.  */
   if (lookup_member (current_class_type, name,
-		     /*protect=*/0, /*want_type=*/false))
+		     /*protect=*/0, /*want_type=*/false, tf_warning_or_error))
     return;
 
   if (!current_class_stack[current_class_depth - 1].names_used)

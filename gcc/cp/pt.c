@@ -5324,6 +5324,7 @@ convert_nontype_argument_function (tree type, tree expr)
 {
   tree fns = expr;
   tree fn, fn_no_ptr;
+  linkage_kind linkage;
 
   fn = instantiate_type (type, fns, tf_none);
   if (fn == error_mark_node)
@@ -5340,12 +5341,19 @@ convert_nontype_argument_function (tree type, tree expr)
      A template-argument for a non-type, non-template template-parameter
      shall be one of:
      [...]
-     -- the address of an object or function with external linkage.  */
-  if (!DECL_EXTERNAL_LINKAGE_P (fn_no_ptr))
+     -- the address of an object or function with external [C++11: or
+        internal] linkage.  */
+  linkage = decl_linkage (fn_no_ptr);
+  if (cxx_dialect >= cxx0x ? linkage == lk_none : linkage != lk_external)
     {
-      error ("%qE is not a valid template argument for type %qT "
-	     "because function %qD has not external linkage",
-	     expr, type, fn_no_ptr);
+      if (cxx_dialect >= cxx0x)
+	error ("%qE is not a valid template argument for type %qT "
+	       "because %qD has no linkage",
+	       expr, type, fn_no_ptr);
+      else
+	error ("%qE is not a valid template argument for type %qT "
+	       "because %qD does not have external linkage",
+	       expr, type, fn_no_ptr);
       return NULL_TREE;
     }
 
@@ -5681,10 +5689,24 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
       && (TYPE_PTR_P (type) || TYPE_PTR_TO_MEMBER_P (type)))
     expr = convert (type, expr);
 
-  /* In C++11, non-type template arguments can be arbitrary constant
-     expressions.  But don't fold a PTRMEM_CST to a CONSTRUCTOR yet.  */
-  if (cxx_dialect >= cxx0x && TREE_CODE (expr) != PTRMEM_CST)
-    expr = maybe_constant_value (expr);
+  /* In C++11, integral or enumeration non-type template arguments can be
+     arbitrary constant expressions.  Pointer and pointer to
+     member arguments can be general constant expressions that evaluate
+     to a null value, but otherwise still need to be of a specific form.  */
+  if (cxx_dialect >= cxx0x)
+    {
+      if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+	expr = maybe_constant_value (expr);
+      else if (TYPE_PTR_P (type)
+	       || (TYPE_PTR_TO_MEMBER_P (type)
+		   && TREE_CODE (expr) != PTRMEM_CST))
+	{
+	  tree folded = maybe_constant_value (expr);
+	  if (TYPE_PTR_P (type) ? integer_zerop (folded)
+	      : null_member_pointer_value_p (folded))
+	    expr = folded;
+	}
+    }
 
   /* HACK: Due to double coercion, we can get a
      NOP_EXPR<REFERENCE_TYPE>(ADDR_EXPR<POINTER_TYPE> (arg)) here,
@@ -5824,10 +5846,17 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 		     expr, type, decl);
 	      return NULL_TREE;
 	    }
-	  else if (!DECL_EXTERNAL_LINKAGE_P (decl))
+	  else if (cxx_dialect < cxx0x && !DECL_EXTERNAL_LINKAGE_P (decl))
 	    {
 	      error ("%qE is not a valid template argument of type %qT "
 		     "because %qD does not have external linkage",
+		     expr, type, decl);
+	      return NULL_TREE;
+	    }
+	  else if (cxx_dialect >= cxx0x && decl_linkage (decl) == lk_none)
+	    {
+	      error ("%qE is not a valid template argument of type %qT "
+		     "because %qD has no linkage",
 		     expr, type, decl);
 	      return NULL_TREE;
 	    }
@@ -13219,7 +13248,7 @@ tsubst_copy_and_build (tree t,
 	decl = finish_id_expression (t, decl, NULL_TREE,
 				     &idk,
 				     integral_constant_expression_p,
-				     /*allow_non_integral_constant_expression_p=*/false,
+          /*allow_non_integral_constant_expression_p=*/(cxx_dialect >= cxx0x),
 				     &non_integral_constant_expression_p,
 				     /*template_p=*/false,
 				     /*done=*/true,
@@ -18152,17 +18181,22 @@ maybe_instantiate_noexcept (tree fn)
 
   if (TREE_CODE (noex) == DEFERRED_NOEXCEPT)
     {
-      push_tinst_level (fn);
-      push_access_scope (fn);
-      input_location = DECL_SOURCE_LOCATION (fn);
-      noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
-				    DEFERRED_NOEXCEPT_ARGS (noex),
-				    tf_warning_or_error, fn, /*function_p=*/false,
-				    /*integral_constant_expression_p=*/true);
-      pop_access_scope (fn);
-      pop_tinst_level ();
-      spec = build_noexcept_spec (noex, tf_warning_or_error);
-      if (spec == error_mark_node)
+      if (push_tinst_level (fn))
+	{
+	  push_access_scope (fn);
+	  input_location = DECL_SOURCE_LOCATION (fn);
+	  noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
+					DEFERRED_NOEXCEPT_ARGS (noex),
+					tf_warning_or_error, fn,
+					/*function_p=*/false,
+					/*integral_constant_expression_p=*/true);
+	  pop_access_scope (fn);
+	  pop_tinst_level ();
+	  spec = build_noexcept_spec (noex, tf_warning_or_error);
+	  if (spec == error_mark_node)
+	    spec = noexcept_false_spec;
+	}
+      else
 	spec = noexcept_false_spec;
     }
   else
@@ -18962,7 +18996,13 @@ invalid_nontype_parm_type_p (tree type, tsubst_flags_t complain)
     return 0;
 
   if (complain & tf_error)
-    error ("%q#T is not a valid type for a template constant parameter", type);
+    {
+      if (type == error_mark_node)
+	inform (input_location, "invalid template non-type parameter");
+      else
+	error ("%q#T is not a valid type for a template non-type parameter",
+	       type);
+    }
   return 1;
 }
 
@@ -19861,7 +19901,8 @@ resolve_typename_type (tree type, bool only_current_p)
      longer be considered a dependent type.  */
   pushed_scope = push_scope (scope);
   /* Look up the declaration.  */
-  decl = lookup_member (scope, name, /*protect=*/0, /*want_type=*/true);
+  decl = lookup_member (scope, name, /*protect=*/0, /*want_type=*/true,
+			tf_warning_or_error);
 
   result = NULL_TREE;
   

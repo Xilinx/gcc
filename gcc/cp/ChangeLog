@@ -1,3 +1,118 @@
+2011-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/986
+	* call.c (set_up_extended_ref_temp): Warn about references
+	bound to non-static reference members.
+	* init.c (perform_member_init): Pass in the member.
+
+	PR c++/51060
+	* cp-gimplify.c (cp_gimplify_expr): Leave clobbers alone.
+
+2011-11-11  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50976
+	* typeck.c (check_literal_operator_args): Reorganize test for string
+	operators so size_t search depends on finding string first.
+
+2011-11-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50372
+	* pt.c (convert_nontype_argument_function): Allow decls with
+	internal linkage in C++11.
+	(convert_nontype_argument): Likewise.
+
+	PR c++/50973
+	* decl2.c (mark_used): Defer synthesis of virtual functions.
+	* method.c (use_thunk): Make sure the target function has
+	DECL_INTERFACE_KNOWN.
+
+	PR c++/51079, DR 495
+	* call.c (joust): Check the second conversion sequence
+	before checking templates.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50837
+	* pt.c (tsubst_copy_and_build) [IDENTIFIER_NODE]: In C++11 mode
+	pass allow_non_integral_constant_expression_p = true to
+	finish_id_expression.
+
+2011-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50972
+	* pt.c (maybe_instantiate_noexcept): Check the return value of
+	push_tinst_level.
+
+	PR c++/51046
+	* parser.c (cp_parser_range_for): check_for_bare_parameter_packs.
+
+	PR c++/51029
+	* class.c (build_base_path): Don't ICE in fold_non_dependent_expr.
+
+	* Make-lang.in (check_g++_parallelize): Add dg-torture.exp.
+	(check-c++0x): Obsolete.
+
+	* pt.c (invalid_nontype_parm_type_p): Avoid printing "<type error>".
+
+	* pt.c (convert_nontype_argument): Only integral arguments
+	get early folding.
+
+	* parser.c (cp_parser_alias_declaration): Don't do semantic
+	processing if parsing failed.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51045
+	* init.c (build_new_1, build_vec_delete_1, build_delete):
+	Use nullptr_node.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51047
+	* search.c (lookup_member): Change to take also a tsubst_flags_t
+	parameter.
+	(lookup_field, lookup_fnfields): Adjust calls.
+	* typeck.c (lookup_destructor, finish_class_member_access_expr,
+	build_ptrmemfunc_access_expr): Likewise.
+	* class.c (handle_using_decl, maybe_note_name_used_in_class):
+	Likewise.
+	* pt.c (resolve_typename_type): Likewise.
+	* semantics.c (lambda_function): Likewise.
+	* parser.c (cp_parser_perform_range_for_lookup,
+	cp_parser_lookup_name): Likewise.
+	* friend.c (make_friend_class): Likewise.
+	* name-lookup.c (pushdecl_maybe_friend_1, get_class_binding,
+	do_class_using_decl, lookup_qualified_name): Likewise.
+	* cp-tree.h (lookup_member): Adjust declaration.
+
+2011-11-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51043
+	* cp-tree.h (TYPE_ALIAS_P, TYPE_TEMPLATE_INFO): Don't crash on
+	NULL TYPE_NAME.
+
+	PR c++/51027
+	* parser.c (cp_parser_alias_declaration): Require ';' at the end
+    	of the declaration.
+
+2011-11-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/51032
+	* decl2.c (check_member_template): Accept alias templates and ...
+    	* parser.c (cp_parser_alias_declaration): ... use it here.
+
+2011-11-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50835
+	* typeck.c (build_x_conditional_expr): Preserve lvalue/xvalueness.
+	* tree.c (lvalue_kind) [NON_DEPENDENT_EXPR]: Return clk_ordinary
+	in C++98.
+
+2011-11-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51010
+	* error.c (dump_expr): Handle SSA_NAMEs.
+
 2011-11-07  Richard Henderson  <rth@redhat.com>
 	    Aldy Hernandez  <aldyh@redhat.com>
 	    Torvald Riegel  <triegel@redhat.com>

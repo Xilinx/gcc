@@ -219,17 +219,25 @@ if test $enable_symvers = gnu; then
 	    [Define to 1 if GNU symbol versioning is used for libitm.])
 fi
 
+# See if we can emit unwind info in the sjlj stub.
+GCC_AS_CFI_PSEUDO_OP
+
 # Determine the proper ABI type for size_t.
 LIBITM_CHECK_SIZE_T_MANGLING
 
 # Get target configury.
 . ${srcdir}/configure.tgt
+if test -n "$UNSUPPORTED"; then
+  AC_MSG_ERROR([Configuration ${target} is unsupported.])
+fi
+
 CFLAGS="$save_CFLAGS $XCFLAGS"
 
 # Check for __sync_val_compare_and_swap, but only after the target has
 # had a chance to set XCFLAGS.
 LIBITM_CHECK_SYNC_BUILTINS
 LIBITM_CHECK_64BIT_SYNC_BUILTINS
+LIBITM_CHECK_AS_AVX
 
 # Cleanup and exit.
 CFLAGS="$save_CFLAGS"
@@ -264,6 +272,7 @@ fi
 AC_SUBST(link_itm)
 
 AM_CONDITIONAL([ARCH_X86], [test "$ARCH" = x86])
+AM_CONDITIONAL([ARCH_X86_AVX], [test "$libitm_cv_as_avx" = yes])
 AM_CONDITIONAL([ARCH_FUTEX], [test $enable_linux_futex = yes])
 
 AC_CONFIG_FILES(Makefile testsuite/Makefile libitm.spec)

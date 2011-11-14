@@ -41,13 +41,15 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 
 libitm_la_SOURCES = \
 	aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc barrier.cc beginend.cc \
-	clone.cc cacheline.cc cachepage.cc eh_cpp.cc local.cc \
+	clone.cc eh_cpp.cc local.cc \
 	query.cc retry.cc rwlock.cc useraction.cc util.cc \
 	sjlj.S tls.cc method-serial.cc method-gl.cc
 
 if ARCH_X86
 libitm_la_SOURCES += x86_sse.cc x86_avx.cc
 x86_sse.lo : XCFLAGS += -msse
+endif
+if ARCH_X86_AVX
 x86_avx.lo : XCFLAGS += -mavx
 endif
 

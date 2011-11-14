@@ -9928,12 +9928,68 @@ ix86_finalize_stack_realign_flags (void)
       /* After stack_realign_needed is finalized, we can't no longer
 	 change it.  */
       gcc_assert (crtl->stack_realign_needed == stack_realign);
+      return;
     }
-  else
+
+  /* If the only reason for frame_pointer_needed is that we conservatively
+     assumed stack realignment might be needed, but in the end nothing that
+     needed the stack alignment had been spilled, clear frame_pointer_needed
+     and say we don't need stack realignment.  */
+  if (stack_realign
+      && !crtl->need_drap
+      && frame_pointer_needed
+      && current_function_is_leaf
+      && flag_omit_frame_pointer
+      && current_function_sp_is_unchanging
+      && !ix86_current_function_calls_tls_descriptor
+      && !crtl->accesses_prior_frames
+      && !cfun->calls_alloca
+      && !crtl->calls_eh_return
+      && !(flag_stack_check && STACK_CHECK_MOVING_SP)
+      && !ix86_frame_pointer_required ()
+      && get_frame_size () == 0
+      && ix86_nsaved_sseregs () == 0
+      && ix86_varargs_gpr_size + ix86_varargs_fpr_size == 0)
     {
-      crtl->stack_realign_needed = stack_realign;
-      crtl->stack_realign_finalized = true;
+      HARD_REG_SET set_up_by_prologue, prologue_used;
+      basic_block bb;
+
+      CLEAR_HARD_REG_SET (prologue_used);
+      CLEAR_HARD_REG_SET (set_up_by_prologue);
+      add_to_hard_reg_set (&set_up_by_prologue, Pmode, STACK_POINTER_REGNUM);
+      add_to_hard_reg_set (&set_up_by_prologue, Pmode, ARG_POINTER_REGNUM);
+      add_to_hard_reg_set (&set_up_by_prologue, Pmode,
+			   HARD_FRAME_POINTER_REGNUM);
+      FOR_EACH_BB (bb)
+        {
+          rtx insn;
+	  FOR_BB_INSNS (bb, insn)
+	    if (NONDEBUG_INSN_P (insn)
+		&& requires_stack_frame_p (insn, prologue_used,
+					   set_up_by_prologue))
+	      {
+		crtl->stack_realign_needed = stack_realign;
+		crtl->stack_realign_finalized = true;
+		return;
+	      }
+	}
+
+      frame_pointer_needed = false;
+      stack_realign = false;
+      crtl->max_used_stack_slot_alignment = incoming_stack_boundary;
+      crtl->stack_alignment_needed = incoming_stack_boundary;
+      crtl->stack_alignment_estimated = incoming_stack_boundary;
+      if (crtl->preferred_stack_boundary > incoming_stack_boundary)
+	crtl->preferred_stack_boundary = incoming_stack_boundary;
+      df_finish_pass (true);
+      df_scan_alloc (NULL);
+      df_scan_blocks ();
+      df_compute_regs_ever_live (true);
+      df_analyze ();
     }
+
+  crtl->stack_realign_needed = stack_realign;
+  crtl->stack_realign_finalized = true;
 }
 
 /* Expand the prologue into a bunch of separate insns.  */
@@ -10558,6 +10614,17 @@ ix86_emit_restore_sse_regs_using_mov (HOST_WIDE_INT cfa_offset,
       }
 }
 
+/* Emit vzeroupper if needed.  */
+
+void
+ix86_maybe_emit_epilogue_vzeroupper (void)
+{
+  if (TARGET_VZEROUPPER
+      && !TREE_THIS_VOLATILE (cfun->decl)
+      && !cfun->machine->caller_return_avx256_p)
+    emit_insn (gen_avx_vzeroupper (GEN_INT (call_no_avx256)));
+}
+
 /* Restore function stack, frame, and registers.  */
 
 void
@@ -10855,10 +10922,7 @@ ix86_expand_epilogue (int style)
     }
 
   /* Emit vzeroupper if needed.  */
-  if (TARGET_VZEROUPPER
-      && !TREE_THIS_VOLATILE (cfun->decl)
-      && !cfun->machine->caller_return_avx256_p)
-    emit_insn (gen_avx_vzeroupper (GEN_INT (call_no_avx256)));
+  ix86_maybe_emit_epilogue_vzeroupper ();
 
   if (crtl->args.pops_args && crtl->args.size)
     {
@@ -13483,26 +13547,28 @@ print_reg (rtx x, int code, FILE *file)
     code = GET_MODE_SIZE (GET_MODE (x));
 
   /* Irritatingly, AMD extended registers use different naming convention
-     from the normal registers.  */
+     from the normal registers: "r%d[bwd]"  */
   if (REX_INT_REG_P (x))
     {
       gcc_assert (TARGET_64BIT);
+      putc ('r', file);
+      fprint_ul (file, REGNO (x) - FIRST_REX_INT_REG + 8);
       switch (code)
 	{
 	  case 0:
 	    error ("extended registers have no high halves");
 	    break;
 	  case 1:
-	    fprintf (file, "r%ib", REGNO (x) - FIRST_REX_INT_REG + 8);
+	    putc ('b', file);
 	    break;
 	  case 2:
-	    fprintf (file, "r%iw", REGNO (x) - FIRST_REX_INT_REG + 8);
+	    putc ('w', file);
 	    break;
 	  case 4:
-	    fprintf (file, "r%id", REGNO (x) - FIRST_REX_INT_REG + 8);
+	    putc ('d', file);
 	    break;
 	  case 8:
-	    fprintf (file, "r%i", REGNO (x) - FIRST_REX_INT_REG + 8);
+	    /* no suffix */
 	    break;
 	  default:
 	    error ("unsupported operand size for extended register");
@@ -35821,6 +35887,8 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
 	      dremap.perm[i * 2] = i;
 	      dremap.perm[i * 2 + 1] = i + nelt;
 	    }
+	  if (!TARGET_SSE2 && d->vmode == V4SImode)
+	    dremap.vmode = V4SFmode;
 	}
       else if ((contents & (h2 | h4)) == contents)
 	{
@@ -35832,6 +35900,8 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
 	      dremap.perm[i * 2] = i + nelt2;
 	      dremap.perm[i * 2 + 1] = i + nelt + nelt2;
 	    }
+	  if (!TARGET_SSE2 && d->vmode == V4SImode)
+	    dremap.vmode = V4SFmode;
 	}
       else if ((contents & (h1 | h4)) == contents)
 	{
@@ -38076,13 +38146,13 @@ ix86_preferred_simd_mode (enum machine_mode mode)
   switch (mode)
     {
     case QImode:
-      return TARGET_AVX2 ? V32QImode : V16QImode;
+      return (TARGET_AVX && !TARGET_PREFER_AVX128) ? V32QImode : V16QImode;
     case HImode:
-      return TARGET_AVX2 ? V16HImode : V8HImode;
+      return (TARGET_AVX && !TARGET_PREFER_AVX128) ? V16HImode : V8HImode;
     case SImode:
-      return TARGET_AVX2 ? V8SImode : V4SImode;
+      return (TARGET_AVX && !TARGET_PREFER_AVX128) ? V8SImode : V4SImode;
     case DImode:
-      return TARGET_AVX2 ? V4DImode : V2DImode;
+      return (TARGET_AVX && !TARGET_PREFER_AVX128) ? V4DImode : V2DImode;
 
     case SFmode:
       if (TARGET_AVX && !TARGET_PREFER_AVX128)

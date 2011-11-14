@@ -6427,14 +6427,14 @@ resolve_forall_iterators (gfc_forall_iterator *it)
 	gfc_error ("FORALL start expression at %L must be a scalar INTEGER",
 		   &iter->start->where);
       if (iter->var->ts.kind != iter->start->ts.kind)
-	gfc_convert_type (iter->start, &iter->var->ts, 2);
+	gfc_convert_type (iter->start, &iter->var->ts, 1);
 
       if (gfc_resolve_expr (iter->end) == SUCCESS
 	  && (iter->end->ts.type != BT_INTEGER || iter->end->rank != 0))
 	gfc_error ("FORALL end expression at %L must be a scalar INTEGER",
 		   &iter->end->where);
       if (iter->var->ts.kind != iter->end->ts.kind)
-	gfc_convert_type (iter->end, &iter->var->ts, 2);
+	gfc_convert_type (iter->end, &iter->var->ts, 1);
 
       if (gfc_resolve_expr (iter->stride) == SUCCESS)
 	{
@@ -6448,7 +6448,7 @@ resolve_forall_iterators (gfc_forall_iterator *it)
 		       &iter->stride->where);
 	}
       if (iter->var->ts.kind != iter->stride->ts.kind)
-	gfc_convert_type (iter->stride, &iter->var->ts, 2);
+	gfc_convert_type (iter->stride, &iter->var->ts, 1);
     }
 
   for (iter = it; iter; iter = iter->next)
@@ -9514,7 +9514,7 @@ resolve_values (gfc_symbol *sym)
 {
   gfc_try t;
 
-  if (sym->value == NULL)
+  if (sym->value == NULL || sym->attr.use_assoc)
     return;
 
   if (sym->value->expr_type == EXPR_STRUCTURE)
@@ -11982,7 +11982,7 @@ resolve_fl_parameter (gfc_symbol *sym)
   /* Make sure the types of derived parameters are consistent.  This
      type checking is deferred until resolution because the type may
      refer to a derived type from the host.  */
-  if (sym->ts.type == BT_DERIVED
+  if (sym->ts.type == BT_DERIVED && sym->value
       && !gfc_compare_types (&sym->ts, &sym->value->ts))
     {
       gfc_error ("Incompatible derived type in PARAMETER at %L",

@@ -9292,6 +9292,8 @@ cp_parser_range_for (cp_parser *parser, tree scope, tree init, tree range_decl)
      at instantiation. If not, it is done just ahead. */
   if (processing_template_decl)
     {
+      if (check_for_bare_parameter_packs (range_expr))
+	range_expr = error_mark_node;
       stmt = begin_range_for_stmt (scope, init);
       finish_range_for_decl (stmt, range_decl, range_expr);
       if (!type_dependent_expression_p (range_expr)
@@ -9495,9 +9497,11 @@ cp_parser_perform_range_for_lookup (tree range, tree *begin, tree *end)
       id_begin = get_identifier ("begin");
       id_end = get_identifier ("end");
       member_begin = lookup_member (TREE_TYPE (range), id_begin,
-				    /*protect=*/2, /*want_type=*/false);
+				    /*protect=*/2, /*want_type=*/false,
+				    tf_warning_or_error);
       member_end = lookup_member (TREE_TYPE (range), id_end,
-				  /*protect=*/2, /*want_type=*/false);
+				  /*protect=*/2, /*want_type=*/false,
+				  tf_warning_or_error);
 
       if (member_begin != NULL_TREE || member_end != NULL_TREE)
 	{
@@ -14932,6 +14936,7 @@ cp_parser_alias_declaration (cp_parser* parser)
   location_t id_location;
   cp_declarator *declarator;
   cp_decl_specifier_seq decl_specs;
+  bool member_p;
 
   /* Look for the `using' keyword.  */
   cp_parser_require_keyword (parser, RID_USING, RT_USING);
@@ -14941,6 +14946,10 @@ cp_parser_alias_declaration (cp_parser* parser)
   cp_parser_require (parser, CPP_EQ, RT_EQ);
 
   type = cp_parser_type_id (parser);
+  cp_parser_require (parser, CPP_SEMICOLON, RT_SEMICOLON);
+
+  if (cp_parser_error_occurred (parser))
+    return error_mark_node;
 
   /* A typedef-name can also be introduced by an alias-declaration. The
      identifier following the using keyword becomes a typedef-name. It has
@@ -14957,7 +14966,8 @@ cp_parser_alias_declaration (cp_parser* parser)
   declarator = make_id_declarator (NULL_TREE, id, sfk_none);
   declarator->id_loc = id_location;
 
-  if (at_class_scope_p ())
+  member_p = at_class_scope_p ();
+  if (member_p)
     decl = grokfield (declarator, &decl_specs, NULL_TREE, false,
 		      NULL_TREE, attributes);
   else
@@ -14976,7 +14986,12 @@ cp_parser_alias_declaration (cp_parser* parser)
   if (DECL_LANG_SPECIFIC (decl)
       && DECL_TEMPLATE_INFO (decl)
       && PRIMARY_TEMPLATE_P (DECL_TI_TEMPLATE (decl)))
-    decl = DECL_TI_TEMPLATE (decl);
+    {
+      decl = DECL_TI_TEMPLATE (decl);
+      if (member_p)
+	check_member_template (decl);
+    }
+
   return decl;
 }
 
@@ -20390,7 +20405,8 @@ cp_parser_lookup_name (cp_parser *parser, tree name,
 	object_decl = lookup_member (object_type,
 				     name,
 				     /*protect=*/0,
-				     tag_type != none_type);
+				     tag_type != none_type,
+				     tf_warning_or_error);
       /* Look it up in the enclosing context, too.  */
       decl = lookup_name_real (name, tag_type != none_type,
 			       /*nonclass=*/0,

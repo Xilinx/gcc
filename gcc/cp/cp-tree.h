@@ -2550,8 +2550,9 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 /* Nonzero for a type which is an alias for another type; i.e, a type
    which declaration was written 'using name-of-type =
    another-type'.  */
-#define TYPE_ALIAS_P(NODE) \
-  (TYPE_P (NODE) \
+#define TYPE_ALIAS_P(NODE)			\
+  (TYPE_P (NODE)				\
+   && TYPE_NAME (NODE)				\
    && TYPE_DECL_ALIAS_P (TYPE_NAME (NODE)))
 
 /* For a class type: if this structure has many fields, we'll sort them
@@ -2605,15 +2606,15 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    ->template_info)
 
 /* Template information for an ENUMERAL_, RECORD_, or UNION_TYPE.  */
-#define TYPE_TEMPLATE_INFO(NODE)			\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE			\
-   ? ENUM_TEMPLATE_INFO (NODE) :			\
-   (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM	\
-    ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :	\
-    ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))	\
-     ? CLASSTYPE_TEMPLATE_INFO (NODE)			\
-     : (DECL_LANG_SPECIFIC (TYPE_NAME (NODE))		\
-	? (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)))	\
+#define TYPE_TEMPLATE_INFO(NODE)					\
+  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
+   ? ENUM_TEMPLATE_INFO (NODE) :					\
+   (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM			\
+    ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :			\
+    ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))			\
+     ? CLASSTYPE_TEMPLATE_INFO (NODE)					\
+     : ((TYPE_NAME (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
+	? (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)))			\
 	: NULL_TREE))))
 
 /* Set the template information for an ENUMERAL_, RECORD_, or
@@ -5367,7 +5368,8 @@ extern tree lookup_fnfields_slot		(tree, tree);
 extern tree lookup_fnfields_slot_nolazy		(tree, tree);
 extern int class_method_index_for_fn		(tree, tree);
 extern tree lookup_fnfields			(tree, tree, int);
-extern tree lookup_member			(tree, tree, int, bool);
+extern tree lookup_member			(tree, tree, int, bool,
+						 tsubst_flags_t);
 extern int look_for_overrides			(tree, tree);
 extern void get_pure_virtuals			(tree);
 extern void maybe_suppress_debug_info		(tree);

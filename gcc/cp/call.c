@@ -8109,6 +8109,22 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
   if (winner)
     return winner;
 
+  /* DR 495 moved this tiebreaker above the template ones.  */
+  /* or, if not that,
+     the  context  is  an  initialization by user-defined conversion (see
+     _dcl.init_  and  _over.match.user_)  and  the  standard   conversion
+     sequence  from  the return type of F1 to the destination type (i.e.,
+     the type of the entity being initialized)  is  a  better  conversion
+     sequence  than the standard conversion sequence from the return type
+     of F2 to the destination type.  */
+
+  if (cand1->second_conv)
+    {
+      winner = compare_ics (cand1->second_conv, cand2->second_conv);
+      if (winner)
+	return winner;
+    }
+
   /* or, if not that,
      F1 is a non-template function and F2 is a template function
      specialization.  */
@@ -8133,21 +8149,6 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
 	    templates.   add_function_candidate() will not have
 	    counted the "this" argument for constructors.  */
 	 cand1->num_convs + DECL_CONSTRUCTOR_P (cand1->fn));
-      if (winner)
-	return winner;
-    }
-
-  /* or, if not that,
-     the  context  is  an  initialization by user-defined conversion (see
-     _dcl.init_  and  _over.match.user_)  and  the  standard   conversion
-     sequence  from  the return type of F1 to the destination type (i.e.,
-     the type of the entity being initialized)  is  a  better  conversion
-     sequence  than the standard conversion sequence from the return type
-     of F2 to the destination type.  */
-
-  if (cand1->second_conv)
-    {
-      winner = compare_ics (cand1->second_conv, cand2->second_conv);
       if (winner)
 	return winner;
     }
@@ -8605,6 +8606,14 @@ set_up_extended_ref_temp (tree decl, tree expr, VEC(tree,gc) **cleanups,
      VAR.  */
   if (TREE_CODE (expr) != TARGET_EXPR)
     expr = get_target_expr (expr);
+
+  if (TREE_CODE (decl) == FIELD_DECL
+      && extra_warnings && !TREE_NO_WARNING (decl))
+    {
+      warning (OPT_Wextra, "a temporary bound to %qD only persists "
+	       "until the constructor exits", decl);
+      TREE_NO_WARNING (decl) = true;
+    }
 
   /* Recursively extend temps in this initializer.  */
   TARGET_EXPR_INITIAL (expr)

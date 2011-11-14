@@ -1,4 +1,5 @@
-/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
+
+/* Copyright (C) 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -22,28 +23,22 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm_i.h"
+#include "config.h"
 
+#ifdef HAVE_AS_CFI_PSEUDO_OP
 
-namespace GTM HIDDEN {
+#define cfi_startproc		.cfi_startproc
+#define cfi_endproc		.cfi_endproc
+#define cfi_def_cfa_offset(n)	.cfi_def_cfa_offset n
+#define cfi_def_cfa(r,n)	.cfi_def_cfa r, n
+#define cfi_register(o,n)	.cfi_register o, n
 
-void
-gtm_cacheline::copy_mask (gtm_cacheline * __restrict d,
-			  const gtm_cacheline * __restrict s,
-			  gtm_cacheline_mask m)
-{
-  const size_t n = sizeof (gtm_word);
+#else
 
-  if (m == (gtm_cacheline_mask) -1)
-    {
-      *d = *s;
-      return;
-    }
-  if (__builtin_expect (m == 0, 0))
-    return;
+#define cfi_startproc
+#define cfi_endproc
+#define cfi_def_cfa_offset(n)
+#define cfi_def_cfa(r,n)
+#define cfi_register(o,n)
 
-  for (size_t i = 0; i < CACHELINE_SIZE / n; ++i, m >>= n)
-    store_mask (&d->w[i], s->w[i], m);
-}
-
-} // namespace GTM
+#endif /* HAVE_ASM_CFI */

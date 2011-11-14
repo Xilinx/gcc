@@ -1,3 +1,59 @@
+2011-11-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51073
+	* trans-decl.c (generate_coarray_sym_init): Handle zero-sized arrays.
+
+2011-11-09  Tobias Burnus  <burnus@net-b.de>
+
+	* symbol.c (clear_sym_mark, traverse_ns): Remove functions.
+	(count_st_nodes, do_traverse_symtree, fill_st_vector): New functions.
+	(gfc_traverse_symtree, gfc_traverse_ns): Call do_traverse_symtree.
+
+2011-11-09  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/50016
+	* gfortran.texi (Data consistency and durability): New section.
+
+2011-11-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/50540
+	* resolve.c (resolve_forall_iterators): Transform internal errors
+	to normal errors.
+
+2011-11-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/50960
+	* class.c (gfc_find_derived_vtab): Make the vtab symbols FL_PARAMETER.
+	* expr.c (gfc_simplify_expr): Prevent vtabs from being replaced with
+	their value.
+	* resolve.c (resolve_values): Use-associated symbols do not need to
+	be resolved again.
+	(resolve_fl_parameter): Make sure the symbol has a value.
+
+2011-11-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38718
+	* intrinsic.c (add_functions): Allow dreal simplification.
+	* intrinsic.h (gfc_simplify_dreal): New prototype.
+	* simplify.c (gfc_simplify_dreal): New function.
+
+2011-11-09  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/21881
+	* trans-types.c (gfc_get_dtype): Issue a fatal error instead of
+	an internal error.
+
+2011-11-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/50404
+	* io.c (gfc_resolve_close): CLOSE requires a UNIT.
+
+2011-11-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/50409
+	* expr.c (gfc_simplify_expr): Substrings can't have negative
+	length.
+
 2011-11-08  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/50334
@@ -593,7 +649,7 @@
 2011-10-23  Steven G. Kargl  <kargl@gcc.gnu.org>
 
 	* simplify.c (simplify_transformation_to_array): Fix memory leak.
- 
+
 2011-10-20  Steven G. Kargl  <kargl@gcc.gnu.org>
 
 	PR fortran/50821

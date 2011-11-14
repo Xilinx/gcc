@@ -568,7 +568,7 @@ canadian-gnattools: force
 	$(MAKE) -C ada $(ADA_TOOLS_FLAGS_TO_PASS) gnattools1-re
 	$(MAKE) -C ada $(ADA_TOOLS_FLAGS_TO_PASS) gnattools2
 
-gnatlib gnatlib-sjlj gnatlib-zcx gnatlib-shared: ada/s-oscons.ads force
+gnatlib gnatlib-sjlj gnatlib-zcx gnatlib-shared: force
 	$(MAKE) -C ada $(COMMON_FLAGS_TO_PASS)  \
 	   GNATLIBFLAGS="$(GNATLIBFLAGS)" \
 	   GNATLIBCFLAGS="$(GNATLIBCFLAGS)" \
@@ -1297,7 +1297,7 @@ ada/utils.o : ada/gcc-interface/utils.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) -I.. $(ALL_CPPFLAGS) $< -o $@
 
 ada/utils2.o : ada/gcc-interface/utils2.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   $(TM_H) $(TREE_H) $(FLAGS_H) output.h $(TREE_INLINE_H) \
+   $(TM_H) $(TREE_H) $(FLAGS_H) toplev.h output.h $(TREE_INLINE_H) \
    ada/gcc-interface/ada.h ada/types.h ada/atree.h ada/elists.h ada/namet.h \
    ada/nlists.h ada/snames.h ada/stringt.h ada/uintp.h ada/fe.h ada/sinfo.h \
    ada/einfo.h $(ADA_TREE_H) ada/gcc-interface/gigi.h

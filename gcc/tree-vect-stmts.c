@@ -1886,6 +1886,9 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
      it defines is mapped to the new definition.  So just replace
      rhs of the statement with something harmless.  */
 
+  if (slp_node)
+    return true;
+
   type = TREE_TYPE (scalar_dest);
   if (is_pattern_stmt_p (stmt_info))
     lhs = gimple_call_lhs (STMT_VINFO_RELATED_STMT (stmt_info));
@@ -1893,8 +1896,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
     lhs = gimple_call_lhs (stmt);
   new_stmt = gimple_build_assign (lhs, build_zero_cst (type));
   set_vinfo_for_stmt (new_stmt, stmt_info);
-  if (!slp_node)
-    set_vinfo_for_stmt (stmt, NULL);
+  set_vinfo_for_stmt (stmt, NULL);
   STMT_VINFO_STMT (stmt_info) = new_stmt;
   gsi_replace (gsi, new_stmt, false);
   SSA_NAME_DEF_STMT (gimple_assign_lhs (new_stmt)) = new_stmt;
@@ -4966,7 +4968,7 @@ vectorizable_condition (gimple stmt, gimple_stmt_iterator *gsi,
   tree cond_expr, then_clause, else_clause;
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   tree vectype = STMT_VINFO_VECTYPE (stmt_info);
-  tree comp_vectype;
+  tree comp_vectype = NULL_TREE;
   tree vec_cond_lhs = NULL_TREE, vec_cond_rhs = NULL_TREE;
   tree vec_then_clause = NULL_TREE, vec_else_clause = NULL_TREE;
   tree vec_compare, vec_cond_expr;
@@ -5567,10 +5569,14 @@ vect_remove_stores (gimple first_stmt)
 
   while (next)
     {
+      stmt_vec_info stmt_info = vinfo_for_stmt (next);
+
+      tmp = GROUP_NEXT_ELEMENT (stmt_info);
+      if (is_pattern_stmt_p (stmt_info))
+	next = STMT_VINFO_RELATED_STMT (stmt_info);
       /* Free the attached stmt_vec_info and remove the stmt.  */
       next_si = gsi_for_stmt (next);
       gsi_remove (&next_si, true);
-      tmp = GROUP_NEXT_ELEMENT (vinfo_for_stmt (next));
       free_stmt_vec_info (next);
       next = tmp;
     }
@@ -5659,6 +5665,22 @@ free_stmt_vec_info (gimple stmt)
 
   if (!stmt_info)
     return;
+
+  /* Check if this statement has a related "pattern stmt"
+     (introduced by the vectorizer during the pattern recognition
+     pass).  Free pattern's stmt_vec_info and def stmt's stmt_vec_info
+     too.  */
+  if (STMT_VINFO_IN_PATTERN_P (stmt_info))
+    {
+      stmt_vec_info patt_info
+	= vinfo_for_stmt (STMT_VINFO_RELATED_STMT (stmt_info));
+      if (patt_info)
+	{
+	  if (STMT_VINFO_PATTERN_DEF_STMT (patt_info))
+	    free_stmt_vec_info (STMT_VINFO_PATTERN_DEF_STMT (patt_info));
+	  free_stmt_vec_info (STMT_VINFO_RELATED_STMT (stmt_info));
+	}
+    }
 
   VEC_free (dr_p, heap, STMT_VINFO_SAME_ALIGN_REFS (stmt_info));
   set_vinfo_for_stmt (stmt, NULL);

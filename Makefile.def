@@ -260,6 +260,7 @@ flags_to_pass = { flag= LIBCXXFLAGS_FOR_TARGET ; };
 flags_to_pass = { flag= NM_FOR_TARGET ; };
 flags_to_pass = { flag= OBJDUMP_FOR_TARGET ; };
 flags_to_pass = { flag= RANLIB_FOR_TARGET ; };
+flags_to_pass = { flag= READELF_FOR_TARGET ; };
 flags_to_pass = { flag= STRIP_FOR_TARGET ; };
 flags_to_pass = { flag= WINDRES_FOR_TARGET ; };
 flags_to_pass = { flag= WINDMC_FOR_TARGET ; };
@@ -513,7 +514,7 @@ dependencies = { module=configure-target-newlib; on=all-ld; };
 dependencies = { module=configure-target-libgfortran; on=all-target-libquadmath; };
 
 languages = { language=c;	gcc-check-target=check-gcc; };
-languages = { language=c++;	gcc-check-target="check-c++ check-c++0x";
+languages = { language=c++;	gcc-check-target=check-c++;
 				lib-check-target=check-target-libstdc++-v3;
 				lib-check-target=check-target-libmudflap-c++; };
 languages = { language=fortran;	gcc-check-target=check-fortran;
