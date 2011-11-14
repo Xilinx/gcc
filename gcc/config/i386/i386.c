@@ -2370,7 +2370,6 @@ static rtx (*ix86_gen_andsp) (rtx, rtx, rtx);
 static rtx (*ix86_gen_allocate_stack_worker) (rtx, rtx);
 static rtx (*ix86_gen_adjust_stack_and_probe) (rtx, rtx, rtx);
 static rtx (*ix86_gen_probe_stack_range) (rtx, rtx, rtx);
-static rtx (*ix86_gen_pro_epilogue_adjust_stack) (rtx, rtx, rtx);
 
 /* Preferred alignment for stack boundary in bits.  */
 unsigned int ix86_preferred_stack_boundary;
@@ -4272,8 +4271,6 @@ ix86_option_override_internal (bool main_args_p)
       ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_di;
       ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probedi;
       ix86_gen_probe_stack_range = gen_probe_stack_rangedi;
-      ix86_gen_pro_epilogue_adjust_stack
-	= gen_pro_epilogue_adjust_stack_di_sub;
     }
   else
     {
@@ -4285,8 +4282,6 @@ ix86_option_override_internal (bool main_args_p)
       ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_si;
       ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probesi;
       ix86_gen_probe_stack_range = gen_probe_stack_rangesi;
-      ix86_gen_pro_epilogue_adjust_stack
-	= gen_pro_epilogue_adjust_stack_si_sub;
     }
 
 #ifdef USE_IX86_CLD
@@ -10699,6 +10694,7 @@ ix86_expand_prologue (void)
     {
       rtx eax = gen_rtx_REG (Pmode, AX_REG);
       rtx r10 = NULL;
+      rtx (*adjust_stack_insn)(rtx, rtx, rtx);
 
       bool eax_live = false;
       bool r10_live = false;
@@ -10724,8 +10720,12 @@ ix86_expand_prologue (void)
       emit_insn (ix86_gen_allocate_stack_worker (eax, eax));
 
       /* Use the fact that AX still contains ALLOCATE.  */
-      insn = emit_insn (ix86_gen_pro_epilogue_adjust_stack
-			(stack_pointer_rtx, stack_pointer_rtx, eax));
+      adjust_stack_insn = (Pmode == DImode
+			   ? gen_pro_epilogue_adjust_stack_di_sub
+			   : gen_pro_epilogue_adjust_stack_si_sub);
+
+      insn = emit_insn (adjust_stack_insn (stack_pointer_rtx,
+					   stack_pointer_rtx, eax));
 
       /* Note that SEH directives need to continue tracking the stack
 	 pointer even after the frame pointer has been set up.  */
