@@ -1,3 +1,14 @@
+2011-11-13   Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (c_parse_file): Call pph_init_include_tree.
+	* pph.c (pph_init_include_tree): New.
+	(flatten_name): New.
+	(pph_file_change_handler): New.
+	(pph_include_handler_for_map): New.
+	(pph_init_map_file): New.
+	(pph_finish_map_file): New.
+	* pph.h (pph_init_include_tree): New.
+
 2011-11-07   Lawrence Crowl  <crowl@google.com>
 
 	* pph.c (pph_tree_code_text): Fix formatting.

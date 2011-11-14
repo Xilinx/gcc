@@ -158,7 +158,12 @@ pph_is_valid_here (const char *name, location_t loc)
 }
 
 
-/* Record a #include or #include_next for PPH.  */
+/* Record a #include or #include_next for PPH.
+   READER is the main pre-processor object, LOC is the location where
+   the #include is being emitted from, DNAME is the name of the
+   #include directive used, NAME is the canonical name of the file being
+   included, ANGLE_BRACKETS is non-zero if this #include uses <> and
+   TOK_P is a pointer to the current token being pre-processed.  */
 
 static bool
 pph_include_handler (cpp_reader *reader,
@@ -264,4 +269,134 @@ pph_finish (void)
 
   if (flag_pph_logfile)
     fclose (pph_logfile);
+}
+
+
+/* PPH include tree dumper.  Each entry in this file has the format:
+
+	DEPTH|SYSP|DNAME|CANONICAL-NAME|FULL-NAME|PPH-NAME
+
+  Where:
+	DEPTH		is the include depth of the file.
+	SYSP		1 for a system header
+			2 for a C system header that needs 'extern "C"'
+			0 otherwise.
+	DNAME		name of the #include directive used.
+	CANONICAL-NAME	is the name of the file as specified by the
+			#include directive.
+	FULL-NAME	is the full path name where the included file
+			was found by the pre-processor.
+	PPH-NAME	is the name of the associated PPH file.  */
+typedef struct {
+  /* Name of current #include directive.  */
+  const unsigned char *dname;
+
+  /* Canonical name of file being included.  */
+  const char *name;
+
+  /* Previous libcpp #include handler.  */
+  void (*prev_file_change) (cpp_reader *, const struct line_map *);
+
+  /* Previous libcpp file change handler.  */
+  bool (*prev_include) (cpp_reader *, source_location, const unsigned char *,
+		        const char *, int, const cpp_token **);
+} pph_include_tree_dumper;
+
+static pph_include_tree_dumper tree_dumper;
+
+
+/* Return a copy of NAME with the characters '/' and '.' replaced with
+   '_'.  The caller is reponsible for freeing the returned string.  */
+
+static char *
+flatten_name (const char *name)
+{
+  char *str = xstrdup (name);
+  size_t i;
+
+  for (i = 0; i < strlen (str); i++)
+    if (str[i] == DIR_SEPARATOR || str[i] == '.')
+      str[i] = '_';
+
+  return str;
+}
+
+
+/* File change handler for libcpp.  READER is the main pre-processor object,
+   MAP is the line map entry for the file that we are entering into.  */
+
+static void
+pph_file_change_handler (cpp_reader *reader, const struct line_map *map)
+{
+  char *flat;
+
+  if (tree_dumper.prev_file_change)
+    tree_dumper.prev_file_change (reader, map);
+
+  /* We are only interested in line maps that describe a new file being
+     entered.  */
+  if (map == NULL || map->reason != LC_ENTER)
+    return;
+
+  /* Emit a line to the map file with the format:
+
+	DEPTH|SYSP|DNAME|CANONICAL-NAME|FULL-NAME|PPH-NAME
+  */
+  flat = flatten_name (map->to_file);
+  fprintf (stderr, "%d|%d|%s|%s|%s|%s.pph\n", line_table->depth, map->sysp,
+	   tree_dumper.dname, tree_dumper.name, map->to_file, flat);
+  free (flat);
+  tree_dumper.dname = NULL;
+  tree_dumper.name = NULL;
+}
+
+
+/* #include handler for libcpp.  READER is the main pre-processor object,
+   LOC is the location where the #include is being emitted from, DNAME
+   is the name of the #include directive used, NAME is the canonical
+   name of the file being included, ANGLE_BRACKETS is non-zero if this
+   #include uses <> and TOK_P is a pointer to the current token being
+   pre-processed.  */
+
+static bool
+pph_include_handler_for_map (cpp_reader *reader,
+			     location_t loc,
+                             const unsigned char *dname,
+                             const char *name,
+                             int angle_brackets,
+                             const cpp_token **tok_p)
+{
+  bool retval = true;
+
+  if (tree_dumper.prev_include)
+    retval &= tree_dumper.prev_include (reader, loc, dname, name,
+					angle_brackets, tok_p);
+  tree_dumper.dname = dname;
+  tree_dumper.name = name;
+
+  return retval;
+}
+
+
+/* Initialize the #include tree dumper.  */
+
+void
+pph_init_include_tree (void)
+{
+  cpp_callbacks *cb;
+
+  memset (&tree_dumper, 0, sizeof (tree_dumper));
+
+  if (pph_enabled_p ())
+    fatal_error ("do not use -fpph-map-gen with any other PPH flag");
+
+  /* Set up the libcpp handler for file change events.  Each event
+     will generate a new entry in the map file.  */
+  cb = cpp_get_callbacks (parse_in);
+
+  tree_dumper.prev_file_change = cb->file_change;
+  cb->file_change = pph_file_change_handler;
+
+  tree_dumper.prev_include = cb->include;
+  cb->include = pph_include_handler_for_map;
 }

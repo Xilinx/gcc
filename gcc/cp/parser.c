@@ -26321,6 +26321,9 @@ c_parse_file (void)
   if (pph_enabled_p ())
     pph_init ();
 
+  if (flag_pph_include_tree)
+    pph_init_include_tree ();
+
   the_parser = cp_parser_new ();
   push_deferring_access_checks (flag_access_control
 				? dk_no_deferred : dk_no_check);

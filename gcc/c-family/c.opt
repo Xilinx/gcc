@@ -961,12 +961,16 @@ C++ Joined MissingArgError(missing filename after %qs)
 -fpph-hdr=<base-name>   A mapping from <base-name>.h to <base-name>.pph
 
 fpph-logfile=
-C++ Joined RejectNegative Var(flag_pph_logfile)
+C++ Joined RejectNegative MissingArgError(missing filename after %qs) Var(flag_pph_logfile)
 -fpph-logfile=<file-name>	Emit PPH debug information to <file-name>
 
 fpph-map=
-C++ Joined MissingArgError(missing filename after %qs)
+C++ Joined RejectNegative MissingArgError(missing filename after %qs) Var(flag_pph_map)
 -fpph-map=<file-name>   A file of mappings from #include to PPH file
+
+fpph-include-tree
+C++ Var(flag_pph_include_tree)
+-fpph-include-tree	Print the include tree for the current TU to stderr
 
 fpph-tracer=
 C++ Joined RejectNegative UInteger Var(flag_pph_tracer)

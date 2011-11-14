@@ -142,6 +142,7 @@ extern void pph_init (void);
 extern void pph_finish (void);
 extern void pph_dump_location (FILE *file, location_t loc);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
+extern void pph_init_include_tree (void);
 
 /* In pph-streamer-out.c.  */
 extern void pph_out_uint (pph_stream *stream, unsigned int value);
