@@ -255,21 +255,16 @@ AC_CACHE_CHECK([whether assembler supports CFI directives], [libgcc_cv_cfi],
   [libgcc_cv_cfi=yes],
   [libgcc_cv_cfi=no])])
 
-# Check 32bit or 64bit for x86 and sparc.
-case ${host} in
-i?86*-*-* | x86_64*-*-* | sparc*-*-*)
-  cat > conftest.c <<EOF
-#if defined(__x86_64__) || \
-    (defined(__sparc__) && defined(__arch64__))
+# Check 32bit or 64bit
+cat > conftest.c <<EOF
+#if defined(__x86_64__) || (!defined(__i386__) && defined(__LP64__))
 host_address=64
 #else
 host_address=32
 #endif
 EOF
-    eval `${CC-cc} -E conftest.c | grep host_address=`
-    rm -f conftest.c
-    ;;
-esac
+eval `${CC-cc} -E conftest.c | grep host_address=`
+rm -f conftest.c
 
 # Collect host-machine-specific information.
 . ${srcdir}/config.host
@@ -371,7 +366,7 @@ case $target_thread_file in
     dce)	thread_header=config/pa/gthr-dce.h ;;
     lynx)	thread_header=config/gthr-lynx.h ;;
     mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
-    posix)	thread_header=config/gthr-posix.h ;;
+    posix)	thread_header=gthr-posix.h ;;
     rtems)	thread_header=config/gthr-rtems.h ;;
     single)	thread_header=gthr-single.h ;;
     tpf)	thread_header=config/s390/gthr-tpf.h ;;

@@ -164,6 +164,8 @@ C_STRICT_WARN = @c_strict_warn@
 # "extern" tags in header files.
 NOCOMMON_FLAG = @nocommon_flag@
 
+NOEXCEPTION_FLAGS = @noexception_flags@
+
 # This is set by --disable-maintainer-mode (default) to "#"
 # FIXME: 'MAINT' will always be set to an empty string, no matter if
 # --disable-maintainer-mode is used or not.  This is because the
@@ -374,6 +376,7 @@ USER_H = $(srcdir)/ginclude/float.h \
 	 $(srcdir)/ginclude/varargs.h \
 	 $(srcdir)/ginclude/stdfix.h \
 	 $(srcdir)/ginclude/stdnoreturn.h \
+	 $(srcdir)/ginclude/stdalign.h \
 	 $(EXTRA_HEADERS)
 
 USER_H_INC_NEXT_PRE = @user_headers_inc_next_pre@
@@ -853,7 +856,8 @@ RTL_H = $(RTL_BASE_H) genrtl.h vecir.h
 RTL_ERROR_H = $(RTL_H) $(DIAGNOSTIC_CORE_H)
 READ_MD_H = $(OBSTACK_H) $(HASHTAB_H) read-md.h
 PARAMS_H = params.h params.def
-BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def
+BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def \
+	gtm-builtins.def
 INTERNAL_FN_DEF = internal-fn.def
 INTERNAL_FN_H = internal-fn.h $(INTERNAL_FN_DEF)
 TREE_H = tree.h all-tree.def tree.def c-family/c-common.def \
@@ -866,6 +870,7 @@ BASIC_BLOCK_H = basic-block.h $(PREDICT_H) $(VEC_H) $(FUNCTION_H) cfghooks.h
 GIMPLE_H = gimple.h gimple.def gsstruct.def pointer-set.h $(VEC_H) \
 	vecir.h $(GGC_H) $(BASIC_BLOCK_H) $(TARGET_H) tree-ssa-operands.h \
 	tree-ssa-alias.h $(INTERNAL_FN_H)
+TRANS_MEM_H = trans-mem.h
 GCOV_IO_H = gcov-io.h gcov-iov.h auto-host.h
 COVERAGE_H = coverage.h $(GCOV_IO_H)
 DEMANGLE_H = $(srcdir)/../include/demangle.h
@@ -974,7 +979,7 @@ ALL_CFLAGS = $(T_CFLAGS) $(CFLAGS-$@) \
 
 # The C++ version.
 ALL_CXXFLAGS = $(T_CFLAGS) $(CFLAGS-$@) $(CXXFLAGS) $(INTERNAL_CFLAGS) \
-  $(COVERAGE_FLAGS) $(WARN_CXXFLAGS) @DEFS@
+  $(COVERAGE_FLAGS) $(NOEXCEPTION_FLAGS) $(WARN_CXXFLAGS) @DEFS@
 
 # Likewise.  Put INCLUDES at the beginning: this way, if some autoconf macro
 # puts -I options in CPPFLAGS, our include files in the srcdir will always
@@ -1349,6 +1354,7 @@ OBJS = \
 	timevar.o \
 	toplev.o \
 	tracer.o \
+	trans-mem.o \
 	tree-affine.o \
 	tree-call-cdce.o \
 	tree-cfg.o \
@@ -2155,6 +2161,12 @@ gtype-desc.o: gtype-desc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(CFGLOOP_H) $(TARGET_H) $(IPA_PROP_H) $(LTO_STREAMER_H) \
 	target-globals.h
 
+trans-mem.o : trans-mem.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+	$(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) $(TREE_PASS_H) $(TREE_INLINE_H) \
+	$(DIAGNOSTIC_CORE_H) $(DEMANGLE_H) output.h $(TRANS_MEM_H) \
+	$(PARAMS_H) $(TARGET_H) langhooks.h \
+	tree-pretty-print.h gimple-pretty-print.h
+
 ggc-common.o: ggc-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h		\
 	$(GGC_H) $(HASHTAB_H) $(DIAGNOSTIC_CORE_H) $(PARAMS_H) hosthooks.h	\
 	$(HOSTHOOKS_DEF_H) $(VEC_H) $(PLUGIN_H) $(GGC_INTERNAL_H) $(TIMEVAR_H)
@@ -2681,6 +2693,7 @@ gimple.o : gimple.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 gimple-pretty-print.o : gimple-pretty-print.c $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(DIAGNOSTIC_H) $(HASHTAB_H) $(TREE_FLOW_H) \
    $(TM_H) coretypes.h $(TREE_PASS_H) $(GIMPLE_H) value-prof.h \
+   $(TRANS_MEM_H) \
    tree-pretty-print.h gimple-pretty-print.h
 tree-mudflap.o : $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(TREE_INLINE_H) \
    $(GIMPLE_H) $(DIAGNOSTIC_H) $(DEMANGLE_H) $(HASHTAB_H) langhooks.h tree-mudflap.h \
@@ -2794,7 +2807,8 @@ function.o : function.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_ERROR_
    $(OPTABS_H) $(LIBFUNCS_H) $(REGS_H) hard-reg-set.h insn-config.h $(RECOG_H) \
    output.h  $(EXCEPT_H) $(HASHTAB_H) $(GGC_H) $(TM_P_H) langhooks.h \
    gt-function.h $(TARGET_H) $(BASIC_BLOCK_H) $(INTEGRATE_H) $(PREDICT_H) \
-   $(TREE_PASS_H) $(DF_H) $(TIMEVAR_H) vecprim.h $(COMMON_TARGET_H)
+   $(TREE_PASS_H) $(DF_H) $(TIMEVAR_H) vecprim.h $(PARAMS_H) bb-reorder.h \
+   $(COMMON_TARGET_H)
 statistics.o : statistics.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TREE_PASS_H) $(TREE_DUMP_H) $(HASHTAB_H) statistics.h $(FUNCTION_H)
 stmt.o : stmt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
@@ -3730,6 +3744,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/lto-symtab.c \
   $(srcdir)/tree-ssa-alias.h \
   $(srcdir)/ipa-prop.h \
+  $(srcdir)/trans-mem.c \
   $(srcdir)/lto-streamer.h \
   $(srcdir)/target-globals.h \
   $(srcdir)/ipa-inline.h \
@@ -3976,7 +3991,7 @@ PREPROCESSOR_DEFINES = \
 
 CFLAGS-cppbuiltin.o += $(PREPROCESSOR_DEFINES) -DBASEVER=$(BASEVER_s)
 cppbuiltin.o: cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-	cppbuiltin.h Makefile
+	$(TREE_H) cppbuiltin.h Makefile
 
 CFLAGS-cppdefault.o += $(PREPROCESSOR_DEFINES)
 cppdefault.o: cppdefault.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \

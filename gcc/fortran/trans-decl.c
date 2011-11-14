@@ -517,6 +517,10 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   /* If it wasn't used we wouldn't be getting it.  */
   TREE_USED (decl) = 1;
 
+  if (sym->attr.flavor == FL_PARAMETER
+      && (sym->attr.dimension || sym->ts.type == BT_DERIVED))
+    TREE_READONLY (decl) = 1;
+
   /* Chain this decl to the pending declarations.  Don't do pushdecl()
      because this would add them to the current scope rather than the
      function scope.  */
@@ -4230,12 +4234,16 @@ generate_coarray_sym_init (gfc_symbol *sym)
 
   size = TYPE_SIZE_UNIT (gfc_get_element_type (TREE_TYPE (decl)));
 
+  /* Ensure that we do not have size=0 for zero-sized arrays.  */ 
+  size = fold_build2_loc (input_location, MAX_EXPR, size_type_node,
+			  fold_convert (size_type_node, size),
+			  build_int_cst (size_type_node, 1));
+
   if (GFC_TYPE_ARRAY_RANK (TREE_TYPE (decl)))
     {
       tmp = GFC_TYPE_ARRAY_SIZE (TREE_TYPE (decl));
       size = fold_build2_loc (input_location, MULT_EXPR, size_type_node,
-			      fold_convert (size_type_node, tmp),
-			      fold_convert (size_type_node, size));
+			      fold_convert (size_type_node, tmp), size);
     }
 
   gcc_assert (GFC_TYPE_ARRAY_CAF_TOKEN (TREE_TYPE (decl)) != NULL_TREE);

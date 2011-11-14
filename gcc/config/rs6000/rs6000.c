@@ -6169,6 +6169,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 #if TARGET_MACHO
       && DEFAULT_ABI == ABI_DARWIN
       && (flag_pic || MACHO_DYNAMIC_NO_PIC_P)
+      && machopic_symbol_defined_p (x)
 #else
       && DEFAULT_ABI == ABI_V4
       && !flag_pic
@@ -16775,6 +16776,7 @@ rs6000_emit_vector_cond_expr (rtx dest, rtx op_true, rtx op_false,
 			      rtx cond, rtx cc_op0, rtx cc_op1)
 {
   enum machine_mode dest_mode = GET_MODE (dest);
+  enum machine_mode mask_mode = GET_MODE (cc_op0);
   enum rtx_code rcode = GET_CODE (cond);
   enum machine_mode cc_mode = CCmode;
   rtx mask;
@@ -16784,6 +16786,9 @@ rs6000_emit_vector_cond_expr (rtx dest, rtx op_true, rtx op_false,
 
   if (VECTOR_UNIT_NONE_P (dest_mode))
     return 0;
+
+  gcc_assert (GET_MODE_SIZE (dest_mode) == GET_MODE_SIZE (mask_mode)
+	      && GET_MODE_NUNITS (dest_mode) == GET_MODE_NUNITS (mask_mode));
 
   switch (rcode)
     {
@@ -16815,7 +16820,7 @@ rs6000_emit_vector_cond_expr (rtx dest, rtx op_true, rtx op_false,
     }
 
   /* Get the vector mask for the given relational operations.  */
-  mask = rs6000_emit_vector_compare (rcode, cc_op0, cc_op1, dest_mode);
+  mask = rs6000_emit_vector_compare (rcode, cc_op0, cc_op1, mask_mode);
 
   if (!mask)
     return 0;
@@ -16827,7 +16832,8 @@ rs6000_emit_vector_cond_expr (rtx dest, rtx op_true, rtx op_false,
       op_false = tmp;
     }
 
-  cond2 = gen_rtx_fmt_ee (NE, cc_mode, mask, CONST0_RTX (dest_mode));
+  cond2 = gen_rtx_fmt_ee (NE, cc_mode, gen_lowpart (dest_mode, mask),
+			  CONST0_RTX (dest_mode));
   emit_insn (gen_rtx_SET (VOIDmode,
 			  dest,
 			  gen_rtx_IF_THEN_ELSE (dest_mode,
@@ -19661,7 +19667,7 @@ rs6000_emit_stack_reset (rs6000_stack_t *info,
 {
   /* This blockage is needed so that sched doesn't decide to move
      the sp change before the register restores.  */
-  if (frame_reg_rtx != sp_reg_rtx
+  if (DEFAULT_ABI == ABI_V4
       || (TARGET_SPE_ABI
 	  && info->spe_64bit_regs_used != 0
 	  && info->first_gp_reg_save != 32))
@@ -21461,15 +21467,28 @@ rs6000_output_function_epilogue (FILE *file,
      it looks like we might want one, insert a NOP.  */
   {
     rtx insn = get_last_insn ();
+    rtx deleted_debug_label = NULL_RTX;
     while (insn
 	   && NOTE_P (insn)
 	   && NOTE_KIND (insn) != NOTE_INSN_DELETED_LABEL)
-      insn = PREV_INSN (insn);
+      {
+	/* Don't insert a nop for NOTE_INSN_DELETED_DEBUG_LABEL
+	   notes only, instead set their CODE_LABEL_NUMBER to -1,
+	   otherwise there would be code generation differences
+	   in between -g and -g0.  */
+	if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL)
+	  deleted_debug_label = insn;
+	insn = PREV_INSN (insn);
+      }
     if (insn
 	&& (LABEL_P (insn)
 	    || (NOTE_P (insn)
 		&& NOTE_KIND (insn) == NOTE_INSN_DELETED_LABEL)))
       fputs ("\tnop\n", file);
+    else if (deleted_debug_label)
+      for (insn = deleted_debug_label; insn; insn = NEXT_INSN (insn))
+	if (NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL)
+	  CODE_LABEL_NUMBER (insn) = -1;
   }
 #endif
 

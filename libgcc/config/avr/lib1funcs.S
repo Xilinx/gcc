@@ -562,30 +562,33 @@ ENDF __udivmodhi4
 
 #if defined (L_divmodhi4)
 DEFUN __divmodhi4
-	.global	_div
+    .global _div
 _div:
-        bst     r_arg1H,7	; store sign of dividend
-        mov     __tmp_reg__,r_arg1H
-        eor     __tmp_reg__,r_arg2H   ; r0.7 is sign of result
-	rcall	__divmodhi4_neg1 ; dividend negative : negate
-	sbrc	r_arg2H,7
-	rcall	__divmodhi4_neg2 ; divisor negative : negate
-	XCALL	__udivmodhi4	; do the unsigned div/mod
-	rcall	__divmodhi4_neg1 ; correct remainder sign
-	tst	__tmp_reg__
-	brpl	__divmodhi4_exit
-__divmodhi4_neg2:
-	com	r_arg2H
-	neg	r_arg2L		; correct divisor/result sign
-	sbci	r_arg2H,0xff
-__divmodhi4_exit:
-	ret
+    bst     r_arg1H,7           ; store sign of dividend
+    mov     __tmp_reg__,r_arg2H
+    brtc    0f
+    com     __tmp_reg__         ; r0.7 is sign of result
+    rcall   __divmodhi4_neg1    ; dividend negative: negate
+0:
+    sbrc    r_arg2H,7
+    rcall   __divmodhi4_neg2    ; divisor negative: negate
+    XCALL   __udivmodhi4        ; do the unsigned div/mod
+    sbrc    __tmp_reg__,7
+    rcall   __divmodhi4_neg2    ; correct remainder sign
+    brtc    __divmodhi4_exit
 __divmodhi4_neg1:
-	brtc	__divmodhi4_exit
-	com	r_arg1H
-	neg	r_arg1L		; correct dividend/remainder sign
-	sbci	r_arg1H,0xff
-	ret
+    ;; correct dividend/remainder sign
+    com     r_arg1H
+    neg     r_arg1L
+    sbci    r_arg1H,0xff
+    ret
+__divmodhi4_neg2:
+    ;; correct divisor/result sign
+    com     r_arg2H
+    neg     r_arg2L
+    sbci    r_arg2H,0xff
+__divmodhi4_exit:
+    ret
 ENDF __divmodhi4
 #endif /* defined (L_divmodhi4) */
 
@@ -599,7 +602,142 @@ ENDF __divmodhi4
 #undef r_arg2L 
              	
 #undef r_cnt   	
-	
+
+/*******************************************************
+       Division 24 / 24 => (result + remainder)
+*******************************************************/
+
+;; A[0..2]: In: Dividend; Out: Quotient
+#define A0  22
+#define A1  A0+1
+#define A2  A0+2
+
+;; B[0..2]: In: Divisor;   Out: Remainder
+#define B0  18
+#define B1  B0+1
+#define B2  B0+2
+
+;; C[0..2]: Expand remainder
+#define C0  __zero_reg__
+#define C1  26
+#define C2  25
+
+;; Loop counter
+#define r_cnt   21
+
+#if defined (L_udivmodpsi4)
+;; R24:R22 = R24:R22  udiv  R20:R18
+;; R20:R18 = R24:R22  umod  R20:R18
+;; Clobbers: R21, R25, R26
+
+DEFUN __udivmodpsi4
+    ; init loop counter
+    ldi     r_cnt, 24+1
+    ; Clear remainder and carry.  C0 is already 0
+    clr     C1
+    sub     C2, C2
+    ; jump to entry point
+    rjmp    __udivmodpsi4_start
+__udivmodpsi4_loop:
+    ; shift dividend into remainder
+    rol     C0
+    rol     C1
+    rol     C2
+    ; compare remainder & divisor
+    cp      C0, B0
+    cpc     C1, B1
+    cpc     C2, B2
+    brcs    __udivmodpsi4_start ; remainder <= divisor
+    sub     C0, B0              ; restore remainder
+    sbc     C1, B1
+    sbc     C2, B2
+__udivmodpsi4_start:
+    ; shift dividend (with CARRY)
+    rol     A0
+    rol     A1
+    rol     A2
+    ; decrement loop counter
+    dec     r_cnt
+    brne    __udivmodpsi4_loop
+    com     A0
+    com     A1
+    com     A2
+    ; div/mod results to return registers
+    ; remainder
+    mov     B0, C0
+    mov     B1, C1
+    mov     B2, C2
+    clr     __zero_reg__ ; C0
+    ret
+ENDF __udivmodpsi4
+#endif /* defined (L_udivmodpsi4) */
+
+#if defined (L_divmodpsi4)
+;; R24:R22 = R24:R22  div  R20:R18
+;; R20:R18 = R24:R22  mod  R20:R18
+;; Clobbers: T, __tmp_reg__, R21, R25, R26
+
+DEFUN __divmodpsi4
+    ; R0.7 will contain the sign of the result:
+    ; R0.7 = A.sign ^ B.sign
+    mov __tmp_reg__, B2
+    ; T-flag = sign of dividend
+    bst     A2, 7
+    brtc    0f
+    com     __tmp_reg__
+    ; Adjust dividend's sign
+    rcall   __divmodpsi4_negA
+0:
+    ; Adjust divisor's sign
+    sbrc    B2, 7
+    rcall   __divmodpsi4_negB
+
+    ; Do the unsigned div/mod
+    XCALL   __udivmodpsi4
+
+    ; Adjust quotient's sign
+    sbrc    __tmp_reg__, 7
+    rcall   __divmodpsi4_negA
+
+    ; Adjust remainder's sign
+    brtc    __divmodpsi4_end
+
+__divmodpsi4_negB:
+    ; Correct divisor/remainder sign
+    com     B2
+    com     B1
+    neg     B0
+    sbci    B1, -1
+    sbci    B2, -1
+    ret
+
+    ; Correct dividend/quotient sign
+__divmodpsi4_negA:
+    com     A2
+    com     A1
+    neg     A0
+    sbci    A1, -1
+    sbci    A2, -1
+__divmodpsi4_end:
+    ret
+
+ENDF __divmodpsi4
+#endif /* defined (L_divmodpsi4) */
+
+#undef A0
+#undef A1
+#undef A2
+
+#undef B0
+#undef B1
+#undef B2
+
+#undef C0
+#undef C1
+#undef C2
+
+#undef r_cnt
+
 /*******************************************************
        Division 32 / 32 => (result + remainder)
 *******************************************************/
@@ -672,36 +810,39 @@ ENDF __udivmodsi4
 
 #if defined (L_divmodsi4)
 DEFUN __divmodsi4
-        bst     r_arg1HH,7	; store sign of dividend
-        mov     __tmp_reg__,r_arg1HH
-        eor     __tmp_reg__,r_arg2HH   ; r0.7 is sign of result
-	rcall	__divmodsi4_neg1 ; dividend negative : negate
-	sbrc	r_arg2HH,7
-	rcall	__divmodsi4_neg2 ; divisor negative : negate
-	XCALL	__udivmodsi4	; do the unsigned div/mod
-	rcall	__divmodsi4_neg1 ; correct remainder sign
-	rol	__tmp_reg__
-	brcc	__divmodsi4_exit
-__divmodsi4_neg2:
-	com	r_arg2HH
-	com	r_arg2HL
-	com	r_arg2H
-	neg	r_arg2L		; correct divisor/quotient sign
-	sbci	r_arg2H,0xff
-	sbci	r_arg2HL,0xff
-	sbci	r_arg2HH,0xff
-__divmodsi4_exit:
-	ret
+    mov     __tmp_reg__,r_arg2HH
+    bst     r_arg1HH,7          ; store sign of dividend
+    brtc    0f
+    com     __tmp_reg__         ; r0.7 is sign of result
+    rcall   __divmodsi4_neg1    ; dividend negative: negate
+0:
+    sbrc    r_arg2HH,7
+    rcall   __divmodsi4_neg2    ; divisor negative: negate
+    XCALL   __udivmodsi4        ; do the unsigned div/mod
+    sbrc    __tmp_reg__, 7      ; correct quotient sign
+    rcall   __divmodsi4_neg2
+    brtc    __divmodsi4_exit    ; correct remainder sign
 __divmodsi4_neg1:
-	brtc	__divmodsi4_exit
-	com	r_arg1HH
-	com	r_arg1HL
-	com	r_arg1H
-	neg	r_arg1L		; correct dividend/remainder sign
-	sbci	r_arg1H, 0xff
-	sbci	r_arg1HL,0xff
-	sbci	r_arg1HH,0xff
-	ret
+    ;; correct dividend/remainder sign
+    com     r_arg1HH
+    com     r_arg1HL
+    com     r_arg1H
+    neg     r_arg1L
+    sbci    r_arg1H, 0xff
+    sbci    r_arg1HL,0xff
+    sbci    r_arg1HH,0xff
+    ret
+__divmodsi4_neg2:
+    ;; correct divisor/quotient sign
+    com     r_arg2HH
+    com     r_arg2HL
+    com     r_arg2H
+    neg     r_arg2L
+    sbci    r_arg2H,0xff
+    sbci    r_arg2HL,0xff
+    sbci    r_arg2HH,0xff
+__divmodsi4_exit:
+    ret
 ENDF __divmodsi4
 #endif /* defined (L_divmodsi4) */
 
