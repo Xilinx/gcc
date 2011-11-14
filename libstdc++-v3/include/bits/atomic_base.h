@@ -68,11 +68,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     return __mo2;
   }
 
-  void
-  atomic_thread_fence(memory_order) noexcept;
+  inline void
+  atomic_thread_fence(memory_order __m) noexcept
+  {
+    __atomic_thread_fence (__m);
+  }
 
-  void
-  atomic_signal_fence(memory_order) noexcept;
+  inline void
+  atomic_signal_fence(memory_order __m) noexcept
+  {
+    __atomic_thread_fence (__m);
+  }
 
   /// kill_dependency
   template<typename _Tp>
@@ -261,13 +267,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     bool
     test_and_set(memory_order __m = memory_order_seq_cst) noexcept
     {
-      return __atomic_exchange_n(&_M_i, 1, __m);
+      return __atomic_test_and_set (&_M_i, __m);
     }
 
     bool
     test_and_set(memory_order __m = memory_order_seq_cst) volatile noexcept
     {
-      return __atomic_exchange_n(&_M_i, 1, __m);
+      return __atomic_test_and_set (&_M_i, __m);
     }
 
     void
@@ -277,7 +283,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_assert(__m != memory_order_acquire);
       __glibcxx_assert(__m != memory_order_acq_rel);
 
-      __atomic_store_n(&_M_i, 0, __m);
+      __atomic_clear (&_M_i, __m);
     }
 
     void
@@ -287,7 +293,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_assert(__m != memory_order_acquire);
       __glibcxx_assert(__m != memory_order_acq_rel);
 
-      __atomic_store_n(&_M_i, 0, __m);
+      __atomic_clear (&_M_i, __m);
     }
   };
 

@@ -1,3 +1,278 @@
+2011-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/986
+	* call.c (set_up_extended_ref_temp): Warn about references
+	bound to non-static reference members.
+	* init.c (perform_member_init): Pass in the member.
+
+	PR c++/51060
+	* cp-gimplify.c (cp_gimplify_expr): Leave clobbers alone.
+
+2011-11-11  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50976
+	* typeck.c (check_literal_operator_args): Reorganize test for string
+	operators so size_t search depends on finding string first.
+
+2011-11-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50372
+	* pt.c (convert_nontype_argument_function): Allow decls with
+	internal linkage in C++11.
+	(convert_nontype_argument): Likewise.
+
+	PR c++/50973
+	* decl2.c (mark_used): Defer synthesis of virtual functions.
+	* method.c (use_thunk): Make sure the target function has
+	DECL_INTERFACE_KNOWN.
+
+	PR c++/51079, DR 495
+	* call.c (joust): Check the second conversion sequence
+	before checking templates.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50837
+	* pt.c (tsubst_copy_and_build) [IDENTIFIER_NODE]: In C++11 mode
+	pass allow_non_integral_constant_expression_p = true to
+	finish_id_expression.
+
+2011-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50972
+	* pt.c (maybe_instantiate_noexcept): Check the return value of
+	push_tinst_level.
+
+	PR c++/51046
+	* parser.c (cp_parser_range_for): check_for_bare_parameter_packs.
+
+	PR c++/51029
+	* class.c (build_base_path): Don't ICE in fold_non_dependent_expr.
+
+	* Make-lang.in (check_g++_parallelize): Add dg-torture.exp.
+	(check-c++0x): Obsolete.
+
+	* pt.c (invalid_nontype_parm_type_p): Avoid printing "<type error>".
+
+	* pt.c (convert_nontype_argument): Only integral arguments
+	get early folding.
+
+	* parser.c (cp_parser_alias_declaration): Don't do semantic
+	processing if parsing failed.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51045
+	* init.c (build_new_1, build_vec_delete_1, build_delete):
+	Use nullptr_node.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51047
+	* search.c (lookup_member): Change to take also a tsubst_flags_t
+	parameter.
+	(lookup_field, lookup_fnfields): Adjust calls.
+	* typeck.c (lookup_destructor, finish_class_member_access_expr,
+	build_ptrmemfunc_access_expr): Likewise.
+	* class.c (handle_using_decl, maybe_note_name_used_in_class):
+	Likewise.
+	* pt.c (resolve_typename_type): Likewise.
+	* semantics.c (lambda_function): Likewise.
+	* parser.c (cp_parser_perform_range_for_lookup,
+	cp_parser_lookup_name): Likewise.
+	* friend.c (make_friend_class): Likewise.
+	* name-lookup.c (pushdecl_maybe_friend_1, get_class_binding,
+	do_class_using_decl, lookup_qualified_name): Likewise.
+	* cp-tree.h (lookup_member): Adjust declaration.
+
+2011-11-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51043
+	* cp-tree.h (TYPE_ALIAS_P, TYPE_TEMPLATE_INFO): Don't crash on
+	NULL TYPE_NAME.
+
+	PR c++/51027
+	* parser.c (cp_parser_alias_declaration): Require ';' at the end
+    	of the declaration.
+
+2011-11-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/51032
+	* decl2.c (check_member_template): Accept alias templates and ...
+    	* parser.c (cp_parser_alias_declaration): ... use it here.
+
+2011-11-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50835
+	* typeck.c (build_x_conditional_expr): Preserve lvalue/xvalueness.
+	* tree.c (lvalue_kind) [NON_DEPENDENT_EXPR]: Return clk_ordinary
+	in C++98.
+
+2011-11-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51010
+	* error.c (dump_expr): Handle SSA_NAMEs.
+
+2011-11-07  Richard Henderson  <rth@redhat.com>
+	    Aldy Hernandez  <aldyh@redhat.com>
+	    Torvald Riegel  <triegel@redhat.com>
+
+	Merged from transactional-memory.
+
+	* call.c (build_new_function_call): Call tm_malloc_replacement.
+	* class.c (check_bases): Compute transaction attributes for the
+	class based on its base classes.
+	(look_for_tm_attr_overrides, set_one_vmethod_tm_attributes,
+	set_method_tm_attributes): New.
+	(finish_struct_1): Call set_method_tm_attributes.
+	* cp-tree.h (begin_transaction_stmt, finish_transaction_stmt,
+	build_transaction_expr): Declare.
+	(TRANSACTION_EXPR_IS_STMT): New.
+	* decl.c (push_cp_library_fn): Set attribute to transaction_safe.
+	* except.c (do_get_exception_ptr): Apply transaction_pure.
+	(do_begin_catch): Mark _ITM_cxa_begin_catch transaction_pure and
+	record as transactional-memory wrapper.
+	(do_end_catch): Similarly for _ITM_cxa_end_catch.
+	(do_allocate_exception): Similarly for _ITM_cxa_allocate_exception.
+	(build_throw): Similarly for _ITM_cxa_throw. Make __cxa_rethrow pure.
+	* parser.h (struct cp_parser): Add in_transaction flag.
+	* parser.c (enum non_integral_constant): Add NIC_TRANSACTION.
+	(cp_parser_non_integral_constant_expression): Handle NIC_TRANSACTION.
+	(enum required_token): Add transaction tokens.
+	(cp_parser_transaction, cp_parser_transaction_expression,
+	cp_parser_function_transaction, cp_parser_transaction_cancel,
+	cp_parser_txn_attribute_opt): New.
+	(cp_parser_unary_expression): Handle RID_TRANSACTION*.
+	(cp_parser_statement, cp_parser_function_definition_after_declarator,
+	cp_parser_token_starts_function_definition_p): Same.
+	(cp_parser_required_error): Handle RT_TRANSACTION*.
+	* pt.c (tsubst_expr): Handle TRANSACTION_EXPR.
+	* semantics.c (begin_transaction_stmt, finish_transaction_stmt,
+	build_transaction_expr): New.
+
+2011-11-08  Dodji Seketeli  <dodji@redhat.com>
+
+	Fix context handling of alias-declaration
+	* decl.c (start_decl): Update comment.
+	* error.c (dump_alias_template_specialization): Dump the context
+	of the specialization.
+	* parser.c (cp_parser_alias_declaration): Call pop_scope on the
+	pushed scope yielded by start_decl.
+
+2011-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50864
+	* parser.c (cp_parser_postfix_dot_deref_expression): Reject invalid
+	uses of '->' and '.' as postfix-expression in namespace scope.
+
+2011-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50848
+	* pt.c (tsubst_copy_and_build) [CALL_EXPR]: Don't crash
+	if lookup finds a non-function.
+
+	PR c++/50863
+	* parser.c (cp_parser_initializer_list): Parse C99
+	array designators tentatively.
+
+	PR c++/50870
+	* pt.c (tsubst_copy): Handle NAMESPACE_DECL.
+	(tsubst_copy_and_build) [COMPONENT_REF]: Handle a still-dependent
+	object.
+
+2011-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* pt.c (tsubst_copy_and_build): Fix qualified_name_lookup_error
+	call in case COMPONENT_REF.
+
+2011-11-07  Jason Merrill  <jason@redhat.com>
+	    Dodji Seketeli  <dodji@redhat.com>
+
+	Support C++11 alias-declaration
+	PR c++/45114
+	* cp-tree.h (TYPE_DECL_ALIAS_P, TYPE_ALIAS_P)
+	(DECL_TYPE_TEMPLATE_P, DECL_ALIAS_TEMPLATE_P): New accessor
+	macros.
+	(TYPE_TEMPLATE_INFO): Get template info of an alias template
+	specializations from its TYPE_DECL.
+	(SET_TYPE_TEMPLATE_INFO): Set template info of alias template
+	specializations into its TYPE_DECL.
+	(DECL_CLASS_TEMPLATE_P): Re-write using the new
+	DECL_TYPE_TEMPLATE_P.
+	(enum cp_decl_spec): Add new ds_alias enumerator.
+	(alias_type_or_template_p, alias_template_specialization_p):
+	Declare new functions.
+	* parser.c (cp_parser_alias_declaration): New static function.
+	(cp_parser_check_decl_spec): Add "using" name for the `alias'
+	declspec.
+	(cp_parser_type_name): Update comment.  Support simple-template-id
+	representing alias template specializations in c++0x mode.
+	(cp_parser_qualifying_entity): Update comment.  Use
+	cp_parser_type_name.
+	(cp_parser_block_declaration): Handle alias-declaration in c++11.
+	Update comment.
+	(cp_parser_template_id): Handle specializations of alias
+	templates.
+	(cp_parser_member_declaration): Add alias-declaration production
+	to comment.  Support alias-declarations.
+	(cp_parser_template_declaration_after_export): Handle alias
+	templates in c++11.
+	* decl.c (make_typename_type, make_unbound_class_template): Accept
+	alias templates.
+	(grokdeclarator): Set TYPE_DECL_ALIAS_P on alias
+	declarations.
+	* decl2.c (grokfield): Move template creation after setting up the
+	TYPE_DECL of the alias, so that the TEMPLATE_DECL of the alias
+	template actually carries the right type-id of the alias
+	declaration.
+	* pt.c (alias_type_or_template_p)
+	(alias_template_specialization_p): Define new public functions.
+	(maybe_process_partial_specialization): Reject partial
+	specializations of alias templates.
+	(primary_template_instantiation_p): Consider alias template
+	instantiations.
+	(push_template_decl_real): Assert that TYPE_DECLs of alias
+	templates are different from those of class template.  Store
+	template info onto the TYPE_DECL of the alias template.
+	(convert_template_argument): Strip aliases from template
+	arguments.
+	(lookup_template_class_1): Handle the creation of the
+	specialization of an alias template.
+	(tsubst_decl): Create a substituted copy of the TYPE_DECL of an
+	member alias template.
+	(tsubst): Handle substituting into the type of an alias template.
+	Handle substituting UNBOUND_CLASS_TEMPLATE into
+	BOUND_TEMPLATE_TEMPLATE_PARM.
+	(do_type_instantiation): Better diagnostics when trying to
+	explicitely instantiate a non-class template.
+	* search.c (lookup_field_1, lookup_field_r): Support looking up
+	alias templates.
+	* semantics.c (finish_template_type): For instantiations of alias
+	templates, return the TYPE_DECL of the actual alias and not the
+	one of the aliased type.
+	* error.c (dump_alias_template_specialization): New static
+	function.
+	(dump_type): Handle printing of alias templates and their
+	specializations.  templates.
+	(dump_aggr_type): For specialization of alias templates, fetch
+	arguments from the right place.
+	(dump_decl): Print an alias-declaration like `using decl = type;'
+	(dump_template_decl):  Support printing of alias templates.
+
+2011-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35688
+	* decl2.c (constrain_visibility): Return void.  Add tmpl parm
+	which gives the constraint priority over an attribute.
+	(constrain_visibility_for_template, determine_visibility): Adjust.
+	* pt.c (instantiate_class_template_1): Call determine_visibility.
+
+	PR c++/33255
+	* decl.c (save_function_data): Clear local_typedefs.
+
+	* decl.c (cp_finish_decl): Only make_tree_vector if we're calling
+	check_initializer.
+
 2011-11-06  Jason Merrill  <jason@redhat.com>
 
 	PR c++/35688
@@ -13,6 +288,7 @@
 
 2011-11-05  Jason Merrill  <jason@redhat.com>
 
+	PR c++/48370
 	* decl.c (cp_finish_decl): Mostly revert previous change.
 
 2011-11-04  Jason Merrill  <jason@redhat.com>

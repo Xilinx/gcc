@@ -5145,7 +5145,6 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 	case BUILT_IN_SYNC_FETCH_AND_NAND_4:
 	case BUILT_IN_SYNC_FETCH_AND_NAND_8:
 	case BUILT_IN_SYNC_FETCH_AND_NAND_16:
-
 	  if (warned_f_a_n)
 	    break;
 
@@ -5159,7 +5158,6 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 	case BUILT_IN_SYNC_NAND_AND_FETCH_4:
 	case BUILT_IN_SYNC_NAND_AND_FETCH_8:
 	case BUILT_IN_SYNC_NAND_AND_FETCH_16:
-
 	  if (warned_n_a_f)
 	    break;
 
@@ -5191,16 +5189,24 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
 				 bool is_bool, rtx target)
 {
   rtx old_val, new_val, mem;
+  rtx *pbool, *poval;
 
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   old_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
   new_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
-  if (!expand_atomic_compare_and_swap ((is_bool ? &target : NULL),
-				       (is_bool ? NULL : &target),
-				       mem, old_val, new_val, false,
-				       MEMMODEL_SEQ_CST, MEMMODEL_SEQ_CST))
+  pbool = poval = NULL;
+  if (target != const0_rtx)
+    {
+      if (is_bool)
+	pbool = &target;
+      else
+	poval = &target;
+    }
+  if (!expand_atomic_compare_and_swap (pbool, poval, mem, old_val, new_val,
+				       false, MEMMODEL_SEQ_CST,
+				       MEMMODEL_SEQ_CST))
     return NULL_RTX;
 
   return target;
@@ -5222,7 +5228,7 @@ expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE);
+  return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE, true);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -5235,7 +5241,7 @@ expand_builtin_sync_lock_release (enum machine_mode mode, tree exp)
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
 
-  expand_atomic_store (mem, const0_rtx, MEMMODEL_RELEASE);
+  expand_atomic_store (mem, const0_rtx, MEMMODEL_RELEASE, true);
 }
 
 /* Given an integer representing an ``enum memmodel'', verify its
@@ -5286,7 +5292,7 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, model);
+  return expand_atomic_exchange (target, mem, val, model, false);
 }
 
 /* Expand the __atomic_compare_exchange intrinsic:
@@ -5339,8 +5345,9 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
 
   oldval = copy_to_reg (gen_rtx_MEM (mode, expect));
 
-  if (!expand_atomic_compare_and_swap (&target, &oldval, mem, oldval,
-				       desired, is_weak, success, failure))
+  if (!expand_atomic_compare_and_swap ((target == const0_rtx ? NULL : &target),
+				       &oldval, mem, oldval, desired,
+				       is_weak, success, failure))
     return NULL_RTX;
 
   emit_move_insn (gen_rtx_MEM (mode, expect), oldval);
@@ -5403,7 +5410,7 @@ expand_builtin_atomic_store (enum machine_mode mode, tree exp)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_store (mem, val, model);
+  return expand_atomic_store (mem, val, model, false);
 }
 
 /* Expand the __atomic_fetch_XXX intrinsic:
@@ -5461,10 +5468,84 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
 
   /* Then issue the arithmetic correction to return the right result.  */
   if (!ignore)
-    ret = expand_simple_binop (mode, code, ret, val, NULL_RTX, true,
-			       OPTAB_LIB_WIDEN);
+    {
+      if (code == NOT)
+	{
+	  ret = expand_simple_binop (mode, AND, ret, val, NULL_RTX, true,
+				     OPTAB_LIB_WIDEN);
+	  ret = expand_simple_unop (mode, NOT, ret, target, true);
+	}
+      else
+	ret = expand_simple_binop (mode, code, ret, val, target, true,
+				   OPTAB_LIB_WIDEN);
+    }
   return ret;
 }
+
+
+/* Expand an atomic clear operation.
+	void _atomic_clear (BOOL *obj, enum memmodel)
+   EXP is the call expression.  */
+
+static rtx
+expand_builtin_atomic_clear (tree exp) 
+{
+  enum machine_mode mode;
+  rtx mem, ret;
+  enum memmodel model;
+
+  mode = mode_for_size (BOOL_TYPE_SIZE, MODE_INT, 0);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  model = get_memmodel (CALL_EXPR_ARG (exp, 1));
+
+  if (model == MEMMODEL_ACQUIRE || model == MEMMODEL_ACQ_REL)
+    {
+      error ("invalid memory model for %<__atomic_store%>");
+      return const0_rtx;
+    }
+
+  /* Try issuing an __atomic_store, and allow fallback to __sync_lock_release.
+     Failing that, a store is issued by __atomic_store.  The only way this can
+     fail is if the bool type is larger than a word size.  Unlikely, but
+     handle it anyway for completeness.  Assume a single threaded model since
+     there is no atomic support in this case, and no barriers are required.  */
+  ret = expand_atomic_store (mem, const0_rtx, model, true);
+  if (!ret)
+    emit_move_insn (mem, const0_rtx);
+  return const0_rtx;
+}
+
+/* Expand an atomic test_and_set operation.
+	bool _atomic_test_and_set (BOOL *obj, enum memmodel)
+   EXP is the call expression.  */
+
+static rtx
+expand_builtin_atomic_test_and_set (tree exp)
+{
+  rtx mem, ret;
+  enum memmodel model;
+  enum machine_mode mode;
+
+  mode = mode_for_size (BOOL_TYPE_SIZE, MODE_INT, 0);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  model = get_memmodel (CALL_EXPR_ARG (exp, 1));
+
+  /* Try issuing an exchange.  If it is lock free, or if there is a limited
+     functionality __sync_lock_test_and_set, this will utilize it.  */
+  ret = expand_atomic_exchange (NULL_RTX, mem, const1_rtx, model, true);
+  if (ret)
+    return ret;
+
+  /* Otherwise, there is no lock free support for test and set.  Simply
+     perform a load and a store.  Since this presumes a non-atomic architecture,
+     also assume single threadedness and don't issue barriers either. */
+
+  ret = gen_reg_rtx (mode);
+  emit_move_insn (ret, mem);
+  emit_move_insn (mem, const1_rtx);
+  return ret;
+}
+
 
 /* Return true if (optional) argument ARG1 of size ARG0 is always lock free on
    this architecture.  If ARG1 is NULL, use typical alignment for size ARG0.  */
@@ -5513,7 +5594,7 @@ fold_builtin_atomic_always_lock_free (tree arg0, tree arg1)
   /* Check if a compare_and_swap pattern exists for the mode which represents
      the required size.  The pattern is not allowed to fail, so the existence
      of the pattern indicates support is present.  */
-  if (can_compare_and_swap_p (mode))
+  if (can_compare_and_swap_p (mode, true))
     return integer_one_node;
   else
     return integer_zero_node;
@@ -6695,6 +6776,12 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       if (target)
 	return target;
       break;
+
+    case BUILT_IN_ATOMIC_TEST_AND_SET:
+      return expand_builtin_atomic_test_and_set (exp);
+
+    case BUILT_IN_ATOMIC_CLEAR:
+      return expand_builtin_atomic_clear (exp);
  
     case BUILT_IN_ATOMIC_ALWAYS_LOCK_FREE:
       return expand_builtin_atomic_always_lock_free (exp);

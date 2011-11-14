@@ -2746,15 +2746,17 @@ finish_template_decl (tree parms)
 tree
 finish_template_type (tree name, tree args, int entering_scope)
 {
-  tree decl;
+  tree type;
 
-  decl = lookup_template_class (name, args,
+  type = lookup_template_class (name, args,
 				NULL_TREE, NULL_TREE, entering_scope,
 				tf_warning_or_error | tf_user);
-  if (decl != error_mark_node)
-    decl = TYPE_STUB_DECL (decl);
-
-  return decl;
+  if (type == error_mark_node)
+    return type;
+  else if (CLASS_TYPE_P (type) && !alias_type_or_template_p (type))
+    return TYPE_STUB_DECL (type);
+  else
+    return TYPE_NAME (type);
 }
 
 /* Finish processing a BASE_CLASS with the indicated ACCESS_SPECIFIER.
@@ -4982,6 +4984,64 @@ finish_omp_taskyield (void)
 				tf_warning_or_error);
   release_tree_vector (vec);
   finish_expr_stmt (stmt);
+}
+
+/* Begin a __transaction_atomic or __transaction_relaxed statement.
+   If PCOMPOUND is non-null, this is for a function-transaction-block, and we
+   should create an extra compound stmt.  */
+
+tree
+begin_transaction_stmt (location_t loc, tree *pcompound, int flags)
+{
+  tree r;
+
+  if (pcompound)
+    *pcompound = begin_compound_stmt (0);
+
+  r = build_stmt (loc, TRANSACTION_EXPR, NULL_TREE);
+
+  /* Only add the statement to the function if support enabled.  */
+  if (flag_tm)
+    add_stmt (r);
+  else
+    error_at (loc, ((flags & TM_STMT_ATTR_RELAXED) != 0
+		    ? G_("%<__transaction_relaxed%> without "
+			 "transactional memory support enabled")
+		    : G_("%<__transaction_atomic%> without "
+			 "transactional memory support enabled")));
+
+  TRANSACTION_EXPR_BODY (r) = push_stmt_list ();
+  return r;
+}
+
+/* End a __transaction_atomic or __transaction_relaxed statement.
+   If COMPOUND_STMT is non-null, this is for a function-transaction-block,
+   and we should end the compound.  */
+
+void
+finish_transaction_stmt (tree stmt, tree compound_stmt, int flags)
+{
+  TRANSACTION_EXPR_BODY (stmt) = pop_stmt_list (TRANSACTION_EXPR_BODY (stmt));
+  TRANSACTION_EXPR_OUTER (stmt) = (flags & TM_STMT_ATTR_OUTER) != 0;
+  TRANSACTION_EXPR_RELAXED (stmt) = (flags & TM_STMT_ATTR_RELAXED) != 0;
+  TRANSACTION_EXPR_IS_STMT (stmt) = 1;
+
+  if (compound_stmt)
+    finish_compound_stmt (compound_stmt);
+  finish_stmt ();
+}
+
+/* Build a __transaction_atomic or __transaction_relaxed expression.  */
+
+tree
+build_transaction_expr (location_t loc, tree expr, int flags)
+{
+  tree ret;
+  ret = build1 (TRANSACTION_EXPR, TREE_TYPE (expr), expr);
+  if (flags & TM_STMT_ATTR_RELAXED)
+	TRANSACTION_EXPR_RELAXED (ret) = 1;
+  SET_EXPR_LOCATION (ret, loc);
+  return ret;
 }
 
 void
@@ -8156,6 +8216,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case STMT_EXPR:
     case EXPR_STMT:
     case BIND_EXPR:
+    case TRANSACTION_EXPR:
       if (flags & tf_error)
         error ("expression %qE is not a constant-expression", t);
       return false;
@@ -8619,7 +8680,8 @@ lambda_function (tree lambda)
       && !COMPLETE_OR_OPEN_TYPE_P (type))
     return NULL_TREE;
   lambda = lookup_member (type, ansi_opname (CALL_EXPR),
-			  /*protect=*/0, /*want_type=*/false);
+			  /*protect=*/0, /*want_type=*/false,
+			  tf_warning_or_error);
   if (lambda)
     lambda = BASELINK_FUNCTIONS (lambda);
   return lambda;

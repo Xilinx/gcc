@@ -73,6 +73,7 @@ c-common.h, not after.
       VEC_INIT_EXPR_IS_CONSTEXPR (in VEC_INIT_EXPR)
       DECL_OVERRIDE_P (in FUNCTION_DECL)
       IMPLICIT_CONV_EXPR_DIRECT_INIT (in IMPLICIT_CONV_EXPR)
+      TRANSACTION_EXPR_IS_STMT (in TRANSACTION_EXPR)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -139,6 +140,7 @@ c-common.h, not after.
    5: DECL_INTERFACE_KNOWN.
    6: DECL_THIS_STATIC (in VAR_DECL or FUNCTION_DECL).
       DECL_FIELD_IS_BASE (in FIELD_DECL)
+      TYPE_DECL_ALIAS_P (in TYPE_DECL)
    7: DECL_DEAD_FOR_LOCAL (in VAR_DECL).
       DECL_THUNK_P (in a member FUNCTION_DECL)
       DECL_NORMAL_CAPTURE_P (in FIELD_DECL)
@@ -2543,6 +2545,18 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define DECL_PENDING_INLINE_INFO(NODE) \
   (LANG_DECL_FN_CHECK (NODE)->u.pending_inline_info)
 
+/* Nonzero for TYPE_DECL means that it was written 'using name = type'.  */
+#define TYPE_DECL_ALIAS_P(NODE) \
+  DECL_LANG_FLAG_6 (TYPE_DECL_CHECK (NODE))
+
+/* Nonzero for a type which is an alias for another type; i.e, a type
+   which declaration was written 'using name-of-type =
+   another-type'.  */
+#define TYPE_ALIAS_P(NODE)			\
+  (TYPE_P (NODE)				\
+   && TYPE_NAME (NODE)				\
+   && TYPE_DECL_ALIAS_P (TYPE_NAME (NODE)))
+
 /* For a class type: if this structure has many fields, we'll sort them
    and put them into a TREE_VEC.  */
 #define CLASSTYPE_SORTED_FIELDS(NODE) \
@@ -2594,21 +2608,25 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    ->template_info)
 
 /* Template information for an ENUMERAL_, RECORD_, or UNION_TYPE.  */
-#define TYPE_TEMPLATE_INFO(NODE)			\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE			\
-   ? ENUM_TEMPLATE_INFO (NODE) :			\
-   (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM	\
-    ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :	\
-    (TYPE_LANG_SPECIFIC (NODE)				\
-     ? CLASSTYPE_TEMPLATE_INFO (NODE)			\
-     : NULL_TREE)))
+#define TYPE_TEMPLATE_INFO(NODE)					\
+  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
+   ? ENUM_TEMPLATE_INFO (NODE) :					\
+   (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM			\
+    ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :			\
+    ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))			\
+     ? CLASSTYPE_TEMPLATE_INFO (NODE)					\
+     : ((TYPE_NAME (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
+	? (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)))			\
+	: NULL_TREE))))
 
 /* Set the template information for an ENUMERAL_, RECORD_, or
    UNION_TYPE to VAL.  */
-#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)	\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE		\
-   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))	\
-   : (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL)))
+#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)				\
+  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
+   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))				\
+   : ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))			\
+      ? (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL))			\
+      : (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)) = (VAL))))
 
 #define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
 #define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
@@ -3630,11 +3648,22 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && !DECL_UNBOUND_CLASS_TEMPLATE_P (NODE) \
    && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == FUNCTION_DECL)
 
-/* Nonzero for a DECL that represents a template class.  */
-#define DECL_CLASS_TEMPLATE_P(NODE)				\
+/* Nonzero for a DECL that represents a class template or alias
+   template.  */
+#define DECL_TYPE_TEMPLATE_P(NODE)				\
   (TREE_CODE (NODE) == TEMPLATE_DECL				\
    && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE			\
+   && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL)
+
+/* Nonzero for a DECL that represents a class template.  */
+#define DECL_CLASS_TEMPLATE_P(NODE)				\
+  (DECL_TYPE_TEMPLATE_P (NODE)					\
    && DECL_IMPLICIT_TYPEDEF_P (DECL_TEMPLATE_RESULT (NODE)))
+
+/* Nonzero for a TEMPLATE_DECL that represents an alias template.  */
+#define DECL_ALIAS_TEMPLATE_P(NODE)			\
+  (DECL_TYPE_TEMPLATE_P (NODE)				\
+   && !DECL_ARTIFICIAL (DECL_TEMPLATE_RESULT (NODE)))
 
 /* Nonzero for a NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
@@ -3872,6 +3901,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define CP_OMP_CLAUSE_INFO(NODE) \
   TREE_TYPE (OMP_CLAUSE_RANGE_CHECK (NODE, OMP_CLAUSE_PRIVATE, \
 				     OMP_CLAUSE_COPYPRIVATE))
+
+/* Nonzero if this transaction expression's body contains statements.  */
+#define TRANSACTION_EXPR_IS_STMT(NODE) \
+   TREE_LANG_FLAG_0 (TRANSACTION_EXPR_CHECK (NODE))
 
 /* These macros provide convenient access to the various _STMT nodes
    created when parsing template declarations.  */
@@ -4624,6 +4657,7 @@ typedef enum cp_decl_spec {
   ds_explicit,
   ds_friend,
   ds_typedef,
+  ds_alias,
   ds_constexpr,
   ds_complex,
   ds_thread,
@@ -5335,6 +5369,8 @@ extern tree build_non_dependent_expr		(tree);
 extern void make_args_non_dependent		(VEC(tree,gc) *);
 extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
+extern bool alias_type_or_template_p            (tree);
+extern bool alias_template_specialization_p     (tree);
 extern bool explicit_class_specialization_p     (tree);
 extern int push_tinst_level                     (tree);
 extern void pop_tinst_level                     (void);
@@ -5384,7 +5420,8 @@ extern tree lookup_fnfields_slot		(tree, tree);
 extern tree lookup_fnfields_slot_nolazy		(tree, tree);
 extern int class_method_index_for_fn		(tree, tree);
 extern tree lookup_fnfields			(tree, tree, int);
-extern tree lookup_member			(tree, tree, int, bool);
+extern tree lookup_member			(tree, tree, int, bool,
+						 tsubst_flags_t);
 extern int look_for_overrides			(tree, tree);
 extern void get_pure_virtuals			(tree);
 extern void maybe_suppress_debug_info		(tree);
@@ -5583,6 +5620,9 @@ extern void finish_omp_atomic			(enum tree_code, enum tree_code,
 extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
+extern tree begin_transaction_stmt		(location_t, tree *, int);
+extern void finish_transaction_stmt		(tree, tree, int);
+extern tree build_transaction_expr		(location_t, tree, int);
 extern void finish_omp_taskyield		(void);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);

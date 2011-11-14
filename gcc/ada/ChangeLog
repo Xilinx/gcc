@@ -1,3 +1,138 @@
+2011-11-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc-interface/Makefile.in (stamp-gnatlib-$(RTSDIR)): Don't link
+	s-oscons.ads.
+	(OSCONS_CPP, OSCONS_EXTRACT): New.
+	(./bldtools/oscons/xoscons): New Target.
+	($(RTSDIR)/s-oscons.ads): New Target.
+	(gnatlib): Depend on  $(RTSDIR)/s-oscons.ads.
+	* gcc-interface/Make-lang.in (ada/s-oscons.ads) Remove as dependency.
+	* Make-generated.in: Remove machinery to generate xoscons and
+	ada/s-oscons.ads.
+
+2011-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* fe.h (Serious_Errors_Detected): New macro.
+	* gcc-interface/gigi.h (build_atomic_load): Declare.
+	(build_atomic_store): Likewise.
+	* gcc-interface/trans.c (atomic_sync_required_p): New predicate.
+	(call_to_gnu): Add ATOMIC_SYNC parameter.  Use local variable.
+	Build an atomic load for an In or In Out parameter if needed.
+	Build an atomic store for the assignment of an Out parameter if needed.
+	Build an atomic store to the target if ATOMIC_SYNC is true.
+	(present_in_lhs_or_actual_p): New predicate.
+	(gnat_to_gnu) <N_Identifier>: Build an atomic load if needed.
+	<N_Explicit_Dereference>: Likewise.
+	<N_Indexed_Component>: Likewise.
+	<N_Selected_Component>: Likewise.
+	<N_Assignment_Statement>: Adjust call to call_to_gnu.
+	Build an atomic store to the LHS if needed.
+	<N_Function_Call>:  Adjust call to call_to_gnu.
+	* gcc-interface/utils2.c: Include toplev.h.
+	(resolve_atomic_size): New static function.
+	(build_atomic_load): New function.
+	(build_atomic_store): Likewise.
+	* gcc-interface/Make-lang.in (ada/utils2.o): Add toplev.h.
+
+2011-11-07  Olivier Hainque  <hainque@adacore.com>
+
+	* sigtramp-ppcvxw.c: Add general comments.
+	(CFI_COMMON_REGS): Remove rule for r1, as in other unwinders. Add
+	rules for r2 to r13, plus CTR and XER.
+	(CFA_REG): New, register number used to hold the local CFA.
+	(CFI_DEF_CFA, SIGTRAMP_BODY): Use it.
+	Make that 15, not 14, with documentation.
+	(TCR): Undef before definition, preventing conflict with reg number in
+	VxWorks headers.
+
+2011-11-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_util.ads, exp_alfa.adb, a-cohama.adb, a-cohama.ads, sem_ch4.adb,
+	aspects.ads, exp_ch8.adb, exp_ch8.ads, atree.ads: Minor reformatting.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2011-11-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch6.adb: A tagged type is a legal actual for an aliased
+	formal.
+
+2011-11-07  Pascal Obry  <obry@adacore.com>
+
+	* g-socket.adb, g-socket.ads: Minor reformatting.
+
+2011-11-07  Robert Dewar  <dewar@adacore.com>
+
+	* sem_res.adb (Resolve_Actuals): Minor error message improvement.
+
+2011-11-07  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Add discussion of default mode handling of
+	source representation with no -gnatW option given, in particular
+	noting that NEL (next line) is not recognized in this context.
+
+2011-11-07  Yannick Moy  <moy@adacore.com>
+
+	* sem_util.adb (Note_Possible_Modification): In Alfa mode,
+	generate a reference for a modification even when the modification
+	does not come from source.
+
+2011-11-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch5.adb (Expand_Iterator_Loop): For the "of" iterator form,
+	use the indexing attributes rather than the Element function,
+	to obtain variable references.
+	* sem_ch4.adb (Try_Container_Indexing): Code cleanup. Use
+	Find_Aspect rather than iterating over representation
+	items. Improve error message.
+	* a-cohama.adb, a-cohama.ads Update to latest RM, with two versions
+	of Reference functions.
+
+2011-11-07  Yannick Moy  <moy@adacore.com>
+
+	* sem_util.adb (Unique_Entity): For a parameter on a subprogram
+	body that has a corresponding parameter on the subprogram
+	declaration, define the unique entity as being the declaration
+	one.
+
+2011-11-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Return_Type): In Ada 2012 mode, if the
+	return type of a function is the class-wide type of an incomplete
+	type T, T can be a Taft-amendment type and does not have to be
+	completed in the current private part.
+
+2011-11-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* aspects.ads (Inherited_Aspect): Map that indicates type aspects
+	that are inherited by default, and apply to the class-wide type
+	as well.
+	* aspects.adb (Find_Aspect): If the entity is class-wide and the
+	aspect is inherited, use the aspect of the specific type.
+
+2011-11-07  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_alfa.adb: Remove with and use clause for
+	Exp_Ch8. Add with and use clause for Exp_Util.
+	Remove local constant Disable_Processing_Of_Renamings.
+	(Expand_Alfa_N_Object_Renaming_Declaration): The expansion of
+	object renamings has been reenabled.
+	(Expand_Possible_Renaming):
+	The expansion of identifier and expanded names has been
+	reenabled. Perform the substitutions only for entities that
+	denote an object.
+	* exp_ch8.ads, exp_ch8.adb (Evaluate_Name): Moved to Exp_Util.
+	* exp_util.adb (Evaluate_Name): Moved from Exp_Ch8.
+	(Remove_Side_Effects): Alphabetize local variables. Add a guard
+	to avoid the infinite expansion of an expression in Alfa mode. Add
+	processing for function calls in Alfa mode.
+	* exp_util.ads (Evaliate_Name): Moved from Exp_Ch8.
+
+2011-11-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* freeze.adb (Freeze_Entity): If the entity is an access to
+	subprogram whose designated type is itself a subprogram type,
+	its own return type must be decorated with size information.
+
 2011-11-04  Arnaud Charlet  <charlet@adacore.com>
 
 	* gcc-interface/Make-lang.in: Update dependencies.

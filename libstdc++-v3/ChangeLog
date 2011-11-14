@@ -1,3 +1,191 @@
+2011-11-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath (frexp, modf, remquo): Do not mark constexpr,
+	not viable anyway due to the pointer parameter.
+
+2011-11-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath (atan2, fmod, pow, copysign, fdim,
+	fma, fmax, fmin, hypot, nextafter, remainder, remquo): Simplify
+	constraining on the return type.
+	* include/tr1/cmath (copysign, fdim, fma, fmax, fmin, hypot,
+	nextafter, remainder, remquo): Likewise.
+
+2011-11-13  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* using.xml: Use GNU/Linux.
+
+2011-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51060
+	* testsuite/25_algorithms/max/1.cc (test01): Drop references.
+	* testsuite/25_algorithms/min/1.cc (test01): Drop references.
+	* testsuite/25_algorithms/minmax/1.cc (test01): Drop references.
+
+2011-11-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51083
+	* include/ext/type_traits.h (__promote): Only define __type member
+	for integral and floating point types, to prevent math functions
+	participating in overload resolution for other types.
+	(__promote_2, __promote_3, __promote_4): Use __promote in default
+	template argument values, so deduction only succeeds for integral and
+	floating point types.
+	* testsuite/26_numerics/cmath/51083.cc: New.
+	* testsuite/26_numerics/complex/51083.cc: New.
+	* testsuite/tr1/8_c_compatibility/cmath/51083.cc: New.
+	* testsuite/tr1/8_c_compatibility/complex/51083.cc: New.
+
+2011-11-10  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR middle-end/51038
+	* include/bits/atomic_base.h (atomic_thread_fence): Call built-in.
+	(atomic_signal_fence): Call built-in.
+	(test_and_set, clear): Call new atomic built-ins.
+
+2011-11-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/allocator.h (__shrink_to_fit_aux::_S_do_it): Create
+	the new object with the same allocator.
+	* testsuite/23_containers/vector/capacity/shrink_to_fit2.cc: New.
+
+2011-11-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/profile/unordered_map: Add missing copy constructors.
+	* include/profile/unordered_set: Likewise.
+
+2011-11-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51027
+	* include/ext/pointer.h (rebind): Append missing ';'.
+
+2011-11-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/stl_vector.h (vector::_Alloc_traits): Make private.
+	* include/debug/vector: Add allocator-extended constructors, ensure
+	move assignment and swap have same allocator propagation semantics
+	and exceptions specification as base class.
+	* include/profile/vector: Likewise.
+	(vector::push_back(_Tp&&)): Forward argument as rvalue.
+	* testsuite/23_containers/vector/debug/alloc_prop.cc: New.
+	* doc/xml/manual/status_cxx2011.xml: Clarify status of container
+	requirements with respect to allocators.
+	(status.iso.200x): Add anchor for old ID to preserve existing links.
+
+2011-11-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/shared_ptr_base.h (_Sp_counted_ptr): Make 'final'.
+	(_Sp_counted_deleter): Make 'final'. Use allocator_traits.
+	(_Sp_counted_ptr_inplace): Make 'final'. Use allocator_traits.
+	Derive from _Sp_counted_ptr instead of _Sp_counted_deleter to use EBO
+	for the allocator.
+	(__shared_count, __shared_ptr): Use allocator_traits.
+	* include/std/future (__future_base::_Result_alloc): Make 'final'. Use
+	allocator traits.
+	(__future_base::_Task_state): Make 'final'.
+	(__future_base::_Deferred_state): Likewise.
+	(__future_base::_Async_state): Likewise.
+	* testsuite/20_util/shared_ptr/cons/alloc_min.cc: New.
+	* testsuite/20_util/shared_ptr/creation/alloc_min.cc: New.
+	* testsuite/20_util/shared_ptr/creation/private.cc: New.
+	* testsuite/20_util/shared_ptr/cons/43820_neg.cc: Adjust line numbers.
+	* testsuite/30_threads/packaged_task/cons/alloc_min.cc: New.
+	* testsuite/30_threads/promise/cons/alloc_min.cc: New.
+
+2011-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_ENABLE_VISIBILITY]): Rename to
+	[GLIBCXX_ENABLE_LIBSTDCXX_VISIBILITY], likewise for the
+	option itself, to --enable-libstdcxx-visibility.
+	* configure.ac: Adjust call.
+	* doc/xml/manual/configure.xml: Update.
+	* configure: Regenerate.
+
+2011-11-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/29_atomics/headers/atomic/macros.cc: Avoid -Wall
+	warnings.
+	* testsuite/29_atomics/atomic/cons/user_pod.cc: Likewise.
+
+2011-11-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51018
+	* testsuite/30_threads/thread/native_handle/typesizes.cc: Do not run
+	on netbsd.
+
+2011-11-07  Aldy Hernandez  <aldyh@redhat.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	Merged from transactional-memory.
+
+	* testsuite/util/testsuite_abi.cc (check_version): Add CXXABI_TM_1.
+	* libsupc++/eh_tm.cc: New file.
+	* libsupc++/unwind-cxx.h (__cxa_tm_cleanup): Declare.
+	* config/abi/pre/gnu.ver: Export __cxa_tm_cleanup.
+	* config/abi/pre/gnu-versioned-namespace.ver: Likewise.
+	* libsupc++/Makefile.am (sources): Add eh_tm.cc.
+	* libsupc++/Makefile.in: Rebuild.
+
+2011-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/51018
+	* include/profile/impl/profiler_node.h (__stack_hash::
+	operator()(__stack_t)): Just use std::size_t everywhere.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (__future_base::_Ptr): Use alias-declaration.
+	(__is_same_pkgdtask): Rename to __constrain_pkgdtask and use decay
+	instead of remove_reference so that cv-quals are removed.
+
+2011-11-07  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/precompiled/stdc++.h: Add cstdalign.
+
+2011-11-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/complex (complex<>::real(), complex<>::imag()):
+	Remove redundant const qualifiers.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/ptr_traits.h (__rebind): Replace with...
+	(rebind): Implement using alias-declaration.
+	* include/ext/pointer.h (__rebind): Replace with...
+	(rebind): Implement using alias-declaration.
+	* include/bits/alloc_traits.h (__rebind_alloc, __rebind_traits):
+	Replace with...
+	(rebind_alloc, rebind_traits): Implement using alias-declaration.
+	* include/ext/alloc_traits.h (rebind): Use rebind_alloc instead of
+	__rebind_alloc.
+	* include/std/scoped_allocator (rebind): Likewise.
+
+2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/mutex (call_once): Store closure in __once_functor
+	as bound function wrapper might not be copyable.
+
+2011-11-07  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/bits/atomic_base.h (atomic_thread_fence): Revert.
+	(atomic_signal_fence): Revert.
+
+2011-11-07  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/bits/atomic_base.h (atomic_thread_fence): Call builtin.
+	(atomic_signal_fence): Call builtin.
+	(atomic_flag::test_and_set): Call __atomic_exchange when it is lockfree,
+	otherwise fall back to call __sync_lock_test_and_set.
+	(atomic_flag::clear): Call __atomic_store when it is lockfree,
+	otherwise fall back to call __sync_lock_release.
+
+2011-11-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/50982
+	* include/Makefile.am (${host_builddir}/gthr-posix.h): Reflect
+	gthr-posix.h move.
+	* include/Makefile.in: Regenerate.
+
 2011-11-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* acinclude.m4 (GLIBCXX_CHECK_SC_NPROC_ONLN): Define.

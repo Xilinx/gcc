@@ -1,3 +1,120 @@
+2011-11-13  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config.host (hppa*64*-*-hpux11*): Remove pa/t-stublib64 from
+	tmake_file list.
+	* config/pa/t-stublib: Merge rules from config/pa/t-stublib64.
+	* config/pa/t-stublib64: Delete.
+
+2011-11-12  Richard Henderson  <rth@redhat.com>
+
+	* config/rs6000/linux-unwind.h (frob_update_context): Properly
+	cast the pointer argument to _Unwind_SetGRPtr.
+
+2011-11-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/spu/t-elf (LIB2ADD): Use LIB2FUNCS_EXCLUDE instead.
+
+2011-11-09  Ian Lance Taylor  <iant@google.com>
+
+	* generic-morestack.c: Include <string.h>.
+	(uintptr_type): Define.
+	(struct initial_sp): Add dont_block_signals field.  Reduce size of
+	extra array by 1.
+	(allocate_segment): Set prev field to NULL.  Don't set
+	__morestack_current_segment or __morestack_segments.
+	(__generic_morestack): Update current->prev and *pp after calling
+	allocate_segment.
+	(__morestack_block_signals): Don't do anything if
+	dont_block_signals is set.
+	(__morestack_unblock_signals): Likewise.
+	(__generic_findstack): Check for initial_sp == NULL.  Add casts to
+	uintptr_type.
+	(__splitstack_block_signals): New function.
+	(enum __splitstack_content_offsets): Define.
+	(__splitstack_getcontext, __splitstack_setcontext): New functions.
+	(__splitstack_makecontext): New function.
+	(__splitstack_block_signals_context): New function.
+	(__splitstack_find_context): New function.
+	* config/i386/morestack.S (__morestack_get_guard): New function.
+	(__morestack_set_guard, __morestack_make_guard): New functions.
+	* libgcc-std.ver.in: Add new functions to GCC_4.7.0.
+
+2011-11-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.host (i[34567]86-*-cygwin*): Move i386/t-mingw-pthread ...
+	(i[34567]86-*-mingw*): ... here.
+	(x86_64-*-mingw*): ... here.
+
+2011-11-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/c6x/t-elf (LIB2ADD): Add instead of assigning.
+
+2011-11-07  Nathan Sidwell  <nathan@acm.org>
+
+	* libgcov.c (struct gcov_fn_buffer): New struct.
+	(buffer_fn_data): New helper.
+	(gcov_exit): Rework for new gcov data structures.
+
+2011-11-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	* config/avr/lib1funcs.S (__divmodhi4, __divmodsi4): Tweak speed.
+
+2011-11-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.host (tmake_file): Correct comment.
+	(bfin*-elf*): Remove bfin/t-elf from tmake_file, add
+	t-libgcc-pic.
+	(bfin*-uclinux*): Likewise.
+	(bfin*-linux-uclibc*): Likewise.
+	(xstormy16-*-elf): Add stormy16/t-stormy16 to tmake_file.
+
+	* config/arm/t-elf (HOST_LIBGCC2_CFLAGS): Append instead of
+	assigning.
+	* config/arm/t-strongarm-elf (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/avr/t-avr (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/c6x/t-elf (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/h8300/t-h8300 (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/lm32/t-elf (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/m32r/t-m32r (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/mcore/t-mcore (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/mips/t-elf (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/mmix/t-mmix (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/pdp11/t-pdp11 (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/picochip/t-picochip (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/stormy16/t-stormy16 (HOST_LIBGCC2_CFLAGS): Likewise.
+	* config/t-openbsd-thread (HOST_LIBGCC2_CFLAGS): Likewise.
+
+	* config/bfin/t-elf: Remove.
+	* config/t-vxworks (HOST_LIBGCC2_CFLAGS): Remove.
+
+2011-11-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.host (*-*-rtems*): Add t-rtems to tmake_file.
+	(i[34567]86-*-rtems*): Remove t-rtems from tmake_file.
+	(lm32-*-elf*, lm32-*-rtems*): Split into ...
+	(lm32-*-elf*): ... this.
+	(lm32-*-rtems*): ... and this.
+	Add to tmake_file.
+	(m32r-*-rtems*): Add to tmake_file.
+	(moxie-*-rtems*): Likewise.
+	(sparc-*-rtems*): Likewise.
+	Remove t-rtems from tmake_file.
+	(sparc64-*-rtems*): Likewise.
+	* config/t-rtems (HOST_LIBGCC2_CFLAGS): Use LIBGCC2_INCLUDES
+	instead.
+
+2011-11-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/50982
+	* config/gthr-posix.h: Move ...
+	* gthr-posix.h: ... here.
+	* config/gthr-lynx.h: Reflect this.
+	* config/gthr-vxworks.h: Likewise.
+	* config/rs6000/gthr-aix.h: Likewise.
+	* configure.ac (target_thread_file): Likewise.
+	* configure: Regenerate.
+
 2011-11-06  Sebastian Huber  <sebastian.huber@embedded-brains.de>
 
 	* config.host (arm*-*-rtemseabi*): New target.
