@@ -1,4 +1,9 @@
 
+2011-11-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt
+	(opengpu_candidate_induction_variables): More, but still
+	incomplete.
+
 2011-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpu_docmd): More debug.
 

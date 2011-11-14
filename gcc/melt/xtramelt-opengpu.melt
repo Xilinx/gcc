@@ -142,22 +142,24 @@
 		 )
 	      ( ?(gimple_cond_less ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 				   ?(tree_simple_ssa_name ?rvar ?rvers))
+		 (let ( ( contcount (container '0))
+			)
 		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar " lvers=" lvers
 			" rvar=" rvar " rvers=" rvers)
 		 (debug "opengpu_candidate_induction_variables last < before walkusedef lhs=" lhs)
 		 (walk_use_def_chain_depth_first 
 		  (lambda (val :tree tr :gimple g)
+		    (debug "opengpu_candidate_induction_variables< walkusedef val=" val " tr=" tr " g=" g)
 		    (assert_msg "opengpu_candidate_induction_variables usedefwalk container"
 				(is_a val class_container))
 		    (let ( (vcnt !val) )
 		      (set_content val (+ivi vcnt 1)))
 		    (debug "opengpu_candidate_induction_variables usedefwalk val=" val " tr=" tr " g=" g)
 		    (return :true))
-		  (container '0)
+		  contcount
 		  lhs)
-		 (debug "opengpu_candidate_induction_variables after walkusedef lhs=" lhs)
-		 
-		 )
+		 (debug "opengpu_candidate_induction_variables after walkusedef lhs=" lhs " contcount=" contcount)
+		 ))
 	      ( ?(gimple_cond_less ?(tree_simple_ssa_name ?lvar ?lvers)
 				   ?(tree_integer_cst ?rlim))
 		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar " lvers=" lvers
