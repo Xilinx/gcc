@@ -38,6 +38,7 @@ details.  */
 #endif
 
 #ifndef DISABLE_GETENV_PROPERTIES
+#define __NO_CTYPE 1
 #include <ctype.h>
 #include <java-props.h>
 #define PROCESS_GCJ_PROPERTIES process_gcj_properties()

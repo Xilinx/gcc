@@ -359,6 +359,11 @@ build_base_path (enum tree_code code,
 	 V_BINFO.  That offset is an entry in D_BINFO's vtable.  */
       tree v_offset;
 
+      /* In a constructor template, current_in_charge_parm isn't set,
+	 and we might end up here via fold_non_dependent_expr.  */
+      if (fixed_type_p < 0 && !(cfun && current_in_charge_parm))
+	fixed_type_p = 0;
+
       if (fixed_type_p < 0 && in_base_initializer)
 	{
 	  /* In a base member initializer, we cannot rely on the
@@ -1167,7 +1172,8 @@ handle_using_decl (tree using_decl, tree t)
 
   gcc_assert (!processing_template_decl && decl);
 
-  old_value = lookup_member (t, name, /*protect=*/0, /*want_type=*/false);
+  old_value = lookup_member (t, name, /*protect=*/0, /*want_type=*/false,
+			     tf_warning_or_error);
   if (old_value)
     {
       if (is_overloaded_fn (old_value))
@@ -1227,12 +1233,11 @@ check_bases (tree t,
 	     int* no_const_asn_ref_p)
 {
   int i;
-  int seen_non_virtual_nearly_empty_base_p;
+  bool seen_non_virtual_nearly_empty_base_p = 0;
+  int seen_tm_mask = 0;
   tree base_binfo;
   tree binfo;
   tree field = NULL_TREE;
-
-  seen_non_virtual_nearly_empty_base_p = 0;
 
   if (!CLASSTYPE_NON_STD_LAYOUT (t))
     for (field = TYPE_FIELDS (t); field; field = DECL_CHAIN (field))
@@ -1338,6 +1343,23 @@ check_bases (tree t,
 		  break;
 		}
 	}
+
+      /* Don't bother collecting tm attributes if transactional memory
+	 support is not enabled.  */
+      if (flag_tm)
+	{
+	  tree tm_attr = find_tm_attribute (TYPE_ATTRIBUTES (basetype));
+	  if (tm_attr)
+	    seen_tm_mask |= tm_attr_to_mask (tm_attr);
+	}
+    }
+
+  /* If one of the base classes had TM attributes, and the current class
+     doesn't define its own, then the current class inherits one.  */
+  if (seen_tm_mask && !find_tm_attribute (TYPE_ATTRIBUTES (t)))
+    {
+      tree tm_attr = tm_mask_to_attr (seen_tm_mask & -seen_tm_mask);
+      TYPE_ATTRIBUTES (t) = tree_cons (tm_attr, NULL, TYPE_ATTRIBUTES (t));
     }
 }
 
@@ -2924,7 +2946,7 @@ check_field_decl (tree field,
 	  if (!warned && errorcount > oldcount)
 	    {
 	      inform (DECL_SOURCE_LOCATION (field), "unrestricted unions "
-		      "only available with -std=c++0x or -std=gnu++0x");
+		      "only available with -std=c++11 or -std=gnu++11");
 	      warned = true;
 	    }
 	}
@@ -3188,6 +3210,12 @@ check_field_decls (tree t, tree *access_decls,
 			  cant_have_const_ctor_p,
 			  no_const_asn_ref_p,
 			  &any_default_members);
+
+      /* Now that we've removed bit-field widths from DECL_INITIAL,
+	 anything left in DECL_INITIAL is an NSDMI that makes the class
+	 non-aggregate.  */
+      if (DECL_INITIAL (x))
+	CLASSTYPE_NON_AGGREGATE (t) = true;
 
       /* If any field is const, the structure type is pseudo-const.  */
       if (CP_TYPE_CONST_P (type))
@@ -4252,6 +4280,137 @@ clone_constructors_and_destructors (tree t)
     clone_function_decl (OVL_CURRENT (fns), /*update_method_vec_p=*/1);
 }
 
+/* Subroutine of set_one_vmethod_tm_attributes.  Search base classes
+   of TYPE for virtual functions which FNDECL overrides.  Return a
+   mask of the tm attributes found therein.  */
+
+static int
+look_for_tm_attr_overrides (tree type, tree fndecl)
+{
+  tree binfo = TYPE_BINFO (type);
+  tree base_binfo;
+  int ix, found = 0;
+
+  for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ++ix)
+    {
+      tree o, basetype = BINFO_TYPE (base_binfo);
+
+      if (!TYPE_POLYMORPHIC_P (basetype))
+	continue;
+
+      o = look_for_overrides_here (basetype, fndecl);
+      if (o)
+	found |= tm_attr_to_mask (find_tm_attribute
+				  (TYPE_ATTRIBUTES (TREE_TYPE (o))));
+      else
+	found |= look_for_tm_attr_overrides (basetype, fndecl);
+    }
+
+  return found;
+}
+
+/* Subroutine of set_method_tm_attributes.  Handle the checks and
+   inheritance for one virtual method FNDECL.  */
+
+static void
+set_one_vmethod_tm_attributes (tree type, tree fndecl)
+{
+  tree tm_attr;
+  int found, have;
+
+  found = look_for_tm_attr_overrides (type, fndecl);
+
+  /* If FNDECL doesn't actually override anything (i.e. T is the
+     class that first declares FNDECL virtual), then we're done.  */
+  if (found == 0)
+    return;
+
+  tm_attr = find_tm_attribute (TYPE_ATTRIBUTES (TREE_TYPE (fndecl)));
+  have = tm_attr_to_mask (tm_attr);
+
+  /* Intel STM Language Extension 3.0, Section 4.2 table 4:
+     tm_pure must match exactly, otherwise no weakening of
+     tm_safe > tm_callable > nothing.  */
+  /* ??? The tm_pure attribute didn't make the transition to the
+     multivendor language spec.  */
+  if (have == TM_ATTR_PURE)
+    {
+      if (found != TM_ATTR_PURE)
+	{
+	  found &= -found;
+	  goto err_override;
+	}
+    }
+  /* If the overridden function is tm_pure, then FNDECL must be.  */
+  else if (found == TM_ATTR_PURE && tm_attr)
+    goto err_override;
+  /* Look for base class combinations that cannot be satisfied.  */
+  else if (found != TM_ATTR_PURE && (found & TM_ATTR_PURE))
+    {
+      found &= ~TM_ATTR_PURE;
+      found &= -found;
+      error_at (DECL_SOURCE_LOCATION (fndecl),
+		"method overrides both %<transaction_pure%> and %qE methods",
+		tm_mask_to_attr (found));
+    }
+  /* If FNDECL did not declare an attribute, then inherit the most
+     restrictive one.  */
+  else if (tm_attr == NULL)
+    {
+      apply_tm_attr (fndecl, tm_mask_to_attr (found & -found));
+    }
+  /* Otherwise validate that we're not weaker than a function
+     that is being overridden.  */
+  else
+    {
+      found &= -found;
+      if (found <= TM_ATTR_CALLABLE && have > found)
+	goto err_override;
+    }
+  return;
+
+ err_override:
+  error_at (DECL_SOURCE_LOCATION (fndecl),
+	    "method declared %qE overriding %qE method",
+	    tm_attr, tm_mask_to_attr (found));
+}
+
+/* For each of the methods in T, propagate a class-level tm attribute.  */
+
+static void
+set_method_tm_attributes (tree t)
+{
+  tree class_tm_attr, fndecl;
+
+  /* Don't bother collecting tm attributes if transactional memory
+     support is not enabled.  */
+  if (!flag_tm)
+    return;
+
+  /* Process virtual methods first, as they inherit directly from the
+     base virtual function and also require validation of new attributes.  */
+  if (TYPE_CONTAINS_VPTR_P (t))
+    {
+      tree vchain;
+      for (vchain = BINFO_VIRTUALS (TYPE_BINFO (t)); vchain;
+	   vchain = TREE_CHAIN (vchain))
+	set_one_vmethod_tm_attributes (t, BV_FN (vchain));
+    }
+
+  /* If the class doesn't have an attribute, nothing more to do.  */
+  class_tm_attr = find_tm_attribute (TYPE_ATTRIBUTES (t));
+  if (class_tm_attr == NULL)
+    return;
+
+  /* Any method that does not yet have a tm attribute inherits
+     the one from the class.  */
+  for (fndecl = TYPE_METHODS (t); fndecl; fndecl = TREE_CHAIN (fndecl))
+    {
+      if (!find_tm_attribute (TYPE_ATTRIBUTES (TREE_TYPE (fndecl))))
+	apply_tm_attr (fndecl, class_tm_attr);
+    }
+}
+
 /* Returns true iff class T has a user-defined constructor other than
    the default constructor.  */
 
@@ -4485,7 +4644,7 @@ type_has_move_assign (tree t)
       lazily_declare_fn (sfk_move_assignment, t);
     }
 
-  for (fns = lookup_fnfields_slot (t, ansi_assopname (NOP_EXPR));
+  for (fns = lookup_fnfields_slot_nolazy (t, ansi_assopname (NOP_EXPR));
        fns; fns = OVL_NEXT (fns))
     if (move_fn_p (OVL_CURRENT (fns)))
       return true;
@@ -4530,7 +4689,7 @@ type_has_user_declared_move_assign (tree t)
   if (CLASSTYPE_LAZY_MOVE_ASSIGN (t))
     return false;
 
-  for (fns = lookup_fnfields_slot (t, ansi_assopname (NOP_EXPR));
+  for (fns = lookup_fnfields_slot_nolazy (t, ansi_assopname (NOP_EXPR));
        fns; fns = OVL_NEXT (fns))
     {
       tree fn = OVL_CURRENT (fns);
@@ -5835,6 +5994,7 @@ finish_struct_1 (tree t)
     }
 
   finish_struct_bits (t);
+  set_method_tm_attributes (t);
 
   /* Complete the rtl for any static member objects of the type we're
      working on.  */
@@ -7136,7 +7296,7 @@ maybe_note_name_used_in_class (tree name, tree decl)
   /* If there's already a binding for this NAME, then we don't have
      anything to worry about.  */
   if (lookup_member (current_class_type, name,
-		     /*protect=*/0, /*want_type=*/false))
+		     /*protect=*/0, /*want_type=*/false, tf_warning_or_error))
     return;
 
   if (!current_class_stack[current_class_depth - 1].names_used)

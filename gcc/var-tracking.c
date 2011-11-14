@@ -7764,7 +7764,7 @@ vt_expand_var_loc_chain (variable var, bitmap regs, void *data, bool *pendrecp)
   bool pending_recursion;
   rtx loc_from = NULL;
   struct elt_loc_list *cloc = NULL;
-  int depth, saved_depth = elcd->depth;
+  int depth = 0, saved_depth = elcd->depth;
 
   /* Clear all backlinks pointing at this, so that we're not notified
      while we're active.  */
@@ -7841,6 +7841,8 @@ vt_expand_var_loc_chain (variable var, bitmap regs, void *data, bool *pendrecp)
   gcc_checking_assert (!result || !pending_recursion);
   VAR_LOC_FROM (var) = loc_from;
   VAR_LOC_DEPTH (var) = depth;
+
+  gcc_checking_assert (!depth == !result);
 
   elcd->depth = update_depth (saved_depth, depth);
 
@@ -9515,6 +9517,12 @@ vt_initialize (void)
   return true;
 }
 
+/* This is *not* reset after each function.  It gives each
+   NOTE_INSN_DELETED_DEBUG_LABEL in the entire compilation
+   a unique label number.  */
+
+static int debug_label_num = 1;
+
 /* Get rid of all debug insns from the insn stream.  */
 
 static void
@@ -9530,7 +9538,22 @@ delete_debug_insns (void)
     {
       FOR_BB_INSNS_SAFE (bb, insn, next)
 	if (DEBUG_INSN_P (insn))
-	  delete_insn (insn);
+	  {
+	    tree decl = INSN_VAR_LOCATION_DECL (insn);
+	    if (TREE_CODE (decl) == LABEL_DECL
+		&& DECL_NAME (decl)
+		&& !DECL_RTL_SET_P (decl))
+	      {
+		PUT_CODE (insn, NOTE);
+		NOTE_KIND (insn) = NOTE_INSN_DELETED_DEBUG_LABEL;
+		NOTE_DELETED_LABEL_NAME (insn)
+		  = IDENTIFIER_POINTER (DECL_NAME (decl));
+		SET_DECL_RTL (decl, insn);
+		CODE_LABEL_NUMBER (insn) = debug_label_num++;
+	      }
+	    else
+	      delete_insn (insn);
+	  }
     }
 }
 

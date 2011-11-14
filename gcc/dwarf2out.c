@@ -98,6 +98,7 @@ along with GCC; see the file COPYING3.  If not see
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
 static rtx last_var_location_insn;
+static rtx cached_next_real_insn;
 
 #ifdef VMS_DEBUGGING_INFO
 int vms_file_stats_name (const char *, long long *, long *, char *, int *);
@@ -1090,6 +1091,7 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
 
   last_var_location_insn = NULL_RTX;
+  cached_next_real_insn = NULL_RTX;
 
   if (dwarf2out_do_cfi_asm ())
     fprintf (asm_out_file, "\t.cfi_endproc\n");
@@ -18018,6 +18020,14 @@ gen_label_die (tree decl, dw_die_ref context_die)
 	  ASM_GENERATE_INTERNAL_LABEL (label, "L", CODE_LABEL_NUMBER (insn));
 	  add_AT_lbl_id (lbl_die, DW_AT_low_pc, label);
 	}
+      else if (insn
+	       && NOTE_P (insn)
+	       && NOTE_KIND (insn) == NOTE_INSN_DELETED_DEBUG_LABEL
+	       && CODE_LABEL_NUMBER (insn) != -1)
+	{
+	  ASM_GENERATE_INTERNAL_LABEL (label, "LDL", CODE_LABEL_NUMBER (insn));
+	  add_AT_lbl_id (lbl_die, DW_AT_low_pc, label);
+	}
     }
 }
 
@@ -20132,7 +20142,6 @@ dwarf2out_var_location (rtx loc_note)
   static const char *last_postcall_label;
   static bool last_in_cold_section_p;
   static rtx expected_next_loc_note;
-  static rtx cached_next_real_insn;
   tree decl;
   bool var_loc_p;
 

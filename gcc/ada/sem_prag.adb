@@ -181,7 +181,7 @@ package body Sem_Prag is
    --  original one, following the renaming chain) is returned. Otherwise the
    --  entity is returned unchanged. Should be in Einfo???
 
-   procedure Preanalyze_TC_Args (Arg_Req, Arg_Ens : Node_Id);
+   procedure Preanalyze_TC_Args (N, Arg_Req, Arg_Ens : Node_Id);
    --  Preanalyze the boolean expressions in the Requires and Ensures arguments
    --  of a Test_Case pragma if present (possibly Empty). We treat these as
    --  spec expressions (i.e. similar to a default expression).
@@ -260,8 +260,17 @@ package body Sem_Prag is
       --  Preanalyze the boolean expression, we treat this as a spec expression
       --  (i.e. similar to a default expression).
 
-      Preanalyze_Spec_Expression
-        (Get_Pragma_Arg (Arg1), Standard_Boolean);
+      Preanalyze_Spec_Expression (Get_Pragma_Arg (Arg1), Standard_Boolean);
+
+      --  In ASIS mode, for a pragma generated from a source aspect, also
+      --  analyze the original aspect expression.
+
+      if ASIS_Mode
+        and then Present (Corresponding_Aspect (N))
+      then
+         Preanalyze_Spec_Expression
+           (Expression (Corresponding_Aspect (N)), Standard_Boolean);
+      end if;
 
       --  For a class-wide condition, a reference to a controlling formal must
       --  be interpreted as having the class-wide type (or an access to such)
@@ -517,6 +526,15 @@ package body Sem_Prag is
       --  an Import or Export pragma (or extended Import or Export pragma).
       --  This procedure checks for possible duplications if this is the export
       --  case, and if found, issues an appropriate error message.
+
+      procedure Check_Expr_Is_Static_Expression
+        (Expr : Node_Id;
+         Typ  : Entity_Id := Empty);
+      --  Check the specified expression Expr to make sure that it is a static
+      --  expression of the given type (i.e. it will be analyzed and resolved
+      --  using this type, which can be any valid argument to Resolve, e.g.
+      --  Any_Integer is OK). If not, given error and raise Pragma_Exit. If
+      --  Typ is left Empty, then any static expression is allowed.
 
       procedure Check_First_Subtype (Arg : Node_Id);
       --  Checks that Arg, whose expression is an entity name, references a
@@ -1199,53 +1217,8 @@ package body Sem_Prag is
         (Arg : Node_Id;
          Typ : Entity_Id := Empty)
       is
-         Argx : constant Node_Id := Get_Pragma_Arg (Arg);
-
       begin
-         if Present (Typ) then
-            Analyze_And_Resolve (Argx, Typ);
-         else
-            Analyze_And_Resolve (Argx);
-         end if;
-
-         if Is_OK_Static_Expression (Argx) then
-            return;
-
-         elsif Etype (Argx) = Any_Type then
-            raise Pragma_Exit;
-
-         --  An interesting special case, if we have a string literal and we
-         --  are in Ada 83 mode, then we allow it even though it will not be
-         --  flagged as static. This allows the use of Ada 95 pragmas like
-         --  Import in Ada 83 mode. They will of course be flagged with
-         --  warnings as usual, but will not cause errors.
-
-         elsif Ada_Version = Ada_83
-           and then Nkind (Argx) = N_String_Literal
-         then
-            return;
-
-         --  Static expression that raises Constraint_Error. This has already
-         --  been flagged, so just exit from pragma processing.
-
-         elsif Is_Static_Expression (Argx) then
-            raise Pragma_Exit;
-
-         --  Finally, we have a real error
-
-         else
-            Error_Msg_Name_1 := Pname;
-
-            declare
-               Msg : String :=
-                       "argument for pragma% must be a static expression!";
-            begin
-               Fix_Error (Msg);
-               Flag_Non_Static_Expr (Msg, Argx);
-            end;
-
-            raise Pragma_Exit;
-         end if;
+         Check_Expr_Is_Static_Expression (Get_Pragma_Arg (Arg), Typ);
       end Check_Arg_Is_Static_Expression;
 
       ------------------------------------------
@@ -1477,6 +1450,61 @@ package body Sem_Prag is
             Externals.Append (Nam);
          end if;
       end Check_Duplicated_Export_Name;
+
+      -------------------------------------
+      -- Check_Expr_Is_Static_Expression --
+      -------------------------------------
+
+      procedure Check_Expr_Is_Static_Expression
+        (Expr : Node_Id;
+         Typ  : Entity_Id := Empty)
+      is
+      begin
+         if Present (Typ) then
+            Analyze_And_Resolve (Expr, Typ);
+         else
+            Analyze_And_Resolve (Expr);
+         end if;
+
+         if Is_OK_Static_Expression (Expr) then
+            return;
+
+         elsif Etype (Expr) = Any_Type then
+            raise Pragma_Exit;
+
+         --  An interesting special case, if we have a string literal and we
+         --  are in Ada 83 mode, then we allow it even though it will not be
+         --  flagged as static. This allows the use of Ada 95 pragmas like
+         --  Import in Ada 83 mode. They will of course be flagged with
+         --  warnings as usual, but will not cause errors.
+
+         elsif Ada_Version = Ada_83
+           and then Nkind (Expr) = N_String_Literal
+         then
+            return;
+
+         --  Static expression that raises Constraint_Error. This has already
+         --  been flagged, so just exit from pragma processing.
+
+         elsif Is_Static_Expression (Expr) then
+            raise Pragma_Exit;
+
+         --  Finally, we have a real error
+
+         else
+            Error_Msg_Name_1 := Pname;
+
+            declare
+               Msg : String :=
+                       "argument for pragma% must be a static expression!";
+            begin
+               Fix_Error (Msg);
+               Flag_Non_Static_Expr (Msg, Expr);
+            end;
+
+            raise Pragma_Exit;
+         end if;
+      end Check_Expr_Is_Static_Expression;
 
       -------------------------
       -- Check_First_Subtype --
@@ -1980,6 +2008,16 @@ package body Sem_Prag is
 
                Preanalyze_Spec_Expression
                  (Get_Pragma_Arg (Arg1), Standard_Boolean);
+
+               --  In ASIS mode, for a pragma generated from a source aspect,
+               --  also analyze the original aspect expression.
+
+               if ASIS_Mode
+                 and then Present (Corresponding_Aspect (N))
+               then
+                  Preanalyze_Spec_Expression
+                    (Expression (Corresponding_Aspect (N)), Standard_Boolean);
+               end if;
             end if;
 
             In_Body := True;
@@ -5462,10 +5500,10 @@ package body Sem_Prag is
             --  a non-atomic variable.
 
             if C = Atomic_Synchronization
-              and then not Is_Atomic (E)
+              and then not (Is_Atomic (E) or else Has_Atomic_Components (E))
             then
                Error_Msg_N
-                 ("pragma & requires atomic variable",
+                 ("pragma & requires atomic type or variable",
                   Pragma_Identifier (Original_Node (N)));
             end if;
 
@@ -7864,10 +7902,13 @@ package body Sem_Prag is
                  N_Indexed_Component,
                  N_Function_Call,
                  N_Identifier,
+                 N_Expanded_Name,
                  N_Selected_Component)
             then
                --  If this pragma Debug comes from source, its argument was
                --  parsed as a name form (which is syntactically identical).
+               --  In a generic context a parameterless call will be left as
+               --  an expanded name (if global) or selected_component if local.
                --  Change it to a procedure call statement now.
 
                Change_Name_To_Procedure_Call_Statement (Call);
@@ -10952,7 +10993,8 @@ package body Sem_Prag is
 
          --  pragma Long_Float (D_Float | G_Float);
 
-         when Pragma_Long_Float =>
+         when Pragma_Long_Float => Long_Float : declare
+         begin
             GNAT_Pragma;
             Check_Valid_Configuration_Pragma;
             Check_Arg_Count (1);
@@ -10967,22 +11009,42 @@ package body Sem_Prag is
 
             if Chars (Get_Pragma_Arg (Arg1)) = Name_D_Float then
                if Opt.Float_Format_Long = 'G' then
-                  Error_Pragma ("G_Float previously specified");
-               end if;
+                  Error_Pragma_Arg
+                    ("G_Float previously specified", Arg1);
 
-               Opt.Float_Format_Long := 'D';
+               elsif Current_Sem_Unit /= Main_Unit
+                 and then Opt.Float_Format_Long /= 'D'
+               then
+                  Error_Pragma_Arg
+                    ("main unit not compiled with pragma Long_Float (D_Float)",
+                     "\pragma% must be used consistently for whole partition",
+                     Arg1);
+
+               else
+                  Opt.Float_Format_Long := 'D';
+               end if;
 
             --  G_Float case (this is the default, does not need overriding)
 
             else
                if Opt.Float_Format_Long = 'D' then
                   Error_Pragma ("D_Float previously specified");
-               end if;
 
-               Opt.Float_Format_Long := 'G';
+               elsif Current_Sem_Unit /= Main_Unit
+                 and then Opt.Float_Format_Long /= 'G'
+               then
+                  Error_Pragma_Arg
+                    ("main unit not compiled with pragma Long_Float (G_Float)",
+                     "\pragma% must be used consistently for whole partition",
+                     Arg1);
+
+               else
+                  Opt.Float_Format_Long := 'G';
+               end if;
             end if;
 
             Set_Standard_Fpt_Formats;
+         end Long_Float;
 
          -----------------------
          -- Machine_Attribute --
@@ -13657,6 +13719,17 @@ package body Sem_Prag is
 
             Check_Optional_Identifier (Arg1, Name_Name);
             Check_Arg_Is_Static_Expression (Arg1, Standard_String);
+
+            --  In ASIS mode, for a pragma generated from a source aspect, also
+            --  analyze the original aspect expression.
+
+            if ASIS_Mode
+              and then Present (Corresponding_Aspect (N))
+            then
+               Check_Expr_Is_Static_Expression
+                 (Original_Node (Get_Pragma_Arg (Arg1)), Standard_String);
+            end if;
+
             Check_Optional_Identifier (Arg2, Name_Mode);
             Check_Arg_Is_One_Of (Arg2, Name_Nominal, Name_Robustness);
 
@@ -14374,7 +14447,7 @@ package body Sem_Prag is
                      --  actual is a conversion. Retrieve the real entity name.
 
                      if (In_Instance_Body
-                         or else In_Inlined_Body)
+                          or else In_Inlined_Body)
                        and then Nkind (E_Id) = N_Unchecked_Type_Conversion
                      then
                         E_Id := Expression (E_Id);
@@ -14545,7 +14618,8 @@ package body Sem_Prag is
       --  Preanalyze the boolean expressions, we treat these as spec
       --  expressions (i.e. similar to a default expression).
 
-      Preanalyze_TC_Args (Get_Requires_From_Test_Case_Pragma (N),
+      Preanalyze_TC_Args (N,
+                          Get_Requires_From_Test_Case_Pragma (N),
                           Get_Ensures_From_Test_Case_Pragma (N));
 
       --  Remove the subprogram from the scope stack now that the pre-analysis
@@ -15065,7 +15139,7 @@ package body Sem_Prag is
    -- Preanalyze_TC_Args --
    ------------------------
 
-   procedure Preanalyze_TC_Args (Arg_Req, Arg_Ens : Node_Id) is
+   procedure Preanalyze_TC_Args (N, Arg_Req, Arg_Ens : Node_Id) is
    begin
       --  Preanalyze the boolean expressions, we treat these as spec
       --  expressions (i.e. similar to a default expression).
@@ -15073,11 +15147,31 @@ package body Sem_Prag is
       if Present (Arg_Req) then
          Preanalyze_Spec_Expression
            (Get_Pragma_Arg (Arg_Req), Standard_Boolean);
+
+         --  In ASIS mode, for a pragma generated from a source aspect, also
+         --  analyze the original aspect expression.
+
+         if ASIS_Mode
+           and then Present (Corresponding_Aspect (N))
+         then
+            Preanalyze_Spec_Expression
+              (Original_Node (Get_Pragma_Arg (Arg_Req)), Standard_Boolean);
+         end if;
       end if;
 
       if Present (Arg_Ens) then
          Preanalyze_Spec_Expression
            (Get_Pragma_Arg (Arg_Ens), Standard_Boolean);
+
+         --  In ASIS mode, for a pragma generated from a source aspect, also
+         --  analyze the original aspect expression.
+
+         if ASIS_Mode
+           and then Present (Corresponding_Aspect (N))
+         then
+            Preanalyze_Spec_Expression
+              (Original_Node (Get_Pragma_Arg (Arg_Ens)), Standard_Boolean);
+         end if;
       end if;
    end Preanalyze_TC_Args;
 

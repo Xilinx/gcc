@@ -401,46 +401,39 @@ package body Exp_Ch2 is
 
       --  Set Atomic_Sync_Required if necessary for atomic variable
 
-      if Is_Atomic (E) then
+      if Nkind_In (N, N_Identifier, N_Expanded_Name)
+        and then Ekind (E) = E_Variable
+        and then (Is_Atomic (E) or else Is_Atomic (Etype (E)))
+      then
          declare
             Set  : Boolean;
-            MLoc : Node_Id;
 
          begin
-            --  Always set if debug flag d.e is set
+            --  If variable is atomic, but type is not, setting depends on
+            --  disable/enable state for the variable.
 
-            if Debug_Flag_Dot_E then
-               Set := True;
+            if Is_Atomic (E) and then not Is_Atomic (Etype (E)) then
+               Set := not Atomic_Synchronization_Disabled (E);
 
-            --  Never set if debug flag d.d is set
+            --  If variable is not atomic, but its type is atomic, setting
+            --  depends on disable/enable state for the type.
 
-            elsif Debug_Flag_Dot_D then
-               Set := False;
+            elsif not Is_Atomic (E) and then Is_Atomic (Etype (E)) then
+               Set := not Atomic_Synchronization_Disabled (Etype (E));
 
-            --  Otherwise setting comes from Atomic_Synchronization state
+            --  Else both variable and type are atomic (see outer if), and we
+            --  disable if either variable or its type have sync disabled.
 
             else
-               Set := not Atomic_Synchronization_Disabled (E);
+               Set := (not Atomic_Synchronization_Disabled (E))
+                        and then
+                      (not Atomic_Synchronization_Disabled (Etype (E)));
             end if;
 
             --  Set flag if required
 
             if Set then
-
-               --  Generate info message if requested
-
-               if Warn_On_Atomic_Synchronization then
-                  if Nkind (N) = N_Identifier then
-                     MLoc := N;
-                  else
-                     MLoc := Selector_Name (N);
-                  end if;
-
-                  Error_Msg_N
-                    ("?info: atomic synchronization set for &", MLoc);
-               end if;
-
-               Set_Atomic_Sync_Required (N);
+               Activate_Atomic_Synchronization (N);
             end if;
          end;
       end if;

@@ -203,10 +203,13 @@ lvalue_kind (const_tree ref)
       return lvalue_kind (BASELINK_FUNCTIONS (CONST_CAST_TREE (ref)));
 
     case NON_DEPENDENT_EXPR:
-      /* We used to just return clk_ordinary for NON_DEPENDENT_EXPR because
-	 it was safe enough for C++98, but in C++0x lvalues don't bind to
-	 rvalue references, so we get bogus errors (c++/44870).  */
-      return lvalue_kind (TREE_OPERAND (ref, 0));
+      /* We just return clk_ordinary for NON_DEPENDENT_EXPR in C++98, but
+	 in C++11 lvalues don't bind to rvalue references, so we need to
+	 work harder to avoid bogus errors (c++/44870).  */
+      if (cxx_dialect < cxx0x)
+	return clk_ordinary;
+      else
+	return lvalue_kind (TREE_OPERAND (ref, 0));
 
     default:
       if (!TREE_TYPE (ref))
@@ -1888,6 +1891,10 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
       else
 	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t),
 					 tf_warning_or_error);
+
+      TARGET_EXPR_IMPLICIT_P (u) = TARGET_EXPR_IMPLICIT_P (t);
+      TARGET_EXPR_LIST_INIT_P (u) = TARGET_EXPR_LIST_INIT_P (t);
+      TARGET_EXPR_DIRECT_INIT_P (u) = TARGET_EXPR_DIRECT_INIT_P (t);
 
       /* Map the old variable to the new one.  */
       splay_tree_insert (target_remap,

@@ -880,6 +880,13 @@ DEFPARAM (PARAM_IPA_SRA_PTR_GROWTH_FACTOR,
 	  "a pointer to an aggregate with",
 	  2, 0, 0)
 
+DEFPARAM (PARAM_TM_MAX_AGGREGATE_SIZE,
+	  "tm-max-aggregate-size",
+	  "Size in bytes after which thread-local aggregates should be "
+	  "instrumented with the logging functions instead of save/restore "
+	  "pairs",
+	  9, 0, 0)
+
 DEFPARAM (PARAM_IPA_CP_VALUE_LIST_SIZE,
 	  "ipa-cp-value-list-size",
 	  "Maximum size of a list of values associated with each parameter for "
@@ -929,9 +936,24 @@ DEFPARAM (PARAM_CASE_VALUES_THRESHOLD,
           0, 0, 0)
 
 /* Data race flags for C++0x memory model compliance.  */
+DEFPARAM (PARAM_ALLOW_LOAD_DATA_RACES,
+	  "allow-load-data-races",
+	  "Allow new data races on loads to be introduced",
+	  1, 0, 1)
+
 DEFPARAM (PARAM_ALLOW_STORE_DATA_RACES,
 	  "allow-store-data-races",
 	  "Allow new data races on stores to be introduced",
+	  1, 0, 1)
+
+DEFPARAM (PARAM_ALLOW_PACKED_LOAD_DATA_RACES,
+	  "allow-packed-load-data-races",
+	  "Allow new data races on packed data loads to be introduced",
+	  1, 0, 1)
+
+DEFPARAM (PARAM_ALLOW_PACKED_STORE_DATA_RACES,
+	  "allow-packed-store-data-races",
+	  "Allow new data races on packed data stores to be introduced",
 	  1, 0, 1)
 
 /* Reassociation width to be used by tree reassoc optimization.  */

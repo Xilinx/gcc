@@ -1550,7 +1550,8 @@ maybe_fix_stack_asms (void)
 
 		case 'p':
 		  cls = (int) reg_class_subunion[cls]
-		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					     ADDRESS, SCRATCH)];
 		  break;
 
 		case 'g':
@@ -1561,7 +1562,8 @@ maybe_fix_stack_asms (void)
 		default:
 		  if (EXTRA_ADDRESS_CONSTRAINT (c, p))
 		    cls = (int) reg_class_subunion[cls]
-		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					     ADDRESS, SCRATCH)];
 		  else
 		    cls = (int) reg_class_subunion[cls]
 		      [(int) REG_CLASS_FROM_CONSTRAINT (c, p)];
@@ -8890,10 +8892,10 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
       rtx loc = get_secondary_mem (in, GET_MODE (out), opnum, type);
 
       if (GET_MODE (loc) != GET_MODE (out))
-	out = gen_rtx_REG (GET_MODE (loc), REGNO (out));
+	out = gen_rtx_REG (GET_MODE (loc), reg_or_subregno (out));
 
       if (GET_MODE (loc) != GET_MODE (in))
-	in = gen_rtx_REG (GET_MODE (loc), REGNO (in));
+	in = gen_rtx_REG (GET_MODE (loc), reg_or_subregno (in));
 
       gen_reload (loc, in, opnum, type);
       gen_reload (out, loc, opnum, type);
