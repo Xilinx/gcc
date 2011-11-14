@@ -12844,7 +12844,16 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
 	  base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
-	  return gen_rtx_PLUS (Pmode, base, off);
+	  if (Pmode != word_mode)
+	    {
+	      /* Since address override works only on the (reg) part in
+		 fs:(reg), we can't use it as memory operand.  */
+	      rtx reg = gen_reg_rtx (Pmode);
+	      emit_move_insn (reg, base);
+	      return gen_rtx_PLUS (Pmode, reg, off);
+	    }
+	  else
+	    return gen_rtx_PLUS (Pmode, base, off);
 	}
       else
 	{
