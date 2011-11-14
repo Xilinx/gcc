@@ -2115,6 +2115,7 @@ build_class_member_access_expr (tree object, tree member,
   tree object_type;
   tree member_scope;
   tree result = NULL_TREE;
+  tree using_decl = NULL_TREE;
 
   if (error_operand_p (object) || error_operand_p (member))
     return error_mark_node;
@@ -2343,6 +2344,11 @@ build_class_member_access_expr (tree object, tree member,
 	result = build2 (COMPOUND_EXPR, TREE_TYPE (result),
 			 object, result);
     }
+  else if ((using_decl = strip_using_decl (member)) != member)
+    result = build_class_member_access_expr (object,
+					     using_decl,
+					     access_path, preserve_reference,
+					     complain);
   else
     {
       if (complain & tf_error)
@@ -8417,9 +8423,8 @@ check_literal_operator_args (const_tree decl,
 			     bool *long_long_unsigned_p, bool *long_double_p)
 {
   tree argtypes = TYPE_ARG_TYPES (TREE_TYPE (decl));
-  if (processing_template_decl)
-    return (argtypes == NULL_TREE
-	    || same_type_p (TREE_VALUE (argtypes), void_type_node));
+  if (processing_template_decl || processing_specialization)
+    return argtypes == void_list_node;
   else
     {
       tree argtype;
@@ -8488,7 +8493,7 @@ check_literal_operator_args (const_tree decl,
       if (!argtype)
 	return false; /* Found ellipsis.  */
 
-      if (arity > max_arity)
+      if (arity != max_arity)
 	return false;
 
       return true;
