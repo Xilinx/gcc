@@ -1,5 +1,10 @@
 2011-11-14  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_expand_prologue): Check Pmode to set
+	adjust_stack_insn.
+
+2011-11-14  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (legitimize_tls_address): Load TP into
 	register for TLS_MODEL_LOCAL_EXEC modes in x32.
 
