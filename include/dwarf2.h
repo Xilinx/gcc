@@ -189,11 +189,10 @@ enum dwarf_form
     DW_FORM_exprloc = 0x18,
     DW_FORM_flag_present = 0x19,
     DW_FORM_ref_sig8 = 0x20,
-
-    /* Experimental.  */
-    DW_FORM_ref_index = 0x21,
-    DW_FORM_addr_index = 0x22,
-    DW_FORM_str_index = 0x23
+    /* Extensions for Fission.  */
+    DW_FORM_GNU_ref_index = 0x70,
+    DW_FORM_GNU_addr_index = 0x71,
+    DW_FORM_GNU_str_index = 0x72
   };
 
 /* Attribute names and codes.  */
@@ -299,12 +298,6 @@ enum dwarf_attribute
     DW_AT_enum_class      = 0x6d,
     DW_AT_linkage_name    = 0x6e,
 
-    /* Experimental.  */
-    DW_AT_dwo_name  = 0x6f,
-    DW_AT_dwo_id    = 0x70,
-    DW_AT_ref_base  = 0x71,
-    DW_AT_addr_base = 0x72,
-
     DW_AT_lo_user = 0x2000,	/* Implementation-defined range start.  */
     DW_AT_hi_user = 0x3fff,	/* Implementation-defined range end.  */
 
@@ -379,6 +372,13 @@ enum dwarf_attribute
     DW_AT_GNU_all_source_call_sites = 0x2118,
     /* Section offset into .debug_macro section.  */
     DW_AT_GNU_macros = 0x2119,
+    /* Extensions for Fission.  */
+    DW_AT_GNU_dwo_name = 0x2130,
+    DW_AT_GNU_dwo_id = 0x2131,
+    DW_AT_GNU_ref_base = 0x2132,
+    DW_AT_GNU_addr_base = 0x2133,
+    DW_AT_GNU_pubnames = 0x2134,
+    DW_AT_GNU_pubtypes = 0x2135,
     /* VMS extensions.  */
     DW_AT_VMS_rtnbeg_pd_address = 0x2201,
     /* GNAT extensions.  */
