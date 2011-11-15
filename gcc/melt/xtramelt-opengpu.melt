@@ -34,6 +34,7 @@
 ;; given an SSA name, return the transformation of its boxed increment if it is defined only
 ;; by additions or substractions to a constant, or else null
 (defun opengpu_increment_ssaname (trans :tree trssa)
+  (debug "opengpu_increment_ssaname start trans=" trans " trssa=" trssa)
   (match trssa
 	 ( ?(tree_simple_ssa_name ?tvar ?vers)
 	    (let ( (vtrssa (make_tree discr_tree trssa))
@@ -60,19 +61,23 @@
 						 ?(tree_integer_cst ?rdecr))
 			    (debug "opengpu_increment_ssaname decrementing g=" g " rdecr=" rdecr)
 			    (list_append lincrv (make_integerbox discr_constant_integer (negi rdecr)))
+			    (debug "opengpu_increment_ssaname/walker gives lincr=" lincr)
 			    (return lincr)
 			    )
 			  (?(gimple_assign_to trssa)
 			    (debug "opengpu_increment_ssaname bad assign g=" g)
 			    (set_content transcont ())
+			    (debug "opengpu_increment_ssaname/walker gives null")
 			    (return ()))
 			  (?(gimple_call trssa ?fndecl ?nbargs)
 			    (debug "opengpu_increment_ssaname bad call g=" g 
 				   " fndecl=" fndecl " nbargs=" nbargs)
 			    (set_content transcont ())
+			    (debug "opengpu_increment_ssaname gives null")
 			    (return ()))
 			  (?_
 			   (debug "opengpu_increment_ssaname ignored g=" g)
+			   (debug "opengpu_increment_ssaname/walker gives lincr=" lincr)
 			   (return lincr)
 			   ))))
 	       lincr
@@ -83,7 +88,13 @@
 		(if (is_closure transf)
 		    (progn
 		      (debug "opengpu_increment_ssaname transforming good lincr=" lincr)
-		      (return (transf lincr))))
+		      (let ( (res (transf lincr)) )
+		      (debug "opengpu_increment_ssaname gives res=" res)
+			(return res)))
+		  (progn
+		    (debug "opengpu_increment_ssaname givies directly lincr=" lincr)
+		    (return lincr))
+		  )
 		)))
 	 (?_ 
 	  (debug "opengpu_increment_ssaname bad trssa=" trssa)
@@ -158,7 +169,7 @@
 		    (return :true))
 		  contcount
 		  lhs)
-		 (debug "opengpu_candidate_induction_variables after walkusedef lhs=" lhs " contcount=" contcount)
+		 (debug "opengpu_candidate_induction_variables< after walkusedef lhs=" lhs " contcount=" contcount)
 		 ))
 	      ( ?(gimple_cond_less ?(tree_simple_ssa_name ?lvar ?lvers)
 				   ?(tree_integer_cst ?rlim))

@@ -1,4 +1,14 @@
 
+2011-11-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (class_value_descriptor): Add
+	valdescr_clonechunk field.
+	* melt/warmelt-modes.melt (generate_runtypesupport_cloning_fun):
+	New incomplete function.
+	(runtypesupport_docmd): Call it.
+	* melt/xtramelt-opengpu.melt
+	(opengpu_candidate_induction_variables): More
+	* melt-runtime.h (meltgc_clone_with_discriminant): New declaration.
+
 2011-11-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt
 	(opengpu_candidate_induction_variables): More, but still

@@ -1674,7 +1674,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   structure. $VALDESC_GTY is the optional GTY
   argument. $VALDESC_COPYCHUNK is the code chunk copying src to an
   allocated dst. $VALDESC_FORWCHUNK is the code chunk formarding
-  internal pointers.}#
+  internal pointers. $VALDESC_CLONECHUNK is the code chunk to clone
+  src, default to the copy code chunk.}#
   :super class_named
   :fields (
 	   valdesc_objmagic
@@ -1685,6 +1686,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 	   valdesc_declchunk
 	   valdesc_copychunk
 	   valdesc_forwchunk
+	   valdesc_clonechunk
 	   )
 )
 
