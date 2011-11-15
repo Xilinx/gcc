@@ -1,5 +1,11 @@
 2011-11-15  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_expand_movmem): Replace Pmode with
+	word_mode for loop.
+	(ix86_expand_setmem): Likewise.
+
+2011-11-15  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_gen_pro_epilogue_adjust_stack): Removed.
 	(ix86_option_override_internal): Don't set
 	ix86_gen_pro_epilogue_adjust_stack.
