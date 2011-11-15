@@ -22563,7 +22563,7 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
       break;
     case loop:
       expand_set_or_movmem_via_loop (dst, src, destreg, srcreg, NULL,
-				     count_exp, Pmode, 1, expected_size);
+				     count_exp, move_mode, 1, expected_size);
       break;
     case sse_loop:
     case unrolled_loop:
@@ -22852,7 +22852,7 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
   alg = decide_alg (count, expected_size, true, &dynamic_check, align_unknown);
   desired_align = decide_alignment (align, alg, expected_size);
   unroll_factor = 1;
-  move_mode = Pmode;
+  move_mode = word_mode;
 
   if (!TARGET_ALIGN_STRINGOPS)
     align = desired_align;
@@ -22870,12 +22870,12 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
       gcc_unreachable ();
     case loop:
       need_zero_guard = true;
-      move_mode = Pmode;
+      move_mode = word_mode;
       size_needed = GET_MODE_SIZE (move_mode) * unroll_factor;
       break;
     case unrolled_loop:
       need_zero_guard = true;
-      move_mode = Pmode;
+      move_mode = word_mode;
       unroll_factor = 1;
       /* Select maximal available 1,2 or 4 unroll factor.  */
       while (GET_MODE_SIZE (move_mode) * unroll_factor * 2 < count
@@ -22937,9 +22937,9 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
      front of all code.  */
   if (CONST_INT_P (val_exp))
     gpr_promoted_val = promote_duplicated_reg_to_size (val_exp,
-						   GET_MODE_SIZE (Pmode),
-						   GET_MODE_SIZE (Pmode),
-						   align);
+						       GET_MODE_SIZE (word_mode),
+						       GET_MODE_SIZE (word_mode),
+						       align);
   /* Ensure that alignment prologue won't copy past end of block.  */
   if (size_needed > 1 || (desired_align > 1 && desired_align > align))
     {
@@ -22995,9 +22995,9 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
   /* Do the expensive promotion once we branched off the small blocks.  */
   if (!gpr_promoted_val)
     gpr_promoted_val = promote_duplicated_reg_to_size (val_exp,
-						   GET_MODE_SIZE (Pmode),
-						   GET_MODE_SIZE (Pmode),
-						   align);
+						       GET_MODE_SIZE (word_mode),
+						       GET_MODE_SIZE (word_mode),
+						       align);
   gcc_assert (desired_align >= 1 && align >= 1);
 
   if (desired_align > align)

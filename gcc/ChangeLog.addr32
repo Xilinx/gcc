@@ -1,3 +1,9 @@
+2011-11-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_movmem): Use move_mode instead
+	of Pmode on loop.
+	(ix86_expand_setmem): Likwise.
+
 2011-11-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_expand_prologue): Check Pmode to set
