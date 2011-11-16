@@ -7236,6 +7236,26 @@ can_compare_and_swap_p (enum machine_mode mode, bool allow_libcall)
   return false;
 }
 
+/* Return true if an atomic exchange can be performed.  */
+
+bool
+can_atomic_exchange_p (enum machine_mode mode, bool allow_libcall)
+{
+  enum insn_code icode;
+
+  /* Check for __atomic_exchange.  */
+  icode = direct_optab_handler (atomic_exchange_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    return true;
+
+  /* Don't check __sync_test_and_set, as on some platforms that
+     has reduced functionality.  Targets that really do support
+     a proper exchange should simply be updated to the __atomics.  */
+
+  return can_compare_and_swap_p (mode, allow_libcall);
+}
+
+
 /* Helper function to find the MODE_CC set in a sync_compare_and_swap
    pattern.  */
 
@@ -7875,8 +7895,15 @@ expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 	     Fetch_before == after REVERSE_OP val.  */
 	  if (!after)
 	    code = optab.reverse_code;
-	  result = expand_simple_binop (mode, code, result, val, target, true,
-					OPTAB_LIB_WIDEN);
+	  if (code == NOT)
+	    {
+	      result = expand_simple_binop (mode, AND, result, val, NULL_RTX,
+					    true, OPTAB_LIB_WIDEN);
+	      result = expand_simple_unop (mode, NOT, result, target, true);
+	    }
+	  else
+	    result = expand_simple_binop (mode, code, result, val, target,
+					  true, OPTAB_LIB_WIDEN);
 	  return result;
 	}
     }

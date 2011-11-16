@@ -1,6 +1,168 @@
+2011-11-14  Zolotukhin Michael  <michael.v.zolotukhin@gmail.com>
+	    Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/sw-1.c: Force rep;movsb.
+
+2011-11-14  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR testsuite/51059
+	* gcc.misc-tests/gcov-14.c (dg-options): Adjust to use
+	dg-additional-options.
+
+2011-11-13  Oleg Endo  <oleg.endo@t-online.de>
+
+	* gcc.target/sh/pr21255-2-ml.c: Skip if -mb or -m5* is
+	specified.  Remove redundant runtime checks.
+	* gcc.target/sh/20080410-1.c: Skip if -mb is specified.
+	Allow for other than -m4.  Fix typos in comments.
+
+2011-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/986
+	* g++.dg/warn/ref-temp1.C: New.
+
+	PR c++/51060
+	* g++.dg/opt/stack2.C: New.
+
+2011-11-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Do not run on
+	alpha*-*-linux* targets.
+
+2011-11-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR testsuite/51059
+	* gcc.misc-tests/gcov-14.c (dg-options): Force flat namespace for
+	Darwin targets and allow external symbols to be undefined.
+
+2011-11-12  Nathan Sidwell  <nathan@acm.org>
+
+	* gcc.misc-tests/gcov-15.c: New.
+
+2011-11-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51058
+	* gcc.dg/vect/fast-math-vect-call-1.c: Add f4 test.
+	* gfortran.dg/vect/pr51058-2.f90: New test.
+
+2011-11-10  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/linkage1.C: New.
+	* g++.dg/ext/visibility/anon8.C: Adjust for C++11.
+	* g++.old-deja/g++.other/linkage4.C: Likewise.
+
+	PR c++/50973
+	* g++.dg/cpp0x/defaulted33.C: New.
+
+2011-11-10  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR middle-end/51038
+	* gcc.dg/atomic-invalid.c: Add test for invalid __atomic_clear models.
+	* gcc.dg/atomic-flag.c: New.  Test __atomic_test_and_set and
+	__atomic_clear.
+
+2011-11-10  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR rtl-optimization/51040
+	* testsuite/gcc.dg/atomic-noinline[-aux].c: Test no-inline NAND and
+	patchup code.
+
+2011-11-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51079
+	* g++.dg/template/conv12.C: New.
+
+	PR debug/50983
+	* gcc.dg/debug/dwarf2/asm-line1.c: New.
+
+2011-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/atomic6_1.adb: New test.
+	* gnat.dg/atomic6_2.adb: Likewise.
+	* gnat.dg/atomic6_3.adb: Likewise.
+	* gnat.dg/atomic6_4.adb: Likewise.
+	* gnat.dg/atomic6_5.adb: Likewise.
+	* gnat.dg/atomic6_6.adb: Likewise.
+	* gnat.dg/atomic6_7.adb: Likewise.
+	* gnat.dg/atomic6_8.adb: Likewise.
+	* gnat.dg/atomic6_pkg.ads: New helper.
+
+2011-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51077
+	* gcc.c-torture/compile/pr51077.c: New test.
+
+	PR rtl-optimization/51023
+	* gcc.c-torture/execute/pr51023.c: New test.
+
+2011-11-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51042
+	* gcc.dg/torture/pr51042.c: New testcase.
+
+2011-11-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51070
+	* gcc.dg/torture/pr51070.c: New testcase.
+
+2011-11-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51030
+	* gcc.dg/tree-ssa/phi-opt-6.c: New testcase.
+
+2011-11-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51071
+	* gcc.dg/torture/pr51071.c: New testcase.
+
+2011-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization9.ad[sb]: New test.
+
+2011-11-10  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/51058
+	* gfortran.dg/vect/pr51058.f90: New test.
+
+2011-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51000
+	* gcc.dg/vect/pr51000.c: New test.
+
+2011-11-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/50837
+	* g++.dg/cpp0x/static_assert5.C: New.
+	* g++.dg/template/nontype13.C: Tweak.
+
+2011-11-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50972
+	* g++.dg/cpp0x/noexcept16.C: New.
+
+	PR c++/51046
+	* g++.dg/cpp0x/variadic119.C: New.
+
+2011-11-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/50911
+	* gcc.dg/torture/vshuf-16.inc: Add interleave low and high
+	permutations.
+	* gcc.dg/torture/vshuf-32.inc: Likewise.
+	* gcc.dg/torture/vshuf-4.inc: Likewise.
+	* gcc.dg/torture/vshuf-8.inc: Likewise.
+
+	* gcc.dg/tm/memopt-1.c: Fix up regexp.
+
+2011-11-09  Ian Lance Taylor  <iant@google.com>
+
+	* lib/target-supports.exp (check_effective_target_ucontext_h): New
+	procedure.
+	* gcc.dg/split-5.c: New test.
+
 2011-11-09  Patrick Marlier  <patrick.marlier@gmail.com>
 
-	* gcc.dg/tm/memopt-1.c:  Adjust regexp. 
+	* gcc.dg/tm/memopt-1.c:  Adjust regexp.
 
 2011-11-09  Jason Merrill  <jason@redhat.com>
 

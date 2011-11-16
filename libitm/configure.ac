@@ -237,6 +237,7 @@ CFLAGS="$save_CFLAGS $XCFLAGS"
 # had a chance to set XCFLAGS.
 LIBITM_CHECK_SYNC_BUILTINS
 LIBITM_CHECK_64BIT_SYNC_BUILTINS
+LIBITM_CHECK_AS_AVX
 
 # Cleanup and exit.
 CFLAGS="$save_CFLAGS"
@@ -271,6 +272,7 @@ fi
 AC_SUBST(link_itm)
 
 AM_CONDITIONAL([ARCH_X86], [test "$ARCH" = x86])
+AM_CONDITIONAL([ARCH_X86_AVX], [test "$libitm_cv_as_avx" = yes])
 AM_CONDITIONAL([ARCH_FUTEX], [test $enable_linux_futex = yes])
 
 AC_CONFIG_FILES(Makefile testsuite/Makefile libitm.spec)

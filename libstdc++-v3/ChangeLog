@@ -1,3 +1,54 @@
+2011-11-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath (frexp, modf, remquo): Do not mark constexpr,
+	not viable anyway due to the pointer parameter.
+
+2011-11-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/c_global/cmath (atan2, fmod, pow, copysign, fdim,
+	fma, fmax, fmin, hypot, nextafter, remainder, remquo): Simplify
+	constraining on the return type.
+	* include/tr1/cmath (copysign, fdim, fma, fmax, fmin, hypot,
+	nextafter, remainder, remquo): Likewise.
+
+2011-11-13  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* using.xml: Use GNU/Linux.
+
+2011-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51060
+	* testsuite/25_algorithms/max/1.cc (test01): Drop references.
+	* testsuite/25_algorithms/min/1.cc (test01): Drop references.
+	* testsuite/25_algorithms/minmax/1.cc (test01): Drop references.
+
+2011-11-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51083
+	* include/ext/type_traits.h (__promote): Only define __type member
+	for integral and floating point types, to prevent math functions
+	participating in overload resolution for other types.
+	(__promote_2, __promote_3, __promote_4): Use __promote in default
+	template argument values, so deduction only succeeds for integral and
+	floating point types.
+	* testsuite/26_numerics/cmath/51083.cc: New.
+	* testsuite/26_numerics/complex/51083.cc: New.
+	* testsuite/tr1/8_c_compatibility/cmath/51083.cc: New.
+	* testsuite/tr1/8_c_compatibility/complex/51083.cc: New.
+
+2011-11-10  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR middle-end/51038
+	* include/bits/atomic_base.h (atomic_thread_fence): Call built-in.
+	(atomic_signal_fence): Call built-in.
+	(test_and_set, clear): Call new atomic built-ins.
+
+2011-11-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/allocator.h (__shrink_to_fit_aux::_S_do_it): Create
+	the new object with the same allocator.
+	* testsuite/23_containers/vector/capacity/shrink_to_fit2.cc: New.
+
 2011-11-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/profile/unordered_map: Add missing copy constructors.
