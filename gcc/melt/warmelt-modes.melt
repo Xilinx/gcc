@@ -2028,11 +2028,11 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
   resv = srcvalv;
   if (!srcvalv) 
      goto end;
-  srcdiscrv = ((melt_ptr_t)srcvalv)->discr;
+  srcdiscrv = ((melt_ptr_t)srcvalv)->u_discr;
   if (!newdiscrv)
     newdiscrv = srcdiscrv;
-  if (((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT
-      || ((meltobject_ptr_t)newdiscrv)->obj_len < FDISC_LAST)
+  if (melt_magic_discr((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT
+      || ((meltobject_ptr_t)newdiscrv)->obj_len < FDISC__LAST)
     goto end;
   if (!melt_is_instance_of((melt_ptr_t)newdiscrv, 
 			   MELT_PREDEF (CLASS_DISCRIMINANT)))
@@ -2090,8 +2090,9 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  struct $MAPSTRUCT *src = (struct $MAPSTRUCT *) srcvalv;
 	  unsigned oldlen =  melt_primtab[src->lenix];
 	  unsigned newlen = 4*src->count/3 + 5;
-	  struct $MAPSTRUCT *dst = (struct $MAPSTRUCT *) meltgc_raw_new_mappointers(newdiscrv, newlen);
-	  int ix = 0;
+	  struct $MAPSTRUCT *dst = 
+            (struct $MAPSTRUCT *) meltgc_raw_new_mappointers((meltobject_ptr_t)newdiscrv, newlen);
+	  unsigned ix = 0;
 	  if (src->entab)
             for (ix=0; ix<oldlen; 
 		 ix++) {

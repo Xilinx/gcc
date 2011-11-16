@@ -1780,7 +1780,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
       gcc_assert (newlen <= srclen);
       dst =  meltgc_new_raw_object ((meltobject_ptr_t)newdiscrv, newlen);
       for (slotix = 0; slotix < newlen; slotix++)
-	dst->obj_vartab[slotix] = src->objvartab[slotix];
+	dst->obj_vartab[slotix] = src->obj_vartab[slotix];
       dst->obj_num = src->obj_num;
     }
     else if (melt_is_subclass_of((meltobject_ptr_t)newdiscrv,
@@ -1863,8 +1863,8 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
        meltobject_ptr_t curat = NULL;
        melt_ptr_t curva = NULL;
        src = (struct meltmapobjects_st*) srcvalv;
-       meltobject_ptr_t curat = src->entab[srcix].e_at;
-       melt_ptr_t curva = src->entab[srcix].e_va;
+       curat = src->entab[srcix].e_at;
+       curva = src->entab[srcix].e_va;
        if (!curat || curat == (meltobject_ptr_t) HTAB_DELETED_ENTRY
 		  || !curva) 
          continue;
@@ -1956,10 +1956,10 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
        const char* curat = NULL;
        melt_ptr_t curva = NULL;
        src = (struct meltmapstrings_st*) srcvalv;
-       curat = src->entab[ix].e_at;
+       curat = src->entab[srcix].e_at;
        if (!curat || curat == (const char*) HTAB_DELETED_ENTRY || !curat[0])
          continue;
-       curva = src->entab[ix].e_va;
+       curva = src->entab[srcix].e_va;
        if (!curva) 
          continue;
        dst = resv;
@@ -2133,9 +2133,11 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   :valdesc_clonechunk  #{$' /* cloning from VALDESC_CLOSURE */
      unsigned nbval = (int) src->nbval;
      unsigned ix = 0;
-     dst = meltgc_allocate (sizeof(struct meltclosure_st),nbval*sizeof(void*));
+     dst
+        = (struct meltclosure_st*)meltgc_allocate (sizeof(struct meltclosure_st),
+						   nbval*sizeof(void*));
      src = (struct meltclosure_st*)srcvalv;
-     dst->discr = newdiscrv;
+     dst->discr = (meltobject_ptr_t)newdiscrv;
      dst->rout = src->rout;
      for (ix = 0; ix < nbval; ix++)
        dst->tabval[ix] = src->tabval[ix];
@@ -2296,7 +2298,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   }#
   :valdesc_clonechunk #{$' /* clone chunk from VALDESC_STRBUF */
     resv = dst = meltgc_new_strbuf ((meltobject_ptr_t)newdiscrv, NULL);
-    meltgc_add_strbuf (dst, melt_strbuf_str (src));
+    src = (struct meltstrbuf_st*)srcvalv;
+    meltgc_add_strbuf (dst, melt_strbuf_str ((melt_ptr_t)src));
     /* end clone chunk from VALDESC_STRBUF */
   }#
 )
@@ -2363,7 +2366,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   }#
   :valdesc_clonechunk #{$' /* cloning from VALDESC_LIST */
      struct meltpair_st* curpair = NULL;
-     resv = dst = meltgc_new_list ((meltobject_ptr_t)newdiscrv);
+     resv = dst = (struct meltlist_st*) meltgc_new_list ((meltobject_ptr_t)newdiscrv);
      src = srcvalv;
   for (curpair = ((struct meltlist_st *) src)->first;
        melt_magic_discr ((melt_ptr_t) curpair) ==
