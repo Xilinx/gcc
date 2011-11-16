@@ -1,9 +1,6 @@
 # Failures inherited from mainline.
 XPASS: gcc.dg/guality/example.c -O2  execution test
-XPASS: gcc.dg/guality/example.c -O2 -flto  execution test
 XPASS: gcc.dg/guality/example.c -O1  execution test
-XPASS: gcc.dg/guality/example.c -O2 -flto -flto-partition=none  execution test
-XPASS: gcc.dg/guality/example.c -Os  execution test
 XPASS: gcc.dg/guality/example.c -O0  execution test
 XPASS: gcc.dg/guality/guality.c -O2 -flto -flto-partition=none  execution test
 XPASS: gcc.dg/guality/guality.c -O3 -fomit-frame-pointer  execution test
@@ -37,59 +34,31 @@ XPASS: gcc.dg/guality/pr41447-1.c -O3 -g  execution test
 XPASS: gcc.dg/guality/pr41447-1.c -O2 -flto  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O1  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O3 -fomit-frame-pointer  execution test
-XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto -flto-partition=none  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O0  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -Os  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O2  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O3 -g  execution test
-XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto  execution test
-XPASS: gcc.dg/guality/sra-1.c -O2 -flto -flto-partition=none  line 43 a.j == 14
-XPASS: gcc.dg/guality/sra-1.c -O3 -fomit-frame-pointer  line 43 a.j == 14
-XPASS: gcc.dg/guality/sra-1.c -O3 -g  line 43 a.j == 14
-XPASS: gcc.dg/guality/sra-1.c -O2  line 43 a.j == 14
-XPASS: gcc.dg/guality/sra-1.c -O2 -flto  line 43 a.j == 14
-XPASS: gcc.dg/guality/sra-1.c -O0  line 43 a.j == 14
-XPASS: gcc.dg/guality/sra-1.c -Os  line 43 a.j == 14
 XPASS: gcc.dg/inline_3.c (test for excess errors)
 XPASS: gcc.dg/inline_4.c (test for excess errors)
 FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom1 "x[^ ]* & y" 1
-XPASS: gcc.dg/uninit-B.c uninit i warning (test for warnings, line 12)
-XPASS: gcc.dg/uninit-pr19430.c uninitialized (test for warnings, line 41)
-XPASS: gcc.dg/uninit-pr19430.c (test for warnings, line 32)
 XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
-FAIL: libmudflap.c/pass49-frag.c (-O3) crash test
-XPASS: libmudflap.c/pass49-frag.c (-O3) output pattern test
-XPASS: libmudflap.c/pass49-frag.c output pattern test
-FAIL: libmudflap.c/pass49-frag.c (-O2) crash test
-FAIL: libmudflap.c/pass49-frag.c crash test
-XPASS: libmudflap.c/pass49-frag.c (-O2) output pattern test
 
 
 # Failures in 32-bit mode.
 UNRESOLVED: g++.dg/lto/20100302 cp_lto_20100302_0.o-cp_lto_20100302_1.o execute -flto -fabi-version=2
 FAIL: g++.dg/lto/20100302 cp_lto_20100302_0.o-cp_lto_20100302_1.o link, -flto -fabi-version=2 (internal compiler error)
-FAIL: g++.dg/pph/c4inline.cc (assembly equality, sums 36250=>30896)
-FAIL: g++.dg/pph/p2pr36533.cc (assembly equality, sums 25347=>44151)
-FAIL: g++.dg/pph/p4mean.cc (assembly equality, sums 39234=>08341)
-FAIL: g++.dg/pph/p4pr36533.cc (assembly equality, sums 25347=>44151)
 FAIL: g++.dg/pph/x4resolve1.cc (assembly equality, sums 03374=>32904)
 FAIL: g++.dg/pph/x4resolve2.cc (assembly equality, sums 37643=>56140)
-FAIL: g++.dg/pph/x4tmplclass1.cc (assembly equality, sums 36067=>59946)
-FAIL: g++.dg/pph/x4tmplclass2.cc (assembly equality, sums 49533=>63227)
-FAIL: g++.dg/pph/x4tmplfuncinln.cc (assembly equality, sums 16845=>27447)
-FAIL: g++.dg/pph/x4tmplfuncninl.cc (assembly equality, sums 37887=>56344)
 FAIL: g++.dg/pph/x6dynarray3.cc (assembly equality, sums 30893=>27301)
-FAIL: g++.dg/pph/x6dynarray4.cc -fpph-map=pph.map -fno-dwarf2-cfi-asm (test for excess errors)
-FAIL: g++.dg/pph/x7dynarray5.cc -fpph-map=pph.map -fno-dwarf2-cfi-asm (test for excess errors)
-FAIL: g++.dg/pph/z4nontrivinit.cc (assembly equality, sums 65039=>50069)
-FAIL: g++.dg/pph/z4tmplclass1.cc (assembly equality, sums 10444=>59325)
-FAIL: g++.dg/pph/z4tmplclass2.cc (assembly equality, sums 59292=>32717)
-FAIL: g++.dg/pph/z4tmplfuncinln.cc (assembly equality, sums 65129=>62142)
-FAIL: g++.dg/pph/z4tmplfuncninl.cc (assembly equality, sums 05125=>11360)
-XPASS: gcc.dg/guality/sra-1.c -O1  line 43 a.j == 14
+FAIL: g++.dg/pph/x4tmplclass1.cc (assembly equality, sums 63957=>07702)
+FAIL: g++.dg/pph/x4tmplclass2.cc (assembly equality, sums 28477=>13850)
+FAIL: g++.dg/pph/z4nontrivinit.cc (assembly equality, sums 46966=>12076)
+FAIL: g++.dg/pph/z4tmplclass1.cc (assembly equality, sums 26829=>26866)
+FAIL: g++.dg/pph/z4tmplclass2.cc (assembly equality, sums 41000=>58569)
+XPASS: gcc.dg/guality/example.c -Os  execution test
 FAIL: gcc.dg/lto/pr47259 c_lto_pr47259_0.o-c_lto_pr47259_1.o link,  -O2 -flto -w
 UNRESOLVED: gcc.dg/lto/pr47259 c_lto_pr47259_0.o-c_lto_pr47259_1.o execute  -O2 -flto -w
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
@@ -124,3 +93,70 @@ FAIL: libmudflap.cth/pass37-frag.c (-static -DSTATIC) (test for excess errors)
 FAIL: libmudflap.cth/pass39-frag.c (-static -DSTATIC) (test for excess errors)
 FAIL: libmudflap.cth/pass40-frag.c (-static -DSTATIC) (test for excess errors)
 FAIL: libmudflap.cth/pass59-frag.c (-static -DSTATIC) (test for excess errors)
+FAIL: g++.dg/rtti/repo1.C (test for excess errors)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O2 -flto -flto-partition=none
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -g  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -fomit-frame-pointer -funroll-loops
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O2  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O2 -flto
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -Os
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -fomit-frame-pointer -funroll-loops  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O1  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O2 -flto  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -g
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -fomit-frame-pointer
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -fomit-frame-pointer  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O2 -flto -flto-partition=none  (internal compiler error)
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O1
+UNRESOLVED: gcc.c-torture/execute/vector-shift.c execution,  -O2
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift.c compilation,  -Os  (internal compiler error)
+FAIL: gcc.c-torture/execute/vector-shift2.c execution,  -O0
+FAIL: gcc.c-torture/execute/vshuf-v16qi.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
+FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -g  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O0  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -flto-partition=none  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O0  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -fomit-frame-pointer  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O1  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O1  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -Os  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O2  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -g  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O3 -fomit-frame-pointer  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -Os  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -flto-partition=none  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-2.c -O3 -fomit-frame-pointer  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O1  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -g  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O1  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -Os  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -flto-partition=none  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -fomit-frame-pointer  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -Os  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -flto-partition=none  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O0  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O0  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -g  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/torture/vector-shift2.c -O0  execution test
+XPASS: gcc.dg/vect/vect-21.c -flto scan-tree-dump-times vect "vectorized 3 loops" 1
+XPASS: gcc.dg/vect/vect-21.c scan-tree-dump-times vect "vectorized 3 loops" 1
+FAIL: gfortran.dg/select_type_12.f03 -O  (test for excess errors)
+FAIL: gfortran.dg/select_type_12.f03 -O  (internal compiler error)
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O3 -g
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fomit-frame-pointer -finline-functions
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution, -O2 -ftree-vectorize -msse2
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fomit-frame-pointer -finline-functions -funroll-loops
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fbounds-check
+FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2
