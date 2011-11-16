@@ -13758,6 +13758,9 @@ cp_parser_nonclass_name (cp_parser* parser)
   /* Look up the type-name.  */
   type_decl = cp_parser_lookup_name_simple (parser, identifier, token->location);
 
+  /* If it is a using decl, use its underlying decl.  */
+  type_decl = strip_using_decl (type_decl);
+
   if (TREE_CODE (type_decl) != TYPE_DECL
       && (objc_is_id (identifier) || objc_is_class_name (identifier)))
     {
@@ -26808,7 +26811,7 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
   unsigned char old_in = parser->in_transaction;
   unsigned char this_in = 1;
   cp_token *token;
-  tree ret;
+  tree expr;
 
   gcc_assert (keyword == RID_TRANSACTION_ATOMIC
       || keyword == RID_TRANSACTION_RELAXED);
@@ -26829,22 +26832,19 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
     this_in |= TM_STMT_ATTR_RELAXED;
 
   parser->in_transaction = this_in;
-  if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
-    {
-      tree expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
-      ret = build_transaction_expr (token->location, expr, this_in);
-    }
-  else
-    {
-      cp_parser_error (parser, "expected %<(%>");
-      ret = error_mark_node;
-    }
+  cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN);
+
+  expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+  finish_parenthesized_expr (expr);
+  expr = build_transaction_expr (token->location, expr, this_in);
+
+  cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
   parser->in_transaction = old_in;
 
   if (cp_parser_non_integral_constant_expression (parser, NIC_TRANSACTION))
     return error_mark_node;
 
-  return (flag_tm ? ret : error_mark_node);
+  return (flag_tm ? expr : error_mark_node);
 }
 
 /* Parse a function-transaction-block.

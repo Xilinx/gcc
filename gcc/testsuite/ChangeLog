@@ -1,3 +1,128 @@
+2011-11-16  Tom de Vries  <tom@codesourcery.com>
+
+	* gcc.dg/pr43864.c: Check for absence of 'Invalid sum' in pre tree-dump.
+	* gcc.dg/pr43864-2.c: Same.
+	* gcc.dg/pr43864-3.c: Same.
+	* gcc.dg/pr43864-4.c: Same.
+
+2011-11-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse2-cvt-vec.c: New test.
+	* gcc.target/i386/avx-cvt-vec.c: Ditto.
+	* gcc.target/i386/avx-cvt-2-vec.c: Ditto.
+	* gcc.target/i386/avx-floor-sfix-2-vec.c: Ditto.
+	* gcc.target/i386/avx-ceil-sfix-2-vec.c: Ditto.
+	* gcc.target/i386/avx-rint-sfix-2-vec.c: Ditto.
+	* gcc.target/i386/avx-round-sfix-2-vec.c: Ditto.
+
+2011-11-15  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Do not run on
+	powerpc*-*-darwin* targets.
+
+2011-11-15  Torvald Riegel  <triegel@redhat.com>
+
+	* c-c++-common/tm/trxn-expr-3.c: New test.
+
+2011-11-14  Torvald Riegel  <triegel@redhat.com>
+
+	* g++.dg/tm/template-1.C: Add cleanup-tree-dump. Fix typo in comment.
+
+2011-11-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx-recip-vec.c: New test.
+	* gcc.target/i386/avx-lrintf-vec.c: Ditto.
+	* gcc.target/i386/avx-lrint-vec.c: Ditto.
+	* gcc.target/i386/avx-floorf-vec.c: Include sse4_1-floorf-vec.c.
+	* gcc.target/i386/avx-floor-vec.c: Include sse4_1-floor-vec.c.
+	* gcc.target/i386/avx-ceilf-vec.c: Include sse4_1-ceilf-vec.c.
+	* gcc.target/i386/avx-ceil-vec.c: Include sse4_1-ceil-vec.c.
+	* gcc.target/i386/avx-rintf-vec.c: Include sse4_1-rintf-vec.c.
+	* gcc.target/i386/avx-rint-vec.c: Include sse4_1-rint-vec.c.
+	* gcc.target/i386/avx-roundf-vec.c: Include sse4_1-roundf-vec.c.
+	* gcc.target/i386/avx-round-vec.c: Include sse4_1-round-vec.c.
+	* gcc.target/i386/avx-truncf-vec.c: Include sse4_1-truncf-vec.c.
+	* gcc.target/i386/avx-trunc-vec.c: Include sse4_1-trunc-vec.c.
+	* gcc.target/i386/avx-copysignf-vec.c: Include sse-copysignf-vec.c.
+	* gcc.target/i386/avx-copysign-vec.c: Include sse2-copysign-vec.c.
+
+2011-11-14  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/51107
+	* g++.dg/cpp0x/udlit-args-neg.C: Add check for void argument
+	non-template literal operator.
+
+2011-11-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse4_1-floor-sfix-vec.c: New test.
+	* gcc.target/i386/sse4_1-floorf-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-floor-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-floorf-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-ceil-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-ceilf-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-ceil-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-ceilf-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-rint-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-rintf-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-rint-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-rintf-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-round-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-roundf-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-round-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-roundf-sfix-vec.c: Ditto.
+
+2011-11-14  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/6936
+	PR c++/25994
+	PR c++/26256
+	PR c++/30195
+	* g++.old-deja/g++.brendan/misc14.C: Adjust.
+	* g++.old-deja/g++.jason/scoping16.C: Likewise.
+	* g++.old-deja/g++.other/anon7.C: Likewise.
+	* g++.old-deja/g++.other/using1.C: Likewise.
+	* g++.old-deja/g++.other/redecl1.C: Likewise.
+	* g++.old-deja/g++.other/typedef7.C: Likewise.
+	* g++.old-deja/g++.bugs/900127_02.C: Likewise.
+	* g++.dg/template/using2.C: Likewise.
+	* g++.dg/template/static4.C: Likewise.
+	* g++.dg/template/typedef1.C: Likewise.
+	* g++.dg/lookup/name-clash9.C: Likewise.
+	* g++.dg/abi/mangle41.C: Likewise.
+	* g++.dg/parse/ctor5.C: Likewise.
+	* g++.dg/inherit/using4.C: Likewise.
+	* g++.dg/lookup/using24.C: New.
+	* g++.dg/lookup/using25.C: New.
+	* g++.dg/lookup/using26.C: New.
+	* g++.dg/lookup/using27.C: New.
+	* g++.dg/lookup/using28.C: New.
+	* g++.dg/lookup/using29.C: New.
+	* g++.dg/lookup/using30.C: New.
+	* g++.dg/lookup/using31.C: New.
+	* g++.dg/lookup/using32.C: New.
+	* g++.dg/lookup/using33.C: New.
+	* g++.dg/lookup/using34.C: New.
+	* g++.dg/lookup/using35.C: New.
+	* g++.dg/lookup/using36.C: New.
+	* g++.dg/lookup/using37.C: New.
+	* g++.dg/lookup/using38.C: New.
+	* g++.dg/lookup/using39.C: New.
+	* g++.dg/lookup/using40.C: New.
+	* g++.dg/lookup/using41.C: New.
+	* g++.dg/lookup/using42.C: New.
+	* g++.dg/lookup/using43.C: New.
+	* g++.dg/lookup/using44.C: New.
+	* g++.dg/lookup/using45.C: New.
+	* g++.dg/lookup/pr6936.C: New.
+	* g++.dg/debug/using4.C: New.
+	* g++.dg/debug/using5.C: New.
+	* g++.dg/cpp0x/forw_enum10.C: New.
+
+2011-11-14  Zolotukhin Michael  <michael.v.zolotukhin@gmail.com>
+	    Jan Hubicka  <jh@suse.cz>
+
+	* gcc.target/i386/sw-1.c: Force rep;movsb.
+
 2011-11-14  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR testsuite/51059
@@ -257,8 +382,8 @@
 
 2011-11-09  Janne Blomqvist  <jb@gcc.gnu.org>
 
-        PR libfortran/50016
-        * gfortran.dg/inquire_size.f90: Don't flush the unit.
+	PR libfortran/50016
+	* gfortran.dg/inquire_size.f90: Don't flush the unit.
 
 2011-11-09  Richard Guenther  <rguenther@suse.de>
 
@@ -443,8 +568,8 @@
 
 2011-11-07  Janne Blomqvist  <jb@gcc.gnu.org>
 
-        PR libfortran/45723
-        * gfortran.dg/open_dev_null.f90: Remove testcase.
+	PR libfortran/45723
+	* gfortran.dg/open_dev_null.f90: Remove testcase.
 
 2011-11-07  Uros Bizjak  <ubizjak@gmail.com>
 

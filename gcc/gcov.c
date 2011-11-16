@@ -678,10 +678,10 @@ generate_results (const char *file_name)
       
 #if HAVE_DOS_BASED_FILE_SYSTEM
 	  if (first && src->coverage.name[1] == ':')
-	    first = src->coverage.name[2]
+	    first = src->coverage.name[2];
 #endif
-	    if (IS_DIR_SEPARATOR (first))
-	      continue;
+	  if (IS_DIR_SEPARATOR (first))
+	    continue;
 	}
       
       accumulate_line_counts (src);
@@ -1688,10 +1688,15 @@ canonicalize_name (const char *name)
 	{
 	  /* '..', we can only elide it and the previous directory, if
 	     we're not a symlink.  */
-	  struct stat buf;
-	  
+	  struct stat ATTRIBUTE_UNUSED buf;
+
 	  *ptr = 0;
-	  if (dd_base == ptr || stat (result, &buf) || S_ISLNK (buf.st_mode))
+	  if (dd_base == ptr
+#if defined (S_ISLNK)
+	      /* S_ISLNK is not POSIX.1-1996.  */
+	      || stat (result, &buf) || S_ISLNK (buf.st_mode)
+#endif
+	      )
 	    {
 	      /* Cannot elide, or unreadable or a symlink.  */
 	      dd_base = ptr + 2 + slash;
