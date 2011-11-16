@@ -2021,20 +2021,37 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 #define resv       meltfram__.mcfr_varptr[0]
 #define srcvalv    meltfram__.mcfr_varptr[1]
 #define newdiscrv  meltfram__.mcfr_varptr[2]
-#define discrv     meltfram__.mcfr_varptr[3]
+#define srcdiscrv  meltfram__.mcfr_varptr[3]
 #define compv      meltfram__.mcfr_varptr[4]
   srcvalv = srcval_p;
   newdiscrv = newdiscr_p;
   resv = srcvalv;
-  if (!srcvalv || !newdiscrv || melt_magic_discr((melt_ptr_t)discrv) != MELTOBMAG_OBJECT) 
+  if (!srcvalv) 
+     goto end;
+  srcdiscrv = ((melt_ptr_t)srcvalv)->discr;
+  if (!newdiscrv)
+    newdiscrv = srcdiscrv;
+  if (((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT
+      || ((meltobject_ptr_t)newdiscrv)->obj_len < FDISC_LAST)
+    goto end;
+  if (!melt_is_instance_of((melt_ptr_t)newdiscrv, 
+			   MELT_PREDEF (CLASS_DISCRIMINANT)))
     goto end;
   srcmagic = melt_magic_discr ((melt_ptr_t)srcvalv);
-  newmagic = ((meltobject_ptr_t)discrv)->meltobj_magic;
-  if (srcmagic != newmagic) goto end;
+  newmagic = ((meltobject_ptr_t)newdiscrv)->meltobj_magic;
+  if (srcmagic != newmagic) 
+    goto end;
   switch (srcmagic) { /* end cloning heeader */
 }#)
   ;;;; generate the cloning cases
   (add2sbuf_indentnl outbuf 0)
+  ;;
+  ;; cloning the GTY-ed ctypes
+  (let ( (:long nbctygtytup (multiple_length ctygtytup)) 
+	 )
+    (add2sbuf_indentnl outbuf 0)
+    (add2out outbuf ##{/*** cloning $NBCTYGTYTUP GTY-ed ctypes ***/}#)
+    (add2sbuf_indentnl outbuf 0)
   ;; cloning boxed values
   (foreach_in_multiple
    (ctygtytup)
@@ -2050,6 +2067,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (mapstruct (get_field :ctypg_mapstruct curctyp))
 	  (entrystruct (get_field :ctypg_entrystruct curctyp))
 	  )
+     (add2sbuf_indentnl outbuf 1)
      (add2out outbuf ##{/*cloning gtyctype #$TIXSUCC $CTYPNAME */}#)
      (add2sbuf_indentnl outbuf 1)
      (add2out outbuf ##{case $BOXMAGIC : { /* cloning boxed value $CTYPNAME */
@@ -2068,7 +2086,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
    (if (and mapstruct entrystruct mapmagic)
        (let (
 	     )
-     (add2out outbuf ##{case $MAPMAGIC : { /* cloning value map $CTYPNAME */
+     (add2out outbuf ##{case $MAPMAGIC : { /* cloning map value $CTYPNAME */
 	  struct $MAPSTRUCT *src = (struct $MAPSTRUCT *) srcvalv;
 	  unsigned oldlen =  melt_primtab[src->lenix];
 	  unsigned newlen = 4*src->count/3 + 5;
@@ -2082,12 +2100,75 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	       if (curva != NULL && curat != ($TYCNAME) HTAB_DELETED_ENTRY)
 	         meltgc_raw_put_mappointers((void*)dst, (const void*)curat, curva);
 	    }
-	  resv = (melt_ptr_t) src;
+	  resv = (melt_ptr_t) dst;
          };
          break; }#
 	 )
 	 ))
    ))				      ;end foreach_in_multiple ctygtytup cloning
+  )
+  ;;;
+  ;;; cloning the value descriptors
+  (let ( (:long nbvaldesc (multiple_length valdesctup))
+	 )
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_indentnl outbuf 0)
+    (add2out outbuf ##{/******* cloning the $NBVALDESC value descriptors *******/}#)
+    (foreach_in_multiple
+     (valdesctup)
+     (curvaldesc :long valdix)
+     (add2sbuf_indentnl outbuf 0)
+     (let ( (namvaldesc (get_field :named_name curvaldesc))
+	    (clonevalchk (get_field :valdesc_clonechunk curvaldesc))
+	    (valstruct (get_field :valdesc_struct curvaldesc))
+	    (valobjmagic (get_field :valdesc_objmagic curvaldesc))
+	    (:long valdixsucc (+i 1 valdix))
+	   )
+       (add2out outbuf ##{/** cloning value descriptor #$VALDIXSUCC $NAMVALDESC **/}#)
+       (add2sbuf_indentnl outbuf 1)
+       (cond 
+	( (== clonevalchk :true)
+	  (add2out outbuf 
+		   ##{ /*default cloning for $NAMVALDESC*/
+		   case $VALOBJMAGIC: {
+		     struct $VALSTRUCT *src = (struct $VALSTRUCT*) srcvalv;
+		     struct $VALSTRUCT *dst = 
+                        (struct $VALSTRUCT*) meltgc_allocate (sizeof(struct $VALSTRUCT), 0);
+		     *dst = *src;
+		     dst->discr = (meltobject_ptr_t)newdiscrv;
+		     resv = (melt_ptr_t) dst;
+		   }
+		   break; }#
+		     ))
+	( (is_string clonevalchk)
+	  (add2out outbuf 
+		   ##{ /*explicit cloning for $NAMVALDESC*/
+		   case $VALOBJMAGIC: {
+		     struct $VALSTRUCT *src = (struct $VALSTRUCT*) srcvalv;
+		     struct $VALSTRUCT *dst = NULL;
+		     /* clone chunk for $NAMVALDESC:*/
+		     $CLONEVALCHK;
+		     if (dst) 
+		        resv = (melt_ptr_t) dst;
+		   };
+		   break;}#
+		   )
+	  )
+	( (null clonevalchk)
+	  (add2out outbuf
+		   ##{ /*no cloning for $NAMVALDESC*/
+		   case $VALOBJMAGIC: break;}#
+		   ))
+	(:else
+	 (debug "invalid cloning in curvaldesc=" curvaldesc " valdix=" valdix)
+	 (errormsg_strv "invalid cloning for " namvaldesc)
+	 )
+	)
+       )
+     );; end foreach_in_multiple valdesctup cloning
+    (add2sbuf_indentnl outbuf 0)
+    )
+  ;;; 
   ;;; generate the cloning trailer
   (add2out outbuf ##{
 /* generated cloning routine trailer */

@@ -1675,7 +1675,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   argument. $VALDESC_COPYCHUNK is the code chunk copying src to an
   allocated dst. $VALDESC_FORWCHUNK is the code chunk formarding
   internal pointers. $VALDESC_CLONECHUNK is the code chunk to clone
-  src, default to the copy code chunk.}#
+  src, default to structure copy if :TRUE.}#
   :super class_named
   :fields (
 	   valdesc_objmagic
@@ -1768,6 +1768,33 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
     for (ix = 0; ix < oblen; ix++)
         dst->obj_vartab[ix] = src->obj_vartab[ix];
   }#
+  :valdesc_clonechunk #{$' /* cloning, from VALDESC_OBJECT */
+    unsigned newlen = 0;
+    unsigned srclen = src->obj_len;
+    unsigned slotix = 0;
+    if (melt_is_subclass_of((meltobject_ptr_t)srcdiscrv, 
+			    (meltobject_ptr_t)newdiscrv)) {
+      newlen = 
+        melt_multiple_length ((melt_ptr_t)
+			      (((meltobject_ptr_t)newdiscrv)->obj_vartab[FCLASS_FIELDS]));
+      gcc_assert (newlen <= srclen);
+      dst =  meltgc_new_raw_object ((meltobject_ptr_t)newdiscrv, newlen);
+      for (slotix = 0; slotix < newlen; slotix++)
+	dst->obj_vartab[slotix] = src->objvartab[slotix];
+      dst->obj_num = src->obj_num;
+    }
+    else if (melt_is_subclass_of((meltobject_ptr_t)newdiscrv,
+				 (meltobject_ptr_t)srcdiscrv)) {
+      newlen = 
+        melt_multiple_length ((melt_ptr_t)
+			      (((meltobject_ptr_t)newdiscrv)->obj_vartab[FCLASS_FIELDS]));      
+      gcc_assert (newlen >= srclen);
+      dst =  meltgc_new_raw_object ((meltobject_ptr_t)newdiscrv, newlen);
+      for (slotix = 0; slotix < srclen; slotix++)
+	dst->obj_vartab[slotix] = src->objvartab[slotix];
+      dst->obj_num = src->obj_num;
+    }
+  }#
   :valdesc_forwchunk #{$' /* from VALDESC_OBJECT */
     int ix = 0;
     int oblen = (int) (src->obj_len);
@@ -1825,7 +1852,28 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      else
        dst->entab = NULL;
   }#
-  :valdesc_forwchunk #{$' /* from VALDESC_MAPOBJECTS */
+  :valdesc_clonechunk #{$' /* cloning, from VALDESC_MAPOBJECTS */
+     unsigned srccount = src->count;
+     unsigned srclen = melt_primtab[src->lenix];
+     unsigned newlen = 4*srccount/3+4;
+     unsigned srcix = 0;
+     dst = meltgc_new_mapobjects ((meltobject_ptr_t)newdiscrv, newlen);
+     resv = dst;
+     for (srcix = 0; srcix < srclen; srcix++) {
+       meltobject_ptr_t curat = NULL;
+       melt_ptr_t curva = NULL;
+       src = (struct meltmapobjects_st*) srcvalv;
+       meltobject_ptr_t curat = src->entab[srcix].e_at;
+       melt_ptr_t curva = src->entab[srcix].e_va;
+       if (!curat || curat == (meltobject_ptr_t) HTAB_DELETED_ENTRY
+		  || !curva) 
+         continue;
+       meltgc_put_mapobjects((meltmapobjects_ptr_t)resv, curat, curva);
+       /* update the dst, since it could have moved */
+       dst =  (struct meltmapobjects_st*) resv;
+     } /* end cloning, from VALDESC_MAPOBJECTS */
+  }#
+  :valdesc_forwchunk #{$' /* forwarding from VALDESC_MAPOBJECTS */
     int siz, ix;
     if (!src->entab)
       break;
@@ -1852,6 +1900,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
         src->entab[ix].e_at = at;
         MELT_FORWARDED (src->entab[ix].e_va);
       }
+    /* end forwarding from VALDESC_MAPOBJECTS */
   }#
 )
 (install_value_descriptor valdesc_mapobjects)
@@ -1896,7 +1945,30 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
         else
           dst->entab = NULL;
   }#
-  :valdesc_forwchunk #{$' /* from VALDESC_MAPSTRINGS */
+  :valdesc_clonechunk #{$' /* cloning from VALDESC_MAPSTRINGS */
+     unsigned srccount = src->count;
+     unsigned srclen = melt_primtab[src->lenix];
+     unsigned newlen = 4*srccount/3+4;
+     unsigned srcix = 0;
+     dst = meltgc_new_mapstrings ((meltobject_ptr_t)newdiscrv, newlen);
+     resv = dst;
+     for (srcix = 0; srcix < srclen; srcix++) {
+       const char* curat = NULL;
+       melt_ptr_t curva = NULL;
+       src = (struct meltmapstrings_st*) srcvalv;
+       curat = src->entab[ix].e_at;
+       if (!curat || curat == (const char*) HTAB_DELETED_ENTRY || !curat[0])
+         continue;
+       curva = src->entab[ix].e_va;
+       if (!curva) 
+         continue;
+       dst = resv;
+       meltgc_put_mapstrings (dst, curat, curva);
+       dst = resv;
+     }
+     /* end  cloning from VALDESC_MAPSTRINGS */
+  }#
+  :valdesc_forwchunk #{$' /* forwarding from VALDESC_MAPSTRINGS */
      int ix, siz;
      if (!src->entab)
        break;
@@ -1923,6 +1995,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
            src->entab[ix].e_at = (const char *) ggc_strdup (at);
          MELT_FORWARDED (src->entab[ix].e_va);
        }
+    /* end  forwarding from VALDESC_MAPSTRINGS */
   }#
 )
 (install_value_descriptor valdesc_mapstrings)
@@ -1948,6 +2021,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      dst = ggc_alloc_meltdecay_st ();
      *dst = *src;
   }#
+  :valdesc_clonechunk :true
   :valdesc_forwchunk #{$' /* from VALDESC_DECAY */
      MELT_FORWARDED (src->val);
   }#
@@ -1974,7 +2048,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
     long _gap; }
   typedef struct meltmultiple_st* meltmultiple_ptr_t;
   }#
-  :valdesc_copychunk #{$'  /* from VALDESC_MULTIPLE */
+  :valdesc_copychunk #{$'  /* copy chunk from VALDESC_MULTIPLE */
   /* ggc_alloc_meltmultiple_st should be gengtype generated for VALDESC_MULTIPLE */
 #ifndef ggc_alloc_meltmultiple_st
 #define ggc_alloc_meltmultiple_st(SIZE) ((struct meltmultiple_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
@@ -1991,12 +2065,23 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
     dst->nbval = src->nbval;
     for (ix = 0; ix < nbv; ix++)
       dst->tabval[ix] = src->tabval[ix];
+    /* end copy chunk from VALDESC_MULTIPLE */
   }#
-  :valdesc_forwchunk #{$' /* from VALDESC_MULTIPLE */
+  :valdesc_clonechunk #{$' /* cloning from VALDESC_MULTIPLE */
+    unsigned srclen = src->nbval;
+    unsigned srcix = 0;
+    dst = resv = meltgc_new_multiple(newdiscrv, srclen);
+    src = (struct meltmultiple_st*) srcvalv; /* could have moved */
+    for (srcix = 0; srcix < srclen; srcix++) 
+      dst->tabval[srcix] = src->tabval[srcix];
+  /* end cloning from VALDESC_MULTIPLE */
+  }#
+  :valdesc_forwchunk #{$' /* forwarding chunk from VALDESC_MULTIPLE */
      int nbval = (int) src->nbval;
      int ix = 0;
      for (ix = 0; ix < nbval; ix++)
        MELT_FORWARDED (src->tabval[ix]);
+     /* end forwarding chunk from VALDESC_MULTIPLE */
   }#
 )
 (install_value_descriptor valdesc_multiple)
@@ -2038,12 +2123,23 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      for (ix = 0; ix < nbv; ix++)
        dst->tabval[ix] = src->tabval[ix];
   }#
-  :valdesc_forwchunk #{$' /* from VALDESC_CLOSURE */
+  :valdesc_forwchunk #{$' /* forwarding from VALDESC_CLOSURE */
      int nbval = (int) src->nbval;
      int ix = 0;
      MELT_FORWARDED (src->rout);
      for (ix = 0; ix < nbval; ix++)
        MELT_FORWARDED (src->tabval[ix]);
+  }#
+  :valdesc_clonechunk  #{$' /* cloning from VALDESC_CLOSURE */
+     unsigned nbval = (int) src->nbval;
+     unsigned ix = 0;
+     dst = meltgc_allocate (sizeof(struct meltclosure_st),nbval*sizeof(void*));
+     src = (struct meltclosure_st*)srcvalv;
+     dst->discr = newdiscrv;
+     dst->rout = src->rout;
+     for (ix = 0; ix < nbval; ix++)
+       dst->tabval[ix] = src->tabval[ix];
+     /* end cloning from VALDESC_CLOSURE */
   }#
 )
 (install_value_descriptor valdesc_closure)
@@ -2104,6 +2200,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
        dst->tabval[ix] = src->tabval[ix];
      dst->routdata = src->routdata;
   }#
+  ;; don't clone routines!
   :valdesc_forwchunk #{$' /* from VALDESC_ROUTINE */
      int nbval = (int) src->nbval;
      int ix = 0;
@@ -2129,7 +2226,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   char val[(N)+1];	/* null terminated */	\
   long _gap; }
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_STRING file warmelt-base.melt*/  
+  :valdesc_copychunk #{$' /* copy from VALDESC_STRING file warmelt-base.melt*/  
 /* ggc_alloc_meltstring_st should be gengtype generated for VALDESC_STRING */
 #ifndef ggc_alloc_meltstring_st
 #define ggc_alloc_meltstring_st(SIZE) ((struct meltstring_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
@@ -2142,6 +2239,12 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      dst->discr = src->discr;
      memcpy (dst->val, src->val, srclen);
      dst->val[srclen] = (char)0;
+      /* end copy from VALDESC_STRING */
+  }#
+  :valdesc_clonechunk #{$' /* clone from VALDESC_STRING  */
+     dst = meltgc_new_stringdup ((meltobject_ptr_t)newdiscrv, 
+				 src->val);
+     /* end clone from VALDESC_STRING  */
   }#
 )
 (install_value_descriptor valdesc_string)
@@ -2164,7 +2267,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      at once; hence its GTY-ed length is zero */
   char GTY ((length ("0"))) buf_space[FLEXIBLE_DIM];
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_STRBUF */
+  :valdesc_copychunk #{$' /* copy chunk from VALDESC_STRBUF */
 /* ggc_alloc_meltstrbuf_st should be gengtype gengtype for VALDESC_STRBUF */
 #ifndef ggc_alloc_meltstrbuf_st
 #define ggc_alloc_meltstrbuf_st() ((struct meltstrbuf_st *)(ggc_internal_alloc_stat (sizeof (struct meltstrbuf_st) MEM_STAT_INFO)))
@@ -2189,6 +2292,12 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
         }
       else
         dst->bufzn = NULL;
+    /* end copy chunk from VALDESC_STRBUF */
+  }#
+  :valdesc_clonechunk #{$' /* clone chunk from VALDESC_STRBUF */
+    resv = dst = meltgc_new_strbuf ((meltobject_ptr_t)newdiscrv, NULL);
+    meltgc_add_strbuf (dst, melt_strbuf_str (src));
+    /* end clone chunk from VALDESC_STRBUF */
   }#
 )
 (install_value_descriptor valdesc_strbuf)
@@ -2218,6 +2327,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 	  ggc_alloc_meltpair_st ();
     *dst = *src;
   }#
+  :valdesc_clonechunk :true
   :valdesc_forwchunk #{$' /* forward VALDESC_PAIR in warmelt-base.melt */
      MELT_FORWARDED (src->hd);
      MELT_FORWARDED (src->tl);
@@ -2240,7 +2350,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_declchunk #{$' /* decl VALDESC_LIST in warmelt-base.melt */
   typedef struct meltlist_st *meltlist_ptr_t;
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_LIST */
+  :valdesc_copychunk #{$' /* copy chunk from VALDESC_LIST */
 /* ggc_alloc_meltlist_st should be gengtype gengtype for VALDESC_LIST */
 #ifndef ggc_alloc_meltlist_st
 #define ggc_alloc_meltlist_st() ((struct meltlist_st *)(ggc_internal_alloc_stat (sizeof (struct meltlist_st) MEM_STAT_INFO)))
@@ -2249,6 +2359,23 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 	  /* Don't need a cleared allocation!  */
 	 ggc_alloc_meltlist_st ();
      *dst = *src;
+     /* end chunk from VALDESC_LIST */
+  }#
+  :valdesc_clonechunk #{$' /* cloning from VALDESC_LIST */
+     struct meltpair_st* curpair = NULL;
+     resv = dst = meltgc_new_list ((meltobject_ptr_t)newdiscrv);
+     src = srcvalv;
+  for (curpair = ((struct meltlist_st *) src)->first;
+       melt_magic_discr ((melt_ptr_t) curpair) ==
+	 MELTOBMAG_PAIR; 
+       curpair = (struct meltpair_st *) (curpair->tl)) {
+     src = srcvalv; 
+     dst = resv;
+     compv = curpair;
+     meltgc_append_list (resv, curpair->hd);
+     curpair = (struct meltpair_st*) compv;
+    }
+     /* end cloning from VALDESC_LIST */
   }#
   :valdesc_forwchunk #{$' /* from VALDESC_LIST */
      MELT_FORWARDED (src->first);
@@ -2284,6 +2411,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 	  ggc_alloc_meltint_st ();
      *dst = *src;
   }#
+  :valdesc_clonechunk :true
 )
 (install_value_descriptor valdesc_int)
 
@@ -2308,6 +2436,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
         ggc_alloc_meltmixint_st ();
     *dst = *src;
   }#
+  :valdesc_clonechunk :true
   :valdesc_forwchunk #{$' /* from VALDESC_MIXINT */
     MELT_FORWARDED (src->ptrval);
   }#
@@ -2336,6 +2465,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
        ggc_alloc_meltmixloc_st ();
     *dst = *src;
   }#
+  :valdesc_clonechunk :true
   :valdesc_forwchunk #{$' /* from VALDESC_MIXLOC */
     MELT_FORWARDED (src->ptrval);
   }#
@@ -2390,6 +2520,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_membchunk #{$' /* from VALDESC_REAL in warmelt-base.melt */
     REAL_VALUE_TYPE val;
   }#
+  :valdesc_clonechunk :true
   :valdesc_copychunk #{$' /* from VALDESC_REAL */
 /* ggc_alloc_meltreal_st should be gengtype generated for VALDESC_REAL */
 #ifndef ggc_alloc_meltreal_st

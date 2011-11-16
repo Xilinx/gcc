@@ -1,7 +1,15 @@
 
+2011-11-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (generate_runtypesupport_cloning_fun):
+	Coded.
+	* melt/warmelt-base.melt (valdesc_object, valdesc_mapobjects)
+	(valdesc_mapstrings, valdesc_multiple, valdesc_closure)
+	(valdesc_string, valdesc_strbuf, valdesc_list, valdesc_mixint)
+	(valdesc_mixloc, valdesc_real): Add :valdesc_clonechunk field.
+
 2011-11-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (class_value_descriptor): Add
-	valdescr_clonechunk field.
+	valdesc_clonechunk field.
 	* melt/warmelt-modes.melt (generate_runtypesupport_cloning_fun):
 	New incomplete function.
 	(runtypesupport_docmd): Call it.
