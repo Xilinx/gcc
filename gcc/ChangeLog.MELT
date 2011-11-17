@@ -1,4 +1,12 @@
 
+2011-11-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (valdesc_object, valdesc_mapobjects)
+	(valdesc_mapstrings, valdesc_multiple, valdesc_strbuf): Improve
+	clone chunks.
+
+	* melt/warmelt-modes.melt (generate_runtypesupport_cloning_fun):
+	Generate correctly the cloning function.
+
 2011-11-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt (generate_runtypesupport_cloning_fun):
 	Impoved.

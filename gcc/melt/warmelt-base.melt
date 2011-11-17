@@ -1791,7 +1791,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
       gcc_assert (newlen >= srclen);
       dst =  meltgc_new_raw_object ((meltobject_ptr_t)newdiscrv, newlen);
       for (slotix = 0; slotix < srclen; slotix++)
-	dst->obj_vartab[slotix] = src->objvartab[slotix];
+	dst->obj_vartab[slotix] = src->obj_vartab[slotix];
       dst->obj_num = src->obj_num;
     }
   }#
@@ -1857,7 +1857,8 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      unsigned srclen = melt_primtab[src->lenix];
      unsigned newlen = 4*srccount/3+4;
      unsigned srcix = 0;
-     dst = meltgc_new_mapobjects ((meltobject_ptr_t)newdiscrv, newlen);
+     dst = (struct meltmapobjects_st*) 
+         meltgc_new_mapobjects ((meltobject_ptr_t)newdiscrv, newlen);
      resv = dst;
      for (srcix = 0; srcix < srclen; srcix++) {
        meltobject_ptr_t curat = NULL;
@@ -1950,21 +1951,21 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      unsigned srclen = melt_primtab[src->lenix];
      unsigned newlen = 4*srccount/3+4;
      unsigned srcix = 0;
-     dst = meltgc_new_mapstrings ((meltobject_ptr_t)newdiscrv, newlen);
+     dst = (struct meltmapstrings_st*) meltgc_new_mapstrings ((meltobject_ptr_t)newdiscrv, newlen);
      resv = dst;
      for (srcix = 0; srcix < srclen; srcix++) {
        const char* curat = NULL;
        melt_ptr_t curva = NULL;
        src = (struct meltmapstrings_st*) srcvalv;
+       dst = (struct meltmapstrings_st*) resv;
        curat = src->entab[srcix].e_at;
        if (!curat || curat == (const char*) HTAB_DELETED_ENTRY || !curat[0])
          continue;
        curva = src->entab[srcix].e_va;
        if (!curva) 
          continue;
-       dst = resv;
        meltgc_put_mapstrings (dst, curat, curva);
-       dst = resv;
+       dst = (struct meltmapstrings_st*) resv;
      }
      /* end  cloning from VALDESC_MAPSTRINGS */
   }#
@@ -2070,7 +2071,8 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   :valdesc_clonechunk #{$' /* cloning from VALDESC_MULTIPLE */
     unsigned srclen = src->nbval;
     unsigned srcix = 0;
-    dst = resv = meltgc_new_multiple(newdiscrv, srclen);
+    resv = dst = 
+       (struct meltmultiple_st*) meltgc_new_multiple ((meltobject_ptr_t)newdiscrv, srclen);
     src = (struct meltmultiple_st*) srcvalv; /* could have moved */
     for (srcix = 0; srcix < srclen; srcix++) 
       dst->tabval[srcix] = src->tabval[srcix];
@@ -2244,8 +2246,9 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
       /* end copy from VALDESC_STRING */
   }#
   :valdesc_clonechunk #{$' /* clone from VALDESC_STRING  */
-     dst = meltgc_new_stringdup ((meltobject_ptr_t)newdiscrv, 
-				 src->val);
+     dst = (struct meltstring_st*)
+          meltgc_new_stringdup ((meltobject_ptr_t)newdiscrv, 
+				src->val);
      /* end clone from VALDESC_STRING  */
   }#
 )
@@ -2297,9 +2300,10 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     /* end copy chunk from VALDESC_STRBUF */
   }#
   :valdesc_clonechunk #{$' /* clone chunk from VALDESC_STRBUF */
-    resv = dst = meltgc_new_strbuf ((meltobject_ptr_t)newdiscrv, NULL);
+    resv = dst = (struct meltstrbuf_st*) 
+       meltgc_new_strbuf ((meltobject_ptr_t)newdiscrv, NULL);
     src = (struct meltstrbuf_st*)srcvalv;
-    meltgc_add_strbuf (dst, melt_strbuf_str ((melt_ptr_t)src));
+    meltgc_add_strbuf ((melt_ptr_t) dst, melt_strbuf_str ((melt_ptr_t)src));
     /* end clone chunk from VALDESC_STRBUF */
   }#
 )
@@ -2367,16 +2371,18 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_clonechunk #{$' /* cloning from VALDESC_LIST */
      struct meltpair_st* curpair = NULL;
      resv = dst = (struct meltlist_st*) meltgc_new_list ((meltobject_ptr_t)newdiscrv);
-     src = srcvalv;
-  for (curpair = ((struct meltlist_st *) src)->first;
-       melt_magic_discr ((melt_ptr_t) curpair) ==
-	 MELTOBMAG_PAIR; 
-       curpair = (struct meltpair_st *) (curpair->tl)) {
-     src = srcvalv; 
-     dst = resv;
+     src = (struct meltlist_st*) srcvalv;
+     for (curpair = ((struct meltlist_st *) src)->first;
+          melt_magic_discr ((melt_ptr_t) curpair) == MELTOBMAG_PAIR; 
+          curpair = (struct meltpair_st *) (curpair->tl)) {
+     src = (struct meltlist_st*) srcvalv; 
+     dst = (struct meltlist_st*) resv;
      compv = curpair;
-     meltgc_append_list (resv, curpair->hd);
+     meltgc_append_list ((melt_ptr_t) resv, curpair->hd);
+     /* copy, because GC might have moved values. */
      curpair = (struct meltpair_st*) compv;
+     src = (struct meltlist_st*) srcvalv; 
+     dst = (struct meltlist_st*) resv;
     }
      /* end cloning from VALDESC_LIST */
   }#

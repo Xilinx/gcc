@@ -2011,7 +2011,6 @@ melt_forwarded_copy (melt_ptr_t p)
   (add2sbuf_indentnl outbuf 0)
   ;;; generate the header of cloning 
   (add2out outbuf ##{ /* generated cloning routine head */
-#ifdef MELT_WITH_CLONING
 melt_ptr_t
 meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 {
@@ -2174,17 +2173,17 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
   (add2out outbuf ##{
 /* generated cloning routine trailer */
     default: ;
-  } /*end switch srcmagic */
+  } /*end switch srcmagic for cloning */
  end:
   MELT_EXITFRAME();
-  return resv;
-}
+  return (melt_ptr_t) resv;
+}  /* end of generated meltgc_clone_with_discriminant */
 #undef resv
 #undef srcvalv
 #undef newdiscrv
 #undef discrv
 #undef compv
-#endif /*MELT_WITH_CLONING*/}#)
+}#)
   (add2sbuf_indentnl outbuf 0)
 )
 
