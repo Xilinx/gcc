@@ -19764,10 +19764,6 @@ dwarf2out_decl (tree decl)
       {
         struct cgraph_node *node;
 
-        orig_decl = DECL_ORIGIN (decl_context);
-        while (orig_decl != DECL_ORIGIN (orig_decl))
-          orig_decl = DECL_ORIGIN (orig_decl);
-
         /* Refer to cgraph_mark_functions_to_output() in cgraphunit.c,
            if cgraph_is_aux_decl_external() is true,
            this function will not be output in LIPO mode.  */
@@ -19776,6 +19772,16 @@ dwarf2out_decl (tree decl)
             (node = cgraph_get_node (decl_context)) &&
             cgraph_is_aux_decl_external (node))
           return;
+
+        if (TYPE_P (decl_context))
+          {
+            decl_context = TYPE_CONTEXT (decl_context);
+            continue;
+          }
+
+        orig_decl = DECL_ORIGIN (decl_context);
+        while (orig_decl != DECL_ORIGIN (orig_decl))
+          orig_decl = DECL_ORIGIN (orig_decl);
 
         decl_context = DECL_CONTEXT (orig_decl);
       }

@@ -1,3 +1,7 @@
+2011-11-16   Rong Xu  <xur@google.com>
+
+	* gcc/dwarf2out.c: use TYPE_CONTEXT to get the context for types.
+
 2011-11-07   Rong Xu  <xur@google.com>
 
 	* gcc/dwarf2out.c (dwarf2out_decl): fix mixed declarations and code.
