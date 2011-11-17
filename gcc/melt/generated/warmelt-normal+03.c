@@ -4085,7 +4085,7 @@ lab_endgetargs:;
       ;
       MELT_LOCATION ("warmelt-normal.melt:3813:/ putpairhead");
       /*putpairhead */
-      melt_assertmsg ("putpairhead /22a08773 checkpair",
+      melt_assertmsg ("putpairhead /4 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CTUPBIND__V43*/ meltfptr[42]))
 		      == MELTOBMAG_PAIR);
@@ -6269,7 +6269,7 @@ lab_endgetargs:;
       ;
       MELT_LOCATION ("warmelt-normal.melt:3921:/ putpairhead");
       /*putpairhead */
-      melt_assertmsg ("putpairhead /21014be1 checkpair",
+      melt_assertmsg ("putpairhead /5 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CLISTBIND__V66*/ meltfptr[65]))
 		      == MELTOBMAG_PAIR);
