@@ -61,6 +61,13 @@
   :doc #{Safely gives the hashcode of object $V or else 0.}#
   #{(melt_obj_hash((melt_ptr_t)($v)))}#)
 
+;; primitive to clone a value with another discriminant.
+(defprimitive clone_with_discriminant (val discr) :value
+  :doc #{Clone value $VAL with new discriminant $DISCR. Gives the
+  original $VAL when cloning is not possible. For objects, make a new
+  one copying the common fields. See the $VALDESC_CLONECHUNK field in
+  $CLASS_VALUE_DESCRIPTOR. The primitive's code is generated.}#
+  #{ meltgc_clone_with_discriminant((melt_ptr_t)($VAL), (meltobject_ptr_t)($DISCR)) }#)
 
 ;; primitive to get the length of an object (or 0)
 (defprimitive obj_len (v) :long
@@ -1675,7 +1682,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   argument. $VALDESC_COPYCHUNK is the code chunk copying src to an
   allocated dst. $VALDESC_FORWCHUNK is the code chunk formarding
   internal pointers. $VALDESC_CLONECHUNK is the code chunk to clone
-  src, default to structure copy if :TRUE.}#
+  src, default to structure copy if :TRUE, used in the
+  $CLONE_WITH_DISCRIMINANT primitive.}#
   :super class_named
   :fields (
 	   valdesc_objmagic
@@ -3033,6 +3041,7 @@ polyhedron values.}#
  cbreak_msg
  checkcallstack_msg
  checkval_dbg
+ clone_with_discriminant
  compare_named_alpha
  cstring_length
  cstring_prefixed
