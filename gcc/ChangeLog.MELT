@@ -1,4 +1,7 @@
 
+2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (discr_debug_closure): New.
+
 2011-11-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.

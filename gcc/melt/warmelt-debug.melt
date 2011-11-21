@@ -236,6 +236,15 @@ $FILENAM and $LINENO}#
 	(set_content loop_debug_funcont f))
     oldcont))
 
+;;; the discriminant for debug closures
+(definstance discr_debug_closure class_discriminant
+  :doc #{The $DISCR_DEBUG_CLOSURE is the discriminant of MELT debug
+  functions. Use $CLONE_WITH_DISCRIMINANT on a closure, e.g. with
+  $LAMBDA, to make it a debug function.}#
+  :obj_num MELTOBMAG_CLOSURE
+  :disc_super discr_closure
+  :named_name '"DISCR_DEBUG_CLOSURE")
+
 ;;; the debug_fun is usually called thru the debug macro.
 (defun melt_debug_fun (nothing :long count :cstring filename :long lineno :rest)
   (if (melt_need_dbg 0) 
@@ -1265,7 +1274,8 @@ $TORANK}#
  dbgout_fields
  dbgoutagain_fields
  debug_depth
- debug_msg_fun			
+ debug_msg_fun
+ discr_debug_closure
  display_debug_message  
  melt_debug_fun
  register_basicblock_debug_fun
