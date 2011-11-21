@@ -699,6 +699,18 @@ gfc_get_module_backend_decl (gfc_symbol *sym)
 	}
       else if (sym->attr.flavor == FL_DERIVED)
 	{
+	  if (s && s->attr.flavor == FL_PROCEDURE)
+	    {
+	      gfc_interface *intr;
+	      gcc_assert (s->attr.generic);
+	      for (intr = s->generic; intr; intr = intr->next)
+		if (intr->sym->attr.flavor == FL_DERIVED)
+		  {
+		    s = intr->sym;
+		    break;
+		  }
+    	    }
+
 	  if (!s->backend_decl)
 	    s->backend_decl = gfc_get_derived_type (s);
 	  gfc_copy_dt_decls_ifequal (s, sym, true);
@@ -1459,6 +1471,10 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       && !sym->attr.proc_pointer)
     DECL_BY_REFERENCE (decl) = 1;
 
+  if (sym->attr.vtab
+      || (sym->name[0] == '_' && strncmp ("__def_init", sym->name, 10) == 0))
+    GFC_DECL_PUSH_TOPLEVEL (decl) = 1;
+
   return decl;
 }
 
@@ -1879,7 +1895,8 @@ build_function_decl (gfc_symbol * sym, bool global)
   /* Layout the function declaration and put it in the binding level
      of the current function.  */
 
-  if (global)
+  if (global
+      || (sym->name[0] == '_' && strncmp ("__copy", sym->name, 6) == 0))
     pushdecl_top_level (fndecl);
   else
     pushdecl (fndecl);
@@ -4035,7 +4052,18 @@ gfc_trans_use_stmts (gfc_namespace * ns)
 	      st = gfc_find_symtree (ns->sym_root,
 				     rent->local_name[0]
 				     ? rent->local_name : rent->use_name);
-	      gcc_assert (st);
+
+	      /* The following can happen if a derived type is renamed.  */
+	      if (!st)
+		{
+		  char *name;
+		  name = xstrdup (rent->local_name[0]
+				  ? rent->local_name : rent->use_name);
+		  name[0] = (char) TOUPPER ((unsigned char) name[0]);
+		  st = gfc_find_symtree (ns->sym_root, name);
+		  free (name);
+		  gcc_assert (st);
+		}
 
 	      /* Sometimes, generic interfaces wind up being over-ruled by a
 		 local symbol (see PR41062).  */
@@ -5293,7 +5321,10 @@ gfc_generate_function_code (gfc_namespace * ns)
 
       next = DECL_CHAIN (decl);
       DECL_CHAIN (decl) = NULL_TREE;
-      pushdecl (decl);
+      if (GFC_DECL_PUSH_TOPLEVEL (decl))
+	pushdecl_top_level (decl);
+      else
+	pushdecl (decl);
       decl = next;
     }
   saved_function_decls = NULL_TREE;

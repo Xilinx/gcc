@@ -573,15 +573,15 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "<sseinsnmode>")])
 
-(define_insn "sse2_movntsi"
-  [(set (match_operand:SI 0 "memory_operand" "=m")
-	(unspec:SI [(match_operand:SI 1 "register_operand" "r")]
-		   UNSPEC_MOVNT))]
+(define_insn "sse2_movnti<mode>"
+  [(set (match_operand:SWI48 0 "memory_operand" "=m")
+	(unspec:SWI48 [(match_operand:SWI48 1 "register_operand" "r")]
+		      UNSPEC_MOVNT))]
   "TARGET_SSE2"
   "movnti\t{%1, %0|%0, %1}"
   [(set_attr "type" "ssemov")
    (set_attr "prefix_data16" "0")
-   (set_attr "mode" "V2DF")])
+   (set_attr "mode" "<MODE>")])
 
 (define_insn "<sse>_movnt<mode>"
   [(set (match_operand:VF 0 "memory_operand" "=m")
@@ -614,8 +614,9 @@
 
 ;; Modes handled by storent patterns.
 (define_mode_iterator STORENT_MODE
-  [(SI "TARGET_SSE2") (SF "TARGET_SSE4A") (DF "TARGET_SSE4A")
-   (V2DI "TARGET_SSE2")
+  [(DI "TARGET_SSE2 && TARGET_64BIT") (SI "TARGET_SSE2")
+   (SF "TARGET_SSE4A") (DF "TARGET_SSE4A")
+   (V4DI "TARGET_AVX") (V2DI "TARGET_SSE2")
    (V8SF "TARGET_AVX") V4SF
    (V4DF "TARGET_AVX") (V2DF "TARGET_SSE2")])
 
@@ -9962,17 +9963,32 @@
 {
   rtx tmp0, tmp1;
 
-  tmp0 = gen_reg_rtx (<MODE>mode);
-  tmp1 = gen_reg_rtx (<MODE>mode);
+  if (<MODE>mode == V2DFmode
+      && TARGET_AVX && !TARGET_PREFER_AVX128)
+    {
+      rtx tmp2 = gen_reg_rtx (V4DFmode);
 
-  emit_insn
-    (gen_<sse4_1>_round<ssemodesuffix><avxsizesuffix> (tmp0, operands[1],
-						       operands[3]));
-  emit_insn
-    (gen_<sse4_1>_round<ssemodesuffix><avxsizesuffix> (tmp1, operands[2],
-						       operands[3]));
-  emit_insn
-    (gen_vec_pack_sfix_trunc_<mode> (operands[0], tmp0, tmp1));
+      tmp0 = gen_reg_rtx (V4DFmode);
+      tmp1 = force_reg (V2DFmode, operands[1]);
+
+      emit_insn (gen_avx_vec_concatv4df (tmp0, tmp1, operands[2]));
+      emit_insn (gen_avx_roundpd256 (tmp2, tmp0, operands[3]));
+      emit_insn (gen_fix_truncv4dfv4si2 (operands[0], tmp2));
+    }
+  else
+    {
+      tmp0 = gen_reg_rtx (<MODE>mode);
+      tmp1 = gen_reg_rtx (<MODE>mode);
+
+      emit_insn
+       (gen_<sse4_1>_round<ssemodesuffix><avxsizesuffix> (tmp0, operands[1],
+							  operands[3]));
+      emit_insn
+       (gen_<sse4_1>_round<ssemodesuffix><avxsizesuffix> (tmp1, operands[2],
+							  operands[3]));
+      emit_insn
+       (gen_vec_pack_sfix_trunc_<mode> (operands[0], tmp0, tmp1));
+    }
   DONE;
 })
 
@@ -10053,14 +10069,29 @@
 {
   rtx tmp0, tmp1;
 
-  tmp0 = gen_reg_rtx (<MODE>mode);
-  tmp1 = gen_reg_rtx (<MODE>mode);
+  if (<MODE>mode == V2DFmode
+      && TARGET_AVX && !TARGET_PREFER_AVX128)
+    {
+      rtx tmp2 = gen_reg_rtx (V4DFmode);
 
-  emit_insn (gen_round<mode>2 (tmp0, operands[1]));
-  emit_insn (gen_round<mode>2 (tmp1, operands[2]));
+      tmp0 = gen_reg_rtx (V4DFmode);
+      tmp1 = force_reg (V2DFmode, operands[1]);
 
-  emit_insn
-    (gen_vec_pack_sfix_trunc_<mode> (operands[0], tmp0, tmp1));
+      emit_insn (gen_avx_vec_concatv4df (tmp0, tmp1, operands[2]));
+      emit_insn (gen_roundv4df2 (tmp2, tmp0));
+      emit_insn (gen_fix_truncv4dfv4si2 (operands[0], tmp2));
+    }
+  else
+    {
+      tmp0 = gen_reg_rtx (<MODE>mode);
+      tmp1 = gen_reg_rtx (<MODE>mode);
+
+      emit_insn (gen_round<mode>2 (tmp0, operands[1]));
+      emit_insn (gen_round<mode>2 (tmp1, operands[2]));
+
+      emit_insn
+       (gen_vec_pack_sfix_trunc_<mode> (operands[0], tmp0, tmp1));
+    }
   DONE;
 })
 

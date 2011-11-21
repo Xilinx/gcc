@@ -17244,16 +17244,16 @@ rs6000_post_atomic_barrier (enum memmodel model)
    which to shift and mask.  */
 
 static rtx
-rs6000_adjust_atomic_subword (rtx mem, rtx *pshift, rtx *pmask)
+rs6000_adjust_atomic_subword (rtx orig_mem, rtx *pshift, rtx *pmask)
 {
-  rtx addr, align, shift, mask;
+  rtx addr, align, shift, mask, mem;
   HOST_WIDE_INT shift_mask;
-  enum machine_mode mode = GET_MODE (mem);
+  enum machine_mode mode = GET_MODE (orig_mem);
 
   /* For smaller modes, we have to implement this via SImode.  */
   shift_mask = (mode == QImode ? 0x18 : 0x10);
 
-  addr = XEXP (mem, 0);
+  addr = XEXP (orig_mem, 0);
   addr = force_reg (GET_MODE (addr), addr);
 
   /* Aligned memory containing subword.  Generate a new memory.  We
@@ -17262,7 +17262,9 @@ rs6000_adjust_atomic_subword (rtx mem, rtx *pshift, rtx *pmask)
   align = expand_simple_binop (Pmode, AND, addr, GEN_INT (-4),
 			       NULL_RTX, 1, OPTAB_LIB_WIDEN);
   mem = gen_rtx_MEM (SImode, align);
-  MEM_VOLATILE_P (mem) = 1;
+  MEM_VOLATILE_P (mem) = MEM_VOLATILE_P (orig_mem);
+  if (MEM_ALIAS_SET (orig_mem) == ALIAS_SET_MEMORY_BARRIER)
+    set_mem_alias_set (mem, ALIAS_SET_MEMORY_BARRIER);
 
   /* Shift amount for subword relative to aligned word.  */
   shift = gen_reg_rtx (SImode);
@@ -17339,12 +17341,12 @@ rs6000_expand_atomic_compare_and_swap (rtx operands[])
       /* Shift and mask OLDVAL into position with the word.  */
       oldval = convert_modes (SImode, mode, oldval, 1);
       oldval = expand_simple_binop (SImode, ASHIFT, oldval, shift,
-				    oldval, 1, OPTAB_LIB_WIDEN);
+				    NULL_RTX, 1, OPTAB_LIB_WIDEN);
 
       /* Shift and mask NEWVAL into position within the word.  */
       newval = convert_modes (SImode, mode, newval, 1);
       newval = expand_simple_binop (SImode, ASHIFT, newval, shift,
-				    newval, 1, OPTAB_LIB_WIDEN);
+				    NULL_RTX, 1, OPTAB_LIB_WIDEN);
 
       /* Prepare to adjust the return value.  */
       retval = gen_reg_rtx (SImode);
@@ -17432,7 +17434,7 @@ rs6000_expand_atomic_exchange (rtx operands[])
       /* Shift and mask VAL into position with the word.  */
       val = convert_modes (SImode, mode, val, 1);
       val = expand_simple_binop (SImode, ASHIFT, val, shift,
-				 val, 1, OPTAB_LIB_WIDEN);
+				 NULL_RTX, 1, OPTAB_LIB_WIDEN);
 
       /* Prepare to adjust the return value.  */
       retval = gen_reg_rtx (SImode);
@@ -17485,7 +17487,7 @@ rs6000_expand_atomic_op (enum rtx_code code, rtx mem, rtx val,
       /* Shift and mask VAL into position with the word.  */
       val = convert_modes (SImode, mode, val, 1);
       val = expand_simple_binop (SImode, ASHIFT, val, shift,
-				 val, 1, OPTAB_LIB_WIDEN);
+				 NULL_RTX, 1, OPTAB_LIB_WIDEN);
 
       switch (code)
 	{
@@ -25782,7 +25784,7 @@ rs6000_xcoff_section_type_flags (tree decl, const char *name, int reloc)
   unsigned int flags = default_section_type_flags (decl, name, reloc);
 
   /* Align to at least UNIT size.  */
-  if (flags & SECTION_CODE)
+  if (flags & SECTION_CODE || !decl)
     align = MIN_UNITS_PER_WORD;
   else
     /* Increase alignment of large objects if not already stricter.  */

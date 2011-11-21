@@ -1,3 +1,358 @@
+2011-11-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.h (struct base_arch_s): Add field sfr_offset.
+	* config/avr/avr-devices.c: Ditto. And initialize it.
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): New built-in define
+	__AVR_SFR_OFFSET__.
+	* config/avr/avr-protos.h (out_movqi_r_mr, out_movqi_mr_r): Remove.
+	(out_movhi_r_mr, out_movhi_mr_r): Remove.
+	(out_movsi_r_mr, out_movsi_mr_r): Remove.
+	* config/avr/avr.md (*cbi, *sbi): Use %i instead of %m-0x20.
+	(*insv.io, *insv.not.io): Ditto.
+	* config/avr/avr.c (out_movsi_r_mr, out_movsi_mr_r): Make static.
+	(print_operand): Implement "%i" to print address as I/O address.
+	(output_movqi): Clean up call of out_movqi_mr_r.
+	(output_movhi): Clean up call of out_movhi_mr_r.
+	(avr_file_start): Use avr_current_arch->sfr_offset instead of
+	magic -0x20. Use TMP_REGNO, ZERO_REGNO instead of 0, 1.
+	(avr_out_sbxx_branch): Use %i instead of %m-0x20.
+	(out_movqi_r_mr, out_movqi_mr_r): Ditto. And make static.
+	(out_movhi_r_mr, out_movhi_mr_r): Ditto. And use avr_asm_len.
+	(out_shift_with_cnt): Clean up code: Use avr_asm_len.
+	(output_movsisf): Use output_reload_insisf for all CONSTANT_P sources.
+	(avr_out_movpsi): USE avr_out_reload_inpsi for all CONSTANT_P sources.
+	Clean up call of avr_out_store_psi.
+	(output_reload_in_const): Don't cut symbols longer than 2 bytes.
+	(output_reload_insisf): Filter CONST_INT_P or CONST_DOUBLE_P to
+	try if setting pre-cleared register is advantageous.
+	(avr_out_plus_1): Use gen_int_mode instead of GEN_INT.
+
+2011-11-20  Joey Ye  <joey.ye@arm.com>
+
+	* expr.c (expand_expr_real_1): Correctly handle strict volatile
+	bitfield loads smaller than mode size.
+
+2011-11-20  Richard Henderson  <rth@redhat.com>
+
+	* config/mips/mips.c (mips_init_libfuncs): Call init_sync_libfuncs.
+
+2011-11-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/51235
+	* config/i386/i386.c (ix86_expand_vcond): Generate TARGET_XOP
+	patterns for supported mode only.
+
+	PR target/51236
+	* config/i386/i386.c (ix86_expand_builtin)
+	<IX86_BUILTIN_GATHERALTSIV4DI>: Use CODE_FOR_avx2_gathersiv4di.
+
+2011-11-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (UNSPEC_MOVNTI): Remove.
+	(UNSPEC_MOVNTQ): New unspec.
+	* config/i386/mmx.md (sse_movntq): Rename from sse_movntdi.
+	Use UNSPEC_MOVNTQ instead of UNSPEC_MOVNT.
+	* config/i386/sse.md (sse2_movnti<mode>): Use UNSPEC_MOVNT instead of
+	UNSPEC_MOVNTI.
+	(STORENT_MODE): Add DI and V4DI modes.
+
+2011-11-20  Nathan Sidwell  <nathan@acm.org>
+
+	PR gcov-profile/51113
+	* coverage.c (build_var): Propagate visibility for public
+	decls.  Use make_decl_one_only for PIC correctness.
+
+	testsuite/
+	* gcc.misc-tests/gcov-13.c: Check gcovpart-13b coverage
+	* gcc.misc-tests/gcov-16.c: New.
+	* gcc.misc-tests/gcov-17.c: New.
+	* g++.dg/gcov/gcov-8.C: New.
+	* g++.dg/gcov/gcov-9.C: New.
+	* g++.dg/gcov/gcov-10.C: New.
+
+2011-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/51187
+	* reorg.c (relax_delay_slots): Do not consider a jump useless if there
+	is a barrier between the jump and its target label.
+
+2011-11-19  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR middle-end/51211
+	* tracer.c (ignore_bb_p): Don't copy GIMPLE_TRANSACTION.
+
+2011-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expmed.c (store_bit_field_1): Revert bogus formatting change.
+
+2011-11-19  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/50493
+	* config/arm/arm.c (neon_disambiguate_copy): Correctly handle partial
+	overlap of src and dest operands.
+
+2011-11-19  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (ASM_DEBUG_SPEC): New.
+	* config/darwin9.h (ASM_DEBUG_SPEC): New.
+
+2011-11-18  Jan Hubicka  <jh@suse.cz>
+
+	* config/i386/i386.c (atom_cost): Disable SSE loop until alignment
+	issues are fixed.
+
+2011-11-18  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/cris/cris.c (cris_function_value_regno_p): Make static.
+	(TARGET_FUNCTION_VALUE_REGNO_P): Define.
+	* config/cris/cris.h (FUNCTION_VALUE_REGNO_P): Remove.
+	* config/cris/cris-protos.h (cris_function_value_regno_p): Remove.
+
+2011-11-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/33944
+	* doc/extend.texi: Document __builtin_ia32_movnti64.
+
+	* config/i386/emmintrin.h (_mm_stream_si64): New.
+
+	* config/i386/i386-builtin-types.def: Add VOID_FTYPE_PLONGLONG_LONGLONG.
+
+	* config/i386/i386.c (ix86_builtins): Add IX86_BUILTIN_MOVNTI64.
+	(bdesc_special_args): Update __builtin_ia32_movnti.  Add
+	__builtin_ia32_movnti64.
+	(ix86_expand_special_args_builtin): Handle
+	VOID_FTYPE_PLONGLONG_LONGLONG.
+
+	* config/i386/i386.md (UNSPEC_MOVNTI): New.
+
+	* config/i386/sse.md (sse2_movntsi): Renamed to ...
+	(sse2_movnti<mode>): This.
+
+2011-11-18  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	* config/avr/avr.h (base_arch_s): Add field n_segments.
+	(ADDR_SPACE_PGM1, ADDR_SPACE_PGM2, ADDR_SPACE_PGM3,
+	ADDR_SPACE_PGM4, ADDR_SPACE_PGM5, ADDR_SPACE_PGMX): New address spaces.
+	(AVR_HAVE_ELPM, AVR_HAVE_ELPMX): New defines.
+	(INIT_EXPANDERS): New define.
+	* config/avr/avr-protos.h (avr_mem_pgmx_p): New.
+	(avr_init_expanders): New.
+	(avr_emit_movmemhi, avr_out_movmem): New.
+	(avr_xload_libgcc_p): New.
+	* config/avr/avr-c.c (avr_register_target_pragmas): Register
+	address spaces __pgm1, __pgm2,  __pgm3,  __pgm4  __pgm5,  __pgmx.
+	(avr_cpu_cpp_builtins): Add built-in defines __PGM1,
+	__PGM2, __PGM3, __PGM4, __PGM5, __PGMX.
+	* config/avr/avr-devices.c (avr_arch_types): Set field n_segments.
+
+	* config/avr/avr.c (AVR_SECTION_PROGMEM): Change define to cover
+	3 bits instead of just 1.
+	(xstring_empty, xstring_e, rampz_rtx): New static GTYed variables.
+	(progmem_section): Change from section to array of sections.
+	(progmem_section_prefix): New static variable.
+	(avr_file_start): Print set for __RAMPZ__
+	(avr_option_override): Move initialization of RTXes from here...
+	(avr_init_expanders): ...to this new function.
+	(avr_pgm_segment): New static function.
+	(avr_decl_pgm_p): Handle error_mark_node.
+	(avr_mem_pgmx_p, avr_decl_pgmx_p): New static functions.
+	(avr_out_xload,	avr_find_unused_d_reg): New static functions.
+	(expand_prologue, expand_epilogue): Use rampz_rtx.
+	(print_operand): Hande CONST_STRING.
+	(avr_xload_libgcc_p): New static function.
+	(avr_out_lpm_no_lpmx, avr_out_lpm): Handle ELPM.
+	(avr_progmem_p): Return 2 for 24-bit flash address space.
+	(avr_out_sbxx_branch): Clean-up code from ASn macros.
+	(out_movqi_r_mr, out_movqi_mr_r): Ditto. And recognize RAMPZ's
+	address and print symbolically.
+	(avr_asm_named_section, avr_section_type_flags,
+	avr_encode_section_info, avr_asm_select_section,
+	avr_addr_space_address_mode, avr_addr_space_pointer_mode,
+	avr_addr_space_legitimate_address_p, avr_addr_space_convert,
+	avr_addr_space_legitimize_address): Handle new address spaces.
+	(avr_output_progmem_section_asm_op): New static function.
+	(avr_asm_init_sections): Initialize progmem_section[].
+	(adjust_insn_length): Handle ADJUST_LEN_XLOAD, ADJUST_LEN_MOVMEM.
+	(avr_const_address_lo16): New static function.
+	(avr_assemble_integer): Use it to handle 3-byte integers.
+	(avr_emit_movmemhi, avr_out_movmem): New functions.
+
+	* config/avr/predicates.md (nox_general_operand): Handle new
+	address spaces.
+	* config/avr/avr.md (unspec): Add UNSPEC_MOVMEM.
+	(adjust_len): Add xload, movmem.
+	(SP_ADDR): New define_constants.
+	(isa): Add "lpm", "lpmx", "elpm", "elpmx".
+	(enabled): Handle them.
+	(load<mode>_libgcc): New expander.
+	(*load.<mode>.libgcc): Rename to load_<mode>_libgcc.
+	(xload8_A, xload<mode>_A): New insn-and-splits.
+	(xload_8, xload_<mode>_libgcc, xload_<mode>, loadmem_elpm): New insns.
+	(mov<mode>): Handle new address spaces.
+	(movmemhi): Rewrite using avr_emit_movmemhi.
+	(MOVMEM_r_d): New mode attribute.
+	(movmem_<mode>, movmem_qi_elpm): New insns.
+	(setmemhi, *clrmemqi, *clrmemhi, strlenhi, *strlenhi): Unquote
+	C-code.  Use label instead of hard-coded instrunction lengths.
+
+2011-11-18  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50605
+	* gimple.c (is_gimple_ip_invariant_address): Also handle MEM_REFs
+	of IPA invariant decls.
+
+2011-11-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	* tree-outof-ssa.c (insert_back_edge_copies):  Add call to
+	mark_dfs_back_edges.
+
+2011-11-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/49992
+	* configure.ac: Remove ranlib special-casing for Darwin.
+	* configure: Regenerate.
+
+2011-11-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR tree-optimization/51118
+	* fold-const.c (fold_checksum_tree): Check for TS_TYPED structure
+	before using TREE_TYPE accessor on expr.
+
+2011-11-17  Jan Hubicka  <jh@suse.cz>
+
+	PR bootstrap/51134
+	* i386.c (atom_cost): Fix 32bit memset description.
+	(expand_set_or_movmem_via_loop_with_iter): Output proper bounds check
+	for epilogue loops.
+	(expand_movmem_epilogue): Handle epilogues up to size 15 w/o producing
+	byte loop.
+	(decide_alg): sse_loop is not useable wthen SSE2 is disabled;
+	when not optimizing always use rep movsb or lincall; do not produce
+	word sized loops when optimizing memset for size (to avoid need
+	for large constants).
+	(ix86_expand_movmem): Get into sync with ix86_expand_setmem;
+	choose unroll factors better; always do 128bit moves when producing
+	SSE loops; do not produce loopy epilogue when size is too small.
+	(promote_duplicated_reg_to_size): Do not look into desired alignments
+	when doing vector expansion.
+	(ix86_expand_setmem): Track better when promoted value is available;
+	choose unroll factors more sanely. Output loopy epilogue only
+	when needed.
+
+2011-11-17  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/51144
+	* output.h (fprint_w): Remove.
+	* final.c (fprint_w): Remove.
+	(output_addr_const): Change fprint_w back to fprintf.
+
+2011-11-17  Andrew Pinski  <apinski@cavium.com>
+
+	* config/host-linux.c (TRY_EMPTY_VM_SPACE): Define for MIPS.
+
+2011-11-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	* builtins.c (expand_builtin): Remove 4th parameter representing
+	weak/strong mode when __atomic_compare_exchange becomes a library call.
+
+2011-11-17  Richard Henderson  <rth@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_expand_atomic_compare_and_swap): Get
+	new pseudo for target after convert_modes.
+	(rs6000_expand_atomic_exchange, rs6000_expand_atomic_op): Likewise.
+
+2011-11-17  Richard Henderson  <rth@redhat.com>
+
+	* builtins.c (expand_builtin_mem_thread_fence): Remove.
+	(expand_builtin_mem_signal_fence): Remove.
+	(expand_builtin_atomic_thread_fence): Use expand_mem_thread_fence.
+	(expand_builtin_sync_synchronize): Likewise.
+	(expand_builtin_atomic_signal_fence): Use expand_mem_signal_fence.
+	* optabs.c (expand_asm_memory_barrier): Split out from
+	expand_builtin_mem_signal_fence.
+	(expand_mem_thread_fence): New, a combination of code from
+	expand_builtin_mem_thread_fence and expand_builtin_sync_synchronize.
+	(expand_mem_signal_fence): Moved and renamed from
+	expand_builtin_mem_signal_fence.
+	(expand_atomic_exchange): Use expand_mem_thread_fence.
+	(expand_atomic_load, expand_atomic_store): Likewise.
+	* expr.h, optabs.h: Update decls.
+
+2011-11-17  Bin Cheng  <bin.cheng@arm.com>
+
+	PR rtl-optimization/50663
+	* cprop.c (implicit_set_indexes): New global variable.
+	(insert_set_in_table): Add additional parameter and record implicit
+	set information.
+	(hash_scan_set): Add additional parameter and pass it to above.
+	(hash_scan_insn): Pass false to hash_scan_set.
+	(compute_hash_table_work): Pass true to hash_scan_set.
+	(compute_cprop_data): Add implicit set to AVIN of block which the
+	implicit set is recorded for.
+	(one_cprop_pass): Handle implicit_set_indexes array.
+
+2011-11-17  Michael Matz  <matz@suse.de>
+
+	PR middle-end/50644
+	PR middle-end/50741
+	* tree-ssa-live.c (mark_all_vars_used_1): Recurse only for decls of
+	current function.
+	(remove_unused_locals): Ditto.
+
+2011-11-16  Richard Henderson  <rth@redhat.com>
+
+	* config/alpha/alpha.c (alpha_split_compare_and_swap_12): Copy
+	ALIAS_SET_MEMORY_BARRIER when creating a new memory.
+	(alpha_split_atomic_exchange_12): Likewise.
+	* config/rs6000/rs6000.c (rs6000_adjust_atomic_subword): Likewise.
+
+2011-11-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/i386elf.h (PREFERRED_DEBUGGING_TYPE): Remove.
+
+2011-11-16  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_xcoff_section_type_flags):
+	Default to minimum alignment if decl is NULL.
+
+2011-11-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (round<mode>2_vec_pack_sfix): Optimize V2DFmode
+	sequence for AVX.
+	(<sse4_1>_round<ssemodesuffix>_vec_pack_sfix<avxsizesuffix>): Ditto.
+
+2011-11-16  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	* doc/invoke.texi: Document AMD bdver1 and btver1.
+
+2011-11-16  Richard Earnshaw  <rearnsha@arm.com>
+	    Bernd Schmidt <bernds@coudesourcery.com>
+	    Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	PR target/49641
+	* config/arm/arm.c (store_multiple_sequence): Avoid cases where
+	the base reg is stored iff compiling for Thumb1.
+
+2011-11-16  Razya Ladelsky  <razya@il.ibm.com>
+
+	PR tree-optimization/49960
+	* tree-data-ref.c (initialize_data_dependence_relation): Add
+	initializations.
+	Remove call to compute_self_dependence.
+	(compute_affine_dependence): Remove the !DDR_SELF_REFERENCE condition.
+	(compute_self_dependence): Remove old code. Add call to
+	compute_affine_dependence.
+	(compute_all_dependences): Remove call to compute_self_dependence.
+	Add call to compute_affine_dependence.
+
+2011-11-16  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR middle-end/50325
+	* expmed.c (store_bit_field_1): Use extract_bit_field on big
+	endian targets if the source cannot be exactly covered by word
+	mode chunks.
+
 2011-11-15  Joseph Myers  <joseph@codesourcery.com>
 
 	* config/i386/i386elf.h (ASM_OUTPUT_ASCII): Change STRING_LIMIT to
@@ -301,7 +656,7 @@
 	* ipa.c (varpool_externally_visible_p): Export.
 	* varpool.c (varpool_add_new_variable): New function.
 
-2011-11-14  Zolotukhin Michael  <michael.v.zolotukhin@gmail.com>
+2011-11-14  Michael Zolotukhin  <michael.v.zolotukhin@gmail.com>
 	    Jan Hubicka  <jh@suse.cz>
 
 	* config/i386/i386.h (processor_costs): Add second dimension to

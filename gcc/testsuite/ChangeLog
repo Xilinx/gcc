@@ -1,3 +1,176 @@
+2011-11-20  Joey Ye  <joey.ye@arm.com>
+
+	* gcc.dg/volatile-bitfields-1.c: New.
+
+2011-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48322
+	* g++.dg/cpp0x/variadic120.C: New.
+	* g++.dg/cpp0x/sfinae26.C: Adjust.
+
+	* g++.dg/cpp0x/sfinae11.C: Adjust.
+	* g++.dg/cpp0x/sfinae26.C: Adjust.
+	* g++.dg/template/unify11.C: Adjust.
+
+2011-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51230
+	* g++.dg/template/error46.C: New.
+
+2011-11-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/51235
+	* gcc.target/i386/pr51235.c: New test.
+
+	PR target/51236
+	* gcc.target/i386/pr51236.c: New test.
+
+2011-11-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr32.adb: New test.
+	* gnat.dg/discr32_pkg.ads: New helper.
+
+2011-11-20  Nathan Sidwell  <nathan@acm.org>
+
+	PR gcov-profile/51113
+	* gcc.misc-tests/gcov-13.c: Check gcovpart-13b coverage
+	* gcc.misc-tests/gcov-16.c: New.
+	* gcc.misc-tests/gcov-17.c: New.
+	* g++.dg/gcov/gcov-8.C: New.
+	* g++.dg/gcov/gcov-9.C: New.
+	* g++.dg/gcov/gcov-10.C: New.
+
+2011-11-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51194
+	* g++.dg/cpp0x/alias-decl-15.C: New test.
+
+2011-11-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51216
+	* g++.dg/cpp0x/pr51216.C: New.
+
+2011-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/delay-slot-2.c: New test.
+
+2011-11-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/assert4.c: Test __linux__, not __gnu_linux__.
+
+2011-11-18  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/51188
+	* g++.dg/lookup/using46.C: New.
+	* g++.dg/lookup/using47.C: New.
+	* g++.dg/lookup/using48.C: New.
+	* g++.dg/lookup/using49.C: New.
+	* g++.dg/lookup/using50.C: New.
+
+2011-11-18  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.c-torture/compile/pr44707.c: Do not assume assembler
+	supports /* ... */ comments.
+
+2011-11-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51150
+	* g++.dg/cpp0x/pr51150.C: New.
+
+2011-11-18  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50605
+	* g++.dg/ipa/pr50605.C: New test.
+
+2011-11-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51191
+	* g++.dg/cpp0x/alias-decl-13.C: New test.
+
+2011-11-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51186
+	* g++.dg/cpp0x/auto27.C: New.
+	* g++.dg/cpp0x/trailing2.C: Adjust messages.
+
+2011-11-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/atomic-generic-aux.c (__atomic_compare_exchange): Fail if
+	memory model parameters don't match expected values.
+	* gcc.dg/atomic-generic.c: Pass specific memory model parameters to
+	__atomic_compare_exchange.
+	* gcc.dg/atomic-noinline.c: Pass specific memory model parameters to
+	__atomic_compare_exchange_n.
+	* gcc.dg/atomic-noinline-aux.c (__atomic_compare_exchange_2): Remove
+	weak/strong parameter and fail if memory models aren't correct.
+
+2011-10-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Run on all targets.
+	Look for simulate_thread_done to determine working gdb.  Reduce timeout
+	to 10 seconds and fail when timeout occurs.  Improve error messages.
+
+2011-11-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51137
+	* g++.dg/template/virtual2.C: New.
+
+2011-11-17  Michael Matz  <matz@suse.de>
+
+	PR middle-end/50644
+	PR middle-end/50741
+	* g++.dg/tree-ssa/pr50741.C: New.
+
+2011-11-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Skip on alpha*-*-*.
+
+2011-10-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/tm/memopt-6.c: Cleanup tmedge tree dump.
+	* gcc.dg/tm/memopt-13.c: Cleanup tmmark tree dump.
+	* g++.dg/eh/array1.C: Cleanup gimple tree dump.
+
+2011-11-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39427
+	PR fortran/37829
+	* gfortran.dg/constructor_1.f90: New.
+	* gfortran.dg/constructor_2.f90: New.
+	* gfortran.dg/constructor_3.f90: New.
+	* gfortran.dg/constructor_4.f90: New.
+	* gfortran.dg/constructor_5.f90: New.
+	* gfortran.dg/constructor_6.f90: New.
+	* gfortran.dg/use_only_5.f90: New.
+	* gfortran.dg/c_ptr_tests_17.f90: New.
+	* gfortran.dg/c_ptr_tests_18.f90: New.
+	* gfortran.dg/used_types_25.f90: New.
+	* gfortran.dg/used_types_26.f90: New
+	* gfortran.dg/type_decl_3.f90: New.
+	* gfortran.dg/function_types_3.f90: Update dg-error.
+	* gfortran.dg/result_1.f90: Ditto.
+	* gfortran.dg/structure_constructor_3.f03: Ditto.
+	* gfortran.dg/structure_constructor_4.f03: Ditto.
+
+2011-10-16  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.dg/vect/pr30858.c: Update expected output for
+	architectures with multiple vector sizes.
+
+2011-11-16  Richard Earnshaw  <rearnsha@arm.com>
+	    Bernd Schmidt <bernds@coudesourcery.com>
+	    Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	PR target/49641
+	* gcc.target/arm/pr49641.c: New test.
+
+2011-11-16  Razya Ladelsky  <razya@il.ibm.com>
+
+	PR tree-optimization/49960
+	* gcc.dg/autopar/pr49960.c: New test.
+	* gcc.dg/autopar/pr49960-1.c: New test.
+
+
 2011-11-16  Tom de Vries  <tom@codesourcery.com>
 
 	* gcc.dg/pr43864.c: Check for absence of 'Invalid sum' in pre tree-dump.

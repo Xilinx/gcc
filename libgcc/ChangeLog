@@ -1,3 +1,49 @@
+2011-11-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	* config/avr/t-avr (LIB2FUNCS_EXCLUDE): Add _moddi3, _umoddi3.
+	(LIB1ASMFUNCS): Add _divdi3, _udivdi3, _udivmod64, _negdi2.
+	* config/avr/lib1funcs.S (wmov): New assembler macro.
+	(__umoddi3, __udivdi3, __udivdi3_umoddi3): New functions.
+	(__moddi3, __divdi3, __divdi3_moddi3): New functions.
+	(__udivmod64): New function.
+	(__negdi2): New function.
+
+2011-11-21  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* config.host (*-*-freebsd[12], *-*-freebsd[12].*,
+	*-*-freebsd*aout*): Remove.
+
+2011-11-20  Hans-Peter Nilsson  <hp@axis.com>
+
+	* static-object.mk (c_flags-$o): Save c_flags.
+	($(base)$(objext)): Use it.
+
+2011-11-18  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefile.in (c_flags): Set to -fno-exceptions to build libunwind.
+
+2011-11-18  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _xload_2 _xload_3 _xload_4.
+	* config/avr/lib1funcs.S (__xload_2, __xload_3, __xload_4):
+	New functions.
+
+2011-11-16  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* config/arm/lib1funcs.asm (udivsi3): Add support for divide
+	functions.
+	(aeabi_uidivmod): Likewise.	
+	(umodsi3): Likewise.
+	(divsi3): Likewise.
+	(aeabi_idivmod): Likewise.
+	(modsi3): Likewise.
+
+2011-11-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/qrnnd.S: Use specific pseudos for VMS.
+
 2011-11-15  Georg-Johann Lay  <avr@gjlay.de>
 
 	PR target/49868
