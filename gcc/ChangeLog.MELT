@@ -1,5 +1,8 @@
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tvariadic-3.melt: Commented.
+
+2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tvariadic-3.melt: New testcase.
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>

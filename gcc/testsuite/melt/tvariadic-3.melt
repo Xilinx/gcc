@@ -101,18 +101,21 @@
 		    )
 		  ( (:value vv)
 		    (val dbgi vv))
+		  ;;; with ggs, it works, with gs already used in containing variadic, it crash the translator
+		  ( (:gimple_seq gs)	;gs or ggs?
+		    (val dbgi gs))      ;  ""
 		  ( (:long ll)
 		    (val dbgi ll))
+#|
 		  ( (:tree tt)
 		    (val dbgi tt))
 		  ( (:gimple g)
 		    (val dbgi g))
-		  ( (:gimple_seq gs)
-		    (val dbgi gs))
 		  ( (:edge ed)
 		    (val dbgi ed))
 		  ( (:loop lo)
 		    (val dbgi lo))
+|#
 		 )
 		 (void)
 		 )
