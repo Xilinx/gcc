@@ -1,3 +1,23 @@
+2011-11-14   Dmitriy Vyukov  <dvyukov@google.com>
+
+	Introduce a new option -ftsan which enables
+	ThreadSanitizer (TSan), a data race detector:
+	http://code.google.com/p/data-race-test/.
+	* gcc/Makefile.in: Add tree-tsan.c.
+	* gcc/common.opt: Add -ftsan, -ftsan-ignore flags.
+	* gcc/doc/invoke.texi: Document the new flags.
+	* gcc/passes.c: Add tsan pass.
+	* gcc/tree-pass.h: Add tsan pass.
+	* gcc/toplev.c (compile_file): Call tsan_finish_file.
+	* gcc/tree-tsan.c: New file.
+	* gcc/tree-tsan.h: New file.
+	* gcc/testsuite/gcc.dg/tsan.h: New file.
+	* gcc/testsuite/gcc.dg/tsan-mop.c: New file.
+	* gcc/testsuite/gcc.dg/tsan-stack.c: New file.
+	* gcc/testsuite/gcc.dg/tsan-ignore.c: New file.
+	* gcc/testsuite/gcc.dg/tsan-ignore.h: New file.
+	* gcc/testsuite/gcc.dg/tsan-ignore.ignore: New file.
+
 2011-11-16   Rong Xu  <xur@google.com>
 
 	* gcc/dwarf2out.c: use TYPE_CONTEXT to get the context for types.

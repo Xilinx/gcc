@@ -75,6 +75,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "tree-mudflap.h"
 #include "tree-asan.h"
+#include "tree-tsan.h"
 #include "tree-pass.h"
 #include "gimple.h"
 #include "tree-ssa-alias.h"
@@ -619,6 +620,10 @@ compile_file (void)
       /* File-scope initialization for AddressSanitizer.  */
       if (flag_asan)
         asan_finish_file ();
+
+      /* File-scope initialization for ThreadSanitizer.  */
+      if (flag_tsan)
+        tsan_finish_file ();
 
       output_shared_constant_pool ();
       output_object_blocks ();

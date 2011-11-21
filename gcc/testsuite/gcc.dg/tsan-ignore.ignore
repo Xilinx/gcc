@@ -1,0 +1,7 @@
+#comment
+fun:foo
+fun:*bar
+fun:baz*
+fun:*bla*
+fun:x*x
+src:tsan-ignore.h

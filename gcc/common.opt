@@ -1551,6 +1551,14 @@ fmudflapir
 Common RejectNegative Report Var(flag_mudflap_ignore_reads)
 Ignore read operations when inserting mudflap instrumentation
 
+ftsan
+Common RejectNegative Report Var(flag_tsan)
+Add ThreadSanitizer instrumentation
+
+ftsan-ignore=
+Common RejectNegative Joined Var(flag_tsan_ignore)
+-ftsan-ignore=filename	ThreadSanitizer ignore file
+
 fdce
 Common Var(flag_dce) Init(1) Optimization
 Use the RTL dead code elimination pass
