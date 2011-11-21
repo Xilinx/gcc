@@ -321,7 +321,10 @@ $FILENAM and $LINENO}#
 	       ( (== (discrim val) discr_debug_closure)
 		 (variadic
 		  ( ()
-		    (val ()))
+		    ;; if a debug closure is the last variadic, we
+		    ;; output it as an ordinary value
+		    (dbg_out val dbgi 0)
+		    )
 		  ( (:value vv)
 		    (val dbgi vv))
 		  ( (:long ll)

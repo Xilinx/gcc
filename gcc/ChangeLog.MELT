@@ -1,5 +1,9 @@
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun): Display ordinarily a
+	debug function appearing as last variadic argument.
+
+2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (melt_debug_fun): Found minimal
 	translator bug.
 
