@@ -1,5 +1,11 @@
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_ifvariadic): When normalizing
+	the else case, don't use the new environment but the old one..
+
+	* testsuite/melt/tvariadic-3.melt: Reorganize.
+
+2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tvariadic-3.melt: Reduced the test case to something small.
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>

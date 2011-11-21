@@ -19,10 +19,7 @@
    (forever 
     argloop
     (debug "badtvar3 argloop varictype=" (variadic_ctype 0) " index=" (variadic_index))
-    (variadic 
-     ( ()
-       (debug "badtvar3 ended")
-       (exit argloop))
+    (variadic
      ((:long l)
       (debug "badtvar3 outer l=" l))
      ((:value f)
@@ -31,7 +28,10 @@
        ((:long l)
 	(debug "badtvar3 inner l=" l))
        (:else
-	(debug "badtvar3 inner varictype=" (variadic_ctype 0) " inner index=" (variadic_index)))))
+	(debug "badtvar3 inner varictype=" (variadic_ctype 0) " inner index=" (variadic_index))))) 
+     ( ()
+       (debug "badtvar3 ended")
+       (exit argloop))
      (:else
       (debug "badtvar3 unexpected varictype=" (variadic_ctype 0) " index=" (variadic_index))
       (variadic_skip 1))

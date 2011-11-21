@@ -3248,7 +3248,9 @@ source location.}#
 	      " selse=" selse)
        (multicall
 	(nelse nelsebindings)
-	(normalize_tuple selse newenv ncx loc)
+	;;;; we had::: (normalize_tuple selse newenv ncx loc)
+	;;; but very probably the else don't need the supplementary binding...
+	(normalize_tuple selse env ncx loc)
 	(debug "normexp_ifvariadic nelse=" nelse " nelsebindings=" nelsebindings)
 	(let ( 
 	      (csym (clone_symbol 'ifvariadic_))
