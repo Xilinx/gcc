@@ -1,5 +1,9 @@
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun): Handle [partly]
+	discr_debug_closure. Probable translator bug.
+
+2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (discr_debug_closure): New.
 
 2011-11-17  Basile Starynkevitch  <basile@starynkevitch.net>

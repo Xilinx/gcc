@@ -315,8 +315,35 @@ $FILENAM and $LINENO}#
 	      )
 	    ( (:value val)
 	      (add2out_strconst out " ")
-	      (if val (dbg_out val dbgi 0)
-		(add2out_strconst out "(**nil**)")))
+	      (cond 
+	       ( (null val)
+		 (add2out_strconst out "(**nil**)"))
+	       ( (== (discrim val) discr_debug_closure)
+		 (variadic
+		  ( ()
+		    (val ()))
+		  ( (:value vv)
+		    (val dbgi vv))
+		  ( (:long ll)
+		    (val dbgi ll))
+		  ;; we have a tranlator bug when uncommenting below code.
+#|
+		  ( (:tree tt)
+		    (val dbgi tt))
+		  ( (:gimple g)
+		    (val dbgi g))
+		  ( (:gimple_seq gs)
+		    (val dbgi gs))
+		  ( (:edge ed)
+		    (val dbgi ed))
+		  ( (:loop lo)
+		    (val dbgi lo))
+|#
+		 )
+		 (void)
+		 )
+	       (:else
+		 (dbg_out val dbgi 0))))
 	    ( (:tree tr)
 	      (let ( (tdf !tree_debug_funcont)
 		     )
