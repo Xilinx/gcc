@@ -326,12 +326,12 @@ $FILENAM and $LINENO}#
 		    (val dbgi vv))
 		  ( (:long ll)
 		    (val dbgi ll))
-		  ;; we have a tranlator bug when uncommenting below code.
-#|
 		  ( (:tree tt)
 		    (val dbgi tt))
 		  ( (:gimple g)
 		    (val dbgi g))
+		  ;; we have a tranlator bug in svn rev 181554 when uncommenting below code.
+#|
 		  ( (:gimple_seq gs)
 		    (val dbgi gs))
 		  ( (:edge ed)

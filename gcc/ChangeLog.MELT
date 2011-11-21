@@ -1,5 +1,9 @@
 
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun): Found minimal
+	translator bug.
+
+2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (melt_debug_fun): Handle [partly]
 	discr_debug_closure. Probable translator bug.
 
