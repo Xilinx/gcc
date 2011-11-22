@@ -1,4 +1,9 @@
 
+2011-11-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifvariadic): Add debug
+	printing.
+	* testsuite/melt/tvariadic-3.melt: Simplify.
+
 2011-11-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_ifvariadic): When normalizing
 	the else case, don't use the new environment but the old one..

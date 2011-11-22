@@ -3660,6 +3660,7 @@ $SBUF.}#
 	 )
     (assert_msg "check nvctypes" (is_multiple_or_null nvctypes))
     (assert_msg "check nvariadic" (is_a nvariadic class_symbol))
+    (debug "compilobj_nrep_ifvariadic nthen=" nthen " nelse=" nelse)
     (let ( 
 	  (ovariadicindex (variadic_index_idstr nvariadic))
 	  (ovariadiclength (variadic_length_idstr nvariadic))
@@ -3706,8 +3707,22 @@ $SBUF.}#
 	   )
 	  (otest (instance  class_objexpv
 			    :obx_cont (list_to_multiple otestchklist discr_multiple)))
-	  (othen (compile_obj nthen gcx))
-	  (oelse (compile_obj nelse gcx))
+	  (othen 
+	   (progn 
+	     (debug "compilobj_nrep_ifvariadic before compiling nthen=" nthen)
+	     (let ( (objthen (compile_obj nthen gcx))
+		    )
+	       (debug "compilobj_nrep_ifvariadic after compiling nthen=" nthen 
+		      " objthen=" objthen)
+	       objthen)))
+	  (oelse 
+	   (progn 
+	     (debug "compilobj_nrep_ifvariadic before compiling nelse=" nelse)
+	     (let ( (objelse (compile_obj nelse gcx))
+		    )
+	       (debug "compilobj_nrep_ifvariadic after compiling nelse=" nelse
+		      " objelse=" objelse)
+	       objelse)))
 	  (ocond (instance class_objcond
 			   :obi_loc loc
 			   :obcond_test otest
