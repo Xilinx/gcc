@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-objc.h"
 #include "tree-inline.h"
 #include "tree-mudflap.h"
+#include "intl.h"
 #include "toplev.h"
 #include "flags.h"
 #include "output.h"
@@ -424,7 +425,7 @@ maybe_cleanup_point_expr (tree expr)
    expression.  The reason why we do this is because the original type might be
    an aggregate and we cannot create a temporary variable for that type.  */
 
-static tree
+tree
 maybe_cleanup_point_expr_void (tree expr)
 {
   if (!processing_template_decl && stmts_are_full_exprs_p ())
@@ -2986,8 +2987,8 @@ finish_id_expression (tree id_expression,
 	  else
 	    {
 	      error (TREE_CODE (decl) == VAR_DECL
-		     ? "use of %<auto%> variable from containing function"
-		     : "use of parameter from containing function");
+		     ? G_("use of %<auto%> variable from containing function")
+		     : G_("use of parameter from containing function"));
 	      error ("  %q+#D declared here", decl);
 	      return error_mark_node;
 	    }
@@ -3393,6 +3394,149 @@ finish_underlying_type (tree type)
 				TYPE_UNSIGNED (underlying_type));
 
   return underlying_type;
+}
+
+/* Implement the __direct_bases keyword: Return the direct base classes
+   of type */
+
+tree
+calculate_direct_bases (tree type)
+{
+  VEC(tree, gc) *vector = make_tree_vector();
+  tree bases_vec = NULL_TREE;
+  VEC(tree, none) *base_binfos;
+  tree binfo;
+  unsigned i;
+
+  complete_type (type);
+
+  if (!NON_UNION_CLASS_TYPE_P (type))
+    return make_tree_vec (0);
+
+  base_binfos = BINFO_BASE_BINFOS (TYPE_BINFO (type));
+
+  /* Virtual bases are initialized first */
+  for (i = 0; VEC_iterate (tree, base_binfos, i, binfo); i++)
+    {
+      if (BINFO_VIRTUAL_P (binfo))
+       {
+         VEC_safe_push (tree, gc, vector, binfo);
+       }
+    }
+
+  /* Now non-virtuals */
+  for (i = 0; VEC_iterate (tree, base_binfos, i, binfo); i++)
+    {
+      if (!BINFO_VIRTUAL_P (binfo))
+       {
+         VEC_safe_push (tree, gc, vector, binfo);
+       }
+    }
+
+
+  bases_vec = make_tree_vec (VEC_length (tree, vector));
+
+  for (i = 0; i < VEC_length (tree, vector); ++i)
+    {
+      TREE_VEC_ELT (bases_vec, i) = BINFO_TYPE (VEC_index (tree, vector, i));
+    }
+  return bases_vec;
+}
+
+/* Implement the __bases keyword: Return the base classes
+   of type */
+
+/* Find morally non-virtual base classes by walking binfo hierarchy */
+/* Virtual base classes are handled separately in finish_bases */
+
+static tree
+dfs_calculate_bases_pre (tree binfo, ATTRIBUTE_UNUSED void *data_)
+{
+  /* Don't walk bases of virtual bases */
+  return BINFO_VIRTUAL_P (binfo) ? dfs_skip_bases : NULL_TREE;
+}
+
+static tree
+dfs_calculate_bases_post (tree binfo, void *data_)
+{
+  VEC(tree, gc) **data = (VEC(tree, gc) **) data_;
+  if (!BINFO_VIRTUAL_P (binfo))
+    {
+      VEC_safe_push (tree, gc, *data, BINFO_TYPE (binfo));
+    }
+  return NULL_TREE;
+}
+
+/* Calculates the morally non-virtual base classes of a class */
+static VEC(tree, gc) *
+calculate_bases_helper (tree type)
+{
+  VEC(tree, gc) *vector = make_tree_vector();
+
+  /* Now add non-virtual base classes in order of construction */
+  dfs_walk_all (TYPE_BINFO (type),
+                dfs_calculate_bases_pre, dfs_calculate_bases_post, &vector);
+  return vector;
+}
+
+tree
+calculate_bases (tree type)
+{
+  VEC(tree, gc) *vector = make_tree_vector();
+  tree bases_vec = NULL_TREE;
+  unsigned i;
+  VEC(tree, gc) *vbases;
+  VEC(tree, gc) *nonvbases;
+  tree binfo;
+
+  complete_type (type);
+
+  if (!NON_UNION_CLASS_TYPE_P (type))
+    return make_tree_vec (0);
+
+  /* First go through virtual base classes */
+  for (vbases = CLASSTYPE_VBASECLASSES (type), i = 0;
+       VEC_iterate (tree, vbases, i, binfo); i++)
+    {
+      VEC(tree, gc) *vbase_bases = calculate_bases_helper (BINFO_TYPE (binfo));
+      VEC_safe_splice (tree, gc, vector, vbase_bases);
+      release_tree_vector (vbase_bases);
+    }
+
+  /* Now for the non-virtual bases */
+  nonvbases = calculate_bases_helper (type);
+  VEC_safe_splice (tree, gc, vector, nonvbases);
+  release_tree_vector (nonvbases);
+
+  /* Last element is entire class, so don't copy */
+  bases_vec = make_tree_vec (VEC_length (tree, vector) - 1);
+
+  for (i = 0; i < VEC_length (tree, vector) - 1; ++i)
+    {
+      TREE_VEC_ELT (bases_vec, i) = VEC_index (tree, vector, i);
+    }
+  release_tree_vector (vector);
+  return bases_vec;
+}
+
+tree
+finish_bases (tree type, bool direct)
+{
+  tree bases = NULL_TREE;
+
+  if (!processing_template_decl)
+    {
+      /* Parameter packs can only be used in templates */
+      error ("Parameter pack __bases only valid in template declaration");
+      return error_mark_node;
+    }
+
+  bases = cxx_make_type (BASES);
+  BASES_TYPE (bases) = type;
+  BASES_DIRECT (bases) = direct;
+  SET_TYPE_STRUCTURAL_EQUALITY (bases);
+
+  return bases;
 }
 
 /* Perform C++-specific checks for __builtin_offsetof before calling
@@ -4976,7 +5120,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
            step.  */
         expr = TREE_OPERAND (expr, 1);
 
-      if (TREE_CODE (expr) == BASELINK)
+      if (BASELINK_P (expr))
         /* See through BASELINK nodes to the underlying function.  */
         expr = BASELINK_FUNCTIONS (expr);
 
@@ -6541,6 +6685,12 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
 	error ("%qE is not a constant expression", orig_whole);
       *non_constant_p = true;
     }
+  if (DECL_MUTABLE_P (part))
+    {
+      if (!allow_non_constant)
+	error ("mutable %qD is not usable in a constant expression", part);
+      *non_constant_p = true;
+    }
   if (*non_constant_p)
     return t;
   FOR_EACH_CONSTRUCTOR_ELT (CONSTRUCTOR_ELTS (whole), i, field, value)
@@ -7526,6 +7676,18 @@ cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
 
   verify_constant (r, allow_non_constant, &non_constant_p);
 
+  if (TREE_CODE (t) != CONSTRUCTOR
+      && cp_has_mutable_p (TREE_TYPE (t)))
+    {
+      /* We allow a mutable type if the original expression was a
+	 CONSTRUCTOR so that we can do aggregate initialization of
+	 constexpr variables.  */
+      if (!allow_non_constant)
+	error ("%qT cannot be the type of a complete constant expression "
+	       "because it has mutable sub-objects", TREE_TYPE (t));
+      non_constant_p = true;
+    }
+
   if (non_constant_p && !allow_non_constant)
     return error_mark_node;
   else if (non_constant_p && TREE_CONSTANT (t))
@@ -7726,6 +7888,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case TEMPLATE_PARM_INDEX:
     case TRAIT_EXPR:
     case IDENTIFIER_NODE:
+    case USERDEF_LITERAL:
       /* We can see a FIELD_DECL in a pointer-to-member expression.  */
     case FIELD_DECL:
     case PARM_DECL:
@@ -8202,7 +8365,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       return false;
 
     default:
-      sorry ("unexpected ast of kind %s", tree_code_name[TREE_CODE (t)]);
+      sorry ("unexpected AST of kind %s", tree_code_name[TREE_CODE (t)]);
       gcc_unreachable();
       return false;
     }

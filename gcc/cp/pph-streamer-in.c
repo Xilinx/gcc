@@ -148,6 +148,17 @@ pph_in_hwi (pph_stream *stream)
 }
 
 
+/* Read an int from STREAM.  */
+
+static inline int
+pph_in_int (pph_stream *stream)
+{
+  HOST_WIDE_INT n = streamer_read_hwi (stream->encoder.r.ib);
+  gcc_assert (n == (int) n);
+  return (int) n;
+}
+
+
 /* Read an unsigned HOST_WIDE_INT from STREAM.  */
 
 static inline unsigned HOST_WIDE_INT
@@ -243,26 +254,44 @@ pph_in_linetable_marker (pph_stream *stream)
 }
 
 
+
+/* Read all the fields of struct line_map LM from STREAM.  LM is assumed
+   to be an ordinary line map.  */
+
+static void
+pph_in_line_map_ordinary (pph_stream *stream, struct line_map *lm)
+{
+  struct bitpack_d bp;
+
+  ORDINARY_MAP_FILE_NAME (lm) = pph_in_string (stream);
+  ORDINARY_MAP_STARTING_LINE_NUMBER (lm) = pph_in_linenum_type (stream);
+
+  /* Note that this index is an offset indicating the distance from LM
+     to the line map entry for LM's includer.  It needs to be adjusted
+     while reading the line table in pph_in_line_table_and_includes.  */
+  ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) = pph_in_int (stream);
+  bp = pph_in_bitpack (stream);
+  ORDINARY_MAP_IN_SYSTEM_HEADER_P (lm)
+      = (unsigned char) bp_unpack_value (&bp, CHAR_BIT);
+  ORDINARY_MAP_NUMBER_OF_COLUMN_BITS (lm) = bp_unpack_value (&bp,
+							     COLUMN_BITS_BIT);
+}
+
+
 /* Read a line_map from STREAM into LM.  */
 
 static void
 pph_in_line_map (pph_stream *stream, struct line_map *lm)
 {
-  struct bitpack_d bp;
+  struct lto_input_block *ib = stream->encoder.r.ib;
 
-  lm->to_file = pph_in_string (stream);
-  lm->to_line = pph_in_linenum_type (stream);
   lm->start_location = pph_in_source_location (stream);
-  lm->included_from = (int) pph_in_uint (stream);
+  lm->reason = streamer_read_enum (ib, lc_reason, LC_ENTER_MACRO);
 
-  bp = pph_in_bitpack (stream);
-  lm->reason = (enum lc_reason) bp_unpack_value (&bp, LC_REASON_BIT);
-  gcc_assert (lm->reason == LC_ENTER
-              || lm->reason == LC_LEAVE
-              || lm->reason == LC_RENAME
-              || lm->reason == LC_RENAME_VERBATIM);
-  lm->sysp = (unsigned char) bp_unpack_value (&bp, CHAR_BIT);
-  lm->column_bits = bp_unpack_value (&bp, COLUMN_BITS_BIT);
+  /* FIXME pph.  We currently do not support location tracking for
+     macros in PPH images.  */
+  gcc_assert (lm->reason != LC_ENTER_MACRO);
+  pph_in_line_map_ordinary (stream, lm);
 }
 
 
@@ -297,28 +326,30 @@ pph_in_include (pph_stream *stream)
 }
 
 
-/* Read the line_table from STREAM and merge it in the current line_table.  At
-   the same time load includes in the order they were originally included by
-   loading them at the point they were referenced in the line_table.
+/* Read the line_table from STREAM and merge it in the current
+   line_table.  At the same time load includes in the order they were
+   originally included by loading them at the point they were
+   referenced in the line_table.
 
-   Returns the source_location of line 1 / col 0 for this include.
-
-   FIXME pph: The line_table is now identical to the non-pph line_table, the
-   only problem is that we load line_table entries twice for headers that are
-   re-included and are #ifdef guarded; thus shouldn't be replayed.  This is
-   a known current issue, so I didn't bother working around it here for now.  */
+   Returns the source_location of line 1 / col 0 for this include.  */
 
 static source_location
 pph_in_line_table_and_includes (pph_stream *stream)
 {
-  unsigned int old_depth;
+  unsigned int used_before, old_depth;
   bool first;
-  int includer_ix = -1;
-  unsigned int used_before = line_table->used;
-  int entries_offset = line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
-  enum pph_linetable_marker next_lt_marker = pph_in_linetable_marker (stream);
+  enum pph_linetable_marker next_lt_marker;
+  int top_includer_ix;
 
-  for (first = true; next_lt_marker != PPH_LINETABLE_END;
+  used_before = LINEMAPS_ORDINARY_USED (line_table);
+  first = true;
+
+  /* All line map entries that have -1 as the includer, will now be
+     relocated to the current last line map entry in the line table.  */
+  top_includer_ix = used_before - 1;
+
+  for (next_lt_marker = pph_in_linetable_marker (stream);
+       next_lt_marker != PPH_LINETABLE_END;
        next_lt_marker = pph_in_linetable_marker (stream))
     {
       if (next_lt_marker == PPH_LINETABLE_REFERENCE)
@@ -329,41 +360,43 @@ pph_in_line_table_and_includes (pph_stream *stream)
       else
 	{
 	  struct line_map *lm;
+	  int last_entry_ix;
 
-	  linemap_ensure_extra_space_available (line_table);
-
-	  lm = &line_table->maps[line_table->used];
-
+	  lm = linemap_new_map (line_table, LC_ENTER);
 	  pph_in_line_map (stream, lm);
+
+	  /* All the entries that we read from STREAM will be appended
+	     to the end of line_table.  Calculate the index for the
+	     last entry so that we can resolve the relative indices
+	     for all the includer file index entries we read from
+	     STREAM.  Note that LAST_ENTRY_IX is the index of the line
+	     map LM that we have just read.  */
+	  last_entry_ix = LINEMAPS_ORDINARY_USED (line_table) - 1;
 
 	  if (first)
 	    {
 	      first = false;
-
 	      pph_loc_offset = (line_table->highest_location + 1)
 		               - lm->start_location;
-
-	      includer_ix = line_table->used - 1;
-
-	      gcc_assert (lm->included_from == -1);
+	      gcc_assert (ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) == -1);
 	    }
 
-	  gcc_assert (includer_ix != -1);
+	  /* Relocate the includer file index.  For most entries, the
+	     writer wrote ORDINARY_MAP_INCLUDER_FILE_INDEX as a
+	     relative offset between this entry and the original
+	     includer file index (see pph_out_line_map_ordinary).
+	     Convert that relative index into an absolute index in the
+	     current line_table.
 
-	  /* When parsing the pph: the header itself wasn't included by
-	    anything, now it's included by the file just before it in
-	    the current include tree.  */
-	  if (lm->included_from == -1)
-	    lm->included_from = includer_ix;
-	  /* For the other entries in the pph's line_table which were included
-	     from another entry, reflect their included_from to the new position
-	     of the entry which they were included from.  */
+	     A relocation value of -1 means that line map LM is
+	     included by the current top includer (i.e., STREAM), so
+	     we use the value TOP_INCLUDER_IX for it.  */
+	  if (ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) == -1)
+	    ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) = top_includer_ix;
 	  else
-	    lm->included_from += entries_offset;
+	    ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) -= last_entry_ix;
 
 	  lm->start_location += pph_loc_offset;
-
-	  line_table->used++;
 	}
     }
 
@@ -386,8 +419,8 @@ pph_in_line_table_and_includes (pph_stream *stream)
      Instead of insisting on getting EXPECTED_IN entries, we expect at
      most EXPECTED_IN entries.  */
   {
-    unsigned int expected_in = pph_in_uint (stream);
-    gcc_assert (line_table->used - used_before <= expected_in);
+    unsigned int expected = pph_in_uint (stream);
+    gcc_assert (LINEMAPS_ORDINARY_USED (line_table) - used_before <= expected);
   }
 
   line_table->highest_location = pph_loc_offset + pph_in_uint (stream);
@@ -406,7 +439,7 @@ pph_in_line_table_and_includes (pph_stream *stream)
   linemap_add (line_table, LC_LEAVE, 0, NULL, 0);
   gcc_assert (line_table->depth == old_depth);
 
-  return line_table->maps[used_before].start_location;
+  return MAP_START_LOCATION (LINEMAPS_ORDINARY_MAP_AT (line_table, used_before));
 }
 
 
@@ -899,8 +932,13 @@ pph_prepend_to_chain (tree expr, tree *chain)
 static tree
 pph_merge_into_chain (tree expr, const char *name, tree *chain)
 {
-  merge_toc_entry key = { expr, chain, name };
-  tree found = pph_toc_lookup (merge_toc, &key);
+  merge_toc_entry key;
+  tree found;
+
+  key.expr = expr;
+  key.context = chain;
+  key.name = name;
+  found = pph_toc_lookup (merge_toc, &key);
   if (!found)
     {
       pph_toc_add (merge_toc, &key);

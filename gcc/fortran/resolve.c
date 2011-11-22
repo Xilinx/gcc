@@ -2809,7 +2809,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 			 &(args->expr->where));
 			 
           /* See if we have interoperable type and type param.  */
-          if (verify_c_interop (arg_ts) == SUCCESS
+          if (gfc_verify_c_interop (arg_ts) == SUCCESS
               || gfc_check_any_c_kind (arg_ts) == SUCCESS)
             {
               if (args_sym->attr.target == 1)
@@ -4846,7 +4846,8 @@ resolve_ref (gfc_expr *expr)
 	break;
 
       case REF_SUBSTRING:
-	resolve_substring (ref);
+	if (resolve_substring (ref) == FAILURE)
+	  return FAILURE;
 	break;
       }
 
@@ -10544,7 +10545,7 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
         {
           /* Skip implicitly typed dummy args here.  */
 	  if (curr_arg->sym->attr.implicit_type == 0)
-	    if (verify_c_interop_param (curr_arg->sym) == FAILURE)
+	    if (gfc_verify_c_interop_param (curr_arg->sym) == FAILURE)
 	      /* If something is found to fail, record the fact so we
 		 can mark the symbol for the procedure as not being
 		 BIND(C) to try and prevent multiple errors being

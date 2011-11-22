@@ -940,15 +940,20 @@ walk_coarray (gfc_expr *e)
     {
       gfc_ref *ref;
 
-      ss = gfc_get_array_ss (gfc_ss_terminator, e, 0, GFC_SS_SECTION);
-
       ref = e->ref;
-      while (ref->next)
-	ref = ref->next;
+      while (ref)
+	{
+	  if (ref->type == REF_ARRAY
+	      && ref->u.ar.codimen > 0)
+	    break;
 
-      gcc_assert (ref->type == REF_ARRAY && ref->u.ar.codimen > 0);
-      ref->u.ar.type = AR_FULL;
-      ss->data.info.ref = ref;
+	  ref = ref->next;
+	}
+
+      gcc_assert (ref != NULL);
+      if (ref->u.ar.type == AR_ELEMENT)
+	ref->u.ar.type = AR_SECTION;
+      ss = gfc_reverse_ss (gfc_walk_array_ref (ss, e, ref));
     }
 
   return ss;

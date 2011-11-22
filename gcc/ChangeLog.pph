@@ -1,3 +1,7 @@
+2011-11-22   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 180687.
+
 2011-10-18   Diego Novillo  <dnovillo@google.com>
 
 	Merge revision 180136 from trunk (cp_debug_parser).

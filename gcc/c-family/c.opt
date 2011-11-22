@@ -513,7 +513,7 @@ C++ ObjC++ Var(warn_nonvdtor) Warning
 Warn about non-virtual destructors
 
 Wnonnull
-C ObjC Var(warn_nonnull) Warning
+C ObjC C++ ObjC++ Var(warn_nonnull) Warning
 Warn about NULL being passed to argument slots marked as requiring non-NULL
 
 Wnormalized=
@@ -745,6 +745,10 @@ ObjC ObjC++ Joined MissingArgError(no class name specified with %qs)
 fconstexpr-depth=
 C++ ObjC++ Joined RejectNegative UInteger Var(max_constexpr_depth) Init(512)
 -fconstexpr-depth=<number>	Specify maximum constexpr recursion depth
+
+fdebug-cpp
+C ObjC C++ ObjC++
+Emit debug annotations during preprocessing
 
 fdeduce-init-list
 C++ ObjC++ Var(flag_deduce_init_list) Init(1)
@@ -980,6 +984,14 @@ fpreprocessed
 C ObjC C++ ObjC++
 Treat the input file as already preprocessed
 
+ftrack-macro-expansion
+C ObjC C++ ObjC++ JoinedOrMissing RejectNegative UInteger
+; converted into ftrack-macro-expansion=
+
+ftrack-macro-expansion=
+C ObjC C++ ObjC++ JoinedOrMissing RejectNegative UInteger
+-ftrack-macro-expansion=<0|1|2>  Track locations of tokens coming from macro expansion and display them in error messages
+
 fpretty-templates
 C++ ObjC++ Var(flag_pretty_templates) Init(1)
 -fno-pretty-templates Do not pretty-print template specializations as the template signature followed by the arguments
@@ -1066,7 +1078,7 @@ Use __cxa_get_exception_ptr in exception handling
 
 fvisibility-inlines-hidden
 C++ ObjC++
-Marks all inlined methods as having hidden visibility
+Marks all inlined functions and methods as having hidden visibility
 
 fvisibility-ms-compat
 C++ ObjC++ Var(flag_visibility_ms_compat)

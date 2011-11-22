@@ -1120,6 +1120,13 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
   (TREE_CODE (TYPE) == COMPLEX_TYPE	\
    && TREE_CODE (TREE_TYPE (TYPE)) == REAL_TYPE)
 
+/* Nonzero if TYPE represents a vector integer type.  */
+                
+#define VECTOR_INTEGER_TYPE_P(TYPE)                   \
+             (TREE_CODE (TYPE) == VECTOR_TYPE      \
+                 && TREE_CODE (TREE_TYPE (TYPE)) == INTEGER_TYPE)
+
+
 /* Nonzero if TYPE represents a vector floating-point type.  */
 
 #define VECTOR_FLOAT_TYPE_P(TYPE)	\
@@ -2966,6 +2973,17 @@ extern void decl_value_expr_insert (tree, tree);
 
 /* The DECL_RTL for NODE, if it is set, or NULL, if it is not set.  */
 #define DECL_RTL_IF_SET(NODE) (DECL_RTL_SET_P (NODE) ? DECL_RTL (NODE) : NULL)
+
+#if (GCC_VERSION >= 2007)
+#define DECL_RTL_KNOWN_SET(decl) __extension__				\
+({  tree const __d = (decl);						\
+    gcc_checking_assert (DECL_RTL_SET_P (__d));				\
+    /* Dereference it so the compiler knows it can't be NULL even	\
+       without assertion checking.  */					\
+    &*DECL_RTL_IF_SET (__d); })
+#else
+#define DECL_RTL_KNOWN_SET(decl) (&*DECL_RTL_IF_SET (decl))
+#endif
 
 /* In VAR_DECL and PARM_DECL nodes, nonzero means declared `register'.  */
 #define DECL_REGISTER(NODE) (DECL_WRTL_CHECK (NODE)->decl_common.decl_flag_0)

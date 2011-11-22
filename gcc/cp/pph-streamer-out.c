@@ -101,6 +101,15 @@ pph_out_hwi (pph_stream *stream, HOST_WIDE_INT value)
 }
 
 
+/* Write an int VALUE to stream.  */
+
+static inline void
+pph_out_int (pph_stream *stream, int value)
+{
+  streamer_write_hwi (stream->encoder.w.ob, value);
+}
+
+
 /* Write an unsigned HOST_WIDE_INT VALUE to STREAM.  */
 
 static inline void
@@ -190,23 +199,63 @@ pph_out_linetable_marker (pph_stream *stream, enum pph_linetable_marker marker)
 }
 
 
-/* Emit all information contained in LM to STREAM.  */
+/* Emit all the fields of struct line_map_ordinary LM to STREAM.  IX
+   is the slot number in the line table where LM is stored.  */
 
 static void
-pph_out_line_map (pph_stream *stream, struct line_map *lm)
+pph_out_line_map_ordinary (pph_stream *stream, struct line_map *lm, int ix)
 {
   struct bitpack_d bp;
+  int rel_includer_ix, includer_ix;
 
-  pph_out_string (stream, lm->to_file);
-  pph_out_linenum_type (stream, lm->to_line);
-  pph_out_source_location (stream, lm->start_location);
-  pph_out_uint (stream, (unsigned int) lm->included_from);
+  pph_out_string (stream, ORDINARY_MAP_FILE_NAME (lm));
+  pph_out_linenum_type (stream, ORDINARY_MAP_STARTING_LINE_NUMBER (lm));
+
+  /* To support relocating this table into other translation units,
+     emit a relative index to LM's includer.  All the relative indices
+     are positive values indicating the distance from LM to the line
+     map for its includer.  */
+  includer_ix = ORDINARY_MAP_INCLUDER_FILE_INDEX (lm);
+  if (includer_ix >= 0)
+    {
+      gcc_assert (includer_ix < ix);
+      rel_includer_ix = ix - includer_ix;
+    }
+  else
+    {
+      /* If LM is included by index -1, it means that this is a line map
+	 entry for the top level file being compiled (i.e., the PPH that
+	 we are currently generating).  The first time we find this index,
+	 the reader will remember the index of the current parent file
+	 and replace all the -1 entries with it.  */
+      gcc_assert (includer_ix == -1);
+      rel_includer_ix = includer_ix;
+    }
+
+  pph_out_int (stream, rel_includer_ix);
 
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, lm->reason, CHAR_BIT);
-  bp_pack_value (&bp, lm->sysp, CHAR_BIT);
-  bp_pack_value (&bp, lm->column_bits, COLUMN_BITS_BIT);
+  bp_pack_value (&bp, ORDINARY_MAP_IN_SYSTEM_HEADER_P (lm), CHAR_BIT);
+  bp_pack_value (&bp, ORDINARY_MAP_NUMBER_OF_COLUMN_BITS (lm), COLUMN_BITS_BIT);
   pph_out_bitpack (stream, &bp);
+}
+
+
+/* Emit all information contained in LM to STREAM.  IX is the slot number
+   in the line table where LM is stored.  */
+
+static void
+pph_out_line_map (pph_stream *stream, struct line_map *lm, int ix)
+{
+  struct output_block *ob = stream->encoder.w.ob;
+
+  pph_out_source_location (stream, lm->start_location);
+  streamer_write_enum (ob->main_stream, lc_reason, LC_ENTER_MACRO, lm->reason);
+
+  /* FIXME pph.  We currently do not support location tracking for
+     macros in PPH images.  */
+  gcc_assert (lm->reason != LC_ENTER_MACRO);
+  pph_out_line_map_ordinary (stream, lm, ix);
 }
 
 
@@ -286,7 +335,8 @@ pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
 static void
 pph_out_line_table_and_includes (pph_stream *stream)
 {
-  unsigned int ix, next_incl_ix = 0;
+  unsigned int next_incl_ix = 0;
+  int ix;
   pph_stream *current_include;
 
   /* Any #include should have been fully parsed and exited at this point.  */
@@ -294,55 +344,85 @@ pph_out_line_table_and_includes (pph_stream *stream)
 
   current_include = pph_get_next_include (stream, &next_incl_ix);
 
-  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES; ix < line_table->used; ix++)
+  for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
+       ix < (int) LINEMAPS_ORDINARY_USED (line_table);
+       ix++)
     {
-      struct line_map *lm = &line_table->maps[ix];
+      struct line_map *lm = LINEMAPS_ORDINARY_MAP_AT (line_table, ix);
+
+      /* FIXME pph.  We currently do not support location tracking for
+	 macros in PPH images.  */
+      gcc_assert (lm->reason != LC_ENTER_MACRO);
 
       if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
         {
-          /* The first non-ignored entry should be an LC_RENAME back in the
-            header after inserting the builtin and command-line entries.  When
-            reading the pph we want this to be a simple LC_ENTER as the builtin
-            and command_line entries will already exist and we are now entering
-	    a #include.  */
+	  /* The first non-ignored entry should be an LC_RENAME back
+	     in the header after inserting the builtin and
+	     command-line entries.  When reading the pph we want this
+	     to be a simple LC_ENTER as the builtin and command_line
+	     entries will already exist and we are now entering a
+             #include.  */
           gcc_assert (lm->reason == LC_RENAME);
           lm->reason = LC_ENTER;
         }
 
-      /* If this is an entry from a pph header, only output reference.  */
+      /* If LM is an entry for an included PPH image, output a line table
+	 reference to it, so the reader can load the included image at
+	 this point.  */
       if (current_include != NULL
-	  && pph_filename_eq_ignoring_path (lm->to_file, current_include->name))
+	  && pph_filename_eq_ignoring_path (LINEMAP_FILE (lm),
+	                                    current_include->name))
 	{
-	  int includer_level;
+	  struct line_map *included_from;
 
+	  /* Assert that we are entering a new header file from another.  */
 	  gcc_assert (lm->reason == LC_ENTER);
-	  gcc_assert (lm->included_from != -1);
+	  gcc_assert (ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) != -1);
 
 	  pph_out_linetable_marker (stream, PPH_LINETABLE_REFERENCE);
 
 	  pph_out_include (stream, current_include, lm->start_location);
 
-	  /* Potentially lm could be included from a header other then the main
-	      one if a textual include includes a pph header (i.e. we can't
-	      simply rely on going back to included_from == -1).  */
-	  includer_level = INCLUDED_FROM (line_table, lm)->included_from;
+	  /* Since all the line table entries corresponding to
+	     CURRENT_INCLUDE and its #include children are emitted
+	     inside CURRENT_INCLUDE, we need to skip them so they do
+	     not get emitted in STREAM.
 
-	  /* Skip all other linemap entries up to and including the LC_LEAVE
-	      from the referenced header back to the one including it.  */
-	  while (line_table->maps[++ix].included_from != includer_level)
+	     To do this, we look for the next line map table that
+	     corresponds to an LC_LEAVE event back to the file that
+	     includes CURRENT_INCLUDE (which is represented by the
+	     line map LM).  */
+	  included_from = INCLUDED_FROM (line_table, lm);
+	  for (ix++; ix < (int) LINEMAPS_ORDINARY_USED (line_table); ix++)
+	    {
+	      struct line_map *map = LINEMAPS_ORDINARY_MAP_AT (line_table, ix);
+
+	      /* When we find an LC_LEAVE map, we have two ways of
+		 deciding if it is an LC_LEAVE event back to
+		 INCLUDED_FROM.  Either MAP goes to the same file name
+		 as INCLUDED_FROM or both MAP and INCLUDED_FROM are
+		 included by the same line map.  Since the latter is
+		 faster, we check it instead of doing a string
+		 comparison.  */
+	      if (map->reason == LC_LEAVE
+		  && ORDINARY_MAP_INCLUDER_FILE_INDEX (included_from)
+		     == ORDINARY_MAP_INCLUDER_FILE_INDEX (map))
+		break;
+	    }
+
 	    /* We should always leave this loop before the end of the
 		current line_table entries.  */
-	    gcc_assert (ix < line_table->used);
+	    gcc_assert (ix < (int) LINEMAPS_ORDINARY_USED (line_table));
 
 	  current_include = pph_get_next_include (stream, &next_incl_ix);
 	}
       else
 	{
 	  pph_out_linetable_marker (stream, PPH_LINETABLE_ENTRY);
-	  pph_out_line_map (stream, lm);
+	  pph_out_line_map (stream, lm, ix);
 	}
 
-      /* Restore changes made to first entry above if needed.  */
+      /* Restore changes made to the first entry above, if needed.  */
       if (ix == PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
 	lm->reason = LC_RENAME;
     }
@@ -350,7 +430,8 @@ pph_out_line_table_and_includes (pph_stream *stream)
   pph_out_linetable_marker (stream, PPH_LINETABLE_END);
 
   /* Output the number of entries written to validate on input.  */
-  pph_out_uint (stream, line_table->used - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
+  pph_out_uint (stream, LINEMAPS_ORDINARY_USED (line_table)
+                        - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
 
   /* Every PPH header included should have been seen and skipped in the
      line_table streaming above.  */
@@ -686,26 +767,23 @@ pph_out_location (pph_stream *stream, location_t loc)
      streaming some builtins, we probably want to figure out what those are and
      simply add them to the cache in the preload.  */
   struct bitpack_d bp;
+  struct line_map *map;
+  location_t first_non_builtin_loc;
 
-  location_t first_non_builtin_loc =
-    line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location;
+  map = LINEMAPS_ORDINARY_MAP_AT (line_table,
+				  PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
+  first_non_builtin_loc = MAP_START_LOCATION (map);
 
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
   if (loc < first_non_builtin_loc)
     {
       /* We should never stream out trees with locations between builtins
 	 and user locations (e.g. <command-line>).  */
-      if (loc > BUILTINS_LOCATION)
-        gcc_unreachable ();
-
+      gcc_assert (loc <= BUILTINS_LOCATION);
       bp_pack_value (&bp, true, 1);
     }
   else
-    {
-      gcc_assert (loc >=
-        line_table->maps[PPH_NUM_IGNORED_LINE_TABLE_ENTRIES].start_location);
-      bp_pack_value (&bp, false, 1);
-    }
+    bp_pack_value (&bp, false, 1);
 
   pph_out_bitpack (stream, &bp);
   pph_out_uhwi (stream, loc);

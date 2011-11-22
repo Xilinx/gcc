@@ -1204,6 +1204,21 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       || TREE_TYPE (olddecl) == error_mark_node)
     return error_mark_node;
 
+  if (UDLIT_OPER_P (DECL_NAME (newdecl))
+      && UDLIT_OPER_P (DECL_NAME (olddecl)))
+    {
+      if (TREE_CODE (newdecl) == TEMPLATE_DECL
+	  && TREE_CODE (olddecl) != TEMPLATE_DECL
+	  && check_raw_literal_operator (olddecl))
+	error ("literal operator template %q+D conflicts with"
+	       " raw literal operator %qD", newdecl, olddecl);
+      else if (TREE_CODE (newdecl) != TEMPLATE_DECL
+	       && TREE_CODE (olddecl) == TEMPLATE_DECL
+	       && check_raw_literal_operator (newdecl))
+	error ("raw literal operator %q+D conflicts with"
+	       " literal operator template %qD", newdecl, olddecl);
+    }
+
   if (DECL_P (olddecl)
       && TREE_CODE (newdecl) == FUNCTION_DECL
       && TREE_CODE (olddecl) == FUNCTION_DECL
@@ -1543,8 +1558,8 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 	  error_at (DECL_SOURCE_LOCATION (newdecl), errmsg, newdecl);
 	  if (DECL_NAME (olddecl) != NULL_TREE)
 	    error ((DECL_INITIAL (olddecl) && namespace_bindings_p ())
-			 ? "%q+#D previously defined here"
-			 : "%q+#D previously declared here", olddecl);
+		   ? G_("%q+#D previously defined here")
+		   : G_("%q+#D previously declared here"), olddecl);
 	  return error_mark_node;
 	}
       else if (TREE_CODE (olddecl) == FUNCTION_DECL
@@ -2684,7 +2699,8 @@ check_previous_goto_1 (tree decl, cp_binding_level* level, tree names,
       tree new_decls, old_decls = (b == level ? names : NULL_TREE);
 
       for (new_decls = b->names; new_decls != old_decls;
-	   new_decls = DECL_CHAIN (new_decls))
+	   new_decls = (DECL_P (new_decls) ? DECL_CHAIN (new_decls)
+			: TREE_CHAIN (new_decls)))
 	{
 	  int problem = decl_jump_unsafe (new_decls);
 	  if (! problem)
@@ -3236,8 +3252,8 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
   if (!t)
     {
       if (complain & tf_error)
-	error (want_template ? "no class template named %q#T in %q#T"
-	       : "no type named %q#T in %q#T", name, context);
+	error (want_template ? G_("no class template named %q#T in %q#T")
+	       : G_("no type named %q#T in %q#T"), name, context);
       return error_mark_node;
     }
   
@@ -5718,7 +5734,9 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
 static tree
 wrap_cleanups_r (tree *stmt_p, int *walk_subtrees, void *data)
 {
-  if (TYPE_P (*stmt_p))
+  /* Stop at types or full-expression boundaries.  */
+  if (TYPE_P (*stmt_p)
+      || TREE_CODE (*stmt_p) == CLEANUP_POINT_EXPR)
     {
       *walk_subtrees = 0;
       return NULL_TREE;
@@ -7356,6 +7374,47 @@ grokfndecl (tree ctype,
   if (IDENTIFIER_OPNAME_P (DECL_NAME (decl))
       && !grok_op_properties (decl, /*complain=*/true))
     return NULL_TREE;
+  else if (UDLIT_OPER_P (DECL_NAME (decl)))
+    {
+      bool long_long_unsigned_p;
+      bool long_double_p;
+      const char *suffix = NULL;
+      /* [over.literal]/6: Literal operators shall not have C linkage. */
+      if (DECL_LANGUAGE (decl) == lang_c)
+	{
+	  error ("literal operator with C linkage");
+	  return NULL_TREE;
+	}
+
+      if (DECL_NAMESPACE_SCOPE_P (decl))
+	{
+	  if (!check_literal_operator_args (decl, &long_long_unsigned_p,
+					    &long_double_p))
+	    {
+	      error ("%qD has invalid argument list", decl);
+	      return NULL_TREE;
+	    }
+
+	  suffix = UDLIT_OP_SUFFIX (DECL_NAME (decl));
+	  if (long_long_unsigned_p)
+	    {
+	      if (cpp_interpret_int_suffix (suffix, strlen (suffix)))
+		warning (0, "integer suffix %<%s%>"
+			    " shadowed by implementation", suffix);
+	    }
+	  else if (long_double_p)
+	    {
+	      if (cpp_interpret_float_suffix (suffix, strlen (suffix)))
+		warning (0, "floating point suffix %<%s%>"
+			    " shadowed by implementation", suffix);
+	    }
+	}
+      else
+	{
+	  error ("%qD must be a non-member function", decl);
+	  return NULL_TREE;
+	}
+    }
 
   if (funcdef_flag)
     /* Make the init_value nonzero so pushdecl knows this is not
@@ -8548,6 +8607,15 @@ grokdeclarator (const cp_declarator *declarator,
       return error_mark_node;
     }
 
+  if (dname
+      && TREE_CODE (dname) == IDENTIFIER_NODE
+      && UDLIT_OPER_P (dname)
+      && innermost_code != cdk_function)
+    {
+      error ("declaration of %qD as non-function", dname);
+      return error_mark_node;
+    }
+
   if (dname && IDENTIFIER_OPNAME_P (dname))
     {
       if (declspecs->specs[(int)ds_typedef])
@@ -9156,13 +9224,13 @@ grokdeclarator (const cp_declarator *declarator,
 		   virtual.  A constructor may not be static.  */
 		if (staticp == 2)
 		  error ((flags == DTOR_FLAG)
-			 ? "destructor cannot be static member function"
-			 : "constructor cannot be static member function");
+			 ? G_("destructor cannot be static member function")
+			 : G_("constructor cannot be static member function"));
 		if (memfn_quals)
 		  {
 		    error ((flags == DTOR_FLAG)
-			   ? "destructors may not be cv-qualified"
-			   : "constructors may not be cv-qualified");
+			   ? G_("destructors may not be cv-qualified")
+			   : G_("constructors may not be cv-qualified"));
 		    memfn_quals = TYPE_UNQUALIFIED;
 		  }
 
@@ -9515,8 +9583,10 @@ grokdeclarator (const cp_declarator *declarator,
 	      && (!friendp || funcdef_flag))
 	    {
 	      error (funcdef_flag
-		     ? "cannot define member function %<%T::%s%> within %<%T%>"
-		     : "cannot declare member function %<%T::%s%> within %<%T%>",
+		     ? G_("cannot define member function %<%T::%s%> "
+			  "within %<%T%>")
+		     : G_("cannot declare member function %<%T::%s%> "
+			  "within %<%T%>"),
 		     ctype, name, current_class_type);
 	      return error_mark_node;
 	    }
@@ -10236,8 +10306,8 @@ grokdeclarator (const cp_declarator *declarator,
 		     || sfk == sfk_destructor)
 	      {
 		error (funcdef_flag
-		       ? "%qs defined in a non-class scope"
-		       : "%qs declared in a non-class scope", name);
+		       ? G_("%qs defined in a non-class scope")
+		       : G_("%qs declared in a non-class scope"), name);
 		sfk = sfk_none;
 	      }
 	  }
@@ -13763,6 +13833,7 @@ cp_tree_node_structure (union lang_tree_node * t)
     case TRAIT_EXPR:		return TS_CP_TRAIT_EXPR;
     case LAMBDA_EXPR:		return TS_CP_LAMBDA_EXPR;
     case TEMPLATE_INFO:		return TS_CP_TEMPLATE_INFO;
+    case USERDEF_LITERAL:	return TS_CP_USERDEF_LITERAL;
     default:			return TS_CP_GENERIC;
     }
 }

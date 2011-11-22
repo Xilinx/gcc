@@ -832,7 +832,7 @@ extern enum dr_alignment_support vect_supportable_dr_alignment
 extern tree vect_get_smallest_scalar_type (gimple, HOST_WIDE_INT *,
                                            HOST_WIDE_INT *);
 extern bool vect_analyze_data_ref_dependences (loop_vec_info, bb_vec_info,
-					       int *, bool *);
+					       int *);
 extern bool vect_enhance_data_refs_alignment (loop_vec_info);
 extern bool vect_analyze_data_refs_alignment (loop_vec_info, bb_vec_info);
 extern bool vect_verify_datarefs_alignment (loop_vec_info, bb_vec_info);
@@ -902,7 +902,7 @@ extern void vect_slp_transform_bb (basic_block);
    Additional pattern recognition functions can (and will) be added
    in the future.  */
 typedef gimple (* vect_recog_func_ptr) (VEC (gimple, heap) **, tree *, tree *);
-#define NUM_PATTERNS 7
+#define NUM_PATTERNS 9
 void vect_pattern_recog (loop_vec_info);
 
 /* In tree-vectorizer.c.  */

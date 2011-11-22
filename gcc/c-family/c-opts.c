@@ -729,6 +729,22 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       cpp_opts->preprocessed = value;
       break;
 
+    case OPT_fdebug_cpp:
+      cpp_opts->debug = 1;
+      break;
+
+    case OPT_ftrack_macro_expansion:
+      if (value)
+	value = 2;
+      /* Fall Through.  */
+
+    case OPT_ftrack_macro_expansion_:
+      if (arg && *arg != '\0')
+	cpp_opts->track_macro_expansion = value;
+      else
+	cpp_opts->track_macro_expansion = 2;
+      break;
+
     case OPT_frepo:
       flag_use_repository = value;
       if (value)
@@ -1150,6 +1166,10 @@ c_common_post_options (const char **pfilename)
   if (flag_working_directory
       && flag_preprocess_only && !flag_no_line_commands)
     pp_dir_change (parse_in, get_src_pwd ());
+
+  /* FIXME pph.  Add support for streaming macro line maps.  */
+  if (cpp_opts->track_macro_expansion && pph_out_file != NULL)
+    sorry ("-ftrack-macro-expansion not yet supported with pre-parsed headers");
 
   return flag_preprocess_only;
 }

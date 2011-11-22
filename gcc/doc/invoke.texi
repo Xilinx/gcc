@@ -430,9 +430,9 @@ Objective-C and Objective-C++ Dialects}.
 -iwithprefixbefore @var{dir}  -isystem @var{dir} @gol
 -imultilib @var{dir} -isysroot @var{dir} @gol
 -M  -MM  -MF  -MG  -MP  -MQ  -MT  -nostdinc  @gol
--P  -fworking-directory  -remap @gol
--trigraphs  -undef  -U@var{macro}  -Wp,@var{option} @gol
--Xpreprocessor @var{option}}
+-P  -fdebug-cpp -ftrack-macro-expansion -fworking-directory @gol
+-remap -trigraphs  -undef  -U@var{macro}  @gol
+-Wp,@var{option} -Xpreprocessor @var{option}}
 
 @item Assembler Option
 @xref{Assembler Options,,Passing Options to the Assembler}.
@@ -2130,7 +2130,7 @@ if the runtime routine is not available.
 @item -fvisibility-inlines-hidden
 @opindex fvisibility-inlines-hidden
 This switch declares that the user does not attempt to compare
-pointers to inline methods where the addresses of the two functions
+pointers to inline functions or methods where the addresses of the two functions
 were taken in different shared objects.
 
 The effect of this is that GCC may, effectively, mark inline methods with
@@ -2421,7 +2421,7 @@ narrowing conversions within @samp{@{ @}}, e.g.
 int i = @{ 2.2 @}; // error: narrowing from double to int
 @end smallexample
 
-This flag can be useful for compiling valid C++98 code in C++0x mode.
+This flag can be useful for compiling valid C++98 code in C++0x mode
 
 @item -Wnoexcept @r{(C++ and Objective-C++ only)}
 @opindex Wnoexcept
@@ -3269,7 +3269,7 @@ Enable @option{-Wformat} plus format checks not included in
 @option{-Wformat}.  Currently equivalent to @samp{-Wformat
 -Wformat-nonliteral -Wformat-security -Wformat-y2k}.
 
-@item -Wnonnull @r{(C and Objective-C only)}
+@item -Wnonnull
 @opindex Wnonnull
 @opindex Wno-nonnull
 Warn about passing a null pointer for arguments marked as
@@ -9127,8 +9127,7 @@ compile time for more complete debug information.  If this is set too
 low, value expressions that are available and could be represented in
 debug information may end up not being used; setting this higher may
 enable the compiler to find more complex debug expressions, but compile
-time may grow exponentially, and even then, it may fail to find more
-usable expressions.  The default is 10.
+time and memory use may grow.  The default is 12.
 
 @item min-nondebug-insn-uid
 Use uids starting at this parameter for nondebug insns.  The range below
@@ -9179,6 +9178,13 @@ partitions.
 @item cxx-max-namespaces-for-diagnostic-help
 The maximum number of namespaces to consult for suggestions when C++
 name lookup fails for an identifier.  The default is 1000.
+
+@item sink-frequency-threshold
+The maximum relative execution frequency (in percents) of the target block
+relative to a statement's original block to allow statement sinking of a
+statement.  Larger numbers result in more aggressive statement sinking.
+The default value is 75.  A small positive adjustment is applied for
+statements with memory operands as those are even more profitable so sink.
 
 @item max-stores-to-sink
 The maximum number of conditional stores paires that can be sunk.  Set to 0
@@ -10443,9 +10449,15 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{fa526}, @samp{fa626},
 @samp{fa606te}, @samp{fa626te}, @samp{fmp626}, @samp{fa726te}.
 
+
 @option{-mcpu=generic-@var{arch}} is also permissible, and is
 equivalent to @option{-march=@var{arch} -mtune=generic-@var{arch}}.
 See @option{-mtune} for more information.
+
+@option{-mcpu=native} causes the compiler to auto-detect the CPU
+of the build computer.  At present, this feature is only supported on
+Linux, and not all architectures are recognised.  If the auto-detect is
+unsuccessful the option has no effect.
 
 @item -mtune=@var{name}
 @opindex mtune
@@ -10465,6 +10477,11 @@ processors, balancing between optimizations that benefit some CPUs in the
 range, and avoiding performance pitfalls of other CPUs.  The effects of
 this option may change in future GCC versions as CPU models come and go.
 
+@option{-mtune=native} causes the compiler to auto-detect the CPU
+of the build computer.  At present, this feature is only supported on
+Linux, and not all architectures are recognised.  If the auto-detect is
+unsuccessful the option has no effect.
+
 @item -march=@var{name}
 @opindex march
 This specifies the name of the target ARM architecture.  GCC uses this
@@ -10477,6 +10494,11 @@ of the @option{-mcpu=} option.  Permissible names are: @samp{armv2},
 @samp{armv6t2}, @samp{armv6z}, @samp{armv6zk}, @samp{armv6-m},
 @samp{armv7}, @samp{armv7-a}, @samp{armv7-r}, @samp{armv7-m},
 @samp{iwmmxt}, @samp{iwmmxt2}, @samp{ep9312}.
+
+@option{-march=native} causes the compiler to auto-detect the architecture
+of the build computer.  At present, this feature is only supported on
+Linux, and not all architectures are recognised.  If the auto-detect is
+unsuccessful the option has no effect.
 
 @item -mfpu=@var{name}
 @itemx -mfpe=@var{number}
@@ -10753,6 +10775,117 @@ ld   @var{Rn}, X
 sbiw r26, const
 @end example
 @end table
+
+@subsubsection @code{EIND} and Devices with more than 128k Bytes of Flash
+
+Pointers in the implementation are 16 bits wide.
+The address of a function or label is represented as word address so
+that indirect jumps and calls can address any code address in the
+range of 64k words.
+
+In order to faciliate indirect jump on devices with more than 128k
+bytes of program memory space, there is a special function register called
+@code{EIND} that serves as most significant part of the target address
+when @code{EICALL} or @code{EIJMP} instructions are used.
+
+Indirect jumps and calls on these devices are handled as follows and
+are subject to some limitations:
+
+@itemize @bullet
+
+@item
+The compiler never sets @code{EIND}.
+
+@item
+The startup code from libgcc never sets @code{EIND}.
+Notice that startup code is a blend of code from libgcc and avr-libc.
+For the impact of avr-libc on @code{EIND}, see the
+@w{@uref{http://nongnu.org/avr-libc/user-manual,avr-libc user manual}}.
+
+@item
+The compiler uses @code{EIND} implicitely in @code{EICALL}/@code{EIJMP}
+instructions or might read @code{EIND} directly.
+
+@item
+The compiler assumes that @code{EIND} never changes during the startup
+code or run of the application. In particular, @code{EIND} is not
+saved/restored in function or interrupt service routine
+prologue/epilogue.
+
+@item
+It is legitimate for user-specific startup code to set up @code{EIND}
+early, for example by means of initialization code located in
+section @code{.init3}, and thus prior to general startup code that
+initializes RAM and calls constructors.
+
+@item
+For indirect calls to functions and computed goto, the linker will
+generate @emph{stubs}. Stubs are jump pads sometimes also called
+@emph{trampolines}. Thus, the indirect call/jump will jump to such a stub.
+The stub contains a direct jump to the desired address.
+
+@item
+Stubs will be generated automatically by the linker if
+the following two conditions are met:
+@itemize @minus
+
+@item The address of a label is taken by means of the @code{gs} modifier
+(short for @emph{generate stubs}) like so:
+@example
+LDI r24, lo8(gs(@var{func}))
+LDI r25, hi8(gs(@var{func}))
+@end example
+@item The final location of that label is in a code segment
+@emph{outside} the segment where the stubs are located.
+@end itemize
+
+@item
+The compiler will emit such @code{gs} modifiers for code labels in the
+following situations:
+@itemize @minus
+@item Taking address of a function or code label.
+@item Computed goto.
+@item If prologue-save function is used, see @option{-mcall-prologues}
+command line option.
+@item Switch/case dispatch tables. If you do not want such dispatch
+tables you can specify the @option{-fno-jump-tables} command line option.
+@item C and C++ constructors/destructors called during startup/shutdown.
+@item If the tools hit a @code{gs()} modifier explained above.
+@end itemize
+
+@item
+The default linker script is arranged for code with @code{EIND = 0}.
+If code is supposed to work for a setup with @code{EIND != 0}, a custom
+linker script has to be used in order to place the sections whose
+name start with @code{.trampolines} into the segment where @code{EIND}
+points to.
+
+@item
+Jumping to non-symbolic addresses like so is @emph{not} supported:
+
+@example
+int main (void)
+@{
+    /* Call function at word address 0x2 */
+    return ((int(*)(void)) 0x2)();
+@}
+@end example
+
+Instead, a stub has to be set up:
+
+@example
+int main (void)
+@{
+    extern int func_4 (void);
+
+    /* Call function at byte address 0x4 */
+    return func_4();
+@}
+@end example
+
+and the application be linked with @code{-Wl,--defsym,func_4=0x4}.
+Alternatively, @code{func_4} can be defined in the linker script.
+@end itemize
 
 @node Blackfin Options
 @subsection Blackfin Options
@@ -12953,7 +13086,12 @@ Note that while the throughput of the sequence is higher than the throughput
 of the non-reciprocal instruction, the precision of the sequence can be
 decreased by up to 2 ulp (i.e. the inverse of 1.0 equals 0.99999994).
 
-Note that GCC implements 1.0f/sqrtf(x) in terms of RSQRTSS (or RSQRTPS)
+Note that GCC implements @code{1.0f/sqrtf(@var{x})} in terms of RSQRTSS
+(or RSQRTPS) already with @option{-ffast-math} (or the above option
+combination), and doesn't need @option{-mrecip}.
+
+Also note that GCC emits the above sequence with additional Newton-Raphson step
+for vectorized single float division and vectorized @code{sqrtf(@var{x})}
 already with @option{-ffast-math} (or the above option combination), and
 doesn't need @option{-mrecip}.
 

@@ -12502,7 +12502,8 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	 legitimate to make the Dwarf info refer to the whole register which
 	 contains the given subreg.  */
       if (REG_P (SUBREG_REG (rtl)) && subreg_lowpart_p (rtl))
-	loc_result = loc_descriptor (SUBREG_REG (rtl), mode, initialized);
+	loc_result = loc_descriptor (SUBREG_REG (rtl),
+				     GET_MODE (SUBREG_REG (rtl)), initialized);
       else
 	goto do_default;
       break;
@@ -15414,7 +15415,11 @@ add_gnat_descriptive_type_attribute (dw_die_ref die, tree type,
   dtype_die = lookup_type_die (dtype);
   if (!dtype_die)
     {
+      /* The descriptive type indirectly references TYPE if this is also the
+	 case for TYPE itself.  Do not deal with the circularity here.  */
+      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
       gen_type_die (dtype, context_die);
+      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 0;
       dtype_die = lookup_type_die (dtype);
       gcc_assert (dtype_die);
     }

@@ -1879,8 +1879,12 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
       tree u;
 
       if (TREE_CODE (TREE_OPERAND (t, 1)) == AGGR_INIT_EXPR)
-	u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1),
-			     tf_warning_or_error);
+	{
+	  u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1),
+			       tf_warning_or_error);
+	  if (AGGR_INIT_ZERO_FIRST (TREE_OPERAND (t, 1)))
+	    AGGR_INIT_ZERO_FIRST (TREE_OPERAND (u, 1)) = true;
+	}
       else
 	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t),
 					 tf_warning_or_error);
@@ -3341,11 +3345,20 @@ stabilize_init (tree init, tree *initp)
       /* Aggregate initialization: stabilize each of the field
 	 initializers.  */
       unsigned i;
-      tree value;
+      constructor_elt *ce;
       bool good = true;
-      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (t), i, value)
-	if (!stabilize_init (value, initp))
-	  good = false;
+      VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (t);
+      for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
+	{
+	  tree type = TREE_TYPE (ce->value);
+	  tree subinit;
+	  if (TREE_CODE (type) == REFERENCE_TYPE
+	      || SCALAR_TYPE_P (type))
+	    ce->value = stabilize_expr (ce->value, &subinit);
+	  else if (!stabilize_init (ce->value, &subinit))
+	    good = false;
+	  *initp = add_stmt_to_compound (*initp, subinit);
+	}
       return good;
     }
 

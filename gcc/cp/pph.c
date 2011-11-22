@@ -342,9 +342,10 @@ pph_file_change_handler (cpp_reader *reader, const struct line_map *map)
 
 	DEPTH|SYSP|DNAME|CANONICAL-NAME|FULL-NAME|PPH-NAME
   */
-  flat = flatten_name (map->to_file);
-  fprintf (stderr, "%d|%d|%s|%s|%s|%s.pph\n", line_table->depth, map->sysp,
-	   tree_dumper.dname, tree_dumper.name, map->to_file, flat);
+  flat = flatten_name (map->d.ordinary.to_file);
+  fprintf (stderr, "%d|%d|%s|%s|%s|%s.pph\n", line_table->depth,
+	   map->d.ordinary.sysp, tree_dumper.dname, tree_dumper.name,
+	   map->d.ordinary.to_file, flat);
   free (flat);
   tree_dumper.dname = NULL;
   tree_dumper.name = NULL;
