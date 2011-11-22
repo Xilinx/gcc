@@ -129,6 +129,7 @@ struct GTY(()) language_function {
   VEC(parm_attr,gc) *parm_attr_cache;
   bitmap named_ret_val;
   VEC(tree,gc) *other_ret_val;
+  int gnat_ret;
 };
 
 #define f_parm_attr_cache \
@@ -139,6 +140,9 @@ struct GTY(()) language_function {
 
 #define f_other_ret_val \
   DECL_STRUCT_FUNCTION (current_function_decl)->language->other_ret_val
+
+#define f_gnat_ret \
+  DECL_STRUCT_FUNCTION (current_function_decl)->language->gnat_ret
 
 /* A structure used to gather together information about a statement group.
    We use this to gather related statements, for example the "then" part
@@ -2674,12 +2678,20 @@ establish_gnat_vms_condition_handler (void)
 	first list.  These are the Named Return Values.
 
      4. Adjust the relevant RETURN_EXPRs and replace the occurrences of the
-	Named Return Values in the function with the RESULT_DECL.  */
+	Named Return Values in the function with the RESULT_DECL.
+
+   If the function returns an unconstrained type, things are a bit different
+   because the anonymous return object is allocated on the secondary stack
+   and RESULT_DECL is only a pointer to it.  Each return object can be of a
+   different size and is allocated separately so we need not care about the
+   aforementioned overlapping issues.  Therefore, we don't collect the other
+   expressions and skip step #2 in the algorithm.  */
 
 struct nrv_data
 {
   bitmap nrv;
   tree result;
+  Node_Id gnat_ret;
   struct pointer_set_t *visited;
 };
 
@@ -2812,8 +2824,153 @@ finalize_nrv_r (tree *tp, int *walk_subtrees, void *data)
     *tp = convert (TREE_TYPE (t), dp->result);
 
   /* Avoid walking into the same tree more than once.  Unfortunately, we
-     can't just use walk_tree_without_duplicates because it would only call
-     us for the first occurrence of NRVs in the function body.  */
+     can't just use walk_tree_without_duplicates because it would only
+     call us for the first occurrence of NRVs in the function body.  */
+  if (pointer_set_insert (dp->visited, *tp))
+    *walk_subtrees = 0;
+
+  return NULL_TREE;
+}
+
+/* Likewise, but used when the function returns an unconstrained type.  */
+
+static tree
+finalize_nrv_unc_r (tree *tp, int *walk_subtrees, void *data)
+{
+  struct nrv_data *dp = (struct nrv_data *)data;
+  tree t = *tp;
+
+  /* No need to walk into types.  */
+  if (TYPE_P (t))
+    *walk_subtrees = 0;
+
+  /* We need to see the DECL_EXPR of NRVs before any other references so we
+     walk the body of BIND_EXPR before walking its variables.  */
+  else if (TREE_CODE (t) == BIND_EXPR)
+    walk_tree (&BIND_EXPR_BODY (t), finalize_nrv_unc_r, data, NULL);
+
+  /* Change RETURN_EXPRs of NRVs to assign to the RESULT_DECL only the final
+     return value built by the allocator instead of the whole construct.  */
+  else if (TREE_CODE (t) == RETURN_EXPR
+	   && TREE_CODE (TREE_OPERAND (t, 0)) == MODIFY_EXPR)
+    {
+      tree ret_val = TREE_OPERAND (TREE_OPERAND (t, 0), 1);
+
+      /* This is the construct returned by the allocator.  */
+      if (TREE_CODE (ret_val) == COMPOUND_EXPR
+	  && TREE_CODE (TREE_OPERAND (ret_val, 0)) == INIT_EXPR)
+	{
+	  if (TYPE_IS_FAT_POINTER_P (TREE_TYPE (ret_val)))
+	    ret_val
+	      = VEC_index (constructor_elt,
+			   CONSTRUCTOR_ELTS
+			   (TREE_OPERAND (TREE_OPERAND (ret_val, 0), 1)),
+			    1)->value;
+	  else
+	    ret_val = TREE_OPERAND (TREE_OPERAND (ret_val, 0), 1);
+	}
+
+      /* Strip useless conversions around the return value.  */
+      if (gnat_useless_type_conversion (ret_val)
+	  || TREE_CODE (ret_val) == VIEW_CONVERT_EXPR)
+	ret_val = TREE_OPERAND (ret_val, 0);
+
+      /* Strip unpadding around the return value.  */
+      if (TREE_CODE (ret_val) == COMPONENT_REF
+	  && TYPE_IS_PADDING_P (TREE_TYPE (TREE_OPERAND (ret_val, 0))))
+	ret_val = TREE_OPERAND (ret_val, 0);
+
+      /* Assign the new return value to the RESULT_DECL.  */
+      if (is_nrv_p (dp->nrv, ret_val))
+	TREE_OPERAND (TREE_OPERAND (t, 0), 1)
+	  = TREE_OPERAND (DECL_INITIAL (ret_val), 0);
+    }
+
+  /* Adjust the DECL_EXPR of NRVs to call the allocator and save the result
+     into a new variable.  */
+  else if (TREE_CODE (t) == DECL_EXPR
+	   && is_nrv_p (dp->nrv, DECL_EXPR_DECL (t)))
+    {
+      tree saved_current_function_decl = current_function_decl;
+      tree var = DECL_EXPR_DECL (t);
+      tree alloc, p_array, new_var, new_ret;
+      VEC(constructor_elt,gc) *v = VEC_alloc (constructor_elt, gc, 2);
+
+      /* Create an artificial context to build the allocation.  */
+      current_function_decl = decl_function_context (var);
+      start_stmt_group ();
+      gnat_pushlevel ();
+
+      /* This will return a COMPOUND_EXPR with the allocation in the first
+	 arm and the final return value in the second arm.  */
+      alloc = build_allocator (TREE_TYPE (var), DECL_INITIAL (var),
+			       TREE_TYPE (dp->result),
+			       Procedure_To_Call (dp->gnat_ret),
+			       Storage_Pool (dp->gnat_ret),
+			       Empty, false);
+
+      /* The new variable is built as a reference to the allocated space.  */
+      new_var
+	= build_decl (DECL_SOURCE_LOCATION (var), VAR_DECL, DECL_NAME (var),
+		      build_reference_type (TREE_TYPE (var)));
+      DECL_BY_REFERENCE (new_var) = 1;
+
+      if (TYPE_IS_FAT_POINTER_P (TREE_TYPE (alloc)))
+	{
+	  /* The new initial value is a COMPOUND_EXPR with the allocation in
+	     the first arm and the value of P_ARRAY in the second arm.  */
+	  DECL_INITIAL (new_var)
+	    = build2 (COMPOUND_EXPR, TREE_TYPE (new_var),
+		      TREE_OPERAND (alloc, 0),
+		      VEC_index (constructor_elt,
+				 CONSTRUCTOR_ELTS (TREE_OPERAND (alloc, 1)),
+						   0)->value);
+
+	  /* Build a modified CONSTRUCTOR that references NEW_VAR.  */
+	  p_array = TYPE_FIELDS (TREE_TYPE (alloc));
+	  CONSTRUCTOR_APPEND_ELT (v, p_array,
+				  fold_convert (TREE_TYPE (p_array), new_var));
+	  CONSTRUCTOR_APPEND_ELT (v, DECL_CHAIN (p_array),
+				  VEC_index (constructor_elt,
+					     CONSTRUCTOR_ELTS
+					     (TREE_OPERAND (alloc, 1)),
+					      1)->value);
+	  new_ret = build_constructor (TREE_TYPE (alloc), v);
+	}
+      else
+	{
+	  /* The new initial value is just the allocation.  */
+	  DECL_INITIAL (new_var) = alloc;
+	  new_ret = fold_convert (TREE_TYPE (alloc), new_var);
+	}
+
+      gnat_pushdecl (new_var, Empty);
+
+      /* Destroy the artificial context and insert the new statements.  */
+      gnat_zaplevel ();
+      *tp = end_stmt_group ();
+      current_function_decl = saved_current_function_decl;
+
+      /* Chain NEW_VAR immediately after VAR and ignore the latter.  */
+      DECL_CHAIN (new_var) = DECL_CHAIN (var);
+      DECL_CHAIN (var) = new_var;
+      DECL_IGNORED_P (var) = 1;
+
+      /* Save the new return value and the dereference of NEW_VAR.  */
+      DECL_INITIAL (var)
+	= build2 (COMPOUND_EXPR, TREE_TYPE (var), new_ret,
+		  build1 (INDIRECT_REF, TREE_TYPE (var), new_var));
+      /* ??? Kludge to avoid messing up during inlining.  */
+      DECL_CONTEXT (var) = NULL_TREE;
+    }
+
+  /* And replace all uses of NRVs with the dereference of NEW_VAR.  */
+  else if (is_nrv_p (dp->nrv, t))
+    *tp = TREE_OPERAND (DECL_INITIAL (t), 1);
+
+  /* Avoid walking into the same tree more than once.  Unfortunately, we
+     can't just use walk_tree_without_duplicates because it would only
+     call us for the first occurrence of NRVs in the function body.  */
   if (pointer_set_insert (dp->visited, *tp))
     *walk_subtrees = 0;
 
@@ -2822,13 +2979,14 @@ finalize_nrv_r (tree *tp, int *walk_subtrees, void *data)
 
 /* Finalize the Named Return Value optimization for FNDECL.  The NRV bitmap
    contains the candidates for Named Return Value and OTHER is a list of
-   the other return values.  */
+   the other return values.  GNAT_RET is a representative return node.  */
 
 static void
-finalize_nrv (tree fndecl, bitmap nrv, VEC(tree,gc) *other)
+finalize_nrv (tree fndecl, bitmap nrv, VEC(tree,gc) *other, Node_Id gnat_ret)
 {
   struct cgraph_node *node;
   struct nrv_data data;
+  walk_tree_fn func;
   unsigned int i;
   tree iter;
 
@@ -2860,8 +3018,13 @@ finalize_nrv (tree fndecl, bitmap nrv, VEC(tree,gc) *other)
   /* Adjust the relevant RETURN_EXPRs and replace the occurrences of NRVs.  */
   data.nrv = nrv;
   data.result = DECL_RESULT (fndecl);
+  data.gnat_ret = gnat_ret;
   data.visited = pointer_set_create ();
-  walk_tree (&DECL_SAVED_TREE (fndecl), finalize_nrv_r, &data, NULL);
+  if (TYPE_RETURN_UNCONSTRAINED_P (TREE_TYPE (fndecl)))
+    func = finalize_nrv_unc_r;
+  else
+    func = finalize_nrv_r;
+  walk_tree (&DECL_SAVED_TREE (fndecl), func, &data, NULL);
   pointer_set_destroy (data.visited);
 }
 
@@ -2886,7 +3049,7 @@ return_value_ok_for_nrv_p (tree ret_obj, tree ret_val)
   if (TREE_ADDRESSABLE (ret_val))
     return false;
 
-  if (DECL_ALIGN (ret_val) > DECL_ALIGN (ret_obj))
+  if (ret_obj && DECL_ALIGN (ret_val) > DECL_ALIGN (ret_obj))
     return false;
 
   return true;
@@ -3278,6 +3441,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
 	save_gnu_tree (gnat_param, NULL_TREE, false);
     }
 
+  /* Disconnect the variable created for the return value.  */
   if (gnu_return_var_elmt)
     TREE_VALUE (gnu_return_var_elmt) = void_type_node;
 
@@ -3285,8 +3449,10 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
      a Named Return Value, finalize the optimization.  */
   if (optimize && gnu_subprog_language->named_ret_val)
     {
-      finalize_nrv (gnu_subprog_decl, gnu_subprog_language->named_ret_val,
-		    gnu_subprog_language->other_ret_val);
+      finalize_nrv (gnu_subprog_decl,
+		    gnu_subprog_language->named_ret_val,
+		    gnu_subprog_language->other_ret_val,
+		    gnu_subprog_language->gnat_ret);
       gnu_subprog_language->named_ret_val = NULL;
       gnu_subprog_language->other_ret_val = NULL;
     }
@@ -3298,6 +3464,60 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
     build_function_stub (gnu_subprog_decl, gnat_subprog_id);
 
   mark_out_of_scope (Defining_Unit_Name (Specification (gnat_node)));
+}
+
+/* Return true if GNAT_NODE requires atomic synchronization.  */
+
+static bool
+atomic_sync_required_p (Node_Id gnat_node)
+{
+  const Node_Id gnat_parent = Parent (gnat_node);
+  Node_Kind kind;
+  unsigned char attr_id;
+
+  /* First, scan the node to find the Atomic_Sync_Required flag.  */
+  kind = Nkind (gnat_node);
+  if (kind == N_Type_Conversion || kind == N_Unchecked_Type_Conversion)
+    {
+      gnat_node = Expression (gnat_node);
+      kind = Nkind (gnat_node);
+    }
+
+  switch (kind)
+    {
+    case N_Expanded_Name:
+    case N_Explicit_Dereference:
+    case N_Identifier:
+    case N_Indexed_Component:
+    case N_Selected_Component:
+      if (!Atomic_Sync_Required (gnat_node))
+	return false;
+      break;
+
+    default:
+      return false;
+    }
+
+  /* Then, scan the parent to find out cases where the flag is irrelevant.  */
+  kind = Nkind (gnat_parent);
+  switch (kind)
+    {
+    case N_Attribute_Reference:
+      attr_id = Get_Attribute_Id (Attribute_Name (gnat_parent));
+      /* Do not mess up machine code insertions.  */
+      if (attr_id == Attr_Asm_Input || attr_id == Attr_Asm_Output)
+	return false;
+      break;
+
+    case N_Object_Renaming_Declaration:
+      /* Do not generate a function call as a renamed object.  */
+      return false;
+
+    default:
+      break;
+    }
+
+  return true;
 }
 
 /* Create a temporary variable with PREFIX and TYPE, and return it.  */
@@ -3334,10 +3554,13 @@ create_init_temporary (const char *prefix, tree gnu_init, tree *gnu_init_stmt,
    or an N_Procedure_Call_Statement, to a GCC tree, which is returned.
    GNU_RESULT_TYPE_P is a pointer to where we should place the result type.
    If GNU_TARGET is non-null, this must be a function call on the RHS of a
-   N_Assignment_Statement and the result is to be placed into that object.  */
+   N_Assignment_Statement and the result is to be placed into that object.
+   If, in addition, ATOMIC_SYNC is true, then the assignment to GNU_TARGET
+   requires atomic synchronization.  */
 
 static tree
-call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
+call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target,
+	     bool atomic_sync)
 {
   const bool function_call = (Nkind (gnat_node) == N_Function_Call);
   const bool returning_value = (function_call && !gnu_target);
@@ -3433,6 +3656,11 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
       tree gnu_formal_type = gnat_to_gnu_type (Etype (gnat_formal));
       const bool is_true_formal_parm
 	= gnu_formal && TREE_CODE (gnu_formal) == PARM_DECL;
+      const bool is_by_ref_formal_parm
+ 	= is_true_formal_parm
+ 	  && (DECL_BY_REF_P (gnu_formal)
+	      || DECL_BY_COMPONENT_PTR_P (gnu_formal)
+	      || DECL_BY_DESCRIPTOR_P (gnu_formal));
       /* In the Out or In Out case, we must suppress conversions that yield
 	 an lvalue but can nevertheless cause the creation of a temporary,
 	 because we need the real object in this case, either to pass its
@@ -3462,10 +3690,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
       /* If we are passing a non-addressable parameter by reference, pass the
 	 address of a copy.  In the Out or In Out case, set up to copy back
 	 out after the call.  */
-      if (is_true_formal_parm
-	  && (DECL_BY_REF_P (gnu_formal)
-	      || DECL_BY_COMPONENT_PTR_P (gnu_formal)
-	      || DECL_BY_DESCRIPTOR_P (gnu_formal))
+      if (is_by_ref_formal_parm
 	  && (gnu_name_type = gnat_to_gnu_type (Etype (gnat_name)))
 	  && !addressable_p (gnu_name, gnu_name_type))
 	{
@@ -3568,6 +3793,14 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
       /* Start from the real object and build the actual.  */
       gnu_actual = gnu_name;
+
+      /* If this is an atomic access of an In or In Out parameter for which
+	 synchronization is required, build the atomic load.  */
+      if (is_true_formal_parm
+	  && !is_by_ref_formal_parm
+	  && Ekind (gnat_formal) != E_Out_Parameter
+	  && atomic_sync_required_p (gnat_actual))
+	gnu_actual = build_atomic_load (gnu_actual);
 
       /* If this was a procedure call, we may not have removed any padding.
 	 So do it here for the part we will use as an input, if any.  */
@@ -3865,8 +4098,11 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 		  gnu_result = convert (TREE_TYPE (gnu_actual), gnu_result);
 	      }
 
-	    gnu_result = build_binary_op (MODIFY_EXPR, NULL_TREE,
-					  gnu_actual, gnu_result);
+	    if (atomic_sync_required_p (gnat_actual))
+	      gnu_result = build_atomic_store (gnu_actual, gnu_result);
+	    else
+	      gnu_result = build_binary_op (MODIFY_EXPR, NULL_TREE,
+					    gnu_actual, gnu_result);
 	    set_expr_location_from_node (gnu_result, gnat_node);
 	    append_to_statement_list (gnu_result, &gnu_stmt_list);
 	    gnu_cico_list = TREE_CHAIN (gnu_cico_list);
@@ -3919,8 +4155,11 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	  else
 	    op_code = MODIFY_EXPR;
 
-	  gnu_call
-	    = build_binary_op (op_code, NULL_TREE, gnu_target, gnu_call);
+	  if (atomic_sync)
+	    gnu_call = build_atomic_store (gnu_target, gnu_call);
+	  else
+	    gnu_call
+	      = build_binary_op (op_code, NULL_TREE, gnu_target, gnu_call);
 	  set_expr_location_from_node (gnu_call, gnat_parent);
 	  append_to_statement_list (gnu_call, &gnu_stmt_list);
 	}
@@ -4494,6 +4733,26 @@ lhs_or_actual_p (Node_Id gnat_node)
   return false;
 }
 
+/* Return true if either GNAT_NODE or a view of GNAT_NODE is on the LHS
+   of an assignment or an actual parameter of a call.  */
+
+static bool
+present_in_lhs_or_actual_p (Node_Id gnat_node)
+{
+  Node_Kind kind;
+
+  if (lhs_or_actual_p (gnat_node))
+    return true;
+
+  kind = Nkind (Parent (gnat_node));
+
+  if ((kind == N_Type_Conversion || kind == N_Unchecked_Type_Conversion)
+      && lhs_or_actual_p (Parent (gnat_node)))
+    return true;
+
+  return false;
+}
+
 /* Return true if GNAT_NODE, an unchecked type conversion, is a no-op as far
    as gigi is concerned.  This is used to avoid conversions on the LHS.  */
 
@@ -4613,6 +4872,12 @@ gnat_to_gnu (Node_Id gnat_node)
     case N_Operator_Symbol:
     case N_Defining_Identifier:
       gnu_result = Identifier_to_gnu (gnat_node, &gnu_result_type);
+
+      /* If this is an atomic access on the RHS for which synchronization is
+	 required, build the atomic load.  */
+      if (atomic_sync_required_p (gnat_node)
+	  && !present_in_lhs_or_actual_p (gnat_node))
+	gnu_result = build_atomic_load (gnu_result);
       break;
 
     case N_Integer_Literal:
@@ -4897,6 +5162,12 @@ gnat_to_gnu (Node_Id gnat_node)
       gnu_result = gnat_to_gnu (Prefix (gnat_node));
       gnu_result_type = get_unpadded_type (Etype (gnat_node));
       gnu_result = build_unary_op (INDIRECT_REF, NULL_TREE, gnu_result);
+
+      /* If this is an atomic access on the RHS for which synchronization is
+	 required, build the atomic load.  */
+      if (atomic_sync_required_p (gnat_node)
+	  && !present_in_lhs_or_actual_p (gnat_node))
+	gnu_result = build_atomic_load (gnu_result);
       break;
 
     case N_Indexed_Component:
@@ -4963,9 +5234,15 @@ gnat_to_gnu (Node_Id gnat_node)
 	    gnu_result = build_binary_op (ARRAY_REF, NULL_TREE,
 					  gnu_result, gnu_expr);
 	  }
-      }
 
-      gnu_result_type = get_unpadded_type (Etype (gnat_node));
+	gnu_result_type = get_unpadded_type (Etype (gnat_node));
+
+	/* If this is an atomic access on the RHS for which synchronization is
+	   required, build the atomic load.  */
+	if (atomic_sync_required_p (gnat_node)
+	    && !present_in_lhs_or_actual_p (gnat_node))
+	  gnu_result = build_atomic_load (gnu_result);
+      }
       break;
 
     case N_Slice:
@@ -5110,8 +5387,13 @@ gnat_to_gnu (Node_Id gnat_node)
 					(Parent (gnat_node)));
 	  }
 
-	gcc_assert (gnu_result);
 	gnu_result_type = get_unpadded_type (Etype (gnat_node));
+
+	/* If this is an atomic access on the RHS for which synchronization is
+	   required, build the atomic load.  */
+	if (atomic_sync_required_p (gnat_node)
+	    && !present_in_lhs_or_actual_p (gnat_node))
+	  gnu_result = build_atomic_load (gnu_result);
       }
       break;
 
@@ -5618,7 +5900,8 @@ gnat_to_gnu (Node_Id gnat_node)
 				       N_Raise_Storage_Error);
       else if (Nkind (Expression (gnat_node)) == N_Function_Call)
 	gnu_result
-	  = call_to_gnu (Expression (gnat_node), &gnu_result_type, gnu_lhs);
+	  = call_to_gnu (Expression (gnat_node), &gnu_result_type, gnu_lhs,
+			 atomic_sync_required_p (Name (gnat_node)));
       else
 	{
 	  gnu_rhs
@@ -5629,8 +5912,11 @@ gnat_to_gnu (Node_Id gnat_node)
 	    gnu_rhs = emit_range_check (gnu_rhs, Etype (Name (gnat_node)),
 					gnat_node);
 
-	  gnu_result
-	    = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_lhs, gnu_rhs);
+	  if (atomic_sync_required_p (Name (gnat_node)))
+	    gnu_result = build_atomic_store (gnu_lhs, gnu_rhs);
+	  else
+	    gnu_result
+	      = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_lhs, gnu_rhs);
 
 	  /* If the type being assigned is an array type and the two sides are
 	     not completely disjoint, play safe and use memmove.  But don't do
@@ -5761,6 +6047,34 @@ gnat_to_gnu (Node_Id gnat_node)
 	    else if (TYPE_RETURN_UNCONSTRAINED_P (gnu_subprog_type))
 	      {
 		gnu_ret_val = maybe_unconstrained_array (gnu_ret_val);
+
+		/* And find out whether this is a candidate for Named Return
+		   Value.  If so, record it.  */
+		if (!TYPE_CI_CO_LIST (gnu_subprog_type) && optimize)
+		  {
+		    tree ret_val = gnu_ret_val;
+
+		    /* Strip useless conversions around the return value.  */
+		    if (gnat_useless_type_conversion (ret_val))
+		      ret_val = TREE_OPERAND (ret_val, 0);
+
+		    /* Strip unpadding around the return value.  */
+		    if (TREE_CODE (ret_val) == COMPONENT_REF
+			&& TYPE_IS_PADDING_P
+			   (TREE_TYPE (TREE_OPERAND (ret_val, 0))))
+		      ret_val = TREE_OPERAND (ret_val, 0);
+
+		    /* Now apply the test to the return value.  */
+		    if (return_value_ok_for_nrv_p (NULL_TREE, ret_val))
+		      {
+			if (!f_named_ret_val)
+			  f_named_ret_val = BITMAP_GGC_ALLOC ();
+			bitmap_set_bit (f_named_ret_val, DECL_UID (ret_val));
+			if (!f_gnat_ret)
+			  f_gnat_ret = gnat_node;
+		      }
+		  }
+
 		gnu_ret_val = build_allocator (TREE_TYPE (gnu_ret_val),
 					       gnu_ret_val,
 					       TREE_TYPE (gnu_ret_obj),
@@ -5769,12 +6083,12 @@ gnat_to_gnu (Node_Id gnat_node)
 					       gnat_node, false);
 	      }
 
-	    /* If the function returns by invisible reference, dereference
+	    /* Otherwise, if it returns by invisible reference, dereference
 	       the pointer it is passed using the type of the return value
 	       and build the copy operation manually.  This ensures that we
 	       don't copy too much data, for example if the return type is
 	       unconstrained with a maximum size.  */
-	    if (TREE_ADDRESSABLE (gnu_subprog_type))
+	    else if (TREE_ADDRESSABLE (gnu_subprog_type))
 	      {
 		tree gnu_ret_deref
 		  = build_unary_op (INDIRECT_REF, TREE_TYPE (gnu_ret_val),
@@ -5785,11 +6099,9 @@ gnat_to_gnu (Node_Id gnat_node)
 		gnu_ret_val = NULL_TREE;
 	      }
 	  }
+
 	else
-	  {
-	    gnu_ret_obj = NULL_TREE;
-	    gnu_ret_val = NULL_TREE;
-	  }
+	  gnu_ret_obj = gnu_ret_val = NULL_TREE;
 
 	/* If we have a return label defined, convert this into a branch to
 	   that label.  The return proper will be handled elsewhere.  */
@@ -5814,8 +6126,8 @@ gnat_to_gnu (Node_Id gnat_node)
       break;
 
     case N_Goto_Statement:
-      gnu_result = build1 (GOTO_EXPR, void_type_node,
-			   gnat_to_gnu (Name (gnat_node)));
+      gnu_result
+	= build1 (GOTO_EXPR, void_type_node, gnat_to_gnu (Name (gnat_node)));
       break;
 
     /***************************/
@@ -5880,7 +6192,7 @@ gnat_to_gnu (Node_Id gnat_node)
 
     case N_Function_Call:
     case N_Procedure_Call_Statement:
-      gnu_result = call_to_gnu (gnat_node, &gnu_result_type, NULL_TREE);
+      gnu_result = call_to_gnu (gnat_node, &gnu_result_type, NULL_TREE, false);
       break;
 
     /************************/

@@ -75,6 +75,8 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
 proc dg-pph-pos { subdir test options mapflag suffix } {
 
     global runtests dg-do-what-default stable
+    upvar dg-final-code dg-final-code
+    set dg-final-code ""
 
     # If we're only testing specific files and this isn't one of them, skip it.
     if { ![runtest_file_p $runtests $test] } {

@@ -198,14 +198,14 @@ am__libgo_la_SOURCES_DIST = runtime/go-append.c runtime/go-assert.c \
 	runtime/go-map-index.c runtime/go-map-len.c \
 	runtime/go-map-range.c runtime/go-nanotime.c \
 	runtime/go-new-channel.c runtime/go-new-map.c runtime/go-new.c \
-	runtime/go-note.c runtime/go-panic.c runtime/go-panic-defer.c \
-	runtime/go-print.c runtime/go-rand.c runtime/go-rec-big.c \
-	runtime/go-rec-nb-big.c runtime/go-rec-nb-small.c \
-	runtime/go-rec-small.c runtime/go-recover.c \
-	runtime/go-reflect.c runtime/go-reflect-call.c \
-	runtime/go-reflect-chan.c runtime/go-reflect-map.c \
-	runtime/go-rune.c runtime/go-runtime-error.c \
-	runtime/go-sched.c runtime/go-select.c runtime/go-semacquire.c \
+	runtime/go-note.c runtime/go-panic.c runtime/go-print.c \
+	runtime/go-rec-big.c runtime/go-rec-nb-big.c \
+	runtime/go-rec-nb-small.c runtime/go-rec-small.c \
+	runtime/go-recover.c runtime/go-reflect.c \
+	runtime/go-reflect-call.c runtime/go-reflect-chan.c \
+	runtime/go-reflect-map.c runtime/go-rune.c \
+	runtime/go-runtime-error.c runtime/go-sched.c \
+	runtime/go-select.c runtime/go-semacquire.c \
 	runtime/go-send-big.c runtime/go-send-nb-big.c \
 	runtime/go-send-nb-small.c runtime/go-send-small.c \
 	runtime/go-setenv.c runtime/go-signal.c runtime/go-strcmp.c \
@@ -221,9 +221,10 @@ am__libgo_la_SOURCES_DIST = runtime/go-append.c runtime/go-assert.c \
 	runtime/cpuprof.c runtime/mcache.c runtime/mcentral.c \
 	runtime/mem_posix_memalign.c runtime/mem.c runtime/mfinal.c \
 	runtime/mfixalloc.c runtime/mgc0.c runtime/mheap.c \
-	runtime/msize.c runtime/proc.c runtime/thread.c \
-	runtime/yield.c runtime/rtems-task-variable-add.c chan.c \
-	iface.c malloc.c map.c mprof.c reflect.c sigqueue.c string.c
+	runtime/msize.c runtime/proc.c runtime/runtime.c \
+	runtime/thread.c runtime/yield.c \
+	runtime/rtems-task-variable-add.c chan.c iface.c malloc.c \
+	map.c mprof.c reflect.c sigqueue.c string.c
 @HAVE_SYS_MMAN_H_FALSE@am__objects_1 = mem_posix_memalign.lo
 @HAVE_SYS_MMAN_H_TRUE@am__objects_1 = mem.lo
 @LIBGO_IS_RTEMS_TRUE@am__objects_2 = rtems-task-variable-add.lo
@@ -239,10 +240,9 @@ am__objects_3 = go-append.lo go-assert.lo go-assert-interface.lo \
 	go-interface-val-compare.lo go-lock-os-thread.lo \
 	go-make-slice.lo go-map-delete.lo go-map-index.lo \
 	go-map-len.lo go-map-range.lo go-nanotime.lo go-new-channel.lo \
-	go-new-map.lo go-new.lo go-note.lo go-panic.lo \
-	go-panic-defer.lo go-print.lo go-rand.lo go-rec-big.lo \
-	go-rec-nb-big.lo go-rec-nb-small.lo go-rec-small.lo \
-	go-recover.lo go-reflect.lo go-reflect-call.lo \
+	go-new-map.lo go-new.lo go-note.lo go-panic.lo go-print.lo \
+	go-rec-big.lo go-rec-nb-big.lo go-rec-nb-small.lo \
+	go-rec-small.lo go-recover.lo go-reflect.lo go-reflect-call.lo \
 	go-reflect-chan.lo go-reflect-map.lo go-rune.lo \
 	go-runtime-error.lo go-sched.lo go-select.lo go-semacquire.lo \
 	go-send-big.lo go-send-nb-big.lo go-send-nb-small.lo \
@@ -254,9 +254,9 @@ am__objects_3 = go-append.lo go-assert.lo go-assert-interface.lo \
 	go-unreflect.lo go-unsafe-new.lo go-unsafe-newarray.lo \
 	go-unsafe-pointer.lo go-unwind.lo cpuprof.lo mcache.lo \
 	mcentral.lo $(am__objects_1) mfinal.lo mfixalloc.lo mgc0.lo \
-	mheap.lo msize.lo proc.lo thread.lo yield.lo $(am__objects_2) \
-	chan.lo iface.lo malloc.lo map.lo mprof.lo reflect.lo \
-	sigqueue.lo string.lo
+	mheap.lo msize.lo proc.lo runtime.lo thread.lo yield.lo \
+	$(am__objects_2) chan.lo iface.lo malloc.lo map.lo mprof.lo \
+	reflect.lo sigqueue.lo string.lo
 am_libgo_la_OBJECTS = $(am__objects_3)
 libgo_la_OBJECTS = $(am_libgo_la_OBJECTS)
 libgo_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -424,9 +424,11 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SIZEOF_STRUCT_EPOLL_EVENT = @SIZEOF_STRUCT_EPOLL_EVENT@
 SPLIT_STACK = @SPLIT_STACK@
 STRINGOPS_FLAG = @STRINGOPS_FLAG@
 STRIP = @STRIP@
+STRUCT_EPOLL_EVENT_FD_OFFSET = @STRUCT_EPOLL_EVENT_FD_OFFSET@
 VERSION = @VERSION@
 WARN_FLAGS = @WARN_FLAGS@
 WERROR = @WERROR@
@@ -863,9 +865,7 @@ runtime_files = \
 	runtime/go-new.c \
 	runtime/go-note.c \
 	runtime/go-panic.c \
-	runtime/go-panic-defer.c \
 	runtime/go-print.c \
-	runtime/go-rand.c \
 	runtime/go-rec-big.c \
 	runtime/go-rec-nb-big.c \
 	runtime/go-rec-nb-small.c \
@@ -914,6 +914,7 @@ runtime_files = \
 	runtime/mheap.c \
 	runtime/msize.c \
 	runtime/proc.c \
+	runtime/runtime.c \
 	runtime/thread.c \
 	runtime/yield.c \
 	$(rtems_task_variable_add_file) \
@@ -1868,7 +1869,7 @@ go_testing_script_files = \
 @LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_socket_file = go/syscall/socket_solaris.go
 
 # Define socket sizes and types.
-@LIBGO_IS_LINUX_TRUE@syscall_socket_file = go/syscall/socket_linux.go
+@LIBGO_IS_LINUX_TRUE@syscall_socket_file = go/syscall/socket_linux.go epoll.go
 @LIBGO_IS_386_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_uname_file = go/syscall/libcall_uname.go
 
 # Support for uname.
@@ -2490,10 +2491,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-new-map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-new.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-note.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-panic-defer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-panic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-print.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-rand.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-rec-big.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-rec-nb-big.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-rec-nb-small.Plo@am__quote@
@@ -2548,6 +2547,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reflect.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rtems-task-variable-add.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/runtime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigqueue.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/thread.Plo@am__quote@
@@ -2861,26 +2861,12 @@ go-panic.lo: runtime/go-panic.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-panic.lo `test -f 'runtime/go-panic.c' || echo '$(srcdir)/'`runtime/go-panic.c
 
-go-panic-defer.lo: runtime/go-panic-defer.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-panic-defer.lo -MD -MP -MF $(DEPDIR)/go-panic-defer.Tpo -c -o go-panic-defer.lo `test -f 'runtime/go-panic-defer.c' || echo '$(srcdir)/'`runtime/go-panic-defer.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/go-panic-defer.Tpo $(DEPDIR)/go-panic-defer.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-panic-defer.c' object='go-panic-defer.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-panic-defer.lo `test -f 'runtime/go-panic-defer.c' || echo '$(srcdir)/'`runtime/go-panic-defer.c
-
 go-print.lo: runtime/go-print.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-print.lo -MD -MP -MF $(DEPDIR)/go-print.Tpo -c -o go-print.lo `test -f 'runtime/go-print.c' || echo '$(srcdir)/'`runtime/go-print.c
 @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/go-print.Tpo $(DEPDIR)/go-print.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-print.c' object='go-print.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-print.lo `test -f 'runtime/go-print.c' || echo '$(srcdir)/'`runtime/go-print.c
-
-go-rand.lo: runtime/go-rand.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-rand.lo -MD -MP -MF $(DEPDIR)/go-rand.Tpo -c -o go-rand.lo `test -f 'runtime/go-rand.c' || echo '$(srcdir)/'`runtime/go-rand.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/go-rand.Tpo $(DEPDIR)/go-rand.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-rand.c' object='go-rand.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-rand.lo `test -f 'runtime/go-rand.c' || echo '$(srcdir)/'`runtime/go-rand.c
 
 go-rec-big.lo: runtime/go-rec-big.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-rec-big.lo -MD -MP -MF $(DEPDIR)/go-rec-big.Tpo -c -o go-rec-big.lo `test -f 'runtime/go-rec-big.c' || echo '$(srcdir)/'`runtime/go-rec-big.c
@@ -3224,6 +3210,13 @@ proc.lo: runtime/proc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/proc.c' object='proc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o proc.lo `test -f 'runtime/proc.c' || echo '$(srcdir)/'`runtime/proc.c
+
+runtime.lo: runtime/runtime.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT runtime.lo -MD -MP -MF $(DEPDIR)/runtime.Tpo -c -o runtime.lo `test -f 'runtime/runtime.c' || echo '$(srcdir)/'`runtime/runtime.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/runtime.Tpo $(DEPDIR)/runtime.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/runtime.c' object='runtime.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o runtime.lo `test -f 'runtime/runtime.c' || echo '$(srcdir)/'`runtime/runtime.c
 
 thread.lo: runtime/thread.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT thread.lo -MD -MP -MF $(DEPDIR)/thread.Tpo -c -o thread.lo `test -f 'runtime/thread.c' || echo '$(srcdir)/'`runtime/thread.c
@@ -4475,6 +4468,34 @@ s-sysinfo: $(srcdir)/mksysinfo.sh config.h
 	$(SHELL) $(srcdir)/../move-if-change tmp-sysinfo.go sysinfo.go
 	$(STAMP) $@
 
+# The epoll struct has an embedded union and is packed on x86_64,
+# which is too complicated for mksysinfo.sh.  We find the offset of
+# the only field we care about in configure.ac, and generate the
+# struct here.
+epoll.go: s-epoll; @true
+s-epoll: Makefile
+	rm -f epoll.go.tmp
+	echo 'package syscall' > epoll.go.tmp
+	echo 'type EpollEvent struct {' >> epoll.go.tmp
+	echo '	Events uint32' >> epoll.go.tmp
+	case "$(SIZEOF_STRUCT_EPOLL_EVENT),$(STRUCT_EPOLL_EVENT_FD_OFFSET)" in \
+	0,0) echo 1>&2 "*** struct epoll_event data.fd offset unknown"; \
+	   exit 1; ;; \
+	8,4) echo '	Fd int32' >> epoll.go.tmp; ;; \
+	12,4) echo '	Fd int32' >> epoll.go.tmp; \
+	   echo '	Pad [4]byte' >> epoll.go.tmp; ;; \
+	12,8) echo '	Pad [4]byte' >> epoll.go.tmp; \
+	   echo '	Fd int32' >> epoll.go.tmp; ;; \
+	16,8) echo '	Pad [4]byte' >> epoll.go.tmp; \
+	   echo '	Fd int32' >> epoll.go.tmp; \
+	   echo '	Pad2 [4]byte' >> epoll.go.tmp; ;; \
+	*) echo 1>&2 "*** struct epoll_event unsupported"; \
+	   exit 1; ;; \
+	esac
+	echo '}' >> epoll.go.tmp
+	$(SHELL) $(srcdir)/../move-if-change epoll.go.tmp epoll.go
+	$(STAMP) $@
+
 asn1/asn1.lo: $(go_asn1_files) big.gox bytes.gox fmt.gox io.gox os.gox \
 		reflect.gox strconv.gox strings.gox time.gox
 	$(BUILDPACKAGE)
@@ -5238,7 +5259,7 @@ encoding/pem/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: encoding/pem/check
 
-exp/ebnf.lo: $(go_exp_ebnf_files) go/scanner.gox go/token.gox os.gox \
+exp/ebnf.lo: $(go_exp_ebnf_files) scanner.gox go/token.gox os.gox \
 		strconv.gox unicode.gox utf8.gox
 	$(BUILDPACKAGE)
 exp/ebnf/check: $(CHECK_DEPS)

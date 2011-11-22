@@ -1184,6 +1184,13 @@ cgraph_make_edge_direct (struct cgraph_edge *edge, struct cgraph_node *callee)
   /* Insert to callers list of the new callee.  */
   cgraph_set_edge_callee (edge, callee);
 
+  if (edge->call_stmt
+      && !gimple_check_call_matching_types (edge->call_stmt, callee->decl))
+    {
+      gimple_call_set_cannot_inline (edge->call_stmt, true);
+      edge->call_stmt_cannot_inline_p = true;
+    }
+
   /* We need to re-determine the inlining status of the edge.  */
   initialize_inline_failed (edge);
 }
@@ -1840,6 +1847,8 @@ dump_cgraph_node (FILE *f, struct cgraph_node *node)
     fprintf (f, " only_called_at_exit");
   else if (node->alias)
     fprintf (f, " alias");
+  if (node->tm_clone)
+    fprintf (f, " tm_clone");
 
   fprintf (f, "\n");
 

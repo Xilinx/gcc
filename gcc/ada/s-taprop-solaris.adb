@@ -1005,6 +1005,12 @@ package body System.Task_Primitives.Operations is
          Opts := THR_DETACHED + THR_BOUND;
       end if;
 
+      --  Note: the use of Unrestricted_Access in the following call is needed
+      --  because otherwise we have an error of getting a access-to-volatile
+      --  value which points to a non-volatile object. But in this case it is
+      --  safe to do this, since we know we have no problems with aliasing and
+      --  Unrestricted_Access bypasses this check.
+
       Result :=
         thr_create
           (System.Null_Address,
@@ -1012,7 +1018,7 @@ package body System.Task_Primitives.Operations is
            Thread_Body_Access (Wrapper),
            To_Address (T),
            Opts,
-           T.Common.LL.Thread'Access);
+           T.Common.LL.Thread'Unrestricted_Access);
 
       Succeeded := Result = 0;
       pragma Assert

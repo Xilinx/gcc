@@ -1329,8 +1329,10 @@ structural_comptypes (tree t1, tree t2, int strict)
       break;
 
     case TYPE_PACK_EXPANSION:
-      return same_type_p (PACK_EXPANSION_PATTERN (t1), 
-                          PACK_EXPANSION_PATTERN (t2));
+      return (same_type_p (PACK_EXPANSION_PATTERN (t1),
+			   PACK_EXPANSION_PATTERN (t2))
+	      && comp_template_args (PACK_EXPANSION_EXTRA_ARGS (t1),
+				     PACK_EXPANSION_EXTRA_ARGS (t2)));
 
     case DECLTYPE_TYPE:
       if (DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t1)
@@ -2115,6 +2117,7 @@ build_class_member_access_expr (tree object, tree member,
   tree object_type;
   tree member_scope;
   tree result = NULL_TREE;
+  tree using_decl = NULL_TREE;
 
   if (error_operand_p (object) || error_operand_p (member))
     return error_mark_node;
@@ -2343,6 +2346,11 @@ build_class_member_access_expr (tree object, tree member,
 	result = build2 (COMPOUND_EXPR, TREE_TYPE (result),
 			 object, result);
     }
+  else if ((using_decl = strip_using_decl (member)) != member)
+    result = build_class_member_access_expr (object,
+					     using_decl,
+					     access_path, preserve_reference,
+					     complain);
   else
     {
       if (complain & tf_error)
@@ -2397,7 +2405,8 @@ lookup_destructor (tree object, tree scope, tree dtor_name)
       return error_mark_node;
     }
   expr = lookup_member (dtor_type, complete_dtor_identifier,
-			/*protect=*/1, /*want_type=*/false);
+			/*protect=*/1, /*want_type=*/false,
+			tf_warning_or_error);
   expr = (adjust_result_of_qualified_name_lookup
 	  (expr, dtor_type, object_type));
   return expr;
@@ -2607,7 +2616,7 @@ finish_class_member_access_expr (tree object, tree name, bool template_p,
 	{
 	  /* Look up the member.  */
 	  member = lookup_member (access_path, name, /*protect=*/1,
-				  /*want_type=*/false);
+				  /*want_type=*/false, complain);
 	  if (member == NULL_TREE)
 	    {
 	      if (complain & tf_error)
@@ -2681,7 +2690,7 @@ build_ptrmemfunc_access_expr (tree ptrmem, tree member_name)
   ptrmem_type = TREE_TYPE (ptrmem);
   gcc_assert (TYPE_PTRMEMFUNC_P (ptrmem_type));
   member = lookup_member (ptrmem_type, member_name, /*protect=*/0,
-			  /*want_type=*/false);
+			  /*want_type=*/false, tf_warning_or_error);
   member_type = cp_build_qualified_type (TREE_TYPE (member),
 					 cp_type_quals (ptrmem_type));
   return fold_build3_loc (input_location,
@@ -2726,7 +2735,7 @@ build_x_indirect_ref (tree expr, ref_operator errorstring,
 
 /* Helper function called from c-common.  */
 tree
-build_indirect_ref (location_t loc __attribute__ ((__unused__)),
+build_indirect_ref (location_t loc ATTRIBUTE_UNUSED,
 		    tree ptr, ref_operator errorstring)
 {
   return cp_build_indirect_ref (ptr, errorstring, tf_warning_or_error);
@@ -4047,6 +4056,13 @@ cp_build_binary_op (location_t location,
 					    delta0,
 				            integer_one_node,
 					    complain);
+	      
+	      if ((complain & tf_warning)
+		  && c_inhibit_evaluation_warnings == 0
+		  && !NULLPTR_TYPE_P (TREE_TYPE (op1)))
+		warning (OPT_Wzero_as_null_pointer_constant,
+			 "zero as null pointer constant");
+
 	      e2 = cp_build_binary_op (location,
 				       EQ_EXPR, e2, integer_zero_node,
 				       complain);
@@ -4058,7 +4074,7 @@ cp_build_binary_op (location_t location,
      	  else 
 	    {
 	      op0 = build_ptrmemfunc_access_expr (op0, pfn_identifier);
-	      op1 = cp_convert (TREE_TYPE (op0), integer_zero_node); 
+	      op1 = cp_convert (TREE_TYPE (op0), op1);
 	    }
 	  result_type = TREE_TYPE (op0);
 	}
@@ -4668,7 +4684,17 @@ cp_truthvalue_conversion (tree expr)
   tree type = TREE_TYPE (expr);
   if (TYPE_PTRMEM_P (type))
     return build_binary_op (EXPR_LOCATION (expr),
-			    NE_EXPR, expr, integer_zero_node, 1);
+			    NE_EXPR, expr, nullptr_node, 1);
+  else if (TYPE_PTR_P (type) || TYPE_PTRMEMFUNC_P (type))
+    {
+      /* With -Wzero-as-null-pointer-constant do not warn for an
+	 'if (p)' or a 'while (!p)', where p is a pointer.  */
+      tree ret;
+      ++c_inhibit_evaluation_warnings;
+      ret = c_common_truthvalue_conversion (input_location, expr);
+      --c_inhibit_evaluation_warnings;
+      return ret;
+    }
   else
     return c_common_truthvalue_conversion (input_location, expr);
 }
@@ -4871,9 +4897,7 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
       && TREE_CONSTANT (TREE_OPERAND (val, 0)))
     {
       tree type = build_pointer_type (argtype);
-      tree op0 = fold_convert (type, TREE_OPERAND (val, 0));
-      tree op1 = fold_offsetof (arg, val);
-      return fold_build_pointer_plus (op0, op1);
+      return fold_convert (type, fold_offsetof_1 (arg));
     }
 
   /* Handle complex lvalues (when permitted)
@@ -5490,8 +5514,16 @@ build_x_conditional_expr (tree ifexp, tree op1, tree op2,
 
   expr = build_conditional_expr (ifexp, op1, op2, complain);
   if (processing_template_decl && expr != error_mark_node)
-    return build_min_non_dep (COND_EXPR, expr,
-			      orig_ifexp, orig_op1, orig_op2);
+    {
+      tree min = build_min_non_dep (COND_EXPR, expr,
+				    orig_ifexp, orig_op1, orig_op2);
+      /* Remember that the result is an lvalue or xvalue.  */
+      if (lvalue_or_rvalue_with_address_p (expr)
+	  && !lvalue_or_rvalue_with_address_p (min))
+	TREE_TYPE (min) = cp_build_reference_type (TREE_TYPE (min),
+						   !real_lvalue_p (expr));
+      expr = convert_from_reference (min);
+    }
   return expr;
 }
 
@@ -6335,34 +6367,41 @@ build_const_cast_1 (tree dst_type, tree expr, tsubst_flags_t complain,
 	return error_mark_node;
     }
 
-  if ((TYPE_PTR_P (src_type) || TYPE_PTRMEM_P (src_type))
-      && comp_ptr_ttypes_const (dst_type, src_type))
+  if (TYPE_PTR_P (src_type) || TYPE_PTRMEM_P (src_type))
     {
-      if (valid_p)
+      if (comp_ptr_ttypes_const (dst_type, src_type))
 	{
-	  *valid_p = true;
-	  /* This cast is actually a C-style cast.  Issue a warning if
-	     the user is making a potentially unsafe cast.  */
-	  check_for_casting_away_constness (src_type, dst_type, CAST_EXPR,
-					    complain);
+	  if (valid_p)
+	    {
+	      *valid_p = true;
+	      /* This cast is actually a C-style cast.  Issue a warning if
+		 the user is making a potentially unsafe cast.  */
+	      check_for_casting_away_constness (src_type, dst_type,
+						CAST_EXPR, complain);
+	    }
+	  if (reference_type)
+	    {
+	      expr = cp_build_addr_expr (expr, complain);
+	      expr = build_nop (reference_type, expr);
+	      return convert_from_reference (expr);
+	    }
+	  else
+	    {
+	      expr = decay_conversion (expr);
+	      /* build_c_cast puts on a NOP_EXPR to make the result not an
+		 lvalue.  Strip such NOP_EXPRs if VALUE is being used in
+		 non-lvalue context.  */
+	      if (TREE_CODE (expr) == NOP_EXPR
+		  && TREE_TYPE (expr) == TREE_TYPE (TREE_OPERAND (expr, 0)))
+		expr = TREE_OPERAND (expr, 0);
+	      return build_nop (dst_type, expr);
+	    }
 	}
-      if (reference_type)
-	{
-	  expr = cp_build_addr_expr (expr, complain);
-	  expr = build_nop (reference_type, expr);
-	  return convert_from_reference (expr);
-	}
-      else
-	{
-	  expr = decay_conversion (expr);
-	  /* build_c_cast puts on a NOP_EXPR to make the result not an
-	     lvalue.  Strip such NOP_EXPRs if VALUE is being used in
-	     non-lvalue context.  */
-	  if (TREE_CODE (expr) == NOP_EXPR
-	      && TREE_TYPE (expr) == TREE_TYPE (TREE_OPERAND (expr, 0)))
-	    expr = TREE_OPERAND (expr, 0);
-	  return build_nop (dst_type, expr);
-	}
+      else if (valid_p
+	       && !at_least_as_qualified_p (TREE_TYPE (dst_type),
+					    TREE_TYPE (src_type)))
+	check_for_casting_away_constness (src_type, dst_type, CAST_EXPR,
+					  complain);
     }
 
   if (complain & tf_error)
@@ -7148,7 +7187,7 @@ build_ptrmemfunc (tree type, tree pfn, int force, bool c_cast_p,
   /* Handle null pointer to member function conversions.  */
   if (null_ptr_cst_p (pfn))
     {
-      pfn = build_c_cast (input_location, type, integer_zero_node);
+      pfn = build_c_cast (input_location, type, nullptr_node);
       return build_ptrmemfunc1 (to_type,
 				integer_zero_node,
 				pfn);
@@ -7544,8 +7583,7 @@ convert_for_initialization (tree exp, tree type, tree rhs, int flags,
 
       if (fndecl)
 	savew = warningcount, savee = errorcount;
-      rhs = initialize_reference (type, rhs, /*decl=*/NULL_TREE,
-				  /*cleanup=*/NULL, flags, complain);
+      rhs = initialize_reference (type, rhs, flags, complain);
       if (fndecl)
 	{
 	  if (warningcount > savew)
@@ -8394,17 +8432,13 @@ check_literal_operator_args (const_tree decl,
 			     bool *long_long_unsigned_p, bool *long_double_p)
 {
   tree argtypes = TYPE_ARG_TYPES (TREE_TYPE (decl));
-  if (processing_template_decl)
-    return (argtypes == NULL_TREE
-	    || same_type_p (TREE_VALUE (argtypes), void_type_node));
+  if (processing_template_decl || processing_specialization)
+    return argtypes == void_list_node;
   else
     {
       tree argtype;
       int arity;
       int max_arity = 2;
-      bool found_string_p = false;
-      bool maybe_raw_p = false;
-      bool found_size_p = false;
 
       *long_long_unsigned_p = false;
       *long_double_p = false;
@@ -8419,29 +8453,30 @@ check_literal_operator_args (const_tree decl,
 
 	  if (TREE_CODE (t) == POINTER_TYPE)
 	    {
+	      bool maybe_raw_p = false;
 	      t = TREE_TYPE (t);
 	      if (cp_type_quals (t) != TYPE_QUAL_CONST)
 		return false;
 	      t = TYPE_MAIN_VARIANT (t);
-	      if (same_type_p (t, char_type_node))
+	      if ((maybe_raw_p = same_type_p (t, char_type_node))
+		  || same_type_p (t, wchar_type_node)
+		  || same_type_p (t, char16_type_node)
+		  || same_type_p (t, char32_type_node))
 		{
-		  found_string_p = true;
-		  maybe_raw_p = true;
+		  argtype = TREE_CHAIN (argtype);
+		  if (!argtype)
+		    return false;
+		  t = TREE_VALUE (argtype);
+		  if (maybe_raw_p && argtype == void_list_node)
+		    return true;
+		  else if (same_type_p (t, size_type_node))
+		    {
+		      ++arity;
+		      continue;
+		    }
+		  else
+		    return false;
 		}
-	      else if (same_type_p (t, wchar_type_node))
-		found_string_p = true;
-	      else if (same_type_p (t, char16_type_node))
-		found_string_p = true;
-	      else if (same_type_p (t, char32_type_node))
-		found_string_p = true;
-	      else
-		return false;
-	    }
-	  else if (same_type_p (t, size_type_node))
-	    {
-	      if (!found_string_p)
-		return false;
-	      found_size_p = true;
 	    }
 	  else if (same_type_p (t, long_long_unsigned_type_node))
 	    {
@@ -8467,10 +8502,7 @@ check_literal_operator_args (const_tree decl,
       if (!argtype)
 	return false; /* Found ellipsis.  */
 
-      if (arity > max_arity)
-	return false;
-
-      if (found_string_p && !maybe_raw_p && !found_size_p)
+      if (arity != max_arity)
 	return false;
 
       return true;

@@ -284,6 +284,14 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
       e->inline_failed = CIF_EH_PERSONALITY;
       inlinable = false;
     }
+  /* TM pure functions should not get inlined if the outer function is
+     a TM safe function.  */
+  else if (is_tm_pure (callee->decl)
+	   && is_tm_safe (e->caller->decl))
+    {
+      e->inline_failed = CIF_UNSPECIFIED;
+      inlinable = false;
+    }
   /* Don't inline if the callee can throw non-call exceptions but the
      caller cannot.
      FIXME: this is obviously wrong for LTO where STRUCT_FUNCTION is missing.
@@ -1949,6 +1957,8 @@ early_inliner (void)
 		= estimate_num_insns (edge->call_stmt, &eni_size_weights);
 	      es->call_stmt_time
 		= estimate_num_insns (edge->call_stmt, &eni_time_weights);
+	      edge->call_stmt_cannot_inline_p
+		= gimple_call_cannot_inline_p (edge->call_stmt);
 	    }
 	  timevar_pop (TV_INTEGRATION);
 	  iterations++;

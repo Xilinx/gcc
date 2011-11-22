@@ -726,12 +726,32 @@ package body Sem_Ch3 is
 
       --  If the access definition is the return type of another access to
       --  function, scope is the current one, because it is the one of the
-      --  current type declaration.
+      --  current type declaration, except for the pathological case below.
 
       if Nkind_In (Related_Nod, N_Object_Declaration,
                                 N_Access_Function_Definition)
       then
          Anon_Scope := Current_Scope;
+
+         --  A pathological case: function returning access functions that
+         --  return access functions, etc. Each anonymous access type created
+         --  is in the enclosing scope of the outermost function.
+
+         declare
+            Par : Node_Id;
+
+         begin
+            Par := Related_Nod;
+            while Nkind_In (Par, N_Access_Function_Definition,
+                                 N_Access_Definition)
+            loop
+               Par := Parent (Par);
+            end loop;
+
+            if Nkind (Par) = N_Function_Specification then
+               Anon_Scope := Scope (Defining_Entity (Par));
+            end if;
+         end;
 
       --  For the anonymous function result case, retrieve the scope of the
       --  function specification's associated entity rather than using the
@@ -1876,7 +1896,9 @@ package body Sem_Ch3 is
             --  (Ada 2005: AI-230): Accessibility check for anonymous
             --  components
 
-            if Type_Access_Level (Etype (E)) > Type_Access_Level (T) then
+            if Type_Access_Level (Etype (E)) >
+               Deepest_Type_Access_Level (T)
+            then
                Error_Msg_N
                  ("expression has deeper access level than component " &
                   "(RM 3.10.2 (12.2))", E);
@@ -2664,8 +2686,8 @@ package body Sem_Ch3 is
       --  Process expression, replacing error by integer zero, to avoid
       --  cascaded errors or aborts further along in the processing
 
-      --  Replace Error by integer zero, which seems least likely to
-      --  cause cascaded errors.
+      --  Replace Error by integer zero, which seems least likely to cause
+      --  cascaded errors.
 
       if E = Error then
          Rewrite (E, Make_Integer_Literal (Sloc (E), Uint_0));
@@ -11764,7 +11786,7 @@ package body Sem_Ch3 is
          --  needed, since checks may cause duplication of the expressions
          --  which must not be reevaluated.
 
-         if Expander_Active then
+         if Full_Expander_Active then
             Force_Evaluation (Low_Bound (R));
             Force_Evaluation (High_Bound (R));
          end if;
@@ -18304,7 +18326,7 @@ package body Sem_Ch3 is
             --  if needed, before applying checks, since checks may cause
             --  duplication of the expression without forcing evaluation.
 
-            if Expander_Active then
+            if Full_Expander_Active then
                Force_Evaluation (Lo);
                Force_Evaluation (Hi);
             end if;
@@ -18414,7 +18436,7 @@ package body Sem_Ch3 is
 
       --  Case of other than an explicit N_Range node
 
-      elsif Expander_Active then
+      elsif Full_Expander_Active then
          Get_Index_Bounds (R, Lo, Hi);
          Force_Evaluation (Lo);
          Force_Evaluation (Hi);

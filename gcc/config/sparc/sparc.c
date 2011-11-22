@@ -576,7 +576,8 @@ static bool sparc_print_operand_punct_valid_p (unsigned char);
 static void sparc_print_operand (FILE *, rtx, int);
 static void sparc_print_operand_address (FILE *, rtx);
 static reg_class_t sparc_secondary_reload (bool, rtx, reg_class_t,
-					   enum machine_mode, secondary_reload_info *);
+					   enum machine_mode,
+					   secondary_reload_info *);
 
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
 /* Table of valid machine attributes.  */
@@ -3440,7 +3441,7 @@ sparc_legitimate_address_p (enum machine_mode mode, rtx addr, bool strict)
 	     REG+REG address, then only one of them gets converted to an
 	     offsettable address.  */
 	  if (mode == TFmode
-	      && ! (TARGET_FPU && TARGET_ARCH64 && TARGET_HARD_QUAD))
+	      && ! (TARGET_ARCH64 && TARGET_HARD_QUAD))
 	    return 0;
 
 	  /* We prohibit REG + REG on ARCH32 if not optimizing for
@@ -9120,10 +9121,11 @@ sparc_check_64 (rtx x, rtx insn)
   return 0;
 }
 
-/* Returns assembly code to perform a DImode shift using
-   a 64-bit global or out register on SPARC-V8+.  */
+/* Output a wide shift instruction in V8+ mode.  INSN is the instruction,
+   OPERANDS are its operands and OPCODE is the mnemonic to be used.  */
+
 const char *
-output_v8plus_shift (rtx *operands, rtx insn, const char *opcode)
+output_v8plus_shift (rtx insn, rtx *operands, const char *opcode)
 {
   static char asm_code[60];
 
@@ -9148,12 +9150,13 @@ output_v8plus_shift (rtx *operands, rtx insn, const char *opcode)
       output_asm_insn ("or\t%L1, %3, %3", operands);
     }
 
-  strcpy(asm_code, opcode);
+  strcpy (asm_code, opcode);
 
   if (which_alternative != 2)
     return strcat (asm_code, "\t%0, %2, %L0\n\tsrlx\t%L0, 32, %H0");
   else
-    return strcat (asm_code, "\t%3, %2, %3\n\tsrlx\t%3, 32, %H0\n\tmov\t%3, %L0");
+    return
+      strcat (asm_code, "\t%3, %2, %3\n\tsrlx\t%3, 32, %H0\n\tmov\t%3, %L0");
 }
 
 /* Output rtl to increment the profiler label LABELNO
@@ -11156,7 +11159,7 @@ sparc_conditional_register_usage (void)
     global_regs[SPARC_GSR_REG] = 1;
 }
 
-/* Implement TARGET_PREFERRED_RELOAD_CLASS
+/* Implement TARGET_PREFERRED_RELOAD_CLASS:
 
    - We can't load constants into FP registers.
    - We can't load FP constants into integer registers when soft-float,
@@ -11206,8 +11209,11 @@ sparc_preferred_reload_class (rtx x, reg_class_t rclass)
   return rclass;
 }
 
+/* Output a wide multiply instruction in V8+ mode.  INSN is the instruction,
+   OPERANDS are its operands and OPCODE is the mnemonic to be used.  */
+
 const char *
-output_v8plus_mult (rtx insn, rtx *operands, const char *name)
+output_v8plus_mult (rtx insn, rtx *operands, const char *opcode)
 {
   char mulstr[32];
 
@@ -11222,7 +11228,7 @@ output_v8plus_mult (rtx insn, rtx *operands, const char *name)
       if (which_alternative == 1)
 	{
 	  output_asm_insn ("or\t%L1, %H1, %H1", operands);
-	  sprintf (mulstr, "%s\t%%H1, %%2, %%L0", name);
+	  sprintf (mulstr, "%s\t%%H1, %%2, %%L0", opcode);
 	  output_asm_insn (mulstr, operands);
 	  return "srlx\t%L0, 32, %H0";
 	}
@@ -11230,7 +11236,7 @@ output_v8plus_mult (rtx insn, rtx *operands, const char *name)
 	{
 	  output_asm_insn ("sllx\t%H1, 32, %3", operands);
           output_asm_insn ("or\t%L1, %3, %3", operands);
-          sprintf (mulstr, "%s\t%%3, %%2, %%3", name);
+          sprintf (mulstr, "%s\t%%3, %%2, %%3", opcode);
 	  output_asm_insn (mulstr, operands);
 	  output_asm_insn ("srlx\t%3, 32, %H0", operands);
           return "mov\t%3, %L0";
@@ -11241,7 +11247,7 @@ output_v8plus_mult (rtx insn, rtx *operands, const char *name)
       if (which_alternative == 1)
 	{
 	  output_asm_insn ("or\t%L1, %H1, %H1", operands);
-          sprintf (mulstr, "%s\t%%H1, %%H1, %%L0", name);
+          sprintf (mulstr, "%s\t%%H1, %%H1, %%L0", opcode);
 	  output_asm_insn (mulstr, operands);
 	  return "srlx\t%L0, 32, %H0";
 	}
@@ -11249,7 +11255,7 @@ output_v8plus_mult (rtx insn, rtx *operands, const char *name)
 	{
 	  output_asm_insn ("sllx\t%H1, 32, %3", operands);
           output_asm_insn ("or\t%L1, %3, %3", operands);
-	  sprintf (mulstr, "%s\t%%3, %%3, %%3", name);
+	  sprintf (mulstr, "%s\t%%3, %%3, %%3", opcode);
 	  output_asm_insn (mulstr, operands);
 	  output_asm_insn ("srlx\t%3, 32, %H0", operands);
           return "mov\t%3, %L0";
@@ -11262,7 +11268,7 @@ output_v8plus_mult (rtx insn, rtx *operands, const char *name)
       output_asm_insn ("or\t%L1, %H1, %H1", operands);
       output_asm_insn ("sllx\t%H2, 32, %L1", operands);
       output_asm_insn ("or\t%L2, %L1, %L1", operands);
-      sprintf (mulstr, "%s\t%%H1, %%L1, %%L0", name);
+      sprintf (mulstr, "%s\t%%H1, %%L1, %%L0", opcode);
       output_asm_insn (mulstr, operands);
       return "srlx\t%L0, 32, %H0";
     }
@@ -11272,12 +11278,98 @@ output_v8plus_mult (rtx insn, rtx *operands, const char *name)
       output_asm_insn ("sllx\t%H2, 32, %4", operands);
       output_asm_insn ("or\t%L1, %3, %3", operands);
       output_asm_insn ("or\t%L2, %4, %4", operands);
-      sprintf (mulstr, "%s\t%%3, %%4, %%3", name);
+      sprintf (mulstr, "%s\t%%3, %%4, %%3", opcode);
       output_asm_insn (mulstr, operands);
       output_asm_insn ("srlx\t%3, 32, %H0", operands);
       return "mov\t%3, %L0";
     }
 }
+
+/* Subroutine of sparc_expand_vector_init.  Emit code to initialize
+   all fields of TARGET to ELT by means of VIS2 BSHUFFLE insn.  MODE
+   and INNER_MODE are the modes describing TARGET.  */
+
+static void
+vector_init_bshuffle (rtx target, rtx elt, enum machine_mode mode,
+		      enum machine_mode inner_mode)
+{
+  rtx t1, final_insn;
+  int bmask;
+
+  t1 = gen_reg_rtx (mode);
+
+  elt = convert_modes (SImode, inner_mode, elt, true);
+  emit_move_insn (gen_lowpart(SImode, t1), elt);
+
+  switch (mode)
+    {
+    case V2SImode:
+      final_insn = gen_bshufflev2si_vis (target, t1, t1);
+      bmask = 0x45674567;
+      break;
+    case V4HImode:
+      final_insn = gen_bshufflev4hi_vis (target, t1, t1);
+      bmask = 0x67676767;
+      break;
+    case V8QImode:
+      final_insn = gen_bshufflev8qi_vis (target, t1, t1);
+      bmask = 0x77777777;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  emit_insn (gen_bmasksi_vis (gen_reg_rtx (SImode), CONST0_RTX (SImode),
+			      force_reg (SImode, GEN_INT (bmask))));
+  emit_insn (final_insn);
+}
+
+static void
+vector_init_fpmerge (rtx target, rtx elt, enum machine_mode inner_mode)
+{
+  rtx t1, t2, t3, t3_low;
+
+  t1 = gen_reg_rtx (V4QImode);
+  elt = convert_modes (SImode, inner_mode, elt, true);
+  emit_move_insn (gen_lowpart (SImode, t1), elt);
+
+  t2 = gen_reg_rtx (V4QImode);
+  emit_move_insn (t2, t1);
+
+  t3 = gen_reg_rtx (V8QImode);
+  t3_low = gen_lowpart (V4QImode, t3);
+
+  emit_insn (gen_fpmerge_vis (t3, t1, t2));
+  emit_move_insn (t1, t3_low);
+  emit_move_insn (t2, t3_low);
+
+  emit_insn (gen_fpmerge_vis (t3, t1, t2));
+  emit_move_insn (t1, t3_low);
+  emit_move_insn (t2, t3_low);
+
+  emit_insn (gen_fpmerge_vis (gen_lowpart (V8QImode, target), t1, t2));
+}
+
+static void
+vector_init_faligndata (rtx target, rtx elt, enum machine_mode inner_mode)
+{
+  rtx t1 = gen_reg_rtx (V4HImode);
+
+  elt = convert_modes (SImode, inner_mode, elt, true);
+
+  emit_move_insn (gen_lowpart (SImode, t1), elt);
+
+  emit_insn (gen_alignaddrsi_vis (gen_reg_rtx (SImode),
+				  force_reg (SImode, GEN_INT (6)),
+				  CONST0_RTX (SImode)));
+
+  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
+  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
+  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
+  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
+}
+
+/* Emit code to initialize TARGET to values for individual fields VALS.  */
 
 void
 sparc_expand_vector_init (rtx target, rtx vals)
@@ -11286,13 +11378,18 @@ sparc_expand_vector_init (rtx target, rtx vals)
   enum machine_mode inner_mode = GET_MODE_INNER (mode);
   int n_elts = GET_MODE_NUNITS (mode);
   int i, n_var = 0;
+  bool all_same;
   rtx mem;
 
+  all_same = true;
   for (i = 0; i < n_elts; i++)
     {
       rtx x = XVECEXP (vals, 0, i);
       if (!CONSTANT_P (x))
 	n_var++;
+
+      if (i > 0 && !rtx_equal_p (x, XVECEXP (vals, 0, 0)))
+	all_same = false;
     }
 
   if (n_var == 0)
@@ -11301,13 +11398,59 @@ sparc_expand_vector_init (rtx target, rtx vals)
       return;
     }
 
+  if (GET_MODE_SIZE (inner_mode) == GET_MODE_SIZE (mode))
+    {
+      if (GET_MODE_SIZE (inner_mode) == 4)
+	{
+	  emit_move_insn (gen_lowpart (SImode, target),
+			  gen_lowpart (SImode, XVECEXP (vals, 0, 0)));
+	  return;
+	}
+      else if (GET_MODE_SIZE (inner_mode) == 8)
+	{
+	  emit_move_insn (gen_lowpart (DImode, target),
+			  gen_lowpart (DImode, XVECEXP (vals, 0, 0)));
+	  return;
+	}
+    }
+  else if (GET_MODE_SIZE (inner_mode) == GET_MODE_SIZE (word_mode)
+	   && GET_MODE_SIZE (mode) == 2 * GET_MODE_SIZE (word_mode))
+    {
+      emit_move_insn (gen_highpart (word_mode, target),
+		      gen_lowpart (word_mode, XVECEXP (vals, 0, 0)));
+      emit_move_insn (gen_lowpart (word_mode, target),
+		      gen_lowpart (word_mode, XVECEXP (vals, 0, 1)));
+      return;
+    }
+
+  if (all_same && GET_MODE_SIZE (mode) == 8)
+    {
+      if (TARGET_VIS2)
+	{
+	  vector_init_bshuffle (target, XVECEXP (vals, 0, 0), mode, inner_mode);
+	  return;
+	}
+      if (mode == V8QImode)
+	{
+	  vector_init_fpmerge (target, XVECEXP (vals, 0, 0), inner_mode);
+	  return;
+	}
+      if (mode == V4HImode)
+	{
+	  vector_init_faligndata (target, XVECEXP (vals, 0, 0), inner_mode);
+	  return;
+	}
+    }
+
   mem = assign_stack_temp (mode, GET_MODE_SIZE (mode), 0);
   for (i = 0; i < n_elts; i++)
     emit_move_insn (adjust_address_nv (mem, inner_mode,
-				    i * GET_MODE_SIZE (inner_mode)),
+				       i * GET_MODE_SIZE (inner_mode)),
 		    XVECEXP (vals, 0, i));
   emit_move_insn (target, mem);
 }
+
+/* Implement TARGET_SECONDARY_RELOAD.  */
 
 static reg_class_t
 sparc_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
@@ -11372,6 +11515,9 @@ sparc_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
   return NO_REGS;
 }
 
+/* Emit code to conditionally move either OPERANDS[2] or OPERANDS[3] into
+   OPERANDS[0] in MODE.  OPERANDS[1] is the operator of the condition.  */
+
 bool
 sparc_expand_conditional_move (enum machine_mode mode, rtx *operands)
 {
@@ -11380,12 +11526,16 @@ sparc_expand_conditional_move (enum machine_mode mode, rtx *operands)
   rtx cc_reg, dst, cmp;
 
   cmp = operands[1];
-  cmp_mode = GET_MODE (XEXP (cmp, 0));
-  if (cmp_mode == DImode && !TARGET_ARCH64)
+  if (GET_MODE (XEXP (cmp, 0)) == DImode && !TARGET_ARCH64)
     return false;
 
-  dst = operands[0];
+  if (GET_MODE (XEXP (cmp, 0)) == TFmode && !TARGET_HARD_QUAD)
+    cmp = sparc_emit_float_lib_cmp (XEXP (cmp, 0), XEXP (cmp, 1), rc);
 
+  cmp_mode = GET_MODE (XEXP (cmp, 0));
+  rc = GET_CODE (cmp);
+
+  dst = operands[0];
   if (! rtx_equal_p (operands[2], dst)
       && ! rtx_equal_p (operands[3], dst))
     {
@@ -11404,9 +11554,6 @@ sparc_expand_conditional_move (enum machine_mode mode, rtx *operands)
         rc = reverse_condition (rc);
     }
 
-  if (cmp_mode == TFmode && !TARGET_HARD_QUAD)
-    cmp = sparc_emit_float_lib_cmp (XEXP (cmp, 0), XEXP (cmp, 1), rc);
-
   if (XEXP (cmp, 1) == const0_rtx
       && GET_CODE (XEXP (cmp, 0)) == REG
       && cmp_mode == DImode
@@ -11422,6 +11569,114 @@ sparc_expand_conditional_move (enum machine_mode mode, rtx *operands)
 
   if (dst != operands[0])
     emit_move_insn (operands[0], dst);
+
+  return true;
+}
+
+/* Emit code to conditionally move a combination of OPERANDS[1] and OPERANDS[2]
+   into OPERANDS[0] in MODE, depending on the outcome of the comparison of
+   OPERANDS[4] and OPERANDS[5].  OPERANDS[3] is the operator of the condition.
+   FCODE is the machine code to be used for OPERANDS[3] and CCODE the machine
+   code to be used for the condition mask.  */
+
+void
+sparc_expand_vcond (enum machine_mode mode, rtx *operands, int ccode, int fcode)
+{
+  rtx mask, cop0, cop1, fcmp, cmask, bshuf, gsr;
+  enum rtx_code code = GET_CODE (operands[3]);
+
+  mask = gen_reg_rtx (Pmode);
+  cop0 = operands[4];
+  cop1 = operands[5];
+  if (code == LT || code == GE)
+    {
+      rtx t;
+
+      code = swap_condition (code);
+      t = cop0; cop0 = cop1; cop1 = t;
+    }
+
+  gsr = gen_rtx_REG (DImode, SPARC_GSR_REG);
+
+  fcmp = gen_rtx_UNSPEC (Pmode,
+			 gen_rtvec (1, gen_rtx_fmt_ee (code, mode, cop0, cop1)),
+			 fcode);
+
+  cmask = gen_rtx_UNSPEC (DImode,
+			  gen_rtvec (2, mask, gsr),
+			  ccode);
+
+  bshuf = gen_rtx_UNSPEC (mode,
+			  gen_rtvec (3, operands[1], operands[2], gsr),
+			  UNSPEC_BSHUFFLE);
+
+  emit_insn (gen_rtx_SET (VOIDmode, mask, fcmp));
+  emit_insn (gen_rtx_SET (VOIDmode, gsr, cmask));
+
+  emit_insn (gen_rtx_SET (VOIDmode, operands[0], bshuf));
+}
+
+/* On sparc, any mode which naturally allocates into the float
+   registers should return 4 here.  */
+
+unsigned int
+sparc_regmode_natural_size (enum machine_mode mode)
+{
+  int size = UNITS_PER_WORD;
+
+  if (TARGET_ARCH64)
+    {
+      enum mode_class mclass = GET_MODE_CLASS (mode);
+
+      if (mclass == MODE_FLOAT || mclass == MODE_VECTOR_INT)
+	size = 4;
+    }
+
+  return size;
+}
+
+/* Return TRUE if it is a good idea to tie two pseudo registers
+   when one has mode MODE1 and one has mode MODE2.
+   If HARD_REGNO_MODE_OK could produce different values for MODE1 and MODE2,
+   for any hard reg, then this must be FALSE for correct output.
+
+   For V9 we have to deal with the fact that only the lower 32 floating
+   point registers are 32-bit addressable.  */
+
+bool
+sparc_modes_tieable_p (enum machine_mode mode1, enum machine_mode mode2)
+{
+  enum mode_class mclass1, mclass2;
+  unsigned short size1, size2;
+
+  if (mode1 == mode2)
+    return true;
+
+  mclass1 = GET_MODE_CLASS (mode1);
+  mclass2 = GET_MODE_CLASS (mode2);
+  if (mclass1 != mclass2)
+    return false;
+
+  if (! TARGET_V9)
+    return true;
+
+  /* Classes are the same and we are V9 so we have to deal with upper
+     vs. lower floating point registers.  If one of the modes is a
+     4-byte mode, and the other is not, we have to mark them as not
+     tieable because only the lower 32 floating point register are
+     addressable 32-bits at a time.
+
+     We can't just test explicitly for SFmode, otherwise we won't
+     cover the vector mode cases properly.  */
+
+  if (mclass1 != MODE_FLOAT && mclass1 != MODE_VECTOR_INT)
+    return true;
+
+  size1 = GET_MODE_SIZE (mode1);
+  size2 = GET_MODE_SIZE (mode2);
+  if ((size1 > 4 && size2 == 4)
+      || (size2 > 4 && size1 == 4))
+    return false;
 
   return true;
 }

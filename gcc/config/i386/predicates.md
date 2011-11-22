@@ -808,8 +808,9 @@
        (match_operand 0 "const0_operand")))
 
 ;; Return true if op if a valid address for LEA, and does not contain
-;; a segment override.
-(define_predicate "lea_address_operand"
+;; a segment override.  Defined as a special predicate to allow
+;; mode-less const_int operands pass to address_operand.
+(define_special_predicate "lea_address_operand"
   (match_operand 0 "address_operand")
 {
   struct ix86_address parts;
@@ -1162,7 +1163,7 @@
 
 ;; Return true if OP is a binary operator that can be promoted to wider mode.
 (define_predicate "promotable_binary_operator"
-  (ior (match_code "plus,and,ior,xor,ashift")
+  (ior (match_code "plus,minus,and,ior,xor,ashift")
        (and (match_code "mult")
 	    (match_test "TARGET_TUNE_PROMOTE_HIMODE_IMUL"))))
 

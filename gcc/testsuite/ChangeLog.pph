@@ -1,5 +1,9 @@
 2011-11-22   Diego Novillo  <dnovillo@google.com>
 
+	* lib/dg-pph.exp: Set dg-final-code to "".
+
+2011-11-22   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/x4tmplfuncinln.cc: Do not expect excess errors.
 	* g++.dg/pph/x4tmplfuncninl.cc: Likewise.
 	* g++.dg/pph/z4tmplfuncinln.cc: Likewise.

@@ -1,3 +1,41 @@
+2011-11-22   Diego Novillo  <dnovillo@google.com>
+
+	* include/line-map.h (linemap_dump): Declare.
+	(line_table_dump): Declare.
+	* line-map.c (linemap_dump): New.
+	(line_table_dump): New.
+
+2011-11-21  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50958
+	* expr.c (cpp_userdef_char_remove_type): Fix typo.
+
+2011-11-03  Michael Matz  <matz@suse.de>
+
+	PR bootstrap/50857
+	* configure.ac: Check for -fno-exceptions -fno-rtti.
+	* configure: Regenerate.
+	* Makefile.in (NOEXCEPTION_FLAGS): New flag.
+	(ALL_CXXFLAGS): Use it.
+
+2011-11-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* internal.h (uxstrdup, ustrchr): Return const unsigned char *.
+
+2011-11-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50810
+	* configure.ac: Add -Wno-narrowing to warning options.
+
+2011-10-31  Jason Merrill  <jason@redhat.com>
+
+	PR libstdc++/1773
+	* init.c (cpp_init_builtins): Set __cplusplus for C++11.
+
+	PR c++/50920
+	* include/cpplib.h (enum c_lang): Rename CLK_CXX0X to CLK_CXX11,
+	CLK_GNUCXX0X to CLK_GNUCXX11.
+
 2011-10-26  Ed Smith-Rowland  <3dw4rd@verizon.net>
 
 	Implement C++11 user-defined literals.

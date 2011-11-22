@@ -3926,16 +3926,16 @@ package body Sem_Res is
                if Is_Atomic_Object (A)
                  and then not Is_Atomic (Etype (F))
                then
-                  Error_Msg_N
-                    ("cannot pass atomic argument to non-atomic formal",
-                     N);
+                  Error_Msg_NE
+                    ("cannot pass atomic argument to non-atomic formal&",
+                     A, F);
 
                elsif Is_Volatile_Object (A)
                  and then not Is_Volatile (Etype (F))
                then
-                  Error_Msg_N
-                    ("cannot pass volatile argument to non-volatile formal",
-                     N);
+                  Error_Msg_NE
+                    ("cannot pass volatile argument to non-volatile formal&",
+                     A, F);
                end if;
             end if;
 
@@ -4086,7 +4086,7 @@ package body Sem_Res is
       is
       begin
          if Type_Access_Level (Etype (Disc_Exp)) >
-            Type_Access_Level (Alloc_Typ)
+            Deepest_Type_Access_Level (Alloc_Typ)
          then
             Error_Msg_N
               ("operand type has deeper level than allocator type", Disc_Exp);
@@ -4095,10 +4095,10 @@ package body Sem_Res is
          --  object must not be deeper than that of the allocator's type.
 
          elsif Nkind (Disc_Exp) = N_Attribute_Reference
-           and then Get_Attribute_Id (Attribute_Name (Disc_Exp))
-                      = Attribute_Access
-           and then Object_Access_Level (Prefix (Disc_Exp))
-                      > Type_Access_Level (Alloc_Typ)
+           and then Get_Attribute_Id (Attribute_Name (Disc_Exp)) =
+                      Attribute_Access
+           and then Object_Access_Level (Prefix (Disc_Exp)) >
+                      Deepest_Type_Access_Level (Alloc_Typ)
          then
             Error_Msg_N
               ("prefix of attribute has deeper level than allocator type",
@@ -4109,8 +4109,8 @@ package body Sem_Res is
 
          elsif Ekind (Etype (Disc_Exp)) = E_Anonymous_Access_Type
            and then Nkind (Disc_Exp) = N_Selected_Component
-           and then Object_Access_Level (Prefix (Disc_Exp))
-                      > Type_Access_Level (Alloc_Typ)
+           and then Object_Access_Level (Prefix (Disc_Exp)) >
+                      Deepest_Type_Access_Level (Alloc_Typ)
          then
             Error_Msg_N
               ("access discriminant has deeper level than allocator type",
@@ -4314,7 +4314,9 @@ package body Sem_Res is
                Exp_Typ := Entity (E);
             end if;
 
-            if Type_Access_Level (Exp_Typ) > Type_Access_Level (Typ) then
+            if Type_Access_Level (Exp_Typ) >
+                 Deepest_Type_Access_Level (Typ)
+            then
                if In_Instance_Body then
                   Error_Msg_N ("?type in allocator has deeper level than" &
                                " designated class-wide type", E);
@@ -8666,7 +8668,15 @@ package body Sem_Res is
                      --  this by making sure that the expanded code points to
                      --  the Sloc of the expression, not the original pragma.
 
-                     Error_Msg_N
+                     --  Note: Use Error_Msg_F here rather than Error_Msg_N.
+                     --  The source location of the expression is not usually
+                     --  the best choice here. For example, it gets located on
+                     --  the last AND keyword in a chain of boolean expressiond
+                     --  AND'ed together. It is best to put the message on the
+                     --  first character of the assertion, which is the effect
+                     --  of the First_Node call here.
+
+                     Error_Msg_F
                        ("?assertion would fail at run time!",
                         Expression
                           (First (Pragma_Argument_Associations (Orig))));
@@ -8691,8 +8701,14 @@ package body Sem_Res is
                     and then Entity (Expr) = Standard_False
                   then
                      null;
+
+                  --  Post warning
+
                   else
-                     Error_Msg_N
+                     --  Again use Error_Msg_F rather than Error_Msg_N, see
+                     --  comment above for an explanation of why we do this.
+
+                     Error_Msg_F
                        ("?check would fail at run time!",
                         Expression
                           (Last (Pragma_Argument_Associations (Orig))));
@@ -10358,13 +10374,15 @@ package body Sem_Res is
                 Subtypes_Statically_Match (Target_Comp_Type, Opnd_Comp_Type)
             then
                if Type_Access_Level (Target_Type) <
-                   Type_Access_Level (Opnd_Type)
+                    Deepest_Type_Access_Level (Opnd_Type)
                then
                   if In_Instance_Body then
-                     Error_Msg_N ("?source array type " &
-                       "has deeper accessibility level than target", Operand);
-                     Error_Msg_N ("\?Program_Error will be raised at run time",
-                         Operand);
+                     Error_Msg_N
+                       ("?source array type has " &
+                        "deeper accessibility level than target", Operand);
+                     Error_Msg_N
+                       ("\?Program_Error will be raised at run time",
+                        Operand);
                      Rewrite (N,
                        Make_Raise_Program_Error (Sloc (N),
                          Reason => PE_Accessibility_Check_Failed));
@@ -10374,8 +10392,9 @@ package body Sem_Res is
                   --  Conversion not allowed because of accessibility levels
 
                   else
-                     Error_Msg_N ("source array type " &
-                       "has deeper accessibility level than target", Operand);
+                     Error_Msg_N
+                       ("source array type has " &
+                       "deeper accessibility level than target", Operand);
                      return False;
                   end if;
 
@@ -10398,7 +10417,7 @@ package body Sem_Res is
             --  All of this is checked in Subtypes_Statically_Match.
 
             if not Subtypes_Statically_Match
-                            (Target_Comp_Type, Opnd_Comp_Type)
+                     (Target_Comp_Type, Opnd_Comp_Type)
             then
                Error_Msg_N
                  ("component subtypes must statically match", Operand);
@@ -11067,6 +11086,11 @@ package body Sem_Res is
               Designated_Type (Corresponding_Remote_Type (Opnd_Type)),
             Err_Loc =>
               N);
+         return True;
+
+      --  If it was legal in the generic, it's legal in the instance
+
+      elsif In_Instance_Body then
          return True;
 
       --  If both are tagged types, check legality of view conversions

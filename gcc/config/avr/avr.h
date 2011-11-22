@@ -23,7 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Names to predefine in the preprocessor for this target machine.  */
 
-struct base_arch_s {
+struct base_arch_s
+{
   /* Assembler only.  */
   int asm_only;
 
@@ -53,6 +54,13 @@ struct base_arch_s {
   
   /* Default start of data section address for architecture.  */
   int default_data_section_start;
+
+  /* Offset between SFR address and RAM address:
+     SFR-address = RAM-address - sfr_offset  */
+  int sfr_offset;
+
+  /* Number of 64k segments in the flash.  */
+  int n_segments;
 
   const char *const macro;
   
@@ -131,6 +139,8 @@ extern const struct base_arch_s avr_arch_types[];
 #define AVR_HAVE_MUL (avr_current_arch->have_mul)
 #define AVR_HAVE_MOVW (avr_current_arch->have_movw_lpmx)
 #define AVR_HAVE_LPMX (avr_current_arch->have_movw_lpmx)
+#define AVR_HAVE_ELPM (avr_current_arch->have_elpm)
+#define AVR_HAVE_ELPMX (avr_current_arch->have_elpmx)
 #define AVR_HAVE_RAMPZ (avr_current_arch->have_elpm)
 #define AVR_HAVE_EIJMP_EICALL (avr_current_arch->have_eijmp_eicall)
 #define AVR_HAVE_8BIT_SP (avr_current_device->short_sp || TARGET_TINY_STACK)
@@ -308,13 +318,13 @@ enum reg_class {
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
 
-#define MODE_CODE_BASE_REG_CLASS(mode, outer_code, index_code) \
-  avr_mode_code_base_reg_class (mode, outer_code, index_code)
+#define MODE_CODE_BASE_REG_CLASS(mode, as, outer_code, index_code)   \
+  avr_mode_code_base_reg_class (mode, as, outer_code, index_code)
 
 #define INDEX_REG_CLASS NO_REGS
 
-#define REGNO_MODE_CODE_OK_FOR_BASE_P(num, mode, outer_code, index_code) \
-  avr_regno_mode_code_ok_for_base_p (num, mode, outer_code, index_code)
+#define REGNO_MODE_CODE_OK_FOR_BASE_P(num, mode, as, outer_code, index_code) \
+  avr_regno_mode_code_ok_for_base_p (num, mode, as, outer_code, index_code)
 
 #define REGNO_OK_FOR_INDEX_P(NUM) 0
 
@@ -385,11 +395,25 @@ typedef struct avr_args {
       }                                                                 \
   } while (0)
 
-#define BRANCH_COST(speed_p, predictable_p) 0
+#define BRANCH_COST(speed_p, predictable_p) avr_branch_cost
 
 #define SLOW_BYTE_ACCESS 0
 
 #define NO_FUNCTION_CSE
+
+
+#define ADDR_SPACE_PGM  1
+#define ADDR_SPACE_PGM1 2
+#define ADDR_SPACE_PGM2 3
+#define ADDR_SPACE_PGM3 4
+#define ADDR_SPACE_PGM4 5
+#define ADDR_SPACE_PGM5 6
+#define ADDR_SPACE_PGMX 7
+
+#define REGISTER_TARGET_PRAGMAS()                                       \
+  do {                                                                  \
+    avr_register_target_pragmas();                                      \
+  } while (0)
 
 #define TEXT_SECTION_ASM_OP "\t.text"
 
@@ -637,3 +661,5 @@ struct GTY(()) machine_function
 #define PUSH_ROUNDING(X)	(X)
 
 #define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()
+
+#define INIT_EXPANDERS avr_init_expanders()

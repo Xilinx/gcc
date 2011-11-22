@@ -434,9 +434,7 @@ runtime_files = \
 	runtime/go-new.c \
 	runtime/go-note.c \
 	runtime/go-panic.c \
-	runtime/go-panic-defer.c \
 	runtime/go-print.c \
-	runtime/go-rand.c \
 	runtime/go-rec-big.c \
 	runtime/go-rec-nb-big.c \
 	runtime/go-rec-nb-small.c \
@@ -485,6 +483,7 @@ runtime_files = \
 	runtime/mheap.c \
 	runtime/msize.c \
 	runtime/proc.c \
+	runtime/runtime.c \
 	runtime/thread.c \
 	runtime/yield.c \
 	$(rtems_task_variable_add_file) \
@@ -1498,7 +1497,7 @@ endif # !LIBGO_IS_LINUX
 
 # Define socket sizes and types.
 if LIBGO_IS_LINUX
-syscall_socket_file = go/syscall/socket_linux.go
+syscall_socket_file = go/syscall/socket_linux.go epoll.go
 else
 if LIBGO_IS_SOLARIS
 syscall_socket_file = go/syscall/socket_solaris.go
@@ -1580,6 +1579,34 @@ sysinfo.go: s-sysinfo; @true
 s-sysinfo: $(srcdir)/mksysinfo.sh config.h
 	CC="$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(OSCFLAGS)" $(SHELL) $(srcdir)/mksysinfo.sh
 	$(SHELL) $(srcdir)/../move-if-change tmp-sysinfo.go sysinfo.go
+	$(STAMP) $@
+
+# The epoll struct has an embedded union and is packed on x86_64,
+# which is too complicated for mksysinfo.sh.  We find the offset of
+# the only field we care about in configure.ac, and generate the
+# struct here.
+epoll.go: s-epoll; @true
+s-epoll: Makefile
+	rm -f epoll.go.tmp
+	echo 'package syscall' > epoll.go.tmp
+	echo 'type EpollEvent struct {' >> epoll.go.tmp
+	echo '	Events uint32' >> epoll.go.tmp
+	case "$(SIZEOF_STRUCT_EPOLL_EVENT),$(STRUCT_EPOLL_EVENT_FD_OFFSET)" in \
+	0,0) echo 1>&2 "*** struct epoll_event data.fd offset unknown"; \
+	   exit 1; ;; \
+	8,4) echo '	Fd int32' >> epoll.go.tmp; ;; \
+	12,4) echo '	Fd int32' >> epoll.go.tmp; \
+	   echo '	Pad [4]byte' >> epoll.go.tmp; ;; \
+	12,8) echo '	Pad [4]byte' >> epoll.go.tmp; \
+	   echo '	Fd int32' >> epoll.go.tmp; ;; \
+	16,8) echo '	Pad [4]byte' >> epoll.go.tmp; \
+	   echo '	Fd int32' >> epoll.go.tmp; \
+	   echo '	Pad2 [4]byte' >> epoll.go.tmp; ;; \
+	*) echo 1>&2 "*** struct epoll_event unsupported"; \
+	   exit 1; ;; \
+	esac
+	echo '}' >> epoll.go.tmp
+	$(SHELL) $(srcdir)/../move-if-change epoll.go.tmp epoll.go
 	$(STAMP) $@
 
 if LIBGO_IS_LINUX
@@ -2611,7 +2638,7 @@ encoding/pem/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: encoding/pem/check
 
-exp/ebnf.lo: $(go_exp_ebnf_files) go/scanner.gox go/token.gox os.gox \
+exp/ebnf.lo: $(go_exp_ebnf_files) scanner.gox go/token.gox os.gox \
 		strconv.gox unicode.gox utf8.gox
 	$(BUILDPACKAGE)
 exp/ebnf/check: $(CHECK_DEPS)

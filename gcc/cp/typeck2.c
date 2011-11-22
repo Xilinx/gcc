@@ -655,7 +655,7 @@ split_nonconstant_init (tree dest, tree init)
    for static variable.  In that case, caller must emit the code.  */
 
 tree
-store_init_value (tree decl, tree init, int flags)
+store_init_value (tree decl, tree init, VEC(tree,gc)** cleanups, int flags)
 {
   tree value, type;
 
@@ -699,6 +699,8 @@ store_init_value (tree decl, tree init, int flags)
     /* Digest the specified initializer into an expression.  */
     value = digest_init_flags (type, init, flags);
 
+  value = extend_ref_init_temps (decl, value, cleanups);
+
   /* In C++0x constant expression is a semantic, not syntactic, property.
      In C++98, make sure that what we thought was a constant expression at
      template definition time is still constant.  */
@@ -725,7 +727,16 @@ store_init_value (tree decl, tree init, int flags)
   if (value != error_mark_node
       && (TREE_SIDE_EFFECTS (value)
 	   || ! initializer_constant_valid_p (value, TREE_TYPE (value))))
-    return split_nonconstant_init (decl, value);
+    {
+      if (TREE_CODE (type) == ARRAY_TYPE
+	  && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (TREE_TYPE (type)))
+	/* For an array, we only need/want a single cleanup region rather
+	   than one per element.  */
+	return build_vec_init (decl, NULL_TREE, value, false, 1,
+			       tf_warning_or_error);
+      else
+	return split_nonconstant_init (decl, value);
+    }
   /* If the value is a constant, just put it in DECL_INITIAL.  If DECL
      is an automatic variable, the middle end will turn this into a
      dynamic initialization later.  */
@@ -804,8 +815,16 @@ check_narrowing (tree type, tree init)
     }
 
   if (!ok)
-    pedwarn (input_location, OPT_Wnarrowing, "narrowing conversion of %qE "
-	     "from %qT to %qT inside { }", init, ftype, type);
+    {
+      if (cxx_dialect >= cxx0x)
+	pedwarn (EXPR_LOC_OR_HERE (init), OPT_Wnarrowing,
+		 "narrowing conversion of %qE from %qT to %qT inside { }",
+		 init, ftype, type);
+      else
+	warning_at (EXPR_LOC_OR_HERE (init), OPT_Wnarrowing,
+		    "narrowing conversion of %qE from %qT to %qT inside { } "
+		    "is ill-formed in C++11", init, ftype, type);
+    }
 }
 
 /* Process the initializer INIT for a variable of type TYPE, emitting
@@ -902,7 +921,7 @@ digest_init_r (tree type, tree init, bool nested, int flags,
     {
       tree *exp;
 
-      if (cxx_dialect != cxx98 && nested)
+      if (nested)
 	check_narrowing (type, init);
       init = convert_for_initialization (0, type, init, flags,
 					 ICR_INIT, NULL_TREE, 0,

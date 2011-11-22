@@ -305,6 +305,13 @@ section names for mergeable constant data.  Define this macro to override\n\
 the string if a different section name should be used.",
  const char *, ".rodata")
 
+/* Return the section to be used for transactional memory clone tables.  */
+DEFHOOK
+(tm_clone_table_section,
+ "Return the section that should be used for transactional memory clone\
+  tables.",
+ section *, (void), default_clone_table_section)
+
 /* Output a constructor for a symbol with a given priority.  */
 DEFHOOK
 (constructor,
@@ -1003,6 +1010,24 @@ DEFHOOK
  (enum machine_mode mode, const_tree type, int misalignment, bool is_packed),
  default_builtin_support_vector_misalignment)
 
+/* Return the builtin decl needed to load a vector of TYPE.  */
+DEFHOOK
+(builtin_tm_load,
+ "This hook should return the built-in decl needed to load a vector of the "
+ "given type within a transaction.",
+ tree,
+ (tree),
+ default_builtin_tm_load_store)
+
+/* Return the builtin decl needed to store a vector of TYPE.  */
+DEFHOOK
+(builtin_tm_store,
+ "This hook should return the built-in decl needed to store a vector of the "
+ "given type within a transaction.",
+ tree,
+ (tree),
+ default_builtin_tm_load_store)
+
 /* Returns the preferred mode for SIMD operations for the specified
    scalar mode.  */
 DEFHOOK
@@ -1020,6 +1045,14 @@ DEFHOOK
  unsigned int,
  (void),
  default_autovectorize_vector_sizes)
+
+/* Target builtin that implements vector gather operation.  */
+DEFHOOK
+(builtin_gather,
+ "",
+ tree,
+ (const_tree mem_vectype, const_tree index_type, int scale),
+ NULL)
 
 HOOK_VECTOR_END (vectorize)
 

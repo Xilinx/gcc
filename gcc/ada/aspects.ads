@@ -96,6 +96,7 @@ package Aspects is
       Aspect_Preelaborate_05,               -- GNAT
       Aspect_Pure,
       Aspect_Pure_05,                       -- GNAT
+      Aspect_Pure_12,                       -- GNAT
       Aspect_Remote_Call_Interface,
       Aspect_Remote_Types,
       Aspect_Shared_Passive,
@@ -154,6 +155,7 @@ package Aspects is
                              Aspect_Compiler_Unit        => True,
                              Aspect_Preelaborate_05      => True,
                              Aspect_Pure_05              => True,
+                             Aspect_Pure_12              => True,
                              Aspect_Universal_Data       => True,
                              Aspect_Ada_2005             => True,
                              Aspect_Ada_2012             => True,
@@ -175,6 +177,18 @@ package Aspects is
    No_Duplicates_Allowed : constant array (Aspect_Id) of Boolean :=
                              (Aspect_Test_Case => False,
                               others           => True);
+
+   --  The following array indicates type aspects that are inherited and apply
+   --  to the class-wide type as well.
+
+   Inherited_Aspect : constant array (Aspect_Id) of Boolean :=
+                        (Aspect_Constant_Indexing    => True,
+                         Aspect_Default_Iterator     => True,
+                         Aspect_Implicit_Dereference => True,
+                         Aspect_Iterator_Element     => True,
+                         Aspect_Remote_Types         => True,
+                         Aspect_Variable_Indexing    => True,
+                         others                      => False);
 
    --  The following subtype defines aspects corresponding to library unit
    --  pragmas, these can only validly appear as aspects for library units,
@@ -312,6 +326,7 @@ package Aspects is
      Aspect_Priority                     => Name_Priority,
      Aspect_Pure                         => Name_Pure,
      Aspect_Pure_05                      => Name_Pure_05,
+     Aspect_Pure_12                      => Name_Pure_12,
      Aspect_Pure_Function                => Name_Pure_Function,
      Aspect_Read                         => Name_Read,
      Aspect_Remote_Call_Interface        => Name_Remote_Call_Interface,
