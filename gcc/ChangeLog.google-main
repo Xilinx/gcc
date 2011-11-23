@@ -1,3 +1,18 @@
+2011-11-23   Teresa Johnson  <tejohnson@google.com>
+
+	* loop-unroll.c (loop_has_FP_comp): New function.
+	(limit_code_size): New function.
+	(unroll_and_peel_loops): Check if unrolling and/or peeling
+	should be disabled due to large code size estimates.
+	* common.opt (fripa-peel-size-limit): New option.
+	(fripa-unroll-size-limit): New option.
+	* tree-optimize.c (compute_codesize_estimate): New function.
+	(execute_cleanup_cfg_post_optimizing): Invoke
+	compute_codesize_estimate at the end of tree optimization.
+	* params.def (codesize-hotness-threshold): New parameter.
+	(unrollpeel-codesize-threshold): New parameter.
+	* doc/invoke.texi: Document the new options and parameters.
+
 2011-11-14   Dmitriy Vyukov  <dvyukov@google.com>
 
 	Introduce a new option -ftsan which enables

@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "plugin.h"
 #include "regset.h"	/* FIXME: For reg_obstack.  */
+#include "params.h"
 
 /* Gate: execute, or not, all of the non-trivial optimizations.  */
 
@@ -149,6 +150,48 @@ struct gimple_opt_pass pass_all_early_optimizations =
  }
 };
 
+int cgraph_codesize_estimate = -1;
+
+/* Estimate the code size from the dynamic IPA call graph. */
+static void
+compute_codesize_estimate(void)
+{
+  struct cgraph_node *node;
+  basic_block bb;
+  gimple_stmt_iterator bsi;
+  struct function *my_function;
+
+  if (!flag_dyn_ipa)
+    return;
+
+  if (cgraph_codesize_estimate >= 0)
+    return;
+  cgraph_codesize_estimate = 0;
+
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      if (node->count == 0)
+        continue;
+
+      if (!gimple_has_body_p(node->decl))
+        continue;
+
+      my_function = DECL_STRUCT_FUNCTION (node->decl);
+
+      FOR_EACH_BB_FN (bb, my_function)
+        {
+          if (bb->count < PARAM_VALUE (PARAM_CODESIZE_HOTNESS_THRESHOLD))
+            continue;
+          for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
+            {
+              gimple stmt = gsi_stmt (bsi);
+              cgraph_codesize_estimate += estimate_num_insns (stmt, &eni_size_weights);
+            }
+        }
+    }
+  if (dump_file)
+    fprintf (dump_file, "Code size estimate from cgraph: %d\n", cgraph_codesize_estimate);
+}
 
 /* Pass: cleanup the CFG just before expanding trees to RTL.
    This is just a round of label cleanups and case node grouping
@@ -158,6 +201,8 @@ struct gimple_opt_pass pass_all_early_optimizations =
 static unsigned int
 execute_cleanup_cfg_post_optimizing (void)
 {
+  /* Estimate the code footprint for hot BBs before we enter RTL */
+  compute_codesize_estimate();
   cleanup_tree_cfg ();
   cleanup_dead_labels ();
   group_case_labels ();

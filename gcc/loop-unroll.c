@@ -181,6 +181,81 @@ report_unroll_peel(struct loop *loop, location_t locus)
             "" : iter_str);
 }
 
+/* Determine whether LOOP contains floating-point computation. */
+static bool
+loop_has_FP_comp(struct loop *loop)
+{
+  rtx set, dest;
+  basic_block *body, bb;
+  unsigned i;
+  rtx insn;
+
+  body = get_loop_body (loop);
+  for (i = 0; i < loop->num_nodes; i++)
+    {
+      bb = body[i];
+
+      FOR_BB_INSNS (bb, insn)
+      {
+        set = single_set (insn);
+        if (!set)
+          continue;
+
+        dest = SET_DEST (set);
+        if (FLOAT_MODE_P (GET_MODE (dest)))
+        {
+          free (body);
+          return true;
+        }
+      }
+    }
+  free (body);
+  return false;
+}
+
+/* This returns a bit vector */
+typedef enum {
+  NO_LIMIT = 0,
+  LIMIT_UNROLL = 0x1,
+  LIMIT_PEEL = 0x2,
+  LIMIT_BOTH = 0x3
+} limit_type;
+
+extern int cgraph_codesize_estimate;
+
+/* Determine whether LOOP unrolling/peeling should be constrained based
+   on code footprint estimates. */
+static limit_type
+limit_code_size(struct loop *loop)
+{
+  unsigned size_threshold;
+  limit_type result = NO_LIMIT;
+  int result_int = 0;
+
+  if (!flag_dyn_ipa)
+    return NO_LIMIT;
+
+  gcc_assert (cgraph_codesize_estimate >= 0);
+
+  /* Ignore FP loops, which are more likely to benefit heavily from
+     unrolling. */
+  if (loop_has_FP_comp(loop))
+    return NO_LIMIT;
+
+  size_threshold = PARAM_VALUE (PARAM_UNROLLPEEL_CODESIZE_THRESHOLD);
+  if (cgraph_codesize_estimate <= (int)size_threshold)
+    return NO_LIMIT;
+
+  if (flag_ripa_peel_size_limit)
+    result_int |= LIMIT_PEEL;
+
+  if (flag_ripa_unroll_size_limit)
+    result_int |= LIMIT_UNROLL;
+
+  result = (limit_type)result_int;
+  return result;
+}
+
 /* Unroll and/or peel (depending on FLAGS) LOOPS.  */
 void
 unroll_and_peel_loops (int flags)
@@ -307,6 +382,7 @@ decide_unrolling_and_peeling (int flags)
   struct loop *loop;
   loop_iterator li;
   location_t locus;
+  limit_type limit;
 
   /* Scan the loops, inner ones first.  */
   FOR_EACH_LOOP (li, loop, LI_FROM_INNERMOST)
@@ -347,19 +423,42 @@ decide_unrolling_and_peeling (int flags)
       loop->ninsns = num_loop_insns (loop);
       loop->av_ninsns = average_num_loop_insns (loop);
 
+      /* Determine whether to limit code size growth from unrolling and
+         peeling. This is currently enabled only under LIPO (dynamic IPA)
+         where we have a partial call graph. It is not applied to loops
+         with constant trip counts, as it is easier to determine the
+         profitability of unrolling and peeling such loops. */
+      limit = limit_code_size(loop);
+      if (limit != NO_LIMIT)
+	{
+	  if (dump_file)
+            {
+	      fprintf (dump_file, ";; Due to large code size footprint estimate, limit ");
+              if (limit == (LIMIT_UNROLL|LIMIT_PEEL))
+	        fprintf (dump_file, "unrolling and peeling\n");
+              else if (limit == LIMIT_UNROLL)
+	        fprintf (dump_file, "unrolling\n");
+              else
+	        fprintf (dump_file, "peeling\n");
+            }
+	}
+
       /* Try transformations one by one in decreasing order of
 	 priority.  */
 
       decide_unroll_constant_iterations (loop, flags);
-      if (loop->lpt_decision.decision == LPT_NONE)
+      if (loop->lpt_decision.decision == LPT_NONE
+          && !(limit & LIMIT_UNROLL))
 	decide_unroll_runtime_iterations (loop, flags);
-      if (loop->lpt_decision.decision == LPT_NONE)
+      if (loop->lpt_decision.decision == LPT_NONE
+          && !(limit & LIMIT_UNROLL))
 	decide_unroll_stupid (loop, flags);
-      if (loop->lpt_decision.decision == LPT_NONE)
+      if (loop->lpt_decision.decision == LPT_NONE
+          && !(limit & LIMIT_PEEL))
 	decide_peel_simple (loop, flags);
 
-      if (flag_opt_info >= OPT_INFO_MIN &&
-          loop->lpt_decision.decision != LPT_NONE)
+      if (flag_opt_info >= OPT_INFO_MIN
+          && loop->lpt_decision.decision != LPT_NONE)
         {
           report_unroll_peel(loop, locus);
         }

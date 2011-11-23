@@ -337,6 +337,21 @@ DEFPARAM(PARAM_MAX_UNROLL_ITERATIONS,
 	 "max-completely-peel-loop-nest-depth",
 	 "The maximum depth of a loop nest we completely peel",
 	 8, 0, 0)
+/* The minimum profile count of basic blocks to look at when estimating
+ * the code size footprint of the call graph in a dynamic IPA compile. */
+DEFPARAM(PARAM_CODESIZE_HOTNESS_THRESHOLD,
+	"codesize-hotness-threshold",
+	"Minimum profile count of basic blocks counted towards dynamic IPA "
+	"code size footprint estimate",
+	10000, 0, 0)
+/* The maximum code size estimate under which loop unrolling and peeling
+ * is allowed in a dynamic IPA compile. This currently applies to loops with
+ * non-constant iteration counts and no floating point computations. */
+DEFPARAM(PARAM_UNROLLPEEL_CODESIZE_THRESHOLD,
+	"unrollpeel-codesize-threshold",
+	"Maximum dynamic IPA code size footprint estimate for loop unrolling "
+	"and peeling",
+	10000, 0, 0)
 
 /* The maximum number of insns of an unswitched loop.  */
 DEFPARAM(PARAM_MAX_UNSWITCH_INSNS,

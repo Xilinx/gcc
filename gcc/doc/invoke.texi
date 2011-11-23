@@ -401,7 +401,8 @@ Objective-C and Objective-C++ Dialects}.
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
 -fripa -fripa-disallow-asm-modules -fripa-disallow-opt-mismatch @gol
--fripa-no-promote-always-inline-func -fripa-verbose -frounding-math @gol
+-fripa-no-promote-always-inline-func -fripa-verbose @gol
+-fripa-peel-size-limit -fripa-unroll-size-limit -frounding-math @gol
 -fsched2-use-superblocks -fsched-pressure @gol
 -fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
@@ -8279,6 +8280,20 @@ Do not promote static functions with always inline attribute in LIPO compilation
 Enable printing of verbose information about dynamic inter-procedural optimizations.
 This is used in conjunction with the @option{-fripa}.
 
+@item -fripa-peel-size-limit
+@opindex fripa-peel-size-limit
+Limit loop peeling of non-const non-FP loops in a LIPO compilation under estimates
+of a large code footprint. Enabled by default under @option{-fripa}. Code size
+estimation and thresholds are controlled by the @option{codesize-hotness-threshold}
+and @option{unrollpeel-codesize-threshold} parameters.
+
+@item -fripa-unroll-size-limit
+@opindex fripa-unroll-size-limit
+Limit loop unrolling of non-const non-FP loops in a LIPO compilation under estimates
+of a large code footprint. Enabled by default under @option{-fripa}. Code size
+estimation and thresholds are controlled by the @option{codesize-hotness-threshold}
+and @option{unrollpeel-codesize-threshold} parameters.
+
 @item -fcallgraph-profiles-sections
 @opindex fcallgraph-profiles-sections
 Emit call graph edge profile counts in .note.callgraph.text sections. This is
@@ -9002,6 +9017,13 @@ hot loops. Its default value is 16.
 
 @item max-completely-peel-loop-nest-depth
 The maximum depth of a loop nest suitable for complete peeling.
+
+@item codesize-hotness-threshold
+The minimum profile count of basic blocks to look at when estimating
+the code size footprint of the call graph in a LIPO compile.
+
+@item unrollpeel-codesize-threshold
+Maximum LIPO code size footprint estimate for loop unrolling and peeling.
 
 @item max-unswitch-insns
 The maximum number of insns of an unswitched loop.
