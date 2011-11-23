@@ -1615,7 +1615,7 @@ $SBUF.}#
 	  ))
     (if (null ovar) 
 	(progn
-	  (debug "compilobj locsymocc null ovar sbnd=" sbnd " locmap=" locmap)
+	  (debug "compilobj locsymocc null ovar sbnd=" sbnd " locmap=" locmap " lsyo=" lsyo)
 	  (assert_msg "compilobj locsymocc null ovar without ctype_void" (== oty ctype_void))
 	  )
       (assert_msg "compilobj locsymocc check ovar"  (is_a ovar class_objlocv)))
@@ -3660,7 +3660,7 @@ $SBUF.}#
 	 )
     (assert_msg "check nvctypes" (is_multiple_or_null nvctypes))
     (assert_msg "check nvariadic" (is_a nvariadic class_symbol))
-    (debug "compilobj_nrep_ifvariadic nthen=" nthen " nelse=" nelse)
+    (debug "compilobj_nrep_ifvariadic nthen=" nthen " nelse=" nelse " nvariadic=" nvariadic)
     (let ( 
 	  (ovariadicindex (variadic_index_idstr nvariadic))
 	  (ovariadiclength (variadic_length_idstr nvariadic))

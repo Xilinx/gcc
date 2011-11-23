@@ -1376,11 +1376,12 @@ source location.}#
 	      ) ) ) ) 
       ;; dispatch the binding
       (:else 
-       (debug "normexp_symbol dispatching bind" bind)
+       (debug "normexp_symbol dispatching bind=" bind " for recv=" recv " psloc=" psloc)
        (let ( (resnormbind 
 	       (normalize_binding bind env ncx procs psloc))
 	      )
-	 (debug "normalize_binding return resnormbind" resnormbind)
+	 (debug "normexp_symbol got resnormbind=" resnormbind
+		" for bind=" bind " recv=" recv " psloc=" psloc)
 	 (return resnormbind)
 	 ))))))
 
@@ -3220,6 +3221,7 @@ source location.}#
 	 (assert_msg "check curctype" (is_a curctype class_ctype))
 	 (put_env newenv curletbind)		 
 	 ))
+      (debug "normexp_ifvariadic letbindthenlist=" letbindthenlist)
       (let ( (cvarsym (clone_symbol 'consumvariadic_))
 	     (nconsume (instance class_nrep_consume_variadic
 				 :nrep_loc loc

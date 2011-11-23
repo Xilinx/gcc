@@ -18,9 +18,6 @@
   (debug "badtvar3 start x=" x)
   (let ( (stdout (get_field :sysdata_stdout initial_system_data))
          )
-   (forever 
-    argloop
-    (debug "badtvar3 argloop varictype=" (variadic_ctype 0) " index=" (variadic_index))
     (variadic
      ((:long l)
       (add2out stdout "badtvar3 outer l=" l "\n"))
@@ -30,16 +27,15 @@
        ((:long l)
         (add2out stdout "badtvar3 inner l=" l "\n"))
        (:else
-        (add2out stdout "badtvar3 inner varictype=" (variadic_ctype 0) " inner index=" (variadic_index) "\n")))) 
+        (add2out stdout "badtvar3 inner vari-ctype=" (variadic_ctype 0) " inner index=" (variadic_index) "\n")))) 
      ( ()
-       (add2out stdout "badtvar3 ended")
-       (exit argloop))
+       (add2out stdout "badtvar3 ended"))
      (:else
-      (debug "badtvar3 unexpected varictype=" (variadic_ctype 0) " index=" (variadic_index))
+      (debug "badtvar3 unexpected vari-ctype=" (variadic_ctype 0) " index=" (variadic_index))
       (variadic_skip 1))
      ))
-   (debug "badtvar3 end x=" x)
-   ))
+  (debug "badtvar3 end x=" x)
+  )
 
 (badtvar3 'a 2 'x 3)
 
