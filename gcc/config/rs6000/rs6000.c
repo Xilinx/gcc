@@ -6824,6 +6824,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 #if TARGET_MACHO
       && DEFAULT_ABI == ABI_DARWIN
       && (flag_pic || MACHO_DYNAMIC_NO_PIC_P)
+      && machopic_symbol_defined_p (x)
 #else
       && DEFAULT_ABI == ABI_V4
       && !flag_pic
@@ -20227,7 +20228,7 @@ rs6000_emit_stack_reset (rs6000_stack_t *info,
 {
   /* This blockage is needed so that sched doesn't decide to move
      the sp change before the register restores.  */
-  if (frame_reg_rtx != sp_reg_rtx
+  if (DEFAULT_ABI == ABI_V4
       || (TARGET_SPE_ABI
 	  && info->spe_64bit_regs_used != 0
 	  && info->first_gp_reg_save != 32))

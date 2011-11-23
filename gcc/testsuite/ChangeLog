@@ -1,3 +1,38 @@
+2011-11-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51265
+	* g++.dg/cpp0x/decltype36.C: New.
+
+2011-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/delay-slot-2.c: New test.
+
+2011-11-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/assert4.c: Test __linux__, not __gnu_linux__.
+
+2011-11-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51150
+	* g++.dg/cpp0x/pr51150.C: New.
+
+2011-11-16  Richard Earnshaw  <rearnsha@arm.com>
+	    Bernd Schmidt <bernds@coudesourcery.com>
+	    Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	PR target/49641
+	* gcc.target/arm/pr49641.c: New test.
+
+2011-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51077
+	* gcc.c-torture/compile/pr51077.c: New test.
+
+2011-11-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/50870
+	* g++.dg/cpp0x/decltype35.C: New.
+
 2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* g++.dg/other/offsetof7.C: New test.

@@ -1,3 +1,66 @@
+2011-11-20  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure: Regenerate.
+
+2011-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/51187
+	* reorg.c (relax_delay_slots): Do not consider a jump useless if there
+	is a barrier between the jump and its target label.
+
+2011-11-19  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/50493
+	* config/arm/arm.c (neon_disambiguate_copy): Correctly handle partial
+	overlap of src and dest operands.
+
+2011-11-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/49992
+	* configure.ac: Remove ranlib special-casing for Darwin.
+	* configure: Regenerate.
+
+2011-11-16  Richard Earnshaw  <rearnsha@arm.com>
+	    Bernd Schmidt <bernds@coudesourcery.com>
+	    Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	PR target/49641
+	* config/arm/arm.c (store_multiple_sequence): Avoid cases where
+	the base reg is stored iff compiling for Thumb1.
+
+2011-11-13  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/48108
+	Backport from mainline r180523
+	* config/darwin.c (top level): Amend comments concerning LTO output.
+	(lto_section_num): New variable.  (darwin_lto_section_e): New GTY.
+	(LTO_SECTS_SECTION, LTO_INDEX_SECTION): New.
+	(LTO_NAMES_SECTION): Rename.
+	(darwin_asm_named_section): Record LTO section counts and switches
+	in a vec of darwin_lto_section_e.
+	(darwin_file_start): Remove unused code.
+	(darwin_file_end): Put an LTO section termination label.  Handle
+	output of the wrapped LTO sections, index and names table.
+
+2011-11-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/45233
+	* config/rs6000/rs6000.c (rs6000_legitimize_reload_address):
+	Only expand a symbol ref. into an access when the entity is defined
+	in the TU.
+
+2011-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51077
+	* tree-object-size.c (addr_object_size): Check TREE_CODE of
+	MEM_REF's operand rather than code of the MEM_REF itself.
+
+2011-11-07  Alan Modra  <amodra@gmail.com>
+
+	PR target/30282
+	* config/rs6000/rs6000.c (rs6000_emit_stack_reset): Always emit
+	blockage for ABI_V4.
+
 2011-11-04  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR c++/50608
@@ -214,8 +277,8 @@
 
 2011-10-07  Bernd Schmidt  <bernds@codesourcery.com>
 
- 	PR target/49049
- 	* config/arm/arm.md (arm_subsi3_insn): Lose the last alternative.
+	PR target/49049
+	* config/arm/arm.md (arm_subsi3_insn): Lose the last alternative.
 
 2011-10-06  Jakub Jelinek  <jakub@redhat.com>
 
