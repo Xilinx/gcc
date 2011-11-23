@@ -148,7 +148,9 @@ static GTY(()) VEC(tree,gc) *decl_scope_table;
 
 /* Pointers to various DWARF2 sections.  */
 static GTY(()) section *debug_info_section;
+static GTY(()) section *debug_skeleton_info_section;
 static GTY(()) section *debug_abbrev_section;
+static GTY(()) section *debug_skeleton_abbrev_section;
 static GTY(()) section *debug_aranges_section;
 static GTY(()) section *debug_macinfo_section;
 static GTY(()) section *debug_line_section;
@@ -3493,8 +3495,14 @@ static void gen_scheduled_generic_parms_dies (void);
 #ifndef DEBUG_INFO_SECTION
 #define DEBUG_INFO_SECTION	".debug_info"
 #endif
+#ifndef DEBUG_DWO_INFO_SECTION
+#define DEBUG_DWO_INFO_SECTION	".debug_dwo_info"
+#endif
 #ifndef DEBUG_ABBREV_SECTION
 #define DEBUG_ABBREV_SECTION	".debug_abbrev"
+#endif
+#ifndef DEBUG_DWO_ABBREV_SECTION
+#define DEBUG_DWO_ABBREV_SECTION ".debug_dwo_abbrev"
 #endif
 #ifndef DEBUG_ARANGES_SECTION
 #define DEBUG_ARANGES_SECTION	".debug_aranges"
@@ -3539,37 +3547,43 @@ static void gen_scheduled_generic_parms_dies (void);
    the section names themselves.  */
 
 #ifndef TEXT_SECTION_LABEL
-#define TEXT_SECTION_LABEL		"Ltext"
+#define TEXT_SECTION_LABEL		    "Ltext"
 #endif
 #ifndef COLD_TEXT_SECTION_LABEL
-#define COLD_TEXT_SECTION_LABEL         "Ltext_cold"
+#define COLD_TEXT_SECTION_LABEL             "Ltext_cold"
 #endif
 #ifndef DEBUG_PUBNAMES_SECTION_LABEL
-#define DEBUG_PUBNAMES_SECTION_LABEL	"Ldebug_pubnames"
+#define DEBUG_PUBNAMES_SECTION_LABEL	    "Ldebug_pubnames"
 #endif
 #ifndef DEBUG_PUBTYPES_SECTION_LABEL
-#define DEBUG_PUBTYPES_SECTION_LABEL	"Ldebug_pubtypes"
+#define DEBUG_PUBTYPES_SECTION_LABEL	    "Ldebug_pubtypes"
 #endif
 #ifndef DEBUG_LINE_SECTION_LABEL
-#define DEBUG_LINE_SECTION_LABEL	"Ldebug_line"
+#define DEBUG_LINE_SECTION_LABEL	    "Ldebug_line"
 #endif
 #ifndef DEBUG_INFO_SECTION_LABEL
-#define DEBUG_INFO_SECTION_LABEL	"Ldebug_info"
+#define DEBUG_INFO_SECTION_LABEL	    "Ldebug_info"
+#endif
+#ifndef DEBUG_SKELETON_INFO_SECTION_LABEL
+#define DEBUG_SKELETON_INFO_SECTION_LABEL   "Lskeleton_debug_info"
 #endif
 #ifndef DEBUG_ABBREV_SECTION_LABEL
-#define DEBUG_ABBREV_SECTION_LABEL	"Ldebug_abbrev"
+#define DEBUG_ABBREV_SECTION_LABEL	    "Ldebug_abbrev"
+#endif
+#ifndef DEBUG_SKELETON_ABBREV_SECTION_LABEL
+#define DEBUG_SKELETON_ABBREV_SECTION_LABEL "Lskeleton_debug_abbrev"
 #endif
 #ifndef DEBUG_LOC_SECTION_LABEL
-#define DEBUG_LOC_SECTION_LABEL		"Ldebug_loc"
+#define DEBUG_LOC_SECTION_LABEL		    "Ldebug_loc"
 #endif
 #ifndef DEBUG_RANGES_SECTION_LABEL
-#define DEBUG_RANGES_SECTION_LABEL	"Ldebug_ranges"
+#define DEBUG_RANGES_SECTION_LABEL	    "Ldebug_ranges"
 #endif
 #ifndef DEBUG_MACINFO_SECTION_LABEL
-#define DEBUG_MACINFO_SECTION_LABEL     "Ldebug_macinfo"
+#define DEBUG_MACINFO_SECTION_LABEL         "Ldebug_macinfo"
 #endif
 #ifndef DEBUG_MACRO_SECTION_LABEL
-#define DEBUG_MACRO_SECTION_LABEL	"Ldebug_macro"
+#define DEBUG_MACRO_SECTION_LABEL	    "Ldebug_macro"
 #endif
 
 
@@ -3585,6 +3599,8 @@ static char cold_text_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char cold_end_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char abbrev_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char debug_info_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
+static char debug_skeleton_info_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
+static char debug_skeleton_abbrev_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char debug_line_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char debug_pubnames_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
 static char debug_pubtypes_section_label[MAX_ARTIFICIAL_LABEL_BYTES];
@@ -4114,8 +4130,14 @@ dwarf_attr_name (unsigned int attr)
       return "DW_AT_GNU_all_call_sites";
     case DW_AT_GNU_all_source_call_sites:
       return "DW_AT_GNU_all_source_call_sites";
-    case DW_AT_GNU_macros:
-      return "DW_AT_GNU_macros";
+    case DW_AT_GNU_dwo_name:
+      return "DW_AT_GNU_dwo_name";
+    case DW_AT_GNU_dwo_id:
+      return "DW_AT_GNU_dwo_id";
+    case DW_AT_GNU_ref_base:
+      return "DW_AT_GNU_ref_base";
+    case DW_AT_GNU_addr_base:
+      return "DW_AT_GNU_addr_base";
 
     case DW_AT_GNAT_descriptive_type:
       return "DW_AT_GNAT_descriptive_type";
@@ -8576,6 +8598,78 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
       unmark_dies (die);
       die->die_id.die_symbol = oldsym;
     }
+}
+
+/* Output skeleton debug sections that point to the dwo file.  */
+
+static void
+output_skeleton_debug_sections (void)
+{
+  dw_die_ref die = gen_compile_unit_die (NULL);
+
+  /* FIXME: The dwo file's name should be passed in by the driver.  */
+  char *dwo_file_name = (char *) XALLOCAVEC (char, strlen (asm_file_name) + 5);
+  sprintf (dwo_file_name, "%s.dwo", asm_file_name);
+
+  /* No source file name for the skeleton debug_info.  */
+  add_AT_lineptr (die, DW_AT_stmt_list, debug_line_section_label);
+  /* These attributes will be found in the full debug_info section.  */
+  remove_AT (die, DW_AT_producer);
+  remove_AT (die, DW_AT_language);
+  add_AT_string (die, DW_AT_GNU_dwo_name, dwo_file_name);
+
+  switch_to_section (debug_skeleton_info_section);
+  ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_info_section_label,
+                               DEBUG_SKELETON_INFO_SECTION_LABEL, 0);
+  ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_info_section_label);
+
+  /* Produce the skeleton compilation-unit header.  This one differs enough from
+     a normal CU header that it's better not to call output_compilation_unit
+     header.  */
+  if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
+    dw2_asm_output_data (4, 0xffffffff,
+      "Initial length escape value indicating 64-bit DWARF extension");
+  /* One for the terminating NULL byte.  */
+  dw2_asm_output_data (DWARF_OFFSET_SIZE,
+		       DWARF_COMPILE_UNIT_HEADER_SIZE
+                       - DWARF_INITIAL_LENGTH_SIZE + size_of_die (die) + 1,
+		       "Length of Compilation Unit Info");
+  dw2_asm_output_data (2, dwarf_version, "DWARF version number");
+  /* The offset into the skeleton_debug_abbrev section is always zero.  */
+  dw2_asm_output_data (DWARF_OFFSET_SIZE, 0,
+                       "Offset Into Skeleton Abbrev. Section");
+  dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Pointer Size (in bytes)");
+
+  output_die (die);
+  /* Add null byte to terminate list.  */
+  dw2_asm_output_data (1, 0, "end of skeleton .debug_info");
+
+  /* Build an empty skeleton debug_abbrev section.  */
+  switch_to_section (debug_skeleton_abbrev_section);
+  ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_abbrev_section_label,
+                               DEBUG_SKELETON_ABBREV_SECTION_LABEL, 0);
+  ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_abbrev_section_label);
+
+  /* Only one abbreviation here.  */
+  dw2_asm_output_data_uleb128 (1, "(abbrev code)");
+  dw2_asm_output_data_uleb128 (die->die_tag, "(TAG: %s)",
+                               dwarf_tag_name (die->die_tag));
+  dw2_asm_output_data (1, DW_children_no, "DW_children_no");
+  {
+    int ix;
+    dw_attr_ref a_attr;
+
+    for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a_attr);
+         ix++)
+      {
+        dw2_asm_output_data_uleb128 (a_attr->dw_attr, "(%s)",
+                                     dwarf_attr_name (a_attr->dw_attr));
+        output_value_format (a_attr);
+      }
+  }
+
+  dw2_asm_output_data (1, 0, "end of skeleton .debug_abbrev");
+  dw2_asm_output_data (1, 0, NULL);
 }
 
 /* Output a comdat type unit DIE and its children.  */
@@ -21064,10 +21158,24 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 
   used_rtx_array = VEC_alloc (rtx, gc, 32);
 
-  debug_info_section = get_section (DEBUG_INFO_SECTION,
-				    SECTION_DEBUG, NULL);
-  debug_abbrev_section = get_section (DEBUG_ABBREV_SECTION,
-				      SECTION_DEBUG, NULL);
+  if (!dwarf_split_debug_info)
+    {
+      debug_info_section = get_section (DEBUG_INFO_SECTION,
+                                        SECTION_DEBUG, NULL);
+      debug_abbrev_section = get_section (DEBUG_ABBREV_SECTION,
+                                          SECTION_DEBUG, NULL);
+    }
+  else
+    {
+      debug_info_section = get_section (DEBUG_DWO_INFO_SECTION,
+                                        SECTION_DEBUG, NULL);
+      debug_skeleton_info_section = get_section (DEBUG_INFO_SECTION,
+                                                 SECTION_DEBUG, NULL);
+      debug_abbrev_section = get_section (DEBUG_DWO_ABBREV_SECTION,
+                                          SECTION_DEBUG, NULL);
+      debug_skeleton_abbrev_section = get_section (DEBUG_ABBREV_SECTION,
+                                                   SECTION_DEBUG, NULL);
+    }
   debug_aranges_section = get_section (DEBUG_ARANGES_SECTION,
 				       SECTION_DEBUG, NULL);
   debug_macinfo_section = get_section (dwarf_strict
@@ -22681,6 +22789,9 @@ dwarf2out_finish (const char *filename)
 
   if (have_location_lists)
     optimize_location_lists (comp_unit_die ());
+
+  if (dwarf_split_debug_info)
+    output_skeleton_debug_sections ();
 
   /* Output all of the compilation units.  We put the main one last so that
      the offsets are available to output_pubnames.  */
