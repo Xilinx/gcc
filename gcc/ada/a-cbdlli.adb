@@ -27,14 +27,19 @@
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
 
-with System;  use type System.Address;
+with Ada.Finalization; use Ada.Finalization;
+with System; use type System.Address;
 
 package body Ada.Containers.Bounded_Doubly_Linked_Lists is
-   type Iterator is new
-     List_Iterator_Interfaces.Reversible_Iterator with record
-        Container : List_Access;
-        Node      : Count_Type;
+
+   type Iterator is new Limited_Controlled and
+     List_Iterator_Interfaces.Reversible_Iterator with
+   record
+      Container : List_Access;
+      Node      : Count_Type;
    end record;
+
+   overriding procedure Finalize (Object : in out Iterator);
 
    overriding function First (Object : Iterator) return Cursor;
    overriding function Last  (Object : Iterator) return Cursor;
@@ -493,6 +498,22 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
       return Position.Container.Nodes (Position.Node).Element;
    end Element;
 
+   --------------
+   -- Finalize --
+   --------------
+
+   procedure Finalize (Object : in out Iterator) is
+   begin
+      if Object.Container /= null then
+         declare
+            B : Natural renames Object.Container.all.Busy;
+
+         begin
+            B := B - 1;
+         end;
+      end if;
+   end Finalize;
+
    ----------
    -- Find --
    ----------
@@ -544,10 +565,23 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
 
    function First (Object : Iterator) return Cursor is
    begin
-      if Object.Container = null then
-         return No_Element;
+      --  The value of the iterator object's Node component influences the
+      --  behavior of the First (and Last) selector function.
+
+      --  When the Node component is 0, this means the iterator object was
+      --  constructed without a start expression, in which case the (forward)
+      --  iteration starts from the (logical) beginning of the entire sequence
+      --  of items (corresponding to Container.First, for a forward iterator).
+
+      --  Otherwise, this is iteration over a partial sequence of items. When
+      --  the Node component is positive, the iterator object was constructed
+      --  with a start expression, that specifies the position from which the
+      --  (forward) partial iteration begins.
+
+      if Object.Node = 0 then
+         return Bounded_Doubly_Linked_Lists.First (Object.Container.all);
       else
-         return (Object.Container, Object.Container.First);
+         return Cursor'(Object.Container, Object.Node);
       end if;
    end First;
 
@@ -1050,9 +1084,7 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
      (Container : List;
       Process   : not null access procedure (Position : Cursor))
    is
-      C : List renames Container'Unrestricted_Access.all;
-      B : Natural renames C.Busy;
-
+      B    : Natural renames Container'Unrestricted_Access.all.Busy;
       Node : Count_Type := Container.First;
 
    begin
@@ -1075,14 +1107,28 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
 
    function Iterate
      (Container : List)
-      return List_Iterator_Interfaces.Reversible_Iterator'class
+      return List_Iterator_Interfaces.Reversible_Iterator'Class
    is
+      B : Natural renames Container'Unrestricted_Access.all.Busy;
+
    begin
-      if Container.Length = 0 then
-         return Iterator'(null, Count_Type'First);
-      else
-         return Iterator'(Container'Unrestricted_Access, Container.First);
-      end if;
+      --  The value of the Node component influences the behavior of the First
+      --  and Last selector functions of the iterator object. When the Node
+      --  component is 0 (as is the case here), this means the iterator
+      --  object was constructed without a start expression. This is a
+      --  complete iterator, meaning that the iteration starts from the
+      --  (logical) beginning of the sequence of items.
+
+      --  Note: For a forward iterator, Container.First is the beginning, and
+      --  for a reverse iterator, Container.Last is the beginning.
+
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access,
+                                Node      => 0)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    function Iterate
@@ -1090,9 +1136,48 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
       Start     : Cursor)
       return List_Iterator_Interfaces.Reversible_Iterator'class
    is
-      It : constant Iterator := (Container'Unrestricted_Access, Start.Node);
+      B  : Natural renames Container'Unrestricted_Access.all.Busy;
+
    begin
-      return It;
+      --  It was formerly the case that when Start = No_Element, the partial
+      --  iterator was defined to behave the same as for a complete iterator,
+      --  and iterate over the entire sequence of items. However, those
+      --  semantics were unintuitive and arguably error-prone (it is too easy
+      --  to accidentally create an endless loop), and so they were changed,
+      --  per the ARG meeting in Denver on 2011/11. However, there was no
+      --  consensus about what positive meaning this corner case should have,
+      --  and so it was decided to simply raise an exception. This does imply,
+      --  however, that it is not possible to use a partial iterator to specify
+      --  an empty sequence of items.
+
+      if Start = No_Element then
+         raise Constraint_Error with
+           "Start position for iterator equals No_Element";
+      end if;
+
+      if Start.Container /= Container'Unrestricted_Access then
+         raise Program_Error with
+           "Start cursor of Iterate designates wrong list";
+      end if;
+
+      pragma Assert (Vet (Start), "Start cursor of Iterate is bad");
+
+      --  The value of the Node component influences the behavior of the First
+      --  and Last selector functions of the iterator object. When the Node
+      --  component is positive (as is the case here), it means that this
+      --  is a partial iteration, over a subset of the complete sequence of
+      --  items. The iterator object was constructed with a start expression,
+      --  indicating the position from which the iteration begins. Note that
+      --  the start position has the same value irrespective of whether this
+      --  is a forward or reverse iteration.
+
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access,
+                                Node      => Start.Node)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    ----------
@@ -1110,10 +1195,23 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
 
    function Last (Object : Iterator) return Cursor is
    begin
-      if Object.Container = null then
-         return No_Element;
+      --  The value of the iterator object's Node component influences the
+      --  behavior of the Last (and First) selector function.
+
+      --  When the Node component is 0, this means the iterator object was
+      --  constructed without a start expression, in which case the (reverse)
+      --  iteration starts from the (logical) beginning of the entire sequence
+      --  (corresponding to Container.Last, for a reverse iterator).
+
+      --  Otherwise, this is iteration over a partial sequence of items. When
+      --  the Node component is positive, the iterator object was constructed
+      --  with a start expression, that specifies the position from which the
+      --  (reverse) partial iteration begins.
+
+      if Object.Node = 0 then
+         return Bounded_Doubly_Linked_Lists.Last (Object.Container.all);
       else
-         return (Object.Container, Object.Container.Last);
+         return Cursor'(Object.Container, Object.Node);
       end if;
    end Last;
 
@@ -1164,10 +1262,11 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
            "attempt to tamper with cursors of Source (list is busy)";
       end if;
 
-      Clear (Target);  -- checks busy bit of Target
+      --  Clear target, note that this checks busy bits of Target
+
+      Clear (Target);
 
       while Source.Length > 1 loop
-
          pragma Assert (Source.First in 1 .. Source.Capacity);
          pragma Assert (Source.Last /= Source.First);
          pragma Assert (N (Source.First).Prev = 0);
@@ -1193,18 +1292,16 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
          --  in the unbounded form of the doubly-linked list container. In that
          --  case, Free is an instantation of Unchecked_Deallocation, which can
          --  fail (because PE will be raised if controlled Finalize fails), so
-         --  we must defer the call until the very last step. Here in the
-         --  bounded form, Free merely links the node we have just
-         --  "deallocated" onto a list of inactive nodes, so technically Free
-         --  cannot fail. However, for consistency, we handle Free the same way
-         --  here as we do for the unbounded form, with the pessimistic
-         --  assumption that it can fail.
+         --  we must defer the call until the last step. Here in the bounded
+         --  form, Free merely links the node we have just "deallocated" onto a
+         --  list of inactive nodes, so technically Free cannot fail. However,
+         --  for consistency, we handle Free the same way here as we do for the
+         --  unbounded form, with the pessimistic assumption that it can fail.
 
          Free (Source, X);
       end loop;
 
       if Source.Length = 1 then
-
          pragma Assert (Source.First in 1 .. Source.Capacity);
          pragma Assert (Source.Last = Source.First);
          pragma Assert (N (Source.First).Prev = 0);
@@ -1247,6 +1344,7 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
       declare
          Nodes : Node_Array renames Position.Container.Nodes;
          Node  : constant Count_Type := Nodes (Position.Node).Next;
+
       begin
          if Node = 0 then
             return No_Element;
@@ -1260,14 +1358,17 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
      (Object   : Iterator;
       Position : Cursor) return Cursor
    is
-      Nodes : Node_Array renames Position.Container.Nodes;
-      Node  : constant Count_Type := Nodes (Position.Node).Next;
    begin
-      if Position.Node = Object.Container.Last then
+      if Position.Container = null then
          return No_Element;
-      else
-         return (Object.Container, Node);
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong list";
+      end if;
+
+      return Next (Position);
    end Next;
 
    -------------
@@ -1316,14 +1417,17 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
      (Object   : Iterator;
       Position : Cursor) return Cursor
    is
-      Nodes : Node_Array renames Position.Container.Nodes;
-      Node  : constant Count_Type := Nodes (Position.Node).Prev;
    begin
-      if Position.Node = 0 then
+      if Position.Container = null then
          return No_Element;
-      else
-         return (Object.Container, Node);
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Previous designates wrong list";
+      end if;
+
+      return Previous (Position);
    end Previous;
 
    -------------------

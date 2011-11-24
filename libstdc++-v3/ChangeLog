@@ -1,3 +1,71 @@
+2011-11-23  François Dumont <fdumont@gcc.gnu.org>
+
+	PR libstdc++/41975
+	* include/bits/hashtable.h (_Hashtable<>): Major data model
+	modification to limit performance impact of empty buckets in
+	erase(iterator) implementation.
+	* include/bits/hashtable_policy.h (_Hashtable_iterator,
+	_Hashtable_const_iterator): Remove not used anymore.
+	* include/bits/hashtable_policy.h (_Prime_rehash_policy): Remove
+	_M_grow_factor, just use natural evolution of prime numbers. Add
+	_M_prev_size to know when the number of buckets can be reduced.
+	* include/bits/unordered_set.h (__unordered_set<>,
+	__unordered_multiset<>), unordered_map.h (__unordered_map<>,
+	__unordered_multimap<>): Change default value of cache hash code
+	template parameter, false for integral types with noexcept hash
+	functor, true otherwise.
+	* include/debug/unordered_map, unordered_set: Adapt transformation
+	from iterator/const_iterator to respectively
+	local_iterator/const_local_iterator.
+	* testsuite/performance/23_containers/copy_construct/unordered_set.cc:
+	New.
+	* testsuite/23_containers/unordered_set/instantiation_neg.cc: New.
+	* testsuite/23_containers/unordered_set/hash_policy/rehash.cc: New.
+	* testsuite/23_containers/unordered_multiset/cons/copy.cc: New.
+	* testsuite/23_containers/unordered_multiset/erase/1.cc,
+	24061-multiset.cc: Add checks on the number of bucket elements.
+	* testsuite/23_containers/unordered_multiset/insert/multiset_range.cc,
+	multiset_single.cc, multiset_single_move.cc: Likewise.
+
+2011-11-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/functional (is_placeholder, is_bind_expression): Add
+	partial specializations for cv-qualified types.
+	* include/tr1/functional (is_placeholder, is_bind_expression): Add
+	partial specializations for std::bind and std::placeholders and for
+	cv-qualified types.
+	* testsuite/20_util/bind/cv_quals_3.cc: New.
+	* testsuite/tr1/3_function_objects/bind/cv_quals.cc: New.
+	* testsuite/tr1/3_function_objects/bind/mixed.cc: New.
+
+2011-11-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure: Regenerate.
+
+2011-11-21  Daniel Krugler  <daniel.kruegler@googlemail.com>
+
+	PR libstdc++/51185
+	* include/std/type_traits (__is_base_to_derived_ref,
+	__is_lvalue_to_rvalue_ref): Fix.
+	* testsuite/20_util/is_constructible/51185.cc: New.
+	* testsuite/20_util/is_constructible/value-2.cc: Extend.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Adjust dg-error
+	line number.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc
+	Likewise.
+
+2011-11-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (__conv_types, __one_by_one_convertible,
+	__all_convertible): Remove.
+	(tuple<>::tuple(_UElements&&...),
+	tuple<>::tuple(const tuple<_UElements...>&),
+	tuple<>::tuple(tuple<_UElements...>&&)): Remove wa for c++/48322.
+	* testsuite/20_util/uses_allocator/cons_neg.cc: Adjust dg-error
+	line number.
+
 2011-11-20  Jason Merrill  <jason@redhat.com>
 
 	PR c++/48322

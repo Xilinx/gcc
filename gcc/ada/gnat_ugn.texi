@@ -11805,7 +11805,7 @@ recognized by GNAT:
 @section Handling of Configuration Pragmas
 
 Configuration pragmas may either appear at the start of a compilation
-unit, in which case they apply only to that unit, or they may apply to
+unit, or they can appear in a configuration pragma file to apply to
 all compilations performed in a given compilation environment.
 
 GNAT also provides the @code{gnatchop} utility to provide an automatic
@@ -11815,6 +11815,30 @@ See @ref{Operating gnatchop in Compilation Mode} for details.
 However, for most purposes, it will be more convenient to edit the
 @file{gnat.adc} file that contains configuration pragmas directly,
 as described in the following section.
+
+In the case of @code{Restrictions} pragmas appearing as configuration
+pragmas in individual compilation units, the exact handling depends on
+the type of restriction.
+
+Restrictions that require partition-wide consistency (like
+@code{No_Tasking}) are
+recognized wherever they appear
+and can be freely inherited, e.g. from a with'ed unit to the with'ing
+unit. This makes sense since the binder will in any case insist on seeing
+consistent use, so any unit not conforming to any restrictions that are
+anywhere in the partition will be rejected, and you might as well find
+that out at compile time rather than at bind time.
+
+For restrictions that do not require partition-wide consistency, e.g.
+SPARK or No_Implementation_Attributes, in general the restriction applies
+only to the unit in which the pragma appears, and not to any other units.
+
+The exception is No_Elaboration_Code which always applies to the entire
+object file from a compilation, i.e. to the body, spec, and all subunits.
+This restriction can be specified in a configuration pragma file, or it
+can be on the body and/or the spec (in eithe case it applies to all the
+relevant units). It can appear on a subunit only if it has previously
+appeared in the body of spec.
 
 @node The Configuration Pragmas Files
 @section The Configuration Pragmas Files
@@ -13164,6 +13188,23 @@ setting.
 Enumeration literals are in mixed case. Overrides ^-n^/NAME_CASING^ casing
 setting.
 
+@cindex @option{^-nt@var{x}^/TYPE_CASING^} (@command{gnatpp})
+@item ^-neD^/TYPE_CASING=AS_DECLARED^
+Type and subtype name casing for defining occurrences are as they appear in
+the source file. Overrides ^-n^/NAME_CASING^ casing setting.
+
+@item ^-ntU^/TYPE_CASING=UPPER_CASE^
+Type and subtype names are in upper case. Overrides ^-n^/NAME_CASING^ casing
+setting.
+
+@item ^-ntL^/TYPE_CASING=LOWER_CASE^
+Type and subtype names are in lower case. Overrides ^-n^/NAME_CASING^ casing
+setting.
+
+@item ^-ntM^/TYPE_CASING=MIXED_CASE^
+Type and subtype names are in mixed case. Overrides ^-n^/NAME_CASING^ casing
+setting.
+
 @cindex @option{^-p@var{x}^/PRAGMA_CASING^} (@command{gnatpp})
 @item ^-pL^/PRAGMA_CASING=LOWER_CASE^
 Pragma names are lower case
@@ -13364,6 +13405,19 @@ and variants if there are @var{nnn} or more (the default
 value is 10).
 If @var{nnn} is 0, an additional indentation level is
 used for @b{case} alternatives and variants regardless of their number.
+
+@item ^--call_threshold=@var{nnn}^/MAX_ACT=@var{nnn}^
+@cindex @option{^--call_threshold^/MAX_ACT^} (@command{gnatpp})
+If the number of parameter associations is greater than @var{nnn} and if at
+least one association uses named notation, start each association from
+a new line. If @var{nnn} is 0, no check for the number of associations
+is made, this is the default.
+
+@item ^--par_threshold=@var{nnn}^/MAX_PAR=@var{nnn}^
+@cindex @option{^--par_threshold^/MAX_PAR^} (@command{gnatpp})
+If the number of parameter specifications is greater than @var{nnn}
+(or equal to @var{nnn} in case of a function), start each specification from
+a new line. The default for @var{nnn} is 3.
 @end table
 
 @node Setting the Source Search Path
@@ -17889,6 +17943,9 @@ gnatmake -P<harness-dir>/test_driver
 test_runner
 @end smallexample
 
+Note that you might need to specify the necessary values of scenario variables
+when you are not using the AUnit defaults.
+
 @item actual unit test stubs
 a test stub for each visible subprogram is created in a separate file, if it
 doesn't exist already. By default, those separate test files are located in a
@@ -17899,6 +17956,9 @@ file my_unit.ads in directory src contains a visible subprogram Proc, then
 the corresponding unit test will be found in file
 src/tests/my_unit-tests-proc_<code>.adb. <code> is a signature encoding used to
 differentiate test names in cases of overloading.
+
+Note that if the project already has both my_unit.ads and my_unit-tests.ads this
+will cause name a conflict with generated test package.
 @end itemize
 
 @node Switches for gnattest
@@ -17920,6 +17980,10 @@ manual tests to be added to the test suite.
 @item -r
 @cindex @option{-r} (@command{gnattest})
 Recursively consider all sources from all projects.
+
+@item -X@var{name=value}
+@cindex @option{-X} (@command{gnattest})
+Indicate that external variable @var{name} has the value @var{value}.
 
 @item -q
 @cindex @option{-q} (@command{gnattest})
@@ -18311,6 +18375,8 @@ The tool currently does not support following features:
 @item generic tests for generic packages and package instantiations
 @item tests for protected subprograms and entries
 @item aspects Precondition, Postcondition, and Test_Case
+@item generating test packages for code that is not conformant with ada 2005
+
 @end itemize
 
 @c *********************************

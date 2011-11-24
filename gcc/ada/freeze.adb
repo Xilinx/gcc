@@ -1342,7 +1342,9 @@ package body Freeze is
 
             --  If an incomplete type is still not frozen, this may be a
             --  premature freezing because of a body declaration that follows.
-            --  Indicate where the freezing took place.
+            --  Indicate where the freezing took place. Freezing will happen
+            --  if the body comes from source, but not if it is internally
+            --  generated, for example as the body of a type invariant.
 
             --  If the freezing is caused by the end of the current declarative
             --  part, it is a Taft Amendment type, and there is no error.
@@ -1360,8 +1362,9 @@ package body Freeze is
                                      N_Protected_Body,
                                      N_Task_Body)
                         or else Nkind (Bod) in N_Body_Stub)
-                     and then
-                       List_Containing (After) = List_Containing (Parent (E))
+                    and then
+                     List_Containing (After) = List_Containing (Parent (E))
+                    and then Comes_From_Source (Bod)
                   then
                      Error_Msg_Sloc := Sloc (Next (After));
                      Error_Msg_NE
@@ -4239,7 +4242,8 @@ package body Freeze is
       --  By default, if no size clause is present, an enumeration type with
       --  Convention C is assumed to interface to a C enum, and has integer
       --  size. This applies to types. For subtypes, verify that its base
-      --  type has no size clause either.
+      --  type has no size clause either. Treat other foreign conventions
+      --  in the same way, and also make sure alignment is set right.
 
       if Has_Foreign_Convention (Typ)
         and then not Has_Size_Clause (Typ)
@@ -4247,6 +4251,7 @@ package body Freeze is
         and then Esize (Typ) < Standard_Integer_Size
       then
          Init_Esize (Typ, Standard_Integer_Size);
+         Set_Alignment (Typ, Alignment (Standard_Integer));
 
       else
          --  If the enumeration type interfaces to C, and it has a size clause

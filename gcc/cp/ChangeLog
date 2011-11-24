@@ -1,3 +1,43 @@
+2011-11-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51145
+	* decl.c (check_elaborated_type_specifier): Gracefully handle
+	error_mark_node.  Accept bound template template parameters.
+	Update diagnostics for alias template specializations.  Update
+	comment.
+	* parser.c (cp_parser_elaborated_type_specifier): Use
+	check_elaborated_type_specifier for simple-template-ids as well.
+
+2011-11-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51265
+	* semantics.c (finish_decltype_type): Handle PTRMEM_CST.
+
+2011-11-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51143
+	* parser.c (cp_parser_alias_declaration): Don't allow type
+	definition in templates.
+
+2011-11-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51196
+	* typeck.c (cp_build_binary_op, [case EQ_EXPR]): For targets having
+	TARGET_PTRMEMFUNC_VBIT_LOCATION == ptrmemfunc_vbit_in_delta, do here
+	the -Wzero-as-null-pointer-constant warning for pmf == 0.
+
+2011-11-21  Torvald Riegel  <triegel@redhat.com>
+
+	* pt.c (tsubst_copy_and_build): Handle TRANSACTION_EXPR.
+
+2011-11-21  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50958
+	* parser.c (lookup_literal_operator): New.
+	(cp_parser_userdef_char_literal): Use it.
+	(cp_parser_userdef_numeric_literal): Use it.
+	(cp_parser_userdef_string_literal): Use lookup_name.
+
 2011-11-20  Jason Merrill  <jason@redhat.com>
 
 	* pt.c (tsubst_pack_expansion): Fix SFINAE.

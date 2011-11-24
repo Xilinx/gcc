@@ -6424,13 +6424,14 @@ package body Exp_Util is
 
       if not Expander_Active then
          return;
+      end if;
 
       --  Cannot generate temporaries if the invocation to remove side effects
       --  was issued too early and the type of the expression is not resolved
       --  (this happens because routines Duplicate_Subexpr_XX implicitly invoke
       --  Remove_Side_Effects).
 
-      elsif No (Exp_Type)
+      if No (Exp_Type)
         or else Ekind (Exp_Type) = E_Access_Attribute_Type
       then
          return;

@@ -1,3 +1,201 @@
+2011-11-24  Alan Modra  <amodra@gmail.com>
+
+	* c-decl.c (warn_if_shadowing): Don't warn if shadowed
+	identifier is from system header.
+
+2011-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51261
+	* config/i386/i386.c (decide_alg): Initialize *dynamic_check
+	even if !optimize.
+
+2011-11-23  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/48455
+	* doc/invoke.texi (-fira-region): Document default values.
+
+	* flags-types.h (enum ira_region): Add new value
+	IRA_REGION_AUTODETECT.
+
+	* common.opt (fira-region): Set up initial value to
+	IRA_REGION_AUTODETECT.
+
+	* toplev.c (process_options): Set up flag_ira_region depending on
+	-O options.
+
+	* ira.c (ira.c): Remove optimize guard for ira_build.
+
+2011-11-23  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR rtl-optimization/50496
+	* jump.c (redirect_jump): Assert fail on nlabel == NULL_RTX
+	only after epilogue is created. Add comments.
+
+2011-11-22  Richard Henderson  <rth@redhat.com>
+
+	* config/ia64/ia64.c (ia64_expand_atomic_op): Add model parameter.
+	Generate the barrier required for the memory model.
+	(rtx_needs_barrier): Handle UNSPEC_FETCHADD_REL, UNSPEC_CMPXCHG_REL.
+	* config/ia64/ia64-protos.h: Update.
+	* config/ia64/ia64.md (UNSPEC_FETCHADD_REL): New.
+	(UNSPEC_CMPXCHG_REL): New.
+	* config/ia64/sync.md (mem_thread_fence): New.
+	(atomic_load<IMODE>, atomic_store<IMODE>): New.
+	(atomic_compare_and_swap<IMODE>): New.
+	(cmpxchg_acq_<I124MODE>, cmpxchg_acq_di): New.
+	(atomic_exchange<IMODE>): New.
+	(xchg_acq_<IMODE>): Rename from sync_lock_test_and_set<IMODE>.
+	(atomic_<FETCHOP><IMODE>, atomic_nand<IMODE>): New.
+	(atomic_fetch_<FETCHOP><IMODE>, atomic_fetch_nand<IMODE>): New.
+	(atomic_<FETCHOP>_fetch<IMODE>, atomic_nand_fetch<IMODE>): New.
+	(fetchadd_rel_<I48MODE>): New.
+	(sync_<FETCHOP><IMODE>, sync_nand<IMODE>): Remove.
+	(sync_old_<FETCHOP><IMODE>, sync_old_nand<IMODE>): Remove.
+	(sync_new_<FETCHOP><IMODE>, sync_new_nand<IMODE>): Remove.
+	(sync_compare_and_swap<IMODE>): Remove.
+	(sync_lock_release<IMODE>): Remove.
+
+	* config/ia64/ia64.md: Use define_e_enum for UNSPEC_*
+	and UNSPECV_* constants.
+
+2011-11-22  Tom de Vries  <tom@codesourcery.com>
+
+	PR rtl-optimization/50764
+	* sched-deps.c (sched_analyze_insn): Make sure frame-related insns are
+	not moved past preceding jump.
+
+2011-11-22  Jeff Law  <law@redhat.com>
+
+	* doc/contrib.texi: Add entry for David Binderman.
+
+2011-11-22  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* postreload.c (reload_combine): Mark reg_state as invalid at
+	volatile insns if there has been a use already.
+
+2011-11-21  Aldy Hernandez  <aldyh@redhat.com>
+
+	* opts.c (finish_options): Do not fail for -fgnu-tm.
+	* gimple-streamer-out.c (output_gimple_stmt): Handle GIMPLE_TRANSACTION.
+	* gimple-streamer-in.c (input_gimple_stmt): Same.
+	* lto-cgraph.c (input_overwrite_node): Read tm_clone bit.
+	(lto_output_node): Write tm_clone bit.
+
+2011-11-22  Ian Lance Taylor  <iant@google.com>
+
+	* doc/install.texi (Configuration): Correct doc of
+	--enable-build-poststage1-with-cxx: it is not experimental.
+
+2011-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51074
+	* fold-const.c (fold_binary_loc): Fix up VEC_INTERLEAVE_*_EXPR
+	handling for BYTES_BIG_ENDIAN.
+	* optabs.c (can_vec_perm_for_code_p): Likewise.
+
+2011-11-22  Michael Matz  <matz@suse.de>
+
+	PR other/51125
+	* trans-mem.c (expand_block_tm): Ignore clobbers.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	*  config/darwin.h (ENDFILE_SPEC): New.
+	(DARWIN_CRT1_SPEC): Add crttms.o.
+	(STARTFILE_SPEC): Likewise for dynamic libs and bundles.
+	* config/i386.h (ENDFILE_SPEC): Amend to include crttme.o.
+
+2011-11-22  Michael Matz  <matz@suse.de>
+
+	PR c++/51264
+	* tree.c (iterative_hash_expr): Remove break after return.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* target.def (tm_clone_table_section): New hook.
+	* doc/tm.texi.in (TARGET_ASM_TM_CLONE_TABLE_SECTION): Define.
+	* doc/tm.texi: Regenerate.
+	* varasm.c (dump_tm_clone_pairs): Use target tm_clone_table_section.
+	* output.h (default_clone_table_section): New prototype.
+	* config/darwin.h (TARGET_ASM_TM_CLONE_TABLE_SECTION): New.
+	* config/darwin-protos.h (darwin_tm_clone_table_section): New prototype.
+	* config/darwin.c (darwin_tm_clone_table_section): New.
+
+2011-11-21  Torvald Riegel  <triegel@redhat.com>
+
+	* trans-mem.c (diagnose_tm_1): Print an expression instead of a
+	declaration in error messages for indirect calls.
+
+2011-11-21  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.c (sparc_regmode_natural_size): New function
+	implementing REGMODE_NATURAL_SIZE taking into consideration vector
+	modes.
+	(sparc_modes_tieable_p): Similarly for MODES_TIEABLE_P.
+	* config/sparc/sparc-protos.h (sparc_regmode_natural_size,
+	sparc_modes_tieable_p): Declare.
+	* gcc/config/sparc/sparc.h (REGMODE_NATURAL_SIZE,
+	MODES_TIEABLE_P): Use new helper functions.
+
+	Revert
+	2011-11-16  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR middle-end/50325
+	* expmed.c (store_bit_field_1): Use extract_bit_field on big
+	endian targets if the source cannot be exactly covered by word
+	mode chunks.
+
+2011-11-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/50827
+	* var-tracking.c (loc_cmp): For ENTRY_VALUEs use ENTRY_VALUE_EXP
+	macro instead of XEXP.
+
+2011-11-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure: Regenerate.
+
+2011-11-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (output_reload_in_const): Loading a byte with 0
+	must not affect cc0.
+	* config/avr/avr.md (*movhi, *movpsi, *movsi, *movsf): Zero to any
+	register does not change cc0. Same for any constant to ld-register.
+
+2011-11-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/mmx.md (unspec) <UNSPEC_MOVNTQ, UNSPEC_PFRCP,
+	UNSPEC_PFRCPIT1, UNSPEC_PFRCPIT2, UNSPEC_PFRSQRT, UNSPEC_PFRSQIT1>:
+	Move from config/i386/i386.md
+	(unspecv) <UNSPECV_EMMS, UNSPECV_FEMMS>: Ditto.
+	* config/i386/sse.md (unspec) <UNSPEC_MOVNT,UNSPEC_MOVU, UNSPEC_LDDQU,
+	UNSPEC_PSHUFB, UNSPEC_PSIGN, UNSPEC_PALIGNR, UNSPEC_EXTRQI,
+	UNSPEC_EXTRQ, UNSPEC_INSERTQI, UNSPEC_INSERTQ, UNSPEC_BLENDV,
+	UNSPEC_INSERTPS, UNSPEC_DP, UNSPEC_MOVNTDQA, UNSPEC_MPSADBW,
+	UNSPEC_PHMINPOSUW, UNSPEC_PTEST, UNSPEC_PCMPESTR, UNSPEC_PCMPISTR,
+	UNSPEC_FMADDSUB, UNSPEC_XOP_UNSIGNED_CMP, UNSPEC_XOP_TRUEFALSE,
+	UNSPEC_XOP_PERMUTE, UNSPEC_FRCZ, UNSPEC_AESENC, UNSPEC_AESENCLAST,
+	UNSPEC_AESDEC, UNSPEC_AESDECLAST, UNSPEC_AESIMC,
+	UNSPEC_AESKEYGENASSIST, UNSPEC_PCLMUL, UNSPEC_PCMP, UNSPEC_VPERMIL,
+	UNSPEC_VPERMIL2, UNSPEC_VPERMIL2F128, UNSPEC_CAST, UNSPEC_VTESTP,
+	UNSPEC_VCVTPH2PS, UNSPEC_VCVTPS2PH, UNSPEC_VPERMSI, UNSPEC_VPERMDF,
+	UNSPEC_VPERMSF, UNSPEC_VPERMTI, UNSPEC_GATHER, UNSPEC_VSIBADDR>: Ditto.
+	(unspecv) <UNSPECV_LDMXCSR, UNSPECV_STMXCSR, UNSPECV_CLFLUSH,
+	UNSPECV_MONITOR, UNSPECV_MWAIT, UNSPECV_VZEROALL, UNSPECV_VZEROUPPER>:
+	Ditto.
+	* config/i386/sync.md (unspec) <UNSPEC_LFENCE, UNSPEC_SFENCE,
+	UNSPEC_MFENCE, UNSPEC_MOVA>: Ditto.
+	(unspecv) <UNSPECV_CMPXCHG_1, UNSPECV_CMPXCHG_2, UNSPECV_CMPXCHG_3,
+	UNSPECV_CMPXCHG_4, UNSPECV_XCHG, UNSPECV_LOCK>: Ditto.
+	(sse2_lfence): Move from config/i386/sse.md.
+	(*sse2_lfence): Ditto.
+	(sse_sfence): Ditto.
+	(*sse_sfence): Ditto.
+	(sse2_mfence): Ditto.
+	(mfence_sse2): Ditto.  Rename from *sse2_mfence.  Enable also
+	for TARGET_64BIT.
+	(mem_thread_fence): Use mfence_sse2.
+
 2011-11-21  Georg-Johann Lay  <avr@gjlay.de>
 
 	* config/avr/avr.h (struct base_arch_s): Add field sfr_offset.
