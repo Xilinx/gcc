@@ -20,16 +20,16 @@
          )
     (variadic
      ((:long l)
-      (add2out stdout "badtvar3 outer l=" l "\n"))
+      (debug "badtvar3 outer l=" l "\n"))
      ((:value f)
-      (add2out stdout "badtvar3 f=" f "\n")
+      (debug "badtvar3 f=" f "\n")
       (variadic
        ((:long l)
-        (add2out stdout "badtvar3 inner l=" l "\n"))
+        (debug "badtvar3 inner l=" l "\n"))
        (:else
-        (add2out stdout "badtvar3 inner vari-ctype=" (variadic_ctype 0) " inner index=" (variadic_index) "\n")))) 
+        (debug "badtvar3 inner vari-ctype=" (variadic_ctype 0) " inner index=" (variadic_index) "\n")))) 
      ( ()
-       (add2out stdout "badtvar3 ended"))
+       (debug "badtvar3 ended"))
      (:else
       (debug "badtvar3 unexpected vari-ctype=" (variadic_ctype 0) " index=" (variadic_index))
       (variadic_skip 1))

@@ -1226,7 +1226,7 @@ source location.}#
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
-  (debug "normexp_symbol recv" recv)
+  (debug "normexp_symbol recv=" recv " psloc=" psloc)
   (multicall
    (bind procs)
    (find_enclosing_env env recv)

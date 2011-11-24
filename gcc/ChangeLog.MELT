@@ -1,4 +1,12 @@
 
+2011-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_symbol): More debug print.
+	* melt/warmelt-genobj.melt (get_free_objlocptr, dispose_objloc):
+	Add backtrace.
+	(compilobj_nrep_let): Replace multiple_every by
+	foreach_in_multiple.
+	* testsuite/melt/tvariadic-3.melt: Use debug not add2out...
+
 2011-11-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_variadic): More debug print.
 	* melt/warmelt-normal.melt (normexp_ifvariadic): Ditto.
