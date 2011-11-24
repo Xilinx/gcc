@@ -5235,8 +5235,9 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
           gcc_unreachable ();
 
         case INTEGER_CST:
+	case PTRMEM_CST:
           /* We can get here when the id-expression refers to an
-             enumerator.  */
+             enumerator or non-type template parameter.  */
           type = TREE_TYPE (expr);
           break;
 
@@ -8178,6 +8179,10 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case EXPR_STMT:
     case BIND_EXPR:
     case TRANSACTION_EXPR:
+    case IF_STMT:
+    case DO_STMT:
+    case FOR_STMT:
+    case WHILE_STMT:
       if (flags & tf_error)
         error ("expression %qE is not a constant-expression", t);
       return false;

@@ -834,7 +834,7 @@ runtime_gc(int32 force __attribute__ ((unused)))
 {
 	int64 t0, t1, t2, t3;
 	uint64 heap0, heap1, obj0, obj1;
-	char *p;
+	const byte *p;
 	bool extra;
 
 	// The gc is turned off (via enablegc) until
@@ -852,7 +852,7 @@ runtime_gc(int32 force __attribute__ ((unused)))
 		p = runtime_getenv("GOGC");
 		if(p == nil || p[0] == '\0')
 			gcpercent = 100;
-		else if(runtime_strcmp(p, "off") == 0)
+		else if(runtime_strcmp((const char*)p, "off") == 0)
 			gcpercent = -1;
 		else
 			gcpercent = runtime_atoi(p);
@@ -860,12 +860,6 @@ runtime_gc(int32 force __attribute__ ((unused)))
 		p = runtime_getenv("GOGCTRACE");
 		if(p != nil)
 			gctrace = runtime_atoi(p);
-
-		runtime_initlock(&work.fmu);
-		runtime_initlock(&work.emu);
-		runtime_initlock(&work.markgate);
-		runtime_initlock(&work.sweepgate);
-		runtime_initlock(&work.Lock);
 	}
 	if(gcpercent < 0)
 		return;

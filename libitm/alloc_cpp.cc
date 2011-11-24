@@ -60,13 +60,17 @@ extern void _ZdlPvRKSt9nothrow_t (void *, c_nothrow_p) __attribute__((weak));
 extern void *_ZnaXRKSt9nothrow_t (size_t, c_nothrow_p) __attribute__((weak));
 extern void _ZdaPvRKSt9nothrow_t (void *, c_nothrow_p) __attribute__((weak));
 
-#ifdef __osf__ /* Really: !HAVE_WEAKDEF  */
-void *
-_ZnaXRKSt9nothrow_t (size_t, c_nothrow_p)
-{
-  return NULL;
-}
-#endif /* __osf__ */
+#if !defined (HAVE_ELF_STYLE_WEAKREF)
+void *_ZnwX (size_t) { return NULL; }
+void _ZdlPv (void *) { return; }
+void *_ZnaX (size_t) { return NULL; }
+void _ZdaPv (void *) { return; }
+
+void *_ZnwXRKSt9nothrow_t (size_t, c_nothrow_p) { return NULL; }
+void _ZdlPvRKSt9nothrow_t (void *, c_nothrow_p) { return; }
+void *_ZnaXRKSt9nothrow_t (size_t, c_nothrow_p) { return NULL; }
+void _ZdaPvRKSt9nothrow_t (void *, c_nothrow_p) { return; }
+#endif /* HAVE_ELF_STYLE_WEAKREF */
 
 /* Wrap the delete nothrow symbols for usage with a single argument.
    Perhaps should have a configure type check for this, because the

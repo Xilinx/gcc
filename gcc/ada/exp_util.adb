@@ -6424,13 +6424,14 @@ package body Exp_Util is
 
       if not Expander_Active then
          return;
+      end if;
 
       --  Cannot generate temporaries if the invocation to remove side effects
       --  was issued too early and the type of the expression is not resolved
       --  (this happens because routines Duplicate_Subexpr_XX implicitly invoke
       --  Remove_Side_Effects).
 
-      elsif No (Exp_Type)
+      if No (Exp_Type)
         or else Ekind (Exp_Type) = E_Access_Attribute_Type
       then
          return;
@@ -6710,8 +6711,13 @@ package body Exp_Util is
 
             if Alfa_Mode then
                New_Exp := E;
+
+            --  Otherwise generate reference, marking the value as non-null
+            --  since we know it cannot be null and we don't want a check.
+
             else
                New_Exp := Make_Reference (Loc, E);
+               Set_Is_Known_Non_Null (Def_Id);
             end if;
          end if;
 

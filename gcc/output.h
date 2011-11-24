@@ -129,7 +129,6 @@ typedef HOST_WIDE_INT __gcc_host_wide_int__;
 #define ATTRIBUTE_ASM_FPRINTF(m, n) ATTRIBUTE_NONNULL(m)
 #endif
 
-extern void fprint_w (FILE *, HOST_WIDE_INT);
 extern void fprint_whex (FILE *, unsigned HOST_WIDE_INT);
 extern void fprint_ul (FILE *, unsigned long);
 extern int sprint_ul (char *, unsigned long);
@@ -639,6 +638,7 @@ extern section *default_elf_select_section (tree, int, unsigned HOST_WIDE_INT);
 extern void default_unique_section (tree, int);
 extern section *default_function_rodata_section (tree);
 extern section *default_no_function_rodata_section (tree);
+extern section *default_clone_table_section (void);
 extern section *default_select_rtx_section (enum machine_mode, rtx,
 					    unsigned HOST_WIDE_INT);
 extern section *default_elf_select_rtx_section (enum machine_mode, rtx,

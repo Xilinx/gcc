@@ -1329,8 +1329,10 @@ structural_comptypes (tree t1, tree t2, int strict)
       break;
 
     case TYPE_PACK_EXPANSION:
-      return same_type_p (PACK_EXPANSION_PATTERN (t1), 
-                          PACK_EXPANSION_PATTERN (t2));
+      return (same_type_p (PACK_EXPANSION_PATTERN (t1),
+			   PACK_EXPANSION_PATTERN (t2))
+	      && comp_template_args (PACK_EXPANSION_EXTRA_ARGS (t1),
+				     PACK_EXPANSION_EXTRA_ARGS (t2)));
 
     case DECLTYPE_TYPE:
       if (DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t1)
@@ -4054,6 +4056,13 @@ cp_build_binary_op (location_t location,
 					    delta0,
 				            integer_one_node,
 					    complain);
+	      
+	      if ((complain & tf_warning)
+		  && c_inhibit_evaluation_warnings == 0
+		  && !NULLPTR_TYPE_P (TREE_TYPE (op1)))
+		warning (OPT_Wzero_as_null_pointer_constant,
+			 "zero as null pointer constant");
+
 	      e2 = cp_build_binary_op (location,
 				       EQ_EXPR, e2, integer_zero_node,
 				       complain);

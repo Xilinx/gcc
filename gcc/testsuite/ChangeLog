@@ -1,3 +1,339 @@
+2011-11-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/51134
+	* gcc.target/i386/sw-1.c: Revert revision 181357.
+
+2011-11-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51218
+	* gfortran.dg/implicit_pure_1.f90: New.
+
+2011-11-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/51258
+	* gcc.dg/atomic-compare-exchange-5.c: Add -mcx16 on i?86-*-*.
+	* gcc.dg/atomic-exchange-5.c: Likewise.
+	* gcc.dg/atomic-load-5.c: Likewise.
+	* gcc.dg/atomic-op-5.c: Likewise.
+	* gcc.dg/atomic-store-5.c: Likewise.
+	* gcc.dg/simulate-thread/atomic-other-int128.c: Fix typo.
+
+2011-11-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/50290
+	* gcc.dg/pr50290.c: New test.
+
+2011-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51290
+	* g++.dg/warn/Wzero-as-null-pointer-constant-3.C: New.
+
+2011-11-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51261
+	* gcc.dg/pr51261.c: New test.
+
+2011-11-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51145
+	* g++.dg/cpp0x/alias-decl-14.C: New test.
+	* g++.dg/cpp0x/alias-decl-2.C: Adjust for tests that were wrongly
+	passing before.
+	* g++.dg/cpp0x/alias-decl-10.C: Likewise and adjust for diagnostic
+	change.
+	* g++.dg/ext/attrib27.C: Adjust for diagnostic change.
+	* g++.dg/lookup/struct1.C: Likewise.
+	* g++.dg/parse/elab1.C: Likewise.
+	* g++.dg/parse/elab2.C: Likewise.
+	* g++.dg/parse/int-as-enum1.C: Likewise.
+	* g++.dg/parse/typedef1.C: Likewise.
+	* g++.dg/parse/typedef3.C: Likewise.
+	* g++.dg/parse/typedef4.C: Likewise.
+	* g++.dg/parse/typedef5.C: Likewise.
+	* g++.dg/template/crash26.C: Likewise.
+	* g++.dg/template/nontype4.C: Likewise.
+	* g++.old-deja/g++.benjamin/typedef01.C: Likewise.
+	* g++.old-deja/g++.brendan/line1.C: Likewise.
+	* g++.old-deja/g++.other/elab1.C: Likewise.
+	* g++.old-deja/g++.other/syntax4.C: Likewise.
+
+2011-11-22  Tom de Vries  <tom@codesourcery.com>
+
+	PR rtl-optimization/50764
+	* gcc.dg/pr50764.c: New test.
+
+2011-11-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51265
+	* g++.dg/cpp0x/decltype36.C: New.
+
+2011-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51074
+	* gcc.dg/vect/pr51074.c: New test.
+
+2011-11-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51143
+	* g++.dg/cpp0x/alias-decl-16.C: New test.
+
+2011-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/50765
+	* gcc.dg/pr50765.c: New test.
+
+2011-11-22  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+        * gcc.dg/vshift-1.c (main): Call rand instead of random.
+        * gcc.dg/vshift-3.c (main): Likewise.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.dg/tm/20100615.c: Adjust for Darwin tm_clone_table section name.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.misc-tests/gcov-16.c: Adjust scan-assembler for Darwin.
+	* gcc.misc-tests/gcov-17.c: Likewise.
+	* g++.dg/gcov/gcov-8.C: Likewise.
+	* g++.dg/gcov/gcov-9.C: Likewise.
+
+2011-11-21  Torvald Riegel  <triegel@redhat.com>
+
+	* g++.dg/tm/pr47747.C: New test.
+
+2011-11-21  Torvald Riegel  <triegel@redhat.com>
+
+	* g++.dg/tm/template-2.C: New test.
+
+2011-11-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/50827
+	* gcc.dg/pr50827.c: New test.
+
+2011-11-21  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50958
+	* g++.dg/cpp0x/udlit-declare-neg.C: Adjust.
+	* g++.dg/cpp0x/udlit-implicit-conv-neg.C: New.
+	* g++.dg/cpp0x/udlit-member.C: Adjust.
+	* g++.dg/cpp0x/udlit-raw-length.C: New.
+	* g++.dg/cpp0x/udlit-raw-op-string-neg.C: Adjust.
+	* g++.dg/cpp0x/udlit-resolve.C: New.
+	* c-c++-common/dfp/pr33466.c: Adjust.
+
+2011-11-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/target-supports.exp
+	(check_effective_target_ultrasparc_vis2_hw): Call check_runtime
+	with ultrasparc_vis2_hw.
+	(check_effective_target_ultrasparc_vis3_hw): Call check_runtime
+	with ultrasparc_vis3_hw.
+
+2011-11-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* c-c++-common/tm/malloc.c: Scan tree dumps for std::malloc if
+	*-*-solaris2* && c++.
+
+2011-11-20  Joey Ye  <joey.ye@arm.com>
+
+	* gcc.dg/volatile-bitfields-1.c: New.
+
+2011-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48322
+	* g++.dg/cpp0x/variadic120.C: New.
+	* g++.dg/cpp0x/sfinae26.C: Adjust.
+
+	* g++.dg/cpp0x/sfinae11.C: Adjust.
+	* g++.dg/cpp0x/sfinae26.C: Adjust.
+	* g++.dg/template/unify11.C: Adjust.
+
+2011-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51230
+	* g++.dg/template/error46.C: New.
+
+2011-11-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/51235
+	* gcc.target/i386/pr51235.c: New test.
+
+	PR target/51236
+	* gcc.target/i386/pr51236.c: New test.
+
+2011-11-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr32.adb: New test.
+	* gnat.dg/discr32_pkg.ads: New helper.
+
+2011-11-20  Nathan Sidwell  <nathan@acm.org>
+
+	PR gcov-profile/51113
+	* gcc.misc-tests/gcov-13.c: Check gcovpart-13b coverage
+	* gcc.misc-tests/gcov-16.c: New.
+	* gcc.misc-tests/gcov-17.c: New.
+	* g++.dg/gcov/gcov-8.C: New.
+	* g++.dg/gcov/gcov-9.C: New.
+	* g++.dg/gcov/gcov-10.C: New.
+
+2011-11-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51194
+	* g++.dg/cpp0x/alias-decl-15.C: New test.
+
+2011-11-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51216
+	* g++.dg/cpp0x/pr51216.C: New.
+
+2011-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/delay-slot-2.c: New test.
+
+2011-11-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/assert4.c: Test __linux__, not __gnu_linux__.
+
+2011-11-18  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/51188
+	* g++.dg/lookup/using46.C: New.
+	* g++.dg/lookup/using47.C: New.
+	* g++.dg/lookup/using48.C: New.
+	* g++.dg/lookup/using49.C: New.
+	* g++.dg/lookup/using50.C: New.
+
+2011-11-18  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.c-torture/compile/pr44707.c: Do not assume assembler
+	supports /* ... */ comments.
+
+2011-11-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51150
+	* g++.dg/cpp0x/pr51150.C: New.
+
+2011-11-18  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50605
+	* g++.dg/ipa/pr50605.C: New test.
+
+2011-11-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51191
+	* g++.dg/cpp0x/alias-decl-13.C: New test.
+
+2011-11-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51186
+	* g++.dg/cpp0x/auto27.C: New.
+	* g++.dg/cpp0x/trailing2.C: Adjust messages.
+
+2011-11-17  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/atomic-generic-aux.c (__atomic_compare_exchange): Fail if
+	memory model parameters don't match expected values.
+	* gcc.dg/atomic-generic.c: Pass specific memory model parameters to
+	__atomic_compare_exchange.
+	* gcc.dg/atomic-noinline.c: Pass specific memory model parameters to
+	__atomic_compare_exchange_n.
+	* gcc.dg/atomic-noinline-aux.c (__atomic_compare_exchange_2): Remove
+	weak/strong parameter and fail if memory models aren't correct.
+
+2011-10-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Run on all targets.
+	Look for simulate_thread_done to determine working gdb.  Reduce timeout
+	to 10 seconds and fail when timeout occurs.  Improve error messages.
+
+2011-11-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51137
+	* g++.dg/template/virtual2.C: New.
+
+2011-11-17  Michael Matz  <matz@suse.de>
+
+	PR middle-end/50644
+	PR middle-end/50741
+	* g++.dg/tree-ssa/pr50741.C: New.
+
+2011-11-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Skip on alpha*-*-*.
+
+2011-10-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/tm/memopt-6.c: Cleanup tmedge tree dump.
+	* gcc.dg/tm/memopt-13.c: Cleanup tmmark tree dump.
+	* g++.dg/eh/array1.C: Cleanup gimple tree dump.
+
+2011-11-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39427
+	PR fortran/37829
+	* gfortran.dg/constructor_1.f90: New.
+	* gfortran.dg/constructor_2.f90: New.
+	* gfortran.dg/constructor_3.f90: New.
+	* gfortran.dg/constructor_4.f90: New.
+	* gfortran.dg/constructor_5.f90: New.
+	* gfortran.dg/constructor_6.f90: New.
+	* gfortran.dg/use_only_5.f90: New.
+	* gfortran.dg/c_ptr_tests_17.f90: New.
+	* gfortran.dg/c_ptr_tests_18.f90: New.
+	* gfortran.dg/used_types_25.f90: New.
+	* gfortran.dg/used_types_26.f90: New
+	* gfortran.dg/type_decl_3.f90: New.
+	* gfortran.dg/function_types_3.f90: Update dg-error.
+	* gfortran.dg/result_1.f90: Ditto.
+	* gfortran.dg/structure_constructor_3.f03: Ditto.
+	* gfortran.dg/structure_constructor_4.f03: Ditto.
+
+2011-10-16  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.dg/vect/pr30858.c: Update expected output for
+	architectures with multiple vector sizes.
+
+2011-11-16  Richard Earnshaw  <rearnsha@arm.com>
+	    Bernd Schmidt <bernds@coudesourcery.com>
+	    Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+	PR target/49641
+	* gcc.target/arm/pr49641.c: New test.
+
+2011-11-16  Razya Ladelsky  <razya@il.ibm.com>
+
+	PR tree-optimization/49960
+	* gcc.dg/autopar/pr49960.c: New test.
+	* gcc.dg/autopar/pr49960-1.c: New test.
+
+
+2011-11-16  Tom de Vries  <tom@codesourcery.com>
+
+	* gcc.dg/pr43864.c: Check for absence of 'Invalid sum' in pre tree-dump.
+	* gcc.dg/pr43864-2.c: Same.
+	* gcc.dg/pr43864-3.c: Same.
+	* gcc.dg/pr43864-4.c: Same.
+
+2011-11-15  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse2-cvt-vec.c: New test.
+	* gcc.target/i386/avx-cvt-vec.c: Ditto.
+	* gcc.target/i386/avx-cvt-2-vec.c: Ditto.
+	* gcc.target/i386/avx-floor-sfix-2-vec.c: Ditto.
+	* gcc.target/i386/avx-ceil-sfix-2-vec.c: Ditto.
+	* gcc.target/i386/avx-rint-sfix-2-vec.c: Ditto.
+	* gcc.target/i386/avx-round-sfix-2-vec.c: Ditto.
+
+2011-11-15  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* lib/gcc-simulate-thread.exp (simulate-thread): Do not run on
+	powerpc*-*-darwin* targets.
+
+2011-11-15  Torvald Riegel  <triegel@redhat.com>
+
+	* c-c++-common/tm/trxn-expr-3.c: New test.
+
 2011-11-14  Torvald Riegel  <triegel@redhat.com>
 
 	* g++.dg/tm/template-1.C: Add cleanup-tree-dump. Fix typo in comment.
@@ -7,10 +343,10 @@
 	* gcc.target/i386/avx-recip-vec.c: New test.
 	* gcc.target/i386/avx-lrintf-vec.c: Ditto.
 	* gcc.target/i386/avx-lrint-vec.c: Ditto.
-	* gcc.target/i386/avx-ceilf-vec.c: Include sse4_1-ceilf-vec.c.
-	* gcc.target/i386/avx-ceil-vec.c: Include sse4_1-ceil-vec.c.
 	* gcc.target/i386/avx-floorf-vec.c: Include sse4_1-floorf-vec.c.
 	* gcc.target/i386/avx-floor-vec.c: Include sse4_1-floor-vec.c.
+	* gcc.target/i386/avx-ceilf-vec.c: Include sse4_1-ceilf-vec.c.
+	* gcc.target/i386/avx-ceil-vec.c: Include sse4_1-ceil-vec.c.
 	* gcc.target/i386/avx-rintf-vec.c: Include sse4_1-rintf-vec.c.
 	* gcc.target/i386/avx-rint-vec.c: Include sse4_1-rint-vec.c.
 	* gcc.target/i386/avx-roundf-vec.c: Include sse4_1-roundf-vec.c.
@@ -36,6 +372,10 @@
 	* gcc.target/i386/sse4_1-ceilf-sfix-vec.c: Ditto.
 	* gcc.target/i386/avx-ceil-sfix-vec.c: Ditto.
 	* gcc.target/i386/avx-ceilf-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-rint-sfix-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-rintf-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-rint-sfix-vec.c: Ditto.
+	* gcc.target/i386/avx-rintf-sfix-vec.c: Ditto.
 	* gcc.target/i386/sse4_1-round-sfix-vec.c: Ditto.
 	* gcc.target/i386/sse4_1-roundf-sfix-vec.c: Ditto.
 	* gcc.target/i386/avx-round-sfix-vec.c: Ditto.

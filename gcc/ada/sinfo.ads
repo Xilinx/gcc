@@ -760,6 +760,9 @@ package Sinfo is
    --    renaming declaration when it is a Renaming_As_Body. The field is Empty
    --    if there is no corresponding spec, as in the case of a subprogram body
    --    that serves as its own spec.
+   --
+   --    In Ada 2012, Corresponding_Spec is set on expression functions that
+   --    complete a subprogram declaration.
 
    --  Corresponding_Stub (Node3-Sem)
    --    This field is present in an N_Subunit node. It holds the node in
@@ -1202,6 +1205,13 @@ package Sinfo is
    --    Present in string literals, set if any wide character (i.e. character
    --    code outside the Wide_Character range) appears in the string. Used to
    --    implement pragma preference rules.
+
+   --  Header_Size_Added (Flag11-Sem)
+   --    Present in N_Attribute_Reference nodes, set only for attribute
+   --    Max_Size_In_Storage_Elements. The flag indicates that the size of the
+   --    hidden list header used by the runtime finalization support has been
+   --    added to the size of the prefix. The flag also prevents the infinite
+   --    expansion of the same attribute in the said context.
 
    --  Hidden_By_Use_Clause (Elist4-Sem)
    --     An entity list present in use clauses that appear within
@@ -3324,6 +3334,7 @@ package Sinfo is
       --  Entity (Node4-Sem) used if the attribute yields a type
       --  Associated_Node (Node4-Sem)
       --  Do_Overflow_Check (Flag17-Sem)
+      --  Header_Size_Added (Flag11-Sem)
       --  Redundant_Use (Flag13-Sem)
       --  Must_Be_Byte_Aligned (Flag14)
       --  plus fields for expression
@@ -4607,6 +4618,7 @@ package Sinfo is
       --  Sloc points to FUNCTION
       --  Specification (Node1)
       --  Expression (Node3)
+      --  Corresponding_Spec (Node5-Sem)
 
       -----------------------------------
       -- 6.4  Procedure Call Statement --
@@ -7310,6 +7322,11 @@ package Sinfo is
       --  more sense to call it an Expression field, but then we would have to
       --  special case the treatment of the N_Reference node.
 
+      --  Note: evaluating a N_Reference node is guaranteed to yield a non-null
+      --  value at run time. Therefore, it is valid to set Is_Known_Non_Null on
+      --  a temporary initialized to a N_Reference node in order to eliminate
+      --  superfluous access checks.
+
       --  Sprint syntax: prefix'reference
 
       --  N_Reference
@@ -8547,6 +8564,9 @@ package Sinfo is
    function Has_Wide_Wide_Character
      (N : Node_Id) return Boolean;    -- Flag13
 
+   function Header_Size_Added
+     (N : Node_Id) return Boolean;    -- Flag11
+
    function Hidden_By_Use_Clause
      (N : Node_Id) return Elist_Id;   -- Elist4
 
@@ -9521,6 +9541,9 @@ package Sinfo is
 
    procedure Set_Has_Wide_Wide_Character
      (N : Node_Id; Val : Boolean := True);    -- Flag13
+
+   procedure Set_Header_Size_Added
+     (N : Node_Id; Val : Boolean := True);    -- Flag11
 
    procedure Set_Hidden_By_Use_Clause
      (N : Node_Id; Val : Elist_Id);           -- Elist4
@@ -11918,6 +11941,7 @@ package Sinfo is
    pragma Inline (Has_Task_Name_Pragma);
    pragma Inline (Has_Wide_Character);
    pragma Inline (Has_Wide_Wide_Character);
+   pragma Inline (Header_Size_Added);
    pragma Inline (Hidden_By_Use_Clause);
    pragma Inline (High_Bound);
    pragma Inline (Identifier);
@@ -12239,6 +12263,7 @@ package Sinfo is
    pragma Inline (Set_Has_Task_Name_Pragma);
    pragma Inline (Set_Has_Wide_Character);
    pragma Inline (Set_Has_Wide_Wide_Character);
+   pragma Inline (Set_Header_Size_Added);
    pragma Inline (Set_Hidden_By_Use_Clause);
    pragma Inline (Set_High_Bound);
    pragma Inline (Set_Identifier);
