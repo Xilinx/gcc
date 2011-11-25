@@ -3750,11 +3750,23 @@ ix86_option_override_internal (bool main_args_p)
   if (TARGET_64BIT)
     {
       ix86_gen_leave = gen_leave_rex64;
+      if (TARGET_X32)
+	ix86_gen_monitor = gen_sse3_monitor_x32;
+      else
+	ix86_gen_monitor = gen_sse3_monitor_64;
+    }
+  else
+    {
+      ix86_gen_leave = gen_leave;
+      ix86_gen_monitor = gen_sse3_monitor;
+    }
+
+  if (Pmode == DImode)
+    {
       ix86_gen_add3 = gen_adddi3;
       ix86_gen_sub3 = gen_subdi3;
       ix86_gen_sub3_carry = gen_subdi3_carry;
       ix86_gen_one_cmpl2 = gen_one_cmpldi2;
-      ix86_gen_monitor = gen_sse3_monitor64;
       ix86_gen_andsp = gen_anddi3;
       ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_di;
       ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probedi;
@@ -3762,12 +3774,10 @@ ix86_option_override_internal (bool main_args_p)
     }
   else
     {
-      ix86_gen_leave = gen_leave;
       ix86_gen_add3 = gen_addsi3;
       ix86_gen_sub3 = gen_subsi3;
       ix86_gen_sub3_carry = gen_subsi3_carry;
       ix86_gen_one_cmpl2 = gen_one_cmplsi2;
-      ix86_gen_monitor = gen_sse3_monitor;
       ix86_gen_andsp = gen_andsi3;
       ix86_gen_allocate_stack_worker = gen_allocate_stack_worker_probe_si;
       ix86_gen_adjust_stack_and_probe = gen_adjust_stack_and_probesi;
@@ -12506,7 +12516,12 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
 
 	      start_sequence ();
-	      emit_call_insn (gen_tls_global_dynamic_64 (rax, x, caddr));
+	      if (TARGET_X32)
+		emit_call_insn (gen_tls_global_dynamic_x32 (rax, x,
+							    caddr));
+	      else
+		emit_call_insn (gen_tls_global_dynamic_64 (rax, x,
+							   caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 
@@ -12554,7 +12569,12 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns, eqv;
 
 	      start_sequence ();
-	      emit_call_insn (gen_tls_local_dynamic_base_64 (rax, caddr));
+	      if (TARGET_X32)
+	        emit_call_insn (gen_tls_local_dynamic_base_x32 (rax,
+								caddr));
+	      else
+	        emit_call_insn (gen_tls_local_dynamic_base_64 (rax,
+							       caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 
