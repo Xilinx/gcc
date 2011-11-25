@@ -333,6 +333,53 @@
   return false;
 })
 
+;; Return true if OP is either a symbol reference or a sum of a symbol
+;; reference and a constant in x86-64 small mode, which can be stored
+;; in the zero extended immediate field.
+(define_predicate "x86_64_symbolic_immediate_operand"
+  (match_code "symbol_ref,const")
+{
+  /* Only small model is allowed.  */
+  if (ix86_cmodel != CM_SMALL)
+    return false;
+
+  switch (GET_CODE (op))
+    {
+    case SYMBOL_REF:
+      /* TLS symbols are not constant.  */
+      if (SYMBOL_REF_TLS_MODEL (op))
+	return false;
+      return true;
+
+    case CONST:
+      op = XEXP (op, 0);
+      if (GET_CODE (op) == PLUS)
+	{
+	  rtx op1 = XEXP (op, 0);
+	  rtx op2 = XEXP (op, 1);
+
+	  switch (GET_CODE (op1))
+	    {
+	    case SYMBOL_REF:
+	      /* TLS symbols are not constant.  */
+	      if (SYMBOL_REF_TLS_MODEL (op1))
+		return false;
+	      if (CONST_INT_P (op2))
+		return true;
+	      break;
+
+	    default:
+	      return false;
+	    }
+	}
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+  return false;
+})
+
 ;; Return true if OP is general operand representable on x86_64.
 (define_predicate "x86_64_general_operand"
   (if_then_else (match_test "TARGET_64BIT")
