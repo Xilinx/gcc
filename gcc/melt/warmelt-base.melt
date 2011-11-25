@@ -699,6 +699,12 @@ an integer $I if $I is lower than $N.}#
   :doc #{Make a new stringbuffer value of given $DISCR - or null if bad $DISCR.}#
   #{meltgc_new_strbuf((meltobject_ptr_t)($discr), (char*)0)}#)
 
+;; reserve space for optimization purposes
+(defprimitive strbuf_reserve (sbuf :long siz) :void
+  :doc #{Reserve extra space in stringbuffer $SBUF for $SIZ bytes.}#
+  #{ if ($SIZ > 0) meltgc_strbuf_reserve ((melt_ptr_t)$SBUF, (unsigned)$SIZ); }#
+)
+
 (defprimitive strbuf_usedlength (sbuf) :long
   :doc #{Give the used length of given $SBUF string buffer or else 0.}#
   #{melt_strbuf_usedlength((melt_ptr_t)($sbuf))}#)
@@ -3162,6 +3168,7 @@ polyhedron values.}#
  split_string_space 
  start_melt_module_of_flavor 
  strbuf2string
+ strbuf_reserve
  strbuf_usedlength
  string_ends
  string_hex_md5sum_constpath 

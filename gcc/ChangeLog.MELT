@@ -1,5 +1,8 @@
 
 2011-11-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (strbuf_reserve): New primitive.
+
+2011-11-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_strbuf_reserve): New declaration.
 	* melt-runtime.c (meltgc_strbuf_reserve): New function.
 	(meltgc_add_out_raw_len): Use it.
