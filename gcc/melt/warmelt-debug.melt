@@ -333,15 +333,12 @@ $FILENAM and $LINENO}#
 		    (val dbgi tt))
 		  ( (:gimple g)
 		    (val dbgi g))
-		  ;; we have a tranlator bug in svn rev 181554 when uncommenting below code.
-#|
-		  ( (:gimple_seq gs)
-		    (val dbgi gs))
-		  ( (:edge ed)
-		    (val dbgi ed))
-		  ( (:loop lo)
-		    (val dbgi lo))
-|#
+		  ( (:gimple_seq xgs)
+		    (val dbgi xgs))
+		  ( (:edge xed)
+		    (val dbgi xed))
+		  ( (:loop xlo)
+		    (val dbgi xlo))
 		 )
 		 (void)
 		 )

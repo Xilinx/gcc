@@ -1,4 +1,8 @@
 
+2011-11-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun): Complete debug
+	function support.
+
 2011-11-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_symbol): More debug print.
 	* melt/warmelt-genobj.melt (get_free_objlocptr, dispose_objloc):
