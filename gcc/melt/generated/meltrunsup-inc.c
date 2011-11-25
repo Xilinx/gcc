@@ -1,23 +1,3 @@
-/** Copyright (C) 2011 Free Software Foundation, Inc.
-  This generated file meltrunsup-inc.c is part of GCC.
-
-                  [DON'T EDIT THIS GENERATED FILE]
-
-    GCC is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3, or (at your option)
-    any later version.
-
-    GCC is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with GCC; see the file COPYING3.  If not see
-    <http://www.gnu.org/licenses/>.
-**/
-
 
 
 
@@ -3057,5 +3037,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2011 Nov 17
- * by GCC MELT 4.7.0 20111116 (experimental) [melt-branch revision 181436] MELT_0.9.1+ . ***/
+/*** End of code file meltrunsup-inc.c generated on 2011 Nov 25
+ * by GCC MELT 4.7.0 20111124 (experimental) [melt-branch revision 181688] MELT_0.9.1+ . ***/
