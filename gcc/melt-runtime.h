@@ -1843,6 +1843,8 @@ struct meltstrbuf_st *meltgc_new_strbuf (meltobject_ptr_t discr_p,
 /**** 
       Output routines can go into a boxed strbuf or a boxed file 
 ****/
+/* reserve some space in the buffer, for performance reasons. */
+void meltgc_strbuf_reserve (melt_ptr_t outbuf_p, unsigned len);
 
 /* add into OUT (a boxed STRBUF or a boxed FILE) the static string STR
    (which is not in the melt heap) */

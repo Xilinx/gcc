@@ -1737,6 +1737,102 @@ melt_output_length (melt_ptr_t out_p)
   return 0;
 }
 
+
+
+void 
+meltgc_strbuf_reserve (melt_ptr_t outbuf_p, unsigned reslen)
+{
+  unsigned blen = 0;
+  unsigned slen = 0;
+  MELT_ENTERFRAME (1, NULL);
+#define outbufv  meltfram__.mcfr_varptr[0]
+#define buf_outbufv  ((struct meltstrbuf_st*)(outbufv))
+  outbufv = outbuf_p;
+  if (!outbufv || melt_magic_discr ((melt_ptr_t) (outbufv)) != MELTOBMAG_STRBUF)
+    goto end;
+  blen = melt_primtab[buf_outbufv->buflenix];
+  gcc_assert (blen > 0);
+  gcc_assert (buf_outbufv->bufstart <= buf_outbufv->bufend
+	      && buf_outbufv->bufend < (unsigned) blen);
+  if (buf_outbufv->bufend + reslen + 1 < blen) 
+    /* simplest case, there is enough space without changing the strbuf */
+    goto end;
+  slen = buf_outbufv->bufend - buf_outbufv->bufstart;
+  if (slen + reslen + 2 < blen) 
+    {
+      /* the strbuf has enough space, but it needs to be moved... */
+      memmove (buf_outbufv->bufzn,
+	       buf_outbufv->bufzn + buf_outbufv->bufstart, slen);
+      buf_outbufv->bufstart = 0;
+      buf_outbufv->bufend = slen;
+      memset (buf_outbufv->bufzn + slen, 0, blen-slen-1);
+    }
+  else 
+    {
+      unsigned long newblen = 0;
+      int newix = 0;
+      unsigned long newsiz = slen + reslen + 10;
+      bool wasyoung = FALSE;
+      newsiz += newsiz/8;
+      if (newsiz > MELT_MAXLEN) 
+	melt_fatal_error ("MELT string buffer overflow, needed %ld bytes = %ld Megabytes!",
+			  (long)newsiz, (long)newsiz>>20);
+      for (newix = buf_outbufv->buflenix + 1;
+	   (newblen = melt_primtab[newix]) != 0
+	     && newblen < newsiz; newix++) {};
+      gcc_assert (newblen != 0) /* Otherwise, the required buffer is too big.  */;
+      /* we need to allocate more memory for the buffer... */
+      if (melt_is_young (outbufv)) 
+	{
+	  wasyoung = TRUE;
+	  meltgc_reserve (8*sizeof(void*) + sizeof(struct meltstrbuf_st) + newblen);
+	  /* The previous reservation may have triggered a MELT minor
+	     collection and have copied outbufv out of the young zone,
+	     so we test again for youngness. */
+	}
+      if (wasyoung && melt_is_young (outbufv))
+	{
+	  /* If the buffer is still young, we do have enough place in the young birth region. */
+	  char* newb = NULL;
+	  gcc_assert (melt_is_young (buf_outbufv->bufzn));
+	  newb = (char*)  melt_allocatereserved (newblen + 1, 0);
+	  memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, slen);
+	  newb[slen] = 0;
+	  buf_outbufv->buflenix = newix;
+	  buf_outbufv->bufzn = newb;
+	  buf_outbufv->bufstart = 0;
+	  buf_outbufv->bufend = slen;
+	}
+      else 
+	{
+	  /* The buffer is old, in Ggc heap. */
+	  char* newzn = NULL;
+	  char* oldzn = buf_outbufv->bufzn;
+	  gcc_assert (!melt_is_young (oldzn));
+#ifdef  ggc_alloc_cleared_atomic
+	  /* GCC 4.6 or later */
+	  newzn = (char*) ggc_alloc_cleared_atomic (newblen+1);
+#else
+	  newzn = (char *) ggc_alloc_cleared (newblen+1);
+#endif /* ggc_alloc_cleared_atomic */
+	  memcpy (newzn, oldzn + buf_outbufv->bufstart, slen);
+	  newzn[slen] = 0;
+	  memset (oldzn, 0, slen<100?slen/2:50);
+	  buf_outbufv->buflenix = newix;
+	  buf_outbufv->bufzn = newzn;
+	  buf_outbufv->bufstart = 0;
+	  buf_outbufv->bufend = slen;
+	  ggc_free (oldzn);
+	}
+      meltgc_touch ((melt_ptr_t)outbufv);
+    }
+ end:
+  MELT_EXITFRAME ();
+#undef outbufv
+#undef buf_outbufv
+}
+
+
 void
 meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 {
@@ -1796,62 +1892,10 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	}
       else
 	{				/* should grow the buffer to fit */
-	  int siz = buf_outbufv->bufend - buf_outbufv->bufstart;
-	  int newsiz = (siz + slen + 50 + siz / 8) | 0x1f;
-	  int newix = 0, newblen = 0;
-	  char *newb = NULL;
-	  int oldblen = melt_primtab[buf_outbufv->buflenix];
-	  for (newix = buf_outbufv->buflenix + 1;
-	       (newblen = melt_primtab[newix]) != 0
-		 && newblen < newsiz; newix++);
-	  gcc_assert (newblen >= newsiz);
-	  gcc_assert (siz >= 0);
-	  if (newblen > MELT_MAXLEN)
-	    melt_fatal_error ("strbuf overflow to %d bytes", newblen);
-	  /* the newly grown buffer is allocated in young memory if the
-	     previous was young, or in old memory if it was already old;
-	     but we have to deal with the rare case when the allocation
-	     triggers a GC which migrate the strbuf from young to old */
-	  if (melt_is_young (buf_outbufv->bufzn))
-	    {
-	      /* Bug to avoid: the strbuf was young, the allocation of
-		 newb triggers a GC, so the strbuf becomes old. we
-		 cannot put newb inside it (this violate the GC
-		 invariant of no unfollowed -on store list- old to
-		 young pointers).  Hence we reserve the required
-		 length to make sure that the following newb
-		 allocation does not trigger a GC */
-	      meltgc_reserve (newblen + 10 * sizeof (void *));
-	      /* does the above reservation triggered a GC which moved buf_outbufv to old? */
-	      if (!melt_is_young (buf_outbufv->bufzn) || !melt_is_young (buf_outbufv))
-		goto strbuf_in_old_memory;
-	      gcc_assert (melt_is_young (buf_outbufv));
-	      newb = (char *) melt_allocatereserved (newblen + 1, 0);
-	      gcc_assert (melt_is_young (buf_outbufv));
-	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
-	      strncpy (newb + siz, str, slen);
-	      memset (buf_outbufv->bufzn, 0, oldblen);
-	      buf_outbufv->bufzn = newb;
-	    }
-	  else
-	    {
-	      /* we may come here if the strbuf was young but became old
-		 by the meltgc_reserve call above */
-	    strbuf_in_old_memory:
-	      gcc_assert (!melt_is_young (buf_outbufv));
-	      newb = (char *) ggc_alloc_atomic (newblen + 1);
-	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
-	      strncpy (newb + siz, str, slen);
-	      memset (buf_outbufv->bufzn, 0, oldblen);
-	      ggc_free (buf_outbufv->bufzn);
-	      buf_outbufv->bufzn = newb;
-	    }
-	  buf_outbufv->buflenix = newix;
-	  buf_outbufv->bufstart = 0;
-	  buf_outbufv->bufend = siz + slen;
+	  meltgc_strbuf_reserve ((melt_ptr_t) outbufv, slen + 2);
+	  strncpy (buf_outbufv->bufzn + buf_outbufv->bufend, str, slen);
+	  buf_outbufv->bufend += slen;
 	  buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
-	  /* touch the buffer so that it will be scanned if not young */
-	  meltgc_touch (outbufv);
 	}
     break;
   default: 
