@@ -1,3 +1,8 @@
+2011-11-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (pro_epilogue_adjust_stack): Check Pmode
+	instead of TARGET_64BIT.
+
 2011-11-15  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_expand_movmem): Use move_mode instead
