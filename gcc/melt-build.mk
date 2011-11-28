@@ -779,7 +779,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-first+melt-stage1
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-first+melt-stage1.args-tmp
 	@mv  warmelt-first+melt-stage1.args-tmp  warmelt-first+melt-stage1.args
-	@echo; echo; echo -n  warmelt-first+melt-stage1.args: ; cat warmelt-first+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-first+melt-stage1.args: ; cat warmelt-first+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-first+melt-stage1.args
 	@ls -l melt-stage1/warmelt-first.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-first.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -839,7 +839,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-base+melt-stage1.
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-base+melt-stage1.args-tmp
 	@mv  warmelt-base+melt-stage1.args-tmp  warmelt-base+melt-stage1.args
-	@echo; echo; echo -n  warmelt-base+melt-stage1.args: ; cat warmelt-base+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-base+melt-stage1.args: ; cat warmelt-base+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-base+melt-stage1.args
 	@ls -l melt-stage1/warmelt-base.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-base.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -900,7 +900,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-debug+melt-stage1
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-debug+melt-stage1.args-tmp
 	@mv  warmelt-debug+melt-stage1.args-tmp  warmelt-debug+melt-stage1.args
-	@echo; echo; echo -n  warmelt-debug+melt-stage1.args: ; cat warmelt-debug+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-debug+melt-stage1.args: ; cat warmelt-debug+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-debug+melt-stage1.args
 	@ls -l melt-stage1/warmelt-debug.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-debug.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -962,7 +962,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-macro+melt-stage1
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-macro+melt-stage1.args-tmp
 	@mv  warmelt-macro+melt-stage1.args-tmp  warmelt-macro+melt-stage1.args
-	@echo; echo; echo -n  warmelt-macro+melt-stage1.args: ; cat warmelt-macro+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-macro+melt-stage1.args: ; cat warmelt-macro+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-macro+melt-stage1.args
 	@ls -l melt-stage1/warmelt-macro.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-macro.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1026,7 +1026,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-normal+melt-stage
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-normal+melt-stage1.args-tmp
 	@mv  warmelt-normal+melt-stage1.args-tmp  warmelt-normal+melt-stage1.args
-	@echo; echo; echo -n  warmelt-normal+melt-stage1.args: ; cat warmelt-normal+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-normal+melt-stage1.args: ; cat warmelt-normal+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-normal+melt-stage1.args
 	@ls -l melt-stage1/warmelt-normal.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-normal.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1090,7 +1090,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-normatch+melt-sta
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-normatch+melt-stage1.args-tmp
 	@mv  warmelt-normatch+melt-stage1.args-tmp  warmelt-normatch+melt-stage1.args
-	@echo; echo; echo -n  warmelt-normatch+melt-stage1.args: ; cat warmelt-normatch+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-normatch+melt-stage1.args: ; cat warmelt-normatch+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-normatch+melt-stage1.args
 	@ls -l melt-stage1/warmelt-normatch.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-normatch.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1155,7 +1155,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-genobj+melt-stage
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-genobj+melt-stage1.args-tmp
 	@mv  warmelt-genobj+melt-stage1.args-tmp  warmelt-genobj+melt-stage1.args
-	@echo; echo; echo -n  warmelt-genobj+melt-stage1.args: ; cat warmelt-genobj+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-genobj+melt-stage1.args: ; cat warmelt-genobj+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-genobj+melt-stage1.args
 	@ls -l melt-stage1/warmelt-genobj.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-genobj.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1221,7 +1221,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-outobj+melt-stage
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-outobj+melt-stage1.args-tmp
 	@mv  warmelt-outobj+melt-stage1.args-tmp  warmelt-outobj+melt-stage1.args
-	@echo; echo; echo -n  warmelt-outobj+melt-stage1.args: ; cat warmelt-outobj+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-outobj+melt-stage1.args: ; cat warmelt-outobj+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-outobj+melt-stage1.args
 	@ls -l melt-stage1/warmelt-outobj.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-outobj.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1288,7 +1288,7 @@ $(MELT_STAGE_ZERO)/warmelt-modes.$(MELT_ZERO_FLAVOR) > warmelt-modes+melt-stage1
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-modes+melt-stage1.args-tmp
 	@mv  warmelt-modes+melt-stage1.args-tmp  warmelt-modes+melt-stage1.args
-	@echo; echo; echo -n  warmelt-modes+melt-stage1.args: ; cat warmelt-modes+melt-stage1.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-modes+melt-stage1.args: ; cat warmelt-modes+melt-stage1.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-modes+melt-stage1.args
 	@ls -l melt-stage1/warmelt-modes.c  || ( echo "*@*MISSING "  melt-stage1/warmelt-modes.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1433,7 +1433,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-first+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-first+melt-stage2.args-tmp
 	@mv  warmelt-first+melt-stage2.args-tmp  warmelt-first+melt-stage2.args
-	@echo; echo; echo -n  warmelt-first+melt-stage2.args: ; cat warmelt-first+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-first+melt-stage2.args: ; cat warmelt-first+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-first+melt-stage2.args
 	@ls -l melt-stage2/warmelt-first.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-first.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1493,7 +1493,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-base+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-base+melt-stage2.args-tmp
 	@mv  warmelt-base+melt-stage2.args-tmp  warmelt-base+melt-stage2.args
-	@echo; echo; echo -n  warmelt-base+melt-stage2.args: ; cat warmelt-base+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-base+melt-stage2.args: ; cat warmelt-base+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-base+melt-stage2.args
 	@ls -l melt-stage2/warmelt-base.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-base.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1554,7 +1554,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-debug+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-debug+melt-stage2.args-tmp
 	@mv  warmelt-debug+melt-stage2.args-tmp  warmelt-debug+melt-stage2.args
-	@echo; echo; echo -n  warmelt-debug+melt-stage2.args: ; cat warmelt-debug+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-debug+melt-stage2.args: ; cat warmelt-debug+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-debug+melt-stage2.args
 	@ls -l melt-stage2/warmelt-debug.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-debug.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1616,7 +1616,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-macro+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-macro+melt-stage2.args-tmp
 	@mv  warmelt-macro+melt-stage2.args-tmp  warmelt-macro+melt-stage2.args
-	@echo; echo; echo -n  warmelt-macro+melt-stage2.args: ; cat warmelt-macro+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-macro+melt-stage2.args: ; cat warmelt-macro+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-macro+melt-stage2.args
 	@ls -l melt-stage2/warmelt-macro.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-macro.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1680,7 +1680,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-normal+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-normal+melt-stage2.args-tmp
 	@mv  warmelt-normal+melt-stage2.args-tmp  warmelt-normal+melt-stage2.args
-	@echo; echo; echo -n  warmelt-normal+melt-stage2.args: ; cat warmelt-normal+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-normal+melt-stage2.args: ; cat warmelt-normal+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-normal+melt-stage2.args
 	@ls -l melt-stage2/warmelt-normal.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-normal.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1744,7 +1744,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-normatch+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-normatch+melt-stage2.args-tmp
 	@mv  warmelt-normatch+melt-stage2.args-tmp  warmelt-normatch+melt-stage2.args
-	@echo; echo; echo -n  warmelt-normatch+melt-stage2.args: ; cat warmelt-normatch+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-normatch+melt-stage2.args: ; cat warmelt-normatch+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-normatch+melt-stage2.args
 	@ls -l melt-stage2/warmelt-normatch.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-normatch.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1809,7 +1809,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-genobj+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-genobj+melt-stage2.args-tmp
 	@mv  warmelt-genobj+melt-stage2.args-tmp  warmelt-genobj+melt-stage2.args
-	@echo; echo; echo -n  warmelt-genobj+melt-stage2.args: ; cat warmelt-genobj+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-genobj+melt-stage2.args: ; cat warmelt-genobj+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-genobj+melt-stage2.args
 	@ls -l melt-stage2/warmelt-genobj.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-genobj.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1875,7 +1875,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-outobj+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-outobj+melt-stage2.args-tmp
 	@mv  warmelt-outobj+melt-stage2.args-tmp  warmelt-outobj+melt-stage2.args
-	@echo; echo; echo -n  warmelt-outobj+melt-stage2.args: ; cat warmelt-outobj+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-outobj+melt-stage2.args: ; cat warmelt-outobj+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-outobj+melt-stage2.args
 	@ls -l melt-stage2/warmelt-outobj.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-outobj.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -1942,7 +1942,7 @@ melt-stage1/warmelt-modes.quicklybuilt > warmelt-modes+melt-stage2.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-modes+melt-stage2.args-tmp
 	@mv  warmelt-modes+melt-stage2.args-tmp  warmelt-modes+melt-stage2.args
-	@echo; echo; echo -n  warmelt-modes+melt-stage2.args: ; cat warmelt-modes+melt-stage2.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-modes+melt-stage2.args: ; cat warmelt-modes+melt-stage2.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-modes+melt-stage2.args
 	@ls -l melt-stage2/warmelt-modes.c  || ( echo "*@*MISSING "  melt-stage2/warmelt-modes.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2087,7 +2087,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-first+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-first+melt-stage3.args-tmp
 	@mv  warmelt-first+melt-stage3.args-tmp  warmelt-first+melt-stage3.args
-	@echo; echo; echo -n  warmelt-first+melt-stage3.args: ; cat warmelt-first+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-first+melt-stage3.args: ; cat warmelt-first+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-first+melt-stage3.args
 	@ls -l melt-stage3/warmelt-first.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-first.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2147,7 +2147,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-base+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-base+melt-stage3.args-tmp
 	@mv  warmelt-base+melt-stage3.args-tmp  warmelt-base+melt-stage3.args
-	@echo; echo; echo -n  warmelt-base+melt-stage3.args: ; cat warmelt-base+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-base+melt-stage3.args: ; cat warmelt-base+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-base+melt-stage3.args
 	@ls -l melt-stage3/warmelt-base.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-base.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2208,7 +2208,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-debug+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-debug+melt-stage3.args-tmp
 	@mv  warmelt-debug+melt-stage3.args-tmp  warmelt-debug+melt-stage3.args
-	@echo; echo; echo -n  warmelt-debug+melt-stage3.args: ; cat warmelt-debug+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-debug+melt-stage3.args: ; cat warmelt-debug+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-debug+melt-stage3.args
 	@ls -l melt-stage3/warmelt-debug.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-debug.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2270,7 +2270,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-macro+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-macro+melt-stage3.args-tmp
 	@mv  warmelt-macro+melt-stage3.args-tmp  warmelt-macro+melt-stage3.args
-	@echo; echo; echo -n  warmelt-macro+melt-stage3.args: ; cat warmelt-macro+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-macro+melt-stage3.args: ; cat warmelt-macro+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-macro+melt-stage3.args
 	@ls -l melt-stage3/warmelt-macro.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-macro.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2334,7 +2334,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-normal+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-normal+melt-stage3.args-tmp
 	@mv  warmelt-normal+melt-stage3.args-tmp  warmelt-normal+melt-stage3.args
-	@echo; echo; echo -n  warmelt-normal+melt-stage3.args: ; cat warmelt-normal+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-normal+melt-stage3.args: ; cat warmelt-normal+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-normal+melt-stage3.args
 	@ls -l melt-stage3/warmelt-normal.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-normal.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2398,7 +2398,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-normatch+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-normatch+melt-stage3.args-tmp
 	@mv  warmelt-normatch+melt-stage3.args-tmp  warmelt-normatch+melt-stage3.args
-	@echo; echo; echo -n  warmelt-normatch+melt-stage3.args: ; cat warmelt-normatch+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-normatch+melt-stage3.args: ; cat warmelt-normatch+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-normatch+melt-stage3.args
 	@ls -l melt-stage3/warmelt-normatch.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-normatch.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2463,7 +2463,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-genobj+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-genobj+melt-stage3.args-tmp
 	@mv  warmelt-genobj+melt-stage3.args-tmp  warmelt-genobj+melt-stage3.args
-	@echo; echo; echo -n  warmelt-genobj+melt-stage3.args: ; cat warmelt-genobj+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-genobj+melt-stage3.args: ; cat warmelt-genobj+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-genobj+melt-stage3.args
 	@ls -l melt-stage3/warmelt-genobj.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-genobj.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2529,7 +2529,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-outobj+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-outobj+melt-stage3.args-tmp
 	@mv  warmelt-outobj+melt-stage3.args-tmp  warmelt-outobj+melt-stage3.args
-	@echo; echo; echo -n  warmelt-outobj+melt-stage3.args: ; cat warmelt-outobj+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-outobj+melt-stage3.args: ; cat warmelt-outobj+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-outobj+melt-stage3.args
 	@ls -l melt-stage3/warmelt-outobj.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-outobj.c from melt-build.tpl line 299 ; exit 1 )
 
@@ -2596,7 +2596,7 @@ melt-stage2/warmelt-modes.quicklybuilt > warmelt-modes+melt-stage3.args-tmp
 	      $(meltarg_output)=$(basename $@) $(meltarg_workdir)=melt-workdir \
 	      empty-file-for-melt.c >> warmelt-modes+melt-stage3.args-tmp
 	@mv  warmelt-modes+melt-stage3.args-tmp  warmelt-modes+melt-stage3.args
-	@echo; echo; echo -n  warmelt-modes+melt-stage3.args: ; cat warmelt-modes+melt-stage3.args ; echo "***** doing " $@  from melt-build.tpl line 297
+	@echo; echo; echo -n  warmelt-modes+melt-stage3.args: ; cat warmelt-modes+melt-stage3.args ; echo; echo; echo "***** doing " $@  from melt-build.tpl line 297
 	$(melt_make_cc1) @warmelt-modes+melt-stage3.args
 	@ls -l melt-stage3/warmelt-modes.c  || ( echo "*@*MISSING "  melt-stage3/warmelt-modes.c from melt-build.tpl line 299 ; exit 1 )
 

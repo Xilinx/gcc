@@ -1,5 +1,13 @@
 
 2011-11-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{still broken}}
+	* melt-build.tpl: List generated C file.
+	* melt-build.mk: Regenerate.
+	* melt-runtime.c (meltgc_start_all_new_modules)
+	(meltgc_load_flavored_module, meltgc_do_initial_mode): Improve
+	debug messages.
+
+2011-11-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_do_initial_mode): Improved errror & debug
 	messages.
 

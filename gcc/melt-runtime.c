@@ -8935,6 +8935,7 @@ meltgc_start_all_new_modules (melt_ptr_t env_p)
       MELT_LOCATION_HERE_PRINTF
 	(locbuf, "meltgc_start_all_new_modules before starting #%d module %s",
 	 modix, mi->mmi_modpath);
+      debugeprintf ("meltgc_start_all_new_modules env %p before starting modix %d", env, modix);
       env = meltgc_start_module_by_index ((melt_ptr_t) env, modix);
       if (!env)
 	melt_fatal_error ("MELT failed to start module #%d %s",
@@ -8969,7 +8970,8 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 #if MELT_HAVE_DEBUG
   memset (curlocbuf, 0, sizeof (curlocbuf));
 #endif
-  debugeprintf("meltgc_load_flavored_module start %s tempdirpath %s", modulbase, tempdirpath);
+  debugeprintf("meltgc_load_flavored_module start base %s flavor %s tempdirpath %s", 
+	       modulbase, flavor, tempdirpath);
   if (!modulbase || !modulbase[0]) 
     goto end;
   dupmodul = xstrdup(modulbase);
@@ -9039,14 +9041,14 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 		      descrpath, flavor);
  end:
   MELT_EXITFRAME ();
-  if (dupmodul)
-    free (dupmodul), dupmodul = NULL;
   if (descrpath)
     free (descrpath), descrpath = NULL;
   if (tempdirpath)
     free (tempdirpath), tempdirpath = NULL;
   debugeprintf ("meltgc_load_flavored_module modul %s return modix %d", 
 		dupmodul, modix);
+  if (dupmodul)
+    free (dupmodul), dupmodul = NULL;
   return modix;
 }
 
@@ -9342,7 +9344,7 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
   if (!dictv || melt_magic_discr ((melt_ptr_t) dictv) != MELTOBMAG_MAPSTRINGS)
     {
       debugeprintf("meltgc_do_initial_mode invalid dictv %p", dictv);
-      melt_fatal_error ("invalid MELT mode dictionnary");
+      melt_fatal_error ("invalid MELT mode dictionnary %p", dictv);
       goto end;
     };
   if (strchr (modstr, ','))
@@ -9486,19 +9488,33 @@ meltgc_load_modules_and_do_mode (void)
 	    || lastixmodule > 1)
 	  melt_fatal_error ("MELT default module list should be loaded at first (melt_nb_modules=%d, lastixmodule=%d)!", 
 			    melt_nb_modules, lastixmodule);
+	debugeprintf ("meltgc_load_modules_and_do_mode loading default module list %s", 
+		      melt_default_modlis);
 	meltgc_load_module_list (0, melt_default_modlis);
+	debugeprintf ("meltgc_load_modules_and_do_mode loaded default module list %s", 
+		      melt_default_modlis);
       }
-      else if (curmod[0] == '@')
-	meltgc_load_module_list (0, curmod+1);
+      else if (curmod[0] == '@') 
+	{
+	  debugeprintf ("meltgc_load_modules_and_do_mode loading given module list %s", curmod+1);
+	  meltgc_load_module_list (0, curmod+1);
+	  debugeprintf ("meltgc_load_modules_and_do_mode loaded given module list %s", curmod+1);
+	}
       else 
-	meltgc_load_one_module (curmod);
+	{
+	  debugeprintf ("meltgc_load_modules_and_do_mode loading given single module %s", curmod);
+	  meltgc_load_one_module (curmod);
+	  debugeprintf ("meltgc_load_modules_and_do_mode loaded given single module %s", curmod);
+	}
       debugeprintf ("meltgc_load_modules_and_do_mode done curmod %s", curmod);
       curmod = nextmod;
     }
   /**
    * Then we start all the initial modules 
    **/
+  debugeprintf ("meltgc_load_modules_and_do_mode before starting all new modules modatv=%p", modatv);
   modatv = meltgc_start_all_new_modules ((melt_ptr_t) modatv);
+  debugeprintf ("meltgc_load_modules_and_do_mode started all new modules modatv=%p", modatv);
 
   /* Then we load and start every extra module, if given */
   debugeprintf ("meltgc_load_modules_and_do_mode xtrastr %s lastmodix #%d", 
