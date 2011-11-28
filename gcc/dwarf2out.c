@@ -8606,7 +8606,6 @@ static void
 output_skeleton_debug_sections (void)
 {
   dw_die_ref die = gen_compile_unit_die (NULL);
-
   /* FIXME: The dwo file's name should be passed in by the driver.  */
   char *dwo_file_name = (char *) XALLOCAVEC (char, strlen (asm_file_name) + 5);
   sprintf (dwo_file_name, "%s.dwo", asm_file_name);
@@ -8629,25 +8628,26 @@ output_skeleton_debug_sections (void)
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
+
   /* One for the terminating NULL byte.  */
   dw2_asm_output_data (DWARF_OFFSET_SIZE,
 		       DWARF_COMPILE_UNIT_HEADER_SIZE
                        - DWARF_INITIAL_LENGTH_SIZE + size_of_die (die) + 1,
 		       "Length of Compilation Unit Info");
   dw2_asm_output_data (2, dwarf_version, "DWARF version number");
-  /* The offset into the skeleton_debug_abbrev section is always zero.  */
-  dw2_asm_output_data (DWARF_OFFSET_SIZE, 0,
-                       "Offset Into Skeleton Abbrev. Section");
+  ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_abbrev_section_label,
+                               DEBUG_SKELETON_ABBREV_SECTION_LABEL, 0);
+  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_skeleton_abbrev_section_label,
+			 debug_abbrev_section,
+			 "Offset Into Abbrev. Section");
   dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Pointer Size (in bytes)");
 
+  die->die_abbrev = 1;
   output_die (die);
-  /* Add null byte to terminate list.  */
   dw2_asm_output_data (1, 0, "end of skeleton .debug_info");
 
   /* Build an empty skeleton debug_abbrev section.  */
   switch_to_section (debug_skeleton_abbrev_section);
-  ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_abbrev_section_label,
-                               DEBUG_SKELETON_ABBREV_SECTION_LABEL, 0);
   ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_abbrev_section_label);
 
   /* Only one abbreviation here.  */
@@ -8669,7 +8669,6 @@ output_skeleton_debug_sections (void)
   }
 
   dw2_asm_output_data (1, 0, "end of skeleton .debug_abbrev");
-  dw2_asm_output_data (1, 0, NULL);
 }
 
 /* Output a comdat type unit DIE and its children.  */
