@@ -1,3 +1,15 @@
+2011-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51227
+	* pt.c (instantiate_class_template_1): If lambda_function (type)
+	is NULL_TREE do not instantiate_decl.
+
+2011-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51290
+	* class.c (build_base_path): For the null pointer check use
+	nullptr_node instead of integer_zero_node.
+
 2011-11-22  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/51145
