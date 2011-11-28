@@ -9336,11 +9336,13 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
       goto end;
     }
   dictv = melt_get_inisysdata(FSYSDAT_MODE_DICT);
-  debugeprintf ("meltgc_do_initial_mode dictv=%p", dictv);
+  debugeprintf ("meltgc_do_initial_mode dictv=%p of magic %d", 
+		dictv, melt_magic_discr ((melt_ptr_t) dictv));
   debugeprintvalue ("meltgc_do_initial_mode dictv", dictv);
-  if (melt_magic_discr ((melt_ptr_t) dictv) != MELTOBMAG_MAPSTRINGS)
+  if (!dictv || melt_magic_discr ((melt_ptr_t) dictv) != MELTOBMAG_MAPSTRINGS)
     {
       debugeprintf("meltgc_do_initial_mode invalid dictv %p", dictv);
+      melt_fatal_error ("invalid MELT mode dictionnary");
       goto end;
     };
   if (strchr (modstr, ','))
@@ -9363,11 +9365,18 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	  melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
 			       curmodstr);
       debugeprintf ("meltgc_do_initial_mode cmdv=%p", cmdv);
+      if (!cmdv)
+	{
+	  error ("unknown MELT mode %s [of %d modes]", modstr,
+		 melt_count_mapstrings((struct meltmapstrings_st*)dictv));
+	  goto end;
+	}
       if (!melt_is_instance_of ((melt_ptr_t) cmdv,
 				(melt_ptr_t) MELT_PREDEF (CLASS_MELT_MODE)))
 	{
-	  debugeprintf ("meltgc_do_initial_mode invalid cmdv %p", cmdv);
-	  error ("unknown MELT mode %s", modstr);
+	  debugeprintf ("meltgc_do_initial_mode invalid cmdv %p of magic %d", 
+			cmdv, melt_magic_discr((melt_ptr_t)cmdv));
+	  error ("bad MELT mode %s, not instance of CLASS_MELT_MODE", modstr);
 	  goto end;
 	};
       closv = melt_object_nth_field ((melt_ptr_t) cmdv, FMELTCMD_FUN);
