@@ -1881,18 +1881,20 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	  && (int) buf_outbufv->bufend -
 	  (int) buf_outbufv->bufstart + (int) slen + 2 < (int) blen)
 	{				/* should move the buffer to fit */
-	  int siz = buf_outbufv->bufend - buf_outbufv->bufstart;
-	  gcc_assert (siz > 0);
+	  int oldlen = buf_outbufv->bufend - buf_outbufv->bufstart;
+	  gcc_assert (oldlen >= 0);
 	  memmove (buf_outbufv->bufzn,
-		   buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
+		   buf_outbufv->bufzn + buf_outbufv->bufstart, oldlen);
 	  buf_outbufv->bufstart = 0;
-	  strncpy (buf_outbufv->bufzn + siz, str, slen);
-	  buf_outbufv->bufend = siz + slen;
+	  strncpy (buf_outbufv->bufzn + oldlen, str, slen);
+	  buf_outbufv->bufend = oldlen + slen;
 	  buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
 	}
       else
 	{				/* should grow the buffer to fit */
-	  meltgc_strbuf_reserve ((melt_ptr_t) outbufv, slen + 2);
+	  int oldlen =  buf_outbufv->bufend - buf_outbufv->bufstart;
+	  gcc_assert (oldlen >= 0);
+	  meltgc_strbuf_reserve ((melt_ptr_t) outbufv, slen + (slen+oldlen)/8 + 30);
 	  strncpy (buf_outbufv->bufzn + buf_outbufv->bufend, str, slen);
 	  buf_outbufv->bufend += slen;
 	  buf_outbufv->bufzn[buf_outbufv->bufend] = 0;
@@ -8830,8 +8832,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       if (!quiet_flag || flag_melt_debug) { 
 	if (MELTDESCR_OPTIONAL(melt_modulerealpath))
 	  inform (UNKNOWN_LOCATION, 
-		  "MELT loading module #%d for %s with %s generated at %s built %s",
-		  ix, MELTDESCR_OPTIONAL(melt_modulerealpath), sopath, 
+		  "MELT loading module #%d for %s [realpath %s] with %s generated at %s built %s",
+		  ix, minf.mmi_descrbase, MELTDESCR_OPTIONAL(melt_modulerealpath), sopath, 
 		  MELTDESCR_REQUIRED(melt_gen_timestamp), 
 		  MELTDESCR_REQUIRED(melt_build_timestamp));
       }

@@ -1,4 +1,12 @@
 
+2011-11-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{brittle!}}
+	* melt-runtime.c (meltgc_add_out_raw_len): Reserve more space, to
+	avoid expanding too often the strbuf.
+	(melt_load_module_index): Improve inform message.
+	* melt-build.tpl: Ensure that generated C file exists.
+	* melt-build.mk: Regenerate.
+
 2011-11-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt: Revert to revision 181698
 	{{Regenerate twice}}

@@ -296,6 +296,7 @@ $(MELT_STAGE_ZERO):
 	@mv  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
 	@echo; echo; echo -n  [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo "***** doing " $@  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @[+ (. outbase)+]+[+melt_stage+].args
+	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
 #@ [+ (. (tpl-file-line))+]
 ################## quicklybuilt module [+ (. outbase)+] for [+melt_stage+]
