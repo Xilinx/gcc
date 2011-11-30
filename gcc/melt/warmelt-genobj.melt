@@ -1125,7 +1125,7 @@ $SBUF.}#
 		      :obx_cont (tuple
 				 boxloc
 				 (make_stringconst discr_verbatim_string
-						   " || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV"
+						   " || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<MELTFIELD_SYSDATA_CONT_FRESH_ENV"
 						   )
 				 ))
 		     :obcond_then ()

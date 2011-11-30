@@ -3957,7 +3957,7 @@ initialize_module_meltdata_warmelt_base (initial_frame_st * iniframp__,
     struct MELT_STRING_STRUCT (223) dstr_2435__from_VALDESC;
     struct MELT_STRING_STRUCT (294) dstr_2436__decl_VALDESC;
     struct MELT_STRING_STRUCT (825) dstr_2437__from_VALDESC;
-    struct MELT_STRING_STRUCT (1092) dstr_2438__cloning_fro;
+    struct MELT_STRING_STRUCT (1110) dstr_2438__cloning_fro;
     struct MELT_STRING_STRUCT (162) dstr_2439__from_VALDESC;
     struct MELT_OBJECT_STRUCT (3) dsym_2440__VALDESC_MAPOBJECTS;
     struct MELT_STRING_STRUCT (18) dstr_2441__VALDESC_MAPOBJEC;
@@ -33581,28 +33581,32 @@ initialize_module_meltdata_warmelt_base (initial_frame_st * iniframp__,
   /*really big chunk inistring */
   memcpy (cdat->dstr_2438__cloning_fro.val + 256,
 	  "_length ((melt_ptr_t)\n\t\t\t      (((meltobject_ptr_t)newdiscrv)->o"
-	  "bj_vartab[FCLASS_FIELDS]));\n      gcc_assert (newlen <= srclen);"
-	  "\n      dst =  meltgc_new_raw_object ((meltobject_ptr_t)newdiscrv"
-	  ", newlen);\n      for (slotix = 0; slotix < newlen; slotix++)\n\tds",
+	  "bj_vartab[MELTFIELD_CLASS_FIELDS]));\n      gcc_assert (newlen <="
+	  " srclen);\n      dst =  meltgc_new_raw_object ((meltobject_ptr_t)"
+	  "newdiscrv, newlen);\n      for (slotix = 0; slotix < newlen; slot",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_2438__cloning_fro.val + 512,
-	  "t->obj_vartab[slotix] = src->obj_vartab[slotix];\n      dst->obj_"
-	  "num = src->obj_num;\n    }\n    else if (melt_is_subclass_of((melt"
-	  "object_ptr_t)newdiscrv,\n\t\t\t\t (meltobject_ptr_t)srcdiscrv)) {\n   "
-	  "   newlen = \n        melt_multiple_length ((melt_ptr_t)\n\t\t\t     ",
+	  "ix++)\n\tdst->obj_vartab[slotix] = src->obj_vartab[slotix];\n      "
+	  "dst->obj_num = src->obj_num;\n    }\n    else if (melt_is_subclass"
+	  "_of((meltobject_ptr_t)newdiscrv,\n\t\t\t\t (meltobject_ptr_t)srcdiscr"
+	  "v)) {\n      newlen = \n        melt_multiple_length ((melt_ptr_t)",
 	  /*big */ 256);
   /*really big chunk inistring */
   memcpy (cdat->dstr_2438__cloning_fro.val + 768,
-	  " (((meltobject_ptr_t)newdiscrv)->obj_vartab[FCLASS_FIELDS]));   "
-	  "   \n      gcc_assert (newlen >= srclen);\n      dst =  meltgc_new"
-	  "_raw_object ((meltobject_ptr_t)newdiscrv, newlen);\n      for (sl"
-	  "otix = 0; slotix < srclen; slotix++)\n\tdst->obj_vartab[slotix] = ",
+	  "\n\t\t\t      (((meltobject_ptr_t)newdiscrv)->obj_vartab[MELTFIELD_C"
+	  "LASS_FIELDS]));      \n      gcc_assert (newlen >= srclen);\n     "
+	  " dst =  meltgc_new_raw_object ((meltobject_ptr_t)newdiscrv, newl"
+	  "en);\n      for (slotix = 0; slotix < srclen; slotix++)\n\tdst->obj",
 	  /*big */ 256);
-  /*end big inistring */ strncpy (cdat->dstr_2438__cloning_fro.val + 1024,
-				  "src->obj_vartab[slotix];\n      dst->obj_num = src->obj_num;\n    }\n  ",
+  /*almost big chunk inistring */
+  memcpy (cdat->dstr_2438__cloning_fro.val + 1024,
+	  "_vartab[slotix] = src->obj_vartab[slotix];\n      dst->obj_num = ",
+	  /*evenlessbig */ 64);
+  /*end big inistring */ strncpy (cdat->dstr_2438__cloning_fro.val + 1088,
+				  "src->obj_num;\n    }\n  ",
 				  sizeof (cdat->dstr_2438__cloning_fro.val) -
-				  1025);
+				  1089);
 
 
 
@@ -39200,7 +39204,7 @@ start_module_melt (void *modargp_)
 
   /*^cond */
 
-  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < FSYSDAT_BOX_FRESH_ENV)	/*then */
+  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < MELTFIELD_SYSDATA_CONT_FRESH_ENV)	/*then */
     {
     }
   else
@@ -112626,7 +112630,7 @@ warmelt_base_initialmeltchunk_39 (struct frame_start_module_melt_st
 
  /**COMMENT: compute boxloc again **/ ;
 
-  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < FSYSDAT_BOX_FRESH_ENV)	/*then */
+  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < MELTFIELD_SYSDATA_CONT_FRESH_ENV)	/*then */
     {
     }
   else

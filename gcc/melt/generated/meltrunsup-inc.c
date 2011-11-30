@@ -2910,7 +2910,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	    newlen =
 	      melt_multiple_length ((melt_ptr_t)
 				    (((meltobject_ptr_t) newdiscrv)->
-				     obj_vartab[FCLASS_FIELDS]));
+				     obj_vartab[MELTFIELD_CLASS_FIELDS]));
 	    gcc_assert (newlen <= srclen);
 	    dst =
 	      meltgc_new_raw_object ((meltobject_ptr_t) newdiscrv, newlen);
@@ -2924,7 +2924,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	    newlen =
 	      melt_multiple_length ((melt_ptr_t)
 				    (((meltobject_ptr_t) newdiscrv)->
-				     obj_vartab[FCLASS_FIELDS]));
+				     obj_vartab[MELTFIELD_CLASS_FIELDS]));
 	    gcc_assert (newlen >= srclen);
 	    dst =
 	      meltgc_new_raw_object ((meltobject_ptr_t) newdiscrv, newlen);

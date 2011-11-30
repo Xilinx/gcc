@@ -416,8 +416,7 @@ existing Gcc Garbage Collector].}#
 
 
 
-;; class of system data -- be careful to keep the FSYSDAT_*
-;; identifiers from melt-runtime.h in sync!
+;; class of system data 
 (defclass class_system_data
   :predef CLASS_SYSTEM_DATA
   :super class_named

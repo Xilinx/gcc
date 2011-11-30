@@ -31595,7 +31595,7 @@ start_module_melt (void *modargp_)
 
   /*^cond */
 
-  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < FSYSDAT_BOX_FRESH_ENV)	/*then */
+  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < MELTFIELD_SYSDATA_CONT_FRESH_ENV)	/*then */
     {
     }
   else
@@ -102577,7 +102577,7 @@ warmelt_normal_initialmeltchunk_37 (struct frame_start_module_melt_st
 
  /**COMMENT: compute boxloc again **/ ;
 
-  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < FSYSDAT_BOX_FRESH_ENV)	/*then */
+  /*cond */ if ( /*_.CONTENV___V2*/ meltfptr[1] || melt_object_length ((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA)) < MELTFIELD_SYSDATA_CONT_FRESH_ENV)	/*then */
     {
     }
   else

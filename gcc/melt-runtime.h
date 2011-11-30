@@ -2368,6 +2368,7 @@ extern GTY (()) melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB];
 
 /* *INDENT-ON* */
 
+#if 0
 /* for compatibility with old code */
 #warning old manually predefined fields are obsolete
 
@@ -2511,7 +2512,9 @@ enum {
     FMELTCMD_DATA,		 /* client data of command */
     FMELTCMD__LAST
 };
+#endif 
 
+#define FSYSDAT_BOX_FRESH_ENV MELTFIELD_SYSDATA_CONT_FRESH_ENV
 
 /* currently each predefined is a GC root (so we have about two
    hundreds of them), scanned at every minor garbage collection. We

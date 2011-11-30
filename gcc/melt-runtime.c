@@ -6328,8 +6328,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
           MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
        ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
-#warning should write MELTFIELD_LEXEME_DATA
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
@@ -6344,8 +6343,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
           MELTLENGTH_CLASS_INFIX_STRING_LITERAL);
        ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
-#warning should write MELTFIELD_LEXEME_DATA
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
@@ -6365,8 +6363,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
           MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
        ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
-#warning should write MELTFIELD_LEXEME_DATA
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
@@ -6403,8 +6400,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 				     MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
        ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
-#warning should write MELTFIELD_LEXEME_DATA
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
@@ -6431,8 +6427,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 				    MELTLENGTH_CLASS_INFIX_DELIMITER);
        ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
-#warning should write MELTFIELD_LEXEME_DATA
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
@@ -6449,15 +6444,13 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 				     MELTLENGTH_CLASS_INFIX_DELIMITER);
        ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
-#warning should write MELTFIELD_LEXEME_DATA
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
    }
-   /* common macro to read symbols */
-#warning should write MELTFIELD_LEXEME_DATA in READ_INFIX_SYMBOL macro
- #define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv)			\
+   /* common macro to read symbols */					
+#define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv) do {			\
        Nam = readsimplename (rd);					\
        Readv = meltgc_named_symbol (Nam, MELT_CREATE);			\
        gcc_assert (MELT_PREDEF (Claname) != 0);				\
@@ -6466,9 +6459,9 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 				     MELTLENGTH_##Claname);	       	\
        ((meltobject_ptr_t) (Lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]	\
 	 = (melt_ptr_t) locmixv;			       		\
-       ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_DATA]		\
+       ((meltobject_ptr_t) (Lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]	\
 	 = (melt_ptr_t) Readv;						\
-       meltgc_touch (Lexv);
+       meltgc_touch (Lexv); } while(0)
 
    /* keywords start with a colon followed by a letter */
    else if (c==':' && ISALPHA(rdfollowc(1))) {

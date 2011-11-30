@@ -10346,7 +10346,7 @@ lab_endgetargs:;
       (meltgc_new_stringdup
        ((meltobject_ptr_t)
 	(( /*!DISCR_VERBATIM_STRING */ meltfrout->tabval[27])),
-	(" || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<FSYSDAT_BOX_FRESH_ENV")));;
+	(" || melt_object_length((melt_ptr_t) MELT_PREDEF (INITIAL_SYSTEM_DATA))<MELTFIELD_SYSDATA_CONT_FRESH_ENV")));;
     MELT_LOCATION ("warmelt-genobj.melt:1125:/ blockmultialloc");
     /*multiallocblock */
     {
