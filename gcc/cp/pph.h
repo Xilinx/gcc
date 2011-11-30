@@ -137,14 +137,14 @@ extern FILE *pph_logfile;
 
 /* Extern functions.  */
 
-/* In pph.c  */
+/* In pph-core.c  */
 extern void pph_init (void);
 extern void pph_finish (void);
 extern void pph_dump_location (FILE *file, location_t loc);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
 extern void pph_init_include_tree (void);
 
-/* In pph-streamer-out.c.  */
+/* In pph-out.c.  */
 extern void pph_out_uint (pph_stream *stream, unsigned int value);
 extern void pph_out_location (pph_stream *stream, location_t loc);
 extern void pph_out_tree (pph_stream *stream, tree t);
@@ -152,7 +152,7 @@ extern void pph_out_record_marker (pph_stream *stream,
 			enum pph_record_marker marker, enum pph_tag tag);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 
-/* In pph-streamer-in.c.  */
+/* In pph-in.c.  */
 extern unsigned int pph_in_uint (pph_stream *stream);
 extern location_t pph_in_location (pph_stream *stream);
 extern tree pph_in_tree (pph_stream *stream);

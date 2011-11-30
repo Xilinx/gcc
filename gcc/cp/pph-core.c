@@ -1,0 +1,1080 @@
+/* Factored pre-parsed header (PPH) support for C++.
+   Common routines for streaming PPH data.
+   Copyright (C) 2010, 2011 Free Software Foundation, Inc.
+   Contributed by Lawrence Crowl <crowl@google.com> and
+   Diego Novillo <dnovillo@google.com>.
+
+   This file is part of GCC.
+
+   GCC is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3, or (at your option)
+   any later version.
+
+   GCC is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
+
+
+#include "config.h"
+#include "system.h"
+#include "coretypes.h"
+#include "pph.h"
+#include "cpplib.h"
+#include "toplev.h"
+#include "tree.h"
+#include "cp-tree.h"
+#include "langhooks.h"
+#include "timevar.h"
+#include "tree-iterator.h"
+#include "tree-pretty-print.h"
+#include "lto-streamer.h"
+#include "pph-streamer.h"
+#include "pointer-set.h"
+#include "fixed-value.h"
+#include "md5.h"
+#include "tree-pass.h"
+#include "tree-dump.h"
+#include "tree-inline.h"
+#include "tree-pretty-print.h"
+#include "cxx-pretty-print.h"
+#include "parser.h"
+#include "version.h"
+#include "cppbuiltin.h"
+#include "streamer-hooks.h"
+
+
+/*************************************************************** pph logging */
+
+
+/* Log file where PPH analysis is written to.  Controlled by
+   -fpph_logfile.  If this flag is not given, stdout is used.  */
+FILE *pph_logfile = NULL;
+
+
+/* Convert a checked tree_code CODE to a string.  */
+
+const char *
+pph_tree_code_text (enum tree_code code)
+{
+  gcc_assert (code < MAX_TREE_CODES);
+  return tree_code_name[code];
+}
+
+
+/* Dump a location LOC to FILE.  */
+
+void
+pph_dump_location (FILE *file, location_t loc)
+{
+  expanded_location xloc = expand_location (loc);
+  fprintf (file, "%s:%d", xloc.file, xloc.line);
+}
+
+
+/* Dump a complicated name for tree T to FILE using FLAGS.
+   See TDF_* in tree-pass.h for flags.  */
+
+void
+pph_dump_tree_name (FILE *file, tree t, int flags)
+{
+  enum tree_code code = TREE_CODE (t);
+  const char *text = pph_tree_code_text (code);
+  if (DECL_P (t))
+    fprintf (file, "%s %s\n", text, decl_as_string (t, flags));
+  else if (TYPE_P (t))
+    fprintf (file, "%s %s\n", text, type_as_string (t, flags));
+  else if (EXPR_P (t))
+    fprintf (file, "%s %s\n", text, expr_as_string (t, flags));
+  else
+    {
+      fprintf (file, "%s ", text );
+      print_generic_expr (file, t, flags);
+      fprintf (file, "\n");
+    }
+}
+
+
+static void
+pph_dump_binding (FILE *file, cp_binding_level *level);
+
+
+/* Dump namespace NS for PPH.  */
+
+void
+pph_dump_namespace (FILE *file, tree ns)
+{
+  fprintf (file, "namespace ");
+  pph_dump_tree_name (file, ns, 0);
+  fprintf (file, "{\n");
+  pph_dump_binding (file, NAMESPACE_LEVEL (ns));
+  fprintf (file, "}\n");
+}
+
+
+/* Dump a CHAIN for PPH.  */
+
+static void
+pph_dump_chain (FILE *file, tree chain)
+{
+  tree t, next;
+  for (t = chain; t; t = next)
+    {
+      next = DECL_CHAIN (t);
+      if (!DECL_IS_BUILTIN (t))
+        pph_dump_tree_name (file, t, 0);
+    }
+}
+
+
+/* Dump cp_binding_level LEVEL for PPH.  */
+
+void
+pph_dump_binding (FILE *file, cp_binding_level *level)
+{
+  tree t, next;
+  pph_dump_chain (file, level->names);
+  for (t = level->namespaces; t; t = next)
+    {
+      next = DECL_CHAIN (t);
+      if (!DECL_IS_BUILTIN (t))
+        pph_dump_namespace (file, t);
+    }
+}
+
+
+/* Trace a record MARKER and TAG.  */
+
+static const char *marker_strings[] =
+{
+  "PPH_RECORD_START",
+  "PPH_RECORD_START_NO_CACHE",
+  "PPH_RECORD_START_MUTATED",
+  "PPH_RECORD_START_MERGE_KEY",
+  "PPH_RECORD_START_MERGE_BODY",
+  "PPH_RECORD_END",
+  "PPH_RECORD_IREF",
+  "PPH_RECORD_XREF",
+  "PPH_RECORD_PREF"
+};
+
+static const char *tag_strings[] =
+{
+  "PPH_any_tree",
+  "PPH_binding_entry",
+  "PPH_binding_table",
+  "PPH_cgraph_node",
+  "PPH_cp_binding_level",
+  "PPH_cp_class_binding",
+  "PPH_cp_label_binding",
+  "PPH_cxx_binding",
+  "PPH_function",
+  "PPH_lang_decl",
+  "PPH_lang_type",
+  "PPH_language_function",
+  "PPH_sorted_fields_type"
+};
+
+
+/* Trace print a MARKER and TAG.  */
+
+
+void
+pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag)
+{
+  fprintf (pph_logfile, "marker ");
+  if (PPH_RECORD_START <= marker && marker <= PPH_RECORD_PREF)
+    fprintf (pph_logfile, "%s", marker_strings[marker - PPH_RECORD_START]);
+  else
+    fprintf (pph_logfile, "unknown");
+  fprintf (pph_logfile, " tag ");
+  if (tag == PPH_null)
+    fprintf (pph_logfile, "PPH_null\n");
+  else if (tag < PPH_any_tree)
+    fprintf (pph_logfile, "%s\n", tree_code_name[tag]);
+  else if (tag < PPH_NUM_TAGS)
+    fprintf (pph_logfile, "%s\n", tag_strings[tag - PPH_any_tree]);
+  else
+    fprintf (pph_logfile, "unknown\n");
+}
+
+
+/* Print tracing information for a possibly MERGEABLE tree T.  */
+
+void
+pph_trace_tree (tree t, enum pph_trace_end end, enum pph_trace_kind kind)
+{
+  char end_char, kind_char, decl_char;
+  bool is_merge, is_decl;
+  bool emit = false;
+
+  switch (kind)
+    {
+      case pph_trace_key_out:
+	kind_char = 'K';
+	is_merge = true;
+	break;
+      case pph_trace_unmerged_key:
+	kind_char = 'U';
+	is_merge = true;
+	break;
+      case pph_trace_merged_key:
+	kind_char = 'M';
+	is_merge = true;
+	break;
+      case pph_trace_merge_body:
+	kind_char = 'B';
+	is_merge = true;
+	break;
+      case pph_trace_mutate:
+	kind_char = '=';
+	is_merge = false;
+	break;
+      case pph_trace_normal:
+	kind_char = '.';
+	is_merge = false;
+	break;
+      default:
+	kind_char = '?';
+	is_merge = false;
+    }
+
+  end_char = end == pph_trace_front ? '{' : '}';
+
+  is_decl = DECL_P (t);
+  if (is_decl)
+    decl_char = 'D';
+  else if (TYPE_P (t))
+    decl_char = 'T';
+  else
+    decl_char = '.';
+
+  if (is_merge && is_decl && flag_pph_tracer >= 2)
+    emit = true;
+  else if ((is_merge || is_decl) && flag_pph_tracer >= 3)
+    emit = true;
+  else if (!EXPR_P (t) && flag_pph_tracer >= 4)
+    emit = true;
+
+  if (emit)
+    {
+      fprintf (pph_logfile, "PPH: %c%c%c ", end_char, kind_char, decl_char);
+      if (kind == pph_trace_unmerged_key || end == pph_trace_front)
+	fprintf (pph_logfile, "%s -------\n",
+			      pph_tree_code_text (TREE_CODE (t)));
+      else
+        pph_dump_tree_name (pph_logfile, t, 0);
+    }
+}
+
+
+/************************************************* pph pointer mapping cache */
+
+
+/* Initialize an empty pickle CACHE.  */
+
+static void
+pph_cache_init (pph_cache *cache)
+{
+  cache->v = NULL;
+  cache->m = pointer_map_create ();
+}
+
+
+/* A cache of pre-loaded common tree nodes.  */
+static pph_cache *pph_preloaded_cache;
+
+
+/* Pre-load common tree nodes into CACHE.  These nodes are always built by the
+   front end, so there is no need to pickle them.  */
+
+static void
+pph_cache_preload (pph_cache *cache)
+{
+  unsigned i;
+
+  for (i = itk_char; i < itk_none; i++)
+    pph_cache_add (cache, integer_types[i], NULL,
+                   pph_tree_code_to_tag (integer_types[i]));
+
+  for (i = 0; i < TYPE_KIND_LAST; i++)
+    pph_cache_add (cache, sizetype_tab[i], NULL,
+                   pph_tree_code_to_tag (sizetype_tab[i]));
+
+  /* global_trees[] can have NULL entries in it.  Skip them.  */
+  for (i = 0; i < TI_MAX; i++)
+    if (global_trees[i])
+      pph_cache_add (cache, global_trees[i], NULL,
+                     pph_tree_code_to_tag (global_trees[i]));
+
+  /* c_global_trees[] can have NULL entries in it.  Skip them.  */
+  for (i = 0; i < CTI_MAX; i++)
+    if (c_global_trees[i])
+      pph_cache_add (cache, c_global_trees[i], NULL,
+                     pph_tree_code_to_tag (c_global_trees[i]));
+
+  /* cp_global_trees[] can have NULL entries in it.  Skip them.  */
+  for (i = 0; i < CPTI_MAX; i++)
+    {
+      /* Also skip trees which are generated while parsing.  */
+      if (i == CPTI_KEYED_CLASSES)
+	continue;
+
+      if (cp_global_trees[i])
+	pph_cache_add (cache, cp_global_trees[i], NULL,
+                       pph_tree_code_to_tag (cp_global_trees[i]));
+    }
+
+  /* Add other well-known nodes that should always be taken from the
+     current compilation context.  */
+  pph_cache_add (cache, global_namespace, NULL,
+                 pph_tree_code_to_tag (global_namespace));
+  pph_cache_add (cache, DECL_CONTEXT (global_namespace), NULL,
+                 pph_tree_code_to_tag (DECL_CONTEXT (global_namespace)));
+}
+
+
+/* Initialize the pre-loaded cache.  This contains all the common
+   tree nodes built by the compiler on startup.  */
+
+static void
+pph_init_preloaded_cache (void)
+{
+  pph_preloaded_cache = XCNEW (pph_cache);
+  pph_cache_init (pph_preloaded_cache);
+  pph_cache_preload (pph_preloaded_cache);
+}
+
+
+/* Insert DATA in CACHE at slot IX.  TAG represents the data structure
+   pointed-to by DATA.  As a restriction to prevent stomping on cache
+   entries, this will not allow inserting into the same slot more than
+   once.  Return the newly added entry.  */
+
+pph_cache_entry *
+pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix,
+                     enum pph_tag tag)
+{
+  void **map_slot;
+  pph_cache_entry e = { data, tag, false, 0, 0 };
+
+  map_slot = pointer_map_insert (cache->m, data);
+
+  /* We should not be trying to insert the same data more than once.
+     This indicates that the same DATA pointer has been given two
+     different cache locations.  This almost always points to a
+     problem with merging data structures read from different files.  */
+  gcc_assert (*map_slot == NULL);
+
+  *map_slot = (void *) (intptr_t) ix;
+  if (ix + 1 > VEC_length (pph_cache_entry, cache->v))
+    VEC_safe_grow_cleared (pph_cache_entry, heap, cache->v, ix + 1);
+  VEC_replace (pph_cache_entry, cache->v, ix, &e);
+
+  return pph_cache_get_entry (cache, ix);
+}
+
+
+/* Add pointer DATA with data type TAG to CACHE.  If IX_P is not NULL,
+   on exit *IX_P will contain the slot number where DATA is stored.
+   Return the newly added entry.  */
+
+pph_cache_entry *
+pph_cache_add (pph_cache *cache, void *data, unsigned *ix_p, enum pph_tag tag)
+{
+  unsigned ix;
+  pph_cache_entry *e;
+
+  e = pph_cache_lookup (cache, data, &ix, tag);
+  if (e == NULL)
+    {
+      ix = VEC_length (pph_cache_entry, cache->v);
+      e = pph_cache_insert_at (cache, data, ix, tag);
+    }
+
+  if (ix_p)
+    *ix_p = ix;
+
+  return e;
+}
+
+
+/* If DATA exists in CACHE, return the cache entry holding it.  If
+   IX_P is not NULL, store the cache slot where DATA resides in *IX_P
+   (or (unsigned)-1 if DATA is not found). If CACHE is NULL use
+   pph_preloaded_cache.
+
+   If a cache hit is found, the data type tag for the entry must match
+   TAG.  */
+
+pph_cache_entry *
+pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
+                  enum pph_tag tag)
+{
+  void **map_slot;
+  unsigned ix;
+  pph_cache_entry *e;
+
+  if (cache == NULL)
+    cache = pph_preloaded_cache;
+
+  map_slot = pointer_map_contains (cache->m, data);
+  if (map_slot == NULL)
+    {
+      e = NULL;
+      ix = (unsigned) -1;
+    }
+  else
+    {
+      intptr_t slot_ix = (intptr_t) *map_slot;
+      gcc_assert (slot_ix == (intptr_t)(unsigned) slot_ix);
+      ix = (unsigned) slot_ix;
+      e = pph_cache_get_entry (cache, ix);
+
+      /* If the caller is looking for a specific TAG, make sure
+         it matches the tag we pulled from the cache.  */
+      if (tag != PPH_null)
+	gcc_assert (tag == e->tag);
+    }
+
+  if (ix_p)
+    *ix_p = ix;
+
+  return e;
+}
+
+
+/* Return true if DATA is in the pickle cache of one of STREAM's
+   included images.  TAG is the expected data type TAG for data.
+
+   If DATA is found:
+      - the index for INCLUDE_P into IMAGE->INCLUDES is returned in
+	*INCLUDE_IX_P (if INCLUDE_IX_P is not NULL),
+      - the cache slot index for DATA into *INCLUDE_P's pickle cache
+	is returned in *IX_P (if IX_P is not NULL), and,
+      - the function returns true.
+
+   If DATA is not found:
+      - *INCLUDE_IX_P is set to -1 (if INCLUDE_IX_P is not NULL),
+      - *IX_P is set to -1 (if IX_P is not NULL), and,
+      - the function returns false.  */
+
+pph_cache_entry *
+pph_cache_lookup_in_includes (pph_stream *stream, void *data,
+			      unsigned *include_ix_p, unsigned *ix_p,
+			      enum pph_tag tag)
+{
+  unsigned include_ix, ix;
+  pph_stream *include;
+  pph_cache_entry *e;
+
+  /* When searching the external caches, do not try to find a match
+     for TAG.  Since this is an external cache, the parser may have
+     re-allocated the object pointed by DATA (e.g., when merging
+     decls).  In this case, TAG will be different from the tag we find
+     in the cache, so instead of ICEing, we ignore the match to force
+     the caller to pickle DATA.  */
+  e = NULL;
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, include_ix, include)
+    {
+      e = pph_cache_lookup (&include->cache, data, &ix, PPH_null);
+      if (e)
+	{
+	  /* Only consider DATA found if its data type matches TAG.  If
+	     not, it means that the object pointed by DATA has changed,
+	     so DATA will need to be re-pickled.  */
+	  if (e->tag != tag)
+	    e = NULL;
+	  break;
+	}
+    }
+
+  if (e == NULL)
+    {
+      include_ix = ix = (unsigned) -1;
+      ix = (unsigned) -1;
+    }
+
+  if (include_ix_p)
+    *include_ix_p = include_ix;
+
+  if (ix_p)
+    *ix_p = ix;
+
+  return e;
+}
+
+
+/*************************************************** tree contents signature */
+
+
+/* Associate signature CRC with the first NBYTES of the area memory
+   pointed to by slot IX of CACHE.  */
+
+void
+pph_cache_sign (pph_cache *cache, unsigned ix, unsigned crc, size_t nbytes)
+{
+  pph_cache_entry *e;
+
+  /* Needed because xcrc32 requires an int to specify the length but
+     tree_size returns size_t values.  */
+  gcc_assert (nbytes == (size_t) (int) nbytes);
+
+  e = pph_cache_get_entry (cache, ix);
+  e->crc = crc;
+  e->crc_nbytes = nbytes;
+}
+
+
+/* Return a signature for tree T.  Store the length of the signed area
+   in *NBYTES_P.  */
+
+unsigned
+pph_get_signature (tree t, size_t *nbytes_p)
+{
+  tree prev_chain = NULL;
+  rtx prev_rtl = NULL;
+  int prev_used;
+  size_t nbytes;
+  unsigned crc;
+
+  nbytes = tree_size (t);
+  if (nbytes_p)
+    *nbytes_p = nbytes;
+
+  /* Preserve the value of the fields not included in the signature.  */
+  prev_chain = (DECL_P (t)) ? DECL_CHAIN (t) : NULL;
+  prev_rtl = (HAS_RTL_P (t)) ? DECL_RTL_IF_SET (t) : NULL;
+  prev_used = TREE_USED (t);
+
+  /* Clear the fields not included in the signature.  */
+  if (DECL_P (t))
+    DECL_CHAIN (t) = NULL;
+  if (HAS_RTL_P (t))
+    SET_DECL_RTL (t, NULL);
+  TREE_USED (t) = 0;
+
+  crc = xcrc32 ((const unsigned char *) t, nbytes, -1);
+
+  /* Restore fields we did not include in the signature.  */
+  if (DECL_P (t))
+    DECL_CHAIN (t) = prev_chain;
+  if (HAS_RTL_P (t))
+    SET_DECL_RTL (t, prev_rtl);
+  TREE_USED (t) = prev_used;
+
+  return crc;
+}
+
+
+/****************************************************** pph include handling */
+
+
+/* Return true if PPH image NAME can be used at the point of inclusion
+   (given by LOC).  */
+
+static bool
+pph_is_valid_here (const char *name, location_t loc)
+{
+  /* If we are inside a scope, reject the image.  We could be inside a
+     namespace or a structure which changes the parsing context for
+     the original text file.  */
+  if (scope_chain->x_brace_nesting > 0)
+    {
+      error_at (loc, "PPH file %s not included at global scope", name);
+      return false;
+    }
+
+  return true;
+}
+
+
+/* Record a #include or #include_next for PPH.
+   READER is the main pre-processor object, LOC is the location where
+   the #include is being emitted from, DNAME is the name of the
+   #include directive used, NAME is the canonical name of the file being
+   included, ANGLE_BRACKETS is non-zero if this #include uses <> and
+   TOK_P is a pointer to the current token being pre-processed.  */
+
+static bool
+pph_include_handler (cpp_reader *reader,
+                     location_t loc,
+                     const unsigned char *dname,
+                     const char *name,
+                     int angle_brackets,
+                     const cpp_token **tok_p ATTRIBUTE_UNUSED)
+{
+  const char *pph_file;
+  bool read_text_file_p;
+
+  if (flag_pph_tracer >= 1)
+    {
+      fprintf (pph_logfile, "PPH: #%s", dname);
+      fprintf (pph_logfile, " %c", angle_brackets ? '<' : '"');
+      fprintf (pph_logfile, "%s", name);
+      fprintf (pph_logfile, "%c\n", angle_brackets ? '>' : '"');
+    }
+
+  read_text_file_p = true;
+  pph_file = query_pph_include_map (name);
+  if (pph_file != NULL
+      && pph_is_valid_here (name, loc)
+      && !cpp_included_before (reader, name, input_location))
+    {
+      pph_stream *include;
+
+      /* Hack. We do this to mimic what the non-pph compiler does in
+	_cpp_stack_include as our goal is to have identical line_tables.  */
+      line_table->highest_location--;
+
+      include = pph_read_file (pph_file);
+
+      /* If we are generating a new PPH image, add the stream we just
+	 read to the list of includes.   This way, the parser will be
+	 able to resolve references to symbols in INCLUDE and its
+	 children.  */
+      if (pph_writer_enabled_p ())
+	pph_writer_add_include (include);
+
+      read_text_file_p = false;
+    }
+
+  return read_text_file_p;
+}
+
+
+/* PPH include tree dumper.  Each entry in this file has the format:
+
+	DEPTH|SYSP|DNAME|CANONICAL-NAME|FULL-NAME|PPH-NAME
+
+  Where:
+	DEPTH		is the include depth of the file.
+	SYSP		1 for a system header
+			2 for a C system header that needs 'extern "C"'
+			0 otherwise.
+	DNAME		name of the #include directive used.
+	CANONICAL-NAME	is the name of the file as specified by the
+			#include directive.
+	FULL-NAME	is the full path name where the included file
+			was found by the pre-processor.
+	PPH-NAME	is the name of the associated PPH file.  */
+
+typedef struct {
+  /* Name of current #include directive.  */
+  const unsigned char *dname;
+
+  /* Canonical name of file being included.  */
+  const char *name;
+
+  /* Previous libcpp #include handler.  */
+  void (*prev_file_change) (cpp_reader *, const struct line_map *);
+
+  /* Previous libcpp file change handler.  */
+  bool (*prev_include) (cpp_reader *, source_location, const unsigned char *,
+		        const char *, int, const cpp_token **);
+} pph_include_tree_dumper;
+
+static pph_include_tree_dumper tree_dumper;
+
+
+/* #include handler for libcpp.  READER is the main pre-processor object,
+   LOC is the location where the #include is being emitted from, DNAME
+   is the name of the #include directive used, NAME is the canonical
+   name of the file being included, ANGLE_BRACKETS is non-zero if this
+   #include uses <> and TOK_P is a pointer to the current token being
+   pre-processed.  */
+
+static bool
+pph_include_handler_for_map (cpp_reader *reader,
+			     location_t loc,
+                             const unsigned char *dname,
+                             const char *name,
+                             int angle_brackets,
+                             const cpp_token **tok_p)
+{
+  bool retval = true;
+
+  if (tree_dumper.prev_include)
+    retval &= tree_dumper.prev_include (reader, loc, dname, name,
+					angle_brackets, tok_p);
+  tree_dumper.dname = dname;
+  tree_dumper.name = name;
+
+  return retval;
+}
+
+
+/* Return a copy of NAME with the characters '/' and '.' replaced with
+   '_'.  The caller is reponsible for freeing the returned string.  */
+
+static char *
+pph_flatten_name (const char *name)
+{
+  char *str = xstrdup (name);
+  size_t i;
+
+  for (i = 0; i < strlen (str); i++)
+    if (str[i] == DIR_SEPARATOR || str[i] == '.')
+      str[i] = '_';
+
+  return str;
+}
+
+
+/* File change handler for libcpp.  READER is the main pre-processor object,
+   MAP is the line map entry for the file that we are entering into.  */
+
+static void
+pph_file_change_handler (cpp_reader *reader, const struct line_map *map)
+{
+  char *flat;
+
+  if (tree_dumper.prev_file_change)
+    tree_dumper.prev_file_change (reader, map);
+
+  /* We are only interested in line maps that describe a new file being
+     entered.  */
+  if (map == NULL || map->reason != LC_ENTER)
+    return;
+
+  /* Emit a line to the map file with the format:
+
+	DEPTH|SYSP|DNAME|CANONICAL-NAME|FULL-NAME|PPH-NAME
+  */
+  flat = pph_flatten_name (map->d.ordinary.to_file);
+  fprintf (stderr, "%d|%d|%s|%s|%s|%s.pph\n", line_table->depth,
+	   map->d.ordinary.sysp, tree_dumper.dname, tree_dumper.name,
+	   map->d.ordinary.to_file, flat);
+  free (flat);
+  tree_dumper.dname = NULL;
+  tree_dumper.name = NULL;
+}
+
+
+/* Initialize the #include tree dumper.  */
+
+void
+pph_init_include_tree (void)
+{
+  cpp_callbacks *cb;
+
+  memset (&tree_dumper, 0, sizeof (tree_dumper));
+
+  if (pph_enabled_p ())
+    fatal_error ("do not use -fpph-map-gen with any other PPH flag");
+
+  /* Set up the libcpp handler for file change events.  Each event
+     will generate a new entry in the map file.  */
+  cb = cpp_get_callbacks (parse_in);
+
+  tree_dumper.prev_file_change = cb->file_change;
+  cb->file_change = pph_file_change_handler;
+
+  tree_dumper.prev_include = cb->include;
+  cb->include = pph_include_handler_for_map;
+}
+
+
+/* Add INCLUDE, and the images included by it, to the list of files
+   included by STREAM.  */
+
+void
+pph_add_include (pph_stream *stream, pph_stream *include)
+{
+  pph_stream *include_child;
+  unsigned i;
+
+  include->parent = stream;
+  VEC_safe_push (pph_stream_ptr, heap, stream->includes, include);
+  FOR_EACH_VEC_ELT (pph_stream_ptr, include->includes, i, include_child)
+    VEC_safe_push (pph_stream_ptr, heap, stream->includes, include_child);
+}
+
+
+/*********************************************************** stream handling */
+
+
+/* List of PPH images opened for reading.  Images opened during #include
+   processing and opened from pph_in_includes cannot be closed
+   immediately after reading, because the pickle cache contained in
+   them may be referenced from other images.  We delay closing all of
+   them until the end of parsing (when pph_streamer_finish is called).  */
+static VEC(pph_stream_ptr, heap) *pph_read_images = NULL;
+
+
+/* If FILENAME has already been read, return the stream associated with it.  */
+
+static pph_stream *
+pph_find_stream_for (const char *filename)
+{
+  pph_stream *include;
+  unsigned i;
+
+  /* FIXME pph, implement a hash map to avoid this linear search.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
+    if (strcmp (include->name, filename) == 0)
+      return include;
+
+  return NULL;
+}
+
+
+/* Add STREAM to the list of read images.  */
+
+void
+pph_mark_stream_read (pph_stream *stream)
+{
+  stream->in_memory_p = true;
+  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
+}
+
+
+/* Create a new PPH stream to be stored on the file called NAME.
+   MODE is passed to fopen directly.  */
+
+pph_stream *
+pph_stream_open (const char *name, const char *mode)
+{
+  pph_stream *stream;
+  FILE *f;
+
+  /* If we have already opened a PPH stream named NAME, just return
+     its associated stream.  */
+  stream = pph_find_stream_for (name);
+  if (stream)
+    {
+      gcc_assert (stream->in_memory_p);
+      return stream;
+    }
+
+  f = fopen (name, mode);
+  if (!f)
+    return NULL;
+
+  stream = XCNEW (pph_stream);
+  stream->file = f;
+  stream->name = xstrdup (name);
+  stream->write_p = (strchr (mode, 'w') != NULL);
+  pph_cache_init (&stream->cache);
+  stream->preloaded_cache = pph_preloaded_cache;
+  if (stream->write_p)
+    pph_init_write (stream);
+  else
+    pph_init_read (stream);
+
+  return stream;
+}
+
+
+/* Close PPH stream STREAM.  */
+
+void
+pph_stream_close (pph_stream *stream)
+{
+  /* STREAM can be NULL if it could not be properly opened.  An error
+     has already been emitted, so avoid crashing here.  */
+  if (stream == NULL)
+    return;
+
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "PPH: Closing %s\n", stream->name);
+
+  /* If we were writing to STREAM, flush all the memory buffers.  This
+     does the actual writing of all the pickled data structures.  */
+  if (stream->write_p)
+    pph_flush_buffers (stream);
+
+  fclose (stream->file);
+
+  /* Deallocate all memory used.  */
+  stream->file = NULL;
+  VEC_free (pph_cache_entry, heap, stream->cache.v);
+  pointer_map_destroy (stream->cache.m);
+  VEC_free (pph_symtab_entry, heap, stream->symtab.v);
+  VEC_free (pph_stream_ptr, heap, stream->includes);
+
+  if (stream->write_p)
+    {
+      destroy_output_block (stream->encoder.w.ob);
+      free (stream->encoder.w.decl_state_stream);
+      lto_delete_out_decl_state (stream->encoder.w.out_state);
+    }
+  else
+    {
+      unsigned i;
+
+      free (stream->encoder.r.ib);
+      lto_data_in_delete (stream->encoder.r.data_in);
+      for (i = 0; i < PPH_NUM_SECTIONS; i++)
+	free (stream->encoder.r.pph_sections[i]);
+      free (stream->encoder.r.pph_sections);
+      free (stream->encoder.r.file_data);
+    }
+
+  free (stream);
+}
+
+
+/********************************************************** stream callbacks */
+
+
+/* Callback for writing ASTs to a stream.  Write EXPR to the PPH stream
+   in OB.  */
+
+static void
+pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+{
+  pph_out_tree ((pph_stream *) ob->sdata, expr);
+}
+
+
+/* Callback for reading ASTs from a stream.  Instantiate and return a
+   new tree from the PPH stream in DATA_IN.  */
+
+static tree
+pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
+	       struct data_in *data_in)
+{
+  return pph_in_tree ((pph_stream *) data_in->sdata);
+}
+
+
+/* Callback for streamer_hooks.input_location.  An offset is applied to
+   the location_t read in according to the properties of the merged
+   line_table.  IB and DATA_IN are as in lto_input_location.  This function
+   should only be called after pph_in_and_merge_line_table was called as
+   we expect pph_loc_offset to be set.  */
+
+static location_t
+pph_input_location (struct lto_input_block *ib ATTRIBUTE_UNUSED,
+                    struct data_in *data_in)
+{
+  return pph_in_location ((pph_stream *) data_in->sdata);
+}
+
+
+/* Callback for streamer_hooks.output_location.  Output the LOC directly,
+   an offset will be applied on input after rebuilding the line_table.
+   OB and LOC are as in lto_output_location.  */
+
+static void
+pph_output_location (struct output_block *ob, location_t loc)
+{
+  pph_out_location ((pph_stream *) ob->sdata, loc);
+}
+
+
+/******************************************************** pph initialization */
+
+
+/* Initialize all the streamer hooks used for streaming ASTs.  */
+
+static void
+pph_hooks_init (void)
+{
+  streamer_hooks_init ();
+  streamer_hooks.write_tree = pph_write_tree;
+  streamer_hooks.read_tree = pph_read_tree;
+  streamer_hooks.input_location = pph_input_location;
+  streamer_hooks.output_location = pph_output_location;
+}
+
+
+/* Initialize the streamer.  */
+
+static void
+pph_streamer_init (void)
+{
+  pph_hooks_init ();
+  pph_init_preloaded_cache ();
+}
+
+
+/* The initial order of the size of the lexical lookaside table,
+   which will accomodate as many as half of its slots in use.  */
+
+static const unsigned int cpp_lt_order = /* 2 to the power of */ 9;
+
+/* Initialize PPH support.  */
+
+void
+pph_init (void)
+{
+  cpp_callbacks *cb;
+  cpp_lookaside *table;
+
+  if (flag_pph_logfile)
+    {
+      pph_logfile = fopen (flag_pph_logfile, "w");
+      if (!pph_logfile)
+	fatal_error ("Cannot create %s for writing: %m", flag_pph_logfile);
+    }
+  else
+    pph_logfile = stdout;
+
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "PPH: Initializing.\n");
+
+  /* Set up the libcpp handler for #include.  */
+  cb = cpp_get_callbacks (parse_in);
+  cb->include = pph_include_handler;
+
+  table = cpp_lt_exchange (parse_in,
+                           cpp_lt_create (cpp_lt_order, flag_pph_debug/2));
+  gcc_assert (table == NULL);
+
+  pph_streamer_init ();
+
+  /* If we are generating a PPH file, initialize the writer.  */
+  if (pph_writer_enabled_p ())
+    pph_writer_init ();
+
+  pph_reader_init ();
+}
+
+
+/********************************************************** pph finalization */
+
+
+/* Finalize the streamer.  */
+
+static void
+pph_streamer_finish (void)
+{
+  unsigned i;
+  pph_stream *image;
+
+  /* Finalize the writer.  */
+  pph_writer_finish ();
+
+  /* Finalize the reader.  */
+  pph_reader_finish ();
+
+  /* Close any images read during parsing.  */
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
+    pph_stream_close (image);
+
+  VEC_free (pph_stream_ptr, heap, pph_read_images);
+}
+
+
+/* Finalize PPH support.  */
+
+void
+pph_finish (void)
+{
+  /* Finalize the streamer.  */
+  pph_streamer_finish ();
+
+  /* Close log files.  */
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "PPH: Finishing.\n");
+
+  if (flag_pph_logfile)
+    fclose (pph_logfile);
+}

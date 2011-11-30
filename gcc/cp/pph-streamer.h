@@ -226,13 +226,6 @@ struct pph_stream {
 #define PPHF_NO_XREFS		(1 << 1)
 #define PPHF_NO_PREFS		(1 << 2)
 
-/* In pph.c  */
-extern const char *pph_tree_code_text (enum tree_code code);
-extern void pph_dump_min_decl (FILE *file, tree decl);
-extern void pph_dump_chain (FILE *, tree chain);
-extern void pph_dump_binding (FILE *, cp_binding_level *level);
-extern void pph_dump_namespace (FILE *, tree ns);
-
 enum pph_trace_kind
 {
   pph_trace_key_out, pph_trace_unmerged_key, pph_trace_merged_key,
@@ -244,9 +237,9 @@ enum pph_trace_end
   pph_trace_front, pph_trace_back
 };
 
-/* In pph-streamer.c.  */
-void pph_streamer_init (void);
-void pph_streamer_finish (void);
+/* In pph-core.c.  */
+const char *pph_tree_code_text (enum tree_code code);
+void pph_dump_namespace (FILE *, tree ns);
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
@@ -265,7 +258,7 @@ void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
 unsigned pph_get_signature (tree, size_t *);
 void pph_writer_add_include (pph_stream *);
 
-/* In pph-streamer-out.c.  */
+/* In pph-out.c.  */
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
 void pph_write_mergeable_chain (pph_stream *, tree);
@@ -274,7 +267,7 @@ void pph_writer_finish (void);
 void pph_out_location (pph_stream *, location_t);
 void pph_out_tree (pph_stream *, tree);
 
-/* In pph-streamer-in.c.  */
+/* In pph-in.c.  */
 void pph_init_read (pph_stream *);
 location_t pph_in_location (pph_stream *);
 pph_stream *pph_read_file (const char *);

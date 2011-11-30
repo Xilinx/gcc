@@ -1,3 +1,24 @@
+2011-11-29   Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer.c: Renamed pph-core.c.
+	* pph.c: Contents moved into pph-core.c.
+	(pph_dump_min_decl): Removed unused.
+	(flatten_name): Rename pph_flatten_name.
+	* pph-streamer-in.c: Renamed pph-in.c.
+	* pph-streamer-out.c: Renamed pph-out.c.
+	* pph-streamer.h: Adjust to reflect above.  Remove unneeded decls.
+	* pph.h: Adjust to reflect above.
+	* config-lang.in: Adjust to reflect above.
+	* Make-lang.in: Adjust to reflect above.
+	(CXX_PPH_STREAMER_H): Remove redundancies.
+	(CXX_PPH_COMMON_H): New.
+	(CXX_PPH_COMMON_H): New.
+	(cp/pph-core.o): Remove redundancies.
+	(cp/pph-in.o): Remove redundancies.
+	(cp/pph-out.o): Remove redundancies.
+	(cp/pt.o): Add depndence on CXX_PPH_H.
+	* pt.c: Remove redundant #include "pph-streamer.h".
+
 2011-11-13   Diego Novillo  <dnovillo@google.com>
 
 	* parser.c (c_parse_file): Call pph_init_include_tree.
