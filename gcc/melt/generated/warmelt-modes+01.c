@@ -19898,7 +19898,8 @@ lab_endgetargs:;
 	      ( /*_.CURCMD__V7*/ meltfptr[6], MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.CURNAME__V6*/ meltfptr[5] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.CURCMD__V7*/
-					 meltfptr[6], FNAMED_NAME)) != NULL
+					 meltfptr[6],
+					 MELTFIELD_NAMED_NAME)) != NULL
 	      && (cit1__EACHSTRMAP_nam =
 		  melt_string_str ((melt_ptr_t) /*_.CURNAME__V6*/
 				   meltfptr[5])) != (char *) 0
@@ -28525,7 +28526,7 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_cstring =
-	" /* generated cloning routine head */\nmelt_ptr_t\nmeltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)\n{\n  unsigned srcmagic = 0;\n  unsigned newmagic = 0;\n  MELT_ENTERFRAME (5, NULL);\n#define resv       meltfram__.mcfr_varptr[0]\n#define srcvalv    meltfram__.mcfr_varptr[1]\n#define newdiscrv  meltfram__.mcfr_varptr[2]\n#define srcdiscrv  meltfram__.mcfr_varptr[3]\n#define compv      meltfram__.mcfr_varptr[4]\n  srcvalv = srcval_p;\n  newdiscrv = newdiscr_p;\n  resv = srcvalv;\n  if (!srcvalv) \n     goto end;\n  srcdiscrv = ((melt_ptr_t)srcvalv)->u_discr;\n  if (!newdiscrv)\n    newdiscrv = srcdiscrv;\n  if (melt_magic_discr((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT\n      || ((meltobject_ptr_t)newdiscrv)->obj_len < FDISC__LAST)\n    goto end;\n  if (!melt_is_instance_of((melt_ptr_t)newdiscrv, \n\t\t\t   MELT_PREDEF (CLASS_DISCRIMINANT)))\n    goto end;\n  srcmagic = melt_magic_discr ((melt_ptr_t)srcvalv);\n  newmagic = ((meltobject_ptr_t)newdiscrv)->meltobj_magic;\n  if (srcmagic != newmagic) \n    goto end;\n  switch (srcmagic) { /* end cloning heeader */\n";
+	" /* generated cloning routine head */\nmelt_ptr_t\nmeltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)\n{\n  unsigned srcmagic = 0;\n  unsigned newmagic = 0;\n  MELT_ENTERFRAME (5, NULL);\n#define resv       meltfram__.mcfr_varptr[0]\n#define srcvalv    meltfram__.mcfr_varptr[1]\n#define newdiscrv  meltfram__.mcfr_varptr[2]\n#define srcdiscrv  meltfram__.mcfr_varptr[3]\n#define compv      meltfram__.mcfr_varptr[4]\n  srcvalv = srcval_p;\n  newdiscrv = newdiscr_p;\n  resv = srcvalv;\n  if (!srcvalv) \n     goto end;\n  srcdiscrv = ((melt_ptr_t)srcvalv)->u_discr;\n  if (!newdiscrv)\n    newdiscrv = srcdiscrv;\n  if (melt_magic_discr((melt_ptr_t)newdiscrv) != MELTOBMAG_OBJECT\n      || ((meltobject_ptr_t)newdiscrv)->obj_len < MELTLENGTH_CLASS_DISCRIMINANT)\n    goto end;\n  if (!melt_is_instance_of((melt_ptr_t)newdiscrv, \n\t\t\t   MELT_PREDEF (CLASS_DISCRIMINANT)))\n    goto end;\n  srcmagic = melt_magic_discr ((melt_ptr_t)srcvalv);\n  newmagic = ((meltobject_ptr_t)newdiscrv)->meltobj_magic;\n  if (srcmagic != newmagic) \n    goto end;\n  switch (srcmagic) { /* end cloning heeader */\n";
       /*_.ADD2OUT__V16*/ meltfptr[14] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!ADD2OUT */ meltfrout->tabval[1])),

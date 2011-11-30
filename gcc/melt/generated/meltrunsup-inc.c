@@ -2359,7 +2359,8 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
   if (!newdiscrv)
     newdiscrv = srcdiscrv;
   if (melt_magic_discr ((melt_ptr_t) newdiscrv) != MELTOBMAG_OBJECT
-      || ((meltobject_ptr_t) newdiscrv)->obj_len < FDISC__LAST)
+      || ((meltobject_ptr_t) newdiscrv)->obj_len <
+      MELTLENGTH_CLASS_DISCRIMINANT)
     goto end;
   if (!melt_is_instance_of ((melt_ptr_t) newdiscrv,
 			    MELT_PREDEF (CLASS_DISCRIMINANT)))

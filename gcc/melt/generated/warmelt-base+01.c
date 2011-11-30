@@ -4132,7 +4132,8 @@ lab_endgetargs:;
 			      melt_object_nth_field ((melt_ptr_t)
 						     /*_.CURVAL__V5*/
 						     meltfptr[4],
-						     FNAMED_NAME)) != NULL
+						     MELTFIELD_NAMED_NAME)) !=
+			  NULL
 			  && (cit1__EACHSTRMAP_nam =
 			      melt_string_str ((melt_ptr_t) /*_.CURAT__V4*/
 					       meltfptr[3])) != (char *) 0
@@ -4360,7 +4361,8 @@ lab_endgetargs:;
 			      melt_object_nth_field ((melt_ptr_t)
 						     /*_.CURVAL__V5*/
 						     meltfptr[4],
-						     FNAMED_NAME)) != NULL
+						     MELTFIELD_NAMED_NAME)) !=
+			  NULL
 			  && (cit1__EACHSTRMAP_nam =
 			      melt_string_str ((melt_ptr_t) /*_.CURAT__V4*/
 					       meltfptr[3])) != (char *) 0

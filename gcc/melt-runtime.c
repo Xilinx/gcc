@@ -2586,16 +2586,16 @@ melt_ptr_t
 melt_container_value (melt_ptr_t cont)
 {
   if (melt_magic_discr (cont) != MELTOBMAG_OBJECT
-      || ((meltobject_ptr_t) cont)->obj_len < FCONTAINER__LAST)
+      || ((meltobject_ptr_t) cont)->obj_len < MELTLENGTH_CLASS_CONTAINER)
     return 0;
   /* This case is so common that we handle it explicitly! */
   if (((meltobject_ptr_t)cont)->discr
       == (meltobject_ptr_t)MELT_PREDEF (CLASS_CONTAINER))
-    return  ((meltobject_ptr_t) cont)->obj_vartab[FCONTAINER_VALUE];
+    return  ((meltobject_ptr_t) cont)->obj_vartab[MELTFIELD_CONTAINER_VALUE];
   if (!melt_is_instance_of
       ((melt_ptr_t) cont, (melt_ptr_t) MELT_PREDEF (CLASS_CONTAINER)))
     return 0;
-  return ((meltobject_ptr_t) cont)->obj_vartab[FCONTAINER_VALUE];
+  return ((meltobject_ptr_t) cont)->obj_vartab[MELTFIELD_CONTAINER_VALUE];
 }
 
 
@@ -2611,11 +2611,11 @@ meltgc_new_container (melt_ptr_t val_p)
   classcontv = MELT_PREDEF (CLASS_CONTAINER);
   gcc_assert (melt_magic_discr ((melt_ptr_t)classcontv) == MELTOBMAG_OBJECT); 
   /* we really need that containers have one single field */
-  gcc_assert (FCONTAINER_VALUE == 0);
-  gcc_assert (FCONTAINER__LAST == 1);
+  gcc_assert (MELTFIELD_CONTAINER_VALUE == 0);
+  gcc_assert (MELTLENGTH_CLASS_CONTAINER == 1);
   resv = meltgc_new_raw_object ((meltobject_ptr_t) classcontv, 
-				FCONTAINER__LAST);
-  ((meltobject_ptr_t) (resv))->obj_vartab[FCONTAINER_VALUE] =
+				MELTLENGTH_CLASS_CONTAINER);
+  ((meltobject_ptr_t) (resv))->obj_vartab[MELTFIELD_CONTAINER_VALUE] =
     (melt_ptr_t) valv;
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
@@ -2637,7 +2637,7 @@ meltgc_container_put (melt_ptr_t cont_p, melt_ptr_t val_p)
   classcontv = MELT_PREDEF (CLASS_CONTAINER);
   gcc_assert (melt_magic_discr ((melt_ptr_t)classcontv) == MELTOBMAG_OBJECT); 
   /* we really need that containers have one single field */
-  gcc_assert (FCONTAINER_VALUE == 0);
+  gcc_assert (MELTFIELD_CONTAINER_VALUE == 0);
   if (melt_magic_discr((melt_ptr_t)contv) != MELTOBMAG_OBJECT)
     goto end;
   /* This case is so common that we handle it explicitly! */
@@ -2645,7 +2645,7 @@ meltgc_container_put (melt_ptr_t cont_p, melt_ptr_t val_p)
       && !melt_is_instance_of
       ((melt_ptr_t) contv, (melt_ptr_t) classcontv))
     goto end;
-  ((meltobject_ptr_t) (contv))->obj_vartab[FCONTAINER_VALUE] =
+  ((meltobject_ptr_t) (contv))->obj_vartab[MELTFIELD_CONTAINER_VALUE] =
     (melt_ptr_t) valv;
   meltgc_touch_dest (contv, valv);
  end:
@@ -4169,18 +4169,18 @@ melt_is_subclass_of (meltobject_ptr_t subclass_p,
     {
       return FALSE;
     }
-  if (subclass_p->obj_len < FCLASS__LAST
+  if (subclass_p->obj_len < MELTLENGTH_CLASS_CLASS
       || !subclass_p->obj_vartab
-      || superclass_p->obj_len < FCLASS__LAST || !superclass_p->obj_vartab)
+      || superclass_p->obj_len < MELTLENGTH_CLASS_CLASS || !superclass_p->obj_vartab)
     {
       return FALSE;
     }
   if (superclass_p == (meltobject_ptr_t) MELT_PREDEF (CLASS_ROOT))
     return TRUE;
   subanc =
-    (struct meltmultiple_st *) subclass_p->obj_vartab[FCLASS_ANCESTORS];
+    (struct meltmultiple_st *) subclass_p->obj_vartab[MELTFIELD_CLASS_ANCESTORS];
   superanc =
-    (struct meltmultiple_st *) superclass_p->obj_vartab[FCLASS_ANCESTORS];
+    (struct meltmultiple_st *) superclass_p->obj_vartab[MELTFIELD_CLASS_ANCESTORS];
   if (melt_magic_discr ((melt_ptr_t) subanc) != MELTOBMAG_MULTIPLE
       || subanc->discr != (meltobject_ptr_t) MELT_PREDEF (DISCR_CLASS_SEQUENCE))
     {
@@ -4734,8 +4734,8 @@ meltgc_send (melt_ptr_t recv_p,
     {
       gcc_assert (melt_magic_discr ((melt_ptr_t) discrv) ==
 		  MELTOBMAG_OBJECT);
-      gcc_assert (obj_discrv->obj_len >= FDISC__LAST);
-      mapv = obj_discrv->obj_vartab[FDISC_METHODICT];
+      gcc_assert (obj_discrv->obj_len >= MELTLENGTH_CLASS_DISCRIMINANT);
+      mapv = obj_discrv->obj_vartab[MELTFIELD_DISC_METHODICT];
       if (melt_magic_discr ((melt_ptr_t) mapv) == MELTOBMAG_MAPOBJECTS)
 	{
 	  closv =
@@ -4746,7 +4746,7 @@ meltgc_send (melt_ptr_t recv_p,
 	}
       else
 	{
-	  closv = obj_discrv->obj_vartab[FDISC_SENDER];
+	  closv = obj_discrv->obj_vartab[MELTFIELD_DISC_SENDER];
 	  if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
 	    {
 	      union meltparam_un pararg[1];
@@ -4770,7 +4770,7 @@ meltgc_send (melt_ptr_t recv_p,
 	  ***/
 	  goto end;
 	}
-      discrv = obj_discrv->obj_vartab[FDISC_SUPER];
+      discrv = obj_discrv->obj_vartab[MELTFIELD_DISC_SUPER];
     }				/* end while discrv */
   resv = NULL;
 end:
@@ -6027,7 +6027,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        if (melt_is_instance_of ((melt_ptr_t) compv, MELT_PREDEF (CLASS_SEXPR)))
 	 {
 	   got = TRUE;
-	   listv = melt_field_object ((melt_ptr_t)compv, FSEXPR_CONTENTS);
+	   listv = melt_field_object ((melt_ptr_t)compv, MELTFIELD_SEXP_CONTENTS);
 	   if (melt_magic_discr ((melt_ptr_t)listv) == MELTOBMAG_LIST) {
 	     compv = NULL;
 	     for (pairv = ((struct meltlist_st*)(listv))->first;
@@ -6090,10 +6090,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    else
      sexpclassv = MELT_PREDEF (CLASS_SEXPR);
    sexprv = meltgc_new_raw_object ((meltobject_ptr_t) (sexpclassv),
-				   FSEXPR__LAST);
-   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_LOCATION] =
+				   MELTLENGTH_CLASS_SEXPR);
+   ((meltobject_ptr_t) (sexprv))->obj_vartab[MELTFIELD_LOCA_LOCATION] =
      (melt_ptr_t) locmixv;
-   ((meltobject_ptr_t) (sexprv))->obj_vartab[FSEXPR_CONTENTS] =
+   ((meltobject_ptr_t) (sexprv))->obj_vartab[MELTFIELD_SEXP_CONTENTS] =
      (melt_ptr_t) contsv;
    meltgc_touch (sexprv);
    MELT_EXITFRAME ();
@@ -6137,14 +6137,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        namdup[ix] = TOUPPER (namdup[ix]);
    if (MELT_PREDEF (INITIAL_SYSTEM_DATA) != 0)
      {
-       dictv = melt_get_inisysdata (FSYSDAT_SYMBOLDICT);
+       dictv = melt_get_inisysdata (MELTFIELD_SYSDATA_SYMBOLDICT);
        if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS)
 	 symbv =
 	   melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
 				   namdup);
        if (symbv || !create)
 	 goto end;
-       closv = melt_get_inisysdata (FSYSDAT_ADDSYMBOL);
+       closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ADDSYMBOL);
        if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
 	 {
 	   union meltparam_un pararg[1];
@@ -6180,14 +6180,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define obj_symbv    ((meltobject_ptr_t)(symbv))
    symbv = symb_p;
    if (melt_magic_discr ((melt_ptr_t) symbv) != MELTOBMAG_OBJECT
-       || obj_symbv->obj_len < FSYMB__LAST
+       || obj_symbv->obj_len < MELTLENGTH_CLASS_SYMBOL
        || !melt_is_instance_of ((melt_ptr_t) symbv,
 				   (melt_ptr_t) MELT_PREDEF (CLASS_SYMBOL)))
      goto fail;
-   nstrv = obj_symbv->obj_vartab[FNAMED_NAME];
+   nstrv = obj_symbv->obj_vartab[MELTFIELD_NAMED_NAME];
    if (melt_magic_discr ((melt_ptr_t) nstrv) != MELTOBMAG_STRING)
      goto fail;
-   closv = melt_get_inisysdata (FSYSDAT_INTERNSYMBOL);
+   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_INTERNSYMBOL);
    if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
      goto fail;
    else
@@ -6325,9 +6325,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 			    num);
        lexv = meltgc_new_raw_object
 	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				     FSINFLEX__LAST);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+          MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
+#warning should write MELTFIELD_LEXEME_DATA
        ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
@@ -6340,9 +6341,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        readv = meltgc_readstring (rd);
        lexv = meltgc_new_raw_object
 	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_STRING_LITERAL),
-				     FSINFLEX__LAST);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+          MELTLENGTH_CLASS_INFIX_STRING_LITERAL);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
+#warning should write MELTFIELD_LEXEME_DATA
        ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
@@ -6360,9 +6362,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	  c);
        lexv = meltgc_new_raw_object
 	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				     FSINFLEX__LAST);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+          MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
+#warning should write MELTFIELD_LEXEME_DATA
        ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
@@ -6397,9 +6400,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	  esc);
        lexv = meltgc_new_raw_object
 	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				     FSINFLEX__LAST);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+				     MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
+#warning should write MELTFIELD_LEXEME_DATA
        ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
@@ -6424,9 +6428,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        lexv = meltgc_new_raw_object
 	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
-				     FSINFLEX__LAST);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+				    MELTLENGTH_CLASS_INFIX_DELIMITER);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
+#warning should write MELTFIELD_LEXEME_DATA
        ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
@@ -6441,24 +6446,26 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        lexv = meltgc_new_raw_object
 	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
-				     FSINFLEX__LAST);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_LOCATION]
+				     MELTLENGTH_CLASS_INFIX_DELIMITER);
+       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
 	 = (melt_ptr_t) locmixv;
+#warning should write MELTFIELD_LEXEME_DATA
        ((meltobject_ptr_t) (lexv))->obj_vartab[FSINFLEX_DATA]
 	 = (melt_ptr_t) readv;
        meltgc_touch (lexv);
        goto end;
    }
    /* common macro to read symbols */
+#warning should write MELTFIELD_LEXEME_DATA in READ_INFIX_SYMBOL macro
  #define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv)			\
        Nam = readsimplename (rd);					\
        Readv = meltgc_named_symbol (Nam, MELT_CREATE);			\
        gcc_assert (MELT_PREDEF (Claname) != 0);				\
        Lexv = meltgc_new_raw_object					\
 	 ((meltobject_ptr_t)MELT_PREDEF (Claname),			\
-				     FSINFLEX__LAST);			\
-       ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_LOCATION]	\
-	 = (melt_ptr_t) locmixv;						\
+				     MELTLENGTH_##Claname);	       	\
+       ((meltobject_ptr_t) (Lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]	\
+	 = (melt_ptr_t) locmixv;			       		\
        ((meltobject_ptr_t) (Lexv))->obj_vartab[FSINFLEX_DATA]		\
 	 = (melt_ptr_t) Readv;						\
        meltgc_touch (Lexv);
@@ -6543,14 +6550,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define obj_keywv    ((meltobject_ptr_t)(keywv))
    keywv = keyw_p;
    if (melt_magic_discr ((melt_ptr_t) keywv) != MELTOBMAG_OBJECT
-       || melt_object_length ((melt_ptr_t) obj_keywv) < FSYMB__LAST
+       || melt_object_length ((melt_ptr_t) obj_keywv) < MELTLENGTH_CLASS_SYMBOL
        || !melt_is_instance_of ((melt_ptr_t) keywv,
 				   (melt_ptr_t) MELT_PREDEF (CLASS_KEYWORD)))
      goto fail;
-   nstrv = obj_keywv->obj_vartab[FNAMED_NAME];
+   nstrv = obj_keywv->obj_vartab[MELTFIELD_NAMED_NAME];
    if (melt_magic_discr ((melt_ptr_t) nstrv) != MELTOBMAG_STRING)
      goto fail;
-   closv = melt_get_inisysdata (FSYSDAT_INTERNKEYW);
+   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_INTERNKEYW);
    if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
      goto fail;
    else
@@ -6615,14 +6622,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	       MELTOBMAG_OBJECT);
    if (MELT_PREDEF (INITIAL_SYSTEM_DATA))
      {
-       dictv = melt_get_inisysdata (FSYSDAT_KEYWDICT);
+       dictv = melt_get_inisysdata (MELTFIELD_SYSDATA_KEYWDICT);
        if (melt_magic_discr ((melt_ptr_t) dictv) == MELTOBMAG_MAPSTRINGS)
 	 keywv =
 	   melt_get_mapstrings ((struct meltmapstrings_st *) dictv,
 				   namdup);
        if (keywv || !create)
 	 goto end;
-       closv = melt_get_inisysdata (FSYSDAT_ADDKEYW);
+       closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ADDKEYW);
        if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE)
 	 {
 	   union meltparam_un pararg[1];
@@ -7806,7 +7813,7 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
     case MELTOBMAG_OBJECT:
       if (melt_is_instance_of
 	  ((melt_ptr_t) strv, (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
-	strv = melt_object_nth_field ((melt_ptr_t) strv, FNAMED_NAME);
+	strv = melt_object_nth_field ((melt_ptr_t) strv, MELTFIELD_NAMED_NAME);
       else
 	strv = NULL;
       if (melt_string_str ((melt_ptr_t) strv))
@@ -8023,7 +8030,7 @@ melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
 #define mulpragmav meltfram__.mcfr_varptr[0]
 #define cgccpragmav meltfram__.mcfr_varptr[1]
 #define pragmastrv meltfram__.mcfr_varptr[2]
-  mulpragmav = melt_get_inisysdata (FSYSDAT_MELTPRAGMAS);
+  mulpragmav = melt_get_inisysdata (MELTFIELD_SYSDATA_MELTPRAGMAS);
   if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
     goto end;
   nb_pragma = (long) (((meltmultiple_ptr_t) mulpragmav)->nbval);
@@ -8033,10 +8040,10 @@ melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
       if (!melt_is_instance_of ((melt_ptr_t) cgccpragmav ,
 				( melt_ptr_t) MELT_PREDEF (CLASS_GCC_PRAGMA)))
         {
-          fatal_error("FSYSDAT_MELTPRAGMAS must contains only \
+          fatal_error("MELTFIELD_SYSDATA_MELTPRAGMAS must contains only \
           CLASS_GCC_PRAGMA object.");
         }
-    pragmastrv = melt_object_nth_field ((melt_ptr_t) cgccpragmav, FNAMED_NAME);
+    pragmastrv = melt_object_nth_field ((melt_ptr_t) cgccpragmav, MELTFIELD_NAMED_NAME);
     /* Register a new pass with the name registered in gcc_pragma object.  We
       give it as data too, in order to use it in the handler.  */
     c_register_pragma_with_expansion_and_data ("MELT", melt_string_str
@@ -8060,10 +8067,10 @@ MELT_ENTERFRAME (4, NULL);
 #define mulpragmav   meltfram__.mcfr_varptr[3]
   seqv = listargtreev;
   /* We first recover the list of the handler.  */
-  mulpragmav = melt_get_inisysdata (FSYSDAT_MELTPRAGMAS);
+  mulpragmav = melt_get_inisysdata (MELTFIELD_SYSDATA_MELTPRAGMAS);
   if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
     {
-      error ("MELT error : invalid pragma handling : field FSYSDAT_MELTPRAGMAS \
+      error ("MELT error : invalid pragma handling : field MELTFIELD_SYSDATA_MELTPRAGMAS \
 should contain a multiple!");
       goto end;
     }
@@ -8072,12 +8079,12 @@ should contain a multiple!");
   if (cgccpragmav == NULL)
     {
       error ("MELT error : invalid pragma handling : Invalid index %ld for the \
-handler list defined in FSYSDAT_MELTPRAGMAS!", i_handler);
+handler list defined in MELTFIELD_SYSDATA_MELTPRAGMAS!", i_handler);
       goto end;
     }
 
   pragclov = melt_object_nth_field((melt_ptr_t) cgccpragmav,
-                                   FGCCPRAGMA_HANDLER);
+                                   MELTFIELD_GCCPRAGMA_HANDLER);
   /* We have the good handler, so we apply it.  */
   if (melt_magic_discr ((melt_ptr_t) pragclov) == MELTOBMAG_CLOSURE)
     {
@@ -8192,18 +8199,18 @@ MELT_ENTERFRAME (4, NULL);
 #define pragclov     meltfram__.mcfr_varptr[2]
 #define seqv    meltfram__.mcfr_varptr[3]
   seqv = listargtreev;
-  /* FSYSDAT_MELTPRAGMAS is a list containing only one pragma handler (as we
+  /* MELTFIELD_SYSDATA_MELTPRAGMAS is a list containing only one pragma handler (as we
 are in GCC 4.6 support mode).  */
-  mulpragmav = melt_get_inisysdata (FSYSDAT_MELTPRAGMAS);
+  mulpragmav = melt_get_inisysdata (MELTFIELD_SYSDATA_MELTPRAGMAS);
   if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
     {
-      error ("MELT error : invalid pragma handling : field FSYSDAT_MELTPRAGMAS \
+      error ("MELT error : invalid pragma handling : field MELTFIELD_SYSDATA_MELTPRAGMAS \
 should contain a multiple!");
       goto end;
     }
   cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, 0);
   pragclov = melt_object_nth_field((melt_ptr_t) cgccpragmav,
-                                   FGCCPRAGMA_HANDLER);
+                                   MELTFIELD_GCCPRAGMA_HANDLER);
   if (melt_magic_discr ((melt_ptr_t) pragclov) == MELTOBMAG_CLOSURE)
     {
       union meltparam_un pararg[1];
@@ -8250,7 +8257,7 @@ melt_pre_genericize_callback (void *ptr_fndecl,
 #define fndeclv meltfram__.mcfr_varptr[1]
   fndeclv = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE),
 			     ((tree) ptr_fndecl));
-  pregenv = melt_get_inisysdata (FSYSDAT_PRE_GENERICIZE);
+  pregenv = melt_get_inisysdata (MELTFIELD_SYSDATA_PRE_GENERICIZE);
   pregenmagic = melt_magic_discr ((melt_ptr_t) pregenv);
   if (pregenmagic == MELTOBMAG_CLOSURE)
     {
@@ -8273,7 +8280,7 @@ melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 {
   MELT_ENTERFRAME (1, NULL);
 #define staclosv meltfram__.mcfr_varptr[0]
-  staclosv = melt_get_inisysdata (FSYSDAT_UNIT_STARTER);
+  staclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_UNIT_STARTER);
   if (melt_magic_discr ((melt_ptr_t) staclosv) == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
@@ -8293,7 +8300,7 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 {
   MELT_ENTERFRAME (1, NULL);
 #define finclosv meltfram__.mcfr_varptr[0]
-  finclosv = melt_get_inisysdata (FSYSDAT_UNIT_FINISHER);
+  finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_UNIT_FINISHER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
@@ -8317,7 +8324,7 @@ melt_passexec_callback (void *gcc_data,
   MELT_ENTERFRAME (4, NULL);
 #define passxhv   meltfram__.mcfr_varptr[0]
 #define passnamev meltfram__.mcfr_varptr[1]
-  passxhv = melt_get_inisysdata (FSYSDAT_PASSEXEC_HOOK);
+  passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
   gcc_assert (pass != NULL);
   if (melt_magic_discr((melt_ptr_t) passxhv) == MELTOBMAG_CLOSURE)
     {
@@ -9337,7 +9344,7 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	     modstr);
       goto end;
     }
-  dictv = melt_get_inisysdata(FSYSDAT_MODE_DICT);
+  dictv = melt_get_inisysdata(MELTFIELD_SYSDATA_MODE_DICT);
   debugeprintf ("meltgc_do_initial_mode dictv=%p of magic %d", 
 		dictv, melt_magic_discr ((melt_ptr_t) dictv));
   debugeprintvalue ("meltgc_do_initial_mode dictv", dictv);
@@ -9381,7 +9388,7 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	  error ("bad MELT mode %s, not instance of CLASS_MELT_MODE", modstr);
 	  goto end;
 	};
-      closv = melt_object_nth_field ((melt_ptr_t) cmdv, FMELTCMD_FUN);
+      closv = melt_object_nth_field ((melt_ptr_t) cmdv, MELTFIELD_MELTMODE_FUN);
       if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
 	{
 	  debugeprintf ("meltgc_do_initial_mode invalid closv %p", closv);
@@ -9563,7 +9570,7 @@ meltgc_load_modules_and_do_mode (void)
     optsetv = NULL;
     debugeprintf ("meltgc_load_modules_and_do_mode optstr %s", optstr);
     if (optstr && optstr[0]
-	&& (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL
+	&& (optsetv=melt_get_inisysdata (MELTFIELD_SYSDATA_OPTION_SET)) != NULL
 	&& melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
       {
 	char *optc = 0;
@@ -9618,7 +9625,7 @@ meltgc_load_modules_and_do_mode (void)
   /**
    * then we do the mode if needed 
    **/
-  if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
+  if (melt_get_inisysdata (MELTFIELD_SYSDATA_MODE_DICT) && modstr
       && modstr[0])
     {
       debugeprintf
@@ -9959,7 +9966,7 @@ do_finalize_melt (void)
   if (!modstr)
     goto end;
 #define finclosv meltfram__.mcfr_varptr[0]
-  finclosv = melt_get_inisysdata (FSYSDAT_EXIT_FINALIZER);
+  finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_EXIT_FINALIZER);
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
@@ -10129,9 +10136,9 @@ discr_out (struct debugprint_melt_st *dp, meltobject_ptr_t odiscr)
       fprintf (dp->dfil, "?discr@%p?", (void *) odiscr);
       return;
     }
-  if (odiscr->obj_len >= FNAMED__LAST && odiscr->obj_vartab)
+  if (odiscr->obj_len >= MELTLENGTH_CLASS_NAMED && odiscr->obj_vartab)
     {
-      str = (struct meltstring_st *) odiscr->obj_vartab[FNAMED_NAME];
+      str = (struct meltstring_st *) odiscr->obj_vartab[MELTFIELD_NAMED_NAME];
       if (melt_magic_discr ((melt_ptr_t) str) != MELTOBMAG_STRING)
 	str = NULL;
     }
@@ -10169,9 +10176,9 @@ is_named_obj (meltobject_ptr_t ob)
   struct meltstring_st *str = 0;
   if (melt_magic_discr ((melt_ptr_t) ob) != MELTOBMAG_OBJECT)
     return FALSE;
-  if (ob->obj_len < FNAMED__LAST || !ob->obj_vartab)
+  if (ob->obj_len < MELTLENGTH_CLASS_NAMED || !ob->obj_vartab)
     return FALSE;
-  str = (struct meltstring_st *) ob->obj_vartab[FNAMED_NAME];
+  str = (struct meltstring_st *) ob->obj_vartab[MELTFIELD_NAMED_NAME];
   if (melt_magic_discr ((melt_ptr_t) str) != MELTOBMAG_STRING)
     return FALSE;
   if (melt_is_instance_of ((melt_ptr_t) ob, (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)))
@@ -10260,7 +10267,7 @@ melt_debug_out (struct debugprint_melt_st *dp,
 	if (named)
 	  fprintf (dp->dfil, "<#%s>",
 		   ((struct meltstring_st *) (p->obj_vartab
-						 [FNAMED_NAME]))->val);
+						 [MELTFIELD_NAMED_NAME]))->val);
 	if ((!named || depth == 0) && depth < dp->dmaxdepth)
 	  {
 	    fputs ("[", dp->dfil);
@@ -10540,7 +10547,7 @@ void meltgc_debugmsgval(void* val_p, const char*msg, long count)
 #define valv   meltfram__.mcfr_varptr[0]
 #define dbgfv  meltfram__.mcfr_varptr[1]
   valv = val_p;
-  dbgfv = melt_get_inisysdata (FSYSDAT_DEBUGMSG);
+  dbgfv = melt_get_inisysdata (MELTFIELD_SYSDATA_DEBUGMSG);
   {
     union meltparam_un argtab[2];
     memset(argtab, 0, sizeof(argtab));
@@ -11409,7 +11416,7 @@ ppl_melt_variable_output_function(ppl_dimension_type var)
     namv = melt_multiple_nth((melt_ptr_t) vectv, (int)var);
   if (melt_is_instance_of((melt_ptr_t) namv,
 			     (melt_ptr_t) MELT_PREDEF (CLASS_NAMED))) 
-    namv = melt_object_nth_field((melt_ptr_t) namv, FNAMED_NAME);
+    namv = melt_object_nth_field((melt_ptr_t) namv, MELTFIELD_NAMED_NAME);
   if (namv)
     s = melt_string_str((melt_ptr_t) namv);
   if (!s && melt_magic_discr((melt_ptr_t) namv) == MELTOBMAG_TREE) {
@@ -11913,7 +11920,7 @@ meltgc_run_meltpass_after_hook (void)
   int passnumber = current_pass?current_pass->static_pass_number:0;
   MELT_ENTERFRAME (2, NULL);
 #define pahookv      meltfram__.mcfr_varptr[0]
-  pahookv =  melt_get_inisysdata (FSYSDAT_MELTPASS_AFTER_HOOK);
+  pahookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_MELTPASS_AFTER_HOOK);
   if (pahookv == NULL) 
     goto end;
   if (melt_magic_discr ((melt_ptr_t) pahookv) == MELTOBMAG_CLOSURE)
@@ -11929,7 +11936,7 @@ meltgc_run_meltpass_after_hook (void)
 		    "",  (union meltparam_un*)0);
       MELT_LOCATION_HERE ("meltgc_run_meltpass_after_hook after apply");
     }
-   melt_clear_inisysdata (FSYSDAT_MELTPASS_AFTER_HOOK);
+   melt_clear_inisysdata (MELTFIELD_SYSDATA_MELTPASS_AFTER_HOOK);
  end:
   MELT_EXITFRAME ();
 }
@@ -11957,7 +11964,7 @@ melt_val2passflag(melt_ptr_t val_p)
 	   && melt_is_instance_of((melt_ptr_t) valv, 
 				  (melt_ptr_t) MELT_PREDEF(CLASS_NAMED)))
     {
-      compv = ((meltobject_ptr_t)valv)->obj_vartab[FNAMED_NAME];
+      compv = ((meltobject_ptr_t)valv)->obj_vartab[MELTFIELD_NAMED_NAME];
       res = melt_val2passflag((melt_ptr_t) compv);
       goto end;
     }
@@ -12051,17 +12058,17 @@ meltgc_gimple_gate(void)
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == GIMPLE_PASS);
   debugeprintf ("meltgc_gimple_gate pass %s", current_pass->name);
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t) passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, current_pass->name);
   if (!passv 
       || !melt_is_instance_of((melt_ptr_t) passv, (melt_ptr_t)  MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
     goto end;
-  closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_GATE);
+  closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE) 
     goto end;
-  dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
@@ -12121,12 +12128,12 @@ meltgc_gimple_execute (void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
-  dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == GIMPLE_PASS);
   debugeprintf ("meltgc_gimple_execute pass %s starting", current_pass->name);
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t) passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st *)passdictv, current_pass->name);
@@ -12134,7 +12141,7 @@ meltgc_gimple_execute (void)
       || !melt_is_instance_of((melt_ptr_t) passv,
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_GIMPLE_PASS)))
     goto end;
-  closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_EXEC);
+  closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_EXEC);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE) 
     goto end;
   {
@@ -12221,7 +12228,7 @@ meltgc_rtl_gate(void)
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == RTL_PASS);
   debugeprintf ("meltgc_rtl_gate pass %s start", current_pass->name);
-  passdictv =  melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv =  melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t) passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, 
@@ -12230,10 +12237,10 @@ meltgc_rtl_gate(void)
       || !melt_is_instance_of((melt_ptr_t) passv, 
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
     goto end;
-  closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_GATE);
+  closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE) 
     goto end;
-  dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
@@ -12290,7 +12297,7 @@ meltgc_rtl_execute(void)
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == RTL_PASS);
   debugeprintf ("meltgc_rtl_execute pass %s start", current_pass->name);
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t) passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, 
@@ -12299,14 +12306,14 @@ meltgc_rtl_execute(void)
       || !melt_is_instance_of((melt_ptr_t) passv,
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_RTL_PASS)))
     goto end;
-  closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_EXEC);
+  closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_EXEC);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE) 
     goto end;
   {
     long passdbgcounter = melt_dbgcounter;
     long todol = 0;
     union meltparam_un restab[1];
-    dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+    dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
       {
 	oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
@@ -12382,7 +12389,7 @@ meltgc_simple_ipa_gate(void)
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == SIMPLE_IPA_PASS);
   debugeprintf ("meltgc_simple_ipa_gate pass %s start", current_pass->name);
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t) passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*) passdictv, 
@@ -12391,10 +12398,10 @@ meltgc_simple_ipa_gate(void)
       || !melt_is_instance_of((melt_ptr_t) passv, 
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
     goto end;
-  closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_GATE);
+  closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_GATE);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE) 
     goto end;
-  dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+  dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
@@ -12459,7 +12466,7 @@ meltgc_simple_ipa_execute(void)
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == SIMPLE_IPA_PASS);
   debugeprintf ("meltgc_simple_ipa_execute pass %s start", current_pass->name);
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t) passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   passv = melt_get_mapstrings((struct meltmapstrings_st*)passdictv, 
@@ -12468,7 +12475,7 @@ meltgc_simple_ipa_execute(void)
       || !melt_is_instance_of((melt_ptr_t) passv, 
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_SIMPLE_IPA_PASS)))
     goto end;
-  closv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_EXEC);
+  closv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_EXEC);
   if (melt_magic_discr((melt_ptr_t) closv) != MELTOBMAG_CLOSURE) 
     goto end;
   {
@@ -12482,7 +12489,7 @@ meltgc_simple_ipa_execute(void)
        current_pass->name, melt_dbgcounter);
     debugeprintf ("simple_ipa_execute passname %s before apply",
 		  current_pass->name);
-    dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
+    dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
       {
 	oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
@@ -12571,11 +12578,11 @@ meltgc_register_pass (melt_ptr_t pass_p,
     posop = PASS_POS_REPLACE;
   else
     melt_fatal_error("invalid positioning string %s in MELT pass", positioning);
-  if (!passv || melt_object_length((melt_ptr_t) passv) < FGCCPASS__LAST
+  if (!passv || melt_object_length((melt_ptr_t) passv) < MELTLENGTH_CLASS_GCC_PASS
       || !melt_is_instance_of((melt_ptr_t) passv, 
 			      (melt_ptr_t) MELT_PREDEF(CLASS_GCC_PASS)))
     goto end;
-  namev = melt_object_nth_field((melt_ptr_t) passv, FNAMED_NAME);
+  namev = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_NAMED_NAME);
   if (melt_magic_discr((melt_ptr_t) namev) != MELTOBMAG_STRING)
     {
       warning (0, "registering a MELT pass without any name!");
@@ -12584,19 +12591,19 @@ meltgc_register_pass (melt_ptr_t pass_p,
   debugeprintf ("meltgc_register_pass name %s refpassname %s positioning %s posop %d",
 		melt_string_str ((melt_ptr_t) namev), refpassname, positioning, (int)posop);
   
-  passdictv = melt_get_inisysdata (FSYSDAT_PASS_DICT);
+  passdictv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASS_DICT);
   if (melt_magic_discr((melt_ptr_t)passdictv) != MELTOBMAG_MAPSTRINGS) 
     goto end;
   if (melt_get_mapstrings((struct meltmapstrings_st*)passdictv, 
 			  melt_string_str((melt_ptr_t) namev)))
     goto end;
-  compv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_PROPERTIES_REQUIRED);
+  compv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_PROPERTIES_REQUIRED);
   propreq = melt_val2passflag((melt_ptr_t) compv);
-  compv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_PROPERTIES_PROVIDED);
+  compv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_PROPERTIES_PROVIDED);
   propprov = melt_val2passflag((melt_ptr_t) compv);
-  compv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_TODO_FLAGS_START);
+  compv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_TODO_FLAGS_START);
   todostart = melt_val2passflag((melt_ptr_t) compv);
-  compv = melt_object_nth_field((melt_ptr_t) passv, FGCCPASS_TODO_FLAGS_FINISH);
+  compv = melt_object_nth_field((melt_ptr_t) passv, MELTFIELD_GCCPASS_TODO_FLAGS_FINISH);
   todofinish = melt_val2passflag((melt_ptr_t) compv);
   /* allocate the opt pass and fill it; it is never deallocated (ie it
      is never free-d)! */
@@ -12703,7 +12710,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
 		 melt_string_str ((melt_ptr_t) namev), 
 		 melt_string_str (melt_object_nth_field 
 				  ((melt_ptr_t) melt_discr((melt_ptr_t) passv), 
-				   FNAMED_NAME)));
+				   MELTFIELD_NAMED_NAME)));
  end:
   debugeprintf ("meltgc_register_pass name %s refpassname %s end",
 		melt_string_str ((melt_ptr_t) namev), refpassname);
@@ -12728,7 +12735,7 @@ meltgc_notify_sysdata_passexec_hook (void)
 {
   MELT_ENTERFRAME (2, NULL);
 #define pxhookv      meltfram__.mcfr_varptr[0]
-  pxhookv =  melt_get_inisysdata (FSYSDAT_PASSEXEC_HOOK);
+  pxhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
   if (pxhookv == NULL) 
     {
       unregister_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION);
@@ -12820,7 +12827,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
   if (!attrstr || !attrstr[0])
     goto end;
   seqv = meltgc_read_from_rawstring (attrstr, "*melt-attr*", loch);
-  atclov = melt_get_inisysdata (FSYSDAT_MELTATTR_DEFINER);
+  atclov = melt_get_inisysdata (MELTFIELD_SYSDATA_MELTATTR_DEFINER);
   if (melt_magic_discr ((melt_ptr_t) atclov) == MELTOBMAG_CLOSURE)
     {
       union meltparam_un argtab[2];

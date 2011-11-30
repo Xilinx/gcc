@@ -2368,9 +2368,8 @@ extern GTY (()) melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB];
 
 /* *INDENT-ON* */
 
-/* All the fields enum below should be carefully kept in sync with
-   MELT code inside warmelt-first.melt; so change them with great
-   care. */
+/* for compatibility with old code */
+#warning old manually predefined fields are obsolete
 
 /* fields inside container */
 enum
@@ -2391,7 +2390,7 @@ enum
   FNAMED_NAME = FPROPED__LAST,
   FNAMED__LAST
 };
-
+ 
 /* fields inside every discriminant */
 enum
 {
@@ -2403,7 +2402,7 @@ enum
   FDISC_SUPER,			/* the "superclass" or "parent discrim" */
   FDISC__LAST
 };
-
+ 
 /* fields inside every class */
 enum
 {
@@ -2414,7 +2413,7 @@ enum
   FCLASS_DATA,			/* class variables */
   FCLASS__LAST
 };
-
+ 
 
 /* fields inside each symbol */
 enum
@@ -2513,6 +2512,7 @@ enum {
     FMELTCMD__LAST
 };
 
+
 /* currently each predefined is a GC root (so we have about two
    hundreds of them), scanned at every minor garbage collection. We
    might change that, e.g. by grouping the predefined set by 16 and
@@ -2573,7 +2573,7 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
     return FALSE;
   }
   mag_class = class_p->u_discr->obj_num;
-  if (mag_class != MELTOBMAG_OBJECT || ((meltobject_ptr_t) class_p)->obj_len < FDISC__LAST)
+  if (mag_class != MELTOBMAG_OBJECT || ((meltobject_ptr_t) class_p)->obj_len < MELTLENGTH_CLASS_DISCRIMINANT)
     return FALSE;
   curdiscr_p = inst_p->u_discr;
   /* We need to loop to handle the case of non-object discriminant
@@ -2592,8 +2592,8 @@ melt_is_instance_of (melt_ptr_t inst_p, melt_ptr_t class_p)
 				  ((meltobject_ptr_t) class_p));
     /* the instance is not an object, but the current discriminant
        might have a super discriminant. */
-    gcc_assert (curdiscr_p->obj_len >= FDISC__LAST);
-    curdiscr_p = (meltobject_ptr_t) (curdiscr_p->obj_vartab[FDISC_SUPER]);
+    gcc_assert (curdiscr_p->obj_len >= MELTLENGTH_CLASS_DISCRIMINANT);
+    curdiscr_p = (meltobject_ptr_t) (curdiscr_p->obj_vartab[MELTFIELD_DISC_SUPER]);
   }
   return FALSE;
 }

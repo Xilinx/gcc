@@ -2192,43 +2192,49 @@ melt_nthval_maptrees (struct meltmaptrees_st *map_s, int ix)
   MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL = 3
 };
 
-/* predefined class CLASS_INFIX_KEYWORD index 21 */ enum
+/* predefined class CLASS_INFIX_LEXEME index 21 */ enum
+{
+  MELTFIELD_LEXEME_DATA = 2 /*in CLASS_INFIX_LEXEME */ ,
+  MELTLENGTH_CLASS_INFIX_LEXEME = 3
+};
+
+/* predefined class CLASS_INFIX_KEYWORD index 22 */ enum
 {
   MELTLENGTH_CLASS_INFIX_KEYWORD = 3
 };
 
-/* predefined class CLASS_INFIX_MULTIPLICATIVE_SYMBOL index 22 */ enum
+/* predefined class CLASS_INFIX_MULTIPLICATIVE_SYMBOL index 23 */ enum
 {
   MELTLENGTH_CLASS_INFIX_MULTIPLICATIVE_SYMBOL = 3
 };
 
-/* predefined class CLASS_INFIX_RELATIONAL_SYMBOL index 23 */ enum
+/* predefined class CLASS_INFIX_RELATIONAL_SYMBOL index 24 */ enum
 {
   MELTLENGTH_CLASS_INFIX_RELATIONAL_SYMBOL = 3
 };
 
-/* predefined class CLASS_INFIX_STRING_LITERAL index 24 */ enum
+/* predefined class CLASS_INFIX_STRING_LITERAL index 25 */ enum
 {
   MELTLENGTH_CLASS_INFIX_STRING_LITERAL = 3
 };
 
-/* predefined class CLASS_INFIX_SYMBOL index 25 */ enum
+/* predefined class CLASS_INFIX_SYMBOL index 26 */ enum
 {
   MELTLENGTH_CLASS_INFIX_SYMBOL = 3
 };
 
-/* predefined class CLASS_KEYWORD index 26 */ enum
+/* predefined class CLASS_KEYWORD index 27 */ enum
 {
   MELTLENGTH_CLASS_KEYWORD = 3
 };
 
-/* predefined class CLASS_LOCATED index 27 */ enum
+/* predefined class CLASS_LOCATED index 28 */ enum
 {
   MELTFIELD_LOCA_LOCATION = 1 /*in CLASS_LOCATED */ ,
   MELTLENGTH_CLASS_LOCATED = 2
 };
 
-/* predefined class CLASS_MELT_MODE index 28 */ enum
+/* predefined class CLASS_MELT_MODE index 29 */ enum
 {
   MELTFIELD_MELTMODE_HELP = 2 /*in CLASS_MELT_MODE */ ,
   MELTFIELD_MELTMODE_FUN = 3 /*in CLASS_MELT_MODE */ ,
@@ -2236,13 +2242,13 @@ melt_nthval_maptrees (struct meltmaptrees_st *map_s, int ix)
   MELTLENGTH_CLASS_MELT_MODE = 5
 };
 
-/* predefined class CLASS_NAMED index 29 */ enum
+/* predefined class CLASS_NAMED index 30 */ enum
 {
   MELTFIELD_NAMED_NAME = 1 /*in CLASS_NAMED */ ,
   MELTLENGTH_CLASS_NAMED = 2
 };
 
-/* predefined class CLASS_PRIMITIVE index 30 */ enum
+/* predefined class CLASS_PRIMITIVE index 31 */ enum
 {
   MELTFIELD_PRIM_FORMALS = 2 /*in CLASS_PRIMITIVE */ ,
   MELTFIELD_PRIM_TYPE = 3 /*in CLASS_PRIMITIVE */ ,
@@ -2250,42 +2256,42 @@ melt_nthval_maptrees (struct meltmaptrees_st *map_s, int ix)
   MELTLENGTH_CLASS_PRIMITIVE = 5
 };
 
-/* predefined class CLASS_PROPED index 31 */ enum
+/* predefined class CLASS_PROPED index 32 */ enum
 {
   MELTFIELD_PROP_TABLE = 0 /*in CLASS_PROPED */ ,
   MELTLENGTH_CLASS_PROPED = 1
 };
 
-/* predefined class CLASS_ROOT index 32 */ enum
+/* predefined class CLASS_ROOT index 33 */ enum
 {
   MELTLENGTH_CLASS_ROOT = 0
 };
 
-/* predefined class CLASS_SELECTOR index 33 */ enum
+/* predefined class CLASS_SELECTOR index 34 */ enum
 {
   MELTFIELD_SEL_SIGNATURE = 2 /*in CLASS_SELECTOR */ ,
   MELTFIELD_SEL_DATA = 3 /*in CLASS_SELECTOR */ ,
   MELTLENGTH_CLASS_SELECTOR = 4
 };
 
-/* predefined class CLASS_SEXPR index 34 */ enum
+/* predefined class CLASS_SEXPR index 35 */ enum
 {
   MELTFIELD_SEXP_CONTENTS = 2 /*in CLASS_SEXPR */ ,
   MELTLENGTH_CLASS_SEXPR = 3
 };
 
-/* predefined class CLASS_SEXPR_MACROSTRING index 35 */ enum
+/* predefined class CLASS_SEXPR_MACROSTRING index 36 */ enum
 {
   MELTLENGTH_CLASS_SEXPR_MACROSTRING = 3
 };
 
-/* predefined class CLASS_SYMBOL index 36 */ enum
+/* predefined class CLASS_SYMBOL index 37 */ enum
 {
   MELTFIELD_SYMB_DATA = 2 /*in CLASS_SYMBOL */ ,
   MELTLENGTH_CLASS_SYMBOL = 3
 };
 
-/* predefined class CLASS_SYSTEM_DATA index 37 */ enum
+/* predefined class CLASS_SYSTEM_DATA index 38 */ enum
 {
   MELTFIELD_SYSDATA_MODE_DICT = 2 /*in CLASS_SYSTEM_DATA */ ,
   MELTFIELD_SYSDATA_CONT_FRESH_ENV = 3 /*in CLASS_SYSTEM_DATA */ ,

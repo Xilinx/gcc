@@ -232,6 +232,7 @@ MELT source with the #$.@{ #$.@} notation.}# )
 
 ;; superclass for infix syntax lexemes
 (defclass class_infix_lexeme
+  :predef CLASS_INFIX_LEXEME
   :super class_located
   :fields (lexeme_data)
   :doc #{The $CLASS_INFIX_LEXEME is the common super-class for infix
@@ -1359,7 +1360,7 @@ make a $CURAT string.}#
     $curva = ((struct meltmapstrings_st*)$strmap)->entab[$eachstrmap#_ix].e_va;
     if (!$curva) continue; 
     if (melt_is_instance_of($curva, MELT_PREDEF (CLASS_NAMED)) 
-	&& ($curat = melt_object_nth_field ((melt_ptr_t) $curva, FNAMED_NAME)) != NULL		   
+	&& ($curat = melt_object_nth_field ((melt_ptr_t) $curva, MELTFIELD_NAMED_NAME)) != NULL		   
 	&& ($eachstrmap#_nam = melt_string_str ((melt_ptr_t) $curat)) != (char*)0
 	&& !strcmp ($eachstrmap#_nam, $eachstrmap#_str))
       $curat = $curat;

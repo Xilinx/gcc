@@ -10114,7 +10114,8 @@ lab_endgetargs:;
 	      ( /*_.CURCTY__V34*/ meltfptr[33], MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.CURSTR__V33*/ meltfptr[32] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.CURCTY__V34*/
-					 meltfptr[33], FNAMED_NAME)) != NULL
+					 meltfptr[33],
+					 MELTFIELD_NAMED_NAME)) != NULL
 	      && (cit1__EACHSTRMAP_nam =
 		  melt_string_str ((melt_ptr_t) /*_.CURSTR__V33*/
 				   meltfptr[32])) != (char *) 0
@@ -10293,7 +10294,8 @@ lab_endgetargs:;
 	      ( /*_.CURCTY__V40*/ meltfptr[36], MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.CURSTR__V39*/ meltfptr[35] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.CURCTY__V40*/
-					 meltfptr[36], FNAMED_NAME)) != NULL
+					 meltfptr[36],
+					 MELTFIELD_NAMED_NAME)) != NULL
 	      && (cit2__EACHSTRMAP_nam =
 		  melt_string_str ((melt_ptr_t) /*_.CURSTR__V39*/
 				   meltfptr[35])) != (char *) 0

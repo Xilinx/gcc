@@ -5022,7 +5022,8 @@ lab_endgetargs:;
 	      ( /*_.ENT__V6*/ meltfptr[5], MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.NAM__V5*/ meltfptr[4] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.ENT__V6*/
-					 meltfptr[5], FNAMED_NAME)) != NULL
+					 meltfptr[5],
+					 MELTFIELD_NAMED_NAME)) != NULL
 	      && (cit1__EACHSTRMAP_nam =
 		  melt_string_str ((melt_ptr_t) /*_.NAM__V5*/ meltfptr[4])) !=
 	      (char *) 0
