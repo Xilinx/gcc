@@ -6731,13 +6731,16 @@ rule generates a better code.
 Use specified regions for the integrated register allocator.  The
 @var{region} argument should be one of @code{all}, @code{mixed}, or
 @code{one}.  The first value means using all loops as register
-allocation regions, the second value which is the default means using
-all loops except for loops with small register pressure as the
-regions, and third one means using all function as a single region.
-The first value can give best result for machines with small size and
-irregular register set, the third one results in faster and generates
-decent code and the smallest size code, and the default value usually
-give the best results in most cases and for most architectures.
+allocation regions, the second value which is enabled by default when
+compiling with optimization for speed (@option{-O}, @option{-O2},
+@dots{}) means using all loops except for loops with small register
+pressure as the regions, and third one which is enabled by default for
+@option{-Os} or @option{-O0} means using all function as a single
+region.  The first value can give best result for machines with small
+size and irregular register set, the third one results in faster and
+generates decent code and the smallest size code, and the second value
+usually give the best results in most cases and for most
+architectures.
 
 @item -fira-loop-pressure
 @opindex fira-loop-pressure
@@ -12802,6 +12805,15 @@ Improved versions of k8, opteron and athlon64 with SSE3 instruction set support.
 @item amdfam10, barcelona
 AMD Family 10h core based CPUs with x86-64 instruction set support.  (This
 supersets MMX, SSE, SSE2, SSE3, SSE4A, 3DNow!, enhanced 3DNow!, ABM and 64-bit
+instruction set extensions.)
+@item bdver1
+AMD Family 15h core based CPUs with x86-64 instruction set support.  (This
+supersets FMA4, AVX, XOP, LWP, AES, PCL_MUL, CX16, MMX, SSE, SSE2, SSE3, SSE4A,
+SSSE3, SSE4.1, SSE4.2, 3DNow!, enhanced 3DNow!, ABM and 64-bit
+instruction set extensions.)
+@item btver1
+AMD Family 14h core based CPUs with x86-64 instruction set support.  (This
+supersets MMX, SSE, SSE2, SSE3, SSSE3, SSE4A, CX16, ABM and 64-bit
 instruction set extensions.)
 @item winchip-c6
 IDT Winchip C6 CPU, dealt in same way as i486 with additional MMX instruction

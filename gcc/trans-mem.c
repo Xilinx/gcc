@@ -659,13 +659,27 @@ diagnose_tm_1 (gimple_stmt_iterator *gsi, bool *handled_ops_p,
 		if (TREE_CODE (fn) == ADDR_EXPR)
 		  fn = TREE_OPERAND (fn, 0);
 		if (d->block_flags & DIAG_TM_SAFE)
-		  error_at (gimple_location (stmt),
-			    "unsafe function call %qD within "
-			    "atomic transaction", fn);
+		  {
+		    if (direct_call_p)
+		      error_at (gimple_location (stmt),
+				"unsafe function call %qD within "
+				"atomic transaction", fn);
+		    else
+		      error_at (gimple_location (stmt),
+				"unsafe function call %qE within "
+				"atomic transaction", fn);
+		  }
 		else
-		  error_at (gimple_location (stmt),
-			    "unsafe function call %qD within "
-			    "%<transaction_safe%> function", fn);
+		  {
+		    if (direct_call_p)
+		      error_at (gimple_location (stmt),
+				"unsafe function call %qD within "
+				"%<transaction_safe%> function", fn);
+		    else
+		      error_at (gimple_location (stmt),
+				"unsafe function call %qE within "
+				"%<transaction_safe%> function", fn);
+		  }
 	      }
 	  }
       }
@@ -2319,7 +2333,8 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 	{
 	case GIMPLE_ASSIGN:
 	  /* Only memory reads/writes need to be instrumented.  */
-	  if (gimple_assign_single_p (stmt))
+	  if (gimple_assign_single_p (stmt)
+	      && !gimple_clobber_p (stmt))
 	    {
 	      expand_assign_tm (region, &gsi);
 	      continue;

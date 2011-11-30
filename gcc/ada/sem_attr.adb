@@ -841,13 +841,8 @@ package body Sem_Attr is
            and then not In_Instance
            and then not In_Inlined_Body
          then
-            if Restriction_Check_Required (No_Implicit_Aliasing) then
-               Error_Attr_P
-                 ("prefix of % attribute must be explicitly aliased");
-            else
-               Error_Attr_P
-                 ("prefix of % attribute must be aliased");
-            end if;
+            Error_Attr_P ("prefix of % attribute must be aliased");
+            Check_No_Implicit_Aliasing (P);
          end if;
       end Analyze_Access_Attribute;
 
@@ -2245,6 +2240,8 @@ package body Sem_Attr is
                   if Restriction_Check_Required (No_Implicit_Aliasing) then
                      if not Is_Aliased_View (P) then
                         Check_Restriction (No_Implicit_Aliasing, P);
+                     else
+                        Check_No_Implicit_Aliasing (P);
                      end if;
                   end if;
 
@@ -7824,14 +7821,30 @@ package body Sem_Attr is
                         T := T / 10;
                      end loop;
 
+                  --  User declared enum type with discard names
+
+                  elsif Discard_Names (R) then
+
+                     --  If range is null, result is zero, that has already
+                     --  been dealt with, so what we need is the power of ten
+                     --  that accomodates the Pos of the largest value, which
+                     --  is the high bound of the range + one for the space.
+
+                     W := 1;
+                     T := Hi;
+                     while T /= 0 loop
+                        T := T / 10;
+                        W := W + 1;
+                     end loop;
+
                   --  Only remaining possibility is user declared enum type
+                  --  with normal case of Discard_Names not active.
 
                   else
                      pragma Assert (Is_Enumeration_Type (P_Type));
 
                      W := 0;
                      L := First_Literal (P_Type);
-
                      while Present (L) loop
 
                         --  Only pay attention to in range characters
@@ -8645,13 +8658,14 @@ package body Sem_Attr is
                   end if;
                end if;
 
-               --  Check the static accessibility rule of 3.10.2(28).
-               --  Note that this check is not performed for the
-               --  case of an anonymous access type, since the access
-               --  attribute is always legal in such a context.
+               --  Check the static accessibility rule of 3.10.2(28). Note that
+               --  this check is not performed for the case of an anonymous
+               --  access type, since the access attribute is always legal
+               --  in such a context.
 
                if Attr_Id /= Attribute_Unchecked_Access
-                 and then Object_Access_Level (P) > Type_Access_Level (Btyp)
+                 and then
+                   Object_Access_Level (P) > Deepest_Type_Access_Level (Btyp)
                  and then Ekind (Btyp) = E_General_Access_Type
                then
                   Accessibility_Message;
@@ -8673,7 +8687,7 @@ package body Sem_Attr is
                --  anonymous_access_to_protected, there are no accessibility
                --  checks either. Omit check entirely for Unrestricted_Access.
 
-               elsif Object_Access_Level (P) > Type_Access_Level (Btyp)
+               elsif Object_Access_Level (P) > Deepest_Type_Access_Level (Btyp)
                  and then Comes_From_Source (N)
                  and then Ekind (Btyp) = E_Access_Protected_Subprogram_Type
                  and then Attr_Id /= Attribute_Unrestricted_Access

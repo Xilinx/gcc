@@ -13483,10 +13483,12 @@ fold_binary_loc (location_t loc,
 		sel[i] = i * 2 + 1;
 		break;
 	      case VEC_INTERLEAVE_HIGH_EXPR:
-		sel[i] = (i + nelts) / 2 + ((i & 1) ? nelts : 0);
+		sel[i] = (i + (BYTES_BIG_ENDIAN ? 0 : nelts)) / 2
+			 + ((i & 1) ? nelts : 0);
 		break;
 	      case VEC_INTERLEAVE_LOW_EXPR:
-		sel[i] = i / 2 + ((i & 1) ? nelts : 0);
+		sel[i] = (i + (BYTES_BIG_ENDIAN ? nelts : 0)) / 2
+			 + ((i & 1) ? nelts : 0);
 		break;
 	      default:
 		gcc_unreachable ();
@@ -14157,7 +14159,8 @@ fold_checksum_tree (const_tree expr, struct md5_ctx *ctx, htab_t ht)
 	}
     }
   md5_process_bytes (expr, tree_size (expr), ctx);
-  fold_checksum_tree (TREE_TYPE (expr), ctx, ht);
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPED))
+    fold_checksum_tree (TREE_TYPE (expr), ctx, ht);
   if (TREE_CODE_CLASS (code) != tcc_type
       && TREE_CODE_CLASS (code) != tcc_declaration
       && code != TREE_LIST

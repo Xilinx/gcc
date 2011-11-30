@@ -2658,9 +2658,29 @@ finish_member_declaration (tree decl)
 	}
     }
   /* Enter the DECL into the scope of the class.  */
-  else if ((TREE_CODE (decl) == USING_DECL && !DECL_DEPENDENT_P (decl))
-	   || pushdecl_class_level (decl))
+  else if (pushdecl_class_level (decl))
     {
+      if (TREE_CODE (decl) == USING_DECL)
+	{
+	  /* We need to add the target functions to the
+	     CLASSTYPE_METHOD_VEC if an enclosing scope is a template
+	     class, so that this function be found by lookup_fnfields_1
+	     when the using declaration is not instantiated yet.  */
+
+	  tree target_decl = strip_using_decl (decl);
+	  if (dependent_type_p (current_class_type)
+	      && is_overloaded_fn (target_decl))
+	    {
+	      tree t = target_decl;
+	      for (; t; t = OVL_NEXT (t))
+		add_method (current_class_type, OVL_CURRENT (t), decl);
+	    }
+
+	  /* For now, ignore class-scope USING_DECLS, so that
+	     debugging backends do not see them. */
+	  DECL_IGNORED_P (decl) = 1;
+	}
+
       /* All TYPE_DECLs go at the end of TYPE_FIELDS.  Ordinary fields
 	 go at the beginning.  The reason is that lookup_field_1
 	 searches the list in order, and we want a field name to
@@ -5215,8 +5235,9 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
           gcc_unreachable ();
 
         case INTEGER_CST:
+	case PTRMEM_CST:
           /* We can get here when the id-expression refers to an
-             enumerator.  */
+             enumerator or non-type template parameter.  */
           type = TREE_TYPE (expr);
           break;
 
@@ -8158,6 +8179,10 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case EXPR_STMT:
     case BIND_EXPR:
     case TRANSACTION_EXPR:
+    case IF_STMT:
+    case DO_STMT:
+    case FOR_STMT:
+    case WHILE_STMT:
       if (flags & tf_error)
         error ("expression %qE is not a constant-expression", t);
       return false;

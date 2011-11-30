@@ -39,7 +39,10 @@ __printpanics (struct __go_panic_stack *p)
 void
 __go_panic (struct __go_empty_interface arg)
 {
+  G *g;
   struct __go_panic_stack *n;
+
+  g = runtime_g ();
 
   n = (struct __go_panic_stack *) __go_alloc (sizeof (struct __go_panic_stack));
   n->__arg = arg;
@@ -98,10 +101,9 @@ __go_panic (struct __go_empty_interface arg)
 
   /* The panic was not recovered.  */
 
+  runtime_startpanic ();
   __printpanics (g->panic);
-
-  /* FIXME: We should dump a call stack here.  */
-  abort ();
+  runtime_dopanic (0);
 }
 
 /* This is used by the runtime library.  */

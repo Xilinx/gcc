@@ -3524,19 +3524,39 @@ package body Sem_Prag is
               ("second argument of pragma% must be a subprogram", Arg2);
          end if;
 
-         --  For Stdcall, a subprogram, variable or subprogram type is required
+         --  Stdcall case
 
-         if C = Convention_Stdcall
-           and then not Is_Subprogram (E)
-           and then not Is_Generic_Subprogram (E)
-           and then Ekind (E) /= E_Variable
-           and then not
-             (Is_Access_Type (E)
-               and then Ekind (Designated_Type (E)) = E_Subprogram_Type)
-         then
-            Error_Pragma_Arg
-              ("second argument of pragma% must be subprogram (type)",
-               Arg2);
+         if C = Convention_Stdcall then
+
+            --  A dispatching call is not allowed. A dispatching subprogram
+            --  cannot be used to interface to the Win32 API, so in fact this
+            --  check does not impose any effective restriction.
+
+            if Is_Dispatching_Operation (E) then
+
+               Error_Pragma
+                 ("dispatching subprograms cannot use Stdcall convention");
+
+            --  Subprogram is allowed, but not a generic subprogram, and not a
+            --  dispatching operation.
+
+            elsif not Is_Subprogram (E)
+              and then not Is_Generic_Subprogram (E)
+
+              --  A variable is OK
+
+              and then Ekind (E) /= E_Variable
+
+              --  An access to subprogram is also allowed
+
+              and then not
+                (Is_Access_Type (E)
+                  and then Ekind (Designated_Type (E)) = E_Subprogram_Type)
+            then
+               Error_Pragma_Arg
+                 ("second argument of pragma% must be subprogram (type)",
+                  Arg2);
+            end if;
          end if;
 
          if not Is_Subprogram (E)
@@ -5335,6 +5355,46 @@ package body Sem_Prag is
 
                if Implementation_Restriction (R_Id) then
                   Check_Restriction (No_Implementation_Restrictions, Arg);
+               end if;
+
+               --  Special processing for No_Elaboration_Code restriction
+
+               if R_Id = No_Elaboration_Code then
+
+                  --  Restriction is only recognized within a configuration
+                  --  pragma file, or within a unit of the main extended
+                  --  program. Note: the test for Main_Unit is needed to
+                  --  properly include the case of configuration pragma files.
+
+                  if not (Current_Sem_Unit = Main_Unit
+                           or else In_Extended_Main_Source_Unit (N))
+                  then
+                     return;
+
+                  --  Don't allow in a subunit unless already specified in
+                  --  body or spec.
+
+                  elsif Nkind (Parent (N)) = N_Compilation_Unit
+                    and then Nkind (Unit (Parent (N))) = N_Subunit
+                    and then not Restriction_Active (No_Elaboration_Code)
+                  then
+                     Error_Msg_N
+                       ("invalid specification of ""No_Elaboration_Code""",
+                        N);
+                     Error_Msg_N
+                       ("\restriction cannot be specified in a subunit", N);
+                     Error_Msg_N
+                       ("\unless also specified in body or spec", N);
+                     return;
+
+                  --  If we have a No_Elaboration_Code pragma that we
+                  --  accept, then it needs to be added to the configuration
+                  --  restrcition set so that we get proper application to
+                  --  other units in the main extended source as required.
+
+                  else
+                     Add_To_Config_Boolean_Restrictions (No_Elaboration_Code);
+                  end if;
                end if;
 
                --  If this is a warning, then set the warning unless we already
@@ -12647,6 +12707,47 @@ package body Sem_Prag is
             end if;
          end Pure_05;
 
+         -------------
+         -- Pure_12 --
+         -------------
+
+         --  pragma Pure_12 [(library_unit_NAME)];
+
+         --  This pragma is useable only in GNAT_Mode, where it is used like
+         --  pragma Pure but it is only effective in Ada 2012 mode (otherwise
+         --  it is ignored). It may be used after a pragma Preelaborate, in
+         --  which case it overrides the effect of the pragma Preelaborate.
+         --  This is used to implement AI05-0212 which recategorizes some
+         --  run-time packages in Ada 2012 mode.
+
+         when Pragma_Pure_12 => Pure_12 : declare
+            Ent : Entity_Id;
+
+         begin
+            GNAT_Pragma;
+            Check_Valid_Library_Unit_Pragma;
+
+            if not GNAT_Mode then
+               Error_Pragma ("pragma% only available in GNAT mode");
+            end if;
+
+            if Nkind (N) = N_Null_Statement then
+               return;
+            end if;
+
+            --  This is one of the few cases where we need to test the value of
+            --  Ada_Version_Explicit rather than Ada_Version (which is always
+            --  set to Ada_2012 in a predefined unit), we need to know the
+            --  explicit version set to know if this pragma is active.
+
+            if Ada_Version_Explicit >= Ada_2012 then
+               Ent := Find_Lib_Unit_Name;
+               Set_Is_Preelaborated (Ent, False);
+               Set_Is_Pure (Ent);
+               Set_Suppress_Elaboration_Warnings (Ent);
+            end if;
+         end Pure_12;
+
          -------------------
          -- Pure_Function --
          -------------------
@@ -14427,7 +14528,7 @@ package body Sem_Prag is
                      end;
                   end if;
 
-                  --  Two or more arguments (must be two)
+               --  Two or more arguments (must be two)
 
                else
                   Check_Arg_Is_One_Of (Arg1, Name_On, Name_Off);
@@ -14446,8 +14547,7 @@ package body Sem_Prag is
                      --  the formal may be wrapped in a conversion if the
                      --  actual is a conversion. Retrieve the real entity name.
 
-                     if (In_Instance_Body
-                          or else In_Inlined_Body)
+                     if (In_Instance_Body or else In_Inlined_Body)
                        and then Nkind (E_Id) = N_Unchecked_Type_Conversion
                      then
                         E_Id := Expression (E_Id);
@@ -14511,10 +14611,21 @@ package body Sem_Prag is
                         --  In any other case, an error will be signalled (ON
                         --  with no matching OFF).
 
+                        --  Note: We set Used if we are inside a generic to
+                        --  disable the test that the non-config case actually
+                        --  cancels a warning. That's because we can't be sure
+                        --  there isn't an instantiation in some other unit
+                        --  where a warning is suppressed.
+
+                        --  We could do a little better here by checking if the
+                        --  generic unit we are inside is public, but for now
+                        --  we don't bother with that refinement.
+
                         if Chars (Argx) = Name_Off then
                            Set_Specific_Warning_Off
                              (Loc, Name_Buffer (1 .. Name_Len),
-                              Config => Is_Configuration_Pragma);
+                              Config => Is_Configuration_Pragma,
+                              Used   => Inside_A_Generic or else In_Instance);
 
                         elsif Chars (Argx) = Name_On then
                            Set_Specific_Warning_On
@@ -14959,6 +15070,7 @@ package body Sem_Prag is
       Pragma_Psect_Object                   => -1,
       Pragma_Pure                           => -1,
       Pragma_Pure_05                        => -1,
+      Pragma_Pure_12                        => -1,
       Pragma_Pure_Function                  => -1,
       Pragma_Queuing_Policy                 => -1,
       Pragma_Ravenscar                      => -1,

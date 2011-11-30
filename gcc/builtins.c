@@ -227,7 +227,7 @@ static void expand_builtin_sync_synchronize (void);
 
 /* Return true if NAME starts with __builtin_ or __sync_.  */
 
-bool
+static bool
 is_builtin_name (const char *name)
 {
   if (strncmp (name, "__builtin_", 10) == 0)
@@ -5227,7 +5227,7 @@ expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE, true);
+  return expand_sync_lock_test_and_set (target, mem, val);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -5291,7 +5291,7 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, model, false);
+  return expand_atomic_exchange (target, mem, val, model);
 }
 
 /* Expand the __atomic_compare_exchange intrinsic:
@@ -5482,6 +5482,11 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
 }
 
 
+#ifndef HAVE_atomic_clear
+# define HAVE_atomic_clear 0
+# define gen_atomic_clear(x,y) (gcc_unreachable (), NULL_RTX)
+#endif
+
 /* Expand an atomic clear operation.
 	void _atomic_clear (BOOL *obj, enum memmodel)
    EXP is the call expression.  */
@@ -5503,6 +5508,12 @@ expand_builtin_atomic_clear (tree exp)
       return const0_rtx;
     }
 
+  if (HAVE_atomic_clear)
+    {
+      emit_insn (gen_atomic_clear (mem, model));
+      return const0_rtx;
+    }
+
   /* Try issuing an __atomic_store, and allow fallback to __sync_lock_release.
      Failing that, a store is issued by __atomic_store.  The only way this can
      fail is if the bool type is larger than a word size.  Unlikely, but
@@ -5519,9 +5530,9 @@ expand_builtin_atomic_clear (tree exp)
    EXP is the call expression.  */
 
 static rtx
-expand_builtin_atomic_test_and_set (tree exp)
+expand_builtin_atomic_test_and_set (tree exp, rtx target)
 {
-  rtx mem, ret;
+  rtx mem;
   enum memmodel model;
   enum machine_mode mode;
 
@@ -5529,20 +5540,7 @@ expand_builtin_atomic_test_and_set (tree exp)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   model = get_memmodel (CALL_EXPR_ARG (exp, 1));
 
-  /* Try issuing an exchange.  If it is lock free, or if there is a limited
-     functionality __sync_lock_test_and_set, this will utilize it.  */
-  ret = expand_atomic_exchange (NULL_RTX, mem, const1_rtx, model, true);
-  if (ret)
-    return ret;
-
-  /* Otherwise, there is no lock free support for test and set.  Simply
-     perform a load and a store.  Since this presumes a non-atomic architecture,
-     also assume single threadedness and don't issue barriers either. */
-
-  ret = gen_reg_rtx (mode);
-  emit_move_insn (ret, mem);
-  emit_move_insn (mem, const1_rtx);
-  return ret;
+  return expand_atomic_test_and_set (target, mem, model);
 }
 
 
@@ -5672,23 +5670,6 @@ expand_builtin_atomic_is_lock_free (tree exp)
   return NULL_RTX;
 }
 
-/* This routine will either emit the mem_thread_fence pattern or issue a 
-   sync_synchronize to generate a fence for memory model MEMMODEL.  */
-
-#ifndef HAVE_mem_thread_fence
-# define HAVE_mem_thread_fence 0
-# define gen_mem_thread_fence(x) (gcc_unreachable (), NULL_RTX)
-#endif
-
-void
-expand_builtin_mem_thread_fence (enum memmodel model)
-{
-  if (HAVE_mem_thread_fence)
-    emit_insn (gen_mem_thread_fence (GEN_INT (model)));
-  else if (model != MEMMODEL_RELAXED)
-    expand_builtin_sync_synchronize ();
-}
-
 /* Expand the __atomic_thread_fence intrinsic:
    	void __atomic_thread_fence (enum memmodel)
    EXP is the CALL_EXPR.  */
@@ -5696,46 +5677,8 @@ expand_builtin_mem_thread_fence (enum memmodel model)
 static void
 expand_builtin_atomic_thread_fence (tree exp)
 {
-  enum memmodel model;
-  
-  model = get_memmodel (CALL_EXPR_ARG (exp, 0));
-  expand_builtin_mem_thread_fence (model);
-}
-
-/* This routine will either emit the mem_signal_fence pattern or issue a 
-   sync_synchronize to generate a fence for memory model MEMMODEL.  */
-
-#ifndef HAVE_mem_signal_fence
-# define HAVE_mem_signal_fence 0
-# define gen_mem_signal_fence(x) (gcc_unreachable (), NULL_RTX)
-#endif
-
-static void
-expand_builtin_mem_signal_fence (enum memmodel model)
-{
-  if (HAVE_mem_signal_fence)
-    emit_insn (gen_mem_signal_fence (GEN_INT (model)));
-  else if (model != MEMMODEL_RELAXED)
-    {
-      rtx asm_op, clob;
-
-      /* By default targets are coherent between a thread and the signal
-	 handler running on the same thread.  Thus this really becomes a
-	 compiler barrier, in that stores must not be sunk past
-	 (or raised above) a given point.  */
-
-      /* Generate asm volatile("" : : : "memory") as the memory barrier.  */
-      asm_op = gen_rtx_ASM_OPERANDS (VOIDmode, empty_string, empty_string, 0,
-				     rtvec_alloc (0), rtvec_alloc (0),
-				     rtvec_alloc (0), UNKNOWN_LOCATION);
-      MEM_VOLATILE_P (asm_op) = 1;
-
-      clob = gen_rtx_SCRATCH (VOIDmode);
-      clob = gen_rtx_MEM (BLKmode, clob);
-      clob = gen_rtx_CLOBBER (VOIDmode, clob);
-
-      emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, asm_op, clob)));
-    }
+  enum memmodel model = get_memmodel (CALL_EXPR_ARG (exp, 0));
+  expand_mem_thread_fence (model);
 }
 
 /* Expand the __atomic_signal_fence intrinsic:
@@ -5745,10 +5688,8 @@ expand_builtin_mem_signal_fence (enum memmodel model)
 static void
 expand_builtin_atomic_signal_fence (tree exp)
 {
-  enum memmodel model;
-
-  model = get_memmodel (CALL_EXPR_ARG (exp, 0));
-  expand_builtin_mem_signal_fence (model);
+  enum memmodel model = get_memmodel (CALL_EXPR_ARG (exp, 0));
+  expand_mem_signal_fence (model);
 }
 
 /* Expand the __sync_synchronize intrinsic.  */
@@ -5756,31 +5697,7 @@ expand_builtin_atomic_signal_fence (tree exp)
 static void
 expand_builtin_sync_synchronize (void)
 {
-  gimple x;
-  VEC (tree, gc) *v_clobbers;
-
-#ifdef HAVE_memory_barrier
-  if (HAVE_memory_barrier)
-    {
-      emit_insn (gen_memory_barrier ());
-      return;
-    }
-#endif
-
-  if (synchronize_libfunc != NULL_RTX)
-    {
-      emit_library_call (synchronize_libfunc, LCT_NORMAL, VOIDmode, 0);
-      return;
-    }
-
-  /* If no explicit memory barrier instruction is available, create an
-     empty asm stmt with a memory clobber.  */
-  v_clobbers = VEC_alloc (tree, gc, 1);
-  VEC_quick_push (tree, v_clobbers,
-		  tree_cons (NULL, build_string (6, "memory"), NULL));
-  x = gimple_build_asm_vec ("", NULL, NULL, v_clobbers, NULL);
-  gimple_asm_set_volatile (x, true);
-  expand_asm_stmt (x);
+  expand_mem_thread_fence (MEMMODEL_SEQ_CST);
 }
 
 
@@ -6578,12 +6495,28 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_4:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_8:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_16:
-      mode = 
-	  get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1);
-      target = expand_builtin_atomic_compare_exchange (mode, exp, target);
-      if (target)
-	return target;
-      break;
+      {
+	unsigned int nargs, z;
+	VEC(tree,gc) *vec;
+
+	mode = 
+	    get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1);
+	target = expand_builtin_atomic_compare_exchange (mode, exp, target);
+	if (target)
+	  return target;
+
+	/* If this is turned into an external library call, the weak parameter
+	   must be dropped to match the expected parameter list.  */
+	nargs = call_expr_nargs (exp);
+	vec = VEC_alloc (tree, gc, nargs - 1);
+	for (z = 0; z < 3; z++)
+	  VEC_quick_push (tree, vec, CALL_EXPR_ARG (exp, z));
+	/* Skip the boolean weak parameter.  */
+	for (z = 4; z < 6; z++)
+	  VEC_quick_push (tree, vec, CALL_EXPR_ARG (exp, z));
+	exp = build_call_vec (TREE_TYPE (exp), CALL_EXPR_FN (exp), vec);
+	break;
+      }
 
     case BUILT_IN_ATOMIC_LOAD_1:
     case BUILT_IN_ATOMIC_LOAD_2:
@@ -6776,7 +6709,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_ATOMIC_TEST_AND_SET:
-      return expand_builtin_atomic_test_and_set (exp);
+      return expand_builtin_atomic_test_and_set (exp, target);
 
     case BUILT_IN_ATOMIC_CLEAR:
       return expand_builtin_atomic_clear (exp);

@@ -42,15 +42,17 @@ with System; use type System.Address;
 
 package body Ada.Containers.Ordered_Sets is
 
-   type Iterator is new
-     Ordered_Set_Iterator_Interfaces.Reversible_Iterator with record
-        Container : access constant Set;
-        Node      : Node_Access;
-     end record;
+   type Iterator is new Limited_Controlled and
+     Set_Iterator_Interfaces.Reversible_Iterator with
+   record
+      Container : Set_Access;
+      Node      : Node_Access;
+   end record;
+
+   overriding procedure Finalize (Object : in out Iterator);
 
    overriding function First (Object : Iterator) return Cursor;
-
-   overriding function Last (Object : Iterator) return Cursor;
+   overriding function Last  (Object : Iterator) return Cursor;
 
    overriding function Next
      (Object   : Iterator;
@@ -512,6 +514,22 @@ package body Ada.Containers.Ordered_Sets is
       end if;
    end Exclude;
 
+   --------------
+   -- Finalize --
+   --------------
+
+   procedure Finalize (Object : in out Iterator) is
+   begin
+      if Object.Container /= null then
+         declare
+            B : Natural renames Object.Container.all.Tree.Busy;
+
+         begin
+            B := B - 1;
+         end;
+      end if;
+   end Finalize;
+
    ----------
    -- Find --
    ----------
@@ -537,9 +555,24 @@ package body Ada.Containers.Ordered_Sets is
 
    function First (Object : Iterator) return Cursor is
    begin
-      return (if Object.Container = null then No_Element
-              else Cursor'(Object.Container.all'Unrestricted_Access,
-                           Object.Container.Tree.First));
+      --  The value of the iterator object's Node component influences the
+      --  behavior of the First (and Last) selector function.
+
+      --  When the Node component is null, this means the iterator object was
+      --  constructed without a start expression, in which case the (forward)
+      --  iteration starts from the (logical) beginning of the entire sequence
+      --  of items (corresponding to Container.First, for a forward iterator).
+
+      --  Otherwise, this is iteration over a partial sequence of items. When
+      --  the Node component is non-null, the iterator object was constructed
+      --  with a start expression, that specifies the position from which the
+      --  (forward) partial iteration begins.
+
+      if Object.Node = null then
+         return Object.Container.First;
+      else
+         return Cursor'(Object.Container, Object.Node);
+      end if;
    end First;
 
    -------------------
@@ -1145,7 +1178,7 @@ package body Ada.Containers.Ordered_Sets is
          Process (Cursor'(Container'Unrestricted_Access, Node));
       end Process_Node;
 
-      T : Tree_Type renames Container.Tree'Unrestricted_Access.all;
+      T : Tree_Type renames Container'Unrestricted_Access.all.Tree;
       B : Natural renames T.Busy;
 
    --  Start of processing for Iterate
@@ -1165,22 +1198,74 @@ package body Ada.Containers.Ordered_Sets is
    end Iterate;
 
    function Iterate (Container : Set)
-     return Ordered_Set_Iterator_Interfaces.Reversible_Iterator'class
+     return Set_Iterator_Interfaces.Reversible_Iterator'Class
    is
+      B : Natural renames Container'Unrestricted_Access.all.Tree.Busy;
+
    begin
-      if Container.Length = 0 then
-         return Iterator'(null, null);
-      else
-         return Iterator'(Container'Unchecked_Access, Container.Tree.First);
-      end if;
+      --  The value of the Node component influences the behavior of the First
+      --  and Last selector functions of the iterator object. When the Node
+      --  component is null (as is the case here), this means the iterator
+      --  object was constructed without a start expression. This is a complete
+      --  iterator, meaning that the iteration starts from the (logical)
+      --  beginning of the sequence of items.
+
+      --  Note: For a forward iterator, Container.First is the beginning, and
+      --  for a reverse iterator, Container.Last is the beginning.
+
+      B := B + 1;
+
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access,
+                                Node      => null);
    end Iterate;
 
    function Iterate (Container : Set; Start : Cursor)
-     return Ordered_Set_Iterator_Interfaces.Reversible_Iterator'class
+     return Set_Iterator_Interfaces.Reversible_Iterator'Class
    is
-      It : constant Iterator := (Container'Unchecked_Access, Start.Node);
+      B  : Natural renames Container'Unrestricted_Access.all.Tree.Busy;
+
    begin
-      return It;
+      --  It was formerly the case that when Start = No_Element, the partial
+      --  iterator was defined to behave the same as for a complete iterator,
+      --  and iterate over the entire sequence of items. However, those
+      --  semantics were unintuitive and arguably error-prone (it is too easy
+      --  to accidentally create an endless loop), and so they were changed,
+      --  per the ARG meeting in Denver on 2011/11. However, there was no
+      --  consensus about what positive meaning this corner case should have,
+      --  and so it was decided to simply raise an exception. This does imply,
+      --  however, that it is not possible to use a partial iterator to specify
+      --  an empty sequence of items.
+
+      if Start = No_Element then
+         raise Constraint_Error with
+           "Start position for iterator equals No_Element";
+      end if;
+
+      if Start.Container /= Container'Unrestricted_Access then
+         raise Program_Error with
+           "Start cursor of Iterate designates wrong set";
+      end if;
+
+      pragma Assert (Vet (Container.Tree, Start.Node),
+                     "Start cursor of Iterate is bad");
+
+      --  The value of the Node component influences the behavior of the First
+      --  and Last selector functions of the iterator object. When the Node
+      --  component is non-null (as is the case here), it means that this is a
+      --  partial iteration, over a subset of the complete sequence of
+      --  items. The iterator object was constructed with a start expression,
+      --  indicating the position from which the iteration begins. Note that
+      --  the start position has the same value irrespective of whether this is
+      --  a forward or reverse iteration.
+
+      B := B + 1;
+
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access,
+                                Node      => Start.Node);
    end Iterate;
 
    ----------
@@ -1196,9 +1281,24 @@ package body Ada.Containers.Ordered_Sets is
 
    function Last (Object : Iterator) return Cursor is
    begin
-      return (if Object.Container = null then No_Element
-              else Cursor'(Object.Container.all'Unrestricted_Access,
-                           Object.Container.Tree.Last));
+      --  The value of the iterator object's Node component influences the
+      --  behavior of the Last (and First) selector function.
+
+      --  When the Node component is null, this means the iterator object was
+      --  constructed without a start expression, in which case the (reverse)
+      --  iteration starts from the (logical) beginning of the entire sequence
+      --  (corresponding to Container.Last, for a reverse iterator).
+
+      --  Otherwise, this is iteration over a partial sequence of items. When
+      --  the Node component is non-null, the iterator object was constructed
+      --  with a start expression, that specifies the position from which the
+      --  (reverse) partial iteration begins.
+
+      if Object.Node = null then
+         return Object.Container.Last;
+      else
+         return Cursor'(Object.Container, Object.Node);
+      end if;
    end Last;
 
    ------------------
@@ -1271,8 +1371,16 @@ package body Ada.Containers.Ordered_Sets is
    end Next;
 
    function Next (Object : Iterator; Position : Cursor) return Cursor is
-      pragma Unreferenced (Object);
    begin
+      if Position.Container = null then
+         return No_Element;
+      end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong set";
+      end if;
+
       return Next (Position);
    end Next;
 
@@ -1322,8 +1430,16 @@ package body Ada.Containers.Ordered_Sets is
    end Previous;
 
    function Previous (Object : Iterator; Position : Cursor) return Cursor is
-      pragma Unreferenced (Object);
    begin
+      if Position.Container = null then
+         return No_Element;
+      end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Previous designates wrong set";
+      end if;
+
       return Previous (Position);
    end Previous;
 
