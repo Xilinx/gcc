@@ -1,5 +1,9 @@
 
 2011-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: Removed old manual field offsets, since an
+	equivalent is generated in meltrunsup.h
+
+2011-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_infix_lexeme): Replace FSINFLEX_DATA by
 	MELTFIELD_LEXEME_DATA.
 	* melt-runtime.h: commented with #if 0 old manual field offsets
