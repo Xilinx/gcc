@@ -1,3 +1,11 @@
+2011-11-30   Dmitriy Vyukov  <dvyukov@google.com>
+
+	Add directives to run ThreadSanitizer tests
+	only on i386/x86_64-*-linux targets.
+	* gcc/testsuite/gcc.dg/tsan-ignore.c: Add the directives.
+	* gcc/testsuite/gcc.dg/tsan-stack.c: Add the directives.
+	* gcc/testsuite/gcc.dg/tsan-mop.c: Add the directives.
+
 2011-11-23   Teresa Johnson  <tejohnson@google.com>
 
 	* loop-unroll.c (loop_has_FP_comp): New function.

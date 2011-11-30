@@ -1,4 +1,4 @@
-/* { dg-do run } */
+/* { dg-do run { target i?86-*-linux* x86_64-*-linux* } } */
 /* { dg-options "-ftsan -O1 -ftsan-ignore=tsan-ignore.ignore" } */
 #include "tsan.h"
 #include "tsan-ignore.h"
