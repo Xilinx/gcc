@@ -1318,7 +1318,6 @@ $SBUF.}#
 (defun get_free_objlocptr (gcx nam)
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug "get_free_objlocptr start nam=" nam)
-  (shortbacktrace_dbg "get_free_objlocptr start " 10)
   (let ( (orout (unsafe_get_field :gncx_objrout gcx))
 	 (freeli (unsafe_get_field :gncx_freeptrlist gcx)) 
 	 (pfree (list_popfirst freeli))
@@ -1470,7 +1469,6 @@ $SBUF.}#
 ;; function to dispose, i.e. mark as free and reusable, an  objlocation
 (defun dispose_objloc (oldloc gcx)
   (debug "dispose_objloc freeeing oldloc=" oldloc)
-  (shortbacktrace_dbg "dispose_objloc start " 10)
   (assert_msg "check oldloc" (is_a oldloc class_objlocv))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   ;; the obl_proc iff it has already been freed
@@ -1503,7 +1501,6 @@ $SBUF.}#
   (assert_msg "check bnd" (is_a bnd class_any_binding))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug "dispose_bnd_obj start bnd=" bnd)
-  (shortbacktrace_dbg "dispose_bnd_obj start" 10)
   (let ( (locmap (unsafe_get_field :gncx_locmap gcx))
 	 (oldloc (mapobject_get locmap bnd)) )
     (if (null oldloc)
@@ -1997,24 +1994,24 @@ $SBUF.}#
 		 ))))))
     (debug "compilobj_nrep_let after iterate normbind loc=" loc " locmap=" locmap)
     ;; compile each body component
-    (foreach_in_multiple
-     (bdy)
-     (bdycomp :long ix)
-     (debug"compilobj_nrep_let body loc=" loc " bdycomp=" bdycomp " ix=" ix)
-     (let ( (objcomp  (compile_obj bdycomp gcx)) 
-	    )
-       (debug "compilobj_nrep_let body objcomp=" objcomp)
-       ;; objcomp is null when compiling a locvar of ctype_void;
-       ;; this happens with primitive of :void type
-       (if (null objcomp) (return objcomp)) ;return from the inner lambda
-       (list_append obodl objcomp)))
+    (multiple_every
+     bdy
+     (lambda (bdycomp :long ix)
+       (debug"compilobj_nrep_let body loc=" loc " bdycomp=" bdycomp " ix=" ix)
+       (let ( (objcomp  (compile_obj bdycomp gcx)) 
+	      )
+	 (debug "compilobj_nrep_let body objcomp=" objcomp)
+	 ;; objcomp is null when compiling a locvar of ctype_void;
+	 ;; this happens with primitive of :void type
+	 (if (null objcomp) (return objcomp)) ;return from the inner lambda
+	 (list_append obodl objcomp))))
     (debug "compilobj_nrep_let after iterate body loc=" loc)
     ;; dispose each binding
-    (foreach_in_multiple
-     (bnds)
-     (obnd :long ix)
-     (debug "compilobj_nrep_let dispose loc=" loc " obnd=" obnd " ix=" ix)
-     (dispose_bnd_obj obnd gcx))
+    (multiple_every
+     bnds
+     (lambda (obnd :long ix)
+       (debug "compilobj_nrep_let dispose loc=" loc " obnd=" obnd " ix=" ix)
+       (dispose_bnd_obj obnd gcx)))
     (debug "compilobj_nrep_let final loc=" loc " locmap=" locmap " oblock=" oblock)
     (return oblock)			;return it
     ))
