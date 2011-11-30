@@ -1,5 +1,9 @@
 
 2011-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (generate_runtypesupport_predef_fields): New function.
+	(runtypesupport_docmd): Call it.
+
+2011-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate again}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
