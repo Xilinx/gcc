@@ -461,6 +461,8 @@ don't instanciate this class!}#
 	   sysdata_meltpragmas		;a list or tuple of pragma
 					;descriptor object of
 					;CLASS_GCC_PRAGMA
+	   sysdata_finishtype_hook	;a closure for PLUGIN_FINISH_TYPE
+	   sysdata_finishdecl_hook	;a closure for PLUGIN_FINISH_DECL
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2

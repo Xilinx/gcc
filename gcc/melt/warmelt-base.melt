@@ -1674,6 +1674,37 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
       ))
   ))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun register_finish_type_hook_first (fun)
+  :doc #{Use $REGISTER_FINISH_TYPE_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_FINISH_TYPE, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of function declaration being parsed).}#
+  (assert_msg "@$@unimplemented register_finish_type_hook_first")
+)
+
+(defun register_finish_type_hook_last (fun)
+  :doc #{Use $REGISTER_FINISH_TYPE_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_FINISH_TYPE, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of function declaration being parsed).}#
+  (assert_msg "@$@unimplemented register_finish_type_hook_last")
+)
+
+(defun register_finish_decl_hook_first (fun)
+  :doc #{Use $REGISTER_FINISH_DECL_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_FINISH_TYPE, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of function declaration being parsed).}#
+  (assert_msg "@$@unimplemented register_finish_decl_hook_first")
+)
+
+(defun register_finish_decl_hook_last (fun)
+  :doc #{Use $REGISTER_FINISH_DECL_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_FINISH_TYPE, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of function declaration being parsed).}#
+  (assert_msg "@$@unimplemented register_finish_decl_hook_last")
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the descriptions of values which are not ctype related.
 (defclass class_value_descriptor

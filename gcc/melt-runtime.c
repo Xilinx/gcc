@@ -9945,6 +9945,26 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 }
 
 
+/* Function to be called by MELT code when the :sysdata_finishtype_hook
+   is changed.  Called by code_chunk-s inside MELT file
+   melt/warmelt-base.melt.  */
+#warning missing code for meltgc_notify_register_finish_type_hook
+void
+meltgc_notify_register_finish_type_hook (void)
+{
+  melt_fatal_error("unimplemented meltgc_notify_register_finish_type_hook");
+}
+
+/* Function to be called by MELT code when the :sysdata_finishdecl_hook
+   is changed.  Called by code_chunk-s inside MELT file
+   melt/warmelt-base.melt.  */
+#warning missing code for meltgc_notify_register_finish_decl_hook
+void
+meltgc_notify_register_finish_decl_hook (void)
+{
+  melt_fatal_error("unimplemented meltgc_notify_register_finish_decl_hook");
+}
+
 
 
 static void

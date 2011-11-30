@@ -11,14 +11,14 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Wed Nov 30 15:57:40 2011 CET";
-const long long melt_gen_timenum=1322665060;
+const char melt_gen_timestamp[]="Wed Nov 30 16:37:18 2011 CET";
+const long long melt_gen_timenum=1322667438;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="97973bca6dfd1f487805215d16944290";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="08258f53820aca1f17ea64ffebe7ff11";
+const char melt_primaryhexmd5[]="7682f6be2f60870cd63600fcab7cbf93";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -32,5 +32,5 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=2;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="7e71e80ffa093f91cd02e87e6bea1e24";
+const char melt_cumulated_hexmd5[]="15edcfddd820047b3c5644ab8a946e67";
 /* end of melt descriptor file */
