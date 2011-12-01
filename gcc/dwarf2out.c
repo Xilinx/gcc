@@ -3492,17 +3492,18 @@ static void schedule_generic_params_dies_gen (tree t);
 static void gen_scheduled_generic_parms_dies (void);
 
 /* Section names used to hold DWARF debugging information.  */
+
 #ifndef DEBUG_INFO_SECTION
 #define DEBUG_INFO_SECTION	".debug_info"
 #endif
 #ifndef DEBUG_DWO_INFO_SECTION
-#define DEBUG_DWO_INFO_SECTION	".debug_dwo_info"
+#define DEBUG_DWO_INFO_SECTION	".debug_info.dwo"
 #endif
 #ifndef DEBUG_ABBREV_SECTION
 #define DEBUG_ABBREV_SECTION	".debug_abbrev"
 #endif
 #ifndef DEBUG_DWO_ABBREV_SECTION
-#define DEBUG_DWO_ABBREV_SECTION ".debug_dwo_abbrev"
+#define DEBUG_DWO_ABBREV_SECTION ".debug_abbrev.dwo"
 #endif
 #ifndef DEBUG_ARANGES_SECTION
 #define DEBUG_ARANGES_SECTION	".debug_aranges"
@@ -8606,9 +8607,9 @@ static void
 output_skeleton_debug_sections (void)
 {
   dw_die_ref die = gen_compile_unit_die (NULL);
-  /* FIXME: The dwo file's name should be passed in by the driver.  */
-  char *dwo_file_name = (char *) XALLOCAVEC (char, strlen (asm_file_name) + 5);
-  sprintf (dwo_file_name, "%s.dwo", asm_file_name);
+  /* The splitter will fill in the file name.  It would be good to allocate
+     a fairly large string here to make it easy for the splitter though.  */
+  char *dwo_file_name = "<current file>";
 
   /* No source file name for the skeleton debug_info.  */
   add_AT_lineptr (die, DW_AT_stmt_list, debug_line_section_label);
@@ -8616,6 +8617,8 @@ output_skeleton_debug_sections (void)
   remove_AT (die, DW_AT_producer);
   remove_AT (die, DW_AT_language);
   add_AT_string (die, DW_AT_GNU_dwo_name, dwo_file_name);
+  /* FIXME: How is this value determined?  */
+  add_AT_unsigned (die, DW_AT_GNU_dwo_id, 0);
 
   switch_to_section (debug_skeleton_info_section);
   ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_info_section_label,
@@ -8645,6 +8648,20 @@ output_skeleton_debug_sections (void)
   die->die_abbrev = 1;
   output_die (die);
   dw2_asm_output_data (1, 0, "end of skeleton .debug_info");
+
+  if (use_debug_types)
+    {
+      const char *secname = ".debug_types.dwo";
+      /* Produce the skeleton type-unit header.  */
+      /* FIXME: Checking OBJECT_FORMAT_ELF here seems wrong.  Shouldn't the
+         check be for COMDAT support?  (cf, output_comdat_type_unit).  */
+#if defined (OBJECT_FORMAT_ELF)
+      targetm.asm_out.named_section (secname, SECTION_DEBUG, NULL);
+#else
+      switch_to_section (get_section (secname, SECTION_DEBUG, NULL));
+#endif
+
+    }
 
   /* Build an empty skeleton debug_abbrev section.  */
   switch_to_section (debug_skeleton_abbrev_section);
@@ -8694,6 +8711,7 @@ output_comdat_type_unit (comdat_type_node *node)
 
 #if defined (OBJECT_FORMAT_ELF)
   secname = ".debug_types";
+
   tmp = XALLOCAVEC (char, 4 + DWARF_TYPE_SIGNATURE_SIZE * 2);
   sprintf (tmp, "wt.");
   for (i = 0; i < DWARF_TYPE_SIGNATURE_SIZE; i++)
@@ -8767,11 +8785,15 @@ static void
 add_enumerator_pubname (const char *scope_name, const char *sep, dw_die_ref die)
 {
   const char *name;
+  pubname_entry e;
+
   if (scope_name)
     name = concat (scope_name, sep, get_AT_string (die, DW_AT_name), NULL);
   else
     name = xstrdup (get_AT_string (die, DW_AT_name));
-  add_pubname_string (name, die);
+  e.name = name;
+  e.die = die;
+  VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
 }
 
 /* Add a new entry to .debug_pubtypes if appropriate.  */
@@ -8816,12 +8838,15 @@ add_pubtype (tree decl, dw_die_ref die)
         }
       VEC_safe_push (pubname_entry, gc, pubtype_table, &e);
 
-      /* Although it might be more logical to add the pubnames for the
-         enumerators as their dies are created, they should only be
-         added if the type meets the criteria above.  */
+      /* Although it might be more consistent to add the pubinfo for the
+         enumerators as their dies are created, they should only be added if the
+         enum type meets the criteria above.  So rather than re-check the parent
+         enum type whenever an enumerator die is created, just output them all
+         here.  */
       if (die->die_tag == DW_TAG_enumeration_type)
         {
           dw_die_ref c;
+
           FOR_EACH_CHILD (die, c, add_enumerator_pubname (scope_name, sep, c));
         }
     }
@@ -21168,10 +21193,10 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
     {
       debug_info_section = get_section (DEBUG_DWO_INFO_SECTION,
                                         SECTION_DEBUG, NULL);
-      debug_skeleton_info_section = get_section (DEBUG_INFO_SECTION,
-                                                 SECTION_DEBUG, NULL);
       debug_abbrev_section = get_section (DEBUG_DWO_ABBREV_SECTION,
                                           SECTION_DEBUG, NULL);
+      debug_skeleton_info_section = get_section (DEBUG_INFO_SECTION,
+                                                 SECTION_DEBUG, NULL);
       debug_skeleton_abbrev_section = get_section (DEBUG_ABBREV_SECTION,
                                                    SECTION_DEBUG, NULL);
     }
