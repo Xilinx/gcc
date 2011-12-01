@@ -1,4 +1,8 @@
 
+2011-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 181872 using svnmerge
+
 2011-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{MELT branch rev 181694 is the last which is able to go to melt-stage3}}
 

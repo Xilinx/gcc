@@ -1,3 +1,330 @@
+2011-11-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/50283
+	* config/pa/pa.md (in_branch_delay): Disallow frame related insns.
+	(in_nullified_branch_delay): Likewise.
+	(in_call_delay): Likewise.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* predict.c (expr_expected_value_1): Assume compare-and-swap builtin
+	boolean return is true.
+
+2011-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/51044
+	* dse.c (emit_inc_dec_insn_before): Ensure new_insn is an instruction
+	rather than just insn body.
+
+	PR target/50725
+	* function.c (thread_prologue_and_epilogue_insns): If
+	stack_realign_drap, add drap_reg to SET_UP_BY_PROLOGUE
+	regset.
+
+	PR middle-end/51089
+	* tree-eh.c (cleanup_empty_eh_merge_phis): Add check to
+	avoid creating duplicate edges here.
+	(cleanup_empty_eh_unsplit): And remove it in the caller.
+
+2011-11-30  Andrew Pinski  <apinski@cavium.com>
+
+	PR c/51321
+	* c-parser.c (c_parser_postfix_expression): Check groktypename results
+	before looking at the main variant.
+
+2011-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48721
+	* sched-deps.c (sched_analyze_insn): For SIBLING_CALL_P set
+	reg_pending_barrier to TRUE_BARRIER.
+
+	PR rtl-optimization/48721
+	* sched-ebb.c (begin_move_insn): Insert empty unreachable
+	block after BARRIER if insn is followed by it.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/sparc-opts.h (enum sparc_memory_model_type): New.
+	* config/sparc/sparc.opt (mmemory-model=): New option.
+	* doc/invoke.texi (Sparc Options): Document it.
+	* config/sparc/sparc.c (sparc_option_override): Provide default
+	for sparc_memory_model.
+	(sparc_emit_membar_for_model): Omit barrier combinations that are
+	implied by the memory model.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/sync.md (I124MODE): New mode iterator.
+	(memory_barrier): Remove.
+	(atomic_exchangesi): New.
+	(swapsi): Rename from *swapsi.
+	(atomic_test_and_set<I124MODE>): New.
+	(ldstubqi): Rename from *ldstubqi, merge with expander.
+	(ldstub<I24MODE>): Rename from *ldstub<I24MODE>, merge with expander.
+	(sync_lock_test_and_setsi): Remove.
+	(sync_lock_test_and_set<I12MODE>): Remove.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/constraints.md ("w"): New.
+	* config/sparc/predicates.md (mem_noofs_operand): New.
+	* config/sparc/sparc.c (sparc_expand_compare_and_swap_12): Make static.
+	Generate the boolean result of the atomic_compare_exchange.
+	(sparc_expand_compare_and_swap): New.
+	* config/sparc/sync.md (atomic_compare_and_swap<I>): New.
+	(atomic_compare_and_swap<I48MODE>_1): Rename from
+	*sync_compare_and_swap<I48MODE>, use mem_noofs_operand.
+	(*atomic_compare_and_swapdi_v8plus): Rename from
+	*sync_compare_and_swapdi_v8plus, use mem_noofs_operand.
+	(sync_compare_and_swap<I12MODE>): Remove.
+	(sync_compare_and_swap<I48MODE>): Remove.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/predicates.md (register_or_v9_zero_operand): New.
+	* config/sparc/sparc.md (UNSPEC_ATOMIC): New.
+	* config/sparc/sync.md (atomic_load<I>): New.
+	(atomic_loaddi_1, atomic_store<I>, atomic_storedi_1): New.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/predicates.md (zero_or_v7_operand): New.
+	* config/sparc/sparc.c (sparc_emit_membar_for_model): New.
+	* config/sparc/sparc-protos.h: Update.
+	* config/sparc/sync.md (mem_thread_fence): New.
+	(memory_barrier): Use sparc_emit_membar_for_model.
+	(membar, *membar_empty, *membar_storestore, *membar_storeload): New.
+	(*membar_v8): Accept and ignore the membar mask.
+	(*membar): Accept and print the membar mask.
+
+2011-11-30  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* config/arm/arm.c (arm_issue_rate): Cortex-A15 can triple issue.
+	* config/arm/arm.md (mul64): New attribute.
+	(generic_sched): Cortex-A15 is not scheduled generically.
+	(cortex-a15.md): Include.
+	* config/arm/cortex-a15.md: New machine description.
+	* config/arm/t-arm (MD_INCLUDES): Add cortex-a15.md.
+
+2011-11-30  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* config/arm/t-arm (MD_INCLUDES): Ensure all md files are listed.
+
+2011-11-30  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* doc/tm.texi.in (NEXT_OBJC_RUNTIME): Update macro description.
+	* doc/tm.texi: Regenerate.
+	* flags.h (flag_next_runtime): Remove references.
+	* toplev.c: Likewise.
+	* defaults.h (NEXT_OBJC_RUNTIME): Provide default.
+	* gccspec.c (lang_specific_driver): Adjust use of NEXT_OBJC_RUNTIME.
+	* config/darwin.c (darwin_override_options): Provide default
+	Objective-C abi settings and target conflict checks.
+	* config/darwin.h (SUBTARGET_C_COMMON_OVERRIDE_OPTIONS): Remove unused
+	code. Adjust indenting.
+
+2011-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sh/sh.h (enum reg_class, REG_CLASS_NAMES)
+	(REG_CLASS_CONTENTS): Add NON_SP_REGS.
+	(REGCLASS_HAS_GENERAL_REG): Handle NON_SP_REGS.
+	* config/sh/constraints.md (u): New constraint.
+
+2011-11-29  Oleg Endo  <oleg.endo@t-online.de>
+
+	PR target/51337
+	* config/sh/sh.c (sh_secondary_reload): Add case when FPUL
+	register is being loaded from a pseudo in memory.
+
+2011-11-29  DJ Delorie  <dj@redhat.com>
+
+	* config.gcc (rl78-*-elf): New case.
+	* doc/extend.texi: Add RL78 documentation.
+	* doc/invoke.texi: Likewise.
+	* doc/md.texi: Likewise.
+	* doc/contrib.texi: Add RL78.
+	* doc/install.texi: Add rl78-*-elf.
+	* config/rl78: New directory for the Renesas RL78.
+
+2011-11-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51247
+	* tree-vrp.c (extract_range_from_assert): For signed 1-bit precision
+	types instead of adding 1 subtract -1 and instead of subtracting 1
+	add -1 to avoid overflows.
+
+2011-11-29  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR target/50123
+	* optabs.c (maybe_optimize_fetch_op): New.  Look for more optimal
+	instructions for a FECTH_OP or OP_FECTH sequence.
+	(expand_atomic_fetch_op): Call maybe_optimize_fetch_op.
+
+2011-11-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sync.md (UNSPEC_LDA, UNSPEC_STA): New unspecs.
+	(movdi_via_fpu): Remove.
+	(loaddi_via_fpu): New insn pattern.
+	(storedi_via_fpu): Ditto.
+	(atomic_loaddi_fpu): Use loaddi_via_fpu and storedi_via_fpu.
+	(atomic_storedi_fpu): Ditto.
+	* reg-stack.c (get_true_reg): Handle UNSPEC_LDA.
+	(subst_stack_regs_pat): Handle UNSPEC_STA.
+
+2011-11-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*floathi<mode>2_i387_with_temp): Do not
+	allocate scratch memory for alternative 0.
+
+2011-11-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000-builtins.def: Completely rewrite builtin
+	handling to centralize more of the builtins in this file.  Change
+	some builtin enumerations to be more consistant.  Use a new mask
+	to hold the current builtins, including SPE and PAIRED builtins
+	which no longer are set via target_flags masks.  Add
+	-mdebug=builtin debug support.  For power machines, define all
+	Altivec and VSX buitins when the compiler starts, but don't allow
+	the use of a builtin unless the appropriate switch is used, or
+	#pragma GCC target is used to change the options.  If the user
+	uses #pragma GCC target, update the appropriate hardware macros.
+	* common/config/rs6000/rs6000-common.c (rs6000_handle_option): Ditto.
+	* config/rs6000/rs6000.opt (rs6000_builtin_mask): Ditto.
+	* config/rs6000/rs6000-c.c (rs6000_macro_to_expand): Ditto.
+	(rs6000_define_or_undefine_macro): Ditto.
+	(rs6000_target_modify_macros): Ditto.
+	(rs6000_cpu_cpp_builtins): Ditto.
+	(altivec_overloaded_builtins): Ditto.
+	(altivec_build_resolved_builtin): Ditto.
+	* config/rs6000/rs6000.c (rs6000_target_modify_macros_ptr): Ditto.
+	(rs6000_builtin_info): Ditto.
+	(def_builtin): Ditto.
+	(enable_mask_for_builtins): Ditto.
+	(DEBUG_FMT_X): Ditto.
+	(rs6000_debug_reg_global): Ditto.
+	(rs6000_builtin_mask_calculate): Ditto.
+	(rs6000_option_override_internal): Ditto.
+	(rs6000_builtin_conversion): Ditto.
+	(rs6000_builtin_vectorized_function): Ditto.
+	(bdesc_3arg): Ditto.
+	(bdesc_dst): Ditto.
+	(bdesc_2arg): Ditto.
+	(builtin_description_predicates): Ditto.
+	(bdesc_altivec_preds): Ditto.
+	(bdesc_spe_predicates): Ditto.
+	(bdesc_spe_evsel): Ditto.
+	(bdesc_paired_preds): Ditto.
+	(bdesc_abs): Ditto.
+	(bdesc_1arg): Ditto.
+	(rs6000_overloaded_builtin_p): Ditto.
+	(rs6000_expand_unop_builtin): Ditto.
+	(bdesc_2arg_spe): Ditto.
+	(spe_expand_builtin): Ditto.
+	(rs6000_invalid_builtin): Ditto.
+	(rs6000_expand_builtin): Ditto.
+	(rs6000_init_builtins): Ditto.
+	(spe_init_builtins): Ditto.
+	(paired_init_builtins): Ditto.
+	(altivec_init_builtins): Ditto.
+	(builtin_function_type): Ditto.
+	(rs6000_common_init_builtins): Ditto.
+	(rs6000_builtin_reciprocal): Ditto.
+	(rs6000_builtin_mask_names): Ditto.
+	(rs6000_pragma_target_parse): Ditto.
+	(rs6000_function_specific_print): Ditto.
+	* config/rs6000/rs6000.h (MASK_DEBUG_BUILTIN): Ditto.
+	(MASK_DEBUG_ALL): Ditto.
+	(TARGET_DEBUG_BUILTIN): Ditto.
+	(TARGET_EXTRA_BUILTINS): Ditto.
+	(REGISTER_TARGET_PRAGMAS): Ditto.
+	(enum rs6000_btc): Ditto.
+	(RS6000_BTC_*): Ditto.
+	(RS6000_BTM_*): Ditto.
+	(enum rs6000_builtins): Ditto.
+	* config/rs6000/rs6000-protos.h (rs6000_overloaded_builtin_p): Ditto.
+	(rs6000_target_modify_macros): Ditto.
+	(rs6000_target_modify_macros_ptr): Ditto.
+
+	* config/rs6000/vector.md (unsfloat<VEC_int><mode>2): Use the
+	standard name for converting vector unsigned values to floating
+	point.  Delete the TARGET_VECTORIZE_BUILTIN_CONVERSION hook, which
+	is handled by machine independent code.
+	* config/rs6000/rs6000.c (TARGET_VECTORIZE_BUILTIN_CONVERSION): Ditto.
+	(rs6000_builtin_conversion): Ditto.
+
+2011-11-29  Dodji Seketeli  <dodji@redhat.com>
+
+	* tree-diagnostic (struct loc_t): Rename into struct loc_map_pair.
+	(maybe_unwind_expanded_macro_loc): Adjust.
+
+2011-11-29  David Edelsohn  <dje.gcc@gmail.com>
+	    Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_create_version_alias): Mangle new_decl
+	if DECL_ONE_ONLY.
+	(ipa_tm_create_version): Same.
+
+2011-11-29  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c (recompute_todo_spec): Simplify and correct the
+	code checking for a clobber of a condition register when deciding
+	whether to predicate.
+
+2011-11-29   Diego Novillo  <dnovillo@google.com>
+
+	* gimple.c (gimple_call_set_cannot_inline): Move from gimple.h.
+	Update field call_stmt_cannot_inline_p from call graph edge, if needed.
+	* gimple.h (gimple_call_set_cannot_inline): Move to gimple.c.
+
+2011-11-29  Sameera Deshpande  <sameera.deshpande@arm.com>
+
+	* config/arm/arm.md (arm_movdi): Update NEG_POOL_RANGE.
+	(movdf_soft_insn): Likewise.
+	* config/arm/fpa.md (thumb2_movdf_fpa): Likewise.
+	* config/arm/neon.md (neon_mov<mode>): Likewise.
+	* config/arm/vfp.md (movdi_vfp): Likewise.
+	(movdi_vfp_cortexa8): Likewise.
+	(movdf_vfp): Likewise.
+
+2011-11-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/50074
+	* expr.c (expand_expr_addr_expr_1): Don't call force_operand for
+	EXPAND_SUM modifier.
+
+2011-11-29  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/51301
+	* tree-vect-patterns.c (vect_recog_over_widening_pattern): Check that
+	the last statement doesn't convert to a bigger type than the original
+	type of the computation.
+
+2011-11-28  Richard Henderson  <rth@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_expand_atomic_compare_and_swap):
+	Handle overlap between retval and oldval.  Always compute boolval
+	from CR0 EQ value.
+
+2011-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/50317
+	* tree-ssa.c (execute_update_addresses_taken): Remove
+	var ={v} {CLOBBER} stmts instead of rewriting them into
+	var_N ={v} {CLOBBER}.
+
+	PR middle-end/50907
+	* function.c (convert_jumps_to_returns): When redirecting an edge
+	succ to EXIT_BLOCK_PTR, clear EDGE_CROSSING flag.
+
+	PR tree-optimization/50078
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Copy over
+	TREE_THIS_VOLATILE also from the old to new lhs resp. rhs.
+
+	PR tree-optimization/50682
+	* tree-eh.c (maybe_remove_unreachable_handlers): New function.
+	* tree-flow.h (maybe_remove_unreachable_handlers): New prototype.
+	* tree-optimize.c (execute_cleanup_cfg_post_optimizing): Call it.
+
 2011-11-28  Georg-Johann Lay  <avr@gjlay.de>
 
 	* doc/extend.texi (AVR Built-in Functions): Add documentation for
@@ -90,8 +417,7 @@
 	(init_reg_sets_1): Limit operand_reg_set to accessible_reg_set.
 	Remove NO_REGS registers from operand_reg_set.  Treat members
 	of operand_reg_set as fixed.
-	* recog.c (general_operand): Check operand_reg_set rather than
-	NO_REGS.
+	* recog.c (general_operand): Check operand_reg_set rather than NO_REGS.
 	(register_operand, nonmemory_operand): Likewise.
 	* varasm.c (make_decl_rtl): Always use DECL_MODE as the mode of
 	register variables.  Check accessible_reg_set and operand_reg_set.
@@ -696,6 +1022,12 @@
 
 	* builtins.c (expand_builtin): Remove 4th parameter representing
 	weak/strong mode when __atomic_compare_exchange becomes a library call.
+
+2011-11-17  Richard Henderson  <rth@redhat.com>
+
+	* config/rs6000/rs6000.c (rs6000_expand_atomic_compare_and_swap): Get
+	new pseudo for target after convert_modes.
+	(rs6000_expand_atomic_exchange, rs6000_expand_atomic_op): Likewise.
 
 2011-11-17  Richard Henderson  <rth@redhat.com>
 

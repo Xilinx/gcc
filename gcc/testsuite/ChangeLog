@@ -1,3 +1,85 @@
+2011-11-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51009
+	* g++.dg/init/aggr8.C: New.
+
+2011-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/50725
+	* gcc.target/i386/pr50725.c: New test.
+
+	PR middle-end/51089
+	* gfortran.dg/gomp/pr51089.f90: New test.
+
+2011-11-30  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/pr51321.c: New testcase.
+
+2011-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48721
+	* gcc.target/i386/pr48721.c: New test.
+
+2011-11-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51299
+	* g++.dg/warn/Wzero-as-null-pointer-constant-4.C: New.
+
+2011-11-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51247
+	* gcc.c-torture/compile/pr51247.c: New test.
+
+2011-11-29  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR target/50123
+	* gcc.dg/atomic-op-optimize.c: New.  Test for optimizations.
+
+2011-11-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-target-4.c: New file to test target
+	specific functions enabling target specific builtins.
+
+2011-11-29  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	Use complex floating-point constant in CDBL.
+
+	* gcc.dg/compat/compat-common.h (CDBL): Replace 1i with 1.0i.
+
+2011-11-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51306
+	PR fortran/48700
+	* gfortran.dg/move_alloc_5.f90: Add dg-error.
+	* gfortran.dg/select_type_23.f03: Add dg-error.
+	* gfortran.dg/move_alloc_6.f90: New.
+	* gfortran.dg/move_alloc_7.f90: New.
+
+2011-11-29  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/51301
+	* gcc.dg/vect/pr51301.c: New test.
+
+2011-11-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/cdce3.C: Use dg-additional-options.
+
+2011-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/50907
+	* gcc.dg/tree-prof/pr50907.c: New test.
+
+	PR tree-optimization/50078
+	* gcc.dg/pr50078.c: New test.
+
+	PR tree-optimization/50682
+	* g++.dg/opt/pr50682.C: New test.
+
+2011-11-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51308
+	* gfortran.dg/iso_c_binding_compiler_4.f90: New.
+
 2011-11-27  Aldy Hernandez  <aldyh@redhat.com>
 	    Iain Sandoe  <iains@gcc.gnu.org>
 
@@ -6,7 +88,7 @@
 	* gcc.dg/lto/trans-mem-1_0.c: Add dg-lto-do link.
 	* gcc.dg/lto/trans-mem-1_1.c:  Add dummy functions for
 	_ITM_registerTMCloneTable, _ITM_deregisterTMCloneTable.
-	
+
 2011-11-27  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* gcc.target/mips/mult-2.c, gcc.target/mips/mult-3.c,

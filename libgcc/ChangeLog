@@ -1,3 +1,48 @@
+2011-11-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR other/51272
+	* config/pa/stublib.c (_ITM_registerTMCloneTable): New stub.
+	(_ITM_deregisterTMCloneTable): Likewise.
+	(__register_frame_info): Fix unused warning.
+	(__deregister_frame_info, __cxa_finalize, _Jv_RegisterClasses,
+	pthread_default_stacksize_np): Likewise.
+	* config/pa/t-stublib (LIBGCCSTUB_OBJS): Add new objects and rules.
+	
+2011-11-29  DJ Delorie  <dj@redhat.com>
+
+	* config.host (rl78-*-elf): New case.
+	* config/rl78: New directory for the Renesas RL78.
+
+2011-11-29  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config.host (tic6x-*-uclinux): Append to extra_parts.  Fix
+	formatting.
+
+2011-11-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR other/51022
+	* config/rs6000/t-savresfgpr: New file.
+	* config/rs6000/t-ppccomm (LIB2ADD_ST): Remove all but
+	$(srcdir)/config/rs6000/eabi.S.
+	* config/rs6000/t-ppccomm-ldbl: Remove.
+	* config.host (powerpc-*-freebsd*): Add rs6000/t-savresfgpr to
+	tmake_file.
+	(powerpc-*-eabispe*): Likewise.
+	(powerpc-*-eabi*): Likewise.
+	(powerpc-*-linux*, powerpc64-*-linux*): Likewise.
+	(powerpc-wrs-vxworks, powerpc-wrs-vxworksae): Add rs6000/t-ppccomm
+	to tmake_file, remove rs6000/t-ppccomm-ldbl.
+	(powerpc-*-eabisimaltivec*): Remove rs6000/t-ppccomm-ldbl from
+	tmake_file.
+	(powerpc-*-eabisim*): Likewise.
+	(powerpc-*-elf*): Likewise.
+	(powerpc-*-eabialtivec*): Likewise.
+	(powerpc-xilinx-eabi*): Likewise.
+	(powerpc-*-rtems*): Likewise.
+	(powerpcle-*-elf*): Likewise.
+	(powerpcle-*-eabisim*): Likewise.
+	(powerpcle-*-eabi*): Likewise.
+
 2011-11-27  Ian Lance Taylor  <iant@google.com>
 
 	* generic-morestack.c (__splitstack_find): Check for NULL old

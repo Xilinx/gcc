@@ -1,3 +1,58 @@
+2011-11-30  Benjamin Kosnik  <bkoz@redhat.com>
+
+        * acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Remove
+        size-specific macros. _GLIBCXX_ATOMIC_BUILTINS_1,
+        _GLIBCXX_ATOMIC_BUILTINS_2, _GLIBCXX_ATOMIC_BUILTINS_4,
+        _GLIBCXX_ATOMIC_BUILTINS_8. Use _GLIBCXX_ATOMIC_BUILTINS to
+        indicate use of C++11 atomic builtins.
+        * config.h.in: Regenerate.
+        * configure: Regenerate.
+        * include/Makefile.am (bits_sup_headers): Add atomic_lockfree_defines.h.
+        * include/Makefile.in: Regenerate.
+        * libsupc++/Makefile.am: Compile C++11 support with -std=gnu++0x.
+        * libsupc++/Makefile.in: Regenerate.
+
+        * include/bits/atomic_base.h: Move lock-free property macros...
+        * libsupc++/atomic_lockfree_defines.h: ...here.
+        * include/std/future: Use C++11 macros.
+        * libsupc++/eh_ptr.cc: Same.
+        * libsupc++/eh_throw.cc: Same.
+        * libsupc++/exception: Same.
+        * libsupc++/exception_ptr.h: Same.
+        * libsupc++/guard.cc: Same.
+        * libsupc++/nested_exception.cc: Same.
+        * libsupc++/nested_exception.h: Same.
+        * src/future.cc: Same.
+
+        * include/ext/atomicity.h: Use _GLIBCXX_ATOMIC_BUILTINS.
+
+        * doc/doxygen/user.cfg.in
+        * doc/xml/manual/concurrency_extensions.xml
+
+        * testsuite/18_support/exception_ptr/lifespan.cc
+        * testsuite/lib/libstdc++.exp
+
+2011-11-29  François Dumont <fdumont@gcc.gnu.org>
+
+	* include/bits/hashtable.h (_Hashtable<>::_M_rehash): Remove code
+	useless now that the hashtable implementation put the hash code in
+	cache if the hash functor throws.
+	* testsuite/23_containers/unordered_set/erase/1.cc: Enhance test by
+	checking also distance between begin and end iterators to validate
+	underlying data model.
+	* testsuite/23_containers/unordered_multiset/erase/1.cc: Likewise.
+	* testsuire/23_containers/unordered_map/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/1.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/2.cc: New.
+	* testsuite/23_containers/unordered_multimap/erase/2.cc: New.
+
+2011-11-28  Andrew MacLeod  <amacleod@redhat.com>
+
+	* include/bits/atomic_base.h (ATOMIC_*_LOCK_FREE): Use new cpp
+	predefined macros.
+	* testsuite/29_atomics/headers/atomic/macros.cc: Add BOOL and POINTER
+	macro checks.  Check for expected compile time values.
+
 2011-11-28  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/51288
