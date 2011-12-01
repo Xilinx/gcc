@@ -1,4 +1,12 @@
 
+2011-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_notify_finish_type_hook)
+	(meltgc_notify_finish_decl_hook): Declare functions.
+	* melt-runtime.c (meltgc_finishtype_callback)
+	(meltgc_notify_finish_type_hook)
+	(meltgc_finishdecl_callback, meltgc_notify_finish_decl_hook):
+	Implement functions.
+
 2011-11-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_notify_register_finish_type_hook)
 	(meltgc_notify_register_finish_decl_hook): Add stubs.

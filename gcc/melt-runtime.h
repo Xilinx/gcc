@@ -2679,9 +2679,22 @@ extern melt_ptr_t melt_jmpval;
 ***/
 
 
-/*Function to be called by MELT code when the :sysdata_passexec_hook
-   is changed. */
+/* Internal function to be called by MELT code in warmelt-base.melt when the
+   :sysdata_passexec_hook is changed, related to
+   PLUGIN_PASS_EXECUTION.  */
 void meltgc_notify_sysdata_passexec_hook (void);
+
+/* Internal function to be called by MELT code in warmelt-base.melt when the
+   :sysdata_finishtype_hook is changed, related to
+   PLUGIN_FINISH_TYPE.  */
+void meltgc_notify_finish_type_hook (void);
+
+/* Internal function to be called by MELT code in warmelt-base.melt
+   when the :sysdata_finishtype_hook is changed, related to
+   PLUGIN_FINISH_DECL. */
+void meltgc_notify_finish_decl_hook (void);
+
+
 
 /* ====== safer output routines ===== */
 
