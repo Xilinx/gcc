@@ -1389,6 +1389,31 @@ pph_in_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 }
 
 
+/* Merge all fields into lang_decl_base instance LDB from STREAM.  */
+
+static void
+pph_in_merge_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
+{
+  struct bitpack_d bp;
+
+  bp = pph_in_bitpack (stream);
+  /* FIXME pph: At present, we are only merging the anticipated bit.
+     The rest are simply overwritten.  */
+  ldb->selector = bp_unpack_value (&bp, 16);
+  ldb->language = (enum languages) bp_unpack_value (&bp, 4);
+  ldb->use_template = bp_unpack_value (&bp, 2);
+  ldb->not_really_extern = bp_unpack_value (&bp, 1);
+  ldb->initialized_in_class = bp_unpack_value (&bp, 1);
+  ldb->repo_available_p = bp_unpack_value (&bp, 1);
+  ldb->threadprivate_or_deleted_p = bp_unpack_value (&bp, 1);
+  ldb->anticipated_p &= bp_unpack_value (&bp, 1);
+  ldb->friend_attr = bp_unpack_value (&bp, 1);
+  ldb->template_conv_p = bp_unpack_value (&bp, 1);
+  ldb->odr_used = bp_unpack_value (&bp, 1);
+  ldb->u2sel = bp_unpack_value (&bp, 1);
+}
+
+
 /* Read all the fields in lang_decl_min instance LDM from STREAM.  */
 
 static void
@@ -1471,25 +1496,26 @@ pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 }
 
 
-/* Read language specific data in DECL from STREAM.  */
+/* Read potential reference to a lang decl specific.  Return null when
+   either the read pointer is null, or it is already in the cache.
+   Otherwise, return the pointer to the lang decl specific.  */
 
-static void
-pph_in_lang_specific (pph_stream *stream, tree decl)
+static struct lang_decl *
+pph_in_ref_lang_specific (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
-  struct lang_decl_base *ldb;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
   if (marker == PPH_RECORD_END)
-    return;
+    return NULL;
   else if (pph_is_reference_marker (marker))
     {
       DECL_LANG_SPECIFIC (decl) =
 	(struct lang_decl *) pph_cache_find (stream, marker, image_ix, ix,
 					     PPH_lang_decl);
-      return;
+      return NULL;
     }
 
   /* Allocate a lang_decl structure for DECL, if not already present.
@@ -1504,11 +1530,68 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
   /* Now register it.  We would normally use ALLOC_AND_REGISTER,
      but retrofit_lang_decl does not return a pointer.  */
   pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
+  return ld;
+}
+
+
+/* Read language specific data in DECL from STREAM.  */
+
+static void
+pph_in_lang_specific (pph_stream *stream, tree decl)
+{
+  struct lang_decl *ld;
+  struct lang_decl_base *ldb;
+
+  ld = pph_in_ref_lang_specific (stream, decl);
+  if (!ld)
+    return;
 
   /* Read all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
   pph_in_ld_base (stream, ldb);
 
+  if (ldb->selector == 0)
+    {
+      /* Read all the fields in lang_decl_min.  */
+      pph_in_ld_min (stream, &ld->u.min);
+    }
+  else if (ldb->selector == 1)
+    {
+      /* Read all the fields in lang_decl_fn.  */
+      pph_in_ld_fn (stream, &ld->u.fn);
+    }
+  else if (ldb->selector == 2)
+    {
+      /* Read all the fields in lang_decl_ns.  */
+      pph_in_ld_ns (stream, &ld->u.ns);
+    }
+  else if (ldb->selector == 3)
+    {
+      /* Read all the fields in lang_decl_parm.  */
+      pph_in_ld_parm (stream, &ld->u.parm);
+    }
+  else
+    gcc_unreachable ();
+}
+
+
+/* Read language specific data in DECL from STREAM.  */
+
+static void
+pph_in_merge_lang_specific (pph_stream *stream, tree decl)
+{
+  struct lang_decl *ld;
+  struct lang_decl_base *ldb;
+
+  ld = pph_in_ref_lang_specific (stream, decl);
+  if (!ld)
+    return;
+
+  /* Read all the fields in lang_decl_base.  */
+  ldb = &ld->u.base;
+  pph_in_merge_ld_base (stream, ldb);
+
+  /* FIXME pph: We probably should not be merging some of these selectors.  */
   if (ldb->selector == 0)
     {
       /* Read all the fields in lang_decl_min.  */
@@ -1765,9 +1848,8 @@ pph_in_tcc_type (pph_stream *stream, tree type)
 /* Read from STREAM the body of tcc_declaration tree DECL.  */
 
 static void
-pph_in_tcc_declaration (pph_stream *stream, tree decl)
+pph_in_tcc_declaration_tail (pph_stream *stream, tree decl)
 {
-  pph_in_lang_specific (stream, decl);
   DECL_INITIAL (decl) = pph_in_tree (stream);
 
   /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
@@ -1815,7 +1897,48 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
 }
 
 
+/* Read from STREAM the body of tcc_declaration tree DECL.  */
+
+static void
+pph_in_tcc_declaration (pph_stream *stream, tree decl)
+{
+  pph_in_lang_specific (stream, decl);
+  pph_in_tcc_declaration_tail (stream, decl);
+}
+
+
+/* Read from STREAM and merge the body of tcc_declaration tree DECL.  */
+
+static void
+pph_in_merge_tcc_declaration (pph_stream *stream, tree decl)
+{
+  pph_in_merge_lang_specific (stream, decl);
+  /* FIXME pph: Some of the tail may not be necessary.  */
+  pph_in_tcc_declaration_tail (stream, decl);
+}
+
+
 /******************************************************** tree head and body */
+
+
+/* Stream in identifier bindings.  */
+
+static void
+pph_in_identifier_bindings (pph_stream *stream, tree expr)
+{
+  if (flag_pph_debug >= 3)
+    fprintf (pph_logfile, "in identifier %s\n", IDENTIFIER_POINTER (expr));
+/* FIXME pph: Writing bindings is causing trouble,
+   but not writing them is not yet working.  */
+#if 0
+#else
+  IDENTIFIER_NAMESPACE_BINDINGS (expr) = pph_in_cxx_binding (stream);
+  IDENTIFIER_BINDING (expr) = pph_in_cxx_binding (stream);
+  IDENTIFIER_TEMPLATE (expr) = pph_in_tree (stream);
+  IDENTIFIER_LABEL_VALUE (expr) = pph_in_tree (stream);
+#endif
+  REAL_IDENTIFIER_TYPE_VALUE (expr) = pph_in_tree (stream);
+}
 
 
 /* Read the body fields of EXPR from STREAM.  */
@@ -1891,13 +2014,7 @@ pph_in_tree_body (pph_stream *stream, tree expr)
       break;
 
     case IDENTIFIER_NODE:
-      if (flag_pph_debug >= 3)
-	fprintf (pph_logfile, "in identifier %s\n", IDENTIFIER_POINTER (expr));
-      IDENTIFIER_NAMESPACE_BINDINGS (expr) = pph_in_cxx_binding (stream);
-      IDENTIFIER_BINDING (expr) = pph_in_cxx_binding (stream);
-      IDENTIFIER_TEMPLATE (expr) = pph_in_tree (stream);
-      IDENTIFIER_LABEL_VALUE (expr) = pph_in_tree (stream);
-      REAL_IDENTIFIER_TYPE_VALUE (expr) = pph_in_tree (stream);
+      pph_in_identifier_bindings (stream, expr);
       break;
 
     case BASELINK:
@@ -1994,6 +2111,45 @@ pph_in_tree_body (pph_stream *stream, tree expr)
       fatal_error ("PPH: unrecognized tree node '%s'",
                    pph_tree_code_text (TREE_CODE (expr)));
     }
+}
+
+
+/* Read the body fields of EXPR for merging from STREAM.  */
+
+static void
+pph_in_merge_tree_body (pph_stream *stream, tree expr)
+{
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  struct data_in *data_in = stream->encoder.r.data_in;
+
+  /* If we are reading a merge body, it means that EXPR is already in
+     some chain.  Given that EXPR may now be in a different location
+     in the chain, we need to make sure we do not lose it.  */
+  tree saved_expr_chain = TREE_CHAIN (expr);
+
+  /* Read the language-independent parts of EXPR's body.  */
+  streamer_read_tree_body (ib, data_in, expr);
+
+  /* Handle common tree code classes first.  */
+  switch (TREE_CODE_CLASS (TREE_CODE (expr)))
+    {
+      case tcc_declaration:
+       pph_in_merge_tcc_declaration (stream, expr);
+       break;
+
+      case tcc_type:
+       pph_in_tcc_type (stream, expr);
+       break;
+
+      default:
+       fatal_error ("PPH: unrecognized tree node '%s'",
+                    pph_tree_code_text (TREE_CODE (expr)));
+       break;
+    }
+
+  /* Restore TREE_CHAIN if necessary.  FIXME pph, we should just not
+     save TREE_CHAIN for merge bodies.  */
+  TREE_CHAIN (expr) = saved_expr_chain;
 }
 
 
@@ -2163,7 +2319,6 @@ pph_in_tree (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned image_ix, ix;
   enum LTO_tags tag;
-  tree saved_expr_chain = NULL;
 
   /* Read record start and test cache.  */
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
@@ -2184,7 +2339,10 @@ pph_in_tree (pph_stream *stream)
           /* If we are going to read a built-in function, all we need is
              the code and class.  */
           gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
-          return streamer_get_builtin_tree (ib, data_in);
+          expr = streamer_get_builtin_tree (ib, data_in);
+	  if (TREE_CODE (expr) == IDENTIFIER_NODE)
+	    pph_in_identifier_bindings (stream, expr);
+	  return expr;
         }
       else if (tag == lto_tree_code_to_tag (INTEGER_CST))
         {
@@ -2237,18 +2395,10 @@ pph_in_tree (pph_stream *stream)
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
 	: pph_trace_normal );
 
-  /* If we are reading a merge body, it means that EXPR is already in
-     some chain.  Given that EXPR may now be in a different location
-     in the chain, we need to make sure we do not lose it.  */
   if (marker == PPH_RECORD_START_MERGE_BODY)
-    saved_expr_chain = TREE_CHAIN (expr);
-
-  pph_in_tree_body (stream, expr);
-
-  /* Restore TREE_CHAIN if necessary.  FIXME pph, we should just not
-     save TREE_CHAIN for merge bodies.  */
-  if (marker == PPH_RECORD_START_MERGE_BODY)
-    TREE_CHAIN (expr) = saved_expr_chain;
+    pph_in_merge_tree_body (stream, expr);
+  else
+    pph_in_tree_body (stream, expr);
 
   if (flag_pph_tracer)
     pph_trace_tree (expr, pph_trace_back,

@@ -1,3 +1,29 @@
+2011-11-30   Lawrence Crowl  <crowl@google.com>
+
+	* pph.h (pph_loaded): New.
+	(pph_set_global_identifier_bindings): New.
+	(pph_out_binding_table): Add extern.
+	(pph_in_binding_table): Add extern.
+	* pph-core.c (pph_loaded): New.
+	* parser.c (c_parse_file): Call pph_loaded.
+	* name-lookup.c (pph_set_chain_identifier_bindings): New.
+	(pph_set_global_identifier_bindings): New.
+	* pph-out.c (pph_out_identifier_bindings): New.
+	(pph_out_tree_body): Call above function.
+	(pph_out_tree): Call above functions for builtins.
+	* pph-in.c (pph_in_merge_ld_base): New.
+	(pph_in_ref_lang_specific): Factored from pph_in_lang_specific.
+	(pph_in_lang_specific): Call pph_in_ref_lang_specific.
+	(pph_in_merge_lang_specific): New.
+	(pph_in_tcc_declaration_tail): Factored from pph_in_tcc_declaration.
+	(pph_in_tcc_declaration): Call pph_in_tcc_declaration_tail.
+	(pph_in_merge_tcc_declaration): New.
+	(pph_in_identifier_bindings): New.
+	(pph_in_tree_body): Call above function.
+        (pph_in_merge_tree_body): New.
+        (pph_in_tree): Call pph_in_identifier_bindings functions for builtins.
+	Call pph_in_merge_tree_body for merge bodies.
+
 2011-11-29   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer.c: Renamed pph-core.c.

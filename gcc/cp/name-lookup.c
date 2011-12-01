@@ -6083,4 +6083,42 @@ pph_in_binding_table (pph_stream *stream)
   return bt;
 }
 
+
+/*  Set the identifier bindings for an individual chain.  */
+
+static void
+pph_set_chain_identifier_bindings (tree first, cp_binding_level *bl)
+{
+  tree decl;
+  for (decl = first; decl; decl = TREE_CHAIN (decl))
+    {
+      /* Set the identifier binding for a single decl.  */
+      tree id = DECL_NAME (decl);
+      if (id)
+	{
+	  if (flag_pph_debug >=2)
+	    {
+	     fprintf (pph_logfile, "binding ");
+	     pph_dump_tree_name (pph_logfile, id, 0);
+	   }
+	  push_binding (id, decl, bl);
+	}
+    }
+}
+
+
+/* Set the identifier bindings for the global namespace
+   after having read all the PPH files.  */
+
+void
+pph_set_global_identifier_bindings ()
+{
+  cp_binding_level *bl = scope_chain->bindings;
+  pph_set_chain_identifier_bindings (bl->names, bl);
+  pph_set_chain_identifier_bindings (bl->namespaces, bl);
+  pph_set_chain_identifier_bindings (bl->usings, bl);
+  pph_set_chain_identifier_bindings (bl->using_directives, bl);
+}
+
+
 #include "gt-cp-name-lookup.h"

@@ -1797,6 +1797,24 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
 /******************************************************** tree head and body */
 
 
+/* Emit the bindings for an identifier expr. */
+
+void
+pph_out_identifier_bindings (pph_stream *stream, tree expr)
+{
+/* FIXME pph: Writing bindings is causing trouble,
+   but not writing them is not yet working.  */
+#if 0
+#else
+  pph_out_cxx_binding (stream, IDENTIFIER_NAMESPACE_BINDINGS (expr));
+  pph_out_cxx_binding (stream, IDENTIFIER_BINDING (expr));
+  pph_out_tree (stream, IDENTIFIER_TEMPLATE (expr));
+  pph_out_tree (stream, IDENTIFIER_LABEL_VALUE (expr));
+#endif
+  pph_out_tree (stream, REAL_IDENTIFIER_TYPE_VALUE (expr));
+}
+
+
 /* Write the body of EXPR to STREAM.  This writes out all fields not
    written by the generic tree streaming routines.  */
 
@@ -1875,11 +1893,7 @@ pph_out_tree_body (pph_stream *stream, tree expr)
       break;
 
     case IDENTIFIER_NODE:
-      pph_out_cxx_binding (stream, IDENTIFIER_NAMESPACE_BINDINGS (expr));
-      pph_out_cxx_binding (stream, IDENTIFIER_BINDING (expr));
-      pph_out_tree (stream, IDENTIFIER_TEMPLATE (expr));
-      pph_out_tree (stream, IDENTIFIER_LABEL_VALUE (expr));
-      pph_out_tree (stream, REAL_IDENTIFIER_TYPE_VALUE (expr));
+      pph_out_identifier_bindings (stream, expr);
       break;
 
     case BASELINK:
@@ -2176,6 +2190,8 @@ pph_out_tree (pph_stream *stream, tree expr)
          the class and code.  */
       gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
       streamer_write_builtin (stream->encoder.w.ob, expr);
+      if (TREE_CODE (expr) == IDENTIFIER_NODE)
+        pph_out_identifier_bindings (stream, expr);
       return;
     }
   else if (TREE_CODE (expr) == INTEGER_CST)

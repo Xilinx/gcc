@@ -796,6 +796,21 @@ pph_add_include (pph_stream *stream, pph_stream *include)
 }
 
 
+/* Handle work need after PPH files have been read,
+   but before parsing starts.  */
+
+void
+pph_loaded (void)
+{
+/* FIXME pph: Reconstructing the global binding does not yet work.  */
+#if 0
+  pph_set_global_identifier_bindings();
+#endif
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
+}
+
+
 /*********************************************************** stream handling */
 
 

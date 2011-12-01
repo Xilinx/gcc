@@ -139,6 +139,7 @@ extern FILE *pph_logfile;
 
 /* In pph-core.c  */
 extern void pph_init (void);
+extern void pph_loaded (void);
 extern void pph_finish (void);
 extern void pph_dump_location (FILE *file, location_t loc);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
@@ -161,8 +162,9 @@ extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
 
 /* In name-lookup.c.  */
 struct binding_table_s;
-void pph_out_binding_table (pph_stream *, struct binding_table_s *);
-struct binding_table_s *pph_in_binding_table (pph_stream *);
+extern void pph_out_binding_table (pph_stream *, struct binding_table_s *);
+extern struct binding_table_s *pph_in_binding_table (pph_stream *);
+extern void pph_set_global_identifier_bindings ();
 
 /* In pt.c.  */
 extern void pph_out_pending_templates_list (pph_stream *stream);
