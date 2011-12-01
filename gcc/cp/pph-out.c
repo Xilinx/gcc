@@ -2470,7 +2470,8 @@ pph_out_global_binding (pph_stream *stream)
 		   || scope_chain->x_processing_explicit_instantiation
 		   || scope_chain->need_pop_function_context
 		   || scope_chain->x_stmt_tree.x_cur_stmt_list
-		   || scope_chain->x_stmt_tree.stmts_are_full_exprs_p));
+		   || scope_chain->x_stmt_tree.stmts_are_full_exprs_p)
+	      && VEC_empty (tree, scope_chain->x_stmt_tree.x_cur_stmt_list));
 
   /* We need to write a record for BL before emitting the merge keys
      so that the reader can associate the merge keys to it.  */

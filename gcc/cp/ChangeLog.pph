@@ -1,3 +1,8 @@
+2011-12-01   Diego Novillo  <dnovillo@google.com>
+
+	* pph-out.c (pph_out_global_binding): Fix empty test
+	for scope_chain->x_stmt_tree.x_cur_stmt_list.
+
 2011-11-30   Lawrence Crowl  <crowl@google.com>
 
 	* pph.h (pph_loaded): New.
@@ -20,8 +25,8 @@
 	(pph_in_merge_tcc_declaration): New.
 	(pph_in_identifier_bindings): New.
 	(pph_in_tree_body): Call above function.
-        (pph_in_merge_tree_body): New.
-        (pph_in_tree): Call pph_in_identifier_bindings functions for builtins.
+	(pph_in_merge_tree_body): New.
+	(pph_in_tree): Call pph_in_identifier_bindings functions for builtins.
 	Call pph_in_merge_tree_body for merge bodies.
 
 2011-11-29   Lawrence Crowl  <crowl@google.com>
