@@ -210,6 +210,17 @@ pph_in_bitpack (pph_stream *stream)
 }
 
 
+/* Read a boolean value from STREAM.  */
+
+static inline bool
+pph_in_bool (pph_stream *stream)
+{
+  unsigned val = pph_in_uint (stream);
+  gcc_assert (val <= 1);
+  return (bool) val;
+}
+
+
 /******************************************************** source information */
 
 
@@ -1575,7 +1586,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
 }
 
 
-/* Read language specific data in DECL from STREAM.  */
+/* Read and merge language specific data in DECL from STREAM.  */
 
 static void
 pph_in_merge_lang_specific (pph_stream *stream, tree decl)
@@ -2223,6 +2234,40 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
+/* Read all the merge keys for the names under namespace DECL from
+   STREAM.  */
+
+static void
+pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
+{
+  bool is_namespace_alias;
+
+  /* If EXPR is a namespace alias, we do not need to merge
+     its binding level (namespaces aliases do not have a
+     binding level, they use the one from the namespace they
+     alias).  */
+  is_namespace_alias = pph_in_bool (stream);
+  if (!is_namespace_alias)
+    {
+      cp_binding_level *bl;
+
+      if (DECL_LANG_SPECIFIC (decl))
+	/* Merging into an existing namespace.  */
+	bl = NAMESPACE_LEVEL (decl);
+      else
+	{
+	  /* This is a new namespace.  Allocate a lang_decl and a binding
+	     level to DECL.  */
+	  retrofit_lang_decl (decl);
+	  bl = ggc_alloc_cleared_cp_binding_level ();
+	  NAMESPACE_LEVEL (decl) = bl;
+	}
+
+      pph_in_binding_merge_keys (stream, bl);
+    }
+}
+
+
 /* Read a merge key from STREAM.  If the merge key read from STREAM
    is not found in *CHAIN, the newly allocated tree is added to it.  */
 
@@ -2268,20 +2313,7 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   if (DECL_P (expr))
     {
       if (TREE_CODE (expr) == NAMESPACE_DECL)
-        {
-	  cp_binding_level *bl;
-	  if (DECL_LANG_SPECIFIC (expr))
-	    /* Merging into an existing namespace.  */
-	    bl = NAMESPACE_LEVEL (expr);
-	  else
-	    {
-	      /* This is a new namespace.  */
-	      retrofit_lang_decl (expr);
-	      bl = ggc_alloc_cleared_cp_binding_level ();
-	      NAMESPACE_LEVEL (expr) = bl;
-	    }
-	  pph_in_binding_merge_keys (stream, bl);
-        }
+	pph_in_merge_key_namespace_decl (stream, expr);
 #if 0
 /* FIXME pph: Disable type merging for the moment.  */
       else if (TREE_CODE (expr) == TYPE_DECL)

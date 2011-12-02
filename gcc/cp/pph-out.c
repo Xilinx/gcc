@@ -168,6 +168,15 @@ pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
 }
 
 
+/* Write a boolean value VAL to STREAM.  */
+
+static inline void
+pph_out_bool (pph_stream *stream, bool val)
+{
+  pph_out_uint (stream, val ? 1 : 0);
+}
+
+
 /******************************************************** source information */
 
 
@@ -2123,6 +2132,24 @@ pph_out_merge_name (pph_stream *stream, tree expr)
 }
 
 
+/* Write merge information for a namespace DECL to STREAM.  */
+
+static void
+pph_out_merge_key_namespace_decl (pph_stream *stream, tree decl)
+{
+  bool is_namespace_alias;
+
+  gcc_assert (TREE_CODE (decl) == NAMESPACE_DECL);
+
+  /* If EXPR is a namespace alias, it will not have an associated
+     binding.  In that case, tell the reader not to bother with it.  */
+  is_namespace_alias = (DECL_NAMESPACE_ALIAS (decl) != NULL_TREE);
+  pph_out_bool (stream, is_namespace_alias);
+  if (!is_namespace_alias)
+    pph_out_binding_merge_keys (stream, NAMESPACE_LEVEL (decl));
+}
+
+
 /* Write the merge key for tree EXPR to STREAM.  */
 
 static void
@@ -2144,7 +2171,7 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
   if (DECL_P (expr))
     {
       if (TREE_CODE (expr) == NAMESPACE_DECL)
-        pph_out_binding_merge_keys (stream, NAMESPACE_LEVEL (expr));
+	pph_out_merge_key_namespace_decl (stream, expr);
 #if 0
 /* FIXME pph: Distable tree merging for the moment.  */
       else if (TREE_CODE (expr) == TYPE_DECL)

@@ -1,3 +1,62 @@
+2011-12-02   Diego Novillo  <dnovillo@google.com>
+
+	* pph-in.c (pph_in_cxx_binding_1): Assert that we are not
+	reading a merge record.
+	(pph_in_class_binding): Likewise.
+	(pph_in_label_binding): Likewise.
+	(pph_in_language_function): Likewise.
+	(pph_in_struct_function): Likewise.
+	(pph_in_sorted_fields_type): Likewise.
+	(pph_in_lang_type_class): Likewise.
+	(pph_in_lang_type): Likewise.
+	(pph_in_merge_key_binding_level): Rename from pph_in_binding_merge_keys.
+	(pph_in_merge_body_binding_level_1): Rename from
+	pph_in_binding_merge_bodies_1.  Update all users.
+	(pph_in_merge_body_binding_level): Rename from
+	pph_in_binding_merge_bodies.  Update all users.
+	(pph_in_ref_lang_decl): Rename from pph_in_ref_lang_specific.
+	Update all users.
+	Assert that we are not reading a merge record.
+	(pph_in_lang_decl): Rename from pph_in_lang_specific.  Update all users.
+	(pph_in_merge_lang_decl): Rename from pph_in_merge_lang_specific.
+	* pph-out.c (pph_out_reference_record): Support
+	PPH_RECORD_START_MERGE_BODY records.
+	Return the written marker instead of a boolean value.
+	Update all users.
+	(pph_out_start_merge_key_record): Accept a void * instead of
+	tree.  Add pph_tag argument.  Update all users.
+	(pph_out_start_merge_key_tree_record): New.
+	(pph_out_merge_key_binding_level): Rename from
+	pph_out_binding_merge_keys.
+	(pph_out_merge_body_binding_level): Rneame from
+	pph_out_binding_merge_bodies.
+	(pph_out_cxx_binding_1): Assert that we are not writing a
+	merge record.
+	(pph_out_cxx_binding): Likewise.
+	(pph_out_class_binding): Likewise.
+	(pph_out_label_binding): Likewise.
+	(pph_out_language_function): Likewise.
+	(pph_out_struct_function): Likewise.
+	(pph_out_ld_parm): Likewise.
+	(pph_out_lang_decl): Likewise.
+	(pph_out_sorted_fields_type): Likewise.
+	(pph_out_lang_type_class): Likewise.
+	(pph_out_lang_type): Likewise.
+	(pph_out_cgraph_node): Likewise.
+	(pph_out_tree): Call pph_is_reference_or_end_marker.
+	* pph-streamer.h (pph_is_reference_or_end_marker): New.
+
+2011-12-02   Diego Novillo  <dnovillo@google.com>
+
+	* pph-in.c (pph_in_bool): New.
+	(pph_in_merge_key_namespace_decl): Factor out of ...
+	(pph_in_merge_key_tree): ... here.
+	Handle namespace aliases. 
+	* pph-out.c (pph_out_bool): New.
+	(pph_out_merge_key_namespace_decl): Factor out of ...
+	(pph_out_merge_key_tree): ... here.
+	Handle namespace aliases.
+
 2011-12-01   Diego Novillo  <dnovillo@google.com>
 
 	* pph-out.c (pph_out_global_binding): Fix empty test
