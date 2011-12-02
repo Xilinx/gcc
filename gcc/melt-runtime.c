@@ -8365,6 +8365,137 @@ melt_finishall_callback(void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
+/*****
+ * Support for PLUGIN_ALL_PASSES_START; invoked in file
+ * tree-optimize.c function tree_rest_of_compilation
+ *****/
+static void
+meltgc_all_passes_start_callback (void *gcc_data ATTRIBUTE_UNUSED,
+				 void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define closv     meltfram__.mcfr_varptr[0]
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_PASSES_START_HOOK);
+  if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
+    MELT_LOCATION_HERE ("all_passes_start_callback applying");
+    (void) melt_apply ((meltclosure_ptr_t) closv, NULL, 
+		       "", NULL, "", NULL);
+  }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+
+/*****
+ * Support for PLUGIN_ALL_PASSES_END; invoked in file
+ * tree-optimize.c function tree_rest_of_compilation
+ *****/
+static void
+meltgc_all_passes_end_callback (void *gcc_data ATTRIBUTE_UNUSED,
+				void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define closv     meltfram__.mcfr_varptr[0]
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_PASSES_END_HOOK);
+  if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
+    MELT_LOCATION_HERE ("all_passes_end_callback applying");
+    (void) melt_apply ((meltclosure_ptr_t) closv, NULL, 
+		       "", NULL, "", NULL);
+  }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+
+
+/*****
+ * Support for PLUGIN_ALL_IPA_PASSES_START; invoked in file
+ * cgraphunit.c function ipa_passes
+ *****/
+static void
+meltgc_all_ipa_passes_start_callback (void *gcc_data ATTRIBUTE_UNUSED,
+				      void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define closv     meltfram__.mcfr_varptr[0]
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_IPA_PASSES_START_HOOK);
+  if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
+    MELT_LOCATION_HERE ("all_ipa_passes_start_callback applying");
+    (void) melt_apply ((meltclosure_ptr_t) closv, NULL, 
+		       "", NULL, "", NULL);
+  }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+
+
+/*****
+ * Support for PLUGIN_ALL_IPA_PASSES_END; invoked in file
+ * cgraphunit.c function ipa_passes
+ *****/
+static void
+meltgc_all_ipa_passes_end_callback (void *gcc_data ATTRIBUTE_UNUSED,
+				    void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define closv     meltfram__.mcfr_varptr[0]
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALL_IPA_PASSES_END_HOOK);
+  if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
+    MELT_LOCATION_HERE ("all_ipa_passes_end_callback applying");
+    (void) melt_apply ((meltclosure_ptr_t) closv, NULL, 
+		       "", NULL, "", NULL);
+  }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+
+
+/*****
+ * Support for PLUGIN_EARLY_GIMPLE_PASSES_START; invoked in file
+ * passes.c function execute_ipa_pass_list
+ *****/
+static void
+meltgc_early_gimple_passes_start_callback (void *gcc_data ATTRIBUTE_UNUSED,
+					   void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define closv     meltfram__.mcfr_varptr[0]
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_EARLY_GIMPLE_PASSES_START_HOOK);
+  if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
+    MELT_LOCATION_HERE ("early_gimple_passes_start_callback applying");
+    (void) melt_apply ((meltclosure_ptr_t) closv, NULL, 
+		       "", NULL, "", NULL);
+  }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+
+
+/*****
+ * Support for PLUGIN_EARLY_GIMPLE_PASSES_END; invoked in file
+ * passes.c function execute_ipa_pass_list
+ *****/
+static void
+meltgc_early_gimple_passes_end_callback (void *gcc_data ATTRIBUTE_UNUSED,
+					   void* user_data ATTRIBUTE_UNUSED) 
+{
+  MELT_ENTERFRAME (1, NULL);
+#define closv     meltfram__.mcfr_varptr[0]
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_EARLY_GIMPLE_PASSES_END_HOOK);
+  if (closv && melt_magic_discr((melt_ptr_t)closv) == MELTOBMAG_CLOSURE) {
+    MELT_LOCATION_HERE ("early_gimple_passes_end_callback applying");
+    (void) melt_apply ((meltclosure_ptr_t) closv, NULL, 
+		       "", NULL, "", NULL);
+  }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+
+
 /* Utility function to parse a C-encoded string in a line from a
    FOO*+meltdesc.c file; the argument should point to the starting
    double-quote "; returns a malloc-ed string.  The C-encoded string
@@ -9912,6 +10043,24 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		     NULL);
   register_callback (melt_plugin_name, PLUGIN_FINISH,
 		     melt_finishall_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_ALL_PASSES_START,
+		     meltgc_all_passes_start_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_ALL_PASSES_END,
+		     meltgc_all_passes_end_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_ALL_IPA_PASSES_START,
+		     meltgc_all_ipa_passes_start_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_ALL_IPA_PASSES_END,
+		     meltgc_all_ipa_passes_end_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_EARLY_GIMPLE_PASSES_START,
+		     meltgc_early_gimple_passes_start_callback,
+		     NULL);
+  register_callback (melt_plugin_name, PLUGIN_EARLY_GIMPLE_PASSES_END,
+		     meltgc_early_gimple_passes_end_callback,
 		     NULL);
   debugeprintf ("melt_really_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("melt_really_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
