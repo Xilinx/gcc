@@ -1,5 +1,17 @@
 
 2011-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (pre_genericize_hook_runner): Don't use
+	lambda.
+	(finishtype_delayed_queue, melt_notify_finish_type)
+	(melt_finish_type_runner): New
+	(register_finish_type_hook_first, register_finish_type_hook_last):
+	Implement.
+	(melt_notify_finish_decl, finishdecl_delayed_queue)
+	(melt_finish_decl_runner): New.
+	(register_finish_decl_hook_first, register_finish_decl_hook_last):
+	Implement.
+
+2011-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_notify_finish_type_hook)
 	(meltgc_notify_finish_decl_hook): Declare functions.
 	* melt-runtime.c (meltgc_finishtype_callback)

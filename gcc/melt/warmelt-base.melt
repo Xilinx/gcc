@@ -1645,6 +1645,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 )
 
+;; internal function to for PLUGIN_PRE_GENERICIZE
 (defun pre_genericize_hook_runner (fndeclv)
   :doc #{Function to be runned when PLUGIN_PRE_GENERICIZE hook is invoked.  
   For each closure registered in the list :sysdata_pre_genericize of
@@ -1653,57 +1654,210 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   (let ( (firstlist (get_field :delqu_first pregenericize_delayed_queue))
 	 (lastlist (get_field :delqu_last pregenericize_delayed_queue))
 	 (revlastlist (make_list discr_list))
-	 (rescont (instance class_container))
+	 (res ())
 	 )
 ;;; call the first routines in natural order
-    (list_every 
-      firstlist
-      (lambda (firstproc)
-        (firstproc fndeclv)
-      ))
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc fndeclv res))
+     )
 ;;; reverse the last list
-    (list_every 
-      lastlist 
-      (lambda (lastproc)
-        (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
 ;;; call the last routines in reverse order
-    (list_every
-      revlastlist
-      (lambda (lastproc)
-        (lastproc fndeclv)  
-      ))
-  ))
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc fndeclv res))
+    )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; private finishtype handling queue
+(definstance finishtype_delayed_queue class_delayed_queue
+  :named_name '"finishtype_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private primitive to notify the MELT runtime that
+;; :sysdata_finishtype_hook has changed
+(defprimitive melt_notify_finish_type () :void
+  #{ /* melt_notify_finish_type */  meltgc_notify_finish_type_hook ();}#
+)
+
+;; internal private routine for PLUGIN_FINISH_TYPE 
+(defun melt_finish_type_runner (boxtreev)
+  (let ( (firstlist (get_field :delqu_first finishtype_delayed_queue))
+	 (lastlist (get_field :delqu_last finishtype_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc boxtreev res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc boxtreev res))
+    )))
+
 (defun register_finish_type_hook_first (fun)
   :doc #{Use $REGISTER_FINISH_TYPE_HOOK_FIRST to register a function $FUN to
   be run at PLUGIN_FINISH_TYPE, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of function declaration being parsed).}#
-  (assert_msg "@$@unimplemented register_finish_type_hook_first")
-)
+  which take 1 argument (the boxed tree of the parsed type).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishtype_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishtype_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_finishtype_hook melt_finish_type_runner)
+	      (melt_notify_finish_type)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_finish_type_hook_first")
+    ))
 
 (defun register_finish_type_hook_last (fun)
   :doc #{Use $REGISTER_FINISH_TYPE_HOOK_LAST to register a function $FUN to
   be run at PLUGIN_FINISH_TYPE, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of function declaration being parsed).}#
-  (assert_msg "@$@unimplemented register_finish_type_hook_last")
+  which take 1 argument (the boxed tree of the parsed type).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishtype_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishtype_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_finishtype_hook melt_finish_type_runner)
+	      (melt_notify_finish_type)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_finish_type_hook_last")
+))
+
+;;;;;;;;;;;;;;;;
+;; internal private primitive to notify the MELT runtime that
+;; :sysdata_finishdecl_hook has changed
+(defprimitive melt_notify_finish_decl () :void
+  #{ /* melt_notify_finish_decl */  meltgc_notify_finish_decl_hook ();}#
 )
+
+;; private finishtype handling queue
+(definstance finishdecl_delayed_queue class_delayed_queue
+  :named_name '"finishdecl_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_FINISH_DECL 
+(defun melt_finish_decl_runner (boxtreev)
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc boxtreev res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc boxtreev res))
+    )))
 
 (defun register_finish_decl_hook_first (fun)
   :doc #{Use $REGISTER_FINISH_DECL_HOOK_FIRST to register a function $FUN to
-  be run at PLUGIN_FINISH_TYPE, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of function declaration being parsed).}#
-  (assert_msg "@$@unimplemented register_finish_decl_hook_first")
-)
+  be run at PLUGIN_FINISH_DECL, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_finishdecl_hook melt_finish_decl_runner)
+	      (melt_notify_finish_decl)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_finish_decl_hook_first")
+    ))
 
 (defun register_finish_decl_hook_last (fun)
   :doc #{Use $REGISTER_FINISH_DECL_HOOK_LAST to register a function $FUN to
-  be run at PLUGIN_FINISH_TYPE, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of function declaration being parsed).}#
-  (assert_msg "@$@unimplemented register_finish_decl_hook_last")
-)
+  be run at PLUGIN_FINISH_DECL, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_finishdecl_hook melt_finish_decl_runner)
+	      (melt_notify_finish_decl)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_finish_decl_hook_last")
+    ))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the descriptions of values which are not ctype related.
