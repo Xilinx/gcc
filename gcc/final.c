@@ -84,7 +84,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "params.h"
 #include "tree-pretty-print.h"
-
+#include "cilk.h"
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
 				   declarations for e.g. AIX 4.x.  */
@@ -1729,6 +1729,9 @@ final (rtx first, FILE *file, int optimize_p)
 
   last_ignored_compare = 0;
 
+  if (flag_enable_cilk)
+    cilk_remove_annotated_functions (first);
+  
   for (insn = first; insn; insn = NEXT_INSN (insn))
     {
       if (INSN_UID (insn) > max_uid)       /* Find largest UID.  */

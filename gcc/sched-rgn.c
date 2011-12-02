@@ -3279,6 +3279,9 @@ schedule_insns (void)
 {
   int rgn;
 
+  if (IS_CILK_HELPER (cfun))
+    return;
+  
   /* Taking care of this degenerate case makes the rest of
      this code simpler.  */
   if (n_basic_blocks == NUM_FIXED_BLOCKS)

@@ -37,6 +37,9 @@ along with GCC; see the file COPYING3.  If not see
 #define CILK_WORKER_PARM    (-2)
 #define CILK_WORKER_INVALID (-3)
 
+#define ZCA_MAJOR_VER_NUMBER (1)
+#define ZCA_MINOR_VER_NUMBER (1)
+
 /* metadata NYI */
 
 enum cilk_tree_index
@@ -189,6 +192,19 @@ extern GTY(()) tree cilk_trees[(int) CILK_TI_MAX];
 #define cilkscreen_release_lock_fndecl  cilk_trees[CILKSCREEN_TI_F_REL_LOCK]
 
 
+typedef struct GTY(()) zca_data_t
+{
+  rtx label; /* this is same as unsigned long ip */
+  unsigned int probespace;
+  unsigned int annotation;
+  char *string;
+  rtx reg_rtx;
+  unsigned short dwarf_expr;
+} zca_data;
+
+DEF_VEC_O(zca_data);
+DEF_VEC_ALLOC_O(zca_data,gc);
+
 /* Offset of fields in the Cilk frame descriptor.
    Index is same as for cilk_trees.  If the index
    does not correspond to a field of the Cilk frame
@@ -232,7 +248,7 @@ extern rtx expand_builtin_cilk_detach (tree);
 extern rtx expand_builtin_cilk_stolen (tree);
 extern rtx expand_builtin_cilk_synched (tree);
 extern rtx expand_builtin_cilk_enter (tree);
-
+extern rtx expand_builtin_cilk_metadata (const char *, tree);
 
 extern bool cilk_valid_spawn (tree) __attribute__((weak));
 extern void gimplify_cilk_spawn (tree *, gimple_seq *, gimple_seq *) __attribute__((weak));
@@ -247,5 +263,7 @@ extern tree build_cilk_function_exit (tree, bool, bool);
 
 extern tree build_cilk_sync (void);
 extern tree create_detach_expr(tree frame);
-
+extern void cilk_output_metadata (void);
+extern void cilk_remove_annotated_functions (rtx first);
+extern bool cilk_annotated_function_p (char *); 	    
 #endif /* GCC_CILK_H */

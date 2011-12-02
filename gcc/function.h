@@ -598,6 +598,9 @@ struct GTY(()) function {
   /* this will indicate whether a function is a cilk function */
   unsigned int is_cilk_function : 1;
 
+  /* this variable will tell whether we are on a spawn helper or not */
+  unsigned int is_cilk_helper_function : 1;
+  
     /* this variable when set will tell whether the current function
    * is nested inside a cilk_function. Pretty much this is set it 
    * means we are using a cilk-for inside a cilk_for  
@@ -667,6 +670,8 @@ struct GTY(()) function {
      function.  */
   unsigned int is_thunk : 1;
 };
+
+#define IS_CILK_HELPER(C) (C && C->is_cilk_helper_function == 1)
 
 /* Add the decl D to the local_decls list of FUN.  */
 

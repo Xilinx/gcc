@@ -128,6 +128,7 @@ cg_hacks (tree fndecl, struct wrapper_data *wd)
   gcc_assert (TREE_CODE (fndecl) == FUNCTION_DECL);
 
   f->is_cilk_function = 1;
+  f->is_cilk_helper_function = 1;
   /* gimplify_body may garbage collect.  Save a root. */
   cilk_trees[CILK_TI_PENDING_FUNCTIONS] =
     tree_cons (NULL_TREE, fndecl, cilk_trees[CILK_TI_PENDING_FUNCTIONS]);

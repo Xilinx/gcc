@@ -3372,8 +3372,6 @@ static int is_based_loc (const_rtx);
 static int resolve_one_addr (rtx *, void *);
 static dw_loc_descr_ref concat_loc_descriptor (rtx, rtx,
 					       enum var_init_status);
-static dw_loc_descr_ref loc_descriptor (rtx, enum machine_mode mode,
-					enum var_init_status);
 static dw_loc_list_ref loc_list_from_tree (tree, int);
 static dw_loc_descr_ref loc_descriptor_from_tree (tree, int);
 static HOST_WIDE_INT ceiling (HOST_WIDE_INT, unsigned int);
@@ -12489,7 +12487,7 @@ implicit_ptr_descriptor (rtx rtl, HOST_WIDE_INT offset)
 
    If we don't know how to describe it, return 0.  */
 
-static dw_loc_descr_ref
+dw_loc_descr_ref
 loc_descriptor (rtx rtl, enum machine_mode mode,
 		enum var_init_status initialized)
 {

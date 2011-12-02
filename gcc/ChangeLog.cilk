@@ -17,6 +17,52 @@
 	(cilk_call_setjmp): Replaced implicit_built_in_decls[] to
 	builtin_decl_implicit ().
 
+2011-10-18  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* builtins.def: Removed duplicate disable_instrumentation call.
+	* cilk-spawn.c (cg_hacks): Set the "is_cilk_helper_function" flag.
+	* cilk.c: Added new vector called zca_stack.
+	(cilk_init_builtins): Removed underscores from zca functions.
+	(create_metadata_label): New function.
+	(get_zca_entry_count): Likewise.
+	(get_zca_string_table_size): Likewise.
+	(get_zca_exprs_table_size): Likewise.
+	(output_zca_table): Likewise.
+	(output_string_table): Likewise.
+	(output_expr_table): Likewise.
+	(cilk_output_metadata): Likewise.
+	(expand_builtin_cilk_metadata): Likewise.
+	(cilk_annotated_function_p): Likewise.
+	(cilk_remove_annotated_function): Likewise.
+	* cilk.h (ZCA_MAJOR_VER_NUMBER): New define.
+	(ZCA_MINOR_VER_NUMBER): Likewise.
+	(struct zca_data_t): Added new data structure.
+	(expand_builtin_cilk_metadata): New function declaration.
+	(cilk_output_metadata): Likewise.
+	(cilk_remove_annotated_functions): Likewise.
+	(cilk_annotated_function_p): Likewise.
+	* dwarf2out.c (loc_descriptor): Made this function universal, that is,
+	non-static.
+	* dwarf2out.h: Added a prototype for loc_descriptor().
+	* final.c (final): Added a call to cilk_remove_annotated_functions().
+	* function.h (struct function): Added is_cilk_helper_function variable.
+	* sched-rgn.c (schedule_insns): Added a check to see if we are inside
+	cilk_helper.
+	* toplev.c (compile_file): Added a call to cilk_output_metadata().
+
+2011-10-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* builtin.c (expand_builtin): Added case statements for ZCA
+	annotation functions support.
+	* cilk.c (get_zca_exprs_table_size): New function for ZCA support.
+	(output_zca_table): Likewise.
+	(output_string_table): Likewise.
+	(output_expr_table): Likewise.
+	(cilk_output_metadata): Likewise.
+	* cilk.h: Added function declarations for the newly added function in
+	cilk.c.  Also added zca_data structure and zca_data stack.
+	* toplev.c (compile_file): Added a call to cilk_output_metadata.
+
 2011-10-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-decl.c (c_make_cilk_frame): Added cilk_enter_begin and

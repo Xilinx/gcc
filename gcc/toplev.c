@@ -78,6 +78,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "tree-ssa-alias.h"
 #include "plugin.h"
+#include "cilk.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -683,6 +684,9 @@ compile_file (void)
   /* Invoke registered plugin callbacks.  */
   invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
 
+  if (flag_enable_cilk)
+    cilk_output_metadata ();
+  
   /* This must be at the end.  Some target ports emit end of file directives
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */

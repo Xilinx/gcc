@@ -34,10 +34,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "c-family/c-common.h"
 #include "toplev.h" /* only correct declaration of warning() */
+#include "output.h"
+#include "dwarf2out.h"
 
 tree cilk_trees[(int) CILK_TI_MAX];
 
 static HOST_WIDE_INT worker_tail_offset;
+
+GTY(()) VEC(zca_data,gc) *zca_stack;
 
 static tree
 cilk_declare_looper (const char *name, tree type)
@@ -338,30 +342,30 @@ cilk_init_builtins (void)
       tree_low_cst (off2, 0) / BITS_PER_UNIT;
   }
 
-  cilk_enter_begin_fndecl = install_builtin ("__cilk_enter_begin", fptr_fun,
+  cilk_enter_begin_fndecl = install_builtin ("cilk_enter_begin", fptr_fun,
 					     BUILT_IN_CILK_ENTER_BEGIN, true);
   cilk_enter_h_begin_fndecl = install_builtin
     ("cilk_enter_helper_begin", fptr_fun, BUILT_IN_CILK_ENTER_H_BEGIN, true);
-  cilk_enter_end_fndecl = install_builtin ("__cilk_enter_end", fptr_fun,
+  cilk_enter_end_fndecl = install_builtin ("cilk_enter_end", fptr_fun,
 					   BUILT_IN_CILK_ENTER_END, true);
   cilk_spawn_prepare_fndecl = install_builtin
     ("__cilk_spawn_prepare", fptr_fun, BUILT_IN_CILK_SPAWN_PREPARE, true);
   cilk_spawn_or_cont_fndecl = install_builtin
     ("__cilk_spawn_or_continue", int_fun, BUILT_IN_SPAWN_OR_CONT, true);
-  cilk_detach_begin_fndecl = install_builtin ("__cilk_detach_begin", fptr_fun,
+  cilk_detach_begin_fndecl = install_builtin ("cilk_detach_begin", fptr_fun,
 					      BUILT_IN_CILK_DETACH_BEGIN, true);
-  cilk_detach_end_fndecl = install_builtin ("__cilk_detach_end", void_fun,
+  cilk_detach_end_fndecl = install_builtin ("cilk_detach_end", void_fun,
 					    BUILT_IN_CILK_DETACH_END, true);
-  cilk_sync_begin_fndecl = install_builtin ("__cilk_sync_begin", fptr_fun,
+  cilk_sync_begin_fndecl = install_builtin ("cilk_sync_begin", fptr_fun,
 					  BUILT_IN_CILK_SYNC_BEGIN, true);
-  cilk_sync_end_fndecl = install_builtin ("__cilk_sync_end", fptr_fun,
+  cilk_sync_end_fndecl = install_builtin ("cilk_sync_end", fptr_fun,
 					  BUILT_IN_CILK_SYNC_END, true);
-  cilk_leave_begin_fndecl = install_builtin ("__cilk_leave_begin", fptr_fun,
+  cilk_leave_begin_fndecl = install_builtin ("cilk_leave_begin", fptr_fun,
 					     BUILT_IN_CILK_LEAVE_BEGIN, true);
-  cilk_leave_end_fndecl = install_builtin ("__cilk_leave_end", void_fun,
+  cilk_leave_end_fndecl = install_builtin ("cilk_leave_end", void_fun,
 					   BUILT_IN_CILK_LEAVE_END, true);
   cilkscreen_metacall_fndecl = install_builtin
-    ("__cilkscreen_metacall", metacall_fptr_fun, BUILT_IN_CILKSCREEN_METACALL,
+    ("cilkscreen_metacall", metacall_fptr_fun, BUILT_IN_CILKSCREEN_METACALL,
      true);
   cilk_resume_fndecl = install_builtin
     ("cilk_resume", fptr_fun, BUILT_IN_CILK_RESUME, true);
@@ -761,4 +765,328 @@ gimplify_cilk_sync (tree *expr_p, gimple_seq *pre_p)
 
 
   gimplify_and_add (sync_expr, pre_p);
+}
+
+static rtx
+create_metadata_label (const char *name)
+{
+  rtx new_label = NULL_RTX;
+
+  new_label = gen_label_rtx ();
+  LABEL_PRESERVE_P (new_label) = 1;
+  /* PUT_CODE (new_label, NOTE);
+     NOTE_KIND (new_label) = NOTE_INSN_DELETED_LABEL; */
+  /* NOTE_DELETED_*/ LABEL_NAME (new_label) = name;
+  INSN_UID (new_label) = crtl->emit.x_cur_insn_uid++;
+  LABEL_NUSES (new_label) = 1;
+  return new_label;
+}
+static int
+get_zca_entry_count (void)
+{
+  int length = VEC_length (zca_data, zca_stack);
+  return length; 
+}
+
+static int
+get_zca_string_table_size (void)
+{
+  int length = get_zca_entry_count ();
+  int ii = 0;
+  int str_length = 0;
+  zca_data *zca_entry = NULL;
+
+  for (ii = 0; ii < length; ii++)
+    {
+      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      str_length += strlen (zca_entry->string);
+    }
+  return str_length; 
+}
+
+static int
+get_zca_exprs_table_size (void)
+{
+  zca_data zca_entry;
+  int length = get_zca_entry_count ();
+
+  return (length * (int) sizeof (zca_entry.dwarf_expr));
+}
+
+static void
+output_zca_table (section *s)
+{
+  int ii = 0;
+  zca_data *zca_entry = NULL;
+  int length = get_zca_entry_count ();
+  int str_table_offset = 0;
+  int annotation_table_offset = 0;
+  
+  switch_to_section (s);
+
+  for (ii = 0; ii < length; ii++)
+    {
+      zca_entry = VEC_index (zca_data, zca_stack, ii);
+
+      /* this outputs the IP  */
+      fputs (integer_asm_op (GET_MODE_SIZE (Pmode), 1), asm_out_file);
+      output_asm_label (zca_entry->label);
+      fputc ('\n', asm_out_file);
+
+      /* this outputs the probspace, it is unused, so It is kept to zero */
+      assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 4, 1, 1);
+
+      /* this outputs the offset to the string table */
+      assemble_integer (gen_rtx_CONST_INT (BLKmode, str_table_offset), 4, 1, 1);
+      str_table_offset += strlen (zca_entry->string);
+
+      /* this outputs the offset to the annotation table */
+      assemble_integer (gen_rtx_CONST_INT (BLKmode, annotation_table_offset),
+			4, 1, 1);
+      annotation_table_offset += (int)sizeof (zca_entry->dwarf_expr);
+    }    
+  return;
+}
+
+static void
+output_string_table (section *s)
+{
+  int length = get_zca_entry_count ();
+  int ii = 0, jj = 0;
+  zca_data *zca_entry;
+  
+  switch_to_section (s);;
+
+  for (ii = 0; ii < length; ii++)
+    {
+      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      for (jj = 0; jj < (int)strlen (zca_entry->string); jj++)
+	{
+	  assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->string[jj]),
+			    1, 1, 1);
+	}
+    }  
+  return;
+}
+
+static void
+output_expr_table (section *s)
+{
+  int ii = 0;
+  int length = get_zca_entry_count ();
+  zca_data *zca_entry = NULL;
+  
+  switch_to_section (s);
+
+  for (ii = 0; ii < length; ii++)
+    {
+      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->dwarf_expr),
+			2, 1, 1);
+    }
+  return;
+}
+
+
+void
+cilk_output_metadata (void)
+{
+  const char *itt_string = ".itt_notify_tab";
+  section *s;
+  int ii = 0;
+  int entry_count = 0;
+  int strings_len = 0;
+  int exprs_len = 0;
+  rtx st_label = NULL_RTX, str_table_label = NULL_RTX, expr_label = NULL_RTX;
+
+  /* if there are no zca entries, then no reason to output this section */
+  if (get_zca_entry_count () == 0)
+    return;
+  
+  /* create a new zca section (if necessary) and switch to it */
+  s = get_unnamed_section (0, output_section_asm_op,
+			   "\t.section .itt_notify_tab,\"aw\"");
+  switch_to_section (s);
+  assemble_align (BITS_PER_WORD);
+
+  st_label = create_metadata_label ("ZCA_START");
+  str_table_label = create_metadata_label ("STRING_TABLE_START");
+  expr_label = create_metadata_label ("EXPR_TABLE_START");
+  /* Now we emit the start label */
+  output_asm_label (st_label);
+  fputs (":\n", asm_out_file);
+  
+  
+  /* here we output the magic number */
+  for (ii = 0; ii < (int)strlen (itt_string); ii++)
+    assemble_integer (gen_rtx_CONST_INT (BLKmode, itt_string[ii]), 1, 1, 1);
+
+  /* here we output the major and minor version number */
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, ZCA_MAJOR_VER_NUMBER), 1, 1, 1);
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, ZCA_MINOR_VER_NUMBER), 1, 1, 1);
+
+  entry_count = get_zca_entry_count ();
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, entry_count), 4, 1, 1);
+
+  /* now we output the offet to the string table. This is done by printing out
+   * the label for string_table_start, then a '-' then start_label. The linker
+   * should find out the correct absolute value.
+   */
+  fputs (integer_asm_op (GET_MODE_SIZE (SImode), 1), asm_out_file);
+  output_asm_label (str_table_label);
+  fputc ('-', asm_out_file);
+  output_asm_label (st_label);
+  fputc ('\n', asm_out_file);
+
+  strings_len = get_zca_string_table_size ();
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, strings_len), 4, 1, 1);
+
+  /* now we output the expr table the same way */
+  fputs (integer_asm_op (GET_MODE_SIZE (SImode), 1), asm_out_file);
+  output_asm_label (expr_label);
+  fputc ('-', asm_out_file);
+  output_asm_label (st_label);
+  fputc ('\n', asm_out_file);
+
+  exprs_len = get_zca_exprs_table_size ();
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, exprs_len), 4, 1, 1);
+
+  output_zca_table (s);
+
+  output_asm_label (str_table_label);
+  fputs (":\n", asm_out_file);
+  output_string_table (s);
+
+  output_asm_label (expr_label);
+  fputs(":\n", asm_out_file);
+  output_expr_table (s);
+ 
+  return;
+}
+
+rtx
+expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
+			      tree exp ATTRIBUTE_UNUSED)
+{
+  rtx metadata_label = NULL_RTX, call_insn = NULL_RTX;
+  rtx expr_list_rtx = NULL_RTX, ii_rtx = NULL_RTX, reg_rtx = NULL_RTX;
+  zca_data metadata_info;
+  unsigned short size;
+  dw_loc_descr_ref loc_ref;
+  
+  metadata_label  = create_metadata_label (annotation);
+  expand_call (exp, NULL_RTX, 1);
+  call_insn = get_last_insn ();
+  emit_insn_after (metadata_label, get_last_insn ());
+  metadata_info.label = metadata_label;
+  metadata_info.string = xstrdup (annotation);
+  
+  expr_list_rtx = XEXP (call_insn, 8);
+  if (expr_list_rtx)
+    {
+      for (ii_rtx  = expr_list_rtx; ii_rtx ; ii_rtx = XEXP (ii_rtx, 1))
+	{
+	  /* this is a bit confusing. We have 2 options, either functions with 1
+	   * parameter or functions with 2 parameter. Either case, you take the
+	   * last parameter (1st in the former and 2nd in the latter). So we
+	   * do this
+	   */
+	  reg_rtx = XEXP (ii_rtx, 0);
+	  if (reg_rtx)
+	    if (GET_CODE (reg_rtx) == USE)
+	      metadata_info.reg_rtx = XEXP (reg_rtx, 0);
+	}
+
+      loc_ref = loc_descriptor (metadata_info.reg_rtx, VOIDmode,
+				VAR_INIT_STATUS_UNKNOWN);
+  
+      gcc_assert (loc_ref);
+      size = (unsigned short) size_of_locs (loc_ref);
+
+      metadata_info.dwarf_expr = (unsigned short)(size << 8) |
+	(unsigned short) (loc_ref->dw_loc_opc & 0xFF);
+    }  
+  else
+    {
+      /* this means we have no arguments */
+      metadata_info.dwarf_expr = (1 << 8) | (DW_OP_lit0);
+    }
+      
+  VEC_safe_push (zca_data, gc, zca_stack, &metadata_info);
+  
+  return const0_rtx;
+}
+
+bool
+cilk_annotated_function_p (char *name)
+{
+  if (!name)
+    return false;
+  else if (!strcmp (name, "cilk_enter_begin")
+	   || !strcmp (name, "cilk_enter_helper_begin")
+	   || !strcmp (name, "cilk_enter_end")
+	   || !strcmp (name, "cilk_spawn_prepare")
+	   || !strcmp (name, "cilk_spawn_or_continue")
+	   || !strcmp (name, "cilk_detach_begin")
+	   || !strcmp (name, "cilk_detach_end")
+	   || !strcmp (name, "cilk_sync_begin")
+	   || !strcmp (name, "cilk_sync_end")
+	   || !strcmp (name, "cilk_leave_begin")
+	   || !strcmp (name, "cilk_leave_end")
+	   || !strcmp (name, "cilkscreen_metacall")
+	   || !strcmp (name, "cilk_resume")
+	   || !strcmp (name, "cilk_leave_stolen")
+	   || !strcmp (name, "cilk_sync_abandon"))
+    return true;
+  else
+    return false;
+}
+
+void
+cilk_remove_annotated_functions (rtx first)
+{
+  rtx insn = NULL_RTX;
+  rtx set_insn = NULL_RTX, mem_insn = NULL_RTX, call_insn = NULL_RTX;
+  rtx symbol_insn = NULL_RTX;
+  char *function_name = NULL;
+  int ii = 0;
+  VEC(rtx,gc) *rtx_delete_list = NULL;
+  
+  for (insn = first; insn != NULL_RTX; insn = NEXT_INSN (insn))
+    {
+      if (CALL_P (insn))
+	{
+	  set_insn = XEXP (insn, 4);
+	  if ((set_insn && GET_CODE (set_insn) == SET)
+	      /* if there is no return then we will see a CALL */
+	      || (set_insn && GET_CODE (set_insn) == CALL))
+	    {
+	      if (set_insn && GET_CODE (set_insn) == SET)
+		call_insn = XEXP (set_insn, 1);
+	      else
+		call_insn = set_insn;
+	      if (call_insn && GET_CODE (call_insn) == CALL)
+		{
+		  mem_insn = XEXP (call_insn, 0);
+		  if (mem_insn && GET_CODE (mem_insn) == MEM)
+		    {
+		      symbol_insn = XEXP (mem_insn, 0);
+		      if (symbol_insn && GET_CODE (symbol_insn) == SYMBOL_REF)
+			if (XSTR (symbol_insn, 0))
+			  {
+			    function_name = xstrdup (XSTR (symbol_insn, 0));
+			    if (cilk_annotated_function_p (function_name))
+			      VEC_safe_push (rtx, gc, rtx_delete_list, insn);
+			  }
+		    }
+		}
+	    }
+	}
+    }
+
+  for (ii = 0; ii < VEC_length (rtx, rtx_delete_list); ii++)
+    {
+      remove_insn (VEC_index (rtx, rtx_delete_list, ii));
+    }
+  return;
 }

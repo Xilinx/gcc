@@ -279,4 +279,6 @@ struct array_descr_info
     } dimen[10];
 };
 
+dw_loc_descr_ref loc_descriptor (rtx, enum machine_mode mode,
+	     			 enum var_init_status);
 #endif /* GCC_DWARF2OUT_H */
