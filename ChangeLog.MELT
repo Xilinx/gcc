@@ -1,4 +1,9 @@
 
+2011-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{MELT plugin 0.9.2 rc1}}
+	* INSTALL/README-MELT-PLUGIN: 0.9.2 dedicated to the memory of JMcCarthy.
+	for GCC 4.6 & 4.7
+
 2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* INSTALL/README-MELT-PLUGIN: describe 0.9.2 plugin release with new hooks
 
