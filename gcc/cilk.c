@@ -109,6 +109,13 @@ cilk_init_builtins (void)
   tree fptr_fun; /* void(frame *) */
   tree frame_pred;
   tree s_type_node;
+  tree metacall_frame, metacall_fptr_type, metacall_fields, metacall_fptr_fun;
+  tree metacall_fptr_arglist;
+  tree int_list = tree_cons (NULL_TREE, integer_type_node, NULL_TREE);
+  tree int_fun = build_function_type (void_type_node, int_list);
+  tree ptr_list = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
+  tree ptr_fun = build_function_type (void_type_node, ptr_list);
+  tree void_fun = build_function_type (void_type_node, void_list_node);
 
   /* Make the frame and worker tags first because they reference each other. */
   worker = lang_hooks.types.make_type (RECORD_TYPE);
@@ -161,7 +168,34 @@ cilk_init_builtins (void)
 
   cilk_frame_ptr_type_decl = build_qualified_type (fptr_type,
 						   TYPE_QUAL_RESTRICT);
-
+  /*
+    typedef struct __metacall_data_t {
+        unsigned int tool;
+        unsigned int code;
+	void *data;
+    } metacall_data_t;
+  */
+  metacall_frame = lang_hooks.types.make_type (RECORD_TYPE);
+  metacall_fptr_type = build_pointer_type (metacall_frame);
+  metacall_fptr_arglist =
+    tree_cons (NULL_TREE, metacall_fptr_type, void_list_node);
+  metacall_fptr_fun = build_function_type (void_type_node,
+					   metacall_fptr_arglist);
+  metacall_fields = NULL_TREE;
+  metacall_fields = add_field ("tool", unsigned_type_node, metacall_fields);
+  cilk_trees[CILK_TI_METACALL_TOOL_FLAGS] = metacall_fields;
+  metacall_fields = add_field ("code", unsigned_type_node, metacall_fields);
+  cilk_trees[CILK_TI_METACALL_CODE_FLAGS] = metacall_fields;
+  metacall_fields = add_field ("data", fptr_type, metacall_fields);
+  cilk_trees[CILK_TI_METACALL_DATA_FLAGS] = metacall_fields;
+  TYPE_ALIGN (metacall_frame) = PREFERRED_STACK_BOUNDARY;
+  TREE_ADDRESSABLE (metacall_frame) = 1;
+  finish_builtin_struct (metacall_frame, "__metacall_data_s", metacall_fields,
+			 NULL_TREE);
+  cilk_metacall_frame_type_decl = metacall_frame;
+  lang_hooks.types.register_builtin_type (frame, "__metacall_data_t");
+  cilk_mcall_frame_ptr_type_decl = build_qualified_type (metacall_fptr_type,
+							    TYPE_QUAL_RESTRICT);
   /* object could be named __cilk_frame_var for compatibility */
 
   fptr_v_type = build_qualified_type (fptr_type, TYPE_QUAL_VOLATILE);
@@ -303,6 +337,52 @@ cilk_init_builtins (void)
     worker_tail_offset = tree_low_cst (off1, 0) +
       tree_low_cst (off2, 0) / BITS_PER_UNIT;
   }
+
+  cilk_enter_begin_fndecl = install_builtin ("__cilk_enter_begin", fptr_fun,
+					     BUILT_IN_CILK_ENTER_BEGIN, true);
+  cilk_enter_h_begin_fndecl = install_builtin
+    ("cilk_enter_helper_begin", fptr_fun, BUILT_IN_CILK_ENTER_H_BEGIN, true);
+  cilk_enter_end_fndecl = install_builtin ("__cilk_enter_end", fptr_fun,
+					   BUILT_IN_CILK_ENTER_END, true);
+  cilk_spawn_prepare_fndecl = install_builtin
+    ("__cilk_spawn_prepare", fptr_fun, BUILT_IN_CILK_SPAWN_PREPARE, true);
+  cilk_spawn_or_cont_fndecl = install_builtin
+    ("__cilk_spawn_or_continue", int_fun, BUILT_IN_SPAWN_OR_CONT, true);
+  cilk_detach_begin_fndecl = install_builtin ("__cilk_detach_begin", fptr_fun,
+					      BUILT_IN_CILK_DETACH_BEGIN, true);
+  cilk_detach_end_fndecl = install_builtin ("__cilk_detach_end", void_fun,
+					    BUILT_IN_CILK_DETACH_END, true);
+  cilk_sync_begin_fndecl = install_builtin ("__cilk_sync_begin", fptr_fun,
+					  BUILT_IN_CILK_SYNC_BEGIN, true);
+  cilk_sync_end_fndecl = install_builtin ("__cilk_sync_end", fptr_fun,
+					  BUILT_IN_CILK_SYNC_END, true);
+  cilk_leave_begin_fndecl = install_builtin ("__cilk_leave_begin", fptr_fun,
+					     BUILT_IN_CILK_LEAVE_BEGIN, true);
+  cilk_leave_end_fndecl = install_builtin ("__cilk_leave_end", void_fun,
+					   BUILT_IN_CILK_LEAVE_END, true);
+  cilkscreen_metacall_fndecl = install_builtin
+    ("__cilkscreen_metacall", metacall_fptr_fun, BUILT_IN_CILKSCREEN_METACALL,
+     true);
+  cilk_resume_fndecl = install_builtin
+    ("cilk_resume", fptr_fun, BUILT_IN_CILK_RESUME, true);
+  cilk_leave_stolen_fndecl = install_builtin
+    ("cilk_leave_stolen", void_fun, BUILT_IN_LEAVE_STOLEN, true);
+  cilk_sync_abandon_fndecl = install_builtin ("cilk_sync_abandon", void_fun,
+					      BUILT_IN_SYNC_ABANDON, true);
+  cilkscreen_disable_instr_fndecl = install_builtin
+    ("cilkscreen_disable_instrumentation", void_fun,
+     BUILT_IN_CILKSCREEN_DS_INSTR, true);
+  cilkscreen_enable_instr_fndecl = install_builtin
+    ("cilkscreen_enable_instrumentation", void_fun,
+     BUILT_IN_CILKSCREEN_EN_INSTR, true);
+  cilkscreen_disable_check_fndecl = install_builtin
+    ("cilkscreen_disable_checking", void_fun, BUILT_IN_CILKSCREEN_DS_CHK, true);
+  cilkscreen_enable_check_fndecl = install_builtin
+    ("cilkscreen_enable_checking", void_fun, BUILT_IN_CILKSCREEN_EN_CHK, true);
+  cilkscreen_aquire_lock_fndecl = install_builtin
+    ("cilkscreen_aquire_lock", ptr_fun, BUILT_IN_CILKSCREEN_AQUIRE_LOCK, true);
+  cilkscreen_release_lock_fndecl = install_builtin
+    ("cilkscreen_release_lock", ptr_fun, BUILT_IN_CILKSCREEN_REL_LOCK, true);
 }
 
 /* this function will call the value in a structure. eg. x.y */
@@ -665,4 +745,3 @@ gimplify_cilk_sync (tree *expr_p, gimple_seq *pre_p)
 
   gimplify_and_add (sync_expr, pre_p);
 }
-

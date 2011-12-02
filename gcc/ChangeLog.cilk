@@ -17,6 +17,13 @@
 	(cilk_call_setjmp): Replaced implicit_built_in_decls[] to
 	builtin_decl_implicit ().
 
+2011-10-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_init_builtins): Added Cilkscreen builtin function
+	declarations.
+	* builtins.def: Added Cilkscreen builtin functions expand tags.
+	* cilk.h: Added Cilkscreen builtin functions in the cilk_trees chain.
+
 2011-09-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* ipa-inline.c(can_inline_edge_p): Added a check for function

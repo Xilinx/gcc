@@ -58,6 +58,20 @@ enum cilk_tree_index
     CILK_TI_F_LEAVE,         /* __cilkrts_leave_frame() [builtin] */
     CILK_TI_F_DEBUG,         /* __cilkrts_debug_s_frame_flags() */
     CILK_TI_F_POP,           /* __cilkrts_pop_frame() [builtin] */
+    CILK_TI_F_ENTER_BEGIN,  
+    CILK_TI_F_ENTER_H_BEGIN,
+    CILK_TI_F_ENTER_END,
+    CILK_TI_F_SPAWN_PREPARE,
+    CILK_TI_F_SPAWN_OR_CONT,
+    CILK_TI_F_DETACH_BEGIN,
+    CILK_TI_F_DETACH_END,
+    CILK_TI_F_SYNC_BEGIN,
+    CILK_TI_F_SYNC_END,
+    CILK_TI_F_LEAVE_BEGIN,
+    CILK_TI_F_LEAVE_END,
+    CILK_TI_F_RESUME,
+    CILK_TI_F_LEAVE_STOLEN,
+    CILK_TI_F_SYNC_ABANDON,
     CILK_TI_RUN,
     CILK_TI_FREE_DYNAMIC,
     CILK_TI_RUN_SERIAL_VOID,
@@ -75,6 +89,8 @@ enum cilk_tree_index
     CILK_TI_FRAME,         /* __cilkrts_frame_t */
     CILK_TI_FRAME_PTR,     /* __cilkrts_frame_t * restrict */
     CILK_TI_WTYPE,         /* __cilkrts_worker_t */
+    CILK_TI_METACALL_FRAME,
+    CILK_TI_METACALL_FPTR,
 
     
     
@@ -103,6 +119,19 @@ enum cilk_tree_index
     CILK_TI_SAVEDREGS,
     CILK_TI_PENDING_FUNCTIONS,
 
+    /* layout of the fields in metacall struct */
+    CILK_TI_METACALL_TOOL_FLAGS,
+    CILK_TI_METACALL_CODE_FLAGS,
+    CILK_TI_METACALL_DATA_FLAGS,
+
+    /* Cilkscreen functions */
+    CILKSCREEN_TI_F_METACALL,
+    CILKSCREEN_TI_F_DIS_INSTR,
+    CILKSCREEN_TI_F_EN_INSTR,
+    CILKSCREEN_TI_F_DIS_CHECK,
+    CILKSCREEN_TI_F_EN_CHECK,
+    CILKSCREEN_TI_F_AQ_LOCK,
+    CILKSCREEN_TI_F_REL_LOCK,
     CILK_TI_MAX
 };
 
@@ -120,6 +149,8 @@ extern GTY(()) tree cilk_trees[(int) CILK_TI_MAX];
 #define cilk_frame_type_decl		cilk_trees[CILK_TI_FRAME]
 #define cilk_frame_ptr_type_decl	cilk_trees[CILK_TI_FRAME_PTR]
 #define cilk_worker_type_decl		cilk_trees[CILK_TI_WTYPE]
+#define cilk_metacall_frame_type_decl   cilk_trees[CILK_TI_METACALL_FRAME]
+#define cilk_mcall_frame_ptr_type_decl  cilk_trees[CILK_TI_METACALL_FPTR]
 #define cilk_for_32_fndecl		cilk_trees[CILK_TI_F_LOOP_32]
 #define cilk_for_64_fndecl		cilk_trees[CILK_TI_F_LOOP_64]
 #define cilk_enter_fndecl		cilk_trees[CILK_TI_F_ENTER]
@@ -135,6 +166,27 @@ extern GTY(()) tree cilk_trees[(int) CILK_TI_MAX];
 #define cilk_rethrow_fndecl             cilk_trees[CILK_TI_RETHROW]
 #define cilk_throw_fndecl               cilk_trees[CILK_TI_THROW]
 #define cilk_replacement_functions      cilk_trees[CILK_TI_REPLACEMENTS]
+#define cilk_enter_begin_fndecl         cilk_trees[CILK_TI_F_ENTER_BEGIN]
+#define cilk_enter_h_begin_fndecl       cilk_trees[CILK_TI_F_ENTER_H_BEGIN]
+#define cilk_enter_end_fndecl           cilk_trees[CILK_TI_F_ENTER_END]
+#define cilk_spawn_prepare_fndecl       cilk_trees[CILK_TI_F_SPAWN_PREPARE]
+#define cilk_spawn_or_cont_fndecl       cilk_trees[CILK_TI_F_SPAWN_OR_CONT]
+#define cilk_detach_begin_fndecl        cilk_trees[CILK_TI_F_DETACH_BEGIN]
+#define cilk_detach_end_fndecl          cilk_trees[CILK_TI_F_DETACH_END]
+#define cilk_sync_begin_fndecl          cilk_trees[CILK_TI_F_SYNC_BEGIN]
+#define cilk_sync_end_fndecl            cilk_trees[CILK_TI_F_SYNC_END]
+#define cilk_leave_begin_fndecl         cilk_trees[CILK_TI_F_LEAVE_BEGIN]
+#define cilk_leave_end_fndecl           cilk_trees[CILK_TI_F_LEAVE_END]
+#define cilkscreen_metacall_fndecl      cilk_trees[CILKSCREEN_TI_F_METACALL]
+#define cilk_resume_fndecl              cilk_trees[CILK_TI_F_RESUME]
+#define cilk_leave_stolen_fndecl        cilk_trees[CILK_TI_F_LEAVE_STOLEN]
+#define cilk_sync_abandon_fndecl        cilk_trees[CILK_TI_F_SYNC_ABANDON]
+#define cilkscreen_disable_instr_fndecl cilk_trees[CILKSCREEN_TI_F_DIS_INSTR]
+#define cilkscreen_enable_instr_fndecl  cilk_trees[CILKSCREEN_TI_F_EN_INSTR]
+#define cilkscreen_disable_check_fndecl cilk_trees[CILKSCREEN_TI_F_DIS_CHECK]
+#define cilkscreen_enable_check_fndecl  cilk_trees[CILKSCREEN_TI_F_EN_CHECK]
+#define cilkscreen_aquire_lock_fndecl   cilk_trees[CILKSCREEN_TI_F_AQ_LOCK]
+#define cilkscreen_release_lock_fndecl  cilk_trees[CILKSCREEN_TI_F_REL_LOCK]
 
 
 /* Offset of fields in the Cilk frame descriptor.
