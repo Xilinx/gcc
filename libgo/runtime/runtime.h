@@ -55,14 +55,15 @@ typedef	struct	M		M;
 typedef	union	Note		Note;
 typedef	struct	MCache		MCache;
 typedef struct	FixAlloc	FixAlloc;
+typedef	struct	Hchan		Hchan;
 
-typedef	struct	__go_defer_stack	Defer;
+typedef	struct	__go_open_array		Slice;
+typedef	struct	__go_string		String;
 typedef struct	__go_interface		Iface;
 typedef	struct	__go_empty_interface	Eface;
 typedef	struct	__go_type_descriptor	Type;
+typedef	struct	__go_defer_stack	Defer;
 typedef	struct	__go_panic_stack	Panic;
-typedef	struct	__go_open_array		Slice;
-typedef	struct	__go_string		String;
 
 typedef struct	__go_func_type		FuncType;
 typedef struct	__go_map_type		MapType;
@@ -131,6 +132,7 @@ struct	G
 	bool	fromgogo;	// reached from gogo
 	int16	status;
 	int32	goid;
+	uint32	selgen;		// valid sudog pointer
 	const char*	waitreason;	// if status==Gwaiting
 	G*	schedlink;
 	bool	readyonstop;
@@ -335,6 +337,3 @@ void reflect_call(const struct __go_func_type *, const void *, _Bool, _Bool,
 #ifdef __rtems__
 void __wrap_rtems_task_variable_add(void **);
 #endif
-
-/* Temporary.  */
-void	runtime_cond_wait(pthread_cond_t*, pthread_mutex_t*);

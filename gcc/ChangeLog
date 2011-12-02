@@ -1,3 +1,87 @@
+2011-12-01  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/50814.
+	* config/sh/sh.c (expand_ashiftrt): Handle TARGET_SH2A same as
+	TARGET_SH3.
+	(shl_sext_kind): Likewise.
+	* config/sh/sh.h (SH_DYNAMIC_SHIFT_COST): Likewise.
+	* config/sh/sh.md (ashlsi3_sh2a, ashrsi3_sh2a, lshrsi3_sh2a):
+	Remove.
+	(ashlsi3_std): Handle TARGET_SH2A same as TARGET_SH3.
+	(ashlsi3): Likewise.
+	(ashrsi3_d): Likewise.
+	(lshrsi3_d): Likewise.
+	(lshrsi3): Likewise.
+
+2011-12-01   Diego Novillo  <dnovillo@google.com>
+
+	PR bootstrap/51346
+	* ipa-inline.c (can_inline_edge_p): If the edge E has a
+	statement, use the statement's inline indicator instead
+	of E's.
+	Remove consistency check.
+
+2011-12-01   Diego Novillo  <dnovillo@google.com>
+
+	PR bootstrap/51346
+	Revert
+
+	2011-11-29   Diego Novillo  <dnovillo@google.com>
+
+		* gimple.c (gimple_call_set_cannot_inline): Move from gimple.h.
+		Update field call_stmt_cannot_inline_p from call
+		graph edge, if needed.
+		* gimple.h (gimple_call_set_cannot_inline): Move to gimple.c.
+
+2011-12-01  Nathan Sidwell  <nathan@acm.org>
+
+	PR gcov-profile/51113
+	* coverage.c (build_var): Keep coverage variables static.
+
+2011-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51356
+	* tree-vect-patterns.c (vect_recog_bool_pattern): Give up if
+	vectype doesn't have VECTOR_MODE_P.
+
+	PR debug/50317
+	* tree-ssa-dce.c (remove_dead_stmt): Add a debug stmt when removing
+	as unnecessary a store to a variable with gimple reg type.
+	* tree-ssa-live.c (remove_unused_locals): Clear TREE_ADDRESSABLE bit
+	on local unreferenced variables.
+	* cfgexpand.c (expand_gimple_basic_block): Don't emit DEBUG_INSNs
+	for !target_for_debug_bind variables.
+
+2011-12-01  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR middle-end/51273
+	* cgraph.h (cgraph_call_node_duplication_hooks): Declare.
+	* cgraph.c (cgraph_call_node_duplication_hooks): Make global. 
+	* cgraphunit.c (cgraph_copy_node_for_versioning): Call it.
+
+2011-12-01  Andrew Pinski  <apinski@cavium.com>
+
+	PR lto/51198
+	* tree.c (free_lang_data_in_decl): Clear FIELD_DECL's
+	DECL_INITIAL also.
+
+2011-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51246
+	* tree-predcom.c (replace_ref_with): Handle also clobber on the
+	rhs.
+
+	PR rtl-optimization/51014
+	* loop-unroll.c (apply_opt_in_copies): Ignore label DEBUG_INSNs
+	both from bb and orig_bb.
+
+2011-12-01  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR tree-optimization/50802
+	* tree-vrp.c (simplify_conversion_using_ranges): Rewrite test
+	considering what happens to ranges during sign changes and/or
+	intermediate narrowing conversions.
+
 2011-11-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR middle-end/50283
