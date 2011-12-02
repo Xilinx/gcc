@@ -1522,16 +1522,18 @@ pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 }
 
 
-/* Read potential reference to a lang decl specific.  Return null when
-   either the read pointer is null, or it is already in the cache.
-   Otherwise, return the pointer to the lang decl specific.  */
+/* Read from STREAM the start of a lang_decl record for DECL.  If the
+   caller should do a merge-read, set *IS_MERGE_P to true.  Return
+   lang_decl structure associated with DECL.  If this function returns
+   NULL, it means that the lang_decl record has already been read and
+   nothing else needs to be done.  */
 
 static struct lang_decl *
-pph_in_ref_lang_decl (pph_stream *stream, tree decl)
+pph_in_lang_decl_start (pph_stream *stream, tree decl, bool *is_merge_p)
 {
-  struct lang_decl *ld;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
+  struct lang_decl *ld;
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
   if (marker == PPH_RECORD_END)
@@ -1543,22 +1545,40 @@ pph_in_ref_lang_decl (pph_stream *stream, tree decl)
 					     PPH_lang_decl);
       return NULL;
     }
-
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
-
-  /* Allocate a lang_decl structure for DECL, if not already present.
-     Namespace merge keys preallocate it.  */
-  ld = DECL_LANG_SPECIFIC (decl);
-  if (!ld)
+  else if (marker == PPH_RECORD_START_MERGE_BODY)
     {
-      retrofit_lang_decl (decl);
+      /* If we are about to read the merge body for this lang_decl
+	 structure, the instance we found in the cache, must be the
+	 same one associated with DECL.  */
+      ld = (struct lang_decl *) pph_cache_get (&stream->cache, ix);
+      gcc_assert (ld == DECL_LANG_SPECIFIC (decl));
+      *is_merge_p = true;
+    }
+  else
+    {
+      gcc_assert (marker == PPH_RECORD_START);
+
+      /* FIXME pph, we should not be getting a DECL_LANG_SPECIFIC
+	 instance here.  This is being allocated by
+	 pph_in_merge_key_namespace_decl, but this should be the only
+	 place where we allocate it.
+
+	Change the if() below to:
+	          gcc_assert (DECL_LANG_SPECIFIC (decl) == NULL);
+      */
+      if (DECL_LANG_SPECIFIC (decl) == NULL)
+	{
+	  /* Allocate a lang_decl structure for DECL.  */
+	  retrofit_lang_decl (decl);
+	}
       ld = DECL_LANG_SPECIFIC (decl);
+
+      /* Now register it.  We would normally use ALLOC_AND_REGISTER,
+	 but retrofit_lang_decl does not return a pointer.  */
+      pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
+      *is_merge_p = false;
     }
 
-  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
-     but retrofit_lang_decl does not return a pointer.  */
-  pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
   return ld;
 }
 
@@ -1570,57 +1590,19 @@ pph_in_lang_decl (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
+  bool is_merge;
 
-  ld = pph_in_ref_lang_decl (stream, decl);
-  if (!ld)
+  ld = pph_in_lang_decl_start (stream, decl, &is_merge);
+  if (ld == NULL)
     return;
 
   /* Read all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
-  pph_in_ld_base (stream, ldb);
-
-  if (ldb->selector == 0)
-    {
-      /* Read all the fields in lang_decl_min.  */
-      pph_in_ld_min (stream, &ld->u.min);
-    }
-  else if (ldb->selector == 1)
-    {
-      /* Read all the fields in lang_decl_fn.  */
-      pph_in_ld_fn (stream, &ld->u.fn);
-    }
-  else if (ldb->selector == 2)
-    {
-      /* Read all the fields in lang_decl_ns.  */
-      pph_in_ld_ns (stream, &ld->u.ns);
-    }
-  else if (ldb->selector == 3)
-    {
-      /* Read all the fields in lang_decl_parm.  */
-      pph_in_ld_parm (stream, &ld->u.parm);
-    }
+  if (is_merge)
+    pph_in_merge_ld_base (stream, ldb);
   else
-    gcc_unreachable ();
-}
+    pph_in_ld_base (stream, ldb);
 
-
-/* Read and merge language specific data in DECL from STREAM.  */
-
-static void
-pph_in_merge_lang_decl (pph_stream *stream, tree decl)
-{
-  struct lang_decl *ld;
-  struct lang_decl_base *ldb;
-
-  ld = pph_in_ref_lang_decl (stream, decl);
-  if (!ld)
-    return;
-
-  /* Read all the fields in lang_decl_base.  */
-  ldb = &ld->u.base;
-  pph_in_merge_ld_base (stream, ldb);
-
-  /* FIXME pph: We probably should not be merging some of these selectors.  */
   if (ldb->selector == 0)
     {
       /* Read all the fields in lang_decl_min.  */
@@ -1952,7 +1934,7 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
 static void
 pph_in_merge_tcc_declaration (pph_stream *stream, tree decl)
 {
-  pph_in_merge_lang_decl (stream, decl);
+  pph_in_lang_decl (stream, decl);
   /* FIXME pph: Some of the tail may not be necessary.  */
   pph_in_tcc_declaration_tail (stream, decl);
 }
@@ -2437,8 +2419,7 @@ pph_in_tree (pph_stream *stream)
     {
       /* When reading a merge body, the tree has already been allocated
 	 and added to STREAM's cache.  All we have to do now is read
-	 its body.  FIXME pph, this read should be a merging read; we are
-	 overwriting EXPR's fields now.  */
+	 its body.  */
       expr = (tree) pph_cache_get (&stream->cache, ix);
     }
 

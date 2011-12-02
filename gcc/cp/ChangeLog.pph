@@ -1,5 +1,16 @@
 2011-12-02   Diego Novillo  <dnovillo@google.com>
 
+	* pph-in.c (pph_in_lang_decl_start): Rename from pph_in_ref_lang_decl.
+	Handle PPH_RECORD_START_MERGE_BODY records.
+	Add argument IS_MERGE_P.  Set it to true if the caller should do
+	a merge read.
+	Update all users.
+	(pph_in_lang_decl): Call pph_in_merge_ld_base when reading
+	a merge record.
+	(pph_in_merge_lang_decl): Remove.  Update all users.
+
+2011-12-02   Diego Novillo  <dnovillo@google.com>
+
 	* pph-in.c (pph_in_cxx_binding_1): Assert that we are not
 	reading a merge record.
 	(pph_in_class_binding): Likewise.
