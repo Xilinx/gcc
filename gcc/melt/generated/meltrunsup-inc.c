@@ -3059,4 +3059,4 @@ end:
 
 
 /*** End of code file meltrunsup-inc.c generated on 2011 Dec 02
- * by GCC MELT 4.7.0 20111202 (experimental) [melt-branch revision 181905] MELT_0.9.2- . ***/
+ * by GCC MELT 4.7.0 20111202 (experimental) [melt-branch revision 181905] MELT_0.9.2 . ***/
