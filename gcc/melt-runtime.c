@@ -12781,9 +12781,10 @@ meltgc_notify_finish_type_hook (void)
 
 
 /******************
- * Support for PLUGIN_FINISH_DECL hook. 
+ * Support for PLUGIN_FINISH_DECL hook, which exists only in GCC 4.7 but not 4.6
  ******************/
 
+#if MELT_GCC_VERSION >= 4007 /* GCC 4.7 */
 static void 
 meltgc_finishdecl_callback (void *gcc_data,
 			    void *user_data ATTRIBUTE_UNUSED)
@@ -12809,6 +12810,7 @@ meltgc_finishdecl_callback (void *gcc_data,
 #undef fdclhookv
 #undef boxtreev
 }
+#endif /* MELT_GCC_VERSION >= 4007 */
 
 /* Function to be called by MELT code when the
    :sysdata_finishdecl_hook is changed.  Called by code_chunk-s inside
@@ -12820,6 +12822,7 @@ meltgc_notify_finish_decl_hook (void)
      finish_decl of file c-decl.c */
   MELT_ENTERFRAME (1, NULL);
 #define ftyhookv      meltfram__.mcfr_varptr[0]
+#if MELT_GCC_VERSION >= 4007 /* GCC 4.7 */
   ftyhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHDECL_HOOK);
   if (ftyhookv == NULL) 
     {
@@ -12838,6 +12841,13 @@ meltgc_notify_finish_decl_hook (void)
       melt_fatal_error ("sysdata_finishdecl_hook has invalid kind magic #%d",
 		        melt_magic_discr ((melt_ptr_t)ftyhookv));
     }
+#else /* GCC 4.6 */
+  {
+    static int count;
+    if (count++ == 0)
+      error("GCC 4.6 don't have PLUGIN_FINISH_DECL for MELT %s", melt_version_str ());
+  }
+#endif /* if  GCC 4.7 */
   MELT_EXITFRAME ();
 #undef passxhv
 }

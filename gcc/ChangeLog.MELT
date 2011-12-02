@@ -1,5 +1,14 @@
 
 2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_notify_finish_decl_hook): Relevant only
+	for GCC 4.7.
+	* melt/warmelt-first.melt (class_initial_system_data): Add
+	sysdata_all_passes_start_hook sysdata_all_passes_end_hook
+	sysdata_all_ipa_passes_start_hook sysdata_all_ipa_passes_end_hook
+	sysdata_early_gimple_passes_start_hook
+	sysdata_early_gimple_passes_end_hook fields.
+
+2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.2
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.

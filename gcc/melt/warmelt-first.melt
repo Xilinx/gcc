@@ -463,6 +463,12 @@ don't instanciate this class!}#
 					;CLASS_GCC_PRAGMA
 	   sysdata_finishtype_hook	;a closure for PLUGIN_FINISH_TYPE
 	   sysdata_finishdecl_hook	;a closure for PLUGIN_FINISH_DECL
+	   sysdata_all_passes_start_hook	;closure for PLUGIN_ALL_PASSES_START
+	   sysdata_all_passes_end_hook		;closure for PLUGIN_ALL_PASSES_END
+	   sysdata_all_ipa_passes_start_hook	;closure for PLUGIN_ALL_IPA_PASSES_START
+	   sysdata_all_ipa_passes_end_hook	;closure for PLUGIN_ALL_IPA_PASSES_END
+	   sysdata_early_gimple_passes_start_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_START
+	   sysdata_early_gimple_passes_end_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_END
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2

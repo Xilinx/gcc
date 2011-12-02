@@ -142,6 +142,71 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
+NEWS for 0.9.2 MELT plugin for gcc-4.6
+
+December XXth, 2011: Release of MELT plugin 0.9.2 for gcc-4.6
+	dedicated to the memory of John McCarthy
+        http://en.wikipedia.org/wiki/John_McCarthy_(computer_scientist)
+
+Several bug fixes.
+
+New features:
+
+    cloning of values
+    =================
+
+The CLONE_WITH_DISCRIMINANT primitive -whose implementation is mostly
+generated- enables creating new values, nearly clones of old
+ones. Usage is
+
+    (clone_with_discriminant <old-value> <new-discriminant>)
+
+If the new discriminant is compatible with the old value's
+discriminant, a new value is allocated. If it is not compatible nor
+not a discriminant, the old value is returned. In particular, it is
+possible to use 
+   (clone_with_discriminant (lambda ....) discr_debug_closure) 
+to make a debugging closure.
+
+   debugging closures 
+   ==================
+
+The DEBUG macro (and the underlying MELT_DEBUG_FUN which you should
+not use directly) handles closure with the DISCR_DEBUG_CLOSURE
+discriminant specially (somehow like C++ manipulators for
+ostream-s). If an argument is a debugging closure of exactly the
+DISCR_DEBUG_CLOSURE discriminant, the next argument is displayed using
+that debugging closure.
+
+   Walking SSA use-def chains
+   ==========================
+
+The primitives WALK_USE_DEF_CHAIN_BREADTH_FIRST &
+WALK_USE_DEF_CHAIN_DEPTH_FIRST enables to walk thru the use-def chains
+in SSA passes.
+
+   More support notably for Gimple & Tree
+   ======================================
+
+Several functions, cmatchers, primitives have been defined, notably
+GIMPLE_ASSIGN_TO, WALK_USE_DEF_CHAIN_BREADTH_FIRST &
+WALK_USE_DEF_CHAIN_DEPTH_FIRST, EACHGIMPLEPHI_IN_BASICBLOCK
+
+
+  New MELT hooks for PLUGIN_FINISH_TYPE & PLUGIN_FINISH_DECL
+  ==========================================================
+
+MELT functions can be registered using
+REGISTER_FINISH_TYPE_HOOK_FIRST, REGISTER_FINISH_TYPE_HOOK_LAST,
+REGISTER_FINISH_DECL_HOOK_FIRST, REGISTER_FINISH_DECL_HOOK_LAST. The
+argument is a boxed tree value. The PLUGIN_FINISH_DECL don't exist in
+GCC 4.6 (only in GCC 4.7 and later).
+
+  More runtime code generated
+  ===========================
+More runtime code is generated internally.
+
+#######################################################################
 NEWS for 0.9.1 MELT plugin for gcc-4.6
 
 October 24, 2011: Release of MELT plugin 0.9.1 for gcc-4.6

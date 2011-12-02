@@ -1,5 +1,8 @@
 
 2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* INSTALL/README-MELT-PLUGIN: describe 0.9.2 plugin release
+
+2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 181902 using svnmerge
 

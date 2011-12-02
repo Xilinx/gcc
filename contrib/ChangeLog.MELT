@@ -1,4 +1,9 @@
 
+2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (CFLAGS): New.
+	(melt-runtime.args): Put our -I before GCC ones.
+	(melt.so): Use CFLAGS.
+
 2011-10-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (STAMP): Define.
 	(clean): remove the timestamp files.
