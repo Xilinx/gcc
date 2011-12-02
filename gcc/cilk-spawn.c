@@ -375,8 +375,9 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
   tree ii_args = NULL_TREE;
   int total_args = 0, ii = 0;
   tree *arg_array;
-  tree setjmp_cond_expr = NULL_TREE;
-  
+  tree setjmp_cond_expr = NULL_TREE, addr;
+  tree setjmp_expr, spawn_or_cont, setjmp_value = NULL_TREE;
+  tree spawn_expr, spawn_prepare;
   /* This is a statement that cilk_valid_spawn has said yes to.
      It might be a call, modify, or init. */
 
@@ -425,14 +426,28 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
       call2 = build_call_expr_loc_array (UNKNOWN_LOCATION,
 					 function, total_args, arg_array);
     }
-  setjmp_cond_expr = fold_build2 (EQ_EXPR, TREE_TYPE (call1), call1,
+
+  *spawn_p = alloc_stmt_list();  
+  gcc_assert (cfun->cilk_frame_decl != NULL_TREE);
+  addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, cfun->cilk_frame_decl); 
+  spawn_prepare = build_call_expr (cilk_spawn_prepare_fndecl, 1, addr);
+
+  setjmp_value = get_formal_tmp_var (call1, before);
+  setjmp_expr = fold_build2 (MODIFY_EXPR, void_type_node, setjmp_value, call1);
+  spawn_or_cont = build_call_expr (cilk_spawn_or_cont_fndecl, 1, setjmp_value);
+
+  append_to_statement_list_force (spawn_prepare, spawn_p);
+  append_to_statement_list_force (setjmp_expr, spawn_p);
+  append_to_statement_list_force (spawn_or_cont, spawn_p);
+  
+  setjmp_cond_expr = fold_build2 (EQ_EXPR, TREE_TYPE (call1), setjmp_value,
 				  build_int_cst (TREE_TYPE (call1), 0));
   
-  *spawn_p = fold_build3 (COND_EXPR, void_type_node, setjmp_cond_expr, call2,
-			  build_empty_stmt (EXPR_LOCATION(call1)));
-  /* tree-nested.c will set the static chain */
+  spawn_expr = fold_build3 (COND_EXPR, void_type_node, setjmp_cond_expr, call2,
+			    build_empty_stmt (EXPR_LOCATION(call1)));
+  append_to_statement_list (spawn_expr, spawn_p);
 
-  /* XXX  cgraph_update_edges_for_call_stmt ? */
+  return;
 }
 
 /* **************************************************************** */
@@ -1584,13 +1599,16 @@ install_body_with_frame_cleanup (tree fndecl, tree body)
   tree addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
   tree ctor = build_call_expr (cilk_enter_fndecl, 1, addr);
   tree dtor = build_cilk_function_exit (frame, false, false);
-  
+  tree enter_h_begin = build_call_expr (cilk_enter_h_begin_fndecl, 1, addr);
+  tree enter_end = build_call_expr (cilk_enter_end_fndecl, 1, addr);
 
-  add_local_decl (cfun,frame);
+  add_local_decl (cfun, frame);
 
   DECL_SAVED_TREE (fndecl) = (list = alloc_stmt_list ());
 
+  append_to_statement_list_force (enter_h_begin, &list);
   append_to_statement_list_force (ctor, &list);
+  append_to_statement_list_force (enter_end, &list);
   append_to_statement_list_force (build_stmt (EXPR_LOCATION(body), 
 					      TRY_FINALLY_EXPR, body, dtor),
 				  &list);

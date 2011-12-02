@@ -611,6 +611,7 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
   tree current = NULL_TREE;
   tree func_ptr = NULL_TREE;
   tree sync_expr = NULL_TREE;
+  tree leave_begin, leave_end;
 
   /* tree debug_stmt=NULL_TREE; */
   
@@ -630,21 +631,25 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
     }
   
   func_ptr = (addr);
-  worker = arrow(func_ptr,CILK_TI_FRAME_WORKER,0);
-  current = arrow(worker,CILK_TI_WORKER_CUR,0);
-  parent = arrow(func_ptr,CILK_TI_FRAME_PARENT,0);
+  worker = arrow (func_ptr, CILK_TI_FRAME_WORKER, 0);
+  current = arrow (worker, CILK_TI_WORKER_CUR, 0);
+  parent = arrow (func_ptr, CILK_TI_FRAME_PARENT, 0);
 
   /* this should replace the pop_fndecl */
-  call = build2(MODIFY_EXPR,void_type_node, current, parent);
+  call = build2 (MODIFY_EXPR,void_type_node, current, parent);
    
   
   append_to_statement_list (call, &epi);
-  clear_parent = build2(MODIFY_EXPR,void_type_node, parent,
-			build_int_cst (TREE_TYPE (parent), 0));
-  append_to_statement_list(clear_parent,&epi);
-  /* append_to_statement_list (call, &epi); */
+  clear_parent = build2 (MODIFY_EXPR, void_type_node, parent,
+			 build_int_cst (TREE_TYPE (parent), 0));
+  append_to_statement_list (clear_parent, &epi);
+
+  /* added cilk_leave_begin */
+  leave_begin = build_call_expr (cilk_leave_begin_fndecl, 1, addr);
+  append_to_statement_list (leave_begin, &epi);
+  
   call = build_call_expr (cilk_leave_fndecl, 1, addr);
-  if (detaches==false)
+  if (!detaches)
     {
       tree flags_cmp_expr = NULL_TREE;
       tree flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
@@ -654,6 +659,11 @@ build_cilk_function_exit (tree frame, bool detaches, bool needs_sync)
 			  call, build_empty_stmt (EXPR_LOCATION(flags)));
     }
   append_to_statement_list (call, &epi);
+
+  /* added cilk_leave_end */
+  leave_end = build_call_expr (cilk_leave_end_fndecl, 0);
+  append_to_statement_list (leave_end, &epi);
+  
   return epi;
 }
 
@@ -686,8 +696,13 @@ make_cilk_frame (tree fn)
 /*
  * This function will expand a cilk_sync call.
  * cilk_sync becomes
- * if (frame.flags & 2)
+ * if (frame.flags & CILK_FRAME_UNSYNCHED)
+ *     if (!builtin_setjmp (frame.ctx)
+ *           // cilk_enter_begin();
  *         __cilkrts_sync(&frame);
+ *           // cilk_enter_end();
+ *      else
+ *         <NOTHING> ;
  * else
  *         <NOTHING> ;
 */
@@ -701,45 +716,47 @@ build_cilk_sync (void)
   tree sync;
   tree sync_expr;
   tree setjmp_expr;
+  tree sync_list, frame_addr;
+  tree sync_begin, sync_end;
   /* tree debug_expr; */
   flags = dot (frame, CILK_TI_FRAME_FLAGS, false);
   
-  unsynched = fold_build2 (BIT_AND_EXPR, TREE_TYPE (flags),
-			   flags,
+  unsynched = fold_build2 (BIT_AND_EXPR, TREE_TYPE (flags), flags,
 			   build_int_cst (TREE_TYPE (flags),
 					  CILK_FRAME_UNSYNCHED));
 
-
   unsynched = fold_build2 (NE_EXPR, TREE_TYPE(unsynched), unsynched,
-			   build_int_cst (TREE_TYPE(unsynched), 0));
-  
-  sync_expr = build_call_expr (cilk_sync_fndecl, 1,
-			       build1 (ADDR_EXPR,
-				       cilk_frame_ptr_type_decl,
-				       frame));
-  setjmp_expr = cilk_call_setjmp(frame);
-  setjmp_expr = fold_build2 (EQ_EXPR, TREE_TYPE(setjmp_expr), setjmp_expr,
-			     build_int_cst(TREE_TYPE(setjmp_expr),0));
-  
-  setjmp_expr = fold_build3 (COND_EXPR, void_type_node,
-			     setjmp_expr,
-			     sync_expr, 
-			     build_empty_stmt (EXPR_LOCATION(unsynched)));
+			   build_int_cst (TREE_TYPE (unsynched), 0));
 
+  frame_addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, frame);
+  sync_expr = build_call_expr (cilk_sync_fndecl, 1, frame_addr);
+  setjmp_expr = cilk_call_setjmp (frame);
+  setjmp_expr = fold_build2 (EQ_EXPR, TREE_TYPE(setjmp_expr), setjmp_expr,
+			     build_int_cst(TREE_TYPE(setjmp_expr), 0));
+  
+  setjmp_expr = fold_build3 (COND_EXPR, void_type_node, setjmp_expr,
+			     sync_expr,
+			     build_empty_stmt (EXPR_LOCATION (unsynched)));
   
   sync = fold_build3 (COND_EXPR, void_type_node, unsynched, setjmp_expr,
 		      build_empty_stmt (EXPR_LOCATION(unsynched)));
   
-  return sync;
+  sync_begin = build_call_expr (cilk_sync_begin_fndecl, 1, frame_addr);
+  sync_end = build_call_expr (cilk_sync_end_fndecl, 1, frame_addr);
+  sync_list = alloc_stmt_list();
+  append_to_statement_list_force (sync_begin, &sync_list);
+  append_to_statement_list_force (sync, &sync_list);
+  append_to_statement_list_force (sync_end, &sync_list);
+
+  return sync_list;
 }
 
 /* this function will gimplify the cilk_sync expression */
 void
 gimplify_cilk_sync (tree *expr_p, gimple_seq *pre_p)
 {
-  
   tree sync_expr = build_cilk_sync();
-
+  
   *expr_p = NULL_TREE;
 
 

@@ -17,6 +17,22 @@
 	(cilk_call_setjmp): Replaced implicit_built_in_decls[] to
 	builtin_decl_implicit ().
 
+2011-10-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-decl.c (c_make_cilk_frame): Added cilk_enter_begin and
+	cilk_enter_end function calls into spawn expansion.
+	* cilk-spawn.c (install_body_with_frame_cleanup): Added
+	cilk_enter_help_begin and cilk_enter_end function calls into spawn
+	expansion.
+	(gimplify_cilk_spawn): Inserted cilk_spawn_prepare and
+	cilk_spawn_or_continue function calls into spawn expansion.
+	* cilk.c (build_cilk_function_exit): Added cilk_leave_begin and
+	cilk_leave_end function calls into spawn expansion.
+	(build_cilk_sync): Added sync_begin and sync_end function calls into
+	sync expansion.
+	* gimplify.c (gimplify_call_expr): Added detach_begin and detach_end
+	before calling cilkrts_detach.
+
 2011-10-04  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_init_builtins): Added Cilkscreen builtin function

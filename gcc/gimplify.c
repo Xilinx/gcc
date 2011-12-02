@@ -2346,6 +2346,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   bool builtin_va_start_p = FALSE;
   location_t loc = EXPR_LOCATION (*expr_p);
   bool is_detach = false;
+  tree detach_begin = NULL_TREE, detach_end = NULL_TREE;
 
 
   gcc_assert (TREE_CODE (*expr_p) == CALL_EXPR);
@@ -2519,9 +2520,12 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
 	    warning(0, "spawning function lacks frame descriptor");
 	    frame = null_pointer_node;
 	  }
-     
+	detach_begin = build_call_expr (cilk_detach_begin_fndecl, 1, frame);
+	detach_end = build_call_expr (cilk_detach_end_fndecl, 0);
 	detach_expr = build_call_expr (cilk_detach_fndecl, 1, frame);
+	gimplify_and_add (detach_begin, pre_p);
 	gimplify_and_add (detach_expr, pre_p);
+	gimplify_and_add (detach_end, pre_p);
       }
 
   /* Verify the function result.  */

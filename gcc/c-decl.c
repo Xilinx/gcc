@@ -10073,7 +10073,7 @@ c_make_cilk_frame (void)
 {
   tree decl = cfun->cilk_frame_decl;
   tree addr, body, ctor, dtor, orig_body;
-  
+  tree enter_begin, enter_end;
   gcc_assert (flag_enable_cilk);
 
   if (decl == NULL_TREE)
@@ -10081,11 +10081,15 @@ c_make_cilk_frame (void)
       tree *saved_tree = &DECL_SAVED_TREE (current_function_decl);
       decl = make_cilk_frame (current_function_decl);
 
-      add_local_decl(cfun,decl);
+      add_local_decl (cfun, decl);
       addr = build1 (ADDR_EXPR, cilk_frame_ptr_type_decl, decl);
       ctor = build_call_expr (cilk_enter_fndecl, 1, addr);
       dtor = build_cilk_function_exit (decl, false, true);
 
+      enter_begin = build_call_expr (cilk_enter_begin_fndecl, 1, addr);
+      enter_end = build_call_expr (cilk_enter_end_fndecl, 1, addr);
+
+      
       /* The new body will be
          ctor
          try old body finally dtor
@@ -10096,8 +10100,10 @@ c_make_cilk_frame (void)
          orig_body must point to the new body and remain as
          a separate statement list. */
       gcc_assert (TREE_CODE (orig_body) == STATEMENT_LIST);
-
+      append_to_statement_list_force (enter_begin , &body);
       append_to_statement_list_force (ctor, &body);
+      append_to_statement_list_force (enter_end, &body);
+      
       append_to_statement_list_force (build_stmt (UNKNOWN_LOCATION,
                                                   TRY_FINALLY_EXPR,
                                                   orig_body, dtor),
