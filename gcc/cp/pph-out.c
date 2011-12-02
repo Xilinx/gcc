@@ -549,18 +549,27 @@ pph_out_reference_record (pph_stream *stream, enum pph_record_marker marker,
 
 
 /* Start a new record in STREAM for DATA with data type TAG.  If DATA
-   is NULL write an end-of-record marker and return true.
+   is NULL write an end-of-record marker.
 
    If DATA is not NULL and did not exist in the pickle cache, add it,
    write a start-of-record marker and return true.  This means that we
    could not write a reference marker to DATA and the caller should
    pickle out DATA's physical representation.
 
-   If DATA existed in the cache, write a reference-record marker and
-   return true.  This means that we could write a reference marker to
-   DATA.  */
+   If DATA existed in the cache, one of two things may happen:
 
-static inline bool
+   - If a merge key had been emitted for DATA, it means that DATA has
+     only been partially written.  The rest of it needs to be emitted
+     now.  In these cases, a PPH_RECORD_START_MERGE_BODY marker is
+     written.
+
+   - If DATA had been written before, we do only need to write a
+     reference to it.  In this case, a reference-record marker is
+     written.
+
+   The emitted marker is returned.  */
+
+static inline enum pph_record_marker
 pph_out_start_record (pph_stream *stream, void *data, enum pph_tag tag)
 {
   unsigned include_ix, ix;
@@ -568,20 +577,48 @@ pph_out_start_record (pph_stream *stream, void *data, enum pph_tag tag)
 
   /* Try to write a reference record first.  */
   marker = pph_get_marker_for (stream, data, &include_ix, &ix, tag);
-  if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
+  if (marker == PPH_RECORD_END)
     {
       pph_out_reference_record (stream, marker, include_ix, ix, tag);
-      return true;
+      return marker;
+    }
+  else if (pph_is_reference_marker (marker))
+    {
+      /* If we have already emitted DATA, check whether we need
+	 to write DATA's body.  This happens when DATA is written in
+	 two parts so it can be merged across PPH files.  The first
+	 part is the merge key, which only writes enough data to
+	 identify DATA so it can b merged, the second part consists
+	 of all the remaining fields in DATA (the merge body).  */
+      pph_cache *cache = pph_cache_select (stream, marker, include_ix);
+      pph_cache_entry *e = pph_cache_get_entry (cache, ix);
+      if (e->needs_merge_body)
+	{
+	  marker = PPH_RECORD_START_MERGE_BODY;
+	  e->needs_merge_body = false;
+	}
+      else
+	{
+	  /* This is a regular reference, emit it and tell the caller
+	     that we are done.  */
+	  pph_out_reference_record (stream, marker, include_ix, ix, tag);
+	  return marker;
+	}
+    }
+  else if (marker == PPH_RECORD_START)
+    {
+      /* DATA is in none of the pickle caches.  Add DATA to STREAM's
+	 pickle cache and write the slot where we stored it in.  */
+      pph_cache_add (&stream->cache, data, &ix, tag);
     }
 
-  /* DATA is in none of the pickle caches.  Add DATA to STREAM's
-     pickle cache and write the slot where we stored it in.  */
-  pph_cache_add (&stream->cache, data, &ix, tag);
-  pph_out_record_marker (stream, PPH_RECORD_START, tag);
+  /* The caller will have to write a physical representation for DATA.  */
+  gcc_assert (marker == PPH_RECORD_START
+	      || marker == PPH_RECORD_START_MERGE_BODY);
+  pph_out_record_marker (stream, marker, tag);
   pph_out_uint (stream, ix);
 
-  /* The caller will have to write a physical representation for DATA.  */
-  return false;
+  return marker;
 }
 
 
@@ -631,9 +668,8 @@ pph_cache_should_handle (tree t)
 
 /* Start a record for tree node T in STREAM.  This is like
    pph_out_start_record, but it filters certain special trees that
-   should never be added to the cache.  Additionally, instead of
-   returning a boolean value indicating whether pickling should be
-   done, it returns the actual marker used to start the record.  */
+   should never be added to the cache.  Return the marker used
+   to start the record.  */
 
 static inline enum pph_record_marker
 pph_out_start_tree_record (pph_stream *stream, tree t)
@@ -733,33 +769,49 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 }
 
 
-/* Start a merge key record for EXPR on STREAM.  */
+/* Start a merge key record for DATA on STREAM.  TAG identifies the
+   data type of DATA.  Return true if a merge key for DATA had already
+   been emitted.  */
 
 static bool
-pph_out_start_merge_key_record (pph_stream *stream, tree expr)
+pph_out_start_merge_key_record (pph_stream *stream, void *data,
+				enum pph_tag tag)
 {
-  enum pph_tag tag;
   enum pph_record_marker marker;
   pph_cache_entry *e;
   unsigned include_ix, ix;
 
-  tag = pph_tree_code_to_tag (expr);
-  marker = pph_get_marker_for (stream, expr, &include_ix, &ix, tag);
-
+  marker = pph_get_marker_for (stream, data, &include_ix, &ix, tag);
   if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
     {
+      /* We had already emitted a merge key for DATA, write a
+	 reference and return true.  */
       pph_out_reference_record (stream, marker, include_ix, ix, tag);
       return true;
     }
 
-  /* This should be the first time that we try to write EXPR.  */
+  /* This should be the first time that we try to write DATA.  */
   gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_record_marker (stream, PPH_RECORD_START_MERGE_KEY, tag);
-  e = pph_cache_add (&stream->cache, expr, &ix, tag);
+  e = pph_cache_add (&stream->cache, data, &ix, tag);
   e->needs_merge_body = true;
   pph_out_uint (stream, ix);
+
+  /* Tell the caller that this is the first time this merge key is
+     emitted.  */
   return false;
+}
+
+
+/* Start a merge key record for EXPR on STREAM.  Return true if a
+   merge key for EXPR had already been emitted.  */
+
+static bool
+pph_out_start_merge_key_tree_record (pph_stream *stream, tree expr)
+{
+  enum pph_tag tag = pph_tree_code_to_tag (expr);
+  return pph_out_start_merge_key_record (stream, expr, tag);
 }
 
 
@@ -1156,9 +1208,14 @@ static void
 pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
 {
   struct bitpack_d bp;
+  enum pph_record_marker marker;
 
-  if (pph_out_start_record (stream, cb, PPH_cxx_binding))
+  marker = pph_out_start_record (stream, cb, PPH_cxx_binding);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_tree (stream, cb->value);
   pph_out_tree (stream, cb->type);
@@ -1195,8 +1252,14 @@ pph_out_cxx_binding (pph_stream *stream, cxx_binding *cb)
 static void
 pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
 {
-  if (pph_out_start_record (stream, cb, PPH_cp_class_binding))
+  enum pph_record_marker marker;
+
+  marker = pph_out_start_record (stream, cb, PPH_cp_class_binding);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_cxx_binding (stream, cb->base);
   pph_out_tree (stream, cb->identifier);
@@ -1208,8 +1271,14 @@ pph_out_class_binding (pph_stream *stream, cp_class_binding *cb)
 static void
 pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 {
-  if (pph_out_start_record (stream, lb, PPH_cp_label_binding))
+  enum pph_record_marker marker;
+
+  marker = pph_out_start_record (stream, lb, PPH_cp_label_binding);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_tree (stream, lb->label);
   pph_out_tree (stream, lb->prev_value);
@@ -1262,7 +1331,10 @@ static void
 pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 		       unsigned filter)
 {
-  if (pph_out_start_record (stream, bl, PPH_cp_binding_level))
+  enum pph_record_marker marker;
+
+  marker = pph_out_start_record (stream, bl, PPH_cp_binding_level);
+  if (pph_is_reference_or_end_marker (marker))
     return;
 
   pph_out_chain_filtered (stream, bl->names, filter);
@@ -1277,7 +1349,7 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 /* Write an index of mergeable objects from cp_binding_level BL to STREAM.  */
 
 static void
-pph_out_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
+pph_out_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
   unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
   pph_out_merge_key_chain (stream, bl->names, filter);
@@ -1290,7 +1362,7 @@ pph_out_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
 /* Write bodies of mergeable objects from cp_binding_level BL to STREAM.  */
 
 static void
-pph_out_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
+pph_out_merge_body_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
   unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
   pph_out_merge_body_chain (stream, bl->names, filter);
@@ -1311,9 +1383,14 @@ static void
 pph_out_language_function (pph_stream *stream, struct language_function *lf)
 {
   struct bitpack_d bp;
+  enum pph_record_marker marker;
 
-  if (pph_out_start_record (stream, lf, PPH_language_function))
+  marker = pph_out_start_record (stream, lf, PPH_language_function);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_tree_vec (stream, lf->base.x_stmt_tree.x_cur_stmt_list);
   pph_out_uint (stream, lf->base.x_stmt_tree.stmts_are_full_exprs_p);
@@ -1364,9 +1441,14 @@ static void
 pph_out_struct_function (pph_stream *stream, struct function *fn)
 {
   struct pph_tree_info pti;
+  enum pph_record_marker marker;
 
-  if (pph_out_start_record (stream, fn, PPH_function))
+  marker = pph_out_start_record (stream, fn, PPH_function);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_tree (stream, fn->decl);
   output_struct_function_base (stream->encoder.w.ob, fn);
@@ -1530,13 +1612,15 @@ pph_out_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 /* Write all the lang-specific data in DECL to STREAM.  */
 
 static void
-pph_out_lang_specific (pph_stream *stream, tree decl)
+pph_out_lang_decl (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
+  enum pph_record_marker marker;
 
   ld = DECL_LANG_SPECIFIC (decl);
-  if (pph_out_start_record (stream, ld, PPH_lang_decl))
+  marker = pph_out_start_record (stream, ld, PPH_lang_decl);
+  if (pph_is_reference_or_end_marker (marker))
     return;
 
   /* Write all the fields in lang_decl_base.  */
@@ -1610,9 +1694,14 @@ static void
 pph_out_sorted_fields_type (pph_stream *stream, struct sorted_fields_type *sft)
 {
   int i;
+  enum pph_record_marker marker;
 
-  if (pph_out_start_record (stream, sft, PPH_sorted_fields_type))
+  marker = pph_out_start_record (stream, sft, PPH_sorted_fields_type);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_uint (stream, sft->len);
   for (i = 0; i < sft->len; i++)
@@ -1680,8 +1769,16 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   pph_out_tree (stream, ltc->vtables);
   pph_out_tree (stream, ltc->typeinfo_var);
   pph_out_tree_vec (stream, ltc->vbases);
-  if (!pph_out_start_record (stream, ltc->nested_udts, PPH_binding_table))
-    pph_out_binding_table (stream, ltc->nested_udts);
+  {
+    enum pph_record_marker marker;
+    marker = pph_out_start_record (stream, ltc->nested_udts, PPH_binding_table);
+    if (!pph_is_reference_or_end_marker (marker))
+      {
+	/* Remove if we start emitting merge keys for this structure.  */
+	gcc_assert (marker == PPH_RECORD_START);
+	pph_out_binding_table (stream, ltc->nested_udts);
+      }
+  }
   pph_out_tree (stream, ltc->as_base);
   pph_out_tree_vec (stream, ltc->pure_virtuals);
   pph_out_tree (stream, ltc->friend_classes);
@@ -1711,10 +1808,15 @@ static void
 pph_out_lang_type (pph_stream *stream, tree type)
 {
   struct lang_type *lt;
+  enum pph_record_marker marker;
 
   lt = TYPE_LANG_SPECIFIC (type);
-  if (pph_out_start_record (stream, lt, PPH_lang_type))
+  marker = pph_out_start_record (stream, lt, PPH_lang_type);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_lang_type_header (stream, &lt->u.h);
   if (lt->u.h.is_lang_type_class)
@@ -1762,7 +1864,7 @@ pph_out_tcc_type (pph_stream *stream, tree type)
 static void
 pph_out_tcc_declaration (pph_stream *stream, tree decl)
 {
-  pph_out_lang_specific (stream, decl);
+  pph_out_lang_decl (stream, decl);
   pph_out_tree (stream, DECL_INITIAL (decl));
 
   /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
@@ -2146,7 +2248,7 @@ pph_out_merge_key_namespace_decl (pph_stream *stream, tree decl)
   is_namespace_alias = (DECL_NAMESPACE_ALIAS (decl) != NULL_TREE);
   pph_out_bool (stream, is_namespace_alias);
   if (!is_namespace_alias)
-    pph_out_binding_merge_keys (stream, NAMESPACE_LEVEL (decl));
+    pph_out_merge_key_binding_level (stream, NAMESPACE_LEVEL (decl));
 }
 
 
@@ -2157,7 +2259,7 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
 {
   gcc_assert (pph_tree_is_mergeable (expr));
 
-  if (pph_out_start_merge_key_record (stream, expr))
+  if (pph_out_start_merge_key_tree_record (stream, expr))
     return;
 
   if (flag_pph_tracer)
@@ -2205,7 +2307,7 @@ pph_out_tree (pph_stream *stream, tree expr)
 
   /* If EXPR is NULL or it already existed in the pickle cache,
      nothing else needs to be done.  */
-  if (marker == PPH_RECORD_END || pph_is_reference_marker (marker))
+  if (pph_is_reference_or_end_marker (marker))
     return;
 
   if (streamer_handle_as_builtin_p (expr))
@@ -2291,9 +2393,14 @@ static void
 pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
 {
   struct bitpack_d bp;
+  enum pph_record_marker marker;
 
-  if (pph_out_start_record (stream, node, PPH_cgraph_node))
+  marker = pph_out_start_record (stream, node, PPH_cgraph_node);
+  if (pph_is_reference_or_end_marker (marker))
     return;
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   pph_out_tree (stream, node->decl);
   pph_out_cgraph_node (stream, node->origin);
@@ -2505,10 +2612,12 @@ pph_out_global_binding (pph_stream *stream)
   bl = scope_chain->bindings;
   pph_out_start_record (stream, bl, PPH_cp_binding_level);
 
-  /* Emit all the merge keys for objects that need to be merged when reading
-     multiple PPH images.  */
-  pph_out_binding_merge_keys (stream, bl);
-  pph_out_binding_merge_bodies (stream, bl);
+  /* Emit all the merge keys for objects that need to be merged when
+     reading multiple PPH images.  */
+  pph_out_merge_key_binding_level (stream, bl);
+
+  /* Now emit all the bodies.  */
+  pph_out_merge_body_binding_level (stream, bl);
 }
 
 

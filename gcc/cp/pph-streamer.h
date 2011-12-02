@@ -349,6 +349,14 @@ pph_is_reference_marker (enum pph_record_marker marker)
          || marker == PPH_RECORD_PREF;
 }
 
+/* Return true if MARKER is a reference or an END marker.  */
+
+static inline bool
+pph_is_reference_or_end_marker (enum pph_record_marker marker)
+{
+  return marker == PPH_RECORD_END || pph_is_reference_marker (marker);
+}
+
 
 /* Return true if tree T needs to be signed to detect state mutations.
    This is used when multiple PPH images contain different versions of

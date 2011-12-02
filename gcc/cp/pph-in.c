@@ -998,6 +998,9 @@ pph_in_cxx_binding_1 (pph_stream *stream)
     return (cxx_binding *) pph_cache_find (stream, marker, image_ix, ix,
 					   PPH_cxx_binding);
 
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
+
   value = pph_in_tree (stream);
   type = pph_in_tree (stream);
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cxx_binding, cb,
@@ -1048,6 +1051,9 @@ pph_in_class_binding (pph_stream *stream)
     return (cp_class_binding *) pph_cache_find (stream, marker, image_ix, ix,
 						PPH_cp_class_binding);
 
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
+
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_class_binding, cb,
                       ggc_alloc_cleared_cp_class_binding ());
   cb->base = pph_in_cxx_binding (stream);
@@ -1072,6 +1078,9 @@ pph_in_label_binding (pph_stream *stream)
   else if (pph_is_reference_marker (marker))
     return (cp_label_binding *) pph_cache_find (stream, marker, image_ix, ix,
 						PPH_cp_label_binding);
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cp_label_binding, lb,
                       ggc_alloc_cleared_cp_label_binding ());
@@ -1178,7 +1187,7 @@ pph_in_binding_level (pph_stream *stream)
 /* Read all the merge keys from STREAM into the cp_binding_level BL.  */
 
 static void
-pph_in_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
+pph_in_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
   /* Read all the merge keys and merge into the bindings.  */
   pph_in_merge_key_chain (stream, &bl->names);
@@ -1191,7 +1200,7 @@ pph_in_binding_merge_keys (pph_stream *stream, cp_binding_level *bl)
 /* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
 
 static void
-pph_in_binding_merge_bodies_1 (pph_stream *stream, cp_binding_level *bl)
+pph_in_merge_body_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
 {
   pph_in_merge_body_chain (stream);
   pph_in_merge_body_chain (stream);
@@ -1206,7 +1215,7 @@ pph_in_binding_merge_bodies_1 (pph_stream *stream, cp_binding_level *bl)
 /* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
 
 static void
-pph_in_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
+pph_in_merge_body_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
   unsigned ix;
   cp_binding_level *new_bl;
@@ -1219,7 +1228,7 @@ pph_in_binding_merge_bodies (pph_stream *stream, cp_binding_level *bl)
 
   /* The binding level is already allocated.  */
   pph_cache_insert_at (&stream->cache, bl, ix, PPH_cp_binding_level);
-  pph_in_binding_merge_bodies_1 (stream, bl);
+  pph_in_merge_body_binding_level_1 (stream, bl);
 }
 
 
@@ -1243,6 +1252,9 @@ pph_in_language_function (pph_stream *stream)
     return (struct language_function *) pph_cache_find (stream, marker,
 							image_ix, ix,
 							PPH_language_function);
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_language_function, lf,
                       ggc_alloc_cleared_language_function ());
@@ -1296,6 +1308,9 @@ pph_in_struct_function (pph_stream *stream, tree decl)
       gcc_assert (DECL_STRUCT_FUNCTION (decl) == fn);
       return;
     }
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   /* Possibly allocate a new DECL_STRUCT_FUNCTION for DECL.  */
   t = pph_in_tree (stream);
@@ -1493,7 +1508,7 @@ pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
   if (ldns->level == NULL)
     ldns->level = pph_in_binding_level (stream);
   else
-    pph_in_binding_merge_bodies (stream, ldns->level);
+    pph_in_merge_body_binding_level (stream, ldns->level);
 }
 
 
@@ -1512,7 +1527,7 @@ pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
    Otherwise, return the pointer to the lang decl specific.  */
 
 static struct lang_decl *
-pph_in_ref_lang_specific (pph_stream *stream, tree decl)
+pph_in_ref_lang_decl (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   enum pph_record_marker marker;
@@ -1528,6 +1543,9 @@ pph_in_ref_lang_specific (pph_stream *stream, tree decl)
 					     PPH_lang_decl);
       return NULL;
     }
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   /* Allocate a lang_decl structure for DECL, if not already present.
      Namespace merge keys preallocate it.  */
@@ -1548,12 +1566,12 @@ pph_in_ref_lang_specific (pph_stream *stream, tree decl)
 /* Read language specific data in DECL from STREAM.  */
 
 static void
-pph_in_lang_specific (pph_stream *stream, tree decl)
+pph_in_lang_decl (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
 
-  ld = pph_in_ref_lang_specific (stream, decl);
+  ld = pph_in_ref_lang_decl (stream, decl);
   if (!ld)
     return;
 
@@ -1589,12 +1607,12 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
 /* Read and merge language specific data in DECL from STREAM.  */
 
 static void
-pph_in_merge_lang_specific (pph_stream *stream, tree decl)
+pph_in_merge_lang_decl (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
 
-  ld = pph_in_ref_lang_specific (stream, decl);
+  ld = pph_in_ref_lang_decl (stream, decl);
   if (!ld)
     return;
 
@@ -1675,6 +1693,9 @@ pph_in_sorted_fields_type (pph_stream *stream)
   else if (pph_is_reference_marker (marker))
     return (struct sorted_fields_type *)
 	  pph_cache_find (stream, marker, image_ix, ix, PPH_sorted_fields_type);
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   num_fields = pph_in_uint (stream);
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_sorted_fields_type, v,
@@ -1759,6 +1780,11 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
     ltc->nested_udts = (binding_table) pph_cache_find (stream, marker,
 						       image_ix, ix,
 						       PPH_binding_table);
+  else
+    {
+      /* Remove if we start emitting merge keys for this structure.  */
+      gcc_assert (marker == PPH_RECORD_END);
+    }
 
   ltc->as_base = pph_in_tree (stream);
   ltc->pure_virtuals = pph_in_tree_vec (stream);
@@ -1799,6 +1825,9 @@ pph_in_lang_type (pph_stream *stream)
   else if (pph_is_reference_marker (marker))
     return (struct lang_type *) pph_cache_find (stream, marker, image_ix, ix,
 						PPH_lang_type);
+
+  /* Remove if we start emitting merge keys for this structure.  */
+  gcc_assert (marker == PPH_RECORD_START);
 
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_lang_type, lt,
                       ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
@@ -1913,7 +1942,7 @@ pph_in_tcc_declaration_tail (pph_stream *stream, tree decl)
 static void
 pph_in_tcc_declaration (pph_stream *stream, tree decl)
 {
-  pph_in_lang_specific (stream, decl);
+  pph_in_lang_decl (stream, decl);
   pph_in_tcc_declaration_tail (stream, decl);
 }
 
@@ -1923,7 +1952,7 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
 static void
 pph_in_merge_tcc_declaration (pph_stream *stream, tree decl)
 {
-  pph_in_merge_lang_specific (stream, decl);
+  pph_in_merge_lang_decl (stream, decl);
   /* FIXME pph: Some of the tail may not be necessary.  */
   pph_in_tcc_declaration_tail (stream, decl);
 }
@@ -2263,7 +2292,7 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
 	  NAMESPACE_LEVEL (decl) = bl;
 	}
 
-      pph_in_binding_merge_keys (stream, bl);
+      pph_in_merge_key_binding_level (stream, bl);
     }
 }
 
@@ -2795,8 +2824,8 @@ pph_in_global_binding (pph_stream *stream)
      context.  Since we have registered scope_chain->bindings in the
      same slot IX that the writer used, the trees read now will be
      bound to scope_chain->bindings.  */
-  pph_in_binding_merge_keys (stream, bl);
-  pph_in_binding_merge_bodies_1 (stream, bl);
+  pph_in_merge_key_binding_level (stream, bl);
+  pph_in_merge_body_binding_level_1 (stream, bl);
 }
 
 
