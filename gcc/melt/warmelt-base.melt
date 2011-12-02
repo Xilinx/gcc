@@ -1807,9 +1807,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     )))
 
 (defun register_finish_decl_hook_first (fun)
-  :doc #{Use $REGISTER_FINISH_DECL_HOOK_FIRST to register a function $FUN to
-  be run at PLUGIN_FINISH_DECL, in first place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_FINISH_DECL_HOOK_FIRST to register a function
+  $FUN to be run at PLUGIN_FINISH_DECL, in first place.  $FUN must be
+  a closure which take 1 argument (the boxed tree of the parsed
+  declaration). Only for GCC 4.7 or later.}#
   (if (is_closure fun)
       (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
 	    )
@@ -1833,9 +1834,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 
 (defun register_finish_decl_hook_last (fun)
-  :doc #{Use $REGISTER_FINISH_DECL_HOOK_LAST to register a function $FUN to
-  be run at PLUGIN_FINISH_DECL, in last place.  $FUN must be a closure
-  which take 1 argument (the boxed tree of the parsed declaration).}#
+  :doc #{Use $REGISTER_FINISH_DECL_HOOK_LAST to register a function
+  $FUN to be run at PLUGIN_FINISH_DECL, in last place.  $FUN must be a
+  closure which take 1 argument (the boxed tree of the parsed
+  declaration). Only for GCC 4.7 or later.}#
   (if (is_closure fun)
       (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
 	    )
@@ -1859,6 +1861,526 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling PLUGIN_ALL_PASSES_START
+;; private all_passes_start handling queue
+(definstance all_passes_start_delayed_queue class_delayed_queue
+  :named_name '"all_passes_start_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_ALL_PASSES_START 
+(defun melt_all_passes_start_runner ()
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc res))
+    )))
+
+(defun register_all_passes_start_hook_first (fun)
+  :doc #{Use $REGISTER_ALL_PASSES_START_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_ALL_PASSES_START, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_passes_start_hook melt_all_passes_start_runner)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_passes_start_hook_first")
+    ))
+
+(defun register_all_passes_start_hook_last (fun)
+  :doc #{Use $REGISTER_ALL_PASSES_START_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_ALL_PASSES_START, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_passes_start_hook melt_all_passes_start_runner)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_passes_start_hook_last")
+    ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling PLUGIN_ALL_PASSES_END
+;; private all_passes_end handling queue
+(definstance all_passes_end_delayed_queue class_delayed_queue
+  :named_name '"all_passes_end_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_ALL_PASSES_END 
+(defun melt_all_passes_end_runner ()
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc res))
+    )))
+
+(defun register_all_passes_end_hook_first (fun)
+  :doc #{Use $REGISTER_ALL_PASSES_END_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_ALL_PASSES_END, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_passes_end_hook melt_all_passes_end_runner)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_passes_end_hook_first")
+    ))
+
+(defun register_all_passes_end_hook_last (fun)
+  :doc #{Use $REGISTER_ALL_PASSES_END_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_ALL_PASSES_END, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_passes_end_hook melt_all_passes_end_runner)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_passes_end_hook_last")
+    ))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling PLUGIN_ALL_IPA_PASSES_START
+;; private all_ipa_passes_start handling queue
+(definstance all_ipa_passes_start_delayed_queue class_delayed_queue
+  :named_name '"all_ipa_passes_start_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_ALL_IPA_PASSES_START 
+(defun melt_all_ipa_passes_start_runner ()
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc res))
+    )))
+
+(defun register_all_ipa_passes_start_hook_first (fun)
+  :doc #{Use $REGISTER_ALL_IPA_PASSES_START_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_ALL_IPA_PASSES_START, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_ipa_passes_start_hook melt_all_ipa_passes_start_runner)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_ipa_passes_start_hook_first")
+    ))
+
+(defun register_all_ipa_passes_start_hook_last (fun)
+  :doc #{Use $REGISTER_ALL_IPA_PASSES_START_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_ALL_IPA_PASSES_START, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_ipa_passes_start_hook melt_all_ipa_passes_start_runner)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_ipa_passes_start_hook_last")
+    ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling PLUGIN_ALL_IPA_PASSES_END
+;; private all_ipa_passes_end handling queue
+(definstance all_ipa_passes_end_delayed_queue class_delayed_queue
+  :named_name '"all_ipa_passes_end_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_ALL_IPA_PASSES_END 
+(defun melt_all_ipa_passes_end_runner ()
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc res))
+    )))
+
+(defun register_all_ipa_passes_end_hook_first (fun)
+  :doc #{Use $REGISTER_ALL_IPA_PASSES_END_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_ALL_IPA_PASSES_END, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_ipa_passes_end_hook melt_all_ipa_passes_end_runner)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_ipa_passes_end_hook_first")
+    ))
+
+(defun register_all_ipa_passes_end_hook_last (fun)
+  :doc #{Use $REGISTER_ALL_IPA_PASSES_END_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_ALL_IPA_PASSES_END, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_all_ipa_passes_end_hook melt_all_ipa_passes_end_runner)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_all_ipa_passes_end_hook_last")
+    ))
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling PLUGIN_EARLY_GIMPLE_PASSES_START
+;; private early_gimple_passes_start handling queue
+(definstance early_gimple_passes_start_delayed_queue class_delayed_queue
+  :named_name '"early_gimple_passes_start_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_EARLY_GIMPLE_PASSES_START 
+(defun melt_early_gimple_passes_start_runner ()
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc res))
+    )))
+
+(defun register_early_gimple_passes_start_hook_first (fun)
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_START_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_EARLY_GIMPLE_PASSES_START, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_early_gimple_passes_start_hook melt_early_gimple_passes_start_runner)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_early_gimple_passes_start_hook_first")
+    ))
+
+(defun register_early_gimple_passes_start_hook_last (fun)
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_START_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_EARLY_GIMPLE_PASSES_START, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_early_gimple_passes_start_hook melt_early_gimple_passes_start_runner)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_early_gimple_passes_start_hook_last")
+    ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling PLUGIN_EARLY_GIMPLE_PASSES_END
+;; private early_gimple_passes_end handling queue
+(definstance early_gimple_passes_end_delayed_queue class_delayed_queue
+  :named_name '"early_gimple_passes_end_delayed_queue"
+  :delqu_first ()
+  :delqu_last ()
+  )
+
+;; internal private routine for PLUGIN_EARLY_GIMPLE_PASSES_END 
+(defun melt_early_gimple_passes_end_runner ()
+  (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	 (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (res ())
+	 )
+;;; call the first routines in natural order
+    (foreach_in_list
+     (firstlist)
+     (firstpair firstproc)
+     (setq res (firstproc res))
+     )
+;;; reverse the last list
+    (foreach_in_list
+     (lastlist)
+     (lastpair lastproc)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
+;;; call the last routines in reverse order
+    (foreach_in_list
+     (revlastlist)
+     (revlastpair revlastproc)
+     (setq res (revlastproc res))
+    )))
+
+(defun register_early_gimple_passes_end_hook_first (fun)
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_END_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_EARLY_GIMPLE_PASSES_END, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (firstlist (get_field :delqu_first finishdecl_delayed_queue))
+	    )
+	(if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	       initial_system_data
+	       :sysdata_early_gimple_passes_end_hook melt_early_gimple_passes_end_runner)
+	      ))
+	(list_append firstlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_early_gimple_passes_end_hook_first")
+    ))
+
+(defun register_early_gimple_passes_end_hook_last (fun)
+  :doc #{Use $REGISTER_EARLY_GIMPLE_PASSES_END_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_EARLY_GIMPLE_PASSES_END, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of the parsed declaration).}#
+  (if (is_closure fun)
+      (let ( (lastlist (get_field :delqu_last finishdecl_delayed_queue))
+	    )
+	(if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        finishdecl_delayed_queue
+	        :delqu_first (make_list discr_list)
+	        :delqu_last lastlist)
+	      (put_fields
+	       initial_system_data
+	       :sysdata_early_gimple_passes_end_hook melt_early_gimple_passes_end_runner)
+	      ))
+	(list_append lastlist fun)
+	)
+    ;; fun not a closure
+      (errormsg_plain
+        "Bad function (non closure) passed to register_early_gimple_passes_end_hook_last")
+    ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the descriptions of values which are not ctype related.
 (defclass class_value_descriptor
@@ -3246,8 +3768,8 @@ polyhedron values.}#
  foreach_long_upto
  full_garbcoll
  generate_debug_melt_module
- generate_quickly_melt_module
  generate_melt_module
+ generate_quickly_melt_module
  get_globpredef
  ignore
  inform_plain
@@ -3332,11 +3854,26 @@ polyhedron values.}#
  ppstrbuf_mixbigint
  read_file
  read_strv
+ register_all_ipa_passes_end_hook_first
+ register_all_ipa_passes_end_hook_last
+ register_all_ipa_passes_start_hook_first
+ register_all_ipa_passes_start_hook_last
+ register_all_passes_end_hook_first
+ register_all_passes_end_hook_last
+ register_all_passes_start_hook_first
+ register_all_passes_start_hook_last
+ register_early_gimple_passes_end_hook_first
+ register_early_gimple_passes_end_hook_last
+ register_early_gimple_passes_start_hook_first
+ register_early_gimple_passes_start_hook_last
+ register_finish_decl_hook_first
+ register_finish_decl_hook_last
+ register_finish_type_hook_first
+ register_finish_type_hook_last
  register_pass_execution_hook
  register_pragma_handler
  register_pre_genericize_hook_first
  register_pre_genericize_hook_last
- pre_genericize_hook_runner
  retrieve_value_descriptor_list
  set_content
  some_integer_different_from
@@ -3357,8 +3894,8 @@ polyhedron values.}#
  strbuf_usedlength
  string_ends
  string_hex_md5sum_constpath 
- string_hex_md5sum_pathstrv
  string_hex_md5sum_path_sequence
+ string_hex_md5sum_pathstrv
  string_length
  string_prefixed
  string_starts
