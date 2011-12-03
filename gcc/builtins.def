@@ -829,7 +829,8 @@ DEF_BUILTIN_STUB (BUILT_IN_CILKSCREEN_DS_CHK, "cilkscreen_disable_checking")
 DEF_BUILTIN_STUB (BUILT_IN_CILKSCREEN_EN_CHK, "cilkscreen_enable_checking")
 DEF_BUILTIN_STUB (BUILT_IN_CILKSCREEN_AQUIRE_LOCK, "cilkscreen_aquire_lock")
 DEF_BUILTIN_STUB (BUILT_IN_CILKSCREEN_REL_LOCK, "cilkscreen_release_lock")
-
+DEF_BUILTIN_STUB (BUILT_IN_NOTIFY_ZC_INTRINSIC, "__notify_zc_intrinsic")
+DEF_BUILTIN_STUB (BUILT_IN_NOTIFY_INTRINSIC, "__notify_intrinsic")
 /* Synchronization Primitives.  */
 #include "sync-builtins.def"
 

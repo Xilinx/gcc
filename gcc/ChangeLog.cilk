@@ -1,5 +1,29 @@
 2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* builtin.c (expand_builtin): Added support for NOTIFY_INTRINSIC and
+	NOTIFY_ZC_INTRINSIC.
+	* builtins.def: Likewise.
+	* cilk.h: Likewise.
+	* cilk.c (cilk_annotated_function_p): Likewise.
+	(cilk_init_builtins): Likewise.  Also, removed underscores
+	from cilk_spawn_prepare and cilk_spawn_or_continue function declaration.
+	(zca_stack): Changed a stack-based implementation to a linked-list
+	based implementation.
+	(insert_into_zca_list): Likewise.
+	(find_zca_data): Likewise.
+	(get_zca_entry): Likewise.
+	(get_zca_string_table_size): Likewise.
+	(output_zca_table): Likewise.
+	(output_expr_table): Likewise.
+	(cilk_remove_annotated_functions): Likewise.
+	* dwarf2out.c (dwarf2out_var_location): Make early return if cilk is
+	enabled.
+	* function.h (struct function): Added calls_notify_intrinsic field.
+	* sched-rgn.c (schedule_insns): Check if cilk is enabled along with
+	whether the notify_intrinsic is used in function.
+
+2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* cilk.c (cilk_init_builtins): Removed prefixing undescores from
 	cilk_spawn_prepare and cilk_spawn_or_continue.
 	(get_zca_table_size): Added 1 to length of string.

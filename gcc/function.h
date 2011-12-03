@@ -598,6 +598,8 @@ struct GTY(()) function {
   /* this will indicate whether a function is a cilk function */
   unsigned int is_cilk_function : 1;
 
+  /* Indicates if this function calls notify intrinsic */
+  unsigned int calls_notify_intrinsic : 1;
   /* this variable will tell whether we are on a spawn helper or not */
   unsigned int is_cilk_helper_function : 1;
   
@@ -672,6 +674,7 @@ struct GTY(()) function {
 };
 
 #define IS_CILK_HELPER(C) (C && C->is_cilk_helper_function == 1)
+#define CALLS_NOTIFY_INTRINSIC(C) (C && C->calls_notify_intrinsic == 1)
 
 /* Add the decl D to the local_decls list of FUN.  */
 

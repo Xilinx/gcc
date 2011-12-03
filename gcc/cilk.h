@@ -135,6 +135,8 @@ enum cilk_tree_index
     CILKSCREEN_TI_F_EN_CHECK,
     CILKSCREEN_TI_F_AQ_LOCK,
     CILKSCREEN_TI_F_REL_LOCK,
+    NOTIFY_ZC_INTRINSIC,
+    NOTIFY_INTRINSIC,
     CILK_TI_MAX
 };
 
@@ -190,20 +192,19 @@ extern GTY(()) tree cilk_trees[(int) CILK_TI_MAX];
 #define cilkscreen_enable_check_fndecl  cilk_trees[CILKSCREEN_TI_F_EN_CHECK]
 #define cilkscreen_aquire_lock_fndecl   cilk_trees[CILKSCREEN_TI_F_AQ_LOCK]
 #define cilkscreen_release_lock_fndecl  cilk_trees[CILKSCREEN_TI_F_REL_LOCK]
+#define notify_zc_intrinsic_fndecl      cilk_trees[NOTIFY_ZC_INTRINSIC]
+#define notify_intrinsic_fndecl         cilk_trees[NOTIFY_INTRINSIC]
 
 
-typedef struct GTY(()) zca_data_t
+typedef struct zca_data_t
 {
   rtx label; /* this is same as unsigned long ip */
-  unsigned int probespace;
-  unsigned int annotation;
   char *string;
   rtx reg_rtx;
   unsigned short dwarf_expr;
+  struct zca_data_t *ptr_next;
 } zca_data;
 
-DEF_VEC_O(zca_data);
-DEF_VEC_ALLOC_O(zca_data,gc);
 
 /* Offset of fields in the Cilk frame descriptor.
    Index is same as for cilk_trees.  If the index
@@ -266,4 +267,7 @@ extern tree create_detach_expr(tree frame);
 extern void cilk_output_metadata (void);
 extern void cilk_remove_annotated_functions (rtx first);
 extern bool cilk_annotated_function_p (char *); 	    
+extern void debug_zca_data (void);
+extern zca_data *get_zca_entry (int);
+extern void insert_in_zca_table (zca_data);				    
 #endif /* GCC_CILK_H */

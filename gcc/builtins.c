@@ -5798,6 +5798,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
   tree fndecl = get_callee_fndecl (exp);
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
   enum machine_mode target_mode = TYPE_MODE (TREE_TYPE (exp));
+  const char *func_name;
+  tree function_name = NULL_TREE;
   int flags;
 
   if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_MD)
@@ -6967,6 +6969,22 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       if (target)
         return target;
       break;
+      
+    case BUILT_IN_NOTIFY_INTRINSIC:
+    case BUILT_IN_NOTIFY_ZC_INTRINSIC:
+      CALL_EXPR_TAILCALL (exp) = 0; /* remove tail call optimization since
+				     * we are goign to get rid of it */
+      function_name = CALL_EXPR_ARG (exp, 0); /* this is the annotation name */
+      function_name = TREE_OPERAND (function_name, 0);
+      if (TREE_CODE (function_name) == STRING_CST)
+	func_name = TREE_STRING_POINTER (function_name);
+      else
+	gcc_unreachable ();
+      target = expand_builtin_cilk_metadata (func_name, exp);
+      if (target)
+	return target;
+      break;
+      
     case BUILT_IN_CILK_SYNCHED:
       target = expand_builtin_cilk_synched (exp);
       if (target)

@@ -41,7 +41,7 @@ tree cilk_trees[(int) CILK_TI_MAX];
 
 static HOST_WIDE_INT worker_tail_offset;
 
-GTY(()) VEC(zca_data,gc) *zca_stack;
+zca_data *zca_head;
 
 static tree
 cilk_declare_looper (const char *name, tree type)
@@ -120,7 +120,8 @@ cilk_init_builtins (void)
   tree ptr_list = tree_cons (NULL_TREE, ptr_type_node, void_list_node);
   tree ptr_fun = build_function_type (void_type_node, ptr_list);
   tree void_fun = build_function_type (void_type_node, void_list_node);
-
+  tree notify_intrinsic_arg = NULL_TREE;
+  
   /* Make the frame and worker tags first because they reference each other. */
   worker = lang_hooks.types.make_type (RECORD_TYPE);
   wptr_type = build_pointer_type (worker);
@@ -199,7 +200,12 @@ cilk_init_builtins (void)
   cilk_metacall_frame_type_decl = metacall_frame;
   lang_hooks.types.register_builtin_type (frame, "__metacall_data_t");
   cilk_mcall_frame_ptr_type_decl = build_qualified_type (metacall_fptr_type,
-							    TYPE_QUAL_RESTRICT);
+							 TYPE_QUAL_RESTRICT);
+  notify_intrinsic_arg = tree_cons (NULL_TREE, ptr_type_node,
+				    notify_intrinsic_arg);
+  notify_intrinsic_arg = tree_cons
+    (NULL_TREE, build_pointer_type (char_type_node), notify_intrinsic_arg);
+				    
   /* object could be named __cilk_frame_var for compatibility */
 
   fptr_v_type = build_qualified_type (fptr_type, TYPE_QUAL_VOLATILE);
@@ -387,6 +393,17 @@ cilk_init_builtins (void)
     ("cilkscreen_aquire_lock", ptr_fun, BUILT_IN_CILKSCREEN_AQUIRE_LOCK, true);
   cilkscreen_release_lock_fndecl = install_builtin
     ("cilkscreen_release_lock", ptr_fun, BUILT_IN_CILKSCREEN_REL_LOCK, true);
+  notify_intrinsic_fndecl = install_builtin
+    ("__notify_intrinsic",
+     build_function_type (void_type_node, notify_intrinsic_arg),
+     BUILT_IN_NOTIFY_INTRINSIC, true);
+  notify_zc_intrinsic_fndecl = install_builtin
+    ("__notify_zc_intrinsic", 
+     build_function_type (void_type_node, notify_intrinsic_arg),
+			 BUILT_IN_NOTIFY_ZC_INTRINSIC, true);
+			 
+
+  zca_head = NULL;
 }
 
 /* this function will call the value in a structure. eg. x.y */
@@ -781,10 +798,55 @@ create_metadata_label (const char *name)
   LABEL_NUSES (new_label) = 1;
   return new_label;
 }
+
+static void
+insert_into_zca_list (zca_data zca_entry)
+{
+  zca_data *ii_data;
+  if (!zca_head)
+    {
+      zca_head = (zca_data *) xmalloc (sizeof (zca_data));
+      gcc_assert (zca_head);
+      *zca_head = zca_entry;
+      zca_head->ptr_next = NULL;
+    }
+  else
+    {
+      for (ii_data = zca_head; ii_data->ptr_next; ii_data = ii_data->ptr_next)
+	{
+	  ;
+	}
+      ii_data->ptr_next = (zca_data *) xmalloc (sizeof (zca_data));
+      gcc_assert (ii_data->ptr_next);
+      *ii_data->ptr_next = zca_entry;
+      ii_data->ptr_next->ptr_next = NULL;
+    }
+  return;
+}
+
+static zca_data *
+find_zca_data (int entry_no)
+{
+  int ii = 0;
+  zca_data *ii_data = NULL;
+  for (ii_data = zca_head; ii_data; ii_data = ii_data->ptr_next)
+    {
+      if (ii == entry_no)
+	return ii_data;
+      ii++;
+    }
+  return NULL;
+}
+
 static int
 get_zca_entry_count (void)
 {
-  int length = VEC_length (zca_data, zca_stack);
+  int length = 0;
+  zca_data *ii_data;
+
+  for (ii_data = zca_head; ii_data; ii_data = ii_data->ptr_next)
+    length++;
+  
   return length; 
 }
 
@@ -798,7 +860,7 @@ get_zca_string_table_size (void)
 
   for (ii = 0; ii < length; ii++)
     {
-      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      zca_entry = find_zca_data (ii);
       str_length += strlen (zca_entry->string) + 1 ;
     }
   return str_length; 
@@ -826,7 +888,7 @@ output_zca_table (section *s)
 
   for (ii = 0; ii < length; ii++)
     {
-      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      zca_entry = find_zca_data (ii);
 
       /* this outputs the IP  */
       fputs (integer_asm_op (GET_MODE_SIZE (Pmode), 1), asm_out_file);
@@ -859,7 +921,7 @@ output_string_table (section *s)
 
   for (ii = 0; ii < length; ii++)
     {
-      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      zca_entry = find_zca_data (ii);
       for (jj = 0; jj < (int)strlen (zca_entry->string); jj++)
 	assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->string[jj]),
 			  1, 1, 1);
@@ -879,7 +941,7 @@ output_expr_table (section *s)
 
   for (ii = 0; ii < length; ii++)
     {
-      zca_entry = VEC_index (zca_data, zca_stack, ii);
+      zca_entry = find_zca_data (ii);
       assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->dwarf_expr),
 			2, 1, 1);
     }
@@ -979,7 +1041,7 @@ expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
   emit_insn_after (metadata_label, get_last_insn ());
   metadata_info.label = metadata_label;
   metadata_info.string = xstrdup (annotation);
-  
+  metadata_info.ptr_next = NULL;
   expr_list_rtx = XEXP (call_insn, 8);
   if (expr_list_rtx)
     {
@@ -1010,9 +1072,11 @@ expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
       /* this means we have no arguments */
       metadata_info.dwarf_expr = (1) | (DW_OP_lit0 << 8);
     }
-      
-  VEC_safe_push (zca_data, gc, zca_stack, &metadata_info);
-  
+  metadata_info.ptr_next = NULL;
+  insert_into_zca_list (metadata_info);
+  if (cfun)
+    cfun->calls_notify_intrinsic = 1;
+
   return const0_rtx;
 }
 
@@ -1035,6 +1099,8 @@ cilk_annotated_function_p (char *name)
 	   || !strcmp (name, "cilkscreen_metacall")
 	   || !strcmp (name, "cilk_resume")
 	   || !strcmp (name, "cilk_leave_stolen")
+	   || !strcmp (name, "__notify_zc_intrinsic")
+	   || !strcmp (name, "__notify_intrinsic")
 	   || !strcmp (name, "cilk_sync_abandon"))
     return true;
   else

@@ -3279,7 +3279,8 @@ schedule_insns (void)
 {
   int rgn;
 
-  if (IS_CILK_HELPER (cfun))
+  if (flag_enable_cilk 
+      && (IS_CILK_HELPER (cfun) || CALLS_NOTIFY_INTRINSIC (cfun)))
     return;
   
   /* Taking care of this degenerate case makes the rest of
