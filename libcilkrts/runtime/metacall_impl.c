@@ -37,9 +37,13 @@ __cilkrts_metacall(unsigned int tool, unsigned int code, void *data)
     // one and only use of a "cilkscreen_metacall" annotation
     metacall_data_t d = { tool, code, data };
 
-#ifdef __INTEL_COMPILER
+#ifdef ENABLE_NOTIFY_ZC_INTRINSIC
+    // Note that Inspector uses probe mode, and is implementing the metacall
+    // interface to force the runtime to run with a single worker.  So
+    // __cilkrts_metacall must use __notify_intrinsic instead of
+    // __notify_zc_intrinsic
     __notify_intrinsic("cilkscreen_metacall", &d);
-#endif // defined __INTEL_COMPILER
+#endif // ENABLE_NOTIFY_ZC_INTRINSIC
 }
 
 int __cilkrts_running_under_sequential_ptool(void)

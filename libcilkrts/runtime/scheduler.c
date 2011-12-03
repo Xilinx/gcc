@@ -104,7 +104,7 @@ static void __cilkrts_dump_stats_to_stderr(global_state_t *g)
 {
 #ifdef CILK_PROFILE
     int i;
-    for (i = 0; i < g->nworkers; ++i)
+    for (i = 0; i < g->total_workers; ++i)
         __cilkrts_accum_stats(&g->stats, &g->workers[i]->l->stats);
     dump_stats_to_file(stderr, &g->stats);
 #endif
@@ -700,7 +700,7 @@ static void random_steal(__cilkrts_worker *w)
 
     /* If there is only one processor work can still be stolen.
        There must be only one worker to prevent stealing. */
-    CILK_ASSERT(w->g->nworkers > 1);
+    CILK_ASSERT(w->g->total_workers > 1);
 
     /* Verify that we can get a stack.  If not, no need to continue. */
     sd = __cilkrts_get_stack(w);
@@ -709,7 +709,7 @@ static void random_steal(__cilkrts_worker *w)
     }
 
     /* pick random *other* victim */
-    n = myrand(w) % (w->g->nworkers - 1); if (n >= w->self) ++n;
+    n = myrand(w) % (w->g->total_workers - 1); if (n >= w->self) ++n;
     victim = w->g->workers[n];
 
     /* do not steal from self */
@@ -1081,22 +1081,32 @@ static void setup_for_execution_stack(__cilkrts_worker *w,
  */
 static void setup_for_execution_pedigree(__cilkrts_worker *w)
 {
+    int pedigree_unsynched;
     __cilkrts_stack_frame *sf = w->current_stack_frame;
 
-    CILK_ASSERT(NULL != w->current_stack_frame);
+    CILK_ASSERT(NULL != sf);
 
-    // Update the worker's pedigree information if this is an ABI 1 or later
-    // frame.  If we're just marshalling onto this worker, do not increment
+    // If this isn't an ABI 1 or later frame, there's no pedigree information
+    if (0 == CILK_FRAME_VERSION_VALUE(sf->flags))
+        return;
+
+    // Note whether the pedigree is unsynched and clear the flag before
+    // we forget
+    pedigree_unsynched = sf->flags & CILK_FRAME_SF_PEDIGREE_UNSYNCHED;
+    sf->flags &= ~CILK_FRAME_SF_PEDIGREE_UNSYNCHED;
+
+    // If we're just marshalling onto this worker, do not increment
     // the rank since that wouldn't happen in a sequential execution
-    if (CILK_FRAME_VERSION_VALUE(sf->flags) >= 1)
+    if (w->l->work_stolen || pedigree_unsynched)
     {
         if (w->l->work_stolen)
-            w->pedigree.rank = w->current_stack_frame->parent_pedigree.rank + 1;
+            w->pedigree.rank = sf->parent_pedigree.rank + 1;
         else
-            w->pedigree.rank = w->current_stack_frame->parent_pedigree.rank;
-        w->pedigree.next = w->current_stack_frame->parent_pedigree.next;
-        w->l->work_stolen = 0;
+            w->pedigree.rank = sf->parent_pedigree.rank;
     }
+
+    w->pedigree.next = sf->parent_pedigree.next;
+    w->l->work_stolen = 0;
 }
 
 static void setup_for_execution(__cilkrts_worker *w, 
@@ -1471,6 +1481,10 @@ static void do_sync(__cilkrts_worker *w, full_frame *f, __cilkrts_stack_frame *s
                 {
                     sf->parent_pedigree.rank = w->pedigree.rank;
                     sf->parent_pedigree.next = w->pedigree.next;
+
+                    // Note that the pedigree rank needs to be updated
+                    // when setup_for_execution_pedigree runs
+                    sf->flags |= CILK_FRAME_SF_PEDIGREE_UNSYNCHED;
                 }
 
                 /* the decjoin() for disown() is in
@@ -1481,14 +1495,14 @@ static void do_sync(__cilkrts_worker *w, full_frame *f, __cilkrts_stack_frame *s
         } END_WITH_WORKER_LOCK(w);
     } STOP_INTERVAL(w, INTERVAL_SYNC_CHECK);
 
-#ifdef __INTEL_COMPILER
+#ifdef ENABLE_NOTIFY_ZC_INTRINSIC
     // If we can't make any further progress on this thread, tell Inspector
     // that we're abandoning the work and will go find something else to do.
     if (abandoned)
     {
-        __notify_intrinsic("cilk_sync_abandon", 0);
+        __notify_zc_intrinsic("cilk_sync_abandon", 0);
     }
-#endif // defined __INTEL_COMPILER
+#endif // defined ENABLE_NOTIFY_ZC_INTRINSIC
 
     return; /* back to scheduler loop */
 }
@@ -1549,6 +1563,13 @@ void __cilkrts_c_THE_exception_check(__cilkrts_worker *w)
 
     if (stolen_p)
     {
+#ifdef ENABLE_NOTIFY_ZC_INTRINSIC
+        // Notify Inspector that the parent has been stolen and we're
+        // going to abandon this work and go do something else.  This
+        // will match the cilk_leave_begin in the compiled code
+        __notify_zc_intrinsic("cilk_leave_stolen", w->current_stack_frame);
+#endif // defined ENTABLE_NOTIFY_ZC_INTRINSIC
+
         DBGPRINTF ("%d-%p: longjmp_into_runtime from __cilkrts_c_THE_exception_check\n", w->self, GetWorkerFiber(w));
         longjmp_into_runtime(w, do_return_from_spawn, 0);
         DBGPRINTF ("%d-%p: returned from longjmp_into_runtime from __cilkrts_c_THE_exception_check?!\n", w->self, GetWorkerFiber(w));
@@ -2004,6 +2025,9 @@ static void make_worker_system(__cilkrts_worker *w) {
 }
 
 void __cilkrts_deinit_internal(global_state_t *g)
+
+
+
 {
     int i;
     __cilkrts_worker *w;
@@ -2025,7 +2049,7 @@ void __cilkrts_deinit_internal(global_state_t *g)
     // Destroy any system dependent global state
     __cilkrts_destroy_global_sysdep(g);
 
-    for (i = 0; i < g->nworkers; ++i)
+    for (i = 0; i < g->total_workers; ++i)
         destroy_worker(g->workers[i]);
 
     // Free memory for all worker blocks which were allocated contiguously
@@ -2152,9 +2176,8 @@ static enum schedule_t worker_runnable(__cilkrts_worker *w)
 // Initialize the worker structs, but don't start the workers themselves.
 static void init_workers(global_state_t *g)
 {
-    int nworkers = g->nworkers;
+    int total_workers = g->total_workers;
     int i;
-
     struct CILK_ALIGNAS(64) buffered_worker {
         __cilkrts_worker w;
         char buf[64];
@@ -2162,24 +2185,24 @@ static void init_workers(global_state_t *g)
 
     /* not needed if only one worker */
     __cilkrts_init_stack_cache(0, &g->stack_cache,
-                               2*g->nworkers * g->global_stack_cache_size);
+                               2*total_workers * g->global_stack_cache_size);
 
     g->workers = (__cilkrts_worker **)
-        __cilkrts_malloc(nworkers * sizeof(*g->workers));
+        __cilkrts_malloc(total_workers * sizeof(*g->workers));
 
     // Allocate 1 block of memory for workers to make life easier for tools
     // like Inspector which run multithreaded and need to know the memory
     // range for all the workers that will be accessed in a user's program
     workers_memory = (struct buffered_worker*)
-        __cilkrts_malloc(sizeof(*workers_memory) * nworkers);
+        __cilkrts_malloc(sizeof(*workers_memory) * total_workers);
 
     // Notify any tools that care (Cilkscreen and Inspector) that they should
     // ignore memory allocated for the workers
     __cilkrts_cilkscreen_ignore_block(&workers_memory[0],
-                                      &workers_memory[nworkers]);
+                                      &workers_memory[total_workers]);
 
     // Initialize worker structs, including unused worker slots.
-    for (i = 0; i < nworkers; ++i)
+    for (i = 0; i < total_workers; ++i)
         g->workers[i] = make_worker(g, i, &workers_memory[i].w);
 
     // Set the workers in the first P - 1 slots to be system workers.
@@ -2208,8 +2231,7 @@ void __cilkrts_init_internal(int start)
             // Cilkview) then there's only one worker and we need to tell
             // the tool about the extent of the stack
             if (g->under_ptool)
-                __cilkrts_establish_c_stack();
-
+                __cilkrts_establish_c_stack();     
             init_workers(g);
 
             // Initialize any system dependent global state

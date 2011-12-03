@@ -47,7 +47,8 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#ifdef _WIN32
+
+#ifdef _MSC_VER
 /* Some versions of icc don't support limits.h on Linux if
    gcc 4.3 or newer is installed. */
 #include <limits.h>
@@ -56,6 +57,7 @@
 void * _ReturnAddress(void);
 #pragma intrinsic(_ReturnAddress)
 
+#include "sysdep-win.h"     // Needed for sysdep_init_module()
 #endif  /* _WIN32 */
 
 #include "metacall_impl.h"
@@ -199,13 +201,6 @@ CILK_ABI_VOID __cilkrts_leave_frame(__cilkrts_stack_frame *sf)
 #if JFC_DEBUG
             __cilkrts_psf("except", w, sf, 0);
 #endif
-
-#ifdef __INTEL_COMPILER
-            // Notify Inspector that the parent has been stolen and we're
-            // going to abandon this work and go do something else.  This
-            // will match the cilk_leave_begin in the compiled code
-            __notify_intrinsic("cilk_leave_stolen", sf);
-#endif // defined __INTEL_COMPILER
             __cilkrts_c_THE_exception_check(w);
         }
         /* This path is taken when undo-detach wins the race with stealing.
@@ -299,7 +294,7 @@ static __cilkrts_worker *find_free_worker(global_state_t *g)
 
     // Scan the non-system workers looking for one which is free so we can
     // use it.
-    for (i = g->P - 1; i < g->nworkers; ++i) {
+    for (i = g->P - 1; i < g->total_workers; ++i) {
         w = g->workers[i];
         CILK_ASSERT(WORKER_SYSTEM != w->l->type);
         if (w->l->type == WORKER_FREE) {
@@ -347,6 +342,7 @@ CILK_ABI_WORKER_PTR BIND_THREAD_RTN(void)
 
     ITT_SYNC_CREATE (&unique_obj, "Initialization");
     ITT_SYNC_PREPARE(&unique_obj);
+    ITT_SYNC_ACQUIRED(&unique_obj);
 
     /* John - not sure how you initialize this on Linux */
     CILK_ASSERT (NULL != __cilkrts_global_os_mutex);
@@ -397,8 +393,6 @@ CILK_ABI_WORKER_PTR BIND_THREAD_RTN(void)
 
     __cilkrts_os_mutex_unlock(__cilkrts_global_os_mutex);
 
-    ITT_SYNC_ACQUIRED(&unique_obj);
-
 #if JFC_DEBUG
     fprintf(stderr, "Worker %d entered Cilk\n", w->self);
 #endif
@@ -410,6 +404,8 @@ CILK_ABI_WORKER_PTR BIND_THREAD_RTN(void)
         START_INTERVAL(w, INTERVAL_IN_SCHEDULER);
         START_INTERVAL(w, INTERVAL_WORKING);
     }
+
+    ITT_SYNC_RELEASING(&unique_obj);
 
     /* Turn on Cilkscreen if this is the first worker.  This needs to be done
      * when we are NOT holding the os mutex. */
@@ -451,6 +447,11 @@ CILK_ABI_WORKER_PTR __cilkrts_bind_thread(void)
 #endif // defined _DARWIN_C_SOURCE
 #endif // !defined _MSC_VER
 
+CILK_API_SIZET
+__cilkrts_get_stack_size(void) {
+    return cilkg_get_stack_size();
+}
+
 /*
  * __cilkrts_get_stack_region_id
  *
@@ -469,7 +470,7 @@ __cilkrts_get_stack_region_id(__cilkrts_thread_id thread_id)
     if (NULL == g)
         return NULL;
 
-    for (i = 0; i < g->nworkers; i++)
+    for (i = 0; i < g->total_workers; i++)
     {
         if (WORKER_FREE != g->workers[i]->l->type)
         {
@@ -585,7 +586,16 @@ __cilkrts_watch_stack(__cilk_tbb_unwatch_thunk *u,
                       __cilk_tbb_stack_op_thunk o)
 {
     __cilkrts_stack *sd;
-    __cilkrts_worker *w = __cilkrts_get_tls_worker();
+    __cilkrts_worker *w;
+
+#ifdef _MSC_VER
+    // This may be called by TBB *before* the OS has given us our
+    // initialization call.  Make sure the module is initialized.
+    sysdep_init_module();
+#endif
+
+    // Fetch the __cilkrts_worker bound to this thread
+    w = __cilkrts_get_tls_worker();
     if (NULL == w)
     {
         // Save data for later.  We'll deal with it when/if this thread binds
@@ -632,6 +642,27 @@ CILK_API_INT __cilkrts_synched(void)
     // time.  Note that this is a known race, but it's ok since we're only
     // reading
     return 1 == w->l->frame->join_counter;
+}
+
+CILK_API_INT
+__cilkrts_bump_loop_rank()
+{
+    struct __cilkrts_worker *w = __cilkrts_get_tls_worker();
+
+    // If we don't have a worker, then the runtime is not bound to this
+    // thread and there is no rank to increment
+    if (NULL == w)
+        return -1;
+
+    // We're at the start of the loop body.  Advance the cilk_for loop body
+    // pedigree rank
+    w->pedigree.next->rank++;
+
+    // Zero the worker's pedigree rank since this is the start of a new
+    // pedigree domain.
+    w->pedigree.rank = 0;
+
+    return 0;
 }
 
 /* end cilk-abi.c */

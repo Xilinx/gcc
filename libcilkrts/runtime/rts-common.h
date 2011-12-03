@@ -36,6 +36,7 @@
 #define CILK_API_VOID        CILK_API(void)
 #define CILK_API_VOID_PTR    CILK_API(void*)
 #define CILK_API_INT         CILK_API(int)
+#define CILK_API_SIZET       CILK_API(size_t)
 #define CILK_API_TBB_RETCODE CILK_API(__cilk_tbb_retcode)
 
 /* Abbreviations ABI functions returning different types.  By using these
@@ -86,5 +87,10 @@
 #   error define inline
 #   define inline __inline
 #endif
+
+/* Compilers that build the Cilk runtime are assumed to know about
+   zero-cost intrinsics.  For those that don't, comment out the
+   following definition: */
+#define ENABLE_NOTIFY_ZC_INTRINSIC
 
 #endif // ! defined(INCLUDED_RTS_COMMON_DOT_H)

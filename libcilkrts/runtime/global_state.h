@@ -95,7 +95,7 @@ typedef /* COMMON_PORTABLE */ struct global_state_t {
     /*************************************************************************
      * Note that debugger integration must reach into the
      * global state!  The debugger integration is depending on the
-     * offsets of the addr_size, system_workers, nworkers, stealing_disabled,
+     * offsets of the addr_size, system_workers, total_workers, stealing_disabled,
      * sysdep, and workers.  If these offsets change, the debugger integration
      * library will need to be changed to match!!!
      *************************************************************************/
@@ -104,10 +104,14 @@ typedef /* COMMON_PORTABLE */ struct global_state_t {
 
     int system_workers; /**< Number of system workers (fixed) */
 
-    /** Maximum number of user workers that can be bound to cilk workers. */
+    /**
+     * Maximum number of user workers that can be bound to cilk workers. 
+     * 0 unless set by user.  Call cilkg_calc_max_user_workers to get
+     * the value.
+     */
     int max_user_workers; /* USER SETTING - max Q (fixed) */
 
-    int nworkers;  /**< Total number of worker threads allocated (fixed) */
+    int total_workers;  /**< Total number of worker threads allocated (fixed) */
    
     int running;   /**< True when Cilk code is running */
 
@@ -312,8 +316,11 @@ static inline
 int cilkg_get_total_workers(void)
 {
     // "private" extern declaration
-    extern global_state_t* cilkg_get_user_settable_values(void);
-    return cilkg_get_user_settable_values()->nworkers;
+    extern int cilkg_calc_total_workers(void);
+
+    // This number can fluctate until initialization so we
+    // compute it from scratch
+    return cilkg_calc_total_workers();
 }
 
 /**
@@ -325,6 +332,17 @@ int cilkg_get_force_reduce(void)
     // "private" extern declaration
     extern global_state_t* cilkg_get_user_settable_values(void);
     return cilkg_get_user_settable_values()->force_reduce;
+}
+
+/**
+ * @brief implementation of __cilkrts_get_stack_size()
+ */
+static inline
+size_t cilkg_get_stack_size(void)
+{
+    // "private" extern declaration
+    extern global_state_t* cilkg_get_user_settable_values(void);
+    return cilkg_get_user_settable_values()->stack_size;
 }
 
 /**

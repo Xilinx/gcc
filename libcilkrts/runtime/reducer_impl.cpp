@@ -24,20 +24,11 @@
  * a copy of the GCC Runtime Library Exception along with this program;
  * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  * <http://www.gnu.org/licenses/>.
+ *
+ *  Patents Pending, Intel Corporation.
  **************************************************************************/
 
-/*
- * reducer_impl.cpp
- *
- * Copyright (c) 2007, 20011 Cilk Arts, Inc. 55 Cambridge Street, Burlington, MA
- * 01803.  Patents pending.  All rights reserved. Use, duplication or
- * disclosure is subject to the terms and conditions of of the Cilk Arts
- * Public License, version 1.0 (2008), or an applicable license agreement
- * with Cilk Arts, Inc. Use, duplication or disclosure by the U.S.
- * Government is further subject to restrictions set forth in FAR
- * 52.227-14, FAR 52.227-19(c)(1.2) (June 1987) or DFARS
- * 252.227-7013(c)(1)(ii) (Oct 1988), as applicable.
- *
+/**
  * Support for reducers
  */
 
@@ -79,11 +70,9 @@ struct EnableCilkscreen
 
 /** Element for a hyperobject */
 struct elem {
-    /// Key for this strand?
-    __cilkrts_hyperobject_base *key;
-
-    /// A view for the hyperobject
-    void *val;
+    void                *key;    // Shared key for this hyperobject
+    const cilk_c_monoid *monoid; // Shared monoid for this hyperobject
+    void                *val;    // Strand-private view of this hyperobject
 
     /// Destructor for an instance of this hyperobject
     void destroy();
@@ -126,21 +115,18 @@ struct cilkred_map {
     /** Set true for leftmost reducer map */
     bool is_leftmost;
 
-    /** Return element mapped to 'key' or null if not found. */
-    elem *lookup(__cilkrts_hyperobject_base *key);
+    /* Return element mapped to 'key' or null if not found. */
+    elem *lookup(void *key);
 
-    /**
-     * Insert key/value element into hash map without rehashing. Does not
-     * check for duplicate key.
-     */
-    elem *insert_no_rehash(__cilkrts_worker *, __cilkrts_hyperobject_base *key, void *value);
+    /* Insert key/value element into hash map without rehashing. Does not
+     * check for duplicate key. */
+    elem *insert_no_rehash(__cilkrts_worker *, void *key,
+                           const cilk_c_monoid *monoid, void *value);
 
-    /**
-     * Insert key/value element into hash map, rehashing if necessary. Does not
-     * check for duplicate key.
-     */
-    inline elem *rehash_and_insert(__cilkrts_worker *, 
-                                   __cilkrts_hyperobject_base *key, void *value);
+    /* Insert key/value element into hash map, rehashing if necessary. Does not
+     * check for duplicate key. */
+    inline elem *rehash_and_insert(__cilkrts_worker *, void *key,
+                                   const cilk_c_monoid *monoid, void *value);
 
     /** Grow bucket by one element, reallocating bucket if necessary */
     static elem *grow(__cilkrts_worker *w, bucket **bp);
@@ -275,8 +261,7 @@ bool cilkred_map::need_rehash_p() const
     return minsz(nelem) > nbuckets;
 }
 
-static inline size_t hashfun(const cilkred_map *h, 
-                             __cilkrts_hyperobject_base *key)
+static inline size_t hashfun(const cilkred_map *h, void *key)
 {
     size_t k = (size_t) key;
 
@@ -287,9 +272,20 @@ static inline size_t hashfun(const cilkred_map *h,
     return k & (h->nbuckets - 1);
 }
 
-static inline void* get_leftmost_view(__cilkrts_hyperobject_base *key)
+// Given a __cilkrts_hyperobject_base, return a pointer to the leftmost view
+// object.
+static inline void* get_leftmost_view(__cilkrts_hyperobject_base *hb)
 {
-    return reinterpret_cast<char*>(key) + key->__view_offset;
+    return reinterpret_cast<char*>(hb) + hb->__view_offset;
+}
+
+// Given a hyperobject key, return a pointer to the leftmost object.  In the
+// current implementation, the address of the leftmost object IS the key, so
+// this function is an effective noop.  The key is passed by reference so that
+// conversion of arbitrary pointers to 'void*' are supressed.
+static inline void* get_leftmost_view(void *&key)
+{
+    return key;
 }
 
 /* debugging support: check consistency of a reducer map */
@@ -349,16 +345,17 @@ elem *cilkred_map::grow(__cilkrts_worker *w,
     return &(nb->el[nmax]);
 }
 
-elem *cilkred_map::insert_no_rehash(__cilkrts_worker *w, 
-                                    __cilkrts_hyperobject_base *key, void *val)
+elem *cilkred_map::insert_no_rehash(__cilkrts_worker *w, void *key,
+                                    const cilk_c_monoid* monoid, void *val)
 {
     CILK_ASSERT((w == 0 && g == 0) || w->g == g);
     CILK_ASSERT(key != 0);
     CILK_ASSERT(val != 0);
 
     elem *el = grow(w, &(buckets[hashfun(this, key)]));
-    el->key = key;
-    el->val = val;
+    el->key    = key;
+    el->monoid = monoid;
+    el->val    = val;
     ++nelem;
 
     return el;
@@ -381,7 +378,7 @@ void cilkred_map::rehash(__cilkrts_worker *w)
         if (b) {
             elem *oel;
             for (oel = b->el; oel->key; ++oel) 
-                insert_no_rehash(w, oel->key, oel->val);
+                insert_no_rehash(w, oel->key, oel->monoid, oel->val);
         }
     }
 
@@ -390,17 +387,17 @@ void cilkred_map::rehash(__cilkrts_worker *w)
     free_buckets(w, obuckets, onbuckets);
 }
 
-elem *cilkred_map::rehash_and_insert(__cilkrts_worker *w, 
-                                     __cilkrts_hyperobject_base *key, void *val)
+elem *cilkred_map::rehash_and_insert(__cilkrts_worker *w, void *key,
+                                     const cilk_c_monoid* monoid, void *val)
 {
     if (need_rehash_p())
         rehash(w);
 
-    return insert_no_rehash(w, key, val);
+    return insert_no_rehash(w, key, monoid, val);
 }
 
 
-elem *cilkred_map::lookup(__cilkrts_hyperobject_base *key)
+elem *cilkred_map::lookup(void *key)
 {
     bucket *b = buckets[hashfun(this, key)];
 
@@ -419,12 +416,14 @@ elem *cilkred_map::lookup(__cilkrts_hyperobject_base *key)
 
 void elem::destroy()
 {
-    const cilk_c_monoid &m = key->__c_monoid;
     // Call destroy_fn and deallocate_fn on all but the leftmost value
-    if (val != get_leftmost_view(key))
+    if (val != key)
     {
-        m.destroy_fn(key, val);
-        m.deallocate_fn(key, val);
+        cilk_c_reducer_destroy_fn_t    destroy_fn    = monoid->destroy_fn;
+        cilk_c_reducer_deallocate_fn_t deallocate_fn = monoid->deallocate_fn;
+
+        destroy_fn(key, val);
+        deallocate_fn(key, val);
     }
     val = 0;
 }
@@ -474,11 +473,11 @@ CILK_EXPORT void __CILKRTS_STRAND_STALE(
 
 extern "C"
 CILK_EXPORT
-void __cilkrts_hyper_create(__cilkrts_hyperobject_base *key)
+void __cilkrts_hyper_create(__cilkrts_hyperobject_base *hb)
 {
-    // This function registers the specified key in the current reducer map
-    // and registers the initial value of key as the leftmost view of the
-    // reducer.
+    // This function registers the specified hyperobject in the current
+    // reducer map and registers the initial value of the hyperobject as the
+    // leftmost view of the reducer.
     __cilkrts_worker *w = __cilkrts_get_tls_worker();
     if (! w) {
         // If there is no worker, then there is nothing to do: The iniitial
@@ -492,22 +491,24 @@ void __cilkrts_hyper_create(__cilkrts_hyperobject_base *key)
     // will prevent Cilkscreen from reporting apparent races in reducers
     DisableCilkscreen x;
 
-    void* val = get_leftmost_view(key);
+    void* val = get_leftmost_view(hb);
     cilkred_map *h = w->reducer_map;
 
     /* Must not exist. */
-    CILK_ASSERT(h->lookup(key) == NULL);
+    CILK_ASSERT(h->lookup(val) == NULL);
     if (h->merging)
         __cilkrts_bug("User error: hyperobject used by another hyperobject");
 
-    (void) h->rehash_and_insert(w, key, val);
+    // The address of the leftmost value is the same as the key for lookup.
+    (void) h->rehash_and_insert(w, val, &hb->__c_monoid, val);
 }
 
 extern "C"
 CILK_EXPORT void* __CILKRTS_STRAND_PURE(
-    __cilkrts_hyper_lookup(__cilkrts_hyperobject_base *key))
+    __cilkrts_hyper_lookup(__cilkrts_hyperobject_base *hb))
 {
     __cilkrts_worker* w = __cilkrts_get_tls_worker_fast();
+    void* key = get_leftmost_view(hb);
     if (! w)
         return get_leftmost_view(key);
 
@@ -530,16 +531,21 @@ CILK_EXPORT void* __CILKRTS_STRAND_PURE(
             /* re-enable cilkscreen while calling the constructor */
             EnableCilkscreen eguard;
             if (h->is_leftmost)
+            {
+                // This special case is called only if the reducer was not
+                // registered using __cilkrts_hyper_create, i.e., if this is a
+                // C reducer in global scope.
                 rep = get_leftmost_view(key);
+            }
             else
             {
-                rep = key->__c_monoid.allocate_fn(key, key->__view_size);
+                rep = hb->__c_monoid.allocate_fn(hb, hb->__view_size);
                 // TBD: Handle exception on identity function
-                key->__c_monoid.identity_fn(key, rep);
+                hb->__c_monoid.identity_fn(hb, rep);
             }
         }
 
-        el = h->rehash_and_insert(w, key, rep);
+        el = h->rehash_and_insert(w, key, &hb->__c_monoid, rep);
     }
 
     return el->val;
@@ -663,7 +669,7 @@ cilkred_map *cilkred_map::move(cilkred_map *r,
                 CILK_ASSERT(el->val);
 
                 /* move object from right map to left */
-                n->rehash_and_insert(to, el->key, el->val);
+                n->rehash_and_insert(to, el->key, el->monoid, el->val);
                 el->val = 0;
             }
         }
@@ -727,7 +733,8 @@ void cilkred_map::merge(__cilkrts_worker *w,
     // Merging to the leftmost view is a special case because every leftmost
     // element must be initialized before the merge.
     CILK_ASSERT(!other_map->is_leftmost /* || kind == MERGE_UNORDERED */);
-    bool merge_to_leftmost = (this->is_leftmost /* && !other_map->is_leftmost */);
+    bool merge_to_leftmost = (this->is_leftmost
+                              /* && !other_map->is_leftmost */);
 
     DBG check(/*allow_null_val=*/false);
     DBG other_map->check(/*allow_null_val=*/false);
@@ -741,7 +748,8 @@ void cilkred_map::merge(__cilkrts_worker *w,
                 void *other_val = other_el->val;
                 CILK_ASSERT(other_val);
 
-                __cilkrts_hyperobject_base *key = other_el->key;
+                void *key = other_el->key;
+                const cilk_c_monoid *monoid = other_el->monoid;
                 elem *this_el = lookup(key);
 
                 if (this_el == 0 && merge_to_leftmost) {
@@ -760,12 +768,12 @@ void cilkred_map::merge(__cilkrts_worker *w,
                     // true and we must avoid reducing the initial view with
                     // itself.
                     if (leftmost != other_val)
-                        this_el = rehash_and_insert(w, key, leftmost);
+                        this_el = rehash_and_insert(w, key, monoid, leftmost);
                 }
 
                 if (this_el == 0) {
                     /* move object from other map into this one */
-                    rehash_and_insert(w, key, other_val);
+                    rehash_and_insert(w, key, monoid, other_val);
                     other_el->val = 0;
                     continue; /* No element-level merge necessary */
                 }
@@ -791,7 +799,7 @@ void cilkred_map::merge(__cilkrts_worker *w,
 
                     /* TBD: if reduce throws an exception we need to stop it
                        here. */
-                    key->__c_monoid.reduce_fn(key,this_el->val, other_el->val);
+                    this_el->monoid->reduce_fn(key,this_el->val,other_el->val);
 
                     /* Restore stealing */
                     __cilkrts_restore_stealing(w, saved_protected_tail);

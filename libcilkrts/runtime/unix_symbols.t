@@ -23,6 +23,7 @@
 
 __cilkrts_bind_thread
 __cilkrts_bind_thread_1
+__cilkrts_bump_loop_rank
 __cilkrts_bump_worker_rank
 __cilkrts_cilk_for_32
 __cilkrts_cilk_for_64
@@ -37,6 +38,7 @@ __cilkrts_get_pedigree_info
 __cilkrts_get_sf
 __cilkrts_get_stack_region_id
 __cilkrts_get_stack_region_properties
+__cilkrts_get_stack_size
 __cilkrts_get_tls_worker
 __cilkrts_get_tls_worker_fast
 __cilkrts_get_total_workers
