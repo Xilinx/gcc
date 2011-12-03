@@ -791,9 +791,9 @@ create_metadata_label (const char *name)
 
   new_label = gen_label_rtx ();
   LABEL_PRESERVE_P (new_label) = 1;
-  /* PUT_CODE (new_label, NOTE);
-     NOTE_KIND (new_label) = NOTE_INSN_DELETED_LABEL; */
-  /* NOTE_DELETED_*/ LABEL_NAME (new_label) = name;
+  PUT_CODE (new_label, NOTE); 
+  NOTE_KIND (new_label) = NOTE_INSN_DELETED_LABEL;
+  NOTE_DELETED_LABEL_NAME (new_label) = name;
   INSN_UID (new_label) = crtl->emit.x_cur_insn_uid++;
   LABEL_NUSES (new_label) = 1;
   return new_label;
@@ -948,7 +948,12 @@ output_expr_table (section *s)
   return;
 }
 
-
+static void
+delete_zca_list (void)
+{
+  zca_head = NULL;
+  return;
+}
 void
 cilk_output_metadata (void)
 {
@@ -1021,6 +1026,8 @@ cilk_output_metadata (void)
   output_asm_label (expr_label);
   fputs(":\n", asm_out_file);
   output_expr_table (s);
+
+  delete_zca_list();
  
   return;
 }

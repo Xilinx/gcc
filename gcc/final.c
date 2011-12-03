@@ -4353,6 +4353,9 @@ rest_of_handle_final (void)
      Otherwise it's not strictly necessary, but it doesn't hurt either.  */
   output_function_exception_table (fnname);
 
+  if (flag_enable_cilk)
+    cilk_output_metadata ();
+
   assemble_end_function (current_function_decl, fnname);
 
   user_defined_section_attribute = false;

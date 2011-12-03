@@ -1,5 +1,14 @@
 2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* cilk.c (create_metadata_label): Make notes instead of CODE_LABEL.
+	(delete_zca_list): New function.
+	(cilk_output_metadata): Called delete_zca_list().
+	* final.c (rest_of_handle_final): Added a call for
+	cilk_output_metadata.
+	* toplev.c (compile_file): Removed call for cilk_output_metadata.
+
+2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* builtin.c (expand_builtin): Added support for NOTIFY_INTRINSIC and
 	NOTIFY_ZC_INTRINSIC.
 	* builtins.def: Likewise.
