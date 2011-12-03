@@ -349,9 +349,9 @@ cilk_init_builtins (void)
   cilk_enter_end_fndecl = install_builtin ("cilk_enter_end", fptr_fun,
 					   BUILT_IN_CILK_ENTER_END, true);
   cilk_spawn_prepare_fndecl = install_builtin
-    ("__cilk_spawn_prepare", fptr_fun, BUILT_IN_CILK_SPAWN_PREPARE, true);
+    ("cilk_spawn_prepare", fptr_fun, BUILT_IN_CILK_SPAWN_PREPARE, true);
   cilk_spawn_or_cont_fndecl = install_builtin
-    ("__cilk_spawn_or_continue", int_fun, BUILT_IN_SPAWN_OR_CONT, true);
+    ("cilk_spawn_or_continue", int_fun, BUILT_IN_SPAWN_OR_CONT, true);
   cilk_detach_begin_fndecl = install_builtin ("cilk_detach_begin", fptr_fun,
 					      BUILT_IN_CILK_DETACH_BEGIN, true);
   cilk_detach_end_fndecl = install_builtin ("cilk_detach_end", void_fun,
@@ -799,7 +799,7 @@ get_zca_string_table_size (void)
   for (ii = 0; ii < length; ii++)
     {
       zca_entry = VEC_index (zca_data, zca_stack, ii);
-      str_length += strlen (zca_entry->string);
+      str_length += strlen (zca_entry->string) + 1 ;
     }
   return str_length; 
 }
@@ -838,7 +838,7 @@ output_zca_table (section *s)
 
       /* this outputs the offset to the string table */
       assemble_integer (gen_rtx_CONST_INT (BLKmode, str_table_offset), 4, 1, 1);
-      str_table_offset += strlen (zca_entry->string);
+      str_table_offset += strlen (zca_entry->string) + 1;
 
       /* this outputs the offset to the annotation table */
       assemble_integer (gen_rtx_CONST_INT (BLKmode, annotation_table_offset),
@@ -861,10 +861,9 @@ output_string_table (section *s)
     {
       zca_entry = VEC_index (zca_data, zca_stack, ii);
       for (jj = 0; jj < (int)strlen (zca_entry->string); jj++)
-	{
-	  assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->string[jj]),
-			    1, 1, 1);
-	}
+	assemble_integer (gen_rtx_CONST_INT (BLKmode, zca_entry->string[jj]),
+			  1, 1, 1);
+      assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 1, 1, 1);
     }  
   return;
 }
@@ -905,7 +904,7 @@ cilk_output_metadata (void)
   
   /* create a new zca section (if necessary) and switch to it */
   s = get_unnamed_section (0, output_section_asm_op,
-			   "\t.section .itt_notify_tab,\"aw\"");
+			   "\t.section .itt_notify_tab,\"a\"");
   switch_to_section (s);
   assemble_align (BITS_PER_WORD);
 
@@ -920,13 +919,13 @@ cilk_output_metadata (void)
   /* here we output the magic number */
   for (ii = 0; ii < (int)strlen (itt_string); ii++)
     assemble_integer (gen_rtx_CONST_INT (BLKmode, itt_string[ii]), 1, 1, 1);
-
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, 0), 1, 1, 1);
   /* here we output the major and minor version number */
   assemble_integer (gen_rtx_CONST_INT (BLKmode, ZCA_MAJOR_VER_NUMBER), 1, 1, 1);
   assemble_integer (gen_rtx_CONST_INT (BLKmode, ZCA_MINOR_VER_NUMBER), 1, 1, 1);
 
   entry_count = get_zca_entry_count ();
-  assemble_integer (gen_rtx_CONST_INT (BLKmode, entry_count), 4, 1, 1);
+  assemble_integer (gen_rtx_CONST_INT (BLKmode, entry_count), 2, 1, 1);
 
   /* now we output the offet to the string table. This is done by printing out
    * the label for string_table_start, then a '-' then start_label. The linker
@@ -1003,13 +1002,13 @@ expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
       gcc_assert (loc_ref);
       size = (unsigned short) size_of_locs (loc_ref);
 
-      metadata_info.dwarf_expr = (unsigned short)(size << 8) |
-	(unsigned short) (loc_ref->dw_loc_opc & 0xFF);
+      metadata_info.dwarf_expr = (unsigned short)(size & 0xFF) |
+	(unsigned short) (loc_ref->dw_loc_opc << 8);
     }  
   else
     {
       /* this means we have no arguments */
-      metadata_info.dwarf_expr = (1 << 8) | (DW_OP_lit0);
+      metadata_info.dwarf_expr = (1) | (DW_OP_lit0 << 8);
     }
       
   VEC_safe_push (zca_data, gc, zca_stack, &metadata_info);
@@ -1083,10 +1082,8 @@ cilk_remove_annotated_functions (rtx first)
 	    }
 	}
     }
-
   for (ii = 0; ii < VEC_length (rtx, rtx_delete_list); ii++)
-    {
-      remove_insn (VEC_index (rtx, rtx_delete_list, ii));
-    }
+    remove_insn (VEC_index (rtx, rtx_delete_list, ii));
+  
   return;
 }

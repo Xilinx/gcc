@@ -1,3 +1,19 @@
+2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_init_builtins): Removed prefixing undescores from
+	cilk_spawn_prepare and cilk_spawn_or_continue.
+	(get_zca_table_size): Added 1 to length of string.
+	(output_zca_section): Likewise.
+	(cilk_output_metadata): Added a '0' to indicate end of string.  Also
+	removed 'w' from the section type.  Finally, changed the entry count
+	size from 4 to 2.
+	(expand_builtin_cilk_metadata): Flipped the bytes of dwarf_expr in two
+	places.
+	(output_string_table): Removed unnecessary curly braces.
+	(cilk_remove_annotated_functions): Likewise.
+	* dwarf2out.c (dwarf2out_var_location): Make early return if cilk is
+	enabled.
+
 2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* opts.c: Removed the CILKPLUS_IMPLEMENTED macro and the #ifdef and

@@ -20252,6 +20252,8 @@ dwarf2out_var_location (rtx loc_note)
       ca_loc->call_arg_loc_note = loc_note;
       ca_loc->next = NULL;
       ca_loc->label = last_label;
+      if (flag_enable_cilk)
+	return;
       gcc_assert (prev
 		  && (CALL_P (prev)
 		      || (NONJUMP_INSN_P (prev)
