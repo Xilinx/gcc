@@ -477,7 +477,24 @@ i[34567]86-*-*)
 	tm_file="vxworks-dummy.h ${tm_file}"
 	;;
 x86_64-*-*)
-	tm_file="i386/biarch64.h ${tm_file}"
+	case ${with_multilib_default} in
+	default)
+		if test "x$with_multilib_list" = xmx32; then
+			tm_file="i386/biarchx32.h ${tm_file}"
+		else
+			tm_file="i386/biarch64.h ${tm_file}"
+		fi
+		;;
+	m64)
+		tm_file="i386/biarch64.h ${tm_file}"
+		;;
+	mx32)
+		tm_file="i386/biarchx32.h ${tm_file}"
+		;;
+	*)
+		echo "--with-multilib-default=${with_multilib_default} not supported."
+		exit 1
+	esac
 	if test "x$enable_cld" = xyes; then
 		tm_defines="${tm_defines} USE_IX86_CLD=1"
 	fi
