@@ -1184,16 +1184,21 @@ pph_in_binding_level (pph_stream *stream)
 }
 
 
-/* Read all the merge keys from STREAM into the cp_binding_level BL.  */
+/* Read all the merge keys from STREAM into the cp_binding_level BL.
+   If BL is NULL, it means that this is the first time we read BL,
+   so no merging is actually required.  In this case, the merge keys
+   for every symbol and type will be read and cache entries will be
+   created for them, so that their bodies can be read after we finish
+   reading all the merge keys for BL.  */
 
 static void
 pph_in_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
   /* Read all the merge keys and merge into the bindings.  */
-  pph_in_merge_key_chain (stream, &bl->names);
-  pph_in_merge_key_chain (stream, &bl->namespaces);
-  pph_in_merge_key_chain (stream, &bl->usings);
-  pph_in_merge_key_chain (stream, &bl->using_directives);
+  pph_in_merge_key_chain (stream, (bl) ? &bl->names : NULL);
+  pph_in_merge_key_chain (stream, (bl) ? &bl->namespaces : NULL);
+  pph_in_merge_key_chain (stream, (bl) ? &bl->usings : NULL);
+  pph_in_merge_key_chain (stream, (bl) ? &bl->using_directives : NULL);
 }
 
 
@@ -2250,7 +2255,7 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
    STREAM.  */
 
 static void
-pph_in_merge_key_namespace_decl (pph_stream *stream)
+pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
 {
   bool is_namespace_alias;
 
@@ -2261,14 +2266,27 @@ pph_in_merge_key_namespace_decl (pph_stream *stream)
   is_namespace_alias = pph_in_bool (stream);
   if (!is_namespace_alias)
     {
-      cp_binding_level *bl = ggc_alloc_cleared_cp_binding_level ();
+      /* If this is the first time we see DECL, it will not have
+	 a decl_lang nor a binding level associated with it.  This
+	 means that we do not actually need to do any merging, so
+	 we just read all the merge keys for its binding level.
+
+	 This will create cache entries for every symbol and type
+	 under DECL, but it will not try to attempt any merging.
+	 This is fine.  The namespace will be populated once we read
+	 DECL's body.  */
+      cp_binding_level *bl = DECL_LANG_SPECIFIC (decl)
+			     ? NAMESPACE_LEVEL (decl)
+			     : NULL;
       pph_in_merge_key_binding_level (stream, bl);
     }
 }
 
 
-/* Read a merge key from STREAM.  If the merge key read from STREAM
-   is not found in *CHAIN, the newly allocated tree is added to it.  */
+/* Read a merge key from STREAM.  If CHAIN is not NULL and the merge
+   key read from STREAM is not found in *CHAIN, the newly allocated
+   tree is added to it.  If no CHAIN is given, then the tree is just
+   allocated and added to the pickle cache.  */
 
 static tree
 pph_in_merge_key_tree (pph_stream *stream, tree *chain)
@@ -2295,11 +2313,11 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   gcc_assert (pph_tree_is_mergeable (read_expr));
   name = pph_in_string (stream);
 
-  /* Look for a match in CHAIN to READ_EXPR's header.  If we found a
-     match, EXPR will be the existing tree that matches READ_EXPR.
-     Otherwise, EXPR is the newly allocated READ_EXPR.  */
-  expr = pph_merge_into_chain (read_expr, name, chain);
-
+  /* If we are merging into an existing CHAIN.  Look for a match in
+     CHAIN to READ_EXPR's header.  If we found a match, EXPR will be
+     the existing tree that matches READ_EXPR. Otherwise, EXPR is the
+     newly allocated READ_EXPR.  */
+  expr = (chain) ? pph_merge_into_chain (read_expr, name, chain) : read_expr;
   gcc_assert (expr != NULL);
 
   pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
@@ -2312,7 +2330,7 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   if (DECL_P (expr))
     {
       if (TREE_CODE (expr) == NAMESPACE_DECL)
-	pph_in_merge_key_namespace_decl (stream);
+	pph_in_merge_key_namespace_decl (stream, expr);
 #if 0
 /* FIXME pph: Disable type merging for the moment.  */
       else if (TREE_CODE (expr) == TYPE_DECL)

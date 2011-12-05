@@ -1,5 +1,12 @@
 2011-12-05   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/x1namespace-alias1.cc: Rename from x1namespace-alias.cc
+	* g++.dg/pph/x1namespace-alias1.h: New.
+	* g++.dg/pph/x1namespace-alias2.cc: New.
+	* g++.dg/pph/x1namespace-alias2.h: New.
+
+2011-12-05   Diego Novillo  <dnovillo@google.com>
+
 	g++.dg/pph/x0namespace-alias.h: New.
 	g++.dg/pph/x1namespace-alias.cc: New.
 

@@ -1,5 +1,13 @@
 2011-12-05   Diego Novillo  <dnovillo@google.com>
 
+	* cp/pph-in.c (pph_in_merge_key_binding_level): Support NULL values
+	of BL.
+	(pph_in_merge_key_namespace_decl): If DECL does not have
+	DECL_LANG_SPECIFIC set, use a NULL binding level.
+	(pph_in_merge_key_tree): Support NULL values of CHAIN.
+
+2011-12-05   Diego Novillo  <dnovillo@google.com>
+
 	* pph-out.c (pph_out_tcc_declaration): Write DECL_ABSTRACT_ORIGIN.
 	* pph-in.c (pph_in_tcc_declaration_tail): Read DECL_ABSTRACT_ORIGIN.
 	(pph_in_merge_key_namespace_decl): Remove argument DECL.
