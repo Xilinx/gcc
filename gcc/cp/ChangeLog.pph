@@ -1,3 +1,11 @@
+2011-12-05   Diego Novillo  <dnovillo@google.com>
+
+	* pph-out.c (pph_out_tcc_declaration): Write DECL_ABSTRACT_ORIGIN.
+	* pph-in.c (pph_in_tcc_declaration_tail): Read DECL_ABSTRACT_ORIGIN.
+	(pph_in_merge_key_namespace_decl): Remove argument DECL.
+	Update all users.
+	Create an empty binding level to read all merge keys into.
+
 2011-12-02   Diego Novillo  <dnovillo@google.com>
 
 	* pph-in.c (pph_in_lang_decl_start): Rename from pph_in_ref_lang_decl.

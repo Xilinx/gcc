@@ -1873,6 +1873,7 @@ static void
 pph_in_tcc_declaration_tail (pph_stream *stream, tree decl)
 {
   DECL_INITIAL (decl) = pph_in_tree (stream);
+  DECL_ABSTRACT_ORIGIN (decl) = pph_in_tree (stream);
 
   /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
      We need to read DECL_CHAIN for variables and functions because
@@ -2249,7 +2250,7 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
    STREAM.  */
 
 static void
-pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
+pph_in_merge_key_namespace_decl (pph_stream *stream)
 {
   bool is_namespace_alias;
 
@@ -2260,20 +2261,7 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
   is_namespace_alias = pph_in_bool (stream);
   if (!is_namespace_alias)
     {
-      cp_binding_level *bl;
-
-      if (DECL_LANG_SPECIFIC (decl))
-	/* Merging into an existing namespace.  */
-	bl = NAMESPACE_LEVEL (decl);
-      else
-	{
-	  /* This is a new namespace.  Allocate a lang_decl and a binding
-	     level to DECL.  */
-	  retrofit_lang_decl (decl);
-	  bl = ggc_alloc_cleared_cp_binding_level ();
-	  NAMESPACE_LEVEL (decl) = bl;
-	}
-
+      cp_binding_level *bl = ggc_alloc_cleared_cp_binding_level ();
       pph_in_merge_key_binding_level (stream, bl);
     }
 }
@@ -2324,7 +2312,7 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   if (DECL_P (expr))
     {
       if (TREE_CODE (expr) == NAMESPACE_DECL)
-	pph_in_merge_key_namespace_decl (stream, expr);
+	pph_in_merge_key_namespace_decl (stream);
 #if 0
 /* FIXME pph: Disable type merging for the moment.  */
       else if (TREE_CODE (expr) == TYPE_DECL)

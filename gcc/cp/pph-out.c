@@ -1866,6 +1866,7 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
 {
   pph_out_lang_decl (stream, decl);
   pph_out_tree (stream, DECL_INITIAL (decl));
+  pph_out_tree (stream, DECL_ABSTRACT_ORIGIN (decl));
 
   /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
      We need to write DECL_CHAIN for variables and functions because
