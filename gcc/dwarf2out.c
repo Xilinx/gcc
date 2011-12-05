@@ -8606,19 +8606,19 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
 static void
 output_skeleton_debug_sections (void)
 {
-  dw_die_ref die = gen_compile_unit_die (NULL);
+  dw_die_ref comp_unit = gen_compile_unit_die (NULL);
   /* The splitter will fill in the file name.  It would be good to allocate
      a fairly large string here to make it easy for the splitter though.  */
-  char *dwo_file_name = "<current file>";
+  const char *dwo_file_name = "<current file>";
 
   /* No source file name for the skeleton debug_info.  */
-  add_AT_lineptr (die, DW_AT_stmt_list, debug_line_section_label);
+  add_AT_lineptr (comp_unit, DW_AT_stmt_list, debug_line_section_label);
   /* These attributes will be found in the full debug_info section.  */
-  remove_AT (die, DW_AT_producer);
-  remove_AT (die, DW_AT_language);
-  add_AT_string (die, DW_AT_GNU_dwo_name, dwo_file_name);
+  remove_AT (comp_unit, DW_AT_producer);
+  remove_AT (comp_unit, DW_AT_language);
+  add_AT_string (comp_unit, DW_AT_GNU_dwo_name, dwo_file_name);
   /* FIXME: How is this value determined?  */
-  add_AT_unsigned (die, DW_AT_GNU_dwo_id, 0);
+  add_AT_unsigned (comp_unit, DW_AT_GNU_dwo_id, 0);
 
   switch_to_section (debug_skeleton_info_section);
   ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_info_section_label,
@@ -8635,7 +8635,8 @@ output_skeleton_debug_sections (void)
   /* One for the terminating NULL byte.  */
   dw2_asm_output_data (DWARF_OFFSET_SIZE,
 		       DWARF_COMPILE_UNIT_HEADER_SIZE
-                       - DWARF_INITIAL_LENGTH_SIZE + size_of_die (die) + 1,
+                       - DWARF_INITIAL_LENGTH_SIZE
+                       + size_of_die (comp_unit) + 1,
 		       "Length of Compilation Unit Info");
   dw2_asm_output_data (2, dwarf_version, "DWARF version number");
   ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_abbrev_section_label,
@@ -8645,22 +8646,26 @@ output_skeleton_debug_sections (void)
 			 "Offset Into Abbrev. Section");
   dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Pointer Size (in bytes)");
 
-  die->die_abbrev = 1;
-  output_die (die);
+  comp_unit->die_abbrev = 1;
+  output_die (comp_unit);
   dw2_asm_output_data (1, 0, "end of skeleton .debug_info");
 
   if (use_debug_types)
     {
-      const char *secname = ".debug_types.dwo";
       /* Produce the skeleton type-unit header.  */
-      /* FIXME: Checking OBJECT_FORMAT_ELF here seems wrong.  Shouldn't the
-         check be for COMDAT support?  (cf, output_comdat_type_unit).  */
+      const char *secname = ".debug_types";
+      dw_die_ref type_unit = new_die (DW_TAG_type_unit, NULL, NULL);
+      add_AT_string (type_unit, DW_AT_GNU_dwo_name, dwo_file_name);
+      /* FIXME: How is this value determined?  */
+      add_AT_unsigned (type_unit, DW_AT_GNU_dwo_id, 0);
+      type_unit->die_abbrev = 1;
+
 #if defined (OBJECT_FORMAT_ELF)
       targetm.asm_out.named_section (secname, SECTION_DEBUG, NULL);
 #else
       switch_to_section (get_section (secname, SECTION_DEBUG, NULL));
 #endif
-
+      output_die (type_unit);
     }
 
   /* Build an empty skeleton debug_abbrev section.  */
@@ -8669,14 +8674,14 @@ output_skeleton_debug_sections (void)
 
   /* Only one abbreviation here.  */
   dw2_asm_output_data_uleb128 (1, "(abbrev code)");
-  dw2_asm_output_data_uleb128 (die->die_tag, "(TAG: %s)",
-                               dwarf_tag_name (die->die_tag));
+  dw2_asm_output_data_uleb128 (comp_unit->die_tag, "(TAG: %s)",
+                               dwarf_tag_name (comp_unit->die_tag));
   dw2_asm_output_data (1, DW_children_no, "DW_children_no");
   {
     int ix;
     dw_attr_ref a_attr;
 
-    for (ix = 0; VEC_iterate (dw_attr_node, die->die_attr, ix, a_attr);
+    for (ix = 0; VEC_iterate (dw_attr_node, comp_unit->die_attr, ix, a_attr);
          ix++)
       {
         dw2_asm_output_data_uleb128 (a_attr->dw_attr, "(%s)",
@@ -8710,7 +8715,10 @@ output_comdat_type_unit (comdat_type_node *node)
   calc_die_sizes (node->root_die);
 
 #if defined (OBJECT_FORMAT_ELF)
-  secname = ".debug_types";
+  if (!dwarf_split_debug_info)
+    secname = ".debug_types";
+  else
+    secname = ".debug_types.dwo";
 
   tmp = XALLOCAVEC (char, 4 + DWARF_TYPE_SIGNATURE_SIZE * 2);
   sprintf (tmp, "wt.");
@@ -22577,6 +22585,30 @@ optimize_location_lists (dw_die_ref die)
   htab_delete (htab);
 }
 
+
+/* Report if the pubtypes_section is either empty or will be pruned to
+   empty.  */
+
+static bool
+pubtypes_section_empty (void)
+{
+  if (!VEC_empty (pubname_entry, pubtype_table))
+    {
+      if (flag_eliminate_unused_debug_types)
+	{
+	  /* The pubtypes table might be emptied by pruning unused items.  */
+	  unsigned i;
+	  pubname_ref p;
+	  FOR_EACH_VEC_ELT (pubname_entry, pubtype_table, i, p)
+	    if (p->die->die_offset != 0)
+              return false;
+	}
+      return true;
+    }
+  return false;
+}
+
+
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -22851,12 +22883,12 @@ dwarf2out_finish (const char *filename)
       add_AT_lineptr (comp_unit_die (), DW_AT_GNU_pubnames,
 		      debug_pubnames_section_label);
     }
-  if (!VEC_empty (pubname_entry, pubtype_table))
+  if (!pubtypes_section_empty ())
     {
       /* FIXME: Should use add_AT_pubtypesptr.  This works because
          most targets don't care what the base section is.  */
       add_AT_lineptr (comp_unit_die (), DW_AT_GNU_pubtypes,
-		      debug_pubtypes_section_label);
+                      debug_pubtypes_section_label);
     }
 
   /* Output the main compilation unit if non-empty or if .debug_macinfo
@@ -22894,29 +22926,11 @@ dwarf2out_finish (const char *filename)
   /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
      It shouldn't hurt to emit it always, since pure DWARF2 consumers
      simply won't look for the section.  */
-  if (!VEC_empty (pubname_entry, pubtype_table))
+  if (!pubtypes_section_empty ())
     {
-      bool empty = false;
-      
-      if (flag_eliminate_unused_debug_types)
-	{
-	  /* The pubtypes table might be emptied by pruning unused items.  */
-	  unsigned i;
-	  pubname_ref p;
-	  empty = true;
-	  FOR_EACH_VEC_ELT (pubname_entry, pubtype_table, i, p)
-	    if (p->die->die_offset != 0)
-	      {
-		empty = false;
-		break;
-	      }
-	}
-      if (!empty)
-	{
-	  gcc_assert (info_section_emitted);
-	  switch_to_section (debug_pubtypes_section);
-	  output_pubnames (pubtype_table);
-	}
+      gcc_assert (info_section_emitted);
+      switch_to_section (debug_pubtypes_section);
+      output_pubnames (pubtype_table);
     }
 
   /* Output the address range information if a CU (.debug_info section)
