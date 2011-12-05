@@ -19,8 +19,8 @@ package big
 // and rationals.
 
 import (
+	"errors"
 	"io"
-	"os"
 	"rand"
 )
 
@@ -589,15 +589,15 @@ func (x nat) bitLen() int {
 // MaxBase is the largest number base accepted for string conversions.
 const MaxBase = 'z' - 'a' + 10 + 1 // = hexValue('z') + 1
 
-func hexValue(ch int) Word {
+func hexValue(ch rune) Word {
 	d := MaxBase + 1 // illegal base
 	switch {
 	case '0' <= ch && ch <= '9':
-		d = ch - '0'
+		d = int(ch - '0')
 	case 'a' <= ch && ch <= 'z':
-		d = ch - 'a' + 10
+		d = int(ch - 'a' + 10)
 	case 'A' <= ch && ch <= 'Z':
-		d = ch - 'A' + 10
+		d = int(ch - 'A' + 10)
 	}
 	return Word(d)
 }
@@ -613,10 +613,10 @@ func hexValue(ch int) Word {
 // ``0x'' or ``0X'' selects base 16; the ``0'' prefix selects base 8, and a
 // ``0b'' or ``0B'' prefix selects base 2. Otherwise the selected base is 10.
 //
-func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
+func (z nat) scan(r io.RuneScanner, base int) (nat, int, error) {
 	// reject illegal bases
 	if base < 0 || base == 1 || MaxBase < base {
-		return z, 0, os.NewError("illegal number base")
+		return z, 0, errors.New("illegal number base")
 	}
 
 	// one char look-ahead
@@ -644,7 +644,7 @@ func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
 						return z, 0, err
 					}
 				}
-			case os.EOF:
+			case io.EOF:
 				return z.make(0), 10, nil
 			default:
 				return z, 10, err
@@ -676,7 +676,7 @@ func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
 		}
 
 		if ch, _, err = r.ReadRune(); err != nil {
-			if err != os.EOF {
+			if err != io.EOF {
 				return z, int(b), err
 			}
 			break
@@ -693,7 +693,7 @@ func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
 		return z, 10, nil
 	case base != 0 || b != 8:
 		// there was neither a mantissa digit nor the octal prefix 0
-		return z, int(b), os.NewError("syntax error scanning number")
+		return z, int(b), errors.New("syntax error scanning number")
 	}
 
 	return z.norm(), int(b), nil

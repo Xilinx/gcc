@@ -6,6 +6,7 @@ package fmt
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"reflect"
@@ -37,7 +38,7 @@ var (
 // the flags and options for the operand's format specifier.
 type State interface {
 	// Write is the function to call to emit formatted output to be printed.
-	Write(b []byte) (ret int, err os.Error)
+	Write(b []byte) (ret int, err error)
 	// Width returns the value of the width option and whether it has been set.
 	Width() (wid int, ok bool)
 	// Precision returns the value of the precision option and whether it has been set.
@@ -51,7 +52,7 @@ type State interface {
 // The implementation of Format may call Sprintf or Fprintf(f) etc.
 // to generate its output.
 type Formatter interface {
-	Format(f State, c int)
+	Format(f State, c rune)
 }
 
 // Stringer is implemented by any value that has a String method,
@@ -159,13 +160,13 @@ func (p *pp) Flag(b int) bool {
 	return false
 }
 
-func (p *pp) add(c int) {
+func (p *pp) add(c rune) {
 	p.buf.WriteRune(c)
 }
 
 // Implement Write so we can call Fprintf on a pp (through State), for
 // recursive use in custom verbs.
-func (p *pp) Write(b []byte) (ret int, err os.Error) {
+func (p *pp) Write(b []byte) (ret int, err error) {
 	return p.buf.Write(b)
 }
 
@@ -173,7 +174,7 @@ func (p *pp) Write(b []byte) (ret int, err os.Error) {
 
 // Fprintf formats according to a format specifier and writes to w.
 // It returns the number of bytes written and any write error encountered.
-func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err os.Error) {
+func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
 	p := newPrinter()
 	p.doPrintf(format, a)
 	n64, err := p.buf.WriteTo(w)
@@ -183,7 +184,7 @@ func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err os.Error)
 
 // Printf formats according to a format specifier and writes to standard output.
 // It returns the number of bytes written and any write error encountered.
-func Printf(format string, a ...interface{}) (n int, err os.Error) {
+func Printf(format string, a ...interface{}) (n int, err error) {
 	return Fprintf(os.Stdout, format, a...)
 }
 
@@ -197,9 +198,9 @@ func Sprintf(format string, a ...interface{}) string {
 }
 
 // Errorf formats according to a format specifier and returns the string 
-// as a value that satisfies os.Error.
-func Errorf(format string, a ...interface{}) os.Error {
-	return os.NewError(Sprintf(format, a...))
+// as a value that satisfies error.
+func Errorf(format string, a ...interface{}) error {
+	return errors.New(Sprintf(format, a...))
 }
 
 // These routines do not take a format string
@@ -207,7 +208,7 @@ func Errorf(format string, a ...interface{}) os.Error {
 // Fprint formats using the default formats for its operands and writes to w.
 // Spaces are added between operands when neither is a string.
 // It returns the number of bytes written and any write error encountered.
-func Fprint(w io.Writer, a ...interface{}) (n int, err os.Error) {
+func Fprint(w io.Writer, a ...interface{}) (n int, err error) {
 	p := newPrinter()
 	p.doPrint(a, false, false)
 	n64, err := p.buf.WriteTo(w)
@@ -218,7 +219,7 @@ func Fprint(w io.Writer, a ...interface{}) (n int, err os.Error) {
 // Print formats using the default formats for its operands and writes to standard output.
 // Spaces are added between operands when neither is a string.
 // It returns the number of bytes written and any write error encountered.
-func Print(a ...interface{}) (n int, err os.Error) {
+func Print(a ...interface{}) (n int, err error) {
 	return Fprint(os.Stdout, a...)
 }
 
@@ -239,7 +240,7 @@ func Sprint(a ...interface{}) string {
 // Fprintln formats using the default formats for its operands and writes to w.
 // Spaces are always added between operands and a newline is appended.
 // It returns the number of bytes written and any write error encountered.
-func Fprintln(w io.Writer, a ...interface{}) (n int, err os.Error) {
+func Fprintln(w io.Writer, a ...interface{}) (n int, err error) {
 	p := newPrinter()
 	p.doPrint(a, true, true)
 	n64, err := p.buf.WriteTo(w)
@@ -250,7 +251,7 @@ func Fprintln(w io.Writer, a ...interface{}) (n int, err os.Error) {
 // Println formats using the default formats for its operands and writes to standard output.
 // Spaces are always added between operands and a newline is appended.
 // It returns the number of bytes written and any write error encountered.
-func Println(a ...interface{}) (n int, err os.Error) {
+func Println(a ...interface{}) (n int, err error) {
 	return Fprintln(os.Stdout, a...)
 }
 
@@ -297,7 +298,7 @@ func (p *pp) unknownType(v interface{}) {
 	p.buf.WriteByte('?')
 }
 
-func (p *pp) badVerb(verb int) {
+func (p *pp) badVerb(verb rune) {
 	p.add('%')
 	p.add('!')
 	p.add(verb)
@@ -317,7 +318,7 @@ func (p *pp) badVerb(verb int) {
 	p.add(')')
 }
 
-func (p *pp) fmtBool(v bool, verb int) {
+func (p *pp) fmtBool(v bool, verb rune) {
 	switch verb {
 	case 't', 'v':
 		p.fmt.fmt_boolean(v)
@@ -328,15 +329,15 @@ func (p *pp) fmtBool(v bool, verb int) {
 
 // fmtC formats a rune for the 'c' format.
 func (p *pp) fmtC(c int64) {
-	rune := int(c) // Check for overflow.
-	if int64(rune) != c {
-		rune = utf8.RuneError
+	r := rune(c) // Check for overflow.
+	if int64(r) != c {
+		r = utf8.RuneError
 	}
-	w := utf8.EncodeRune(p.runeBuf[0:utf8.UTFMax], rune)
+	w := utf8.EncodeRune(p.runeBuf[0:utf8.UTFMax], r)
 	p.fmt.pad(p.runeBuf[0:w])
 }
 
-func (p *pp) fmtInt64(v int64, verb int) {
+func (p *pp) fmtInt64(v int64, verb rune) {
 	switch verb {
 	case 'b':
 		p.fmt.integer(v, 2, signed, ldigits)
@@ -394,7 +395,7 @@ func (p *pp) fmtUnicode(v int64) {
 	p.fmt.sharp = sharp
 }
 
-func (p *pp) fmtUint64(v uint64, verb int, goSyntax bool) {
+func (p *pp) fmtUint64(v uint64, verb rune, goSyntax bool) {
 	switch verb {
 	case 'b':
 		p.fmt.integer(int64(v), 2, unsigned, ldigits)
@@ -427,7 +428,7 @@ func (p *pp) fmtUint64(v uint64, verb int, goSyntax bool) {
 	}
 }
 
-func (p *pp) fmtFloat32(v float32, verb int) {
+func (p *pp) fmtFloat32(v float32, verb rune) {
 	switch verb {
 	case 'b':
 		p.fmt.fmt_fb32(v)
@@ -446,7 +447,7 @@ func (p *pp) fmtFloat32(v float32, verb int) {
 	}
 }
 
-func (p *pp) fmtFloat64(v float64, verb int) {
+func (p *pp) fmtFloat64(v float64, verb rune) {
 	switch verb {
 	case 'b':
 		p.fmt.fmt_fb64(v)
@@ -465,7 +466,7 @@ func (p *pp) fmtFloat64(v float64, verb int) {
 	}
 }
 
-func (p *pp) fmtComplex64(v complex64, verb int) {
+func (p *pp) fmtComplex64(v complex64, verb rune) {
 	switch verb {
 	case 'e', 'E', 'f', 'F', 'g', 'G':
 		p.fmt.fmt_c64(v, verb)
@@ -476,7 +477,7 @@ func (p *pp) fmtComplex64(v complex64, verb int) {
 	}
 }
 
-func (p *pp) fmtComplex128(v complex128, verb int) {
+func (p *pp) fmtComplex128(v complex128, verb rune) {
 	switch verb {
 	case 'e', 'E', 'f', 'F', 'g', 'G':
 		p.fmt.fmt_c128(v, verb)
@@ -487,7 +488,7 @@ func (p *pp) fmtComplex128(v complex128, verb int) {
 	}
 }
 
-func (p *pp) fmtString(v string, verb int, goSyntax bool) {
+func (p *pp) fmtString(v string, verb rune, goSyntax bool) {
 	switch verb {
 	case 'v':
 		if goSyntax {
@@ -508,7 +509,7 @@ func (p *pp) fmtString(v string, verb int, goSyntax bool) {
 	}
 }
 
-func (p *pp) fmtBytes(v []byte, verb int, goSyntax bool, depth int) {
+func (p *pp) fmtBytes(v []byte, verb rune, goSyntax bool, depth int) {
 	if verb == 'v' || verb == 'd' {
 		if goSyntax {
 			p.buf.Write(bytesBytes)
@@ -547,7 +548,7 @@ func (p *pp) fmtBytes(v []byte, verb int, goSyntax bool, depth int) {
 	}
 }
 
-func (p *pp) fmtPointer(value reflect.Value, verb int, goSyntax bool) {
+func (p *pp) fmtPointer(value reflect.Value, verb rune, goSyntax bool) {
 	var u uintptr
 	switch value.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
@@ -579,7 +580,7 @@ var (
 	uintptrBits = reflect.TypeOf(uintptr(0)).Bits()
 )
 
-func (p *pp) catchPanic(field interface{}, verb int) {
+func (p *pp) catchPanic(field interface{}, verb rune) {
 	if err := recover(); err != nil {
 		// If it's a nil pointer, just say "<nil>". The likeliest causes are a
 		// Stringer that fails to guard against nil or a nil pointer for a
@@ -604,7 +605,7 @@ func (p *pp) catchPanic(field interface{}, verb int) {
 	}
 }
 
-func (p *pp) handleMethods(verb int, plus, goSyntax bool, depth int) (wasString, handled bool) {
+func (p *pp) handleMethods(verb rune, plus, goSyntax bool, depth int) (wasString, handled bool) {
 	// Is it a Formatter?
 	if formatter, ok := p.field.(Formatter); ok {
 		handled = true
@@ -630,12 +631,23 @@ func (p *pp) handleMethods(verb int, plus, goSyntax bool, depth int) (wasString,
 			return
 		}
 	} else {
-		// Is it a Stringer?
-		if stringer, ok := p.field.(Stringer); ok {
+		// Is it an error or Stringer?
+		// The duplication in the bodies is necessary:
+		// setting wasString and handled and deferring catchPanic
+		// must happen before calling the method.
+		switch v := p.field.(type) {
+		case error:
 			wasString = false
 			handled = true
 			defer p.catchPanic(p.field, verb)
-			p.printField(stringer.String(), verb, plus, false, depth)
+			p.printField(v.Error(), verb, plus, false, depth)
+			return
+
+		case Stringer:
+			wasString = false
+			handled = true
+			defer p.catchPanic(p.field, verb)
+			p.printField(v.String(), verb, plus, false, depth)
 			return
 		}
 	}
@@ -643,7 +655,7 @@ func (p *pp) handleMethods(verb int, plus, goSyntax bool, depth int) (wasString,
 	return
 }
 
-func (p *pp) printField(field interface{}, verb int, plus, goSyntax bool, depth int) (wasString bool) {
+func (p *pp) printField(field interface{}, verb rune, plus, goSyntax bool, depth int) (wasString bool) {
 	if field == nil {
 		if verb == 'T' || verb == 'v' {
 			p.buf.Write(nilAngleBytes)
@@ -719,7 +731,7 @@ func (p *pp) printField(field interface{}, verb int, plus, goSyntax bool, depth 
 }
 
 // printValue is like printField but starts with a reflect value, not an interface{} value.
-func (p *pp) printValue(value reflect.Value, verb int, plus, goSyntax bool, depth int) (wasString bool) {
+func (p *pp) printValue(value reflect.Value, verb rune, plus, goSyntax bool, depth int) (wasString bool) {
 	if !value.IsValid() {
 		if verb == 'T' || verb == 'v' {
 			p.buf.Write(nilAngleBytes)
@@ -755,7 +767,7 @@ func (p *pp) printValue(value reflect.Value, verb int, plus, goSyntax bool, dept
 
 // printReflectValue is the fallback for both printField and printValue.
 // It uses reflect to print the value.
-func (p *pp) printReflectValue(value reflect.Value, verb int, plus, goSyntax bool, depth int) (wasString bool) {
+func (p *pp) printReflectValue(value reflect.Value, verb rune, plus, goSyntax bool, depth int) (wasString bool) {
 	oldValue := p.value
 	p.value = value
 BigSwitch:

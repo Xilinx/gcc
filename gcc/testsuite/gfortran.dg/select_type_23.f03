@@ -4,9 +4,7 @@
 !
 ! Contributed by Salvatore Filippone <sfilippone@uniroma2.it>
 !
-! Note that per Fortran 2008, 8.1.9.2, "within the block following
-! a TYPE IS type guard statement, the associating entity (16.5.5) is not polymorphic"
-!
+! Updated for PR fortran/48887
 
 program testmv2
 
@@ -20,7 +18,7 @@ program testmv2
 
   select type(sm2) 
   type is (bar)
-    call move_alloc(sm2,sm) ! { dg-error "must be either both polymorphic or both nonpolymorphic" }
+    call move_alloc(sm2,sm) ! { dg-error "must be ALLOCATABLE" }
   end select
 
 end program testmv2

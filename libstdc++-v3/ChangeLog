@@ -1,3 +1,43 @@
+2011-12-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/type_traits: Doxygen improvements.
+	* include/bits/move.h: Likewise.
+	* include/tr1/type_traits:  Likewise.
+	* include/tr2/type_traits:  Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Adjust dg-error
+	line numbers
+	* testsuite/20_util/forward/c_neg.cc: Likewise.
+	* testsuite/20_util/forward/f_neg.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+
+2011-12-04  Markus Trippelsdorf <markus@trippelsdorf.de>
+            Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/stl_heap.h (pop_heap): Check for non-empty range in
+	overload taking a predicate.
+	* testsuite/25_algorithms/pop_heap/empty2_neg.cc: New.
+
+2011-12-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/debug/macros.h (__glibcxx_check_non_empty_range): Define.
+	* include/debug/debug.h (__glibcxx_requires_non_empty_range): Define.
+	* include/debug/formatter.h (__msg_non_empty_range): Add.
+	* src/debug.cc: Message text for __msg_non_empty_range.
+	* include/bits/stl_heap.h (pop_heap): Check for non-empty range.
+	* testsuite/25_algorithms/pop_heap/empty_neg.cc: New.
+
+2011-12-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/utilities.xml: Remove outdated text.
+
+2011-12-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/iomanip (put_money): Fix thinko, use __err local,
+	like in, eg, basic_ostream::_M_insert.
+
 2011-11-30  Benjamin Kosnik  <bkoz@redhat.com>
 
         * acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Remove

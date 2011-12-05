@@ -1,3 +1,29 @@
+2011-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51383
+	* resolve.c (find_array_spec): Use ref->u.c.component
+	directly without starting from ts.u.derived.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48887
+	* match.c (select_type_set_tmp): Don't set allocatable/pointer
+	attribute.
+	* class.c (gfc_build_class_symbol): Handle
+	attr.select_type_temporary.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>                                                                                                           
+
+	PR fortran/50684
+	* check.c (variable_check): Fix intent(in) check.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	* check.c (gfc_check_move_alloc): Allow nonpolymorphic
+	FROM with polymorphic TO.
+	* trans-intrinsic.c (conv_intrinsic_move_alloc): Handle
+	nonpolymorphic FROM with polymorphic TO.
+
 2011-12-01  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	* module.c (dt_lower_string): Make static.

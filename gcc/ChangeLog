@@ -1,3 +1,216 @@
+2011-12-05  Richard Guenther  <rguenther@suse.de>
+
+	* cgraph.c (cgraph_create_edge_1): Initialize
+	call_stmt_cannot_inline_p from the stmt if possible.
+	(cgraph_make_edge_direct): Likewise.
+	* gimple-streamer-in.c (input_gimple_stmt): Do not
+	call gimple_call_set_cannot_inline.
+	* gimple.h (enum gf_mask): Remove GF_CALL_CANNOT_INLINE, shift
+	values.
+	(gimple_call_set_cannot_inline): Remove.
+	(gimple_call_cannot_inline_p): Likewise.
+	* ipa-inline-analysis.c (initialize_inline_failed): Look
+	at the edge call_stmt_cannot_inline_p flag.
+	* ipa-inline.c (can_inline_edge_p): Likewise.
+	(early_inliner): Only update the edge flag.
+	* ipa-prop.c (update_indirect_edges_after_inlining): Likewise.
+	(ipa_modify_call_arguments): Do not call gimple_call_set_cannot_inline.
+	* cgraphunit.c (assemble_thunk): Likewise.
+	* gimple-fold.c (gimple_fold_call): Likewise.
+
+	* tree.h (CALL_CANNOT_INLINE_P): Remove.
+	* tree-mudflap.c (mf_xform_statements): Do not modify alloca calls.
+	* builtins.c (expand_builtin_alloca): With -fmudflap do not expand
+	alloca calls inline.
+	* cfgexpand.c (expand_call_stmt): Do not set CALL_CANNOT_INLINE_P.
+	* gimple.c (gimple_build_call_from_tree): Do not read
+	CALL_CANNOT_INLINE_P.
+	* gimplify.c (gimplify_call_expr): Do not copy CALL_CANNOT_INLINE_P.
+
+2011-12-05  Jakub Jelinek  <jakub@redhat.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/51323
+	PR middle-end/50074
+	* calls.c (internal_arg_pointer_exp_state): New variable.
+	(internal_arg_pointer_based_exp_1,
+	internal_arg_pointer_exp_scan): New functions.
+	(internal_arg_pointer_based_exp): New function.
+	(mem_overlaps_already_clobbered_arg_p): Use it.
+	(expand_call): Free internal_arg_pointer_exp_state.cache vector
+	and clear internal_arg_pointer_exp_state.scan_start.
+
+2011-12-04  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/linux.h (TARGET_DEFAULT): Add MASK_SOFT_ATOMIC.
+	* config/sh/sync.md: New file.
+	* config/sh/sh.md: Include sync.md.
+	* config/sh/sh.opt (msoft-atomic): New option.
+	* doc/invoke.texi (SH Options): Document it.
+
+2011-12-04  Nathan Sidwell  <nathan@acm.org>
+
+	* gcov-io.h (struct gcov_info): Replace trailing array with
+	pointer to array.
+	* profile.c (branch_prob): Only call renamed
+	coverage_begin_function once.
+	* coverage.h (coverage_begin_output): Rename to ...
+	(coverage_begin_function): ... here.
+	* coverage.c (struct function_list): Rename to ...
+	(struct coverage_data): ... this.  Update all uses.
+	(gcov_info_var, gcov_fn_info_type, gcov_fn_info_ptr_type): New
+	globals.
+	(bbg_file_opened, bbg_function_announced): Remove.
+	(get_coverage_counts): Adjust message.
+	(coverage_begin_ouput): Rename to ...
+	(coverage_begin_function): ... here.  Move file opening to
+	coverage_init.  Adjust for being called only once.
+	(coverage_end_function): Remove bbg file and inhibit further
+	output here on error.
+	(build_info_type): Adjust for change to pointer to array.
+	(build_info): Receive array of function pointers and adjust.
+	(create_coverage): Break into ...
+	(coverage_obj_init, coverage_obj_fn, coverage_obj_finish):
+	... these, and adjust.
+	(coverage_init): Open the notes file here.  Tidy.
+	(coverage_finish): Call coverage_obj_init etc.
+
+2011-12-04  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR middle-end/51285
+	* tree-vect-loop.c (vect_create_epilog_for_reduction): Create exit
+	phi nodes for outer loop in case of double reduction.
+
+2011-12-04  Jérémie Detrey  <Jeremie.Detrey@loria.fr>
+
+	PR target/51393
+	* config/i386/avxintrin.h (_mm256_insert_epi64): Declare second
+	parameter as long long.
+
+2011-12-04  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/51351
+	* optabs.c (init_sync_libfuncs): Use "or" rather than "ior"
+	in the external names.
+
+2011-12-03  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* config/darwin10.h (LINK_GCC_C_SEQUENCE_SPEC): Pass -no_pie for
+	non-PIC code when targeting 10.7 or later.
+
+2011-12-03  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (STARTFILE_SPEC): Do not use -lbundle1.o when
+	Darwin >= 10.
+	(DARWIN_DYLIB1_SPEC): Do not use -ldylib1.10.5.o when Darwin >= 10.
+	(DARWIN_CRT1_SPEC): Use -lcrt1.10.6.o when Darwin >= 10.
+
+2011-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* fold-const.c (fold_unary_loc): Fold VEC_UNPACK_LO_EXPR,
+	VEC_UNPACK_HI_EXPR, VEC_UNPACK_FLOAT_LO_EXPR and
+	VEC_UNPACK_FLOAT_HI_EXPR with VECTOR_CST argument.
+	(fold_binary_loc): Fold VEC_PACK_TRUNC_EXPR,
+	VEC_PACK_FIX_TRUNC_EXPR, VEC_WIDEN_MULT_LO_EXPR
+	and VEC_WIDEN_MULT_HI_EXPR with VECTOR_CST arguments.
+
+	PR debug/50317
+	* tree-ssa.c (target_for_debug_bind): Also allow is_gimple_reg_type
+	vars that aren't referenced.
+	(tree-ssa-live.c (remove_unused_locals): Don't clear TREE_ADDRESSABLE
+	of unreferenced local vars.
+	* cfgexpand.c (expand_debug_expr): For DEBUG_IMPLICIT_PTR allow also
+	TREE_ADDRESSABLE vars that satisfy target_for_debug_bind.
+
+2011-12-03  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/arm/arm.h (LIBCALL_VALUE, FUNCTION_VALUE_REGNO_P): Remove.
+	* config/arm/arm-protos.h (aapcs_libcall_value): Remove.
+	* config/arm/arm.c (TARGET_FUNCTION_VALUE_REGNO_P): Define.
+	(arm_libcall_value_1, arm_function_value_regno_p): New function.
+	(arm_function_value, arm_libcall_value): Use arm_libcall_value_1.
+	(aapcs_libcall_value): Make static.
+	(arm_libcall_value): Add static qualifier.
+
+2011-12-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51387
+	* config/i386/sse.md (mul<mode>3 with VI1_AVX2 iterator): For
+	V32QImode use { 0,2,..,14,32,34,..,46,16,18,..,30,48,50,..,62 }
+	permutation instead of extract even permutation.
+
+2011-12-02  Nathan Sidwell  <nathan@acm.org>
+
+	* gcov.c (struct arc_info): Add is_throw field.
+	(struct (block_info): Add exceptional field, reduce flags size to
+	account for it.
+	(struct function_info): Add has_catch field.
+	(struct line_info): Add unexceptional field.
+	(process_file): Call find_exception_blocks if necessary.
+	(read_graph_file): Adjust.  Note if an exceptional edge is seen.
+	(find_exception_blocks): New.
+	(add_line_counts): Set line's unexceptional flag if not
+	exceptional.
+	(output_branch_count): Note exceptional arcs, lines and blocks.
+	* gcov-dump.c (tag_arcs): Decode arc flags.
+	* doc/gcov.texi: Document '=====' lines.
+
+2011-12-02  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/ia64/ia64.h (PRINT_OPERAND, PRINT_OPERAND_ADDRESS,
+	PRINT_OPERAND_PUNCT_VALID_P): Remove macros.
+	* config/ia64/ia64-protos.h (ia64_print_operand,
+	ia64_print_operand_address): Remove.
+	* config/ia64/ia64.c (TARGET_PRINT_OPERAND,
+	TARGET_PRINT_OPERAND_ADDRESS, TARGET_PRINT_OPERAND_PUNCT_VALID_P):
+	Define.
+	(ia64_print_operand_punct_valid_p): New function.
+	(ia64_print_operand, ia64_print_operand_address): Make static.
+
+2011-12-02  Michael Meissner  <meissner@the-meissners.org>
+
+	PR target/51390
+	* config/rs6000/rs6000.c (def_builtin): Use the correct field to
+	figure out the function's attributes.
+	(struct builtin_description): Mark mask field as const since we no
+	longer need to modify it for SPE and PAIRED builtins.
+
+2011-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	Revert:
+
+	2008-09-18  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR rtl-opt/37451
+	* loop-doloop.c (doloop_modify): New argument zero_extend_p and
+	zero extend count after the correction to it is done.
+	(doloop_optimize): Update call to doloop_modify, don't zero extend
+	count before call.
+
+	2008-11-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR rtl-opt/37782
+	* loop-doloop.c (doloop_modify): Add from_mode argument that says what
+	mode count is in.
+	(doloop_optimize): Update call to doloop_modify.
+
+2011-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47259
+	* ipa.c (varpool_externally_visible_p): Register variables
+	are always externally visible.
+
+2011-12-02  Sameera Deshpande  <sameera.deshpande@arm.com>
+
+	* gimple-pretty-print.c (dump_gimple_call): Dereference fn only if
+	  non-NULL.
+
+2011-12-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50622
+	* tree-sra.c (load_assign_lhs_subreplacements): Force gimple operand
+	if both lacc and racc are grp_partial_lhs.
+
 2011-12-01  Kaz Kojima  <kkojima@gcc.gnu.org>
 
 	PR target/50814.
@@ -5,33 +218,31 @@
 	TARGET_SH3.
 	(shl_sext_kind): Likewise.
 	* config/sh/sh.h (SH_DYNAMIC_SHIFT_COST): Likewise.
-	* config/sh/sh.md (ashlsi3_sh2a, ashrsi3_sh2a, lshrsi3_sh2a):
-	Remove.
+	* config/sh/sh.md (ashlsi3_sh2a, ashrsi3_sh2a, lshrsi3_sh2a): Remove.
 	(ashlsi3_std): Handle TARGET_SH2A same as TARGET_SH3.
 	(ashlsi3): Likewise.
 	(ashrsi3_d): Likewise.
 	(lshrsi3_d): Likewise.
 	(lshrsi3): Likewise.
 
-2011-12-01   Diego Novillo  <dnovillo@google.com>
+2011-12-01  Diego Novillo  <dnovillo@google.com>
 
 	PR bootstrap/51346
-	* ipa-inline.c (can_inline_edge_p): If the edge E has a
-	statement, use the statement's inline indicator instead
-	of E's.
+	* ipa-inline.c (can_inline_edge_p): If the edge E has a statement,
+	use the statement's inline indicator instead of E's.
 	Remove consistency check.
 
-2011-12-01   Diego Novillo  <dnovillo@google.com>
+2011-12-01  Diego Novillo  <dnovillo@google.com>
 
 	PR bootstrap/51346
 	Revert
 
-	2011-11-29   Diego Novillo  <dnovillo@google.com>
+	2011-11-29  Diego Novillo  <dnovillo@google.com>
 
-		* gimple.c (gimple_call_set_cannot_inline): Move from gimple.h.
-		Update field call_stmt_cannot_inline_p from call
-		graph edge, if needed.
-		* gimple.h (gimple_call_set_cannot_inline): Move to gimple.c.
+	* gimple.c (gimple_call_set_cannot_inline): Move from gimple.h.
+	Update field call_stmt_cannot_inline_p from call
+	graph edge, if needed.
+	* gimple.h (gimple_call_set_cannot_inline): Move to gimple.c.
 
 2011-12-01  Nathan Sidwell  <nathan@acm.org>
 
@@ -56,7 +267,7 @@
 
 	PR middle-end/51273
 	* cgraph.h (cgraph_call_node_duplication_hooks): Declare.
-	* cgraph.c (cgraph_call_node_duplication_hooks): Make global. 
+	* cgraph.c (cgraph_call_node_duplication_hooks): Make global.
 	* cgraphunit.c (cgraph_copy_node_for_versioning): Call it.
 
 2011-12-01  Andrew Pinski  <apinski@cavium.com>
@@ -68,8 +279,7 @@
 2011-12-01  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/51246
-	* tree-predcom.c (replace_ref_with): Handle also clobber on the
-	rhs.
+	* tree-predcom.c (replace_ref_with): Handle also clobber on the rhs.
 
 	PR rtl-optimization/51014
 	* loop-unroll.c (apply_opt_in_copies): Ignore label DEBUG_INSNs
@@ -354,7 +564,7 @@
 	code checking for a clobber of a condition register when deciding
 	whether to predicate.
 
-2011-11-29   Diego Novillo  <dnovillo@google.com>
+2011-11-29  Diego Novillo  <dnovillo@google.com>
 
 	* gimple.c (gimple_call_set_cannot_inline): Move from gimple.h.
 	Update field call_stmt_cannot_inline_p from call graph edge, if needed.
@@ -7286,7 +7496,7 @@
 	(duplicate_insns_of_cycles): Use register indices directly,
 	rather than finding instructions using PREV_INSN.  Use ps_reg_move.
 	(sms_schedule): Call schedule_reg_moves before committing to
-	a partial schedule.   Try the next ii if the schedule fails.
+	a partial schedule.  Try the next ii if the schedule fails.
 	Use apply_reg_moves instead of generate_reg_moves.  Adjust
 	call to print_node_sched_params.  Free node_sched_param_vec
 	instead of node_sched_params.
@@ -8442,18 +8652,18 @@
 	(remove_duplicate_close_phi): Detect and repair creation of
 	duplicate close-phis for a containing loop.
 
-2011-09-27   Andi Kleen <ak@linux.intel.com>
+2011-09-27  Andi Kleen  <ak@linux.intel.com>
 
 	* gcc.c (get_local_tick). Rename to get_random_number.  Read from
 	/dev/urandom.  Add getpid call.
 	(compare_debug_dump_opt_spec_function): Drop getpid call.
 
-2011-09-26   Andi Kleen <ak@linux.intel.com>
+2011-09-26  Andi Kleen  <ak@linux.intel.com>
 
 	* toplev.c (init_local_tick): Try reading random seed
 	from /dev/urandom.
 
-2011-09-26   Andi Kleen <ak@linux.intel.com>
+2011-09-26  Andi Kleen  <ak@linux.intel.com>
 
 	* hwint.h (HOST_WIDE_INT_PRINT_HEX_PURE): Add.
 	* lto-streamer.c (lto_get_section_name): Remove crc32_string.
@@ -9561,13 +9771,13 @@
 	HImode by 1 in the case of multiplying with a CONST_INT.
 	Record cost of *ashiftqihi2.signx.1 in case ASHIFT:QI.
 
-2011-09-15   Jan Hubicka  <jh@suse.cz>
+2011-09-15  Jan Hubicka  <jh@suse.cz>
 
 	PR lto/50430
 	* gimple-fold.c (gimple_get_virt_method_for_binfo): Do not ICE on
 	error_mark_node in the DECL_INITIAL of vtable.
 
-2011-09-15   Diego Novillo  <dnovillo@google.com>
+2011-09-15  Diego Novillo  <dnovillo@google.com>
 
 	* Makefile.in (SYSROOT_CFLAGS_FOR_TARGET): Define from
 	@SYSROOT_CFLAGS_FOR_TARGET@.
@@ -12782,7 +12992,7 @@
 	separately.
 	* tree-ssa-uninit.c (warn_uninitialized_phi): Adjust.
 
-2011-08-11   Kazuhiro Inaoka  <kazuhiro.inaoka.ud@renesas.com>
+2011-08-11  Kazuhiro Inaoka  <kazuhiro.inaoka.ud@renesas.com>
 
 	* config/rx/rx.md (movsicc): Allow register to register transfers.
 	(*movsicc): Likewise.
@@ -12790,7 +13000,7 @@
 	(*stcc_reg): New pattern.  Works for any comparison but only for
 	register transfers.
 
-2011-08-11   Diego Novillo  <dnovillo@google.com>
+2011-08-11  Diego Novillo  <dnovillo@google.com>
 
 	* tree-streamer-out.c (lto_output_ts_decl_with_vis_tree_pointers):
 	Call stream_write_tree instead of output_record_start.
@@ -13128,7 +13338,7 @@
 	* tree-sra.c (access_precludes_ipa_sra_p): Also check access
 	memory alignment.
 
-2011-08-08   Diego Novillo  <dnovillo@google.com>
+2011-08-08  Diego Novillo  <dnovillo@google.com>
 
 	* Makefile.in (LTO_STREAMER_H): Add DIAGNOSTIC_H.
 	(DATA_STREAMER_H): New.
@@ -13455,7 +13665,7 @@
 	(TARGET_INSTANTIATE_DECLS): New define.
 
 2011-08-06  Paolo Bonzini  <bonzini@gnu.org>
-	    Mikael Morin   <mikael.morin@sfr.fr>
+	    Mikael Morin  <mikael.morin@sfr.fr>
 
 	* Makefile.in (INCLUDES_FOR_TARGET): New.
 	(LIBGCC2_CFLAGS): Use it.
@@ -13889,12 +14099,12 @@
 	* config/arm/arm.c (arm_set_fixed_optab_libfunc): Constify
 	maybe_suffix.
 
-2011-08-03   David Li  <davidxl@google.com>
+2011-08-03  David Li  <davidxl@google.com>
 
 	* tree-optimize.c (execute_fixup_cfg): Fix up entry
 	outgoing edge counts after inlining.
 
-2011-08-03   David Li  <davidxl@google.com>
+2011-08-03  David Li  <davidxl@google.com>
 
 	* profile.c (compute_branch_probabilities): Compute
 	function frequency after profile annotation.
@@ -20435,8 +20645,8 @@
 	* config/arm/neon.md (vec_pack_trunc): Set the lengths
 	correctly for the case with Quad vectors.
 
-2011-06-13 Jakub Jelinek  <jakub@redhat.com>
-	   Ira Rosen  <ira.rosen@linaro.org>
+2011-06-13  Jakub Jelinek  <jakub@redhat.com>
+	    Ira Rosen  <ira.rosen@linaro.org>
 
 	PR tree-optimization/49352
 	* tree-vect-loop.c (vect_is_slp_reduction): Don't count debug uses at
@@ -21408,7 +21618,7 @@
 	* calls.c (emit_call_1): Prefer the __builtin declaration of
 	builtin functions.
 
-2011-06-03   Diego Novillo  <dnovillo@google.com>
+2011-06-03  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer-in.c (unpack_value_fields): Remove unneeded asserts.
 	(lto_input_tree_pointers): Likewise.
@@ -25406,7 +25616,7 @@
 	* config/m68k/m68k.c (m68k_expand_prologue): Set
 	current_function_static_stack_size.
 
-2011-05-02   Jan Hubicka  <jh@suse.cz>
+2011-05-02  Jan Hubicka  <jh@suse.cz>
 
 	* lto-streamer.c (lto_streamer_cache_insert_1,
 	lto_streamer_cache_lookup, lto_streamer_cache_create,

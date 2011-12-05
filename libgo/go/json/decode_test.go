@@ -6,7 +6,6 @@ package json
 
 import (
 	"bytes"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -30,7 +29,7 @@ type unmarshaler struct {
 	T bool
 }
 
-func (u *unmarshaler) UnmarshalJSON(b []byte) os.Error {
+func (u *unmarshaler) UnmarshalJSON(b []byte) error {
 	*u = unmarshaler{true} // All we need to see that UnmarshalJson is called.
 	return nil
 }
@@ -52,7 +51,7 @@ type unmarshalTest struct {
 	in  string
 	ptr interface{}
 	out interface{}
-	err os.Error
+	err error
 }
 
 var unmarshalTests = []unmarshalTest{
@@ -243,7 +242,7 @@ func TestHTMLEscape(t *testing.T) {
 	}
 }
 
-func noSpace(c int) int {
+func noSpace(c rune) rune {
 	if isSpace(c) {
 		return -1
 	}
@@ -456,7 +455,7 @@ var allValueIndent = `{
 	"PSlice": null,
 	"PSliceP": null,
 	"EmptySlice": [],
-	"NilSlice": [],
+	"NilSlice": null,
 	"StringSlice": [
 		"str24",
 		"str25",
@@ -528,8 +527,8 @@ var pallValueIndent = `{
 	},
 	"EmptyMap": null,
 	"NilMap": null,
-	"Slice": [],
-	"SliceP": [],
+	"Slice": null,
+	"SliceP": null,
 	"PSlice": [
 		{
 			"Tag": "tag20"
@@ -547,10 +546,10 @@ var pallValueIndent = `{
 			"Tag": "tag23"
 		}
 	],
-	"EmptySlice": [],
-	"NilSlice": [],
-	"StringSlice": [],
-	"ByteSlice": "",
+	"EmptySlice": null,
+	"NilSlice": null,
+	"StringSlice": null,
+	"ByteSlice": null,
 	"Small": {
 		"Tag": ""
 	},

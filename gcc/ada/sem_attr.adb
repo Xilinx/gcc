@@ -8632,8 +8632,9 @@ package body Sem_Attr is
                  and then
                    (Ada_Version < Ada_2005
                      or else
-                       not Has_Constrained_Partial_View
-                             (Designated_Type (Base_Type (Typ))))
+                       not Effectively_Has_Constrained_Partial_View
+                             (Typ => Designated_Type (Base_Type (Typ)),
+                              Scop => Current_Scope))
                then
                   null;
 
@@ -8647,7 +8648,6 @@ package body Sem_Attr is
                   then
                      declare
                         D : constant Node_Id := Declaration_Node (Entity (P));
-
                      begin
                         Error_Msg_N ("aliased object has explicit bounds?",
                           D);

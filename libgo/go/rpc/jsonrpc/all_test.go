@@ -5,10 +5,11 @@
 package jsonrpc
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"json"
 	"net"
-	"os"
 	"rpc"
 	"testing"
 )
@@ -23,25 +24,25 @@ type Reply struct {
 
 type Arith int
 
-func (t *Arith) Add(args *Args, reply *Reply) os.Error {
+func (t *Arith) Add(args *Args, reply *Reply) error {
 	reply.C = args.A + args.B
 	return nil
 }
 
-func (t *Arith) Mul(args *Args, reply *Reply) os.Error {
+func (t *Arith) Mul(args *Args, reply *Reply) error {
 	reply.C = args.A * args.B
 	return nil
 }
 
-func (t *Arith) Div(args *Args, reply *Reply) os.Error {
+func (t *Arith) Div(args *Args, reply *Reply) error {
 	if args.B == 0 {
-		return os.NewError("divide by zero")
+		return errors.New("divide by zero")
 	}
 	reply.C = args.A / args.B
 	return nil
 }
 
-func (t *Arith) Error(args *Args, reply *Reply) os.Error {
+func (t *Arith) Error(args *Args, reply *Reply) error {
 	panic("ERROR")
 }
 
@@ -104,7 +105,7 @@ func TestClient(t *testing.T) {
 	reply := new(Reply)
 	err := client.Call("Arith.Add", args, reply)
 	if err != nil {
-		t.Errorf("Add: expected no error but got string %q", err.String())
+		t.Errorf("Add: expected no error but got string %q", err.Error())
 	}
 	if reply.C != args.A+args.B {
 		t.Errorf("Add: expected %d got %d", reply.C, args.A+args.B)
@@ -114,7 +115,7 @@ func TestClient(t *testing.T) {
 	reply = new(Reply)
 	err = client.Call("Arith.Mul", args, reply)
 	if err != nil {
-		t.Errorf("Mul: expected no error but got string %q", err.String())
+		t.Errorf("Mul: expected no error but got string %q", err.Error())
 	}
 	if reply.C != args.A*args.B {
 		t.Errorf("Mul: expected %d got %d", reply.C, args.A*args.B)
@@ -129,7 +130,7 @@ func TestClient(t *testing.T) {
 
 	addCall = <-addCall.Done
 	if addCall.Error != nil {
-		t.Errorf("Add: expected no error but got string %q", addCall.Error.String())
+		t.Errorf("Add: expected no error but got string %q", addCall.Error.Error())
 	}
 	if addReply.C != args.A+args.B {
 		t.Errorf("Add: expected %d got %d", addReply.C, args.A+args.B)
@@ -137,7 +138,7 @@ func TestClient(t *testing.T) {
 
 	mulCall = <-mulCall.Done
 	if mulCall.Error != nil {
-		t.Errorf("Mul: expected no error but got string %q", mulCall.Error.String())
+		t.Errorf("Mul: expected no error but got string %q", mulCall.Error.Error())
 	}
 	if mulReply.C != args.A*args.B {
 		t.Errorf("Mul: expected %d got %d", mulReply.C, args.A*args.B)
@@ -150,7 +151,71 @@ func TestClient(t *testing.T) {
 	// expect an error: zero divide
 	if err == nil {
 		t.Error("Div: expected error")
-	} else if err.String() != "divide by zero" {
+	} else if err.Error() != "divide by zero" {
 		t.Error("Div: expected divide by zero error; got", err)
 	}
+}
+
+func TestMalformedInput(t *testing.T) {
+	cli, srv := net.Pipe()
+	go cli.Write([]byte(`{id:1}`)) // invalid json
+	ServeConn(srv)                 // must return, not loop
+}
+
+func TestUnexpectedError(t *testing.T) {
+	cli, srv := myPipe()
+	go cli.PipeWriter.CloseWithError(errors.New("unexpected error!")) // reader will get this error
+	ServeConn(srv)                                                    // must return, not loop
+}
+
+// Copied from package net.
+func myPipe() (*pipe, *pipe) {
+	r1, w1 := io.Pipe()
+	r2, w2 := io.Pipe()
+
+	return &pipe{r1, w2}, &pipe{r2, w1}
+}
+
+type pipe struct {
+	*io.PipeReader
+	*io.PipeWriter
+}
+
+type pipeAddr int
+
+func (pipeAddr) Network() string {
+	return "pipe"
+}
+
+func (pipeAddr) String() string {
+	return "pipe"
+}
+
+func (p *pipe) Close() error {
+	err := p.PipeReader.Close()
+	err1 := p.PipeWriter.Close()
+	if err == nil {
+		err = err1
+	}
+	return err
+}
+
+func (p *pipe) LocalAddr() net.Addr {
+	return pipeAddr(0)
+}
+
+func (p *pipe) RemoteAddr() net.Addr {
+	return pipeAddr(0)
+}
+
+func (p *pipe) SetTimeout(nsec int64) error {
+	return errors.New("net.Pipe does not support timeouts")
+}
+
+func (p *pipe) SetReadTimeout(nsec int64) error {
+	return errors.New("net.Pipe does not support timeouts")
+}
+
+func (p *pipe) SetWriteTimeout(nsec int64) error {
+	return errors.New("net.Pipe does not support timeouts")
 }

@@ -7,7 +7,6 @@ package csv
 import (
 	"bufio"
 	"io"
-	"os"
 	"strings"
 	"unicode"
 	"utf8"
@@ -23,7 +22,7 @@ import (
 //
 // If UseCRLF is true, the Writer ends each record with \r\n instead of \n.
 type Writer struct {
-	Comma   int  // Field delimiter (set to to ',' by NewWriter)
+	Comma   rune // Field delimiter (set to to ',' by NewWriter)
 	UseCRLF bool // True to use \r\n as the line terminator
 	w       *bufio.Writer
 }
@@ -38,7 +37,7 @@ func NewWriter(w io.Writer) *Writer {
 
 // Writer writes a single CSV record to w along with any necessary quoting.
 // A record is a slice of strings with each string being one field.
-func (w *Writer) Write(record []string) (err os.Error) {
+func (w *Writer) Write(record []string) (err error) {
 	for n, field := range record {
 		if n > 0 {
 			if _, err = w.w.WriteRune(w.Comma); err != nil {
@@ -58,8 +57,8 @@ func (w *Writer) Write(record []string) (err os.Error) {
 			return
 		}
 
-		for _, rune := range field {
-			switch rune {
+		for _, r1 := range field {
+			switch r1 {
 			case '"':
 				_, err = w.w.WriteString(`""`)
 			case '\r':
@@ -73,7 +72,7 @@ func (w *Writer) Write(record []string) (err os.Error) {
 					err = w.w.WriteByte('\n')
 				}
 			default:
-				_, err = w.w.WriteRune(rune)
+				_, err = w.w.WriteRune(r1)
 			}
 			if err != nil {
 				return
@@ -98,7 +97,7 @@ func (w *Writer) Flush() {
 }
 
 // WriteAll writes multiple CSV records to w using Write and then calls Flush.
-func (w *Writer) WriteAll(records [][]string) (err os.Error) {
+func (w *Writer) WriteAll(records [][]string) (err error) {
 	for _, record := range records {
 		err = w.Write(record)
 		if err != nil {
@@ -117,6 +116,6 @@ func (w *Writer) fieldNeedsQuotes(field string) bool {
 		return true
 	}
 
-	rune, _ := utf8.DecodeRuneInString(field)
-	return unicode.IsSpace(rune)
+	r1, _ := utf8.DecodeRuneInString(field)
+	return unicode.IsSpace(r1)
 }

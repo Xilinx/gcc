@@ -28,44 +28,54 @@
 ------------------------------------------------------------------------------
 
 with Ada.Unchecked_Deallocation;
+
 with System; use type System.Address;
 
 package body Ada.Containers.Indefinite_Multiway_Trees is
 
-   type Iterator is new Limited_Controlled and
+   --------------------
+   --  Root_Iterator --
+   --------------------
+
+   type Root_Iterator is abstract new Limited_Controlled and
      Tree_Iterator_Interfaces.Forward_Iterator with
    record
       Container : Tree_Access;
-      Position  : Cursor;
-      From_Root : Boolean;
+      Subtree   : Tree_Node_Access;
    end record;
 
-   type Child_Iterator is new Limited_Controlled and
-     Tree_Iterator_Interfaces.Reversible_Iterator with
-   record
-      Container : Tree_Access;
-      Position  : Cursor;
-   end record;
+   overriding procedure Finalize (Object : in out Root_Iterator);
 
-   overriding procedure Finalize (Object : in out Iterator);
+   -----------------------
+   --  Subtree_Iterator --
+   -----------------------
 
-   overriding function First (Object : Iterator) return Cursor;
+   type Subtree_Iterator is new Root_Iterator with null record;
+
+   overriding function First (Object : Subtree_Iterator) return Cursor;
+
    overriding function Next
-     (Object   : Iterator;
+     (Object   : Subtree_Iterator;
       Position : Cursor) return Cursor;
 
-   overriding procedure Finalize (Object : in out Child_Iterator);
+   ---------------------
+   --  Child_Iterator --
+   ---------------------
+
+   type Child_Iterator is new Root_Iterator and
+     Tree_Iterator_Interfaces.Reversible_Iterator with null record;
 
    overriding function First (Object : Child_Iterator) return Cursor;
-   overriding function Next
-     (Object   : Child_Iterator;
-      Position : Cursor) return Cursor;
 
-   overriding function Previous
+   overriding function Next
      (Object   : Child_Iterator;
       Position : Cursor) return Cursor;
 
    overriding function Last (Object : Child_Iterator) return Cursor;
+
+   overriding function Previous
+     (Object   : Child_Iterator;
+      Position : Cursor) return Cursor;
 
    -----------------------
    -- Local Subprograms --
@@ -935,28 +945,10 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
    -- Finalize --
    --------------
 
-   procedure Finalize (Object : in out Iterator) is
+   procedure Finalize (Object : in out Root_Iterator) is
+      B : Natural renames Object.Container.Busy;
    begin
-      if Object.Container /= null then
-         declare
-            B : Natural renames Object.Container.all.Busy;
-
-         begin
-            B := B - 1;
-         end;
-      end if;
-   end Finalize;
-
-   procedure Finalize (Object : in out Child_Iterator) is
-   begin
-      if Object.Container /= null then
-         declare
-            B : Natural renames Object.Container.all.Busy;
-
-         begin
-            B := B - 1;
-         end;
-      end if;
+      B := B - 1;
    end Finalize;
 
    ----------
@@ -982,14 +974,18 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
    -- First --
    -----------
 
-   function First (Object : Iterator) return Cursor is
+   overriding function First (Object : Subtree_Iterator) return Cursor is
    begin
-      return Object.Position;
+      if Object.Subtree = Root_Node (Object.Container.all) then
+         return First_Child (Root (Object.Container.all));
+      else
+         return Cursor'(Object.Container, Object.Subtree);
+      end if;
    end First;
 
-   function First (Object : Child_Iterator) return Cursor is
+   overriding function First (Object : Child_Iterator) return Cursor is
    begin
-      return (Object.Container, Object.Position.Node.Children.First);
+      return First_Child (Cursor'(Object.Container, Object.Subtree));
    end First;
 
    -----------------
@@ -1359,19 +1355,8 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
    function Iterate (Container : Tree)
      return Tree_Iterator_Interfaces.Forward_Iterator'Class
    is
-      B  : Natural renames Container'Unrestricted_Access.all.Busy;
-      RC : constant Cursor :=
-             (Container'Unrestricted_Access, Root_Node (Container));
-
    begin
-      return It : constant Iterator :=
-                    Iterator'(Limited_Controlled with
-                                Container => Container'Unrestricted_Access,
-                                Position  => First_Child (RC),
-                                From_Root => True)
-      do
-         B := B + 1;
-      end return;
+      return Iterate_Subtree (Root (Container));
    end Iterate;
 
    ----------------------
@@ -1435,13 +1420,22 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
       Parent    : Cursor)
      return Tree_Iterator_Interfaces.Reversible_Iterator'Class
    is
-      B : Natural renames Container'Unrestricted_Access.all.Busy;
+      C : constant Tree_Access := Container'Unrestricted_Access;
+      B : Natural renames C.Busy;
 
    begin
+      if Parent = No_Element then
+         raise Constraint_Error with "Parent cursor has no element";
+      end if;
+
+      if Parent.Container /= C then
+         raise Program_Error with "Parent cursor not in container";
+      end if;
+
       return It : constant Child_Iterator :=
                     Child_Iterator'(Limited_Controlled with
-                                      Container => Parent.Container,
-                                      Position  => Parent)
+                                      Container => C,
+                                      Subtree   => Parent.Node)
       do
          B := B + 1;
       end return;
@@ -1455,17 +1449,25 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
      (Position : Cursor)
       return Tree_Iterator_Interfaces.Forward_Iterator'Class
    is
-      B : Natural renames Position.Container'Unrestricted_Access.all.Busy;
-
    begin
-      return It : constant Iterator :=
-                    Iterator'(Limited_Controlled with
-                                Container => Position.Container,
-                                Position  => Position,
-                                From_Root => False)
-      do
-         B := B + 1;
-      end return;
+      if Position = No_Element then
+         raise Constraint_Error with "Position cursor has no element";
+      end if;
+
+      --  Implement Vet for multiway trees???
+      --  pragma Assert (Vet (Position), "bad subtree cursor");
+
+      declare
+         B : Natural renames Position.Container.Busy;
+      begin
+         return It : constant Subtree_Iterator :=
+                       (Limited_Controlled with
+                          Container => Position.Container,
+                          Subtree   => Position.Node)
+         do
+            B := B + 1;
+         end return;
+      end;
    end Iterate_Subtree;
 
    procedure Iterate_Subtree
@@ -1518,7 +1520,7 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
 
    overriding function Last (Object : Child_Iterator) return Cursor is
    begin
-      return (Object.Container, Object.Position.Node.Children.Last);
+      return Last_Child (Cursor'(Object.Container, Object.Subtree));
    end Last;
 
    ----------------
@@ -1588,78 +1590,53 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
    ----------
 
    function Next
-     (Object : Iterator;
+     (Object   : Subtree_Iterator;
       Position : Cursor) return Cursor
    is
-      T  : Tree renames Position.Container.all;
-      N  : constant Tree_Node_Access := Position.Node;
+      Node : Tree_Node_Access;
 
    begin
-      if Is_Leaf (Position) then
+      if Position.Container = null then
+         return No_Element;
+      end if;
 
-         --  If sibling is present, return it
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong tree";
+      end if;
 
-         if N.Next /= null then
-            return (Object.Container, N.Next);
+      Node := Position.Node;
 
-         --  If this is the last sibling, go to sibling of first ancestor that
-         --  has a sibling, or terminate.
+      if Node.Children.First /= null then
+         return Cursor'(Object.Container, Node.Children.First);
+      end if;
 
-         else
-            declare
-               Par : Tree_Node_Access := N.Parent;
-
-            begin
-               while Par.Next = null loop
-
-                  --  If we are back at the root the iteration is complete
-
-                  if Par = Root_Node (T)  then
-                     return No_Element;
-
-                  --  If this is a subtree iterator and we are back at the
-                  --  starting node, iteration is complete.
-
-                  elsif Par = Object.Position.Node
-                    and then not Object.From_Root
-                  then
-                     return No_Element;
-
-                  else
-                     Par := Par.Parent;
-                  end if;
-               end loop;
-
-               if Par = Object.Position.Node
-                 and then not Object.From_Root
-               then
-                  return No_Element;
-               end if;
-
-               return (Object.Container, Par.Next);
-            end;
+      while Node /= Object.Subtree loop
+         if Node.Next /= null then
+            return Cursor'(Object.Container, Node.Next);
          end if;
 
-      --  If an internal node, return its first child
+         Node := Node.Parent;
+      end loop;
 
-      else
-         return (Object.Container, N.Children.First);
-      end if;
+      return No_Element;
    end Next;
 
    function Next
-     (Object : Child_Iterator;
+     (Object   : Child_Iterator;
       Position : Cursor) return Cursor
    is
-      C : constant Tree_Node_Access := Position.Node.Next;
-
    begin
-      if C = null then
+      if Position.Container = null then
          return No_Element;
-
-      else
-         return (Object.Container, C);
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong tree";
+      end if;
+
+      return Next_Sibling (Position);
    end Next;
 
    ------------------
@@ -1789,18 +1766,20 @@ package body Ada.Containers.Indefinite_Multiway_Trees is
    --------------
 
    overriding function Previous
-     (Object : Child_Iterator;
+     (Object   : Child_Iterator;
       Position : Cursor) return Cursor
    is
-      C : constant Tree_Node_Access := Position.Node.Prev;
-
    begin
-      if C = null then
+      if Position.Container = null then
          return No_Element;
-
-      else
-         return (Object.Container, C);
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Previous designates wrong tree";
+      end if;
+
+      return Previous_Sibling (Position);
    end Previous;
 
    ----------------------

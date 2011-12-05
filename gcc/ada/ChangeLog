@@ -1,3 +1,178 @@
+2011-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+	    Thomas Quinot <quinot@adacore.com>
+
+	* gcc-interface/Makefile.in (INCLUDES): Remove $(srcdir)/config.
+	(INCLUDES_FOR_SUBDIR): Add $(fsrcdir) except for VxWorks.
+	Add thread.c to LIBGNAT_SRCS so that a symlink is created in ada/rts,
+	which allows the file to be installed in adainclude.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2011-12-02  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Constrain_Access): Undo previous
+	patch for this routine. Required since the RM rule 3.7.1(7/3)
+	applies to all access types.
+
+2011-12-02  Bob Duff  <duff@adacore.com>
+
+	* sem_ch6.adb: Minor comment fix.
+
+2011-12-02  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* s-tpopsp-rtems.adb: Use ATCB_Key rather than RTEMS_Ada_Self variable
+	for consistency with other ports.
+	* s-osinte-rtems.adb: Add body for dummy implementation of
+	pthread_rwlockattr_setkind_np().
+	* s-osinte-rtems.ads: Add missing clock and rwlock bindings.
+	* terminals.c: Add __rtems__ conditionals to account for differences
+	in termios implementation.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb, sem_attr.adb, a-comutr.adb, a-cbmutr.adb,
+	a-cbmutr.ads: Minor reformatting.
+
+2011-12-02  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_dbug.adb: Comment reformatting.
+	(Get_External_Name): Use Reset_Buffers to reset the contents of
+	Name_Buffer and Homonym_Numbers.
+	(Qualify_All_Entity_Names): Reset the contents of Name_Buffer and
+	Homonym_Numbers before creating a new qualified name for a particular
+	entity.
+	(Reset_Buffers): New routine.
+
+2011-12-02  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cbmutr.ads (No_Node): Moved declaration from body to spec
+	* a-comutr.adb, a-cimutr.adb, a-cbmutr.adb (Iterator): Derives
+	from Root_Iterator.
+	(Child_Iterator): Derives from Root_Iterator.
+	(Finalize): Implemented as an override operation for Root_Iterator.
+	(First): Return value depends on Subtree component.
+	(Last): Component was renamed from Parent to Subtree.
+	(Next): Checks parameter value, and uses simplified loop.
+	(Iterate): Forwards to Iterate_Subtree.
+	(Iterate_Children): Component was renamed from Parent to Subtree.
+	(Iterate_Subtree): Checks parameter value
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* usage.adb: Add lines for -gnatw.n and -gnatw.N
+	(atomic sync info msgs).
+
+2011-12-02  Steve Baird  <baird@adacore.com>
+
+	* sem_ch3.adb (Check_Completion): An Ada 2012
+	generic formal type doesn't require a completion.
+
+2011-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* sem_util.adb (Set_Debug_Info_Needed): Also set the flag on the
+	packed array type if it is to be set on the array type used to
+	represent it.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Eliminate confusing use of type name.
+
+2011-12-02  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch10.adb (Analyze_Compilation_Unit): For a library subprogram
+	body that acts as spec, do not create a shallow copy of the context
+	clause for the synthetized spec (instead, use the same list as
+	in the body).
+
+2011-12-02  Bob Duff  <duff@adacore.com>
+
+	* gnat_ugn.texi: Clarify usage of -p binder switch.
+
+2011-12-02  Javier Miranda  <miranda@adacore.com>
+
+	* sem_util.ads, sem_util.adb, sem_aux.ads, sem_aux.adb
+	(Effectively_Has_Constrained_Partial_View): Moved to sem_aux
+	(In_Generic_Body): Moved to sem_aux.
+	(Unit_Declaration_Node): Moved to sem_aux.
+	* einfo.ads (Effectively_Has_Constrained_Partial_View): Complete
+	documentation.
+	* exp_attr.adb, live.adb, sem_ch10.adb, checks.adb, sem.adb,
+	rtsfind.adb, sem_attr.adb, sem_elab.adb, exp_ch4.adb, sem_ch4.adb,
+	exp_ch13.adb: Add with-clause on Sem_Aux.
+
+2011-12-02  Yannick Moy  <moy@adacore.com>
+
+	* sem_util.adb (Unique_Name): Reach through Unique_Entity to
+	get the name of the entity.
+	(Unique_Entity): Correct case for subprogram stubs.
+
+2011-12-02  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch3.adb (Check_Initialization): Do not emit warning on
+	initialization of limited type object in Alfa mode.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sinfo.ads: Minor reformatting.
+	* gnat_ugn.texi: Fix confusion in use of term "type name".
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch6.adb: Minor change in error message.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch9.adb, prj-part.adb, vms_data.ads, sem_ch8.adb: Minor
+	reformatting.
+
+2011-12-02  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Constrain_Access): Enable on Ada 2005 mode the
+	static check of the rule of general access types whose designated
+	type has discriminants.
+	* sem_util.ads, sem_util.adb
+	(Effectively_Has_Constrained_Partial_View): New subprogram.
+	(In_Generic_Body): New subprogram.
+	* einfo.ads (Has_Constrained_Partial_View): Adding documentation.
+	* sem_prag.adb (Inside_Generic_Body): Removed. Replaced by new
+	subprogram In_Generic_Body.
+	* exp_attr.adb, checks.adb, sem_attr.adb, exp_ch4.adb,
+	sem_ch4.adb: In addition, this patch replaces the occurrences of
+	Has_Constrained_Partial_View by
+	Effectively_Has_Constrained_Partial_View.
+
+2011-12-02  Matthew Heaney  <heaney@adacore.com>
+
+	* a-comutr.adb, a-cimutr.adb, a-cbmutr.adb (Iterator): Rename
+	Position component.
+	(Finalize): Remove unnecessary access check.
+	(First): Forward to First_Child.
+	(Last): Forward to Last_Child.
+	(Iterate): Check preconditions for parent node parameter.
+	(Next): Forward to Next_Sibling.
+	(Previous): Forward to Previous_Sibling.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* a-coinve.adb, a-coorma.adb, freeze.adb, a-coorse.adb, a-comutr.adb,
+	a-coormu.adb, a-convec.adb: Minor reformatting.
+
+2011-12-02  Matthew Heaney  <heaney@adacore.com>
+
+	* a-coormu.ads, a-ciormu.ads: Declare iterator factory function.
+	* a-ciormu.adb, a-ciormu.adb (Iterator): Declare concrete
+	Iterator type.
+	(Finalize): Decrement busy counter.
+	(First, Last): Cursor return value depends on iterator node value.
+	(Iterate): Use start position as iterator node value.
+	(Next, Previous): Forward to corresponding cursor-based operation.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* a-cborma.adb, a-cbhama.adb, a-cbdlli.adb, a-cbmutr.adb,
+	a-cbhase.adb, a-cdlili.adb, a-cihama.adb, a-ciorse.adb, a-cidlli.adb,
+	a-cimutr.adb, a-cihase.adb, a-cohama.adb, a-cborse.adb,
+	a-ciorma.adb, a-cobove.adb: Minor reformatting.
+
 2011-12-01  Jakub Jelinek  <jakub@redhat.com>
 
 	PR bootstrap/51201

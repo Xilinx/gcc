@@ -188,7 +188,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		cwd = "."
 	}
 
-	internalError := func(err os.Error) {
+	internalError := func(err error) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		h.printf("CGI error: %v", err)
 	}
@@ -227,7 +227,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			h.printf("cgi: long header line from subprocess.")
 			return
 		}
-		if err == os.EOF {
+		if err == io.EOF {
 			break
 		}
 		if err != nil {
@@ -333,18 +333,18 @@ func (h *Handler) handleInternalRedirect(rw http.ResponseWriter, req *http.Reque
 	h.PathLocationHandler.ServeHTTP(rw, newReq)
 }
 
-func upperCaseAndUnderscore(rune int) int {
+func upperCaseAndUnderscore(r rune) rune {
 	switch {
-	case rune >= 'a' && rune <= 'z':
-		return rune - ('a' - 'A')
-	case rune == '-':
+	case r >= 'a' && r <= 'z':
+		return r - ('a' - 'A')
+	case r == '-':
 		return '_'
-	case rune == '=':
+	case r == '=':
 		// Maybe not part of the CGI 'spec' but would mess up
 		// the environment in any case, as Go represents the
 		// environment as a slice of "key=value" strings.
 		return '_'
 	}
 	// TODO: other transformations in spec or practice?
-	return rune
+	return r
 }

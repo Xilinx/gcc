@@ -2050,7 +2050,6 @@ expand_call_stmt (gimple stmt)
     CALL_ALLOCA_FOR_VAR_P (exp) = gimple_call_alloca_for_var_p (stmt);
   else
     CALL_FROM_THUNK_P (exp) = gimple_call_from_thunk_p (stmt);
-  CALL_CANNOT_INLINE_P (exp) = gimple_call_cannot_inline_p (stmt);
   CALL_EXPR_VA_ARG_PACK (exp) = gimple_call_va_arg_pack_p (stmt);
   SET_EXPR_LOCATION (exp, gimple_location (stmt));
   TREE_BLOCK (exp) = gimple_block (stmt);
@@ -3325,7 +3324,8 @@ expand_debug_expr (tree exp)
 	  if ((TREE_CODE (TREE_OPERAND (exp, 0)) == VAR_DECL
 	       || TREE_CODE (TREE_OPERAND (exp, 0)) == PARM_DECL
 	       || TREE_CODE (TREE_OPERAND (exp, 0)) == RESULT_DECL)
-	      && !TREE_ADDRESSABLE (TREE_OPERAND (exp, 0)))
+	      && (!TREE_ADDRESSABLE (TREE_OPERAND (exp, 0))
+		  || target_for_debug_bind (TREE_OPERAND (exp, 0))))
 	    return gen_rtx_DEBUG_IMPLICIT_PTR (mode, TREE_OPERAND (exp, 0));
 
 	  if (handled_component_p (TREE_OPERAND (exp, 0)))
@@ -3337,7 +3337,8 @@ expand_debug_expr (tree exp)
 	      if ((TREE_CODE (decl) == VAR_DECL
 		   || TREE_CODE (decl) == PARM_DECL
 		   || TREE_CODE (decl) == RESULT_DECL)
-		  && !TREE_ADDRESSABLE (decl)
+		  && (!TREE_ADDRESSABLE (decl)
+		      || target_for_debug_bind (decl))
 		  && (bitoffset % BITS_PER_UNIT) == 0
 		  && bitsize > 0
 		  && bitsize == maxsize)
