@@ -8655,6 +8655,7 @@ output_skeleton_debug_sections (void)
       /* Produce the skeleton type-unit header.  */
       const char *secname = ".debug_types";
       dw_die_ref type_unit = new_die (DW_TAG_type_unit, NULL, NULL);
+
       add_AT_string (type_unit, DW_AT_GNU_dwo_name, dwo_file_name);
       /* FIXME: How is this value determined?  */
       add_AT_unsigned (type_unit, DW_AT_GNU_dwo_id, 0);
@@ -8665,7 +8666,24 @@ output_skeleton_debug_sections (void)
 #else
       switch_to_section (get_section (secname, SECTION_DEBUG, NULL));
 #endif
+      if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
+        dw2_asm_output_data (4, 0xffffffff,
+          "Initial length escape value indicating 64-bit DWARF extension");
+
+      /* One for the terminating NULL byte.  */
+      dw2_asm_output_data (DWARF_OFFSET_SIZE,
+                           DWARF_COMPILE_UNIT_HEADER_SIZE
+                           - DWARF_INITIAL_LENGTH_SIZE
+                           + size_of_die (type_unit) + 1,
+                           "Length of Compilation Unit Info");
+      dw2_asm_output_data (2, dwarf_version, "DWARF version number");
+      dw2_asm_output_offset (DWARF_OFFSET_SIZE,
+                             debug_skeleton_abbrev_section_label,
+                             debug_abbrev_section,
+                             "Offset Into Abbrev. Section");
+      dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Pointer Size (in bytes)");
       output_die (type_unit);
+      dw2_asm_output_data (1, 0, "end of skeleton .debug_types");
     }
 
   /* Build an empty skeleton debug_abbrev section.  */
