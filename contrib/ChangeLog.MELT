@@ -1,4 +1,9 @@
 
+2011-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{melt-0.9.2-rc2}}
+	* MELT-Plugin-Makefile (install-*): Add echo-ing messages.
+	(install-melt-mk): Don't mkinstalldirs $(libexecsubdir)
+
 2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (CFLAGS): New.
 	(melt-runtime.args): Put our -I before GCC ones.
