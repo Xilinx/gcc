@@ -468,6 +468,10 @@ fi
 
 case ${target} in
 i[34567]86-*-*)
+	if test "x$with_abi" != x; then
+		echo "This target does not support --with-abi."
+		exit 1
+	fi
 	if test "x$enable_cld" = xyes; then
 		tm_defines="${tm_defines} USE_IX86_CLD=1"
 	fi
