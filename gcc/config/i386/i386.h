@@ -41,6 +41,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 /* Redefines for option macros.  */
 
+#define TARGET_X86_64	OPTION_ISA_X86_64
 #define TARGET_64BIT	OPTION_ISA_64BIT
 #define TARGET_X32	OPTION_ISA_X32
 #define TARGET_MMX	OPTION_ISA_MMX
