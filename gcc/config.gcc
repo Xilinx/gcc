@@ -471,10 +471,10 @@ x86_64-*-*)
 			tm_file="i386/biarch64.h ${tm_file}"
 		fi
 		;;
-	64)
+	64 | m64)
 		tm_file="i386/biarch64.h ${tm_file}"
 		;;
-	x32)
+	x32 | mx32)
 		tm_file="i386/biarchx32.h ${tm_file}"
 		;;
 	*)

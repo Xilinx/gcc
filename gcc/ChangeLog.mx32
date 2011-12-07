@@ -1,5 +1,9 @@
 2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config.gcc: Also support --with-abi={mx32|m64}.
+
+2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config.gcc: For --with-abi=x32 or --with-multilib-list=mx32,
 	use i386/biarchx32.h instead of i386/biarch64.h.
 	(supported_defaults): Add abi for i[34567]86-*-* and x86_64-*-*.
