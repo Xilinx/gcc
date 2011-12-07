@@ -1713,8 +1713,8 @@
 (define_insn "cstoresf4"
    [(set (match_operand:SI 0 "register_operand")
         (match_operator:SI 1 "ordered_comparison_operator"
-	      [(match_operand:SF 2 "register_operand")
-	       (match_operand:SF 3 "register_operand")]))]
+	      [(match_operand:SF 2 "register_operand" "r")
+	       (match_operand:SF 3 "register_operand" "r")]))]
   "TARGET_HARD_FLOAT"
   "fcmp.%C1\t%0,%3,%2"
   [(set_attr "type"     "fcmp")
