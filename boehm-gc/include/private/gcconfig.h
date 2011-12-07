@@ -1970,8 +1970,13 @@
 
 # ifdef X86_64
 #   define MACH_TYPE "X86_64"
-#   define ALIGNMENT 8
-#   define CPP_WORDSZ 64
+#   ifdef __LP64__
+#     define ALIGNMENT 8
+#     define CPP_WORDSZ 64
+#   else
+#     define ALIGNMENT 4
+#     define CPP_WORDSZ 32
+#   endif
 #   ifndef HBLKSIZE
 #     define HBLKSIZE 4096
 #   endif
