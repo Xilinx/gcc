@@ -426,7 +426,7 @@ ffi_call (ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
   /* If the return value is passed in memory, add the pointer as the
      first integer argument.  */
   if (ret_in_memory)
-    reg_args->gpr[gprcount++] = (long) rvalue;
+    reg_args->gpr[gprcount++] = (unsigned long) rvalue;
 
   avn = cif->nargs;
   arg_types = cif->arg_types;
