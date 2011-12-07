@@ -1,5 +1,9 @@
 
 2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_load_module_index): Search source also in
+	temporary & work directories. Warn when source not found.
+
+2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base+02.c: Regenerate.

@@ -8609,6 +8609,8 @@ melt_same_md5sum_hex (const char* curpath, FILE* sfil, const char*md5hexstr)
   return !strcmp (md5hex, md5hexstr);
 }
 
+
+
 /* Return a positive index, in the melt_modinfvec vector, of a module
    of given source base (the path, without "+meltdesc.c" suffix of the
    MELT descriptive file). This function don't run the
@@ -8808,24 +8810,30 @@ melt_load_module_index (const char*srcbase, const char*flavor)
   validh = TRUE;
 
   /* Retrieve our dynamic symbols. */
-#define MELTDESCR_UNION_SYMBOL(Sym,Typ)  union { void* ptr_##Sym;	\
+#define MELTDESCR_UNION_SYMBOL(Sym,Typ)  union { void* ptr_##Sym; \
     Typ* dat_##Sym; } u_##Sym
-#define MELTDESCR_REQUIRED_SYMBOL(Sym,Typ) do {		\
-    MELTDESCR_UNION_SYMBOL(Sym,Typ);			\
-    u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);	\
-    debugeprintf ("melt_load_module_index req. " #Sym	\
-		  " %p validh %d",			\
-		  u_##Sym.ptr_##Sym, (int) validh);	\
-    if (!u_##Sym.ptr_##Sym) validh = FALSE;		\
-    else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
+
+#define MELTDESCR_REQUIRED_SYMBOL(Sym,Typ) do {         \
+    MELTDESCR_UNION_SYMBOL(Sym,Typ);                    \
+    u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);      \
+      debugeprintf ("melt_load_module_index req. " #Sym \
+                    " %p validh %d",                    \
+                    u_##Sym.ptr_##Sym, (int) validh);   \
+      if (!u_##Sym.ptr_##Sym) validh = FALSE;           \
+      else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
+
   MELTDESCR_REQUIRED_LIST;
+
 #undef MELTDESCR_REQUIRED_SYMBOL
-#define MELTDESCR_OPTIONAL_SYMBOL(Sym,Typ) do {		\
-    MELTDESCR_UNION_SYMBOL(Sym,Typ);			\
-    u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);	\
-    if (u_##Sym.ptr_##Sym)				\
-      dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
+
+#define MELTDESCR_OPTIONAL_SYMBOL(Sym,Typ) do {         \
+    MELTDESCR_UNION_SYMBOL(Sym,Typ);                    \
+    u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);      \
+      if (u_##Sym.ptr_##Sym)                            \
+        dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
+
   MELTDESCR_OPTIONAL_LIST;
+
 #undef MELTDESCR_OPTIONAL_SYMBOL
   if (flag_melt_bootstrapping) {
     debugeprintf ("melt_load_module_index validh %d bootstrapping melt_modulename %s descmodulename %s",
@@ -8834,8 +8842,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       && !strcmp (lbasename (MELTDESCR_REQUIRED (melt_modulename)), lbasename (descmodulename));
   }
   else {
-  debugeprintf ("melt_load_module_index validh %d melt_modulename %s descmodulename %s",
-		validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
+    debugeprintf ("melt_load_module_index validh %d melt_modulename %s descmodulename %s",
+		  validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
     validh = validh
       && !strcmp (MELTDESCR_REQUIRED (melt_modulename), descmodulename);
   }
@@ -8864,7 +8872,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       time_t nowt = 0;
       time (&nowt);
       if (strcmp (MELTDESCR_REQUIRED (melt_versionmeltstr), 
-		 melt_version_str ()))
+		  melt_version_str ()))
 	warning (0,
 		 "MELT module %s for source %s has mismatching MELT version %s, expecting %s",
 		 sopath, srcbase, MELTDESCR_REQUIRED (melt_versionmeltstr), melt_version_str ());
@@ -8878,25 +8886,35 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       debugeprintf ("melt_load_module_index descmodulename %s nbsecfile %d", descmodulename, nbsecfile);
       srcpath = concat (descmodulename, ".c", NULL);
       curpath = 
-          MELT_FIND_FILE (srcpath,
-		    MELT_FILE_IN_DIRECTORY, ".",
-		    MELT_FILE_IN_PATH, srcpathstr,
-		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
-		    MELT_FILE_IN_DIRECTORY, melt_source_dir,
-		    NULL);
+	MELT_FIND_FILE (srcpath,
+			MELT_FILE_IN_DIRECTORY, ".",
+			MELT_FILE_IN_PATH, srcpathstr,
+			MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+			MELT_FILE_IN_DIRECTORY, melt_source_dir,
+			/* also search in the temporary directory, but don't bother making it.  */
+			MELT_FILE_IN_DIRECTORY, tempdir_melt,
+			/* Search in the user provided work directory, if given. */
+			MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
+			NULL);
       debugeprintf ("melt_load_module_index srcpath %s ", srcpath);
-      sfil = fopen (curpath, "r");
-      if (!sfil) 
+      debugeprintf ("melt_load_module_index curpath %s ", curpath);
+      if (!curpath) 
 	warning (0,
-		 "MELT module %s cannot open primary source file %s - %m", sopath, curpath);
-      else
-	{
-	  if (!melt_same_md5sum_hex (curpath, sfil, MELTDESCR_REQUIRED (melt_primaryhexmd5)))
-	    warning (0,
-		     "MELT primary source file %s has mismatching md5sum, expecting %s",
-		     curpath, MELTDESCR_REQUIRED (melt_primaryhexmd5));
-	  fclose (sfil), sfil = NULL;
-	};
+		 "MELT module %s cannot find its source path for base %s flavor", sopath, srcbase, flavor);
+      else {
+	sfil = fopen (curpath, "r");
+	if (!sfil) 
+	  warning (0,
+		   "MELT module %s cannot open primary source file %s for %s - %m", sopath, curpath);
+	else
+	  {
+	    if (!melt_same_md5sum_hex (curpath, sfil, MELTDESCR_REQUIRED (melt_primaryhexmd5)))
+	      warning (0,
+		       "MELT primary source file %s has mismatching md5sum, expecting %s",
+		       curpath, MELTDESCR_REQUIRED (melt_primaryhexmd5));
+	    fclose (sfil), sfil = NULL;
+	  };
+      }
       free (srcpath), srcpath = NULL;
       free (curpath), curpath = NULL;
       for (cursecix = 1; cursecix < nbsecfile; cursecix++) 
@@ -8908,12 +8926,12 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 	  snprintf (suffixbuf, sizeof(suffixbuf)-1, "+%02d.c", cursecix);
 	  srcpath = concat (descmodulename, suffixbuf, NULL);
           curpath = 
-              MELT_FIND_FILE (srcpath,
-		    MELT_FILE_IN_DIRECTORY, ".",
-		    MELT_FILE_IN_PATH, srcpathstr,
-		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
-		    MELT_FILE_IN_DIRECTORY, melt_source_dir,
-		    NULL);
+	    MELT_FIND_FILE (srcpath,
+			    MELT_FILE_IN_DIRECTORY, ".",
+			    MELT_FILE_IN_PATH, srcpathstr,
+			    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
+			    MELT_FILE_IN_DIRECTORY, melt_source_dir,
+			    NULL);
           debugeprintf ("melt_load_module_index srcpath %s ", srcpath);
 	  sfil = fopen (curpath, "r");
 	  if (!sfil) 
@@ -8969,10 +8987,10 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 		  MELTDESCR_REQUIRED(melt_build_timestamp));
       }
     }
-    else 
+  else 
     {
-	debugeprintf ("melt_load_module_index invalid dlh %p sopath %s", dlh, sopath);
-	dlclose (dlh), dlh = NULL;
+      debugeprintf ("melt_load_module_index invalid dlh %p sopath %s", dlh, sopath);
+      dlclose (dlh), dlh = NULL;
     }
  end:
   if (srcpath) 
