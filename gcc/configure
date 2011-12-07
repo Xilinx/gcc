@@ -890,7 +890,6 @@ with_pkgversion
 with_bugurl
 enable_languages
 with_multilib_list
-with_multilib_default
 enable_rpath
 with_libiconv_prefix
 enable_initfini_array
@@ -1658,7 +1657,6 @@ Optional Packages:
   --with-pkgversion=PKG   Use PKG in the version string in place of "GCC"
   --with-bugurl=URL       Direct users to URL to report a bug
   --with-multilib-list    select multilibs (SH and x86-64 only)
-  --with-multilib-default select the default multilib (x86-64 only)
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
@@ -7353,15 +7351,6 @@ if test "${with_multilib_list+set}" = set; then :
   withval=$with_multilib_list; :
 else
   with_multilib_list=default
-fi
-
-
-
-# Check whether --with-multilib-default was given.
-if test "${with_multilib_default+set}" = set; then :
-  withval=$with_multilib_default; :
-else
-  with_multilib_default=default
 fi
 
 
@@ -18088,7 +18077,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 18091 "configure"
+#line 18080 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -18194,7 +18183,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 18197 "configure"
+#line 18186 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H

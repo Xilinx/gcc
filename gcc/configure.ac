@@ -830,11 +830,6 @@ AC_ARG_WITH(multilib-list,
 :,
 with_multilib_list=default)
 
-AC_ARG_WITH(multilib-default,
-[AS_HELP_STRING([--with-multilib-default], [select the default multilib (x86-64 only)])],
-:,
-with_multilib_default=default)
-
 # -------------------------
 # Checks for other programs
 # -------------------------
