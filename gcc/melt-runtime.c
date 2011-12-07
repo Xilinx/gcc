@@ -8900,12 +8900,13 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       debugeprintf ("melt_load_module_index curpath %s ", curpath);
       if (!curpath) 
 	warning (0,
-		 "MELT module %s cannot find its source path for base %s flavor", sopath, srcbase, flavor);
+		 "MELT module %s cannot find its source path for base %s flavor %s", 
+		 sopath, srcbase, flavor);
       else {
 	sfil = fopen (curpath, "r");
 	if (!sfil) 
 	  warning (0,
-		   "MELT module %s cannot open primary source file %s for %s - %m", sopath, curpath);
+		   "MELT module %s cannot open primary source file %s for %s - %m", sopath, curpath, srcbase);
 	else
 	  {
 	    if (!melt_same_md5sum_hex (curpath, sfil, MELTDESCR_REQUIRED (melt_primaryhexmd5)))
@@ -13090,7 +13091,7 @@ meltgc_usedef_internalfun(tree tr, gimple gi, void*data)
 ****/
 void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar, bool depthfirstflag)
 {
-  MELT_ENTERFRAME (4, NULL);
+  MELT_ENTERFRAME (2, NULL);
   /* we need closv & valv to be consecutive! */
 #define closv meltfram__.mcfr_varptr[0]
 #define valv  meltfram__.mcfr_varptr[1]
@@ -13101,6 +13102,7 @@ void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar,
   if (melt_magic_discr ((melt_ptr_t) closv) != MELTOBMAG_CLOSURE)
     goto end;
   walk_use_def_chains (trvar, meltgc_usedef_internalfun, &closv, depthfirstflag);
+  valv = valv; /* So that valv is used here! */
  end:
   MELT_EXITFRAME ();
 #undef closv

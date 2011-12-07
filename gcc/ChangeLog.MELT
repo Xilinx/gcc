@@ -1,5 +1,10 @@
 
-2011-12-02  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_load_module_index): Better warnings with
+	enough arguments.
+	(meltgc_walk_use_def_chain): Shrink MELT frame.
+
+2011-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_load_module_index): Search source also in
 	temporary & work directories. Warn when source not found.
 
