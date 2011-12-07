@@ -2893,6 +2893,8 @@ finish_id_expression (tree id_expression,
 		      const char **error_msg,
 		      location_t location)
 {
+  decl = strip_using_decl (decl);
+
   /* Initialize the output parameters.  */
   *idk = CP_ID_KIND_NONE;
   *error_msg = NULL;
@@ -3401,7 +3403,7 @@ finish_underlying_type (tree type)
 
   if (TREE_CODE (type) != ENUMERAL_TYPE)
     {
-      error ("%qE is not an enumeration type", type);
+      error ("%qT is not an enumeration type", type);
       return error_mark_node;
     }
 

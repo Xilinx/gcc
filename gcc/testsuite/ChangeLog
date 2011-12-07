@@ -1,3 +1,154 @@
+2011-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50823
+	* gcc.dg/torture/pr50823.c: New testcase.
+
+2011-12-07  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50744
+	* gcc.dg/ipa/pr50744.c: New test.
+
+2011-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51430
+	* g++.dg/template/static32.C: New test.
+
+2011-12-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/opt/pr51396.C: Use dg-additional-options.
+
+2011-12-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51435
+	* gfortran.dg/default_initialization_5.f90: New.
+
+2011-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51354
+	* gcc.c-torture/compile/pr51354.c: New test.
+
+2011-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51431
+	* g++.dg/other/abstract3.C: New.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49997
+	* gcc.dg/torture/pr49997.c: New testcase.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51436
+	* g++.dg/torture/pr51436.C: New testcase.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51245
+	* gcc.dg/torture/pr51245.c: New testcase.
+
+2011-12-06  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51427
+	* g++.dg/diagnostic/wrong-tag-1.C
+
+2011-12-05  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/51319
+	* g++.dg/lookup/using50.C: New.
+	* g++.dg/lookup/using51.C: New.
+
+2011-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51396
+	* g++.dg/opt/pr51396.C: New test.
+
+	PR debug/51410
+	* gcc.dg/debug/dwarf2/pr51410.c: New test.
+
+	PR c/51339
+	* gcc.dg/gomp/pr51339.c: New test.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51399
+	* g++.dg/cpp0x/initlist62.C: New.
+
+2011-12-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51338
+	* gfortran.dg/assumed_charlen_substring_1.f90:  New test.
+
+2011-12-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/debug/pr46338.C: Add dg-require-profiling.
+	* g++.dg/torture/pr39732.C: Likewise.
+	* g++.dg/torture/pr40642.C: Likewise.
+	* gcc.c-torture/compile/pr44686.c: Likewise.
+	* gcc.dg/20050309-1.c: Likewise.
+	* gcc.dg/20050330-2.c: Likewise.
+	* gcc.dg/20051201-1.c: Likewise.
+	* gcc.dg/gomp/pr27573.c: Likewise.
+	* gcc.dg/pr46255.c: Likewise.
+	* gcc.dg/profile-dir-1.c: Likewise.
+	* gcc.dg/profile-dir-2.c: Likewise.
+	* gcc.dg/profile-dir-3.c: Likewise.
+	* gcc.dg/profile-generate-1.c: Likewise.
+	* gfortran.dg/gomp/pr27573.f90: Likewise.
+	* gcc.dg/profile-generate-3.c: Be specific about the type of
+	profiling required.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51414
+	* g++.dg/ext/underlying_type11.C: New.
+
+2011-12-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/51128
+	* gcc.dg/torture/pr23821.c: Skip if -fno-fat-lto-objects was passed.
+	* gcc.dg/torture/pr39074.c: Ditto.
+	* gcc.dg/torture/pr39074-2.c: Ditto.
+	* gcc.dg/torture/pr42898.c: Ditto.
+	* gcc.dg/torture/pr42898-2.c: Ditto.
+	* gcc.dg/torture/pr45704.c: Ditto.
+	* gcc.dg/torture/pr50472.c: Ditto.
+	* gcc.dg/torture/pta-callused-1.c: Ditto.
+	* gcc.dg/torture/pta-ptrarith-1.c: Ditto.
+	* gcc.dg/torture/pta-ptrarith-2.c: Ditto.
+	* gcc.dg/torture/pta-ptrarith-3.c: Ditto.
+	* gcc.dg/torture/pta-escape-1.c: Ditto.
+	* gcc.dg/torture/ipa-pta-1.c: Ditto.
+	* gcc.dg/torture/ssa-pta-fn-1.c: Ditto.
+
+2011-12-05  Kazu Hirata  <kazu@codesourcery.com>
+
+	PR target/51408
+	* gcc.dg/pr51408.c: New.
+
+2011-12-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/dc6.C: New.
+
+2011-12-05  Ville Voutilainen  <ville.voutilainen@gmail.com>
+	    Pedro Lamarão <pedro.lamarao@gmail.com>
+
+	* g++.dg/cpp0x/dc1.C: New test.
+	* g++.dg/cpp0x/dc2.C: New test.
+	* g++.dg/cpp0x/dc3.C: New test.
+	* g++.dg/cpp0x/dc4.C: New test.
+	* g++.dg/cpp0x/dc5.C: New test.
+	* g++.dg/template/meminit1.C: Adjust expected error.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51404
+	* g++.dg/cpp0x/auto28.C: New.
+
+2011-12-05  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.dg/torture/vec-cvt-1.c (FLTTEST): Call rand instead of random.
+
 2011-12-05  Jakub Jelinek  <jakub@redhat.com>
 	    Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -56,8 +207,7 @@
 
 	* gfortran.dg/select_type_23.f03: Revert Rev. 181801,
 	i.e. remove the dg-error line.
-	* gfortran.dg/move_alloc_5.f90: Ditto and change back
-	to dg-do run.
+	* gfortran.dg/move_alloc_5.f90: Ditto and change back to dg-do run.
 	* gfortran.dg/move_alloc_9.f90: New.
 	* gfortran.dg/move_alloc_10.f90: New
 

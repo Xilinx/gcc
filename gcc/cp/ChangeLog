@@ -1,3 +1,64 @@
+2011-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51430
+	* pt.c (tsubst_decl): Don't call strip_array_domain on
+	error_mark_node.
+
+2011-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51431
+	* init.c (build_value_init): Check build_aggr_init_expr return
+	value for error_mark_node.
+
+2011-12-06  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51427
+	* parser.c (cp_parser_check_class_key): Add note about earlier
+	declaration.
+
+2011-12-05  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/51319
+	* semantics.c (finish_id_expression): Strip using declarations
+	early in the function.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51399
+	* init.c (perform_member_init): Early return if init is error_mark_node.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51414
+	* semantics.c (finish_underlying_type): Use %qT, not %qE for the
+	error message.
+
+2011-12-05  Jason Merrill  <jason@redhat.com>
+
+	* init.c (expand_default_init): Unshare args in ctor delegation.
+
+2011-12-05  Ville Voutilainen  <ville.voutilainen@gmail.com>
+	    Pedro Lamarão  <pedro.lamarao@gmail.com>
+
+	Implement C++11 delegating constructors.
+	* cp-tree.h (enum cpp0x_warn_str): Add CPP0X_DELEGATING_CTORS.
+	* error.c (maybe_warn_cpp0x): Adjust.
+	* parser.c (cp_parser_mem_initializer_list): Use it.  Diagnose
+	multiple initializers if a delegating initializer is present.
+	* call.c (build_special_member_call): Convert an assert into an if.
+	* init.c (perform_target_ctor): New.
+	(emit_mem_initializers): Use it.
+	(expand_member_init, expand_default_init): Adjust.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51404
+	* typeck2.c (build_functional_cast): Early return error_mark_node
+	for invalid uses of 'auto'.
+	* parser.c (cp_parser_direct_declarator): When
+	cp_parser_constant_expression returns error do not produce further
+	diagnostic for the bound.
+
 2011-12-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/51313

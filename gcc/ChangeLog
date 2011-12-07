@@ -1,3 +1,287 @@
+2011-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50823
+	* ipa-inline.c (edge_badness): Do not account for the number of
+	remaining calls.
+
+2011-12-07  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50744
+	* ipa-cp.c (good_cloning_opportunity_p): Assert size_cost is positive,
+	compute evaluation in HOST_WIDEST_INT.
+	(safe_add): New function
+	(propagate_effects): Use safe_add to accumulate effects.
+
+2011-12-06  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* config/rs6000/rtems.h: Switch to using global_options_set
+	in SUBSUBTARGET_OVERRIDE_OPTIONS.
+
+2011-12-06  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/visintrin.h: Add appropriate __VIS__ cpp protection.
+
+2011-12-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (avr_file_start): Fix missing ,
+
+2011-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51354
+	* config/i386/i386.c (ix86_emit_leave): Call ix86_add_cfa_restore_note
+	unconditionally.
+
+2011-12-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	Forward-port from gcc-4_6-branch r181936 2011-12-02.
+	* config/avr/avr-mcus.def (avr_mcu_types): ATtiny4313 and
+	AT86RF401 have a 16-bit SP (their manual is bogus).
+
+2011-12-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	Forward-port from gcc-4_6-branch r181936 2011-12-02.
+
+	PR target/51002
+	* config/avr/avr.md (movhi_sp_r): Set insn condition to
+	!AVR_HAVE_8BIT_SP.
+	* config/avr/avr.c (output_movhi): Use "clr%B0" instead of "in
+	%B0,__SP_H__" if AVR_HAVE_8BIT_SP.
+	(avr_file_start): Only print "__SP_H__ = 0x3e" if !AVR_HAVE_8BIT_SP.
+
+2011-12-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/51409
+	PR target/49868
+	* config/avr/avr.h (ADDR_SPACE_PGM, ADDR_SPACE_PGM1,
+	ADDR_SPACE_PGM2, ADDR_SPACE_PGM3, ADDR_SPACE_PGM4,
+	ADDR_SPACE_PGM5, ADDR_SPACE_PGMX): Write as enum.
+	(avr_addrspace_t): New typedef.
+	(avr_addrspace): New declaration.
+	* config/avr/avr-c.c (avr_toupper): New static function.
+	(avr_register_target_pragmas, avr_cpu_cpp_builtins): Use
+	avr_addrspace to get address space information.
+	* config/avr/avr.c (avr_addrspace): New variable.
+	(avr_out_lpm, avr_pgm_check_var_decl, avr_insert_attributes,
+	avr_asm_named_section, avr_section_type_flags,
+	avr_asm_select_section, avr_addr_space_address_mode, 
+	avr_addr_space_convert, avr_emit_movmemhi): Use it.
+	(avr_addr_space_pointer_mode): Forward to avr_addr_space_address_mode.
+	(avr_pgm_segment): Remove.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/50601
+	* varasm.c (assemble_alias): Move DECL_EXTERNAL implementation
+	quirk adjustjment ...
+	* passes.c (rest_of_decl_compilation): ... here.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51436
+	* gimple-fold.c (gimplify_and_update_call_from_tree): Guard
+	vdef check for the fact we do not have virtual operands when
+	not optimizing.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51245
+	* tree-ssa-sccvn.c (vn_reference_lookup_or_insert_constant_for_pieces):
+	New function.
+	(vn_reference_lookup_3): Use it.  Properly valueize all refs
+	we create.
+
+2011-12-06  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/rs6000/rs6000.c (darwin_rs6000_override_options): Initialize
+	rs6000_current_abi.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51363
+	* gimple.c (gimple_rhs_has_side_effects): Remove.
+	* gimple.h (gimple_rhs_has_side_effects): Likewise.
+	* tree-ssa-dom.c (optimize_stmt): Simplify conditional.
+
+2011-12-06  Alan Modra  <amodra@gmail.com>
+
+	PR target/50906
+	* config/rs6000/rs6000.c (rs6000_emit_prologue <TARGET_SPE_ABI>):
+	Do not mark r11 setup as frame-related.  Pass correct offset to
+	rs6000_emit_savres_rtx.  Correct out-of-line rs6000_frame_related
+	arguments.  Correct sp_offset.  Remove "offset" fudge from
+	in-line rs6000_frame_related call.  Rename misleading variable.
+	Fix comments and whitespace.  Tidy some expressions.
+	(rs6000_emit_epilogue <TARGET_SPE_ABI>): Always set frame_reg_rtx
+	to r11 in out-of-line case.  Correct sp_offset.  Pass correct
+	offset to rs6000_emit_savres_rtx.  Rename misleading variable.
+	Fix comments and whitespace.  Tidy some expressions.
+	(rs6000_emit_epilogue <non-TARGET_SPE_ABI>): Add sp_offset
+	adjustment when !saving_GPRs_inline.  Correct register mode
+	used in address calcs.
+	(rs6000_emit_epilogue <non-TARGET_SPE_ABI>): Similarly when
+	!restoring_GPRs_inline.
+
+2011-12-06  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* config/arm/vfp.md (*combine_vcvt_f64_<FCVTI32typename>): Fix
+	formatting character for vmov.f64 case.
+
+2011-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51396
+	* tree-ssa-math-opts.c (convert_mult_to_fma): Don't optimize
+	if MUL_RESULT has zero uses.
+
+	PR debug/51410
+	* c-decl.c (pop_scope): Don't add DECL_EXTERNAL decls
+	for debug info if scope is file_scope.
+
+	PR c/51339
+	* c-decl.c (c_finish_incomplete_decl, finish_decl): Call
+	relayout_decl instead of layout_decl.
+
+2011-12-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* resource.c (init_resource_info): Only consider EXIT_IGNORE_STACK
+	if there is in epilogue.
+
+2011-12-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* optabs.c (maybe_emit_sync_lock_test_and_set): Pass a null target
+	to emit_library_call_value.
+	(expand_atomic_compare_and_swap): Likewise.
+
+2011-12-05  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR other/50775
+	* ira-int.h (struct ira_object): Remove add_data.
+	(OBJECT_ADD_DATA): Remove.
+
+	* ira-build.c (ira_create_object): Remove OBJECT_ADD_DATA
+	initialization.
+
+	* ira-color.c (object_hard_regs_t, object_hard_regs): Rename to
+	allocno_hard_regs_t, allocno_hard_regs.
+	(object_hard_regs_node_t, object_hard_regs_node): Rename to
+	allocno_hard_regs_node_t and allocno_hard_regs_node.
+	(struct allocno_color_data): Add new member last_process.  Move
+	profitable_hard_regs, hard_regs_node, and hard_regs_subnodes_start
+	from object_color_data.
+	(object_color_data_t, object_color_data, OBJECT_COLOR_DATA):
+	Remove.
+	(curr_allocno_process): New static variable.
+	(object_hard_regs_eq, object_hard_regs_htab): Rename to
+	allocno_hard_regs_eq and allocno_hard_regs_htab.
+	(init_object_hard_regs, finish_object_hard_regs): Rename to
+	init_allocno_hard_regs and finish_allocno_hard_regs.
+	(object_hard_regs_compare, object_hard_regs_node_t): Rename to
+	allocno_hard_regs_compare and allocno_hard_regs_node_t.
+	(create_new_object_hard_regs_node): Rename to
+	create_new_allocno_hard_regs_node.
+	(add_new_object_hard_regs_node_to_forest): Rename to
+	add_new_allocno_hard_regs_node_to_forest.
+	(add_object_hard_regs_to_forest, collect_object_hard_regs_cover):
+	Rename to add_allocno_hard_regs_to_forest and collect_allocno_hard_regs_cover.
+	(setup_object_hard_regs_nodes_parent): Rename to setup_allocno_hard_regs_nodes_parent.
+	(remove_unused_object_hard_regs_nodes): Rename to remove_unused_allocno_hard_regs_nodes.
+	(enumerate_object_hard_regs_nodes, object_hard_regs_nodes_num):
+	Rename to enumerate_allocno_hard_regs_nodes and allocno_hard_regs_nodes_num.
+	(object_hard_regs_nodes, object_hard_regs_subnode_t): Rename to
+	allocno_hard_regs_nodes and allocno_hard_regs_subnode_t.
+	(object_hard_regs_subnode, object_hard_regs_subnodes): Rename to
+	allocno_hard_regs_subnode and allocno_hard_regs_subnodes.
+	(object_hard_regs_subnode_index): Rename to allocno_hard_regs_subnode_index.
+	(setup_object_hard_regs_subnode_index): Rename to
+	setup_allocno_hard_regs_subnode_index.
+	(get_object_hard_regs_subnodes_num): Rename to get_allocno_hard_regs_subnodes_num.
+	(form_object_hard_regs_nodes_forest): Rename to form_allocno_hard_regs_nodes_forest.
+	(finish_object_hard_regs_nodes_tree): Rename to form_allocno_hard_regs_nodes_forest
+	(finish_object_hard_regs_nodes_forest): Rename to
+	finish_allocno_hard_regs_nodes_forest.
+	(setup_left_conflict_sizes_p): Use allocno data instead of object
+	ones.  Process conflict allocnos once.
+	(update_left_conflict_sizes_p): Use allocno data instead of object
+	ones.  Change prototype signature.
+	(empty_profitable_hard_regs): Use allocno data instead of object
+	ones.
+	(setup_profitable_hard_regs): Ditto.
+	(get_conflict_profitable_regs): Rename to
+	get_conflict_and_start_profitable_regs.  Use allocno data for
+	profitable regs calculation.
+	(check_hard_reg_p): Change prototype signature.  Check profitable
+	regs for allocno not the objects.
+	(assign_hard_reg): Process conflict allocnos only once for
+	updating conflict costs.
+	(setup_allocno_available_regs_num): Use allocno data instead of
+	object ones.  Modify debug output.
+	(color_pass): Remove initialization and finalization of object
+	color data.
+
+2011-12-05  Kazu Hirata  <kazu@codesourcery.com>
+
+	PR target/51408
+	* config/arm/arm.md (*minmax_arithsi): Always require the else
+	clause in the MINUS case.
+
+2011-12-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50904
+	* tree-ssa-loop-im.c (struct mem_ref): Remove vops member.
+	(MEM_ANALYZABLE): New.
+	(memory_references): Remove clobbered_vops and vop_ref_map
+	members, add all_refs_stored_in_loop member.
+	(memref_free): Adjust.
+	(mem_ref_alloc): Likewise.
+	(gather_mem_refs_stmt): Do not record clobbers, instead
+	record refs for unanalyzable stmts.
+	(gather_mem_refs_in_loops): Do not propagate clobbers.
+	(struct vop_to_refs_elt, vtoe_hash, vtoe_eq, vtoe_free,
+	record_vop_access, get_vop_accesses, get_vop_stores,
+	add_vop_ref_mapping): Remove.
+	(create_vop_ref_mapping_loop): Adjust to simply record all
+	stores.
+	(analyze_memory_references): Adjust.
+	(refs_independent_p): Check for not analyzable refs.
+	(can_sm_ref_p): Likewise.
+	(ref_indep_loop_p_1): Simplify.
+	(tree_ssa_lim_finalize): Adjust.
+
+	* tree-ssa-loop-im.c (stmt_cost): Simplify, use LIM_EXPENSIVE
+	rather than magic constants.  Assign zero cost to PAREN_EXPR
+	and SSA_NAME copies.  Assign cost proportional to the vector
+	size for vector constructors.
+
+2011-12-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.h (struct ao_ref_s): Add volatile_p field.
+	* tree-ssa-alias.c (ao_ref_init): Initialize it.
+	(ao_ref_init_from_ptr_and_size): Likewise.
+	(refs_may_alias_p_1): Two volatile accesses conflict.
+	(ref_maybe_used_by_call_p_1): Likewise.
+	(call_may_clobber_ref_p_1): Likewise.
+	* tree-ssa-sccvn.c (ao_ref_init_from_vn_reference): Initialize
+	volatile_p field.
+
+2011-12-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa.c (verify_ssa): Verify SSA names in the loop
+	over all SSA names.  Remove SSA operand checking, call
+	verify_ssa_operands.
+	* tree-ssa-operands.h (verify_ssa_operands): Declare.
+	* tree-ssa-operands.c (verify_ssa_operands): New function.
+
+2011-12-05  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* config/arm/arm.c (vfp3_const_double_for_fract_bits): Define.
+	* config/arm/arm-protos.h (vfp3_const_double_for_fract_bits): Declare.
+	* config/arm/constraints.md ("Dt"): New constraint.
+	* config/arm/predicates.md
+	(const_double_vcvt_power_of_two_reciprocal): New.
+	* config/arm/vfp.md (FCVTI32typename): New.
+	(FCVT): New iterator.
+	(*combine_vcvt_f32_<FCVTI32typename>): New.
+	(*combine_vcvt_f64_<FCVTI32typename>): New.
+
 2011-12-05  Richard Guenther  <rguenther@suse.de>
 
 	* cgraph.c (cgraph_create_edge_1): Initialize

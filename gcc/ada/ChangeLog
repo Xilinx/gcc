@@ -1,3 +1,67 @@
+2011-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* gcc-interface/Makefile.in (LIBGNAT_TARGET_PAIRS [windows targets]):
+	Correctly detect cygwin, which no longer has the '32' suffix, and use
+	appropriate implementations of the sockets and memory packages.
+	* sysdep.c (WIN_SETMODE): New define to choose the correct spelling of
+	setmode/_setmode for MinGW and Cygwin, respectively.
+	(__gnat_set_binary_mode [windows targets]): Use the above, and enable
+	the windows version for Cygwin as well as MinGW.
+	(__gnat_set_text_mode [windows targets]): Likewise.
+	(__gnat_ttyname [windows targets]): Provide a Cygwin implementation
+	in addition to the MinGW version.
+	(__gnat_is_windows_xp): Make available to Cygwin as well as MinGW.
+	(__gnat_get_stack_bounds): Likewise.
+
+2011-12-05  Bob Duff  <duff@adacore.com>
+
+	* sem_ch4.adb: Minor comment fix.
+
+2011-12-05  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Add documentation for -gnatw.e.
+
+2011-12-05  Bob Duff  <duff@adacore.com>
+
+	* treepr.adb (pn): Print something useful for
+	Elmt_Ids. Add Write_Eol to 'when others' case, so the output
+	will be seen immediately in gdb.
+
+2011-12-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* lib-writ.adb (Output_Main_Program_Line): A generic subprogram
+	is never a main program.
+
+2011-12-05  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb: Various minor adjustments to dominance markers
+	generation.
+
+2011-12-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Expression_Function): If the function is
+	a completion, generate a body reference for its defining entity,
+	before rewriting the node as a body.
+	* sem_util.adb (Defining_Entity): Add entry for expression
+	function.
+
+2011-12-05  Bob Duff  <duff@adacore.com>
+
+	* sem_ch3.adb (Derive_Progenitor_Subprograms): Add Ultimate_Alias
+	to the Comes_From_Source check, to deal properly with the case
+	of indirect inheritance of "=".
+
+2011-12-05  Thomas Quinot  <quinot@adacore.com>
+
+	PR ada/51307
+	* s-oscons-tmplt.c: On HP-UX, CLOCK_REALTIME is an enum literal,
+	not a macro.
+
+2011-12-05  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb, scos.ads, put_scos.adb, get_scos.adb: Generate dominance
+	information in SCOs.
+
 2011-12-02  Eric Botcazou  <ebotcazou@adacore.com>
 	    Thomas Quinot <quinot@adacore.com>
 
