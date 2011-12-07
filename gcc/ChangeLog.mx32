@@ -1,0 +1,22 @@
+2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: For --with-abi=x32 or --with-multilib-list=mx32,
+	use i386/biarchx32.h instead of i386/biarch64.h.
+	(supported_defaults): Add abi for i[34567]86-*-* and x86_64-*-*.
+
+	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Add
+	OPTION_MASK_ISA_X86_64.
+
+	* config/i386/biarchx32.h: New.
+
+	* config/i386/gnu-user64.h (SPEC_64): Support TARGET_BI_ARCH == 2.
+	(SPEC_X32): Likewise.
+	(MULTILIB_DEFAULTS): Likewise.
+
+	* config/i386/i386.c (ix86_option_override_internal): Properly
+	set OPTION_MASK_ISA_64BIT and OPTION_MASK_ISA_X32.
+
+	* config/i386/i386.h (TARGET_X86_64): New.
+
+	* config/i386/i386.opt (m32): Replace ISA_64BIT with ISA_X86_64.
+	(mx86-64): New.
