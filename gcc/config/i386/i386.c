@@ -3097,8 +3097,26 @@ ix86_option_override_internal (bool main_args_p)
   SUBSUBTARGET_OVERRIDE_OPTIONS;
 #endif
 
-  if (TARGET_X32)
-    ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+  /* TARGET_X86_64 is only used to control if we should default to 32bit
+     or 64bit x86-64 code.  If TARGET_X86_64 is true, we are generating
+     x86-64 code.  */
+  if (TARGET_X86_64)
+    {
+#if defined (TARGET_BI_ARCH) && TARGET_BI_ARCH == 2
+      /* When TARGET_BI_ARCH == 2, we default to OPTION_MASK_ISA_X32 and
+	 OPTION_MASK_ISA_64BIT is off.  We turn off OPTION_MASK_ISA_X32
+	 if OPTION_MASK_ISA_64BIT is turned on by -m64.  */
+      if (TARGET_64BIT)
+	ix86_isa_flags &= ~OPTION_MASK_ISA_X32;
+      else
+#endif
+	/* Always turn on OPTION_MASK_ISA_64BIT for TARGET_X32.  */
+	if (TARGET_X32)
+	  ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+    }
+  else
+    /* Turn off OPTION_MASK_ISA_64BIT if TARGET_X86_64 is false.  */
+    ix86_isa_flags &= ~OPTION_MASK_ISA_64BIT;
 
   /* -fPIC is the default for x86_64.  */
   if (TARGET_MACHO && TARGET_64BIT)
