@@ -1,0 +1,8 @@
+2011-12-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* src/x86/ffi64.c (ffi_call): Cast the return value to
+	unsigned long.
+
+	* src/x86/ffitarget.h (ffi_arg): Set to unsigned long long for
+	x32.
+	(ffi_sarg): Set to long for x32.
