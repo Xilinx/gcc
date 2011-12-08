@@ -2865,7 +2865,7 @@ melt_scanning (melt_ptr_t p)
 	  (?_
 	   (errormsg_strv "invalid GTY-ed ctype for boxing"
 			   (get_field :named_name curctyp))
-	   (assert_msg "invalid curctype")
+	   (assert_msg "invalid curctype" ())
 	   ))
    )					;end foreach
   (add2sbuf_indentnl declbuf 0)
@@ -3426,6 +3426,55 @@ melt_scanning (melt_ptr_t p)
 
 ;;;;;;;;;;;;;;;;
 
+;; utility function to transate something to various flavors of modules
+(defun translate_to_flavored_module (inarg outarg carg flavors curenv)
+  (debug "translate_to_flavored_module inarg=" inarg 
+	 " outarg=" outarg " carg=" carg " flavors=" flavors " curenv=" curenv)
+  (let ( 
+	(basnam
+	 (cond
+	  ( (is_string outarg)
+	    (make_string_without_suffix discr_string outarg ".c"))
+	  ( (is_string inarg) 
+	    (make_string_nakedbasename discr_string inarg))
+	  (:else 
+	   (errormsg_plain "invalid translate to flavored module arguments")
+	   (return)))
+	 )
+	(outnam (or outarg basnam))
+	(rawsrcnam (or (make_string_without_suffix discr_string carg ".c")
+		       (make_string_nakedbasename discr_string outnam)))
+	(outbase (make_string_without_suffix discr_string outnam  ".c"))
+	)
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (debug "translate_to_flavored_module basnam=" basnam 
+	   " rawsrcnam=" rawsrcnam " outbase=" outbase)
+    (translate_to_c_one_or_more_melt_files inarg outbase curenv)
+    (cond 
+     ( (is_string flavors)
+       (debug "before generate_flavored_melt_module rawsrcnam=" rawsrcnam " outnam=" outnam
+	      "flavor=" flavors)
+       (generate_flavored_melt_module rawsrcnam outnam flavors))
+     ( (is_list flavors)
+       (foreach_in_list
+	(flavors)
+	(curpair curflavor)
+	(debug "before generate_flavored_melt_module rawsrcnam=" rawsrcnam " outnam=" outnam
+	       "flavor=" curflavor)
+	(generate_flavored_melt_module rawsrcnam outnam curflavor)))
+     ( (is_multiple flavors)
+       (foreach_in_multiple
+	(flavors)
+	(curflavor :long flix)
+	(debug "before generate_flavored_melt_module rawsrcnam=" rawsrcnam " outnam=" outnam
+	       "flavor=" curflavor " flix=" flix)
+	(generate_flavored_melt_module rawsrcnam outnam curflavor)))
+     (:else
+      (debug "translate_to_flavored_module bad flavors=" flavors)
+      (assert_msg "invalid flavors" ())
+      )
+     )))
+
 (defun translatetomodule_docmd (cmd moduldata)
   (message_dbg "starting translatetomodule_docmd")
   (debug "start translatetomodule_docmd cmd=" cmd " moduldata=" moduldata)
@@ -3437,34 +3486,16 @@ melt_scanning (melt_ptr_t p)
 	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
     (debug "translatetomodule_docmd inarg=" inarg " outarg=" outarg
-	   " parmodenv=" parmodenv " initial_environment=" initial_environment)
-    (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (basnam (cond
-		    ( (is_string outarg)
-		      (make_string_without_suffix discr_string outarg ".c"))
-		    ( (is_string inarg) 
-		      (make_string_nakedbasename discr_string inarg))
-		    (:else
-		     (errormsg_plain "invalid translatetomodule mode")
-		     (return)
-		     )))
-	   (outnam (or outarg basnam))
-	   (rawsrcnam (or coutarg
-			  (make_string_nakedbasename discr_string outnam)))
-	   (outbase (make_string_without_suffix discr_string outnam  ".c"))
-	   )
-      (debug "translatetomodule_docmd basnam=" basnam " rawsrcnam=" rawsrcnam " outbase=" outbase)
-      (translate_to_c_one_or_more_melt_files inarg outbase curenv)
-      (generate_melt_module rawsrcnam outnam)
-      )))
-
+	   " coutarg=" coutarg " curenv=" curenv)
+    (translate_to_flavored_module inarg outarg coutarg
+				  (tuple '"quicklybuilt" '"optimized" '"debugnoline")) 
+    curenv))
 
 (definstance translatetomodule_mode
   class_melt_mode
   :named_name '"translatetomodule"
-  :meltmode_help '"translate a .melt file to .so module;\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so; OUTPUTC= generated *.c file;\n
-\t no debugging is enabled (no gdb, no\n DEBUG...)"
+  :meltmode_help '"translate a .melt file to .so modules in quicklybuilt, optimized, debugnoline flavors;\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so; OUTPUTC= generated *.c file."
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
@@ -3481,43 +3512,13 @@ melt_scanning (melt_ptr_t p)
 	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
     (debug "translatedebug_docmd inarg=" inarg " outarg=" outarg
-	   " parmodenv=" parmodenv 
-	   " initial_environment=" initial_environment)
-    (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (basnam (cond
-		    ( (is_string outarg) 
-		      (make_string_without_suffix discr_string outarg ".c"))
-		    ( (is_string inarg)
-		      (make_string_nakedbasename discr_string inarg))
-		    (:else
-		     (errormsg_plain "invalid translatedebug mode")
-		     (return)
-		     )))
-	   (srcnam (or coutarg
-	    (let ( (srcnambuf (make_strbuf discr_strbuf)) )
-	      (add2sbuf_string srcnambuf basnam)
-	      (add2sbuf_strconst srcnambuf ".c")
-	      (strbuf2string discr_string srcnambuf))))
-	   (srcbase 
-	     (make_string_without_suffix discr_string srcnam  ".c"))
-	   (dbgmodulnam
-	    (or outarg
-		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
-		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".debugnoline.so")
-		  (strbuf2string discr_string dbgnambuf))))
-	   )
-      (debug "translatedebug_docmd basnam=" basnam " srcnam=" srcnam " srcbase=" srcbase)
-      (translate_to_c_one_or_more_melt_files inarg srcbase curenv)
-      (debug "translatedebug_docmd dbgmodulnam=" dbgmodulnam)
-      (generate_melt_module srcnam dbgmodulnam)
-      )))
-
+	   " coutarg=" coutarg " curenv=" curenv)
+    (translate_to_flavored_module inarg outarg coutarg '"debugnoline" curenv)))
 
 (definstance translatedebug_mode
   class_melt_mode
   :named_name '"translatedebug"
-  :meltmode_help '"translate a .melt file to .so module for low-level
+  :meltmode_help '"translate a .melt file to .debugnoline.so module for low-level
 debug, including gdb;\n
 \t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
 \t generates also *.c and no MELT line number;\n
@@ -3529,7 +3530,6 @@ ASSERT_MSG) is enabled"
 
 ;;;;;;;;;;;;;;;;
 (defun translatequickly_docmd (cmd moduldata)
-  (message_dbg "starting translatequickly_docmd")
   (debug "start translatequickly_docmd cmd=" cmd " moduldata=" moduldata)
   (let ( 
 	(parmodenv (parent_module_environment))
@@ -3539,47 +3539,45 @@ ASSERT_MSG) is enabled"
 	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
     (debug "translatequickly_docmd inarg=" inarg " outarg=" outarg
-	   " parmodenv=" parmodenv " initial_environment=" initial_environment)
-    (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (basnam (cond
-		    ( (is_string outarg)
-		      (make_string_without_suffix discr_string outarg ".c"))
-		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
-		    (:else
-		     (errormsg_plain "invalid translatequickly mode")
-		     (return)
-		     )))
-	   (srcnam (or coutarg
-	    (let ( (srcnambuf (make_strbuf discr_strbuf)) )
-	      (add2sbuf_string srcnambuf basnam)
-	      (add2sbuf_strconst srcnambuf ".c")
-	      (strbuf2string discr_string srcnambuf))))
-	   (srcbase 
-	     (make_string_without_suffix discr_string srcnam  ".c"))
-	   (quimodulnam
-	    (or outarg
-		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
-		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".quicklybuilt.so")
-		  (strbuf2string discr_string dbgnambuf))))
-	   )
-      (debug "translatequickly_docmd basnam=" basnam " srcnam=" srcnam " srcbase=" srcbase)
-      (translate_to_c_one_or_more_melt_files inarg srcbase curenv)
-      (debug "translatequickly_docmd quimodulnam=" quimodulnam)
-      (generate_quickly_melt_module srcnam quimodulnam)
-      )))
+	   " coutarg=" coutarg " curenv=" curenv)
+    (translate_to_flavored_module inarg outarg coutarg '"quicklybuilt" curenv)))
+
 
 
 (definstance translatequickly_mode
   class_melt_mode
   :named_name '"translatequickly"
-  :meltmode_help '"translate quickly a .melt file to .so module with MELT debuging enabld (DEBUG, ASSERT_MSG...);\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
-\t generates also *.c and no MELT line number;\n
-\t Useful for running gdb on the module."
+  :meltmode_help '"translate quickly a .melt file to .quicklybuilt.so module with MELT debugging enabled (DEBUG, ASSERT_MSG...);\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n."
   :meltmode_fun translatequickly_docmd
 )
 (install_melt_mode translatequickly_mode)
+
+
+;;;;;;;;;;;;;;;;
+(defun translateoptimized_docmd (cmd moduldata)
+  (debug "start translateoptimized_docmd cmd=" cmd " moduldata=" moduldata)
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv (if moduldata moduldata initial_environment))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(outarg (make_stringconst discr_string (melt_argument "output")))
+	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
+	)
+    (debug "translateoptimized_docmd inarg=" inarg " outarg=" outarg
+	   " coutarg=" coutarg " curenv=" curenv)
+    (translate_to_flavored_module inarg outarg coutarg '"optimized" curenv)))
+
+
+
+(definstance translateoptimized_mode
+  class_melt_mode
+  :named_name '"translateoptimized"
+  :meltmode_help '"translate  a .melt file to an .optimized.so module without MELT debugging\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n."
+  :meltmode_fun translateoptimized_docmd
+)
+(install_melt_mode translateoptimized_mode)
 
 
 ;;;;;;;;;;;;;;;;
