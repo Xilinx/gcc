@@ -164,6 +164,16 @@ struct pph_stream {
   /* Path name of the PPH file.  */
   const char *name;
 
+  /* Path name of the original text header file.  This is the full
+     path name of the header as found by the pre-processor after
+     doing include path expansion.  Note that this may not necessarily
+     be an absolute path name.
+
+     We rely on this path name to identify the corresponding PPH name
+     when deciding whether to load external PPH files in
+     pph_in_line_table_and_includes.  */
+  const char *header_name;
+
   /* FILE object associated with it.  */
   FILE *file;
 

@@ -65,6 +65,10 @@ pph_init_write (pph_stream *stream)
   /* Associate STREAM with stream->encoder.w.ob so we can recover it from the
      streamer hooks.  */
   stream->encoder.w.ob->sdata = (void *) stream;
+
+  /* Since we are about to generate STREAM, its header name is the
+     name of the header file that we are currently parsing.  */
+  stream->header_name = xstrdup (input_filename);
 }
 
 
@@ -280,45 +284,6 @@ pph_out_include (pph_stream *stream, pph_stream *include,
 }
 
 
-/* Compare filenames of a header and it's potentially corresponding pph file,
-   stripping the path passed in and the extension. Returns true if HEADER_PATH
-   and PPH_PATH end with the same filename. We expect HEADER_PATH to end in .h
-   and PPH_PATH to end in .pph.
-
-   FIXME pph: We should not need to do this if we handled include paths
-   correctly, but for now the linemap holds full paths and the stream's includes
-   list only holds the include name.  Also, the stream's includes hold pph
-   filenames where as the line_table as header filenames.  */
-
-static bool
-pph_filename_eq_ignoring_path (const char *header_path, const char *pph_path)
-{
-  const char *header_name = lbasename (header_path);
-  const char *pph_name = lbasename (pph_path);
-
-  const char *header_ext = strchr (header_name, '.');
-  const char *pph_ext = strchr (pph_name, '.');
-
-  unsigned int name_length;
-
-  if (header_ext != NULL)
-    {
-      name_length = header_ext - header_name;
-      gcc_assert (strcmp (header_ext, ".h") == 0);
-    }
-  else
-    /* Some headers do not have a .h suffix, but will still
-       have a .pph suffix after being pph'ed.  */
-    name_length = strlen (header_name);
-
-  gcc_assert (strcmp (pph_ext, ".pph") == 0);
-
-  /* Compare the filenames without their extension.  */
-  return pph_ext - pph_name == name_length
-         && strncmp (header_name, pph_name, name_length) == 0;
-}
-
-
 /* Return the *NEXT_INCLUDE_IX'th pph_stream in STREAM's list of includes.
    Returns NULL if we have read all includes.  Increments *NEXT_INCLUDE_IX
    when sucessful.  */
@@ -351,6 +316,10 @@ pph_out_line_table_and_includes (pph_stream *stream)
   /* Any #include should have been fully parsed and exited at this point.  */
   gcc_assert (line_table->depth == 0);
 
+  /* Write the path name of the original text header file that was
+     used to generate STREAM.  */
+  pph_out_string (stream, stream->header_name);
+
   current_include = pph_get_next_include (stream, &next_incl_ix);
 
   for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
@@ -379,8 +348,7 @@ pph_out_line_table_and_includes (pph_stream *stream)
 	 reference to it, so the reader can load the included image at
 	 this point.  */
       if (current_include != NULL
-	  && pph_filename_eq_ignoring_path (LINEMAP_FILE (lm),
-	                                    current_include->name))
+	  && strcmp (current_include->header_name, LINEMAP_FILE (lm)) == 0)
 	{
 	  struct line_map *included_from;
 

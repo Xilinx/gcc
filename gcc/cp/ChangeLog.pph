@@ -1,3 +1,13 @@
+2011-12-08   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.h (struct pph_stream): Add field HEADER_NAME.
+	* pph-in.c (pph_in_line_table_and_includes): Read it.
+	* pph-out.c (pph_init_write): Initialize it from input_filename.
+	(pph_filename_eq_ignoring_path): Remove.
+	(pph_out_line_table_and_includes): Write STREAM->HEADER_NAME.
+	Compare the file name in LM against STREAM->HEADER_NAME to
+	decide whether to write a reference to an external PPH.
+
 2011-12-05   Diego Novillo  <dnovillo@google.com>
 
 	* cp/pph-in.c (pph_in_merge_key_binding_level): Support NULL values
