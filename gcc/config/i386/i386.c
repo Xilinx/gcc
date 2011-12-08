@@ -3097,26 +3097,45 @@ ix86_option_override_internal (bool main_args_p)
   SUBSUBTARGET_OVERRIDE_OPTIONS;
 #endif
 
-  /* TARGET_X86_64 is only used to control if we should default to 32bit
-     or 64bit x86-64 code.  If TARGET_X86_64 is true, we are generating
-     x86-64 code.  */
-  if (TARGET_X86_64)
-    {
-#if defined (TARGET_BI_ARCH) && TARGET_BI_ARCH == 2
-      /* When TARGET_BI_ARCH == 2, we default to OPTION_MASK_ISA_X32 and
-	 OPTION_MASK_ISA_64BIT is off.  We turn off OPTION_MASK_ISA_X32
-	 if OPTION_MASK_ISA_64BIT is turned on by -m64.  */
-      if (TARGET_64BIT)
-	ix86_isa_flags &= ~OPTION_MASK_ISA_X32;
-      else
-#endif
-	/* Always turn on OPTION_MASK_ISA_64BIT for TARGET_X32.  */
-	if (TARGET_X32)
-	  ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
-    }
+  /* Turn off both OPTION_MASK_ISA_X86_64 and OPTION_MASK_ISA_X32 if
+     TARGET_64BIT is false.  */
+  if (!TARGET_64BIT)
+    ix86_isa_flags &= ~(OPTION_MASK_ISA_X86_64 | OPTION_MASK_ISA_X32);
+#ifdef TARGET_BI_ARCH
   else
-    /* Turn off OPTION_MASK_ISA_64BIT if TARGET_X86_64 is false.  */
-    ix86_isa_flags &= ~OPTION_MASK_ISA_64BIT;
+    {
+#if TARGET_BI_ARCH == 1
+      /* When TARGET_BI_ARCH == 1, by default, OPTION_MASK_ISA_X86_64
+	 is on and OPTION_MASK_ISA_X32 is off.  We turn off
+	 OPTION_MASK_ISA_X86_64 if OPTION_MASK_ISA_X32 is turned on by
+	 -mx32.  */
+      if (TARGET_X32)
+	ix86_isa_flags &= ~OPTION_MASK_ISA_X86_64;
+#else
+      /* When TARGET_BI_ARCH == 2, by default, OPTION_MASK_ISA_X32 is
+	 on and OPTION_MASK_ISA_X86_64 is off.  We turn off
+	 OPTION_MASK_ISA_X32 if OPTION_MASK_ISA_X86_64 is turned on by
+	 -m64.  */
+      if (TARGET_X86_64)
+	ix86_isa_flags &= ~OPTION_MASK_ISA_X32;
+#endif
+    }
+#endif
+
+  if (TARGET_X32)
+    {
+      /* Always turn on OPTION_MASK_ISA_64BIT and turn off
+	 OPTION_MASK_ISA_X86_64 for TARGET_X32.  */
+      ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+      ix86_isa_flags &= ~OPTION_MASK_ISA_X86_64;
+    }
+  else if (TARGET_X86_64)
+    {
+      /* Always turn on OPTION_MASK_ISA_64BIT and turn off
+	 OPTION_MASK_ISA_X32 for TARGET_X86_64.  */
+      ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+      ix86_isa_flags &= ~OPTION_MASK_ISA_X32;
+    }
 
   /* -fPIC is the default for x86_64.  */
   if (TARGET_MACHO && TARGET_64BIT)
