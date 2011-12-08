@@ -273,11 +273,11 @@ Use 128-bit AVX instructions instead of 256-bit AVX instructions in the auto-vec
 ;; ISA support
 
 m32
-Target RejectNegative Negative(m64) Report InverseMask(ISA_X86_64) Var(ix86_isa_flags) Save
+Target RejectNegative Negative(m64) Report InverseMask(ISA_64BIT) Var(ix86_isa_flags) Save
 Generate 32bit i386 code
 
 m64
-Target RejectNegative Negative(mx32) Report Mask(ISA_64BIT) Var(ix86_isa_flags) Save
+Target RejectNegative Negative(mx32) Report Mask(ISA_X86_64) Var(ix86_isa_flags) Save
 Generate 64bit x86-64 code
 
 mx32
@@ -285,7 +285,7 @@ Target RejectNegative Negative(m32) Report Mask(ISA_X32) Var(ix86_isa_flags) Sav
 Generate 32bit x86-64 code
 
 mx86-64
-Target Undocumented Mask(ISA_X86_64) Var(ix86_isa_flags) Save
+Target Undocumented Mask(ISA_64BIT) Var(ix86_isa_flags) Save
 Generate 32bit or 64bit x86-64 code
 
 mmmx

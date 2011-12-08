@@ -1,5 +1,21 @@
 2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Re-order.
+
+	* config/i386/biarchx32.h (TARGET_64BIT_DEFAULT): Replace
+	OPTION_MASK_ISA_X86_64 with OPTION_MASK_ISA_64BIT.
+
+	* config/i386/i386.c (ix86_option_override_internal): Properly
+	handle -m32, -m64 and -mx32.
+
+	* config/i386/i386.h (TARGET_LP64): Changed to TARGET_X86_64.
+
+	* config/i386/i386.opt (m32): Changed back to ISA_64BIT.
+	(m64): Replace ISA_64BIT with ISA_X86_64.
+	(mx86-64): Replace ISA_X86_64 with ISA_64BIT.
+
+2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config.gcc: Also support --with-abi={mx32|m64}.
 
 2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>

@@ -74,7 +74,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define TARGET_RDRND	OPTION_ISA_RDRND
 #define TARGET_F16C	OPTION_ISA_F16C
 
-#define TARGET_LP64	(TARGET_64BIT && !TARGET_X32)
+#define TARGET_LP64	TARGET_X86_64
 
 /* SSE4.1 defines round instructions */
 #define	OPTION_MASK_ISA_ROUND	OPTION_MASK_ISA_SSE4_1
